@@ -31,6 +31,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { fal } from '@fal-ai/client'
 import { CINEMATIC_CLAIM_EVENT, authorizeCinematicCompletedUrls, loadVerifiedCinematicClaim } from '@/lib/cinematic/claim'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
+import { videoReadyFooter, type VideoReadyFooter } from '@/lib/lifecycle/videoReadyFooter'
 import { POST as composePost } from '@/app/api/compose/route'
 import { GET as composeStatusGet } from '@/app/api/compose/status/[renderId]/route'
 
@@ -196,6 +197,70 @@ function rescueHtml(finishUrl: string, userId: string): string {
 ${emailFooterHtml(userId)}`
 }
 
+// ═══ sprint-assinaturas #25 (02/09) — O E-MAIL DE RESGATE ERA UMA CÓPIA MUDA ══
+// Medido 02/09 (externos, 14d): 24 filmes resgatados, 22 pessoas, 21 delas com
+// UM vídeo na vida. Em 16 dos 24 o vídeo foi persistido NO MESMO SEGUNDO do
+// aviso — ou seja, o poke do status (modo serviço) já tinha disparado o
+// "⚡ Your Short is ready to download!" da rota de status (com o rodapé por
+// situação do #24) e este cron mandava um SEGUNDO "Your video is ready 🎬"
+// segundos depois, sem episódio 2, sem plano, sem nada. Em 3 casos foram TRÊS
+// e-mails para o mesmo filme (Fase 3 + Fase 2, 15 min depois). Zero downloads
+// depois do aviso em 21 das 22 pessoas. Regra nova: (1) se a rota de status
+// já carimbou `video_ready_email_sent` para este render, o cron NÃO manda o
+// seu (marca o render como notificado e segue); (2) quando o do cron é o
+// único que sai (Resend falhou lá, ou vídeo persistido antes do carimbo
+// existir), ele leva o MESMO rodapé por situação do #24 — assinante = episódio
+// 2 sem preço; trial com saldo = episódio 2 antes do plano; sem saldo = plano
+// medido em filmes como este. Nenhum número digitado (tudo vem das funções
+// canônicas via lib/lifecycle/videoReadyFooter.ts).
+const READY_PAID_PLANS = new Set([
+  'starter', 'starter_trial', 'basic', 'basic_trial',
+  'pro', 'pro_trial', 'creator', 'creator_trial', 'studio', 'studio_trial',
+])
+const STATUS_READY_STAMP = 'video_ready_email_sent'
+
+type ReadyProfile = { has_paid?: boolean | null; plan?: string | null; video_credits?: number | null } | null
+type ReadyVideoRow = { title?: string | null; topic?: string | null; credits_used?: number | null; duration?: number | null } | null
+
+function readyIsSubscriber(prof: ReadyProfile): boolean {
+  const planName = (prof?.plan ?? 'free').toLowerCase()
+  return prof?.has_paid === true || READY_PAID_PLANS.has(planName)
+}
+
+/** Mesmas entradas do #24 (rota de status), lidas do perfil e da linha de `videos`. */
+function readyFooterFor(prof: ReadyProfile, vid: ReadyVideoRow): VideoReadyFooter {
+  const credits = typeof prof?.video_credits === 'number' && Number.isFinite(prof.video_credits) ? prof.video_credits : null
+  const cost = typeof vid?.credits_used === 'number' && Number.isFinite(vid.credits_used) ? vid.credits_used : 0
+  const topic = ((vid?.title ?? '') || (vid?.topic ?? '') || '').trim()
+  const duration = typeof vid?.duration === 'number' && Number.isFinite(vid.duration) && vid.duration > 0 ? vid.duration : null
+  return videoReadyFooter({
+    isSubscriber: readyIsSubscriber(prof),
+    creditsRemaining: credits,
+    cost,
+    topic,
+    durationSeconds: duration,
+    appUrl: APP_URL,
+  })
+}
+
+/** A rota de status já mandou o "⚡ Your Short is ready" deste render? Fail-closed
+ *  como o #4: erro na consulta = não manda (perder um e-mail custa um clique;
+ *  mandar dois no mesmo segundo custa a confiança). */
+async function statusRouteAlreadyEmailed(admin: SupabaseClient, userId: string, renderId: string): Promise<'sent' | 'none' | 'lookup_failed'> {
+  const { data, error } = await admin
+    .from('events')
+    .select('id')
+    .eq('name', STATUS_READY_STAMP)
+    .eq('user_id', userId)
+    .eq('metadata->>render_id', renderId)
+    .limit(1)
+  if (error) {
+    console.error(`[stranded] status-stamp lookup failed render=${renderId.slice(0, 8)}: ${error.message}`)
+    return 'lookup_failed'
+  }
+  return (data ?? []).length > 0 ? 'sent' : 'none'
+}
+
 function readyText(videoUrl: string): string {
   return `Your video is ready. 🎬
 
@@ -203,18 +268,22 @@ You started a film on Kineo and we finished it for you — scenes, voiceover, ca
 
 ${videoUrl}
 
+Ready for the next one? ${APP_URL}/studio
+
 Post it somewhere? Paste the link in the app afterwards and you get +3 credits back.
 
 — Kineo`
 }
 
-function readyHtml(videoUrl: string, userId: string): string {
+function readyHtml(videoUrl: string, userId: string, footer: VideoReadyFooter): string {
   return `
 <div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#1e293b;line-height:1.6">
   <p style="font-size:18px"><b>Your video is ready 🎬</b></p>
   <p>You started a film on Kineo and we finished it for you — scenes, voiceover, captions and music, all assembled.</p>
   <p style="margin:26px 0"><a href="${videoUrl}" style="background:#2997ff;color:#ffffff;padding:13px 24px;border-radius:10px;text-decoration:none;font-weight:bold">Watch my video &rarr;</a></p>
-  <p style="color:#64748b;font-size:13px">Post it somewhere? Paste the link in the app afterwards and you get +3 credits back.</p>
+  <!-- rodapé do #24 foi desenhado para fundo escuro (strong em #fff): cartão escuro aqui, senão o saldo some no branco -->
+  <div style="background:#161618;color:#fff;padding:4px 20px 20px;border-radius:12px;margin:0 0 6px">${footer.html}</div>
+  <p style="color:#64748b;font-size:13px;margin-top:18px">Post it somewhere? Paste the link in the app afterwards and you get +3 credits back.</p>
   <p style="color:#64748b;font-size:13px">— Kineo</p>
 </div>
 ${emailFooterHtml(userId)}`
@@ -324,7 +393,7 @@ export async function GET(req: NextRequest) {
   const { data: markerRows, error: markerErr } = await admin
     .from('events')
     .select('name, session_id, metadata')
-    .in('name', [RESCUE_EVENT, ATTEMPT_EVENT, READY_EVENT, COMPOSED_EVENT, OUTCOME_EVENT])
+    .in('name', [RESCUE_EVENT, ATTEMPT_EVENT, READY_EVENT, FAST_READY_EVENT, COMPOSED_EVENT, OUTCOME_EVENT])
     .in('session_id', genIds.slice(0, 200))
   // sprint-assinaturas #4 — o erro deste lote era engolido; agora vai pro log e
   // viaja no `stranded_dedupe_miss` quando o lookup direto pega o que o lote perdeu.
@@ -341,7 +410,9 @@ export async function GET(req: NextRequest) {
     const sid = m.session_id as string | null
     if (!sid) continue
     if (m.name === RESCUE_EVENT) rescued.add(sid)
-    else if (m.name === READY_EVENT) readySent.add(sid)
+    // sprint-assinaturas #25 — o aviso da Fase 3 (fast) também conta: 3 filmes
+    // em 14d receberam Fase 3 + Fase 2 = dois avisos para o mesmo render.
+    else if (m.name === READY_EVENT || m.name === FAST_READY_EVENT) readySent.add(sid)
     else if (m.name === ATTEMPT_EVENT) attempts.set(sid, (attempts.get(sid) ?? 0) + 1)
     else if (m.name === OUTCOME_EVENT) {
       const oc = String((m as { metadata?: { outcome?: unknown } }).metadata?.outcome ?? '')
@@ -375,7 +446,8 @@ export async function GET(req: NextRequest) {
     // só não recebem e-mail).
     const { data: prof } = await admin
       .from('profiles')
-      .select('email, email_opted_out')
+      // sprint-assinaturas #25 — has_paid/plan/video_credits decidem o rodapé.
+      .select('email, email_opted_out, has_paid, plan, video_credits')
       .eq('id', userId)
       .maybeSingle()
     const email = prof?.email ?? ''
@@ -440,7 +512,7 @@ export async function GET(req: NextRequest) {
       }
       const { data: vid } = await admin
         .from('videos')
-        .select('id, status, video_url, final_video_url')
+        .select('id, status, video_url, final_video_url, title, topic, credits_used, duration')
         .eq('user_id', userId)
         .eq('render_id', renderId)
         .maybeSingle()
@@ -450,9 +522,20 @@ export async function GET(req: NextRequest) {
           // sprint-assinaturas #4 — confirmação direta antes de enviar (fail-closed).
           const verdict = await alreadySentDirect(admin, { eventName: READY_EVENT, genId, userId, batchHad: readySent.has(genId), batchSize: (markerRows ?? []).length, batchError: markerBatchError })
           if (!verdict.send) { results.push({ generation: gen8, outcome: verdict.reason === 'already_sent' ? 'already_notified_direct' : 'ready_dedupe_lookup_failed' }); continue }
-          const ok = await sendEmail(email, userId, 'Your video is ready 🎬', readyText(`${APP_URL}/history?utm_source=stranded_ready`), readyHtml(`${APP_URL}/history?utm_source=stranded_ready`, userId))
+          // sprint-assinaturas #25 — a rota de status (poke em modo serviço) já
+          // mandou o "⚡ Your Short is ready" com rodapé? Então este seria o 2º
+          // e-mail no mesmo segundo: marca como notificado e não manda.
+          const statusMail = await statusRouteAlreadyEmailed(admin, userId, renderId)
+          if (statusMail === 'lookup_failed') { results.push({ generation: gen8, outcome: 'ready_status_stamp_lookup_failed' }); continue }
+          if (statusMail === 'sent') {
+            await admin.from('events').insert({ user_id: userId, name: READY_EVENT, session_id: genId, metadata: { render_id: renderId, email: 'status_route' } })
+            results.push({ generation: gen8, outcome: 'ready_notified_by_status' })
+            continue
+          }
+          const footer = readyFooterFor(prof, vid)
+          const ok = await sendEmail(email, userId, 'Your video is ready 🎬', readyText(`${APP_URL}/history?utm_source=stranded_ready`), readyHtml(`${APP_URL}/history?utm_source=stranded_ready`, userId, footer))
           if (ok) {
-            await admin.from('events').insert({ user_id: userId, name: READY_EVENT, session_id: genId, metadata: { render_id: renderId } })
+            await admin.from('events').insert({ user_id: userId, name: READY_EVENT, session_id: genId, metadata: { render_id: renderId, footer: footer.kind, subscriber: readyIsSubscriber(prof), cost: vid?.credits_used ?? null, credits_remaining: prof?.video_credits ?? null } })
             ready++
             results.push({ generation: gen8, outcome: 'ready_email_sent' })
           } else results.push({ generation: gen8, outcome: 'ready_email_failed' })
@@ -641,7 +724,7 @@ export async function GET(req: NextRequest) {
 
     const fastGenIds = (fastClaims ?? []).map((c) => c.session_id).filter((x): x is string => !!x)
     const { data: fastMarkers, error: fastMarkerErr } = fastGenIds.length > 0
-      ? await admin.from('events').select('session_id').eq('name', FAST_READY_EVENT).in('session_id', fastGenIds.slice(0, 200))
+      ? await admin.from('events').select('session_id').in('name', [FAST_READY_EVENT, READY_EVENT]).in('session_id', fastGenIds.slice(0, 200))
       : { data: [] as Array<{ session_id: string | null }>, error: null }
     const alreadyFast = new Set((fastMarkers ?? []).map((m) => m.session_id as string))
     // sprint-assinaturas #4 — 9 de 9 resgates do Kineo 1 saíram repetidos; o erro
@@ -680,24 +763,35 @@ export async function GET(req: NextRequest) {
 
       const { data: vid } = await admin
         .from('videos')
-        .select('id, status, video_url, final_video_url')
+        .select('id, status, video_url, final_video_url, title, topic, credits_used, duration')
         .eq('user_id', userId)
         .eq('render_id', renderId)
         .maybeSingle()
       const finalUrl = (vid?.final_video_url ?? vid?.video_url ?? '') as string
       if (vid?.status !== 'completed' || !finalUrl) continue
 
-      const { data: prof } = await admin.from('profiles').select('email, email_opted_out').eq('id', userId).maybeSingle()
+      // sprint-assinaturas #25 — has_paid/plan/video_credits decidem o rodapé.
+      const { data: prof } = await admin.from('profiles').select('email, email_opted_out, has_paid, plan, video_credits').eq('id', userId).maybeSingle()
       const email = (prof?.email ?? '') as string
       const mayEmailFast = !!email && !prof?.email_opted_out && !isInternalOrJunkEmail(email)
       if (mayEmailFast) {
         // sprint-assinaturas #4 — confirmação direta antes de enviar (fail-closed).
         const verdict = await alreadySentDirect(admin, { eventName: FAST_READY_EVENT, genId, userId, batchHad: alreadyFast.has(genId), batchSize: (fastMarkers ?? []).length, batchError: fastBatchError })
         if (!verdict.send) { results.push({ generation: genId.slice(0, 8), outcome: verdict.reason === 'already_sent' ? 'fast_already_notified_direct' : 'fast_dedupe_lookup_failed' }); continue }
+        // sprint-assinaturas #25 — mesma regra da Fase 2: se a rota de status já
+        // avisou (com rodapé), não mandar o 2º e-mail; senão, mandar COM rodapé.
+        const statusMail = await statusRouteAlreadyEmailed(admin, userId, renderId)
+        if (statusMail === 'lookup_failed') { results.push({ generation: genId.slice(0, 8), outcome: 'fast_ready_status_stamp_lookup_failed' }); continue }
+        if (statusMail === 'sent') {
+          await admin.from('events').insert({ user_id: userId, name: FAST_READY_EVENT, session_id: genId, metadata: { render_id: renderId, email: 'status_route' } })
+          results.push({ generation: genId.slice(0, 8), outcome: 'fast_ready_notified_by_status' })
+          continue
+        }
+        const footer = readyFooterFor(prof, vid)
         const link = `${APP_URL}/history?utm_source=stranded_fast_ready`
-        const ok = await sendEmail(email, userId, 'Your video is ready 🎬', readyText(link), readyHtml(link, userId))
+        const ok = await sendEmail(email, userId, 'Your video is ready 🎬', readyText(link), readyHtml(link, userId, footer))
         if (ok) {
-          await admin.from('events').insert({ user_id: userId, name: FAST_READY_EVENT, session_id: genId, metadata: { render_id: renderId } })
+          await admin.from('events').insert({ user_id: userId, name: FAST_READY_EVENT, session_id: genId, metadata: { render_id: renderId, footer: footer.kind, subscriber: readyIsSubscriber(prof), cost: vid?.credits_used ?? null, credits_remaining: prof?.video_credits ?? null } })
           fastReady++
           results.push({ generation: genId.slice(0, 8), outcome: 'fast_ready_email_sent' })
         }
