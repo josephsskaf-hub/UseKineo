@@ -47,7 +47,88 @@ const NAO_E_BUG = [
   'full capacity',
   "can't depict real people",
   'trial has',
+  // sprint-assinaturas #5 (02/09): um render seu ainda segurando crédito é
+  // regra, não defeito — o crédito volta sozinho quando ele termina/estorna.
+  'still holding',
+  'already started is still',
 ]
+
+// ═══ sprint-assinaturas #5 — 02/09/2026 — O CRON IA MENTIR PARA A LISTA MAIS QUENTE
+//
+// Medido antes do 1º disparo real (o vercel.json só ganhou ?confirm=SEND em
+// 01/09 às 21:16; o cron dormiu 30 dias em DRY_RUN): dos 11 elegíveis das
+// últimas 48h, SETE falharam com "Your script is about 23 seconds of
+// narration, but you asked for a 35-second video… Add about 23 more words".
+// Isso NÃO é bug — é o produto recusando um vídeo com 12s de música sem
+// história. Em 14 dias foi a maior causa individual de falha de gente real
+// (24 falhas · 19 pessoas · 4 delas com os 25cr do trial intactos e ZERO
+// vídeo). O e-mail de defeito diria a elas "that was our fault, a bug on our
+// side, and it is fixed now — the same idea will work now". Três mentiras em
+// duas linhas: não era nosso, não está "consertado", e a mesma ideia com o
+// mesmo roteiro falha de novo igualzinho. Quem clica, falha, e agora sabe
+// que a marca mente.
+//
+// O que a pessoa precisa é o oposto: os NÚMEROS dela (narração de Xs, vídeo
+// pedido de Ys, faltam ~N palavras) e as duas saídas de 30 segundos —
+// escolher a duração mais perto da narração, ou colar o roteiro com N
+// palavras a mais. Crédito intacto, sem desculpa falsa, sem cupom.
+//
+// O carimbo continua sendo `failure_recovery_sent` (1× por pessoa para
+// sempre), com metadata.kind = 'bug' | 'script_short' para medir separado.
+const RE_SCRIPT_SHORT =
+  /about (\d+) seconds? of narration.*?(\d+)-second video.*?add about (\d+) more words?/i
+
+type Kind = 'bug' | 'script_short'
+type ScriptShort = { narrationSec: number; requestedSec: number; wordsMissing: number }
+
+function classifyFailure(erro: string): { kind: Kind; short?: ScriptShort } {
+  const m = erro.replace(/\s+/g, ' ').match(RE_SCRIPT_SHORT)
+  if (m) {
+    return {
+      kind: 'script_short',
+      short: { narrationSec: Number(m[1]), requestedSec: Number(m[2]), wordsMissing: Number(m[3]) },
+    }
+  }
+  return { kind: 'bug' }
+}
+
+function buildScriptShortEmail(userId: string, credits: number, s: ScriptShort) {
+  const url = `${APP}/studio?utm_source=lifecycle&utm_medium=email&utm_campaign=failure_recovery_script`
+  const text = `Hey,
+
+Your video didn't render — and nothing was charged. Your ${credits} credits are all still there.
+
+Here's exactly what happened: your script was about ${s.narrationSec} seconds of narration, but you picked a ${s.requestedSec}-second video. That would leave the last ${Math.max(1, s.requestedSec - s.narrationSec)} seconds with music and no story, so Kineo stopped instead of rendering a weak ending.
+
+Two ways to fix it in 30 seconds:
+
+1. Paste the same script and pick the video length closest to ${s.narrationSec} seconds.
+2. Or keep ${s.requestedSec} seconds and add about ${s.wordsMissing} more words to the script.
+
+Either one renders: ${url}
+
+If it still fails, hit reply and paste what you typed. It lands with a real person.
+
+Kineo Team
+usekineo.com`
+
+  const html = `<div style="font-family:Arial,sans-serif;font-size:15px;color:#111;line-height:1.6;max-width:480px;">
+  <p>Hey,</p>
+  <p>Your video didn't render — and <strong>nothing was charged</strong>. Your <strong>${credits} credits</strong> are all still there.</p>
+  <p>Here's exactly what happened: your script was about <strong>${s.narrationSec} seconds</strong> of narration, but you picked a <strong>${s.requestedSec}-second</strong> video. That would leave the last ${Math.max(1, s.requestedSec - s.narrationSec)} seconds with music and no story, so Kineo stopped instead of rendering a weak ending.</p>
+  <p><strong>Two ways to fix it in 30 seconds:</strong></p>
+  <ol style="padding-left:20px;margin:0 0 16px">
+    <li>Paste the same script and pick the video length closest to <strong>${s.narrationSec} seconds</strong>.</li>
+    <li>Or keep ${s.requestedSec} seconds and add about <strong>${s.wordsMissing} more words</strong> to the script.</li>
+  </ol>
+  <p style="margin:24px 0"><a href="${url}" style="display:inline-block;background:#2997ff;color:#fff;text-decoration:none;font-weight:bold;font-size:15px;padding:12px 26px;border-radius:10px;">Fix it and render →</a></p>
+  <p>If it still fails, hit reply and paste what you typed. It lands with a real person.</p>
+  <p style="margin:0 0 2px">Kineo Team</p>
+  <p style="margin:0"><a href="https://www.usekineo.com" style="color:#2997ff">usekineo.com</a></p>
+</div>${emailFooterHtml(userId)}`
+
+  return { text: `${text}${emailFooterText(userId)}`, html }
+}
 
 function isAuthorized(req: NextRequest): boolean {
   const secret = process.env.CRON_SECRET
@@ -138,7 +219,7 @@ export async function GET(req: NextRequest) {
   const jaAvisado = new Set((stamps ?? []).map((s) => s.user_id as string))
   const jaTemVideo = new Set((comVideo ?? []).map((v) => v.user_id as string))
 
-  const alvos: Array<{ id: string; email: string; credits: number; falhas: number; erro: string }> = []
+  const alvos: Array<{ id: string; email: string; credits: number; falhas: number; erro: string; kind: Kind; short?: ScriptShort }> = []
   for (const p of profs ?? []) {
     const id = p.id as string
     if (jaAvisado.has(id)) continue
@@ -148,7 +229,8 @@ export async function GET(req: NextRequest) {
     const email = (p.email ?? '') as string
     if (!email || p.email_opted_out || isInternalOrJunk(email)) continue
     const info = porPessoa.get(id)!
-    alvos.push({ id, email, credits: (p.video_credits as number) ?? 0, falhas: info.n, erro: info.erro.slice(0, 90) })
+    const cls = classifyFailure(info.erro)
+    alvos.push({ id, email, credits: (p.video_credits as number) ?? 0, falhas: info.n, erro: info.erro.slice(0, 90), kind: cls.kind, short: cls.short })
   }
 
   if (!confirm) {
@@ -156,7 +238,11 @@ export async function GET(req: NextRequest) {
       mode: 'DRY_RUN',
       cohort: 'falhou por DEFEITO nas últimas 48h · nunca completou um vídeo · nunca recebeu este e-mail',
       eligible: alvos.length,
-      sample: alvos.slice(0, 15).map((a) => `${a.email} (${a.falhas}x · ${a.credits}cr · ${a.erro})`),
+      by_kind: {
+        bug: alvos.filter((a) => a.kind === 'bug').length,
+        script_short: alvos.filter((a) => a.kind === 'script_short').length,
+      },
+      sample: alvos.slice(0, 15).map((a) => `${a.email} (${a.kind} · ${a.falhas}x · ${a.credits}cr · ${a.erro})`),
       hint: 'Append &confirm=SEND to send.',
     })
   }
@@ -164,7 +250,12 @@ export async function GET(req: NextRequest) {
   let sent = 0
   const results: Array<{ email: string; outcome: string }> = []
   for (const a of alvos.slice(0, MAX_PER_RUN)) {
-    const { text, html } = buildEmail(a.id, a.credits)
+    const { text, html } =
+      a.kind === 'script_short' && a.short ? buildScriptShortEmail(a.id, a.credits, a.short) : buildEmail(a.id, a.credits)
+    const subject =
+      a.kind === 'script_short'
+        ? "Your video didn't render — here's the 30-second fix (credits untouched)"
+        : 'That was our fault — your credits are still there'
     try {
       const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
@@ -173,16 +264,16 @@ export async function GET(req: NextRequest) {
           from: 'Joseph at Kineo <joseph@usekineo.com>',
           to: [a.email],
           reply_to: 'joseph@usekineo.com',
-          subject: 'That was our fault — your credits are still there',
+          subject,
           text,
           html,
           headers: unsubscribeHeaders(a.id),
         }),
       })
       if (res.ok) {
-        await admin.from('events').insert({ user_id: a.id, name: STAMP, metadata: { falhas: a.falhas, credits: a.credits } })
+        await admin.from('events').insert({ user_id: a.id, name: STAMP, metadata: { falhas: a.falhas, credits: a.credits, kind: a.kind } })
         sent++
-        results.push({ email: a.email, outcome: 'sent' })
+        results.push({ email: a.email, outcome: `sent_${a.kind}` })
       } else results.push({ email: a.email, outcome: `failed_${res.status}` })
     } catch {
       results.push({ email: a.email, outcome: 'threw' })
