@@ -8,7 +8,7 @@
 // India", e o corpo inteiro é a notícia de que existe uma tabela indiana.
 // Em 19/08 o fundador matou o preço por região (ver o bloco de TIER_PRICES em
 // lib/checkoutPricing.ts): passou a existir UMA escada global — $7 / $15 / $29
-// — mostrada na moeda local, sem segundo degrau por país.
+// — listada e cobrada em USD, sem segundo degrau por país.
 //
 // Trocar "₹399" por "₹599" aqui seria pior do que deixar quebrado: o e-mail
 // continuaria dizendo "Kineo agora tem preço indiano, o que você viu antes era
@@ -69,7 +69,7 @@ const GONE = {
   campaign: 'india_price_399',
   retired_on: '2026-08-19',
   reason:
-    'Kineo moved to a single global price ($7 / $15 / $29, shown in local currency). ' +
+    'Kineo moved to a single global USD price ($7 / $15 / $29, listed and charged in USD). ' +
     'This campaign announced the existence of India-specific pricing, which no longer exists, ' +
     'so its premise — not just its numbers — is dead. It was retired instead of repriced.',
   see: 'lib/checkoutPricing.ts (TIER_PRICES) and this file for the full rationale.',

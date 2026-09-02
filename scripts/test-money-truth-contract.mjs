@@ -150,6 +150,33 @@ check('checker canônico de pricing fica verde', () => {
   assert.deepEqual(checkout.checkPricingInvariants(), [])
 })
 
+check('moeda do checkout permanece USD em qualquer país', () => {
+  for (const country of [null, 'US', 'BR', 'IN', 'NG']) {
+    assert.equal(checkout.resolveCheckoutCurrency(country), 'usd')
+  }
+})
+
+check('disclosure público diz cobrança em USD e conversão apenas pelo banco', () => {
+  assert.match(marketing.CHECKOUT_CURRENCY_DISCLOSURE, /lists and charges plan prices in USD worldwide/i)
+  assert.match(marketing.CHECKOUT_CURRENCY_DISCLOSURE, /Your bank may convert/i)
+  assert.doesNotMatch(marketing.CHECKOUT_CURRENCY_DISCLOSURE, /Kineo converts|shown in local currency/i)
+})
+
+check('packs mortos não mantêm chaves BRL/INR na rota Stripe', () => {
+  const route = source('app/api/stripe/checkout/route.ts')
+  for (const name of ['PACK_PRICES', 'PACK290_PRICES']) {
+    const declaration = route.match(new RegExp(`const ${name}:[^\\n]+`))?.[0] ?? ''
+    assert.match(declaration, /\{ usd:/, `${name} sem chave USD`)
+    assert.doesNotMatch(declaration, /\b(?:brl|inr):/i, `${name} ainda tem chave regional morta`)
+  }
+})
+
+check('rota aposentada não promete moeda local', () => {
+  const literals = literalText('app/api/admin/send-india-price/route.ts')
+  assert.match(literals, /listed and charged in USD/i)
+  assert.doesNotMatch(literals, /shown in local currency/i)
+})
+
 const requiredReferences = {
   'app/api/stripe/checkout/route.ts': [
     'TIER_CREDITS.basic',

@@ -629,12 +629,11 @@ const STARTER_PACK = {
   name: 'Kineo — Starter Pack',
   description: `One-time: ${PACK_CREDITS.starter} credits — ${describeSeedanceMix(PACK_CREDITS.starter)}. No subscription.`,
 }
-//   USD $4.90 | BRL R$24.90 | INR ₹399  (same ratios as the plans)
-// KINEO-VENDER-O-VIDEO-2026-08-21 — o usd deixa de ser literal aqui: a tela do
+// KINEO-VENDER-O-VIDEO-2026-08-21 — o USD deixa de ser literal aqui: a tela do
 // paywall passou a mostrar este preco, e preco em tela e preco cobrado tem de
-// sair da MESMA linha. brl/inr ficam so como resto historico (CheckoutCurrency
-// e 'usd' desde a V6; nenhum caminho vivo os alcanca).
-const PACK_PRICES: Record<Currency, number> = { usd: PACK_PRICE_MINOR.usd, brl: 2490, inr: 39900 }
+// sair da MESMA linha. CheckoutCurrency aceita somente `usd`; manter chaves
+// históricas BRL/INR aqui contradizia o contrato e quebrava o typecheck.
+const PACK_PRICES: Record<Currency, number> = { usd: PACK_PRICE_MINOR.usd }
 
 // KINEO-OFFER290-2026-07-07 — first-purchase URGENCY offer. A NEW user in the
 // first 24h after their 1st video sees "$4.90 → $2.90, expires in 24h" with a
@@ -654,8 +653,7 @@ const STARTER290_PACK = {
   name: 'Kineo — First Pack (24h offer)',
   description: `One-time launch offer: ${PACK_CREDITS.starter290} credits — ${describeSeedanceMix(PACK_CREDITS.starter290)}. Limited to 1 per account.`,
 }
-//   USD $2.90 | BRL R$14.90 | INR ₹249  (same ratios as the plans)
-const PACK290_PRICES: Record<Currency, number> = { usd: 290, brl: 1490, inr: 24900 }
+const PACK290_PRICES: Record<Currency, number> = { usd: 290 }
 
 // ─── KINEO-PILOT-99-2026-07-26 — $99 / 7-day Autopilot pilot (one-time) ──────
 // The paid filter in front of the $299 tier. One-time PAYMENT, not a
