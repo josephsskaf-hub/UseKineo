@@ -55,7 +55,13 @@
 
 **AUDITORIA INDEPENDENTE:** GO, P0=0, P1=0, P2=0. Cinco versões intermediárias foram reprovadas. Os gates adicionados impedem que evento posterior limpe: landing contraditória; start Stripe inválido; conflito pack × assinatura; pagamento empatado com exposição; pagamento sem dono/relógio ligado a Session própria histórica, empatada ou posterior; e Session recorrente posterior paga.
 
-**IMPLEMENTADO, NÃO PUBLICADO:** aguardando commit fast-forward, deploy Vercel e verificação do SHA. Como esta entrega não altera runtime do produto nem força evento, a validação de produção é deploy `READY` e disponibilidade do commit; a primeira medição madura permanece futura por definição do gate de sete dias.
+**VALIDADO EM PRODUÇÃO — 2026-09-02 20:02 BRT:**
+
+- commit de produto/documentação: `16114bdc918ab1c1f10797a1112a2aa72a72e19f`, publicado por fast-forward em `origin/main`;
+- deploy Vercel: `dpl_H9T4eXS1RdYniXzHrmNo6BYEdXV4`, estado `READY`, `aliasError:null`, servindo `www.usekineo.com`;
+- o metadata do deploy aponta para o mesmo SHA e para a mensagem `growth: measure resume strip to paid subscription`;
+- nenhum evento, Checkout, pagamento, banco, crédito, render ou comunicação externa foi forçado;
+- como esta entrega não altera runtime do produto, a primeira medição madura permanece futura por definição do gate individual de sete dias.
 
 ## Próxima rodada
 
