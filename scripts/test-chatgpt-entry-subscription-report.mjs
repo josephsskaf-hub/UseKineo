@@ -108,6 +108,7 @@ equal(report.postVideoSubscriptionTruth.startedPeople, 0, 'no checkout means no 
 report = build([
   landing('l1', 'browser-early-checkout', 2, '/state-of-ai-shorts-2026'),
   link('x1', 'u1', 'browser-early-checkout', 2),
+  event('cta1', 'checkout_cta_clicked', 'u1', 'browser-early-checkout', 2, 1, { surface: 'trial_active_banner' }),
   start('s1', 'u1', 'browser-early-checkout', 'cs_early', 2, 2),
   paid('p1', 'u1', 'browser-early-checkout', 'cs_early', 2, 3),
 ], [video('v1', 'u1', 2, 4)])
@@ -117,6 +118,14 @@ equal(report.preVideoCheckoutDiagnostic.startedPeople, 1, 'pre-video checkout re
 equal(report.preVideoCheckoutDiagnostic.paidPeople, 1, 'pre-video payment remains visible without corrupting the main funnel')
 equal(report.paths[0].preVideoSubscriptionStartedStripeSessions, 1, 'path exposes the pre-video Stripe Session exactly once')
 equal(report.paths[0].postVideoSubscriptionStartedStripeSessions, 0, 'path main funnel remains chronological')
+equal(report.preVideoCheckoutDiagnostic.byOrigin, [{
+  origin: 'trial_active_banner',
+  startedPeople: 1,
+  startedStripeSessions: 1,
+  paidPeople: 1,
+  paidStripeSessions: 1,
+  revenueMinorByCurrency: { usd: 1500 },
+}], 'pre-video origin is tied to one canonical allowlisted action in the same browser session')
 
 report = build([
   landing('l1', 'browser-no-video', 2, '/free-ai-shorts-generator'),
@@ -125,8 +134,105 @@ report = build([
 ])
 equal(report.postVideoSubscriptionTruth.startedPeople, 0, 'person without a completed video cannot enter post-video funnel')
 equal(report.preVideoCheckoutDiagnostic.startedPeople, 1, 'checkout without a completed video is retained in the diagnostic')
+equal(report.preVideoCheckoutDiagnostic.byOrigin[0].origin, 'unattributed', 'missing action evidence is never invented')
+equal(report.preVideoCheckoutDiagnostic.byOrigin[0].startedPeople, 1, 'unattributed origin still counts the external person')
 ok(report.limitations.some((line) => line.includes('not proof')), 'causality limitation is explicit')
 ok(report.limitations.some((line) => line.includes('packs')), 'financial limitation is explicit')
 ok(report.limitations.some((line) => line.includes('chronological')), 'chronological contract is explicit')
+ok(report.limitations.some((line) => line.includes('same person and browser session within five minutes')), 'origin attribution window is explicit')
+
+report = build([
+  landing('l1', 'browser-pricing', 2, '/free-ai-shorts-generator'),
+  link('x1', 'u1', 'browser-pricing', 2),
+  event('cta1', 'checkout_cta_clicked', 'u1', 'browser-pricing', 2, 1, { surface: 'pricing_page' }),
+  start('s1', 'u1', 'browser-pricing', 'cs_pricing', 2, 2),
+  landing('l2', 'browser-resume', 3, '/free-ai-shorts-generator'),
+  link('x2', 'u2', 'browser-resume', 3),
+  event('cta2', 'pricing_saved_checkout_clicked', 'u2', 'browser-resume', 3, 1),
+  start('s2', 'u2', 'browser-resume', 'cs_resume', 3, 2),
+])
+equal(report.preVideoCheckoutDiagnostic.byOrigin.map((row) => row.origin), ['checkout_resume', 'pricing_page'], 'stable origins sort deterministically on equal counts')
+equal(report.preVideoCheckoutDiagnostic.byOrigin.reduce((sum, row) => sum + row.startedPeople, 0), 2, 'disjoint-person fixture preserves the people total')
+equal(report.preVideoCheckoutDiagnostic.byOrigin.reduce((sum, row) => sum + row.startedStripeSessions, 0), 2, 'origin buckets preserve the Stripe Session total')
+
+report = build([
+  landing('l1', 'browser-one', 2, '/free-ai-shorts-generator'),
+  link('x1', 'u1', 'browser-one', 2),
+  event('cta-wrong-session', 'checkout_cta_clicked', 'u1', 'browser-two', 2, 1, { surface: 'trial_active_banner' }),
+  start('s1', 'u1', 'browser-one', 'cs_one', 2, 2),
+])
+equal(report.preVideoCheckoutDiagnostic.byOrigin[0].origin, 'unattributed', 'an action from another browser session cannot claim Checkout origin')
+
+for (const reversePersistenceOrder of [false, true]) {
+  const canonicalMinute = reversePersistenceOrder ? 2 : 1
+  const legacyMinute = reversePersistenceOrder ? 1 : 2
+  const canonical = event('resume-canonical', 'checkout_cta_clicked', 'u1', 'browser-resume-pair', 4, canonicalMinute, {
+    surface: 'pricing_saved_checkout',
+  })
+  const legacy = event('resume-legacy', 'pricing_saved_checkout_clicked', 'u1', 'browser-resume-pair', 4, legacyMinute, {
+    surface: 'pricing',
+  })
+  report = build([
+    landing('resume-landing', 'browser-resume-pair', 4, '/free-ai-shorts-generator'),
+    link('resume-link', 'u1', 'browser-resume-pair', 4),
+    ...(reversePersistenceOrder ? [legacy, canonical] : [canonical, legacy]),
+    start('resume-start', 'u1', 'browser-resume-pair', 'cs_resume_pair', 4, 3),
+  ])
+  equal(
+    report.preVideoCheckoutDiagnostic.byOrigin[0].origin,
+    'checkout_resume',
+    `saved Checkout pair remains checkout_resume when persistence order is ${reversePersistenceOrder ? 'reversed' : 'forward'}`,
+  )
+}
+
+for (const reversePersistenceOrder of [false, true]) {
+  const canonicalMinute = reversePersistenceOrder ? 2 : 1
+  const legacyMinute = reversePersistenceOrder ? 1 : 2
+  const canonical = event('pricing-canonical', 'checkout_cta_clicked', 'u1', 'browser-pricing-pair', 5, canonicalMinute, {
+    surface: 'pricing_page',
+  })
+  const legacy = event('pricing-legacy', 'basic_checkout_clicked', 'u1', 'browser-pricing-pair', 5, legacyMinute)
+  report = build([
+    landing('pricing-landing', 'browser-pricing-pair', 5, '/free-ai-shorts-generator'),
+    link('pricing-link', 'u1', 'browser-pricing-pair', 5),
+    ...(reversePersistenceOrder ? [legacy, canonical] : [canonical, legacy]),
+    start('pricing-start', 'u1', 'browser-pricing-pair', 'cs_pricing_pair', 5, 3),
+  ])
+  equal(
+    report.preVideoCheckoutDiagnostic.byOrigin[0].origin,
+    'pricing_page',
+    `pricing pair remains pricing_page when persistence order is ${reversePersistenceOrder ? 'reversed' : 'forward'}`,
+  )
+}
+
+report = build([
+  landing('multi-origin-landing', 'browser-multi-origin', 6, '/free-ai-shorts-generator'),
+  link('multi-origin-link', 'u1', 'browser-multi-origin', 6),
+  event('multi-pricing', 'checkout_cta_clicked', 'u1', 'browser-multi-origin', 6, 1, { surface: 'pricing_page' }),
+  start('multi-start-1', 'u1', 'browser-multi-origin', 'cs_multi_1', 6, 2),
+  event('multi-resume', 'checkout_cta_clicked', 'u1', 'browser-multi-origin', 6, 3, { surface: 'pricing_saved_checkout' }),
+  start('multi-start-2', 'u1', 'browser-multi-origin', 'cs_multi_2', 6, 4),
+])
+equal(report.preVideoCheckoutDiagnostic.startedPeople, 1, 'one person remains one person in the diagnostic total')
+equal(report.preVideoCheckoutDiagnostic.startedStripeSessions, 2, 'two Stripe Sessions remain two sessions')
+equal(report.preVideoCheckoutDiagnostic.byOrigin.reduce((sum, row) => sum + row.startedPeople, 0), 2, 'the same person may appear once in each origin bucket')
+ok(report.limitations.some((line) => line.includes('not additive')), 'by-origin people non-additivity is explicit')
+
+report = build([
+  landing('race-landing', 'browser-race', 7, '/free-ai-shorts-generator'),
+  link('race-link', 'u1', 'browser-race', 7),
+  start('race-start', 'u1', 'browser-race', 'cs_race', 7, 2),
+  event('race-late-action', 'checkout_cta_clicked', 'u1', 'browser-race', 7, 3, { surface: 'pricing_page' }),
+])
+equal(report.preVideoCheckoutDiagnostic.byOrigin[0].origin, 'unattributed', 'a post-start analytics race cannot claim an exact origin')
+
+report = build([
+  landing('conflict-landing', 'browser-conflict', 8, '/free-ai-shorts-generator'),
+  link('conflict-link', 'u1', 'browser-conflict', 8),
+  event('conflict-pricing', 'checkout_cta_clicked', 'u1', 'browser-conflict', 8, 1, { surface: 'pricing_page' }),
+  event('conflict-resume', 'checkout_cta_clicked', 'u1', 'browser-conflict', 8, 1, { surface: 'pricing_saved_checkout' }),
+  start('conflict-start', 'u1', 'browser-conflict', 'cs_conflict', 8, 2),
+])
+equal(report.preVideoCheckoutDiagnostic.byOrigin[0].origin, 'unattributed', 'conflicting canonical origins fail closed')
 
 console.log(`chatgpt-entry-subscription-report: ${checks}/${checks} checks passed`)
