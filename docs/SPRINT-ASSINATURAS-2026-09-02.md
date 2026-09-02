@@ -1161,3 +1161,68 @@ novo? Se sim, os dois ganham o filme + e-mail "ready" (não prometer antes);
 `videos.status=completed` — se >0, estornamos filme entregue por cache; (c)
 11:00 BRT conferir os ~27 `momentum_nudge_sent`; (d) diretório de dedupe:
 com o cache morto, os `*_sent` duplicados param sozinhos — confirmar em 24h.
+
+### #18 — 04:50→05:20 BRT — 7 filmes MONTADOS e jogados fora: o refund-sweep devolve o crédito, o compose/status devolve "credits were refunded" para um MP4 pronto
+**Leitura.** origin/main = dcf9a291 (Codex, sem mudança desde #17); fila = 9
+commits sobre 9395b26b (#14→#17), **ainda não clicada**. Item (b) do #17: medi
+o refund-sweep ANTES de codar.
+**O que medi.** `credits_refunded` 14d = 44 (27 `cinematic_abandoned_no_delivery`
+seedance 776cr, 3 h3, 1 kling 75cr, 1 s25 150cr, 5 `pending_orphan_no_dispatch`
+264cr, 7 manuais de 24/08). **Nenhum** estorno tem linha em `videos` pelo
+render_id — o sweep NÃO estornou filme entregue (o medo do #17 não se
+confirmou). Mas **7 dos 32** estornos cinematográficos têm `compose_submission_
+claim` com `status=done` + `render_id` e `stranded_composed` gravado: o filme
+FOI montado na Creatomate e nunca virou linha em `videos`. Casos: e7f9f000
+(wummm709, hoje 03:31, 1º vídeo do trial, 19cr), 9103ef3d, ab732fd8 (**Kling 3,
+75cr**, 21/08), ad1c8b17 + 33d4af29 (h3, mesma pessoa), ee4866c8, 7bf0d8fb.
+Sequência: compose grava `done`+render_id → invocação morre antes do persist
+(#16/#17: custo 15≠19 → 503) → 2h depois o sweep vê "render_id sem videos" e
+estorna + libera o claim de nascimento (regra correta dele) → daí em diante
+`compose/status` bate em `prepaidCinematicClaim.status === 'released'` e devolve
+`phase:'failed', failure_reason:'cinematic_claim_released', "credits were
+refunded"` para um MP4 que EXISTE. Nós pagamos fal + Creatomate; o cliente
+recebeu o crédito de volta e ficou sem o 1º filme — é o momento exato em que
+ele decide se volta.
+**O que mudou.** Nova rota admin **GET /api/admin/rescue-composed-films**
+(`fetchCache='force-no-store'`, só admin, dry-run por padrão): cruza
+`credits_refunded(cinematic_abandoned_no_delivery)` × `compose_submission_claim
+(done, render_id)` × `videos` ausente (30d, `?days=`), exclui internos, pergunta
+à Creatomate se o arquivo ainda existe (`pollCreatomateRender`, GET de status,
+$0) e devolve veredito por filme: `persist` / `already_persisted` / `file_gone`
+/ `not_succeeded` / `lookup_failed` / `internal`. Com **`?confirm=PERSIST`**
+grava a linha canônica em `videos` (mesmo esquema do persist #357; `credits_
+used=0` porque o crédito já voltou; duração do arquivo; thumbnail do snapshot)
++ evento `rescued_film_persisted` (render_id, video_id, refunded_credits,
+composed_at, admin). Idempotente pelo índice único de render_id (23505 = skip).
+Não envia e-mail, não cobra, não toca em claim. Parte pura em
+`lib/admin/rescueComposedFilms.ts`; `scripts/test-rescue-composed-films.mjs`:
+**19 verificações** (nunca `persist` sem succeeded+url; interno nunca; dry-run
+por padrão; sem e-mail). tsc: só os 3 pré-existentes; teste do #17 verde (a rota
+nova nasce com o interruptor).
+**Para o cliente/receita.** Até 7 pessoas (1 delas pagou Kling 3) podem
+receber o filme que fizeram, na Library, sem crédito novo e sem re-render —
+custo zero para nós (já foi pago). wummm709 fez o 1º vídeo hoje às 03:31 e
+está no grupo que decide voltar ou não. Daqui pra frente, com o #17 no ar, o
+caso não deve nascer; a rota vira a rede para quando nascer.
+**SHA:** 54514d45 (sobre 1059d60a). **Risco:** baixo — rota admin nova, sem
+caller; pior caso = Creatomate já apagou o arquivo (`file_gone`) e a rota só
+relata. Dúvida aberta: retenção da Creatomate — o dry-run responde.
+**Como medir:** rodar o dry-run → `summary.persist` = quantos filmes vivos;
+depois do PERSIST, `rescued_film_persisted` e as pessoas com `video_ready_viewed`
+/download nas 48h seguintes.
+**Placar 05:15 BRT (externos):** has_paid 11 (starter 3, basic 2, pro 2,
+free/churn 4); cadastros 1h=6, 24h=36 (4 com 0cr — todos receberam o trial e
+GASTARAM, nenhum órfão; zare… do ChatGPT 07:46 UTC está com 1º filme em voo,
+compose claim já gravado — conferir na próxima); vídeos 1h=1, 24h=19; falhas
+1h=3 (anybodyhi5 speech=51s/60s — roteiro curto, mesma da 04:48);
+checkout_started 24h=5 pessoas; 7d: 75 com 1, 9 com 2, 2 com 3, **0 com 4+**;
+crons 24h: winback25 120, failure_recovery 6, momentum 0 (1º disparo 10:30
+BRT), subscriber_idle 0; refunds 24h: abandoned_no_delivery 6; stranded 3h:
+no_authorized_urls ×2 (cauda do shaunish, pré-#17).
+**Próximo item (#19):** (a) depois do clique: dry-run de
+`/api/admin/rescue-composed-films` — se `persist ≥ 1`, PERSIST e e-mail
+"your film is in your Library" (rascunho/rota separada, 1 clique); (b) zare…
+(chatgpt, 07:46 UTC): 1º filme entregue? se morreu, `stranded_outcome.error`
+diz por quê (agora grava a frase); (c) 11:00 BRT conferir os ~27
+`momentum_nudge_sent`; (d) `stranded_dedupe_miss` e `*_sent` duplicados = 0
+nas 24h pós-clique (prova do #17).
