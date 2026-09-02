@@ -78,9 +78,6 @@ const NAO_E_BUG = [
 const RE_SCRIPT_SHORT =
   /about (\d+) seconds? of narration.*?(\d+)-second video.*?add about (\d+) more words?/i
 
-type Kind = 'bug' | 'script_short'
-type ScriptShort = { narrationSec: number; requestedSec: number; wordsMissing: number }
-
 // sprint-assinaturas #6 (02/09 00:20): o MESMO motivo chega ao banco numa 2a
 // forma, SEM numeros — `no_detail:narration_too_short|stage=failed|http=none`
 // (2 pessoas de trial com 25cr intactos e zero video so na ultima hora). A regex
@@ -89,8 +86,40 @@ type ScriptShort = { narrationSec: number; requestedSec: number; wordsMissing: n
 // mesmo e-mail (sem inventar segundos que nao temos).
 const RE_NARRATION_SHORT_CODE = /narration_too_short|narration_guard/i
 
-function classifyFailure(erro: string): { kind: Kind; short?: ScriptShort } {
-  const m = erro.replace(/\s+/g, ' ').match(RE_SCRIPT_SHORT)
+// ═══ sprint-assinaturas #15 — 02/09/2026 06:00 UTC — O 1º DISPARO REAL MANDOU
+// O CONSELHO AO CONTRÁRIO
+//
+// adrianwellsvadrian (chatgpt.com, trial 25cr, 0 vídeos): às 02:52 UTC o
+// roteiro tinha 27s para um vídeo de 35s → "Add about 14 more words" (certo).
+// Ele obedeceu — e voltou com 6.228 caracteres para um vídeo de 90s. Entre
+// 03:09 e 03:30 bateu SETE vezes em `prompt_len=6228 limite=5000`, e às 06:00
+// este cron mandou a ele "your script was about 27 seconds of narration…
+// add about 14 more words". Duas causas, as duas fechadas aqui:
+//   1. só `generate_failed` era lido. O teto de 5.000 é barrado NO CLIENTE
+//      (GenerateClient, 31/08) e só emite `generation_stage_error` com
+//      reason `analyze_prompt_too_long` — invisível para o cron;
+//   2. o mapa por pessoa guardava o PRIMEIRO erro da janela e ignorava os
+//      seguintes. Quem tenta, lê a mensagem, muda o texto e falha por OUTRO
+//      motivo recebia o e-mail do motivo velho.
+// Agora: as duas fontes entram, o erro MAIS RECENTE da pessoa decide, e o
+// roteiro comprido tem e-mail próprio com os números dela (caracteres, teto,
+// e quantas palavras a duração escolhida realmente pede). Se o erro mais
+// recente for "não é bug" (saldo/regra), a pessoa sai — o produto disse não
+// por último, e desculpa ali seria mentira.
+const RE_PROMPT_LONG = /prompt is too long|analyze_prompt_too_long|prompt_len=\d+/i
+const RE_PROMPT_LEN = /prompt_len=(\d+)(?:\s+limite=(\d+))?/i
+// Mesma régua do contador do Studio (~2,3 palavras por segundo de narração).
+const WORDS_PER_SEC = 2.3
+const PROMPT_MAX_CHARS_FALLBACK = 5000
+
+type Kind = 'bug' | 'script_short' | 'script_long'
+type ScriptShort = { narrationSec: number; requestedSec: number; wordsMissing: number }
+type ScriptLong = { chars: number; limit: number; durationSec: number | null }
+type FalhaMeta = { reason?: unknown; duration?: unknown }
+
+function classifyFailure(erro: string, meta?: FalhaMeta): { kind: Kind; short?: ScriptShort; long?: ScriptLong } {
+  const flat = erro.replace(/\s+/g, ' ')
+  const m = flat.match(RE_SCRIPT_SHORT)
   if (m) {
     return {
       kind: 'script_short',
@@ -98,7 +127,56 @@ function classifyFailure(erro: string): { kind: Kind; short?: ScriptShort } {
     }
   }
   if (RE_NARRATION_SHORT_CODE.test(erro)) return { kind: 'script_short' }
+  if (RE_PROMPT_LONG.test(flat) || String(meta?.reason ?? '') === 'analyze_prompt_too_long') {
+    const l = flat.match(RE_PROMPT_LEN)
+    const chars = l && l[1] ? Number(l[1]) : 0
+    const limit = l && l[2] ? Number(l[2]) : PROMPT_MAX_CHARS_FALLBACK
+    const d = Number(meta?.duration)
+    return { kind: 'script_long', long: { chars, limit, durationSec: Number.isFinite(d) && d > 0 ? d : null } }
+  }
   return { kind: 'bug' }
+}
+
+// #15: e-mail do roteiro COMPRIDO. Mesma verdade do curto, sentido oposto:
+// nada cobrado, os números dela, e o conserto de 30 segundos (colar só a
+// narração). Sem "our fault", sem cupom, sem motor.
+function buildScriptLongEmail(userId: string, credits: number, l: ScriptLong) {
+  const url = `${APP}/studio?utm_source=lifecycle&utm_medium=email&utm_campaign=failure_recovery_script_long`
+  const fmt = (n: number) => n.toLocaleString('en-US')
+  const words = l.durationSec ? Math.round((l.durationSec * WORDS_PER_SEC) / 5) * 5 : null
+  const oQue =
+    l.chars > 0
+      ? `the text you pasted was ${fmt(l.chars)} characters, and the script box takes up to ${fmt(l.limit)}`
+      : `the text you pasted was longer than the ${fmt(l.limit)}-character limit of the script box`
+  const quanto =
+    words && l.durationSec
+      ? `A ${l.durationSec}-second video only needs about ${words} words of narration — roughly ${fmt(Math.round(words * 6))} characters.`
+      : `A short video only needs a few hundred words of narration.`
+  const text = `Hey,
+
+Your video didn't render — and nothing was charged. Your ${credits} credits are all still there.
+
+Here's exactly what happened: ${oQue}. ${quanto}
+
+The 30-second fix: paste only the narration — the words you want spoken, not the whole conversation or the notes around it — and render again: ${url}
+
+If it still fails, hit reply and paste what you typed. It lands with a real person.
+
+Kineo Team
+usekineo.com`
+
+  const html = `<div style="font-family:Arial,sans-serif;font-size:15px;color:#111;line-height:1.6;max-width:480px;">
+  <p>Hey,</p>
+  <p>Your video didn't render — and <strong>nothing was charged</strong>. Your <strong>${credits} credits</strong> are all still there.</p>
+  <p>Here's exactly what happened: ${oQue}. ${quanto}</p>
+  <p><strong>The 30-second fix:</strong> paste only the narration — the words you want spoken, not the whole conversation or the notes around it — and render again.</p>
+  <p style="margin:24px 0"><a href="${url}" style="display:inline-block;background:#2997ff;color:#fff;text-decoration:none;font-weight:bold;font-size:15px;padding:12px 26px;border-radius:10px;">Paste the narration and render →</a></p>
+  <p>If it still fails, hit reply and paste what you typed. It lands with a real person.</p>
+  <p style="margin:0 0 2px">Kineo Team</p>
+  <p style="margin:0"><a href="https://www.usekineo.com" style="color:#2997ff">usekineo.com</a></p>
+</div>${emailFooterHtml(userId)}`
+
+  return { text: `${text}${emailFooterText(userId)}`, html }
 }
 
 function buildScriptShortEmail(userId: string, credits: number, s?: ScriptShort) {
@@ -238,24 +316,51 @@ export async function GET(req: NextRequest) {
 
   // Falhas das últimas 48h. Janela curta de propósito: "desculpa pelo bug de
   // ontem" tem valor; "desculpa pelo bug da semana passada" já soa a descaso.
-  const { data: falhas } = await admin
-    .from('events')
-    .select('user_id, created_at, metadata')
-    .eq('name', 'generate_failed')
-    .gte('created_at', new Date(Date.now() - 48 * 3600_000).toISOString())
-    .limit(500)
+  const desde = new Date(Date.now() - 48 * 3600_000).toISOString()
+  // #15: duas fontes. `generate_failed` = falha confirmada pelo servidor;
+  // `generation_stage_error` com reason `analyze_prompt_too_long` = recusa
+  // determinística barrada no cliente (nunca vira generate_failed).
+  const [{ data: falhas }, { data: longas }] = await Promise.all([
+    admin
+      .from('events')
+      .select('user_id, created_at, metadata')
+      .eq('name', 'generate_failed')
+      .gte('created_at', desde)
+      .limit(500),
+    admin
+      .from('events')
+      .select('user_id, created_at, metadata')
+      .eq('name', 'generation_stage_error')
+      .eq('metadata->>reason', 'analyze_prompt_too_long')
+      .gte('created_at', desde)
+      .limit(500),
+  ])
 
-  const porPessoa = new Map<string, { n: number; erro: string }>()
-  for (const f of falhas ?? []) {
-    const uid = f.user_id as string | null
+  type Falha = { user_id: string | null; created_at: string; metadata: unknown }
+  const todas: Falha[] = [...((falhas ?? []) as Falha[]), ...((longas ?? []) as Falha[])].sort((a, b) =>
+    String(a.created_at).localeCompare(String(b.created_at)),
+  )
+
+  // Por pessoa: quantas falhas de defeito/regra-de-roteiro, e o erro MAIS
+  // RECENTE (a última coisa que o produto disse a ela). Uma falha "não é bug"
+  // no meio não zera a contagem, mas se for a ÚLTIMA, a pessoa sai — o
+  // produto disse não por último, e desculpa ali seria mentira.
+  const porPessoa = new Map<string, { n: number; erro: string; meta: FalhaMeta; naoEBug: boolean }>()
+  for (const f of todas) {
+    const uid = f.user_id
     if (!uid) continue
-    const erro = String((f.metadata as { error?: unknown })?.error ?? '')
+    const meta = (f.metadata ?? {}) as { error?: unknown; reason?: unknown; duration?: unknown }
+    const erro = String(meta.error ?? '')
     // Só defeito. Saldo/regra/limite não são bug — o produto funcionou.
-    if (NAO_E_BUG.some((frag) => erro.toLowerCase().includes(frag.toLowerCase()))) continue
-    const cur = porPessoa.get(uid) ?? { n: 0, erro }
-    cur.n += 1
+    const naoEBug = NAO_E_BUG.some((frag) => erro.toLowerCase().includes(frag.toLowerCase()))
+    const cur = porPessoa.get(uid) ?? { n: 0, erro, meta: {}, naoEBug }
+    if (!naoEBug) cur.n += 1
+    cur.erro = erro
+    cur.meta = { reason: meta.reason, duration: meta.duration }
+    cur.naoEBug = naoEBug
     porPessoa.set(uid, cur)
   }
+  for (const [uid, cur] of porPessoa) if (cur.n === 0 || cur.naoEBug) porPessoa.delete(uid)
   if (porPessoa.size === 0) {
     return NextResponse.json({ mode: confirm ? 'SENT' : 'DRY_RUN', eligible: 0, note: 'nenhuma falha de defeito em 48h' })
   }
@@ -269,7 +374,7 @@ export async function GET(req: NextRequest) {
   const jaAvisado = new Set((stamps ?? []).map((s) => s.user_id as string))
   const jaTemVideo = new Set((comVideo ?? []).map((v) => v.user_id as string))
 
-  const alvos: Array<{ id: string; email: string; credits: number; falhas: number; erro: string; kind: Kind; short?: ScriptShort }> = []
+  const alvos: Array<{ id: string; email: string; credits: number; falhas: number; erro: string; kind: Kind; short?: ScriptShort; long?: ScriptLong }> = []
   for (const p of profs ?? []) {
     const id = p.id as string
     if (jaAvisado.has(id)) continue
@@ -279,8 +384,8 @@ export async function GET(req: NextRequest) {
     const email = (p.email ?? '') as string
     if (!email || p.email_opted_out || isInternalOrJunk(email)) continue
     const info = porPessoa.get(id)!
-    const cls = classifyFailure(info.erro)
-    alvos.push({ id, email, credits: (p.video_credits as number) ?? 0, falhas: info.n, erro: info.erro.slice(0, 90), kind: cls.kind, short: cls.short })
+    const cls = classifyFailure(info.erro, info.meta)
+    alvos.push({ id, email, credits: (p.video_credits as number) ?? 0, falhas: info.n, erro: info.erro.slice(0, 90), kind: cls.kind, short: cls.short, long: cls.long })
   }
 
   if (!confirm) {
@@ -291,6 +396,7 @@ export async function GET(req: NextRequest) {
       by_kind: {
         bug: alvos.filter((a) => a.kind === 'bug').length,
         script_short: alvos.filter((a) => a.kind === 'script_short').length,
+        script_long: alvos.filter((a) => a.kind === 'script_long').length,
       },
       sample: alvos.slice(0, 15).map((a) => `${a.email} (${a.kind} · ${a.falhas}x · ${a.credits}cr · ${a.erro})`),
       hint: 'Append &confirm=SEND to send.',
@@ -301,9 +407,13 @@ export async function GET(req: NextRequest) {
   const results: Array<{ email: string; outcome: string }> = []
   for (const a of alvos.slice(0, MAX_PER_RUN)) {
     const { text, html } =
-      a.kind === 'script_short' ? buildScriptShortEmail(a.id, a.credits, a.short) : buildEmail(a.id, a.credits)
-    const subject =
       a.kind === 'script_short'
+        ? buildScriptShortEmail(a.id, a.credits, a.short)
+        : a.kind === 'script_long' && a.long
+          ? buildScriptLongEmail(a.id, a.credits, a.long)
+          : buildEmail(a.id, a.credits)
+    const subject =
+      a.kind === 'script_short' || a.kind === 'script_long'
         ? "Your video didn't render — here's the 30-second fix (credits untouched)"
         : 'That was our fault — your credits are still there'
     try {
