@@ -3,6 +3,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { creditCostFor } from '@/lib/credits/engineCost'
 import { buildSeriesContinuationEmailUrl } from '@/lib/seriesContinuation'
+import { pickMomentumTopic, momentumAnchor } from '@/lib/momentumTopic'
 
 // ═══ KINEO-MOMENTUM-2026-08-20 — O E-MAIL QUE MIRA O 4º VÍDEO ═════════════
 //
@@ -64,6 +65,23 @@ import { buildSeriesContinuationEmailUrl } from '@/lib/seriesContinuation'
 //     (cleanTopic devolve null), a URL volta a ser exatamente a de antes:
 //     nunca inventamos o assunto do video da pessoa.
 
+// ═══ KINEO-SPRINT-ASSINATURAS-2026-09-02 (#6) — O TEMA NUNCA PASSAVA ═══════
+//
+// O (B) acima foi ligado e NUNCA disparou. `videos.topic` guarda o ROTEIRO
+// inteiro (gancho + corpo, 500 chars), e o `cleanTopic` antigo rejeitava tudo
+// acima de 90 caracteres: medido em SQL em 02/09, na vespera do 1o disparo
+// real (10:30 BRT), 23 de 23 elegiveis com topic de 161-558 chars →
+// `com_tema: 0`. Todo e-mail sairia neutro ("You made your first film") com
+// botao para o /generate PELADO — o destino de 24% que a #24 disse ter trocado
+// pelo de 53%. Agora o tema e a linha do GANCHO pela regua da casa
+// (`extractShortTitle`, a mesma de /history, home e /studio), com filtro de
+// instrucao (`lib/momentumTopic.ts`): roteiro que comeca com "Create a
+// 40-second…"/"STYLE:"/"must be in FRENCH ONLY" nao vira anchor. Sem tema
+// utilizavel, texto e URL sao os de antes. E a leitura de `videos` ganhou
+// tripwire de truncamento (PostgREST devolve no maximo 1.000 linhas SEM ERRO;
+// 756 em 30d hoje): saturou → 500 e nenhum e-mail, porque contagem truncada
+// diria "You're three away" para quem ja fez cinco.
+
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
@@ -76,6 +94,7 @@ const MAX_PER_RUN = 40
 // não atropelar quem ainda está na sessão. 20h-96h desde o último vídeo.
 const MIN_IDLE_H = 20
 const MAX_IDLE_H = 96
+const VIDEOS_TRIPWIRE = 1000
 
 function isInternalOrJunk(email: string): boolean {
   const e = email.toLowerCase()
@@ -93,18 +112,6 @@ function isAuthorized(req: NextRequest): boolean {
   return req.headers.get('authorization') === `Bearer ${cronSecret}`
 }
 
-/** Limpa o tema para uso em texto: o `topic` guarda a linha do HOOK, que pode
- *  vir com marcadores do script. Nunca deixa passar HTML. */
-function cleanTopic(raw: string | null | undefined): string | null {
-  if (!raw) return null
-  const t = raw
-    .replace(/\b(HOOK|MICRO REWARD|ESCALATION|PAYOFF|RHYTHM)\b:?/gi, '')
-    .replace(/[<>]/g, '')
-    .trim()
-  if (t.length < 8 || t.length > 90) return null
-  return t
-}
-
 function buildEmail(userId: string, videosMade: number, topic: string | null) {
   // O tema viaja no botao. Sem tema, cai na MESMA url de antes (so utm).
   const url = buildSeriesContinuationEmailUrl(APP_URL, topic, 'momentum_email', {
@@ -118,11 +125,7 @@ function buildEmail(userId: string, videosMade: number, topic: string | null) {
   const cta = topic ? 'Open episode 2 →' : 'Make the next one →'
   // A frase que ancora no que ELA fez. Sem tema utilizável, cai numa versão
   // neutra — nunca inventamos o assunto do vídeo dela.
-  const anchor = topic
-    ? `Your film about ${topic} is sitting in your library.`
-    : videosMade === 1
-      ? `You made your first film with Kineo.`
-      : `You made ${videosMade} films with Kineo.`
+  const anchor = momentumAnchor(topic, videosMade)
 
   const text = `Hey,
 
@@ -180,6 +183,12 @@ export async function GET(req: NextRequest) {
     .gte('created_at', new Date(now - 30 * 24 * 3600_000).toISOString())
     .limit(4000)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  // Tripwire de truncamento (#6): o PostgREST corta em max-rows (1.000 por
+  // padrao) sem erro. Pagina cheia = contagem por pessoa nao confiavel.
+  if ((vids?.length ?? 0) >= VIDEOS_TRIPWIRE) {
+    console.error(`[momentum] videos query saturated at ${vids?.length} rows — counts untrustworthy, sending nothing`)
+    return NextResponse.json({ error: 'videos_truncated', rows: vids?.length, note: 'paginar a leitura antes de voltar a enviar' }, { status: 500 })
+  }
 
   type Agg = { count: number; last: string; topic: string | null }
   const byUser = new Map<string, Agg>()
@@ -225,7 +234,7 @@ export async function GET(req: NextRequest) {
     if (!email || p.email_opted_out || isInternalOrJunk(email)) continue
     if (p.stripe_subscription_id) continue // já é cliente
     if (((p.video_credits as number) ?? 0) < minCredits) continue
-    targets.push({ id, email, count: agg.count, topic: cleanTopic(agg.topic) })
+    targets.push({ id, email, count: agg.count, topic: pickMomentumTopic(agg.topic) })
   }
 
   if (!confirm) {
@@ -244,6 +253,7 @@ export async function GET(req: NextRequest) {
       why: 'sem ?confirm=SEND na URL esta rota NUNCA envia. Em vercel.json o cron chama /api/cron/send-momentum-nudge sem esse parametro desde 20/08 — momentum_nudge_sent = 0 no banco.',
       to_arm: 'trocar o path em vercel.json por "/api/cron/send-momentum-nudge?confirm=SEND" (o mesmo formato ja usado pelo send-hotlead-blast).',
       com_tema: targets.filter((t) => t.topic).length,
+      topic_rule: 'linha do gancho via extractShortTitle + filtro de instrucao (lib/momentumTopic.ts); antes do #6 com_tema era 0 em 100% dos casos (topic > 90 chars)',
       sem_tema: targets.filter((t) => !t.topic).length,
       exemplo_link: buildSeriesContinuationEmailUrl(APP_URL, targets.find((t) => t.topic)?.topic ?? null, 'momentum_email', { utm_source: 'lifecycle', utm_medium: 'email', utm_campaign: 'momentum' }),
       sample: targets.slice(0, 12).map((t) => `${t.email} (${t.count}v${t.topic ? ` · ${t.topic.slice(0, 40)}` : ''})`),
