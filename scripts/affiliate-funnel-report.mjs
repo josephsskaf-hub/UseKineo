@@ -1,58 +1,12 @@
-import fs from 'node:fs'
-import ts from 'typescript'
+import {
+  fetchAllPages,
+  isInternalMeasurementEmail,
+} from './measurement-helpers.mjs'
 
-const INTERNAL_ACCOUNTS_SOURCE = new URL('../lib/internalAccounts.ts', import.meta.url)
-
-function readCanonicalStringArray(exportName) {
-  const source = fs.readFileSync(INTERNAL_ACCOUNTS_SOURCE, 'utf8')
-  const sourceFile = ts.createSourceFile('internalAccounts.ts', source, ts.ScriptTarget.Latest, true)
-
-  for (const statement of sourceFile.statements) {
-    if (!ts.isVariableStatement(statement)) continue
-    for (const declaration of statement.declarationList.declarations) {
-      if (!ts.isIdentifier(declaration.name) || declaration.name.text !== exportName) continue
-      if (!declaration.initializer || !ts.isArrayLiteralExpression(declaration.initializer)) {
-        throw new Error(`${exportName} must remain an array literal in lib/internalAccounts.ts`)
-      }
-      return declaration.initializer.elements.map((element) => {
-        if (!ts.isStringLiteralLike(element)) {
-          throw new Error(`${exportName} must contain string literals only`)
-        }
-        return element.text
-      })
-    }
-  }
-
-  throw new Error(`${exportName} was not found in lib/internalAccounts.ts`)
-}
-
-function likeToRegExp(pattern) {
-  const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  return new RegExp(`^${escaped.replace(/%/g, '.*').replace(/_/g, '.')}$`, 'i')
-}
-
-const EXACT_INTERNAL_EMAILS = new Set(
-  readCanonicalStringArray('INTERNAL_EXACT_EMAILS').map((email) => email.toLowerCase()),
-)
-const INTERNAL_EMAIL_PATTERNS = readCanonicalStringArray('INTERNAL_LIKE_PATTERNS').map(likeToRegExp)
+export { fetchAllPages }
 
 export function isInternalAffiliateEmail(raw) {
-  const email = String(raw ?? '').trim().toLowerCase()
-  if (!email) return false
-  return EXACT_INTERNAL_EMAILS.has(email) || INTERNAL_EMAIL_PATTERNS.some((pattern) => pattern.test(email))
-}
-
-export async function fetchAllPages(fetchPage, pageSize = 1000) {
-  if (!Number.isInteger(pageSize) || pageSize < 1) throw new Error('pageSize must be a positive integer')
-  const rows = []
-  for (let page = 0; page < 1000; page++) {
-    const from = page * pageSize
-    const batch = await fetchPage(from, from + pageSize - 1)
-    if (!Array.isArray(batch)) throw new Error('page fetch must return an array')
-    rows.push(...batch)
-    if (batch.length < pageSize) return rows
-  }
-  throw new Error('pagination exceeded the 1000-page safety limit')
+  return isInternalMeasurementEmail(raw)
 }
 
 function eventStage(rows, name, predicate = () => true) {
