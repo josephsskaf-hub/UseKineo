@@ -2,6 +2,58 @@ export const BUSINESS_PLAN_CAMPAIGN = 'weekly_business_video_plan' as const
 export const BUSINESS_PLAN_SHARE_CAMPAIGN = 'weekly_business_video_plan_share_v1' as const
 export const BUSINESS_PLAN_SHARE_URL =
   `https://www.usekineo.com/business-video-content-plan?utm_source=business_plan_copy&utm_medium=referral&utm_campaign=${BUSINESS_PLAN_SHARE_CAMPAIGN}` as const
+export const BUSINESS_PLAN_ATTRIBUTION_VERSION = 'business_content_plan_attribution_v1' as const
+
+export type BusinessContentPlanEntry = 'plan_copy_referral' | 'direct_or_other'
+
+type BusinessContentPlanSearchParams =
+  | Record<string, string | string[] | undefined>
+  | undefined
+
+function normalizedSingleParam(
+  searchParams: BusinessContentPlanSearchParams,
+  key: string,
+): string {
+  const value = searchParams?.[key]
+  return typeof value === 'string' ? value.trim().toLowerCase() : ''
+}
+
+export function readBusinessContentPlanEntry(
+  searchParams: BusinessContentPlanSearchParams,
+): BusinessContentPlanEntry {
+  const isPlanCopyReferral =
+    normalizedSingleParam(searchParams, 'utm_source') === 'business_plan_copy'
+    && normalizedSingleParam(searchParams, 'utm_medium') === 'referral'
+    && normalizedSingleParam(searchParams, 'utm_campaign') === BUSINESS_PLAN_SHARE_CAMPAIGN
+  return isPlanCopyReferral ? 'plan_copy_referral' : 'direct_or_other'
+}
+
+export function businessContentPlanEntryMetadata(entry: BusinessContentPlanEntry) {
+  return {
+    attribution_version: BUSINESS_PLAN_ATTRIBUTION_VERSION,
+    entry,
+    referral_campaign: entry === 'plan_copy_referral' ? BUSINESS_PLAN_SHARE_CAMPAIGN : null,
+  } as const
+}
+
+export function businessContentPlanViewMarker(entry: BusinessContentPlanEntry): string {
+  return `kineo:${BUSINESS_PLAN_ATTRIBUTION_VERSION}:viewed:${entry}`
+}
+
+function businessPlanSignupAttribution(entry: BusinessContentPlanEntry) {
+  if (entry === 'plan_copy_referral') {
+    return {
+      utm_source: 'business_plan_copy',
+      utm_medium: 'referral',
+      utm_campaign: BUSINESS_PLAN_SHARE_CAMPAIGN,
+    }
+  }
+  return {
+    utm_source: 'business_planner',
+    utm_medium: 'organic',
+    utm_campaign: BUSINESS_PLAN_CAMPAIGN,
+  }
+}
 
 export const BUSINESS_GOALS = [
   { id: 'leads', label: 'Generate qualified leads' },
@@ -164,6 +216,7 @@ export function buildBusinessPlanActivationHref(input: {
   audience?: string
   goal: BusinessGoalId
   firstItem: BusinessContentPlanItem
+  entry?: BusinessContentPlanEntry
 }): string {
   const offer = normalizeBusinessOffer(input.offer)
   const audience = normalizeBusinessAudience(input.audience) || 'the people this business serves'
@@ -185,9 +238,13 @@ export function buildBusinessPlanActivationHref(input: {
     intent_campaign: BUSINESS_PLAN_CAMPAIGN,
   }).toString()}`
   return `/signup?${new URLSearchParams({
-    utm_source: 'business_planner',
-    utm_medium: 'organic',
-    utm_campaign: BUSINESS_PLAN_CAMPAIGN,
+    ...businessPlanSignupAttribution(input.entry ?? 'direct_or_other'),
     redirect: destination,
   }).toString()}`
+}
+
+export function buildBusinessPlanEmptyActivationHref(
+  entry: BusinessContentPlanEntry = 'direct_or_other',
+): string {
+  return `/signup?${new URLSearchParams(businessPlanSignupAttribution(entry)).toString()}`
 }

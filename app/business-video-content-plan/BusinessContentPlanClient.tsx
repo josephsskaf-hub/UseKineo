@@ -7,18 +7,26 @@ import { agencyPacksHref } from '@/lib/agencyDistribution'
 import { trackEvent } from '@/lib/analytics'
 import type { AffiliateLandingContextCopy } from '@/lib/growth/affiliateLandingContext'
 import {
+  createReliableViewRecorder,
+  type ReliableViewStorage,
+} from '@/lib/growth/reliablePageView'
+import {
   BUSINESS_CADENCES,
   BUSINESS_GOALS,
   BUSINESS_PLAN_CAMPAIGN,
   BUSINESS_PLAN_SHARE_CAMPAIGN,
   buildBusinessContentPlan,
   buildBusinessPlanActivationHref,
+  buildBusinessPlanEmptyActivationHref,
   businessContentPlanAsText,
+  businessContentPlanEntryMetadata,
+  businessContentPlanViewMarker,
   businessCadenceDetails,
   normalizeBusinessAudience,
   normalizeBusinessOffer,
   recommendedBusinessPack,
   type BusinessCadenceId,
+  type BusinessContentPlanEntry,
   type BusinessContentPlanItem,
   type BusinessGoalId,
 } from '@/lib/growth/businessContentPlan'
@@ -41,9 +49,15 @@ const CARD = {
   background: 'rgba(15,18,26,.9)',
   border: '1px solid rgba(255,255,255,.1)',
 } as const
-const VIEW_MARKER = 'kineo:business-content-plan:viewed:v1'
+const businessPlanViewRecorder = createReliableViewRecorder()
 
-export default function BusinessContentPlanClient({ affiliateContext = null }: { affiliateContext?: AffiliateLandingContextCopy | null }) {
+export default function BusinessContentPlanClient({
+  affiliateContext = null,
+  entry = 'direct_or_other',
+}: {
+  affiliateContext?: AffiliateLandingContextCopy | null
+  entry?: BusinessContentPlanEntry
+}) {
   const [offer, setOffer] = useState('')
   const [audience, setAudience] = useState('')
   const [goal, setGoal] = useState<BusinessGoalId>('leads')
@@ -51,19 +65,29 @@ export default function BusinessContentPlanClient({ affiliateContext = null }: {
   const [result, setResult] = useState<PlanResult | null>(null)
   const [error, setError] = useState('')
   const [copied, setCopied] = useState(false)
+  const attributionMetadata = businessContentPlanEntryMetadata(entry)
 
   useEffect(() => {
+    const marker = businessContentPlanViewMarker(entry)
+    let storage: ReliableViewStorage | null = null
     try {
-      if (sessionStorage.getItem(VIEW_MARKER) === '1') return
-      sessionStorage.setItem(VIEW_MARKER, '1')
+      storage = window.sessionStorage
     } catch {
-      // Privacy mode can block session storage. The planner remains usable.
+      // Privacy mode can block storage. The reliable recorder still uses its memory latch.
     }
-    void trackEvent('business_content_plan_viewed', {
-      version: BUSINESS_PLAN_SHARE_CAMPAIGN,
-      surface: 'business_video_content_plan',
+    const controller = new AbortController()
+    void businessPlanViewRecorder.record({
+      marker,
+      storage,
+      signal: controller.signal,
+      send: () => trackEvent('business_content_plan_viewed', {
+        version: BUSINESS_PLAN_SHARE_CAMPAIGN,
+        surface: 'business_video_content_plan',
+        ...businessContentPlanEntryMetadata(entry),
+      }),
     })
-  }, [])
+    return () => controller.abort()
+  }, [entry])
 
   function createPlan(input?: { offer: string; audience: string; goal: BusinessGoalId }) {
     const cleanOffer = normalizeBusinessOffer(input?.offer ?? offer)
@@ -92,6 +116,7 @@ export default function BusinessContentPlanClient({ affiliateContext = null }: {
       goal: selectedGoal,
       cadence,
       item_count: nextResult.items.length,
+      ...attributionMetadata,
     })
   }
 
@@ -108,6 +133,7 @@ export default function BusinessContentPlanClient({ affiliateContext = null }: {
         goal: result.goal,
         cadence: result.cadence,
         item_count: result.items.length,
+        ...attributionMetadata,
       })
     } catch {
       setCopied(false)
@@ -125,8 +151,9 @@ export default function BusinessContentPlanClient({ affiliateContext = null }: {
         audience: result.audience,
         goal: result.goal,
         firstItem: result.items[0],
+        entry,
       })
-    : '/signup?utm_source=business_planner&utm_medium=organic&utm_campaign=weekly_business_video_plan'
+    : buildBusinessPlanEmptyActivationHref(entry)
 
   const inputStyle = {
     width: '100%',
@@ -262,7 +289,7 @@ export default function BusinessContentPlanClient({ affiliateContext = null }: {
                 <div style={{ color: '#5cb3ff', fontSize: '.7rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '.1em' }}>Start with one</div>
                 <h3 style={{ margin: '8px 0 7px', fontSize: '1.08rem' }}>Carry Monday into the faceless workflow</h3>
                 <p style={{ color: '#96969e', fontSize: '.84rem', lineHeight: 1.58, margin: '0 0 14px' }}>The brief and evidence boundary travel through signup. You review them before any credit can be spent.</p>
-                <Link href={activationHref} onClick={() => void trackEvent('business_content_plan_activation_clicked', { version: BUSINESS_PLAN_SHARE_CAMPAIGN, campaign: BUSINESS_PLAN_CAMPAIGN, surface: 'business_video_content_plan', goal: result.goal, cadence: result.cadence })} style={{ display: 'inline-flex', minHeight: 46, alignItems: 'center', justifyContent: 'center', padding: '0 17px', borderRadius: 11, background: '#2997ff', color: '#fff', fontSize: '.86rem', fontWeight: 900, textDecoration: 'none' }}>
+                <Link href={activationHref} onClick={() => void trackEvent('business_content_plan_activation_clicked', { version: BUSINESS_PLAN_SHARE_CAMPAIGN, campaign: BUSINESS_PLAN_CAMPAIGN, surface: 'business_video_content_plan', goal: result.goal, cadence: result.cadence, ...attributionMetadata })} style={{ display: 'inline-flex', minHeight: 46, alignItems: 'center', justifyContent: 'center', padding: '0 17px', borderRadius: 11, background: '#2997ff', color: '#fff', fontSize: '.86rem', fontWeight: 900, textDecoration: 'none' }}>
                   Create the first Short →
                 </Link>
               </div>
@@ -270,7 +297,7 @@ export default function BusinessContentPlanClient({ affiliateContext = null }: {
                 <div style={{ color: '#34d399', fontSize: '.7rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '.1em' }}>Produce the batch</div>
                 <h3 style={{ margin: '8px 0 7px', fontSize: '1.08rem' }}>The closest one-time fit is the {recommendedPack === 'bulk20' ? '20' : '30'}-video pack</h3>
                 <p style={{ color: '#96969e', fontSize: '.84rem', lineHeight: 1.58, margin: '0 0 14px' }}>This is a four-week planning fit, not a promise that every month has four weeks. Credits do not expire.</p>
-                <Link href={packHref} onClick={() => void trackEvent('business_content_plan_packs_clicked', { version: BUSINESS_PLAN_SHARE_CAMPAIGN, campaign: BUSINESS_PLAN_CAMPAIGN, surface: 'business_video_content_plan', goal: result.goal, cadence: result.cadence, recommended_pack: recommendedPack })} style={{ display: 'inline-flex', minHeight: 46, alignItems: 'center', justifyContent: 'center', padding: '0 17px', borderRadius: 11, background: '#34d399', color: '#04110c', fontSize: '.86rem', fontWeight: 900, textDecoration: 'none' }}>
+                <Link href={packHref} onClick={() => void trackEvent('business_content_plan_packs_clicked', { version: BUSINESS_PLAN_SHARE_CAMPAIGN, campaign: BUSINESS_PLAN_CAMPAIGN, surface: 'business_video_content_plan', goal: result.goal, cadence: result.cadence, recommended_pack: recommendedPack, ...attributionMetadata })} style={{ display: 'inline-flex', minHeight: 46, alignItems: 'center', justifyContent: 'center', padding: '0 17px', borderRadius: 11, background: '#34d399', color: '#04110c', fontSize: '.86rem', fontWeight: 900, textDecoration: 'none' }}>
                   See the {recommendedPack === 'bulk20' ? '20' : '30'}-video pack →
                 </Link>
               </div>

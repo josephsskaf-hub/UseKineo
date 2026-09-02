@@ -29,6 +29,31 @@ function executeTs(file) {
 
 const planner = executeTs('lib/growth/businessContentPlan.ts')
 
+equal(planner.readBusinessContentPlanEntry({
+  utm_source: ' business_plan_copy ',
+  utm_medium: 'REFERRAL',
+  utm_campaign: 'weekly_business_video_plan_share_v1',
+}), 'plan_copy_referral', 'exact copied-plan return is allowlisted and normalized')
+equal(planner.readBusinessContentPlanEntry({
+  utm_source: ['business_plan_copy'],
+  utm_medium: 'referral',
+  utm_campaign: 'weekly_business_video_plan_share_v1',
+}), 'direct_or_other', 'ambiguous array parameters fail closed')
+equal(planner.readBusinessContentPlanEntry({
+  utm_source: 'business_plan_copy',
+  utm_medium: 'organic',
+  utm_campaign: 'weekly_business_video_plan_share_v1',
+}), 'direct_or_other', 'wrong medium cannot claim referral attribution')
+equal(planner.readBusinessContentPlanEntry({
+  utm_source: 'business_plan_copy',
+  utm_medium: 'referral',
+  utm_campaign: 'spoofed',
+}), 'direct_or_other', 'wrong campaign cannot claim referral attribution')
+equal(planner.businessContentPlanEntryMetadata('plan_copy_referral').entry, 'plan_copy_referral', 'metadata keeps only the categorical entry')
+equal(planner.businessContentPlanEntryMetadata('plan_copy_referral').referral_campaign, 'weekly_business_video_plan_share_v1', 'referral metadata uses the canonical campaign')
+equal(planner.businessContentPlanEntryMetadata('direct_or_other').referral_campaign, null, 'ordinary traffic does not invent a referral campaign')
+check(planner.businessContentPlanViewMarker('plan_copy_referral') !== planner.businessContentPlanViewMarker('direct_or_other'), 'view acknowledgement is isolated by entry')
+
 equal(planner.normalizeBusinessOffer('  an   invoicing app  '), 'an invoicing app', 'offer normalizes whitespace')
 equal(planner.normalizeBusinessOffer('x'.repeat(200)).length, 140, 'offer has a hard length ceiling')
 equal(planner.normalizeBusinessAudience('  remote   workers  '), 'remote workers', 'audience normalizes whitespace')
@@ -80,6 +105,15 @@ check(prompt.includes('Business offer: an invoicing app for freelancers'), 'offe
 check(prompt.includes('Audience: freelancers with late-paying clients'), 'audience survives the handoff')
 check(prompt.includes('Use only verified facts'), 'evidence boundary survives the handoff')
 
+const referralActivation = new URL(planner.buildBusinessPlanActivationHref({ ...base, firstItem: five[0], entry: 'plan_copy_referral' }), 'https://www.usekineo.com')
+equal(referralActivation.searchParams.get('utm_source'), 'business_plan_copy', 'referred plan preserves source at signup')
+equal(referralActivation.searchParams.get('utm_medium'), 'referral', 'referred plan preserves medium at signup')
+equal(referralActivation.searchParams.get('utm_campaign'), 'weekly_business_video_plan_share_v1', 'referred plan preserves campaign at signup')
+const referralRedirect = new URL(referralActivation.searchParams.get('redirect'), 'https://www.usekineo.com')
+equal(referralRedirect.searchParams.get('intent_campaign'), 'weekly_business_video_plan', 'referred signup keeps the product intent separate from acquisition attribution')
+const emptyReferralActivation = new URL(planner.buildBusinessPlanEmptyActivationHref('plan_copy_referral'), 'https://www.usekineo.com')
+equal(emptyReferralActivation.searchParams.get('utm_campaign'), 'weekly_business_video_plan_share_v1', 'empty-state signup cannot erase the referral campaign')
+
 const sharedText = planner.businessContentPlanAsText({ ...base, cadence: 'five', items: five })
 check(sharedText.startsWith('WEEKLY BUSINESS SHORTS PLAN'), 'copied artifact has a useful title')
 check(sharedText.includes('Offer: an invoicing app for freelancers'), 'copied artifact keeps the supplied offer')
@@ -110,9 +144,19 @@ check(client.includes('navigator.clipboard.writeText(text)'), 'copy is an explic
 check(client.includes('AffiliateLandingContext'), 'business planner can render a partner recommendation')
 check(client.includes('targetId="business-plan-tool"'), 'partner recommendation reaches the real planner')
 check(client.includes('affiliateContext ? ('), 'ordinary planner traffic does not reserve empty partner space')
+check(client.includes('createReliableViewRecorder'), 'view denominator uses the shared acknowledgement recorder')
+check(client.includes('businessContentPlanViewMarker(entry)'), 'view acknowledgement is keyed by frozen entry')
+check(client.includes('signal: controller.signal'), 'unmounted planner cannot keep an orphaned retry lifetime')
+check(client.includes('...attributionMetadata'), 'interactions carry the same categorical entry')
+check(client.includes('entry,'), 'activation handoff preserves the frozen entry')
 const eventPayloads = [...client.matchAll(/trackEvent\('business_content_plan_[\s\S]*?\}\)/g)].map((match) => match[0])
 equal(eventPayloads.length, 5, 'all five business-plan event payloads are inspectable')
 for (const payload of eventPayloads) {
+  check(
+    payload.includes('...attributionMetadata')
+      || payload.includes('...businessContentPlanEntryMetadata(entry)'),
+    'each business-plan event carries the frozen categorical entry',
+  )
   check(!/(offer|audience|hook|brief|evidence)\s*[:,]/.test(payload), 'telemetry never receives business or plan text')
 }
 check(!client.includes('fetch('), 'planner runs without network or provider cost')
@@ -125,6 +169,8 @@ check(page.includes("'FAQPage'"), 'page publishes scheduling and research bounda
 check(page.includes('this planner does not schedule or publish posts'), 'structured data refuses a competitor capability Kineo lacks')
 check(page.includes('<Footer showStats={false} />'), 'incident-safe page disables the live database-backed footer badge')
 check(page.includes("affiliateLandingContext(searchParams, 'business')"), 'server validates the business affiliate campaign')
+check(page.includes('readBusinessContentPlanEntry(searchParams)'), 'server freezes the allowlisted plan-referral entry')
+check(page.includes('entry={entry}'), 'client receives the server-classified entry')
 
 const agencyPage = read('app/ai-shorts-for-agencies/page.tsx')
 check(agencyPage.includes('href="/business-video-content-plan"'), 'live B2B page links to the planner')

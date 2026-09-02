@@ -5,6 +5,7 @@ import {
   affiliateLandingContext,
   type PublicSearchParams,
 } from '@/lib/growth/affiliateLandingContext'
+import { readBusinessContentPlanEntry } from '@/lib/growth/businessContentPlan'
 
 const CANONICAL = 'https://www.usekineo.com/business-video-content-plan'
 
@@ -60,10 +61,11 @@ const STRUCTURED_DATA = [
 
 export default function BusinessVideoContentPlanPage({ searchParams }: { searchParams?: PublicSearchParams }) {
   const partnerContext = affiliateLandingContext(searchParams, 'business')
+  const entry = readBusinessContentPlanEntry(searchParams)
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(STRUCTURED_DATA) }} />
-      <BusinessContentPlanClient affiliateContext={partnerContext} />
+      <BusinessContentPlanClient affiliateContext={partnerContext} entry={entry} />
       <Footer showStats={false} />
     </>
   )
