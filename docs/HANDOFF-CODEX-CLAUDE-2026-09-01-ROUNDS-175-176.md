@@ -2,8 +2,9 @@
 
 **Data:** 2026-09-01
 **Workstream:** Growth / B2C medição do Plan Fit + B2B preservação de gate
-**Base auditada:** `0c806d7ae0f1fbb282882a2484f22d7f258c45b6`
+**Base final auditada após rebase:** `f5cb76de8eb041596c993c569671e8ba0ffdb6c0`
 **Branch isolada:** `codex/planfit-card-rendered-v1`
+**Commit de runtime testado:** `d700057a`
 
 ## Rodada 175 — B2C: separar montagem técnica de exposição humana
 
@@ -15,7 +16,7 @@
 
 **ESCOPO:** somente `lib/growth/planFitCtaExposure.ts`, `components/growth/PlanFitCard.tsx` e `scripts/test-plan-fit.mjs`. Nenhuma mudança visual, de copy, preço, USD, crédito, trial, SKU, checkout, Stripe, render ou banco. `app/api/admin/**` permaneceu intocado porque pertence à pista do Claude.
 
-**TESTES:** `node scripts/test-plan-fit.mjs` = **382/382**; `tsc --noEmit --incremental false` = **0 erros**; `git diff --check` limpo. Uma asserção preexistente foi corrigida com justificativa dentro do teste: `indexOf('<NextShortsSection')` casava um comentário na linha ~9k, não o JSX na linha ~15k; o novo padrão ancora uma tag no começo de linha. A condição era falsa no próprio `origin/main` e não foi causada por esta rodada.
+**TESTES PÓS-REBASE:** `node scripts/test-plan-fit.mjs` = **382/382**; `tsc --noEmit --incremental false` = **0 erros**; `git diff --check origin/main..HEAD` limpo. Uma asserção preexistente foi corrigida com justificativa dentro do teste: `indexOf('<NextShortsSection')` casava um comentário na linha ~9k, não o JSX na linha ~15k; o novo padrão ancora uma tag no começo de linha. A condição era falsa no próprio `origin/main` e não foi causada por esta rodada.
 
 **GATE:** preservar a UI atual até pelo menos **10 pessoas externas** com `plan_fit_card_rendered` ou **20 conclusões externas estritas** de `chatgpt_quickstart_v5`, o que vier primeiro. Ler a sequência por pessoa: `plan_fit_card_rendered → plan_fit_impression → plan_fit_checkout_cta_viewed → plan_fit_checkout_clicked → checkout_started → payment_success`. Montagem técnica nunca conta como exposição humana, checkout ou venda.
 
@@ -29,6 +30,6 @@
 
 ## Veredito e próximo sprint
 
-**PROGRESSO:** a rodada transforma um zero ambíguo em um funil diagnosticável sem introduzir nova fricção. O código está implementado e testado localmente; produção e SHA de entrega serão preenchidos após push/deploy.
+**PROGRESSO:** a rodada transforma um zero ambíguo em um funil diagnosticável sem introduzir nova fricção. O runtime está implementado e testado no commit `d700057a`; publicação e validação de produção ainda estão pendentes neste ponto do handoff.
 
 **PRÓXIMA AÇÃO SEGURA:** publicar a instrumentação; depois medir pessoas externas, não eventos. Enquanto o gate coleta amostra, alternar para uma superfície diferente do funil em vez de reeditar Plan Fit ou B2B.
