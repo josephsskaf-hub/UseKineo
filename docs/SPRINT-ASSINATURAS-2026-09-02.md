@@ -1078,3 +1078,86 @@ wummm709 sem custo novo (ele já tem o estorno; entregar o filme grátis é o
 mínimo, não promessa). O "claim row missing" (select por id vazio logo após
 23505 no mesmo id) continua sem explicação — é o MESMO fantasma do #14
 (leitura vê o banco diferente do que o banco tem); anotar, não inventar.
+
+### #17 — 04:34→04:50 BRT — o fantasma dos #14/#16 tem nome: DATA CACHE DA VERCEL em rota SÓ-GET (Next 14.2)
+**Leitura.** origin/main = dcf9a291 (Codex: affiliate funnel truth, 2 commits
+sobre 3be59822); fila = #14 + #15 + diário #16 (7 commits sobre 9395b26b),
+**ainda não clicada** — `deploy_sha` dos eventos segue na main do Codex. Item
+(c) do #16: o `compose_error_503` do wummm709. Fui ao banco antes de codar.
+**O que estava errado (a causa-raiz de 3 mistérios).** A linha do tempo de
+e7f9f000 no banco é impossível para um leitor honesto: o cron gravou
+`attempt: 2` TRÊS vezes (03:15, 03:31, 03:45 UTC) com 3 marcadores de tentativa
+já no banco; o `stranded_composed` de 03:32:35 ficou invisível para a rodada de
+03:45; e o compose às 03:45 fez preflight por id (vazio), insert (23505 — já
+existe), recheck pelo MESMO id (vazio → "claim row missing" → 503). Mesmo
+padrão em c5f3404d (`stranded_dedupe_miss` ×4 com `batch_size: 2` quando o
+banco tinha 3 marcadores — sempre faltando o MAIS RECENTE) e em be9c6314
+(e-mail "Your video is ready" enviado às 18:15 E às 18:30 — o dedupe direto
+também cego). Não há read replica (`pg_stat_replication` = só o realtime),
+não há índice em session_id, o lote tem 14 linhas (nada de teto 1000).
+A causa está no `node_modules/next/dist/server/future/route-modules/app-route/
+module.js` + `lib/patch-fetch.js` (14.2.5), lido linha a linha: em rota SEM
+POST/PUT/DELETE/PATCH (`hasNonStaticMethods=false`) o store nasce com
+`revalidate ??= userland.revalidate ?? false`; `dynamic='force-dynamic'` só
+liga `forceDynamic=true` e PULA o proxy que marcaria a rota como dinâmica ao
+ler `req.headers` — ou seja, força o pior caso. No patch-fetch, `autoNoCache`
+(o que protege fetch com Authorization) exige `revalidate === 0`; com `false`
+cai em "auto cache" → `revalidate=false` → `isCacheableRevalidate` →
+`incrementalCache.get/set` = **Data Cache da Vercel, chave = URL+headers,
+validade = 1 ano**. Todo GET do supabase-js com URL estável (marcadores por
+session_id, claim por id, videos por render_id, dedupe por user_id, profile por
+id, status da fal/Creatomate por request_id) era servido como estava na PRIMEIRA
+vez que aquela URL foi pedida por qualquer invocação. Consultas com timestamp
+na URL (minIso) escapavam por acaso — por isso os crons "funcionavam". O POST
+do navegador (compose, generate) nunca sofreu: rota com POST nasce revalidate=0.
+Só o que o CRON chamava (inclusive `composePost`/`composeStatusGet` em-processo,
+que herdam o store do cron) lia o passado. O #14 (reload do claim sem URLs = URL
+lida ANTES do authorize) e o "claim row missing" do #16 são o mesmo defeito.
+**O que mudou.** (1) `export const fetchCache = 'force-no-store'` nas **97
+rotas SÓ-GET** de app/** (todos os crons, admin/send-*, compose/status,
+compose/active, credits, me/*, videos, referral…; só `showcase-clips` e
+`stats/public` ficam com `revalidate = 3600` proposital) — no patch-fetch isso
+zera `curRevalidate` ANTES do primeiro fetch. (2) `app/api/compose/route.ts`:
+`cinematicPrepaidCost = cinematicBirthClaim.creditCost` e os dois custos de
+compose (`hollywoodCost`, `intendedCost`) usam ele — o #7 aceitava o resgate
+mas escrevia 15 no claim de compose com nascimento 19, e o status recusava o
+MP4 pronto com "billing mismatch"/503. (3) `stranded_outcome` grava
+`metadata.error` = a frase do compose (a causa deixa de morar em log que
+expira). `scripts/test-data-cache-no-store.mjs`: **19 verificações**, e a
+(a)/(b) rodam o `patch-fetch` REAL do next com um store igual ao da rota:
+sem interruptor = 2 fetches, 1 ida à origem, resposta velha; com
+`force-no-store` = 2 idas. (c) falha se nascer rota GET sem o interruptor.
+tsc: só os 3 pré-existentes; os 4 testes antigos do stranded seguem verdes.
+**Para o cliente/receita.** É o maior defeito silencioso da pista: TODO cron
+de e-mail com dedupe por URL estável podia reenviar (be9c6314 recebeu 2×; os
+"9 de 9 repetidos" do #4 e o "reenvio 8× rearmado" do CLAUDE.md têm a mesma
+cara), o resgate de 1º vídeo desistia de filmes prontos (shaunish, wummm709
+= 2 dos ~19 primeiros vídeos do dia), o refund-sweep lia `videos` por
+render_id cacheado (candidato a estornar filme entregue — não medido ainda),
+e `/api/credits` sob cookie estava salvo só porque `cookies()` zera o
+revalidate antes. Depois do clique: o cron vê o banco de verdade.
+**SHA:** efb0de92 (sobre d70868cb). **Risco:** baixo/médio — 97 arquivos, 1
+linha de config cada (mais comentário), zero lógica; pior caso = mais idas ao
+Supabase nas rotas que antes liam cache (é o comportamento que sempre se
+supôs). Reverter = apagar a linha. NÃO reprocessa o passado: wummm709 e
+shaunish continuam sem filme (render 9f95cd30 pode ainda existir no
+Creatomate — item de próxima rodada, sem custo novo).
+**Como medir:** `stranded_outcome` com `error` preenchido; `attempt` sem
+repetição de número por geração; `stranded_dedupe_miss` = 0 daqui pra frente;
+e-mails `*_sent` sem duplicata por (user, campanha) em 24h;
+`cinematic_abandoned_no_delivery`/dia (meta 0) para gens com cenas 5/5.
+**Placar 04:48 BRT (externos):** has_paid 11 (starter 3, basic 2, pro 2,
+free/churn 4); cadastros 1h=5, 24h=35 (3 com 0cr); vídeos 1h=1, 24h=19;
+**falhas 1h=3** (anybodyhi5 speech=51s/60s ×3 — roteiro curto, script_short,
+o cron das 06:00 já passou: entra amanhã; asuquoalbert narration_too_short ×3
+igual); checkout_started 24h=5 pessoas; 7d: 75 com 1, 9 com 2, 2 com 3,
+**0 com 4+**; crons 24h: winback25 120, failure_recovery 6, momentum 0 (1º
+disparo 10:30 BRT), subscriber_idle 0; refunds 24h: abandoned_no_delivery 6;
+stranded 3h: no_authorized_urls ×2 (cauda do shaunish).
+**Próximo item (#18):** (a) o render 9f95cd30 do wummm709 e o claim do
+shaunish: com o interruptor no ar, o cron consegue montar/persistir sem custo
+novo? Se sim, os dois ganham o filme + e-mail "ready" (não prometer antes);
+(b) medir o refund-sweep: `credits_refunded` 14d cujo render_id tem
+`videos.status=completed` — se >0, estornamos filme entregue por cache; (c)
+11:00 BRT conferir os ~27 `momentum_nudge_sent`; (d) diretório de dedupe:
+com o cache morto, os `*_sent` duplicados param sozinhos — confirmar em 24h.
