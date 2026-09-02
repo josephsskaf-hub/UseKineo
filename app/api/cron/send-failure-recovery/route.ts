@@ -81,6 +81,14 @@ const RE_SCRIPT_SHORT =
 type Kind = 'bug' | 'script_short'
 type ScriptShort = { narrationSec: number; requestedSec: number; wordsMissing: number }
 
+// sprint-assinaturas #6 (02/09 00:20): o MESMO motivo chega ao banco numa 2a
+// forma, SEM numeros — `no_detail:narration_too_short|stage=failed|http=none`
+// (2 pessoas de trial com 25cr intactos e zero video so na ultima hora). A regex
+// acima exige os 3 numeros e deixava esse caso cair em `bug` → desculpa falsa
+// as 03:00 BRT. Agora e script_short sem numeros e recebe a versao generica do
+// mesmo e-mail (sem inventar segundos que nao temos).
+const RE_NARRATION_SHORT_CODE = /narration_too_short|narration_guard/i
+
 function classifyFailure(erro: string): { kind: Kind; short?: ScriptShort } {
   const m = erro.replace(/\s+/g, ' ').match(RE_SCRIPT_SHORT)
   if (m) {
@@ -89,10 +97,12 @@ function classifyFailure(erro: string): { kind: Kind; short?: ScriptShort } {
       short: { narrationSec: Number(m[1]), requestedSec: Number(m[2]), wordsMissing: Number(m[3]) },
     }
   }
+  if (RE_NARRATION_SHORT_CODE.test(erro)) return { kind: 'script_short' }
   return { kind: 'bug' }
 }
 
-function buildScriptShortEmail(userId: string, credits: number, s: ScriptShort) {
+function buildScriptShortEmail(userId: string, credits: number, s?: ScriptShort) {
+  if (!s) return buildScriptShortGenericEmail(userId, credits)
   const url = `${APP}/studio?utm_source=lifecycle&utm_medium=email&utm_campaign=failure_recovery_script`
   const text = `Hey,
 
@@ -120,6 +130,46 @@ usekineo.com`
   <ol style="padding-left:20px;margin:0 0 16px">
     <li>Paste the same script and pick the video length closest to <strong>${s.narrationSec} seconds</strong>.</li>
     <li>Or keep ${s.requestedSec} seconds and add about <strong>${s.wordsMissing} more words</strong> to the script.</li>
+  </ol>
+  <p style="margin:24px 0"><a href="${url}" style="display:inline-block;background:#2997ff;color:#fff;text-decoration:none;font-weight:bold;font-size:15px;padding:12px 26px;border-radius:10px;">Fix it and render →</a></p>
+  <p>If it still fails, hit reply and paste what you typed. It lands with a real person.</p>
+  <p style="margin:0 0 2px">Kineo Team</p>
+  <p style="margin:0"><a href="https://www.usekineo.com" style="color:#2997ff">usekineo.com</a></p>
+</div>${emailFooterHtml(userId)}`
+
+  return { text: `${text}${emailFooterText(userId)}`, html }
+}
+
+// Versao sem numeros (#6): o codigo `narration_too_short` nao traz segundos
+// nem palavras. Mesma verdade, sem cravar o que nao medimos.
+function buildScriptShortGenericEmail(userId: string, credits: number) {
+  const url = `${APP}/studio?utm_source=lifecycle&utm_medium=email&utm_campaign=failure_recovery_script`
+  const text = `Hey,
+
+Your video didn't render — and nothing was charged. Your ${credits} credits are all still there.
+
+Here's exactly what happened: the script you typed was shorter than the video length you picked. That would leave the ending with music and no story, so Kineo stopped instead of rendering a weak video.
+
+Two ways to fix it in 30 seconds:
+
+1. Paste the same script and pick a shorter video length.
+2. Or keep the length and add a few more sentences to the script.
+
+Either one renders: ${url}
+
+If it still fails, hit reply and paste what you typed. It lands with a real person.
+
+Kineo Team
+usekineo.com`
+
+  const html = `<div style="font-family:Arial,sans-serif;font-size:15px;color:#111;line-height:1.6;max-width:480px;">
+  <p>Hey,</p>
+  <p>Your video didn't render — and <strong>nothing was charged</strong>. Your <strong>${credits} credits</strong> are all still there.</p>
+  <p>Here's exactly what happened: the script you typed was <strong>shorter than the video length you picked</strong>. That would leave the ending with music and no story, so Kineo stopped instead of rendering a weak video.</p>
+  <p><strong>Two ways to fix it in 30 seconds:</strong></p>
+  <ol style="padding-left:20px;margin:0 0 16px">
+    <li>Paste the same script and pick a <strong>shorter video length</strong>.</li>
+    <li>Or keep the length and <strong>add a few more sentences</strong> to the script.</li>
   </ol>
   <p style="margin:24px 0"><a href="${url}" style="display:inline-block;background:#2997ff;color:#fff;text-decoration:none;font-weight:bold;font-size:15px;padding:12px 26px;border-radius:10px;">Fix it and render →</a></p>
   <p>If it still fails, hit reply and paste what you typed. It lands with a real person.</p>
@@ -251,7 +301,7 @@ export async function GET(req: NextRequest) {
   const results: Array<{ email: string; outcome: string }> = []
   for (const a of alvos.slice(0, MAX_PER_RUN)) {
     const { text, html } =
-      a.kind === 'script_short' && a.short ? buildScriptShortEmail(a.id, a.credits, a.short) : buildEmail(a.id, a.credits)
+      a.kind === 'script_short' ? buildScriptShortEmail(a.id, a.credits, a.short) : buildEmail(a.id, a.credits)
     const subject =
       a.kind === 'script_short'
         ? "Your video didn't render — here's the 30-second fix (credits untouched)"

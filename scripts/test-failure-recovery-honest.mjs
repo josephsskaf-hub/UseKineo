@@ -31,7 +31,7 @@ for (const bug of ['Voiceover generation failed. Please try again.', 'unknown', 
 
 t('classifyFailure devolve script_short com os 3 numeros', /kind: 'script_short',\s*short: \{ narrationSec: Number\(m\[1\]\), requestedSec: Number\(m\[2\]\), wordsMissing: Number\(m\[3\]\) \}/.test(src))
 t('classifyFailure NAO e export (route.ts so exporta handlers)', !/export function classifyFailure/.test(src))
-t('envio escolhe buildScriptShortEmail quando kind=script_short', /a\.kind === 'script_short' && a\.short \? buildScriptShortEmail\(a\.id, a\.credits, a\.short\) : buildEmail\(a\.id, a\.credits\)/.test(src))
+t('envio escolhe buildScriptShortEmail quando kind=script_short (#6: com ou sem numeros)', /a\.kind === 'script_short' \? buildScriptShortEmail\(a\.id, a\.credits, a\.short\) : buildEmail\(a\.id, a\.credits\)/.test(src))
 t('assunto proprio para script_short', /Your video didn't render — here's the 30-second fix \(credits untouched\)/.test(src))
 t('assunto de defeito preservado para bug', /'That was our fault — your credits are still there'/.test(src))
 
@@ -54,6 +54,16 @@ t('"still holding" (render vivo segurando credito) saiu da lista de defeito', /'
 t('"credits"/"trial has"/"full capacity" seguem excluidos', /'credits',/.test(src) && /'trial has',/.test(src) && /'full capacity',/.test(src))
 t('quem ja tem video completo continua fora', /if \(jaTemVideo\.has\(id\)\) continue/.test(src))
 t('MAX_PER_RUN continua 25', /const MAX_PER_RUN = 25/.test(src))
+
+
+// sprint-assinaturas #6 — a 2a forma do mesmo motivo, sem numeros
+console.log('(f) narration_too_short sem numeros e script_short (nao bug)')
+t('RE_NARRATION_SHORT_CODE existe', /const RE_NARRATION_SHORT_CODE = \/narration_too_short\|narration_guard\/i/.test(src))
+t('classifyFailure devolve script_short para o codigo sem numeros', /if \(RE_NARRATION_SHORT_CODE\.test\(erro\)\) return \{ kind: 'script_short' \}/.test(src))
+t('frase real do banco casa no codigo', /narration_too_short|narration_guard/i.test('no_detail:narration_too_short|stage=failed|http=none'))
+t('builder generico existe e nao inventa segundos', /function buildScriptShortGenericEmail/.test(src) && !/\$\{s\./.test(src.slice(src.indexOf('function buildScriptShortGenericEmail'), src.indexOf('function isAuthorized'))))
+t('generico nao tem a desculpa falsa', !/our fault|bug on our side|fixed now|same idea will work/i.test(src.slice(src.indexOf('function buildScriptShortGenericEmail'), src.indexOf('function isAuthorized'))))
+t('envio: script_short SEM short usa o generico (nao cai em buildEmail)', /a\.kind === 'script_short' \? buildScriptShortEmail\(a\.id, a\.credits, a\.short\)/.test(src) && /if \(!s\) return buildScriptShortGenericEmail\(userId, credits\)/.test(src))
 
 console.log(`\n${ok} ok, ${bad} falhas`)
 process.exit(bad ? 1 : 0)
