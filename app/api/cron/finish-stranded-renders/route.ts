@@ -509,8 +509,44 @@ export async function GET(req: NextRequest) {
     if (!reloaded.ok || !reloaded.claim) { results.push({ generation: gen8, outcome: 'reload_failed' }); continue }
     const vClaim = reloaded.claim
     const response = (vClaim.response ?? {}) as Record<string, unknown>
-    const clipUrls = vClaim.authorizedCompletedUrls.filter((u): u is string => typeof u === 'string' && u.length > 0)
-    if (clipUrls.length === 0) { results.push({ generation: gen8, outcome: 'no_authorized_urls' }); continue }
+    const onlyUrls = (list: unknown): string[] =>
+      Array.isArray(list) ? list.filter((u): u is string => typeof u === 'string' && u.length > 0) : []
+    let clipUrls = onlyUrls(vClaim.authorizedCompletedUrls)
+    if (clipUrls.length === 0) {
+      // ═══ sprint-assinaturas #14 (02/09) — shaunish2097 (TAAFT, 03:37 UTC):
+      // Seedance 19cr aceito 5/5, clicou no checkout do Creator ENQUANTO
+      // esperava o 1º filme, e o cron saiu daqui com `no_authorized_urls` 6
+      // rodadas seguidas (04:03→05:16) até o estorno de 05:30 — com o claim
+      // no banco mostrando 5/5 URLs autorizadas. A biblioteca (claim.ts) foi
+      // executada em simulação com o mesmo fluxo (authorize → reload) e
+      // devolve as 5 URLs; ou seja, ALGUMA das leituras deste cron enxerga o
+      // claim diferente do banco, e este ramo escondia qual. Duas coisas:
+      // (1) LOG de cada visão do claim (reload / retorno do authorize / linha
+      //     do lote / clipes recém-conferidos na fal) para a próxima rodada
+      //     provar a causa; (2) FALLBACK: o compose re-verifica clip_urls
+      //     contra o claim ASSINADO (compose/route.ts `inputsMatch`) — então é
+      //     seguro tentar com a primeira visão que tenha URLs. Se nenhuma
+      //     bater, o compose devolve 400 e o cron já trata (compose_error_400,
+      //     teto de tentativas, e-mail de resgate). O pior caso continua sendo
+      //     o de hoje: filme pago e nunca montado.
+      const fromAuthorize = authorized.ok && authorized.claim ? onlyUrls(authorized.claim.authorizedCompletedUrls) : []
+      const fromBatchRow = onlyUrls(md.authorized_completed_urls)
+      const fromFal = requestIds.map((id) => clips.find((c) => c.requestId === id)?.url ?? '').filter((u) => u.length > 0)
+      const shape = (list: unknown) => Array.isArray(list) ? list.map((u) => (typeof u === 'string' ? (u ? 'url' : 'empty') : String(u))).join(',') : typeof list
+      console.warn(
+        `[stranded] gen=${gen8} no_authorized_urls diag reload=[${shape(vClaim.authorizedCompletedUrls)}] ` +
+        `authorize=[${authorized.ok && authorized.claim ? shape(authorized.claim.authorizedCompletedUrls) : 'n/a'}] ` +
+        `batch=[${shape(md.authorized_completed_urls)}] fal=${fromFal.length}/${requestIds.length} status=${vClaim.status}`,
+      )
+      const fallback = fromAuthorize.length > 0 ? { src: 'authorize', urls: fromAuthorize }
+        : fromBatchRow.length > 0 ? { src: 'batch_row', urls: fromBatchRow }
+        : fromFal.length > 0 ? { src: 'fal', urls: fromFal }
+        : null
+      if (!fallback) { results.push({ generation: gen8, outcome: 'no_authorized_urls' }); continue }
+      console.warn(`[stranded] gen=${gen8} composing with ${fallback.src} URLs (${fallback.urls.length}) — reload had none`)
+      await admin.from('events').insert({ user_id: userId, name: 'stranded_diag', session_id: genId, path: '/api/cron/finish-stranded-renders', metadata: { outcome: `no_authorized_urls_fallback:${fallback.src}`, reload_shape: shape(vClaim.authorizedCompletedUrls).slice(0, 200) } })
+      clipUrls = fallback.urls
+    }
 
     const sceneSeconds = Array.isArray(response.scene_seconds) ? (response.scene_seconds as number[]) : null
     const duration =
