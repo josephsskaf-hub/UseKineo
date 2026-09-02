@@ -1577,3 +1577,69 @@ como "rodou" na esteira `trial-lifecycle-emails` (never_ran/burned/D5/D10)
 sent` do 1º disparo (esperado ~22, `videos` 1/2); (c) pós-clique: dry-run
 do resgate `/api/cron/send-momentum-nudge?max_idle_h=720` (esperado ~25) e
 `body` dos D5/D10/loss novos; (d) Resend: entrega dos 442 D5 → 38 eventos.
+
+### #24 — 06:49→07:20 BRT — o e-mail "Your Short is ready" (o pico de boa vontade, 105 envios/7d) dizia "compre o Starter por $7" para quem paga Studio e para trial com crédito; agora o rodapé é decidido pela situação da pessoa
+**Leitura.** origin/main = be151a22 (Codex: atribuição do plano business
+compartilhado — nada na minha pista); fila = 20 sobre origin/main (até o
+#23), **ainda não clicada**. Clone `--shared` `/tmp/assin-r24` sobre
+`entrega-atual`, push fast-forward no fim (padrão #20-23).
+**Checagem zero (1h, externos).** 4 cadastros (salah.boukhal 0cr = gasto
+real, já conhecido); 3 vídeos entregues; **0 falhas**; 9 estornos/24h.
+Nada quebrado. O item (a) do #23 (animate na esteira) estava **metade feito
+pelo #11** (loss já conta clipes/imagens/áudios; D5/D10 ainda não) — 11 D5
+em 30d nessa condição, pequeno; fui atrás do que toca mais gente.
+**O que estava errado (medido, externos, 7d).** O e-mail de vídeo pronto
+(`app/api/compose/status/[renderId]/route.ts`, inline) sai para TODO render
+e tinha UM rodapé: "Want a clean export and N more Fast Shorts this month?
+Starter is $7/month →". 105 envios em 7d: **8 para assinantes** (2 Studio,
+1 Starter — quem paga $29 leu "compre o Starter" e "clean export", que ele já
+tem); **51 para trial ATIVO com crédito** (46 pessoas, 47 hoje com ≥5cr) — a
+única coisa que move essa pessoa é o 2º vídeo (fronteira 0,9%→11,8%), e o
+rodapé pedia dinheiro; **45 para quem queimou o trial naquele filme** (custo
+médio 15,8cr) — o único pedido de dinheiro certo, mas medido em "Fast Shorts"
+que ela não fez. E nenhum carimbo: impossível provar o que cada um leu.
+**O que mudou.** `lib/lifecycle/videoReadyFooter.ts` (puro, zero consulta
+nova — usa `planRow`, `creditsRemaining` do RPC de débito, `cost` do claim,
+`topicFinal`): (1) **assinante** (has_paid OU plano pago; trial ativo NÃO
+conta) → saldo real + bloco "Episode 2: <tema dela>" pela continuação de
+série (fonte nova `video_ready_email`; a continuação converte 53% vs 24% do
+Studio em branco), SEM preço, sem "clean export"; (2) **não-assinante com
+≥5cr** (Kineo 1) → episódio 2 ANTES do plano, plano medido em filmes COMO
+ESTE ("This 62-second film cost 25 credits. Starter — 1 film like this a
+month · Creator — 3 · Studio — 7. Plans from $7/month"); (3) **sem saldo** →
+só o plano em filmes como este, sem "0 credits left", sem "Fast Shorts";
+(4) custo desconhecido → copy de hoje com número/preço das funções
+canônicas. Plano que compra 0 filmes some da linha. `intent_campaign` do
+Codex preservado no link de preço. Carimbo `video_ready_email_sent`
+(`footer`, `subscriber`, `cost`, `credits_remaining`) só após 2xx do Resend
+(admin ad hoc: `events` é service_role only). Sem crédito, cupom ou preço
+novo. ⚠ Zona compartilhada: nenhuma — a rota é minha pista; o link de
+pricing mantém o parâmetro do Codex.
+**Testes.** `scripts/test-video-ready-footer.mjs` **46 verificações
+rodando a função REAL** (transpileModule + mocks), incl. XSS do tema, 5cr
+exato, 4,9cr, custo 150 (Starter some), custo 0 (copy de hoje), e 10 leituras
+da rota provando o caller. tsc: só o pré-existente (TrialDowngradeModal —
+não é meu). momentum-ladder 46/46 e D10 26/26 seguem verdes.
+**Para o cliente/receita.** ~15 e-mails/dia. Assinante para de ser
+convidado a pagar menos; 7 trials/dia com crédito recebem o pedido que
+converte (2º vídeo, no tema deles, 1 clique); 6/dia que queimaram o trial
+veem o plano medido no filme que acabaram de receber. Ainda pendente o mesmo
+princípio no `send-video-ready` (stranded_ready, 17/24h) — próximo.
+**SHA:** 59df1faf (sobre 4c4746c8). **Risco:** baixo — decisão por dados
+que já existem; qualquer dúvida cai na copy de hoje; assinante nunca vê
+preço.
+**Como medir:** `video_ready_email_sent` por `metadata->>'footer'`;
+`series_continuation_landed` com `source='video_ready_email'` (hoje 0 — as
+fontes de 7d: studio_milestone 9, history_milestone 8, render_pill 4);
+`checkout_started` em 72h de quem recebeu `plan_films` vs a base 45→?.
+**Placar 07:15 BRT (externos):** has_paid 11 (starter 3, basic 2, pro 2,
+free/churn 4); cadastros 1h=4, 24h=38; vídeos 1h=3, 24h=23; **falhas 1h=0**;
+checkout_started 24h=5 pessoas; 7d: 81 com 1, 9 com 2, 2 com 3, **0 com
+4+**; crons 24h: winback25 120, failure_recovery 6, stranded_ready 17,
+trial_lifecycle 101, momentum 0 (13:30 UTC); refunds 24h: 9.
+**Próximo item (#25):** (a) `app/api/cron/send-video-ready` (stranded_ready,
+17/24h — o filme resgatado) com o MESMO rodapé por situação; (b) D5/D10 da
+esteira para quem só tem clipes/imagens/áudios (metade do item (a) do #23);
+(c) 11:00 BRT: `momentum_nudge_sent` do 1º disparo; (d) pós-clique: dry-run
+do resgate `?max_idle_h=720` e `body` dos loss/D5/D10 + `footer` do
+video_ready.
