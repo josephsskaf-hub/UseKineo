@@ -621,6 +621,61 @@ function newGenerationAttemptId(): string {
   return `gen_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`
 }
 
+// KINEO-SPRINT-V1V4-49 - O ESTUDIO NAO LEMBRAVA DE NADA
+// Medido em 01-02/09: em 14 dias, 27 pessoas EXTERNAS pousaram na continuacao
+// de serie e 13 delas nunca fizeram outro video; 11 dessas 13 clicaram em
+// analisar (27 cliques para 11 pessoas, 2,5 cada) e so 4 chegaram a despachar
+// um render. Elas nao desistem do tema: morrem DEPOIS da analise, na tela de
+// opcoes. O motivo e banal - `quality`, `duration` e o modo de roteiro nascem
+// SEMPRE no padrao de fabrica. `grep localStorage` nesta tela devolve snapshot
+// de render, welcome, onboarding e contagem, e NENHUMA linha guardando a
+// escolha da pessoa: quem ja fez um filme de 60s no motor que gostou precisa
+// reencontrar tudo do zero no episodio 2.
+//
+// A memoria e DELIBERADAMENTE passiva: nao pre-seleciona nada. Ela lembra o
+// que a pessoa usou num despacho REAL e devolve num toque. Aplicar chama os
+// MESMOS setters dos controles que ja existem, entao qualquer gate de plano ou
+// credito (pista do Codex) reavalia exatamente como reavaliaria se o dedo
+// tivesse clicado no controle. Nada aqui decide preco, plano, credito ou SKU.
+const LAST_SETUP_STORAGE_KEY = 'kineo_last_setup_v1'
+
+type LastSetup = { quality: Quality; duration: Duration; scriptMode: 'ai' | 'verbatim'; at: number }
+
+function lastSetupStorageKey(userId: string | null | undefined): string {
+  const safeId = typeof userId === 'string' && userId.trim() ? userId.trim() : 'anon'
+  return `${LAST_SETUP_STORAGE_KEY}:${safeId}`
+}
+
+// Fail-closed na leitura: qualquer valor fora do conjunto conhecido devolve
+// null e a tela se comporta byte a byte como hoje. Nunca lanca.
+function readLastSetup(userId: string | null | undefined): LastSetup | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = localStorage.getItem(lastSetupStorageKey(userId))
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as Partial<LastSetup> | null
+    if (!parsed || typeof parsed !== 'object') return null
+    const qualities: Quality[] = ['fast', 'basic', 'basic_ai', 'pro', 'cinematic_ai']
+    const durations: Duration[] = [35, 45, 60, 90]
+    if (!qualities.includes(parsed.quality as Quality)) return null
+    if (!durations.includes(parsed.duration as Duration)) return null
+    const mode: 'ai' | 'verbatim' = parsed.scriptMode === 'verbatim' ? 'verbatim' : 'ai'
+    const at = typeof parsed.at === 'number' && Number.isFinite(parsed.at) ? parsed.at : 0
+    return { quality: parsed.quality as Quality, duration: parsed.duration as Duration, scriptMode: mode, at }
+  } catch {
+    return null
+  }
+}
+
+function writeLastSetup(userId: string | null | undefined, setup: LastSetup): void {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(lastSetupStorageKey(userId), JSON.stringify(setup))
+  } catch {
+    // Cota cheia ou storage bloqueado nunca pode derrubar um despacho de render.
+  }
+}
+
 // Push #92 — localStorage survives a tab close (sessionStorage does not), but
 // keying the snapshot by a sessionStorage tab id defeated that: closing the
 // tab (which mobile Safari does under memory pressure) made an in-flight,
@@ -1090,6 +1145,10 @@ export default function GenerateClient({
   //  'ai'       → send the text to /api/generate-script to structure it (DEFAULT)
   //  'verbatim' → use the pasted text exactly as the script (advanced)
   const [scriptMode, setScriptMode] = useState<'ai' | 'verbatim'>('ai')
+  // KINEO-SPRINT-V1V4-49 — memoria passiva do ultimo setup despachado.
+  const [lastSetup, setLastSetup] = useState<LastSetup | null>(null)
+  const [lastSetupApplied, setLastSetupApplied] = useState(false)
+  const lastSetupShownKeyRef = useRef<string | null>(null)
   // Legacy AI eligibility field retained for server-gate compatibility. New
   // accounts start with it consumed; no free AI-Generate offer is advertised.
   const [freeAiUsed, setFreeAiUsed] = useState<boolean | null>(null)
@@ -2716,6 +2775,14 @@ export default function GenerateClient({
   // public.events isn't available in this Supabase project.
   useEffect(() => {
     trackEvent('generate_page_view')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // KINEO-SPRINT-V1V4-49 — le a memoria UMA vez, depois que o id do dono ja
+  // esta resolvido. Nao aplica nada: so torna a oferta possivel na fase
+  // `options`. Se nao houver memoria valida, a tela e a de hoje, byte a byte.
+  useEffect(() => {
+    setLastSetup(readLastSetup(currentUserIdRef.current))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -8000,6 +8067,16 @@ export default function GenerateClient({
     // analysis click (which historically double-counted preview confirmation).
     trackEvent('generate_started', dispatchMetadata)
     trackEvent('video_generation_started', dispatchMetadata)
+    // KINEO-SPRINT-V1V4-49 — a memoria so nasce de um despacho REAL. Guardar
+    // no clique de analisar guardaria intencao; aqui guarda o que a pessoa de
+    // fato mandou renderizar. `mode` 'fast'/'creator' despacha em Kineo 1
+    // independente do seletor, entao a memoria registra o que FOI USADO.
+    writeLastSetup(currentUserIdRef.current, {
+      quality: (mode === 'fast' || mode === 'creator' ? 'fast' : quality) as Quality,
+      duration,
+      scriptMode,
+      at: Date.now(),
+    })
     setError(null)
     setTaskStates({})
     setTasks([])
@@ -10767,6 +10844,41 @@ export default function GenerateClient({
   const showBrollPlanning = phase === 'broll_planning'
   const showVisualDirector = phase === 'visual_director'
   const showStep2 = phase === 'options'
+  // KINEO-SPRINT-V1V4-49 — a oferta so existe quando ha DIFERENCA real entre a
+  // memoria e o que esta na tela. Repetir de volta o que ja esta selecionado
+  // seria ruido; a frase tambem nomeia so o que muda, para nunca prometer um
+  // motor pelo nome errado (regra do selo honesto).
+  const lastSetupOffer = (() => {
+    if (!lastSetup) return null
+    const engineDiffers = lastSetup.quality !== quality
+    const durationDiffers = lastSetup.duration !== duration
+    const modeDiffers = lastSetup.scriptMode !== scriptMode
+    if (!engineDiffers && !durationDiffers && !modeDiffers) return null
+    const parts: string[] = []
+    if (durationDiffers) parts.push(`${lastSetup.duration}s`)
+    if (engineDiffers) parts.push('the same engine')
+    if (modeDiffers) parts.push(lastSetup.scriptMode === 'verbatim' ? 'your own script' : 'AI-structured script')
+    return { setup: lastSetup, label: parts.join(' · ') }
+  })()
+
+  // Impressao medida uma vez por combinacao oferecida — sem isto, "ninguem
+  // quis" e "ninguem viu" teriam o mesmo placar, que e o erro que esta sprint
+  // ja pagou vinte rodadas seguidas (ver #46).
+  useEffect(() => {
+    if (!showStep2 || !analysis || !lastSetupOffer) return
+    const key = `${lastSetupOffer.setup.quality}|${lastSetupOffer.setup.duration}|${lastSetupOffer.setup.scriptMode}`
+    if (lastSetupShownKeyRef.current === key) return
+    lastSetupShownKeyRef.current = key
+    try {
+      void trackEvent('last_setup_chip_shown', {
+        quality: lastSetupOffer.setup.quality,
+        duration: lastSetupOffer.setup.duration,
+        script_mode: lastSetupOffer.setup.scriptMode,
+        series_continuation: searchParams?.get('series') === '1',
+      })
+    } catch { /* telemetria nunca derruba a tela */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showStep2, analysis, lastSetupOffer?.label])
   // KINEO-SPRINT-V1V4-29 — ancora do botao real de gerar da fase `options`.
   // A barra fixa do rodape existe SOMENTE enquanto esta ancora esta fora de
   // vista; ver components/StickyGenerateBar.tsx para o numero que a motivou.
@@ -12546,6 +12658,56 @@ export default function GenerateClient({
                 ← Edit idea
               </button>
             </div>
+
+            {/* KINEO-SPRINT-V1V4-49 — a oferta do ultimo setup. Aparece SO
+                quando existe memoria de um despacho real E ela e diferente do
+                que esta selecionado agora; se for igual, nao ha nada a
+                oferecer e o bloco nao existe. Um toque aplica; nada e
+                aplicado sozinho, nada e escondido, e os controles abaixo
+                continuam exatamente onde estavam. */}
+            {lastSetupOffer && (
+              <div
+                className="flex items-center justify-between gap-3 flex-wrap mb-4 rounded-xl px-3 py-2.5"
+                style={{
+                  background: 'rgba(41,151,255,.07)',
+                  border: '1px solid rgba(41,151,255,.22)',
+                }}
+              >
+                <span className="text-xs font-semibold" style={{ color: 'var(--muted2)', lineHeight: 1.5 }}>
+                  {lastSetupApplied
+                    ? `Restored your last setup — ${lastSetupOffer.label}.`
+                    : `Last time you rendered ${lastSetupOffer.label}.`}
+                </span>
+                {!lastSetupApplied && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQuality(lastSetupOffer.setup.quality)
+                      setDuration(lastSetupOffer.setup.duration)
+                      setScriptMode(lastSetupOffer.setup.scriptMode)
+                      setLastSetupApplied(true)
+                      try {
+                        void trackEvent('last_setup_chip_applied', {
+                          quality: lastSetupOffer.setup.quality,
+                          duration: lastSetupOffer.setup.duration,
+                          script_mode: lastSetupOffer.setup.scriptMode,
+                          series_continuation: searchParams?.get('series') === '1',
+                        })
+                      } catch { /* telemetria nunca derruba a tela */ }
+                    }}
+                    className="text-xs font-bold rounded-lg px-3 py-1.5 whitespace-nowrap"
+                    style={{
+                      background: 'rgba(41,151,255,.14)',
+                      border: '1px solid rgba(41,151,255,.34)',
+                      color: '#5cb3ff',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Use it again
+                  </button>
+                )}
+              </div>
+            )}
             <h2 className="font-black text-lg sm:text-xl mb-2" style={{ color: 'var(--text)' }}>
               {analysis.title}
             </h2>
