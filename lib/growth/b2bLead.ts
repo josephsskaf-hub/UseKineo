@@ -3,6 +3,8 @@ export const B2B_LEAD_SOURCE = 'b2b_agency_intake' as const
 export const B2B_FIT_REVIEW_CAMPAIGN = 'b2b_volume_fit_review_v1' as const
 export const B2B_FIT_REVIEW_UTM_SOURCE = 'kineo_facts' as const
 export const B2B_FIT_REVIEW_UTM_MEDIUM = 'answer_engine' as const
+export const B2B_BRIEF_EVENT_VERSION = 'b2b_brief_v1_2026_08_28' as const
+export const B2B_BRIEF_SURFACE = 'ai_shorts_for_agencies' as const
 
 export const B2B_VOLUME_OPTIONS = [
   { id: '10_19', label: '10–19 videos / month' },

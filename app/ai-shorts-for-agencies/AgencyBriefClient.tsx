@@ -4,6 +4,8 @@ import { FormEvent, useEffect, useRef, useState } from 'react'
 import { trackEvent } from '@/lib/analytics'
 import {
   B2B_FIT_REVIEW_CAMPAIGN,
+  B2B_BRIEF_EVENT_VERSION,
+  B2B_BRIEF_SURFACE,
   B2B_LEAD_INTENT,
   B2B_VOLUME_OPTIONS,
   readB2BFitReviewAttribution,
@@ -37,8 +39,8 @@ export default function AgencyBriefClient() {
           // Storage may be unavailable in privacy mode. The form still works.
         }
         void trackEvent('b2b_brief_viewed', {
-          version: 'b2b_brief_v1_2026_08_28',
-          surface: 'ai_shorts_for_agencies',
+          version: B2B_BRIEF_EVENT_VERSION,
+          surface: B2B_BRIEF_SURFACE,
           ...(attribution ?? {}),
         })
       },
@@ -63,8 +65,8 @@ export default function AgencyBriefClient() {
       setStatus('sent')
       const attribution = readB2BFitReviewAttribution(window.location.search)
       void trackEvent('b2b_brief_submitted', {
-        version: 'b2b_brief_v1_2026_08_28',
-        surface: 'ai_shorts_for_agencies',
+        version: B2B_BRIEF_EVENT_VERSION,
+        surface: B2B_BRIEF_SURFACE,
         monthly_volume: volume,
         ...(attribution ?? {}),
       })
@@ -72,8 +74,8 @@ export default function AgencyBriefClient() {
       setStatus('error')
       const attribution = readB2BFitReviewAttribution(window.location.search)
       void trackEvent('b2b_brief_failed', {
-        version: 'b2b_brief_v1_2026_08_28',
-        surface: 'ai_shorts_for_agencies',
+        version: B2B_BRIEF_EVENT_VERSION,
+        surface: B2B_BRIEF_SURFACE,
         monthly_volume: volume,
         ...(attribution ?? {}),
       })
