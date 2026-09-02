@@ -8,6 +8,7 @@ import type { Scene } from '@/lib/runway'
 // Push #353 — Pixabay replaces Pexels as primary B-roll source.
 // Fast Mode v2 (02/07) — getPixabayClipsForScene returns a RANKED mini-pool per scene.
 import { getPixabayClipsForScene } from '@/lib/pixabay'
+import { normalizeAspect } from '@/lib/aspect'
 // KINEO-FAST-V4 — self-building clip library: search it before any external API.
 import { searchVault } from '@/lib/clipVault'
 // KINEO-AI-HOOK — Seedance cinematic "wow" opener for a free user's FIRST video.
@@ -331,6 +332,10 @@ export async function POST(req: NextRequest) {
     const duration: Duration = SUPPORTED_DURATIONS.includes(requestedDuration as Duration)
       ? (requestedDuration as Duration)
       : 45
+    // KINEO-MULTIFORMATO-2026-09-02 — enquadramento pedido pelo cliente.
+    // Ausente ou inválido = '9:16'. Só influencia a ESCOLHA do footage aqui;
+    // a geometria do master é decidida no compose.
+    const aspect = normalizeAspect((body as { aspect?: unknown }).aspect)
 
     const clipCount = clipCountForDuration(duration)
 
@@ -908,7 +913,9 @@ export async function POST(req: NextRequest) {
             // scene already took (the same-Dubai-aerial-4x bug).
             // Push #483 — minDurationSec: clips long enough to cover the planned
             // scene duration rank higher (kills freeze/loop padding on short clips).
-            { exact: verbatim, exclude: usedPexelsUrls, minDurationSec: durationSeconds, maxClips: clipsWanted - vaultTaken, styleCtx },
+            // KINEO-MULTIFORMATO-2026-09-02 — o ranker precisa saber o quadro:
+            // num Short vale +10 para clipe retrato; num 16:9 é o inverso.
+            { exact: verbatim, exclude: usedPexelsUrls, minDurationSec: durationSeconds, maxClips: clipsWanted - vaultTaken, styleCtx, aspect },
           )
           if (pixUrls.length > 0) {
             for (const pixUrl of pixUrls) {

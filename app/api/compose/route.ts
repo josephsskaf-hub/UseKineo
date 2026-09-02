@@ -12,6 +12,8 @@ import {
   historicoDeParedes,
   mensagemComEspiral,
 } from '@/lib/refusalSpiral'
+// KINEO-MULTIFORMATO-2026-09-02 — enquadramento do master (9:16 · 16:9 · 1:1 · 4:5).
+import { normalizeAspect } from '@/lib/aspect'
 import {
   buildCreatomateSource,
   CreatomateSubmitError,
@@ -669,6 +671,10 @@ export async function POST(req: NextRequest) {
           .filter((c) => c.length > 0)
       : []
 
+    // KINEO-MULTIFORMATO-2026-09-02 — enquadramento do master. Ausente ou
+    // inválido = '9:16': todo render existente, todo cron de resgate e todo
+    // retry antigo continuam byte-a-byte iguais.
+    const aspectRequested = normalizeAspect((body as { aspect?: unknown }).aspect)
     const requestedDuration = Number(body.duration) || 45
     // Avatar duration fix (02/07, TAAFT reviewer bug) — avatar renders follow
     // the REAL narration length (a 4s verbatim line is a ~4s video), so the
@@ -2086,6 +2092,7 @@ export async function POST(req: NextRequest) {
           watermark: forced,
           endCard: forced,
           musicUrl: hollywoodMusicUrl,
+          aspect: aspectRequested, // KINEO-MULTIFORMATO-2026-09-02
         // KINEO-H3-AUDIO-2026-08-20 — ver o comentário no builder.
         muteClipAudio: quality === 'cinematic_h3' || quality === 'cinematic_omni' || quality === 'cinematic_s25', // KINEO-S25: generate_audio ja vai false; o mute aqui e cinto E suspensorio // KINEO-OMNI-2026-08-25: V1 mudo+TTS ate o render de validacao provar o audio nativo
         })
@@ -2574,6 +2581,7 @@ export async function POST(req: NextRequest) {
         voiceoverScript: scaledScript,
         sceneCaptions,
         duration,
+        aspect: aspectRequested, // KINEO-MULTIFORMATO-2026-09-02
         quality,
         realAudioDuration,
         whisperWords,

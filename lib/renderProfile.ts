@@ -1,3 +1,5 @@
+import { aspectSpec, DEFAULT_ASPECT } from '@/lib/aspect'
+
 // KINEO-RENDER-PROFILE-2026-08-10 — a resolução do output deixa de ser um
 // literal repetido em 3 arquivos e vira UMA alavanca de custo.
 //
@@ -200,6 +202,33 @@ export function creditsForSeconds(
 export function renderOutputSpec(): { output_format: 'mp4'; width: number; height: number; frame_rate: number } {
   const p = renderProfile()
   return { output_format: 'mp4', width: p.width, height: p.height, frame_rate: p.fps }
+}
+
+// ═══ KINEO-MULTIFORMATO-2026-09-02 ════════════════════════════════════════
+// O guard acima ("não é 9:16 → volta ao default inteiro") continua de pé e
+// NÃO é contornado aqui: ele protege a env de produção contra um valor torto,
+// que era o defeito real que ele endereçava. O que muda é que o enquadramento
+// deixa de ser propriedade do AMBIENTE e passa a ser propriedade do PEDIDO —
+// duas coisas diferentes que estavam coladas.
+//
+// O fps continua vindo do perfil (é alavanca de custo do Creatomate, medida
+// em 24 fps desde o aperto de cota); só a geometria vem do formato escolhido.
+// Sem argumento, o comportamento é byte-a-byte o de antes.
+/**
+ * O bloco de output do Creatomate para um enquadramento específico.
+ * `renderOutputSpecFor()` sem argumento === `renderOutputSpec()`.
+ */
+export function renderOutputSpecFor(
+  aspect?: unknown,
+): { output_format: 'mp4'; width: number; height: number; frame_rate: number } {
+  const spec = aspectSpec(aspect)
+  const p = renderProfile()
+  if (spec.aspect === DEFAULT_ASPECT) {
+    // Caminho antigo intacto: honra KINEO_RENDER_WIDTH/HEIGHT se estiverem
+    // válidos (é assim que o perfil de custo é ajustado sem deploy).
+    return { output_format: 'mp4', width: p.width, height: p.height, frame_rate: p.fps }
+  }
+  return { output_format: 'mp4', width: spec.width, height: spec.height, frame_rate: p.fps }
 }
 
 /** Só para teste — o cache por lambda esconderia mudanças de env no mesmo processo. */

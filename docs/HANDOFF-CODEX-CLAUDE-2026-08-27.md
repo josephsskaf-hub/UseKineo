@@ -1,5 +1,39 @@
 # Handoff Codex ↔ Claude — 2026-08-27
 
+## 161 — 02/09 noite · Claude · MULTI-FORMATO NATIVO (16:9 · 1:1 · 4:5) + TRANSPARÊNCIA DE PREÇO
+
+**A tese, medida em nove concorrentes (fonte oficial):** reenquadrar é caro para eles e
+barato para nós. OpusClip cobra US$ 29/mês pelo tracking que libera 1:1/16:9; Submagic e
+Veed fazem crop com reposicionamento manual; InVideo re-renderiza e cobra crédito de novo;
+Pictory avisa que "some visuals may need repositioning". Todos partem de um vídeo PRONTO e
+precisam rastrear um sujeito. **Nossas cenas são geradas** — o quadro certo é um campo de
+string no payload da fal. A feature que é o upsell do líder é, aqui, um parâmetro.
+
+**Arquivo novo: `lib/aspect.ts`** — fonte única de: geometria do master, layout de legenda
+(y/width/fonte), letterbox, marca d'água, `aspect_ratio` da fal, `image_size` do FLUX e o
+texto de enquadramento do prompt. 9:16 traz exatamente os números que estavam chumbados.
+
+**Onde tocou (tudo aditivo, `aspect` ausente = 9:16 byte-a-byte):**
+`renderProfile.ts` (`renderOutputSpecFor`, guard da ENV intacto) · `compose.ts` (layout por
+quadro nos dois builders; letterbox some em 16:9/1:1) · `generate-video-cinematic/route.ts`
+(os 10 literais `aspect_ratio: '9:16'` viraram um ponto; planner recebe o formato nas 5
+chamadas) · `hollywood/router.ts` (o prompt parava de contradizer o payload — injetava
+"9:16 vertical framing" mesmo em pedido 16:9) · `pixabay.ts` (o `+10 retrato` fixo virava
+DEFEITO em 16:9: agora o bônus e a penalidade de resolução espelham o corte real, e o passe
+preferido busca `min_width` em vez de `min_height`) · `StudioClient.tsx` (4 pills; a escolha
+finalmente VIAJA na URL — o estado `aspect` existia desde sempre e morria na tela) ·
+`GenerateClient.tsx` + `compose/route.ts` (repasse até os builders).
+
+**Custo:** 16:9 idêntico a 9:16 (mesmos pixels), 1:1 −44%, 4:5 −30%. Nenhum formato novo
+encarece render.
+
+**Falta (não bloqueia o lançamento):** previews com `aspectRatio: '9 / 16'` chumbado em
+~10 telas (My Videos, Library, /v/[id]) mostrarão 16:9 dentro de moldura vertical; e a copy
+de marketing "9:16 vertical only" (`lib/kineoFacts.ts`, `lib/comparisons.ts`) vira mentira
+invertida no dia em que isso for anunciado. **Pista do Codex se quiser pegar:** a página
+`/models-pricing` (nova) é o lugar natural para anunciar os formatos, e o `v2/page.tsx` já
+tem `PLATFORMS[].aspect` modelado sem uso.
+
 ## 160 — 02/09 ~15h BRT · Claude · O DÉBITO SAIU DA FRENTE DA TRAVA DE NARRAÇÃO (P0 de dinheiro)
 
 **Caso:** `albertopopacristian` chegou pelo TAAFT às 14:11:06 e falhou às 14:12:08 —

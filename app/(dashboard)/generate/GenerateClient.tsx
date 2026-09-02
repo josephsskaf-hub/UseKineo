@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { looksLikeInstruction } from '@/lib/momentumTopic'
+import { normalizeAspect } from '@/lib/aspect'
 import { useRouter, useSearchParams } from 'next/navigation'
 // KINEO-STUDIO-CORTINA-2026-08-17 — tela de espera vestida com o kit.
 import { STUDIO_KIT_CSS } from '@/components/studioKit'
@@ -1213,6 +1214,10 @@ export default function GenerateClient({
   // KINEO-REVERSE-TRIAL-P1-2026-08-06 — reverse trial (direitos do Creator;
   // motores Studio ficam com cadeado). Vem do servidor via /api/credits e é
   // false sempre que a flag KINEO_REVERSE_TRIAL_ENABLED está OFF.
+  // KINEO-MULTIFORMATO-2026-09-02 — enquadramento vindo do /studio pela URL.
+  // Lido uma vez, sem estado editável aqui: quem escolhe é o Studio (a tela
+  // com o seletor). Valor inválido ou ausente resolve para '9:16'.
+  const aspectRequested = normalizeAspect(searchParams.get('aspect'))
   const [trialActive, setTrialActive] = useState<boolean>(false)
   // KINEO-TRIAL-SURFACES-2026-08-07 — a FASE, nao so "esta ativo". O banner de
   // boas-vindas promete "Your Creator trial is live — 40 free credits, every
@@ -5523,6 +5528,10 @@ export default function GenerateClient({
                 }
               : {}),
             language,
+            // KINEO-MULTIFORMATO-2026-09-02 — o enquadramento pedido no
+            // /studio chega até o compose. Ausente (todo link antigo, toda
+            // sessão que não escolheu) = 9:16, byte-a-byte como antes.
+            ...(aspectRequested !== '9:16' ? { aspect: aspectRequested } : {}),
             // Narration Engine (Phase 1) — pass the detected niche as vertical
             // so compose auto-selects the best AI voice persona for the content.
             vertical: analysis?.niche ?? undefined,
@@ -8357,6 +8366,10 @@ export default function GenerateClient({
           prompt: trimmed,
           duration,
           language,
+          // KINEO-MULTIFORMATO-2026-09-02 — o motor precisa GERAR no quadro
+          // certo. É aqui que a nossa vantagem se realiza: cena gerada não
+          // precisa de tracking, só de um `aspect_ratio` no payload da fal.
+          ...(aspectRequested !== '9:16' ? { aspect: aspectRequested } : {}),
           // ═══ KINEO-VERBATIM-SEM-MARCADOR-2026-08-24 ═══════════════════════
           // O elo que faltava do Contrato C1. O usuário escolhia "Use my
           // script as is", MAS este payload nunca contava isso ao servidor —
@@ -8784,7 +8797,9 @@ export default function GenerateClient({
             res = await fetch('/api/generate-video-fast', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ prompt: trimmed, duration, language, brollQueries, brollScenes, brollDegraded: plan?.degraded }),
+              // KINEO-MULTIFORMATO-2026-09-02 — `aspect` só viaja quando não é
+              // 9:16: link antigo e sessão sem escolha continuam idênticos.
+              body: JSON.stringify({ prompt: trimmed, duration, language, brollQueries, brollScenes, brollDegraded: plan?.degraded, ...(aspectRequested !== '9:16' ? { aspect: aspectRequested } : {}) }),
               signal: dispatchTimeoutSignal(FAST_DISPATCH_TIMEOUT_MS),
             })
             data = await res.json().catch(() => { parseFailed = true; return null }) as Record<string, unknown> | null

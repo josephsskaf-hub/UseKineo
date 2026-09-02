@@ -12,7 +12,9 @@ import { stripScriptMarkers } from '@/lib/scriptParser'
 // KINEO-RENDER-PROFILE-2026-08-10 — o bloco de output (width/height/fps) do
 // payload do Creatomate. Módulo puro, sem cliente e sem chave de API: seguro
 // para o caminho do compose-status (ver o NOTE do topo deste arquivo).
-import { renderOutputSpec } from '@/lib/renderProfile'
+import { renderOutputSpec, renderOutputSpecFor } from '@/lib/renderProfile'
+// KINEO-MULTIFORMATO-2026-09-02 — geometria + layout por enquadramento.
+import { aspectSpec, type AspectSpec } from '@/lib/aspect'
 // KINEO-CREDIT-STUCK-2026-08-08 — política única de 429 (fal + Creatomate).
 import { CREATOMATE_SUBMIT_RATE_LIMIT, rateLimitWaitMs, sleep } from '@/lib/rateLimit'
 import { selectPersonaForScript, describeVoiceSelection } from '@/lib/narration/niche-mapping'
@@ -108,6 +110,29 @@ const HIGHLIGHT_COLOR = '#FFD700'
 // The watermark is a centered short string well inside that.
 const CAPTION_BOTTOM_Y = '78%'   // bottom edge of the caption box (hard floor)
 const CAPTION_WIDTH = '78%'      // keeps the pill left of the right-hand chrome
+
+// ═══ KINEO-MULTIFORMATO-2026-09-02 — O LAYOUT SEGUE O QUADRO ══════════════
+// Os números acima (78%/78%/62/76) foram calibrados para 1080×1920 contra o
+// chrome do Shorts/TikTok — a aritmética inteira está no bloco SHORTS
+// SAFE-ZONE acima. Em 16:9 esse chrome NÃO EXISTE: legenda a 78% flutuaria no
+// meio do quadro, e a caixa de 78% de 1920px viraria uma faixa de 1498px.
+// Então cada formato traz o seu layout (lib/aspect.ts) e este módulo passa a
+// ler dali.
+//
+// POR QUE UMA VARIÁVEL DE MÓDULO E NÃO UM PARÂMETRO EM 7 CALL SITES:
+// `buildCaptionElements` é chamada em 7 pontos dentro dos DOIS builders, e os
+// dois são SÍNCRONOS de ponta a ponta (nenhum `await` entre a primeira e a
+// última linha). Em Node isso significa que uma requisição nunca é
+// interrompida no meio da montagem — não há como duas montagens intercalarem
+// e trocarem o formato uma da outra. Cada builder fixa o valor na primeira
+// linha e ele vale até o fim daquela montagem. Se algum dia um `await` entrar
+// no meio de um builder, ISTO AQUI PRECISA VIRAR PARÂMETRO — está escrito
+// para que a próxima pessoa saiba o que quebrou.
+let ACTIVE_ASPECT: AspectSpec = aspectSpec('9:16')
+function setActiveAspect(raw?: unknown): AspectSpec {
+  ACTIVE_ASPECT = aspectSpec(raw)
+  return ACTIVE_ASPECT
+}
 // PUSH #94 — ONE-WORD CAPTIONS. Tier-1 Shorts tools (Submagic / OpusClip /
 // Revid) are recognisable above all else by active-word emphasis: exactly one
 // word on screen at a time, swapping on the beat. With a chunk size of 1 every
@@ -308,6 +333,12 @@ export interface ComposeInputs {
    * legacy full-length avatar with periodic cutaways.
    */
   avatarHookSeconds?: number | null
+  /**
+   * KINEO-MULTIFORMATO-2026-09-02 — enquadramento do master. Ausente = '9:16'
+   * (todo caminho existente). Define geometria do output E o layout de
+   * legenda/marca d'água/letterbox (lib/aspect.ts).
+   */
+  aspect?: string | null
 }
 
 export interface CreatomateRenderState {
@@ -1641,14 +1672,16 @@ export function buildCaptionElements({
     duration,
     text: (text ?? '').toUpperCase(),
     x: '50%',
-    y: CAPTION_BOTTOM_Y,
+    // KINEO-MULTIFORMATO-2026-09-02 — em 9:16 estes valores são idênticos aos
+    // constantes acima (78%/78%/62/76); nos outros formatos vêm de aspect.ts.
+    y: ACTIVE_ASPECT.captionBottomY,
     y_anchor: '100%',
-    width: CAPTION_WIDTH,
+    width: ACTIVE_ASPECT.captionWidth,
     font_family: 'Montserrat',
     // PUSH #93 (FIX 4) — the opening chunk is rendered larger so the hook lands
     // with weight. Still bottom-anchored, so the extra height grows upward and
     // the safe-zone floor is unchanged.
-    font_size: hook ? CAPTION_HOOK_FONT_SIZE : CAPTION_FONT_SIZE,
+    font_size: hook ? ACTIVE_ASPECT.hookFontSize : ACTIVE_ASPECT.captionFontSize,
     font_weight: '800',
     line_height: '105%',
     // Fast Mode v2 (d) — emphasized chunks go whole-line yellow (mobile-safe:
@@ -1778,7 +1811,12 @@ export function buildCreatomateSource({
   watermark = false,
   avatarUrl = null,
   avatarHookSeconds = null,
+  aspect,
 }: ComposeInputs): Record<string, unknown> {
+  // KINEO-MULTIFORMATO-2026-09-02 — primeira linha do builder, antes de
+  // qualquer elemento ser montado. Sem `aspect` no input isto resolve para
+  // 9:16 e nada muda (ver a nota de concorrência em ACTIVE_ASPECT).
+  const frame = setActiveAspect(aspect)
   // Push #199 — use the REAL TTS audio duration as the master timeline length
   // instead of the user-requested duration. This eliminates both the "black
   // screen at the end" (TTS shorter than requested) and the "narration cut off"
@@ -2361,8 +2399,12 @@ export function buildCreatomateSource({
   // Nao — legendas ficam na track 5 e terminam em y 78%; as barras ocupam
   // 0-6% e 94-100%, sem cruzar. Track 6 garante que a barra cobre o clipe e
   // o grade, e a marca d'agua (track 9, y 5%) desenha POR CIMA da barra.
-  if (isFastStock && !hasAvatar && FAST_LETTERBOX_PCT > 0) {
-    for (const yTop of [0, 100 - FAST_LETTERBOX_PCT]) {
+  // KINEO-MULTIFORMATO-2026-09-02 — a barra preta só existe em quadro
+  // vertical. Em 16:9 e 1:1 o quadro já é cinema: barra ali vira moldura boba
+  // e come área útil. `frame.letterboxPct` é 6 em 9:16 e 0 nos outros.
+  const letterboxPct = Math.min(FAST_LETTERBOX_PCT, frame.letterboxPct)
+  if (isFastStock && !hasAvatar && letterboxPct > 0) {
+    for (const yTop of [0, 100 - letterboxPct]) {
       elements.push({
         type: 'shape',
         track: 6,
@@ -2645,7 +2687,10 @@ export function buildCreatomateSource({
       duration: totalDuration,
       text: WATERMARK_TEXT,
       x: '50%',
-      y: '5%',
+      // KINEO-MULTIFORMATO-2026-09-02 — 5% em 9:16 (idêntico ao valor medido
+      // no bloco acima); nos quadros mais largos desce um degrau porque 5% de
+      // 1080px de altura são só 54px e a plaqueta encostaria no topo.
+      y: frame.watermarkY,
       width: '80%',
       font_family: 'Montserrat',
       font_size: 40,
@@ -2661,7 +2706,9 @@ export function buildCreatomateSource({
     // KINEO-RENDER-PROFILE-2026-08-10 — o literal 1080/1920/30 virou alavanca
     // de custo por env. Defaults idênticos: enquanto KINEO_RENDER_* não
     // existir, este return é equivalente ao anterior.
-    ...renderOutputSpec(),
+    // KINEO-MULTIFORMATO-2026-09-02 — a geometria passa a vir do formato
+    // pedido; sem `aspect`, devolve exatamente o mesmo de antes.
+    ...renderOutputSpecFor(frame.aspect),
     duration: totalDuration,
     elements,
   }
@@ -2749,6 +2796,7 @@ export function buildHollywoodCreatomateSource({
   watermark = false,
   musicUrl = null,
   muteClipAudio = false,
+  aspect, // KINEO-MULTIFORMATO-2026-09-02 — ausente = '9:16'
 }: {
   clips: HollywoodClipInput[]
   narrationBlocks: HollywoodNarrationBlock[]
@@ -2768,7 +2816,10 @@ export function buildHollywoodCreatomateSource({
   // true = todo clipe entra a 0%: no H3 a única voz é a nossa narração (C1),
   // e a ambiência vem da trilha musical, não do modelo.
   muteClipAudio?: boolean
+  /** KINEO-MULTIFORMATO-2026-09-02 — ausente = '9:16', como sempre foi. */
+  aspect?: string | null
 }): Record<string, unknown> {
+  const frame = setActiveAspect(aspect)
   const cleanClips = clips.filter((c) => typeof c.url === 'string' && c.url.trim().length > 0)
   if (cleanClips.length === 0) {
     throw new Error('No video clips provided to compose (hollywood).')
@@ -3193,7 +3244,8 @@ export function buildHollywoodCreatomateSource({
     // KINEO-RENDER-PROFILE-2026-08-10 — o literal 1080/1920/30 virou alavanca
     // de custo por env. Defaults idênticos: enquanto KINEO_RENDER_* não
     // existir, este return é equivalente ao anterior.
-    ...renderOutputSpec(),
+    // KINEO-MULTIFORMATO-2026-09-02 — idem para o builder hollywood.
+    ...renderOutputSpecFor(frame.aspect),
     duration: totalDuration,
     elements,
   }

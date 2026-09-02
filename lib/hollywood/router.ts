@@ -61,6 +61,8 @@
 //       the lens); other types are converted, narration becomes the line.
 
 import { openai } from '@/lib/openai'
+// KINEO-MULTIFORMATO-2026-09-02 — enquadramento pedido → prompt do planner.
+import { aspectSpec } from '@/lib/aspect'
 // KINEO-HOLLYWOOD-HOST-2026-07-13 — the host-scene engine (Kling AI Avatar
 // v2, $0.0562/s — ~1/3 of O3's $0.168/s) so logHollywoodCost prices anchored
 // dialogue scenes correctly. lib→lib import, no cycle (veed.ts imports only
@@ -482,15 +484,22 @@ export async function planHollywoodScenes(args: {
   scenes?: Array<{ voiceover?: string; description?: string }>
   durationSeconds: number
   language?: string
+  /** KINEO-MULTIFORMATO-2026-09-02 — ausente = '9:16' (todo caminho atual). */
+  aspect?: string | null
 }): Promise<HollywoodPlan> {
   const { idea, voiceoverScript, scenes, durationSeconds, language } = args
+  // KINEO-MULTIFORMATO-2026-09-02 — o enquadramento entra no PROMPT do
+  // planner, não só no payload da fal: pedir 16:9 ao motor e continuar
+  // mandando "9:16 vertical framing" na descrição da cena é dar duas ordens
+  // contrárias ao mesmo modelo — e o texto costuma vencer.
+  const frame = aspectSpec(args.aspect)
 
   const sceneCtx = (scenes ?? [])
     .slice(0, 10)
     .map((s, i) => `Beat ${i + 1}: ${((s.voiceover || s.description || '') as string).slice(0, 220)}`)
     .join('\n')
 
-  const system = `You are a Hollywood-grade director planning an ultra-realistic 9:16 vertical short film (45-70 seconds total) from an idea/script. You output ONLY valid JSON.
+  const system = `You are a Hollywood-grade director planning an ultra-realistic ${frame.promptFraming} short film (45-70 seconds total) from an idea/script. You output ONLY valid JSON.
 
 You route each scene to one of three engine types:
 - "dialogue": a fictional person speaks ON CAMERA. 5 or 10 seconds. The EXACT spoken line (English) MUST appear inside the scene prompt wrapped in double quotes, e.g.: she looks into the lens and says: "Nobody tells you this about money." The line must FILL the entire clip: the person speaks continuously and energetically for the entire shot, no dead air. Line-length rule (strict): a 10-second scene needs a 22-30 word line; a 5-second scene needs a 10-14 word line. The engine generates the voice and lip sync natively. NEVER plan external narration (TTS) over a person speaking in close-up.
@@ -526,7 +535,7 @@ YOU ARE THE SCREENWRITER (KINEO-HOLLYWOOD-21 — the input is RAW material):
 - The scenes tell ONE connected story: each scene continues the previous scene's beat (setup → escalation → payoff). No disconnected vignettes.
 
 OTHER HARD RULES:
-- 9:16 vertical framing in every prompt.
+- ${frame.promptFraming} in every prompt.
 - ZERO readable text in any shot: no phone/computer screens with content, no signs, no billboards, no labels. If a phone appears, its screen is off or blurred.
 - Scene 1 = the HOOK beat (usually a dialogue scene looking straight into the lens, speaking from the very first frame).
 - MAX 1 LONG B-ROLL IN A ROW: never place two adjacent non-dialogue scenes (cinematic/support) that are BOTH 10 seconds — more than ~10 straight seconds of b-roll kills retention. Break b-roll walls with a dialogue scene, or make the second insert 5 seconds.
@@ -620,7 +629,18 @@ Target total duration: ${Math.max(30, Math.min(100, Math.round(durationSeconds |
     if (!/handheld|film grain|imperfect/i.test(prompt)) {
       prompt = `${prompt}, ${REALISM_DIRECTIVES}`
     }
-    if (!/9:16|vertical/i.test(prompt)) prompt = `${prompt}, 9:16 vertical framing`
+    // KINEO-MULTIFORMATO-2026-09-02 — o backstop passa a defender o
+    // enquadramento PEDIDO. Antes ele injetava "9:16 vertical framing" em toda
+    // cena: num filme 16:9 isso era uma ordem contrária ao payload da fal,
+    // dentro do mesmo prompt. A limpeza remove a menção errada antes de
+    // acrescentar a certa (o GPT às vezes escreve "9:16" por hábito do
+    // treinamento, mesmo quando o system prompt pediu outro formato).
+    if (!frame.vertical) {
+      prompt = prompt.replace(/,?\s*9:16(\s+vertical)?(\s+framing)?/gi, '').replace(/\s{2,}/g, ' ').trim()
+    }
+    if (!new RegExp(frame.falAspectRatio.replace(':', '\\s*:\\s*'), 'i').test(prompt)) {
+      prompt = `${prompt}, ${frame.promptFraming}`
+    }
 
     const dialogueLine =
       type === 'dialogue' && typeof rs.dialogueLine === 'string' && rs.dialogueLine.trim()
@@ -821,7 +841,7 @@ Target total duration: ${Math.max(30, Math.min(100, Math.round(durationSeconds |
       // planner-native dialogue prompt (sheets first, quoted line, realism
       // directives, styleSheet, NO_TEXT last). No STABLE_SHOT/DEMO suffixes:
       // this is now a person shot, not an insert.
-      sc.prompt = `${characterSheet}. Standing in: ${environmentSheet}. Medium shot, 9:16 vertical framing — looking straight into the lens, the person says: "${sc.dialogueLine}" The person speaks continuously and energetically for the entire shot, no dead air, ${REALISM_DIRECTIVES}. Cinematography (match exactly): ${styleSheet}.${SHARP_SUFFIX}${NO_TEXT_SUFFIX}`
+      sc.prompt = `${characterSheet}. Standing in: ${environmentSheet}. Medium shot, ${frame.promptFraming} — looking straight into the lens, the person says: "${sc.dialogueLine}" The person speaks continuously and energetically for the entire shot, no dead air, ${REALISM_DIRECTIVES}. Cinematography (match exactly): ${styleSheet}.${SHARP_SUFFIX}${NO_TEXT_SUFFIX}`
       console.log(
         `[hollywood-planner] KINEO-HOLLYWOOD-HOST — scene ${sc.index} (beat=${sc.beat}) converted ${prevType} → dialogue (host on camera, ${lineWords} words → ${sc.seconds}s)`,
       )

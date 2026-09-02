@@ -41,6 +41,8 @@ import {
 import { resolveVerbatimSegments } from '@/lib/cinematic/verbatimBeats'
 import { aplicarEixoVisual } from '@/lib/hollywood/varietyAxis'
 import { decidirFormato, permiteApresentador, TAG_FACELESS, proibidosPorModo } from '@/lib/cinematic/visualMode'
+// KINEO-MULTIFORMATO-2026-09-02 — enquadramento pedido (9:16 · 16:9 · 1:1 · 4:5).
+import { aspectSpec, normalizeAspect } from '@/lib/aspect'
 import { montarContrato, aplicarContrato, severidadeDe } from '@/lib/cinematic/sceneTruth'
 import { fal } from '@fal-ai/client'
 import { generateScenes, shortCaptionFromVoiceover } from '@/lib/runway'
@@ -419,7 +421,19 @@ function buildFalInput(
   // ÚLTIMO parâmetro de propósito: os call sites posicionais existentes
   // (seed em 7º) continuam byte-idênticos.
   stylized?: boolean,
+  // ═══ KINEO-MULTIFORMATO-2026-09-02 ══════════════════════════════════════
+  // O enquadramento pedido. ÚLTIMO parâmetro, de novo pelo mesmo motivo: os
+  // call sites posicionais existentes continuam byte-idênticos e, sem ele,
+  // `aspectSpec(undefined)` resolve para 9:16 — exatamente o literal que
+  // estava chumbado em 10 lugares deste arquivo.
+  //
+  // POR QUE ISTO É BARATO PARA NÓS E CARO PARA O MERCADO: OpusClip cobra
+  // US$ 29/mês para reenquadrar, porque precisa RASTREAR um sujeito num vídeo
+  // que já existe. Nossas cenas são GERADAS — o quadro certo é um campo de
+  // string no payload. Ver o cabeçalho de lib/aspect.ts.
+  aspect?: string | null,
 ): Record<string, unknown> {
+  const frame = aspectSpec(aspect)
   // KINEO-HOLLYWOOD-30-2026-07-10 — HOLLYWOOD 3.0 anchored scenes. Kling O3
   // Pro image-to-video: `image_url` (confirmed — NOT `start_image_url`) is the
   // canonical portrait (dialogue) or the environment still (support/
@@ -474,7 +488,7 @@ function buildFalInput(
       prompt,
       duration: String(Math.max(4, Math.min(30, Math.round(typeof seconds === 'number' && seconds > 0 ? seconds : 8)))),
       resolution: S25_RESOLUTION,
-      aspect_ratio: '9:16',
+      aspect_ratio: frame.falAspectRatio, // KINEO-MULTIFORMATO-2026-09-02 — '9:16' sem `aspect`
       generate_audio: false,
     }
   }
@@ -482,7 +496,7 @@ function buildFalInput(
     return {
       image_url: imageUrl,
       prompt,
-      aspect_ratio: '9:16',
+      aspect_ratio: frame.falAspectRatio, // KINEO-MULTIFORMATO-2026-09-02 — '9:16' sem `aspect`
       duration: Math.max(3, Math.min(10, Math.round(typeof seconds === 'number' && seconds > 0 ? seconds : 8))),
     }
   }
@@ -500,7 +514,7 @@ function buildFalInput(
       prompt,
       duration: Math.max(5, Math.min(15, Math.round(typeof seconds === 'number' && seconds > 0 ? seconds : 10))),
       resolution: H3_RESOLUTION,
-      aspect_ratio: '9:16',
+      aspect_ratio: frame.falAspectRatio, // KINEO-MULTIFORMATO-2026-09-02 — '9:16' sem `aspect`
       generate_audio: false,
     }
   }
@@ -536,7 +550,7 @@ function buildFalInput(
     return {
       prompt,
       duration: String(Math.max(3, Math.min(15, Math.round(typeof seconds === 'number' && seconds > 0 ? seconds : 10)))),
-      aspect_ratio: '9:16',
+      aspect_ratio: frame.falAspectRatio, // KINEO-MULTIFORMATO-2026-09-02 — '9:16' sem `aspect`
       generate_audio: true,
       cfg_scale: 0.6,
       negative_prompt: antiCgi + 'blur, distort, low quality, watermark, text, logo, caption, chinese text, foreign text, on-screen text, readable signs, subtitles, captions, phone screen with text, rotated frame, sideways composition, vertical horizon, tilted horizon, soft focus, out of focus',
@@ -545,7 +559,7 @@ function buildFalInput(
   if (model === SORA_MODEL) {
     return {
       prompt,
-      aspect_ratio: '9:16',
+      aspect_ratio: frame.falAspectRatio, // KINEO-MULTIFORMATO-2026-09-02 — '9:16' sem `aspect`
       resolution: '720p',
       duration: 8,
     }
@@ -559,7 +573,7 @@ function buildFalInput(
       // appended to the existing negative_prompt.
       return {
         prompt,
-        aspect_ratio: '9:16',
+        aspect_ratio: frame.falAspectRatio, // KINEO-MULTIFORMATO-2026-09-02 — '9:16' sem `aspect`
         duration: '8s',
         // KINEO-VEO-1080-2026-08-16 — schema oficial fal veo3.1/fast: enum
         // 720p|1080p|4k e o PRECO E O MESMO em 720p e 1080p ($0.10/s
@@ -572,7 +586,7 @@ function buildFalInput(
     }
     return {
       prompt,
-      aspect_ratio: '9:16',
+      aspect_ratio: frame.falAspectRatio, // KINEO-MULTIFORMATO-2026-09-02 — '9:16' sem `aspect`
       duration: '8s',
       // KINEO-VEO-720-2026-07-06 — era 720p por margem. KINEO-VEO-1080-2026-08-16:
       // fal cobra IGUAL em 720p e 1080p no veo3.1/fast (schema oficial conferido)
@@ -610,7 +624,7 @@ function buildFalInput(
     return {
       prompt,
       duration: '10',
-      aspect_ratio: '9:16',
+      aspect_ratio: frame.falAspectRatio, // KINEO-MULTIFORMATO-2026-09-02 — '9:16' sem `aspect`
       negative_prompt: 'people, person, human, face, crowd, logo, caption, blur, distort, low quality, watermark, text',
       cfg_scale: 0.6,
       // KINEO-SEED-2026-07-24 — shared per-generation seed for cross-clip coherence.
@@ -631,7 +645,7 @@ function buildFalInput(
     // prompt suffix the router appends to every scene.
     return {
       prompt,
-      aspect_ratio: '9:16',
+      aspect_ratio: frame.falAspectRatio, // KINEO-MULTIFORMATO-2026-09-02 — '9:16' sem `aspect`
       resolution: '720p',
       // KINEO-MOTORMAX-2026-08-16 — duration continua 4-12 no schema; exata =
       // sem dead air E mais barata (preco por token ∝ duracao).
@@ -667,7 +681,12 @@ function buildFalInput(
   // KINEO_SEEDANCE_RESOLUTION=1080p na Vercel.
   return {
     prompt,
-    aspect_ratio: '9:16',
+    // KINEO-MULTIFORMATO-2026-09-02 — este é o RETURN DEFAULT (Seedance 1.5, o
+    // motor de 33% dos primeiros vídeos da casa) e foi o único dos 11 que
+    // escapou da troca automática, por estar com indentação diferente dos
+    // outros ramos. Sem esta linha, um pedido de 16:9 sairia deitado em todo
+    // motor MENOS o mais usado — o pior tipo de defeito, o parcial.
+    aspect_ratio: frame.falAspectRatio,
     resolution: process.env.KINEO_SEEDANCE_RESOLUTION || '720p',
     // KINEO-MOTORMAX-2026-08-16 — duracao exata 4-12 (schema): sem dead air e
     // ~20% mais barata quando a cena planejada e de 8s (preco por token).
@@ -836,11 +855,15 @@ function deterministicSeed(input: string): number {
 // (audio-on variants); defaults keep every existing call byte-identical.
 // KINEO-HOLLYWOOD-30-2026-07-10 — `imageUrl` forwarded to buildFalInput (Kling
 // O3 i2v anchor); default keeps every existing call byte-identical.
-async function submitToFal(prompt: string, model: string = SEEDANCE_MODEL, hd: boolean = true, hollywood: boolean = false, seconds?: number, imageUrl?: string, seed?: number, stylized?: boolean): Promise<string | null> {
+// KINEO-MULTIFORMATO-2026-09-02 — `aspect` entra como ÚLTIMO parâmetro, pelo
+// mesmo motivo dos anteriores: todo call site posicional existente continua
+// idêntico e, sem ele, o payload sai com '9:16' — o literal que estava
+// chumbado em 10 ramos deste arquivo.
+async function submitToFal(prompt: string, model: string = SEEDANCE_MODEL, hd: boolean = true, hollywood: boolean = false, seconds?: number, imageUrl?: string, seed?: number, stylized?: boolean, aspect?: string | null): Promise<string | null> {
   try {
     const id = await submitFalQueueOnce(
       model,
-      buildFalInput(model, prompt, hd, hollywood, seconds, imageUrl, seed, stylized),
+      buildFalInput(model, prompt, hd, hollywood, seconds, imageUrl, seed, stylized, aspect),
     )
     // KINEO-353A.1 — NAO empurra mais nada no vetor de cenas aqui.
     // O #353A fazia `outcomes.push(cenaAceita(outcomes.length, ...))`, e
@@ -1139,6 +1162,10 @@ async function manipularPost(req: NextRequest) {
     // sprint-v1v4 #20 — `let` porque o guard de narracao abaixo pode trocar um
     // alvo FANTASMA (duracao que nenhum botao da tela oferece, tipicamente 45)
     // pela maior duracao real que a narracao enche, em vez de recusar a pessoa.
+    // KINEO-MULTIFORMATO-2026-09-02 — enquadramento pedido. Ausente = '9:16'
+    // (todo o comportamento anterior). Viaja para: payload da fal
+    // (`aspect_ratio`), prompt do planner e geometria do compose.
+    const aspectRequested = normalizeAspect((body as { aspect?: unknown }).aspect)
     let duration = Number(body.duration) || 45
     // Runtime-validate optional director data before any OpenAI/Fal work. A TS
     // annotation is not a JSON boundary: null/malformed scene entries used to
@@ -2693,6 +2720,7 @@ async function manipularPost(req: NextRequest) {
         plan = await planHollywoodScenes({
           faceless: facelessRequested,
           idea: prompt,
+          aspect: aspectRequested, // KINEO-MULTIFORMATO-2026-09-02
           voiceoverScript: hollywoodVoiceover || undefined,
           scenes: scenes.map((s) => ({ voiceover: s.voiceover, description: s.aiPrompt || s.description })),
           durationSeconds: hollywoodTarget,
@@ -2746,6 +2774,7 @@ async function manipularPost(req: NextRequest) {
             const replanned = await planHollywoodScenes({
           faceless: facelessRequested,
               idea: prompt,
+              aspect: aspectRequested, // KINEO-MULTIFORMATO-2026-09-02
               voiceoverScript: hollywoodVoiceover || undefined,
               scenes: scenes.map((sc) => ({ voiceover: sc.voiceover, description: sc.aiPrompt || sc.description })),
               durationSeconds: hollywoodTarget,
@@ -2819,6 +2848,7 @@ async function manipularPost(req: NextRequest) {
             const replanned = await planHollywoodScenes({
               faceless: facelessRequested,
               idea: prompt,
+              aspect: aspectRequested, // KINEO-MULTIFORMATO-2026-09-02
               voiceoverScript: hollywoodVoiceover || undefined,
               scenes: scenes.map((sc) => ({ voiceover: sc.voiceover, description: sc.aiPrompt || sc.description })),
               durationSeconds: hollywoodTarget,
@@ -2860,6 +2890,7 @@ async function manipularPost(req: NextRequest) {
             const replanned = await planHollywoodScenes({
           faceless: facelessRequested,
               idea: prompt,
+              aspect: aspectRequested, // KINEO-MULTIFORMATO-2026-09-02
               voiceoverScript: hollywoodVoiceover || undefined,
               scenes: scenes.map((sc) => ({ voiceover: sc.voiceover, description: sc.aiPrompt || sc.description })),
               durationSeconds: hollywoodTarget,
@@ -2910,6 +2941,7 @@ async function manipularPost(req: NextRequest) {
             const replanned = await planHollywoodScenes({
           faceless: facelessRequested,
               idea: prompt,
+              aspect: aspectRequested, // KINEO-MULTIFORMATO-2026-09-02
               voiceoverScript: hollywoodVoiceover || undefined,
               scenes: scenes.map((sc) => ({ voiceover: sc.voiceover, description: sc.aiPrompt || sc.description })),
               durationSeconds: hollywoodTarget,
@@ -4019,7 +4051,9 @@ async function manipularPost(req: NextRequest) {
         safeVisualPrompt,
         submit: async (m, promptForAttempt, onPost) => submitFalQueueOnce(
           m,
-          buildFalInput(m, promptForAttempt, hd, false, undefined, m === modelos[0] ? imageUrl : undefined, generationSeed, undefined),
+          // KINEO-MULTIFORMATO-2026-09-02 — o caminho clássico (Seedance 1.5,
+          // Kling 2.5, Veo) gera cada cena já no quadro pedido.
+          buildFalInput(m, promptForAttempt, hd, false, undefined, m === modelos[0] ? imageUrl : undefined, generationSeed, undefined, aspectRequested),
           onPost,
         ),
       })

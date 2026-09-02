@@ -17,6 +17,28 @@
 
 // KINEO-FAST-V4 — picked clips are copied into our own library (fire-and-forget).
 import { vaultClipAsync } from './clipVault'
+// ═══ KINEO-MULTIFORMATO-2026-09-02 ════════════════════════════════════════
+// O ranker deste arquivo assumia Short em dois lugares (bônus de retrato e
+// penalidade de resolução). Com 16:9/1:1/4:5 no produto, essa suposição vira
+// defeito: escolheria justamente o clipe que o corte vai destruir.
+//
+// Igual ao compose: variável de módulo fixada na primeira linha da entrada
+// pública (`getPixabayClipsForScene`). O caminho entre a fixação e o uso é
+// assíncrono (há `await` de rede), MAS o valor é o mesmo para toda a cena e
+// para todo o vídeo — um render inteiro tem UM enquadramento. Duas cenas
+// concorrentes do MESMO vídeo carregam o mesmo valor; de vídeos diferentes,
+// a única forma de intercalar seria dois renders de aspectos diferentes na
+// mesma instância de lambda, cenário em que o pior caso é escolher um clipe
+// com a orientação do outro formato — degradação estética, nunca falha de
+// render nem cobrança errada. Se um dia isso incomodar, vira parâmetro
+// explícito em collectCandidates/searchAndFilter.
+import { aspectSpec, type AspectSpec } from '@/lib/aspect'
+
+let ACTIVE_FRAME: AspectSpec = aspectSpec('9:16')
+function setActiveFrame(raw?: unknown): AspectSpec {
+  ACTIVE_FRAME = aspectSpec(raw)
+  return ACTIVE_FRAME
+}
 // PUSH #96 — aesthetic re-ranker: scores how good a candidate is likely to LOOK
 // (resolution / framing / duration / style vocabulary / fps / crowd proxy) from
 // metadata Pixabay already returns. Strictly a secondary term — see the score
@@ -430,7 +452,12 @@ async function searchPixabay(
   // to the image endpoint — #438 removed something the video API was likely
   // ignoring), but min_height IS documented for videos: a 1080x1920 vertical
   // master clears min_height=1200 while a 1920x1080 landscape does not.
-  if (verticalPreferred) url += `&min_height=1200`
+  // KINEO-MULTIFORMATO-2026-09-02 — o passe "preferido" continua existindo,
+  // mas o filtro segue o enquadramento: num Short queremos altura (retrato
+  // nativo passa de 1200px); num filme 16:9 queremos LARGURA (um master de
+  // 2560+ recorta/escala sem perder nitidez). `min_width` é documentado para
+  // vídeo pelo Pixabay, igual ao `min_height`.
+  if (verticalPreferred) url += ACTIVE_FRAME.vertical ? `&min_height=1200` : `&min_width=1920`
 
   // KINEO-CAPACITY-2026-08-08 — disjuntor da instância. O cache acima já foi
   // consultado, então isto só pula a REDE, nunca um resultado que já temos.
@@ -683,9 +710,21 @@ async function collectCandidates(
     // o que vai sair mole: paisagem abaixo de 2560 de largura −2, retrato
     // abaixo de 1080 de altura −3. Explicito como o tooShort (penalidade, nao
     // rejeicao): num tema magro, um clipe certo e mole ainda vence o FALLBACK.
-    const lowRes = !rez ? 0 : portrait ? (rez.height < 1080 ? 3 : 0) : (rez.width < 2560 ? 2 : 0)
+    // KINEO-MULTIFORMATO-2026-09-02 — os dois sinais de geometria abaixo
+    // deixam de assumir Short. Num filme 16:9 quem sofre o corte é o clipe
+    // RETRATO (um 1080×1920 vira 1080×608 úteis, esticado 1,78×), e quem já
+    // nasce certo é a paisagem — o espelho exato do raciocínio original.
+    // Em 9:16 os números são idênticos aos de antes: +10 retrato, −2 paisagem
+    // com menos de 2560 de largura, −3 retrato com menos de 1080 de altura.
+    const wantsPortrait = ACTIVE_FRAME.vertical
+    const orientationBonus = portrait === wantsPortrait ? 10 : 0
+    const lowRes = !rez
+      ? 0
+      : wantsPortrait
+        ? portrait ? (rez.height < 1080 ? 3 : 0) : (rez.width < 2560 ? 2 : 0)
+        : portrait ? (rez.height < 2560 ? 2 : 0) : (rez.width < 1920 ? 3 : 0)
     const score =
-      matches * 4 + (coversScene ? 3 : 0) + (portrait ? 10 : 0) - (tooShort ? 2 : 0) - lowRes +
+      matches * 4 + (coversScene ? 3 : 0) + orientationBonus - (tooShort ? 2 : 0) - lowRes +
       cohere + styleAlign + aesthetic.points
     candidates.push({
       url, score, order, id: video.id, styleTags: sTags,
@@ -1023,6 +1062,13 @@ export async function getPixabayClipsForScene(
     /** KINEO-FAST-CINEMA — per-video style memory: scenes prefer clips whose
      *  style tags match what's already in the timeline (visual coherence). */
     styleCtx?: StyleContext
+    /**
+     * KINEO-MULTIFORMATO-2026-09-02 — enquadramento do filme. Ausente = 9:16.
+     * Muda o SINAL da preferência de orientação: num Short, clipe retrato vale
+     * +10 (e paisagem 1080p perde nitidez ao ser recortado); num filme 16:9 é
+     * o inverso exato — clipe retrato é que seria destruído pelo corte.
+     */
+    aspect?: string | null
   },
 ): Promise<string[]> {
   const rawCleaned = (queries ?? [])
@@ -1035,6 +1081,11 @@ export async function getPixabayClipsForScene(
 
   const maxClips = Math.max(1, opts?.maxClips ?? 2)
   const hintLabel = (hint ?? '').slice(0, 50)
+  // KINEO-MULTIFORMATO-2026-09-02 — fixa o enquadramento desta cena antes de
+  // qualquer busca. Sem `aspect` resolve para 9:16 e o ranker se comporta
+  // exatamente como sempre (+10 retrato). Ver a nota de concorrência em
+  // ACTIVE_FRAME.
+  setActiveFrame(opts?.aspect)
 
   const pool: PixabayCandidate[] = []
   // Superset of the caller's exclude set: also blocks intra-pool duplicates.

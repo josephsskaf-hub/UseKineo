@@ -17,6 +17,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 // KINEO-H3-2026-08-19 — custo por motor vem da fonte única, nunca de string.
 import { creditCostFor, creditCostForDuration } from '@/lib/credits/engineCost'
 import type { Quality } from '@/lib/credits/engineCost'
+// KINEO-MULTIFORMATO-2026-09-02 — os 4 enquadramentos, de uma fonte só.
+import { allAspectSpecs, type Aspect } from '@/lib/aspect'
 import { isOnboardingGoalId, type OnboardingGoalId } from '@/lib/growth/onboardingGoals'
 import {
   CHATGPT_QUICKSTART_VARIANT,
@@ -105,6 +107,11 @@ const ENGINES: {
 
 // KINEO-CEO-HOUR-2026-08-17 (#3) — 'Surprise me': mata a paralisia da pagina
 // em branco com ideias do padrao viral da casa (verticais que ja performaram).
+// KINEO-MULTIFORMATO-2026-09-02 — as pills do seletor de enquadramento, na
+// ordem em que fazem sentido para quem cria: Short primeiro (o padrão), depois
+// os formatos que abrem público novo (YouTube longo, feed, anúncio).
+const ASPECT_PILLS = allAspectSpecs().map((s) => ({ value: s.aspect, label: s.label, where: s.where }))
+
 const SURPRISE_IDEAS = [
   'The lake in Venezuela where lightning strikes 28 times a minute — and never stops',
   'The wave in Alaska that was taller than the Empire State Building',
@@ -151,7 +158,9 @@ export default function StudioClient() {
   // KINEO-DURACAO-FIX-2026-08-20 — o tipo ficou para trás dos botões (35/60/90)
   // e `setDuration(35)` só não explodia porque o TS não cobre este caminho.
   const [duration, setDuration] = useState<35 | 60 | 90>(60)
-  const [aspect, setAspect] = useState<'9:16' | '16:9'>('9:16')
+  // KINEO-MULTIFORMATO-2026-09-02 — quatro formatos reais; 9:16 continua o
+  // padrão (é o produto de 100% dos primeiros vídeos da casa).
+  const [aspect, setAspect] = useState<Aspect>('9:16')
   // KINEO-RES-HONESTA-2026-08-20 — estado REMOVIDO junto com o seletor. Ele
   // nunca chegou a valer nada (o 720p vivia desabilitado) e virou perigoso:
   // um valor chamado `resolution` fixo em '1080p' convida o próximo a mandá-lo
@@ -353,6 +362,11 @@ export default function StudioClient() {
       sessionStorage.setItem('kineo:studio:go:v1', JSON.stringify({ t: Date.now(), engine, prompt: finalPrompt }))
     } catch {}
     const q = new URLSearchParams({ engine, prompt: finalPrompt, duration: String(duration), script_mode: scriptMode, autoanalyze: '1', studio: '1', intent_campaign: campaignRef.current })
+    // KINEO-MULTIFORMATO-2026-09-02 — a escolha de enquadramento PASSA A
+    // VIAJAR. Até hoje o estado `aspect` existia na tela e morria nela: não
+    // entrava nesta querystring, então o servidor nunca soube. Só sai da URL
+    // quando não é o padrão, para que todo link existente continue idêntico.
+    if (aspect !== '9:16') q.set('aspect', aspect)
     // KINEO-TRIAL-FIRST-HANDOFF-2026-08-30 — production showed 4 people
     // clicking the banner's premium first-delivery CTA, but only 1 completed
     // Seedance. One later armed the Fast activation contract. Engine/duration
@@ -502,9 +516,35 @@ export default function StudioClient() {
               <button type="button" className={`pill${duration === 60 ? ' on' : ''}`} onClick={() => setDuration(60)}>60s ⭐</button>
               <button type="button" className={`pill${duration === 90 ? ' on' : ''}`} onClick={() => setDuration(90)} title="Mais alcance: no TikTok, 90s rende ~4x as views de um vídeo de 60s">90s 📈</button>
             </div>
-            <div className="row" style={{ marginBottom: 12 }}>
-              <button type="button" className={`pill${aspect === '9:16' ? ' on' : ''}`} onClick={() => setAspect('9:16')}>9:16 · Shorts</button>
-              <button type="button" className="pill off" title="Coming soon">16:9<span className="soon">SOON</span></button>
+            {/* ═══ KINEO-MULTIFORMATO-2026-09-02 — O 16:9 SAI DO "SOON" ══════
+                O botão 16:9 esteve marcado "SOON" desde que a tela existe, e
+                o estado `aspect` morria aqui: nunca viajava para o servidor.
+                Agora os quatro formatos são reais e nativos.
+                POR QUE ISTO É DIFERENTE DO QUE O MERCADO FAZ (auditoria de
+                02/09, fonte oficial): OpusClip cobra US$ 29/mês para
+                reenquadrar com tracking; Submagic e Veed fazem crop com
+                reposicionamento manual; InVideo re-renderiza e cobra crédito
+                de novo; Pictory avisa que "some visuals may need
+                repositioning". Todos eles partem de um vídeo PRONTO e
+                precisam adivinhar onde está o assunto. Nossas cenas são
+                GERADAS: pedimos o quadro certo ao motor e ele nasce certo.
+                Custo de render: 16:9 é idêntico a 9:16 (mesmos pixels), 1:1
+                custa 44% MENOS e 4:5, 30% menos. */}
+            <div className="row" style={{ marginBottom: 12, flexWrap: 'wrap' }}>
+              {ASPECT_PILLS.map((a) => (
+                <button
+                  key={a.value}
+                  type="button"
+                  className={`pill${aspect === a.value ? ' on' : ''}`}
+                  onClick={() => setAspect(a.value)}
+                  title={a.where}
+                >
+                  {a.value} · {a.label}
+                </button>
+              ))}
+            </div>
+            <div style={{ fontSize: 11.5, color: 'var(--muted2)', marginBottom: 12, lineHeight: 1.5 }}>
+              {ASPECT_PILLS.find((a) => a.value === aspect)?.where}
             </div>
             {/* ⚠️ KINEO-RES-HONESTA-2026-08-20 — a tela se contradizia.
                 O card do motor mostrava "768p" (a resolução real do H3) e
