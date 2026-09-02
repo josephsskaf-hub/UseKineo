@@ -1502,3 +1502,78 @@ vídeo 1 e o fim do trial; (b) os 39 com saldo <5: quantos receberam
 em produção — só depois do clique); (c) Resend: 442 D5 → 38 eventos e 276
 D10 → 5 — conferir entrega (bounce/spam) antes de mais copy; (d) pós-clique:
 dry-run `rescue-composed-films` + `body` dos D5/D10/loss novos.
+
+### #23 — 06:29→06:50 BRT — o e-mail de momentum (o único escrito para levar do vídeo 1 ao 4) largava a pessoa no 1º degrau que ela subia; e 25 pessoas com crédito passaram pela janela enquanto o cron dormia
+**Leitura.** origin/main = 7de1ba1e (Codex: atribuição de referral do plano
+business — nada na minha pista); fila = 18 sobre origin/main (até o #22),
+**ainda não clicada**. Rodada inteira em clone `--shared` `/tmp/assin-r23`
+sobre `entrega-atual`, push fast-forward (não-force) no fim, como no #20-22.
+**Checagem zero (1h, externos).** 4 cadastros, todos com crédito; 3 vídeos
+entregues; **0 falhas**; 5 estornos/24h (mesmos). Nada quebrado → item (a)
+do #22.
+**Medição (item (a) do #22 — o momentum das 13:30 UTC pega todo mundo?).**
+Externos, 30d, 1-3 vídeos, sem plano, ≥5cr, nunca carimbados: **na janela
+20-96h = 22 pessoas** (20 com 1, 2 com 2 — recebem hoje); **<20h = 16**
+(recebem amanhã); **>96h = 25** (19 com 1, 3 com 2, 3 com 3) — essas 25
+têm crédito para o próximo vídeo, provaram que sabem fazer um, e passaram
+pela janela entre 20/08 e 01/09, quando o cron respondia DRY_RUN. Pela regra
+de hoje **nunca receberiam nada**. Os outros 308 com >96h estão com <5cr
+(trial queimado) — esteira loss/D5/D10 (#20-22), não é caso do momentum.
+**O que estava errado (o achado maior, no código).** O carimbo
+`momentum_nudge_sent` valia **1× por pessoa para sempre** (`already.has(id)`).
+A tese do arquivo é "a compra acontece no 4º vídeo"; mas quem recebia o
+e-mail no vídeo 1, fazia o 2º — o e-mail FUNCIONOU — e parava no 2, nunca
+mais ouvia falar da casa até o trial morrer. A campanha desenhada para
+carregar 1→4 soltava a mão no primeiro degrau.
+**O que mudou.** `lib/momentumLadder.ts` (puro): `momentumSkipReason` —
+carimbo **por degrau** (`metadata.videos`, que o insert sempre gravou): um
+e-mail no 1, outro no 2, outro no 3, só quando a contagem SOBE; folga mínima
+de **7 dias** entre dois (`too_soon`); parado no mesmo degrau = `same_step` =
+silêncio; contagem que regride (vídeo apagado/30d) = não manda; carimbo
+antigo sem degrau = `legacy_stamp` (falha fechada). `resolveIdleWindow`:
+`?max_idle_h=` só ALARGA (nunca <96h, teto 30d) — para UMA rodada de
+resgate dos 25; o cron do `vercel.json` não manda o parâmetro (dia a dia
+segue 20-96h, "memória fresca"). A rota aceita **sessão de admin** (mesma
+lista do `send-winback-25`) além do Bearer do cron, para virar link de 1
+clique; dry-run continua o padrão; DRY_RUN expõe `window`, `via` e `skipped`
+por motivo; o carimbo grava `videos` (degrau) + `rescue` + `via`. A palavra
+"three/two/one away" vem da escada (nunca inventa número). Sem crédito, sem
+cupom, sem preço, vercel.json intocado.
+**Testes.** `scripts/test-momentum-ladder.mjs` **46 verificações**;
+`test-momentum-topic` 40/40; `test-momentum-continuacao-2026-09-01` (v1v4
+#24) 49/49 — B12/B14/C8 atualizados para a verdade de hoje (C8 já falhava
+desde que o fundador armou o cron em 01/09). tsc: só os 3 pré-existentes.
+**Para o cliente/receita.** Hoje 13:30 UTC: 22 e-mails (igual). A partir de
+amanhã: quem subir de degrau recebe o próximo empurrão em vez de silêncio —
+é a única campanha da casa apontada para a fronteira 0,9%→11,8%. Resgate:
+25 pessoas com crédito e filme feito, 0 e-mail até hoje.
+**SHA:** a597e0b8 (sobre d179f930). **Risco:** baixo — um e-mail a mais por
+pessoa só com subida real + 7d de folga; rota admin = mesma lista/padrão das
+outras; resgate exige clique. Cauda: os 22 de hoje sobem para 2 → 2º e-mail
+só ≥ 7d depois.
+**Como medir:** `momentum_nudge_sent` por `metadata->>'videos'` (1/2/3) e
+`rescue=true`; `series_continuation_landed source='momentum_email'` nas 72h
+por degrau; taxa de 2º vídeo dos 25 resgatados vs os 22 do cron.
+**Achado que vira o #24 (checagem zero).** xzavior000 (TAAFT, 00:31 UTC):
+queimou os 25cr do trial em **5 animações do /animate, todas entregues**
+(`animate_client_poll_observed delivered` ×5, 24 min) e recebeu o
+`downgraded_loss` às 01:25 com `restored:0`. O /animate NÃO cria linha em
+`videos` (ponto cego já anotado em 24/08) — para a esteira inteira essa
+pessoa "nunca rodou": o `never_ran` do #20 diria "nothing we sent you
+actually put a finished video in your hands" para quem recebeu 5. O momentum
+tem o mesmo cego (só lê `videos`). Também vi `animate_job_settled` gravado
+2× para o mesmo request_id (03:30 e 04:30, `published_sweep`) — dedupe do
+sweep, menor.
+**Placar 06:45 BRT (externos):** has_paid 11 (starter 3, basic 2, pro 2,
+free/churn 4); cadastros 1h=4, 24h=38 (5 com 0cr — todos gasto real:
+salah/zare/anybodyhi5/asuquo 1 vídeo cada, xzavior 5 animações; 0 órfãos);
+vídeos 1h=3, 24h=24; **falhas 1h=0**; checkout_started 24h=5 pessoas; 7d:
+81 com 1, 9 com 2, 2 com 3, **0 com 4+**; crons 24h: winback25 120,
+failure_recovery 6, stranded_ready 18 + fast 5, trial_lifecycle 101,
+momentum 0 (13:30 UTC); refunds 24h: 5.
+**Próximo item (#24):** (a) entregas do /animate (e /images, /audio) contam
+como "rodou" na esteira `trial-lifecycle-emails` (never_ran/burned/D5/D10)
+— hoje mente para quem recebeu 5 animações; (b) 11:00 BRT: `momentum_nudge_
+sent` do 1º disparo (esperado ~22, `videos` 1/2); (c) pós-clique: dry-run
+do resgate `/api/cron/send-momentum-nudge?max_idle_h=720` (esperado ~25) e
+`body` dos D5/D10/loss novos; (d) Resend: entrega dos 442 D5 → 38 eventos.
