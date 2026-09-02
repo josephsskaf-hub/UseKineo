@@ -15,6 +15,7 @@
 import { useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { trackSignupSource } from '@/lib/analytics'
+import { GOOGLE_ADS_SIGNUP_CONVERSION } from '@/lib/growth/googleAdsSignupConversion'
 
 export default function SignupConversionTracker() {
   useEffect(() => {
@@ -36,9 +37,7 @@ export default function SignupConversionTracker() {
         }
         if (typeof (window as unknown as { gtag?: Function }).gtag === 'function') {
           ;(window as unknown as { gtag: Function }).gtag('event', 'conversion', {
-            send_to: 'AW-18156258081/SXGYCK_VlrEcEKGGytFD',
-            value: 1.0,
-            currency: 'BRL',
+            ...GOOGLE_ADS_SIGNUP_CONVERSION,
             transaction_id: 'signup_' + (uid || `oauth_${Date.now()}`),
           })
         }

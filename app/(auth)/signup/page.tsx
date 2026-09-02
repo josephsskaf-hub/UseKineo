@@ -22,6 +22,7 @@ import { swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTier
 import { carryCreationHandoff } from '@/lib/creationHandoff'
 import { buildSignupCreationPreview } from '@/lib/growth/signupCreationPreview'
 import { buildSignupProductDestinationPreview } from '@/lib/growth/signupProductDestinationPreview'
+import { GOOGLE_ADS_SIGNUP_CONVERSION } from '@/lib/growth/googleAdsSignupConversion'
 import {
   organicSignupHandoffContext,
   type OrganicSignupHandoffContext,
@@ -355,9 +356,7 @@ export default function SignupPage() {
     try {
       if (typeof window !== 'undefined' && typeof (window as unknown as { gtag?: Function }).gtag === 'function') {
         ;(window as unknown as { gtag: Function }).gtag('event', 'conversion', {
-          send_to: 'AW-18156258081/SXGYCK_VlrEcEKGGytFD',
-          value: 1.0,
-          currency: 'BRL',
+          ...GOOGLE_ADS_SIGNUP_CONVERSION,
           transaction_id: 'signup_' + (data.user?.id ?? ''),
         })
       }
