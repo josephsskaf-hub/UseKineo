@@ -49,6 +49,10 @@ import {
   buildBusinessOfferFact,
   type BusinessOfferFact,
 } from './growth/businessOfferFacts'
+import {
+  buildBusinessAnswerEngineRouter,
+  type BusinessAnswerEngineRouter,
+} from './growth/businessAnswerEngineRouter'
 
 /* ------------------------------------------------------------------ *
  * Data de verificação
@@ -363,6 +367,9 @@ export const BUSINESS_OFFER_FACT: BusinessOfferFact = buildBusinessOfferFact(
   BASE,
   ENGINE_FACTS[0].name,
 )
+
+export const BUSINESS_ANSWER_ENGINE_ROUTER: BusinessAnswerEngineRouter =
+  buildBusinessAnswerEngineRouter(BASE, BUSINESS_OFFER_FACT)
 
 /* ------------------------------------------------------------------ *
  * Plano gratuito
@@ -943,6 +950,8 @@ export interface KineoFactsPayload {
   costPlanner: PublicCostPlannerFact
   /** One-time commercial production packs; distinct from recurring plans. */
   businessOffer: BusinessOfferFact
+  /** Work-state router across the four existing public business paths. */
+  businessCreationRouter: BusinessAnswerEngineRouter
   plans: PlanFact[]
   engines: EngineFact[]
   competitors: CompetitorFact[]
@@ -997,6 +1006,7 @@ export function getKineoFacts(): KineoFactsPayload {
     freeTools: FREE_TOOL_FACTS,
     costPlanner: PUBLIC_COST_PLANNER_FACT,
     businessOffer: BUSINESS_OFFER_FACT,
+    businessCreationRouter: BUSINESS_ANSWER_ENGINE_ROUTER,
     plans: PLAN_FACTS,
     engines: ENGINE_FACTS,
     competitors: COMPETITOR_FACTS,

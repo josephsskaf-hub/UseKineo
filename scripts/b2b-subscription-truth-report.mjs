@@ -1,16 +1,30 @@
 import { isInternalMeasurementEmail } from './measurement-helpers.mjs'
 import { buildSubscriptionRevenueLedger } from './subscription-revenue-ledger.mjs'
 
-export const B2B_SUBSCRIPTION_TRUTH_REPORT_VERSION = 'b2b_subscription_truth_v4'
+export const B2B_SUBSCRIPTION_TRUTH_REPORT_VERSION = 'b2b_subscription_truth_v5'
 export const B2B_SUBSCRIPTION_WINDOW_DAYS = 30
 export const B2B_SUBSCRIPTION_CONTEXT_DAYS = 60
 export const B2B_SUBSCRIPTION_MIN_GENERATED_PEOPLE = 20
 export const B2B_PROPOSAL_ASSIST_LOOKBACK_DAYS = 7
+export const B2B_ANSWER_ROUTER_MIN_VIEWED_PEOPLE = 10
+export const B2B_ANSWER_ROUTER_MIN_OBSERVATION_DAYS = 7
+export const B2B_ANSWER_ROUTER_MEASUREMENT_START = '2026-09-03T00:00:00.000Z'
 
 const RECURRING_TIERS = new Set(['starter', 'basic', 'pro', 'autopilot'])
 const RECURRING_BILLING = new Set(['monthly', 'annual'])
 
 export const B2B_ATTRIBUTABLE_PATHS = Object.freeze({
+  business_answer_router_recurring: Object.freeze({
+    intentCampaign: 'b2b_answer_router_recurring_v1',
+    eventVersion: null,
+    stageAttribution: 'exact_pricing_source',
+    journeyEntryRequirement: 'prior_exact_pricing_view',
+    measurementStartsAt: B2B_ANSWER_ROUTER_MEASUREMENT_START,
+    gatePolicy: 'viewed_people_and_observation',
+    events: Object.freeze({
+      viewed: 'pricing_view',
+    }),
+  }),
   business_plan: Object.freeze({
     intentCampaign: 'weekly_business_video_plan',
     eventVersion: 'weekly_business_video_plan_share_v1',
@@ -257,6 +271,35 @@ function countBy(rows, value) {
   return Object.fromEntries([...counts.entries()].sort(([left], [right]) => left.localeCompare(right)))
 }
 
+function entryViewWitness(start, events, path, identity) {
+  if (path.journeyEntryRequirement !== 'prior_exact_pricing_view') return null
+  const startAt = timestamp(start)
+  const candidates = events.filter((row) => {
+    const at = timestamp(row)
+    const measurementStartAt = path.measurementStartsAt ? Date.parse(path.measurementStartsAt) : null
+    return at !== null && at < startAt &&
+      (measurementStartAt === null || at >= measurementStartAt) &&
+      row?.name === path.events.viewed &&
+      metadataString(row, 'version') === path.eventVersion &&
+      metadataString(row, 'source') === path.intentCampaign
+  })
+  const sameSession = start.session_id
+    ? candidates.filter((row) => row.session_id === start.session_id)
+    : []
+  const sessionOwners = new Set(events
+    .filter((row) => start.session_id && row.session_id === start.session_id && typeof row.user_id === 'string' && row.user_id)
+    .map((row) => row.user_id))
+  const hasConflictingIdentity = sessionOwners.size !== 1 || !sessionOwners.has(start.user_id)
+  if (hasConflictingIdentity) return 'identity_conflict'
+  if (candidates.some((row) => actorClass(row, identity) === 'external' && row.user_id === start.user_id)) {
+    return 'prior_exact_pricing_view_same_external_person'
+  }
+  if (!start.session_id) return null
+  return sameSession.some((row) => actorClass(row, identity) === 'anonymous')
+    ? 'prior_exact_pricing_view_same_browser_session'
+    : null
+}
+
 function buildAgencyProposalAssist({ sourceEvents, windowStartMs, generatedAtMs, identity, ledger }) {
   const agency = B2B_ASSIST_SURFACES.agency_margin_proposal
   const lookbackMs = B2B_PROPOSAL_ASSIST_LOOKBACK_DAYS * 24 * 60 * 60 * 1000
@@ -333,8 +376,20 @@ export function buildB2bSubscriptionTruthReport({ generatedAt, windowStart, even
   const ledger = buildSubscriptionRevenueLedger({ generatedAt, windowStart, events: sourceEvents, profiles })
   const ledgerBySession = new Map(ledger.records.map((record) => [record.stripeSessionId, record]))
   const starts = resolveStarts(sourceEvents, identity)
+  const startsWithoutRequiredEntryView = starts.starts.filter((start) => {
+    const path = B2B_ATTRIBUTABLE_PATHS[start.pathKey]
+    const witness = entryViewWitness(start.row, sourceEvents, path, identity)
+    return path.journeyEntryRequirement && (!witness || witness === 'identity_conflict')
+  })
+  const startsWithConflictingEntryViewIdentity = starts.starts.filter((start) => {
+    const path = B2B_ATTRIBUTABLE_PATHS[start.pathKey]
+    return entryViewWitness(start.row, sourceEvents, path, identity) === 'identity_conflict'
+  })
 
   const journeys = starts.starts.map((start) => {
+    const path = B2B_ATTRIBUTABLE_PATHS[start.pathKey]
+    const requiredEntryView = entryViewWitness(start.row, sourceEvents, path, identity)
+    if (path.journeyEntryRequirement && (!requiredEntryView || requiredEntryView === 'identity_conflict')) return null
     const record = ledgerBySession.get(start.stripeSessionId) ?? null
     const startAt = timestamp(start.row)
     const exactOwner = record?.ownerClass === 'external' && record.ownerUserId === start.row.user_id
@@ -347,7 +402,8 @@ export function buildB2bSubscriptionTruthReport({ generatedAt, windowStart, even
       tier: metadataString(start.row, 'tier'),
       billing: metadataString(start.row, 'billing'),
       startedAt: new Date(startAt).toISOString(),
-      artifactWitness: generatedWitness(start.row, sourceEvents, B2B_ATTRIBUTABLE_PATHS[start.pathKey], identity),
+      entryViewWitness: requiredEntryView,
+      artifactWitness: generatedWitness(start.row, sourceEvents, path, identity),
       paid,
       paymentState: !record ? 'missing_ledger_record' : !exactOwner ? 'owner_or_product_conflict' : record.status,
       amountMinor: paid ? record.amountMinor : null,
@@ -360,18 +416,33 @@ export function buildB2bSubscriptionTruthReport({ generatedAt, windowStart, even
     const paid = pathJourneys.filter((journey) => journey.paid)
     const stagePredicate = path.stageAttribution === 'exact_intent_campaign'
       ? (row) => metadataString(row, 'intent_campaign') === path.intentCampaign
-      : () => true
-    const generated = summarizeStage(windowEvents, path.events.generated, path.eventVersion, identity, stagePredicate)
+      : path.stageAttribution === 'exact_pricing_source'
+        ? (row) => metadataString(row, 'source') === path.intentCampaign
+        : () => true
+    const pathStagePredicate = (row) => {
+      if (!stagePredicate(row)) return false
+      if (!path.measurementStartsAt) return true
+      const at = timestamp(row)
+      return at !== null && at >= Date.parse(path.measurementStartsAt)
+    }
+    const viewed = summarizeStage(windowEvents, path.events.viewed, path.eventVersion, identity, pathStagePredicate)
+    const generated = summarizeStage(windowEvents, path.events.generated, path.eventVersion, identity, pathStagePredicate)
     const postVideoJourneys = pathJourneys.filter((journey) => journey.artifactWitness !== 'campaign_only')
     const preVideoJourneys = pathJourneys.filter((journey) => journey.artifactWitness === 'campaign_only')
     const postVideoPaid = postVideoJourneys.filter((journey) => journey.paid)
     const preVideoPaid = preVideoJourneys.filter((journey) => journey.paid)
-    const ready = paid.length > 0 || pathJourneys.length > 0 ||
-      generated.identifiedExternalPeople >= B2B_SUBSCRIPTION_MIN_GENERATED_PEOPLE
+    const observationDays = path.measurementStartsAt
+      ? Math.max(0, Math.floor((generatedAtMs - Date.parse(path.measurementStartsAt)) / 86_400_000))
+      : null
+    const sampleReady = path.gatePolicy === 'viewed_people_and_observation'
+      ? viewed.identifiedExternalPeople >= B2B_ANSWER_ROUTER_MIN_VIEWED_PEOPLE &&
+        observationDays >= B2B_ANSWER_ROUTER_MIN_OBSERVATION_DAYS
+      : generated.identifiedExternalPeople >= B2B_SUBSCRIPTION_MIN_GENERATED_PEOPLE
+    const ready = paid.length > 0 || pathJourneys.length > 0 || sampleReady
     return [pathKey, {
       intentCampaign: path.intentCampaign,
       stages: {
-        viewed: summarizeStage(windowEvents, path.events.viewed, path.eventVersion, identity, stagePredicate),
+        viewed,
         generated,
         copied: summarizeStage(windowEvents, path.events.copied, path.eventVersion, identity, stagePredicate),
         activationChoice: summarizeStage(windowEvents, path.events.activation, path.eventVersion, identity, stagePredicate),
@@ -401,11 +472,20 @@ export function buildB2bSubscriptionTruthReport({ generatedAt, windowStart, even
           exactRevenueMinorByCurrency: moneyByCurrency(preVideoPaid),
         },
       },
-      gate: {
-        state: ready ? 'ready_for_path_diagnosis' : 'collecting',
-        minimumGeneratedExternalPeople: B2B_SUBSCRIPTION_MIN_GENERATED_PEOPLE,
-        firstExactSubscriptionStartOrPaymentOverridesSampleGate: true,
-      },
+      gate: path.gatePolicy === 'viewed_people_and_observation'
+        ? {
+            state: ready ? 'ready_for_path_diagnosis' : 'collecting',
+            measurementStartsAt: path.measurementStartsAt,
+            observedFullDays: observationDays,
+            minimumObservedFullDays: B2B_ANSWER_ROUTER_MIN_OBSERVATION_DAYS,
+            minimumViewedExternalPeople: B2B_ANSWER_ROUTER_MIN_VIEWED_PEOPLE,
+            firstExactSubscriptionStartOrPaymentOverridesSampleGate: true,
+          }
+        : {
+            state: ready ? 'ready_for_path_diagnosis' : 'collecting',
+            minimumGeneratedExternalPeople: B2B_SUBSCRIPTION_MIN_GENERATED_PEOPLE,
+            firstExactSubscriptionStartOrPaymentOverridesSampleGate: true,
+          },
     }]
   }))
 
@@ -483,6 +563,8 @@ export function buildB2bSubscriptionTruthReport({ generatedAt, windowStart, even
       invalidRecurringRowsOnB2bCampaigns: starts.invalidRecurringRows,
       subscriptionStartStripeSessionConflicts: starts.conflictingStripeSessions,
       duplicateSubscriptionStartRows: starts.duplicateRows,
+      subscriptionStartsWithoutRequiredEntryView: startsWithoutRequiredEntryView.length,
+      subscriptionStartsWithConflictingEntryViewIdentity: startsWithConflictingEntryViewIdentity.length,
       ledgerConflictStripeSessions: ledger.summary.conflictStripeSessions,
       unlinkedSubscriptionPaymentSessions: ledger.summary.unlinkedSubscriptionPaymentSessions,
       packSessionsExcludedFromSubscribers: ledger.summary.packSessions,
@@ -491,6 +573,6 @@ export function buildB2bSubscriptionTruthReport({ generatedAt, windowStart, even
       state: readyPaths.length ? 'path_specific_diagnosis_available' : 'collecting',
       readyPaths,
     },
-    note: 'People, anonymous sessions, Stripe Sessions and event rows are separate units. A B2B path receives subscription credit only when server-side checkout_started carries an exact allowlisted intent_campaign and the immutable subscription ledger resolves the same Stripe Session, owner, recurring product, amount, currency and timeline. Product-to-Short and real-estate stages additionally require the exact intent_campaign on generate_completed; a completion after Checkout never becomes a pre-Checkout witness. Post-video and pre-video subscriptions are reported separately. Annual and monthly subscriptions remain separate; Autopilot is monthly-only. A copied agency proposal may be reported only as a seven-day temporal assist to a later exact recurring Checkout by the same identified external person; anonymous copies remain session diagnostics and never become people, Checkouts or revenue. The assist is never causal attribution. One-time packs and the Autopilot pilot never count as subscribers.',
+    note: 'People, anonymous sessions, Stripe Sessions and event rows are separate units. A B2B path receives subscription credit only when server-side checkout_started carries an exact allowlisted intent_campaign and the immutable subscription ledger resolves the same Stripe Session, owner, recurring product, amount, currency and timeline. The business answer router additionally requires an earlier pricing_view with its exact source: either the same identified external person or the same browser session while the view was anonymous and the later Checkout has the external owner. A browser-session identity conflict fails closed. An anonymous view remains an anonymous session and is never counted as a person. A later, wrong-source or different-session view never becomes attribution. Product-to-Short and real-estate stages additionally require the exact intent_campaign on generate_completed; a completion after Checkout never becomes a pre-Checkout witness. Post-video and pre-video subscriptions are reported separately. Annual and monthly subscriptions remain separate; Autopilot is monthly-only. A copied agency proposal may be reported only as a seven-day temporal assist to a later exact recurring Checkout by the same identified external person; anonymous copies remain session diagnostics and never become people, Checkouts or revenue. The assist is never causal attribution. One-time packs and the Autopilot pilot never count as subscribers.',
   }
 }

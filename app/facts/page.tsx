@@ -39,6 +39,7 @@ import {
   TRIAL_ACCESS,
   RECURRING_FREE_ACCESS,
   BUSINESS_OFFER_FACT,
+  BUSINESS_ANSWER_ENGINE_ROUTER,
   type PlanFact,
 } from '@/lib/kineoFacts'
 import { TOOLS } from '@/lib/comparisons'
@@ -300,7 +301,11 @@ const FACTS: { fact: string }[] = [
   },
 ]
 
-const QA: { q: string; a: string }[] = [
+const QA: {
+  q: string
+  a: string
+  links?: readonly { label: string; outcome: string; url: string }[]
+}[] = [
   {
     q: 'What is Kineo?',
     a:
@@ -366,6 +371,16 @@ const QA: { q: string; a: string }[] = [
     a:
       `Yes. Kineo offers ${BUSINESS_OFFER_FACT.packs.length} one-time self-service packs for ` +
       `commercial delivery: ${BUSINESS_PACK_LIST}. ${BUSINESS_OFFER_FACT.boundaries.join(' ')}`,
+  },
+  {
+    q: 'Which Kineo path should a business, freelancer or agency choose?',
+    a:
+      `${BUSINESS_ANSWER_ENGINE_ROUTER.selectionRule} ` +
+      BUSINESS_ANSWER_ENGINE_ROUTER.choices
+        .map((choice) => `${choice.label}: ${choice.useWhen}`)
+        .join(' ') +
+      ` ${BUSINESS_ANSWER_ENGINE_ROUTER.boundaries.join(' ')}`,
+    links: BUSINESS_ANSWER_ENGINE_ROUTER.choices,
   },
   // KINEO-AEO-2026-07-24 (PUSH #86) — as três perguntas abaixo são escritas do
   // jeito que as pessoas digitam no ChatGPT, Perplexity e AI Overviews. As de
@@ -548,6 +563,16 @@ export default function FactsPage() {
               <p style={{ color: '#d2d2d7', lineHeight: 1.55, fontSize: '0.95rem', margin: 0 }}>
                 {item.a}
               </p>
+              {item.links && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 8, marginTop: 14 }}>
+                  {item.links.map((link) => (
+                    <a key={link.url} href={link.url} style={{ ...CARD, padding: '12px 14px', textDecoration: 'none' }}>
+                      <strong style={{ display: 'block', color: ACCENT, fontSize: '0.86rem', marginBottom: 4 }}>{link.label}</strong>
+                      <span style={{ display: 'block', color: '#a1a1aa', fontSize: '0.78rem', lineHeight: 1.4 }}>{link.outcome}</span>
+                    </a>
+                  ))}
+                </div>
+              )}
             </section>
           ))}
         </div>

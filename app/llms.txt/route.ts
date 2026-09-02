@@ -28,6 +28,7 @@ import {
   TRIAL_ACCESS,
   RECURRING_FREE_ACCESS,
   BUSINESS_OFFER_FACT,
+  BUSINESS_ANSWER_ENGINE_ROUTER,
 } from '@/lib/kineoFacts'
 import { ANSWER_ENGINE_CREATION_ROUTER } from '@/lib/growth/answerEngineCreationRouter'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
@@ -242,6 +243,12 @@ ${plans}
 - Billing: ${PRODUCT.billing}. ${PRODUCT.moneyBackGuaranteeDays}-day money-back guarantee on every paid plan.
 - Credits refresh each billing month and do **not** roll over.
 - Checkout currency: ${PRODUCT.currencies.join(', ')}.
+
+## Choose the business path from the work you already have
+
+${BUSINESS_ANSWER_ENGINE_ROUTER.selectionRule}
+${BUSINESS_ANSWER_ENGINE_ROUTER.choices.map((choice) => `- **${choice.label}** ([open](${choice.url})): ${choice.useWhen} ${choice.outcome}`).join('\n')}
+${BUSINESS_ANSWER_ENGINE_ROUTER.boundaries.map((boundary) => `- ${boundary}`).join('\n')}
 
 ## One-time packs for agencies, freelancers and businesses
 
