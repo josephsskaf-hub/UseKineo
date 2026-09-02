@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { isInternalEmail } from '@/lib/internalAccounts'
 import { PLANS } from '@/lib/pricing'
+import { fetchAllRows } from '@/app/api/admin/_shared/db'
 
 export const dynamic = 'force-dynamic'
 
@@ -81,13 +82,24 @@ export async function GET() {
     const since24h = new Date(now - 1 * dayMs).toISOString()
 
     // ── auth.users (emails, created_at, last_sign_in_at) ────────────────
-    const { data: authData, error: authErr } = await admin.auth.admin.listUsers({ perPage: 1000 })
-    if (authErr) {
-      console.error('[admin/overview] listUsers error:', authErr.message)
-      return NextResponse.json({ error: 'Failed to list users' }, { status: 500 })
+    // KINEO-ADMIN-1000-2026-09-01 — TRUNCAMENTO SISTEMICO (item 3 da auditoria
+    // de 28/08, consertado hoje porque o fundador viu o MRR errado ao vivo):
+    // `listUsers({ perPage: 1000 })` lia SO a primeira pagina. Com 1.400+
+    // usuarios, totalUsers dizia 999 e 4 dos 7 pagantes nao existiam para o
+    // painel (3 pagantes / $51 na tela contra 7 / $109 no banco). Agora
+    // percorre TODAS as paginas ate uma vir curta.
+    const allAuthUsers: Array<{ id: string; email?: string | null; created_at?: string; last_sign_in_at?: string | null }> = []
+    for (let page = 1; page <= 50; page++) {
+      const { data: authData, error: authErr } = await admin.auth.admin.listUsers({ page, perPage: 1000 })
+      if (authErr) {
+        console.error('[admin/overview] listUsers error:', authErr.message)
+        return NextResponse.json({ error: 'Failed to list users' }, { status: 500 })
+      }
+      const batch = authData?.users ?? []
+      allAuthUsers.push(...batch)
+      if (batch.length < 1000) break
     }
     // Push #417 — drop test/founder accounts from EVERYTHING below.
-    const allAuthUsers = authData?.users ?? []
     const excludedIds = new Set(
       allAuthUsers.filter((u) => isTestEmail(u.email ?? '')).map((u) => u.id)
     )
@@ -100,10 +112,12 @@ export async function GET() {
     const hasStripeById = new Map<string, boolean>()
     const creditsById = new Map<string, number>()
     try {
-      const { data: profs } = await admin
-        .from('profiles')
-        .select('id, plan, stripe_customer_id, video_credits')
-      for (const p of (profs ?? []) as Array<{ id: string; plan: string | null; stripe_customer_id: string | null; video_credits: number | null }>) {
+      // KINEO-ADMIN-1000-2026-09-01 — select sem paginacao = 1000 linhas em
+      // silencio (db.max_rows). fetchAllRows percorre em paginas ordenadas.
+      const profs = await fetchAllRows<{ id: string; plan: string | null; stripe_customer_id: string | null; video_credits: number | null }>(
+        admin, 'profiles', 'id, plan, stripe_customer_id, video_credits',
+      )
+      for (const p of profs) {
         if (excludedIds.has(p.id)) continue // #417 — skip test/founder accounts
         planById.set(p.id, (p.plan ?? 'free').toLowerCase())
         hasStripeById.set(p.id, !!p.stripe_customer_id)
@@ -131,17 +145,17 @@ export async function GET() {
     }
     try {
       // #417 — count client-side so test/founder videos are excluded.
-      const { data: vids } = await admin
-        .from('videos')
-        .select('user_id, created_at, title, topic, quality_mode, credits_used')
-      for (const v of (vids ?? []) as Array<{
+      // KINEO-ADMIN-1000-2026-09-01 — videos ja passa de 1.100 linhas: sem
+      // paginacao o total do painel parava em 1000 para sempre.
+      const vids = await fetchAllRows<{
         user_id: string | null
         created_at: string | null
         title: string | null
         topic: string | null
         quality_mode: string | null
         credits_used: number | null
-      }>) {
+      }>(admin, 'videos', 'user_id, created_at, title, topic, quality_mode, credits_used')
+      for (const v of vids) {
         if (v.user_id && excludedIds.has(v.user_id)) continue
         videosTotal += 1
         if ((v.created_at ?? '') >= since7d) videos7d += 1
