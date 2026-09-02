@@ -27,6 +27,7 @@
 // internas, descartáveis.
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { fal } from '@fal-ai/client'
 import { CINEMATIC_CLAIM_EVENT, authorizeCinematicCompletedUrls, loadVerifiedCinematicClaim } from '@/lib/cinematic/claim'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
@@ -217,6 +218,52 @@ async function sendEmail(to: string, userId: string, subject: string, text: stri
   }
 }
 
+// ═══ sprint-assinaturas #4 (02/09) — O E-MAIL "YOUR VIDEO IS READY" SAÍA 16
+// VEZES PARA A MESMA PESSOA. Medido no banco (externos, desde 20/08): 74
+// e-mails DUPLICADOS de "Your video is ready 🎬" para 14 pessoas — uma trial
+// (1948c6fa, 01/09) recebeu 16 cópias, uma a cada 15 min, das 09:45 às 13:45;
+// outras 14, 14, 13, 7, 5. TODOS os 9 resgates do Kineo 1 (Fase 3) saíram
+// repetidos. O dedupe era um lookup EM LOTE (`.in('session_id', [...200 ids])`)
+// cujo erro era ignorado (`const { data } = …`) e cujo resultado alimentava um
+// Set; quando o lote falha ou vem incompleto, o Set fica vazio e a rodada
+// reenvia para todo mundo — e a rodada seguinte de novo, até a geração sair da
+// janela de 20h. Primeiro filme entregue + 16 spams = a pior primeira
+// impressão possível, no exato minuto em que a pessoa mais perto de assinar.
+// Regra nova, antes de QUALQUER envio: consulta DIRETA por esta geração
+// (um `.eq`, sem lista), fail-closed — erro na consulta = NÃO envia (perder um
+// e-mail custa um clique; mandar 16 custa o cliente). Quando a consulta direta
+// acha um marcador que o lote não tinha, grava `stranded_dedupe_miss` com o
+// tamanho do lote e o erro do lote, para a próxima rodada ler a causa em SQL.
+type DedupeVerdict = { send: boolean; reason: 'clear' | 'already_sent' | 'lookup_failed' }
+
+async function alreadySentDirect(
+  admin: SupabaseClient,
+  args: { eventName: string; genId: string; userId: string; batchHad: boolean; batchSize: number; batchError: string | null },
+): Promise<DedupeVerdict> {
+  const { data, error } = await admin
+    .from('events')
+    .select('id')
+    .eq('name', args.eventName)
+    .eq('session_id', args.genId)
+    .limit(1)
+  if (error) {
+    console.error(`[stranded] dedupe lookup failed gen=${args.genId.slice(0, 8)} event=${args.eventName}: ${error.message}`)
+    return { send: false, reason: 'lookup_failed' }
+  }
+  const found = (data ?? []).length > 0
+  if (found && !args.batchHad) {
+    console.warn(`[stranded] dedupe MISS gen=${args.genId.slice(0, 8)} event=${args.eventName} batch=${args.batchSize} batchError=${args.batchError ?? 'none'}`)
+    await admin.from('events').insert({
+      user_id: args.userId,
+      name: 'stranded_dedupe_miss',
+      session_id: args.genId,
+      path: '/api/cron/finish-stranded-renders',
+      metadata: { event: args.eventName, batch_size: args.batchSize, batch_error: args.batchError },
+    })
+  }
+  return found ? { send: false, reason: 'already_sent' } : { send: true, reason: 'clear' }
+}
+
 export async function GET(req: NextRequest) {
   if (!isAuthorized(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   if (!RESEND_API_KEY) return NextResponse.json({ error: 'RESEND_API_KEY missing' }, { status: 503 })
@@ -251,11 +298,15 @@ export async function GET(req: NextRequest) {
 
   // Dedupe/attempt bookkeeping por geração.
   const genIds = candidates.map((c) => c.session_id).filter((s): s is string => !!s)
-  const { data: markerRows } = await admin
+  const { data: markerRows, error: markerErr } = await admin
     .from('events')
     .select('name, session_id, metadata')
     .in('name', [RESCUE_EVENT, ATTEMPT_EVENT, READY_EVENT, COMPOSED_EVENT])
     .in('session_id', genIds.slice(0, 200))
+  // sprint-assinaturas #4 — o erro deste lote era engolido; agora vai pro log e
+  // viaja no `stranded_dedupe_miss` quando o lookup direto pega o que o lote perdeu.
+  const markerBatchError = markerErr ? markerErr.message.slice(0, 200) : null
+  if (markerErr) console.error(`[stranded] marker batch lookup failed (${genIds.length} gens): ${markerErr.message}`)
   const rescued = new Set<string>()
   const readySent = new Set<string>()
   const attempts = new Map<string, number>()
@@ -362,6 +413,9 @@ export async function GET(req: NextRequest) {
       const finalUrl = (vid?.final_video_url ?? vid?.video_url ?? '') as string
       if (vid?.status === 'completed' && finalUrl) {
         if (mayEmail) {
+          // sprint-assinaturas #4 — confirmação direta antes de enviar (fail-closed).
+          const verdict = await alreadySentDirect(admin, { eventName: READY_EVENT, genId, userId, batchHad: readySent.has(genId), batchSize: (markerRows ?? []).length, batchError: markerBatchError })
+          if (!verdict.send) { results.push({ generation: gen8, outcome: verdict.reason === 'already_sent' ? 'already_notified_direct' : 'ready_dedupe_lookup_failed' }); continue }
           const ok = await sendEmail(email, userId, 'Your video is ready 🎬', readyText(`${APP_URL}/history?utm_source=stranded_ready`), readyHtml(`${APP_URL}/history?utm_source=stranded_ready`, userId))
           if (ok) {
             await admin.from('events').insert({ user_id: userId, name: READY_EVENT, session_id: genId, metadata: { render_id: renderId } })
@@ -383,6 +437,9 @@ export async function GET(req: NextRequest) {
     if (attemptCount >= MAX_COMPOSE_ATTEMPTS) {
       // Fallback V1: e-mail de resgate (1× por geração, pra sempre)
       if (!rescued.has(genId) && mayEmail) {
+        // sprint-assinaturas #4 — confirmação direta antes de enviar (fail-closed).
+        const verdict = await alreadySentDirect(admin, { eventName: RESCUE_EVENT, genId, userId, batchHad: false, batchSize: (markerRows ?? []).length, batchError: markerBatchError })
+        if (!verdict.send) { results.push({ generation: gen8, outcome: verdict.reason === 'already_sent' ? 'rescue_already_sent_direct' : 'rescue_dedupe_lookup_failed' }); continue }
         const ok = await sendEmail(email, userId, 'Your AI scenes are ready — one click to finish your video 🎬', rescueText(`${APP_URL}/generate?utm_source=stranded_rescue`), rescueHtml(`${APP_URL}/generate?utm_source=stranded_rescue`, userId))
         if (ok) {
           await admin.from('events').insert({ user_id: userId, name: RESCUE_EVENT, session_id: genId, metadata: {} })
@@ -505,10 +562,14 @@ export async function GET(req: NextRequest) {
       .limit(200)
 
     const fastGenIds = (fastClaims ?? []).map((c) => c.session_id).filter((x): x is string => !!x)
-    const { data: fastMarkers } = fastGenIds.length > 0
+    const { data: fastMarkers, error: fastMarkerErr } = fastGenIds.length > 0
       ? await admin.from('events').select('session_id').eq('name', FAST_READY_EVENT).in('session_id', fastGenIds.slice(0, 200))
-      : { data: [] as Array<{ session_id: string | null }> }
+      : { data: [] as Array<{ session_id: string | null }>, error: null }
     const alreadyFast = new Set((fastMarkers ?? []).map((m) => m.session_id as string))
+    // sprint-assinaturas #4 — 9 de 9 resgates do Kineo 1 saíram repetidos; o erro
+    // deste lote também era engolido.
+    const fastBatchError = fastMarkerErr ? fastMarkerErr.message.slice(0, 200) : null
+    if (fastMarkerErr) console.error(`[stranded-fast] marker batch lookup failed (${fastGenIds.length} gens): ${fastMarkerErr.message}`)
 
     for (const row of fastClaims ?? []) {
       if (fastReady >= MAX_FAST_PER_RUN) break
@@ -552,6 +613,9 @@ export async function GET(req: NextRequest) {
       const email = (prof?.email ?? '') as string
       const mayEmailFast = !!email && !prof?.email_opted_out && !isInternalOrJunkEmail(email)
       if (mayEmailFast) {
+        // sprint-assinaturas #4 — confirmação direta antes de enviar (fail-closed).
+        const verdict = await alreadySentDirect(admin, { eventName: FAST_READY_EVENT, genId, userId, batchHad: alreadyFast.has(genId), batchSize: (fastMarkers ?? []).length, batchError: fastBatchError })
+        if (!verdict.send) { results.push({ generation: genId.slice(0, 8), outcome: verdict.reason === 'already_sent' ? 'fast_already_notified_direct' : 'fast_dedupe_lookup_failed' }); continue }
         const link = `${APP_URL}/history?utm_source=stranded_fast_ready`
         const ok = await sendEmail(email, userId, 'Your video is ready 🎬', readyText(link), readyHtml(link, userId))
         if (ok) {
@@ -638,7 +702,7 @@ export async function GET(req: NextRequest) {
   // TODO desfecho vai pro log (uma linha por rodada) e os desfechos terminais
   // silenciosos viram evento `stranded_outcome` no banco, para a próxima rodada
   // ler a causa em SQL em vez de adivinhar. Não muda nenhuma decisão do cron.
-  const SILENT_TERMINAL = /^(authorize_failed|reload_failed|no_authorized_urls|compose_error_|compose_threw|compose_gave_up|composed_render_id_unknown|ready_email_failed|rescue_email_failed|too_few)/
+  const SILENT_TERMINAL = /^(ready_dedupe_lookup_failed|rescue_dedupe_lookup_failed|fast_dedupe_lookup_failed|authorize_failed|reload_failed|no_authorized_urls|compose_error_|compose_threw|compose_gave_up|composed_render_id_unknown|ready_email_failed|rescue_email_failed|too_few)/
   const outcomeLine = results.map((r) => `${r.generation}:${r.outcome}`).join(' ')
   console.log(`[stranded] outcomes ${outcomeLine || '(none)'}`)
   try {
