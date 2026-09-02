@@ -832,3 +832,60 @@ vira o item). Se vazio/ok: o `UpgradeModal` ainda promete "priority render queue
 (copy que mente, lista do CLAUDE.md item 4) — é zona compartilhada, entrar com
 aviso no diário; ou o e-mail de uso do Emilio (40cr, 0 vídeos após renovar 01/09)
 via rascunho Gmail, aproveitando as 3 ideias de 1 clique do #10.
+
+### #14 — 02:30→03:05 BRT — quem clicou no checkout do Creator ESPERANDO o 1º filme perdeu o filme: `no_authorized_urls` com o claim cheio
+**Leitura.** origin/main = 9395b26b (fundador clicou: #1–#13 todos NO AR; fila
+zerada). Ainda não eram 03:05, então fui pelo placar: `stranded_outcome` 24h =
+**no_authorized_urls ×6** (1 pessoa) + compose_error_400 ×2/503 ×1 (o e7f9f000
+do #7) e `cinematic_abandoned_no_delivery` 24h = 5. O ×6 é o "padrão B" do #3
+(13 dos 21 estornos de 14d) aparecendo pela 1ª vez com nome — DESTAQUE.
+**O que estava errado.** shaunish2097 (TAAFT, 02/09 03:37 UTC, Google):
+auto-start Seedance 19cr, 5/5 cenas aceitas em 2s, saiu aos 73s, voltou às
+03:42, clicou 6× no pill "rendering → resume", e às 03:43 **clicou no checkout
+do Creator $15 pelo trial_active_banner** (`checkout_started`, sessão Stripe
+viva) — ENQUANTO esperava o 1º filme. O cron de resgate rodou 04:03, 04:15,
+04:31, 04:45, 05:01, 05:16 e saiu as 6 vezes com `no_authorized_urls`; o
+refund-sweep estornou às 05:30. Resultado: quem estava com o cartão na mão
+ficou com 0 vídeos e o "seu crédito voltou". No banco, o claim
+51d1e375 tem `authorized_completed_urls` **5/5 preenchido**, status settled,
+1 linha só (id = deterministicUuid confere). Log da Vercel das 6 rodadas: sem
+`skip=` (a fal disse `ready`), sem erro de authorize/reload — só o outcome.
+Executei `lib/cinematic/claim.ts` compilado (tsc → /tmp/claimsim) com um db
+falso no MESMO fluxo do cron (acquire → complete → settle → authorize ×2 →
+loadVerified): devolve as 5 URLs. Ou seja: a biblioteca está certa e alguma
+LEITURA do cron enxerga o claim diferente do banco — e o ramo escondia qual.
+**O que mudou.** No ramo `clipUrls.length === 0`: (1) `console.warn` com as 4
+visões do claim (reload / retorno do authorize / linha do lote / clipes
+recém-conferidos na fal) em formato `url,empty,null`; (2) FALLBACK: compõe
+com a primeira visão que tiver URLs (authorize → linha do lote → fal). É
+seguro porque `app/api/compose/route.ts` re-verifica `clip_urls` contra o
+claim ASSINADO (`inputsMatch`) e devolve 400 se não bater — 400 que o cron já
+trata (teto #7 + resgate por e-mail). Evento `stranded_diag`
+(`no_authorized_urls_fallback:<fonte>`, `reload_shape`) separado do
+`stranded_outcome` para não mexer na contagem do teto do #7. Só desiste com
+`no_authorized_urls` quando NENHUMA visão tem URL. tsc: só os 3
+pré-existentes. `scripts/test-stranded-authorized-urls-fallback.mjs`: 13
+verificações (ordem das fontes, não toca crédito/rede, compose continua juiz).
+**Para o cliente/receita.** O padrão B é o maior modo de morte do 1º vídeo
+(13/21 estornos em 14d ≈ 1/dia, todos trial). Se o fallback compõe, o filme
+chega + e-mail "Your video is ready" para gente como o shaunish2097 — que
+abriu o checkout do Creator antes de ver o filme. Se não compõe, o log diz
+POR QUÊ na próxima rodada. Não sei ainda a causa-raiz; anotado, não inventado.
+**SHA:** b6c7e0dd (sobre 9395b26b). **Risco:** baixo — 1 ramo que antes só
+desistia; pior caso = 1 compose a mais que o compose recusa com 400.
+**Como medir:** `stranded_diag` (fonte que salvou) e o warn
+`no_authorized_urls diag` no log; `cinematic_abandoned_no_delivery`/dia
+(meta 0); `stranded_composed` para gens com esse diag.
+**Placar 02:35 BRT (externos):** has_paid 11 (starter 3, basic 2, pro 2,
+free/churn 4); cadastros 1h=1, 24h=31 (3 com 0cr); vídeos 1h=0, 24h=18;
+**falhas 1h=0**; 3h: as mesmas (adrianwells prompt_len ×7 + speech=27s;
+asuquoalbert speech=3s ×2/narration_too_short ×2; wummm709 held=19 ×2);
+checkout_started 24h=5 pessoas (1 é o shaunish2097 desta rodada); 7d: 72 com
+1, 9 com 2, 2 com 3, **0 com 4+**; crons 24h: winback25 120,
+failure_recovery 0, momentum 0, subscriber_idle 0; refunds 24h:
+abandoned_no_delivery 5.
+**Próximo item (#15):** (a) ler `failure_recovery_sent` por kind (03:05 já
+passou — cron das 06:00 UTC); (b) assim que o bat subir, ler
+`stranded_diag`/warn da próxima ocorrência e fechar a causa-raiz; (c)
+shaunish2097 tem sessão Stripe aberta e 0 filmes — candidato a rascunho
+pessoal com o filme montado à mão? (não há rota; anotar, não prometer).
