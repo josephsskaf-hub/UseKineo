@@ -1226,3 +1226,64 @@ no_authorized_urls ×2 (cauda do shaunish, pré-#17).
 diz por quê (agora grava a frase); (c) 11:00 BRT conferir os ~27
 `momentum_nudge_sent`; (d) `stranded_dedupe_miss` e `*_sent` duplicados = 0
 nas 24h pós-clique (prova do #17).
+
+### #19 — 05:09→05:40 BRT — o "terminou sozinho" do cron era mentira, mas a Fase 3 já cobria o buraco: código escrito, testado, enfileirado e DESENFILEIRADO por redundância
+**Leitura.** origin/main = dcf9a291 (Codex, sem mudança); fila = 11 commits
+sobre 9395b26b (#14→#18), **ainda não clicada**. Worktree
+`claude-assinaturas-24h` travada (index.lock que a OneDrive não deixa apagar
++ sobras não commitadas do #7); nova worktree `assin-r19` (checkout completou
+em 3 tentativas — a montagem é lenta; índice em /tmp para contornar o lock).
+**O que medi (item (b) do #18 — zareshahi0, chatgpt.com, 07:46 UTC).** 1º
+vídeo do trial em Seedance 60s = **25cr = o trial inteiro**: `trial_expired
+credit_cap` aos 4 min de conta, fal 7/7 às 07:51, compose `done` render
+31e022cf às 07:54:31, `trial_downgraded` às 07:55:26 (durante a montagem),
+último evento da aba 07:55. Às 08:12 UTC: 0 linhas em `videos`, 0
+`stranded_*`, e o `finish-stranded-renders` tinha passado 2× dizendo
+`user_finished_themselves` — porque o #3 pergunta só se o claim de compose
+EXISTE, não se a linha em `videos` existe. Medido 14d: **25 de 323** claims
+`done`+render_id sem linha em `videos` (7 cinematográficos — a lista do #18,
+6 já estornados; 17 do Kineo 1, todos de 19-24/08, antes do persist #357).
+**O que fiz — e desfiz.** Escrevi o conserto (claim `done`+render_id sem
+linha → Fase 2 com esse render_id; `pending` → `user_compose_pending`;
+fail-closed), 16 verificações + teste do #3 atualizado, tsc só os 3
+pré-existentes, commit 3f99b2b1, enfileirado (fila 12). Na medição de
+fechamento: **o filme do zare apareceu às 08:15:39** (`stranded_fast_ready_sent`,
+21 min após o compose) — a **Fase 3** do mesmo cron (compose claims com
+render_id de QUALQUER motor → poke do status em modo serviço → persist +
+e-mail) já faz exatamente o que o meu bloco fazia. O `user_finished_themselves`
+da Fase 0 é um RÓTULO errado no log, não uma perda: a Fase 3 corre depois na
+mesma rodada e busca o filme. Meu código era redundante e, entre rodadas,
+abria o risco de dois e-mails "ready" (marcadores diferentes:
+`stranded_ready_sent` × `stranded_fast_ready_sent`). **Tirei da fila**
+(`entrega-atual` de volta a 92b5ea0a — movimento direto, JUSTIFICADO: a ponta
+era o meu próprio commit, com pai 92b5ea0a, e ninguém enfileirou no meio;
+conferido antes de mover). O 3f99b2b1 fica nos objetos como registro.
+**Por que os 7 do #18 se perderam, então?** Não pela Fase 0: wummm709 morreu
+no 503 do custo 15≠19 (#17 conserta); os de 21/08 são anteriores à Fase 3
+ou caíram no Data Cache (#17). Com a fila no ar, o caso não deve nascer; o
+`/api/admin/rescue-composed-films` (#18) recupera o passado.
+**Achado que vira o #20.** O 1º filme do zare consumiu 100% do trial e o
+`trial_lifecycle_email_sent kind=downgraded_loss` saiu às 08:25 — **10 min
+DEPOIS** de o filme chegar à Library (08:15). A pessoa recebe "perdeu o trial"
+no exato minuto em que tem, pela 1ª vez, um filme de 60s pronto nas mãos.
+É o e-mail mais vendedor da casa se disser "seu filme está pronto — e o
+próximo custa $7"; hoje precisa conferir o que ele diz para quem tem 1 filme
+entregue e 0cr (o #11 já corrigiu o caso "5 clipes na Library"; falta o caso
+"filme cinematográfico entregue pelo cron").
+**SHA:** nenhum em fila (3f99b2b1 desenfileirado). **Risco:** zero.
+**Como medir:** `stranded_fast_ready_sent` para claims cinematográficos
+(prova de que a Fase 3 cobre todos os motores) e `cinematic_abandoned_no_
+delivery` com compose `done` = 0 após o clique.
+**Placar 05:33 BRT (externos):** has_paid 11 (starter 3, basic 2, pro 2,
+free/churn 4); cadastros 1h=6, 24h=35 (4 com 0cr — gastaram, nenhum órfão);
+vídeos 1h=3, 24h=20; falhas 1h=2 (anybodyhi5 speech=51s/60s — pista do
+v1v4); checkout_started 24h=5 pessoas; 7d: 77 com 1, 9 com 2, 2 com 3, **0 com
+4+**; crons 24h: winback25 120, failure_recovery 6, momentum 0 (13:30 UTC),
+subscriber_idle 0 (link do #10 não clicado); refunds 24h:
+abandoned_no_delivery 5; stranded 30min: 0.
+**Próximo item (#20):** (a) o e-mail `downgraded_loss` para quem tem filme
+entregue e 0cr — ler `trial-lifecycle-emails` e o caso do zare; se o texto
+ignora o filme, corrigir (rota/cron da minha pista); (b) 11:00 BRT: os ~27
+`momentum_nudge_sent`; (c) pós-clique: dry-run do rescue-composed-films;
+(d) `narration_too_short` (25 pessoas/14d, 13 nunca fizeram vídeo) é pista do
+v1v4 — só registrar lá que o alvo 60 com fala 51 (85%) ainda recusa.
