@@ -87,6 +87,14 @@ import {
   checkoutSetupFailureTelemetry,
   readCheckoutSetupFailureContext,
 } from '@/lib/growth/checkoutSetupFailureReturn'
+import {
+  createCheckoutWithPublicPromoTruth,
+  publicPromoTruthMetadata,
+  promisedPublicPromoKind,
+  resolvePromisedPublicPromo,
+  WELCOME20_COUPON_ID,
+  type PublicPromoFailureReason,
+} from '@/lib/growth/publicPromoTruth'
 import { canPurchaseCreditTopup } from '@/lib/growth/topupEligibility'
 import {
   AUTOPILOT_PILOT_DISMISSED_COOKIE,
@@ -816,6 +824,7 @@ async function buildAndRedirect(
   const rawPromo = (promo ?? '').trim()
   const requestedPromo = /^[A-Za-z0-9_-]{1,64}$/.test(rawPromo) ? rawPromo : undefined
   const privatePackPromo = isPrivatePackPromotion(rawPromo)
+  const promisedPublicPromo = promisedPublicPromoKind(requestedPromo, privatePackPromo)
   const plan = TIERS[tier]
   // #381 — annual vs monthly price + billing interval.
   // KINEO-AUTOPILOT-299-2026-07-26 — Autopilot is monthly-only (see the note on
@@ -929,6 +938,11 @@ async function buildAndRedirect(
     checkout_payment_guidance: CHECKOUT_PAYMENT_GUIDANCE_VERSION,
     checkout_value_output_count: checkoutValueContext.outputCount,
     checkout_visual_proof: CHECKOUT_VISUAL_PROOF.version,
+    // A public offer is a purchase contract, not a best-effort query hint.
+    // Record only the closed category; never copy a raw promo parameter into
+    // telemetry. `applied` is written only after Stripe's objects prove the
+    // exact percentage, duration and scope promised by the live UI.
+    ...publicPromoTruthMetadata(promisedPublicPromo, 'requested'),
   }
   // From here on, a failure event carries the full purchase intent.
   failureContext = { ...checkoutMetadata }
@@ -1422,6 +1436,7 @@ async function buildAndRedirect(
   }
 
   let discountApplied = false
+  let promisedPublicPromoVerified = false
 
   // KINEO-PROMO-BEATS-INTRO-2026-08-04 — PRECEDÊNCIA CORRIGIDA.
   // O comentário abaixo ("o intro vence o ?promo=") nasceu em 13/07, quando
@@ -1519,7 +1534,6 @@ async function buildAndRedirect(
   if (publicPromo === 'WELCOME20' && !privatePackPromo && !promoBlocked) {
     if (!resolvedPromo) {
       try {
-        const WELCOME20_COUPON_ID = 'KINEO_WELCOME20'
         try {
           await stripe.coupons.retrieve(WELCOME20_COUPON_ID)
         } catch {
@@ -1539,7 +1553,7 @@ async function buildAndRedirect(
           (await stripe.promotionCodes.list({ code: 'WELCOME20', active: true, limit: 1 })).data[0] ?? null
         if (resolvedPromo) console.log('[stripe/checkout] WELCOME20 self-provisioned/resolved')
       } catch (e) {
-        console.warn('[stripe/checkout] WELCOME20 self-provision falhou (checkout segue a preço cheio):', e)
+        console.warn('[stripe/checkout] WELCOME20 self-provision falhou; promised checkout will fail closed:', e)
       }
     }
   }
@@ -1723,11 +1737,105 @@ async function buildAndRedirect(
     return isGet ? redirectError(message) : jsonError(message, 409)
   }
 
+  const rejectPromisedPublicPromo = async (
+    reason: PublicPromoFailureReason,
+  ): Promise<NextResponse> => {
+    checkoutMetadata = {
+      ...checkoutMetadata,
+      ...publicPromoTruthMetadata(promisedPublicPromo, 'failed', reason),
+    }
+    failureContext = {
+      ...checkoutMetadata,
+      failure_stage: 'public_promo',
+      failure_reason: reason,
+    }
+    const message = 'We could not verify the promised 20% welcome discount right now. You have not been charged. Please try again or choose a current offer.'
+    return isGet ? redirectError(message) : jsonError(message, 409)
+  }
+
+  const markPromisedPublicPromoApplied = (firstChargeAmount: number): void => {
+    const verifiedMetadata = publicPromoTruthMetadata(promisedPublicPromo, 'verified')
+    const appliedMetadata = publicPromoTruthMetadata(promisedPublicPromo, 'applied')
+    checkoutMetadata = {
+      ...checkoutMetadata,
+      ...verifiedMetadata,
+      public_promo_first_charge_minor: firstChargeAmount,
+    }
+    failureContext = { ...checkoutMetadata }
+    Object.assign(sessionParams.metadata!, appliedMetadata)
+    Object.assign(sessionParams.subscription_data!.metadata!, appliedMetadata)
+    sessionParams.metadata!.public_promo_first_charge_minor = String(firstChargeAmount)
+    sessionParams.subscription_data!.metadata!.public_promo_first_charge_minor = String(firstChargeAmount)
+    // The success page uses this amount for human-view telemetry and ad
+    // conversion value. It must report the actual discounted first charge,
+    // never the undiscounted list price.
+    sessionParams.success_url = buildSubscriptionCheckoutSuccessUrl({
+      appUrl,
+      tier,
+      currency,
+      amount: firstChargeAmount,
+    })
+    promisedPublicPromoVerified = true
+  }
+
   if (privatePackPromo && (!requestedPromo || tier !== 'basic' || isAnnual || intro)) {
     return rejectPrivatePromo(
       'invalid_offer_shape',
       'This private $5 link is only valid for the monthly Creator upgrade. You have not been charged. Please reply to Joseph for help.',
     )
+  }
+
+  if (promisedPublicPromo && !promoBlocked && !discountApplied) {
+    const publicPromoResolution = await resolvePromisedPublicPromo(
+      promisedPublicPromo,
+      unitAmount,
+      async () => {
+        const pc = resolvedPromo
+          ?? (await stripe.promotionCodes.list({ code: requestedPromo!, active: true, limit: 1 })).data[0]
+        if (!pc) return null
+        const restrictedCustomerId = typeof pc.customer === 'string'
+          ? pc.customer
+          : pc.customer?.id ?? null
+        const coupon = typeof pc.coupon === 'string'
+          ? await stripe.coupons.retrieve(pc.coupon)
+          : pc.coupon
+        // Stripe 16 types an ordinary Coupon's optional `deleted` field as
+        // `void`, while a deleted retrieval returns the same runtime shape
+        // with `deleted:true`.
+        const couponDeleted = (coupon as { deleted?: boolean }).deleted === true
+        return {
+          kind: promisedPublicPromo,
+          promotionCodeId: pc.id,
+          promotionCode: pc.code,
+          promotionActive: pc.active,
+          promotionExpiresAtSeconds: pc.expires_at,
+          promotionMaxRedemptions: pc.max_redemptions,
+          promotionTimesRedeemed: pc.times_redeemed,
+          promotionFirstTimeTransaction: pc.restrictions.first_time_transaction,
+          promotionMinimumAmount: pc.restrictions.minimum_amount,
+          promotionMinimumAmountCurrency: pc.restrictions.minimum_amount_currency,
+          promotionCurrencyOptionCodes: Object.keys(pc.restrictions.currency_options ?? {}),
+          restrictedCustomerId,
+          currentCustomerId: customerId,
+          couponId: coupon.id ?? null,
+          couponDeleted,
+          couponValid: couponDeleted ? false : coupon.valid,
+          couponPercentOff: couponDeleted ? null : coupon.percent_off,
+          couponAmountOff: couponDeleted ? null : coupon.amount_off,
+          couponDuration: couponDeleted ? null : coupon.duration,
+          couponRedeemBySeconds: couponDeleted ? null : coupon.redeem_by,
+          couponCurrencyOptionCodes: couponDeleted ? [] : Object.keys(coupon.currency_options ?? {}),
+          couponProductIds: couponDeleted ? [] : coupon.applies_to?.products ?? [],
+          nowMs: Date.now(),
+        }
+      },
+    )
+    if (publicPromoResolution.status === 'rejected') {
+      return rejectPromisedPublicPromo(publicPromoResolution.reason)
+    }
+    sessionParams.discounts = [{ promotion_code: publicPromoResolution.promotionCodeId }]
+    discountApplied = true
+    markPromisedPublicPromoApplied(publicPromoResolution.firstChargeMinor)
   }
 
   if (!discountApplied && requestedPromo && !promoBlocked) { // KINEO-FIRST50-2026-08-18: gate
@@ -1820,6 +1928,16 @@ async function buildAndRedirect(
     return rejectPrivatePromo(
       'discount_not_applied',
       'We could not apply your private $5 price. You have not been charged. Please reply to Joseph before continuing.',
+    )
+  }
+
+  if (promisedPublicPromo && !promisedPublicPromoVerified) {
+    return rejectPromisedPublicPromo(
+      promoBlocked
+        ? 'invalid_checkout_shape'
+        : discountApplied
+          ? 'conflicting_discount'
+          : 'discount_not_applied',
     )
   }
 
@@ -1918,6 +2036,11 @@ async function buildAndRedirect(
       discount_applied: discountApplied,
       discounts: sessionParams.discounts ?? null,
       allow_promotion_codes: sessionParams.allow_promotion_codes ?? false,
+      // A promised public offer changes the financial contract even when all
+      // other checkout inputs match an older in-flight request. Include only
+      // the closed truth state so a pre-deploy Session can never be reused as
+      // if it had passed this verification.
+      public_promo_truth: sessionParams.metadata?.public_promo_state ?? null,
       success_url: sessionParams.success_url,
       cancel_url: sessionParams.cancel_url,
       client_reference_id: sessionParams.client_reference_id ?? null,
@@ -1943,9 +2066,13 @@ async function buildAndRedirect(
   }
   const createCheckoutSessionFor = (finalCustomerId: string) => {
     sessionParams.customer = finalCustomerId
-    return stripe.checkout.sessions.create(
-      sessionParams,
-      { idempotencyKey: checkoutIdempotencyKeyFor(finalCustomerId) },
+    return createCheckoutWithPublicPromoTruth(
+      promisedPublicPromo,
+      promisedPublicPromoVerified,
+      () => stripe.checkout.sessions.create(
+        sessionParams,
+        { idempotencyKey: checkoutIdempotencyKeyFor(finalCustomerId) },
+      ),
     )
   }
 
@@ -1999,6 +2126,16 @@ async function buildAndRedirect(
     }
   }
 
+  if (promisedPublicPromoVerified) {
+    // A Stripe Session now exists with the verified promotion in `discounts`.
+    // Only this boundary upgrades telemetry from `verified` to `applied`.
+    checkoutMetadata = {
+      ...checkoutMetadata,
+      ...publicPromoTruthMetadata(promisedPublicPromo, 'applied'),
+    }
+    failureContext = { ...checkoutMetadata }
+  }
+
   await recordCheckoutEvent(
     'checkout_started',
     user.id,
@@ -2006,6 +2143,7 @@ async function buildAndRedirect(
       ...checkoutMetadata,
       intro_applied: discountApplied && intro,
       private_offer_applied: privatePackPromo && discountApplied,
+      public_promo_applied: promisedPublicPromoVerified,
       stripe_session_id: session.id,
       checkout_session_window_hours: RECURRING_CHECKOUT_WINDOW_HOURS,
       checkout_session_window_version: RECURRING_CHECKOUT_WINDOW_VERSION,
