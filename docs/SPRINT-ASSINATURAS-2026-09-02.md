@@ -1721,3 +1721,98 @@ download, `profiles.video_ready_sent_at`) — checar volume e aplicar o mesmo
 rodapé se for relevante; (c) 11:00 BRT: `momentum_nudge_sent` do 1º
 disparo; (d) pós-clique: `stranded_*_ready_sent` com `email='status_route'`
 aparecendo e o loop do 786e79fc parando.
+
+### #26 — 07:33→08:15 BRT — o `send-video-ready` (3º e-mail de "vídeo pronto", 98 envios/14d) dizia "if you closed the tab, no harm done" para 80 pessoas que JÁ TINHAM VISTO o filme no app, e não pedia nada a ninguém; agora fala com quem viu, espera 6h depois de outro aviso e leva o rodapé por situação
+**Leitura.** origin/main = 6257f4b7 (Codex: "checkout origin truth gate" —
+nada na minha pista); fila = 24 sobre origin/main (até o #25), **ainda não
+clicada** (10h de fila). Sandbox sem disco (/ 100%); `git worktree add` na
+OneDrive travou 3 min e morreu com `index.lock` que não posso apagar
+(`Operation not permitted`). Saída: arquivos editados num diretório da
+OneDrive, commit por plumbing (`GIT_INDEX_FILE` + `read-tree entrega-atual`
++ `commit-tree -p <ponta>`) e `git update-ref refs/heads/entrega-atual <novo>
+<ponta-lida>` — compare-and-swap: se outra sessão mover a fila entre a
+leitura e a escrita, o comando FALHA em vez de sobrescrever. É o mesmo
+contrato do `enfileirar.sh` (nascer POR CIMA da ponta, nunca apagar commit
+alheio), sem checkout. tsc rodado com `tsconfig` que inclui só os 2 arquivos
+tocados + `node_modules` da árvore principal (0 erros).
+**Checagem zero (1h, externos).** 3 cadastros (0 com 0cr); 1 vídeo entregue;
+**0 falhas**; 9 estornos/24h — 5 são `cinematic_abandoned_no_delivery` do
+Seedance (wummm709, shaunish2097, ahmadjooon26, contextoaparte,
+giuseppe.rapicav: 4 dos 34 despachos Seedance de 48h com 5/5 cenas aceitas
+e nenhum filme) — é o `no_authorized_urls`/`compose_error_4xx` dos #7/#14/
+#17, corrigido na fila e AINDA em produção porque a fila não foi clicada
+(shaunish2097 clicou no checkout do Creator às 03:43 esperando o filme; o
+cron falhou 6× e estornou às 05:30). 4 `trial_cap_refunded` são
+`narration_too_short` (asuquoalbert07 3×, `speech=3s target=60s`, source
+`topic` — a ideia crua viajando como roteiro, caso da sprint v1v4 #22/#39;
+ele acabou entregando às 06:20). Nada quebrado NOVO.
+**O que estava errado (medido, externos, 14d, 98 envios).** O cron
+`send-video-ready` (30 min–24 h sem `video_downloaded`, 1× por pessoa via
+`profiles.video_ready_sent_at`) é o TERCEIRO e-mail de "vídeo pronto" da
+casa, depois do "⚡ Your Short is ready" da rota de status (#24) e do "Your
+video is ready 🎬" do resgate (#25). **80 dos 98** já tinham aberto a tela
+de vídeo pronto no app (`video_ready_viewed` antes do e-mail) e liam "if you
+closed the tab, no harm done" — viram, escolheram não baixar, e o e-mail
+dizia que não viram. **8** tinham clicado em download (`video_download_
+clicked` / `video_download_manual_link_clicked`, que NÃO emitem
+`video_downloaded` — o cron só olhava esse). **15** já tinham recebido o do
+resgate. Situação: **69 sem saldo** para o próximo vídeo, **28 trial com
+saldo**, **1 assinante** — e o e-mail não pedia nada a nenhum. Efeito: 2
+downloads, 8 segundos vídeos, 2 checkouts em 98. Zero evento em `events`
+(só a coluna do perfil): impossível saber o que cada um leu.
+**O que mudou** (`app/api/cron/send-video-ready/route.ts` +
+`lib/lifecycle/videoReadyFooter.ts`, minha pista — cron de ciclo de vida).
+(1) Clique em download conta como baixado (3 nomes de evento). (2) Uma
+consulta só em `events` (download / visto / outro e-mail de vídeo pronto),
+fail-closed: erro = não manda nesta rodada. (3) Outro "vídeo pronto" (rota
+de status `video_ready_email_sent`, resgate `stranded_*_ready_sent`) há
+menos de **6 h** → adia sem carimbar (a janela de 24 h alcança nas rodadas
+seguintes; `deferred_recent_ready_email` na resposta do cron). (4) Quem **JÁ
+VIU** recebe outra copy: assunto `Your film "<título>" is saved — MP4
+inside`, "saved in your library — private, and the MP4 is one click away",
+botão "Download the MP4", UTM `video_ready_seen` (medição separada da série
+histórica), fecho "Ready for the next one? /studio"; quem não viu mantém a
+copy e o assunto de hoje. (5) TODO envio leva o rodapé por situação do #24
+(`videoReadyFooterFromRows`, novo export da lib: assinante = episódio 2 +
+saldo, sem preço; trial com ≥5cr = episódio 2 ANTES do plano medido em
+filmes como este; sem saldo = plano em filmes como este) num cartão escuro.
+(6) Carimbo `video_ready_nudge_sent` em `events` com
+`saw_ready_screen/footer/subscriber/cost/credits_remaining/second_touch`.
+`isSubscriberProfile` aceita só planos PAGOS (starter/basic/pro/creator/
+studio) — medido: trial em produção é `plan='free'` + `trial_ends_at`, e
+nomes `*_trial` não existem em `profiles` (o set do #25 os listava como
+pagos; inócuo hoje, corrigido na lib). 1× por pessoa para sempre mantido.
+Sem crédito, cupom ou preço novo. ⚠ Zona compartilhada: nenhuma.
+**Testes.** `scripts/test-video-ready-nudge.mjs` **38 verificações** — o
+`buildEmail` REAL extraído da rota + rodapé REAL (viu/não viu/assinante/
+XSS no título/título longo/sem título/rodapé de descadastro) + 13 leituras
+da rota provando as regras. #24 46/46 e #25 42/42 seguem verdes. tsc: 0
+erros nos 2 arquivos (config isolada; os 3 pré-existentes não entram).
+**Para o cliente/receita.** ~7 e-mails/dia deixam de chamar de "fechou a
+aba" quem assistiu ao filme; 70% deles (sem saldo) passam a ver o plano
+medido no filme que acabaram de ver, 29% (trial com saldo) o 2º vídeo no
+tema deles, e o assinante nunca vê preço. Ninguém mais recebe dois "vídeo
+pronto" com 30 min de intervalo.
+**SHA:** b88f4c24 (sobre 162411ce). **Risco:** baixo — só copy, filtro de
+elegibilidade e carimbo; qualquer leitura falha cai em "não manda agora" ou
+na copy genérica.
+**Como medir:** `video_ready_nudge_sent` por `metadata->>'saw_ready_screen'`
+e `footer`; `video_downloaded`/`video_download_clicked` em 48 h após
+(base: 2/98); `checkout_started` em 72 h (base: 2/98); `videos` em 72 h
+(base: 8/98); `series_continuation_landed` com `source='video_ready_email'`.
+**Placar 08:10 BRT (externos):** has_paid 11 (starter 3, basic 2, pro 2,
+free/churn 4); cadastros 1h=3, 24h=41 (5 com 0cr = gasto real); vídeos
+1h=4, 24h=27; **falhas 1h=0**; checkout_started 24h=5 pessoas; 7d: 82 com
+1, 10 com 2, 2 com 3, **0 com 4+**; crons 24h: winback25 120, failure_
+recovery 6, stranded_ready 14 + fast 5, trial_lifecycle 100, video_ready
+(coluna) 10, momentum 0 (13:30 UTC); refunds 24h: 9 (ver checagem zero).
+martbergsma (Seedance 10:33 UTC) entregou e viu o filme às 10:38.
+**Próximo item (#27):** (a) consolidar: o resgate (#25) ainda tem sua cópia
+local de `readyFooterFor`/`readyIsSubscriber` com `*_trial` como pago —
+trocar pela lib (`videoReadyFooterFromRows`/`isSubscriberProfile`); (b)
+`video_ready_viewed` sem download em 24 h = 37 filmes/7d "nunca voltou" —
+medir se o /history mostra o plano medido em filmes para quem está com 0cr
+(hoje só o e-mail faz isso); (c) 11:00 BRT: `momentum_nudge_sent` do 1º
+disparo (13:30 UTC); (d) pós-clique: `video_ready_nudge_sent` com
+`saw_ready_screen=true` aparecendo e `deferred_recent_ready_email` > 0 no
+log do cron.
