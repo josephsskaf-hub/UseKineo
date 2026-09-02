@@ -544,3 +544,78 @@ com `prompt_len` e o `topic` das tentativas dele), fazer o cliente cortar
 sozinho o que ELE acrescentou (ou subir o teto do analyze quando o excedente
 é instrução nossa) e nunca mandar "trim" por texto que não é do autor.
 Depois, 03:05 BRT: `failure_recovery_sent` por `kind` (1º disparo real).
+
+### #9 — 00:55→01:05 BRT — (registro tardio) a caixa do /studio não tinha teto nem contador
+Código subiu em 65758b05 (na main, fundador clicou); o diário desta rodada
+não foi commitado pela sessão anterior. Resumo: adrianwells bateu 7× em
+`prompt_len=6228 limite=5000` porque o /studio deixava colar 6.228 chars e só
+a tela SEGUINTE dizia "Trim it" numa caixa que não deixa editar. Agora o teto
+(5.000, lib/analyzeLimits) é medido no /studio, contador exato, botão vira
+"Trim N characters to continue" e "✂ Trim to fit" corta na última frase
+inteira. Eventos `studio_prompt_over_limit_shown`/`trimmed_to_limit`.
+**Como medir:** `analyze_prompt_too_long` no cliente → 0 depois do deploy.
+
+### #10 — 01:09→01:30 BRT — 4 dos 7 assinantes estão dormindo com crédito acumulando e ninguém escreve para quem JÁ paga
+**Leitura.** origin/main = 872ac41c (o fundador clicou: #7, #8, #9 e o
+"coerência história × duração" de outra sessão estão em produção); fila 0.
+Worktree da OneDrive continua travada (`unlink: Operation not permitted`,
+`index.lock` imortal) — rodada em clone compartilhado em /tmp, como o
+enfileirar.sh manda. Diário do #9 faltava: registrado acima.
+**O que estava errado.** Olhei os PAGANTES, não os trials. Dos 7 assinantes
+externos com assinatura viva: **akajitin** (Starter, **172cr** = 4 meses de
+grant intactos, último vídeo 03/08), **den.higgins** (Creator, 140cr, **1 vídeo
+na vida**, último 08/08, visitou 31/08 e não gerou), **noelrss21** (Creator,
+63cr, último 24/08), **emilio** (Starter, renovou 01/09, 40cr, **0 vídeos**).
+São ~$56 dos ~$109 de MRR pagando por saldo parado. `events ilike '%sent%'`
+em 7d para os 4 = **nada**. Todas as 16 rotas `send-*` do /admin e os 3 crons
+miram quem NÃO pagou (winback, abandon, stalled, upsell, pack…). Quem paga e
+não usa é invisível — e cancela ressentido no dia em que repara na fatura.
+**O que mudou.** Nova rota admin `/api/admin/send-subscriber-idle` + módulo
+puro `lib/lifecycle/subscriberIdle.ts`. Coorte ao vivo: has_paid · plano pago
+com id de assinatura (Stripe/PayPal/Paddle) · opt-in · externo · ≥25cr (1
+filme Seedance pela tabela real) · sem vídeo completo há ≥10d ou nunca · sem
+atividade 24h (pode estar num render) · sem `subscriber_idle_sent` em 30d.
+E-mail pessoal e honesto: "você está no plano X, seu último vídeo foi há N
+dias, tem C créditos parados = F filmes Seedance ou K shorts Kineo 1; prefiro
+que você tire filmes disso a pagar por saldo parado" + **3 ideias de 1 clique**
+(a 1ª é "Part 2" do PRÓPRIO último vídeo; URL usa exatamente os params que o
+/studio já lê: engine/prompt/duration=60/script_mode=ai + utm_campaign=
+subscriber_idle) + o que mudou (Lyria 3, MiniMax 2.8 HD, Kling 3/Omni, Nano
+Banana Pro) + "hit reply, it lands with me". Sem desconto, sem cupom, sem
+crédito de presente (o problema é motivo, não saldo), sem preço (pista do
+Codex). Dry-run por padrão, `?confirm=SEND`, lote ≤20, stamp só depois do
+Resend aceitar. NÃO toca crédito, plano nem assinatura. tsc: só os 3
+pré-existentes. Teste `scripts/test-subscriber-idle.mjs` (37 verificações,
+incluindo: route.ts não exporta nada além de GET/config; copy sem preço; URL
+bate com StudioClient). Smoke real do módulo compilado: 172cr → "6 full AI
+films on Seedance, or 34 quick Kineo 1 shorts"; Emilio → "Your 40 Kineo
+credits haven't been used yet".
+**Para o cliente/receita.** É retenção de MRR: 4 pessoas × $7-15/mês que hoje
+só recebem silêncio. Um assinante que faz 1 filme no mês seguinte à cobrança
+é um assinante que não abre a fatura para cancelar. E o "Part 2" do próprio
+vídeo é o caminho mais curto até o 4º vídeo (11,8% de conversão/retenção).
+**SHA:** 38ac6d9c (sobre 872ac41c). **Risco:** baixo — só admin, dry-run
+por padrão, nenhum efeito sem clique. Risco de copy: nenhum. Risco de fluxo:
+se a pessoa estiver deslogada, /studio redireciona para login — conferir na
+1ª leitura de cliques se `?prompt=` sobrevive ao login (senão, próximo item).
+**Como medir:** `subscriber_idle_sent` (4 esperados no 1º disparo); em 7d,
+`videos completed` desses 4 user_ids; `utm_campaign=subscriber_idle` nos
+page_views; respostas no Gmail (SLA ≤48h — regra de 24/08). Sucesso = 2 dos
+4 fazem um vídeo em 7 dias.
+**⚠ REGRA DO SLA:** este e-mail pede resposta. Toda resposta que chegar tem
+que ser respondida em ≤48h (a lição do Rick) — vou varrer o Gmail nas rodadas.
+**Placar 01:10 BRT (externos):** has_paid 11 (starter 3, basic 2, pro 2,
+free/churn 4); cadastros 1h=3, 24h=32 (4 com 0cr); vídeos 1h=1, 24h=18;
+falhas 1h=6 (`prompt_len=6228` ×6 — adrianwells, o #9 subiu há minutos);
+3h: narration_too_short ×2 + speech=3s/60s ×2 (asuquoalbert — 7 palavras
+para 60s; remédio é o preflight #48 da v1v4, já na main), held=19 ×2
+(wummm709, caso do #8); checkout_started 24h=5; 7d: 71 com 1, 9 com 2, 2
+com 3, **0 com 4+**; crons 24h: winback25 120, failure_recovery 0, momentum
+0 (1ºs disparos 03:00 e 10:30 BRT).
+**Próximo item (#11):** ler `failure_recovery_sent` por `kind` depois das
+03:05 BRT (1º disparo real do #5/#6). Antes disso: os 2 "free" com
+`stripe_subscription_id` e has_paid (valos87196 73cr/7 vídeos, brandonmooney4
+20cr/6 vídeos) — são ex-assinantes que cancelaram MAS ainda têm crédito e
+histórico de uso; hoje nenhum win-back fala com eles (winback25 exige
+`video_credits=0` e `has_paid=false`). Coorte pequena, valor alto: já pagaram
+uma vez.
