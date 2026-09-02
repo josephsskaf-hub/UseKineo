@@ -18,6 +18,32 @@ const sourceFiles = (rel) =>
     .filter((entry) => /\.(?:ts|tsx)$/.test(String(entry)))
     .map((entry) => join(rel, String(entry)))
 
+function stringLiterals(rel) {
+  const filename = join(root, rel)
+  const parsed = ts.createSourceFile(
+    filename,
+    source(rel),
+    ts.ScriptTarget.ES2022,
+    true,
+    rel.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+  )
+  const values = []
+  const visit = (node) => {
+    if (
+      ts.isStringLiteral(node) ||
+      ts.isNoSubstitutionTemplateLiteral(node) ||
+      node.kind === ts.SyntaxKind.TemplateHead ||
+      node.kind === ts.SyntaxKind.TemplateMiddle ||
+      node.kind === ts.SyntaxKind.TemplateTail
+    ) {
+      values.push(node.text)
+    }
+    ts.forEachChild(node, visit)
+  }
+  visit(parsed)
+  return values
+}
+
 function loadTs(rel, mocks = {}) {
   const filename = join(root, rel)
   const output = ts.transpileModule(source(rel), {
@@ -89,15 +115,10 @@ const pricing = source('app/pricing/PricingClient.tsx')
 ok(pricing.includes('{CHECKOUT_CURRENCY_DISCLOSURE}'), 'pricing header renders the canonical disclosure')
 ok(pricing.includes('${CHECKOUT_CURRENCY_DISCLOSURE}'), 'pricing FAQ renders the canonical disclosure')
 
-const runtimeFiles = [
-  'app/KineoLanding.tsx',
-  'components/StructuredData.tsx',
-  'app/pricing/PricingClient.tsx',
-  'components/PricingCards.tsx',
-  'app/cheapest-ai-shorts-maker/page.tsx',
-  'app/cheapest-ai-shorts-maker/ShortCostCalculator.tsx',
-  'app/(dashboard)/generate/GenerateClient.tsx',
-]
+// Scan every runtime TypeScript string, not a hand-picked list of the screens
+// that happened to be wrong on 01/09. Comments may retain historical context;
+// executable strings may never promise a currency the checkout does not use.
+const runtimeFiles = ['app', 'components', 'lib'].flatMap(sourceFiles)
 const forbidden = [
   /show it in your local currency/i,
   /shown in your local checkout currency/i,
@@ -109,9 +130,9 @@ const forbidden = [
   /local price loads before checkout/i,
 ]
 for (const file of runtimeFiles) {
-  const text = source(file)
+  const literals = stringLiterals(file)
   for (const pattern of forbidden) {
-    ok(!pattern.test(text), file + ' excludes stale promise ' + String(pattern))
+    ok(!literals.some((literal) => pattern.test(literal)), file + ' excludes stale promise ' + String(pattern))
   }
 }
 

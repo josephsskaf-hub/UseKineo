@@ -3,15 +3,24 @@
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
-import { trackEvent } from '@/lib/analytics'
+import { trackClosedEvent, trackEvent } from '@/lib/analytics'
 import { useCheckoutLaunch, useStalledCheckout } from '@/lib/checkoutTelemetry'
 import {
   formatCheckoutResumeMoney,
   formatCheckoutResumePlanFitGoal,
   type CheckoutResumeOffer,
 } from '@/lib/checkoutResumeSurface'
+import {
+  CHECKOUT_RESUME_DWELL_MS,
+  CHECKOUT_RESUME_CHOICE_VERSION,
+  CHECKOUT_RESUME_RETRY_DELAY_MS,
+  CHECKOUT_RESUME_VISIBLE_RATIO,
+  checkoutResumeHumanViewOfferKey,
+  createCheckoutResumeDwellController,
+  createCheckoutResumeRecorder,
+  shouldRecordCheckoutResumeAfterDwell,
+} from '@/lib/growth/checkoutResumeHumanView'
 
-const RESUME_CHOICE_VERSION = 'resume_smaller_choice_v1'
 const COMPARE_PLANS_HREF = '/pricing?intent_campaign=checkout_resume_smaller_v1#plans'
 
 const HIDDEN_PATHS = [
@@ -38,12 +47,33 @@ export default function CheckoutResumeBanner() {
   const pathname = usePathname()
   const [offer, setOffer] = useState<CheckoutResumeOffer | null>(null)
   const viewedKey = useRef<string | null>(null)
+  const choiceRef = useRef<HTMLDivElement | null>(null)
+  const humanViewStopRef = useRef<(() => void) | null>(null)
   const checkout = useCheckoutLaunch('checkout_resume_banner')
   // KINEO-CHECKOUT-REDIRECT-2026-08-08 — os dois cards ocupam o MESMO canto.
   // Enquanto o CTA de resgate (checkout travado agora, sessão viva) está no ar,
   // este banner ("seu checkout está salvo") sai da frente: são dois pedidos
   // concorrentes no instante mais sensível da jornada, e o urgente é o outro.
   const stalled = useStalledCheckout()
+  const humanViewStateRef = useRef<{
+    offerKey: string | null
+    pathname: string
+    stalled: boolean
+    checkoutPending: boolean
+  }>({
+    offerKey: null,
+    pathname,
+    stalled: false,
+    checkoutPending: false,
+  })
+  // Updated during render so an old passive-effect timer sees the new state
+  // before its cleanup runs. This makes the race fail closed.
+  humanViewStateRef.current = {
+    offerKey: offer ? checkoutResumeHumanViewOfferKey(offer) : null,
+    pathname,
+    stalled: Boolean(stalled),
+    checkoutPending: checkout.pending !== null,
+  }
 
   useEffect(() => {
     if (shouldHide(pathname)) {
@@ -69,7 +99,7 @@ export default function CheckoutResumeBanner() {
         }
         setOffer(result)
         const key = [
-          RESUME_CHOICE_VERSION,
+          CHECKOUT_RESUME_CHOICE_VERSION,
           result.tier,
           result.billing,
           result.currency,
@@ -84,7 +114,7 @@ export default function CheckoutResumeBanner() {
         if (viewedKey.current !== key) {
           viewedKey.current = key
           void trackEvent('checkout_resume_banner_viewed', {
-            resume_choice_version: RESUME_CHOICE_VERSION,
+            resume_choice_version: CHECKOUT_RESUME_CHOICE_VERSION,
             tier: result.tier,
             billing: result.billing,
             currency: result.currency,
@@ -106,6 +136,130 @@ export default function CheckoutResumeBanner() {
     return () => controller.abort()
   }, [pathname])
 
+  // checkout_resume_banner_viewed remains the technical denominator: the
+  // server found a resumable choice. This event is the human denominator:
+  // both actions occupied at least half of their own box for one continuous
+  // second in a visible tab, while no urgent stalled-checkout card covered it.
+  useEffect(() => {
+    if (
+      !offer
+      || shouldHide(pathname)
+      || stalled
+      || checkout.pending !== null
+      || typeof IntersectionObserver === 'undefined'
+    ) return
+    const target = choiceRef.current
+    if (!target) return
+    const lockManager = navigator.locks
+    if (!lockManager) return
+
+    let storage: Storage | null = null
+    try {
+      storage = window.sessionStorage
+    } catch {
+      // No durable claim means no trustworthy denominator. Fail closed.
+    }
+    if (!storage) return
+
+    const recorder = createCheckoutResumeRecorder({
+      offer,
+      storage,
+      withExclusiveClaim: async (claimName, task) => await lockManager.request(claimName, task),
+      transport: (eventName, metadata) => trackClosedEvent(eventName, metadata),
+    })
+    if (recorder.wasSettled()) return
+
+    let isIntersecting = false
+    let intersectionRatio = 0
+    let observer: IntersectionObserver | null = null
+    let retryTimer: number | null = null
+    let retryUsed = false
+    let stopped = false
+    const expectedOfferKey = checkoutResumeHumanViewOfferKey(offer)
+    const expectedPathname = pathname
+
+    const qualifies = () => {
+      const live = humanViewStateRef.current
+      return shouldRecordCheckoutResumeAfterDwell({
+        expectedOfferKey,
+        currentOfferKey: live.offerKey,
+        expectedPathname,
+        currentPathname: live.pathname,
+        currentPathHidden: shouldHide(live.pathname),
+        targetConnected: target.isConnected,
+        targetStillCurrent: choiceRef.current === target,
+        stalled: live.stalled,
+        checkoutPending: live.checkoutPending,
+        isIntersecting,
+        intersectionRatio,
+        documentVisible: document.visibilityState === 'visible',
+      })
+    }
+    let dwell: ReturnType<typeof createCheckoutResumeDwellController> | null = null
+    const clearRetry = () => {
+      if (retryTimer !== null) window.clearTimeout(retryTimer)
+      retryTimer = null
+    }
+    const handleVisibility = () => {
+      dwell?.update({ documentVisible: document.visibilityState === 'visible' })
+    }
+    const stop = () => {
+      if (stopped) return
+      stopped = true
+      dwell?.stop()
+      clearRetry()
+      observer?.disconnect()
+      document.removeEventListener('visibilitychange', handleVisibility)
+      if (humanViewStopRef.current === stop) humanViewStopRef.current = null
+    }
+
+    dwell = createCheckoutResumeDwellController({
+      dwellMs: CHECKOUT_RESUME_DWELL_MS,
+      setTimer: (callback, delayMs) => window.setTimeout(callback, delayMs),
+      clearTimer: (timerId) => window.clearTimeout(timerId),
+      onDwell: () => {
+        if (!qualifies()) return
+        void recorder.recordOnce().then((result) => {
+          if (stopped || !dwell?.canContinue()) return
+          if (result === 'not_stored' && !retryUsed) {
+            retryUsed = true
+            retryTimer = window.setTimeout(() => {
+              retryTimer = null
+              dwell?.rearm()
+            }, CHECKOUT_RESUME_RETRY_DELAY_MS)
+            return
+          }
+          stop()
+        })
+      },
+    })
+
+    observer = new IntersectionObserver((entries) => {
+      const entry = entries[0]
+      isIntersecting = Boolean(entry?.isIntersecting)
+      intersectionRatio = entry?.intersectionRatio ?? 0
+      dwell?.update({
+        rendered: true,
+        stalled: Boolean(stalled),
+        checkoutPending: checkout.pending !== null,
+        isIntersecting,
+        intersectionRatio,
+      })
+    }, { threshold: [CHECKOUT_RESUME_VISIBLE_RATIO] })
+
+    dwell.update({
+      rendered: true,
+      stalled: Boolean(stalled),
+      checkoutPending: false,
+      documentVisible: document.visibilityState === 'visible',
+    })
+    humanViewStopRef.current = stop
+    observer.observe(target)
+    document.addEventListener('visibilitychange', handleVisibility)
+
+    return () => stop()
+  }, [checkout.pending, offer, pathname, stalled])
+
   if (!offer || shouldHide(pathname) || stalled) return null
 
   const firstCharge = formatCheckoutResumeMoney(offer.firstChargeAmount, offer.currency)
@@ -113,7 +267,7 @@ export default function CheckoutResumeBanner() {
   const renewalUnit = offer.billing === 'annual' ? 'year' : 'month'
   const savedGoal = offer.planFit ? formatCheckoutResumePlanFitGoal(offer.planFit) : null
   const eventMetadata = {
-    resume_choice_version: RESUME_CHOICE_VERSION,
+    resume_choice_version: CHECKOUT_RESUME_CHOICE_VERSION,
     tier: offer.tier,
     billing: offer.billing,
     currency: offer.currency,
@@ -128,6 +282,7 @@ export default function CheckoutResumeBanner() {
   }
 
   const dismiss = () => {
+    humanViewStopRef.current?.()
     setOffer(null)
     void trackEvent('checkout_resume_banner_dismissed', eventMetadata)
     void fetch('/api/stripe/checkout/resume', {
@@ -181,7 +336,7 @@ export default function CheckoutResumeBanner() {
           </div>
         )}
       </div>
-      <div style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
+      <div ref={choiceRef} style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
         <a
           href={offer.resumeUrl}
           aria-disabled={checkout.pending !== null}
@@ -195,6 +350,7 @@ export default function CheckoutResumeBanner() {
               destination_kind: offer.destinationKind,
             })
             if (!started) return
+            humanViewStopRef.current?.()
             void trackEvent('checkout_resume_banner_clicked', eventMetadata)
           }}
           style={{
@@ -215,10 +371,13 @@ export default function CheckoutResumeBanner() {
         <Link
           href={COMPARE_PLANS_HREF}
           aria-label="See smaller subscription plans"
-          onClick={() => void trackEvent('checkout_resume_smaller_plan_clicked', {
-            ...eventMetadata,
-            target: 'pricing_plans',
-          })}
+          onClick={() => {
+            humanViewStopRef.current?.()
+            void trackEvent('checkout_resume_smaller_plan_clicked', {
+              ...eventMetadata,
+              target: 'pricing_plans',
+            })
+          }}
           style={{
             color: '#9ccfff',
             fontSize: '0.7rem',
