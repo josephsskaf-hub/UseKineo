@@ -148,3 +148,37 @@ export function videoReadyFooter(input: VideoReadyFooterInput): VideoReadyFooter
   // 4) Custo desconhecido: a copy de hoje.
   return { kind: 'plan_generic', html: genericPlanHtml(appUrl) }
 }
+
+// ═══ sprint-assinaturas #26 (02/09) — mesma leitura de perfil + linha de
+// `videos` que o cron de resgate (#25) faz localmente, agora exportada para o
+// `send-video-ready` (o 3º e-mail de "vídeo pronto" da casa) usar o MESMO
+// rodapé por situação. Trial ativo (starter_trial/creator_trial…) NÃO conta
+// como assinante — ainda não pagou. Nunca lança: perfil/vídeo nulos caem na
+// copy genérica (numero certo) como no #24.
+// Só planos PAGOS. Em produção (02/09) o trial vive em plan='free' +
+// trial_ends_at; nomes `*_trial` não existem em `profiles` e, se um dia
+// existirem, são trial — não assinatura.
+const READY_PAID_PLANS = new Set(['starter', 'basic', 'pro', 'creator', 'studio'])
+
+export type ReadyProfileRow = { has_paid?: boolean | null; plan?: string | null; video_credits?: number | null } | null
+export type ReadyVideoRow = { title?: string | null; topic?: string | null; credits_used?: number | null; duration?: number | null } | null
+
+export function isSubscriberProfile(prof: ReadyProfileRow): boolean {
+  const planName = (prof?.plan ?? 'free').toLowerCase()
+  return prof?.has_paid === true || READY_PAID_PLANS.has(planName)
+}
+
+export function videoReadyFooterFromRows(prof: ReadyProfileRow, vid: ReadyVideoRow, appUrl: string): VideoReadyFooter {
+  const credits = typeof prof?.video_credits === 'number' && Number.isFinite(prof.video_credits) ? prof.video_credits : null
+  const cost = typeof vid?.credits_used === 'number' && Number.isFinite(vid.credits_used) ? vid.credits_used : 0
+  const topic = ((vid?.title ?? '') || (vid?.topic ?? '') || '').trim()
+  const duration = typeof vid?.duration === 'number' && Number.isFinite(vid.duration) && vid.duration > 0 ? vid.duration : null
+  return videoReadyFooter({
+    isSubscriber: isSubscriberProfile(prof),
+    creditsRemaining: credits,
+    cost,
+    topic,
+    durationSeconds: duration,
+    appUrl,
+  })
+}

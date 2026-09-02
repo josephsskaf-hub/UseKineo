@@ -4,6 +4,7 @@ import { freshFetch } from '@/lib/lifecycle/freshFetch'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
 import { LIFECYCLE_SKIP_STAMP } from '@/lib/lifecycle/skipStamp'
+import { videoReadyFooterFromRows, isSubscriberProfile, type VideoReadyFooter, type ReadyProfileRow } from '@/lib/lifecycle/videoReadyFooter'
 
 // send-video-ready — Medida 6 do PLANO-SEMANA-2026-08-03 (Bloco B, gerar→baixar).
 //
@@ -50,6 +51,34 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.usekineo.com'
 const MIN_AGE_MS = 30 * 60 * 1000
 /** And no older than this — never email about a stale backlog. */
 const MAX_AGE_MS = 24 * 60 * 60 * 1000
+// ═══ sprint-assinaturas #26 (02/09) — ESTE ERA O 3º E-MAIL DE "VÍDEO PRONTO"
+// E O ÚNICO QUE NÃO OLHAVA A PESSOA. Medido (14d, externos, 98 envios):
+//   · 80 dos 98 JÁ TINHAM VISTO a tela de vídeo pronto no app
+//     (`video_ready_viewed`) antes do e-mail — e liam "if you closed the tab,
+//     no harm done";
+//   · 8 tinham clicado em download (`video_download_clicked` /
+//     `video_download_manual_link_clicked`) — o cron só olhava
+//     `video_downloaded`, que o link manual não emite;
+//   · 15 já tinham recebido o "Your video is ready" do cron de resgate;
+//   · 69 sem saldo para o próximo vídeo, 28 trial com saldo, 1 assinante —
+//     e o e-mail não pedia nada a nenhum deles;
+//   · efeito: 2 downloads, 8 segundos vídeos, 2 checkouts.
+// Regras novas: (1) clique em download conta como baixado; (2) se outro
+// "vídeo pronto" saiu há menos de READY_EMAIL_GAP_MS, espera (não carimba —
+// a janela de 24h ainda alcança); (3) quem JÁ VIU o filme recebe a copy de
+// quem viu ("it's saved, here's the MP4") — nunca "closed the tab"; (4) todo
+// envio leva o rodapé por situação do #24 (assinante = episódio 2 sem preço;
+// trial com saldo = episódio 2 antes do plano; sem saldo = plano medido em
+// filmes como este); (5) carimbo `video_ready_nudge_sent` em `events` com
+// saw_ready_screen/footer/subscriber/cost/credits_remaining — antes só a
+// coluna do perfil, sem como medir o que cada um leu.
+/** Outro e-mail de "vídeo pronto" (rota de status / cron de resgate) mais novo
+ *  que isto = ainda não é hora do 2º toque. */
+const READY_EMAIL_GAP_MS = 6 * 60 * 60 * 1000
+const DOWNLOAD_EVENTS = ['video_downloaded', 'video_download_clicked', 'video_download_manual_link_clicked'] as const
+const SEEN_EVENT = 'video_ready_viewed'
+const READY_EMAIL_EVENTS = ['video_ready_email_sent', 'stranded_ready_sent', 'stranded_fast_ready_sent'] as const
+const NUDGE_EVENT = 'video_ready_nudge_sent'
 
 function isTestEmail(email: string): boolean {
   const e = email.toLowerCase()
@@ -75,22 +104,57 @@ interface ReadyVideo {
   id: string | null
   title: string | null
   thumb: string | null
+  creditsUsed: number | null
+  duration: number | null
 }
 
-function buildEmail(userId: string, video: ReadyVideo) {
-  const url = `${APP_URL}/history?utm_source=lifecycle&utm_medium=email&utm_campaign=video_ready`
+interface EmailContext {
+  /** A pessoa já abriu a tela de vídeo pronto no app (video_ready_viewed). */
+  sawIt: boolean
+  footer: VideoReadyFooter
+}
+
+function escapeHtmlText(v: string): string {
+  return v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
+
+function buildEmail(userId: string, video: ReadyVideo, ctx: EmailContext) {
+  const url = `${APP_URL}/history?utm_source=lifecycle&utm_medium=email&utm_campaign=video_ready${ctx.sawIt ? '_seen' : ''}`
   const title = (video.title ?? '').trim()
-  const titleLine = title ? `"${title}" is done rendering and waiting for you.` : 'Your video is done rendering and waiting for you.'
+  const safeTitle = escapeHtmlText(title)
+
+  // Quem JÁ VIU o filme não "fechou a aba": viu e não baixou. A frase certa é
+  // onde ele está e o que vem depois — o rodapé por situação faz o pedido.
+  const headlineText = ctx.sawIt
+    ? title
+      ? `"${title}" is saved in your library — private, and the MP4 is one click away.`
+      : 'Your video is saved in your library — private, and the MP4 is one click away.'
+    : title
+      ? `"${title}" is done rendering and waiting for you.`
+      : 'Your video is done rendering and waiting for you.'
+  const headlineHtml = ctx.sawIt
+    ? title
+      ? `<strong>&ldquo;${safeTitle}&rdquo;</strong> is saved in your library &mdash; private, and the MP4 is one click away.`
+      : '<strong>Your video is saved in your library</strong> &mdash; private, and the MP4 is one click away.'
+    : title
+      ? `<strong>&ldquo;${safeTitle}&rdquo;</strong> is done rendering and waiting for you.`
+      : '<strong>Your video is done rendering</strong> and waiting for you.'
+  const closingText = ctx.sawIt
+    ? 'Everything you generate stays in your library. Ready for the next one? usekineo.com/studio'
+    : 'It only took a few minutes to render, so if you closed the tab, no harm done. Everything you generate stays in your library.'
+  const closingHtml = ctx.sawIt
+    ? `Everything you generate stays in your library. Ready for the next one? <a href="${APP_URL}/studio" style="color:#2997ff;">usekineo.com/studio</a>`
+    : 'It only took a few minutes to render, so if you closed the tab, no harm done. Everything you generate stays in your library.'
 
   const text = `Hey,
 
-${titleLine}
+${headlineText}
 
-It's saved in your library — watch it and grab the download here: ${url}
+Watch it and grab the download here: ${url}
 
 Your video is private by default. Download the MP4 if you want to send it directly.
 
-It only took a few minutes to render, so if you closed the tab, no harm done. Everything you generate stays in your library.
+${closingText}
 
 Kineo Team
 usekineo.com`
@@ -101,17 +165,25 @@ usekineo.com`
 
   const html = `<div style="font-family:Arial,sans-serif;font-size:15px;color:#111;line-height:1.6;max-width:480px;">
   <p style="margin:0 0 14px;">Hey,</p>
-  <p style="margin:0 0 14px;">${title ? `<strong>&ldquo;${title}&rdquo;</strong> is done rendering and waiting for you.` : '<strong>Your video is done rendering</strong> and waiting for you.'}</p>
+  <p style="margin:0 0 14px;">${headlineHtml}</p>
   ${thumbHtml}
-  <p style="margin:0 0 24px;"><a href="${url}" style="display:inline-block;background:#2997ff;color:#ffffff;text-decoration:none;font-weight:bold;font-size:15px;padding:12px 26px;border-radius:10px;">Watch &amp; download &rarr;</a></p>
+  <p style="margin:0 0 24px;"><a href="${url}" style="display:inline-block;background:#2997ff;color:#ffffff;text-decoration:none;font-weight:bold;font-size:15px;padding:12px 26px;border-radius:10px;">${ctx.sawIt ? 'Download the MP4' : 'Watch &amp; download'} &rarr;</a></p>
   <p style="margin:0 0 14px;color:#475569;font-size:14px;">Your video is private by default. Download the MP4 if you want to send it directly.</p>
-  <p style="margin:0 0 14px;">It only took a few minutes to render, so if you closed the tab, no harm done. Everything you generate stays in your library.</p>
+  <!-- rodapé do #24 foi desenhado para fundo escuro (strong em #fff): cartão escuro aqui, senão o saldo some no branco -->
+  <div style="background:#161618;color:#fff;padding:4px 20px 20px;border-radius:12px;margin:0 0 14px">${ctx.footer.html}</div>
+  <p style="margin:0 0 14px;">${closingHtml}</p>
   <p style="margin:0 0 2px;">Kineo Team</p>
   <p style="margin:0;"><a href="https://www.usekineo.com" style="color:#2997ff;">usekineo.com</a></p>
 </div>
 ${emailFooterHtml(userId)}`
 
-  return { text: `${text}${emailFooterText(userId)}`, html }
+  const subject = ctx.sawIt
+    ? title
+      ? `Your film "${title.length > 48 ? `${title.slice(0, 45).trimEnd()}…` : title}" is saved — MP4 inside`
+      : 'Your film is saved — MP4 inside'
+    : 'Your video is ready 🎬'
+
+  return { subject, text: `${text}${emailFooterText(userId)}`, html }
 }
 
 export async function GET(req: NextRequest) {
@@ -146,7 +218,7 @@ export async function GET(req: NextRequest) {
   // Completed videos in the 30min-24h window (small volume: dozens/day).
   const { data: readyVideos, error: videosErr } = await admin
     .from('videos')
-    .select('id, user_id, title, topic, thumbnail_url, thumb_url, created_at')
+    .select('id, user_id, title, topic, thumbnail_url, thumb_url, created_at, credits_used, duration')
     .eq('status', 'completed')
     .gte('created_at', oldest)
     .lte('created_at', newest)
@@ -169,6 +241,8 @@ export async function GET(req: NextRequest) {
         id: (row.id as string | null) ?? null,
         title: (row.title as string | null) ?? (row.topic as string | null),
         thumb: (row.thumb_url as string | null) ?? (row.thumbnail_url as string | null),
+        creditsUsed: typeof row.credits_used === 'number' ? (row.credits_used as number) : null,
+        duration: typeof row.duration === 'number' ? (row.duration as number) : null,
         earliest: row.created_at as string,
       })
     } else if ((row.created_at as string) < existing.earliest) {
@@ -180,27 +254,46 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ sent: 0, skipped: 0, total: 0 })
   }
 
-  // Anyone who downloaded ANY video since their oldest ready video doesn't
-  // need this nudge — they know where the download lives.
+  // Anyone who downloaded (or CLICKED download — the manual link never emits
+  // `video_downloaded`) since their oldest ready video doesn't need this
+  // nudge. The same read also tells us who already SAW the ready screen and
+  // who already got another "video is ready" e-mail (status route / rescue
+  // cron). One query, fail-closed: an error here means no e-mail this run.
   const candidateIds = Array.from(perUser.keys())
-  const { data: downloads, error: dlErr } = await admin
+  const { data: signals, error: dlErr } = await admin
     .from('events')
-    .select('user_id, created_at')
-    .eq('name', 'video_downloaded')
+    .select('user_id, name, created_at')
+    .in('name', [...DOWNLOAD_EVENTS, SEEN_EVENT, ...READY_EMAIL_EVENTS])
     .in('user_id', candidateIds)
     .gte('created_at', oldest)
 
   if (dlErr) {
-    console.error('[send-video-ready] downloads query error:', dlErr.message)
+    console.error('[send-video-ready] signals query error:', dlErr.message)
     return NextResponse.json({ error: dlErr.message }, { status: 500 })
   }
 
-  for (const row of downloads ?? []) {
+  const sawIt = new Set<string>()
+  const lastReadyEmailMs = new Map<string, number>()
+  const downloadSet = new Set<string>(DOWNLOAD_EVENTS)
+  const readyEmailSet = new Set<string>(READY_EMAIL_EVENTS)
+  for (const row of signals ?? []) {
     const id = row.user_id as string | null
-    if (!id) continue
+    const name = row.name as string | null
+    if (!id || !name) continue
     const entry = perUser.get(id)
-    if (entry && (row.created_at as string) >= entry.earliest) {
-      perUser.delete(id)
+    if (!entry) continue
+    const at = row.created_at as string
+    if (downloadSet.has(name)) {
+      if (at >= entry.earliest) perUser.delete(id)
+      continue
+    }
+    if (name === SEEN_EVENT) {
+      if (at >= entry.earliest) sawIt.add(id)
+      continue
+    }
+    if (readyEmailSet.has(name)) {
+      const ms = Date.parse(at)
+      if (Number.isFinite(ms)) lastReadyEmailMs.set(id, Math.max(lastReadyEmailMs.get(id) ?? 0, ms))
     }
   }
 
@@ -210,7 +303,7 @@ export async function GET(req: NextRequest) {
 
   const { data: candidates, error } = await admin
     .from('profiles')
-    .select('id, email, video_ready_sent_at')
+    .select('id, email, video_ready_sent_at, has_paid, plan, video_credits')
     .in('id', Array.from(perUser.keys()))
     .is('video_ready_sent_at', null)
     .eq('email_opted_out', false)
@@ -228,6 +321,7 @@ export async function GET(req: NextRequest) {
   let sent = 0
   let skipped = 0
   let suppressed = 0
+  let deferredRecentReady = 0
 
   for (const u of candidates ?? []) {
     // Suppressed = another lifecycle email in the last 24h. NOT stamped — the
@@ -255,7 +349,19 @@ export async function GET(req: NextRequest) {
     const video = perUser.get(u.id as string)
     if (!video) continue
 
-    const { text, html } = buildEmail(u.id, video)
+    // Outro "vídeo pronto" saiu há menos de 6h (rota de status no segundo em
+    // que o filme nasceu, ou o cron de resgate): ainda não é hora do 2º toque.
+    // Não carimba — a janela de 24h ainda alcança nas próximas rodadas.
+    const lastReady = lastReadyEmailMs.get(u.id as string)
+    if (typeof lastReady === 'number' && now - lastReady < READY_EMAIL_GAP_MS) {
+      deferredRecentReady++
+      continue
+    }
+
+    const prof: ReadyProfileRow = { has_paid: u.has_paid as boolean | null, plan: u.plan as string | null, video_credits: u.video_credits as number | null }
+    const footer = videoReadyFooterFromRows(prof, { title: video.title, topic: null, credits_used: video.creditsUsed, duration: video.duration }, APP_URL)
+    const ctx: EmailContext = { sawIt: sawIt.has(u.id as string), footer }
+    const { subject, text, html } = buildEmail(u.id, video, ctx)
     try {
       const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
@@ -267,7 +373,7 @@ export async function GET(req: NextRequest) {
           from: FROM_EMAIL,
           to: [email],
           reply_to: 'hello@usekineo.com',
-          subject: 'Your video is ready 🎬',
+          subject,
           text,
           html,
           headers: unsubscribeHeaders(u.id),
@@ -280,7 +386,26 @@ export async function GET(req: NextRequest) {
           .from('profiles')
           .update({ video_ready_sent_at: new Date().toISOString() })
           .eq('id', u.id)
-        console.log(`[send-video-ready] sent to ${email}`)
+        // Carimbo legível: o que ESTA pessoa leu (antes só a coluna do perfil).
+        try {
+          await admin.from('events').insert({
+            user_id: u.id,
+            name: NUDGE_EVENT,
+            path: '/api/cron/send-video-ready',
+            metadata: {
+              video_id: video.id,
+              saw_ready_screen: ctx.sawIt,
+              footer: footer.kind,
+              subscriber: isSubscriberProfile(prof),
+              cost: video.creditsUsed,
+              credits_remaining: prof.video_credits ?? null,
+              second_touch: typeof lastReady === 'number',
+            },
+          })
+        } catch (e) {
+          console.warn('[send-video-ready] nudge stamp failed:', e instanceof Error ? e.message : String(e))
+        }
+        console.log(`[send-video-ready] sent to ${email} (saw=${ctx.sawIt} footer=${footer.kind})`)
       } else {
         console.error(`[send-video-ready] resend failed for ${email}:`, await res.text())
         // not stamped — retried on the next half-hour run
@@ -295,6 +420,7 @@ export async function GET(req: NextRequest) {
     skipped,
     total: (candidates ?? []).length,
     suppressed_recent_lifecycle: suppressed,
+    deferred_recent_ready_email: deferredRecentReady,
     suppression_degraded: suppression.degraded,
   })
 }
