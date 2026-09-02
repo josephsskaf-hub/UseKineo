@@ -14,8 +14,11 @@ import {
   releaseAnimateClaim,
 } from '@/lib/animate/claim'
 import { writeServerEvent } from '@/lib/serverEvents'
+import { ANIMATE_COST } from '@/lib/animate/cost'
 
-export const ANIMATE_COST = 5
+// sprint-assinaturas #12 — o valor mora em lib/animate/cost.ts (cliente-safe);
+// re-exportado aqui para as rotas que ja importam daqui.
+export { ANIMATE_COST }
 
 // KINEO-ANIMATE-ORFAO-2026-08-15 — mesmo corte do irmão (sweepStaleAnimateClaims)
 // e da varredura genérica: 2h. Não é um número novo e não é ele que condena

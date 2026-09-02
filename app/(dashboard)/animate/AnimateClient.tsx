@@ -9,6 +9,18 @@ import Link from 'next/link'
 import { trackEvent } from '@/lib/analytics'
 // KINEO-STUDIO-KIT-2026-08-17 — Animate veste o design system aprovado do /studio.
 import { STUDIO_KIT_CSS } from '@/components/studioKit'
+// sprint-assinaturas #12 — a parede do "zerou o saldo". Ver lib/animate/paywall.ts.
+import CreditsTopupModal from '@/components/CreditsTopupModal'
+import { ANIMATE_COST } from '@/lib/animate/cost'
+import {
+  ANIMATE_PAYWALL_PRICING_HREF,
+  animatePaywallBody,
+  animatePaywallDestination,
+  animatePaywallHeadline,
+  animatePaywallReason,
+  animatePlanRows,
+  isOutOfAnimateCredits,
+} from '@/lib/animate/paywall'
 
 // KINEO-ANIMATE-ORFAO-2026-08-15 — ver o comentário grande em poll().
 const ANIMATE_POLL_DEADLINE_MS = 30 * 60 * 1000
@@ -82,6 +94,15 @@ export default function AnimateClient({ isLoggedIn, userId }: { isLoggedIn: bool
   const [prompt, setPrompt] = useState(MOTION_PRESETS[0].prompt)
   const [duration, setDuration] = useState<'5' | '10'>('5')
   const [credits, setCredits] = useState<number | null>(null)
+  // sprint-assinaturas #12 — plano comercial (de /api/credits) decide se a
+  // parede vende recarga (Creator/Studio) ou plano (trial/free/starter);
+  // lastInsufficient marca o 402 para o motivo do evento; clipsThisSession
+  // faz o titulo dizer "the 5 clips you just made are yours" com numero real.
+  const [plan, setPlan] = useState<string>('free')
+  const [showTopup, setShowTopup] = useState(false)
+  const [lastInsufficient, setLastInsufficient] = useState(false)
+  const [clipsThisSession, setClipsThisSession] = useState(0)
+  const paywallTrackedRef = useRef<string | null>(null)
   const [phase, setPhase] = useState<Phase>('idle')
   const [error, setError] = useState<string | null>(null)
   const [resultUrl, setResultUrl] = useState<string | null>(null)
@@ -143,11 +164,42 @@ export default function AnimateClient({ isLoggedIn, userId }: { isLoggedIn: bool
   const hasImageSource = !!photoUrl || remoteImageUrl.trim().length > 0
   const canGenerate = isLoggedIn && hasImageSource && !busy
 
+  // sprint-assinaturas #12 — a parede aparece nos tres momentos em que a
+  // pessoa nao consegue seguir: ao entrar ja sem saldo, quando o clipe que
+  // acabou de chegar zerou o saldo, e no 402. Um evento por motivo por visita.
+  const outOfCredits = isOutOfAnimateCredits(credits, isLoggedIn, busy)
+  const paywallDestination = animatePaywallDestination(plan)
+  const paywallReason = animatePaywallReason({ phase, lastInsufficient })
+  useEffect(() => {
+    if (!outOfCredits) return
+    if (paywallTrackedRef.current === paywallReason) return
+    paywallTrackedRef.current = paywallReason
+    void trackEvent('animate_paywall_shown', {
+      reason: paywallReason,
+      destination: paywallDestination,
+      plan,
+      credits,
+      clips_this_session: clipsThisSession,
+    })
+  }, [outOfCredits, paywallReason, paywallDestination, plan, credits, clipsThisSession])
+
+  function handlePaywallCta() {
+    void trackEvent('animate_paywall_cta', {
+      reason: paywallReason,
+      destination: paywallDestination,
+      plan,
+      credits,
+    })
+    if (paywallDestination === 'topup') setShowTopup(true)
+    else window.location.assign(ANIMATE_PAYWALL_PRICING_HREF)
+  }
+
   async function refreshCredits(announce = true) {
     try {
       const res = await fetch('/api/credits', { cache: 'no-store' })
       const data = await res.json()
       if (typeof data?.credits === 'number') setCredits(data.credits)
+      if (typeof data?.plan === 'string') setPlan(data.plan)
       if (announce) window.dispatchEvent(new Event('creditsChanged'))
     } catch {}
   }
@@ -261,6 +313,12 @@ export default function AnimateClient({ isLoggedIn, userId }: { isLoggedIn: bool
         submissionRef.current = null
         clearStoredSubmission(stored.userId)
         setError(typeof data?.error === 'string' ? data.error : 'Not enough credits.')
+        // sprint-assinaturas #12 — o 402 traz o saldo real; a parede abre por
+        // ele (e para Creator/Studio o popup de recarga abre direto, como no
+        // /images e /audio).
+        if (typeof data?.balance === 'number') setCredits(data.balance)
+        setLastInsufficient(true)
+        if (animatePaywallDestination(plan) === 'topup') setShowTopup(true)
         setPhase('failed')
         return
       }
@@ -317,6 +375,7 @@ export default function AnimateClient({ isLoggedIn, userId }: { isLoggedIn: bool
     if (!canGenerate || submitGuardRef.current || !userId) return
     setError(null)
     setResultUrl(null)
+    setLastInsufficient(false)
     const source = photoUrl ?? remoteImageUrl.trim()
     const fingerprint = JSON.stringify({ source, prompt: prompt.trim(), duration })
     if (!submissionRef.current || submissionRef.current.fingerprint !== fingerprint) {
@@ -409,6 +468,7 @@ export default function AnimateClient({ isLoggedIn, userId }: { isLoggedIn: bool
         submissionRef.current = null
         clearStoredSubmission(userId)
         reportAnimateOutcome('delivered', { request_id: requestId })
+        setClipsThisSession((n) => n + 1)
         setResultUrl(data.video_url)
         setPhase('done')
         return
@@ -523,7 +583,7 @@ export default function AnimateClient({ isLoggedIn, userId }: { isLoggedIn: bool
           </section>
 
           <section className="cost">
-            <div className="val"><span>Cost per clip</span><b>5 credits · {duration}s</b></div>
+            <div className="val"><span>Cost per clip</span><b>{ANIMATE_COST} credits · {duration}s</b></div>
             <button
               type="button"
               onClick={handleGenerate}
@@ -535,7 +595,7 @@ export default function AnimateClient({ isLoggedIn, userId }: { isLoggedIn: bool
             </button>
             <p className="gnote">
               you have{' '}
-              <span style={{ color: (credits ?? 0) >= 5 ? '#5cb3ff' : '#f87171', fontWeight: 700 }}>
+              <span style={{ color: (credits ?? 0) >= ANIMATE_COST ? '#5cb3ff' : '#f87171', fontWeight: 700 }}>
                 {credits === null ? '—' : credits} credits
               </span>
               {!isLoggedIn && (
@@ -545,6 +605,14 @@ export default function AnimateClient({ isLoggedIn, userId }: { isLoggedIn: bool
               )}
             </p>
           </section>
+          {outOfCredits && phase !== 'done' && (
+            <AnimateOutOfCredits
+              destination={paywallDestination}
+              credits={credits ?? 0}
+              clipsThisSession={clipsThisSession}
+              onCta={handlePaywallCta}
+            />
+          )}
         </div>
 
         <div className="flex flex-col items-center gap-4 lg:sticky lg:top-20">
@@ -584,18 +652,93 @@ export default function AnimateClient({ isLoggedIn, userId }: { isLoggedIn: bool
               <a href={resultUrl} download className="go ok" style={{ textDecoration: 'none', maxWidth: 280, textAlign: 'center', display: 'block' }}>
                 ⬇ Download MP4
               </a>
-              <button
-                type="button"
-                onClick={() => { setPhase('idle'); setResultUrl(null) }}
-                className="text-[12px] font-bold"
-                style={{ color: 'var(--muted2)', background: 'none', border: 'none', cursor: 'pointer' }}
-              >
-                ↺ Animate another
-              </button>
+              {outOfCredits ? (
+                <AnimateOutOfCredits
+                  destination={paywallDestination}
+                  credits={credits ?? 0}
+                  clipsThisSession={clipsThisSession}
+                  onCta={handlePaywallCta}
+                  compact
+                />
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => { setPhase('idle'); setResultUrl(null) }}
+                  className="text-[12px] font-bold"
+                  style={{ color: 'var(--muted2)', background: 'none', border: 'none', cursor: 'pointer' }}
+                >
+                  ↺ Animate another
+                </button>
+              )}
             </>
           )}
         </div>
       </div>
+      {showTopup && <CreditsTopupModal surface="animate_402" onClose={() => setShowTopup(false)} />}
     </div>
+  )
+}
+
+// sprint-assinaturas #12 — a parede em si. Duas formas: no lugar do botao
+// morto (coluna do formulario) e, logo que o clipe chega e o saldo zerou,
+// embaixo do video (compact) — onde os olhos estao. Copy e numeros vem de
+// lib/animate/paywall.ts (derivados; nunca digitados aqui).
+function AnimateOutOfCredits({
+  destination,
+  credits,
+  clipsThisSession,
+  onCta,
+  compact = false,
+}: {
+  destination: 'topup' | 'pricing'
+  credits: number
+  clipsThisSession: number
+  onCta: () => void
+  compact?: boolean
+}) {
+  const rows = animatePlanRows()
+  return (
+    <section
+      className="card"
+      data-animate-paywall={destination}
+      style={{
+        maxWidth: compact ? 280 : undefined,
+        width: compact ? '100%' : undefined,
+        border: '1px solid rgba(41,151,255,.45)',
+        boxShadow: '0 0 40px rgba(41,151,255,.12)',
+      }}
+    >
+      <p style={{ fontSize: compact ? 13 : 15, fontWeight: 900, color: 'var(--text2, #f5f5f7)', margin: 0 }}>
+        {animatePaywallHeadline(clipsThisSession)}
+      </p>
+      <p style={{ fontSize: 12, color: 'var(--muted2, #86868b)', margin: '6px 0 12px', lineHeight: 1.5 }}>
+        {animatePaywallBody(destination, credits)}
+      </p>
+      {destination === 'pricing' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
+          {rows.map((r) => (
+            <div
+              key={r.tier}
+              style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8,
+                padding: '7px 10px', borderRadius: 10, fontSize: 12,
+                background: r.highlighted ? 'rgba(41,151,255,.13)' : 'rgba(255,255,255,.03)',
+                border: r.highlighted ? '1px solid rgba(41,151,255,.55)' : '1px solid rgba(255,255,255,.08)',
+                color: 'var(--text2, #f5f5f7)',
+              }}
+            >
+              <span style={{ fontWeight: 800 }}>{r.name}</span>
+              <span style={{ color: 'var(--muted2, #86868b)' }}>
+                {r.credits} cr/mo = <b style={{ color: r.highlighted ? '#5cb3ff' : 'inherit' }}>{r.clips} clips</b>
+              </span>
+              <span style={{ fontWeight: 800 }}>{r.price}/mo</span>
+            </div>
+          ))}
+        </div>
+      )}
+      <button type="button" onClick={onCta} className="go ok" style={{ width: '100%' }}>
+        {destination === 'topup' ? '⚡ Add credits' : '⚡ See plans'}
+      </button>
+    </section>
   )
 }
