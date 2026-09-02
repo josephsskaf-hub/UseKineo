@@ -61,10 +61,11 @@
 
 ## Estado Git e publicação
 
-- base da worktree: `9ab06d325311a58378e70d94604decbf13a2d882`;
-- `origin/main` atual: `b42b9e634e6c1eb843a7c4fe7e11c67bd4128d99`, um commit do Claude à frente, sem sobreposição de arquivos;
+- base inicial da worktree: `9ab06d325311a58378e70d94604decbf13a2d882`;
+- base após rebase: `b42b9e634e6c1eb843a7c4fe7e11c67bd4128d99`; o commit do Claude não sobrepunha arquivos e o rebase terminou sem conflito;
 - branch: `codex/b2b-monthly-operator-aeo-v1`;
-- commit: **ainda não criado**;
+- commit funcional após rebase: `c3663a551ee8ca199f6d787314d5978d1b9f5609`;
+- regressão pós-rebase: **387/387**, whitespace limpo e somente os mesmos três erros preexistentes no typecheck;
 - push/deploy: **não realizados**;
 - auditoria adversarial: **GO técnico; publicação ainda bloqueada pelo gate visual**.
 
