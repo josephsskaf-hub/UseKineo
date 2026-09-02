@@ -1,7 +1,7 @@
 import { isInternalMeasurementEmail } from './measurement-helpers.mjs'
 import { buildSubscriptionRevenueLedger } from './subscription-revenue-ledger.mjs'
 
-export const B2B_SUBSCRIPTION_TRUTH_REPORT_VERSION = 'b2b_subscription_truth_v2'
+export const B2B_SUBSCRIPTION_TRUTH_REPORT_VERSION = 'b2b_subscription_truth_v3'
 export const B2B_SUBSCRIPTION_WINDOW_DAYS = 30
 export const B2B_SUBSCRIPTION_CONTEXT_DAYS = 60
 export const B2B_SUBSCRIPTION_MIN_GENERATED_PEOPLE = 20
@@ -39,6 +39,22 @@ export const B2B_ATTRIBUTABLE_PATHS = Object.freeze({
       viewed: 'local_business_brief_viewed',
       generated: 'local_business_brief_generated',
       activation: 'local_business_brief_activation_clicked',
+    }),
+  }),
+  product_to_short: Object.freeze({
+    intentCampaign: 'product_to_short',
+    eventVersion: null,
+    stageAttribution: 'exact_intent_campaign',
+    events: Object.freeze({
+      generated: 'generate_completed',
+    }),
+  }),
+  real_estate_video: Object.freeze({
+    intentCampaign: 'growth_real_estate_video_maker_20260828',
+    eventVersion: null,
+    stageAttribution: 'exact_intent_campaign',
+    events: Object.freeze({
+      generated: 'generate_completed',
     }),
   }),
   autopilot_case_study: Object.freeze({
@@ -209,6 +225,8 @@ function generatedWitness(start, events, path, identity) {
     return at !== null && at <= startAt &&
       row?.name === path.events.generated &&
       metadataString(row, 'version') === path.eventVersion &&
+      (path.stageAttribution !== 'exact_intent_campaign' ||
+        metadataString(row, 'intent_campaign') === path.intentCampaign) &&
       ['external', 'anonymous'].includes(actorClass(row, identity))
   })
   if (candidates.some((row) => row.user_id && row.user_id === start.user_id)) return 'same_external_person'
@@ -274,17 +292,24 @@ export function buildB2bSubscriptionTruthReport({ generatedAt, windowStart, even
   const paths = Object.fromEntries(Object.entries(B2B_ATTRIBUTABLE_PATHS).map(([pathKey, path]) => {
     const pathJourneys = journeys.filter((journey) => journey.pathKey === pathKey)
     const paid = pathJourneys.filter((journey) => journey.paid)
-    const generated = summarizeStage(windowEvents, path.events.generated, path.eventVersion, identity)
+    const stagePredicate = path.stageAttribution === 'exact_intent_campaign'
+      ? (row) => metadataString(row, 'intent_campaign') === path.intentCampaign
+      : () => true
+    const generated = summarizeStage(windowEvents, path.events.generated, path.eventVersion, identity, stagePredicate)
+    const postVideoJourneys = pathJourneys.filter((journey) => journey.artifactWitness !== 'campaign_only')
+    const preVideoJourneys = pathJourneys.filter((journey) => journey.artifactWitness === 'campaign_only')
+    const postVideoPaid = postVideoJourneys.filter((journey) => journey.paid)
+    const preVideoPaid = preVideoJourneys.filter((journey) => journey.paid)
     const ready = paid.length > 0 || pathJourneys.length > 0 ||
       generated.identifiedExternalPeople >= B2B_SUBSCRIPTION_MIN_GENERATED_PEOPLE
     return [pathKey, {
       intentCampaign: path.intentCampaign,
       stages: {
-        viewed: summarizeStage(windowEvents, path.events.viewed, path.eventVersion, identity),
+        viewed: summarizeStage(windowEvents, path.events.viewed, path.eventVersion, identity, stagePredicate),
         generated,
-        copied: summarizeStage(windowEvents, path.events.copied, path.eventVersion, identity),
-        activationChoice: summarizeStage(windowEvents, path.events.activation, path.eventVersion, identity),
-        oneTimePackChoice: summarizeStage(windowEvents, path.events.packChoice, path.eventVersion, identity),
+        copied: summarizeStage(windowEvents, path.events.copied, path.eventVersion, identity, stagePredicate),
+        activationChoice: summarizeStage(windowEvents, path.events.activation, path.eventVersion, identity, stagePredicate),
+        oneTimePackChoice: summarizeStage(windowEvents, path.events.packChoice, path.eventVersion, identity, stagePredicate),
       },
       subscription: {
         identifiedExternalPeople: new Set(pathJourneys.map((journey) => journey.userId)).size,
@@ -295,6 +320,20 @@ export function buildB2bSubscriptionTruthReport({ generatedAt, windowStart, even
         exactPaidPeople: new Set(paid.map((journey) => journey.userId)).size,
         exactPaidStripeSessions: paid.length,
         exactRevenueMinorByCurrency: moneyByCurrency(paid),
+        postVideo: {
+          identifiedExternalPeople: new Set(postVideoJourneys.map((journey) => journey.userId)).size,
+          stripeSessions: postVideoJourneys.length,
+          exactPaidPeople: new Set(postVideoPaid.map((journey) => journey.userId)).size,
+          exactPaidStripeSessions: postVideoPaid.length,
+          exactRevenueMinorByCurrency: moneyByCurrency(postVideoPaid),
+        },
+        preVideoDiagnostic: {
+          identifiedExternalPeople: new Set(preVideoJourneys.map((journey) => journey.userId)).size,
+          stripeSessions: preVideoJourneys.length,
+          exactPaidPeople: new Set(preVideoPaid.map((journey) => journey.userId)).size,
+          exactPaidStripeSessions: preVideoPaid.length,
+          exactRevenueMinorByCurrency: moneyByCurrency(preVideoPaid),
+        },
       },
       gate: {
         state: ready ? 'ready_for_path_diagnosis' : 'collecting',
@@ -360,6 +399,6 @@ export function buildB2bSubscriptionTruthReport({ generatedAt, windowStart, even
       state: readyPaths.length ? 'path_specific_diagnosis_available' : 'collecting',
       readyPaths,
     },
-    note: 'People, anonymous sessions, Stripe Sessions and event rows are separate units. A B2B path receives subscription credit only when server-side checkout_started carries an exact allowlisted intent_campaign and the immutable subscription ledger resolves the same Stripe Session, owner, recurring product, amount, currency and timeline. Annual and monthly subscriptions remain separate; Autopilot is monthly-only. Generated artifacts and copied proposals are assists, never causal sales. One-time packs and the Autopilot pilot never count as subscribers.',
+    note: 'People, anonymous sessions, Stripe Sessions and event rows are separate units. A B2B path receives subscription credit only when server-side checkout_started carries an exact allowlisted intent_campaign and the immutable subscription ledger resolves the same Stripe Session, owner, recurring product, amount, currency and timeline. Product-to-Short and real-estate stages additionally require the exact intent_campaign on generate_completed; a completion after Checkout never becomes a pre-Checkout witness. Post-video and pre-video subscriptions are reported separately. Annual and monthly subscriptions remain separate; Autopilot is monthly-only. Generated artifacts and copied proposals are assists, never causal sales. One-time packs and the Autopilot pilot never count as subscribers.',
   }
 }

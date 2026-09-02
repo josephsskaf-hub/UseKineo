@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url'
 import {
   B2B_ASSIST_SURFACES,
   B2B_ATTRIBUTABLE_PATHS,
+  B2B_SUBSCRIPTION_EVENT_NAMES,
   B2B_SUBSCRIPTION_TRUTH_REPORT_VERSION,
   buildB2bSubscriptionTruthReport,
 } from './b2b-subscription-truth-report.mjs'
@@ -32,6 +33,8 @@ const profiles = [
   profile('case', 'case@example.com'),
   profile('pack', 'pack@example.com'),
   profile('other', 'other@example.com'),
+  profile('product', 'product@example.com'),
+  profile('real_estate', 'agent@example.com'),
   profile('internal', 'josephsskaf@gmail.com'),
   profile('unknown', null),
 ]
@@ -39,6 +42,8 @@ const business = B2B_ATTRIBUTABLE_PATHS.business_plan
 const brief = B2B_ATTRIBUTABLE_PATHS.client_brief
 const caseStudy = B2B_ATTRIBUTABLE_PATHS.autopilot_case_study
 const localPath = B2B_ATTRIBUTABLE_PATHS.local_business_brief
+const productPath = B2B_ATTRIBUTABLE_PATHS.product_to_short
+const realEstatePath = B2B_ATTRIBUTABLE_PATHS.real_estate_video
 const local = B2B_ASSIST_SURFACES.local_business_brief
 const agency = B2B_ASSIST_SURFACES.agency_margin_proposal
 const autopilot = B2B_ASSIST_SURFACES.autopilot_break_even
@@ -75,6 +80,12 @@ const events = [
   event('29', autopilot.events.checkoutChoice, 'brief', 'auto_browser', 44, { version: autopilot.eventVersion, choice: 'pilot' }),
   start('30', 'other', 'local_buyer_browser', 45, localPath.intentCampaign, 'cs_local'),
   paid('31', 'other', 46, 'cs_local', 900, 'usd'),
+  event('32', productPath.events.generated, 'product', 'product_browser', 47, { intent_campaign: productPath.intentCampaign }),
+  start('33', 'product', 'product_browser', 48, productPath.intentCampaign, 'cs_product'),
+  paid('34', 'product', 49, 'cs_product', 1500, 'usd'),
+  start('35', 'real_estate', 'real_estate_browser', 50, realEstatePath.intentCampaign, 'cs_real_estate'),
+  event('36', realEstatePath.events.generated, 'real_estate', 'real_estate_browser', 51, { intent_campaign: realEstatePath.intentCampaign }),
+  event('37', productPath.events.generated, 'other', 'wrong_campaign_browser', 52, { intent_campaign: 'unrelated_campaign' }),
 ]
 
 const report = buildB2bSubscriptionTruthReport({ generatedAt: at(60), windowStart: at(0), events, profiles })
@@ -85,16 +96,22 @@ equal(report.paths.business_plan.stages.generated.internalEventRows, 1, 'interna
 equal(report.paths.business_plan.stages.generated.unknownIdentifiedEventRows, 1, 'unknown profiles are disclosed')
 equal(report.paths.client_brief.stages.generated.identifiedExternalPeople, 1, 'external generated person is counted')
 equal(report.paths.client_brief.stages.oneTimePackChoice.identifiedExternalPeople, 1, 'pack choice remains separate')
-equal(report.totals.identifiedExternalSubscriptionPeople, 4, 'four external recurring buyers started')
-equal(report.totals.subscriptionStripeSessions, 4, 'four exact recurring Sessions')
-equal(report.totals.byBilling, { annual: 1, monthly: 3 }, 'annual and monthly stay separate')
-equal(report.totals.exactPaidPeople, 3, 'three exact paid people')
-equal(report.totals.exactPaidStripeSessions, 3, 'duplicate webhook row counts once')
-equal(report.totals.exactRevenueMinorByCurrency, { usd: 32300 }, 'exact revenue is currency-grouped')
+equal(report.totals.identifiedExternalSubscriptionPeople, 6, 'six external recurring buyers started')
+equal(report.totals.subscriptionStripeSessions, 6, 'six exact recurring Sessions')
+equal(report.totals.byBilling, { annual: 1, monthly: 5 }, 'annual and monthly stay separate')
+equal(report.totals.exactPaidPeople, 4, 'four exact paid people')
+equal(report.totals.exactPaidStripeSessions, 4, 'duplicate webhook row counts once')
+equal(report.totals.exactRevenueMinorByCurrency, { usd: 33800 }, 'exact revenue is currency-grouped')
 equal(report.paths.business_plan.subscription.withArtifactWitness, 1, 'same browser generation witnesses business path')
 equal(report.paths.client_brief.subscription.withArtifactWitness, 1, 'same person generation witnesses brief path')
 equal(report.paths.autopilot_case_study.subscription.campaignOnlyWithoutArtifactWitness, 1, 'case study campaign is explicit without inventing an artifact')
 equal(report.paths.local_business_brief.subscription.campaignOnlyWithoutArtifactWitness, 1, 'local campaign can be attributed without inventing an artifact witness')
+equal(report.paths.product_to_short.stages.generated.identifiedExternalPeople, 1, 'product generation requires the exact vertical campaign')
+check(B2B_SUBSCRIPTION_EVENT_NAMES.includes('generate_completed'), 'runner fetches the generic completion witness')
+equal(report.paths.product_to_short.subscription.postVideo.stripeSessions, 1, 'product Checkout after completion is post-video')
+equal(report.paths.product_to_short.subscription.postVideo.exactPaidPeople, 1, 'product payment stays in the post-video cohort')
+equal(report.paths.real_estate_video.subscription.preVideoDiagnostic.stripeSessions, 1, 'real-estate Checkout before completion stays diagnostic')
+equal(report.paths.real_estate_video.subscription.postVideo.stripeSessions, 0, 'later completion cannot rewrite Checkout chronology')
 equal(report.quality.packSessionsExcludedFromSubscribers, 1, 'pack Session never becomes a subscriber')
 check(!report.journeys.some((journey) => journey.stripeSessionId === 'cs_pack'), 'pack absent from journeys')
 check(!report.journeys.some((journey) => journey.stripeSessionId === 'cs_forged'), 'arbitrary campaign rejected')
@@ -165,6 +182,8 @@ equal(future.gate.state, 'collecting', 'no sample stays collecting')
 
 const businessSource = readFileSync(join(root, 'lib/growth/businessContentPlan.ts'), 'utf8')
 const briefSource = readFileSync(join(root, 'lib/growth/clientShortBrief.ts'), 'utf8')
+const productSource = readFileSync(join(root, 'lib/growth/productToVideo.ts'), 'utf8')
+const realEstateSource = readFileSync(join(root, 'lib/growth/realEstateShorts.ts'), 'utf8')
 const checkoutSource = readFileSync(join(root, 'app/api/stripe/checkout/route.ts'), 'utf8')
 const generateSource = readFileSync(join(root, 'app/(dashboard)/generate/GenerateClient.tsx'), 'utf8')
 const localSource = readFileSync(join(root, 'lib/toolActivationHref.ts'), 'utf8')
@@ -174,8 +193,12 @@ const autopilotSource = readFileSync(join(root, 'app/pricing/AutopilotBreakEvenC
 check(businessSource.includes(`BUSINESS_PLAN_CAMPAIGN = '${business.intentCampaign}'`), 'business campaign matches code')
 check(businessSource.includes(`BUSINESS_PLAN_SHARE_CAMPAIGN = '${business.eventVersion}'`), 'business event version matches code')
 check(briefSource.includes(`CLIENT_SHORT_BRIEF_CAMPAIGN = '${brief.intentCampaign}'`), 'brief campaign matches code')
+check(productSource.includes(`PRODUCT_TO_VIDEO_CAMPAIGN = '${productPath.intentCampaign}'`), 'product campaign matches code')
+check(realEstateSource.includes(`REAL_ESTATE_VIDEO_CAMPAIGN = '${realEstatePath.intentCampaign}'`), 'real-estate campaign matches code')
 check(checkoutSource.includes('intent_campaign: intentCampaign ?? null'), 'server checkout persists intent campaign')
 check(generateSource.includes('intent_campaign=${encodeURIComponent(intentCampaign)}'), 'generate checkout URLs preserve intent campaign')
+check(generateSource.includes("trackEvent('generate_completed', completionMetadata)"), 'live generator records completed-video witness')
+check(generateSource.includes('intent_campaign: intentCampaign || null'), 'completed-video witness preserves exact campaign')
 check(localSource.slice(localSource.indexOf('export function toolActivationHref')).includes("generate.set('intent_campaign'"), 'helper can preserve a validated campaign inside explicit redirect')
 check(localCallerSource.includes('intentCampaign: LOCAL_BUSINESS_BRIEF_CAMPAIGN'), 'local caller explicitly opts into exact campaign attribution')
 check(signupSource.includes('if (explicitRedirect) return explicitRedirect'), 'signup returns explicit redirect before outer attribution forwarding')
