@@ -693,3 +693,78 @@ do #10 ainda na fila).
 **Próximo item (#12):** às 03:05 BRT ler `failure_recovery_sent` por `kind`
 (1º disparo real). Se vazio de novidade: o paywall do /animate no momento
 "5º clipe zerou o saldo" (dívida 2 acima) — em pista minha (produto pós-login).
+
+### #12 — 01:49→02:08 BRT — o /animate não tinha parede quando o saldo zerava
+**Leitura.** origin/main = a83e89e7 (o fundador clicou: o #11 já está na
+main); fila tinha 1 (diário do #11). Ainda não são 03:05 (1º disparo real do
+failure_recovery), então fui na dívida 2 do #11. Rodada em clone `/tmp/assin-r12`
+sobre `entrega-atual`, push final `HEAD:refs/heads/entrega-atual` depois de
+provar ancestral (lição do #11).
+**O que estava errado.** Medido 30d (externos): **17 pessoas receberam clipe
+do Animate; 13 estão HOJE com <5cr e nunca pagaram; só 4 das 17 abriram um
+checkout algum dia.** O xzavior000 de ontem é o retrato: 2 pricing_view, 5
+clipes em 24 min, saldo zerado — e a tela respondeu "you have 0 credits" em
+vermelho e um botão cinza. `/images` e `/audio` abrem o popup de recarga no
+402 desde 18/08; o `/animate` não abria NADA — nem no 402, nem quando o clipe
+que acabou de chegar zerou o saldo, nem quando a pessoa entra sem saldo. É a
+melhor intenção de compra da casa (gastou 100% em <30 min) morrendo num
+beco. Detalhe que teria virado bug: o popup de recarga NÃO serve para
+trial/free/starter — o checkout recusa com `topup_requires_creator_plus` e
+joga a pessoa no /pricing com erro (é o que /images e /audio fazem hoje com
+quem não é Creator/Studio; anotado abaixo).
+**O que mudou.** `lib/animate/paywall.ts` (puro) + `AnimateClient`. A parede
+aparece nos 3 momentos — entrou sem saldo (coluna do formulário, no lugar
+do botão morto), o clipe chegou e zerou (embaixo do PRÓPRIO vídeo, onde os
+olhos estão), e 402. Destino pela MESMA regra do checkout
+(`canPurchaseCreditTopup`): Creator/Studio → `CreditsTopupModal`
+surface `animate_402` (no 402 abre direto, como images/audio); trial/free/
+starter → 3 linhas **Starter 40cr = 8 clips $7 · Creator 90cr = 18 clips
+$15 (destacado) · Studio 180cr = 36 clips $29**, todas derivadas de
+`TIER_CREDITS`/`TIER_PRICES`/`ANIMATE_COST` (zero dígito à mão), CTA
+`/pricing?utm_campaign=animate_out_of_credits`. Título honesto com número
+real: "Out of credits — the 5 clips you just made are yours." (nunca "0
+clips"). `ANIMATE_COST` ganhou casa cliente-safe (`lib/animate/cost.ts`;
+`service.ts` importa node:crypto e não podia entrar no cliente; re-exporta) e
+o "Cost per clip **5 credits**" digitado virou derivado. Eventos
+`animate_paywall_shown` / `animate_paywall_cta` (reason
+insufficient_402|balance_after_clip|balance_on_load, destination, plan,
+credits, clips_this_session), 1 por motivo por visita. Nada de crédito, cupom,
+preço novo ou UpgradeModal (que ainda promete "priority render queue").
+tsc: só os 3 pré-existentes. `scripts/test-animate-paywall.mjs`: **59
+verificações** (executa o módulo com as tabelas REAIS lidas de
+checkoutPricing/topupEligibility; prova que trial nunca vai ao popup de
+recarga; que o cliente não usa service.ts; copy sem promessa da lista).
+**Para o cliente/receita.** O momento de maior intenção do /animate deixa de
+ser um beco: 13 pessoas/mês zeram ali e hoje 0 delas veem uma oferta. Se 1 em
+13 assina o Creator (o plano que a parede destaca — é o 1º que também compra
+recarga), é +$15 MRR/mês só desta tela; e Creator/Studio que zeram passam a
+ter a recarga a 1 clique em vez de "0 credits" em vermelho.
+**SHA:** 2fad963f (sobre 01f0fc46). **Risco:** baixo — só UI do /animate + 1
+const movida (rotas importam do mesmo lugar). Cuidado real: a parede lê o
+`plan` de /api/credits; se ele demorar, a 1ª parede pode nascer como
+"pricing" para um Creator por 1 render — o clique é reavaliado na hora, então
+o pior caso é a lista de planos aparecer por um instante.
+**Como medir:** `animate_paywall_shown` por reason/destination (esperado:
+~13/mês); `animate_paywall_cta` → `checkout_started` com
+`pricing_surface=credits_topup_modal_animate_402` ou `page_view` /pricing com
+`utm_campaign=animate_out_of_credits`; conversão desses user_ids em
+`has_paid` em 7d. Sucesso = 1 assinatura vinda do /animate em 30d (hoje 0).
+**Dívida achada (não bloqueia, pista minha):** `/images` e `/audio` abrem o
+`CreditsTopupModal` no 402 para QUALQUER plano — um trial que clica num pack
+leva o `topup_requires_creator_plus` no checkout e cai no /pricing com erro
+vermelho. Medido: 0 checkout_started por `credits_topup_modal_images/audio`
+em 30d, então ninguém chegou a clicar — mas a lista de planos derivada do #12
+serve pronta para as duas telas. Candidato a rodada curta.
+**Placar 02:05 BRT (externos):** has_paid 11 (starter 3, basic 2, pro 2,
+free/churn 4); cadastros 1h=1, 24h=32 (4 com 0cr, todos rebaixados por
+teto/relógio); vídeos 1h=1, 24h=19; **falhas 1h=0**; 3h: as mesmas do #10/#11
+(adrianwells prompt_len ×7 pré-#9; asuquoalbert speech=3s ×2 +
+narration_too_short ×2; wummm709 held=19 ×2) + 1 nova `speech=27s
+target=35s` (gate honesto, script curto — não é falha de motor);
+checkout_started 24h=5; 7d: 72 com 1, 9 com 2, 2 com 3, **0 com 4+**; crons
+24h: winback25 120, trial_lifecycle 102, failure_recovery 0, momentum 0,
+subscriber_idle 0 (rota do #10 na main desde o clique — link de 1 clique
+continua válido).
+**Próximo item (#13):** às 03:05 BRT ler `failure_recovery_sent` por `kind`
+(1º disparo real). Se vazio: a dívida acima (images/audio mandando trial ao
+popup de recarga) — 20 min, reaproveita `animatePlanRows`.
