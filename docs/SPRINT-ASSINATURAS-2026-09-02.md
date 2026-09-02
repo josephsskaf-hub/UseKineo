@@ -1431,3 +1431,74 @@ conferir na Resend se o e-mail está ENTREGANDO (bounce/spam) antes de
 reescrever mais copy — se a entrega for o furo, copy nenhuma resolve;
 (c) 11:00 BRT: os `momentum_nudge_sent` do 1º disparo real (13:30 UTC);
 (d) pós-clique: `body` dos D5/loss novos + dry-run do `rescue-composed-films`.
+
+### #22 — 06:09→06:30 BRT — o D10 (última chamada do COMEBACK50) também ignorava o filme da pessoa; agora fecha a esteira com o mesmo princípio do #20/#21
+**Leitura.** origin/main = 8e36ec76 (Codex: 2 commits — sinal de aquisição
+em USD; nada na minha pista); fila = 16 sobre origin/main (até o #21),
+**ainda não clicada**. Worktree `claude-assinaturas-24h` com ponteiro `.git`
+apontando para a sessão anterior de novo (`/sessions/sleepy-wizardly-mayer`)
+— não reescrevi; rodada inteira em clone `--shared` `/tmp/assin-r22` sobre
+`entrega-atual`, push fast-forward (não-force) no fim, como no #20/#21.
+**Checagem zero (2h, externos).** 8 cadastros, todos com crédito ou gasto
+real (25/25/22/22/10/10/0/0 — os 0 são zareshahi0 e anybodyhi5, trial
+queimado no 1º Seedance 60s; os 10 fizeram 1 vídeo de 15); 6 vídeos
+entregues; **falhas 2h = 2, a mesma pessoa e o mesmo par do #21**
+(anybodyhi5, `speech=51s target=60s`, 07:26 UTC — pista do v1v4, já
+anotado). Nada novo quebrado → item (a) do #21.
+**Medição.** D10 em 21d (externos): **276 enviados = 276 pessoas (~27/dia),
+161 com vídeo entregue — todos com custo real gravado —, 0 em /pricing,
+0 checkout, 0 pagante nas 72h.** É o último e-mail da esteira e o único que
+fala SÓ do cupom.
+**O que mudou** (`app/api/cron/trial-lifecycle-emails/route.ts`, ramo
+`expired_lastcall_d10`, só quando `videosMade >= 1`): assunto **"Last call
+on 50% off Creator — your 62-second film is waiting in your Library"** (ou
+"your N videos"); Library como 1º link (utm `trial_offer_d10_library`); o
+cupom é o MESMO (frase, porcentagem, prazo, URL `promo=` + utm
+`trial_offer_d10`, código da constante); "this is the last time we'll
+mention it" mantida — e continua VERDADEIRA (o cron não manda nada depois do
+D10); pedido em filmes só na linha do Creator (`filmsPerPlan(lastCost)`
+filtrado em `basic`; custo desconhecido = frase cala); episódio 2 do tema
+dela (utm `trial_offer_d10_episode2`). **Sem prazo de expiração inventado**:
+o COMEBACK50 não expira na Stripe; o ramo novo não diz "ends"/"expires".
+Quem NÃO tem vídeo recebe o e-mail de hoje byte a byte (controle) — inclusive
+o "After this it's full price", que fica como dúvida de honestidade anotada
+(o código continua funcionando para quem o tem; a frase é do padrão, não
+mexi para não sujar o controle). O D10 passa a gravar `body`
+(`offer_with_film` | `standard`) — mesma chave do D5, para a medição
+comparar os dois com a mesma query.
+**Testes.** `scripts/test-trial-lastcall-d10-with-film.mjs` **26
+verificações** (inclui "ramo novo não inventa prazo" e "texto padrão byte a
+byte"); D5 22/22 e loss 40/40 continuam verdes. tsc: só os 3 pré-existentes.
+**Para o cliente/receita.** ~27 pessoas/dia recebem o D10, ~16 delas têm
+filme. Hoje 0 de 276 chegou ao /pricing. Com o #21 + #22 a esteira inteira
+pós-trial (loss → D5 → D10) fala do filme da pessoa em vez de "your trial
+ended"; qualquer clique aqui é ganho sobre zero.
+**SHA:** 741c846e (sobre a1271312). **Risco:** baixo — ramo exige
+`videosMade >= 1` real; qualquer dúvida = e-mail de hoje.
+**Como medir:** `trial_lifecycle_email_sent` com `kind='expired_lastcall_d10'`
+e `body='offer_with_film'` → eventos com utm `trial_offer_d10_library` /
+`trial_offer_d10` / `trial_offer_d10_episode2` nas 72h; comparar com 0/276.
+**Achado da medição (d) — o que separa os 9 "com 2" dos 80 "com 1" (7d,
+externos):** custo médio do 1º vídeo **13,1cr no grupo de 1 vs 4,2cr no
+grupo de 2**; 21 dos 80 gastaram ≥20cr no 1º; **39 dos 80 (49%) estão HOJE
+com saldo <5cr** — não fazem o 2º nem que queiram (Kineo 1 custa 5); 15 dos
+80 tiveram falha em 7d; 6 chegaram ao checkout, 0 pagaram. Os 2 "com 3" são
+os 2 pagantes da semana (1º vídeo de 25cr, motor cinematic). Leitura de dono:
+metade do funil v1→v2 não é fricção de produto, é **saldo zero depois de um
+1º filme caro** — e o que essa pessoa vê no minuto seguinte ao filme (paywall
+do Codex, e-mail `downgraded_loss` do #20) é a única venda possível. A outra
+metade (41 com saldo ≥5 e 1 vídeo) é o alvo do momentum das 10:30 BRT.
+**Placar 06:25 BRT (externos):** has_paid 11 (starter 3, basic 2, pro 2,
+free/churn 4); cadastros 2h=8, 24h=37 (0 órfãos); vídeos 2h=6, 24h=23;
+**falhas 2h=2 (1 pessoa, preflight 51s/60s — v1v4)**; checkout_started
+24h=5 pessoas; 7d: 80 com 1, 9 com 2, 2 com 3, **0 com 4+**; crons 24h:
+winback25 120, failure_recovery 6, stranded_ready 18, trial_lifecycle 105
+(D10 = 27), momentum 0 (13:30 UTC).
+**Próximo item (#23):** (a) os 41 "1 vídeo + saldo ≥5cr" — conferir se o
+momentum das 13:30 UTC pega TODOS eles (janela 20-96h pode deixar de fora
+quem fez o vídeo há <20h ou >96h) e quantos ficam sem nenhum e-mail entre o
+vídeo 1 e o fim do trial; (b) os 39 com saldo <5: quantos receberam
+`downgraded_loss` com `body=burned_with_film` vs `standard` (prova do #20
+em produção — só depois do clique); (c) Resend: 442 D5 → 38 eventos e 276
+D10 → 5 — conferir entrega (bounce/spam) antes de mais copy; (d) pós-clique:
+dry-run `rescue-composed-films` + `body` dos D5/D10/loss novos.
