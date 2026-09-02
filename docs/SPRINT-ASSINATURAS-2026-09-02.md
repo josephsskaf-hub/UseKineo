@@ -398,3 +398,88 @@ sozinho a duração suportada mais próxima da narração (com aviso honesto na
 resposta e evento `duration_auto_fit`) em vez de falhar — o e-mail do #5
 manda a pessoa fazer à mão o que o código pode fazer no clique. Depois:
 `stranded_outcome` assim que a fila subir.
+
+### #7 — 00:06→00:35 BRT — o 1º `stranded_outcome` real apareceu: era o compose recusando filme PAGO A MAIS (e o teto do cron gastava as 2 balas no mesmo 400)
+**Leitura.** A fila SUBIU duas vezes durante a rodada (origin/main =
+585d8fdf; #4, #5, #6, #6b e o handoff 156 estão em produção). O v1v4 fechou o
+caso adrianwells (914eb661, expansor apara por frase) — item #7 planejado
+(auto-fit de duração) fica com aquela sprint, que já está em cima. E o
+`stranded_outcome` do #1 finalmente falou: **1 evento, `compose_error_400`**.
+**O caso (bf531fae / wummm709, TAAFT, 02:53 UTC).** Cadastro → auto-start
+Seedance 45s (o seletor não tem 45; o auto-start manda) → a página RECARREGA
+2s depois do despacho (é o "dispara 2x" do handoff 156) → recovery aos 17s
+(o #2 não segurou: a sonda rodou aos 02:53:21, o claim do 1º despacho só
+assentou aos 02:53:29 — o servidor ainda estava processando o POST; buraco
+de corrida, anotado abaixo) → `held=19` → tela "credits held" → 2 rechecks →
+**clicou em checkout do Basic ($15) aos 4 min de vida** → dispensou o banner.
+Enquanto isso o 1º filme: 5/5 cenas aceitas, 19cr debitados, ninguém para
+compor (poll da aba morreu no reload). O cron chegou às 03:07 e o compose
+devolveu **400 "These AI clips do not match their signed generation"**.
+**Causa, medida no código e no banco.** O resgate de alvo fantasma (v1v4
+#20, 31/08) troca 45s→35s na linha ~2190 de generate-video-cinematic — DEPOIS
+do custo (linha 1386) e do débito (2081). O claim nasce `credit_cost=19`
+(preço de 45s) com `response.duration=35` (preço 15). O navegador passava por
+SORTE (manda o 45 do próprio estado → 19 = 19); o cron manda a verdade do
+claim (35 → 15 ≠ 19) e era recusado. O comentário do #20 dizia "nada de
+preço/crédito muda (engineCost não olha duração)" — olha desde 20/08. Em 14d:
+2 gerações com essa assinatura (01/09 compôs pelo navegador com 45, 02/09
+morreu no cron); vai crescer porque o auto-start do trial pede 45s.
+**O que fiz e o que NÃO fiz.** Escrevi o conserto do gate (pago ≥ preço do
+render passa; render maior que o pago segue 400; evento
+`compose_paid_above_render` com `overpaid_credits`) — 25 verificações — e ao
+enfileirar descobri que **outra sessão já tinha consertado o MESMO ponto
+7 min antes (489b2a66, 00:10 BRT, "em modo de resgate o custo de confiança é
+o do claim"), e o fundador já tinha clicado**. Descartei o meu (regra nº 0:
+não duplicar). Diferença que fica em aberto: o deles só relaxa o gate para o
+cron (`isServiceFinish`); o navegador continua passando com 45 e compondo um
+timeline de 45s para cenas planejadas em 35s — e a pessoa pagou 19 por um
+filme de 35s (preço 15). Nenhum dos dois consertos devolve os 4cr; é
+decisão de crédito do fundador (abaixo).
+**O que entreguei de verdade (#7).** Com o conserto no ar, o cron AINDA
+não entregaria o filme do bf531fae: as 2 tentativas do teto foram gastas
+às 03:07 e 03:15 UTC com o mesmo 400 determinístico, antes do deploy. Um
+400 do compose só muda com deploy — o teto não sabia disso e desistia
+(e-mail de resgate "one click to finish" para quem não tem como clicar).
+Agora (`finish-stranded-renders`): o lote de marcadores lê também
+`stranded_outcome`; quando TODOS os desfechos anteriores da geração são
+`compose_error_4xx`, o teto ganha UMA tentativa extra (2→3). 3º 400 →
+desiste como antes. Qualquer outro desfecho (threw, 5xx, nenhum) mantém 2.
+Custo de fornecedor zero (compose não re-despacha cena). Teste:
+`scripts/test-stranded-extra-attempt-4xx.mjs` (17 verificações). tsc: os 5
+pré-existentes (4 acacia/BRL + TrialDowngradeModal do Codex).
+**Para o cliente/receita.** bf531fae recebe o filme + "Your video is ready"
+no 1º ciclo do cron depois do deploy (se subir antes do refund-sweep, ~04:53
+UTC = 01:53 BRT; depois disso o claim é estornado e o filme morre). É um
+trial que já quis pagar $15 — a entrega é o que decide se ele volta ao
+checkout. E toda regressão futura de 400 no compose ganha uma chance de
+entrega pós-deploy em vez de virar estorno mudo.
+**SHA:** b1c1d28d (sobre 585d8fdf). **Risco:** baixíssimo — +1 tentativa
+bounded, só em 4xx repetido. **Como medir:** log `extra attempt after Nx
+compose_error_4xx`; `stranded_composed` para e7f9f000; `stranded_outcome`
+com `compose_error_4xx` seguido de `stranded_composed` na mesma gen.
+**⚠ Corrida do #2 (para a próxima rodada ou handoff):** a sonda
+`/api/compose/active` roda no momento da elegibilidade (02:53:21) e o
+claim do 1º POST só assenta ~12s depois do despacho (02:53:29) — o servidor
+ainda está no meio do generate-video-cinematic. Recovery em < 60s do 1º
+despacho deveria ESPERAR (re-sondar a cada 5s até 60s) antes de decidir
+'none'. É o buraco pelo qual o held=19 deste caso passou mesmo com o #2 no
+ar.
+**Decisão do fundador (crédito):** ghost 45→35 cobra 19 e entrega 35s (15).
+Opções: (a) estornar 4cr por evento `compose_paid_above_render`/claim com
+duration≠cobrada (2 casos em 14d, 8cr); (b) fazer o resgate ANTES do custo
+(mover o bloco de narração para antes da linha 1386 — mudança grande no
+route.ts, pista compartilhada com v1v4); (c) o auto-start parar de pedir
+45s (pedir 35, que é o que o seletor vende e o que o trial_first_seedance_
+35s_v2 diz no nome) — é a mais barata e mata o fantasma na origem. Minha
+recomendação: (c) já, (a) manual para os 2 casos.
+**Placar 00:30 BRT (externos):** has_paid 11 (starter 3, basic 2, pro 2,
+free/churn 4); cadastros 1h=6, 24h=30 (4 com 0cr — downgrades-relâmpago do
+#4); vídeos 1h=2, 24h=18; falhas 1h=7 (narration_too_short 2, speech=3s/60s
+2, speech=27s/35s 1 [adrianwells], held=19 2 [este caso]); checkout_started
+24h=3 (1 é o bf531fae deste caso); 7d: 71 com 1, 9 com 2, 2 com 3, **0 com
+4+**; crons 24h: winback25 120, failure_recovery 0, momentum 0 (1ºs disparos
+03:00 e 10:30 BRT — #5/#6 JÁ estão no ar); stranded_outcome 24h=1 (este);
+abandoned_no_delivery 24h=3. **Próximo item (#8):** a corrida do #2 acima
+(esperar o claim assentar antes de declarar 'none') — é a raiz deste caso e
+do 489a2c31 de ontem; depois, às 03:05 BRT, ler `failure_recovery_sent` por
+`kind` (1º disparo real).
