@@ -90,6 +90,7 @@ for (const [count, expected] of [
 
 const pricing = source('app/pricing/PricingClient.tsx')
 const component = source('app/pricing/AutopilotBreakEvenCalculator.tsx')
+const decisionFunnel = source('lib/growth/autopilotDecisionFunnel.ts')
 const checkout = source('lib/checkoutPricing.ts')
 
 ok(pricing.includes("import AutopilotBreakEvenCalculator from './AutopilotBreakEvenCalculator'"), 'pricing imports the real calculator')
@@ -98,7 +99,10 @@ ok(pricing.includes("onStartMonthly={() => handleBuy('autopilot')}"), 'monthly r
 ok(pricing.includes('onStartPilot={handleBuyAutopilotPilot}'), 'pilot result reuses canonical one-time launcher')
 ok(component.includes('AUTOPILOT_PILOT_PRICES[currency]'), 'pilot arithmetic uses canonical checkout price')
 ok(component.includes('AUTOPILOT_PRICES[currency]'), 'monthly arithmetic uses canonical checkout price')
-ok(component.includes("trackEvent('autopilot_break_even_viewed'"), 'exposure has a named event')
+// The decision-funnel recorder now owns the mount event so it can distinguish
+// a technical render from a one-second human view without a blind re-POST.
+ok(component.includes('createAutopilotDecisionRecorder'), 'calculator calls the decision-funnel recorder')
+ok(decisionFunnel.includes("rendered: 'autopilot_break_even_viewed'"), 'technical exposure keeps the named event')
 ok(component.includes("trackEvent('autopilot_break_even_calculated'"), 'calculation has a named event')
 ok(component.includes("trackEvent('autopilot_break_even_checkout_clicked'"), 'calculator checkout intent has a named event')
 ok(component.includes('profit_band:'), 'telemetry sends a bounded profit band')

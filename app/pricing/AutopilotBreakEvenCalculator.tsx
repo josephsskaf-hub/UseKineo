@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { trackEvent } from '@/lib/analytics'
+import { useEffect, useRef, useState } from 'react'
+import { trackClosedEvent, trackEvent } from '@/lib/analytics'
 import {
   AUTOPILOT_PILOT_PRICES,
   AUTOPILOT_PRICES,
@@ -15,8 +15,32 @@ import {
   calculateAutopilotBreakEven,
   type AutopilotBreakEvenResult,
 } from '@/lib/growth/autopilotBreakEven'
+import {
+  AUTOPILOT_DECISION_DWELL_MS,
+  AUTOPILOT_DECISION_RETRY_MS,
+  AUTOPILOT_DECISION_VISIBLE_RATIO,
+  createAutopilotDecisionDwellController,
+  createAutopilotDecisionRecorder,
+  createAutopilotDecisionStageLifecycle,
+  type AutopilotDecisionStage,
+} from '@/lib/growth/autopilotDecisionFunnel'
 
-const VIEW_MARKER = `kineo:autopilot-break-even:viewed:${AUTOPILOT_BREAK_EVEN_VERSION}`
+const autopilotDecisionRecorder = createAutopilotDecisionRecorder({
+  transport: (eventName, metadata) => trackClosedEvent(eventName, metadata),
+})
+
+function browserSessionStorage(): Storage | null {
+  try {
+    return window.sessionStorage
+  } catch {
+    return null
+  }
+}
+
+function browserSchedule(callback: () => void, delayMs: number): () => void {
+  const timer = window.setTimeout(callback, delayMs)
+  return () => window.clearTimeout(timer)
+}
 
 function customerLabel(count: number): string {
   return `${count} new customer${count === 1 ? '' : 's'}`
@@ -33,21 +57,74 @@ export default function AutopilotBreakEvenCalculator({
   onStartMonthly: () => void
   onStartPilot: () => void
 }) {
+  const sectionRef = useRef<HTMLElement | null>(null)
+  const startedLifecycleRef = useRef<ReturnType<typeof createAutopilotDecisionStageLifecycle> | null>(null)
   const [grossProfitUsd, setGrossProfitUsd] = useState('')
   const [result, setResult] = useState<AutopilotBreakEvenResult | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    try {
-      if (sessionStorage.getItem(VIEW_MARKER) === '1') return
-      sessionStorage.setItem(VIEW_MARKER, '1')
-    } catch {
-      // Privacy mode can deny storage. The calculator remains functional.
-    }
-    void trackEvent('autopilot_break_even_viewed', {
-      version: AUTOPILOT_BREAK_EVEN_VERSION,
-      surface: 'pricing_autopilot',
+    const target = sectionRef.current
+    if (!target) return
+    const storage = browserSessionStorage()
+    const record = (stage: AutopilotDecisionStage) => (
+      autopilotDecisionRecorder.recordOnce(stage, storage)
+    )
+    const renderedLifecycle = createAutopilotDecisionStageLifecycle({
+      stage: 'rendered',
+      record,
+      isActive: () => target.isConnected,
+      schedule: browserSchedule,
+      retryDelayMs: AUTOPILOT_DECISION_RETRY_MS,
     })
+    renderedLifecycle.start()
+    const startedLifecycle = createAutopilotDecisionStageLifecycle({
+      stage: 'started',
+      record,
+      isActive: () => target.isConnected,
+      schedule: browserSchedule,
+      retryDelayMs: AUTOPILOT_DECISION_RETRY_MS,
+    })
+    startedLifecycleRef.current = startedLifecycle
+
+    if (typeof IntersectionObserver === 'undefined') {
+      return () => {
+        renderedLifecycle.stop()
+        startedLifecycle.stop()
+        if (startedLifecycleRef.current === startedLifecycle) startedLifecycleRef.current = null
+      }
+    }
+
+    let currentEntry: IntersectionObserverEntry | null = null
+    const humanViewController = createAutopilotDecisionDwellController({
+      record,
+      schedule: browserSchedule,
+      dwellMs: AUTOPILOT_DECISION_DWELL_MS,
+      retryDelayMs: AUTOPILOT_DECISION_RETRY_MS,
+    })
+    const currentSample = () => ({
+      isIntersecting: Boolean(currentEntry?.isIntersecting),
+      intersectionRatio: currentEntry?.intersectionRatio ?? 0,
+      documentVisible: document.visibilityState === 'visible',
+      targetConnected: target.isConnected,
+    })
+
+    const observer = new IntersectionObserver((entries) => {
+      currentEntry = entries.find((entry) => entry.target === target) ?? null
+      humanViewController.update(currentSample())
+    }, { threshold: [AUTOPILOT_DECISION_VISIBLE_RATIO] })
+    const handleVisibility = () => humanViewController.update(currentSample())
+
+    observer.observe(target)
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => {
+      renderedLifecycle.stop()
+      startedLifecycle.stop()
+      if (startedLifecycleRef.current === startedLifecycle) startedLifecycleRef.current = null
+      humanViewController.stop()
+      observer.disconnect()
+      document.removeEventListener('visibilitychange', handleVisibility)
+    }
   }, [])
 
   function calculate() {
@@ -93,6 +170,7 @@ export default function AutopilotBreakEvenCalculator({
   return (
     <section
       aria-labelledby="autopilot-break-even-heading"
+      ref={sectionRef}
       className="mt-7 rounded-xl border p-5 sm:p-6"
       style={{ borderColor: 'rgba(52,211,153,.32)', background: 'rgba(52,211,153,.055)' }}
     >
@@ -123,7 +201,13 @@ export default function AutopilotBreakEvenCalculator({
                 min="0.01"
                 step="1"
                 value={grossProfitUsd}
-                onChange={(event) => { setGrossProfitUsd(event.target.value); setResult(null); setError(null) }}
+                onChange={(event) => {
+                  const value = event.target.value
+                  setGrossProfitUsd(value)
+                  setResult(null)
+                  setError(null)
+                  if (value.trim()) startedLifecycleRef.current?.start()
+                }}
                 placeholder="150"
                 className="min-h-11 w-full rounded-lg border border-white/15 bg-black/35 py-2 pl-7 pr-3 text-[14px] font-bold text-white outline-none focus:border-[#34d399]"
               />
