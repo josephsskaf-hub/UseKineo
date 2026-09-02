@@ -36,7 +36,7 @@
 // jamais em superfície pública.
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { trackEvent } from '@/lib/analytics'
+import { trackClosedEvent, trackEvent } from '@/lib/analytics'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import { creditsPerReferenceVideo } from '@/lib/marketingPrice'
 import { FREE_FAST_PREVIEW_LIMIT } from '@/lib/freeFastQuota'
@@ -63,6 +63,15 @@ import {
   TRIAL_DOWNGRADE_PLAN_CHOICE_VERSION,
   TRIAL_DOWNGRADE_PLAN_COMPARE_HREF,
 } from '@/lib/growth/trialDowngradePlanChoice'
+import {
+  createTrialDowngradeHumanViewDwellController,
+  createTrialDowngradeHumanViewRecorder,
+  createTrialDowngradeHumanViewRetryController,
+  shouldDwellOnTrialDowngradeHumanView,
+  TRIAL_DOWNGRADE_HUMAN_VIEW_DWELL_MS,
+  TRIAL_DOWNGRADE_HUMAN_VIEW_RATIO,
+  TRIAL_DOWNGRADE_HUMAN_VIEW_RETRY_DELAY_MS,
+} from '@/lib/growth/trialDowngradeHumanView'
 
 // Dispensa por CONTA e por navegador. NÃO é o gate de elegibilidade — esse é
 // do servidor; isto só evita que o modal reapareça a cada navegação.
@@ -128,6 +137,8 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
   const [currency, setCurrency] = useState<CheckoutCurrency | null>(null)
   const [region, setRegion] = useState<PriceRegion>('standard')
   const checkout = useCheckoutLaunch('trial_downgrade_modal')
+  const primaryOfferCtaRef = useRef<HTMLButtonElement | null>(null)
+  const humanViewStopRef = useRef<(() => void) | null>(null)
   const cardRef = useRef<HTMLDivElement | null>(null)
   const returnFocusTo = useRef<HTMLElement | null>(null)
 
@@ -240,6 +251,7 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
 
   const dismiss = useCallback(
     (how: 'backdrop' | 'escape' | 'stay_free') => {
+      humanViewStopRef.current?.()
       // Reporta ANTES de qualquer efeito: ação sem desfecho registrado é
       // instrumento cego, e a regra de morte desta tela corre sobre a AÇÃO.
       // Acidente adia; intenção encerra. Ver KINEO-MODAL-NAO-SE-AUTODESTROI.
@@ -297,6 +309,103 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [open, dismiss])
 
+  // `trial_downgrade_modal_shown` only proves a React mount. This event waits
+  // until the USD price is resolved and the primary offer CTA itself occupies
+  // >= 60% of its area for one continuous second in a visible tab. The marker
+  // only becomes terminal after /api/events confirms persistence.
+  useEffect(() => {
+    if (!open || currency === null) return
+    const target = primaryOfferCtaRef.current
+    if (!target || typeof IntersectionObserver === 'undefined') return
+    const lockManager = navigator.locks
+    if (!lockManager) return
+
+    let storage: Storage | null = null
+    try {
+      storage = window.localStorage
+    } catch {
+      // Without an account-scoped marker we cannot promise once-per-account.
+    }
+    if (!storage) return
+
+    const recorder = createTrialDowngradeHumanViewRecorder({
+      userKey,
+      storage,
+      withExclusiveClaim: (claimName, task) => lockManager.request(claimName, task),
+      transport: (eventName, metadata) => trackClosedEvent(eventName, metadata),
+    })
+    if (recorder.wasSettled()) return
+
+    let isIntersecting = false
+    let intersectionRatio = 0
+    let observer: IntersectionObserver | null = null
+
+    const qualifies = () => shouldDwellOnTrialDowngradeHumanView({
+      open,
+      decisionReady: currency !== null,
+      ctaActionable: !target.disabled,
+      isIntersecting,
+      intersectionRatio,
+      documentVisible: document.visibilityState === 'visible',
+    })
+    let dwell: ReturnType<typeof createTrialDowngradeHumanViewDwellController> | null = null
+    const retry = createTrialDowngradeHumanViewRetryController({
+      qualifies,
+      onRetry: () => dwell?.rearm(),
+      setTimer: (callback, delayMs) => window.setTimeout(callback, delayMs),
+      clearTimer: (timerId) => window.clearTimeout(timerId),
+      retryDelayMs: TRIAL_DOWNGRADE_HUMAN_VIEW_RETRY_DELAY_MS,
+    })
+    const handleVisibility = () => {
+      const documentVisible = document.visibilityState === 'visible'
+      dwell?.update({ documentVisible })
+      retry.update()
+    }
+    const stop = () => {
+      dwell?.stop()
+      retry.stop()
+      if (humanViewStopRef.current === stop) humanViewStopRef.current = null
+      observer?.disconnect()
+      document.removeEventListener('visibilitychange', handleVisibility)
+    }
+    dwell = createTrialDowngradeHumanViewDwellController({
+      dwellMs: TRIAL_DOWNGRADE_HUMAN_VIEW_DWELL_MS,
+      setTimer: (callback, delayMs) => window.setTimeout(callback, delayMs),
+      clearTimer: (timerId) => window.clearTimeout(timerId),
+      onDwell: () => {
+        if (!qualifies()) return
+        void recorder.recordOnce().then((result) => {
+          if (!dwell?.canContinue()) return
+          if (result === 'not_stored') {
+            retry.request()
+            return
+          }
+          stop()
+        })
+      },
+    })
+
+    observer = new IntersectionObserver((entries) => {
+      const entry = entries[0]
+      isIntersecting = Boolean(entry?.isIntersecting)
+      intersectionRatio = entry?.intersectionRatio ?? 0
+      dwell?.update({ ctaActionable: !target.disabled, isIntersecting, intersectionRatio })
+      retry.update()
+    }, { threshold: [TRIAL_DOWNGRADE_HUMAN_VIEW_RATIO] })
+
+    dwell.update({
+      open,
+      decisionReady: currency !== null,
+      ctaActionable: !target.disabled,
+      documentVisible: document.visibilityState === 'visible',
+    })
+    humanViewStopRef.current = stop
+    observer.observe(target)
+    document.addEventListener('visibilitychange', handleVisibility)
+
+    return () => stop()
+  }, [open, userKey, currency])
+
   if (!open) return null
 
   const introEligible = currency !== null && hasIntroOffer('basic', currency, region)
@@ -314,6 +423,7 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
   const filmesPorMes = SEEDANCE_COST > 0 ? Math.floor(TIER_CREDITS.basic / SEEDANCE_COST) : 0
 
   function goToCreator() {
+    humanViewStopRef.current?.()
     // O evento sai ANTES da navegação — depois do redirect do Stripe não existe
     // mais página para emitir nada.
     void trackEvent('trial_downgrade_modal_cta', {
@@ -335,6 +445,7 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
   }
 
   function comparePlans() {
+    humanViewStopRef.current?.()
     // A person who opens the plan grid did not reject the offer. Give the
     // comparison room to work without reopening this modal on the next
     // dashboard navigation, but do not store the permanent `stay_free` choice.
@@ -532,6 +643,7 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
         )}
 
         <button
+          ref={primaryOfferCtaRef}
           type="button"
           onClick={goToCreator}
           disabled={checkout.pending !== null}
