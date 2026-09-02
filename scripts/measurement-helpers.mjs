@@ -51,6 +51,14 @@ export function readCanonicalStringConstant(sourceUrl, exportName) {
   return literal.text
 }
 
+export function readCanonicalNumberConstant(sourceUrl, exportName) {
+  const literal = unwrapLiteral(exportedInitializer(sourceUrl, exportName))
+  if (!ts.isNumericLiteral(literal)) {
+    throw new Error(`${exportName} must remain a numeric literal in ${sourceUrl.pathname}`)
+  }
+  return Number(literal.text)
+}
+
 function likeToRegExp(pattern) {
   const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   return new RegExp(`^${escaped.replace(/%/g, '.*').replace(/_/g, '.')}$`, 'i')
