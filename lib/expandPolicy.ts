@@ -368,3 +368,48 @@ export function deservesSecondRound(args: {
 
 /** Reexporta a régua canônica para quem só importa esta política. */
 export { MIN_COVERAGE, WORDS_PER_SECOND, speechSeconds }
+
+/**
+ * KINEO-APARAR-2026-09-02 — A PAREDE DE NARRACAO ERA 41% DAS FALHAS DA SEMANA.
+ *
+ * Medido 02/09 (7 dias, externos): 49 falhas de geracao, 20 delas "texto curto
+ * para a duracao" (16 pessoas, a maioria com ZERO video). O expansor existia
+ * para resolver isso e falhava do jeito mais burro: adrianwellsvadrian (02/09
+ * 02:52) mandou 27s de fala para 35s, o modelo escreveu 192 palavras com teto
+ * de 157, e o servidor JOGOU FORA um texto que cabia (candidate_fits=true).
+ *
+ * Esta funcao e a tesoura: mantem TODA frase do autor (na ordem, intacta —
+ * Contrato C1) e vai aceitando as frases que a IA acrescentou, na ordem em
+ * que vieram, ate o orcamento de palavras do alvo. O que sobra e descartado.
+ * Linhas de diretiva/marcador (HOOK:, Voice:, etc.) sao preservadas como
+ * estao. Se depois de aparar ainda nao couber, o chamador cai na recusa antiga.
+ */
+export function trimCandidateToBudget(candidato: string, falaOriginal: string, wordBudget: number): string {
+  const autor = new Set(authorSentences(falaOriginal))
+  const contar = (t: string) => normalizeForCompare(t).split(' ').filter(Boolean).length
+  let usado = 0
+  const linhas: string[] = []
+  for (const linha of candidato.split(/\n/u)) {
+    const t = linha.trim()
+    if (!t) { linhas.push(''); continue }
+    // marcador/diretiva sozinho na linha (ex.: "HOOK:", "Voice: calm") passa intacto
+    const m = t.match(/^([A-Z][A-Z ]{1,24}):\s*(.*)$/u)
+    const prefixo = m ? `${m[1]}: ` : ''
+    const corpo = m ? m[2] : t
+    if (!corpo) { linhas.push(t); continue }
+    const frases = corpo.split(/(?<=[.!?…。！？])\s+/u).filter((f) => f.trim().length > 0)
+    const mantidas: string[] = []
+    for (const f of frases) {
+      const n = normalizeForCompare(f)
+      const eDoAutor = autor.has(n)
+      const custo = contar(f)
+      if (eDoAutor || usado + custo <= wordBudget) {
+        mantidas.push(f.trim())
+        usado += custo
+      }
+    }
+    if (mantidas.length > 0) linhas.push(prefixo + mantidas.join(' '))
+    else if (prefixo) linhas.push(prefixo.trim())
+  }
+  return linhas.join('\n').replace(/\n{3,}/gu, '\n\n').trim()
+}

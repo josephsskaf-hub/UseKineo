@@ -9,6 +9,7 @@ import { parseUserScript } from '@/lib/scriptParser'
 // KINEO-350-POLITICA — as regras puras (teto, preflight, preservação do autor,
 // duração sugerida) moram em lib/expandPolicy para serem testáveis de verdade.
 import {
+  trimCandidateToBudget,
   MAX_GROWTH_FACTOR,
   authorPreserved,
   authorSentences,
@@ -296,8 +297,34 @@ ${original}`
     // KINEO-P0A-MESMA-REGUA — o veredito do "depois" também é pela FALA (a
     // régua do guard). Medir o texto cru aqui aprovaria expansões que o guard
     // recusaria em seguida: era metade do loop.
-    const falaExpandida = parseUserScript(expandido).narration || expandido
-    const depois = narrationFit(falaExpandida, target)
+    let falaExpandida = parseUserScript(expandido).narration || expandido
+    let depois = narrationFit(falaExpandida, target)
+    let aparado = false
+
+    // ═══ KINEO-APARAR-2026-09-02 — ANTES DE RECUSAR, APARAR ═══════════════
+    // 41% das falhas da semana eram esta parede. Se o modelo escreveu demais
+    // (estourou o teto de 2,5x) mas o texto ENCHE o alvo, a resposta certa nao
+    // e jogar fora: e cortar o excesso por frase, preservando cada frase do
+    // autor (C1), ate o orcamento do alvo. So se depois de aparar ainda nao
+    // couber (ou o autor tiver sido reescrito) e que cai na recusa antiga.
+    if (!withinGrowthLimit(speechBase, depois.speech) && depois.ok) {
+      const orcamento = Math.min(palavrasTeto, Math.ceil(target * WORDS_PER_SECOND) + 8)
+      const cortado = trimCandidateToBudget(expandido, falaOriginal, orcamento)
+      const falaCortada = parseUserScript(cortado).narration || cortado
+      const depoisCortado = narrationFit(falaCortada, target)
+      if (
+        withinGrowthLimit(speechBase, depoisCortado.speech) &&
+        depoisCortado.ok &&
+        authorPreserved(falaOriginal, falaCortada).ok &&
+        lostMarkers(original, cortado).length === 0
+      ) {
+        console.log(`[expand-script] aparado: ${Math.round(depois.speech * WORDS_PER_SECOND)} → ${Math.round(depoisCortado.speech * WORDS_PER_SECOND)} palavras (orcamento ${orcamento}, alvo ${target}s)`)
+        expandido = cortado
+        falaExpandida = falaCortada
+        depois = depoisCortado
+        aparado = true
+      }
+    }
 
     // (a) Cresceu demais = reescreveu em vez de completar.
     // KINEO-350 — o teto agora é medido contra a BASE IMUTÁVEL do autor, não
@@ -419,6 +446,7 @@ ${original}`
       outcome: (depois.ok ? 'expanded_ready' : 'still_short') as ExpandOutcome,
       script: expandido,
       expanded: true,
+      trimmed: aparado,
       stillShort: !depois.ok,
       restoredDirectives: diretivasPerdidas.length,
       // #9 — tripwire: depois do conserto do cliente isto tem de ser sempre
