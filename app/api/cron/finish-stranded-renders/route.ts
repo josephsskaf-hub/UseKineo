@@ -301,17 +301,41 @@ export async function GET(req: NextRequest) {
     const weComposed = composedRender.has(genId)
     const renderId = ourRenderId ?? claimRenderId
 
-    // O usuário terminou SOZINHO (voltou, resume completou)? Video completed
-    // sem marcador nosso = ele estava presente e JA VIU — não mandar email.
-    if (!weComposed && !claimRenderId) {
-      const { data: selfDone } = await admin
-        .from('videos')
+    // O usuário terminou SOZINHO (voltou, resume completou)? Então ele estava
+    // presente e JÁ VIU — não compor de novo, não mandar e-mail.
+    //
+    // ═══ sprint-assinaturas #3 (02/09) — "TERMINOU SOZINHO" ERA "FEZ QUALQUER
+    // VÍDEO". A pergunta antiga era `videos.status=completed AND created_at >=
+    // claim.created_at` para o MESMO USUÁRIO — sem olhar QUAL vídeo. Quem tinha
+    // um cinematic encalhado (cenas prontas na fal, compose nunca chamado) e
+    // fazia OUTRO vídeo enquanto esperava — um Kineo 1 de 3cr, por exemplo —
+    // fazia o cron declarar o encalhado como entregue, pular a Fase 1 para
+    // sempre, e o refund-sweep estornar 2h depois com
+    // 'cinematic_abandoned_no_delivery'. Medido (14d, externos): 4 dos 21
+    // estornos têm exatamente esta assinatura — authorized_completed_urls 0/N
+    // (o cron NUNCA conferiu a fal) e 1-2 vídeos completed do mesmo dono depois
+    // do claim. Caso ba254eff (01/09 23:11, trial do chatgpt.com, celular):
+    // Seedance 19cr aceito 6/6 às 23:12:52, o banner do ChatGPT o levou para
+    // /studio às 23:13:47 (poll morreu), voltou às 23:25 e fez um Kineo 1 que
+    // saiu às 23:28 — a partir daí o cron pulou o Seedance 8 rodadas seguidas
+    // até o estorno de 01:31. Ele viu um vídeo de 3cr e perdeu o de 19cr; o
+    // produto pagou a fal pelos dois. A pergunta certa é se ESTA geração foi
+    // composta: o compose da aba grava `compose_submission_claim` com
+    // session_id = generation_id (é o único caminho de compose para um claim
+    // cinematográfico sem marcador nosso). Existe → a pessoa compôs sozinha;
+    // não existe → o filme nunca foi montado, e outros vídeos do dono não
+    // provam nada sobre este. Trava: o compose que NÓS invocamos (Fase 1)
+    // também grava esse claim; se já houve tentativa nossa, a pergunta não se
+    // aplica — o teto de 2 tentativas e o e-mail de resgate cuidam desse ramo.
+    if (!weComposed && !claimRenderId && (attempts.get(genId) ?? 0) === 0) {
+      const { data: ownCompose, error: ownComposeErr } = await admin
+        .from('events')
         .select('id')
-        .eq('user_id', userId)
-        .eq('status', 'completed')
-        .gte('created_at', claim.created_at as string)
+        .eq('name', 'compose_submission_claim')
+        .eq('session_id', genId)
         .limit(1)
-      if ((selfDone ?? []).length > 0) {
+      if (ownComposeErr) console.warn(`[stranded] own-compose lookup failed gen=${gen8}:`, ownComposeErr.message)
+      if ((ownCompose ?? []).length > 0) {
         results.push({ generation: gen8, outcome: 'user_finished_themselves' })
         continue
       }
