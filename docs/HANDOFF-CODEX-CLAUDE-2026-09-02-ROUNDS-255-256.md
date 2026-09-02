@@ -42,7 +42,7 @@
 
 ## Estado pré-publicação
 
-**TESTADO LOCALMENTE:** 463/463 verificações verdes:
+**TESTADO LOCALMENTE:** 469/469 verificações verdes:
 
 - `test-resume-strip-to-subscription.mjs`: 149/149;
 - `test-subscription-revenue-ledger.mjs`: 31/31;
