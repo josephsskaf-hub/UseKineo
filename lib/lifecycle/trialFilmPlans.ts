@@ -20,7 +20,9 @@
 // hoje, byte a byte.
 import { TIER_CREDITS, type CheckoutTier } from '@/lib/checkoutPricing'
 
-export type LossBody = 'never_ran' | 'burned_with_film' | 'standard'
+/** sprint-assinaturas #21: 'offer_with_film' e o corpo do D5 (COMEBACK50)
+ *  para quem tem video entregue — o D5 padrao grava 'standard'. */
+export type LossBody = 'never_ran' | 'burned_with_film' | 'standard' | 'offer_with_film'
 
 export interface BurnedWithFilmInput {
   status: string

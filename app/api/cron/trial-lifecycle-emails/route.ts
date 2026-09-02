@@ -1673,6 +1673,63 @@ ${ep2 ? `${ep2.html}\n` : ''}  ${sig}`)
 
   if (c.kind === 'expired_offer_d5') {
     const url = `${APP_URL}/pricing?promo=${COMEBACK_CODE}&${utm('trial_offer_d5')}`
+
+    // ═══ sprint-assinaturas #21 (2026-09-02) — O D5 IGNORAVA O FILME ═══════
+    // Medido 21d (externos): 442 `expired_offer_d5` enviados, 248 para gente
+    // COM video entregue; 38 tiveram QUALQUER evento nas 72h seguintes, 2
+    // abriram /pricing, 0 checkout, 0 pagante. O D10: 276 enviados, 5 eventos,
+    // 0 /pricing. E o e-mail de pedido de dinheiro mais enviado da casa e o
+    // unico que nao cita NADA da pessoa: "Your Creator trial ended a few days
+    // ago" e igual para quem nunca rodou e para quem tem um filme de 62s na
+    // Library. Para quem TEM video, a manchete passa a ser o filme dela (o
+    // mesmo principio do #20), a Library vira o 1o link (o que ela ja
+    // experimentou), o cupom continua o MESMO (o cupom e do Codex — nao
+    // muda codigo, prazo nem porcentagem) e o pedido e medido em filmes COMO
+    // AQUELE que o Creator compra (TIER_CREDITS / custo real — nunca digitado;
+    // custo desconhecido = a frase cala). Episodio 2 do tema dela quando ha
+    // tema (#25 do v1v4). Quem NAO tem video recebe o e-mail de hoje byte a
+    // byte. O evento grava body 'offer_with_film' | 'standard' para provar
+    // qual saiu.
+    if (c.videosMade >= 1) {
+      const noun = filmNoun(c.lastDuration)
+      const libraryUrl = `${APP_URL}/library?${utm('trial_offer_d5_library')}`
+      const creatorRow = filmsPerPlan(c.lastCost)?.find((r) => r.tier === 'basic') ?? null
+      const ep2 = episodeTwoBlock(c.lastTopic, 'trial_offer_d5_episode2', 'lifecycle_loss_email', attr)
+      const madeLine = c.videosMade === 1
+        ? `the ${noun} you made is still in your Library`
+        : `the ${c.videosMade} videos you made are still in your Library`
+      const filmsLine = creatorRow && creatorRow.films >= 1
+        ? `That's ${creatorRow.films} ${creatorRow.films === 1 ? 'film' : 'films'} like that one every month, at half the price.`
+        : ''
+      const wText = `Hey,
+
+Your Creator trial ended a few days ago, and ${madeLine}:
+${libraryUrl}
+
+If you want the next one, here's a better deal than the trial ever was: 50% off Creator for 3 months, with code ${COMEBACK_CODE}.${filmsLine ? ` ${filmsLine}` : ''}
+
+Claim it here — the code applies at checkout: ${url}
+${ep2 ? `\n${ep2.text}\n` : ''}
+Kineo Team
+usekineo.com`
+      const wHtml = wrap(`
+  <p style="margin:0 0 14px;">Hey,</p>
+  <p style="margin:0 0 14px;">Your Creator trial ended a few days ago, and <strong>${escapeHtmlText(madeLine)}</strong>.</p>
+  ${cta(libraryUrl, 'Open your Library')}
+  <p style="margin:0 0 14px;">If you want the next one, here's a better deal than the trial ever was: <strong>50% off Creator for 3 months</strong>, with code <strong>${COMEBACK_CODE}</strong>.${filmsLine ? ` ${escapeHtmlText(filmsLine)}` : ''}</p>
+  ${cta(url, `Claim 50% off`)}
+  <p style="margin:0 0 20px;font-size:13px;color:#64748b;">The code applies automatically at checkout.</p>
+${ep2 ? `${ep2.html}\n` : ''}  ${sig}`)
+      return {
+        subject: c.videosMade === 1
+          ? `Your ${noun} is still in your Library — and Creator is 50% off`
+          : `Your ${c.videosMade} videos are still in your Library — and Creator is 50% off`,
+        text: `${wText}${footerText}`,
+        html: wHtml,
+        body: 'offer_with_film',
+      }
+    }
+
     const text = `Hey,
 
 Your Creator trial ended a few days ago. If the timing wasn't right, here's a better deal than the trial ever was:
@@ -1693,7 +1750,7 @@ usekineo.com`
   ${cta(url, `Claim 50% off`)}
   <p style="margin:0 0 20px;font-size:13px;color:#64748b;">The code applies automatically at checkout.</p>
   ${sig}`)
-    return { subject: 'Come back to Creator — 50% off for 3 months', text: `${text}${footerText}`, html }
+    return { subject: 'Come back to Creator — 50% off for 3 months', text: `${text}${footerText}`, html, body: 'standard' }
   }
 
   if (c.kind === 'expired_lastcall_d10') {
