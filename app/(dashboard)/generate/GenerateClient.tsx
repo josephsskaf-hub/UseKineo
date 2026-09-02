@@ -863,6 +863,11 @@ const ACTIVATION_AUTOSTART_SESSION_PREFIX = 'kineo_activation_autostart_fast_v1'
 
 type ActivationAccountStatus = 'loading' | 'free' | 'paid' | 'unavailable'
 
+// sprint-assinaturas #8 (02/09) — janela em que um 'none' da sonda ainda pode
+// ser o claim do 1o despacho a caminho (medido: ~12s; 60s e folga de 5x).
+const ACTIVATION_RECOVERY_CLAIM_SETTLE_MS = 60_000
+const ACTIVATION_RECOVERY_SETTLE_REPROBE_MS = 5_000
+const ACTIVATION_RECOVERY_SETTLE_MAX_PROBES = 14
 function activationAutostartSessionKey(prompt: string): string {
   // Keep the prompt itself out of storage while still allowing a later,
   // genuinely different form submission in the same tab to auto-start.
@@ -1049,6 +1054,10 @@ export default function GenerateClient({
   // um `dispatched:*` de conta gratis. 'pending' = sonda ainda nao respondeu.
   const activationRecoveryServerVerdictRef = useRef<'pending' | 'idle' | 'busy' | 'unknown'>('pending')
   const activationRecoveryProbeStartedRef = useRef(false)
+  // sprint-assinaturas #8 (02/09) — quantas vezes a sonda disse 'none' CEDO
+  // DEMAIS (antes do claim do 1o despacho assentar) e foi refeita.
+  const activationRecoverySettleProbesRef = useRef(0)
+  const activationRecoverySettleLoggedRef = useRef(false)
   // Existe só para forçar a reentrada do effect enquanto ele espera o webhook
   // (defeito D13). Nenhuma outra parte da tela lê este valor.
   const [activationAutostartWaitTick, setActivationAutostartWaitTick] = useState(0)
@@ -3569,9 +3578,54 @@ export default function GenerateClient({
         metadata.recovery = true
         metadata.recovery_reason = 'abandoned_before_checkpoint'
         metadata.server_state = serverActiveRenderRef.current?.state ?? null
+        metadata.settle_probes = activationRecoverySettleProbesRef.current
         consumeAndSkip(verdict === 'busy' ? 'server_render_in_flight' : 'server_probe_unavailable')
         return
       }
+      // sprint-assinaturas #8 (02/09) — 'none' CEDO DEMAIS nao e prova de nada.
+      // A sonda le o claim cinematic e a linha em `videos`; o claim do 1o POST
+      // so assenta ~12s DEPOIS do despacho (e7f9f000: F5 as 02:53:21, claim as
+      // 02:53:29 — o servidor ainda estava no meio do generate-video-cinematic).
+      // Nessa janela a sonda responde 'none' com toda a honestidade e o #2
+      // deixava passar: re-despacho, servidor recusa com held=19, trial 'failed'
+      // + paywall aos 4 min de vida (489a2c31 de 01/09 e e7f9f000 de 02/09 —
+      // os dois COM o #2 no ar). Regra: 'none' com menos de 60s desde o
+      // `dispatched:<ts>` = esperar e re-sondar a cada 5s; so um 'none' com
+      // 60s+ de despacho libera o recovery. 'rendering'/'completed' em qualquer
+      // sondagem pulam na hora (ramo acima). Teto de re-sondagens garante que
+      // relogio torto (ts no futuro) termina em skip, nunca em laco.
+      const dispatchedAtMs = Number(consumedState?.slice('dispatched:'.length))
+      const sinceDispatchMs = Number.isFinite(dispatchedAtMs)
+        ? Math.max(0, Date.now() - dispatchedAtMs)
+        : ACTIVATION_RECOVERY_CLAIM_SETTLE_MS
+      if (sinceDispatchMs < ACTIVATION_RECOVERY_CLAIM_SETTLE_MS) {
+        if (activationRecoverySettleProbesRef.current >= ACTIVATION_RECOVERY_SETTLE_MAX_PROBES) {
+          metadata.recovery = true
+          metadata.recovery_reason = 'abandoned_before_checkpoint'
+          metadata.server_state = null
+          metadata.settle_probes = activationRecoverySettleProbesRef.current
+          consumeAndSkip('server_probe_unavailable')
+          return
+        }
+        if (!activationRecoverySettleLoggedRef.current) {
+          activationRecoverySettleLoggedRef.current = true
+          void trackEvent('activation_autostart_waiting', {
+            ...metadata,
+            recovery: true,
+            reason: 'server_claim_settling',
+            secs_after_first: Math.round(sinceDispatchMs / 1000),
+          })
+        }
+        activationRecoverySettleProbesRef.current += 1
+        activationRecoveryServerVerdictRef.current = 'pending'
+        activationRecoveryProbeStartedRef.current = false
+        const settleTick = setTimeout(() => {
+          setActivationAutostartWaitTick((v) => v + 1)
+        }, ACTIVATION_RECOVERY_SETTLE_REPROBE_MS)
+        return () => clearTimeout(settleTick)
+      }
+      metadata.settle_probes = activationRecoverySettleProbesRef.current
+      metadata.secs_after_first = Math.round(sinceDispatchMs / 1000)
     }
 
     activationAutostartDecisionRef.current = true
