@@ -78,6 +78,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: '/youtube-shorts-from-topic', priority: 0.9, freq: 'weekly' },
     { path: '/text-to-video-shorts', priority: 0.9, freq: 'weekly' },
     { path: '/cheapest-ai-shorts-maker', priority: 0.8, freq: 'weekly' },
+    // KINEO-MODELS-PRICING-2026-09-02 — o ativo que Runway (academy/models-pricing)
+    // e Higgsfield (~70 modelos em creditos/5s) tem e nos nao tinhamos: preco por
+    // motor, aberto, sem login. Diferencial: precificado por FILME pronto.
+    { path: '/models-pricing', priority: 0.9, freq: 'weekly' },
     { path: '/ai-shorts-without-filming', priority: 0.8, freq: 'weekly' },
     // #289 — cluster 'talking characters / lip sync'. Prioridade 0.9 porque é
     // a única página que vende algo que NENHUM dos 27 concorrentes de

@@ -75,8 +75,14 @@ const ENGINES: {
   // "Free" e desde hoje custa 2 créditos para quem paga (dizer Free e cobrar 2
   // é cobrança-surpresa, a mesma classe de erro que passamos o dia caçando em
   // preço). Free continua vendo "Free" — para ele o custo É zero.
-  { key: 'fast', icon: '⚡', name: 'Kineo 1', desc: 'Kineo’s own engine — stock + captions', res: '720p', credits: `${creditCostFor('fast', true)} cr`, supportsRef: false },
-  { key: 'seedance', preview: '/previews/75728dfb-3b29-47fa-aea8-b806d549a2b9.mp4', icon: 'S', name: 'Seedance 1.5', tag: 'Popular', desc: 'The workhorse AI video engine', res: '720p', credits: `${creditCostFor('cinematic_ai', true)} cr`, supportsRef: false },
+  // KINEO-PRECO-VISIVEL-2026-09-02 — 'Start here' substitui a ficha tecnica.
+  // Todo concorrente serio tem um degrau barato COM NOME (Runway 'Turbo', Luma
+  // 'Draft', Veo 'Fast', Hailuo '768p', InVideo 'Basic'); o nosso se descrevia
+  // como "stock + captions", que e especificacao, nao motivo para clicar.
+  { key: 'fast', icon: '⚡', name: 'Kineo 1', tag: 'Start here', desc: 'Cheapest way to see your idea as a film', res: '720p', credits: `${creditCostFor('fast', true)} cr`, supportsRef: false },
+  // 'Popular' saiu: ele nao era popular por escolha, era o PADRAO. Chamar de
+  // popular o que ninguem escolheu e uma prova social inventada.
+  { key: 'seedance', preview: '/previews/75728dfb-3b29-47fa-aea8-b806d549a2b9.mp4', icon: 'S', name: 'Seedance 1.5', desc: 'The workhorse AI video engine', res: '720p', credits: `${creditCostFor('cinematic_ai', true)} cr`, supportsRef: false },
   { key: 'kling', preview: '/previews/c4e4fbab-0978-4daa-9fcf-119096370210.mp4', icon: 'K', name: 'Kling 2.5', tag: 'Best value', desc: 'Cinematic motion and camera work', res: '720p', credits: `${creditCostFor('cinematic_kling', true)} cr`, supportsRef: false },
   { key: 'veo', preview: '/previews/9bbd5d98-33e5-423f-b9cb-82f7af6c67ba.mp4', icon: 'G', name: 'Veo 3.1', tag: 'Studio', desc: 'Google’s flagship cinematic engine', res: '720p', credits: `${creditCostFor('cinematic_veo', true)} cr`, supportsRef: false },
   { key: 'hollywood', preview: '/previews/4b12925e-16e6-4b56-af5a-7047f9ae7a28.mp4', icon: 'K3', name: 'Kling 3', tag: 'Studio', desc: 'Film scenes, native voice & lip sync', res: '720p', credits: `${creditCostFor('cinematic_hollywood', true)} cr`, supportsRef: true },
@@ -131,7 +137,16 @@ export default function StudioClient() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const searchSignature = searchParams.toString()
-  const [engine, setEngine] = useState<EngineKey>('seedance')
+  // KINEO-PRECO-VISIVEL-2026-09-02 — o padrao volta a ser o Kineo 1.
+  // Medido em 30 dias, 427 pessoas com primeiro video: quem comeca no Seedance
+  // gasta os 25 creditos do trial NO PRIMEIRO CLIQUE — 102 das 142 pararam ali
+  // e apenas UMA chegou ao 4o video (o limiar onde a conversao vai a 11,8%).
+  // Quem comeca no Kineo 1 (2cr, 12 filmes com o mesmo saldo) faz 3,6 videos em
+  // media, e e de la que vieram 4 dos 7 pagantes. A decisao de 21/08 ("primeiro
+  // video no motor bom") otimizava a beleza do 1o filme e cortava o combustivel
+  // do 2o; com o Kineo 1 aprovado nota 9 pelo fundador em 02/09, o argumento
+  // acabou. `?engine=` na URL continua vencendo isto.
+  const [engine, setEngine] = useState<EngineKey>('fast')
   const [pickerOpen, setPickerOpen] = useState(false)
   // KINEO-DURACAO-FIX-2026-08-20 — o tipo ficou para trás dos botões (35/60/90)
   // e `setDuration(35)` só não explodia porque o TS não cobre este caminho.
@@ -258,6 +273,28 @@ export default function StudioClient() {
   // Um cálculo só, usado no preço, no botão e no aviso — para os três nunca
   // discordarem entre si (foi assim que a tela e o servidor divergiram ontem).
   const cost = creditCostForDuration(ENGINE_QUALITY[eng.key] ?? 'cinematic_ai', true, duration)
+
+  // ═══ KINEO-PRECO-VISIVEL-2026-09-02 — O SALDO EM FILMES ═══════════════════
+  // O buraco que nenhum dos nove concorrentes auditados preenche: Higgsfield e
+  // Runway traduzem crédito→vídeo só na PÁGINA DE PREÇOS (para vender plano),
+  // nunca ao lado do saldo dentro do editor. Aqui a conta é feita para a pessoa,
+  // na duração que ELA escolheu, motor a motor. Custo idêntico ao do servidor:
+  // mesma função `creditCostForDuration` que debita.
+  const engineCost = (key: EngineKey) =>
+    creditCostForDuration(ENGINE_QUALITY[key] ?? 'cinematic_ai', true, duration)
+  const engineCostLabel = (key: EngineKey) => {
+    const c = engineCost(key)
+    return c <= 0 ? 'free' : `${c} cr`
+  }
+  /** "12 films with your credits" — vazio enquanto o saldo não chegou. */
+  const filmsLabel = (key: EngineKey) => {
+    if (balance === null) return ''
+    const c = engineCost(key)
+    if (c <= 0) return 'free on your plan'
+    const n = Math.floor(balance / c)
+    if (n <= 0) return `not enough credits — you have ${balance}`
+    return `${n} film${n === 1 ? '' : 's'} with your ${balance} credits`
+  }
 
   const finalPrompt = useMemo(() => {
     const p = CAMERA_PRESETS.find((c) => c.key === preset)
@@ -391,19 +428,26 @@ export default function StudioClient() {
                     onClick={() => { setEngine(e.key); setPickerOpen(false) }}>
                     <span className="eng-ic" aria-hidden="true">{e.icon}</span>
                     <span className="pk-tx">
-                      {/* KINEO-PRECO-NO-COMPROMISSO-2026-08-18 (fundador +
-                          averiguacao Higgsfield/InVideo: preco nao mora no
-                          seletor — so no cartao de gerar e no /pricing). */}
+                      {/* ═══ KINEO-PRECO-VISIVEL-2026-09-02 — REVERTE O #2026-08-18 ═══
+                          A nota antiga aqui dizia "preço não mora no seletor — só no
+                          cartão de gerar e no /pricing", citando Higgsfield/InVideo.
+                          A averiguação de 02/09 mostrou o contrário na fonte oficial:
+                          a Higgsfield imprime o custo DENTRO do botão Generate
+                          ("the exact cost is shown on the Generate button before you
+                          confirm") e publica ~70 modelos em créditos/5s; a Hailuo põe
+                          o número colado no botão Create e recalcula ao vivo. Quem
+                          esconde é Canva/InVideo — e esses têm 3 tiers, não 8 motores.
+                          O preço da nossa omissão está medido: 102 pessoas em 30 dias
+                          queimaram o trial inteiro no primeiro clique sem saber.
+                          Agora cada card diz o custo E quantos filmes o saldo compra. */}
                       <span className="t">
                         <b>{e.name}{e.tag && <span className="tag">{e.tag}</span>}</b>
-                        {/* KINEO-RES-1080-2026-08-24 — era {e.res}: o mesmo
-                            "720p" que confundiu o fundador no card fechado,
-                            repetido dentro do seletor. Todos entregam o mesmo
-                            master; mostrar resolução nativa aqui só recoloca a
-                            contradição que acabamos de tirar. */}
-                        <i>1080p</i>
+                        <i>{engineCostLabel(e.key)}</i>
                       </span>
                       <span className="d">{e.desc}</span>
+                      <span className="d" style={{ color: e.key === 'fast' ? '#5cb3ff' : undefined, marginTop: 2 }}>
+                        {filmsLabel(e.key)}
+                      </span>
                     </span>
                     {e.preview && (
                       <span className="pkv" aria-hidden="true">
@@ -524,16 +568,41 @@ export default function StudioClient() {
               <span>Usually takes</span>
               <b style={{ fontWeight: 600 }}>{eng.key === 'fast' ? '3–7 min' : '8–20 min'}</b>
             </div>
+            {/* KINEO-PRECO-VISIVEL-2026-09-02 — o saldo em FILMES, no motor e na
+                duração escolhidos. Nenhum dos nove concorrentes auditados mostra
+                isto dentro do editor. Ataca o defeito medido em 02/09: 3 dos 4
+                checkouts do dia eram contas com 25 créditos INTACTOS e zero
+                vídeos — gente que nunca soube que já tinha filme na mão. */}
+            {balance !== null && cost > 0 && Math.floor(balance / cost) > 0 && (
+              <div className="val" style={{ opacity: 0.75 }}>
+                <span>Your credits buy</span>
+                <b style={{ fontWeight: 600 }}>
+                  {Math.floor(balance / cost)} {Math.floor(balance / cost) === 1 ? 'film' : 'films'} like this
+                </b>
+              </div>
+            )}
             <button type="button" onClick={generate} disabled={!prompt.trim() || limit.over} className={`go ${prompt.trim() && !limit.over ? 'ok' : 'no'}`}>
+              {/* KINEO-PRECO-VISIVEL-2026-09-02 — o custo entra NO BOTÃO, o
+                  padrão da Higgsfield ("the exact cost is shown on the Generate
+                  button before you confirm") e da Hailuo (número colado no botão,
+                  recalculado ao vivo). Antes: 'Generate →' e o número só no
+                  rodapé cinza acima — que ninguém lê depois de escolher. */}
               {!prompt.trim()
                 ? 'Type your idea first'
                 : limit.over
                   ? `Trim ${limit.excess.toLocaleString('en-US')} characters to continue`
                   : balance !== null && cost > balance
                     ? `Need ${cost - balance} more credits`
-                    : 'Generate →'}
+                    : cost > 0
+                      ? `Generate · ${cost} cr →`
+                      : 'Generate →'}
             </button>
-            <div className="gnote">Voice, karaoke captions and score included.</div>
+            {/* KINEO-PRECO-VISIVEL-2026-09-02 — a política de estorno vira
+                promessa VISÍVEL. Higgsfield, Kling, Hailuo e OpusClip têm a
+                mesma política e nenhum a exibe na hora da escolha; nós já
+                cumprimos (o guard de narração e o release do claim devolvem na
+                hora), então dizer isto é confiança de graça. */}
+            <div className="gnote">Voice, karaoke captions and score included. If a render fails, your credits come straight back.</div>
           </div>
         </div>
 
