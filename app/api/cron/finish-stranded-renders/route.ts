@@ -64,6 +64,17 @@ const MIN_AGE_MS = 12 * 60 * 1000
 const MAX_AGE_MS = 20 * 60 * 60 * 1000
 const MAX_COMPOSE_PER_RUN = 3
 const MAX_COMPOSE_ATTEMPTS = 2
+// sprint-assinaturas #7 — um 400 do compose e DETERMINISTICO: com o mesmo codigo
+// a 2a tentativa devolve o mesmo 400 (e7f9f000, 02/09: 03:07 e 03:15 UTC, ambos
+// compose_error_400 pelo custo do claim x duracao resgatada). So um deploy muda
+// isso — e o teto de 2 ja tinha sido gasto ANTES do conserto subir, entao o
+// cron desistia do filme (5 cenas prontas e pagas) e mandava o e-mail de
+// resgate para um trial que 90s antes clicou em checkout. Quando TODOS os
+// desfechos anteriores da geracao sao compose_error_4xx, o teto ganha UMA
+// tentativa extra: se o codigo mudou, entrega; se nao, 400 de novo e desiste.
+// Custo de fornecedor zero (compose nao re-despacha cena).
+const OUTCOME_EVENT = 'stranded_outcome'
+const EXTRA_ATTEMPT_AFTER_4XX = 1
 
 function isAuthorized(req: NextRequest): boolean {
   const cronSecret = process.env.CRON_SECRET
@@ -301,7 +312,7 @@ export async function GET(req: NextRequest) {
   const { data: markerRows, error: markerErr } = await admin
     .from('events')
     .select('name, session_id, metadata')
-    .in('name', [RESCUE_EVENT, ATTEMPT_EVENT, READY_EVENT, COMPOSED_EVENT])
+    .in('name', [RESCUE_EVENT, ATTEMPT_EVENT, READY_EVENT, COMPOSED_EVENT, OUTCOME_EVENT])
     .in('session_id', genIds.slice(0, 200))
   // sprint-assinaturas #4 — o erro deste lote era engolido; agora vai pro log e
   // viaja no `stranded_dedupe_miss` quando o lookup direto pega o que o lote perdeu.
@@ -310,6 +321,9 @@ export async function GET(req: NextRequest) {
   const rescued = new Set<string>()
   const readySent = new Set<string>()
   const attempts = new Map<string, number>()
+  // sprint-assinaturas #7 — desfechos por geração: só compose_error_4xx libera
+  // a tentativa extra; qualquer outro desfecho (ou nenhum) mantém o teto de 2.
+  const outcomes = new Map<string, { total: number; only4xx: boolean }>()
   const composedRender = new Map<string, string | null>()
   for (const m of markerRows ?? []) {
     const sid = m.session_id as string | null
@@ -317,6 +331,11 @@ export async function GET(req: NextRequest) {
     if (m.name === RESCUE_EVENT) rescued.add(sid)
     else if (m.name === READY_EVENT) readySent.add(sid)
     else if (m.name === ATTEMPT_EVENT) attempts.set(sid, (attempts.get(sid) ?? 0) + 1)
+    else if (m.name === OUTCOME_EVENT) {
+      const oc = String((m as { metadata?: { outcome?: unknown } }).metadata?.outcome ?? '')
+      const prev = outcomes.get(sid) ?? { total: 0, only4xx: true }
+      outcomes.set(sid, { total: prev.total + 1, only4xx: prev.only4xx && /^compose_error_4\d\d$/.test(oc) })
+    }
     else if (m.name === COMPOSED_EVENT) {
       const rid = (m as { metadata?: { render_id?: unknown } }).metadata?.render_id
       composedRender.set(sid, typeof rid === 'string' && rid.length > 0 ? rid : null)
@@ -434,7 +453,14 @@ export async function GET(req: NextRequest) {
 
     // ── Fase 1: compose nunca foi invocado ──
     const attemptCount = attempts.get(genId) ?? 0
-    if (attemptCount >= MAX_COMPOSE_ATTEMPTS) {
+    const oc = outcomes.get(genId)
+    const attemptCap = oc && oc.total >= MAX_COMPOSE_ATTEMPTS && oc.only4xx
+      ? MAX_COMPOSE_ATTEMPTS + EXTRA_ATTEMPT_AFTER_4XX
+      : MAX_COMPOSE_ATTEMPTS
+    if (attemptCount >= MAX_COMPOSE_ATTEMPTS && attemptCount < attemptCap) {
+      console.log(`[stranded] gen=${gen8} extra attempt after ${oc?.total ?? 0}x compose_error_4xx (cap ${attemptCap})`)
+    }
+    if (attemptCount >= attemptCap) {
       // Fallback V1: e-mail de resgate (1× por geração, pra sempre)
       if (!rescued.has(genId) && mayEmail) {
         // sprint-assinaturas #4 — confirmação direta antes de enviar (fail-closed).
