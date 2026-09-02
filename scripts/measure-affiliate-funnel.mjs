@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import { createClient } from '@supabase/supabase-js'
+import { buildAffiliateFunnelReport, fetchAllPages } from './affiliate-funnel-report.mjs'
 
 function loadEnv(path) {
   const values = {}
@@ -16,46 +17,10 @@ function loadEnv(path) {
   return values
 }
 
-const exactInternal = new Set([
-  'josephsskaf@gmail.com',
-  'josephskaf@hotmail.com',
-  'victoriaskaf96@gmail.com',
-  'joseph+teste01@gmail.com',
-  'teste01@shortsforgeai.com',
-])
-const internalPatterns = [
-  /^josephsskaf\+.*@gmail\.com$/i,
-  /^joseph\+.*@gmail\.com$/i,
-  /@theresanaiforthat\.com$/i,
-  /@shortsforgeai\.com$/i,
-  /^test/i,
-  /mailinator/i,
-  /^smoketest/i,
-]
-
-function isInternalEmail(raw) {
-  const email = String(raw || '').trim().toLowerCase()
-  return exactInternal.has(email) || internalPatterns.some((pattern) => pattern.test(email))
-}
-
 function parseDays() {
   const index = process.argv.indexOf('--days')
   const raw = index >= 0 ? Number(process.argv[index + 1]) : 30
   return Number.isFinite(raw) && raw > 0 ? Math.min(raw, 365) : 30
-}
-
-function actorKey(row) {
-  if (row.user_id) return `user:${row.user_id}`
-  if (row.session_id) return `session:${row.session_id}`
-  return null
-}
-
-function eventStage(rows, name, predicate = () => true) {
-  const selected = rows.filter((row) => row.name === name && predicate(row))
-  return {
-    rawEvents: selected.length,
-    actors: new Set(selected.map(actorKey).filter(Boolean)).size,
-  }
 }
 
 function unwrap(result, label) {
@@ -74,58 +39,45 @@ async function main() {
     auth: { persistSession: false, autoRefreshToken: false },
   })
 
-  const [affiliateResult, clickResult, referralResult, commissionResult, eventResult, profileResult] = await Promise.all([
-    supabase.from('affiliates').select('id,status,created_at'),
-    supabase.from('affiliate_clicks').select('id,created_at').gte('created_at', cutoff),
-    supabase.from('affiliate_referrals').select('id,status,first_touch_at,converted_at').gte('first_touch_at', cutoff),
-    supabase.from('affiliate_commissions').select('id,status,commission_amount,currency,created_at').gte('created_at', cutoff),
-    supabase.from('events').select('name,user_id,session_id,path,metadata,created_at').gte('created_at', cutoff),
-    supabase.from('profiles').select('id,email,created_at,signup_utm_campaign').gte('created_at', cutoff),
+  const paged = (label, request) => fetchAllPages(async (from, to) =>
+    unwrap(await request(from, to), `${label}[${from}:${to}]`),
+  )
+  const [affiliates, clicks, referrals, commissions, events, profiles] = await Promise.all([
+    paged('affiliates', (from, to) => supabase.from('affiliates')
+      .select('id,user_id,email,status,created_at')
+      .order('created_at', { ascending: true }).order('id', { ascending: true }).range(from, to)),
+    paged('affiliate_clicks', (from, to) => supabase.from('affiliate_clicks')
+      .select('id,affiliate_id,ip_hash,created_at')
+      .gte('created_at', cutoff)
+      .order('created_at', { ascending: true }).order('id', { ascending: true }).range(from, to)),
+    paged('affiliate_referrals', (from, to) => supabase.from('affiliate_referrals')
+      .select('id,affiliate_id,referred_user_id,email,status,first_touch_at,converted_at')
+      .order('first_touch_at', { ascending: true }).order('id', { ascending: true }).range(from, to)),
+    paged('affiliate_commissions', (from, to) => supabase.from('affiliate_commissions')
+      .select('id,affiliate_id,referral_id,status,commission_amount,currency,created_at')
+      .gte('created_at', cutoff)
+      .order('created_at', { ascending: true }).order('id', { ascending: true }).range(from, to)),
+    paged('events', (from, to) => supabase.from('events')
+      .select('id,name,user_id,session_id,path,metadata,created_at')
+      .gte('created_at', cutoff)
+      .in('name', ['landing_session_started', 'organic_cta_clicked', 'affiliate_application_submitted'])
+      .order('created_at', { ascending: true }).order('id', { ascending: true }).range(from, to)),
+    paged('profiles', (from, to) => supabase.from('profiles')
+      .select('id,email,created_at,signup_utm_campaign')
+      .order('created_at', { ascending: true }).order('id', { ascending: true }).range(from, to)),
   ])
 
-  const affiliates = unwrap(affiliateResult, 'affiliates')
-  const clicks = unwrap(clickResult, 'affiliate_clicks')
-  const referrals = unwrap(referralResult, 'affiliate_referrals')
-  const commissions = unwrap(commissionResult, 'affiliate_commissions')
-  const events = unwrap(eventResult, 'events')
-  const profiles = unwrap(profileResult, 'profiles').filter((profile) => !isInternalEmail(profile.email))
-  const currencyTotals = {}
-  for (const row of commissions) {
-    const currency = String(row.currency || 'usd').toLowerCase()
-    const bucket = currencyTotals[currency] ?? { pending: 0, approved: 0, paid: 0, total: 0 }
-    const amount = Number(row.commission_amount || 0)
-    const status = String(row.status || 'pending').toLowerCase()
-    bucket.total += amount
-    if (status === 'pending') bucket.pending += amount
-    if (status === 'approved') bucket.approved += amount
-    if (status === 'paid') bucket.paid += amount
-    currencyTotals[currency] = bucket
-  }
-
-  const report = {
+  const report = buildAffiliateFunnelReport({
     generatedAt: new Date().toISOString(),
-    window: { days, cutoff },
-    publicPartnerFunnel: {
-      landingSessions: eventStage(events, 'landing_session_started', (row) => row.path === '/partners'),
-      ctaClicks: eventStage(events, 'organic_cta_clicked', (row) => row.metadata?.source === 'partners'),
-      applications: eventStage(events, 'affiliate_application_submitted'),
-      attributedSignups: profiles.filter((profile) => profile.signup_utm_campaign === 'push33_partner_program').length,
-    },
-    customAffiliateSystem: {
-      affiliates: {
-        total: affiliates.length,
-        active: affiliates.filter((row) => row.status === 'active').length,
-        pending: affiliates.filter((row) => row.status === 'pending').length,
-        suspended: affiliates.filter((row) => row.status === 'suspended').length,
-      },
-      clicks: clicks.length,
-      referrals: referrals.length,
-      paidReferrals: referrals.filter((row) => row.status === 'paid').length,
-      commissions: commissions.length,
-      commissionCentsByCurrency: currencyTotals,
-    },
-    note: 'Custom Kineo affiliate tables only. Rewardful is an external system and is not counted here.',
-  }
+    days,
+    cutoff,
+    affiliates,
+    clicks,
+    referrals,
+    commissions,
+    events,
+    profiles,
+  })
   console.log(JSON.stringify(report, null, 2))
 }
 
