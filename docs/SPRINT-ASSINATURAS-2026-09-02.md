@@ -258,3 +258,64 @@ toquei):** variante 3d zera o saldo no dia 3 — 49 pessoas perderam em média
 `stranded_dedupe_miss`; se ainda vazio, o item de maior alavanca é o momento
 "trial acabou em 40 minutos": quem chega ao downgrade com 1 filme entregue
 precisa de uma tela que venda o 2º filme (pista compartilhada — avisar Codex).
+
+### #5 — 23:29→00:05 BRT — o cron de resgate ia MENTIR para a lista mais quente às 03:00 BRT
+**Leitura.** `stranded_outcome` = 0 e `stranded_dedupe_miss` = 0 nas 24h (o #4
+ainda está na fila; nenhum claim encalhado entrou na janela). Fila ainda NÃO
+subiu: origin/main = e544305b (Codex) não contém ac3978e4. Duplicados de "Your
+video is ready" nas 24h = 2 sessões (código do #4 não está no ar).
+**O que fui olhar.** Os crons "acordados" em 01/09 (`send-failure-recovery` a
+cada 6h e `send-momentum-nudge` 13:30 UTC): `failure_recovery_sent` e
+`momentum_nudge_sent` = **0 nos últimos 3 dias** (só `winback25_sent` 120). O
+`?confirm=SEND` entrou no vercel.json às 21:16 BRT (88803040) — o primeiro
+disparo REAL do failure-recovery é às **06:00 UTC = 03:00 BRT de 02/09**, e do
+momentum às 13:30 UTC = 10:30 BRT. Reproduzi a elegibilidade do cron em SQL
+(48h, `generate_failed`, fora da lista NAO_E_BUG, sem vídeo completo, sem
+carimbo, sem opt-out): **11 pessoas** — e **7 delas falharam com "Your script
+is about 23 seconds of narration, but you asked for a 35-second video… Add
+about 23 more words"**. Isso não é defeito: é o produto recusando 12s de
+música sem história. Em 14 dias é a maior causa individual de falha de gente
+real (24 falhas · 19 pessoas), e 4 dessas 7 têm os 25cr do trial intactos e
+ZERO vídeo. O e-mail que ia sair para elas: "That was our fault — a bug on our
+side, and it is fixed now… the same idea will work now". Três mentiras: não
+era nosso, não foi consertado, e a mesma ideia com o mesmo roteiro falha
+igual. Quem clica, falha de novo e aprende que a marca mente — no exato
+público que já fez conta, escreveu o tema e apertou gerar.
+**O que mudou** (`app/api/cron/send-failure-recovery/route.ts`):
+`classifyFailure()` separa `bug` de `script_short` pela frase real de produção
+(regex tolerante a `\n` e cauda truncada). `script_short` recebe e-mail
+PRÓPRIO: "nothing was charged, your N credits are still there; your script was
+~Xs of narration for a Ys video; two 30-second fixes: pick the length closest
+to Xs, or add ~N words" — sem desculpa falsa, sem cupom, sem nomear motor,
+utm_campaign `failure_recovery_script`. `bug` segue com o e-mail de desculpa
+de antes. `'still holding'`/`'already started is still'` (render vivo segurando
+crédito) saíram da lista de defeito. Carimbo `failure_recovery_sent` continua
+1× por pessoa e ganha `metadata.kind`; dry-run mostra `by_kind`. Teste:
+`scripts/test-failure-recovery-honest.mjs` (31 verificações lendo o arquivo
+real, 3 frases reais do banco + 5 defeitos reais). tsc: 4 pré-existentes + o
+`TrialDowngradeModal.tsx(334)` do Codex (já anotado no #4), zero meus.
+**Para o cliente/receita.** ~4 trials/semana com crédito intacto e zero vídeo,
+travados por uma regra que não entenderam, recebem o remédio exato em vez de
+uma desculpa que não funciona. É gente a 1 clique do 1º vídeo — a fase onde a
+conversão nasce (0,9% → 11,8% no 4º). E a reputação de `joseph@usekineo.com`
+não estreia com uma mentira.
+**⏰ CORRIDA CONTRA O RELÓGIO:** se o SUBIR-SITE não rodar antes de **03:00
+BRT**, o cron de 06:00 UTC dispara a versão antiga para até 25 pessoas (7 com a
+desculpa falsa). Depois do carimbo não dá para "desmandar". Se passar, a
+próxima rodada mede quantos `failure_recovery_sent` saíram sem `kind` e anota
+os e-mails para um follow-up honesto em rascunho.
+**SHA:** c10ed216 (sobre 1c78db73). **Risco:** baixo — só muda QUAL e-mail sai
+para o subgrupo e remove um grupo da lista; nenhuma decisão de envio nova.
+**Como medir:** `select metadata->>'kind', count(*) from events where
+name='failure_recovery_sent' and created_at>now()-interval '24 hours' group by
+1`; vídeo completo em 48h de quem recebeu `script_short` (meta: ≥30%, hoje 0
+desses 7 voltaram); cliques `utm_campaign=failure_recovery_script`.
+**Placar 00:00 BRT (externos):** has_paid 11 (starter 3, basic 2, pro 2,
+free/churn 4); cadastros 1h=3, 24h=26; vídeos 1h=1, 24h=17; falhas 1h=0;
+checkout_started 24h=2; 7d: 70 com 1, 9 com 2, 2 com 3, **0 com 4+**; crons
+24h: winback25 120, failure_recovery 0, momentum 0 (ambos ainda antes do 1º
+disparo real). **Próximo item (#6):** auditar `send-momentum-nudge` ANTES do
+1º disparo real de 10:30 BRT com a mesma técnica (reproduzir a elegibilidade
+em SQL e ler a copy contra o que o produto faz hoje — o #4 já mostrou que o
+e-mail de "vídeo pronto" prometia 24 Fast quando o Starter dá 8); depois,
+`stranded_outcome`/`stranded_dedupe_miss` assim que a fila subir.
