@@ -1001,10 +1001,15 @@ failure-recovery — irrelevante enquanto a contagem for 0.
 morreram DEPOIS de 5/5 cenas aceitas e pagas** — shaunish2097 (#14,
 `no_authorized_urls` ×6) e wummm709 (02:53 UTC, 5/5 ok → `compose_error_400`
 ×2 + `compose_error_503` → estorno 05:30). Os dois são trial 25cr que
-apertaram gerar e ficaram com "seu crédito voltou". O conserto dos dois
-(#7 custo-do-claim no compose, #14 fallback de URLs) está na FILA desde
-~02:00 e não no ar. ≈10% dos primeiros vídeos do dia = o maior vazamento
-mensurável da minha pista hoje, e depende de UM clique.
+apertaram gerar e ficaram com "seu crédito voltou". CORREÇÃO (conferido
+em origin/main): o #7 (tentativa extra após 4xx) JÁ ESTÁ NO AR — a 3ª
+tentativa do wummm709 às 03:45 UTC foi exatamente ela, e voltou
+`compose_error_503` (não 400): o compose respondeu 503 com 5 cenas prontas,
+e o cron desistiu. Causa do 503 DESCONHECIDA (candidatos no compose:
+"ownership and billing could not be verified" = leitura do claim falhou, ou
+Creatomate/Supabase indisponível) — vira item (c) do #17. O #14 (fallback
+de URLs, caso do shaunish) é o que está na FILA e não no ar. ≈10% dos
+primeiros vídeos do dia = o maior vazamento mensurável da minha pista hoje.
 **Assinantes parados (dado novo para o link do #10):** dos 9 com assinatura
 viva, só 3 fizeram vídeo em 7d (godofloki 3, gapozweb 3, salswina 2). Os
 outros 6 estão parados há 9-41 dias com crédito acumulado: akajitin
@@ -1030,8 +1035,11 @@ stranded 3h: no_authorized_urls ×6 (shaunish, o do #14).
 **Próximo item (#17):** (a) se a fila subir antes de 10:30: nada a fazer —
 ler `stranded_diag` da próxima ocorrência; (b) 11:00 BRT: conferir os ~27
 `momentum_nudge_sent` (kind por `videos`, `com_tema` real vs simulado); (c)
-código: `send-failure-recovery` ainda cego para `compose_error_4xx/5xx` do
-resgate — wummm709 tinha 5 cenas prontas, perdeu o filme e NÃO recebeu
-e-mail de causa (o `stranded_rescue` é genérico); (d) o pós-trial com 21cr
+CÓDIGO PRIORITÁRIO: o `compose_error_503` do wummm709 — ler o log da Vercel
+de 03:45 UTC (`[stranded] compose failed gen=e7f9f000: 503 …` traz o corpo)
+e fazer o cron gravar o `error` do compose no `stranded_outcome` (hoje só
+o status) para a causa nunca mais depender de log que expira; se for o
+"could not be verified" do claim, é o mesmo fantasma do #14 visto de outro
+lado; (d) o pós-trial com 21cr
 (3 pessoas de 29/08): free não pode Seedance (25) e tem Kineo 1 a 0 — o
 saldo vira "dinheiro parado" sem tela que diga isso; medir quantos são.
