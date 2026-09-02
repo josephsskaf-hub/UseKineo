@@ -58,6 +58,9 @@ export type SeriesContinuationSource =
   // serie vira em 53% (59 chegadas -> 31 videos). O mesmo clique, dois
   // destinos, mais que o dobro de conversao.
   | 'momentum_email'
+  // sprint-assinaturas #24 (02/09): e-mail "Your Short is ready" — o pico de
+  // boa vontade; assinante e trial com saldo recebem o episodio 2 ali.
+  | 'video_ready_email'
 
 export function normalizeSeriesSeed(value: string | null | undefined): string {
   return (value ?? '')

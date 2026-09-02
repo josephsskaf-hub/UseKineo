@@ -26,8 +26,7 @@ import { getRenderIntent } from '@/lib/credits/renderIntent'
 // 'Your Short is ready' prometia '24 more Fast Shorts' com o Starter; 40cr / 5cr
 // = 8. Quantidade e preco agora vem das MESMAS funcoes que cobram, e o link
 // leva campanha fechada para a origem ser distinguivel no pricing/checkout.
-import { videosForCredits } from '@/lib/marketingPrice'
-import { TIER_CREDITS, TIER_PRICES } from '@/lib/checkoutPricing'
+import { videoReadyFooter } from '@/lib/lifecycle/videoReadyFooter'
 import { COMPOSE_CLAIM_EVENT } from '@/lib/composeClaim'
 import {
   loadPrepaidAvatarClaimForRender,
@@ -891,6 +890,10 @@ export async function GET(
         // does (free plan only). Best-effort: a failed profile read just stores
         // the clean description, never blocks the video.
         let historyDescription = ''
+        // sprint-assinaturas #24 — o mesmo `planRow` decide o rodape do e-mail
+        // de video pronto (assinante x trial x sem saldo). Hoisted para fora
+        // do try: falha de leitura = `isSubscriber=false` = rodape de hoje.
+        let readyEmailIsSubscriber = false
         try {
           const { data: planRow } = await supabase
             .from('profiles')
@@ -909,6 +912,11 @@ export async function GET(
             (planRow as { has_paid?: boolean } | null)?.has_paid === true ||
             PAID_PLANS.has(planName) ||
             isTrialActive(planRow)
+          // Assinante de verdade: pagou ou tem plano pago. Trial ativo NAO —
+          // ainda nao pagou, e o rodape dele e o do episodio 2 + plano.
+          readyEmailIsSubscriber =
+            (planRow as { has_paid?: boolean } | null)?.has_paid === true ||
+            PAID_PLANS.has(planName)
           historyDescription = buildBrandedYouTubeDescription(ytDescriptionParam, {
             isFreePlan: !isPaid,
           })
@@ -959,6 +967,20 @@ export async function GET(
           if (RESEND_API_KEY && user.email) {
             const safeTopic = (topic || 'your topic').replace(/[<>]/g, '')
             const safeVideoUrl = finalVideoUrl.replace(/"/g, '')
+            // sprint-assinaturas #24 — rodape por situacao (ver
+            // lib/lifecycle/videoReadyFooter.ts). Antes: "Starter is $7" para
+            // TODO mundo, inclusive para quem paga Studio e para trial com
+            // saldo — 8 assinantes e 51 trials com credito em 7d leram o pedido
+            // errado no minuto certo. Zero consulta nova: `planRow`,
+            // `creditsRemaining` (retorno do debito) e `cost` (claim) ja existem.
+            const readyFooter = videoReadyFooter({
+              isSubscriber: readyEmailIsSubscriber,
+              creditsRemaining,
+              cost,
+              topic: topicFinal,
+              durationSeconds: Number.isFinite(duration) ? duration : null,
+              appUrl: process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.usekineo.com',
+            })
             const html = `
               <div style="font-family:sans-serif;max-width:520px;margin:0 auto;background:#161618;color:#fff;padding:32px;border-radius:16px;">
                 <h1 style="color:#2997ff;font-size:24px;margin:0 0 8px">Your Short is ready! ⚡</h1>
@@ -966,7 +988,7 @@ export async function GET(
                 <a href="${safeVideoUrl}" style="display:inline-block;background:#2997ff;color:#fff;text-decoration:none;padding:14px 28px;border-radius:10px;font-weight:700;font-size:15px;">
                   ⬇ Download Your Short
                 </a>
-                <p style="color:#64748b;font-size:12px;margin:24px 0 0">Want a clean export and ${videosForCredits(TIER_CREDITS.starter, 'fast')} more Fast Shorts this month? <a href="https://www.usekineo.com/pricing?intent_campaign=video_ready_email_plan_truth_v1" style="color:#2997ff;">Starter is $${(TIER_PRICES.starter.usd / 100).toFixed(2)}/month →</a></p>
+                ${readyFooter.html}
                 <!-- KINEO-REVIEW-NO-EMAIL-2026-08-24 (pacote noturno 2, AQ) — o
                      e-mail de entrega vai para TODO render pronto: é o maior
                      canal de pedido-no-pico que a casa tem, e estava mudo.
@@ -992,6 +1014,33 @@ export async function GET(
             if (!emailRes.ok) {
               const errText = await emailRes.text()
               console.warn('[notify-video-ready] resend non-2xx:', emailRes.status, errText.slice(0, 200))
+            } else {
+              // sprint-assinaturas #24 — carimbo do que a pessoa LEU (o #19/#22
+              // nao conseguiam provar qual corpo saiu). `events` e service_role
+              // only, por isso o admin ad hoc; best-effort, nunca lanca.
+              try {
+                const evUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+                const evKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+                if (evUrl && evKey) {
+                  await createAdminClient(evUrl, evKey, { auth: { persistSession: false, autoRefreshToken: false } })
+                    .from('events')
+                    .insert({
+                      user_id: user.id,
+                      name: 'video_ready_email_sent',
+                      path: '/api/compose/status',
+                      metadata: {
+                        render_id: renderId,
+                        footer: readyFooter.kind,
+                        subscriber: readyEmailIsSubscriber,
+                        cost,
+                        credits_remaining: creditsRemaining,
+                        has_topic: topicFinal.length > 0,
+                      },
+                    })
+                }
+              } catch (evErr) {
+                console.warn('[notify-video-ready] stamp failed:', evErr instanceof Error ? evErr.message : String(evErr))
+              }
             }
           }
         } catch (emailErr) {
