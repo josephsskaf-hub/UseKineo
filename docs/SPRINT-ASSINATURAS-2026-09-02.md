@@ -1043,3 +1043,38 @@ o status) para a causa nunca mais depender de log que expira; se for o
 lado; (d) o pós-trial com 21cr
 (3 pessoas de 29/08): free não pode Seedance (25) e tem Kineo 1 a 0 — o
 saldo vira "dinheiro parado" sem tela que diga isso; medir quantos são.
+**ADENDO #16 (04:14 BRT) — a causa do wummm709 FECHOU pelo log da Vercel +
+banco, e é pior do que "503": O FILME FOI MONTADO E JOGADO FORA.**
+Linha do tempo (UTC): 02:53 5/5 cenas aceitas (claim de nascimento
+3f0531b4, custo **19**) → 03:07 e 03:15 `compose_error_400` ("clips do not
+match": custo recalculado pela duração 35s = 15 ≠ 19, o defeito do #7) →
+03:31:32 **tentativa extra do #7 (já no ar) COMPÕE**: `compose_submission_claim`
+a6131966 status `done`, `render_id 9f95cd30`, completed_at 03:32:33,
+evento `stranded_composed` gravado → **MAS o claim de compose nasceu com
+`cost: 15`** (o compose passou a ACEITAR o resgate, porém continuou
+ESCREVENDO o custo recalculado) → `/api/compose/status` chama
+`verifyCinematicBillingForCompose` (lib/cinematic/claim.ts:~440):
+`birth.claim.creditCost (19) !== cost (15)` → "cinematic birth/compose
+billing mismatch" → **o vídeo pronto NUNCA foi persistido em `videos`**
+(0 linhas para wummm709), sem e-mail "ready" → 03:45 o cron não tratou
+`stranded_composed` como terminal, tentou de novo, o insert do claim deu
+23505 (já existe, done) e o re-select por id voltou VAZIO ("claim row
+missing" → 503 "Render safety check is temporarily unavailable") → 05:30
+refund-sweep estornou 19cr como `cinematic_abandoned_no_delivery`.
+Resultado: pagamos 5 cenas na fal + 1 render no Creatomate, o cliente não
+tem filme, e o crédito voltou. Tudo isso com 5 cenas boas e um MP4 pronto
+no Creatomate (render 9f95cd30).
+**Conserto do #17 (3 pontos, todos na minha pista):** (1) `app/api/compose/
+route.ts`, ramo `isServiceFinish` cinematic: o `cost` gravado no claim de
+compose (e usado na assinatura `signComposeClaim`) tem de ser
+`cinematicBirthClaim.creditCost`, não `creditCostForDuration(...)` — o #7
+mudou a comparação e esqueceu a escrita; (2) `finish-stranded-renders`:
+`stranded_composed` na geração = terminal (não re-compor; hoje o mapa de
+desfechos só olha `stranded_outcome`); (3) `stranded_outcome` passa a gravar
+o `error` do corpo do compose (hoje só o status — a causa dependia de log
+da Vercel que expira). Depois: ver se o render 9f95cd30 ainda responde no
+Creatomate e se o `/api/compose/status` consertado persiste o filme do
+wummm709 sem custo novo (ele já tem o estorno; entregar o filme grátis é o
+mínimo, não promessa). O "claim row missing" (select por id vazio logo após
+23505 no mesmo id) continua sem explicação — é o MESMO fantasma do #14
+(leitura vê o banco diferente do que o banco tem); anotar, não inventar.
