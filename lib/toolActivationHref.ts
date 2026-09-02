@@ -48,12 +48,15 @@
 // medida por elegância. Ela fica intocada; esta função nasce para as três órfãs.
 
 const PROMPT_MAX = 600
+const INTENT_CAMPAIGN_PATTERN = /^[A-Za-z0-9._~-]{1,100}$/
 
 export type ToolActivationOptions = {
   /** O que a pessoa acabou de produzir na ferramenta. Vira o prompt do /generate. */
   prompt?: string
   /** utm_campaign — o mesmo rótulo usado no `source` do organic_cta_clicked. */
   campaign: string
+  /** Campanha causal que deve sobreviver dentro do redirect explícito. */
+  intentCampaign?: string
   /** Analisar sozinho ao chegar. NUNCA dispara render (isso é create_intent). */
   autoanalyze?: boolean
   /** Preserve a finished script instead of asking the writer to restructure it. */
@@ -71,6 +74,7 @@ export type ToolActivationOptions = {
 export function toolActivationHref({
   prompt,
   campaign,
+  intentCampaign,
   autoanalyze = true,
   scriptMode,
   duration,
@@ -93,6 +97,10 @@ export function toolActivationHref({
     if (autoanalyze) generate.set('autoanalyze', '1')
     if (scriptMode) generate.set('script_mode', scriptMode)
     if (duration) generate.set('duration', String(duration))
+    const cleanIntentCampaign = (intentCampaign ?? '').trim()
+    if (INTENT_CAMPAIGN_PATTERN.test(cleanIntentCampaign)) {
+      generate.set('intent_campaign', cleanIntentCampaign)
+    }
     signup.set('redirect', `/generate?${generate.toString()}`)
   }
 

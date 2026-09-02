@@ -61,6 +61,7 @@ export default function LocalBusinessAdBrief() {
     ? toolActivationHref({
         prompt: script,
         campaign: LOCAL_BUSINESS_BRIEF_CAMPAIGN,
+        intentCampaign: LOCAL_BUSINESS_BRIEF_CAMPAIGN,
         autoanalyze: true,
         scriptMode: 'verbatim',
         duration: 35,

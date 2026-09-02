@@ -78,6 +78,7 @@ try {
   const href = toolActivationHref({
     prompt: maxResult.script,
     campaign: 'growth_local_business_brief_20260828',
+    intentCampaign: 'growth_local_business_brief_20260828',
     autoanalyze: true,
     scriptMode: 'verbatim',
     duration: 35,
@@ -91,6 +92,7 @@ try {
   equal(destination.searchParams.get('script_mode'), 'verbatim', 'editor receives the draft in verbatim mode')
   equal(destination.searchParams.get('duration'), '35', 'editor opens the matching 35-second preset')
   equal(destination.searchParams.get('autoanalyze'), '1', 'editor may analyze but does not auto-render')
+  equal(destination.searchParams.get('intent_campaign'), 'growth_local_business_brief_20260828', 'causal B2B campaign survives inside the explicit redirect')
   equal(destination.searchParams.has('create_intent'), false, 'business brief never auto-starts a charged generation')
   equal(normalizeInternalRedirect(signup.searchParams.get('redirect')), `${destination.pathname}${destination.search}`, 'signup accepts the destination as same-origin')
   equal(readCreationHandoff(destination.searchParams), {
@@ -108,6 +110,7 @@ try {
   check(page.includes('<LocalBusinessAdBrief />'), 'real landing page calls the builder')
   check(page.includes('<TopicGeneratorForm') && page.includes('isLocalBusiness ?'), 'other 29 niches keep their existing starter')
   check(component.includes("scriptMode: 'verbatim'"), 'client sends the approved draft verbatim')
+  check(component.includes('intentCampaign: LOCAL_BUSINESS_BRIEF_CAMPAIGN'), 'real B2B caller explicitly preserves the causal campaign')
   check(component.includes('duration: 35'), 'client requests the measured 35-second preset')
   check(component.includes('Review every claim'), 'client tells the business owner to verify claims')
   check(component.includes('nothing is generated or charged'), 'client states the no-side-effect boundary before signup')
@@ -121,6 +124,21 @@ try {
   // Upstream sprint-v1v4 generalized the gate from a Fast-only comparison to
   // the actual invariant: no explicit create_intent means no charged autostart.
   check(generateClient.includes('if (!activationContract.createIntent) return'), 'the real charged-autostart caller rejects this no-intent handoff')
+
+  const legacyHref = toolActivationHref({ prompt: 'legacy idea', campaign: 'legacy_tool' })
+  const legacySignup = new URL(legacyHref, 'https://www.usekineo.com')
+  const legacyDestination = new URL(legacySignup.searchParams.get('redirect'), 'https://www.usekineo.com')
+  equal(legacyDestination.searchParams.has('intent_campaign'), false, 'existing callers are not silently enrolled into B2B attribution')
+
+  const invalidHref = toolActivationHref({
+    prompt: 'safe prompt',
+    campaign: 'outer_campaign',
+    intentCampaign: 'invalid campaign with spaces',
+  })
+  const invalidSignup = new URL(invalidHref, 'https://www.usekineo.com')
+  const invalidDestination = new URL(invalidSignup.searchParams.get('redirect'), 'https://www.usekineo.com')
+  equal(invalidDestination.searchParams.has('intent_campaign'), false, 'invalid campaign tokens fail closed')
+  equal(invalidSignup.searchParams.get('utm_campaign'), 'outer_campaign', 'invalid inner attribution never removes the outer UTM')
 
   console.log(`local-business-ad-brief: ${checks}/${checks} checks passed`)
 } finally {

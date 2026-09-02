@@ -38,6 +38,7 @@ const profiles = [
 const business = B2B_ATTRIBUTABLE_PATHS.business_plan
 const brief = B2B_ATTRIBUTABLE_PATHS.client_brief
 const caseStudy = B2B_ATTRIBUTABLE_PATHS.autopilot_case_study
+const localPath = B2B_ATTRIBUTABLE_PATHS.local_business_brief
 const local = B2B_ASSIST_SURFACES.local_business_brief
 const agency = B2B_ASSIST_SURFACES.agency_margin_proposal
 const autopilot = B2B_ASSIST_SURFACES.autopilot_break_even
@@ -72,6 +73,8 @@ const events = [
   event('27', autopilot.events.calculated, 'brief', 'auto_browser', 42, { version: autopilot.eventVersion }),
   event('28', autopilot.events.checkoutChoice, 'brief', 'auto_browser', 43, { version: autopilot.eventVersion, choice: 'monthly' }),
   event('29', autopilot.events.checkoutChoice, 'brief', 'auto_browser', 44, { version: autopilot.eventVersion, choice: 'pilot' }),
+  start('30', 'other', 'local_buyer_browser', 45, localPath.intentCampaign, 'cs_local'),
+  paid('31', 'other', 46, 'cs_local', 900, 'usd'),
 ]
 
 const report = buildB2bSubscriptionTruthReport({ generatedAt: at(60), windowStart: at(0), events, profiles })
@@ -82,22 +85,23 @@ equal(report.paths.business_plan.stages.generated.internalEventRows, 1, 'interna
 equal(report.paths.business_plan.stages.generated.unknownIdentifiedEventRows, 1, 'unknown profiles are disclosed')
 equal(report.paths.client_brief.stages.generated.identifiedExternalPeople, 1, 'external generated person is counted')
 equal(report.paths.client_brief.stages.oneTimePackChoice.identifiedExternalPeople, 1, 'pack choice remains separate')
-equal(report.totals.identifiedExternalSubscriptionPeople, 3, 'three external recurring buyers started')
-equal(report.totals.subscriptionStripeSessions, 3, 'three exact recurring Sessions')
-equal(report.totals.byBilling, { annual: 1, monthly: 2 }, 'annual and monthly stay separate')
-equal(report.totals.exactPaidPeople, 2, 'two exact paid people')
-equal(report.totals.exactPaidStripeSessions, 2, 'duplicate webhook row counts once')
-equal(report.totals.exactRevenueMinorByCurrency, { usd: 31400 }, 'exact revenue is currency-grouped')
+equal(report.totals.identifiedExternalSubscriptionPeople, 4, 'four external recurring buyers started')
+equal(report.totals.subscriptionStripeSessions, 4, 'four exact recurring Sessions')
+equal(report.totals.byBilling, { annual: 1, monthly: 3 }, 'annual and monthly stay separate')
+equal(report.totals.exactPaidPeople, 3, 'three exact paid people')
+equal(report.totals.exactPaidStripeSessions, 3, 'duplicate webhook row counts once')
+equal(report.totals.exactRevenueMinorByCurrency, { usd: 32300 }, 'exact revenue is currency-grouped')
 equal(report.paths.business_plan.subscription.withArtifactWitness, 1, 'same browser generation witnesses business path')
 equal(report.paths.client_brief.subscription.withArtifactWitness, 1, 'same person generation witnesses brief path')
 equal(report.paths.autopilot_case_study.subscription.campaignOnlyWithoutArtifactWitness, 1, 'case study campaign is explicit without inventing an artifact')
+equal(report.paths.local_business_brief.subscription.campaignOnlyWithoutArtifactWitness, 1, 'local campaign can be attributed without inventing an artifact witness')
 equal(report.quality.packSessionsExcludedFromSubscribers, 1, 'pack Session never becomes a subscriber')
 check(!report.journeys.some((journey) => journey.stripeSessionId === 'cs_pack'), 'pack absent from journeys')
 check(!report.journeys.some((journey) => journey.stripeSessionId === 'cs_forged'), 'arbitrary campaign rejected')
 check(!JSON.stringify(report).includes('business@example.com'), 'report never emits email')
 equal(report.assistSurfaces.local_business_brief.manualGenerated.anonymousSessions, 1, 'manual local brief separated')
 equal(report.assistSurfaces.local_business_brief.sampleGenerated.anonymousSessions, 1, 'sample local brief separated')
-equal(report.assistSurfaces.local_business_brief.attributionState, 'campaign_lost_inside_explicit_signup_redirect', 'known local attribution gap explicit')
+equal(report.assistSurfaces.local_business_brief.attributionState, 'exact_intent_campaign_available_after_deploy_boundary', 'local attribution capability is explicit')
 equal(report.assistSurfaces.agency_margin_proposal.proposalCopied.identifiedExternalPeople, 1, 'proposal is an assist')
 equal(report.assistSurfaces.autopilot_break_even.humanViewed.identifiedExternalPeople, 1, 'human view separate from render')
 equal(report.assistSurfaces.autopilot_break_even.monthlyChoice.identifiedExternalPeople, 1, 'monthly choice separated')
@@ -164,6 +168,7 @@ const briefSource = readFileSync(join(root, 'lib/growth/clientShortBrief.ts'), '
 const checkoutSource = readFileSync(join(root, 'app/api/stripe/checkout/route.ts'), 'utf8')
 const generateSource = readFileSync(join(root, 'app/(dashboard)/generate/GenerateClient.tsx'), 'utf8')
 const localSource = readFileSync(join(root, 'lib/toolActivationHref.ts'), 'utf8')
+const localCallerSource = readFileSync(join(root, 'app/free-ai-shorts/[niche]/LocalBusinessAdBrief.tsx'), 'utf8')
 const signupSource = readFileSync(join(root, 'app/(auth)/signup/page.tsx'), 'utf8')
 const autopilotSource = readFileSync(join(root, 'app/pricing/AutopilotBreakEvenCalculator.tsx'), 'utf8')
 check(businessSource.includes(`BUSINESS_PLAN_CAMPAIGN = '${business.intentCampaign}'`), 'business campaign matches code')
@@ -171,7 +176,8 @@ check(businessSource.includes(`BUSINESS_PLAN_SHARE_CAMPAIGN = '${business.eventV
 check(briefSource.includes(`CLIENT_SHORT_BRIEF_CAMPAIGN = '${brief.intentCampaign}'`), 'brief campaign matches code')
 check(checkoutSource.includes('intent_campaign: intentCampaign ?? null'), 'server checkout persists intent campaign')
 check(generateSource.includes('intent_campaign=${encodeURIComponent(intentCampaign)}'), 'generate checkout URLs preserve intent campaign')
-check(!localSource.slice(localSource.indexOf('export function toolActivationHref')).includes("generate.set('intent_campaign'"), 'local explicit redirect omits campaign')
+check(localSource.slice(localSource.indexOf('export function toolActivationHref')).includes("generate.set('intent_campaign'"), 'helper can preserve a validated campaign inside explicit redirect')
+check(localCallerSource.includes('intentCampaign: LOCAL_BUSINESS_BRIEF_CAMPAIGN'), 'local caller explicitly opts into exact campaign attribution')
 check(signupSource.includes('if (explicitRedirect) return explicitRedirect'), 'signup returns explicit redirect before outer attribution forwarding')
 check(autopilotSource.includes("choice: 'pilot' | 'monthly'"), 'Autopilot calculator distinguishes pilot and monthly')
 

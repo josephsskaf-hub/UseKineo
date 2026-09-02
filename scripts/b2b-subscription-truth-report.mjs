@@ -1,7 +1,7 @@
 import { isInternalMeasurementEmail } from './measurement-helpers.mjs'
 import { buildSubscriptionRevenueLedger } from './subscription-revenue-ledger.mjs'
 
-export const B2B_SUBSCRIPTION_TRUTH_REPORT_VERSION = 'b2b_subscription_truth_v1'
+export const B2B_SUBSCRIPTION_TRUTH_REPORT_VERSION = 'b2b_subscription_truth_v2'
 export const B2B_SUBSCRIPTION_WINDOW_DAYS = 30
 export const B2B_SUBSCRIPTION_CONTEXT_DAYS = 60
 export const B2B_SUBSCRIPTION_MIN_GENERATED_PEOPLE = 20
@@ -32,6 +32,15 @@ export const B2B_ATTRIBUTABLE_PATHS = Object.freeze({
       packChoice: 'client_short_brief_packs_clicked',
     }),
   }),
+  local_business_brief: Object.freeze({
+    intentCampaign: 'growth_local_business_brief_20260828',
+    eventVersion: 'local_business_brief_observability_v1',
+    events: Object.freeze({
+      viewed: 'local_business_brief_viewed',
+      generated: 'local_business_brief_generated',
+      activation: 'local_business_brief_activation_clicked',
+    }),
+  }),
   autopilot_case_study: Object.freeze({
     intentCampaign: 'autopilot_case_study_v1',
     eventVersion: null,
@@ -48,7 +57,7 @@ export const B2B_ASSIST_SURFACES = Object.freeze({
       generated: 'local_business_brief_generated',
       activation: 'local_business_brief_activation_clicked',
     }),
-    attributionState: 'campaign_lost_inside_explicit_signup_redirect',
+    attributionState: 'exact_intent_campaign_available_after_deploy_boundary',
   }),
   agency_margin_proposal: Object.freeze({
     eventVersion: 'agency_margin_v1_2026_08_27',
