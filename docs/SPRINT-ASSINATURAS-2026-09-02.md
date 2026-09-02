@@ -889,3 +889,74 @@ passou — cron das 06:00 UTC); (b) assim que o bat subir, ler
 `stranded_diag`/warn da próxima ocorrência e fechar a causa-raiz; (c)
 shaunish2097 tem sessão Stripe aberta e 0 filmes — candidato a rascunho
 pessoal com o filme montado à mão? (não há rota; anotar, não prometer).
+
+### #15 — 02:58→03:20 BRT — o 1º disparo real do resgate de falha mandou o conselho AO CONTRÁRIO
+**Leitura.** origin/main = 6b0ea206 (Codex: 2 commits de funil do Autopilot +
+promo truth por cima do 9395b26b); fila = #14 (b6c7e0dd + diário), ainda não
+clicada. Item (a) do #14: às 06:00 UTC o `send-failure-recovery` disparou de
+verdade pela 1ª vez — **6 e-mails, todos kind=script_short** (adrianwellsvadrian,
+ffdilraj730, suarezgarciakevin6, souzadelima135, livehigorxly, asuquoalbert07;
+todos trial 25cr, 0 vídeos). Conferi os 6 contra `generation_stage_error`: 5
+certos. O 6º é o item.
+**O que estava errado.** adrianwellsvadrian (chatgpt.com, Google): às 02:52 UTC
+roteiro de 27s para vídeo de 35s → o produto disse "Add about 14 more words"
+(certo). Ele obedeceu — demais: voltou com **6.228 caracteres para um vídeo de
+90s** e bateu SETE vezes em `prompt_len=6228 limite=5000` entre 03:09 e 03:30
+(cinematic_ai e fast). Às 06:00 o cron mandou a ele "your script was about 27
+seconds of narration… add about 14 more words". O conselho oposto ao problema
+dele, 3h depois. Duas causas no código: (1) o cron só lia `generate_failed`, e
+o teto de 5.000 é barrado NO CLIENTE (31/08) — só emite `generation_stage_error`
+reason `analyze_prompt_too_long`, invisível; (2) o mapa por pessoa guardava o
+PRIMEIRO erro da janela de 48h (`porPessoa.get(uid) ?? {n:0, erro}`) e ignorava
+os seguintes — quem lê a mensagem, muda o texto e falha por OUTRO motivo recebia
+o e-mail do motivo velho. Bônus: em 7d, "analyze_prompt_too_long" = 7 eventos/1
+pessoa, mas `analyze_not_ok` (18/4) e "Could not analyze" (19/5) também nunca
+viram `generate_failed` — a família "recusa na análise" inteira era invisível
+ao cron (anotado; só o determinístico entrou hoje).
+**O que mudou.** `app/api/cron/send-failure-recovery/route.ts`: duas fontes
+(`generate_failed` ∪ `generation_stage_error` com reason
+`analyze_prompt_too_long`), ordenadas por `created_at`; **o erro MAIS RECENTE
+da pessoa decide** o kind; se o último for "não é bug" (saldo/regra) a pessoa
+SAI (o produto disse não por último — desculpa ali seria mentira); "não é bug"
+no meio não zera a contagem. Kind novo `script_long` com e-mail próprio: os
+números dela ("the text you pasted was 6,228 characters, and the script box
+takes up to 5,000"), quantas palavras a duração escolhida pede (2,3 wps
+arredondado de 5 em 5 → "A 90-second video only needs about 205 words —
+roughly 1,230 characters"), e o conserto ("paste only the narration — not the
+whole conversation"); sem duração no evento não inventa palavras. Sem "our
+fault", sem cupom, sem motor, utm `failure_recovery_script_long`, mesmo assunto
+"30-second fix". Quem SÓ bateu no teto (sem generate_failed) agora é elegível.
+tsc: só os 3 pré-existentes. `scripts/test-failure-recovery-latest-wins.mjs`:
+**36 verificações** executando o classificador e a agregação REAIS extraídos da
+rota (reproduz o caso do adrian minuto a minuto; prova que ordem de chegada
+não importa, que "credits" por último tira a pessoa, que bug depois de "still
+holding" ainda conta) + os 37 do teste antigo (2 regex ajustadas ao ternário
+novo, mesma exigência).
+**Para o cliente/receita.** É a lista mais quente que existe (fez conta,
+escreveu, apertou gerar 8 vezes, 25cr intactos) e o único e-mail que ela
+recebe da casa dizia o contrário do que ela via na tela. Agora diz o que a
+tela disse por último, com o número dela. Adrian em si já está carimbado
+(1× para sempre) — vai de RASCUNHO pessoal no Gmail (abaixo).
+**SHA:** cc208889 (sobre 4e48eb7d/#14). **Risco:** baixo — 1 cron, só
+leitura + Resend; pior caso = e-mail do kind errado para 1 pessoa por rodada,
+que é exatamente o que já acontecia. Cuidado: `.eq('metadata->>reason', …)`
+é filtro PostgREST em JSON — se a coluna não indexar, a consulta de 48h é
+pequena (≤500) e cabe.
+**Como medir:** `failure_recovery_sent` por `kind` (agora 3 valores);
+`page_view` /studio com `utm_campaign=failure_recovery_script_long`; vídeo
+completo em 48h para quem recebeu; contraprova: 0 pessoas cujo
+`generation_stage_error` mais recente diverge do kind carimbado.
+**Placar 03:00 BRT (externos):** has_paid 11 (starter 3, basic 2, pro 2,
+free/churn 4); cadastros 1h=1, 24h=31 (2 com 0cr); vídeos 1h=0, 24h=18;
+**falhas 1h=2** (asuquoalbert speech=3s/60s ×2 — o mesmo de antes, já
+carimbado às 06:00); 3h: adrian prompt_len ×7 + asuquoalbert; checkout_started
+24h=5 pessoas; 7d: 72 com 1, 9 com 2, 2 com 3, **0 com 4+**; crons 24h:
+winback25 120, **failure_recovery 6 (script_short 6)**, momentum 0,
+subscriber_idle 0; `stranded_diag` 24h=0 (o #14 ainda não está no ar);
+stranded_outcome 3h: no_authorized_urls ×6 (shaunish2097, o do #14).
+**Próximo item (#16):** (a) `momentum_nudge_sent` = 0 em 24h desde que
+acordou em 01/09 — ler o cron e o vercel.json: ou a coorte está vazia de
+verdade ou o filtro está errado (2ª cron "acordada" com 0 disparos = suspeito);
+(b) a família "recusa na análise" (`analyze_not_ok` 18/4 pessoas + "Could not
+analyze" 19/5 em 7d) — o que o servidor devolveu (500 de OpenAI? 400?) e por
+que ninguém vira `generate_failed`; (c) depois do clique: `stranded_diag` do #14.
