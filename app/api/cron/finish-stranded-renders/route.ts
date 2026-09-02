@@ -35,6 +35,18 @@ import { POST as composePost } from '@/app/api/compose/route'
 import { GET as composeStatusGet } from '@/app/api/compose/status/[renderId]/route'
 
 export const dynamic = 'force-dynamic'
+// ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
+// Rota SO-GET no Next 14.2: sem POST no modulo, o store nasce com
+// revalidate=false, e `dynamic='force-dynamic'` NAO muda isso (so pula o proxy
+// que marcaria a rota como dinamica). Resultado: todo GET do supabase-js (e da
+// fal/Creatomate) com URL estavel ia para o Data Cache da Vercel PARA SEMPRE —
+// a rota lia o banco como ele estava na PRIMEIRA vez que aquela URL foi pedida.
+// Provado em producao 02/09: cron de resgate contando 1 tentativa com 3 no
+// banco, marcador stranded_composed invisivel 13 min depois de gravado,
+// "claim row missing" logo apos 23505 no MESMO id, e-mail de video pronto
+// repetido 15 min depois (be9c6314). Esta linha e o unico interruptor que
+// zera o revalidate ANTES do primeiro fetch. Nao remover.
+export const fetchCache = 'force-no-store'
 export const maxDuration = 300
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY ?? ''
@@ -346,7 +358,10 @@ export async function GET(req: NextRequest) {
   let composed = 0
   let ready = 0
   let rescuedCount = 0
-  const results: Array<{ generation: string; outcome: string }> = []
+  // sprint-assinaturas #17 — `error` = a frase que o compose devolveu. Ate hoje
+  // so o status viajava no stranded_outcome e a causa do 503 do wummm709 so
+  // existia no log da Vercel (que expira). Agora fica no banco, ao lado.
+  const results: Array<{ generation: string; outcome: string; error?: string }> = []
 
   for (const claim of candidates) {
     const genId = claim.session_id as string | null
@@ -599,11 +614,12 @@ export async function GET(req: NextRequest) {
         results.push({ generation: gen8, outcome: 'compose_pending_race' })
       } else {
         console.error(`[stranded] compose failed gen=${gen8}: ${res.status} ${JSON.stringify(json).slice(0, 200)}`)
-        results.push({ generation: gen8, outcome: `compose_error_${res.status}` })
+        const composeErr = typeof json?.error === 'string' ? json.error : JSON.stringify(json ?? null)
+        results.push({ generation: gen8, outcome: `compose_error_${res.status}`, error: composeErr.slice(0, 200) })
       }
     } catch (e) {
       console.error(`[stranded] compose threw gen=${gen8}:`, e instanceof Error ? e.message : String(e))
-      results.push({ generation: gen8, outcome: 'compose_threw' })
+      results.push({ generation: gen8, outcome: 'compose_threw', error: (e instanceof Error ? e.message : String(e)).slice(0, 200) })
     }
   }
 
@@ -773,7 +789,7 @@ export async function GET(req: NextRequest) {
       .map((r) => {
         const claim = candidates.find((c) => typeof c.session_id === 'string' && c.session_id.startsWith(r.generation))
         return claim && typeof claim.user_id === 'string' && typeof claim.session_id === 'string'
-          ? { user_id: claim.user_id, name: 'stranded_outcome', session_id: claim.session_id, path: '/api/cron/finish-stranded-renders', metadata: { outcome: r.outcome.slice(0, 120) } }
+          ? { user_id: claim.user_id, name: 'stranded_outcome', session_id: claim.session_id, path: '/api/cron/finish-stranded-renders', metadata: { outcome: r.outcome.slice(0, 120), ...(r.error ? { error: r.error } : {}) } }
           : null
       })
       .filter((row): row is NonNullable<typeof row> => row !== null)

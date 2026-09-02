@@ -807,6 +807,18 @@ export async function POST(req: NextRequest) {
         { status: 400 },
       )
     }
+    // ═══ KINEO-RESGATE-CUSTO-2 (sprint-assinaturas #17, 02/09) ══════════════
+    // O #7/489b2a66 fez o resgate do servidor ACEITAR o claim com custo
+    // diferente do recalculado por duracao — mas continuou ESCREVENDO o custo
+    // recalculado no claim de compose (wummm709: nascimento 19, compose 15).
+    // O /api/compose/status confere `birth.creditCost === compose.cost`
+    // (loadSettledCinematicClaimForRender) e devolvia 503 "billing
+    // verification" para um MP4 pronto: filme montado, pago na fal e no
+    // Creatomate, nunca persistido, estornado 2h depois. Regra: quando existe
+    // claim de nascimento, o custo do compose E O DO NASCIMENTO (ja debitado,
+    // ja assinado). Para o cliente comum os dois numeros ja sao iguais (a
+    // checagem dura acima garante); a diferenca so existe no resgate.
+    const cinematicPrepaidCost: number | null = cinematicBirthClaim ? cinematicBirthClaim.creditCost : null
     if (isAvatarReq) {
       const loadedAvatar = await loadPrepaidAvatarClaimForGeneration({
         db: composeAdmin,
@@ -2088,7 +2100,7 @@ export async function POST(req: NextRequest) {
       // Submit once per authenticated generation. Retrying a provider POST
       // after an ambiguous response can create and charge two render jobs.
       // KINEO-DURACAO-FIX2-2026-08-21 — o caminho Hollywood/H3 também escala.
-      const hollywoodCost = creditCostForDuration(quality, true, duration)
+      const hollywoodCost = cinematicPrepaidCost ?? creditCostForDuration(quality, true, duration)
       const hollywoodClaim: SubmissionClaimResult = ownsSubmissionClaim
         ? { kind: 'acquired' }
         : await claimGenerationSubmission(hollywoodCost)
@@ -2618,7 +2630,7 @@ export async function POST(req: NextRequest) {
     // ambiguous response can create and charge two jobs.
     // Mesmo motivo do bloco acima: o custo pretendido registrado no intent
     // precisa bater com o do claim, senão o settle diverge lá na frente.
-    const intendedCost = creditCostForDuration(quality, quality === 'fast' ? !isFreePlanFast : false, duration)
+    const intendedCost = cinematicPrepaidCost ?? creditCostForDuration(quality, quality === 'fast' ? !isFreePlanFast : false, duration)
     const claim: SubmissionClaimResult = ownsSubmissionClaim
       ? { kind: 'acquired' }
       : await claimGenerationSubmission(intendedCost)
