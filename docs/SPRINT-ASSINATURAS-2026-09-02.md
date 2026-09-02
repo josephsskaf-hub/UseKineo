@@ -1643,3 +1643,81 @@ esteira para quem só tem clipes/imagens/áudios (metade do item (a) do #23);
 (c) 11:00 BRT: `momentum_nudge_sent` do 1º disparo; (d) pós-clique: dry-run
 do resgate `?max_idle_h=720` e `body` dos loss/D5/D10 + `footer` do
 video_ready.
+
+### #25 — 07:09→07:35 BRT — o e-mail de resgate "Your video is ready 🎬" era uma CÓPIA MUDA do e-mail da rota de status (2 e-mails no mesmo segundo, 3 em três casos), sem episódio 2 nem plano; agora não duplica e, quando sai, leva o rodapé do #24
+**Leitura.** origin/main = be151a22 (Codex: atribuição do plano business
+compartilhado — nada na minha pista); fila = 22 sobre origin/main (até o
+#24), **ainda não clicada** — e isso está custando cliente AGORA (ver
+destaque). Sandbox sem disco (/tmp 100%, clones antigos de outras sessões
+que não posso apagar): worktree `.claude/worktrees/assin-r25` na OneDrive,
+árvore montada por `git archive | tar` (o checkout travou no `index.lock` da
+OneDrive), commit com `GIT_INDEX_FILE` próprio, enfileirado por
+`enfileirar.sh` (HEAD já é filho da ponta da fila → rebase vazio).
+**Checagem zero (1h, externos).** 1 cadastro; 2 vídeos entregues; **0
+falhas**; 5 estornos/24h. Nada quebrado novo.
+**O que estava errado (medido, externos, 14d).** O cron
+`finish-stranded-renders` cutuca `/api/compose/status` em modo serviço; a
+rota de status, ao persistir o vídeo, JÁ manda "⚡ Your Short is ready to
+download!" (o e-mail que o #24 acabou de dotar de rodapé por situação). Em
+seguida o cron mandava o SEU "Your video is ready 🎬" — sem episódio 2, sem
+plano, sem saldo. Prova: 24 filmes resgatados, 22 pessoas, **21 com um
+único vídeo na vida**; em **16 dos 24** `videos.created_at` = segundo do
+`stranded_*_ready_sent` (persistido pelo próprio poke → dois e-mails no
+mesmo segundo); nos outros 8 o vídeo já existia há 11 min–4,5 h (o e-mail da
+rota de status já tinha saído na hora). **3 filmes levaram 3 avisos** (Fase 3
+`stranded_fast_ready_sent` e, 15 min depois, Fase 2 `stranded_ready_sent`
+para o mesmo render). Downloads depois do aviso: **0 em 21 das 22 pessoas**.
+Cohort: 17 trials com saldo ≥5cr (o pedido certo é o 2º vídeo), 4 sem saldo
+(o pedido certo é o plano medido em filmes), 1 assinante Pro (62aa2fcc,
+130cr, leu um e-mail que não convidava para nada).
+**O que mudou** (`app/api/cron/finish-stranded-renders/route.ts`, minha
+pista — cron/ciclo de vida). (1) Antes de mandar, Fase 2 e Fase 3 consultam
+`video_ready_email_sent` (carimbo do #24) por `metadata->>render_id`: se a
+rota de status já avisou, o cron grava `stranded_*_ready_sent` com
+`email:'status_route'` (nunca reconsidera) e registra
+`ready_notified_by_status`; consulta falhou = não manda (fail-closed, padrão
+#4). (2) Quando o do cron é o único que sai (Resend falhou na rota, ou vídeo
+persistido antes do carimbo existir), ele leva o MESMO rodapé do #24 via
+`readyFooterFor(prof, vid)` — perfil (`has_paid/plan/video_credits`) + linha
+de `videos` (`title/topic/credits_used/duration`), zero consulta extra além
+das colunas — num cartão escuro depois do botão (o `<strong>` branco do #24
+sumiria no fundo branco). (3) Lote da Fase 2 enxerga o aviso da Fase 3 e
+vice-versa. Carimbo do envio grava `footer/subscriber/cost/credits_remaining`.
+Texto puro ganha "Ready for the next one? /studio". "+3 credits back"
+mantido (lib/postToEarn é real). Sem crédito, cupom ou preço novo.
+**Testes.** `scripts/test-stranded-ready-footer.mjs` **42 verificações** —
+`readyFooterFor`/`readyIsSubscriber` extraídas da rota e RODADAS com os
+casos reais (62aa2fcc Pro 130cr → episódio 2 sem preço; 1410cb70 20cr →
+episódio 2 antes do plano; c4ccb01e 0cr → plano em filmes; perfil/vídeo
+nulos → copy de hoje, nunca lança) + 24 leituras da rota provando as duas
+fases, o fail-closed, o carimbo e a ausência de chamada antiga. #24 segue
+46/46. tsc: só os 3 pré-existentes (acacia ×2, TrialDowngradeModal).
+**Para o cliente/receita.** ~1,7 filme resgatado/dia deixa de gerar 2-3
+e-mails iguais para a pessoa mais frágil do funil (1º vídeo, quase sempre
+trial); o único aviso que sai passa a pedir o 2º vídeo (trial com saldo) ou
+o plano medido no filme que chegou (sem saldo). Assinante nunca vê preço.
+**SHA:** b3359a05 (sobre 8fa76a99). **Risco:** baixo — só decide se manda e
+com qual rodapé; falha de leitura cai em "não manda agora" (próxima rodada
+tenta de novo) ou na copy de hoje.
+**Como medir:** `stranded_ready_sent`/`stranded_fast_ready_sent` por
+`metadata->>'email'` (`status_route` = duplicata evitada) e por
+`metadata->>'footer'`; `videos.created_at` = `created_at` do evento deve
+virar 0 casos; `video_downloaded` em 24h após aviso (base: 1/22).
+**🔴 DESTAQUE (não é item novo, é a fila parada):** 786e79fc recebeu **14×**
+"Your video is ready 🎬" entre 10:31 e 13:45 UTC de 01/09 — é o bug do #4
+(dedupe direta), corrigido na fila há 9 horas e ainda em produção porque o
+SUBIR-SITE.bat não foi clicado. Cada hora sem clique = mais um cliente
+recebendo e-mail em loop.
+**Placar 07:30 BRT (externos):** has_paid 11 (starter 3, basic 2, pro 2,
+free/churn 4); cadastros 1h=1, 24h=39 (5 com 0cr = gasto real); vídeos 1h=2,
+24h=24; **falhas 1h=0**; checkout_started 24h=5 pessoas; 7d: 81 com 1, 9
+com 2, 2 com 3, **0 com 4+**; crons 24h: winback25 120, failure_recovery 6,
+stranded_ready 16 (14 = loop do 786e79fc) + fast 5, trial_lifecycle 100,
+momentum 0 (13:30 UTC); refunds 24h: 5.
+**Próximo item (#26):** (a) D5/D10 da esteira `trial-lifecycle-emails`
+para quem só tem clipes/imagens/áudios (metade do item (a) do #23 — 11 D5
+em 30d mentindo "nada virou vídeo"); (b) `send-video-ready` (30min-24h sem
+download, `profiles.video_ready_sent_at`) — checar volume e aplicar o mesmo
+rodapé se for relevante; (c) 11:00 BRT: `momentum_nudge_sent` do 1º
+disparo; (d) pós-clique: `stranded_*_ready_sent` com `email='status_route'`
+aparecendo e o loop do 786e79fc parando.
