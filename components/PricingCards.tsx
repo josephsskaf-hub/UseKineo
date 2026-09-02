@@ -12,7 +12,7 @@
 // It is rendered for signed-in users, so a 401 means the session expired and
 // the flow falls back to /login.
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { PLANS } from '@/lib/pricing'
 import {
   // KINEO-PILOT-99-2026-07-26 — este grid não tinha NENHUMA presença de
@@ -48,8 +48,32 @@ import {
   STUDIO_HOLLYWOOD_FILMS,
   videosPerMonth,
 } from '@/lib/marketingPrice'
-import { trackEvent } from '@/lib/analytics'
+import { trackClosedEvent, trackEvent } from '@/lib/analytics'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
+import {
+  INLINE_PRICING_DWELL_MS,
+  INLINE_PRICING_RETRY_MS,
+  INLINE_PRICING_VISIBLE_RATIO,
+  createInlinePricingDecisionRecorder,
+  createInlinePricingDwellController,
+} from '@/lib/growth/inlinePricingDecision'
+
+const inlinePricingDecisionRecorder = createInlinePricingDecisionRecorder({
+  transport: (eventName, metadata) => trackClosedEvent(eventName, metadata),
+})
+
+function browserSessionStorage(): Storage | null {
+  try {
+    return window.sessionStorage
+  } catch {
+    return null
+  }
+}
+
+function browserSchedule(callback: () => void, delayMs: number): () => void {
+  const timer = window.setTimeout(callback, delayMs)
+  return () => window.clearTimeout(timer)
+}
 
 // Push #078 — feature copy now derives from lib/pricing.ts so credit
 // counts can't drift between the homepage, /pricing, and this in-flow
@@ -104,6 +128,7 @@ export default function PricingCards({
 }: {
   intentCampaign?: string | null
 }) {
+  const valueAnchorRef = useRef<HTMLParagraphElement | null>(null)
   // KINEO-CHECKOUT-TRIAGE-2026-07-25 — antes: `purchasing` era só useState, sem
   // trava síncrona, e `error` NUNCA era setado (UI morta). Um clique duplo
   // antes do repaint criava duas sessões Stripe e uma falha de rede não
@@ -127,6 +152,40 @@ export default function PricingCards({
   // this in-flow grid agrees with /pricing and the 0-credit modal (Creator =
   // the one primary plan everywhere).
   const [selectedPlan, setSelectedPlan] = useState<'starter' | 'basic' | 'pro' | null>('basic')
+
+  useEffect(() => {
+    const target = valueAnchorRef.current
+    if (!target || typeof IntersectionObserver === 'undefined') return
+
+    const storage = browserSessionStorage()
+    const record = () => inlinePricingDecisionRecorder.recordOnce(storage)
+    let currentEntry: IntersectionObserverEntry | null = null
+    const dwellController = createInlinePricingDwellController({
+      record,
+      schedule: browserSchedule,
+      dwellMs: INLINE_PRICING_DWELL_MS,
+      retryDelayMs: INLINE_PRICING_RETRY_MS,
+    })
+    const currentSample = () => ({
+      isIntersecting: Boolean(currentEntry?.isIntersecting),
+      intersectionRatio: currentEntry?.intersectionRatio ?? 0,
+      documentVisible: document.visibilityState === 'visible',
+      targetConnected: target.isConnected,
+    })
+    const observer = new IntersectionObserver((entries) => {
+      currentEntry = entries.find((entry) => entry.target === target) ?? null
+      dwellController.update(currentSample())
+    }, { threshold: [INLINE_PRICING_VISIBLE_RATIO] })
+    const handleVisibility = () => dwellController.update(currentSample())
+
+    observer.observe(target)
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => {
+      dwellController.stop()
+      observer.disconnect()
+      document.removeEventListener('visibilitychange', handleVisibility)
+    }
+  }, [])
 
   // PUSH #74 — display the same server-selected currency the customer will
   // see in Stripe. Checkout still resolves currency independently and never
@@ -353,6 +412,7 @@ export default function PricingCards({
           exporia que o plano do meio é o pior negócio da grade. Uma âncora
           contra o mercado ajuda; três âncoras contra si mesmas atrapalham. */}
       <p
+        ref={valueAnchorRef}
         className="mx-auto text-center"
         style={{
           maxWidth: '42rem',
