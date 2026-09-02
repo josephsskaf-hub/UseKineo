@@ -12,7 +12,10 @@ RAIZ="$(git rev-parse --show-toplevel)"
 COMUM="$(git rev-parse --git-common-dir)"
 git fetch origin -q
 PONTA="$(git -C "$COMUM/.." rev-parse entrega-atual 2>/dev/null || git rev-parse origin/main)"
-BASE="$(git merge-base HEAD origin/main)"
+# v2 (02/09): a base e a merge-base com a PONTA DA FILA, nao com a main. Com a
+# main como base, commits que outra sessao ja enfileirou (e talvez reescreveu)
+# eram replayados de novo e conflitavam consigo mesmos.
+BASE="$(git merge-base HEAD "$PONTA" 2>/dev/null || git merge-base HEAD origin/main)"
 NOVOS="$(git rev-list --count "$BASE..HEAD")"
 echo "fila atual: $(git rev-list --count origin/main..$PONTA) commit(s) — meus novos: $NOVOS"
 git rebase --onto "$PONTA" "$BASE" -q 2>/dev/null || {
