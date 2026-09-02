@@ -73,7 +73,7 @@ const route = fs.readFileSync(path.join(root, 'app/api/cron/trial-lifecycle-emai
 ok(route.includes("from '@/lib/lifecycle/otherDeliveries'"), 'route imports the module')
 ok(/const neverRan = c\.videosMade === 0 && otherTotal === 0/.test(route), 'neverRan requires 0 videos AND 0 other deliveries')
 ok(/otherMade: otherCounts\?\.get\(id\) \?\? EMPTY_OTHER_DELIVERIES/.test(route), 'candidate carries otherMade (fail-open zeros)')
-ok(/dueKind\(row, now, videoCounts, ourFailureIds, lastTopics, other\.counts\)/.test(route), 'dueKind receives the counts')
+ok(/dueKind\(row, now, videoCounts, ourFailureIds, lastTopics, lastFilms, other\.counts\)/.test(route), 'dueKind receives the counts')
 ok((route.match(/other_deliveries_degraded: other\.degraded/g) || []).length === 3, 'degrade flag in all 3 JSON responses')
 ok(route.includes('they stay in your Library.`') && route.includes('The ${otherKept} you already made are yours'), 'loss e-mail names what stays (clips/images/voiceovers)')
 ok(!/otherMade|otherTotal|otherKept/.test(route.slice(route.indexOf("if (c.kind === 'ending_soon')"), route.indexOf("if (c.kind === 'downgraded_loss')"))), 'ending_soon untouched (byte-for-byte copy of today)')

@@ -114,7 +114,8 @@ v('B05 rota usa a fonte nova', rota.includes("'lifecycle_loss_email'"))
 v('B06 Candidate tem lastTopic', /lastTopic: string \| null/.test(rota))
 v('B07 dueKind recebe lastTopics', /lastTopics: Map<string, string> \| null,/.test(rota))
 v('B08 base preenche lastTopic normalizado', rota.includes("lastTopic: normalizeSeriesSeed(lastTopics?.get(id) ?? '') || null"))
-v('B09 chamada de dueKind passa lastTopics', rota.includes('dueKind(row, now, videoCounts, ourFailureIds, lastTopics)'))
+// #11 (otherMade) e #20 (lastFilms) entraram na assinatura depois deste teste.
+v('B09 chamada de dueKind passa lastTopics', rota.includes('dueKind(row, now, videoCounts, ourFailureIds, lastTopics, lastFilms, other.counts)'))
 v('B10 select colhe topic', rota.includes("select('user_id, topic, created_at')"))
 v('B11 sem select antigo sobrando', !rota.includes(".select('user_id')\n        .in('user_id', part)"))
 v('B12 ORDER BY id continua (paginacao estavel)', rota.includes(".order('id', { ascending: true })"))
@@ -125,7 +126,9 @@ v('B16 degrade junto com a contagem', rota.includes('const lastTopics: Map<strin
 v('B17 helper do bloco existe', rota.includes('function episodeTwoBlock('))
 v('B18 helper escapa html', rota.includes('function escapeHtmlText('))
 v('B19 fail-closed sem prompt', rota.includes("if (!url.includes('prompt=')) return null"))
-v('B20 ep2 so no ramo de quem TEM video', rota.indexOf('const ep2 = episodeTwoBlock(') > rota.indexOf('const neverRan = c.videosMade === 0'))
+// A busca parte do ramo da perda: o ending_soon (#24) tambem chama o helper antes.
+const iNeverRan = rota.indexOf('const neverRan = c.videosMade === 0')
+v('B20 ep2 so no ramo de quem TEM video', rota.indexOf('const ep2 = episodeTwoBlock(', iNeverRan) > iNeverRan)
 v('B21 ep2 usado no texto', rota.includes('${ep2 ? `\\n${ep2.text}\\n` : \'\'}'))
 v('B22 ep2 usado no html', rota.includes('${ep2 ? `${ep2.html}\\n` : \'\'}'))
 v('B23 campanha propria (nao reusa a do pool)', rota.includes("'trial_loss_episode2'"))
@@ -133,7 +136,8 @@ v('B24 contagem de videos preservada', rota.includes('counts.set(v.user_id, (cou
 v('B25 guarda de user_id string preservada', rota.includes("if (typeof v.user_id !== 'string') continue"))
 
 // ══════════ BLOCO C — a pista do Codex intacta ══════════
-const trecho = rota.slice(rota.indexOf('const ep2 = episodeTwoBlock('), rota.indexOf('Here\'s what you just lost access to`', rota.indexOf('const ep2 = episodeTwoBlock(')))
+const iEp2Loss = rota.indexOf('const ep2 = episodeTwoBlock(', iNeverRan)
+const trecho = rota.slice(iEp2Loss, rota.indexOf('Here\'s what you just lost access to`', iEp2Loss))
 v('C01 CTA de pricing continua', trecho.includes("cta(url, 'Get Creator back')"))
 v('C02 pricing vem ANTES do episodio 2 no html', trecho.indexOf("cta(url, 'Get Creator back')") < trecho.indexOf('${ep2 ? `${ep2.html}'))
 v('C03 assunto inalterado', rota.includes("subject: `Here's what you just lost access to`"))

@@ -106,7 +106,8 @@ check('B3 fonte fixa do loss saiu do helper', !/buildSeriesContinuationEmailUrl\
 check('B4 tipo da fonte importado', /type SeriesContinuationSource,/.test(route))
 check('B5 chamada do loss passa a fonte do loss', route.includes("episodeTwoBlock(c.lastTopic, 'trial_loss_episode2', 'lifecycle_loss_email', attr)"))
 check('B6 chamada do ending passa a fonte do ending', route.includes("episodeTwoBlock(c.lastTopic, 'trial_ending_episode2', 'lifecycle_ending_email', attr)"))
-check('B7 exatamente duas chamadas do helper', (route.match(/episodeTwoBlock\(c\.lastTopic/g) || []).length === 2)
+// sprint-assinaturas #20: 3a chamada no corpo `burned_with_film` do downgraded_loss
+check('B7 exatamente tres chamadas do helper', (route.match(/episodeTwoBlock\(c\.lastTopic/g) || []).length === 3)
 check('B8 fail-closed continua no helper', route.includes("if (!url.includes('prompt=')) return null"))
 
 // posicao: a chamada do ending esta DENTRO do if (c.kind === 'ending_soon')

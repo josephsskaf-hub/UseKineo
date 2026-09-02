@@ -39,6 +39,14 @@ import {
   otherDeliveriesTotal,
   type OtherDeliveries,
 } from '@/lib/lifecycle/otherDeliveries'
+import {
+  filmNoun,
+  filmPlanLine,
+  filmsPerPlan,
+  isBurnedWithFilm,
+  lossBodyFor,
+  type LossBody,
+} from '@/lib/lifecycle/trialFilmPlans'
 
 // trial-lifecycle-emails — REVERSE TRIAL FASE 2, ITEM 4 (07/08/2026).
 // [KINEO-TRIAL-EMAILS-2026-08-07]
@@ -522,6 +530,22 @@ interface Candidate {
    */
   lastTopic: string | null
   /**
+   * sprint-assinaturas #20 — custo (credits_used) e duracao do video mais
+   * RECENTE, colhidos no MESMO laco que ja pagina `videos` (zero consulta
+   * nova). So o `downgraded_loss` le, e so no corpo `burned_with_film`, para
+   * dizer "62-second film" e quantos filmes COMO ESSE cada plano compra.
+   * Falha aberta (null): a copy nao afirma segundos nem filmes por plano.
+   */
+  lastCost: number | null
+  lastDuration: number | null
+  /**
+   * sprint-assinaturas #20 — a pessoa gastou o trial INTEIRO ('downgraded',
+   * used >= granted) e tem >= 1 video entregue: e o lead mais quente da casa
+   * e recebia a lista de perdas 10 min depois do filme chegar (zareshahi0).
+   * Decidido em `dueKind` (unico lugar que ve status/granted/used/videosMade).
+   */
+  burnedWithFilm: boolean
+  /**
    * KINEO-SPRINT-ASSINATURAS-2026-09-02 (#11) — o que a conta RECEBEU fora de
    * `videos`: clipes do /animate, imagens, audios. Existe porque xzavior000
    * fez 5 clipes em 24 min, queimou o trial inteiro e recebeu "nothing we
@@ -571,6 +595,7 @@ function dueKind(
   videoCounts: Map<string, number> | null,
   ourFailureIds: ReadonlySet<string>,
   lastTopics: Map<string, string> | null,
+  lastFilms: Map<string, { cost: number | null; duration: number | null }> | null,
   otherCounts: Map<string, OtherDeliveries> | null = null,
 ): Candidate | null {
   const id = typeof row.id === 'string' ? row.id : ''
@@ -640,6 +665,10 @@ function dueKind(
     // Normalizado UMA vez aqui (e nao na hora de montar o e-mail) para que o
     // teste consiga provar o contrato do campo sem montar e-mail nenhum.
     lastTopic: normalizeSeriesSeed(lastTopics?.get(id) ?? '') || null,
+    lastCost: lastFilms?.get(id)?.cost ?? null,
+    lastDuration: lastFilms?.get(id)?.duration ?? null,
+    // So vira true no ramo pos-trial, com videosMade real — ver `postBase`.
+    burnedWithFilm: false,
     // #11 — falha aberta: sem leitura, zeros (copy de hoje).
     otherMade: otherCounts?.get(id) ?? EMPTY_OTHER_DELIVERIES,
   }
@@ -834,7 +863,11 @@ function dueKind(
     // inclusive para quem fez 12 vídeos. É a mesma classe de erro do campo
     // `creditsLost`, que existe justamente porque um default silencioso vira
     // afirmação falsa no corpo do e-mail.
-    const postBase = { ...base, videosMade }
+    const postBase = {
+      ...base,
+      videosMade,
+      burnedWithFilm: isBurnedWithFilm({ status, granted, used, videosMade }),
+    }
     if (sinceEnd < DOWNGRADED_LOSS_TO_MS) {
       const lost = status === 'downgraded' ? Math.max(0, granted - used) : 0
       return { ...postBase, kind: 'downgraded_loss', creditsLost: lost }
@@ -1093,7 +1126,7 @@ function escapeHtmlText(v: string): string {
     .replace(/"/g, '&quot;')
 }
 
-function buildEmail(c: Candidate): { subject: string; text: string; html: string } {
+function buildEmail(c: Candidate): { subject: string; text: string; html: string; body?: LossBody } {
   const footerText = emailFooterText(c.id)
   const footerHtml = emailFooterHtml(c.id)
   // KINEO-D0-EMAIL-REVIEW-2026-08-07 — 480px → 560px: o rodapé de
@@ -1524,7 +1557,70 @@ ${fbuLineHtml}  <p style="margin:0 0 14px;">You can still make one on the <stron
         // Existe, portanto, uma conta com 0 vídeos e 0 cota, para quem aquele
         // assunto seria falso. Este afirma só o que o código garante: o link
         // prefila e dispara sozinho.
-        return { subject: `Your first video is one click away`, text: `${nrText}${footerText}`, html: nrHtml }
+        return {
+          subject: `Your first video is one click away`,
+          text: `${nrText}${footerText}`,
+          html: nrHtml,
+          body: lossBodyFor({ neverRan: true, burnedWithFilm: false }),
+        }
+      }
+    }
+
+    // ═══ sprint-assinaturas #20 — QUEM GASTOU O TRIAL INTEIRO E TEM O FILME ═══
+    // zareshahi0 (chatgpt.com, 02/09): 1o video = 25cr = trial inteiro; filme
+    // de 62s na Library as 08:15 UTC e, as 08:25, ESTE e-mail dizendo "here's
+    // what you just lost access to". Medido 14d: 29 pessoas nesse caso, 401
+    // `downgraded_loss` no total, 4 checkouts depois, 1 pagante. Para quem
+    // gastou tudo E recebeu, a 1a frase tem de ser o filme, e o pedido tem de
+    // ser medido em filmes COMO AQUELE — numeros derivados de TIER_CREDITS e do
+    // custo real do video (lib/lifecycle/trialFilmPlans.ts), nunca digitados.
+    // Sem preco literal (regra deste arquivo: /pricing resolve a moeda), sem
+    // cupom. As perdas continuam listadas — so deixam de ser a manchete.
+    if (c.burnedWithFilm) {
+      const noun = filmNoun(c.lastDuration)
+      const libraryUrl = `${APP_URL}/library?${utm('trial_loss_burned_film_library')}`
+      const plansUrl = `${APP_URL}/pricing?${utm('trial_loss_burned_film')}`
+      const rows = filmsPerPlan(c.lastCost)
+      const ep2b = episodeTwoBlock(c.lastTopic, 'trial_loss_burned_film_episode2', 'lifecycle_loss_email', attr)
+      const madeLine = c.videosMade === 1
+        ? `the ${noun} you made is in your Library — yours to keep`
+        : `the ${c.videosMade} videos you made are in your Library — yours to keep`
+      const plansText = rows
+        ? `\nIf you want the next one, a plan is measured in films like that one:\n${rows.map((r) => `- ${filmPlanLine(r)}`).join('\n')}\n`
+        : ''
+      const plansHtml = rows
+        ? `  <p style="margin:0 0 8px;">If you want the next one, a plan is measured in films like that one:</p>\n  <ul style="margin:0 0 14px;padding-left:20px;color:#475569;">\n    ${rows.map((r) => `<li>${escapeHtmlText(filmPlanLine(r))}</li>`).join('\n    ')}\n  </ul>\n`
+        : ''
+      const bText = `Hey,
+
+Your Creator trial ended — you used all of it, and ${madeLine}:
+${libraryUrl}
+
+Here's what closed with the trial:
+
+${bullets.map((b) => `- ${b}`).join('\n')}
+${plansText}
+See the plans: ${plansUrl}
+${ep2b ? `\n${ep2b.text}\n` : ''}
+Kineo Team
+usekineo.com`
+      const bHtml = wrap(`
+  <p style="margin:0 0 14px;">Hey,</p>
+  <p style="margin:0 0 14px;"><strong>Your Creator trial ended</strong> &mdash; you used all of it, and ${escapeHtmlText(madeLine)}.</p>
+  ${cta(libraryUrl, 'Open your Library')}
+  <p style="margin:0 0 14px;">Here's what closed with the trial:</p>
+  <ul style="margin:0 0 14px;padding-left:20px;color:#475569;">
+    ${bullets.map((b) => `<li>${b}</li>`).join('\n    ')}
+  </ul>
+${plansHtml}  ${cta(plansUrl, 'See the plans')}
+${ep2b ? `${ep2b.html}\n` : ''}  ${sig}`)
+      return {
+        subject: c.videosMade === 1
+          ? `Your trial went into one ${noun} — it's in your Library`
+          : `Your trial went into ${c.videosMade} videos — they're in your Library`,
+        text: `${bText}${footerText}`,
+        html: bHtml,
+        body: lossBodyFor({ neverRan: false, burnedWithFilm: true }),
       }
     }
 
@@ -1567,7 +1663,12 @@ usekineo.com`
   <p style="margin:0 0 14px;">If the trial was doing its job, Creator picks up exactly where it left off:</p>
   ${cta(url, 'Get Creator back')}
 ${ep2 ? `${ep2.html}\n` : ''}  ${sig}`)
-    return { subject: `Here's what you just lost access to`, text: `${text}${footerText}`, html }
+    return {
+      subject: `Here's what you just lost access to`,
+      text: `${text}${footerText}`,
+      html,
+      body: lossBodyFor({ neverRan: false, burnedWithFilm: false }),
+    }
   }
 
   if (c.kind === 'expired_offer_d5') {
@@ -1752,13 +1853,16 @@ export async function GET(req: NextRequest) {
   // sem comparar `created_at` o "ultimo tema" seria o de uma linha qualquer.
   const lastTopicAt = new Map<string, number>()
   const topics = new Map<string, string>()
+  // #20 — custo/duracao do video mais recente (mesmo carimbo, mesma regra).
+  const lastFilmAt = new Map<string, number>()
+  const films = new Map<string, { cost: number | null; duration: number | null }>()
   let countsUsable = true
   outer: for (const part of chunk(cohortIds, VIDEO_COUNT_USERS_PER_QUERY)) {
     let from = 0
     for (;;) {
       const { data: vidRows, error: vidErr } = await admin
         .from('videos')
-        .select('user_id, topic, created_at')
+        .select('user_id, topic, created_at, credits_used, duration')
         .in('user_id', part)
         .eq('status', 'completed')
         // ⚠️ ORDENAÇÃO ESTÁVEL É REQUISITO DA PAGINAÇÃO, NÃO ENFEITE. Sem
@@ -1783,10 +1887,18 @@ export async function GET(req: NextRequest) {
         // O tema NUNCA falha fechado: qualquer duvida (tema nao-string, vazio,
         // carimbo ilegivel) simplesmente nao entra no mapa, e o e-mail sai
         // exatamente como sai hoje.
-        const rawTopic = typeof v.topic === 'string' ? v.topic : ''
-        if (!rawTopic.trim()) continue
         const at = typeof v.created_at === 'string' ? Date.parse(v.created_at) : NaN
         const when = Number.isFinite(at) ? at : 0
+        // #20 — independe do tema (um video sem tema ainda tem custo/duracao).
+        if (when >= (lastFilmAt.get(v.user_id) ?? -1)) {
+          lastFilmAt.set(v.user_id, when)
+          films.set(v.user_id, {
+            cost: typeof v.credits_used === 'number' && Number.isFinite(v.credits_used) ? v.credits_used : null,
+            duration: typeof v.duration === 'number' && Number.isFinite(v.duration) ? v.duration : null,
+          })
+        }
+        const rawTopic = typeof v.topic === 'string' ? v.topic : ''
+        if (!rawTopic.trim()) continue
         if (when >= (lastTopicAt.get(v.user_id) ?? -1)) {
           lastTopicAt.set(v.user_id, when)
           topics.set(v.user_id, rawTopic)
@@ -1816,6 +1928,7 @@ export async function GET(req: NextRequest) {
   const videoCounts: Map<string, number> | null = countsUsable ? counts : null
   // Mesma leitura, mesmo degrade: se a paginacao abortou, nao ha tema confiavel.
   const lastTopics: Map<string, string> | null = countsUsable ? topics : null
+  const lastFilms: Map<string, { cost: number | null; duration: number | null }> | null = countsUsable ? films : null
   if (videoCounts === null) {
     // Observabilidade explícita. Sem esta linha (e sem o campo no JSON de
     // resposta) uma falha PERSISTENTE da contagem silenciaria a coorte
@@ -1890,7 +2003,7 @@ export async function GET(req: NextRequest) {
 
   const candidates: Candidate[] = []
   for (const row of (rows ?? []) as ProfileRow[]) {
-    const c = dueKind(row, now, videoCounts, ourFailureIds, lastTopics, other.counts)
+    const c = dueKind(row, now, videoCounts, ourFailureIds, lastTopics, lastFilms, other.counts)
     if (c) candidates.push(c)
   }
 
@@ -2108,7 +2221,16 @@ export async function GET(req: NextRequest) {
           user_id: c.id,
           name: 'trial_lifecycle_email_sent',
           path: '/api/cron/trial-lifecycle-emails',
-          metadata: { kind: c.kind, variant: c.variant, restored: c.restore },
+          metadata: {
+            kind: c.kind,
+            variant: c.variant,
+            restored: c.restore,
+            // #20 — o que a pessoa LEU. O #19 nao conseguiu provar qual corpo
+            // do `downgraded_loss` saiu para o zare; agora fica no evento.
+            videos_made: c.videosMade,
+            credits_lost: c.creditsLost,
+            ...(body.body ? { body: body.body } : {}),
+          },
         })
         console.log(`[trial-lifecycle-emails] sent ${c.kind} to ${c.email}`)
       } else {
