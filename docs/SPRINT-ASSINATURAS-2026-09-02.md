@@ -1354,3 +1354,80 @@ também ignora o filme; (b) 11:00 BRT: os ~27 `momentum_nudge_sent`;
 `downgraded_loss` novos; (d) 0 com 4+ vídeos em 7d continua — a fronteira
 0,9%→11,8% da conversão não está sendo cruzada por ninguém externo esta
 semana; medir o que separa os 9 "com 2" dos 78 "com 1" (motor? custo? falha?).
+
+### #21 — 05:51→06:20 BRT — o e-mail do cupom COMEBACK50 (D5) é o pedido de dinheiro mais enviado da casa e não cita NADA da pessoa; agora a manchete é o filme dela
+**Leitura.** origin/main = ca92ab2c (Codex: mais 2 commits de medição B2B
+brief — nada na minha pista); fila = 14 sobre origin/main (até o #20),
+**ainda não clicada**. A worktree compartilhada `claude-assinaturas-24h`
+tinha o ponteiro `.git` apontando para a sessão anterior (`/sessions/gallant-
+gifted-rubin/...`) — reescrevi os dois ponteiros (`.git` da worktree e
+`gitdir` no `.git/worktrees/`) para esta sessão; ela ainda carrega alterações
+soltas de rodadas antigas (compose/route.ts, finish-stranded-renders, 2 testes
+.mjs) que NÃO toquei. `HEAD.lock` da OneDrive de novo no commit → saída do #20
+(clone `--shared` em /tmp, commit lá, push fast-forward para `entrega-atual`).
+**Checagem zero (2h, externos).** 6 cadastros, todos com crédito (25/25/10/
+10/0/0 — os 0 e 10 são gasto real: zareshahi0 e anybodyhi5 queimaram o trial
+no 1º Seedance 60s; arif/cyber09 fizeram 1 vídeo de 15); 4 vídeos entregues;
+0 estornos; **2 falhas = 1 pessoa (anybodyhi5, TAAFT)**: o preflight do #48
+do v1v4 barrou o roteiro de 51s/60s, o "Finish it for me" falhou **3×**
+(`author_rewrite_rejected`), ela clicou por cima (`script_preflight_
+overridden`), e o servidor recusou com a MESMA conta — tela de falha no 1º
+vídeo; editou à mão e entregou às 07:35 UTC (62s, baixou). Família
+`speech=Xs target=Ys` em 14d: **35 recusas / 25 pessoas externas, 14 nunca
+entregaram vídeo depois, 0 pagantes**; o preflight só existe desde hoje
+(02/09) e cobriu 2 das 35. **Pista do v1v4 (#42/#48) — não codei por cima.**
+Observação para eles, no diário: o "clicar por cima" leva a uma recusa
+GARANTIDA (servidor e cliente usam `speechSeconds`+`MIN_COVERAGE`, a mesma
+régua); e o expand falha 16/31 (8 `author_rewrite_rejected`, 8 `growth_
+limit`) — a ferramenta que existe para consertar o roteiro curto falha na
+metade das vezes.
+**Medição que escolheu o item.** Custo do 1º vídeo × destino (21d, externos,
+cadastro há ≥2d): trial inteiro no 1º vídeo (25cr) = 17 pessoas, 2 com 2+,
+2 checkouts, **1 pagante (6%)**; ≥ metade = 50, 15 com 2+, 6 checkouts, 0
+pagantes; < metade (5cr) = 194, 63 com 2+, 11 com 4+, 39 checkouts, 1 pagante
+(0,5%). Não é o custo do 1º vídeo que decide — descartado como alavanca.
+Então medi os e-mails de pedido de dinheiro (21d, externos, 72h depois):
+`downgraded_loss` 546 → 122 com evento, 5 checkouts; `ending_soon` 470 → 446
+com evento, 1 checkout; **`expired_offer_d5` (COMEBACK50) 442 → 38 com
+evento, 2 em /pricing, 0 checkout, 0 pagante; `expired_lastcall_d10` 276 →
+5 com evento, 0 em /pricing.** 718 e-mails de cupom em 3 semanas, ZERO
+checkout. 248 dos 442 D5 foram para gente COM vídeo entregue.
+**O que estava errado.** O D5 é o único e-mail da casa que não cita nada da
+pessoa: "Your Creator trial ended a few days ago. If the timing wasn't right,
+here's a better deal..." — idêntico para quem nunca rodou e para quem tem um
+filme de 62s na Library. O `Candidate` do D5 já carregava `videosMade`,
+`lastCost`, `lastDuration` e `lastTopic` desde o #20/#25 e o D5 não lia nenhum.
+**O que mudou** (`app/api/cron/trial-lifecycle-emails/route.ts`, ramo
+`expired_offer_d5`, só quando `videosMade >= 1`): assunto **"Your 62-second
+film is still in your Library — and Creator is 50% off"** (ou "Your N videos
+are still..."); 1º link = Library (utm `trial_offer_d5_library`); o cupom é o
+MESMO — frase, porcentagem, prazo e URL (`promo=` + utm `trial_offer_d5`)
+byte a byte, código vindo da constante; o pedido em filmes: "That's 3 films
+like that one every month, at half the price" — só a linha do Creator
+(`filmsPerPlan(lastCost)` filtrado em `basic`, porque o cupom é do Creator;
+custo desconhecido ou 0 filmes = a frase cala); episódio 2 do tema dela
+(utm `trial_offer_d5_episode2`, falha aberta). Quem NÃO tem vídeo recebe o
+e-mail de hoje byte a byte. `LossBody` ganhou `'offer_with_film'`; o evento
+`trial_lifecycle_email_sent` do D5 grava `body` (`offer_with_film` |
+`standard`). Sem crédito, sem preço literal, sem cupom novo, D10 intocado.
+**Testes.** `scripts/test-trial-offer-d5-with-film.mjs` 22 verificações;
+`test-trial-loss-burned-film.mjs` 40/40 continua verde. tsc: só os
+pré-existentes (TrialDowngradeModal do Codex + acacia/BRL).
+**Para o cliente/receita.** ~12 pessoas/dia recebem o D5; ~7 delas têm filme.
+Hoje 0,45% clicam. A pessoa passa a abrir um e-mail com o NOME do que ela
+fez e um preço medido na unidade que ela experimentou. É o e-mail de maior
+volume da casa com pedido de cartão — qualquer ponto percentual aqui vale
+mais que uma tela nova.
+**SHA:** 6d27d1ee (sobre 07fec618). **Risco:** baixo — ramo novo exige
+`videosMade >= 1` (contagem real, falha fechada no `dueKind`); qualquer
+dúvida = e-mail de hoje.
+**Como medir:** `trial_lifecycle_email_sent` com `kind='expired_offer_d5'` e
+`body='offer_with_film'` → eventos com utm `trial_offer_d5_library` /
+`trial_offer_d5` / `trial_offer_d5_episode2` nas 72h; comparar com 2/442.
+**Próximo item (#22):** (a) o D10 (`expired_lastcall_d10`, 276 enviados, 5
+eventos) — mesmo tratamento, e questionar se o D10 deve existir para quem
+nunca rodou (161 dos 276 tinham vídeo); (b) por que 442 D5 geram 38 eventos:
+conferir na Resend se o e-mail está ENTREGANDO (bounce/spam) antes de
+reescrever mais copy — se a entrega for o furo, copy nenhuma resolve;
+(c) 11:00 BRT: os `momentum_nudge_sent` do 1º disparo real (13:30 UTC);
+(d) pós-clique: `body` dos D5/loss novos + dry-run do `rescue-composed-films`.
