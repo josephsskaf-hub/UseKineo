@@ -4,7 +4,7 @@
 
 **Workstream:** Growth / B2B
 
-**Escopo:** descoberta qualificada por answer engines → escolha de um dos quatro caminhos empresariais existentes → assinatura recorrente exata; nenhuma alteração de preço, moeda, crédito, Checkout, banco, render ou comunicação externa.
+**Escopo:** descoberta qualificada por answer engines → escolha de um dos quatro caminhos empresariais existentes → assinatura recorrente exata; nenhuma alteração visual, de preço, moeda, crédito, Checkout, banco, render ou comunicação externa.
 
 ## Reconciliação da ação anterior
 
@@ -25,7 +25,9 @@
 3. agência/freelancer com pedido do cliente → briefing;
 4. lote fechado no intervalo derivado dos packs canônicos → pack avulso.
 
-**FATO CONFIRMADO:** as escolhas estão em `lib/growth/businessAnswerEngineRouter.ts:81`, `:95`, `:107` e `:119`. O intervalo do lote é derivado de `BUSINESS_OFFER_FACT.packs`, nunca digitado novamente. O JSON público expõe a fonte em `lib/kineoFacts.ts:1009`; `/llms.txt` a executa em `app/llms.txt/route.ts:247`; a folha humana responde à mesma pergunta e renderiza os quatro links em `app/facts/page.tsx:376`.
+**FATO CONFIRMADO:** as escolhas estão em `lib/growth/businessAnswerEngineRouter.ts:81`, `:95`, `:107` e `:119`. O intervalo do lote é derivado de `BUSINESS_OFFER_FACT.packs`, nunca digitado novamente. O JSON público expõe a fonte em `lib/kineoFacts.ts`; `/llms.txt` executa a decisão a partir da mesma fonte.
+
+**DECISÃO DE ESCOPO PÓS-REBASE:** a caixa humana originalmente preparada para `/facts` foi retirada desta entrega. O Chrome continuou bloqueado pelo erro de ACL do runtime do Windows em 02/09/2026. A intervenção publicada é somente machine-readable; portanto não altera layout e não depende de aprovação visual. A UI pode ser reconsiderada em outra rodada com comparação visual válida.
 
 **FATO CONFIRMADO:** todo destino é uma página pública existente. Nenhum link aponta para API ou cria Checkout. Nenhum link usa `utm_source`, portanto a rota interna não sobrescreve a primeira origem ChatGPT. As limitações declaram uma conta, sem assentos de equipe, fluxo de aprovação ou portal white-label. O caminho recorrente refere-se aos planos self-service; `lib/growth/businessAnswerEngineRouter.ts:86` separa explicitamente o Autopilot como a opção done-for-you de publicação, sem negar que ela existe na mesma página pública.
 
@@ -43,31 +45,28 @@
 
 ## Testes e estado antes da auditoria final
 
-- `test-business-answer-engine-router.mjs`: **66/66**;
+- `test-business-answer-engine-router.mjs`: **55/55**;
 - `test-aeo-business-offer.mjs`: **79/79**;
 - `test-b2b-subscription-truth-report.mjs`: **101/101**;
 - `test-b2b-subscription-truth-loader.mjs`: **12/12**;
 - `test-subscription-revenue-ledger.mjs`: **31/31**;
 - `test-b2b-commercial-funnel-report.mjs`: **98/98**;
-- total: **387/387**;
+- total: **376/376**;
 - `git -c core.whitespace=cr-at-eol diff --check`: limpo;
 - typecheck: somente os três erros preexistentes em `app/api/admin/_shared/mrr.ts:113`, `app/api/me/subscription/route.ts:83` e `components/TrialDowngradeModal.tsx:334`.
 
-**IMPLEMENTADO LOCALMENTE:** preview autocontido antes/depois, desktop e mobile, em `docs/previews/B2B-ANSWER-ENGINE-ROUTER-2026-09-02.html`.
+**FATO OPERACIONAL:** duas tentativas de iniciar o Chrome autenticado falharam no runtime do Windows com `apply deny-read ACLs`. Nenhum navegador alternativo foi usado, respeitando a preferência do fundador. Por isso toda a mudança visual e o preview correspondente foram excluídos do release machine-readable.
 
-**BLOQUEADO PARA VALIDAÇÃO VISUAL NESTE MOMENTO:** duas tentativas de iniciar o Chrome autenticado falharam no runtime do Windows com `apply deny-read ACLs`. Nenhum navegador alternativo foi usado, respeitando a preferência do fundador. O preview existe, mas ainda não foi visualmente aprovado.
-
-**AUDITORIA ADVERSARIAL FINAL DO CÓDIGO:** **GO técnico; P0=0, P1=0, P2=0**. A auditoria encontrou e fez corrigir, antes de qualquer commit: atribuição sem visualização anterior; gate descrito mas não implementado; visitante deslogado invisível; conflito de proprietário examinado só em `pricing_view`; runner que não carregava todos os eventos da sessão; contradição com Autopilot; faixa de packs duplicada; e preview diferente da UI real. O GO continua condicionado aos gates operacionais de rebase, regressão e validação visual.
+**AUDITORIA ADVERSARIAL FINAL DO CÓDIGO:** **GO técnico; P0=0, P1=0, P2=0**. A auditoria encontrou e fez corrigir, antes de qualquer publicação: atribuição sem visualização anterior; gate descrito mas não implementado; visitante deslogado invisível; conflito de proprietário examinado só em `pricing_view`; runner que não carregava todos os eventos da sessão; contradição com Autopilot; faixa de packs duplicada; e preview diferente da UI real. O GO continua condicionado aos gates operacionais de rebase, regressão e validação em produção. Não há gate visual nesta versão porque nenhuma mudança visual permanece no diff.
 
 ## Estado Git e publicação
 
 - base inicial da worktree: `9ab06d325311a58378e70d94604decbf13a2d882`;
-- base após rebase: `b42b9e634e6c1eb843a7c4fe7e11c67bd4128d99`; o commit do Claude não sobrepunha arquivos e o rebase terminou sem conflito;
+- base final após rebase: `5a969e5e3600998b31564b464da60042eb863954`; o rebase terminou sem conflito;
 - branch: `codex/b2b-monthly-operator-aeo-v1`;
-- commit funcional após rebase: `c3663a551ee8ca199f6d787314d5978d1b9f5609`;
-- regressão pós-rebase: **387/387**, whitespace limpo e somente os mesmos três erros preexistentes no typecheck;
-- push/deploy: **não realizados**;
-- auditoria adversarial: **GO técnico; publicação ainda bloqueada pelo gate visual**.
+- commit funcional após rebase: `657847c7` antes da redução de escopo machine-readable;
+- regressão pós-rebase e redução de escopo: **376/376**, whitespace limpo e somente os mesmos três erros preexistentes no typecheck;
+- auditoria adversarial: **GO técnico; P0=0, P1=0, P2=0**. O gate visual deixou de bloquear porque nenhuma mudança visual permanece no diff.
 
 ## Próxima alternância
 

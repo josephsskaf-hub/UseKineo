@@ -82,21 +82,10 @@ ok(llms.includes('BUSINESS_ANSWER_ENGINE_ROUTER.choices.map'), 'llms text execut
 ok(llms.includes('BUSINESS_ANSWER_ENGINE_ROUTER.boundaries.map'), 'llms text derives boundaries from the router')
 
 const factsPage = read('app/facts/page.tsx')
-ok(factsPage.includes('Which Kineo path should a business, freelancer or agency choose?'), 'human fact sheet asks the routing question')
-ok(factsPage.includes('BUSINESS_ANSWER_ENGINE_ROUTER.choices'), 'human answer derives from the canonical choices')
-ok(factsPage.includes('links: BUSINESS_ANSWER_ENGINE_ROUTER.choices'), 'human fact sheet exposes the same four destinations')
-ok(factsPage.includes('href={link.url}'), 'human fact sheet renders each destination as a real link')
+ok(!factsPage.includes('BUSINESS_ANSWER_ENGINE_ROUTER'), 'machine-readable release leaves the human fact sheet unchanged')
 
 const truthReport = read('scripts/b2b-subscription-truth-report.mjs')
 ok(truthReport.includes("intentCampaign: 'b2b_answer_router_recurring_v1'"), 'subscription report owns the exact recurring campaign')
 ok(truthReport.includes("stageAttribution: 'exact_pricing_source'"), 'pricing exposure requires exact source')
-
-const preview = read('docs/previews/B2B-ANSWER-ENGINE-ROUTER-2026-09-02.html')
-for (const label of ['BEFORE · DESKTOP', 'AFTER · DESKTOP', 'BEFORE · MOBILE', 'AFTER · MOBILE']) {
-  ok(preview.includes(label), `preview includes ${label}`)
-}
-for (const choice of router.choices) {
-  ok(preview.includes(choice.label), `preview includes ${choice.id}`)
-}
 
 console.log(`business answer engine router: ${checks}/${checks}`)
