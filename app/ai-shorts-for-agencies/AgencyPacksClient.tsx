@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { trackEvent } from '@/lib/analytics'
 import { readAgencyDistributionEntry } from '@/lib/agencyDistribution'
+import { createReliableViewRecorder, type ReliableViewStorage } from '@/lib/growth/reliablePageView'
 import {
   AGENCY_CHECKOUT_RETURN_VARIANT,
   agencyCheckoutResumeHref,
@@ -18,9 +19,10 @@ export interface AgencyPackView {
   perVideo: string
 }
 
-const VIEW_MARKER = 'kineo:agency-bulk-page:viewed:v2'
+const VIEW_MARKER = 'kineo:agency-bulk-page:viewed:v3'
 const CANCEL_RETURN_MARKER = 'kineo:agency-bulk-checkout:cancelled:v1'
 const FREE_BRIEF_BRIDGE_VARIANT = 'agency_free_brief_bridge_v1'
+const agencyBulkViewRecorder = createReliableViewRecorder()
 
 export default function AgencyPacksClient({ packs }: { packs: AgencyPackView[] }) {
   const [cancelledPackId, setCancelledPackId] = useState<string | null>(null)
@@ -28,18 +30,26 @@ export default function AgencyPacksClient({ packs }: { packs: AgencyPackView[] }
   useEffect(() => {
     const entry = readAgencyDistributionEntry(window.location.search)
     const marker = `${VIEW_MARKER}:${entry ?? 'direct'}`
+    let storage: ReliableViewStorage | null = null
     try {
-      if (sessionStorage.getItem(marker) === '1') return
-      sessionStorage.setItem(marker, '1')
+      storage = window.sessionStorage
     } catch {
-      // Privacy modes can deny sessionStorage. The page must still sell.
+      // Privacy modes can deny sessionStorage. The page and measurement survive.
     }
-    void trackEvent('agency_bulk_page_viewed', {
-      version: 'agency_bulk_v2_2026_08_27',
-      pack_count: packs.length,
-      surface: 'ai_shorts_for_agencies',
-      entry: entry ?? 'direct',
+
+    const controller = new AbortController()
+    void agencyBulkViewRecorder.record({
+      marker,
+      storage,
+      signal: controller.signal,
+      send: () => trackEvent('agency_bulk_page_viewed', {
+        version: 'agency_bulk_v2_2026_08_27',
+        pack_count: packs.length,
+        surface: 'ai_shorts_for_agencies',
+        entry: entry ?? 'direct',
+      }),
     })
+    return () => controller.abort()
   }, [packs.length])
 
   useEffect(() => {

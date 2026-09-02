@@ -77,7 +77,10 @@ check(textToVideo.indexOf('<AgencyVolumeBridge entry="text_to_video" />') < text
 const destination = read('app/ai-shorts-for-agencies/AgencyPacksClient.tsx')
 check(destination.includes('readAgencyDistributionEntry(window.location.search)'), 'destination reads the allowlisted entry')
 check(destination.includes("entry: entry ?? 'direct'"), 'destination records entry or explicit direct traffic')
-check(destination.includes("viewed:v2"), 'session marker is versioned')
+// v2 was a pre-ack claim. v3 is the first namespace whose marker means the
+// server acknowledged `stored:true`, so the old marker must never suppress it.
+check(destination.includes("viewed:v3"), 'post-ack session marker has a fresh integrity version')
+check(!destination.includes("VIEW_MARKER = 'kineo:agency-bulk-page:viewed:v2'"), 'legacy preclaim marker cannot suppress the acknowledged denominator')
 check(destination.includes("`${VIEW_MARKER}:${entry ?? 'direct'}`"), 'dedupe is scoped to the measured entry')
 check(destination.includes("FREE_BRIEF_BRIDGE_VARIANT = 'agency_free_brief_bridge_v1'"), 'agency free-brief bridge has a stable experiment version')
 check(destination.includes('href="/client-video-brief-generator?entry=agency_page"'), 'agency page routes not-ready buyers to the existing free brief')

@@ -169,3 +169,12 @@ Formato: data · decisão · motivo · consequência prática.
 **EVIDÊNCIA DE PRODUÇÃO (2026-08-27).** Uma consulta somente leitura reconciliou os candidatos com `videos.user_id → profiles.email` e a lista de contas internas em `lib/internalAccounts.ts`. Essa evidência identifica a conta, não a titularidade jurídica do vídeo; a confirmação direta do fundador governa a autorização de exibição.
 
 **Consequência.** `CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED` continua `false`; nenhuma linha dinâmica do banco é publicada, indexada ou transformada em link `/v/`. Só a allowlist estática autorizada aparece. A terceira fileira recebe o rótulo honesto `Made with Kineo — every engine`, e não `Trending now`. Novos exemplos exigem confirmação de propriedade ou consentimento documentado.
+---
+
+## 2026-09-01 â€” ComunicaÃ§Ã£o comercial e cobranÃ§a somente em USD
+
+**DecisÃ£o do fundador.** A Kineo anuncia preÃ§os e cobra somente em **USD**. NÃ£o promete moeda local, conversÃ£o automÃ¡tica nem um valor local diferente do que aparece no Stripe.
+
+**Motivo.** A consistÃªncia entre site e checkout cria credibilidade exatamente no Ãºltimo segundo da decisÃ£o de compra. Uma promessa de moeda local seguida por cobranÃ§a em dÃ³lar faria o contrÃ¡rio.
+
+**ConsequÃªncia.** `lib/checkoutPricing.ts` continua sendo a fonte Ãºnica, `CheckoutCurrency` permanece restrito a `'usd'`, e novas superfÃ­cies comerciais devem rotular USD com clareza. Alterar moeda, preÃ§o ou conversÃ£o exige nova decisÃ£o explÃ­cita. Literais histÃ³ricos BRL/INR que nÃ£o possuem caminho vivo sÃ£o dÃ­vida tÃ©cnica, nÃ£o autorizaÃ§Ã£o para reativÃ¡-los.
