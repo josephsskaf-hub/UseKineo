@@ -2074,29 +2074,24 @@ async function manipularPost(req: NextRequest) {
       )
     }
 
-    // Close the gap between an in-memory/events hold and every other debit
-    // route. The database RPC atomically spends this generation's credits
-    // before OpenAI/Fal work begins; concurrent spenders cannot double-use the
-    // same balance. The deterministic key makes retries safe.
-    const upfrontDebit = await ensureCinematicDebit(cost)
-    if (!upfrontDebit.ok) {
-      console.error('[cinematic] upfront debit failed:', upfrontDebit.error)
-      await releaseBirthClaim('upfront_debit_rejected')
-      return NextResponse.json(
-        {
-          error: upfrontDebit.insufficient
-            ? `This generation needs ${cost} credits. Your available balance changed before it could start.`
-            : 'Your credit charge could not be confirmed. Nothing was submitted.',
-          needed: cost,
-          balance: upfrontDebit.balance,
-        },
-        { status: upfrontDebit.insufficient ? 402 : 503 },
-      )
-    }
-    if (activeBirthClaim) activeBirthClaim.debitConfirmed = true
-    // KINEO-TRIAL-DOUBLECOUNT-2026-08-07 — o débito desta request está feito e
-    // confirmado; settleDebitAndRespond() não precisa repetir o mesmo RPC.
-    debitConfirmedThisRequest = { ok: true, balance: upfrontDebit.balance, insufficient: false, error: '' }
+    // ⚠️ KINEO-DEBITO-DEPOIS-DA-TRAVA-2026-09-02 — O DÉBITO SAIU DAQUI.
+    // Ele agora acontece DEPOIS da trava de narração (procure
+    // `KINEO-DEBITO-DEPOIS-DA-TRAVA` mais abaixo, logo após o guard).
+    //
+    // POR QUÊ: o comentário da trava sempre disse "e ela vem ANTES do débito",
+    // mas o débito tinha migrado para cá e a promessa virou mentira. O preço
+    // disso, medido em 02/09 na conta do albertopopacristian (chegou pelo
+    // TAAFT, conta com 62 SEGUNDOS de vida): pediu 60s com 40s de fala, o
+    // guard recusou — e no caminho até a recusa os 25 créditos foram
+    // DEBITADOS, o teto do reverse trial foi somado, a conta foi carimbada
+    // `trial_expired` por `credit_cap`, e só então tudo foi estornado e o
+    // trial revivido. Três eventos de dinheiro e um "seu trial acabou" para
+    // alguém que nunca chegou a renderizar nada. Ele foi olhar o preço e sumiu.
+    //
+    // Com o débito aqui embaixo, a recusa didática não toca em crédito nenhum:
+    // não há débito, não há estorno, não há `trial_expired`, não há
+    // `narration_guard_blocked` com `refunded:true`. O claim continua sendo
+    // liberado pelo mesmo caminho de sempre.
 
     const publishCinematicResponse = async (
       response: Record<string, unknown>,
@@ -2276,7 +2271,18 @@ async function manipularPost(req: NextRequest) {
             user_id: user.id,
             name: 'narration_guard_blocked',
             path: '/api/generate-video-cinematic',
-            metadata: { speech_seconds: Math.round(fit.speech), target_seconds: duration, missing_words: fit.missingWords, refunded: true },
+            // KINEO-DEBITO-DEPOIS-DA-TRAVA-2026-09-02 — `refunded` era `true`
+            // chumbado. Agora a trava roda ANTES do débito, então o normal é
+            // NÃO ter havido cobrança nenhuma: o campo passa a dizer a verdade
+            // (`charged` é o que o claim registrou de fato) e `refunded` só é
+            // true se, por algum caminho, o débito tiver acontecido antes.
+            metadata: {
+              speech_seconds: Math.round(fit.speech),
+              target_seconds: duration,
+              missing_words: fit.missingWords,
+              charged: activeBirthClaim?.debitConfirmed === true,
+              refunded: activeBirthClaim?.debitConfirmed === true,
+            },
           })
         } catch { /* telemetria nunca derruba a resposta */ }
         console.warn(
@@ -2336,6 +2342,38 @@ async function manipularPost(req: NextRequest) {
         )
       }
     }
+
+    // ═══ KINEO-DEBITO-DEPOIS-DA-TRAVA-2026-09-02 ════════════════════════════
+    // Este bloco vivia ~60 linhas acima, ANTES da trava de narração (ver a nota
+    // no lugar de onde ele saiu). O valor cobrado é o MESMO `cost` calculado na
+    // linha ~1386 a partir da duração PEDIDA — o resgate de alvo fantasma acima
+    // pode ter mudado `duration`, e mudar o preço aqui quebraria o contrato de
+    // custo que o claim assinou e que o /api/compose confere (regressão de
+    // 02/09 de manhã: "clips do not match"). Preço não muda; só a ORDEM mudou.
+    //
+    // Close the gap between an in-memory/events hold and every other debit
+    // route. The database RPC atomically spends this generation's credits
+    // before OpenAI/Fal work begins; concurrent spenders cannot double-use the
+    // same balance. The deterministic key makes retries safe.
+    const upfrontDebit = await ensureCinematicDebit(cost)
+    if (!upfrontDebit.ok) {
+      console.error('[cinematic] upfront debit failed:', upfrontDebit.error)
+      await releaseBirthClaim('upfront_debit_rejected')
+      return NextResponse.json(
+        {
+          error: upfrontDebit.insufficient
+            ? `This generation needs ${cost} credits. Your available balance changed before it could start.`
+            : 'Your credit charge could not be confirmed. Nothing was submitted.',
+          needed: cost,
+          balance: upfrontDebit.balance,
+        },
+        { status: upfrontDebit.insufficient ? 402 : 503 },
+      )
+    }
+    if (activeBirthClaim) activeBirthClaim.debitConfirmed = true
+    // KINEO-TRIAL-DOUBLECOUNT-2026-08-07 — o débito desta request está feito e
+    // confirmado; settleDebitAndRespond() não precisa repetir o mesmo RPC.
+    debitConfirmedThisRequest = { ok: true, balance: upfrontDebit.balance, insufficient: false, error: '' }
 
     // #442 — in verbatim mode the final video follows the SCRIPT length, not the
     // selected duration button (the script is narrated in full). The clip count

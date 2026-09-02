@@ -13280,6 +13280,31 @@ export default function GenerateClient({
                 {scriptTooShort.message}
               </div>
 
+              {/* ═══ KINEO-ESTORNO-EXPLICADO-2026-09-02 (ordem do fundador) ═══
+                  "se houver o estorno, a gente precisa falar pro cliente por que
+                  teve o estorno, e garantir que ele faça um segundo vídeo — não
+                  faz sentido mandar ele pro paywall."
+                  Caso real (albertopopacristian, vindo do TAAFT, conta com 62
+                  SEGUNDOS de vida): pediu 60s com 40s de fala, o guard recusou,
+                  os 25 créditos foram debitados e ESTORNADOS no mesmo segundo, e
+                  o trial chegou a ser carimbado `expired` por teto antes de ser
+                  revivido. Na tela ele leu só a recusa — nenhuma linha dizia que
+                  o crédito voltou. Seis segundos depois o expansor completou o
+                  roteiro dele (40s → 63s) e ele já tinha ido olhar o preço.
+                  Esta linha só aparece na recusa REAL do servidor (phase
+                  'failed'), nunca no preflight — ali nada foi debitado e dizer
+                  "devolvemos" seria mentira. */}
+              {phase === 'failed' && (
+                <div
+                  className="text-sm mb-3 rounded-xl px-3 py-2"
+                  style={{ background: 'rgba(52,199,89,.10)', border: '1px solid rgba(52,199,89,.30)', color: '#7ee2a8', lineHeight: 1.55 }}
+                >
+                  <strong>Your {selectedCost} credits are back in your account.</strong> Nothing was charged —
+                  the film never started. Your balance is exactly what it was a minute ago, and the fixed
+                  script below renders on one click.
+                </div>
+              )}
+
               {authoredScript ? (
                 // ═══ KINEO-350-ROTEIRO-COMPLETO, COM CONSENTIMENTO ═════════
                 // A pessoa CLICOU para a IA escrever o roteiro (o texto dela

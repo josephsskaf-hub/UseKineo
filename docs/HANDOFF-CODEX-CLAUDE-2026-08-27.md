@@ -1,5 +1,35 @@
 # Handoff Codex ↔ Claude — 2026-08-27
 
+## 160 — 02/09 ~15h BRT · Claude · O DÉBITO SAIU DA FRENTE DA TRAVA DE NARRAÇÃO (P0 de dinheiro)
+
+**Caso:** `albertopopacristian` chegou pelo TAAFT às 14:11:06 e falhou às 14:12:08 —
+**62 segundos de vida**. Pediu 60s com um roteiro de 40s de fala. O guard de narração
+recusou (correto), mas o caminho até a recusa já tinha: debitado 25cr, somado o teto do
+reverse trial, carimbado `trial_expired` com `reason: credit_cap`, e só então estornado e
+revivido (`trial_cap_refunded`). A tela mostrou só a recusa — **nenhuma linha dizia que o
+crédito voltou**. Seis segundos depois o expansor completou o roteiro dele (40s → 63s,
+cobertura 1.04) e ele já estava olhando o preço. Saiu às 14:12:39 com 25cr e 0 vídeos.
+
+**Consertos (worktree motores-d1, ainda não commitados — rodar `scripts\!RODAR-KINEO1-E-ESTORNO.bat`):**
+1. `app/api/generate-video-cinematic/route.ts` — o bloco `upfrontDebit` foi movido de
+   ANTES da trava de narração para DEPOIS dela. O comentário da trava sempre disse "e ela
+   vem ANTES do débito"; o débito tinha migrado e a promessa virou mentira. **O valor
+   cobrado não muda** (mesmo `cost` da linha ~1386, calculado antes do resgate de alvo
+   fantasma — mudar o preço aqui quebraria o contrato que o compose confere). Efeito:
+   recusa didática não toca em crédito — sem débito, sem estorno, sem `trial_expired`.
+2. `narration_guard_blocked` parava de mentir: `refunded: true` era chumbado. Agora grava
+   `charged`/`refunded` a partir de `activeBirthClaim.debitConfirmed`.
+3. `GenerateClient.tsx` — a tela de roteiro curto ganha, **só na recusa real do servidor**
+   (`phase === 'failed'`, nunca no preflight), a linha verde: "Your N credits are back in
+   your account. Nothing was charged… the fixed script below renders on one click."
+4. `scripts/test-estorno-explicado-2026-09-02.mjs` — 21 verificações lendo o código real
+   (ordem do débito, invariante do estorno, texto da tela, aritmética do caso).
+
+**Para o Codex:** o paywall/preço não foi tocado. Mas fica o registro: essa pessoa viu
+preço inline (`inline_pricing_currency_resolved`, `generate_step_1`) 20 segundos depois de
+uma falha estornada. Vale avaliar suprimir superfície de preço por alguns minutos após
+falha com estorno — a decisão é da sua pista.
+
 - **Data do snapshot:** 2026-08-27, America/Sao_Paulo
 - **Base remota confirmada depois da entrega mais recente:** `06751c15bdbe05c4bb87d5188fbbc5bde52321bf`
 - **Workstream Codex:** aquisição, fluxo, conversão, afiliados e vendas B2C/B2B

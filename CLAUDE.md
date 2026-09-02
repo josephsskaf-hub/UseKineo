@@ -1,5 +1,34 @@
 # CLAUDE.md — Regras Permanentes para todas as sessões
 
+# ══════════════════════════════════════════════════════════════════════════
+# 🧠 LER PRIMEIRO — docs/MEMORIA-SESSAO-CEO-2026-09-02.md (02/09)
+# ══════════════════════════════════════════════════════════════════════════
+# · SEM SPRINT AUTOMÁTICA: o fundador desligou as tarefas programadas em 02/09
+#   (Fable a 79% do limite, reinicia 07/09). Trabalho é PONTUAL, uma ação por
+#   vez. Tarefa mecânica (teste/commit/publicar/painel) roda em Opus/Sonnet;
+#   Fable só para análise densa e código difícil.
+# · CRÉDITO NÃO É ISCA: winback-25 deu 25cr a 95 pessoas (2.375 créditos) e
+#   teve ZERO cliques em 24h. A isca é o FILME PRONTO sobre o tema que a
+#   pessoa já fez; o crédito vem no clique, não antes. 264 ainda elegíveis.
+# · CHECKOUT DE CONTA SEM VÍDEO = DEFEITO, NÃO DESEJO: 3 dos 4 checkouts de
+#   02/09 eram contas com 0 vídeos e modal trial_ended com 1h de vida e 25cr
+#   intactos. Contar separado de checkout de quem já entregou vídeo.
+# · UMA RÉGUA POR VOZ, NUNCA UMA SÓ: clássico (Seedance 1.5/Kineo 1/Veo/Kling
+#   2.5) = tts-1-hd a 3,1 pal/s (35s=100-115 · 60s=175-195 · 90s=265-290);
+#   hollywood (Kling 3/H3/Omni/S25) = voz própria a 2,3 pal/s. Padronizar os
+#   dois no mesmo número QUEBRA um dos lados.
+# · O PRIMEIRO VÍDEO É O PRODUTO: 14d/174 pessoas — os 4 pagantes vieram da
+#   PRÓPRIA IDEIA (manual). Auto-start = 40% dos primeiros vídeos e 0 pagantes.
+#   Kineo 1 + Seedance 1.5 são os motores de 100% das primeiras impressões.
+# · KINEO 1 usa PIXABAY (Pexels desligado no #351). Melhorias de 02/09:
+#   letterbox 6%, fade de abertura, grade +1 degrau, penalidade de baixa
+#   resolução no ranking, corte até 4,5s. NÃO usar color_filter/playback_rate/
+#   vinheta radial sem render de validação — propriedades nunca exercitadas.
+# · MOBILE: projeto com pasta local só roda no desktop. Do celular, só via
+#   Despacho (Configurações → Cowork), com este PC ligado.
+# · O QUE SÓ EXISTE NO CHAT SOME: decisão nova vira arquivo em docs/ no mesmo
+#   dia (bug do Cowork em 02/09 matou o shell de uma sessão inteira).
+
 # ⚡⚡ MODELO DE TRABALHO (fundador 25/08 — "gravar isso"):
 # O FUNDADOR É CONSELHO, EU SOU O CEO-EXECUTOR. Ele direciona, percebe,
 # provoca; eu verifico o que é melhor, executo 100% e entrego PRONTO para
