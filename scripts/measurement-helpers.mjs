@@ -29,10 +29,12 @@ function unwrapLiteral(node) {
   return current
 }
 
-function readCanonicalStringArray(exportName) {
-  const initializer = exportedInitializer(INTERNAL_ACCOUNTS_SOURCE, exportName)
+export function readCanonicalStringArray(sourceUrlOrExportName, maybeExportName) {
+  const sourceUrl = maybeExportName ? sourceUrlOrExportName : INTERNAL_ACCOUNTS_SOURCE
+  const exportName = maybeExportName ?? sourceUrlOrExportName
+  const initializer = unwrapLiteral(exportedInitializer(sourceUrl, exportName))
   if (!ts.isArrayLiteralExpression(initializer)) {
-    throw new Error(`${exportName} must remain an array literal in lib/internalAccounts.ts`)
+    throw new Error(`${exportName} must remain an array literal in ${sourceUrl.pathname}`)
   }
   return initializer.elements.map((element) => {
     const literal = unwrapLiteral(element)
