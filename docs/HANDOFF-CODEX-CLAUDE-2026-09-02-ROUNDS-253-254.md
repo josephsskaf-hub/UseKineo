@@ -53,4 +53,11 @@ Os gates são deliberadamente separados porque cada destino já possui um relat�
 
 **BUILD LOCAL:** compilação concluída. A coleta global de páginas parou numa rota preexistente de render porque a worktree isolada não recebe `OPENAI_API_KEY`; nenhum segredo foi lido ou copiado. O build do deploy com o ambiente Vercel é o gate final.
 
-**IMPLEMENTADO LOCALMENTE:** aguardando commit, rebase, push e validação de produção.
+**VALIDADO EM PRODUÇÃO — 2026-09-02 19:05 BRT:**
+
+- commit de produto: `dcf41df31deee4de23ab3974d861790825eadc15`, publicado por fast-forward em `origin/main`;
+- deploy Vercel: `dpl_FniwCpq5Cu6mxXLrtRXRLkn26zLX`, estado `READY`, sem erro de alias, servindo `www.usekineo.com`;
+- `GET https://www.usekineo.com/agency-production-scope.txt`: HTTP 200, `Content-Type: text/plain; charset=utf-8`, `X-Robots-Tag: all`;
+- conteúdo ao vivo confirmou: versão, packs derivados, aviso “not a contract”, Terms e quatro escolhas separadas — pack, fit review, recorrente e Autopilot;
+- `https://www.usekineo.com/sitemap.xml` contém `/agency-production-scope.txt`;
+- nenhum evento, lead, Checkout, pagamento, comunicação externa, banco, crédito ou render foi forçado na validação.
