@@ -483,3 +483,64 @@ abandoned_no_delivery 24h=3. **Próximo item (#8):** a corrida do #2 acima
 (esperar o claim assentar antes de declarar 'none') — é a raiz deste caso e
 do 489a2c31 de ontem; depois, às 03:05 BRT, ler `failure_recovery_sent` por
 `kind` (1º disparo real).
+
+### #8 — 00:34→00:55 BRT — a sonda do #2 dizia 'none' 8 segundos antes do claim existir e liberava o re-despacho que matava o trial
+**Leitura.** Fila NÃO subiu (origin/main = 585d8fdf; entrega-atual = a05a88b5
+com o #7). Worktree da OneDrive travou (`index.lock` que o sistema não deixa
+apagar — o mesmo defeito documentado no enfileirar.sh); rodada feita em clone
+compartilhado em /tmp, como o próprio script manda. Item planejado: a corrida
+do #2.
+**O que estava errado.** O #2 só re-despacha um `dispatched:<ts>` de conta
+grátis quando `/api/compose/active` responde 'none'. Mas a sonda lê o claim
+cinematic e a linha em `videos` — e o claim do 1º POST só assenta ~12s DEPOIS
+do despacho (e7f9f000: F5 às 02:53:21, claim às 02:53:29; o servidor ainda
+estava no meio do generate-video-cinematic). Nessa janela 'none' é verdade e
+não prova nada. Foi por aí que 489a2c31 (01/09) e e7f9f000/wummm709 (02/09,
+02:53:46, visto pelo fundador) passaram COM o #2 no ar: re-despacho, servidor
+recusa com `held=19`, tela 'failed' + UpgradeModal aos 4 min de vida.
+`activation_autostart_recovery_dispatched` 24h = 2 — os dois nesse modo.
+**O que mudou.** `GenerateClient.tsx` (zona compartilhada — aviso ao Codex:
+só o rail de ativação, bloco `dispatchedRecovery`). Veredito 'idle' com menos
+de 60s desde o `dispatched:<ts>` (5× os 12s medidos) = ESPERAR: volta a
+'pending', rearma a sonda e re-sonda a cada 5s; 'rendering'/'completed' em
+qualquer sondagem pula na hora (ramo do #2, intacto); só um 'none' com 60s+
+libera o recovery. Teto de 14 re-sondagens → skip `server_probe_unavailable`
+(relógio torto no futuro termina em skip, nunca em laço). ts ilegível =
+comportamento antigo. Rastro: `activation_autostart_waiting`
+reason=`server_claim_settling` (uma vez, com `secs_after_first`) e
+`settle_probes`/`secs_after_first` no `recovery_eligible` e no `skipped`.
+Teste `scripts/test-activation-recovery-claim-settle.mjs` (37 verificações,
+lendo o arquivo real: ordem busy-antes-de-esperar, teto testado antes de
+contar, cleanup do tick, nada novo chama geração/cobrança); o do #2 segue
+28/28. tsc: 3 pré-existentes (2 acacia + TrialDowngradeModal), zero meus.
+**Para o cliente/receita.** O trial que dá F5 nos primeiros segundos do 1º
+render (o momento de mais ansiedade — ~0,6 pessoa/dia) espera até 60s vendo o
+card azul "Running at the engine" em vez de virar 'failed' + paywall com o
+trial inteiro preso. É o caso exato que o fundador viu ao vivo hoje.
+**SHA:** eb1949f2 (sobre a05a88b5). **Risco:** baixo — só ADIA um re-despacho
+automático em até 60s; nenhum caminho manual mudou; conta paga continua
+nunca recuperando (D1). **Como medir:** `activation_autostart_waiting`
+reason=server_claim_settling (~1/dia); `activation_autostart_recovery_dispatched`
+com `secs_after_first < 60` → 0; `generation_stage_error` `held=` com
+`recovery:true` → 0; `skipped` reason=server_render_in_flight deve subir na
+mesma medida em que recovery_dispatched cai.
+**Placar 00:50 BRT (externos):** has_paid 11 (starter 3, basic 2, pro 2,
+free/churn 4); cadastros 1h=4, 24h=30 (4 com 0cr); vídeos 1h=1, 24h=17; falhas
+1h=11 (**prompt_len=6228 limite=5000 ×7**, speech 27s/35s 2, held=19 2);
+checkout_started 24h=5; 7d: 70 com 1, 9 com 2, 2 com 3, **0 com 4+**; crons
+24h: winback25 120, failure_recovery 0, momentum 0 (1ºs disparos 03:00 e
+10:30 BRT); stranded_outcome 24h=2; recovery_dispatched 24h=2; skipped 24h=7.
+**DESTAQUE (vira o #9):** adrianwellsvadrian (cadastro 02:48 UTC, 25cr
+intactos, 0 vídeos, o mesmo que o fundador viu falhar por narração curta)
+tentou **7 vezes em 21 min (03:09→03:30 UTC)** e as 7 morreram no cliente com
+`analyze_prompt_too_long`: prompt_len=6228 > 5000. O textarea tem
+maxLength=5000, então os 6.228 chars NÃO vieram do teclado — foram
+REMONTADOS pela própria tela (GenerateClient.tsx:7333; hipótese: o texto
+expandido/instruções da tentativa anterior de 27s/35s colados de volta na
+caixa, ou prefill acumulando). A mensagem manda "Trim it" para um texto que
+a pessoa não escreveu. É a 2ª parede do mesmo trial em 40 min de vida.
+**Próximo item (#9):** reproduzir o remonte (ler `analyze_prompt_too_long`
+com `prompt_len` e o `topic` das tentativas dele), fazer o cliente cortar
+sozinho o que ELE acrescentou (ou subir o teto do analyze quando o excedente
+é instrução nossa) e nunca mandar "trim" por texto que não é do autor.
+Depois, 03:05 BRT: `failure_recovery_sent` por `kind` (1º disparo real).
