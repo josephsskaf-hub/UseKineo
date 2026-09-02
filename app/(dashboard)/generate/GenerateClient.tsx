@@ -7044,6 +7044,9 @@ export default function GenerateClient({
     //      servidor decide. A régua local nunca é a palavra final.
     // Nada é gerado, nada é cobrado, nenhum evento de falha é emitido, e
     // nenhuma linha de preço/plano/crédito é tocada.
+    // KINEO-CONTRATO-DURACAO-2026-09-02 — alvo que a analise usa; o autofit
+    // do roteiro longo (bloco abaixo) pode subi-lo para o botao que a fala enche.
+    let alvoAnalise: Duration = duration
     {
       const baseChecagem = expandBaseRef.current
       if (scriptTooShortPreflight) setScriptTooShort(null)
@@ -7073,6 +7076,33 @@ export default function GenerateClient({
           })
           setPhase('idle')
           return
+        }
+        // KINEO-CONTRATO-DURACAO-2026-09-02 — o espelho do bloqueio acima, para
+        // roteiro LONGO: "Use my script as is" com ~80s de fala e 60s no botao
+        // entregava 80-90s (o compose deixa o audio mandar ate o teto de 90)
+        // — pedido 60 → entregue 30..90 medido em 14d. Como o texto e do
+        // autor (C1) e o credito nao depende da duracao, a saida honesta e
+        // subir o alvo para o menor botao que a fala enche, antes de gastar.
+        // Fala maior que 90×1,15 nao cabe em botao nenhum: segue como esta
+        // (o compose corta no teto) e fica registrado.
+        if (cobre && falaSeg > duration * 1.2) {
+          const cabe = DURATION_OPTIONS.map((o) => o.value).filter((d) => d > duration && falaSeg <= d * 1.15).sort((a, b) => a - b)[0]
+          if (cabe) {
+            setDuration(cabe)
+            alvoAnalise = cabe
+            void trackEvent('script_duration_autofit', {
+              speech_seconds: Math.round(falaSeg),
+              from_seconds: duration,
+              to_seconds: cabe,
+              from_topic: opts?.fromTopic === true,
+            })
+          } else {
+            void trackEvent('script_duration_overflow', {
+              speech_seconds: Math.round(falaSeg),
+              target_seconds: duration,
+              from_topic: opts?.fromTopic === true,
+            })
+          }
         }
         if (!cobre && falaSeg > 12) {
           // Insistiu no mesmo texto: a viagem segue e o servidor dá a palavra
@@ -7381,7 +7411,7 @@ export default function GenerateClient({
         return
       }
 
-      const analyzeBody = JSON.stringify({ prompt: source, duration, language, scriptMode })
+      const analyzeBody = JSON.stringify({ prompt: source, duration: alvoAnalise, language, scriptMode })
       const analyzeOnce = () =>
         fetch('/api/analyze-idea', {
           method: 'POST',

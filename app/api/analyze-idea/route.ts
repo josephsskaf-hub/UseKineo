@@ -718,8 +718,12 @@ export async function POST(req: NextRequest) {
     // Push #064 — duration shapes word count + scene count. Defaults to 45s
     // when missing or invalid so existing clients keep working.
     // Push #208 — added 90s; removed 30s (replaced by 45s minimum).
-    const requestedDuration = Number(body.duration) || 45
-    const duration = [45, 60, 90].includes(requestedDuration) ? requestedDuration : 45
+    // KINEO-CONTRATO-DURACAO-2026-09-02 — era `[45, 60, 90] ... : 45`: o 35
+    // do seletor virava 45 aqui dentro e o roteiro nascia 30% maior que o
+    // pedido. Agora o alvo e o que o botao diz (35/60/90); 45 e qualquer
+    // valor estranho caem em 35, o menor alvo que o produto oferece.
+    const requestedDuration = Number(body.duration) || 35
+    const duration = [35, 60, 90].includes(requestedDuration) ? requestedDuration : 35
 
     // Push #307 — VIRAL SCRIPT FAST PATH ─────────────────────────────────────
     // When the prompt is a pre-written Viral Now script (HOOK/MICRO REWARD/

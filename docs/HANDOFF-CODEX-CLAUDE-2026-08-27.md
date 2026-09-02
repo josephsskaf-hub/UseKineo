@@ -3927,3 +3927,11 @@ Tres causas, todas nossas, todas consertadas em `lib/hollywood/router.ts` e `app
 **Primeiro video (dados 14d, 174 primeiros videos externos):** auto-start = 40% deles (55 em Kineo 1, 45s fantasma, 0 pagantes, 18% fazem o 2o); onboarding de 3 metas: 17 de 22 cairam no Kineo 1 por CORRIDA (clique antes de /api/credits responder). Consertos: auto-start nasce em 35 (45→35 tambem na URL), onboarding consulta /api/credits antes de escolher motor (evento `first_video_engine_decided`), auto-start pula texto-instrucao ("Absolutely. Below is **...", "Create a 40-second...") — fica na caixa.
 
 Zona compartilhada tocada: GenerateClient.tsx (3 pontos: 45→35 ×2, onboardingPick async, skip do auto-start). lib/creationHandoff.ts (45→35). Nada de preco/plano/oferta.
+
+## 159 — 02/09 12:10 BRT · Claude · CONTRATO DE DURACAO no caminho classico (Seedance 1.5 + Kineo 1 = 100% dos primeiros videos)
+
+Medido 14d: pedido 60 → entregue 30..90; pedido 35 → ate 55 (15 de 26 acima de 40). Causas e consertos:
+1. `analyze-idea` coagia 35 → 45 (`[45,60,90] ... : 45`) e `durationPlanFor` nao conhecia 35 — o roteiro de 35s nascia com 130-150 palavras (plano de 45). Agora 35/60/90 reais, 45 → 35, plano 35 = 100-115 palavras.
+2. Reguas: caminho classico fala em tts-1-hd a ~3,1 pal/s (lib/compose.ts targetWordCount) e o plano do analyze-idea agora usa a MESMA (100-115 / 175-195 / 265-290). O caminho hollywood usa 2,3 (voz propria) — sao duas vozes, duas velocidades, cada uma com UMA regua. Nao unificar os numeros: unificar por voz.
+3. Verbatim longo: "Use my script as is" com fala > alvo×1,2 subia ate o teto de 90 do compose sem aviso. Agora o preflight do GenerateClient sobe o alvo para o menor botao que a fala enche (evento `script_duration_autofit`; sem botao = `script_duration_overflow`). Credito nao muda (engineCost ignora duracao).
+Fora de escopo (Codex, se quiser): oferecer "Fit to 60s" (IA condensa) como alternativa ao autofit — hoje o texto do autor nunca e reescrito (C1).

@@ -77,16 +77,23 @@ export interface ShortVideo {
 //   60s → 175–200 words and 6 scenes
 //   90s → 265–295 words and 9 scenes
 export interface DurationPlan {
-  duration: 30 | 45 | 60 | 90
+  duration: 35 | 60 | 90
   wordCountRange: [number, number]
   sceneCount: number
 }
 
+// KINEO-CONTRATO-DURACAO-2026-09-02 — o seletor oferece 35/60/90 desde 20/08,
+// mas este plano so conhecia 30/45/60/90: pedido de 35 caia no plano de 30
+// (85-100 palavras) ou, pela coercao do analyze-idea, no de 45 (130-150).
+// Medido em 14d no caminho classico: pedido 35 → entregue 35-55s (15 de 26
+// acima de 40s). Agora a regua e UMA: 3,1 palavras/s (tts-1-hd, a mesma de
+// lib/compose.ts targetWordCount) × o alvo real, com 5% de folga para cima —
+// o compose aceita ±15% sem reescrever, e o piso do TikTok (61,5s) cuida do
+// tier de 60. 45 (alvo fantasma das landings antigas) vira 35.
 export function durationPlanFor(duration: number): DurationPlan {
-  if (duration <= 35) return { duration: 30, wordCountRange: [85, 100], sceneCount: 4 }
-  if (duration >= 80) return { duration: 90, wordCountRange: [265, 295], sceneCount: 9 }
-  if (duration >= 55) return { duration: 60, wordCountRange: [175, 200], sceneCount: 6 }
-  return { duration: 45, wordCountRange: [130, 150], sceneCount: 5 }
+  if (duration >= 80) return { duration: 90, wordCountRange: [265, 290], sceneCount: 9 }
+  if (duration >= 55) return { duration: 60, wordCountRange: [175, 195], sceneCount: 6 }
+  return { duration: 35, wordCountRange: [100, 115], sceneCount: 4 }
 }
 
 // Push #065 — safe composition rules. Vertical 9:16 + bottom captions
