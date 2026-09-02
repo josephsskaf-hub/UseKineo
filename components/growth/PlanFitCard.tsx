@@ -19,8 +19,10 @@ import {
 } from '@/lib/checkoutPricing'
 import { CHECKOUT_PAYMENT_GUIDANCE_COMPACT } from '@/lib/growth/checkoutPaymentGuidance'
 import {
+  PLAN_FIT_CARD_RENDERED_EVENT,
   PLAN_FIT_CTA_VIEW_EVENT,
   PLAN_FIT_CTA_VISIBLE_RATIO,
+  buildPlanFitCardRenderedMetadata,
   buildPlanFitCtaExposureMetadata,
   createBooleanSingleFlight,
   isPlanFitCtaVisible,
@@ -85,6 +87,8 @@ export default function PlanFitCard({
   const [eligibilityPending, setEligibilityPending] = useState(false)
   const cardRef = useRef<HTMLElement | null>(null)
   const checkoutCtaRef = useRef<HTMLButtonElement | null>(null)
+  const cardRenderedSentRef = useRef(false)
+  const cardRenderedPendingRef = useRef(false)
   const impressionSentRef = useRef(false)
   const impressionPendingRef = useRef(false)
   const checkoutCtaViewSentRef = useRef(false)
@@ -102,6 +106,44 @@ export default function PlanFitCard({
   useEffect(() => {
     eventRef.current = onEvent
   }, [onEvent])
+
+  useEffect(() => {
+    if (dismissed || cardRenderedSentRef.current || cardRenderedPendingRef.current) return
+
+    const storageKey = `kineo_plan_fit_card_rendered:${exposureKey}`
+    try {
+      if (sessionStorage.getItem(storageKey) === '1') {
+        cardRenderedSentRef.current = true
+        return
+      }
+    } catch {
+      // The in-memory latch still protects the uninterrupted browser path.
+    }
+
+    cardRenderedPendingRef.current = true
+    void (async () => {
+      let recorded = false
+      try {
+        recorded = await eventRef.current?.(
+          PLAN_FIT_CARD_RENDERED_EVENT,
+          buildPlanFitCardRenderedMetadata({
+            accountCohort,
+            sourceEngine: quality,
+            seconds,
+            videoId: exposureKey,
+            offerVersion: PLAN_FIT_OFFER_VERSION,
+          }),
+        ) === true
+      } catch {
+        recorded = false
+      }
+      cardRenderedPendingRef.current = false
+      if (!recorded) return
+
+      cardRenderedSentRef.current = true
+      try { sessionStorage.setItem(storageKey, '1') } catch { /* in-memory latch remains */ }
+    })()
+  }, [dismissed, exposureKey, accountCohort, quality, seconds])
 
   const verifyEligibilityShared = useCallback(
     () => eligibilitySingleFlightRef.current!.run(verifyEligibility),

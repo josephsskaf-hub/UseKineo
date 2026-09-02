@@ -3,6 +3,7 @@ import type { PlanFitAccountCohort, PlanFitQuality } from '@/lib/growth/planFit'
 
 export const PLAN_FIT_CTA_VIEW_EVENT = 'plan_fit_checkout_cta_viewed' as const
 export const PLAN_FIT_CTA_VISIBLE_RATIO = 0.6
+export const PLAN_FIT_CARD_RENDERED_EVENT = 'plan_fit_card_rendered' as const
 
 export function createBooleanSingleFlight() {
   let inFlight: Promise<boolean> | null = null
@@ -33,6 +34,31 @@ type PlanFitCtaExposureInput = {
   displayCurrency: CheckoutCurrency | null
   videoId: string
   offerVersion: string
+}
+
+type PlanFitCardRenderedInput = {
+  accountCohort: Exclude<PlanFitAccountCohort, 'subscriber' | 'unknown'>
+  sourceEngine: PlanFitQuality
+  seconds: number
+  videoId: string
+  offerVersion: string
+}
+
+export function buildPlanFitCardRenderedMetadata(input: PlanFitCardRenderedInput) {
+  return {
+    actor_unit: 'authenticated_user',
+    event_unit: 'eligible_card_mount',
+    measurement_unit: 'authenticated_user_eligible_plan_fit_card_mount',
+    surface_state: 'rendered_not_viewed',
+    human_exposure_claimed: false,
+    account_cohort: input.accountCohort,
+    video_id: input.videoId,
+    source_engine: input.sourceEngine,
+    seconds: input.seconds,
+    first_delivery: true,
+    eligibility_basis: 'parent_confirmed_first_delivery',
+    offer_version: input.offerVersion,
+  } as const
 }
 
 export function isPlanFitCtaVisible(
