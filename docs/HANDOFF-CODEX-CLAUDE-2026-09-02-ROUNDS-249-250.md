@@ -8,6 +8,8 @@
 
 **Branch isolada:** `codex/b2b-fit-review-subscription-truth-v1`
 
+**PUBLICADO:** commit de produto/medição `93ec3b91bf154bd48b80df09c19bf98d4c2547ba` em `origin/main`. Deploy de produção `dpl_HwkVkPkga5brYf7kUy2zWf2zvdGL` em estado `READY`, SHA correspondente e alias `www.usekineo.com`, validado em 2026-09-02.
+
 ## Objetivo da rodada
 
 Medir, sem atribuição causal inventada, se a porta pública de revisão de volume B2B leva uma pessoa externa de `view → submit → recurring checkout → payment`, preservando pessoa, Stripe Session, moeda e cronologia como unidades distintas.
