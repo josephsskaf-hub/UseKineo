@@ -6,3 +6,5 @@ docs/SPRINT-*.md merge=union
 docs/*DIARIO*.md merge=union
 docs/PROMPT-DIARIO*.md merge=union
 docs/PAUTA-*.md merge=union
+docs/HANDOFF-*.md merge=union
+docs/ESCOPO-*.md merge=union

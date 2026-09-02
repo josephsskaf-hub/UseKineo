@@ -22,6 +22,12 @@ import { getRenderIntent } from '@/lib/credits/renderIntent'
 // quando a URL nao trouxer (cron de resgate, worker de demo). Só o tema: a
 // descricao do YouTube nunca passa pelo /api/compose (o tsc me mostrou isso ao
 // recusar `body.youtubeDescription`), entao nao ha o que guardar la.
+// KINEO-VIDEO-READY-VERDADE-2026-09-01 — handoff do Codex (secao 150): o e-mail
+// 'Your Short is ready' prometia '24 more Fast Shorts' com o Starter; 40cr / 5cr
+// = 8. Quantidade e preco agora vem das MESMAS funcoes que cobram, e o link
+// leva campanha fechada para a origem ser distinguivel no pricing/checkout.
+import { videosForCredits } from '@/lib/marketingPrice'
+import { TIER_CREDITS, TIER_PRICES } from '@/lib/checkoutPricing'
 import { COMPOSE_CLAIM_EVENT } from '@/lib/composeClaim'
 import {
   loadPrepaidAvatarClaimForRender,
@@ -948,7 +954,7 @@ export async function GET(
                 <a href="${safeVideoUrl}" style="display:inline-block;background:#2997ff;color:#fff;text-decoration:none;padding:14px 28px;border-radius:10px;font-weight:700;font-size:15px;">
                   ⬇ Download Your Short
                 </a>
-                <p style="color:#64748b;font-size:12px;margin:24px 0 0">Want a clean export and 24 more Fast Shorts this month? <a href="https://www.usekineo.com/pricing" style="color:#2997ff;">Starter is $7.00/month →</a></p>
+                <p style="color:#64748b;font-size:12px;margin:24px 0 0">Want a clean export and ${videosForCredits(TIER_CREDITS.starter, 'fast')} more Fast Shorts this month? <a href="https://www.usekineo.com/pricing?intent_campaign=video_ready_email_plan_truth_v1" style="color:#2997ff;">Starter is $${(TIER_PRICES.starter.usd / 100).toFixed(2)}/month →</a></p>
                 <!-- KINEO-REVIEW-NO-EMAIL-2026-08-24 (pacote noturno 2, AQ) — o
                      e-mail de entrega vai para TODO render pronto: é o maior
                      canal de pedido-no-pico que a casa tem, e estava mudo.
