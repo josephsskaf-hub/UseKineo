@@ -51,4 +51,6 @@ Missing, variante desconhecida, linha anterior ao marco ou exposição anterior 
 
 - Base após rebase: c7f79720d745cd83357aea4c803638451622fe55.
 - Commit funcional: 2f2f8945af8d1746c63814e3537bdeef75332229.
-- Publicação e deploy: preencher após validação.
+- Publicação: origin/main = 4390675c06386228f7c6fe71bf1baa00b889a864.
+- Deploy funcional/documental: dpl_A54KqF9jPgP3RtRjtELY94A58eHn, READY, produção, alias www.usekineo.com, sem erro de alias.
+- Observabilidade pós-deploy: nenhum erro ligado aos arquivos desta entrega. A janela de 15 minutos mostrou dois grupos preexistentes em deployment anterior: warning url.parse nas rotas next-shorts/compose e mismatch de billing em finish-stranded-renders; pertencem à pista do Claude e não foram alterados.
