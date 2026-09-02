@@ -41,10 +41,17 @@ export function readCreationHandoff(params: QueryReader): CreationHandoff {
       rawScriptMode === 'verbatim' || rawScriptMode === 'ai'
         ? rawScriptMode
         : null,
+    // KINEO-PRIMEIRO-VIDEO-2026-09-02 — 45 nao existe no seletor (35/60/90)
+    // desde 20/08; 11 das 15 recusas de narracao em 14d mediam contra 45, e o
+    // custo do claim (45s) x custo do compose (35s) negava filme pronto. Quem
+    // ainda manda 45 (landings antigas) recebe 35: o primeiro video mais
+    // rapido e o unico alvo curto que o produto oferece.
     duration:
-      rawDuration === 35 || rawDuration === 45 || rawDuration === 60 || rawDuration === 90
-        ? rawDuration
-        : null,
+      rawDuration === 45
+        ? 35
+        : rawDuration === 35 || rawDuration === 60 || rawDuration === 90
+          ? rawDuration
+          : null,
   }
 }
 
@@ -70,7 +77,7 @@ export function resolveActivationCreationContract(params: QueryReader): Activati
     prompt: handoff.prompt,
     createIntent: handoff.createIntent,
     scriptMode,
-    duration: handoff.duration ?? 45,
+    duration: handoff.duration ?? 35, // KINEO-PRIMEIRO-VIDEO-2026-09-02 — era 45 (alvo fantasma)
     structureFirst: scriptMode !== 'verbatim',
   }
 }

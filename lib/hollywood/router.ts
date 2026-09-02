@@ -530,7 +530,9 @@ OTHER HARD RULES:
 - ZERO readable text in any shot: no phone/computer screens with content, no signs, no billboards, no labels. If a phone appears, its screen is off or blurred.
 - Scene 1 = the HOOK beat (usually a dialogue scene looking straight into the lens, speaking from the very first frame).
 - MAX 1 LONG B-ROLL IN A ROW: never place two adjacent non-dialogue scenes (cinematic/support) that are BOTH 10 seconds — more than ~10 straight seconds of b-roll kills retention. Break b-roll walls with a dialogue scene, or make the second insert 5 seconds.
-- SCENE DURATION BUDGET (STRICT — a short plan is a REJECTED plan): the "seconds" of ALL scenes MUST sum to AT LEAST the target duration minus 5. Target 60 → scenes must sum 55-62. Count it before answering: 4 scenes of 10+8+8+8=34 is a FAILURE — add scenes or lengthen them until the budget is met. 4 to 6 scenes. Zero dead frames — every second earns attention.
+- SCENE DURATION BUDGET (STRICT — a short plan is a REJECTED plan): the "seconds" of ALL scenes MUST sum to AT LEAST the target duration minus 5. Target 60 → scenes must sum 55-62. Count it before answering: 4 scenes of 10+8+8+8=34 is a FAILURE — add scenes or lengthen them until the budget is met. 4 to 6 scenes for targets up to 70s, 6 to 8 scenes above 70s. Zero dead frames — every second earns attention.
+- NARRATION BUDGET (STRICT — KINEO-COERENCIA-HISTORIA-2026-09-02, founder's render 79a75506: 86 spoken words for a 60-second film — the story ended before it was told): the clock of this film is the SPOKEN TEXT, not the "seconds" field. Narration runs at ~2.3 words per second, so EVERY scene's voiceover/dialogueLine must carry ~2.3 words per second of that scene (a 5s scene = 11-13 words, a 10s scene = 22-25 words), and the TOTAL spoken words across all scenes must be at least 2.1 × the target seconds (target 68 → at least 143 words). A plan with fewer words is a REJECTED plan, however many "seconds" it claims.
+- THE STORY MUST END (STRICT): the last scene is the PAYOFF — the resolution, reveal or conclusion of the story, spoken in full. Never stop mid-story, never end on a setup or a cliffhanger. If the input has more story than the budget allows, compress the middle, never the ending.
 - NON-DIALOGUE SCENES WITH A VISIBLE PERSON (STRICT): in every "support" or "cinematic" scene where the characterSheet person appears, the prompt MUST state the person is NOT talking — write "mouth closed, not speaking, no lip movement" in the prompt. External narration plays over these scenes; a moving mouth under someone else's voice is a horrifying dub mismatch. Prefer person-FREE b-roll unless the story needs them on screen.
 - VISUAL VARIETY (STRICT — repeated scenes are a hard failure): every scene must differ from EVERY other scene in at least TWO of: shot size (wide / medium / close-up / macro / aerial), camera angle (eye-level / low / high / overhead), camera movement (static / dolly / crane / handheld / orbit), and staging (what the subject is DOING and WHERE inside the environment). The characterSheet/environmentSheet repeat for continuity of WORLD — never for continuity of FRAMING. Two scenes with the same composition = a wasted paid render. Before finalizing, re-read your scene list and rewrite any two scenes that could be mistaken for each other.
 - SUBJECT VARIETY (STRICT — KINEO-SPECTACLE-2026-08-17, founder caught "the same sea scene repeated several times"): before writing scenes, list the DISTINCT visual subjects the story offers (each event, place, object, era and moment is a different subject — e.g. an eruption, a ship at sea, a wave hitting a town, an ash column, a red sky over a city, a new island rising are SIX different subjects). Every non-dialogue scene depicts a DIFFERENT primary subject. Two b-roll scenes of the same subject — even with different framing — are a hard failure. If the story has fewer subjects than scenes, move through TIME (before / during / after) or PLACE, never repeat.
@@ -544,7 +546,7 @@ Output JSON shape ("demo" is optional, only on demo/showcase support scenes):
   const userMsg = `Idea/topic: ${String(idea ?? '').slice(0, 600)}
 
 ${voiceoverScript ? `Existing narration script (reuse its facts and beats):\n${String(voiceoverScript).slice(0, 1500)}\n` : ''}${sceneCtx ? `Existing scene beats:\n${sceneCtx}\n` : ''}
-Target total duration: ${Math.max(45, Math.min(70, Math.round(durationSeconds || 60)))} seconds.${args.shortRetryFeedback ? `\n\nIMPORTANT — YOUR PREVIOUS PLAN WAS REJECTED: ${args.shortRetryFeedback}` : ''}`
+Target total duration: ${Math.max(30, Math.min(100, Math.round(durationSeconds || 60)))} seconds.${args.shortRetryFeedback ? `\n\nIMPORTANT — YOUR PREVIOUS PLAN WAS REJECTED: ${args.shortRetryFeedback}` : ''}`
 
   const completion = await openai.chat.completions.create(
     {
@@ -699,16 +701,26 @@ Target total duration: ${Math.max(45, Math.min(70, Math.round(durationSeconds ||
   // compose trims/fits, and a short-but-dense video beats a padded one.)
   // KINEO-HOLLYWOOD-22 — shrink floor is 5 (Kling 3 min clip; buildFalInput
   // snaps ≤6s to a 5s clip, so a 5s plan bills exactly 5s).
+  // KINEO-COERENCIA-HISTORIA-2026-09-02 — o teto era 60 CHUMBADO, de quando
+  // o filme mais longo da casa tinha 60s. Desde KINEO-TIKTOK-61 a rota pede
+  // 68 para entregar >60, e KINEO-ALVO-2026-08-20 abriu o tier de 90 (alvo
+  // 98). Este laco desfazia os dois em silencio: o planner escrevia 65-70s
+  // com o desfecho na ultima cena, o teto de 60 ARRANCAVA a ultima cena, e a
+  // rota depois re-esticava as restantes ate 59. Render 79a75506 do fundador
+  // (Omni, pedido 60): cenas 10+10+10+10+9+10 = 59, historia "acabou antes
+  // de completar". Agora o teto acompanha o alvo (+6s de folga) e, quando
+  // ainda precisa cortar, sai a PENULTIMA cena — o PAYOFF fica.
+  const ceiling = Math.max(60, Math.round(durationSeconds || 60) + 6)
   let total = outScenes.reduce((s, sc) => s + sc.seconds, 0)
-  while (total > 60 && outScenes.length > 2) {
+  while (total > ceiling && outScenes.length > 2) {
     const last = outScenes[outScenes.length - 1]
     if (last.type === 'support' && last.seconds > 5) {
-      const shrink = Math.min(last.seconds - 5, total - 60)
+      const shrink = Math.min(last.seconds - 5, total - ceiling)
       last.seconds -= shrink
       total -= shrink
-      if (total <= 60) break
+      if (total <= ceiling) break
     }
-    outScenes.pop()
+    outScenes.splice(outScenes.length - 2, 1)
     total = outScenes.reduce((s, sc) => s + sc.seconds, 0)
   }
 
@@ -823,6 +835,33 @@ Target total duration: ${Math.max(45, Math.min(70, Math.round(durationSeconds ||
       forceHostOnCamera(outScenes[outScenes.length - 1])
     } else {
       console.log(`[hollywood-planner] KINEO-UNIVERSAL — host-on-camera PULADO (${args.faceless ? 'tag [faceless] do usuário' : 'planner decidiu: apresentador quebraria este filme'})`)
+      // KINEO-FACELESS-DE-VERDADE-2026-09-02 — pular o forceHost nao bastava:
+      // o prompt de sistema ainda diz "Scene 1 = the HOOK beat (usually a
+      // dialogue scene looking straight into the lens)", e o GPT obedece.
+      // Render 79a75506 (documentary_faceless, misterio): cena 1 = "The man
+      // looks directly into the lens, excitement in his eyes, as he declares
+      // the mystery" — um apresentador num filme que o formato proibiu.
+      // Aqui toda cena que o planner tipou como dialogue vira cena NARRADA:
+      // a fala passa a voiceover (a informacao nao se perde), o olhar para a
+      // lente sai do prompt e a duracao segue as palavras.
+      for (const sc of outScenes) {
+        if (sc.type !== 'dialogue') continue
+        const line = (sc.dialogueLine ?? '').trim()
+        sc.type = 'support'
+        if (line) {
+          sc.voiceover = line
+          sc.needsNarration = true
+        }
+        delete sc.dialogueLine
+        sc.prompt = sc.prompt
+          .replace(/\s*—?\s*looking (straight |directly )?into the lens,? the person says: "[^"]*"/gi, '')
+          .replace(/looks? (directly |straight )?(into|at) the (lens|camera)/gi, 'looks away from the camera, mouth closed')
+          .replace(/(speaks|speaking|talks|talking|declares|says|addresses) (directly )?to (the )?(camera|lens|viewer)/gi, 'silent, mouth closed')
+          .replace(/talking head/gi, 'wide environmental shot')
+        const w = line.split(/\s+/).filter(Boolean).length
+        sc.seconds = w > 0 && w <= 14 ? 5 : 10
+        console.log(`[hollywood-planner] KINEO-FACELESS-DE-VERDADE — scene ${sc.index} dialogue → narrated support (${w} words → ${sc.seconds}s)`)
+      }
     }
   }
 

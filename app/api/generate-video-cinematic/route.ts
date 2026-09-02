@@ -2751,6 +2751,60 @@ async function manipularPost(req: NextRequest) {
         }
       }
 
+      // ═══ KINEO-COERENCIA-HISTORIA-2026-09-02 — O RELOGIO E A FALA ═══════
+      // Render 79a75506 do fundador (Omni Flash, 150cr, pedido 60s, modo
+      // automatico): o plano dizia 59 segundos, a narracao tinha 86 PALAVRAS
+      // (~37s de fala), o filme saiu com 46s e "acabou antes de completar a
+      // historia". Todos os portoes abaixo medem o campo `seconds` que o GPT
+      // escreve — e o GPT escreve 10 numa cena de 14 palavras. No caminho
+      // verbatim a Clausula C1 redistribui o texto do usuario por aritmetica
+      // e o problema nao existe; no caminho automatico ninguem media a fala.
+      // Agora: soma-se as PALAVRAS faladas do plano; abaixo de 92% do que o
+      // alvo exige (~2.3 pal/s), replaneja ate 2x com o deficit em numeros e a
+      // ordem de FECHAR a historia. Fica o plano com mais fala.
+      let coerenciaPalavras = 0
+      let coerenciaReplans = 0
+      if (!verbatim) {
+        const WPS = 2.3
+        const wordsOfScene = (sc: { voiceover?: string | null; dialogueLine?: string | null }) =>
+          ((sc.voiceover ?? '') + ' ' + (sc.dialogueLine ?? '')).trim().split(/\s+/).filter(Boolean).length
+        const spokenWords = (pl: typeof plan) => pl.scenes.reduce((acc, sc) => acc + wordsOfScene(sc), 0)
+        const neededWords = Math.ceil(hollywoodTarget * WPS * 0.92)
+        coerenciaPalavras = spokenWords(plan)
+        while (coerenciaPalavras < neededWords && coerenciaReplans < 2) {
+          coerenciaReplans += 1
+          console.warn(
+            `[coerencia] narracao curta: ${coerenciaPalavras} palavras ≈ ${Math.round(coerenciaPalavras / WPS)}s de fala ` +
+            `para alvo ${hollywoodTarget}s (precisa ${neededWords}) — replan ${coerenciaReplans}/2`,
+          )
+          try {
+            const replanned = await planHollywoodScenes({
+              faceless: facelessRequested,
+              idea: prompt,
+              voiceoverScript: hollywoodVoiceover || undefined,
+              scenes: scenes.map((sc) => ({ voiceover: sc.voiceover, description: sc.aiPrompt || sc.description })),
+              durationSeconds: hollywoodTarget,
+              language: hollywoodLanguage,
+              shortRetryFeedback:
+                `the narration had only ${coerenciaPalavras} spoken words — about ${Math.round(coerenciaPalavras / WPS)} seconds of speech — ` +
+                `for a ${hollywoodTarget}-second film, so the story ended before it was told. Write at least ${neededWords} spoken words in total ` +
+                `(${Math.round(hollywoodTarget * WPS)} is ideal), spread across ${Math.min(8, Math.max(5, plan.scenes.length + 1))}-8 scenes at ~2.3 words per second ` +
+                `(a 10s scene = 22-25 words, a 5s scene = 11-13). Keep every fact already used, ADD the missing beats of the story, ` +
+                `and make the LAST scene a real ending — the resolution or reveal, spoken in full — never a cliffhanger.`,
+            })
+            const w = spokenWords(replanned)
+            if (w > coerenciaPalavras) {
+              plan = replanned
+              coerenciaPalavras = w
+            }
+          } catch (e) {
+            console.warn('[coerencia] replan por fala curta falhou (mantendo plano):', e instanceof Error ? e.message : String(e))
+            break
+          }
+        }
+        console.log(`[coerencia] fala final: ${coerenciaPalavras} palavras ≈ ${Math.round(coerenciaPalavras / WPS)}s para alvo ${hollywoodTarget}s (replans=${coerenciaReplans})`)
+      }
+
       // KINEO-DURATIONFIX-2026-08-17 — dois renders do fundador sairam com
       // EXATOS 34s num pedido de 60s: o GPT-planejador ignora o alvo e ninguem
       // conferia a SOMA. Agora: (1) soma curta → replaneja UMA vez com o
@@ -3691,6 +3745,10 @@ async function manipularPost(req: NextRequest) {
         // estragou — o defeito que o #353A cometeu ao instrumentar sem ligar.
         contrato_cena: contratoRelato,
         visual_mode: formatoVisual.modo,
+        // KINEO-COERENCIA-HISTORIA-2026-09-02 — prova no claim: palavras
+        // faladas do plano e quantos replans a fala curta exigiu.
+        narration_words: coerenciaPalavras,
+        narration_replans: coerenciaReplans,
         // KINEO-SPECTACLE-2026-08-17 — espelha a regra do submit loop: ambiente
         // só pra cena que o planner situou no mundo do narrador (environmentSheet
         // presente no prompt); b-roll de outros lugares re-tenta em t2v sem âncora.

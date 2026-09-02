@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { looksLikeInstruction } from '@/lib/momentumTopic'
 import { useRouter, useSearchParams } from 'next/navigation'
 // KINEO-STUDIO-CORTINA-2026-08-17 — tela de espera vestida com o kit.
 import { STUDIO_KIT_CSS } from '@/components/studioKit'
@@ -737,7 +738,7 @@ function normalizeFastRenderInputs(value: unknown): FastRenderInputs | undefined
   const voiceover = typeof input.voiceover_script === 'string' ? input.voiceover_script.slice(0, 10000) : ''
   if (clipUrls.length === 0 || !voiceover.trim()) return undefined
   const requestedDuration = Number(input.duration)
-  const safeDuration = requestedDuration === 60 || requestedDuration === 90 ? requestedDuration : 45
+  const safeDuration = requestedDuration === 60 || requestedDuration === 90 ? requestedDuration : 35 // KINEO-PRIMEIRO-VIDEO-2026-09-02 — era 45
   const language = input.language === 'pt' || input.language === 'es' ? input.language : 'en'
   return {
     clip_urls: clipUrls,
@@ -1106,11 +1107,31 @@ export default function GenerateClient({
     onboardingGoalRef.current = null
     try { sessionStorage.removeItem(PUSH27_ONBOARDING_GOAL_SESSION_KEY) } catch {}
   }
-  function onboardingPick(goal: OnboardingGoal) {
+  async function onboardingPick(goal: OnboardingGoal) {
     onboardingAutoGenerateRef.current = true
     onboardingGoalRef.current = goal.id
     try { sessionStorage.setItem(PUSH27_ONBOARDING_GOAL_SESSION_KEY, goal.id) } catch {}
     setPrompt(goal.topic)
+    // KINEO-PRIMEIRO-VIDEO-2026-09-02 — CORRIDA: o overlay abre no mesmo
+    // instante em que /api/credits ainda esta em voo, e a pessoa clica antes
+    // da resposta. `credits` e null e `trialActive` e false por padrao, entao
+    // a decisao abaixo caia no Kineo 1 para quem TINHA 25 creditos e trial
+    // ativo. Medido em 14d: 17 dos 22 primeiros videos do onboarding sairam
+    // no Kineo 1 (77%) — uma conta nova sempre tem 25cr e trial ativo, o
+    // motor bom deveria ter ganhado quase todos. Com o saldo ainda
+    // desconhecido, pergunta ao servidor antes de escolher o motor.
+    let creditsNow = credits
+    let trialNow = trialActive
+    if (creditsNow === null || !trialNow) {
+      try {
+        const r = await fetch('/api/credits', { cache: 'no-store' })
+        if (r.ok) {
+          const d = await r.json()
+          if (typeof d?.credits === 'number') { creditsNow = d.credits; setCredits(d.credits) }
+          if (typeof d?.trialActive === 'boolean') { trialNow = d.trialActive; setTrialActive(d.trialActive) }
+        }
+      } catch {}
+    }
     // KINEO-PRIMEIRA-IMPRESSAO-2026-08-21 — era `setMode('fast')` com o
     // comentário "first video = Fast = zero friction". A intenção era boa e o
     // resultado, medido, foi o contrário: a fricção que importa não é escolher
@@ -1130,15 +1151,22 @@ export default function GenerateClient({
     // E o `mode` daqui é um PAR com o guard do dispatcher (~6640): se um
     // aceitar cinematic_ai e o outro não, o primeiro vídeo não é despachado.
     if (
-      trialActive &&
-      typeof credits === 'number' &&
-      credits >= creditCostFor('cinematic_ai')
+      trialNow &&
+      typeof creditsNow === 'number' &&
+      creditsNow >= creditCostFor('cinematic_ai')
     ) {
       setMode('cinematic_ai')
       setAiEngine('seedance')
     } else {
       setMode('fast')
     }
+    void trackEvent('first_video_engine_decided', {
+      surface: 'niche_onboarding',
+      engine: trialNow && typeof creditsNow === 'number' && creditsNow >= creditCostFor('cinematic_ai') ? 'seedance' : 'fast',
+      credits: creditsNow,
+      trial_active: trialNow,
+      refetched: credits === null || !trialActive,
+    })
     finishOnboarding()
     void handleAnalyze(goal.topic, { fromTopic: true, skipPreview: true, structureFirst: true })
   }
@@ -2606,7 +2634,7 @@ export default function GenerateClient({
           return
         }
 
-        const restoredDuration: Duration = stored.duration === 60 || stored.duration === 90 ? stored.duration : 45
+        const restoredDuration: Duration = stored.duration === 60 || stored.duration === 90 ? stored.duration : 35 // KINEO-PRIMEIRO-VIDEO-2026-09-02 — era 45
         const restoredQuality = typeof stored.quality === 'string' ? stored.quality : 'basic_ai'
         const restoredMode: GenerationMode =
           stored.mode === 'fast' || stored.mode === 'creator' || stored.mode === 'cinematic' || stored.mode === 'cinematic_ai'
@@ -3659,6 +3687,16 @@ export default function GenerateClient({
     // pulada exatamente como sempre.
     if (paidAccount && !isFirstWinFromCheckout) {
       consumeAndSkip('paid_account')
+      return
+    }
+    // KINEO-PRIMEIRO-VIDEO-2026-09-02 — texto que e INSTRUCAO a um chatbot
+    // ("Absolutely. Below is a **complete content package", "Create a
+    // 40-second Shorts video titled...") nao vira render automatico: o
+    // primeiro video e a prova do produto, e 2 dos ultimos 20 auto-starts
+    // renderizaram esse lixo ao pe da letra. O texto fica na caixa (initialPrompt)
+    // e a pessoa aperta o botao depois de ler o que colou.
+    if (looksLikeInstruction(explicitPrompt)) {
+      consumeAndSkip('prompt_looks_like_instruction')
       return
     }
     if (paidAccount) {

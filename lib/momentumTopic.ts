@@ -36,6 +36,27 @@ const RULE_PHRASE = /\b(must be|must have|should be|should have|no english|only\
 // Markdown de resposta de chatbot colado inteiro na caixa.
 const MARKDOWN = /\*\*|^#{1,6}\s|^---/
 
+/**
+ * KINEO-PRIMEIRO-VIDEO-2026-09-02 — o texto parece INSTRUCAO a um chatbot
+ * (colagem do ChatGPT, rotulo STYLE:, markdown, "Create a 40-second video
+ * titled..."), nao um tema de filme. Usado pelo auto-start: 2 dos 20 ultimos
+ * primeiros videos automaticos nasceram de "Absolutely. Below is a **complete
+ * content package" e "Create a 40-second Shorts video titled" — renderizados
+ * ao pe da letra, sem ninguem olhar. Quem cola isso ganha a caixa de texto
+ * aberta com o texto dentro, nao um render automatico do lixo.
+ */
+export function looksLikeInstruction(raw: string | null | undefined): boolean {
+  if (typeof raw !== 'string') return false
+  const text = raw.trim()
+  if (!text) return false
+  const first = text.split(/\r?\n/).map((l) => l.trim()).find(Boolean) ?? ''
+  if (INSTRUCTION_START.test(first)) return true
+  if (LABEL_LINE.test(first)) return true
+  if (MARKDOWN.test(first)) return true
+  const rules = text.match(new RegExp(RULE_PHRASE.source, 'gi'))
+  return (rules?.length ?? 0) >= 2
+}
+
 export function pickMomentumTopic(raw: string | null | undefined): string | null {
   if (typeof raw !== 'string' || !raw.trim()) return null
   const extracted = extractShortTitle(raw)

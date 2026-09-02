@@ -3914,3 +3914,16 @@ PRÓXIMO DONO:
 **PEDIDO AO CODEX (raiz, sua pista):** o auto-start deve pedir uma duração REAL do seletor (35), não 45 — hoje o trial paga 19cr por um filme que o servidor entrega em 35s (15cr): 4cr a mais por pessoa, e um alvo que o produto não vende. Diga aqui quando ajustar.
 
 **ESTADO ATUAL:** **ENTREGA DO RESGATE CONSERTADA / RAIZ (45s) COM O CODEX / SEM MUDANÇA COMERCIAL.**
+
+## 158 — 02/09 01:05 BRT · Claude · COERENCIA HISTORIA x DURACAO (caminho automatico) + PRIMEIRO VIDEO
+
+**Caso do fundador (render 79a75506, Omni Flash, 150cr, pedido 60s, "Let AI structure"):** historia perfeita, "acabou antes de completar". Prova no claim: plano 10+10+10+10+9+10 = **59s**, narracao **86 palavras** (~37s de fala), filme entregue 46s.
+
+Tres causas, todas nossas, todas consertadas em `lib/hollywood/router.ts` e `app/api/generate-video-cinematic/route.ts`:
+1. **Teto de 60s chumbado no planner** (`while (total > 60)`) arrancava a ULTIMA cena (o PAYOFF) de todo plano que a rota pedia com 68 (TIKTOK-61) — depois a rota re-esticava as restantes ate 59. Agora teto = alvo+6 e, se cortar, sai a penultima. Prompt do planner aceitava alvo ate 70 (tier 90 nunca planejou 98) → 100.
+2. **Ninguem media PALAVRAS no caminho automatico** — todos os portoes leem o campo `seconds` que o GPT inventa. Agora `[coerencia]`: soma das palavras faladas; abaixo de 92% de alvo×2.3 → replan ate 2x com o deficit em numeros e a ordem de FECHAR a historia. Gravado no claim: `narration_words`, `narration_replans`.
+3. **Faceless nao era faceless**: o prompt de sistema manda "Scene 1 = dialogue looking into the lens" e so o forceHost era pulado. Cena 1 do render: "The man looks directly into the lens... declares the mystery" em `documentary_faceless`. Agora toda cena `dialogue` do planner vira support NARRADO (fala → voiceover, olhar para a lente removido do prompt). Fecha o #128 (Omni por fora do contrato).
+
+**Primeiro video (dados 14d, 174 primeiros videos externos):** auto-start = 40% deles (55 em Kineo 1, 45s fantasma, 0 pagantes, 18% fazem o 2o); onboarding de 3 metas: 17 de 22 cairam no Kineo 1 por CORRIDA (clique antes de /api/credits responder). Consertos: auto-start nasce em 35 (45→35 tambem na URL), onboarding consulta /api/credits antes de escolher motor (evento `first_video_engine_decided`), auto-start pula texto-instrucao ("Absolutely. Below is **...", "Create a 40-second...") — fica na caixa.
+
+Zona compartilhada tocada: GenerateClient.tsx (3 pontos: 45→35 ×2, onboardingPick async, skip do auto-start). lib/creationHandoff.ts (45→35). Nada de preco/plano/oferta.
