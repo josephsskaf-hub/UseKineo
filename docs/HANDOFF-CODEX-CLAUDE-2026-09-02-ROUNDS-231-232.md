@@ -6,6 +6,8 @@
 
 **FATO CONFIRMADO:** a rodada nasceu em `32f62938e342b841e6f86b7e08729889aa211e84`, ponta de `origin/main` às 13:21 BRT, na branch isolada `codex/b2b-proof-candidates-v1`.
 
+**VALIDADO EM PRODUÇÃO:** entrega funcional `2e773878dc3df030cafaa4112486a2da1aa937ab`; deploy Vercel `dpl_6FNubVqqVdFwzyTJ9nQeLUigEcR5` em estado `READY`, aliasado em `www.usekineo.com`. Como a entrega contém somente scripts e documentação, não altera a interface nem o runtime do cliente.
+
 **DECISÃO APROVADA:** a UseKineo permanece USD-only em toda a jornada. Essa regra já está em `docs/DECISIONS.md` e no handoff das rodadas 227–228; esta rodada não alterou moeda, preço, crédito, SKU ou Checkout.
 
 **FATO CONFIRMADO:** nenhuma superfície de runtime foi modificada. Não houve landing, CTA, outreach, e-mail, render, escrita em banco ou contato com cliente.
