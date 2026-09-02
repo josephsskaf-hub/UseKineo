@@ -319,3 +319,8 @@ disparo real). **Próximo item (#6):** auditar `send-momentum-nudge` ANTES do
 em SQL e ler a copy contra o que o produto faz hoje — o #4 já mostrou que o
 e-mail de "vídeo pronto" prometia 24 Fast quando o Starter dá 8); depois,
 `stranded_outcome`/`stranded_dedupe_miss` assim que a fila subir.
+### #0b — 23:55 BRT — DESTAQUE (fundador viu ao vivo): adrianwellsvadrian@gmail.com
+Cadastro→falha em 4 min pela parede de narração + expansor growth_limit com
+candidate_fits=true (texto cabia e foi descartado). Detalhes e correção sugerida no
+diário da sprint v1v4 (é o fio #37/#39 dela — não duplicar; se a rodada dela não pegar
+até 01:00 BRT, esta sprint pega). Seção 155 do HANDOFF avisada ao Codex.
