@@ -1045,6 +1045,10 @@ export default function GenerateClient({
   const activationAutostartFirstWinRef = useRef(false)
   const activationAutostartWaitLoggedRef = useRef(false)
   const activationAutostartWaitStartedRef = useRef<number | null>(null)
+  // sprint-assinaturas #2 (02/09) — veredito do servidor antes de RE-despachar
+  // um `dispatched:*` de conta gratis. 'pending' = sonda ainda nao respondeu.
+  const activationRecoveryServerVerdictRef = useRef<'pending' | 'idle' | 'busy' | 'unknown'>('pending')
+  const activationRecoveryProbeStartedRef = useRef(false)
   // Existe só para forçar a reentrada do effect enquanto ele espera o webhook
   // (defeito D13). Nenhuma outra parte da tela lê este valor.
   const [activationAutostartWaitTick, setActivationAutostartWaitTick] = useState(0)
@@ -1588,6 +1592,9 @@ export default function GenerateClient({
   // e so ela: `true` apenas quando a sonda respondeu 200, o corpo foi lido e o
   // estado NAO e 'rendering'. Qualquer falha o zera — silencio nunca vira prova.
   const serverProbeProvesIdleRef = useRef(false)
+  // sprint-assinaturas #2 — 200 com `degraded:true` = o servidor nao conseguiu
+  // consultar; nao e prova de ociosidade para o recovery automatico.
+  const serverProbeDegradedRef = useRef(false)
   const [serverActiveRenderTick, setServerActiveRenderTick] = useState(() => Date.now())
   // #360 — synchronous re-entry guard against double-submit. Catches the
   // sub-render race the disabled button can't: two clicks before React
@@ -3516,6 +3523,55 @@ export default function GenerateClient({
     if (consumedState !== null && !recoveryEligible) {
       consumeAndSkip('already_consumed')
       return
+    }
+
+    // sprint-assinaturas #2 (02/09) — o ramo `dispatched:*` de conta GRATIS
+    // re-despachava SEM perguntar ao servidor se o 1o despacho ainda vivia.
+    // Medido (externos, 14d): 12 recovery_dispatched, 9 deles entre 15s e 50s
+    // depois do 1o dispatch — e um cinematic (Seedance) ja esta DEBITADO e
+    // aceito na fal nesse instante (claim settled). Caso 489a2c31 (01/09
+    // 16:10): F5 aos 4s, recovery aos 22s, servidor recusou com held=19 (o
+    // trial inteiro preso no 1o render), tela 'failed' + UpgradeModal
+    // 'trial_spent' aos 4 min de vida — e o 1o filme, com todas as cenas
+    // prontas, nunca foi composto (ver #1). A guarda de conta paga (D1) ja
+    // fechava isto para quem pagou; para o trial o "custo do falso positivo"
+    // era o proprio trial, ou seja, a moeda de ativacao.
+    // Regra: recovery de `dispatched:*` so com a sonda /api/compose/active
+    // dizendo 'none'. 'rendering' (resumavel ou nao — o cinematic em
+    // fal_polling e o caso real e NAO tem render id) e 'completed' pulam; o
+    // card azul existente ja mostra "Running at the engine" / "Your video is
+    // ready" sozinho. Sonda sem resposta (401/500/rede) = fail-closed: pular
+    // custa um clique manual, re-despachar custa o trial. `eligible` (nada
+    // gasto) continua recuperando sem sonda, como antes.
+    const dispatchedRecovery = recoveryEligible && consumedState !== 'eligible'
+    if (dispatchedRecovery) {
+      const verdict = activationRecoveryServerVerdictRef.current
+      if (verdict === 'pending') {
+        if (!activationRecoveryProbeStartedRef.current) {
+          activationRecoveryProbeStartedRef.current = true
+          void refreshServerActiveRender().then((probe) => {
+            // A sonda devolve null tanto para 'none' quanto para 401/500/rede:
+            // quem distingue e `serverProbeProvesIdleRef` (true so num 200 lido
+            // ate o fim com state != 'rendering') e `serverProbeDegradedRef`
+            // (200 com degraded:true = o servidor NAO conseguiu olhar).
+            activationRecoveryServerVerdictRef.current =
+              probe !== null
+                ? 'busy'
+                : serverProbeProvesIdleRef.current && !serverProbeDegradedRef.current
+                  ? 'idle'
+                  : 'unknown'
+            setActivationAutostartWaitTick((v) => v + 1)
+          })
+        }
+        return
+      }
+      if (verdict !== 'idle') {
+        metadata.recovery = true
+        metadata.recovery_reason = 'abandoned_before_checkpoint'
+        metadata.server_state = serverActiveRenderRef.current?.state ?? null
+        consumeAndSkip(verdict === 'busy' ? 'server_render_in_flight' : 'server_probe_unavailable')
+        return
+      }
     }
 
     activationAutostartDecisionRef.current = true
@@ -6256,6 +6312,7 @@ export default function GenerateClient({
       const data = await res.json().catch(() => null) as Record<string, unknown> | null
       if (!data) { serverProbeProvesIdleRef.current = false; return null }
       serverProbeProvesIdleRef.current = data.state !== 'rendering'
+      serverProbeDegradedRef.current = data.degraded === true
       let probe: ServerActiveRenderProbe | null = null
       if (data.state === 'rendering') {
         const startedAtMs = Date.parse(typeof data.started_at === 'string' ? data.started_at : '')
