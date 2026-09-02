@@ -65,9 +65,14 @@
 - base final após rebase: `5a969e5e3600998b31564b464da60042eb863954`; o rebase terminou sem conflito;
 - branch: `codex/b2b-monthly-operator-aeo-v1`;
 - commit funcional após rebase: `657847c7` antes da redução de escopo machine-readable;
+- commit final publicado: `ad926cbf2e7e69e68fcbe410e02ceef61eeabef5`;
+- deploy de produção: `dpl_5j55cH7QbwFSUcWFovzPvPdpqrUY`, `READY` em 2026-09-02 e aliasado em `www.usekineo.com`;
+- validação pública em 2026-09-02: `/llms.txt` respondeu 200 com o título do roteador e as quatro campanhas; `/api/facts` respondeu 200 com `businessCreationRouter`; `/facts` não contém a pergunta visual retirada;
 - regressão pós-rebase e redução de escopo: **376/376**, whitespace limpo e somente os mesmos três erros preexistentes no typecheck;
 - auditoria adversarial: **GO técnico; P0=0, P1=0, P2=0**. O gate visual deixou de bloquear porque nenhuma mudança visual permanece no diff.
 
 ## Próxima alternância
 
-**SUGESTÃO:** após publicação e validação desta rodada, voltar ao B2C. A hipótese mensurável é usar o sinal de posse percebida do primeiro arquivo sem tocar em `GenerateClient` antes de coordenar a zona compartilhada; se não houver superfície Growth independente, executar diagnóstico em vez de duplicar a oferta pós-vídeo ainda em coleta.
+**FATO OPERACIONAL:** a alternância B2C seguinte auditou o compartilhamento privado existente e publicou o handoff `ROUNDS-251-252`; a amostra ficou abaixo do gate e a interface foi preservada.
+
+**SUGESTÃO:** a próxima rodada B2B não deve reeditar o roteador recém-publicado. A hipótese nova é um brief de escopo de produção em texto puro, encaminhável ao aprovador da empresa, derivado de fatos canônicos e medido apenas quando a pessoa avança para uma superfície existente.
