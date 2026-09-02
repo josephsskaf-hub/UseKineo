@@ -960,3 +960,78 @@ verdade ou o filtro está errado (2ª cron "acordada" com 0 disparos = suspeito)
 (b) a família "recusa na análise" (`analyze_not_ok` 18/4 pessoas + "Could not
 analyze" 19/5 em 7d) — o que o servidor devolveu (500 de OpenAI? 400?) e por
 que ninguém vira `generate_failed`; (c) depois do clique: `stranded_diag` do #14.
+
+### #16 — 03:41→04:10 BRT — pré-voo do 1º disparo real do momentum (13:30 UTC) + dois itens fechados sem código
+**Leitura.** origin/main = 3be59822 (Codex: 3 commits de medição — in-flow
+pricing, funil do Autopilot, promo truth — sobre 9395b26b); fila = #14 + #15
+(4 commits: b6c7e0dd, 4e48eb7d, cc208889, c5dd4538), **ainda não clicada**.
+Deploy vivo no `deploy_sha` dos eventos = 3be59822 (06:36 UTC) — a main do
+Codex sobe; a minha fila não. Rodada de LEITURA por decisão: os dois itens
+(a)/(b) do #15 pediam diagnóstico antes de qualquer edição.
+**(a) `momentum_nudge_sent` = 0 — NÃO é defeito.** O `?confirm=SEND` entrou
+no vercel.json em 01/09 (acordado junto com o failure-recovery, que já
+disparou às 06:00 UTC de hoje — prova de que o par cron+confirm funciona). O
+momentum roda **1× ao dia, 13:30 UTC (10:30 BRT)** — desde que armou, o
+relógio ainda não passou por ele. Primeiro disparo real = HOJE 10:30 BRT.
+Simulei a coorte em SQL com a MESMA regra da rota (completed em 30d ·
+1-3 vídeos · último há 20-96h · sem assinatura · opt-in · sem carimbo ·
+≥5cr = `creditCostFor('fast', true)`): **27 e-mails saem** (24 com 1 vídeo,
+3 com 2, 0 com 3), **todos trial ativo** (cadastros 29/08→01/09), saldo
+5-9cr: 6 · 10-19: 10 · ≥20: 11. 16 pessoas da faixa ficam de fora por
+saldo <5 (gastaram o trial inteiro — essas já estão na esteira
+ending_soon/downgraded_loss). Tripwire: 746 vídeos em 30d < 1.000, não
+satura. Coerência do link conferida no código: `autoanalyze=1` →
+`fromViralNow` → `setMode('fast')` (GenerateClient ~3253), ou seja o botão
+"Open episode 2" cai no Kineo 1 (5cr no trial) — o MESMO custo da guarda
+`minCredits`; ninguém é mandado para um 402. Fadiga: 5 dos 27 receberam um
+trial_lifecycle nas 12h anteriores (D0/ending_soon às :25) — 2º e-mail do
+dia para eles; anotado, sem mexer (sem dado de dano, e a janela 20-96h é
+justamente a que a tese do 4º vídeo pede).
+**(b) família "recusa na análise" — JÁ FECHADA pela sprint-v1v4 (#18/#23),
+não duplicar.** Os 18 `analyze_not_ok` (4 pessoas) e 19 "Could not analyze"
+(5 pessoas) de 7d são TODOS de 29-31/08 (último às 02:03 UTC de 31/08),
+`http_status: 400` em ~300 ms = validação de porta, não GPT. Desde 31/08 o
+cliente mostra a frase do servidor em 4xx (GenerateClient ~7425) e a rota
+grava a recusa com nome (`recusarAnalise`, analyze-idea ~600); o teto de
+5.000 é barrado no cliente (`analyze_prompt_too_long`, que o #15 já
+transformou em e-mail `script_long`). **Zero ocorrência em 48h.** Sobrou
+só a nota: `analyze_not_ok`/`Could not analyze` continuam invisíveis ao
+failure-recovery — irrelevante enquanto a contagem for 0.
+**Achado que vira urgência (não código): 2 dos ~19 primeiros vídeos do dia
+morreram DEPOIS de 5/5 cenas aceitas e pagas** — shaunish2097 (#14,
+`no_authorized_urls` ×6) e wummm709 (02:53 UTC, 5/5 ok → `compose_error_400`
+×2 + `compose_error_503` → estorno 05:30). Os dois são trial 25cr que
+apertaram gerar e ficaram com "seu crédito voltou". O conserto dos dois
+(#7 custo-do-claim no compose, #14 fallback de URLs) está na FILA desde
+~02:00 e não no ar. ≈10% dos primeiros vídeos do dia = o maior vazamento
+mensurável da minha pista hoje, e depende de UM clique.
+**Assinantes parados (dado novo para o link do #10):** dos 9 com assinatura
+viva, só 3 fizeram vídeo em 7d (godofloki 3, gapozweb 3, salswina 2). Os
+outros 6 estão parados há 9-41 dias com crédito acumulado: akajitin
+(starter, **172cr**, último 03/08), den.higgins (basic, 140cr, 08/08),
+valos87196 (73cr, 15/08), noelrss21 (basic, 63cr, 24/08), brandonmooney450
+(20cr, 23/07), emiliomontinari (starter, 40cr, **nunca fez vídeo**, renovou
+01/09). Assinante que não usa cancela na próxima fatura; a rota
+`/api/admin/send-subscriber-idle` (#10) foi escrita para exatamente eles e
+`subscriber_idle_sent` segue 0 — o link de 1 clique está esperando.
+**SHA:** só diário (esta rodada não altera código). **Risco:** nenhum.
+**Como medir:** às 10:30 BRT `momentum_nudge_sent` deve marcar ~27 (`select
+count(*), count(*) filter (where (metadata->>'videos')::int=1)`); em 48h,
+`videos completed` desses user_ids e `page_view` com `utm_campaign=momentum`.
+**Placar 04:05 BRT (externos):** has_paid 11 (starter 3, basic 2, pro 2,
+free/churn 4); cadastros 1h=0, 24h=31 (3 com 0cr); vídeos 1h=2, 24h=19;
+**falhas 1h=0**; 3h: asuquoalbert07 narration_too_short/speech=3s ×3 (o
+mesmo; trial revivido às 05:39 UTC por `trial_cap_refunded` e 7/7 cenas
+aceitas às 06:14 — vídeo a caminho); checkout_started 24h=5 pessoas; 7d: 74
+com 1, 9 com 2, 2 com 3, **0 com 4+**; crons 24h: winback25 120,
+failure_recovery 6, momentum 0 (1º disparo 10:30 BRT), subscriber_idle 0;
+refunds 24h: abandoned_no_delivery **6** (+1: wummm709), trial_cap 3;
+stranded 3h: no_authorized_urls ×6 (shaunish, o do #14).
+**Próximo item (#17):** (a) se a fila subir antes de 10:30: nada a fazer —
+ler `stranded_diag` da próxima ocorrência; (b) 11:00 BRT: conferir os ~27
+`momentum_nudge_sent` (kind por `videos`, `com_tema` real vs simulado); (c)
+código: `send-failure-recovery` ainda cego para `compose_error_4xx/5xx` do
+resgate — wummm709 tinha 5 cenas prontas, perdeu o filme e NÃO recebeu
+e-mail de causa (o `stranded_rescue` é genérico); (d) o pós-trial com 21cr
+(3 pessoas de 29/08): free não pode Seedance (25) e tem Kineo 1 a 0 — o
+saldo vira "dinheiro parado" sem tela que diga isso; medir quantos são.
