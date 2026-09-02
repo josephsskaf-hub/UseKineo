@@ -187,3 +187,74 @@ narration_too_short 1…); checkout_started 24h=1; 7d: 70 com 1, 9 com 2, 2 com
 3, **0 com 4+**; crons 24h: winback25 120, failure_recovery 0, momentum 0.
 DESTAQUE: abandoned_no_delivery 24h = 3 (1 é o padrão A desta rodada, 2 são
 padrão B) — #1+#2+#3 ainda na fila, nada disso está no ar.
+
+### #4 — 23:10→23:45 BRT — o e-mail "Your video is ready 🎬" saía 16 vezes para a mesma pessoa
+**Antes de tudo — a fila SUBIU.** origin/main = 575424c5 (Codex, 23:06 BRT) ⊇
+86ccdf28: #1, #2 e #3 estão em produção desde ~23:00 BRT. `stranded_outcome`
+ainda em 0 (nenhum claim settled sem entrega entrou na janela desde o deploy —
+os 9 settled das últimas 20h têm `compose_submission_claim`). A primeira leitura
+de causa do padrão B vem na próxima rodada com claim encalhado.
+**O que eu fui procurar e o que achei no caminho.** Fui ler os logs da Vercel
+dos 8 ciclos do cron entre o claim 630c37a8 (74eca199, 14:30 UTC) e o estorno
+(16:30): `checked=13 composed=0` em todos, ZERO linha de `skip=pending/too_few`,
+zero `compose failed` — a saída para essa geração foi ANTES do marcador de
+tentativa (authorize_failed/reload_failed/no_authorized_urls, todos mudos até o
+#1). Perfil do caso: cadastro 14:29:51 → autostart 14:30:11 → 14:31:53 clicou
+no `topup_eligibility_handoff` e foi para /pricing (poll da aba morreu com
+Seedance a 1 min de vida) → nunca voltou. O 2º padrão-B de hoje (489a2c31) é o
+mesmo do #2. Sem o segredo (o `.env.local` da raiz é o exemplo, `your-project`),
+não dá para verificar a assinatura do claim offline — fica para o `stranded_outcome`.
+**Mas ao listar os claims settled da janela apareceu isto:** a geração 1948c6fa
+(mcnivendominic789, trial, 01/09 09:16) tem **16 `stranded_ready_sent`** — o
+cron compôs o filme às 09:30 (bom) e mandou "Your video is ready 🎬" às 09:45,
+10:15, 10:31, 10:45 … 13:45: dezesseis cópias, uma por ciclo de 15 min, por 4
+horas. Não é caso isolado (externos, desde 20/08): 74 e-mails duplicados para
+14 pessoas — 16, 14, 14, 13, 7, 5, 4, 3, 3, 3, 3, 2… — e **9 de 9** resgates do
+Kineo 1 (Fase 3, `stranded_fast_ready_sent`) saíram repetidos. É a pior
+primeira impressão possível no exato minuto de maior propensão a assinar
+(primeiro filme na mão): 16 spams da marca, unsubscribe, reputação do remetente
+`hello@usekineo.com` no Resend.
+**Por quê.** As três portas de e-mail do cron deduplicavam por um lookup EM
+LOTE (`.in('session_id', [até 200 ids])`) cujo erro era ignorado (`const { data }
+= …`) e cujo resultado alimentava um Set; lote vazio/incompleto = Set vazio =
+reenvio para todo mundo naquela rodada, e na seguinte, até a geração sair da
+janela de 20h. O mecanismo exato do lote falhar (URL longa? erro transitório?)
+ainda não está provado — por isso o conserto não depende dele.
+**O que mudou** (`app/api/cron/finish-stranded-renders/route.ts`): antes de
+QUALQUER `sendEmail` (ready/rescue/fast) roda `alreadySentDirect()` — consulta
+direta por ESTA geração (`.eq('name').eq('session_id').limit(1)`, sem lista),
+fail-closed: erro na consulta = não envia (perder um e-mail custa um clique;
+mandar 16 custa o cliente). Quando a direta acha o marcador que o lote não
+tinha, grava `stranded_dedupe_miss` {event, batch_size, batch_error} e loga
+`dedupe MISS` — a próxima rodada lê a causa em SQL. Os erros dos dois lotes
+agora vão para o log. Nenhuma decisão de compor mudou. Teste:
+`scripts/test-stranded-email-dedupe.mjs` (14 verificações lendo o arquivo
+real). tsc: os 4 pré-existentes + 1 NOVO que NÃO é meu —
+`components/TrialDowngradeModal.tsx(334)` veio no 575424c5 do Codex
+(`ExclusiveClaim` tipo incompatível) — pista dele, anotado, não toquei.
+**Para o cliente/receita.** Quem recebe o filme pelo cron passa a receber UM
+e-mail. ~1 pessoa/dia deixava de ser spamada (14 em 12 dias). Reputação do
+domínio preservada para os crons que vendem (winback, momentum, failure
+recovery).
+**SHA:** ac3978e4 (sobre 575424c5). **Risco:** baixíssimo — só REMOVE envios;
++1 consulta leve por e-mail candidato. **Como medir:** `select session_id,
+count(*) from events where name in ('stranded_ready_sent','stranded_fast_ready_sent')
+and created_at > now()-interval '24 hours' group by 1 having count(*)>1` → 0
+linhas; `stranded_dedupe_miss` nas próximas 24h = a causa do lote.
+**Placar 23:40 BRT (externos):** has_paid 11 (starter 3, basic 2, pro 2, free/
+churn 4); cadastros 1h=2, 24h=25; vídeos 1h=2, 24h=18; falhas 1h=0, 24h=17
+(voiceover 2, compose_daily_free 2, script ~33s 2, speech= 4, held 1);
+checkout_started 24h=1; 7d: 71 com 1, 9 com 2, 2 com 3, **0 com 4+**; crons
+24h: winback25 120, failure_recovery 0, momentum 0; abandoned_no_delivery 24h
+= 3 trials (+1 canário S25 do fundador, 150cr). **DESTAQUE 1:** 5 cadastros
+de 24h com 0 créditos — 4 gastaram os 25 do trial (`trial_credits_used=25`) e
+foram `downgraded` em 8-40 MINUTOS de vida (variante 7d!, downgrade mediano
+aos 40 min: o trial "de 7 dias" acaba quando os 25cr acabam, ou seja, no 1º
+Seedance + 1 Kineo 1); 1 (qdd60@hello.nondon.site) nunca recebeu trial
+(`trial_credits_granted=0`, sem `blocked`) — descartável, provável anti-abuso
+mudo; conferir se o vigia repara errado. **DESTAQUE 2 (pista do Codex, não
+toquei):** variante 3d zera o saldo no dia 3 — 49 pessoas perderam em média
+18cr não usados. **Próximo item (#5):** ler `stranded_outcome` e
+`stranded_dedupe_miss`; se ainda vazio, o item de maior alavanca é o momento
+"trial acabou em 40 minutos": quem chega ao downgrade com 1 filme entregue
+precisa de uma tela que venda o 2º filme (pista compartilhada — avisar Codex).
