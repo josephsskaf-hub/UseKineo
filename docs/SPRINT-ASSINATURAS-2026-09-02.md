@@ -324,3 +324,77 @@ Cadastro→falha em 4 min pela parede de narração + expansor growth_limit com
 candidate_fits=true (texto cabia e foi descartado). Detalhes e correção sugerida no
 diário da sprint v1v4 (é o fio #37/#39 dela — não duplicar; se a rodada dela não pegar
 até 01:00 BRT, esta sprint pega). Seção 155 do HANDOFF avisada ao Codex.
+
+### #6 — 23:49→00:30 BRT — o e-mail de momentum ia estrear às 10:30 BRT SEM tema para 100% da lista (e o #5 tinha um buraco)
+**Leitura.** Fila NÃO subiu (origin/main = e544305b; entrega-atual tinha 4
+commits meus + o handoff 156 d3e79e78). `stranded_outcome` e
+`stranded_dedupe_miss` = 0 (código ainda na fila). Item planejado: auditar
+`send-momentum-nudge` antes do 1º disparo real (13:30 UTC = 10:30 BRT).
+**O que estava errado.** Reproduzi a elegibilidade em SQL: 756 vídeos
+completos em 30d (abaixo do teto de 1.000 do PostgREST, por enquanto), 44
+pessoas com 1-3 vídeos paradas há 20-96h, **24 elegíveis** (20 caem por
+crédito < 5 — 19 delas `trial_downgraded`, ou seja o trial acabou antes do
+e-mail existir). Todos os 24 são trial de 1-4 dias, 1 vídeo (2 com dois),
+6-21cr sobrando, 0 checkout (1 exceção). Aí li o `topic` que o e-mail cita:
+**`videos.topic` não guarda tema — guarda o ROTEIRO inteiro** (gancho +
+"\n\n" + corpo, capado em 500 chars). O `cleanTopic` da rota devolvia `null`
+para qualquer texto > 90 chars → **23 de 23 topics (161-558 chars) → `com_tema:
+0`**. O e-mail sairia para TODOS na versão neutra ("You made your first film
+with Kineo.") com botão "Make the next one →" para o `/generate` PELADO —
+exatamente o destino de 24% que a rodada #24 do sprint v1→v4 mediu contra 53%
+da continuação de série, e que aquele commit declarou trocado. A função nova
+(`buildSeriesContinuationEmailUrl`) estava lá; o portão antes dela nunca
+deixou um tema passar. Ninguém viu porque a rota nunca tinha disparado
+(`momentum_nudge_sent` = 0 desde 20/08) e o DRY_RUN só reportava a contagem.
+**O que mudou.** `lib/momentumTopic.ts` (novo): o tema é a linha do GANCHO
+pela régua da casa (`extractShortTitle` de `lib/resumeStrip.ts` — a mesma de
+/history, faixa da home e /studio), com filtro de INSTRUÇÃO: roteiro que
+começa com "Create a 40-second Shorts video titled…", "STYLE: Bright…",
+"All spoken dialogue must be in FRENCH ONLY.", "Absolutely. Below is a
+**complete content package…" (4 casos reais do lote) NÃO vira "Your film
+about STYLE: Bright…" — cai na versão neutra. Anchor passou a vir entre aspas
+(`Your film “Ever heard of an island where no one can survive?” is sitting in
+your library.`) porque gancho termina em ?/!. Sem tema utilizável, texto e
+URL são byte a byte os de antes. Tripwire de truncamento na leitura de
+`videos`: ≥1.000 linhas → 500 e zero envio (contagem truncada diria "You're
+three away" para quem fez cinco). Teste `scripts/test-momentum-topic.mjs`
+transpila os .ts com o typescript do repo e prova com os 23 roteiros reais: o
+portão antigo rejeitava 23/23; o novo devolve o gancho para 19/19 filmes de
+verdade e rejeita os 4 de instrução (40 verificações). tsc: 4 pré-existentes
++ TrialDowngradeModal do Codex, zero meus.
+**#6b (achado no placar, consertado na mesma rodada).** 4 falhas na última
+hora, 3 delas trial de 1-14 min de vida com 25cr intactos e roteiro curto —
+e **2 na forma `no_detail:narration_too_short|stage=failed|http=none`, SEM
+números**. A regex do #5 exige os 3 números; esse caso caía em `bug` e
+receberia a desculpa falsa às 03:00 BRT. Agora `narration_too_short|
+narration_guard` = `script_short` sem números, com versão genérica do mesmo
+e-mail (shorter than the length you picked; 2 saídas; sem inventar
+segundos). 48h: 3 falhas / 2 pessoas / 2 sem nenhum vídeo. +6 verificações.
+**Para o cliente/receita.** Os ~24 primeiros destinatários (e ~8/dia daí em
+frente) recebem um e-mail que cita o filme DELES e abre o Studio com o
+episódio 2 já na caixa — o caminho que converte 2,2× mais em 2º vídeo, no
+único e-mail da casa escrito para levar do 1º ao 4º (0,9% → 11,8%). E duas
+pessoas a mais deixam de receber "foi bug nosso" por uma regra de produto.
+**SHA:** f519aa7a (#6) + 32a87c70 (#6b), sobre d3e79e78. **Risco:** baixo —
+só muda anchor/URL quando há gancho legível; tripwire só nega envio em
+saturação. **Como medir:** DRY_RUN → `com_tema` ≥ 18 de 24 (era 0); depois do
+disparo, `continuation_source=momentum_email` em `page_view`/`generate_started`
+vs cliques totais utm_campaign=momentum; 2º vídeo em 72h dos destinatários
+(meta ≥ 30%). `failure_recovery_sent` com `kind=script_short` cobrindo os
+`no_detail:narration_too_short`.
+**Placar 00:15 BRT (externos):** has_paid 11 (starter 3, basic 2, pro 2,
+free/churn 4); cadastros 1h=**7**, 24h=30 (4 com 0cr — os downgrades-relâmpago
+do #4); vídeos 1h=1, 24h=17; falhas 1h=4 (narration_too_short 2, script
+27s/35s 1, still holding 1), 24h: script curto em 2 formas = 7 de ~12;
+checkout_started 24h=3; 7d: 70 com 1, 9 com 2, 2 com 3, **0 com 4+**; crons
+24h: winback25 120, failure_recovery 0, momentum 0 (1ºs disparos reais 03:00
+e 10:30 BRT — os dois dependem da FILA SUBIR antes). abandoned 24h = 3.
+**DESTAQUE:** roteiro curto é a causa nº1 de falha de trial no 1º vídeo (7 das
+~12 falhas de 24h, quase todas com 25cr intactos e minutos de vida) e o
+produto RECUSA em vez de resolver — a duração é escolhida antes do texto e o
+servidor devolve 422. **Próximo item (#7):** no caminho verbatim do Kineo 1,
+quando a narração medida for < 95% da duração pedida, o servidor escolhe
+sozinho a duração suportada mais próxima da narração (com aviso honesto na
+resposta e evento `duration_auto_fit`) em vez de falhar — o e-mail do #5
+manda a pessoa fazer à mão o que o código pode fazer no clique. Depois:
+`stranded_outcome` assim que a fila subir.
