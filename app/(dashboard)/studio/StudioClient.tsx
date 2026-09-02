@@ -28,6 +28,7 @@ import {
   TRIAL_FIRST_DELIVERY_VERSION,
 } from '@/lib/growth/trialBalanceBridge'
 import { trackEvent } from '@/lib/analytics'
+import { formatLimitCounter, promptLimitState, trimPromptToLimit } from '@/lib/studioPromptLimit'
 import { buildSeriesContinuationHref } from '@/lib/seriesContinuation'
 
 // A chave do card → a Quality que o biller entende. Uma fonte só para os dois
@@ -269,7 +270,48 @@ export default function StudioClient() {
   // autoriza o /generate a disparar o render sozinho ao fim da analise; a
   // chegada ja roda ?autoanalyze=1 (primitivo do Viral Now). Resultado: UM
   // clique no Studio → analise → render → filme, sem parada na tela antiga.
+  // KINEO-STUDIO-TETO-VISIVEL-2026-09-02 (sprint-assinaturas #9) — o teto do
+  // /api/analyze-idea (5.000) medido AQUI, no texto que a pessoa ve, e nao na
+  // tela seguinte. O [camera: ...] do preset conta, porque viaja junto.
+  const limit = useMemo(() => promptLimitState(finalPrompt), [finalPrompt])
+  const limitTrackedRef = useRef<number | null>(null)
+  useEffect(() => {
+    if (!limit.over || limitTrackedRef.current === limit.length) return
+    limitTrackedRef.current = limit.length
+    void trackEvent('studio_prompt_over_limit_shown', {
+      prompt_len: limit.length,
+      limit: limit.max,
+      excess: limit.excess,
+      script_mode: scriptMode,
+      chatgpt_quickstart: chatGptQuickstart,
+    })
+  }, [limit, scriptMode, chatGptQuickstart])
+  const trimToFit = () => {
+    // O sufixo [camera: ...] do preset viaja junto e conta no teto: o corte
+    // deixa espaco para ele, senao o botao continuaria travado depois do clique.
+    const suffixLen = Math.max(0, finalPrompt.length - prompt.trim().length)
+    const r = trimPromptToLimit(prompt, limit.max - suffixLen)
+    if (r.removed <= 0) return
+    setPrompt(r.text)
+    void trackEvent('studio_prompt_trimmed_to_limit', {
+      removed: r.removed,
+      boundary: r.boundary,
+      script_mode: scriptMode,
+      chatgpt_quickstart: chatGptQuickstart,
+    })
+    window.requestAnimationFrame(() => {
+      const el = promptRef.current
+      if (!el) return
+      el.focus()
+      el.setSelectionRange(el.value.length, el.value.length)
+      el.scrollTop = el.scrollHeight
+    })
+  }
+
   const generate = () => {
+    // Nunca navegar com um texto que o /studio/create vai recusar sem rede:
+    // a pessoa veria o erro numa caixa que nao deixa editar o excedente.
+    if (limit.over) return
     try {
       sessionStorage.setItem('kineo:studio:go:v1', JSON.stringify({ t: Date.now(), engine, prompt: finalPrompt }))
     } catch {}
@@ -482,12 +524,14 @@ export default function StudioClient() {
               <span>Usually takes</span>
               <b style={{ fontWeight: 600 }}>{eng.key === 'fast' ? '3–7 min' : '8–20 min'}</b>
             </div>
-            <button type="button" onClick={generate} disabled={!prompt.trim()} className={`go ${prompt.trim() ? 'ok' : 'no'}`}>
+            <button type="button" onClick={generate} disabled={!prompt.trim() || limit.over} className={`go ${prompt.trim() && !limit.over ? 'ok' : 'no'}`}>
               {!prompt.trim()
                 ? 'Type your idea first'
-                : balance !== null && cost > balance
-                  ? `Need ${cost - balance} more credits`
-                  : 'Generate →'}
+                : limit.over
+                  ? `Trim ${limit.excess.toLocaleString('en-US')} characters to continue`
+                  : balance !== null && cost > balance
+                    ? `Need ${cost - balance} more credits`
+                    : 'Generate →'}
             </button>
             <div className="gnote">Voice, karaoke captions and score included.</div>
           </div>
@@ -553,7 +597,28 @@ export default function StudioClient() {
               <button type="button" className={`pill${scriptMode === 'ai' ? ' on' : ''}`} onClick={() => setScriptMode('ai')}>✨ Let AI structure it</button>
               <button type="button" className={`pill${scriptMode === 'verbatim' ? ' on' : ''}`} onClick={() => setScriptMode('verbatim')}>📝 Use my script as is</button>
             </div>
-            <div className="cnt">{prompt.trim() ? `${prompt.trim().split(/\s+/).length} words${scriptMode === 'verbatim' ? ' · narrated word for word' : ''}` : 'a single line is enough — or paste a full script'}</div>
+            <div className="cnt" style={limit.over ? { color: '#fb923c', opacity: 1 } : undefined}>
+              {prompt.trim()
+                ? `${prompt.trim().split(/\s+/).length} words${scriptMode === 'verbatim' ? ' · narrated word for word' : ''} · ${formatLimitCounter(limit)}`
+                : 'a single line is enough — or paste a full script'}
+            </div>
+            {limit.over && (
+              // KINEO-STUDIO-TETO-VISIVEL-2026-09-02 — a saida de 1 clique: corta no
+              // fim da ultima frase inteira que cabe e avisa quanto saiu. Roteiro do
+              // ChatGPT com [SCENE]/VISUAL: costuma passar do teto so pelas rubricas
+              // — a dica de tirar as rubricas vem antes do corte.
+              <div className="val" style={{ color: '#fb923c', fontSize: '0.78rem', marginTop: 6, alignItems: 'flex-start', gap: 10 }}>
+                <span>
+                  Kineo reads up to {limit.max.toLocaleString('en-US')} characters per video.
+                  {scriptMode === 'verbatim'
+                    ? ' Tip: delete scene labels and visual notes — only the spoken lines are narrated.'
+                    : ' Tip: keep the idea and the facts; Kineo writes the scenes.'}
+                </span>
+                <button type="button" className="pill" style={{ fontSize: 11.5, whiteSpace: 'nowrap' }} onClick={trimToFit}>
+                  ✂ Trim to fit ({limit.excess.toLocaleString('en-US')} chars)
+                </button>
+              </div>
+            )}
           </div>
 
           <div>
