@@ -4,6 +4,11 @@ import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emai
 import { creditCostFor } from '@/lib/credits/engineCost'
 import { buildSeriesContinuationEmailUrl } from '@/lib/seriesContinuation'
 import { pickMomentumTopic, momentumAnchor } from '@/lib/momentumTopic'
+import { createClient as createSessionClient } from '@/lib/supabase/server'
+import {
+  momentumSkipReason, resolveIdleWindow, videosAwayWord,
+  MOMENTUM_MIN_GAP_DAYS, type MomentumStamp,
+} from '@/lib/momentumLadder'
 
 // ═══ KINEO-MOMENTUM-2026-08-20 — O E-MAIL QUE MIRA O 4º VÍDEO ═════════════
 //
@@ -82,6 +87,33 @@ import { pickMomentumTopic, momentumAnchor } from '@/lib/momentumTopic'
 // 756 em 30d hoje): saturou → 500 e nenhum e-mail, porque contagem truncada
 // diria "You're three away" para quem ja fez cinco.
 
+// ═══ KINEO-SPRINT-ASSINATURAS-2026-09-02 (#23) — A ESCADA E O RESGATE ═════
+//
+// (1) O carimbo era 1× POR PESSOA PARA SEMPRE. A pessoa recebia o e-mail no
+//     vídeo 1, fazia o 2º (o e-mail FUNCIONOU), parava no 2 — e nunca mais
+//     ouvia falar da casa. A campanha escrita para levar até o 4º largava a
+//     pessoa no 1º degrau que ela subia. Agora o carimbo vale POR DEGRAU
+//     (`metadata.videos`, que o insert sempre gravou): 1 e-mail no 1, outro
+//     no 2, outro no 3 — só quando a contagem SOBE, com folga mínima de
+//     MOMENTUM_MIN_GAP_DAYS entre dois. Parado no mesmo degrau = silêncio.
+//     Regra em `lib/momentumLadder.ts` (pura); o `skipped` do DRY_RUN mostra
+//     quantos caem em cada motivo.
+//
+// (2) A janela 20-96h pressupõe cron diário. O cron ficou DESARMADO de 20/08 a
+//     01/09; medido 02/09 06:30 BRT (externos, 30d): 25 pessoas com 1-3
+//     vídeos, ≥5cr, sem plano, nunca carimbadas, último vídeo há MAIS de 96h
+//     — passaram pela janela enquanto a rota respondia DRY_RUN. `?max_idle_h=
+//     720` alarga o teto (nunca acima de 30d, nunca abaixo de 96h) para UMA
+//     rodada de resgate. O cron do vercel.json não manda esse parâmetro: o
+//     dia a dia continua 96h.
+//
+// (3) Para o resgate ser 1 clique do fundador (o cron exige Bearer
+//     CRON_SECRET, que o navegador não tem), a rota aceita TAMBÉM sessão de
+//     admin (`ADMIN_EMAILS`, o mesmo conjunto de /api/admin/send-winback-25).
+//     Continua dry-run por padrão; `&confirm=SEND` envia.
+//     Link: /api/cron/send-momentum-nudge?max_idle_h=720 (dry-run) →
+//           /api/cron/send-momentum-nudge?max_idle_h=720&confirm=SEND
+
 export const dynamic = 'force-dynamic'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
 // Rota SO-GET no Next 14.2: sem POST no modulo, o store nasce com
@@ -103,10 +135,11 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.usekineo.com'
 const STAMP = 'momentum_nudge_sent'
 const MAX_PER_RUN = 40
 // Janela: cedo o bastante para a memória estar fresca, tarde o bastante para
-// não atropelar quem ainda está na sessão. 20h-96h desde o último vídeo.
-const MIN_IDLE_H = 20
-const MAX_IDLE_H = 96
+// não atropelar quem ainda está na sessão. 20h-96h desde o último vídeo
+// (constantes em lib/momentumLadder.ts; `?max_idle_h=` só alarga, #23).
 const VIDEOS_TRIPWIRE = 1000
+// #23: sessão de admin também abre a rota (link de 1 clique do fundador).
+const ADMIN_EMAILS = new Set(['josephsskaf@gmail.com', 'josephskaf@gmail.com', 'joseph-test@shortsforgeai.com'])
 
 function isInternalOrJunk(email: string): boolean {
   const e = email.toLowerCase()
@@ -118,10 +151,23 @@ function isInternalOrJunk(email: string): boolean {
   )
 }
 
-function isAuthorized(req: NextRequest): boolean {
+function isCronAuthorized(req: NextRequest): boolean {
   const cronSecret = process.env.CRON_SECRET
   if (!cronSecret) return false // fail-closed: env sumida não abre o endpoint
   return req.headers.get('authorization') === `Bearer ${cronSecret}`
+}
+
+// #23: admin logado no navegador (mesmo padrão de /api/admin/send-winback-25).
+// Falha fechada: qualquer erro de sessão = não autorizado.
+async function isAdminSession(): Promise<boolean> {
+  try {
+    const supabase = createSessionClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    const email = (user?.email ?? '').toLowerCase()
+    return !!email && ADMIN_EMAILS.has(email)
+  } catch {
+    return false
+  }
 }
 
 function buildEmail(userId: string, videosMade: number, topic: string | null) {
@@ -135,6 +181,9 @@ function buildEmail(userId: string, videosMade: number, topic: string | null) {
   // viaja no link. Botao que promete preenchimento e entrega tela em branco e
   // exatamente o defeito que esta rodada esta consertando.
   const cta = topic ? 'Open episode 2 →' : 'Make the next one →'
+  // #23: a palavra vem da escada (1→three, 2→two, 3→one); a rota só chega aqui
+  // com 1..3, mas o fallback nunca inventa número.
+  const away = videosAwayWord(videosMade) ?? 'a few'
   // A frase que ancora no que ELA fez. Sem tema utilizável, cai numa versão
   // neutra — nunca inventamos o assunto do vídeo dela.
   const anchor = momentumAnchor(topic, videosMade)
@@ -145,7 +194,7 @@ ${anchor}
 
 Here's something we noticed looking at how people use Kineo: the difference between someone who makes one video and someone who builds a channel is almost never talent — it's the fourth video. That's where it stops feeling like a tool you're testing and starts feeling like a workflow you own.
 
-You're ${videosMade === 1 ? 'three' : videosMade === 2 ? 'two' : 'one'} away.
+You're ${away} away.
 
 Pick anything — a mystery, a country, a story you can't stop thinking about — and the AI writes the script, records the voiceover, cuts the captions and scores it.
 
@@ -160,7 +209,7 @@ usekineo.com`
   <p style="margin:0 0 14px;">Hey,</p>
   <p style="margin:0 0 14px;">${anchor}</p>
   <p style="margin:0 0 14px;">Here's something we noticed looking at how people use Kineo: the difference between someone who makes one video and someone who builds a channel is almost never talent — it's <strong>the fourth video</strong>. That's where it stops feeling like a tool you're testing and starts feeling like a workflow you own.</p>
-  <p style="margin:0 0 14px;">You're <strong>${videosMade === 1 ? 'three' : videosMade === 2 ? 'two' : 'one'}</strong> away.</p>
+  <p style="margin:0 0 14px;">You're <strong>${away}</strong> away.</p>
   <p style="margin:0 0 14px;">Pick anything — a mystery, a country, a story you can't stop thinking about — and the AI writes the script, records the voiceover, cuts the captions and scores it.</p>
   <p style="margin:0 0 24px;"><a href="${url}" style="display:inline-block;background:#2997ff;color:#ffffff;text-decoration:none;font-weight:bold;font-size:15px;padding:12px 26px;border-radius:10px;">${cta}</a></p>
   <p style="margin:0 0 14px;">If something got in the way last time, just reply and tell me. It lands with a real person.</p>
@@ -173,7 +222,8 @@ ${emailFooterHtml(userId)}`
 }
 
 export async function GET(req: NextRequest) {
-  if (!isAuthorized(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const viaCron = isCronAuthorized(req)
+  if (!viaCron && !(await isAdminSession())) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   if (!RESEND_API_KEY) return NextResponse.json({ error: 'RESEND_API_KEY missing' }, { status: 503 })
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -183,8 +233,10 @@ export async function GET(req: NextRequest) {
 
   const confirm = req.nextUrl.searchParams.get('confirm') === 'SEND'
   const now = Date.now()
-  const idleMin = new Date(now - MAX_IDLE_H * 3600_000).toISOString()
-  const idleMax = new Date(now - MIN_IDLE_H * 3600_000).toISOString()
+  // #23: janela padrão 20-96h; `max_idle_h` só alarga (teto 30d) — resgate.
+  const window = resolveIdleWindow(req.nextUrl.searchParams.get('max_idle_h'))
+  const idleMin = new Date(now - window.maxIdleH * 3600_000).toISOString()
+  const idleMax = new Date(now - window.minIdleH * 3600_000).toISOString()
 
   // Candidatos: vídeos concluídos na janela de ociosidade. Agregamos por
   // pessoa em memória (o Supabase JS não faz GROUP BY).
@@ -221,15 +273,26 @@ export async function GET(req: NextRequest) {
     a.count >= 1 && a.count <= 3 && a.last >= idleMin && a.last <= idleMax,
   )
   if (candidates.length === 0) {
-    return NextResponse.json({ mode: confirm ? 'SENT' : 'DRY_RUN', eligible: 0, note: 'ninguém na faixa 1-3 vídeos dentro da janela' })
+    return NextResponse.json({ mode: confirm ? 'SENT' : 'DRY_RUN', eligible: 0, window, note: 'ninguém na faixa 1-3 vídeos dentro da janela' })
   }
 
   const ids = candidates.map(([id]) => id)
   const [{ data: profs }, { data: stamps }] = await Promise.all([
     admin.from('profiles').select('id, email, email_opted_out, video_credits, stripe_subscription_id').in('id', ids.slice(0, 1000)),
-    admin.from('events').select('user_id').eq('name', STAMP).in('user_id', ids.slice(0, 1000)),
+    admin.from('events').select('user_id, created_at, metadata').eq('name', STAMP).in('user_id', ids.slice(0, 1000)),
   ])
-  const already = new Set((stamps ?? []).map((s) => s.user_id as string))
+  // #23: carimbos POR PESSOA com o degrau (metadata.videos) e a hora — a
+  // escada decide se este degrau já foi avisado ou se é cedo demais.
+  const stampsByUser = new Map<string, MomentumStamp[]>()
+  for (const s of stamps ?? []) {
+    const uid = s.user_id as string | null
+    if (!uid) continue
+    const meta = (s.metadata ?? {}) as Record<string, unknown>
+    const v = typeof meta.videos === 'number' ? meta.videos : null
+    const arr = stampsByUser.get(uid) ?? []
+    arr.push({ created_at: s.created_at as string, videos: v })
+    stampsByUser.set(uid, arr)
+  }
   const profById = new Map((profs ?? []).map((p) => [p.id as string, p]))
 
   // Crédito mínimo para o próximo vídeo REALMENTE acontecer. Deriva de
@@ -238,8 +301,10 @@ export async function GET(req: NextRequest) {
   const minCredits = creditCostFor('fast', true)
 
   const targets: Array<{ id: string; email: string; count: number; topic: string | null }> = []
+  const skipped = { same_step: 0, legacy_stamp: 0, too_soon: 0 }
   for (const [id, agg] of candidates) {
-    if (already.has(id)) continue
+    const skip = momentumSkipReason(stampsByUser.get(id) ?? [], agg.count, now)
+    if (skip) { skipped[skip]++; continue }
     const p = profById.get(id)
     if (!p) continue
     const email = (p.email ?? '') as string
@@ -252,7 +317,11 @@ export async function GET(req: NextRequest) {
   if (!confirm) {
     return NextResponse.json({
       mode: 'DRY_RUN',
-      cohort: `fez 1-3 vídeos · parado há ${MIN_IDLE_H}-${MAX_IDLE_H}h · tem ≥${minCredits} créditos · não paga · nunca recebeu este e-mail`,
+      cohort: `fez 1-3 vídeos · parado há ${window.minIdleH}-${window.maxIdleH}h · tem ≥${minCredits} créditos · não paga · nunca recebeu este e-mail NESTE degrau (folga ${MOMENTUM_MIN_GAP_DAYS}d entre degraus)`,
+      window,
+      via: viaCron ? 'cron' : 'admin_session',
+      // #23: quantos candidatos a escada segurou, por motivo.
+      skipped,
       eligible: targets.length,
       por_quantidade: {
         um_video: targets.filter((t) => t.count === 1).length,
@@ -293,7 +362,8 @@ export async function GET(req: NextRequest) {
       })
       if (res.ok) {
         // Carimbo só no SUCESSO — falha volta na próxima rodada.
-        await admin.from('events').insert({ user_id: t.id, name: STAMP, metadata: { videos: t.count } })
+        // #23: `videos` É o degrau — a escada lê este campo para decidir o próximo.
+        await admin.from('events').insert({ user_id: t.id, name: STAMP, metadata: { videos: t.count, rescue: window.rescue, via: viaCron ? 'cron' : 'admin_session' } })
         sent++
         results.push({ email: t.email, outcome: 'sent' })
       } else {
@@ -305,6 +375,6 @@ export async function GET(req: NextRequest) {
     await new Promise((r) => setTimeout(r, 600))
   }
 
-  console.log(`[momentum] sent=${sent} of ${targets.length} eligible`)
-  return NextResponse.json({ mode: 'SENT', sent, eligible: targets.length, results })
+  console.log(`[momentum] sent=${sent} of ${targets.length} eligible (window ${window.minIdleH}-${window.maxIdleH}h${window.rescue ? ' RESCUE' : ''}; skipped same_step=${skipped.same_step} too_soon=${skipped.too_soon} legacy=${skipped.legacy_stamp})`)
+  return NextResponse.json({ mode: 'SENT', sent, eligible: targets.length, window, skipped, results })
 }

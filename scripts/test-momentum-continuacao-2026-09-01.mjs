@@ -70,6 +70,7 @@ v('A18 tudo escapado (nenhum espaco cru na query)', !comTema.split('?')[1].inclu
 
 // ── BLOCO B — a rota usa mesmo o helper ───────────────────────────────────
 const rota = readFileSync(join(raiz, 'app/api/cron/send-momentum-nudge/route.ts'), 'utf8')
+const ladder = readFileSync(join(raiz, 'lib/momentumLadder.ts'), 'utf8') // #23
 
 v('B1 importa o helper', rota.includes("import { buildSeriesContinuationEmailUrl } from '@/lib/seriesContinuation'"))
 v('B2 a url do e-mail sai do helper', /const url = buildSeriesContinuationEmailUrl\(APP_URL, topic, 'momentum_email'/.test(rota))
@@ -83,9 +84,13 @@ v('B8 nada promete episodio 2 sem tema', rota.includes(": 'Make the next one →
 v('B9 guarda de credito intacta', rota.includes('creditCostFor(') && rota.includes('< minCredits) continue'))
 v('B10 pula pagante', rota.includes('if (p.stripe_subscription_id) continue'))
 v('B11 pula opt-out e conta interna', rota.includes('p.email_opted_out || isInternalOrJunk(email)'))
-v('B12 carimbo 1x por pessoa', rota.includes("const STAMP = 'momentum_nudge_sent'") && rota.includes('if (already.has(id)) continue'))
+// sprint-assinaturas #23 (02/09): o carimbo passou a valer POR DEGRAU (1→2→3),
+// nao mais 1x por pessoa — o e-mail escrito para levar ate o 4o video largava a
+// pessoa no 1o degrau que ela subia. Regra em lib/momentumLadder.ts.
+v('B12 carimbo por degrau (escada), nao mais 1x por pessoa', rota.includes("const STAMP = 'momentum_nudge_sent'") && rota.includes('momentumSkipReason(') && !rota.includes('if (already.has(id)) continue'))
 v('B13 faixa 1-3 videos intacta', rota.includes('a.count >= 1 && a.count <= 3'))
-v('B14 janela de ociosidade intacta', rota.includes('const MIN_IDLE_H = 20') && rota.includes('const MAX_IDLE_H = 96'))
+// #23: 20/96h moraram para lib/momentumLadder.ts; `max_idle_h` so ALARGA (resgate).
+v('B14 janela de ociosidade 20-96h continua o padrao (via resolveIdleWindow)', rota.includes("resolveIdleWindow(req.nextUrl.searchParams.get('max_idle_h'))") && ladder.includes('MOMENTUM_MIN_IDLE_H = 20') && ladder.includes('MOMENTUM_MAX_IDLE_H = 96'))
 v('B15 teto por rodada intacto', rota.includes('const MAX_PER_RUN = 40'))
 v('B16 autorizacao fail-closed intacta', rota.includes('if (!cronSecret) return false'))
 v('B17 assunto do e-mail inalterado', (rota.match(/The fourth video is the one that changes things/g) ?? []).length >= 2)
@@ -102,8 +107,9 @@ v('C6 o portao de envio NAO foi afrouxado', rota.includes("const confirm = req.n
 v('C7 nada envia sem confirm', rota.includes('if (!confirm) {'))
 
 const vercel = readFileSync(join(raiz, 'vercel.json'), 'utf8')
-v('C8 vercel.json NAO foi armado por esta rodada (decisao do fundador)',
-  vercel.includes('"/api/cron/send-momentum-nudge"') && !vercel.includes('send-momentum-nudge?confirm=SEND'))
+// 01/09: o fundador ARMOU (?confirm=SEND). #23: o cron diario nao manda max_idle_h.
+v('C8 vercel.json armado pelo fundador em 01/09 e sem max_idle_h (96h no dia a dia)',
+  vercel.includes('"/api/cron/send-momentum-nudge?confirm=SEND"') && !/send-momentum-nudge[^"]*max_idle_h/.test(vercel))
 v('C9 o cron continua agendado', vercel.includes('"schedule": "30 13 * * *"'))
 
 // ── BLOCO D — helper puro, fora da pista do Codex ─────────────────────────
