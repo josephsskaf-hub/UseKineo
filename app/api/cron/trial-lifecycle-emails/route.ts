@@ -1755,6 +1755,62 @@ usekineo.com`
 
   if (c.kind === 'expired_lastcall_d10') {
     const url = `${APP_URL}/pricing?promo=${COMEBACK_CODE}&${utm('trial_offer_d10')}`
+
+    // ═══ sprint-assinaturas #22 (2026-09-02) — O D10 TAMBEM IGNORAVA O FILME ══
+    // Medido 21d (externos): 276 `expired_lastcall_d10` enviados (~27/dia),
+    // 161 para gente COM video entregue (todos com custo real gravado), 5
+    // eventos nas 72h, 0 em /pricing, 0 checkout, 0 pagante. E o ultimo
+    // e-mail da esteira e o unico que fala so do cupom: "your 50% off ... is
+    // still live, but this is the last time we'll mention it" — nada da
+    // pessoa. Mesmo tratamento do #21 (D5): para quem TEM video, a manchete e
+    // o filme dela, a Library e o 1o link, o cupom continua o MESMO (codigo,
+    // prazo, porcentagem — o cupom e do Codex), a promessa "ultima vez que
+    // falamos nisso" continua verdadeira (o cron nao manda nada depois do
+    // D10), e o pedido e medido em filmes COMO AQUELE que o Creator compra
+    // (TIER_CREDITS / custo real; custo desconhecido = a frase cala). Quem
+    // NAO tem video recebe o e-mail de hoje byte a byte. O evento grava body
+    // 'offer_with_film' | 'standard' para provar qual saiu (mesma taxonomia
+    // do D5, para a medicao comparar os dois com a mesma chave).
+    if (c.videosMade >= 1) {
+      const noun = filmNoun(c.lastDuration)
+      const libraryUrl = `${APP_URL}/library?${utm('trial_offer_d10_library')}`
+      const creatorRow = filmsPerPlan(c.lastCost)?.find((r) => r.tier === 'basic') ?? null
+      const ep2 = episodeTwoBlock(c.lastTopic, 'trial_offer_d10_episode2', 'lifecycle_loss_email', attr)
+      const madeLine = c.videosMade === 1
+        ? `the ${noun} you made is still in your Library`
+        : `the ${c.videosMade} videos you made are still in your Library`
+      const filmsLine = creatorRow && creatorRow.films >= 1
+        ? `That's ${creatorRow.films} ${creatorRow.films === 1 ? 'film' : 'films'} like that one every month, at half the price.`
+        : ''
+      const wText = `Hey,
+
+Quick heads-up, and then we'll leave you alone: ${madeLine}, and your 50% off Creator for 3 months (code ${COMEBACK_CODE}) is still live — but this is the last time we'll mention it.
+
+Your Library: ${libraryUrl}
+
+Grab the deal here — the code applies at checkout: ${url}${filmsLine ? `\n${filmsLine}` : ''}
+${ep2 ? `\n${ep2.text}\n` : ''}
+No hard feelings either way.
+
+Kineo Team
+usekineo.com`
+      const wHtml = wrap(`
+  <p style="margin:0 0 14px;">Hey,</p>
+  <p style="margin:0 0 14px;">Quick heads-up, and then we'll leave you alone: <strong>${escapeHtmlText(madeLine)}</strong>, and your <strong>50% off Creator for 3 months</strong> (code <strong>${COMEBACK_CODE}</strong>) is still live — but this is the last time we'll mention it.</p>
+  ${cta(libraryUrl, 'Open your Library')}
+  ${filmsLine ? `<p style="margin:0 0 14px;">${escapeHtmlText(filmsLine)}</p>\n` : ''}  ${cta(url, 'Claim 50% off')}
+  <p style="margin:0 0 20px;font-size:13px;color:#64748b;">The code applies automatically at checkout. No hard feelings either way.</p>
+${ep2 ? `${ep2.html}\n` : ''}  ${sig}`)
+      return {
+        subject: c.videosMade === 1
+          ? `Last call on 50% off Creator — your ${noun} is waiting in your Library`
+          : `Last call on 50% off Creator — your ${c.videosMade} videos are waiting in your Library`,
+        text: `${wText}${footerText}`,
+        html: wHtml,
+        body: 'offer_with_film',
+      }
+    }
+
     const text = `Hey,
 
 Quick heads-up, and then we'll leave you alone: your 50% off Creator for 3 months (code ${COMEBACK_CODE}) is still live, but this is the last time we'll mention it.
@@ -1771,7 +1827,7 @@ usekineo.com`
   ${cta(url, 'Claim 50% off')}
   <p style="margin:0 0 20px;font-size:13px;color:#64748b;">After this it's full price. No hard feelings either way.</p>
   ${sig}`)
-    return { subject: `Last call: 50% off Creator expires`, text: `${text}${footerText}`, html }
+    return { subject: `Last call: 50% off Creator expires`, text: `${text}${footerText}`, html, body: 'standard' }
   }
 
   // trial_extended
