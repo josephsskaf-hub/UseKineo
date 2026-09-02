@@ -1,5 +1,6 @@
 import {
   isInternalMeasurementEmail,
+  readCanonicalStringArray,
   readCanonicalStringConstant,
 } from './measurement-helpers.mjs'
 
@@ -26,6 +27,10 @@ const TRIAL_BALANCE_BRIDGE_VERSION = readCanonicalStringConstant(
   new URL('../lib/growth/trialBalanceBridge.ts', import.meta.url),
   'TRIAL_BALANCE_BRIDGE_VERSION',
 )
+const POST_VIDEO_OFFER_VARIANTS = new Set(readCanonicalStringArray(
+  new URL('../lib/growth/chatgptPostVideoOffer.ts', import.meta.url),
+  'POST_VIDEO_OFFER_VARIANTS',
+))
 
 const CLICK_EVENTS = Object.freeze([
   'plan_fit_checkout_clicked',
@@ -107,7 +112,9 @@ function surfaceSignals(rows) {
     trialOffer: Boolean(firstMatching(
       rows,
       'trial_post_video_offer_viewed',
-      (row) => metadataString(row, 'source') === 'result_trial_continue',
+      (row) =>
+        metadataString(row, 'source') === 'result_trial_continue' &&
+        POST_VIDEO_OFFER_VARIANTS.has(metadataString(row, 'offer_layout')),
     )),
   }
   const diagnosticOnly = {
@@ -117,6 +124,13 @@ function surfaceSignals(rows) {
       rows,
       'history_first_video_offer_viewed',
       (row) => metadataString(row, 'version') !== HISTORY_HUMAN_VIEW_VERSION,
+    )),
+    invalidTrialPostVideoOffer: Boolean(firstMatching(
+      rows,
+      'trial_post_video_offer_viewed',
+      (row) =>
+        metadataString(row, 'source') === 'result_trial_continue' &&
+        !POST_VIDEO_OFFER_VARIANTS.has(metadataString(row, 'offer_layout')),
     )),
   }
   return {
@@ -339,6 +353,10 @@ export function buildResultVideoDecisionReport({
       unversionedHistoryOfferPeople: countWhere(
         journeys,
         (journey) => journey.afterFirstDeliverySurfaces.diagnosticOnly.unversionedHistoryOffer,
+      ),
+      invalidTrialPostVideoOfferPeople: countWhere(
+        journeys,
+        (journey) => journey.afterFirstDeliverySurfaces.diagnosticOnly.invalidTrialPostVideoOffer,
       ),
       completionRowsWithoutAttempt: journeys.reduce(
         (total, journey) => total + journey.afterFirstDeliveryOutcomes.completionRowsWithoutAttempt,

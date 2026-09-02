@@ -1,5 +1,6 @@
 import {
   isInternalMeasurementEmail,
+  readCanonicalStringArray,
   readCanonicalStringConstant,
 } from './measurement-helpers.mjs'
 import { buildSubscriptionRevenueLedger } from './subscription-revenue-ledger.mjs'
@@ -14,6 +15,13 @@ export const B2C_SUBSCRIPTION_TRUTH_MIN_EXACT_STARTED_PEOPLE = 5
 export const B2C_SUBSCRIPTION_TRUTH_MIN_DAYS = 7
 export const B2C_SUBSCRIPTION_TRUTH_MAX_UNRESOLVED_RATIO = 0.2
 export const RESULT_VALUE_COHORT_BOUNDARY = '2026-09-01T18:48:08.098670+00:00'
+export const TRIAL_POST_VIDEO_VARIANT_BOUNDARY = '2026-08-29T18:21:09.000Z'
+
+const POST_VIDEO_OFFER_VARIANTS = new Set(readCanonicalStringArray(
+  new URL('../lib/growth/chatgptPostVideoOffer.ts', import.meta.url),
+  'POST_VIDEO_OFFER_VARIANTS',
+))
+const TRIAL_POST_VIDEO_VARIANT_BOUNDARY_MS = Date.parse(TRIAL_POST_VIDEO_VARIANT_BOUNDARY)
 
 const HISTORY_VERSION = readCanonicalStringConstant(
   new URL('../lib/growth/historyFirstVideoOfferHumanView.ts', import.meta.url),
@@ -63,7 +71,7 @@ const EXPERIMENTS = Object.freeze({
   inline_pricing: Object.freeze({ role: 'offer', gate: { people: 20, days: 7, exactPaymentShortcut: true } }),
   welcome_offer: Object.freeze({ role: 'offer', gate: { people: 5, days: 7, exactPaymentShortcut: false } }),
   plan_fit: Object.freeze({ role: 'offer', gate: { people: 10, days: 0, exactPaymentShortcut: true } }),
-  trial_post_video: Object.freeze({ role: 'unversioned_offer', gate: null }),
+  trial_post_video: Object.freeze({ role: 'offer', gate: { people: 10, days: 7, exactPaymentShortcut: true } }),
   trial_downgrade: Object.freeze({ role: 'offer', gate: { people: 20, days: 0, exactPaymentShortcut: true } }),
   trial_balance_result: Object.freeze({ role: 'activation_mediator', gate: null }),
   trial_balance_return: Object.freeze({ role: 'return_mediator', gate: null }),
@@ -140,7 +148,12 @@ function exposureDefinition(row) {
     metadataString(row, 'offer_version') === PLAN_FIT_VERSION &&
     metadataString(row, 'event_unit') === 'first_completed_video'
   ) return 'plan_fit'
-  if (row.name === 'trial_post_video_offer_viewed' && metadataString(row, 'source') === 'result_trial_continue') {
+  if (
+    row.name === 'trial_post_video_offer_viewed' &&
+    metadataString(row, 'source') === 'result_trial_continue' &&
+    timestamp(row) >= TRIAL_POST_VIDEO_VARIANT_BOUNDARY_MS &&
+    POST_VIDEO_OFFER_VARIANTS.has(metadataString(row, 'offer_layout'))
+  ) {
     return 'trial_post_video'
   }
   if (row.name === 'trial_downgrade_offer_viewed' && version === DOWNGRADE_VERSION) return 'trial_downgrade'
@@ -270,11 +283,13 @@ export function buildB2cSubscriptionTruthReport({ generatedAt, windowStart, even
     if (!experiment) return []
     const at = timestamp(row)
     const firstVideoAt = timestamp(firstVideos.get(row.user_id))
+    const stage = firstVideoAt === null ? 'without_delivery' : firstVideoAt <= at ? 'post_delivery' : 'pre_delivery'
+    if (experiment === 'trial_post_video' && stage !== 'post_delivery') return []
     return [{
       experiment,
       userId: row.user_id,
       at,
-      stage: firstVideoAt === null ? 'without_delivery' : firstVideoAt <= at ? 'post_delivery' : 'pre_delivery',
+      stage,
     }]
   })
   const exposuresByUser = new Map()
@@ -431,8 +446,8 @@ export function buildB2cSubscriptionTruthReport({ generatedAt, windowStart, even
     },
     limitations: [
       'Checkout resume lacks a server-side origin-to-destination Session link and remains unknown_resume_gap.',
-      'Trial post-video exposure is unversioned and remains diagnostic_only.',
-      'Observed first-event clocks for most surfaces are window-dependent; only the result-value cohort has a fixed code boundary.',
+      'Trial post-video exposure is eligible only at or after ' + TRIAL_POST_VIDEO_VARIANT_BOUNDARY + ' with one canonical offer_layout variant.',
+      'Observed first-event clocks for most surfaces are window-dependent; result-value and trial post-video have fixed code boundaries.',
       'This report does not repair legacy admin cards; it provides the finance contract they must adopt.',
     ],
   }

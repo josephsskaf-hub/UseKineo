@@ -130,6 +130,93 @@ report = build([
 ])
 equal(report.experiments.find((row) => row.experiment === 'plan_fit').exactOriginPaidStripeSessions, 1, 'Plan Fit can own one exact origin')
 
+report = build([
+  event('trial_post_video_offer_viewed', 'u1', 1, 2, {
+    source: 'result_trial_continue',
+    offer_layout: 'engine_fit_creator_first_v1',
+  }, 'browser-trial-offer'),
+  event('checkout_cta_clicked', 'u1', 1, 10, { surface: 'generate_trial_post_video' }, 'browser-trial-offer'),
+  start('u1', 1, 11, 'cs_trial_offer', 'browser-trial-offer'),
+  paid('u1', 1, 12, 'cs_trial_offer'),
+])
+const validTrialOffer = report.experiments.find((row) => row.experiment === 'trial_post_video')
+equal(validTrialOffer.role, 'offer', 'current trial post-video variant is a governed offer')
+equal(validTrialOffer.exposurePeople, 1, 'current trial post-video variant counts one person')
+equal(validTrialOffer.exactOriginPaidStripeSessions, 1, 'current trial post-video variant can own one exact paid Session')
+equal(validTrialOffer.gate.state, 'ready_for_reconciliation', 'an exact payment opens the trial post-video reconciliation shortcut')
+
+for (const offerLayout of [undefined, 'future_unknown_variant']) {
+  const metadata = { source: 'result_trial_continue' }
+  if (offerLayout) metadata.offer_layout = offerLayout
+  const suffix = offerLayout || 'missing'
+  report = build([
+    event('trial_post_video_offer_viewed', 'u1', 1, 2, metadata, 'browser-trial-invalid'),
+    event('checkout_cta_clicked', 'u1', 1, 10, { surface: 'generate_trial_post_video' }, 'browser-trial-invalid'),
+    start('u1', 1, 11, 'cs_trial_' + suffix, 'browser-trial-invalid'),
+    paid('u1', 1, 12, 'cs_trial_' + suffix),
+  ])
+  const invalidTrialOffer = report.experiments.find((row) => row.experiment === 'trial_post_video')
+  equal(invalidTrialOffer.exposurePeople, 0, suffix + ' offer_layout is not an eligible exposure')
+  equal(invalidTrialOffer.exactOriginPaidStripeSessions, 0, suffix + ' offer_layout cannot claim payment origin')
+  equal(report.financialTruth.exactExternalPaidStripeSessions, 1, suffix + ' variant does not erase financial truth')
+}
+
+report = buildB2cSubscriptionTruthReport({
+  generatedAt: '2026-09-09T10:00:00.000Z',
+  windowStart: '2026-08-29T18:00:00.000Z',
+  profiles,
+  videos: [{ id: 'v-pre-boundary', user_id: 'u1', status: 'completed', created_at: '2026-08-29T18:01:00.000Z' }],
+  events: [
+    {
+      id: 'pre-boundary-exposure',
+      name: 'trial_post_video_offer_viewed',
+      user_id: 'u1',
+      session_id: 'browser-pre-boundary',
+      created_at: '2026-08-29T18:20:00.000Z',
+      metadata: { source: 'result_trial_continue', offer_layout: 'engine_fit_creator_first_v1' },
+    },
+    {
+      id: 'pre-boundary-click',
+      name: 'checkout_cta_clicked',
+      user_id: 'u1',
+      session_id: 'browser-pre-boundary',
+      created_at: '2026-08-29T18:30:00.000Z',
+      metadata: { surface: 'generate_trial_post_video' },
+    },
+    {
+      id: 'pre-boundary-start',
+      name: 'checkout_started',
+      user_id: 'u1',
+      session_id: 'browser-pre-boundary',
+      created_at: '2026-08-29T18:30:01.000Z',
+      metadata: { tier: 'basic', billing: 'monthly', stripe_session_id: 'cs_pre_boundary' },
+    },
+    {
+      id: 'pre-boundary-paid',
+      name: 'payment_success',
+      user_id: 'u1',
+      created_at: '2026-08-29T18:31:00.000Z',
+      metadata: { checkout_mode: 'subscription', stripe_session_id: 'cs_pre_boundary', amount_total: 1500, currency: 'usd' },
+    },
+  ],
+})
+equal(report.experiments.find((row) => row.experiment === 'trial_post_video').exposurePeople, 0, 'pre-boundary trial offer is not an eligible exposure')
+equal(report.checkoutOriginTruth.exactOriginPaidStripeSessions, 0, 'pre-boundary trial offer cannot claim exact origin')
+equal(report.financialTruth.exactExternalPaidStripeSessions, 1, 'pre-boundary rejection preserves financial truth')
+
+report = build([
+  event('trial_post_video_offer_viewed', 'u1', 1, 2, {
+    source: 'result_trial_continue',
+    offer_layout: 'engine_fit_creator_first_v1',
+  }, 'browser-trial-before-video'),
+  event('checkout_cta_clicked', 'u1', 2, 10, { surface: 'generate_trial_post_video' }, 'browser-trial-before-video'),
+  start('u1', 2, 11, 'cs_trial_before_video', 'browser-trial-before-video'),
+  paid('u1', 2, 12, 'cs_trial_before_video'),
+], [video('v-after-exposure', 'u1', 2, 1)])
+equal(report.experiments.find((row) => row.experiment === 'trial_post_video').exposurePeople, 0, 'trial offer before first delivery is not an eligible post-video exposure')
+equal(report.checkoutOriginTruth.exactOriginPaidStripeSessions, 0, 'trial offer before first delivery cannot claim exact origin')
+equal(report.financialTruth.exactExternalPaidStripeSessions, 1, 'pre-delivery rejection preserves financial truth')
+
 report = build([paid('u1', 1, 12, 'cs_unlinked')])
 equal(report.financialTruth.unlinkedSubscriptionPaymentSessions, 1, 'payment without start remains explicit')
 equal(report.financialTruth.exactExternalPaidStripeSessions, 0, 'unlinked payment does not become revenue attribution')

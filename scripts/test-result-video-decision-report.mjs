@@ -128,6 +128,43 @@ const tooYoung = buildResultVideoDecisionReport({
 equal(tooYoung.gate.elapsedDaysMet, false, 'less than seven complete days stays collecting')
 equal(tooYoung.gate.state, 'collecting', 'sample size cannot bypass maturity')
 
+const trialVariantReport = buildResultVideoDecisionReport({
+  generatedAt: at(3),
+  instrumentedAt: at(1),
+  profiles: [
+    { id: 'trial-valid', email: 'trial-valid@example.com' },
+    { id: 'trial-invalid', email: 'trial-invalid@example.com' },
+  ],
+  videos: [
+    video('trial-valid-video', 'trial-valid', at(1, 1)),
+    video('trial-invalid-video', 'trial-invalid', at(1, 2)),
+  ],
+  events: [
+    event('trial_post_video_offer_viewed', 'trial-valid', at(1, 3), {
+      source: 'result_trial_continue',
+      offer_layout: 'engine_fit_starter_first_v1',
+    }),
+    event('trial_post_video_offer_viewed', 'trial-invalid', at(1, 4), {
+      source: 'result_trial_continue',
+    }),
+  ],
+})
+equal(
+  trialVariantReport.associationAfterFirstDelivery.notSampled.qualifiedViewportSurfacePeople,
+  1,
+  'only a canonical trial post-video variant is a qualified viewport exposure',
+)
+equal(
+  trialVariantReport.associationAfterFirstDelivery.notSampled.noDecisionSurfacePeople,
+  1,
+  'missing trial post-video variant remains outside the decision-surface cohort',
+)
+equal(
+  trialVariantReport.diagnostics.invalidTrialPostVideoOfferPeople,
+  1,
+  'invalid trial post-video row stays visible as a diagnostic person',
+)
+
 for (const required of [
   'result_video_value_sampled',
   'plan_fit_checkout_cta_viewed',

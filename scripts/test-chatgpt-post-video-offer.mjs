@@ -36,6 +36,8 @@ const policy = executeTs('lib/growth/chatgptPostVideoOffer.ts', {
   '@/lib/acquisitionSource': acquisition,
 })
 const decide = policy.decidePostVideoOffer
+equal(policy.POST_VIDEO_OFFER_VARIANTS.length, 4, 'canonical offer variant registry has four distinct decisions')
+equal(new Set(policy.POST_VIDEO_OFFER_VARIANTS).size, 4, 'canonical offer variants are unique')
 
 for (const source of ['chatgpt', 'chatgpt.com', 'https://chatgpt.com/c/example', 'CHATGPT.COM']) {
   const result = decide(source)
@@ -44,6 +46,15 @@ for (const source of ['chatgpt', 'chatgpt.com', 'https://chatgpt.com/c/example',
   equal(result.secondaryTier, 'basic', `${source} keeps Creator available`)
   equal(result.variant, 'chatgpt_starter_first_v1', `${source} joins measurable variant`)
   equal(result.offerBasis, 'first_touch_source', `${source} uses source only without a delivered engine`)
+}
+
+for (const source of [null, 'chatgpt.com', 'direct']) {
+  for (const quality of [undefined, 'fast', 'cinematic_ai']) {
+    check(
+      policy.POST_VIDEO_OFFER_VARIANTS.includes(decide(source, quality).variant),
+      String(source) + '/' + String(quality) + ' returns a canonical offer variant',
+    )
+  }
 }
 
 for (const source of [null, '', 'direct', 'taaft', 'google']) {

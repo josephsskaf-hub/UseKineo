@@ -3,17 +3,22 @@ import { acquisitionSource } from '@/lib/acquisitionSource'
 export type PostVideoRecurringTier = 'starter' | 'basic'
 export type PostVideoEngineFit = 'fast' | 'premium' | 'unknown'
 
+export const POST_VIDEO_OFFER_VARIANTS = [
+  'engine_fit_starter_first_v1',
+  'engine_fit_creator_first_v1',
+  'chatgpt_starter_first_v1',
+  'default_creator_first_v1',
+] as const
+
+export type PostVideoOfferVariant = typeof POST_VIDEO_OFFER_VARIANTS[number]
+
 export const POST_VIDEO_PLAN_COMPARE_VERSION = 'post_video_plan_compare_v1' as const
 export const POST_VIDEO_PLAN_COMPARE_HREF =
   `/pricing?intent_campaign=${POST_VIDEO_PLAN_COMPARE_VERSION}#plans` as const
 
 export type PostVideoOfferDecision = {
   firstTouchSource: string
-  variant:
-    | 'engine_fit_starter_first_v1'
-    | 'engine_fit_creator_first_v1'
-    | 'chatgpt_starter_first_v1'
-    | 'default_creator_first_v1'
+  variant: PostVideoOfferVariant
   primaryTier: PostVideoRecurringTier
   primaryPlanLabel: 'Starter' | 'Creator'
   secondaryTier: PostVideoRecurringTier
