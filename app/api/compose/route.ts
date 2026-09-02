@@ -774,7 +774,17 @@ export async function POST(req: NextRequest) {
         // cliente — mas era questão de minutos.
         // A verificação continua existindo e continua dura: ela só passa a usar
         // a MESMA função que criou o claim.
-        cinematicBirthClaim.creditCost !== creditCostForDuration(trustedQuality, true, duration) ||
+        // ═══ KINEO-RESGATE-CUSTO-2026-09-02 — REGRESSAO DO #39, PEGA NO 1o DIA ═══
+        // O auto-start pede 45s (valor que o seletor nao tem); o claim nasce com
+        // o custo de 45s (19cr); o #39 (17:51 de 01/09) passou a aterrissar o
+        // alvo fantasma em 35s; e o RESGATE do servidor (finish-stranded) chega
+        // aqui com duration=35 → 15cr ≠ 19cr → "clips do not match" → filme
+        // com TODAS as cenas prontas nunca montado (wummm709, 02/09 02:53,
+        // trial inteiro preso). O navegador ainda manda 45 e por isso os outros
+        // passaram. Em modo de resgate o custo de confianca e o DO CLAIM (ja
+        // debitado, assinado) — recalcular pela duracao aqui nao protege
+        // ninguem, so nega a entrega. Cliente comum continua na regra dura.
+        (!isServiceFinish && cinematicBirthClaim.creditCost !== creditCostForDuration(trustedQuality, true, duration)) ||
         !inputsMatch
       ) {
         return NextResponse.json(
