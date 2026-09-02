@@ -5,7 +5,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { trackCheckoutClick } from '@/lib/trackClick'
-import { trackEvent } from '@/lib/analytics'
+import { trackClosedEvent, trackEvent } from '@/lib/analytics'
 import { downloadVideoFile } from '@/lib/videoDownload'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import { buildSeriesContinuationHref } from '@/lib/seriesContinuation'
@@ -32,6 +32,14 @@ import {
   normalizeReferralInviteUrl,
   normalizeReferralRewardCredits,
 } from '@/lib/historyReferralMission'
+import {
+  createHistoryFirstVideoOfferDwellController,
+  createHistoryFirstVideoOfferRecorder,
+  HISTORY_FIRST_VIDEO_OFFER_DWELL_MS,
+  HISTORY_FIRST_VIDEO_OFFER_RETRY_DELAY_MS,
+  HISTORY_FIRST_VIDEO_OFFER_VISIBLE_RATIO,
+  shouldDwellOnHistoryFirstVideoOffer,
+} from '@/lib/growth/historyFirstVideoOfferHumanView'
 
 const STARTER_PRICE_USD = formatCheckoutMoney('usd', TIER_PRICES.starter.usd)
 
@@ -325,6 +333,8 @@ export default function MyVideosClient({ videos: initialVideos, loadError = fals
   const [subscriptionOfferEligible, setSubscriptionOfferEligible] = useState<boolean | null>(null)
   const [affiliateMomentumEligible, setAffiliateMomentumEligible] = useState(false)
   const subscriptionOfferTracked = useRef(false)
+  const firstVideoOfferCtaRef = useRef<HTMLButtonElement | null>(null)
+  const firstVideoOfferHumanViewStopRef = useRef<(() => void) | null>(null)
   const latestVideo = completedVideos[0] ?? null
   useEffect(() => {
     let cancelled = false
@@ -433,13 +443,146 @@ export default function MyVideosClient({ videos: initialVideos, loadError = fals
 
   useEffect(() => {
     if (subscriptionOfferTracked.current || subscriptionOfferEligible !== true || completedVideos.length < 1) return
+    // Keep a separately named technical denominator. It proves the eligible
+    // CTA rendered; the human-view event below proves the person actually had
+    // a visible, actionable decision surface. Counting people by event name
+    // separates eligibility/rendering from position and attention.
+    if (completedVideos.length === 1) {
+      if (!firstVideoOfferCtaRef.current) return
+      subscriptionOfferTracked.current = true
+      void trackClosedEvent('history_first_video_offer_rendered', {
+        version: 'history_first_video_rendered_v1',
+        surface: 'history_milestone',
+        placement: 'secondary',
+        actor_unit: 'authenticated_user',
+        event_unit: 'first_completed_video_offer_rendered',
+        completed_video_count: 1,
+      })
+      return
+    }
     subscriptionOfferTracked.current = true
-    const firstVideo = completedVideos.length === 1
-    void trackEvent(firstVideo ? 'history_first_video_offer_viewed' : 'history_repeat_offer_viewed', {
-      version: firstVideo ? 'growth_first_video_recovery_2026_08_27' : 'push28_repeat_creator',
+    void trackEvent('history_repeat_offer_viewed', {
+      version: 'push28_repeat_creator',
       completed_video_count: completedVideos.length,
     })
   }, [completedVideos.length, subscriptionOfferEligible])
+
+  // The old first-video viewed event fired as soon as eligibility resolved,
+  // even when the secondary CTA was below the fold. V2 measures the decision
+  // surface itself: >=50% visible for one continuous second, visible tab,
+  // actionable button, once per first completed video in this tab. The marker
+  // only closes after /api/events confirms storage; a confirmed reject gets
+  // one bounded retry.
+  useEffect(() => {
+    if (
+      subscriptionOfferEligible !== true
+      || completedVideos.length !== 1
+      || !latestVideo?.id
+      || checkout.pending !== null
+      || lightbox !== null
+      || typeof IntersectionObserver === 'undefined'
+    ) return
+    const target = firstVideoOfferCtaRef.current
+    if (!target) return
+    const lockManager = navigator.locks
+    if (!lockManager) return
+
+    let storage: Storage | null = null
+    try {
+      storage = window.sessionStorage
+    } catch {
+      // Without a reliable session marker, fail closed instead of inflating it.
+    }
+    if (!storage) return
+
+    const recorder = createHistoryFirstVideoOfferRecorder({
+      videoKey: latestVideo.id,
+      storage,
+      withExclusiveClaim: async (claimName, task) => await lockManager.request(claimName, task),
+      transport: (eventName, metadata) => trackClosedEvent(eventName, metadata),
+    })
+    if (recorder.wasSettled()) return
+
+    let isIntersecting = false
+    let intersectionRatio = 0
+    let observer: IntersectionObserver | null = null
+    let retryTimer: number | null = null
+    let retryUsed = false
+    let stopped = false
+
+    const qualifies = () => shouldDwellOnHistoryFirstVideoOffer({
+      eligible:
+        subscriptionOfferEligible === true
+        && completedVideos.length === 1
+        && lightbox === null,
+      ctaActionable: !target.disabled,
+      isIntersecting,
+      intersectionRatio,
+      documentVisible: document.visibilityState === 'visible',
+    })
+    let dwell: ReturnType<typeof createHistoryFirstVideoOfferDwellController> | null = null
+    const clearRetry = () => {
+      if (retryTimer !== null) window.clearTimeout(retryTimer)
+      retryTimer = null
+    }
+    const handleVisibility = () => {
+      dwell?.update({ documentVisible: document.visibilityState === 'visible' })
+    }
+    const stop = () => {
+      if (stopped) return
+      stopped = true
+      dwell?.stop()
+      clearRetry()
+      observer?.disconnect()
+      document.removeEventListener('visibilitychange', handleVisibility)
+      if (firstVideoOfferHumanViewStopRef.current === stop) {
+        firstVideoOfferHumanViewStopRef.current = null
+      }
+    }
+
+    dwell = createHistoryFirstVideoOfferDwellController({
+      dwellMs: HISTORY_FIRST_VIDEO_OFFER_DWELL_MS,
+      setTimer: (callback, delayMs) => window.setTimeout(callback, delayMs),
+      clearTimer: (timerId) => window.clearTimeout(timerId),
+      onDwell: () => {
+        if (!qualifies()) return
+        void recorder.recordOnce().then((result) => {
+          if (stopped || !dwell?.canContinue()) return
+          if (result === 'not_stored' && !retryUsed) {
+            retryUsed = true
+            retryTimer = window.setTimeout(() => {
+              retryTimer = null
+              dwell?.rearm()
+            }, HISTORY_FIRST_VIDEO_OFFER_RETRY_DELAY_MS)
+            return
+          }
+          stop()
+        })
+      },
+    })
+
+    observer = new IntersectionObserver((entries) => {
+      const entry = entries[0]
+      isIntersecting = Boolean(entry?.isIntersecting)
+      intersectionRatio = entry?.intersectionRatio ?? 0
+      dwell?.update({
+        ctaActionable: !target.disabled,
+        isIntersecting,
+        intersectionRatio,
+      })
+    }, { threshold: [HISTORY_FIRST_VIDEO_OFFER_VISIBLE_RATIO] })
+
+    dwell.update({
+      eligible: true,
+      ctaActionable: !target.disabled,
+      documentVisible: document.visibilityState === 'visible',
+    })
+    firstVideoOfferHumanViewStopRef.current = stop
+    observer.observe(target)
+    document.addEventListener('visibilitychange', handleVisibility)
+
+    return () => stop()
+  }, [checkout.pending, completedVideos.length, latestVideo?.id, lightbox, subscriptionOfferEligible])
 
   function handleStarterCheckout(source: 'history_first_video_offer' | 'history_repeat_offer' | 'history_lightbox' = 'history_lightbox') {
     const started = checkout.launch(source, '/api/stripe/checkout?tier=starter&intro=1', {
@@ -448,6 +591,7 @@ export default function MyVideosClient({ videos: initialVideos, loadError = fals
       pricing_surface: source,
     })
     if (!started) return
+    if (source === 'history_first_video_offer') firstVideoOfferHumanViewStopRef.current?.()
     const firstVideo = source === 'history_first_video_offer'
     void trackEvent(firstVideo ? 'history_first_video_offer_clicked' : 'history_repeat_offer_clicked', {
       version: firstVideo ? 'growth_first_video_recovery_2026_08_27' : 'push28_repeat_creator',
@@ -1006,6 +1150,7 @@ export default function MyVideosClient({ videos: initialVideos, loadError = fals
             )}
             {showSubscriptionOffer && (
               <button
+                ref={firstVideoSubscriptionRecovery ? firstVideoOfferCtaRef : undefined}
                 type="button"
                 onClick={() => handleStarterCheckout(firstVideoSubscriptionRecovery ? 'history_first_video_offer' : 'history_repeat_offer')}
                 disabled={checkout.pending !== null}
