@@ -232,6 +232,129 @@ afrouxado — claim `settled` continua exigindo `provider_*_refunded` com a mesm
 referência. Se der ruim, o sintoma seria um filme entregue com custo diferente
 do debitado — e é justamente isso que o `cinematic_cost_drift` passa a mostrar,
 com nome e sobrenome.
+### #3 — 15:50→16:35 BRT — as 22 pessoas que colaram um ROTEIRO DE CINEMA do ChatGPT ouviram o narrador ler "Visual dois pontos" em voz alta. São as que mais tentam da base inteira (2,45 filmes cada contra 1,53) e vinham do único canal que converte.
+
+**Placar (SQL canônico, marco zero 03/09 16:00 UTC, contas externas, medido 19:04 UTC):**
+
+| métrica | valor |
+|---|---:|
+| cadastros pós-marco (3h de vida) | 3 |
+| pessoas com filme pós-marco | 2 |
+| checkout de **desejo** (tem filme) | **1** |
+| checkout **sem filme** (a classe de defeito) | **0** |
+| assinaturas pós-marco | 0 |
+| pessoas com falha e nenhum filme | 0 |
+| vídeos completos 24h | 43 |
+
+O marco tem 3 horas. O número que já dá sinal é `checkout_sem_filme = 0` contra
+12 de 27 em 7 dias — cedo demais para comemorar (3 cadastros), mas é exatamente
+o indicador que o plano manda vigiar.
+
+**Checagem zero (1h):** 0 cadastro sem crédito, 0 `generation_stage_error`,
+0 `narration_guard_blocked`, 0 compose submetido sem linha em `videos`,
+2 vídeos entregues. Nada quebrado — a rodada foi para a jogada de maior retorno.
+
+**O que estava errado (medido no banco, 03/09).** Rodei `videos.topic` de 60
+dias (externos) atrás do formato que o ChatGPT devolve quando alguém pede um
+Short. Ele tem nome e é sempre o mesmo:
+
+    ### Scene 1 — One Earth | 0–7 sec
+    **Visual:** Earth slowly rotating in space, sunrise across continents.
+    **Voice-over:**
+    “Across this beautiful Earth, people speak different languages…”
+    **On-screen text:**
+
+**22 pessoas** colaram um texto assim. O parser da casa (`lib/scriptParser.ts`,
+maduro, 8 correções desde o Push #235) derruba `## header`, `speed:` e linha em
+MAIÚSCULAS — e deixa passar todo o resto. O narrador dessas pessoas leu, em voz
+alta, a direção de arte: *"Visual: Earth slowly rotating in space, sunrise
+appearing across different continents. Voice-over. Across this beautiful
+Earth…"*.
+
+**A causa mecânica, e por que ninguém tinha visto.** Todo filtro do arquivo
+ancora em `^\s*`. O ChatGPT escreve `**Visual:**`, `### 🎬 Scene 1`, `> “fala”`.
+O asterisco, a cerquilha e o emoji na frente do rótulo desarmam o
+`DIRECTIVE_LINE` inteiro sozinhos. Por isso `style:` era filtrado desde o Push
+#237 e `**Style:**` nunca foi — o mesmo rótulo, com dois asteriscos.
+
+**Por que 22 pessoas é um número grande.** Elas fazem **2,45 filmes cada**,
+contra **1,53** do resto da base na mesma janela de 60 dias (596 pessoas). São o
+cliente de maior esforço que existe aqui: quem escreve um roteiro inteiro no
+ChatGPT e vem colar. Elas tentam de novo porque o primeiro saiu errado — e o
+ChatGPT é o canal dos 3 últimos assinantes. 1 das 22 pagou (4,5%) contra 10 de
+596 (1,7%): mesmo com o produto lendo a direção de arte, esse grupo converte 2,6×
+melhor que a média. É o grupo mais barato de consertar e o mais caro de perder.
+
+**O que mudou (arquivos).**
+- `lib/scriptParser.ts` (+176): cinco regras determinísticas, nenhuma chamada de
+  modelo, todas atrás de `unwrapLabelHead()` — que tira `**`, `#`, `>`, `-` e
+  emoji do começo da linha ANTES de qualquer teste. É a linha que faltava.
+  1. **Rótulo de produção nunca é fala** (`STAGE_LABEL_LINE`, ~70 rótulos em
+     4 idiomas: `Visual:`, `Camera:`, `On-screen text:`, `SFX:`, `Prompt:`,
+     `Título:`, `Personagens:`, `Texto em tela:`, `Target length:`…).
+  2. **Marcação de tempo nunca é fala** (`0:00–0:04`, `0–8 sec`,
+     `8–18 sec — THE PROBLEM`).
+  3. **Cabeçalho de cena nunca é fala** em qualquer caixa (`Scene 1 — …`,
+     `Cena 2:`, `Clip 3`, `ESCENA 1`) — o filtro de MAIÚSCULAS só pegava o último.
+  4. **Preâmbulo de assistente** sai do topo (`Absolutely. Below is a complete
+     content package…`), junto com o índice do entregável (`Each concept
+     includes: hook, 10 scenes with timing…`).
+  5. **A regra que devolve o filme certo:** com **dois ou mais** rótulos de FALA
+     (`Voiceover:`, `Narration:`, `Narrador:`, `Diálogo:`…), o texto É um roteiro
+     de cinema — a pessoa já disse, linha por linha, o que é para falar. A
+     narração passa a ser SÓ o que está sob esses rótulos, e tudo antes do
+     primeiro deles (preâmbulo, ficha técnica, lista de personagens) morre.
+- `scripts/test-roteiro-de-cinema.mjs` (novo, 380 linhas): **64 verificações,
+  0 falhas**, compilando o `scriptParser.ts` REAL e batendo nele com **9
+  roteiros de clientes de verdade** lidos do banco (god/country, butter chicken,
+  MadLabs, whale city, ransomware em PT, internet 1900 em ES, quadrilátero,
+  Devanshi, nursery). Cada um verifica as duas metades: a direção de arte
+  SUMIU **e** cada fala do cliente SOBREVIVEU, palavra por palavra.
+
+**Onde isto pega.** `stripScriptMarkers` é a fronteira única de narração da
+casa: `/api/compose`, `/api/compose/unlock`, `/api/prewarm-voiceover`,
+`/api/voiceover`, `/api/render`, `/api/generate-avatar`, `lib/hollywood/
+hostVoice.ts` e `lib/publicVideos.ts` passam todos por ela. Uma correção,
+oito caminhos — os 8 motores, o avatar e a página pública.
+
+**Interação com o #1 de hoje.** A régua de narração mede
+`parseUserScript().narration`. Ela passa a medir a **fala de verdade**, não a
+direção de arte: no roteiro god/country são 41% das palavras. Um roteiro de
+cinema pedido a 60s cuja fala real dá 22s agora DESCE para 20s pelo degrau do #1
+e sai como filme curto e correto, em vez de sair com 60 segundos de narrador
+lendo "Visual dois pontos". As duas jogadas do dia se compõem.
+
+**Decisões que tomei sozinha** (autonomia; reversíveis):
+1. **Piso de DOIS rótulos de fala para a regra 5.** Um rótulo sozinho costuma ser
+   ficha de voz ("Narration: natural male American English voice, 20s–30s"), não
+   roteiro. Reverter a regra inteira = `if (rotulos < 2)` → `if (true)`.
+2. **`Visual:` derruba a linha inteira; `Voiceover:` derruba só o rótulo.** É a
+   assimetria do formato: o que vem depois de `Visual:` é imagem, o que vem
+   depois de `Voiceover:` é fala.
+3. **Preâmbulo só nas 3 primeiras linhas com texto, e exigindo verbo de entrega
+   E substantivo de entregável.** "Sure, he said, and walked away." e "Perfect
+   timing for a robbery" continuam sendo narração — os dois estão no teste.
+
+**Risco.** O de sempre num saneador: comer palavra que era fala. Três travas
+contra isso: (a) as regras 1-3 só derrubam linha que COMEÇA com rótulo/tempo/
+cena; (b) a regra 5 só entra com dois rótulos explícitos de fala; (c) **trava de
+segurança**: se as regras novas esvaziarem uma narração que o parser antigo teria
+salvo, o resultado ANTIGO volta inteiro (`cleanNarration(raw, lenient, false)`).
+Nenhum roteiro que funcionava pode virar string vazia — esse é exatamente o erro
+de 13/08 (`voiceover_script is required` na cara do usuário, depois de todo o
+custo) e ele está testado nos dois modos.
+
+**Testes vizinhos, rodados antes e depois.** `test-expand-policy` (95),
+`test-narracao-degrau` (746), `test-velocidade-2026-08-28` (23),
+`test-shorts-script-timer`, `test-public-video-privacy`: todos verdes.
+⚠ **Dois testes já estavam VERMELHOS em `origin/main` antes desta rodada** —
+conferi rodando-os em `d33bca20` (antes do #1) e falham igual, então não são
+desta jogada nem do #1: `test-narration-ruler.mjs` ("expand-script decide o
+'depois' pela fala" — 1 invariante quebrado, dívida real em
+`app/api/expand-script/route.ts`, pista minha) e
+`test-roteiro-perdido-2026-08-31.mjs` (o harness quebrou: dá `SyntaxError:
+Unexpected token 'export'` ao avaliar um `.ts` como função). Anotados como
+próximo candidato de rodada curta.
 
 **Como medir (contra o marco zero).**
 
@@ -261,3 +384,30 @@ primeiro filme estragado do único canal que converte. Depois dele, A3 (série).
 
 **Modelo.** Feita em Opus (A2 não é jogada de Fable pelo plano). Medição, código,
 teste, diário e entrega na mesma sessão.
+-- roteiro de cinema colado DEPOIS do marco: a direcao de arte ainda vira fala?
+with ext as (select id from profiles where email not ilike '%josephsskaf%'
+  and email not ilike '%usekineo%' and email not ilike '%kineo.local')
+select count(*) filter (where v.topic ~* '(^|\n)\s*[*_#>\s]*(voice-?over|narration|narrator|narrador|narração|narración|dialogue|diálogo)\s*[*_]*\s*:') roteiro_de_cinema,
+       count(*) total
+from videos v join ext on ext.id = v.user_id
+where v.created_at > '2026-09-03 16:00:00+00' and v.status='completed';
+```
+
+Meta: as pessoas do grupo "roteiro de cinema" passarem a fazer o **segundo**
+filme por escolha e não por conserto — hoje elas fazem 2,45 porque o primeiro sai
+errado. Sinal secundário: `script_duration_autofit_down` deve APARECER nesse
+grupo (a fala real é bem menor que o botão), e é o comportamento certo.
+
+**SHA.** `SHA_AQUI` (enfileirado em `entrega-atual` sobre o #2 `aaa8f507`;
+aguardando o clique no SUBIR-SITE.bat). Worktree: `C:\kineo-wt\b2-preambulo`.
+
+**Próximo item.** **A3 — continuação de série entrega o filme inteiro** (M,
+jogada de Fable pelo plano): 22% das continuações no Kineo 1 saem com <90% do
+pedido (17s e 20s para 35s), porque o gerador recebe a ORDEM ("Create the next
+episode in the same Short series about…") em vez do ASSUNTO — a mesma família de
+defeito desta rodada, um andar acima. É a jogada da **2ª compra**: série é a
+única razão para voltar amanhã, e a única assinante nova da semana está fazendo
+"Teil 1". Depois dela: A4 (cron de resgate além de 20h).
+
+**Modelo.** Feita em Opus. Pelo plano, Fable é obrigatório só em A1 e A3; B2 é
+jogada minha. Medição, código, teste, diário e entrega na mesma sessão.

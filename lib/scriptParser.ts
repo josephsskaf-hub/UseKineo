@@ -234,10 +234,183 @@ function unwrapLineDecoration(line: string): string {
   return t
 }
 
-function cleanNarration(raw: string, lenient = false): string {
+
+// ═══ KINEO-ROTEIRO-DE-CINEMA-2026-09-03 (sprint-assinaturas #3 / B2) ═══════
+//
+// O DEFEITO, medido no banco em 03/09 (contas externas, 60 dias):
+// 22 pessoas colaram no Studio um ROTEIRO DE CINEMA do ChatGPT — o formato
+// padrão que ele devolve quando se pede um Short:
+//
+//     ### Scene 1 — One Earth | 0–7 sec
+//     **Visual:** Earth slowly rotating in space, sunrise across continents.
+//     **Voice-over:**
+//     “Across this beautiful Earth, people speak different languages…”
+//     **On-screen text:**
+//
+// O parser de hoje derruba `## header`, `speed:` e linha em MAIÚSCULAS — e
+// deixa passar TODO o resto. Resultado: o narrador lê em voz alta
+// "Visual: Earth slowly rotating in space, sunrise appearing across different
+// continents. Voice-over. Across this beautiful Earth…". A pessoa escreveu a
+// fala entre aspas, numa linha marcada com o rótulo `Voice-over:`, e o filme
+// dela saiu com a direção de arte narrada.
+//
+// POR QUE ESSAS 22 PESSOAS IMPORTAM MAIS QUE O NÚMERO SUGERE: elas fazem
+// 2,45 filmes cada, contra 1,53 do resto da base (mesma janela de 60 dias).
+// São o cliente de MAIOR esforço que existe aqui — quem escreve um roteiro
+// inteiro no ChatGPT e vem colar. Elas tentam de novo porque o primeiro saiu
+// errado. O ChatGPT é o único canal que converte (3 dos 3 últimos assinantes).
+//
+// A CAUSA MECÂNICA: todo filtro deste arquivo ancora em `^\s*` — e o ChatGPT
+// escreve `**Visual:**`, `### 🎬 Scene 1`, `> “fala”`. O asterisco, a cerquilha
+// e o emoji na frente do rótulo desarmam sozinhos o DIRECTIVE_LINE inteiro.
+// Por isso `style:` era filtrado desde o Push #237 e `**Style:**` nunca foi.
+//
+// AS QUATRO REGRAS NOVAS (determinísticas, nenhuma chamada de modelo):
+//  1. RÓTULO DE PRODUÇÃO nunca é fala: `Visual:`, `Camera:`, `On-screen text:`,
+//     `SFX:`, `Prompt:`, `Título:`, `Personagens:` … — depois de DESEMBRULHAR
+//     a decoração (`**`, `#`, `>`, `-`, emoji) do começo da linha.
+//  2. LINHA DE TEMPO nunca é fala: `0:00–0:04`, `0–8 sec`, `8–18 sec — THE
+//     PROBLEM`.
+//  3. CABEÇALHO DE CENA nunca é fala: `Scene 1 — …`, `Cena 2:`, `Clip 3`,
+//     `ESCENA 1 — EL GANCHO` (o filtro de MAIÚSCULAS só pegava o último).
+//  4. PREÂMBULO DE ASSISTENTE nunca é fala, e só no topo do texto:
+//     "Absolutely. Below is a **complete content package**…" (1 caso real,
+//     30/08). Exige verbo de entrega E substantivo de entregável, para não
+//     comer uma narração que comece com "Sure, he said".
+//
+// E A REGRA QUE DEVOLVE O FILME CERTO (a que vale dinheiro):
+//  5. Quando o texto tem DOIS OU MAIS rótulos de FALA (`Voiceover:`,
+//     `Narration:`, `Narrador:`, `Diálogo:`…), ele É um roteiro de cinema — a
+//     pessoa já nos disse, linha por linha, o que é para falar. Nesse caso a
+//     narração passa a ser SÓ o que está sob esses rótulos, e tudo antes do
+//     primeiro deles (preâmbulo, lista de personagens, ficha técnica) morre.
+//     Dois é o piso de propósito: um rótulo sozinho pode ser a ficha de voz
+//     ("Narration: natural male American English voice"), não um roteiro.
+//
+// TRAVA DE SEGURANÇA: se as regras novas esvaziarem uma narração que o parser
+// antigo teria salvo, o resultado ANTIGO volta inteiro. Nenhum roteiro que
+// funcionava hoje pode virar string vazia por causa desta mudança — esse é
+// exatamente o erro de 13/08 (`voiceover_script is required` na cara do
+// usuário, depois de todo o custo) que a salvaguarda tolerante existe para
+// impedir.
+//
+// INTERAÇÃO COM O #1 (degrau de narração, mesmo dia): a régua mede
+// `parseUserScript().narration`. Com as regras novas ela passa a medir a FALA
+// DE VERDADE, não a direção de arte. Um roteiro de cinema de 60s cuja fala
+// real dá 22s agora DESCE para 20s e sai como filme curto e correto, em vez
+// de sair com 60s de narrador lendo "Visual dois pontos".
+
+/** Tira a decoração do INÍCIO da linha (markdown, citação, bullet, emoji) sem
+ *  tocar no resto — é o que faz `**Visual:**` ser reconhecido como `Visual:`. */
+function unwrapLabelHead(line: string): string {
+  let t = (line ?? '').toString()
+  // Duas passadas: emoji costuma vir DEPOIS do markdown ("### 🎬 Scene 1").
+  for (let i = 0; i < 2; i++) {
+    t = t.replace(/^[\s>*_`~#•·\-–—]+/, '')
+    t = t.replace(/^(?:[←-⯿☀-➿️‍\uD800-\uDFFF]+\s*)+/, '')
+  }
+  return t.trim()
+}
+
+/** Rótulo de produção: a linha descreve imagem, som, texto na tela, ficha
+ *  técnica ou instrução — nunca a fala. Casa também "Title/Hook:". */
+const STAGE_LABEL_LINE =
+  /^(visuals?|visual style|imagem|imagen|camera|c[âa]mera|c[áa]mara|action|acci[óo]n|a[çc][ãa]o|movement|body movement|posture|motion|expression|gesture|shot|angle|lighting|luz|on-?screen(?:\s+text)?|onscreen|text on screen|texto (?:en pantalla|em tela|na tela)|screen|tela|caption|captions|subtitle|subtitles|legend|legenda|sfx|vfx|sound|audio|music|m[úu]sica|bgm|b-?roll|footage|(?:\w+\s+)?prompt|title|t[íi]tulo|theme|tema|length|duration|duraci[óo]n|dura[çc][ãa]o|genre|g[ée]nero|target(?:\s+(?:length|duration|audience|age|group|platform|market|viewer|viewers|format))?|audience|p[úu]blico|style|estilo|tone|tom|mood|character|characters|personagens|personajes|cast|transition|cut|note|notes|nota|notas|hashtags|disclaimer|end suspense|setting|location|props|wardrobe|overlay|logo|graphics?|effects?|voice style|pacing|ritmo|aspect|platform|format|formato|resolution|orientation|output|deliverable)(\s*[\/|]\s*[\w\s]{1,20})?\s*[:：]/i
+
+/** Linha que é só marcação de tempo, com ou sem título colado
+ *  ("0:00–0:04", "0–8 sec", "8–18 sec — THE PROBLEM", "(0-5 s)"). */
+const TIMECODE_LINE =
+  /^\(?\d{1,2}\s*[:.]\s*\d{2}\s*[–—\-~aà]{1,3}\s*\d{1,2}\s*[:.]\s*\d{2}|^\(?\d{1,3}\s*[–—\-~]\s*\d{1,3}\s*(?:sec(?:ond)?s?|s\b|seg(?:undo)?s?|сек|min(?:ute)?s?)/i
+
+/** Cabeçalho de cena em qualquer caixa e em 4 idiomas. */
+const SCENE_HEADER_LINE =
+  /^(scene|cena|escena|sc[èe]ne|clip|beat|act|ato|acto|episode|epis[óo]dio|episodio|part|parte|step|passo|paso)\s*#?\s*\d+\b/i
+
+/** Rótulo de FALA: a pessoa marcou explicitamente o que é para narrar. */
+const SPEECH_LABEL_LINE =
+  /^(voice\s?-?\s?over|voiceover|vo|narration|narrator|narrador|narradora|narra[çc][ãa]o|narraci[óo]n|dialogue|di[áa]logo|dialogo|fala|falas|speech|spoken(?:\s+text)?|line|lines|voz)\s*(?:\([^)]{0,60}\))?\s*[:：]/i
+
+/** Preâmbulo de assistente: só vale nas primeiras linhas e exige verbo de
+ *  entrega + substantivo de entregável, para nunca comer narração real. */
+const ASSISTANT_PREAMBLE_LINE =
+  /^(absolutely|sure|certainly|of course|got it|understood|here'?s|here is|below is|here you go|use this as|great choice|perfect|awesome|no problem|happy to help|claro|com certeza|aqu[íi] est[áa]|segue|abaixo est[áa])\b[^\n]{0,240}\b(script|roteiro|guion|gui[óo]n|package|pacote|prompt|video|v[íi]deo|short|shorts|reel|concept|conceito|scene|scenes|version|vers[ãa]o|breakdown|outline|storyboard|copy|ideia|idea)\b/i
+
+/** Índice do entregável, o irmão do preâmbulo: "Each concept includes:
+ *  hook, 10 scenes with timing, lyrics…". Só vale na janela do topo, e só
+ *  quando o verbo de listagem vem acompanhado de um substantivo de
+ *  entregável — assim "The tomb contains gold" continua sendo narração. */
+const DELIVERABLE_INDEX_LINE =
+  /^(each|every|this|these|the)\b[^\n]{0,60}\b(includes?|contains?|consists of|comes with|is designed for|are designed for)\b[^\n]{0,200}\b(hook|hooks|scene|scenes|script|scripts|roteiro|lyrics|timing|hashtag|hashtags|title|titles|prompt|prompts|concept|concepts|direction|breakdown|caption|captions|voiceover|narration)\b/i
+
+/** Uma das três classes que nunca são fala, já desembrulhada. */
+function isStageDirectionLine(line: string): boolean {
+  const u = unwrapLabelHead(line)
+  if (!u) return false
+  if (SPEECH_LABEL_LINE.test(u)) return false
+  return STAGE_LABEL_LINE.test(u) || TIMECODE_LINE.test(u) || SCENE_HEADER_LINE.test(u)
+}
+
+/** Tira o preâmbulo de assistente do TOPO (no máximo 3 linhas com texto). */
+export function stripAssistantPreamble(raw: string): string {
+  const lines = (raw ?? '').toString().split(/\r?\n/)
+  let i = 0
+  let vistas = 0
+  while (i < lines.length && vistas < 3) {
+    const u = unwrapLabelHead(lines[i])
+    if (!u) { i++; continue }
+    if (!ASSISTANT_PREAMBLE_LINE.test(u) && !DELIVERABLE_INDEX_LINE.test(u)) break
+    vistas++
+    i++
+  }
+  return vistas === 0 ? (raw ?? '').toString() : lines.slice(i).join('\n')
+}
+
+/**
+ * Regra 5. Devolve SÓ a fala rotulada quando o texto é um roteiro de cinema
+ * (dois ou mais rótulos de fala); `null` quando não é — e aí nada muda.
+ *
+ * Um bloco de fala começa no rótulo (o que vier depois dos dois pontos conta)
+ * e vai até a próxima linha rotulada, cabeçalho, cena ou marcação de tempo.
+ * Tudo que vem ANTES do primeiro rótulo de fala é ficha técnica e sai.
+ */
+export function screenplaySpeechOnly(raw: string): string | null {
+  const lines = (raw ?? '').toString().split(/\r?\n/)
+  const rotulos = lines.filter((l) => {
+    const u = unwrapLabelHead(l)
+    return Boolean(u) && SPEECH_LABEL_LINE.test(u)
+  }).length
+  if (rotulos < 2) return null
+
+  const guardadas: string[] = []
+  let dentro = false
+  for (const line of lines) {
+    const u = unwrapLabelHead(line)
+    if (!u) continue
+    if (SPEECH_LABEL_LINE.test(u)) {
+      dentro = true
+      const resto = u.replace(SPEECH_LABEL_LINE, '').trim()
+      if (resto) guardadas.push(resto)
+      continue
+    }
+    if (isStageDirectionLine(line) || sectionHeaderName(line) !== null) {
+      dentro = false
+      continue
+    }
+    if (dentro) guardadas.push(u)
+  }
+  const junto = guardadas.join('\n').trim()
+  return junto ? junto : null
+}
+
+function cleanNarration(raw: string, lenient = false, roteiroDeCinema = true): string {
+  // KINEO-ROTEIRO-DE-CINEMA-2026-09-03: regra 5 primeiro (fala rotulada manda
+  // em tudo); sem rotulo de fala, so o preambulo do assistente sai do topo.
+  const base = roteiroDeCinema
+    ? (screenplaySpeechOnly(raw) ?? stripAssistantPreamble(raw))
+    : raw
   const kept: string[] = []
   let inMetadataSection = false
-  for (const line of raw.split(/\r?\n/)) {
+  for (const line of base.split(/\r?\n/)) {
     const section = sectionHeaderName(line)
     if (section !== null) {
       // Named header: drop the header line, switch mode based on its kind.
@@ -247,6 +420,10 @@ function cleanNarration(raw: string, lenient = false): string {
       continue
     }
     if (inMetadataSection) continue
+    // Regras 1-3: rotulo de producao, marcacao de tempo e cabecalho de cena
+    // nunca sao fala - nem no modo tolerante, onde salvar palavras jamais
+    // pode virar o narrador lendo "Visual dois pontos".
+    if (roteiroDeCinema && isStageDirectionLine(line)) continue
     if (lenient ? isNeverSpeechLine(line) : isDroppableLine(line)) continue
     // Inline stage prefix ("HOOK: ...") — strip the label, keep the speech.
     const stripped = (lenient ? unwrapLineDecoration(line) : line).replace(INLINE_STAGE_PREFIX, '')
@@ -254,7 +431,7 @@ function cleanNarration(raw: string, lenient = false): string {
     if (lenient && BARE_STAGE_LINE.test(stripped.trim())) continue
     kept.push(stripped)
   }
-  return kept
+  const limpo = kept
     .join(' ')
     // Remove any remaining bracketed stage directions / markers.
     .replace(/\[[^\]]*\]/g, ' ')
@@ -262,6 +439,11 @@ function cleanNarration(raw: string, lenient = false): string {
     .replace(/[*_`#>]/g, ' ')
     .replace(/\s{2,}/g, ' ')
     .trim()
+  // TRAVA DE SEGURANCA (KINEO-ROTEIRO-DE-CINEMA-2026-09-03): se as regras
+  // novas comeram tudo, devolve exatamente o que o parser antigo devolveria.
+  // Nenhum roteiro que funcionava pode virar string vazia por causa delas.
+  if (roteiroDeCinema && !limpo) return cleanNarration(raw, lenient, false)
+  return limpo
 }
 
 /**
