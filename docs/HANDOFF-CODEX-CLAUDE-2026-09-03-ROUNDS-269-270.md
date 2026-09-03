@@ -69,4 +69,13 @@
 
 **PRÓXIMA ALTERNÂNCIA:** B2C. Preservar as superfícies terminais existentes até o gate do handoff 267–268; procurar outro estágio ainda sem experimento no caminho primeiro vídeo → valor percebido → Checkout → pagamento, sem alterar preço, crédito ou checkout enquanto a coorte atual coleta.
 
-**PUBLICAÇÃO:** pendente neste momento; preencher SHA final de `origin/main`, deployment e smoke após push seguro.
+## Publicação e smoke
+
+**VALIDADO EM PRODUÇÃO — 2026-09-03 03:54 UTC:** o primeiro deploy contendo o commit funcional `9cdc31d21d38b5e95e47ff7cbf6f8c175ead8ebe` foi construído a partir de `9136ed9b721bfff4b450fb7f069ec7ea1b6d2218`.
+
+- deployment Vercel: `dpl_8BLdPMP5qLU78N8R9ukRMwrhBcFZ`;
+- estado: `READY`, framework Next.js, alias sem erro em `www.usekineo.com`;
+- `GET https://www.usekineo.com/ai-shorts-for-agencies`: **200 OK**;
+- HTML servido pelo deployment correto contém `Sign in` e o redirect interno `/login?redirect=%2Fai-shorts-for-agencies%3Fintent_campaign%3Dagency_header_studio_v1`;
+- smoke foi somente leitura: nenhum CTA foi clicado e nenhum evento comercial artificial foi criado;
+- Vercel Runtime Errors, rota `/ai-shorts-for-agencies`, janela de 30 minutos: **zero erro encontrado**.
