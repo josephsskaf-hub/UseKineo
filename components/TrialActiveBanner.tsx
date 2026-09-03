@@ -66,7 +66,7 @@
 // ao modal de downgrade. Falha de rede não vira upsell.
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { trackEvent } from '@/lib/analytics'
+import { trackClosedEvent, trackEvent } from '@/lib/analytics'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import { creditsPerReferenceVideo } from '@/lib/marketingPrice'
 import {
@@ -80,6 +80,14 @@ import {
   buildOnboardingGoalStudioHref,
   DEFAULT_ONBOARDING_GOAL,
 } from '@/lib/growth/onboardingGoals'
+import {
+  createTrialActiveSubscriptionCtaDwellController,
+  createTrialActiveSubscriptionCtaViewRecorder,
+  shouldCountTrialActiveSubscriptionCtaView,
+  trialActiveSubscriptionCtaClickMetadata,
+  trialActiveSubscriptionCtaViewMetadata,
+  TRIAL_ACTIVE_SUBSCRIPTION_CTA_VIEW_RATIO,
+} from '@/lib/growth/trialActiveSubscriptionCta'
 // Import de TIPO apenas (apagado no build). Vem da MESMA definição que o
 // servidor serializa: renomear um campo lá quebra o build aqui, em vez de fazer
 // o banner sumir em silêncio.
@@ -121,6 +129,11 @@ interface CreditsPayload {
   isStudio?: boolean
 }
 
+interface VideosEvidencePayload {
+  completedCount?: number | null
+  historyReliable?: boolean
+}
+
 /** Dia corrente em UTC. Fuso do navegador NÃO entra: a chave tem que ser
  *  estável para quem viaja ou muda o relógio do sistema, e `trial_ends_at` já é
  *  UTC. */
@@ -160,6 +173,8 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
   const [region, setRegion] = useState<PriceRegion>('standard')
   const checkout = useCheckoutLaunch('trial_active_banner')
   const returnLadderRef = useRef<HTMLDivElement | null>(null)
+  const subscriptionCtaRef = useRef<HTMLButtonElement | null>(null)
+  const subscriptionCtaViewStopRef = useRef<() => void>(() => {})
   // O dia é carimbado UMA vez, no mount, e reusado nas duas chaves e no evento.
   // Ler `Date.now()` de novo na dispensa deixaria a chave de dispensa num dia
   // diferente da chave de impressão numa navegação à meia-noite — a pessoa
@@ -351,6 +366,116 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
     returnLadderShownKey,
   ])
 
+  // KINEO-TRIAL-ACTIVE-SUBSCRIPTION-DENOMINATOR-2026-09-03 — the daily banner
+  // mount is not a human view and mixes three different modes. Observe only
+  // the real subscription button, after the first-delivery action is no longer
+  // eligible, for one continuous second in a visible tab. This adds no UI and
+  // changes neither the offer nor Checkout.
+  useEffect(() => {
+    if (!open || msLeft === null || firstDelivery.eligible) return
+    const target = subscriptionCtaRef.current
+    if (!target || typeof IntersectionObserver === 'undefined') return
+
+    let storage: Storage | null = null
+    try {
+      storage = window.localStorage
+    } catch {
+      // Storage denial keeps the CTA functional but fails this measurement
+      // closed instead of inflating the denominator on every navigation.
+      return
+    }
+
+    let currentEntry: IntersectionObserverEntry | null = null
+    let completedVideoConfirmed = false
+    let evidenceInFlight: Promise<void> | null = null
+    let cancelled = false
+
+    const qualifies = () => shouldCountTrialActiveSubscriptionCtaView({
+      open,
+      subscriptionCtaEligible: !firstDelivery.eligible,
+      completedVideoConfirmed,
+      isIntersecting: currentEntry?.isIntersecting === true,
+      intersectionRatio: currentEntry?.intersectionRatio ?? 0,
+      documentVisible: document.visibilityState === 'visible',
+    })
+
+    const recorder = createTrialActiveSubscriptionCtaViewRecorder({
+      userKey,
+      storage,
+      metadata: trialActiveSubscriptionCtaViewMetadata({
+        returnLadderRendered: returnLadder.eligible,
+      }),
+      transport: (eventName, metadata) => trackClosedEvent(eventName, metadata),
+    })
+    if (recorder.wasSettled()) return
+
+    const dwell = createTrialActiveSubscriptionCtaDwellController({
+      qualifies,
+      onDwell: () => {
+        void recorder.recordOnce().then((outcome) => {
+          if (outcome === 'not_stored' && dwell.canContinue()) dwell.reopen()
+        })
+      },
+    })
+
+    const refreshDeliveryEvidence = (): Promise<void> => {
+      if (completedVideoConfirmed || evidenceInFlight) return evidenceInFlight ?? Promise.resolve()
+      evidenceInFlight = fetch('/api/videos', {
+        cache: 'no-store',
+        credentials: 'same-origin',
+      }).then(async (response) => {
+        if (!response.ok) return
+        const payload = await response.json().catch(() => null) as VideosEvidencePayload | null
+        if (payload?.historyReliable === true && typeof payload.completedCount === 'number' && payload.completedCount >= 1) {
+          completedVideoConfirmed = true
+        }
+      }).catch(() => {
+        // Missing authority means no post-delivery measurement, never a guess.
+      }).finally(() => {
+        evidenceInFlight = null
+      })
+      return evidenceInFlight
+    }
+
+    const refreshAndUpdate = () => {
+      dwell.update()
+      if (
+        currentEntry?.isIntersecting !== true ||
+        currentEntry.intersectionRatio < TRIAL_ACTIVE_SUBSCRIPTION_CTA_VIEW_RATIO ||
+        document.visibilityState !== 'visible'
+      ) return
+      void refreshDeliveryEvidence().then(() => {
+        if (!cancelled) dwell.update()
+      })
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      currentEntry = entries[0] ?? null
+      refreshAndUpdate()
+    }, { threshold: [TRIAL_ACTIVE_SUBSCRIPTION_CTA_VIEW_RATIO] })
+    const handleVisibility = () => refreshAndUpdate()
+    const handleFocus = () => refreshAndUpdate()
+
+    observer.observe(target)
+    document.addEventListener('visibilitychange', handleVisibility)
+    window.addEventListener('focus', handleFocus)
+    subscriptionCtaViewStopRef.current = () => dwell.stop()
+    return () => {
+      cancelled = true
+      dwell.stop()
+      observer.disconnect()
+      document.removeEventListener('visibilitychange', handleVisibility)
+      window.removeEventListener('focus', handleFocus)
+      subscriptionCtaViewStopRef.current = () => {}
+    }
+  }, [
+    firstDelivery.eligible,
+    msLeft,
+    open,
+    returnLadder.eligible,
+    userKey,
+  ])
+
   const dismiss = useCallback(() => {
     // Desfecho ANTES do efeito: ação sem registro é instrumento cego.
     void trackEvent('trial_active_banner_dismissed', { ms_left: msLeft })
@@ -535,12 +660,17 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
         </div>
       )}
       {!firstDelivery.eligible && <button
+        ref={subscriptionCtaRef}
         type="button"
         onClick={() => {
+          subscriptionCtaViewStopRef.current()
           // Evento ANTES da navegação: depois do redirect da Stripe não existe
           // mais página para emitir nada. `launch()` pode recusar (trava de
           // duplo clique) e o desfecho fica com o próprio hook.
           void trackEvent('trial_active_banner_cta', {
+            ...trialActiveSubscriptionCtaClickMetadata({
+              returnLadderRendered: returnLadder.eligible,
+            }),
             tier: 'basic',
             ms_left: msLeft,
             time_left_label: timeLeft,
@@ -555,6 +685,9 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
           // do app. Omiti-lo faria esta tela ser a única a cobrar mais caro
           // pelo mesmo plano. Quem valida elegibilidade é o servidor.
           checkout.launch('basic', '/api/stripe/checkout?tier=basic&intro=1', {
+            ...trialActiveSubscriptionCtaClickMetadata({
+              returnLadderRendered: returnLadder.eligible,
+            }),
             tier: 'basic',
             pricing_surface: 'trial_active_banner',
           })

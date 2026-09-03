@@ -63,6 +63,10 @@ const PUBLIC_PROMO_VERSION = readCanonicalStringConstant(
   new URL('../lib/growth/publicPromoTruth.ts', import.meta.url),
   'PUBLIC_PROMO_TRUTH_VERSION',
 )
+const TRIAL_ACTIVE_SUBSCRIPTION_VERSION = readCanonicalStringConstant(
+  new URL('../lib/growth/trialActiveSubscriptionCta.ts', import.meta.url),
+  'TRIAL_ACTIVE_SUBSCRIPTION_CTA_VERSION',
+)
 
 const EXPERIMENTS = Object.freeze({
   result_value_sample: Object.freeze({ role: 'value_mediator', gate: { firstDeliveryPeople: 20, sampledPeople: 5, notSampledPeople: 5, days: 7 } }),
@@ -76,6 +80,7 @@ const EXPERIMENTS = Object.freeze({
   trial_balance_result: Object.freeze({ role: 'activation_mediator', gate: null }),
   trial_balance_return: Object.freeze({ role: 'return_mediator', gate: null }),
   chatgpt_quickstart: Object.freeze({ role: 'acquisition_assist', gate: null }),
+  trial_active_subscription: Object.freeze({ role: 'offer', gate: { people: 20, clickPathPeople: 5, days: 7, exactPaymentShortcut: true } }),
 })
 
 export const B2C_SUBSCRIPTION_TRUTH_EVENT_NAMES = Object.freeze([
@@ -88,6 +93,7 @@ export const B2C_SUBSCRIPTION_TRUTH_EVENT_NAMES = Object.freeze([
   'trial_post_video_offer_viewed',
   'trial_downgrade_offer_viewed',
   'trial_balance_bridge_viewed',
+  'trial_active_subscription_cta_viewed',
   'chatgpt_welcome_banner_shown',
   'welcome_offer_checkout_clicked',
   'checkout_cta_clicked',
@@ -103,6 +109,11 @@ function timestamp(row) {
 function metadataString(row, key) {
   const value = row?.metadata?.[key]
   return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+function metadataBoolean(row, key) {
+  const value = row?.metadata?.[key]
+  return typeof value === 'boolean' ? value : null
 }
 
 function compareRows(left, right) {
@@ -164,6 +175,15 @@ function exposureDefinition(row) {
   if (row.name === 'chatgpt_welcome_banner_shown' && metadataString(row, 'variant') === QUICKSTART_VERSION) {
     return 'chatgpt_quickstart'
   }
+  if (
+    row.name === 'trial_active_subscription_cta_viewed' &&
+    metadataString(row, 'offer_version') === TRIAL_ACTIVE_SUBSCRIPTION_VERSION &&
+    metadataString(row, 'offer_mode') === 'trial_active_subscription' &&
+    metadataString(row, 'surface') === 'trial_active_banner' &&
+    metadataString(row, 'delivery_evidence') === 'api_videos_completed_count_gte_1' &&
+    metadataBoolean(row, 'return_ladder_rendered') !== null &&
+    row?.metadata?.human_exposure_claimed === true
+  ) return 'trial_active_subscription'
   return null
 }
 
@@ -173,10 +193,24 @@ const SURFACE_EXPERIMENT = new Map([
   ['generate_plan_fit', 'plan_fit'],
   ['generate_trial_post_video', 'trial_post_video'],
   ['trial_downgrade_modal', 'trial_downgrade'],
+  ['trial_active_banner', 'trial_active_subscription'],
 ])
 
 function hasPriorExposure(exposuresByUser, userId, experiment, at) {
   return (exposuresByUser.get(userId) ?? []).some((row) => row.experiment === experiment && row.at <= at)
+}
+
+function clickMatchesExperiment(row, experiment) {
+  if (experiment !== 'trial_active_subscription') return true
+  return metadataString(row, 'offer_version') === TRIAL_ACTIVE_SUBSCRIPTION_VERSION &&
+    metadataString(row, 'offer_mode') === 'trial_active_subscription' &&
+    metadataBoolean(row, 'return_ladder_rendered') !== null
+}
+
+function trialActiveClickContext(rows) {
+  const values = new Set(rows.map((row) => metadataBoolean(row, 'return_ladder_rendered')).filter((value) => value !== null))
+  if (values.size !== 1) return { valid: false, returnLadderRendered: null }
+  return { valid: true, returnLadderRendered: [...values][0] }
 }
 
 function exactStartRow(record, startsByStripeSession) {
@@ -191,7 +225,7 @@ function exactStartRow(record, startsByStripeSession) {
   return semantics.size === 1 ? matching[0] : null
 }
 
-function classifyOrigin(record, startsByStripeSession, clicks, welcomeClicks, exposuresByUser) {
+function classifyOrigin(record, startsByStripeSession, clicks, welcomeClicks, exposuresByUser, firstVideos) {
   const start = exactStartRow(record, startsByStripeSession)
   if (!start) return { status: 'unknown', experiment: null, reason: 'no_unique_matching_start' }
   const startAt = timestamp(start)
@@ -218,10 +252,42 @@ function classifyOrigin(record, startsByStripeSession, clicks, welcomeClicks, ex
     }
     const experiment = SURFACE_EXPERIMENT.get(surface) ?? null
     if (!experiment) return { status: 'other', experiment: null, reason: 'known_non_experiment_surface' }
+    const matchingExperimentClicks = standard.filter((row) =>
+      metadataString(row, 'surface') === surface && clickMatchesExperiment(row, experiment),
+    )
+    if (matchingExperimentClicks.length === 0) {
+      return { status: 'ineligible', experiment: null, reason: 'checkout_click_contract_mismatch' }
+    }
+    const clickContext = experiment === 'trial_active_subscription'
+      ? trialActiveClickContext(matchingExperimentClicks)
+      : { valid: true, returnLadderRendered: null }
+    if (!clickContext.valid) {
+      return { status: 'ambiguous', experiment: null, reason: 'trial_active_return_ladder_context_conflict' }
+    }
     if (!hasPriorExposure(exposuresByUser, record.ownerUserId, experiment, startAt)) {
+      if (experiment === 'trial_active_subscription') {
+        const firstVideoAt = timestamp(firstVideos.get(record.ownerUserId))
+        const versionedPostDeliveryClick = firstVideoAt !== null && matchingExperimentClicks.some((row) => {
+          const clickAt = timestamp(row)
+          return clickAt !== null && firstVideoAt <= clickAt
+        })
+        if (versionedPostDeliveryClick) {
+          return {
+            status: 'exact',
+            experiment,
+            reason: 'same_browser_session_versioned_click_without_dwell',
+            returnLadderRendered: clickContext.returnLadderRendered,
+          }
+        }
+      }
       return { status: 'ineligible', experiment: null, reason: 'surface_without_prior_valid_exposure' }
     }
-    return { status: 'exact', experiment, reason: 'same_browser_session_click_and_start' }
+    return {
+      status: 'exact',
+      experiment,
+      reason: 'same_browser_session_click_and_start',
+      returnLadderRendered: clickContext.returnLadderRendered,
+    }
   }
 
   const serverOrigin = metadataString(start, 'checkout_origin')
@@ -249,6 +315,16 @@ function classifyOrigin(record, startsByStripeSession, clicks, welcomeClicks, ex
 
 function setSize(rows, selector) {
   return new Set(rows.map(selector).filter(Boolean)).size
+}
+
+function histogram(rows, selector) {
+  const counts = new Map()
+  for (const row of rows) {
+    const key = selector(row)
+    if (!key) continue
+    counts.set(key, (counts.get(key) ?? 0) + 1)
+  }
+  return Object.fromEntries([...counts.entries()].sort(([left], [right]) => left.localeCompare(right)))
 }
 
 function revenueByCurrency(records) {
@@ -285,11 +361,15 @@ export function buildB2cSubscriptionTruthReport({ generatedAt, windowStart, even
     const firstVideoAt = timestamp(firstVideos.get(row.user_id))
     const stage = firstVideoAt === null ? 'without_delivery' : firstVideoAt <= at ? 'post_delivery' : 'pre_delivery'
     if (experiment === 'trial_post_video' && stage !== 'post_delivery') return []
+    if (experiment === 'trial_active_subscription' && stage !== 'post_delivery') return []
     return [{
       experiment,
       userId: row.user_id,
       at,
       stage,
+      returnLadderRendered: experiment === 'trial_active_subscription'
+        ? metadataBoolean(row, 'return_ladder_rendered')
+        : null,
     }]
   })
   const exposuresByUser = new Map()
@@ -317,7 +397,7 @@ export function buildB2cSubscriptionTruthReport({ generatedAt, windowStart, even
     Date.parse(record.startedAt) >= windowStartMs,
   ).map((record) => ({
     ...record,
-    origin: classifyOrigin(record, startsByStripeSession, clicks, welcomeClicks, exposuresByUser),
+    origin: classifyOrigin(record, startsByStripeSession, clicks, welcomeClicks, exposuresByUser, firstVideos),
   }))
   const externalPaid = externalStarts.filter((record) => record.status === 'paid' && record.paidInWindow)
   const exactOriginStarts = externalStarts.filter((record) => record.origin.status === 'exact')
@@ -350,6 +430,54 @@ export function buildB2cSubscriptionTruthReport({ generatedAt, windowStart, even
     const attributedStarts = exactOriginStarts.filter((row) => row.origin.experiment === name)
     const attributedPaid = exactOriginPaid.filter((row) => row.origin.experiment === name)
     const assistedPaid = assistRows.filter((row) => row.experiments.includes(name))
+    const qualifiedClicks = clicks.filter((row) => {
+      const at = timestamp(row)
+      if (
+        at === null ||
+        at < windowStartMs ||
+        !identity.external.has(row.user_id) ||
+        SURFACE_EXPERIMENT.get(metadataString(row, 'surface')) !== name ||
+        !clickMatchesExperiment(row, name)
+      ) return false
+      if (name !== 'trial_active_subscription') {
+        return hasPriorExposure(exposuresByUser, row.user_id, name, at)
+      }
+      const firstVideoAt = timestamp(firstVideos.get(row.user_id))
+      return firstVideoAt !== null && firstVideoAt <= at
+    })
+    const ctaClickPeople = setSize(qualifiedClicks, (row) => row.user_id)
+    const maturityCutoff = config.gate?.days
+      ? generatedAtMs - config.gate.days * 86_400_000
+      : null
+    const firstExposureByUser = new Map()
+    for (const row of selected) {
+      const current = firstExposureByUser.get(row.userId)
+      if (current === undefined || row.at < current) firstExposureByUser.set(row.userId, row.at)
+    }
+    const matureExposurePeople = maturityCutoff === null
+      ? people.size
+      : [...firstExposureByUser.values()].filter((at) => at <= maturityCutoff).length
+    const matureCtaClickPeople = maturityCutoff === null
+      ? ctaClickPeople
+      : setSize(qualifiedClicks.filter((row) => timestamp(row) <= maturityCutoff), (row) => row.user_id)
+    const returnLadderRenderedContext = name === 'trial_active_subscription' ? {
+      rendered: {
+        exposurePeople: setSize(selected.filter((row) => row.returnLadderRendered === true), (row) => row.userId),
+        ctaClickPeople: setSize(qualifiedClicks.filter((row) => metadataBoolean(row, 'return_ladder_rendered') === true), (row) => row.user_id),
+        exactOriginStartedPeople: setSize(attributedStarts.filter((row) => row.origin.returnLadderRendered === true), (row) => row.ownerUserId),
+        exactOriginStartedStripeSessions: attributedStarts.filter((row) => row.origin.returnLadderRendered === true).length,
+        exactOriginPaidPeople: setSize(attributedPaid.filter((row) => row.origin.returnLadderRendered === true), (row) => row.ownerUserId),
+        exactOriginPaidStripeSessions: attributedPaid.filter((row) => row.origin.returnLadderRendered === true).length,
+      },
+      notRendered: {
+        exposurePeople: setSize(selected.filter((row) => row.returnLadderRendered === false), (row) => row.userId),
+        ctaClickPeople: setSize(qualifiedClicks.filter((row) => metadataBoolean(row, 'return_ladder_rendered') === false), (row) => row.user_id),
+        exactOriginStartedPeople: setSize(attributedStarts.filter((row) => row.origin.returnLadderRendered === false), (row) => row.ownerUserId),
+        exactOriginStartedStripeSessions: attributedStarts.filter((row) => row.origin.returnLadderRendered === false).length,
+        exactOriginPaidPeople: setSize(attributedPaid.filter((row) => row.origin.returnLadderRendered === false), (row) => row.ownerUserId),
+        exactOriginPaidStripeSessions: attributedPaid.filter((row) => row.origin.returnLadderRendered === false).length,
+      },
+    } : null
     let gateState = config.gate ? 'collecting' : 'diagnostic_only'
     if (name === 'result_value_sample') {
       if (assistedPaid.length > 0) gateState = 'ready_for_reconciliation'
@@ -359,9 +487,16 @@ export function buildB2cSubscriptionTruthReport({ generatedAt, windowStart, even
         notSampledPeople >= config.gate.notSampledPeople &&
         days >= config.gate.days
       ) gateState = 'ready_for_decision'
+    } else if (name === 'trial_active_subscription' && config.gate) {
+      if (attributedPaid.length > 0) gateState = 'ready_for_reconciliation'
+      else if (matureExposurePeople >= config.gate.people) gateState = 'ready_for_decision'
     } else if (config.gate && (
       (config.gate.exactPaymentShortcut && attributedPaid.length > 0) ||
-      (people.size >= config.gate.people && days !== null && days >= config.gate.days)
+      (
+        people.size >= config.gate.people &&
+        days !== null &&
+        days >= config.gate.days
+      )
     )) gateState = 'ready_for_reconciliation'
     return {
       experiment: name,
@@ -374,13 +509,25 @@ export function buildB2cSubscriptionTruthReport({ generatedAt, windowStart, even
       everPostDeliveryPeople: setSize(selected.filter((row) => row.stage === 'post_delivery'), (row) => row.userId),
       firstValidExposureAt: firstAt === null ? null : new Date(firstAt).toISOString(),
       observedDays: days,
+      matureExposurePeople,
+      ctaClickPeople,
+      matureCtaClickPeople,
+      returnLadderRenderedContext,
       exactOriginStartedPeople: setSize(attributedStarts, (row) => row.ownerUserId),
       exactOriginPaidPeople: setSize(attributedPaid, (row) => row.ownerUserId),
       exactOriginPaidStripeSessions: attributedPaid.length,
       exactOriginRevenueMinorByCurrency: revenueByCurrency(attributedPaid),
       assistedPaidPeople: setSize(assistedPaid, (row) => row.userId),
       assistedPaidStripeSessions: assistedPaid.length,
-      gate: config.gate ? { ...config.gate, state: gateState } : { state: gateState },
+      gate: config.gate ? {
+        ...config.gate,
+        state: gateState,
+        ...(config.gate.clickPathPeople ? {
+          clickPathState: matureCtaClickPeople >= config.gate.clickPathPeople
+            ? 'ready_for_estimate'
+            : 'collecting',
+        } : {}),
+      } : { state: gateState },
     }
   })
 
@@ -424,6 +571,7 @@ export function buildB2cSubscriptionTruthReport({ generatedAt, windowStart, even
       unresolvedStartedPeople: setSize(unresolvedStarts, (row) => row.ownerUserId),
       unresolvedStartedStripeSessions: unresolvedStarts.length,
       unresolvedStartedRatio: unresolvedRatio,
+      unresolvedReasonCounts: histogram(unresolvedStarts, (row) => row.origin.reason),
       unknownResumeGapStripeSessions: unresolvedStarts.filter((row) => row.origin.status === 'unknown_resume_gap').length,
     },
     assistanceTruth: {
