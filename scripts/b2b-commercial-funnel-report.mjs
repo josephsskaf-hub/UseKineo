@@ -3,11 +3,15 @@ import {
   readCanonicalStringArray,
 } from './measurement-helpers.mjs'
 
-export const B2B_COMMERCIAL_REPORT_VERSION = 'b2b_commercial_funnel_report_v1'
+export const B2B_COMMERCIAL_REPORT_VERSION = 'b2b_commercial_funnel_report_v2'
 export const B2B_COMMERCIAL_REPORT_WINDOW_DAYS = 30
 export const B2B_COMMERCIAL_PACK_PAGE_VERSION = 'agency_bulk_v2_2026_08_27'
+export const B2B_COMMERCIAL_CHECKOUT_RETURN_VARIANT = 'agency_checkout_return_v1'
 export const B2B_COMMERCIAL_MAX_ARRIVAL_TO_CHECKOUT_MS = 24 * 60 * 60 * 1000
 export const B2B_COMMERCIAL_MAX_CLICK_TO_ARRIVAL_MS = 5 * 60 * 1000
+export const B2B_COMMERCIAL_MAX_CLICK_PERSISTENCE_RACE_MS = 5 * 1000
+export const B2B_COMMERCIAL_RETURN_MATURITY_MS = 7 * 24 * 60 * 60 * 1000
+export const B2B_COMMERCIAL_RETURN_MINIMUM_MATURE_PEOPLE = 5
 export const B2B_COMMERCIAL_ENTRY_MINIMUM_IDENTIFIED_PEOPLE = 20
 export const B2B_COMMERCIAL_ENTRY_MINIMUM_ANONYMOUS_SESSIONS = 20
 
@@ -18,6 +22,8 @@ export const B2B_COMMERCIAL_ALLOWED_ENTRIES = Object.freeze([
   'direct',
 ])
 const B2B_COMMERCIAL_ALLOWED_ENTRY_SET = new Set(B2B_COMMERCIAL_ALLOWED_ENTRIES)
+export const B2B_COMMERCIAL_ALLOWED_PACKS = Object.freeze(['bulk10', 'bulk20', 'bulk30', 'bulk50'])
+const B2B_COMMERCIAL_ALLOWED_PACK_SET = new Set(B2B_COMMERCIAL_ALLOWED_PACKS)
 
 export const B2B_COMMERCIAL_EVENT_NAMES = Object.freeze([
   'agency_volume_bridge_viewed',
@@ -190,6 +196,31 @@ function exactStripeSession(row) {
   return metadataString(row, 'stripe_session_id')
 }
 
+function bulkPack(row) {
+  const value = metadataString(row, row?.name?.startsWith('agency_bulk_checkout_') ? 'pack' : 'sku')
+  return value && B2B_COMMERCIAL_ALLOWED_PACK_SET.has(value) ? value : null
+}
+
+function validCheckoutReturnSignal(row, expectedName) {
+  return row?.name === expectedName &&
+    metadataString(row, 'variant') === B2B_COMMERCIAL_CHECKOUT_RETURN_VARIANT &&
+    Boolean(bulkPack(row))
+}
+
+function exactStartContract(rows, identity, expectedUserId, expectedBrowserSession, expectedPack) {
+  if (
+    typeof expectedUserId !== 'string' || !expectedUserId.trim() ||
+    typeof expectedBrowserSession !== 'string' || !expectedBrowserSession.trim() ||
+    typeof expectedPack !== 'string' || !expectedPack.trim()
+  ) return false
+  return rows.length > 0 && rows.every((row) =>
+    actorClass(row, identity) === 'external' &&
+    row.user_id === expectedUserId &&
+    row.session_id === expectedBrowserSession &&
+    bulkPack(row) === expectedPack,
+  )
+}
+
 function resolveStarts(rows) {
   const grouped = new Map()
   for (const row of rows) {
@@ -309,6 +340,230 @@ function revenueByCurrency(rows) {
   return Object.fromEntries([...totals.entries()].sort(([left], [right]) => left.localeCompare(right)))
 }
 
+function checkoutRecoveryReport({
+  orderedEvents,
+  publicEvents,
+  externalStartRows,
+  allStartRowsByStripeSession,
+  purchasesByStripeSession,
+  identity,
+  generatedAtMs,
+}) {
+  const externalReturns = orderedEvents.filter((row) =>
+    actorClass(row, identity) === 'external' &&
+    validCheckoutReturnSignal(row, 'agency_bulk_checkout_cancelled_return_viewed'),
+  )
+  const externalClicks = orderedEvents.filter((row) =>
+    actorClass(row, identity) === 'external' &&
+    validCheckoutReturnSignal(row, 'agency_bulk_checkout_resume_clicked'),
+  )
+  const exactJourneys = []
+  let missingPriorStartRows = 0
+  let ambiguousPriorStartRows = 0
+  let priorStartIdentityConflictRows = 0
+  let returnPersistenceRaceRows = 0
+
+  for (const returned of externalReturns) {
+    const returnedAt = timestamp(returned)
+    const pack = bulkPack(returned)
+    const sameActorPackStarts = externalStartRows.filter((start) =>
+      start.user_id === returned.user_id &&
+      start.session_id === returned.session_id &&
+      bulkPack(start) === pack,
+    )
+    const returnPersistenceRace = sameActorPackStarts.some((start) => {
+      const startAt = timestamp(start)
+      return startAt !== null && startAt <= returnedAt &&
+        returnedAt - startAt <= B2B_COMMERCIAL_MAX_CLICK_PERSISTENCE_RACE_MS
+    })
+    if (returnPersistenceRace) returnPersistenceRaceRows += 1
+    const priorStarts = sameActorPackStarts.filter((start) => {
+      const startAt = timestamp(start)
+      return startAt !== null && startAt <= returnedAt &&
+        returnedAt - startAt > B2B_COMMERCIAL_MAX_CLICK_PERSISTENCE_RACE_MS &&
+        returnedAt - startAt <= B2B_COMMERCIAL_MAX_ARRIVAL_TO_CHECKOUT_MS
+    })
+    const priorStripeSessions = new Set(priorStarts.map(exactStripeSession).filter(Boolean))
+    if (priorStripeSessions.size === 0) {
+      missingPriorStartRows += 1
+      continue
+    }
+    if (priorStripeSessions.size > 1) {
+      ambiguousPriorStartRows += 1
+      continue
+    }
+    const originalStripeSessionId = [...priorStripeSessions][0]
+    const originalStartRows = allStartRowsByStripeSession.get(originalStripeSessionId) ?? []
+    if (
+      priorStarts.some((row) => !exactStripeSession(row)) ||
+      !exactStartContract(originalStartRows, identity, returned.user_id, returned.session_id, pack)
+    ) {
+      priorStartIdentityConflictRows += 1
+      continue
+    }
+    const clicks = externalClicks.filter((click) => {
+      const clickAt = timestamp(click)
+      return click.user_id === returned.user_id &&
+        click.session_id === returned.session_id &&
+        bulkPack(click) === pack &&
+        clickAt !== null && clickAt >= returnedAt &&
+        clickAt - returnedAt <= B2B_COMMERCIAL_MAX_ARRIVAL_TO_CHECKOUT_MS
+    })
+    const recoveryCandidates = returnPersistenceRace ? [] : externalStartRows.filter((start) => {
+      const startAt = timestamp(start)
+      if (start.user_id !== returned.user_id || start.session_id !== returned.session_id || bulkPack(start) !== pack) return false
+      if (startAt === null || startAt < returnedAt || startAt - returnedAt > B2B_COMMERCIAL_MAX_ARRIVAL_TO_CHECKOUT_MS) return false
+      return clicks.some((click) => {
+        const clickAt = timestamp(click)
+        return clickAt <= startAt &&
+          startAt - clickAt <= B2B_COMMERCIAL_MAX_CLICK_TO_ARRIVAL_MS
+      })
+    }).sort(compareRows)
+    const recoveryStripeSessionIds = new Set(recoveryCandidates.map(exactStripeSession).filter(Boolean))
+    const ambiguousRecoveryStart = recoveryStripeSessionIds.size > 1
+    const candidateRecoveryStart = recoveryStripeSessionIds.size === 1 ? recoveryCandidates[0] : null
+    const candidateRecoveryStripeSessionId = candidateRecoveryStart ? exactStripeSession(candidateRecoveryStart) : null
+    const allCandidateStartRows = candidateRecoveryStripeSessionId
+      ? allStartRowsByStripeSession.get(candidateRecoveryStripeSessionId) ?? []
+      : []
+    const recoveryStartIdentityConflict = (
+      recoveryCandidates.some((row) => !exactStripeSession(row)) ||
+      (Boolean(candidateRecoveryStart) && !exactStartContract(
+        allCandidateStartRows,
+        identity,
+        returned.user_id,
+        returned.session_id,
+        pack,
+      ))
+    )
+    const recoveryStart = candidateRecoveryStart && !recoveryStartIdentityConflict
+      ? candidateRecoveryStart
+      : null
+    const recoveryStripeSessionId = recoveryStart ? exactStripeSession(recoveryStart) : null
+    const clickPersistenceRace = !returnPersistenceRace && !recoveryStart && !ambiguousRecoveryStart && !recoveryStartIdentityConflict && externalStartRows.some((start) => {
+      const startAt = timestamp(start)
+      if (start.user_id !== returned.user_id || start.session_id !== returned.session_id || bulkPack(start) !== pack) return false
+      if (startAt === null || startAt < returnedAt || startAt - returnedAt > B2B_COMMERCIAL_MAX_ARRIVAL_TO_CHECKOUT_MS) return false
+      return clicks.some((click) => {
+        const clickAt = timestamp(click)
+        return clickAt > startAt &&
+          clickAt - startAt <= B2B_COMMERCIAL_MAX_CLICK_PERSISTENCE_RACE_MS
+      })
+    })
+    const paymentCutoffAt = returnedAt + B2B_COMMERCIAL_RETURN_MATURITY_MS
+    const allRecoveryPurchaseRows = recoveryStripeSessionId
+      ? (purchasesByStripeSession.get(recoveryStripeSessionId) ?? []).filter((row) =>
+          timestamp(row) >= timestamp(recoveryStart),
+        )
+      : []
+    const purchaseRows = allRecoveryPurchaseRows.filter((row) => timestamp(row) <= paymentCutoffAt)
+    const purchasePackConflict = purchaseRows.some((row) => bulkPack(row) !== pack)
+    const purchaseIdentity = resolvePurchaseIdentity(purchaseRows, identity)
+    const purchase = recoveryStart &&
+      !purchasePackConflict &&
+      purchaseIdentity.status === 'exact' &&
+      purchaseIdentity.actorClass === 'external' &&
+      purchaseIdentity.userId === returned.user_id
+      ? resolvePurchase(purchaseRows)
+      : purchasePackConflict
+        ? { status: 'pack_conflict', amountMinor: null, currency: null }
+      : purchaseRows.length
+        ? { status: 'identity_conflict', amountMinor: null, currency: null }
+        : { status: 'missing', amountMinor: null, currency: null }
+    exactJourneys.push({
+      userId: returned.user_id,
+      returnedAt,
+      hasResumeClick: clicks.length > 0,
+      recoveryState: recoveryStripeSessionId
+        ? recoveryStripeSessionId === originalStripeSessionId ? 'same_session' : 'new_session'
+        : ambiguousRecoveryStart ? 'ambiguous' : recoveryStartIdentityConflict ? 'identity_conflict' : 'missing',
+      returnPersistenceRace,
+      clickPersistenceRace,
+      recoveryStripeSessionId,
+      purchase,
+      hasLatePayment: allRecoveryPurchaseRows.some((row) => timestamp(row) > paymentCutoffAt),
+    })
+  }
+
+  const firstReturnByPerson = new Map()
+  for (const journey of exactJourneys) {
+    const current = firstReturnByPerson.get(journey.userId)
+    if (current === undefined || journey.returnedAt < current) firstReturnByPerson.set(journey.userId, journey.returnedAt)
+  }
+  const maturePeople = [...firstReturnByPerson.values()].filter(
+    (returnedAt) => generatedAtMs - returnedAt >= B2B_COMMERCIAL_RETURN_MATURITY_MS,
+  ).length
+  const exactPaidJourneys = exactJourneys.filter((row) => row.purchase.status === 'exact')
+  const exactPaidBySession = new Map()
+  for (const journey of exactPaidJourneys) {
+    if (!journey.recoveryStripeSessionId) continue
+    exactPaidBySession.set(journey.recoveryStripeSessionId, journey)
+  }
+  const exactPaidRows = [...exactPaidBySession.values()]
+  const paidPeople = setSize(exactPaidRows, (row) => row.userId)
+  const exactReturnPeople = firstReturnByPerson.size
+  const firstPaymentObserved = exactPaidRows.length > 0
+  const matureSampleMet = maturePeople >= B2B_COMMERCIAL_RETURN_MINIMUM_MATURE_PEOPLE
+
+  return {
+    variant: B2B_COMMERCIAL_CHECKOUT_RETURN_VARIANT,
+    exactReturnPeople,
+    exactReturnJourneys: exactJourneys.length,
+    matureReturnPeople: maturePeople,
+    freshReturnPeople: exactReturnPeople - maturePeople,
+    resumeClickPeople: setSize(exactJourneys.filter((row) => row.hasResumeClick), (row) => row.userId),
+    recoveryStartPeople: setSize(exactJourneys.filter((row) => ['same_session', 'new_session'].includes(row.recoveryState)), (row) => row.userId),
+    sameStripeSessionPeople: setSize(exactJourneys.filter((row) => row.recoveryState === 'same_session'), (row) => row.userId),
+    newStripeSessionPeople: setSize(exactJourneys.filter((row) => row.recoveryState === 'new_session'), (row) => row.userId),
+    ambiguousRecoveryStartPeople: setSize(exactJourneys.filter((row) => row.recoveryState === 'ambiguous'), (row) => row.userId),
+    recoveryStartIdentityConflictPeople: setSize(exactJourneys.filter((row) => row.recoveryState === 'identity_conflict'), (row) => row.userId),
+    returnPersistenceRacePeople: setSize(exactJourneys.filter((row) => row.returnPersistenceRace), (row) => row.userId),
+    clickPersistenceRacePeople: setSize(exactJourneys.filter((row) => row.clickPersistenceRace), (row) => row.userId),
+    paidPeople,
+    paidStripeSessions: exactPaidRows.length,
+    revenueMinorByCurrency: revenueByCurrency(exactPaidRows),
+    quality: {
+      anonymousReturnSessions: setSize(
+        publicEvents.filter((row) =>
+          actorClass(row, identity) === 'anonymous' &&
+          validCheckoutReturnSignal(row, 'agency_bulk_checkout_cancelled_return_viewed'),
+        ),
+        (row) => row.session_id,
+      ),
+      invalidPublicReturnRows: publicEvents.filter((row) =>
+        row.name === 'agency_bulk_checkout_cancelled_return_viewed' &&
+        !validCheckoutReturnSignal(row, 'agency_bulk_checkout_cancelled_return_viewed'),
+      ).length,
+      invalidPublicResumeRows: publicEvents.filter((row) =>
+        row.name === 'agency_bulk_checkout_resume_clicked' &&
+        !validCheckoutReturnSignal(row, 'agency_bulk_checkout_resume_clicked'),
+      ).length,
+      returnRowsWithoutExactPriorStart: missingPriorStartRows,
+      returnRowsWithAmbiguousPriorStart: ambiguousPriorStartRows,
+      priorStartIdentityConflictRows,
+      returnPersistenceRaceRows,
+      returnPersistenceRaceJourneys: exactJourneys.filter((row) => row.returnPersistenceRace).length,
+      recoveryStartIdentityConflictJourneys: exactJourneys.filter((row) => row.recoveryState === 'identity_conflict').length,
+      clickPersistenceRaceJourneys: exactJourneys.filter((row) => row.clickPersistenceRace).length,
+      paymentOutsideOutcomeWindowJourneys: exactJourneys.filter((row) => row.hasLatePayment).length,
+      paymentIdentityConflictJourneys: exactJourneys.filter((row) => row.purchase.status === 'identity_conflict').length,
+      paymentPackConflictJourneys: exactJourneys.filter((row) => row.purchase.status === 'pack_conflict').length,
+    },
+    gate: {
+      unit: 'external_person',
+      maturityDays: B2B_COMMERCIAL_RETURN_MATURITY_MS / 86_400_000,
+      minimumMaturePeople: B2B_COMMERCIAL_RETURN_MINIMUM_MATURE_PEOPLE,
+      firstExactPaymentOpensReconciliation: true,
+      state: firstPaymentObserved
+        ? 'ready_for_reconciliation'
+        : matureSampleMet
+          ? 'ready_for_diagnosis'
+          : 'collecting',
+    },
+    rule: 'A cancelled return is eligible only after one exact prior bulk Checkout Session for the same external person, browser session and allowlisted pack within 24 hours. A start persisted up to five seconds before the return event is reported as a return race and never attributed. A recovery start requires a preceding resume click within five minutes; a click persisted up to five seconds after the start is reported only as a click race and never attributed. More than one recovery Stripe Session is ambiguous, and any Session owner/browser conflict fails closed. Payment and revenue require the same external owner, pack and exact recovery Stripe Session within seven days of the return; currencies are never mixed.',
+  }
+}
+
 function navigationPersistence(arrivals, navigationClicks) {
   const labelled = arrivals.filter((row) => {
     const entry = validPackPageEntry(row)
@@ -376,6 +631,9 @@ export function buildB2bCommercialFunnelReport({ generatedAt, windowStart, event
   const externalStartRows = orderedEvents.filter((row) =>
     row.name === 'bulk_checkout_started' && actorClass(row, identity) === 'external',
   )
+  const externalSourceStartRows = sourceEvents.filter((row) =>
+    row.name === 'bulk_checkout_started' && actorClass(row, identity) === 'external',
+  )
   const allStartRowsByStripeSession = new Map()
   for (const row of orderedEvents.filter((candidate) =>
     candidate.name === 'bulk_checkout_started' && exactStripeSession(candidate),
@@ -384,6 +642,15 @@ export function buildB2bCommercialFunnelReport({ generatedAt, windowStart, event
     const current = allStartRowsByStripeSession.get(stripeSessionId) ?? []
     current.push(row)
     allStartRowsByStripeSession.set(stripeSessionId, current)
+  }
+  const allSourceStartRowsByStripeSession = new Map()
+  for (const row of sourceEvents.filter((candidate) =>
+    candidate.name === 'bulk_checkout_started' && exactStripeSession(candidate),
+  )) {
+    const stripeSessionId = exactStripeSession(row)
+    const current = allSourceStartRowsByStripeSession.get(stripeSessionId) ?? []
+    current.push(row)
+    allSourceStartRowsByStripeSession.set(stripeSessionId, current)
   }
   const startResolution = resolveStarts(externalStartRows)
   const externalStarts = startResolution.starts
@@ -547,6 +814,15 @@ export function buildB2bCommercialFunnelReport({ generatedAt, windowStart, event
       conflictingPurchaseStripeSessions: conflictingPurchaseStripeSessions.size,
       rule: 'Revenue is counted once per exact bulk_purchase_completed Stripe Session, grouped by currency. Only a matching server-side bulk_checkout_started event links it to this window funnel.',
     },
+    checkoutRecovery: checkoutRecoveryReport({
+      orderedEvents,
+      publicEvents,
+      externalStartRows: externalSourceStartRows,
+      allStartRowsByStripeSession: allSourceStartRowsByStripeSession,
+      purchasesByStripeSession,
+      identity,
+      generatedAtMs,
+    }),
     quality: {
       startRowsWithoutStripeSession: externalStartRows.filter((row) => !exactStripeSession(row)).length,
       duplicateStartRows: startResolution.duplicateRows,

@@ -3,8 +3,11 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import {
   B2B_COMMERCIAL_ALLOWED_ENTRIES,
+  B2B_COMMERCIAL_ALLOWED_PACKS,
+  B2B_COMMERCIAL_CHECKOUT_RETURN_VARIANT,
   B2B_COMMERCIAL_EVENT_NAMES,
   B2B_COMMERCIAL_PACK_PAGE_VERSION,
+  B2B_COMMERCIAL_RETURN_MINIMUM_MATURE_PEOPLE,
   buildB2bCommercialFunnelReport,
 } from './b2b-commercial-funnel-report.mjs'
 
@@ -13,6 +16,14 @@ const WINDOW_START = '2026-08-01T12:00:00.000Z'
 let checks = 0
 const agencyPacksClient = fs.readFileSync(
   new URL('../app/ai-shorts-for-agencies/AgencyPacksClient.tsx', import.meta.url),
+  'utf8',
+)
+const agencyCheckoutReturn = fs.readFileSync(
+  new URL('../lib/growth/agencyCheckoutReturn.ts', import.meta.url),
+  'utf8',
+)
+const checkoutPricing = fs.readFileSync(
+  new URL('../lib/checkoutPricing.ts', import.meta.url),
   'utf8',
 )
 
@@ -109,7 +120,7 @@ const report = buildB2bCommercialFunnelReport({
   profiles,
 })
 
-check(report.schemaVersion, 'b2b_commercial_funnel_report_v1', 'schema version')
+check(report.schemaVersion, 'b2b_commercial_funnel_report_v2', 'schema version')
 check(report.exclusions.internalProfileRows, 1, 'internal profile excluded')
 check(report.exclusions.profileRowsMissingEmail, 1, 'missing-email profile excluded')
 check(report.exclusions.internalEventRows, 3, 'internal event rows excluded')
@@ -178,6 +189,14 @@ check(
   'report version matches the destination-page emitter',
 )
 check(B2B_COMMERCIAL_EVENT_NAMES.includes('payment_success'), false, 'generic payment event cannot double-count canonical bulk purchase')
+check(
+  agencyCheckoutReturn.match(/AGENCY_CHECKOUT_RETURN_VARIANT\s*=\s*'([^']+)'/)?.[1],
+  B2B_COMMERCIAL_CHECKOUT_RETURN_VARIANT,
+  'report return variant matches the runtime contract',
+)
+const canonicalBulkPackIds = [...(checkoutPricing.match(/export type BulkPackId\s*=\s*([^\r\n]+)/)?.[1] ?? '').matchAll(/'([^']+)'/g)]
+  .map((match) => match[1])
+check(B2B_COMMERCIAL_ALLOWED_PACKS, canonicalBulkPackIds, 'report pack allowlist matches checkoutPricing BulkPackId')
 
 const serialized = JSON.stringify(report)
 for (const forbidden of ['u1', 'u2', 'cs_1', 'customer.example', 'josephsskaf@gmail.com']) {
@@ -379,5 +398,273 @@ const ownedScopeArrival = buildB2bCommercialFunnelReport({
 })
 check(ownedScopeArrival.checkout.exactArrivalPeople, 1, 'same external person preserves exact scope-to-pack attribution')
 check(ownedScopeArrival.checkout.byExactEntry, [{ entry: 'scope_brief', people: 1, stripeSessions: 1 }], 'owned scope arrival keeps its exact entry')
+
+const returnMeta = (pack, variant = B2B_COMMERCIAL_CHECKOUT_RETURN_VARIANT) => ({ variant, pack })
+const recoveryProfiles = [
+  profile('return_same'),
+  profile('return_new'),
+  profile('return_race'),
+  profile('return_orphan'),
+  profile('return_fresh'),
+  profile('return_internal', 'josephsskaf@gmail.com'),
+]
+const recoveryEvents = [
+  event('same_prior', 'bulk_checkout_started', 'return_same', 'same_browser', '2026-08-10T00:00:00.000Z', { stripe_session_id: 'cs_same', sku: 'bulk10' }),
+  event('same_return', 'agency_bulk_checkout_cancelled_return_viewed', 'return_same', 'same_browser', '2026-08-10T00:01:00.000Z', returnMeta('bulk10')),
+  event('same_click', 'agency_bulk_checkout_resume_clicked', 'return_same', 'same_browser', '2026-08-10T00:02:00.000Z', returnMeta('bulk10')),
+  event('same_restart', 'bulk_checkout_started', 'return_same', 'same_browser', '2026-08-10T00:03:00.000Z', { stripe_session_id: 'cs_same', sku: 'bulk10' }),
+  event('same_paid', 'bulk_purchase_completed', 'return_same', null, '2026-08-10T00:04:00.000Z', { stripe_session_id: 'cs_same', sku: 'bulk10', amount_total: 9900, currency: 'usd' }),
+
+  event('new_prior', 'bulk_checkout_started', 'return_new', 'new_browser', '2026-08-12T00:00:00.000Z', { stripe_session_id: 'cs_new_prior', sku: 'bulk20' }),
+  event('new_return', 'agency_bulk_checkout_cancelled_return_viewed', 'return_new', 'new_browser', '2026-08-12T00:01:00.000Z', returnMeta('bulk20')),
+  event('new_click', 'agency_bulk_checkout_resume_clicked', 'return_new', 'new_browser', '2026-08-12T00:02:00.000Z', returnMeta('bulk20')),
+  event('new_restart', 'bulk_checkout_started', 'return_new', 'new_browser', '2026-08-12T00:03:00.000Z', { stripe_session_id: 'cs_new_recovery', sku: 'bulk20' }),
+  event('new_paid', 'bulk_purchase_completed', 'return_new', null, '2026-08-12T00:04:00.000Z', { stripe_session_id: 'cs_new_recovery', sku: 'bulk20', amount_total: 19900, currency: 'usd' }),
+
+  event('race_prior', 'bulk_checkout_started', 'return_race', 'race_browser', '2026-08-15T00:00:00.000Z', { stripe_session_id: 'cs_race_prior', sku: 'bulk30' }),
+  event('race_return', 'agency_bulk_checkout_cancelled_return_viewed', 'return_race', 'race_browser', '2026-08-15T00:01:00.000Z', returnMeta('bulk30')),
+  event('race_restart', 'bulk_checkout_started', 'return_race', 'race_browser', '2026-08-15T00:02:00.000Z', { stripe_session_id: 'cs_race_recovery', sku: 'bulk30' }),
+  event('race_click_late', 'agency_bulk_checkout_resume_clicked', 'return_race', 'race_browser', '2026-08-15T00:02:03.000Z', returnMeta('bulk30')),
+
+  event('orphan_return', 'agency_bulk_checkout_cancelled_return_viewed', 'return_orphan', 'orphan_browser', '2026-08-16T00:00:00.000Z', returnMeta('bulk10')),
+  event('fresh_prior', 'bulk_checkout_started', 'return_fresh', 'fresh_browser', '2026-09-01T00:00:00.000Z', { stripe_session_id: 'cs_fresh', sku: 'bulk50' }),
+  event('fresh_return', 'agency_bulk_checkout_cancelled_return_viewed', 'return_fresh', 'fresh_browser', '2026-09-01T00:01:00.000Z', returnMeta('bulk50')),
+
+  event('invalid_variant', 'agency_bulk_checkout_cancelled_return_viewed', 'return_orphan', 'invalid_variant_browser', '2026-08-17T00:00:00.000Z', returnMeta('bulk10', 'legacy_variant')),
+  event('invalid_pack', 'agency_bulk_checkout_resume_clicked', 'return_orphan', 'invalid_pack_browser', '2026-08-17T00:01:00.000Z', returnMeta('bulk99')),
+  event('anon_return', 'agency_bulk_checkout_cancelled_return_viewed', null, 'anonymous_return_browser', '2026-08-18T00:00:00.000Z', returnMeta('bulk10')),
+  event('internal_prior', 'bulk_checkout_started', 'return_internal', 'internal_return_browser', '2026-08-18T01:00:00.000Z', { stripe_session_id: 'cs_internal_return', sku: 'bulk10' }),
+  event('internal_return', 'agency_bulk_checkout_cancelled_return_viewed', 'return_internal', 'internal_return_browser', '2026-08-18T01:01:00.000Z', returnMeta('bulk10')),
+]
+const recoveryReport = buildB2bCommercialFunnelReport({
+  generatedAt: GENERATED_AT,
+  windowStart: WINDOW_START,
+  profiles: recoveryProfiles,
+  events: recoveryEvents,
+})
+check(recoveryReport.checkoutRecovery.exactReturnPeople, 4, 'recovery denominator is exact external people with a prior bulk Session')
+check(recoveryReport.checkoutRecovery.exactReturnJourneys, 4, 'one exact journey per valid return fixture')
+check(recoveryReport.checkoutRecovery.matureReturnPeople, 3, 'return maturity is individual and seven days')
+check(recoveryReport.checkoutRecovery.freshReturnPeople, 1, 'fresh return people remain separate')
+check(recoveryReport.checkoutRecovery.resumeClickPeople, 3, 'resume click counts people, not events')
+check(recoveryReport.checkoutRecovery.recoveryStartPeople, 2, 'server recovery starts require a preceding resume signal')
+check(recoveryReport.checkoutRecovery.sameStripeSessionPeople, 1, 'same Stripe Session recovery is separated')
+check(recoveryReport.checkoutRecovery.newStripeSessionPeople, 1, 'new Stripe Session recovery is separated')
+check(recoveryReport.checkoutRecovery.ambiguousRecoveryStartPeople, 0, 'fixture has no ambiguous recovery Session')
+check(recoveryReport.checkoutRecovery.clickPersistenceRacePeople, 1, 'post-start persistence race is separate from recovered people')
+check(recoveryReport.checkoutRecovery.paidPeople, 2, 'exact recovery payments count external people')
+check(recoveryReport.checkoutRecovery.paidStripeSessions, 2, 'exact recovery payments dedupe Stripe Sessions')
+check(recoveryReport.checkoutRecovery.revenueMinorByCurrency, { usd: 29800 }, 'recovery revenue is exact and grouped by currency')
+check(recoveryReport.checkoutRecovery.quality.anonymousReturnSessions, 1, 'anonymous returns remain a separate unit')
+check(recoveryReport.checkoutRecovery.quality.invalidPublicReturnRows, 1, 'invalid return variants are rejected without echoing values')
+check(recoveryReport.checkoutRecovery.quality.invalidPublicResumeRows, 1, 'invalid resume packs are rejected without echoing values')
+check(recoveryReport.checkoutRecovery.quality.returnRowsWithoutExactPriorStart, 1, 'orphan return is a quality signal, not denominator')
+check(recoveryReport.checkoutRecovery.quality.returnRowsWithAmbiguousPriorStart, 0, 'fixture has no ambiguous original Session')
+check(recoveryReport.checkoutRecovery.quality.clickPersistenceRaceJourneys, 1, 'five-second click persistence race stays separate and visible')
+check(recoveryReport.checkoutRecovery.quality.paymentOutsideOutcomeWindowJourneys, 0, 'fixture has no payment after the seven-day outcome window')
+check(recoveryReport.checkoutRecovery.quality.paymentPackConflictJourneys, 0, 'fixture has no payment pack conflict')
+check(recoveryReport.checkoutRecovery.gate.state, 'ready_for_reconciliation', 'first exact recovery payment opens reconciliation only')
+check(JSON.stringify(recoveryReport.checkoutRecovery).includes('return_same'), false, 'recovery report emits no user IDs')
+check(JSON.stringify(recoveryReport.checkoutRecovery).includes('cs_new_recovery'), false, 'recovery report emits no Stripe Session IDs')
+
+const matureReturnEvents = []
+const matureReturnProfiles = []
+for (let index = 0; index < B2B_COMMERCIAL_RETURN_MINIMUM_MATURE_PEOPLE; index += 1) {
+  const userId = `mature_return_${index}`
+  const browser = `mature_browser_${index}`
+  matureReturnProfiles.push(profile(userId))
+  matureReturnEvents.push(
+    event(`mature_start_${index}`, 'bulk_checkout_started', userId, browser, '2026-08-10T00:00:00.000Z', { stripe_session_id: `cs_mature_${index}`, sku: 'bulk10' }),
+    event(`mature_return_${index}`, 'agency_bulk_checkout_cancelled_return_viewed', userId, browser, '2026-08-10T00:01:00.000Z', returnMeta('bulk10')),
+  )
+}
+const matureRecoveryReport = buildB2bCommercialFunnelReport({
+  generatedAt: GENERATED_AT,
+  windowStart: WINDOW_START,
+  profiles: matureReturnProfiles,
+  events: matureReturnEvents,
+})
+check(matureRecoveryReport.checkoutRecovery.matureReturnPeople, 5, 'mature recovery gate counts people individually')
+check(matureRecoveryReport.checkoutRecovery.paidPeople, 0, 'mature no-click sample invents no payments')
+check(matureRecoveryReport.checkoutRecovery.gate.state, 'ready_for_diagnosis', 'five mature people open diagnosis without a payment')
+check(empty.checkoutRecovery.gate.state, 'collecting', 'empty recovery sample stays collecting')
+
+const recoveryBoundary = buildB2bCommercialFunnelReport({
+  generatedAt: GENERATED_AT,
+  windowStart: WINDOW_START,
+  profiles: [profile('recovery_boundary_owner')],
+  events: [
+    event('recovery_boundary_start', 'bulk_checkout_started', 'recovery_boundary_owner', 'recovery_boundary_browser', '2026-08-01T11:59:00.000Z', { stripe_session_id: 'cs_recovery_boundary', sku: 'bulk10' }),
+    event('recovery_boundary_return', 'agency_bulk_checkout_cancelled_return_viewed', 'recovery_boundary_owner', 'recovery_boundary_browser', '2026-08-01T12:01:00.000Z', returnMeta('bulk10')),
+  ],
+})
+check(recoveryBoundary.checkoutRecovery.exactReturnPeople, 1, '24-hour source context preserves a return at the left window boundary')
+check(recoveryBoundary.stages.find((row) => row.name === 'bulk_checkout_started').publicEventRows, 0, 'pre-window recovery context does not inflate the start stage')
+
+const timingProfiles = ['click_ten_before', 'click_one_after', 'click_four_after', 'click_twenty_three_before']
+  .map((id) => profile(id))
+const timingEvents = [
+  event('ten_prior', 'bulk_checkout_started', 'click_ten_before', 'ten_browser', '2026-08-20T00:00:00.000Z', { stripe_session_id: 'cs_ten_prior', sku: 'bulk10' }),
+  event('ten_return', 'agency_bulk_checkout_cancelled_return_viewed', 'click_ten_before', 'ten_browser', '2026-08-20T00:01:00.000Z', returnMeta('bulk10')),
+  event('ten_click', 'agency_bulk_checkout_resume_clicked', 'click_ten_before', 'ten_browser', '2026-08-20T00:02:00.000Z', returnMeta('bulk10')),
+  event('ten_restart', 'bulk_checkout_started', 'click_ten_before', 'ten_browser', '2026-08-20T00:12:00.000Z', { stripe_session_id: 'cs_ten_restart', sku: 'bulk10' }),
+
+  event('one_prior', 'bulk_checkout_started', 'click_one_after', 'one_browser', '2026-08-21T00:00:00.000Z', { stripe_session_id: 'cs_one_prior', sku: 'bulk10' }),
+  event('one_return', 'agency_bulk_checkout_cancelled_return_viewed', 'click_one_after', 'one_browser', '2026-08-21T00:01:00.000Z', returnMeta('bulk10')),
+  event('one_restart', 'bulk_checkout_started', 'click_one_after', 'one_browser', '2026-08-21T00:02:00.000Z', { stripe_session_id: 'cs_one_restart', sku: 'bulk10' }),
+  event('one_paid_before_click', 'bulk_purchase_completed', 'click_one_after', null, '2026-08-21T00:02:30.000Z', { stripe_session_id: 'cs_one_restart', sku: 'bulk10', amount_total: 9900, currency: 'usd' }),
+  event('one_click', 'agency_bulk_checkout_resume_clicked', 'click_one_after', 'one_browser', '2026-08-21T00:03:00.000Z', returnMeta('bulk10')),
+
+  event('four_prior', 'bulk_checkout_started', 'click_four_after', 'four_browser', '2026-08-22T00:00:00.000Z', { stripe_session_id: 'cs_four_prior', sku: 'bulk10' }),
+  event('four_return', 'agency_bulk_checkout_cancelled_return_viewed', 'click_four_after', 'four_browser', '2026-08-22T00:01:00.000Z', returnMeta('bulk10')),
+  event('four_restart', 'bulk_checkout_started', 'click_four_after', 'four_browser', '2026-08-22T00:02:00.000Z', { stripe_session_id: 'cs_four_restart', sku: 'bulk10' }),
+  event('four_click', 'agency_bulk_checkout_resume_clicked', 'click_four_after', 'four_browser', '2026-08-22T00:06:00.000Z', returnMeta('bulk10')),
+
+  event('twenty_three_prior', 'bulk_checkout_started', 'click_twenty_three_before', 'twenty_three_browser', '2026-08-23T00:00:00.000Z', { stripe_session_id: 'cs_twenty_three_prior', sku: 'bulk10' }),
+  event('twenty_three_return', 'agency_bulk_checkout_cancelled_return_viewed', 'click_twenty_three_before', 'twenty_three_browser', '2026-08-23T00:01:00.000Z', returnMeta('bulk10')),
+  event('twenty_three_click', 'agency_bulk_checkout_resume_clicked', 'click_twenty_three_before', 'twenty_three_browser', '2026-08-23T00:02:00.000Z', returnMeta('bulk10')),
+  event('twenty_three_restart', 'bulk_checkout_started', 'click_twenty_three_before', 'twenty_three_browser', '2026-08-23T23:02:00.000Z', { stripe_session_id: 'cs_twenty_three_restart', sku: 'bulk10' }),
+]
+const timingRecovery = buildB2bCommercialFunnelReport({
+  generatedAt: GENERATED_AT,
+  windowStart: WINDOW_START,
+  profiles: timingProfiles,
+  events: timingEvents,
+})
+check(timingRecovery.checkoutRecovery.exactReturnPeople, 4, 'adversarial timing keeps valid returns in the denominator')
+check(timingRecovery.checkoutRecovery.recoveryStartPeople, 0, 'ten-minute, one-minute, four-minute and twenty-three-hour mismatches are not recovery starts')
+check(timingRecovery.checkoutRecovery.clickPersistenceRacePeople, 0, 'post-start clicks beyond five seconds are not persistence races')
+check(timingRecovery.checkoutRecovery.paidPeople, 0, 'a payment before a later click is never attributed to recovery')
+
+const ambiguousRecovery = buildB2bCommercialFunnelReport({
+  generatedAt: GENERATED_AT,
+  windowStart: WINDOW_START,
+  profiles: [profile('ambiguous_recovery_owner')],
+  events: [
+    event('ambiguous_prior', 'bulk_checkout_started', 'ambiguous_recovery_owner', 'ambiguous_recovery_browser', '2026-08-20T00:00:00.000Z', { stripe_session_id: 'cs_ambiguous_prior', sku: 'bulk10' }),
+    event('ambiguous_return', 'agency_bulk_checkout_cancelled_return_viewed', 'ambiguous_recovery_owner', 'ambiguous_recovery_browser', '2026-08-20T00:01:00.000Z', returnMeta('bulk10')),
+    event('ambiguous_click', 'agency_bulk_checkout_resume_clicked', 'ambiguous_recovery_owner', 'ambiguous_recovery_browser', '2026-08-20T00:02:00.000Z', returnMeta('bulk10')),
+    event('ambiguous_restart_a', 'bulk_checkout_started', 'ambiguous_recovery_owner', 'ambiguous_recovery_browser', '2026-08-20T00:03:00.000Z', { stripe_session_id: 'cs_ambiguous_a', sku: 'bulk10' }),
+    event('ambiguous_restart_b', 'bulk_checkout_started', 'ambiguous_recovery_owner', 'ambiguous_recovery_browser', '2026-08-20T00:04:00.000Z', { stripe_session_id: 'cs_ambiguous_b', sku: 'bulk10' }),
+    event('ambiguous_paid_b', 'bulk_purchase_completed', 'ambiguous_recovery_owner', null, '2026-08-20T00:05:00.000Z', { stripe_session_id: 'cs_ambiguous_b', sku: 'bulk10', amount_total: 9900, currency: 'usd' }),
+  ],
+})
+check(ambiguousRecovery.checkoutRecovery.ambiguousRecoveryStartPeople, 1, 'two recovery Stripe Sessions are explicit ambiguity')
+check(ambiguousRecovery.checkoutRecovery.recoveryStartPeople, 0, 'ambiguous recovery does not choose the first Session silently')
+check(ambiguousRecovery.checkoutRecovery.paidPeople, 0, 'payment on one ambiguous recovery Session is not attributed')
+
+const latePaymentRecovery = buildB2bCommercialFunnelReport({
+  generatedAt: GENERATED_AT,
+  windowStart: WINDOW_START,
+  profiles: [profile('late_payment_owner')],
+  events: [
+    event('late_prior', 'bulk_checkout_started', 'late_payment_owner', 'late_payment_browser', '2026-08-10T00:00:00.000Z', { stripe_session_id: 'cs_late_prior', sku: 'bulk10' }),
+    event('late_return', 'agency_bulk_checkout_cancelled_return_viewed', 'late_payment_owner', 'late_payment_browser', '2026-08-10T00:01:00.000Z', returnMeta('bulk10')),
+    event('late_click', 'agency_bulk_checkout_resume_clicked', 'late_payment_owner', 'late_payment_browser', '2026-08-10T00:02:00.000Z', returnMeta('bulk10')),
+    event('late_restart', 'bulk_checkout_started', 'late_payment_owner', 'late_payment_browser', '2026-08-10T00:03:00.000Z', { stripe_session_id: 'cs_late_recovery', sku: 'bulk10' }),
+    event('late_paid', 'bulk_purchase_completed', 'late_payment_owner', null, '2026-08-17T00:01:00.001Z', { stripe_session_id: 'cs_late_recovery', sku: 'bulk10', amount_total: 9900, currency: 'usd' }),
+  ],
+})
+check(latePaymentRecovery.checkoutRecovery.paidPeople, 0, 'payment after return plus seven days is outside the recovery outcome')
+check(latePaymentRecovery.checkoutRecovery.revenueMinorByCurrency, {}, 'late payment contributes zero recovery revenue')
+check(latePaymentRecovery.checkoutRecovery.quality.paymentOutsideOutcomeWindowJourneys, 1, 'late payment remains visible as aggregate quality')
+check(latePaymentRecovery.checkoutRecovery.gate.state, 'collecting', 'late payment does not open reconciliation')
+
+const crossPackPayment = buildB2bCommercialFunnelReport({
+  generatedAt: GENERATED_AT,
+  windowStart: WINDOW_START,
+  profiles: [profile('cross_pack_owner')],
+  events: [
+    event('cross_pack_prior', 'bulk_checkout_started', 'cross_pack_owner', 'cross_pack_browser', '2026-08-20T00:00:00.000Z', { stripe_session_id: 'cs_cross_pack_prior', sku: 'bulk10' }),
+    event('cross_pack_return', 'agency_bulk_checkout_cancelled_return_viewed', 'cross_pack_owner', 'cross_pack_browser', '2026-08-20T00:01:00.000Z', returnMeta('bulk10')),
+    event('cross_pack_click', 'agency_bulk_checkout_resume_clicked', 'cross_pack_owner', 'cross_pack_browser', '2026-08-20T00:02:00.000Z', returnMeta('bulk10')),
+    event('cross_pack_restart', 'bulk_checkout_started', 'cross_pack_owner', 'cross_pack_browser', '2026-08-20T00:03:00.000Z', { stripe_session_id: 'cs_cross_pack_recovery', sku: 'bulk10' }),
+    event('cross_pack_paid', 'bulk_purchase_completed', 'cross_pack_owner', null, '2026-08-20T00:04:00.000Z', { stripe_session_id: 'cs_cross_pack_recovery', sku: 'bulk20', amount_total: 19900, currency: 'usd' }),
+  ],
+})
+check(crossPackPayment.checkoutRecovery.paidPeople, 0, 'same Session with a different paid pack is not attributed')
+check(crossPackPayment.checkoutRecovery.revenueMinorByCurrency, {}, 'cross-pack payment contributes zero recovery revenue')
+check(crossPackPayment.checkoutRecovery.quality.paymentPackConflictJourneys, 1, 'cross-pack payment conflict is explicit')
+
+const recoveryOwnerConflict = buildB2bCommercialFunnelReport({
+  generatedAt: GENERATED_AT,
+  windowStart: WINDOW_START,
+  profiles: [profile('recovery_owner_a'), profile('recovery_owner_b')],
+  events: [
+    event('owner_conflict_prior', 'bulk_checkout_started', 'recovery_owner_a', 'owner_a_browser', '2026-08-20T00:00:00.000Z', { stripe_session_id: 'cs_owner_prior', sku: 'bulk10' }),
+    event('owner_conflict_return', 'agency_bulk_checkout_cancelled_return_viewed', 'recovery_owner_a', 'owner_a_browser', '2026-08-20T00:01:00.000Z', returnMeta('bulk10')),
+    event('owner_conflict_click', 'agency_bulk_checkout_resume_clicked', 'recovery_owner_a', 'owner_a_browser', '2026-08-20T00:02:00.000Z', returnMeta('bulk10')),
+    event('owner_conflict_start_a', 'bulk_checkout_started', 'recovery_owner_a', 'owner_a_browser', '2026-08-20T00:03:00.000Z', { stripe_session_id: 'cs_owner_conflict', sku: 'bulk10' }),
+    event('owner_conflict_start_b', 'bulk_checkout_started', 'recovery_owner_b', 'owner_b_browser', '2026-08-20T00:03:01.000Z', { stripe_session_id: 'cs_owner_conflict', sku: 'bulk10' }),
+    event('owner_conflict_paid', 'bulk_purchase_completed', 'recovery_owner_a', null, '2026-08-20T00:04:00.000Z', { stripe_session_id: 'cs_owner_conflict', sku: 'bulk10', amount_total: 9900, currency: 'usd' }),
+  ],
+})
+check(recoveryOwnerConflict.checkoutRecovery.recoveryStartIdentityConflictPeople, 1, 'shared recovery Session owner conflict is explicit')
+check(recoveryOwnerConflict.checkoutRecovery.recoveryStartPeople, 0, 'owner-conflicted recovery Session is not a confirmed start')
+check(recoveryOwnerConflict.checkoutRecovery.paidPeople, 0, 'owner-conflicted Session cannot produce recovered buyer')
+check(recoveryOwnerConflict.checkoutRecovery.revenueMinorByCurrency, {}, 'owner-conflicted Session contributes zero recovery revenue')
+check(recoveryOwnerConflict.checkoutRecovery.quality.recoveryStartIdentityConflictJourneys, 1, 'owner conflict is retained as aggregate quality')
+
+const returnPersistenceRace = buildB2bCommercialFunnelReport({
+  generatedAt: GENERATED_AT,
+  windowStart: WINDOW_START,
+  profiles: [profile('return_race_owner')],
+  events: [
+    event('return_race_prior', 'bulk_checkout_started', 'return_race_owner', 'return_race_browser', '2026-08-20T00:00:00.000Z', { stripe_session_id: 'cs_return_race_prior', sku: 'bulk10' }),
+    event('return_race_restart', 'bulk_checkout_started', 'return_race_owner', 'return_race_browser', '2026-08-20T00:10:00.000Z', { stripe_session_id: 'cs_return_race_recovery', sku: 'bulk10' }),
+    event('return_race_return_late', 'agency_bulk_checkout_cancelled_return_viewed', 'return_race_owner', 'return_race_browser', '2026-08-20T00:10:03.000Z', returnMeta('bulk10')),
+    event('return_race_click_late', 'agency_bulk_checkout_resume_clicked', 'return_race_owner', 'return_race_browser', '2026-08-20T00:10:04.000Z', returnMeta('bulk10')),
+  ],
+})
+check(returnPersistenceRace.checkoutRecovery.exactReturnPeople, 1, 'older original Session still proves the return denominator')
+check(returnPersistenceRace.checkoutRecovery.returnPersistenceRacePeople, 1, 'start persisted three seconds before return is a separate race')
+check(returnPersistenceRace.checkoutRecovery.recoveryStartPeople, 0, 'return persistence race never becomes attributed recovery')
+check(returnPersistenceRace.checkoutRecovery.quality.returnRowsWithAmbiguousPriorStart, 0, 'race start does not contaminate prior Session ambiguity')
+check(returnPersistenceRace.checkoutRecovery.quality.returnPersistenceRaceRows, 1, 'return persistence race remains visible in quality')
+
+const priorOwnerConflict = buildB2bCommercialFunnelReport({
+  generatedAt: GENERATED_AT,
+  windowStart: WINDOW_START,
+  profiles: [profile('prior_owner_a'), profile('prior_owner_b')],
+  events: [
+    event('prior_owner_start_a', 'bulk_checkout_started', 'prior_owner_a', 'prior_owner_browser_a', '2026-08-20T00:00:00.000Z', { stripe_session_id: 'cs_prior_owner_conflict', sku: 'bulk10' }),
+    event('prior_owner_start_b', 'bulk_checkout_started', 'prior_owner_b', 'prior_owner_browser_b', '2026-08-20T00:00:01.000Z', { stripe_session_id: 'cs_prior_owner_conflict', sku: 'bulk10' }),
+    event('prior_owner_return_a', 'agency_bulk_checkout_cancelled_return_viewed', 'prior_owner_a', 'prior_owner_browser_a', '2026-08-20T00:01:00.000Z', returnMeta('bulk10')),
+  ],
+})
+check(priorOwnerConflict.checkoutRecovery.exactReturnPeople, 0, 'shared original Stripe Session cannot enter the return denominator')
+check(priorOwnerConflict.checkoutRecovery.quality.priorStartIdentityConflictRows, 1, 'original Session owner conflict is explicit')
+check(priorOwnerConflict.checkoutRecovery.gate.state, 'collecting', 'original Session conflict cannot advance the gate')
+
+const priorIncompleteContract = buildB2bCommercialFunnelReport({
+  generatedAt: GENERATED_AT,
+  windowStart: WINDOW_START,
+  profiles: [profile('prior_incomplete_owner')],
+  events: [
+    event('prior_incomplete_valid', 'bulk_checkout_started', 'prior_incomplete_owner', 'prior_incomplete_browser', '2026-08-20T00:00:00.000Z', { stripe_session_id: 'cs_prior_incomplete', sku: 'bulk10' }),
+    event('prior_incomplete_null_browser', 'bulk_checkout_started', 'prior_incomplete_owner', null, '2026-08-20T00:00:01.000Z', { stripe_session_id: 'cs_prior_incomplete', sku: 'bulk10' }),
+    event('prior_incomplete_wrong_pack', 'bulk_checkout_started', 'prior_incomplete_owner', 'prior_incomplete_browser', '2026-08-20T00:00:02.000Z', { stripe_session_id: 'cs_prior_incomplete', sku: 'bulk20' }),
+    event('prior_incomplete_return', 'agency_bulk_checkout_cancelled_return_viewed', 'prior_incomplete_owner', 'prior_incomplete_browser', '2026-08-20T00:01:00.000Z', returnMeta('bulk10')),
+  ],
+})
+check(priorIncompleteContract.checkoutRecovery.exactReturnPeople, 0, 'missing browser or divergent pack fails the original Session contract')
+check(priorIncompleteContract.checkoutRecovery.quality.priorStartIdentityConflictRows, 1, 'incomplete original Session contract is visible')
+
+const allNullBrowserContract = buildB2bCommercialFunnelReport({
+  generatedAt: GENERATED_AT,
+  windowStart: WINDOW_START,
+  profiles: [profile('null_browser_owner')],
+  events: [
+    event('null_browser_prior', 'bulk_checkout_started', 'null_browser_owner', null, '2026-08-20T00:00:00.000Z', { stripe_session_id: 'cs_null_browser_prior', sku: 'bulk10' }),
+    event('null_browser_return', 'agency_bulk_checkout_cancelled_return_viewed', 'null_browser_owner', null, '2026-08-20T00:01:00.000Z', returnMeta('bulk10')),
+    event('null_browser_click', 'agency_bulk_checkout_resume_clicked', 'null_browser_owner', null, '2026-08-20T00:02:00.000Z', returnMeta('bulk10')),
+    event('null_browser_restart', 'bulk_checkout_started', 'null_browser_owner', null, '2026-08-20T00:03:00.000Z', { stripe_session_id: 'cs_null_browser_recovery', sku: 'bulk10' }),
+    event('null_browser_paid', 'bulk_purchase_completed', 'null_browser_owner', null, '2026-08-20T00:04:00.000Z', { stripe_session_id: 'cs_null_browser_recovery', sku: 'bulk10', amount_total: 9900, currency: 'usd' }),
+  ],
+})
+check(allNullBrowserContract.checkoutRecovery.exactReturnPeople, 0, 'all-null browser chain cannot enter the return denominator')
+check(allNullBrowserContract.checkoutRecovery.recoveryStartPeople, 0, 'all-null browser chain cannot create a recovery start')
+check(allNullBrowserContract.checkoutRecovery.paidPeople, 0, 'all-null browser chain cannot create a recovered buyer')
+check(allNullBrowserContract.checkoutRecovery.revenueMinorByCurrency, {}, 'all-null browser chain contributes zero recovery revenue')
 
 process.stdout.write(`B2B commercial funnel report: ${checks}/${checks} checks passed\n`)
