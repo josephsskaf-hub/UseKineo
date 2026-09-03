@@ -41,7 +41,9 @@ const BASE = 'https://www.usekineo.com'
 // KINEO-SEARCH-INTENT-2026-08-28 — advanced because the comparison cluster
 // gained two real URLs (StoryShort and ShortsPilot) and the 13-tool roundup
 // was materially refreshed from production Search Console demand.
-const LAST_MODIFIED = new Date('2026-09-02T21:30:00.000Z')
+// KINEO-B2B-VENDOR-EVALUATION-2026-09-03 — advanced because the public
+// acquisition cluster gained a new procurement worksheet URL.
+const LAST_MODIFIED = new Date('2026-09-03T07:27:36.555Z')
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const routes: { path: string; priority: number; freq: 'daily' | 'weekly' | 'monthly' }[] = [
@@ -153,6 +155,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // for the buyer or approver. It is a factual brief, not a contract or a
     // lead event; only an explicit move to an existing human surface is measured.
     { path: '/agency-production-scope.txt', priority: 0.7, freq: 'monthly' },
+    // KINEO-B2B-VENDOR-EVALUATION-2026-09-03 — a neutral, downloadable
+    // procurement worksheet. A crawler GET/download is never treated as a
+    // person; commercial measurement starts only after an attributed signup.
+    { path: '/short-form-video-vendor-evaluation.csv', priority: 0.7, freq: 'monthly' },
     // KINEO-TRUST-CENTER-2026-08-27 — a young domain needs one canonical
     // verification surface for operator, payments, privacy and commercial
     // rights. This is an objection page, not an invented social-proof page.
