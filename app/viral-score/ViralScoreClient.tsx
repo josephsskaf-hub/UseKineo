@@ -2,10 +2,15 @@
 
 // KINEO-PUBLIC-VIRALSCORE-2026-07-08 — free public grader UI. Calls the real
 // engine at /api/public/viral-score and funnels to signup with a strong CTA.
-import { useState } from 'react'
-import { trackEvent } from '@/lib/analytics'
+import { useEffect, useRef, useState } from 'react'
+import { trackClosedEvent, trackEvent } from '@/lib/analytics'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import { toolActivationHref } from '@/lib/toolActivationHref'
+import {
+  buildViralScoreShareAsset,
+  requestViralScoreShare,
+  viralScoreShareEventMetadata,
+} from '@/lib/growth/viralScoreShare'
 
 type Result = {
   overall: number
@@ -41,11 +46,22 @@ export default function ViralScoreClient() {
   const [loading, setLoading] = useState(false)
   const [res, setRes] = useState<Result | null>(null)
   const [err, setErr] = useState('')
+  const [shareState, setShareState] = useState<'idle' | 'sharing' | 'native' | 'clipboard' | 'manual'>('idle')
+  const shareInFlight = useRef(false)
+  const shareVersion = useRef(0)
+  const manualShareRef = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    if (shareState !== 'manual') return
+    manualShareRef.current?.focus()
+    manualShareRef.current?.select()
+  }, [shareState])
 
   async function run(text: string) {
     const v = text.trim()
     if (v.length < 4) { setErr('Type a real idea first.'); return }
-    setLoading(true); setErr(''); setRes(null)
+    shareVersion.current += 1
+    setLoading(true); setErr(''); setRes(null); setShareState('idle')
     void trackEvent('viral_score_started')
     try {
       const r = await fetch('/api/public/viral-score', {
@@ -62,6 +78,29 @@ export default function ViralScoreClient() {
       setErr('Network error — try again.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function shareScore(result: Result) {
+    if (shareInFlight.current) return
+    shareInFlight.current = true
+    setShareState('sharing')
+    const version = shareVersion.current
+    const asset = buildViralScoreShareAsset(result)
+    try {
+      const outcome = await requestViralScoreShare(asset, navigator)
+      if (version !== shareVersion.current) return
+      if (outcome === 'native' || outcome === 'clipboard') {
+        void trackClosedEvent(
+          'viral_score_scorecard_share_requested',
+          viralScoreShareEventMetadata(outcome, asset.scoreBand),
+        )
+        setShareState(outcome)
+      } else {
+        setShareState(outcome === 'cancelled' ? 'idle' : 'manual')
+      }
+    } finally {
+      shareInFlight.current = false
     }
   }
 
@@ -127,6 +166,43 @@ export default function ViralScoreClient() {
                   <div className="vs-track"><div className="vs-fill" style={{ width: `${val * 10}%` }} /></div>
                 </div>
               ))}
+            </div>
+            <div className="vs-share">
+              <button
+                type="button"
+                onClick={() => void shareScore(res)}
+                disabled={shareState === 'sharing'}
+              >
+                {shareState === 'sharing'
+                  ? 'Preparing scorecard…'
+                  : shareState === 'native'
+                    ? '✓ Share opened'
+                    : shareState === 'clipboard'
+                      ? '✓ Scorecard copied'
+                      : 'Share my score'}
+              </button>
+              <p>Your score only — your idea and tips stay private.</p>
+              <span className="vs-share-status" role="status" aria-live="polite" aria-atomic="true">
+                {shareState === 'native'
+                  ? 'Sharing options opened.'
+                  : shareState === 'clipboard'
+                    ? 'Scorecard copied to your clipboard.'
+                    : shareState === 'manual'
+                      ? "Sharing isn't available here. Copy the scorecard below."
+                      : ''}
+              </span>
+              {shareState === 'manual' && (
+                <label>
+                  Select and copy your scorecard
+                  <textarea
+                    ref={manualShareRef}
+                    readOnly
+                    value={buildViralScoreShareAsset(res).clipboardText}
+                    onFocus={(event) => event.currentTarget.select()}
+                    rows={4}
+                  />
+                </label>
+              )}
             </div>
             {res.tips?.length > 0 && (
               <div className="vs-tips">
@@ -198,6 +274,14 @@ const CSS = `
 .vs-bl span:last-child{color:#9aa3b7}
 .vs-track{height:8px;background:#1e2230;border-radius:var(--r-xs);overflow:hidden}
 .vs-fill{height:100%;border-radius:var(--r-xs);background:linear-gradient(90deg,#2997ff,#57b0ff)}
+.vs-share{margin-top:16px;padding:13px;border:1px solid #2c3852;border-radius:var(--r-sm);background:#151a27;text-align:center}
+.vs-share button{cursor:pointer;border:1px solid #3d5f91;border-radius:var(--r-sm);background:#1b2a45;color:#dcebff;padding:10px 17px;font-family:inherit;font-size:13px;font-weight:800}
+.vs-share button:disabled{cursor:default;opacity:.65}
+.vs-share p{margin:7px 0 0;color:#9aa3b7;font-size:11.5px}
+.vs-share-status{display:block;margin-top:5px;color:#b9c9df;font-size:11.5px}
+.vs-share-status:empty{display:none}
+.vs-share label{display:block;margin-top:10px;color:#9aa3b7;font-size:11.5px;text-align:left}
+.vs-share textarea{width:100%;margin-top:6px;resize:vertical;background:#0e1119;border:1px solid #2c3852;border-radius:var(--r-xs);color:#eef1f7;padding:9px;font-family:inherit;font-size:12px;line-height:1.4}
 .vs-tips{margin-top:16px;background:#171a24;border:1px solid #232838;border-radius:var(--r-sm);padding:14px}
 .vs-tips h3{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:#9aa3b7;margin:0 0 9px}
 .vs-tips ul{margin:0;padding:0}

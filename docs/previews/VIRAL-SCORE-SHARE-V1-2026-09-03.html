@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Kineo Viral Score share — before and after</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;padding:28px;background:#09090b;color:#eef1f7;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}.board{max-width:1180px;margin:auto}.note{color:#9aa3b7;font-size:13px;line-height:1.5}.pair{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin:24px 0}.label{margin-bottom:7px;color:#57b0ff;font-size:10px;font-weight:900;letter-spacing:.14em}.frame{padding:18px;background:#0d0d10;border:1px solid #29292d;border-radius:18px}.mobile{max-width:370px;margin:auto}.result{max-width:640px;margin:auto}.card{background:#12141c;border:1px solid #232838;border-radius:14px;padding:18px}.top{display:flex;align-items:center;gap:18px}.dial{width:104px;height:104px;border-radius:999px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;background:conic-gradient(#57b0ff 82%,#1e2230 0);position:relative}.dial:after{content:"";position:absolute;inset:9px;border-radius:999px;background:#12141c}.dial div{position:relative;z-index:1;text-align:center}.dial b{font-size:30px}.dial small{color:#9aa3b7;font-weight:600}.verdict{color:#57b0ff;font-size:22px;font-weight:900}.subtitle{margin-top:3px;color:#9aa3b7;font-size:13.5px}.bars{display:grid;gap:11px;margin-top:18px}.bar-label{display:flex;justify-content:space-between;margin-bottom:5px;font-size:13px}.bar-label span:last-child{color:#9aa3b7}.track{height:8px;overflow:hidden;background:#1e2230;border-radius:6px}.fill{height:100%;background:linear-gradient(90deg,#2997ff,#57b0ff);border-radius:6px}.share{margin-top:16px;padding:13px;border:1px solid #2c3852;border-radius:10px;background:#151a27;text-align:center}.share button{padding:10px 17px;border:1px solid #3d5f91;border-radius:10px;background:#1b2a45;color:#dcebff;font-family:inherit;font-size:13px;font-weight:800}.share p{margin:7px 0 0;color:#9aa3b7;font-size:11.5px}.share-status{margin-top:5px;color:#b9c9df;font-size:11.5px}.share label{display:block;margin-top:10px;color:#9aa3b7;font-size:11.5px;text-align:left}.share textarea{width:100%;margin-top:6px;resize:vertical;background:#0e1119;border:1px solid #2c3852;border-radius:6px;color:#eef1f7;padding:9px;font-family:inherit;font-size:12px;line-height:1.4}.tips{margin-top:16px;padding:14px;background:#171a24;border:1px solid #232838;border-radius:10px}.tips h3{margin:0 0 9px;color:#9aa3b7;font-size:13px;letter-spacing:.08em}.tips div{padding:6px 0;color:#d7dcea;font-size:14px}.tips span{margin-right:10px;color:#57b0ff;font-weight:900}@media(max-width:850px){.pair{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <main class="board">
+    <h1>Viral Score — shareable challenge</h1>
+    <p class="note">Visual comparison only. The score is a fixture. No customer idea, network request or live analytics is present.</p>
+
+    <section class="pair">
+      <div><div class="label">BEFORE · DESKTOP</div><div class="frame"><div class="before-slot"></div></div></div>
+      <div><div class="label">AFTER · DESKTOP</div><div class="frame"><div class="after-slot"></div></div></div>
+    </section>
+    <section class="pair">
+      <div><div class="label">BEFORE · MOBILE</div><div class="frame mobile"><div class="before-slot"></div></div></div>
+      <div><div class="label">AFTER · MOBILE</div><div class="frame mobile"><div class="after-slot"></div></div></div>
+    </section>
+    <section class="pair">
+      <div><div class="label">MANUAL FALLBACK · DESKTOP</div><div class="frame"><div class="manual-desktop-slot"></div></div></div>
+      <div><div class="label">MANUAL FALLBACK · MOBILE</div><div class="frame mobile"><div class="manual-mobile-slot"></div></div></div>
+    </section>
+
+    <template id="result-template">
+      <div class="result"><div class="card">
+        <div class="top">
+          <div class="dial"><div><b>82</b><br><small>/100</small></div></div>
+          <div><div class="verdict">Strong potential</div><div class="subtitle">Your hook is doing the heavy lifting.</div></div>
+        </div>
+        <div class="bars">
+          <div><div class="bar-label"><span>Hook strength</span><span>9/10</span></div><div class="track"><div class="fill" style="width:90%"></div></div></div>
+          <div><div class="bar-label"><span>Trend fit</span><span>7/10</span></div><div class="track"><div class="fill" style="width:70%"></div></div></div>
+          <div><div class="bar-label"><span>Retention</span><span>8/10</span></div><div class="track"><div class="fill" style="width:80%"></div></div></div>
+          <div><div class="bar-label"><span>Shareability</span><span>8/10</span></div><div class="track"><div class="fill" style="width:80%"></div></div></div>
+        </div>
+        <div class="share-slot"></div>
+        <div class="tips"><h3>HOW TO PUSH IT HIGHER</h3><div><span>→</span>Open with the most surprising contrast.</div><div><span>→</span>Hold the payoff until the final beat.</div></div>
+      </div></div>
+    </template>
+    <template id="share-template">
+      <div class="share"><button>Share my score</button><p>Your score only — your idea and tips stay private.</p></div>
+    </template>
+    <template id="manual-share-template">
+      <div class="share">
+        <button>Share my score</button>
+        <p>Your score only — your idea and tips stay private.</p>
+        <div class="share-status">Sharing isn't available here. Copy the scorecard below.</div>
+        <label>Select and copy your scorecard
+          <textarea readonly rows="4">My Shorts idea scored 82/100 on Kineo. Hook 9/10 · Trend 7/10 · Retention 8/10 · Shareability 8/10. Can yours beat it?
+https://www.usekineo.com/viral-score?utm_source=viral_score_result&amp;utm_medium=referral&amp;utm_campaign=viral_score_scorecard_share_v1</textarea>
+        </label>
+      </div>
+    </template>
+  </main>
+  <script>
+    document.querySelectorAll('.before-slot,.after-slot').forEach((slot) => slot.append(document.querySelector('#result-template').content.cloneNode(true)))
+    document.querySelectorAll('.after-slot .share-slot').forEach((slot) => slot.append(document.querySelector('#share-template').content.cloneNode(true)))
+    document.querySelectorAll('.manual-desktop-slot,.manual-mobile-slot').forEach((slot) => slot.append(document.querySelector('#result-template').content.cloneNode(true)))
+    document.querySelectorAll('.manual-desktop-slot .share-slot,.manual-mobile-slot .share-slot').forEach((slot) => slot.append(document.querySelector('#manual-share-template').content.cloneNode(true)))
+  </script>
+</body>
+</html>
