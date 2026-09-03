@@ -15,7 +15,7 @@ const AVATAR_CREDITS = creditsPerReferenceVideo('avatar')
 // (avatar1/avatar3/avatar10 → ?pack=avatar* checkout) was removed. Those packs
 // sold the now-unspendable avatar_credits balance. AI Avatar videos now use
 // universal video_credits from any plan, so the pricing section is replaced by a
-// CTA into the generator (/generate?avatar=1). PACKS array removed.
+// CTA into the generator (/studio/create?avatar=1). PACKS array removed.
 
 const FAQ = [
   { q: 'How real does it look?', a: '720p lip-synced video — the person’s mouth matches your script word for word, with b-roll, captions and music around it.' },
@@ -51,7 +51,7 @@ export default function AvatarLandingClient() {
         </div>
 
         <div className="mt-8 flex flex-col items-center gap-3">
-          <a href="/generate?avatar=1&utm_source=avatar_landing" className="rounded-xl px-8 py-4 text-base font-extrabold" style={{ background: 'linear-gradient(135deg,#2997ff,#14b8a6)', color: '#04130d', textDecoration: 'none' }}>
+          <a href="/studio/create?avatar=1&utm_source=avatar_landing" className="rounded-xl px-8 py-4 text-base font-extrabold" style={{ background: 'linear-gradient(135deg,#2997ff,#14b8a6)', color: '#04130d', textDecoration: 'none' }}>
             Make my AI Avatar video →
           </a>
           {/* KINEO-AVATAR-PACKS-RETIRED-2026-07-06 — was "from $11.90/video" (a
@@ -88,7 +88,7 @@ export default function AvatarLandingClient() {
         <p className="text-center text-xs mt-1 mb-6" style={{ color: '#86868b' }}>No separate add-on. A 60-second AI Avatar video uses {AVATAR_CREDITS} universal credits — the same credits that power every Kineo video.</p>
         <div className="flex justify-center">
           <a
-            href="/generate?avatar=1&utm_source=avatar_landing_pricing"
+            href="/studio/create?avatar=1&utm_source=avatar_landing_pricing"
             className="rounded-xl px-8 py-4 text-base font-extrabold inline-block"
             style={{ background: 'linear-gradient(135deg,#2997ff,#14b8a6)', color: '#04130d', textDecoration: 'none' }}
           >
@@ -118,7 +118,7 @@ export default function AvatarLandingClient() {
 
       {/* Final CTA */}
       <section className="mx-auto max-w-3xl px-5 pb-20 pt-6 text-center">
-        <a href="/generate?avatar=1&utm_source=avatar_landing_footer" className="rounded-xl px-8 py-4 text-base font-extrabold inline-block" style={{ background: 'linear-gradient(135deg,#2997ff,#14b8a6)', color: '#04130d', textDecoration: 'none' }}>
+        <a href="/studio/create?avatar=1&utm_source=avatar_landing_footer" className="rounded-xl px-8 py-4 text-base font-extrabold inline-block" style={{ background: 'linear-gradient(135deg,#2997ff,#14b8a6)', color: '#04130d', textDecoration: 'none' }}>
           Make my AI Avatar video →
         </a>
         <div className="mt-6 text-xs" style={{ color: '#64748b' }}>Kineo · usekineo.com</div>

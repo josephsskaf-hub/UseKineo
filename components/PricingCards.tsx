@@ -366,7 +366,7 @@ export default function PricingCards({
             Your plan is active. Credits may still be syncing.
           </p>
           <a
-            href="/generate"
+            href="/studio"
             style={{
               display: 'inline-block',
               marginTop: 10,

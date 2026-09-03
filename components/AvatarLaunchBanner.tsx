@@ -1,7 +1,10 @@
 'use client'
 
 // AI Avatar launch banner (item 3 do lançamento) — shown across the dashboard
-// shell until dismissed. Links to /generate?avatar=1 (auto-opens the panel).
+// shell until dismissed. KINEO-SEM-PORTEIRO-2026-09-02: linka para
+// /studio/create?avatar=1 (abre o painel sozinho). Era /generate?avatar=1, que
+// desde 24/08 é só um porteiro que redireciona — uma viagem de servidor a mais
+// antes da tela aparecer.
 // Dismissal persists in localStorage so it never nags a user twice.
 import { useEffect, useState } from 'react'
 import AvatarDemoLoop from '@/components/AvatarDemoLoop'
@@ -34,7 +37,7 @@ export default function AvatarLaunchBanner() {
         <b>NEW — AI Avatar Video:</b>{' '}
         <span className="hidden sm:inline">upload a photo and it speaks your script, lip-synced in 720p.</span>{' '}
         <a
-          href="/generate?avatar=1"
+          href="/studio/create?avatar=1"
           className="font-bold underline"
           style={{ color: '#c4b5fd' }}
         >

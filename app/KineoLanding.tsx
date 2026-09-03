@@ -1144,7 +1144,19 @@ export default function KineoLanding({
               <div className="promo">
                 <h3>Start with the full toolkit</h3>
                 <p>{ft(OFFER, 'Create, download and share up to 3 watermarked Fast videos every 24h — no card.', OFFER.copy.headline)}</p>
-                <Link className="btn btn-w" href={isSignedIn ? '/generate?src=engine_bento' : referralBridge ? '#try-kineo' : '/signup?utm_source=engine_bento'}>{isSignedIn ? 'Open the generator' : 'Start free'}</Link>
+                {/* KINEO-SEM-PORTEIRO-2026-09-02 — este botão apontava para
+                    /generate?src=engine_bento. O /generate não é mais uma
+                    página: é um porteiro `force-dynamic` que só decide o
+                    destino e redireciona. Ou seja, cada clique fazia DUAS
+                    viagens ao servidor, e o cliente via a URL antiga por
+                    alguns segundos antes do Studio aparecer — parecia que o
+                    site tinha travado no lugar errado. O porteiro continua
+                    existindo, e tem que continuar: todo e-mail já enviado
+                    aponta para /generate e link no inbox de cliente não pode
+                    quebrar nunca. O que muda é que os NOSSOS botões param de
+                    passar por ele e vão direto ao destino final — que é
+                    exatamente o mesmo /studio/create, com a query intacta. */}
+                <Link className="btn btn-w" href={isSignedIn ? '/studio/create?src=engine_bento' : referralBridge ? '#try-kineo' : '/signup?utm_source=engine_bento'}>{isSignedIn ? 'Open the generator' : 'Start free'}</Link>
                 <span className="pstack" aria-hidden="true">
                   <img src="/posters/hero-veo31.webp" alt="" loading="lazy" />
                   <img src="/posters/hero-kling25.webp" alt="" loading="lazy" />

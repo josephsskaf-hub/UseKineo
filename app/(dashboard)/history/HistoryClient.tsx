@@ -1001,7 +1001,7 @@ export default function MyVideosClient({ videos: initialVideos, loadError = fals
             Generate your first AI Short and it’ll appear here automatically.
           </p>
           <Link
-            href="/generate"
+            href="/studio"
             className="inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-black text-white"
             style={{ background: '#2997ff', textDecoration: 'none', boxShadow: '0 6px 28px rgba(41,151,255,.4)' }}
           >
@@ -1056,7 +1056,7 @@ export default function MyVideosClient({ videos: initialVideos, loadError = fals
           </h1>
         </div>
         <Link
-          href="/generate"
+          href="/studio"
           className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-black text-white flex-shrink-0"
           style={{ background: '#2997ff', textDecoration: 'none', boxShadow: '0 4px 18px rgba(41,151,255,.35)' }}
         >

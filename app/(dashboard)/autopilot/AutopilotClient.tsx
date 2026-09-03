@@ -917,7 +917,7 @@ export default function AutopilotClient() {
               ruído. Quem está sem crédito já tem o CTA principal. */}
           {onPaidPlan && canGenerateNow ? (
             <Link
-              href="/generate"
+              href="/studio"
               onClick={() =>
                 track('autopilot_generate_clicked', { plan: data.plan, credits: data.credits })
               }

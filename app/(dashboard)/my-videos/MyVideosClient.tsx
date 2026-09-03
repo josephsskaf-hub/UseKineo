@@ -303,7 +303,7 @@ export default function MyVideosClient({ videos, loadError = false }: { videos: 
             Generate your first AI Short, usually in 3–7 minutes. It&apos;s free.
           </p>
           <Link
-            href="/generate"
+            href="/studio"
             className="inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-bold"
             style={{
               background: '#2997ff',
@@ -942,7 +942,7 @@ function Header({ count }: { count: number }) {
           </p>
         </div>
         <Link
-          href="/generate"
+          href="/studio"
           className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold flex-shrink-0"
           style={{
             background: '#2997ff',

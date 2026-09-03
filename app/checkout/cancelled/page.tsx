@@ -635,7 +635,7 @@ function CheckoutCancelledContent() {
                       Starter is already our lowest plan. {ft(OFFER, 'Make up to 3 Fast videos every 24h on the free account instead — no card. They carry a watermark; everything else is the same.', 'Use the free account instead — 1 free Fast video/month, no card. It carries a watermark; everything else is the same.')}
                     </p>
                     <Link
-                      href="/generate"
+                      href="/studio"
                       onClick={() => trackEvent('checkout_free_path_clicked', { tier, reason: 'too_expensive' })}
                       style={{ display: 'block', textAlign: 'center', textDecoration: 'none', padding: '11px 14px', borderRadius: 12, fontSize: '0.85rem', fontWeight: 900, color: '#fff', background: 'linear-gradient(135deg, #2997ff, #1d6fe0)' }}
                     >

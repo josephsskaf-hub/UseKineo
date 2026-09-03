@@ -1366,7 +1366,7 @@ export default function PricingClient() {
               Your plan is active. If your credits look low, they may still be syncing.
             </p>
             <a
-              href="/generate"
+              href="/studio"
               className="mt-3 inline-block rounded-lg bg-[#2997ff] px-5 py-2 text-[13px] font-extrabold text-white shadow-[0_4px_14px_rgba(41,151,255,.35)] transition hover:bg-[#2997ff]"
             >
               Go to Dashboard →

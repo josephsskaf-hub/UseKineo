@@ -388,7 +388,11 @@ export default function CheckoutSuccessPage() {
               {topics.map((t) => (
                 <Link
                   key={t.id}
-                  href={`/generate?create_intent=fast&prompt=${encodeURIComponent(t.prompt)}&utm_source=checkout_success&utm_medium=first_win`}
+                  // KINEO-SEM-PORTEIRO-2026-09-02 — direto ao destino. Esta é a
+                  // tela de QUEM ACABOU DE PAGAR: fazer ele esperar duas
+                  // viagens de servidor no primeiro clique pós-compra é o pior
+                  // lugar possível para uma tela lenta.
+                  href={`/studio/create?create_intent=fast&prompt=${encodeURIComponent(t.prompt)}&utm_source=checkout_success&utm_medium=first_win`}
                   // KINEO-FIRST-PAID-MINUTE-2026-08-11 (defeito D10, corrigido
                   // pelo D12 da 3a revisao) - cobre o clique do BOTAO DO MEIO,
                   // que abre em nova aba sem disparar `onClick`. O teste de
@@ -506,7 +510,7 @@ export default function CheckoutSuccessPage() {
             )
           ) : isSelfServe ? (
             <Link
-              href="/generate"
+              href="/studio"
               style={{
                 display: 'block',
                 textAlign: 'center',
