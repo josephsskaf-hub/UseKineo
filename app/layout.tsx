@@ -167,6 +167,12 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable}`}>
       <head>
+        <link
+          rel="alternate"
+          type="application/rss+xml"
+          title="Kineo Shorts Idea of the Day"
+          href="/shorts-ideas.xml"
+        />
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=AW-18156258081"
           strategy="afterInteractive"
