@@ -58,3 +58,11 @@ Fluxo: aplicativo/site externo → compartilhar → Kineo → roteiro grátis �
 ## Fora do escopo
 
 Nenhuma mudança em render, cenas, voz, legendas, motores, créditos, preço, plano, SKU, promessa ou checkout. Nenhuma comunicação externa, anúncio, recrawl ou render forçado.
+
+## Validação de produção
+
+- **IMPLEMENTADO / VALIDADO EM PRODUÇÃO (2026-09-03):** commit `fbd9e8a7a84651f3db0d7ab8c76fff939ff83b86`, remoto `origin/main` idêntico.
+- **VALIDADO EM PRODUÇÃO (Vercel):** deploy `dpl_9otSX5Q6XHGjJCGqU18Ysx6VfH6x`, estado `READY`, Next.js, alias `www.usekineo.com`, sem erro de alias.
+- **VALIDADO EM PRODUÇÃO (HTTP):** manifesto 200 expõe `share_target` POST para `/share-to-kineo`; GET direto responde 307 para `/free-script-generator` sem campanha; POST responde 200 com `no-store`, `no-referrer`, bridge de `sessionStorage` e status fechado `received`.
+- **VALIDADO EM PRODUÇÃO (observabilidade Vercel):** zero grupos de erro runtime nos 15 minutos posteriores ao deploy.
+- **TESTADO LOCALMENTE (Chrome):** preview autocontido renderizado pelo Chrome com exit 0; screenshot `C:\tmp\codex-web-share-preview.png` (51.868 bytes).
