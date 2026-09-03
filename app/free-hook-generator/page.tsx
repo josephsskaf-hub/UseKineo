@@ -5,6 +5,7 @@
 import type { Metadata } from 'next'
 import FreeHookClient from './FreeHookClient'
 import Footer from '@/components/Footer'
+import { answerEngineHookEntry } from '@/lib/growth/answerEngineHookWorkbench'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.usekineo.com'),
@@ -20,10 +21,15 @@ export const metadata: Metadata = {
   },
 }
 
-export default function FreeHookGeneratorPage() {
+export default function FreeHookGeneratorPage({
+  searchParams,
+}: {
+  searchParams?: Record<string, string | string[] | undefined>
+}) {
+  const entry = answerEngineHookEntry(searchParams ?? {})
   return (
     <>
-      <FreeHookClient />
+      <FreeHookClient entry={entry} />
       <Footer />
     </>
   )

@@ -1,5 +1,11 @@
 export const ORGANIC_SIGNUP_TRUTH_VERSION = 'organic_signup_truth_v1' as const
 
+const ANSWER_ENGINE_HOOK_ATTRIBUTION = {
+  source: 'answer_engine',
+  medium: 'organic',
+  campaign: 'aeo_hook_workbench_v1',
+} as const
+
 // Campaigns emitted by public search pages. They prove the product handoff even
 // when acquisition source is ChatGPT or another referral. Keep source/medium
 // separate so this cohort does not erase the real first touch.
@@ -32,6 +38,9 @@ export function isOrganicSignupAttribution(input: {
   const medium = token(input.medium)
   const campaign = token(input.campaign)
   if (source === 'seo' && medium === 'organic') return true
+  if (source === ANSWER_ENGINE_HOOK_ATTRIBUTION.source &&
+    medium === ANSWER_ENGINE_HOOK_ATTRIBUTION.medium &&
+    campaign === ANSWER_ENGINE_HOOK_ATTRIBUTION.campaign) return true
   return LEGACY_ORGANIC_CAMPAIGN_PREFIXES.some((prefix) => campaign.startsWith(prefix))
 }
 

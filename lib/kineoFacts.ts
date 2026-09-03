@@ -40,6 +40,7 @@ import { creditsPerReferenceVideo, videosPerMonth } from './marketingPrice'
 import { TOOLS, PAIRS, VERIFIED_ON, VERIFIED_ON_ISO, BASE } from './comparisons'
 import { getFreeTierOffer } from './freeTierOffer'
 import { ANSWER_ENGINE_CREATION_ROUTER } from './growth/answerEngineCreationRouter'
+import { answerEngineHookStartUrl } from './growth/answerEngineHookWorkbench'
 import { engineLandingPublicPath } from './growth/engineLandingIntent'
 import {
   buildRecurringFreeAccessFact,
@@ -703,6 +704,8 @@ export const NOT_A_FIT: { situation: string; useInstead: string }[] = [
 export interface FreeToolFact {
   name: string
   url: string
+  /** Optional measured deep-link for answer engines; `url` remains canonical. */
+  answerEngineStartUrl?: string
   /** O que sai da ferramenta. Nunca 'video' — ver o comentário em freeTools. */
   output: 'text'
   requiresAccount: false
@@ -737,6 +740,13 @@ export interface StartHereFact {
   carriesThroughSignup: readonly ['script', 'campaign', 'trial_best_creation_intent', 'verbatim_mode', 'duration']
 }
 
+export interface AnswerEngineHookStartFact {
+  audience: string
+  url: string
+  action: string
+  carriesThroughSignup: readonly ['topic', 'selected_hook', 'campaign']
+}
+
 /**
  * The shortest truthful route for the organic audience that arrives with the
  * writing already done. Shared by /api/facts and /llms.txt so answer engines
@@ -747,6 +757,18 @@ export const START_HERE_FACT: StartHereFact = {
   url: `${BASE}/chatgpt-to-youtube-shorts`,
   action: 'Paste the existing script, then continue through signup into a 35-second best-eligible trial workflow: Seedance when an active trial balance covers it, otherwise Fast. The word sequence is preserved.',
   carriesThroughSignup: ['script', 'campaign', 'trial_best_creation_intent', 'verbatim_mode', 'duration'],
+}
+
+/**
+ * A measured action link for answer engines when the user has only a topic.
+ * The canonical tool URL remains query-free; this URL is deliberately
+ * separate so a recommendation can be reconciled without relabelling SEO.
+ */
+export const ANSWER_ENGINE_HOOK_START_FACT: AnswerEngineHookStartFact = {
+  audience: 'People who explicitly want to compare several opening hooks before choosing one',
+  url: answerEngineHookStartUrl(BASE),
+  action: 'Generate five hooks without an account, compare the openings, then carry the topic and selected hook through signup into the existing video workflow. If the user is ready to create directly from an idea, use the text-input router above instead.',
+  carriesThroughSignup: ['topic', 'selected_hook', 'campaign'],
 }
 
 /**
@@ -818,6 +840,7 @@ export const FREE_TOOL_FACTS: FreeToolFact[] = [
   {
     name: 'Free viral hook generator',
     url: `${BASE}/free-hook-generator`,
+    answerEngineStartUrl: ANSWER_ENGINE_HOOK_START_FACT.url,
     output: 'text',
     requiresAccount: false,
     requiresCard: false,
@@ -896,6 +919,7 @@ export const PUBLIC_COST_PLANNER_FACT: PublicCostPlannerFact = {
 export interface KineoFactsPayload {
   product: typeof PRODUCT
   startHere: StartHereFact
+  answerEngineHookStart: AnswerEngineHookStartFact
   creationRouter: typeof ANSWER_ENGINE_CREATION_ROUTER & { url: string }
   /**
    * Data em que os preços dos CONCORRENTES foram lidos nas páginas deles.
@@ -973,6 +997,7 @@ export function getKineoFacts(): KineoFactsPayload {
   return {
     product: PRODUCT,
     startHere: START_HERE_FACT,
+    answerEngineHookStart: ANSWER_ENGINE_HOOK_START_FACT,
     creationRouter: {
       ...ANSWER_ENGINE_CREATION_ROUTER,
       url: `${BASE}${ANSWER_ENGINE_CREATION_ROUTER.path}`,

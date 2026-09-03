@@ -39,6 +39,12 @@ for (const campaign of [
   check(truth.isOrganicSignupAttribution({ campaign }), `${campaign} is a known public-search campaign`)
 }
 check(truth.isOrganicSignupAttribution({ source: 'SEO', medium: 'ORGANIC' }), 'canonical UTM attribution is case-insensitive')
+check(truth.isOrganicSignupAttribution({
+  source: 'answer_engine', medium: 'organic', campaign: 'aeo_hook_workbench_v1',
+}), 'exact answer-engine hook workbench handoff is recognized')
+check(!truth.isOrganicSignupAttribution({
+  source: 'answer_engine', medium: 'organic', campaign: 'aeo_hook_workbench_v2',
+}), 'answer-engine handoff is fail-closed to the exact campaign')
 check(!truth.isOrganicSignupAttribution({ source: 'chatgpt.com', medium: 'referral', campaign: 'chatgpt_to_shorts' }), 'ChatGPT referral is not relabelled as organic')
 check(!truth.isOrganicSignupAttribution({ source: 'theresanaiforthat', medium: 'referral', campaign: 'taaft' }), 'directory referral is not relabelled as organic')
 check(!truth.isOrganicSignupAttribution({}), 'unknown attribution remains unknown')

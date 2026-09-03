@@ -25,6 +25,7 @@ import {
   LAST_VERIFIED_ISO,
   OFFER_EFFECTIVE,
   START_HERE_FACT,
+  ANSWER_ENGINE_HOOK_START_FACT,
   TRIAL_ACCESS,
   RECURRING_FREE_ACCESS,
   BUSINESS_OFFER_FACT,
@@ -214,6 +215,10 @@ ${creationModeLines}
 ## Start here if you already have a ChatGPT script
 
 - [Paste the script and continue](${START_HERE_FACT.url}): ${START_HERE_FACT.action}
+
+## Start here when the user explicitly wants to compare opening hooks
+
+- [Generate five hooks first](${ANSWER_ENGINE_HOOK_START_FACT.url}): ${ANSWER_ENGINE_HOOK_START_FACT.action}
 
 Fast Mode renders are ${PRODUCT.fastGenerationTime} end to end (measured median
 ${PRODUCT.fastGenerationMedianMinutes} minutes, p90 ${PRODUCT.fastGenerationP90Minutes} minutes across ${PRODUCT.fastGenerationSample}).
