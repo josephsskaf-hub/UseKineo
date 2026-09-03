@@ -31,7 +31,9 @@ for (const bug of ['Voiceover generation failed. Please try again.', 'unknown', 
 
 t('classifyFailure devolve script_short com os 3 numeros', /kind: 'script_short',\s*short: \{ narrationSec: Number\(m\[1\]\), requestedSec: Number\(m\[2\]\), wordsMissing: Number\(m\[3\]\) \}/.test(src))
 t('classifyFailure NAO e export (route.ts so exporta handlers)', !/export function classifyFailure/.test(src))
-t('envio escolhe buildScriptShortEmail quando kind=script_short (#6: com ou sem numeros)', /a\.kind === 'script_short'\s*\? buildScriptShortEmail\(a\.id, a\.credits, a\.short\)[\s\S]{0,160}: buildEmail\(a\.id, a\.credits\)/.test(src))
+// #6 (03/09): `buildEmail` passou a receber `staleDays` — a copy "it is fixed
+// now" so e verdade para falha recente. A escolha do builder nao mudou.
+t('envio escolhe buildScriptShortEmail quando kind=script_short (#6: com ou sem numeros)', /a\.kind === 'script_short'\s*\? buildScriptShortEmail\(a\.id, a\.credits, a\.short\)[\s\S]{0,200}: buildEmail\(a\.id, a\.credits, a\.staleDays\)/.test(src))
 t('assunto proprio para script_short', /Your video didn't render — here's the 30-second fix \(credits untouched\)/.test(src))
 t('assunto de defeito preservado para bug', /'That was our fault — your credits are still there'/.test(src))
 
@@ -47,11 +49,24 @@ t('e-mail script_short nao nomeia motor', !/Kling|Veo|Seedance|MiniMax|Omni|Sora
 t('utm_campaign separado (failure_recovery_script) para medir a parte', /utm_campaign=failure_recovery_script/.test(fn))
 t('rodape de unsubscribe presente', /emailFooterHtml\(userId\)/.test(fn) && /emailFooterText\(userId\)/.test(fn))
 
-t('carimbo grava kind', /name: STAMP, metadata: \{ falhas: a\.falhas, credits: a\.credits, kind: a\.kind \}/.test(src))
+// #6: o carimbo ganhou `fonte` (navegador x servidor), `stale_days` e
+// `window_hours` — sem eles nao da para medir quantas pessoas so existem
+// porque a terceira fonte passou a ser lida.
+t('carimbo grava kind', /name: STAMP,\s*metadata: \{ falhas: a\.falhas, credits: a\.credits, kind: a\.kind/.test(src))
+t('carimbo grava a fonte da falha (#6)', /fonte: a\.fonte/.test(src) && /stale_days: a\.staleDays/.test(src))
 t('carimbo continua sendo failure_recovery_sent (1x por pessoa)', /const STAMP = 'failure_recovery_sent'/.test(src) && /if \(jaAvisado\.has\(id\)\) continue/.test(src))
 t('dry-run mostra by_kind', /by_kind: \{\s*bug: alvos\.filter/.test(src))
 t('"still holding" (render vivo segurando credito) saiu da lista de defeito', /'still holding',/.test(src) && /'already started is still',/.test(src))
-t('"credits"/"trial has"/"full capacity" seguem excluidos', /'credits',/.test(src) && /'trial has',/.test(src) && /'full capacity',/.test(src))
+// ⚠️ ESTA LINHA MUDOU DE VERDADE NO #6 (03/09), e a mudanca e o ponto da
+// rodada. O fragmento solto `'credits'` classificava como "o produto disse
+// nao corretamente" as NOSSAS PROPRIAS confissoes de defeito — todas elas
+// terminam dizendo "your credits were refunded automatically". Resultado
+// medido: 8 de 8 e-mails da historia foram `script_short` e o e-mail de
+// defeito NUNCA saiu. O que precisa continuar excluido sao as RECUSAS
+// LEGITIMAS, e agora elas estao por frase inteira.
+t('recusa de saldo/plano segue excluida, agora por frase inteira (#6)', /'trial has',/.test(src) && /'full capacity',/.test(src) && /'This needs',/.test(src) && /'used all',/.test(src) && /'Add a plan',/.test(src))
+t('o fragmento solto "credits" saiu da lista (#6)', !/^\s*'credits',$/m.test(src))
+t('confissao de defeito vence a lista de recusas (#6)', /const DEFEITO_EXPLICITO = \[/.test(src) && /'on our side, not yours',/.test(src))
 t('quem ja tem video completo continua fora', /if \(jaTemVideo\.has\(id\)\) continue/.test(src))
 t('MAX_PER_RUN continua 25', /const MAX_PER_RUN = 25/.test(src))
 

@@ -49,21 +49,96 @@ const STAMP = 'failure_recovery_sent'
 const MAX_PER_RUN = 25
 const APP = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.usekineo.com'
 
-// Mensagens que NÃO são defeito — são o produto dizendo "não" corretamente.
-// Mandar "desculpa, era nosso" para quem ficou sem crédito seria mentira.
+// ═══ sprint-assinaturas #6 — 03/09/2026 — A PALAVRA "credits" DESCLASSIFICAVA
+// AS NOSSAS PRÓPRIAS CONFISSÕES DE DEFEITO
+//
+// Medido hoje: `failure_recovery_sent` tem OITO envios na história — e os oito
+// são `kind='script_short'`. O e-mail de DEFEITO, que é a razão de este arquivo
+// existir, NUNCA foi mandado uma única vez. Enquanto isso, 35 pessoas em 30
+// dias tiveram crédito debitado, render morto e estorno automático sem NUNCA
+// ter visto um filme da Kineo.
+//
+// A causa é uma linha: o fragmento solto `'credits'` nesta lista. Toda mensagem
+// de erro da casa termina dizendo à pessoa que o crédito dela voltou — é a
+// coisa CERTA a dizer — e por isso as nossas confissões de defeito contêm a
+// palavra:
+//   · "Our video provider did not accept the job — this is on our side, not
+//      yours. Nothing started, your CREDITS were refunded automatically…"
+//   · "This generation stopped responding and we ended it here instead of
+//      leaving you waiting. Your CREDITS are being returned automatically…"
+// As duas dizem, com todas as letras, que a culpa é NOSSA — e o cron as lia
+// como "o produto disse não corretamente".
+//
+// O conserto NÃO é tirar `'credits'` e deixar passar tudo: é trocar o
+// fragmento solto pelas FRASES INTEIRAS de cada recusa legítima. Todas as
+// recusas de saldo/regra dos últimos 30 dias em produção estão cobertas abaixo
+// e travadas em scripts/test-resgate-defeito.mjs com o texto real do banco.
 const NAO_E_BUG = [
-  'credits',
+  // saldo e plano — o produto dizendo "não" corretamente
   'Add a plan',
   'Upgrade',
   'not included in your trial',
-  'full capacity',
   "can't depict real people",
   'trial has',
+  // O ANÚNCIO DE SALDO CURTO, em todas as redações que existem no código —
+  // conferidas uma a uma com `grep` em app/api, não só nas que apareceram em
+  // 30 dias de eventos. É o grupo que o fragmento `'credits'` cobria por
+  // acidente, e é aqui que ele tinha razão de existir.
+  //   "This needs 20 credits. You have 0."
+  //   "AI Generated needs 20 credits. You have 5."
+  //   "Fast needs 1 credit. You have 0. Upgrade or renew…"
+  //   "This generation needs 20 credits. …You have 12 available."
+  //   "This generation needs 20 credits. Your available balance changed…"
+  //   "Animating a photo costs 6 credits. You have 2."
+  'This needs',
+  'This generation needs',
+  'credits. You have',
+  'credit. You have',
+  'Not enough credits',
+  'No credits remaining',
+  // "You've used all 25 credits from your trial."
+  'used all',
   // sprint-assinaturas #5 (02/09): um render seu ainda segurando crédito é
   // regra, não defeito — o crédito volta sozinho quando ele termina/estorna.
   'still holding',
   'already started is still',
+  // capacidade do fornecedor: é do nosso lado, mas NÃO está "consertado agora"
+  // — mandar "it is fixed now" seria a mentira que o #5 já proibiu. Continua
+  // fora, como já estava, agora com a segunda redação da mesma coisa.
+  'full capacity',
+  'high demand right now',
+  // teto diário do plano free: regra, não defeito
+  'daily_free_limit',
+  'daily free limit',
 ]
+
+// Frases em que o PRÓPRIO PRODUTO assume o defeito. Vencem o NAO_E_BUG: se a
+// mensagem diz "isto é do nosso lado", nenhuma outra palavra na frase pode
+// transformá-la em "o produto funcionou".
+// ⚠️ Nenhuma delas casa com a mensagem de capacidade ("the team was
+// AUTOMATICALLY alerted"), de propósito — capacidade continua fora.
+const DEFEITO_EXPLICITO = [
+  'on our side, not yours',
+  'stopped responding and we ended it',
+]
+
+// ═══ A SEGUNDA METADE DO BURACO: METADE DAS PESSOAS NÃO TEM EVENTO NENHUM ══
+// Das 35 pessoas com estorno de defeito e zero filme em 30 dias, QUINZE não
+// têm um único `generate_failed` nem `generation_stage_error` na vida. O
+// render delas não morreu na aba — morreu no SERVIDOR, depois que elas
+// fecharam o navegador, e quem registrou o desfecho foi a varredura de
+// estorno. Este cron só lia o navegador; para essas quinze ele é cego por
+// construção, não por regra.
+//
+// A fonte que enxerga as duas metades é o fato financeiro: um débito de vídeo
+// ESTORNADO por uma razão de defeito é a nossa própria prova de que cobramos,
+// não entregamos e devolvemos. Não tem texto de erro — e não precisa: a
+// pessoa recebe o e-mail genérico de defeito, que é exatamente o caso dela.
+const DEFECT_REFUND_REASONS = ['cinematic_abandoned_no_delivery', 'pending_orphan_no_dispatch']
+// Marcador interno: NUNCA é exibido a ninguém. Serve para esta falha entrar na
+// disputa do "erro mais recente" com um texto que o classificador reconhece
+// como defeito.
+const SERVER_REFUND_MARK = 'server_refund_no_delivery'
 
 // ═══ sprint-assinaturas #5 — 02/09/2026 — O CRON IA MENTIR PARA A LISTA MAIS QUENTE
 //
@@ -129,7 +204,24 @@ type ScriptShort = { narrationSec: number; requestedSec: number; wordsMissing: n
 type ScriptLong = { chars: number; limit: number; durationSec: number | null }
 type FalhaMeta = { reason?: unknown; duration?: unknown }
 
+// A pergunta única que decide se a pessoa entra ou sai da lista. Ordem
+// importa: a confissão explícita vence a lista de recusas legítimas, e o
+// estorno do servidor (que não tem texto de erro) é defeito por definição.
+// Fica separada da GET para o teste poder exercitá-la com o texto REAL de
+// produção sem subir uma rota.
+function ehDefeito(erro: string): boolean {
+  const e = String(erro ?? '')
+  if (!e) return false
+  if (e === SERVER_REFUND_MARK) return true
+  const low = e.toLowerCase()
+  if (DEFEITO_EXPLICITO.some((frag) => low.includes(frag.toLowerCase()))) return true
+  return !NAO_E_BUG.some((frag) => low.includes(frag.toLowerCase()))
+}
+
 function classifyFailure(erro: string, meta?: FalhaMeta): { kind: Kind; short?: ScriptShort; long?: ScriptLong } {
+  // Estorno do servidor não tem mensagem: é defeito genérico, e passar o
+  // marcador pelas regex de roteiro só arriscaria um falso positivo.
+  if (erro === SERVER_REFUND_MARK) return { kind: 'bug' }
   const flat = erro.replace(/\s+/g, ' ')
   const m = flat.match(RE_SCRIPT_SHORT)
   if (m) {
@@ -285,15 +377,30 @@ function isInternalOrJunk(email: string): boolean {
   )
 }
 
-function buildEmail(userId: string, credits: number) {
-  const url = `${APP}/studio?utm_source=lifecycle&utm_medium=email&utm_campaign=failure_recovery`
+// `staleDays` = há quantos dias foi a falha. Até 7 dias a frase "it is fixed
+// now / the same idea will work now" é verdadeira e urgente. Acima disso ela
+// vira uma promessa que ninguém pode conferir — e a regra do #5 é clara:
+// desculpa que mente é pior que silêncio. A versão antiga assume o atraso em
+// vez de escondê-lo, porque é isso que a pessoa vai sentir ao ler.
+function buildEmail(userId: string, credits: number, staleDays = 0) {
+  const velho = staleDays > 7
+  const url = `${APP}/studio?utm_source=lifecycle&utm_medium=email&utm_campaign=${velho ? 'failure_recovery_late' : 'failure_recovery'}`
+  const abertura = velho
+    ? 'You tried to make a video with Kineo and it failed — and then we went quiet, which was worse. The failure was on our side, not yours, and the part of the engine that broke it has been rebuilt since.'
+    : 'You tried to make a video with Kineo and it failed. That was our fault, not yours — a bug on our side, and it is fixed now.'
+  const aberturaHtml = velho
+    ? 'You tried to make a video with Kineo and it failed — and then we went quiet, which was worse. <strong>The failure was on our side, not yours</strong>, and the part of the engine that broke it has been rebuilt since.'
+    : 'You tried to make a video with Kineo and it failed. <strong>That was our fault, not yours</strong> — a bug on our side, and it is fixed now.'
+  const convite = velho
+    ? `If you still want the video, it takes two minutes now: ${url}`
+    : `If you have two minutes, the same idea will work now: ${url}`
   const text = `Hey,
 
-You tried to make a video with Kineo and it failed. That was our fault, not yours — a bug on our side, and it is fixed now.
+${abertura}
 
 Your ${credits} credits were never spent. They are still sitting in your account, waiting.
 
-If you have two minutes, the same idea will work now: ${url}
+${convite}
 
 And if it fails again, hit reply and tell me exactly what you typed. It lands with a real person, and I will look at it myself.
 
@@ -304,9 +411,9 @@ usekineo.com`
 
   const html = `<div style="font-family:Arial,sans-serif;font-size:15px;color:#111;line-height:1.6;max-width:480px;">
   <p>Hey,</p>
-  <p>You tried to make a video with Kineo and it failed. <strong>That was our fault, not yours</strong> — a bug on our side, and it is fixed now.</p>
+  <p>${aberturaHtml}</p>
   <p>Your <strong>${credits} credits</strong> were never spent. They are still sitting in your account, waiting.</p>
-  <p style="margin:24px 0"><a href="${url}" style="display:inline-block;background:#2997ff;color:#fff;text-decoration:none;font-weight:bold;font-size:15px;padding:12px 26px;border-radius:10px;">Try the same idea again →</a></p>
+  <p style="margin:24px 0"><a href="${url}" style="display:inline-block;background:#2997ff;color:#fff;text-decoration:none;font-weight:bold;font-size:15px;padding:12px 26px;border-radius:10px;">${velho ? 'Make the video now →' : 'Try the same idea again →'}</a></p>
   <p>And if it fails again, hit reply and tell me exactly what you typed. It lands with a real person, and I will look at it myself.</p>
   <p>Sorry for wasting your first try.</p>
   <p style="margin:0 0 2px">Kineo Team</p>
@@ -326,13 +433,24 @@ export async function GET(req: NextRequest) {
   const admin = createAdminClient(url, svc, { auth: { persistSession: false, autoRefreshToken: false } })
   const confirm = req.nextUrl.searchParams.get('confirm') === 'SEND'
 
-  // Falhas das últimas 48h. Janela curta de propósito: "desculpa pelo bug de
-  // ontem" tem valor; "desculpa pelo bug da semana passada" já soa a descaso.
-  const desde = new Date(Date.now() - 48 * 3600_000).toISOString()
-  // #15: duas fontes. `generate_failed` = falha confirmada pelo servidor;
+  // Falhas das últimas 48h por padrão. Janela curta de propósito: "desculpa
+  // pelo bug de ontem" tem valor; "desculpa pelo bug da semana passada" já soa
+  // a descaso — e é por isso que ela é PARÂMETRO, não constante: o backlog de
+  // 35 pessoas que nunca receberam nada precisa de UMA passada mais larga, com
+  // a copy ajustada (ver `staleDays` em buildEmail), e isso é um clique do
+  // fundador com `?hours=720&confirm=SEND`, não o comportamento de todo dia.
+  // O cron do vercel.json continua sem o parâmetro, logo continua em 48h.
+  const horasPedidas = Number(req.nextUrl.searchParams.get('hours') ?? '48')
+  const horas = Number.isFinite(horasPedidas) ? Math.min(720, Math.max(1, Math.round(horasPedidas))) : 48
+  const desde = new Date(Date.now() - horas * 3600_000).toISOString()
+  // TRÊS fontes. As duas primeiras são o NAVEGADOR da pessoa (#15):
+  // `generate_failed` = falha confirmada pelo servidor e devolvida à aba;
   // `generation_stage_error` com reason `analyze_prompt_too_long` = recusa
   // determinística barrada no cliente (nunca vira generate_failed).
-  const [{ data: falhas }, { data: longas }] = await Promise.all([
+  // A terceira é o SERVIDOR (#6, hoje): o estorno por defeito, que é o único
+  // rastro de quem fechou a aba antes do render morrer — 15 das 35 pessoas
+  // elegíveis em 30 dias não têm NENHUM evento de navegador na vida.
+  const [{ data: falhas }, { data: longas }, { data: estornos }] = await Promise.all([
     admin
       .from('events')
       .select('user_id, created_at, metadata')
@@ -346,35 +464,72 @@ export async function GET(req: NextRequest) {
       .eq('metadata->>reason', 'analyze_prompt_too_long')
       .gte('created_at', desde)
       .limit(500),
+    admin
+      .from('events')
+      .select('user_id, created_at, metadata')
+      .eq('name', 'credits_refunded')
+      .gte('created_at', desde)
+      .limit(500),
   ])
 
   type Falha = { user_id: string | null; created_at: string; metadata: unknown }
-  const todas: Falha[] = [...((falhas ?? []) as Falha[]), ...((longas ?? []) as Falha[])].sort((a, b) =>
-    String(a.created_at).localeCompare(String(b.created_at)),
-  )
+  // O estorno vira uma falha com o MARCADOR interno no lugar da mensagem —
+  // ele não tem texto de usuário, e inventar um seria pior que não ter.
+  // ⚠️ A razão é filtrada AQUI, em código, e não no PostgREST. Um filtro por
+  // caminho de jsonb que o servidor não entenda não devolve erro — devolve
+  // LISTA VAZIA, e uma fonte que falha em silêncio é pior que fonte nenhuma:
+  // o cron continuaria "funcionando" e as 15 pessoas continuariam invisíveis.
+  // O volume permite: são ~90 estornos em 30 dias na base inteira.
+  const doServidor: Falha[] = ((estornos ?? []) as Falha[])
+    .filter((e) => DEFECT_REFUND_REASONS.includes(String((e.metadata as { reason?: unknown } | null)?.reason ?? '')))
+    .map((e) => ({
+      user_id: e.user_id,
+      created_at: e.created_at,
+      metadata: { error: SERVER_REFUND_MARK, reason: SERVER_REFUND_MARK },
+    }))
+  const todas: Falha[] = [
+    ...((falhas ?? []) as Falha[]),
+    ...((longas ?? []) as Falha[]),
+    ...doServidor,
+  ].sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)))
 
   // Por pessoa: quantas falhas de defeito/regra-de-roteiro, e o erro MAIS
   // RECENTE (a última coisa que o produto disse a ela). Uma falha "não é bug"
   // no meio não zera a contagem, mas se for a ÚLTIMA, a pessoa sai — o
   // produto disse não por último, e desculpa ali seria mentira.
-  const porPessoa = new Map<string, { n: number; erro: string; meta: FalhaMeta; naoEBug: boolean }>()
+  const porPessoa = new Map<
+    string,
+    { n: number; erro: string; meta: FalhaMeta; naoEBug: boolean; ultima: string; doServidor: boolean }
+  >()
   for (const f of todas) {
     const uid = f.user_id
     if (!uid) continue
     const meta = (f.metadata ?? {}) as { error?: unknown; reason?: unknown; duration?: unknown }
     const erro = String(meta.error ?? '')
     // Só defeito. Saldo/regra/limite não são bug — o produto funcionou.
-    const naoEBug = NAO_E_BUG.some((frag) => erro.toLowerCase().includes(frag.toLowerCase()))
-    const cur = porPessoa.get(uid) ?? { n: 0, erro, meta: {}, naoEBug }
+    // `ehDefeito` inverte a pergunta antiga: a confissão explícita ("this is
+    // on our side, not yours") vence a lista de recusas legítimas, e o
+    // marcador do estorno do servidor é defeito por definição.
+    const naoEBug = !ehDefeito(erro)
+    const cur = porPessoa.get(uid) ?? {
+      n: 0,
+      erro,
+      meta: {},
+      naoEBug,
+      ultima: String(f.created_at),
+      doServidor: false,
+    }
     if (!naoEBug) cur.n += 1
     cur.erro = erro
     cur.meta = { reason: meta.reason, duration: meta.duration }
     cur.naoEBug = naoEBug
+    cur.ultima = String(f.created_at)
+    cur.doServidor = erro === SERVER_REFUND_MARK
     porPessoa.set(uid, cur)
   }
   for (const [uid, cur] of porPessoa) if (cur.n === 0 || cur.naoEBug) porPessoa.delete(uid)
   if (porPessoa.size === 0) {
-    return NextResponse.json({ mode: confirm ? 'SENT' : 'DRY_RUN', eligible: 0, note: 'nenhuma falha de defeito em 48h' })
+    return NextResponse.json({ mode: confirm ? 'SENT' : 'DRY_RUN', window_hours: horas, eligible: 0, note: `nenhuma falha de defeito em ${horas}h` })
   }
 
   const ids = [...porPessoa.keys()]
@@ -386,7 +541,7 @@ export async function GET(req: NextRequest) {
   const jaAvisado = new Set((stamps ?? []).map((s) => s.user_id as string))
   const jaTemVideo = new Set((comVideo ?? []).map((v) => v.user_id as string))
 
-  const alvos: Array<{ id: string; email: string; credits: number; falhas: number; erro: string; kind: Kind; short?: ScriptShort; long?: ScriptLong }> = []
+  const alvos: Array<{ id: string; email: string; credits: number; falhas: number; erro: string; kind: Kind; short?: ScriptShort; long?: ScriptLong; staleDays: number; fonte: 'navegador' | 'servidor' }> = []
   for (const p of profs ?? []) {
     const id = p.id as string
     if (jaAvisado.has(id)) continue
@@ -397,21 +552,42 @@ export async function GET(req: NextRequest) {
     if (!email || p.email_opted_out || isInternalOrJunk(email)) continue
     const info = porPessoa.get(id)!
     const cls = classifyFailure(info.erro, info.meta)
-    alvos.push({ id, email, credits: (p.video_credits as number) ?? 0, falhas: info.n, erro: info.erro.slice(0, 90), kind: cls.kind, short: cls.short, long: cls.long })
+    const ms = Date.parse(info.ultima)
+    const staleDays = Number.isFinite(ms) ? Math.max(0, Math.floor((Date.now() - ms) / 86_400_000)) : 0
+    alvos.push({
+      id,
+      email,
+      credits: (p.video_credits as number) ?? 0,
+      falhas: info.n,
+      erro: info.erro.slice(0, 90),
+      kind: cls.kind,
+      short: cls.short,
+      long: cls.long,
+      staleDays,
+      fonte: info.doServidor ? 'servidor' : 'navegador',
+    })
   }
 
   if (!confirm) {
     return NextResponse.json({
       mode: 'DRY_RUN',
-      cohort: 'falhou por DEFEITO nas últimas 48h · nunca completou um vídeo · nunca recebeu este e-mail',
+      window_hours: horas,
+      cohort: `falhou por DEFEITO nas últimas ${horas}h · nunca completou um vídeo · nunca recebeu este e-mail`,
       eligible: alvos.length,
       by_kind: {
         bug: alvos.filter((a) => a.kind === 'bug').length,
         script_short: alvos.filter((a) => a.kind === 'script_short').length,
         script_long: alvos.filter((a) => a.kind === 'script_long').length,
       },
-      sample: alvos.slice(0, 15).map((a) => `${a.email} (${a.kind} · ${a.falhas}x · ${a.credits}cr · ${a.erro})`),
-      hint: 'Append &confirm=SEND to send.',
+      // #6: quantos só existem porque o servidor viu. Antes de hoje este
+      // número era o tamanho da cegueira do cron.
+      by_source: {
+        navegador: alvos.filter((a) => a.fonte === 'navegador').length,
+        servidor: alvos.filter((a) => a.fonte === 'servidor').length,
+      },
+      stale_over_7d: alvos.filter((a) => a.staleDays > 7).length,
+      sample: alvos.slice(0, 15).map((a) => `${a.email} (${a.kind}/${a.fonte} · ${a.falhas}x · ${a.credits}cr · ${a.staleDays}d · ${a.erro})`),
+      hint: 'Append &confirm=SEND to send. &hours=N (max 720) alarga a janela.',
     })
   }
 
@@ -423,11 +599,13 @@ export async function GET(req: NextRequest) {
         ? buildScriptShortEmail(a.id, a.credits, a.short)
         : a.kind === 'script_long' && a.long
           ? buildScriptLongEmail(a.id, a.credits, a.long)
-          : buildEmail(a.id, a.credits)
+          : buildEmail(a.id, a.credits, a.staleDays)
     const subject =
       a.kind === 'script_short' || a.kind === 'script_long'
         ? "Your video didn't render — here's the 30-second fix (credits untouched)"
-        : 'That was our fault — your credits are still there'
+        : a.staleDays > 7
+          ? 'We broke your first Kineo video — and never told you'
+          : 'That was our fault — your credits are still there'
     try {
       const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
@@ -443,9 +621,13 @@ export async function GET(req: NextRequest) {
         }),
       })
       if (res.ok) {
-        await admin.from('events').insert({ user_id: a.id, name: STAMP, metadata: { falhas: a.falhas, credits: a.credits, kind: a.kind } })
+        await admin.from('events').insert({
+          user_id: a.id,
+          name: STAMP,
+          metadata: { falhas: a.falhas, credits: a.credits, kind: a.kind, fonte: a.fonte, stale_days: a.staleDays, window_hours: horas },
+        })
         sent++
-        results.push({ email: a.email, outcome: `sent_${a.kind}` })
+        results.push({ email: a.email, outcome: `sent_${a.kind}_${a.fonte}` })
       } else results.push({ email: a.email, outcome: `failed_${res.status}` })
     } catch {
       results.push({ email: a.email, outcome: 'threw' })
