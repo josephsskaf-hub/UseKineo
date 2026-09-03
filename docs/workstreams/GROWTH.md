@@ -4,6 +4,20 @@
 
 ---
 
+## REGRA OPERACIONAL ATUAL — 03/09/2026
+
+**DECISÃO APROVADA PELO FUNDADOR:** o placar de Growth é assinatura e receita real, em B2C e B2B. Tráfego, cadastro, vídeo, clique e Checkout são etapas; nenhum deles é vitória financeira sozinho.
+
+**DECISÃO APROVADA PELO FUNDADOR:** observação precisa terminar em uma decisão executável. Uma rodada de trinta minutos deve entregar uma ação nova e reversível quando houver evidência e uma superfície livre. Quando um gate ainda não tem amostra, preserve a variante e ataque outro estágio do funil. Repetir relatório, landing, CTA ou hipótese já instrumentada não conta como uma nova ação.
+
+**REGRA DE EXECUÇÃO:** antes de editar, declare hipótese, mudança mínima, evento, métrica, gate de parada e risco. Depois, publique e valide quando autorizado. Se a evidência contradizer a hipótese, registre a contradição e mude de direção; não fabrique atividade alterando a mesma tela novamente.
+
+**FOCO DO CICLO ATUAL:** 50% B2C no caminho primeiro vídeo → valor percebido → Checkout recorrente → pagamento; 50% B2B no caminho descoberta → proposta/escopo → Checkout → pagamento. Contar pessoas externas distintas e reconciliar receita pela mesma Stripe Session.
+
+> As seções datadas de 27/07 abaixo são histórico do diagnóstico daquela data. Elas não substituem esta regra operacional nem os handoffs canônicos mais recentes.
+
+---
+
 ## OS 4 PILARES
 1. **ICP** — para quem vender, região, perfil, capacidade de pagar, sinais de necessidade, critérios de exclusão.
 2. **Oferta e mensagem** — problema, valor, **promessa permitida**, diferenciais, objeções, CTA, copy.
