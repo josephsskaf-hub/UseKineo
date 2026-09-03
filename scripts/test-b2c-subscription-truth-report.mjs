@@ -21,6 +21,27 @@ const start = (user, day, minute, stripeSessionId, browser, extra = {}) => event
 const paid = (user, day, minute, stripeSessionId, extra = {}) => event('payment_success', user, day, minute, {
   checkout_mode: 'subscription', stripe_session_id: stripeSessionId, amount_total: 1500, currency: 'usd', ...extra,
 })
+const v1Start = (user, day, minute, stripeSessionId, browser, tier = 'basic', extra = {}) => start(
+  user, day, minute, stripeSessionId, browser, {
+    tier,
+    billing: 'monthly',
+    checkout_session_window_version: 'recurring_checkout_24h_v1',
+    checkout_session_window_hours: 24,
+    ...extra,
+  },
+)
+const attempt = (user, day, minute, browser, tier = 'basic') => event(
+  'checkout_attempted', user, day, minute, { tier, billing: 'monthly' }, browser,
+)
+const expired = (user, day, minute, stripeSessionId, tier = 'basic') => event(
+  'checkout_session_expired', user, day, minute, {
+    stripe_session_id: stripeSessionId,
+    checkout_mode: 'subscription',
+    tier,
+    billing: 'monthly',
+    payment_status: 'unpaid',
+  },
+)
 const profiles = [
   { id: 'u1', email: 'buyer@example.com' },
   { id: 'u2', email: 'other@example.com' },
@@ -442,5 +463,381 @@ equal(report.checkoutOriginTruth.unresolvedStartedRatio, null, 'empty input inve
 equal(report.gate.state, 'collecting', 'empty gate keeps collecting')
 ok(report.limitations.some((line) => line.includes('legacy admin')), 'legacy admin limitation is explicit')
 ok(report.assistanceTruth.rule.includes('never add revenue'), 'assists cannot inflate revenue')
+
+report = build([
+  event('checkout_cta_clicked', 'u1', 1, 5, { surface: 'pricing_page', selection: 'starter' }, 'browser-terminal-paid'),
+  attempt('u1', 1, 5, 'browser-terminal-paid', 'starter'),
+  v1Start('u1', 1, 6, 'cs_terminal_paid', 'browser-terminal-paid', 'starter'),
+  paid('u1', 1, 7, 'cs_terminal_paid'),
+  event('checkout_cta_clicked', 'u2', 1, 15, { surface: 'generate_upgrade_modal', selection: 'pro' }, 'browser-terminal-expired'),
+  attempt('u2', 1, 15, 'browser-terminal-expired', 'pro'),
+  v1Start('u2', 1, 16, 'cs_terminal_expired', 'browser-terminal-expired', 'pro'),
+  expired('u2', 2, 16, 'cs_terminal_expired', 'pro'),
+])
+equal(report.terminalSurfaceTruth.candidateExternalPeople, 2, 'terminal surface cohort counts external people')
+equal(report.terminalSurfaceTruth.candidateStripeSessions, 2, 'terminal surface cohort counts exact v1 Sessions')
+equal(report.terminalSurfaceTruth.canonicalExactSurfaceStripeSessions, 2, 'two exact click-attempt-start chains survive')
+const pricingTerminal = report.terminalSurfaceTruth.surfaces.find((row) => row.surface === 'pricing_page')
+const upgradeTerminal = report.terminalSurfaceTruth.surfaces.find((row) => row.surface === 'generate_upgrade_modal')
+equal(pricingTerminal.paidPeople, 1, 'pricing surface owns one exact paid person')
+equal(pricingTerminal.expiredUnpaidPeople, 0, 'pricing surface invents no expiry')
+equal(pricingTerminal.exactRevenueMinorByCurrency, { usd: 1500 }, 'paid surface owns exact revenue once')
+equal(upgradeTerminal.paidPeople, 0, 'upgrade surface invents no payer')
+equal(upgradeTerminal.expiredUnpaidPeople, 1, 'upgrade surface owns one exact unpaid expiration')
+equal(report.terminalSurfaceTruth.gate.state, 'collecting', 'one terminal person per surface cannot open comparison gate')
+ok(report.terminalSurfaceTruth.gate.neverDeclaresCausalityOrWinner, 'surface report never declares lift or a winner')
+
+report = build([
+  event('checkout_cta_clicked', null, 1, 5, { surface: 'pricing_page', selection: 'basic' }, 'browser-anonymous-click'),
+  attempt('u1', 1, 5, 'browser-anonymous-click'),
+  v1Start('u1', 1, 6, 'cs_anonymous_click', 'browser-anonymous-click'),
+  paid('u1', 1, 7, 'cs_anonymous_click'),
+])
+equal(report.terminalSurfaceTruth.canonicalExactSurfaceStripeSessions, 0, 'anonymous click cannot become same-person terminal attribution')
+equal(report.terminalSurfaceTruth.attributionQuality.unresolvedReasonCounts.no_ordered_click, 1, 'anonymous click exclusion stays diagnosable')
+
+report = build([
+  event('checkout_cta_clicked', 'u1', 1, 5, { surface: 'attacker_free_text', selection: 'basic' }, 'browser-unknown-surface'),
+  attempt('u1', 1, 5, 'browser-unknown-surface'),
+  v1Start('u1', 1, 6, 'cs_unknown_surface', 'browser-unknown-surface'),
+  paid('u1', 1, 7, 'cs_unknown_surface'),
+])
+equal(report.terminalSurfaceTruth.canonicalExactSurfaceStripeSessions, 0, 'surface outside allowlist cannot own a terminal Session')
+equal(report.terminalSurfaceTruth.attributionQuality.unresolvedReasonCounts.surface_outside_allowlist, 1, 'unknown surface is counted by safe enum')
+ok(!JSON.stringify(report.terminalSurfaceTruth).includes('attacker_free_text'), 'unknown surface text is never echoed')
+ok(!JSON.stringify(report.terminalSurfaceTruth).includes('cs_unknown_surface'), 'terminal surface output emits no Stripe Session id')
+ok(!JSON.stringify(report.terminalSurfaceTruth).includes('u1'), 'terminal surface output emits no user id')
+
+for (const [label, selection] of [
+  ['missing selection', undefined],
+  ['tier mismatch', 'starter'],
+  ['pack selection', 'starter_pack'],
+]) {
+  const metadata = { surface: 'post_video_paywall' }
+  if (selection) metadata.selection = selection
+  report = build([
+    event('checkout_cta_clicked', 'u1', 1, 5, metadata, `browser-${label}`),
+    attempt('u1', 1, 5, `browser-${label}`, 'basic'),
+    v1Start('u1', 1, 6, `cs-${label}`, `browser-${label}`, 'basic'),
+    paid('u1', 1, 7, `cs-${label}`),
+  ])
+  equal(report.terminalSurfaceTruth.canonicalExactSurfaceStripeSessions, 0, `${label} cannot own recurring revenue`)
+  equal(report.terminalSurfaceTruth.attributionQuality.unresolvedReasonCounts.conflicting_or_incompatible_selection, 1, `${label} fails closed with one safe reason`)
+}
+
+for (const [label, surface, selection, tier] of [
+  ['history source key', 'history_starter_upgrade', 'history_first_video_offer', 'starter'],
+  ['exit intent creator key', 'exit_intent_offer', 'creator', 'basic'],
+]) {
+  report = build([
+    event('checkout_cta_clicked', 'u1', 1, 5, { surface, selection, tier, billing: 'monthly' }, `browser-${label}`),
+    attempt('u1', 1, 5, `browser-${label}`, tier),
+    v1Start('u1', 1, 6, `cs-${label}`, `browser-${label}`, tier),
+    paid('u1', 1, 7, `cs-${label}`),
+  ])
+  equal(report.terminalSurfaceTruth.canonicalExactSurfaceStripeSessions, 1, `${label} uses canonical tier instead of the UI latch key`)
+}
+
+report = build([
+  event('checkout_cta_clicked', 'u1', 1, 5, {
+    surface: 'post_video_paywall', selection: 'starter_pack', tier: 'basic', sku: 'starter10',
+  }, 'browser-explicit-pack'),
+  attempt('u1', 1, 5, 'browser-explicit-pack', 'basic'),
+  v1Start('u1', 1, 6, 'cs_explicit_pack', 'browser-explicit-pack'),
+  paid('u1', 1, 7, 'cs_explicit_pack'),
+])
+equal(report.terminalSurfaceTruth.canonicalExactSurfaceStripeSessions, 0, 'explicit pack marker fails closed even when a tier is also present')
+equal(report.terminalSurfaceTruth.attributionQuality.unresolvedReasonCounts.conflicting_or_incompatible_selection, 1, 'explicit pack mismatch remains diagnosable')
+
+report = build([
+  event('checkout_cta_clicked', 'u1', 1, 5, { surface: 'post_video_paywall', selection: 'starter_pack' }, 'browser-mixed-selection'),
+  {
+    ...event('checkout_cta_clicked', 'u1', 1, 5, { surface: 'post_video_paywall', selection: 'basic' }, 'browser-mixed-selection'),
+    id: 'recurring-click-after-pack-click',
+    created_at: at(1, 5, 10),
+  },
+  {
+    ...attempt('u1', 1, 5, 'browser-mixed-selection', 'basic'),
+    created_at: at(1, 5, 20),
+  },
+  v1Start('u1', 1, 6, 'cs_mixed_selection', 'browser-mixed-selection'),
+  paid('u1', 1, 7, 'cs_mixed_selection'),
+])
+equal(report.terminalSurfaceTruth.canonicalExactSurfaceStripeSessions, 0, 'mixed pack and recurring clicks remain ambiguous')
+equal(report.terminalSurfaceTruth.attributionQuality.unresolvedReasonCounts.conflicting_or_incompatible_selection, 1, 'mixed selection has a closed diagnostic')
+
+report = build([
+  event('checkout_cta_clicked', 'u1', 1, 5, { surface: 'pricing_page', selection: 'basic' }, 'browser-start-conflict'),
+  attempt('u1', 1, 5, 'browser-start-conflict'),
+  v1Start('u1', 1, 6, 'cs_start_conflict', 'browser-start-conflict'),
+  v1Start('u1', 1, 7, 'cs_start_conflict', 'other-browser'),
+  paid('u1', 1, 8, 'cs_start_conflict'),
+])
+equal(report.terminalSurfaceTruth.canonicalExactSurfaceStripeSessions, 0, 'same Stripe Session across browsers fails closed')
+equal(report.terminalSurfaceTruth.attributionQuality.unresolvedReasonCounts.start_contract_conflict, 1, 'browser conflict is named')
+
+report = build([
+  event('checkout_cta_clicked', 'u1', 1, 5, { surface: 'pricing_page', selection: 'basic' }, 'browser-repeat-surface'),
+  attempt('u1', 1, 5, 'browser-repeat-surface'),
+  v1Start('u1', 1, 6, 'cs_repeat_one', 'browser-repeat-surface'),
+  paid('u1', 1, 7, 'cs_repeat_one'),
+  event('checkout_cta_clicked', 'u1', 1, 15, { surface: 'pricing_page', selection: 'basic' }, 'browser-repeat-surface-two'),
+  attempt('u1', 1, 15, 'browser-repeat-surface-two'),
+  v1Start('u1', 1, 16, 'cs_repeat_two', 'browser-repeat-surface-two'),
+  paid('u1', 1, 17, 'cs_repeat_two'),
+])
+equal(report.terminalSurfaceTruth.canonicalExactSurfacePeople, 1, 'same person on one surface remains one person')
+equal(report.terminalSurfaceTruth.canonicalExactSurfaceStripeSessions, 1, 'only first Session per person and surface is canonical')
+equal(report.terminalSurfaceTruth.attributionQuality.laterSamePersonSurfaceSessionsExcluded, 1, 'later same-surface Session is disclosed')
+equal(report.terminalSurfaceTruth.surfaces[0].exactRevenueMinorByCurrency, { usd: 1500 }, 'repeat cannot double-count revenue')
+
+report = build([
+  event('checkout_cta_clicked', 'u1', 1, 5, { surface: 'pricing_page', selection: 'starter' }, 'browser-shared-click'),
+  attempt('u1', 1, 5, 'browser-shared-click', 'starter'),
+  {
+    ...attempt('u1', 1, 5, 'browser-shared-click', 'starter'),
+    id: 'second-attempt-after-shared-click',
+    created_at: at(1, 5, 20),
+    metadata: { tier: 'starter', billing: 'annual' },
+  },
+  v1Start('u1', 1, 6, 'cs_shared_click_starter', 'browser-shared-click', 'starter'),
+  v1Start('u1', 1, 6, 'cs_shared_click_annual', 'browser-shared-click', 'starter', { billing: 'annual' }),
+  paid('u1', 1, 7, 'cs_shared_click_starter'),
+  paid('u1', 1, 8, 'cs_shared_click_annual'),
+])
+equal(report.terminalSurfaceTruth.canonicalExactSurfaceStripeSessions, 0, 'one click cannot own two Stripe Sessions')
+equal(report.terminalSurfaceTruth.attributionQuality.unresolvedReasonCounts.one_click_linked_to_multiple_sessions, 2, 'both Sessions sharing one click become ambiguous')
+
+report = build([
+  attempt('u1', 1, 5, 'browser-click-race-terminal'),
+  {
+    ...event('checkout_cta_clicked', 'u1', 1, 5, { surface: 'pricing_page', selection: 'basic' }, 'browser-click-race-terminal'),
+    created_at: at(1, 5, 1),
+  },
+  v1Start('u1', 1, 6, 'cs_terminal_click_race', 'browser-click-race-terminal'),
+  paid('u1', 1, 7, 'cs_terminal_click_race'),
+])
+equal(report.terminalSurfaceTruth.canonicalExactSurfaceStripeSessions, 0, 'click persisted after server attempt is never exact terminal attribution')
+equal(report.terminalSurfaceTruth.attributionQuality.unresolvedReasonCounts.cross_request_persistence_race, 1, 'terminal report names click persistence race')
+
+for (const [label, startAt, expected, reason] of [
+  ['60 seconds', at(1, 6, 0), 1, null],
+  ['60 seconds plus 1 ms', '2026-09-01T10:06:00.001Z', 0, 'click_to_start_window_exceeded'],
+]) {
+  report = build([
+    event('checkout_cta_clicked', 'u1', 1, 5, { surface: 'pricing_page', selection: 'basic' }, `browser-${label}`),
+    {
+      ...attempt('u1', 1, 5, `browser-${label}`),
+      created_at: at(1, 5, 30),
+    },
+    {
+      ...v1Start('u1', 1, 6, `cs-${label}`, `browser-${label}`),
+      created_at: startAt,
+    },
+    paid('u1', 1, 7, `cs-${label}`),
+  ])
+  equal(report.terminalSurfaceTruth.canonicalExactSurfaceStripeSessions, expected, `${label} applies the end-to-end limit exactly`)
+  if (reason) equal(report.terminalSurfaceTruth.attributionQuality.unresolvedReasonCounts[reason], 1, `${label} has an explicit rejection reason`)
+}
+
+report = buildB2cSubscriptionTruthReport({
+  generatedAt: at(9, 59),
+  windowStart: at(1),
+  profiles,
+  videos: [],
+  events: [
+    event('checkout_cta_clicked', 'u1', 9, 5, { surface: 'pricing_page', selection: 'basic' }, 'browser-open-terminal'),
+    attempt('u1', 9, 5, 'browser-open-terminal'),
+    v1Start('u1', 9, 6, 'cs_still_open', 'browser-open-terminal'),
+    event('checkout_cta_clicked', 'u2', 1, 5, { surface: 'generate_upgrade_modal', selection: 'basic' }, 'browser-missing-terminal'),
+    attempt('u2', 1, 5, 'browser-missing-terminal'),
+    v1Start('u2', 1, 6, 'cs_missing_terminal', 'browser-missing-terminal'),
+  ],
+})
+equal(report.terminalSurfaceTruth.surfaces.find((row) => row.surface === 'pricing_page').terminalExactPeople, 0, 'open Session never enters terminal denominator')
+equal(report.terminalSurfaceTruth.surfaces.find((row) => row.surface === 'pricing_page').nonTerminalOutcomeCounts.open_before_deadline, 1, 'open Session remains named')
+equal(report.terminalSurfaceTruth.surfaces.find((row) => row.surface === 'generate_upgrade_modal').terminalExactPeople, 0, 'missing terminal signal never becomes expiry')
+equal(report.terminalSurfaceTruth.surfaces.find((row) => row.surface === 'generate_upgrade_modal').nonTerminalOutcomeCounts.missing_terminal_signal, 1, 'instrumentation gap remains named')
+
+report = build([
+  event('checkout_cta_clicked', 'u1', 1, 5, { surface: 'pricing_page', selection: 'basic' }, 'browser-wrong-contract'),
+  attempt('u1', 1, 5, 'browser-wrong-contract'),
+  v1Start('u1', 1, 6, 'cs_wrong_contract', 'browser-wrong-contract', 'basic', {
+    checkout_session_window_version: 'legacy_two_hour_v0',
+  }),
+  paid('u1', 1, 7, 'cs_wrong_contract'),
+])
+equal(report.terminalSurfaceTruth.candidateStripeSessions, 0, 'wrong checkout window contract is outside the v1 cohort')
+
+report = build([
+  event('checkout_cta_clicked', 'u1', 1, 5, { surface: 'pricing_page', selection: 'basic' }, 'browser-ledger-conflict'),
+  attempt('u1', 1, 5, 'browser-ledger-conflict'),
+  v1Start('u1', 1, 6, 'cs_ledger_conflict_v1', 'browser-ledger-conflict'),
+  paid('u2', 1, 7, 'cs_ledger_conflict_v1'),
+])
+equal(report.terminalSurfaceTruth.attributionQuality.qualityMet, false, 'v1 financial identity conflict blocks quality gate')
+equal(report.terminalSurfaceTruth.attributionQuality.exactOutcomeConflictStripeSessions, 1, 'v1 outcome conflict remains visible even when ledger omits it from external starts')
+
+{
+  const terminalProfiles = Array.from({ length: 10 }, (_, index) => ({
+    id: `terminal-${index + 1}`,
+    email: `terminal-${index + 1}@example.com`,
+  }))
+  const terminalEvents = terminalProfiles.flatMap((profile, index) => {
+    const paidSurface = index < 5
+    const surface = paidSurface ? 'pricing_page' : 'generate_upgrade_modal'
+    const browser = `browser-${profile.id}`
+    const stripe = `cs-${profile.id}`
+    return [
+      event('checkout_cta_clicked', profile.id, 1, index, { surface, selection: paidSurface ? 'starter' : 'pro' }, browser),
+      attempt(profile.id, 1, index, browser, paidSurface ? 'starter' : 'pro'),
+      v1Start(profile.id, 1, index + 1, stripe, browser, paidSurface ? 'starter' : 'pro'),
+      paidSurface ? paid(profile.id, 1, index + 2, stripe) : expired(profile.id, 2, index + 1, stripe, 'pro'),
+    ]
+  })
+  report = buildB2cSubscriptionTruthReport({
+    generatedAt: at(9, 59),
+    windowStart: at(1),
+    events: terminalEvents,
+    profiles: terminalProfiles,
+    videos: [],
+  })
+  equal(report.terminalSurfaceTruth.surfaces.find((row) => row.surface === 'pricing_page').terminalExactPeople, 5, 'five terminal pricing people meet per-surface sample')
+  equal(report.terminalSurfaceTruth.surfaces.find((row) => row.surface === 'generate_upgrade_modal').terminalExactPeople, 5, 'five terminal upgrade people meet per-surface sample')
+  equal(report.terminalSurfaceTruth.gate.eligibleSurfaceCount, 2, 'two surfaces meet sample and duration')
+  equal(report.terminalSurfaceTruth.gate.state, 'ready_for_diagnosis', 'complete sample opens diagnosis only')
+
+  const conflictProfile = { id: 'terminal-conflict', email: 'terminal-conflict@example.com' }
+  const conflictClick = event(
+    'checkout_cta_clicked', conflictProfile.id, 1, 20,
+    { surface: 'pricing_page', selection: 'basic' }, 'browser-terminal-conflict',
+  )
+  const conflictAttempt = attempt(conflictProfile.id, 1, 20, 'browser-terminal-conflict')
+  const conflictV1Start = v1Start(
+    conflictProfile.id, 1, 21, 'cs_terminal_contract_conflict', 'browser-terminal-conflict',
+  )
+
+  report = buildB2cSubscriptionTruthReport({
+    generatedAt: at(9, 59),
+    windowStart: at(1),
+    events: [
+      ...terminalEvents,
+      conflictClick,
+      conflictAttempt,
+      conflictV1Start,
+      {
+        ...conflictV1Start,
+        id: 'same-session-pack-start',
+        created_at: at(1, 21, 1),
+        metadata: {
+          ...conflictV1Start.metadata,
+          sku: 'starter10',
+        },
+      },
+    ],
+    profiles: [...terminalProfiles, conflictProfile],
+    videos: [],
+  })
+  equal(report.terminalSurfaceTruth.attributionQuality.strictV1StartContractConflictStripeSessions, 1, 'v1 plus pack start on the same Session is a contract conflict')
+  equal(report.terminalSurfaceTruth.attributionQuality.ledgerConflictStripeSessions, 1, 'v1 plus pack start remains visible to the scoped ledger')
+  equal(report.terminalSurfaceTruth.attributionQuality.qualityMet, false, 'v1 plus pack conflict blocks terminal surface quality')
+  equal(report.terminalSurfaceTruth.gate.state, 'collecting', 'v1 plus pack conflict cannot open the diagnostic gate')
+
+  report = buildB2cSubscriptionTruthReport({
+    generatedAt: at(9, 59),
+    windowStart: at(1),
+    events: [
+      ...terminalEvents,
+      conflictClick,
+      conflictAttempt,
+      conflictV1Start,
+      {
+        ...conflictV1Start,
+        id: 'same-session-browser-contract-start',
+        created_at: at(1, 21, 1),
+        session_id: 'other-browser-terminal-conflict',
+        metadata: {
+          ...conflictV1Start.metadata,
+          checkout_session_window_version: 'legacy_two_hour_v0',
+        },
+      },
+    ],
+    profiles: [...terminalProfiles, conflictProfile],
+    videos: [],
+  })
+  equal(report.terminalSurfaceTruth.attributionQuality.strictV1StartContractConflictStripeSessions, 1, 'browser or window drift on a candidate v1 Session is a contract conflict')
+  equal(report.terminalSurfaceTruth.attributionQuality.qualityMet, false, 'browser or window contract conflict blocks quality even when the generic ledger cannot see it')
+  equal(report.terminalSurfaceTruth.gate.state, 'collecting', 'browser or window conflict cannot open the diagnostic gate')
+
+  const oldExternalProfile = { id: 'old-external', email: 'old-external@example.com' }
+  const oldStart = {
+    ...v1Start(oldExternalProfile.id, 1, 21, 'cs_old_contract_conflict', 'browser-old-contract-conflict'),
+    created_at: '2026-08-31T10:00:00.000Z',
+  }
+  const internalProfile = { id: 'internal-only', email: 'josephsskaf@gmail.com' }
+  const internalStart = v1Start(
+    internalProfile.id, 1, 21, 'cs_internal_contract_conflict', 'browser-internal-contract-conflict',
+  )
+  report = buildB2cSubscriptionTruthReport({
+    generatedAt: at(9, 59),
+    windowStart: at(1),
+    events: [
+      ...terminalEvents,
+      oldStart,
+      {
+        ...oldStart,
+        id: 'old-same-session-pack-start',
+        metadata: { ...oldStart.metadata, sku: 'starter10' },
+      },
+      internalStart,
+      {
+        ...internalStart,
+        id: 'internal-same-session-pack-start',
+        metadata: { ...internalStart.metadata, sku: 'starter10' },
+      },
+    ],
+    profiles: [...terminalProfiles, oldExternalProfile, internalProfile],
+    videos: [],
+  })
+  equal(report.terminalSurfaceTruth.attributionQuality.strictV1StartContractConflictStripeSessions, 0, 'pre-window and internal-only conflicts cannot contaminate the external v1 gate')
+  equal(report.terminalSurfaceTruth.gate.state, 'ready_for_diagnosis', 'valid current cohort stays diagnosable despite old or internal-only conflicts')
+
+  report = buildB2cSubscriptionTruthReport({
+    generatedAt: at(9, 59),
+    windowStart: at(1),
+    events: [
+      ...terminalEvents,
+      conflictClick,
+      conflictAttempt,
+      conflictV1Start,
+      {
+        ...conflictV1Start,
+        id: 'same-session-internal-start',
+        created_at: at(1, 21, 1),
+        user_id: internalProfile.id,
+        session_id: 'browser-internal-on-external-session',
+      },
+    ],
+    profiles: [...terminalProfiles, conflictProfile, internalProfile],
+    videos: [],
+  })
+  equal(report.terminalSurfaceTruth.attributionQuality.strictV1StartContractConflictStripeSessions, 1, 'internal row sharing an external candidate Session remains a contract conflict')
+  equal(report.terminalSurfaceTruth.attributionQuality.ledgerConflictStripeSessions, 1, 'foreign owner on an external candidate Session remains visible to the scoped ledger')
+  equal(report.terminalSurfaceTruth.gate.state, 'collecting', 'foreign owner on an external candidate Session blocks diagnosis')
+
+  report = buildB2cSubscriptionTruthReport({
+    generatedAt: at(9, 59),
+    windowStart: at(1),
+    events: [
+      ...terminalEvents,
+      paid('u1', 1, 20, 'cs_legacy_without_v1_start'),
+    ],
+    profiles: terminalProfiles,
+    videos: [],
+  })
+  equal(report.financialTruth.unlinkedSubscriptionPaymentSessions, 1, 'legacy unlinked payment remains visible in global financial truth')
+  equal(report.terminalSurfaceTruth.attributionQuality.unlinkedSubscriptionPaymentSessions, 0, 'legacy unlinked payment cannot block the v1 surface gate')
+  equal(report.terminalSurfaceTruth.gate.state, 'ready_for_diagnosis', 'legacy payment outside v1 leaves the complete v1 gate open')
+}
 
 console.log(`b2c-subscription-truth-report: ${checks}/${checks} checks passed`)

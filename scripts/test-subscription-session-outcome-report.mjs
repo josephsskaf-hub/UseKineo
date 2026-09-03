@@ -114,6 +114,15 @@ const unknownPaymentStatus = buildSubscriptionSessionOutcomeReport({
 })
 equal(unknownPaymentStatus.totals.byOutcome, { expired_unknown_payment_status: 1 }, 'unknown Stripe status is not coerced')
 
+const expirationContractMismatch = buildSubscriptionSessionOutcomeReport({
+  generatedAt: at(32), windowStart: at(0), profiles,
+  events: [
+    start('ec1', 'expired', 1, 'cs_expiration_contract', { tier: 'basic', billing: 'monthly' }),
+    expired('ec2', 'expired', 26, 'cs_expiration_contract', 'unpaid', { tier: 'pro', billing: 'monthly' }),
+  ],
+})
+equal(expirationContractMismatch.totals.byOutcome, { conflict: 1 }, 'expiration tier mismatch with exact start fails closed')
+
 const future = buildSubscriptionSessionOutcomeReport({
   generatedAt: at(10), windowStart: at(0), profiles,
   events: [start('future', 'paid', 20, 'cs_future')],

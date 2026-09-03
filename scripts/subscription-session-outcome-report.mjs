@@ -125,6 +125,10 @@ function expirationIndex(events, generatedAtMs) {
 
 function expirationState(rows, start, identity) {
   if (!rows?.length) return { state: 'none', duplicateRows: 0 }
+  const startTier = metadataString(start, 'tier')
+  const startBilling = metadataString(start, 'billing')
+  const startWindowVersion = metadataString(start, 'checkout_session_window_version')
+  const startWindowHours = metadataNumber(start, 'checkout_session_window_hours')
   const semantics = new Set(rows.map((row) => JSON.stringify({
     userId: row.user_id ?? null,
     ownerClass: actorClass(row, identity),
@@ -138,7 +142,17 @@ function expirationState(rows, start, identity) {
     const mode = metadataString(row, 'checkout_mode')
     return mode && mode !== 'subscription'
   })
-  if (semantics.size > 1 || foreignOwner || wrongProduct) {
+  const contractMismatch = rows.some((row) => {
+    const tier = metadataString(row, 'tier')
+    const billing = metadataString(row, 'billing')
+    const windowVersion = metadataString(row, 'checkout_session_window_version')
+    const windowHours = metadataNumber(row, 'checkout_session_window_hours')
+    return (tier !== null && tier !== startTier) ||
+      (billing !== null && billing !== startBilling) ||
+      (windowVersion !== null && windowVersion !== startWindowVersion) ||
+      (windowHours !== null && windowHours !== startWindowHours)
+  })
+  if (semantics.size > 1 || foreignOwner || wrongProduct || contractMismatch) {
     return { state: 'conflict', duplicateRows: Math.max(0, rows.length - 1) }
   }
   const paymentStatus = metadataString(rows[0], 'payment_status')
@@ -147,7 +161,7 @@ function expirationState(rows, start, identity) {
   return { state: 'expired_unknown_payment_status', duplicateRows: Math.max(0, rows.length - 1) }
 }
 
-function sessionReference(stripeSessionId) {
+export function subscriptionSessionReference(stripeSessionId) {
   return createHash('sha256').update(stripeSessionId).digest('hex').slice(0, 12)
 }
 
@@ -188,7 +202,7 @@ function resolveOutcome(start, ledgerRecord, expirationRows, identity, generated
     }
   }
   return {
-    sessionReference: sessionReference(start.stripeSessionId),
+    sessionReference: subscriptionSessionReference(start.stripeSessionId),
     userId: start.row.user_id,
     tier: metadataString(start.row, 'tier'),
     billing: metadataString(start.row, 'billing'),

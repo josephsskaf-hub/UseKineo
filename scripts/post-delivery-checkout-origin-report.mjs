@@ -96,7 +96,7 @@ function externalIdentity(profiles) {
   return { knownExternal, internal, missingEmail }
 }
 
-function classifySurface(attempt, clicks) {
+export function classifySurface(attempt, clicks, options = {}) {
   if (!attempt.session_id) return { status: 'missing', surface: null, reason: 'attempt_without_browser_session' }
   const attemptAt = timestamp(attempt)
   const candidates = clicks.filter((click) => {
@@ -122,10 +122,48 @@ function classifySurface(attempt, clicks) {
   if (surfaces.size > 1 || hasUnlabelledClick) {
     return { status: 'ambiguous', surface: null, reason: 'conflicting_surface_candidates' }
   }
-  return { status: 'exact', surface: [...surfaces][0], reason: 'same_session_ordered_click' }
+  if (options.expectedSelection) {
+    const selections = new Set(candidates.map((row) => metadataString(row, 'selection')).filter(Boolean))
+    const hasUnlabelledSelection = candidates.some((row) => !metadataString(row, 'selection'))
+    if (hasUnlabelledSelection || selections.size !== 1 || !selections.has(options.expectedSelection)) {
+      return { status: 'ambiguous', surface: null, reason: 'conflicting_or_incompatible_selection' }
+    }
+  }
+  if (options.expectedTier) {
+    const incompatibleRecurringProduct = candidates.some((row) => {
+      const tier = metadataString(row, 'tier')
+      const billing = metadataString(row, 'billing')
+      const selection = metadataString(row, 'selection')
+      const oneTimeProduct = metadataString(row, 'sku') || metadataString(row, 'pack')
+      if (oneTimeProduct) return true
+      if (tier !== null && tier !== options.expectedTier) return true
+      if (options.expectedBilling && billing !== null && billing !== options.expectedBilling) return true
+
+      // `selection` is the launcher's UI/latch key, not a canonical product
+      // field. Most callers use the tier, but History uses its source name and
+      // ExitIntent uses `creator` for the canonical `basic` tier. When a
+      // caller emits `metadata.tier`, that field governs; only legacy callers
+      // without it fall back to an exact selection match. Explicit pack/sku
+      // markers always fail closed.
+      return tier === null && selection !== options.expectedTier
+    })
+    if (incompatibleRecurringProduct) {
+      return { status: 'ambiguous', surface: null, reason: 'conflicting_or_incompatible_selection' }
+    }
+  }
+  if (candidates.some((row) => !row?.id)) {
+    return { status: 'ambiguous', surface: null, reason: 'click_without_stable_event_id' }
+  }
+  return {
+    status: 'exact',
+    surface: [...surfaces][0],
+    reason: 'same_session_ordered_click',
+    evidenceClickIds: [...new Set(candidates.map((row) => String(row.id)))].sort(),
+    evidenceClickAtMs: Math.max(...candidates.map((row) => timestamp(row))),
+  }
 }
 
-function classifyStart(attempt, starts) {
+export function classifyStart(attempt, starts) {
   if (!attempt.session_id) return { status: 'missing', stripeSessionId: null, startedAt: null, reason: 'attempt_without_browser_session' }
   const attemptAt = timestamp(attempt)
   const candidates = starts.filter((start) => {
