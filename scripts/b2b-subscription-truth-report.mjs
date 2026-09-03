@@ -2,7 +2,7 @@ import { isInternalMeasurementEmail } from './measurement-helpers.mjs'
 import { buildSubscriptionRevenueLedger } from './subscription-revenue-ledger.mjs'
 import { AGENCY_PRODUCTION_SCOPE_MEASUREMENT_CONTRACT } from './agency-production-scope-contract.mjs'
 
-export const B2B_SUBSCRIPTION_TRUTH_REPORT_VERSION = 'b2b_subscription_truth_v7'
+export const B2B_SUBSCRIPTION_TRUTH_REPORT_VERSION = 'b2b_subscription_truth_v8'
 export const B2B_SUBSCRIPTION_WINDOW_DAYS = 30
 export const B2B_SUBSCRIPTION_CONTEXT_DAYS = 60
 export const B2B_SUBSCRIPTION_MIN_GENERATED_PEOPLE = 20
@@ -12,12 +12,35 @@ export const B2B_ANSWER_ROUTER_MIN_OBSERVATION_DAYS = 7
 export const B2B_ANSWER_ROUTER_MEASUREMENT_START = '2026-09-03T00:00:00.000Z'
 export const B2B_AGENCY_SCOPE_MEASUREMENT_START = '2026-09-03T00:00:00.000Z'
 export const B2B_AGENCY_HEADER_MEASUREMENT_START = '2026-09-03T05:00:00.000Z'
+export const B2B_PILOT_REVIEW_MEASUREMENT_START = '2026-09-03T12:30:00.000Z'
 export const B2B_AGENCY_HEADER_CLICK_LOOKBACK_HOURS = 24
 
 const RECURRING_TIERS = new Set(['starter', 'basic', 'pro', 'autopilot'])
 const RECURRING_BILLING = new Set(['monthly', 'annual'])
 
 export const B2B_ATTRIBUTABLE_PATHS = Object.freeze({
+  business_pilot_review_recurring: Object.freeze({
+    intentCampaign: 'business_pilot_review_pricing_v1',
+    eventVersion: null,
+    metadataVariant: 'business_pilot_review_v1',
+    stageAttribution: 'exact_business_pilot_contract',
+    journeyEntryRequirement: 'prior_exact_pilot_click_and_pricing_view',
+    measurementStartsAt: B2B_PILOT_REVIEW_MEASUREMENT_START,
+    gatePolicy: 'viewed_people_and_observation',
+    events: Object.freeze({
+      viewed: 'business_pilot_review_received',
+      built: 'business_pilot_review_built',
+      copied: 'business_pilot_review_handoff_prepared',
+      activation: 'business_pilot_review_pricing_clicked',
+      pricingView: 'pricing_view',
+      decision: 'business_pilot_review_decision_recorded',
+      response: 'business_pilot_review_response_prepared',
+      responseReceived: 'business_pilot_review_response_received',
+    }),
+    diagnosticEvents: Object.freeze({
+      pageView: 'business_pilot_review_viewed',
+    }),
+  }),
   agency_header_recurring: Object.freeze({
     intentCampaign: 'agency_header_studio_v1',
     eventVersion: 'agency_header_studio_v1',
@@ -181,6 +204,45 @@ function timestamp(row) {
 function metadataString(row, key) {
   const value = row?.metadata?.[key]
   return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+const BUSINESS_PILOT_USE_CASES = new Set(['own_brand', 'client_work'])
+const BUSINESS_PILOT_CADENCES = new Set(['single_campaign', 'weekly', 'ongoing'])
+const BUSINESS_PILOT_REVIEWERS = new Set(['brand_owner', 'marketing_lead', 'subject_expert', 'client_approver'])
+const BUSINESS_PILOT_DECISIONS = new Set(['approve_limited_evaluation', 'needs_changes', 'not_now'])
+const BUSINESS_PILOT_METHODS = new Set(['native', 'clipboard'])
+
+function matchesBusinessPilotBase(row, path) {
+  return metadataString(row, 'source') === path.intentCampaign &&
+    metadataString(row, 'variant') === path.metadataVariant &&
+    BUSINESS_PILOT_USE_CASES.has(metadataString(row, 'use_case')) &&
+    BUSINESS_PILOT_CADENCES.has(metadataString(row, 'cadence')) &&
+    BUSINESS_PILOT_REVIEWERS.has(metadataString(row, 'reviewer'))
+}
+
+function matchesBusinessPilotStage(row, path, stage) {
+  if (!matchesBusinessPilotBase(row, path)) return false
+  if (stage === 'viewed') return metadataString(row, 'entry') === 'review'
+  if (stage === 'copied') return BUSINESS_PILOT_METHODS.has(metadataString(row, 'method'))
+  if (stage === 'activation') {
+    const entry = metadataString(row, 'entry')
+    const persistenceMatches = metadataString(row, 'arrival_persistence') === 'stored' &&
+      (entry === 'response' || metadataString(row, 'decision_persistence') === 'stored')
+    return metadataString(row, 'destination') === 'pricing' &&
+      ['review', 'response'].includes(entry) &&
+      metadataString(row, 'decision') === 'approve_limited_evaluation' &&
+      persistenceMatches
+  }
+  if (stage === 'decision') return BUSINESS_PILOT_DECISIONS.has(metadataString(row, 'decision'))
+  if (stage === 'response') {
+    return BUSINESS_PILOT_DECISIONS.has(metadataString(row, 'decision')) &&
+      BUSINESS_PILOT_METHODS.has(metadataString(row, 'method'))
+  }
+  if (stage === 'responseReceived') {
+    return metadataString(row, 'entry') === 'response' &&
+      BUSINESS_PILOT_DECISIONS.has(metadataString(row, 'decision'))
+  }
+  return true
 }
 
 function identityIndex(profiles) {
@@ -397,6 +459,48 @@ function resolveEntryView(start, events, path, identity, generatedAtMs = Number.
       clickAt,
     }
   }
+  if (path.journeyEntryRequirement === 'prior_exact_pilot_click_and_pricing_view') {
+    const startAt = timestamp(start)
+    const measurementStartAt = path.measurementStartsAt ? Date.parse(path.measurementStartsAt) : null
+    if (!start.session_id) return { witness: null, clickAt: null }
+    const sessionRows = events.filter((row) => {
+      const at = timestamp(row)
+      return row.session_id === start.session_id &&
+        at !== null && at < startAt &&
+        (measurementStartAt === null || at >= measurementStartAt)
+    })
+    const sessionOwners = new Set(events
+      .filter((row) => row.session_id === start.session_id && typeof row.user_id === 'string' && row.user_id)
+      .map((row) => row.user_id))
+    if (sessionOwners.size !== 1 || !sessionOwners.has(start.user_id)) {
+      return { witness: 'identity_conflict', clickAt: null }
+    }
+    const clicks = sessionRows
+      .filter((row) => row.name === path.events.activation && matchesBusinessPilotStage(row, path, 'activation'))
+      .sort((left, right) => timestamp(left) - timestamp(right))
+    const arrivals = sessionRows
+      .filter((row) =>
+        (row.name === path.events.viewed && matchesBusinessPilotStage(row, path, 'viewed')) ||
+        (row.name === path.events.responseReceived &&
+          matchesBusinessPilotStage(row, path, 'responseReceived') &&
+          metadataString(row, 'decision') === 'approve_limited_evaluation'))
+      .sort((left, right) => timestamp(left) - timestamp(right))
+    const pricingViews = sessionRows
+      .filter((row) => row.name === path.events.pricingView && metadataString(row, 'source') === path.intentCampaign)
+      .sort((left, right) => timestamp(left) - timestamp(right))
+    const ordered = arrivals.flatMap((arrival) => clicks
+      .filter((click) => timestamp(click) > timestamp(arrival))
+      .flatMap((click) => pricingViews
+        .filter((view) => timestamp(view) > timestamp(click))
+        .map((view) => ({ arrival, click, view }))))[0]
+    if (!ordered) return { witness: null, clickAt: null }
+    return {
+      witness: ordered.arrival.name === path.events.responseReceived
+        ? 'prior_exact_response_received_then_click_then_pricing_view_same_browser_session'
+        : 'prior_exact_pilot_received_then_click_then_pricing_view_same_browser_session',
+      clickAt: timestamp(ordered.click),
+    }
+  }
   const candidates = events.filter((row) => {
     const at = timestamp(row)
     const measurementStartAt = path.measurementStartsAt ? Date.parse(path.measurementStartsAt) : null
@@ -555,13 +659,16 @@ export function buildB2bSubscriptionTruthReport({ generatedAt, windowStart, even
   const paths = Object.fromEntries(Object.entries(B2B_ATTRIBUTABLE_PATHS).map(([pathKey, path]) => {
     const pathJourneys = journeys.filter((journey) => journey.pathKey === pathKey)
     const paid = pathJourneys.filter((journey) => journey.paid)
+    const isPilotPath = path.stageAttribution === 'exact_business_pilot_contract'
     const stagePredicate = path.stageAttribution === 'exact_intent_campaign'
       ? (row) => metadataString(row, 'intent_campaign') === path.intentCampaign
       : path.stageAttribution === 'exact_pricing_source'
         ? (row) => metadataString(row, 'source') === path.intentCampaign
-        : () => true
+        : isPilotPath
+          ? (row) => matchesBusinessPilotBase(row, path)
+          : () => true
     const pathStagePredicate = (row) => {
-      if (!stagePredicate(row)) return false
+      if (isPilotPath ? !matchesBusinessPilotStage(row, path, 'viewed') : !stagePredicate(row)) return false
       if (row?.name === path.events.viewed && !matchesExactAgencyHeaderStudioClick(row, path)) return false
       if (!path.measurementStartsAt) return true
       const at = timestamp(row)
@@ -586,6 +693,20 @@ export function buildB2bSubscriptionTruthReport({ generatedAt, windowStart, even
       stages: {
         viewed,
         generated,
+        pageViewed: summarizeStage(
+          windowEvents,
+          path.diagnosticEvents?.pageView,
+          path.eventVersion,
+          identity,
+          isPilotPath ? (row) => matchesBusinessPilotStage(row, path, 'pageViewed') : stagePredicate,
+        ),
+        built: summarizeStage(
+          windowEvents,
+          path.events.built,
+          path.eventVersion,
+          identity,
+          isPilotPath ? (row) => matchesBusinessPilotStage(row, path, 'built') : stagePredicate,
+        ),
         signInDiagnostic: summarizeStage(
           windowEvents,
           path.diagnosticEvents?.signIn,
@@ -593,8 +714,48 @@ export function buildB2bSubscriptionTruthReport({ generatedAt, windowStart, even
           identity,
           (row) => matchesExactAgencyHeaderSignInClick(row, path) && pathStagePredicate(row),
         ),
-        copied: summarizeStage(windowEvents, path.events.copied, path.eventVersion, identity, stagePredicate),
-        activationChoice: summarizeStage(windowEvents, path.events.activation, path.eventVersion, identity, stagePredicate),
+        copied: summarizeStage(
+          windowEvents,
+          path.events.copied,
+          path.eventVersion,
+          identity,
+          isPilotPath ? (row) => matchesBusinessPilotStage(row, path, 'copied') : stagePredicate,
+        ),
+        activationChoice: summarizeStage(
+          windowEvents,
+          path.events.activation,
+          path.eventVersion,
+          identity,
+          isPilotPath ? (row) => matchesBusinessPilotStage(row, path, 'activation') : stagePredicate,
+        ),
+        pricingViewed: summarizeStage(
+          windowEvents,
+          path.events.pricingView,
+          null,
+          identity,
+          (row) => metadataString(row, 'source') === path.intentCampaign,
+        ),
+        decisionRecorded: summarizeStage(
+          windowEvents,
+          path.events.decision,
+          path.eventVersion,
+          identity,
+          isPilotPath ? (row) => matchesBusinessPilotStage(row, path, 'decision') : stagePredicate,
+        ),
+        responsePrepared: summarizeStage(
+          windowEvents,
+          path.events.response,
+          path.eventVersion,
+          identity,
+          isPilotPath ? (row) => matchesBusinessPilotStage(row, path, 'response') : stagePredicate,
+        ),
+        responseReceived: summarizeStage(
+          windowEvents,
+          path.events.responseReceived,
+          path.eventVersion,
+          identity,
+          isPilotPath ? (row) => matchesBusinessPilotStage(row, path, 'responseReceived') : stagePredicate,
+        ),
         oneTimePackChoice: summarizeStage(windowEvents, path.events.packChoice, path.eventVersion, identity, stagePredicate),
       },
       subscription: {

@@ -41,9 +41,9 @@ const BASE = 'https://www.usekineo.com'
 // KINEO-SEARCH-INTENT-2026-08-28 — advanced because the comparison cluster
 // gained two real URLs (StoryShort and ShortsPilot) and the 13-tool roundup
 // was materially refreshed from production Search Console demand.
-// KINEO-B2B-VENDOR-EVALUATION-2026-09-03 — advanced because the public
-// acquisition cluster gained a new procurement worksheet URL.
-const LAST_MODIFIED = new Date('2026-09-03T07:27:36.555Z')
+// KINEO-B2B-PILOT-REVIEW-2026-09-03 — advanced because the public acquisition
+// cluster gained a factual internal-evaluation handoff for business buyers.
+const LAST_MODIFIED = new Date('2026-09-03T10:30:00.000Z')
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const routes: { path: string; priority: number; freq: 'daily' | 'weekly' | 'monthly' }[] = [
@@ -70,6 +70,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: '/product-to-video-script', priority: 0.8, freq: 'weekly' },
     { path: '/business-video-content-plan', priority: 0.8, freq: 'weekly' },
     { path: '/client-video-brief-generator', priority: 0.9, freq: 'weekly' },
+    { path: '/business-pilot-review', priority: 0.8, freq: 'weekly' },
     { path: '/real-estate-video-maker', priority: 0.8, freq: 'weekly' },
     { path: '/free-hook-generator', priority: 0.8, freq: 'weekly' },
     { path: '/youtube-shorts-title-generator', priority: 0.8, freq: 'weekly' },

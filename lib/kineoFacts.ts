@@ -778,6 +778,16 @@ export const ANSWER_ENGINE_HOOK_START_FACT: AnswerEngineHookStartFact = {
  */
 export const FREE_TOOL_FACTS: FreeToolFact[] = [
   {
+    name: 'Free internal AI video pilot decision note',
+    url: BASE + '/business-pilot-review',
+    output: 'text',
+    requiresAccount: false,
+    requiresCard: false,
+    requiresEmail: false,
+    rateLimit: null,
+    what: 'Choose a use case, publishing cadence and reviewer to build a factual internal note, then exchange a closed approve, change or not-now response. It does not collect company details, create a contract, promise ROI or render a video.',
+  },
+  {
     name: 'Free client Short video brief generator',
     url: `${BASE}/client-video-brief-generator`,
     output: 'text',

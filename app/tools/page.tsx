@@ -31,6 +31,11 @@ type ToolMeta = {
 }
 
 const TOOL_META: Record<string, ToolMeta> = {
+  '/business-pilot-review': {
+    eyebrow: 'Start with an internal decision',
+    prompt: 'I need an internal decision on Kineo',
+    cta: 'Build the decision note',
+  },
   '/client-video-brief-generator': {
     eyebrow: 'Start with a client request',
     prompt: 'I need an approvable Short brief',
@@ -108,6 +113,7 @@ const TOOL_ORDER = [
   '/business-video-content-plan',
   '/shorts-money-calculator',
   '/cheapest-ai-shorts-maker',
+  '/business-pilot-review',
 ] as const
 
 function pathFromUrl(url: string): string {

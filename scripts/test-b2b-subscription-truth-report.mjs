@@ -10,6 +10,7 @@ import {
   B2B_ANSWER_ROUTER_MEASUREMENT_START,
   B2B_ANSWER_ROUTER_MIN_OBSERVATION_DAYS,
   B2B_ANSWER_ROUTER_MIN_VIEWED_PEOPLE,
+  B2B_PILOT_REVIEW_MEASUREMENT_START,
   B2B_PROPOSAL_ASSIST_LOOKBACK_DAYS,
   B2B_SUBSCRIPTION_EVENT_NAMES,
   B2B_SUBSCRIPTION_TRUTH_REPORT_VERSION,
@@ -75,6 +76,7 @@ const localPath = B2B_ATTRIBUTABLE_PATHS.local_business_brief
 const productPath = B2B_ATTRIBUTABLE_PATHS.product_to_short
 const realEstatePath = B2B_ATTRIBUTABLE_PATHS.real_estate_video
 const answerRouterRecurringPath = B2B_ATTRIBUTABLE_PATHS.business_answer_router_recurring
+const pilotReviewPath = B2B_ATTRIBUTABLE_PATHS.business_pilot_review_recurring
 const agencyHeaderPath = B2B_ATTRIBUTABLE_PATHS.agency_header_recurring
 const local = B2B_ASSIST_SURFACES.local_business_brief
 const agency = B2B_ASSIST_SURFACES.agency_margin_proposal
@@ -631,5 +633,268 @@ equal(B2B_AGENCY_HEADER_MEASUREMENT_START, '2026-09-03T05:00:00.000Z', 'agency h
 check(answerRouterSource.includes(`'${answerRouterRecurringPath.intentCampaign}'`), 'recurring campaign comes from the canonical business answer router')
 check(llmsSource.includes('BUSINESS_ANSWER_ENGINE_ROUTER.choices.map'), 'llms text executes every canonical business destination')
 check(llmsSource.includes('BUSINESS_ANSWER_ENGINE_ROUTER.boundaries.map'), 'llms text publishes the no-enterprise boundaries from the canonical router')
+const pilotBase = Date.parse(B2B_PILOT_REVIEW_MEASUREMENT_START)
+const pilotAt = (minute) => new Date(pilotBase + minute * 60_000).toISOString()
+const pilotProfiles = [
+  profile('pilot_buyer', 'pilot-buyer@example.com'),
+  profile('pilot_other', 'pilot-other@example.com'),
+  profile('internal', 'josephsskaf@gmail.com'),
+]
+const pilotEvents = [
+  {
+    id: 'pilot-page',
+    name: pilotReviewPath.diagnosticEvents.pageView,
+    user_id: 'pilot_buyer',
+    session_id: 'pilot_browser',
+    created_at: pilotAt(0.5),
+    metadata: { source: pilotReviewPath.intentCampaign, variant: 'business_pilot_review_v1', use_case: 'client_work', cadence: 'weekly', reviewer: 'client_approver', entry: 'review' },
+  },
+  {
+    id: 'pilot-share',
+    name: pilotReviewPath.events.copied,
+    user_id: 'pilot_buyer',
+    session_id: 'pilot_browser',
+    created_at: pilotAt(1),
+    metadata: { source: pilotReviewPath.intentCampaign, variant: 'business_pilot_review_v1', use_case: 'client_work', cadence: 'weekly', reviewer: 'client_approver', method: 'clipboard' },
+  },
+  {
+    id: 'pilot-received',
+    name: pilotReviewPath.events.viewed,
+    user_id: 'pilot_buyer',
+    session_id: 'pilot_browser',
+    created_at: pilotAt(2),
+    metadata: { source: pilotReviewPath.intentCampaign, variant: 'business_pilot_review_v1', use_case: 'client_work', cadence: 'weekly', reviewer: 'client_approver', entry: 'review' },
+  },
+  {
+    id: 'pilot-decision',
+    name: pilotReviewPath.events.decision,
+    user_id: 'pilot_buyer',
+    session_id: 'pilot_browser',
+    created_at: pilotAt(3),
+    metadata: { source: pilotReviewPath.intentCampaign, variant: 'business_pilot_review_v1', use_case: 'client_work', cadence: 'weekly', reviewer: 'client_approver', decision: 'approve_limited_evaluation' },
+  },
+  {
+    id: 'pilot-response',
+    name: pilotReviewPath.events.response,
+    user_id: 'pilot_buyer',
+    session_id: 'pilot_browser',
+    created_at: pilotAt(4),
+    metadata: { source: pilotReviewPath.intentCampaign, variant: 'business_pilot_review_v1', use_case: 'client_work', cadence: 'weekly', reviewer: 'client_approver', decision: 'approve_limited_evaluation', method: 'native' },
+  },
+  {
+    id: 'pilot-click',
+    name: pilotReviewPath.events.activation,
+    user_id: 'pilot_buyer',
+    session_id: 'pilot_browser',
+    created_at: pilotAt(5),
+    metadata: { source: pilotReviewPath.intentCampaign, variant: 'business_pilot_review_v1', use_case: 'client_work', cadence: 'weekly', reviewer: 'client_approver', destination: 'pricing', entry: 'review', decision: 'approve_limited_evaluation', arrival_persistence: 'stored', decision_persistence: 'stored' },
+  },
+  {
+    id: 'pilot-pricing-view',
+    name: pilotReviewPath.events.pricingView,
+    user_id: 'pilot_buyer',
+    session_id: 'pilot_browser',
+    created_at: pilotAt(6),
+    metadata: { source: pilotReviewPath.intentCampaign },
+  },
+  {
+    id: 'pilot-start',
+    name: 'checkout_started',
+    user_id: 'pilot_buyer',
+    session_id: 'pilot_browser',
+    created_at: pilotAt(7),
+    metadata: { tier: 'starter', billing: 'monthly', intent_campaign: pilotReviewPath.intentCampaign, stripe_session_id: 'cs_pilot_review' },
+  },
+  {
+    id: 'pilot-paid',
+    name: 'payment_success',
+    user_id: 'pilot_buyer',
+    session_id: null,
+    created_at: pilotAt(8),
+    metadata: { checkout_mode: 'subscription', stripe_session_id: 'cs_pilot_review', amount_total: 700, currency: 'usd' },
+  },
+  {
+    id: 'pilot-internal',
+    name: pilotReviewPath.events.viewed,
+    user_id: 'internal',
+    session_id: 'internal_browser',
+    created_at: pilotAt(9),
+    metadata: { source: pilotReviewPath.intentCampaign, variant: 'business_pilot_review_v1', use_case: 'client_work', cadence: 'weekly', reviewer: 'client_approver', entry: 'review' },
+  },
+]
+const pilotReport = buildB2bSubscriptionTruthReport({
+  generatedAt: pilotAt(8 * 24 * 60),
+  windowStart: B2B_PILOT_REVIEW_MEASUREMENT_START,
+  events: pilotEvents,
+  profiles: pilotProfiles,
+})
+equal(pilotReport.paths.business_pilot_review_recurring.stages.copied.identifiedExternalPeople, 1, 'pilot note counts one external prepared handoff')
+equal(pilotReport.paths.business_pilot_review_recurring.stages.pageViewed.identifiedExternalPeople, 1, 'pilot path exposes a separate page-view diagnostic')
+equal(pilotReport.paths.business_pilot_review_recurring.stages.activationChoice.identifiedExternalPeople, 1, 'pilot note counts one external pricing clicker')
+equal(pilotReport.paths.business_pilot_review_recurring.stages.viewed.identifiedExternalPeople, 1, 'pilot gate counts the exact recipient, not a pricing view')
+equal(pilotReport.paths.business_pilot_review_recurring.stages.viewed.internalEventRows, 1, 'pilot path discloses and excludes internal views')
+equal(pilotReport.paths.business_pilot_review_recurring.stages.decisionRecorded.identifiedExternalPeople, 1, 'pilot path counts one closed reviewer decision')
+equal(pilotReport.paths.business_pilot_review_recurring.stages.responsePrepared.identifiedExternalPeople, 1, 'pilot path counts a prepared response without claiming delivery')
+equal(pilotReport.paths.business_pilot_review_recurring.stages.pricingViewed.identifiedExternalPeople, 1, 'pilot path keeps the exact pricing view as a later stage')
+equal(pilotReport.paths.business_pilot_review_recurring.subscription.identifiedExternalPeople, 1, 'pilot path counts one exact recurring buyer')
+equal(pilotReport.paths.business_pilot_review_recurring.subscription.exactPaidPeople, 1, 'pilot payment matches the same Stripe Session')
+equal(pilotReport.journeys[0]?.entryViewWitness, 'prior_exact_pilot_received_then_click_then_pricing_view_same_browser_session', 'pilot journey requires ordered recipient arrival, click and pricing view in the checkout browser')
+
+const responseReturnEvents = [
+  {
+    id: 'response-arrival',
+    name: pilotReviewPath.events.responseReceived,
+    user_id: 'pilot_buyer',
+    session_id: 'response_browser',
+    created_at: pilotAt(20),
+    metadata: { source: pilotReviewPath.intentCampaign, variant: 'business_pilot_review_v1', use_case: 'client_work', cadence: 'weekly', reviewer: 'client_approver', entry: 'response', decision: 'approve_limited_evaluation' },
+  },
+  {
+    id: 'response-click',
+    name: pilotReviewPath.events.activation,
+    user_id: 'pilot_buyer',
+    session_id: 'response_browser',
+    created_at: pilotAt(21),
+    metadata: { source: pilotReviewPath.intentCampaign, variant: 'business_pilot_review_v1', use_case: 'client_work', cadence: 'weekly', reviewer: 'client_approver', destination: 'pricing', entry: 'response', decision: 'approve_limited_evaluation', arrival_persistence: 'stored', decision_persistence: 'not_applicable' },
+  },
+  {
+    id: 'response-pricing',
+    name: pilotReviewPath.events.pricingView,
+    user_id: 'pilot_buyer',
+    session_id: 'response_browser',
+    created_at: pilotAt(22),
+    metadata: { source: pilotReviewPath.intentCampaign },
+  },
+  {
+    id: 'response-start',
+    name: 'checkout_started',
+    user_id: 'pilot_buyer',
+    session_id: 'response_browser',
+    created_at: pilotAt(23),
+    metadata: { tier: 'starter', billing: 'monthly', intent_campaign: pilotReviewPath.intentCampaign, stripe_session_id: 'cs_response_return' },
+  },
+  {
+    id: 'response-paid',
+    name: 'payment_success',
+    user_id: 'pilot_buyer',
+    session_id: null,
+    created_at: pilotAt(24),
+    metadata: { checkout_mode: 'subscription', stripe_session_id: 'cs_response_return', amount_total: 700, currency: 'usd' },
+  },
+]
+const responseReturnReport = buildB2bSubscriptionTruthReport({
+  generatedAt: pilotAt(8 * 24 * 60),
+  windowStart: B2B_PILOT_REVIEW_MEASUREMENT_START,
+  events: responseReturnEvents,
+  profiles: pilotProfiles,
+})
+equal(responseReturnReport.paths.business_pilot_review_recurring.subscription.exactPaidPeople, 1, 'approved returned response can reach an exact paid subscription')
+equal(responseReturnReport.journeys[0]?.entryViewWitness, 'prior_exact_response_received_then_click_then_pricing_view_same_browser_session', 'returned approval has its own exact entry witness')
+
+for (const rejectedDecision of ['needs_changes', 'not_now']) {
+  const rejectedResponse = buildB2bSubscriptionTruthReport({
+    generatedAt: pilotAt(8 * 24 * 60),
+    windowStart: B2B_PILOT_REVIEW_MEASUREMENT_START,
+    profiles: pilotProfiles,
+    events: responseReturnEvents.map((row) => {
+      if (!['response-arrival', 'response-click'].includes(row.id)) return row
+      return { ...row, metadata: { ...row.metadata, decision: rejectedDecision } }
+    }),
+  })
+  equal(rejectedResponse.paths.business_pilot_review_recurring.subscription.stripeSessions, 0, rejectedDecision + ' returned response cannot claim a subscription')
+}
+
+const invalidPilotEvents = pilotEvents.filter((row) => !['pilot-click', 'pilot-start', 'pilot-paid'].includes(row.id))
+invalidPilotEvents.push({
+  id: 'pilot-direct-start',
+  name: 'checkout_started',
+  user_id: 'pilot_buyer',
+  session_id: 'pilot_browser',
+  created_at: pilotAt(7),
+  metadata: { tier: 'starter', billing: 'monthly', intent_campaign: pilotReviewPath.intentCampaign, stripe_session_id: 'cs_direct_pilot' },
+})
+const directPilotReport = buildB2bSubscriptionTruthReport({
+  generatedAt: pilotAt(8 * 24 * 60),
+  windowStart: B2B_PILOT_REVIEW_MEASUREMENT_START,
+  events: invalidPilotEvents,
+  profiles: pilotProfiles,
+})
+equal(directPilotReport.paths.business_pilot_review_recurring.subscription.stripeSessions, 0, 'direct marked pricing URL without the exact click cannot claim the decision bridge')
+
+const noArrivalPilotReport = buildB2bSubscriptionTruthReport({
+  generatedAt: pilotAt(8 * 24 * 60),
+  windowStart: B2B_PILOT_REVIEW_MEASUREMENT_START,
+  profiles: pilotProfiles,
+  events: pilotEvents.filter((row) => ['pilot-click', 'pilot-pricing-view', 'pilot-start'].includes(row.id)),
+})
+equal(noArrivalPilotReport.paths.business_pilot_review_recurring.subscription.stripeSessions, 0, 'builder click without a received handoff cannot claim the decision bridge')
+
+const reversedPilotReport = buildB2bSubscriptionTruthReport({
+  generatedAt: pilotAt(8 * 24 * 60),
+  windowStart: B2B_PILOT_REVIEW_MEASUREMENT_START,
+  profiles: pilotProfiles,
+  events: pilotEvents
+    .filter((row) => ['pilot-received', 'pilot-click', 'pilot-pricing-view', 'pilot-start'].includes(row.id))
+    .map((row) => row.id === 'pilot-click' ? { ...row, created_at: pilotAt(6.5) } : row),
+})
+equal(reversedPilotReport.paths.business_pilot_review_recurring.subscription.stripeSessions, 0, 'pricing view before the decision click fails closed')
+
+const otherSessionPilotReport = buildB2bSubscriptionTruthReport({
+  generatedAt: pilotAt(8 * 24 * 60),
+  windowStart: B2B_PILOT_REVIEW_MEASUREMENT_START,
+  profiles: pilotProfiles,
+  events: pilotEvents
+    .filter((row) => ['pilot-received', 'pilot-click', 'pilot-pricing-view', 'pilot-start'].includes(row.id))
+    .map((row) => row.id === 'pilot-click' ? { ...row, session_id: 'other_browser' } : row),
+})
+equal(otherSessionPilotReport.paths.business_pilot_review_recurring.subscription.stripeSessions, 0, 'click from another browser session fails closed')
+
+const otherOwnerPilotReport = buildB2bSubscriptionTruthReport({
+  generatedAt: pilotAt(8 * 24 * 60),
+  windowStart: B2B_PILOT_REVIEW_MEASUREMENT_START,
+  profiles: pilotProfiles,
+  events: pilotEvents
+    .filter((row) => ['pilot-received', 'pilot-click', 'pilot-pricing-view', 'pilot-start'].includes(row.id))
+    .map((row) => row.id === 'pilot-click' ? { ...row, user_id: 'pilot_other' } : row),
+})
+equal(otherOwnerPilotReport.paths.business_pilot_review_recurring.subscription.stripeSessions, 0, 'click from another identified owner fails closed')
+equal(otherOwnerPilotReport.quality.subscriptionStartsWithConflictingEntryViewIdentity, 1, 'pilot owner conflict is disclosed')
+
+const invalidPilotStages = buildB2bSubscriptionTruthReport({
+  generatedAt: pilotAt(8 * 24 * 60),
+  windowStart: B2B_PILOT_REVIEW_MEASUREMENT_START,
+  profiles: pilotProfiles,
+  events: [
+    { ...pilotEvents.find((row) => row.id === 'pilot-share'), id: 'bad-method', metadata: { ...pilotEvents.find((row) => row.id === 'pilot-share').metadata, method: 'imagined' } },
+    { ...pilotEvents.find((row) => row.id === 'pilot-received'), id: 'bad-variant', metadata: { ...pilotEvents.find((row) => row.id === 'pilot-received').metadata, variant: 'forged' } },
+    { ...pilotEvents.find((row) => row.id === 'pilot-decision'), id: 'bad-decision', metadata: { ...pilotEvents.find((row) => row.id === 'pilot-decision').metadata, decision: 'ship_it' } },
+    { ...pilotEvents.find((row) => row.id === 'pilot-click'), id: 'bad-destination', metadata: { ...pilotEvents.find((row) => row.id === 'pilot-click').metadata, destination: 'checkout' } },
+  ],
+})
+equal(invalidPilotStages.paths.business_pilot_review_recurring.stages.copied.eventRows, 0, 'invalid preparation method fails closed')
+equal(invalidPilotStages.paths.business_pilot_review_recurring.stages.viewed.eventRows, 0, 'invalid recipient variant fails closed')
+equal(invalidPilotStages.paths.business_pilot_review_recurring.stages.decisionRecorded.eventRows, 0, 'invalid decision fails closed')
+equal(invalidPilotStages.paths.business_pilot_review_recurring.stages.activationChoice.eventRows, 0, 'invalid pricing destination fails closed')
+
+for (const [field, value, label] of [
+  ['decision', 'not_now', 'not-now decision'],
+  ['decision', 'needs_changes', 'needs-changes decision'],
+  ['decision', null, 'missing decision'],
+  ['entry', 'builder', 'builder entry'],
+  ['arrival_persistence', 'timeout', 'unconfirmed arrival'],
+  ['decision_persistence', 'timeout', 'unconfirmed reviewer decision'],
+]) {
+  const click = pilotEvents.find((row) => row.id === 'pilot-click')
+  const metadata = { ...click.metadata }
+  if (value === null) delete metadata[field]
+  else metadata[field] = value
+  const reportWithInvalidClick = buildB2bSubscriptionTruthReport({
+    generatedAt: pilotAt(8 * 24 * 60),
+    windowStart: B2B_PILOT_REVIEW_MEASUREMENT_START,
+    profiles: pilotProfiles,
+    events: pilotEvents.map((row) => row.id === 'pilot-click' ? { ...row, metadata } : row),
+  })
+  equal(reportWithInvalidClick.paths.business_pilot_review_recurring.subscription.stripeSessions, 0, label + ' cannot claim the bridge')
+}
 
 console.log(`b2b subscription truth: ${checks}/${checks}`)
