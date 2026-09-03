@@ -578,3 +578,207 @@ A1/A3). Medição, decisão do piso de palavras, conserto dos dois testes vizinh
 que a frase nova quebrou, diário e entrega em Opus.
 
 **SHA.** `fb0ee654`. Worktree: `C:\kineo-wt\a3-serie-episodio`.
+
+---
+
+### #5 — 17:15→18:50 BRT — "seus créditos voltam em uma hora" era VERDADE, e matou 10 pessoas. Nenhuma delas voltou; 8 nunca viram um filme da Kineo na vida.
+
+**Placar (SQL canônico, marco zero 03/09 16:00 UTC, externos, medido 21:27 UTC):**
+
+| métrica | valor |
+|---|---:|
+| cadastros pós-marco (5h30 de vida) | 8 |
+| pessoas com filme pós-marco | 5 (**63%**) |
+| checkout de **desejo** (tem filme) | 1 |
+| checkout **sem filme** (a classe de defeito) | 1 |
+| assinaturas pós-marco | 0 |
+| pessoas com falha e nenhum filme | 0 |
+| `script_duration_autofit_down` (o #1 em produção) | 0 |
+| `narration_guard_blocked` (o que o #1 mata) | **0** |
+| vídeos completos 24h | 35 |
+
+**A entrega de #1→#4 subiu.** `origin/main` = `78cbf7c3` — o fundador clicou. O
+gate de narração, o guarda de cobrança, o parser de roteiro de cinema e a
+semente de série estão em produção desde ~17h BRT.
+
+**Checagem zero (1h):** 3 cadastros, 0 sem crédito, 0 `generation_stage_error`,
+0 `narration_guard_blocked`, 0 evento de erro de qualquer nome, 2 vídeos
+entregues. Nada quebrado.
+
+**A jogada do cardápio (A4) morreu na medição — e isso é resultado.** O plano
+diz "110 renders de 87 pessoas com compose submetido e sem linha em `videos`,
+100% fora da janela de 20h; subir para 72h". Medi antes de codar, com o join
+apertado (`videos.render_id`, que está preenchido em **1.535 de 1.535** vídeos
+completos, então o join é sólido):
+
+| janela | órfãos (30d) |
+|---|---:|
+| < 20h (dentro da janela do cron) | **0** |
+| 20h – 72h (o que o A4 ganharia) | **1** |
+| > 72h (não recuperável por janela nenhuma) | 52 |
+
+E por dia: 05→24/08 = 52 órfãos; **25/08 → hoje = 1**. O resgate do Kineo 1
+(fase 3, criada em 20/08) fechou a torneira. Subir a janela para 72h renderia
+**um filme por mês**. Os 110 do plano são backlog histórico, não fluxo — e
+filmes de agosto já não existem mais na Creatomate. **A4 fica registrada como
+FEITA-POR-MEDIÇÃO: não se constrói.** O que sobra do backlog é um clique, não
+código: a rota `/api/admin/rescue-composed-films` (#18) segue com 0 execuções.
+
+**Onde a medição me levou.** Decompus as 96 pessoas de 7 dias que se cadastraram
+e nunca viram um filme:
+
+| onde morreram | pessoas |
+|---|---:|
+| abriram o Studio e **nunca submeteram** | ~66 |
+| submeteram e não receberam nada | **16** |
+| — dessas 16: barradas pelo **gate de narração** | **7** ← o #1 de hoje resolve |
+| — dessas 16: barradas pelo **crédito preso** | **3** ← esta rodada |
+| — resto (analyze falhou, prompt longo, stranded) | 6 |
+
+Das 7 do gate, as coberturas eram 94%, 84%, 77%, 71%, 67%, 66%, 60% — todas
+acima do corte de 60% do #1. Só a de 3s/35s continua (corretamente) recusada.
+**O crédito preso é a segunda causa, e ninguém tinha olhado para ela.**
+
+**O que estava errado (medido).** `compose_refused` com
+`reason='credits_held_by_render'`, externos, 17/08 → 02/09:
+
+| | |
+|---|---:|
+| recusas | **16** |
+| pessoas | **10** |
+| viraram filme em 24h | **0** |
+| nunca viram um filme da Kineo na vida | **8 de 10** |
+| débitos que seguravam e foram estornados depois | **16 de 16** |
+| no Seedance 1.5 | 15 de 16 |
+
+A frase que essas 10 pessoas leram:
+
+> *"A video you already started is still holding N credits. If it doesn't
+> finish, they come back automatically within the hour — your trial is still
+> running."*
+
+Ela é **verdadeira**: os 16 créditos voltaram, todos. E é inútil: ninguém espera
+uma hora por um produto que acabou de dizer não. Ferruxezimzade levou a mesma
+parede **cinco vezes em 84 segundos** (10:02:54 · 10:03:53 · 10:04:15 ·
+10:04:37 · 10:05:17) e nunca mais voltou.
+
+**A descoberta que mudou a jogada.** A idade do débito que segurava o crédito,
+no instante exato da recusa, em minutos:
+
+    0  0  1  1  2  2  2  3  3  4        → 10 casos abaixo de 5 minutos
+    10 20 40 74                          → 4 casos mais velhos
+
+Um render cinematográfico leva 3-6 minutos. **Em 13 dos 16 o render não estava
+morto — estava no forno.** A pessoa clicou "gerar" de novo porque a tela não
+disse que já havia um filme sendo feito, e recebeu de volta um erro de saldo com
+cara de paywall. Aí ela fecha a aba. E o render, que dependia do poller da aba
+para compor, morre de verdade. **A recusa fabricava exatamente o órfão que ela
+alegava estar protegendo.**
+
+**O que mudou (arquivos).**
+- `lib/credits/heldRender.ts` (**novo**, 74 linhas): a decisão pura, fora da
+  rota, com os 16 casos de produção documentados no cabeçalho. `classifyHold()`
+  separa **filme no forno** (débito com menos de 12 min) de **render velho**.
+  Os 12 minutos não são chute: são o `MIN_AGE_MS` do próprio cron de resgate —
+  abaixo disso nem o servidor considera que vale tocar no render. `explainsGap`
+  **não foi afrouxado**: o crédito preso só desculpa a recusa quando, de volta,
+  fecharia a conta. Idade indatável NUNCA vira "no forno" (o sentido da falha
+  importa: prometer um filme que não vem é pior que a frase antiga).
+- `lib/credits/refund.ts` (+23/−3): `sweepAbandonedCinematicDebits` passa a
+  aceitar `opts.userId`/`limit`. É um **estreitamento** da consulta de
+  candidatos e nada mais — mesmo `CINEMATIC_ABANDON_CUTOFF_MS` (100 min), mesma
+  cadeia de prova de não-entrega, mesmo estorno idempotente, mesmo
+  `releaseCinematicClaim`. Sem `opts`, byte-a-byte o comportamento do cron
+  horário, que continua o dono do caso geral.
+- `app/api/generate-video-cinematic/route.ts` (+190/−16): **o estorno vem ANTES
+  da recusa.** Quando o crédito preso é o que fecha a conta, a rota chama a
+  varredura escopada nesta pessoa, relê o saldo (só sobe, nunca desce) e o filme
+  sai **no mesmo clique**. Quando não dá para estornar, a recusa continua — com
+  a frase certa: *"Your film from 3 minutes ago is still being made — it is
+  holding 19 credits until it lands. You do not need to start it again: it shows
+  up in your library on its own, and we email you the link if you close this
+  tab."* Sem preço, sem plano, sem prazo inventado.
+- `scripts/test-credito-preso.mjs` (**novo**, 200 linhas): **115 verificações,
+  0 falhas**, compilando o módulo real e batendo nele com os **16 casos de
+  produção um por um**, com nome e data.
+
+**A não-regressão que quase passou batido.** Minha primeira versão criava um
+`reason` novo (`render_in_flight`). Isso teria sido uma regressão vestida de
+melhoria: `GenerateClient.tsx` tem, desde o sprint-v1v4 #33, uma **sala de
+espera** ligada a `reason === 'credits_held_by_render'` — sem caixa de planos,
+com rechecagem de saldo, exibindo o texto do servidor. Um `reason` novo jogaria
+o caso **mais comum** (13 dos 16) no painel vermelho genérico, que ainda diz
+*"your credits have been returned - you can retry safely"* — a mentira exata que
+o #33 foi criado para matar. **O `reason` de fio não muda.** A frase nova entra
+sozinha na sala de espera (ela exibe `data.error`), sem o Codex tocar em uma
+linha. A distinção viaja em `holdState`/`inFlight`, campos aditivos. Três
+verificações do teste guardam isso, uma delas lendo o `GenerateClient` real.
+
+**Por que isto é dinheiro.** 10 pessoas por mês, 8 delas sem nunca ter visto um
+filme da Kineo, e 15 das 16 recusas no Seedance 1.5 — um dos dois motores de
+100% das primeiras impressões (memória de 02/09). E é a segunda maior causa de
+"submeteu e não recebeu nada" nos últimos 7 dias, atrás só do gate que o #1
+acabou de consertar.
+
+**Decisões que tomei sozinha** (autonomia; reversíveis):
+1. **A régua é 12 minutos**, emprestada do `MIN_AGE_MS` do cron de resgate, não
+   inventada. Ela cobre 13 dos 16 casos medidos. Reverter a frase nova inteira:
+   `HOLD_IN_FLIGHT_MAX_AGE_MS = 0` em `lib/credits/heldRender.ts`.
+2. **O estorno ao vivo usa o cutoff do cron SEM AFROUXAR** (100 min). Isso
+   significa que ele quase nunca vai disparar — dos 16 casos, só o de 74 min
+   chegaria perto. Escolhi assim de propósito: afrouxar a prova de morte para
+   estornar mais cedo arriscaria devolver crédito de um render vivo, e o valor
+   da rodada está na frase, não no estorno. O estorno é o caminho de saída digna
+   para o caso velho. Reverter: tirar a chamada `releaseHeldCreditsNow`.
+3. **Não inventei `reason` novo** (ver acima). Reverter seria justamente o erro.
+4. **A4 não foi construída.** A medição diz 1 filme/mês. Registro aqui para a
+   próxima rodada não gastar tempo com ela de novo.
+
+**Risco.** Baixo, e do lado certo em duas frentes. (a) O estorno ao vivo é a
+mesma função do cron, com a mesma prova — não há caminho novo pelo qual crédito
+volte sem abandono provado; o pior caso é ele não disparar. (b) A frase nova só
+troca texto dentro de uma tela que já existia. O risco real que sobra é o
+oposto do de hoje: alguém com um render **travado** (não no forno) abaixo de 12
+minutos leria "está sendo feito" e esperaria. Custo: alguns minutos de espera,
+contra a parede de hoje. E o resgate do cron pega esse caso em 12 min.
+
+**Testes vizinhos.** Verdes: `test-billing-drift` (86), `test-narracao-degrau`
+(746), `test-out-of-credits-plans` (65). **Já vermelhos em `origin/main` antes
+desta rodada** (conferido com `git stash` no `78cbf7c3` — não são desta jogada):
+`test-credits-held-waitroom` (procura o literal antigo; o `GenerateClient`
+extraiu a condição para `const showGenericFailure`, o produto está certo),
+`test-stranded-email-dedupe`, `test-stranded-extra-attempt-4xx`. Somam-se às 7
+dívidas de teste anotadas no #4. `npx tsc --noEmit` limpo.
+
+**Como medir (contra o marco zero, 03/09 16:00 UTC).**
+
+```sql
+select count(*) filter (where name='credits_held_release_attempted') as tentativas,
+       count(*) filter (where name='credits_held_release_attempted'
+                          and (metadata->>'unblocked')::boolean) as filme_saiu_no_clique,
+       count(*) filter (where name='compose_refused'
+                          and metadata->>'reason'='credits_held_by_render'
+                          and (metadata->>'hold_in_flight')::boolean) as avisados_do_forno,
+       count(distinct user_id) filter (where name='compose_refused'
+                          and metadata->>'reason'='credits_held_by_render') as pessoas
+from events where created_at > '2026-09-03 16:00:00+00';
+```
+
+Meta: dos que forem avisados do forno, **algum** aparecer com filme entregue nas
+2 horas seguintes — hoje esse número é 0 de 10. Sinal secundário: a pessoa
+parar de clicar 5 vezes em 84 segundos (recusas por pessoa caindo de 1,6 para
+~1).
+
+**Próximo item.** **D2 — a caixa vazia do pagante**, agora com um número maior
+do que o do plano: **66 das 96 pessoas de 7 dias que não viram filme abriram o
+Studio e nunca submeteram nada.** Não é render quebrado nem preço: é gente que
+chega e não tem o que escrever. A versão 100% fora da zona do Codex é o pouso:
+`videos_ok ≤ 1` cai em `/viral-now` (3 ideias prontas, 1 clique) em vez da caixa
+em branco. Antes de codar, medir quantos desses 66 chegaram a digitar alguma
+coisa (`analyze-idea` sem claim) — se a maioria digitou e desistiu, o problema é
+outro e a jogada muda.
+
+**Modelo.** Feita em Opus (A5 não é jogada de Fable pelo plano — Fable fica em
+A1/A3). Medição, código, teste, diário e entrega na mesma sessão.
+
+**SHA.** `796bf166`. Worktree: `C:\kineo-wt\a5-credito-preso`.
