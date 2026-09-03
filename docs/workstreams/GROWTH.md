@@ -16,6 +16,8 @@
 
 **REGRA ANTI-MESMICE:** antes de agir, classificar a mecânica e a superfície como `NOVA`, `PARCIAL` ou `DUPLICADA` contra os handoffs em gate. `DUPLICADA` não sobe. `PARCIAL` só sobe se acrescentar um mecanismo causal novo e mensurável, sem reiniciar o relógio de outro experimento. O portfólio alterna distribuição, ativação, retorno, oferta, checkout, afiliados e B2B; não transforma dez landings ou dez relatórios na aparência de dez estratégias.
 
+**REGRA DE AÇÃO DISTRIBUÍDA — 03/09/2026:** uma entrega só conta como ação de Growth quando alcança uma superfície com pessoas reais ou executa uma mudança operacional autorizada. Rota, landing, relatório, card ou artefato sem caller, distribuição ou denominador humano é preparação — não ação. Cada rodada deve terminar com uma destas saídas explícitas: `EXECUTADO`, `NÃO EXECUTAR` ou `PIVOTAR PARA`; se terminar em diagnóstico, a mesma rodada precisa nomear a ação desbloqueada, seu dono e o gate. Superfícies em amostragem ficam congeladas, e o próximo ataque muda de mecanismo ou estágio do funil.
+
 **REGRA DE QUEDA:** uma queda curta vira sinal operacional, não culpa automática do último deploy. Comparar janelas de relógio idênticas, pessoas externas e fonte antes de rollback. Confirmada a queda, a resposta deve reduzir a dependência encontrada ou corrigir a regressão provada — nunca apenas produzir outro painel.
 
 **FOCO DO CICLO ATUAL:** 50% B2C no caminho primeiro vídeo → valor percebido → Checkout recorrente → pagamento; 50% B2B no caminho descoberta → proposta/escopo → Checkout → pagamento. Contar pessoas externas distintas e reconciliar receita pela mesma Stripe Session.
