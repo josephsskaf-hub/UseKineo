@@ -398,7 +398,7 @@ filme por escolha e não por conserto — hoje elas fazem 2,45 porque o primeiro
 errado. Sinal secundário: `script_duration_autofit_down` deve APARECER nesse
 grupo (a fala real é bem menor que o botão), e é o comportamento certo.
 
-**SHA.** `SHA_AQUI` (enfileirado em `entrega-atual` sobre o #2 `aaa8f507`;
+**SHA.** `f316ef06` (enfileirado em `entrega-atual` sobre o #2 `aaa8f507`;
 aguardando o clique no SUBIR-SITE.bat). Worktree: `C:\kineo-wt\b2-preambulo`.
 
 **Próximo item.** **A3 — continuação de série entrega o filme inteiro** (M,
