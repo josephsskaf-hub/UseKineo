@@ -4,6 +4,7 @@ export const CLIENT_SHORT_BRIEF_SHARE_CAMPAIGN = 'client_short_brief_share_v1' a
 export type ClientShortBriefEntry =
   | 'organic'
   | 'client_intake_share'
+  | 'affiliate_client_intake'
   | 'agency_margin_proposal'
   | 'agency_page'
 
@@ -15,8 +16,12 @@ export type ClientShortBriefEntry =
 export function readClientShortBriefEntry(search: string): ClientShortBriefEntry {
   const params = new URLSearchParams(search)
   const source = params.get('utm_source')
+  const medium = params.get('utm_medium')
   const campaign = params.get('utm_campaign')
 
+  if (source === 'affiliate' && medium === 'partner' && campaign === 'affiliate_client_brief') {
+    return 'affiliate_client_intake'
+  }
   if (source === 'client_brief_share' && campaign === CLIENT_SHORT_BRIEF_SHARE_CAMPAIGN) {
     return 'client_intake_share'
   }

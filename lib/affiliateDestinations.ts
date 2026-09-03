@@ -52,17 +52,45 @@ export const AFFILIATE_DESTINATIONS = [
 
 export type AffiliateDestination = (typeof AFFILIATE_DESTINATIONS)[number]
 export type AffiliateDestinationKey = AffiliateDestination['key']
+type AffiliateRouteOnlyDestination = {
+  key: 'client_brief'
+  path: '/client-video-brief-generator'
+  campaign: 'affiliate_client_brief'
+}
+export type AffiliateRouteDestination = AffiliateDestination | AffiliateRouteOnlyDestination
+export type AffiliateRouteDestinationKey = AffiliateRouteDestination['key']
 export type AffiliateDestinationBucket = AffiliateDestinationKey | 'legacy'
 
 const DESTINATION_BY_KEY = new Map<AffiliateDestinationKey, AffiliateDestination>(
   AFFILIATE_DESTINATIONS.map((destination) => [destination.key, destination]),
 )
 
+// Route-only because this relay is created contextually by the existing client
+// intake tool. Keeping it out of AFFILIATE_DESTINATIONS prevents a silent fifth
+// campaign card from appearing in the affiliate dashboard.
+const CLIENT_BRIEF_ROUTE_DESTINATION: AffiliateRouteOnlyDestination = {
+  key: 'client_brief',
+  path: '/client-video-brief-generator',
+  campaign: 'affiliate_client_brief',
+}
+
+const ROUTE_DESTINATION_BY_KEY = new Map<string, AffiliateRouteDestination>([
+  ...AFFILIATE_DESTINATIONS.map((destination) => [destination.key, destination] as const),
+  [CLIENT_BRIEF_ROUTE_DESTINATION.key, CLIENT_BRIEF_ROUTE_DESTINATION] as const,
+])
+
 export const RECOMMENDED_AFFILIATE_DESTINATION: AffiliateDestinationKey = 'script'
 
 export function getAffiliateDestination(value: string | null | undefined): AffiliateDestination | null {
   const key = (value ?? '').trim().toLowerCase() as AffiliateDestinationKey
   return DESTINATION_BY_KEY.get(key) ?? null
+}
+
+export function getAffiliateRouteDestination(
+  value: string | null | undefined,
+): AffiliateRouteDestination | null {
+  const key = (value ?? '').trim().toLowerCase()
+  return ROUTE_DESTINATION_BY_KEY.get(key) ?? null
 }
 
 export function buildAffiliateDestinationUrl(origin: string, key: AffiliateDestinationKey): URL {
@@ -75,10 +103,30 @@ export function buildAffiliateDestinationUrl(origin: string, key: AffiliateDesti
   return url
 }
 
+export function buildAffiliateRouteDestinationUrl(
+  origin: string,
+  key: AffiliateRouteDestinationKey,
+): URL {
+  const destination = ROUTE_DESTINATION_BY_KEY.get(key)
+  if (!destination) return new URL('/', origin)
+  const url = new URL(destination.path, origin)
+  url.searchParams.set('utm_source', 'affiliate')
+  url.searchParams.set('utm_medium', 'partner')
+  url.searchParams.set('utm_campaign', destination.campaign)
+  return url
+}
+
 export function buildAffiliateShareLink(baseLink: string, key: AffiliateDestinationKey): string {
+  return buildAffiliateRouteShareLink(baseLink, key)
+}
+
+export function buildAffiliateRouteShareLink(
+  baseLink: string,
+  key: AffiliateRouteDestinationKey,
+): string {
   if (!baseLink) return ''
   try {
-    const destination = getAffiliateDestination(key)
+    const destination = getAffiliateRouteDestination(key)
     const source = new URL(baseLink)
     const match = /^\/a\/([A-HJ-NP-Z2-9]{8})\/?$/i.exec(source.pathname)
     if (!match) return ''
@@ -94,7 +142,7 @@ export function buildAffiliateShareLink(baseLink: string, key: AffiliateDestinat
   }
 }
 
-export function affiliateClickLandingPath(code: string, destination: AffiliateDestination | null): string {
+export function affiliateClickLandingPath(code: string, destination: AffiliateRouteDestination | null): string {
   return destination ? `/a/${code}?to=${destination.key}` : `/a/${code}`
 }
 

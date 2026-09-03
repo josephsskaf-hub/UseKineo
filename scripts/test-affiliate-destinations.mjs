@@ -265,6 +265,17 @@ async function runRoute({
   equal(codeCookie.options.maxAge, 90 * 24 * 60 * 60, 'first-touch window is 90 days')
 }
 
+{
+  const { response, inserts } = await runRoute({ to: 'client_brief' })
+  const location = new URL(response.location)
+  equal(location.pathname, '/client-video-brief-generator', 'hidden client relay reaches the existing brief tool')
+  equal(location.searchParams.get('utm_source'), 'affiliate', 'hidden relay keeps affiliate source')
+  equal(location.searchParams.get('utm_medium'), 'partner', 'hidden relay keeps partner medium')
+  equal(location.searchParams.get('utm_campaign'), 'affiliate_client_brief', 'hidden relay gets its own campaign')
+  equal(inserts[0].landing_path, '/a/' + CODE + '?to=client_brief', 'hidden relay creates exact server-backed click proof')
+  equal(response.cookieWrites.length, 3, 'hidden relay mints the same protected attribution cookies')
+}
+
 for (const [key, expected] of Object.entries(expectedDestinations)) {
   const { response, inserts } = await runRoute({ to: key })
   const location = new URL(response.location)

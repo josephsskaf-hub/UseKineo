@@ -3,7 +3,12 @@
 import Link from 'next/link'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { agencyPacksHref } from '@/lib/agencyDistribution'
-import { trackEvent } from '@/lib/analytics'
+import { trackClosedEvent, trackEvent } from '@/lib/analytics'
+import {
+  affiliateClientBriefRelayCopiedMetadata,
+  createAffiliateClientBriefRelayResolver,
+  type AffiliateClientBriefRelayPayload,
+} from '@/lib/growth/affiliateClientBriefRelay'
 import {
   buildClientShortActivationHref,
   buildClientShortBrief,
@@ -46,6 +51,17 @@ export default function ClientVideoBriefGenerator() {
   const [submitted, setSubmitted] = useState(false)
   const [copied, setCopied] = useState(false)
   const [intakeLinkCopied, setIntakeLinkCopied] = useState(false)
+  const affiliateIntakeResolver = useRef(
+    createAffiliateClientBriefRelayResolver(async () => {
+      const response = await fetch('/api/affiliate/client-brief-link', {
+        cache: 'no-store',
+        credentials: 'same-origin',
+      })
+      return response.ok
+        ? response.json() as Promise<AffiliateClientBriefRelayPayload>
+        : null
+    }),
+  ).current
 
   const brief = submitted ? buildClientShortBrief({ offer, audience, proof, cta, goal }) : null
   const briefText = brief ? clientShortBriefAsText(brief) : ''
@@ -73,6 +89,12 @@ export default function ClientVideoBriefGenerator() {
     })
     return () => controller.abort()
   }, [entry])
+
+  useEffect(() => {
+    // Preload without making the existing clipboard action wait for network.
+    // Until this resolves, the click handler keeps the generic safe link.
+    void affiliateIntakeResolver.preload()
+  }, [affiliateIntakeResolver])
 
   function generate() {
     const next = buildClientShortBrief({ offer, audience, proof, cta, goal })
@@ -104,7 +126,9 @@ export default function ClientVideoBriefGenerator() {
   }
 
   async function copyClientIntakeLink() {
-    const shareUrl = new URL(buildClientShortBriefShareHref(), window.location.origin).toString()
+    const affiliateIntakeHref = affiliateIntakeResolver.current()
+    const shareUrl = affiliateIntakeHref
+      ?? new URL(buildClientShortBriefShareHref(), window.location.origin).toString()
     try {
       await navigator.clipboard.writeText(shareUrl)
       setIntakeLinkCopied(true)
@@ -113,6 +137,12 @@ export default function ClientVideoBriefGenerator() {
         surface: 'client_video_brief_generator',
         entry,
       })
+      if (affiliateIntakeHref) {
+        void trackClosedEvent(
+          'affiliate_client_brief_relay_copied',
+          affiliateClientBriefRelayCopiedMetadata(),
+        )
+      }
     } catch {
       setIntakeLinkCopied(false)
     }

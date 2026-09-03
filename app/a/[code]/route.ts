@@ -8,8 +8,8 @@ import { createHash } from 'crypto'
 import { createClient as createAdmin } from '@supabase/supabase-js'
 import {
   affiliateClickLandingPath,
-  buildAffiliateDestinationUrl,
-  getAffiliateDestination,
+  buildAffiliateRouteDestinationUrl,
+  getAffiliateRouteDestination,
   isAffiliatePreviewBot,
 } from '@/lib/affiliateDestinations'
 import { normalizeAffiliateClickId, normalizeAffiliateCode } from '@/lib/affiliateAttribution'
@@ -50,9 +50,9 @@ export async function GET(req: NextRequest, { params }: { params: { code: string
 
   // `to` is an enum, never a path or URL. Invalid/malicious values preserve
   // the legacy homepage behavior and can never become an open redirect.
-  const destination = getAffiliateDestination(req.nextUrl.searchParams.get('to'))
+  const destination = getAffiliateRouteDestination(req.nextUrl.searchParams.get('to'))
   const destinationUrl = destination
-    ? buildAffiliateDestinationUrl(appUrl, destination.key)
+    ? buildAffiliateRouteDestinationUrl(appUrl, destination.key)
     : new URL('/', appUrl)
 
   try {

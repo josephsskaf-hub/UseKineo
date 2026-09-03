@@ -90,6 +90,9 @@ check(!shareHref.includes(raw.offer) && !shareHref.includes(raw.audience) && !sh
 
 equal(briefTool.readClientShortBriefEntry(''), 'organic', 'empty query is organic')
 equal(briefTool.readClientShortBriefEntry('?utm_source=client_brief_share&utm_campaign=client_short_brief_share_v1'), 'client_intake_share', 'exact intake pair is classified')
+equal(briefTool.readClientShortBriefEntry('?utm_source=affiliate&utm_medium=partner&utm_campaign=affiliate_client_brief'), 'affiliate_client_intake', 'exact affiliate relay triple is classified')
+equal(briefTool.readClientShortBriefEntry('?utm_source=affiliate&utm_campaign=affiliate_client_brief'), 'organic', 'affiliate relay without partner medium fails closed')
+equal(briefTool.readClientShortBriefEntry('?utm_source=affiliate&utm_medium=partner&utm_campaign=forged'), 'organic', 'forged affiliate relay campaign fails closed')
 equal(briefTool.readClientShortBriefEntry('?utm_source=agency_margin_proposal&utm_campaign=agency_margin_proposal_v1'), 'agency_margin_proposal', 'exact proposal pair is classified')
 equal(briefTool.readClientShortBriefEntry('?entry=agency_page'), 'agency_page', 'owned agency-page entry is classified')
 equal(briefTool.readClientShortBriefEntry('?utm_source=client_brief_share&utm_campaign=forged'), 'organic', 'forged intake campaign fails closed')
@@ -125,7 +128,10 @@ for (const eventName of [
   check(new RegExp(`trackEvent\\('${eventName}'[\\s\\S]{0,360}entry\\b`).test(client), `${eventName} carries the frozen current entry`)
 }
 check(!client.toLowerCase().includes('supabase'), 'free tool has no Supabase client')
-check(!client.includes('fetch('), 'free brief generation has no provider call or cost')
+// The affiliate relay adds one read-only owner lookup. Keep the stronger
+// product boundary explicit: no generation/provider request is introduced.
+equal((client.match(/fetch\(/g) ?? []).length, 1, 'free tool makes only the read-only affiliate eligibility lookup')
+check(client.includes("fetch('/api/affiliate/client-brief-link'"), 'the sole request is the owner-only affiliate relay lookup')
 
 const page = read('app/client-video-brief-generator/page.tsx')
 check(page.includes('canonical: CANONICAL'), 'page publishes its canonical URL')
