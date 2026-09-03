@@ -12,6 +12,15 @@
 // é o comportamento antigo.
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import { trackClosedEvent } from '@/lib/analytics'
+import {
+  AGENCY_HEADER_LOGIN_HREF,
+  AGENCY_HEADER_SIGNIN_EVENT,
+  AGENCY_HEADER_STUDIO_EVENT,
+  AGENCY_HEADER_STUDIO_HREF,
+  agencyHeaderSignInMetadata,
+  agencyHeaderStudioMetadata,
+} from '@/lib/growth/agencyHeaderJourney'
 
 const PILL: React.CSSProperties = {
   color: '#fff',
@@ -25,13 +34,15 @@ const PILL: React.CSSProperties = {
 }
 
 export default function AgencyHeaderCta() {
-  const [logged, setLogged] = useState(false)
+  const [authState, setAuthState] = useState<'checking' | 'signed_in' | 'signed_out'>('checking')
 
   useEffect(() => {
     let cancelled = false
     void fetch('/api/credits', { cache: 'no-store' })
       .then((r) => {
-        if (!cancelled && r.ok) setLogged(true)
+        if (cancelled) return
+        if (r.ok) setAuthState('signed_in')
+        else if (r.status === 401 || r.status === 403) setAuthState('signed_out')
       })
       .catch(() => {})
     return () => {
@@ -39,12 +50,28 @@ export default function AgencyHeaderCta() {
     }
   }, [])
 
-  return logged ? (
-    <Link href="/studio" style={{ ...PILL, background: '#2997ff', border: '1px solid rgba(120,190,255,.8)' }}>
+  return authState === 'signed_in' ? (
+    <Link
+      href={AGENCY_HEADER_STUDIO_HREF}
+      onClick={() => void trackClosedEvent(
+        AGENCY_HEADER_STUDIO_EVENT,
+        agencyHeaderStudioMetadata(),
+      )}
+      style={{ ...PILL, background: '#2997ff', border: '1px solid rgba(120,190,255,.8)' }}
+    >
       Open Studio →
     </Link>
   ) : (
-    <Link href="/login?redirect=%2Fai-shorts-for-agencies" style={PILL}>
+    <Link
+      href={AGENCY_HEADER_LOGIN_HREF}
+      onClick={authState === 'signed_out'
+        ? () => void trackClosedEvent(
+          AGENCY_HEADER_SIGNIN_EVENT,
+          agencyHeaderSignInMetadata(),
+        )
+        : undefined}
+      style={PILL}
+    >
       Sign in
     </Link>
   )

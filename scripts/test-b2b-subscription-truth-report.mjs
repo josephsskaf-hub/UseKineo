@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url'
 import {
   B2B_ASSIST_SURFACES,
   B2B_ATTRIBUTABLE_PATHS,
+  B2B_AGENCY_HEADER_MEASUREMENT_START,
   B2B_ANSWER_ROUTER_MEASUREMENT_START,
   B2B_ANSWER_ROUTER_MIN_OBSERVATION_DAYS,
   B2B_ANSWER_ROUTER_MIN_VIEWED_PEOPLE,
@@ -18,6 +19,8 @@ import {
 const here = dirname(fileURLToPath(import.meta.url))
 const root = join(here, '..')
 const agencyProposalSource = readFileSync(join(root, 'lib/growth/agencyProposal.ts'), 'utf8')
+const agencyHeaderSource = readFileSync(join(root, 'lib/growth/agencyHeaderJourney.ts'), 'utf8')
+const agencyHeaderCallerSource = readFileSync(join(root, 'app/ai-shorts-for-agencies/AgencyHeaderCta.tsx'), 'utf8')
 const canonicalProposalVersion = agencyProposalSource.match(
   /AGENCY_MARGIN_PROPOSAL_VARIANT\s*=\s*'([^']+)'/,
 )?.[1]
@@ -34,6 +37,22 @@ const start = (id, user, browser, minute, campaign, stripe, tier = 'basic', bill
 const paid = (id, user, minute, stripe, amount = 1500, currency = 'usd', extra = {}) => event(id, 'payment_success', user, null, minute, {
   checkout_mode: 'subscription', stripe_session_id: stripe, amount_total: amount, currency, ...extra,
 })
+const agencyHeaderClick = (id, user, browser, minute, extra = {}) => event(
+  id,
+  'agency_header_studio_clicked',
+  user,
+  browser,
+  minute,
+  {
+    version: 'agency_header_studio_v1',
+    intent_campaign: 'agency_header_studio_v1',
+    surface: 'ai_shorts_for_agencies',
+    placement: 'header',
+    destination: 'studio',
+    auth_state: 'signed_in',
+    ...extra,
+  },
+)
 
 const profiles = [
   profile('business', 'business@example.com'),
@@ -45,6 +64,7 @@ const profiles = [
   profile('real_estate', 'agent@example.com'),
   profile('agency_buyer', 'agency-buyer@example.com'),
   profile('monthly_operator', 'monthly-operator@example.com'),
+  profile('agency_header_buyer', 'agency-header-buyer@example.com'),
   profile('internal', 'josephsskaf@gmail.com'),
   profile('unknown', null),
 ]
@@ -55,6 +75,7 @@ const localPath = B2B_ATTRIBUTABLE_PATHS.local_business_brief
 const productPath = B2B_ATTRIBUTABLE_PATHS.product_to_short
 const realEstatePath = B2B_ATTRIBUTABLE_PATHS.real_estate_video
 const answerRouterRecurringPath = B2B_ATTRIBUTABLE_PATHS.business_answer_router_recurring
+const agencyHeaderPath = B2B_ATTRIBUTABLE_PATHS.agency_header_recurring
 const local = B2B_ASSIST_SURFACES.local_business_brief
 const agency = B2B_ASSIST_SURFACES.agency_margin_proposal
 const autopilot = B2B_ASSIST_SURFACES.autopilot_break_even
@@ -105,9 +126,30 @@ const events = [
   event('43', answerRouterRecurringPath.events.viewed, 'other', 'wrong_monthly_operator_browser', 3001, { source: 'ordinary_pricing' }),
   start('44', 'monthly_operator', 'monthly_operator_browser', 3002, answerRouterRecurringPath.intentCampaign, 'cs_monthly_operator', 'starter', 'monthly'),
   paid('45', 'monthly_operator', 3003, 'cs_monthly_operator', 700, 'usd'),
+  event('46', agencyHeaderPath.events.viewed, 'agency_header_buyer', 'agency_header_browser', 3298, {
+    version: agencyHeaderPath.eventVersion,
+    intent_campaign: agencyHeaderPath.intentCampaign,
+    surface: 'ai_shorts_for_agencies',
+    placement: 'header',
+    destination: 'studio',
+    auth_state: 'signed_in',
+  }),
+  event('46b', agencyHeaderPath.diagnosticEvents.signIn, null, 'agency_header_browser', 3297, {
+    version: agencyHeaderPath.eventVersion,
+    intent_campaign: agencyHeaderPath.intentCampaign,
+    surface: 'ai_shorts_for_agencies',
+    placement: 'header',
+    destination: 'login',
+    auth_state: 'signed_out',
+  }),
+  event('46c', agencyHeaderPath.events.generated, 'agency_header_buyer', 'agency_header_browser', 3298.5, {
+    intent_campaign: agencyHeaderPath.intentCampaign,
+  }),
+  start('47', 'agency_header_buyer', 'agency_header_browser', 3299, agencyHeaderPath.intentCampaign, 'cs_agency_header', 'starter', 'monthly'),
+  paid('48', 'agency_header_buyer', 3300, 'cs_agency_header', 700, 'usd'),
 ]
 
-const report = buildB2bSubscriptionTruthReport({ generatedAt: at(3004), windowStart: at(0), events, profiles })
+const report = buildB2bSubscriptionTruthReport({ generatedAt: at(4740), windowStart: at(0), events, profiles })
 equal(report.schemaVersion, B2B_SUBSCRIPTION_TRUTH_REPORT_VERSION, 'stable schema')
 equal(report.paths.business_plan.stages.viewed.anonymousSessions, 1, 'anonymous view stays a session')
 equal(report.paths.business_plan.stages.generated.anonymousSessions, 2, 'anonymous generation never becomes a person')
@@ -115,12 +157,23 @@ equal(report.paths.business_plan.stages.generated.internalEventRows, 1, 'interna
 equal(report.paths.business_plan.stages.generated.unknownIdentifiedEventRows, 1, 'unknown profiles are disclosed')
 equal(report.paths.client_brief.stages.generated.identifiedExternalPeople, 1, 'external generated person is counted')
 equal(report.paths.client_brief.stages.oneTimePackChoice.identifiedExternalPeople, 1, 'pack choice remains separate')
-equal(report.totals.identifiedExternalSubscriptionPeople, 7, 'seven external recurring buyers started')
-equal(report.totals.subscriptionStripeSessions, 7, 'seven exact recurring Sessions')
-equal(report.totals.byBilling, { annual: 1, monthly: 6 }, 'annual and monthly stay separate')
-equal(report.totals.exactPaidPeople, 5, 'five exact paid people')
-equal(report.totals.exactPaidStripeSessions, 5, 'duplicate webhook row counts once')
-equal(report.totals.exactRevenueMinorByCurrency, { usd: 34500 }, 'exact revenue is currency-grouped')
+equal(report.totals.identifiedExternalSubscriptionPeople, 8, 'eight external recurring buyers started')
+equal(report.totals.subscriptionStripeSessions, 8, 'eight exact recurring Sessions')
+equal(report.totals.byBilling, { annual: 1, monthly: 7 }, 'annual and monthly stay separate')
+equal(report.totals.exactPaidPeople, 6, 'six exact paid people')
+equal(report.totals.exactPaidStripeSessions, 6, 'duplicate webhook row counts once')
+equal(report.totals.exactRevenueMinorByCurrency, { usd: 35200 }, 'exact revenue is currency-grouped')
+equal(report.paths.agency_header_recurring.stages.viewed.identifiedExternalPeople, 1, 'agency header click is a human entry witness')
+equal(report.paths.agency_header_recurring.stages.viewed.eventRows, 1, 'only the exact Studio click enters the path gate')
+equal(report.paths.agency_header_recurring.stages.signInDiagnostic.anonymousSessions, 1, 'sign-in click remains an anonymous diagnostic session')
+equal(report.paths.agency_header_recurring.subscription.identifiedExternalPeople, 1, 'agency header path counts one exact recurring buyer')
+equal(report.paths.agency_header_recurring.subscription.exactPaidPeople, 1, 'agency header payment resolves through the canonical ledger')
+equal(report.journeys.find((journey) => journey.stripeSessionId === 'cs_agency_header')?.entryViewWitness, 'prior_exact_path_click_same_external_person_and_browser_session', 'agency header journey declares person and browser continuity')
+equal(report.paths.agency_header_recurring.subscription.postVideo.stripeSessions, 1, 'completed video witnesses the header path before Checkout')
+equal(report.paths.agency_header_recurring.subscription.preVideoDiagnostic.stripeSessions, 0, 'completed-video buyer never falls into the pre-video bucket')
+equal(report.paths.agency_header_recurring.gate.entryStage, 'cta_clicked', 'header gate names clickers, not viewers')
+equal(report.paths.agency_header_recurring.gate.minimumClickedExternalPeople, 10, 'header gate publishes its clicker threshold')
+equal('minimumViewedExternalPeople' in report.paths.agency_header_recurring.gate, false, 'header gate never labels clicks as views')
 equal(report.paths.business_answer_router_recurring.stages.viewed.identifiedExternalPeople, 1, 'pricing view requires exact answer-router source')
 equal(report.paths.business_answer_router_recurring.subscription.identifiedExternalPeople, 1, 'recurring answer-router path counts one exact buyer')
 equal(report.paths.business_answer_router_recurring.subscription.exactPaidPeople, 1, 'recurring answer-router payment resolves through the canonical ledger')
@@ -132,6 +185,8 @@ equal(report.paths.autopilot_case_study.subscription.campaignOnlyWithoutArtifact
 equal(report.paths.local_business_brief.subscription.campaignOnlyWithoutArtifactWitness, 1, 'local campaign can be attributed without inventing an artifact witness')
 equal(report.paths.product_to_short.stages.generated.identifiedExternalPeople, 1, 'product generation requires the exact vertical campaign')
 check(B2B_SUBSCRIPTION_EVENT_NAMES.includes('generate_completed'), 'runner fetches the generic completion witness')
+check(B2B_SUBSCRIPTION_EVENT_NAMES.includes('agency_header_studio_clicked'), 'runner fetches the exact Studio click')
+check(B2B_SUBSCRIPTION_EVENT_NAMES.includes('agency_header_signin_clicked'), 'runner fetches the separate sign-in diagnostic')
 equal(report.paths.product_to_short.subscription.postVideo.stripeSessions, 1, 'product Checkout after completion is post-video')
 equal(report.paths.product_to_short.subscription.postVideo.exactPaidPeople, 1, 'product payment stays in the post-video cohort')
 equal(report.paths.real_estate_video.subscription.preVideoDiagnostic.stripeSessions, 1, 'real-estate Checkout before completion stays diagnostic')
@@ -290,6 +345,171 @@ equal(routerWithoutView.paths.business_answer_router_recurring.subscription.stri
 equal(routerWithoutView.paths.business_answer_router_recurring.subscription.exactPaidPeople, 0, 'real payment without prior exact view is not attributed to router')
 equal(routerWithoutView.quality.subscriptionStartsWithoutRequiredEntryView, 1, 'missing required entry view is disclosed')
 
+const agencyHeaderWithoutClick = buildB2bSubscriptionTruthReport({
+  generatedAt: at(4740), windowStart: at(0), profiles,
+  events: [
+    start('ah1', 'agency_header_buyer', 'agency_header_browser', 3301, agencyHeaderPath.intentCampaign, 'cs_agency_header_no_click'),
+    paid('ah2', 'agency_header_buyer', 3302, 'cs_agency_header_no_click', 700, 'usd'),
+  ],
+})
+equal(agencyHeaderWithoutClick.paths.agency_header_recurring.subscription.stripeSessions, 0, 'agency campaign without prior exact click is not attributed')
+equal(agencyHeaderWithoutClick.quality.subscriptionStartsWithoutRequiredEntryView, 1, 'missing agency header click is disclosed')
+
+const invalidAgencyHeaderMetadata = [
+  ['wrong version', { version: 'forged' }],
+  ['wrong campaign', { intent_campaign: 'forged' }],
+  ['wrong surface', { surface: 'other' }],
+  ['wrong placement', { placement: 'footer' }],
+  ['wrong destination', { destination: 'login' }],
+  ['wrong auth state', { auth_state: 'signed_out' }],
+]
+for (const [label, override] of invalidAgencyHeaderMetadata) {
+  const invalidHeader = buildB2bSubscriptionTruthReport({
+    generatedAt: at(3310), windowStart: at(0), profiles,
+    events: [
+      agencyHeaderClick(`invalid-${label}`, 'agency_header_buyer', 'invalid_header_browser', 3300, override),
+      start(`start-${label}`, 'agency_header_buyer', 'invalid_header_browser', 3301, agencyHeaderPath.intentCampaign, `cs-${label}`),
+    ],
+  })
+  equal(invalidHeader.paths.agency_header_recurring.stages.viewed.eventRows, 0, `${label}: invalid click cannot enter denominator`)
+  equal(invalidHeader.paths.agency_header_recurring.subscription.stripeSessions, 0, `${label}: invalid click cannot attribute Session`)
+}
+
+const staleHeaderClick = buildB2bSubscriptionTruthReport({
+  generatedAt: at(4743), windowStart: at(0), profiles,
+  events: [
+    agencyHeaderClick('stale-click', 'agency_header_buyer', 'stale_browser', 3300),
+    start('stale-start', 'agency_header_buyer', 'stale_browser', 4741, agencyHeaderPath.intentCampaign, 'cs_stale'),
+  ],
+})
+equal(staleHeaderClick.paths.agency_header_recurring.subscription.stripeSessions, 0, 'click older than 24h cannot attribute Session')
+
+const duplicateHeaderClicks = buildB2bSubscriptionTruthReport({
+  generatedAt: at(4741), windowStart: at(0), profiles,
+  events: [
+    agencyHeaderClick('dup-click-1', 'agency_header_buyer', 'dup_browser', 3300),
+    agencyHeaderClick('dup-click-2', 'agency_header_buyer', 'dup_browser', 3301),
+    start('dup-start', 'agency_header_buyer', 'dup_browser', 3302, agencyHeaderPath.intentCampaign, 'cs_dup_click'),
+  ],
+})
+equal(duplicateHeaderClicks.paths.agency_header_recurring.subscription.stripeSessions, 1, 'the nearest valid click attributes one Session without inventing ambiguity')
+equal(duplicateHeaderClicks.quality.subscriptionStartsWithAmbiguousEntryClick, 0, 'repeated exact clicks are not treated as conflicting origins')
+
+const reusedHeaderClick = buildB2bSubscriptionTruthReport({
+  generatedAt: at(4740), windowStart: at(0), profiles,
+  events: [
+    agencyHeaderClick('reused-click', 'agency_header_buyer', 'reused_header_browser', 3300),
+    start('reused-start-1', 'agency_header_buyer', 'reused_header_browser', 3301, agencyHeaderPath.intentCampaign, 'cs_reused_1'),
+    start('reused-start-2', 'agency_header_buyer', 'reused_header_browser', 3302, agencyHeaderPath.intentCampaign, 'cs_reused_2'),
+    paid('reused-paid', 'agency_header_buyer', 3303, 'cs_reused_2', 700, 'usd'),
+  ],
+})
+equal(reusedHeaderClick.paths.agency_header_recurring.subscription.stripeSessions, 2, 'one valid click may lead to multiple real Checkout attempts')
+equal(reusedHeaderClick.paths.agency_header_recurring.subscription.identifiedExternalPeople, 1, 'Checkout retries still count one external person')
+equal(reusedHeaderClick.paths.agency_header_recurring.subscription.exactPaidStripeSessions, 1, 'only the paid retry enters paid Session totals')
+equal(reusedHeaderClick.paths.agency_header_recurring.subscription.exactPaidPeople, 1, 'the buyer is counted once after a paid retry')
+equal(reusedHeaderClick.paths.agency_header_recurring.subscription.exactRevenueMinorByCurrency, { usd: 700 }, 'paid retry revenue is counted exactly once')
+equal(reusedHeaderClick.quality.subscriptionStartsWithAmbiguousEntryClick, 0, 'Checkout retries do not erase a valid origin')
+
+const crossBrowserHeader = buildB2bSubscriptionTruthReport({
+  generatedAt: at(3310), windowStart: at(0), profiles,
+  events: [
+    agencyHeaderClick('cross-browser-click', 'agency_header_buyer', 'browser_one', 3300),
+    start('cross-browser-start', 'agency_header_buyer', 'browser_two', 3301, agencyHeaderPath.intentCampaign, 'cs_cross_browser'),
+  ],
+})
+equal(crossBrowserHeader.paths.agency_header_recurring.subscription.stripeSessions, 0, 'same person in another browser is not enough')
+
+const exactBoundaryHeader = buildB2bSubscriptionTruthReport({
+  generatedAt: at(4741), windowStart: at(0), profiles,
+  events: [
+    agencyHeaderClick('boundary-click', 'agency_header_buyer', 'boundary_browser', 3300),
+    start('boundary-start', 'agency_header_buyer', 'boundary_browser', 4740, agencyHeaderPath.intentCampaign, 'cs_boundary'),
+  ],
+})
+equal(exactBoundaryHeader.paths.agency_header_recurring.subscription.stripeSessions, 1, 'exactly 24h remains inside the declared window')
+
+const immatureHeader = buildB2bSubscriptionTruthReport({
+  generatedAt: at(3302), windowStart: at(0), profiles,
+  events: [
+    agencyHeaderClick('immature-click', 'agency_header_buyer', 'immature_browser', 3300),
+    start('immature-start', 'agency_header_buyer', 'immature_browser', 3301, agencyHeaderPath.intentCampaign, 'cs_immature'),
+  ],
+})
+equal(immatureHeader.paths.agency_header_recurring.subscription.stripeSessions, 0, 'Session remains provisional until the click window closes')
+equal(immatureHeader.quality.subscriptionStartsWithImmatureEntryClick, 1, 'provisional Session is disclosed as immature')
+
+const maturedHeader = buildB2bSubscriptionTruthReport({
+  generatedAt: at(4740), windowStart: at(0), profiles,
+  events: [
+    agencyHeaderClick('matured-click', 'agency_header_buyer', 'matured_browser', 3300),
+    start('matured-start', 'agency_header_buyer', 'matured_browser', 3301, agencyHeaderPath.intentCampaign, 'cs_matured'),
+  ],
+})
+equal(maturedHeader.paths.agency_header_recurring.subscription.stripeSessions, 1, 'same Session becomes attributable only after 24h closes')
+
+const conflictingHeaderOwner = buildB2bSubscriptionTruthReport({
+  generatedAt: at(4740), windowStart: at(0), profiles,
+  events: [
+    agencyHeaderClick('owner-click', 'agency_header_buyer', 'shared_header_browser', 3300),
+    event('other-owner', 'landing_session_started', 'other', 'shared_header_browser', 3300.5),
+    start('owner-start', 'agency_header_buyer', 'shared_header_browser', 3301, agencyHeaderPath.intentCampaign, 'cs_owner_conflict'),
+  ],
+})
+equal(conflictingHeaderOwner.paths.agency_header_recurring.subscription.stripeSessions, 0, 'browser session shared by two owners fails closed')
+equal(conflictingHeaderOwner.quality.subscriptionStartsWithConflictingEntryViewIdentity, 1, 'shared-owner conflict is disclosed')
+
+const laterHeaderOwner = buildB2bSubscriptionTruthReport({
+  generatedAt: at(4740), windowStart: at(0), profiles,
+  events: [
+    agencyHeaderClick('later-owner-click', 'agency_header_buyer', 'later_owner_browser', 3300),
+    start('later-owner-start', 'agency_header_buyer', 'later_owner_browser', 3301, agencyHeaderPath.intentCampaign, 'cs_later_owner'),
+    event('later-owner', 'landing_session_started', 'other', 'later_owner_browser', 3302),
+  ],
+})
+equal(laterHeaderOwner.paths.agency_header_recurring.subscription.stripeSessions, 1, 'a different owner after Checkout cannot revoke a matured attribution')
+
+const preClickVideo = buildB2bSubscriptionTruthReport({
+  generatedAt: at(4740), windowStart: at(0), profiles,
+  events: [
+    event('old-video', agencyHeaderPath.events.generated, 'agency_header_buyer', 'preclick_browser', 3299, {
+      intent_campaign: agencyHeaderPath.intentCampaign,
+    }),
+    agencyHeaderClick('preclick-click', 'agency_header_buyer', 'preclick_browser', 3300),
+    start('preclick-start', 'agency_header_buyer', 'preclick_browser', 3301, agencyHeaderPath.intentCampaign, 'cs_preclick'),
+  ],
+})
+equal(preClickVideo.paths.agency_header_recurring.subscription.postVideo.stripeSessions, 0, 'video completed before the click cannot witness post-video')
+equal(preClickVideo.paths.agency_header_recurring.subscription.preVideoDiagnostic.stripeSessions, 1, 'pre-click video leaves the journey in pre-video diagnostic')
+
+for (const [label, videoMinute] of [['click', 3300], ['checkout', 3301]]) {
+  const tiedVideo = buildB2bSubscriptionTruthReport({
+    generatedAt: at(4740), windowStart: at(0), profiles,
+    events: [
+      agencyHeaderClick(`tied-${label}-click`, 'agency_header_buyer', `tied_${label}_browser`, 3300),
+      event(`tied-${label}-video`, agencyHeaderPath.events.generated, 'agency_header_buyer', `tied_${label}_browser`, videoMinute, {
+        intent_campaign: agencyHeaderPath.intentCampaign,
+      }),
+      start(`tied-${label}-start`, 'agency_header_buyer', `tied_${label}_browser`, 3301, agencyHeaderPath.intentCampaign, `cs_tied_${label}`),
+    ],
+  })
+  equal(tiedVideo.paths.agency_header_recurring.subscription.postVideo.stripeSessions, 0, `video tied with ${label} has unknown order and cannot witness post-video`)
+  equal(tiedVideo.paths.agency_header_recurring.subscription.preVideoDiagnostic.stripeSessions, 1, `video tied with ${label} remains pre-video diagnostic`)
+}
+
+const otherBrowserVideo = buildB2bSubscriptionTruthReport({
+  generatedAt: at(4740), windowStart: at(0), profiles,
+  events: [
+    agencyHeaderClick('other-browser-click', 'agency_header_buyer', 'journey_browser', 3300),
+    event('other-browser-video', agencyHeaderPath.events.generated, 'agency_header_buyer', 'other_video_browser', 3300.5, {
+      intent_campaign: agencyHeaderPath.intentCampaign,
+    }),
+    start('other-browser-start', 'agency_header_buyer', 'journey_browser', 3301, agencyHeaderPath.intentCampaign, 'cs_other_browser_video'),
+  ],
+})
+equal(otherBrowserVideo.paths.agency_header_recurring.subscription.postVideo.stripeSessions, 0, 'video in another browser cannot witness the header journey')
+equal(otherBrowserVideo.paths.agency_header_recurring.subscription.preVideoDiagnostic.stripeSessions, 1, 'cross-browser completion remains pre-video diagnostic')
+
 const routerWrongViews = buildB2bSubscriptionTruthReport({
   generatedAt: at(12), windowStart: at(0), profiles,
   events: [
@@ -400,6 +620,14 @@ check(localCallerSource.includes('intentCampaign: LOCAL_BUSINESS_BRIEF_CAMPAIGN'
 check(signupSource.includes('if (explicitRedirect) return explicitRedirect'), 'signup returns explicit redirect before outer attribution forwarding')
 check(autopilotSource.includes("choice: 'pilot' | 'monthly'"), 'Autopilot calculator distinguishes pilot and monthly')
 check(agencyCalculatorSource.includes('version: AGENCY_MARGIN_PROPOSAL_VARIANT'), 'real proposal copy emitter uses the canonical proposal constant')
+check(agencyHeaderSource.includes(`AGENCY_HEADER_STUDIO_VERSION = '${agencyHeaderPath.intentCampaign}'`), 'agency header campaign matches the canonical helper')
+check(agencyHeaderSource.includes("AGENCY_HEADER_STUDIO_EVENT = 'agency_header_studio_clicked'"), 'agency header Studio event name is closed in one helper')
+check(agencyHeaderSource.includes("AGENCY_HEADER_SIGNIN_EVENT = 'agency_header_signin_clicked'"), 'agency header sign-in event stays diagnostic')
+check(agencyHeaderCallerSource.includes('trackClosedEvent('), 'agency header uses bounded event metadata')
+check(agencyHeaderCallerSource.includes('AGENCY_HEADER_STUDIO_HREF'), 'signed-in header preserves intent into Studio')
+check(agencyHeaderCallerSource.includes('AGENCY_HEADER_LOGIN_HREF'), 'signed-out header preserves the canonical login return')
+check(agencyHeaderSource.includes('encodeURIComponent(AGENCY_HEADER_RETURN_HREF)'), 'login redirect encodes the internal agency-page return')
+equal(B2B_AGENCY_HEADER_MEASUREMENT_START, '2026-09-03T05:00:00.000Z', 'agency header measurement starts after the planned production deploy')
 check(answerRouterSource.includes(`'${answerRouterRecurringPath.intentCampaign}'`), 'recurring campaign comes from the canonical business answer router')
 check(llmsSource.includes('BUSINESS_ANSWER_ENGINE_ROUTER.choices.map'), 'llms text executes every canonical business destination')
 check(llmsSource.includes('BUSINESS_ANSWER_ENGINE_ROUTER.boundaries.map'), 'llms text publishes the no-enterprise boundaries from the canonical router')

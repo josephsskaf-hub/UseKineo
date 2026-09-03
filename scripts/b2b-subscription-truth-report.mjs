@@ -11,11 +11,31 @@ export const B2B_ANSWER_ROUTER_MIN_VIEWED_PEOPLE = 10
 export const B2B_ANSWER_ROUTER_MIN_OBSERVATION_DAYS = 7
 export const B2B_ANSWER_ROUTER_MEASUREMENT_START = '2026-09-03T00:00:00.000Z'
 export const B2B_AGENCY_SCOPE_MEASUREMENT_START = '2026-09-03T00:00:00.000Z'
+export const B2B_AGENCY_HEADER_MEASUREMENT_START = '2026-09-03T05:00:00.000Z'
+export const B2B_AGENCY_HEADER_CLICK_LOOKBACK_HOURS = 24
 
 const RECURRING_TIERS = new Set(['starter', 'basic', 'pro', 'autopilot'])
 const RECURRING_BILLING = new Set(['monthly', 'annual'])
 
 export const B2B_ATTRIBUTABLE_PATHS = Object.freeze({
+  agency_header_recurring: Object.freeze({
+    intentCampaign: 'agency_header_studio_v1',
+    eventVersion: 'agency_header_studio_v1',
+    generatedEventVersion: null,
+    stageAttribution: 'exact_intent_campaign',
+    journeyEntryRequirement: 'prior_exact_path_click',
+    entryStage: 'cta_clicked',
+    entryLookbackHours: B2B_AGENCY_HEADER_CLICK_LOOKBACK_HOURS,
+    measurementStartsAt: B2B_AGENCY_HEADER_MEASUREMENT_START,
+    gatePolicy: 'viewed_people_and_observation',
+    events: Object.freeze({
+      viewed: 'agency_header_studio_clicked',
+      generated: 'generate_completed',
+    }),
+    diagnosticEvents: Object.freeze({
+      signIn: 'agency_header_signin_clicked',
+    }),
+  }),
   business_answer_router_recurring: Object.freeze({
     intentCampaign: 'b2b_answer_router_recurring_v1',
     eventVersion: null,
@@ -145,6 +165,7 @@ export const B2B_ASSIST_SURFACES = Object.freeze({
 export const B2B_SUBSCRIPTION_EVENT_NAMES = Object.freeze([
   ...new Set([
     ...Object.values(B2B_ATTRIBUTABLE_PATHS).flatMap((path) => Object.values(path.events)),
+    ...Object.values(B2B_ATTRIBUTABLE_PATHS).flatMap((path) => Object.values(path.diagnosticEvents ?? {})),
     ...Object.values(B2B_ASSIST_SURFACES).flatMap((surface) => Object.values(surface.events)),
     'autopilot_break_even_human_viewed',
     'checkout_started',
@@ -209,6 +230,35 @@ function summarizeStage(rows, name, version, identity, predicate = () => true) {
   ), identity)
 }
 
+function eventVersionFor(path, stage) {
+  if (stage === 'generated' && Object.hasOwn(path, 'generatedEventVersion')) {
+    return path.generatedEventVersion
+  }
+  return path.eventVersion
+}
+
+function matchesExactAgencyHeaderStudioClick(row, path) {
+  if (path.journeyEntryRequirement !== 'prior_exact_path_click') return true
+  return row?.name === path.events.viewed &&
+    metadataString(row, 'version') === path.eventVersion &&
+    metadataString(row, 'intent_campaign') === path.intentCampaign &&
+    metadataString(row, 'surface') === 'ai_shorts_for_agencies' &&
+    metadataString(row, 'placement') === 'header' &&
+    metadataString(row, 'destination') === 'studio' &&
+    metadataString(row, 'auth_state') === 'signed_in'
+}
+
+function matchesExactAgencyHeaderSignInClick(row, path) {
+  if (path.journeyEntryRequirement !== 'prior_exact_path_click') return false
+  return row?.name === path.diagnosticEvents?.signIn &&
+    metadataString(row, 'version') === path.eventVersion &&
+    metadataString(row, 'intent_campaign') === path.intentCampaign &&
+    metadataString(row, 'surface') === 'ai_shorts_for_agencies' &&
+    metadataString(row, 'placement') === 'header' &&
+    metadataString(row, 'destination') === 'login' &&
+    metadataString(row, 'auth_state') === 'signed_out'
+}
+
 function pathForCampaign(campaign) {
   return Object.entries(B2B_ATTRIBUTABLE_PATHS)
     .find(([, path]) => path.intentCampaign === campaign) ?? null
@@ -267,17 +317,25 @@ function resolveStarts(events, identity) {
   return { starts, conflictingStripeSessions, duplicateRows, invalidRecurringRows }
 }
 
-function generatedWitness(start, events, path, identity) {
+function generatedWitness(start, events, path, identity, entryResolution = null) {
   if (!path.events.generated) return 'campaign_only'
   const startAt = timestamp(start)
   const candidates = events.filter((row) => {
     const at = timestamp(row)
-    return at !== null && at <= startAt &&
+    if (!(at !== null && at <= startAt &&
       row?.name === path.events.generated &&
-      metadataString(row, 'version') === path.eventVersion &&
+      metadataString(row, 'version') === eventVersionFor(path, 'generated') &&
       (path.stageAttribution !== 'exact_intent_campaign' ||
         metadataString(row, 'intent_campaign') === path.intentCampaign) &&
-      ['external', 'anonymous'].includes(actorClass(row, identity))
+      ['external', 'anonymous'].includes(actorClass(row, identity)))) return false
+    if (path.journeyEntryRequirement !== 'prior_exact_path_click') return true
+    return Number.isFinite(entryResolution?.clickAt) &&
+      at > entryResolution.clickAt &&
+      at < startAt &&
+      actorClass(row, identity) === 'external' &&
+      row.user_id === start.user_id &&
+      row.session_id &&
+      row.session_id === start.session_id
   })
   if (candidates.some((row) => row.user_id && row.user_id === start.user_id)) return 'same_external_person'
   if (start.session_id && candidates.some((row) => row.session_id === start.session_id)) return 'same_browser_session'
@@ -302,17 +360,54 @@ function countBy(rows, value) {
   return Object.fromEntries([...counts.entries()].sort(([left], [right]) => left.localeCompare(right)))
 }
 
-function entryViewWitness(start, events, path, identity) {
-  if (path.journeyEntryRequirement !== 'prior_exact_pricing_view') return null
+function resolveEntryView(start, events, path, identity, generatedAtMs = Number.POSITIVE_INFINITY) {
+  if (!path.journeyEntryRequirement) return { witness: null, clickAt: null }
   const startAt = timestamp(start)
+  if (path.journeyEntryRequirement === 'prior_exact_path_click') {
+    const lookbackMs = path.entryLookbackHours * 60 * 60 * 1000
+    const sessionOwners = new Set(events
+      .filter((row) => {
+        const at = timestamp(row)
+        return at !== null && at <= startAt &&
+          start.session_id && row.session_id === start.session_id &&
+          typeof row.user_id === 'string' && row.user_id
+      })
+      .map((row) => row.user_id))
+    if (sessionOwners.size !== 1 || !sessionOwners.has(start.user_id)) {
+      return { witness: 'identity_conflict', clickAt: null }
+    }
+    const candidates = events.filter((row) => {
+      const at = timestamp(row)
+      return at !== null && at < startAt && startAt - at <= lookbackMs &&
+        at >= Date.parse(path.measurementStartsAt) &&
+        matchesExactAgencyHeaderStudioClick(row, path) &&
+        actorClass(row, identity) === 'external' &&
+        row.user_id === start.user_id &&
+        row.session_id &&
+        row.session_id === start.session_id
+    })
+    if (candidates.length === 0) return { witness: null, clickAt: null }
+    const click = [...candidates]
+      .sort((left, right) => timestamp(right) - timestamp(left))[0]
+    const clickAt = timestamp(click)
+    if (clickAt === null) return { witness: null, clickAt: null }
+    if (generatedAtMs < clickAt + lookbackMs) return { witness: 'entry_immature', clickAt }
+    return {
+      witness: 'prior_exact_path_click_same_external_person_and_browser_session',
+      clickAt,
+    }
+  }
   const candidates = events.filter((row) => {
     const at = timestamp(row)
     const measurementStartAt = path.measurementStartsAt ? Date.parse(path.measurementStartsAt) : null
-    return at !== null && at < startAt &&
+    if (!(at !== null && at < startAt &&
       (measurementStartAt === null || at >= measurementStartAt) &&
       row?.name === path.events.viewed &&
-      metadataString(row, 'version') === path.eventVersion &&
-      metadataString(row, 'source') === path.intentCampaign
+      metadataString(row, 'version') === path.eventVersion)) return false
+    if (path.journeyEntryRequirement === 'prior_exact_pricing_view') {
+      return metadataString(row, 'source') === path.intentCampaign
+    }
+    return false
   })
   const sameSession = start.session_id
     ? candidates.filter((row) => row.session_id === start.session_id)
@@ -321,14 +416,15 @@ function entryViewWitness(start, events, path, identity) {
     .filter((row) => start.session_id && row.session_id === start.session_id && typeof row.user_id === 'string' && row.user_id)
     .map((row) => row.user_id))
   const hasConflictingIdentity = sessionOwners.size !== 1 || !sessionOwners.has(start.user_id)
-  if (hasConflictingIdentity) return 'identity_conflict'
+  if (hasConflictingIdentity) return { witness: 'identity_conflict', clickAt: null }
   if (candidates.some((row) => actorClass(row, identity) === 'external' && row.user_id === start.user_id)) {
-    return 'prior_exact_pricing_view_same_external_person'
+    return { witness: 'prior_exact_pricing_view_same_external_person', clickAt: null }
   }
-  if (!start.session_id) return null
-  return sameSession.some((row) => actorClass(row, identity) === 'anonymous')
-    ? 'prior_exact_pricing_view_same_browser_session'
-    : null
+  if (!start.session_id) return { witness: null, clickAt: null }
+  if (!sameSession.some((row) => actorClass(row, identity) === 'anonymous')) {
+    return { witness: null, clickAt: null }
+  }
+  return { witness: 'prior_exact_pricing_view_same_browser_session', clickAt: null }
 }
 
 function buildAgencyProposalAssist({ sourceEvents, windowStartMs, generatedAtMs, identity, ledger }) {
@@ -407,20 +503,34 @@ export function buildB2bSubscriptionTruthReport({ generatedAt, windowStart, even
   const ledger = buildSubscriptionRevenueLedger({ generatedAt, windowStart, events: sourceEvents, profiles })
   const ledgerBySession = new Map(ledger.records.map((record) => [record.stripeSessionId, record]))
   const starts = resolveStarts(sourceEvents, identity)
+  const entryResolutions = new Map(starts.starts.map((start) => [
+    start.stripeSessionId,
+    resolveEntryView(start.row, sourceEvents, B2B_ATTRIBUTABLE_PATHS[start.pathKey], identity, generatedAtMs),
+  ]))
+  const acceptedEntryWitness = (value) =>
+    Boolean(value) &&
+    value !== 'identity_conflict' &&
+    value !== 'entry_ambiguity' &&
+    value !== 'entry_immature'
   const startsWithoutRequiredEntryView = starts.starts.filter((start) => {
     const path = B2B_ATTRIBUTABLE_PATHS[start.pathKey]
-    const witness = entryViewWitness(start.row, sourceEvents, path, identity)
-    return path.journeyEntryRequirement && (!witness || witness === 'identity_conflict')
+    const resolution = entryResolutions.get(start.stripeSessionId)
+    return path.journeyEntryRequirement && !acceptedEntryWitness(resolution?.witness)
   })
   const startsWithConflictingEntryViewIdentity = starts.starts.filter((start) => {
-    const path = B2B_ATTRIBUTABLE_PATHS[start.pathKey]
-    return entryViewWitness(start.row, sourceEvents, path, identity) === 'identity_conflict'
+    return entryResolutions.get(start.stripeSessionId)?.witness === 'identity_conflict'
+  })
+  const startsWithAmbiguousEntryClick = starts.starts.filter((start) => {
+    return entryResolutions.get(start.stripeSessionId)?.witness === 'entry_ambiguity'
+  })
+  const startsWithImmatureEntryClick = starts.starts.filter((start) => {
+    return entryResolutions.get(start.stripeSessionId)?.witness === 'entry_immature'
   })
 
   const journeys = starts.starts.map((start) => {
     const path = B2B_ATTRIBUTABLE_PATHS[start.pathKey]
-    const requiredEntryView = entryViewWitness(start.row, sourceEvents, path, identity)
-    if (path.journeyEntryRequirement && (!requiredEntryView || requiredEntryView === 'identity_conflict')) return null
+    const entryResolution = entryResolutions.get(start.stripeSessionId) ?? { witness: null, clickAt: null }
+    if (path.journeyEntryRequirement && !acceptedEntryWitness(entryResolution.witness)) return null
     const record = ledgerBySession.get(start.stripeSessionId) ?? null
     const startAt = timestamp(start.row)
     const exactOwner = record?.ownerClass === 'external' && record.ownerUserId === start.row.user_id
@@ -433,8 +543,8 @@ export function buildB2bSubscriptionTruthReport({ generatedAt, windowStart, even
       tier: metadataString(start.row, 'tier'),
       billing: metadataString(start.row, 'billing'),
       startedAt: new Date(startAt).toISOString(),
-      entryViewWitness: requiredEntryView,
-      artifactWitness: generatedWitness(start.row, sourceEvents, path, identity),
+      entryViewWitness: entryResolution.witness,
+      artifactWitness: generatedWitness(start.row, sourceEvents, path, identity, entryResolution),
       paid,
       paymentState: !record ? 'missing_ledger_record' : !exactOwner ? 'owner_or_product_conflict' : record.status,
       amountMinor: paid ? record.amountMinor : null,
@@ -452,12 +562,13 @@ export function buildB2bSubscriptionTruthReport({ generatedAt, windowStart, even
         : () => true
     const pathStagePredicate = (row) => {
       if (!stagePredicate(row)) return false
+      if (row?.name === path.events.viewed && !matchesExactAgencyHeaderStudioClick(row, path)) return false
       if (!path.measurementStartsAt) return true
       const at = timestamp(row)
       return at !== null && at >= Date.parse(path.measurementStartsAt)
     }
-    const viewed = summarizeStage(windowEvents, path.events.viewed, path.eventVersion, identity, pathStagePredicate)
-    const generated = summarizeStage(windowEvents, path.events.generated, path.eventVersion, identity, pathStagePredicate)
+    const viewed = summarizeStage(windowEvents, path.events.viewed, eventVersionFor(path, 'viewed'), identity, pathStagePredicate)
+    const generated = summarizeStage(windowEvents, path.events.generated, eventVersionFor(path, 'generated'), identity, pathStagePredicate)
     const postVideoJourneys = pathJourneys.filter((journey) => journey.artifactWitness !== 'campaign_only')
     const preVideoJourneys = pathJourneys.filter((journey) => journey.artifactWitness === 'campaign_only')
     const postVideoPaid = postVideoJourneys.filter((journey) => journey.paid)
@@ -475,6 +586,13 @@ export function buildB2bSubscriptionTruthReport({ generatedAt, windowStart, even
       stages: {
         viewed,
         generated,
+        signInDiagnostic: summarizeStage(
+          windowEvents,
+          path.diagnosticEvents?.signIn,
+          path.eventVersion,
+          identity,
+          (row) => matchesExactAgencyHeaderSignInClick(row, path) && pathStagePredicate(row),
+        ),
         copied: summarizeStage(windowEvents, path.events.copied, path.eventVersion, identity, stagePredicate),
         activationChoice: summarizeStage(windowEvents, path.events.activation, path.eventVersion, identity, stagePredicate),
         oneTimePackChoice: summarizeStage(windowEvents, path.events.packChoice, path.eventVersion, identity, stagePredicate),
@@ -510,7 +628,10 @@ export function buildB2bSubscriptionTruthReport({ generatedAt, windowStart, even
             measurementStartsAt: path.measurementStartsAt,
             observedFullDays: observationDays,
             minimumObservedFullDays: B2B_ANSWER_ROUTER_MIN_OBSERVATION_DAYS,
-            minimumViewedExternalPeople: B2B_ANSWER_ROUTER_MIN_VIEWED_PEOPLE,
+            ...(path.entryStage === 'cta_clicked'
+              ? { minimumClickedExternalPeople: B2B_ANSWER_ROUTER_MIN_VIEWED_PEOPLE }
+              : { minimumViewedExternalPeople: B2B_ANSWER_ROUTER_MIN_VIEWED_PEOPLE }),
+            entryStage: path.entryStage ?? 'viewed',
             firstExactSubscriptionStartOrPaymentOverridesSampleGate: true,
           }
         : {
@@ -597,6 +718,8 @@ export function buildB2bSubscriptionTruthReport({ generatedAt, windowStart, even
       duplicateSubscriptionStartRows: starts.duplicateRows,
       subscriptionStartsWithoutRequiredEntryView: startsWithoutRequiredEntryView.length,
       subscriptionStartsWithConflictingEntryViewIdentity: startsWithConflictingEntryViewIdentity.length,
+      subscriptionStartsWithAmbiguousEntryClick: startsWithAmbiguousEntryClick.length,
+      subscriptionStartsWithImmatureEntryClick: startsWithImmatureEntryClick.length,
       ledgerConflictStripeSessions: ledger.summary.conflictStripeSessions,
       unlinkedSubscriptionPaymentSessions: ledger.summary.unlinkedSubscriptionPaymentSessions,
       packSessionsExcludedFromSubscribers: ledger.summary.packSessions,
