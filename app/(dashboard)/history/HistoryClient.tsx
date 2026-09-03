@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { trackCheckoutClick } from '@/lib/trackClick'
 import { trackClosedEvent, trackEvent } from '@/lib/analytics'
 import { downloadVideoFile } from '@/lib/videoDownload'
+import { fitLightboxFrame } from '@/lib/frameFit'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import { buildSeriesContinuationHref } from '@/lib/seriesContinuation'
 import {
@@ -1976,8 +1977,12 @@ export default function MyVideosClient({ videos: initialVideos, loadError = fals
             onClick={() => setLightbox(null)}
             style={{ position: 'fixed', inset: 0, zIndex: 80, background: 'rgba(0,0,0,0.86)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
           >
-            <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(420px, 92vw)', display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ position: 'relative', width: '100%', aspectRatio: '9 / 16', borderRadius: 16, overflow: 'hidden', background: '#000', border: '1px solid rgba(41,151,255,0.4)', boxShadow: '0 18px 60px rgba(41,151,255,0.25)' }}>
+            {/* KINEO-QUADRO-QUE-SE-AJUSTA-2026-09-02 — a coluna do lightbox e a
+                moldura abaixo nasciam verticais e ficavam verticais. Com o
+                multi-formato no ar, `data-kineo-frame` deixa lib/frameFit
+                reajustar as duas ao quadro real do arquivo. */}
+            <div onClick={(e) => e.stopPropagation()} data-kineo-frame-shell style={{ width: 'min(420px, 92vw)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div data-kineo-frame data-kineo-frame-wide="min(820px, 94vw)" style={{ position: 'relative', width: '100%', aspectRatio: '9 / 16', borderRadius: 16, overflow: 'hidden', background: '#000', border: '1px solid rgba(41,151,255,0.4)', boxShadow: '0 18px 60px rgba(41,151,255,0.25)' }}>
                 <video
                   src={enhUrls[v.id] ?? v.video_url}
                   controls
@@ -1986,6 +1991,7 @@ export default function MyVideosClient({ videos: initialVideos, loadError = fals
                   controlsList="nodownload"
                   disablePictureInPicture
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  onLoadedMetadata={(e) => fitLightboxFrame(e.currentTarget)}
                   onError={() => setErrors((prev) => new Set([...prev, v.id]))}
                 />
               </div>

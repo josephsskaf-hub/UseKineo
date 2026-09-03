@@ -1,0 +1,93 @@
+# ═══ KINEO-GUARDIAO-NA-NUVEM — 02/09/2026 ═════════════════════════════════
+# Pedido do fundador: "está muito cansativo a gente precisar rodando esses
+# bash e tendo esses problemas consecutivamente."
+#
+# O DIAGNÓSTICO: o push nunca esteve quebrado (20 deploys READY e 0 ERROR só
+# no dia 02/09). O que estava quebrado era a DIVISÃO DE TRABALHO — 252
+# arquivos de teste e um typecheck de 1 minuto viviam TODOS no desktop dele,
+# rodando só quando ele clicava. Se ninguém clica, ninguém sabe. E quando o
+# Claude está numa sessão sem shell, o único jeito de saber se o código presta
+# era gastar um clique do fundador por tentativa.
+#
+# O QUE ISTO MUDA: a partir daqui a máquina confere sozinha, DEPOIS do push,
+# de graça (repositório público), e o GitHub avisa por e-mail quando a main
+# fica vermelha. O clique dele deixa de ser o único portão de qualidade.
+#
+# POR QUE A SUÍTE NÃO BLOQUEIA (ainda): as 252 baterias foram escritas ao
+# longo de semanas contra código que já mudou; nunca foram rodadas todas de
+# uma vez, então não existe linha de base. Um CI que nasce vermelho é um CI
+# que todo mundo aprende a ignorar. Então a suíte MEDE e publica o placar; o
+# typecheck, esse sim, BLOQUEIA — foi ele que pegou o defeito real de hoje.
+# Quando o placar estiver estável por alguns dias, é só trocar o
+# `continue-on-error` da suíte por um exit code de verdade.
+
+name: Guardião
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  typecheck:
+    name: TypeScript (bloqueia)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: tsc --noEmit
+        run: |
+          set +e
+          npx tsc --noEmit -p tsconfig.json > tsc.txt 2>&1
+          set -e
+          # Os três erros pré-existentes são conhecidos e datados: dois em
+          # tipos da Stripe (apiVersion 'acacia') e um no TrialDowngradeModal.
+          # Filtrar aqui é a MESMA regra do 1-TESTAR-E-SUBIR-TUDO.bat — se um
+          # dia forem consertados, some com as duas linhas nos dois lugares.
+          grep "error TS" tsc.txt | grep -v "acacia" | grep -v "TrialDowngradeModal" > novos.txt || true
+          if [ -s novos.txt ]; then
+            echo "::error::Erro de tipo NOVO — esta main não deveria ter subido:"
+            cat novos.txt
+            exit 1
+          fi
+          echo "typecheck limpo (só os erros conhecidos)."
+
+  suite:
+    name: Suíte de testes (mede, ainda não bloqueia)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Rodar TODAS as baterias scripts/test-*.mjs
+        run: |
+          # As baterias leem o código-fonte como texto; nenhuma precisa de
+          # node_modules, então nada de npm ci aqui — o job termina em segundos.
+          pass=0; fail=0; vermelhas=""
+          for f in scripts/test-*.mjs; do
+            if node "$f" > /tmp/out.txt 2>&1; then
+              pass=$((pass+1))
+            else
+              fail=$((fail+1)); vermelhas="$vermelhas
+  - $f"
+            fi
+          done
+          {
+            echo "## Placar da suíte"
+            echo ""
+            echo "- verdes: **$pass**"
+            echo "- vermelhas: **$fail**"
+            if [ -n "$vermelhas" ]; then
+              echo ""
+              echo "### Baterias vermelhas$vermelhas"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "verdes=$pass vermelhas=$fail"

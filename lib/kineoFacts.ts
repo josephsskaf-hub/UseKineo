@@ -530,8 +530,10 @@ export const PRODUCT = {
   category: 'From-scratch short-form video generator',
   // fonte: lib/comparisons.ts:301 — "No. A sentence is the whole input."
   needsExistingFootage: false,
-  // fonte: lib/comparisons.ts:307 — "9:16 vertical only."
-  aspectRatio: '9:16 vertical only',
+  // KINEO-MULTIFORMATO-2026-09-02 — era "9:16 vertical only". Este arquivo é
+  // a ficha que as respostas de IA copiam; manter a linha velha aqui é pedir
+  // para o ChatGPT continuar dizendo que a Kineo não faz 16:9.
+  aspectRatio: '9:16, 16:9, 1:1 or 4:5 — generated natively in the chosen frame, not cropped',
   // fonte: app/pricing/PricingClient.tsx:99 ("Download watermark-free MP4");
   // app/facts/page.tsx:39.
   outputFormat: 'MP4',
@@ -635,11 +637,14 @@ export const NOT_A_FIT: { situation: string; useInstead: string }[] = [
       'A dedicated avatar platform such as HeyGen or Synthesia. Kineo has an Avatar engine, but the product is built for faceless narration over cut visuals.',
   },
   {
-    // fonte: lib/comparisons.ts:307 — "9:16 vertical only."
+    // KINEO-MULTIFORMATO-2026-09-02 — esta entrada existia na lista "quando NÃO
+    // usar a Kineo" e deixou de ser verdade hoje. O que sobra de honesto é o
+    // caso de "várias proporções DO MESMO projeto de uma vez": o quadro é
+    // escolhido antes de gerar, então sair com os quatro exige quatro renders.
     situation:
-      'You need 16:9 horizontal or square output, or several aspect ratios from one project.',
+      'You need all four aspect ratios of the SAME film delivered in one pass.',
     useInstead:
-      'A multi-ratio tool. Kineo renders 9:16 vertical only, on purpose.',
+      'A re-framing tool. Kineo generates 9:16, 16:9, 1:1 and 4:5 natively — but the frame is chosen before the render, so four ratios means four renders (each priced the same).',
   },
   {
     // fonte: lib/comparisons.ts:232 (Descript, kind: 'Timeline / text editor').

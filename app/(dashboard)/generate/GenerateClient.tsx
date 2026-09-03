@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { looksLikeInstruction } from '@/lib/momentumTopic'
 import { normalizeAspect } from '@/lib/aspect'
+import { fitFrameToVideo } from '@/lib/frameFit'
 import { useRouter, useSearchParams } from 'next/navigation'
 // KINEO-STUDIO-CORTINA-2026-08-17 — tela de espera vestida com o kit.
 import { STUDIO_KIT_CSS } from '@/components/studioKit'
@@ -13984,8 +13985,18 @@ export default function GenerateClient({
                   below remain visible. The 9:16 aspect-ratio box plus
                   object-fit: cover fills the frame so the vertical Short
                   never shows black pillarbox bars. */}
+              {/* KINEO-QUADRO-QUE-SE-AJUSTA-2026-09-02 — o 9:16 abaixo deixou de
+                  ser lei e virou VALOR INICIAL: `data-kineo-frame` marca esta
+                  caixa para lib/frameFit, que a reajusta ao quadro real do
+                  arquivo assim que o navegador lê a metadata. Sem isso, o
+                  16:9 que subiu hoje apareceria cortado dentro de uma coluna
+                  vertical — o recurso novo pareceria defeito. `-wide` dá ao
+                  filme deitado a largura que ele merece (460px de largura em
+                  16:9 renderiam uma tarja de 259px de altura). */}
               <div
                 className="gv-done-frame rounded-2xl overflow-hidden mt-6"
+                data-kineo-frame
+                data-kineo-frame-wide="min(780px, 94vw)"
                 style={{
                   width: 'min(460px, 90vw)',
                   maxHeight: '78vh',
@@ -14030,9 +14041,13 @@ export default function GenerateClient({
                     controlsList="nodownload"
                     onContextMenu={(e) => e.preventDefault()}
                     // #283 — a duração REAL do filme, lida do arquivo.
+                    // KINEO-QUADRO-QUE-SE-AJUSTA-2026-09-02 — o mesmo evento já
+                    // trazia a verdade sobre o arquivo; agora ele também conta
+                    // o QUADRO real, e a caixa acima se ajusta.
                     onLoadedMetadata={(e) => {
                       const d = e.currentTarget.duration
                       if (Number.isFinite(d) && d > 1) setFinalVideoSeconds(Math.round(d))
+                      fitFrameToVideo(e.currentTarget)
                     }}
                     autoPlay
                     playsInline

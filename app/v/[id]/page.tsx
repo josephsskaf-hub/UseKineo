@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import PublicVideoCtaLink from '@/components/PublicVideoCtaLink'
 import ShareVideoButton from './ShareVideoButton'
+import PublicVideoPlayer from './PublicVideoPlayer'
 import {
   getPublicVideoResult,
   metaDescriptionFor,
@@ -241,24 +242,12 @@ export default async function PublicVideoPage({ params }: { params: { id: string
               imediata: autoplay mudo em loop, controles na mao para o som.
               preload continua metadata: o peso so desce quando visivel. */}
           {ready ? (
-            <video
-              src={v!.playbackUrl!}
-              poster={v!.posterUrl ?? undefined}
-              controls
-              autoPlay
-              muted
-              loop
-              playsInline
-              preload="metadata"
-              style={{
-                width: '100%',
-                aspectRatio: '9 / 16',
-                borderRadius: 18,
-                background: '#000',
-                border: '1px solid rgba(41,151,255,0.25)',
-                boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
-              }}
-            />
+            /* KINEO-QUADRO-QUE-SE-AJUSTA-2026-09-02 — o <video> virou um client
+               component só para ganhar onLoadedMetadata: o quadro real do
+               arquivo manda na moldura. Esta é a página que o cliente
+               COMPARTILHA; um 16:9 espremido aqui estraga a primeira
+               impressão de quem ainda nem conhece a Kineo. */
+            <PublicVideoPlayer src={v!.playbackUrl!} poster={v!.posterUrl ?? undefined} />
           ) : (
             <div
               style={{

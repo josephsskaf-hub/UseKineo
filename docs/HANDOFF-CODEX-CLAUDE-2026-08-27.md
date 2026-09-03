@@ -1,5 +1,56 @@
 # Handoff Codex ↔ Claude — 2026-08-27
 
+## 162 — 02/09 noite · Claude · A SEGUNDA METADE DO MULTI-FORMATO: A TELA E A COPY
+
+O 161 fez o arquivo nascer no quadro certo. Faltavam as duas pontas que o cliente
+realmente encontra — a moldura que mostra o filme e a ficha que a IA lê antes de
+recomendar (ou não) a Kineo. As duas estavam presas no mundo vertical-only.
+
+**(1) A moldura mentia sobre o próprio arquivo.** Dez telas tinham
+`aspectRatio: '9 / 16'` chumbado, quase todas com `objectFit: cover`. Efeito
+prático de um pedido 16:9: o MP4 sai 1920×1080 CORRETO e a tela do resultado o
+mostra CORTADO nas laterais dentro de uma coluna vertical. O recurso mais
+vendável do dia pareceria defeito na primeira olhada — e a pessoa culparia o
+produto, nunca a moldura.
+
+- `lib/frameFit.ts` (novo) lê `videoWidth`/`videoHeight` do arquivo já decodificado
+  e ajusta a caixa marcada com `data-kineo-frame`.
+- **A escolha deliberada de NÃO usar o banco.** A alternativa óbvia era uma coluna
+  `videos.aspect`: exige migration, exige achar todos os pontos de escrita e —
+  o que mata — deixaria os 1.100+ vídeos antigos com valor adivinhado no backfill.
+  A dimensão real do arquivo não pode divergir do que a pessoa está vendo,
+  funciona retroativo em 100% do acervo e não custa uma linha de SQL.
+- 9:16 continua sendo o **valor inicial** de toda caixa (o quadro de quase todo o
+  acervo), então na prática nada pisca; o ajuste só acontece quando o arquivo
+  realmente não é vertical.
+- Aplicado onde o cliente JULGA o filme: tela do resultado (`GenerateClient`, com
+  `data-kineo-frame-wide` porque 460px de largura em 16:9 renderiam uma tarja de
+  259px), lightbox do histórico (`fitLightboxFrame` alarga a COLUNA, não só a
+  moldura — `width:100%` dentro de 420px não teria efeito) e `/v/[id]`, que virou
+  client component (`PublicVideoPlayer.tsx`) só para ganhar o evento: é a página
+  que o cliente COMPARTILHA, a nossa vitrine de graça.
+- **NÃO tocado de propósito:** as grades de miniatura (`/my-videos`, `/library`,
+  cards de recentes). Tile uniforme é decisão de design; misturar proporções numa
+  grade fica sujo. Se um dia incomodar, o conserto é `objectFit: contain` por tile.
+
+**(2) O defeito de RECEITA, maior que o visual.** `lib/comparisons.ts`,
+`lib/kineoFacts.ts` e `/llms.txt` diziam **"9:16 vertical only"** e, no llms.txt,
+literalmente `"Horizontal 16:9 YouTube videos" → NOT Kineo`. Esses arquivos são
+exatamente o que ChatGPT e Perplexity leem para responder "qual ferramenta faz
+vídeo 16:9 com IA". Estávamos pagando manutenção de conteúdo para sermos
+recusados. Morreu também a frase da página vs Pictory: *"that alone rules Kineo
+out and there is no workaround"*.
+
+O argumento novo **não é** "também fazemos 16:9" (isso qualquer um diz) — é ONDE
+o quadro é decidido: reenquadrar vídeo pronto exige rastrear o sujeito, e o
+mercado cobra por isso; a nossa cena nasce no quadro pedido, então nada é cortado
+e o preço não muda. A honestidade que sobra continua dita em todo lugar: **um
+render por quadro** (quatro proporções = quatro renders) e **não cortamos upload**.
+
+**Testado:** `scripts/test-quadro-real-2026-09-02.mjs` — 35 verificações lendo o
+código real, incluindo não-regressão (a leitura de duração do #283 e o `onError`
+do lightbox continuam no lugar; o valor inicial 9:16 continua em toda caixa).
+
 ## 161 — 02/09 noite · Claude · MULTI-FORMATO NATIVO (16:9 · 1:1 · 4:5) + TRANSPARÊNCIA DE PREÇO
 
 **A tese, medida em nove concorrentes (fonte oficial):** reenquadrar é caro para eles e

@@ -154,6 +154,29 @@ aparecem no app do celular — não é bug. Para trabalhar do celular existe o
 **Despacho** (Configurações → Cowork → Despacho, já ligado): a mensagem sai do
 celular e executa neste computador, que precisa estar ligado e com o app aberto.
 
+## 9b. RECURSO NOVO SÓ EXISTE QUANDO A TELA E A FICHA CONCORDAM COM ELE
+
+Lição de 02/09, generalizável e cara: o multi-formato subiu completo no backend
+(a cena nasce em 16:9) e, mesmo assim, o recurso teria parecido QUEBRADO. Dois
+motivos, os dois fora do motor:
+
+1. **A tela contradizia o arquivo.** Dez molduras tinham `aspectRatio: '9 / 16'`
+   chumbado com `objectFit: cover`. O 16:9 apareceria cortado — e o cliente
+   culparia o produto, não o CSS. Conserto em `lib/frameFit.ts`, lendo
+   `videoWidth`/`videoHeight` do próprio arquivo. **Escolha deliberada de não
+   usar coluna no banco**: a dimensão real não pode divergir do que a pessoa vê,
+   vale retroativo nos 1.100+ vídeos antigos e dispensa migration e backfill.
+2. **A nossa própria ficha recusava o cliente.** `lib/comparisons.ts`,
+   `lib/kineoFacts.ts` e `/llms.txt` diziam "9:16 vertical only", e o llms.txt
+   dizia com todas as letras `"Horizontal 16:9 YouTube videos" → NOT Kineo`.
+   Esses três arquivos são o que ChatGPT e Perplexity leem. Ou seja: mantínhamos
+   conteúdo atualizado para sermos recusados na resposta da IA.
+
+**Regra para toda entrega futura:** quando um recurso muda o que o produto FAZ,
+a mesma leva tem que varrer (a) as telas que MOSTRAM o resultado e (b) os
+arquivos de ficha que a IA lê — `comparisons`, `kineoFacts`, `llms.txt`, páginas
+`/vs` e `/alternatives`. Um recurso que o site nega não existe para o mercado.
+
 ## 10. BUG DO COWORK QUE CUSTOU MEIO DIA (02/09)
 
 Numa sessão longa, uma negativa de permissão do shell ficou **gravada para

@@ -113,9 +113,14 @@ export default function SoraAlternativePage() {
         claim in minutes.
       </p>
       <p style={{ color: '#c7c7cc' }}>
-        <b>And if you need 16:9 horizontal videos or want to edit clips you filmed yourself</b> —
-        Kineo is the wrong tool for you. It’s 9:16 vertical only and generates from text; it doesn’t
-        cut uploads. Our{' '}
+        {/* KINEO-MULTIFORMATO-2026-09-02 — este parágrafo mandava embora todo
+            mundo que procurava 16:9, e desde hoje isso é dinheiro na mesa:
+            fazemos 16:9 nativo. A honestidade que sobra (e que continua
+            valendo) é a outra metade: não cortamos upload. */}
+        <b>If you want to edit clips you filmed yourself</b> — Kineo is the wrong tool for you. It
+        generates from text; it doesn’t cut uploads. <b>16:9 horizontal, square and 4:5, though, we
+        do</b> — and natively: pick the frame and every scene is generated at that size, never
+        cropped from a vertical master. Our{' '}
         <a href={`${BASE}/vs`} style={{ color: '#2997ff' }}>comparison pages</a> cover tools that do.
       </p>
 

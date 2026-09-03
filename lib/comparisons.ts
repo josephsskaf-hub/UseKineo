@@ -345,7 +345,18 @@ export const TOOLS: Record<ToolId, Tool> = {
     fullPricing:
       `Free (${ft(OFFER, 'up to 3 watermarked Fast videos per 24h, no card', `${TRIAL_GRANT_CREDITS_COPY} free credits, every engine, watermarked; then 1 Fast/mo`)}) · Starter ${K(TIER_PRICES.starter.usd)}/mo, ${TIER_CREDITS.starter} credits (${K(ANNUAL_PRICES.starter.usd)}/year) · Creator ${K(TIER_PRICES.basic.usd)}/mo, ${TIER_CREDITS.basic} credits (${K(ANNUAL_PRICES.basic.usd)}/year) · Studio ${K(TIER_PRICES.pro.usd)}/mo, ${TIER_CREDITS.pro} credits (${K(ANNUAL_PRICES.pro.usd)}/year). Charged in USD worldwide. 7-day money-back guarantee.`,
     watermark: 'Watermarked on the free tier; every paid plan exports a clean, watermark-free MP4.',
-    ratios: '9:16 vertical only. That is a deliberate limit, not an oversight.',
+    // KINEO-MULTIFORMATO-2026-09-02 — esta linha dizia "9:16 vertical only" e
+    // era o argumento honesto até 02/09. Deixou de ser verdade no dia em que o
+    // multi-formato subiu, e uma linha desatualizada aqui não é um detalhe: é
+    // ela que /alternatives, /facts e /llms.txt servem ao ChatGPT e ao
+    // Perplexity. Ou seja, a nossa própria ficha estava mandando o comprador
+    // de 16:9 para o concorrente. A diferença que vale a pena explicar não é
+    // mais "só vertical" — é COMO o quadro nasce: reenquadrar vídeo pronto
+    // exige rastrear o sujeito (OpusClip cobra à parte por isso; Submagic e
+    // Veed fazem corte manual). As nossas cenas são GERADAS no quadro pedido,
+    // então nada é cortado depois e o preço não muda.
+    ratios:
+      '9:16, 16:9, 1:1 and 4:5 — each one generated natively in that frame, not cropped from a vertical master. Same price on every ratio.',
     // #296 — a linha que o comprador realmente compara lado a lado. Desde
     // 23/08 a resposta honesta não é mais só "tem narração de IA": nos dois
     // motores premium o personagem em cena fala a fala escrita, com lip sync,
@@ -1115,7 +1126,7 @@ export const PAIRS: Pair[] = [
       },
     ],
     kineo:
-      'Disclosure: Kineo publishes this page and is not one of the two tools compared. It belongs to the Pictory side of the line — topic in, finished video out — but narrower: 9:16 only, one typed sentence as the whole input, no document import and no long-video handling. Mentioned because "I have no footage" is the situation that sends people to this comparison in the first place.',
+      'Disclosure: Kineo publishes this page and is not one of the two tools compared. It belongs to the Pictory side of the line — topic in, finished video out — but narrower: one ratio per render, one typed sentence as the whole input, no document import and no long-video handling. Mentioned because "I have no footage" is the situation that sends people to this comparison in the first place.',
   },
   // ─── KINEO HEAD-TO-HEADS (declared in the slug — nobody is ambushed) ────────
   {
@@ -1140,7 +1151,7 @@ export const PAIRS: Pair[] = [
       },
       {
         h: 'Kineo’s constraint is the point',
-        p: '9:16 only. No timeline. No avatar. One typed topic in, a finished Short out — script, AI voiceover, footage matched scene by scene to the actual narration lines, captions. If you want any of the flexibility HeyGen sells, that constraint will read as a missing feature, and you would be right.',
+        p: 'One ratio per render. No timeline. No avatar. One typed topic in, a finished Short out — script, AI voiceover, footage matched scene by scene to the actual narration lines, captions. If you want any of the flexibility HeyGen sells, that constraint will read as a missing feature, and you would be right.',
       },
       {
         h: 'Free tiers reveal the intent of each',
@@ -1158,7 +1169,10 @@ export const PAIRS: Pair[] = [
       'The format is faceless: stock footage, AI narration, captions, no presenter.',
       'You have a topic, not a script, and writing the script is the part you keep not doing.',
       `Your ceiling is budget: Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month, against $29.`,
-      'You publish 9:16 and nothing else, so a tool that does only 9:16 costs you nothing.',
+      // KINEO-MULTIFORMATO-2026-09-02 — a razão para escolher a Kineo deixou de
+      // ser "eu só publico vertical mesmo" e passou a ser o oposto: o quadro é
+      // gerado, não recortado.
+      'You want the frame to be right in the camera, not recovered afterwards by a tracker guessing where the subject is.',
       ft(OFFER, 'You want to test whether you can actually keep a channel going before paying anything — 3 free videos a day, no card.', `You want to test the full workflow before paying — ${TRIAL_GRANT_CREDITS_COPY} free credits, every engine unlocked, no card.`),
     ],
     differences: [
@@ -1340,7 +1354,10 @@ export const PAIRS: Pair[] = [
       },
       {
         h: 'Aspect ratio',
-        p: 'Pictory supports multiple ratios. Kineo is 9:16 only, deliberately. If you also publish horizontal, that alone rules Kineo out and there is no workaround.',
+        // KINEO-MULTIFORMATO-2026-09-02 — esta era a frase mais cara do arquivo
+        // inteiro: dizia ao comprador de 16:9, com todas as letras, que não
+        // havia solução aqui. Desde 02/09 é falsa.
+        p: 'Both support multiple ratios. The difference is where the frame is decided: Pictory re-frames a finished video, and warns that some visuals may need repositioning. Kineo asks the engine for 9:16, 16:9, 1:1 or 4:5 before the scene exists, so nothing is cropped and the price is the same. The real limit here is one ratio per render — four frames of the same film means four renders.',
       },
       {
         h: 'Team support',
@@ -1826,7 +1843,7 @@ export const PAIRS: Pair[] = [
       },
     ],
     kineo:
-      'Disclosure: Kineo publishes this page and is not one of the two tools. It sits on the Pictory side of the line but narrower — a topic sentence instead of a document, 9:16 only, no multi-ratio export and no long-video handling. If you have written material to repurpose, Pictory is built for that and Kineo is not.',
+      'Disclosure: Kineo publishes this page and is not one of the two tools. It sits on the Pictory side of the line but narrower — a topic sentence instead of a document, one ratio per render (the four frames exist, but each is its own render) and no long-video handling. If you have written material to repurpose, Pictory is built for that and Kineo is not.',
   },
   {
     slug: 'heygen-vs-submagic',
@@ -2428,7 +2445,7 @@ export const PAIRS: Pair[] = [
       },
     ],
     kineo:
-      'Disclosure: Kineo publishes this comparison and is neither tool above. Kineo is on the Pictory side of the line — no footage required — but narrower: a topic sentence rather than a document, and 9:16 only with no other ratio available. If you have written material to repurpose across formats, Pictory is built for that and we are not.',
+      'Disclosure: Kineo publishes this comparison and is neither tool above. Kineo is on the Pictory side of the line — no footage required — but narrower: a topic sentence rather than a document, and one ratio per render — 9:16, 16:9, 1:1 and 4:5 are all available, but you pick one before the film is generated rather than exporting all four from a finished master. If you have written material to repurpose across formats, Pictory is built for that and we are not.',
   },
   {
     slug: 'descript-vs-submagic',
@@ -2686,7 +2703,7 @@ export const PAIRS: Pair[] = [
       },
     ],
     kineo:
-      'Disclosure: Kineo publishes this page and is neither tool above. It sits nearest Pictory — no footage required — but takes a topic sentence rather than a document, renders 9:16 only, and has no timeline of any kind. If you have recordings to edit, Descript is the right category and nothing here is arguing otherwise.',
+      'Disclosure: Kineo publishes this page and is neither tool above. It sits nearest Pictory — no footage required — but takes a topic sentence rather than a document, renders one ratio per render, and has no timeline of any kind. If you have recordings to edit, Descript is the right category and nothing here is arguing otherwise.',
   },
   {
     slug: 'quso-vs-submagic',
@@ -3116,7 +3133,7 @@ export const PAIRS: Pair[] = [
       },
     ],
     kineo:
-      'Disclosure: Kineo publishes this page and is neither tool above. Like both of them it needs no footage, but the input is a topic sentence rather than a product URL or a document, and the output is 9:16 only. If you have written material to repurpose across formats, Pictory is the broader product and we are not pretending otherwise.',
+      'Disclosure: Kineo publishes this page and is neither tool above. Like both of them it needs no footage, but the input is a topic sentence rather than a product URL or a document, and the output is one ratio per render. If you have written material to repurpose across formats, Pictory is the broader product and we are not pretending otherwise.',
   },
   {
     slug: 'creatify-vs-quso',
@@ -3546,7 +3563,7 @@ export const PAIRS: Pair[] = [
       },
     ],
     kineo:
-      'Disclosure: Kineo publishes this page and is neither tool above. It sits on the Pictory side — no footage needed — but takes a topic sentence rather than a document, writes the script itself, and renders 9:16 only. If you already have the words written, Pictory is the broader tool and this page is not arguing otherwise.',
+      'Disclosure: Kineo publishes this page and is neither tool above. It sits on the Pictory side — no footage needed — but takes a topic sentence rather than a document, writes the script itself, and renders one ratio per render. If you already have the words written, Pictory is the broader tool and this page is not arguing otherwise.',
   },
   {
     slug: 'opus-clip-vs-synthesia',
@@ -3804,7 +3821,7 @@ export const PAIRS: Pair[] = [
       },
     ],
     kineo:
-      'Disclosure: Kineo publishes this page and is neither tool above. It is on the Pictory side of the fork — faceless, narrated, stock and generative footage — but takes a topic sentence instead of a document and renders 9:16 only. If you have documents to repurpose across ratios, Pictory is the broader tool and we would say so on any page.',
+      'Disclosure: Kineo publishes this page and is neither tool above. It is on the Pictory side of the fork — faceless, narrated, stock and generative footage — but takes a topic sentence instead of a document and renders one ratio per render. If you have documents to repurpose across ratios, Pictory is the broader tool and we would say so on any page.',
   },
   {
     slug: 'quso-vs-synthesia',
@@ -4001,7 +4018,7 @@ export const PAIRS: Pair[] = [
       },
       {
         h: 'Kineo’s constraint is the whole product',
-        p: '9:16 only, no timeline, no upload, no caption template picker. One typed topic in; script, AI voiceover, footage matched scene by scene to the narration lines, and burned-in captions out. If you want to place a cut or restyle a caption, that will read as a missing feature — and you would be right.',
+        p: 'One ratio per render, no timeline, no upload, no caption template picker. One typed topic in; script, AI voiceover, footage matched scene by scene to the narration lines, and burned-in captions out. If you want to place a cut or restyle a caption, that will read as a missing feature — and you would be right.',
       },
       {
         h: 'Credits mean unrelated things and the numbers do not compare',
@@ -4349,7 +4366,7 @@ export const PAIRS: Pair[] = [
       },
       {
         h: 'Kineo’s constraint is the point and it will read as a flaw',
-        p: '9:16 only. No timeline, no seat tier, no governance, no SCORM, no brand kit. One typed topic in; script, AI voiceover, footage matched scene by scene, captions out. Every one of those absences is deliberate, and every one of them is a reason to buy Synthesia instead if your situation calls for it.',
+        p: 'One ratio per render. No timeline, no seat tier, no governance, no SCORM, no brand kit. One typed topic in; script, AI voiceover, footage matched scene by scene, captions out. Every one of those absences is deliberate, and every one of them is a reason to buy Synthesia instead if your situation calls for it.',
       },
     ],
     pickA: [
