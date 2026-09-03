@@ -4,7 +4,9 @@
 **Worktree:** `codex-daily-shorts-feed-v1`
 **Branch:** `codex/daily-shorts-ideas-feed-v1`
 **Base:** `6dc13ae3eb85c7d28a33ed6567d2cddc09879ed6`
-**Estado antes do push:** **IMPLEMENTADO E TESTADO LOCALMENTE · NÃO PUBLICADO**
+**Estado final:** **VALIDADO EM PRODUÇÃO · RESULTADO COMERCIAL AINDA DESCONHECIDO**
+
+**Commit funcional:** `4272b7fede9ac1b0027c24e9863102c2acb73248`
 
 ## 1. Sinal reconciliado e decisão desta rodada
 
@@ -86,3 +88,16 @@ Checkout terminal usa o contrato canônico de Stripe Session. `has_paid` isolado
 ## 6. Próxima rodada, sem repetição
 
 **SUGESTÃO:** trocar deliberadamente de estágio e lado do funil. Não tocar novamente no RSS nem no loop ChatGPT. A próxima ação deve ser B2B ou ativação de afiliado, com entrega executável e métrica de assinatura canônica.
+
+## 7. Validação pós-deploy
+
+**VALIDADO EM PRODUÇÃO — `www.usekineo.com`, 03/09/2026:**
+
+- `GET /shorts-ideas.xml` respondeu 200 e `application/rss+xml`;
+- XML válido com exatamente sete itens;
+- primeiro item contém topic preenchido e source, medium, campaign e data exatos;
+- o destino do item respondeu 200;
+- a home publicada contém autodiscovery para `/shorts-ideas.xml`;
+- o cache observado no navegador HTTP foi `public, must-revalidate`; a Vercel consumiu `s-maxage` como diretiva da CDN.
+
+**CLASSIFICAÇÃO:** a infraestrutura está **VALIDADA EM PRODUÇÃO** e o feed está **DESCOBRÍVEL**. Aquisição, adoção, Checkout e assinatura continuam **DESCONHECIDOS** até o gate comercial.
