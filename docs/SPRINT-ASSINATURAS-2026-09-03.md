@@ -133,3 +133,131 @@ Meta: `narration_guard_blocked` de PRIMEIRO vídeo perto de 0, e a razão
 `upgrade_modal_opened` com `videos_ok=0` e crédito intacto, e trocar o modal por
 "Make it now with Kineo 1 (fits your free credits)". Segunda maior alavanca do
 plano, e também jogada de Fable.
+
+---
+
+### #2 — 14:00→14:50 BRT — 5 dos 6 filmes que foram MONTADOS e nunca chegaram ao cliente morreram no nosso próprio guarda de cobrança, por uma diferença de preço que não cobrava ninguém. Agora a divergência entrega o filme e vira sinal.
+
+**Placar (SQL canônico, marco zero 03/09 16:00 UTC, contas externas):**
+
+| métrica | valor |
+|---|---:|
+| cadastros pós-marco (1h de vida) | 0 |
+| pessoas com filme pós-marco | 0 |
+| checkout de desejo / sem filme | 0 / 0 |
+| assinaturas pós-marco | 0 |
+| cadastros 12h | 21 · vídeos completos 12h: 19 |
+
+O marco tem 1 hora e a madrugada dos EUA é o vale do dia — nenhum número novo
+para ler ainda. A rodada foi escolhida pelo histórico, não pelo marco.
+
+**Checagem zero (3h):** 0 cadastros, 0 cadastro sem crédito, 0 render preso,
+1 `generation_stage_error` (`resolved=false retries=0`, estágio `idle` — sem
+prejuízo), 0 `narration_guard_blocked` (o #1 ainda não está em produção: falta o
+clique), 5 vídeos entregues. Nada quebrado.
+
+**O que estava errado (medido hoje, no banco).** Pares nascimento×compose na
+história: **312**. Desses, **6 nunca viraram linha em `videos`** — filme montado
+na Creatomate, cenas pagas na fal, cliente sem nada. E **5 dos 6 tinham custo
+divergente** entre o claim de nascimento e o de compose:
+
+| quando | pessoa | motor | nascimento | compose | filmes na vida |
+|---|---|---|---:|---:|---:|
+| 02/09 03:31 | wummm709 | cinematic_ai | 19 | 15 | **0** |
+| 21/08 11:19 | yk5162690 | cinematic_ai | 12 | 20 | 5 |
+| 21/08 07:20 | ebnother.werner | cinematic_kling | 75 | 50 | 1 |
+| 21/08 05:15 | tsatsraljess | cinematic_h3 | 27 | 45 | **0** |
+| 21/08 05:01 | tsatsraljess | cinematic_h3 | 27 | 45 | **0** |
+
+O 6º (luzluzi055) tinha os custos iguais — é outra causa. Ou seja: **83% dos
+filmes montados-e-descartados morreram nesta única linha de código.**
+
+E o dado que fecha o argumento: os `stranded_composed` dos últimos 7 dias
+(ks.ttk102, sinesh596, mhjyytryh, imtanvish, surajgulgulbantai, sjesubamiji,
+rochilsebosslady, ayoolaoluwasegunfunmi, arif065525, godofloki, …) **todos
+viraram vídeo** — o resgate normal funciona. O único que ficou para trás foi
+wummm709, o do custo divergente. A classe que o cron não salva é exatamente
+esta.
+
+**Por que os dois números diferem** (investigação fechada em
+`docs/BILLING-MISMATCH-2026-09-03.md`): o nascimento precifica a duração
+**pedida**, o compose precifica a duração **entregue**, e o filme fecha onde a
+fala termina — a régua "35/60/90 é norte, não camisa de força". A flexibilidade
+que faz o filme sair melhor era o que impedia a entrega dele.
+
+**O que mudou (arquivos).**
+- `lib/cinematic/claim.ts` (+97/−2): `birth.claim.creditCost !== cost` SAIU da
+  condição de recusa de `loadSettledCinematicClaimForRender`. Quando os números
+  divergem, a função grava `cinematic_cost_drift` (custo dos dois lados, delta,
+  duração do compose, razão do estorno, `delivered:true`) e **entrega o filme**.
+  O id do evento é determinístico por (usuário, generation, render): o
+  `/api/compose/status` é polido dezenas de vezes por render e sem isso um filme
+  divergente encheria a tabela `events`. Escrita em `try/catch` — observabilidade
+  nunca derruba entrega.
+- Mesmo arquivo: o regex de 3 razões de estorno virou a constante exportada
+  `CINEMATIC_DELIVERABLE_REFUND_REASONS` com as **9** que existem
+  (produção emite 7: `provider_abandoned`, `explicit_pre_provider_failure`,
+  `narration_too_short_no_charge`, `dry_run_no_charge`, `provider_rejected`,
+  `provider_all_failed`, `provider_balance_rejected`; o código emite mais
+  `provider_failed` e `stale_pending`). Razão nova continua caindo no 503 — de
+  propósito: liberar entrega para um desfecho novo é decisão humana.
+- `scripts/test-billing-drift.mjs` (novo, 380 linhas): **86 verificações, 0
+  falhas**, compilando o `claim.ts` REAL e batendo nele com um banco de mentira
+  — inclusive os dois casos de cliente de verdade (19×15 e 27×45), 20 polls
+  seguidos gravando 1 linha só, `insert` explodindo sem derrubar a entrega, e as
+  4 recusas que provam posse (quality, prefixo `cinematic-`, assinatura falsa,
+  claim de outro usuário).
+
+**Por que isto é dinheiro, não higiene.** O guarda alegava impedir cobrança
+dobrada. Ela já era impossível por dois outros meios — `debit_video_credits` é
+idempotente pela PK `render_id` e o guarda da linha em `videos` barra o segundo
+débito — e nos 5 casos **o crédito já tinha sido estornado**. O guarda cobrava
+100% da entrega por 0% de risco. Duas das 4 pessoas nunca viram um filme da
+Kineo na vida; o primeiro filme é o produto (memória de 02/09).
+
+**Decisões que tomei sozinha** (autonomia; reversíveis):
+1. **Lista explícita em vez de `/_refunded$/` solto.** Um regex genérico
+   entregaria filme em qualquer desfecho futuro sem ninguém decidir. Reverter =
+   esvaziar `CINEMATIC_DELIVERABLE_REFUND_REASONS`.
+2. **Incluí as duas razões `_no_charge_refunded`** (narração curta e dry-run)
+   embora elas nunca cheguem aqui — sem despacho na fal não há cena, não há
+   compose. Custo zero, e fecha o 503 se o fluxo mudar.
+3. **O evento é gravado dentro do loader, não na rota.** A rota tem um único
+   caller e o loader já tem o cliente admin; gravar ali garante que o sinal
+   exista mesmo quando o resgate vier do cron, não do navegador.
+
+**Risco.** Baixo e do lado certo: a mudança só transforma 503 em entrega. O que
+prova posse continua duro e testado. `releaseCinematicClaim` **não** foi
+afrouxado — claim `settled` continua exigindo `provider_*_refunded` com a mesma
+referência. Se der ruim, o sintoma seria um filme entregue com custo diferente
+do debitado — e é justamente isso que o `cinematic_cost_drift` passa a mostrar,
+com nome e sobrenome.
+
+**Como medir (contra o marco zero).**
+
+```sql
+select count(*) filter (where name='cinematic_cost_drift') as divergencias_entregues,
+       count(distinct user_id) filter (where name='cinematic_cost_drift') as pessoas
+from events where created_at > '2026-09-03 16:00:00+00';
+```
+
+Meta: `cinematic_cost_drift` > 0 com `videos` correspondente existindo, e ZERO
+novo par nascimento×compose sem linha em `videos` por custo divergente.
+
+**Achado grande de graça (não é código, é clique).** A rota
+`/api/admin/rescue-composed-films` (#18, construída em 02/09 exatamente para o
+caso do wummm709) **nunca foi executada**: `rescued_film_persisted` = 0 eventos
+na história. Os 6 filmes perdidos são precisamente os candidatos dela — todos
+têm `credits_refunded` com razão `cinematic_abandoned_no_delivery`. Ela é
+dry-run por padrão e pergunta à Creatomate se o arquivo ainda existe antes de
+qualquer coisa. Está na lista ✅ desta rodada.
+
+**Próximo item.** **B2 — preâmbulo do ChatGPT descartado antes de virar filme**
+(P, jogada minha): "Absolutely. Below is a complete content package…" ainda vira
+narração e tema de e-mail (7 dos 25 momentum de 02/09 tinham instrução como
+tema). Filtro determinístico no `finished_script` e no `momentumTopic`. É o
+canal que traz os 3 últimos assinantes — cada preâmbulo que vira fala é um
+primeiro filme estragado do único canal que converte. Depois dele, A3 (série).
+
+**Modelo.** Feita em Opus (A2 não é jogada de Fable pelo plano). Medição, código,
+teste, diário e entrega na mesma sessão.

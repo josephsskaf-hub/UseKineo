@@ -10,6 +10,27 @@ import {
 
 export const CINEMATIC_CLAIM_EVENT = 'cinematic_submission_claim'
 export const CINEMATIC_CLAIM_PATH = '/api/generate-video-cinematic'
+export const CINEMATIC_COST_DRIFT_EVENT = 'cinematic_cost_drift'
+
+// KINEO-BILLING-MISMATCH-2026-09-03 — as razoes terminais de estorno que a
+// PRODUCAO realmente emite num claim de nascimento `released`. O regex antigo
+// conhecia 3 (`provider_(all_failed|failed|abandoned)_refunded`); o banco tem 7
+// (docs/BILLING-MISMATCH-2026-09-03.md secao 5). Toda razao de fora caia no
+// mesmo 503 eterno de `/api/compose/status`, com as cenas ja pagas na fal e o
+// dinheiro ja devolvido ao cliente — filme jogado fora sem nenhum risco
+// financeiro do outro lado. Lista explicita (nunca `/_refunded$/` solto) para
+// que uma razao nova precise de decisao humana antes de liberar entrega.
+export const CINEMATIC_DELIVERABLE_REFUND_REASONS: ReadonlySet<string> = new Set([
+  'provider_all_failed_refunded',
+  'provider_failed_refunded',
+  'provider_abandoned_refunded',
+  'provider_rejected_refunded',
+  'provider_balance_rejected_refunded',
+  'explicit_pre_provider_failure_refunded',
+  'stale_pending_refunded',
+  'narration_too_short_no_charge_refunded',
+  'dry_run_no_charge_refunded',
+])
 
 export type CinematicClaimStatus = 'pending' | 'done' | 'settled' | 'released'
 
@@ -436,15 +457,89 @@ export async function loadSettledCinematicClaimForRender(args: {
     // KINEO-CREDIT-INTEGRITY-2026-08-05 — `abandoned` joins the terminal
     // refunded reasons: the cron sweep releases a settled claim whose render
     // never delivered (closed tab / stalled fal poll) after refunding it.
-    /^provider_(all_failed|failed|abandoned)_refunded$/.test(birth.claim.resolutionReason)
+    // KINEO-BILLING-MISMATCH-2026-09-03 — a lista virou constante explicita com
+    // as razoes que a producao emite (o regex de 3 barrava as outras 4).
+    CINEMATIC_DELIVERABLE_REFUND_REASONS.has(birth.claim.resolutionReason)
   if (
     (!isDebited && !isRefunded) || birth.claim.quality !== quality ||
-    birth.claim.creditCost !== cost ||
     !birth.claim.resolutionReference.startsWith('cinematic-')
   ) {
     return { ok: false, error: 'cinematic birth/compose billing mismatch' }
   }
+  // KINEO-BILLING-MISMATCH-2026-09-03 — `birth.claim.creditCost !== cost` SAIU
+  // da recusa. O preco era calculado duas vezes (nascimento = duracao PEDIDA;
+  // compose = duracao ENTREGUE) e a diferenca — que nasce da propria regra da
+  // casa de o filme fechar onde a fala termina — recusava a entrega de um filme
+  // PRONTO, com o credito ja estornado: 5 divergencias na historia, 5 filmes
+  // perdidos, 100%. Cobranca dobrada continua impossivel pelos dois meios de
+  // sempre: `debit_video_credits` e idempotente pela PK `render_id` e o guarda
+  // da linha em `videos` barra o segundo debito. O que prova POSSE continua
+  // duro logo acima: quality, prefixo `cinematic-`, assinatura do claim de
+  // compose e `composeId` derivado do usuario. Divergencia virou SINAL.
+  if (birth.claim.creditCost !== cost) {
+    await recordCinematicCostDrift({
+      db: args.db,
+      userId: args.userId,
+      generationId,
+      renderId: args.renderId,
+      birthCost: birth.claim.creditCost,
+      composeCost: cost,
+      quality,
+      birthStatus: birth.claim.status,
+      resolutionReason: birth.claim.resolutionReason,
+      composeDuration: typeof metadata.duration === 'number' ? metadata.duration : null,
+    })
+  }
   return { ok: true, claim: birth.claim }
+}
+
+/**
+ * KINEO-BILLING-MISMATCH-2026-09-03 — registra a divergencia de preco entre o
+ * claim de nascimento e o de compose SEM nunca bloquear a entrega. Id
+ * deterministico por (usuario, generation, render): a rota de status e polida
+ * dezenas de vezes por render, e sem isso um filme divergente encheria a tabela
+ * `events` de linhas iguais. Duplicata (23505) e o caminho normal, nao erro.
+ * Falha de escrita e engolida de proposito: observabilidade nunca derruba filme.
+ */
+async function recordCinematicCostDrift(args: {
+  db: SupabaseClient
+  userId: string
+  generationId: string
+  renderId: string
+  birthCost: number
+  composeCost: number
+  quality: string
+  birthStatus: CinematicClaimStatus
+  resolutionReason: string
+  composeDuration: number | null
+}): Promise<void> {
+  try {
+    await args.db.from('events').insert({
+      id: deterministicUuid(
+        'kineo:cinematic-cost-drift:v1',
+        args.userId,
+        args.generationId,
+        args.renderId,
+      ),
+      user_id: args.userId,
+      name: CINEMATIC_COST_DRIFT_EVENT,
+      path: CINEMATIC_CLAIM_PATH,
+      session_id: args.generationId,
+      metadata: {
+        render_id: args.renderId,
+        birth_credit_cost: args.birthCost,
+        compose_credit_cost: args.composeCost,
+        drift: args.composeCost - args.birthCost,
+        quality: args.quality,
+        birth_status: args.birthStatus,
+        resolution_reason: args.resolutionReason,
+        ...(args.composeDuration === null ? {} : { compose_duration: args.composeDuration }),
+        delivered: true,
+      },
+    })
+  } catch {
+    // observabilidade nunca derruba entrega
+  }
 }
 
 function metadataForClaim(claim: CinematicClaim): Record<string, unknown> {
