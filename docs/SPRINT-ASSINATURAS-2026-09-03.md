@@ -782,3 +782,175 @@ outro e a jogada muda.
 A1/A3). Medição, código, teste, diário e entrega na mesma sessão.
 
 **SHA.** `796bf166`. Worktree: `C:\kineo-wt\a5-credito-preso`.
+
+### #6 — 18:40→20:45 BRT — o e-mail de desculpa NUNCA saiu uma única vez em 30 dias. A palavra "credits" nas nossas próprias confissões de defeito desclassificava a pessoa — e metade delas não tinha evento nenhum para ser vista.
+
+**Placar (SQL canônico, marco zero 03/09 16:00 UTC, externos, medido 23:45 UTC):**
+
+| métrica | valor |
+|---|---:|
+| cadastros pós-marco (7h45 de vida) | 12 |
+| pessoas com filme pós-marco | 8 (**67%**) |
+| checkout de **desejo** (tem filme) | 1 |
+| checkout **sem filme** (a classe de defeito) | 1 |
+| assinaturas pós-marco | 0 |
+| pessoas com falha e nenhum filme | **0** |
+| `narration_guard_blocked` (o que o #1 mata) | **0** |
+| `script_duration_autofit_down` | 0 |
+| `cinematic_cost_drift` (o #2) | 0 |
+| vídeos completos 24h | 36 |
+
+`1º filme / cadastro` = **67%** contra os ~55% medidos no #1 e a meta de 80% do
+plano. `checkout_sem_filme` = 1 em 12 contra 12 em 27 nos 7 dias anteriores.
+Amostra pequena, mas os dois indicadores que o plano manda vigiar não pioraram
+depois de #1→#5. Os contadores novos (`autofit_down`, `cost_drift`) seguem em 0
+porque os defeitos que eles marcam também não aconteceram — não são medida de
+uso, são medida de conserto.
+
+**Checagem zero (1h):** 0 cadastro sem crédito, 0 `generation_stage_error`,
+0 `narration_guard_blocked`, 0 render preso, 0 evento de erro de qualquer nome,
+4 vídeos entregues. Nada quebrado.
+
+**A jogada do cardápio (A4) já tinha morrido na medição do #5** — não repeti.
+C3 (winback com filme pronto) é a próxima da ordem e **não cabe em autonomia**:
+ela exige um lote de renders pagos (~US$ 30-40 de fal), e gastar dinheiro é uma
+das exceções que continuam do fundador. Fica esperando o "vai" dele. Peguei a
+jogada seguinte com número próprio, na minha pista.
+
+**O que estava errado (medido hoje no banco).**
+
+`app/api/cron/send-failure-recovery` existe desde 21/08 para uma coisa só:
+pedir desculpa a quem tentou fazer um filme, foi derrubado por um defeito
+NOSSO, e foi embora sem nada. Fui medir o que ele entregou:
+
+| | |
+|---|---:|
+| `failure_recovery_sent` na história inteira | **8** |
+| desses, `kind='script_short'` (roteiro curto) | **8** |
+| desses, `kind='bug'` (o e-mail de DEFEITO) | **0** |
+
+**O e-mail que é a razão de o arquivo existir nunca saiu uma única vez.**
+Enquanto isso, do outro lado:
+
+| | |
+|---|---:|
+| pessoas com estorno por defeito em 30d | 65 |
+| — que nunca viram um filme da Kineo e são alcançáveis | **35** |
+| — dessas, que receberam o e-mail | **1** |
+| — dessas, sem NENHUM evento de navegador na vida | **15** |
+| na janela de 7 dias | 10 (4 delas invisíveis) |
+
+E o detalhe que fez a rodada ser hoje: **o #1 desta manhã acabou de eliminar o
+`script_short`** — a única coorte que este cron atendia. Deixado como estava, o
+cron ia para zero envios enquanto a fila de gente quebrada continuava cheia.
+
+**As duas causas.**
+
+**1. Um fragmento de nove letras.** A lista `NAO_E_BUG` — "mensagens que não são
+defeito, são o produto dizendo não corretamente" — começava com o fragmento
+solto `credits`. Só que TODA mensagem de erro da casa termina dizendo à pessoa
+que o crédito dela voltou. É a coisa certa a dizer. E por isso a palavra aparece
+dentro das nossas próprias confissões:
+
+    "Our video provider did not accept the job — this is on our side, not
+     yours. Nothing started, your CREDITS were refunded automatically…"
+
+    "This generation stopped responding and we ended it here instead of
+     leaving you waiting. Your CREDITS are being returned automatically…"
+
+As duas dizem, com todas as letras, que a culpa é nossa. O cron lia as duas
+como "o produto funcionou".
+
+**2. Só o navegador era lido.** As duas fontes (`generate_failed` e
+`generation_stage_error`) são eventos do cliente. Quinze das 35 pessoas não têm
+um único deles na vida: o render morreu no SERVIDOR depois que a aba fechou, e
+quem registrou o desfecho foi a varredura de estorno. Para essas quinze o cron
+era cego por construção, não por regra.
+
+**O que mudou (arquivos).**
+- `app/api/cron/send-failure-recovery/route.ts` (+~180): (a) `DEFEITO_EXPLICITO`
+  — frases em que o produto assume a culpa — **vence** o `NAO_E_BUG`; (b) o
+  fragmento solto deu lugar às **frases inteiras** de cada recusa legítima. Não
+  usei só as que apareceram em 30 dias de eventos: fui de `grep` em `app/api`
+  atrás de TODA redação de saldo curto que existe no código, e achei quatro que
+  os eventos não tinham (`AI Generated needs N credits. You have M.`,
+  `Fast needs…`, `This generation needs…` nas duas variantes, `Animating a photo
+  costs…`) — sem elas, o conserto criaria o erro oposto; (c) terceira fonte:
+  `credits_refunded` com razão `cinematic_abandoned_no_delivery` ou
+  `pending_orphan_no_dispatch`; (d) `?hours=N` (padrão 48, teto 720); (e) copy
+  que não mente para falha velha; (f) carimbo com `fonte`/`stale_days`/
+  `window_hours` e `by_source` no dry-run.
+- `scripts/test-resgate-defeito.mjs` (novo): **78 verificações, 0 falhas**,
+  compilando o código REAL da rota e batendo nele com **11 mensagens de defeito
+  e 16 recusas legítimas** lidas do banco e do código — inclusive a trava do
+  erro oposto: as 6 mensagens de estorno da casa que falam de crédito
+  ("Your credits were refunded automatically") continuam sendo defeito.
+- `scripts/test-failure-recovery-honest.mjs` e `-latest-wins.mjs`: os dois
+  vizinhos voltaram ao verde (40/0 e 43/0). O `latest-wins` estava **quebrado
+  em `origin/main` antes desta rodada** (SyntaxError no harness, conferido no
+  arquivo original) e é justamente o que protege o invariante "o erro mais
+  recente decide" — reparei e estendi para cobrir a terceira fonte.
+
+**Por que isto é dinheiro, não higiene.** A pessoa que tentou fazer um filme e
+foi derrubada por defeito nosso é a lista mais quente que existe: ela já quis o
+produto, já escreveu o tema, já apertou gerar, e ainda está com os créditos
+intactos. Não precisa ser convencida do valor — precisa saber que agora
+funciona. São ~10 por semana, e hoje elas recebem **zero**. O primeiro filme é o
+produto (memória de 02/09); estas são as pessoas para quem o primeiro filme
+existiu, foi pago, e nunca chegou.
+
+**Decisões que tomei sozinha** (autonomia; reversíveis):
+1. **Capacidade continua FORA da desculpa** ("full capacity", "high demand right
+   now"). É do nosso lado, mas dizer "it is fixed now" seria mentira — é a mesma
+   regra do #5. Reverter: mover as duas frases de `NAO_E_BUG` para
+   `DEFEITO_EXPLICITO`.
+2. **A razão do estorno é filtrada em CÓDIGO, não no PostgREST.** Um filtro de
+   caminho jsonb que o servidor não entenda não devolve erro — devolve lista
+   vazia. Fonte que falha em silêncio é pior que fonte nenhuma: o cron
+   continuaria "saudável" e as 15 continuariam invisíveis. São ~90 estornos em
+   30 dias; o volume permite.
+3. **Falha com mais de 7 dias ganha copy própria** em vez de ficar de fora. O
+   backlog de 35 pessoas não some sozinho, e "we went quiet, which was worse"
+   é verdade. Reverter: `const velho = staleDays > 99999`.
+4. **A janela virou parâmetro com teto de 720h, não constante nova.** O cron do
+   `vercel.json` segue sem o parâmetro, logo segue em 48h — o backlog é um
+   clique do fundador, com dry-run por padrão, não uma mudança de comportamento
+   automático.
+
+**Risco.** O risco real é o oposto do defeito: mandar "a culpa foi nossa" para
+quem levou um "não" legítimo. Três travas: (a) a lista de recusas virou frase
+inteira e foi conferida contra o CÓDIGO, não só contra os eventos; (b) o teste
+tranca as 16 recusas legítimas e as 6 mensagens de estorno da casa nas duas
+direções; (c) a regra do #15 continua de pé — se a ÚLTIMA coisa que o produto
+disse à pessoa foi um "não" legítimo, ela sai da lista, mesmo com defeito antes.
+Risco menor: o carimbo é 1× por pessoa para sempre, então uma classificação
+errada gasta a única chance daquela pessoa.
+
+**Como medir (contra o marco zero, 03/09 16:00 UTC).**
+
+```sql
+select metadata->>'kind' kind, metadata->>'fonte' fonte, count(*) n
+from events where name='failure_recovery_sent' and created_at > '2026-09-03 16:00:00+00'
+group by 1,2 order by 3 desc;
+```
+
+Meta: `kind='bug'` deixar de ser zero pela primeira vez na história, e
+`fonte='servidor'` aparecer — cada linha dessas é uma pessoa que o cron não
+conseguia enxergar. Sinal secundário, o que importa de verdade: dessas pessoas,
+quantas voltam e entregam um filme (`videos.status='completed'` depois do
+carimbo).
+
+**Próximo item.** **D2 — a caixa vazia**, com o número do #5: **66 das 96
+pessoas de 7 dias que não viram filme abriram o Studio e nunca submeteram
+nada**. Antes de codar, medir quantas chegaram a digitar: o #5 já anotou 41 com
+`analyze_idea_clicked` contra 31 com `generate_started`, ou seja **10 digitaram
+e desistiram na tela de revisão**, e os outros ~26 nem digitaram. Se a maioria
+não digitou, a jogada é o pouso em `/viral-now` (3 ideias prontas, 1 clique,
+100% fora da zona do Codex); se a maioria digitou e desistiu, o problema é a
+tela de revisão e a jogada muda.
+
+**Modelo.** Feita em Opus (pelo plano, Fable só em A1/A3). Medição, código,
+teste, reparo dos dois vizinhos, diário e entrega na mesma sessão.
+
+**SHA.** `6ad95b32` (enfileirado em `entrega-atual`; aguardando o clique no
+SUBIR-SITE.bat). Worktree: `C:\kineo-wt\resgate-defeito`.
