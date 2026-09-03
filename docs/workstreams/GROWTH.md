@@ -12,6 +12,12 @@
 
 **REGRA DE EXECUÇÃO:** antes de editar, declare hipótese, mudança mínima, evento, métrica, gate de parada e risco. Depois, publique e valide quando autorizado. Se a evidência contradizer a hipótese, registre a contradição e mude de direção; não fabrique atividade alterando a mesma tela novamente.
 
+**DECISÃO APROVADA PELO FUNDADOR — 03/09/2026:** Growth precisa executar, não apenas observar. Um relatório só conta como rodada quando remove uma incerteza que bloqueava a ação e termina em `executar`, `não executar` ou `mudar de direção`. A rodada seguinte realiza essa decisão; repetir leitura, relatório ou variação cosmética não é progresso.
+
+**REGRA ANTI-MESMICE:** antes de agir, classificar a mecânica e a superfície como `NOVA`, `PARCIAL` ou `DUPLICADA` contra os handoffs em gate. `DUPLICADA` não sobe. `PARCIAL` só sobe se acrescentar um mecanismo causal novo e mensurável, sem reiniciar o relógio de outro experimento. O portfólio alterna distribuição, ativação, retorno, oferta, checkout, afiliados e B2B; não transforma dez landings ou dez relatórios na aparência de dez estratégias.
+
+**REGRA DE QUEDA:** uma queda curta vira sinal operacional, não culpa automática do último deploy. Comparar janelas de relógio idênticas, pessoas externas e fonte antes de rollback. Confirmada a queda, a resposta deve reduzir a dependência encontrada ou corrigir a regressão provada — nunca apenas produzir outro painel.
+
 **FOCO DO CICLO ATUAL:** 50% B2C no caminho primeiro vídeo → valor percebido → Checkout recorrente → pagamento; 50% B2B no caminho descoberta → proposta/escopo → Checkout → pagamento. Contar pessoas externas distintas e reconciliar receita pela mesma Stripe Session.
 
 > As seções datadas de 27/07 abaixo são histórico do diagnóstico daquela data. Elas não substituem esta regra operacional nem os handoffs canônicos mais recentes.

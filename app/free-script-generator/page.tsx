@@ -17,6 +17,7 @@ import {
   sanitizePublicVideoRemixTopic,
 } from '@/lib/publicVideoRemix'
 import { affiliateLandingContext } from '@/lib/growth/affiliateLandingContext'
+import { isExactWebShareTargetLanding, webShareHandoffStatus } from '@/lib/growth/webShareTarget'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.usekineo.com'),
@@ -67,6 +68,8 @@ export default function FreeScriptGeneratorPage({ searchParams }: { searchParams
   const sourceVideoId = sanitizePublicVideoId(first(searchParams?.source_video_id))
   const fromPublicVideo = first(searchParams?.utm_source) === 'public_video' &&
     first(searchParams?.utm_campaign) === PUBLIC_VIDEO_REMIX_CAMPAIGN
+  const fromWebShareTarget = isExactWebShareTargetLanding(searchParams)
+  const webShareStatus = fromWebShareTarget ? webShareHandoffStatus(searchParams) : null
   const partnerContext = affiliateLandingContext(searchParams, 'script')
   return (
     <>
@@ -79,6 +82,8 @@ export default function FreeScriptGeneratorPage({ searchParams }: { searchParams
         initialTopic={initialTopic}
         sourceVideoId={fromPublicVideo ? sourceVideoId : ''}
         fromPublicVideo={fromPublicVideo}
+        fromWebShareTarget={fromWebShareTarget}
+        webShareStatus={webShareStatus}
       />
       {/* AQUISICAO T3 (14/08) — prova viva na melhor porta da casa (67% de
           clique para o produto): quem acabou de gerar um roteiro ve TRES

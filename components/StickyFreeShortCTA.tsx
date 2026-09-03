@@ -29,10 +29,12 @@ export default function StickyFreeShortCTA({
   href = '/signup?utm_source=sticky_cta',
   label,
   cta = 'Start free',
+  onCtaClick,
 }: {
   href?: string
   label?: string
   cta?: string
+  onCtaClick?: () => void
 }) {
   // [KINEO-TRIAL-SWAP-2026-08-07] — o default do rótulo agora vem da oferta
   // (flag OFF = literal antigo byte a byte). Quem passa `label` explícito segue
@@ -133,6 +135,7 @@ export default function StickyFreeShortCTA({
           </p>
           <Link
             href={href}
+            onClick={onCtaClick}
             style={{
               flexShrink: 0,
               minHeight: 44,
