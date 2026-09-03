@@ -62,18 +62,164 @@ export type SeriesContinuationSource =
   // boa vontade; assinante e trial com saldo recebem o episodio 2 ali.
   | 'video_ready_email'
 
+// ═══ A3 (03/09/2026) — o botao "Build the next episode" e a maquina da 2a compra ═══
+//
+// Medido no banco (contas externas): 27 pessoas usaram o botao de serie e 3
+// pagaram (11,1%), contra 12 pagantes em 751 pessoas com filme (1,6%) — quem
+// faz serie converte ~7x melhor. E 9 de 43 continuacoes (21%) nasceram com o
+// ASSUNTO destruido, porque a ordem inteira do gerador virava `videos.topic`
+// e `videos.title` (topic cortado em ~120), e o clique seguinte usava o TITLE
+// como semente: a semente do episodio 3 era a ORDEM do episodio 2, cortada no
+// meio da palavra e com `. Ke` (inicio de ". Keep the topic") colado no fim.
+//
+// Regra nova, em ordem: DESANINHAR (tirar cabeca e cauda da ordem, quantas
+// vezes for preciso), tirar rotulo (`Title:`), matar semente degenerada
+// (`Untitled Short`, `5 shocking facts about`), e so entao cortar em 180 —
+// em fronteira de palavra, nunca no meio.
+
+const MAX_UNNEST_ROUNDS = 8
+/** Piso de palavras. Fica em 1 DE PROPOSITO: medido no banco, so 9 dos 1.184
+ *  filmes entregues tem titulo de uma palavra so — e "Chernobyl" ou "Pompeii"
+ *  sao assunto de serie perfeitamente bom. Quem mata a sobra de marcador de
+ *  verdade e a regra da palavra pendurada ("5 shocking facts about", que tem 4
+ *  palavras), nao a contagem. Subir para 2 tiraria o botao de 9 filmes reais
+ *  sem pegar nenhum caso que as outras regras ja nao peguem. */
+const MIN_SEED_WORDS = 1
+
+/** Cabeca da ordem antiga (v1, ate 03/09). As aspas ja foram removidas antes. */
+const LEGACY_ORDER_HEAD = /^(?:create the next episode in the same short series about\s*)+/i
+
+/** Rotulos que o titulo/roteiro trazem grudados no assunto ("Title: X"). O
+ *  loop de desaninhamento repete este strip, entao `Topic: "Topic: "X` limpa. */
+const HEAD_LABEL = /^(?:(?:title|t[ií]tulo|tema|topic)\s*:\s*)+/i
+
+/**
+ * Caudas de andaime que ficam coladas no assunto — inteiras OU cortadas em
+ * qualquer ponto pelo truncamento de 120/180 (`. Ke`, `. Keep the topic and
+ * forma`…). Cada entrada e [texto, tamanho minimo do fragmento aceito]: a
+ * cauda com ponto aceita 4 chars (`. Ke` e o caso real do 03/08); as caudas
+ * "peladas" exigem 10 para "Secrets You Should Keep" nao perder o "Keep".
+ */
+const SCAFFOLD_TAILS: ReadonlyArray<readonly [string, number]> = [
+  ['. Keep the topic and format recognizable, but use a completely new hook, new facts, and a fresh payoff. Do not repeat the previous episode.', 4],
+  ['. This is the next episode in the same Short series: same subject, same format, a completely new hook, new facts and a fresh payoff. Do not repeat the previous episode.', 4],
+  ['Keep the topic and format recognizable, but use a completely new hook, new facts, and a fresh payoff. Do not repeat the previous episode.', 10],
+  ['This is the next episode in the same Short series: same subject, same format, a completely new hook, new facts and a fresh payoff. Do not repeat the previous episode.', 10],
+  ['Do not repeat the previous episode.', 10],
+]
+
+/** Espelho do PROMPT_SCAFFOLDING de lib/publicVideos.ts (nao importamos para
+ *  este modulo continuar sem import e compilavel sozinho no teste). Se o que
+ *  sobrou depois de desaninhar ainda casa aqui, nao e assunto de ninguem. */
+const RESIDUAL_SCAFFOLDING =
+  /(next episode in the same short series|keep the topic and format recognizable|completely new hook|do not repeat the previous episode)/i
+
+const UNTITLED = /^(?:untitled(?:\s+(?:short|video))?|sem\s+t[ií]tulo)$/i
+
+/** Palavra final que pede complemento = a frase foi cortada antes do assunto
+ *  ("5 shocking facts about", 03/09). */
+const DANGLING_WORDS = new Set(['about', 'sobre', 'de', 'the', 'a', 'an', 'of', 'com', 'para', 'and', 'to'])
+const TRAILING_PUNCT = /[.,:;!?\-–—…]+$/
+
+function stripScaffoldTail(value: string): string {
+  const lower = value.toLowerCase()
+  for (const [tail, minLen] of SCAFFOLD_TAILS) {
+    const tailLower = tail.toLowerCase()
+    const max = Math.min(tailLower.length, lower.length)
+    for (let len = max; len >= minLen; len -= 1) {
+      if (lower.endsWith(tailLower.slice(0, len))) return value.slice(0, value.length - len).trimEnd()
+    }
+  }
+  return value
+}
+
+function lastWord(value: string): string {
+  const words = value.split(' ')
+  return words[words.length - 1] ?? ''
+}
+
+function endsWithDanglingWord(value: string): boolean {
+  return DANGLING_WORDS.has(lastWord(value).replace(TRAILING_PUNCT, '').toLowerCase())
+}
+
+function endsDangling(value: string): boolean {
+  return /[:,]$/.test(value) || endsWithDanglingWord(value)
+}
+
+function isDegenerate(value: string): boolean {
+  if (!value) return true
+  if (UNTITLED.test(value)) return true
+  if (RESIDUAL_SCAFFOLDING.test(value)) return true
+  if (endsDangling(value)) return true
+  if (value.split(' ').length < MIN_SEED_WORDS) return true
+  return false
+}
+
+/** Tira cabeca, cauda e rotulo ate nao mudar mais. Cada volta que muda algo
+ *  ENCURTA a string, entao termina sempre; o teto e cinto, nao freio. */
+function unnestSeed(value: string): string {
+  let cur = value
+  for (let round = 0; round < MAX_UNNEST_ROUNDS; round += 1) {
+    let next = cur.replace(LEGACY_ORDER_HEAD, '').trim()
+    for (let guard = 0; guard < 32; guard += 1) {
+      const stripped = stripScaffoldTail(next)
+      if (stripped === next) break
+      next = stripped
+    }
+    next = next.replace(HEAD_LABEL, '').trim()
+    if (next === cur) return cur
+    cur = next
+  }
+  return cur
+}
+
+/** Corte em 180 na fronteira: ultima frase inteira se ela guarda ao menos
+ *  metade do limite (senao "Mr." viraria a semente), senao ultimo espaco. */
+function cutAtBoundary(value: string): string {
+  if (value.length <= MAX_SERIES_SEED_LENGTH) return value
+  const window = value.slice(0, MAX_SERIES_SEED_LENGTH)
+  let cut = ''
+  const sentence = window.match(/^([\s\S]*[.!?…])(?=\s)/)
+  if (sentence && sentence[1].length >= MAX_SERIES_SEED_LENGTH / 2) cut = sentence[1]
+  if (!cut) {
+    const lastSpace = window.lastIndexOf(' ')
+    cut = lastSpace > 0 ? window.slice(0, lastSpace) : window
+  }
+  cut = cut.trim()
+  // A palavra pendurada no corte NAO e sinal de fragmento do banco (a entrada
+  // era longa e inteira): tira-la e melhor que devolver ''.
+  for (let guard = 0; guard < 3 && cut && endsDangling(cut); guard += 1) {
+    cut = cut.replace(/[:,\s]+$/, '')
+    if (endsWithDanglingWord(cut)) cut = cut.slice(0, Math.max(0, cut.lastIndexOf(' ')))
+    cut = cut.replace(/[:,\s]+$/, '').trim()
+  }
+  return cut
+}
+
 export function normalizeSeriesSeed(value: string | null | undefined): string {
-  return (value ?? '')
+  const flat = (value ?? '')
     .replace(/\s+/g, ' ')
     .replace(/["“”]+/g, '')
     .trim()
-    .slice(0, MAX_SERIES_SEED_LENGTH)
+  const seed = unnestSeed(flat)
+  if (isDegenerate(seed)) return ''
+  const cut = cutAtBoundary(seed)
+  if (cut !== seed && isDegenerate(cut)) return ''
+  return cut
 }
 
+/**
+ * O assunto na FRENTE, a ordem atras e subordinada. Antes o gerador recebia
+ * uma ordem com o assunto no meio dela. A frase continua casando com 3 das 4
+ * alternativas do PROMPT_SCAFFOLDING (lib/publicVideos.ts) — e ele que impede
+ * a ordem de virar <h1> e <meta description> no sitemap (incidente de 11/08).
+ * Se mudar este texto, rode scripts/test-serie-episodio-2.mjs: ele le o regex
+ * REAL do arquivo e prova que ainda casa.
+ */
 export function buildSeriesContinuationPrompt(value: string | null | undefined): string {
   const seed = normalizeSeriesSeed(value)
   if (!seed) return ''
-  return `Create the next episode in the same Short series about "${seed}". Keep the topic and format recognizable, but use a completely new hook, new facts, and a fresh payoff. Do not repeat the previous episode.`
+  return `Topic: "${seed}". This is the next episode in the same Short series: same subject, same format, a completely new hook, new facts and a fresh payoff. Do not repeat the previous episode.`
 }
 
 export function buildSeriesContinuationHref(

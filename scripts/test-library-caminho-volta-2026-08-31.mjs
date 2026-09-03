@@ -21,7 +21,7 @@ function check(name, cond) {
 console.log('\n1) A fonte library_video_card existe no contrato de serie')
 check('union tem library_video_card', /\|\s*'library_video_card'/.test(series))
 check('buildSeriesContinuationHref segue tipando a fonte', /source:\s*SeriesContinuationSource/.test(series))
-check('prompt continua encapsulando o tema anterior', /next episode in the same Short series about/.test(series))
+check('prompt continua encapsulando o tema anterior', /next episode in the same Short series/.test(series))
 
 console.log('\n2) O botao de criar deixou de depender do acervo vazio')
 check('LibraryClient importa Link', /import Link from 'next\/link'/.test(lib))
