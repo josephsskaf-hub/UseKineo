@@ -767,6 +767,34 @@ export async function POST(req: NextRequest) {
       const inputsMatch =
         authorizedUrls.length === clipUrls.length &&
         authorizedUrls.every((url, index) => url === clipUrls[index])
+      // ═══ KINEO-DEGRAU-2026-09-03 — A DURAÇÃO ASSINADA VENCE O BOTÃO ═══════
+      // O generate-video-cinematic agora pode DESCER a duração sozinho quando
+      // a fala verbatim não enche o botão (35→30, 60→40…), e o claim nasce com
+      // o custo dessa duração EFETIVA (`response.duration`, assinado no hash).
+      // O navegador continua mandando o botão que apertou (35/60/90) — e este
+      // valor também é o que o clamp acima coerce para 45 quando não está no
+      // seletor. Sem esta ponte, a regra dura logo abaixo compararia o custo
+      // de 30s do claim com o custo de 35s do botão → "clips do not match" →
+      // filme com todas as cenas prontas nunca montado (a regressão de 02/09,
+      // agora em escala). A ponte só age quando (a) o claim traz uma duração
+      // MENOR que a pedida e (b) o custo do claim é EXATAMENTE o custo dessa
+      // duração — ou seja, só reconhece um degrau legítimo do servidor, nunca
+      // deixa o cliente esticar o filme. A regra dura continua sendo aplicada
+      // logo abaixo, agora contra a duração que o claim assinou; e a duração
+      // do compose (TTS, timeline, corte) passa a ser a do filme real.
+      {
+        const claimDurationRaw = Number(cinematicBirthClaim.response?.duration)
+        const claimDuration = Number.isFinite(claimDurationRaw) && claimDurationRaw > 0 ? claimDurationRaw : null
+        if (
+          !isServiceFinish &&
+          claimDuration !== null &&
+          claimDuration < duration &&
+          cinematicBirthClaim.creditCost === creditCostForDuration(trustedQuality, true, claimDuration)
+        ) {
+          console.warn(`[compose] KINEO-DEGRAU: botao ${duration}s, claim assinado em ${claimDuration}s — compondo em ${claimDuration}s`)
+          duration = claimDuration
+        }
+      }
       if (
         !cinematicQualities.has(trustedQuality) || quality !== trustedQuality ||
         // ⚠️ KINEO-DURACAO-FIX-2026-08-20 — BLOQUEADOR DE COBRANÇA.

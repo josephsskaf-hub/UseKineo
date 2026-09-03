@@ -222,3 +222,133 @@ export function narrationTooShortMessage(
     `Add about ${fit.missingWords} more words.${alternativa}`
   )
 }
+
+// ═══ KINEO-DEGRAU-2026-09-03 — O GATE VIRA DEGRAU, NÃO PORTA ═══════════════
+//
+// O DEFEITO, medido em 03/09 em produção (contas externas, evento
+// `narration_guard_blocked`): em 30 dias a trava acima recusou 34 renders de
+// ~30 pessoas; em 14 dias, 78 bloqueios de 32 pessoas — 16 delas NUNCA viram
+// um vídeo da Kineo. ~9% do topo do funil destruído pelo nosso próprio código
+// por "faltam 2 palavras". Terceira auditoria em que aparece.
+//
+// A distribuição REAL da cobertura (`speech_seconds / target_seconds`) nos
+// 34 bloqueios de 30d:
+//
+//     94% (2) · 93% (1) · 86% (3) · 85% (1) · 84% (4) · 82% (1) · 80% (2)
+//     78% (1) · 77% (1) · 76% (1) · 73% (1) · 71% (1) · 69% (1) · 67% (1)
+//     66% (1) · 63% (1) · 60% (1)
+//     ─────────────── degrau grande no dado ───────────────
+//     57% (1) · 31% (1) · 12% (1) · 9% (2) · 6% (1) · 5% (3) · 3% (1)
+//
+// 24 dos 34 estão em cobertura ≥ 60%. Abaixo disso são roteiros de 2 a 11
+// segundos de fala — lixo, e ali recusar continua certo.
+//
+// A JOGADA: quando a fala não enche o botão que a pessoa escolheu, em vez de
+// recusar, o servidor DESCE O ALVO sozinho para a duração que a fala enche e
+// renderiza. É o espelho exato do `script_duration_autofit` que o cliente já
+// faz para o caso oposto (roteiro longo demais SOBE o botão antes de gastar).
+//
+// ⚠️ ISTO NÃO AMPUTA FILME NENHUM — regra do fundador (02/09): "passar do
+// alvo é bom, ficar abaixo é defeito". A descida encolhe o BOTÃO para caber
+// no roteiro que a pessoa escreveu; o roteiro fica intacto. Como o alvo é o
+// múltiplo de 5 arredondado PARA BAIXO da fala, a fala descida fica ACIMA do
+// novo alvo (33s de fala num alvo de 30s), nunca abaixo dele.
+//
+// ⚠️ FLOOR, NUNCA ROUND: `Math.round` sobe (33s de fala → 35s), 33/35 = 94%
+// reprova na régua de 95% e recria o próprio defeito na segunda tentativa.
+//
+// ⚠️ A DESCIDA TEM DE ACONTECER ANTES DO CUSTO. `creditCostForDuration` é
+// linear nos segundos: descer a duração depois do claim faria a pessoa pagar
+// 35s e receber 30s — cobrança-surpresa. A rota chama esta função logo depois
+// de ler `body.duration`, antes de calcular crédito, claim, planner e compose.
+//
+// PARA DESLIGAR A JOGADA INTEIRA: MIN_AUTOFIT_DOWN_COVERAGE = 1.01 (nenhuma
+// cobertura alcança; tudo volta ao 422 educativo de hoje).
+
+/**
+ * Cobertura mínima (fala / alvo pedido) para a descida acontecer. 0.60 é o
+ * degrau do dado acima: 24 bloqueios entre 60% e 94%, depois um vazio até 57%
+ * e o resto é roteiro de segundos. Abaixo disto a recusa de hoje continua.
+ */
+export const MIN_AUTOFIT_DOWN_COVERAGE = 0.60
+
+/** Alvo descido nunca fica abaixo disto: não se monta filme de 3 palavras. */
+export const AUTOFIT_DOWN_FLOOR_SECONDS = 20
+
+/**
+ * Piso do caminho hollywood (Kling 3 / H3 / Omni / S25). O planner dessa
+ * estrada trava o alvo em `Math.max(30, …)` (route.ts, `hollywoodTarget`):
+ * descer para 20 ou 25 ali seria puxado de volta para 30 e a fala voltaria a
+ * não encher. A rota passa este piso quando `hollywoodPath` é verdadeiro.
+ */
+export const AUTOFIT_DOWN_FLOOR_SECONDS_HOLLYWOOD = 30
+
+/** O alvo descido é sempre múltiplo disto (mesma grade do seletor: 35/60/90
+ *  e os degraus entre eles). */
+export const AUTOFIT_DOWN_STEP_SECONDS = 5
+
+export type AutofitDownReason =
+  | 'fits'                  // a fala já enche o alvo pedido: nada a fazer
+  | 'no_narration'          // roteiro vazio: não há o que medir
+  | 'coverage_below_floor'  // cobertura < MIN_AUTOFIT_DOWN_COVERAGE: recusa de hoje
+  | 'below_floor_seconds'   // alvo descido < piso absoluto: recusa de hoje
+  | 'refit_failed'          // aritmética disse sim, a régua disse não: recusa de hoje
+  | 'applied'               // desceu
+
+export interface AutofitDown {
+  /** true = a rota deve trocar a duração pelo `effectiveSeconds`. */
+  applied: boolean
+  reason: AutofitDownReason
+  /** O que a pessoa pediu (o botão). */
+  requestedSeconds: number
+  /** O que vale daqui em diante. Igual ao pedido quando `applied` é false. */
+  effectiveSeconds: number
+  /** Segundos de fala do roteiro (não arredondado). */
+  speechSeconds: number
+  /** Cobertura contra o alvo PEDIDO (o número do dado acima). */
+  coverage: number
+  /** Pediu ≥60s e desceu para <60s: saiu do TikTok Creator Rewards. A casa
+   *  mede isto; não bloqueia por isto (hoje a pessoa não recebe filme nenhum). */
+  lost60sFloor: boolean
+}
+
+export function autofitDown(
+  script: string,
+  requestedSeconds: number,
+  opts: { floorSeconds?: number } = {},
+): AutofitDown {
+  const floor = Number.isFinite(opts.floorSeconds) && (opts.floorSeconds as number) > 0
+    ? (opts.floorSeconds as number)
+    : AUTOFIT_DOWN_FLOOR_SECONDS
+  const requested = Number.isFinite(requestedSeconds) && requestedSeconds > 0 ? requestedSeconds : 0
+  const fit = narrationFit(script, requested)
+  const base = {
+    requestedSeconds: requested,
+    effectiveSeconds: requested,
+    speechSeconds: fit.speech,
+    coverage: fit.coverage,
+    lost60sFloor: false,
+  }
+  if (fit.speech <= 0) return { ...base, applied: false, reason: 'no_narration' }
+  // Caminho de hoje, intocado: quem enche o alvo não é tocado.
+  if (fit.ok) return { ...base, applied: false, reason: 'fits' }
+  if (fit.coverage < MIN_AUTOFIT_DOWN_COVERAGE) {
+    return { ...base, applied: false, reason: 'coverage_below_floor' }
+  }
+  // FLOOR: a fala fica ACIMA do alvo descido, nunca abaixo.
+  const candidate = Math.floor(fit.speech / AUTOFIT_DOWN_STEP_SECONDS) * AUTOFIT_DOWN_STEP_SECONDS
+  if (candidate < floor) return { ...base, applied: false, reason: 'below_floor_seconds' }
+  // Descer só desce: um candidato ≥ pedido é impossível quando `!fit.ok`
+  // (fala < 95% do pedido ⇒ floor(fala) < pedido), mas a régua é verificada
+  // de verdade, não de cabeça.
+  if (candidate >= requested) return { ...base, applied: false, reason: 'refit_failed' }
+  const refit = narrationFit(script, candidate)
+  if (!refit.ok) return { ...base, applied: false, reason: 'refit_failed' }
+  return {
+    ...base,
+    applied: true,
+    reason: 'applied',
+    effectiveSeconds: candidate,
+    lost60sFloor: requested >= 60 && candidate < 60,
+  }
+}

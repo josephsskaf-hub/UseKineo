@@ -53,6 +53,9 @@ import { parseUserScript } from '@/lib/scriptParser'
 // demais de virar um filme com imagem muda. Ver o cabeçalho do módulo para a
 // medição que originou a regra.
 import { narrationFit, narrationTooShortMessage, MIN_COVERAGE } from '@/lib/narrationFit'
+// KINEO-DEGRAU-2026-09-03 — o gate vira degrau: fala que não enche o botão
+// desce o alvo ANTES do custo em vez de recusar. Ver o rodapé do módulo.
+import { autofitDown, AUTOFIT_DOWN_FLOOR_SECONDS, AUTOFIT_DOWN_FLOOR_SECONDS_HOLLYWOOD } from '@/lib/narrationFit'
 // sprint-v1v4 #11 — a alternativa oferecida na recusa vem da MESMA lista que
 // desenha os botoes de duracao do produto. Ver a nota em lib/narrationFit.ts.
 import { SUPPORTED_DURATIONS, largestFittingDuration } from '@/lib/expandPolicy'
@@ -1207,10 +1210,6 @@ async function manipularPost(req: NextRequest) {
       cameraStyle: styleString(styleRecord.cameraStyle),
     }
     const styleSuffix = gStyle && (gStyle.mood || gStyle.lighting || gStyle.cameraStyle) ? `, ${[gStyle.mood, gStyle.lighting, gStyle.cameraStyle].filter(Boolean).join(', ')}, consistent color grade across all scenes` : ''
-    // #442 — base clip count on the selected duration for now; in verbatim mode
-    // we re-size it to the actual SCRIPT length below (the video follows the
-    // script, not the button), so footage always covers the narration.
-    let clipCount = clipCountForDuration(duration)
     // Push #402 — explicit engine choice from the UI. 'kling' = Cinematic AI
     // (50 cr); anything else = AI Generated (Seedance, 20 cr).
     const wantsKling = body.engine === 'kling'
@@ -1231,6 +1230,69 @@ async function manipularPost(req: NextRequest) {
     const wantsS25 = body.engine === 's25'
     const hollywoodPath = wantsHollywood || wantsH3 || wantsOmni || wantsS25
     const family: CinematicFamily = wantsH3 ? 'h3' : wantsOmni ? 'omni' : wantsS25 ? 's25' : 'hollywood'
+
+    // Parse script for verbatim mode
+    // KINEO-DEGRAU-2026-09-03 — o parse e a decisão "é verbatim?" subiram para
+    // cá (viviam logo antes da trava de narração, ~900 linhas abaixo), porque
+    // o degrau abaixo precisa dos dois ANTES do custo. A trava lá embaixo
+    // continua lendo estas mesmas variáveis.
+    const parsedScript = parseUserScript(prompt)
+    // ═══ KINEO-VERBATIM-SEM-MARCADOR-2026-08-24 ═════════════════════════════
+    // O Contrato C1 dizia "com script verbatim, o texto falado é o roteiro do
+    // usuário" — mas a porta de entrada do contrato era `hasMarkers`: só
+    // roteiro no formato da casa (HOOK/MICRO REWARD) contava como verbatim.
+    // Quem clicava "Use my script as is" com PROSA LIMPA (o caso mais comum de
+    // roteiro próprio) caía no caminho antigo: o GPT planejava as cenas E
+    // escolhia o que falar — no render do fundador desta noite, usou 4 de 9
+    // cenas e descartou justamente o clímax (Proteus/Nereus, a frase final, o
+    // gancho do próximo episódio). 24s de filme mudo, 150cr, $7 de fal.
+    // Agora o pedido explícito do usuário TAMBÉM liga o contrato: verbatim =
+    // formato da casa OU botão apertado. `script_mode` chega do client (que
+    // sempre soube — só não contava).
+    const userSaysVerbatim = ((body.script_mode ?? '') as string).toLowerCase() === 'verbatim'
+    const verbatim = (parsedScript.hasMarkers && parsedScript.segments.length > 0) || userSaysVerbatim
+
+    // ═══ KINEO-DEGRAU-2026-09-03 — O GATE VIRA DEGRAU, E DESCE ANTES DO CUSTO ═══
+    // Medido em 03/09: a trava de narração (mais abaixo) recusou 34 renders de
+    // ~30 pessoas em 30d; 24 deles tinham ≥60% de cobertura — "faltam 2
+    // palavras". Em vez de recusar, o servidor desce o alvo para o múltiplo de
+    // 5 que a fala enche (FLOOR: a fala fica ACIMA do novo alvo, nunca
+    // abaixo — "passar do alvo é bom, ficar abaixo é defeito", fundador 02/09)
+    // e renderiza. É o espelho do `script_duration_autofit` do cliente.
+    //
+    // ⚠️ AQUI, E NÃO NA TRAVA: `creditCostForDuration` (abaixo) é linear nos
+    // segundos e o claim sela esse valor. Descer a duração depois do claim
+    // faria a pessoa pagar 35s e receber 30s — cobrança-surpresa, a classe de
+    // erro que KINEO-DURACAO-2026-08-20 existe para matar. Com a descida
+    // aqui, custo, claim, débito, planner, compose e resposta usam TODOS a
+    // mesma duração efetiva. Zero drift financeiro.
+    //
+    // Só no caminho verbatim (texto do USUÁRIO, Contrato C1 — não podemos
+    // reescrevê-lo; no automático o gerador produz o tamanho certo). Quando
+    // não desce (cobertura <60%, alvo <piso, régua reprova), NADA muda: a
+    // trava de hoje recusa com o 422 educativo, exatamente como antes.
+    // Regra e constantes em lib/narrationFit.ts (`autofitDown`).
+    const requestedDuration = duration
+    const degrau = verbatim && parsedScript.narration
+      ? autofitDown(parsedScript.narration, requestedDuration, {
+          // O planner hollywood trava o alvo em `Math.max(30, …)` — descer
+          // abaixo de 30 ali seria puxado de volta e a fala voltaria a faltar.
+          floorSeconds: hollywoodPath ? AUTOFIT_DOWN_FLOOR_SECONDS_HOLLYWOOD : AUTOFIT_DOWN_FLOOR_SECONDS,
+        })
+      : null
+    if (degrau?.applied) {
+      duration = degrau.effectiveSeconds
+      console.warn(
+        `[narracao] DEGRAU: ${Math.round(degrau.speechSeconds)}s de fala nao enche ${requestedDuration}s ` +
+        `(cobertura ${(degrau.coverage * 100).toFixed(0)}%); alvo desce para ${duration}s` +
+        `${degrau.lost60sFloor ? ' (saiu do piso de 60s do TikTok Rewards)' : ''}.`,
+      )
+    }
+    // #442 — base clip count on the selected duration for now; in verbatim mode
+    // we re-size it to the actual SCRIPT length below (the video follows the
+    // script, not the button), so footage always covers the narration.
+    // (KINEO-DEGRAU: lê a duração já descida — o clip count segue o filme real.)
+    let clipCount = clipCountForDuration(duration)
     // ═══ KINEO-OMNI-TETO10-2026-08-25 — LIÇÃO DO PRIMEIRO RENDER (422 em 8/8) ═══
     // Schema oficial fal do google/gemini-omni-flash/image-to-video: duration é
     // INTEIRO 3-10 (não 15 como Kling 3, não 12 como o teto da casa). Cena
@@ -1701,6 +1763,34 @@ async function manipularPost(req: NextRequest) {
     const cinematicAdmin: SupabaseClient = createAdminClient(supabaseUrl, serviceRoleKey, {
       auth: { persistSession: false, autoRefreshToken: false },
     })
+    // KINEO-DEGRAU-2026-09-03 — a descida ganha evento com nome próprio no
+    // PRIMEIRO ponto em que o client admin existe (a decisão foi tomada lá em
+    // cima, antes do custo; `events` só aceita service_role). Sem isto o
+    // degrau seria invisível no /admin e não haveria como provar que ele
+    // converteu parede em vídeo. `credits_requested` × `credits_effective`
+    // provam no painel que a pessoa pagou o que recebeu. Fire-and-forget.
+    if (degrau?.applied) {
+      try {
+        await cinematicAdmin.from('events').insert({
+          user_id: user.id,
+          name: 'script_duration_autofit_down',
+          path: '/api/generate-video-cinematic',
+          metadata: {
+            generation_id: generationId,
+            requested_seconds: requestedDuration,
+            effective_seconds: duration,
+            speech_seconds: Math.round(degrau.speechSeconds),
+            coverage: Number(degrau.coverage.toFixed(2)),
+            engine: claimEngine,
+            quality: costQuality,
+            credits_requested: creditCostForDuration(costQuality, true, requestedDuration),
+            credits_effective: cost,
+            lost_60s_floor: degrau.lost60sFloor,
+            dry_run: body.dry_run === true,
+          },
+        })
+      } catch { /* telemetria nunca derruba a resposta */ }
+    }
     const cacheKey = `${user.id}:${generationId}`
     const now = Date.now()
     for (const [key, entry] of cinematicSubmissionCache) {
@@ -2158,22 +2248,12 @@ async function manipularPost(req: NextRequest) {
       return settleDebitAndRespond(completed.claim, response)
     }
 
-    // Parse script for verbatim mode
-    const parsedScript = parseUserScript(prompt)
-    // ═══ KINEO-VERBATIM-SEM-MARCADOR-2026-08-24 ═════════════════════════════
-    // O Contrato C1 dizia "com script verbatim, o texto falado é o roteiro do
-    // usuário" — mas a porta de entrada do contrato era `hasMarkers`: só
-    // roteiro no formato da casa (HOOK/MICRO REWARD) contava como verbatim.
-    // Quem clicava "Use my script as is" com PROSA LIMPA (o caso mais comum de
-    // roteiro próprio) caía no caminho antigo: o GPT planejava as cenas E
-    // escolhia o que falar — no render do fundador desta noite, usou 4 de 9
-    // cenas e descartou justamente o clímax (Proteus/Nereus, a frase final, o
-    // gancho do próximo episódio). 24s de filme mudo, 150cr, $7 de fal.
-    // Agora o pedido explícito do usuário TAMBÉM liga o contrato: verbatim =
-    // formato da casa OU botão apertado. `script_mode` chega do client (que
-    // sempre soube — só não contava).
-    const userSaysVerbatim = ((body.script_mode ?? '') as string).toLowerCase() === 'verbatim'
-    const verbatim = (parsedScript.hasMarkers && parsedScript.segments.length > 0) || userSaysVerbatim
+    // KINEO-DEGRAU-2026-09-03 — `parsedScript`, `userSaysVerbatim` e `verbatim`
+    // são decididos lá em cima, logo depois de `hollywoodPath` (o degrau
+    // precisa deles ANTES do custo). A trava abaixo lê os mesmos valores.
+    // Quando o degrau desceu a duração, `fit.ok` abaixo é verdadeiro por
+    // construção (a função verifica a régua no alvo descido) e a trava passa
+    // sem tocar em nada; ela continua sendo a rede para tudo que NÃO desceu.
 
     // ═══ KINEO-NARRACAO-ENCHE-2026-08-22 — A TRAVA, E ELA VEM ANTES DO DÉBITO ══
     //
@@ -3308,6 +3388,11 @@ async function manipularPost(req: NextRequest) {
             // 'sistema perfeito pra qualquer assunto' que o fundador pediu).
             direction: { genre: plan.genre, hostFits: plan.hostFits, stylized: plan.stylized },
             target_seconds: hollywoodTarget,
+            // KINEO-DEGRAU-2026-09-03 — o plano de $0 reporta a duração que o
+            // render pago realmente usaria (já descida) e de onde ela veio.
+            requested_seconds: requestedDuration,
+            effective_seconds: duration,
+            autofit_down: degrau?.applied === true,
             total_seconds: totalSeconds,
             spoken_seconds: spokenSeconds,
             mute_seconds: muteSeconds,
@@ -3790,6 +3875,11 @@ async function manipularPost(req: NextRequest) {
         generationId,
         prompt,
         duration,
+        // KINEO-DEGRAU-2026-09-03 — `duration` acima é a EFETIVA (pode ter
+        // descido). O botão apertado viaja ao lado para cliente e compose
+        // saberem que a diferença foi decisão do servidor, não erro.
+        requested_duration: requestedDuration,
+        autofit_down: degrau?.applied === true,
         scenes: plan.scenes.map((s) => s.prompt),
         scene_captions: plan.scenes.map((s) => s.caption),
         voiceover_script: hVoiceoverScript,
@@ -4252,6 +4342,9 @@ async function manipularPost(req: NextRequest) {
       generationId,
       prompt,
       duration,
+      // KINEO-DEGRAU-2026-09-03 — idem ao caminho hollywood: efetiva + pedida.
+      requested_duration: requestedDuration,
+      autofit_down: degrau?.applied === true,
       scenes: scenes.map((s) => s.description),
       scene_captions: scenes.map((s) => s.caption),
       voiceover_script: voiceoverScript,
