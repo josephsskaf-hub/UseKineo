@@ -1,7 +1,7 @@
 -- Auditoria Growth 72h — UseKineo
 -- Janela fixa e semiaberta: [2026-08-31 10:48 BRT, 2026-09-03 10:48 BRT)
 -- Somente SELECT. Resultado agregado, sem PII ou Stripe Session ID.
--- Executado em 2026-09-03 10:48:43 BRT:
+-- Consulta financeira corrigida e reexecutada em 2026-09-03 10:57:40 BRT:
 -- 2 pessoas externas; 2 Sessions recorrentes; USD 3600 minor;
 -- zero Session de pagamento não reconciliada; 1 pro/monthly USD 2900;
 -- 1 starter/monthly USD 700.
@@ -10,6 +10,8 @@
 -- 17 pessoas com Checkout recorrente; 1 pessoa com pagamento recorrente.
 
 -- 1. Receita bruta de assinatura por Stripe Session reconciliada.
+-- O universo financeiro inclui pagamentos com user_id nulo ou perfil ausente;
+-- apenas Sessions comprovadamente internas saem antes da reconciliacao.
 with external_profiles as (
   select id
   from public.profiles
@@ -31,14 +33,23 @@ with external_profiles as (
     and lower(email) not like '%mailinator%'
     and lower(email) not like 'smoketest%'
 ),
+profile_scope as (
+  select
+    id,
+    email is not null
+      and id in (select id from external_profiles) as is_external
+  from public.profiles
+),
 payment_rows as (
   select
     e.user_id,
+    ps.id is not null as profile_exists,
+    coalesce(ps.is_external, false) as is_external,
     e.metadata->>'stripe_session_id' as stripe_session_id,
     (e.metadata->>'amount_total')::bigint as amount_minor,
     lower(e.metadata->>'currency') as currency
   from public.events e
-  join external_profiles x on x.id = e.user_id
+  left join profile_scope ps on ps.id = e.user_id
   where e.name = 'payment_success'
     and lower(e.metadata->>'checkout_mode') = 'subscription'
     and e.metadata->>'stripe_session_id' is not null
@@ -51,14 +62,25 @@ payment_rows as (
 payment_sessions as (
   select
     stripe_session_id,
-    min(user_id::text)::uuid as user_id,
+    min(user_id::text) filter (where is_external)::uuid as user_id,
     min(amount_minor) as amount_minor,
     min(currency) as currency,
-    count(distinct user_id) as owner_count,
+    count(distinct user_id) filter (where is_external) as external_owner_count,
+    count(distinct user_id) filter (where profile_exists and not is_external) as internal_owner_count,
+    count(*) filter (where user_id is null or not profile_exists) as unknown_owner_rows,
     count(distinct amount_minor) as amount_count,
     count(distinct currency) as currency_count
   from payment_rows
   group by stripe_session_id
+),
+financial_sessions as (
+  select *
+  from payment_sessions
+  where not (
+    internal_owner_count > 0
+    and external_owner_count = 0
+    and unknown_owner_rows = 0
+  )
 ),
 start_rows as (
   select
@@ -94,9 +116,11 @@ valid_sessions as (
     p.currency,
     s.tier,
     s.billing
-  from payment_sessions p
+  from financial_sessions p
   join start_sessions s using (stripe_session_id)
-  where p.owner_count = 1
+  where p.external_owner_count = 1
+    and p.internal_owner_count = 0
+    and p.unknown_owner_rows = 0
     and p.amount_count = 1
     and p.currency_count = 1
     and s.owner_count = 1
@@ -122,7 +146,7 @@ select
   (select coalesce(sum(amount_minor), 0) from valid_sessions)::bigint as revenue_minor,
   (
     select count(*)::int
-    from payment_sessions p
+    from financial_sessions p
     where not exists (
       select 1
       from valid_sessions v

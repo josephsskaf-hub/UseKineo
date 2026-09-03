@@ -12,7 +12,7 @@
 | 72 horas em rodadas de 30 minutos | Seções numeradas 145–154 e arquivos pareados contínuos 155–288 | **PARCIALMENTE PROVADO: 144 identificadores documentais consecutivos; duração, cronologia contínua e cobertura do início de 31/08 NÃO RECONCILIADAS** |
 | Rodadas reais, não apenas contador | Cada par contém hipótese, evidência, decisão, gate e/ou entrega; Git contém SHAs correspondentes a parte das entregas | **PARCIALMENTE PROVADO POR ARTEFATO; telemetria minuto a minuto AUSENTE** |
 | 50% B2C / 50% B2B | Classificação pelos rótulos Workstream/Pista/Escopo: 67 B2C, 62 B2B, 14 mistas e 1 AEO não atribuível | **NÃO PROVADO: 72/72 continua matematicamente possível, mas exige desambiguar individualmente as 15 rodadas restantes; tempo ativo por minuto não foi medido** |
-| Medir pessoas e receita reais | Relatórios fecham por dono externo e Stripe Session; consulta final exclui a lista canônica de contas internas | **PROVADO** |
+| Medir pessoas e receita reais | Relatórios fecham por dono externo e Stripe Session; pagamentos sem dono ou perfil identificável permanecem no universo como não reconciliados | **PROVADO PARA SESSIONS RECONCILIADAS; COMPLETUDE FINANCEIRA DEPENDE DE `unreconciled_payment_sessions=0`** |
 | Evitar duplicação | Iframe de margem, Calendar B2B, primeira versão do Pilot Review e rota B2C sem launcher foram barrados como duplicados/invisíveis | **PROVADO NOS CASOS MATERIAIS; garantia global AUSENTE** |
 | Preservar experimentos até gate | Daily Feed, PWA Share Target, Viral Score e Pilot Review mantiveram campanhas e freezes próprios | **PROVADO NOS EXPERIMENTOS NOMEADOS** |
 | Coordenar especialistas | Auditorias independentes de continuidade/anti-duplicação, B2C e B2B foram executadas no fechamento | **PROVADO** |
@@ -31,7 +31,7 @@ Critério: rótulo explícito de Workstream, Pista, Escopo ou heading individual
 
 ## Placar financeiro do ciclo
 
-**EVIDÊNCIA DE PRODUÇÃO FINAL (Supabase `cqqukkvjjrguayiyjvhh`, SELECT somente leitura executado em 2026-09-03 10:48:43 BRT; janela semiaberta 2026-08-31 10:48 → 2026-09-03 10:48 BRT; contas internas excluídas):**
+**EVIDÊNCIA DE PRODUÇÃO FINAL (Supabase `cqqukkvjjrguayiyjvhh`, SELECT somente leitura corrigido e reexecutado em 2026-09-03 10:57:40 BRT; janela semiaberta 2026-08-31 10:48 → 2026-09-03 10:48 BRT; contas internas excluídas):**
 
 - 2 pessoas externas distintas emitiram `payment_success`;
 - 2 Stripe Sessions pagas distintas, ambas `mode=subscription`;
@@ -42,7 +42,7 @@ Critério: rótulo explícito de Workstream, Pista, Escopo ou heading individual
 
 **LIMITE:** o perfil local não substitui a leitura de status corrente da assinatura no Stripe. Não chamar os 7 de MRR ativo sem reconciliar `subscription.status`. Não atribuir as duas compras às ações novas sem a cadeia causal exata.
 
-**MÉTODO REPRODUZÍVEL:** consulta anexada em `docs/growth/GROWTH-72H-FINAL-SQL-2026-09-03.sql`; corte UTC 2026-08-31 13:48:00 → 2026-09-03 13:48:00; deduplicação por `metadata.stripe_session_id`; somente `payment_success` com `checkout_mode=subscription`; tier/billing vindos do `checkout_started` da mesma Session; identidade externa filtrada pela lista canônica de `lib/internalAccounts.ts`. Resultado final: 2 pessoas, 2 Sessions, US$3.600 minor, zero Session financeira não reconciliada.
+**MÉTODO REPRODUZÍVEL:** consulta anexada em `docs/growth/GROWTH-72H-FINAL-SQL-2026-09-03.sql`; corte UTC 2026-08-31 13:48:00 → 2026-09-03 13:48:00; deduplicação por `metadata.stripe_session_id`; somente `payment_success` com `checkout_mode=subscription`; tier/billing vindos do `checkout_started` da mesma Session; identidade externa filtrada pela lista canônica de `lib/internalAccounts.ts`. Pagamentos com `user_id` nulo ou perfil ausente continuam no universo financeiro e contam como não reconciliados; apenas Sessions comprovadamente internas são excluídas. Resultado final: 2 pessoas, 2 Sessions, US$3.600 minor, zero Session financeira não reconciliada.
 
 ### Coorte de cadastro do ciclo — corte final
 
