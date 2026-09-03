@@ -411,3 +411,170 @@ defeito desta rodada, um andar acima. É a jogada da **2ª compra**: série é a
 
 **Modelo.** Feita em Opus. Pelo plano, Fable é obrigatório só em A1 e A3; B2 é
 jogada minha. Medição, código, teste, diário e entrega na mesma sessão.
+### #4 — 16:20→17:15 BRT — a semente do episódio 3 era a ORDEM do episódio 2, cortada no meio da palavra. 9 de 43 continuações nasceram sobre um fragmento — e série é o único grupo que converte 7× acima da base.
+
+**Placar (SQL canônico, marco zero 03/09 16:00 UTC, externos, medido 19:49 UTC):**
+
+| métrica | valor |
+|---|---:|
+| cadastros pós-marco (3h50 de vida) | 5 |
+| pessoas com filme pós-marco | 3 |
+| checkout de **desejo** (tem filme) | 1 |
+| checkout **sem filme** (a classe de defeito) | **0** |
+| assinaturas pós-marco | 0 |
+| pessoas com falha e nenhum filme | 0 |
+| vídeos completos 24h | 38 |
+
+`checkout_sem_filme` segue em **0** contra 12 de 27 em 7 dias. Amostra ainda
+pequena (5 cadastros), mas é o indicador que o plano manda vigiar e ele não
+piorou depois de #1/#2/#3.
+
+**Checagem zero (1h):** 0 cadastro sem crédito, 0 `generation_stage_error`,
+0 `narration_guard_blocked`, 0 render preso, 0 evento de erro de qualquer nome,
+1 vídeo entregue. Nada quebrado — a rodada foi para a jogada de maior retorno.
+
+**O número que mandou escolher A3.** Cruzei quem usou o botão de série com quem
+paga:
+
+| grupo | pessoas | pagaram | taxa |
+|---|---:|---:|---:|
+| usou "Build the next episode" | **27** | **3** | **11,1%** |
+| base (pessoas com pelo menos 1 filme entregue) | 751 | 12 | 1,6% |
+
+**3 dos 12 clientes pagantes da vida da empresa passaram por esse botão**, e ele
+converte ~7x acima da base. É a máquina da segunda compra — e ela estava
+entregando assunto quebrado em 21% das vezes.
+
+**O que estava errado (medido, 43 continuações desde 31/07).** A ordem inteira
+do gerador virava `videos.topic` E `videos.title` (o title é o topic cortado em
+~120 chars). O clique seguinte passa `latestCompleted.title` como semente — ou
+seja, **a semente do episódio 3 era a ORDEM do episódio 2**. E
+`normalizeSeriesSeed` cortava em 180 chars sem olhar fronteira de palavra:
+
+    Create the next episode in the same Short series about "Create the next
+    episode in the same Short series about Every night at 3:17 AM, someone kn".
+    Keep the topic and format recognizable, ...
+
+O assunto do filme de alguém virou `Every night at 3:17 AM, someone kn`. Outros
+fragmentos reais: `A vanished crew... and a mystery u`, `A detective's office —
+and a murde`, `Want to know how billionaires buil`, `AI Revolution: Are You
+Ready?. Ke` — esse `. Ke` é o começo de `. Keep the topic`, prova de que o corte
+comeu a cauda do andaime junto.
+
+- **6 de 43** aninhadas (a ordem dentro da ordem);
+- **3 de 43** com semente lixo: `Untitled Short`, `5 shocking facts about`
+  (sobra de marcador), `Title: La Frontera del Miedo…` (rótulo grudado);
+- **9 de 43 = 21%** das continuações nasceram sobre um assunto destruído.
+
+**O que mudou (arquivos).**
+- `lib/seriesContinuation.ts` (+148/−3) — ponto único por onde passam os **12
+  callers** (done-screen, recent-video, marco do /history e do /studio, card da
+  Library, miniatura do /studio, pílula de render, faixa de retorno, banner de
+  volta, e-mails `downgraded_loss`/`ending_soon`/momentum/video-ready e o
+  autopilot). Nenhum caller foi tocado — o conserto cabe todo na biblioteca.
+  1. `normalizeSeriesSeed` **desaninha** em laço com teto (cabeça da ordem +
+     cauda de andaime, inclusive **os fragmentos** que o corte de 120/180
+     produz: `. Ke`, `. Keep the topic and forma`…), tira rótulo de cabeça
+     (`Title:`/`Título:`/`Tema:`/`Topic:`), mata semente degenerada e **só
+     então** corta em 180 — na última fronteira de frase, senão no último
+     espaço, **nunca no meio da palavra**.
+  2. `buildSeriesContinuationPrompt` **inverte a frase**: o ASSUNTO na frente, a
+     ordem atrás e subordinada — `Topic: "X". This is the next episode in the
+     same Short series: same subject, same format, a completely new hook…`. Era
+     exatamente o defeito que o A3 do plano descreve: o gerador recebia a ORDEM
+     em vez do ASSUNTO.
+- `scripts/test-serie-episodio-2.mjs` (novo): **262 verificações, 0 falhas**,
+  compilando o `.ts` REAL. Bate nele com os **9 roteiros quebrados de produção
+  verbatim**, com os `videos.title` de 120 chars (sem aspa de fechamento), com
+  aninhamento triplo — e com o invariante que mata a classe inteira do bug:
+  `normalizeSeriesSeed(buildSeriesContinuationPrompt(x)) === normalizeSeriesSeed(x)`
+  para 14 assuntos em EN/PT/ES, com emoji, travessão, interrogação e dois-pontos.
+- `scripts/test-library-caminho-volta-2026-08-31.mjs` (+4/−1): o teste vizinho
+  procurava a frase antiga terminando em `about`. Passou a exigir o que
+  realmente importa (`next episode in the same Short series`), com o porquê no
+  comentário.
+
+**A trava que não podia quebrar.** `lib/publicVideos.ts` tem o
+`PROMPT_SCAFFOLDING`, que impede a ordem do gerador de virar manchete no sitemap
+(incidente de 11/08, 3 páginas publicadas com "Keep the topic and format
+recognizable…" como título). A frase nova continua casando com 3 das 4
+alternativas dele, e o teste **extrai o regex do arquivo real** em vez de
+copiá-lo — se alguém mudar a frase de novo, o teste cai.
+
+**Para o cliente / receita.** O segundo filme é o único motivo de voltar amanhã,
+e voltar amanhã é o que vira assinatura: 11,1% contra 1,6%. Uma em cada cinco
+continuações saía sobre um fragmento sem sentido — a pessoa gastava crédito,
+recebia um filme que não era sobre nada, e o botão que mais converte virava a
+prova de que o produto não entende o que ela quer.
+
+**Decisões que tomei sozinha** (autonomia; reversíveis):
+1. **`MIN_SEED_WORDS = 1`, não 2** — reverti a escolha do agente depois de
+   medir: só **9 dos 1.184** filmes entregues têm título de uma palavra, e
+   "Chernobyl" ou "Pompeii" são assunto de série perfeitamente bom. Quem mata a
+   sobra de marcador é a regra da palavra pendurada (`5 shocking facts about`
+   tem 4 palavras), não a contagem. O piso 2 tiraria o botão de 9 filmes reais
+   sem pegar um caso novo. Reverter: `MIN_SEED_WORDS = 2`.
+2. **Semente degenerada devolve string vazia** e o caller cai no `/studio`
+   limpo, em vez de gastar crédito num filme sobre um fragmento. Formulário em
+   branco é ruim; filme errado pago é pior. Reverter: tirar `isDegenerate` do
+   fim de `normalizeSeriesSeed`.
+3. **Palavra pendurada depois do corte de 180 é removida, não zera a semente** —
+   ali a entrada era longa e inteira (não é fragmento do banco), então cortar
+   uma palavra é melhor que perder o botão.
+4. **Fragmento mínimo de cauda: 4 chars com ponto, 10 sem** — `. K` (3) fica de
+   fora de propósito, para "The Story of Mr. K" não perder o K e "Secrets You
+   Should Keep" não perder o Keep. Os dois estão no teste.
+
+**Risco.** É um saneador de texto: o erro possível é comer assunto que era bom.
+Três travas: (a) a cabeça só é removida quando a linha COMEÇA com a ordem; (b) a
+cauda só sai quando é prefixo literal do andaime conhecido; (c) o invariante de
+idempotência garante que assunto legítimo atravessa `build → normalize` sem
+perder um caractere. Efeito colateral aceito: um título que termine numa
+preposição solta ("Coisas de A") vira vazio e cai no Studio limpo — nunca gasta
+crédito errado. Segundo risco, menor: `lib/autopilot/topics.ts` concatena a
+frase nova dentro de um prompt maior; a leitura fica coerente, mas é o único
+caller cuja frase final muda de forma.
+
+**Testes vizinhos, rodados depois:** `test-narracao-degrau` (746) OK,
+`test-fila-proximo-episodio` (80) OK, `test-library-caminho-volta` (26) OK,
+`test-public-video-privacy` (76) OK, `npx tsc --noEmit` exit 0.
+Continuam vermelhos **de antes desta rodada** (não são desta jogada nem do
+#1/#3): `test-narration-ruler`, `test-episodio2-ending` (B7),
+`test-video-ready-footer` (42/43), `test-pilula-proximo-episodio`,
+`test-done-footer`, `test-video-ready-nudge`, e `test-studio-tile-episode2` (que
+nem roda: monta caminho `C:\C:\…`, bug de Windows no harness). São 7 dívidas de
+teste, candidatas a uma rodada curta.
+
+**Como medir (contra o marco zero, 03/09 16:00 UTC).**
+
+```sql
+with ext as (select id from profiles where email not ilike '%josephsskaf%'
+  and email not ilike '%usekineo%' and email not ilike '%kineo.local'),
+c as (select regexp_replace(coalesce(v.topic,''),'\s+',' ','g') t
+      from videos v join ext on ext.id=v.user_id
+      where v.created_at > '2026-09-03 16:00:00+00'
+        and v.topic ~* 'next episode in the same short series')
+select count(*) continuacoes,
+       count(*) filter (where t ~* 'about "?(untitled|title:)') semente_lixo,
+       count(*) filter (where t ~* 'Create the next episode') formato_antigo
+from c;
+```
+
+Meta dupla: `semente_lixo = 0`, e a coorte de série (hoje 27 pessoas, 11,1% de
+conversão) crescendo — cada continuação que sai certa é uma pessoa que volta
+amanhã. Sinal secundário: continuações com `Topic: "` no `topic` (formato novo)
+subindo enquanto `Create the next episode` para de aparecer.
+
+**Próximo item.** **A4 — cron de resgate olha além de 20h** (P, jogada minha):
+`finish-stranded-renders` tem `MAX_AGE_MS = 20h` e existem 110 renders de 87
+pessoas com compose submetido e sem linha em `videos`, **100% fora da janela** —
+ou seja, o cron nunca teve chance de salvar nenhum deles. Subir para 72h com
+teto de tentativas por claim. Cada filme resgatado vira um e-mail "your video is
+ready" para alguém que já tinha desistido. Confirmar o número no banco antes de
+codar (o #2 de hoje mexeu no guarda de cobrança e pode ter mudado a contagem).
+
+**Modelo.** Código do saneador escrito por agente **Fable** (regra do plano para
+A1/A3). Medição, decisão do piso de palavras, conserto dos dois testes vizinhos
+que a frase nova quebrou, diário e entrega em Opus.
+
+**SHA.** `fb0ee654`. Worktree: `C:\kineo-wt\a3-serie-episodio`.
