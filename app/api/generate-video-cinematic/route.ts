@@ -127,7 +127,8 @@ import {
   ACTIVE_COMPOSE_CREDIT_HOLD_TTL_MS,
   inspectActiveComposeCreditHolds,
 } from '@/lib/credits/composeHold'
-import { refundRenderCredits } from '@/lib/credits/refund'
+import { refundRenderCredits, sweepAbandonedCinematicDebits } from '@/lib/credits/refund'
+import { classifyHold, inFlightMessage } from '@/lib/credits/heldRender'
 // sprint-v1v4 #22 — a segunda recusa em 5 minutos deixa de repetir a licao da
 // primeira. 54% das 283 falhas de 30d vieram a menos de 5 min da anterior DA
 // MESMA PESSOA. Ver o cabecalho de lib/refusalSpiral.ts.
@@ -978,12 +979,29 @@ async function submitToFal(prompt: string, model: string = SEEDANCE_MODEL, hd: b
 // FAIL-CLOSED em tudo: qualquer erro de leitura devolve 0 e o comportamento
 // volta a ser exatamente o de antes. Esta função NUNCA libera geração, NUNCA
 // devolve crédito e NUNCA muda preço — ela só decide QUAL FRASE o usuário lê.
+//
+// ⚠️ ATUALIZAÇÃO 03/09 (sprint-assinaturas #5): a frase acima continua valendo
+// para ESTA função, mas não descreve mais o caminho inteiro. Quem devolve
+// crédito agora é a irmã `releaseHeldCreditsNow`, logo abaixo — e ela devolve
+// chamando a MESMA varredura do cron horário, com a mesma prova de abandono.
+// Este helper continua sendo só o diagnóstico; a decisão de agir é da outra.
 const HELD_CREDIT_LOOKBACK_MS = 45 * 60 * 1000 + 60 * 60 * 1000
-async function creditsHeldByUnsettledRender(userId: string): Promise<number> {
+const EMPTY_HOLD: UnsettledHold = { held: 0, newestAgeMs: null }
+// KINEO-CREDITO-PRESO-2026-09-03 — a régua dos 12 minutos e a decisão de
+// "render ainda no forno" moram em lib/credits/heldRender.ts, junto com os 16
+// casos de produção que as justificam. Aqui só se usa.
+//
+// Este helper passa a devolver TAMBÉM a idade do débito
+// mais NOVO que segura crédito. É essa idade que separa os dois casos que hoje
+// recebem a mesma frase: render ainda no forno (mediana medida: 2 minutos —
+// 11 das 16 recusas) e render velho que já morreu. Fail-closed continua
+// devolvendo held=0, que preserva o comportamento antigo inteiro.
+type UnsettledHold = { held: number; newestAgeMs: number | null }
+async function creditsHeldByUnsettledRender(userId: string): Promise<UnsettledHold> {
   try {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY
-    if (!url || !key) return 0
+    if (!url || !key) return EMPTY_HOLD
     const db = createAdminClient(url, key, { auth: { persistSession: false } })
     const since = new Date(Date.now() - HELD_CREDIT_LOOKBACK_MS).toISOString()
 
@@ -996,7 +1014,7 @@ async function creditsHeldByUnsettledRender(userId: string): Promise<number> {
       .gte('created_at', since)
       .order('created_at', { ascending: false })
       .limit(5)
-    if (error || !debits || debits.length === 0) return 0
+    if (error || !debits || debits.length === 0) return EMPTY_HOLD
 
     // O débito mais ANTIGO da janela define o corte: se a conta não recebeu
     // NENHUM vídeo desde então, nenhum destes débitos entregou.
@@ -1008,7 +1026,7 @@ async function creditsHeldByUnsettledRender(userId: string): Promise<number> {
       .gte('created_at', String(oldest.created_at))
       .order('created_at', { ascending: false })
       .limit(1)
-    if (vidErr) return 0 // fail-closed: sem prova de não-entrega, não afirma nada
+    if (vidErr) return EMPTY_HOLD // fail-closed: sem prova de não-entrega, não afirma nada
 
     // ⚠️ 2ª passada: comparar os instantes como NÚMERO, nunca como string.
     // ISO lexicográfico só coincide com a ordem cronológica quando os dois
@@ -1024,21 +1042,106 @@ async function creditsHeldByUnsettledRender(userId: string): Promise<number> {
     const lastVideoMs =
       delivered && delivered.length > 0 ? Date.parse(String(delivered[0].created_at)) : NaN
     let held = 0
+    let newestMs: number | null = null
     for (const d of debits) {
       const debitMs = Date.parse(String(d.created_at))
       if (!Number.isFinite(debitMs)) continue
       // Entregou = existe vídeo com created_at >= o deste débito.
       if (Number.isFinite(lastVideoMs) && lastVideoMs >= debitMs) continue
       const amount = typeof d.amount === 'number' ? d.amount : Number(d.amount)
-      if (Number.isFinite(amount) && amount > 0) held += amount
+      if (Number.isFinite(amount) && amount > 0) {
+        held += amount
+        // `debits` vem ordenado do mais novo para o mais antigo, mas não
+        // dependo disso: pego o MAIOR instante entre os que realmente somam.
+        if (newestMs === null || debitMs > newestMs) newestMs = debitMs
+      }
     }
-    return held
+    return { held, newestAgeMs: newestMs === null ? null : Math.max(0, Date.now() - newestMs) }
   } catch (err) {
     console.warn(
       '[cinematic] held-credit lookup failed (ignorado):',
       err instanceof Error ? err.message : String(err),
     )
-    return 0
+    return EMPTY_HOLD
+  }
+}
+
+// ═══ KINEO-CREDITO-PRESO-2026-09-03 (sprint-assinaturas #5) ═════════════════
+// O ESTORNO DEIXA DE ESPERAR A VARREDURA HORÁRIA.
+//
+// A frase que estas duas funções existem para apagar: "A video you already
+// started is still holding N credits. If it doesn't finish, they come back
+// automatically within the hour." Ela é VERDADE — e mata o cliente. Medido em
+// produção (`compose_refused` reason='credits_held_by_render', externos):
+// 16 recusas · 10 pessoas · ZERO viraram filme em 24h · 8 das 10 nunca viram
+// um filme da Kineo · 16 de 16 débitos estornados DEPOIS, com a pessoa já
+// fora. Uma delas (ferruxezimzade) levou a mesma parede 5 vezes em 84
+// segundos. Ninguém espera uma hora por um produto que acabou de dizer não.
+//
+// Aqui a rota chama a MESMA varredura do cron horário, escopada nesta pessoa,
+// antes de recusar. Se o estorno acontece, o saldo é relido e o filme sai
+// AGORA. Se não acontece (render ainda vivo, prova de morte ausente), nada
+// muda: a recusa continua, só com a frase certa.
+//
+// Zero risco financeiro novo: mesmo cutoff, mesma cadeia de prova de
+// não-entrega e mesmo estorno idempotente do cron. Esta função NUNCA relaxa
+// critério; ela só antecipa o relógio.
+type LiveHoldRelease = { attempted: boolean; refunded: number; creditsReturned: number; error: string | null }
+const NO_LIVE_RELEASE: LiveHoldRelease = { attempted: false, refunded: 0, creditsReturned: 0, error: null }
+
+async function releaseHeldCreditsNow(userId: string): Promise<LiveHoldRelease> {
+  try {
+    // limit 5: o helper de `held` também olha 5 débitos. Mais que isso nesta
+    // janela não é caso de crédito preso, é outra coisa — e o cron pega.
+    const swept = await sweepAbandonedCinematicDebits({ userId, limit: 5 })
+    return { attempted: true, refunded: swept.refunded, creditsReturned: swept.creditsReturned, error: null }
+  } catch (err) {
+    // Fail-closed: qualquer erro devolve "não estornei nada" e a recusa segue
+    // exatamente como era antes desta jogada.
+    return { attempted: true, refunded: 0, creditsReturned: 0, error: err instanceof Error ? err.name : 'unknown' }
+  }
+}
+
+/** Saldo relido do banco depois do estorno ao vivo. `null` = não deu para ler
+ *  (e aí o saldo antigo continua valendo — nunca se INVENTA crédito). */
+async function rereadVideoCredits(userId: string): Promise<number | null> {
+  try {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+    if (!url || !key) return null
+    const db = createAdminClient(url, key, { auth: { persistSession: false } })
+    const { data, error } = await db.from('profiles').select('video_credits').eq('id', userId).maybeSingle()
+    if (error || !data) return null
+    const v = (data as { video_credits?: unknown }).video_credits
+    const n = typeof v === 'number' ? v : Number(v)
+    return Number.isFinite(n) ? n : null
+  } catch {
+    return null
+  }
+}
+
+/** KINEO-CREDITO-PRESO-2026-09-03 — o desfecho do estorno ao vivo vira linha
+ *  em `events`, com `unblocked` dizendo se o filme saiu no mesmo clique. É por
+ *  este campo que a jogada é medida (ver diário #5). Telemetria NUNCA derruba
+ *  geração: try/catch e segue. */
+async function logHeldCreditRelease(userId: string | null, metadata: Record<string, unknown>): Promise<void> {
+  try {
+    if (!userId) return
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+    if (!url || !key) return
+    const db = createAdminClient(url, key, { auth: { persistSession: false } })
+    await db.from('events').insert({
+      user_id: userId,
+      name: 'credits_held_release_attempted',
+      path: '/api/generate-video-cinematic',
+      metadata,
+    })
+  } catch (err) {
+    console.warn(
+      '[cinematic] held-release telemetry failed (ignorado):',
+      err instanceof Error ? err.message : String(err),
+    )
   }
 }
 
@@ -1344,7 +1447,10 @@ async function manipularPost(req: NextRequest) {
     if (profileErr && profileErr.code !== 'PGRST116') {
       console.error('[cinematic] credit fetch failed:', profileErr.message)
     }
-    const balance = profile?.video_credits ?? 0
+    // KINEO-CREDITO-PRESO-2026-09-03 — `let` porque o estorno ao vivo do
+    // crédito preso (mais abaixo) pode aumentar este número ANTES da recusa.
+    // Nenhum outro caminho reatribui.
+    let balance = profile?.video_credits ?? 0
 
     // KINEO-REBASE-2026-07-10 — UNIVERSAL ENGINE GATES. The old plan ladder
     // (Seedance=Creator+, Kling/Veo/Hollywood=Studio) is retired: ANY paying
@@ -1534,6 +1640,37 @@ async function manipularPost(req: NextRequest) {
     // plano do modal, derivadas de lib/checkoutPricing por moeda e região.
     // Escrever dólar aqui seria a segunda fonte de preço que a ordem do
     // fundador proíbe.
+    // ═══ KINEO-CREDITO-PRESO-2026-09-03 — o estorno vem ANTES da recusa ══════
+    // Só roda quando o saldo não paga E o crédito preso é EXATAMENTE o que
+    // fecha a conta (mesma condição `heldExplainsGap` de sempre). Fora disso
+    // não há consulta nova nenhuma: quem tem saldo não paga nada por isto.
+    let hold: UnsettledHold = EMPTY_HOLD
+    let liveRelease: LiveHoldRelease = NO_LIVE_RELEASE
+    if (balance < cost) {
+      hold = await creditsHeldByUnsettledRender(user.id)
+      if (classifyHold({ hold, balance, cost }).explainsGap) {
+        liveRelease = await releaseHeldCreditsNow(user.id)
+        if (liveRelease.creditsReturned > 0) {
+          const fresh = await rereadVideoCredits(user.id)
+          // `fresh > balance` e não `fresh !== null`: uma leitura que DIMINUI o
+          // saldo aqui só pode ser corrida com outro débito, e nesse caso o
+          // valor antigo é o conservador. Crédito nunca sobe por engano.
+          if (fresh !== null && fresh > balance) balance = fresh
+        }
+        await logHeldCreditRelease(user.id, {
+          held: hold.held,
+          needed: cost,
+          balance_before: profile?.video_credits ?? 0,
+          balance_after: balance,
+          newest_hold_age_ms: hold.newestAgeMs,
+          refunded: liveRelease.refunded,
+          credits_returned: liveRelease.creditsReturned,
+          unblocked: balance >= cost,
+          error: liveRelease.error,
+        })
+      }
+    }
+
     if (balance < cost) {
       const trialBuyer = trialActive && !isPaidUser && trialUi.creditsGranted > 0
       // DOIS estados, e a diferença NÃO é cosmética — eles pedem frases
@@ -1563,8 +1700,21 @@ async function manipularPost(req: NextRequest) {
       // mentia — "This needs 20 credits. You have 19." é um extrato, não uma
       // explicação), mas a mentira cara era a do trial, que vinha com pedido
       // de dinheiro em cima.
-      const heldByUnsettled = await creditsHeldByUnsettledRender(user.id)
-      const heldExplainsGap = heldByUnsettled > 0 && balance + heldByUnsettled >= cost
+      // `hold` já foi lido acima (e o estorno ao vivo já tentou). Reavaliar com
+      // o saldo ATUAL: se o estorno devolveu parte e ainda não fecha, a frase
+      // continua sendo a do crédito preso, com o número novo.
+      const heldByUnsettled = hold.held
+      const veredito = classifyHold({ hold, balance, cost })
+      const heldExplainsGap = veredito.explainsGap
+      // KINEO-CREDITO-PRESO-2026-09-03 — os dois casos que hoje leem a MESMA
+      // frase e precisam de frases opostas. Mediana medida da idade do débito
+      // que segura: 2 minutos (11 das 16 recusas abaixo de 5 min). Nessa faixa
+      // o render não morreu — ele está no forno, e a pessoa está clicando de
+      // novo porque a tela não disse isso. Dizer "seu crédito volta em uma
+      // hora" para quem tem um filme cozinhando é a definição de produto
+      // quebrado: ela abandona a aba, e aí o filme morre de verdade.
+      const holdIsInFlight = veredito.inFlight
+      const holdMinutes = veredito.minutes
 
       // ═══ sprint-v1v4 #27 — O SEGUNDO CAMINHO DA RECUSA DE SALDO ══════════
       //
@@ -1653,6 +1803,15 @@ async function manipularPost(req: NextRequest) {
             ? `${NOME_PUBLICO_DO_MOTOR[resgateDoSaldo.alvo.motor] ?? 'Another engine'} at ${resgateDoSaldo.alvo.duracao}s costs ${resgateDoSaldo.alvo.custo} credits — your balance covers that one right now.`
             : ''
 
+      // ⚠️ KINEO-CREDITO-PRESO-2026-09-03 — O `reason` DE FIO NÃO MUDA, DE
+      // PROPÓSITO. `app/(dashboard)/generate/GenerateClient.tsx` tem, desde o
+      // sprint-v1v4 #33, uma SALA DE ESPERA dedicada a
+      // `reason === 'credits_held_by_render'` — sem caixa de planos, com
+      // rechecagem de saldo, exibindo o texto do servidor. Inventar um
+      // `reason` novo aqui jogaria justamente o caso mais comum (filme no
+      // forno) no painel vermelho genérico, que ainda diz "your credits have
+      // been returned - you can retry safely". Seria uma regressão vestida de
+      // melhoria. A distinção viaja em `holdState` (aditivo) e na telemetria.
       const stallReason = heldExplainsGap
         ? 'credits_held_by_render'
         : trialBuyer
@@ -1662,6 +1821,12 @@ async function manipularPost(req: NextRequest) {
         needed: cost,
         balance,
         held_by_unsettled_render: heldByUnsettled,
+        // KINEO-CREDITO-PRESO-2026-09-03 — sem estes três campos não dá para
+        // saber, em SQL, se a recusa foi "filme no forno" ou "render morto",
+        // que é a pergunta inteira desta jogada.
+        hold_age_ms: hold.newestAgeMs,
+        hold_in_flight: holdIsInFlight,
+        live_release_credits: liveRelease.creditsReturned,
         engine: wantsS25 ? 's25' : wantsOmni ? 'omni' : wantsH3 ? 'h3' : wantsHollywood ? 'hollywood' : wantsKling ? 'kling' : wantsVeo ? 'veo' : 'seedance',
         trial_phase: trialUi.phase,
         trial_credits_granted: trialUi.creditsGranted,
@@ -1680,7 +1845,15 @@ async function manipularPost(req: NextRequest) {
       return NextResponse.json(
         {
           error:
-            stallReason === 'credits_held_by_render'
+            // KINEO-CREDITO-PRESO-2026-09-03 — a frase do filme que JÁ está
+            // sendo feito. Nenhum preço, nenhum pedido de plano, nenhuma
+            // promessa de prazo exato: só o fato, a idade real do render e a
+            // única instrução que evita o segundo clique. "your film" e não
+            // "your credits" de propósito — a pessoa veio fazer um filme, não
+            // administrar saldo.
+            holdIsInFlight
+              ? inFlightMessage(holdMinutes, heldByUnsettled)
+            : stallReason === 'credits_held_by_render'
               // NENHUMA PROMESSA DE PRAZO EXATO e NENHUM PREÇO. "within the
               // hour" é o que a varredura horária garante; dizer "5 minutos"
               // seria inventar. E a última frase é a que importa: a pessoa
@@ -1694,6 +1867,15 @@ async function manipularPost(req: NextRequest) {
           needed: cost,
           balance,
           held: heldExplainsGap ? heldByUnsettled : undefined,
+          // KINEO-CREDITO-PRESO-2026-09-03 — a UI pode mostrar progresso em vez
+          // de erro quando isto vem preenchido. Campo aditivo: cliente antigo
+          // ignora e continua exibindo `error`, que já está certo sozinho.
+          // Campos ADITIVOS: cliente antigo ignora e continua certo, porque o
+          // `error` já carrega a frase inteira. Servem para a sala de espera
+          // poder, quando quiser, mostrar progresso em vez de contagem.
+          holdState: heldExplainsGap ? (holdIsInFlight ? 'in_flight' : 'dead') : undefined,
+          inFlight: holdIsInFlight ? { minutesAgo: holdMinutes, credits: heldByUnsettled } : undefined,
+          retryAfterSeconds: holdIsInFlight ? 90 : undefined,
           reason: stallReason,
           // `upsell` só viaja para quem realmente precisa comprar um PLANO. Um
           // assinante sem saldo precisa de créditos, não de outro plano, e

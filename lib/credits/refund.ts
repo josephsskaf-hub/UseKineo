@@ -232,7 +232,22 @@ function textField(value: unknown): string {
   return typeof value === 'string' ? value.trim() : ''
 }
 
-export async function sweepAbandonedCinematicDebits(): Promise<{
+// ═══ KINEO-CREDITO-PRESO-2026-09-03 (sprint-assinaturas #5) ═════════════════
+// A MESMA varredura, agora também chamável para UMA pessoa, ao vivo.
+//
+// MEDIDO EM PRODUÇÃO (30d, externos, `compose_refused` reason=
+// 'credits_held_by_render'): 16 recusas, 10 pessoas, ZERO viraram filme em 24h,
+// 8 das 10 nunca viram um filme da Kineo na vida. Os 16 débitos que seguravam o
+// crédito foram TODOS estornados depois — o crédito voltava; a pessoa não.
+// A rota de geração passa a chamar isto ANTES de recusar, para que o estorno
+// aconteça no segundo do clique em vez de na varredura horária.
+//
+// `opts.userId` restringe APENAS a consulta de candidatos. Nada mais muda:
+// mesmo `CINEMATIC_ABANDON_CUTOFF_MS`, mesma cadeia de prova de não-entrega,
+// mesmo estorno idempotente, mesmo `releaseCinematicClaim`. Sem `opts`, o
+// comportamento é byte-a-byte o do cron horário — que continua o dono do caso
+// geral.
+export async function sweepAbandonedCinematicDebits(opts?: { userId?: string; limit?: number }): Promise<{
   scanned: number
   delivered: number
   refunded: number
@@ -249,7 +264,7 @@ export async function sweepAbandonedCinematicDebits(): Promise<{
   if (!secret) return result
 
   const cutoff = new Date(Date.now() - CINEMATIC_ABANDON_CUTOFF_MS).toISOString()
-  const { data: debits, error } = await db
+  let debitQuery = db
     .from('credit_debits')
     // created_at entrou no select por causa do ÓRFÃO-PENDENTE (ver passo 1b):
     // é a única ponte possível entre um débito e um claim que morreu antes de
@@ -259,8 +274,13 @@ export async function sweepAbandonedCinematicDebits(): Promise<{
     .is('refunded_at', null)
     .like('render_id', 'cinematic-%')
     .lt('created_at', cutoff)
+  // KINEO-CREDITO-PRESO-2026-09-03 — o único desvio do caminho do cron, e ele é
+  // um ESTREITAMENTO: menos candidatos, nunca outros. Sem `opts.userId` esta
+  // linha não roda e a varredura continua vendo a base inteira.
+  if (opts?.userId) debitQuery = debitQuery.eq('user_id', opts.userId)
+  const { data: debits, error } = await debitQuery
     .order('created_at', { ascending: false })
-    .limit(200)
+    .limit(Math.min(Math.max(Math.trunc(Number(opts?.limit ?? 200)) || 200, 1), 200))
 
   if (error) {
     console.error('[refund/cinematic-sweep] debit query failed:', error.message)
