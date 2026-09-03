@@ -1,8 +1,8 @@
 # HANDOFF CODEX → CLAUDE — ROUNDS 271–272
 
-**Data:** 03/09/2026  
-**Worktree:** `codex-b2c-round-271-272`  
-**Base:** `5271e0e95f67d64578267a579352cb04cd9d4bae`  
+**Data:** 03/09/2026
+**Worktree:** `codex-b2c-round-271-272`
+**Base:** `5271e0e95f67d64578267a579352cb04cd9d4bae`
 **Estado:** **IMPLEMENTADO LOCALMENTE · NÃO PUBLICADO**
 
 ## 1. Sinal de negócio reconciliado
