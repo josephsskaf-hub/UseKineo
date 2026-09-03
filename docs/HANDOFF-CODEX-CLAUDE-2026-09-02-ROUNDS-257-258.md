@@ -62,7 +62,16 @@
 
 ## Publicação e validação
 
-**QUESTÃO PENDENTE:** preencher depois do rebase, push fast-forward e deploy `READY` com o SHA exato.
+**VALIDADO EM PRODUÇÃO — 2026-09-03 00:04 UTC:**
+
+- commit `b8835e381b94827cbb895c5881688adfdf8188e4` publicado por fast-forward em `origin/main`;
+- deploy Vercel `dpl_Ca334N3NCVUCc3wL2ehhTW6R68xj`, projeto Next.js `kineo`, estado `READY`, `aliasError:null`;
+- metadata do deploy aponta para o mesmo SHA e para a mensagem `growth: measure affiliate B2B to subscription`;
+- aliases ativos incluem `www.usekineo.com` e `usekineo.com`;
+- `/business-video-content-plan` respondeu com HTML público em `www.usekineo.com`;
+- varredura de erros `error`/`fatal` do deployment não encontrou logs no intervalo pós-publicação;
+- nenhum evento, Checkout, pagamento, banco, preço, crédito, render ou comunicação externa foi forçado;
+- o gate continua `collecting`, porque a evidência anterior tinha 0 pessoas no destino afiliado B2B e a maturidade individual é futura.
 
 ## Próxima rodada
 
