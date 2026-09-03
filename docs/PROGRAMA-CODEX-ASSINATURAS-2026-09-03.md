@@ -247,3 +247,49 @@ depende do fundador; "Nada." se nada) · 📋 O QUE ACONTECEU (curto, linguagem
 de dono). Depois de 04/09 17:00 BRT: handoff de fechamento (placar final
 contra o marco zero, K entregues, K pendentes, pedidos abertos) e pare.
 ```
+
+---
+
+## 7. ADENDO 03/09 20:40 BRT — FRENTE F: FLUXO (o Codex ganha o topo do funil)
+
+Contexto: a tarefa agendada do Codex NÃO disparou às 17:00 (zero commits até
+20:30). O Claude entregou 5 jogadas e deixou 5 pedidos abertos. Nas 24h até
+20:30 o ChatGPT caiu de 16 para 8 cadastros — é o único canal que paga.
+Ninguém está trabalhando em VISITANTE NOVO. Esta frente entra ANTES de K5/K6
+e vale para a sessão de trabalho longo que o fundador abrir à noite.
+
+**Ordem nova para o Codex:** os 5 pedidos abertos em PEDIDOS-ENTRE-PISTAS →
+K1 → F1 → K2 → F2 → K3 → F3 → resto do cardápio.
+
+**F1 · Por que o ChatGPT caiu pela metade hoje** — P, só leitura + correção.
+Medir por hora `landing_session_started` e cadastros com origem chatgpt nos
+últimos 3 dias; conferir se `/llms.txt`, `lib/kineoFacts.ts`, `lib/comparisons`
+e as páginas `/scripts/[vertical]` e `/free-script-generator` continuam
+respondendo 200 e sem regressão de copy depois dos deploys de hoje (7 na main);
+conferir `robots`/`sitemap`. Se algo quebrou, consertar na hora. Se nada
+quebrou, registrar "queda orgânica, não nossa" com o dado.
+
+**F2 · Pacote de conteúdo diário pronto para o fundador postar** — P.
+Todo dia às 18:00 BRT o Codex deixa em `docs/VIDEO-DO-DIA-<data>.md`: 1 tema
+de alto potencial (vertical mistério/história/lugares, 150-165 palavras, 60s),
+o script no bloco de código sozinho, a linha ⚙ Config, e o pacote de
+publicação no modelo do Lago Natron (YouTube título/descrição/comentário fixado,
+TikTok legenda/comentário, horário 19-21h BRT). O vídeo do dia é o único
+tráfego que a casa controla e hoje não saiu.
+
+**F3 · TAAFT: listing novo pronto para colar** — P.
+`docs/TAAFT-LISTING-2026-09-03.md`: texto do listing (50cr grátis, from $7,
+8 motores, 3 minutos, roteiro pronto vira filme), 3 legendas de screenshot e
+a lista exata das telas a capturar (home com os 4 cards, /studio com custo no
+botão, resultado com download). O fundador cola no dashboard do TAAFT.
+
+**F4 · Landing por idioma para os países que chegam ao checkout** — M.
+IN/NG/BR/DE/ES/FR dominam. Versões `/es`, `/pt-br`, `/de` da landing
+"cole seu roteiro" (K2) com exemplo narrado no idioma, apontadas no llms.txt.
+Sem página sem launcher: o launcher é a resposta do ChatGPT em cada idioma.
+
+**F5 · Cada pessoa que fez filme vira um link público que traz gente** — P.
+Depois de K7 (rodapé "made in N minutes"), o e-mail "Your Short is ready"
+(pista do Claude — PEDIDO) e a tela do resultado (Codex) oferecem o link
+`/v/[id]` com o botão de compartilhar em cima, não embaixo. Medir
+`share_clicked` → `landing_session_started` com `ref=v`.
