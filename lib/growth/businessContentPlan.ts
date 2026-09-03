@@ -3,8 +3,15 @@ export const BUSINESS_PLAN_SHARE_CAMPAIGN = 'weekly_business_video_plan_share_v1
 export const BUSINESS_PLAN_SHARE_URL =
   `https://www.usekineo.com/business-video-content-plan?utm_source=business_plan_copy&utm_medium=referral&utm_campaign=${BUSINESS_PLAN_SHARE_CAMPAIGN}` as const
 export const BUSINESS_PLAN_ATTRIBUTION_VERSION = 'business_content_plan_attribution_v1' as const
+export const BUSINESS_PLAN_AFFILIATE_ENTRY = 'affiliate_business' as const
+export const BUSINESS_PLAN_AFFILIATE_SOURCE = 'affiliate' as const
+export const BUSINESS_PLAN_AFFILIATE_MEDIUM = 'partner' as const
+export const BUSINESS_PLAN_AFFILIATE_CAMPAIGN = 'affiliate_business_plan' as const
 
-export type BusinessContentPlanEntry = 'plan_copy_referral' | 'direct_or_other'
+export type BusinessContentPlanEntry =
+  | 'plan_copy_referral'
+  | typeof BUSINESS_PLAN_AFFILIATE_ENTRY
+  | 'direct_or_other'
 
 type BusinessContentPlanSearchParams =
   | Record<string, string | string[] | undefined>
@@ -25,14 +32,23 @@ export function readBusinessContentPlanEntry(
     normalizedSingleParam(searchParams, 'utm_source') === 'business_plan_copy'
     && normalizedSingleParam(searchParams, 'utm_medium') === 'referral'
     && normalizedSingleParam(searchParams, 'utm_campaign') === BUSINESS_PLAN_SHARE_CAMPAIGN
-  return isPlanCopyReferral ? 'plan_copy_referral' : 'direct_or_other'
+  if (isPlanCopyReferral) return 'plan_copy_referral'
+  const isAffiliateBusiness =
+    normalizedSingleParam(searchParams, 'utm_source') === BUSINESS_PLAN_AFFILIATE_SOURCE
+    && normalizedSingleParam(searchParams, 'utm_medium') === BUSINESS_PLAN_AFFILIATE_MEDIUM
+    && normalizedSingleParam(searchParams, 'utm_campaign') === BUSINESS_PLAN_AFFILIATE_CAMPAIGN
+  return isAffiliateBusiness ? BUSINESS_PLAN_AFFILIATE_ENTRY : 'direct_or_other'
 }
 
 export function businessContentPlanEntryMetadata(entry: BusinessContentPlanEntry) {
   return {
     attribution_version: BUSINESS_PLAN_ATTRIBUTION_VERSION,
     entry,
-    referral_campaign: entry === 'plan_copy_referral' ? BUSINESS_PLAN_SHARE_CAMPAIGN : null,
+    referral_campaign: entry === 'plan_copy_referral'
+      ? BUSINESS_PLAN_SHARE_CAMPAIGN
+      : entry === BUSINESS_PLAN_AFFILIATE_ENTRY
+        ? BUSINESS_PLAN_AFFILIATE_CAMPAIGN
+        : null,
   } as const
 }
 
@@ -46,6 +62,13 @@ function businessPlanSignupAttribution(entry: BusinessContentPlanEntry) {
       utm_source: 'business_plan_copy',
       utm_medium: 'referral',
       utm_campaign: BUSINESS_PLAN_SHARE_CAMPAIGN,
+    }
+  }
+  if (entry === BUSINESS_PLAN_AFFILIATE_ENTRY) {
+    return {
+      utm_source: BUSINESS_PLAN_AFFILIATE_SOURCE,
+      utm_medium: BUSINESS_PLAN_AFFILIATE_MEDIUM,
+      utm_campaign: BUSINESS_PLAN_AFFILIATE_CAMPAIGN,
     }
   }
   return {

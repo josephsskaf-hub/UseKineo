@@ -49,10 +49,38 @@ equal(planner.readBusinessContentPlanEntry({
   utm_medium: 'referral',
   utm_campaign: 'spoofed',
 }), 'direct_or_other', 'wrong campaign cannot claim referral attribution')
+equal(planner.readBusinessContentPlanEntry({
+  utm_source: ' AFFILIATE ',
+  utm_medium: 'PARTNER',
+  utm_campaign: 'affiliate_business_plan',
+}), 'affiliate_business', 'exact affiliate business triplet is allowlisted and normalized')
+for (const [field, value] of [
+  ['utm_source', 'newsletter'],
+  ['utm_medium', 'referral'],
+  ['utm_campaign', 'affiliate_video'],
+]) {
+  equal(planner.readBusinessContentPlanEntry({
+    utm_source: 'affiliate',
+    utm_medium: 'partner',
+    utm_campaign: 'affiliate_business_plan',
+    [field]: value,
+  }), 'direct_or_other', `wrong affiliate ${field} fails closed`)
+}
+for (const field of ['utm_source', 'utm_medium', 'utm_campaign']) {
+  equal(planner.readBusinessContentPlanEntry({
+    utm_source: 'affiliate',
+    utm_medium: 'partner',
+    utm_campaign: 'affiliate_business_plan',
+    [field]: [field === 'utm_campaign' ? 'affiliate_business_plan' : field === 'utm_medium' ? 'partner' : 'affiliate'],
+  }), 'direct_or_other', `ambiguous affiliate ${field} array fails closed`)
+}
 equal(planner.businessContentPlanEntryMetadata('plan_copy_referral').entry, 'plan_copy_referral', 'metadata keeps only the categorical entry')
 equal(planner.businessContentPlanEntryMetadata('plan_copy_referral').referral_campaign, 'weekly_business_video_plan_share_v1', 'referral metadata uses the canonical campaign')
 equal(planner.businessContentPlanEntryMetadata('direct_or_other').referral_campaign, null, 'ordinary traffic does not invent a referral campaign')
+equal(planner.businessContentPlanEntryMetadata('affiliate_business').entry, 'affiliate_business', 'affiliate metadata is categorical')
+equal(planner.businessContentPlanEntryMetadata('affiliate_business').referral_campaign, 'affiliate_business_plan', 'affiliate metadata uses the canonical campaign')
 check(planner.businessContentPlanViewMarker('plan_copy_referral') !== planner.businessContentPlanViewMarker('direct_or_other'), 'view acknowledgement is isolated by entry')
+check(planner.businessContentPlanViewMarker('affiliate_business') !== planner.businessContentPlanViewMarker('direct_or_other'), 'affiliate view acknowledgement is isolated by entry')
 
 equal(planner.normalizeBusinessOffer('  an   invoicing app  '), 'an invoicing app', 'offer normalizes whitespace')
 equal(planner.normalizeBusinessOffer('x'.repeat(200)).length, 140, 'offer has a hard length ceiling')
@@ -113,6 +141,15 @@ const referralRedirect = new URL(referralActivation.searchParams.get('redirect')
 equal(referralRedirect.searchParams.get('intent_campaign'), 'weekly_business_video_plan', 'referred signup keeps the product intent separate from acquisition attribution')
 const emptyReferralActivation = new URL(planner.buildBusinessPlanEmptyActivationHref('plan_copy_referral'), 'https://www.usekineo.com')
 equal(emptyReferralActivation.searchParams.get('utm_campaign'), 'weekly_business_video_plan_share_v1', 'empty-state signup cannot erase the referral campaign')
+const affiliateActivation = new URL(planner.buildBusinessPlanActivationHref({ ...base, firstItem: five[0], entry: 'affiliate_business' }), 'https://www.usekineo.com')
+equal(affiliateActivation.searchParams.get('utm_source'), 'affiliate', 'affiliate business plan preserves source at signup')
+equal(affiliateActivation.searchParams.get('utm_medium'), 'partner', 'affiliate business plan preserves medium at signup')
+equal(affiliateActivation.searchParams.get('utm_campaign'), 'affiliate_business_plan', 'affiliate business plan preserves campaign at signup')
+equal(new URL(affiliateActivation.searchParams.get('redirect'), 'https://www.usekineo.com').searchParams.get('intent_campaign'), 'weekly_business_video_plan', 'affiliate acquisition stays separate from product intent')
+const emptyAffiliateActivation = new URL(planner.buildBusinessPlanEmptyActivationHref('affiliate_business'), 'https://www.usekineo.com')
+equal(emptyAffiliateActivation.searchParams.get('utm_source'), 'affiliate', 'empty affiliate signup preserves source')
+equal(emptyAffiliateActivation.searchParams.get('utm_medium'), 'partner', 'empty affiliate signup preserves medium')
+equal(emptyAffiliateActivation.searchParams.get('utm_campaign'), 'affiliate_business_plan', 'empty affiliate signup preserves campaign')
 
 const sharedText = planner.businessContentPlanAsText({ ...base, cadence: 'five', items: five })
 check(sharedText.startsWith('WEEKLY BUSINESS SHORTS PLAN'), 'copied artifact has a useful title')
