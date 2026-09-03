@@ -293,3 +293,229 @@ Depois de K7 (rodapé "made in N minutes"), o e-mail "Your Short is ready"
 (pista do Claude — PEDIDO) e a tela do resultado (Codex) oferecem o link
 `/v/[id]` com o botão de compartilhar em cima, não embaixo. Medir
 `share_clicked` → `landing_session_started` com `ref=v`.
+
+---
+
+## 8. V2 MAJORADA — 03/09 21:00 BRT (pedido do fundador: "mais vezes em 24h, mais gente comprando")
+
+### 8.1 O que muda
+
+| | v1 (tarde) | **v2 (noite)** |
+|---|---|---|
+| Sessões do Codex | 1 | **2 em paralelo: CAIXA e FLUXO**, worktrees e branches separadas |
+| Cadência | a cada 30 min, com espera | **contínua: acabou uma rodada, começa a próxima; rodada ≤ 20 min** |
+| Rodadas em 24h | 48 | **~120-140 somadas** |
+| Medição | a cada 6 rodadas | **a cada 4 rodadas por sessão + vigia do checkout em TODA rodada** |
+| Fonte de jogada | cardápio fixo | cardápio + **as pessoas reais que chegaram ao checkout e não pagaram nas últimas 2h** |
+
+As duas sessões não se tocam por arquivo:
+
+| sessão | dona de | branches | handoff |
+|---|---|---|---|
+| **CAIXA** | `components/UpgradeModal.tsx`, `WelcomeOfferModal`, `ExitIntentOffer`, `CheckoutResumeBanner`, `app/pricing`, `app/models-pricing`, `app/api/stripe/**` (só leitura de sessão/webhook, nunca preço), `lib/growth/checkout*`, `lib/growth/planFit*`, `lib/growth/inlinePricing*`, `lib/growth/limitPurchaseFit`. `app/(dashboard)` NÃO (é do Claude; gate de plano dentro do GenerateClient = PEDIDO) | `codex/caixa-*` | `docs/HANDOFF-CODEX-CAIXA-2026-09-03.md` (um arquivo, append) |
+| **FLUXO** | landings públicas (`app/*` fora de `(dashboard)`, `pricing`, `models-pricing`), `app/v/[id]/**`, `app/llms.txt`, `lib/kineoFacts.ts`, `lib/comparisons.ts`, `lib/growth/chatgpt*`, `lib/growth/engineLanding*`, `lib/growth/exampleRemix`, `app/share-to-kineo`, `ChatGptWelcomeBanner`, `PhWelcomeBanner`, `docs/VIDEO-DO-DIA-*`, `docs/TAAFT-*` | `codex/fluxo-*` | `docs/HANDOFF-CODEX-FLUXO-2026-09-03.md` (um arquivo, append) |
+
+Os dois leem `docs/PEDIDOS-ENTRE-PISTAS-2026-09-03.md` e o diário do Claude em
+toda rodada. Pedido CAIXA↔FLUXO também vai no mesmo arquivo (`DE codex-caixa
+PARA codex-fluxo`). Merge na main sempre com rebase + tsc + Guardião verde; se a
+main andou (o outro Codex ou o clique do fundador), rebase de novo antes de
+empurrar. Nunca force.
+
+### 8.2 VIGIA DO CHECKOUT — obrigatório em TODA rodada, das duas sessões
+
+SQL só leitura, contas externas, últimas 2 horas: toda pessoa com
+`checkout_started` ou `checkout_attempted` e sem `checkout_success_viewed`.
+Para cada uma, a trilha (`events` dela em ordem, 30 min antes e depois): de
+onde veio, quantos filmes tem, crédito, qual plano abriu, o que viu depois
+(cancelou? sessão expirou? voltou ao studio? fechou a aba?). Classificar:
+**desejo** (tem filme) · **roteiro-pronto** (0 filme + `finished_script`) ·
+**defeito** (0 filme, 0 input). A rodada escreve no handoff 1 linha por pessoa
+e escolhe a jogada a partir do padrão que mais se repetiu. Regra: pessoa real
+vale mais que cardápio. Nunca escrever para ela (e-mail é proibido); a jogada
+é no produto, para a próxima igual a ela.
+
+### 8.3 CARDÁPIO ADICIONAL (v2) — o ato de pagar
+
+**K13 · Sessão do Stripe expirada = a pessoa abriu o caixa e foi embora** — CAIXA, P.
+7 dias: 17 pessoas com `checkout_session_expired`, 19 viram o banner de retomada,
+14 fecharam o banner. O banner pede para "continuar"; ninguém continua. Trocar
+por: o filme dela + "your film is ready to publish without watermark — finish
+in 30s" + o plano que ela abriu, sem seletor. Medir `checkout_resume_banner_
+viewed` → `checkout_started` da mesma pessoa em 24h (linha de base: ~0).
+
+**K14 · Cancelou no Stripe → objeção com 3 botões, não 1 banner** — CAIXA, P.
+`checkout_cancelled` 6 pessoas/7d, 0 voltaram. Na volta do cancelamento: "What
+stopped you?" com 3 respostas de 1 clique (too expensive now · wanted to test
+more first · payment issue) e cada resposta leva a uma resposta do produto que
+JÁ existe (test more → filme grátis no Kineo 1; payment → guia de pagamento
+`checkoutPaymentGuidance`; expensive → nada de desconto, mostra o custo por
+filme já calculado). Grava `checkout_objection`. É a primeira medição honesta
+da objeção: hoje a conclusão "é preço" vem de 19/08 sem pergunta feita.
+
+**K15 · O checkout mostra o filme da pessoa** — CAIXA, P (auditar antes: `lib/growth/checkoutVisualProof.ts` existe).
+Medir impressões→pago da prova visual que já existe. Se a prova é genérica,
+trocar pelo último filme DELA (thumb + tema) ao lado do botão de pagar. Se já
+é dela, medir e registrar, não refazer.
+
+**K16 · A oferta certa por número de filmes** — CAIXA, M.
+Quem tem 1 filme vê "make episode 2" antes de qualquer plano; quem tem 2+ vê o
+plano com "your next N films". Hoje o pós-vídeo mostra plano para todo mundo
+igual. Auditar `chatgptPostVideoOffer`, `historyFirstVideoOffer`,
+`postvideo-*` do Codex antes: provavelmente metade existe e não está medida.
+
+**K17 · Preço em filmes, não em créditos, em TODA superfície de venda** — CAIXA, P.
+`/models-pricing` já fala em filmes. `UpgradeModal`, banners e `plan_fit`
+ainda falam "credits". Trocar a unidade (sem mudar número): "Starter = ~12
+Kineo 1 films/mo" usando `engineCost` como fonte (só leitura). Créditos são
+abstração nossa; filme é o que a pessoa compra.
+
+**K18 · Landing do canal que paga, na língua da resposta** — FLUXO, M.
+O ChatGPT responde em espanhol para espanhol, em alemão para alemão. Para cada
+um dos 4 idiomas dos países que chegam ao checkout (es, pt-BR, de, fr), uma
+versão da landing "cole seu roteiro" (K2) com exemplo narrado no idioma,
+listada no `/llms.txt` com `hreflang`. Sem página sem launcher: o launcher é
+a resposta do ChatGPT no idioma.
+
+**K19 · A página /v/ de cada filme pede cadastro no fim do vídeo** — FLUXO, P.
+`/v/[id]` recebe visitante de fora (compartilhamento). Ao terminar o vídeo:
+overlay "Made in N minutes from N words. Make yours free" com o botão de
+cadastro que preserva `ref=v:<id>`. Medir `landing_session_started` com
+`ref=v` → cadastro → filme → pago.
+
+**K20 · O que o TAAFT mostra a 24 pessoas por dia** — FLUXO, P.
+Além do texto (F3): lista das 3 capturas de tela a fazer, com a URL exata e o
+que precisa estar visível (home com os 4 cards de motor girando; /studio com o
+custo no botão; tela do resultado com download). O fundador captura e cola.
+Enquanto o listing mentir, o TAAFT continua sendo o canal que ativa e não paga.
+
+### 8.4 PROMPT — SESSÃO CAIXA
+
+```
+Você é a sessão CODEX-CAIXA da Kineo (usekineo.com). Trabalho contínuo até
+04/09 21:00 BRT: acabou uma rodada, começa a próxima, sem esperar; cada rodada
+dura no máximo 20 minutos e entrega UMA coisa que quem está no caminho de pagar
+VÊ. Repositório josephsskaf-hub/UseKineo, main. Worktree própria de origin/main
+atualizado; branches codex/caixa-*; merge na main com rebase + `npx tsc --noEmit`
+verde + Guardião verde; nunca force.
+
+AUTORIZAÇÃO DO FUNDADOR (o "explícito" do AGENTS.md §3.2): código e docs na sua
+pista; commit; push; merge; SQL só leitura no Supabase. PROIBIDO: número de preço,
+oferta ou desconto novo; Stripe Dashboard; migration/escrita em banco; e-mail,
+mensagem ou rascunho; apagar dado; gastar crédito; arquivo do Claude
+(app/(dashboard), compose, cinematic, cron, admin, credits) ou da sessão FLUXO.
+
+LEIA ANTES: AGENTS.md · docs/ESCOPO-CLAUDE-VS-CODEX-2026-08-31.md ·
+docs/PROGRAMA-CODEX-ASSINATURAS-2026-09-03.md INTEIRO (seções 1-8; a 8 manda) ·
+docs/PLANO-COWORK-ASSINATURAS-2026-09-03.md · último "### #N" de
+docs/SPRINT-ASSINATURAS-2026-09-03.md · docs/PEDIDOS-ENTRE-PISTAS-2026-09-03.md
+· docs/HANDOFF-CODEX-CAIXA-2026-09-03.md (crie se não existir).
+
+SUA PISTA: UpgradeModal (a caixa), WelcomeOfferModal, ExitIntentOffer,
+CheckoutResumeBanner, /pricing, /models-pricing, lib/growth/checkout*,
+planFit*, inlinePricing*, limitPurchaseFit, leitura de sessões Stripe. Gate de
+plano dentro do GenerateClient e o gatilho do modal são do Claude → PEDIDO.
+
+MISSÃO: pessoas físicas pagando um plano. Sessão, clique e vídeo são meio.
+
+CADA RODADA: (1) git fetch + log da main + PEDIDOS + diário do Claude; (2)
+VIGIA DO CHECKOUT (programa §8.2): toda pessoa externa que abriu checkout nas
+últimas 2h e não pagou — trilha, classe (desejo / roteiro-pronto / defeito),
+1 linha por pessoa no handoff; (3) placar com o SQL canônico (§5); (4) pedido
+aberto para você vem primeiro; senão a jogada: o padrão que mais repetiu no
+vigia manda; empate → ordem K1, K3, K13, K14, K15, K17, K16, K4, K9, K8, K11;
+(5) anti-repetição: grep no log da main (-80) e nos handoffs; o Codex de 02-03/09
+deixou dezenas de superfícies em lib/growth — se existe, MEDIR
+impressão→clique→pago e consertar ou matar, não recriar; (6) executar inteira:
+código + teste + tsc + push + merge; (7) handoff: dado que doía, pessoas do vigia,
+o que mudou (arquivos), como medir, placar, próximo item, PEDIDOS novos; (8) a
+cada 4 rodadas, uma só de medição: o que as 4 anteriores mudaram no placar.
+
+AUTONOMIA TOTAL: o fundador não está na tela. Nunca pergunte, nunca espere,
+nunca pause. Decisão dele → padrão mais seguro, registrado como reversível. O
+que só ele faz → lista ✅ no handoff, e siga. Feche cada rodada com PRÓXIMA
+JOGADA · ✅ O QUE VOCÊ PRECISA FAZER · 📋 O QUE ACONTECEU. Depois de 04/09
+21:00 BRT: handoff de fechamento e pare.
+```
+
+### 8.5 PROMPT — SESSÃO FLUXO
+
+```
+Você é a sessão CODEX-FLUXO da Kineo (usekineo.com). Trabalho contínuo até
+04/09 21:00 BRT: acabou uma rodada, começa a próxima, sem esperar; cada rodada
+dura no máximo 20 minutos e entrega UMA coisa que traz ou converte VISITANTE
+NOVO. Repositório josephsskaf-hub/UseKineo, main. Worktree própria de
+origin/main atualizado; branches codex/fluxo-*; merge na main com rebase +
+`npx tsc --noEmit` verde + Guardião verde; nunca force.
+
+AUTORIZAÇÃO DO FUNDADOR (o "explícito" do AGENTS.md §3.2): código e docs na sua
+pista; commit; push; merge; SQL só leitura no Supabase. PROIBIDO: número de
+preço, oferta ou desconto novo; Stripe; migration/escrita em banco; e-mail,
+mensagem, post ou rascunho enviado; apagar dado; gastar crédito; arquivo do
+Claude ou da sessão CAIXA.
+
+LEIA ANTES: AGENTS.md · docs/ESCOPO-CLAUDE-VS-CODEX-2026-08-31.md ·
+docs/PROGRAMA-CODEX-ASSINATURAS-2026-09-03.md INTEIRO (seções 1-8; a 8 manda) ·
+docs/PLANO-COWORK-ASSINATURAS-2026-09-03.md · último "### #N" de
+docs/SPRINT-ASSINATURAS-2026-09-03.md · docs/PEDIDOS-ENTRE-PISTAS-2026-09-03.md
+· docs/HANDOFF-CODEX-FLUXO-2026-09-03.md (crie se não existir).
+
+SUA PISTA: landings públicas fora do (dashboard), /v/[id], /llms.txt,
+kineoFacts, comparisons, lib/growth/chatgpt*, engineLanding*, exampleRemix,
+share-to-kineo, ChatGptWelcomeBanner, PhWelcomeBanner, docs/VIDEO-DO-DIA-*,
+docs/TAAFT-*. Checkout, pricing e modais são da sessão CAIXA → PEDIDO.
+
+MISSÃO: mais gente certa entrando (ChatGPT é o canal que paga: 3 dos 3 últimos
+assinantes; caiu de 16 para 8 cadastros hoje) e cada visitante virando
+cadastro com roteiro na mão.
+
+CADA RODADA: (1) git fetch + log da main + PEDIDOS + diário do Claude; (2)
+VIGIA DO CHECKOUT (programa §8.2), você também lê, para saber DE ONDE vêm os
+que quase pagam; (3) placar canônico (§5) + cadastros por origem nas últimas
+2h; (4) pedido aberto para você vem primeiro; senão a ordem: F1 (por que o
+ChatGPT caiu hoje: regressão nossa ou orgânico), K2, F2 (pacote do vídeo do
+dia ANTES das 18:00 BRT de 04/09, e um hoje ainda se der tempo), F3+K20
+(listing e capturas do TAAFT), K5, K7, K19, K18, F4, K10, F5; (5)
+anti-repetição: grep no log da main e nos handoffs; página sem launcher é
+proibida: o launcher é a resposta do ChatGPT, o link do vídeo do dia ou o
+/v/ compartilhado; (6) executar inteira: código + teste + tsc + push + merge;
+(7) handoff: dado, o que mudou, como medir, placar, próximo item, PEDIDOS;
+(8) a cada 4 rodadas, uma só de medição contra o marco zero.
+
+AUTONOMIA TOTAL: nunca pergunte, nunca espere, nunca pause. O que só o
+fundador faz (postar vídeo, editar TAAFT) → lista ✅ com o material PRONTO
+para colar. Feche cada rodada com PRÓXIMA JOGADA · ✅ O QUE VOCÊ PRECISA FAZER
+· 📋 O QUE ACONTECEU. Depois de 04/09 21:00 BRT: handoff de fechamento e pare.
+```
+
+### 8.6 INCREMENTO PARA A SESSÃO QUE JÁ ESTÁ RODANDO (colar na conversa existente)
+
+O fundador prefere não abrir sessão nova: a sessão do Codex que já recebeu o
+prompt da seção 6 recebe este incremento. Ela mesma decide se abre a pista
+FLUXO como segunda tarefa paralela (se o ambiente permitir) ou se alterna
+CAIXA/FLUXO rodada sim, rodada não. O texto está na resposta do Claude de
+03/09 21:00 e reproduzido aqui para registro:
+
+```
+INCREMENTO (fundador, 03/09 21:00 BRT). Continue com o prompt anterior; o que
+muda é frequência e intensidade:
+1. git fetch origin e releia docs/PROGRAMA-CODEX-ASSINATURAS-2026-09-03.md
+   INTEIRO. A seção 8 manda sobre as anteriores.
+2. CADÊNCIA: sem espera entre rodadas. Acabou uma, começa a próxima. Rodada
+   de no máximo 20 minutos. Até 04/09 21:00 BRT.
+3. DUAS PISTAS: CAIXA (§8.4) e FLUXO (§8.5). Se o ambiente permite tarefas
+   paralelas, abra FLUXO como segunda tarefa em worktree e branch próprias
+   (codex/fluxo-*) e siga em CAIXA nesta. Se não permite, alterne: rodada
+   ímpar CAIXA, rodada par FLUXO, cada uma com seu handoff.
+4. VIGIA DO CHECKOUT em toda rodada (§8.2): quem abriu o caixa nas últimas
+   2h e não pagou, trilha e classe. Pessoa real manda sobre cardápio.
+5. ORDEM: os 5 pedidos abertos em docs/PEDIDOS-ENTRE-PISTAS-2026-09-03.md
+   vêm primeiro (todos prontos). Depois CAIXA: K1, K3, K13, K14, K15, K17,
+   K16; FLUXO: F1, K2, F2, F3+K20, K5, K7, K19, K18.
+6. Até agora (13:21→21:00) não há nenhum commit seu na main. A primeira
+   rodada desta noite precisa terminar com um merge na main com Guardião
+   verde; se algo impede (permissão, sandbox, conflito), escreva no handoff
+   O QUE impede, em uma linha, e siga para a próxima jogada que não dependa
+   daquilo.
+7. Tudo o mais continua: autonomia total, sem pergunta, sem preço, sem
+   e-mail, sem arquivo do Claude, handoff a cada rodada com ✅ e 📋.
+```
