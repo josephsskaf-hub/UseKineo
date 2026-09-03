@@ -1586,7 +1586,12 @@ export default function KineoLanding({
                 <Link href="/studio?engine=veo&intent_campaign=final_chip">Veo 3.1</Link>
                 <Link href="/studio?engine=hollywood&intent_campaign=final_chip">Kling 3</Link>
               </div>
-              <div className="fcta"><Link className="btn btn-w" href={isSignedIn ? '/generate' : referralBridge ? '#try-kineo' : '/signup?utm_source=final_cta'}>{isSignedIn ? 'Create a video' : 'Start free'}</Link></div>
+              {/* KINEO-SEM-PORTEIRO-2026-09-02 b — o CTA final da home escapou
+                  da primeira varredura porque não usa o atributo href com o caminho literal:
+                  o caminho vive dentro de um ternário. Lição registrada: para
+                  achar link nesta base não basta procurar `href=`, tem que
+                  procurar a STRING do caminho. */}
+              <div className="fcta"><Link className="btn btn-w" href={isSignedIn ? '/studio' : referralBridge ? '#try-kineo' : '/signup?utm_source=final_cta'}>{isSignedIn ? 'Create a video' : 'Start free'}</Link></div>
               {/* ONDA6 #1 (14/08) — o fechamento ganha a linha de reversao de
                   risco do hero: fecha a pagina com a mesma forca que abre.
                   KINEO-TRIAL-SWAP-LEAK-2026-08-15 — esta linha NASCEU fora da

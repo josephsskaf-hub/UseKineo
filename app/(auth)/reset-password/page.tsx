@@ -111,7 +111,7 @@ export default function ResetPasswordPage() {
           window.location.assign(context.destination)
           return
         }
-        router.push('/generate')
+        router.push('/studio')
       }, 2000)
     }
   }

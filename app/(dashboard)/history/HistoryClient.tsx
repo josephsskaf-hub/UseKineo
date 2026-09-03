@@ -264,8 +264,8 @@ function failedCardCopy(video: Video, state: 'failed' | 'timeout'): string {
 // caps the stored prompt at 1000 chars.
 function tryAgainHref(video: Video): string {
   const topic = (video.topic ?? '').trim()
-  if (!topic) return '/generate'
-  return `/generate?prompt=${encodeURIComponent(topic.slice(0, 1000))}`
+  if (!topic) return '/studio'
+  return `/studio/create?prompt=${encodeURIComponent(topic.slice(0, 1000))}`
 }
 
 interface Props {
@@ -1020,7 +1020,7 @@ export default function MyVideosClient({ videos: initialVideos, loadError = fals
   // rendering; this never spends credits or starts a render by itself.
   const firstVideoTitle = extractTitle(completedVideos[0]?.topic ?? null)
   const followUpHref = firstVideoTitle === 'Untitled Short'
-    ? '/generate'
+    ? '/studio'
     : buildSeriesContinuationHref(firstVideoTitle, 'history_milestone')
   const showSubscriptionOffer = subscriptionOfferEligible === true && completedVideos.length >= 1
   const firstVideoSubscriptionRecovery = showSubscriptionOffer && completedVideos.length === 1

@@ -749,7 +749,7 @@ function CheckoutCancelledContent() {
                     </p>
                   )}
                   <Link
-                    href={isAutopilotReturn ? '/pricing#autopilot' : '/generate'}
+                    href={isAutopilotReturn ? '/pricing#autopilot' : '/studio'}
                     onClick={() => trackEvent(
                       isAutopilotReturn ? 'autopilot_cancelled_details_clicked' : 'checkout_free_path_clicked',
                       { tier, reason: 'just_looking' },

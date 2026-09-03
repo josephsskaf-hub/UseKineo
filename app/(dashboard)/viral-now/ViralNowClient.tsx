@@ -329,7 +329,7 @@ export default function ViralNowClient({
       utm_campaign: 'push39_viral_now',
       utm_content: topic.id,
     })
-    const generateUrl = `/generate?${generateParams.toString()}`
+    const generateUrl = `/studio/create?${generateParams.toString()}`
 
     void trackEvent('viral_now_topic_clicked', {
       source: 'viral_now_public',

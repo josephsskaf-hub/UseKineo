@@ -39,7 +39,7 @@ export default function SaaSHubBridgeClient({ isSignedIn }: { isSignedIn: boolea
     }, '/from-saashub')
   }, [isSignedIn])
 
-  const destination = isSignedIn ? '/generate' : '/signup'
+  const destination = isSignedIn ? '/studio/create' : '/signup'
 
   return (
     <div

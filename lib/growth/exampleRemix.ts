@@ -38,5 +38,5 @@ export function exampleRemixHref(input: {
     utm_campaign: EXAMPLE_REMIX_CAMPAIGN,
     utm_content: input.slug,
   })
-  return `/generate?${params.toString()}`
+  return `/studio/create?${params.toString()}`
 }

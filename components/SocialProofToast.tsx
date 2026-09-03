@@ -19,7 +19,11 @@ const MESSAGES = [
   { emoji: '⚡', text: 'Built for daily YouTube Shorts creators' },
 ]
 
-const ALLOWED_PATHS = ['/pricing', '/generate', '/start']
+// KINEO-SEM-PORTEIRO-2026-09-02 b — a tela de criar mudou de endereço em
+// 24/08 e esta lista ficou para trás: o toast de prova social sumiu da tela
+// onde ele mais importa. /generate fica na lista só porque o porteiro ainda
+// existe para links antigos de e-mail.
+const ALLOWED_PATHS = ['/pricing', '/studio', '/generate', '/start']
 
 // Random integer in [min, max]
 function randBetween(min: number, max: number) {

@@ -20,7 +20,7 @@ const STEPS = [
   { icon: '🎭', title: 'Get a talking video', desc: 'That person speaks your script — lip-synced in 720p, with b-roll, captions & music.' },
 ]
 
-export default function AvatarHowItWorks({ open, onClose, ctaHref = '/generate?avatar=1' }: AvatarHowItWorksProps) {
+export default function AvatarHowItWorks({ open, onClose, ctaHref = '/studio/create?avatar=1' }: AvatarHowItWorksProps) {
   if (!open) return null
   return (
     <div

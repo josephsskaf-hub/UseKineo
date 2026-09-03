@@ -50,7 +50,7 @@ export function buildCommentToVideoActivationHref(lines: CommentScriptLine[]): s
       return marker ? `${marker}: ${safeText}` : safeText
     })
     .join('\n')
-  const destination = `/generate?${new URLSearchParams({
+  const destination = `/studio/create?${new URLSearchParams({
     prompt: script,
     autoanalyze: '1',
     intent_campaign: COMMENT_TO_VIDEO_CAMPAIGN,

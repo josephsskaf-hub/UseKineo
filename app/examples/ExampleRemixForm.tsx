@@ -56,7 +56,7 @@ export default function ExampleRemixForm({
       version: EXAMPLE_REMIX_CAMPAIGN,
       example_slug: slug,
       topic_length: safeTopic.length,
-      destination: '/generate',
+      destination: '/studio/create',
     })
     router.push(href)
   }

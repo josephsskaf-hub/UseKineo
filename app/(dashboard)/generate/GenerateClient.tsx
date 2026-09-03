@@ -1180,8 +1180,8 @@ export default function GenerateClient({
       if (cleanPrompt) sessionStorage.setItem('pendingVideoPrompt', cleanPrompt)
     } catch { /* ignore */ }
     const returnPath = cleanPrompt
-      ? `/generate?prompt=${encodeURIComponent(cleanPrompt)}`
-      : '/generate'
+      ? `/studio/create?prompt=${encodeURIComponent(cleanPrompt)}`
+      : '/studio'
     router.push(`/login?redirect=${encodeURIComponent(returnPath)}`)
   }
   // #383c — explicit script handling, visible to everyone (replaces the old
@@ -9577,7 +9577,7 @@ export default function GenerateClient({
     // serie: recarregar a pagina nao perde a ideia, e o `idea_source` deixa o
     // rastro de ONDE o 2o video nasceu.
     router.push(
-      `/generate?${new URLSearchParams({
+      `/studio/create?${new URLSearchParams({
         prompt: seed,
         autoanalyze: '1',
         idea_source: 'wait_queue',
@@ -16389,7 +16389,7 @@ function RecentVideosSection({ videos }: { videos: RecentVideo[] | null }) {
   const latestCompleted = videos.find((video) => video.status === 'completed') ?? null
   const latestContinuationHref = latestCompleted
     ? buildSeriesContinuationHref(latestCompleted.title, 'generate_recent_video')
-    : '/generate'
+    : '/studio'
 
   return (
     <section

@@ -76,11 +76,15 @@ export default function OnboardingPanel({ hasNoVideos, onFillPrompt }: Onboardin
   }
 
   function handlePick(prompt: string) {
-    if (onFillPrompt && pathname?.startsWith('/generate')) {
+    // KINEO-SEM-PORTEIRO-2026-09-02 b — a tela de criar mora em /studio/create
+    // desde 24/08. Esta checagem só olhava para /generate, então o painel de
+    // onboarding navegava em vez de preencher o campo que já estava na frente
+    // da pessoa. Aceita os dois: /generate ainda existe como porteiro.
+    if (onFillPrompt && (pathname?.startsWith('/studio/create') || pathname?.startsWith('/generate'))) {
       onFillPrompt(prompt)
       return
     }
-    router.push(`/generate?prompt=${encodeURIComponent(prompt)}`)
+    router.push(`/studio/create?prompt=${encodeURIComponent(prompt)}`)
   }
 
   return (

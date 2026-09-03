@@ -154,7 +154,7 @@ export default async function ExamplesPage() {
           {/* KINEO-EXAMPLES-LOGADO-2026-08-24 — logado vai direto ao Studio
               (a porta única do #301); visitante segue o funil de sempre. */}
           <OrganicCtaLink
-            href={isLoggedIn ? '/studio?utm_source=examples&utm_medium=proof&utm_campaign=push31' : '/generate?utm_source=examples&utm_medium=proof&utm_campaign=push31'}
+            href={isLoggedIn ? '/studio?utm_source=examples&utm_medium=proof&utm_campaign=push31' : '/studio/create?utm_source=examples&utm_medium=proof&utm_campaign=push31'}
             source="examples_index"
             placement="footer_band"
             className="mt-5 inline-flex rounded-full bg-white px-5 py-3 text-sm font-semibold tracking-[-.02em] text-black transition hover:bg-white sm:mt-0"

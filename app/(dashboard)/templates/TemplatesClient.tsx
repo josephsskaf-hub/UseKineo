@@ -86,7 +86,7 @@ export default function TemplatesClient() {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null)
 
   function useTemplate(prompt: string) {
-    router.push(`/generate?prompt=${encodeURIComponent(prompt)}`)
+    router.push(`/studio/create?prompt=${encodeURIComponent(prompt)}`)
   }
 
   return (

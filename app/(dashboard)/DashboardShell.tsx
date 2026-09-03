@@ -27,6 +27,9 @@ const pageTitles: Record<string, string> = {
   '/': 'Home',
   '/dashboard': 'Creator Hub',
   '/create': 'Create Video',
+  // KINEO-SEM-PORTEIRO-2026-09-02 b — o mapa de títulos não conhecia o
+  // endereço novo da tela de criar, então ela ficava sem título no shell.
+  '/studio/create': 'Generate New Short',
   '/generate': 'Generate New Short',
   '/my-videos': 'My Videos',
   '/viral-now': 'Viral Now',

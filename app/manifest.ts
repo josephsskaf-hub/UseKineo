@@ -20,7 +20,7 @@ export default function manifest(): KineoManifest {
     description:
       'Turn any topic into a finished YouTube Short, usually in 3–7 minutes. AI writes the script, finds footage, adds voiceover & captions.',
     id: '/',
-    start_url: '/generate',
+    start_url: '/studio', // KINEO-SEM-PORTEIRO-2026-09-03 c — o app instalado abria no porteiro
     scope: '/',
     display: 'standalone',
     orientation: 'portrait',

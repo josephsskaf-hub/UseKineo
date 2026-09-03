@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
       activationPath.startsWith('/') &&
       !activationPath.startsWith('//')
         ? activationPath
-        : '/generate?welcome=1'
+        : '/studio/create?welcome=1'
     const dashboardUrl = `${APP_URL}${safeActivationPath}`
 
     const html = `<!DOCTYPE html>

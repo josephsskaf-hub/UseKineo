@@ -63,7 +63,7 @@ function activationHref(lines: Line[], fromPublicVideo: boolean, fromWebShareTar
       return marker ? `${marker}: ${safeText}` : safeText
     })
     .join('\n')
-  const destination = `/generate?${new URLSearchParams({ prompt: script, autoanalyze: '1' }).toString()}`
+  const destination = `/studio/create?${new URLSearchParams({ prompt: script, autoanalyze: '1' }).toString()}`
   const signup = new URLSearchParams({
     utm_source: source,
     utm_medium: medium,

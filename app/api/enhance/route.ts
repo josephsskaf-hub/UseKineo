@@ -23,6 +23,35 @@ export const maxDuration = 300
 
 const SLUG = 'fal-ai/topaz/upscale/video'
 const ENHANCE_COST = 10
+
+// ═══ KINEO-ENHANCE-SEM-ESTOURO-2026-09-03 ═════════════════════════════════
+// 12 quedas de "instance was killed because it ran out of available memory"
+// nesta rota, medidas no painel da Vercel entre 11/08 e 03/09. A causa está
+// duas vezes neste arquivo: `await res.arrayBuffer()` puxa o MP4 INTEIRO para a
+// memória antes de copiar para o nosso bucket. Um Short de 60s que passou pelo
+// Topaz volta com fácil 150-250 MB; o buffer mais a cópia que o SDK faz na hora
+// do upload estouram a função e o processo morre.
+//
+// O QUE MORRE JUNTO: o cliente pagou 10 créditos, o vídeo ficou PRONTO no
+// fornecedor, e a função cai antes de gravar `enhanced_url`. Ou seja, é a mesma
+// família do "cobrado e não entregue" — só que num recurso pago à parte.
+//
+// A ESCOLHA AQUI É DELIBERADAMENTE CONSERVADORA. A correção "certa" seria
+// transmitir o corpo direto para o storage sem passar pela memória, mas isso
+// depende de o SDK aceitar stream com o content-length correto, e eu não tenho
+// como testar antes de subir. Então: arquivo pequeno continua exatamente como
+// hoje (caminho que funciona há um mês), e arquivo grande PARA DE DERRUBAR a
+// função — a gente entrega a URL do fornecedor e registra que a cópia ficou
+// pendente. Perde-se a permanência do arquivo, não o vídeo do cliente.
+// Degradação conhecida e registrada é infinitamente melhor que processo morto.
+const ENHANCE_COPY_MAX_BYTES = 90 * 1024 * 1024 // 90 MB
+
+/** Cabe na memória da função? Sem content-length, assume que NÃO cabe. */
+function cabeNaMemoria(res: Response): boolean {
+  const len = Number(res.headers.get('content-length') ?? '0')
+  if (!Number.isFinite(len) || len <= 0) return false
+  return len <= ENHANCE_COPY_MAX_BYTES
+}
 // KINEO-4K-2026-08-18 (roubo com critério do 'Seedance 4K' do Higgsfield):
 // upscale_factor 2 → 2160×3840, tier fal >1080p = \$0.08/s (60s ≈ \$4.80 de
 // custo) → 40 créditos (\$6 retail no pior caso, margem fina no 60s mas
@@ -155,7 +184,13 @@ export async function GET(req: NextRequest) {
       if (admin) {
         try {
           const res = await fetch(video.enhanced_url, { signal: AbortSignal.timeout(180000) })
-          if (res.ok) {
+          if (res.ok && !cabeNaMemoria(res)) {
+            // KINEO-ENHANCE-SEM-ESTOURO-2026-09-03 — grande demais para o
+            // arrayBuffer. Antes daqui a função MORRIA e o cliente ficava sem o
+            // vídeo que já tinha pago. Agora ele recebe a URL do fornecedor e a
+            // cópia fica registrada como pendente.
+            console.warn(`[enhance] COPIA PULADA video=${videoId} bytes=${res.headers.get('content-length') ?? 'desconhecido'} — entregando URL do fornecedor para nao estourar a memoria`)
+          } else if (res.ok) {
             const buf = await res.arrayBuffer()
             const path = `enhanced/${user.id}/${videoId}.mp4`
             const { error } = await admin.storage.from('renders').upload(path, buf, { contentType: 'video/mp4', upsert: true })
@@ -191,7 +226,13 @@ export async function GET(req: NextRequest) {
       if (admin) {
         try {
           const res = await fetch(falUrl, { signal: AbortSignal.timeout(120000) })
-          if (res.ok) {
+          if (res.ok && !cabeNaMemoria(res)) {
+            // KINEO-ENHANCE-SEM-ESTOURO-2026-09-03 — grande demais para o
+            // arrayBuffer. Antes daqui a função MORRIA e o cliente ficava sem o
+            // vídeo que já tinha pago. Agora ele recebe a URL do fornecedor e a
+            // cópia fica registrada como pendente.
+            console.warn(`[enhance] COPIA PULADA video=${videoId} bytes=${res.headers.get('content-length') ?? 'desconhecido'} — entregando URL do fornecedor para nao estourar a memoria`)
+          } else if (res.ok) {
             const buf = await res.arrayBuffer()
             const path = `enhanced/${user.id}/${videoId}.mp4`
             const { error } = await admin.storage.from('renders').upload(path, buf, { contentType: 'video/mp4', upsert: true })

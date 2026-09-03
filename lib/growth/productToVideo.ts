@@ -69,7 +69,7 @@ export function buildProductToVideoActivationHref(lines: ProductScriptLine[]): s
       return marker ? `${marker}: ${safeText}` : safeText
     })
     .join('\n')
-  const destination = `/generate?${new URLSearchParams({
+  const destination = `/studio/create?${new URLSearchParams({
     prompt: script,
     script_mode: 'verbatim',
     duration: '35',

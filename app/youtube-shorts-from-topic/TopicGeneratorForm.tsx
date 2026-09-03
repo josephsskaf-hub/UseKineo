@@ -76,7 +76,7 @@ export default function TopicGeneratorForm({
     if (language) destination.set('language', language)
     if (scriptMode) destination.set('script_mode', scriptMode)
     if (duration) destination.set('duration', String(duration))
-    return `/generate?${destination.toString()}`
+    return `/studio/create?${destination.toString()}`
   }
 
   function startWithExample(example: string, exampleIndex: number) {

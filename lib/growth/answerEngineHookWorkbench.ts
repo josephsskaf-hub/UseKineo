@@ -81,7 +81,7 @@ export function hookActivationHref(
   const prompt = cleanHook
     ? `Use this exact opening hook: "${cleanHook}"\nTopic: ${cleanTopic}`
     : cleanTopic
-  const destination = `/generate?${new URLSearchParams({ prompt, autoanalyze: '1' }).toString()}`
+  const destination = `/studio/create?${new URLSearchParams({ prompt, autoanalyze: '1' }).toString()}`
   signup.set('redirect', destination)
   return `/signup?${signup.toString()}`
 }

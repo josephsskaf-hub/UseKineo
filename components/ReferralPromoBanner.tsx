@@ -22,7 +22,10 @@ const DISMISS_KEY = 'sf_referral_promo_dismissed'
 //                aparece no momento certo (vídeo pronto na mão). O banner fica
 //                no fim do conteúdo e apareceria junto com o card.
 // Prefixo, não igualdade: /generate/... e /referral/... também contam.
-const SUPPRESSED_PREFIXES = ['/referral', '/generate']
+// KINEO-SEM-PORTEIRO-2026-09-02 b — a supressão existia para não poluir a tela
+// de criar. Com a mudança de 24/08 ela deixou de valer e o banner voltou a
+// aparecer justamente ali, no meio do trabalho da pessoa.
+const SUPPRESSED_PREFIXES = ['/referral', '/studio', '/generate']
 
 export default function ReferralPromoBanner() {
   const [show, setShow] = useState(false)

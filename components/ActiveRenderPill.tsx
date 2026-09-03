@@ -265,7 +265,7 @@ export default function ActiveRenderPill() {
     // Mesmo endereco que a tela de video pronto usa (idea_source distingue de
     // onde partiu), para existir UM caminho de "2o video pela fila" no produto.
     router.push(
-      `/generate?${new URLSearchParams({
+      `/studio/create?${new URLSearchParams({
         prompt: ideia.seed,
         autoanalyze: '1',
         idea_source: 'wait_queue_pill',

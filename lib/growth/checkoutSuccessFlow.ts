@@ -3,7 +3,7 @@ export const AUTOPILOT_CHECKOUT_SUCCESS_VERSION = 'autopilot_checkout_success_v1
 export type CheckoutSuccessFlow =
   | {
       kind: 'self_serve'
-      destination: '/generate'
+      destination: '/studio'
     }
   | {
       kind: 'autopilot'
@@ -23,7 +23,7 @@ export function readCheckoutSuccessFlow(params: SearchParamsReader): CheckoutSuc
   if (params.get('tier') !== 'autopilot') {
     return {
       kind: 'self_serve',
-      destination: '/generate',
+      destination: '/studio',
     }
   }
 

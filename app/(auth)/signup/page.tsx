@@ -64,7 +64,10 @@ function activationRedirectFromSearch(search: string): string {
   // destino segue /generate: a ideia tem que virar render, é fluxo de dinheiro.
   // SEM prompt, o cadastro pousa na HOME (os 4 cards — ordem do fundador),
   // levando junto welcome/utm/intent pra atribuição continuar inteira.
-  if (prompt) return `/generate?${activationParams.toString()}`
+  // KINEO-SEM-PORTEIRO-2026-09-02 b — este é o PRIMEIRO clique de uma conta
+  // nova. Fazer o cadastro recém-criado esperar um redirect a mais antes de
+  // ver a tela de criar é o pior lugar do funil para perder segundos.
+  if (prompt) return `/studio/create?${activationParams.toString()}`
   return `/?${activationParams.toString()}`
 }
 
@@ -130,7 +133,7 @@ export default function SignupPage() {
   // KINEO-CHECKOUT-RESUME-2026-07-07 — query string forwarded to /login so a
   // pending checkout redirect survives the hop (state avoids SSR mismatch).
   const [authSearch, setAuthSearch] = useState('')
-  const [activationRedirect, setActivationRedirect] = useState('/generate?welcome=1')
+  const [activationRedirect, setActivationRedirect] = useState('/studio/create?welcome=1')
   const [bulkCheckoutContext, setBulkCheckoutContext] = useState<BulkCheckoutAuthContext | null>(null)
   const organicHandoffRef = useRef<OrganicSignupHandoffContext | null>(null)
   useEffect(() => {

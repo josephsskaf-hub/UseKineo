@@ -966,7 +966,14 @@ async function buildAndRedirect(
 
   if (authError || !user) {
     await recordCheckoutEvent('checkout_auth_required', null, checkoutMetadata, browserSessionId ?? undefined)
-    console.error('[stripe/checkout] Auth error or no user:', authError?.message)
+    // KINEO-PAINEL-QUE-NAO-MENTE-2026-09-03 — era console.ERROR, e por isso
+    // aparecia no painel da Vercel como falha de produção. Não é: o caso está
+    // TRATADO logo abaixo — a pessoa é mandada para o cadastro carregando a URL
+    // inteira da compra, com trava anti-loop. Ou seja, o comprador não perde a
+    // intenção e ninguém precisa acordar por causa disto. Continuar gritando
+    // "error" num caminho que funciona é o mesmo defeito do aviso de
+    // depreciação: enche o painel e enterra o problema de verdade.
+    console.warn('[stripe/checkout] sem sessão — redirecionando para cadastro com a compra preservada:', authError?.message)
     // KINEO-CHECKOUT-RESUME-2026-07-07 — 7 buyers hit "Auth session missing" and
     // the old redirect (/signup?redirect=/pricing) silently DROPPED the purchase
     // intent (tier/billing/promo) — one user clicked 7× in 3s and gave up. Now we
@@ -2479,7 +2486,7 @@ async function buildTopupAndRedirect(req: NextRequest, topupId: TopupId, isGet: 
 
   async function redirectError(
     msg: string,
-    destination: '/generate' | '/pricing' = '/generate',
+    destination: '/studio' | '/pricing' = '/studio', // KINEO-SEM-PORTEIRO-2026-09-03 c
     reasonOverride?: string,
   ) {
     await recordCheckoutEvent(

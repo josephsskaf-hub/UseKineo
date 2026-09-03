@@ -101,7 +101,7 @@ export function toolActivationHref({
     if (INTENT_CAMPAIGN_PATTERN.test(cleanIntentCampaign)) {
       generate.set('intent_campaign', cleanIntentCampaign)
     }
-    signup.set('redirect', `/generate?${generate.toString()}`)
+    signup.set('redirect', `/studio/create?${generate.toString()}`)
   }
 
   return `/signup?${signup.toString()}`

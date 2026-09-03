@@ -155,7 +155,7 @@ export function buildClientShortActivationHref(brief: ClientShortBrief): string 
     `Exact CTA: ${brief.callToAction}`,
     'Structure: concrete hook, problem, offer, proof, fit, payoff, exact CTA. Use readable captions and relevant visuals. Never invent claims; keep missing facts as [placeholders].',
   ].join('\n')
-  const destination = `/generate?${new URLSearchParams({
+  const destination = `/studio/create?${new URLSearchParams({
     prompt,
     duration: '35',
     autoanalyze: '1',

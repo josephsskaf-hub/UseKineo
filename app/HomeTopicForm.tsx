@@ -241,7 +241,7 @@ export default function HomeTopicForm({
         source: HOME_PROMPT_CAMPAIGN,
         placement: trackingPlacement,
         acquisition_source: acquisitionSource,
-        destination: '/generate',
+        destination: '/studio/create',
         signed_in: true,
         topic_length: trimmed.length,
       }, '/')
@@ -306,7 +306,10 @@ export default function HomeTopicForm({
       id="try-kineo"
       className="composer-shell"
       ref={formRef}
-      action={isSignedIn ? '/generate' : '/signup'}
+      // KINEO-SEM-PORTEIRO-2026-09-02 b — o formulário da home mandava o tema
+      // para o porteiro. Era o caminho mais quente do site: pessoa logada que
+      // digitou uma ideia e apertou enter.
+      action={isSignedIn ? '/studio/create' : '/signup'}
       method="get"
       noValidate
       onSubmit={handleSubmit}

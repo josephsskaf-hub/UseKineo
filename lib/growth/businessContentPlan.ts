@@ -254,7 +254,7 @@ export function buildBusinessPlanActivationHref(input: {
     `Evidence boundary: ${input.firstItem.evidence}`,
     'Use only verified facts. Keep [placeholders] for anything not supplied.',
   ].join('\n')
-  const destination = `/generate?${new URLSearchParams({
+  const destination = `/studio/create?${new URLSearchParams({
     prompt,
     duration: '35',
     autoanalyze: '1',

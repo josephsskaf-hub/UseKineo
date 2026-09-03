@@ -39,7 +39,7 @@ export default function YouTubeBridgeClient({
     }, '/from-youtube')
   }, [isSignedIn])
 
-  const destination = isSignedIn ? '/generate' : '/signup'
+  const destination = isSignedIn ? '/studio/create' : '/signup'
 
   return (
     <div

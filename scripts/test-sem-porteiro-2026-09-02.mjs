@@ -89,5 +89,100 @@ check('/generate?src=engine_bento → /studio/create?src=engine_bento', destino(
 check('/generate?avatar=1 → /studio/create?avatar=1', destino('/generate?avatar=1') === '/studio/create?avatar=1')
 check('/generate (sem query) → /studio', destino('/generate') === '/studio')
 
+console.log('9 · RODADA 2 — o que a primeira varredura deixou passar')
+// CONFISSÃO ÚTIL, para o próximo que ler este arquivo: a rodada 1 procurou por
+// `href="/generate"` e achou 15 pontos. O fundador clicou, viu o problema
+// continuar, e estava certo — sobravam 21. Nenhum deles usa `href=` literal:
+// vivem em router.push, em ternário dentro de variável, em `action=` de
+// formulário e em redirect() de servidor. Procurar pela SINTAXE do link em vez
+// de pela STRING do caminho é o erro que custou uma rodada inteira.
+const dashboardPage = src('app/(dashboard)/dashboard/page.tsx')
+const homeForm = src('app/HomeTopicForm.tsx')
+const signup = src('app/(auth)/signup/page.tsx')
+const pill = src('components/ActiveRenderPill.tsx')
+const onboarding = src('components/OnboardingPanel.tsx')
+check('SALTO TRIPLO morto: /dashboard ia para /generate, que ia para /studio', dashboardPage.includes("redirect('/studio')") && !dashboardPage.includes("redirect('/generate')"))
+check('CTA final da home ("Create a video") vai direto', landing.includes("isSignedIn ? '/studio' :"))
+check('o formulário da home manda o tema direto', homeForm.includes("action={isSignedIn ? '/studio/create' : '/signup'}") && homeForm.includes("destination: '/studio/create'"))
+check('primeiro clique de conta NOVA não passa pelo porteiro', signup.includes("`/studio/create?${activationParams.toString()}`") && signup.includes("useState('/studio/create?welcome=1')"))
+check('pílula de render ativo aponta para o destino real', pill.includes('`/studio/create?${new URLSearchParams({'))
+check('painel de onboarding reconhece o endereço NOVO da tela de criar', onboarding.includes("pathname?.startsWith('/studio/create')"))
+check('prova social volta a aparecer na tela de criar', src('components/SocialProofToast.tsx').includes("'/studio'"))
+check('banner de indicação volta a ser suprimido na tela de criar', src('components/ReferralPromoBanner.tsx').includes("'/studio'"))
+check('o shell sabe o título da tela nova', src('app/(dashboard)/DashboardShell.tsx').includes("'/studio/create': 'Generate New Short'"))
+
+console.log('9b · RODADA 3 (03/09) — os 20 que o fio de alarme achou')
+// Não foi a rodada 2 que achou estes: foi a VARREDURA da seção 10, na primeira
+// vez que rodou. É exatamente para isso que ela existe — e é por isso que ela
+// vale mais que qualquer lista feita à mão.
+check('PWA instalado abria no porteiro (manifest start_url)', src('app/manifest.ts').includes("start_url: '/studio'"))
+check('e-mail de boas-vindas NOVO aponta direto (os antigos seguem pelo porteiro)', src('app/api/send-welcome/route.ts').includes("'/studio/create?welcome=1'"))
+check('fallback de redirect pós-login', src('lib/authRedirect.ts').includes("fallback = '/studio'"))
+check('pós-checkout self-serve (tipo E valor)', !src('lib/growth/checkoutSuccessFlow.ts').includes("'/generate'"))
+check('erro de checkout de pacote volta para /studio', src('app/api/stripe/checkout/route.ts').includes("destination: '/studio' | '/pricing' = '/studio'"))
+// CONFLITO DE 03/09 12:51 — enquanto eu editava FreeHookClient.tsx, o Codex o
+// reescreveu na main para usar o helper hookActivationHref(). Resolução: ficar
+// com a versão da main no cliente e corrigir o /generate DENTRO do helper novo.
+check('3 ferramentas gratuitas de SEO (script, saashub, produto)', ['app/free-script-generator/FreeScriptClient.tsx', 'app/from-saashub/SaaSHubBridgeClient.tsx', 'lib/growth/productToVideo.ts'].every((f) => src(f).includes('/studio/create')))
+check('hook: o cliente usa o helper da main, e o helper vai direto', src('app/free-hook-generator/FreeHookClient.tsx').includes('hookActivationHref(') && src('lib/growth/answerEngineHookWorkbench.ts').includes('/studio/create?'))
+check('5 helpers de crescimento (série, remix, comentário, brief, plano)', ['lib/seriesContinuation.ts', 'lib/growth/exampleRemix.ts', 'lib/growth/commentToVideo.ts', 'lib/growth/clientShortBrief.ts', 'lib/growth/businessContentPlan.ts'].every((f) => src(f).includes('/studio/create?')))
+check('a lista de afiliados JÁ conhecia /studio/create (não precisou mexer)', src('lib/affiliateFirstClick.ts').includes("'/studio/create',"))
+
+console.log('10 · FIO DE ALARME — varredura do repositório inteiro')
+// Esta é a verificação que vale mais que todas as outras juntas: em vez de eu
+// lembrar de cada arquivo, ela ANDA na árvore e reprova qualquer caminho
+// /generate novo que apareça em código. Sem ela, o próximo botão criado daqui
+// a um mês nasce passando pelo porteiro outra vez e ninguém percebe.
+import { readdirSync, statSync } from 'node:fs'
+const RAIZ = new URL('../', import.meta.url)
+// Lista de exceções, cada uma com o motivo escrito. Não cresça esta lista sem
+// justificar: cada nome novo aqui é um pedaço do site que volta a ter a
+// viagem extra.
+const PERMITIDOS = new Set([
+  'app/(dashboard)/generate/page.tsx',   // é o PORTEIRO em si — tem que existir
+  'app/(dashboard)/v2/page.tsx',         // texto explicativo que cita a rota de propósito
+  '_success_page_backup.tsx',            // arquivo morto, fora da árvore de build
+  // Os cinco abaixo NÃO são links: são checagens de caminho (o componente
+  // pergunta "estou na tela de criar?"). Todos citam /generate porque o
+  // porteiro ainda existe, e todos já foram atualizados para reconhecer
+  // /studio também — é isso que a seção 9 verifica, um por um.
+  'components/ActiveRenderPill.tsx',
+  'components/OnboardingPanel.tsx',
+  'components/SocialProofToast.tsx',
+  'components/ReferralPromoBanner.tsx',
+  'app/(dashboard)/DashboardShell.tsx',
+  // Rodada 3 (03/09) — o fio de alarme achou mais 20 arquivos. Dois deles são
+  // LISTAS DE CAMINHO, não links, e /generate tem que continuar nelas:
+  'app/robots.ts',              // DISALLOW: o porteiro não deve ser indexado
+  'lib/affiliateFirstClick.ts', // allow-list de destinos que preservam o cookie
+])
+const semComment = (f) => f.split('\n').filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join('\n')
+const acharArquivos = (dir, acc = []) => {
+  for (const nome of readdirSync(dir)) {
+    if (nome === 'node_modules' || nome === '.next' || nome === '.git' || nome === 'docs' || nome === 'scripts') continue
+    const caminho = new URL(nome + '/', dir)
+    const alvo = new URL(nome, dir)
+    try {
+      if (statSync(alvo).isDirectory()) acharArquivos(caminho, acc)
+      else if (/\.tsx?$/.test(nome)) acc.push(alvo)
+    } catch { /* link quebrado, ignora */ }
+  }
+  return acc
+}
+const reincidentes = []
+for (const arq of acharArquivos(RAIZ)) {
+  const rel = decodeURIComponent(arq.pathname.replace(RAIZ.pathname, ''))
+  if (PERMITIDOS.has(rel)) continue
+  const corpo = semComment(readFileSync(arq, 'utf8').replace(/\r\n/g, '\n'))
+  // Só interessa /generate em posição de CAMINHO (aspas ou crase na frente).
+  if (/['"`]\/generate(\?|['"`])/.test(corpo)) reincidentes.push(rel)
+}
+check(
+  reincidentes.length === 0
+    ? 'nenhum arquivo do repositório manda o cliente pelo porteiro'
+    : `arquivos ainda mandando pelo porteiro: ${reincidentes.join(', ')}`,
+  reincidentes.length === 0,
+)
+
 console.log(`\n${ok} ok, ${fail} fail`)
 process.exit(fail ? 1 : 0)

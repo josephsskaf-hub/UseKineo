@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => ({}))
     const destination = normalizeInternalRedirect(
       typeof body?.destination === 'string' ? body.destination : null,
-    ) ?? '/generate'
+    ) ?? '/studio'
     const destinationUrl = new URL(destination, 'https://www.usekineo.com')
     const rawIntentCampaign = (destinationUrl.searchParams.get('intent_campaign') ?? '').trim()
     const intentCampaign = /^[A-Za-z0-9._~-]{1,100}$/.test(rawIntentCampaign)

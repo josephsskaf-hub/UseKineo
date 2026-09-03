@@ -35,7 +35,7 @@ export function normalizeInternalRedirect(
 
 export function resolveAuthRedirect(
   raw: string | null | undefined,
-  fallback = '/generate'
+  fallback = '/studio' // KINEO-SEM-PORTEIRO-2026-09-03 c
 ): string {
   return normalizeInternalRedirect(raw) ?? fallback
 }

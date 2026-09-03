@@ -81,14 +81,14 @@ export function buildSeriesContinuationHref(
   source: SeriesContinuationSource,
 ): string {
   const prompt = buildSeriesContinuationPrompt(value)
-  if (!prompt) return '/generate'
+  if (!prompt) return '/studio'
   const params = new URLSearchParams({
     prompt,
     autoanalyze: '1',
     series: '1',
     continuation_source: source,
   })
-  return `/generate?${params.toString()}`
+  return `/studio/create?${params.toString()}`
 }
 
 /**

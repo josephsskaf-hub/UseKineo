@@ -18,5 +18,10 @@ export default async function DashboardPage() {
     // redirect, o fallback do login já é a home dos 4 cards.
     redirect('/login')
   }
-  redirect('/generate')
+  // KINEO-SEM-PORTEIRO-2026-09-02 b — este era o SALTO TRIPLO do site, e é o
+  // que o fundador viu: o botão "Dashboard" da home ia para /dashboard, que
+  // redirecionava para /generate, que desde 24/08 também é só um porteiro e
+  // redirecionava DE NOVO para /studio. Três viagens de servidor encadeadas
+  // para chegar numa tela que a gente sabia o tempo todo qual era.
+  redirect('/studio')
 }
