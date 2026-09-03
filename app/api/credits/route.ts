@@ -20,6 +20,7 @@ import { REVERSE_TRIAL_ENABLED, isTrialActive, trialUiState, type TrialUiState }
 // repetido 15 min depois (be9c6314). Esta linha e o unico interruptor que
 // zera o revalidate ANTES do primeiro fetch. Nao remover.
 export const fetchCache = 'force-no-store'
+export const dynamic = 'force-dynamic'
 
 // KINEO-ZERO-SIGNUP-2026-07-09 — new signups start at 0 credits (InVideo
 // model): Fast renders are free to generate/watch (watermarked) and the money

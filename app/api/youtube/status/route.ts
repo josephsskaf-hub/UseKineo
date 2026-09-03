@@ -17,6 +17,7 @@ import { listUserChannels, toPublicChannel } from '@/lib/youtubeChannels'
 // repetido 15 min depois (be9c6314). Esta linha e o unico interruptor que
 // zera o revalidate ANTES do primeiro fetch. Nao remover.
 export const fetchCache = 'force-no-store'
+export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {

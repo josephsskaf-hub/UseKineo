@@ -14,8 +14,8 @@
 // assinatura. Falha em silêncio (devolve null) porque um painel sem a data é
 // muito melhor que um painel que não carrega.
 import { NextResponse } from 'next/server'
-import Stripe from 'stripe'
 import { createClient } from '@/lib/supabase/server'
+import { stripe } from '@/lib/stripe'
 
 export const dynamic = 'force-dynamic'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
@@ -80,7 +80,6 @@ export async function GET() {
     const secret = process.env.STRIPE_SECRET_KEY
     if (!secret) return NextResponse.json({ ...EMPTY, provider: 'stripe' })
 
-    const stripe = new Stripe(secret, { apiVersion: '2025-02-24.acacia' })
     const sub = await stripe.subscriptions.retrieve(stripeSubId)
 
     // `current_period_end` saiu do tipo público em versões recentes da API mas

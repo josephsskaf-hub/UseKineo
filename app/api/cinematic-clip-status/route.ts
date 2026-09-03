@@ -112,17 +112,16 @@ async function checkFalClip(requestId: string, model: string): Promise<ClipStatu
       : null
     const msg = error instanceof Error ? error.message : String(error)
     if (status === 422 || status === 400 || /unprocessable entity/i.test(msg)) {
-      const body = (error as { body?: unknown })?.body
+      // Never log provider bodies: they can echo customer prompts, signed URLs
+      // and paid-job identifiers. Closed fields are enough to operate.
       console.error(
-        `[cinematic-status] clip TERMINAL provider error (${status ?? 'no status'}) model=${model} requestId=${requestId}:`,
-        msg,
-        body !== undefined ? JSON.stringify(body).slice(0, 500) : '',
+        `[cinematic-status] clip TERMINAL provider error status=${status ?? 'unknown'} model=${model}`,
       )
       return { id: requestId, status: 'failed', url: null }
     }
     // Poll/network ambiguity is not a terminal provider failure and must never
     // trigger an automatic refund while a clip may still be rendering.
-    console.warn(`[cinematic-status] transient poll error requestId=${requestId}:`, msg)
+    console.warn(`[cinematic-status] transient poll error model=${model}`)
     return { id: requestId, status: 'processing', url: null }
   }
 }

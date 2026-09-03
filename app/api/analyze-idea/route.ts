@@ -109,7 +109,7 @@ const PROVIDER_PROMPT_MAX = 500
 
 // Hard-clamp a string to `max` characters at a sentence/comma boundary when
 // possible, falling back to a plain slice. Strips leading/trailing whitespace.
-export function clampToProviderLimit(raw: string, max = PROVIDER_PROMPT_MAX): string {
+function clampToProviderLimit(raw: string, max = PROVIDER_PROMPT_MAX): string {
   const trimmed = raw.replace(/\s+/g, ' ').trim()
   if (trimmed.length <= max) return trimmed
   const window = trimmed.slice(0, max)

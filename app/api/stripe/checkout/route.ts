@@ -973,7 +973,7 @@ async function buildAndRedirect(
     // intenção e ninguém precisa acordar por causa disto. Continuar gritando
     // "error" num caminho que funciona é o mesmo defeito do aviso de
     // depreciação: enche o painel e enterra o problema de verdade.
-    console.warn('[stripe/checkout] sem sessão — redirecionando para cadastro com a compra preservada:', authError?.message)
+    console.warn('[stripe/checkout] sem sessão — redirecionando para cadastro com a compra preservada')
     // KINEO-CHECKOUT-RESUME-2026-07-07 — 7 buyers hit "Auth session missing" and
     // the old redirect (/signup?redirect=/pricing) silently DROPPED the purchase
     // intent (tier/billing/promo) — one user clicked 7× in 3s and gave up. Now we

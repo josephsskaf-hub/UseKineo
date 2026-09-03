@@ -38,7 +38,7 @@
 // telas de projeção ("se todos fossem Creator...") querem preço de tabela. Mas
 // toda superfície que anuncia RECEITA deve preferir stripeMrrUsd().
 import { PLANS } from '@/lib/pricing'
-import Stripe from 'stripe'
+import { stripe } from '@/lib/stripe'
 
 // Monthly USD per stored plan value. Keys must cover every value the Stripe
 // webhook / checkout route / PayPal webhook can write to profiles.plan —
@@ -110,7 +110,6 @@ export async function stripeMrrUsd(subscriptionIds: string[]): Promise<{
   const ids = subscriptionIds.filter((s) => typeof s === 'string' && s.startsWith('sub_'))
   if (!secret || ids.length === 0) return null
   try {
-    const stripe = new Stripe(secret, { apiVersion: '2025-02-24.acacia' })
     const perSubscription: Array<{ id: string; usd: number; status: string }> = []
     let mrr = 0
     for (const id of ids) {

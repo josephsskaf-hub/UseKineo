@@ -197,10 +197,12 @@ export async function GET() {
       return r
     }
 
-    let query = await runSelect(wideColumns)
+    // Production uses midColumns. Starting with wideColumns deliberately sent
+    // one known-invalid query before every successful production response.
+    let query = await runSelect(midColumns)
     const colMissing = (q: typeof query) =>
       !!q.error && /column .* does not exist|42703/.test(q.error.message ?? '')
-    if (colMissing(query)) query = await runSelect(midColumns)
+    if (colMissing(query)) query = await runSelect(wideColumns)
     if (colMissing(query)) query = await runSelect(narrowColumns)
     const completedCountResult = await completedCountPromise
 

@@ -1,4 +1,5 @@
-import OpenAI from 'openai'
+import type OpenAI from 'openai'
+import { openai } from '@/lib/openai'
 import type {
   BrollEngineInput,
   BrollPlan,
@@ -16,8 +17,6 @@ import { buildScenePrompt } from './prompt-builder'
 // Aesthetic packs (13/06) — per-niche approved visual universe + banned
 // clichés, injected into the GPT prompt AND enforced on its output.
 import { packForNiche, enforcePackOnQueries, UNIVERSAL_BANNED } from './aesthetic-packs'
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
 const VISUAL_DIRECTOR_SYSTEM_PROMPT = `You are an expert visual director for YouTube Shorts with deep knowledge of viral video retention.
 Your job: given a narration segment, generate a highly specific, concrete B-roll description.

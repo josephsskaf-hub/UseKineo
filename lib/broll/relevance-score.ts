@@ -1,7 +1,5 @@
-import OpenAI from 'openai'
+import { openai } from '@/lib/openai'
 import type { BrollScene } from './types'
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
 // Generic terms that indicate a low-quality, non-specific broll prompt.
 // Each match deducts 10 points from the raw cosine similarity score.

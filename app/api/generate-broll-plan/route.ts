@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import OpenAI from 'openai'
+import { openai } from '@/lib/openai'
 import { brollEngine } from '@/lib/broll/broll-engine'
 import { scoreAllScenes } from '@/lib/broll/relevance-score'
 import { assignSources } from '@/lib/broll/hybrid-source'
@@ -11,8 +11,6 @@ import type { BrollEngineInput, BrollScene, GlobalVisualStyle } from '@/lib/brol
 // 120). A 21-scene plan hit exactly 90s live on 03/07 — the scene cap in
 // broll-engine plus this headroom kills the 504.
 export const maxDuration = 120
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
 const VISUAL_DIRECTOR_SYSTEM_PROMPT = `You are an expert visual director for YouTube Shorts with deep knowledge of viral video retention.
 Your job: given a narration segment, generate a highly specific, concrete B-roll description.

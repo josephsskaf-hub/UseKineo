@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import OpenAI from 'openai'
+import { openai } from '@/lib/openai'
 import type { BrollScene, GlobalVisualStyle, ShotType, VisualMood } from '@/lib/broll/types'
 import { buildScenePrompt } from '@/lib/broll/prompt-builder'
 import { scoreRelevance } from '@/lib/broll/relevance-score'
 
 export const maxDuration = 30
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
 interface RegenerateSceneInput {
   sceneNumber: number

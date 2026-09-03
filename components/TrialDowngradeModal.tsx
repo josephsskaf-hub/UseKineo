@@ -331,7 +331,10 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
     const recorder = createTrialDowngradeHumanViewRecorder({
       userKey,
       storage,
-      withExclusiveClaim: (claimName, task) => lockManager.request(claimName, task),
+      // Web Locks unwraps the callback promise at runtime, but its generic type
+      // can otherwise infer Promise<Promise<T>>. Match the app's other lock
+      // adapters and make the single resolved value explicit.
+      withExclusiveClaim: async (claimName, task) => await lockManager.request(claimName, task),
       transport: (eventName, metadata) => trackClosedEvent(eventName, metadata),
     })
     if (recorder.wasSettled()) return

@@ -13,6 +13,7 @@ import { fetchUserPlan } from '@/lib/plan'
 // repetido 15 min depois (be9c6314). Esta linha e o unico interruptor que
 // zera o revalidate ANTES do primeiro fetch. Nao remover.
 export const fetchCache = 'force-no-store'
+export const dynamic = 'force-dynamic'
 
 // Push #087 — client-readable plan endpoint. The /generate page calls
 // this to decide whether to lock the Cinematic mode card. Returns
