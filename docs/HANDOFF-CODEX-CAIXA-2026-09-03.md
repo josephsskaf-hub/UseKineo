@@ -1048,3 +1048,80 @@ Nada.
 Três pessoas viram duas ordens ao mesmo tempo: “espere seu vídeo” e “pague
 agora”. O checkout continua salvo, mas o lembrete agora espera o filme terminar
 e volta depois, quando existe prova para sustentar a decisão.
+
+---
+
+## ROUND 16 — medição pura · nenhuma superfície reeditada
+
+**Data:** 2026-09-04 10:59 BRT
+**Pista:** Growth-B2C / CAIXA
+**Branch:** `codex/caixa-measurement-r16`
+
+### VALIDAÇÃO DA ENTREGA ANTERIOR
+
+**VALIDADO EM PRODUÇÃO:** SHA `cc6c05b5`, Vercel
+`dpl_FoHJFoPKcMo9FtWLxneMFokvrQX3` READY e aliasado em
+`www.usekineo.com`; Guardião run `33880758743` verde. O Studio abriu no Chrome
+autenticado sem erro visual; a aba criada para o teste foi fechada.
+
+### EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, 2026-09-04 10:58 BRT
+
+Placar canônico desde 03/09 16:00 UTC: 35 cadastros externos, 22 pessoas com
+filme, 1 checkout com desejo pós-filme, 2 pessoas no estado atual sem filme,
+0 assinaturas e 0 pessoas com falha sem filme. Não houve mudança desde a R15.
+
+Primeiro toque por pessoa externa, todos maduros há pelo menos 15 minutos:
+
+| intervenção | pessoas | filme depois | checkout depois | pago depois |
+|---|---:|---:|---:|---:|
+| `trial_first_delivery_clicked` | 7 | 4 | 0 | 0 |
+| `pricing_journey_proof_viewed` | 2 | 0 | 0 | 0 |
+| `checkout_resume_choice_viewed` | 2 | 0 | 0 | 0 |
+
+`pricing_journey_email_film_loaded` e
+`checkout_resume_suppressed_active_render` ainda têm zero pessoas: os dois
+experimentos são novos demais, portanto não há amostra válida e não foram
+reeditados.
+
+### VIGIA DO CHECKOUT
+
+A única pessoa das últimas 2h continua sem filme e sem pagamento. O último
+sinal mudou para `stranded_composed` às 10:46:27 BRT. **FATO CONFIRMADO NO
+CÓDIGO:** esse evento significa que o finisher já obteve um render composto;
+não é falha terminal por si só. No corte havia 12 minutos de espera, abaixo da
+próxima rodada de 15 minutos do finisher. Classificação: `entrega em recuperação`,
+com vigia aberto; não abrir incidente antes da janela operacional.
+
+### DECISÃO / GATE
+
+Nenhuma mudança de produto nesta rodada. O dado mais doloroso permanece 0
+assinaturas, mas todas as variantes recentes estão abaixo do gate. Empilhar
+nova copy nelas agora destruiria a capacidade de aprender qual etapa moveu o
+caixa.
+
+### COMO MEDIR
+
+Na próxima leitura, primeiro reconciliar a pessoa `a8c8d6c5`: vídeo concluído,
+`stranded_outcome`, estorno ou erro. Depois repetir os dois eventos novos e o
+placar, sempre por pessoa externa.
+
+### RISCO
+
+O risco atual não é inação: é chamar recuperação normal de falha antes do ciclo
+do cron, ou otimizar cliques sem uma assinatura. Ambos foram evitados.
+
+### PRÓXIMA JOGADA
+
+Se o vigia fechar com filme, trabalhar outra superfície CAIXA ainda não
+congelada. Se passar da janela operacional sem vídeo, abrir pedido factual para
+Claude com o último estado; nenhum toque no pipeline pela CAIXA.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+### 📋 O QUE ACONTECEU
+
+A rodada só mediu. Os experimentos recém-publicados ainda não tiveram pessoas
+e, por isso, não foram mexidos de novo. O cliente vivo chegou à recuperação do
+filme e segue observado até um desfecho real, sem confundir espera com erro.
