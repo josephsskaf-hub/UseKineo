@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Kineo — checkout success entitlement comparison</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#080a0f;color:#f7f8fb;font:14px/1.45 Inter,ui-sans-serif,system-ui,sans-serif}.page{max-width:1320px;margin:auto;padding:36px 24px 64px}.eyebrow{color:#7dbdff;font-size:12px;font-weight:800;letter-spacing:.13em;text-transform:uppercase}.intro{max-width:760px;color:#a9b1c2}.grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:28px}.frame{border:1px solid #292f3d;border-radius:22px;overflow:hidden;background:#0d1018;box-shadow:0 22px 70px #0007}.label{padding:12px 18px;border-bottom:1px solid #292f3d;background:#121722;font-weight:850}.label.before{color:#ff9a9a}.label.after{color:#74e5b3}.stage{min-height:690px;display:grid;place-items:center;padding:38px 24px;background:radial-gradient(circle at 50% 15%,#152941 0,#0b111c 37%,#080a0f 72%)}.card{width:min(100%,520px);padding:34px;border:1px solid #263142;border-radius:24px;background:linear-gradient(145deg,#131824,#0c1018);box-shadow:0 20px 65px #0008;text-align:center}.mark{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;margin:0 auto 18px;background:#2997ff22;border:1px solid #2997ff66;color:#68b9ff;font-size:28px}.card h2{margin:0;font-size:29px;letter-spacing:-.04em}.lead{margin:10px 0 0;color:#d9deea;font-size:17px;font-weight:700}.sub{margin:9px auto 0;max-width:390px;color:#98a3b7}.status{margin:16px 0;color:#77bdff;font-size:12px;font-weight:800;letter-spacing:.05em}.topics{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:24px 0 18px;text-align:left}.topic{padding:13px;border:1px solid #293242;border-radius:13px;background:#121722;color:#dce2ec;font-size:12px}.actions{display:grid;gap:10px;margin-top:24px}.btn{padding:14px;border-radius:14px;text-decoration:none;font-weight:900}.primary{background:#2997ff;color:white}.disabled{background:#2997ff40;border:1px solid #2997ff73;color:#fff;cursor:wait}.secondary{background:#ffffff08;border:1px solid #ffffff17;color:#aab4c5}.danger-note{margin-top:16px;padding:12px;border-radius:12px;background:#ff4d5a14;border:1px solid #ff4d5a38;color:#ffb1b7;text-align:left;font-size:12px}.safe-note{margin-top:16px;padding:12px;border-radius:12px;background:#30d58a12;border:1px solid #30d58a35;color:#9de7c5;text-align:left;font-size:12px}.mobile-row{display:grid;grid-template-columns:360px 360px;justify-content:center;gap:24px;margin-top:30px}.phone{border:8px solid #222938;border-radius:34px;background:#080a0f;overflow:hidden;box-shadow:0 18px 60px #0008}.phone .stage{min-height:650px;padding:18px 12px}.phone .card{padding:25px 18px;border-radius:18px}.phone .card h2{font-size:24px}.phone .topics{grid-template-columns:1fr}.phone .label{text-align:center}.legend{margin-top:28px;padding:18px;border:1px solid #263142;border-radius:16px;background:#0d1119;color:#b6bfce}.legend strong{color:#fff}@media(max-width:900px){.grid{grid-template-columns:1fr}.mobile-row{grid-template-columns:minmax(280px,360px)}.mobile-row .phone:last-child{margin-top:12px}}
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="eyebrow">R46 · visual gate · self-serve checkout</div>
+    <h1>Do not announce an active plan before the server confirms it</h1>
+    <p class="intro">Same moment after Stripe return: the old screen trusted a numeric credit balance. The new screen waits for resolved entitlements, paid status and a paid self-serve plan.</p>
+    <section class="grid">
+      <article class="frame">
+        <div class="label before">BEFORE · numeric credits were enough</div>
+        <div class="stage"><div class="card">
+          <div class="mark">✓</div><h2>Welcome to Kineo.</h2>
+          <p class="lead">Your plan is active.</p>
+          <p class="sub">25 credits available</p><p class="status">Redirecting to the app in 12…</p>
+          <div class="topics"><div class="topic">The mystery nobody solved</div><div class="topic">A hidden story in 60 seconds</div></div>
+          <div class="actions"><div class="btn primary">Go to Generate Video</div><div class="btn secondary">View My Videos</div></div>
+          <div class="danger-note">Risk: trial credits could make this screen claim activation before payment and entitlement were confirmed.</div>
+        </div></div>
+      </article>
+      <article class="frame">
+        <div class="label after">AFTER · payment truth gates every next step</div>
+        <div class="stage"><div class="card">
+          <div class="mark">✓</div><h2>Welcome to Kineo.</h2>
+          <p class="lead">Your checkout is complete. We are confirming secure access.</p>
+          <p class="sub">Access is taking longer than usual. You do not need to pay again.</p><p class="status">Waiting for the secure activation to finish…</p>
+          <div class="actions"><div class="btn disabled">Check access again</div><div class="btn secondary">Open Account status</div></div>
+          <div class="safe-note">Safe state: no false “active” claim, no automatic redirect and no creation CTA until the server confirms paid access.</div>
+        </div></div>
+      </article>
+    </section>
+    <section class="mobile-row">
+      <article class="phone"><div class="label before">BEFORE · MOBILE</div><div class="stage"><div class="card"><div class="mark">✓</div><h2>Welcome to Kineo.</h2><p class="lead">Your plan is active.</p><p class="sub">25 credits available</p><p class="status">Redirecting to the app in 12…</p><div class="topics"><div class="topic">The mystery nobody solved</div><div class="topic">A hidden story in 60 seconds</div></div><div class="actions"><div class="btn primary">Go to Generate Video</div><div class="btn secondary">View My Videos</div></div></div></div></article>
+      <article class="phone"><div class="label after">AFTER · MOBILE</div><div class="stage"><div class="card"><div class="mark">✓</div><h2>Welcome to Kineo.</h2><p class="lead">Your checkout is complete. We are confirming secure access.</p><p class="sub">Access is taking longer than usual. You do not need to pay again.</p><p class="status">Waiting for the secure activation to finish…</p><div class="actions"><div class="btn disabled">Check access again</div><div class="btn secondary">Open Account status</div></div></div></div></article>
+    </section>
+    <div class="legend"><strong>Ready state remains unchanged:</strong> once <code>entitlementsResolved=true</code>, <code>hasPaid=true</code> and the plan is a paid self-serve plan, the active-plan copy, credit balance, video ideas, Studio CTA and automatic redirect appear.</div>
+  </main>
+</body>
+</html>

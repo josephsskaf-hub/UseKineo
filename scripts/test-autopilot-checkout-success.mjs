@@ -34,7 +34,7 @@ equal(
 for (const query of ['', 'tier=starter', 'tier=basic', 'tier=pro', 'tier=AUTOPILOT', 'tier=autopilot_pilot']) {
   equal(
     policy.readCheckoutSuccessFlow(params(query)),
-    { kind: 'self_serve', destination: '/generate' },
+    { kind: 'self_serve', destination: '/studio' },
     `${query || 'empty query'} preserves the self-serve flow`,
   )
 }
@@ -83,7 +83,7 @@ const selfServe = policy.readCheckoutSuccessFlow(params('tier=starter'))
 for (const plan of [null, 'free', 'starter', 'basic', 'pro', 'autopilot']) {
   equal(
     policy.readyCheckoutSuccessDestination(selfServe, plan),
-    '/generate',
+    '/studio',
     `self-serve redirect is independent of plan: ${String(plan)}`,
   )
 }
@@ -116,7 +116,7 @@ ok(page.includes('if (countdown <= 0) {'), 'navigation is considered only after 
 ok(page.includes('router.push(destination)'), 'only a policy-approved destination can navigate')
 ok(!page.includes('readyToContinue'), 'countdown itself never waits on network or entitlement')
 ok(page.includes("const isSelfServe = flow?.kind === 'self_serve'"), 'self-serve presentation has an explicit branch')
-ok(page.includes("isSelfServe && topics.length > 0"), 'trending topics render only for self-serve')
+ok(page.includes("selfServeReady && topics.length > 0"), 'trending topics render only after self-serve entitlement is ready')
 ok(page.includes("if (resolved.kind === 'self_serve')"), 'Autopilot never computes the topic deck')
 ok(page.includes("plan?: unknown"), 'poll reads the server-side plan')
 ok(page.includes("isAutopilotEntitlementReady(data.plan)"), 'poll cannot promote access from the query string')

@@ -16,6 +16,11 @@ import {
   readyCheckoutSuccessDestination,
   type CheckoutSuccessFlow,
 } from '@/lib/growth/checkoutSuccessFlow'
+import {
+  SELF_SERVE_CHECKOUT_SUCCESS_VERSION,
+  isSelfServeEntitlementReady,
+  selfServeEntitlementState,
+} from '@/lib/growth/checkoutSuccessEntitlement'
 
 // KINEO-FIRST-WIN-2026-08-02 — the 5th buyer ever (01/08) paid straight from
 // TAAFT, was auto-redirected here into an EMPTY /generate, wandered between
@@ -32,8 +37,12 @@ export default function CheckoutSuccessPage() {
   const [topics, setTopics] = useState<ViralTopic[]>([])
   const [flow, setFlow] = useState<CheckoutSuccessFlow | null>(null)
   const [accountPlan, setAccountPlan] = useState<string | null>(null)
+  const [accountHasPaid, setAccountHasPaid] = useState<boolean | null>(null)
+  const [entitlementsResolved, setEntitlementsResolved] = useState<boolean | null>(null)
   const autopilotReadyEventSent = useRef(false)
   const autopilotPendingEventSent = useRef(false)
+  const selfServeReadyEventSent = useRef(false)
+  const selfServePendingEventSent = useRef(false)
   // KINEO-TRIAL-ABUSE-PMP-2026-08-07 - PRIMEIRO MINUTO PAGO. Esta tela dizia
   // "Your plan is being activated" e, logo abaixo, "If your credits do not
   // appear immediately, refresh in a few seconds" - duas frases que sao a
@@ -142,8 +151,17 @@ export default function CheckoutSuccessPage() {
             signal: AbortSignal.timeout(5_000),
           })
           if (!res.ok || cancelled) return
-          const data = (await res.json()) as { credits?: unknown; plan?: unknown }
+          const data = (await res.json()) as {
+            credits?: unknown
+            entitlementsResolved?: unknown
+            hasPaid?: unknown
+            plan?: unknown
+          }
           if (!cancelled && typeof data.plan === 'string') setAccountPlan(data.plan)
+          if (!cancelled && typeof data.hasPaid === 'boolean') setAccountHasPaid(data.hasPaid)
+          if (!cancelled && typeof data.entitlementsResolved === 'boolean') {
+            setEntitlementsResolved(data.entitlementsResolved)
+          }
           // KINEO-FIRST-PAID-MINUTE-2026-08-11 (defeito D6 da 2a revisao
           // adversarial) - `syncing` desliga no PRIMEIRO poll que devolve
           // numero, nao no ultimo timer. O `finally` de baixo so roda em
@@ -154,7 +172,15 @@ export default function CheckoutSuccessPage() {
           if (
             !cancelled &&
             typeof data.credits === 'number' &&
-            (flow.kind === 'self_serve' || isAutopilotEntitlementReady(data.plan))
+            (
+              flow.kind === 'self_serve'
+                ? isSelfServeEntitlementReady({
+                    entitlementsResolved: data.entitlementsResolved,
+                    hasPaid: data.hasPaid,
+                    plan: data.plan,
+                  })
+                : isAutopilotEntitlementReady(data.plan)
+            )
           ) {
             setCredits(data.credits)
             setSyncing(false)
@@ -187,10 +213,9 @@ export default function CheckoutSuccessPage() {
   // cards E sem redirect. Trocar um beco sem saida por uma tela morta e piorar.
   //
   // Agora são duas garantias separadas. Self-serve mantém countdown e teto de
-  // 6s independentes da rede. Autopilot também conta 15s, mas a navegação só
-  // ocorre depois da confirmação autoritativa do plano; se o relógio chegar a
-  // zero primeiro, permanece nesta página e o próximo poll pode concluir o
-  // handoff imediatamente.
+  // 6s independentes da rede. Nos dois fluxos, a navegação só ocorre depois da
+  // confirmação autoritativa do pagamento e do plano; se o relógio chegar a
+  // zero primeiro, a página oferece nova consulta sem afirmar acesso ativo.
   useEffect(() => {
     if (flow?.kind === 'autopilot') return
     const ceiling = setTimeout(() => setSyncing(false), 6_000)
@@ -200,6 +225,13 @@ export default function CheckoutSuccessPage() {
   const isAutopilot = flow?.kind === 'autopilot'
   const isSelfServe = flow?.kind === 'self_serve'
   const autopilotReady = isAutopilot && isAutopilotEntitlementReady(accountPlan)
+  const selfServeState = selfServeEntitlementState({
+    entitlementsResolved,
+    hasPaid: accountHasPaid,
+    plan: accountPlan,
+  })
+  const selfServeReady = isSelfServe && selfServeState === 'ready'
+  const checkoutReady = autopilotReady || selfServeReady
   useEffect(() => {
     if (!autopilotReady || autopilotReadyEventSent.current) return
     autopilotReadyEventSent.current = true
@@ -210,23 +242,41 @@ export default function CheckoutSuccessPage() {
   }, [autopilotReady])
 
   useEffect(() => {
+    if (!selfServeReady || selfServeReadyEventSent.current) return
+    selfServeReadyEventSent.current = true
+    void trackEvent('checkout_success_entitlement_ready', {
+      version: SELF_SERVE_CHECKOUT_SUCCESS_VERSION,
+      flow: 'self_serve',
+    })
+  }, [selfServeReady])
+
+  useEffect(() => {
     if (!flow) return
     if (countdown <= 0) {
-      const destination = readyCheckoutSuccessDestination(flow, accountPlan)
+      const destination = checkoutReady
+        ? readyCheckoutSuccessDestination(flow, accountPlan)
+        : null
       if (destination) {
         router.push(destination)
-      } else if (!autopilotPendingEventSent.current) {
+      } else if (isAutopilot && !autopilotPendingEventSent.current) {
         autopilotPendingEventSent.current = true
         void trackEvent('autopilot_checkout_handoff_pending', {
           version: AUTOPILOT_CHECKOUT_SUCCESS_VERSION,
           reason: 'entitlement_not_ready',
+        })
+      } else if (isSelfServe && !selfServePendingEventSent.current) {
+        selfServePendingEventSent.current = true
+        void trackEvent('checkout_success_entitlement_delayed', {
+          version: SELF_SERVE_CHECKOUT_SUCCESS_VERSION,
+          flow: 'self_serve',
+          reason: selfServeState,
         })
       }
       return
     }
     const timer = setTimeout(() => setCountdown((c) => c - 1), 1000)
     return () => clearTimeout(timer)
-  }, [accountPlan, countdown, flow, router])
+  }, [accountPlan, checkoutReady, countdown, flow, isAutopilot, isSelfServe, router, selfServeState])
 
   return (
     <main
@@ -300,9 +350,9 @@ export default function CheckoutSuccessPage() {
             ? autopilotReady
               ? 'Your Autopilot plan is active.'
               : 'Your checkout is complete. We are confirming secure access.'
-            : credits === null
-              ? 'Your plan is being activated.'
-              : 'Your plan is active.'}
+            : selfServeReady
+              ? 'Your plan is active.'
+              : 'Your checkout is complete. We are confirming secure access.'}
         </p>
         <p
           style={{
@@ -319,11 +369,11 @@ export default function CheckoutSuccessPage() {
             ? syncing
               ? 'Finishing your Autopilot entitlement…'
               : 'Access is taking longer than usual. Refresh after Stripe confirms the payment.'
-            : credits !== null
+            : selfServeReady && credits !== null
             ? `${credits.toLocaleString('en-US')} credits available${syncing ? ' · syncing' : ''}`
             : syncing
-              ? 'Checking your balance…'
-              : 'If your credits do not appear immediately, refresh in a few seconds.'}
+              ? 'Finishing your plan activation…'
+              : 'Access is taking longer than usual. You do not need to pay again.'}
         </p>
         <p
           style={{
@@ -342,7 +392,11 @@ export default function CheckoutSuccessPage() {
               : countdown > 0
                 ? `Confirming secure access · ${countdown}s`
                 : 'Waiting for the secure activation to finish…'
-            : `Redirecting to the app in ${countdown}…`}
+            : selfServeReady
+              ? `Redirecting to the app in ${countdown}…`
+              : countdown > 0
+                ? `Confirming secure access · ${countdown}s`
+                : 'Waiting for the secure activation to finish…'}
         </p>
 
         {isAutopilot && (
@@ -366,11 +420,11 @@ export default function CheckoutSuccessPage() {
         )}
 
         {/* KINEO-FIRST-PAID-MINUTE-2026-08-11 - os cards so aparecem depois que
-            /api/credits confirmou o pagamento. Antes disso o /generate ainda
+            /api/credits confirmou pagamento e plano. Antes disso o /studio ainda
             enxerga a conta como gratuita por alguns instantes, e o primeiro
-            video do COMPRADOR sairia pelo caminho de conta free. Se o webhook
-            nunca chegar, sobra o redirect normal de 15s - a falha segura. */}
-        {isSelfServe && topics.length > 0 && credits !== null && !syncing && (
+            video do COMPRADOR sairia pelo caminho de conta free. Se a confirmação
+            atrasar, a página não redireciona e oferece uma consulta manual. */}
+        {selfServeReady && topics.length > 0 && credits !== null && !syncing && (
           <div style={{ marginTop: 22, textAlign: 'left' }}>
             <p
               style={{
@@ -508,7 +562,7 @@ export default function CheckoutSuccessPage() {
                 {countdown > 0 ? 'Confirming access…' : 'Check access again'}
               </button>
             )
-          ) : isSelfServe ? (
+          ) : selfServeReady ? (
             <Link
               href="/studio"
               style={{
@@ -527,8 +581,30 @@ export default function CheckoutSuccessPage() {
             >
               Go to Generate Video
             </Link>
+          ) : isSelfServe ? (
+            <button
+              type="button"
+              disabled={countdown > 0}
+              onClick={() => window.location.reload()}
+              style={{
+                display: 'block',
+                width: '100%',
+                textAlign: 'center',
+                padding: '14px 22px',
+                borderRadius: 14,
+                fontSize: '0.95rem',
+                fontWeight: 900,
+                color: '#fff',
+                background: countdown > 0 ? 'rgba(41,151,255,.25)' : 'rgba(41,151,255,.45)',
+                border: '1px solid rgba(41,151,255,.45)',
+                cursor: countdown > 0 ? 'wait' : 'pointer',
+                letterSpacing: '-0.01em',
+              }}
+            >
+              {countdown > 0 ? 'Confirming access…' : 'Check access again'}
+            </button>
           ) : null}
-          {isSelfServe && (
+          {selfServeReady && (
           <Link
             href="/my-videos"
             style={{
@@ -546,6 +622,25 @@ export default function CheckoutSuccessPage() {
           >
             View My Videos
           </Link>
+          )}
+          {isSelfServe && !selfServeReady && countdown <= 0 && (
+            <Link
+              href="/account"
+              style={{
+                display: 'block',
+                textAlign: 'center',
+                textDecoration: 'none',
+                padding: '12px 22px',
+                borderRadius: 14,
+                fontSize: '0.9rem',
+                fontWeight: 700,
+                color: 'var(--muted2)',
+                background: 'rgba(255,255,255,.03)',
+                border: '1px solid var(--border)',
+              }}
+            >
+              Open Account status
+            </Link>
           )}
         </div>
       </div>
