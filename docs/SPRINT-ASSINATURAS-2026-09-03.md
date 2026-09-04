@@ -1114,3 +1114,174 @@ na caixa, vira pedido ao Codex (já escrito).
 
 **SHA.** `6c0885a3` (enfileirado em `entrega-atual`, fila = 1; aguardando o
 clique no SUBIR-SITE.bat). Worktree: `C:\kineo-wt\expansor-degrau`.
+
+---
+
+### #8 — 23:30→00:55 BRT — a pessoa escrevia UMA frase, e a gente a acusava de ter tido "parte do seu roteiro" reescrita. 11 recusas, 7 pessoas, 4 delas sem um filme na vida — e o botão de saída clicado ZERO vezes.
+
+**Placar da rodada** (SQL canônico, marco zero 03/09 16:00 UTC, contas externas):
+16 cadastros · 11 pessoas com filme (69%) · 1 checkout COM filme · 1 checkout sem
+filme · **0 assinaturas** · 0 pessoas com falha e sem filme.
+**Checagem zero (1h): limpa** — 0 cadastro sem crédito, 0 render preso >25min,
+0 `generation_stage_error` em 3h.
+
+**A rodada começou refutando o próprio "próximo item" do #7.** O #7 mandou medir
+o buraco do quickstart do ChatGPT (58 selecionam, 35 chegam ao `studio_ready`,
+"23 pessoas somem no meio"). Medido por dia antes de codar:
+
+| dia | selecionou | studio_ready |
+|---|---:|---:|
+| 28/08 | 5 | 0 |
+| 29/08 | 17 | 1 |
+| 30/08 | 9 | 8 |
+| 31/08 | 3 | 3 |
+| 01/09 | 13 | 13 |
+| 02/09 | 5 | 5 |
+| 03/09 | 7 | 7 |
+| 04/09 | 2 | 2 |
+
+**De 30/08 em diante os dois números são iguais todo dia.** Os 23 "perdidos" são
+todos de 28-29/08, antes de o evento existir naquela rota (o primeiro
+`studio_ready` é de 29/08 21:12). A prova independente é o relógio: em 11 dos 13
+casos o `generate_arrived_server` seguinte veio a **menos de 1 segundo** do
+`selected` — a pessoa chegou; o funil é que não a via. **Não há buraco no
+quickstart.** Corrigi o pedido que o #7 tinha deixado aberto ao Codex, para ele
+não gastar uma rodada num fantasma.
+
+**E corrigiu também a premissa do D2.** O cardápio diz "caixa vazia". Medido em
+7 dias (externos): 224 cadastros → 196 abriram o Studio → 127 com filme → **70
+sem filme**. Desses 70: **48 DIGITARAM** e **31 chegaram a apertar gerar**. Quem
+"não digitou" são 22, não 66. A caixa vazia é a minoria; a maioria escreve e não
+recebe filme. Foi para os 31 que eu fui.
+
+**O que estava errado (medido).** Varrendo as causas vivas de 48h, sobrou UMA que
+ainda dispara depois de todos os consertos do dia: `author_rewrite_rejected` — 8
+eventos, 4 pessoas, **o último às 00:05 de hoje**. Os 8 eventos que carregam a
+contagem do #42 dizem tudo:
+
+| autor | mexidas | candidato enchia o alvo? | quem |
+|---:|---:|---|---|
+| 1 | 1 | sim | taaft (×4, duas pessoas) |
+| 2 | 2 | sim / não | taaft (×2) |
+| 3 | 2 | sim | chatgpt.com — 00:05 de hoje |
+| 14 | 1 | não | nav |
+
+**Em 6 dos 8, `mexidas == autor`: nada do autor sobreviveu porque o autor tinha
+UMA ou DUAS frases.** Dizer a essa pessoa *"the writer changed 1 of your 1
+sentences instead of only adding to them"* é confessar um crime contra um
+roteiro que nunca existiu — ela escreveu uma linha e pediu um filme. Em 6 dos 8 o
+texto do modelo **enchia o alvo** (`candidate_fits: true`) e foi jogado fora
+inteiro.
+
+O preço: **das 7 pessoas que bateram nessa parede, 4 nunca fizeram um filme na
+vida**, e 3 vieram de taaft e chatgpt.com — os dois canais que convertem.
+
+**O que decidiu a jogada foi a porta irmã.** A mesma rota já tem, 150 linhas
+acima, a resposta honesta para uma semente: `needs_authoring` — o 200 que diz
+"isto é uma ideia, a gente escreve, com o seu consentimento, e você lê antes".
+Comparando as duas portas na mesma situação:
+
+| porta | ocorrências | tomaram a saída | filme em 2h |
+|---|---:|---|---:|
+| `author_rewrite_rejected` (422, acusação) | 11 | **0 de 11** (`script_rewrite_candidate_opened`) | 0 |
+| `needs_authoring` (200, autoria) | 8 | 6 pedidos, 5 entregues, **4 aceites** | **3** |
+
+Mesma pessoa, mesma situação, duas portas. Ela recebia a fechada. O botão que o
+#42 construiu para essa tela — "Read the writer's version" — **nunca foi clicado
+uma vez em 11 recusas**.
+
+**O que mudou (arquivos).**
+- `lib/expandPolicy.ts` (+53): `SEED_MAX_SENTENCES = 2` e
+  `isSeedNotScript(totalAutor, frasesMexidas)`, função pura, com os 8 eventos de
+  produção no comentário. Duas condições obrigatórias: nada do autor sobreviveu
+  **e** o autor tinha no máximo 2 frases.
+- `app/api/expand-script/route.ts` (+62): antes de acusar, a rota **pergunta se
+  havia roteiro**. Semente sai por `needs_authoring` com
+  `authoringReason: 'seed_rewritten'` (discriminador, para a medição não
+  misturar com o `needs_authoring` do preflight), devolvendo o **original dela**
+  em `script` e preservando o candidato do modelo para leitura.
+- `scripts/test-expand-seed-authoring.mjs` (novo, 32 verificações): compila e
+  **executa** o `lib/expandPolicy.ts` real com os 8 casos de produção, e lê o
+  `route.ts` para provar quem chama e em que ordem.
+
+**O Contrato C1 não afrouxa, e o teste tranca isso nas duas direções.** Autor com
+3+ frases continua protegido palavra por palavra; autor com uma frase de pé entre
+as mexidas continua caindo no 422 — é exatamente aí que a promessa do C1 quer
+dizer alguma coisa. Os dois casos que a auditoria mandaria manter (3/2 do
+chatgpt.com e 14/1 do nav) **continuam recusados**, por teste. Nada renderiza
+sozinho: `needs_authoring` também exige clique e leitura.
+
+**Para o cliente / receita.** As ~4 pessoas por semana que colam uma linha,
+recebem uma acusação e vão embora passam a receber a pergunta certa ("quer que a
+gente escreva?") pela porta que já entregou 3 filmes em 8 tentativas. É o perfil
+mais caro de perder: vem do taaft e do chatgpt.com, e o primeiro filme é o
+produto.
+
+**Decisões que tomei sozinha** (autonomia; reversíveis):
+1. **`SEED_MAX_SENTENCES = 2`, não 3.** O caso de hoje (3 frases, 2 mexidas)
+   fica **de fora** — uma frase dela ficou de pé, então havia roteiro, e o C1
+   protege. Perde-se uma pessoa por semana e compra-se a garantia de que nenhum
+   roteiro de verdade seja reescrito em silêncio. Afrouxar: subir a constante.
+2. **Exijo `mexidas >= autor`, não só o tamanho.** Um roteiro de 2 frases com 1
+   mexida continua sendo recusa: o modelo tinha o que preservar e não preservou.
+3. **A semente devolve o ORIGINAL em `script`, nunca o candidato.** Entregar o
+   texto do modelo como se fosse o dela seria trocar uma desonestidade por outra.
+   O candidato viaja junto, para a tela oferecer como leitura.
+4. **Não toquei no `GenerateClient`.** É zona compartilhada e o Codex commitou
+   nele às 21:16 de hoje (`0fea12ef`). A mudança é 100% de servidor e a tela já
+   sabe renderizar `needs_authoring` — não depende de nada dele.
+
+**Risco.** O risco real é o inverso do defeito: mandar para a autoria alguém que
+queria o próprio texto preservado. Três travas: (a) as duas condições são
+obrigatórias e conferidas contra a contagem REAL do `authorPreserved`, não
+contra números escritos à mão; (b) o teste tranca os 8 casos de produção nos dois
+sentidos; (c) `needs_authoring` não escreve nada sozinho — a pessoa clica e lê
+antes do render. Risco menor: a tela do `needs_authoring` não tem auto-start (o
+`script_authoring_auto_started` mora em outro gatilho), então parte da conversão
+dos 4 aceites veio de lá; o pedido ao Codex sobre isso fica para quando o
+`GenerateClient` esfriar.
+
+**Como medir (contra o marco zero, 03/09 16:00 UTC).**
+
+```sql
+select date_trunc('day', created_at)::date dia,
+       name,
+       metadata->>'reason' reason,
+       count(*) n, count(distinct user_id) pessoas
+from events
+where name in ('script_expand_failed','script_needs_authoring',
+               'script_authoring_requested','script_authoring_accepted')
+  and created_at > '2026-09-03 16:00:00+00'
+group by 1,2,3 order by 1 desc, 4 desc;
+```
+
+Meta: `script_expand_failed` com `reason='author_rewrite_rejected'` **cair a
+zero para autor de 1-2 frases**, e `script_needs_authoring` subir. Sinal
+secundário, o que importa de verdade: dessas pessoas, quantas entregam um filme
+(`videos.status='completed'`) no mesmo dia — hoje são 0 de 7.
+
+**Placar de contexto.** 4 dos 7 SHAs do diário já estavam em produção quando a
+rodada começou; **o fundador clicou no SUBIR-SITE durante a rodada e o #7 subiu**
+— por isso o `enfileirar` deu conflito no `expandPolicy.ts` (os dois apenderam um
+bloco no fim do arquivo). Resolvido à mão mantendo os dois; `test-expansor-degrau`
+e `test-narracao-degrau` (do #7) seguem verdes por cima da minha mudança.
+O `narration_guard_blocked` do #1 **parou às 09:55 UTC** e não voltou desde que o
+degrau subiu às 17:00 UTC.
+
+**Dívida que fica.** `scripts/test-narration-ruler.mjs` tem 1 invariante vermelho
+em produção ("expand-script decide o 'depois' pela fala"): procura
+`const falaExpandida` e a rota usa `let` desde o #37. O #7 já o conserta e acabou
+de subir — conferir na próxima rodada se ficou verde.
+
+**Próximo item.** **Os 22 que abriram o Studio e nunca digitaram** — agora com o
+denominador limpo (não 66, não 29: 22 em 7 dias). Antes de codar, medir quanto
+tempo eles ficam na tela e se chegam a focar a caixa: se abrem e saem em segundos,
+não é caixa vazia, é gente que nem era do produto e a jogada muda de dono (vira
+aquisição, do Codex). Se ficam e não escrevem, é minha, e a saída barata é o pouso
+em `/viral-now` — 100% fora da zona do Codex, como o próprio cardápio anota no D2.
+
+**Modelo.** Feita em Opus (o plano reserva Fable para A1/A3; esta é a causa viva
+que a checagem de 48h apontou, não jogada nova de cardápio).
+
+**SHA.** `5c0456a6` (enfileirado em `entrega-atual`, fila = 1; aguardando o
+clique no SUBIR-SITE.bat). Worktree: `C:\kineo-wt\semente-autoria`.
