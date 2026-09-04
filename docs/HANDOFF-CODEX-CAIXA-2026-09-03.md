@@ -2126,3 +2126,58 @@ Nada.
 ### 📋 O QUE ACONTECEU
 
 Fiz a rodada de controle sem maquiar ausência de tráfego como fracasso: as quatro mudanças recentes ainda não foram vistas por uma pessoa elegível. Elas ficam intactas para produzir aprendizado real, e a próxima rodada atacará outro ponto do caixa em vez de repetir tela.
+
+---
+
+## ROUND 33 — o checkout da oferta da home ganhou saída quando o salto trava
+
+**Data:** 2026-09-04 13:26→13:36 BRT
+
+**Pista:** Growth-B2C / CAIXA
+
+**Branch:** `codex/caixa-welcome-rescue-r33`
+
+### RECONCILIAÇÃO E DADO QUE DOÍA
+
+**VALIDADO EM PRODUÇÃO — 04/09/2026:** a R32 entrou na `main` em `ce18b724c5cbc3139f27bb139b9bf573d568941e`; Guardião run `33894968671` verde em 1m02s.
+
+**EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, janela de 30 dias medida em 04/09/2026:** 10 pessoas/sessões externas distintas clicaram no checkout do modal de boas-vindas, 8 chegaram a `checkout_started` em 24h, 1 confirmou pagamento em 7 dias e **0 receberam `checkout_fallback_shown`**. A distribuição do clique foi home 6, dashboard 3 e pricing 1. O checkout vivo da R31 é uma das seis pessoas da home.
+
+**FATO CONFIRMADO:** o modal usava um `<a>` direto para `/api/stripe/checkout`. Se a navegação final não completasse, a pessoa ficava em “Opening checkout…”; o `useCheckoutLaunch`, suas sondas e o `CheckoutStalledCta` global nunca eram acionados nessa origem. O resgate já protegia pricing e outras caixas, mas não o modal que produziu o checkout vivo de hoje.
+
+### HIPÓTESE E MUDANÇA MÍNIMA
+
+**HIPÓTESE:** preservar uma saída acionável no único clique de alta intenção da home evita perder a pessoa quando o salto navegador → Stripe falha, sem adicionar argumento ou alterar a oferta.
+
+**IMPLEMENTADO:** somente o clique comum, primário e na mesma aba da superfície `home` passa pelo launcher canônico. O destino, `WELCOME20`, plano, periodicidade, preço, copy e frequência permanecem iguais. Clique modificado e navegador sem JavaScript continuam usando o `<a>` nativo. Dashboard e pricing não foram alterados funcionalmente, preservando seus experimentos existentes.
+
+Se o salto levar mais de 15 segundos, o componente global já existente oferece a sessão Stripe viva, a rota de retomada ou o retry idempotente. O novo campo categórico `rescue_version=welcome_offer_home_rescue_v1` identifica a coorte.
+
+### ARQUIVOS, TESTES E VISUAL
+
+- `components/WelcomeOfferModal.tsx`: liga somente a home a `useCheckoutLaunch` e preserva o feedback pendente das três superfícies.
+- `scripts/test-welcome-offer-checkout-rescue.mjs`: 21/21 invariantes do caller real, gesto modificado, âncora, destino e montagem global.
+- Regressões: frequência 44/44; capacidade em filmes 32/32; verdade promocional 68/68; TypeScript verde; whitespace `cr-at-eol` limpo.
+- `docs/previews/WELCOME-OFFER-HOME-RESCUE-2026-09-04.html`: antes/depois desktop e mobile; conferido visualmente no Chrome do fundador e aba temporária fechada.
+
+### PUBLICAÇÃO E GATE
+
+**VALIDADO EM PRODUÇÃO — 04/09/2026 13:36 BRT:** SHA `3819e1dafbdb04b5dbcdd93433dd0b2d22138c51` em `origin/main`; Guardião run `33895807675` verde em 1m01s. Vercel Production `dpl_BkTkDZLzpTNK6iYgSuCEJnwrP8U6` e Preview `dpl_2mvkSxXHUfP2veEbnDAbqgn19UEk` estão `READY` no mesmo SHA, com `www.usekineo.com` aliasado à produção.
+
+Medir `welcome_offer_checkout_clicked(surface='home')` → `checkout_started`; quando houver falha de navegação, `checkout_fallback_shown(surface='welcome_offer_home')` → clique → checkout → pagamento. Manter por 10 novos cliques externos com 24h completas ou 7 dias. Um único timeout sem card é gate de parada imediato.
+
+### RISCO
+
+Baixo e reversível. O risco é interceptar um gesto que deveria permanecer nativo; por isso apenas o clique primário sem modificadores é aprimorado, o href continua no HTML e as outras duas superfícies permanecem byte a byte no caminho de navegação.
+
+### PRÓXIMA JOGADA
+
+Congelar a home e começar R34 pelo vigia atualizado. Procurar outro caller direto de checkout com pessoas reais e sem proteção, ou uma lacuna posterior comprovada; não copiar este ajuste para toda âncora sem denominador.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+### 📋 O QUE ACONTECEU
+
+O modal que trouxe o checkout vivo de hoje continuou igual para o comprador, mas deixou de depender de um único salto perfeito até o Stripe. Se esse salto travar, agora aparece um botão real para continuar a compra; preço, desconto e oferta não mudaram.
