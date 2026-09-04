@@ -941,3 +941,47 @@ Nada.
 - **FATO CONFIRMADO:** a origem não foi sobrescrita; o código só preenche campo vazio e o incidente é compatível com leitura antes da gravação assíncrona.
 - **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 11:05 BRT:** a pessoa viva finalmente recebeu o primeiro filme, elevando o placar para 23 pessoas com filme e movendo seu checkout para o balde com filme; ainda não pagou.
 - **DECISÃO — NÃO EXECUTAR:** nenhuma mudança de produto foi fabricada; a R16 remede o efeito real das entregas recentes.
+
+---
+
+## Rodada 16 — medição pura de R13→R15 — 04/09 11:22→11:27 BRT — CONCLUÍDA
+
+- **DECISÃO APROVADA:** esta foi a rodada de medição pura obrigatória; nenhum comportamento do produto foi alterado. Fonte: `docs/PROGRAMA-CODEX-ASSINATURAS-2026-09-03.md:160-162,430-431` e próxima jogada da Rodada 15 neste handoff.
+- **FATO CONFIRMADO:** as duas prioridades antigas reiteradas pela automação continuam concluídas: título legado de `/v/[id]` no SHA `96310071` e corte silencioso de 1.000 caracteres no SHA `341a119b`. Nenhum pedido aberto viável pertence à pista FLUXO. Fontes: `docs/PEDIDOS-ENTRE-PISTAS-2026-09-03.md:17-24,28,35-40,47-49` e Rodadas 2–3 deste handoff.
+
+### Placar, vigia e origem
+
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 11:23:32 BRT:** desde o marco de 03/09 13:00 BRT, o placar canônico é **36 cadastros, 23 pessoas com filme, 2 checkouts com filme, 1 checkout sem filme, 0 assinaturas e 0 pessoas com falha sem filme**. Fonte: SQL canônico do programa, somente leitura no Supabase de produção, pessoas distintas e contas internas excluídas.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 11:23:32 BRT:** nas duas horas anteriores houve 3 cadastros externos: **ChatGPT 2 e TAAFT 1**. A janela móvel não foi somada às anteriores.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 11:23:32 BRT:** a mesma pessoa do vigia abriu checkout às 10:01:22 BRT, chegou a `stranded_composed` às 10:46:27 e recebeu o primeiro filme às 11:00:48; continua com 1 filme concluído, 12 créditos, 0 erro e 0 pagamento. O pedido já existente para CAIXA cobre essa pessoa e não foi duplicado.
+- **RISCO DE LEITURA:** o placar canônico classifica checkout pelo estado atual da pessoa, não pelo estado no instante do checkout. Por isso a mesma pessoa pode migrar do balde “sem filme” para “com filme”; essa mudança de balde não é um novo checkout.
+
+### O que R9→R15 permite medir agora
+
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 11:25:43 BRT:** desde os deploys correspondentes houve **0 eventos, 0 sessões e 0 pessoas** em `example_remix_topic_submitted` após R9 e em `free_script_to_signup_clicked` após R10. Portanto as confirmações de trabalho de R9/R10 continuam sem exposição mensurável e não existe coorte de entrada para ligar a cadastro, primeiro filme, checkout ou assinatura.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 11:25:43 BRT:** desde o deploy de R13 houve **0 eventos** `auth_callback_failed`; logo o ramo de recuperação de trabalho após falha OAuth continua sem amostra observável. Zero exposição observada não prova melhora nem piora.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** R14 não criou evento próprio, e `auth.audit_log_entries` retornou zero linhas tanto após o deploy quanto na janela de 24 horas. Como esse audit log não registrou nem os demais fluxos reais de autenticação da janela, ele não é uma fonte válida para dimensionar recuperação de senha; volume e efeito causal de R14 seguem desconhecidos.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 11:25:43 BRT:** desde R13 nasceu 1 perfil externo; após cinco minutos havia **0 perfis** com `signup_utm_source` e `utm_source` ambos nulos e também 0 perfis ainda dentro da janela pendente de cinco minutos. Esta amostra única é compatível com estabilização do first-touch, mas é insuficiente para generalizar.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 11:25:43 BRT:** no recorte agregado iniciado às 02:43 BRT houve 91 sessões em `landing_session_started`, 9 pessoas externas em callback concluído, 6 em signup por e-mail, 12 em `generate_arrived_server`, 5 em `video_generation_completed`, 1 em checkout e 0 em sucesso de checkout. Esses totais pertencem a um recorte operacional amplo, não são uma coorte causal de R9–R15 e não devem ser encadeados como conversão.
+
+### Decisão, escopo e gate
+
+- **DECISÃO — NÃO EXECUTAR:** não fabricar mudança de produto a partir de zeros e amostras unitárias. R13 e R14 continuam implementados e validados tecnicamente, mas sem exposição mensurável suficiente para alegar impacto em filme, checkout ou assinatura.
+- **TESTADO LOCALMENTE — 04/09/2026 11:27 BRT:** não houve código de produto a testar. O comando literal `npx tsc --noEmit` encontrou novamente o pacote-stub incorreto nesta worktree; o compilador real `node node_modules/typescript/bin/tsc --noEmit` e `git diff --check` saíram com código 0.
+- **FATO CONFIRMADO:** nenhum código de produto, preço, oferta, Stripe, banco, migration, e-mail, mensagem, crédito, dashboard/Claude ou arquivo CAIXA foi alterado nesta rodada. A única alteração é este registro documental.
+- **FATO CONFIRMADO:** nenhum pedido foi baixado, alterado ou criado; o pedido do Guardião da R14 continua com a pista dona.
+
+## PRÓXIMA JOGADA
+
+- **SUGESTÃO:** na R17, auditar o caminho de entrada visível da conta TAAFT observada nesta janela e agir somente se houver uma lacuna confirmada numa superfície FLUXO atualmente pública. Não iniciar K19 em `/v/[id]` sem antes confirmar que a experiência anônima está realmente habilitada; ausência de superfície viva não autoriza copy ou fluxo novo.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+## 📋 O QUE ACONTECEU
+
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 11:23 BRT:** o placar chegou a 36 cadastros e 23 pessoas com filme, com 2 checkouts com filme, 1 sem filme e 0 assinaturas; a pessoa acompanhada recebeu o primeiro filme, mas continua sem pagamento.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 11:25 BRT:** R9/R10 seguem sem eventos de entrada, R13 segue sem falha OAuth pós-deploy e R14 não tem telemetria válida para dimensionar a ramificação. Nenhum efeito causal foi atribuído.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 11:25 BRT:** a origem recente foi 2 ChatGPT + 1 TAAFT; o único perfil pós-R13 não permaneceu sem origem após cinco minutos.
+- **DECISÃO — NÃO EXECUTAR:** a reserva de medição pura foi respeitada; não houve mudança de produto nem expansão de escopo.
