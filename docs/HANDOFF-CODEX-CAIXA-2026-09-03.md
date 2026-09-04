@@ -1800,13 +1800,17 @@ Nenhum preço, cobrança, desconto, plano, crédito, SKU, meio de pagamento ou r
 
 **EVIDÊNCIA DE PRODUÇÃO — corte de 12:32 BRT:** 39 cadastros externos, 24 pessoas com filme, 2 checkouts com filme, 2 sem filme, 0 assinaturas e 0 pessoas com falha sem filme desde o marco. O vigia de 2h tinha uma pessoa externa já descrita na R25; nenhuma nova trilha apareceu durante o desenho.
 
+### VALIDADO EM PRODUÇÃO
+
+**VALIDADO EM PRODUÇÃO — 04/09/2026 12:44 BRT:** SHA funcional `d7cc06fec9f5e06f8343a920f5db45a77a6c5fe5` publicado na `main`. Guardião run `33891016322` concluiu com sucesso em 1m04s. Vercel Production `dpl_CHih2pBxEox8Y2u3dsFsc6uEyEqp` e Preview `dpl_GQN6DqyNfMEuSxQH4QBaLe8eiKrn` ficaram `READY` para o mesmo SHA.
+
 ### RISCO
 
 Baixo e reversível: somente uma frase de verdade comercial já aprovada dentro da descrição do checkout. Risco residual é a frase aumentar densidade visual; o preview mostra que continua curta, e o contrato trava o total abaixo de 500 caracteres.
 
 ### PRÓXIMA JOGADA
 
-Publicar e validar a versão v2; depois congelar até o gate. Na rodada seguinte, medir uma superfície diferente ou atender um pedido novo sem reeditar checkout USD.
+Congelar a versão v2 até o gate. Na rodada seguinte, medir uma superfície diferente ou atender um pedido novo sem reeditar checkout USD.
 
 ### ✅ O QUE VOCÊ PRECISA FAZER
 
