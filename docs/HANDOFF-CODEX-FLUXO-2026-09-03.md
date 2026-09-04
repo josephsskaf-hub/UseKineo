@@ -985,3 +985,41 @@ Nada.
 - **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 11:25 BRT:** R9/R10 seguem sem eventos de entrada, R13 segue sem falha OAuth pós-deploy e R14 não tem telemetria válida para dimensionar a ramificação. Nenhum efeito causal foi atribuído.
 - **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 11:25 BRT:** a origem recente foi 2 ChatGPT + 1 TAAFT; o único perfil pós-R13 não permaneceu sem origem após cinco minutos.
 - **DECISÃO — NÃO EXECUTAR:** a reserva de medição pura foi respeitada; não houve mudança de produto nem expansão de escopo.
+
+---
+
+## Rodada 17 — auditoria da entrada TAAFT viva — 04/09 11:42→11:49 BRT — PIVOTAR PARA CLAUDE
+
+- **FATO CONFIRMADO:** as prioridades antigas de `/v/[id]` e do corte de 1.000 caracteres continuam concluídas nos SHAs `96310071` e `341a119b`. Os pedidos abertos restantes pertencem a dashboard/Claude ou CAIXA; não há pedido aberto viável na pista FLUXO. Fonte: `docs/PEDIDOS-ENTRE-PISTAS-2026-09-03.md` lido integralmente nesta rodada.
+- **FATO CONFIRMADO:** a entrada pública TAAFT já tem uma superfície viva: `homeReferralBridgeSource()` reconhece UTM e referrer pelo ledger canônico; a home anônima troca headline, ancora CTAs no teste e entrega roteiro antes do cadastro; o handoff preserva a origem. Fontes: `lib/growth/homeReferralBridge.ts:1-49`, `app/page.tsx:78-88`, `app/KineoLanding.tsx:811-819,1093-1113` e `app/HomeTopicForm.tsx:106-289`.
+- **DECISÃO — NÃO EXECUTAR:** não criar outro banner ou reescrever a home. A superfície FLUXO existente foi usada por uma pessoa real nesta janela e a segunda pessoa também chegou à criação; o problema observado começa depois do handoff, em arquivos da pista Claude.
+
+### Pessoas TAAFT e decisão de ownership
+
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 11:47:02 BRT:** houve 7 sessões TAAFT na home nas duas horas anteriores. Uma submeteu tema às 11:18:38, recebeu roteiro às 11:18:41, clicou cadastro às 11:19:04 e criou conta às 11:19:13. A cadeia pública FLUXO funcionou ponta a ponta até `/studio/create`.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 11:47:02 BRT:** essa primeira pessoa iniciou `generate_started`/`video_generation_started` às 11:20:10 e chegou a `activation_autostart_waiting`, mas 26 minutos e 52 segundos depois continuava com 25 créditos, 0 `render_jobs`, 0 filmes, 0 `generation_stage_error` e nenhum evento novo desde 11:20:44. O nome do evento não prova que o servidor despachou um render; o estado persistido diz que ainda não nasceu job.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 11:47:02 BRT:** a segunda pessoa TAAFT criou conta às 11:39:51, chegou a `/studio/create`, iniciou geração às 11:42:18 e tinha 12 créditos, 0 job, 0 filme e 0 erro no corte; como haviam passado menos de cinco minutos e existia débito, ela permanece **EM VOO**, não é classificada como defeito.
+- **DECISÃO — PIVOTAR PARA CLAUDE:** foi aberto um único pedido, sem identificador pessoal, para investigar apenas a primeira cadeia após `video_generation_started`. `GenerateClient`, compose, jobs e créditos são da pista Claude; editar um banner FLUXO não faria nascer o render e mascararia o defeito real.
+
+### Placar, vigia e risco
+
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 11:47:02 BRT:** placar canônico desde 03/09 13:00 BRT: **37 cadastros, 23 pessoas com filme, 2 checkouts com filme, 1 sem filme, 0 assinaturas e 0 pessoas com falha sem filme**. Fonte: SQL canônico do programa, somente leitura no Supabase de produção, pessoas distintas e contas internas excluídas.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 11:47:02 BRT:** nas duas horas anteriores houve 4 cadastros externos: **ChatGPT 2 e TAAFT 2**. A janela móvel não foi somada às anteriores.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 11:43:59 BRT:** o vigia encontrou 1 pessoa sem sucesso de checkout: a mesma conta ChatGPT já acompanhada, agora com 1 filme, 12 créditos, 0 erro e 0 pagamento. Nenhum pedido foi duplicado porque CAIXA já acompanha essa pessoa.
+- **RISCO:** `video_generation_started` é emitido antes de existir `render_jobs`; tratá-lo como render realmente despachado esconderia este silêncio. Por outro lado, classificar a segunda pessoa como falha antes da janela normal produziria alarme falso. As duas foram mantidas separadas.
+- **TESTADO LOCALMENTE — 04/09/2026 11:49 BRT:** não houve código de produto a testar. `git diff --check` e o compilador real `node node_modules/typescript/bin/tsc --noEmit` saíram com código 0; o comando literal `npx tsc --noEmit` encontrou novamente o pacote-stub incorreto preexistente nesta worktree.
+- **FATO CONFIRMADO:** nenhum produto, preço, oferta, Stripe, banco, migration, e-mail, mensagem externa, crédito, arquivo de código Claude ou arquivo CAIXA foi alterado. Somente os dois handoffs compartilhados foram atualizados.
+
+## PRÓXIMA JOGADA
+
+- **SUGESTÃO:** na R18, remedir separadamente as duas pessoas TAAFT. Se a segunda entregar e a primeira continuar sem job/erro, preservar a home e acompanhar o pedido Claude; se aparecer falha numa superfície FLUXO antes do cadastro, corrigir somente esse ponto público comprovado. Não criar banner sem novo dado.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+## 📋 O QUE ACONTECEU
+
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 11:47 BRT:** duas contas TAAFT chegaram e iniciaram geração; uma delas usou comprovadamente o roteiro gratuito da home antes do cadastro.
+- **CONTRADIÇÃO DE ESTADO:** a primeira registra “generation started”, mas após quase 27 minutos não tem job, filme, erro nem débito; a segunda ainda está em voo dentro da janela normal.
+- **DECISÃO — PIVOTAR PARA CLAUDE:** a entrada FLUXO funcionou e ficou congelada; um pedido objetivo foi aberto para a pista que possui o trecho onde a primeira cadeia parou.
