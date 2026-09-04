@@ -1819,3 +1819,49 @@ Nada.
 ### 📋 O QUE ACONTECEU
 
 Quem sai da tabela em USD e chega ao Stripe agora lê dentro do próprio checkout que a cobrança é em USD. É uma correção de coerência no último segundo, sem mudar um centavo nem a forma de pagamento.
+
+---
+
+## ROUND 27 — Creator sem compra não prova rejeição de preço
+
+**Data:** 2026-09-04 12:44→12:51 BRT
+
+**Pista:** Growth-B2C / CAIXA
+
+**Branch:** `codex/caixa-creator-cohort-r27`
+
+### PLACAR E VIGIA
+
+**EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, 04/09/2026 12:49 BRT:** desde o marco de 03/09 16:00 UTC há **39 cadastros externos, 24 pessoas com filme, 2 checkouts com filme, 2 checkouts sem filme, 0 assinaturas e 0 pessoas com falha sem filme**.
+
+**EVIDÊNCIA DE PRODUÇÃO — vigia das últimas 2h:** uma pessoa externa (`0441e46ae5`), origem direta, concluiu o callback às 12:16:53 e abriu checkout Pro mensal às 12:16:55. Tinha 25 créditos intactos, zero filme e nenhuma falha registrada. A trilha é apenas autenticação → trial concedido → tentativa → sessão Stripe. Pela taxonomia obrigatória é `defeito` (zero filme e nenhum input conhecido), mas não há evidência de defeito técnico: é intenção de compra precoce. O checkout explícito foi preservado.
+
+### O DADO QUE IMPEDIU MAIS UMA TELA
+
+**EVIDÊNCIA DE PRODUÇÃO — primeiras tentativas externas dos últimos 7 dias, medidas em 04/09/2026:** entre tentativas com contexto atual, Creator/Basic teve 12 pessoas, 10 sessões expiradas, 1 cancelamento, zero falha de pagamento registrada e zero pagamento. Pro teve 5 pessoas, 2 sessões expiradas e 2 pagamentos. Essa diferença **não é um teste de planos**: no recorte por estado anterior, 12 pessoas do grupo Creator chegaram sem filme, enquanto o grupo Pro também mistura compra precoce e gente com prova do produto.
+
+**EVIDÊNCIA DE PRODUÇÃO — objeção declarada em 30 dias:** `checkout_objection` ainda tem somente 3 pessoas (`just_looking` ×2 e `too_expensive` ×1). A amostra é pequena demais para declarar preço, plano ou meio de pagamento como causa. Ausência de `checkout_payment_failed` também não prova que o cartão funciona para todos; prova apenas que não existe recusa registrada nessa coorte.
+
+**FATO CONFIRMADO:** a orientação de valor atual já descreve o que cada plano produz dentro do Stripe (`lib/growth/checkoutValueContext.ts`) e o caminho autenticado já devolve a pessoa à sessão exata que ela escolheu (`app/(auth)/signup/page.tsx`). K1/K3 e o fluxo de primeira entrega já existem. Outra tela dizendo “faça um filme primeiro” duplicaria superfícies e poderia bloquear justamente quem quer pagar antes do teste.
+
+### DECISÃO / GATE
+
+Nenhuma mudança de produto. O diagnóstico correto é **QUESTÃO PENDENTE / DESCONHECIDO**, não “Creator está caro”: ainda faltam pessoas com filme e objeção declarada suficientes para separar plano, valor percebido e intenção precoce.
+
+A mensagem USD da R26 teve **0 pessoas expostas** desde o deploy até 12:49 BRT e permanece congelada. Gate: 10 exposições externas com 24h completas ou 7 dias. O Creator também fica sem alteração até haver pelo menos 10 primeiras tentativas de pessoas que já receberam um filme, ou uma objeção repetida por pessoas distintas. Métrica: tentativa → sessão iniciada → cancelamento/expiração/pagamento, por pessoa, separada por `videos_ok` no instante da primeira tentativa.
+
+### RISCO
+
+Zero risco de produto e zero custo: somente `SELECT` agregado e documentação. O risco evitado foi reagir a uma correlação pequena mudando a apresentação de plano, preço ou checkout sem saber a causa.
+
+### PRÓXIMA JOGADA
+
+R28 é a quarta rodada do bloco 25–28 e será medição pura obrigatória. Reconciliar R25 (segundo download), R26 (USD), R27 (coorte por plano) e o placar; nenhuma nova edição de produto.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+### 📋 O QUE ACONTECEU
+
+O Creator teve expirações, mas os dados não autorizam dizer “é preço”: a maior parte desse grupo chegou ao caixa antes de ver um filme e ninguém registrou falha de pagamento. Evitei mais uma tela repetitiva, mantive o checkout aberto para quem quer comprar cedo e defini a amostra que separará uma objeção real de intenção precoce.
