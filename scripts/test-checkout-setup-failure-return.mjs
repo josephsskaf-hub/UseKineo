@@ -154,7 +154,11 @@ ok(outerCatch.includes('buildCheckoutSetupFailureReturnHref(destination)'), 'ser
 ok(!outerCatch.includes('error.message'), 'outer terminal path does not log provider error bodies')
 ok(!outerCatch.includes('String(error)'), 'outer terminal path does not stringify provider errors')
 
-const pricing = source('app/pricing/PricingClient.tsx')
+// The repository contains both LF and CRLF source files. This assertion guards
+// the call order and arguments, not the checkout developer's line-ending
+// preference; normalizing here prevents a clean checkout from making the same
+// behavior look red on Windows.
+const pricing = source('app/pricing/PricingClient.tsx').replace(/\r\n/g, '\n')
 ok(!pricing.includes('setCheckoutError(decodeURIComponent(err))'), 'pricing no longer double-decodes checkout errors')
 ok(pricing.includes('setCheckoutError(err)'), 'pricing displays the already-decoded error')
 ok(pricing.includes('readCheckoutSetupFailureFromSearch(window.location.search)'), 'pricing recognizes only the versioned server return')

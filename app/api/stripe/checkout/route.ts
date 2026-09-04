@@ -73,6 +73,10 @@ import { readCheckoutProfileWithRetry } from '@/lib/stripe/checkoutProfileRead'
 import { checkoutIntentMetadata } from '@/lib/growth/checkoutIntent'
 import { buildCheckoutValueContext } from '@/lib/growth/checkoutValueContext'
 import {
+  CHECKOUT_ENTRY_SURFACE_VERSION,
+  classifyCheckoutEntrySurface,
+} from '@/lib/growth/checkoutEntrySurface'
+import {
   CHECKOUT_PAYMENT_GUIDANCE_VERSION,
   withCheckoutPaymentGuidance,
 } from '@/lib/growth/checkoutPaymentGuidance'
@@ -853,6 +857,16 @@ async function buildAndRedirect(
   // still point at shortsforgeai.vercel.app; trusting it adds an unnecessary
   // cross-domain hop and can drop auth/attribution cookies.
   const appUrl = req.nextUrl.origin
+  // The four external checkout people observed after the 03/09 growth marker
+  // all reached `checkout_started` as `standard` with no intent campaign. The
+  // browser already sends the page that launched this navigation, so preserve
+  // only a closed category here. Never store the raw Referer: it may contain a
+  // prompt or other query-string data. This is event attribution only; it does
+  // not enter Stripe Session parameters, pricing or idempotency.
+  const checkoutEntrySurface = classifyCheckoutEntrySurface(
+    req.headers.get('referer'),
+    appUrl,
+  )
   const browserSessionCookie = req.cookies.get('kineo_event_session_id')?.value ?? ''
   const browserSessionId = /^[A-Za-z0-9_-]{8,64}$/.test(browserSessionCookie)
     ? browserSessionCookie
@@ -1021,6 +1035,8 @@ async function buildAndRedirect(
     checkout_origin: checkoutOrigin,
     checkout_recovery: checkoutRecovery,
     intent_campaign: intentCampaign ?? null,
+    checkout_entry_surface: checkoutEntrySurface,
+    checkout_entry_surface_version: CHECKOUT_ENTRY_SURFACE_VERSION,
     checkout_value_context: checkoutValueContext.version,
     checkout_value_variant: checkoutValueContext.variant,
     checkout_payment_guidance: CHECKOUT_PAYMENT_GUIDANCE_VERSION,
