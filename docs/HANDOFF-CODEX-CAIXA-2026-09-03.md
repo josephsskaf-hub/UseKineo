@@ -1221,3 +1221,42 @@ Nada.
 O modal que vendia antes de o cliente ver um filme agora espera somente no
 dashboard. A página de preços — o caminho que já gerou pagamento real antes do
 primeiro vídeo — foi preservada sem mudança.
+
+---
+
+## ROUND 18 — recusa de pagamento: separar primeira compra de renovação — 04/09 11:08→11:13 BRT — CONCLUÍDA
+
+### PLACAR E VIGIA
+
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 11:09 BRT:** desde o marco de 03/09 13:00 BRT há 35 cadastros externos, 23 pessoas com filme, 2 pessoas em checkout com filme, 1 sem filme, 0 assinaturas e 0 pessoas com falha sem filme. Fonte: SQL canônico do programa, somente leitura, pessoas distintas e contas internas excluídas.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 11:10 BRT:** a única pessoa externa do vigia móvel de duas horas é `73bd3264`, origem registrada `chatgpt`, plano `pro` aberto 4 segundos após o callback de cadastro. Ela agora tem 1 filme concluído às 11:00 BRT, 12 créditos, nenhum erro e nenhum pagamento. Classificação atual: **desejo**; a ronda 15 já preserva seu checkout durante o render e a ronda 17 governa a próxima exposição da oferta. A superfície permanece congelada.
+
+### DADO QUE DOÍA
+
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 11:12 BRT:** nos últimos 30 dias existem exatamente 2 pessoas externas com `checkout_payment_failed`, 1 evento por pessoa. As duas ocorrências são `stage=renewal`, `reason_category=insufficient_funds`, rede recusou e risco normal. Uma ocorreu em 03/09 e outra em 04/09. Existem **0 pessoas com recusa canônica na primeira assinatura** nessa janela.
+- **FATO CONFIRMADO:** `payment_intent.payment_failed` distingue `initial|renewal|unknown` e grava `reason_category`; `charge.failed` é apenas enriquecimento e não duplica o evento canônico. Fonte: `app/api/stripe/webhook/route.ts:1547-1630` e `lib/stripeCheckoutFailure.ts:1-128`.
+- **CONTRADIÇÃO CORRIGIDA:** contar esses dois eventos como falha do checkout inicial seria falso. Ambos pertencem a cobrança de renovação de pessoas já pagantes; não explicam as 0 novas assinaturas do placar.
+
+### DECISÃO REVERSÍVEL
+
+Nenhuma mudança de checkout. Criar copy, novo método ou retry da primeira compra com base nesses dois eventos atacaria a etapa errada. A orientação de cartão/Apple Pay/Google Pay já está visível nas superfícies próprias e o PayPal continua corretamente bloqueado: `PAYPAL_ENABLED=false`, depois de canário reprovado documentado.
+
+### COMO MEDIR E GATE
+
+Reabrir uma ação de falha da primeira compra somente quando existir pelo menos 1 pessoa externa com `checkout_payment_failed.stage='initial'`; classificar por `reason_category`, pessoa e resultado posterior. Renovação insuficiente é uma fila separada de retenção e não entra no denominador de aquisição.
+
+### RISCO
+
+Zero risco de produto: rodada somente leitura + registro canônico. O risco evitado foi mudar o checkout inicial por causa de um evento de renovação.
+
+### PRÓXIMA JOGADA
+
+Medir a maior superfície de decisão ainda não congelada e agir somente se houver pessoas reais sem caminho já coberto. Não reeditar R13, R15 ou R17 antes dos respectivos gates.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+### 📋 O QUE ACONTECEU
+
+As duas recusas reais de cartão não são novas compras perdidas: são renovações recusadas por saldo insuficiente. O checkout inicial não ganhou uma mudança sem evidência; o vigia continua concentrado na pessoa do ChatGPT que agora já recebeu o primeiro filme.
