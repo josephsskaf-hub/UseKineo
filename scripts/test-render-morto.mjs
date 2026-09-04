@@ -55,10 +55,27 @@ checa('pilula tem a marca KINEO-RENDER-MORTO-2026-09-01', pill.includes('KINEO-R
 checa('pilula tem o tipo failed', pill.includes("| { state: 'failed'; message: string; startedAtMs: number }"))
 checa('pilula le state failed da resposta', pill.includes("data.state === 'failed'"))
 checa('pilula mostra a frase honesta de render morto', pill.includes("Render didn't finish"))
-checa('botao vira "Try again"', pill.includes("isFailed ? 'Try again' : 'Watch'"))
-checa('render morto volta para o compositor', pill.includes("probe.state === 'completed' ? '/history' : '/studio/create'"))
-checa('o clique e medido como retry', pill.includes("probe.state === 'failed' ? 'retry' : 'watch'"))
-checa('o motivo real aparece no title', pill.includes("title={probe.state === 'failed' && probe.message"))
+// RODADA #9 (2026-09-03) — estas tres provas liam LITERAIS que a #9 moveu de
+// lugar: rotulo, destino e nome do clique deixaram de ser ternarios soltos
+// dentro da pilula e viraram UMA funcao pura (lib/renderPillTarget.ts), porque
+// 54 dos 95 cliques em 'rendering' apontavam para um render sem id que
+// /studio/create nao sabe religar. A INVARIANTE do render morto e a mesma e
+// continua cobrada — so que agora na fonte unica que a pilula obedece.
+const alvos = fs.readFileSync(path.join(raiz, 'lib/renderPillTarget.ts'), 'utf8')
+const alvoDoMorto = "{ href: '/studio/create', badge: 'Try again', acao: 'retry', religavel: false }"
+const alvoDoPronto = "{ href: '/history', badge: 'Watch', acao: 'watch', religavel: false }"
+checa('botao vira "Try again"', alvos.includes(alvoDoMorto) && pillCode.includes('{alvo.badge}'))
+checa('render morto volta para o compositor',
+  alvos.includes(alvoDoMorto) && pillCode.includes('router.push(alvo.href)'))
+checa('o clique e medido como retry',
+  alvos.includes(alvoDoMorto) && pillCode.includes('action: alvo.acao,'))
+checa('video pronto continua saindo pelo /history na mesma fonte', alvos.includes(alvoDoPronto))
+// RODADA #9 — o title virou ternario de tres ramos (o render que esta VIVO no
+// motor, sem id para religar, ganhou a frase honesta dele). O motivo do render
+// MORTO continua sendo o primeiro ramo, e continua vindo antes de tudo.
+checa('o motivo real aparece no title',
+  pillCode.includes("probe.state === 'failed' && probe.message") &&
+  pillCode.includes('? probe.message'))
 checa('cor ambar so no estado failed', pill.includes("isFailed ? '#f59e0b'"))
 checa('estado failed e dispensavel com o X', pill.includes("probe.state !== 'rendering' && dismissedId != null"))
 checa('poll de 15s so roda com render de verdade', pill.includes("const hasActiveRender = probe?.state === 'rendering'"))

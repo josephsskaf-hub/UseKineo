@@ -242,10 +242,17 @@ export async function GET() {
         : {}
       const renderId = typeof metadata.render_id === 'string' ? metadata.render_id.trim() : ''
       const rawDuration = Number(metadata.duration)
+      // KINEO-PILULA-FANTASMA-2026-09-03 (#9) — este ramo dizia
+      // `resumable: true` FIXO, inclusive quando a claim ainda nao tinha o id
+      // do Creatomate (ela nasce antes do POST ao provedor). Quem religa e
+      // resumeServerActiveRender(), que sai no primeiro if quando renderId e
+      // nulo: a sonda prometia uma religacao que o cliente nao conseguia
+      // fazer. Sem id nao ha religacao — e agora a resposta diz isso.
+      const idUsavel = renderId && renderId.length <= 160 ? renderId : null
       return NextResponse.json({
         state: 'rendering',
-        render_id: renderId && renderId.length <= 160 ? renderId : null,
-        resumable: true,
+        render_id: idUsavel,
+        resumable: Boolean(idUsavel),
         started_at: activeClaim.created_at,
         elapsed_ms: Math.max(0, Date.now() - activeClaimAt),
         quality: typeof metadata.quality === 'string' && metadata.quality ? metadata.quality : 'fast',

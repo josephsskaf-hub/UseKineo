@@ -46,6 +46,11 @@ import {
   limparFila,
   type IdeiaNaFila,
 } from '@/lib/proximoEpisodioFila'
+// KINEO-PILULA-FANTASMA-2026-09-03 (#9) — 54 dos 95 cliques em 'rendering'
+// (14 dias) apontavam para um render SEM id, que /studio/create nao sabe
+// religar: o clique nao mudava nada e a pessoa clicava de novo (16 vezes no
+// pior caso, 03/09 23:00 BRT). A decisao de destino agora e funcao pura.
+import { alvoDaPilula, FRASE_RENDER_NO_MOTOR } from '@/lib/renderPillTarget'
 
 const POLL_MS = 15000
 const MIN_PROBE_GAP_MS = 10000
@@ -54,7 +59,7 @@ const MIN_PROBE_GAP_MS = 10000
 const DISMISS_KEY = 'kineo_render_pill_dismissed'
 
 type Probe =
-  | { state: 'rendering'; renderId: string | null; startedAtMs: number }
+  | { state: 'rendering'; renderId: string | null; resumable: boolean; startedAtMs: number }
   | { state: 'completed'; videoId: string | null; title: string | null; seriesSeed: string | null }
   // KINEO-RENDER-MORTO-2026-09-01: estado terminal e honesto — o render morreu antes de virar video.
   | { state: 'failed'; message: string; startedAtMs: number }
@@ -144,10 +149,16 @@ export default function ActiveRenderPill() {
         let next: Probe = null
         if (data && data.state === 'rendering') {
           const startedAtMs = Date.parse(typeof data.started_at === 'string' ? data.started_at : '')
+          const renderIdLido =
+            typeof data.render_id === 'string' && data.render_id.trim() ? data.render_id.trim() : null
           next = {
             state: 'rendering',
-            renderId:
-              typeof data.render_id === 'string' && data.render_id.trim() ? data.render_id.trim() : null,
+            renderId: renderIdLido,
+            // A sonda ja separava os dois mundos (o cinematografico responde
+            // resumable:false); a pilula so precisava parar de ignorar o aviso.
+            // Sem id nao ha o que religar — a fonte mais restritiva vence,
+            // entao um resumable:true com id nulo tambem cai no caminho novo.
+            resumable: data.resumable !== false && Boolean(renderIdLido),
             startedAtMs: Number.isFinite(startedAtMs) ? startedAtMs : Date.now(),
           }
         } else if (data && data.state === 'failed') {
@@ -227,6 +238,9 @@ export default function ActiveRenderPill() {
     shownRef.current = identity
     void trackEvent('active_render_pill_shown', {
       state: probe.state,
+      // #9 — sem este campo a classe fantasma so era visivel por deducao
+      // (render_id nulo). Agora ela tem nome no proprio evento.
+      resumable: probe.state === 'rendering' ? probe.resumable : null,
       render_id: probe.state === 'rendering' ? probe.renderId : null,
       video_id: probe.state === 'completed' ? probe.videoId : null,
       path: pathname ?? null,
@@ -290,12 +304,23 @@ export default function ActiveRenderPill() {
   const isRendering = probe.state === 'rendering'
   const isFailed = probe.state === 'failed'
   const accent = isRendering ? '#2997ff' : isFailed ? '#f59e0b' : '#22c55e'
+  // #9 — UMA decisao de destino para o clique, o rotulo e a medicao. Enquanto
+  // eram tres decisoes soltas, o botao podia prometer uma porta que a tela de
+  // destino nao sabia abrir.
+  const alvo = alvoDaPilula({
+    state: probe.state,
+    renderId: probe.state === 'rendering' ? probe.renderId : null,
+    resumable: probe.state === 'rendering' ? probe.resumable : false,
+  })
+  const renderNoMotor = isRendering && !alvo.religavel
 
   function handleAction() {
     if (!probe) return
     void trackEvent('active_render_pill_clicked', {
       state: probe.state,
-      action: probe.state === 'rendering' ? 'resume' : probe.state === 'failed' ? 'retry' : 'watch',
+      action: alvo.acao,
+      resumable: alvo.religavel,
+      href: alvo.href,
       render_id: probe.state === 'rendering' ? probe.renderId : null,
       video_id: probe.state === 'completed' ? probe.videoId : null,
       path: pathname ?? null,
@@ -303,7 +328,10 @@ export default function ActiveRenderPill() {
     // O card de resume (dono do polling real) mora em /studio/create desde a
     // porta única — mandar para /generate sem query cairia no SELETOR do
     // /studio e o resume sumiria da tela. /history é onde o vídeo pronto vive.
-    router.push(probe.state === 'completed' ? '/history' : '/studio/create')
+    // #9 — e um render SEM id tambem vai para /history: /studio/create nao
+    // sabe religa-lo (resumeServerActiveRender() sai no !probe.renderId), e
+    // era exatamente ali que o clique morria sem mudar nada na tela.
+    router.push(alvo.href)
   }
 
   function handleDismiss() {
@@ -516,7 +544,13 @@ export default function ActiveRenderPill() {
       <button
         type="button"
         onClick={handleAction}
-        title={probe.state === 'failed' && probe.message ? probe.message : undefined}
+        title={
+          probe.state === 'failed' && probe.message
+            ? probe.message
+            : renderNoMotor
+              ? FRASE_RENDER_NO_MOTOR
+              : undefined
+        }
         className="flex items-center gap-2 min-w-0"
         style={{ minHeight: 44, background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' }}
       >
@@ -538,7 +572,7 @@ export default function ActiveRenderPill() {
             color: isRendering ? '#fff' : '#06220f',
           }}
         >
-          {isRendering ? 'Open' : isFailed ? 'Try again' : 'Watch'}
+          {alvo.badge}
         </span>
       </button>
 

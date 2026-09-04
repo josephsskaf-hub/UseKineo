@@ -38,7 +38,13 @@ check('mede com series_continue_clicked', /trackEvent\('series_continue_clicked'
 check('fonte declarada e render_pill', /source: 'render_pill'/.test(pill))
 check('navega pelo helper, nao por URL escrita a mao', /router\.push\(buildSeriesContinuationHref\(seed, 'render_pill'\)\)/.test(pill))
 check('escolher o episodio 2 dispensa o aviso do anterior', /handleNextEpisode[\s\S]{0,900}?setDismissedId\(probeIdentity\(probe\)\)/.test(pill))
-check('cartao so aparece com semente', /if \(!isRendering && nextSeed\)/.test(pill))
+// RODADA #9 (2026-09-03) — esta prova estava VERMELHA em origin/main desde a
+// #15 (a fila global entrou na condicao do cartao) e nao era o produto: o
+// cartao vertical continua exigindo video PRONTO; o que mudou foi ele passar a
+// aparecer tambem quando ha ideia guardada sem semente de serie. A invariante
+// que importa (nunca durante um render) segue cobrada na linha de baixo.
+check('cartao so aparece com video pronto',
+  pill.includes("if (probe.state === 'completed' && (nextSeed || (filaVisivel && fila)))"))
 check('estado rendering nao ganhou botao de episodio', !/isRendering[\s\S]{0,200}Next episode/.test(pill))
 check('botao Watch preservado no cartao novo', /onClick=\{handleAction\}[\s\S]{0,600}Watch/.test(pill))
 check('dismiss preservado no cartao novo', /aria-label="Dismiss video ready notification"/.test(pill))
