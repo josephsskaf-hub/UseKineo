@@ -25,6 +25,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { trackEvent } from '@/lib/analytics'
+import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import { TIER_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
 import { formatResultCount, videosPerMonth } from '@/lib/marketingPrice'
 import {
@@ -97,7 +98,9 @@ export default function WelcomeOfferModal({
 }) {
   const [open, setOpen] = useState(false)
   const [firstName, setFirstName] = useState<string | null>(null)
-  const [pending, setPending] = useState<'basic' | 'pro' | null>(null)
+  const [nativePending, setNativePending] = useState<'basic' | 'pro' | null>(null)
+  const checkout = useCheckoutLaunch(`welcome_offer_${surface}`)
+  const pending = checkout.pending ?? nativePending
 
   useEffect(() => {
     if (seenRecently()) return
@@ -220,7 +223,7 @@ export default function WelcomeOfferModal({
   }
 
   function recordCheckoutClick(tier: WelcomeOfferTier): void {
-    setPending(tier)
+    setNativePending(tier)
     if (isWelcomeOfferMeasurementHost(window.location.hostname)) {
       void trackEvent('welcome_offer_checkout_clicked', welcomeOfferMetadata(surface, tier))
     }
@@ -326,11 +329,33 @@ export default function WelcomeOfferModal({
               const fullMinor = TIER_PRICES[p.tier].usd
               const full = formatCheckoutMoney('usd', fullMinor)
               const now = formatCheckoutMoney('usd', off(fullMinor))
+              const checkoutHref = `/api/stripe/checkout?tier=${p.tier}&billing=monthly&promo=WELCOME20&checkout_origin=welcome20_modal`
               return (
                 <a
                   key={p.tier}
-                  href={`/api/stripe/checkout?tier=${p.tier}&billing=monthly&promo=WELCOME20&checkout_origin=welcome20_modal`}
-                  onClick={() => recordCheckoutClick(p.tier)}
+                  href={checkoutHref}
+                  onClick={(event) => {
+                    recordCheckoutClick(p.tier)
+                    // CAIXA R33 — only the HOME modal lacked the last-hop
+                    // recovery already used by the other checkout surfaces.
+                    // Keep modified-click and no-JS anchor behavior native;
+                    // enhance only the ordinary same-tab purchase gesture.
+                    if (
+                      surface !== 'home' ||
+                      event.defaultPrevented ||
+                      event.button !== 0 ||
+                      event.metaKey ||
+                      event.ctrlKey ||
+                      event.shiftKey ||
+                      event.altKey
+                    ) return
+                    event.preventDefault()
+                    checkout.launch(p.tier, checkoutHref, {
+                      ...welcomeOfferMetadata(surface, p.tier),
+                      checkout_origin: 'welcome20_modal',
+                      rescue_version: 'welcome_offer_home_rescue_v1',
+                    })
+                  }}
                   style={{
                     flex: '1 1 230px', minWidth: 0, display: 'block', textDecoration: 'none',
                     borderRadius: 14, padding: '16px 16px 14px', position: 'relative',
