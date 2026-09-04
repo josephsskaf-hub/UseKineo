@@ -46,6 +46,7 @@ import { aspectSpec, normalizeAspect } from '@/lib/aspect'
 import { montarContrato, aplicarContrato, severidadeDe } from '@/lib/cinematic/sceneTruth'
 import { fal } from '@fal-ai/client'
 import { generateScenes, shortCaptionFromVoiceover } from '@/lib/runway'
+import { looksLikeInstruction } from '@/lib/momentumTopic'
 // KINEO-CAPACITY-2026-08-08 — teto GLOBAL diário de renders de IA (disjuntor).
 import { checkAiRenderDailyCap, AI_RENDER_CAP_MESSAGE } from '@/lib/aiRenderCircuitBreaker'
 import { parseUserScript } from '@/lib/scriptParser'
@@ -2768,6 +2769,76 @@ async function manipularPost(req: NextRequest) {
       }))
     }
 
+    // ═══ KINEO-ZERO-SCENES-FALLBACK-2026-09-04 — construtor vazio nao vira filme perdido ═══
+    //
+    // archiveunknownmedia@gmail.com (04/09) chegou ao despacho com scenes=[] TRES
+    // vezes seguidas: crédito debitado, zero POSTs, estorno, e a tela culpava o
+    // fornecedor (corrigido no #21). Pelo código, nenhum construtor deveria
+    // devolver vazio para texto não-vazio: generateScenes preenche até o
+    // clipCount e resolveVerbatimSegments só esvazia sem narração. Mas o evento
+    // cinematic_dispatch_result (planned:0, http 503) prova que aconteceu, e o
+    // texto original de 922 chars não fica guardado — a telemetria
+    // cinematic_zero_scenes_planned do #21 é quem vai dizer o formato exato.
+    //
+    // Aqui: quando o construtor escolhido devolve ZERO cenas, o OUTRO tenta.
+    //   verbatim → planner de IA sobre o texto cru (o cliente pediu "as is",
+    //              mas não há fala a preservar; melhor um filme que erro);
+    //   ai → divisor determinístico do texto, SÓ se o texto não parece uma
+    //        instrução ("Create a 60-second short about...") — narrar uma
+    //        instrução em voz alta seria pior que a mensagem verdadeira do #21,
+    //        que manda "deixar a IA estruturar" (foi o que salvou a 4ª tentativa).
+    // Para todo pedido que HOJE gera filme (scenes.length > 0) este bloco não
+    // executa uma linha — trava de qualidade do fundador (03/09) preservada.
+    if (scenes.length === 0 && prompt.trim().length > 0) {
+      const origem = verbatim ? 'verbatim' : 'ai'
+      const pareceInstrucao = looksLikeInstruction(prompt)
+      let recuperadas: typeof scenes = []
+      let via: 'ai_planner' | 'verbatim_split' | 'none' = 'none'
+      try {
+        if (verbatim) {
+          const generated = await generateScenes(prompt.slice(0, 1200), clipCount)
+          recuperadas = generated.map((s) => ({
+            description: s.description,
+            voiceover: s.voiceover ?? '',
+            caption: s.caption ?? shortCaptionFromVoiceover(s.description),
+            stockSearchQuery: s.stockSearchQuery,
+            aiPrompt: s.description,
+          }))
+          via = 'ai_planner'
+        } else if (!pareceInstrucao) {
+          const picked = resolveVerbatimSegments(parseUserScript(prompt), clipCount)
+          recuperadas = picked.map((seg) => ({
+            description: seg.pexelsQuery,
+            voiceover: seg.voiceover,
+            caption: shortCaptionFromVoiceover(seg.voiceover || seg.pexelsQuery),
+            stockSearchQuery: seg.pexelsQuery,
+          }))
+          via = 'verbatim_split'
+        }
+      } catch (e) {
+        console.warn('[cinematic] zero-scenes fallback falhou:', e instanceof Error ? e.message : String(e))
+      }
+      if (recuperadas.length > 0) scenes = recuperadas
+      try {
+        await cinematicAdmin.from('events').insert({
+          user_id: user.id,
+          name: 'cinematic_zero_scenes_recovered',
+          path: '/api/generate-video-cinematic',
+          metadata: {
+            generation_id: generationId,
+            from: origem,
+            via,
+            recovered: recuperadas.length,
+            clip_count: clipCount,
+            looks_like_instruction: pareceInstrucao,
+            has_markers: parsedScript.hasMarkers === true,
+            segments: parsedScript.segments.length,
+            narration_chars: parsedScript.narration.length,
+            prompt_chars: prompt.length,
+          },
+        })
+      } catch { /* telemetria nunca derruba a resposta */ }
+    }
     // L2B - prefer the smart BrollPlan per-scene cinematic prompt when provided
     if (planScenes.length > 0) {
       scenes = scenes.map((s, i) => { const bp = planScenes[i]?.brollPrompt; return bp && bp.trim().length > 20 ? { ...s, aiPrompt: bp.trim() } : s })
