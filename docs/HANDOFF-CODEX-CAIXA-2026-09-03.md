@@ -3079,3 +3079,108 @@ Hoje sabemos que quatro pessoas abriram o caixa, mas só sabemos de qual tela um
 veio. Corrigi essa cegueira no servidor sem tocar na compra: o próximo checkout
 vai registrar uma categoria segura da página de entrada e nos dizer onde vale
 investir a próxima rodada.
+
+---
+
+## ROUND 46 — a tela de sucesso só libera o produto após confirmar pagamento e plano
+
+**Data:** 2026-09-04 15:05→15:18 BRT
+
+**Pista:** Growth-B2C / CAIXA
+
+**Branch:** `codex/caixa-checkout-success-entitlement-r46`
+
+**Commit de produto:** `dcfdaaf80f36ce2fbe450f83af9b4595c9e0a893`
+
+### RECONCILIAÇÃO, PLACAR E VIGIA
+
+**VALIDADO EM PRODUÇÃO — 04/09/2026 15:14 BRT:** R45 está em
+`f7ced732982d7a27e015404c1603c6ebf537a48d`; Guardião run `33903848169`
+terminou `success` e o deploy Vercel `dpl_9zBzfY82SQjDpZUzX3hdnnvRZV6p` ficou
+`READY`, aliasado em `www.usekineo.com` no SHA exato.
+
+**EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, corte 04/09/2026 15:14
+BRT:** placar canônico em **41 cadastros externos, 27 pessoas com filme, 2
+checkouts com filme, 2 sem filme, 0 assinaturas e 0 pessoas com falha sem
+filme**. O vigia móvel de duas horas tinha 0 pessoa externa com checkout aberto
+e pagamento ausente.
+
+Nos últimos 60 dias, 9 pessoas externas produziram `checkout_success_viewed` e
+as 9 estavam com `profiles.has_paid=true` no corte. Isso não reconstrói o estado
+exato visto no primeiro segundo da página e não prova incidência histórica do
+defeito; impede classificar a correção como resposta a perda já medida.
+
+### O DADO QUE DOÍA E A HIPÓTESE
+
+**FATO CONFIRMADO EM CÓDIGO:** o self-serve de
+`app/checkout/success/page.tsx` desligava a sincronização quando `/api/credits`
+devolvia qualquer saldo numérico. Em seguida mostrava “Your plan is active”,
+os cards do primeiro vídeo e o redirect para o Studio. Saldo não é prova de
+assinatura: trial e pack também podem ter créditos. A própria API já devolvia
+`hasPaid`, `entitlementsResolved` e `plan`, mas este caminho não os exigia.
+
+**HIPÓTESE:** numa confirmação atrasada, afirmar plano ativo cedo demais e
+liberar o Studio pode criar uma experiência contraditória no minuto mais
+sensível da compra. A mudança protege confiança e ativação do comprador; não é
+uma nova oferta nem evidência de aumento de conversão pré-pagamento.
+
+### MUDANÇA MÍNIMA E REVERSÍVEL
+
+**IMPLEMENTADO:** `lib/growth/checkoutSuccessEntitlement.ts` define contrato
+fechado. Self-serve só fica `ready` quando `entitlementsResolved=true`,
+`hasPaid=true` e o plano resolvido pertence aos planos pagos self-serve. Saldo
+numérico sozinho nunca libera acesso; Autopilot continua em sua política
+separada.
+
+Enquanto a confirmação não chega, a página diz que o checkout terminou e que
+o acesso está sendo confirmado. Ao esgotar 15 segundos, não redireciona, não
+mostra ideias nem CTA de criação e diz explicitamente para não pagar novamente;
+oferece nova consulta e caminho para Account. Quando o contrato fica pronto,
+copy, saldo, ideias, Studio e redirect reaparecem como antes.
+
+Dois eventos fechados medem o resultado sem sessão, e-mail, URL, preço, valor ou
+saldo: `checkout_success_entitlement_ready` e
+`checkout_success_entitlement_delayed`, ambos com versão e estado fechado. O
+evento canônico `checkout_success_viewed` e os pixels Google/TikTok não foram
+duplicados nem removidos.
+
+### TESTES, VISUAL E GATE
+
+**TESTADO LOCALMENTE:** 488 verificações verdes — contrato novo 66,
+checkout-success Autopilot 84, atribuição de entrada 25 e money-truth 313.
+TypeScript completo verde; `diff --check` limpo.
+
+**COMPARAÇÃO VISUAL:** o arquivo
+`docs/previews/SELF-SERVE-CHECKOUT-SUCCESS-ENTITLEMENT-V1-2026-09-04.html`
+contém antes/depois desktop e mobile e foi renderizado no Chrome. No estado
+pendente, a hierarquia oferece somente consulta de acesso e Account; no estado
+pronto, a experiência existente volta inteira.
+
+Gate mínimo: 10 pessoas externas em
+`checkout_success_entitlement_ready|delayed` ou sete dias, o que ocorrer
+primeiro. Medir por pessoa: percentual ready, percentual delayed, tempo até
+primeira atividade humana no Studio e primeiro filme entregue. Parar se um
+pagante confirmado permanecer delayed após refresh ou se evento novo carregar
+campo fora da lista fechada.
+
+### RISCO E PRÓXIMA JOGADA
+
+Um webhook lento mantém o comprador por mais tempo na confirmação, mas agora a
+tela explica o estado e evita pagamento duplicado. O risco maior seria um falso
+negativo na lista de planos; ela replica o conjunto self-serve já usado pelo
+checkout-resume e fica travada por teste executável.
+
+R47 valida Guardião/deploy e mede o primeiro evento R45/R46. Sem exposição,
+preserva ambas as variantes e escolhe uma jogada CAIXA nova, fora das
+superfícies ainda congeladas.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+### 📋 O QUE ACONTECEU
+
+A tela de “compra concluída” usava saldo como se fosse prova de assinatura.
+Agora ela só afirma plano ativo e abre o Studio depois que o servidor confirma
+pagamento e plano. Se houver atraso, explica que o cliente não deve pagar de
+novo e oferece uma consulta segura, sem tocar em preço, crédito ou Stripe.
