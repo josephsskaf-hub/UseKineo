@@ -74,6 +74,49 @@ check('erro na ativação NUNCA quebra o login',
   /catch \(e\) \{[\s\S]{0,200}reverse-trial non-fatal/.test(cb),
   'o cadastro tem que passar mesmo se o trial falhar')
 
+// ── KINEO-TRIAL-GRANT-EMAIL-2026-09-04 ────────────────────────────────────
+// O a1fed16c fechou a porta do OAuth e deixou a de SENHA aberta: quem se
+// cadastra com e-mail e senha nunca cruza o /auth/callback. Medido em 04/09:
+// 4 dos 47 cadastros so-de-senha dos ultimos 14 dias nasceram com
+// trial_status NULL e 0 credito, e nenhum dos 14 orfaos de 21 dias fez um
+// unico video. Esta rota e o espelho do callback: roda no servidor, 401 sem
+// sessao, e estava gravada nos QUATRO orfaos - foi alcancada em 100% deles.
+console.log('\n1b) O cadastro por E-MAIL E SENHA tambem concede')
+const act = codigo('app/api/auth/activation-completed/route.ts')
+
+check('a rota de ativacao por senha importa maybeActivateReverseTrial',
+  act.includes("import { maybeActivateReverseTrial } from '@/lib/reverseTrial'"))
+check('importa o fingerprint (guarda anti-abuso preservada)',
+  act.includes("import { trialFingerprintFromHeaders } from '@/lib/trialFingerprint'"),
+  'conceder sem fingerprint desligaria a guarda de N trials por IP')
+check('CHAMA a ativacao',
+  act.includes('await maybeActivateReverseTrial({'))
+check('a chamada e AWAITED, nao fire-and-forget',
+  !/void\s+maybeActivateReverseTrial/.test(act),
+  'promessa solta morre com o congelamento da instancia serverless')
+check('o fingerprint vem dos headers da REQUEST desta rota',
+  act.includes('trialFingerprintFromHeaders(req.headers)'))
+check('a ativacao acontece DEPOIS da guarda de sessao (401 sem usuario)',
+  act.indexOf('return NextResponse.json({ ok: false }, { status: 401 })')
+    < act.indexOf('await maybeActivateReverseTrial({'),
+  'sem usuario autenticado nao ha a quem conceder')
+check('a ativacao acontece ANTES de o handler devolver a resposta',
+  act.indexOf('await maybeActivateReverseTrial({')
+    < act.indexOf('const response = NextResponse.json({ ok: true, stored })'),
+  'depois de devolver, a instancia pode congelar antes da escrita')
+check('erro na ativacao NUNCA quebra o cadastro',
+  /catch \(e\) \{[\s\S]{0,240}reverse-trial non-fatal/.test(act),
+  'o cadastro tem que passar mesmo se o trial falhar')
+check('o desfecho vira medicao no proprio evento de cadastro',
+  act.includes('trial_activated: trialActivated') && act.includes('trial_reason: trialReason'),
+  'sem isso nao da para separar "concedeu" de "ja tinha" sem cruzar tabela')
+check('a rota continua gravando email_signup_completed',
+  act.includes("name: 'email_signup_completed'"),
+  'e o evento que prova que esta porta foi atravessada')
+check('a atribuicao de afiliado do 076ca7bb continua de pe',
+  act.includes('finalizeAffiliateSignupAttribution'),
+  'a concessao e aditiva; nao pode ter comido o bloco do Codex')
+
 console.log('\n2) Os caminhos antigos continuam vivos (idempotência)')
 const studio = codigo('app/(dashboard)/studio/create/page.tsx')
 const track = codigo('app/api/track-signup-source/route.ts')
