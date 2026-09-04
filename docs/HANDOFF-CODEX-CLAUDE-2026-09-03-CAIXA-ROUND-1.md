@@ -32,6 +32,14 @@
 - `git -c core.whitespace=cr-at-eol diff --check`: **limpo**
 - **QUESTÃO PENDENTE:** a abertura automatizada do preview no Chrome falhou duas vezes com `windows sandbox failed: helper_unknown_error: apply deny-read ACLs`. O HTML estático antes/depois existe e é clicável; não houve inspeção automatizada por screenshot nesta rodada.
 
+## Validação pós-push
+
+- **VALIDADO EM PRODUÇÃO (03/09/2026 21:21 BRT):** `origin/main` recebeu `3474989c2945d1d6a270ae3c7a844bced5b9ea3d` por fast-forward.
+- **VALIDADO EM PRODUÇÃO:** Vercel `dpl_CWJuqzDtBjpgvyxKkuP4UuBQEozT` = `READY`, target `production`, SHA `3474989c`, alias `www.usekineo.com`.
+- **VALIDADO EM PRODUÇÃO:** smoke de `https://www.usekineo.com/generate` terminou em `https://www.usekineo.com/studio`, HTTP 200, corpo com 89.252 bytes.
+- **VALIDADO EM PRODUÇÃO:** Guardião GitHub — suíte de testes = `success`; TypeScript = `success`; Vercel Preview Comments = `success`.
+- **EVIDÊNCIA DE PRODUÇÃO:** a consulta de erros runtime em 15 minutos encontrou apenas um `DEP0169 url.parse()` em `/api/generate-broll-plan`, às 21:12 BRT, no deploy anterior `dpl_CXxjYmRsekFBiyGxic4nb5FFPTYg`. Nenhum erro foi atribuído ao deploy desta rodada.
+
 ## Como medir
 
 - Métrica primária: `script_preflight_blocked` originado em `/generate` deve parar de nascer após o deploy.
@@ -54,4 +62,3 @@ Nada.
 ## 📋 O QUE ACONTECEU
 
 A parede do primeiro clique foi retirada. O cliente não precisa mais clicar duas vezes para o servidor aplicar a duração que cabe no roteiro; a regra financeira e o render não foram tocados.
-
