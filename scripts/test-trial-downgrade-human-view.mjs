@@ -50,12 +50,12 @@ function serialExclusiveClaim() {
   }
 }
 
-equal(policy.TRIAL_DOWNGRADE_HUMAN_VIEW_VERSION, 'trial_downgrade_offer_view_v1', 'version is stable')
+equal(policy.TRIAL_DOWNGRADE_HUMAN_VIEW_VERSION, 'trial_downgrade_offer_view_v2', 'version reflects the journey-aware primary action')
 equal(policy.TRIAL_DOWNGRADE_HUMAN_VIEW_RATIO, 0.6, 'primary CTA requires 60% visibility')
 equal(policy.TRIAL_DOWNGRADE_HUMAN_VIEW_DWELL_MS, 1000, 'human view requires one continuous second')
 equal(policy.TRIAL_DOWNGRADE_HUMAN_VIEW_RETRY_DELAY_MS, 1500, 'confirmed rejection retry is delayed')
 
-const metadata = policy.trialDowngradeHumanViewMetadata()
+const metadata = policy.trialDowngradeHumanViewMetadata('first_value')
 equal(metadata.version, policy.TRIAL_DOWNGRADE_HUMAN_VIEW_VERSION, 'metadata carries measurement version')
 equal(metadata.offer_version, 'trial_downgrade_plan_choice_v1', 'metadata names the preserved offer variant')
 equal(metadata.surface, 'trial_downgrade_modal', 'metadata names the finite surface')
@@ -69,6 +69,8 @@ equal(metadata.decision_ready, true, 'event is only valid after price decision s
 equal(metadata.currency_resolved, true, 'event declares resolved currency')
 equal(metadata.display_currency, 'usd', 'event matches the founder-approved USD-only journey')
 equal(metadata.human_exposure_claimed, true, 'event explicitly claims human exposure')
+equal(metadata.journey_state, 'first_value', 'event distinguishes the pre-value journey')
+equal(metadata.primary_action, 'make_first_film', 'event names the primary action actually observed')
 for (const forbidden of ['email', 'url', 'path', 'prompt', 'script', 'topic', 'user_id', 'session_id', 'price', 'amount', 'credits']) {
   check(!(forbidden in metadata), `closed metadata excludes ${forbidden}`)
 }
@@ -199,6 +201,7 @@ check(!policy.shouldDwellOnTrialDowngradeHumanView({ ...eligible, documentVisibl
   let posts = 0
   const recorder = policy.createTrialDowngradeHumanViewRecorder({
     userKey: 'stored-account',
+    journeyState: 'first_value',
     storage,
     withExclusiveClaim: immediateExclusiveClaim,
     transport: async (eventName, sentMetadata) => {
@@ -213,7 +216,7 @@ check(!policy.shouldDwellOnTrialDowngradeHumanView({ ...eligible, documentVisibl
   equal(await recorder.recordOnce(), 'duplicate', 'same account cannot post twice')
   equal(posts, 1, 'stored view posts exactly once')
   const remount = policy.createTrialDowngradeHumanViewRecorder({
-    userKey: 'stored-account', storage, withExclusiveClaim: immediateExclusiveClaim, transport: async () => { throw new Error('must not run') },
+    userKey: 'stored-account', journeyState: 'first_value', storage, withExclusiveClaim: immediateExclusiveClaim, transport: async () => { throw new Error('must not run') },
   })
   check(remount.wasSettled(), 'stored account remains deduped across remounts')
 }
@@ -222,7 +225,7 @@ check(!policy.shouldDwellOnTrialDowngradeHumanView({ ...eligible, documentVisibl
   const storage = fakeStorage()
   let posts = 0
   const recorder = policy.createTrialDowngradeHumanViewRecorder({
-    userKey: 'retry-account', storage, withExclusiveClaim: immediateExclusiveClaim,
+    userKey: 'retry-account', journeyState: 'delivered', storage, withExclusiveClaim: immediateExclusiveClaim,
     transport: async () => (++posts === 1 ? 'not_stored' : 'stored'),
   })
   equal(await recorder.recordOnce(), 'not_stored', 'confirmed rejection is returned')
@@ -234,7 +237,7 @@ check(!policy.shouldDwellOnTrialDowngradeHumanView({ ...eligible, documentVisibl
 {
   const storage = fakeStorage()
   const recorder = policy.createTrialDowngradeHumanViewRecorder({
-    userKey: 'ambiguous-account', storage, withExclusiveClaim: immediateExclusiveClaim, transport: async () => 'ambiguous',
+    userKey: 'ambiguous-account', journeyState: 'unknown', storage, withExclusiveClaim: immediateExclusiveClaim, transport: async () => 'ambiguous',
   })
   equal(await recorder.recordOnce(), 'ambiguous', 'ambiguous outcome is returned')
   equal(storage.getItem(policy.trialDowngradeHumanViewMarker('ambiguous-account')), 'pending', 'ambiguous outcome remains terminal to avoid duplicates')
@@ -245,7 +248,7 @@ check(!policy.shouldDwellOnTrialDowngradeHumanView({ ...eligible, documentVisibl
   let resolveTransport
   const storage = fakeStorage()
   const recorder = policy.createTrialDowngradeHumanViewRecorder({
-    userKey: 'concurrent-account', storage, withExclusiveClaim: immediateExclusiveClaim,
+    userKey: 'concurrent-account', journeyState: 'first_value', storage, withExclusiveClaim: immediateExclusiveClaim,
     transport: () => new Promise((resolve) => { resolveTransport = resolve }),
   })
   const first = recorder.recordOnce()
@@ -256,14 +259,14 @@ check(!policy.shouldDwellOnTrialDowngradeHumanView({ ...eligible, documentVisibl
 
 {
   const recorder = policy.createTrialDowngradeHumanViewRecorder({
-    userKey: 'no-storage', storage: null, withExclusiveClaim: immediateExclusiveClaim, transport: async () => 'stored',
+    userKey: 'no-storage', journeyState: 'first_value', storage: null, withExclusiveClaim: immediateExclusiveClaim, transport: async () => 'stored',
   })
   equal(await recorder.recordOnce(), 'unavailable', 'missing account storage fails measurement closed')
 }
 
 {
   const recorder = policy.createTrialDowngradeHumanViewRecorder({
-    userKey: 'no-lock', storage: fakeStorage(), transport: async () => 'stored',
+    userKey: 'no-lock', journeyState: 'first_value', storage: fakeStorage(), transport: async () => 'stored',
   })
   equal(await recorder.recordOnce(), 'unavailable', 'missing cross-tab lock fails measurement closed')
 }
@@ -273,11 +276,11 @@ check(!policy.shouldDwellOnTrialDowngradeHumanView({ ...eligible, documentVisibl
   const withExclusiveClaim = serialExclusiveClaim()
   let posts = 0
   const firstTab = policy.createTrialDowngradeHumanViewRecorder({
-    userKey: 'two-tabs', storage, withExclusiveClaim,
+    userKey: 'two-tabs', journeyState: 'first_value', storage, withExclusiveClaim,
     transport: async () => { posts += 1; return 'stored' },
   })
   const secondTab = policy.createTrialDowngradeHumanViewRecorder({
-    userKey: 'two-tabs', storage, withExclusiveClaim,
+    userKey: 'two-tabs', journeyState: 'first_value', storage, withExclusiveClaim,
     transport: async () => { posts += 1; return 'stored' },
   })
   const outcomes = await Promise.all([firstTab.recordOnce(), secondTab.recordOnce()])
@@ -291,14 +294,14 @@ check(!policy.shouldDwellOnTrialDowngradeHumanView({ ...eligible, documentVisibl
   let resolveFirst
   let posts = 0
   const firstTab = policy.createTrialDowngradeHumanViewRecorder({
-    userKey: 'pending-then-rejected', storage, withExclusiveClaim,
+    userKey: 'pending-then-rejected', journeyState: 'delivered', storage, withExclusiveClaim,
     transport: () => {
       posts += 1
       return new Promise((resolve) => { resolveFirst = resolve })
     },
   })
   const secondTab = policy.createTrialDowngradeHumanViewRecorder({
-    userKey: 'pending-then-rejected', storage, withExclusiveClaim,
+    userKey: 'pending-then-rejected', journeyState: 'delivered', storage, withExclusiveClaim,
     transport: async () => { posts += 1; return 'stored' },
   })
   const first = firstTab.recordOnce()

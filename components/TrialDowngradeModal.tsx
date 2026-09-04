@@ -72,6 +72,12 @@ import {
   TRIAL_DOWNGRADE_HUMAN_VIEW_RATIO,
   TRIAL_DOWNGRADE_HUMAN_VIEW_RETRY_DELAY_MS,
 } from '@/lib/growth/trialDowngradeHumanView'
+import {
+  resolveTrialDowngradeJourney,
+  trialDowngradeFirstValueClickMetadata,
+  TRIAL_DOWNGRADE_FIRST_VALUE_HREF,
+  type TrialDowngradeJourneyState,
+} from '@/lib/growth/trialDowngradeFirstValue'
 
 // Dispensa por CONTA e por navegador. NÃO é o gate de elegibilidade — esse é
 // do servidor; isto só evita que o modal reapareça a cada navegação.
@@ -121,11 +127,17 @@ interface CreditsPayload {
   credits?: number
 }
 
+interface VideoHistoryPayload {
+  completedCount?: number | null
+  historyReliable?: boolean
+}
+
 export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
   const [open, setOpen] = useState(false)
   const [granted, setGranted] = useState(0)
   const [used, setUsed] = useState(0)
   const [creditsNow, setCreditsNow] = useState<number | null>(null)
+  const [journeyState, setJourneyState] = useState<TrialDowngradeJourneyState>('unknown')
   // Conhecidas ANTES do fetch (vêm do servidor como prop), que é o que permite
   // o short-circuit por localStorage e evita uma chamada a /api/credits por
   // navegação para quem já dispensou.
@@ -174,7 +186,7 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
         if (!r.ok) throw new Error('credits_unavailable')
         return (await r.json()) as CreditsPayload
       })
-      .then((data) => {
+      .then(async (data) => {
         if (cancelled) return
         const trial = data?.trial
         if (trial?.showDowngradeModal !== true) return
@@ -194,9 +206,23 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
         if (data?.entitlementsResolved !== true) return
         if (data?.hasPaid !== false) return
 
+        let history: VideoHistoryPayload | null = null
+        try {
+          const historyResponse = await fetch('/api/videos', {
+            cache: 'no-store',
+            credentials: 'same-origin',
+          })
+          if (historyResponse.ok) history = (await historyResponse.json()) as VideoHistoryPayload
+        } catch {
+          // History is a prioritization signal, never an eligibility gate.
+        }
+        if (cancelled) return
+        const nextJourneyState = resolveTrialDowngradeJourney(history)
+
         setGranted(typeof trial.creditsGranted === 'number' ? trial.creditsGranted : 0)
         setUsed(typeof trial.creditsUsedForDisplay === 'number' ? trial.creditsUsedForDisplay : 0)
         setCreditsNow(typeof data.credits === 'number' ? data.credits : null)
+        setJourneyState(nextJourneyState)
         setOpen(true)
 
         // Uma exibição contada por CONTA, a mesma unidade do desfecho.
@@ -213,6 +239,8 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
             credits_used: trial.creditsUsedForDisplay ?? null,
             credits_remaining: typeof data.credits === 'number' ? data.credits : null,
             trial_cap: trial.cap ?? null,
+            journey_state: nextJourneyState,
+            completed_count: history?.historyReliable === true ? history.completedCount ?? null : null,
           })
         }
       })
@@ -330,11 +358,13 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
 
     const recorder = createTrialDowngradeHumanViewRecorder({
       userKey,
+      journeyState,
       storage,
       // Web Locks unwraps the callback promise at runtime, but its generic type
       // can otherwise infer Promise<Promise<T>>. Match the app's other lock
       // adapters and make the single resolved value explicit.
-      withExclusiveClaim: async (claimName, task) => await lockManager.request(claimName, task),
+      withExclusiveClaim: async <T,>(claimName: string, task: () => Promise<T>) =>
+        await lockManager.request<Promise<T>>(claimName, () => task()),
       transport: (eventName, metadata) => trackClosedEvent(eventName, metadata),
     })
     if (recorder.wasSettled()) return
@@ -407,7 +437,7 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
     document.addEventListener('visibilitychange', handleVisibility)
 
     return () => stop()
-  }, [open, userKey, currency])
+  }, [open, userKey, currency, journeyState])
 
   if (!open) return null
 
@@ -424,6 +454,26 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
   // Filmes de IA que a mensalidade do Creator compra. Mesma derivação do
   // `trialVideos` acima — uma só fonte para "quantos vídeos isto dá".
   const filmesPorMes = SEEDANCE_COST > 0 ? Math.floor(TIER_CREDITS.basic / SEEDANCE_COST) : 0
+  const needsFirstValue = journeyState === 'first_value'
+
+  function goToFirstFilm() {
+    humanViewStopRef.current?.()
+    try {
+      const current = window.localStorage.getItem(dismissKey)
+      window.localStorage.setItem(
+        dismissKey,
+        comparisonDeferralValue(current, Date.now(), MAX_ADIAMENTOS),
+      )
+    } catch {
+      // Storage availability never blocks a deliberate studio navigation.
+    }
+    void trackClosedEvent(
+      'trial_downgrade_first_film_clicked',
+      trialDowngradeFirstValueClickMetadata(),
+    )
+    setOpen(false)
+    window.location.assign(TRIAL_DOWNGRADE_FIRST_VALUE_HREF)
+  }
 
   function goToCreator() {
     humanViewStopRef.current?.()
@@ -554,14 +604,22 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
           Your trial ended
         </p>
         <h2 id="trial-downgrade-title" style={{ margin: '10px 0 8px', fontSize: 26, lineHeight: 1.12, fontWeight: 900, letterSpacing: '-0.02em' }}>
-          You made real films.<br />Don&apos;t stop now.
+          {needsFirstValue ? (
+            <>Make one film.<br />Then decide.</>
+          ) : (
+            <>You made real films.<br />Don&apos;t stop now.</>
+          )}
         </h2>
         <p style={{ margin: '0 0 16px', fontSize: 13.5, lineHeight: 1.6, color: '#86868b' }}>
-          {granted > 0
-            ? `You used ${used} of the ${granted} trial credits. `
-            : ''}
-          Creator brings back everything the trial unlocked — every month, not just once.
-          {' '}<FreeTierCopy legacy={`Free plan: ${FREE_FAST_PREVIEW_LIMIT} Fast previews every 24h.`} on="The free plan keeps 1 Fast video per month." />
+          {needsFirstValue ? (
+            <>Your trial ended before a finished film reached your library. Open the studio first; your plan options stay here when you&apos;re ready.</>
+          ) : (
+            <>
+              {granted > 0 ? `You used ${used} of the ${granted} trial credits. ` : ''}
+              Creator brings back everything the trial unlocked — every month, not just once.
+              {' '}<FreeTierCopy legacy={`Free plan: ${FREE_FAST_PREVIEW_LIMIT} Fast previews every 24h.`} on="The free plan keeps 1 Fast video per month." />
+            </>
+          )}
         </p>
 
         {/* Grid de números — todos DERIVADOS (TIER_CREDITS × creditCostFor),
@@ -648,8 +706,8 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
         <button
           ref={primaryOfferCtaRef}
           type="button"
-          onClick={goToCreator}
-          disabled={checkout.pending !== null}
+          onClick={needsFirstValue ? goToFirstFilm : goToCreator}
+          disabled={!needsFirstValue && checkout.pending !== null}
           style={{
             width: '100%',
             padding: '13px 16px',
@@ -659,12 +717,39 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
             color: '#fff',
             fontSize: 15,
             fontWeight: 800,
-            cursor: checkout.pending !== null ? 'wait' : 'pointer',
-            opacity: checkout.pending !== null ? 0.6 : 1,
+            cursor: !needsFirstValue && checkout.pending !== null ? 'wait' : 'pointer',
+            opacity: !needsFirstValue && checkout.pending !== null ? 0.6 : 1,
           }}
         >
-          {checkout.pending !== null ? 'Opening checkout…' : 'Continue on Creator'}
+          {needsFirstValue
+            ? 'Make your first film →'
+            : checkout.pending !== null
+              ? 'Opening checkout…'
+              : 'Continue on Creator'}
         </button>
+
+        {needsFirstValue && (
+          <button
+            type="button"
+            onClick={goToCreator}
+            disabled={checkout.pending !== null}
+            style={{
+              width: '100%',
+              marginTop: 8,
+              padding: '11px 16px',
+              borderRadius: 12,
+              border: '1px solid #2997ff',
+              background: 'transparent',
+              color: '#7cc0ff',
+              fontSize: 13,
+              fontWeight: 800,
+              cursor: checkout.pending !== null ? 'wait' : 'pointer',
+              opacity: checkout.pending !== null ? 0.6 : 1,
+            }}
+          >
+            {checkout.pending !== null ? 'Opening checkout…' : 'Choose Creator now'}
+          </button>
+        )}
 
         <button
           type="button"

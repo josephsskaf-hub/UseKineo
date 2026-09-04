@@ -1,7 +1,8 @@
 import { TRIAL_DOWNGRADE_PLAN_CHOICE_VERSION } from '@/lib/growth/trialDowngradePlanChoice'
+import type { TrialDowngradeJourneyState } from '@/lib/growth/trialDowngradeFirstValue'
 
 export const TRIAL_DOWNGRADE_HUMAN_VIEW_VERSION =
-  'trial_downgrade_offer_view_v1' as const
+  'trial_downgrade_offer_view_v2' as const
 export const TRIAL_DOWNGRADE_HUMAN_VIEW_RATIO = 0.6 as const
 export const TRIAL_DOWNGRADE_HUMAN_VIEW_DWELL_MS = 1000 as const
 export const TRIAL_DOWNGRADE_HUMAN_VIEW_RETRY_DELAY_MS = 1500 as const
@@ -18,7 +19,7 @@ export type TrialDowngradeHumanViewRecordResult =
 type MarkerStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
 type ExclusiveClaim = <T>(claimName: string, task: () => Promise<T>) => Promise<T>
 
-export function trialDowngradeHumanViewMetadata() {
+export function trialDowngradeHumanViewMetadata(journeyState: TrialDowngradeJourneyState) {
   return {
     version: TRIAL_DOWNGRADE_HUMAN_VIEW_VERSION,
     offer_version: TRIAL_DOWNGRADE_PLAN_CHOICE_VERSION,
@@ -33,6 +34,8 @@ export function trialDowngradeHumanViewMetadata() {
     currency_resolved: true,
     display_currency: 'usd',
     human_exposure_claimed: true,
+    journey_state: journeyState,
+    primary_action: journeyState === 'first_value' ? 'make_first_film' : 'continue_creator',
   } as const
 }
 
@@ -173,6 +176,7 @@ export function createTrialDowngradeHumanViewRetryController(options: {
 
 export function createTrialDowngradeHumanViewRecorder(options: {
   userKey: string
+  journeyState: TrialDowngradeJourneyState
   storage?: MarkerStorage | null
   withExclusiveClaim?: ExclusiveClaim | null
   transport: (
@@ -215,7 +219,7 @@ export function createTrialDowngradeHumanViewRecorder(options: {
     try {
       outcome = await options.transport(
         'trial_downgrade_offer_viewed',
-        trialDowngradeHumanViewMetadata(),
+        trialDowngradeHumanViewMetadata(options.journeyState),
       )
     } catch {
       outcome = 'ambiguous'

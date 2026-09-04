@@ -2692,3 +2692,104 @@ Nada.
 Medi o bloco sem inventar conversão: as duas correções estão no ar, mas ainda
 não encontraram uma pessoa elegível. O placar continua sem assinatura e as
 superfícies permanecem intactas até terem amostra.
+
+---
+
+## ROUND 41 — fim do trial sem filme: valor antes do cartão
+
+**Data:** 2026-09-04 14:12→14:23 BRT
+
+**Pista:** Growth-B2C / CAIXA
+
+**Branch:** `codex/caixa-downgrade-first-value-r41`
+
+### VIGIA, PLACAR E HIPÓTESE
+
+**EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, corte 04/09/2026 14:16
+BRT:** o placar canônico permanece em **41 cadastros externos, 27 pessoas com
+filme, 2 checkouts com filme, 2 sem filme, 0 assinaturas e 0 pessoas com falha
+sem filme**. A janela móvel de duas horas não continha pessoa externa com
+checkout aberto e pagamento ausente.
+
+**EVIDÊNCIA DE PRODUÇÃO — 30 dias, medida em 04/09/2026, contas internas
+excluídas:** 65 pessoas externas produziram
+`trial_downgrade_modal_shown`; 21 tinham zero filmes concluídos antes da primeira
+montagem, 4 dessas 21 abriram checkout, nenhuma pagou e somente 3 receberam um
+filme depois. Entre as 44 que já tinham filme, 14 abriram checkout e 3 pagaram.
+Montagem não é exposição humana e a associação não prova causalidade; o dado
+prova, porém, que a copy “You made real films” era factualmente falsa para 21
+pessoas e que o mesmo CTA governava jornadas opostas.
+
+**HIPÓTESE:** quando o trial termina antes da primeira entrega, pedir cartão como
+ação principal antecipa a decisão de compra ao valor. Levar essa pessoa ao
+Studio primeiro deve aumentar filme entregue e criar uma oportunidade de caixa
+com prova própria; quem já recebeu filme continua vendo Creator como primeira
+ação.
+
+### MUDANÇA MÍNIMA E REVERSÍVEL
+
+**IMPLEMENTADO:** `TrialDowngradeModal` consulta o histórico owner-scoped somente
+depois de `/api/credits` provar downgrade, entitlement resolvido e não-pagante.
+Histórico confiável com `completedCount=0` troca apenas a hierarquia:
+
+- primário: `Make your first film` → `/studio/create?engine=fast`, sem prompt,
+  autostart, render ou promessa de quota;
+- secundário: `Choose Creator now` preserva o mesmo checkout;
+- comparar planos e permanecer no free continuam disponíveis;
+- um filme ou mais preserva a tela atual;
+- erro, ausência ou contagem inválida falha para a tela atual, nunca para a
+  variante nova.
+
+**FATO CONFIRMADO:** preço, crédito, SKU, desconto, checkout e regra de
+elegibilidade não mudaram. A navegação ao Studio só acontece após clique e usa
+campanha fechada `trial_downgrade_first_value_v1`.
+
+**IMPLEMENTADO — medição:** o evento humano do CTA passou para v2 e declara
+`journey_state` + `primary_action`; sua chave também mudou de versão para permitir
+uma medida limpa da nova decisão. O clique de ativação grava somente campos
+fechados em `trial_downgrade_first_film_clicked`; nenhum texto do usuário viaja.
+
+### TESTES, VISUAL E GATE
+
+**TESTADO LOCALMENTE:** 508 verificações direcionadas verdes: first-value 49,
+human-view 107, plan-choice 39 e money-truth 313. `npx tsc --noEmit` ficou
+**verde, zero erros**; `diff --check` limpo. O ajuste tipado do Web Lock eliminou
+o último `Promise<Promise<T>>` conhecido do componente sem mudar o runtime.
+
+**COMPARAÇÃO VISUAL:**
+`docs/previews/TRIAL-DOWNGRADE-FIRST-VALUE-V1-2026-09-04.html` contém
+antes/depois desktop e mobile com toda a seção tocada. A política do navegador
+recusou abrir `file://`; portanto não se declara smoke visual automatizado. O
+artefato continua autocontido e auditável, e o teste exige as quatro vistas.
+
+Gate mínimo: 10 pessoas externas com
+`trial_downgrade_offer_viewed(version=trial_downgrade_offer_view_v2,
+journey_state=first_value)`. Medir por pessoa:
+`trial_downgrade_first_film_clicked` → novo `videos.status=completed` →
+`checkout_started` → `checkout_success_viewed`. Antes do gate, a variante fica
+congelada. Interromper apenas se aparecer classificação `first_value` com
+histórico não confiável ou se o destino perder a campanha/engine fechados.
+
+### RISCO
+
+Uma segunda leitura owner-scoped pode atrasar a abertura do modal. O risco é
+limitado à coorte já elegível, e qualquer falha mantém a tela paga original. O
+CTA não promete gratuidade nem força geração: a política existente continua
+decidindo o que a conta pode fazer no Studio.
+
+### PRÓXIMA JOGADA
+
+R42 mede o primeiro sinal da variante e volta ao vigia. Sem exposição, não
+reedita o modal; procura uma superfície CAIXA não congelada ou atende um novo
+pedido da outra pista.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+### 📋 O QUE ACONTECEU
+
+O modal dizia “você fez filmes” para 21 pessoas que nunca receberam nenhum e
+abria o caixa antes da prova. Agora somente esse estado leva primeiro ao Studio;
+quem já viu o produto continua recebendo a oferta de Creator como antes. Nenhum
+número comercial ou regra de crédito mudou.
