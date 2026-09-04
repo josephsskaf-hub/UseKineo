@@ -279,3 +279,78 @@ O funil de episódio 2 já existe e há sinal de uso: 6 de 10 pessoas fizeram
 outro filme depois de ver o card. O dado ainda não prova causalidade nem tem
 janela madura suficiente para nova mudança. O problema seguinte está depois
 da repetição, e a oferta de 2+ filmes permanece congelada até completar amostra.
+
+---
+
+## ROUND 6 — saldo insuficiente + K11 · call graph vivo antes de copy
+
+**Data:** 2026-09-04 10:24 BRT
+**Pista:** Growth-B2C / CAIXA
+**Branch:** `codex/caixa-live-balance-r6`
+
+### EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, 2026-09-04 10:21 BRT
+
+- Marco canônico `2026-09-03 16:00 UTC`: 34 cadastros externos, 21 pessoas
+  com filme, 1 checkout de desejo, 2 checkouts sem filme, 0 assinaturas e 0
+  pessoas com falha sem filme.
+- Vigia das últimas 2 horas: permanece 1 pessoa externa (`a8c8d6c5`), classe
+  canônica `activation_defect`, Pro aberto, 0 filmes, 25 créditos intactos.
+- K11 `pricing_journey_proof_v1`, estado `after_delivery`: 5 pessoas externas,
+  todas com 24h completas; 0 clique no CTA interno, 1 checkout e 1 assinatura
+  por outro caminho nas 24h seguintes.
+- O estado `before_first_delivery` tem 9 pessoas (8 maduras), 0 clique interno,
+  3 checkouts e 1 assinatura por outros caminhos.
+
+### FATO CONFIRMADO — pedido do Claude sobre saldo curto
+
+- `components/UpgradeModal.tsx` não tem caller no HEAD atual. Ele está órfão;
+  editar sua copy não mudaria o produto.
+- A caixa viva é uma função local `UpgradeModal` em
+  `app/(dashboard)/generate/GenerateClient.tsx:18480`, e o gatilho também vive
+  nesse arquivo. Essa é a pista Claude/compartilhada.
+- As seis redações de saldo citadas pelo pedido nascem em rotas de Compose,
+  Avatar, Animate e mídia. As caixas vivas de Images/Audio/Animate já oferecem
+  plano ou recarga; o texto cru restante é responsabilidade do chamador.
+- K11 já está IMPLEMENTADO em `PricingJourneyProof`: após entrega, a página de
+  preço mostra duração e motor do filme da pessoa antes dos planos. A variante
+  tem só 5 pessoas expostas, abaixo do gate de 10; não foi reeditada.
+
+### DECISÃO REVERSÍVEL / GATE
+
+O pedido de saldo foi devolvido à pista dona com o call graph exato. Não foi
+criado componente paralelo nem copy órfã. K11 permanece congelado até 10
+pessoas externas maduras em `after_delivery`. A assinatura observada prova
+correlação da jornada, não crédito do CTA, porque não houve clique nele.
+
+### IMPLEMENTADO
+
+Nenhuma alteração de produto. Diagnóstico mensurável e roteamento entre pistas.
+
+### COMO MEDIR
+
+Para K11: `pricing_journey_proof_viewed` → CTA do próprio componente →
+`checkout_started` → `checkout_success_viewed`, por pessoa em 24h e por
+`journey_state`. Para saldo: medir no evento do chamador qual ação apareceu
+após 402; mensagem do servidor sozinha não prova que a UI terminou sem saída.
+
+### RISCO
+
+Risco zero de produto: SELECT e documentação. O risco evitado foi editar um
+componente órfão e declarar uma correção que ninguém veria.
+
+### PRÓXIMA JOGADA
+
+Auditar K8 e as superfícies próprias restantes por caller e amostra. Se todas
+estiverem implementadas ou congeladas, fazer rodada de medição pura contra o
+marco zero e transformar o padrão do vigia em pedido objetivo para a pista dona.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+### 📋 O QUE ACONTECEU
+
+A mensagem de saldo que realmente aparece está dentro da tela do Claude; o
+arquivo de modal atribuído à CAIXA está morto. Não desperdicei uma entrega nele.
+A página de preço já usa o filme como prova e teve uma assinatura na pequena
+coorte, mas ainda não tem amostra suficiente para receber outra variante.
