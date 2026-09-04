@@ -2,6 +2,15 @@ const MAX_SERIES_SEED_LENGTH = 180
 
 export type SeriesContinuationSource =
   | 'done_screen'
+  // sprint-retencao #2 (2026-09-04) — a MESMA porta, no primeiro viewport.
+  // Medido em 30 dias (externos): 413 pessoas chegaram na tela de filme
+  // pronto, 382 receberam a prateleira de tema NOVO (`next_shorts_shown`) e
+  // so 49 chegaram a VER o botao de continuar a propria historia
+  // (`series_continue_seen`): 93% recebem "troque de assunto", 12% recebem
+  // "continue". E continuar e o que preve pagamento — 58 cliques em 30d
+  // viraram 30 filmes em 24h (52%, contra ~19% de segundo filme na base).
+  // Fonte propria para que a comparacao topo x rodape exista no banco.
+  | 'done_screen_top'
   | 'generate_recent_video'
   | 'history_milestone'
   | 'history_video_card'
@@ -225,6 +234,16 @@ export function buildSeriesContinuationPrompt(value: string | null | undefined):
 export function buildSeriesContinuationHref(
   value: string | null | undefined,
   source: SeriesContinuationSource,
+  // sprint-retencao #2 — o episodio 2 herdava o MOTOR do episodio 1 e nao
+  // herdava a pergunta "o saldo ainda paga esse motor?". Caso vivo de 04/09
+  // (pessoa d20530865c): primeiro filme no Seedance (15cr), sobraram 10,
+  // clicou continuar as 10:45 e as 10:51 levou `upgrade_modal_opened`
+  // reason=trial_spent com 10 creditos na mao. Quando quem chama PROVA que o
+  // saldo nao cobre e que a vaga do motor gratis esta livre, o link carrega o
+  // motor acessivel — o mesmo `?engine=` que o e-mail de momentum ja usa
+  // (rodada #16). Sem prova, o parametro nao entra e o link e byte a byte o
+  // de hoje.
+  opts?: { engine?: string | null },
 ): string {
   const prompt = buildSeriesContinuationPrompt(value)
   if (!prompt) return '/studio'
@@ -234,6 +253,8 @@ export function buildSeriesContinuationHref(
     series: '1',
     continuation_source: source,
   })
+  const engine = typeof opts?.engine === 'string' ? opts.engine.trim().toLowerCase() : ''
+  if (engine) params.set('engine', engine)
   return `/studio/create?${params.toString()}`
 }
 

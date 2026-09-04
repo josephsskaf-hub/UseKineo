@@ -171,3 +171,188 @@ rebaixado para o que o saldo paga**, e o download como ação secundária.
 
 Nenhum. O achado desta rodada é inteiramente da minha pista
 (`app/(dashboard)/**`).
+### #2 (global #18) — 15:55 BRT — A OFERTA MAIS EFICIENTE DA CASA ESTAVA NO RODAPÉ: 27% DE CLIQUE, 12% DE EXPOSIÇÃO
+
+**O número que doía.** 30 dias, contas externas, medido agora (não herdado da
+rodada anterior — refiz o SQL):
+
+| evento | pessoas |
+|---|---:|
+| `video_ready_viewed` (chegou na tela de filme pronto) | **413** |
+| `next_shorts_shown` (prateleira de tema NOVO) | **382** — 93% |
+| `series_continue_seen` (viu "continuar a própria história") | **49** — 12% |
+| `series_continue_clicked` (source `done_screen`) | **13** |
+
+Os 13 de 49 são o número que muda a decisão: **27% de quem VÊ a porta do
+episódio 2 CLICA nela.** Não existe nada nessa tela com essa taxa. Ela não
+tinha problema de oferta — tinha problema de lugar. Ela morava depois do
+player, do download, do painel de compartilhar e do bloco do YouTube; 88% das
+pessoas nunca chegavam lá.
+
+E é a porta que prevê pagamento. A régua da casa (30 dias, externos): 1 filme
+= 0,3% de pagantes · 2-3 = 1,8% · 4-7 = 15,4% · 8+ = 33,3%. Quem chega ao 4º
+filme paga ~51x mais. Pós-marco da sprint 1, **22 das 27 pessoas que fizeram
+filme pararam no primeiro.**
+
+**Junto, o segundo defeito — o motor que a continuação herda.** Caso vivo de
+hoje (pessoa `d20530865c`, origem chatgpt.com): cadastrou 10:33 com 25cr,
+primeiro filme pronto 10:42 (Seedance, 15cr, sobraram 10), clicou continuar
+10:45 — e às 10:51 levou `upgrade_modal_opened` reason=trial_spent com 10
+créditos na mão. A continuação herdava o MOTOR do episódio 1 e não herdava a
+pergunta *"o saldo ainda paga esse motor?"*. E a saída existe e é verdadeira:
+`creditCostFor('fast', false)` = **0** — o Kineo 1 faria esse episódio 2 com o
+saldo que ela já tinha.
+
+**O que mudou (2 arquivos, aditivo).**
+- `app/(dashboard)/generate/GenerateClient.tsx`: a porta do episódio 2 nasce
+  **logo abaixo do botão de download**, dentro do primeiro viewport. Fonte
+  própria (`done_screen_top`) para que a comparação topo × rodapé exista no
+  banco. A porta antiga do rodapé **continua lá** — não removi nada.
+- `lib/seriesContinuation.ts`: `buildSeriesContinuationHref` ganhou um 3º
+  parâmetro **opcional** (`{ engine }`). Sem ele, o link é byte a byte o de
+  hoje — as 8 chamadas antigas não mudam de destino.
+- `scripts/test-porta-episodio2-2026-09-04.mjs` (novo): **53 verificações, 0
+  falhas**, lendo os arquivos reais e **executando** o módulo do link e o de
+  preço.
+
+**O que eu decidi NÃO fazer, e por quê.** O cardápio da sprint (R1) manda o
+botão principal deixar de ser download e passar a ser "Episode 2". **Não
+inverti.** `KINEO-DELIVER-FIRST-2026-07-30` está escrito no próprio arquivo e
+foi medido: quando o download ficou abaixo de um divisor "OR", **107 pessoas
+viram o filme pronto na tela e foram embora sem ele** (134 concluíram, 27
+baixaram). Reverter uma decisão medida por uma hipótese é o erro mais caro que
+esta sprint pode cometer. A síntese honesta: **o download continua primeiro, a
+porta do episódio 2 entra imediatamente depois — e só ganha peso de ação
+principal (botão azul cheio) DEPOIS que o arquivo está na mão**
+(`watermarkedDownloadConfirmed`). Entregar, depois convidar. Reversível numa
+linha se o número disser o contrário.
+
+**O motor acessível, e onde ele falha fechada.** A porta desvia para o Kineo 1
+somente quando as TRÊS provas existem ao mesmo tempo: (a) o saldo não cobre o
+motor herdado (`selectedUnaffordable`, que já governava o seletor de duração);
+(b) o Kineo 1 custa **0** nesta conta (`creditCostForDuration('fast',
+isPaidAccount, duration)`, a mesma função que o servidor usa para cobrar); e
+(c) a vaga da cota gratuita está **comprovadamente** livre. Vaga desconhecida
+(`freeFastUsedInWindow === null`, o que acontece com a janela de 30 dias
+ligada) **não autoriza promessa nenhuma** — é a mesma disciplina do #16, e a
+razão é a família de defeito que esta sprint já matou cinco vezes: meia
+verdade no momento da promessa. Quando desvia, a copy diz a verdade inteira na
+mesma frase: *"renders on Kineo 1, free on your account, with our watermark"*.
+
+**Quantas pessoas isso move de N para N+1.** A conta, com os números acima e
+sem otimismo: hoje 49 pessoas/30d veem a porta e 13 clicam (27%). Levando a
+exposição para ~380 (todo mundo que chega na tela com um tema) e **cortando a
+taxa de clique pela metade** (13%, porque o topo alcança também quem não
+rolaria), são ~50 pessoas clicando contra 13 — **+37 pessoas/30d**. A 52% de
+clique→filme em 24h (medido na rodada #1), são **~19 segundos filmes a mais
+por mês**, ~0,6/dia. Modesto em volume e grande em degrau: é exatamente o
+salto 1→2, que é onde 22 das 27 pessoas pós-marco estão paradas. A parede do
+motor é menor (8 pessoas/30d, 6 com saldo sobrando) e vem de carona.
+
+**Falsificado em 5 mutações**, cada uma aplicada de verdade no arquivo real e
+depois desfeita:
+
+| mutação | verificações que caem |
+|---|---|
+| tirar o `if (engine)` do href | 1.2, 1.3, 1.4, 1.4b |
+| trocar `episode2QuotaKnown` por `true` | 3.6 |
+| tirar `!freeFastQuotaSpent` da condição | 3.5 |
+| tirar a marca d'água da copy do ramo free | 4.2, 4.2b |
+| cravar `'fast'` no clique em vez do derivado | 2.2, 2.3, 2.8, 3.7, 4.1, 4.2, 4.2b |
+
+A sexta que eu queria rodar (mover o botão para depois do YouTube) é recorte
+estrutural, não troca de texto; quem a substitui é a verificação 2.3, que
+compara **posição no arquivo**, não existência.
+
+**Trava de qualidade do fundador (03/09 23:40) — conferida.** Nada em
+`lib/compose`, `lib/hollywood`, `lib/cinematic`, `lib/broll`, `lyriaMusic`, no
+pipeline do Kineo 1, na escolha de motor, no prompt de cena, na régua de
+palavras/segundo, em `analyze-idea` ou em `generate-script`. O bloco 6 do
+teste tranca isso e registra uma verdade que eu quase escrevi errado: a tela
+**já importava** `MIN_COVERAGE`/`speechSeconds` antes desta jogada — o que a
+jogada não pode fazer é **usar** a régua, e o teste prova que a porta nova não
+a chama.
+
+**Risco: baixo, e o pior caso é conhecido.** Nenhum preço, plano, grant,
+gatilho ou destino de checkout foi tocado. O pior caso é uma pessoa receber a
+porta com `engine=fast` e, entre o clique e o Generate, gastar a vaga em outra
+aba — aí ela cai no 402 de cota, que já tem copy própria dizendo quando a vaga
+volta. Reverter a jogada inteira: apagar o bloco `{episode2Seed && (…)}` da
+tela; a porta do rodapé continua exatamente onde sempre esteve.
+
+**Como medir (contra o marco 2026-09-03 16:00 UTC).**
+
+```sql
+-- 1) a exposição saiu de 12%?
+with ext as (select id from profiles where email not ilike '%josephsskaf%'
+  and email not ilike '%usekineo%' and email not ilike '%kineo.local')
+select coalesce(e.metadata->>'source','-') src,
+       count(distinct e.user_id) pessoas
+from events e join ext on ext.id=e.user_id
+where e.name in ('video_ready_viewed','series_continue_seen')
+  and e.created_at > '2026-09-04 19:00:00+00'
+group by 1 order by 2 desc;
+
+-- 2) o gate da jogada: clique da porta de cima -> filme em 24h
+with c as (select distinct user_id, min(created_at) ts from events
+           where name='series_continue_clicked'
+             and metadata->>'source'='done_screen_top' group by 1)
+select count(*) clicaram,
+  count(*) filter (where exists (select 1 from videos v where v.user_id=c.user_id
+     and v.status='completed' and v.created_at between c.ts and c.ts + interval '24 hours')) fizeram_o_2o;
+
+-- 3) o desvio de motor: quantas vezes a porta salvou alguém da parede
+select metadata->>'engine_reason' razao, metadata->>'engine_offered' motor,
+       count(distinct user_id) pessoas
+from events where name='series_continue_seen'
+  and metadata->>'source'='done_screen_top' group by 1,2 order by 3 desc;
+```
+
+Gate honesto: o controle é a porta do rodapé, na MESMA tela, no mesmo dia
+(`source='done_screen'`, 27% de clique por impressão). Se a porta de cima
+converter muito abaixo disso, o lugar não era o problema e eu estava errada.
+Sinal de alarme: `video_downloaded` por `video_ready_viewed` **cair** — seria a
+porta nova roubando o download, e aí ela desce ou some.
+
+**Placar da rodada** (marco 03/09 16:00 UTC, externos): 41 cadastros · 27
+pessoas com filme · 2 checkouts com filme · 2 sem filme · **0 assinaturas** ·
+0 pessoas com falha e sem filme. Faixas: 1 filme = 22 · 2-3 = 4 · 4-7 = 1 ·
+8+ = 0. **Ninguém subiu de faixa desde a rodada #1.**
+
+**Checagem zero (última 1-2h):** 0 render preso, 0 `generation_stage_error`,
+0 causa antiga (compose_not_ok / TypeError / openai_quota / full capacity).
+Continua de pé o achado vermelho da rodada #1: **4 contas externas de hoje com
+`trial_status` NULO e 0 créditos** (04:58, 11:03, 11:05, 11:09 UTC), todas
+anteriores ao conserto do #11 das 13:08. Não reparei à mão de propósito — a
+concessão real é uma transação com `trial_status=blocked` + RPC
+`add_video_credits`, e o CLAUDE.md manda usar o botão do `/admin/people`.
+
+**Duas hipóteses medidas e descartadas** (para ninguém gastar rodada nelas):
+1. *"O ramo `free_engine` do #16 não está saindo"* — **não é defeito, é
+   calendário.** `momentum_nudge_sent` tem 23 envios desde o marco, todos com
+   `next_film` NULO, e o último foi **13:31:38 UTC de hoje** — antes de o #16
+   existir. O primeiro veredito só é possível na próxima passada do cron.
+2. *"O #13 (primeiro filme grátis) está mudo por defeito"* —
+   `first_film_free_offer_shown` tem 0 disparos, mas `upgrade_modal_opened`
+   também não dispara desde 10:51 UTC e `trial_downgrade_modal_shown` teve o
+   último às 16:51 UTC. Falta **exposição**, não código; menos de 24h de vida.
+
+**Modelo.** Feita em Opus. O plano reserva Fable para R2 (série com memória de
+verdade) e R4 (winback com filme pronto); esta é posicionamento de tela e uma
+regra de 3 booleanos.
+
+**Nota de fase.** São 15:55 BRT — pelo portão do programa, a sprint 1 vale até
+16:30. A rodada anterior (14:23) já havia aberto este arquivo como
+`sprint-retencao #1 (global #17)`; reabrir a numeração da sprint 1 agora
+partiria o diário no meio. Mantive a continuidade e **o fechamento da sprint 1
+fica devendo no arquivo dela** (`docs/SPRINT-ASSINATURAS-2026-09-03.md`) — é a
+primeira coisa da próxima rodada, depois das 16:30.
+
+**Pedidos.** 1 aviso de arquivo (zona compartilhada `GenerateClient.tsx`) e 1
+pedido novo ao Codex: que a **primeira das três vagas** de
+`components/video/NextShortsSection.tsx` — a prateleira que alcança 93% —
+passe a ser o episódio 2 do próprio tema, e as outras duas continuem novas.
+
+**Próximo item.** (a) fechamento da sprint 1 no diário dela; (b) R2 — o
+episódio 2 nascer do roteiro do episódio 1 e não de uma ordem genérica
+(Fable); (c) medir o ramo `free_engine` na próxima passada do cron de momentum.

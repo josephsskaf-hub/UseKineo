@@ -9523,6 +9523,11 @@ export default function GenerateClient({
     seed: string | null | undefined,
     source: SeriesContinuationSource,
     videoId?: string | null,
+    // sprint-retencao #2 — o motor ACESSIVEL do episodio 2. So quem PROVOU
+    // que o saldo nao cobre o motor herdado e que a vaga gratis esta livre
+    // passa algo aqui; `undefined` deixa o comportamento byte a byte o de
+    // hoje (o /studio/create herda a selecao que ja estava na tela).
+    engine?: string | null,
   ) {
     const nextPrompt = buildSeriesContinuationPrompt(seed)
     if (!nextPrompt) {
@@ -9534,8 +9539,11 @@ export default function GenerateClient({
     trackEvent('series_continue_clicked', {
       source,
       video_id: videoId ?? null,
+      // sem este campo nao da para separar, no banco, a continuacao que saiu
+      // com o motor herdado da que foi desviada para o motor gratis.
+      engine: engine ?? null,
     })
-    const href = buildSeriesContinuationHref(seed, source)
+    const href = buildSeriesContinuationHref(seed, source, { engine })
     handleReset()
     setPrompt(nextPrompt)
     autoAnalyzeKeyRef.current = null
@@ -10553,6 +10561,115 @@ export default function GenerateClient({
   })()
   const selectedUnaffordable =
     credits !== null && costForDurationOption(duration) > credits && costForDurationOption(duration) > 0
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // sprint-retencao #2 (2026-09-04) — A PORTA DO EPISODIO 2 ESTAVA NO RODAPE
+  //
+  // O NUMERO (30 dias, contas externas): 413 pessoas chegaram na tela de
+  // filme pronto. 382 receberam a prateleira de tema NOVO
+  // (`next_shorts_shown`, 93%) e apenas 49 chegaram a VER o botao de
+  // continuar a PROPRIA historia (`series_continue_seen`, 12%) — ele mora
+  // depois do player, do download, do painel de compartilhar e do bloco do
+  // YouTube. E continuar e exatamente o que preve pagamento: 58 cliques em
+  // 30d viraram 30 filmes em 24h (52%), contra ~19% de segundo filme na base.
+  // A regua da casa: quem faz 1 filme paga 0,3%; quem chega ao 4o paga 15%.
+  //
+  // O QUE NAO MUDA: o download continua sendo a acao principal. A decisao
+  // KINEO-DELIVER-FIRST-2026-07-30 foi medida (107 pessoas viram o filme
+  // pronto e foram embora sem ele) e nao se reverte por hipotese. A porta do
+  // episodio 2 entra LOGO ABAIXO do download — dentro do primeiro viewport —
+  // e so ganha peso de acao principal DEPOIS que o arquivo esta na mao
+  // (`watermarkedDownloadConfirmed`). Entregar, depois convidar.
+  //
+  // O MOTOR: a continuacao herdava a selecao do episodio 1 e nao herdava a
+  // pergunta "o saldo ainda paga isso?". Caso vivo de 04/09 (d20530865c):
+  // Seedance 15cr, sobraram 10, clicou continuar as 10:45, levou
+  // `upgrade_modal_opened` reason=trial_spent as 10:51 com 10 creditos na
+  // mao. Quando o saldo nao cobre E o Kineo 1 custa 0 nesta conta E a vaga
+  // da cota gratis esta comprovadamente livre, a porta desvia para o motor
+  // gratis e DIZ que sai com marca d'agua. Sem prova de vaga
+  // (`freeFastUsedInWindow === null`) nao ha promessa: falha fechada, como
+  // na rodada #16 — meia verdade no momento da promessa e a familia de
+  // defeito que esta sprint ja matou cinco vezes.
+  // ═══════════════════════════════════════════════════════════════════════
+  const episode2Seed = buildSeriesContinuationPrompt(analysis?.title ?? prompt) ? (analysis?.title ?? prompt) : null
+  const episode2InheritedCost = costForDurationOption(duration)
+  const episode2FreeCost = creditCostForDuration('fast', isPaidAccount, duration)
+  const episode2QuotaKnown = freeFastUsedInWindow !== null
+  const episode2Engine: 'fast' | null =
+    selectedUnaffordable && episode2FreeCost === 0 && episode2QuotaKnown && !freeFastQuotaSpent
+      ? 'fast'
+      : null
+  // Por que a porta NAO desviou. Vai no evento para que a proxima rodada
+  // consiga responder "quantas pessoas ficaram sem saida" sem adivinhar.
+  const episode2EngineReason =
+    episode2Engine === 'fast' ? 'free_engine'
+    : !selectedUnaffordable ? 'inherited_fits'
+    : !episode2QuotaKnown ? 'unknown_quota'
+    : freeFastQuotaSpent ? 'free_quota_used'
+    : 'free_engine_costs_credits'
+  const nextEpisodeTopBtnRef = useRef<HTMLButtonElement | null>(null)
+  const nextEpisodeTopSeenRef = useRef<string | null>(null)
+  // A impressao da porta de cima. Mesmo contrato da porta de baixo (uma vez
+  // por geracao, so quando ela ENTRA no viewport) para que o par
+  // done_screen_top x done_screen seja comparavel no banco. Sem
+  // IntersectionObserver marca `observed:false` em vez de perder a serie.
+  useEffect(() => {
+    if (phase !== 'done') return
+    if (!episode2Seed) return
+    const attemptId = generationAttemptRef.current
+    if (!attemptId || nextEpisodeTopSeenRef.current === attemptId) return
+    const doneAt = Date.now()
+    const marcarVisto = (observed: boolean) => {
+      if (nextEpisodeTopSeenRef.current === attemptId) return
+      nextEpisodeTopSeenRef.current = attemptId
+      try {
+        void trackEvent('series_continue_seen', {
+          source: 'done_screen_top',
+          attempt_id: attemptId,
+          seconds_after_ready: Math.round((Date.now() - doneAt) / 1000),
+          observed,
+          engine_offered: episode2Engine,
+          engine_reason: episode2EngineReason,
+          inherited_cost: episode2InheritedCost,
+        })
+      } catch { /* analytics nunca quebra a tela */ }
+    }
+    if (typeof IntersectionObserver === 'undefined') {
+      marcarVisto(false)
+      return
+    }
+    let observer: IntersectionObserver | null = null
+    let timer: ReturnType<typeof setTimeout> | null = null
+    let tentativas = 0
+    const ligar = () => {
+      const el = nextEpisodeTopBtnRef.current
+      if (!el) {
+        tentativas += 1
+        if (tentativas > 25) return
+        timer = setTimeout(ligar, 400)
+        return
+      }
+      try {
+        observer = new IntersectionObserver((entries) => {
+          for (const entry of entries) {
+            if (!entry.isIntersecting) continue
+            marcarVisto(true)
+            observer?.disconnect()
+            observer = null
+            return
+          }
+        }, { threshold: 0.5 })
+        observer.observe(el)
+      } catch { /* navegador antigo — a serie fica sem esta impressao */ }
+    }
+    ligar()
+    return () => {
+      if (timer) clearTimeout(timer)
+      observer?.disconnect()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, episode2Seed])
 
   // Push #156 — ready-to-paste YouTube description for the next-steps guide.
   // PUSH #100 — o que o usuário COPIA agora é exatamente o que o servidor
@@ -14394,6 +14511,48 @@ export default function GenerateClient({
                       ? 'Download again (free copy)'
                       : `Download my Short (${finalVideoSeconds ?? duration}s · MP4)`}
                   </a>
+                  {/* sprint-retencao #2 — a porta do episodio 2, no primeiro
+                      viewport. Ver o bloco de comentario em episode2Engine:
+                      so 12% das pessoas chegavam a VER esta oferta no rodape,
+                      e continuar a propria historia e o que preve pagamento.
+                      Peso de acao secundaria enquanto o arquivo nao esta na
+                      mao; peso de acao principal depois do download. */}
+                  {episode2Seed && (
+                    <button
+                      ref={nextEpisodeTopBtnRef}
+                      type="button"
+                      onClick={() => handleContinueSeries(episode2Seed, 'done_screen_top', publicVideoId, episode2Engine)}
+                      className="flex w-full flex-col items-center justify-center rounded-xl mt-2.5 px-5 py-3.5 text-center font-black"
+                      style={{
+                        background: watermarkedDownloadConfirmed
+                          ? 'linear-gradient(135deg, #2997ff, #0a6fd8)'
+                          : 'rgba(41,151,255,.10)',
+                        border: watermarkedDownloadConfirmed
+                          ? '1px solid rgba(41,151,255,.6)'
+                          : '1px solid rgba(41,151,255,.40)',
+                        color: watermarkedDownloadConfirmed ? '#fff' : '#5cb3ff',
+                        cursor: 'pointer',
+                        boxShadow: watermarkedDownloadConfirmed
+                          ? '0 8px 24px rgba(41,151,255,.28)'
+                          : '0 6px 18px rgba(41,151,255,.10)',
+                      }}
+                    >
+                      <span style={{ fontSize: '0.92rem' }}>Episode 2 of this story →</span>
+                      <span
+                        style={{
+                          marginTop: 4,
+                          fontSize: '0.7rem',
+                          fontWeight: 650,
+                          color: watermarkedDownloadConfirmed ? 'rgba(255,255,255,.82)' : 'rgba(92,179,255,.78)',
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        {episode2Engine === 'fast'
+                          ? 'Your balance won\u2019t cover the same engine \u00b7 this one renders on Kineo 1, free on your account, with our watermark'
+                          : 'Same subject, one click \u00b7 new hook, new facts, new payoff'}
+                      </span>
+                    </button>
+                  )}
                   {/* KINEO-READING-ORDER-2026-07-30 — o rótulo era "OR", e "OR"
                       afirma uma exclusividade que não existe: baixar de graça NÃO
                       impede assinar depois, e enquadrar as duas opções como
