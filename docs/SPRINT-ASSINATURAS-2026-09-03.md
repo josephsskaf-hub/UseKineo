@@ -1617,7 +1617,6 @@ aguardando o clique no SUBIR-SITE.bat). Worktree:
 
 ---
 
-### #9 — 09:40→10:20 BRT (04/09) — o cadastro por E-MAIL E SENHA nascia sem os 25 créditos. 4 pessoas só hoje, e nenhum dos 14 órfãos de 21 dias fez UM vídeo na vida.
 ### #11 — 09:40→10:20 BRT (04/09) — o cadastro por E-MAIL E SENHA nascia sem os 25 créditos. 4 pessoas só hoje, e nenhum dos 14 órfãos de 21 dias fez UM vídeo na vida.
 
 **Placar da rodada** (SQL canônico, marco zero 03/09 16:00 UTC, contas externas):
