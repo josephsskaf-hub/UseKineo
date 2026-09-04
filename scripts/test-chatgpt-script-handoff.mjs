@@ -187,7 +187,9 @@ try {
   // Answer engines and the CEO organic registry recognize the exact route and
   // its complete, honest contract.
   includes(facts, 'export const START_HERE_FACT', 'facts expose a shared start-here record')
-  includes(facts, "url: `${BASE}/chatgpt-to-youtube-shorts`", 'start-here points at the handoff page')
+  includes(facts, "url: `${BASE}/chatgpt-to-youtube-shorts#chatgpt-script-handoff`", 'start-here opens directly at the stable paste-box anchor')
+  includes(page, "const HANDOFF_ID = 'chatgpt-script-handoff'", 'machine link fragment resolves to the rendered handoff id')
+  ok(!facts.includes("url: `${BASE}/signup`"), 'answer-engine start never drops a script-ready visitor on generic signup')
   includes(facts, "['script', 'campaign', 'trial_best_creation_intent', 'verbatim_mode', 'duration']", 'machine-readable contract lists all carried values')
   includes(facts, 'Seedance when an active trial balance covers it, otherwise Fast', 'public facts describe the same bounded router')
   includes(facts, 'startHere: START_HERE_FACT', '/api/facts payload includes start-here')
@@ -200,6 +202,9 @@ try {
     'docs/previews/CHATGPT-SCRIPT-HANDOFF-2026-08-27.html',
     'docs/previews/CHATGPT-SCRIPT-HANDOFF-2026-08-27.svg',
     'docs/previews/CHATGPT-SCRIPT-HANDOFF-2026-08-27.png',
+    'docs/previews/CHATGPT-DIRECT-PASTE-2026-09-04.html',
+    'docs/previews/CHATGPT-DIRECT-PASTE-2026-09-04.svg',
+    'docs/previews/CHATGPT-DIRECT-PASTE-2026-09-04.png',
   ]) {
     ok(existsSync(join(root, preview)), `${preview} exists`)
   }

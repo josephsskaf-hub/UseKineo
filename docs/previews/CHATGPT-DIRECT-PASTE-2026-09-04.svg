@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="980" viewBox="0 0 1440 980">
+  <defs>
+    <linearGradient id="bg" x2="0" y2="1"><stop stop-color="#17253b"/><stop offset=".35" stop-color="#08080a"/></linearGradient>
+    <linearGradient id="card" x2="1" y2="1"><stop stop-color="#102841"/><stop offset="1" stop-color="#111116"/></linearGradient>
+  </defs>
+  <rect width="1440" height="980" fill="url(#bg)"/>
+  <g font-family="Inter,Arial,sans-serif">
+    <text x="72" y="58" fill="#f5f5f7" font-size="30" font-weight="800">ChatGPT start link: article top → paste box</text>
+    <text x="72" y="88" fill="#a1a1a6" font-size="16">Same page and form; the machine-readable link now opens at the useful action.</text>
+    <g transform="translate(72 122)">
+      <rect width="620" height="530" rx="20" fill="#101014" stroke="#303038"/>
+      <rect width="620" height="42" rx="20" fill="#19191f"/><rect y="22" width="620" height="20" fill="#19191f"/>
+      <text x="18" y="27" fill="#a1a1a6" font-size="12" font-weight="800" letter-spacing="2">BEFORE · DESKTOP</text>
+      <rect x="18" y="60" width="584" height="448" rx="14" fill="#000" stroke="#303038"/>
+      <rect x="18" y="60" width="584" height="38" rx="14" fill="#1c1c20"/><rect x="18" y="82" width="584" height="16" fill="#1c1c20"/>
+      <circle cx="36" cy="79" r="5" fill="#48484f"/><circle cx="53" cy="79" r="5" fill="#48484f"/><circle cx="70" cy="79" r="5" fill="#48484f"/>
+      <rect x="88" y="69" width="494" height="20" rx="7" fill="#101014"/><text x="102" y="83" fill="#8e8e93" font-size="10">usekineo.com/chatgpt-to-youtube-shorts</text>
+      <text x="52" y="145" fill="#2997ff" font-size="11" font-weight="800" letter-spacing="2">WORKFLOW GUIDE</text>
+      <text x="52" y="191" fill="#f5f5f7" font-size="38" font-weight="900">ChatGPT to YouTube Shorts</text>
+      <text x="52" y="226" fill="#b6b6bb" font-size="15">The visitor with a finished script lands at the article top.</text>
+      <text x="52" y="250" fill="#b6b6bb" font-size="15">They must scroll or find the “Paste my script” jump.</text>
+      <rect x="52" y="280" width="176" height="44" rx="22" fill="#f5f5f7"/><text x="77" y="307" fill="#000" font-size="13" font-weight="800">Paste my script ↓</text>
+      <line x1="52" y1="422" x2="568" y2="422" stroke="#45454d" stroke-dasharray="5 7"/><text x="205" y="447" fill="#6e6e73" font-size="12">Paste box begins below the first viewport</text>
+    </g>
+    <g transform="translate(748 122)">
+      <rect width="620" height="530" rx="20" fill="#101014" stroke="#303038"/>
+      <rect width="620" height="42" rx="20" fill="#0c2034"/><rect y="22" width="620" height="20" fill="#0c2034"/>
+      <text x="18" y="27" fill="#65b8ff" font-size="12" font-weight="800" letter-spacing="2">AFTER · DESKTOP</text>
+      <rect x="18" y="60" width="584" height="448" rx="14" fill="#000" stroke="#303038"/>
+      <rect x="18" y="60" width="584" height="38" rx="14" fill="#1c1c20"/><rect x="18" y="82" width="584" height="16" fill="#1c1c20"/>
+      <circle cx="36" cy="79" r="5" fill="#48484f"/><circle cx="53" cy="79" r="5" fill="#48484f"/><circle cx="70" cy="79" r="5" fill="#48484f"/>
+      <rect x="88" y="69" width="494" height="20" rx="7" fill="#101014"/><text x="102" y="83" fill="#8e8e93" font-size="9.5">…/chatgpt-to-youtube-shorts#chatgpt-script-handoff</text>
+      <text x="48" y="142" fill="#f5f5f7" font-size="29" font-weight="900">Already have the script? Paste it here.</text>
+      <text x="48" y="169" fill="#c5c5ca" font-size="13">The answer-engine link opens directly on the existing form.</text>
+      <rect x="48" y="190" width="524" height="278" rx="16" fill="url(#card)" stroke="#287bb6"/>
+      <text x="68" y="222" fill="#f5f5f7" font-size="13" font-weight="800">Paste the script ChatGPT wrote</text>
+      <rect x="68" y="238" width="484" height="126" rx="12" fill="#08080b" stroke="#3b3b42"/>
+      <text x="84" y="265" fill="#d9d9df" font-size="12" font-family="monospace">Voiceover: The island has been closed for seventy years.</text>
+      <text x="84" y="289" fill="#d9d9df" font-size="12" font-family="monospace">Visual: Aerial shot of a volcanic island.</text>
+      <text x="84" y="313" fill="#d9d9df" font-size="12" font-family="monospace">Voiceover: The reason is stranger than the warning signs…</text>
+      <rect x="68" y="379" width="484" height="45" rx="23" fill="#f5f5f7"/><text x="212" y="407" fill="#000" font-size="13" font-weight="800">Turn this script into a Short →</text>
+      <text x="68" y="449" fill="#92929a" font-size="10">No generic signup detour. Existing contract stays unchanged.</text>
+    </g>
+    <g transform="translate(244 690)">
+      <rect width="360" height="245" rx="18" fill="#101014" stroke="#303038"/>
+      <text x="16" y="28" fill="#a1a1a6" font-size="11" font-weight="800" letter-spacing="1.5">BEFORE · MOBILE</text>
+      <rect x="16" y="44" width="328" height="182" rx="13" fill="#000"/>
+      <text x="34" y="85" fill="#2997ff" font-size="9" font-weight="800">WORKFLOW GUIDE</text>
+      <text x="34" y="118" fill="#f5f5f7" font-size="22" font-weight="900">ChatGPT to YouTube Shorts</text>
+      <text x="34" y="145" fill="#b6b6bb" font-size="11">Article introduction fills the first screen.</text>
+      <rect x="34" y="164" width="140" height="34" rx="17" fill="#f5f5f7"/><text x="52" y="185" fill="#000" font-size="10" font-weight="800">Paste my script ↓</text>
+    </g>
+    <g transform="translate(836 690)">
+      <rect width="360" height="245" rx="18" fill="#101014" stroke="#303038"/>
+      <text x="16" y="28" fill="#65b8ff" font-size="11" font-weight="800" letter-spacing="1.5">AFTER · MOBILE</text>
+      <rect x="16" y="44" width="328" height="182" rx="13" fill="#000"/>
+      <text x="34" y="79" fill="#f5f5f7" font-size="19" font-weight="900">Already have the script?</text>
+      <rect x="34" y="94" width="292" height="104" rx="12" fill="url(#card)" stroke="#287bb6"/>
+      <text x="49" y="118" fill="#f5f5f7" font-size="10" font-weight="800">Paste the script ChatGPT wrote</text>
+      <rect x="49" y="129" width="262" height="30" rx="7" fill="#08080b" stroke="#3b3b42"/>
+      <rect x="49" y="166" width="262" height="23" rx="12" fill="#f5f5f7"/><text x="111" y="182" fill="#000" font-size="9" font-weight="800">Turn this script into a Short →</text>
+    </g>
+  </g>
+</svg>

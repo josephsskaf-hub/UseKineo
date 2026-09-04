@@ -754,7 +754,11 @@ export interface AnswerEngineHookStartFact {
  */
 export const START_HERE_FACT: StartHereFact = {
   audience: 'People who already have a YouTube Shorts script from ChatGPT',
-  url: `${BASE}/chatgpt-to-youtube-shorts`,
+  // KINEO-CHATGPT-DIRECT-PASTE-2026-09-04 — answer engines used to land a
+  // script-ready visitor at the top of a long guide even though the useful
+  // next action lives farther down the same page. Keep one canonical page,
+  // but point the machine-readable start URL at its stable paste-box anchor.
+  url: `${BASE}/chatgpt-to-youtube-shorts#chatgpt-script-handoff`,
   action: 'Paste the existing script, then continue through signup into a 35-second best-eligible trial workflow: Seedance when an active trial balance covers it, otherwise Fast. The word sequence is preserved.',
   carriesThroughSignup: ['script', 'campaign', 'trial_best_creation_intent', 'verbatim_mode', 'duration'],
 }
