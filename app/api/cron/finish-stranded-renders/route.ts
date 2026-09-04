@@ -310,6 +310,64 @@ async function sendEmail(to: string, userId: string, subject: string, text: stri
   }
 }
 
+// ═══ sprint-assinaturas #14 (04/09) — O CLIQUE QUE MORREU COM A ABA ══════════
+// Medido em produção (14 dias, contas externas): 407 cliques em gerar; 25
+// deles, de 21 PESSOAS, não deixaram um único registro no servidor — nem
+// claim, nem despacho, nem erro, nem recusa. 19 dessas 21 pessoas NUNCA
+// receberam um filme da Kineo na vida. Quando tudo vai bem o claim nasce 20s
+// depois do clique (p90 60s); a mediana de tempo até essas pessoas saírem da
+// tela é de 7 SEGUNDOS. A janela de vulnerabilidade tem 20 segundos de largura
+// e 13 das 25 saíram dentro dela. Nada foi cobrado — e nada foi entregue.
+// O par generation_attempt_opened / _closed (a caixa-preta da rota de geração)
+// torna isso visível pela primeira vez; esta fase é o que a casa FAZ com a
+// informação: um aviso honesto, uma vez só, para quem ficou sem filme nenhum.
+const ATTEMPT_OPENED_EVENT = 'generation_attempt_opened'
+const ATTEMPT_CLOSED_EVENT = 'generation_attempt_closed'
+const ATTEMPT_LOST_EVENT = 'attempt_lost_rescue_sent'
+// 20 min de piso: mais que o dobro do p90 até o claim (60s), com folga para
+// qualquer lentidão do fornecedor. Teto de 24h: depois disso o aviso deixa de
+// ser socorro e vira spam.
+const ATTEMPT_LOST_MIN_AGE_MS = 20 * 60 * 1000
+const ATTEMPT_LOST_MAX_AGE_MS = 24 * 60 * 60 * 1000
+const MAX_ATTEMPT_LOST_PER_RUN = 10
+
+function attemptLostText(startUrl: string, topic: string | null): string {
+  const linha = topic
+    ? `You started a film on Kineo about "${topic}" and it never got off the ground.`
+    : 'You started a film on Kineo and it never got off the ground.'
+  return `${linha}
+
+The tab closed before our engine picked the job up, so nothing was ever made — and nothing was charged. Your credits are exactly where they were.
+
+It takes one click to start it again, and this time you can close the tab: we email you the moment the film is done.
+
+Start it again: ${startUrl}
+
+— Kineo`
+}
+
+function attemptLostHtml(startUrl: string, topic: string | null, userId: string): string {
+  const linha = topic
+    ? `You started a film on Kineo about <b>${escapeHtmlAttr(topic)}</b> and it never got off the ground.`
+    : 'You started a film on Kineo and it never got off the ground.'
+  return `
+<div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#1e293b;line-height:1.6">
+  <p style="font-size:18px"><b>Your film never started 🎬</b></p>
+  <p>${linha}</p>
+  <p>The tab closed before our engine picked the job up, so nothing was ever made — and <b>nothing was charged</b>. Your credits are exactly where they were.</p>
+  <p>It takes one click to start it again, and this time you can close the tab: we email you the moment the film is done.</p>
+  <p style="margin:26px 0"><a href="${startUrl}" style="background:#2997ff;color:#ffffff;padding:13px 24px;border-radius:10px;text-decoration:none;font-weight:bold">Start it again &rarr;</a></p>
+  <p style="color:#64748b;font-size:13px">— Kineo</p>
+</div>
+${emailFooterHtml(userId)}`
+}
+
+// O tema vem do texto que a PRÓPRIA pessoa escreveu; escapa antes de entrar no
+// HTML do e-mail, sempre.
+function escapeHtmlAttr(v: string): string {
+  return v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
+
 // ═══ sprint-assinaturas #4 (02/09) — O E-MAIL "YOUR VIDEO IS READY" SAÍA 16
 // VEZES PARA A MESMA PESSOA. Medido no banco (externos, desde 20/08): 74
 // e-mails DUPLICADOS de "Your video is ready 🎬" para 14 pessoas — uma trial
@@ -863,6 +921,117 @@ export async function GET(req: NextRequest) {
     console.error('[relink] pass failed:', e instanceof Error ? e.message : String(e))
   }
 
+  // ═══ FASE 5 — O CLIQUE QUE MORREU COM A ABA (sprint-assinaturas #14) ══════
+  // Aberto e nunca fechado = a função de geração foi morta no meio. Não há o
+  // que compor nem o que cutucar: o trabalho nunca rodou. O que existe é uma
+  // pessoa que apertou gerar e não recebeu nada, e que hoje some sem que a
+  // casa saiba. Regras de contenção, todas deliberadas:
+  //   · só quem NUNCA recebeu um filme (é a coorte que dói: 19 das 21);
+  //   · uma vez por geração E uma vez por PESSOA, para sempre;
+  //   · falha de leitura do lote de dedupe = NÃO manda nada (fail-closed — a
+  //     lição do #4, quando o erro engolido virou 9 e-mails repetidos);
+  //   · teto por rodada, opt-out e contas internas/descartáveis fora.
+  let attemptsLost = 0
+  try {
+    const lostFloorIso = new Date(Date.now() - ATTEMPT_LOST_MAX_AGE_MS).toISOString()
+    const lostCeilIso = new Date(Date.now() - ATTEMPT_LOST_MIN_AGE_MS).toISOString()
+    const { data: openedRows, error: openedErr } = await admin
+      .from('events')
+      .select('user_id, session_id, created_at, metadata')
+      .eq('name', ATTEMPT_OPENED_EVENT)
+      .gte('created_at', lostFloorIso)
+      .lte('created_at', lostCeilIso)
+      .order('created_at', { ascending: false })
+      .limit(200)
+    if (openedErr) throw new Error(`opened lookup failed: ${openedErr.message}`)
+
+    const openedGenIds = (openedRows ?? [])
+      .map((r) => r.session_id)
+      .filter((x): x is string => typeof x === 'string' && x.length > 0)
+
+    if (openedGenIds.length > 0) {
+      const { data: settledRows, error: settledErr } = await admin
+        .from('events')
+        .select('session_id')
+        .in('name', [ATTEMPT_CLOSED_EVENT, ATTEMPT_LOST_EVENT])
+        .in('session_id', openedGenIds.slice(0, 200))
+      // fail-closed: sem a lista de já-fechados/já-avisados não se manda nada.
+      if (settledErr) throw new Error(`settled lookup failed: ${settledErr.message}`)
+      const settled = new Set((settledRows ?? []).map((r) => r.session_id as string))
+
+      for (const row of openedRows ?? []) {
+        if (attemptsLost >= MAX_ATTEMPT_LOST_PER_RUN) break
+        const genId = typeof row.session_id === 'string' ? row.session_id : null
+        const userId = typeof row.user_id === 'string' ? row.user_id : null
+        if (!genId || !userId) continue
+        if (settled.has(genId)) continue
+
+        const md = (row.metadata ?? {}) as Record<string, unknown>
+        if (md.dry_run === true) continue
+
+        // Um aviso destes por pessoa, para sempre — quem já recebeu e não
+        // voltou não recebe um segundo.
+        const { count: priorCount, error: priorErr } = await admin
+          .from('events')
+          .select('id', { count: 'exact', head: true })
+          .eq('name', ATTEMPT_LOST_EVENT)
+          .eq('user_id', userId)
+        if (priorErr || (priorCount ?? 0) > 0) continue
+
+        // A coorte é quem nunca viu um filme sair. Quem já recebeu algum não
+        // precisa de socorro: sabe que o produto funciona.
+        const { count: filmes, error: filmesErr } = await admin
+          .from('videos')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', userId)
+          .eq('status', 'completed')
+        if (filmesErr || (filmes ?? 0) > 0) continue
+
+        const { data: prof } = await admin
+          .from('profiles')
+          .select('email, email_opted_out')
+          .eq('id', userId)
+          .maybeSingle()
+        const email = prof?.email as string | undefined
+        if (!email || prof?.email_opted_out || isInternalOrJunkEmail(email)) continue
+
+        const hintRaw = typeof md.topic_hint === 'string' ? md.topic_hint.trim() : ''
+        const hintComplete = md.topic_complete === true
+        const topic = hintRaw.length > 0 ? hintRaw : null
+        // O prefil só acontece quando o texto guardado é o texto INTEIRO da
+        // pessoa. Roteiro truncado nunca é reenviado em nome dela: nesse caso
+        // o e-mail nomeia o tema e o botão leva ao Studio, sem inventar nada.
+        const startUrl = hintComplete && topic
+          ? `${APP_URL}/studio/create?prompt=${encodeURIComponent(topic)}&utm_source=attempt_lost`
+          : `${APP_URL}/studio?utm_source=attempt_lost`
+
+        const ok = await sendEmail(
+          email,
+          userId,
+          'Your film never started — one click to make it 🎬',
+          attemptLostText(startUrl, topic),
+          attemptLostHtml(startUrl, topic, userId),
+        )
+        const { error: stampErr } = await admin.from('events').insert({
+          user_id: userId,
+          name: ATTEMPT_LOST_EVENT,
+          session_id: genId,
+          path: '/api/cron/finish-stranded-renders',
+          metadata: {
+            generation_id: genId,
+            sent: ok,
+            prefilled: hintComplete && !!topic,
+            opened_at: row.created_at,
+          },
+        })
+        if (stampErr) console.error('[attempt-lost] stamp insert failed:', stampErr.message)
+        if (ok) attemptsLost += 1
+      }
+    }
+  } catch (e) {
+    console.error('[attempt-lost] pass failed:', e instanceof Error ? e.message : String(e))
+  }
+
   // ═══ sprint-assinaturas #1 (02/09) — O CRON ERA MUDO NO CAMINHO QUE MAIS
   // IMPORTA. Medido no banco: 7 pessoas EXTERNAS em 5 dias (28/08→01/09), todas
   // no PRIMEIRO vídeo do trial, Seedance despachado e aceito, TODAS as cenas
@@ -895,5 +1064,5 @@ export async function GET(req: NextRequest) {
     console.error('[stranded] outcome logging failed:', e instanceof Error ? e.message : String(e))
   }
 
-  return NextResponse.json({ checked, composed, ready, rescued: rescuedCount, fastReady, relinked, results })
+  return NextResponse.json({ checked, composed, ready, rescued: rescuedCount, fastReady, relinked, attemptsLost, results })
 }

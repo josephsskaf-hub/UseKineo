@@ -1195,6 +1195,21 @@ async function manipularPost(req: NextRequest) {
     debitConfirmed: boolean
   } | null = null
   let providerSubmissionMayExist = false
+  // ═══ sprint-assinaturas #14 (04/09) — O CLIQUE QUE MORRE COM A ABA ═══════
+  // Medido em produção (14d, externos): 407 cliques em gerar, 25 deles (21
+  // pessoas, 19 SEM UM FILME NA VIDA) não deixaram UM ÚNICO registro no
+  // servidor — nem claim, nem despacho, nem erro, nem recusa. Não é falha do
+  // motor: é a requisição morrendo junto com a aba. Quando tudo vai bem o
+  // claim nasce 20s depois do clique (p90 60s), e a MEDIANA de tempo até essas
+  // pessoas saírem da tela é de 7 SEGUNDOS — 13 das 25 sumiram em menos de 60s.
+  // A casa ficava cega: nenhuma rede de segurança pode resgatar o que nunca
+  // existiu. Este par de marcadores é a caixa-preta. O de abertura é gravado
+  // ANTES de qualquer trabalho caro (o client admin nasce ~1s depois de a
+  // requisição chegar; tudo antes dele é parse e leitura barata) e o de fecho
+  // no finally, que roda em TODO caminho de saída — sucesso, 4xx, 5xx e
+  // exceção. Aberto e nunca fechado = a função foi morta no meio, e a Fase 5
+  // do cron de resgate avisa a pessoa. NÃO muda uma linha de geração.
+  let attemptTrace: { db: SupabaseClient; userId: string; generationId: string } | null = null
   let releaseActiveBirthClaim: ((reason: string) => Promise<boolean>) | null = null
   try {
     if (!process.env.FAL_KEY) {
@@ -1945,6 +1960,31 @@ async function manipularPost(req: NextRequest) {
     const cinematicAdmin: SupabaseClient = createAdminClient(supabaseUrl, serviceRoleKey, {
       auth: { persistSession: false, autoRefreshToken: false },
     })
+    // sprint-assinaturas #14 — a caixa-preta abre aqui. O campo session_id
+    // recebe o generationId (mesma convenção dos claims), para o cron cruzar
+    // os dois lotes por chave e nunca por dedução. Fire-and-forget: telemetria
+    // jamais derruba a geração.
+    try {
+      await cinematicAdmin.from('events').insert({
+        user_id: user.id,
+        name: 'generation_attempt_opened',
+        session_id: generationId,
+        path: '/api/generate-video-cinematic',
+        metadata: {
+          generation_id: generationId,
+          engine: claimEngine,
+          duration,
+          dry_run: body.dry_run === true,
+          // O tema, para o aviso da Fase 5 nomear o filme que a pessoa quis.
+          // topic_complete diz se estes 90 caracteres SÃO o texto inteiro: só
+          // nesse caso o botão do e-mail pode voltar preenchido. Roteiro longo
+          // vira nome, nunca reenvio truncado em nome da pessoa.
+          topic_hint: prompt.slice(0, 90),
+          topic_complete: prompt.length <= 90,
+        },
+      })
+      attemptTrace = { db: cinematicAdmin, userId: user.id, generationId }
+    } catch { /* telemetria nunca derruba a resposta */ }
     // KINEO-DEGRAU-2026-09-03 — a descida ganha evento com nome próprio no
     // PRIMEIRO ponto em que o client admin existe (a decisão foi tomada lá em
     // cima, antes do custo; `events` só aceita service_role). Sem isto o
@@ -4591,5 +4631,26 @@ async function manipularPost(req: NextRequest) {
       )
     }
     return NextResponse.json({ error: 'Something went wrong. Please try again.' }, { status: 500 })
+  } finally {
+    // sprint-assinaturas #14 — o fecho da caixa-preta. Roda depois de QUALQUER
+    // return do try e do catch, e também quando o catch relança. O que NÃO roda
+    // aqui é justamente o caso que interessa: a função morta no meio pela aba
+    // que fechou. Por isso o cron procura exatamente por aberto-sem-fechado.
+    if (attemptTrace) {
+      try {
+        let claimAction: unknown = null
+        try { claimAction = (ctxDespacho() as { claimAction?: unknown }).claimAction ?? null } catch { /* fora de contexto */ }
+        await attemptTrace.db.from('events').insert({
+          user_id: attemptTrace.userId,
+          name: 'generation_attempt_closed',
+          session_id: attemptTrace.generationId,
+          path: '/api/generate-video-cinematic',
+          metadata: {
+            generation_id: attemptTrace.generationId,
+            claim_action: typeof claimAction === 'string' ? claimAction : null,
+          },
+        })
+      } catch { /* telemetria nunca derruba a resposta */ }
+    }
   }
 }
