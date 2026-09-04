@@ -418,3 +418,74 @@ Nada.
 A prova de idioma seria boa para conversão, mas hoje o produto não guarda a
 verdade necessária para escrevê-la. Em vez de adivinhar pela nacionalidade ou
 pelo roteiro, o pedido foi enviado ao dono do pipeline para expor o idioma real.
+
+---
+
+## ROUND 8 — medição pura · quatro estágios sem empilhar copy
+
+**Data:** 2026-09-04 10:52 BRT
+**Pista:** Growth-B2C / CAIXA
+**Branch:** `codex/caixa-measurement-r8`
+
+### EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, 2026-09-04 10:49 BRT
+
+| Estágio | Pessoas externas | Ação | Checkout | Assinatura | Leitura |
+|---|---:|---:|---:|---:|---|
+| K13 retomada com filme | 0 | 0 | 0 | 0 | sem amostra |
+| K17 Welcome film-first | 1 | 0; dispensou 1 | — | 0 | sem amostra |
+| K16 primeiro filme | 10, só 4 maduras | 1 CTA; 6 novos filmes | — | 0 | não fechar |
+| K16 após 2+ filmes | 7, só 5 maduras | 0 | — | 0 | não fechar |
+| K11 pricing após entrega | 5 maduras | 0 CTA interno | 1 | 1 | caminho externo |
+| K11 pricing antes da entrega | 10, 8 maduras | 0 CTA interno | 3 | 1 | caminho externo |
+
+- Marco canônico: 35 cadastros externos, 21 pessoas com filme, 1 checkout de
+  desejo, 2 checkouts sem filme, 0 assinaturas desde `2026-09-03 16:00 UTC` e
+  0 pessoas com falha sem filme.
+- Vigia de checkout: 1 pessoa externa (`a8c8d6c5`), agora atribuída a ChatGPT,
+  abriu Pro, não pagou e segue com 0 filmes e 25 créditos. O classificador
+  gravou `activation_defect`; ela chegou ao Studio pelo quickstart depois do
+  checkout, sem erro de geração na trilha observada.
+
+### FATO CONFIRMADO — leitura das quatro rodadas
+
+- Nenhuma intervenção recente atingiu ao mesmo tempo 10 pessoas externas e
+  janela completa de 24h. Alterá-las agora destruiria o aprendizado.
+- K16 produz repetição por múltiplos caminhos: 6 pessoas fizeram outro filme,
+  mas só 1 clicou no CTA rastreado do histórico. O evento isolado subconta o
+  resultado; o novo filme é a evidência final desse estágio.
+- As duas assinaturas históricas observadas no K11 aconteceram sem clique no
+  CTA do componente. A jornada de pricing está correlacionada, mas não recebe
+  crédito causal por esses pagamentos.
+- O marco da sprint ganhou 2 cadastros desde a ROUND 4, enquanto pessoas com
+  filme, checkout de desejo e assinatura ficaram estáveis.
+
+### IMPLEMENTADO
+
+Nenhuma alteração de produto, por regra de medição pura. Queries foram
+reconciliadas por pessoa externa e janela de 24h; evento não foi contado como
+cliente e checkout não foi contado como receita.
+
+### GATE DE PARADA
+
+K13, K17, K16 e K11 continuam congelados até seus gates já registrados. A
+próxima rodada deve agir em superfície diferente. O padrão vivo do vigia é
+ativação anterior ao primeiro filme; como essa tela é da pista Claude, a CAIXA
+não a usa para justificar mais copy no pricing.
+
+### PRÓXIMA JOGADA
+
+Auditar K9/K14 na volta de checkout cancelado: provar caller, exposição,
+resposta de objeção e destino de teste antes de editar. Se a ação já existe,
+medir por pessoa e congelar; se o caminho termina sem ação, corrigir na pista
+própria sem tocar no gerador.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+### 📋 O QUE ACONTECEU
+
+O caixa ainda não gerou uma assinatura nova nesta janela. As mudanças mais
+recentes também ainda não têm amostra suficiente para julgamento. Mantive cada
+teste intacto e mudei de estágio: a próxima leitura será a volta do checkout
+cancelado, onde a pessoa já revelou intenção de pagar.
