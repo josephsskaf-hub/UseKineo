@@ -23,6 +23,30 @@ export type PromptLimitState = {
   excess: number
 }
 
+export type PromptLimitLocale = 'en' | 'pt' | 'es'
+
+const PROMPT_LIMIT_COPY = {
+  en: {
+    locale: 'en-US', characters: 'characters', over: 'over the limit', trim: 'Trim to fit',
+    preserved: 'Nothing was removed. Trim here or edit the text before continuing.',
+    removed: (count: string) => `${count} characters removed. Review the ending before continuing.`,
+  },
+  pt: {
+    locale: 'pt-BR', characters: 'caracteres', over: 'acima do limite', trim: 'Ajustar ao limite',
+    preserved: 'Nada foi removido. Ajuste aqui ou edite o texto antes de continuar.',
+    removed: (count: string) => `${count} caracteres removidos. Confira o final antes de continuar.`,
+  },
+  es: {
+    locale: 'es-ES', characters: 'caracteres', over: 'por encima del límite', trim: 'Ajustar al límite',
+    preserved: 'No se eliminó nada. Ajústalo aquí o edita el texto antes de continuar.',
+    removed: (count: string) => `${count} caracteres eliminados. Revisa el final antes de continuar.`,
+  },
+} as const
+
+function localizedNumber(value: number, locale: PromptLimitLocale): string {
+  return value.toLocaleString(PROMPT_LIMIT_COPY[locale].locale)
+}
+
 export function promptLimitState(text: string, max: number = ANALYZE_PROMPT_MAX_CHARS): PromptLimitState {
   const length = text.trim().length
   const excess = Math.max(0, length - max)
@@ -62,8 +86,21 @@ export function trimPromptToLimit(text: string, max: number = ANALYZE_PROMPT_MAX
   return { text: out, removed: src.length - out.length, boundary }
 }
 
-export function formatLimitCounter(state: PromptLimitState): string {
-  const n = (v: number) => v.toLocaleString('en-US')
-  if (!state.over) return `${n(state.length)} / ${n(state.max)} characters`
-  return `${n(state.length)} / ${n(state.max)} characters — ${n(state.excess)} over the limit`
+export function formatLimitCounter(state: PromptLimitState, locale: PromptLimitLocale = 'en'): string {
+  const copy = PROMPT_LIMIT_COPY[locale]
+  const n = (value: number) => localizedNumber(value, locale)
+  if (!state.over) return `${n(state.length)} / ${n(state.max)} ${copy.characters}`
+  return `${n(state.length)} / ${n(state.max)} ${copy.characters} — ${n(state.excess)} ${copy.over}`
+}
+
+export function formatPromptLimitTrimAction(excess: number, locale: PromptLimitLocale = 'en'): string {
+  return `${PROMPT_LIMIT_COPY[locale].trim} (${localizedNumber(excess, locale)})`
+}
+
+export function promptLimitPreservedMessage(locale: PromptLimitLocale = 'en'): string {
+  return PROMPT_LIMIT_COPY[locale].preserved
+}
+
+export function formatPromptLimitTrimNotice(removed: number, locale: PromptLimitLocale = 'en'): string {
+  return PROMPT_LIMIT_COPY[locale].removed(localizedNumber(removed, locale))
 }

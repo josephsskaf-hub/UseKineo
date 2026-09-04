@@ -7,7 +7,14 @@ import {
   CREATION_HANDOFF_PROMPT_MAX_CHARS,
   type CreationIntent,
 } from '@/lib/creationHandoff'
-import { formatLimitCounter, promptLimitState, trimPromptToLimit } from '@/lib/studioPromptLimit'
+import {
+  formatLimitCounter,
+  formatPromptLimitTrimAction,
+  formatPromptLimitTrimNotice,
+  promptLimitPreservedMessage,
+  promptLimitState,
+  trimPromptToLimit,
+} from '@/lib/studioPromptLimit'
 
 const TOPIC_EXAMPLES = [
   'The island too dangerous to visit',
@@ -69,13 +76,14 @@ export default function TopicGeneratorForm({
   const [topic, setTopic] = useState('')
   const [trimNotice, setTrimNotice] = useState<string | null>(null)
   const inputId = `${formId}-input`
+  const limitLocale = language ?? 'en'
   const limit = promptLimitState(topic, CREATION_HANDOFF_PROMPT_MAX_CHARS)
   const canSubmit = limit.length >= 3 && !limit.over
 
   function trimToFit() {
     const result = trimPromptToLimit(topic, CREATION_HANDOFF_PROMPT_MAX_CHARS)
     setTopic(result.text)
-    setTrimNotice(`${result.removed.toLocaleString('en-US')} characters removed. Review the ending before continuing.`)
+    setTrimNotice(formatPromptLimitTrimNotice(result.removed, limitLocale))
   }
 
   function authRedirectFor(promptValue: string): string | null {
@@ -221,7 +229,7 @@ export default function TopicGeneratorForm({
             aria-live="polite"
             style={{ color: limit.over ? '#ff8a80' : '#86868b', fontSize: 12, fontWeight: 700 }}
           >
-            {formatLimitCounter(limit)}
+            {formatLimitCounter(limit, limitLocale)}
           </span>
           {limit.over ? (
             <button
@@ -229,13 +237,13 @@ export default function TopicGeneratorForm({
               onClick={trimToFit}
               style={{ border: '1px solid #5c5c60', borderRadius: 999, background: '#161618', color: '#f5f5f7', padding: '6px 10px', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}
             >
-              Trim to fit ({limit.excess.toLocaleString('en-US')} chars)
+              {formatPromptLimitTrimAction(limit.excess, limitLocale)}
             </button>
           ) : null}
         </div>
         {limit.over ? (
           <p role="alert" style={{ color: '#ffb4ab', fontSize: 12, lineHeight: 1.45, margin: '7px 0 0' }}>
-            Nothing was removed. Trim here or edit the text before continuing.
+            {promptLimitPreservedMessage(limitLocale)}
           </p>
         ) : trimNotice ? (
           <p role="status" style={{ color: '#a7f3d0', fontSize: 12, lineHeight: 1.45, margin: '7px 0 0' }}>
