@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Kineo · Expanded script duration truth</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#07080b;color:#f7f7fa;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif}.page{max-width:1180px;margin:auto;padding:32px 22px 60px}.eyebrow{color:#55adff;font-size:12px;font-weight:900;letter-spacing:.14em;text-transform:uppercase}.intro h1{font-size:32px;line-height:1.1;margin:8px 0}.intro p{color:#a9acb5;max-width:760px;line-height:1.6}.grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:28px}.case{border:1px solid #252831;border-radius:20px;background:#111218;overflow:hidden}.label{padding:12px 16px;border-bottom:1px solid #252831;font-size:12px;font-weight:900;letter-spacing:.12em;text-transform:uppercase}.before .label{color:#e0a458}.after .label{color:#63b8ff}.viewport{padding:24px;background:radial-gradient(circle at 50% 0,#171b25,#0d0e13 65%);min-height:545px}.phone{max-width:390px;margin:auto;border:1px solid #292c35;border-radius:20px;padding:20px;background:#121318;box-shadow:0 18px 45px #0008}.title{font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.12em;color:#a4a8b2;margin-bottom:10px}.textarea{height:250px;padding:13px;border-radius:12px;border:1px solid #292c35;background:#0d0d10;color:#d9dbe2;font-size:12px;line-height:1.58;overflow:hidden}.help{color:#a4a8b2;font-size:12px;line-height:1.5;margin:12px 0}.notice{background:rgba(41,151,255,.10);border:1px solid rgba(41,151,255,.28);color:#9dceff;border-radius:12px;padding:10px 12px;font-size:12px;line-height:1.5;margin:12px 0}.actions{display:flex;gap:8px;flex-wrap:wrap}.btn{padding:10px 16px;border-radius:12px;font-size:13px;font-weight:800}.primary{background:#2997ff;color:#fff}.secondary{border:1px solid #30333c;color:#b2b5bd}.caption{padding:16px;color:#a9acb5;font-size:13px;line-height:1.55}.caption strong{color:#fff}.mobile-title{display:none}@media(max-width:760px){.page{padding:22px 14px}.intro h1{font-size:26px}.grid{grid-template-columns:1fr}.viewport{padding:15px}.mobile-title{display:block;color:#777d8b;font-size:11px;margin-top:7px}.phone{padding:16px}.textarea{height:210px}}
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="intro">
+      <div class="eyebrow">CAIXA R23 · visual gate</div>
+      <h1>The shorter duration is disclosed before approval.</h1>
+      <p>Same script, same approval action, same rendering behavior. The only change is that a customer who requested 35 seconds can see that the completed narration fits 30 seconds before choosing “Use this script”.</p>
+    </section>
+    <section class="grid">
+      <article class="case before">
+        <div class="label">Before · hidden adjustment</div>
+        <div class="viewport">
+          <div class="phone">
+            <div class="title">Read it before we render</div>
+            <div class="textarea">The river looked calm until the old signal flashed beneath the surface. No one in the harbor remembered installing it. Then the lanterns went dark, one by one, and a message appeared on every radio: “Do not follow the light.”</div>
+            <div class="help">Your original sentences are untouched — everything else was added. Edit anything you disagree with.</div>
+            <div class="actions"><div class="btn primary">Use this script</div><div class="btn secondary">Discard</div></div>
+          </div>
+        </div>
+        <div class="caption"><strong>Problem:</strong> the API chose 30s, but the approval screen still looked like the requested 35s would be used.</div>
+      </article>
+      <article class="case after">
+        <div class="label">After · honest before the click</div>
+        <div class="viewport">
+          <div class="phone">
+            <div class="title">Read it before we render</div>
+            <div class="textarea">The river looked calm until the old signal flashed beneath the surface. No one in the harbor remembered installing it. Then the lanterns went dark, one by one, and a message appeared on every radio: “Do not follow the light.”</div>
+            <div class="help">Your original sentences are untouched — everything else was added. Edit anything you disagree with.</div>
+            <div class="notice">You asked for 35s. This script fits 30s, so we’ll use that length and keep every second narrated.</div>
+            <div class="actions"><div class="btn primary">Use this script</div><div class="btn secondary">Discard</div></div>
+          </div>
+        </div>
+        <div class="caption"><strong>Result:</strong> no surprise after approval. The notice appears only when the server explicitly reports an automatic step down.</div>
+      </article>
+    </section>
+  </main>
+</body>
+</html>

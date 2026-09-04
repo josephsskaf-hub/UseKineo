@@ -1863,6 +1863,15 @@ export default function GenerateClient({
   }, [creditsHeld, recheckHeldCredits])
   /** Texto expandido esperando aprovação. A pessoa LÊ antes de renderizar. */
   const [expandedScript, setExpandedScript] = useState<string | null>(null)
+  // CAIXA R23 — a rota de expansão já escolhe uma duração menor quando o
+  // roteiro completo não sustenta o alvo pedido. Antes o cliente descartava
+  // essa resposta: a pessoa aprovava "60s" e só depois recebia um filme mais
+  // curto. Guardamos a decisão apenas para explicar o resultado antes do
+  // aceite; ela não muda duração, roteiro, motor, crédito ou despacho.
+  const [expandedDurationAdjustment, setExpandedDurationAdjustment] = useState<{
+    requestedSeconds: number
+    effectiveSeconds: number
+  } | null>(null)
   // sprint-v1v4 #30 — o painel de aprovacao dizia SEMPRE "suas frases estao
   // intactas, o resto foi acrescentado". Para o candidato de growth_limit
   // isso seria mentira: aquele texto e uma REESCRITA. Marca de honestidade.
@@ -6594,6 +6603,7 @@ export default function GenerateClient({
       if (data?.outcome === 'already_fits') {
         setExpandState(null)
         setExpandedScript(null); setExpandedIsRewrite(false)
+        setExpandedDurationAdjustment(null)
         setScriptTooShort(null)
         setError(null)
         setPhase('idle')
@@ -6728,6 +6738,8 @@ export default function GenerateClient({
         after_coverage: data?.after?.coverage ?? null,
         still_short: aindaCurto,
         expanded: cresceu,
+        effective_duration: typeof data?.effectiveDuration === 'number' ? data.effectiveDuration : null,
+        autofit_down: data?.autofitDown === true,
         base_repaired: data?.baseRepaired === true,
         round: rodada,
         attempt_id: generationAttemptRef.current ?? null,
@@ -6740,6 +6752,7 @@ export default function GenerateClient({
         // renderizar enquanto não encher.
         const candidato = cresceu && typeof data?.script === 'string' ? data.script : null
         setExpandedScript(candidato)
+        setExpandedDurationAdjustment(null)
 
         // ═══ KINEO-351 — A SEGUNDA RODADA, QUE AGORA EXISTE DE VERDADE ═════
         // O #350 escreveu e TESTOU `deservesSecondRound`, e nunca a chamou: o
@@ -6782,6 +6795,18 @@ export default function GenerateClient({
       expandCandidateRef.current = null
       setExpandState(null)
       setExpandedScript(data.script)
+      const effectiveDuration = Number(data?.effectiveDuration)
+      setExpandedDurationAdjustment(
+        data?.autofitDown === true &&
+          Number.isFinite(effectiveDuration) &&
+          effectiveDuration > 0 &&
+          effectiveDuration < scriptTooShort.targetSeconds
+          ? {
+              requestedSeconds: scriptTooShort.targetSeconds,
+              effectiveSeconds: effectiveDuration,
+            }
+          : null,
+      )
     } catch {
       // Rede caiu / fetch abortado: transitório por definição. Devolve a
       // rodada e oferece "tentar de novo" em vez de texto vermelho parado.
@@ -6904,6 +6929,7 @@ export default function GenerateClient({
     setPrompt(aceito)
     setAuthoredScript(null)
     setExpandedScript(null); setExpandedIsRewrite(false)
+    setExpandedDurationAdjustment(null)
     setExpandState(null)
     setScriptTooShort(null)
     setError(null)
@@ -6968,10 +6994,12 @@ export default function GenerateClient({
     // analise que emenda). Ler o state apos o setter seria ler o valor velho
     // por sorte, nao por contrato.
     const aprovado = expandedScript
+    const ajusteDuracao = expandedDurationAdjustment
     expandBaseRef.current = expandedScript
     expandRoundsRef.current = { key: '', used: 0 }
     expandCandidateRef.current = null
     setExpandedScript(null); setExpandedIsRewrite(false)
+    setExpandedDurationAdjustment(null)
     setScriptTooShort(null)
     setExpandState(null)
     setError(null)
@@ -6984,6 +7012,9 @@ export default function GenerateClient({
       round: rodadaDoAceite,
       attempt_id: generationAttemptRef.current ?? null,
       approved_words: aprovado.split(/\s+/).filter(Boolean).length,
+      requested_duration: ajusteDuracao?.requestedSeconds ?? scriptTooShort?.targetSeconds ?? null,
+      effective_duration: ajusteDuracao?.effectiveSeconds ?? scriptTooShort?.targetSeconds ?? null,
+      autofit_down: ajusteDuracao !== null,
       // sprint-v1v4 #36 — true = o aceite emendou na analise sozinho.
       auto_continued: true,
     })
@@ -13481,6 +13512,7 @@ export default function GenerateClient({
                             target_seconds: scriptTooShort.targetSeconds,
                           })
                           setExpandedIsRewrite(true)
+                          setExpandedDurationAdjustment(null)
                           setExpandedScript(texto)
                           setExpandState(null)
                         }}
@@ -13506,6 +13538,7 @@ export default function GenerateClient({
                             author_sentences: expandState.authorSentenceCount,
                           })
                           setExpandedIsRewrite(true)
+                          setExpandedDurationAdjustment(null)
                           setExpandedScript(texto)
                           setExpandState(null)
                         }}
@@ -13536,6 +13569,7 @@ export default function GenerateClient({
                             setScriptTooShort(null)
                             setExpandState(null)
                             setExpandedScript(null); setExpandedIsRewrite(false)
+                            setExpandedDurationAdjustment(null)
                             expandCandidateRef.current = null
                             expandRoundsRef.current = { key: '', used: 0 }
                             setError(null)
@@ -13564,6 +13598,7 @@ export default function GenerateClient({
                         setScriptTooShort(null)
                         setExpandState(null)
                         setExpandedScript(null); setExpandedIsRewrite(false)
+                        setExpandedDurationAdjustment(null)
                         expandCandidateRef.current = null
                         expandRoundsRef.current = { key: '', used: 0 }
                         setError(null)
@@ -13601,6 +13636,15 @@ export default function GenerateClient({
                       ? 'This is a new script, not your text finished — the writer rewrote it to fill the length. Yours is still in the box behind this panel. Edit anything you disagree with, or discard it.'
                       : 'Your original sentences are untouched — everything else was added. Edit anything you disagree with.'}
                   </div>
+                  {expandedDurationAdjustment && (
+                    <div
+                      className="rounded-xl px-3 py-2.5 text-xs mb-3"
+                      style={{ background: 'rgba(41,151,255,.10)', border: '1px solid rgba(41,151,255,.28)', color: '#9dceff', lineHeight: 1.5 }}
+                    >
+                      You asked for {expandedDurationAdjustment.requestedSeconds}s. This script fits{' '}
+                      {expandedDurationAdjustment.effectiveSeconds}s, so we&apos;ll use that length and keep every second narrated.
+                    </div>
+                  )}
                   <div className="flex flex-wrap gap-2">
                     <button
                       onClick={acceptExpandedScript}
@@ -13610,7 +13654,11 @@ export default function GenerateClient({
                       Use this script
                     </button>
                     <button
-                      onClick={() => { setExpandedScript(null); setExpandedIsRewrite(false) }}
+                      onClick={() => {
+                        setExpandedScript(null)
+                        setExpandedIsRewrite(false)
+                        setExpandedDurationAdjustment(null)
+                      }}
                       className="rounded-xl px-5 py-2.5 text-sm font-bold"
                       style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--muted2)' }}
                     >
