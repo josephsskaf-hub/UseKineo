@@ -153,6 +153,7 @@ export default function ComparisonPage({ params }: { params: { pair: string } })
   const b = TOOLS[pair.b]
   const url = `${BASE}/vs/${canonical}`
   const kineoIsInvolved = pair.a === 'kineo' || pair.b === 'kineo'
+  const kineoAction = pair.kineoAction ?? { href: START_FREE_URL, label: 'Make one free →' }
 
   const faqJsonLd = {
     '@context': 'https://schema.org',
@@ -415,12 +416,12 @@ export default function ComparisonPage({ params }: { params: { pair: string } })
           </div>
           <p style={{ color: '#d2d2d7', lineHeight: 1.65, fontSize: '0.95rem', margin: '0 0 16px' }}>{pair.kineo}</p>
           <OrganicCtaLink
-            href={START_FREE_URL}
+            href={kineoAction.href}
             source={CAMPAIGN}
             placement={canonical}
             style={{ display: 'inline-block', background: '#f5f5f7', color: '#000', fontWeight: 800, padding: '12px 24px', borderRadius: 980, textDecoration: 'none' }}
           >
-            Make one free →
+            {kineoAction.label}
           </OrganicCtaLink>
           <p style={{ fontSize: 13, color: ACCENT, fontWeight: 700, margin: '12px 0 0' }}>
             {ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)} · No card · Starter {STARTER_MO}

@@ -417,6 +417,8 @@ export type Pair = {
   faq: { q: string; a: string }[]
   /** Short, disclosed Kineo note. On neutral pages this is a third option, not the thesis. */
   kineo: string
+  /** Optional action when the comparison identifies a more specific, already-shipped Kineo path. */
+  kineoAction?: { href: string; label: string }
 }
 
 /**
@@ -2707,7 +2709,11 @@ export const PAIRS: Pair[] = [
       },
     ],
     kineo:
-      'Disclosure: Kineo publishes this page and is neither tool above. It sits nearest Pictory — no footage required — but takes a topic sentence rather than a document, renders one ratio per render, and has no timeline of any kind. If you have recordings to edit, Descript is the right category and nothing here is arguing otherwise.',
+      'Disclosure: Kineo publishes this page and is neither tool above. It sits nearest Pictory — no footage required — and accepts either a typed topic or a short production script of up to 1,000 characters. It does not import a URL or document, renders one ratio per render, and has no timeline. If you have recordings to edit, Descript is the right category; if your writing is long-form or needs repurposing across ratios, Pictory is broader.',
+    kineoAction: {
+      href: '/chatgpt-to-youtube-shorts#chatgpt-script-handoff',
+      label: 'Paste a short script →',
+    },
   },
   {
     slug: 'quso-vs-submagic',
