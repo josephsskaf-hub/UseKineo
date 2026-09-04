@@ -2225,3 +2225,101 @@ Nada.
 ### 📋 O QUE ACONTECEU
 
 Achei três botões de preço da home que ainda dependem de um salto perfeito, mas não invadi o arquivo da equipe de tráfego. Entreguei a ela o número, o defeito exato e a medição que faltava; assim o conserto entra sem colisão e deixa de contar sessão como clique.
+
+---
+
+## ROUND 35 — pós-filme separado em repetição, oferta e ausência de retorno
+
+**Data:** 2026-09-04 13:42→13:49 BRT
+
+**Pista:** Growth-B2C / CAIXA
+
+**Branch:** `codex/caixa-post-film-audit-r35`
+
+### RECONCILIAÇÃO E VIGIA
+
+**VALIDADO EM PRODUÇÃO — 04/09/2026:** a R34 entrou em `origin/main` no SHA
+`7afb8fde3ebe1444c1360dbebdf69d05af7be194`; Guardião run `33896405552`
+verde em 1m03s. A FLUXO respondeu ao pedido e incorporou sua R22 na ponta
+`78bb7e979184ebfbe2a4f3027cbcb232c087c454`; a CAIXA foi rebaseada nessa
+ponta antes deste registro.
+
+**EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, 04/09/2026 13:48 BRT:**
+o vigia de duas horas contém uma pessoa externa, prefixo de `user_id`
+`9f2b563c`, origem direta, zero filme, 25 créditos, plano free e sem pagamento.
+Ela abriu o checkout 2,6 segundos depois do callback de autenticação. É
+**desejo explícito preservado pelo cadastro**, não objeção pós-filme nem erro
+de produto; nenhum intersticial foi colocado na frente.
+
+### PLACAR E VERDADE DA ASSINATURA
+
+**EVIDÊNCIA DE PRODUÇÃO — SQL canônico, 04/09/2026 13:48 BRT:** desde
+03/09 16:00 UTC há **41 cadastros externos, 27 pessoas com filme, 2 pessoas de
+checkout com filme, 2 sem filme, 0 assinaturas e 0 pessoas com falha sem
+filme**.
+
+O zero de assinaturas foi reconciliado por fontes independentes: nenhum
+perfil externo criado depois do marco está pago, nenhum perfil novo está em
+plano pago e não existe pagamento sem `checkout_success_viewed` nessa coorte.
+Portanto **0 é resultado financeiro real**, não subcontagem do evento cliente.
+O único `checkout_payment_failed` do período pertence a renovação conhecida e
+não foi contado como primeira compra.
+
+### O QUE AS 27 PESSOAS VIRAM DEPOIS DO FILME
+
+Dentro de 24h do primeiro filme, por pessoa externa:
+
+- 11 viram a ponte para usar o saldo restante num Seedance; 0 clicaram, mas 3
+  fizeram outro filme por outro caminho;
+- 1 viu o CTA de episódio seguinte;
+- 1 viu a oferta de assinatura do resultado;
+- 5 tiveram visualização humana confirmada do CTA de assinatura do banner;
+- 1 viu o WelcomeOfferModal e 1 a oferta genérica do resultado;
+- **15 de 27** tiveram ao menos uma dessas exposições; 12 não têm exposição
+  registrada no período.
+
+Os 11 da ponte ainda têm **0 pessoas com 24h completas**: a primeira exposição
+foi em 03/09 18:28 UTC e a última em 04/09 16:32 UTC. Zero clique agora é
+contagem crua, não uma taxa madura, e a superfície permanece congelada.
+
+### FATO CONFIRMADO E DECISÃO
+
+`TrialActiveBanner` mostra três estados mutuamente exclusivos. O evento
+`trial_active_subscription_cta_viewed` exige filme confirmado por `/api/videos`,
+50% do botão em viewport e um segundo contínuo em aba visível. Se o componente
+consultou o histórico enquanto o primeiro render ainda estava em voo, ele só
+consulta novamente em nova interseção ou foco; logo, 5/25 elegíveis é um
+denominador estrito e pode subcontar conclusão na mesma tela. O clique correto é
+`trial_active_banner_cta`, não `checkout_cta_clicked`; o recálculo confirmou
+zero cliques.
+
+Nenhuma edição de produto foi feita: o resultado já alterna entre saldo,
+episódio e assinatura, e o histórico já tem a escada de 1 filme/2+ filmes.
+Empilhar outra oferta repetiria K16 antes dos gates. Também não foi alterada a
+telemetria estrita para fabricar cobertura maior.
+
+### RISCO E GATE
+
+Risco de produto zero; somente SELECT, leitura de código e documentação. A
+ponte fica congelada até 10 pessoas externas com 24h completas ou 7 dias. A
+lacuna das 12 pessoas sem exposição deve ser separada entre “saiu antes do
+render terminar” e “voltou sem ver oferta”; o segundo caso já pertence ao
+histórico, na pista Claude.
+
+### PRÓXIMA JOGADA
+
+R36 é a rodada obrigatória de medição do bloco R33–R36. Medir R33 e a resposta
+da FLUXO sem alterar variantes; reconciliar o vigia e o placar contra o mesmo
+marco. Depois, escolher uma superfície CAIXA não congelada.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+### 📋 O QUE ACONTECEU
+
+O zero de assinaturas é real. Depois do primeiro filme, parte das pessoas está
+recebendo uma próxima ação, mas ainda não há janela madura para reescrever a
+tela; 12 de 27 não têm nenhuma exposição pós-filme registrada. Mantive as
+ofertas intactas e transformei o gargalo em duas perguntas mensuráveis: quem
+saiu antes da entrega e quem voltou sem ver convite.
