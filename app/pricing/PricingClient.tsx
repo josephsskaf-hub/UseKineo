@@ -82,6 +82,12 @@ import {
   readCheckoutSetupFailureFromSearch,
   type CheckoutSetupFailureReturnContext,
 } from '@/lib/growth/checkoutSetupFailureReturn'
+import {
+  CHECKOUT_RESUME_UNAVAILABLE_COPY,
+  checkoutResumeUnavailableStorageKey,
+  checkoutResumeUnavailableTelemetry,
+  isCheckoutResumeUnavailable,
+} from '@/lib/growth/checkoutResumeUnavailable'
 
 // PAYPAL-DISABLED-2026-07-06 — PayPal checkout is hidden on pricing until it's
 // verified working end-to-end (business account still needs verification). All
@@ -313,6 +319,7 @@ export default function PricingClient() {
   const [requestedTier, setRequestedTier] = useState<PricingTierHandoffTier | null>(null)
   const [pricingIntentCampaign, setPricingIntentCampaign] = useState<string | null>(null)
   const [checkoutSetupFailure, setCheckoutSetupFailure] = useState<CheckoutSetupFailureReturnContext | null>(null)
+  const [checkoutResumeUnavailable, setCheckoutResumeUnavailable] = useState(false)
 
   // KINEO-SPRINT-OFFER-2026-07-14 — ROI slider state removed with the widget
   // (unverifiable "estimated views/month" promise — see note at the old block).
@@ -620,6 +627,32 @@ export default function PricingClient() {
 
     const setupFailure = readCheckoutSetupFailureFromSearch(window.location.search)
     setCheckoutSetupFailure(setupFailure)
+    const resumeUnavailable = isCheckoutResumeUnavailable(window.location.search)
+    setCheckoutResumeUnavailable(resumeUnavailable)
+
+    if (resumeUnavailable) {
+      const storageKey = checkoutResumeUnavailableStorageKey()
+      let alreadyTracked = false
+      try {
+        alreadyTracked = sessionStorage.getItem(storageKey) === '1'
+      } catch {
+        // Analytics dedupe is optional; the explanation must stay visible.
+      }
+      if (!alreadyTracked) {
+        void trackEvent(
+          'checkout_resume_unavailable_viewed',
+          checkoutResumeUnavailableTelemetry(),
+        ).then((stored) => {
+          if (!stored) return
+          try {
+            sessionStorage.setItem(storageKey, '1')
+          } catch {
+            // The event is stored; unavailable browser storage changes no behavior.
+          }
+        })
+      }
+    }
+
     if (!setupFailure) return
 
     const storageKey = checkoutSetupFailureStorageKey(setupFailure)
@@ -775,6 +808,19 @@ export default function PricingClient() {
             can ground that offer in the visitor's actual product experience. */}
 
         <PricingSavedCheckout />
+        {checkoutResumeUnavailable && (
+          <div
+            role="status"
+            className="mx-auto mb-6 max-w-2xl rounded-2xl border border-[#2997ff]/35 bg-[#2997ff]/[0.08] px-5 py-4 text-center"
+          >
+            <p className="text-[14px] font-extrabold text-[#f5f5f7]">
+              {CHECKOUT_RESUME_UNAVAILABLE_COPY.title}
+            </p>
+            <p className="mt-1 text-[12.5px] font-medium leading-relaxed text-[#a1a1a8]">
+              {CHECKOUT_RESUME_UNAVAILABLE_COPY.body}
+            </p>
+          </div>
+        )}
         <PricingJourneyProof signedIn={signedIn} intentCampaign={pricingIntentCampaign} />
 
         {/* Push #267 — Free banner removed with Free card */}

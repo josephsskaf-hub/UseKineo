@@ -20,6 +20,7 @@ import {
 } from '@/lib/checkoutResumeSurface'
 import { decideTrialFirstDelivery } from '@/lib/growth/trialBalanceBridge'
 import { trialUiState } from '@/lib/reverseTrial'
+import { checkoutResumeUnavailablePath } from '@/lib/growth/checkoutResumeUnavailable'
 
 export const dynamic = 'force-dynamic'
 
@@ -102,7 +103,7 @@ function unavailableResponse(
   options: { clearSession?: boolean; clearDismissed?: boolean; status?: number } = {},
 ): NextResponse {
   const response = go
-    ? NextResponse.redirect(new URL('/pricing', req.url))
+    ? NextResponse.redirect(new URL(checkoutResumeUnavailablePath(), req.url))
     : NextResponse.json({ available: false, reason }, { status: options.status ?? 200 })
   if (options.clearSession) clearSessionCookie(response)
   if (options.clearDismissed) clearDismissedCookie(response)
