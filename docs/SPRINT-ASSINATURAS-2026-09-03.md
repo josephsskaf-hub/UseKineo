@@ -2368,3 +2368,225 @@ não era informação).
 **SHA.** `c3e656ce` (código + teste) — worktree `C:\kineo-wt\clique-perdido`.
 Enfileirado em `entrega-atual` junto com o #13. Aguardando o clique no
 SUBIR-SITE.bat.
+
+### #15 — 13:14→15:05 BRT (04/09) — a caixa que vende o plano media em CRÉDITO, a unidade interna da casa. Agora ela diz quantos FILMES o plano faz — e o pedido do Codex, aberto desde as 09:58, fecha.
+
+**Placar da rodada** (SQL canônico, marco zero 03/09 16:00 UTC, contas externas,
+medido 16:14 UTC): **41 cadastros · 26 pessoas com filme (63%) · 2 checkouts COM
+filme · 2 checkouts sem filme · 0 assinaturas · 0 pessoas com falha e sem filme.**
+
+**Checagem zero (janela de 24-30h): limpa.**
+
+| | |
+|---|---:|
+| render preso >25 min | 0 |
+| `generation_stage_error` em 3h | 2 (1 pessoa) |
+| `compose_refused` em 24h | 2 (a mesma pessoa) |
+| `narration_guard_blocked` em 24h | **0** |
+| `script_duration_autofit_down` em 30h | 2 |
+| filmes entregues em 24h | 37, para 27 pessoas |
+
+Os 4 eventos vermelhos são todos de `usaaccj98@gmail.com`, e o desfecho é bom:
+`credits_held_by_render` às 14:47 e 14:49, a explicação honesta do #5 às 14:50
+(*"is still holding 13 credits until it lands"*) e **o filme entregue às 15:15**.
+A rede funcionou como escrita: a pessoa foi informada em vez de acusada, e
+recebeu. Isto também **fecha o pedido do Codex das 12:05** (linha 57 do
+PEDIDOS), que pedia reconciliação exatamente desta pessoa.
+
+**A saúde do caminho de entrega, medida de novo e por dia** — claim assinado que
+não vira filme em 3h, 21 dias, externos:
+
+| dia | claims | sem filme em 3h |
+|---|---:|---:|
+| 04/09 | 35 | **0** |
+| 03/09 | 50 | 1 |
+| 02/09 | 81 | 10 |
+| 01/09 | 36 | 6 |
+| 19/08 | 143 | 29 |
+
+O motor não é mais o gargalo. **100% dos claims de hoje viraram filme.** Isso
+muda para onde a sprint deve olhar, e foi o que decidiu a jogada.
+
+**Onde o primeiro filme ainda morre (14 dias, externos, medido esta rodada).**
+58 pessoas apertaram GERAR e nunca receberam um filme na vida. Quebrado por
+causa, cada uma cruzada com o que esta sprint já entregou:
+
+| causa | pessoas | estado |
+|---|---:|---|
+| silêncio total (nem claim, nem erro) | 17 | curado pelo **#14**, na fila |
+| gate de narração | 10 | curado pelo **#1**, no ar |
+| saldo preso / `compose_refused` | 12 | explicado pelo **#5**, no ar |
+| claim assinado sem linha em `videos` | 10 | 7 são de 22-28/08; **zero desde 02/09** |
+| "video access could not be verified" | 3 | JWT-skew de 28/08, encerrado |
+
+**Nenhuma causa nova e viva sobrou nesse balde.** Foi por isso que esta rodada
+saiu do render e foi para a decisão de compra.
+
+**Três hipóteses medidas e descartadas antes de codar:**
+1. *"O 402 que diz 'Add a plan' a quem tem 25 créditos está matando gente"* —
+   real, mas **pequeno e parado**: 26 disparos, 15 pessoas, 5 sem filme na
+   vida, e **o último foi em 31/08**. Não é a rodada de hoje.
+2. *"O guarda `prompt_looks_like_instruction` está barrando o roteiro colado
+   do ChatGPT"* — o guarda está **certo** e o funil dele é saudável: 40 pessoas
+   em 14 dias → 33 clicaram analisar → 28 geraram → **25 receberam filme**.
+   Afrouxá-lo renderiza lixo automático e bate na trava do fundador. Não mexi.
+   Registro um número para o Codex: `activation_instruction_notice_viewed` (o
+   aviso deles, `679e9935`) tem **0 pessoas** em 14 dias — cedo demais para
+   condenar, mas precisa aparecer.
+3. *"O botão 'first delivery' do banner leva a lugar nenhum"* — falso: 36
+   clicaram, 31 chegaram ao Studio, 24 geraram, 22 receberam filme.
+
+**A oferta do #13 ainda NÃO pode ser medida.** `first_film_free_offer_shown` =
+**0**, e a razão é boa: o `ead6c6a0` foi empurrado às **13:08 BRT**, seis
+minutos antes desta rodada começar. O "próximo item" do #14 continua de pé para
+a rodada seguinte, agora com deploy no ar.
+
+**O que estava errado (medido, e é uma decisão de compra, não um defeito).**
+Crédito é a unidade **interna** da casa. Filme é o que a pessoa compra. As duas
+caixas da minha pista mediam em crédito no momento exato da decisão:
+
+- Studio, a caixa que pede o cartão: *"90 credits / month · up to 3
+  AI-generated videos"*;
+- `/account`, aba de uso, a lista ao lado do medidor: *"Creator = 90 credits /
+  month"* — e só isso.
+
+A pista CAIXA já tinha provado a redação inversa nas superfícies dela e carimba
+`capacity_unit_version=plan_film_language_v1` em cada exposição. O pedido está
+aberto desde **04/09 09:58 BRT** (linha 32 do PEDIDOS), com a nota explícita
+*"não toquei por serem teus/compartilhados"*. A minha fila do `GenerateClient`
+liberou às 13:08. Era a vez dele.
+
+**O que mudou (arquivos).**
+- `app/(dashboard)/generate/GenerateClient.tsx` (+34/−7): `planUnlockLine` passa
+  a montar a linha por `formatPlanFilmCapacity(videosPerMonth(tier,
+  'cinematic_ai'), 'AI film', TIER_CREDITS[tier])` — **"3 AI films / month · 90
+  credits"**. `upgrade_modal_opened`, `limit_purchase_fit_viewed` e
+  `limit_purchase_fit_clicked` passam a carregar `capacity_unit_version`.
+- `app/(dashboard)/account/AccountClient.tsx` (+41/−3): helper puro
+  `planCapacityLine(tier)` ao lado de `PLAN_LIMITS`, as três linhas da lista
+  passam por ele, e um evento novo `account_plan_capacity_viewed` (só na aba de
+  uso, só para quem paga; nada de saldo, id ou e-mail).
+- `scripts/test-capacidade-em-filmes.mjs` (novo, 219 linhas): **45 verificações,
+  0 falhas**, lendo os arquivos reais.
+
+**Não é um número novo — é a mesma conta, na outra ordem.** `videosPerMonth(t,
+q)` é, por definição, `videosForCredits(TIER_CREDITS[t], q)`
+(`lib/marketingPrice.ts:100`), e a linha antiga já mostrava esse mesmo valor
+depois do ponto. O teste **prova a identidade lendo `marketingPrice.ts`**: se
+alguém trocar a derivação por um literal, a frase "só a ordem mudou" deixa de
+ser verdade e a verificação cai. Com os números de hoje (TIER_CREDITS 40/90/180
+e Seedance a 25cr por filme de 60s), a copy lê **1 / 3 / 7 AI films por mês**.
+
+**Falsificado em 4 mutações, todas rodadas de verdade:**
+
+| mutação | verificações que caem |
+|---|---:|
+| voltar `planUnlockLine` ao template credit-first | **3** |
+| tirar `planFilmLanguageMetadata()` de um dos 4 eventos | 1 |
+| usar `TIER_CREDITS` no ramo intro (em vez de `INTRO_CREDITS`) | 1 |
+| digitar o nº de filmes em vez de derivar de `videosPerMonth` | 1 |
+
+**Honestidade no mês promocional.** O botão deste modal manda `&intro=1`, e o
+1º mês concede `INTRO_CREDITS`, não `TIER_CREDITS`. O ramo `hasIntroOffer`
+passa a derivar os filmes do 1º mês do **próprio grant do 1º mês**. Escrever
+ali os filmes da renovação seria a cobrança-surpresa que o comentário da
+própria função já tinha barrado uma vez, em agosto.
+
+**Decisões que tomei sozinha** (autonomia; reversíveis):
+1. **Starter passa a ler "1 AI film / month · 40 credits".** Considerei que
+   "1 filme" vende pior que "40 credits". Mantive o número verdadeiro por dois
+   motivos: a linha antiga **já dizia** "up to 1 AI-generated video" logo
+   depois do crédito — a informação não é nova, só saiu de trás; e a alternativa
+   (esconder) é a família de defeito que esta sprint matou cinco vezes.
+   Registro a alternativa honesta para o fundador decidir: `describeSeedanceMix`
+   já existe e diria *"1 Seedance film plus 15 Kineo 1 videos"*. Trocar o
+   formato quebraria o contrato compartilhado com a CAIXA, então **não troquei
+   sozinha** — vira sugestão, abaixo.
+2. **Segui o contrato do Codex ao pé da letra** (`formatPlanFilmCapacity` +
+   `capacity_unit_version`) em vez de inventar um formato meu. Duas pistas com
+   duas redações para a mesma ideia é como um placar deixa de fechar.
+3. **O evento do `/account` só dispara na aba de uso e só para quem paga** —
+   é onde a caixa existe. Disparar na montagem da página inflaria o denominador
+   com gente que nunca viu a lista.
+
+**Risco: baixo.** São duas caixas de texto e quatro campos de telemetria.
+Nenhum preço, grant, custo de motor, gatilho de checkout ou destino de compra
+foi tocado — o teste tranca que o preço continua vindo de `getTierPrice`, a
+mesma tabela que a Stripe bilha. `planCapacityLine` é puro (o teste tranca que
+não há `fetch`, `useState` nem `useEffect` dentro dele). O pior caso é
+cosmético: um plano cujo grant não paga nem um filme de IA cairia na saída
+`"N credits / month"`, que é exatamente a linha de hoje.
+
+**Trava de qualidade do fundador (03/09 23:40) — conferida linha a linha.**
+Nada em `lib/compose.ts`, `lib/hollywood/**`, `lib/cinematic/**`,
+`lib/broll/**`, `lib/lyriaMusic`, no pipeline do Kineo 1, na escolha de motor,
+no prompt de cena, na régua de palavras/segundo, em `analyze-idea` ou em
+`generate-script`. Nenhum comportamento de geração muda.
+
+**Como medir (contra o marco zero).**
+
+```sql
+-- 1) quem viu a caixa em linguagem de FILME (a versao separa do antes)
+select name, count(*) n, count(distinct user_id) pessoas
+from events
+where created_at > '2026-09-04 18:00:00+00'
+  and metadata->>'capacity_unit_version' = 'plan_film_language_v1'
+  and name in ('upgrade_modal_opened','limit_purchase_fit_viewed',
+               'limit_purchase_fit_clicked','account_plan_capacity_viewed')
+group by 1 order by 2 desc;
+
+-- 2) o gate da rodada: a caixa em linguagem de filme converte melhor?
+with v as (select distinct user_id, min(created_at) ts from events
+           where name='upgrade_modal_opened'
+             and metadata->>'capacity_unit_version'='plan_film_language_v1'
+           group by 1)
+select count(*) viram,
+       count(*) filter (where exists (select 1 from events c
+         where c.user_id=v.user_id and c.name='checkout_started' and c.created_at>=v.ts)) foram_ao_checkout,
+       count(*) filter (where exists (select 1 from events c
+         where c.user_id=v.user_id and c.name='checkout_success_viewed' and c.created_at>=v.ts)) assinaram
+from v;
+```
+
+Gate honesto: a comparação só vale contra o **mesmo evento sem a versão** nos
+21 dias anteriores (`upgrade_modal_opened` sem `capacity_unit_version`), que é
+o grupo de controle natural que a própria mudança criou. Sinal de alarme:
+`account_plan_capacity_viewed` de conta `free` — seria o gate furado, e o teste
+tranca a condição.
+
+**Sugestões para o fundador decidir (não executei).**
+1. **Starter pode falar a língua do Kineo 1, não a do Seedance.** A linha
+   verdadeira hoje é "1 AI film / month · 40 credits". `describeSeedanceMix`,
+   que já existe e já é usado nos packs, diria *"1 Seedance film plus 15 Kineo 1
+   videos"* — mais generoso E igualmente verdadeiro. Não troquei porque muda o
+   contrato de medição que a pista CAIXA usa nas superfícies dela; é uma decisão
+   de linguagem de marca, não uma correção.
+2. **A prateleira das "3 próximas ideias"** continua pendente desde o #13
+   (10% de clique contra 26% do botão de série, com prova de globo ocular).
+
+**Dívidas herdadas, registradas de novo (nenhuma é minha).**
+`scripts/test-credits-held-waitroom.mjs` e `scripts/prove-trial-clock-monotonic.mjs`
+continuam **vermelhos em `origin/main` limpo** — pedidos ao Codex em 03/09 18:45.
+
+**Nota de fila.** O `enfileirar.sh` parou com *"cannot force update the branch
+'entrega-atual' used by worktree"*: a worktree do #14 (`clique-perdido`) ainda
+tinha a branch da fila **checada**. Destaquei aquela worktree (`git checkout
+--detach`, nada perdido) e reconstruí o topo como **fila + 1 commit meu**, em
+vez de deixar o rebase replayar 6 commits do Codex que já estão em
+`origin/main`. Fica a regra para as próximas rodadas: **quem enfileira destaca a
+worktree anterior antes**, senão o script para no último passo, depois de já ter
+rebasado.
+
+**Modelo.** Feita em Opus. O plano reserva Fable para A1/A3; esta é pedido
+aberto do Codex, não item do cardápio.
+
+**Próximo item.** Nesta ordem: (a) **medir a oferta do #13** —
+`first_film_free_offer_shown` já com deploy no ar; sem clique em 24h, o
+problema das 27 não era informação e a resposta é outra; (b) **medir a
+caixa-preta do #14** assim que o fundador clicar (`abriram − fecharam` muito
+acima de ~2/dia significa que o `finally` não roda); (c) o pedido de 12:32 do
+codex-caixa: expor no `/history` o sinal owner-scoped de **segundo download
+confirmado** (67 pessoas em 30 dias, 12 checkouts, 1 pagamento).
+
+**SHA.** `068d3779` — worktree `C:\kineo-wt\r15-capacidade`. Enfileirado em
+`entrega-atual` sobre `96a0a6c1`. Aguardando o clique no SUBIR-SITE.bat.
