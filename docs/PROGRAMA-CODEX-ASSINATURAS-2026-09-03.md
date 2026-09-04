@@ -519,3 +519,29 @@ muda é frequência e intensidade:
 7. Tudo o mais continua: autonomia total, sem pergunta, sem preço, sem
    e-mail, sem arquivo do Claude, handoff a cada rodada com ✅ e 📋.
 ```
+
+### 8.7 CORREÇÃO DA F2 (fundador, 03/09 23:10 BRT) — ele NÃO quer roteiro
+
+Palavras dele: *"antigamente eu pedia pra ele escrever pra mim um roteiro. Mas
+hoje em dia eu busco no Google, e eu mesmo coloco no site, sai um vídeo
+perfeito. A única coisa que eu peço é pra ele me descrever legendas, descrições,
+e daí ele coloca tudo no YouTube e no TikTok."*
+
+**A F2 muda de conteúdo.** O pacote diário NÃO leva mais tema nem roteiro — o
+fundador escolhe o tema sozinho e o produto faz o filme. O que falta, e o que
+o pacote deve conter, é só a camada de publicação:
+
+- legenda de tela (on-screen)
+- título e descrição do YouTube, no modelo do Lago Natron (CLAUDE.md)
+- comentário fixado do YouTube
+- legenda e comentário fixado do TikTok
+- hashtags e horário (19-21h BRT)
+
+E o pacote não nasce de um tema inventado: ele nasce **do filme que o fundador
+acabou de fazer** — ou seja, é uma FUNÇÃO DO PRODUTO, não um documento. A
+jogada certa deixa de ser "escrever um .md por dia" e passa a ser: na tela do
+resultado, um botão que gera o pacote de publicação a partir do roteiro real
+daquele filme. Isso serve o fundador E todo cliente que publica.
+
+A tela do resultado é do Claude → vira PEDIDO. A geração do texto e o formato
+são do Codex. A subida nas redes é do Cowork (pista a desenhar em 04/09).
