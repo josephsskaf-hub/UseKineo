@@ -1909,3 +1909,59 @@ Nada.
 ### 📋 O QUE ACONTECEU
 
 Fechei a rodada de controle sem maquiar o placar: a nova frase de USD ainda não foi vista por ninguém elegível, não apareceu objeção nova e o segundo download não gerou caso novo. Mantive as variantes intactas para que o próximo comprador produza aprendizado real.
+
+---
+
+## ROUND 29 — a escolha do plano atravessa o cadastro à vista
+
+**Data:** 2026-09-04 12:56→13:03 BRT
+
+**Pista:** Growth-B2C / CAIXA
+
+**Branch:** `codex/caixa-auth-choice-r29`
+
+### DADO QUE DOÍA E VIGIA
+
+**EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, 14 dias, medida em 04/09/2026:** 13 sessões de navegador chegaram a `checkout_auth_required`; somente 4 alcançaram `checkout_started` nas 24h seguintes, todas sem filme anterior, e nenhuma confirmou pagamento em 7 dias. A sessão de navegador é a unidade porque o evento anterior ao cadastro ainda não tem `user_id`; ela não foi promovida a pessoa ou assinatura.
+
+**EVIDÊNCIA DE PRODUÇÃO — vigia das últimas 2h, 13:01 BRT:** permanece uma pessoa externa (`0441e46ae5`), origem direta, Pro mensal, 25 créditos, zero filme e sem erro/pagamento. É a mesma intenção precoce das R27/R28, não uma nova pessoa.
+
+### HIPÓTESE E MUDANÇA MÍNIMA
+
+**FATO CONFIRMADO:** a rota já preservava o redirect exato do checkout e a telemetria já carregava `tier` e `billing`, mas a tela dizia apenas “selected plan”/“secure checkout”. Também prometia que um “intro price” estava salvo, apesar de a fonte canônica manter intro desligado. A pessoa atravessava Google ou e-mail sem conseguir conferir qual plano sobreviveria.
+
+**HIPÓTESE:** repetir a escolha já feita reduz ansiedade no único salto que interrompe a compra, sem adicionar argumento comercial.
+
+**IMPLEMENTADO:** `checkoutAuthChoiceCopy()` aceita apenas plano e periodicidade allowlisted, normaliza aliases históricos e falha fechado para a copy genérica. A página de cadastro passa a mostrar `Creator · monthly` (ou a escolha real) em título, chip, explicação, overlay do Google e CTA de e-mail. O redirect existente não mudou. Preço, desconto, plano, checkout e autenticação não mudaram.
+
+**MEDIÇÃO:** `checkout_auth_choice_viewed` grava somente versão, tier canônico, billing e superfície — nenhum redirect, e-mail, preço, prompt ou identificador Stripe. Funil: exposição → método escolhido → callback concluído → `checkout_started` → pagamento, reconciliado pela ponte de sessão já existente.
+
+### ARQUIVOS E GATES
+
+- `lib/growth/checkoutSignupResolution.ts`: política fechada e versão `checkout_auth_choice_v1`.
+- `app/(auth)/signup/page.tsx`: caller visível e evento somente após uma escolha válida.
+- `scripts/test-checkout-signup-resolution.mjs`: 54/54, cobrindo três planos, duas periodicidades, aliases e entradas inválidas.
+- Regressões: OAuth handoff 56/56; auth session bridge 61/61; TypeScript verde; whitespace limpo.
+- `docs/previews/CHECKOUT-AUTH-CHOICE-2026-09-04.html`: antes/depois desktop e mobile conferido no Chrome do fundador. O preview revelou um chip inicialmente ausente do caller; o caller foi corrigido antes do commit.
+
+### PLACAR
+
+**EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 13:01 BRT:** 40 cadastros externos, 25 pessoas com filme, 2 checkouts com filme, 2 sem filme, 0 assinaturas e 0 pessoas com falha sem filme desde o marco.
+
+### GATE DE PARADA E RISCO
+
+Manter até 10 exposições externas com 24h completas ou 7 dias. Sucesso: maior proporção `checkout_auth_choice_viewed` → `checkout_started`; pagamento é o fim. Reverter se plano/periodicidade exibido divergir do `checkout_started`, se produto avulso receber copy recorrente ou se o redirect deixar de ser byte a byte o mesmo.
+
+**RISCO:** baixo e reversível. O maior risco seria nomear a escolha errada; a allowlist e os aliases fechados impedem coerção livre, e entrada desconhecida mantém a mensagem genérica atual.
+
+### PRÓXIMA JOGADA
+
+Publicar, validar Guardião e deploy, depois congelar esta superfície. A R30 deve voltar ao ato de pagar sem reeditar autenticação: medir o destino real do resume ou outra lacuna CAIXA com caller vivo.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+### 📋 O QUE ACONTECEU
+
+Quem escolhe um plano antes de criar a conta não atravessa mais o login no escuro: vê o nome e a periodicidade que já estavam salvos e volta ao mesmo checkout. Não mexi em preço nem inventei incentivo; tornei visível uma continuidade que o código já garantia.

@@ -41,7 +41,24 @@ equal(
   'checkout_signup_resolution_v1',
   'experiment version is stable',
 )
+equal(policy.CHECKOUT_AUTH_CHOICE_VERSION, 'checkout_auth_choice_v1', 'choice version is stable')
 equal(policy.checkoutSignupResolutionCopy(false), null, 'ordinary signup keeps its existing success state')
+
+for (const [tier, billing, expected] of [
+  ['starter', 'monthly', ['starter', 'Starter', 'Starter · monthly']],
+  ['basic', 'annual', ['basic', 'Creator', 'Creator · annual']],
+  ['creator', 'monthly', ['basic', 'Creator', 'Creator · monthly']],
+  ['pro', 'monthly', ['pro', 'Studio', 'Studio · monthly']],
+  ['studio', 'annual', ['pro', 'Studio', 'Studio · annual']],
+]) {
+  const choice = policy.checkoutAuthChoiceCopy(tier, billing)
+  equal([choice.tier, choice.planName, choice.summary], expected, `${tier}/${billing} repeats the canonical choice`)
+  ok(choice.continuity.includes(choice.summary), `${tier}/${billing} continuity names the exact choice`)
+  equal(choice.button, `Continue to ${choice.planName} checkout →`, `${tier}/${billing} CTA names the plan`)
+}
+for (const [tier, billing] of [[null, 'monthly'], ['autopilot', 'monthly'], ['basic', null], ['basic', 'weekly']]) {
+  equal(policy.checkoutAuthChoiceCopy(tier, billing), null, `invalid choice fails closed: ${tier}/${billing}`)
+}
 
 const copy = policy.checkoutSignupResolutionCopy(true)
 equal(copy.heading, 'Finish your purchase', 'checkout state names the unfinished job')
@@ -55,6 +72,13 @@ const signup = source('app/(auth)/signup/page.tsx')
 const analytics = source('lib/authAnalytics.ts')
 
 ok(signup.includes('checkoutSignupResolutionCopy(isCheckoutResume)'), 'checkout-only caller derives neutral copy')
+ok(signup.includes('checkoutAuthChoiceCopy('), 'signup derives the visible choice from its checkout-only context')
+ok(signup.includes('checkoutChoice?.continuity'), 'signup repeats the exact plan and cadence before auth')
+ok(signup.includes('checkoutChoice?.button'), 'email CTA repeats the selected plan')
+ok(signup.includes('{checkoutChoice.summary}'), 'visible chip repeats the exact plan and cadence')
+ok(signup.includes("'checkout_auth_choice_viewed'"), 'visible choice has a dedicated denominator')
+ok(signup.includes('CHECKOUT_AUTH_CHOICE_VERSION'), 'visible choice event is versioned')
+ok(!signup.includes('Your selected plan and intro price are saved.'), 'dead intro-price promise is removed from signup')
 ok(signup.includes("trackCheckoutSignupResolution('viewed', activationRedirect)"), 'resolution view is measured')
 ok(signup.includes("trackCheckoutSignupResolution('sign_in', activationRedirect)"), 'sign-in choice is measured')
 ok(signup.includes('href={loginHref}'), 'CTA reuses the checkout-preserving login destination')

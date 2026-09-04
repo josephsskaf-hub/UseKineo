@@ -38,7 +38,11 @@ import {
   buildCreationPasswordRecoveryHref,
   readCreationPasswordRecoveryContext,
 } from '@/lib/growth/creationPasswordRecoveryHandoff'
-import { checkoutSignupResolutionCopy } from '@/lib/growth/checkoutSignupResolution'
+import {
+  CHECKOUT_AUTH_CHOICE_VERSION,
+  checkoutAuthChoiceCopy,
+  checkoutSignupResolutionCopy,
+} from '@/lib/growth/checkoutSignupResolution'
 
 type Strength = { level: 0 | 1 | 2 | 3 | 4; label: string; color: string }
 
@@ -267,6 +271,10 @@ export default function SignupPage() {
   const passwordRecoveryContext = isCheckoutResume
     ? readCheckoutPasswordRecoveryContext(activationRedirect)
     : null
+  const checkoutChoice = useMemo(() => checkoutAuthChoiceCopy(
+    passwordRecoveryContext?.tier ?? null,
+    passwordRecoveryContext?.billing ?? null,
+  ), [passwordRecoveryContext?.tier, passwordRecoveryContext?.billing])
   const creationPasswordRecoveryContext = isCheckoutResume
     ? null
     : readCreationPasswordRecoveryContext(activationRedirect)
@@ -288,6 +296,21 @@ export default function SignupPage() {
   const checkoutResolution = success
     ? checkoutSignupResolutionCopy(isCheckoutResume)
     : null
+
+  useEffect(() => {
+    if (!checkoutChoice || bulkCheckoutContext) return
+    const marker = `kineo_checkout_auth_choice:${Math.round(performance.timeOrigin).toString(36)}`
+    try {
+      if (sessionStorage.getItem(marker)) return
+      sessionStorage.setItem(marker, '1')
+    } catch { /* analytics remains best-effort */ }
+    void trackEvent('checkout_auth_choice_viewed', {
+      version: CHECKOUT_AUTH_CHOICE_VERSION,
+      tier: checkoutChoice.tier,
+      billing: checkoutChoice.billing,
+      surface: 'signup_page',
+    })
+  }, [bulkCheckoutContext, checkoutChoice])
 
   useEffect(() => {
     if (!checkoutResolution) return
@@ -579,7 +602,9 @@ export default function SignupPage() {
                   {isCheckoutResume
                     ? bulkCheckoutContext
                       ? `Your ${bulkCheckoutContext.videos}-video pack is saved`
-                      : 'Create your account to continue'
+                      : checkoutChoice
+                        ? `Create your account for ${checkoutChoice.planName}`
+                        : 'Create your account to continue'
                     : savedProductDestination
                       ? savedProductDestination.heading
                       : savedCreation
@@ -590,13 +615,26 @@ export default function SignupPage() {
                   {isCheckoutResume
                     ? bulkCheckoutContext
                       ? `${bulkCheckoutContext.priceLabel} USD one time · no subscription. Create your account and continue without choosing the pack again.`
-                      : 'Your selected plan and intro price are saved. Continue securely below.'
+                      : checkoutChoice?.continuity ?? 'Your selected plan is saved. Continue securely below.'
                     : savedProductDestination
                       ? 'Create a free account and continue to the product you chose.'
                       : savedCreation
                         ? 'Create a free account and continue without starting over.'
                         : ft(OFFER, 'Create, watch, download and share up to 3 watermarked Fast videos every 24h, no card.', OFFER.copy.headline)}
                 </p>
+
+                {isCheckoutResume && checkoutChoice && !bulkCheckoutContext && (
+                  <div
+                    className="inline-flex items-center rounded-full px-3 py-1.5 mb-5 text-xs font-black"
+                    style={{
+                      color: '#7cc0ff',
+                      background: 'rgba(41,151,255,.1)',
+                      border: '1px solid rgba(41,151,255,.3)',
+                    }}
+                  >
+                    {checkoutChoice.summary}
+                  </div>
+                )}
 
                 {savedCreation && (
                   <AuthSavedCreationCard preview={savedCreation} />
@@ -853,7 +891,7 @@ export default function SignupPage() {
                         <div style={{ fontSize: '0.85rem', color: '#a1a1a8', lineHeight: 1.5 }}>
                           {bulkCheckoutContext
                             ? `Your ${bulkCheckoutContext.videos}-video pack is saved. One tap takes you back to its one-time checkout.`
-                            : 'One tap and we\'ll bring you straight back to secure checkout.'}
+                            : checkoutChoice?.continuity ?? 'One tap and we\'ll bring you straight back to secure checkout.'}
                         </div>
                       </div>
                     </div>
@@ -877,7 +915,7 @@ export default function SignupPage() {
                       : isCheckoutResume
                         ? bulkCheckoutContext
                           ? `Continue to ${bulkCheckoutContext.videos}-video checkout →`
-                          : 'Continue to secure checkout →'
+                          : checkoutChoice?.button ?? 'Continue to secure checkout →'
                         : '⚡ Create Free Account'}
                   </button>
                 </form>
