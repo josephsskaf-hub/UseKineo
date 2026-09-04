@@ -1878,7 +1878,7 @@ O Creator teve expirações, mas os dados não autorizam dizer “é preço”: 
 
 ### RECONCILIAÇÃO
 
-**VALIDADO:** a documentação da R27 chegou à `main` em `83b6a53cbda929f1436a39c0af2ba940669858d6`; Guardião run `33891339459` concluiu verde em 1m03s. Como foi documentação apenas, não houve deploy funcional a atribuir.
+**VALIDADO:** a documentação da R27 chegou à `main` em `83b6a53cbda929f1436a39c0af2ba940669858d6`; Guardião run `33891814480` concluiu verde em 1m03s. Como foi documentação apenas, não houve deploy funcional a atribuir.
 
 **EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, 04/09/2026 12:52 BRT:** desde o deploy funcional da R26, a versão `checkout_payment_guidance_v2` teve **0 pessoas expostas, 0 sessões e 0 pagamentos**. No mesmo intervalo houve **0 nova objeção declarada** e **0 pessoa com segundo download**. Logo, não existe amostra nova para julgar R25, R26 ou o diagnóstico da R27.
 
@@ -1965,3 +1965,61 @@ Nada.
 ### 📋 O QUE ACONTECEU
 
 Quem escolhe um plano antes de criar a conta não atravessa mais o login no escuro: vê o nome e a periodicidade que já estavam salvos e volta ao mesmo checkout. Não mexi em preço nem inventei incentivo; tornei visível uma continuidade que o código já garantia.
+
+---
+
+## ROUND 30 — o clique de retomada não termina mais em silêncio
+
+**Data:** 2026-09-04 13:03→13:13 BRT
+
+**Pista:** Growth-B2C / CAIXA
+
+**Branch:** `codex/caixa-resume-deadend-r30`
+
+### RECONCILIAÇÃO E VIGIA
+
+**VALIDADO EM PRODUÇÃO — 04/09/2026 13:03 BRT:** a mudança funcional da R29 chegou à `main` no SHA `bb6bb1e495e446aa612c3c9e7e22f93f2a2d0b75`; Guardião run `33892855543` concluiu verde em 1m07s. Vercel Production `dpl_BFsSeXruLg1zKLBQSFsW8unAM3z3` e Preview `dpl_ET73CGsAmW81y3K5YXnj8sbWLc4p` ficaram `READY` para o mesmo SHA. A variante fica congelada até o gate da R29.
+
+**EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, 04/09/2026 13:11 BRT:** desde o marco de 03/09 16:00 UTC há **41 cadastros externos, 26 pessoas com filme, 2 checkouts com filme, 2 sem filme, 0 assinaturas e 0 pessoas com falha sem filme**.
+
+**EVIDÊNCIA DE PRODUÇÃO — vigia das últimas 2h:** permanece uma pessoa externa (`0441e46ae5`), origem direta, Pro mensal, 25 créditos, zero filme e sem erro/pagamento. É a mesma intenção precoce descrita desde a R27, não uma nova pessoa.
+
+### DADO QUE DOÍA
+
+**EVIDÊNCIA DE PRODUÇÃO — janela de 30 dias medida em 04/09/2026:** 9 pessoas externas clicaram no banner de retomada em 12 eventos; somente 1 voltou a `checkout_started` em até 5 minutos, 2 em até 24 horas e 1 confirmou pagamento em até 7 dias. O clique mais recente foi em 26/08. A amostra é pequena e histórica; não autoriza redesenhar o resgate inteiro.
+
+**FATO CONFIRMADO:** `unavailableResponse()` enviava todo clique explícito `?go=1` que não pudesse reabrir a sessão diretamente para `/pricing`, sem estado na URL. A página não tinha como distinguir essa queda de uma visita normal. O comprador clicava “retomar” e recebia uma tabela genérica sem explicação (`app/api/stripe/checkout/resume/route.ts`; `app/pricing/PricingClient.tsx`).
+
+### HIPÓTESE E MUDANÇA MÍNIMA
+
+**HIPÓTESE:** explicar a falha terminal e preservar a decisão na própria página evita que um clique de alta intenção pareça ter sido ignorado.
+
+**IMPLEMENTADO:** o fallback explícito agora volta para uma URL versionada e allowlisted. A página mostra: “Saved checkout needs a fresh start”, explica que a tentativa não alterou o faturamento e aponta para os planos atuais. O motivo interno não cruza a URL nem a telemetria. A consulta passiva do banner continua devolvendo o motivo limitado que já devolvia.
+
+**MEDIÇÃO:** `checkout_resume_unavailable_viewed` é o denominador visível; o `intent_campaign=checkout_resume_unavailable_v1` já percorre `pricing_view`, clique de plano e `checkout_started`. Sucesso: exposição → novo checkout em 24h → pagamento. Gate: 10 pessoas externas expostas com 24h completas ou 7 dias. Não reeditar antes.
+
+### ARQUIVOS E GATES
+
+- `lib/growth/checkoutResumeUnavailable.ts`: contrato versionado, copy, URL, leitura fechada e telemetria categórica.
+- `app/api/stripe/checkout/resume/route.ts`: apenas o fallback de clique explícito ganha estado; resolução bem-sucedida permanece byte a byte.
+- `app/pricing/PricingClient.tsx`: explicação visível, com evento deduplicado por navegação.
+- `scripts/test-checkout-resume-unavailable.mjs`: 21/21.
+- Regressões: pricing saved checkout 65/65; checkout signup resolution 54/54; TypeScript verde; whitespace `cr-at-eol` limpo.
+- `docs/previews/CHECKOUT-RESUME-UNAVAILABLE-2026-09-04.html`: antes/depois desktop e mobile conferido no Chrome do fundador; aba temporária fechada.
+- SHA funcional pré-merge após rebase: `a081893253edfa46d47507c6c8e5e288fab7fe35`.
+
+### RISCO
+
+Baixo e reversível. Nenhum preço, oferta, promessa, crédito, render ou chamada Stripe mudou. O risco é o aviso aparecer após indisponibilidade transitória; a copy não acusa pagamento nem causa e permite recomeçar pela rota vigente.
+
+### PRÓXIMA JOGADA
+
+Publicar e validar Guardião/deploy. Depois congelar esta superfície e iniciar R31 numa lacuna diferente do ato de pagar, priorizando pedido aberto viável ou dado novo do vigia.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+### 📋 O QUE ACONTECEU
+
+Quem clica para retomar uma compra antiga e encontra uma sessão indisponível não cai mais numa tabela de preços sem contexto. Agora o produto explica o que aconteceu, confirma que aquela tentativa não alterou o faturamento e deixa a próxima ação diante da pessoa — sem mudar preço nem Stripe.
