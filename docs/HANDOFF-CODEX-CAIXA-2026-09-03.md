@@ -284,11 +284,11 @@ da repetição, e a oferta de 2+ filmes permanece congelada até completar amost
 
 ## ROUND 6 — saldo insuficiente + K11 · call graph vivo antes de copy
 
-**Data:** 2026-09-04 10:24 BRT
+**Data:** 2026-09-04 10:14 BRT
 **Pista:** Growth-B2C / CAIXA
 **Branch:** `codex/caixa-live-balance-r6`
 
-### EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, 2026-09-04 10:21 BRT
+### EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, 2026-09-04 10:13 BRT
 
 - Marco canônico `2026-09-03 16:00 UTC`: 34 cadastros externos, 21 pessoas
   com filme, 1 checkout de desejo, 2 checkouts sem filme, 0 assinaturas e 0
@@ -359,11 +359,11 @@ coorte, mas ainda não tem amostra suficiente para receber outra variante.
 
 ## ROUND 7 — K8 · prova de idioma bloqueada por ausência de fonte
 
-**Data:** 2026-09-04 10:37 BRT
+**Data:** 2026-09-04 10:16 BRT
 **Pista:** Growth-B2C / CAIXA
 **Branch:** `codex/caixa-language-proof-r7`
 
-### EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, 2026-09-04 10:35 BRT
+### EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, 2026-09-04 10:15 BRT
 
 - O schema de produção não possui coluna com `language` ou `locale` em
   `profiles`, `videos` ou `render_jobs`.
@@ -423,11 +423,11 @@ pelo roteiro, o pedido foi enviado ao dono do pipeline para expor o idioma real.
 
 ## ROUND 8 — medição pura · quatro estágios sem empilhar copy
 
-**Data:** 2026-09-04 10:52 BRT
+**Data:** 2026-09-04 10:22 BRT
 **Pista:** Growth-B2C / CAIXA
 **Branch:** `codex/caixa-measurement-r8`
 
-### EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, 2026-09-04 10:49 BRT
+### EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, 2026-09-04 10:21 BRT
 
 | Estágio | Pessoas externas | Ação | Checkout | Assinatura | Leitura |
 |---|---:|---:|---:|---:|---|
@@ -494,11 +494,11 @@ cancelado, onde a pessoa já revelou intenção de pagar.
 
 ## ROUND 9 — K9/K14 · retorno cancelado já existe, sem amostra
 
-**Data:** 2026-09-04 11:08 BRT
+**Data:** 2026-09-04 10:24 BRT
 **Pista:** Growth-B2C / CAIXA
 **Branch:** `codex/caixa-cancelled-r9`
 
-### EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, 2026-09-04 11:05 BRT
+### EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, 2026-09-04 10:23 BRT
 
 - K14 `checkout_cancel_objection_visibility_v1`: 0 pessoas externas expostas
   em 14 dias, 0 respostas, 0 checkout e 0 assinatura atribuível.
@@ -559,3 +559,84 @@ Nada.
 A volta do checkout já pergunta a objeção e oferece o primeiro filme. O gargalo
 é distribuição dessa tela: ninguém viu a pesquisa e apenas uma pessoa viu a
 oferta de teste. Preservei o experimento e avancei para a prova visual do caixa.
+
+---
+
+## ROUND 10 — K15 · prova visual do Stripe preservada, vigia avançou
+
+**Data:** 2026-09-04 10:28 BRT
+**Pista:** Growth-B2C / CAIXA
+**Branch:** `codex/caixa-visual-proof-r10`
+
+### CORREÇÃO FACTUAL DE HORÁRIO
+
+As ROUNDs 6–9 tinham horários projetados, posteriores ao relógio real. Foram
+corrigidas acima usando os horários dos commits como âncora: 10:14, 10:15,
+10:22 e 10:24 BRT. Nenhum dado ou conclusão mudou.
+
+### EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, 2026-09-04 10:27 BRT
+
+- Sem `checkout_visual_proof`: 19 pessoas externas maduras em 14 dias, 0
+  pagamentos, 5 cancelamentos e 19 sessões expiradas.
+- Com `checkout_visual_proof_v2`: 22 pessoas externas, 19 maduras, 2
+  pagamentos, 2 cancelamentos e 18 sessões expiradas.
+- As coortes são temporais e não randomizadas. A diferença 0→2 pagamentos é
+  compatível com melhora, mas não prova causalidade da imagem.
+- Marco canônico: 35 cadastros, 22 pessoas com filme, 1 checkout de desejo, 2
+  sem filme, 0 assinaturas desde o marco e 0 pessoas com falha sem filme.
+- Vigia: `a8c8d6c5` continua sem pagamento, mas deixou de ser abandono de
+  ativação. Saiu de 25 para 12 créditos, iniciou Seedance, teve despacho aceito
+  e abriu a tela de render em andamento. Não há erro nem filme concluído ainda.
+
+### FATO CONFIRMADO — K15
+
+- O checkout vivo executa `CHECKOUT_VISUAL_PROOF` e envia a imagem pública da
+  marca ao Stripe no `product_data.images`.
+- A imagem é deliberadamente genérica. Enviar vídeo, thumbnail, prompt ou URL
+  assinada da pessoa ao Stripe apenas para decorar o pagamento ampliaria dado
+  de cliente para um terceiro e contradiria o contrato de privacidade do módulo.
+- A versão chega ao evento, à Session, à Subscription e ao webhook; o teste
+  também exige ausência de mídia privada.
+- A prova pessoal continua antes do redirecionamento, nas superfícies owner-
+  scoped de pós-vídeo, pricing e retomada. Não foi duplicada dentro do Stripe.
+
+### DECISÃO REVERSÍVEL / GATE
+
+Preservar `checkout_visual_proof_v2`. Já há 19 pessoas maduras e 2 pagamentos,
+sem sinal de regressão. Não substituir a imagem de marca por mídia privada. A
+próxima comparação só pode atribuir causalidade com variante controlada; estes
+dois períodos servem como evidência observacional.
+
+### IMPLEMENTADO
+
+Nenhuma alteração de produto. Auditoria do caller, teste e produção. Também
+foram corrigidos somente os timestamps documentais incorretos das quatro
+rodadas anteriores.
+
+### COMO MEDIR
+
+`checkout_started` agrupado por `checkout_visual_proof` → cancelamento,
+expiração e `checkout_success_viewed` em 24h por pessoa externa. Nunca contar
+Session ou expiração como pessoa adicional.
+
+### RISCO
+
+Risco zero de produto. O risco evitado foi vazar um artefato privado ao Stripe
+e chamar uma comparação temporal de teste causal.
+
+### PRÓXIMA JOGADA
+
+Reconciliar o vigia até o render dessa pessoa terminar. Em paralelo, auditar a
+última ação própria ainda não congelada: coerência do valor exibido no modal
+vivo via pedido do Claude, sem tocar no arquivo compartilhado.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+### 📋 O QUE ACONTECEU
+
+A prova visual genérica do checkout está associada a 2 pagamentos em 22 pessoas,
+contra 0 em 19 antes dela, sem alegar causalidade. A pessoa quente do vigia não
+abandonou: começou um Seedance e está na sala de render. Agora acompanhamos o
+desfecho real antes de mexer em outra tela.
