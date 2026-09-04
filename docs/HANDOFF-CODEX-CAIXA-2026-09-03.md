@@ -1260,3 +1260,109 @@ Nada.
 ### 📋 O QUE ACONTECEU
 
 As duas recusas reais de cartão não são novas compras perdidas: são renovações recusadas por saldo insuficiente. O checkout inicial não ganhou uma mudança sem evidência; o vigia continua concentrado na pessoa do ChatGPT que agora já recebeu o primeiro filme.
+
+---
+
+## ROUND 19 — roteiro do ChatGPT preservado deixa de parecer travado
+
+**Data:** 2026-09-04 11:14→11:28 BRT
+
+**Pista:** Growth-B2C / CAIXA
+
+**Branch:** `codex/caixa-chatgpt-instruction-r19`
+
+**SHA funcional:** `679e9935`
+
+### VALIDAÇÃO DA ENTREGA ANTERIOR
+
+**IMPLEMENTADO EM `origin/main`:** R18 está em `6a88b0da`. **QUESTÃO
+PENDENTE:** nesta máquina `gh` não existe e a CLI da Vercel não tem sessão;
+portanto não classifico Guardião/deploy como validados por painel nesta rodada.
+A produção pública será validada depois do merge sem inventar estado externo.
+
+### EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, 2026-09-04 11:26 BRT
+
+Placar canônico desde 03/09 16:00 UTC: **36 cadastros externos, 23 pessoas com
+filme, 2 checkouts com filme, 1 sem filme, 0 assinaturas e 0 pessoas com falha
+sem filme**.
+
+O vigia das últimas 2h encontrou uma pessoa externa (`a8c8d6c5`), origem
+registrada `chatgpt`, plano Pro aberto quatro segundos após o cadastro. Ela
+bateu exatamente em `activation_autostart_skipped(reason=
+prompt_looks_like_instruction)` às 10:16:59 BRT; sem explicação, tentou analisar
+manualmente seis vezes e só iniciou a geração às 10:20:21, **3m22s depois**.
+Agora tem um filme concluído, 12 créditos, nenhum erro e nenhum pagamento.
+Classificação: **desejo**. A pessoa real confirma o pedido do Claude e decide a
+jogada acima do cardápio.
+
+### DADO QUE DOÍA
+
+**EVIDÊNCIA DE PRODUÇÃO — pedido do Claude, medido em 04/09/2026:** 35 pessoas
+em 48h caíram no guarda correto de instruções; 12 nunca fizeram filme. O guarda
+protege a qualidade e não deve ser afrouxado. O defeito era silêncio: o roteiro
+permanecia no textarea, mas a interface não dizia isso nem apontava o próximo
+clique.
+
+### IMPLEMENTADO
+
+- `app/(dashboard)/generate/GenerateClient.tsx`: no único ramo
+  `prompt_looks_like_instruction`, mostra orientação antes de consumir o
+  auto-start; a edição manual remove o aviso obsoleto.
+- `lib/growth/instructionPasteNotice.ts`: copy, versão, regra fechada e faixas
+  categóricas de comprimento em módulo puro.
+- `scripts/test-instruction-paste-notice.mjs`: 28 invariantes executáveis,
+  incluindo caller real, ordem aviso→skip, trava preservada, acessibilidade e
+  ausência de roteiro na telemetria.
+- `docs/previews/CHATGPT-INSTRUCTION-NOTICE-2026-09-04.html`: antes/depois em
+  desktop e depois em mobile.
+
+O evento novo `activation_instruction_notice_viewed` carrega apenas versão,
+razão, superfície, fonte já allow-listed e faixa de tamanho. Não carrega prompt,
+roteiro, título nem identificador de render.
+
+### TESTADO LOCALMENTE
+
+Instruction notice 28/28 · quickstart 127/127 · trial-best 27/27 · public promo
+68/68 · money truth 313/313 · TypeScript verde · `diff --check` limpo. Duas
+baterias antigas de recuperação falham localmente em âncoras que exigem LF
+literal; os trechos funcionais continuam presentes e o blob normalizado do Git
+mantém LF. Não alterei teste da pista Claude para fabricar verde.
+
+### COMO MEDIR
+
+Por pessoa e sessão: `activation_autostart_skipped` com
+`reason=prompt_looks_like_instruction` → `activation_instruction_notice_viewed`
+→ `generate_started` → filme → checkout → pagamento. Linha viva desta rodada:
+3m22s e seis cliques de análise entre skip e geração; meta é cair para um clique
+e reduzir as 12 pessoas sem filme, sem aumentar auto-render de instrução.
+
+### GATE DE PARADA
+
+Manter até 20 pessoas externas expostas ou 7 dias. Reverter se o aviso aparecer
+para outro motivo, se texto editado continuar mostrando confirmação obsoleta,
+se qualquer prompt entrar no evento ou se a trava deixar de bloquear auto-start.
+Não reeditar antes do gate.
+
+### RISCO
+
+Baixo e reversível. É uma linha explicativa em uma condição já existente; não
+mexe em preço, oferta, crédito, checkout, motor, render ou conteúdo do usuário.
+Risco residual: marcadores não reconhecidos ainda podem ser narrados; a copy
+diz explicitamente “recognized” e não promete cobertura universal.
+
+### PRÓXIMA JOGADA
+
+Publicar e validar a entrada real do ChatGPT sem gastar crédito. A ROUND 20 é
+medição pura: reconciliar as quatro entregas anteriores e não editar nenhuma
+superfície antes da amostra.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+### 📋 O QUE ACONTECEU
+
+O roteiro do ChatGPT já era preservado e a trava de qualidade estava certa; a
+tela é que ficava muda. Agora ela confirma o que foi preservado, explica o que
+vira narração e aponta o clique de Generate, com uma métrica própria até filme e
+assinatura.
