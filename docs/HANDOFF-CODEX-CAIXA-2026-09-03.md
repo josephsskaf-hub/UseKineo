@@ -1517,6 +1517,17 @@ Pricing saved checkout **65/65** · own film **35/35** · delivery guard
 O navegador recusou `file://` por política de segurança; o preview estático foi
 criado e aberto no painel de arquivo do Codex, sem contornar a restrição.
 
+### VALIDADO EM PRODUÇÃO
+
+**VALIDADO EM PRODUÇÃO — 2026-09-04 11:54 BRT:** commit funcional
+`61e504d00b3196ffaa11713043cd7887abfb3f5e`; Guardião run `33885982030`
+concluído com TypeScript e suíte verdes. A pista FLUXO avançou a `main` logo em
+seguida para `716e87bdefbda89cf88df2e06e66ac1f646bc96a`; `git merge-base
+--is-ancestor` confirmou `61e504d0` dentro dessa ponta. Deploy de produção
+Vercel `Az4Gmg7fG6c4BNcMFyGKdmBvdDqP` Ready, origem `716e87bd`, ambiente
+Production. O preview isolado do commit funcional também ficou Ready em
+`DBaVqNTHXmrwfP33vKo7r2L6rJWp`.
+
 ### COMO MEDIR
 
 `checkout_resume_banner_dismissed(has_personal_film=false)` → primeiro filme →
