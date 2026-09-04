@@ -640,3 +640,81 @@ A prova visual genérica do checkout está associada a 2 pagamentos em 22 pessoa
 contra 0 em 19 antes dela, sem alegar causalidade. A pessoa quente do vigia não
 abandonou: começou um Seedance e está na sala de render. Agora acompanhamos o
 desfecho real antes de mexer em outra tela.
+
+---
+
+## ROUND 11 — pedido do Claude · ativação antes do caixa já está viva
+
+**Data:** 2026-09-04 10:33 BRT
+**Pista:** Growth-B2C / CAIXA
+**Branch:** `codex/caixa-vigil-r11`
+
+### EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, 2026-09-04 10:32 BRT
+
+- Marco canônico: 35 cadastros externos, 22 pessoas com filme, 1 checkout de
+  desejo, 2 checkouts sem filme, 0 assinaturas desde o marco e 0 pessoas com
+  falha sem filme.
+- Vigia das últimas 2h: uma pessoa externa, `a8c8d6c5`, origem ChatGPT. Criou a
+  conta e abriu checkout quatro segundos depois, ainda com 25 créditos e zero
+  filme: classe `defeito/ativação` no instante do caixa.
+- O caminho posterior prova que a recuperação já existente foi executada: viu
+  `pricing_journey_proof_viewed`, clicou duas vezes em
+  `trial_first_delivery`, confirmou a geração e iniciou Seedance. Às 10:32
+  tinha 12 créditos, zero erro, zero filme concluído e o render seguia em voo.
+
+### FATO CONFIRMADO — anti-repetição do pedido das 11:35
+
+- `components/TrialActiveBanner.tsx` já remove o CTA de checkout enquanto
+  `decideTrialFirstDelivery()` considera a primeira entrega elegível. Entrou em
+  `67b88b09` e preserva saldo para repetição desde `383d744d`.
+- `components/growth/PricingJourneyProof.tsx` já consulta `/api/videos`, mostra
+  “See your own finished video before choosing a plan” antes dos cards para
+  quem tem zero entrega e leva ao Studio. Entrou em `b607a8ab`.
+- A pessoa viva abriu o caixa antes dessas superfícies autenticadas terem tempo
+  de montar: a intenção de compra nasceu antes do login e foi preservada pelo
+  callback. Interceptar o endpoint Stripe agora bloquearia quem declarou “I
+  already want to subscribe”; não é uma correção segura.
+
+### DECISÃO REVERSÍVEL / GATE
+
+Não duplicar o CTA nem bloquear checkout. A própria pessoa do pedido atravessou
+o bridge existente e está produzindo a prova. Congelar essa superfície até o
+desfecho: filme concluído e checkout/pagamento em 24h. O pedido foi respondido
+no arquivo entre pistas com os SHAs e a trilha.
+
+### IMPLEMENTADO
+
+Nenhuma mudança de produto. Diagnóstico de não repetição, resposta entre pistas
+e vigilância do caso real. Guardião da ROUND 10 confirmou verde no run
+`33878277578` para o SHA `f6d83b4e`.
+
+### COMO MEDIR
+
+Para `a8c8d6c5`: `videos.status='completed'`, depois `checkout_started` e
+`checkout_success_viewed` em 24h. Para a superfície: pessoas externas com
+`pricing_journey_proof_viewed` no estado `before_first_delivery` → primeiro
+filme → checkout → pago, sem misturar eventos repetidos.
+
+### RISCO
+
+Bloquear Stripe com base em zero filme faria o produto recusar uma intenção
+explícita de compra. Preservar a escolha e oferecer prova antes dos cards mantém
+os dois caminhos sem desconto, crédito novo ou promessa nova.
+
+### PRÓXIMA JOGADA
+
+Reconciliar o render de `a8c8d6c5`; se concluir, medir se a prova traz o retorno
+ao caixa. Se falhar, encaminhar ao Claude como produto, sem a CAIXA tocar render.
+Em paralelo, auditar a rota dominante restante dos checkouts sem filme — a
+intenção preservada pelo cadastro — sem inserir intersticial antes de pagamento.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+### 📋 O QUE ACONTECEU
+
+O pedido de mandar a pessoa ao primeiro filme já estava implementado nas duas
+superfícies certas. O caso vivo confirmou o comportamento: ela saiu do checkout,
+aceitou a prova e iniciou Seedance. Não bloqueei uma compra real nem empilhei
+outra copy; o próximo dado é o filme terminar e a pessoa voltar ao caixa.
