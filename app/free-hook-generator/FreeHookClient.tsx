@@ -106,7 +106,13 @@ export default function FreeHookClient({ entry }: { entry: AnswerEngineHookEntry
           <p style={{ margin: 0 }}>On YouTube Shorts and TikTok, the first 1-2 seconds decide whether your video gets watched or skipped. This free tool writes 5 pattern-interrupt hooks for any topic — the same hook logic that powers Kineo. Pick one, then <Link href={hookActivationHref('', undefined, entry)} onClick={() => { void trackEvent('organic_cta_clicked', { source: hookCtaEventSource(entry), placement: 'explainer', entry, version: ANSWER_ENGINE_HOOK_WORKBENCH_VERSION }) }} style={{ color: '#2997ff' }}>turn it into a finished faceless Short in a few minutes →</Link></p>
         </section>
       </div>
-      <StickyFreeShortCTA />
+      <StickyFreeShortCTA
+        href={generatedTopic ? hookActivationHref(generatedTopic, undefined, entry) : undefined}
+        onCtaClick={generatedTopic ? () => {
+          void trackEvent('free_hook_to_signup_clicked', { destination: 'generate', variant: 'topic', placement: 'sticky', autoanalyze: true, entry, version: ANSWER_ENGINE_HOOK_WORKBENCH_VERSION })
+          void trackEvent('organic_cta_clicked', { source: hookCtaEventSource(entry), placement: 'sticky', entry, version: ANSWER_ENGINE_HOOK_WORKBENCH_VERSION })
+        } : undefined}
+      />
     </main>
   )
 }
