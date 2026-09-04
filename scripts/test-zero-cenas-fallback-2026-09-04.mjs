@@ -38,7 +38,8 @@ checa('a telemetria carrega looks_like_instruction/segments/narration_chars/prom
 checa('telemetria nunca derruba a resposta', bloco.includes('catch { /* telemetria nunca derruba a resposta */ }'))
 
 // trava de qualidade: para scenes.length > 0 o bloco e inerte (nao ha outra atribuicao a scenes dentro dele)
-const atribuicoes = (bloco.match(/\bscenes = /g) || []).length
+// `let recuperadas: typeof scenes = []` e anotacao de tipo, nao atribuicao — sai da conta.
+const atribuicoes = (bloco.replace(/typeof scenes = /g, '').match(/\bscenes = /g) || []).length
 checa('dentro do bloco ha exatamente 1 atribuicao a scenes, e ela e condicional', atribuicoes === 1)
 checa('nada muda para quem hoje gera filme: o bloco inteiro esta dentro da guarda de ZERO cenas', bloco.indexOf('if (scenes.length === 0 && prompt.trim().length > 0) {') < bloco.indexOf('scenes = recuperadas'))
 
