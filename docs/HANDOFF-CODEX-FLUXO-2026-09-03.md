@@ -1366,3 +1366,33 @@ Continua pendente apenas a ação manual da R19: publicar `docs/TAAFT-LISTING-20
 - **EVIDÊNCIA DE PRODUÇÃO:** o placar ficou em 41 cadastros, 27 pessoas com filme e 0 assinaturas; as quatro variantes medidas tiveram denominador zero.
 - **DECISÃO:** R22–R25 ficaram congeladas e o pedido de segundo filme foi reconhecido como já entregue por CAIXA.
 - **FATO CONFIRMADO:** nenhuma mudança de produto foi feita nesta rodada de medição.
+
+---
+
+## Rodada 27 — K5 · comparativo entrega o roteiro ao launcher certo — 04/09 15:10→15:16 BRT — IMPLEMENTADA
+
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 15:11:08 BRT:** entre quatro comparativos neutros com a mesma contradição, `/vs/descript-vs-pictory` foi o único com mais de uma pessoa externa nos 30 dias: **2 pessoas / 2 eventos**; `/vs/heygen-vs-pictory` e `/vs/pictory-vs-synthesia` tiveram 1 pessoa cada, e `/vs/opus-clip-vs-pictory`, 0. Fonte: SQL somente leitura em `events.path`, pessoas distintas por `user_id|session_id`; janelas não foram somadas.
+- **FATO CONFIRMADO / ANTI-DUPLICAÇÃO:** o registro de maior uso dizia que a Kineo aceitava “topic sentence rather than a document”, apesar de `TOOLS.kineo.needsSource` e do launcher público já aceitarem roteiro de produção de até 1.000 caracteres. Seu CTA “Make one free” apontava ao cadastro vazio. Fontes antes de `d697b877`: `lib/comparisons.ts` no registro `descript-vs-pictory`; `app/vs/[pair]/page.tsx`; `lib/creationHandoff.ts`.
+- **IMPLEMENTADO:** a nota agora distingue corretamente tópico ou roteiro curto de URL/documento longo, preserva as vantagens reais de Descript e Pictory e adiciona uma ação específica `Paste a short script →` para o launcher público já existente em `/chatgpt-to-youtube-shorts#chatgpt-script-handoff`. Os outros 45 pares mantêm o CTA anterior por fallback. Fonte: SHA funcional `d697b877a5cd5f86b43572a10cc64b545bc8f408`.
+- **HIPÓTESE:** quem chega ao comparativo com texto pronto perde menos contexto quando o CTA reconhece esse estado e abre a caixa que preserva o roteiro, em vez de enviá-lo a um cadastro vazio. Duas pessoas em 30 dias provam uso, não efeito causal.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 15:11:08 BRT:** placar canônico desde 03/09 13:00 BRT permanece em **41 cadastros, 27 pessoas com filme, 2 checkouts com filme, 2 sem filme, 0 assinaturas e 0 pessoas com falha sem filme**. Não houve cadastro externo nas duas horas anteriores; o vigia de checkout ficou vazio.
+- **TESTADO LOCALMENTE — 04/09/2026 15:13 BRT:** `test-comparisons-script-input-truth` passou **31/31**, `test-chatgpt-script-handoff` **171/171** e `test-quadro-real-2026-09-02` **39/39**: **241 verificações direcionadas**. TypeScript real e `diff --check` saíram 0. O literal `npx tsc --noEmit --pretty false` encontrou o pacote-stub preexistente e saiu 1; não foi mascarado.
+- **INSPECIONADO VISUALMENTE — 04/09/2026 15:13 BRT:** comparação antes/depois aberta em 1440×1050, com desktop e mobile; a distinção de input e o CTA específico ficaram legíveis. Artefatos: `docs/previews/FLUXO-R27-SCRIPT-COMPARISON-HANDOFF-2026-09-04.html` e `.png`.
+- **MEDIÇÃO:** por pessoa externa pós-deploy, seguir `landing_session_started(path='/vs/descript-vs-pictory') → organic_cta_clicked(destination contendo chatgpt-script-handoff) → organic_topic_submitted → cadastro → filme → checkout → assinatura`. O denominador inicial é visitante da página; clique não é receita.
+- **GATE DE PARADA/REVERTER:** corrigir se o CTA não abrir o fragmento real, se o roteiro deixar de atravessar o cadastro, se o texto prometer URL/documento ou mais de 1.000 caracteres, ou se os outros pares perderem seu fallback.
+- **RISCO:** o comparativo tem volume baixo e não justifica expansão automática. As outras notas stale só devem ser corrigidas quando o próximo caminho provar uso; esta rodada altera um único registro e um renderer opt-in.
+- **FATO CONFIRMADO:** nenhum preço, oferta, desconto, Stripe, banco, migration, crédito, geração, e-mail, arquivo Claude ou arquivo CAIXA foi alterado.
+
+## PRÓXIMA JOGADA
+
+- **SUGESTÃO:** medir a primeira exposição pós-deploy e conservar esta variante. Sem denominador, a R28 deve mudar novamente de superfície, auditando outra resposta pública com launcher real; não replicar o opt-in aos comparativos de 0–1 pessoa.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+Continua pendente apenas a ação manual da R19: publicar `docs/TAAFT-LISTING-2026-09-03.md` no painel TAAFT e subir as três capturas indicadas. Nenhuma ação é necessária para a R27.
+
+## 📋 O QUE ACONTECEU
+
+- **IMPLEMENTADO:** o comparativo Descript × Pictory deixou de recusar incorretamente roteiro curto e agora leva essa pessoa à caixa pública que preserva o texto.
+- **EVIDÊNCIA DE PRODUÇÃO:** a página teve 2 pessoas em 30 dias; o placar permanece 41/27/2/2/0/0 e o vigia está vazio.
+- **TESTADO LOCALMENTE:** 241 verificações, TypeScript real, diff check e comparação visual ficaram verdes; demais comparativos e capacidades do produto não mudaram.
