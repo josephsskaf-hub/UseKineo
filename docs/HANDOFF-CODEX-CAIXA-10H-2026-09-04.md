@@ -73,7 +73,7 @@ Nada nesta etapa.
 
 Correção de pixels publicada e validada nos limites descritos; baseline por pessoa registrado e compradores potenciais reconciliados. Não houve assinatura nova demonstrada nesta leitura inicial. O restante da rotação acompanha evidência, sem substituir a métrica final por contagem de tarefas.
 
-## Rotação 2 — 18:08–19:08 BRT — EM EXECUÇÃO
+## Rotação 2 — 18:08–19:08 BRT — CONCLUÍDA
 
 - **FATO CONFIRMADO:** `fetch origin` na abertura confirmou base `ad7cef42f956300bd03a9ce6db41e3d9e6f75a7f`; worktree limpa própria `C:/tmp/usekineo-caixa-10h-r2`, branch `codex/caixa-10h-r2`. Nenhum commit novo da retenção no log de main nesse corte. O arquivo `docs/ESCOPO-CLAUDE-VS-CODEX-2026-08-31.md` não existe nesta base; fronteiras continuam as aprovadas no chat e registradas neste handoff. Não reconstruir documento ausente por memória.
 - **EVIDÊNCIA DE PRODUÇÃO / fechamento R1:** deploy final documental `dpl_8tzS5m85ZsWk2iWPB6KEaQ6Xy5p8` READY, SHA `ad7cef42`, alias www, conferido 04/09 20:39:44 UTC. Negativo autenticado ausente novamente 401/no-store. Guardião PR39 `33916990519` success. Não houve teste de cobrança ao vivo.
@@ -86,7 +86,8 @@ Correção de pixels publicada e validada nos limites descritos; baseline por pe
 - **PREPARAÇÃO IMPLEMENTADA:** `docs/PILOTO-VENDA-ASSISTIDA-CAIXA-2026-09-04.md` + duas consultas somente SELECT agregadas. Proposta: no máximo duas pessoas após todos os gates, nenhuma sequência automática, resultado final primeira assinatura paga; amostra não sustenta causalidade. Consentimento, fontes de supressão e campanhas previstas pedidos ao Claude. Nenhum contato ou rascunho individual.
 - **GATE DE PARADA:** falta de consentimento, cobertura de envios, exclusão, pagamento anterior, opt-out ou colisão impede contato. Preço, oferta, pipeline e crédito permanecem intocados. Nova edição de superfície só com fricção reproduzida/objeção observada, não por contagem baixa.
 - **TESTADO LOCALMENTE:** TypeScript real exit 0; contrato de compra 108/108, entitlement 66/66 e compatibilidade Autopilot 84/84, todos sem chamadas externas. `git diff --check` limpo. SQL executado somente via SELECT. Alterações desta R2 limitadas a documentação/consultas, sem runtime ou UI nova.
-- **QUESTÃO PENDENTE de publicação:** pacote documental desta R2 segue para branch própria e Guardião. SHA e estado de integração serão registrados após verificação; não declarar proposta como campanha ativa ou ganho de receita.
+- **PUBLICADO / VALIDADO EM PRODUÇÃO, 04/09 21:22:56 UTC:** pacote documental `119187afa6d374b5b21039298035d56758208c79`, PR40, Guardião `33920566774` success, integração fast-forward; deploy `dpl_69tqyHiV2eFD5w7kcjzziW35TERp` READY e alias www correto. Negativo sem login repetido: 401/private no-store. Evidência pós-push registrada no PR40 sem provocar novo deploy apenas para registrar o anterior.
+- **CHECKPOINT R2, mesma rotação, SELECT 04/09 21:39:37.856707 UTC:** ciclo = 1 cadastro, 1 pessoa com filme, 0 pessoas no checkout, 0 primeiras assinaturas e 0 avulsos. Vigia 2h vazio; main ainda `119187af`, sem resposta de consentimento incorporada. Nenhuma mudança ou contato por falta de amostra.
 
 ### Próxima jogada
 
@@ -99,3 +100,30 @@ Nada agora. O piloto não será executado sem autorização específica e elegib
 ### 📋 O que aconteceu
 
 Preparada uma alternativa de venda assistida com trava contra repetição: 25 de 27 potenciais compradores já tiveram contato recente aceito pelo serviço. Nenhuma assinatura nova demonstrada, nenhum envio e nenhuma mudança visual. O resultado desta etapa é elegibilidade e proposta verificáveis, não venda atribuída.
+
+## Rotação 3 — 19:08–20:08 BRT — EM EXECUÇÃO
+
+- **FATO CONFIRMADO:** base atual `1ee5e384`; worktree `C:/tmp/usekineo-caixa-10h-r3`, branch `codex/caixa-10h-r3`. AGENTS, estado histórico, questões, Growth, handoff, diário Claude e pedidos lidos. A main incorporou série/memória/despacho vazio e seus testes. `git log origin/main..entrega-atual` vazio na abertura; não olhar apenas a main para anti-duplicação. Nenhum arquivo Claude editado.
+- **EVIDÊNCIA OPERACIONAL, 04/09 22:08:51 UTC:** uso semanal Codex 31% consumido / 69% disponível; janela secundária indisponível. Leitura após duas rotações, nenhum reset ou compra.
+- **EVIDÊNCIA DE PRODUÇÃO, SELECT 04/09 22:09:53.395866 UTC:** baseline fixo inalterado (38 cadastros, 25 pessoas com filme, 3 no caixa, 0 primeiras assinaturas e 0 avulsos). Ciclo desde 20:08: 1 cadastro, 1 pessoa com filme, 0 no caixa, 0 primeiras assinaturas, 0 avulsos. Vigia de duas horas vazio.
+- **PEDIDO PRIORIZADO:** Claude pediu às 16:55 distinguir assinatura/pack em `payment_success`. Hipótese a falsificar antes de editar: o evento não teria esses campos. Gate: verificar gravador real e dados; se já existem, NÃO EXECUTAR um segundo gravador nem aliases redundantes.
+- **CONTRADIÇÃO RESOLVIDA:** `docs/MEDICAO-DEGRAU-FILMES-2026-09-04.md` §6/8 procura `mode|plan|type` e diz que nenhum evento distingue compra. O gravador real `app/api/stripe/webhook/route.ts:507–515` usa `source=stripe_webhook`, `checkout_mode`, `tier`, `stripe_subscription_id`, `pack`. Campos já introduzidos no histórico de Git em `88eac903` (15/07); não é funcionalidade faltante nesta janela.
+- **EVIDÊNCIA DE PRODUÇÃO, SELECT 04/09 22:10:11.863070 UTC:** no público externo canônico, 9 eventos com modo subscription, tier B2C, sessão e subscription_id, todos com valor positivo: basic 3, starter 4, pro 2. Outros 4 eventos externos legados (06–12/07) não têm source/mode/tier/sessão/valor canônicos. Legado fica desconhecido, não assinatura nem avulso inferidos.
+- **EVIDÊNCIA DE PRODUÇÃO, SELECT 04/09 22:11:01.360737 UTC:** os 17 eventos totais se decompõem em 13 eventos / 12 pessoas externas canônicas; 3 eventos / 2 pessoas fora dessa seleção; 1 evento sem pessoa. Não chamar 17 eventos de 17 clientes, não somar grupos de pessoas por plano sem dedupe, não usar exclusão parcial por nome como se fosse a canônica.
+- **EVIDÊNCIA DE PRODUÇÃO, SELECT 04/09 22:10:58.899384 UTC:** primeiras assinaturas B2C registradas por pessoa = 9 no histórico. Linhas de vídeo criadas antes dessa compra e hoje com status completed: zero → 3 pessoas; uma → 3; duas/três → 1; quatro ou mais → 2. Não são nove vendas desta sprint, nem nove assinaturas ativas hoje. Contagem usa `videos.created_at` e status atual completed, não timestamp histórico de entrega; uploads/Animate/Images/Audio não estão nesse indicador. Portanto não prova que a pessoa já havia recebido esses arquivos ao pagar.
+- **LIMITE CAUSAL:** essa distribuição não demonstra que retenção causa compra nem que ela seja inútil. Não comparar taxa de quem pagou contando filmes só até o pagamento com não pagantes contando toda a vida da conta como se o tempo de observação fosse igual. Preservar as portas em amostragem; compra explícita continua sem pré-requisito de filme.
+- **EXECUTADO, no âmbito da coordenação:** corrigida a leitura do evento e respondido o pedido com SQL agregado reproduzível em `docs/queries/CAIXA-10H-PAGAMENTOS-2026-09-04.sql`; reusar o placar canônico entregue na R1. **NÃO EXECUTAR** alteração redundante do webhook ou backfill inventado. Nenhuma mudança de runtime/UX, cobrança, preço, crédito, banco ou campanha nesta rotação.
+- **QUESTÃO PENDENTE:** consentimento/campanhas do piloto ainda sem resposta incorporada; zero destinatários liberados. Publicação documental R3 aguarda gates; registrar SHA/CI/deploy após resultado, sem antecipar aprovação.
+- **TESTADO LOCALMENTE na base nova:** TypeScript integral real exit 0; contrato de compra 108/108, entitlement 66/66 e compatibilidade Autopilot 84/84, offline. `git diff --check` limpo. Não confundir esses testes específicos com suíte integral verde do Guardião.
+
+### Próxima jogada
+
+Checkpoint 19:38 continua R3. Reconciliar intenção nova e eventual resposta do Claude. Se houver objeção comercial declarada, escolher correção mínima na superfície existente; se não houver amostra, preservar a variante. Nenhuma quarta porta de série ou novo banner por padrão.
+
+### ✅ O que você precisa fazer
+
+Nada agora. Não há pedido para mudar cobrança nem liberar contato.
+
+### 📋 O que aconteceu
+
+O pedido de mudar o webhook foi desnecessário: assinatura e avulso já têm campos próprios. A entrega resolve uma contradição de medição entre as pistas e evita código duplicado. Placar da sprint segue sem primeira assinatura demonstrada.
