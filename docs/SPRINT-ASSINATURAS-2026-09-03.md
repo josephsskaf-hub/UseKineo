@@ -1956,3 +1956,215 @@ contra a Library). (2) O item do #11 segue de pé e agora com denominador limpo:
 créditos**, e para 100 das 112 o ÚLTIMO evento da conta é um e-mail nosso — elas
 não voltam à tela nunca mais. O canal é a carta, não a tela; medir qual carta
 faz voltar antes de escrever mais uma.
+
+### #13 — 10:25→11:35 BRT (04/09) — a caixa que pede o cartão passa a oferecer o PRIMEIRO FILME DE GRAÇA. 27 das 88 pessoas que bateram na parede em 21 dias nunca receberam um filme — e para todas as 27 o Kineo 1 sai por zero crédito.
+
+**Placar da rodada** (SQL canônico, marco zero 03/09 16:00 UTC, contas externas):
+35 cadastros · 22 pessoas com filme (63%) · 1 checkout COM filme · 2 checkouts
+sem filme · **0 assinaturas** · 0 pessoas com falha e sem filme.
+
+**A fila esvaziou: o fundador clicou.** Cheguei com `origin/main` em `3ded6a66`
+e três minutos depois ela era `4929a22f` — os 12 commits da sprint (#1→#12)
+subiram. `git rev-list origin/main..entrega-atual` = 0. Tudo o que este diário
+descreve até o #12 está em produção agora, não mais na fila.
+
+**Checagem zero (janela de 30h, a regra que o #11 criou): limpa.** Render preso
+>25min: 0. `generation_stage_error` em 3h: 0 (8 em 30h, e nenhuma dessas
+pessoas ficou sem filme). Cadastro sem crédito em 30h: 4 — **e são exatamente
+os 4 que o #11 já tinha diagnosticado** (04:58, 11:03, 11:05 e 11:09 UTC,
+os três `@vmail.dev`/`@mailshan.com` de farmer). O último é de 2h20 antes do
+deploy da cura. **Nenhum órfão novo depois dela.**
+
+**O "próximo item" do #11 foi medido, e o veredito é o contrário do esperado.**
+O #11 mandou medir o que acontece na tela DEPOIS do filme pronto. O evento
+seguinte ao `video_ready_viewed` (última ocorrência por pessoa, 14 dias) é
+`next_shorts_shown` para **80 das 164 pessoas** — a prateleira das 3 ideias.
+Só que, com prova de globo ocular (`next_shorts_seen`, instrumentado na #46 do
+V1V4), o placar desde 01/09 é:
+
+| superfície pós-filme | apareceu | foi VISTA | foi clicada |
+|---|---:|---:|---:|
+| prateleira "3 próximos Shorts" | 62 pessoas | 20 | **2 (10% de quem viu)** |
+| barra fixa do rodapé (#47) | 55 pessoas | — | 3 |
+| botão "continuar a série" | — | 47 | **12 (26%)** |
+
+A #47 tinha deixado um gate escrito: *"se a barra subir e `seen` continuar
+raso, o problema deixa de ser lugar e volta a ser oferta"*. **O gate está
+respondido: `seen` subiu de 1 para 20 pessoas e o clique não veio.** A
+prateleira é um problema de OFERTA, não de lugar. E a série, na mesma tela,
+converte 2,6× melhor entre quem prova ter visto. Não codei nada aqui — a
+regra anti-repetição manda medir o que já existe, e o registro fica para o
+fundador decidir se a prateleira genérica dá lugar ao próximo episódio.
+
+**Antes de escolher a jogada, três hipóteses medidas e descartadas:**
+1. *"A série promete e trava no paywall"* — falso. 59 pessoas clicaram
+   `series_continue` em 30 dias, **34 (58%) viraram filme em 3h**, e só 4
+   bateram em parede e ficaram sem filme. O laço da série é saudável.
+2. *"As 6 redações de saldo curto do meu #6 estão matando gente"* — o dano
+   está em OUTRO lugar. `insufficient_credits_ai` e `insufficient_credits_fast`
+   do `/api/compose` deram **ZERO disparos em 30 dias**: são caminho morto.
+   As recusas vivas são `free_fast_limit` (18 pessoas, todas com filme),
+   `trial_credits_stalled` (último 31/08, curado pelo #5) e
+   `credits_held_by_render` (último 02/09, curado pelo #5).
+3. *"`stranded_compose_attempt` disparou há 7 minutos, é uma parede nova"* —
+   falso. É o cron `finish-stranded-renders` resgatando render encalhado: a
+   rede de segurança funcionando, não um cliente batendo em porta.
+
+**O que estava errado (medido).** Fui atrás da parede que realmente aparece
+hoje. Em 21 dias, contas externas, **88 pessoas** viram uma caixa que pede
+dinheiro (`trial_downgrade_modal_shown` · `upgrade_modal_opened` ·
+`limit_purchase_fit_viewed`). Dessas:
+
+- **37 estavam SEM FILME naquele exato momento** (contando só filmes anteriores
+  ao evento, não os de depois);
+- **27 nunca receberam um filme da Kineo na vida**;
+- 5 assinaram — e essa família de caixas é **a que mais converte no produto**
+  (3 das assinaturas de 21 dias saíram do `trial_downgrade_modal` sozinho).
+
+Fui ver quem são as 27. **Todas, sem exceção, são `plan=free`,
+`has_paid=false`, com `trial_status` preenchido** (`downgraded`). Isso não é
+uma coincidência demográfica: é literalmente o predicado do servidor
+
+```
+isFreePlanFast = isFreePlan && !hasPaid && !ent.isTrial   // app/api/compose/route.ts
+```
+
+e para quem o satisfaz **o Kineo 1 não checa saldo nenhum**. Não passa por
+`creditCostFor`, não devolve 402, não olha `video_credits`: só reserva uma
+vaga da cota gratuita, que é `FREE_FAST_PREVIEW_LIMIT = 3` **por 24 horas**
+(`lib/freeFastQuota.ts`).
+
+Ou seja: **no minuto em que pedimos o cartão dessas 27 pessoas, o produto
+entregaria o primeiro filme delas de graça, ali, três vezes por dia — e a
+caixa não dizia uma palavra sobre isso.** Pedimos que pagassem para ver um
+produto que elas nunca viram funcionar. É a mesma família de defeito que esta
+sprint já matou quatro vezes (#5, #6, #7, #8): a saída certa existe, é barata,
+e a tela não conta.
+
+**O que mudou (arquivos).**
+- `app/api/credits/route.ts` (+27): campo novo `filmsDelivered` — `count`
+  exact/head de `videos` com `status='completed'`, escopo do dono. **Campo novo
+  em vez de reusar `firstVideoAt`**, por dois motivos que o próprio código
+  prova: (a) `firstVideoAt` só é calculado com `OFFER_290_ENABLED` ligado, e
+  `null` ali significa "não perguntei", não "não tem filme"; (b) ele conta
+  QUALQUER linha em `videos`, inclusive render que falhou — quem tentou e
+  quebrou apareceria como quem recebeu. Fail-hidden: erro de leitura deixa
+  `null` e a oferta some.
+- `app/(dashboard)/generate/GenerateClient.tsx` (+80): estado `filmsDelivered`
+  (campo ausente ou inválido vira `null`, **nunca 0**), o predicado
+  `firstFilmFreeAvailable` — espelho exato do `isFreePlanFast` mais
+  `filmsDelivered === 0` — e um bloco **ACIMA das linhas de plano** no
+  `UpgradeModal` local: *"You haven't made a film yet — and your first one is
+  free"*, com os três números honestos (0 créditos, até 3 por dia, com marca
+  d'água). O botão **não gera nada**: fecha a caixa e seleciona o Kineo 1,
+  exatamente como o card do seletor já faz. Nenhum plano foi removido, nenhum
+  preço tocado, o checkout continua a um clique.
+- `scripts/test-first-film-free-offer.mjs` (novo, **47 verificações**) lendo os
+  arquivos REAIS — inclusive o ramo gratuito do `/api/compose`, para provar que
+  não há **uma única** comparação de saldo nem um 402 lá dentro; se alguém um
+  dia enfiar um, a copy "costs 0 credits" vira mentira e o teste cai antes do
+  deploy. **Falsificado**: trocar `filmsDelivered === 0` por `!filmsDelivered`
+  (que faria `null` virar elegível) ou pendurar `handleGenerate()` no clique
+  derruba 3 verificações.
+
+**Trava de qualidade do fundador (03/09 23:40) — respeitada e conferida linha a
+linha.** Nada em `lib/compose.ts`, `lib/hollywood/**`, `lib/cinematic/**`,
+`lib/broll/**`, `lib/lyriaMusic`, no pipeline do Kineo 1, no prompt de cena, na
+régua de palavras por segundo, em `analyze-idea` ou em `generate-script`.
+Nenhuma mudança de comportamento de geração: as duas escritas novas são um
+`count` de leitura e um botão que **a pessoa** clica. O `setMode('fast')` do
+handler é a mesma chamada do card do seletor (l.17788) — seleção humana, não a
+roteirização automática de motor que a trava congela.
+
+**Para o cliente / receita.** A caixa que mais converte no produto para de
+pedir cartão a quem não tem como avaliar a compra, e passa a entregar primeiro.
+O objetivo não é tirar gente do checkout — é **limpar o denominador**: hoje 37
+dos 88 pedidos de dinheiro vão para quem nunca viu o produto funcionar, e o
+primeiro filme é o produto (regra do fundador, 02/09). Se metade das 27 fizer
+o primeiro filme, elas entram na única coorte que já assinou alguma vez.
+
+**Decisões que tomei sozinha** (autonomia; reversíveis):
+1. **A oferta entra ACIMA dos planos, e não no lugar deles.** Poderia esconder
+   as linhas de plano para quem tem 0 filmes; não escondi. Quem chegou ali com
+   desejo de comprar continua a um scroll do checkout — e 2 dos 3 checkouts do
+   placar de hoje vieram de gente sem filme, ou seja, esse desejo existe.
+   Reversível apagando um bloco JSX.
+2. **A copy declara a marca d'água e o teto de 3 por dia.** Seria mais
+   vendedor dizer só "grátis". Mas oferta que omite a condição é exatamente o
+   defeito do #5 ("seus créditos voltam em uma hora" era verdade e matou 10
+   pessoas). Prefiro a oferta menor e verdadeira.
+3. **Não mexi na prateleira das 3 ideias**, apesar do veredito acima. É
+   mudança de oferta na tela de sucesso e vale uma rodada própria com o dado
+   na mesa — registrada como sugestão, não executada de afogadilho.
+
+**Risco.** Baixo. O campo do servidor é leitura pura com `head: true` (não
+baixa linha nenhuma) e falha em silêncio. No cliente, todo caminho novo está
+atrás de `firstFilmFree && onFirstFilmFree`; com a rota antiga em cache o campo
+chega `undefined`, o estado fica `null`, o predicado dá `false` e a caixa é
+byte-idêntica à de hoje. O risco residual seria oferecer "grátis" a quem já
+queimou as 3 vagas de 24h — nesse caso a pessoa recebe o `free_fast_limit`
+existente, que já diz quando a cota volta (`lib/freeQuotaReset.ts`); é a mesma
+tela que ela veria sem esta mudança.
+
+**Como medir (contra o marco zero, 03/09 16:00 UTC).**
+
+```sql
+-- 1) a oferta apareceu, e para quem?
+select date_trunc('day', created_at)::date dia,
+       metadata->>'reason' razao, count(*) n, count(distinct user_id) pessoas
+from events where name = 'first_film_free_offer_shown'
+group by 1,2 order by 1 desc;
+
+-- 2) o gate da rodada: quem viu, clicou? e virou filme em 1h?
+with c as (select user_id, min(created_at) ts from events
+           where name='first_film_free_offer_clicked' group by 1)
+select count(*) clicaram,
+       count(*) filter (where exists (select 1 from videos v
+         where v.user_id=c.user_id and v.status='completed'
+           and v.created_at between c.ts and c.ts + interval '1 hour')) viraram_filme
+from c;
+
+-- 3) o numero que doia: parede pedida a quem nunca viu um filme
+with w as (select user_id, min(created_at) ts from events
+           where name in ('trial_downgrade_modal_shown','upgrade_modal_opened',
+                          'limit_purchase_fit_viewed')
+             and created_at > '2026-09-04 14:30:00+00' group by 1)
+select count(*) viram_parede,
+       count(*) filter (where not exists (select 1 from videos v
+         where v.user_id=w.user_id and v.status='completed')) nunca_teve_filme
+from w;
+```
+
+Meta da (3): `nunca_teve_filme / viram_parede` sair de **27/88 (31%)** e cair.
+Meta da (2): qualquer número acima de zero já é melhor do que hoje, porque hoje
+essas pessoas não têm o botão. Sinal de alarme: `first_film_free_offer_shown`
+para alguém com `has_paid=true` — seria o predicado furado, e o teste tranca.
+
+**Sugestões para o fundador decidir (não executei).**
+1. **A prateleira das "3 próximas ideias" pode dar lugar ao próximo episódio da
+   série.** Com prova de globo ocular, ela converte 10% (2 de 20) e o botão de
+   série converte 26% (12 de 47) na mesma tela. A série também é o único grupo
+   que o plano mediu convertendo 7× acima da base. Trocar a ordem das duas na
+   tela de sucesso é barato e reversível.
+2. **As 3 contas de farmer do #11 continuam passando.** `vmail.dev` e
+   `mailshan.com` seguem fora de `DISPOSABLE_EMAIL_TOKENS`. Uma delas já
+   queimou 25cr em 3 filmes. Duas linhas, decisão de política de abuso.
+
+**Dívida herdada, registrada de novo.** `scripts/test-credits-held-waitroom.mjs`
+continua **vermelho em `origin/main`** — conferido com `git stash`: as mesmas 3
+falhas aparecem sem nenhuma mudança minha. O produto está certo (o
+`GenerateClient` extraiu o literal para `showGenericFailure`); o teste é que
+ficou preso na forma antiga. Enquanto ele estiver vermelho, ninguém enxerga uma
+quebra de verdade nessa tela. Já pedido ao Codex às 18:45 de 03/09.
+
+**Próximo item.** Duas em fila, nesta ordem: (a) **medir a própria oferta desta
+rodada** assim que o fundador clicar — `first_film_free_offer_shown` sem clique
+em 24h significa que o problema das 27 não era informação, e aí a resposta é
+outra; (b) os **22 que abriram o Studio e nunca digitaram** (denominador limpo
+do #8), que seguem sem medição de tempo de tela desde então.
+
+**Modelo.** Feita em Opus (o plano reserva Fable para A1/A3; esta é jogada nova
+tirada do placar do dia, não item de cardápio).
+
+**SHA.** `2ead56d2` (código) — worktree `C:\kineo-wt\pos-filme`. Enfileirado em
+`entrega-atual`; aguardando o clique no SUBIR-SITE.bat.

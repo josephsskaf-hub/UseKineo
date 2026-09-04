@@ -132,6 +132,31 @@ export async function GET(req: Request) {
       firstVideoAt = (firstVid as { created_at?: string } | null)?.created_at ?? null
     }
 
+    // ═══ KINEO-PRIMEIRO-FILME-GRATIS-2026-09-04 (sprint-assinaturas #13) ═════
+    // QUANTOS FILMES ESTA CONTA JA RECEBEU DE VERDADE. Campo novo, e nao um
+    // reuso de `firstVideoAt`, por dois motivos que o banco prova:
+    //   (a) `firstVideoAt` so e calculado com OFFER_290_ENABLED ligado — com a
+    //       flag OFF ele e sempre null, e "null" ali significa "nao perguntei",
+    //       nunca "nao tem filme". Decidir uma oferta em cima disso ofereceria
+    //       o primeiro filme a quem ja fez trinta.
+    //   (b) `firstVideoAt` conta QUALQUER linha em `videos`, inclusive render
+    //       que falhou. Quem tentou e quebrou apareceria como quem recebeu.
+    // Aqui e `status='completed'` e nada mais: filme ENTREGUE, a mesma
+    // definicao que o placar da sprint usa.
+    //
+    // FAIL-HIDDEN, NUNCA FAIL-BROKEN: erro de leitura deixa `null`, e o cliente
+    // trata `null` como "nao sei" e NAO mostra a oferta. Uma oferta gratuita
+    // exibida por engano para quem ja e cliente e pior do que oferta nenhuma.
+    let filmsDelivered: number | null = null
+    try {
+      const { count, error: filmsErr } = await supabase
+        .from('videos')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('status', 'completed')
+      if (!filmsErr && typeof count === 'number') filmsDelivered = count
+    } catch { /* fail-hidden: segue null */ }
+
     // KINEO-REVERSE-TRIAL-P1-2026-08-06 — estado do reverse trial para a UI.
     // SO roda com a flag ON (OFF = zero query extra, resposta byte-identica).
     // Leitura separada e best-effort: um env sem as colunas trial_* nunca
@@ -221,6 +246,9 @@ export async function GET(req: Request) {
       offer290Enabled: OFFER_290_ENABLED,
       offer290Used,
       firstVideoAt,
+      // KINEO-PRIMEIRO-FILME-GRATIS-2026-09-04 — filmes ENTREGUES (status
+      // completed). `null` = leitura falhou; o cliente esconde a oferta.
+      filmsDelivered,
       // KINEO-REVERSE-TRIAL-P1-2026-08-06 — cadeado Studio na UI do generate.
       trialActive,
       trialEndsAt,
