@@ -1062,3 +1062,8 @@ Nada agora. Os dois casos antigos continuam com Claude pelos pedidos já abertos
 - **EVIDÊNCIA DE PRODUÇÃO:** duas pessoas TAAFT escolheram Seedance e nenhuma tinha filme às 12:03 BRT; uma ficou silenciosa antes do job e a outra caiu em crédito retido.
 - **IMPLEMENTADO:** o bridge TAAFT passa o roteiro ao Kineo 1; ChatGPT e tráfego geral não mudam.
 - **TESTADO LOCALMENTE:** 98 verificações direcionadas e o TypeScript real passaram; nenhum write de produção foi feito.
+
+### Integração e produção
+
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 12:13 BRT:** PR #19 passou no Guardião no SHA integrado `457ed9fab0bca0a21fd2d21b468680c618a97bd0`; os jobs `TypeScript (mede primeiro, bloqueia depois)` e `Suíte de testes (mede, ainda não bloqueia)` concluíram `success` após reconciliação limpa com `origin/main`.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 12:13 BRT:** deploy Vercel `dpl_7vEMfycssmDb3x3pfYkDvXSA6AHs` chegou a `READY`, target `production`, framework Next.js e aliases incluindo `www.usekineo.com`, ligado ao SHA exato `457ed9fa`. GET público com cache-busting em `/?utm_source=taaft` respondeu 200, manteve canonical de produção, exibiu a ponte TAAFT e não trouxe `noindex`. A Vercel retornou zero erro de runtime para `/` e zero log `error|fatal` do deploy nos 15 minutos consultados.
