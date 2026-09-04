@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="900" viewBox="0 0 1400 900">
+  <rect width="1400" height="900" fill="#07090d"/>
+  <style>
+    text{font-family:Inter,Segoe UI,Arial,sans-serif;fill:#f5f5f7}.muted{fill:#aeb8ca}.small{font-size:17px}.body{font-size:20px}.label{font-size:16px;font-weight:800;letter-spacing:2px}.title{font-size:34px;font-weight:900}.h{font-size:25px;font-weight:800}.accent{fill:#2997ff}.bad{fill:#ff7777}.good{fill:#56d68b}
+  </style>
+  <text x="60" y="58" class="title">K5 · Existing-script truth on Kineo vs Pictory</text>
+  <text x="60" y="92" class="small muted">Same public comparison. Corrected against the live 1,000-character verbatim handoff. Prices and offer unchanged.</text>
+
+  <text x="60" y="142" class="label bad">BEFORE · DESKTOP</text>
+  <text x="720" y="142" class="label good">AFTER · DESKTOP</text>
+  <rect x="50" y="160" width="630" height="540" rx="22" fill="#0d111a" stroke="#273044" stroke-width="2"/>
+  <rect x="710" y="160" width="640" height="540" rx="22" fill="#0d111a" stroke="#273044" stroke-width="2"/>
+  <rect x="50" y="160" width="630" height="48" rx="22" fill="#151b27"/><rect x="710" y="160" width="640" height="48" rx="22" fill="#151b27"/>
+  <circle cx="78" cy="184" r="6" fill="#455069"/><circle cx="98" cy="184" r="6" fill="#455069"/><circle cx="118" cy="184" r="6" fill="#455069"/>
+  <circle cx="738" cy="184" r="6" fill="#455069"/><circle cx="758" cy="184" r="6" fill="#455069"/><circle cx="778" cy="184" r="6" fill="#455069"/>
+  <text x="140" y="190" class="small muted">usekineo.com/vs/kineo-vs-pictory</text><text x="800" y="190" class="small muted">usekineo.com/vs/kineo-vs-pictory</text>
+
+  <text x="82" y="250" class="small muted">Comparisons / Kineo vs Pictory</text><text x="742" y="250" class="small muted">Comparisons / Kineo vs Pictory</text>
+  <text x="82" y="302" class="title">Kineo vs Pictory</text><text x="742" y="302" class="title">Kineo vs Pictory</text>
+  <text x="82" y="348" class="body muted">Pictory turns articles, scripts and documents</text>
+  <text x="82" y="378" class="body muted">into narrated video. Kineo turns one typed</text>
+  <text x="82" y="408" class="body bad">topic into a finished Short.</text>
+  <line x1="82" y1="402" x2="366" y2="402" stroke="#ff7777" stroke-width="3"/>
+  <text x="742" y="348" class="body muted">Pictory turns articles, scripts and documents</text>
+  <text x="742" y="378" class="body muted">into narrated video. Kineo turns a typed topic</text>
+  <text x="742" y="408" class="body muted">or pasted production script into a finished Short.</text>
+
+  <rect x="80" y="448" width="570" height="132" rx="14" fill="#131a27" stroke="#28344a"/><rect x="740" y="448" width="580" height="132" rx="14" fill="#131a27" stroke="#28344a"/>
+  <text x="104" y="486" class="body accent" font-weight="800">Pictory takes more kinds of input</text>
+  <text x="104" y="524" class="small muted">Kineo takes a topic sentence and nothing else.</text>
+  <text x="104" y="552" class="small muted">Written content belongs in Pictory.</text>
+  <text x="764" y="486" class="body accent" font-weight="800">Kineo can write it — or use yours</text>
+  <text x="764" y="524" class="small muted">Paste up to 1,000 characters. Spoken lines are</text>
+  <text x="764" y="552" class="small muted">preserved, narrated and matched to footage.</text>
+
+  <text x="82" y="626" class="body" font-weight="800">Already have a Shorts script?</text>
+  <text x="82" y="658" class="small bad">The page incorrectly sends you elsewhere.</text>
+  <text x="742" y="626" class="body" font-weight="800">Already have a Shorts script?</text>
+  <text x="742" y="658" class="small good">Both can use it. The real boundary is explicit.</text>
+
+  <text x="130" y="748" class="label bad">BEFORE · MOBILE</text><text x="890" y="748" class="label good">AFTER · MOBILE</text>
+  <rect x="50" y="770" width="540" height="92" rx="20" fill="#0d111a" stroke="#273044" stroke-width="2"/>
+  <text x="78" y="810" class="body bad">“Kineo takes a topic sentence and nothing else.”</text>
+  <text x="78" y="840" class="small muted">Existing-script visitor is rejected.</text>
+  <rect x="710" y="770" width="640" height="92" rx="20" fill="#0d111a" stroke="#273044" stroke-width="2"/>
+  <text x="738" y="810" class="body good">“Topic or a production script up to 1,000 characters.”</text>
+  <text x="738" y="840" class="small muted">Existing-script visitor gets the honest choice.</text>
+</svg>

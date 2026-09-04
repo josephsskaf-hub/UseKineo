@@ -330,8 +330,8 @@ export const TOOLS: Record<ToolId, Tool> = {
     slug: 'kineo',
     name: 'Kineo',
     kind: 'From-scratch generator',
-    category: 'Turns one typed topic into a finished faceless 9:16 Short — script, AI voiceover, matched footage, captions.',
-    needsSource: 'No. A sentence is the whole input. There is no footage to upload and no timeline to learn.',
+    category: 'Turns one typed topic or a pasted production script into a finished faceless Short — AI voiceover, matched footage and captions.',
+    needsSource: 'No footage is required. Start with a topic, or paste up to 1,000 characters of your own production script; there is no timeline to learn.',
     freeTier: ft(OFFER, 'Up to 3 watermarked Fast videos every 24 hours, with no card.', OFFER.copy.sentence),
     // KINEO-PRICING-V6-2026-08-19 — DERIVADO. Este arquivo tinha o preço do
     // PRÓPRIO Kineo escrito à mão, e ele mentia em duas frentes: prometia
@@ -1310,19 +1310,19 @@ export const PAIRS: Pair[] = [
     b: 'pictory',
     title: 'Kineo vs Pictory (2026): Text to Video, Two Different Widths',
     description:
-      'Pictory turns articles, scripts and documents into narrated video across formats. Kineo turns one typed topic into a finished 9:16 Short. Verified 2026 pricing, quotas and trial terms.',
+      'Pictory turns articles, scripts and documents into narrated video across formats. Kineo turns a typed topic or pasted production script into a finished Short. Verified 2026 pricing, quotas and trial terms.',
     whyItExists:
-      'The closest genuine competitor to what Kineo does, which makes it the comparison we owe the most honesty on. The split is width versus depth: Pictory handles more input types and editing control; Kineo handles one input and one ratio per render end to end.',
+      'The closest genuine competitor to what Kineo does, which makes it the comparison we owe the most honesty on. The split is width versus depth: Pictory imports more kinds of source material and offers editing control; Kineo takes a topic or a short production script through one ratio per render end to end.',
     verdictLead:
-      'Buy Pictory if you have written material to repurpose — blog posts, documents, long scripts — and you want control over the result across more than one aspect ratio. Buy Kineo if the input is a sentence and the output is a Short. We publish this page, so treat the Pictory column as their case and verify it at pictory.ai/pricing.',
+      'Buy Pictory if you have written material to repurpose — blog posts, documents or long scripts — and you want control over the result across more than one aspect ratio. Buy Kineo if you have a topic or a short production script and want a finished Short without an editing timeline. We publish this page, so treat the Pictory column as their case and verify it at pictory.ai/pricing.',
     verdict: [
       {
         h: 'Pictory takes more kinds of input, and that is a real advantage',
-        p: 'Script, URL or document on every tier, plus long-video input from the Professional tier up. Kineo takes a topic sentence and nothing else. If you have a library of written content you want on video, Pictory is built for exactly that and Kineo is not.',
+        p: 'Script, URL or document on every tier, plus long-video input from the Professional tier up. Kineo accepts a topic or a pasted production script of up to 1,000 characters, but it does not import a URL or document. If you have a library of long-form written content to repurpose, Pictory is built for exactly that and Kineo is not.',
       },
       {
-        h: 'Kineo writes the thing Pictory expects you to bring',
-        p: 'Pictory needs words. Kineo generates the script from a topic, then narrates it and matches footage line by line. For someone who has ideas but no drafts, that is the difference between publishing and not. For someone with a full content calendar already written, it is a feature they will not use.',
+        h: 'Kineo can write the script — or use the one you bring',
+        p: 'Pictory needs words. Kineo can generate them from a topic, or preserve the spoken lines of a production script you paste, then narrate them and match footage line by line. The first path is for an idea with no draft; the second is for a Short already written.',
       },
       {
         h: 'Trial terms differ in a way that matters',
@@ -1334,14 +1334,14 @@ export const PAIRS: Pair[] = [
       },
     ],
     pickA: [
-      'Your input is a topic, not a document — and writing the script is the step that keeps not happening.',
+      'Your input is a topic or a short production script, not a document or URL — and you want a finished video rather than an editing project.',
       'One ratio per render fits your workflow; Kineo supports 9:16, 16:9, 1:1 and 4:5.',
       `Budget is the binding constraint: Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month, against $29.`,
       'You want an open-ended free tier rather than a 14-day clock.',
       'You want footage matched to the actual narration lines rather than to a paragraph of source text.',
     ],
     pickB: [
-      'You have written material — articles, documents, scripts — waiting to become video.',
+      'You have long articles, documents or scripts beyond Kineo’s 1,000-character paste handoff waiting to become video.',
       'You need more than one aspect ratio from the same source.',
       'You need long-video input, which Pictory adds from the Professional tier up.',
       'You want a large monthly ceiling: 200 minutes on Starter, 600 on Professional, 1,800 on Team.',
@@ -1365,7 +1365,7 @@ export const PAIRS: Pair[] = [
       },
       {
         h: 'What each does with your text',
-        p: 'Pictory reads the text you supply and matches stock visuals to it. Kineo writes the text first, then matches footage scene by scene to the voiceover lines it produced. Both end in narrated stock video; the order of operations is the actual product difference.',
+        p: 'Pictory reads a script, URL or document and matches stock visuals to it. Kineo either writes from a topic or preserves the spoken lines in a pasted production script, then matches footage scene by scene. Both end in narrated video; the source formats and editing control are the actual product difference.',
       },
     ],
     faq: [
@@ -1379,7 +1379,7 @@ export const PAIRS: Pair[] = [
       },
       {
         q: 'Can Kineo turn a blog post into a video?',
-        a: 'Not as a document import. Its input is a topic sentence. If repurposing existing written material is the job, Pictory is built for it and Kineo is not.',
+        a: 'Not as a URL or document import. You can paste a production script of up to 1,000 characters into Kineo, but a long article still needs to be condensed first. If direct long-form repurposing is the job, Pictory is built for it and Kineo is not.',
       },
       {
         q: 'Can Pictory make vertical Shorts?',
@@ -1387,7 +1387,11 @@ export const PAIRS: Pair[] = [
       },
       {
         q: 'Which one writes the script?',
-        a: 'Kineo. Pictory expects you to supply the words, whether as a script, a URL or a document, and builds the video around them.',
+        a: 'Kineo can write a script from a topic; it can also use a production script you paste. Pictory expects source words as a script, URL or document and builds the video around them.',
+      },
+      {
+        q: 'I already have a Shorts script. Which one should I use?',
+        a: 'Both can use it. Choose Kineo when the production script fits its 1,000-character paste handoff and you want a finished Short without a timeline. Choose Pictory when the text is longer, lives in a URL or document, or you want more editing control.',
       },
     ],
     kineo:
