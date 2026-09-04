@@ -2793,10 +2793,42 @@ async function manipularPost(req: NextRequest) {
       const origem = verbatim ? 'verbatim' : 'ai'
       const pareceInstrucao = looksLikeInstruction(prompt)
       let recuperadas: typeof scenes = []
-      let via: 'ai_planner' | 'verbatim_split' | 'none' = 'none'
+      let via: 'unbracket' | 'ai_planner' | 'verbatim_split' | 'none' = 'none'
       try {
         if (verbatim) {
-          const generated = await generateScenes(prompt.slice(0, 1200), clipCount)
+          // KINEO-UNBRACKET-2026-09-04 — CAUSA RAIZ REPRODUZIDA: cleanNarration
+          // (lib/scriptParser.ts) apaga tudo entre colchetes, porque [Pexels: ...]
+          // e direcao de cena. O ChatGPT devolve roteiros com TODA fala entre
+          // colchetes ("[Narrator: ...]", "[HOOK – 0:00-0:02: ...]"): a narracao
+          // vira vazia, resolveVerbatimSegments devolve [] e o filme morre com
+          // credito debitado. Probes de 04/09: 3 formatos assim -> 0 chars; sem
+          // os colchetes -> 107-154 chars, 7 segmentos. Primeira tentativa,
+          // portanto: tirar colchetes (e faixas de tempo "0:00-0:02:", que a TTS
+          // leria em voz alta) e re-parsear — sao as PALAVRAS DO CLIENTE, que e
+          // o que "use my script as is" promete. So se isso tambem der vazio a
+          // IA reescreve (segundo recurso abaixo).
+          // Linha que e so direcao de cena ('Visual: ...', 'Camera: ...', 'Music: ...')
+          // sai antes do re-parse: recuperar as palavras do cliente nao pode virar
+          // uma voz lendo 'Visual: stormy sky'. Se so sobrar direcao, cai na IA.
+          const DIRECAO_LINHA = /^\s*(visual|visuals|camera|shot|shots|music|sfx|sound|style|tone|lighting|title|format|duration|aspect|caption|captions|text on screen|on-screen text|b-roll|broll|scene\s*\d+)\s*[:\-\u2013]/i
+          const desembrulhado = prompt
+            .replace(/\b\d{1,2}:\d{2}\s*[-\u2013]\s*\d{1,2}:\d{2}\s*:?/g, ' ')
+            .split(/\r?\n/)
+            .map((l) => l.replace(/[\[\]]/g, ' '))
+            .filter((l) => !DIRECAO_LINHA.test(l))
+            .join('\n')
+          const reparse = parseUserScript(desembrulhado)
+          const beats = reparse.narration.trim() ? resolveVerbatimSegments(reparse, clipCount) : []
+          if (beats.length > 0) {
+            recuperadas = beats.map((seg) => ({
+              description: seg.pexelsQuery,
+              voiceover: seg.voiceover,
+              caption: shortCaptionFromVoiceover(seg.voiceover || seg.pexelsQuery),
+              stockSearchQuery: seg.pexelsQuery,
+            }))
+            via = 'unbracket'
+          } else {
+            const generated = await generateScenes(prompt.slice(0, 1200), clipCount)
           recuperadas = generated.map((s) => ({
             description: s.description,
             voiceover: s.voiceover ?? '',
@@ -2804,7 +2836,8 @@ async function manipularPost(req: NextRequest) {
             stockSearchQuery: s.stockSearchQuery,
             aiPrompt: s.description,
           }))
-          via = 'ai_planner'
+            via = 'ai_planner'
+          }
         } else if (!pareceInstrucao) {
           const picked = resolveVerbatimSegments(parseUserScript(prompt), clipCount)
           recuperadas = picked.map((seg) => ({

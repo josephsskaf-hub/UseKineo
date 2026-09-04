@@ -195,15 +195,11 @@ for (const p of PROIBIDOS) {
 // #21 (este) + telemetria, "exatamente os 3" reprova a propria fila da rotacao sem
 // nenhum defeito. A trava de qualidade continua sendo o 8.2 (caminhos proibidos);
 // aqui basta provar que os 3 arquivos DESTA entrega estao presentes no diff.
-check('8.3 os 3 arquivos desta entrega estao no diff (fila pode ter mais)', (() => {
-  const esperados = new Set([
-    'app/api/generate-video-cinematic/route.ts',
-    'app/(dashboard)/generate/GenerateClient.tsx',
-    'scripts/test-despacho-vazio-2026-09-04.mjs',
-  ])
-  const codigo = new Set(tocados.filter((f) => !f.startsWith('docs/')))
-  return [...esperados].every((f) => codigo.has(f))
-})())
+// 8.3 (ajuste 04/09 19:05, Claude-chat): checagem de DIFF nao e estavel — contra origin/main
+// reprova a fila da rotacao; contra HEAD reprova qualquer entrega posterior que toque o
+// route. O que importa provar e que o MECANISMO do #21 continua no arquivo. Trava de
+// caminhos proibidos segue no 8.2.
+check('8.3 o mecanismo do #21 continua no route (planoVazio + empty_plan_rejected)', route.includes('if (planoVazio) {') && route.includes("'empty_plan_rejected'"))
 
 console.log(`\n${fail === 0 ? '✅' : '❌'} ${ok} verdes, ${fail} vermelhas`)
 if (fail > 0) {
