@@ -1285,3 +1285,157 @@ que a checagem de 48h apontou, não jogada nova de cardápio).
 
 **SHA.** `5c0456a6` (enfileirado em `entrega-atual`, fila = 1; aguardando o
 clique no SUBIR-SITE.bat). Worktree: `C:\kineo-wt\semente-autoria`.
+
+---
+
+### #9 — 23:04→23:35 BRT — 54 dos 95 cliques em "Rendering" apontavam para um render SEM ID, que a tela de destino não sabe religar. Uma pessoa clicou 16 vezes em cinco minutos hoje às 23:00 e foi embora sem o filme.
+
+**Placar medido no início da rodada** (SQL canônico, contas externas, marco
+zero 03/09 16:00 UTC; medição às 23:04 BRT / 04/09 02:04 UTC):
+
+| métrica | valor |
+|---|---:|
+| cadastros pós-marco | 16 |
+| pessoas com filme entregue pós-marco | **11 (69%)** |
+| checkout de DESEJO (tem filme) | 1 |
+| checkout de DEFEITO (0 filmes) | 1 |
+| **assinaturas pós-marco** | **0** |
+| pessoas com falha e sem filme | **0** |
+
+A razão "cadastro com ≥1 filme" segue subindo contra o marco zero: **55% → 67%
+(#7) → 69%**. Amostra pequena e de madrugada, mas na direção das jogadas #1-#8.
+
+**Checagem zero (1h):** 1 cadastro, 0 sem crédito, 0 render preso >30min, 1
+filme entregue — e **1 `generation_stage_error` com `TypeError`**, que é causa
+de alarme no CLAUDE.md. Fui atrás dela, e ela levou à rodada inteira. (O
+`TypeError` em si era falso alarme: `broll_plan_threw_autopilot` às 22:55:28,
+capturado, com fallback — o despacho seguiu e as cenas do seedance foram
+aceitas com HTTP 200. O que estava ao lado dele é que era o defeito.)
+
+**O que estava errado (medido).** Cliques na pílula global de render, 14 dias,
+contas externas:
+
+| corte | valor |
+|---|---:|
+| cliques na pílula | 152 (52 pessoas) |
+| cliques com `state='rendering'` | 95 |
+| — desses, com **`render_id` NULO** | **54 (57%)** |
+| pessoas nesse balde | **11** |
+| — que **nunca** tiveram um filme completo | **6** |
+
+**A causa.** `ActiveRenderPill.handleAction()` mandava TODO render para
+`/studio/create`. Quem religa lá é `resumeServerActiveRender()`, e a função sai
+na primeira linha: `if (!probe || probe.state !== 'rendering' || !probe.renderId) return`.
+Um render cinematográfico ainda no fal **não tem render id** — a própria
+`/api/compose/active` documenta isso desde 05/08, com todas as letras: *"it
+carries no Creatomate render id ... resumable:false ... the client must NOT
+offer 'Check progress' for it"*. O servidor avisava. A pílula não lia o aviso
+(o tipo `Probe` dela nem tinha o campo `resumable`) e oferecia a porta assim
+mesmo. Clicar não mudava nada na tela — então a pessoa clicava de novo.
+
+Havia um segundo furo, na outra ponta: o ramo **compose** da sonda respondia
+`resumable: true` **fixo**, inclusive quando a claim ainda não tinha o id do
+Creatomate (ela nasce antes do POST ao provedor). Duas fontes, os dois lados
+errados de jeitos diferentes.
+
+**O caso vivo que abriu a rodada** (`angelchamorro12345`, 4 minutos antes desta
+medição): cadastro às 22:29 vindo do **chatgpt.com**, telefone de 360px.
+Entregou a **PARTE 1** de uma série às 22:39. Às 22:55 mandou renderizar a
+**PARTE 2** (seedance, cenas aceitas, HTTP 200, crédito debitado). Das 22:59:49
+às 23:00:56 clicou na pílula **16 vezes** — cada clique gerando
+`generate_page_view` + `server_active_render_detected` com `render_id: null` e
+`video_id: null` — e foi embora. Série é o grupo que mais converte da casa
+(#4: 11,1% contra 1,6% da base).
+
+**O que mudou (arquivos).**
+- `lib/renderPillTarget.ts` (novo, 78 linhas): `alvoDaPilula()`, função pura —
+  **uma** decisão para destino, rótulo e nome do clique. Regra: `religavel`
+  exige as DUAS coisas (o servidor não ter dito `resumable:false` **e** existir
+  um id). Sem id, o render vivo no motor vai para **`/history`** — onde o filme
+  cai sozinho — com o rótulo **"My Videos"**, e não mais para um compositor que
+  não sabe mostrá-lo.
+- `components/ActiveRenderPill.tsx` (+40): o tipo `Probe` passa a carregar
+  `resumable`; a leitura cruza com o id; destino, rótulo e ação vêm da função;
+  `active_render_pill_clicked` e `_shown` passam a gravar `resumable` (a classe
+  fantasma deixa de existir só por dedução) e o clique dela tem nome próprio,
+  `action: 'track'`.
+- `app/api/compose/active/route.ts` (+9/−2): `resumable` do ramo compose deriva
+  do mesmo `idUsavel` que vira `render_id` — acabou a promessa fixa.
+- `scripts/test-pilula-render-fantasma.mjs` (novo, 165 linhas): **44
+  verificações, 0 falhas**, executando a função pura de verdade (apaga só as
+  anotações de tipo do `.ts` real) e lendo os arquivos reais para provar quem a
+  chama. Quatro delas congelam o caminho que **já funcionava**.
+- `scripts/test-render-morto.mjs` (4 provas reescritas) e
+  `test-pilula-proximo-episodio-2026-08-31.mjs` (1): liam literais que esta
+  rodada moveu de lugar. As invariantes seguem cobradas — e a do
+  próximo-episódio **já estava VERMELHA em `origin/main`** desde a #15
+  (conferido com `git stash`), pela mesma doença.
+
+**Para o cliente / receita.** As 11 pessoas por quinzena que hoje batem numa
+porta que não abre enquanto o filme delas está sendo feito passam a chegar ao
+lugar onde ele aparece. Seis delas nunca viram um filme da Kineo — e o primeiro
+filme é o produto.
+
+**O que esta rodada NÃO faz.** Não acelera render nenhum e não muda o que o
+`/studio/create` mostra: lá, o cartão azul "Your video is rendering" só aparece
+nas fases `idle | script_preview | options`. Quem já digitou outra coisa
+continua sem ver o próprio render naquela tela — é `GenerateClient`, zona
+compartilhada com commit do Codex hoje às 21:16, então virou **pedido**.
+
+**Decisões que tomei sozinha** (autonomia; registradas para reversão):
+1. **O destino do render sem id é `/history`, não "botão nenhum".** Tirar o
+   clique também mataria o loop, mas deixaria a pessoa sem lugar nenhum para
+   ir. `/history` é a única tela que muda visivelmente E é onde o filme cai.
+   Reverter: `href: '/studio/create'` no ramo não-religável.
+2. **A fonte mais restritiva vence** (id nulo derruba `resumable:true`). É o
+   oposto de confiar num só lado — os dois lados já erraram, cada um do seu
+   jeito. Reverter a jogada inteira: `religavel = entrada.resumable !== false`.
+3. **Consertei 5 provas de dois testes vizinhos**, uma delas vermelha em
+   produção antes de eu chegar. Mesma decisão do #7: teste vermelho crônico é
+   teste que todo mundo aprende a ignorar.
+4. **Não mexi no `TypeError`** do `broll_plan_threw_autopilot`. Ele é capturado,
+   tem fallback e o render seguiu — consertar o que não está quebrado gastaria
+   a rodada. Fica anotado: 3 ocorrências em 30 dias, 3 pessoas.
+
+**Risco.** Baixo. O caminho que já funcionava (render com id) está congelado por
+4 provas. O único jeito de piorar seria um render religável ser classificado
+como fantasma — e para isso o servidor teria de mandar `render_id` nulo, caso
+em que a religação já era impossível hoje. Risco cosmético: quem clica agora sai
+da tela em que está; era o preço de não voltar para uma tela muda.
+
+**Dívida que fica** (minha, para uma rodada futura):
+`scripts/test-fila-global-pilula-2026-08-31.mjs` está **39/45 em `origin/main`**
+— 6 provas (B1, G0-G4) presas na forma antiga do cartão. Medido antes e depois
+da minha mudança: os mesmos 39/45. Não é desta entrega, mas é do meu arquivo.
+
+**Como medir (contra o marco zero, 03/09 16:00 UTC).**
+
+```sql
+select date_trunc('day', created_at)::date dia,
+       metadata->>'action' acao,
+       metadata->>'resumable' religavel,
+       count(*) n, count(distinct user_id) pessoas
+from events
+where name = 'active_render_pill_clicked'
+  and created_at > '2026-09-03 16:00:00+00'
+group by 1,2,3 order by 1 desc, 4 desc;
+```
+
+Meta: `action='track'` (a classe nova) existir e **não repetir** — hoje a mesma
+pessoa clica 4,5 vezes em média nesse balde, e o pior caso foi 16. Sinal
+secundário, o que importa: dessas pessoas, quantas entregam um filme no mesmo
+dia — hoje 6 das 11 nunca entregaram nenhum na vida.
+
+**Modelo.** Feita em Opus (o plano reserva Fable para A1/A3; esta é a causa viva
+que a checagem zero apontou, não jogada nova de cardápio).
+
+**Próximo item.** Continua o **D2 com denominador limpo (22 pessoas em 7 dias)**
+que o #8 deixou: medir quanto tempo elas ficam no Studio e se chegam a focar a
+caixa, antes de codar. Se abrem e saem em segundos, a jogada muda de dono (vira
+aquisição, do Codex); se ficam e não escrevem, é minha e a saída barata é o
+pouso em `/viral-now`. **Antes disso**, se a próxima rodada for de madrugada:
+conferir se `action='track'` já apareceu e se o `angelchamorro12345` recebeu a
+PARTE 2 (às 23:08 ainda não tinha chegado, 13 min depois do despacho).
+
+**SHA.** `2c98df51` (enfileirado em `entrega-atual`, fila = 1; aguardando o
+clique no SUBIR-SITE.bat). Worktree: `C:\kineo-wt\pilula-fantasma`.
