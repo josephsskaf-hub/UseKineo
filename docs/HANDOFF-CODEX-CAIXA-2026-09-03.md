@@ -3292,3 +3292,83 @@ Mais de quinhentas pessoas têm só 1–5 créditos, mas o aviso âmbar do topo 
 levava a lugar nenhum. Agora, para quem não está em trial nem já assina, esse
 mesmo chip abre a página de preços. Não mudamos preço, crédito ou oferta; criamos
 um caminho curto e mensurável no momento em que o saldo quase acabou.
+
+---
+
+## ROUND 48 — medição do bloco e correção do próximo alvo
+
+**Data:** 04/09/2026 15:45–15:49 BRT. **Pista:** CAIXA.
+**Branch:** `codex/caixa-r48`. Rodada de medição prevista no §8.1.
+
+### RECONCILIAÇÃO E RESULTADO
+
+**EVIDÊNCIA DE PRODUÇÃO — consultas SELECT de 04/09/2026 18:46 UTC:**
+o placar canônico desde 03/09 16:00 UTC é 42 cadastros, 28 pessoas com
+filme, 2 checkouts com filme, 2 sem filme, 0 eventos de assinatura e 0
+pessoas com falha sem filme. Contra R44: +1 cadastro, +1 pessoa com filme,
+nenhuma mudança nos quatro números restantes. A consulta separada de
+`payment_success` também retornou zero pessoas externas no marco; não estamos
+inferindo receita só da tela de sucesso.
+
+O vigia inclui **checkout_attempted e checkout_started**, conforme §8.2:
+zero pessoas externas sem pagamento nas últimas duas horas. A comparação entre
+o filtro canônico do programa e esse filtro acrescido de toda a lista
+`lib/internalAccounts.ts` produziu os mesmos seis números e o mesmo vigia.
+Isso valida este corte; não afirma que os filtros sejam equivalentes para
+qualquer janela histórica.
+
+**EVIDÊNCIA DE PRODUÇÃO — mesmo corte:** R45 tem 0 pessoas com checkout na
+versão de atribuição nova; R46 tem 0 pessoas em ready/delayed; R47 tem 0
+visualizações e 0 cliques. Cortes pós-publicação usados: R45 18:14 UTC,
+R46 18:19 UTC e R47 18:34 UTC. Não há amostra para atribuir conversão ou fracasso
+às intervenções. O crescimento de cadastro/filme não é atribuído a elas.
+
+**VALIDADO EM PRODUÇÃO — R47:** commit final
+`768d75b74d6a408abe3ca5b7568e9761f08f82a5`, deploy
+`dpl_5MQ73rtSWecboE3LDGKbj7iJjrdd` READY em www.usekineo.com. Guardião
+`33906641486`: concluído success; os steps também foram conferidos.
+**LIMITAÇÃO CONFIRMADA:** `.github/workflows/guardiao.yml` permite falhas da
+suíte e faz exclusões no typecheck. Verde desse workflow não equivale a todas
+as baterias passando. Permanecem como evidência separada os testes locais e
+o TypeScript integral rodados em R47.
+
+### ANTI-REPETIÇÃO E DECISÃO
+
+**NÃO EXECUTAR:** a sugestão de atualizar TrialActiveBanner ao mudar saldo
+repete R37 (`1d1227f3`), ancestral da ponta atual. Confirmados listener
+`creditsChanged`, reconsulta e revalidação no vencimento no código presente.
+A auditoria antiga foi descartada; nenhuma nova implementação foi feita.
+
+**FATO CONFIRMADO / CORREÇÃO DO RELATÓRIO R47:** o preview de saldo baixo
+desenha uma seta e outline que não constam no diff de TopBar. O produto
+publicado acrescentou interatividade e rótulo acessível, não essa affordance
+visual. O preview é uma representação inexata e não deve ser tratado como
+captura do produto. Não houve validação de uma conta elegível real no browser.
+
+**PIVOTAR PARA:** corrigir a confirmação de compra baseada em parâmetros de
+URL em `app/checkout/success/page.tsx:73`. Trata-se de integridade, não uma
+nova variante comercial: o congelamento de copy não justifica manter um
+evento Purchase sem comprovação da sessão. A leitura deve autenticar usuário,
+verificar dono e liquidação da sessão Stripe e obter valor/moeda do servidor,
+com zero evento/pixel para sessão falsa, alheia ou pendente. A hipótese de
+impacto histórico continua não demonstrada; o defeito está provado em código.
+Esta rodada não alterou a página nem criou endpoint.
+
+### PRÓXIMA JOGADA
+
+R49: implementar a verificação somente leitura para o retorno self-serve,
+com testes executáveis de sessão própria/alheia/pendente, sem escrever no
+banco e sem conceder créditos ou alterar cobrança. Confirmar também callers
+avulsos antes de restringir a tela a assinatura, para não quebrar compradores
+legítimos. Corrigir o preview inexato separadamente, sem inventar nova UI.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+### 📋 O QUE ACONTECEU
+
+Entraram mais uma conta e mais uma pessoa recebeu filme, mas nenhuma compra
+foi registrada no marco. As três últimas entregas ainda não tiveram exposição
+mensurada. A rodada evitou refazer um conserto existente e definiu o próximo:
+confirmar a sessão antes de registrar uma compra na página de sucesso.
