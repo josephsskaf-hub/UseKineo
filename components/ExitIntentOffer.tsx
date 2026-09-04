@@ -43,9 +43,7 @@ import { trackEvent as trackAnalyticsEvent } from '@/lib/analytics'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import { FreeTierCopy } from '@/components/FreeTierOfferProvider'
 import { TRIAL_FILMS, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
-// KINEO-PRICING-V6-2026-08-19 — "≈ 7 engine films" era literal; ver o comentário
-// no card do Creator, mais abaixo.
-import { CREATOR_AI_FILMS } from '@/lib/marketingPrice'
+import { videosPerMonth } from '@/lib/marketingPrice'
 // KINEO-VITRINE-MOEDA-2026-08-19 — ver o bloco grande junto ao texto do modal.
 import {
   coercePriceRegion,
@@ -63,6 +61,10 @@ import {
   normalizePriorExitIntentVariant,
   recordExitIntentSuppressionOnce,
 } from '@/lib/growth/exitIntentVariantProbe'
+import {
+  formatPlanFilmCapacity,
+  planFilmLanguageMetadata,
+} from '@/lib/growth/planFilmLanguage'
 
 const SESSION_KEY = 'kineo_exit_offer_shown'
 // KINEO-REBASE-2026-07-10 — read by Offer290Banner (post-exit $2.90 countdown).
@@ -82,7 +84,10 @@ const suppressionRecorded = new Set<string>()
 
 // Same fire-and-forget event beacon pattern the pricing page uses.
 function trackEvent(name: string, variant: ExitIntentVariant): void {
-  void trackAnalyticsEvent(name, exitIntentVariantMetadata(variant))
+  void trackAnalyticsEvent(name, {
+    ...exitIntentVariantMetadata(variant),
+    ...planFilmLanguageMetadata(),
+  })
 }
 
 // PUSH #92 — the modal must never throw itself over an input the visitor is
@@ -510,7 +515,7 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
             NENHUMA afirmação de desconto — o que a gente tem de verdade para
             oferecer aqui é a escada (o degrau barato), não um desconto. */}
         <p id="exit-offer-desc" className="text-[13.5px] text-[#86868b] mb-5 leading-relaxed">
-          Fresh credits every month, every engine unlocked. Cancel anytime.
+          A monthly balance for finished films. Every engine unlocked. Cancel anytime.
         </p>
 
         {/* KINEO-INTRO-MONTH-2026-07-13 — v3 ladder: intro Starter (left) vs
@@ -526,7 +531,11 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
             }}
           >
             <span className="text-[10px] font-black uppercase tracking-[.12em] text-[#86868b] mb-1.5">
-              Starter · {TIER_CREDITS.starter} credits/mo
+              Starter · {formatPlanFilmCapacity(
+                videosPerMonth('starter', 'fast'),
+                'Kineo 1 film',
+                TIER_CREDITS.starter,
+              )}
             </span>
             <span className="text-xl font-black text-[#f5f5f7]">
               {exitPrice('starter')} <span className="text-[12px] font-bold text-[#86868b]">/month</span>
@@ -567,17 +576,17 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
               Best value
             </span>
             <span className="text-[10px] font-black uppercase tracking-[.12em] mb-1.5" style={{ color: '#7cc0ff' }}>
-              Creator · {TIER_CREDITS.basic} credits/mo
+              Creator · {formatPlanFilmCapacity(
+                videosPerMonth('basic', 'cinematic_ai'),
+                'Seedance film',
+                TIER_CREDITS.basic,
+              )}
             </span>
             <span className="text-xl font-black text-[#f5f5f7]">
               {exitPrice('basic')} <span className="text-[12px] font-bold text-[#86868b]">/month</span>
             </span>
-            {/* ⚠️ KINEO-PRICING-V6-2026-08-19 — "≈ 7 engine films a month" era o
-                último número literal deste modal, e sobreviveu à correção de
-                19/08 justamente por não ter cifrão (a auditoria caçou preços).
-                7 vinha de 140 ÷ 20; com 90 créditos são 4. Derivado agora. */}
             <span className="text-[12.5px] text-[#cfe7ff] mt-1 mb-3 leading-relaxed">
-              ≈ {CREATOR_AI_FILMS} engine films a month · voice, captions and score included
+              Voice, captions and score included
             </span>
             <button
               type="button"

@@ -199,7 +199,10 @@ const requiredReferences = {
   'components/StructuredData.tsx': ["videosPerMonth('basic', 'cinematic_ai')", "videosPerMonth('basic', 'fast')"],
   'components/TrialActiveBanner.tsx': ["creditsPerReferenceVideo('cinematic_ai')"],
   'components/TrialDowngradeModal.tsx': ["creditsPerReferenceVideo('cinematic_ai')"],
-  'components/ExitIntentOffer.tsx': ['TRIAL_FILMS', 'CREATOR_AI_FILMS'],
+  // K17 replaced the single Creator snapshot constant with per-card calls.
+  // Guard the canonical calculator and grant source, not the old symbol name;
+  // test-plan-film-language executes the resulting Starter/Creator values.
+  'components/ExitIntentOffer.tsx': ['TRIAL_FILMS', 'videosPerMonth', 'TIER_CREDITS'],
   'components/PostVideoPaywall.tsx': ['packPriceLabel()', 'PACK_CREDITS.starter'],
   'app/(dashboard)/generate/Offer290Banner.tsx': [
     "videosForCredits(PACK_CREDITS.starter290, 'cinematic_ai')",

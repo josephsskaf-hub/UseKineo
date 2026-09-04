@@ -36,6 +36,10 @@ import {
   type WelcomeOfferSurface,
   type WelcomeOfferTier,
 } from '@/lib/growth/welcomeOfferFrequency'
+import {
+  formatPlanFilmCapacity,
+  planFilmLanguageMetadata,
+} from '@/lib/growth/planFilmLanguage'
 
 let memorySeenAt: number | null = null
 
@@ -71,6 +75,13 @@ function markWelcomeOfferSeen(now: number): void {
     } catch {
       // Frequency may fail open after a full reload, never during this page.
     }
+  }
+}
+
+function welcomeOfferMetadata(surface: WelcomeOfferSurface, tier?: WelcomeOfferTier) {
+  return {
+    ...welcomeOfferFrequencyMetadata(surface, tier),
+    ...planFilmLanguageMetadata(),
   }
 }
 
@@ -141,7 +152,7 @@ export default function WelcomeOfferModal({
       markWelcomeOfferSeen(Date.now())
       setOpen(true)
       if (isWelcomeOfferMeasurementHost(window.location.hostname)) {
-        void trackEvent('welcome_offer_viewed', welcomeOfferFrequencyMetadata(surface))
+        void trackEvent('welcome_offer_viewed', welcomeOfferMetadata(surface))
       }
     }
 
@@ -166,14 +177,14 @@ export default function WelcomeOfferModal({
   function dismiss() {
     setOpen(false)
     if (isWelcomeOfferMeasurementHost(window.location.hostname)) {
-      void trackEvent('welcome_offer_dismissed', welcomeOfferFrequencyMetadata(surface))
+      void trackEvent('welcome_offer_dismissed', welcomeOfferMetadata(surface))
     }
   }
 
   function recordCheckoutClick(tier: WelcomeOfferTier): void {
     setPending(tier)
     if (isWelcomeOfferMeasurementHost(window.location.hostname)) {
-      void trackEvent('welcome_offer_checkout_clicked', welcomeOfferFrequencyMetadata(surface, tier))
+      void trackEvent('welcome_offer_checkout_clicked', welcomeOfferMetadata(surface, tier))
     }
   }
 
@@ -183,21 +194,29 @@ export default function WelcomeOfferModal({
   const plans: Array<{
     tier: 'basic' | 'pro'
     name: string
-    credits: string
+    capacity: string
     perks: string[]
     highlight: boolean
   }> = [
     {
       tier: 'basic',
       name: 'Creator',
-      credits: `${TIER_CREDITS.basic} credits / month`,
+      capacity: formatPlanFilmCapacity(
+        videosPerMonth('basic', 'cinematic_ai'),
+        'Seedance film',
+        TIER_CREDITS.basic,
+      ),
       perks: [`${formatResultCount(videosPerMonth('basic', 'cinematic_ai'), 'Seedance film')} or ${formatResultCount(videosPerMonth('basic', 'cinematic_h3'), 'MiniMax H3 film')}`, 'Every engine incl. MiniMax H3', 'Watermark-free exports you own'],
       highlight: false,
     },
     {
       tier: 'pro',
       name: 'Studio',
-      credits: `${TIER_CREDITS.pro} credits / month`,
+      capacity: formatPlanFilmCapacity(
+        videosPerMonth('pro', 'cinematic_ai'),
+        'Seedance film',
+        TIER_CREDITS.pro,
+      ),
       perks: [`${formatResultCount(videosPerMonth('pro', 'cinematic_omni'), 'film')} on Omni Flash — the #1 model — plus change`, 'Kling 3 film scenes with native voice & lip sync', '2 free HD Enhance upscales / month'],
       highlight: true,
     },
@@ -296,7 +315,7 @@ export default function WelcomeOfferModal({
                     </span>
                   )}
                   <span style={{ display: 'block', color: '#f5f5f7', fontSize: 15, fontWeight: 900 }}>{p.name}</span>
-                  <span style={{ display: 'block', color: '#86868b', fontSize: 11.5, fontWeight: 700, margin: '1px 0 8px' }}>{p.credits}</span>
+                  <span style={{ display: 'block', color: '#86868b', fontSize: 11.5, fontWeight: 700, margin: '1px 0 8px' }}>{p.capacity}</span>
                   <span style={{ display: 'flex', alignItems: 'baseline', gap: 7, marginBottom: 9 }}>
                     <span style={{ color: p.highlight ? '#5cb3ff' : '#f5f5f7', fontSize: 24, fontWeight: 900, letterSpacing: '-0.02em' }}>
                       {pending === p.tier ? '…' : now}
