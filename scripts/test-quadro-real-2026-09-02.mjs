@@ -82,6 +82,22 @@ check('/sora-alternative: a honestidade que SOBRA continua dita (não cortamos u
 const semComentario = (f) =>
   f.split('\n').filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join('\n')
 check('nenhum "vertical only" VIVO (só sobrevive dentro de comentário)', ![comparisons, facts, llms, sora].some((f) => /vertical only/.test(semComentario(f))))
+const exclusividade9x16Falsa = [
+  /\b9\s*:\s*16\s*(?:[-‐‑‒–—]\s*)?only\s+tool\s+costs\s+you\s+nothing\b/i,
+  /\bYou need 4K,\s+or aspect ratios? other than 9\s*:\s*16\b/i,
+  /\bKineo handles one input and one format end to end\b/i,
+  /\bYou publish 9\s*:\s*16 vertical and nothing else\b/i,
+  /\bKineo\b[^.\n]{0,120}\b(?:exports?|renders?|generates?|produces?|supports?|makes?)\s+9\s*:\s*16(?:\s+vertical)?\s+(?:only|exclusively|and\s+nothing\s+else)\b/i,
+  /\bKineo\b[^.\n]{0,120}\b(?:will\s+not|won['’]t|can(?:not|['’]t)|does(?:\s+not|n['’]t))\s+(?:give(?:\s+you)?|render|export|generate|produce|support|make)\b[^.\n]{0,40}\b(?:horizontal|landscape|16\s*:\s*9)\b/i,
+  /\bfaceless vertical Short[^.\n]{0,100}\bthe only thing Kineo does\b/i,
+  /\bKineo\b[^.\n]{0,180}\bone engine,\s+one format\b/i,
+]
+const linhasComExclusividade9x16Falsa = semComentario(comparisons)
+  .split('\n')
+  .filter((linha) => exclusividade9x16Falsa.some((padrao) => padrao.test(linha)))
+check('lib/comparisons: nenhuma exclusividade 9:16 sobrevive por hífen, sinônimo ou negação de horizontal', linhasComExclusividade9x16Falsa.length === 0)
+const ausencia4kFalsa = /(?:Kineo (?:does not publish 4K(?: at all)?|has none of that)|Submagic is the only one of the two that lists it)/i
+check('lib/comparisons: 4K fica descrito como upscale separado, não como recurso ausente', !ausencia4kFalsa.test(semComentario(comparisons)) && comparisons.includes('offers 4K only as a separate post-render upscale'))
 
 console.log('6 · aritmética do ajuste (a mesma conta que o navegador faz)')
 const fit = (w, h) => ({ ratio: `${w} / ${h}`, landscape: w > h, square: w === h })

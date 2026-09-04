@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>K5 — ratio and 4K truth</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#070708;color:#f5f5f7;font-family:Inter,Arial,sans-serif}main{max-width:1400px;margin:auto;padding:28px}.intro{max-width:920px;margin-bottom:28px}.intro h1{font-size:30px;margin:0 0 9px}.intro p{color:#a1a1a6;line-height:1.55;margin:0}.view{margin:34px 0}.view>h2{color:#2997ff;font-size:15px;letter-spacing:.1em;text-transform:uppercase}.route{margin:20px 0 30px}.route>h3{font-size:15px;margin:0 0 10px;color:#d2d2d7}.pair{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}.shot{background:#111114;border:1px solid #2c2c31;border-radius:18px;overflow:hidden}.mobile .shot{max-width:375px;justify-self:center;width:100%}.tag{padding:8px 12px;background:#1a1a1e;color:#86868b;font-size:10px;font-weight:850;letter-spacing:.1em}.tag.after{color:#69b6ff}.copy{padding:16px}.line{font-size:13px;line-height:1.55;padding:12px;border-radius:12px;background:#09090b;border:1px solid #242428}.line+.line{margin-top:9px}.old{color:#ffb4b4;text-decoration-color:#7f1d1d}.new{color:#e8f3ff;border-color:#1d4f7f;background:#09111a}.mobile .pair{grid-template-columns:1fr;gap:10px}.mobile .route{max-width:790px;margin-left:auto;margin-right:auto}@media(max-width:760px){main{padding:16px}.pair{grid-template-columns:1fr}.shot{max-width:375px;justify-self:center;width:100%}}
+  </style>
+</head>
+<body>
+<main>
+  <section class="intro">
+    <h1>K5 — comparisons stop rejecting horizontal and 4K-upscale buyers</h1>
+    <p>Static before/after of every excerpt changed. The factual contract stays narrow: 9:16, 16:9, 1:1 and 4:5 are generated natively, one ratio per render; 4K exists as a separate post-render upscale, not native 4K in the original render.</p>
+  </section>
+  <div id="views"></div>
+</main>
+<script>
+const pages=[
+  ['heygen-vs-kineo',[
+    ['More languages, voice cloning, longer videos, 4K, multiple aspect ratios… The one axis where that reverses is a faceless vertical Short… which is the only thing Kineo does.','More languages, voice cloning, longer videos, native 4K… The one axis where that reverses is a faceless video assembled from a sentence, which is the job Kineo is built around.'],
+    ['You need 4K, or aspect ratios other than 9:16.','You need native 4K included in the render instead of a separate post-render upscale.'],
+    ['Kineo will not give you a horizontal video, a timeline editor or a talking head.','Kineo will not give you a timeline editor or a talking head.']]],
+  ['kineo-vs-opus-clip',[[
+    'You publish 9:16 exclusively, so a 9:16-only tool costs you nothing.','You want 9:16, 16:9, 1:1 or 4:5 generated natively instead of auto-reframing source footage.']]],
+  ['kineo-vs-pictory',[
+    ['Pictory handles more input types and more formats, Kineo handles one input and one format end to end.','Pictory handles more input types and editing control; Kineo handles one input and one ratio per render end to end.'],
+    ['You publish 9:16 vertical and nothing else.','One ratio per render fits your workflow; Kineo supports 9:16, 16:9, 1:1 and 4:5.']]],
+  ['kineo-vs-submagic',[[
+    'Kineo exports 9:16 and nothing else… If 4K is a requirement, Submagic is the only one of the two that lists it.','Kineo generates 9:16, 16:9, 1:1 or 4:5 natively, one ratio per render, and offers 4K only as a separate post-render upscale.']]],
+  ['captions-vs-kineo',[
+    ['You publish 9:16 and nothing else, so a 9:16-only tool costs you nothing.','One ratio per render fits your workflow; Kineo supports 9:16, 16:9, 1:1 and 4:5.'],
+    ['Kineo will not accept an uploaded video, will not render horizontal, and does not expose a timeline.','Kineo will not accept an uploaded video and does not expose a timeline.']]],
+  ['kineo-vs-creatify',[[
+    'You publish 9:16 exclusively, so a 9:16-only tool costs you nothing.','One ratio per render fits your workflow; Kineo supports 9:16, 16:9, 1:1 and 4:5.']]],
+  ['descript-vs-kineo',[
+    ['Kineo has none of that, exposes no timeline, and cannot open a file you recorded.','Kineo has none of those editing, transcription or governance features, exposes no timeline, and cannot open a file you recorded.'],
+    ['You need 4K… Kineo does not publish 4K at all.','You need native 4K from the editor — Kineo offers 4K only as a separate post-render upscale.'],
+    ['Kineo will not give you a horizontal video, a timeline or an uploaded-file workflow.','Kineo will not give you a timeline or an uploaded-file workflow.']]],
+  ['kineo-vs-quso',[[
+    'You publish 9:16 exclusively, so a 9:16-only tool costs you nothing.','One ratio per render fits your workflow; Kineo supports 9:16, 16:9, 1:1 and 4:5.']]],
+  ['kineo-vs-synthesia',[
+    ['Kineo free… more videos, one engine, one format.','Kineo free… more videos, one engine, one ratio per render.'],
+    ['You publish 9:16 exclusively, so a 9:16-only tool costs you nothing.','One ratio per render fits your workflow; Kineo supports 9:16, 16:9, 1:1 and 4:5.']]]
+];
+function shot(kind,items){return `<article class="shot"><div class="tag ${kind}">${kind==='after'?'DEPOIS':'ANTES'}</div><div class="copy">${items.map(x=>`<div class="line ${kind==='after'?'new':'old'}">${x}</div>`).join('')}</div></article>`}
+function render(view,mobile){return `<section class="view ${mobile?'mobile':''}"><h2>${view}</h2>${pages.map(([slug,changes])=>`<section class="route"><h3>/vs/${slug}</h3><div class="pair">${shot('before',changes.map(x=>x[0]))}${shot('after',changes.map(x=>x[1]))}</div></section>`).join('')}</section>`}
+document.querySelector('#views').innerHTML=render('Desktop excerpts · 1120px',false)+render('Mobile excerpts · 375px',true);
+</script>
+</body>
+</html>

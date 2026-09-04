@@ -1147,7 +1147,7 @@ export const PAIRS: Pair[] = [
       },
       {
         h: 'HeyGen is the better product on almost every axis except one',
-        p: 'More languages, voice cloning, longer videos, 4K, multiple aspect ratios, a far larger company behind it. We are not going to pretend otherwise. The one axis where that reverses is a faceless vertical Short assembled from a sentence, which is the only thing Kineo does.',
+        p: 'More languages, voice cloning, longer videos, native 4K, a far larger company behind it. We are not going to pretend otherwise. The one axis where that reverses is a faceless video assembled from a sentence, which is the job Kineo is built around.',
       },
       {
         h: 'Kineo’s constraint is the point',
@@ -1162,7 +1162,7 @@ export const PAIRS: Pair[] = [
       'A recognisable presenter is part of the brand, or the content needs a human to carry authority.',
       'You are localising into many languages — 175+ from Creator up, with voice cloning at the same tier.',
       'Videos run long: up to 30 minutes on Creator, 60 on Business.',
-      'You need 4K, or aspect ratios other than 9:16.',
+      'You need native 4K included in the render instead of a separate post-render upscale.',
       'You want the larger, more established platform, and you are willing to pay list for it.',
     ],
     pickB: [
@@ -1186,7 +1186,7 @@ export const PAIRS: Pair[] = [
       },
       {
         h: 'What each refuses to do',
-        p: 'Kineo will not give you a horizontal video, a timeline editor or a talking head. HeyGen will not assemble a faceless montage from a one-line topic. Both refusals are deliberate; neither is going to change because you wanted it to.',
+        p: 'Kineo will not give you a timeline editor or a talking head. HeyGen will not assemble a faceless montage from a one-line topic. Both refusals are deliberate; neither is going to change because you wanted it to.',
       },
       {
         h: 'Where the script comes from',
@@ -1250,7 +1250,7 @@ export const PAIRS: Pair[] = [
     pickA: [
       'You have no long-form footage and no plan to record any.',
       'The bottleneck is writing and producing at all, not distributing something that exists.',
-      'You publish 9:16 exclusively, so a 9:16-only tool costs you nothing.',
+      'You want 9:16, 16:9, 1:1 or 4:5 generated natively instead of auto-reframing source footage.',
       ft(OFFER, 'You want to try a daily posting rhythm before paying — 3 free videos every 24 hours, no card.', `You want to try the real workflow before paying — ${TRIAL_GRANT_CREDITS_COPY} free credits, every engine unlocked, no card.`),
       'You want a clean MP4 on the cheapest paid plan: every Kineo paid tier is watermark-free.',
     ],
@@ -1312,7 +1312,7 @@ export const PAIRS: Pair[] = [
     description:
       'Pictory turns articles, scripts and documents into narrated video across formats. Kineo turns one typed topic into a finished 9:16 Short. Verified 2026 pricing, quotas and trial terms.',
     whyItExists:
-      'The closest genuine competitor to what Kineo does, which makes it the comparison we owe the most honesty on. The split is width versus depth: Pictory handles more input types and more formats, Kineo handles one input and one format end to end.',
+      'The closest genuine competitor to what Kineo does, which makes it the comparison we owe the most honesty on. The split is width versus depth: Pictory handles more input types and editing control; Kineo handles one input and one ratio per render end to end.',
     verdictLead:
       'Buy Pictory if you have written material to repurpose — blog posts, documents, long scripts — and you want control over the result across more than one aspect ratio. Buy Kineo if the input is a sentence and the output is a Short. We publish this page, so treat the Pictory column as their case and verify it at pictory.ai/pricing.',
     verdict: [
@@ -1335,7 +1335,7 @@ export const PAIRS: Pair[] = [
     ],
     pickA: [
       'Your input is a topic, not a document — and writing the script is the step that keeps not happening.',
-      'You publish 9:16 vertical and nothing else.',
+      'One ratio per render fits your workflow; Kineo supports 9:16, 16:9, 1:1 and 4:5.',
       `Budget is the binding constraint: Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month, against $29.`,
       'You want an open-ended free tier rather than a 14-day clock.',
       'You want footage matched to the actual narration lines rather than to a paragraph of source text.',
@@ -1447,7 +1447,7 @@ export const PAIRS: Pair[] = [
       },
       {
         h: 'Quality ceilings',
-        p: 'Submagic exports 1080p/30fps from Starter, 1080p and 2K from Pro, and 4K/60fps on Business. Kineo exports 9:16 and nothing else, with render quality set by which engine you spend credits on. If 4K is a requirement, Submagic is the only one of the two that lists it.',
+        p: 'Submagic exports 1080p/30fps from Starter, 1080p and 2K from Pro, and native 4K/60fps on Business. Kineo generates 9:16, 16:9, 1:1 or 4:5 natively, one ratio per render, and offers 4K only as a separate post-render upscale. If native 4K/60fps is a requirement, Submagic is the only one of the two that lists native 4K/60fps.',
       },
       {
         h: 'They stack',
@@ -4035,14 +4035,14 @@ export const PAIRS: Pair[] = [
     pickB: [
       'You have a topic, not a clip, and the missing step is the video existing at all.',
       'The format is faceless: narration over matched footage, captions, nobody on screen.',
-      'You publish 9:16 and nothing else, so a 9:16-only tool costs you nothing.',
+      'One ratio per render fits your workflow; Kineo supports 9:16, 16:9, 1:1 and 4:5.',
       ft(OFFER, 'You want to test a daily rhythm before paying: 3 watermarked Fast videos every 24 hours, no card.', `You want to test the real thing before paying: ${TRIAL_GRANT_CREDITS_COPY} free credits, every engine unlocked, no card.`),
       `Budget is the binding constraint: Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month, against $24.99.`,
     ],
     differences: [
       {
         h: 'What each one refuses to do',
-        p: 'Kineo will not accept an uploaded video, will not render horizontal, and does not expose a timeline. Captions will not turn a one-line topic into a finished narrated video with matched footage — its generative features produce elements, inside an edit you assemble. Both refusals are deliberate and neither is going to change because you wanted it to.',
+        p: 'Kineo will not accept an uploaded video and does not expose a timeline. Captions will not turn a one-line topic into a finished narrated video with matched footage — its generative features produce elements, inside an edit you assemble. Both refusals are deliberate and neither is going to change because you wanted it to.',
       },
       {
         h: 'The watermark answer differs in an important way',
@@ -4122,7 +4122,7 @@ export const PAIRS: Pair[] = [
       'The video is channel content, not creative for a campaign.',
       'The format is faceless: narration over matched footage, no actor in frame.',
       'You have a topic, not a script, and writing the script is the step that keeps not happening.',
-      'You publish 9:16 exclusively, so a 9:16-only tool costs you nothing.',
+      'One ratio per render fits your workflow; Kineo supports 9:16, 16:9, 1:1 and 4:5.',
       `Budget is the binding constraint: Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month, against $39.`,
     ],
     differences: [
@@ -4186,7 +4186,7 @@ export const PAIRS: Pair[] = [
       },
       {
         h: 'Descript is the better product for its job, plainly',
-        p: 'Transcript-based editing, transcription in 25 languages on every paid plan, unlimited projects, 4K from Creator at $35/month or $24 annually, and SSO, SCIM and audit logs on Enterprise. Kineo has none of that, exposes no timeline, and cannot open a file you recorded. We would rather write that down than have you find out.',
+        p: 'Transcript-based editing, transcription in 25 languages on every paid plan, unlimited projects, native 4K from Creator at $35/month or $24 annually, and SSO, SCIM and audit logs on Enterprise. Kineo has none of those editing, transcription or governance features, exposes no timeline, and cannot open a file you recorded. We would rather write that down than have you find out.',
       },
       {
         h: 'The metering is not comparable and the free tiers are not either',
@@ -4202,13 +4202,13 @@ export const PAIRS: Pair[] = [
       'Transcript-based editing suits how you think about spoken-word content.',
       'You need transcripts as an artefact: 25 languages on every paid plan.',
       'You want frame-level control and the ability to fix an individual cut by hand.',
-      'You need 4K, which is Creator at $35/month or $24 annually — Kineo does not publish 4K at all.',
+      'You need native 4K from the editor — Kineo offers 4K only as a separate post-render upscale.',
     ],
     pickB: [
       'There is nothing recorded and no plan to record anything.',
       'The format is faceless: narration over matched footage with nobody on screen.',
       'You have a topic, not a script, and writing it is the step that keeps not happening.',
-      'You publish 9:16 exclusively, so a 9:16-only tool costs you nothing.',
+      'One ratio per render fits your workflow; Kineo supports 9:16, 16:9, 1:1 and 4:5.',
       ft(OFFER, 'You want to test a daily posting rhythm before paying — 3 watermarked Fast videos every 24 hours, no card.', `You want to test a real posting rhythm before paying — ${TRIAL_GRANT_CREDITS_COPY} free credits, every engine unlocked, no card.`),
     ],
     differences: [
@@ -4226,7 +4226,7 @@ export const PAIRS: Pair[] = [
       },
       {
         h: 'What each refuses to do',
-        p: 'Kineo will not give you a horizontal video, a timeline or an uploaded-file workflow. Descript will not assemble a narrated faceless Short from a one-line topic — it has AI voice tools, but the product assumes recorded audio to work against. Both refusals are deliberate.',
+        p: 'Kineo will not give you a timeline or an uploaded-file workflow. Descript will not assemble a narrated faceless Short from a one-line topic — it has AI voice tools, but the product assumes recorded audio to work against. Both refusals are deliberate.',
       },
     ],
     faq: [
@@ -4287,7 +4287,7 @@ export const PAIRS: Pair[] = [
       'There is no long video and no plan to record one.',
       'The format is faceless: narration over matched footage, nobody on screen.',
       'You have a topic, not a script, and writing the script is the step that keeps not happening.',
-      'You publish 9:16 exclusively, so a 9:16-only tool costs you nothing.',
+      'One ratio per render fits your workflow; Kineo supports 9:16, 16:9, 1:1 and 4:5.',
       `Every paid plan should export a clean MP4 — Kineo’s do, from ${K(TIER_PRICES.starter.usd)}/month.`,
     ],
     pickB: [
@@ -4362,7 +4362,7 @@ export const PAIRS: Pair[] = [
       },
       {
         h: 'Their free tier is better than ours at showing you the product',
-        p: `Synthesia Basic gives 1,200 credits, up to 10 minutes of video a month, 25 AI-generated video assets, 9 avatars, 160+ languages and 1 editor seat, with the Synthesia logo on the output. ${ft(OFFER, 'Kineo free gives up to 3 watermarked Fast videos every 24 hours, no card — more videos, one engine, one format. Different generosity, honestly.', OFFER.copy.cmpKineoFree)}`,
+        p: `Synthesia Basic gives 1,200 credits, up to 10 minutes of video a month, 25 AI-generated video assets, 9 avatars, 160+ languages and 1 editor seat, with the Synthesia logo on the output. ${ft(OFFER, 'Kineo free gives up to 3 watermarked Fast videos every 24 hours, no card — more videos, one engine, one ratio per render. Different generosity, honestly.', OFFER.copy.cmpKineoFree)}`,
       },
       {
         h: 'Kineo’s constraint is the point and it will read as a flaw',
@@ -4373,7 +4373,7 @@ export const PAIRS: Pair[] = [
       'The format is faceless: narration over matched footage, no presenter, no slide.',
       'Volume is the constraint and you post most days.',
       'You have a topic, not a script, and writing it is the step that keeps not happening.',
-      'You publish 9:16 exclusively, so a 9:16-only tool costs you nothing.',
+      'One ratio per render fits your workflow; Kineo supports 9:16, 16:9, 1:1 and 4:5.',
       `Budget is binding: Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month, against $29 or $89.`,
     ],
     pickB: [
