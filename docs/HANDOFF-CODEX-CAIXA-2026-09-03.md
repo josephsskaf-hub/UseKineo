@@ -2023,3 +2023,57 @@ Nada.
 ### 📋 O QUE ACONTECEU
 
 Quem clica para retomar uma compra antiga e encontra uma sessão indisponível não cai mais numa tabela de preços sem contexto. Agora o produto explica o que aconteceu, confirma que aquela tentativa não alterou o faturamento e deixa a próxima ação diante da pessoa — sem mudar preço nem Stripe.
+
+---
+
+## ROUND 31 — o checkout vivo veio da home e chegou ao Stripe
+
+**Data:** 2026-09-04 13:16→13:25 BRT
+
+**Pista:** Growth-B2C / CAIXA
+
+**Branch:** `codex/caixa-vigia-source-r31`
+
+### VALIDAÇÃO DA ENTREGA ANTERIOR
+
+**VALIDADO EM PRODUÇÃO — 04/09/2026 13:16 BRT:** a R30 está na `main` no SHA `4dfd151acbfa7bc972893a1ab9288bb47ea1cf5c`. Guardião run `33893884299` verde em 1m07s. Vercel Production `dpl_BThza5Eti22fjp7kMMzr3XdUjaze` e Preview `dpl_G1Hxe6rqhPALekq9bZRTa7JBQUcA` ficaram `READY` no mesmo SHA. O Chrome do fundador abriu a URL versionada em `www.usekineo.com` e confirmou o aviso dentro da área de decisão; a aba temporária foi fechada.
+
+### VIGIA DO CHECKOUT — A TRILHA ANÔNIMA FOI RECONCILIADA
+
+**EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, 04/09/2026 13:20 BRT:** a pessoa externa `0441e46ae5`, ainda a única do vigia móvel, não apareceu do nada depois do cadastro. A mesma `session_id` reconstrói a sequência completa:
+
+- 12:15:39 BRT: home aberta, origem direta;
+- 12:16:07: `welcome_offer_viewed` na home;
+- 12:16:34: clique em Studio no próprio modal;
+- 12:16:34: checkout exigiu autenticação;
+- 12:16:35: página de cadastro e método escolhidos;
+- 12:16:53: callback concluído;
+- 12:16:54→55: tentativa e sessão Stripe criadas.
+
+Ela tinha zero filme, 25 créditos e nenhum erro. Classificação obrigatória: `defeito` por zero filme/input, mas **não há defeito técnico na trilha**. É intenção precoce originada pela oferta da home e entregue ao caixa em 21 segundos após o clique. O pagamento ainda é **QUESTÃO PENDENTE / DESCONHECIDO**; ausência de sucesso agora não é abandono maduro.
+
+### DECISÃO
+
+Nenhuma mudança de produto. Este caso passou por todos os pontos que as R29/R30 alteram, mas antes dos respectivos deploys; não é exposição de nenhuma variante nova. Mexer de novo no modal, cadastro ou pricing com uma única sessão ainda aberta destruiria os gates e poderia interromper um caminho que já levou uma pessoa real ao Stripe.
+
+**ANTI-REPETIÇÃO / PEDIDOS:** três itens antigos foram reconciliados em `docs/PEDIDOS-ENTRE-PISTAS-2026-09-03.md`: a hipótese das seis redações de saldo foi encerrada pela contraevidência do diário Claude #13; a oferta do primeiro filme grátis na caixa viva foi entregue pela pista Claude em `ead6c6a0`; e a prova do filme D5/D10 já estava entregue em `2df52939`. Nenhum foi reconstruído.
+
+### PLACAR
+
+O último placar canônico, medido às 13:11 BRT, permanece: **41 cadastros externos, 26 pessoas com filme, 2 checkouts com filme, 2 sem filme, 0 assinaturas e 0 pessoas com falha sem filme**.
+
+### RISCO
+
+Zero risco de produto: somente `SELECT` e coordenação documental. O risco evitado foi reagir a um checkout ainda vivo como se fosse abandono confirmado.
+
+### PRÓXIMA JOGADA
+
+R32 é a quarta rodada do bloco 29–32 e será medição pura. Reconciliar escolha visível no cadastro, fallback de retomada e a nova oferta de primeiro filme da pista Claude sem editar nenhuma dessas superfícies.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+### 📋 O QUE ACONTECEU
+
+Descobrimos de onde veio o checkout vivo: a pessoa viu a oferta na home, escolheu Studio, criou a conta e chegou ao Stripe sem erro. Não empilhei outra tela em cima dela enquanto a decisão ainda está aberta; corrigi a fila compartilhada para que Codex e Claude parem de tratar três trabalhos já resolvidos como pendentes.
