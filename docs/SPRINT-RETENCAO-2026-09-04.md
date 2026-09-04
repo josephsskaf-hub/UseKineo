@@ -535,6 +535,6 @@ passou das 16:30); (b) **R2 — o episódio 2 nascer do roteiro do episódio 1**
 não de uma ordem genérica (Fable), que é o que dá valor a todas as portas que
 o #18 e o #19 abriram; (c) medir o ramo `free_engine` do momentum.
 
-**SHA.** `PLACEHOLDER_SHA` — worktree `C:\kineo-wt\r19-caixa-vazia`.
+**SHA.** `4faac144` — worktree `C:\kineo-wt\r19-caixa-vazia`.
 Enfileirado em `entrega-atual` sobre `6f18315d` (fila: 3). Aguardando o clique
 no SUBIR-SITE.bat.
