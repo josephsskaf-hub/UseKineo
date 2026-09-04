@@ -2547,3 +2547,83 @@ O aviso não falhou: ainda não encontrou ninguém depois de entrar no ar. As 40
 pessoas citadas passaram pelo guarda antes do deploy. Fechei o pedido sem mexer
 na tela e preservei a proteção que impede roteiro-instrução de virar vídeo
 automático ruim.
+
+---
+
+## ROUND 39 — a home fecha o último salto; CAIXA preserva os testes vivos
+
+**Data:** 2026-09-04 14:02→14:08 BRT
+
+**Pista:** Growth-B2C / CAIXA
+
+**Branch:** `codex/caixa-fluxo-reconcile-r39`
+
+### VIGIA E PLACAR
+
+**EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, corte 04/09/2026
+14:02 BRT:** o placar canônico permanece em **41 cadastros externos, 27 pessoas
+com filme, 2 checkouts com filme, 2 sem filme, 0 assinaturas e 0 pessoas com
+falha sem filme**.
+
+O vigia móvel reencontrou o mesmo caso temporal registrado pela pista FLUXO:
+origem direta, plano Pro mensal, 25 créditos, zero filme, callback às 12:16:53
+BRT e checkout às 12:16:55 BRT. O prefixo owner-scoped nesta consulta é
+`9f2b563c-2`; o identificador `0441e46ae5` do handoff FLUXO pertence a outra
+camada de anonimização e não foi tratado como chave equivalente. Não houve
+evento posterior nem pagamento até o corte; a intenção explícita continua
+aberta.
+
+**EVIDÊNCIA DE PRODUÇÃO — sete dias, pessoas externas:** 29 pessoas abriram
+checkout; 2 pagaram, 8 já tinham filme e 21 ainda não tinham. Cinco deixaram
+sinal de cancelamento e 26 têm algum sinal de retomada/expiração. As duas sem
+qualquer sinal posterior ainda estavam dentro da janela canônica de 24 horas da
+sessão Stripe no corte: uma tinha cerca de 21 horas e a pessoa do vigia cerca de
+1h45. Silêncio antes da expiração não é sessão perdida.
+
+### RECONCILIAÇÃO ENTRE PISTAS
+
+**IMPLEMENTADO PELA FLUXO:** o pedido CAIXA das 13:39 BRT foi fechado no SHA
+funcional `768ae002`: os três CTAs de preço da home preservam o `href` nativo,
+mas o clique comum autenticado agora recebe trava única, estado pendente, erro
+inline e o resgate canônico do salto ao Stripe. A `main` integrada está em
+`7f1cc116cb5ad5b4d2ecaaea18bddb2f98d72a00`.
+
+**TESTADO PELA FLUXO:** 190 verificações direcionadas, TypeScript real e
+whitespace verdes, com comparação visual desktop/mobile. **VALIDADO NA
+INTEGRAÇÃO:** Guardião run `33898281207` verde. **VALIDADO EM PRODUÇÃO —
+04/09/2026 14:08 BRT:** deployment `dpl_7XQbeCNMasEbXLMogs9D8Ei8rDyU`, target
+production, chegou a `READY` no SHA integrado. Nenhum resultado de visitante foi
+antecipado.
+
+### DECISÃO E ANTI-REPETIÇÃO
+
+Nenhum código CAIXA foi editado. K1, K3, K9, K11 e K13–K17 já foram entregues
+ou auditados e estão congelados pelos próprios gates. K8 continua bloqueado
+pela ausência do idioma efetivo owner-scoped em `/api/videos`; K4 continua
+dependendo do sinal de segundo download no `/history`, ambos já pedidos ao
+Claude. Criar outra oferta agora repetiria uma superfície recente com
+denominador pequeno ou zero.
+
+O novo funil da home será medido por pessoa externa:
+`home_pricing_checkout_clicked` → `checkout_started` →
+`checkout_fallback_shown(surface='home_pricing')` →
+`checkout_success_viewed`. Sessão, clique e fallback não são assinatura.
+
+### PRÓXIMA JOGADA
+
+R40 é a rodada obrigatória de medição do bloco R37–R40. Confirmar o deploy da
+home, medir a primeira exposição das versões R37/R39 e reconciliar o vigia sem
+alterar produto. Depois, K8 ou K4 só entra quando a pista dona entregar a fonte
+pedida; caso contrário, procurar uma lacuna CAIXA nova fora das superfícies
+congeladas.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+### 📋 O QUE ACONTECEU
+
+A lacuna dos três botões de preço da home foi corrigida pela pista certa e
+passou no Guardião. No caixa, provei que os dois checkouts sem sinal posterior
+ainda não haviam expirado e preservei todas as ofertas recentes: não transformei
+falta de amostra em mais uma tela.
