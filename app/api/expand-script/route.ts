@@ -13,6 +13,7 @@ import {
   MAX_GROWTH_FACTOR,
   authorPreserved,
   authorSentences,
+  isSeedNotScript,
   largestFittingDuration,
   lostDirectives,
   lostMarkers,
@@ -447,6 +448,68 @@ ${original}`
     // Unicode e SEM o filtro de "≥ 5 palavras" — que deixava "Ninguém
     // acreditou." sair sem verificação nenhuma.
     const preservado = authorPreserved(falaOriginal, falaExpandida)
+    const totalFrasesAutor = authorSentences(falaOriginal).length
+
+    // ═══ KINEO-SEMENTE-NAO-E-ROTEIRO-2026-09-03 (sprint-assinaturas #8) ═══
+    //
+    // ANTES de acusar o modelo de ter reescrito "parte do seu roteiro",
+    // perguntar se havia roteiro. Quando NADA do autor sobreviveu E o autor
+    // tinha 1 ou 2 frases, o que ele mandou era uma SEMENTE — e a resposta
+    // honesta para uma semente ja existe nesta rota, 150 linhas acima:
+    // `needs_authoring`, o 200 que diz "isto e uma ideia, a gente escreve, com
+    // o seu consentimento, e voce le antes".
+    //
+    // POR QUE ISTO E A JOGADA, e nao uma preferencia de copy (medido 04/09
+    // 00:30 BRT; as contagens estao no comentario de `isSeedNotScript`):
+    //   · `author_rewrite_rejected`: 11 recusas, 7 pessoas, e o botao de saida
+    //     que o #42 construiu (`script_rewrite_candidate_opened`) foi clicado
+    //     ZERO vezes. 4 das 7 nunca fizeram um filme na vida. A ultima foi as
+    //     00:05 de hoje, vinda do chatgpt.com.
+    //   · `needs_authoring`: 8 ocorrencias, 6 pedidos de autoria, 4 aceites,
+    //     3 filmes entregues em 2h.
+    // Mesma pessoa, mesma situacao, duas portas. Ela recebia a fechada.
+    //
+    // O C1 NAO AFROUXA, e o teste tranca isso nas duas direcoes: autor com 3+
+    // frases continua protegido palavra por palavra, e autor com UMA frase de
+    // pe entre as mexidas continua caindo na recusa — a promessa do C1 so quer
+    // dizer alguma coisa exatamente ai. Nada renderiza sozinho por causa desta
+    // mudanca: `needs_authoring` tambem exige clique e leitura.
+    if (!preservado.ok && isSeedNotScript(totalFrasesAutor, preservado.missing.length)) {
+      console.log(
+        `[expand-script] semente_reescrita: ${totalFrasesAutor} frase(s) do autor, ` +
+        `${preservado.missing.length} mexida(s) — vai para needs_authoring em vez da recusa`,
+      )
+      return NextResponse.json({
+        outcome: 'needs_authoring' as ExpandOutcome,
+        // O ORIGINAL DELA, nunca o candidato: `needs_authoring` significa que
+        // o roteiro ainda vai ser escrito com o consentimento dela.
+        script: original,
+        expanded: false,
+        stillShort: true,
+        coverage: antes.coverage,
+        before: medida(antes.speech, target),
+        after: medida(antes.speech, target),
+        targetSeconds: target,
+        missingWords: missingWords(antes.speech, target),
+        requiredGrowth: Number(requiredGrowth(antes.speech, target).toFixed(2)),
+        maxGrowthFactor: MAX_GROWTH_FACTOR,
+        maximumFittingSeconds: Number(maximumFittingDuration(antes.speech).toFixed(1)),
+        suggestedDuration: largestFittingDuration(antes.speech),
+        // Discriminador: este `needs_authoring` nasceu DEPOIS da chamada ao
+        // modelo (a semente passou no preflight de crescimento e so se revelou
+        // semente no fim), nao no preflight. Sem isto a medicao mistura os
+        // dois e ninguem sabe se a mudanca funcionou.
+        authoringReason: 'seed_rewritten',
+        authorSentenceCount: totalFrasesAutor,
+        rewrittenSentences: preservado.missing.length,
+        // O texto do modelo NAO e jogado fora — continua disponivel para a
+        // tela oferecer como leitura, exatamente como no #42.
+        candidate: expandido,
+        candidateSeconds: Math.round(depois.speech),
+        candidateFits: depois.ok,
+      })
+    }
+
     if (!preservado.ok) {
       console.warn(`[expand-script] recusado: ${preservado.missing.length} frase(s) do autor foram alteradas`)
       return NextResponse.json(
@@ -482,7 +545,7 @@ ${original}`
           candidateSeconds: Math.round(depois.speech),
           candidateFits: depois.ok,
           rewrittenSentences: preservado.missing.length,
-          authorSentenceCount: authorSentences(falaOriginal).length,
+          authorSentenceCount: totalFrasesAutor,
         },
         { status: 422 },
       )

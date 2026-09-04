@@ -529,3 +529,58 @@ export function judgeTrimmedCandidate(args: {
   }
   return { ...base, accepted: false, reason: 'too_short_even_lower' }
 }
+
+/**
+ * ═══ KINEO-SEMENTE-NAO-E-ROTEIRO-2026-09-03 (sprint-assinaturas #8) ═══════
+ *
+ * Quantas frases um texto precisa ter para que "preservar o autor" queira
+ * dizer alguma coisa. Abaixo disto não existe roteiro a preservar: existe
+ * uma SEMENTE, e completar uma semente é escrever.
+ *
+ * MEDIDO EM PRODUÇÃO (04/09 00:30 BRT, `script_expand_failed` com
+ * `reason='author_rewrite_rejected'`, os 8 eventos que carregam a contagem
+ * do #42):
+ *
+ *   autor=1 mexidas=1  ×4   (taaft)      candidate_fits: true
+ *   autor=2 mexidas=2  ×2   (taaft)      candidate_fits: true / false
+ *   autor=3 mexidas=2  ×1   (chatgpt.com)candidate_fits: true
+ *   autor=14 mexidas=1 ×1   (nav)        candidate_fits: false
+ *
+ * Em 6 dos 8, NADA do autor sobreviveu — porque o autor tinha uma ou duas
+ * frases. Dizer a essa pessoa "the writer changed 1 of your 1 sentences
+ * instead of only adding to them" é confessar um crime contra um roteiro que
+ * nunca existiu: ela escreveu uma linha e pediu um filme.
+ *
+ * O preço disso está medido: das 7 pessoas que bateram nesta parede, 4 nunca
+ * fizeram um filme na vida, e o botão de saída do #42
+ * (`script_rewrite_candidate_opened`) foi clicado ZERO vezes em 11 recusas.
+ * A porta irmã — `needs_authoring`, o 200 que diz "isto é uma ideia, a gente
+ * escreve com o seu consentimento" — teve 8 ocorrências, 6 pedidos, 4 aceites
+ * e 3 filmes em 2h. Mesma situação, duas portas: a que funciona é a que a
+ * pessoa não recebia.
+ *
+ * O Contrato C1 NÃO afrouxa. Quem escreveu um ROTEIRO (3+ frases) continua
+ * protegido palavra por palavra, e quem teve só PARTE da fala reescrita
+ * continua caindo na recusa — é aí que a promessa do C1 significa algo. O que
+ * muda é só o caso em que não havia roteiro nenhum.
+ */
+export const SEED_MAX_SENTENCES = 2
+
+/**
+ * Isto era uma SEMENTE, não um roteiro que o modelo estragou?
+ *
+ * Duas condições, as duas obrigatórias:
+ *   (a) NADA do autor sobreviveu — se uma frase dele ficou de pé, havia um
+ *       roteiro e o modelo mexeu em parte dele: isso é o C1 sendo violado, e
+ *       continua sendo recusa;
+ *   (b) o autor tinha no máximo `SEED_MAX_SENTENCES` frases — 1 ou 2 frases
+ *       não enchem 35s de narração nem no melhor dos casos (35s pedem ~100
+ *       palavras), então "completar preservando" nunca foi uma possibilidade
+ *       física para esse texto.
+ */
+export function isSeedNotScript(totalAutor: number, frasesMexidas: number): boolean {
+  if (!Number.isFinite(totalAutor) || !Number.isFinite(frasesMexidas)) return false
+  if (totalAutor <= 0) return false
+  if (totalAutor > SEED_MAX_SENTENCES) return false
+  return frasesMexidas >= totalAutor
+}
