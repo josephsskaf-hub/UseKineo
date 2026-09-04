@@ -1439,3 +1439,178 @@ PARTE 2 (às 23:08 ainda não tinha chegado, 13 min depois do despacho).
 
 **SHA.** `2c98df51` (enfileirado em `entrega-atual`, fila = 1; aguardando o
 clique no SUBIR-SITE.bat). Worktree: `C:\kineo-wt\pilula-fantasma`.
+
+---
+
+### #10 — 00:05→01:20 BRT — o #9 mandava o render para uma tela que NÃO SABE que o filme existe. E clicar "My Videos" estando em `/history` era o mesmo loop de 16 cliques, mudado de lugar.
+
+**Placar medido no início da rodada** (SQL canônico, contas externas, marco
+zero 03/09 16:00 UTC; medição às 00:02 BRT / 04/09 03:02 UTC):
+
+| métrica | valor |
+|---|---:|
+| cadastros pós-marco | 17 |
+| pessoas com filme entregue pós-marco | **12 (71%)** |
+| checkout de DESEJO (tem filme) | 1 |
+| checkout de DEFEITO (0 filmes) | 1 |
+| **assinaturas pós-marco** | **0** |
+| pessoas com falha e sem filme | **0** |
+
+A razão "cadastro com ≥1 filme" continua subindo contra o marco zero:
+**55% → 67% (#7) → 69% (#9) → 71%**.
+
+**Checagem zero (1h): limpa.** 1 cadastro, 0 sem crédito, 0 render preso >30min,
+3 filmes entregues, 1 `generation_stage_error` — o MESMO `TypeError` de
+`broll_planning` que o #9 já classificou como falso alarme (capturado, com
+fallback, e o filme saiu). Os dois pendentes que o #9 deixou também fecharam:
+`angelchamorro12345` **recebeu a PARTE 2** (completed às 23:31 BRT), e
+`action='track'` ainda é 0 porque o #9 não subiu — a fila espera o clique.
+
+**A rodada nasceu de auditar a minha própria entrega anterior, antes de ela
+subir.** O #9 parou de mandar o render SEM id para `/studio/create` e passou a
+mandar para `/history`, com a frase *"the film saves to My Videos on its own"*.
+Fui conferir o destino. Ele tem dois furos, e os dois são a MESMA doença que o
+#9 dizia estar curando:
+
+**(a) `/history` não sabe que o filme existe.** `app/(dashboard)/history/page.tsx`
+faz UMA leitura de `videos` no servidor. A linha de `videos` nasce no **fim**,
+quando o compose termina — um render cinematográfico ainda no fal **não tem
+linha nenhuma**. Ou seja: a pessoa era levada para uma tela que não podia
+mostrar o filme dela, e via a lista velha ou **"No videos yet"**. É literalmente
+a lição do incidente JWT-skew de 28/08, que está escrita como comentário na
+linha 934 do próprio arquivo que eu ia usar como destino.
+
+**(b) o clique continuava sendo um no-op, só que em outra tela.** A pílula é
+montada em TODA página autenticada, `/history` inclusive. Clicar "My Videos"
+estando em `/history` é `router.push` da rota atual: a rota não muda, a tela não
+muda, nada acontece. É exatamente o loop que o #9 mediu — 95 cliques em
+`state='rendering'` em 14 dias, **54 deles com `render_id` nulo**, 11 pessoas,
+**6 sem um filme na vida**, pior caso 16 cliques em 5 minutos.
+
+**O que mudou (arquivos).**
+- `components/HistoryActiveRenderCard.tsx` (novo, 176 linhas): cartão no topo do
+  `/history`, alimentado pela **mesma** sonda que a pílula já lia
+  (`/api/compose/active`). Diz o que o servidor respondeu, com o relógio da
+  espera. **Não é um segundo poller de render**: nunca fala com
+  `/api/compose/status` nem com a Creatomate, nunca faz POST, nunca dispara
+  geração. Sonda ao montar e a cada 20s **só** enquanto o estado for
+  `rendering`; aba escondida não sonda; resposta não-ok vira silêncio, nunca uma
+  afirmação sobre o filme de alguém. Quando o servidor responde `completed` **e
+  esta tela tinha visto o render vivo**, chama `router.refresh()` — a lista
+  (server component) recarrega e o filme entra pelo caminho normal.
+- `lib/renderPillTarget.ts` (+53): `mesmaTela()`, função pura. O clique só é
+  oferecido quando **muda de tela** (ignora query, barra final, caixa e âncora;
+  caminho desconhecido devolve `false`, fail-open — na dúvida a saída continua).
+- `components/ActiveRenderPill.tsx` (+34): a condição entra no `hidden`, e não
+  só no JSX — senão o efeito de impressão gravaria `active_render_pill_shown`
+  para uma pílula que ninguém viu, e a medição do #9 mentiria justamente na
+  primeira tela consertada. `handleAction` nunca empurra para a rota atual
+  (cinto e suspensório), e o clique passa a gravar `same_screen`.
+- `app/(dashboard)/history/HistoryClient.tsx` (+13): o cartão montado nas DUAS
+  metades — lista cheia e tela vazia. Na vazia ele vem **antes** do
+  "No videos yet", que é onde a promessa doía mais.
+- `scripts/test-historico-render-vivo.mjs` (novo): **57 verificações, 0 falhas**,
+  executando a função pura de verdade e lendo os arquivos reais para provar quem
+  a chama e em que ordem. Três delas congelam o que o #9 já fazia.
+- `scripts/test-pilula-render-fantasma.mjs` (+5): o shim TS→JS aprende as duas
+  anotações novas. Sem isso o teste do #9 ficava **vermelho sem defeito nenhum
+  no produto** — e teste vermelho crônico é teste que todo mundo aprende a
+  ignorar (mesma decisão do #7 e do #9).
+
+**Para o cliente / receita.** As 11 pessoas por quinzena que o #9 passa a mandar
+para a biblioteca chegam a uma tela que **muda**: ela diz que o filme está sendo
+feito, mostra há quanto tempo, e o pega sozinha quando fica pronto. Sem esta
+rodada, o #9 teria trocado uma porta que não abre por uma sala vazia — e 6
+dessas 11 pessoas nunca viram um filme da Kineo.
+
+**Duas medições que mudam o que as próximas rodadas devem fazer** (feitas antes
+de escolher a jogada, e as duas contrariam o cardápio):
+
+1. **A4 do cardápio está morto — não gastar rodada nele.** O plano manda subir o
+   `MAX_AGE_MS` do `finish-stranded-renders` de 20h para 72h por causa de "110
+   renders / 87 pessoas com compose submetido e sem linha em `videos`". Medido
+   em 30 dias (externos): 764 claims de compose, **71 sem linha em `videos`, 58
+   pessoas** — mas a série por dia mostra o assunto **acabando em 24/08**: 11 em
+   19/08, 8 em 16/08, 7 em 17/08… e **1 único caso desde 24/08** (02/09). O
+   irmão dele também parou: `cinematic_abandoned_no_delivery` teve **76 estornos
+   / 64 pessoas em 30 dias (36 delas sem filme nenhum)**, e o último foi
+   **02/09 13:31** — nenhum em 37 horas. O que matou os dois foi o #17 do sprint
+   anterior (Data Cache da Vercel, `fetchCache='force-no-store'`, 02/09 04:47).
+   Subir a janela hoje pescaria quase nada. **A4 sai da fila até a causa
+   reaparecer.**
+2. **O guarda `prompt_looks_like_instruction` está CERTO — não afrouxar.** É
+   hoje a causa viva mais frequente do produto: **36 eventos, 35 pessoas, entre
+   02/09 05:43 e 04/09 00:10 (20 minutos antes desta medição), 12 delas sem um
+   filme na vida.** A tentação era relaxá-lo (é ele que impede o auto-start de
+   fazer o primeiro filme sozinho). Fui ver os tamanhos antes: **os 36 têm ≥300
+   caracteres** (30 na faixa 300-699, 2 em 700-999, 4 exatamente em 1.000). Não
+   há um só caso de alguém escrevendo "make a video about X" e sendo barrado —
+   é 100% colagem de pacote do ChatGPT. Afrouxar renderizaria lixo automático,
+   que é exatamente o que a **⛔ trava de qualidade do fundador (03/09 23:40)**
+   proíbe. **O problema não é o guarda: é o que a tela oferece depois dele** — e
+   os 4 casos em exatamente 1.000 caracteres são o corte silencioso da caixa do
+   quickstart, que já é pedido aberto ao Codex desde 00:45.
+
+**Decisões que tomei sozinha** (autonomia; registradas para reversão):
+1. **A condição de esconder a pílula mora no `hidden`, não só no JSX.** Só no
+   JSX, a pílula sumiria da tela mas continuaria contando impressão — eu estaria
+   consertando o produto e estragando a medição do #9 no mesmo commit. Reverter:
+   tirar `renderNaPropriaTela ||` do `hidden`.
+2. **`mesmaTela` falha ABERTO** (caminho desconhecido = "muda de tela"). O erro
+   caro é esconder a saída de quem precisa dela; o erro barato é oferecer um
+   clique a mais. Reverter a jogada inteira: `return false` no topo de
+   `mesmaTela`.
+3. **Aceitei duas sondas na mesma tela** enquanto houver um render vivo em
+   `/history` (a do cartão e a da pílula, que continua lendo para os estados
+   `completed`/`failed`). São dois GET baratos a cada 20s, só para quem tem
+   render em voo naquela página. Unificar exigiria a pílula publicar o estado
+   dela para a página — refactor maior do que a rodada. **Fica anotado como
+   dívida.**
+4. **Não toquei no guarda do auto-start** (ver medição 2), nem em nada do
+   caminho de geração: nem `lib/compose`, nem `hollywood`, nem `cinematic`, nem
+   `broll`, nem escolha de motor, nem régua de palavras por segundo.
+
+**Risco.** Baixo e contido na tela. O pior caso do cartão é ele aparecer e não
+sumir (a sonda para de responder) — a lista continua embaixo, intacta, e nenhum
+crédito é tocado. O pior caso da pílula é ela sumir de uma tela onde ainda
+seria útil; só acontece em `/history`, que agora mostra a mesma informação
+maior. O caminho religável (render COM id → `/studio/create`) está congelado por
+teste nos dois arquivos.
+
+**Dívida que fica.** (a) as duas sondas do item 3; (b)
+`scripts/test-fila-global-pilula-2026-08-31.mjs` segue **39/45**, os mesmos 6 de
+antes da minha mudança (dívida herdada, anotada no #9).
+
+**Como medir (contra o marco zero, 03/09 16:00 UTC).**
+
+```sql
+select date_trunc('day', created_at)::date dia, name,
+       metadata->>'resumable' religavel, metadata->>'same_screen' mesma_tela,
+       count(*) n, count(distinct user_id) pessoas
+from events
+where name in ('history_active_render_shown','history_active_render_landed',
+               'active_render_pill_clicked')
+  and created_at > '2026-09-03 16:00:00+00'
+group by 1,2,3,4 order by 1 desc, 5 desc;
+```
+
+Meta: `history_active_render_shown` existir (hoje é impossível), e
+`active_render_pill_clicked` com `same_screen=true` ser **zero para sempre** —
+essa classe deixou de poder acontecer. Sinal secundário, o que importa: dessas
+pessoas, quantas entregam um filme no mesmo dia — hoje 6 das 11 nunca
+entregaram nenhum na vida.
+
+**Modelo.** Feita em Opus (o plano reserva Fable para A1/A3; esta é auditoria da
+própria entrega anterior, não jogada nova de cardápio).
+
+**Próximo item.** **C2 — a oferta no pico do 2º download**, com o número desta
+rodada: em 7 dias, **128 pessoas receberam um filme e 106 fizeram exatamente
+UM**; **65 dessas 106 ainda têm ≥5 créditos** (dá para outro filme, de graça,
+agora) e só **25 das 106** voltaram a abrir a tela de gerar. O 2º filme é a
+única razão para voltar amanhã, e o grupo de série converte 11,1% contra 1,6%
+da base. Antes de codar, medir onde estão os 65 e se o `plan_fit` já os alcança
+— `plan_fit_impression` são 23 pessoas em 7 dias, então provavelmente não.
+
+**SHA.** `ba8cfdba` (enfileirado em `entrega-atual`, fila = **3**: #8, #9 e #10;
+aguardando o clique no SUBIR-SITE.bat). Worktree:
+`C:\kineo-wt\historico-render-vivo`.
