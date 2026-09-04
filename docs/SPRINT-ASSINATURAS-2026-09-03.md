@@ -1611,6 +1611,6 @@ agora) e só **25 das 106** voltaram a abrir a tela de gerar. O 2º filme é a
 da base. Antes de codar, medir onde estão os 65 e se o `plan_fit` já os alcança
 — `plan_fit_impression` são 23 pessoas em 7 dias, então provavelmente não.
 
-**SHA.** `ba8cfdba` (enfileirado em `entrega-atual`, fila = **3**: #8, #9 e #10;
+**SHA.** `ba8cfdba` (enfileirado em `entrega-atual`, fila = **4 commits**, que sao o #9 e o #10 — o #8 ja esta em origin/main;
 aguardando o clique no SUBIR-SITE.bat). Worktree:
 `C:\kineo-wt\historico-render-vivo`.
