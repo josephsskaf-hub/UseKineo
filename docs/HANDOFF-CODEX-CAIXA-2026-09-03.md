@@ -2323,3 +2323,75 @@ recebendo uma próxima ação, mas ainda não há janela madura para reescrever 
 tela; 12 de 27 não têm nenhuma exposição pós-filme registrada. Mantive as
 ofertas intactas e transformei o gargalo em duas perguntas mensuráveis: quem
 saiu antes da entrega e quem voltou sem ver convite.
+
+---
+
+## ROUND 36 — medição pura do bloco R33–R36
+
+**Data:** 2026-09-04 13:50→13:52 BRT
+
+**Pista:** Growth-B2C / CAIXA
+
+**Branch:** `codex/caixa-measurement-r36`
+
+### DECISÃO APROVADA
+
+Esta é a rodada exclusivamente de medição exigida a cada quatro rodadas. Não
+houve código, nova copy, oferta, preço, crédito, Stripe, migration ou escrita
+no banco.
+
+### RESULTADO DAS INTERVENÇÕES
+
+**R33 — recuperação do checkout da home:** desde o deploy de 13:36 BRT houve
+**0 pessoas externas** com novo `welcome_offer_checkout_clicked(surface=home)`
+e 0 `checkout_fallback_shown(surface=welcome_offer_home)`. A mudança permanece
+sem exposição; zero fallback não é sucesso e zero pagamento não é fracasso.
+
+**R34 — pedido dos cards de preço da home:** a FLUXO aceitou o pedido como
+próxima R23, mas até este corte não havia commit funcional correspondente na
+`main`. Não existe variante para medir ainda.
+
+**R35 — pós-filme:** foi diagnóstico, não mudança de produto. Fixou o
+denominador correto e o gate de 24h da ponte, ainda sem pessoa madura.
+
+**FLUXO R22 — confirmação do tema salvo no cadastro:** desde o deploy de
+13:45 BRT houve **0 pessoas externas** com
+`organic_signup_handoff_viewed(saved_creation_proof=true)` e 0 pagamentos.
+Também aqui a leitura correta é ausência de exposição.
+
+### PLACAR E VIGIA
+
+**EVIDÊNCIA DE PRODUÇÃO — corte 04/09/2026 13:51 BRT:** o placar canônico
+permanece em **41 cadastros externos, 27 pessoas com filme, 2 checkouts com
+filme, 2 sem filme, 0 assinaturas e 0 pessoas com falha sem filme**.
+
+No vigia móvel continua uma única pessoa externa: a intenção de compra
+preservada logo depois do cadastro, sem filme e sem pagamento já descrita na
+R35. Não é uma segunda pessoa nem um novo checkout.
+
+### CONCLUSÃO E RISCO
+
+Nenhuma das duas mudanças recém-publicadas recebeu uma pessoa elegível. O bloco
+R33–R36 aumentou observabilidade e fechou um caller sem resgate, mas ainda não
+produziu evidência de assinatura. O risco evitado foi reescrever duas variantes
+por causa de denominador zero.
+
+### PRÓXIMA JOGADA
+
+R37 pode voltar a produto. A lacuna nova comprovada é a atualização do
+`TrialActiveBanner`: ele não reage ao `creditsChanged` que o produto já emite,
+então saldo, fase e escolha entre primeiro filme/retorno/assinatura podem ficar
+obsoletos dentro do layout persistente. Implementar somente no componente
+CAIXA, sem tocar no caller do Claude, com teste executável de refetch/dedupe e
+comparação visual apenas se pixels mudarem.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+### 📋 O QUE ACONTECEU
+
+Medi sem inventar resultado: a recuperação da home e a prova de tema salvo
+ainda têm zero exposição humana pós-deploy. O placar continua 41 cadastros, 27
+pessoas com filme e nenhuma assinatura; as variantes ficam congeladas e a
+próxima rodada ataca um defeito novo de atualização do banner.
