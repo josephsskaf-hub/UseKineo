@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { normalizeSeriesSeed } from '@/lib/seriesContinuation'
 
 // ═══ KINEO-PROXIMO-EPISODIO-2026-08-21 ═════════════════════════════════════
 //
@@ -31,16 +32,154 @@ import { createClient } from '@/lib/supabase/server'
 // crédito do usuário, não chama fal, não renderiza nada — só escreve texto.
 // Renderizar só acontece se a pessoa clicar, e aí é o fluxo normal, cobrado
 // normalmente.
+//
+// ═══ KINEO-MEMORIA-SERIE-2026-09-04 — a rota passa a ter memória própria ═══
+//
+// O NÚMERO QUE MANDOU MEXER (30 dias, contas externas, medido em 04/09):
+//   quem fez 1 filme paga 0,3%; 2-3 filmes 1,8%; 4-7 filmes 15,4%. Mover a
+//   pessoa do filme 1 para o 2 é a jogada — e este cartão era a peça feita
+//   para isso. Só que `next_episode_clicked` = 1 evento em 30 dias, 1 pessoa,
+//   com 413 pessoas chegando na tela de filme pronto. E não existia NENHUM
+//   evento de exposição: não dava para saber se o cartão apareceu uma vez.
+//
+// OS TRÊS DEFEITOS QUE ESTE BLOCO FECHA (todos confirmados lendo o código):
+//   1. A memória da série não existia. `videos.script` está VAZIO em 774 de
+//      774 filmes entregues em 30 dias (a coluna existe, é lida por
+//      /api/video-summary, nunca foi escrita). O conteúdo real que EXISTE no
+//      banco é `videos.topic` (média 399 caracteres).
+//   2. `alreadyDone` nasceu morto: a rota aceitava a lista "já cobri isto,
+//      não repita" e NENHUM caller no repo jamais preencheu o campo. É
+//      exatamente o campo que impede o episódio 3 de repetir o 1 e o 2.
+//   3. O caller mandava a ORDEM (`topic` = o que a pessoa digitou), não a
+//      NARRAÇÃO que o filme falou (`voiceover_script`, no mesmo objeto). E
+//      quando `lastFastRenderRef` estava vazio (mount novo, volta da Stripe),
+//      o cartão simplesmente não aparecia.
+//
+// A RESPOSTA: o cliente manda `fromVideoId` (o handle durável do filme) e o
+// servidor vira a fonte de verdade — lê o filme de origem RESTRITO AO DONO
+// com o mesmo client autenticado (nunca service key), usa `videos.topic`
+// como fallback de `previousTopic`, e monta `alreadyDone` sozinho com os
+// últimos filmes concluídos da pessoa (excluindo o de origem, que já vai em
+// EPISODE 1 — repetir seria dizer "não repita o que eu te mandei escrever").
+// Toda leitura de banco falha FECHADA e SILENCIOSA: o caminho de escrever o
+// episódio nunca depende do banco estar bom. Isto é um bônus de tela de
+// sucesso; um 403 barulhento aqui seria pior que cartão nenhum.
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 export const maxDuration = 30
 
 interface Corpo {
-  /** O tema/roteiro do filme que a pessoa ACABOU de fazer. */
+  /** O tema/roteiro do filme que a pessoa ACABOU de fazer. Preferir a NARRAÇÃO
+   *  real (`voiceover_script`); com `fromVideoId` válido, pode vir vazio. */
   previousTopic?: string
-  /** Temas que ela já fez, para o GPT não repetir. */
+  /** Temas que ela já fez, para o GPT não repetir. O servidor SEMPRE acrescenta
+   *  o que sabe (KINEO-MEMORIA-SERIE-2026-09-04). */
   alreadyDone?: string[]
   language?: string
+  /** uuid do filme que a pessoa acabou de fazer (`videos.id`). Lido restrito
+   *  ao dono; se não existir ou não for dela, segue sem memória. */
+  fromVideoId?: string
+}
+
+/** Teto da lista montada pelo servidor. O `.slice(0, 8)` do corpo continua
+ *  sendo o teto final depois da união com o que o cliente mandou. */
+const MAX_JA_FEITOS_SERVIDOR = 6
+/** Quantos filmes recentes ler para montar a lista (12 lidos → ≤6 sobrevivem
+ *  depois de tirar o de origem, os vazios e os duplicados). */
+const LIMITE_LEITURA_MEMORIA = 12
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+interface LinhaVideo {
+  id: string
+  title: string | null
+  topic: string | null
+}
+
+interface MemoriaSerie {
+  /** `videos.topic` do filme de origem (fallback de `previousTopic`). */
+  topicOrigem: string
+  /** Se a linha do filme de origem foi lida (e era do dono). */
+  hadMemory: boolean
+  /** "ALREADY COVERED" montado pelo servidor, já normalizado, sem o de origem. */
+  jaFeitos: string[]
+  /** Total de filmes concluídos da pessoa (episodeNumber = total + 1). */
+  totalConcluidos: number
+}
+
+/**
+ * Lê o que o servidor sabe sobre a série da pessoa. NUNCA lança: qualquer
+ * erro do Supabase vira `console.warn` e memória vazia — a rota segue.
+ * Mesmo client autenticado da rota (RLS do dono), sem service key.
+ */
+async function lerMemoriaSerie(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  fromVideoId: string | undefined,
+): Promise<MemoriaSerie> {
+  const vazia: MemoriaSerie = { topicOrigem: '', hadMemory: false, jaFeitos: [], totalConcluidos: 0 }
+  const memoria: MemoriaSerie = { ...vazia }
+  const origemId = fromVideoId && UUID_RE.test(fromVideoId) ? fromVideoId : undefined
+
+  // (a) O filme de origem, RESTRITO AO DONO. `.eq('user_id', userId)` não é
+  // enfeite: é o que impede ler o filme de outra pessoa por uuid adivinhado.
+  if (origemId) {
+    try {
+      const { data, error } = await supabase
+        .from('videos')
+        .select('id, title, topic')
+        .eq('id', origemId)
+        .eq('user_id', userId)
+        .maybeSingle()
+      if (error) {
+        console.warn('[next-episode] memoria: leitura do filme de origem falhou', error.message)
+      } else if (data) {
+        const linha = data as LinhaVideo
+        memoria.topicOrigem = (linha.topic ?? linha.title ?? '').trim()
+        memoria.hadMemory = true
+      }
+    } catch (e) {
+      console.warn('[next-episode] memoria: filme de origem', e instanceof Error ? e.message : String(e))
+    }
+  }
+
+  // (c)+(d) Os últimos filmes concluídos da pessoa + a contagem total, numa
+  // única ida ao banco (`count: 'exact'` conta o conjunto inteiro, o `limit`
+  // só recorta as linhas devolvidas).
+  try {
+    const { data, error, count } = await supabase
+      .from('videos')
+      .select('id, title, topic', { count: 'exact' })
+      .eq('user_id', userId)
+      .eq('status', 'completed')
+      .order('created_at', { ascending: false })
+      .limit(LIMITE_LEITURA_MEMORIA)
+    if (error) {
+      console.warn('[next-episode] memoria: leitura dos filmes concluídos falhou', error.message)
+    } else {
+      memoria.totalConcluidos = typeof count === 'number' && count > 0 ? count : 0
+      const vistos = new Set<string>()
+      for (const linha of (data ?? []) as LinhaVideo[]) {
+        // O de origem é o EPISODE 1 do prompt — não entra em "já cobri".
+        if (origemId && linha.id === origemId) continue
+        // `topic` primeiro (é o conteúdo inteiro, média 399 chars); `title` é o
+        // mesmo texto cortado em ~120. normalizeSeriesSeed tira o andaime da
+        // ordem antiga ("Create the next episode in the same Short series
+        // about…") e corta em 180 na fronteira — ver bloco A3 em
+        // lib/seriesContinuation.ts.
+        const semente = normalizeSeriesSeed(linha.topic || linha.title)
+        if (!semente) continue
+        const chave = semente.toLowerCase()
+        if (vistos.has(chave)) continue
+        vistos.add(chave)
+        memoria.jaFeitos.push(semente)
+        if (memoria.jaFeitos.length >= MAX_JA_FEITOS_SERVIDOR) break
+      }
+    }
+  } catch (e) {
+    console.warn('[next-episode] memoria: filmes concluídos', e instanceof Error ? e.message : String(e))
+  }
+
+  return memoria
 }
 
 // O mesmo esqueleto que o resto do pipeline espera (parseViralScriptSections
@@ -91,11 +230,40 @@ export async function POST(req: NextRequest) {
       for (const [k, v] of ULTIMA_CHAMADA) if (agora - v > COOLDOWN_MS * 4) ULTIMA_CHAMADA.delete(k)
     }
 
-    const anterior = (body.previousTopic ?? '').trim().slice(0, 4000)
+    // KINEO-MEMORIA-SERIE-2026-09-04 — o servidor lê o que sabe ANTES de
+    // decidir se tem com o que escrever. Falha fechada: memória vazia nunca
+    // derruba a rota.
+    const fromVideoId = typeof body.fromVideoId === 'string' ? body.fromVideoId.trim() : undefined
+    const memoria = await lerMemoriaSerie(supabase, user.id, fromVideoId || undefined)
+
+    // (b) `previousTopic` com fallback de servidor: o cliente manda a narração
+    // real quando a tem (melhor fonte); vazio + `fromVideoId` válido cai em
+    // `videos.topic`. O 400 só acontece DEPOIS dos dois caminhos.
+    const anteriorCliente = (body.previousTopic ?? '').trim()
+    const anterior = (anteriorCliente || memoria.topicOrigem).slice(0, 4000)
     if (!anterior) return NextResponse.json({ error: 'previousTopic is required' }, { status: 400 })
-    const jaFeitos = Array.isArray(body.alreadyDone)
-      ? body.alreadyDone.filter((t): t is string => typeof t === 'string').slice(0, 8)
+
+    // (c) "ALREADY COVERED" = o que o cliente mandou + o que o servidor sabe.
+    // O servidor é a fonte de verdade; o cliente nunca preencheu isto em 30
+    // dias (0 callers no repo). União sem duplicata (case-insensitive), teto 8.
+    const jaFeitosCliente = Array.isArray(body.alreadyDone)
+      ? body.alreadyDone.filter((t): t is string => typeof t === 'string').map((t) => t.trim()).filter(Boolean)
       : []
+    const jaFeitos: string[] = []
+    {
+      const vistos = new Set<string>()
+      for (const t of [...memoria.jaFeitos, ...jaFeitosCliente]) {
+        const chave = t.toLowerCase()
+        if (vistos.has(chave)) continue
+        vistos.add(chave)
+        jaFeitos.push(t)
+      }
+    }
+    const jaFeitosFinal = jaFeitos.slice(0, 8)
+
+    // (d) Episódio N = filmes concluídos + 1, mínimo 2 (sem memória, o cartão
+    // continua dizendo "Episode 2", como sempre disse).
+    const episodeNumber = Math.max(2, memoria.totalConcluidos + 1)
 
     const idioma = body.language === 'pt' ? 'Portuguese' : body.language === 'es' ? 'Spanish' : 'English'
 
@@ -123,9 +291,9 @@ this episode. The title line is NOT part of the narration word count.`
     const usuario = `EPISODE 1 (just produced):
 ${anterior}
 
-${jaFeitos.length ? `ALREADY COVERED — do not repeat these:\n${jaFeitos.map((t) => `- ${t.slice(0, 120)}`).join('\n')}` : ''}
+${jaFeitosFinal.length ? `ALREADY COVERED — do not repeat these:\n${jaFeitosFinal.map((t) => `- ${t.slice(0, 120)}`).join('\n')}` : ''}
 
-Write EPISODE 2.`
+Write EPISODE ${episodeNumber}.`
 
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -176,7 +344,16 @@ Write EPISODE 2.`
       .split(/\s+/)
       .filter(Boolean).length
 
-    return NextResponse.json({ title: titulo || 'Episode 2', script, words: palavras })
+    // `title`/`script`/`words` mantêm o formato: o cliente depende deles. Os
+    // três campos novos são a instrumentação que faltava (KINEO-MEMORIA-SERIE).
+    return NextResponse.json({
+      title: titulo || `Episode ${episodeNumber}`,
+      script,
+      words: palavras,
+      episodeNumber,
+      hadMemory: memoria.hadMemory,
+      alreadyDoneCount: jaFeitosFinal.length,
+    })
   } catch (e) {
     console.error('[next-episode]', e instanceof Error ? e.message : String(e))
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

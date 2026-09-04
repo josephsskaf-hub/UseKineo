@@ -606,3 +606,184 @@ há denominador. Primeira leitura útil: a partir de ~19:30 BRT (3h de tráfego)
 Sinal de alarme para as próximas rotações: exposição da fonte nova continuar
 **exatamente zero** depois de ≥20 pessoas passarem pela tela de filme pronto —
 aí seria porta que não renderiza, e o conserto é código, não copy.
+### #4 (global #20) — 16:10→17:40 BRT — a oferta que ESCREVE o episódio 2 para a pessoa teve **1 clique em 30 dias**, e não existe um único evento que prove que ela já apareceu na tela de alguém. Agora ela recebe a narração real do filme, sabe o que a série já cobriu, e passa a ser mensurável.
+
+**Portão de fase.** Rodei às 16:09 BRT, antes das 16:30 — mas a sprint 2 já
+tinha começado às 14:20 e as rodadas #17–#19 já estavam publicadas. Voltar à
+numeração da sprint 1 criaria duas contas paralelas do mesmo trabalho. Segui na
+sprint 2 e escrevi o **fechamento da sprint 1** no diário dela, que era a
+obrigação pendente do portão. Registrado como decisão minha, reversível.
+
+**Placar da rodada** (SQL canônico, marco zero 03/09 16:00 UTC, contas externas,
+medido 19:11 UTC): **42 cadastros · 28 pessoas com filme · 36 filmes · 2
+checkouts COM filme · 2 sem filme · 0 assinaturas · 0 pessoas com falha e sem
+filme.**
+
+**Distribuição pós-marco e o delta que a sprint mede:** 1 filme = **23 pessoas**
+(era 22 na #17) · 2–3 = **4** (era 4) · 4–7 = **1** (era 1). **Ninguém subiu de
+faixa desde a rodada anterior**; a pessoa nova entrou na base, no degrau 1. O
+81% que dói continua de pé: 23 das 28.
+
+**Checagem zero (1h): limpa.** 0 cadastro sem crédito · 0 render preso >25min ·
+0 `generation_stage_error` · 0 `compose_refused`/`narration_guard_blocked` ·
+**35 filmes entregues em 24h para 27 pessoas.**
+
+#### O NÚMERO QUE DECIDIU A RODADA
+
+O produto tem **dois** mecanismos de episódio 2, e eles não se falam:
+
+| mecanismo | o que entrega | 30 dias |
+|---|---|---:|
+| **A** — link de continuação (`lib/seriesContinuation.ts`) | 180 chars do TÍTULO + uma ordem genérica | 123 cliques · 59 pessoas · **35 fizeram filme em 24h (59%)** · **11 foram ao checkout (18,6%)** |
+| **B** — cartão "Your next episode is written" (`/api/next-episode`) | o episódio 2 **inteiro**, escrito, 1 clique para renderizar | **1 clique. Uma pessoa. Em 26/08.** |
+
+413 pessoas chegaram à tela de filme pronto em 30 dias. O mecanismo B é a oferta
+mais forte que a casa tem — e **não existe nenhum evento de exposição nem de
+falha**: não dá para afirmar que aquele cartão apareceu uma única vez. É o mesmo
+padrão do #18 (a peça que mais converte, escondida), agora no lugar mais caro.
+
+E o mecanismo A, o que carrega o volume, diz literalmente *"Do not repeat the
+previous episode"* **sem nunca dizer o que o episódio anterior falou**.
+
+#### Os três defeitos, todos lidos no código e confirmados no banco
+
+1. **A memória da série não existe.** `select count(script) from videos` nos 774
+   filmes entregues em 30 dias = **0**. A coluna existe, é lida por
+   `/api/video-summary`, e nunca foi escrita uma vez. O conteúdo real que o
+   banco tem é `videos.topic` (média **399 caracteres**).
+2. **`alreadyDone` nasceu morto.** `app/api/next-episode/route.ts` aceita o
+   campo "já cobri isto, não repita" desde 21/08 e **nenhum caller no repo
+   inteiro jamais o preencheu**. É exatamente o campo que impediria o episódio 3
+   de repetir o 1 e o 2.
+3. **O caller mandava a ORDEM, não a NARRAÇÃO.** `GenerateClient.tsx:10706`
+   usava `lastFastRenderRef.current.topic` — o texto DIGITADO. A narração que o
+   filme realmente falou estava no MESMO objeto, em `voiceover_script`
+   (`:605-614`, atribuído em `:5516`), e ia para o lixo. Pior: quando aquele ref
+   está vazio (mount novo, volta da Stripe, caminhos que não passam pelo
+   compose), `if (!base) return` **matava o cartão** — a causa mais provável do
+   1 clique em 30 dias.
+
+#### O que mudou (arquivos)
+
+- `app/api/next-episode/route.ts` (+193/−16): aceita `fromVideoId`; nova
+  `lerMemoriaSerie()` que lê o filme de origem **restrito ao dono**
+  (`.eq('id',…).eq('user_id', user.id)`, mesmo client autenticado, **sem service
+  key**) e os últimos 12 filmes concluídos da pessoa; `previousTopic` ganha
+  fallback de servidor (`videos.topic`) — o 400 só acontece depois dos dois
+  caminhos; **`alreadyDone` passa a ser montado pelo SERVIDOR** (exclui o filme
+  de origem, normaliza cada item com `normalizeSeriesSeed` para a lista não vir
+  cheia do andaime da ordem antiga, deduplica sem caixa, teto 6); devolve
+  `episodeNumber`, `hadMemory`, `alreadyDoneCount`. Toda leitura de banco em
+  try/catch: banco doente ⇒ memória vazia ⇒ a rota escreve assim mesmo.
+- `app/(dashboard)/generate/GenerateClient.tsx` (+72/−3, só o efeito de
+  `phase === 'done'`): `previousTopic` = **narração real**, `topic` só como
+  fallback; `fromVideoId = publicVideoId`; o cartão **deixa de sumir** quando o
+  ref está vazio mas há id (o servidor busca o filme); dedup por
+  `publicVideoId || base`; e os três eventos que faltavam.
+- `scripts/test-serie-memoria-2026-09-04.mjs` (novo, 504 linhas): **138
+  verificações, 0 falhas** — e a rota é **executada de verdade**, com Supabase e
+  OpenAI falsos, para que a posse seja provada por comportamento e não só por
+  regex. `scripts/test-serie-episodio-2.mjs` (irmão) segue **262/262**.
+  `tsc --noEmit` limpo.
+
+**Instrumentação nova (o fim do ponto cego):** `next_episode_requested`
+(`video_id`, `had_narration`), `next_episode_ready` (`words`, `episode_number`,
+`had_memory`, `already_done_count`), `next_episode_failed` (`status`).
+
+**Falsificado em 5 mutações aplicadas de verdade no arquivo real e desfeitas:**
+
+| mutação | verificações que caem |
+|---|---|
+| tirar `.eq('user_id', …)` da leitura do filme de origem | **5** — inclusive 3 comportamentais: o filme de OUTRA pessoa passava a virar memória |
+| caller manda `topic` em vez de `voiceover_script` | 1 |
+| tirar `fromVideoId` do corpo do fetch | 1 |
+| `alreadyDone` só com o que o cliente mandou | 11 |
+| apagar `next_episode_requested` | 2 |
+
+Registro de honestidade herdado do agente: na primeira passada a mutação de
+posse **não chegou a ser aplicada** (regex sem quebra de linha CRLF) e o teste
+ficou verde por engano; foi refeita, confirmada pela contagem de ocorrências, e
+só então as 5 verificações caíram.
+
+**Quantas pessoas isso move de N para N+1.** Sem otimismo: 413 pessoas/30d
+chegam à tela de filme pronto e hoje **1** clicou no episódio pronto. A porta
+irmã (mecanismo A) converte 59% do clique em filme e 18,6% em checkout. Se o
+cartão passar a aparecer para mesmo que **um quarto** dessas 413 e converter a
+**metade** da taxa da porta irmã, são ~30 pessoas/mês saindo de 1 para 2 filmes
+por uma oferta que já estava construída e apagada. E a medição vem em 24h: se
+`next_episode_ready` sair perto de zero, a causa não era a memória — é o cartão
+que não renderiza, e aí o conserto é a condição de exibição, não o conteúdo.
+
+**Decisões que tomei sozinha** (autonomia; reversíveis):
+1. **Não mexi no mecanismo A** (a URL da continuação) apesar de ele ser o do
+   volume. Encher a URL com o conteúdo do episódio 1 colocaria uma parede de
+   texto no campo do Studio e o `autoanalyze=1` a leria como o TEMA NOVO — o
+   episódio 2 viraria cópia do 1, o oposto do objetivo. Fica para a rodada
+   seguinte, pelo id do vídeo, não pela URL.
+2. **Não liguei a escrita de `videos.script`.** Seria a memória definitiva, mas
+   mora no caminho do compose — trava de qualidade do fundador. Anotado como
+   dívida, não commitado.
+3. **`publicVideoId` fora das dependências do efeito**, com o motivo escrito no
+   código: ele é setado no mesmo lote síncrono que `setPhase('done')`
+   (`:5868`/`:5870`); nas deps, o cleanup cancelaria o fetch em voo e o cartão
+   nunca mais apareceria.
+4. **O cooldown de 45s, o modelo, a temperatura, os marcadores e o contrato de
+   150–165 palavras não foram tocados.**
+
+**Risco: baixo.** Nenhum preço, crédito, motor, gatilho de checkout ou caminho
+de render foi tocado. O pior caso é uma chamada de gpt-4o-mini a mais por filme
+(~$0.0003), protegida pelo cooldown de 45s por pessoa que já existia. Reverter a
+jogada inteira: voltar `previousTopic: base` e remover `fromVideoId` do corpo.
+
+**Trava de qualidade do fundador (03/09 23:40) — trancada em teste.** Nada em
+`lib/compose.ts`, `app/api/compose/**`, `lib/hollywood/**`, `lib/cinematic/**`,
+`lib/broll/**`, `lib/lyriaMusic`, `lib/narrationFit.ts`, `analyze-idea`,
+`generate-script` ou `generate-video-*`. O bloco 10 do teste lê o `git diff`
+real e reprova se qualquer um desses aparecer.
+
+**Modelo.** O código foi escrito por um agente **Fable**, como o plano manda
+para R2 (código difícil). A medição, a revisão do diff, a auditoria de posse e
+este diário foram feitos em Opus.
+
+**Como medir (contra o marco zero).**
+
+```sql
+-- 1) o cartao existe? (a pergunta que 30 dias nao souberam responder)
+select name, count(*) n, count(distinct user_id) pessoas
+from events where name like 'next_episode%' and created_at > '2026-09-04 21:00:00+00'
+group by 1 order by 2 desc;
+
+-- 2) a memoria chegou?
+select metadata->>'had_memory' memoria,
+       avg((metadata->>'already_done_count')::int) media_ja_cobertos, count(*) n
+from events where name='next_episode_ready' and created_at > '2026-09-04 21:00:00+00'
+group by 1;
+
+-- 3) o gate da jogada: quem clicou fez o filme?
+with c as (select user_id, min(created_at) ts from events where name='next_episode_clicked'
+           and created_at > '2026-09-04 21:00:00+00' group by 1)
+select count(*) clicaram,
+ count(*) filter (where exists (select 1 from videos v where v.user_id=c.user_id
+   and v.status='completed' and v.created_at between c.ts and c.ts + interval '24 hours')) virou_filme
+from c;
+```
+
+Gate honesto: o controle é o mecanismo A (`series_continue_clicked`), a mesma
+pessoa, o mesmo dia, oferta diferente. Sinal de alarme: `next_episode_requested`
+alto com `next_episode_ready` perto de zero — seria o GPT devolvendo roteiro sem
+marcadores, e aí o conserto é o prompt, não a memória.
+
+**Dívidas que encontrei e NÃO consertei** (para a próxima rodada não redescobrir):
+- `videos.script` vazio em 774/774 — a narração final nunca é gravada. Irmão
+  gêmeo do `thumbnail_url` (0 de 1129, achado de 27/08).
+- `first_film_free_offer_shown` = **0** desde o deploy do #13 às 13:08. A oferta
+  do primeiro filme grátis não apareceu para ninguém ainda.
+- A ponte `decideTrialBalanceBridge` se desliga em `credits < 15` (71 das 113
+  pessoas de um filme). Era pedido ao Codex; a pista dele foi encerrada pelo
+  fundador em 04/09, então virou dívida nossa.
+
+**Próximo item.** (a) medir `next_episode_*` na primeira janela de 24h e decidir
+entre conteúdo e condição de exibição; (b) **R2 parte 2** — o mecanismo A passar
+a carregar o id do filme e nascer com memória, sem parede de texto na URL;
+(c) medir o ramo `free_engine` do momentum (23 cartas saíram) e o
+`first_film_free_offer_shown`.

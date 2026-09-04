@@ -2782,3 +2782,81 @@ um `upgrade_modal_opened` depois disso; (c) o pedido do codex-caixa das 12:32
 
 **SHA.** `213f348c` — worktree `C:\kineo-wt\r16-momentum`. Enfileirado em
 `entrega-atual` sobre `5eb9a50a` (fila: 1). Aguardando o clique no SUBIR-SITE.bat.
+
+---
+
+## 🏁 FECHAMENTO DA SPRINT 1 — ASSINATURAS (03/09 16:00 UTC → 04/09 16:30 BRT)
+
+Escrito na primeira rodada depois das 16:30 de 04/09, como manda o portão de
+fase. A sprint 2 (retenção) já tinha começado às 14:20 e vive em
+`docs/SPRINT-RETENCAO-2026-09-04.md`; este bloco fecha a contabilidade da 1.
+
+### Placar final contra o marco zero (`2026-09-03 16:00:00+00`, contas externas, medido 04/09 19:11 UTC)
+
+| | marco (#0) | fim | delta |
+|---|---:|---:|---:|
+| cadastros | 0 | **42** | +42 |
+| pessoas com filme | 0 | **28** (67%) | +28 |
+| filmes entregues | 0 | **36** | +36 |
+| checkout COM filme (desejo) | 0 | **2** | +2 |
+| checkout SEM filme (defeito) | 0 | **2** | +2 |
+| **assinaturas** | 0 | **0** | **0** |
+| pessoas com falha e nenhum filme | — | **0** | — |
+
+**A sprint entregou 16 rodadas, 15 defeitos consertados, todos em produção, e
+ZERO assinaturas.** Este é o resultado honesto e é ele que justificou a virada
+de missão: a entrega parou de ser o gargalo, o retorno da pessoa passou a ser.
+
+### O que a sprint provou que funciona (medido pós-marco)
+
+- **Gate de narração (#1): 0 recusas.** Era a causa de 34 renders mortos em 30
+  dias; `script_duration_autofit_down` apareceu 2 vezes — o alvo desce sozinho
+  e o filme sai.
+- **Entrega limpa:** 7 `generation_stage_error` em ~27h, nenhum deles causa
+  nova, e **0 pessoas ficaram com falha e sem filme**. No começo da sprint essa
+  linha era o motivo de existir dela.
+- **Momentum com motor grátis (#16): 23 cartas saíram** depois do conserto do
+  gate que descartava 304 de 349 pessoas em silêncio.
+- **A porta da série (#18/#19):** 18 exposições e 5 cliques já com as fontes
+  novas (`done_screen_top`, `composer_empty`), que antes não existiam no banco.
+
+### O que ficou sem sinal (anotado, nada revertido)
+
+- **`first_film_free_offer_shown` = 0.** A oferta do #13 (primeiro filme de
+  graça na caixa que pede o cartão) subiu às 13:08 de 04/09 e **ainda não
+  apareceu para ninguém**. É a primeira medição da sprint 2 a fazer: ou a caixa
+  não abre para o público que ela mira, ou o evento não está sendo emitido.
+- **Guarda de cobrança (#2):** `cinematic_cost_drift` = 0 — sem exposição, não
+  é falha; fica esperando o primeiro caso real.
+- **Preâmbulo do ChatGPT (#3):** dívida de medição confessada — o conserto não
+  emite evento próprio e não há como provar pelo banco.
+
+### Jogadas entregues (16) e o que sobrou do cardápio
+
+Entregues: #1 gate de narração · #2 guarda de cobrança · #3 preâmbulo do
+ChatGPT · #4 semente de série · #5 crédito preso · #6 e-mail de desculpa ·
+#7 expansor · #8 frase curta · #9 pílula de render · #10 destino do render ·
+#11 crédito no cadastro por senha · #12 e-mails de fim de trial · #13 primeiro
+filme grátis · #14 clique sem rastro · #15 caixa que fala em filmes · #16
+momentum com motor grátis.
+
+**Não entregues, e por quê:** C3 (winback com filme pronto) — depende de gastar
+dinheiro de fal, decisão do fundador; D1/D3 (rascunhos para Cintia e Godofloki)
+— rolaram para a sprint 2, onde valem mais como convite ao episódio 2; E4
+(alerta de assinatura/4º filme para o fundador) — continua no cardápio, agora
+como R6.
+
+### Pedidos entre pistas
+
+A pista do Codex foi **encerrada pelo fundador em 04/09**
+(`docs/HANDOFF-CODEX-ENCERRAMENTO-2026-09-04.md`). O pedido aberto da #16 — a
+ponte `decideTrialBalanceBridge` se desligar em `credits < 15`, ou seja para 71
+das 113 pessoas de um filme — **não tem mais dono do outro lado**. Ele fica
+registrado aqui como dívida herdada pela pista Claude, não como pedido.
+
+### O que ainda falta o fundador clicar
+
+Nada da sprint 1: **as 16 rodadas estão publicadas em `origin/main`** (o #16
+entrou como `e4f9569c`, e as três primeiras da sprint 2 como `c4fa2e94`,
+`dee306e8`, `791f5444`). O que espera clique é o disparo dos e-mails, que é
+decisão dele e está listado na sprint 2.

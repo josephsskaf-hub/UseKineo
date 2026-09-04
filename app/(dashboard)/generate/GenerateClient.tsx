@@ -10703,25 +10703,69 @@ export default function GenerateClient({
     // tópico ALEATÓRIO semeado de VIRAL_STARTER_TOPICS. O card ofereceria
     // "episódio 2" de um filme que a pessoa nunca fez, e gastaria GPT para
     // isso. Sem o tema real do filme, o card simplesmente não aparece.
-    const base = (lastFastRenderRef.current?.topic ?? '').trim()
-    if (!base) return
-    // Uma vez por filme. A chave é o próprio tema: se a pessoa renderizar o
-    // MESMO filme de novo (retry, unlock da marca d'água), não gasta outra
-    // chamada de GPT nem troca o episódio que já está na tela.
-    if (nextEpisodeAskedForRef.current === base) return
-    nextEpisodeAskedForRef.current = base
+    //
+    // ═══ KINEO-MEMORIA-SERIE-2026-09-04 ═══ (ver o bloco na rota)
+    // Medido em 30 dias: `next_episode_clicked` = 1 evento, 1 pessoa, com 413
+    // pessoas na tela de filme pronto — e ZERO evento de exposição. Três
+    // consertos aqui: (1) `previousTopic` passa a ser a NARRAÇÃO real
+    // (`voiceover_script`, que já vivia neste mesmo objeto e era jogada fora),
+    // com `topic` (a ordem digitada) só como fallback; (2) `fromVideoId` =
+    // `publicVideoId`, o handle durável do filme, para o servidor ler o filme
+    // real e montar a memória da série; (3) quando `lastFastRenderRef` está
+    // vazio MAS há `publicVideoId`, a rota é chamada assim mesmo com
+    // `previousTopic: ''` — o servidor busca `videos.topic`. Só sem base E sem
+    // id o cartão continua não aparecendo (a regra do `prompt` cru acima).
+    const inputs = lastFastRenderRef.current
+    const narracao = (inputs?.voiceover_script ?? '').trim()
+    const base = narracao || (inputs?.topic ?? '').trim()
+    const videoId = publicVideoId
+    if (!base && !videoId) return
+    // Uma vez por filme. A chave é o id do filme (ou o tema, quando ainda não
+    // há id): se a pessoa renderizar o MESMO filme de novo (retry, unlock da
+    // marca d'água), não gasta outra chamada de GPT nem troca o episódio que
+    // já está na tela. O segundo `if` cobre o id chegando DEPOIS de uma
+    // chamada já feita pelo tema — mesmo filme, mesma chamada.
+    const chave = videoId || base
+    if (nextEpisodeAskedForRef.current === chave) return
+    if (base && nextEpisodeAskedForRef.current === base) return
+    nextEpisodeAskedForRef.current = chave
     let cancelado = false
     setNextEpisodeLoading(true)
+    // Instrumentação (o ponto cego de 30 dias): sem `requested`/`ready`/
+    // `failed` ninguém sabe se este cartão existe na tela de alguém.
+    void trackEvent('next_episode_requested', { video_id: videoId, had_narration: Boolean(narracao) })
     void (async () => {
       try {
         const r = await fetch('/api/next-episode', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ previousTopic: base, language }),
+          body: JSON.stringify({ previousTopic: base, fromVideoId: videoId ?? undefined, language }),
         })
-        if (!r.ok || cancelado) return
-        const d = (await r.json()) as { title?: string; script?: string }
-        if (cancelado || !d.script) return
+        if (cancelado) return
+        if (!r.ok) {
+          void trackEvent('next_episode_failed', { video_id: videoId, status: r.status })
+          return
+        }
+        const d = (await r.json()) as {
+          title?: string
+          script?: string
+          words?: number
+          episodeNumber?: number
+          hadMemory?: boolean
+          alreadyDoneCount?: number
+        }
+        if (cancelado) return
+        if (!d.script) {
+          void trackEvent('next_episode_failed', { video_id: videoId, status: 'empty_script' })
+          return
+        }
+        void trackEvent('next_episode_ready', {
+          video_id: videoId,
+          words: d.words ?? null,
+          episode_number: d.episodeNumber ?? null,
+          had_memory: d.hadMemory ?? false,
+          already_done_count: d.alreadyDoneCount ?? 0,
+        })
         setNextEpisode({ title: d.title ?? 'Episode 2', script: d.script })
       } catch {
         // Silencioso de propósito: isto é um bônus na tela de sucesso. Um erro
@@ -10739,6 +10783,12 @@ export default function GenerateClient({
       cancelado = true
       setNextEpisodeLoading(false)
     }
+    // `publicVideoId` NÃO entra nas dependências de propósito: ele é setado no
+    // MESMO lote síncrono que `setPhase('done')` (o handler do compose, ver
+    // `setPublicVideoId(data.video_id)` logo antes de `setPhase('done')`), então
+    // já está na mão quando este efeito roda. Se entrasse, o cleanup acima
+    // cancelaria um fetch em voo toda vez que o id mudasse e o `ref` já
+    // preenchido bloquearia a segunda passada — cartão nunca mais apareceria.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase])
 
