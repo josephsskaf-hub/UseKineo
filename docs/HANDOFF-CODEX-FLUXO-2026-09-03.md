@@ -662,3 +662,67 @@ Nada.
 - **TESTADO LOCALMENTE — 04/09/2026 03:04 BRT:** 257 invariantes, TypeScript, diff check e preview desktop/mobile ficaram verdes; um NO-GO real foi corrigido e os três auditores deram GO final.
 - **VALIDADO EM PRODUÇÃO — 04/09/2026 03:17 BRT:** Guardião #8, Vercel, bundle público e signup anônimo renderizado ficaram verdes no SHA `11bac5ce`.
 - **QUESTÃO PENDENTE / DESCONHECIDO:** impacto em primeiro filme/assinatura, clique real pós-gerador e variante `/login` aguardam janela ou rodada específica.
+
+---
+
+## Rodada 11 — F1 · trabalho salvo confirmado no login — 04/09 03:25→03:49 BRT — ENTREGA CONCLUÍDA
+
+- **IMPLEMENTADO / VALIDADO EM PRODUÇÃO:** quem chega ao `/login` por sessão anterior expirada agora vê o remix ou roteiro já salvo antes de escolher Google ou e-mail; autenticação, redirect e autorização de render continuam iguais.
+- **CONTRADIÇÃO OPERACIONAL:** a rodada durou 24 minutos, acima do teto de 20. O código, testes e dois pareceres estavam prontos às 03:36 BRT; o job bloqueante do Guardião consumiu 7m42s, com `npm ci` sozinho entre 03:37:54 e 03:44:57 BRT, e só então permitiu o fast-forward. Fonte: execução `33845152020`.
+
+### Dado, prioridade e anti-repetição
+
+- **FATO CONFIRMADO:** não havia pedido aberto viável da pista FLUXO; os itens pendentes pertencem ao dashboard/Claude ou à CAIXA. Nenhum pedido foi baixado, alterado ou duplicado. Fonte: `docs/PEDIDOS-ENTRE-PISTAS-2026-09-03.md`, lido às 03:26 BRT.
+- **FATO CONFIRMADO:** as rodadas 9 e 10 já confirmavam trabalho salvo no signup, mas o login seguia genérico mesmo recebendo o redirect completo. O próprio handoff da rodada 10 separava esta lacuna como próxima jogada. Fontes antes de `5e147af5`: `app/(auth)/login/page.tsx`, `app/(auth)/signup/page.tsx:278-280` e esta seção anterior, linha 652.
+- **HIPÓTESE:** mostrar a prova no desvio de sessão expirada reduz a sensação de perda entre valor recebido e autenticação; o tamanho dessa coorte e o efeito em primeiro filme ou assinatura são desconhecidos.
+
+### Vigia do checkout e placar
+
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 03:27:08 BRT:** o vigia das duas horas anteriores encontrou **0 pessoas externas** com `checkout_started|checkout_attempted` sem `checkout_success_viewed`; não há linha individual nem classe desejo/roteiro-pronto/defeito nesta janela. Fonte: SQL somente leitura do §8.2 no projeto de produção, com pessoas distintas e filtros internos canônicos.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 03:27:09 BRT:** desde 03/09 13:00 BRT, o placar canônico permanece em **22 cadastros, 16 pessoas com filme (16/22), 1 checkout com filme, 1 checkout sem filme, 0 assinaturas e 0 pessoas com falha sem filme**. Fonte: SQL canônico do programa, executado somente leitura no projeto de produção.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 03:27:10 BRT:** nas duas horas anteriores houve 3 cadastros externos: `chatgpt` 2 e `direto` 1. A janela móvel não foi somada às medições das rodadas anteriores. Fonte: `profiles`, uma linha por pessoa e filtros internos canônicos.
+
+### O que mudou
+
+- **IMPLEMENTADO:** `buildLoginCreationPreviewFromAuthParams()` exige redirect explícito, rejeita checkout primeiro e só aceita os contratos já validados de `example_remix` ou `free_script`; `?prompt=` solto, redirect externo, genérico ou alheio não produz promessa. Fonte: `lib/growth/signupCreationPreview.ts:147-155`.
+- **IMPLEMENTADO:** o login deriva a prova da query já transportada, adapta H1/subcopy e mostra o card antes do primeiro método de autenticação. Fontes: `app/(auth)/login/page.tsx:64-70,240-251,279-286`.
+- **IMPLEMENTADO:** o card existente saiu do JSX do signup para `AuthSavedCreationCard`, compartilhado pelas duas páginas com região nomeada e texto escapado pelo React. Fontes: `components/AuthSavedCreationCard.tsx:1-51` e `app/(auth)/signup/page.tsx:593-597`.
+- **FATO CONFIRMADO:** nenhum callback, middleware, destino, autostart, API, analytics, preço, oferta, desconto, Stripe, banco, migration, saldo, e-mail/mensagem, dashboard/Claude ou CAIXA foi alterado. Fonte: diff do commit funcional `5e147af54b9e119fa5180d49fbeaa72100a39815`.
+- **TESTADO LOCALMENTE — 04/09/2026 03:36 BRT:** red-first falhou pela ausência do resolver; depois, oito suítes direcionadas somaram **433 verificações verdes**, TypeScript real e `git diff --check` saíram com código 0. O Guardião confirmou suíte e TypeScript em ambiente limpo.
+- **CONTRADIÇÃO:** dois testes locais fora do delta continuam desatualizados no próprio `origin/main`: um exige 7 motores quando `ENGINE_LANDING_PARAMS` contém 8; outro exige fallback `/generate` quando o código já usa o destino novo. Eles não foram contados nas 433 verificações nem alterados nesta rodada; o Guardião canônico ficou verde.
+- **TESTADO LOCALMENTE — 04/09/2026 03:36 BRT:** o comparativo autocontido foi inspecionado antes/depois, desktop/mobile, legível e sem clipping. Fontes: `docs/previews/FLUXO-LOGIN-SAVED-CREATION-2026-09-04.html` e `.png`.
+- **FATO CONFIRMADO — revisão independente em 04/09/2026:** três auditores somente leitura revisaram anti-repetição, ownership, auth, redirect, checkout, privacidade, acessibilidade, cobertura e visual; os pareceres finais deram GO e nenhum auditor editou arquivo.
+
+### Integração e produção
+
+- **IMPLEMENTADO:** commit funcional `5e147af54b9e119fa5180d49fbeaa72100a39815` integrado em `main` por fast-forward sobre `aaf9defcd735369e39edb53feaa0607c63020fcb`.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 03:45:24 BRT:** o Guardião do PR #10, execução `33845152020`, concluiu `success`; suíte e TypeScript ficaram verdes antes do avanço da `main`.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 03:46:52 BRT:** a Vercel concluiu `dpl_3hKBVQ6jkacyZ4eFQHwG7yN9QAyN` como `READY`, alvo `production`, aliases canônicos e SHA funcional exato `5e147af5`.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 03:48 BRT:** uma sessão anônima em `www.usekineo.com/login` com o redirect real de `free_script` renderizou H1 de continuidade, `Saved before sign-in`, três trechos preservados e opções Google/e-mail. Nenhuma conta foi criada, formulário enviado ou render iniciado.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** nenhum login autenticado foi concluído em produção; o transporte pós-auth permanece coberto por código e testes. O hostname imutável exigiu SSO da Vercel, então a prova anônima final usou o domínio canônico.
+
+### Como medir e quando parar
+
+- **SUGESTÃO:** após uma janela completa pós-deploy, contar pessoas distintas das coortes existentes `example_remix_topic_submitted` e `free_script_to_signup_clicked` até cadastro, primeiro filme, checkout com filme e assinatura, sempre separadas. Como não há evento específico de exposição do login, não atribuir causalidade nem inventar o tamanho do desvio de sessão expirada.
+- **SUGESTÃO — gate de parada:** corrigir ou reverter se checkout perder precedência, se prompt solto/redirect alheio ganhar prova, se qualquer handoff autorizar geração, se o card aparecer depois dos métodos de auth ou se o trabalho deixar de chegar exatamente ao destino preservado.
+- **RISCO:** `Forgot password?` ainda não carrega `example_remix` ou `free_script`, e a falha de OAuth volta ao login genérico sem `next` fora de checkout; essas ramificações preexistentes perdem o handoff. O prompt completo continua na query durante auth, comportamento preexistente, e agora também fica visível na tela para quem abriu a própria URL.
+
+### PEDIDOS
+
+- **FATO CONFIRMADO:** nenhum pedido de outra pista foi baixado, alterado ou criado nesta rodada; os itens de dashboard continuam com Claude e o item de CAIXA permanece fora do escopo FLUXO.
+
+## PRÓXIMA JOGADA
+
+- **SUGESTÃO:** provar separadamente a perda em recuperação de senha e falha de OAuth para `example_remix`/`free_script`; somente se o transporte puder permanecer estritamente allowlisted e sem tocar checkout, preservar o handoff nessas saídas. Manter como rodada própria por envolver callback, PKCE e mais de uma tela.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+## 📋 O QUE ACONTECEU
+
+- **IMPLEMENTADO:** remix e roteiro já salvos agora aparecem também no login de sessão expirada, com o mesmo card do cadastro e sem mudar autenticação ou destino.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 03:27 BRT:** placar inalterado em 22 cadastros, 16 pessoas com filme, 2 pessoas em checkout e 0 assinaturas; o vigia de duas horas ficou vazio e a origem recente foi 2 ChatGPT e 1 direta.
+- **TESTADO LOCALMENTE — 04/09/2026 03:36 BRT:** 433 verificações direcionadas, TypeScript, diff check e preview desktop/mobile ficaram verdes; três auditores deram GO.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 03:48 BRT:** Guardião #10, Vercel e login anônimo canônico ficaram verdes no SHA `5e147af5`.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** impacto em primeiro filme/assinatura, tamanho da coorte de sessão expirada, E2E autenticado e preservação por recuperação de senha seguem sem prova.
