@@ -2590,3 +2590,195 @@ confirmado** (67 pessoas em 30 dias, 12 checkouts, 1 pagamento).
 
 **SHA.** `068d3779` — worktree `C:\kineo-wt\r15-capacidade`. Enfileirado em
 `entrega-atual` sobre `96a0a6c1`. Aguardando o clique no SUBIR-SITE.bat.
+
+---
+
+### #16 — 13:48→15:45 BRT (04/09) — o segundo filme É a assinatura, e o único e-mail que existe para produzi-lo desistia, em silêncio, de 304 das 349 pessoas — usando o preço de uma conta que ele nunca contata.
+
+**Placar da rodada** (SQL canônico, marco zero 03/09 16:00 UTC, contas externas,
+medido 16:50 UTC): **41 cadastros · 27 pessoas com filme (66%) · 2 checkouts COM
+filme · 2 checkouts sem filme · 0 assinaturas · 0 pessoas com falha e sem filme.**
+
+**Checagem zero (1h): limpa.** 0 cadastro sem crédito · 0 render preso >25min ·
+0 `generation_stage_error`, `compose_refused` ou `narration_guard_blocked` na
+última hora · **36 filmes entregues em 24h para 28 pessoas**. Os 8
+`generation_stage_error` de 30h são 4 pessoas e nenhum é causa nova: 2 são o
+aviso honesto de saldo preso do #5 (a pessoa recebeu o filme), 2 são o gate de
+trial de uma conta com 12 filmes, 1 `TypeError` em `broll_planning` cujo dono
+recebeu filme depois, 1 é ruído de `idle`.
+
+**O NÚMERO QUE DECIDIU A RODADA.** Como o caminho de entrega parou de ser o
+gargalo (#15: 0 de 35 claims sem filme hoje), fui atrás de onde o dinheiro
+morre agora. Filme entregue nos últimos 7 dias, externos, por pessoa:
+
+| grupo | pessoas | foram ao checkout | **assinaram** |
+|---|---:|---:|---:|
+| fez **1 filme** e parou | **113** | 6 (5,3%) | **0** |
+| fez **2+ filmes** | 25 | 4 (16%) | **3** |
+
+**As 3 assinaturas da semana saíram todas do grupo que fez o segundo filme.**
+Nenhuma saiu das 113. E as 113 não pararam por vontade: **71 têm menos de 15
+créditos e 38 têm exatamente ZERO**. Elas não param de querer — param de poder.
+
+**O que estava errado (medido).** `send-momentum-nudge` é a única campanha da
+casa escrita para levar do 1º ao 4º filme (a tese do próprio arquivo, de 20/08:
+1 vídeo → 0,33% assinam; 4-6 → 11,76%). O gate de crédito dela era uma linha:
+
+```ts
+const minCredits = creditCostFor('fast', true)   // = 5
+…
+if (((p.video_credits as number) ?? 0) < minCredits) continue   // descarte MUDO
+```
+
+Duas coisas erradas na mesma linha. **(1) É o preço da conta errada:** `true` é
+"usuário pagante", e o Kineo 1 custa 5 créditos para quem paga — mas esta
+campanha só fala com quem **não** paga (o `stripe_subscription_id` logo acima
+derruba o resto), e para essa conta `creditCostFor('fast', false)` é **0**. A
+carta exigia 5 créditos para oferecer um filme que custa zero. **(2) O descarte
+era invisível:** um `continue` sem contador, fora do `skipped` do dry-run — foi
+por isso que o buraco sobreviveu a três rodadas anteriores neste mesmo arquivo.
+
+Tamanho medido hoje, com a coorte exata da rota (1-3 filmes em 30d, não
+pagante, sem opt-out):
+
+| janela | candidatos | passavam | **derrubados pelo bar de 5** | destes, com 1 filme |
+|---|---:|---:|---:|---:|
+| diária (20-96h) | 73 | 56 | **17** | 13 |
+| resgate (30 dias) | 349 | 45 | **304** | **217** |
+
+**O que mudou (arquivos).**
+- `lib/momentumLadder.ts` (+65): regra pura `momentumNextFilm({credits,
+  creditFloor, freeEngineCost, freeQuotaLeft})`. Dois ramos de sucesso —
+  `credits` (piso = **o próprio bar antigo**, então a coorte que já recebia não
+  muda de carta nem de link) e `free_engine` (o balde novo). Três recusas
+  nomeadas: `too_few_credits`, `free_quota_used`, `unknown_balance`. Falha
+  fechada em todas as pontas.
+- `app/api/cron/send-momentum-nudge/route.ts` (+120/−8): o gate passa pela
+  regra; a **vaga do free tier entra na decisão** (`getFreeTierOffer()` +
+  `countFreeFastUsage`, as MESMAS fontes que o `/api/compose` usa para recusar),
+  lida em uma passada só para todos os candidatos; leitura falha ⇒ mapa nulo ⇒
+  ninguém do balde novo recebe. A carta do ramo novo ganha UMA frase e o botão
+  ganha `?engine=fast`. `skipped` passa a mostrar os três motivos, e o carimbo
+  grava `metadata.next_film`.
+- `scripts/test-momentum-motor-gratis.mjs` (novo, 230 linhas): **78
+  verificações, 0 falhas**, lendo os arquivos reais e **executando** as libs de
+  preço e de cota (`loadTs`, o idiom que já existe no repo).
+- `scripts/test-momentum-continuacao-2026-09-01.mjs`: B9 atualizado — a guarda
+  mudou de forma de propósito, e a verificação passou a provar a forma nova em
+  vez de exigir a linha morta.
+
+**Por que a vaga do free tier tinha que entrar.** O free tier residual é **1
+Fast por janela rolante de 30 dias** (`getFreeTierOffer().limit`, provado no
+teste). Mandar "seu próximo filme é de graça" para quem já gastou a única vaga
+seria a promessa que bate num 402 — exatamente a família de defeito que este
+arquivo cita no próprio comentário como razão de existir. Por isso a decisão
+pergunta a vaga antes de prometer, e a dúvida não manda.
+
+**Falsificado em 6 mutações, todas aplicadas de verdade no arquivo real e
+depois desfeitas** (cada uma derruba uma verificação específica):
+
+| mutação | verificação que cai |
+|---|---|
+| reintroduzir o descarte `video_credits < minCredits` | 3.2 |
+| trocar a vaga da pessoa por um número fixo | 4.6b |
+| tirar `engine: 'fast'` do link do ramo free | 5.5 |
+| deixar o descarte por saldo mudo de novo | 3.5 |
+| cravar `0` no lugar de `creditCostFor('fast', false)` | 3.3 |
+| baixar o piso do ramo pago de `minCredits` para `1` | 3.1b |
+
+**Decisões que tomei sozinha** (autonomia; reversíveis):
+1. **O piso do ramo pago continua sendo o bar antigo (`minCredits`), não 1.**
+   Considerei baixar para 1 e deixar todo mundo com algum crédito no ramo antigo.
+   Mantive o bar porque quem tem 1-4 créditos **também** não compra filme nenhum
+   com eles — e para essa pessoa a carta honesta é a do motor free. Efeito
+   colateral medido: são 4 pessoas na janela de resgate e 3 na diária.
+2. **A frase nova não afirma "seus créditos acabaram"** (seria falso para quem
+   tem 1-4): diz *"Your balance won't cover an AI film right now — but your next
+   film is not blocked. Kineo 1 costs no credits on your account. It renders
+   with our watermark"*. A marca d'água entra na mesma frase de propósito: meia
+   verdade no momento da promessa é a família de defeito que esta sprint matou
+   cinco vezes.
+3. **Não mexi na oferta pós-vídeo nem na ponte do trial** — `decideTrialBalanceBridge`
+   mora em `lib/growth/**`, pista do Codex. Virou PEDIDO com o número (as 71 de
+   113), não commit meu.
+4. **Não armei nada novo:** o cron já estava armado pelo fundador (69 envios em
+   14 dias). Eu não liguei campanha, não mudei cadência e não mandei e-mail —
+   mudei quem a campanha já armada consegue enxergar. Reverter a jogada inteira:
+   `creditFloor: minCredits` → `creditFloor: 0` deixa todo mundo no ramo antigo;
+   ou voltar o `if (… < minCredits) continue`.
+
+**Risco: baixo, e o pior caso é conhecido.** Nenhum preço, grant, custo de
+motor, gatilho de checkout ou destino de compra foi tocado. O ramo antigo é
+byte a byte o de antes (o teste tranca isso em 3.1b e 5.2). O ramo novo só
+existe quando o motor custa 0 **e** a vaga está livre. O pior caso é uma pessoa
+receber a carta e, entre o envio e o clique, gastar a vaga em outra aba — aí ela
+cai no 402 de cota, que já tem copy própria dizendo quando a vaga volta.
+
+**Trava de qualidade do fundador (03/09 23:40) — conferida linha a linha.** Nada
+em `lib/compose.ts`, `lib/hollywood/**`, `lib/cinematic/**`, `lib/broll/**`,
+`lib/lyriaMusic`, no pipeline do Kineo 1, na escolha de motor, no prompt de
+cena, na régua de palavras/segundo, em `analyze-idea` ou em `generate-script`.
+O teste tranca essa lista (bloco 7).
+
+**Duas hipóteses medidas e descartadas antes de codar** (para ninguém gastar
+rodada nelas):
+1. *"A oferta pós-vídeo morreu — as impressões caíram de 51/dia para 1/dia"* —
+   **falso**. A queda é troca de variante, não morte: o mesmo slot hoje emite
+   `trial_balance_bridge_viewed` (58 exposições, 40 pessoas, a última às 16:32
+   UTC de hoje) e `trial_repeat_episode_viewed`. O que a série `trial_post_video_offer_viewed`
+   mostra é a fatia que sobrou dela, não o total.
+2. *"O corte de 5.000 caracteres do Studio está matando quem cola roteiro do
+   ChatGPT"* — **real, mas pequeno**: `studio_prompt_over_limit_shown` tem 348
+   disparos e **5 pessoas** em 30 dias, e 4 das 5 receberam filme. Uma delas
+   (`mdshahbaz052005`) bateu 275 vezes em 90 segundos com um texto de 8.098
+   caracteres e nunca fez filme — vale um dia, não vale esta rodada.
+
+**Como medir (contra o marco zero).**
+
+```sql
+-- 1) o balde novo existe e recebe
+select metadata->>'next_film' ramo, count(*) n, count(distinct user_id) pessoas
+from events where name='momentum_nudge_sent' and created_at > '2026-09-04 19:00:00+00'
+group by 1;
+
+-- 2) o gate da jogada: quem recebeu a carta do motor free fez o 2o filme?
+with c as (select distinct user_id, min(created_at) ts from events
+           where name='momentum_nudge_sent' and metadata->>'next_film'='free_engine'
+           group by 1)
+select count(*) receberam,
+  count(*) filter (where exists (select 1 from videos v
+     where v.user_id=c.user_id and v.status='completed' and v.created_at>=c.ts)) fizeram_outro_filme,
+  count(*) filter (where exists (select 1 from events e
+     where e.user_id=c.user_id and e.name='checkout_started' and e.created_at>=c.ts)) foram_ao_checkout
+from c;
+```
+
+Gate honesto: o grupo de controle é o ramo `credits` da MESMA rodada — mesma
+carta, mesmo dia, saldo diferente. Sinal de alarme: `compose_refused` com razão
+de cota logo depois de um `momentum_nudge_sent` de ramo `free_engine` — seria a
+vaga tendo sido gasta entre o envio e o clique.
+
+**A conta que o fundador pode querer fazer.** A janela de resgate de 30 dias tem
+**304 pessoas** que a carta nunca alcançou, 217 delas com exatamente um filme.
+O link de 1 clique (dry-run por padrão, 40 por rodada) é
+`/api/cron/send-momentum-nudge?max_idle_h=720` — e só envia com `&confirm=SEND`.
+**Não disparei.** E-mail que sai é decisão dele; a rodada entrega a lista pronta.
+
+**Modelo.** Feita em Opus. O plano reserva Fable para A1/A3; esta é jogada de
+cron/e-mail de resgate.
+
+**Pedido novo ao Codex** (`PEDIDOS`, 15:40): a ponte dele
+(`decideTrialBalanceBridge` / `decideTrialReturnLadder`) tem o MESMO defeito de
+forma, no lugar mais caro — a caixa que aparece logo depois do filme pronto.
+Ela se desliga em `credits < 15`, ou seja para 71 das 113 pessoas de um filme.
+Mandei o número e o padrão que usei, sem tocar no arquivo dele.
+
+**Próximo item.** Nesta ordem: (a) **medir o ramo `free_engine`** na próxima
+rodada do cron (13:30 UTC) — se `next_film='free_engine'` sair 0, a leitura da
+cota está derrubando todo mundo e o conserto é lá; (b) medir a oferta do #13
+(`first_film_free_offer_shown`), que só ganhou deploy às 13:08 e ainda não teve
+um `upgrade_modal_opened` depois disso; (c) o pedido do codex-caixa das 12:32
+(segundo download confirmado, owner-scoped, no `/history`).
+
+**SHA.** `213f348c` — worktree `C:\kineo-wt\r16-momentum`. Enfileirado em
+`entrega-atual` sobre `5eb9a50a` (fila: 1). Aguardando o clique no SUBIR-SITE.bat.
