@@ -2084,6 +2084,13 @@ export default function GenerateClient({
   // KINEO-TRIAL-STALL-2026-08-14 — 'trial_stalled' (saldo que não compra o
   // motor) e 'trial_spent' (trial gasto até o fim) entram na união.
   const [upgradeReason, setUpgradeReason] = useState<'credits' | 'studio' | 'creator' | 'trial_ended' | 'trial_stalled' | 'trial_spent' | 'footage'>('credits')
+  // ═══ KINEO-PRIMEIRO-FILME-GRATIS-2026-09-04 (sprint-assinaturas #13) ═════
+  // Filmes ENTREGUES nesta conta, vindos de /api/credits (`status=completed`).
+  // `null` = ainda nao sei (primeira pintura, ou leitura que falhou no
+  // servidor). NUNCA tratar null como zero: a oferta de "primeiro filme
+  // gratis" mostrada a quem ja fez trinta filmes seria a mesma classe de
+  // mentira que esta sprint passou a semana matando.
+  const [filmsDelivered, setFilmsDelivered] = useState<number | null>(null)
   const [upgradeLoading, setUpgradeLoading] = useState(false)
 
   // KINEO-CHECKOUT-TRIAGE-2026-07-25 — every checkout CTA on this screen used
@@ -3131,6 +3138,10 @@ export default function GenerateClient({
           if (typeof data.freeAiUsed === 'boolean') setFreeAiUsed(data.freeAiUsed)
           // KINEO-WM-CHECKOUT-2026-07-07 — paid flag hides the "remove watermark" CTA.
           if (typeof data.hasPaid === 'boolean') setHasPaid(data.hasPaid)
+          // KINEO-PRIMEIRO-FILME-GRATIS-2026-09-04 — quantos filmes esta conta
+          // ja recebeu. Campo ausente (deploy antigo) ou null deixa o estado em
+          // null e a oferta simplesmente nao aparece.
+          setFilmsDelivered(typeof data.filmsDelivered === 'number' ? data.filmsDelivered : null)
           // #404 — plan flags + default the engine to the plan's engine once.
           if (typeof data.isStarter === 'boolean') setIsStarter(data.isStarter)
           if (typeof data.isCreator === 'boolean') setIsCreator(data.isCreator)
@@ -9701,6 +9712,37 @@ export default function GenerateClient({
   // upgrade modal instead of either silently failing or hitting the API
   // for a 402. We still allow Cinematic-with-tokens through (Pro users
   // can have 0 credits but a remaining cinematic token).
+  // ═══ KINEO-PRIMEIRO-FILME-GRATIS-2026-09-04 (sprint-assinaturas #13) ═════
+  // O NUMERO QUE ABRIU ISTO (21 dias, contas externas): 88 pessoas bateram numa
+  // parede de pagamento (`trial_downgrade_modal_shown` / `upgrade_modal_opened` /
+  // `limit_purchase_fit_viewed`). 37 estavam SEM FILME naquele exato momento e
+  // 27 nunca receberam um filme da Kineo na vida. As 27 sao TODAS `plan=free`,
+  // `has_paid=false`, com `trial_status` preenchido.
+  //
+  // O QUE ISSO SIGNIFICA NO SERVIDOR: esse trio e exatamente
+  // `isFreePlanFast = isFreePlan && !hasPaid && !ent.isTrial` (app/api/compose/
+  // route.ts). Para quem satisfaz esse predicado o Kineo 1 NAO CHECA SALDO —
+  // nao passa por `creditCostFor`, nao leva 402, so reserva uma vaga da cota
+  // gratuita (`FREE_FAST_PREVIEW_LIMIT = 3` por 24h, lib/freeFastQuota.ts).
+  // Ou seja: no minuto em que pedimos o cartao dessas 27 pessoas, o produto
+  // entregaria o PRIMEIRO FILME DELAS de graca, ali, tres vezes por dia — e a
+  // caixa nao dizia uma palavra sobre isso. Pedimos que pagassem para ver um
+  // produto que elas nunca viram funcionar.
+  //
+  // ESTE PREDICADO E UM ESPELHO, NAO UMA POLITICA NOVA. Ele nao destrava nada,
+  // nao muda preco, nao decide motor sozinho e nao gera nada: apenas responde
+  // "o servidor entregaria um Kineo 1 de graca para esta conta agora?". Quando a
+  // resposta e sim E a pessoa nunca recebeu um filme, a caixa passa a oferecer
+  // isso ACIMA dos planos. Os planos continuam inteiros, na mesma tela.
+  //
+  // `filmsDelivered === 0` (e nao `!filmsDelivered`) de proposito: `null` e
+  // "nao sei" e tem de esconder a oferta.
+  const firstFilmFreeAvailable =
+    filmsDelivered === 0 &&
+    !isStarter && !isCreator && !isStudio &&
+    !hasPaid &&
+    trialActive !== true
+
   function outOfCredits(): boolean {
     // KINEO-ZERO-SIGNUP-2026-07-09 — Fast renders are FREE (InVideo model):
     // new signups get 0 credits but can always generate/watch Fast videos.
@@ -11680,6 +11722,16 @@ export default function GenerateClient({
             setUpgradeLoading(true)
           }}
           checkoutError={upgradeModalCheckout.error}
+          // KINEO-PRIMEIRO-FILME-GRATIS-2026-09-04 — a saida honesta, quando ela
+          // existe de verdade. Ver `firstFilmFreeAvailable`.
+          firstFilmFree={firstFilmFreeAvailable}
+          onFirstFilmFree={() => {
+            // NAO gera nada: seleciona o motor gratuito e devolve a tela a ela.
+            // O clique e da pessoa, exatamente como o card do Kineo 1 no seletor.
+            void trackEvent('first_film_free_offer_clicked', { reason: upgradeReason, surface: 'generate_upgrade_modal' })
+            setShowUpgradeModal(false)
+            setMode('fast')
+          }}
           onClose={() => setShowUpgradeModal(false)}
         />
       )}
@@ -18599,6 +18651,8 @@ function UpgradeModal({
   checkoutError = null,
   currency = null,
   region = 'standard',
+  firstFilmFree = false,
+  onFirstFilmFree,
 }: {
   loading: boolean
   onUpgrade: (tier: 'starter' | 'basic' | 'pro') => void
@@ -18618,11 +18672,27 @@ function UpgradeModal({
    */
   currency?: CheckoutCurrency | null
   region?: PriceRegion
+  /**
+   * KINEO-PRIMEIRO-FILME-GRATIS-2026-09-04 — true so quando o servidor
+   * entregaria um Kineo 1 sem cobrar nada desta conta E ela nunca recebeu um
+   * filme. Ver `firstFilmFreeAvailable` no componente pai.
+   */
+  firstFilmFree?: boolean
+  onFirstFilmFree?: () => void
 }) {
   // KINEO-CHECKOUT-TRIAGE-2026-07-25 — the top-up buttons below were raw
   // window.location.href with only `loading` (a prop that is never true for
   // them) as a guard. Their own launcher, separate from the plan rows above.
   const topupCheckout = useCheckoutLaunch('generate_upgrade_modal_topup')
+  // KINEO-PRIMEIRO-FILME-GRATIS-2026-09-04 — impressao REAL da oferta: dispara
+  // na montagem do modal e so quando ela vai mesmo ser pintada. Fica aqui, e
+  // nao no pai, porque o modal tem mais de um caminho de abertura e o placar
+  // precisa contar a caixa que a pessoa viu, nao a intencao de abrir.
+  useEffect(() => {
+    if (!firstFilmFree || !onFirstFilmFree) return
+    try { void trackEvent('first_film_free_offer_shown', { reason, surface: 'generate_upgrade_modal' }) } catch { /* ignore */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const reasonHasCreditFit = reason === 'credits' || reason.startsWith('trial_')
   const purchaseFit = reasonHasCreditFit
     ? calculateLimitPurchaseFit({ balance, requiredCredits, isSubscriber })
@@ -18845,6 +18915,37 @@ function UpgradeModal({
         <p style={{ fontSize: '0.9rem', color: '#a1a1a8', lineHeight: 1.55, margin: 0, marginBottom: 12 }}>
           {head.sub}
         </p>
+        {/* KINEO-PRIMEIRO-FILME-GRATIS-2026-09-04 — A SAIDA, ACIMA DO PEDIDO.
+            27 das 88 pessoas que viram esta familia de caixas em 21 dias nunca
+            tinham recebido um filme, e para todas as 27 o Kineo 1 sai de graca
+            agora. Fica ACIMA das linhas de plano de proposito: quem nunca viu o
+            produto funcionar nao tem como avaliar um plano. Nao remove plano
+            nenhum, nao muda preco e nao gera nada — leva a pessoa de volta a
+            tela com o motor gratuito escolhido. */}
+        {firstFilmFree && onFirstFilmFree && (
+          <div
+            style={{ background: 'rgba(52,211,153,.10)', border: '1px solid rgba(52,211,153,.45)', borderRadius: 10, padding: '13px 14px', marginBottom: 14 }}
+          >
+            <span style={{ display: 'block', color: '#6ee7b7', fontSize: '0.64rem', fontWeight: 900, letterSpacing: '0.1em', marginBottom: 4 }}>
+              BEFORE YOU DECIDE
+            </span>
+            <strong style={{ display: 'block', color: '#fff', fontSize: '0.95rem', lineHeight: 1.35, marginBottom: 3 }}>
+              You haven&apos;t made a film yet — and your first one is free.
+            </strong>
+            <span style={{ display: 'block', color: '#a7f3d0', fontSize: '0.78rem', lineHeight: 1.45, marginBottom: 10 }}>
+              Kineo 1 costs 0 credits on your account. Same script, same voiceover, same
+              captions and soundtrack — up to 3 films a day, watermarked. See it work
+              first, then pick a plan.
+            </span>
+            <button
+              type="button"
+              onClick={onFirstFilmFree}
+              style={{ width: '100%', padding: '11px 14px', borderRadius: 8, border: '1px solid rgba(52,211,153,.7)', background: 'rgba(52,211,153,.16)', color: '#d1fae5', fontWeight: 800, fontSize: '0.88rem', cursor: 'pointer' }}
+            >
+              Make my first film free →
+            </button>
+          </div>
+        )}
         {purchaseFit && (
           <div
             style={{
