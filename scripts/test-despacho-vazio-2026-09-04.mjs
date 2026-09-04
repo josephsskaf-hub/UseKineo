@@ -143,14 +143,19 @@ check('8.1 o git diff foi lido', tocados.length > 0)
 for (const p of PROIBIDOS) {
   check(`8.2 nao toca ${p}`, !tocados.some((f) => f.startsWith(p)))
 }
-check('8.3 os arquivos alterados sao exatamente os 3 previstos', (() => {
+// 8.3 (ajuste 04/09 18:40, Claude-chat): o diff e contra origin/main, ou seja, a FILA
+// inteira de entrega, nao so este commit. Numa fila com #20 (memoria de episodio) +
+// #21 (este) + telemetria, "exatamente os 3" reprova a propria fila da rotacao sem
+// nenhum defeito. A trava de qualidade continua sendo o 8.2 (caminhos proibidos);
+// aqui basta provar que os 3 arquivos DESTA entrega estao presentes no diff.
+check('8.3 os 3 arquivos desta entrega estao no diff (fila pode ter mais)', (() => {
   const esperados = new Set([
     'app/api/generate-video-cinematic/route.ts',
     'app/(dashboard)/generate/GenerateClient.tsx',
     'scripts/test-despacho-vazio-2026-09-04.mjs',
   ])
-  const codigo = tocados.filter((f) => !f.startsWith('docs/'))
-  return codigo.length > 0 && codigo.every((f) => esperados.has(f))
+  const codigo = new Set(tocados.filter((f) => !f.startsWith('docs/')))
+  return [...esperados].every((f) => codigo.has(f))
 })())
 
 console.log(`\n${fail === 0 ? '✅' : '❌'} ${ok} verdes, ${fail} vermelhas`)
