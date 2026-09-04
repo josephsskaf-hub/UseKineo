@@ -2876,3 +2876,73 @@ A ponte do segundo filme sumia com saldo abaixo de Seedance. Corrigi sem
 inventar gratuidade: 32 pessoas da coorte atual já têm crédito suficiente para
 um Kineo 1, e agora a tela mostra exatamente a duração que cabe. Quem não tem
 saldo suficiente não recebe promessa.
+
+---
+
+## ROUND 43 — o caixa vivo ainda não autoriza outra camada
+
+**Data:** 2026-09-04 14:50→15:00 BRT
+
+**Pista:** Growth-B2C / CAIXA
+
+### VALIDAÇÃO DA R42
+
+**VALIDADO EM PRODUÇÃO — 04/09/2026 14:49 BRT:** `origin/main` chegou a
+`ff37bc117d17ca599c69176181b10abc812559dc`. O Guardião run `33902511403`
+terminou `success`; o deploy Vercel de produção
+`dpl_471Q87ciBsfihv2dWMS4GqULx4cP` ficou `READY` e aliasado em
+`www.usekineo.com`. A suíte local fechou 745/745 e o TypeScript completo ficou
+verde.
+
+**EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, corte 04/09/2026 14:51
+BRT:** a variante nova `trial_return_fast_best_fit_v1` ainda tinha 0 pessoas
+expostas e 0 cliques. R42 permanece congelada até o gate de 10 pessoas; zero não
+é resultado negativo.
+
+### PLACAR E VIGIA
+
+**EVIDÊNCIA DE PRODUÇÃO — mesmo corte:** placar canônico em **41 cadastros
+externos, 27 pessoas com filme, 2 checkouts com filme, 2 sem filme, 0
+assinaturas e 0 pessoas com falha sem filme**. O vigia móvel de duas horas tinha
+0 pessoas externas com checkout aberto e pagamento ausente.
+
+Os quatro checkouts desde o marco são quatro pessoas: uma Creator mensal com
+filme, uma Creator mensal sem filme e duas Studio mensais sem filme. Duas
+voltaram ao produto e dispensaram a retomada; nenhuma pagou. As outras duas
+tinham 21,6h e 2,6h desde o checkout no corte e ainda não produziram um retorno
+observável.
+
+### DIAGNÓSTICO E DECISÃO DE PARADA
+
+**CONTRADIÇÃO CORRIGIDA:** uma primeira consulta sugeriu 11 retornos pós-filme
+sem superfície comercial. Ela misturava eventos de servidor — sete pessoas
+tinham apenas `trial_lifecycle_email_sent` — com navegação humana. A consulta foi
+refeita por caminho e nome de evento; esse número não será usado como evidência
+de UX.
+
+**FATO CONFIRMADO:** as superfícies capazes de agir sobre os quatro casos já
+estão sob gate: retomada do checkout (R21/K13), objeção de cancelamento (K14),
+primeiro valor após downgrade (R41) e escada do segundo filme (R42). Reeditá-las
+agora violaria o protocolo de amostra e impediria saber qual mudança funcionou.
+
+**DECISÃO REVERSÍVEL:** nenhuma linha de produto foi alterada nesta rodada. O
+trabalho entregue é um corte causal limpo: checkout vivo por pessoa, estado de
+filme, plano, retorno e pagamento, sem inferir objeção de preço nem contar
+sessão como cliente.
+
+### PRÓXIMA JOGADA
+
+R44 é a medição pura do bloco R41–R44: comparar placar, primeiras exposições e
+casos de parada contra o marco. Se R41/R42 seguirem sem denominador, preservá-las
+e abrir o próximo bloco em uma superfície CAIXA não congelada.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+### 📋 O QUE ACONTECEU
+
+O R42 está no ar e verde, mas ainda não foi visto por uma pessoa da variante.
+Dos quatro compradores que abriram o caixa desde o marco, três ainda não tinham
+filme e dois já dispensaram a retomada. Não empilhei outra oferta sobre testes
+sem amostra; corrigi o placar e preservei a capacidade de aprender.
