@@ -3372,3 +3372,12 @@ Entraram mais uma conta e mais uma pessoa recebeu filme, mas nenhuma compra
 foi registrada no marco. As três últimas entregas ainda não tiveram exposição
 mensurada. A rodada evitou refazer um conserto existente e definiu o próximo:
 confirmar a sessão antes de registrar uma compra na página de sucesso.
+
+### ENCERRAMENTO A PEDIDO DO FUNDADOR — 04/09/2026
+
+**EVIDÊNCIA — instrução no chat após R48:** concluir a publicação pendente,
+parar o objetivo e alinhar o próximo plano com fundador e Claude. A R49 acima
+fica como proposta, NÃO como ordem de execução. A automação FLUXO foi pausada;
+nenhuma nova rodada será iniciada. Entregas e trabalho alheio preservados.
+Fechamento, placar, limitações e proposta de consenso:
+`docs/HANDOFF-CODEX-ENCERRAMENTO-2026-09-04.md`.
