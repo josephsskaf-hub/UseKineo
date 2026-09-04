@@ -1448,3 +1448,107 @@ A entrega nova está no ar e verde, mas ainda ninguém recebeu o aviso. A pessoa
 viva do ChatGPT terminou e baixou o primeiro filme, porém não voltou ao caixa.
 A rodada preservou os testes existentes e não inventou uma causa para esse não
 pagamento.
+
+---
+
+## ROUND 21 — dispensa antes da entrega não apaga a decisão pós-filme
+
+**Data:** 2026-09-04 11:43→11:52 BRT
+
+**Pista:** Growth-B2C / CAIXA
+
+**Branch:** `codex/caixa-dismiss-until-film-r21`
+
+### VALIDAÇÃO DA RODADA ANTERIOR
+
+**FATO CONFIRMADO:** `origin/main=4a97fdbb`, a worktree começou limpa e sem
+divergência. O único patch externo encontrado era um artefato antigo do K13,
+já incorporado em `2df52939`; `git apply --check` o recusou como corrompido na
+linha 107. Nenhuma linha desse patch foi aplicada.
+
+### EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, 2026-09-04 11:43 BRT
+
+Placar canônico desde 03/09 16:00 UTC: **37 cadastros externos, 23 pessoas com
+filme, 2 checkouts com filme, 1 sem filme, 0 assinaturas e 0 pessoas com falha
+sem filme**.
+
+O vigia das últimas 2h tem uma pessoa externa (`4ade265a`), origem `chatgpt`,
+um filme concluído, 12 créditos, checkout Pro e nenhum pagamento. Ela viu a
+prova da página de preço, o pricing inline e a retomada salva; dispensou a
+retomada às 10:21 BRT, recebeu a oferta pós-primeiro-filme às 11:08, tentou o
+download duas vezes e concluiu o download às 11:16. Depois da entrega, a
+retomada não voltou.
+
+Desde a entrada da política de primeira entrega em 30/08, duas pessoas externas
+abriram checkout pelo `trial_active_banner` antes de qualquer filme concluído.
+Uma já tinha clicado deliberadamente na primeira entrega; bloquear o checkout
+por `videos_ok=0` retiraria escolha explícita. A outra chegou ao caixa enquanto
+a entrega ainda estava em voo. Portanto o pedido de desviar toda conta sem
+filme já estava coberto e seria regressivo se aplicado como bloqueio.
+
+### GATE DA R15 DISPARADO
+
+**CONTRADIÇÃO:** a R15 prometeu que o lembrete salvo voltaria após o estado
+terminal e definiu como parada “uma pessoa com checkout salvo ficar sem nenhuma
+exposição após o filme”. A pessoa viva dispensou antes do filme; o `POST` gravou
+o mesmo cookie de sete dias usado depois da entrega. O vídeo pronto mudou o
+valor disponível, mas não mudava a dispensa. O gate de parada ocorreu no
+primeiro caso observável.
+
+### IMPLEMENTADO
+
+- `lib/checkoutResumeSurface.ts`: política pura distingue `until_delivery` de
+  dispensa persistente. Cookie legado e valor desconhecido continuam fechados.
+- `app/api/stripe/checkout/resume/route.ts`: o `POST` consulta somente o total
+  owner-scoped de filmes concluídos. Sem filme, a dispensa dura até a primeira
+  entrega; com filme ou histórico indisponível, preserva os sete dias. O `GET`
+  só reabre a dispensa pré-entrega após contagem confiável `>=1`, limpa o cookie
+  e mantém todas as verificações de posse/assinatura/sessão Stripe.
+- `components/CheckoutResumeBanner.tsx`: a reabertura emite
+  `checkout_resume_reopened_after_delivery` e carrega apenas tier, billing e
+  tipo de destino; nenhum id, título, URL ou conteúdo entra no evento.
+- `docs/previews/CHECKOUT-RESUME-AFTER-DELIVERY-2026-09-04.html`: comparação
+  antes/depois, desktop e mobile, sem depender de build.
+
+### TESTADO LOCALMENTE
+
+Pricing saved checkout **65/65** · own film **35/35** · delivery guard
+**17/17** · human view **111/111** · TypeScript verde · `diff --check` limpo.
+O navegador recusou `file://` por política de segurança; o preview estático foi
+criado e aberto no painel de arquivo do Codex, sem contornar a restrição.
+
+### COMO MEDIR
+
+`checkout_resume_banner_dismissed(has_personal_film=false)` → primeiro filme →
+`checkout_resume_reopened_after_delivery` →
+`checkout_resume_film_proof_loaded` → checkout → pagamento, por pessoa externa.
+Separar de dispensas com `has_personal_film=true`, que continuam sete dias.
+
+### GATE DE PARADA
+
+Manter até 10 reaberturas externas ou 7 dias. Reverter se uma dispensa
+pós-entrega reabrir, se histórico indisponível produzir nova exposição, se uma
+conta sem filme voltar a ver o lembrete em outra página ou se o link explícito
+`go=1` deixar de funcionar.
+
+### RISCO
+
+Baixo e reversível. Uma leitura exata de histórico acontece apenas quando a
+pessoa dispensa o lembrete e, depois, em GETs passivos com o cookie
+`until_delivery`. Falha de leitura respeita a dispensa. Nenhum preço, oferta,
+crédito, sessão Stripe, filme ou dado persistente é alterado.
+
+### PRÓXIMA JOGADA
+
+Publicar, validar Guardião/deploy e observar a primeira reabertura real. Depois
+voltar a uma superfície não congelada; não reeditar o K13 antes do gate.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+### 📋 O QUE ACONTECEU
+
+Quem fecha o lembrete antes de ver o resultado continua em paz enquanto o filme
+não existe. Quando a prova chega, a escolha salva pode voltar uma vez mostrando
+o próprio filme. Fechar depois disso continua silenciando por sete dias.
