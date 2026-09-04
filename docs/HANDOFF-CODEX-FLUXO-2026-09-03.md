@@ -134,3 +134,71 @@ Nada.
 - **TESTADO LOCALMENTE — 03/09/2026 23:57 BRT:** 385 verificações direcionadas passaram, TypeScript saiu com código 0 e a comparação desktop/mobile foi inspecionada. Fontes: os três comandos e os dois artefatos registrados em “O que mudou”.
 - **VALIDADO EM PRODUÇÃO — 04/09/2026 00:01 BRT:** Vercel e Guardião #46 concluíram verdes para `96310071ebdba64881e228df5331dadb25990991`.
 - **QUESTÃO PENDENTE / DESCONHECIDO:** o E2E de uma linha legada e os vigias individuais de checkout/origem seguem indisponíveis com a superfície anônima desligada e sem leitura aceita do Supabase.
+
+---
+
+## Rodada 3 — teto visível do quickstart — 04/09 00:10→00:31 BRT — ENTREGA CONCLUÍDA
+
+- **IMPLEMENTADO:** a caixa autenticada do quickstart deixou de apagar em silêncio tudo após o caractere 1.000; ela agora compartilha o teto canônico de 5.000 do Studio, exibe o comprimento real, mantém o excedente intacto e só encurta após ação explícita.
+- **BLOQUEADO / DESCONHECIDO:** a observação individual de checkout e a origem de novos cadastros não foram remensuradas; o conector Supabase recusou a leitura na rodada anterior e não existe nova autorização técnica disponível neste ciclo.
+
+### Dado, hipótese e anti-repetição
+
+- **EVIDÊNCIA DE PRODUÇÃO — medição de 04/09/2026, sem horário confiável:** 22 pessoas em 60 dias colaram roteiro completo do ChatGPT, fizeram 2,45 filmes por pessoa contra 1,53 na base e converteram 2,6 vezes mais; o pedido identifica roteiros acima de 2.000 caracteres. Fonte: pedido carimbado `00:45 BRT` em `docs/PEDIDOS-ENTRE-PISTAS-2026-09-03.md:28`.
+- **CONTRADIÇÃO / DESCONHECIDO:** o pedido traz `00:45 BRT`, posterior ao commit funcional de 00:24 BRT e ao relógio local desta rodada; o conteúdo foi usado por estar selecionado no handoff anterior, mas esse horário não foi tratado como ordem cronológica nem como hora da medição.
+- **CONTRADIÇÃO / FATO CONFIRMADO:** o quickstart impunha 1.000 caracteres em duas pontas, enquanto o analisador e o Studio compartilham teto de 5.000. Fontes anteriores ao commit: `components/ChatGptWelcomeBanner.tsx:150-158`, `lib/growth/chatgptQuickstart.ts:3,31-45`; fonte canônica preservada: `lib/analyzeLimits.ts:11`.
+- **HIPÓTESE:** preservar o roteiro de cinema inteiro até o mesmo limite que o Studio já aceita reduz refação e evita que a pessoa atribua ao gerador uma história que o produto cortou antes da análise.
+- **FATO CONFIRMADO:** não foi reaberto o falso buraco `selected → studio_ready`; a mudança usa a variante isolada `chatgpt_quickstart_v6` e conserva os eventos existentes. Fontes: `docs/PEDIDOS-ENTRE-PISTAS-2026-09-03.md:27`, `lib/growth/chatgptQuickstart.ts:3`, `components/ChatGptWelcomeBanner.tsx:91-109`, `app/(dashboard)/studio/StudioClient.tsx:261-268`.
+
+### Vigia do checkout e placar
+
+- **BLOQUEADO / DESCONHECIDO — 04/09/2026:** sem leitura aceita do Supabase, não há linha individual de checkout das últimas 2 horas nem corte por origem; nenhum zero foi inferido. Fonte do vigia exigido: `docs/PROGRAMA-CODEX-ASSINATURAS-2026-09-03.md:324-335`.
+- **EVIDÊNCIA DE PRODUÇÃO — medição de 03/09/2026 22:08 BRT:** o último placar cronologicamente coerente segue em 15 cadastros, 10 pessoas com filme entregue (67%), 1 checkout de desejo, 1 checkout de defeito, 0 assinaturas e 0 pessoas com falha sem filme. Fonte: `docs/SPRINT-ASSINATURAS-2026-09-03.md:960-972`.
+- **CONTRADIÇÃO / DESCONHECIDO:** o diário #8 conserva uma janela futura em seu cabeçalho e não foi usado para atualizar o placar. Fonte: `docs/SPRINT-ASSINATURAS-2026-09-03.md:1120-1125` e commit `e34a56b8` (author time 03/09/2026 23:01 BRT; committer time 23:17 BRT).
+
+### O que mudou
+
+- **IMPLEMENTADO:** `CHATGPT_QUICKSTART_INPUT_LIMIT` agora lê `ANALYZE_PROMPT_MAX_CHARS`; o normalizador só remove espaços externos e o builder recusa texto acima do teto em vez de cortá-lo. Fontes: `lib/growth/chatgptQuickstart.ts:1-9,37-49`.
+- **IMPLEMENTADO:** o `maxLength` saiu do textarea; contador, estado de excesso, CTAs bloqueados e botão `Trim to fit` reutilizam o mesmo helper puro do Studio. O aviso afirma que nada foi removido e o resultado do corte informa quantos caracteres saíram. Fontes: `components/ChatGptWelcomeBanner.tsx:127-141,156-210`, `lib/studioPromptLimit.ts:18-68`.
+- **IMPLEMENTADO:** a telemetria continua sem conteúdo do cliente, carrega só tipo e comprimento, e o destino foi corrigido de `/studio/create` para a rota realmente aberta, `/studio`. Fonte: `components/ChatGptWelcomeBanner.tsx:102-111`.
+- **FATO CONFIRMADO:** nenhum preço, oferta, duração, motor, custo, autorização de geração, parser de roteiro, rota pública ou arquivo da pista Claude/CAIXA foi alterado. Fonte: diff do commit `341a119bda374f61c321df03a735c57f1c3dceb2`.
+- **TESTADO LOCALMENTE — 04/09/2026 00:23 BRT:** `node scripts/test-chatgpt-quickstart.mjs` 127/127; `node scripts/test-chatgpt-script-handoff.mjs` 86/86; `node scripts/test-trial-balance-bridge.mjs` 208/208; `node node_modules/typescript/bin/tsc --noEmit` e `git diff --check` saíram com código 0.
+- **TESTADO LOCALMENTE — 04/09/2026 00:21 BRT:** a comparação autocontida foi inspecionada visualmente: desktop preserva um roteiro de 2.240 caracteres e mobile mostra 5.468 intactos, 468 acima do teto, antes de habilitar qualquer saída. Fontes: `docs/previews/CHATGPT-QUICKSTART-VISIBLE-LIMIT-2026-09-04.html`, `docs/previews/CHATGPT-QUICKSTART-VISIBLE-LIMIT-2026-09-04.svg` e `docs/previews/CHATGPT-QUICKSTART-VISIBLE-LIMIT-2026-09-04.png`.
+- **TESTADO LOCALMENTE — 04/09/2026 00:22 BRT:** a suíte ampla mediu 217 baterias verdes e 72 vermelhas; o placar é informativo e não foi atribuído à rodada. As regressões diretamente ligadas ao diff ficaram verdes. Fonte: execução local de todos os `scripts/test-*.mjs` e `.github/workflows/guardiao.yml:70-109`.
+- **FATO CONFIRMADO — revisão independente em 04/09/2026:** dois auditores somente leitura confirmaram o corte duplo de 1.000, o teto canônico de 5.000 e a separação do formulário público que continua em 1.000; um deles recomendou o hardening futuro por `sessionStorage`, registrado em PEDIDOS, sem ampliar esta rodada para arquivos de outra pista.
+
+### Integração e produção
+
+- **IMPLEMENTADO:** código integrado por fast-forward em `main` no SHA `341a119bda374f61c321df03a735c57f1c3dceb2`; o pai direto é `4023dce9cf30a70ba89a8f74fdb5806c4eb1ec32`.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 00:26 BRT:** a Vercel marcou o deployment `74sSzDF7YbbMJmzmCeAMRqTkXk1b` como concluído para o SHA funcional.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 00:30 BRT:** `https://www.usekineo.com/` respondeu 200 com `Server: Vercel` e `X-Powered-By: Next.js`.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 00:33 BRT:** o Guardião #48 concluiu `Success` no SHA funcional; os jobs “TypeScript” e “Suíte de testes” terminaram. Fonte: `https://github.com/josephsskaf-hub/UseKineo/actions/runs/33833119083`.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** o banner só aparece a uma sessão autenticada cuja primeira origem foi ChatGPT; esta rodada validou o bundle/deployment, mas não exerceu uma conta real em produção. Fontes: `app/(dashboard)/layout.tsx:11,158`, `components/ChatGptWelcomeBanner.tsx:40-68`.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** o transporte Quickstart → Studio permanece no contrato de query já existente. O endurecimento ponta a ponta por `sessionStorage` exige consumidor na pista Claude e foi deixado como pedido separado; o redirect sem sessão do salto Studio → `/studio/create` ainda limita cada valor a 2.000. Fontes: `lib/growth/chatgptQuickstart.ts:42-52`, `app/(dashboard)/studio/create/page.tsx:41-51`, `docs/PEDIDOS-ENTRE-PISTAS-2026-09-03.md:29` após esta rodada.
+
+### Como medir e quando parar
+
+- **FATO CONFIRMADO:** `chatgpt_quickstart_selected` já grava `input_length`; a variante v6 permite contar pessoas cujo roteiro selecionado ficou exatamente em 1.000 e comparar as faixas 1.001–5.000 sem registrar o texto. Fontes: `components/ChatGptWelcomeBanner.tsx:102-109`, `lib/growth/chatgptQuickstart.ts:3`.
+- **SUGESTÃO:** medir pessoas, não eventos, nas primeiras 24 horas completas: pico de `input_length = 1000` deve desaparecer; acompanhar `studio_ready / selected` apenas na v6 e manter a correção histórica de que não havia buraco causal pós-30/08.
+- **SUGESTÃO — gate de parada:** reverter ou corrigir se texto de 1.001–5.000 não chegar integral ao Studio, se qualquer excedente for alterado sem clique no trim, se o builder aceitar mais de 5.000 ou se a variante v6 contaminar o funil v5.
+
+### PEDIDOS
+
+- **FATO CONFIRMADO:** o pedido de 00:45 BRT foi marcado como atendido no SHA `341a119bda374f61c321df03a735c57f1c3dceb2`. Fonte: `docs/PEDIDOS-ENTRE-PISTAS-2026-09-03.md:28`.
+- **SUGESTÃO / QUESTÃO PENDENTE:** foi deixado para Claude o hardening opcional do transporte Studio → `/studio/create`, sem transformar essa expansão em condição falsa para o stop de 1.000 do quickstart. Fonte: `docs/PEDIDOS-ENTRE-PISTAS-2026-09-03.md:29`.
+
+## PRÓXIMA JOGADA
+
+- **SUGESTÃO:** retomar o pedido aberto mais antigo, de 18:40 BRT: transformar a sala de espera de crédito preso em progresso honesto para `holdState='in_flight'`, sem mexer em preço, oferta ou saldo. Antes, revalidar a linha de base porque o teste relacionado já está vermelho em `main` por forma antiga.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+## 📋 O QUE ACONTECEU
+
+- **IMPLEMENTADO:** o quickstart ChatGPT agora preserva de 1.001 a 5.000 caracteres, mostra contador/excesso e exige consentimento explícito para encurtar; a variante v6 separa a medição.
+- **TESTADO LOCALMENTE — 04/09/2026 00:23 BRT:** 421 verificações direcionadas passaram, TypeScript e diff check ficaram verdes, e a comparação desktop/mobile foi inspecionada.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 00:30 BRT:** deployment Vercel concluído para `341a119b`; domínio canônico respondeu 200.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 00:33 BRT:** Vercel e Guardião #48 concluíram verdes para `341a119b`.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** vigias de checkout/origem, E2E autenticado e o hardening futuro do transporte por `sessionStorage` seguem indisponíveis nesta rodada.
