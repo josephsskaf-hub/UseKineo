@@ -103,3 +103,76 @@ export function resolveIdleWindow(rawMaxIdleH: string | null | undefined): IdleW
   if (!Number.isFinite(n) || n <= MOMENTUM_MAX_IDLE_H) return base
   return { minIdleH: MOMENTUM_MIN_IDLE_H, maxIdleH: Math.min(Math.floor(n), MOMENTUM_RESCUE_MAX_IDLE_H), rescue: true }
 }
+
+// ═══ sprint-assinaturas #16 — 04/09/2026 — O DEGRAU QUE O SALDO ZERO COMIA ══
+//
+// A tese deste e-mail é a escada (1 vídeo → 0,33% assinam; 4-6 → 11,76%).
+// Medido de novo em 04/09, com 7 dias de dado e o marco zero do 03/09:
+//   · 138 pessoas externas receberam filme em 7d;
+//   · 113 fizeram UM e pararam → 6 checkouts, **0 assinaturas**;
+//   ·  25 fizeram 2+          → 4 checkouts, **3 assinaturas** — as 3 da semana.
+// O segundo filme É a assinatura. E a rota que existe para produzi-lo estava
+// derrubando, EM SILÊNCIO (`continue` sem contador), quem tinha saldo zero:
+//   · 304 de 349 candidatos da janela de resgate de 30 dias (217 com 1 filme);
+//   ·  17 de  73 candidatos da janela diária de 20-96h (13 com 1 filme).
+// O bar era `creditCostFor('fast', true)` = **5 créditos** — o preço do Kineo 1
+// para conta PAGANTE. Só que este e-mail SÓ fala com quem não paga, e para essa
+// conta `creditCostFor('fast', false)` é **0**: o próximo filme não custa
+// crédito nenhum. A campanha escrita para levar do 1º ao 4º filme usava o preço
+// de uma conta que ela nunca contata para desistir da pessoa.
+//
+// Por que a regra não é simplesmente "manda para todo mundo com saldo zero":
+// o free tier residual tem COTA (`getFreeTierOffer()`: hoje 1 Fast por janela
+// rolante de 30 dias, ou 3/24h com a flag desligada). Prometer um filme para
+// quem já gastou a vaga é o defeito que este arquivo existe para não cometer —
+// o e-mail mandaria a pessoa direto num 402. Por isso a vaga entra na decisão,
+// e a dúvida (`freeQuotaLeft` desconhecido) FALHA FECHADA: não manda.
+//
+// Quem já passava continua passando byte a byte: o ramo `credits` usa como piso
+// o PRÓPRIO bar antigo (`creditFloor`), então o conjunto de hoje não muda de
+// carta nem de link. O que muda é só o balde que era descartado sem ser contado.
+
+export type MomentumNextFilm =
+  | { ok: true; kind: 'credits' }
+  | { ok: true; kind: 'free_engine' }
+  | { ok: false; reason: 'unknown_balance' | 'too_few_credits' | 'free_quota_used' }
+
+/**
+ * O próximo filme desta pessoa existe? E ele custa crédito ou é o motor free?
+ *
+ * - `credits`: o saldo cobre um filme pago — comportamento, carta e link
+ *   IDÊNTICOS aos de antes (`creditFloor` é literalmente o bar antigo).
+ * - `free_engine`: o saldo NÃO cobre, mas o Kineo 1 custa 0 nesta conta E a
+ *   vaga do free tier está livre. É o balde novo, e a carta dele precisa
+ *   apontar para o Kineo 1 (`?engine=fast`), senão manda a pessoa para um
+ *   motor que ela não pode pagar.
+ * - `false`: não manda. `too_few_credits` (nem crédito, nem motor de graça),
+ *   `free_quota_used` (a vaga do free tier já foi gasta na janela),
+ *   `unknown_balance` (saldo ou vaga ilegível — falha fechada).
+ *
+ * @param creditFloor saldo a partir do qual a pessoa pode GASTAR crédito num
+ *   filme. A rota passa `creditCostFor('fast', true)` — exatamente o bar que
+ *   já existia — para que a coorte que hoje recebe não mude de ramo.
+ * @param freeEngineCost custo do Kineo 1 PARA ESTA CONTA
+ *   (`creditCostFor('fast', false)` nesta campanha, que só fala com quem não
+ *   paga). Nunca número cravado.
+ * @param freeQuotaLeft vagas restantes na janela do free tier; `null` quando a
+ *   leitura não pôde ser feita.
+ */
+export function momentumNextFilm(input: {
+  credits: number | null | undefined
+  creditFloor: number
+  freeEngineCost: number
+  freeQuotaLeft: number | null
+}): MomentumNextFilm {
+  const { credits, creditFloor, freeEngineCost, freeQuotaLeft } = input
+  if (credits == null || !Number.isFinite(credits)) return { ok: false, reason: 'unknown_balance' }
+  if (!Number.isFinite(creditFloor) || !Number.isFinite(freeEngineCost) || freeEngineCost < 0) {
+    return { ok: false, reason: 'unknown_balance' }
+  }
+  if (credits >= creditFloor) return { ok: true, kind: 'credits' }
+  if (freeEngineCost > 0) return { ok: false, reason: 'too_few_credits' }
+  if (freeQuotaLeft == null || !Number.isFinite(freeQuotaLeft)) return { ok: false, reason: 'unknown_balance' }
+  if (freeQuotaLeft <= 0) return { ok: false, reason: 'free_quota_used' }
+  return { ok: true, kind: 'free_engine' }
+}

@@ -81,7 +81,18 @@ v('B6 o HTML usa a variavel do rotulo', rota.includes('>${cta}</a>'))
 v('B7 versao texto tambem muda de frase com o tema', rota.includes("${topic ? 'Episode 2 is already written for you"))
 v('B8 nada promete episodio 2 sem tema', rota.includes(": 'Make the next one →'"))
 
-v('B9 guarda de credito intacta', rota.includes('creditCostFor(') && rota.includes('< minCredits) continue'))
+// sprint-assinaturas #16 (04/09) — a guarda de credito MUDOU DE FORMA de
+// proposito, e esta linha precisava mudar junto para continuar significando a
+// mesma coisa. O que ela protege e o mesmo de sempre: **a rota nunca promete um
+// filme que a pessoa nao pode fazer**, e o custo nunca e numero cravado. O que
+// mudou: o descarte deixou de ser `< minCredits) continue` (o preco do Kineo 1
+// para conta PAGANTE, 5cr, aplicado a uma campanha que so fala com quem NAO
+// paga) e virou `momentumNextFilm`, que le o custo desta conta e a vaga do free
+// tier. A prova completa mora em scripts/test-momentum-motor-gratis.mjs.
+v('B9 guarda de credito intacta (agora via momentumNextFilm)',
+  rota.includes('creditCostFor(') &&
+  rota.includes('momentumNextFilm({') &&
+  rota.includes('if (!decision.ok) { skipped[decision.reason]++; continue }'))
 v('B10 pula pagante', rota.includes('if (p.stripe_subscription_id) continue'))
 v('B11 pula opt-out e conta interna', rota.includes('p.email_opted_out || isInternalOrJunk(email)'))
 // sprint-assinaturas #23 (02/09): o carimbo passou a valer POR DEGRAU (1→2→3),
