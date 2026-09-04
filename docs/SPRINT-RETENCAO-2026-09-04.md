@@ -787,3 +787,225 @@ entre conteúdo e condição de exibição; (b) **R2 parte 2** — o mecanismo A
 a carregar o id do filme e nascer com memória, sem parede de texto na URL;
 (c) medir o ramo `free_engine` do momentum (23 cartas saíram) e o
 `first_film_free_offer_shown`.
+### #4 (global #20) — 17:20→18:05 BRT — 1.013 FILMES ENTREGUES EM 45 DIAS, ZERO GUARDARAM O QUE FALARAM. A CONTINUAÇÃO DE SÉRIE MANDA O GERADOR "NÃO REPETIR" UM EPISÓDIO QUE ELE NUNCA LEU
+
+Abertura da rotação 1 do ciclo coordenado de 10h (início 04/09 16:40 BRT,
+término 05/09 02:40 BRT). A entrega acordada desta pista era **continuidade de
+série a partir do contexto REAL do episódio anterior**. Fui verificar o que já
+existe antes de escrever uma linha, como manda o programa — e a verificação
+matou a entrega na forma em que ela foi pedida.
+
+#### Placar (marco da sprint 1 = 03/09 16:00 UTC, contas externas, corte 20:20 UTC)
+
+| | agora | na #1 (14:20) | delta |
+|---|---:|---:|---:|
+| cadastros | 43 | 41 | +2 |
+| pessoas com filme | 28 | 27 | +1 |
+| filmes entregues | 36 | 35 | +1 |
+| checkout COM filme (desejo) | 2 | 2 | = |
+| checkout SEM filme (defeito) | 2 | 2 | = |
+| `checkout_success_viewed` | 0 | 0 | = |
+| **`payment_success` (assinatura de verdade)** | **0** | — | — |
+| pessoas com falha e nenhum filme | 0 | 0 | = |
+
+**Distribuição das 28 que fizeram filme:** 23 pararam no 1º · 4 em 2–3 · 1 em
+4–7. **Pessoas que subiram de faixa desde a #1: 1** (o único filme novo da
+janela veio de quem já tinha um). Os 82% parados no primeiro filme não se
+mexeram — e não tinham como: as portas do #18 e do #19 subiram às 15:51 BRT e
+**ainda não tiveram uma única exposição** (`series_continue_seen` com fonte
+`done_screen_top` ou `composer_empty` = 0). Não é sinal ruim: em 100 minutos o
+site inteiro teve 11 pessoas e 2 aberturas do `/generate`, ambas de conta
+recém-criada (sem filme anterior, logo sem porta a mostrar, corretamente).
+**Ainda não há amostra. Não declarar nada sobre o #18 e o #19 nesta rotação.**
+
+#### Checagem zero (1h) — limpa
+
+`cadastro sem crédito` 0 · `render preso >45min` 0 · `generation_stage_error`
+nas últimas 3h 0 · débito sem entrega 0. Nenhuma causa antiga voltou.
+
+#### O NÚMERO QUE DECIDIU A RODADA
+
+```sql
+select count(*) total, count(script) com_roteiro from videos
+ where status='completed' and created_at > now() - interval '45 days';
+-- total: 1013 · com_roteiro: 0
+select max(created_at) from videos where coalesce(script,'')<>'';
+-- 2026-05-13 01:10:06+00
+```
+
+**A coluna `public.videos.script` existe, é citada NOMINALMENTE no comentário
+do próprio INSERT canônico** — `app/api/compose/status/[renderId]`, Push #357:
+*"Real prod columns: user_id, title, video_url, …, topic, **script**, hashtags,
+…"* — **e nunca foi escrita uma única vez desde 13 de maio.** O comentário
+listava a coluna; o objeto logo abaixo não a incluía. É a mesma doença do
+`thumbnail_url` (0 de 1.129, achado de 27/08): uma coluna lida em quatro telas
+e escrita em nenhuma.
+
+**Por que isso mata a entrega acordada.** A porta da série é a peça mais
+eficiente da casa — 48 dos 58 primeiros cliques de 30 dias vieram de gente com
+UM filme e 60% delas entregaram outro em 24h, contra 6,6% de base. Mas a ordem
+que ela manda ao gerador (`lib/seriesContinuation.ts:buildSeriesContinuationPrompt`)
+é, palavra por palavra:
+
+> `Topic: "<tema>". This is the next episode in the same Short series: same subject, same format, a completely new hook, new facts and a fresh payoff. Do not repeat the previous episode.`
+
+O gerador é **proibido de repetir** um episódio que ele **nunca leu**. Não há
+gancho, não há personagem, não há "onde parou" — há um tema de até 180
+caracteres e uma proibição sem objeto. Procurei o rastro em todo lugar antes de
+concluir: `videos.script` NULO, `videos.prompt` NULO, `hollywood_resume` parou
+em 02/09 com 32 linhas no total, e o `cinematic_dispatch_result` guarda a
+CONTAGEM de cenas, não o texto delas. **A fala do filme entregue não sobrevive
+em lugar nenhum do banco.** Escrever "o episódio 2 nasce do episódio 1" hoje
+seria ficção: não existe episódio 1 para nascer de.
+
+#### O que mudou (2 arquivos tocados + 1 módulo novo + 1 teste)
+
+**O filme passa a lembrar o que ele mesmo falou.**
+
+- **`lib/episodeMemory.ts` (novo, 73 linhas).** Função PURA, zero import —
+  exercitável em teste sem subir servidor e sem encostar em nenhum módulo da
+  trava de qualidade. Achata espaços, corta em 4.000 caracteres **em fronteira
+  de frase** (última frase inteira se ela guarda metade do teto; senão, último
+  espaço — nunca no meio da palavra, que é exatamente o defeito que a semente
+  de série levou três rodadas para matar). Devolve **`null`, nunca `''`**, e
+  tem **piso de 40 caracteres**: abaixo disso não é narração, é sobra de
+  marcador ou o `topic` cru do degrau 3 do compose — e memória FALSA é pior que
+  memória nenhuma, porque faria o episódio 2 fugir de fatos que ninguém falou.
+
+- **`app/api/compose/route.ts`.** A narração passa a morar no **claim de
+  submissão**, ao lado do tema, **pelo mesmo motivo que o tema mora lá**
+  (KINEO-TITULO-SOBREVIVE-2026-08-22): é o único lugar durável por onde TODO
+  caminho passa — aba do cliente, cron de resgate e worker de demo. Query param
+  não serve: a narração não viaja na URL e não caberia nela.
+  **Gravada nos DOIS sítios** — o `INSERT` do claim *e* o objeto de completude.
+  O segundo não é redundância: o comentário que já estava no arquivo avisa em
+  letras maiúsculas que aquele objeto **SUBSTITUI o metadata inteiro** e é o
+  único claim localizável por `metadata->>render_id`. Gravar só no primeiro
+  compilaria, passaria em revisão e falharia em 100% dos casos reais.
+
+- **`app/api/compose/status/[renderId]/route.ts`.** Um leitor **preguiçoso**
+  (`lerNarracaoDoEpisodio`) que roda **uma vez, dentro do bloco que persiste o
+  vídeo** — não a cada polling. O caminho feliz do polling paga zero. Quando o
+  fallback de tema já leu o claim (caminho degradado, sem `?topic=`), a
+  narração vem de carona e não há segunda consulta. FAIL-OPEN: qualquer erro
+  devolve `''` e a coluna simplesmente não é escrita. `if (episodeNarration)
+  row.script = …` — **vazio continua omitindo a coluna: o NULL de hoje nunca
+  vira `''` amanhã.**
+
+**O que decidi NÃO fazer, e por quê.** Não toquei em `analyze-idea`, em
+`generate-script`, no texto da ordem de continuação nem em nenhum módulo da
+trava de qualidade do fundador (03/09: *"os vídeos têm saído nota 9, NÃO QUERO
+QUE MEXA NISSO"*). A metade que CONSOME a memória — o episódio 2 lendo o
+episódio 1 — fica para a rotação seguinte, e fica **por falta de matéria-prima,
+não por preguiça**: hoje existem zero filmes com roteiro gravado. Ligar o
+consumo agora seria uma função lendo `null` em 100% dos casos, impossível de
+falsificar e indistinguível de estar quebrada. Anotado no diário como manda a
+regra de dúvida.
+
+**Também não vaza nada.** `PUBLIC_VIDEO_COLUMNS` (`lib/publicVideos.ts`) é
+lista fechada e **não inclui `script`** — o `/v/[id]` e o sitemap continuam sem
+a fala crua (incidente de 11/08). O `/api/videos` já pedia a coluna e o
+`toListItem` a descarta: **zero peso novo de payload no navegador**. E o
+`deriveTitle` prefere `title`/`topic`/`prompt`, então nenhum card troca de
+título por causa disto.
+
+#### Quantas pessoas isso move de N para N+1
+
+**Nesta rotação, zero — e digo isso de propósito.** Esta entrega não move
+ninguém; ela **desbloqueia** o movimento. O que ela produz é matéria-prima, na
+seguinte escala: 186 filmes entregues nos últimos 7 dias ≈ **~26 filmes por dia
+passam a nascer com memória**, e o alcance da porta que vai consumi-la são as
+**59 pessoas / 123 cliques de continuação em 30 dias**. A partir de agora existe
+um contador que só sobe; hoje ele vale exatamente 0 e é essa a linha de base.
+
+#### Testes
+
+`scripts/test-memoria-episodio-2026-09-04.mjs` (novo): **42 verificações, 0
+falhas**, lendo os arquivos REAIS e **executando** o módulo do helper.
+**Falsificado em 7 mutações**, todas aplicadas de verdade no arquivo real e
+depois desfeitas. Nenhuma passou:
+
+| mutação | verificações que caem |
+|---|---|
+| tirar `narration` do claim de COMPLETUDE | 2.3, 2.6 |
+| tirar `narration` do claim de INSERÇÃO | 2.2, 2.6 |
+| gravar `script` sempre (sem o guarda de vazio) | 4.2 |
+| baixar `MIN_EPISODE_MEMORY_CHARS` para 0 | 1.4, 1.5, 1.6 |
+| pôr `script` em `PUBLIC_VIDEO_COLUMNS` | 5.1 |
+| tirar a narração do persist | 3.2, 3.3, 3.4 |
+| chamar o leitor ANTES do bloco de persistência | 3.2, 3.4 |
+
+`npx tsc --noEmit` **verde** (projeto inteiro). Vizinhos re-rodados e verdes:
+`test-serie-episodio-2` (262/262), `test-caixa-vazia-episodio2-2026-09-04`,
+`test-momentum-continuacao-2026-09-01` (49/49), `test-rescue-composed-films`
+(19/19).
+
+**VERMELHO TOLERADO, e ele NÃO é meu.** `test-activation-recovery-claim-settle`
+dá **36/37**. Guardei o meu trabalho, voltei a árvore para o `origin/main` limpo
+e rodei de novo: **36/37 também**. A falha é anterior a esta rodada e continua
+anterior a ela. Registrado aqui em vez de escondido, porque "guardião verde não
+é suíte verde" (pedido aberto do codex-fluxo de 10:54).
+
+#### Limitações que quero registradas
+
+1. **A memória é a narração da SUBMISSÃO, não o áudio final.** Guardo
+   `voiceoverScript` (a fala já limpa de marcadores), que é o que existe quando
+   o claim nasce. O `scaledScript` — a versão eventualmente reescalada para
+   caber na duração — só existe depois, e nos caminhos medidos ele é o mesmo
+   objeto em 4 dos 5 ramos. Para "o que este filme já contou" a diferença é
+   imaterial; para uma futura re-renderização byte a byte, não serviria.
+2. **Só vale do próximo filme em diante.** Não há como reconstruir a fala dos
+   1.013 filmes antigos: ela não ficou em lugar nenhum. Nenhum backfill é
+   possível e não vou fingir que é.
+3. **Uma ida a mais ao banco por filme ENTREGUE** (nunca por polling). É o
+   custo, e ele está no lugar mais barato possível.
+
+#### Risco: baixo, e reversível em uma linha
+
+Nenhum preço, crédito, motor, gatilho de checkout, prompt de cena ou régua de
+palavras por segundo foi tocado. O pior caso é a coluna continuar nula (é o
+estado de hoje). Reverter a jogada inteira: trocar
+`if (episodeNarration) row.script = episodeNarration` por nada.
+
+#### Como medir (contra o marco zero)
+
+```sql
+-- 1) o contador que hoje vale 0 e só pode subir
+select count(*) filmes, count(script) com_memoria
+from videos where status='completed' and created_at > '2026-09-04 21:00:00+00';
+
+-- 2) a memória é utilizável? (tamanho, não só presença)
+select round(avg(length(script))) chars_medio, min(length(script)) menor, max(length(script)) maior
+from videos where coalesce(script,'')<>'' and created_at > '2026-09-04 21:00:00+00';
+
+-- 3) quem clicou continuar JÁ tinha memória do episódio anterior?
+with c as (select user_id, min(created_at) ts from events
+  where name='series_continue_clicked' and created_at > '2026-09-04 21:00:00+00' group by 1)
+select count(*) cliques,
+  count(*) filter (where exists (select 1 from videos v where v.user_id=c.user_id
+    and coalesce(v.script,'')<>'' and v.created_at < c.ts)) com_episodio1_lembrado
+from c;
+```
+
+**Sinal de alarme:** filmes entregues subindo e `com_memoria` parado em 0 →
+a narração não está chegando ao claim (olhar o log `[compose/status] claim
+lookup for narration failed`). **Sinal de alarme 2:** `chars_medio` perto de 40
+→ o degrau de socorro do compose (`topic` cru virando narração) está sendo
+gravado como se fosse fala, e aí o piso precisa subir.
+
+#### Próximo item
+
+(a) **R2 — o episódio 2 lê o episódio 1**, assim que houver filmes com memória:
+o consumo entra pelo servidor (a fala NÃO deve viajar na URL nem aparecer na
+caixa de texto da pessoa), com a lista de "já contado" derivada da memória e um
+gate de que memória ausente devolve exatamente a ordem de hoje. (b) medir a
+exposição do `done_screen_top` e do `composer_empty` quando houver tráfego real.
+(c) o ramo `free_engine` do momentum, herdado da #19.
+
+**Pedidos entre pistas:** nenhum novo. O Codex encerrou o ciclo dele (04/09,
+`docs/HANDOFF-CODEX-ENCERRAMENTO-2026-09-04.md`, automação PAUSED) e a última
+entrega dele — `593b28a5`, verificação da sessão Stripe antes dos pixels de
+`/checkout/success` — já está em `origin/main`; era a pendência nº 1 do
+encerramento e ela fechou sozinha.
+
+**SHA.** `__SHA__` — worktree `C:\kineo-wt\r20-memoria-episodio`.

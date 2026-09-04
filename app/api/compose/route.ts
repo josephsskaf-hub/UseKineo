@@ -5,6 +5,7 @@ import { createClient as createAdminClient, type SupabaseClient } from '@supabas
 // sprint-v1v4 #21 — o degrau que faltava na escada de resgate do roteiro, e o
 // nome da causa quando nem ele salva. Ver o cabecalho de lib/voiceoverSalvage.ts.
 import { narracaoDasLegendas, diagnosticarPerda } from '@/lib/voiceoverSalvage'
+import { episodeNarrationForMemory } from '@/lib/episodeMemory'
 // sprint-v1v4 #22 — a recusa repetida deixa de repetir a licao que ja falhou.
 // Ver o cabecalho de lib/refusalSpiral.ts.
 import {
@@ -1088,6 +1089,15 @@ export async function POST(req: NextRequest) {
           // ele — cliente, cron de resgate e demo-render. Guardar aqui é
           // guardar onde a informação sobrevive.
           topic: (body.topic ?? '').toString().slice(0, 1000) || null,
+          // ═══ sprint-retencao #4 (2026-09-04) — A NARRAÇÃO PASSA A SOBREVIVER ═══
+          // Medido: `videos.script` = 0 de 1013 filmes entregues em 45 dias,
+          // numa coluna que o comentário do INSERT canônico já lista como real.
+          // Sem isto, o episódio 2 é escrito por um gerador PROIBIDO de repetir
+          // o episódio 1 e que nunca soube o que o episódio 1 disse.
+          // Mora no claim pelo MESMO motivo que o tema mora (bloco abaixo): é o
+          // único lugar durável por onde TODO caminho passa — aba do cliente,
+          // cron de resgate e worker de demo. Ver lib/episodeMemory.ts.
+          narration: episodeNarrationForMemory(voiceoverScript),
           // ⚠️ SÓ O TEMA, NÃO A DESCRIÇÃO — e o tsc é que me ensinou isto.
           // Eu tinha escrito `body.youtubeDescription` aqui por simetria, e o
           // compilador recusou: esse campo NÃO EXISTE no ComposeBody. Ou seja,
@@ -1170,6 +1180,11 @@ export async function POST(req: NextRequest) {
         // em 100% dos casos reais, porque o único claim que a busca encontra é
         // este. Mexeu num, mexe no outro.
         topic: (body.topic ?? '').toString().slice(0, 1000) || null,
+        // sprint-retencao #4 — REPETIDO AQUI PELO MESMO MOTIVO QUE O TEMA: este
+        // objeto SUBSTITUI o metadata inteiro, e este é o ÚNICO claim que a
+        // busca por `metadata->>render_id` encontra. Omitir aqui deixaria a
+        // narração compilando e sumindo em 100% dos casos reais.
+        narration: episodeNarrationForMemory(voiceoverScript),
         completed_at: new Date().toISOString(),
         authority: signComposeClaim(serviceRoleKey, {
           claimId,

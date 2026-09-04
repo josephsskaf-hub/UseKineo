@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createServerSupabase } from '@/lib/supabase/server'
+import { MAX_EPISODE_MEMORY_CHARS } from '@/lib/episodeMemory'
 import { createClient as createAdminClient, type SupabaseClient } from '@supabase/supabase-js'
 import { pollCreatomateRender } from '@/lib/compose'
 import { persistRenderAssets } from '@/lib/renderAssets'
@@ -101,6 +102,9 @@ async function persistCompletedVideo(args: {
   // PUSH #100 — descrição já BRANDED (helper aplicado pelo caller). Vazio =
   // não escreve a coluna, deixando o /api/video-summary preencher depois.
   youtubeDescription?: string
+  // sprint-retencao #4 (2026-09-04) — a narração REAL do filme. Vazio/ausente
+  // = coluna omitida, exatamente como hoje. Ver lib/episodeMemory.ts.
+  narration?: string | null
 }): Promise<{ ok: boolean; id?: string; error?: string; duplicate?: boolean }> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -151,6 +155,16 @@ async function persistCompletedVideo(args: {
   }
   const brandedDescription = (args.youtubeDescription ?? '').trim()
   if (brandedDescription) row.youtube_description = brandedDescription
+  // ═══ sprint-retencao #4 (2026-09-04) — A COLUNA QUE O PRÓPRIO COMENTÁRIO
+  // ACIMA JÁ LISTAVA E NINGUÉM ESCREVIA ════════════════════════════════════
+  // Medido em 04/09: `select count(*), count(script) from videos where
+  // status='completed' and created_at > now() - interval '45 days'` devolveu
+  // 1013 e ZERO. A última linha com roteiro é de 13/05/2026. O filme entregue
+  // não guardava nenhum rastro do que ele mesmo falou — e é esse rastro que
+  // permite o episódio 2 nascer do episódio 1 em vez de uma ordem genérica.
+  // Vazio continua omitindo a coluna: NULL de hoje nunca vira '' de amanhã.
+  const episodeNarration = (args.narration ?? '').trim()
+  if (episodeNarration) row.script = episodeNarration
 
   console.log('[history] insert (canonical schema #357):', JSON.stringify({
     user_id_prefix: args.userId.slice(0, 8),
@@ -440,6 +454,12 @@ export async function GET(
     // caminho feliz. E nunca lança: falhar aqui devolveria o comportamento
     // atual (campo vazio), nunca algo pior que ele.
     let topicFromClaim = ''
+    // ═══ sprint-retencao #4 (2026-09-04) — A MEMÓRIA DO EPISÓDIO ═══════════
+    // A narração NUNCA viaja na URL (nem cabe nela): o claim é a única fonte.
+    // Por isso o leitor abaixo é PREGUIÇOSO — roda uma vez, dentro do bloco
+    // que persiste o vídeo, e não a cada polling. O caminho feliz do polling
+    // continua com exatamente as mesmas idas ao banco de antes.
+    let claimNarration: string | null = null
     if (!topic) {
       try {
         const claimUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -457,11 +477,49 @@ export async function GET(
           .maybeSingle()
         const md = (claimRow?.metadata ?? {}) as Record<string, unknown>
         if (typeof md.topic === 'string') topicFromClaim = md.topic.slice(0, 1000)
+        // sprint-retencao #4 — de carona: quando esta leitura já aconteceu (só
+        // acontece no caminho degradado, sem `?topic=`), a narração vem junto e
+        // o bloco de persistência não paga uma segunda ida ao banco.
+        if (typeof md.narration === 'string') claimNarration = md.narration.slice(0, MAX_EPISODE_MEMORY_CHARS)
       } catch (e) {
         console.warn('[compose/status] claim lookup for topic failed:', e instanceof Error ? e.message : String(e))
       }
     }
     const topicFinal = topic || topicFromClaim
+
+    /**
+     * sprint-retencao #4 — lê a narração real do filme no claim de submissão.
+     *
+     * FAIL-OPEN por construção: qualquer erro devolve '' e a coluna `script`
+     * simplesmente não é escrita — o comportamento de hoje, nunca pior que ele.
+     * Um filme sem memória é o que já temos; um filme com memória FALSA seria
+     * um episódio 2 fugindo de fatos que ninguém falou.
+     */
+    async function lerNarracaoDoEpisodio(): Promise<string> {
+      if (claimNarration) return claimNarration
+      try {
+        const nUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+        const nKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+        if (!nUrl || !nKey) return ''
+        const nDb = createAdminClient(nUrl, nKey, { auth: { persistSession: false, autoRefreshToken: false } })
+        const { data: nRow } = await nDb
+          .from('events')
+          .select('metadata')
+          .eq('name', COMPOSE_CLAIM_EVENT)
+          .eq('metadata->>render_id', renderId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+        const nMd = (nRow?.metadata ?? {}) as Record<string, unknown>
+        if (typeof nMd.narration === 'string') {
+          claimNarration = nMd.narration.slice(0, MAX_EPISODE_MEMORY_CHARS)
+          return claimNarration
+        }
+      } catch (e) {
+        console.warn('[compose/status] claim lookup for narration failed:', e instanceof Error ? e.message : String(e))
+      }
+      return ''
+    }
 
     if (!process.env.CREATOMATE_API_KEY) {
       return NextResponse.json(
@@ -943,6 +1001,9 @@ export async function GET(
             topic: topicFinal,
             creditsUsed: cost,
             youtubeDescription: historyDescription,
+            // sprint-retencao #4 — a fala do filme, do claim. Uma leitura, aqui,
+            // no único momento em que a linha de `videos` é criada.
+            narration: await lerNarracaoDoEpisodio(),
           })
           if (result.id) persistedVideoId = result.id
           console.log('[history] persist result:', JSON.stringify(result))
