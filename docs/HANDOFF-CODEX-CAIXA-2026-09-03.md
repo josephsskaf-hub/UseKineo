@@ -2627,3 +2627,68 @@ A lacuna dos três botões de preço da home foi corrigida pela pista certa e
 passou no Guardião. No caixa, provei que os dois checkouts sem sinal posterior
 ainda não haviam expirado e preservei todas as ofertas recentes: não transformei
 falta de amostra em mais uma tela.
+
+---
+
+## ROUND 40 — medição pura do bloco R37–R40
+
+**Data:** 2026-09-04 14:09→14:12 BRT
+
+**Pista:** Growth-B2C / CAIXA
+
+**Branch:** `codex/caixa-measurement-r40`
+
+### DECISÃO APROVADA
+
+Rodada exclusivamente de medição exigida a cada quatro rodadas. Nenhum código,
+copy, oferta, preço, crédito, Stripe, migration ou escrita no banco foi feito.
+
+### RESULTADO DAS INTERVENÇÕES
+
+**R37 — banner com estado fresco:** desde o deploy de 13:57 BRT houve **0
+pessoas externas** com
+`trial_active_subscription_cta_viewed(version=trial_active_subscription_cta_fresh_state_v2)`,
+0 cliques e 0 checkout atribuível. A correção ainda não recebeu uma pessoa
+elegível; zero exposição não é fracasso.
+
+**R38 — aviso pós-guarda:** depois da fronteira de 14:31 UTC houve um novo
+`activation_autostart_skipped`, mas seu motivo foi `already_consumed`, não
+`prompt_looks_like_instruction`. Continuam 0 guardas elegíveis e 0 avisos; o
+gate permanece sem denominador e a tela não é reaberta.
+
+**R39 / FLUXO R23 — CTAs de preço da home:** o deployment de produção
+`dpl_7XQbeCNMasEbXLMogs9D8Ei8rDyU` ficou `READY` às 14:08 BRT no SHA
+`7f1cc116`. Até o corte imediato houve **0 pessoas externas** com
+`home_pricing_checkout_clicked` e 0 fallback. A proteção está no ar, mas ainda
+não foi usada por visitante.
+
+### PLACAR E VIGIA
+
+**EVIDÊNCIA DE PRODUÇÃO — corte 04/09/2026 14:02 BRT:** **41 cadastros, 27
+pessoas com filme, 2 checkouts com filme, 2 sem filme, 0 assinaturas e 0 pessoas
+com falha sem filme** desde o marco canônico. A janela móvel ainda contém o
+mesmo checkout Pro direto de 12:16:55 BRT, com zero filme e 25 créditos; não é
+um novo ator e continua dentro das 24 horas da sessão.
+
+### CONCLUSÃO, RISCO E PRÓXIMA JOGADA
+
+O bloco entregou duas correções reais — atualização do banner na mesma sessão e
+proteção dos três botões de preço da home —, mas nenhuma recebeu exposição
+humana suficiente. As variantes ficam congeladas. O risco evitado nesta rodada
+foi confundir ausência de tráfego nos minutos seguintes ao deploy com rejeição
+da experiência.
+
+R41 começa por pedidos novos e pelo vigia. K8 entra somente quando existir
+idioma efetivo owner-scoped; K4 somente quando o `/history` expuser o segundo
+download confirmado. Se ambos continuarem bloqueados, auditar uma etapa CAIXA
+fora de home, pricing, retomada, cancelamento e pós-filme, todas ainda sob gate.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+### 📋 O QUE ACONTECEU
+
+Medi o bloco sem inventar conversão: as duas correções estão no ar, mas ainda
+não encontraram uma pessoa elegível. O placar continua sem assinatura e as
+superfícies permanecem intactas até terem amostra.
