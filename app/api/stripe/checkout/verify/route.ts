@@ -5,6 +5,9 @@ import { isInternalEmail } from '@/lib/internalAccounts'
 import { CHECKOUT_SESSION_PATTERN, inspectCheckoutPurchase } from '@/lib/growth/verifiedCheckoutPurchase'
 
 export const dynamic = 'force-dynamic'
+// Explicitly opt Auth's server fetch out of the Next 14 Data Cache too;
+// private response headers alone only govern the outgoing response.
+export const fetchCache = 'force-no-store'
 export const runtime = 'nodejs'
 
 function reply(body: object, status = 200) {

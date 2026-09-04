@@ -72,6 +72,7 @@ const route = load('app/api/stripe/checkout/verify/route.ts', {
   '@/lib/growth/verifiedCheckoutPurchase': policy,
 }, { process: { env } })
 const get = (id = sessionId) => route.GET({ nextUrl: new URL(`https://www.usekineo.com/api/stripe/checkout/verify?session_id=${id}`) })
+eq(route.fetchCache, 'force-no-store', 'server Auth reads explicitly bypass the Next Data Cache')
 eq((await get('made-up')).status, 400, 'invalid ID rejected')
 eq([authCalls, stripeCalls], [0, 0], 'no providers for malformed ID')
 authUser = null
