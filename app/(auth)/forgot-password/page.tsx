@@ -3,12 +3,18 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
+import AuthSavedCreationCard from '@/components/AuthSavedCreationCard'
 import { trackCheckoutPasswordRecoveryStep } from '@/lib/authAnalytics'
 import {
   buildCheckoutPasswordRecoveryHref,
   readCheckoutPasswordRecoveryFromSearch,
   type CheckoutPasswordRecoveryContext,
 } from '@/lib/growth/checkoutPasswordRecovery'
+import {
+  buildCreationPasswordRecoveryHref,
+  readCreationPasswordRecoveryFromSearch,
+  type CreationPasswordRecoveryContext,
+} from '@/lib/growth/creationPasswordRecoveryHandoff'
 
 export default function ForgotPasswordPage() {
   const supabase = createClient()
@@ -16,12 +22,17 @@ export default function ForgotPasswordPage() {
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [recoveryContext, setRecoveryContext] = useState<CheckoutPasswordRecoveryContext | null>(null)
+  const [checkoutRecoveryContext, setCheckoutRecoveryContext] = useState<CheckoutPasswordRecoveryContext | null>(null)
+  const [creationRecoveryContext, setCreationRecoveryContext] = useState<CreationPasswordRecoveryContext | null>(null)
 
   useEffect(() => {
-    const context = readCheckoutPasswordRecoveryFromSearch(window.location.search)
-    setRecoveryContext(context)
-    if (context) trackCheckoutPasswordRecoveryStep('viewed', context)
+    const checkoutContext = readCheckoutPasswordRecoveryFromSearch(window.location.search)
+    const creationContext = checkoutContext
+      ? null
+      : readCreationPasswordRecoveryFromSearch(window.location.search)
+    setCheckoutRecoveryContext(checkoutContext)
+    setCreationRecoveryContext(creationContext)
+    if (checkoutContext) trackCheckoutPasswordRecoveryStep('viewed', checkoutContext)
   }, [])
 
   async function handleSubmit(e: React.FormEvent) {
@@ -31,7 +42,12 @@ export default function ForgotPasswordPage() {
 
     const appUrl = window.location.origin
     const context = readCheckoutPasswordRecoveryFromSearch(window.location.search)
-    const resetPath = buildCheckoutPasswordRecoveryHref('/reset-password', context)
+    const creationContext = context
+      ? null
+      : readCreationPasswordRecoveryFromSearch(window.location.search)
+    const resetPath = context
+      ? buildCheckoutPasswordRecoveryHref('/reset-password', context)
+      : buildCreationPasswordRecoveryHref('/reset-password', creationContext)
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${appUrl}${resetPath}`,
@@ -47,7 +63,16 @@ export default function ForgotPasswordPage() {
     }
   }
 
-  const loginHref = buildCheckoutPasswordRecoveryHref('/login', recoveryContext)
+  const loginHref = checkoutRecoveryContext
+    ? buildCheckoutPasswordRecoveryHref('/login', checkoutRecoveryContext)
+    : buildCreationPasswordRecoveryHref('/login', creationRecoveryContext)
+  const savedCreationPreview = creationRecoveryContext
+    ? {
+        ...creationRecoveryContext.preview,
+        eyebrow: 'Saved before password reset',
+        description: 'Use the reset link, then Kineo will reopen this work so you can continue.',
+      }
+    : null
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--bg)' }}>
@@ -77,8 +102,10 @@ export default function ForgotPasswordPage() {
                 We sent a password reset link to{' '}
                 <strong style={{ color: 'var(--text2)' }}>{email}</strong>.
                 <br />Click it to set a new password.
-                {recoveryContext ? (
+                {checkoutRecoveryContext ? (
                   <><br />Your purchase is saved — we&apos;ll return you to secure checkout next.</>
+                ) : creationRecoveryContext ? (
+                  <><br />Your saved {creationRecoveryContext.preview.kind} will reopen after you set a new password.</>
                 ) : null}
               </p>
               <Link href={loginHref} className="inline-flex items-center gap-2 text-sm font-semibold" style={{ color: '#2997ff', textDecoration: 'none' }}>
@@ -87,19 +114,31 @@ export default function ForgotPasswordPage() {
             </div>
           ) : (
             <>
-              {recoveryContext ? (
+              {checkoutRecoveryContext ? (
                 <div role="status" className="rounded-xl px-4 py-3 text-sm mb-5" style={{ background: 'rgba(41,151,255,.08)', border: '1px solid rgba(41,151,255,.3)', color: '#5cb3ff', fontWeight: 700 }}>
                   🔒 Your purchase is saved
                 </div>
               ) : null}
               <h1 className="text-2xl font-black mb-1 tracking-tight" style={{ color: 'var(--text)' }}>
-                {recoveryContext ? 'Reset your password to finish checkout' : 'Forgot password?'}
+                {checkoutRecoveryContext
+                  ? 'Reset your password to finish checkout'
+                  : creationRecoveryContext
+                    ? 'Reset your password to continue'
+                    : 'Forgot password?'}
               </h1>
               <p className="text-sm mb-7" style={{ color: 'var(--muted)' }}>
-                {recoveryContext
+                {checkoutRecoveryContext
                   ? 'Enter your email. After you set a new password, we’ll bring you straight back to secure checkout.'
-                  : 'Enter your email and we’ll send you a reset link.'}
+                  : creationRecoveryContext
+                    ? 'Enter your email. After you choose a new password, we’ll reopen your saved work.'
+                    : 'Enter your email and we’ll send you a reset link.'}
               </p>
+              {savedCreationPreview ? (
+                <AuthSavedCreationCard
+                  preview={savedCreationPreview}
+                  headingId="forgot-password-saved-creation-heading"
+                />
+              ) : null}
 
               <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                 <div>

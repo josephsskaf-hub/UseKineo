@@ -34,6 +34,10 @@ import {
   buildCheckoutPasswordRecoveryHref,
   readCheckoutPasswordRecoveryContext,
 } from '@/lib/growth/checkoutPasswordRecovery'
+import {
+  buildCreationPasswordRecoveryHref,
+  readCreationPasswordRecoveryContext,
+} from '@/lib/growth/creationPasswordRecoveryHandoff'
 import { checkoutSignupResolutionCopy } from '@/lib/growth/checkoutSignupResolution'
 
 type Strength = { level: 0 | 1 | 2 | 3 | 4; label: string; color: string }
@@ -263,10 +267,12 @@ export default function SignupPage() {
   const passwordRecoveryContext = isCheckoutResume
     ? readCheckoutPasswordRecoveryContext(activationRedirect)
     : null
-  const forgotPasswordHref = buildCheckoutPasswordRecoveryHref(
-    '/forgot-password',
-    passwordRecoveryContext,
-  )
+  const creationPasswordRecoveryContext = isCheckoutResume
+    ? null
+    : readCreationPasswordRecoveryContext(activationRedirect)
+  const forgotPasswordHref = passwordRecoveryContext
+    ? buildCheckoutPasswordRecoveryHref('/forgot-password', passwordRecoveryContext)
+    : buildCreationPasswordRecoveryHref('/forgot-password', creationPasswordRecoveryContext)
   const savedCreation = useMemo(() => {
     const params = new URLSearchParams(authSearch)
     return buildSignupCreationPreviewFromAuthParams(params)

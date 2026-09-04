@@ -4,12 +4,18 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import AuthSavedCreationCard from '@/components/AuthSavedCreationCard'
 import { trackCheckoutPasswordRecoveryStep } from '@/lib/authAnalytics'
 import {
   buildCheckoutPasswordRecoveryHref,
   readCheckoutPasswordRecoveryFromSearch,
   type CheckoutPasswordRecoveryContext,
 } from '@/lib/growth/checkoutPasswordRecovery'
+import {
+  buildCreationPasswordRecoveryHref,
+  readCreationPasswordRecoveryFromSearch,
+  type CreationPasswordRecoveryContext,
+} from '@/lib/growth/creationPasswordRecoveryHandoff'
 
 export default function ResetPasswordPage() {
   const router = useRouter()
@@ -20,12 +26,18 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [ready, setReady] = useState(false)
-  const [recoveryContext, setRecoveryContext] = useState<CheckoutPasswordRecoveryContext | null>(null)
+  const [checkoutRecoveryContext, setCheckoutRecoveryContext] = useState<CheckoutPasswordRecoveryContext | null>(null)
+  const [creationRecoveryContext, setCreationRecoveryContext] = useState<CreationPasswordRecoveryContext | null>(null)
 
   const [linkError, setLinkError] = useState<string | null>(null)
 
   useEffect(() => {
-    setRecoveryContext(readCheckoutPasswordRecoveryFromSearch(window.location.search))
+    const checkoutContext = readCheckoutPasswordRecoveryFromSearch(window.location.search)
+    const creationContext = checkoutContext
+      ? null
+      : readCreationPasswordRecoveryFromSearch(window.location.search)
+    setCheckoutRecoveryContext(checkoutContext)
+    setCreationRecoveryContext(creationContext)
     // ═══════════════════════════════════════════════════════════════════
     // KINEO-RESET-PKCE-2026-08-03 — TODO RESET DE SENHA ESTAVA QUEBRADO.
     //
@@ -102,7 +114,11 @@ export default function ResetPasswordPage() {
       setLoading(false)
     } else {
       const context = readCheckoutPasswordRecoveryFromSearch(window.location.search)
-      setRecoveryContext(context)
+      const creationContext = context
+        ? null
+        : readCreationPasswordRecoveryFromSearch(window.location.search)
+      setCheckoutRecoveryContext(context)
+      setCreationRecoveryContext(creationContext)
       if (context) trackCheckoutPasswordRecoveryStep('completed', context)
       setSuccess(true)
       setTimeout(() => {
@@ -111,13 +127,28 @@ export default function ResetPasswordPage() {
           window.location.assign(context.destination)
           return
         }
+        if (creationContext) {
+          window.location.assign(creationContext.destination)
+          return
+        }
         router.push('/studio')
       }, 2000)
     }
   }
 
-  const forgotPasswordHref = buildCheckoutPasswordRecoveryHref('/forgot-password', recoveryContext)
-  const loginHref = buildCheckoutPasswordRecoveryHref('/login', recoveryContext)
+  const forgotPasswordHref = checkoutRecoveryContext
+    ? buildCheckoutPasswordRecoveryHref('/forgot-password', checkoutRecoveryContext)
+    : buildCreationPasswordRecoveryHref('/forgot-password', creationRecoveryContext)
+  const loginHref = checkoutRecoveryContext
+    ? buildCheckoutPasswordRecoveryHref('/login', checkoutRecoveryContext)
+    : buildCreationPasswordRecoveryHref('/login', creationRecoveryContext)
+  const savedCreationPreview = creationRecoveryContext
+    ? {
+        ...creationRecoveryContext.preview,
+        eyebrow: 'Saved through password reset',
+        description: 'Choose a new password, then Kineo will reopen this work so you can continue.',
+      }
+    : null
 
   const inputStyle = {
     background: 'rgba(255,255,255,.03)',
@@ -147,24 +178,34 @@ export default function ResetPasswordPage() {
               <div className="text-4xl mb-4">✅</div>
               <h2 className="text-xl font-black mb-2" style={{ color: 'var(--text)' }}>Password updated!</h2>
               <p className="text-sm" style={{ color: 'var(--muted)' }}>
-                {recoveryContext
+                {checkoutRecoveryContext
                   ? 'Password updated. Returning you to secure checkout…'
-                  : 'Redirecting you to the dashboard...'}
+                  : creationRecoveryContext
+                    ? `Password updated. Reopening your saved ${creationRecoveryContext.preview.kind}…`
+                    : 'Redirecting you to the dashboard...'}
               </p>
             </div>
           ) : (
             <>
-              {recoveryContext ? (
+              {checkoutRecoveryContext ? (
                 <div role="status" className="rounded-xl px-4 py-3 text-sm mb-5" style={{ background: 'rgba(41,151,255,.08)', border: '1px solid rgba(41,151,255,.3)', color: '#5cb3ff', fontWeight: 700 }}>
                   🔒 Your purchase is still saved
                 </div>
               ) : null}
               <h1 className="text-2xl font-black mb-1 tracking-tight" style={{ color: 'var(--text)' }}>Set new password</h1>
               <p className="text-sm mb-7" style={{ color: 'var(--muted)' }}>
-                {recoveryContext
+                {checkoutRecoveryContext
                   ? 'Choose a strong password. We’ll return you to secure checkout after it is saved.'
-                  : 'Choose a strong password for your account.'}
+                  : creationRecoveryContext
+                    ? 'Choose a strong password. We’ll reopen your saved work after it is saved.'
+                    : 'Choose a strong password for your account.'}
               </p>
+              {savedCreationPreview ? (
+                <AuthSavedCreationCard
+                  preview={savedCreationPreview}
+                  headingId="reset-password-saved-creation-heading"
+                />
+              ) : null}
 
               {/* KINEO-RESET-PKCE-2026-08-03 — o aviso genérico "looks stuck"
                   era a UI do bug (ver comentário no useEffect). Agora existem

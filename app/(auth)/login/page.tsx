@@ -23,6 +23,10 @@ import AuthSavedCreationCard from '@/components/AuthSavedCreationCard'
 import {
   buildLoginCreationPreviewFromAuthParams,
 } from '@/lib/growth/signupCreationPreview'
+import {
+  buildCreationPasswordRecoveryHref,
+  readCreationPasswordRecoveryContext,
+} from '@/lib/growth/creationPasswordRecoveryHandoff'
 
 // Only honor redirects that stay on our own site, so a malicious referrer
 // can't bounce a logged-in user out to an external phishing page.
@@ -69,10 +73,13 @@ export default function LoginPage() {
     return buildLoginCreationPreviewFromAuthParams(params)
   }, [authSearch])
   const passwordRecoveryContext = readCheckoutPasswordRecoveryFromSearch(authSearch)
-  const forgotPasswordHref = buildCheckoutPasswordRecoveryHref(
-    '/forgot-password',
-    passwordRecoveryContext,
-  )
+  const isCheckoutRecoveryReason = new URLSearchParams(authSearch).get('reason') === 'checkout'
+  const creationPasswordRecoveryContext = isCheckoutRecoveryReason
+    ? null
+    : readCreationPasswordRecoveryContext(new URLSearchParams(authSearch).get('redirect'))
+  const forgotPasswordHref = passwordRecoveryContext
+    ? buildCheckoutPasswordRecoveryHref('/forgot-password', passwordRecoveryContext)
+    : buildCreationPasswordRecoveryHref('/forgot-password', creationPasswordRecoveryContext)
   useEffect(() => {
     const resumingCheckout = isCheckoutResume()
     setCheckoutResume(resumingCheckout)

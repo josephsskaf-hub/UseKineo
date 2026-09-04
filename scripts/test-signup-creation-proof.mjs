@@ -41,6 +41,10 @@ const proof = executeTs('lib/growth/signupCreationPreview.ts', {
   '@/lib/creationHandoff': handoff,
   '@/lib/authRedirect': authRedirect,
 })
+const creationPasswordRecovery = executeTs('lib/growth/creationPasswordRecoveryHandoff.ts', {
+  '@/lib/authRedirect': authRedirect,
+  '@/lib/growth/signupCreationPreview': proof,
+})
 const creationOAuthFailure = executeTs('lib/growth/creationOAuthFailureHandoff.ts', {
   '@/lib/authRedirect': authRedirect,
   '@/lib/growth/signupCreationPreview': proof,
@@ -178,6 +182,83 @@ equal(proof.buildFreeScriptSignupPreview('//evil.example/studio/create?prompt=x'
 equal(proof.buildFreeScriptSignupPreview('/\\evil.example/studio/create?prompt=x'), null, 'backslash redirect cannot become generated-script proof')
 equal(handoff.readCreationHandoff(new URL(generatedScriptRedirect, 'https://kineo.local').searchParams).createIntent, null, 'free-script marker never authorizes automatic creation')
 
+equal(
+  creationPasswordRecovery.CREATION_PASSWORD_RECOVERY_VERSION,
+  'creation_password_recovery_handoff_v1',
+  'password recovery handoff has a stable version',
+)
+const remixRecovery = creationPasswordRecovery.readCreationPasswordRecoveryContext(remixRedirect)
+equal(remixRecovery?.destination, remixRedirect, 'password recovery keeps the exact remix destination')
+equal(remixRecovery?.kind, 'example_remix', 'password recovery classifies the allow-listed remix')
+check(remixRecovery?.preview.excerpt.join(' ').includes('ice caves & volcanoes'), 'recovery keeps the escaped remix preview')
+const scriptRecovery = creationPasswordRecovery.readCreationPasswordRecoveryContext(generatedScriptRedirect)
+equal(scriptRecovery?.destination, generatedScriptRedirect, 'password recovery keeps the exact free-script destination')
+equal(scriptRecovery?.kind, 'free_script', 'password recovery classifies the allow-listed script')
+
+for (const [kind, context, destination] of [
+  ['example remix', remixRecovery, remixRedirect],
+  ['free script', scriptRecovery, generatedScriptRedirect],
+]) {
+  for (const pathname of ['/forgot-password', '/reset-password', '/login']) {
+    const href = creationPasswordRecovery.buildCreationPasswordRecoveryHref(pathname, context)
+    const parsed = new URL(href, 'https://www.usekineo.com')
+    equal(parsed.pathname, pathname, `${pathname} remains same-origin during ${kind} recovery`)
+    equal(parsed.searchParams.get('reason'), 'saved_creation', `${pathname} carries only the dedicated ${kind} recovery reason`)
+    equal(parsed.searchParams.get('redirect'), destination, `${pathname} round-trips the exact validated ${kind} destination`)
+    equal(
+      creationPasswordRecovery.readCreationPasswordRecoveryFromSearch(parsed.search)?.destination,
+      destination,
+      `${pathname} restores the validated ${kind} recovery context`,
+    )
+  }
+}
+equal(
+  creationPasswordRecovery.buildCreationPasswordRecoveryHref('/forgot-password', null),
+  '/forgot-password',
+  'generic password recovery remains unchanged',
+)
+equal(
+  creationPasswordRecovery.readCreationPasswordRecoveryFromSearch(`?reason=checkout&redirect=${encodeURIComponent(remixRedirect)}`),
+  null,
+  'checkout reason can never be reclassified as saved creation',
+)
+equal(
+  creationPasswordRecovery.readCreationPasswordRecoveryFromSearch(`?redirect=${encodeURIComponent(remixRedirect)}`),
+  null,
+  'an unmarked password recovery query cannot claim saved creation',
+)
+equal(
+  creationPasswordRecovery.readCreationPasswordRecoveryFromSearch(
+    `?code=single-use-pkce-code&reason=saved_creation&redirect=${encodeURIComponent(generatedScriptRedirect)}`,
+  )?.destination,
+  generatedScriptRedirect,
+  'PKCE code can coexist with the saved-creation recovery query',
+)
+for (const [label, destination] of [
+  ['missing', null],
+  ['empty', ''],
+  ['generic creation', '/studio/create?prompt=private'],
+  ['checkout', '/api/stripe/checkout?tier=pro&billing=monthly'],
+  ['pricing', '/pricing?prompt=private'],
+  ['absolute external', 'https://evil.example/studio/create?prompt=private'],
+  ['external', '//evil.example/studio/create?prompt=private'],
+  ['backslash', '/\\evil.example/studio/create?prompt=private'],
+  ['control character', '/studio/create?prompt=private\n&create_intent=example_remix'],
+  ['bad remix marker', remixRedirect.replace('create_intent=example_remix', 'create_intent=fast')],
+  ['bad script analysis', generatedScriptRedirect.replace('autoanalyze=1', 'autoanalyze=0')],
+  ['executable script', `${generatedScriptRedirect}&create_intent=fast`],
+  ['excessive URL', `${remixRedirect}&padding=${'x'.repeat(17000)}`],
+]) {
+  equal(
+    creationPasswordRecovery.readCreationPasswordRecoveryContext(destination),
+    null,
+    `${label} cannot become a creation password-recovery handoff`,
+  )
+}
+const recoveryHelperSource = read('lib/growth/creationPasswordRecoveryHandoff.ts')
+check(!/analytics|trackEvent|supabase|storage/i.test(recoveryHelperSource), 'recovery helper has no analytics, Supabase or storage dependency')
+check(!/telemetry/i.test(recoveryHelperSource), 'recovery helper cannot serialize visitor content into telemetry')
+
 check(loginPreview({ redirect: remixRedirect })?.excerpt.join(' ').includes('ice caves & volcanoes'), 'login recovers the allow-listed example remix proof')
 equal(loginPreview({ redirect: remixRedirect })?.eyebrow, 'Saved before sign-in', 'login proof names the correct auth boundary')
 equal(loginPreview({ redirect: generatedScriptRedirect })?.kind, 'script', 'login recovers the allow-listed generated script proof')
@@ -240,6 +321,8 @@ check(!/free_script_to_signup_clicked[\s\S]{0,500}(?:prompt|script):\s*(?:script
 
 const signup = read('app/(auth)/signup/page.tsx')
 const login = read('app/(auth)/login/page.tsx')
+const forgotPassword = read('app/(auth)/forgot-password/page.tsx')
+const resetPassword = read('app/(auth)/reset-password/page.tsx')
 const savedCreationCard = read('components/AuthSavedCreationCard.tsx')
 check(signup.includes('buildSignupCreationPreviewFromAuthParams,'), 'real signup imports the auth-query preview contract')
 check(signup.includes('return buildSignupCreationPreviewFromAuthParams(params)'), 'real signup executes the auth-query preview contract')
@@ -256,6 +339,25 @@ check(login.includes('return buildLoginCreationPreviewFromAuthParams(params)'), 
 check(/<AuthSavedCreationCard\s+preview=\{savedCreation\}/.test(login), 'login renders the shared saved-work card')
 check(login.indexOf('{savedCreation && (') < login.indexOf('<GoogleSignInButton'), 'login proof appears before the first auth action')
 check(!login.includes('login_creation_handoff_viewed'), 'login proof adds no new analytics write')
+check(login.includes('const isCheckoutRecoveryReason'), 'login makes raw checkout reason sovereign before creation recovery')
+check(login.includes("buildCreationPasswordRecoveryHref('/forgot-password'"), 'login carries allow-listed saved work into recovery')
+check(signup.includes('const creationPasswordRecoveryContext = isCheckoutResume'), 'signup keeps checkout sovereign before creation recovery')
+check(signup.includes("buildCreationPasswordRecoveryHref('/forgot-password'"), 'signup already-registered recovery keeps allow-listed saved work')
+check(forgotPassword.includes('const creationContext = checkoutContext'), 'forgot-password resolves checkout before saved creation')
+check(forgotPassword.includes("buildCreationPasswordRecoveryHref('/reset-password'"), 'Supabase reset URL carries the validated saved creation')
+check(forgotPassword.includes('Saved before password reset'), 'forgot-password uses recovery-specific saved-work copy')
+check(resetPassword.includes('const creationContext = checkoutContext'), 'reset-password resolves checkout before saved creation')
+check(resetPassword.includes('window.location.assign(creationContext.destination)'), 'successful reset resumes the exact saved creation')
+check(
+  resetPassword.indexOf('window.location.assign(context.destination)') < resetPassword.indexOf('window.location.assign(creationContext.destination)') &&
+    resetPassword.indexOf('window.location.assign(creationContext.destination)') < resetPassword.indexOf("router.push('/studio')"),
+  'reset success order is checkout, then saved creation, then generic Studio',
+)
+check(resetPassword.includes("buildCreationPasswordRecoveryHref('/forgot-password'"), 'expired reset retry keeps saved creation context')
+check(resetPassword.includes("buildCreationPasswordRecoveryHref('/login'"), 'reset sign-in return keeps saved creation context')
+check(resetPassword.includes('Saved through password reset'), 'reset uses recovery-specific saved-work copy')
+check(!forgotPassword.includes('useSearchParams'), 'forgot-password avoids a Next CSR bailout')
+check(!resetPassword.includes('useSearchParams'), 'reset-password avoids a Next CSR bailout')
 check(savedCreationCard.includes('aria-labelledby={headingId}'), 'shared saved-work card has an accessible label')
 check(savedCreationCard.includes('Saved ${preview.kind} preview'), 'shared excerpt exposes an accessible description')
 check(!savedCreationCard.includes('dangerouslySetInnerHTML'), 'shared card keeps React text escaping')
@@ -311,5 +413,19 @@ for (const label of ['BEFORE', 'AFTER', 'DESKTOP', 'MOBILE', 'OAUTH FAILURE']) {
 check(oauthFailureVisual.includes('Saved before sign-in'), 'OAuth-failure visual includes the real proof eyebrow')
 check(!/https?:\/\//i.test(oauthFailureVisual), 'OAuth-failure visual has no external dependency')
 check(fs.statSync(path.join(root, oauthFailureVisualPngPath)).size > 1000, 'OAuth-failure visual PNG is non-empty')
+
+const passwordRecoveryVisualPath = 'docs/previews/FLUXO-PASSWORD-RECOVERY-SAVED-WORK-2026-09-04.html'
+const passwordRecoveryVisualPngPath = 'docs/previews/FLUXO-PASSWORD-RECOVERY-SAVED-WORK-2026-09-04.png'
+check(fs.existsSync(path.join(root, passwordRecoveryVisualPath)), 'password-recovery before/after HTML exists')
+check(fs.existsSync(path.join(root, passwordRecoveryVisualPngPath)), 'password-recovery before/after PNG exists')
+const passwordRecoveryVisual = read(passwordRecoveryVisualPath)
+const passwordRecoveryVisualUpper = passwordRecoveryVisual.toUpperCase()
+for (const label of ['BEFORE', 'AFTER', 'DESKTOP', 'MOBILE', 'FORGOT PASSWORD', 'SET NEW PASSWORD', 'CHECK INBOX', 'PASSWORD UPDATED']) {
+  check(passwordRecoveryVisualUpper.includes(label), `password-recovery visual includes ${label.toLowerCase()}`)
+}
+check(passwordRecoveryVisual.includes('Saved before password reset'), 'forgot visual includes the real recovery eyebrow')
+check(passwordRecoveryVisual.includes('Saved through password reset'), 'reset visual includes the real recovery eyebrow')
+check(!/https?:\/\//i.test(passwordRecoveryVisual), 'password-recovery visual has no external dependency')
+check(fs.statSync(path.join(root, passwordRecoveryVisualPngPath)).size > 1000, 'password-recovery visual PNG is non-empty')
 
 console.log(`PASS — ${checks}/${checks} signup saved-creation checks`)
