@@ -70,6 +70,7 @@ import {
   normalizeAffiliateClickId,
 } from '@/lib/affiliateAttribution'
 import { readCheckoutProfileWithRetry } from '@/lib/stripe/checkoutProfileRead'
+import { checkoutIntentMetadata } from '@/lib/growth/checkoutIntent'
 import { buildCheckoutValueContext } from '@/lib/growth/checkoutValueContext'
 import {
   CHECKOUT_PAYMENT_GUIDANCE_VERSION,
@@ -283,6 +284,81 @@ async function recordCheckoutEvent(
 function browserSessionIdFrom(req: NextRequest): string | undefined {
   const raw = req.cookies.get('kineo_event_session_id')?.value ?? ''
   return /^[A-Za-z0-9_-]{8,64}$/.test(raw) ? raw : undefined
+}
+
+type CheckoutIntentSnapshot = {
+  videosOk: number | null
+  creditsIntact: boolean | null
+  hadFinishedScript: boolean | null
+}
+
+async function readCheckoutIntentSnapshot(
+  userId: string,
+  browserSessionId: string | null,
+  profile: {
+    video_credits?: unknown
+    trial_credits_granted?: unknown
+    trial_credits_used?: unknown
+  },
+): Promise<CheckoutIntentSnapshot> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !key) return { videosOk: null, creditsIntact: null, hadFinishedScript: null }
+
+  try {
+    const admin = createAdminClient(url, key, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    })
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+    const completedRequest = admin
+      .from('videos')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('status', 'completed')
+    let scriptSignalsRequest = admin
+      .from('events')
+      .select('name, metadata')
+      .eq('user_id', userId)
+      .in('name', [
+        'activation_autostart_eligible',
+        'activation_autostart_dispatched',
+        'chatgpt_quickstart_selected',
+      ])
+      .gte('created_at', since)
+      .order('created_at', { ascending: false })
+      .limit(50)
+    if (browserSessionId) scriptSignalsRequest = scriptSignalsRequest.eq('session_id', browserSessionId)
+
+    const [completedResult, scriptSignalsResult] = await Promise.all([
+      completedRequest,
+      scriptSignalsRequest,
+    ])
+    const videosOk = completedResult.error ? null : completedResult.count ?? 0
+    const hadFinishedScript = scriptSignalsResult.error
+      ? null
+      : (scriptSignalsResult.data ?? []).some((row) => {
+          const metadata = row.metadata && typeof row.metadata === 'object'
+            ? row.metadata as Record<string, unknown>
+            : {}
+          if (row.name === 'chatgpt_quickstart_selected') {
+            return metadata.input_type === 'finished_script'
+          }
+          const promptLength = Number(metadata.prompt_length ?? 0)
+          return metadata.script_mode === 'verbatim' && Number.isFinite(promptLength) && promptLength >= 40
+        })
+
+    const balance = Number(profile.video_credits)
+    const granted = Number(profile.trial_credits_granted)
+    const used = Number(profile.trial_credits_used)
+    const hasTrialLedger = Number.isFinite(granted) && granted > 0 && Number.isFinite(used)
+    const creditsIntact = hasTrialLedger && Number.isFinite(balance)
+      ? used === 0 && balance >= granted
+      : null
+    return { videosOk, creditsIntact, hadFinishedScript }
+  } catch (error) {
+    console.warn('[stripe/checkout] intent snapshot unavailable:', error instanceof Error ? error.name : 'unknown')
+    return { videosOk: null, creditsIntact: null, hadFinishedScript: null }
+  }
 }
 
 // Close the client-effect race only for the subscription checkout that can
@@ -999,7 +1075,7 @@ async function buildAndRedirect(
   const profileLookup = await readCheckoutProfileWithRetry(async () => {
     const result = await supabase
       .from('profiles')
-      .select('email, stripe_customer_id, is_pro, plan, stripe_subscription_id, paypal_subscription_id, affiliate_id')
+      .select('email, stripe_customer_id, is_pro, plan, stripe_subscription_id, paypal_subscription_id, affiliate_id, video_credits, trial_credits_granted, trial_credits_used')
       .eq('id', user.id)
       .single()
     return { data: result.data, error: result.error }
@@ -1021,6 +1097,18 @@ async function buildAndRedirect(
       ? redirectError('Your account is still being prepared. Please refresh and try again.')
       : jsonError('Your account is still being prepared. Please refresh and try again.', 503)
   }
+
+  // KINEO-CHECKOUT-INTENT-2026-09-03 — a checkout sem filme nao e uma causa.
+  // Pode ser desejo com roteiro pronto ou defeito de ativacao com o grant
+  // intacto. Classifique usando contagens e sinais fechados; roteiro e prompt
+  // nunca entram na telemetria. Falha de leitura nao bloqueia o caixa e vira
+  // `unknown`, nunca um falso defeito.
+  const intentSnapshot = await readCheckoutIntentSnapshot(user.id, browserSessionId, profile)
+  checkoutMetadata = {
+    ...checkoutMetadata,
+    ...checkoutIntentMetadata(intentSnapshot),
+  }
+  failureContext = { ...checkoutMetadata }
 
   // A valid arithmetic payload is still only a request until the authenticated
   // owner proves this is their first completed delivery. This query reads at
