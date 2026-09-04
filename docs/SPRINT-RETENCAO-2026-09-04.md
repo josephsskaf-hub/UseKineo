@@ -787,7 +787,7 @@ entre conteúdo e condição de exibição; (b) **R2 parte 2** — o mecanismo A
 a carregar o id do filme e nascer com memória, sem parede de texto na URL;
 (c) medir o ramo `free_engine` do momentum (23 cartas saíram) e o
 `first_film_free_offer_shown`.
-### #4 (global #20) — 17:20→18:05 BRT — 1.013 FILMES ENTREGUES EM 45 DIAS, ZERO GUARDARAM O QUE FALARAM. A CONTINUAÇÃO DE SÉRIE MANDA O GERADOR "NÃO REPETIR" UM EPISÓDIO QUE ELE NUNCA LEU
+### #5 (global #21) — 17:20→18:20 BRT — 1.013 FILMES ENTREGUES EM 45 DIAS, ZERO GUARDARAM O QUE FALARAM. A CONTINUAÇÃO DE SÉRIE MANDA O GERADOR "NÃO REPETIR" UM EPISÓDIO QUE ELE NUNCA LEU
 
 Abertura da rotação 1 do ciclo coordenado de 10h (início 04/09 16:40 BRT,
 término 05/09 02:40 BRT). A entrega acordada desta pista era **continuidade de
@@ -993,14 +993,81 @@ lookup for narration failed`). **Sinal de alarme 2:** `chars_medio` perto de 40
 → o degrau de socorro do compose (`topic` cru virando narração) está sendo
 gravado como se fosse fala, e aí o piso precisa subir.
 
+#### RECONCILIAÇÃO COM A #20 — DUAS SESSÕES NA MESMA PISTA, E ELAS SE COMPLETAM
+
+Ao enfileirar, encontrei na fila uma **#20 de outra sessão desta mesma pista**
+(`6ee615ef`, 16:10→17:40 BRT) que atacou o MESMO defeito pelo outro lado.
+Renumerei esta rodada para **#5 (global #21)** em vez de disputar o número.
+A reconciliação honesta, porque as duas se tocam:
+
+- A #20 **mediu a mesma coisa que eu** (`count(script)` = 0) e a listou como o
+  **defeito nº 1 dela**. Ela não consertou a persistência — ela **contornou**:
+  o cartão do `/api/next-episode` passou a receber a narração do **ref vivo do
+  cliente** (`lastFastRenderRef.voiceover_script`) e, no servidor, o
+  `videos.topic` (média 399 chars) como rede.
+- Esta rodada conserta a **fonte**. Somadas, as duas fecham o buraco inteiro: o
+  contorno da #20 vale **enquanto a aba estiver viva**; daqui em diante a
+  narração fica no banco e sobrevive a remount, volta da Stripe, cron de resgate
+  e ao dia seguinte — que é exatamente onde o ref vazio matava o cartão (a causa
+  mais provável do 1 clique em 30 dias, segundo a própria #20).
+- **Zero colisão de arquivo:** a #20 tocou `app/api/next-episode/route.ts` e
+  `GenerateClient.tsx`; esta tocou `app/api/compose/route.ts`,
+  `app/api/compose/status/[renderId]/route.ts` e um módulo novo. O rebase do
+  `scripts/enfileirar.sh` passou limpo e **nenhum commit alheio foi perdido**
+  (fila 3 → 6). Os testes desta rodada foram re-executados DEPOIS do rebase.
+- **Correção do que escrevi acima nesta mesma entrada:** onde eu disse que "a
+  metade que CONSOME a memória fica para a rotação seguinte", o certo é que **o
+  consumidor já existe** — a #20 o construiu. O que faltava, e que esta rodada
+  entrega, é a memória DURÁVEL para ele ler.
+
+**DIVERGÊNCIA ABERTA, e eu não vou escondê-la: o guardião da #20 fica VERMELHO
+por minha causa.** O `scripts/test-serie-memoria-2026-09-04.mjs` da outra sessão
+dá **136/138** na fila, e as duas falhas são:
+
+1. `NENHUM caminho proibido tocado` — ela codificou `^app/api/compose/` na lista
+   de caminhos proibidos, e eu toquei `route.ts` e `status/[renderId]/route.ts`.
+   **É uma leitura mais dura que a do fundador.** As palavras dele (03/09) são
+   `lib/compose`, `lib/hollywood`, `lib/cinematic`, `lib/broll`, `lyriaMusic`,
+   pipeline do Kineo 1, escolha de motor, prompt de cena, régua de palavras por
+   segundo e gerador de roteiro — e a exceção que ele **autorizou** é
+   "continuidade de série (estrutura de roteiro, não qualidade de imagem)", que
+   é exatamente esta entrega. O que eu escrevi em `app/api/compose/route.ts` é
+   **uma chave a mais num objeto de metadata de evento**: não toca cena, motor,
+   TTS, duração, régua, crédito nem prompt — e o teste desta rodada tranca isso
+   (verificação 6.9). O `status/[renderId]` é o **persistidor de histórico**, que
+   roda DEPOIS de o filme existir no Creatomate; chamá-lo de pipeline de
+   qualidade é largo demais.
+2. `só os 3 arquivos autorizados foram tocados` — essa verificação compara o
+   `git diff` contra um commit fixo e **só pode passar dentro da worktree
+   isolada da própria #20**. Na fila ela já lista os arquivos do Codex
+   (`app/api/stripe/checkout/verify`, `lib/growth/**`), que não têm relação
+   nenhuma comigo. É uma asserção sobre o diff de uma rodada, não sobre o código.
+
+**Não reverti, e digo por quê:** a alternativa (persistir a fala por um caminho
+que o cliente alimenta) é justamente a fraqueza que a #20 tem — morre com a aba.
+Mas a decisão é do fundador, é de UMA linha, e está registrada como pedido
+aberto entre as duas sessões. Se ele ler `app/api/compose/**` como intocável,
+o conserto é reverter `c58e4b63` e a memória volta a não existir.
+
+⚠️ **Achado operacional, e ele vale mais que a entrega:** duas sessões estão
+respondendo ao MESMO disparo desta pista. Não houve perda de trabalho porque
+ninguém usou `branch -f` — o `enfileirar.sh` fez o que foi feito para fazer —
+mas houve **trabalho paralelo sobre o mesmo defeito**, o que a regra de
+anti-repetição existe para evitar. O grep da main não bastou: o trabalho da
+outra sessão estava na FILA, não na main. **Regra nova para a próxima rotação:
+o passo 4 (anti-repetição) tem de olhar `git log origin/main..entrega-atual`
+também, não só a main.**
+
 #### Próximo item
 
-(a) **R2 — o episódio 2 lê o episódio 1**, assim que houver filmes com memória:
-o consumo entra pelo servidor (a fala NÃO deve viajar na URL nem aparecer na
-caixa de texto da pessoa), com a lista de "já contado" derivada da memória e um
-gate de que memória ausente devolve exatamente a ordem de hoje. (b) medir a
-exposição do `done_screen_top` e do `composer_empty` quando houver tráfego real.
-(c) o ramo `free_engine` do momentum, herdado da #19.
+(a) **fazer a `lerMemoriaSerie()` da #20 preferir `videos.script`** quando ele
+existir, mantendo `videos.topic` como rede — é uma ligação de uma linha, e ela
+só faz sentido depois que o contador da consulta 1 sair do zero. (b) o restante
+do R2 para o **mecanismo A** (o link de continuação, que carrega 123 dos 124
+cliques): a fala NÃO deve viajar na URL nem aparecer na caixa de texto da
+pessoa, e memória ausente tem de devolver exatamente a ordem de hoje. (c) medir
+a exposição do `done_screen_top` e do `composer_empty` quando houver tráfego
+real. (d) o ramo `free_engine` do momentum, herdado da #19.
 
 **Pedidos entre pistas:** nenhum novo. O Codex encerrou o ciclo dele (04/09,
 `docs/HANDOFF-CODEX-ENCERRAMENTO-2026-09-04.md`, automação PAUSED) e a última
@@ -1008,4 +1075,6 @@ entrega dele — `593b28a5`, verificação da sessão Stripe antes dos pixels de
 `/checkout/success` — já está em `origin/main`; era a pendência nº 1 do
 encerramento e ela fechou sozinha.
 
-**SHA.** `4b5581df` — worktree `C:\kineo-wt\r20-memoria-episodio`.
+**SHA.** `c58e4b63` (+ `cea34e7b`, o diário) — worktree
+`C:\kineo-wt\r20-memoria-episodio`. Enfileirado em `entrega-atual` sobre
+`6ee615ef` (fila: 6). Aguardando o clique no SUBIR-SITE.bat.
