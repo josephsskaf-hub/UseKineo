@@ -1368,3 +1368,146 @@ denominador em produção ainda**. Construir uma quarta coisa antes de medir as
 oito de hoje é o erro que esta sprint pode cometer amanhã. E há uma
 **divergência aberta** que precisa de uma palavra do fundador: `app/api/compose/**`
 está ou não dentro da trava de qualidade.
+
+### #7 (global #23) — 18:42→19:05 BRT — O CONSERTO DO PLANO VAZIO ENTROU EM PRODUÇÃO ÀS 21:44 UTC, DOIS MINUTOS DEPOIS DA ÚLTIMA VÍTIMA. E ELA AINDA ESTÁ SEM FILME.
+
+Rodada de **medição**, obedecendo o "próximo item" da #22 ("não construir,
+MEDIR"). Nenhuma linha de produção. O que esta entrada acrescenta é o que as
+três sessões de hoje **não podiam saber, porque fecharam antes do deploy**.
+
+#### Anti-repetição, na ordem que a #22 mandou escrever
+
+```sh
+git log --oneline origin/main..entrega-atual   # → VAZIO
+```
+**A fila está limpa.** Tudo de hoje (#17…#22, o conserto do plano vazio e a
+telemetria) está na `origin/main`. Não existe trabalho invisível pendurado.
+Abri a rodada pela checagem zero, achei o despacho vazio ao vivo, e **parei
+antes de escrever código** ao ver `d58a0d7b` já na main. Seria a **quarta**
+sessão no mesmo defeito.
+
+#### O que ninguém tinha: a prova de que o conserto está no ar
+
+| | |
+|---|---|
+| deploy de produção agora | `dpl_4K24Xk248N36uZWEZZA8Lg151bLa` |
+| SHA | `1ee5e384` (inclui `d58a0d7b` + `12804762`) |
+| estado | **READY**, target production |
+| entrou no ar | **2026-09-04 ~21:44 UTC** |
+
+O SHA que as vítimas de hoje pegaram foi `119187af` — o commit **anterior** ao
+conserto. A janela de exposição fechou às 21:44 UTC.
+
+#### Duas vítimas que o diário ainda não tinha (a #22 só registrou `ffd78315`)
+
+| pessoa | quando | tentativas | desfecho |
+|---|---|---:|---|
+| `a1be6766` (archiveunknownmedia) | 20:27 · 20:28 · 20:42 UTC | 3 | conseguiu **1 filme** depois; saldo 10 |
+| `f716bf22` (nikitaamiran) | 21:41 · 21:42 UTC | 2 | **0 filmes**, 25cr intactos, foi embora |
+
+`f716bf22` é o caso que mais dói da sprint inteira: conta **nascida às 21:38
+UTC**, Google OAuth, vinda do **`chatgpt.com`** — o único canal que já pagou —
+colou roteiro pronto (328 caracteres), clicou no botão de primeira entrega
+(Seedance 35s, 15cr), e o produto respondeu **duas vezes em 90 segundos** que
+"o fornecedor não aceitou". A fal **nunca foi chamada**: `planned: 0`,
+`total_posts: 0`, `provider_status_histogram: {}`. Ela desistiu **dois minutos
+antes** de o conserto entrar no ar.
+
+**Dinheiro: intacto.** `refund_confirmed: true` e `provider_spend_possible:
+false` nas duas. O prejuízo é o filme que não existiu, não o crédito.
+
+#### O tamanho real da classe (medido, não estimado)
+
+Filtrando o que de fato é este defeito — motor escolhido **e** claim feito
+(`engine is not null` + `planned = 0`) — e não os `planned=0` de recusa precoce
+(422/402, que são instrumentação sã):
+
+**7 eventos em toda a história · 3 pessoas · e 5 desses 7 são de hoje, nas
+últimas 2 horas.** Os outros 2 são de `ad5a7073` em 30/08. Não é epidemia de
+volume; é epidemia de **momento** — pega quem está no primeiro filme.
+
+#### O caminho de resgate já cobre a vítima — conferido, não suposto
+
+`send-failure-recovery` decide por `ehDefeito(erro)`, e `DEFEITO_EXPLICITO`
+(linha 120) contém literalmente `'on our side, not yours'`. O `generate_failed`
+de `f716bf22` carrega essa frase, é o evento **mais recente** dela (logo não cai
+na regra do "produto disse não por último") e são 2 falhas. **Ela entra na
+janela de 48h do cron sem nenhum código novo.** O conserto de e-mail de 03/09
+funciona para o defeito de 04/09.
+
+#### Placar (marco 2026-09-03 16:00 UTC, contas externas)
+
+| | |
+|---|---:|
+| cadastros | **44** |
+| pessoas com filme | **29** |
+| filmes entregues | **37** |
+| checkout COM filme (desejo) | 2 |
+| checkout SEM filme (defeito) | 2 |
+| `checkout_success_viewed` | **0** |
+| **`payment_success`** | **0** |
+
+**Distribuição:** 24 pararam no 1º · 4 em 2-3 · 1 em 4-7. Na #17 era 22/4/1 de
+27; agora 24/4/1 de 29. **As duas pessoas novas com filme pararam no primeiro,
+e ninguém subiu de faixa.** O degrau 1→2 não se mexeu.
+
+#### As portas de hoje: SEM DENOMINADOR, e eu não vou fingir que tenho um
+
+Desde que o `done_screen_top` entrou na main (17:49 UTC) e o `composer_empty`
+(18:51 UTC):
+
+| | pessoas |
+|---|---:|
+| chegaram à tela de fim de filme (`video_ready_viewed`) | **2** |
+| `series_continue_seen` / `done_screen` (porta velha, rodapé) | 1 |
+| `series_continue_seen` / `done_screen_top` (#18) | **0** |
+| `series_continue_seen` / `composer_empty` (#19) | **0** |
+
+**Veredito: INCONCLUSIVO, e é a única leitura honesta.** Duas pessoas na tela
+de fim de filme em três horas não medem nada — nem a favor nem contra. Anotar
+"a porta nova não apareceu" como defeito, com n=2, seria exatamente o erro que
+a #17 documentou em `SEM EXPOSIÇÃO ≠ FALHA`.
+
+**O que fica como fio a puxar quando houver amostra** (lead, não veredito): as
+duas portas moram na mesma tela e disparam no mesmo `phase === 'done'`, mas a
+de cima tem uma guarda a mais — `if (!episode2Seed) return`
+(`GenerateClient.tsx:10619`), e `episode2Seed` é `null` sempre que
+`normalizeSeriesSeed(analysis?.title ?? prompt)` sair degenerado
+(`:10595`). Na única sessão observada, a de baixo acendeu e a de cima não.
+**Uma observação não é uma taxa.** Se com 20+ chegadas o par continuar
+assimétrico, a suspeita tem endereço e uma linha para conferir primeiro.
+
+#### Checagem zero
+
+| | |
+|---|---:|
+| render preso > 3h | **0** |
+| cadastro sem crédito em 24h | 5 — **todos com saldo gasto em uso**, nenhum órfão novo |
+| `generation_stage_error` 24h | 29 — **23 deles das duas vítimas acima**; o resto é saldo/trial, não defeito |
+| causa antiga voltando | **sim, e já consertada**: despacho vazio, no ar desde 21:44 UTC |
+
+#### Nota de processo — a quarta sessão quase repetiu o defeito das três
+
+O comando da #22 (`origin/main..entrega-atual`) **funcionou**: foi ele que me
+fez parar. Mas ele só pega fila **não publicada**. O que me pegou desta vez foi
+outra coisa: eu grepei `git log origin/main --oneline -25` às 21:42 e o
+conserto **ainda não existia** — ele entrou às 21:38-21:39 e eu tinha buscado
+antes. **`git fetch` no início da rodada não basta quando a rodada dura mais de
+5 minutos.** Refetch antes de escrever a primeira linha, sempre.
+
+#### Próxima jogada
+
+**Continuar sem construir, por mais uma rotação.** Oito superfícies entraram
+hoje e nenhuma tem denominador: três portas de série, a memória de episódio das
+#4/#5, e o `empty_plan`. A próxima rotação deve (a) reconferir o par
+`done_screen` × `done_screen_top` quando houver ≥10 chegadas à tela de fim, e
+(b) confirmar que o `cinematic_zero_scenes_planned` da #21 grava a causa raiz
+no **primeiro** despacho vazio pós-deploy — hoje ele tem 0 eventos porque o
+conserto entrou depois da última falha, e é essa a prova que falta para fechar
+a causa que está aberta desde 25/08.
+
+#### Pedidos novos ao Codex
+
+Nenhum. Nada desta rodada cruza pista.
+
+**Entrega:** 1 arquivo (este diário). Zero código de produção. Zero risco.

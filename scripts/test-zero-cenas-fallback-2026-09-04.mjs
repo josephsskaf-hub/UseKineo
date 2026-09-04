@@ -27,7 +27,15 @@ checa('o fallback vem ANTES do L2B (plano do cliente) e do despacho', iGuard < i
 checa('a saida verdadeira do #21 (planoVazio) continua existindo depois, para quando nada recupera', iZeroSaida > iGuard)
 
 const bloco = src.slice(iFallback, iL2B)
-checa('verbatim vazio -> planner de IA (generateScenes) sobre o texto cru', /if \(verbatim\) \{[\s\S]*?generateScenes\(prompt\.slice\(0, 1200\), clipCount\)/.test(bloco))
+// KINEO-UNBRACKET-2026-09-04 — causa raiz reproduzida: cleanNarration apaga [colchetes];
+// roteiro do ChatGPT com toda fala entre colchetes -> narracao vazia -> 0 cenas.
+checa('verbatim vazio -> 1a tentativa: tirar colchetes e faixas de tempo e re-parsear (palavras do cliente)', /if \(verbatim\) \{[\s\S]*?const desembrulhado = prompt[\s\S]*?replace\(\/\[\\\[\\\]\]\/g, ' '\)[\s\S]*?const reparse = parseUserScript\(desembrulhado\)/.test(bloco))
+checa('o re-parse so vira cenas se a narracao desembrulhada nao for vazia', bloco.includes("const beats = reparse.narration.trim() ? resolveVerbatimSegments(reparse, clipCount) : []"))
+checa("via = 'unbracket' quando recupera as palavras do cliente", bloco.includes("via = 'unbracket'"))
+checa('o desembrulho descarta linha que e so direcao de cena (Visual:/Camera:/Music:...) antes do re-parse', bloco.includes('const DIRECAO_LINHA = /^\\s*(visual|visuals|camera|shot') && bloco.includes('.filter((l) => !DIRECAO_LINHA.test(l))'))
+checa('o desembrulho tira faixas de tempo "0:00-0:02:" que a TTS leria em voz alta', /replace\(\/\\b\\d\{1,2\}:\\d\{2\}\\s\*\[-\\u2013\]\\s\*\\d\{1,2\}:\\d\{2\}\\s\*:\?\/g, ' '\)/.test(bloco))
+checa('verbatim vazio -> 2a tentativa: planner de IA (generateScenes) sobre o texto cru', /via = 'unbracket'[\s\S]*?\} else \{[\s\S]*?generateScenes\(prompt\.slice\(0, 1200\), clipCount\)[\s\S]*?via = 'ai_planner'/.test(bloco))
+checa('a IA e o SEGUNDO recurso, nunca o primeiro (unbracket vem antes no texto)', bloco.indexOf("via = 'unbracket'") > -1 && bloco.indexOf("via = 'unbracket'") < bloco.indexOf("via = 'ai_planner'"))
 checa('ai vazio -> divisor deterministico (resolveVerbatimSegments)', /else if \(!pareceInstrucao\) \{[\s\S]*?resolveVerbatimSegments\(parseUserScript\(prompt\), clipCount\)/.test(bloco))
 checa('NUNCA narra instrucao: o divisor so roda se !looksLikeInstruction', bloco.includes('const pareceInstrucao = looksLikeInstruction(prompt)') && bloco.includes('else if (!pareceInstrucao)'))
 checa('o import de looksLikeInstruction existe', src.includes("import { looksLikeInstruction } from '@/lib/momentumTopic'"))
