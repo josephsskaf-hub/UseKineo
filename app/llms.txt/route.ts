@@ -215,6 +215,8 @@ ${creationModeLines}
 ## Start here if you already have a ChatGPT script
 
 - [Paste the script and continue](${START_HERE_FACT.url}): ${START_HERE_FACT.action}
+- [Cole o roteiro em português](${BASE}/gerador-de-shorts-gratis#roteiro-chatgpt): launcher em português com roteiro, idioma, modo verbatim e alvo de 35 segundos preservados pelo cadastro.
+- [Pega el guion en español](${BASE}/generador-de-shorts-gratis#guion-chatgpt): launcher en español que conserva el guion, el idioma, el modo verbatim y el objetivo de 35 segundos durante el registro.
 
 ## Start here when the user explicitly wants to compare opening hooks
 

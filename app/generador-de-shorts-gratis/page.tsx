@@ -8,6 +8,7 @@ import { PUBLIC_EXAMPLES, posterWebpPath } from '@/lib/publicExamples'
 import ExampleLiveMedia from '@/app/examples/ExampleLiveMedia'
 import ExitIntentOffer from '@/components/ExitIntentOffer'
 import Footer from '@/components/Footer'
+import LocalizedScriptHandoff from '@/components/LocalizedScriptHandoff'
 // KINEO-PRICING-V6-2026-08-19 — preço derivado de TIER_PRICES via
 // lib/marketingPrice.ts. Digitado à mão ele já sobreviveu a duas mudanças
 // de tabela publicando um valor que o checkout não cobrava mais.
@@ -16,6 +17,7 @@ import { STARTER_USD_AMOUNT } from '@/lib/marketingPrice'
 const BASE = 'https://www.usekineo.com'
 const CAMPAIGN = 'seo_generador_es'
 const FORM_ID = 'generador'
+const SCRIPT_HANDOFF_ID = 'guion-chatgpt'
 
 export const metadata: Metadata = {
   title: 'Generador de Shorts con IA Gratis (sin aparecer) — Kineo',
@@ -25,7 +27,7 @@ export const metadata: Metadata = {
     canonical: `${BASE}/generador-de-shorts-gratis`,
     languages: {
       en: `${BASE}/free-ai-shorts-generator`,
-      'pt-BR': `${BASE}/generador-de-shorts-gratis`,
+      'pt-BR': `${BASE}/gerador-de-shorts-gratis`,
       es: `${BASE}/generador-de-shorts-gratis`,
     },
   },
@@ -66,7 +68,7 @@ export default function GeneradorDeShortsPage() {
   }
 
   return (
-    <main style={{ minHeight: '100vh', background: '#000', color: '#f5f5f7', fontFamily: 'var(--font-inter), system-ui, -apple-system, sans-serif' }}>
+    <main lang="es" style={{ minHeight: '100vh', background: '#000', color: '#f5f5f7', fontFamily: 'var(--font-inter), system-ui, -apple-system, sans-serif' }}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd).replace(/</g, '\\u003c') }} />
       <div style={{ maxWidth: 880, margin: '0 auto', padding: '64px 20px 88px' }}>
         <span style={{ display: 'inline-block', fontSize: 12, fontWeight: 850, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#2997ff', border: '1px solid rgba(41,151,255,0.4)', background: 'rgba(41,151,255,0.12)', borderRadius: 999, padding: '6px 12px' }}>
@@ -96,6 +98,19 @@ export default function GeneradorDeShortsPage() {
             examplesLabel: 'Ideas listas',
             note: 'Tu idea atraviesa el registro — el primer video Fast empieza sin tarjeta.',
           }}
+        />
+
+        <LocalizedScriptHandoff
+          campaign="seo_chatgpt_to_shorts_es"
+          formId={SCRIPT_HANDOFF_ID}
+          language="es"
+          eyebrow="O, si ya tienes el guion"
+          heading="¿Ya tienes un guion? Pégalo aquí."
+          description="Tu guion se conserva durante el registro y llega a Kineo con un objetivo de 35 segundos. Kineo usa Seedance si el saldo de la prueba activa alcanza; si no, usa Fast. No tendrás que pegarlo otra vez."
+          label="Pega el guion que ya tienes"
+          placeholder="Pega hasta 1.000 caracteres. Puedes conservar etiquetas como Voiceover:, Narración:, Visual:, Cámara:, escenas y códigos de tiempo."
+          submit="Convertir este guion en un Short →"
+          note="Con al menos dos etiquetas de voz, como Voiceover:, Narración: o Diálogo:, Kineo lee solo esos bloques; las indicaciones de producción reconocidas quedan fuera de la voz. Puede ajustar la puntuación para el ritmo, pero no cambia la secuencia de palabras."
         />
 
         {/* Prova viva: 3 exports reais tocando (mesmo motor da home). */}

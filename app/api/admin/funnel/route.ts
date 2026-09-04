@@ -360,6 +360,8 @@ const ORGANIC_EXACT_PATHS = new Set([
   '/faceless-video-generator',
   '/text-to-video-shorts',
   '/chatgpt-to-youtube-shorts',
+  '/gerador-de-shorts-gratis',
+  '/generador-de-shorts-gratis',
   '/from-saashub',
   '/free-ai-shorts',
   '/alternatives',

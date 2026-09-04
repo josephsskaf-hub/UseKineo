@@ -20,6 +20,9 @@ const tsc = existsSync(localTsc)
   : join(root, '..', '..', '..', 'node_modules', 'typescript', 'bin', 'tsc')
 
 const page = read('app/chatgpt-to-youtube-shorts/page.tsx')
+const portuguesePage = read('app/gerador-de-shorts-gratis/page.tsx')
+const spanishPage = read('app/generador-de-shorts-gratis/page.tsx')
+const localizedHandoff = read('components/LocalizedScriptHandoff.tsx')
 const topicForm = read('app/youtube-shorts-from-topic/TopicGeneratorForm.tsx')
 const organicCta = read('components/OrganicCtaLink.tsx')
 const signup = read('app/(auth)/signup/page.tsx')
@@ -54,6 +57,7 @@ try {
     tsc,
     join(root, 'lib', 'creationHandoff.ts'),
     join(root, 'lib', 'organicFunnel.ts'),
+    join(root, 'lib', 'growth', 'organicSignupTruth.ts'),
     '--outDir', out,
     '--module', 'commonjs',
     '--target', 'es2022',
@@ -64,6 +68,7 @@ try {
 
   const handoff = requireCompiled(join(out, 'creationHandoff.js'))
   const organic = requireCompiled(join(out, 'organicFunnel.js'))
+  const organicSignup = requireCompiled(join(out, 'growth', 'organicSignupTruth.js'))
 
   // Real public form → shared signup carrier → real activation resolver.
   const script = 'HOOK: The radio went silent. MICRO REWARD: The clock kept moving. ESCALATION: Nobody knew why. RHYTHM: Then it rang. PAYOFF: The call came from inside.'
@@ -236,7 +241,60 @@ try {
   includes(factsRoute, 'JSON.stringify(getKineoFacts()', '/api/facts serializes the shared payload')
   includes(llms, 'START_HERE_FACT', '/llms.txt imports the shared record')
   includes(llms, '## Start here if you already have a ChatGPT script', '/llms.txt labels the route as start-here')
+  includes(llms, '/gerador-de-shorts-gratis#roteiro-chatgpt', '/llms.txt exposes the Portuguese launcher directly')
+  includes(llms, '/generador-de-shorts-gratis#guion-chatgpt', '/llms.txt exposes the Spanish launcher directly')
   includes(adminFunnel, "'/chatgpt-to-youtube-shorts'", 'admin organic registry includes the route')
+  includes(adminFunnel, "'/gerador-de-shorts-gratis'", 'admin organic denominator includes the Portuguese launcher page')
+  includes(adminFunnel, "'/generador-de-shorts-gratis'", 'admin organic denominator includes the Spanish launcher page')
+
+  // K18 partial: supported PT/ES doors reuse one executable launcher contract.
+  for (const [locale, localizedPage, formId, campaign, localizedScript] of [
+    ['pt', portuguesePage, 'roteiro-chatgpt', 'seo_chatgpt_to_shorts_pt', 'Narração: Coração & ação + ciência #1 🧠\nVisual: céu'],
+    ['es', spanishPage, 'guion-chatgpt', 'seo_chatgpt_to_shorts_es', 'Narración: ¿Qué cambió? Niño & acción + ciencia #1 🧠\nVisual: cielo'],
+  ]) {
+    includes(localizedPage, "import LocalizedScriptHandoff from '@/components/LocalizedScriptHandoff'", `${locale}: page reuses the localized launcher`)
+    includes(localizedPage, `const SCRIPT_HANDOFF_ID = '${formId}'`, `${locale}: machine fragment and rendered anchor share the same literal id`)
+    includes(localizedPage, `formId={SCRIPT_HANDOFF_ID}`, `${locale}: page renders its stable launcher anchor`)
+    includes(localizedPage, `campaign="${campaign}"`, `${locale}: page keeps a distinct measurable campaign`)
+    includes(localizedPage, `language="${locale}"`, `${locale}: page passes the supported internal language code`)
+    includes(localizedPage, locale === 'pt' ? '<main lang="pt-BR"' : '<main lang="es"', `${locale}: localized content exposes its language to assistive technology`)
+    includes(localizedPage, 'Narra', `${locale}: visible copy names a supported speech label`)
+    ok(!localizedPage.includes('utmSource="seo"'), `${locale}: launcher does not overwrite the real referring channel`)
+
+    const redirect = handoff.buildAuthenticatedCreationRedirect({
+      prompt: localizedScript,
+      campaign,
+      createIntent: 'trial_best',
+      language: locale,
+      scriptMode: 'verbatim',
+      duration: 35,
+    })
+    ok(redirect, `${locale}: authenticated handoff builds a destination`)
+    const destination = new URL(redirect, 'https://www.usekineo.com')
+    equal(destination.pathname, '/studio/create', `${locale}: authenticated handoff enters the creation surface`)
+    equal(destination.searchParams.get('prompt'), localizedScript, `${locale}: authenticated redirect keeps Unicode, punctuation and line breaks`)
+    equal(destination.searchParams.get('create_intent'), 'trial_best', `${locale}: authenticated redirect keeps the trial router intent`)
+    equal(destination.searchParams.get('language'), locale, `${locale}: authenticated redirect keeps the language`)
+    equal(destination.searchParams.get('intent_campaign'), campaign, `${locale}: authenticated redirect keeps the campaign`)
+    equal(destination.searchParams.get('script_mode'), 'verbatim', `${locale}: authenticated redirect keeps verbatim mode`)
+    equal(destination.searchParams.get('duration'), '35', `${locale}: authenticated redirect keeps the short target`)
+    equal(destination.searchParams.get('welcome'), '1', `${locale}: authenticated redirect keeps the creation welcome state`)
+    const organicContext = organicSignup.organicSignupHandoffContext(destination.searchParams)
+    ok(organicContext, `${locale}: signup telemetry recognizes the localized organic campaign without fake UTMs`)
+    equal(organicContext.campaign, campaign, `${locale}: signup telemetry keeps the localized campaign`)
+  }
+  includes(localizedHandoff, 'placement="chatgpt_script_handoff"', 'localized launcher identifies its visible placement')
+  includes(localizedHandoff, 'analyticsVariant={`localized_script_handoff_${language}_v1`}', 'localized launcher keeps a versioned analytics variant')
+  includes(localizedHandoff, 'scriptMode="verbatim"', 'localized launcher preserves the writer wording contract')
+  includes(localizedHandoff, 'duration={35}', 'localized launcher uses the visible short target')
+  includes(localizedHandoff, 'creationIntent="trial_best"', 'localized launcher requests the best eligible trial engine')
+  includes(localizedHandoff, 'preserveHandoffForSignedIn', 'localized launcher keeps work for authenticated visitors')
+  ok(!localizedHandoff.includes('utmSource='), 'localized launcher does not overwrite the real referring source')
+  ok(!localizedHandoff.includes('utmMedium='), 'localized launcher does not overwrite the real referring medium')
+  ok(!localizedHandoff.includes("'de' | 'fr'"), 'unsupported German and French launchers stay fail-closed')
+  includes(portuguesePage, 'Seedance se o saldo do teste ativo cobrir; senão, usa Fast', 'Portuguese copy names the bounded trial router')
+  includes(spanishPage, 'Seedance si el saldo de la prueba activa alcanza; si no, usa Fast', 'Spanish copy names the bounded trial router')
+  includes(spanishPage, "'pt-BR': `${BASE}/gerador-de-shorts-gratis`", 'Spanish hreflang sends Portuguese visitors to the Portuguese page')
 
   for (const preview of [
     'docs/previews/CHATGPT-SCRIPT-HANDOFF-2026-08-27.html',
@@ -245,6 +303,8 @@ try {
     'docs/previews/CHATGPT-DIRECT-PASTE-2026-09-04.html',
     'docs/previews/CHATGPT-DIRECT-PASTE-2026-09-04.svg',
     'docs/previews/CHATGPT-DIRECT-PASTE-2026-09-04.png',
+    'docs/previews/K18-PT-ES-SCRIPT-LAUNCHERS-2026-09-04.html',
+    'docs/previews/K18-PT-ES-SCRIPT-LAUNCHERS-2026-09-04.png',
   ]) {
     ok(existsSync(join(root, preview)), `${preview} exists`)
   }
