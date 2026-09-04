@@ -1715,3 +1715,49 @@ Nada.
 ### 📋 O QUE ACONTECEU
 
 As três melhorias recentes estão no ar, mas ainda não passaram por uma pessoa elegível. Não confundi “publicado” com “provado”: mantive as variantes e preservei o aprendizado para a próxima entrada real.
+
+---
+
+## ROUND 25 — K4 auditado e redirecionado · o segundo download já recebe convite
+
+**Data:** 2026-09-04 12:25→12:33 BRT
+
+**Pista:** Growth-B2C / CAIXA
+
+**Branch:** `codex/caixa-second-download-r25`
+
+### PLACAR E VIGIA
+
+**EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, 04/09/2026 12:32 BRT:** desde o marco de 03/09 16:00 UTC há **39 cadastros externos, 24 pessoas com filme, 2 checkouts com filme, 2 checkouts sem filme, 0 assinaturas e 0 pessoas com falha sem filme**.
+
+**EVIDÊNCIA DE PRODUÇÃO — vigia das últimas 2h:** uma pessoa externa (`9f2b563c`), origem direta, abriu checkout Pro dois segundos após concluir o cadastro. Tinha 25 créditos intactos, 0 filme e nenhum input registrado. Pela taxonomia vigente é `defeito` (0 filme + 0 input), mas não há evidência de falha técnica: a trilha é somente callback de autenticação → trial concedido → checkout. O caminho de primeira entrega já existe e não foi duplicado nem usado para bloquear a intenção explícita de pagar.
+
+### O DADO QUE INVALIDOU A IMPLEMENTAÇÃO PLANEJADA
+
+**EVIDÊNCIA DE PRODUÇÃO — 30 dias, pessoas externas:** 67 pessoas fizeram ao menos dois `video_downloaded` confirmados. No segundo download, 51 já viram alguma oferta próxima: 44 viram a oferta de trial e 10 a oferta free, com sobreposição. Doze abriram checkout nas 24h seguintes e uma confirmou pagamento depois do segundo download. Cinquenta e quatro segundos downloads ocorreram na tela final e 13 no `/history`.
+
+**FATO CONFIRMADO:** `GenerateClient.tsx` já troca o card de exportação após o download e já mostra as escolhas existentes de assinatura/avulso. A superfície adicional `clean_export_direct_choices_viewed` teve 0 pessoas, porque suas condições não representam a coorte dominante de trial; isso não significa ausência de convite — `trial_post_video_offer_viewed` já cobre a maioria.
+
+### DECISÃO / GATE
+
+**CONTRADIÇÃO:** o cardápio K4 dizia que ninguém que baixa duas vezes é convidado. Produção mostra convite para 51/67 e 12 checkouts em 24h. Portanto, não foi criado outro card no Generate: seria oferta duplicada no mesmo momento e confundiria atribuição.
+
+**QUESTÃO PENDENTE:** os 13 segundos downloads do `/history` não têm o mesmo caller visual. Como a tela e o contrato de download são da pista Claude, foi aberto um pedido preciso: sinalizar o segundo download confirmado no `/history`; depois, a CAIXA pode ligar um card próprio sem alterar o mecanismo de download.
+
+Gate do K4: só implementar após esse sinal ou outra prova de ausência de oferta por pessoa. Medir sinal → card → checkout → pagamento; reverter se o card coexistir com oferta já visível na mesma sessão.
+
+### RISCO
+
+Zero risco de produto e zero custo: somente `SELECT` agregado e documentação. O risco evitado foi sobrepor uma nova caixa de venda a 51 pessoas que já receberam uma.
+
+### PRÓXIMA JOGADA
+
+Enquanto o pedido compartilhado aguarda a outra pista, atacar outro estágio CAIXA sem editar uma superfície congelada: procurar a próxima lacuna com caller vivo entre K9/K8/K11 e o checkout atual.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+### 📋 O QUE ACONTECEU
+
+O segundo download já abre a conversa de assinatura para a maioria; o problema não era “ninguém convidado”. Evitei uma oferta duplicada e isolei o buraco real: quem baixa de novo pelo histórico ainda não tem o mesmo gatilho. A pista responsável recebeu o pedido com medição exata.
