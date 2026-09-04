@@ -8,3 +8,9 @@ docs/PROMPT-DIARIO*.md merge=union
 docs/PAUTA-*.md merge=union
 docs/HANDOFF-*.md merge=union
 docs/ESCOPO-*.md merge=union
+# 04/09: o arquivo de PEDIDOS entre pistas e o unico que Claude e Codex escrevem
+# ao MESMO tempo, toda rodada — e ficou de fora da lista, entao o clique das
+# 09:37 parou em conflito. Pedido novo e sempre uma linha appendada: uniao.
+docs/PEDIDOS-*.md merge=union
+docs/PROGRAMA-*.md merge=union
+docs/PLANO-*.md merge=union
