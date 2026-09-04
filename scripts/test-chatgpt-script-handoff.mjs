@@ -124,6 +124,8 @@ try {
   equal(count(page, '<TopicGeneratorForm'), 1, 'exactly one handoff form is rendered')
   includes(page, "const CAMPAIGN = 'chatgpt_to_shorts'", 'campaign stays canonical')
   includes(page, "const HANDOFF_ID = 'chatgpt-script-handoff'", 'handoff has a stable anchor')
+  includes(page, 'formId={HANDOFF_ID}', 'the rendered handoff form receives the stable anchor')
+  includes(topicForm, 'id={formId}', 'the shared form attaches its supplied anchor to visible DOM')
   includes(page, 'scriptMode="verbatim"', 'landing explicitly requests verbatim handling')
   includes(page, 'duration={35}', 'landing explicitly requests its advertised duration')
   includes(page, 'creationIntent="trial_best"', 'landing explicitly requests the best eligible trial engine')

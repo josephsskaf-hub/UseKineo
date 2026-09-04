@@ -202,3 +202,68 @@ Nada.
 - **VALIDADO EM PRODUÇÃO — 04/09/2026 00:30 BRT:** deployment Vercel concluído para `341a119b`; domínio canônico respondeu 200.
 - **VALIDADO EM PRODUÇÃO — 04/09/2026 00:33 BRT:** Vercel e Guardião #48 concluíram verdes para `341a119b`.
 - **QUESTÃO PENDENTE / DESCONHECIDO:** vigias de checkout/origem, E2E autenticado e o hardening futuro do transporte por `sessionStorage` seguem indisponíveis nesta rodada.
+
+---
+
+## Rodada 4 — K5 · ChatGPT abre na caixa de roteiro — 04/09 00:39→00:50 BRT — ENTREGA CONCLUÍDA
+
+- **IMPLEMENTADO / VALIDADO EM PRODUÇÃO:** o endereço canônico que `/llms.txt` e `/api/facts` oferecem a quem já traz um roteiro do ChatGPT agora abre diretamente na caixa de colar roteiro da landing existente; página, formulário e funil não foram duplicados.
+- **BLOQUEADO / DESCONHECIDO:** o vigia individual de checkout e a origem dos cadastros das últimas 2 horas não foram remensurados; a leitura somente consulta ao Supabase já havia sido recusada e não foi contornada.
+
+### Dado, prioridade e anti-repetição
+
+- **FATO CONFIRMADO:** os pedidos abertos mais antigos, de 18:40 e 18:45 BRT, apontam para `app/(dashboard)/generate/GenerateClient.tsx` e seu teste; `(dashboard)` pertence à pista Claude na regra vigente, portanto não eram viáveis para FLUXO. Fontes: `docs/PEDIDOS-ENTRE-PISTAS-2026-09-03.md:18-19` e `docs/PROGRAMA-CODEX-ASSINATURAS-2026-09-03.md:315-316,462-465`.
+- **FATO CONFIRMADO — revisão independente em 04/09/2026:** existe ainda um rascunho não commitado desse waitroom em outra worktree, baseado em `d6d3ad44`; reimplementá-lo aqui duplicaria trabalho e atravessaria pista. O rascunho não foi importado, editado nem tratado como pronto.
+- **FATO CONFIRMADO — checagem F1 em 04/09/2026 00:41 BRT:** `/llms.txt`, `/free-script-generator`, `/scripts/space`, `/robots.txt`, `/sitemap.xml` e `/chatgpt-to-youtube-shorts` responderam 200; não apareceu regressão pública a corrigir. Fonte: requisições HEAD ao domínio canônico nesta rodada.
+- **FATO CONFIRMADO:** K2 já reutilizava `/chatgpt-to-youtube-shorts` em vez de abrir `/paste-your-script`, mas o `START_HERE_FACT` ainda apontava ao topo do guia longo, enquanto a ação útil já possuía o id estável `chatgpt-script-handoff`. Fontes anteriores ao commit: `lib/kineoFacts.ts:755-759`, `app/chatgpt-to-youtube-shorts/page.tsx:41-42,390-416`.
+- **HIPÓTESE:** retirar a busca manual pela caixa reduz um passo para a pessoa que chega do único canal atribuído aos três assinantes mais recentes; a mudança não prova nova assinatura até haver uma janela pós-deploy. Fonte da atribuição histórica: `docs/PLANO-COWORK-ASSINATURAS-2026-09-03.md:23-29`.
+
+### Vigia do checkout e placar
+
+- **BLOQUEADO / DESCONHECIDO — 04/09/2026:** sem leitura aceita do Supabase, não há linha individual dos checkouts das últimas 2 horas nem corte novo por origem; nenhum zero foi inferido.
+- **EVIDÊNCIA DE PRODUÇÃO — medição de 03/09/2026 22:08 BRT:** o último placar cronologicamente coerente permanece em 15 cadastros, 10 pessoas com filme entregue (67%), 1 checkout de desejo, 1 checkout de defeito, 0 assinaturas e 0 pessoas com falha sem filme. Fonte: `docs/SPRINT-ASSINATURAS-2026-09-03.md:960-972`.
+- **CONTRADIÇÃO / DESCONHECIDO:** o diário #8 conserva um cabeçalho com janela futura em relação ao próprio commit e continua fora do placar desta rodada. Fonte: `docs/SPRINT-ASSINATURAS-2026-09-03.md:1120-1125` e commit `e34a56b8`.
+
+### O que mudou
+
+- **IMPLEMENTADO:** `START_HERE_FACT.url` ganhou somente o fragmento `#chatgpt-script-handoff`; `/llms.txt` e `/api/facts` consomem o mesmo registro, de modo que não há duas URLs para manter. Fonte: `lib/kineoFacts.ts:752-763`, `app/llms.txt/route.ts:214-218`, `lib/kineoFacts.ts:1006-1013`.
+- **FATO CONFIRMADO:** o fragmento resolve para o único formulário já renderizado com `formId={HANDOFF_ID}`; o envio continua carregando roteiro, campanha, intenção `trial_best`, modo `verbatim` e duração, sem cair em cadastro genérico. Fontes: `app/chatgpt-to-youtube-shorts/page.tsx:41-42,398-416`, `app/youtube-shorts-from-topic/TopicGeneratorForm.tsx:113-172`.
+- **FATO CONFIRMADO:** nenhum preço, oferta, texto visível, limite, motor, duração, CTA, evento, parser, arquivo de dashboard/Claude ou arquivo de CAIXA foi alterado. Fonte: diff do commit `a5f613148d92a87291f39b322ec947e7c8660ba4`.
+- **TESTADO LOCALMENTE — 04/09/2026 00:51 BRT:** `test-chatgpt-script-handoff` 93/93, `test-aeo-trial-access` 59/59 e `test-chatgpt-quickstart` 127/127; TypeScript e `git diff --check` saíram com código 0.
+- **TESTADO LOCALMENTE — 04/09/2026 00:46 BRT:** `test-text-to-video-intent-router` permaneceu vermelho numa expectativa anterior de 45 segundos contra o default real de 35; nenhum arquivo do caminho dessa falha foi alterado nesta rodada, e ela não foi mascarada nem atribuída ao diff.
+- **TESTADO LOCALMENTE — 04/09/2026 00:45 BRT:** a comparação autocontida foi inspecionada em desktop e mobile. Fontes: `docs/previews/CHATGPT-DIRECT-PASTE-2026-09-04.html`, `.svg` e `.png`.
+- **FATO CONFIRMADO — revisão independente em 04/09/2026:** um auditor somente leitura confirmou que há uma única instância do formulário, `/llms.txt` e `/api/facts` herdam a mesma URL e preço/oferta/contrato ficaram intocados; a recomendação de travar a ligação fragmento → DOM foi incorporada em duas invariantes adicionais.
+
+### Integração e produção
+
+- **IMPLEMENTADO:** código integrado por fast-forward em `main` no SHA `a5f613148d92a87291f39b322ec947e7c8660ba4`; o pai direto é `f236dee9b55cc17c5be04a3ce6295588de2ad460`.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 00:48 BRT:** a Vercel concluiu o deployment `4KWy8ev2wv491fhCLPfemHJ3jC75` para o SHA funcional.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 00:48 BRT:** o Guardião `33834460828` concluiu `success`; TypeScript e a suíte informativa terminaram verdes.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 00:49 BRT:** a landing e `/llms.txt` responderam 200; o HTML da landing contém o id e a caixa, `/llms.txt` contém o link com fragmento, e `/api/facts.startHere.url` devolve exatamente `https://www.usekineo.com/chatgpt-to-youtube-shorts#chatgpt-script-handoff`.
+
+### Como medir e quando parar
+
+- **FATO CONFIRMADO:** a submissão do formulário já emite `organic_topic_submitted` e seu espelho deduplicável `organic_cta_clicked`, ambos com campanha `chatgpt_to_shorts`; nenhuma telemetria nova era necessária para saber se a pessoa que chegou à caixa seguiu para cadastro. Fontes: `app/chatgpt-to-youtube-shorts/page.tsx:398-408`, `app/youtube-shorts-from-topic/TopicGeneratorForm.tsx:123-151`.
+- **SUGESTÃO:** nas primeiras 24 horas completas, contar pessoas, não eventos: sessões de `/chatgpt-to-youtube-shorts` com referência ChatGPT → `organic_topic_submitted` com campanha `chatgpt_to_shorts` → cadastro → primeiro filme → checkout de desejo → assinatura. Fragmentos não chegam ao servidor; não inventar uma impressão específica do hash.
+- **SUGESTÃO — gate de parada:** corrigir ou reverter se `/llms.txt` e `/api/facts` divergirem, se o id sair da página, se o link abrir cadastro genérico ou se algum campo do handoff deixar de atravessar o signup.
+- **RISCO:** o ganho depende de answer engines escolherem o link publicado; a rodada encurta o caminho quando escolhem, mas não controla ranking nem volume orgânico.
+
+### PEDIDOS
+
+- **FATO CONFIRMADO:** nenhum pedido foi baixado: os itens de waitroom continuam abertos para a pista dona, e o rascunho concorrente precisa ser revisado antes de qualquer integração.
+- **FATO CONFIRMADO:** nenhum pedido novo foi aberto pela FLUXO nesta rodada.
+
+## PRÓXIMA JOGADA
+
+- **SUGESTÃO:** auditar K18 contra as landings já existentes em português e espanhol e só então criar o menor ponto de entrada localizado para roteiro pronto. K7/K19 não são executáveis enquanto `CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED=false`; F2 pertence à tela de resultado do dashboard e F3+K20 depende de ação do fundador, não entrega uma mudança visível no produto nesta cadência.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+## 📋 O QUE ACONTECEU
+
+- **IMPLEMENTADO:** quem recebe do ChatGPT o link canônico para roteiro pronto agora abre a landing exatamente na caixa de colagem, sem nova página nem desvio para cadastro vazio.
+- **TESTADO LOCALMENTE — 04/09/2026 00:51 BRT:** 279 verificações direcionadas passaram, TypeScript e diff check ficaram verdes; a comparação desktop/mobile foi inspecionada.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 00:49 BRT:** Vercel, Guardião, landing, `/llms.txt` e `/api/facts` confirmaram o mesmo destino com fragmento.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** vigia de checkout/origem e efeito em assinatura aguardam dados pós-deploy; o pedido de waitroom permanece com a pista Claude.
