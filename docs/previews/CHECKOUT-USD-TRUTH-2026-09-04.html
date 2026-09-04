@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Kineo checkout currency truth — before and after</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#f4f5f7;color:#1f2937;font-family:Inter,Arial,sans-serif}.wrap{max-width:1120px;margin:0 auto;padding:32px 20px 56px}h1{margin:0 0 8px;font-size:28px}p{margin:0;color:#667085}.grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:28px}.label{font-size:12px;font-weight:800;letter-spacing:.12em;color:#667085;margin-bottom:8px}.checkout{min-height:520px;background:#fff;border:1px solid #e6e8ec;border-radius:16px;padding:30px;box-shadow:0 14px 35px rgba(15,23,42,.08)}.brand{font-size:14px;color:#667085;margin-bottom:32px}.price{font-size:32px;font-weight:800;color:#111827}.period{font-size:14px;color:#667085}.line{display:flex;gap:14px;margin-top:28px;padding:18px 0;border-top:1px solid #eceef2;border-bottom:1px solid #eceef2}.thumb{width:52px;height:52px;border-radius:10px;background:linear-gradient(135deg,#151a24,#2997ff);display:grid;place-items:center;color:#fff;font-weight:900}.name{font-weight:800}.desc{font-size:12px;line-height:1.48;color:#667085;margin-top:5px}.pay{margin-top:28px;background:#111827;color:#fff;text-align:center;border-radius:10px;padding:14px;font-weight:800}.note{font-size:11px;color:#667085;text-align:center;margin-top:12px}.changed{background:#eef7ff;border:1px solid #b8dcff;border-radius:6px;padding:2px 5px;color:#075eaa;font-weight:800}@media(max-width:760px){.grid{grid-template-columns:1fr}.wrap{padding:22px 12px}.checkout{min-height:440px;padding:22px}}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <h1>Currency truth inside hosted checkout</h1>
+    <p>Same plan, amount and payment methods. Only the missing USD statement is added.</p>
+    <div class="grid">
+      <section><div class="label">BEFORE</div><div class="checkout"><div class="brand">Kineo</div><div class="price">$15.00 <span class="period">per month</span></div><div class="line"><div class="thumb">K</div><div><div class="name">Kineo Creator</div><div class="desc">A monthly balance for finished films. Pay by card, or Apple Pay / Google Pay when available. Link is optional — choose Pay without Link to enter your card.</div></div></div><div class="pay">Subscribe</div><div class="note">Currency is visible only through the amount formatting.</div></div></section>
+      <section><div class="label">AFTER</div><div class="checkout"><div class="brand">Kineo</div><div class="price">$15.00 <span class="period">per month</span></div><div class="line"><div class="thumb">K</div><div><div class="name">Kineo Creator</div><div class="desc changed">Charged in USD worldwide. Pay by card, or Apple Pay / Google Pay when available. Link is optional — choose Pay without Link to enter your card.</div></div></div><div class="pay">Subscribe</div><div class="note">No price, billing or payment behavior changed.</div></div></section>
+    </div>
+  </main>
+</body>
+</html>

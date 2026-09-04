@@ -1,10 +1,15 @@
-export const CHECKOUT_PAYMENT_GUIDANCE_VERSION = 'checkout_payment_guidance_v1' as const
+import { CURRENCY_DISPLAY, resolveCheckoutCurrency } from '@/lib/checkoutPricing'
+
+export const CHECKOUT_PAYMENT_GUIDANCE_VERSION = 'checkout_payment_guidance_v2' as const
+
+const CHECKOUT_CURRENCY_LABEL =
+  CURRENCY_DISPLAY[resolveCheckoutCurrency(null)].label
 
 export const CHECKOUT_PAYMENT_GUIDANCE_COMPACT =
   'Card, or Apple Pay / Google Pay when available · Link sign-in is optional'
 
 export const CHECKOUT_PAYMENT_GUIDANCE_STRIPE =
-  'Pay by card, or Apple Pay / Google Pay when available. Link is optional — choose Pay without Link to enter your card.'
+  `Charged in ${CHECKOUT_CURRENCY_LABEL} worldwide. Pay by card, or Apple Pay / Google Pay when available. Link is optional — choose Pay without Link to enter your card.`
 
 /**
  * Keeps the payment-choice explanation inside Stripe's always-visible line item.

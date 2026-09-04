@@ -11,22 +11,43 @@ let checks = 0
 const check = (value, label) => { assert.ok(value, label); checks += 1 }
 const equal = (actual, expected, label) => { assert.equal(actual, expected, label); checks += 1 }
 
-function executeTs(file) {
+function executeTs(file, mocks = {}) {
   const output = ts.transpileModule(read(file), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
   }).outputText
   const box = { exports: {} }
-  vm.runInNewContext(output, { module: box, exports: box.exports }, { filename: file })
+  const localRequire = (id) => {
+    if (Object.prototype.hasOwnProperty.call(mocks, id)) return mocks[id]
+    throw new Error(`${file} imported unexpected module: ${id}`)
+  }
+  vm.runInNewContext(output, {
+    module: box,
+    exports: box.exports,
+    require: localRequire,
+    process: { env: { NODE_ENV: 'production' } },
+  }, { filename: file })
   return box.exports
 }
 
-const policy = executeTs('lib/growth/checkoutPaymentGuidance.ts')
-equal(policy.CHECKOUT_PAYMENT_GUIDANCE_VERSION, 'checkout_payment_guidance_v1', 'cohort version is stable')
+const engine = executeTs('lib/credits/engineCost.ts')
+const autopilot = executeTs('lib/autopilot/config.ts', {
+  '@/lib/credits/engineCost': engine,
+})
+const checkout = executeTs('lib/checkoutPricing.ts', {
+  '@/lib/credits/engineCost': engine,
+  '@/lib/autopilot/config': autopilot,
+})
+const policy = executeTs('lib/growth/checkoutPaymentGuidance.ts', {
+  '@/lib/checkoutPricing': checkout,
+})
+equal(policy.CHECKOUT_PAYMENT_GUIDANCE_VERSION, 'checkout_payment_guidance_v2', 'cohort version is stable')
 check(policy.CHECKOUT_PAYMENT_GUIDANCE_COMPACT.includes('Apple Pay'), 'compact copy names Apple Pay')
 check(policy.CHECKOUT_PAYMENT_GUIDANCE_COMPACT.includes('Google Pay'), 'compact copy names Google Pay')
 check(policy.CHECKOUT_PAYMENT_GUIDANCE_COMPACT.includes('when available'), 'wallet copy respects device and regional eligibility')
 check(policy.CHECKOUT_PAYMENT_GUIDANCE_COMPACT.includes('Link sign-in is optional'), 'compact copy removes the false mandatory-login reading')
 check(policy.CHECKOUT_PAYMENT_GUIDANCE_STRIPE.includes('choose Pay without Link'), 'Stripe copy names the exact escape action')
+check(policy.CHECKOUT_PAYMENT_GUIDANCE_STRIPE.includes('Charged in USD worldwide'), 'Stripe copy repeats the canonical checkout currency at the decision point')
+check(!policy.CHECKOUT_PAYMENT_GUIDANCE_STRIPE.includes('local currency'), 'Stripe copy never promises a local-currency charge')
 
 const guided = policy.withCheckoutPaymentGuidance('40 credits / month')
 check(guided.startsWith('40 credits / month'), 'guidance preserves the commercial description')
@@ -61,5 +82,12 @@ for (const marker of ['BEFORE · DESKTOP', 'AFTER · DESKTOP', 'BEFORE · MOBILE
   check(preview.includes(marker), `preview contains ${marker}`)
 }
 check(!/https?:\/\//i.test(preview), 'preview has no external dependency')
+
+const currencyPreviewPath = 'docs/previews/CHECKOUT-USD-TRUTH-2026-09-04.html'
+check(fs.existsSync(path.join(root, currencyPreviewPath)), 'currency before/after preview exists')
+const currencyPreview = read(currencyPreviewPath)
+check(currencyPreview.includes('BEFORE') && currencyPreview.includes('AFTER'), 'currency preview contains both states')
+check(currencyPreview.includes(policy.CHECKOUT_PAYMENT_GUIDANCE_STRIPE), 'currency preview renders the exact live Stripe guidance')
+check(!/https?:\/\//i.test(currencyPreview), 'currency preview has no external dependency')
 
 console.log(`PASS — ${checks}/${checks} checkout payment-guidance checks`)

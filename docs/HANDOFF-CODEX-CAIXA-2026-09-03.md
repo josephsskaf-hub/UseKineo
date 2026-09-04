@@ -1761,3 +1761,57 @@ Nada.
 ### 📋 O QUE ACONTECEU
 
 O segundo download já abre a conversa de assinatura para a maioria; o problema não era “ninguém convidado”. Evitei uma oferta duplicada e isolei o buraco real: quem baixa de novo pelo histórico ainda não tem o mesmo gatilho. A pista responsável recebeu o pedido com medição exata.
+
+---
+
+## ROUND 26 — USD explícito dentro do checkout hospedado
+
+**Data:** 2026-09-04 12:34→12:43 BRT
+
+**Pista:** Growth-B2C / CAIXA
+
+**Branch:** `codex/caixa-usd-checkout-r26`
+
+### DADO QUE DOÍA E HIPÓTESE
+
+**EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, 04/09/2026:** nos últimos 14 dias, 44 pessoas externas tiveram uma primeira tentativa de checkout registrada; todas as tentativas com moeda conhecida foram USD e 3 pessoas confirmaram pagamento depois. A versão atual de orientação de pagamento chegou a 22 dessas pessoas e teve 2 pagamentos posteriores; isso é coorte temporal, não prova causal.
+
+**FATO CONFIRMADO:** a página pública já declara que a Kineo lista e cobra planos em USD no mundo inteiro, mas a descrição sempre visível do produto dentro do Stripe dizia somente quais meios de pagamento usar. O último metro não repetia a moeda comercial que a pessoa tinha acabado de ler.
+
+**HIPÓTESE:** a ausência de uma frase explícita de USD dentro do checkout cria uma pequena quebra de confiança para compradores internacionais quando o símbolo `$` é ambíguo. O fundador já decidiu cobrança somente em USD e pediu coerência no instante final; a mudança apresenta essa decisão, não cria outra.
+
+### MUDANÇA MÍNIMA REVERSÍVEL
+
+**IMPLEMENTADO:** `checkout_payment_guidance_v2` passa a começar a descrição do plano no Stripe com “Charged in USD worldwide.” O rótulo `USD` deriva de `CURRENCY_DISPLAY[resolveCheckoutCurrency(null)]`, a fonte canônica; não existe literal de preço, conversão automática ou moeda alternativa. A orientação já existente sobre cartão, Apple Pay, Google Pay e Link permanece byte a byte depois da nova frase.
+
+Nenhum preço, cobrança, desconto, plano, crédito, SKU, meio de pagamento ou regra do Stripe foi alterado. A versão nova já é carregada nos eventos de tentativa, sessão e webhook, permitindo coorte limpa.
+
+### TESTADO E PREVIEW
+
+**TESTADO LOCALMENTE:** contrato de orientação do checkout 35/35; moeda canônica 7256/7256; money-truth 313/313; public-promo-truth 68/68; TypeScript verde; whitespace limpo.
+
+**TESTADO VISUALMENTE:** desktop antes/depois conferido em `docs/previews/CHECKOUT-USD-TRUTH-2026-09-04.html`. A linha fica legível no produto do checkout e não muda hierarquia, botão ou valor.
+
+### COMO MEDIR E GATE
+
+`checkout_attempted(checkout_payment_guidance='checkout_payment_guidance_v2')` → `checkout_started` → cancelamento/expiração/pagamento, por pessoa externa. Comparar somente depois de 10 exposições com 24h completas ou 7 dias. Sucesso: maior proporção de `checkout_success_viewed`; sinais secundários: menor cancelamento/expiração. Reverter se a descrição exceder o limite do Stripe, ocultar informação de plano ou gerar erro de sessão.
+
+### PLACAR E VIGIA
+
+**EVIDÊNCIA DE PRODUÇÃO — corte de 12:32 BRT:** 39 cadastros externos, 24 pessoas com filme, 2 checkouts com filme, 2 sem filme, 0 assinaturas e 0 pessoas com falha sem filme desde o marco. O vigia de 2h tinha uma pessoa externa já descrita na R25; nenhuma nova trilha apareceu durante o desenho.
+
+### RISCO
+
+Baixo e reversível: somente uma frase de verdade comercial já aprovada dentro da descrição do checkout. Risco residual é a frase aumentar densidade visual; o preview mostra que continua curta, e o contrato trava o total abaixo de 500 caracteres.
+
+### PRÓXIMA JOGADA
+
+Publicar e validar a versão v2; depois congelar até o gate. Na rodada seguinte, medir uma superfície diferente ou atender um pedido novo sem reeditar checkout USD.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+### 📋 O QUE ACONTECEU
+
+Quem sai da tabela em USD e chega ao Stripe agora lê dentro do próprio checkout que a cobrança é em USD. É uma correção de coerência no último segundo, sem mudar um centavo nem a forma de pagamento.
