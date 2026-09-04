@@ -1669,3 +1669,49 @@ Nada.
 ### 📋 O QUE ACONTECEU
 
 Quando o sistema precisa encaixar o roteiro numa duração menor, a pessoa agora sabe disso antes de aprovar. A mudança já está em produção, com Guardião e deploy verdes, e não altera o render nem o custo.
+
+---
+
+## ROUND 24 — medição pura · três entregas novas ainda sem exposição
+
+**Data:** 2026-09-04 12:21→12:24 BRT
+
+**Pista:** Growth-B2C / CAIXA
+
+**Branch:** `codex/caixa-measurement-r24`
+
+### PLACAR E VIGIA
+
+**EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, 04/09/2026 12:23 BRT:** desde o marco de 03/09 16:00 UTC há **37 cadastros externos, 24 pessoas com filme, 2 checkouts com filme, 1 checkout sem filme, 0 assinaturas e 0 pessoas com falha sem filme**. Não houve pessoa externa no vigia de checkout das últimas 2h.
+
+### MEDIÇÃO DAS RODADAS 21–23
+
+| entrega | pessoas expostas pós-deploy | filme depois | checkout depois | pago depois |
+|---|---:|---:|---:|---:|
+| R21 · checkout reaberto após primeira entrega | 0 | 0 | 0 | 0 |
+| R22 · progresso real para crédito preso | 0 | 0 | 0 | 0 |
+| R23 · duração efetiva antes do aceite | 0 | 0 | 0 | 0 |
+
+**FATO CONFIRMADO:** as consultas usam o timestamp individual de cada deploy e contam pessoas externas distintas. R22 exige `hold_state='in_flight'`; R23 exige `autofit_down=true`. Evento, impressão, filme ou checkout não foi contado como assinatura.
+
+### DECISÃO / GATE
+
+Nenhuma mudança de produto. As três intervenções estão `VALIDADAS EM PRODUÇÃO`, mas ainda não têm uma única exposição humana pós-deploy; portanto não existe amostra para melhorar, reverter ou atribuir resultado. Permanecem congeladas até o gate próprio de 10 pessoas externas ou 7 dias.
+
+O avanço de 23 para 24 pessoas com filme veio da entrega tardia do caso TAAFT já observado na R22, não de nenhuma dessas três interfaces novas. O placar continua com 0 assinatura; isso dói, mas não transforma ausência de amostra em causa.
+
+### RISCO
+
+Zero risco de produto e zero custo: somente SQL `SELECT` e documentação. O risco evitado foi empilhar uma quarta mensagem sobre superfícies que nenhum visitante elegível viu ainda.
+
+### PRÓXIMA JOGADA
+
+Reconciliar novamente os pedidos abertos e agir numa etapa do caixa que não esteja congelada. Se o vigia continuar vazio, escolher por impacto histórico e caller vivo, não por contagem de eventos.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+### 📋 O QUE ACONTECEU
+
+As três melhorias recentes estão no ar, mas ainda não passaram por uma pessoa elegível. Não confundi “publicado” com “provado”: mantive as variantes e preservei o aprendizado para a próxima entrada real.
