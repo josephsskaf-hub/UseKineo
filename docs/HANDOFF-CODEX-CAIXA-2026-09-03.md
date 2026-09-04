@@ -2946,3 +2946,60 @@ O R42 está no ar e verde, mas ainda não foi visto por uma pessoa da variante.
 Dos quatro compradores que abriram o caixa desde o marco, três ainda não tinham
 filme e dois já dispensaram a retomada. Não empilhei outra oferta sobre testes
 sem amostra; corrigi o placar e preservei a capacidade de aprender.
+
+---
+
+## ROUND 44 — medição pura do bloco R41–R44
+
+**Data:** 2026-09-04 15:00→15:04 BRT
+
+**Pista:** Growth-B2C / CAIXA
+
+### DECISÃO APROVADA
+
+Rodada exclusivamente de medição exigida a cada quatro rodadas. Nenhum código,
+copy, oferta, preço, crédito, Stripe, migration ou escrita no banco foi feito.
+
+### RESULTADO DAS INTERVENÇÕES
+
+**R41 — primeiro valor após downgrade:** 0 pessoas externas em
+`trial_downgrade_offer_viewed(version=trial_downgrade_offer_view_v2,
+journey_state=first_value)`, 0 cliques, 0 filme atribuível, 0 checkout e 0
+pagamento. A variante não teve denominador e permanece congelada.
+
+**R42 — segundo filme que cabe no saldo:** 0 pessoas externas em
+`trial_balance_bridge_viewed(bridge_version=trial_return_fast_best_fit_v1)`, 0
+cliques, 0 segundo filme atribuível, 0 checkout e 0 pagamento. O deploy só ficou
+pronto às 14:49 BRT; ausência de exposição em poucos minutos não é resultado.
+
+**R43 — checkout por pessoa:** nenhuma mudança de produto. O corte corrigiu a
+mistura entre eventos de servidor e retorno humano e fixou o conjunto vivo em
+quatro pessoas que abriram checkout desde o marco, sem atribuir causa ao não
+pagamento.
+
+### PLACAR CONTRA O MARCO
+
+**EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, corte 04/09/2026 15:03
+BRT:** **41 cadastros externos, 27 pessoas com filme, 2 checkouts com filme, 2
+sem filme, 0 assinaturas e 0 pessoas com falha sem filme**. É exatamente o mesmo
+placar registrado na R40 às 14:02 BRT: delta do bloco = 0 em todas as seis
+medidas. O vigia móvel de duas horas também estava em 0 pessoa externa com
+checkout aberto e pagamento ausente.
+
+### CONCLUSÃO E PRÓXIMA JOGADA
+
+O bloco publicou duas mudanças reversíveis e corrigiu uma leitura causal, mas o
+intervalo entre deploy e corte não trouxe uma pessoa elegível. As variantes
+ficam intactas até seus gates. R45 abre novo bloco fora de downgrade, ponte de
+saldo, home, pricing, retomada e cancelamento; primeiro procura uma lacuna
+mensurável entre valor já entregue e decisão de plano, sem criar outra oferta.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+### 📋 O QUE ACONTECEU
+
+O placar não mudou no bloco e as duas telas novas ainda não foram vistas por
+ninguém elegível. Isso não prova que falharam. Congelei as variantes e encerro o
+bloco sem maquiar ausência de amostra como resultado.
