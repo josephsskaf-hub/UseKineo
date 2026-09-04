@@ -726,3 +726,52 @@ Nada.
 - **TESTADO LOCALMENTE — 04/09/2026 03:36 BRT:** 433 verificações direcionadas, TypeScript, diff check e preview desktop/mobile ficaram verdes; três auditores deram GO.
 - **VALIDADO EM PRODUÇÃO — 04/09/2026 03:48 BRT:** Guardião #10, Vercel e login anônimo canônico ficaram verdes no SHA `5e147af5`.
 - **QUESTÃO PENDENTE / DESCONHECIDO:** impacto em primeiro filme/assinatura, tamanho da coorte de sessão expirada, E2E autenticado e preservação por recuperação de senha seguem sem prova.
+
+---
+
+## Rodada 12 — medição pura de R8→R11 — 04/09 09:37→09:46 BRT — CONCLUÍDA
+
+- **FATO CONFIRMADO:** esta foi a rodada de medição obrigatória após quatro entregas; nenhum comportamento do produto foi alterado. Fonte: `docs/PROGRAMA-CODEX-ASSINATURAS-2026-09-03.md:430-431`.
+- **EVIDÊNCIA DE PRODUÇÃO:** as medições abaixo foram executadas somente leitura no projeto de produção, contam pessoas quando há identidade e chamam navegação anônima de sessão, nunca de pessoa.
+
+### Placar, vigia e origem
+
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 09:42:41 BRT:** desde o marco de 03/09 13:00 BRT, o placar canônico é **33 cadastros, 21 pessoas com filme, 1 checkout com filme, 1 checkout sem filme, 0 assinaturas e 0 pessoas com falha sem filme**. Fonte: SQL canônico de `docs/PROGRAMA-CODEX-ASSINATURAS-2026-09-03.md:168-188`, executado no Supabase de produção com os filtros internos canônicos.
+- **EVIDÊNCIA DE PRODUÇÃO:** contra a última leitura antes de R8, encerrada em 04/09 00:55 BRT, o placar passou de 16 para 33 cadastros e de 11 para 21 pessoas com filme, enquanto checkout permaneceu em 1 com filme + 1 sem filme e assinatura permaneceu em 0. Contra a leitura de R11 às 03:27:09 BRT, são 11 cadastros e 5 pessoas com filme a mais, sem avanço em checkout ou assinatura. Fontes: Rodadas 8 e 11 deste handoff e SQL de 09:42:41 BRT. Isso é mudança do placar, não atribuição causal às quatro entregas.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 09:42:41 BRT:** o vigia das duas horas anteriores encontrou **0 pessoas externas** com `checkout_started|checkout_attempted` sem `checkout_success_viewed`; não há linha individual nem classe desejo/roteiro-pronto/defeito nesta janela.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 09:42:41 BRT:** nas duas horas anteriores houve 5 cadastros externos: **direto 4, ChatGPT 1**. A janela móvel não foi somada às anteriores.
+
+### O que R8→R11 já permite medir
+
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 09:44:26 BRT:** desde o deploy de R8 às 02:18 BRT, `/vs` e seus comparativos tiveram **1 sessão anônima** em `landing_session_started` e **0 pessoas autenticadas**; é amostra insuficiente para avaliar a correção multiformato.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 09:44:26 BRT:** desde os respectivos deploys, houve **0 sessões** com `example_remix_topic_submitted` após R9 e **0 sessões** com `free_script_to_signup_clicked` após R10. Portanto ainda não existiu exposição mensurável às confirmações de trabalho de R9/R10, e R11 não tem evento próprio de exposição no login.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 09:44:26 BRT:** depois do deploy de R11 houve **0 eventos** `auth_callback_failed`, tanto em checkout quanto fora dele.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 09:44:47 BRT:** em 30 dias houve **10 eventos** `auth_callback_failed` fora de checkout e 0 em checkout; nenhum carregava `user_id`, então o dado não identifica pessoas nem prova quantos traziam `example_remix` ou `free_script`. O primeiro ocorreu em 17/08 23:57 BRT e o último em 02/09 19:22 BRT. Fonte: `events`, filtro exato por nome, janela de 30 dias e telemetria `is_checkout_destination`, somente leitura.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** não há volume pós-deploy para atribuir primeiro filme, checkout ou assinatura a R8, R9, R10 ou R11. Também não existe telemetria que distinga, numa falha OAuth não-checkout, trabalho salvo de um destino genérico.
+
+### Decisão, anti-repetição e risco
+
+- **FATO CONFIRMADO:** nenhuma implementação foi iniciada nesta rodada de medição; isso preserva a reserva de 20% definida pelo programa e evita transformar ausência de amostra em copy ou fluxo novo. Fonte: `docs/PROGRAMA-CODEX-ASSINATURAS-2026-09-03.md:160-162,430-431`.
+- **FATO CONFIRMADO:** não há pedido aberto viável para FLUXO. Os pedidos pendentes pertencem ao dashboard/Claude ou à CAIXA; `/v/[id]` e o teto do quickstart já foram concluídos nos SHAs `96310071` e `341a119b`.
+- **FATO CONFIRMADO:** três auditorias somente leitura concordaram em separar recuperação de senha de falha OAuth. Duas priorizaram o ramo OAuth menor; a auditoria completa de auth preferiu a cadeia de senha como experiência atômica, mas classificou-a como cinco arquivos e proibiu juntar as duas.
+- **HIPÓTESE / RISCO:** os totais do placar usam o marco fixo e não formam uma coorte causal de cada deploy; a sessão única de `/vs` não representa uma pessoa confirmada; zeros de eventos significam ausência observada na janela, não prova de que a interface converte melhor ou pior.
+- **TESTADO LOCALMENTE — 04/09/2026:** não houve código de produto a testar. `git diff --check` foi usado como gate do único append documental.
+
+### PEDIDOS
+
+- **FATO CONFIRMADO:** nenhum pedido foi baixado, alterado ou criado nesta rodada.
+
+## PRÓXIMA JOGADA
+
+- **SUGESTÃO:** na R13, preservar somente `example_remix` e `free_script` no retorno de falha OAuth. O callback já recebe o destino, mas o fallback não-checkout o descarta em `lib/growth/checkoutOAuthFailureHandoff.ts:38-42` e `app/auth/callback/route.ts:205-220`; o login já valida e mostra os dois contratos em `lib/growth/signupCreationPreview.ts:147-155`. Implementar em helper FLUXO separado, manter o helper de checkout intacto e soberano, e falhar fechado para redirect externo, prompt solto, marcador adulterado ou destino genérico. A recuperação de senha permanece uma rodada própria.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+## 📋 O QUE ACONTECEU
+
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 09:42 BRT:** o placar chegou a 33 cadastros e 21 pessoas com filme, mas checkout continuou em 2 pessoas e assinatura em 0; o vigia de duas horas ficou vazio e a origem recente foi 4 direta + 1 ChatGPT.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 09:44 BRT:** R8 teve uma sessão observável; R9 e R10 ainda não tiveram eventos de entrada pós-deploy; R11 não teve falha OAuth pós-deploy. Não há amostra para atribuir conversão às quatro mudanças.
+- **FATO CONFIRMADO:** a rodada respeitou o gate de medição pura, alterou apenas este handoff e não tocou produto, preço, checkout, banco, mensagens, dashboard Claude ou arquivos CAIXA.
+- **SUGESTÃO:** a próxima unidade pequena e observável é conservar o trabalho já validado quando o callback OAuth falha, sem misturá-la à recuperação de senha.
