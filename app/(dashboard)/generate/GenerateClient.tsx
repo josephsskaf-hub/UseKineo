@@ -1819,6 +1819,8 @@ export default function GenerateClient({
     held: number
     needed: number
     balance: number
+    holdState: 'in_flight' | 'dead' | 'unknown'
+    minutesAgo: number | null
     since: number
     released: boolean
     checking: boolean
@@ -8472,6 +8474,12 @@ export default function GenerateClient({
           // valor desconhecido de `reason` cai em 'credits' e nada muda, então
           // servidor velho + cliente novo (e o inverso) seguem funcionando.
           if (data?.reason === 'credits_held_by_render') {
+            const rawHoldMinutes = data?.inFlight && typeof data.inFlight === 'object' && 'minutesAgo' in data.inFlight
+              ? data.inFlight.minutesAgo
+              : null
+            const holdMinutes = typeof rawHoldMinutes === 'number'
+              ? Math.max(1, Math.round(rawHoldMinutes))
+              : null
             trackGenerationFailure('generating', 'cinematic_gate_credits_held', {
               httpStatus: 402,
               detail: typeof data?.held === 'number' ? `held=${data.held}` : undefined,
@@ -8484,6 +8492,10 @@ export default function GenerateClient({
               held: typeof data?.held === 'number' ? data.held : 0,
               needed: typeof data?.needed === 'number' ? data.needed : selectedCost,
               balance: typeof data?.balance === 'number' ? data.balance : 0,
+              holdState: data?.holdState === 'in_flight' || data?.holdState === 'dead'
+                ? data.holdState
+                : 'unknown',
+              minutesAgo: holdMinutes,
               since: Date.now(),
               released: false,
               checking: false,
@@ -8492,6 +8504,10 @@ export default function GenerateClient({
               held: typeof data?.held === 'number' ? data.held : null,
               needed: typeof data?.needed === 'number' ? data.needed : null,
               balance: typeof data?.balance === 'number' ? data.balance : null,
+              hold_state: data?.holdState === 'in_flight' || data?.holdState === 'dead'
+                ? data.holdState
+                : 'unknown',
+              minutes_ago: holdMinutes,
             })
             setPhase('failed'); return
           }
@@ -13687,8 +13703,21 @@ export default function GenerateClient({
               }
             >
               <div className="font-black text-base mb-2" style={{ color: creditsHeld.released ? '#6ee7b7' : '#fbbf24' }}>
-                {creditsHeld.released ? 'Your credits are back' : 'Your last video is still finishing'}
+                {creditsHeld.released
+                  ? 'Your credits are back'
+                  : creditsHeld.holdState === 'in_flight'
+                    ? 'Your film is being made'
+                    : 'Your last video is still finishing'}
               </div>
+              {!creditsHeld.released && creditsHeld.holdState === 'in_flight' && creditsHeld.minutesAgo !== null && (
+                <div
+                  className="inline-flex items-center rounded-full px-3 py-1 text-xs font-bold mb-3"
+                  style={{ background: 'rgba(245,158,11,.14)', color: '#fbbf24' }}
+                  role="status"
+                >
+                  In progress for about {creditsHeld.minutesAgo} minute{creditsHeld.minutesAgo === 1 ? '' : 's'}
+                </div>
+              )}
               <div className="text-sm mb-3" style={{ color: 'var(--muted)' }}>
                 {creditsHeld.released
                   ? `You have ${creditsHeld.balance} credit${creditsHeld.balance === 1 ? '' : 's'} again. Nothing was lost — you can start this video now.`
