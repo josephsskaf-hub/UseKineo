@@ -70,10 +70,10 @@ import { trackClosedEvent, trackEvent } from '@/lib/analytics'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import { creditsPerReferenceVideo } from '@/lib/marketingPrice'
 import {
+  buildTrialReturnLadderHref,
   decideTrialFirstDelivery,
   decideTrialReturnLadder,
   trialFirstDeliveryExposureMetadata,
-  TRIAL_BALANCE_BRIDGE_VERSION,
   TRIAL_FIRST_DELIVERY_VERSION,
 } from '@/lib/growth/trialBalanceBridge'
 import {
@@ -189,9 +189,11 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
   const dayRef = useRef(utcDayKey(Date.now()))
   const dismissKey = `${DISMISSED_PREFIX}:${userKey}:${dayRef.current}`
   const shownKey = `${SHOWN_PREFIX}:${userKey}:${dayRef.current}`
-  const returnLadderShownKey = `${RETURN_LADDER_SHOWN_PREFIX}:${userKey}:${dayRef.current}`
   const firstDelivery = decideTrialFirstDelivery({ trialPhase: open ? 'active' : null, credits, creditsUsed: used })
   const returnLadder = decideTrialReturnLadder({ trialPhase: open ? 'active' : null, credits })
+  // A mesma pessoa pode atravessar Seedance → Kineo 1 no mesmo dia. A chave
+  // inclui o degrau real para cada ação humana ter seu próprio denominador.
+  const returnLadderShownKey = `${RETURN_LADDER_SHOWN_PREFIX}:${userKey}:${dayRef.current}:${returnLadder.version}:${returnLadder.duration}`
   const refreshBanner = useCallback(() => {
     setRefreshToken((current) => current + 1)
   }, [])
@@ -573,8 +575,10 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
       intentCampaign: TRIAL_FIRST_DELIVERY_VERSION,
     }))
   }
-  const continueTrialWithSeedance = () => {
+  const continueTrialWithReturnLadder = () => {
     if (!returnLadder.eligible) return
+    const href = buildTrialReturnLadderHref(returnLadder)
+    if (!href) return
     void trackEvent('trial_balance_bridge_clicked', {
       source: 'trial_active_banner_return',
       surface: 'persistent_trial_banner',
@@ -586,9 +590,7 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
       credits_after_success: returnLadder.creditsAfterSuccess,
       ms_left: msLeft,
     })
-    window.location.assign(
-      `/studio/create?engine=seedance&duration=${returnLadder.duration}&intent_campaign=${TRIAL_BALANCE_BRIDGE_VERSION}`,
-    )
+    window.location.assign(href)
   }
 
   return (
@@ -678,14 +680,17 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
           }}
         >
           <p className="text-xs font-black" style={{ color: '#f5f5f7', lineHeight: 1.45 }}>
-            {returnLadder.creditsBefore} credits left — enough for a {returnLadder.duration}s Seedance film.
+            {returnLadder.creditsBefore} credits left — enough for a {returnLadder.duration}s {returnLadder.engineLabel} film.
           </p>
           <p className="mt-1 text-xs" style={{ color: 'var(--muted2)', lineHeight: 1.45 }}>
-            Use the trial on a premium generated film before it ends. You review the setup before anything starts.
+            {returnLadder.engine === 'fast'
+              ? 'Use the balance already in your trial for another film before it ends.'
+              : 'Use the trial on a premium generated film before it ends.'}{' '}
+            You review the setup before anything starts.
           </p>
           <button
             type="button"
-            onClick={continueTrialWithSeedance}
+            onClick={continueTrialWithReturnLadder}
             className="mt-2 inline-flex min-h-11 items-center justify-center rounded-xl px-4 text-xs font-black"
             style={{
               color: '#5cb3ff',
@@ -694,7 +699,7 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
               cursor: 'pointer',
             }}
           >
-            Set up my {returnLadder.duration}s Seedance film →
+            Set up my {returnLadder.duration}s {returnLadder.engineLabel} film →
           </button>
         </div>
       )}

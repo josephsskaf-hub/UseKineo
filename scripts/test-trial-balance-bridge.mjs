@@ -48,6 +48,8 @@ equal(policy.TRIAL_FIRST_DELIVERY_DURATION, 35, 'first delivery uses the measure
 equal(policy.TRIAL_FIRST_DELIVERY_COST, 15, 'first delivery uses 15 canonical Seedance credits')
 equal(policy.TRIAL_FIRST_FAST_REPEAT_DURATION, 60, 'the preserved repeat is a full Fast episode')
 equal(policy.TRIAL_FIRST_FAST_REPEAT_COST, 5, 'a full Fast repeat uses 5 canonical trial credits')
+equal(policy.TRIAL_RETURN_FAST_SHORT_COST, 3, '35s Kineo 1 return uses 3 canonical active-trial credits')
+equal(policy.TRIAL_RETURN_FAST_FULL_COST, 5, '60s Kineo 1 return uses 5 canonical active-trial credits')
 equal(policy.TRIAL_BALANCE_BRIDGE_DURATION, 35, 'bridge duration is explicit and visible in the public selector')
 equal(policy.TRIAL_BALANCE_BRIDGE_ENGINE, 'cinematic_ai', 'bridge engine is Seedance quality')
 check(read('lib/expandPolicy.ts').includes('SUPPORTED_DURATIONS = [35, 60, 90]'), '35s is supported by the shared client/server duration contract')
@@ -133,13 +135,55 @@ for (const credits of [15, 20, 21, 22, 23, 24]) {
   const result = policy.decideTrialReturnLadder({ trialPhase: 'active', credits })
   equal(result.eligible, true, `${credits} credits are recoverable after returning to the app`)
   equal(result.creditsAfterSuccess, credits - 15, `${credits} keeps exact return-ladder math`)
+  equal(result.engine, 'cinematic_ai', `${credits} credits preserve the Seedance rung`)
+}
+
+for (const credits of [5, 6, 10, 14]) {
+  const result = policy.decideTrialReturnLadder({ trialPhase: 'active', credits })
+  equal(result.eligible, true, `${credits} credits now keep the return ladder alive`)
+  equal(result.engine, 'fast', `${credits} credits choose Kineo 1 instead of making a false free-tier claim`)
+  equal(result.duration, 60, `${credits} credits cover the longest supported Kineo 1 return`)
+  equal(result.cost, 5, `${credits} credits use the canonical paid/trial Fast cost`)
+  equal(result.creditsAfterSuccess, credits - 5, `${credits} exposes the exact post-success balance`)
+}
+
+for (const credits of [3, 4]) {
+  const result = policy.decideTrialReturnLadder({ trialPhase: 'active', credits })
+  equal(result.eligible, true, `${credits} credits keep a shorter supported return rung`)
+  equal(result.engine, 'fast', `${credits} credits choose Kineo 1`)
+  equal(result.duration, 35, `${credits} credits choose the affordable 35s duration`)
+  equal(result.cost, 3, `${credits} credits use canonical duration scaling`)
+  equal(result.creditsAfterSuccess, credits - 3, `${credits} keeps exact 35s balance math`)
+}
+
+for (const credits of [0, 1, 2]) {
+  const result = policy.decideTrialReturnLadder({ trialPhase: 'active', credits })
+  equal(result.eligible, false, `${credits} credits cannot be presented as enough`)
+  equal(result.reason, 'too_few_credits', `${credits} credits fail honestly`)
+  equal(policy.buildTrialReturnLadderHref(result), null, 'ineligible rung cannot manufacture a Studio route')
+}
+
+for (const [credits, engine, duration, campaign] of [
+  [20, 'seedance', '35', policy.TRIAL_BALANCE_BRIDGE_VERSION],
+  [10, 'fast', '60', policy.TRIAL_RETURN_FAST_VERSION],
+  [3, 'fast', '35', policy.TRIAL_RETURN_FAST_VERSION],
+]) {
+  const decision = policy.decideTrialReturnLadder({ trialPhase: 'active', credits })
+  const href = policy.buildTrialReturnLadderHref(decision)
+  check(typeof href === 'string', 'eligible rung builds one Studio route')
+  const url = new URL(href, 'https://www.usekineo.com')
+  equal(url.pathname, '/studio/create', 'return rung opens the reviewed creation surface')
+  equal(url.searchParams.get('engine'), engine, 'return rung carries the decided engine')
+  equal(url.searchParams.get('duration'), duration, 'return rung carries the decided duration')
+  equal(url.searchParams.get('intent_campaign'), campaign, 'return rung carries its exact measurement version')
+  check(!url.searchParams.has('autoanalyze') && !url.searchParams.has('create_intent'), 'return rung cannot auto-start work')
 }
 
 for (const [input, reason] of [
   [{ trialPhase: null, credits: 20 }, 'not_active'],
   [{ trialPhase: 'ending', credits: 20 }, 'not_active'],
   [{ trialPhase: 'active', credits: null }, 'unknown_balance'],
-  [{ trialPhase: 'active', credits: 14 }, 'too_few_credits'],
+  [{ trialPhase: 'active', credits: 2 }, 'too_few_credits'],
   [{ trialPhase: 'active', credits: 25 }, 'full_seedance_already_fits'],
 ]) {
   const result = policy.decideTrialReturnLadder(input)
@@ -164,6 +208,7 @@ const policySource = read('lib/growth/trialBalanceBridge.ts')
 check(!policySource.includes('/api/'), 'policy performs no API call')
 check(!policySource.includes('video_credits'), 'policy cannot mutate a credit balance')
 check(policySource.includes("creditCostForDuration('cinematic_ai', true, 60)"), 'upper boundary comes from canonical cost')
+check(policySource.includes("creditCostForDuration(\n  'fast',\n  true,"), 'Fast return costs come from the canonical duration-aware biller')
 
 const funnel = executeTs('lib/admin/trialBalanceBridgeFunnel.ts', {
   '@/lib/growth/trialBalanceBridge': policy,
@@ -264,7 +309,7 @@ equal(firstDeliveryUrl.searchParams.get('intent_campaign'), policy.TRIAL_FIRST_D
 check(!firstDeliveryUrl.searchParams.has('autoanalyze'), 'first-delivery CTA cannot start analysis')
 check(!firstDeliveryUrl.searchParams.has('create_intent'), 'first-delivery CTA cannot start a render')
 const firstHandlerStart = banner.indexOf('const startFirstPremiumDelivery')
-const firstHandlerEnd = banner.indexOf('\n  const continueTrialWithSeedance', firstHandlerStart)
+const firstHandlerEnd = banner.indexOf('\n  const continueTrialWithReturnLadder', firstHandlerStart)
 check(firstHandlerStart >= 0 && firstHandlerEnd > firstHandlerStart, 'first-delivery handler boundaries are found')
 const firstHandler = banner.slice(firstHandlerStart, firstHandlerEnd)
 check(!firstHandler.includes('fetch('), 'first-delivery CTA cannot call a provider or mutate credits')
@@ -289,8 +334,11 @@ check(banner.includes("surface: 'persistent_trial_banner'"), 'persistent surface
 check(banner.includes('data-trial-return-ladder={returnLadder.version}'), 'persistent UI names its contract version')
 check(banner.includes('entry.intersectionRatio >= 0.5'), 'persistent view counts only after 50% visibility')
 check(banner.includes('You review the setup before anything starts.'), 'copy denies automatic credit spend')
-check(banner.includes("`/studio/create?engine=seedance&duration=${returnLadder.duration}&intent_campaign=${TRIAL_BALANCE_BRIDGE_VERSION}`"), 'return CTA lands on the attributed Seedance setup')
-const returnHandlerStart = banner.indexOf('const continueTrialWithSeedance')
+check(banner.includes('buildTrialReturnLadderHref(returnLadder)'), 'return CTA delegates engine, duration and campaign to the executed policy')
+check(banner.includes('{returnLadder.engineLabel} film.'), 'visible copy names the engine the balance actually covers')
+check(banner.includes("returnLadder.engine === 'fast'"), 'Kineo 1 rung has its own honest return explanation')
+check(banner.includes(':${returnLadder.version}:${returnLadder.duration}`'), 'each rung has a distinct human-view denominator')
+const returnHandlerStart = banner.indexOf('const continueTrialWithReturnLadder')
 const returnHandlerEnd = banner.indexOf('\n\n  return (', returnHandlerStart)
 check(returnHandlerStart >= 0 && returnHandlerEnd > returnHandlerStart, 'return CTA handler boundaries are found in product code')
 const returnHandler = banner.slice(returnHandlerStart, returnHandlerEnd)
@@ -353,5 +401,15 @@ for (const marker of ['Before · Plan Fit reserves the slot', 'After · Already-
   check(precedencePreview.includes(marker), `bridge-precedence preview contains ${marker}`)
 }
 check(!/https?:\/\//i.test(precedencePreview), 'bridge-precedence preview has no external dependency')
+
+const bestFitPreviewPath = 'docs/previews/TRIAL-RETURN-BEST-FIT-2026-09-04.html'
+check(fs.existsSync(path.join(root, bestFitPreviewPath)), 'best-fit return ladder comparison exists')
+const bestFitPreview = read(bestFitPreviewPath)
+for (const marker of ['BEFORE · DESKTOP', 'AFTER · DESKTOP', 'BEFORE · MOBILE', 'AFTER · MOBILE']) {
+  check(bestFitPreview.includes(marker), `best-fit preview contains ${marker}`)
+}
+check(bestFitPreview.includes('10 credits left — no funded next step shown'), 'preview exposes the exact old dead end')
+check(bestFitPreview.includes('10 credits left — enough for a 60s Kineo 1 film'), 'preview shows the funded next step')
+check(!/https?:\/\//i.test(bestFitPreview), 'best-fit preview has no external dependency')
 
 console.log(`PASS — ${checks}/${checks} trial balance bridge checks`)

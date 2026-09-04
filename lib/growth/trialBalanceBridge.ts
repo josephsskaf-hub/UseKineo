@@ -1,12 +1,15 @@
 import { creditCostForDuration } from '@/lib/credits/engineCost'
 
 export const TRIAL_BALANCE_BRIDGE_VERSION = 'trial_balance_seedance_35s_v2' as const
+export const TRIAL_RETURN_FAST_VERSION = 'trial_return_fast_best_fit_v1' as const
 export const TRIAL_FIRST_DELIVERY_VERSION = 'trial_first_seedance_35s_v2' as const
 export const TRIAL_BALANCE_BRIDGE_ENGINE = 'cinematic_ai' as const
 export const TRIAL_BALANCE_BRIDGE_ENGINE_LABEL = 'Seedance' as const
 export const TRIAL_BALANCE_BRIDGE_DURATION = 35 as const
 export const TRIAL_FIRST_DELIVERY_DURATION = 35 as const
 export const TRIAL_FIRST_FAST_REPEAT_DURATION = 60 as const
+export const TRIAL_RETURN_FAST_SHORT_DURATION = 35 as const
+export const TRIAL_RETURN_FAST_FULL_DURATION = 60 as const
 export const TRIAL_BALANCE_BRIDGE_COST = creditCostForDuration(
   TRIAL_BALANCE_BRIDGE_ENGINE,
   true,
@@ -22,6 +25,16 @@ export const TRIAL_FIRST_FAST_REPEAT_COST = creditCostForDuration(
   'fast',
   true,
   TRIAL_FIRST_FAST_REPEAT_DURATION,
+)
+export const TRIAL_RETURN_FAST_SHORT_COST = creditCostForDuration(
+  'fast',
+  true,
+  TRIAL_RETURN_FAST_SHORT_DURATION,
+)
+export const TRIAL_RETURN_FAST_FULL_COST = creditCostForDuration(
+  'fast',
+  true,
+  TRIAL_RETURN_FAST_FULL_DURATION,
 )
 export type TrialFirstDeliveryStudioIntentInput = {
   intentCampaign: string
@@ -159,8 +172,31 @@ export type TrialReturnLadderInput = {
   credits: number | null
 }
 
-export type TrialReturnLadderDecision = Omit<TrialBalanceBridgeDecision, 'reason'> & {
+export type TrialReturnLadderDecision = Omit<
+  TrialBalanceBridgeDecision,
+  'reason' | 'duration' | 'engine' | 'engineLabel' | 'version'
+> & {
   reason: 'eligible' | 'not_active' | 'unknown_balance' | 'too_few_credits' | 'full_seedance_already_fits'
+  duration: typeof TRIAL_BALANCE_BRIDGE_DURATION | typeof TRIAL_RETURN_FAST_FULL_DURATION
+  engine: typeof TRIAL_BALANCE_BRIDGE_ENGINE | 'fast'
+  engineLabel: typeof TRIAL_BALANCE_BRIDGE_ENGINE_LABEL | 'Kineo 1'
+  version: typeof TRIAL_BALANCE_BRIDGE_VERSION | typeof TRIAL_RETURN_FAST_VERSION
+}
+
+/**
+ * Builds the reviewed Studio destination for one eligible return rung.
+ * The function is deliberately pure and returns null for an ineligible
+ * decision, so a stale click cannot manufacture an engine or campaign.
+ */
+export function buildTrialReturnLadderHref(decision: TrialReturnLadderDecision): string | null {
+  if (!decision.eligible) return null
+  const engine = decision.engine === 'fast' ? 'fast' : 'seedance'
+  const params = new URLSearchParams({
+    engine,
+    duration: String(decision.duration),
+    intent_campaign: decision.version,
+  })
+  return `/studio/create?${params.toString()}`
 }
 
 /**
@@ -200,13 +236,13 @@ export function decideTrialBalanceBridge(input: TrialBalanceBridgeInput): TrialB
 }
 
 /**
- * Re-exposes the same safe 35-second Seedance step after the user leaves the
- * result screen. Unlike the result-only bridge, this decision cannot prove the
- * last delivered engine, so it is governed only by active-trial truth and the
- * current server balance. It never grants, reserves or spends credits.
+ * Re-exposes the longest supported next film the active-trial balance already
+ * covers after the user leaves the result screen. Seedance remains first; when
+ * it no longer fits, a paid/trial Kineo 1 rung keeps the second-film path alive.
+ * The decision never grants, reserves or spends credits.
  */
 export function decideTrialReturnLadder(input: TrialReturnLadderInput): TrialReturnLadderDecision {
-  const base = {
+  const seedanceBase = {
     creditsBefore: input.credits,
     creditsAfterSuccess: null,
     cost: TRIAL_BALANCE_BRIDGE_COST,
@@ -216,21 +252,50 @@ export function decideTrialReturnLadder(input: TrialReturnLadderInput): TrialRet
     version: TRIAL_BALANCE_BRIDGE_VERSION,
   } as const
 
-  if (input.trialPhase !== 'active') return { ...base, eligible: false, reason: 'not_active' }
+  if (input.trialPhase !== 'active') return { ...seedanceBase, eligible: false, reason: 'not_active' }
   if (input.credits === null || !Number.isFinite(input.credits)) {
-    return { ...base, eligible: false, reason: 'unknown_balance' }
-  }
-  if (input.credits < TRIAL_BALANCE_BRIDGE_COST) {
-    return { ...base, eligible: false, reason: 'too_few_credits' }
+    return { ...seedanceBase, eligible: false, reason: 'unknown_balance' }
   }
   if (input.credits >= FULL_SEEDANCE_COST) {
-    return { ...base, eligible: false, reason: 'full_seedance_already_fits' }
+    return { ...seedanceBase, eligible: false, reason: 'full_seedance_already_fits' }
+  }
+  if (input.credits >= TRIAL_BALANCE_BRIDGE_COST) {
+    return {
+      ...seedanceBase,
+      eligible: true,
+      reason: 'eligible',
+      creditsAfterSuccess: input.credits - TRIAL_BALANCE_BRIDGE_COST,
+    }
+  }
+
+  // Active reverse-trial accounts are billed like paid accounts for Fast.
+  // They are NOT eligible for the zero-credit free-tier path while the trial
+  // is active (the compose route's isFreePlanFast requires !ent.isTrial). Choose
+  // only a duration the current trial balance really covers.
+  const fastDuration = input.credits >= TRIAL_RETURN_FAST_FULL_COST
+    ? TRIAL_RETURN_FAST_FULL_DURATION
+    : TRIAL_RETURN_FAST_SHORT_DURATION
+  const fastCost = fastDuration === TRIAL_RETURN_FAST_FULL_DURATION
+    ? TRIAL_RETURN_FAST_FULL_COST
+    : TRIAL_RETURN_FAST_SHORT_COST
+  const fastBase = {
+    creditsBefore: input.credits,
+    creditsAfterSuccess: null,
+    cost: fastCost,
+    duration: fastDuration,
+    engine: 'fast',
+    engineLabel: 'Kineo 1',
+    version: TRIAL_RETURN_FAST_VERSION,
+  } as const
+
+  if (input.credits < TRIAL_RETURN_FAST_SHORT_COST) {
+    return { ...fastBase, eligible: false, reason: 'too_few_credits' }
   }
 
   return {
-    ...base,
+    ...fastBase,
     eligible: true,
     reason: 'eligible',
-    creditsAfterSuccess: input.credits - TRIAL_BALANCE_BRIDGE_COST,
+    creditsAfterSuccess: input.credits - fastCost,
   }
 }
