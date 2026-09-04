@@ -158,6 +158,7 @@ export default function SignupPage() {
     // hero → signup rate is measurable without risking a blocked submit.
     const params = new URLSearchParams(window.location.search)
     const organicHandoff = organicSignupHandoffContext(params)
+    const savedCreationProof = buildSignupCreationPreviewFromAuthParams(params)
     organicHandoffRef.current = organicHandoff
     if (organicHandoff) {
       const navigationId = Math.round(performance.timeOrigin).toString(36)
@@ -175,6 +176,8 @@ export default function SignupPage() {
           medium: organicHandoff.medium,
           create_intent: organicHandoff.createIntent,
           saved_creation: Boolean((params.get('prompt') ?? '').trim()),
+          saved_creation_proof: Boolean(savedCreationProof),
+          saved_creation_kind: savedCreationProof?.kind ?? null,
         })
       }
     }

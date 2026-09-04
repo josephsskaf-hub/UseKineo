@@ -1,5 +1,6 @@
 import { normalizeInternalRedirect } from '@/lib/authRedirect'
 import {
+  buildAuthenticatedCreationSignupPreview,
   buildExampleRemixSignupPreview,
   buildFreeScriptSignupPreview,
   type SignupCreationPreview,
@@ -13,14 +14,14 @@ const MAX_DESTINATION_CHARS = 16_384
 export type CreationPasswordRecoveryContext = {
   version: typeof CREATION_PASSWORD_RECOVERY_VERSION
   destination: string
-  kind: 'example_remix' | 'free_script'
+  kind: 'example_remix' | 'free_script' | 'public_creation'
   preview: SignupCreationPreview
 }
 
 /**
- * Accept only the two creation destinations whose visible saved-work proof is
- * already allow-listed. A generic /studio/create URL is intentionally not
- * enough, even when it contains a prompt.
+ * Accept only creation destinations whose visible saved-work proof is already
+ * allow-listed. A generic /studio/create URL is intentionally not enough,
+ * even when it contains a prompt.
  */
 export function readCreationPasswordRecoveryContext(
   rawDestination: string | null | undefined,
@@ -35,6 +36,16 @@ export function readCreationPasswordRecoveryContext(
       destination,
       kind: 'example_remix',
       preview: examplePreview,
+    }
+  }
+
+  const publicCreationPreview = buildAuthenticatedCreationSignupPreview(destination)
+  if (publicCreationPreview) {
+    return {
+      version: CREATION_PASSWORD_RECOVERY_VERSION,
+      destination,
+      kind: 'public_creation',
+      preview: publicCreationPreview,
     }
   }
 

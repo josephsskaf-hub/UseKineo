@@ -141,6 +141,30 @@ check(
   'invalid redirect cannot suppress the direct creation handoff',
 )
 
+const publicCreationRedirect = handoff.buildAuthenticatedCreationRedirect({
+  prompt: 'Why the Door to Hell is still burning',
+  campaign: 'seo_engine_kineo-1',
+  createIntent: 'fast',
+})
+check(publicCreationRedirect, 'real public launcher builds an authenticated creation destination')
+equal(proof.buildAuthenticatedCreationSignupPreview(publicCreationRedirect)?.kind, 'idea', 'canonical public creation is recognized as an idea')
+check(
+  authPreview({ redirect: publicCreationRedirect })?.excerpt.join(' ').includes('Door to Hell'),
+  'signup visibly confirms the topic preserved by a public engine launcher',
+)
+for (const [label, changed] of [
+  ['missing welcome marker', publicCreationRedirect.replace('welcome=1&', '')],
+  ['wrong path', publicCreationRedirect.replace('/studio/create?', '/studio?')],
+  ['unknown intent', publicCreationRedirect.replace('create_intent=fast', 'create_intent=example_remix')],
+  ['blank campaign', publicCreationRedirect.replace('intent_campaign=seo_engine_kineo-1', 'intent_campaign=')],
+  ['extra parameter', `${publicCreationRedirect}&autoanalyze=1`],
+  ['duplicate prompt', `${publicCreationRedirect}&prompt=shadow`],
+]) {
+  equal(proof.buildAuthenticatedCreationSignupPreview(changed), null, `${label} cannot claim public creation proof`)
+}
+equal(proof.buildAuthenticatedCreationSignupPreview('//evil.example/studio/create?welcome=1&prompt=x&create_intent=fast&intent_campaign=seo'), null, 'external public creation redirect fails closed')
+equal(authPreview({ reason: 'checkout', redirect: publicCreationRedirect }), null, 'checkout stays sovereign over public creation proof')
+
 const generatedScriptPrompt = [
   'HOOK: The lighthouse flashed after its keeper vanished.',
   'MICRO REWARD 1: The logbook ended mid-sentence.',
@@ -194,10 +218,14 @@ check(remixRecovery?.preview.excerpt.join(' ').includes('ice caves & volcanoes')
 const scriptRecovery = creationPasswordRecovery.readCreationPasswordRecoveryContext(generatedScriptRedirect)
 equal(scriptRecovery?.destination, generatedScriptRedirect, 'password recovery keeps the exact free-script destination')
 equal(scriptRecovery?.kind, 'free_script', 'password recovery classifies the allow-listed script')
+const publicCreationRecovery = creationPasswordRecovery.readCreationPasswordRecoveryContext(publicCreationRedirect)
+equal(publicCreationRecovery?.destination, publicCreationRedirect, 'password recovery keeps the exact public creation destination')
+equal(publicCreationRecovery?.kind, 'public_creation', 'password recovery classifies the canonical public creation')
 
 for (const [kind, context, destination] of [
   ['example remix', remixRecovery, remixRedirect],
   ['free script', scriptRecovery, generatedScriptRedirect],
+  ['public creation', publicCreationRecovery, publicCreationRedirect],
 ]) {
   for (const pathname of ['/forgot-password', '/reset-password', '/login']) {
     const href = creationPasswordRecovery.buildCreationPasswordRecoveryHref(pathname, context)
@@ -262,6 +290,7 @@ check(!/telemetry/i.test(recoveryHelperSource), 'recovery helper cannot serializ
 check(loginPreview({ redirect: remixRedirect })?.excerpt.join(' ').includes('ice caves & volcanoes'), 'login recovers the allow-listed example remix proof')
 equal(loginPreview({ redirect: remixRedirect })?.eyebrow, 'Saved before sign-in', 'login proof names the correct auth boundary')
 equal(loginPreview({ redirect: generatedScriptRedirect })?.kind, 'script', 'login recovers the allow-listed generated script proof')
+check(loginPreview({ redirect: publicCreationRedirect })?.excerpt.join(' ').includes('Door to Hell'), 'login recovers the canonical public creation proof')
 equal(loginPreview({ reason: 'checkout', redirect: generatedScriptRedirect }), null, 'checkout remains sovereign on login')
 equal(loginPreview({ redirect: '/studio/create?prompt=private' }), null, 'generic creation redirect cannot claim login proof')
 equal(loginPreview({ redirect: '/pricing', prompt: 'do not promise this' }), null, 'unrelated login redirect cannot claim saved work')
@@ -285,6 +314,10 @@ const scriptFailure = creationOAuthFailure.buildCreationOAuthFailureHandoff(gene
 const scriptFailureLogin = new URL(scriptFailure.loginPath ?? '/', 'https://www.usekineo.com')
 equal(scriptFailureLogin.searchParams.get('redirect'), generatedScriptRedirect, 'failed script OAuth keeps the exact allow-listed destination')
 equal(scriptFailure.telemetry.saved_creation_kind, 'free_script', 'script failure records only its bounded kind')
+const publicCreationFailure = creationOAuthFailure.buildCreationOAuthFailureHandoff(publicCreationRedirect)
+const publicCreationFailureLogin = new URL(publicCreationFailure.loginPath ?? '/', 'https://www.usekineo.com')
+equal(publicCreationFailureLogin.searchParams.get('redirect'), publicCreationRedirect, 'failed public creation OAuth keeps the exact canonical destination')
+equal(publicCreationFailure.telemetry.saved_creation_kind, 'public_creation', 'public creation failure records only its bounded kind')
 
 for (const [label, destination] of [
   ['missing', null],
@@ -326,6 +359,8 @@ const resetPassword = read('app/(auth)/reset-password/page.tsx')
 const savedCreationCard = read('components/AuthSavedCreationCard.tsx')
 check(signup.includes('buildSignupCreationPreviewFromAuthParams,'), 'real signup imports the auth-query preview contract')
 check(signup.includes('return buildSignupCreationPreviewFromAuthParams(params)'), 'real signup executes the auth-query preview contract')
+check(signup.includes('saved_creation_proof: Boolean(savedCreationProof)'), 'signup measures whether saved-work proof was actually available')
+check(signup.includes('saved_creation_kind: savedCreationProof?.kind ?? null'), 'signup measures only the bounded idea/script kind')
 check(signup.includes('savedCreation.kind} is ready to continue'), 'auth heading names the preserved work')
 check(signup.includes('Create a free account and continue without starting over.'), 'auth copy explains continuity')
 check(signup.includes('<AuthSavedCreationCard preview={savedCreation} />'), 'signup uses the shared saved-work card')

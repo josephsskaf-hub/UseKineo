@@ -1,4 +1,10 @@
-import { readCreationHandoff } from '@/lib/creationHandoff'
+import {
+  buildAuthenticatedCreationRedirect,
+  readCreationHandoff,
+  type CreationDuration,
+  type CreationLanguage,
+  type CreationScriptMode,
+} from '@/lib/creationHandoff'
 import { normalizeInternalRedirect } from '@/lib/authRedirect'
 
 type QueryReader = Pick<URLSearchParams, 'get'>
@@ -125,6 +131,67 @@ export function buildFreeScriptSignupPreview(
   return preview?.kind === 'script' ? preview : null
 }
 
+const AUTHENTICATED_CREATION_KEYS = new Set([
+  'welcome',
+  'prompt',
+  'create_intent',
+  'intent_campaign',
+  'language',
+  'script_mode',
+  'duration',
+])
+
+/**
+ * Recognize only the canonical destination emitted by
+ * buildAuthenticatedCreationRedirect. This lets topic/script launchers show
+ * their saved work at auth without treating an arbitrary /studio/create URL
+ * as proof that Kineo will resume it.
+ */
+export function buildAuthenticatedCreationSignupPreview(
+  rawRedirect: string | null | undefined,
+): SignupCreationPreview | null {
+  const normalized = normalizeInternalRedirect(rawRedirect)
+  if (!normalized) return null
+
+  const destination = new URL(normalized, 'https://kineo.local')
+  const params = destination.searchParams
+  const keys = [...params.keys()]
+  if (
+    destination.pathname !== '/studio/create' ||
+    new Set(keys).size !== keys.length ||
+    keys.some((key) => !AUTHENTICATED_CREATION_KEYS.has(key)) ||
+    params.get('welcome') !== '1'
+  ) {
+    return null
+  }
+
+  const campaign = (params.get('intent_campaign') ?? '').trim()
+  if (!/^[a-z0-9][a-z0-9_-]{0,95}$/i.test(campaign)) return null
+
+  const handoff = readCreationHandoff(params)
+  if (!handoff.prompt || !handoff.createIntent) return null
+
+  const language = params.get('language') as CreationLanguage | null
+  const scriptMode = params.get('script_mode') as CreationScriptMode | null
+  const rawDuration = params.get('duration')
+  const duration = rawDuration ? Number(rawDuration) as CreationDuration : undefined
+  if (language && !['en', 'pt', 'es'].includes(language)) return null
+  if (scriptMode && !['ai', 'verbatim'].includes(scriptMode)) return null
+  if (rawDuration && ![35, 45, 60, 90].includes(duration ?? 0)) return null
+
+  const canonical = buildAuthenticatedCreationRedirect({
+    prompt: handoff.prompt,
+    campaign,
+    createIntent: handoff.createIntent,
+    ...(language ? { language } : {}),
+    ...(scriptMode ? { scriptMode } : {}),
+    ...(duration ? { duration } : {}),
+  })
+  if (canonical !== normalized) return null
+
+  return buildSignupCreationPreview(params)
+}
+
 /** Resolve the exact preview the auth page may promise for its outer query. */
 export function buildSignupCreationPreviewFromAuthParams(
   params: QueryReader
@@ -135,6 +202,7 @@ export function buildSignupCreationPreviewFromAuthParams(
   if (explicitRedirect) {
     return buildExampleRemixSignupPreview(explicitRedirect)
       ?? buildFreeScriptSignupPreview(explicitRedirect)
+      ?? buildAuthenticatedCreationSignupPreview(explicitRedirect)
   }
   return buildSignupCreationPreview(params)
 }
@@ -152,5 +220,6 @@ export function buildLoginCreationPreviewFromAuthParams(
   const rawRedirect = params.get('redirect')
   const preview = buildExampleRemixSignupPreview(rawRedirect)
     ?? buildFreeScriptSignupPreview(rawRedirect)
+    ?? buildAuthenticatedCreationSignupPreview(rawRedirect)
   return preview ? { ...preview, eyebrow: 'Saved before sign-in' } : null
 }

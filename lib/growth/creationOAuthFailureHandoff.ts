@@ -1,12 +1,13 @@
 import { normalizeInternalRedirect } from '@/lib/authRedirect'
 import {
+  buildAuthenticatedCreationSignupPreview,
   buildExampleRemixSignupPreview,
   buildFreeScriptSignupPreview,
 } from '@/lib/growth/signupCreationPreview'
 
 export const CREATION_OAUTH_FAILURE_HANDOFF_VERSION = 'creation_oauth_failure_handoff_v1' as const
 
-export type SavedCreationKind = 'example_remix' | 'free_script'
+export type SavedCreationKind = 'example_remix' | 'free_script' | 'public_creation'
 
 export type CreationOAuthFailureTelemetry = {
   creation_oauth_failure_handoff_version: typeof CREATION_OAUTH_FAILURE_HANDOFF_VERSION
@@ -33,7 +34,9 @@ export function buildCreationOAuthFailureHandoff(
       ? 'example_remix'
       : buildFreeScriptSignupPreview(normalized)
         ? 'free_script'
-        : null
+        : buildAuthenticatedCreationSignupPreview(normalized)
+          ? 'public_creation'
+          : null
     : null
   const telemetry: CreationOAuthFailureTelemetry = {
     creation_oauth_failure_handoff_version: CREATION_OAUTH_FAILURE_HANDOFF_VERSION,
