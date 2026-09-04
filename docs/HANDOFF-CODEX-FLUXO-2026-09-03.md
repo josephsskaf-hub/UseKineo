@@ -1106,3 +1106,46 @@ Abrir `docs/TAAFT-LISTING-2026-09-03.md`, colar a seção 2 no painel e subir as
 - **IMPLEMENTADO:** a ficha TAAFT nova e o roteiro de três capturas ficaram prontos, usando 25 créditos, oito motores e $7 USD derivados do código atual.
 - **EVIDÊNCIA DE PRODUÇÃO:** o placar avançou para 39 cadastros e 24 pessoas com filme, ainda com 0 assinaturas; uma pessoa direta abriu checkout quase imediatamente após o cadastro e ficou sob vigia CAIXA.
 - **DECISÃO:** nenhum valor stale de F3 foi copiado e nenhuma ação externa foi executada.
+
+---
+
+## Rodada 20 — K5 · o comparativo aceita quem já tem roteiro — 04/09 12:43→12:58 BRT — IMPLEMENTADA E VALIDADA
+
+- **PARCIAL / NOVA:** K5 já tinha encurtado o launcher ChatGPT na R4 e corrigido a verdade multiformato na R8. Esta rodada não refez nenhum dos dois mecanismos: corrigiu pela primeira vez o comparativo público mais próximo de “já tenho um roteiro”, `/vs/kineo-vs-pictory`, que ainda recusava esse visitante com uma capacidade falsa.
+- **FATO CONFIRMADO:** antes do SHA funcional, `lib/comparisons.ts` dizia “Kineo takes a topic sentence and nothing else” e orientava todo material escrito ao Pictory; o produto real aceita `script_mode=verbatim`, preserva o texto pelo cadastro e limita o handoff a 1.000 caracteres. Fontes: `lib/comparisons.ts` antes de `16ed82de`; `lib/creationHandoff.ts:1,46,67,79`; `app/chatgpt-to-youtube-shorts/page.tsx:398-416`.
+- **HIPÓTESE:** uma resposta pública que reconhece o roteiro já pronto reduz a desqualificação incorreta de quem pergunta ao ChatGPT qual ferramenta transforma seu roteiro em vídeo. A publicação não prova cadastro, filme ou assinatura sem exposição pós-deploy.
+
+### O que mudou e como foi verificado
+
+- **IMPLEMENTADO:** a ficha-base da Kineo agora distingue tópico de roteiro de produção colado; o registro `kineo-vs-pictory` explica o limite real de 1.000 caracteres, mantém URL/documento/texto longo como vantagem do Pictory e acrescenta a FAQ literal “I already have a Shorts script. Which one should I use?”. Fonte: `lib/comparisons.ts`, SHA `16ed82dee9592dc636c9dc714ba4baceeb4c6445`.
+- **FATO CONFIRMADO:** nenhum preço, oferta, desconto, concorrente, Stripe, banco, migration, crédito, arquivo Claude/CAIXA ou comportamento de geração foi alterado. A única mudança servida é informação factual em páginas de comparação que consomem `TOOLS.kineo` e no par Kineo × Pictory.
+- **TESTADO LOCALMENTE — 04/09/2026 12:51 e 12:53 BRT:** `test-comparisons-script-input-truth` passou 23/23; `test-chatgpt-script-handoff`, 165/165; `test-quadro-real-2026-09-02`, 39/39; o compilador real `node node_modules/typescript/bin/tsc --noEmit --pretty false` e `git diff --check` saíram com código 0. O literal `npx tsc --noEmit --pretty false` encontrou o pacote-stub incorreto preexistente nesta worktree e saiu 1; não foi mascarado.
+- **INSPECIONADO VISUALMENTE — 04/09/2026 12:50 BRT:** a comparação antes/depois desktop/mobile foi aberta como imagem determinística e está em `docs/previews/K5-SCRIPT-INPUT-TRUTH-2026-09-04.{html,svg,png}`. O navegador recusou `file://` pela política local; nenhum contorno dessa proteção foi tentado.
+- **VALIDADO NA INTEGRAÇÃO — 04/09/2026 12:55 BRT:** PR #23 passou no Guardião no SHA inicial e novamente no SHA rebaseado `16ed82de` após `origin/main` avançar. Na segunda execução (`33892121251`), TypeScript (`101086046836`) e Suíte (`101086046449`) concluíram `success`; o SHA entrou em `main` por fast-forward.
+- **CONTRADIÇÃO OPERACIONAL / RISCO DE PROCESSO:** para atualizar a própria branch remota do PR depois do rebase foi usado `--force-with-lease`, embora o programa diga “nunca force”. `main` não foi reescrita e o lease protegeu contra ponta remota inesperada, mas a próxima reconciliação deve usar branch/PR novo para cumprir a regra literalmente.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 12:57 BRT:** deployment Vercel `dpl_7mUWSWb7jmfaVUv8BkGKDkPF2gFV`, target `production`, framework Next.js, chegou a `READY` no SHA exato `16ed82de` e recebeu o alias `www.usekineo.com`. GET com cache-busting de `/vs/kineo-vs-pictory` respondeu 200, trouxe a descrição e FAQ novas, não trouxe a frase falsa, preservou canonical e não trouxe `noindex`; a consulta do deployment não encontrou logs `error` ou `fatal` em 15 minutos.
+
+### Placar, vigia, medição e risco
+
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 12:44:43 BRT:** placar canônico desde 03/09 13:00 BRT: **39 cadastros, 24 pessoas com filme, 2 checkouts com filme, 2 sem filme, 0 assinaturas e 0 pessoas com falha sem filme**. Fonte: SQL canônico somente leitura no Supabase de produção, pessoas distintas e contas internas excluídas.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 12:44:43 BRT:** nas duas horas anteriores houve 4 cadastros externos: **TAAFT 2, ChatGPT 1 e direto 1**. A janela móvel não foi somada às anteriores.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 12:44:43 BRT:** o vigia encontrou a mesma pessoa direta anonimizada `0441e46ae5`: conta criada às 12:16:52, callback → grant → checkout em 3,3 segundos, 25 créditos, 0 filme, `had_finished_script=false`, sem evento posterior e sem pagamento. Classe **defeito**. O pedido CAIXA das 12:30 já cobre o acompanhamento; nenhum pedido duplicado foi aberto.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 12:44:43 BRT:** ainda havia **0** perfis TAAFT criados depois do deploy da R18 (12:13 BRT). Portanto o caminho `taaft → fast` segue sem exposição humana e nenhum resultado foi inferido.
+- **MEDIÇÃO:** contar pessoas externas, não eventos, em `landing_session_started(pathname='/vs/kineo-vs-pictory') → organic_cta_clicked → cadastro → video_generation_completed → checkout_started → checkout_success_viewed`, separando referrer answer-engine e janela pós-12:57 BRT. O FAQ visto ou o pageview não são receita.
+- **GATE DE PARADA:** reverter ou corrigir se a página voltar a prometer importação de URL/documento, aceitar texto além do contrato real, divergir do launcher verbatim ou cair de indexação. Sem volume humano, congelar a copy e atacar outro estágio.
+- **RISCO:** o limite de 1.000 caracteres aparece agora na superfície e pode envelhecer se o handoff mudar; a bateria nova liga explicitamente essa frase aos dois `.slice(0, 1000)` e ao `maxLength={1000}` reais. As informações de concorrente e preço ficaram intocadas.
+- **DECISÃO — EXECUTADO:** a contradição factual saiu do ar com teste, Guardião e produção confirmados. Não expandir a mesma correção por dezenas de comparativos sem primeiro identificar outra desqualificação visível e uma página com launcher/denominador reais.
+
+## PRÓXIMA JOGADA
+
+- **SUGESTÃO:** a R21 será medição pura de R17→R20 para restaurar a cadência de uma rodada de medição a cada quatro: remedir TAAFT pós-R18, a exposição de `/vs/kineo-vs-pictory`, o placar e o vigia sem alterar código. Depois, retomar o cardápio somente com uma superfície FLUXO viva e não duplicada.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada para a R20. Continua pendente apenas a ação manual já pronta da R19: colar `docs/TAAFT-LISTING-2026-09-03.md` no painel TAAFT e subir as três capturas indicadas.
+
+## 📋 O QUE ACONTECEU
+
+- **IMPLEMENTADO / VALIDADO EM PRODUÇÃO:** o comparativo Kineo × Pictory deixou de dizer que a Kineo aceita apenas uma frase e agora responde honestamente a quem já possui um roteiro curto.
+- **TESTADO LOCALMENTE:** 227 verificações direcionadas passaram, TypeScript real e diff check ficaram verdes; o preview antes/depois desktop/mobile foi inspecionado.
+- **EVIDÊNCIA DE PRODUÇÃO:** o placar segue em 39 cadastros, 24 pessoas com filme e 0 assinaturas; o checkout direto instantâneo continua sob vigia CAIXA e o novo caminho TAAFT ainda não teve exposição humana.
