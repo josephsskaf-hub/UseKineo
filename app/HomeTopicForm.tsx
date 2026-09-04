@@ -30,6 +30,7 @@
 
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { rememberSignupCampaign, trackEvent } from '@/lib/analytics'
+import { homeReferralCreationIntent } from '@/lib/growth/homeReferralBridge'
 
 const HOME_PROMPT_CAMPAIGN = 'push69_home_one_click_starters'
 const HOME_PROMPT_VIEW_MARKER = 'kineo_push69_home_one_click_starters_viewed'
@@ -91,10 +92,10 @@ function buildActivationPrompt(lines: ScriptLine[]): string {
 // Reuses the homepage's existing signup hand-off contract: the same hidden
 // fields the form has always submitted, with the generated script standing in
 // for the raw topic so nothing is retyped after signup.
-function signupHref(prompt: string): string {
+function signupHref(prompt: string, createIntent: 'fast' | 'trial_best'): string {
   const params = new URLSearchParams({
     prompt,
-    create_intent: 'trial_best',
+    create_intent: createIntent,
     intent_campaign: HOME_PROMPT_CAMPAIGN,
     utm_source: 'homepage',
   })
@@ -125,9 +126,13 @@ export default function HomeTopicForm({
 
   const hasScript = lines.length > 0
   const activationPrompt = hasScript ? buildActivationPrompt(lines) : ''
+  const creationIntent = homeReferralCreationIntent(acquisitionSource)
   // Fallback destination when the free script cannot be written: degrade to the
   // pre-#101 behaviour (raw topic → signup) instead of leaving a dead end.
-  const fallbackHref = signupHref(prompt.trim().slice(0, ACTIVATION_PROMPT_MAX))
+  const fallbackHref = signupHref(
+    prompt.trim().slice(0, ACTIVATION_PROMPT_MAX),
+    creationIntent,
+  )
 
   useEffect(() => {
     try {
@@ -362,14 +367,11 @@ export default function HomeTopicForm({
             )}
           </p>
         )}
-        {/* KINEO-HOME-TRIAL-BEST-2026-08-30 — normal JS submission already
-            uses the guarded trial-best handoff. This hidden value governs only
-            the native no-JS fallback of the signed-out ChatGPT/TAAFT bridge:
-            carry the same intent instead of silently degrading to Kineo 1.
-            `trial_best` never promises or spends Seedance by itself; the
-            authenticated generator resolves server-confirmed entitlement and
-            balance, then falls back to Fast for every ineligible state. */}
-        <input type="hidden" name="create_intent" value="trial_best" />
+        {/* K6 (03/09) requires the TAAFT bridge to start on Kineo 1. The same
+            source-bounded policy also governs the JS handoff above; ChatGPT and
+            ordinary homepage traffic retain the existing guarded trial_best
+            rail. */}
+        <input type="hidden" name="create_intent" value={creationIntent} />
         <input type="hidden" name="intent_campaign" value={HOME_PROMPT_CAMPAIGN} />
         <input type="hidden" name="utm_source" value="homepage" />
         <button className="btn btn-w cbtn" type="submit" disabled={pending} aria-busy={pending}>
@@ -448,7 +450,7 @@ export default function HomeTopicForm({
                   </p>
                   <a
                     className="btn btn-w"
-                    href={signupHref(activationPrompt)}
+                    href={signupHref(activationPrompt, creationIntent)}
                     onClick={handleCtaClick}
                     style={{ textDecoration: 'none' }}
                   >

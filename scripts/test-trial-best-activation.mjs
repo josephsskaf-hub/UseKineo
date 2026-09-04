@@ -96,9 +96,9 @@ equal(
 
 const home = read('app/HomeTopicForm.tsx')
 const generate = read('app/(dashboard)/generate/GenerateClient.tsx')
-check(home.includes("create_intent: 'trial_best'"), 'anonymous post-script CTA requests trial_best')
-check(home.includes('name="create_intent" value="trial_best"'), 'native no-JS referral fallback requests the guarded trial-best rail')
-check(!home.includes('name="create_intent" value="fast"'), 'native referral fallback no longer silently degrades to Fast')
+check(home.includes('homeReferralCreationIntent(acquisitionSource)'), 'homepage delegates source-specific intent to the bounded policy')
+check(home.includes('name="create_intent" value={creationIntent}'), 'native no-JS and JS handoffs share the resolved source intent')
+check(home.includes('signupHref(activationPrompt, creationIntent)'), 'post-script CTA uses the same resolved source intent')
 check(generate.includes('resolveActivationRenderEngine({'), 'real caller executes the engine policy')
 check(generate.includes("seedanceCreditCost: creditCostFor('cinematic_ai')"), 'caller reads the canonical engine cost')
 check(

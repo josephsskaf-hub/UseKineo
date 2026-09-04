@@ -1,6 +1,7 @@
 import { acquisitionSource } from '@/lib/acquisitionSource'
 
 export type HomeReferralBridgeSource = 'chatgpt' | 'taaft'
+export type HomeReferralCreationIntent = 'fast' | 'trial_best'
 
 type SearchValue = string | string[] | undefined
 
@@ -19,6 +20,17 @@ export const HOME_REFERRAL_BRIDGE_COPY: Record<HomeReferralBridgeSource, {
     headline: 'Test the useful part before you choose another tool',
     body: 'Type one real topic. Kineo writes the hook, three facts and payoff here with no signup; continue only if the script fits what you came to make.',
   },
+}
+
+/**
+ * K6 sends TAAFT visitors through the reliable Kineo 1 first-film rail.
+ * ChatGPT and ordinary homepage traffic keep the existing guarded premium
+ * trial policy; an unknown source never receives the TAAFT override.
+ */
+export function homeReferralCreationIntent(
+  source: HomeReferralBridgeSource | null,
+): HomeReferralCreationIntent {
+  return source === 'taaft' ? 'fast' : 'trial_best'
 }
 
 function first(value: SearchValue): string | null {

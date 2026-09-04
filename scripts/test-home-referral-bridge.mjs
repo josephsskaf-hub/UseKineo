@@ -41,6 +41,10 @@ const bridge = executeTs('lib/growth/homeReferralBridge.ts', {
 })
 const resolve = bridge.homeReferralBridgeSource
 
+equal(bridge.homeReferralCreationIntent('taaft'), 'fast', 'TAAFT first film uses the Kineo 1 rail')
+equal(bridge.homeReferralCreationIntent('chatgpt'), 'trial_best', 'ChatGPT keeps its existing guarded trial rail')
+equal(bridge.homeReferralCreationIntent(null), 'trial_best', 'ordinary and unknown traffic cannot receive the TAAFT override')
+
 equal(resolve({ utm_source: 'chatgpt' }), 'chatgpt', 'canonical ChatGPT UTM activates bridge')
 equal(resolve({ utm_source: 'chatgpt.com' }), 'chatgpt', 'ChatGPT hostname alias activates bridge')
 equal(resolve({ utm_source: 'https://chatgpt.com/share/example' }), 'chatgpt', 'full ChatGPT URL activates bridge')
@@ -112,6 +116,8 @@ check(landing.includes("tileVid('cinematic_kling')"), 'Kling 2.5 middle-row vide
 check(landing.includes("tileVidLast('cinematic_hollywood')"), 'distinct Kling 3 middle-row video remains connected')
 
 check(form.includes("const trackingPlacement = acquisitionSource ? 'home_referral_bridge' : 'home_hero'"), 'channel bridge has a distinct event placement')
+check(form.includes('homeReferralCreationIntent(acquisitionSource)'), 'form chooses creation intent from the canonical referral source')
+check(form.includes('name="create_intent" value={creationIntent}'), 'native and JS handoffs share the selected intent')
 check(form.includes("'home_referral_bridge_script_result'"), 'script result has a distinct bridge placement')
 equal((form.match(/acquisition_source: acquisitionSource/g) ?? []).length, 10, 'every existing form event carries acquisition channel')
 check(form.includes("fetch('/api/demo-script'"), 'bridge reuses the existing no-render demo route')
