@@ -23,6 +23,13 @@ import {
 } from '@/lib/growth/checkoutResumeHumanView'
 import { useCheckoutResumeFilm } from '@/components/useCheckoutResumeFilm'
 import { checkoutResumeFilmTelemetry } from '@/lib/growth/checkoutResumeFilm'
+import {
+  CHECKOUT_RESUME_DELIVERY_GUARD_VERSION,
+  nextCheckoutResumeDeliveryDelay,
+  readCheckoutResumeDeliveryProbe,
+  type CheckoutResumeDeliveryProbe,
+  type CheckoutResumeDeliveryState,
+} from '@/lib/growth/checkoutResumeDeliveryGuard'
 
 
 const COMPARE_PLANS_HREF = '/pricing?intent_campaign=checkout_resume_smaller_v1#plans'
@@ -50,7 +57,9 @@ function shouldHide(pathname: string): boolean {
 export default function CheckoutResumeBanner() {
   const pathname = usePathname()
   const [offer, setOffer] = useState<CheckoutResumeOffer | null>(null)
+  const [deliveryState, setDeliveryState] = useState<CheckoutResumeDeliveryState>('checking')
   const viewedKey = useRef<string | null>(null)
+  const deliverySuppressedKey = useRef<string | null>(null)
   const film = useCheckoutResumeFilm(offer !== null)
   const filmLoadedKey = useRef<string | null>(null)
   const choiceRef = useRef<HTMLDivElement | null>(null)
@@ -142,6 +151,77 @@ export default function CheckoutResumeBanner() {
     return () => controller.abort()
   }, [pathname])
 
+  // CAIXA R15 — a saved-checkout reminder used to compete with the product
+  // while the buyer's film was still rendering. Keep the saved choice, hide
+  // only the payment prompt, and let it return after the owner-scoped active
+  // render probe becomes terminal. Two idle rechecks catch a render that starts
+  // just after this global layout mounted; sustained polling happens only while
+  // work is actually in flight.
+  useEffect(() => {
+    if (!offer || shouldHide(pathname)) {
+      setDeliveryState('checking')
+      return
+    }
+
+    const controller = new AbortController()
+    let timer: number | null = null
+    let stopped = false
+    let idleChecks = 0
+    let wasRendering = false
+    const offerKey = checkoutResumeHumanViewOfferKey(offer)
+
+    const probe = async () => {
+      let result: CheckoutResumeDeliveryProbe = { state: 'clear', resumable: false }
+      try {
+        const response = await fetch('/api/compose/active', {
+          method: 'GET',
+          credentials: 'same-origin',
+          cache: 'no-store',
+          signal: controller.signal,
+        })
+        if (response.ok) {
+          result = readCheckoutResumeDeliveryProbe(await response.json().catch(() => null))
+        }
+      } catch {
+        // Optional truth probe: fail open, never erase a legitimate recovery.
+      }
+      if (stopped) return
+
+      if (result.state === 'rendering') {
+        wasRendering = true
+        setDeliveryState('rendering')
+        const suppressionKey = `${offerKey}:${pathname}`
+        if (deliverySuppressedKey.current !== suppressionKey) {
+          deliverySuppressedKey.current = suppressionKey
+          void trackEvent('checkout_resume_suppressed_active_render', {
+            version: CHECKOUT_RESUME_DELIVERY_GUARD_VERSION,
+            path: pathname,
+            resumable: result.resumable,
+          })
+        }
+      } else {
+        idleChecks += 1
+        deliverySuppressedKey.current = null
+        setDeliveryState('clear')
+      }
+
+      const delay = nextCheckoutResumeDeliveryDelay({
+        state: result.state,
+        idleChecks,
+        wasRendering,
+      })
+      if (delay !== null) timer = window.setTimeout(() => void probe(), delay)
+    }
+
+    setDeliveryState('checking')
+    void probe()
+    return () => {
+      stopped = true
+      controller.abort()
+      if (timer !== null) window.clearTimeout(timer)
+    }
+  }, [offer, pathname])
+
   // checkout_resume_banner_viewed remains the technical denominator: the
   // server found a resumable choice. This event is the human denominator:
   // both actions occupied at least half of their own box for one continuous
@@ -152,6 +232,7 @@ export default function CheckoutResumeBanner() {
       || shouldHide(pathname)
       || stalled
       || checkout.pending !== null
+      || deliveryState !== 'clear'
       || typeof IntersectionObserver === 'undefined'
     ) return
     const target = choiceRef.current
@@ -264,9 +345,9 @@ export default function CheckoutResumeBanner() {
     document.addEventListener('visibilitychange', handleVisibility)
 
     return () => stop()
-  }, [checkout.pending, offer, pathname, stalled])
+  }, [checkout.pending, deliveryState, offer, pathname, stalled])
 
-  if (!offer || shouldHide(pathname) || stalled) return null
+  if (!offer || shouldHide(pathname) || stalled || deliveryState !== 'clear') return null
 
   const firstCharge = formatCheckoutResumeMoney(offer.firstChargeAmount, offer.currency)
   const renewal = formatCheckoutResumeMoney(offer.renewalAmount, offer.currency)

@@ -357,7 +357,10 @@ check(clientSource.includes('CHECKOUT_RESUME_RETRY_DELAY_MS'), 'client uses boun
 check(clientSource.includes("trackEvent('checkout_resume_banner_viewed'"), 'technical availability denominator is preserved')
 check(clientSource.includes('resume_choice_version: CHECKOUT_RESUME_CHOICE_VERSION'), 'legacy event joins the same commercial version')
 check(clientSource.includes('humanViewStopRef.current?.()'), 'actions stop the dwell immediately')
-check(clientSource.includes('[checkout.pending, offer, pathname, stalled]'), 'every visibility invalidator restarts the effect')
+// R15 added deliveryState as a real visibility invalidator: while a film is in
+// flight the choice is not rendered and must not earn the human denominator.
+// This updates the exact dependency contract; it does not weaken the check.
+check(clientSource.includes('[checkout.pending, deliveryState, offer, pathname, stalled]'), 'every visibility invalidator restarts the effect')
 check(policySource.includes("'checkout_resume_choice_viewed'"), 'human event is declared in the policy')
 
 console.log('checkout-resume-human-view: ' + checks + '/' + checks + ' checks passed')
