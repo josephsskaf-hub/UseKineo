@@ -30,6 +30,7 @@ import Link from 'next/link'
 import Footer from '@/components/Footer'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
+import { CREATION_HANDOFF_PROMPT_MAX_CHARS } from '@/lib/creationHandoff'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
@@ -409,7 +410,7 @@ export default function ChatGptToYouTubeShortsPage() {
             formId={HANDOFF_ID}
             copy={{
               label: 'Paste the script ChatGPT wrote',
-              placeholder: 'Paste up to 1,000 characters with labels intact — Voiceover:, Visual:, Camera: and timecodes included',
+              placeholder: `Paste up to ${CREATION_HANDOFF_PROMPT_MAX_CHARS.toLocaleString('en-US')} characters with labels intact — Voiceover:, Visual:, Camera: and timecodes included`,
               submit: 'Turn this script into a Short →',
               examplesLabel: 'Script examples',
               note: 'If your script contains at least two Voiceover: or Narration: labels, Kineo reads only those speech blocks; recognized Visual:, Camera:, scene headers and timecodes stay out of narration. Your words, 35-second target, campaign and best eligible trial intent stay attached through signup. Kineo may adjust punctuation for voice pacing, but it will not rewrite your wording.',

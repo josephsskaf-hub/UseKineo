@@ -1274,3 +1274,33 @@ Continua pendente apenas a ação manual da R19: publicar `docs/TAAFT-LISTING-20
 - **IMPLEMENTADO:** os três botões de plano da home agora compartilham trava, estado de abertura, erro e resgate do checkout, mantendo o href original para auth, nova aba e no-JS.
 - **EVIDÊNCIA DE PRODUÇÃO:** o placar permanece em 41 cadastros, 27 pessoas com filme e 0 assinaturas; o vigia contém uma pessoa direta sem filme e já coberta por CAIXA.
 - **TESTADO LOCALMENTE:** 190 verificações, TypeScript real, diff check e preview desktop/mobile ficaram verdes; preço e oferta não mudaram.
+
+---
+
+## Rodada 24 — o formulário público não amputa roteiro no paste — 04/09 14:10→14:20 BRT — IMPLEMENTADA
+
+- **FATO CONFIRMADO / ANTI-DUPLICAÇÃO:** os pedidos antigos de 17:10 BRT em `/v/[id]` e de corte silencioso no quickstart já estavam fechados nos SHAs `96310071` e `341a119b`. A auditoria encontrou um ramo residual diferente: `TopicGeneratorForm`, usado pela landing pública do ChatGPT, ainda aplicava `maxLength={1000}`; o navegador descartava o final durante o paste antes de React poder avisar. Fontes antes deste commit: `docs/PEDIDOS-ENTRE-PISTAS-2026-09-03.md:17,28`, `app/youtube-shorts-from-topic/TopicGeneratorForm.tsx:176-184` e `app/chatgpt-to-youtube-shorts/page.tsx:392-419`.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 14:12:31 BRT:** placar canônico desde 03/09 13:00 BRT: **41 cadastros, 27 pessoas com filme, 2 checkouts com filme, 2 sem filme, 0 assinaturas e 0 pessoas com falha sem filme**. Nas duas horas anteriores: **ChatGPT 3, direto 1**. Fonte: SQL canônico somente leitura no Supabase de produção; pessoas distintas e contas internas excluídas.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 14:12:31 BRT:** o vigia encontrou somente `0441e46ae5`, direto, free, 25 créditos, 0 filmes, checkout às 12:16:54–12:16:55 BRT, `had_finished_script=false`, sem evento posterior e sem pagamento. Classe **defeito**, já encaminhada à CAIXA; nenhum pedido duplicado foi aberto.
+- **IMPLEMENTADO:** o teto de transporte continua exatamente 1.000 caracteres e ganhou fonte única `CREATION_HANDOFF_PROMPT_MAX_CHARS`; builder e reader continuam limitando o redirect. O formulário removeu o `maxLength` destrutivo, conserva todo o texto visível, mostra contagem/excesso, bloqueia submit inválido e só corta após clique explícito em “Trim to fit”. Fontes: `lib/creationHandoff.ts:9,51,72` e `app/youtube-shorts-from-topic/TopicGeneratorForm.tsx:72-80,216-272`.
+- **IMPLEMENTADO:** a landing ChatGPT deriva o placeholder do mesmo contrato; nenhum teto, destino, modo verbatim, duração, campanha ou regra de geração mudou. Fonte: `app/chatgpt-to-youtube-shorts/page.tsx:33,413`.
+- **TESTADO LOCALMENTE — 04/09/2026 14:18 BRT:** `test-chatgpt-script-handoff` passou **168/168**, `test-comparisons-script-input-truth` **23/23** e `test-seo-form-handoff` **50/50**: **241 verificações direcionadas**. TypeScript real e `git -c core.whitespace=cr-at-eol diff --check` saíram 0. **CONTRADIÇÃO PRÉ-EXISTENTE:** o comando literal `npx tsc --noEmit --pretty false` saiu 1 porque o pacote `tsc` instalado é o stub “This is not the tsc command you are looking for”; a compilação real foi executada por `node node_modules/typescript/bin/tsc` e passou.
+- **INSPECIONADO VISUALMENTE — 04/09/2026 14:18 BRT:** comparação antes/depois aberta em desktop 1440×1100 e mobile 500×1600; excesso, ação explícita, alerta e botão bloqueado ficaram legíveis. Artefatos: `docs/previews/FLUXO-R24-PUBLIC-SCRIPT-LIMIT-2026-09-04.html`, `.png` e `-mobile.png`.
+- **MEDIÇÃO:** por pessoa externa, comparar `organic_topic_submitted(source='chatgpt_to_shorts')` e `organic_cta_clicked` até cadastro, primeiro filme, checkout com filme e assinatura. O sinal operacional do defeito é prompt chegando com exatamente 1.000 caracteres sem ação explícita; após esta mudança, o navegador não pode mais produzir esse corte sozinho.
+- **GATE DE PARADA/REVERTER:** corrigir ou reverter se texto acima do teto desaparecer antes da escolha, se submit atravessar com excesso, se o trim não resultar em exatamente 1.000 caracteres, ou se o redirect/destino mudar.
+- **RISCO:** o transporte por query continua limitado a 1.000; esta rodada torna a limitação honesta, não amplia a capacidade. O endurecimento para 2.001–5.000 caracteres continua pedido à pista Claude e não foi antecipado.
+- **FATO CONFIRMADO:** nenhum preço, oferta, Stripe, banco, migration, e-mail, crédito, geração, arquivo dashboard/Claude ou arquivo CAIXA foi alterado.
+
+## PRÓXIMA JOGADA
+
+- **SUGESTÃO:** medir a primeira exposição real deste formulário e conservar a variante. Se não houver denominador, auditar outra superfície FLUXO viva; não reabrir `/v/[id]` enquanto `CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED=false` nem duplicar o quickstart já corrigido.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+Continua pendente apenas a ação manual da R19: publicar `docs/TAAFT-LISTING-2026-09-03.md` no painel TAAFT e subir as três capturas indicadas. Nenhuma ação é necessária para a R24.
+
+## 📋 O QUE ACONTECEU
+
+- **IMPLEMENTADO:** roteiro longo colado na landing pública deixa de perder o final silenciosamente; excesso permanece inteiro e requer decisão explícita.
+- **EVIDÊNCIA DE PRODUÇÃO:** o placar permanece em 41 cadastros, 27 pessoas com filme e 0 assinaturas; o vigia não trouxe pessoa nova.
+- **TESTADO LOCALMENTE:** 241 verificações, TypeScript, diff check e comparação visual ficaram verdes; o limite e o destino não mudaram.

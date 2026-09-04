@@ -4,8 +4,10 @@ import { useState } from 'react'
 import { rememberSignupCampaign, trackEvent } from '@/lib/analytics'
 import {
   buildAuthenticatedCreationRedirect,
+  CREATION_HANDOFF_PROMPT_MAX_CHARS,
   type CreationIntent,
 } from '@/lib/creationHandoff'
+import { formatLimitCounter, promptLimitState, trimPromptToLimit } from '@/lib/studioPromptLimit'
 
 const TOPIC_EXAMPLES = [
   'The island too dangerous to visit',
@@ -65,7 +67,16 @@ export default function TopicGeneratorForm({
   },
 }: TopicGeneratorFormProps = {}) {
   const [topic, setTopic] = useState('')
+  const [trimNotice, setTrimNotice] = useState<string | null>(null)
   const inputId = `${formId}-input`
+  const limit = promptLimitState(topic, CREATION_HANDOFF_PROMPT_MAX_CHARS)
+  const canSubmit = limit.length >= 3 && !limit.over
+
+  function trimToFit() {
+    const result = trimPromptToLimit(topic, CREATION_HANDOFF_PROMPT_MAX_CHARS)
+    setTopic(result.text)
+    setTrimNotice(`${result.removed.toLocaleString('en-US')} characters removed. Review the ending before continuing.`)
+  }
 
   function authRedirectFor(promptValue: string): string | null {
     if (!preserveHandoffForSignedIn) return null
@@ -146,7 +157,11 @@ export default function TopicGeneratorForm({
       <form
         action="/signup"
         method="get"
-        onSubmit={() => {
+        onSubmit={(event) => {
+          if (!canSubmit) {
+            event.preventDefault()
+            return
+          }
           rememberSignupCampaign(campaign)
           const submitMetadata = {
             source,
@@ -177,10 +192,12 @@ export default function TopicGeneratorForm({
           id={inputId}
           name="prompt"
           value={topic}
-          onChange={(event) => setTopic(event.target.value)}
+          onChange={(event) => {
+            setTopic(event.target.value)
+            setTrimNotice(null)
+          }}
           required
           minLength={3}
-          maxLength={1000}
           rows={3}
           placeholder={copy.placeholder}
           style={{
@@ -199,6 +216,32 @@ export default function TopicGeneratorForm({
             outline: 'none',
           }}
         />
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginTop: 8 }}>
+          <span
+            aria-live="polite"
+            style={{ color: limit.over ? '#ff8a80' : '#86868b', fontSize: 12, fontWeight: 700 }}
+          >
+            {formatLimitCounter(limit)}
+          </span>
+          {limit.over ? (
+            <button
+              type="button"
+              onClick={trimToFit}
+              style={{ border: '1px solid #5c5c60', borderRadius: 999, background: '#161618', color: '#f5f5f7', padding: '6px 10px', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}
+            >
+              Trim to fit ({limit.excess.toLocaleString('en-US')} chars)
+            </button>
+          ) : null}
+        </div>
+        {limit.over ? (
+          <p role="alert" style={{ color: '#ffb4ab', fontSize: 12, lineHeight: 1.45, margin: '7px 0 0' }}>
+            Nothing was removed. Trim here or edit the text before continuing.
+          </p>
+        ) : trimNotice ? (
+          <p role="status" style={{ color: '#a7f3d0', fontSize: 12, lineHeight: 1.45, margin: '7px 0 0' }}>
+            {trimNotice}
+          </p>
+        ) : null}
         <input type="hidden" name="create_intent" value={creationIntent} />
         <input type="hidden" name="intent_campaign" value={campaign} />
         {authRedirectFor(topic) && (
@@ -212,6 +255,7 @@ export default function TopicGeneratorForm({
         {duration && <input type="hidden" name="duration" value={duration} />}
         <button
           type="submit"
+          disabled={!canSubmit}
           style={{
             display: 'block',
             width: '100%',
@@ -223,7 +267,8 @@ export default function TopicGeneratorForm({
             padding: '14px 22px',
             fontSize: 15,
             fontWeight: 900,
-            cursor: 'pointer',
+            cursor: canSubmit ? 'pointer' : 'not-allowed',
+            opacity: canSubmit ? 1 : 0.55,
           }}
         >
           {copy.submit}

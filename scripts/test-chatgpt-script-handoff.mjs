@@ -169,7 +169,7 @@ try {
   includes(page, 'creationIntent="trial_best"', 'landing explicitly requests the best eligible trial engine')
   includes(page, 'preserveHandoffForSignedIn', 'landing keeps the script when an authenticated visitor skips signup')
   includes(page, 'otherwise it falls back safely to Fast', 'landing tells the truth about the safe fallback')
-  includes(page, 'Paste up to 1,000 characters with labels intact', 'landing states the real handoff limit instead of an unbounded whole-script promise')
+  includes(page, 'CREATION_HANDOFF_PROMPT_MAX_CHARS.toLocaleString', 'landing derives the advertised limit from the handoff contract')
   includes(page, 'If your script contains at least two Voiceover: or Narration: labels', 'landing conditions speech-only mode on two labels')
   includes(page, 'recognized Visual:, Camera:, scene headers and timecodes stay out of narration', 'landing names only recognized production directions')
   includes(page, 'RHYTHM:', 'published prompt contains the fifth supported section')
@@ -188,7 +188,10 @@ try {
 
   // Form fields and signup both use the shared contract.
   includes(topicForm, 'name="prompt"', 'script is submitted as prompt')
-  includes(topicForm, 'maxLength={1000}', 'visible form enforces the advertised limit')
+  includes(topicForm, 'promptLimitState(topic, CREATION_HANDOFF_PROMPT_MAX_CHARS)', 'visible form measures the canonical handoff limit')
+  includes(topicForm, 'Nothing was removed. Trim here or edit the text before continuing.', 'oversized paste remains visible until the person chooses')
+  includes(topicForm, 'Trim to fit ({limit.excess.toLocaleString', 'explicit trim action reports the excess')
+  ok(!topicForm.includes('maxLength={1000}'), 'browser no longer silently truncates the public form')
   includes(topicForm, "creationIntent = 'fast'", 'shared form preserves Fast as the default for every other caller')
   includes(topicForm, 'name="create_intent" value={creationIntent}', 'selected creation intent is explicit')
   includes(topicForm, 'create_intent: creationIntent', 'example clicks carry the selected creation intent too')

@@ -26,8 +26,8 @@ const check = (label, condition) => {
 
 console.log('1 · contrato real de roteiro próprio')
 check('o comparativo alvo existe', recordStart >= 0 && recordEnd > recordStart)
-check('o handoff limita o texto a 1.000 caracteres', handoff.includes('.trim().slice(0, 1000)'))
-check('o formulário público aplica maxLength 1000', form.includes('maxLength={1000}'))
+check('o handoff limita o texto pelo contrato de 1.000 caracteres', handoff.includes('CREATION_HANDOFF_PROMPT_MAX_CHARS = 1000') && handoff.includes('.slice(0, CREATION_HANDOFF_PROMPT_MAX_CHARS)'))
+check('o formulário público bloqueia excesso sem cortar silenciosamente', form.includes('promptLimitState(topic, CREATION_HANDOFF_PROMPT_MAX_CHARS)') && !form.includes('maxLength={1000}'))
 check('o contrato aceita modo verbatim', handoff.includes("export type CreationScriptMode = 'ai' | 'verbatim'"))
 check('a landing de roteiro usa modo verbatim', chatgptLanding.includes('scriptMode="verbatim"'))
 check('a landing preserva o handoff do autenticado', chatgptLanding.includes('preserveHandoffForSignedIn'))

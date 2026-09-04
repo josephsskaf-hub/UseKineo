@@ -3,6 +3,11 @@ export type CreationDuration = 35 | 45 | 60 | 90
 export type CreationIntent = 'fast' | 'trial_best' | null
 export type CreationLanguage = 'en' | 'pt' | 'es'
 
+// Nested auth redirects remain deliberately smaller than the Studio analyzer
+// ceiling. The public form must surface this boundary instead of letting the
+// browser silently discard everything after it.
+export const CREATION_HANDOFF_PROMPT_MAX_CHARS = 1000
+
 type QueryReader = Pick<URLSearchParams, 'get'>
 type QueryWriter = Pick<URLSearchParams, 'set'>
 
@@ -43,7 +48,7 @@ export function buildAuthenticatedCreationRedirect({
   scriptMode,
   duration,
 }: AuthenticatedCreationRedirectInput): string | null {
-  const boundedPrompt = prompt.trim().slice(0, 1000)
+  const boundedPrompt = prompt.trim().slice(0, CREATION_HANDOFF_PROMPT_MAX_CHARS)
   if (!boundedPrompt) return null
 
   const destination = new URLSearchParams({
@@ -64,7 +69,7 @@ export function buildAuthenticatedCreationRedirect({
  * being forwarded through auth or silently changing how a script is handled.
  */
 export function readCreationHandoff(params: QueryReader): CreationHandoff {
-  const prompt = (params.get('prompt') ?? '').trim().slice(0, 1000)
+  const prompt = (params.get('prompt') ?? '').trim().slice(0, CREATION_HANDOFF_PROMPT_MAX_CHARS)
   const rawCreateIntent = params.get('create_intent')
   const rawScriptMode = (params.get('script_mode') ?? '').toLowerCase()
   const rawDuration = Number(params.get('duration') ?? '')
