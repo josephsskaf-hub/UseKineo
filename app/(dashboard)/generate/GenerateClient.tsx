@@ -25,6 +25,12 @@ import {
   RESULT_VIDEO_VALUE_SAMPLED_EVENT,
   type ResultVideoValueContext,
 } from '@/lib/growth/resultVideoValueSample'
+import {
+  INSTRUCTION_PASTE_NOTICE,
+  instructionPasteNoticeMetadata,
+  instructionPromptLengthBand,
+  shouldShowInstructionPasteNotice,
+} from '@/lib/growth/instructionPasteNotice'
 
 // ═══ KINEO-REDE-OSCILA-2026-08-28 — o LÍDER de falhas era o wifi do cliente ═
 //
@@ -2003,6 +2009,7 @@ export default function GenerateClient({
   //   copiedSection: which output-card copy button just flashed "Copied!"
   //     ('package' is the top-level one).
   const [fromHome, setFromHome] = useState(false)
+  const [showInstructionPasteNotice, setShowInstructionPasteNotice] = useState(false)
   const [showFirstShortNudge, setShowFirstShortNudge] = useState(false) // #379 — new-user onboarding nudge
   const [credits, setCredits] = useState<number | null>(null)
 
@@ -3685,6 +3692,14 @@ export default function GenerateClient({
     // renderizaram esse lixo ao pe da letra. O texto fica na caixa (initialPrompt)
     // e a pessoa aperta o botao depois de ler o que colou.
     if (looksLikeInstruction(explicitPrompt)) {
+      if (shouldShowInstructionPasteNotice('prompt_looks_like_instruction')) {
+        setShowInstructionPasteNotice(true)
+        void trackEvent('activation_instruction_notice_viewed', {
+          ...instructionPasteNoticeMetadata(),
+          source: (metadata.source as string | undefined) ?? 'unknown',
+          prompt_length_band: instructionPromptLengthBand(explicitPrompt.length),
+        })
+      }
       consumeAndSkip('prompt_looks_like_instruction')
       return
     }
@@ -12001,6 +12016,24 @@ export default function GenerateClient({
           >
             2 · Your idea
           </label>
+          {showInstructionPasteNotice && prompt.trim() && (
+            <div
+              role="status"
+              aria-live="polite"
+              className="rounded-xl px-4 py-3 mb-3"
+              style={{
+                maxWidth: 830,
+                background: 'rgba(41,151,255,.10)',
+                border: '1px solid rgba(41,151,255,.38)',
+                color: '#d9ecff',
+              }}
+            >
+              <div className="text-sm font-black mb-1">{INSTRUCTION_PASTE_NOTICE.title}</div>
+              <div className="text-xs leading-relaxed" style={{ color: '#9dccf7' }}>
+                {INSTRUCTION_PASTE_NOTICE.body}
+              </div>
+            </div>
+          )}
           <textarea
             value={prompt}
             onChange={(e) => {
@@ -12011,6 +12044,7 @@ export default function GenerateClient({
               // Once the user edits the field themselves, the "already loaded"
               // helper line no longer makes sense — clear the breadcrumb.
               if (fromHome) setFromHome(false)
+              if (showInstructionPasteNotice) setShowInstructionPasteNotice(false)
             }}
             // KINEO-NICHE-PLACEHOLDER-2026-08-16 — o clique na categoria so
             // trocava os chips ABAIXO da dobra; a caixa parecia morta (bug
