@@ -69,3 +69,68 @@ Nada.
 - **VALIDADO EM PRODUÇÃO — 03/09/2026 23:13 BRT:** a landing pública entrega a orientação no domínio canônico `https://www.usekineo.com/chatgpt-to-youtube-shorts`.
 - **TESTADO LOCALMENTE — 03/09/2026:** o banner autenticado está coberto pelas 107 invariantes do quickstart e pelas 86 invariantes do handoff. Fontes: `scripts/test-chatgpt-quickstart.mjs:204-251`, `scripts/test-chatgpt-script-handoff.mjs:131-214`.
 - **QUESTÃO PENDENTE / DESCONHECIDO:** o banner autenticado ainda não foi exercitado ponta a ponta em uma sessão autenticada de produção.
+
+---
+
+## Rodada 2 — título público de série — 03/09 23:48→04/09 00:02 BRT — ENTREGA CONCLUÍDA
+
+- **IMPLEMENTADO:** o modelo público e o bitmap social agora recuperam o assunto de prompts de continuação legados antes de expor o título.
+- **BLOQUEADO / DESCONHECIDO:** a observação individual de checkout e a origem de novos cadastros não foram remensuradas; o conector Supabase recusou a leitura na rodada anterior e não existe nova autorização técnica disponível neste ciclo.
+
+### Dado, hipótese e anti-repetição
+
+- **EVIDÊNCIA DE PRODUÇÃO — consulta registrada em 03/09/2026 17:10 BRT:** 43 vídeos de 27 pessoas guardavam a instrução interna de continuação; 3 das 27 pessoas pagaram (11,1%), contra 12 de 751 pessoas da base com filme (1,6%). Fonte: `docs/PEDIDOS-ENTRE-PISTAS-2026-09-03.md:17`.
+- **HIPÓTESE:** mostrar o assunto reconhecível no lugar da ordem interna preserva confiança no compartilhamento e impede que o próximo remix volte a usar a instrução como tema.
+- **FATO CONFIRMADO:** não foi criada outra rota nem outro normalizador. A entrega reutiliza `normalizeSeriesSeed` e centraliza o título exposto em `resolvePublicVideoTitle`. Fontes: `lib/seriesContinuation.ts:199-208`, `lib/publicVideos.ts:414-438`.
+- **FATO CONFIRMADO:** o componente de página permaneceu Server Component e manteve o contrato de parâmetros já usado pelo repositório; nenhuma nova fronteira cliente foi introduzida. Fonte: `app/v/[id]/page.tsx:53,159` em 03/09/2026.
+
+### Vigia do checkout e placar
+
+- **BLOQUEADO / DESCONHECIDO — 04/09/2026:** sem leitura aceita do Supabase, não há linha individual de checkout das últimas 2 horas nem corte por origem; nenhum zero foi inferido. Fonte do vigia exigido: `docs/PROGRAMA-CODEX-ASSINATURAS-2026-09-03.md:324-335`.
+- **EVIDÊNCIA DE PRODUÇÃO — medição de 03/09/2026 22:08 BRT:** o último placar cronologicamente coerente segue em 15 cadastros, 10 pessoas com filme entregue (67%), 1 checkout de desejo, 1 checkout de defeito, 0 assinaturas e 0 pessoas com falha sem filme. Fonte: `docs/SPRINT-ASSINATURAS-2026-09-03.md:960-972`.
+- **CONTRADIÇÃO / DESCONHECIDO:** o diário #8 conserva uma janela futura em seu cabeçalho e não foi usado para atualizar o placar. Fonte: `docs/SPRINT-ASSINATURAS-2026-09-03.md:1120-1125` e commit `e34a56b8` (author time 03/09/2026 23:01 BRT; committer time 23:17 BRT).
+
+### O que mudou
+
+- **IMPLEMENTADO:** `resolvePublicVideoTitle` detecta scaffolding no título, no tópico e no candidato derivado; no ramo contaminado recupera primeiro o tópico completo, depois o título truncado, e usa `AI YouTube Short` quando não resta assunto seguro. Fonte: `lib/publicVideos.ts:414-438`.
+- **IMPLEMENTADO:** `toPublicVideo` entrega esse único valor ao H1, metadata, JSON-LD, breadcrumb, compartilhamento e CTAs já consumidores de `PublicVideo.title`, sem promover a linha contaminada de volta ao sitemap. Fontes: `lib/publicVideos.ts:527-549`, `app/v/[id]/page.tsx:56,63,118,146,169,175,232,330,352`.
+- **IMPLEMENTADO:** a rota de imagem OG, que faz uma consulta própria, também usa o resolver compartilhado e mantém o gate de privacidade antes da leitura administrativa. Fonte: `app/v/[id]/opengraph-image.tsx:5,24-30,45`.
+- **FATO CONFIRMADO:** nenhum preço, oferta, CTA textual, destino, evento, autenticação ou política pública foi alterado. Fontes: diff do commit `96310071ebdba64881e228df5331dadb25990991` e `lib/publicSurfacePolicy.ts:11`.
+- **TESTADO LOCALMENTE — 03/09/2026 23:57 BRT:** `node scripts/test-public-video-privacy.mjs` 87/87; `node scripts/test-serie-episodio-2.mjs` 262/262; `node scripts/test-public-video-remix.mjs` 36/36; `node node_modules/typescript/bin/tsc --noEmit` com saída 0; `git diff --check` sem erro. Fontes: `scripts/test-public-video-privacy.mjs:62-107,166-167` e os executáveis citados.
+- **TESTADO LOCALMENTE — 03/09/2026 23:54 BRT:** o comparativo autocontido foi inspecionado em desktop de 1.440 px e mobile de 360 px. Fontes: `docs/previews/FLUXO-PUBLIC-VIDEO-TITLE-2026-09-03.html` e `docs/previews/FLUXO-PUBLIC-VIDEO-TITLE-2026-09-03.png`.
+- **TESTADO LOCALMENTE — 03/09/2026 23:58 BRT:** duas revisões independentes deram GO após exigir que o tópico bruto entrasse no detector, o tópico completo precedesse o título truncado e o bitmap OG compartilhasse o mesmo resolver. Fonte: revisão dos agentes `inspect_tests` e `trace_public_series` nesta rodada.
+
+### Integração e produção
+
+- **IMPLEMENTADO:** código integrado por fast-forward em `main` no SHA `96310071ebdba64881e228df5331dadb25990991`; o pai direto é `61422aeee3dd291274449bafaa9d544c399a039b`.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 00:00 BRT:** a Vercel marcou o deployment `5QYjDJXCkgHEJXCGnJFnxkBsBygq` como concluído para o SHA funcional.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 00:01 BRT:** `https://www.usekineo.com/` respondeu 200 e uma URL sintética em `/v/[id]` respondeu 404, coerente com a política anônima desligada.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 00:01 BRT:** o Guardião #46 concluiu verde no SHA funcional; os jobs “Suíte de testes” e “TypeScript” terminaram com `success`. Fonte: `https://github.com/josephsskaf-hub/UseKineo/actions/runs/33831554780`.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** as 43 páginas legadas não podem ser exercitadas anonimamente enquanto `CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED` estiver `false`, e seus IDs não foram lidos nesta rodada. A correção exata foi provada pelas fixtures reais e pelo deploy, não por um E2E de uma linha legada em produção. Fontes: `lib/publicSurfacePolicy.ts:11`, `scripts/test-public-video-privacy.mjs:62-107`.
+
+### Como medir e quando parar
+
+- **FATO CONFIRMADO:** a métrica pedida permanece “páginas `/v/` cujo título/H1 contém `Create the next episode` ou `Keep the topic and format recognizable`”; o alvo é zero pessoas/páginas quando a superfície voltar a ser observável. Fonte: `docs/PEDIDOS-ENTRE-PISTAS-2026-09-03.md:17`.
+- **SUGESTÃO:** ao reativar a superfície, validar primeiro uma amostra das linhas antigas por ID e contar páginas, não requisições; manter o gate `noindex` até decisão explícita de privacidade.
+- **SUGESTÃO — gate de parada:** reverter ou corrigir se qualquer título normal for alterado, se uma linha contaminada voltar a ficar indexável ou se o bitmap social divergir do H1. O teste trava os ramos normal, legado, novo formato, truncado e degenerado.
+
+### PEDIDOS
+
+- **FATO CONFIRMADO:** o pedido de 17:10 BRT foi marcado como atendido no SHA `96310071ebdba64881e228df5331dadb25990991`. Fonte: `docs/PEDIDOS-ENTRE-PISTAS-2026-09-03.md:17`.
+- **FATO CONFIRMADO:** nenhum pedido novo foi aberto pela pista FLUXO nesta rodada; o único diff no arquivo de pedidos baixa o título público de série.
+- **QUESTÃO PENDENTE:** o corte silencioso em 1.000 caracteres continua aberto. Fonte: `docs/PEDIDOS-ENTRE-PISTAS-2026-09-03.md:28`.
+
+## PRÓXIMA JOGADA
+
+- **SUGESTÃO:** tratar o corte silencioso de 1.000 caracteres no quickstart sem reabrir o falso buraco 58→35: tornar qualquer excedente visível ou transportar o texto inteiro por um canal que não dependa da query string.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+## 📋 O QUE ACONTECEU
+
+- **IMPLEMENTADO:** títulos públicos de continuação agora mostram o assunto recuperado, inclusive no card social, e os casos sem assunto seguro recebem o fallback genérico; o `noindex` continua ativo.
+- **TESTADO LOCALMENTE — 03/09/2026 23:57 BRT:** 385 verificações direcionadas passaram, TypeScript saiu com código 0 e a comparação desktop/mobile foi inspecionada. Fontes: os três comandos e os dois artefatos registrados em “O que mudou”.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 00:01 BRT:** Vercel e Guardião #46 concluíram verdes para `96310071ebdba64881e228df5331dadb25990991`.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** o E2E de uma linha legada e os vigias individuais de checkout/origem seguem indisponíveis com a superfície anônima desligada e sem leitura aceita do Supabase.
