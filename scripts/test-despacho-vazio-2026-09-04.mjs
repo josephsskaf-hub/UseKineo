@@ -56,8 +56,11 @@ function check(nome, cond) {
   console.error(`  ✗ ${nome}`)
 }
 
-// A mensagem nova, escrita UMA vez aqui e procurada nos arquivos reais.
-const MSG_VAZIO = "We couldn't build a single scene from this text, so nothing was ever sent to our video provider — this is on our side, not yours. Your credits were refunded automatically and the team was alerted. Editing the text, or letting the AI structure it for you, is the change most likely to get this through."
+// A mensagem servida e LIDA DO ROUTE, nunca transcrita aqui: com a copia a
+// mao, mudar a copy do servidor passava batido e o cliente ficava para tras
+// sem ninguem ver. (Falso-verde encontrado ao falsificar, nao na revisao.)
+const mMsgVazio = route.match(/"(We couldn't build a single scene[^"]*)"/)
+const MSG_VAZIO = mMsgVazio ? mMsgVazio[1] : ''
 const MSG_FORNECEDOR = 'Our video provider did not accept the job — this is on our side, not yours. Nothing started, your credits were refunded automatically, and the team was alerted. Please try again in a few minutes.'
 
 console.log('\n1) O route separa plano vazio de recusa do fornecedor')
@@ -72,6 +75,17 @@ check('1.5 o ramo novo so dispara dentro de totalPosts === 0', (() => {
 })())
 check('1.6 a mensagem de plano vazio existe no route', route.includes(MSG_VAZIO))
 check('1.7 alarme proprio EMPTY_PLAN (nao reusa ZERO_POSTS)', /alertFalExhausted\(`EMPTY_PLAN /.test(route))
+// A telemetria da sessao paralela (#21) mora DENTRO deste mesmo ramo e e a
+// unica coisa que pode achar a causa raiz (por que 60s da zero cena e 35s
+// nao). Duas sessoes editando o mesmo bloco em paralelo apagam trabalho uma
+// da outra sem conflito de merge — este check e o que impede isso.
+check('1.8 a telemetria cinematic_zero_scenes_planned continua no ramo', (() => {
+  const i = route.indexOf('if (planoVazio) {')
+  return i > 0 && route.slice(i, i + 1800).includes('cinematic_zero_scenes_planned')
+})())
+check('1.9 ela ainda carrega os campos que acham a causa raiz',
+  ['requested_seconds', 'effective_seconds', 'has_markers', 'segments', 'narration_chars']
+    .every((c) => route.includes(c)))
 
 console.log('2) A mensagem nova diz a verdade')
 check('2.1 nao afirma que o fornecedor recusou', !MSG_VAZIO.includes('did not accept the job'))
@@ -81,16 +95,44 @@ check('2.4 confirma o estorno', MSG_VAZIO.includes('refunded automatically'))
 check('2.5 oferece a acao que muda o resultado (editar/estruturar)', /Editing the text, or letting the AI structure it/.test(MSG_VAZIO))
 check('2.6 NAO manda repetir igual em alguns minutos', !/try again in a few minutes/i.test(MSG_VAZIO))
 
-console.log('3) O cron de resgate continua reconhecendo isto como defeito nosso')
-// Le a lista REAL do cron, nao uma copia.
+console.log('3) O e-mail de resgate ainda alcanca estas pessoas (regra REAL do cron)')
+// Le as DUAS listas do cron real e reproduz a decisao dele. So a lista de
+// defeito nao basta: uma mensagem tambem entra na fila por NAO casar o
+// NAO_E_BUG, e e exatamente assim que varias entram.
 const mDef = cron.match(/const DEFEITO_EXPLICITO = \[([\s\S]*?)\]/)
-check('3.1 DEFEITO_EXPLICITO foi encontrado no cron real', Boolean(mDef))
-const fragmentos = mDef ? [...mDef[1].matchAll(/'([^']+)'/g)].map((m) => m[1]) : []
-check('3.2 a lista tem fragmentos', fragmentos.length > 0)
-check('3.3 a mensagem NOVA casa com algum fragmento de defeito explicito',
-  fragmentos.some((f) => MSG_VAZIO.toLowerCase().includes(f.toLowerCase())))
-check('3.4 a mensagem ANTIGA continua casando (nao quebrei o caminho do Joscha)',
-  fragmentos.some((f) => MSG_FORNECEDOR.toLowerCase().includes(f.toLowerCase())))
+const mNao = cron.match(/const NAO_E_BUG(?::[^=]*)? = \[([\s\S]*?)\n\]/)
+check('3.1 DEFEITO_EXPLICITO foi lido do cron real', Boolean(mDef))
+check('3.2 NAO_E_BUG foi lido do cron real', Boolean(mNao))
+// Extrair literal de lista TS SEM se enganar: tira as linhas de comentario
+// PRIMEIRO. Os comentarios tem apostrofo e aspas em portugues, e o proprio
+// item "can't depict real people" (aspas duplas com apostrofo dentro)
+// desalinhava o pareamento: a versao anterior extraia 19 'fragmentos', quase
+// todos lixo, e NENHUM dos de saldo curto — em silencio.
+const NOVA_LINHA = String.fromCharCode(10)
+const RETORNO = String.fromCharCode(13)
+const literais = (corpo) => corpo
+  .split(NOVA_LINHA)
+  .map((l) => l.split(RETORNO).join(''))
+  .filter((l) => !l.trim().startsWith('//'))
+  .join(NOVA_LINHA)
+  .match(/'[^']*'|"[^"]*"/g)
+  ?.map((v) => v.slice(1, -1)).filter((v) => v && v.trim().length > 0) ?? []
+const fragDef = mDef ? literais(mDef[1]) : []
+const fragNao = mNao ? literais(mNao[1]) : []
+// Sanidade da propria extracao: se ela desalinhar de novo, as listas encolhem
+// e o resto do bloco vira teatro.
+check('3.3 a lista NAO_E_BUG veio inteira (>= 15 fragmentos)', fragNao.length >= 15)
+check('3.4 os fragmentos de saldo curto estao entre eles', fragNao.includes('credits. You have'))
+check('3.5 o fragmento de defeito explicito veio', fragDef.includes('on our side, not yours'))
+const ehDefeito = (msg) => {
+  const low = msg.toLowerCase()
+  if (fragDef.some((f) => low.includes(f.toLowerCase()))) return true
+  return !fragNao.some((f) => low.includes(f.toLowerCase()))
+}
+check('3.6 a mensagem de plano vazio e classificada como DEFEITO nosso', MSG_VAZIO ? ehDefeito(MSG_VAZIO) : false)
+check('3.7 a mensagem do fornecedor continua classificada como defeito', ehDefeito(MSG_FORNECEDOR))
+check('3.8 uma recusa legitima de saldo NAO e defeito (a regra ainda discrimina)',
+  !ehDefeito('AI Generated needs 25 credits. You have 10.'))
 
 console.log('4) O resfriamento anti-abuso deixa de trancar quem nao gastou nada')
 const mFiltro = route.match(/\/\^provider_\.\*_refunded\$\/\.test\(metadata\.resolution_reason\)/)
@@ -105,9 +147,14 @@ check('4.5 releaseBirthClaim ainda sufixa _refunded no debito confirmado',
 
 console.log('5) O cliente classifica a causa nova')
 check('5.1 existe a causa empty_plan', /return 'empty_plan'/.test(client))
-check('5.2 ela e reconhecida pelo trecho da mensagem nova', /raw\.includes\('build a single scene'\)/.test(client))
-check('5.3 o trecho procurado existe mesmo na mensagem do servidor',
-  MSG_VAZIO.toLowerCase().includes('build a single scene'))
+// O trecho procurado e LIDO DO CLIENTE, nao escrito aqui: e esta dupla que
+// impede servidor e tela de divergirem em silencio. Com a frase transcrita a
+// mao, trocar o matcher do cliente por qualquer bobagem passava batido — e a
+// tela voltaria a jogar esta recusa em 'other' sem nenhum teste reclamar.
+const mNeedle = client.match(/raw\.includes\('([^']+)'\)\) return 'empty_plan'/)
+check('5.2 o cliente casa empty_plan por um trecho literal', Boolean(mNeedle))
+check('5.3 esse trecho existe MESMO na mensagem servida pelo servidor',
+  Boolean(mNeedle) && MSG_VAZIO.toLowerCase().includes(mNeedle[1].toLowerCase()))
 check('5.4 empty_plan vem ANTES de provider_rejected na cascata', (() => {
   const a = client.indexOf("return 'empty_plan'")
   const b = client.indexOf("return 'provider_rejected'")

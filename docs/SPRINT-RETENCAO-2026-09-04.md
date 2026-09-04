@@ -1258,3 +1258,113 @@ o episódio 2 nasce hoje de `Topic: "<tema>"` + ordem genérica, sem uma palavra
 do roteiro do episódio 1 — o `videos.script` do episódio anterior existe no
 banco e é jogado fora, então "não repita o episódio anterior" é uma ordem que o
 motor não tem como cumprir; (b) medir o ramo `free_engine` do momentum.
+
+---
+
+### #6 (global #22) — 19:05→20:50 BRT — CORREÇÃO da entrada anterior: três sessões consertaram o MESMO defeito hoje, e o que sobrou de meu foi endurecer o teste
+
+**Esta entrada corrige a de cima**, que ficou numerada `#20` sem eu ver que as
+sessões paralelas já tinham tomado `#4 (global #20)` e `#5 (global #21)` neste
+mesmo arquivo. E conta o que a anterior não podia contar, porque ainda não
+tinha acontecido.
+
+**O que aconteceu, em ordem.**
+
+1. Abri a rotação pela **checagem zero** (18 `generation_stage_error` em 2h,
+   todos de uma pessoa viva, `ffd78315`, tentando o primeiro filme dela
+   naquele minuto). Diagnostiquei o **despacho vazio**: `planned: 0`,
+   `attempted: 0` — a fal **nunca foi chamada** — e mesmo assim a mensagem a
+   culpava, e o guarda anti-abuso trancava a pessoa por 15 min por uma falha
+   em que ela não consumiu nada nosso. Enfileirei o conserto.
+2. Fui ler a fila e vi que **outra sessão já tinha consertado a mensagem** do
+   mesmo defeito. A minha anti-repetição grepou **só a `origin/main`** — a fila
+   tinha 8 commits não publicados.
+3. Refiz a rodada supondo que a versão dela venceria. Ao enfileirar: **conflito**
+   — enquanto eu trabalhava, a fila foi reescrita e ela tinha **convergido na
+   minha implementação**, acrescentando a telemetria dela dentro do meu ramo.
+   O meu commit "reconciliado" teria **apagado a telemetria dela**. Descartei.
+4. Resetei para a ponta e fui fazer só o que faltava — e descobri que **uma
+   terceira sessão já tinha consertado a checagem 8.3** do meu teste
+   (`a98dda90`). Mantive a versão dela.
+
+**Dois commits meus jogados fora. ~1h de trabalho.** Está registrado porque a
+causa é de processo e vai repetir se ninguém escrever.
+
+---
+
+**O estado da fila é o certo, e eu não mexi nele.** O ramo `if (planoVazio)`
+tem a razão de release `empty_plan_rejected` (minha — é ela que tira o caso do
+filtro `/^provider_.*_refunded$/` do resfriamento anti-abuso, **sem afrouxar o
+filtro**), a mensagem honesta (minha) e o evento `cinematic_zero_scenes_planned`
+com o diagnóstico da causa raiz (da #21). Nada a refazer.
+
+**O que ESTA rodada entrega: 1 arquivo, zero código de produção.** Quatro
+consertos no teste, **todos achados falsificando**, nenhum por releitura:
+
+1. **A extração das listas do cron se desalinhava em silêncio.** O item
+   `"can't depict real people"` (aspas duplas com apóstrofo dentro) quebrava o
+   pareamento de `'...'`: a versão anterior extraía 19 "fragmentos", quase todos
+   lixo, e **nenhum** dos de saldo curto — ou seja, o bloco inteiro era teatro.
+   Agora remove as linhas de comentário primeiro, lê os dois tipos de aspas, e
+   tem três verificações de sanidade **da própria extração**.
+2. **Cobertura nova:** o bloco 3 passa a **rodar a regra real** do cron
+   `send-failure-recovery` (lê as duas listas do arquivo dele e reproduz a
+   decisão), provando que estas 25 pessoas continuam na fila do e-mail de
+   resgate — com um controle (3.8) provando que recusa legítima de saldo
+   continua **não** sendo tratada como defeito.
+3. **O acoplamento servidor↔tela era uma frase que eu tinha digitado.** Trocar o
+   matcher do cliente por qualquer bobagem passava. Agora a mensagem é **lida do
+   route** e o trecho procurado é **lido do cliente**: drift de qualquer um dos
+   dois lados reprova.
+4. **Apagar a telemetria da sessão paralela não era detectado por ninguém** — e
+   eu quase fiz exatamente isso. Como duas sessões editam o mesmo `if` **sem
+   gerar conflito de merge**, perda silenciosa de trabalho alheio é o modo de
+   falha natural aqui, não o excepcional. `1.8` exige o evento dentro do ramo;
+   `1.9` exige os campos que acham a causa raiz.
+
+**51/51 verdes** (a `8.3` é a da sessão paralela, preservada). Falsificado em
+**9 mutações**, cada uma com `cmp` confirmando que a mutação **realmente
+existiu** antes de acreditar no resultado — três tinham "passado" antes porque
+o `perl` com `\n` não casa arquivo **CRLF** e a mutação nunca chegou a existir.
+`tsc --noEmit` **exit 0**.
+
+**Aviso sobre o typecheck, que vale para toda worktree:** a primeira execução
+saiu "exit 0" e era **mentira** — `npx tsc` não achou o TypeScript e o `npx`
+saiu 0 sozinho. A segunda cuspiu centenas de `Cannot find module` porque a
+**worktree não tem `node_modules`**. Só a terceira, com junction do
+`node_modules` do repo principal, é typecheck de verdade. Mesma classe
+`MODULE_NOT_FOUND` que o codex-fluxo apontou no Guardião às 10:54.
+
+**Risco: zero para o cliente.** Nenhuma linha de produção nesta rodada.
+
+---
+
+## A LIÇÃO CARA DO DIA — vale mais que a entrega
+
+Três sessões no mesmo defeito. As três causas são de processo:
+
+- **Anti-repetição olhava só a `origin/main`.** A fila tinha 8 commits — quase
+  um dia de trabalho invisível para quem só olha a main. Um comando resolve, e
+  precisa rodar **antes da primeira linha escrita**:
+  ```sh
+  git log --oneline origin/main..entrega-atual
+  ```
+- **Rebase verde não prova ausência de duplicação.** Duas sessões mexendo em
+  linhas diferentes do mesmo arquivo **não conflitam** — e entregam dois
+  consertos para o mesmo defeito, um deles inalcançável em produção.
+- **A fila é reescrita enquanto você trabalha.** O estado lido na abertura pode
+  não ser o do fim. Reler a ponta **depois** do rebase virou passo obrigatório.
+
+**Placar no corte (marco 2026-09-03 16:00 UTC, contas externas):** 43 cadastros ·
+29 pessoas com filme · 4 checkouts iniciados · **0 `payment_success`**.
+Checagem zero: 0 cadastro sem crédito em 2h · 0 claim sem filme em 3h ·
+18 `generation_stage_error`, todos da pessoa desta rodada — **e ela recebeu o
+filme dela às 20:49 UTC**, depois de mudar o texto sozinha.
+
+**Próximo item — não construir, MEDIR.** As três portas de série
+(`done_screen_top`, `composer_empty`, `generate_recent_video`), a memória de
+episódio das #4/#5 e o `empty_plan` desta: tudo entregue hoje, **nada com
+denominador em produção ainda**. Construir uma quarta coisa antes de medir as
+oito de hoje é o erro que esta sprint pode cometer amanhã. E há uma
+**divergência aberta** que precisa de uma palavra do fundador: `app/api/compose/**`
+está ou não dentro da trava de qualidade.
