@@ -545,3 +545,44 @@ daquele filme. Isso serve o fundador E todo cliente que publica.
 
 A tela do resultado é do Claude → vira PEDIDO. A geração do texto e o formato
 são do Codex. A subida nas redes é do Cowork (pista a desenhar em 04/09).
+
+### 8.7b CORREÇÃO DA CORREÇÃO (fundador, 03/09 23:30 BRT) — o §8.7 entendeu errado
+
+O §8.7 escreveu "o fundador não quer roteiro". **Errado, e a diferença é o
+ponto inteiro.** Palavras dele:
+
+> *"Antigamente eu pedia pro Codex escrever pra mim o que eu ia colocar no site.
+> Mas hoje, como eu quero ser um usuário comum, eu pego um texto da internet e
+> vejo se coloco lá e mando ele fazer pra mim. Uma coisa é o sistema, o roteiro
+> que a gente já tem dentro do nosso site; outra coisa é quando eu peço pro
+> Claude fazer pra mim — e eu não estou fazendo mais isso, porque estou passando
+> pela experiência de um usuário normal, que não pede pro próprio Codex que está
+> construindo o site."*
+
+São **duas coisas separadas**, e nenhuma delas morreu:
+
+1. **O gerador de roteiro DENTRO do produto** (`/api/generate-script`,
+   `analyze-idea`, "Let AI structure my text", expansor) continua sendo produto
+   crítico. É o que o cliente usa. Nada aqui muda.
+2. **Pedir a um agente da casa que escreva o roteiro do fundador** — isso ele
+   parou de fazer DE PROPÓSITO. É um atalho que nenhum cliente tem. Enquanto ele
+   usava esse atalho, o vídeo do dia saía bom por um caminho que não existe para
+   o cliente, e a fricção real ficava invisível.
+
+**O que isso vale, e é a parte grande:** o fundador virou o usuário de teste
+mais valioso que a casa tem. Ele entra pelo caminho comum, com texto copiado da
+internet, exatamente como os 50 que chegam do ChatGPT com `finished_script`.
+Toda fricção que ele sentir é fricção REAL de cliente, medida por dentro.
+
+Consequências práticas para as duas pistas:
+- **Nunca oferecer roteiro pronto ao fundador** sem ele pedir. Oferecer é
+  devolver o atalho e cegar a medição.
+- Quando ele relatar algo estranho no vídeo do dia, tratar como **relato de
+  produção com prioridade máxima** — é a única fonte de fricção observada de
+  dentro, com contexto completo.
+- O que ele continua querendo da casa é a **camada de publicação** (legenda de
+  tela, título, descrição, comentário fixado, hashtags, horário) e a subida nas
+  redes. Isso não é atalho: é trabalho de canal, não de produto.
+- E segue valendo o desenho do §8.7: o melhor lugar para o pacote de publicação
+  é um botão na tela do resultado, gerado do roteiro real do filme — porque aí
+  o cliente ganha a mesma coisa que o fundador.
