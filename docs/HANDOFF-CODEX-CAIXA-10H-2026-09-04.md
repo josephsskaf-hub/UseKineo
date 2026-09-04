@@ -55,7 +55,15 @@ Não dividir colunas como funil sequencial: as pessoas não são necessariamente
 
 ### Próxima jogada
 
-Concluir testes do pixel e caller; publicar apenas após gates. Depois reconciliar quase-compradores por pessoa e primeira assinatura paga (SELECT), sem contatos.
+Patch e reconciliação inicial concluídos; a rotação 1 permanece aberta até 18:08 BRT. Checkpoint de 17:38 continua esta mesma entrada, sem nova hipótese ou rotação. Preservar o pixel corrigido e medir a próxima compra real; não fazer cobrança de teste. Depois avaliar exposição → clique de ofertas existentes entre quem já recebeu filme, sem repetir atribuição de entrada (sem amostra) nem a série do Claude.
+
+### Estado consolidado às 17:34 BRT
+
+- **VALIDADO EM PRODUÇÃO, 04/09/2026 20:34:30 UTC:** complemento `e06a5380f25b48b63dfdf487cef9f9ef4a4a4cff`, Guardião pré-integração `33916586818` success, deploy `dpl_E6pt74htki6NJxZFNhDrk8AodFk7` READY e `www.usekineo.com` aliasado. Negativos HTTP 400/401/no-store repetidos após READY. Positivos continuam TESTADOS LOCALMENTE, não compra real forçada.
+- Código final: 108/108 contrato executável, 66/66 entitlement, 84/84 compatibilidade Autopilot; tsc exit 0. Árvore isolada limpa após commits; árvore principal e pista do Claude intocadas.
+- **EVIDÊNCIA DE PRODUÇÃO, SELECT 20:31:37 UTC:** entre as 25 pessoas com filme criado/concluído do baseline, após o horário do respectivo filme e antes de 20:08 UTC: ponte de saldo 10 pessoas/13 eventos; CTA de assinatura no banner 5/5; oferta do primeiro filme no histórico 4/5; modal de upgrade 3/4; download confirmado 6/6. Nenhum `checkout_started` pós-filme nesse corte. Não somar públicos sobrepostos; ausência de evento não prova que ninguém viu interface.
+- **SUGESTÃO para próxima rotação:** testar a hipótese de exposição/clareza do próximo passo de compra antes de atribuir tudo a preço. Inventariar quais versões cada pessoa viu e respeitar gate de amostra; nada de quarta porta de série, CTA obrigatório ou desconto novo.
+- Janela segue até 03:08 BRT, sem renovação. Nenhuma comunicação externa iniciada.
 
 ### ✅ O que você precisa fazer
 
@@ -63,4 +71,4 @@ Nada nesta etapa.
 
 ### 📋 O que aconteceu
 
-Rotação aberta sobre a fila publicada do Claude. Correção de medição em andamento, sem mexer na experiência de geração ou preço.
+Correção de pixels publicada e validada nos limites descritos; baseline por pessoa registrado e compradores potenciais reconciliados. Não houve assinatura nova demonstrada nesta leitura inicial. O restante da rotação acompanha evidência, sem substituir a métrica final por contagem de tarefas.
