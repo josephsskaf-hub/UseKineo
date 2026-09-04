@@ -338,3 +338,68 @@ Nada.
 - **TESTADO LOCALMENTE — 04/09/2026 01:09 BRT:** 220 verificações direcionadas passaram; o contrato autenticado foi executado, e TypeScript/diff check ficaram verdes.
 - **VALIDADO EM PRODUÇÃO — 04/09/2026 01:11 BRT:** Vercel, Guardião #53 e a landing pública ficaram verdes no SHA `c879b939`.
 - **QUESTÃO PENDENTE / DESCONHECIDO:** K18 ainda não está concluído; DE/FR, exemplos narrados, hreflang PT da landing ES e a atribuição falsa de SEO seguem abertos.
+
+---
+
+## Rodada 6 — K18 parcial · launcher de roteiro em PT-BR e ES — 04/09 01:19→01:38 BRT — ENTREGA CONCLUÍDA
+
+- **IMPLEMENTADO / VALIDADO EM PRODUÇÃO:** as duas landings localizadas já indexadas ganharam uma escolha visualmente separada para quem chega com roteiro pronto; o caminho original por assunto continua primário e inalterado.
+- **BLOQUEADO / DESCONHECIDO:** o vigia individual de checkout e a origem dos cadastros das últimas 2 horas não foram remensurados; não há conector Supabase utilizável nesta sessão e nenhum zero foi inferido.
+
+### Dado, prioridade e anti-repetição
+
+- **FATO CONFIRMADO:** as prioridades automáticas `/v/[id]` e corte de 1.000 caracteres já estavam concluídas nas rodadas 2 e 3. Os pedidos abertos de 18:40, 18:45 e 23:15 tocam dashboard/Claude; o de 20:45 toca CAIXA. Nenhum deles foi duplicado nesta worktree. Fontes: rodadas anteriores deste documento e `docs/PEDIDOS-ENTRE-PISTAS-2026-09-03.md`.
+- **FATO CONFIRMADO:** K18 tinha portas de assunto em português e espanhol, mas não um launcher localizado de roteiro; o runtime aceita `en|pt|es`, portanto DE/FR permaneceram fechados. Fontes antes do commit: `app/gerador-de-shorts-gratis/page.tsx:84-100`, `app/generador-de-shorts-gratis/page.tsx:82-98`; contrato: `app/youtube-shorts-from-topic/TopicGeneratorForm.tsx:24`.
+- **HIPÓTESE:** oferecer a caixa de roteiro no idioma da landing reduz a troca de contexto e o retrabalho de colar novamente; esta rodada não atribui assinatura ao novo launcher sem uma janela pós-deploy.
+
+### Vigia do checkout e placar
+
+- **BLOQUEADO / DESCONHECIDO — 04/09/2026:** sem leitura aceita do Supabase, não há linha individual dos checkouts das últimas 2 horas nem corte novo por origem; nenhum zero foi inferido.
+- **EVIDÊNCIA DE PRODUÇÃO — medição encerrada em 04/09/2026 00:55 BRT:** 16 cadastros, 11 pessoas com filme (69%), 1 checkout com filme, 1 checkout sem filme, 0 assinaturas e 0 pessoas com falha sem filme. Fonte: `docs/SPRINT-ASSINATURAS-2026-09-03.md:1120-1126`. A medição já estava no passado quando esta rodada a adotou às 01:33 BRT.
+
+### O que mudou
+
+- **IMPLEMENTADO:** `LocalizedScriptHandoff` reutiliza o formulário existente e fixa `verbatim`, alvo de 35 segundos, intenção `trial_best`, preservação para autenticado e uma variante de analytics por idioma. Fonte: `components/LocalizedScriptHandoff.tsx:1-61`.
+- **IMPLEMENTADO:** PT-BR e ES expõem âncoras estáveis, linguagem semântica no conteúdo e campanhas separadas `seo_chatgpt_to_shorts_pt|es`; não foram adicionados UTMs falsos. Fontes: `app/gerador-de-shorts-gratis/page.tsx:22,73,105-117`, `app/generador-de-shorts-gratis/page.tsx:20,71,103-115`.
+- **IMPLEMENTADO:** o prefixo `seo_` permite que o funil orgânico reconheça o handoff; as duas rotas também entraram no denominador de landings, evitando taxa distorcida ou superior a 100%. Fontes: `lib/growth/organicSignupTruth.ts:12-25,44-60`, `app/api/admin/funnel/route.ts:354-382`.
+- **IMPLEMENTADO:** `/llms.txt` publica os dois deep links; o alternate `pt-BR` da página espanhola agora aponta à página portuguesa, não para si mesma. Fontes: `app/llms.txt/route.ts:215-219`, `app/generador-de-shorts-gratis/page.tsx:25-32`.
+- **FATO CONFIRMADO:** a copy nomeia o roteamento real — Seedance apenas se o saldo do teste ativo cobrir, senão Fast — e limita a promessa a sequência de palavras, com ajuste possível de pontuação. Fontes: `app/gerador-de-shorts-gratis/page.tsx:105-117`, `app/generador-de-shorts-gratis/page.tsx:103-115`, `lib/growth/trialActivationIntent.ts:20-29`.
+- **FATO CONFIRMADO:** nenhum preço, oferta, desconto, Stripe, saldo, autorização de geração, migration, mensagem externa, exemplo público, arquivo de dashboard/Claude ou arquivo de CAIXA foi alterado. Fonte: diff do commit `2672d0d9939dfdc2807c8f5a71d35f0c1040a699`.
+- **TESTADO LOCALMENTE — 04/09/2026 01:30 BRT:** `test-chatgpt-script-handoff` passou 165/165, `test-seo-form-handoff` 50/50, `test-roteiro-de-cinema` 64/64; TypeScript e `git diff --check` saíram com código 0.
+- **TESTADO LOCALMENTE — 04/09/2026 01:30 BRT:** a comparação autocontida fiel às strings do JSX foi inspecionada em PT-BR e ES, antes/depois, desktop e mobile. Fontes: `docs/previews/K18-PT-ES-SCRIPT-LAUNCHERS-2026-09-04.html` e `.png`.
+- **FATO CONFIRMADO — revisão independente em 04/09/2026:** três auditores somente leitura verificaram contrato, copy, rotas, hreflang, telemetria e preview. As revisões descobriram e fecharam o reconhecimento da campanha, o denominador das landings, a fidelidade do preview e a linguagem semântica; a revisão final informou “sem bloqueios”.
+
+### Integração e produção
+
+- **IMPLEMENTADO:** código integrado em `main` no SHA `2672d0d9939dfdc2807c8f5a71d35f0c1040a699`; o pai direto é `efbd872ee4387eb4729e4d1058570047ae9868ef`.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 01:33 BRT:** a Vercel concluiu o deployment `4PmjCiB5N46ad62SEuqbKgxcadzD` para o SHA funcional.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 01:38 BRT:** o Guardião #55 concluiu `success`; TypeScript e a suíte informativa terminaram verdes. Fonte: `https://github.com/josephsskaf-hub/UseKineo/actions/runs/33837029366`.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 01:33 BRT:** as páginas PT-BR e ES e `/llms.txt` responderam 200; o HTML publicado contém âncoras, headings, campanhas e atributos de idioma corretos, o alternate `pt-BR` da página ES aponta à URL portuguesa e `/llms.txt` contém ambos os deep links.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** não foi usada conta real em produção. O transporte foi provado com Unicode, pontuação e quebra de linha pelo builder executável e pelo HTML publicado, não por E2E autenticado de uma conta de cliente.
+
+### Como medir e quando parar
+
+- **SUGESTÃO:** após uma janela completa e igual para cada idioma, contar pessoas distintas — não eventos — no caminho landing → `organic_topic_submitted` por `seo_chatgpt_to_shorts_pt|es` → cadastro → primeiro filme → checkout com filme → assinatura. Não somar PT e ES antes de mostrar cada denominador.
+- **SUGESTÃO — gate de parada:** corrigir ou reverter se qualquer campo `prompt/campaign/language/script_mode/duration` sumir, se o destino autenticado deixar `/studio/create`, se o denominador excluir uma das rotas ou se a conversão cair contra janela anterior equivalente.
+- **RISCO:** duas caixas podem parecer duplicadas apesar da separação visual; as campanhas divididas exigem leitura por idioma; o launcher público permanece no teto anunciado de 1.000 caracteres.
+- **BLOQUEADO:** K18 completo ainda depende de suporte executável DE/FR e de exemplos narrados verificados; nenhum exemplo silencioso foi promovido como prova localizada.
+
+### PEDIDOS
+
+- **FATO CONFIRMADO:** nenhum pedido de outra pista foi baixado ou alterado nesta rodada.
+- **FATO CONFIRMADO:** o pedido aberto às 01:12 BRT para a pista Claude implementar/confirmar DE/FR continua vigente; nenhum pedido duplicado foi criado.
+
+## PRÓXIMA JOGADA
+
+- **SUGESTÃO:** medir a primeira janela completa dos launchers PT/ES e auditar o idioma no restante do documento raiz sem publicar DE/FR; se não houver dado novo, escolher outra mudança FLUXO visível e independente das telas Claude/CAIXA.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+## 📋 O QUE ACONTECEU
+
+- **IMPLEMENTADO:** PT-BR e ES agora têm um segundo caminho explícito para colar roteiro pronto, preservando idioma, campanha, modo verbatim, intenção e alvo de 35 segundos até a criação.
+- **TESTADO LOCALMENTE — 04/09/2026 01:30 BRT:** 279 verificações direcionadas passaram, TypeScript/diff check ficaram verdes e o comparativo desktop/mobile foi inspecionado.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 01:38 BRT:** Vercel, Guardião #55, as duas landings e `/llms.txt` ficaram verdes no SHA `2672d0d9`.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** vigia de checkout/origem, E2E autenticado, DE/FR e exemplos narrados aguardam dados ou trabalho da pista dona.
