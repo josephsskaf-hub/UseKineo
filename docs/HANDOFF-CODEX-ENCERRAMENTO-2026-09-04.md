@@ -54,7 +54,7 @@
 
 **LIMITAÇÃO:** não houve autorização nesta janela para e-mail, anúncio ou outreach automático. Pacote de listing não significa listing externo publicado. Mudanças de aquisição não provam aumento de assinaturas sem medição posterior.
 
-**IMPLEMENTADO LOCALMENTE / PUBLICAÇÃO EM CONCLUSÃO:** a R29 da FLUXO já estava preparada quando a parada foi reconciliada: brief legível e copiável no guia de monetização antes do cadastro, código `2f0e4fcb530312c550757aefc00f6b369f5e96e4`, registro local `5060541f`. A confirmação final de integração/deploy pertence ao fechamento da própria FLUXO; não inferir produção só desses commits. Nenhuma R30 foi autorizada.
+**VALIDADO EM PRODUÇÃO — fechamento FLUXO recebido em 04/09/2026, aproximadamente 16:02 BRT:** a R29 já estava preparada quando a parada foi reconciliada: brief legível e copiável no guia de monetização antes do cadastro, código `2f0e4fcb530312c550757aefc00f6b369f5e96e4`, commit final `5060541f970d5478f5b1bb1e8ffcbded3ef4e97d`, confirmado em origin/main. A FLUXO verificou deploy `dpl_76Pc3rHccQ9Z2YAwhC47Zx28ovkT` READY no SHA exato, alias www.usekineo.com, GET 200 e versão do chunk. Guardião PR `33908683053` terminou success, mas a própria suíte registra falhas não bloqueantes: não alegar suíte integral verde. Compilador real e testes direcionados locais passaram. A tarefa confirmou worktree limpa, nenhuma operação restante e automação PAUSED. Não haverá R30.
 
 ## Histórico maior deste chat
 
