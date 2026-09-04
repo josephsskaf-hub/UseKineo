@@ -193,3 +193,89 @@ Nada.
 Duas caixas decisivas deixaram de vender a unidade interna “crédito” como
 manchete. Agora dizem quantos filmes o saldo atual produz, mantêm os créditos
 logo depois para transparência e levam ao mesmo checkout pelo mesmo preço.
+---
+
+## ROUND 5 — K16 · auditoria por número de filmes, sem empilhar variante
+
+**Data:** 2026-09-04 10:08 BRT
+**Pista:** Growth-B2C / CAIXA
+**Branch:** `codex/caixa-next-films-r5`
+
+### EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, 2026-09-04 10:08 BRT
+
+- Marco canônico `2026-09-03 16:00 UTC`: 34 cadastros externos, 21 pessoas
+  externas com filme concluído, 1 pessoa em checkout de desejo, 2 em checkout
+  sem filme, 0 assinaturas e 0 pessoas com falha sem filme.
+- Vigia das últimas 2 horas: 1 pessoa externa (`a8c8d6c5`) abriu o Pro e não
+  pagou. O classificador canônico gravou `activation_defect`: origem direta,
+  0 filmes, 25 créditos intactos e nenhum roteiro pronto. Depois do checkout,
+  ela abriu e selecionou o quickstart do ChatGPT e chegou ao Studio. Não houve
+  erro de geração na trilha observada.
+- `history_first_video_human_view_v2`: 10 pessoas externas realmente viram
+  o card de primeiro filme; 1 clicou no CTA de episódio, 6 concluíram outro
+  filme em até 24h da exposição, 0 clicaram no Starter e 0 pagaram nessa janela.
+  Apenas 4 exposições já completaram 24h: nelas, 1 clique de episódio, 2 novos
+  filmes, 0 clique de plano e 0 pagamento.
+- `push28_repeat_creator` (oferta após repetição): 7 pessoas externas em 7
+  dias, 0 clique e 0 pagamento; só 5 já completaram 24h.
+- `trial_repeat_before_checkout_v1`: 5 pessoas externas expostas, 0 clique
+  e 1 novo filme em até 24h.
+
+### FATO CONFIRMADO — o que existe no produto
+
+- O K16 já governa as duas superfícies vivas. Com 1 filme, o histórico coloca
+  “Build Episode 2” antes do Starter; com 2+ filmes, o plano vira a ação
+  principal. O resultado do gerador também oferece outro episódio enquanto o
+  trial ainda comporta um filme.
+- O clique principal do primeiro estágio é `series_continue_clicked`, não
+  `history_first_video_offer_clicked`. Medir somente o segundo produzia a
+  conclusão falsa “10 viram e ninguém agiu”.
+- `components/PostVideoPaywall.tsx` continua órfão; não foi editado.
+- As superfícies vivas estão em arquivos da pista Claude
+  (`GenerateClient.tsx` e `HistoryClient.tsx`); não foram tocadas.
+
+### DECISÃO REVERSÍVEL / GATE
+
+Nenhuma variante nova foi empilhada. O estágio de primeiro filme mostra sinal
+de repetição, mas só 4 pessoas completaram a janela de 24h. A oferta de 2+
+filmes tem apenas 5 pessoas maduras. As duas ficam congeladas até 10 pessoas
+externas com 24h completas por estágio. O próximo diagnóstico deve separar
+continuação por CTA de continuação por navegação alternativa, porque 5 dos 6
+novos filmes não vieram do clique rastreado.
+
+### IMPLEMENTADO
+
+Nenhuma alteração de produto. Esta foi uma rodada de diagnóstico mensurável:
+corrigiu a métrica de K16, impediu retrabalho em componente órfão e preservou
+a divisão de pistas.
+
+### COMO MEDIR
+
+Para 1 filme: `history_first_video_offer_viewed` com versão
+`history_first_video_human_view_v2` → `series_continue_clicked` com source
+`history_milestone` → novo `videos.status='completed'` → pagamento, tudo
+por pessoa em 24h. Para 2+ filmes: `history_repeat_offer_viewed` →
+`history_repeat_offer_clicked` → pagamento na mesma janela.
+
+### RISCO
+
+Risco zero de produto: somente SELECT e documentação. A leitura preliminar de
+6/10 não é tratada como taxa final porque 6 exposições ainda não maturaram 24h.
+
+### PRÓXIMA JOGADA
+
+Atender o pedido aberto do Claude sobre saldo insuficiente nas superfícies
+próprias de CAIXA: inventariar as seis redações, localizar quais caixas vivas
+ainda terminam em extrato sem ação e propor uma saída já existente, sem mudar
+preço, crédito, motor, oferta ou arquivo compartilhado.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+### 📋 O QUE ACONTECEU
+
+O funil de episódio 2 já existe e há sinal de uso: 6 de 10 pessoas fizeram
+outro filme depois de ver o card. O dado ainda não prova causalidade nem tem
+janela madura suficiente para nova mudança. O problema seguinte está depois
+da repetição, e a oferta de 2+ filmes permanece congelada até completar amostra.
