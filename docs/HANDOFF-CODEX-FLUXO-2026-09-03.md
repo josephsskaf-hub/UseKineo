@@ -1427,3 +1427,33 @@ Continua pendente apenas a ação manual da R19: publicar `docs/TAAFT-LISTING-20
 - **IMPLEMENTADO:** quem assiste a um exemplo real pode levar o prompt publicado ao Studio em um clique ou continuar trocando o tema como antes.
 - **EVIDÊNCIA DE PRODUÇÃO:** o placar foi a 42/27/2/2/0/0; 12 pessoas viram o formulário antigo e nenhuma submeteu tema.
 - **TESTADO LOCALMENTE:** 424 verificações, TypeScript real, diff check e preview visual ficaram verdes; o `npx` literal segue bloqueado pelo stub preexistente.
+
+---
+
+## Rodada 29 — F1 · brief visível e copiável antes do cadastro — 04/09 15:50 BRT — IMPLEMENTADA
+
+- **FATO CONFIRMADO / ANTI-DUPLICAÇÃO:** o guia `/can-you-monetize-ai-videos` já tinha `OriginalityRecipeBuilder`; o resultado de `buildOriginalityPrompt()` era usado somente no input hidden enviado a `/signup`. Esta rodada entrega esse resultado na própria página, sem substituir o builder ou abrir outra landing. Fontes: `app/can-you-monetize-ai-videos/OriginalityRecipeBuilder.tsx:15,158` antes do SHA funcional; histórico Git até `7f5fd75d`. Pedidos `/v/`, quickstart e ponte de segundo filme permanecem cobertos por R2/R3 e CAIXA; diário Claude #16 continua sendo o mais recente.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 15:51:14 BRT:** SQL canônico, marco 03/09 16:00 UTC: **42 cadastros, 28 pessoas com filme, 2 checkouts com filme, 2 sem filme, 0 assinaturas e 0 falhas sem filme**. Nas últimas 2h: **1 cadastro ChatGPT** e **nenhuma pessoa no vigia de checkout**. Fonte: SELECT no Supabase `cqqukkvjjrguayiyjvhh`; contas internas excluídas. O avanço de um filme não foi atribuído à R29, ainda não publicada no corte.
+- **EVIDÊNCIA DE PRODUÇÃO — mesma consulta, 30 dias:** o guia teve **42 atores identificáveis / 42 eventos**, todos `landing_session_started`; nenhum evento de envio ou CTA nessa rota. Atores anônimos usam `session_id`, portanto não são prova de 42 pessoas humanas únicas. **DESCONHECIDO:** quantos chegaram ao formulário; não havia denominador de exposição próprio.
+- **HIPÓTESE / MECÂNICA NOVA:** ler e guardar o brief antes do cadastro oferece utilidade verificável ao visitante e pode aumentar o avanço até o primeiro filme. O dado de tráfego justifica testar na página viva, mas não prova que falta de preview causou abandono.
+- **IMPLEMENTADO:** com tema de pelo menos três caracteres úteis, o visitante vê o mesmo texto que segue no formulário e pode copiá-lo. A interface distingue brief de narração pronta. Clipboard recusado seleciona o texto para cópia manual; submissão só de espaços é barrada com erro acionável. Fonte: SHA funcional `2f0e4fcb530312c550757aefc00f6b369f5e96e4`, `OriginalityRecipeBuilder.tsx:22,65,158`.
+- **IMPLEMENTADO:** cópia confirmada emite `monetization_originality_brief_copied(version='originality_brief_preview_v1')`; envio existente ganha `brief_version` igual. Telemetria leva apenas campanha, versão e opção conhecida, sem conteúdo do brief. Fonte: `OriginalityRecipeBuilder.tsx:27,74`.
+- **TESTADO LOCALMENTE — 04/09/2026 15:53 BRT:** teste de interação executou o componente com hooks/clipboard controlados e verificou as quatro opções, igualdade preview/input enviado, cópia exata, falha de clipboard com seleção manual, ausência de falso evento e bloqueio de espaços. A bateria preexistente passou **30/30**. TypeScript real (`node node_modules/typescript/bin/tsc --noEmit --pretty false`) e `diff --check` passaram. O literal `npx tsc --noEmit --pretty false` saiu 1 pelo stub preexistente; `node_modules` é junction compartilhada com a árvore principal e não foi alterada.
+- **INSPECIONADO VISUALMENTE — 04/09/2026 15:54 BRT:** HTML autocontido e imagem com antes/depois desktop/mobile estão em `docs/previews/FLUXO-R29-ORIGINALITY-BRIEF-2026-09-04.{html,png}`. A imagem foi aberta; brief, cópia e CTA ficaram legíveis.
+- **MEDIÇÃO / GATE:** usar a chegada à página como denominador observado, separar cópia de envio com `brief_version`, e seguir cadastro → filme → checkout → assinatura por pessoa externa na mesma janela. Sem exposição, congelar. Corrigir imediatamente se preview divergir do payload, cópia falha emitir sucesso ou conteúdo entrar na telemetria.
+- **RISCO:** o preview alonga o formulário após digitação e pode deslocar o CTA para baixo; cópia também permite sair com o brief. Avaliar avanço por visitante, não comemorar cópias isoladas. Nenhum render/API de geração é disparado para construir o brief.
+- **DECISÃO — EXECUTADO:** entrega local antes do cadastro na superfície pública existente. Preço, oferta, políticas do artigo, Stripe, dados, créditos e arquivos Claude/CAIXA não foram alterados.
+
+## PRÓXIMA JOGADA
+
+- **SUGESTÃO:** R30 será medição pura de R27–R29 e reconciliação dos gates ainda sem amostra, retomando a cadência de medição. Preservar as três variantes e distinguir falta de evento de falta de exposição.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada para esta rodada. Continua a pendência manual já registrada do listing TAAFT e das capturas da R19.
+
+## 📋 O QUE ACONTECEU
+
+- **IMPLEMENTADO:** o guia de monetização entrega um brief que o visitante pode ler e copiar antes de criar conta.
+- **EVIDÊNCIA DE PRODUÇÃO:** placar 42/28/2/2/0/0; vigia vazio às 15:51 BRT.
+- **TESTADO LOCALMENTE:** fluxo de interação, regressões existentes, TypeScript real e comparação visual verificados; o problema do `npx` permanece registrado.
