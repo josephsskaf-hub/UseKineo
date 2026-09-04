@@ -2077,3 +2077,52 @@ Nada.
 ### 📋 O QUE ACONTECEU
 
 Descobrimos de onde veio o checkout vivo: a pessoa viu a oferta na home, escolheu Studio, criou a conta e chegou ao Stripe sem erro. Não empilhei outra tela em cima dela enquanto a decisão ainda está aberta; corrigi a fila compartilhada para que Codex e Claude parem de tratar três trabalhos já resolvidos como pendentes.
+
+---
+
+## ROUND 32 — controle: variantes novas ainda não tiveram exposição
+
+**Data:** 2026-09-04 13:21 BRT
+
+**Pista:** Growth-B2C / CAIXA
+
+**Branch:** `codex/caixa-measurement-r32`
+
+### VALIDAÇÃO DA RODADA ANTERIOR
+
+**VALIDADO EM PRODUÇÃO — 04/09/2026:** a R31 está na `main` no SHA `9bf7cddd5c58b07cc7715ae52a9489acb95eb5cd`. O Guardião run `33894630848` concluiu verde em 1m07s. A rodada anterior não alterou produto; reconciliou a origem do checkout vivo e limpou três pedidos já entregues.
+
+### MEDIÇÃO DAS VARIANTES CONGELADAS
+
+**EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, 04/09/2026 13:21 BRT:** desde os respectivos cortes de produção, houve zero pessoas externas registradas em cada denominador novo:
+
+- `checkout_auth_choice_viewed`: 0;
+- `checkout_resume_unavailable_viewed`: 0;
+- `first_film_free_offer_shown` e `first_film_free_offer_clicked`: 0;
+- `pricing_journey_email_film_loaded`: 0.
+
+**FATO CONFIRMADO:** isso é ausência de exposição, não resultado negativo. Nenhuma dessas superfícies atingiu amostra mínima; portanto cadastro, retomada, oferta do primeiro filme e pricing por jornada permanecem congelados. Não houve edição de código nesta rodada.
+
+### PLACAR E VIGIA
+
+**EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, 04/09/2026 13:21 BRT:** desde o marco de 03/09 16:00 UTC permanecem **41 cadastros externos, 26 pessoas com filme, 2 checkouts com filme, 2 sem filme, 0 assinaturas e 0 pessoas com falha sem filme**.
+
+**EVIDÊNCIA DE PRODUÇÃO — vigia das últimas 2h:** permanece somente a pessoa externa `0441e46ae5`, origem direta, zero filme, 25 créditos e último evento `checkout_started` às 12:16:55 BRT. É a mesma pessoa da R31, não uma nova pessoa, e o desfecho financeiro continua **QUESTÃO PENDENTE / DESCONHECIDO**.
+
+### DECISÃO, RISCO E GATE
+
+Rodada exclusivamente de medição, conforme o protocolo de uma em cada quatro. Nenhuma variante foi reeditada e nenhum evento, sessão ou checkout foi contado como assinatura. O risco de produto é zero.
+
+O gate permanece: 10 pessoas externas expostas com 24h completas ou 7 dias, o que ocorrer primeiro. Antes disso, somente medir.
+
+### PRÓXIMA JOGADA
+
+Abrir a R33 em uma lacuna CAIXA diferente de cadastro, pricing, retomada e oferta do primeiro filme. Começar pelo vigia atualizado e por pedido viável ainda aberto; a mudança precisa ser visível, reversível e ter denominador próprio.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+### 📋 O QUE ACONTECEU
+
+Fiz a rodada de controle sem maquiar ausência de tráfego como fracasso: as quatro mudanças recentes ainda não foram vistas por uma pessoa elegível. Elas ficam intactas para produzir aprendizado real, e a próxima rodada atacará outro ponto do caixa em vez de repetir tela.
