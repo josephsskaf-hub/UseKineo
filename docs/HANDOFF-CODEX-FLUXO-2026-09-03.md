@@ -403,3 +403,70 @@ Nada.
 - **TESTADO LOCALMENTE — 04/09/2026 01:30 BRT:** 279 verificações direcionadas passaram, TypeScript/diff check ficaram verdes e o comparativo desktop/mobile foi inspecionado.
 - **VALIDADO EM PRODUÇÃO — 04/09/2026 01:38 BRT:** Vercel, Guardião #55, as duas landings e `/llms.txt` ficaram verdes no SHA `2672d0d9`.
 - **QUESTÃO PENDENTE / DESCONHECIDO:** vigia de checkout/origem, E2E autenticado, DE/FR e exemplos narrados aguardam dados ou trabalho da pista dona.
+
+---
+
+## Rodada 7 — F1 · CTA fixo do gerador de hooks preserva o tema — 04/09 01:40→01:53 BRT — ENTREGA CONCLUÍDA
+
+- **IMPLEMENTADO / VALIDADO EM PRODUÇÃO:** depois de gerar hooks, o CTA fixo de `/free-hook-generator` leva o tema para o cadastro e para `/studio/create`; antes de existir tema, seu destino anterior permanece inalterado.
+- **BLOQUEADO / DESCONHECIDO:** o vigia individual de checkout e a origem dos cadastros das últimas 2 horas não foram remensurados; não há conector Supabase utilizável nesta sessão e nenhum zero foi inferido.
+
+### Dado, prioridade e anti-repetição
+
+- **FATO CONFIRMADO:** não havia pedido aberto viável da pista FLUXO: os itens de 18:40, 18:45 e 23:15 pertencem ao dashboard/Claude e o de 20:45 pertence à CAIXA. As prioridades automáticas `/v/[id]` e corte de 1.000 caracteres já estavam concluídas nas rodadas 2 e 3. Fonte: `docs/PEDIDOS-ENTRE-PISTAS-2026-09-03.md` e rodadas anteriores deste documento.
+- **FATO CONFIRMADO:** `generatedTopic` já alimentava os CTAs dentro do resultado, mas o CTA fixo era renderizado sem `href` e caía no cadastro genérico; o defeito não constava das seis rodadas anteriores. Fontes antes de `d14dac6d`: `app/free-hook-generator/FreeHookClient.tsx:23,41,92,99,109` e `components/StickyFreeShortCTA.tsx:28-35,136-138`.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 01:44 BRT:** as 186 URLs do sitemap responderam HTTP 200; a queda não foi atribuída a rota pública quebrada. A auditoria foi somente leitura, por URL individual, sem somar pessoas ou eventos.
+- **HIPÓTESE:** conservar o tema no CTA persistente reduz cadastro sem contexto depois de a pessoa já ter feito o trabalho de gerar hooks; efeito em primeiro filme ou assinatura exige janela posterior equivalente.
+
+### Vigia do checkout e placar
+
+- **BLOQUEADO / DESCONHECIDO — 04/09/2026:** sem leitura aceita do Supabase, não há linha individual dos checkouts das últimas 2 horas nem corte novo por origem; nenhum zero foi inferido.
+- **EVIDÊNCIA DE PRODUÇÃO — medição encerrada em 04/09/2026 00:55 BRT:** 16 cadastros, 11 pessoas com filme (69%), 1 checkout com filme, 1 checkout sem filme, 0 assinaturas e 0 pessoas com falha sem filme. Fonte: `docs/SPRINT-ASSINATURAS-2026-09-03.md:1120-1126`. Esta rodada não atualiza nem interpola essa janela.
+
+### O que mudou
+
+- **IMPLEMENTADO:** o CTA fixo recebe `hookActivationHref(generatedTopic, undefined, entry)` somente quando há tema; o estado vazio continua usando o default histórico. Fonte: `app/free-hook-generator/FreeHookClient.tsx:109-117`.
+- **IMPLEMENTADO:** o clique contextualizado emite as taxonomias já existentes com `placement: 'sticky'`, sem copiar tema ou hook para analytics. Fonte: `app/free-hook-generator/FreeHookClient.tsx:111-114`.
+- **TESTADO LOCALMENTE — 04/09/2026 01:47 BRT:** `test-answer-engine-hook-workbench` passou 47/47, incluindo tema exato, `autoanalyze=1` e destino `/studio/create`; TypeScript e `git diff --check` saíram com código 0. Fonte: `scripts/test-answer-engine-hook-workbench.mjs:65-69,90-93`.
+- **FATO CONFIRMADO:** o teste carregava uma expectativa obsoleta de `/generate`; ela foi alinhada ao helper real, que já enviava todos os CTAs de resultado para `/studio/create`. Fontes: `lib/growth/answerEngineHookWorkbench.ts:66-91`, `scripts/test-answer-engine-hook-workbench.mjs:60-69`.
+- **FATO CONFIRMADO:** nenhum pixel, copy, preço, oferta, desconto, Stripe, banco, migration, saldo, autorização de geração, dashboard/Claude ou CAIXA foi alterado nesta rodada. Não há comparativo visual porque a mudança é apenas no destino após o clique.
+- **FATO CONFIRMADO — revisão independente em 04/09/2026:** três auditores somente leitura encontraram este defeito e duas próximas candidatas sem editar arquivos: falsas limitações 9:16 em `lib/comparisons.ts` e confirmação invisível do tema no signup de `/examples/[slug]`.
+
+### Correção transparente da rodada 6
+
+- **CONTRADIÇÃO:** a rodada 6 afirmou que nenhum arquivo da pista Claude fora alterado, mas o SHA `2672d0d9` adicionou duas rotas a `app/api/admin/funnel/route.ts:354-364`; `docs/PROGRAMA-CODEX-ASSINATURAS-2026-09-03.md:20` atribui `app/api/admin/**` ao Claude. A afirmação anterior está errada.
+- **FATO CONFIRMADO:** nenhum arquivo Claude foi tocado novamente nesta rodada. O ajuste já publicado não foi removido em silêncio; às 01:52 BRT foi aberto em `docs/PEDIDOS-ENTRE-PISTAS-2026-09-03.md` o pedido para a pista dona revisar, assumir ou reverter, com a invariante de denominador explícita.
+
+### Integração e produção
+
+- **IMPLEMENTADO:** commit funcional `d14dac6d9158d717b313270b50d79c336199ff60` integrado em `main` por fast-forward sobre `299ec4521f3b9e2492b1b95ba2f3b7b4cc4de0fb`.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 01:49 BRT:** o Guardião do PR #2, execução `33838165380`, concluiu `success`; TypeScript e suíte terminaram verdes antes do avanço da `main`.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 01:51 BRT:** a Vercel concluiu o deployment `9DzQ3mfqF3UNyoikwer2vUsU4oPS` para o SHA funcional.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 01:53 BRT:** `/free-hook-generator` respondeu HTTP 200 após o deploy; o E2E com cadastro real não foi executado, portanto a travessia autenticada continua validada pelo contrato executável, TypeScript e artefato implantado, não por conta de cliente.
+
+### Como medir e quando parar
+
+- **SUGESTÃO:** em uma janela pós-deploy completa, contar pessoas distintas — não cliques — em `free_hook_result_generated` → `free_hook_to_signup_clicked` com `placement=sticky` → cadastro → primeiro filme → checkout com filme → assinatura; separar `entry=answer_engine|default` e não somar janelas diferentes.
+- **SUGESTÃO — gate de parada:** corrigir ou reverter se o tema deixar de chegar exatamente a `/studio/create`, se o CTA vazio ganhar redirect de criação, se texto do visitante aparecer na telemetria ou se `intentActors` ultrapassar o denominador de visitantes.
+- **RISCO:** o tema permanece em query string durante o auth, limitado a 200 caracteres pelo helper existente; a rodada não endurece esse transporte nem prova incremento de assinatura.
+
+### PEDIDOS
+
+- **FATO CONFIRMADO:** nenhum pedido de outra pista foi baixado nesta rodada.
+- **SUGESTÃO / CORREÇÃO DE ESCOPO:** foi aberto às 01:52 BRT um pedido para Claude decidir as duas linhas de `app/api/admin/funnel/route.ts` alteradas indevidamente pela FLUXO na rodada 6.
+
+## PRÓXIMA JOGADA
+
+- **SUGESTÃO — F1/K5:** corrigir somente as nove frases públicas que ainda chamam Kineo de 9:16-only em `lib/comparisons.ts`, preservando os limites verdadeiros de uma proporção por render e ausência de 4K. **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 01:47 BRT:** `/vs/heygen-vs-kineo`, `/vs/kineo-vs-submagic` e `/vs/captions-vs-kineo` responderam 200 e exibiram essas afirmações falsas; ampliar a invariante para hífen e sinônimos antes de publicar.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+## 📋 O QUE ACONTECEU
+
+- **IMPLEMENTADO:** o CTA fixo do gerador de hooks não perde mais o tema depois de a pessoa gerar resultados; o estado anterior à geração continua byte a byte no mesmo destino.
+- **TESTADO LOCALMENTE — 04/09/2026 01:47 BRT:** 47 invariantes direcionadas passaram; TypeScript e diff check ficaram verdes.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 01:53 BRT:** Guardião do PR, Vercel e rota pública ficaram verdes no SHA `d14dac6d`.
+- **CONTRADIÇÃO CORRIGIDA:** a rodada 6 tocou um arquivo Claude apesar de declarar o contrário; o fato foi registrado e a decisão foi devolvida à pista dona sem nova alteração nesse arquivo.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** vigia de checkout/origem e impacto em primeiro filme/assinatura aguardam dado pós-deploy; as falsas limitações 9:16 são a próxima correção pública candidata.
