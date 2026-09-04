@@ -538,3 +538,53 @@ o #18 e o #19 abriram; (c) medir o ramo `free_engine` do momentum.
 **SHA.** `4faac144` — worktree `C:\kineo-wt\r19-caixa-vazia`.
 Enfileirado em `entrega-atual` sobre `6f18315d` (fila: 3). Aguardando o clique
 no SUBIR-SITE.bat.
+
+---
+
+### Medição da rotação 1 (04/09, 16:40–17:40 BRT) — a escada de filmes descreve quem já pagou, não prevê quem vai pagar
+
+**Não é entrega de código.** É a reconciliação que o item 1 da pista pede
+("reconciliar as entregas de retenção já feitas, SEM reconstruí-las") e o item
+5 ("separar vídeos feitos ANTES do primeiro pagamento dos feitos DEPOIS").
+Documento inteiro, com SQL para refazer: `docs/MEDICAO-DEGRAU-FILMES-2026-09-04.md`.
+
+**O que estava errado (medido).** A régua que justificou seis entregas —
+1 filme 0,6% · 2-3 1,8% · 4-7 15,4% · 8+ 33,3% — conta filmes feitos **depois**
+do pagamento. Dos 63 filmes dos 13 pagantes externos da história, **50 (79%)
+nasceram depois do dinheiro entrar**, e **11 dos 13 pagaram com 1 filme ou
+nenhum**.
+
+**A régua honesta** (só filmes anteriores ao 1º `payment_success`, história
+inteira): 0 filmes 0,52% (961 pessoas) · 1 filme **1,05%** (570) · 2-3 **0,58%**
+(171) · 4-7 4,35% (23) · 8+ 0,00% (9). O degrau do filme 1 para o 2 — o alvo da
+sprint — é o único que aponta **para baixo**.
+
+**O que NÃO se conclui.** Nada é revertido. 13 pagantes é amostra pequena e o
+critério de parada do ciclo diz que pouca amostra é INCONCLUSIVA. As portas do
+episódio 2 (#18/#19) continuam certas como produto: 82 de 103 pessoas que
+voltam encontram campo em branco e vão embora — isso é defeito de experiência,
+independente de conversão. Preço continua fechado (19/08).
+
+**O que muda.** Retenção é produto, não é a alavanca da assinatura. A régua K1
+do ciclo ("segundo episódio NÃO é pré-requisito para comprar") ganha prova: o
+segundo episódio nem sequer é indício de compra. A faixa que concentra pagante
+é a de **1 filme** (6 dos 13) — o que ela precisa é da oferta no pico do
+primeiro filme, não de um degrau para o segundo.
+
+**Limitação que vira pendência.** `payment_success` não tem `mode`/`plan`/`type`
+em nenhum dos 17 eventos: **não dá para separar assinatura de pacote avulso**.
+A métrica única do ciclo depende disso. Pedido aberto para a pista do caixa.
+
+**Checagem zero da rotação (16:45 BRT): tudo zero.** Cadastro sem crédito 0 ·
+render preso >45min 0 · `credits_held_by_render` 6h 0 · `compose_not_ok` 6h 0 ·
+TypeError 6h 0 · `generation_stage_error` 1h 0.
+
+**Placar (marco 2026-09-03 16:00 UTC, externos):** 42 cadastros · 28 pessoas com
+filme · 36 filmes · 4 no checkout · **0 `payment_success`**. Sem movimento desde
+a medição das 16:10.
+
+**Coordenação.** A rodada #20 (série com memória, `app/api/next-episode/route.ts`
++ `GenerateClient.tsx`, worktree `r20-memoria-serie`) está sendo escrita por
+outra sessão desta mesma tarefa, viva às 16:43. Esta rotação **não tocou** esses
+arquivos para não atropelar o trabalho dela — worktree própria
+(`medicao-degrau`), commit só de documentação.
