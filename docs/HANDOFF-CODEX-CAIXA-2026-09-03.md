@@ -718,3 +718,79 @@ O pedido de mandar a pessoa ao primeiro filme já estava implementado nas duas
 superfícies certas. O caso vivo confirmou o comportamento: ela saiu do checkout,
 aceitou a prova e iniciou Seedance. Não bloqueei uma compra real nem empilhei
 outra copy; o próximo dado é o filme terminar e a pessoa voltar ao caixa.
+
+---
+
+## ROUND 12 — medição pura · a prova antes do pagamento já tem um pagante
+
+**Data:** 2026-09-04 10:35 BRT
+**Pista:** Growth-B2C / CAIXA
+**Branch:** `codex/caixa-measurement-r12`
+
+### EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, 2026-09-04 10:34 BRT
+
+| Superfície | Pessoas | Maduras 24h | Filme depois | Checkout depois | Pago depois |
+|---|---:|---:|---:|---:|---:|
+| K14 `checkout_cancel_reason` | 2 | 2 | 1 | 1 | 1 |
+| K9 filme oferecido na volta cancelada | 1 | 1 | 0 | 0 | 0 |
+| Prova do pricing antes do 1º filme | 10 | 8 | 2 | 3 | **1** |
+| Prova do pricing depois do filme | 5 | 5 | 2 | 1 | **1** |
+| Clique na primeira entrega do trial | 35 | 28 | 21 | 5 | 1 |
+| Geração da primeira entrega confirmada | 13 | 9 | 11 | 3 | 0 |
+
+As colunas são pessoas externas únicas e desfechos posteriores à primeira
+exposição. São associações observacionais; superfícies se sobrepõem e não são
+um teste randomizado.
+
+### PLACAR CANÔNICO
+
+35 cadastros externos · 22 pessoas com filme · 1 checkout de desejo · 2
+checkouts sem filme · 0 assinaturas desde `2026-09-03 16:00 UTC` · 0 pessoas
+com falha sem filme.
+
+### VIGIA DO CHECKOUT
+
+Uma pessoa externa nas últimas 2h: `a8c8d6c5`, ChatGPT, classe inicial
+`defeito/ativação`. Às 10:34 continuava com 12 créditos, zero filme concluído,
+zero erro e último sinal `active_render_pill_shown`; o Seedance permanece em
+voo. Não classificar espera de fornecedor como abandono nem como falha.
+
+### LEITURA
+
+- A hipótese “prova antes de preço atrapalha compra” está contradita pelo
+  mínimo necessário para preservação: o estado `before_first_delivery` já tem
+  1 pagante e 3 pessoas que chegaram ao caixa.
+- A oferta de primeira entrega produz valor: 21 de 35 pessoas com clique tiveram
+  filme posterior. O desfecho pago ainda é raro e as 7 exposições imaturas
+  impedem outra variante agora.
+- K9 segue sem sinal e K14 tem só duas pessoas. O único pagamento em K14 não
+  autoriza atribuir causalidade; a amostra é mínima.
+
+### IMPLEMENTADO
+
+Nenhuma alteração de produto — rodada 4n exclusivamente de medição. O
+Guardião da ROUND 11 ainda estava em execução no início do corte; o anterior,
+run `33878277578`, estava verde.
+
+### GATE
+
+Preservar K9, K14 e a prova do pricing. Não reeditar antes de nova amostra.
+Reconciliar `a8c8d6c5` até um desfecho objetivo. Próxima ação nova deve atacar o
+salto filme concluído → pagamento, sem alterar o bridge que já entrega filme.
+
+### PRÓXIMA JOGADA
+
+Auditar o pedido do Claude sobre D5/D10 com filme: 70 pessoas receberam prova
+no e-mail e só uma abriu checkout; verificar se a `/pricing` reconhece a UTM e
+mostra o filme owner-scoped antes dos cards sem criar uma segunda prova.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+### 📋 O QUE ACONTECEU
+
+A medição mostrou que a prova antes do pagamento já tem um pagante e leva gente
+ao caixa; não devemos desmontá-la. O caso quente do ChatGPT ainda está esperando
+o Seedance, sem erro. A próxima rodada vai investigar por que quem recebe o
+e-mail com o próprio filme cai numa página de preço genérica.
