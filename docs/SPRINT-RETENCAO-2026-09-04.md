@@ -588,3 +588,21 @@ a medição das 16:10.
 outra sessão desta mesma tarefa, viva às 16:43. Esta rotação **não tocou** esses
 arquivos para não atropelar o trabalho dela — worktree própria
 (`medicao-degrau`), commit só de documentação.
+
+**CORREÇÃO DO RELATÓRIO DAS 16:15 — a fila NÃO está parada (verificado 16:50 BRT).**
+O `docs/RELATORIO-CLAUDE-CICLO-2026-09-04.md` §6.1 diz "4 entregas da retenção
+paradas na fila desde ~14:20 BRT". **Está vencido.** O fundador clicou às
+**16:26:56 BRT**: `c4fa2e94` (#17), `dee306e8` (#18), `791f5444` (#19) e
+`6614347f` estão em `origin/main`, `entrega-atual` estava com **fila 0**, e o
+deploy de produção `dpl_E3ajaWXWAJchgB9AgbNir46Z5K5n` (sha `463fc378`) está
+**READY** em `usekineo.com` (HTTP 200). **As portas do episódio 2 estão no ar.**
+
+Consequência para a medição: elas têm **22 minutos de vida** no fechamento
+desta rotação. As fontes novas (`done_screen_top` do #18 e `composer_empty` do
+#19) ainda **não aparecem** em `series_continue_seen` — e isso é **esperado**,
+não defeito: nas últimas 12h só existem 6 exposições, todas da fonte antiga
+`done_screen`, e na última hora houve **0 filmes concluídos**. Sem tráfego não
+há denominador. Primeira leitura útil: a partir de ~19:30 BRT (3h de tráfego).
+Sinal de alarme para as próximas rotações: exposição da fonte nova continuar
+**exatamente zero** depois de ≥20 pessoas passarem pela tela de filme pronto —
+aí seria porta que não renderiza, e o conserto é código, não copy.
