@@ -833,3 +833,65 @@ Nada.
 - **TESTADO LOCALMENTE:** 399 verificações, TypeScript, diff check e preview desktop/mobile ficaram verdes; três auditorias deram GO.
 - **VALIDADO EM PRODUÇÃO — 04/09/2026 10:16 BRT:** Guardião #13, Vercel e login anônimo canônico ficaram verdes no SHA `474c6f2f`.
 - **QUESTÃO PENDENTE / DESCONHECIDO:** impacto em primeiro filme/assinatura, volume real de falhas com trabalho salvo e E2E autenticado continuam sem prova.
+
+---
+
+## Rodada 14 — recuperação de senha conserva trabalho salvo — 04/09 10:26→10:54 BRT — CONCLUÍDA
+
+- **FATO CONFIRMADO:** não havia pedido aberto viável da pista FLUXO nem implementação equivalente. Login e signup mostravam os contratos `example_remix|free_script`, mas seus links de recuperação derivavam apenas contexto de checkout; forgot/reset conheciam somente checkout e o sucesso comum caía em `/studio`. Fontes antes do commit funcional: `app/(auth)/login/page.tsx:71-75`, `app/(auth)/signup/page.tsx:262-269`, `app/(auth)/forgot-password/page.tsx:21-50` e `app/(auth)/reset-password/page.tsx:104-120`.
+- **HIPÓTESE:** manter visível e navegável o remix ou roteiro que a pessoa já trouxe reduz abandono por trabalho aparentemente perdido quando ela precisa recuperar a senha. **QUESTÃO PENDENTE / DESCONHECIDO:** não existe evento que dimensione quantas pessoas entram nessa ramificação, portanto nenhum efeito causal em cadastro, filme, checkout ou assinatura é afirmado.
+- **CONTRADIÇÃO OPERACIONAL:** a rodada levou 28 minutos, acima do teto de 20. O primeiro Guardião ficou verde no SHA funcional às 10:46 BRT, mas `main` avançou durante a validação; a branch integrou o novo commit sem force-push e repetiu o Guardião antes do fast-forward.
+
+### Vigia do checkout, placar e origem
+
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 10:53 BRT:** desde o marco de 03/09 13:00 BRT, o placar canônico é **35 cadastros, 22 pessoas com filme, 1 checkout com filme, 2 checkouts sem filme, 0 assinaturas e 0 pessoas com falha sem filme**. Fonte: SQL canônico do programa, somente leitura no Supabase de produção, pessoas distintas e contas internas excluídas.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 10:53 BRT:** nas duas horas anteriores houve 3 cadastros externos e a leitura atual classificou os 3 como `chatgpt`; duas pessoas já tinham filme, uma delas com 2 filmes, e nenhuma assinou. A janela móvel não foi somada às anteriores.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 10:53 BRT:** a mesma pessoa nova do vigia da R13 abriu checkout às 10:01:22, iniciou geração às 10:20, voltou a acompanhar o render e chegou a `stranded_composed` às 10:46:27; no corte ainda tinha 0 filmes, 0 `checkout_success_viewed` e 0 `generation_stage_error`. O pedido das 10:02 para CAIXA já cobre essa pessoa e não foi duplicado.
+- **CONTRADIÇÃO DE ATRIBUIÇÃO:** a R13 registrou essa conta como `direto` às 10:01, enquanto a leitura canônica das mesmas `profiles.signup_utm_source|utm_source` às 10:53 a devolveu como `chatgpt`. **QUESTÃO PENDENTE / DESCONHECIDO:** até provar se o perfil é sobrescrito depois do cadastro, “origem de signup” não deve ser tratada como atributo imutável para essa pessoa.
+
+### O que mudou
+
+- **IMPLEMENTADO:** `creation_password_recovery_handoff_v1` aceita somente destino local normalizado de `example_remix` ou `free_script`, exige `reason=saved_creation`, limita o destino a 16.384 caracteres e falha fechado para criação genérica, checkout, URL externa, backslash, caractere de controle, marcador adulterado ou script executável. Fonte: `lib/growth/creationPasswordRecoveryHandoff.ts:8-70`.
+- **IMPLEMENTADO:** login e signup agora transportam esses dois destinos no link “Forgot password?”, mas um `reason=checkout` bruto bloqueia a classificação de criação mesmo quando o redirect se parece com remix. Fontes: `app/(auth)/login/page.tsx:76-82` e `app/(auth)/signup/page.tsx:266-275`.
+- **IMPLEMENTADO:** forgot-password leva o mesmo destino validado ao `redirectTo` do Supabase, mantém retry e retorno ao login, e mostra título, trechos e copy próprios de recuperação; reset-password preserva PKCE/hash/listener existentes e, depois de `updateUser` bem-sucedido, segue na ordem **checkout → criação validada → `/studio`**. Fontes: `app/(auth)/forgot-password/page.tsx:28-74,114-145` e `app/(auth)/reset-password/page.tsx:34-93,115-150,188-222`.
+- **FATO CONFIRMADO:** não foi criado evento. Prompt, roteiro, redirect, token, código, e-mail e senha não entram em telemetria nova; `lib/growth/checkoutPasswordRecovery.ts`, Stripe, preço, oferta, desconto, banco, migration, dashboard/Claude e arquivos CAIXA não foram alterados pelo commit funcional `45d7a02af2c898c963db6abdf9490a11711284ef`.
+- **TESTADO LOCALMENTE — 04/09/2026 10:45 BRT:** red-first falhou por helper inexistente; depois, cinco suítes direcionadas somaram **477 verificações verdes** (`244+56+61+37+79`), incluindo round-trip de remix e roteiro nos três hops, coexistência com `?code=` PKCE, limites e regressões OAuth/checkout. O compilador real `node node_modules/typescript/bin/tsc --noEmit -p tsconfig.json` e `git diff --check` saíram com código 0.
+- **CONTRADIÇÃO PRÉ-EXISTENTE:** `scripts/test-checkout-password-recovery.mjs:145` ainda exige fallback `/generate`, mas o código-base usa `/studio` desde `8000825f`; esse é o único vermelho direcionado observado e não foi alterado nesta rodada.
+- **TESTADO LOCALMENTE:** o comparativo autocontido foi renderizado e inspecionado com before/after de forgot, reset, “Check your inbox” e “Password updated”, todos em desktop e mobile, sem callout inventado dentro do produto. Fontes: `docs/previews/FLUXO-PASSWORD-RECOVERY-SAVED-WORK-2026-09-04.html`, `.png` e `scripts/test-signup-creation-proof.mjs:417-430`.
+- **FATO CONFIRMADO:** três auditores somente leitura revisaram prioridade, ownership, PKCE, precedência, privacidade, acessibilidade, testes e visual; dois NO-GO objetivos — branch atrasada e preview incompleto — foram corrigidos antes da entrega. Nenhum auditor editou arquivo.
+
+### Integração e produção
+
+- **IMPLEMENTADO:** commit funcional `45d7a02af2c898c963db6abdf9490a11711284ef`; após `main` avançar, merge de integração `bd97f3d0c5f687377d3922f162bce190fc54f3fe`; `main` avançou por fast-forward, sem force-push. PR #15 foi o gate de revisão.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 10:50 BRT:** Guardião execução `33880164020` concluiu `success` no SHA de integração; o job de TypeScript declarou “typecheck limpo (só os erros conhecidos)”.
+- **CONTRADIÇÃO DO GUARDIÃO:** o job de suíte também concluiu `success`, mas o próprio log registrou **88 baterias verdes e 205 vermelhas**. O workflow não executa `npm ci` nesse job e não retorna erro quando há baterias vermelhas; portanto “workflow verde” não equivale a “suíte completa verde”. Um pedido foi aberto para a pista dona corrigir a medição sem transformar a linha de base em alarme permanente.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 10:51 BRT:** Vercel deployment `dpl_3CCfKQEUq3X1LRwcBJnNb4JLMN9D` chegou a `READY`, target `production`, framework Next.js, SHA exato `bd97f3d0`, alias `www.usekineo.com` e `aliasError=null`.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 10:52 BRT:** navegador in-app isolado e anônimo renderizou no domínio canônico: remix com `SAVED BEFORE PASSWORD RESET` e tema preservado; roteiro com três trechos preservados; recuperação comum continuou genérica; checkout válido continuou com `Your purchase is saved` e destino exato. Nenhum campo foi preenchido, formulário enviado, e-mail disparado, conta criada, senha alterada, checkout aberto ou crédito gasto.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 10:52 BRT:** scan do deployment entre 10:32 e 10:52 BRT encontrou 0 logs `error|fatal`.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** E2E real e-mail → PKCE → atualização → criação não foi executado porque dispararia e-mail e alteraria credencial; a rota, coexistência de `code+reason+redirect` e ordem pós-sucesso foram provadas por código/teste, não por conta de cliente.
+
+### Risco, medição e parada
+
+- **RISCO:** o prompt/roteiro já presente na URL de auth agora também integra o `redirectTo` contido no e-mail de recuperação. Sem estado opaco server-side não existe continuidade cross-device equivalente; a mitigação desta rodada é allowlist estrita, limite, nenhuma telemetria nova e falha genérica para qualquer desvio.
+- **SUGESTÃO:** medir separadamente as coortes existentes `example_remix_topic_submitted` e `free_script_to_signup_clicked` até cadastro, primeiro filme, checkout com filme e assinatura; não atribuir causalidade à recuperação enquanto o tamanho da ramificação continuar desconhecido.
+- **SUGESTÃO — gate de parada:** corrigir ou reverter se checkout perder precedência, se qualquer destino fora dos dois contratos atravessar a recuperação, se conteúdo entrar em evento/log próprio, se o link expirado perder o retry ou se o sucesso não reabrir o destino exato.
+
+### PEDIDOS
+
+- **IMPLEMENTADO:** pedido interno aberto para a pista Claude corrigir o placar do Guardião, que hoje publica `success` mesmo com 205 baterias vermelhas por dependências ausentes e `continue-on-error`; nenhum pedido da outra pista foi baixado ou duplicado.
+
+## PRÓXIMA JOGADA
+
+- **SUGESTÃO:** na R15, investigar a mutabilidade da atribuição que fez a mesma conta passar de `direto` para `chatgpt` em 52 minutos; localizar o writer real de `signup_utm_source|utm_source` e, somente se houver sobrescrita pós-cadastro, preservar a origem inicial sem migration nem tocar dashboard/CAIXA. A R16 permanece reservada à medição pura obrigatória.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+## 📋 O QUE ACONTECEU
+
+- **IMPLEMENTADO:** esquecer a senha não apaga mais o remix ou roteiro já validado; os dois atravessam pedido, retry, reset e retorno ao login, com checkout soberano.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 10:53 BRT:** placar em 35 cadastros, 22 pessoas com filme, 1 checkout com filme, 2 sem filme e 0 assinaturas; a pessoa viva do checkout chegou à composição, mas ainda não tinha filme nem pagamento.
+- **TESTADO LOCALMENTE:** 477 verificações direcionadas, TypeScript, diff check e preview completo ficaram verdes; três auditorias deram GO após dois NO-GO corrigidos.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 10:52 BRT:** Guardião #99, Vercel, alias canônico, quatro estados anônimos e scan de erros ficaram verdes no SHA `bd97f3d0`.
+- **CONTRADIÇÃO:** a origem da pessoa viva mudou de `direto` para `chatgpt` entre leituras, e o Guardião reportou `success` com 205 baterias vermelhas; ambas viram trabalho explícito da próxima rodada/pista dona, sem maquiagem de número.
