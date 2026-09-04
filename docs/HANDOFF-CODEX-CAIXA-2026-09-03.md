@@ -489,3 +489,73 @@ O caixa ainda não gerou uma assinatura nova nesta janela. As mudanças mais
 recentes também ainda não têm amostra suficiente para julgamento. Mantive cada
 teste intacto e mudei de estágio: a próxima leitura será a volta do checkout
 cancelado, onde a pessoa já revelou intenção de pagar.
+
+---
+
+## ROUND 9 — K9/K14 · retorno cancelado já existe, sem amostra
+
+**Data:** 2026-09-04 11:08 BRT
+**Pista:** Growth-B2C / CAIXA
+**Branch:** `codex/caixa-cancelled-r9`
+
+### EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, 2026-09-04 11:05 BRT
+
+- K14 `checkout_cancel_objection_visibility_v1`: 0 pessoas externas expostas
+  em 14 dias, 0 respostas, 0 checkout e 0 assinatura atribuível.
+- K9 `checkout_cancelled_trial_delivery_offered`: 1 pessoa externa exposta e
+  madura, 0 clique, 0 filme posterior e 0 assinatura em 24h.
+- Marco canônico permanece em 35 cadastros, 21 pessoas com filme, 1 checkout
+  de desejo, 2 sem filme, 0 assinaturas e 0 falhas sem filme.
+- Vigia de 2h: a mesma pessoa ChatGPT `a8c8d6c5`, Pro, `activation_defect`, 0
+  filmes e 25 créditos; nenhum novo checkout externo entrou na janela.
+
+### FATO CONFIRMADO — o que existe
+
+- `app/checkout/cancelled/page.tsx` possui as quatro objeções vivas e responde
+  no mesmo lugar: preço, dúvida de plano, perguntas e apenas olhando.
+- A exposição humana é medida por IntersectionObserver, aba visível e dedupe
+  no evento `checkout_cancel_objection_viewed`.
+- Para conta elegível sem primeira entrega, a mesma página oferece um filme de
+  trial, mede oferta/clique e só inicia após ação explícita da pessoa.
+- K9 e K14 têm caller e testes de contrato; não são módulos órfãos.
+
+### DECISÃO REVERSÍVEL / GATE
+
+Nenhuma mudança. K14 não pode ser julgada sem uma única exposição; K9 não pode
+ser reescrita com uma pessoa. As duas ficam congeladas até 10 pessoas externas
+maduras ou até um defeito funcional reproduzível contradizer o código.
+
+### IMPLEMENTADO
+
+Nenhuma alteração de produto. Diagnóstico mensurável e anti-repetição. O teste
+de visibilidade foi corrigido para verificar a ordem `stop → clear geometry`
+com whitespace agnóstico: a asserção antiga exigia LF literal e ficava vermelha
+num checkout CRLF, apesar de o comportamento estar intacto.
+
+### COMO MEDIR
+
+K14: `checkout_cancel_objection_viewed` → `checkout_cancel_reason` → novo
+`checkout_started` → pago, por pessoa em 24h. K9: oferta → clique → filme
+concluído → pago, na mesma pessoa e janela.
+
+### RISCO
+
+Risco zero de produto. O risco evitado foi trocar uma pesquisa sem respondente
+e destruir a primeira linha de base antes de ela existir. A mudança de teste
+preserva a mesma invariante e só remove dependência do fim de linha da máquina.
+
+### PRÓXIMA JOGADA
+
+K15: auditar `checkoutVisualProof`, caller real, exposição e resultado. Só
+alterar se a prova no caixa for genérica ou estiver ausente apesar de existir
+filme owner-scoped; mídia de cliente nunca vai para metadata do Stripe.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+### 📋 O QUE ACONTECEU
+
+A volta do checkout já pergunta a objeção e oferece o primeiro filme. O gargalo
+é distribuição dessa tela: ninguém viu a pesquisa e apenas uma pessoa viu a
+oferta de teste. Preservei o experimento e avancei para a prova visual do caixa.

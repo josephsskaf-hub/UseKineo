@@ -211,7 +211,10 @@ check(componentSource.includes('intersectingAtThreshold = Boolean(entry?.isInter
 check(componentSource.includes("target.addEventListener('click', handleReasonChoice, true)"), 'reason choice is intercepted in capture phase before React state')
 check(componentSource.includes('stopAfterChoice()'), 'reason choice stops observation and retries')
 check(componentSource.includes('if (!lifecycle.canContinue()) return'), 'late transport result checks lifecycle before any action')
-check(componentSource.includes('lifecycle.stop()\n      intersectingAtThreshold = false'), 'cleanup stops lifecycle and clears geometry before timers')
+// Match the behavioral order, not a platform-specific LF. The repository is
+// checked out with CRLF on Windows, where a literal `\n` made this gate red
+// even though cleanup still stops the lifecycle before clearing geometry.
+check(/lifecycle\.stop\(\)\s+intersectingAtThreshold = false/.test(componentSource), 'cleanup stops lifecycle and clears geometry before timers')
 check(componentSource.includes('observer?.disconnect()'), 'observer is cleaned up')
 check(componentSource.includes('clearRetry()'), 'retry timer is cleaned up')
 check(!componentSource.includes('preventDefault'), 'telemetry never changes navigation')
