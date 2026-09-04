@@ -1008,4 +1008,4 @@ entrega dele — `593b28a5`, verificação da sessão Stripe antes dos pixels de
 `/checkout/success` — já está em `origin/main`; era a pendência nº 1 do
 encerramento e ela fechou sozinha.
 
-**SHA.** `__SHA__` — worktree `C:\kineo-wt\r20-memoria-episodio`.
+**SHA.** `4b5581df` — worktree `C:\kineo-wt\r20-memoria-episodio`.
