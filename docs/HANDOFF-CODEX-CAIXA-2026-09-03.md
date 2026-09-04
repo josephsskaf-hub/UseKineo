@@ -1563,3 +1563,51 @@ Nada.
 Quem fecha o lembrete antes de ver o resultado continua em paz enquanto o filme
 não existe. Quando a prova chega, a escolha salva pode voltar uma vez mostrando
 o próprio filme. Fechar depois disso continua silenciando por sete dias.
+
+---
+
+## ROUND 22 — crédito preso passa a mostrar progresso real do primeiro filme
+
+**Data:** 2026-09-04 11:57→12:05 BRT
+
+**Pista:** Growth-B2C / CAIXA, atendendo pedido explícito da pista Claude
+
+**Branch:** `codex/caixa-held-progress-r22`
+
+**SHA funcional:** `bc544477d7fd7a6539b8627b83498807eec0f058`
+
+### PLACAR E VIGIA
+
+- **EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, 04/09/2026 11:58 BRT:** desde o marco de 03/09 16:00 UTC há 37 cadastros externos, 23 pessoas com filme, 2 checkouts com filme, 1 checkout sem filme, 0 assinaturas e 1 pessoa com falha sem filme.
+- **EVIDÊNCIA DE PRODUÇÃO:** o vigia de checkout das últimas 2h continua com uma pessoa externa (`73bd3264`), origem `chatgpt`, 1 filme, 12 créditos, checkout Pro e nenhum pagamento. Ela recebeu o filme e concluiu o download; nenhuma objeção ou recusa de pagamento apareceu.
+- **EVIDÊNCIA DE PRODUÇÃO — caso que decidiu a rodada:** a nova pessoa sem filme (`3cafd236`), origem TAAFT, iniciou o primeiro render às 11:42 BRT, bateu no crédito preso às 11:47, viu a sala de espera às 11:50 e manteve a página aberta emitindo rechecagens a cada 45 segundos. O servidor informou que o render tinha 4 minutos e ainda estava em voo. Esse é o primeiro caso vivo exato do pedido aberto do Claude.
+
+### HIPÓTESE E MUDANÇA MÍNIMA
+
+**HIPÓTESE:** a sala correta ainda parecia um erro parado porque descartava os campos estruturados `holdState` e `inFlight.minutesAgo` já devolvidos pelo servidor.
+
+**IMPLEMENTADO:** `GenerateClient.tsx` aceita somente `in_flight|dead`, falha fechado para `unknown` e, apenas com prova `in_flight`, troca o título por “Your film is being made” e mostra “In progress for about N minutes”. Não existe porcentagem falsa, prazo de conclusão, novo retry, render automático, preço ou oferta. O evento existente ganhou `hold_state` e `minutes_ago`, sem conteúdo do filme.
+
+**TESTADO LOCALMENTE:** sala de espera 38/38; contrato de crédito preso 115/115; money-truth 313/313; public-promo-truth 68/68; TypeScript verde; whitespace limpo. O teste antigo vermelho deixou de procurar a forma removida do JSX e agora prova a política `showGenericFailure`, a ordem de limpeza e o isolamento do estado em voo. Preview desktop/mobile conferido visualmente em `docs/previews/CREDITS-HELD-PROGRESS-2026-09-04.html`.
+
+### COMO MEDIR E GATE
+
+`credits_held_notice_shown(hold_state='in_flight')` → rechecagens → `credits_held_released` ou filme entregue. Comparar abandono em menos de 60 segundos e rechecagens por pessoa com a linha anterior. Reverter se `in_flight` aparecer sem `minutes_ago`, se estado `dead|unknown` receber linguagem de progresso, ou se a UI iniciar outro render automaticamente.
+
+### RISCO E PEDIDO À OUTRA PISTA
+
+**RISCO:** baixo e reversível; só apresenta dados que o servidor já calculou. O risco residual é o render realmente permanecer órfão — copy não entrega filme.
+
+**EVIDÊNCIA DE PRODUÇÃO — 12:05 BRT:** o mesmo caso chegou a `stranded_composed` às 12:02, mas seguia com 0 vídeos concluídos e 12 créditos. Foi aberto pedido à pista Claude para decidir se é atraso esperado ou fechamento órfão; CAIXA não tocou no pipeline.
+
+### PRÓXIMA JOGADA
+
+Publicar e validar o estado visual. Congelar esta superfície até 10 pessoas externas em `in_flight` ou 7 dias; seguir para outro estágio do caixa.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+### 📋 O QUE ACONTECEU
+
+A pessoa que esperava o primeiro filme não vê mais uma falha vaga: vê que o filme está sendo feito e há quantos minutos, com a mesma rechecagem segura. O produto ainda precisa confirmar a entrega do caso vivo; isso foi encaminhado à pista correta sem mexer no render.
