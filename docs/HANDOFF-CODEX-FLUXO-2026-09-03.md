@@ -1332,3 +1332,37 @@ Continua pendente apenas a ação manual da R19: publicar `docs/TAAFT-LISTING-20
 - **IMPLEMENTADO:** as portas públicas em português e espanhol deixaram de misturar inglês no estado de roteiro acima do limite.
 - **EVIDÊNCIA DE PRODUÇÃO:** o placar permanece em 41 cadastros, 27 pessoas com filme e 0 assinaturas; nenhuma pessoa entrou no vigia de checkout das últimas duas horas.
 - **TESTADO LOCALMENTE:** 238 verificações direcionadas, TypeScript real, diff check e preview visual ficaram verdes; o teto e o destino permaneceram iguais.
+
+---
+
+## Rodada 26 — medição pura R22→R25 — 04/09 14:50→14:54 BRT — CONCLUÍDA
+
+- **DECISÃO APROVADA:** esta é a rodada sem código prevista após quatro rodadas FLUXO. O recorte mede R22→R25 contra o marco canônico, conta pessoas e não transforma denominador zero em sucesso. Fonte: `docs/PROGRAMA-CODEX-ASSINATURAS-2026-09-03.md:318-333,471-487`.
+- **FATO CONFIRMADO / ANTI-DUPLICAÇÃO:** o pedido Claude das 15:40 sobre `trialBalanceBridge` foi atendido pela pista CAIXA em `175a8898` e `ff37bc11`; esta rodada não tocou seus arquivos. `/v/[id]` e quickstart continuam fechados e nenhuma prioridade stale foi reaberta. Fonte: histórico de `origin/main` lido até `ff37bc11` e `docs/PEDIDOS-ENTRE-PISTAS-2026-09-03.md`.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 14:51:19 BRT:** placar canônico desde 03/09 13:00 BRT: **41 cadastros, 27 pessoas com filme, 2 checkouts com filme, 2 sem filme, 0 assinaturas e 0 pessoas com falha sem filme**. Frente à R21, são **0 cadastros, +1 pessoa com filme, 0 checkout e 0 assinatura**; esse filme já estava entregue antes do deploy da R22, portanto não foi atribuído às quatro variantes. Fonte: SQL canônico somente leitura no Supabase de produção, pessoas distintas e contas internas excluídas.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 14:51:19 BRT:** nas duas horas anteriores houve **2 cadastros externos, ambos ChatGPT**. O vigia de `checkout_attempted|checkout_started` sem sucesso ficou vazio. A janela móvel não foi somada a nenhuma anterior.
+- **EVIDÊNCIA DE PRODUÇÃO — R22:** desde 13:45 BRT houve **0 eventos / 0 pessoas** em `organic_signup_handoff_viewed(saved_creation_proof=true)`. A confirmação do tema continua sem denominador humano mensurável.
+- **EVIDÊNCIA DE PRODUÇÃO — R23:** desde 14:05 BRT houve **0 eventos / 0 pessoas** em `home_pricing_checkout_clicked`. A proteção dos três CTAs continua sem exposição mensurável.
+- **EVIDÊNCIA DE PRODUÇÃO — R24:** desde 14:20 BRT houve **0 eventos / 0 pessoas** em `organic_topic_submitted|organic_cta_clicked` com `source=chatgpt_to_shorts`. O formulário corrigido continua sem submissão pós-deploy.
+- **EVIDÊNCIA DE PRODUÇÃO — R25:** desde o deploy READY das 14:41:29 BRT houve **0 eventos / 0 pessoas** nos campaigns PT/ES. A janela é de dez minutos e não autoriza conclusão sobre a localização.
+- **EVIDÊNCIA DE PRODUÇÃO — R18:** seguem **0 perfis TAAFT** criados depois do deploy das 12:13 BRT. O override de motor ainda não teve exposição humana.
+- **DECISÃO — NÃO EXECUTAR CÓDIGO:** congelar R22–R25. Sem pessoa exposta, nova variação nessas mesmas superfícies seria cosmética e reiniciaria o relógio sem aprender nada. A próxima rodada muda de superfície/mecanismo.
+- **MEDIÇÃO:** manter os mesmos eventos versionados e reabrir somente quando existir ao menos uma pessoa externa pós-deploy; então seguir por pessoa até cadastro, filme, checkout e assinatura.
+- **GATE DE PARADA:** zero denominador mantém a variante; qualquer regressão funcional pública comprovada permite correção imediata. Clique ou impressão isolados nunca serão chamados de receita.
+- **RISCO:** os relógios de R22/R23 usam os marcos de deploy registrados no handoff; a R25 usa o timestamp exato READY. Ausência de evento pode significar ausência de tráfego ou perda de instrumento, mas não há evidência para escolher entre as duas nesta janela.
+- **FATO CONFIRMADO:** nenhum código, preço, oferta, Stripe, banco, migration, crédito, e-mail, arquivo Claude ou arquivo CAIXA foi alterado; a única edição é este registro de medição.
+- **TESTADO LOCALMENTE — 04/09/2026 14:52 BRT:** não houve código de produto. O compilador real `node node_modules/typescript/bin/tsc --noEmit --pretty false` e `git -c core.whitespace=cr-at-eol diff --check` saíram 0. O literal `npx tsc --noEmit --pretty false` encontrou novamente o pacote-stub preexistente e saiu 1; não foi mascarado.
+
+## PRÓXIMA JOGADA
+
+- **SUGESTÃO:** na R27, fazer anti-duplicação e auditar uma superfície pública FLUXO diferente e viva, priorizando lacuna verificável em `/llms.txt`/`kineoFacts` ou comparativos com launcher existente. Não reabrir R22–R25 até nascer denominador humano.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+Continua pendente apenas a ação manual da R19: publicar `docs/TAAFT-LISTING-2026-09-03.md` no painel TAAFT e subir as três capturas indicadas. A R26 não pede deploy de produto, contato com usuário ou decisão de preço.
+
+## 📋 O QUE ACONTECEU
+
+- **EVIDÊNCIA DE PRODUÇÃO:** o placar ficou em 41 cadastros, 27 pessoas com filme e 0 assinaturas; as quatro variantes medidas tiveram denominador zero.
+- **DECISÃO:** R22–R25 ficaram congeladas e o pedido de segundo filme foi reconhecido como já entregue por CAIXA.
+- **FATO CONFIRMADO:** nenhuma mudança de produto foi feita nesta rodada de medição.
