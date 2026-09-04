@@ -1082,6 +1082,7 @@ Nada agora. Os dois casos antigos continuam com Claude pelos pedidos já abertos
 - **IMPLEMENTADO:** K20 ganhou três instruções exatas de captura: home real com quatro previews em movimento; Studio/Seedance com custo no botão sem clicar em Generate; e History com filme já concluído + download, sempre sem dado pessoal e sem gastar crédito.
 - **QUESTÃO PENDENTE / DESCONHECIDO:** a ficha pública do TAAFT respondeu HTTP 403 à leitura automatizada em 04/09. A redação velha foi comprovada em 08/08, não reconfirmada hoje; por isso o pacote corrige o material sem afirmar que o painel atual ainda mostra exatamente os mesmos campos.
 - **TESTADO LOCALMENTE — 04/09/2026 12:33 BRT:** `node scripts/test-taaft-listing-package.mjs` passou **25/25**, vinculando a ficha aos valores canônicos e provando presença das três URLs, dos gates e ausência das alegações antigas no bloco pronto para colar. `git -c core.whitespace=cr-at-eol diff --check` saiu com código 0.
+- **VALIDADO NA INTEGRAÇÃO — 04/09/2026 12:38 BRT:** PR #21 passou nos jobs TypeScript e Suíte de testes do Guardião no SHA funcional `86ae2c59`; como `origin/main` avançou com a rodada CAIXA, o merge limpo foi retestado (25/25 + TypeScript real) e o Guardião passou novamente no SHA combinado `21148018125f3b77cbdd802aa04e3a38678a3bed`, então esse SHA entrou em `main` por fast-forward. Deploy público não é gate desta rodada documental: nenhum arquivo servido pelo produto mudou.
 
 ### Placar, vigia e medição
 
