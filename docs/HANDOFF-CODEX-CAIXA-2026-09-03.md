@@ -3003,3 +3003,79 @@ Nada.
 O placar não mudou no bloco e as duas telas novas ainda não foram vistas por
 ninguém elegível. Isso não prova que falharam. Congelei as variantes e encerro o
 bloco sem maquiar ausência de amostra como resultado.
+
+---
+
+## ROUND 45 — o próximo checkout passa a dizer de qual tela veio
+
+**Data:** 2026-09-04 15:04→15:18 BRT
+
+**Pista:** Growth-B2C / CAIXA
+
+**Branch:** `codex/caixa-checkout-entry-r45`
+
+### O DADO QUE DOÍA
+
+**EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, corte 04/09/2026 15:08
+BRT:** as quatro pessoas externas com `checkout_started` desde o marco chegaram
+ao evento de servidor com `checkout_origin=standard` e `intent_campaign=null`.
+Somente uma tinha um `checkout_cta_clicked` cliente nos 15 minutos anteriores,
+identificado como `trial_downgrade_modal`; para as outras três, o banco não
+consegue dizer qual tela produziu o checkout.
+
+Isso impede a decisão mais básica da pista: preservar a superfície que leva
+pessoas reais ao Stripe e parar de trabalhar naquela que só recebe impressão.
+Não é evidência de que nenhuma tela converte; é evidência de atribuição perdida.
+
+### HIPÓTESE E MUDANÇA MÍNIMA
+
+**HIPÓTESE:** o header `Referer` do request de navegação contém a página que
+lançou o checkout na maioria dos navegadores same-origin e pode recuperar a
+atribuição que os links sem `intent_campaign` perderam.
+
+**IMPLEMENTADO:** `lib/growth/checkoutEntrySurface.ts` transforma o Referer em
+uma categoria fechada: home, pricing, cancelamento, signup/login, dashboard,
+Studio, criação, histórico, conta, ferramenta autenticada, landing pública,
+cross-origin, ausente ou inválido. Query string e URL bruta nunca são
+retornadas.
+
+`app/api/stripe/checkout/route.ts` grava somente
+`checkout_entry_surface` + versão em `checkout_attempted`, falhas e
+`checkout_started`. A categoria fica no contexto dos eventos; não entra nos
+parâmetros da Stripe, preço, idempotência, SKU, sessão, sucesso/cancelamento ou
+URL. Nenhum comportamento visível mudou.
+
+### TESTES E GATE
+
+**TESTADO LOCALMENTE:** 506 verificações verdes — entrada 25, value-context 59,
+retorno de falha 109 e money-truth 313. TypeScript completo verde e
+`diff --check` limpo. O teste de retorno já estava vermelho na ponta por exigir
+LF literal em `PricingClient.tsx`; ele agora normaliza CRLF antes de conferir os
+mesmos argumentos e a mesma ordem do guard, sem afrouxar a invariante.
+
+Gate: cinco novas pessoas externas com `checkout_started` na versão
+`checkout_entry_surface_v1`. Sucesso do instrumento = pelo menos uma categoria
+same-origin diferente de `missing/invalid/cross_origin`; então quebrar
+`checkout_started → pagamento` por superfície. Parar se qualquer evento carregar
+URL, query string ou texto livre — o teste atual também trava essa proibição.
+
+### RISCO E PRÓXIMA JOGADA
+
+Referer pode ser removido pela política do navegador; nesse caso o dado diz
+`missing` e não inventa origem. A classificação de uma landing nova cai no balde
+`public_landing`, deliberadamente sem criar cardinalidade por slug.
+
+R46 valida Guardião/deploy e mede o primeiro checkout com a versão. Sem checkout,
+mantém o instrumento e procura uma ação de produto fora das superfícies ainda
+congeladas.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+### 📋 O QUE ACONTECEU
+
+Hoje sabemos que quatro pessoas abriram o caixa, mas só sabemos de qual tela uma
+veio. Corrigi essa cegueira no servidor sem tocar na compra: o próximo checkout
+vai registrar uma categoria segura da página de entrada e nos dizer onde vale
+investir a próxima rodada.
