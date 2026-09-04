@@ -957,3 +957,94 @@ Nada.
 Descobrimos que “checkout antes do filme” não é automaticamente lixo: 7 dessas
 pessoas fizeram filme depois e uma pagou. Por isso não bloqueei o caixa. A ação
 certa é oferecer prova primeiro sem retirar a escolha de quem já quer assinar.
+
+---
+
+## ROUND 15 — uma decisão por vez: entrega antes do lembrete salvo
+
+**Data:** 2026-09-04 10:50 BRT
+**Pista:** Growth-B2C / CAIXA
+**Branch:** `codex/caixa-render-wait-r15`
+
+### VALIDAÇÃO DA ENTREGA ANTERIOR
+
+**VALIDADO NA MAIN:** rodada 14 em `5975cf09`; Guardião local 12/12, jornada
+63/63 e typecheck verde antes do fast-forward. Foi documentação/decisão, sem
+deploy de produto.
+
+### EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, 2026-09-04 10:49 BRT
+
+- Placar canônico desde 03/09 16:00 UTC: 35 cadastros externos, 22 pessoas com
+  filme, 1 checkout com desejo pós-filme, 2 pessoas no estado atual sem filme,
+  0 assinaturas e 0 pessoas com falha sem filme.
+- Vigia das últimas 2h: uma pessoa externa (`a8c8d6c5`), ainda sem pagamento ou
+  filme, mas com submissão iniciada e zero erro; classe `ativação em entrega`.
+- Em 14 dias, 3 pessoas externas tiveram `active_render_pill_shown` em estado
+  `rendering` e `checkout_resume_banner_viewed` na mesma janela de ±2 minutos.
+  Nenhuma pagou depois; uma recebeu o filme e duas ainda não.
+- O caso vivo viu o banner salvo, iniciou a entrega, viu a pílula de render e
+  dispensou o checkout. Não é prova causal, mas é uma colisão de decisões real.
+
+### HIPÓTESE E MUDANÇA MÍNIMA
+
+Pedir pagamento enquanto o primeiro filme ainda está no forno compete com a
+própria prova de valor. O checkout salvo não é apagado nem alterado: somente o
+banner global fica oculto enquanto a sonda autenticada e owner-scoped
+`/api/compose/active` responde `rendering`. Ao chegar a estado terminal, o
+lembrete retorna automaticamente.
+
+Para capturar a corrida de um render que começa logo após o layout, há duas
+rechecagens ociosas de 15s. Depois disso, polling continua apenas durante um
+render confirmado. Falha da sonda abre o banner; nunca apaga recuperação boa.
+
+### IMPLEMENTADO
+
+- `components/CheckoutResumeBanner.tsx`: guarda executada no caller real;
+  denominador humano também para durante a ocultação.
+- `lib/growth/checkoutResumeDeliveryGuard.ts`: classificação e orçamento de
+  sondagem puros; nenhum identificador de render sai em telemetria.
+- `scripts/test-checkout-resume-delivery-guard.mjs`: 16 invariantes executáveis.
+- `docs/previews/CHECKOUT-RESUME-DELIVERY-GUARD-2026-09-04.html`: comparação
+  visual antes/depois, responsiva.
+
+### TESTADO LOCALMENTE
+
+Delivery guard 16/16 · human view 111/111 · own film 35/35 · pricing saved
+checkout 47/47 · Guardião local 12/12 · typecheck verde · `diff --check` limpo.
+
+### COMO MEDIR
+
+`checkout_resume_suppressed_active_render` → filme concluído →
+`checkout_resume_choice_viewed` → `checkout_started` →
+`checkout_success_viewed`, por pessoa externa. A métrica operacional é zerar a
+coexposição em ±2 minutos sem reduzir pagamento após o filme.
+
+### GATE DE PARADA
+
+Manter até 10 pessoas externas suprimidas ou 7 dias. Parar/reverter se o banner
+não reaparecer após estado terminal, se a sonda elevar erros, ou se uma pessoa
+com checkout salvo ficar sem nenhuma exposição após o filme.
+
+### RISCO
+
+Baixo e reversível. Há uma chamada owner-scoped extra apenas para pessoas com
+checkout recuperável, mais duas rechecagens ociosas; durante render já existia
+polling equivalente no produto. O risco residual é atrasar por segundos uma
+compra espontânea enquanto a entrega está em voo; a pessoa continua podendo
+abrir `/pricing` normalmente.
+
+### PRÓXIMA JOGADA
+
+Publicar e validar que o banner comum continua visível quando não há render.
+Depois medir o caso vivo até entrega/pagamento e escolher uma superfície nova,
+sem reeditar esta antes do gate.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+### 📋 O QUE ACONTECEU
+
+Três pessoas viram duas ordens ao mesmo tempo: “espere seu vídeo” e “pague
+agora”. O checkout continua salvo, mas o lembrete agora espera o filme terminar
+e volta depois, quando existe prova para sustentar a decisão.
