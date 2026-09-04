@@ -59,8 +59,15 @@ if (/import \{ parseUserScript \} from '@\/lib\/scriptParser'/.test(rotaExpand))
 }
 
 // ── 3. As DUAS medidas da rota (antes e depois) usam a fala ────────────────
-const mediaAntesNaFala = /const falaOriginal = parseUserScript\(original\)\.narration[\s\S]{0,120}narrationFit\(falaOriginal/.test(rotaExpand)
-const mediaDepoisNaFala = /const falaExpandida = parseUserScript\(expandido\)\.narration[\s\S]{0,160}narrationFit\(falaExpandida/.test(rotaExpand)
+// KINEO-EXPANSOR-DEGRAU-2026-09-03 — (?:const|let), nao so const. Este
+// invariante estava VERMELHO em origin/main e nao era o produto: desde o #37 a
+// rota declara `let falaExpandida` / `let depois` porque a apara
+// (KINEO-APARAR-2026-09-02) reatribui as duas. O teste continuou procurando a
+// palavra `const` e acusava quebra onde nao havia — e teste vermelho cronico e
+// teste que todo mundo aprende a ignorar. O que importa continua cobrado igual:
+// a medida do "depois" sai da FALA parseada, nunca do texto cru (bateria 4).
+const mediaAntesNaFala = /(?:const|let) falaOriginal = parseUserScript\(original\)\.narration[\s\S]{0,120}narrationFit\(falaOriginal/.test(rotaExpand)
+const mediaDepoisNaFala = /(?:const|let) falaExpandida = parseUserScript\(expandido\)\.narration[\s\S]{0,160}narrationFit\(falaExpandida/.test(rotaExpand)
 mediaAntesNaFala
   ? ok('expand-script decide o "antes" pela fala')
   : falhou('expand-script decide o "antes" pela fala', 'o early-return "já enche" voltaria a devolver o roteiro intacto e a criar o loop')

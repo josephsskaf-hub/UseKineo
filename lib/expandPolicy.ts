@@ -26,7 +26,14 @@
 // de scripts/test-expand-policy.mjs exercitarem o contrato REAL, não regex
 // procurando string em arquivo.
 
-import { MIN_COVERAGE, WORDS_PER_SECOND, speechSeconds } from './narrationFit'
+import {
+  MIN_COVERAGE,
+  WORDS_PER_SECOND,
+  speechSeconds,
+  narrationFit,
+  autofitDown,
+  AUTOFIT_DOWN_FLOOR_SECONDS_HOLLYWOOD,
+} from './narrationFit'
 
 /**
  * Teto de crescimento. NÃO MEXER PARA "FAZER PASSAR".
@@ -412,4 +419,113 @@ export function trimCandidateToBudget(candidato: string, falaOriginal: string, w
     else if (prefixo) linhas.push(prefixo.trim())
   }
   return linhas.join('\n').replace(/\n{3,}/gu, '\n\n').trim()
+}
+
+// ═══ KINEO-EXPANSOR-DEGRAU-2026-09-03 ══════════════════════════════════════
+//
+// O EXPANSOR ESTAVA RECUSANDO O ROTEIRO QUE O RENDERIZADOR ACEITARIA.
+//
+// MEDIDO (03/09 22:08 BRT, 14 dias, contas externas): 32 pessoas tiveram uma
+// expansão auto-disparada, 15 delas viram `script_expand_failed` e só 12
+// chegaram a aceitar um texto. Das falhas, `growth_limit` com
+// `candidate_fits: true` — ou seja, o modelo escreveu um texto que ENCHE o
+// alvo e nós o jogamos fora — aparece até 03/09 22:45, duas horas antes desta
+// medição (mehmetcakoglu, vindo do chatgpt.com: base 13s, teto 77 palavras,
+// candidato 96 palavras, `candidate_fits: true`).
+//
+// A tesoura do KINEO-APARAR-2026-09-02 já existe e não salva esse caso, e a
+// aritmética explica por quê. Para aceitar a apara, o texto tinha de cair na
+// janela [0,95 × alvo , 2,5 × base] medida em fala. Para o mehmet isso é
+// [33,25s , 33,7s] — meia palavra de largura, enquanto a tesoura corta por
+// FRASE (10 a 20 palavras). A janela existe no papel e é intransponível na
+// prática, então a apara falha e a pessoa leva a frase vermelha.
+//
+// O QUE MUDOU DE VERDADE HOJE: o #1 desta sprint (6c822b36, já em produção)
+// fez o servidor DESCER o alvo sozinho quando a fala cobre ≥60% dele, ANTES
+// do custo. Ou seja, o renderizador passou a aceitar um roteiro de 30,4s para
+// um pedido de 35s — ele entrega um filme de 30s. O expansor não soube: ele
+// continua exigindo encher os 35s exatos. É a doença das DUAS RÉGUAS do #349
+// de novo, agora entre o expansor e o renderizador.
+//
+// Esta função é a régua única. O teto de 2,5× NÃO muda e o Contrato C1 NÃO
+// afrouxa: candidato acima do teto continua recusado, e uma frase do autor
+// mexida continua reprovando. O que passa a existir é o terceiro veredito
+// honesto — "não enche os 35s, enche os 30s, e é isso que o render vai fazer".
+export type TrimVerdictReason =
+  | 'fits_target'          // aparado e enche o alvo pedido: caminho de sempre
+  | 'fits_lower_duration'  // não enche o pedido, mas o render desce e entrega
+  | 'over_cap'             // ainda acima do teto de 2,5×: recusa de sempre
+  | 'author_rewritten'     // C1 violado: recusa de sempre
+  | 'structure_lost'       // HOOK/PAYOFF sumiu: recusa de sempre
+  | 'no_growth'            // aparou tanto que não sobrou expansão nenhuma
+  | 'too_short_even_lower' // nem descendo o alvo o roteiro enche
+
+export interface TrimVerdict {
+  accepted: boolean
+  reason: TrimVerdictReason
+  /** A duração que o RENDER vai usar se a pessoa aprovar. */
+  effectiveSeconds: number
+  /** Fala do candidato aparado, em segundos (não arredondada). */
+  trimmedSpeechSeconds: number
+  /** Diagnóstico cru — vai no 422 para a próxima rodada não precisar adivinhar. */
+  withinCap: boolean
+  authorOk: boolean
+  markersOk: boolean
+  fitsTarget: boolean
+}
+
+/**
+ * Julga o candidato JÁ APARADO. Função pura: sem rede, sem banco, sem relógio.
+ *
+ * ⚠️ `floorSeconds` usa o piso HOLLYWOOD (30s) de propósito, e não o clássico
+ * (20s): esta rota não sabe qual motor a pessoa escolheu, e o planner
+ * hollywood trava o alvo em `Math.max(30, …)`. Prometer um filme de 20s que o
+ * planner puxaria de volta para 30 seria recriar o defeito que o #1 matou.
+ * Para afrouxar (mais resgates, promessa mais frágil no caminho hollywood):
+ * passar `AUTOFIT_DOWN_FLOOR_SECONDS`. Para desligar o resgate inteiro:
+ * `floorSeconds: 10_000`.
+ */
+export function judgeTrimmedCandidate(args: {
+  originalRaw: string
+  originalSpeech: string
+  trimmedRaw: string
+  trimmedSpeech: string
+  baseSpeechSeconds: number
+  targetSeconds: number
+  floorSeconds?: number
+}): TrimVerdict {
+  const falaAparada = speechSeconds(args.trimmedSpeech)
+  const falaAutor = speechSeconds(args.originalSpeech)
+  const withinCap = withinGrowthLimit(args.baseSpeechSeconds, falaAparada)
+  const authorOk = authorPreserved(args.originalSpeech, args.trimmedSpeech).ok
+  const markersOk = lostMarkers(args.originalRaw, args.trimmedRaw).length === 0
+  const fitsTarget = narrationFit(args.trimmedSpeech, args.targetSeconds).ok
+  const base = {
+    effectiveSeconds: args.targetSeconds,
+    trimmedSpeechSeconds: falaAparada,
+    withinCap,
+    authorOk,
+    markersOk,
+    fitsTarget,
+  }
+  // A ORDEM É A DO CONTRATO, não a da conveniência: teto, autor, estrutura.
+  if (!withinCap) return { ...base, accepted: false, reason: 'over_cap' }
+  if (!authorOk) return { ...base, accepted: false, reason: 'author_rewritten' }
+  if (!markersOk) return { ...base, accepted: false, reason: 'structure_lost' }
+  // Aparar não pode devolver menos do que a pessoa já tinha: isso não é
+  // expansão, é uma volta cara ao ponto de partida.
+  if (!(falaAparada > falaAutor)) return { ...base, accepted: false, reason: 'no_growth' }
+  if (fitsTarget) return { ...base, accepted: true, reason: 'fits_target' }
+  const descida = autofitDown(args.trimmedSpeech, args.targetSeconds, {
+    floorSeconds: args.floorSeconds ?? AUTOFIT_DOWN_FLOOR_SECONDS_HOLLYWOOD,
+  })
+  if (descida.applied) {
+    return {
+      ...base,
+      accepted: true,
+      reason: 'fits_lower_duration',
+      effectiveSeconds: descida.effectiveSeconds,
+    }
+  }
+  return { ...base, accepted: false, reason: 'too_short_even_lower' }
 }

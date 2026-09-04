@@ -25,6 +25,8 @@ import {
   withinGrowthLimit,
   type ExpandOutcome,
   maxCandidateWords,
+  judgeTrimmedCandidate,
+  type TrimVerdict,
 } from '@/lib/expandPolicy'
 
 // ═══ KINEO-COMPLETAR-ROTEIRO-2026-08-22 ════════════════════════════════════
@@ -300,6 +302,11 @@ ${original}`
     let falaExpandida = parseUserScript(expandido).narration || expandido
     let depois = narrationFit(falaExpandida, target)
     let aparado = false
+    // KINEO-EXPANSOR-DEGRAU-2026-09-03 — a duração que o RENDER vai usar. Só
+    // difere de `target` quando a apara foi aceita pela descida do #1.
+    let duracaoEfetiva = target
+    let descidoPeloRender = false
+    let aparaRecusada: TrimVerdict | null = null
 
     // ═══ KINEO-APARAR-2026-09-02 — ANTES DE RECUSAR, APARAR ═══════════════
     // 41% das falhas da semana eram esta parede. Se o modelo escreveu demais
@@ -311,18 +318,53 @@ ${original}`
       const orcamento = Math.min(palavrasTeto, Math.ceil(target * WORDS_PER_SECOND) + 8)
       const cortado = trimCandidateToBudget(expandido, falaOriginal, orcamento)
       const falaCortada = parseUserScript(cortado).narration || cortado
-      const depoisCortado = narrationFit(falaCortada, target)
-      if (
-        withinGrowthLimit(speechBase, depoisCortado.speech) &&
-        depoisCortado.ok &&
-        authorPreserved(falaOriginal, falaCortada).ok &&
-        lostMarkers(original, cortado).length === 0
-      ) {
-        console.log(`[expand-script] aparado: ${Math.round(depois.speech * WORDS_PER_SECOND)} → ${Math.round(depoisCortado.speech * WORDS_PER_SECOND)} palavras (orcamento ${orcamento}, alvo ${target}s)`)
+      // ═══ KINEO-EXPANSOR-DEGRAU-2026-09-03 — A RÉGUA VIROU UMA SÓ ═════════
+      // MEDIDO (03/09 22:08 BRT, 14d, externos): 32 pessoas com expansão
+      // auto-disparada, 15 com `script_expand_failed`, só 12 aceitaram texto.
+      // O `growth_limit` com `candidate_fits: true` — texto que ENCHE o alvo,
+      // jogado fora — ainda acontecia às 22:45 de 03/09 (mehmetcakoglu, do
+      // chatgpt.com: base 13s, teto 77 palavras, candidato 96).
+      //
+      // A apara sozinha não salvava esse caso: para ser aceita, ela tinha de
+      // cair na janela [0,95 × alvo , 2,5 × base] = [33,25s , 33,7s] — MEIA
+      // PALAVRA de largura, e a tesoura corta por frase. Janela que existe no
+      // papel e é intransponível na prática.
+      //
+      // O que mudou é o vizinho: o #1 de hoje (6c822b36, em produção) fez o
+      // RENDERIZADOR descer o alvo sozinho a partir de 60% de cobertura, antes
+      // do custo. Ele entrega um filme de 30s para um pedido de 35s. O expansor
+      // continuava exigindo os 35s exatos — duas réguas de novo, a doença do
+      // #349. `judgeTrimmedCandidate` é a régua única: teto de 2,5× intacto,
+      // Contrato C1 intacto, e um terceiro veredito honesto quando o texto
+      // aparado enche a duração que o render REALMENTE vai usar.
+      const veredito = judgeTrimmedCandidate({
+        originalRaw: original,
+        originalSpeech: falaOriginal,
+        trimmedRaw: cortado,
+        trimmedSpeech: falaCortada,
+        baseSpeechSeconds: speechBase,
+        targetSeconds: target,
+      })
+      if (veredito.accepted) {
+        console.log(`[expand-script] aparado (${veredito.reason}): ${Math.round(depois.speech * WORDS_PER_SECOND)} → ${Math.round(veredito.trimmedSpeechSeconds * WORDS_PER_SECOND)} palavras (orcamento ${orcamento}, pedido ${target}s, efetivo ${veredito.effectiveSeconds}s)`)
         expandido = cortado
         falaExpandida = falaCortada
-        depois = depoisCortado
+        depois = narrationFit(falaCortada, target)
         aparado = true
+        duracaoEfetiva = veredito.effectiveSeconds
+        descidoPeloRender = veredito.reason === 'fits_lower_duration'
+      } else {
+        // A apara falhou. O 422 abaixo passa a DIZER por quê: sem isto, a
+        // próxima rodada teria de adivinhar qual das quatro condições caiu —
+        // foi exatamente o que custou esta investigação inteira.
+        aparaRecusada = veredito
+        console.warn('[expand-script] apara recusada', {
+          motivo: veredito.reason,
+          teto: veredito.withinCap,
+          autor: veredito.authorOk,
+          marcadores: veredito.markersOk,
+          enche: veredito.fitsTarget,
+        })
       }
     }
 
@@ -375,6 +417,19 @@ ${original}`
           candidate: expandido,
           candidateSeconds: Math.round(depois.speech),
           candidateFits: depois.ok,
+          // KINEO-EXPANSOR-DEGRAU-2026-09-03 — POR QUE A TESOURA NAO SALVOU.
+          // A apara existe desde 02/09 e continuava falhando em silencio; sem
+          // este campo, so restava aritmetica de botequim sobre o evento.
+          trimAttempt: aparaRecusada
+            ? {
+                reason: aparaRecusada.reason,
+                trimmedSeconds: Math.round(aparaRecusada.trimmedSpeechSeconds),
+                withinCap: aparaRecusada.withinCap,
+                authorOk: aparaRecusada.authorOk,
+                markersOk: aparaRecusada.markersOk,
+                fitsTarget: aparaRecusada.fitsTarget,
+              }
+            : null,
         },
         { status: 422 },
       )
@@ -443,11 +498,21 @@ ${original}`
     )
 
     return NextResponse.json({
-      outcome: (depois.ok ? 'expanded_ready' : 'still_short') as ExpandOutcome,
+      // KINEO-EXPANSOR-DEGRAU-2026-09-03 — `descidoPeloRender` conta como
+      // PRONTO. Não é afrouxar o portão do #26 ("o painel só aparece com
+      // expansão real e suficiente"): é o portão passando a medir contra a
+      // duração que o render vai usar de verdade, em vez de contra um número
+      // que o próprio servidor já não usa mais desde o #1 de hoje.
+      outcome: (depois.ok || descidoPeloRender ? 'expanded_ready' : 'still_short') as ExpandOutcome,
       script: expandido,
       expanded: true,
       trimmed: aparado,
-      stillShort: !depois.ok,
+      stillShort: !(depois.ok || descidoPeloRender),
+      // A duração que o filme REALMENTE vai ter. Igual ao pedido em todo caso
+      // que não passou pela descida. A tela ainda mostra o botão (35s); o
+      // pedido ao Codex está em docs/PEDIDOS-ENTRE-PISTAS-2026-09-03.md.
+      effectiveDuration: duracaoEfetiva,
+      autofitDown: descidoPeloRender,
       restoredDirectives: diretivasPerdidas.length,
       // #9 — tripwire: depois do conserto do cliente isto tem de ser sempre
       // false. true em producao = alguem voltou a mandar base nao-ancestral.
