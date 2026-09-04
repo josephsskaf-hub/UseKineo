@@ -4,9 +4,9 @@
 
 **EVIDÊNCIA — mensagem do fundador neste chat, 04/09/2026:** encerrar o objetivo em andamento, concluir o que já estiver em publicação sem interromper pela metade, resumir o trabalho e submeter o próximo plano ao consenso fundador/Claude/Codex.
 
-**ESTADO OPERACIONAL VERIFICADO — 04/09/2026:** não iniciar R49 nem outra rodada de produto. A automação `usekineo-fluxo-ciclos-de-20-min` foi alterada de ACTIVE para PAUSED pela ferramenta do aplicativo. A tarefa FLUXO estava ociosa; os subagentes de auditoria estavam concluídos. Preservar o site, branches, worktrees, dados e trabalho do Claude; nenhuma reversão de produção foi solicitada.
+**ESTADO OPERACIONAL VERIFICADO — 04/09/2026:** não iniciar R49 nem outra rodada de produto. A automação `usekineo-fluxo-ciclos-de-20-min` foi alterada de ACTIVE para PAUSED pela ferramenta do aplicativo. Os subagentes de auditoria estavam concluídos. A inspeção posterior da worktree FLUXO encontrou R29 já commitada e aguardando publicação; foi enviada ordem explícita para concluir somente essa operação com os gates e parar, sem R30. Preservar o site, branches, worktrees, dados e trabalho do Claude; nenhuma reversão de produção foi solicitada.
 
-**QUESTÃO PENDENTE — interface do objetivo:** o objetivo desta tarefa ainda aparece `active` em `get_goal`. A ferramenta disponível só permite marcar conclusão real ou bloqueio; não permite cancelar/pausar. Não marcar como atingida uma meta interrompida pelo fundador. O cancelamento do cartão deve ser feito pelo controle do objetivo no aplicativo. Esta limitação não autoriza novas rodadas.
+**ENCERRAMENTO CONFIRMADO — interface do objetivo:** após a limitação da ferramenta ter sido explicada, o fundador informou "cancelei o cartao". A consulta seguinte de `get_goal` retornou `goal: null`. O objetivo foi removido, não marcado artificialmente como meta comercial atingida.
 
 **ESCOPO DESTA ÚLTIMA PUBLICAÇÃO:** documentação da R48 e este fechamento. Nenhuma nova alteração funcional. A R48 foi preparada no commit `6a0a5bd3820b0cfb056307d1bab175853d6d8f64`, sobre `7f5fd75d65b729b502e04d2089194be472bef497`; PR #35. Este arquivo integra o mesmo encerramento documental, sujeito aos gates e à validação final de deploy. SHA e resultado final serão comunicados no chat; não presumir deploy por existir commit.
 
@@ -54,6 +54,8 @@
 
 **LIMITAÇÃO:** não houve autorização nesta janela para e-mail, anúncio ou outreach automático. Pacote de listing não significa listing externo publicado. Mudanças de aquisição não provam aumento de assinaturas sem medição posterior.
 
+**IMPLEMENTADO LOCALMENTE / PUBLICAÇÃO EM CONCLUSÃO:** a R29 da FLUXO já estava preparada quando a parada foi reconciliada: brief legível e copiável no guia de monetização antes do cadastro, código `2f0e4fcb530312c550757aefc00f6b369f5e96e4`, registro local `5060541f`. A confirmação final de integração/deploy pertence ao fechamento da própria FLUXO; não inferir produção só desses commits. Nenhuma R30 foi autorizada.
+
 ## Histórico maior deste chat
 
 **EVIDÊNCIA INFORMADA PELO FUNDADOR / RELATÓRIOS DO CLAUDE, agosto de 2026:** o chat acompanhou as correções #349–#353 sobre roteiro, despacho, crédito e exposição de eventos, além de qualidade de cenas. Esses trabalhos não devem ser reatribuídos ao Codex por terem sido discutidos aqui; nem seus relatos antigos devem ser tratados como auditoria atual. O resumo técnico verificável desta janela está nos dois diários acima. As propostas B2B, afiliados, SEO/AEO e campanhas de janelas anteriores precisam ser reconciliadas com seus próprios commits e pagamentos antes de uma retomada; não entram como entregas comerciais comprovadas deste ciclo B2C.
@@ -78,6 +80,6 @@
 
 **PRÓXIMA JOGADA:** nenhuma execução automática. Fundador e Claude leem este fechamento, verificam pendências contra a ponta atual e confirmam o próximo mandato.
 
-**✅ O QUE DEPENDE DO FUNDADOR:** cancelar o cartão do objetivo na interface se ele continuar ativo e aprovar, ajustar ou rejeitar o próximo plano em consenso. Não é necessário rodar batch desta publicação.
+**✅ O QUE DEPENDE DO FUNDADOR:** aprovar, ajustar ou rejeitar o próximo plano em consenso. O cartão já foi cancelado; não é necessário rodar batch desta publicação.
 
 **📋 O QUE ACONTECEU:** o ciclo foi interrompido por decisão do fundador, com preservação das entregas. Houve mudanças reais de caminho e confiança; o corte final não demonstrou novas assinaturas. A parada não é apresentada como meta comercial atingida.
