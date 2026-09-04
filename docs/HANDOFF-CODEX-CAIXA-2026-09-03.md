@@ -2181,3 +2181,47 @@ Nada.
 ### 📋 O QUE ACONTECEU
 
 O modal que trouxe o checkout vivo de hoje continuou igual para o comprador, mas deixou de depender de um único salto perfeito até o Stripe. Se esse salto travar, agora aparece um botão real para continuar a compra; preço, desconto e oferta não mudaram.
+
+---
+
+## ROUND 34 — a próxima lacuna do checkout pertence à FLUXO
+
+**Data:** 2026-09-04 13:37→13:41 BRT
+
+**Pista:** Growth-B2C / CAIXA
+
+**Branch:** `codex/caixa-home-checkout-request-r34`
+
+### RECONCILIAÇÃO E VIGIA
+
+**VALIDADO EM PRODUÇÃO — 04/09/2026:** a entrega funcional da R33 está em `origin/main` no SHA `3819e1dafbdb04b5dbcdd93433dd0b2d22138c51`; Guardião run `33895807675` verde em 1m01s. Vercel Production `dpl_BkTkDZLzpTNK6iYgSuCEJnwrP8U6` e Preview `dpl_2mvkSxXHUfP2veEbnDAbqgn19UEk` estão `READY` para o mesmo SHA.
+
+**EVIDÊNCIA DE PRODUÇÃO — vigia de 2h medido em 04/09/2026 13:37 BRT:** ainda existe uma pessoa externa e dois eventos de checkout sem pagamento; é a mesma pessoa `0441e46ae5` da R31, não uma nova pessoa.
+
+### DADO QUE DOÍA E LIMITE DA EVIDÊNCIA
+
+**FATO CONFIRMADO:** os três CTAs de preço em `app/KineoLanding.tsx` são âncoras diretas. O comentário do próprio caller registra que, para pessoa autenticada, não há latch de duplo clique, pending, erro nem `useCheckoutLaunch`; a correção exige um client boundary. Esse arquivo pertence à pista FLUXO.
+
+**EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, 30 dias, medida em 04/09/2026:** 49 pessoas externas chegaram a `checkout_attempted` numa sessão que havia começado na home, sem clique anterior no WelcomeOfferModal; uma confirmou pagamento em 7 dias. Esse número é **limite superior**, não 49 cliques comprovados nos cards: a home hoje não grava um denominador próprio e a mesma sessão pode alcançar o checkout por outra navegação.
+
+### DECISÃO
+
+Nenhuma edição de produto na CAIXA. Alterar `KineoLanding.tsx` violaria a divisão de worktrees e poderia colidir com aquisição orgânica. Foi aberto pedido completo para `codex-fluxo`: criar client boundary que preserve o href e o redirect autenticado, ligue latch/pending/resgate no clique primário e grave um evento versionado por tier. A R33 permanece restrita ao WelcomeOfferModal.
+
+### RISCO E MEDIÇÃO
+
+Risco de produto zero nesta rodada; somente `SELECT` e documentação. O risco evitado foi promover uma inferência de sessão a “49 cliques” e editar arquivo da pista errada.
+
+Após entrega da FLUXO, medir pessoa externa por `home_pricing_checkout_clicked` → `checkout_started` → fallback quando necessário → pagamento. Um evento próprio substitui a aproximação atual.
+
+### PRÓXIMA JOGADA
+
+R35 volta a uma superfície CAIXA própria. Reconciliar o pedido assim que a FLUXO responder; enquanto isso, auditar uma lacuna diferente do modal/home pricing e manter R29, R30 e R33 congeladas.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+### 📋 O QUE ACONTECEU
+
+Achei três botões de preço da home que ainda dependem de um salto perfeito, mas não invadi o arquivo da equipe de tráfego. Entreguei a ela o número, o defeito exato e a medição que faltava; assim o conserto entra sem colisão e deixa de contar sessão como clique.
