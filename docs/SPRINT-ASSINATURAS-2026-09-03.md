@@ -1777,3 +1777,182 @@ viva que a checagem zero apontou, não jogada nova de cardápio).
 **SHA.** `9e0f9243` (enfileirado em `entrega-atual`, fila = 7; aguardando o
 **SHA.** `ff33f80c` (enfileirado em `entrega-atual`; aguardando o
 clique no SUBIR-SITE.bat). Worktree: `C:\kineo-wt\grant-email-signup`.
+
+---
+
+### #12 — 09:56→11:40 BRT (04/09) — os dois e-mails que pedem cartão no fim do trial pediam a quem NUNCA viu um filme. 57 de 57 envios do corpo `standard`, 0 checkout em 21 dias — e o Kineo 1 custa ZERO crédito para essa gente.
+
+**Placar da rodada** (SQL canônico, marco zero 03/09 16:00 UTC, contas externas):
+34 cadastros · 21 pessoas com filme (62%) · 1 checkout COM filme · 2 checkouts
+sem filme · **0 assinaturas** · 0 pessoas com falha e sem filme.
+
+**Checagem zero (30h, a janela alargada pelo #11): limpa.** 0 render preso
+>25min, 0 `generation_stage_error` em 3h, 0 `compose_refused` em 24h. Os 4
+cadastros sem crédito são **exatamente os 4 do #11** (mesmos e-mails, mesmos
+horários) — nenhum novo, e a cura deles subiu nesta madrugada. O
+`momentum_nudge_sent` parecia morto (último 03/09 13:33) — **falso alarme**: o
+cron roda 13:30 UTC e a rodada de hoje ainda não tinha acontecido.
+
+**A fila do #8 ao #11 SUBIU durante esta rodada.** `git log origin/main..
+entrega-atual` = 0 quando eu cheguei: o fundador clicou. Tudo o que estava
+escrito como "aguardando o clique" nas entradas #8, #9, #10 e #11 está em
+produção.
+
+**Três hipóteses medidas e DESCARTADAS antes de codar** (o que não virou rodada
+importa tanto quanto o que virou):
+
+1. **O download que falha.** 212 pessoas clicaram em baixar em 30 dias, 69 (33%)
+   caíram no link manual. Parecia grave. Contando direito — sem `video_downloaded`
+   **e** sem `video_download_manual_link_clicked` — sobram **6 pessoas** em 30
+   dias que saíram sem o arquivo. O resgate manual funciona. Não é a rodada.
+2. **O `momentum_nudge` parado.** Ver acima: o relógio, não um defeito.
+3. **O C1 do cardápio (paywall antes do 1º filme).** A premissa CONTINUA VIVA —
+   29 checkouts em 7 dias, **13 de gente sem nenhum filme, 11 deles com os 25
+   créditos intactos, e 10 dos 13 chegaram ao checkout em ≤6 minutos de vida da
+   conta** (dois em ZERO minutos, com 3 eventos na conta inteira:
+   `auth_callback_completed > trial_credits_granted > checkout_attempted`). **Mas
+   o gatilho não é o que o plano supunha:** só 5 dos 13 passaram por
+   `upgrade_modal_opened`. O caminho dominante é `trial_active_banner_cta`,
+   `inline_pricing_*` e `welcome_offer_checkout_clicked` — **tudo pista do
+   Codex**. Virou pedido (abaixo), não código meu.
+
+**O que estava errado (medido).** Fui atrás do que acontece DEPOIS do filme
+(próximo item do #11) e o caminho levou ao outro extremo: quem nunca teve filme
+nenhum. A esteira de fim de trial tem cinco cartas; as duas últimas —
+`expired_offer_d5` e `expired_lastcall_d10` — são as que pedem o cartão. Desde o
+#21/#22 elas gravam `body`, e o recorte fica exato:
+
+| e-mail | corpo | envios (21d) | sem UM filme na vida | checkout depois |
+|---|---|---:|---:|---:|
+| D5 | `offer_with_film` | 22 | 0 | **1** |
+| D5 | `standard` | 14 | **14 (100%)** | 0 |
+| D10 | `offer_with_film` | 48 | 0 | 0 |
+| D10 | `standard` | 43 | **43 (100%)** | 0 |
+| D5 + D10 | (antes do `body`) | 726 | **315** | 0 |
+
+**O corpo `standard` desses dois e-mails não é um corpo genérico: é, por
+construção, o corpo de quem nunca viu o produto funcionar.** 57 de 57 desde que
+dá para provar, 315 no total em 21 dias, e **zero checkout em todos eles.** O
+único checkout da tabela veio do corpo que cita o filme da pessoa.
+
+E o que a carta dizia para essa gente era só isto: *"Your Creator trial ended a
+few days ago... 50% off Creator for 3 months."* Nada dela, nada do produto —
+um cupom para quem nunca viu um filme sair.
+
+**O que decidiu a jogada foi o preço do Kineo 1.** `creditCostFor('fast', false)`
+= **0** (`lib/credits/engineCost.ts`): para conta não-pagante o Kineo 1 é de
+graça. Isso não é teoria — **318 contas com `trial_status='downgraded'`,
+`plan='free'` e `video_credits = 0` entregaram 473 filmes nos últimos 30 dias**,
+a mais recente hoje às 11:01 UTC. A casa tinha um filme grátis para oferecer a
+essas 315 pessoas e escolheu falar de cupom.
+
+**O que mudou (arquivos).**
+- `app/api/cron/trial-lifecycle-emails/route.ts` (+112): no D5 e no D10, quando
+  `c.videosMade === 0 && otherDeliveriesTotal(c.otherMade) === 0`, o trilho de 1
+  clique que **já existe** (`oneClickBlocks` — o mesmo do `d0_welcome`, do
+  `ending_soon` e do ramo `neverRan` do `downgraded_loss`; nenhuma copy nova,
+  nenhuma consulta nova) vem PRIMEIRO, e o cupom continua no e-mail com o mesmo
+  código, a mesma porcentagem, o mesmo prazo e a mesma URL.
+- `lib/lifecycle/trialFilmPlans.ts` (+11): `LossBody` ganha `'offer_first_film'`
+  — discriminador próprio, para a medição não confundir com o `standard`.
+- `scripts/test-trial-offer-first-film.mjs` (novo, **46 verificações**): lê os
+  arquivos REAIS, prova a premissa dentro do `engineCost`, a ordem
+  filme-antes-do-cupom **dentro do ramo novo**, a falha fechada com pool vazio, a
+  não-regressão dos corpos `offer_with_film` e `standard` e que o cupom não
+  mudou. **Falsificado em 3 mutações**: tirar a guarda de outras entregas
+  derruba 4 verificações, repetir a semente derruba 1, apagar o discriminador
+  derruba 2.
+
+**Para o cliente / receita.** ~4 pessoas por dia recebem hoje a última carta da
+casa pedindo cartão sem nunca terem visto um filme. Elas passam a receber, na
+mesma carta, três temas que rendem um filme de graça em um clique. O cupom não
+sai — só deixa de ser a única coisa no e-mail. Se o primeiro filme é o produto,
+esta é a última chance de entregá-lo antes de a pessoa sumir.
+
+**Decisões que tomei sozinha** (autonomia; reversíveis):
+1. **O ramo novo exige DUAS condições, não uma.** Zero vídeo **e** zero entrega
+   em `/animate`, `/images` ou `/audio` (`otherDeliveriesTotal`). Quem fez 5
+   clipes não pode ler "you never got a finished video out of Kineo" — é a lição
+   do #11 de 12/08, e o teste tranca isso.
+2. **Semente própria (`:d5offer` / `:d10offer`).** Sem sufixo, `starterTopics`
+   devolveria os MESMOS três temas que o `d0_welcome`, o `ending_soon` e o
+   `downgraded_loss` já mandaram. Ela não clicou nos três primeiros; o quarto
+   envio dos mesmos links é o pedido com o menor rendimento possível.
+3. **O assunto não promete cota.** "Let's get you one video first" e "One video
+   first — then we'll leave you alone" afirmam só a nossa intenção: o slot free é
+   reservado ANTES do render, então existe conta com 0 vídeos e 0 cota.
+4. **Não toquei no cupom.** Código, porcentagem, prazo e URL idênticos — o cupom
+   é do Codex. O teste prova que nenhum literal de código de cupom entrou.
+5. **A fila estava não-fast-forward e eu consertei sem perder nada.** O
+   `enfileirar.sh` rebasou por cima da ponta antiga, que já carregava dois
+   commits de docs do Codex depois presentes na `main` — o resultado não
+   descendia de `origin/main` e o clique do fundador seria recusado. Rebasei a
+   ponta em `origin/main` (o git descartou sozinho os dois *patches* já
+   aplicados) e provei a segurança pelo teste mais forte que existe: **`git diff`
+   entre a ponta antiga e a nova é VAZIO** — árvores idênticas, nada de ninguém
+   perdido. Só então movi a branch. Regra que fica: depois de `enfileirar.sh`,
+   conferir `git merge-base --is-ancestor origin/main entrega-atual`.
+
+**Risco.** Baixo e cercado. (a) O ramo novo só vê quem os dois ramos anteriores
+não pegaram — a ordem de decisão está travada por teste nos dois e-mails.
+(b) Pool de temas vazio cai no corpo de hoje, intacto: nunca um e-mail sem CTA.
+(c) Nenhum crédito é concedido, nenhuma escrita de banco entra — o e-mail só diz
+a verdade sobre um filme que já é grátis. (d) A promessa do D10 ("this is the
+last time we'll mention it") continua no corpo novo, verificada por teste: o
+cron não manda nada depois do D10. Risco residual: alguém que queria só o cupom
+lê um parágrafo a mais antes do botão — o botão continua lá, com a mesma URL.
+
+**Como medir (contra o marco zero, 03/09 16:00 UTC).**
+
+```sql
+select date_trunc('day', created_at)::date dia,
+       metadata->>'kind' kind, metadata->>'body' body,
+       count(*) n, count(distinct user_id) pessoas
+from events
+where name = 'trial_lifecycle_email_sent'
+  and metadata->>'kind' in ('expired_offer_d5','expired_lastcall_d10')
+  and created_at > '2026-09-04 15:00:00+00'
+group by 1,2,3 order by 1 desc, 4 desc;
+```
+
+Meta: `body='standard'` cair para perto de zero nesses dois `kind` (só sobra
+quem tem entrega em outro produto) e `offer_first_film` aparecer. O sinal que
+importa de verdade: dessas pessoas, quantas entregam um filme
+(`videos.status='completed'`) nos 7 dias seguintes — hoje é **0 de 315**. Sinal
+secundário: `series_continuation_landed` / `generate_arrived_server` com utm
+`trial_offer_d5_first_film` ou `trial_offer_d10_first_film`.
+
+**Dívida que fica (não é minha, mas está vermelha).**
+`scripts/prove-trial-clock-monotonic.mjs` **falha em `origin/main` limpo**
+(conferido com `git stash`): *"gate vazio: nenhum dos 27 pares é alcançável a
+partir de 2026-09-04 — a coorte de prova envelheceu e a seção 6 não protege mais
+nada"*. É um alarme que apodreceu pelo calendário: enquanto ele estiver
+vermelho, ninguém enxerga uma quebra de verdade no relógio do trial. Conserto =
+reancorar a coorte da fixture; não fiz porque não é a jogada da rodada.
+
+**Sugestão para o fundador decidir (não executei).** As **11 pessoas com 25
+créditos intactos que chegaram ao checkout sem nunca ter feito um filme**, 10
+delas em ≤6 minutos de conta, são o retrato mais caro do funil: elas *queriam*
+pagar e não fazem ideia do que estão comprando. O caminho barato não é desconto
+— é o filme grátis que já existe, na tela do checkout. Como o gatilho é dos
+banners/pricing, virou pedido ao Codex.
+
+**Modelo.** Feita em Opus (o plano reserva Fable para A1/A3; esta é jogada nova,
+justificada pelo dado do dia, dentro da regra de "criatividade com critério" —
+A1 e A2 estão entregues desde o #1 e o #2).
+
+**SHA.** o commit cujo assunto começa com `sprint-assinaturas #12`, na
+`entrega-atual` (fila = 2, com o diário; fast-forward sobre `origin/main`
+conferido). ⚠ **O hash MUDA a cada rebase da fila** — o Codex empurrou duas
+vezes durante esta rodada e eu rebasei a fila duas vezes; procure pelo ASSUNTO,
+nunca pelo hash. Aguardando o clique no SUBIR-SITE.bat.
+Worktree: `C:\kineo-wt\d5-primeiro-filme`.
+
+**Próximo item.** Duas em ordem. (1) **O `expired_offer_d5` / `d10` de quem TEM
+filme**: 22 + 48 envios com o corpo bom, 1 checkout — melhor que zero, mas ainda
+1 em 70; o teste é se o problema é o e-mail ou o destino do botão (`/pricing`
+contra a Library). (2) O item do #11 segue de pé e agora com denominador limpo:
+**112 de 138 pessoas com filme em 7 dias fizeram exatamente UM, 70 delas com ≥5
+créditos**, e para 100 das 112 o ÚLTIMO evento da conta é um e-mail nosso — elas
+não voltam à tela nunca mais. O canal é a carta, não a tela; medir qual carta
+faz voltar antes de escrever mais uma.
