@@ -1366,3 +1366,85 @@ O roteiro do ChatGPT já era preservado e a trava de qualidade estava certa; a
 tela é que ficava muda. Agora ela confirma o que foi preservado, explica o que
 vira narração e aponta o clique de Generate, com uma métrica própria até filme e
 assinatura.
+
+---
+
+## ROUND 20 — medição das quatro rodadas · nenhuma superfície reeditada
+
+**Data:** 2026-09-04 11:34→11:36 BRT
+
+**Pista:** Growth-B2C / CAIXA
+
+**Branch:** `codex/caixa-measurement-r20`
+
+### VALIDAÇÃO DA ENTREGA ANTERIOR
+
+**VALIDADO EM PRODUÇÃO:** `origin/main=21aeada1`, Guardião #110 concluído com
+quatro checks verdes (suíte 24s, TypeScript 59s, Vercel e comentários), Vercel
+`dpl_9FnzHwsTiw73F1EREDaJWDSLgCx6` Ready em Production, domínio atual
+`www.usekineo.com`, fonte `21aeada1`. Também ficou fechada a pendência da R18:
+Guardião #107 verde para `6a88b0da`.
+
+### EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, 2026-09-04 11:35 BRT
+
+Placar canônico desde 03/09 16:00 UTC: **36 cadastros externos, 23 pessoas com
+filme, 2 checkouts com filme, 1 sem filme, 0 assinaturas e 0 pessoas com falha
+sem filme**. Não mudou desde a R19.
+
+Primeiro toque por pessoa externa desde o marco:
+
+| intervenção | pessoas | filme depois | checkout depois | pago depois |
+|---|---:|---:|---:|---:|
+| `trial_first_delivery_clicked` | 8 | 5 | 0 | 0 |
+| `checkout_resume_choice_viewed` | 2 | 1 | 0 | 0 |
+| `pricing_journey_proof_viewed` | 2 | 1 | 0 | 0 |
+| `checkout_resume_suppressed_active_render` | 0 | 0 | 0 | 0 |
+| `welcome_offer_suppressed_before_first_film` | 0 | 0 | 0 | 0 |
+| `activation_instruction_notice_viewed` | 0 | 0 | 0 | 0 |
+
+As três intervenções mais recentes seguem sem exposição humana. **Sem amostra
+válida:** nenhuma delas foi reeditada.
+
+### VIGIA DO CHECKOUT
+
+A única pessoa externa nas últimas 2h continua `a8c8d6c5`, origem `chatgpt`,
+Pro, classificação **desejo**. O desfecho operacional avançou: tem um filme,
+12 créditos e baixou o arquivo às 11:16 BRT. Continua sem pagamento. Isso prova
+valor recebido, mas não autoriza atribuir a ausência de pagamento a preço,
+cartão ou copy; nenhum evento de objeção/falha apareceu.
+
+### DECISÃO / GATE
+
+Nenhuma mudança de produto nesta rodada. A regra de quatro rodadas foi
+cumprida: medir R16–R19 contra o mesmo marco antes de continuar. O sinal que dói
+é 0 assinaturas, mas empilhar mensagem sobre variantes com zero pessoas
+destruiria a leitura causal.
+
+### COMO MEDIR
+
+Repetir primeiro toque→filme→checkout→pago quando qualquer evento novo ganhar
+pessoa real. Para o vigia, observar somente sinais posteriores ao download:
+retorno à oferta, checkout reaberto, objeção explícita ou pagamento.
+
+### RISCO
+
+Zero risco de produto e zero custo: somente SQL de leitura e documentação. O
+risco evitado foi transformar um download sem pagamento em certeza inventada
+sobre a causa.
+
+### PRÓXIMA JOGADA
+
+Voltar a uma superfície não congelada e começar pelo pedido aberto de maior
+impacto da pista Claude. Não tocar novamente no aviso da R19 antes de 20 pessoas
+ou 7 dias.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+### 📋 O QUE ACONTECEU
+
+A entrega nova está no ar e verde, mas ainda ninguém recebeu o aviso. A pessoa
+viva do ChatGPT terminou e baixou o primeiro filme, porém não voltou ao caixa.
+A rodada preservou os testes existentes e não inventou uma causa para esse não
+pagamento.
