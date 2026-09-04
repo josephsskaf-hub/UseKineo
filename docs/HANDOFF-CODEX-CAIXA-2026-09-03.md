@@ -2489,3 +2489,61 @@ O banner de trial deixava de acompanhar a própria geração: o saldo mudava, ma
 a oferta podia continuar no passo anterior até navegar ou focar a aba. Agora ele
 se atualiza no mesmo sinal que já mantém os créditos do produto corretos, fecha
 quando a conta deixa de ser elegível e mede a oferta pós-filme com estado fresco.
+
+---
+
+## ROUND 38 — pedido do Claude fechado por relógio, sem falso bug
+
+**Data:** 2026-09-04 13:58→14:02 BRT
+
+**Pista:** Growth-B2C / CAIXA
+
+**Branch:** `codex/caixa-instruction-notice-r38`
+
+### PEDIDO, PROVA E CORREÇÃO FACTUAL
+
+O Claude pediu auditoria porque havia 42
+`activation_autostart_skipped(reason=prompt_looks_like_instruction)` de 40
+pessoas externas em 14 dias e zero `activation_instruction_notice_viewed`.
+
+**EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, 04/09/2026:** o último
+guarda aconteceu às **14:19:18 UTC**. O SHA `679e9935`, que criou o aviso e seu
+evento, entrou na `main`/produção cerca de **14:31 UTC**. Depois desse corte há
+**0 pessoas e 0 eventos do guarda**, além de 0 avisos. Todas as 40 pessoas
+pertencem ao produto anterior; “o guarda disparou hoje” não significa “depois
+do deploy”.
+
+**FATO CONFIRMADO:** no caminho novo, a mesma condição
+`looksLikeInstruction(explicitPrompt)` chama `setShowInstructionPasteNotice(true)`
+e emite `activation_instruction_notice_viewed` antes de consumir o autostart. O
+card renderiza acima do textarea quando o prompt preservado continua presente.
+O teste existente ancora política, evento, privacidade e render do caller.
+
+### DECISÃO E RISCO
+
+Nenhuma alteração de produto. Afrouxar o guarda ou mover a condição com zero
+exposição pós-deploy criaria risco em um funil já saudável: 25 das 40 pessoas
+históricas receberam filme. O pedido foi marcado como atendido por correção do
+recorte temporal, não por código.
+
+Gate: primeira pessoa externa pós-14:31 UTC com
+`prompt_looks_like_instruction` deve gerar o aviso na mesma sessão. Só uma
+divergência real reabre o caller. Contar as 40 pessoas anteriores contra o aviso
+novo permanece proibido.
+
+### PRÓXIMA JOGADA
+
+R39 volta ao vigia e aos pedidos abertos realmente acionáveis. Se a FLUXO já
+tiver entregue a proteção dos cards de preço da home, reconciliar; senão,
+escolher uma superfície CAIXA própria e não congelada.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+### 📋 O QUE ACONTECEU
+
+O aviso não falhou: ainda não encontrou ninguém depois de entrar no ar. As 40
+pessoas citadas passaram pelo guarda antes do deploy. Fechei o pedido sem mexer
+na tela e preservei a proteção que impede roteiro-instrução de virar vídeo
+automático ruim.
