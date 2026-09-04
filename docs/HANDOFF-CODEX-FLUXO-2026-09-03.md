@@ -530,3 +530,68 @@ Nada.
 - **TESTADO LOCALMENTE — 04/09/2026 02:11 BRT:** 39 invariantes, TypeScript, diff check e preview visual ficaram verdes.
 - **VALIDADO EM PRODUÇÃO — 04/09/2026 02:19 BRT:** Guardião #4, Vercel e dez URLs públicas ficaram verdes no SHA `fb25ffc1`.
 - **QUESTÃO PENDENTE / DESCONHECIDO:** impacto em cadastro, primeiro filme, checkout e assinatura aguarda uma janela pós-deploy e acesso autorizado aos dados.
+
+---
+
+## Rodada 9 — F1 · confirmação do remix no cadastro — 04/09 02:27→02:43 BRT — ENTREGA CONCLUÍDA
+
+- **IMPLEMENTADO / VALIDADO EM PRODUÇÃO:** quem pede para refazer um exemplo e ainda não tem conta agora vê no cadastro o assunto que já escolheu; o destino autenticado e o trabalho salvo continuam iguais.
+- **EVIDÊNCIA DE PRODUÇÃO:** o conector Supabase passou a responder nesta sessão; placar, origem e vigia foram medidos por pessoas externas com SQL somente leitura, sem expor identificador ou conteúdo de visitante.
+
+### Dado, prioridade e anti-repetição
+
+- **FATO CONFIRMADO:** não havia pedido aberto viável da pista FLUXO: os itens existentes pertencem ao dashboard/Claude ou à CAIXA, e nenhum foi baixado ou duplicado. Fontes: `docs/PEDIDOS-ENTRE-PISTAS-2026-09-03.md` e as oito rodadas anteriores deste documento.
+- **FATO CONFIRMADO:** `/examples/[slug]` já preservava `prompt`, `create_intent=example_remix` e UTMs até `/studio/create`; para visitante anônimo, o servidor embrulhava esse caminho em `/signup?redirect=...`, mas qualquer redirect explícito zerava a prova visual e deixava o cadastro genérico. Fontes antes de `46d89d89`: `lib/growth/exampleRemix.ts`, `app/(dashboard)/studio/create/page.tsx:86-103` e `app/(auth)/signup/page.tsx:269-272`.
+- **FATO CONFIRMADO:** a solução reaproveita o card de trabalho salvo existente; não recria formulário, copy, redirect ou analytics. A checagem é semântica — pathname exato e intenção exata — e não usa UTM como autorização.
+- **HIPÓTESE:** confirmar o assunto no momento de cadastro reduz dúvida e abandono entre o clique em “remix” e a criação da conta; efeito em primeiro filme ou assinatura exige janela pós-deploy equivalente.
+
+### Vigia do checkout e placar
+
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 02:38 BRT:** o vigia de duas horas encontrou **0 pessoas externas** com `checkout_started|checkout_attempted` e sem `checkout_success_viewed`; portanto não há linha individual nem classe desejo/roteiro-pronto/defeito nesta janela. Fonte: SQL somente leitura do §8.2, executado no projeto de produção.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 02:38 BRT:** desde o marco de 03/09 13:00 BRT, o placar canônico é **22 cadastros, 16 pessoas com filme (16/22), 1 checkout com filme, 1 checkout sem filme, 0 assinaturas e 0 pessoas com falha sem filme**. Fonte: SQL canônico de `docs/PROGRAMA-CODEX-ASSINATURAS-2026-09-03.md:168-188`, projeto de produção.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 02:43 BRT:** nas duas horas anteriores houve 5 cadastros externos: `chatgpt` 2, `direto` 2 e `taaft` 1. Fonte: `profiles`, pessoas distintas por linha, filtros internos canônicos; janelas e origens não foram somadas ao placar histórico.
+
+### O que mudou
+
+- **IMPLEMENTADO:** `buildExampleRemixSignupPreview()` normaliza redirect interno, exige `/studio/create` e `create_intent=example_remix`, e só então reutiliza o parser de assunto já existente. Fonte: `lib/growth/signupCreationPreview.ts:84-101`.
+- **IMPLEMENTADO:** `buildSignupCreationPreviewFromAuthParams()` mantém checkout soberano, falha fechado em redirects alheios e conserva o handoff direto sem redirect; a página de signup usa esse resolver puro. Fontes: `lib/growth/signupCreationPreview.ts:103-112`, `app/(auth)/signup/page.tsx:24,269-272`.
+- **FATO CONFIRMADO:** `create_intent=example_remix` continua sem autorizar autostart; só `fast|trial_best` ou intenção ausente entram no handoff executável. Fonte: `lib/growth/signupCreationPreview.ts` e prova de regressão em `scripts/test-signup-creation-proof.mjs`.
+- **IMPLEMENTADO:** as suítes cobrem o redirect real aninhado, Unicode, aspas, `#`, `%`, caminho externo/backslash, pathname/intenção exatos, prompt vazio, precedência de checkout, redirect alheio, handoff direto e ausência de autorização de geração; duas expectativas históricas de `/generate` foram alinhadas ao destino real `/studio/create`. Fontes: `scripts/test-example-remix.mjs:57-62`, `scripts/test-signup-creation-proof.mjs:91-140`.
+- **FATO CONFIRMADO:** nenhum preço, oferta, desconto, promessa, Stripe, banco, migration, saldo, autorização de geração, evento de analytics, dashboard/Claude ou CAIXA foi alterado. Fonte: diff do commit `46d89d8957a5dfa04b9807982d6a272cbf425274`.
+- **TESTADO LOCALMENTE — 04/09/2026 02:35 BRT:** red-first: a nova invariante falhou por ausência do resolver; depois, `test-example-remix` passou 54/54 e `test-signup-creation-proof` 59/59 (113 verificações), TypeScript e `git diff --check` saíram com código 0.
+- **TESTADO LOCALMENTE — 04/09/2026 02:34 BRT:** a comparação autocontida foi inspecionada antes/depois, desktop e mobile. Fontes: `docs/previews/FLUXO-EXAMPLE-REMIX-SIGNUP-PROOF-2026-09-04.html` e `.png`.
+- **FATO CONFIRMADO — revisão independente em 04/09/2026:** três auditores somente leitura revisaram contrato de auth, segurança, UX, cobertura e duplicação; todos deram GO e nenhum editou arquivo.
+
+### Integração e produção
+
+- **IMPLEMENTADO:** commit funcional `46d89d8957a5dfa04b9807982d6a272cbf425274` integrado em `main` por fast-forward sobre `5f70d4e4a773a1e68e1300bddc59ab51b6ea3903`.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 02:40 BRT:** o Guardião do PR #6, execução `33841096946`, concluiu com TypeScript e suíte verdes antes do avanço da `main`.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 02:42 BRT:** a Vercel concluiu `dpl_Bu7F1j2xiCVxjpN6DAVjUgqfg2Xt` como `READY`, alvo `production`, aliases canônicos e SHA funcional exato.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 02:42 BRT:** uma navegação anônima com assunto Unicode respondeu 307 de `/studio/create` para `/signup?redirect=...`, preservou intenção e assunto, e o signup final respondeu HTTP 200 em `www.usekineo.com`.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** não foi criada conta real em produção. A confirmação visual foi provada pelo resolver executável, preview inspecionado e artefato implantado, não por E2E autenticado de uma conta de cliente.
+
+### Como medir e quando parar
+
+- **SUGESTÃO:** após uma janela pós-deploy completa, contar pessoas distintas em `example_remix_topic_submitted` → cadastro → primeiro filme → checkout com filme → assinatura; manter `example_remix_v1` separado e nunca usar contagem de eventos como pessoas.
+- **SUGESTÃO — gate de parada:** corrigir ou reverter se redirect externo ganhar prova, se checkout perder precedência, se `example_remix` autorizar autostart, se assunto deixar de chegar exatamente a `/studio/create` ou se a taxa por pessoas cair contra janela anterior equivalente.
+- **RISCO:** a versão com sessão expirada que cai em `/login` ainda mostra estado genérico; o assunto continua em query string durante auth, comportamento preexistente; as UTMs do remix ficam aninhadas no redirect enquanto o signup atribui UTMs de topo, então a coorte pós-cadastro pode estar subcontada.
+
+### PEDIDOS
+
+- **FATO CONFIRMADO:** nenhum pedido de outra pista foi baixado, alterado ou criado nesta rodada; a revisão do arquivo admin da rodada 6 continua com Claude.
+
+## PRÓXIMA JOGADA
+
+- **SUGESTÃO:** auditar e corrigir, numa rodada separada e sem tocar o dashboard Claude, a atribuição pós-cadastro do remix: hoje a intenção chega ao destino, mas a UTM aninhada pode não alimentar `profiles.signup_utm_campaign`. Primeiro provar a lacuna por pessoa; só então mudar o transporte.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+## 📋 O QUE ACONTECEU
+
+- **IMPLEMENTADO:** o cadastro de quem remixa um exemplo passou a confirmar o assunto já escolhido, sem mudar autenticação, destino, autorização de geração ou copy de oferta.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 02:43 BRT:** placar atualizado para 22 cadastros, 16 pessoas com filme, 2 pessoas em checkout e 0 assinaturas; o vigia de duas horas ficou vazio e a origem recente foi 2 ChatGPT, 2 direta e 1 TAAFT.
+- **TESTADO LOCALMENTE — 04/09/2026 02:35 BRT:** 113 invariantes, TypeScript, diff check e preview desktop/mobile ficaram verdes; três auditores independentes deram GO.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 02:42 BRT:** Guardião #6, Vercel e redirect público ficaram verdes no SHA `46d89d89`.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** impacto em primeiro filme/assinatura, E2E autenticado e atribuição pós-cadastro do remix aguardam janela ou prova específica.
