@@ -128,7 +128,15 @@ const lib = readFileSync(join(raiz, 'lib/seriesContinuation.ts'), 'utf8')
 v('D1 helper continua puro (zero import)', !/^import /m.test(lib))
 v('D2 fonte nova declarada no tipo', lib.includes("| 'momentum_email'"))
 v('D3 helper antigo intacto', lib.includes('export function buildSeriesContinuationHref('))
-v('D4 nenhum preco/credito/plano no helper', !/price|credit|stripe|tier|plan/i.test(lib))
+// sprint-retencao #3 (04/09): o D4 media a PALAVRA, nao o comportamento — e
+// passou a reprovar por causa de um COMENTARIO. O #18 documentou no helper o
+// caso vivo da pessoa que clicou continuar com 10 creditos na mao, e a linha
+// 'creditos' bateu no /credit/i. A garantia que importa e que o helper nao
+// FACA conta de preco/plano; comentario nao faz conta. Agora o D4 le so o
+// codigo, com os comentarios removidos, e continua reprovando de verdade se
+// alguem importar ou calcular preco aqui (D1 tranca o import).
+const libCodigo = lib.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^[ \t]*\/\/.*$/gm, '')
+v('D4 nenhum preco/credito/plano no helper', !/price|credit|stripe|tier|plan/i.test(libCodigo))
 
 console.log(`\n${ok} de ${ok + falhas.length} verificacoes ok`)
 if (falhas.length) { console.log('\nFALHOU:'); falhas.forEach((f) => console.log(' x ' + f)); process.exit(1) }

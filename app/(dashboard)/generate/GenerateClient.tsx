@@ -11207,6 +11207,81 @@ export default function GenerateClient({
       : 'Your trial is running'
 
   const showStep1 = phase === 'idle' || phase === 'analyzing' || phase === 'scripting'
+
+  // ═══ sprint-retencao #3 (2026-09-04) — A CAIXA VAZIA DE QUEM JA FEZ UM FILME ═══
+  //
+  // O numero: 319 pessoas externas fizeram EXATAMENTE 1 filme em 30 dias.
+  // 103 delas VOLTARAM a esta tela e so 21 apertaram gerar de novo — as
+  // outras 82 encontraram um campo em branco pedindo uma ideia NOVA, como
+  // se nunca tivessem feito nada aqui.
+  //
+  // A saida ja existia e estava escondida: a porta da serie e a peca mais
+  // eficiente da casa. Dos 58 primeiros cliques de 30 dias, 48 vieram de
+  // gente com exatamente 1 filme, e 29 desses 48 (60%) entregaram outro
+  // filme em 24h — contra 6,6% da base de 1 filme. Nao e vies de selecao:
+  // a faixa foi medida NO MOMENTO do clique, nao depois.
+  //
+  // Ela morava DEPOIS do compositor inteiro, dentro de Recent Videos, e sem
+  // nenhum evento de exposicao — 24 cliques em 30d e zero denominador.
+  // Aqui ela nasce ANTES da primeira pergunta da tela, e so quando a caixa
+  // esta vazia: quem chegou com tema na mao (home, ChatGPT, continuacao)
+  // nao ve nada novo e nao perde um pixel do caminho que ja funciona.
+  const composerEpisodeVideo = useMemo(() => {
+    if (!showStep1) return null
+    if (prompt.trim()) return null
+    if (!Array.isArray(recentVideos)) return null
+    const done = recentVideos.find((v) => v.status === 'completed' && !!v.title && !!v.title.trim())
+    return done ?? null
+  }, [showStep1, prompt, recentVideos])
+
+  // Exposicao honesta: o evento so sai quando o bloco ENTRA no viewport.
+  // Sem IntersectionObserver (ambiente antigo/teste) sai uma vez com
+  // `observed:false`, para nao inflar o denominador com o que ninguem viu.
+  const composerEpisodeRef = useRef<HTMLDivElement | null>(null)
+  const composerEpisodeSeenRef = useRef<string | null>(null)
+  useEffect(() => {
+    const alvo = composerEpisodeVideo
+    if (!alvo) return
+    if (composerEpisodeSeenRef.current === alvo.id) return
+    const marcar = (observed: boolean) => {
+      if (composerEpisodeSeenRef.current === alvo.id) return
+      composerEpisodeSeenRef.current = alvo.id
+      try {
+        void trackEvent('series_continue_seen', {
+          source: 'composer_empty',
+          video_id: alvo.id,
+          observed,
+        })
+      } catch { /* ignore */ }
+    }
+    if (typeof IntersectionObserver === 'undefined') { marcar(false); return }
+    let observer: IntersectionObserver | null = null
+    let timer: ReturnType<typeof setTimeout> | null = null
+    let tentativas = 0
+    const ligar = () => {
+      const el = composerEpisodeRef.current
+      if (!el) {
+        tentativas += 1
+        if (tentativas > 25) return
+        timer = setTimeout(ligar, 400)
+        return
+      }
+      try {
+        observer = new IntersectionObserver((entries) => {
+          for (const entry of entries) {
+            if (entry.isIntersecting) { marcar(true); observer?.disconnect(); break }
+          }
+        }, { threshold: 0.5 })
+        observer.observe(el)
+      } catch { marcar(false) }
+    }
+    ligar()
+    return () => {
+      try { observer?.disconnect() } catch { /* ignore */ }
+      if (timer) clearTimeout(timer)
+    }
+  }, [composerEpisodeVideo])
+
   const showScriptPreview = phase === 'script_preview'
   // Phase 3 — new intermediate phases
   const showBrollPlanning = phase === 'broll_planning'
@@ -12155,6 +12230,49 @@ export default function GenerateClient({
             >
               <span aria-hidden="true">✓</span>
               <span>Your idea is already loaded. Click generate to create your short.</span>
+            </div>
+          )}
+          {/* sprint-retencao #3 — A PORTA DO EPISODIO 2, ANTES DA PRIMEIRA
+              PERGUNTA. 82 das 103 pessoas de 1 filme que voltaram a esta tela
+              foram embora sem apertar gerar; o que elas viam primeiro era
+              "escolha uma categoria" e um campo em branco. Quem ja fez um
+              filme nao precisa de um assunto novo — precisa do proximo
+              capitulo do que ela mesma fez, que converte a 60% em 24h.
+              Aditivo: o cartao antigo do Recent Videos continua onde estava,
+              e a caixa com tema ja preenchido nao mostra nada disto. */}
+          {composerEpisodeVideo && (
+            <div
+              ref={composerEpisodeRef}
+              className="rounded-xl p-4 mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+              style={{
+                background: 'linear-gradient(135deg, rgba(41,151,255,.14), rgba(41,151,255,.04))',
+                border: '1px solid rgba(41,151,255,.38)',
+              }}
+            >
+              <div style={{ minWidth: 0 }}>
+                <div className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: '#5cb3ff' }}>
+                  Pick up where you left off
+                </div>
+                <p className="text-xs font-bold" style={{ color: 'var(--text)', margin: 0, lineHeight: 1.45 }}>
+                  Make episode 2 of &ldquo;{composerEpisodeVideo.title}&rdquo; — we keep the story going.
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={phase === 'analyzing'}
+                onClick={() => handleContinueSeries(composerEpisodeVideo.title, 'composer_empty', composerEpisodeVideo.id)}
+                className="rounded-xl px-4 py-2.5 text-xs font-black text-center flex-shrink-0"
+                style={{
+                  background: '#2997ff',
+                  color: '#fff',
+                  border: 'none',
+                  cursor: phase === 'analyzing' ? 'not-allowed' : 'pointer',
+                  opacity: phase === 'analyzing' ? 0.6 : 1,
+                  boxShadow: '0 5px 18px rgba(41,151,255,.28)',
+                }}
+              >
+                Build next episode →
+              </button>
             </div>
           )}
           {/* Push #300 — Niche template buttons. One click pre-fills a proven

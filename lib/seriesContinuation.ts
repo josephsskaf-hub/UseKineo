@@ -12,6 +12,16 @@ export type SeriesContinuationSource =
   // Fonte propria para que a comparacao topo x rodape exista no banco.
   | 'done_screen_top'
   | 'generate_recent_video'
+  // sprint-retencao #3 (2026-09-04) — A CAIXA VAZIA DE QUEM VOLTA.
+  // Medido em 30 dias (externos): 319 pessoas fizeram EXATAMENTE 1 filme;
+  // 103 delas VOLTARAM a tela de criacao e so 21 apertaram gerar de novo.
+  // As outras 82 encontraram um campo em branco pedindo uma ideia nova.
+  // A porta da serie e a peca mais eficiente da casa: dos 58 primeiros
+  // cliques em 30d, 48 vieram de gente com 1 filme e 29 (60%) entregaram
+  // outro filme em 24h — contra 6,6% de base. So que ela morava DEPOIS do
+  // compositor, dentro de Recent Videos, e sem evento de exposicao.
+  // Fonte propria para separar a volta a tela do fim do filme.
+  | 'composer_empty'
   | 'history_milestone'
   | 'history_video_card'
   | 'landing_resume_strip' // KINEO-FAIXA-CONTINUAR-2026-09-01

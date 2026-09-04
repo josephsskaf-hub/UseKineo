@@ -356,3 +356,185 @@ passe a ser o episódio 2 do próprio tema, e as outras duas continuem novas.
 **Próximo item.** (a) fechamento da sprint 1 no diário dela; (b) R2 — o
 episódio 2 nascer do roteiro do episódio 1 e não de uma ordem genérica
 (Fable); (c) medir o ramo `free_engine` na próxima passada do cron de momentum.
+
+---
+
+### #3 (global #19) — 15:33→16:20 BRT — 103 pessoas de UM filme voltaram sozinhas à tela de criar. 82 foram embora sem apertar gerar, porque a primeira coisa que a tela pergunta a quem já fez um filme é "escolha uma categoria".
+
+**Nota de fase, antes de tudo.** O roteiro manda ficar na sprint 1 até 16:30 de
+04/09. Quando esta rodada abriu (15:33), a fila `entrega-atual` **já continha**
+as rodadas #17 e #18 escritas neste diário de retenção por uma passada
+anterior, que entrou na sprint 2 adiantada. Não desfiz: renumerar commit já
+enfileirado custaria mais do que vale, e o cardápio das duas sprints se
+sobrepõe exatamente aqui (R3 da sprint 2 **é** o D2 da sprint 1 — "a caixa
+vazia nunca aparece para quem já fez um filme"). Segui a numeração viva.
+O fechamento da sprint 1 continua pendente e é o primeiro item da próxima
+rodada, agora que o relógio passou.
+
+**Placar da rodada** (SQL canônico, marco zero 03/09 16:00 UTC, contas externas,
+medido 18:33 UTC): **42 cadastros · 26 pessoas com filme (62%) · 1 checkout COM
+filme · 2 checkouts sem filme · 0 assinaturas · 33 filmes entregues em 24h.**
+
+**Checagem zero: limpa, com um susto que se resolveu na leitura.** Última hora:
+1 cadastro, creditado (`auth_callback_completed` + `trial_credits_granted`
+pareados), 0 `generation_stage_error`, 0 `compose_refused`, 0
+`narration_guard_blocked`. A varredura de 24h acusou **5 contas com 0 créditos**
+— e 4 delas são exatamente os órfãos de cadastro por e-mail e senha que o **#11
+já consertou**: todas nasceram às 00:04, 04:58, 11:03, 11:05 e 11:09 UTC, ou
+seja **antes** do deploy do #11. Nenhum órfão novo depois dele. A quinta
+(`chiefsealth206`) recebeu o grant, fez 1 filme e gastou o saldo — não é
+defeito, é uso. Três das quatro são e-mail descartável (`vmail.d…`,
+`mailshan.com`), criadas em 6 minutos com o mesmo conjunto de 4 eventos:
+parecem cadastro automatizado, não gente. **Não concedi crédito a nenhuma** —
+dinheiro é do fundador e o padrão cheira a bot.
+
+---
+
+**O NÚMERO QUE DECIDIU A RODADA.** Fui atrás do salto 1→2 com o denominador
+certo. 30 dias, contas externas:
+
+| | pessoas |
+|---|---:|
+| fizeram **exatamente 1 filme** | **319** |
+| destas, **VOLTARAM** à tela de criação depois do filme | **103** (32%) |
+| destas, apertaram gerar de novo | **21** |
+| **voltaram e foram embora sem apertar gerar** | **82** |
+
+As 103 não precisaram ser convencidas a voltar — **voltaram sozinhas**. A
+intenção já estava provada quando elas chegaram. E o que a tela oferece a quem
+volta é o que ela oferece a quem nunca fez nada: `1 · Choose a category` e um
+campo em branco pedindo uma ideia NOVA.
+
+**E a saída já existia, escondida.** A porta da série é, de longe, a peça mais
+eficiente da casa. Medida **no momento do clique**, para que não seja viés de
+seleção (a faixa de filmes foi contada ANTES do clique, não depois):
+
+| faixa no instante do 1º clique | pessoas | fizeram outro filme em 24h |
+|---|---:|---:|
+| **exatamente 1 filme** | **48** | **29 — 60%** |
+| 2-3 filmes | 9 | 5 |
+| 4+ filmes | 1 | 1 |
+
+**48 dos 58 primeiros cliques vieram de gente com UM filme, e 60% delas
+entregaram outro filme em 24h — contra 6,6% de base** (21 de 319). Não é a
+porta atraindo quem já ia fazer mais filmes: é a porta funcionando justamente
+na faixa que estava parada. Somando as 7 fontes, 121 cliques viraram **81
+filmes entregues em 24h (67%)**.
+
+**Onde ela morava no /generate.** Existe desde sempre um cartão "Continue your
+show" — dentro do `RecentVideosSection`, que renderiza **depois do compositor
+inteiro** (`{showStep1 && <RecentVideosSection …>}` vem 700 linhas abaixo do
+`1 · Choose a category`). E, pior que a posição: **ele não tinha evento de
+exposição**. 24 cliques em 30 dias e **zero denominador** — o mesmo defeito de
+forma que o #18 acabou de matar na tela do fim do filme, no outro lugar.
+
+**O que mudou (2 arquivos + 1 teste, tudo aditivo).**
+- `app/(dashboard)/generate/GenerateClient.tsx`: a porta do episódio 2 nasce
+  **como primeiro elemento da seção de criar**, antes de `1 · Choose a
+  category`. Memo `composerEpisodeVideo` com três condições, todas falhando
+  fechadas: só na tela de criar (`showStep1`), só com a **caixa vazia**
+  (`!prompt.trim()`), e só com um vídeo **`completed` e com título** numa lista
+  que é comprovadamente um array (`Array.isArray`, porque `null` ali significa
+  "ainda carregando", não "não tem"). O clique reusa o `handleContinueSeries`
+  que já estava medido.
+- Exposição, o que faltava: evento `series_continue_seen` com fonte própria
+  **`composer_empty`**, disparado por `IntersectionObserver` (threshold 0.5),
+  uma vez por vídeo, com `observed:false` quando não há observer — para não
+  inflar o denominador com o que ninguém viu.
+- `lib/seriesContinuation.ts`: `| 'composer_empty'` no tipo. O helper continua
+  puro, sem import.
+- `scripts/test-caixa-vazia-episodio2-2026-09-04.mjs` (novo): **39
+  verificações, 0 falhas**, lendo os arquivos reais e **executando** o módulo
+  do link.
+
+**O que decidi NÃO fazer.** Não toquei no cartão antigo do "Recent Videos" (o
+teste tranca que ele continua vivo, 5.1) e não mexi em uma linha do caminho do
+compositor. A porta **some ao primeiro caractere digitado** e nunca aparece
+para quem chegou com tema na mão — home, ChatGPT, continuação. Quem já
+convertia não perde um pixel; o acréscimo só existe no vazio que hoje não
+oferece nada. Também **não** desviei o motor para o Kineo 1 aqui: o #18 já fez
+isso na tela do fim do filme e essa decisão precisa da prova de saldo + vaga da
+cota, que naquele ponto do fluxo ainda não está toda na mão. Prometer aqui
+seria a meia-verdade que esta sprint já matou cinco vezes.
+
+**Falsificado em 8 mutações, todas aplicadas de verdade no arquivo real e
+depois desfeitas.** Cada uma derrubou a verificação pretendida, nenhuma passou:
+
+| mutação | verificação que cai |
+|---|---|
+| tirar `if (prompt.trim()) return null` | 2.2 |
+| tirar `if (!showStep1) return null` | 2.1 |
+| trocar `Array.isArray(recentVideos)` por truthiness | 3.1 |
+| tirar o filtro `status === 'completed'` | 3.3 |
+| trocar a fonte do clique por `generate_recent_video` | 4.8 |
+| trocar a fonte da exposição por `generate_recent_video` | 4.4 |
+| apagar o cartão antigo do Recent Videos | 5.1 |
+| tirar `composer_empty` do tipo | 4.1 |
+
+A nona que eu queria rodar — mover o bloco para depois do "Choose a category" —
+é recorte estrutural e não se faz por troca de texto; quem a substitui é a
+**1.2**, que compara a POSIÇÃO por índice no arquivo, não a existência do bloco.
+
+**Dívida vermelha que encontrei e consertei de passagem.** O
+`test-momentum-continuacao-2026-09-01.mjs` estava **vermelho na fila**, e não
+por minha causa: o D4 proíbe `/price|credit|stripe|tier|plan/i` no helper e
+passou a reprovar porque o **#18 escreveu a palavra "creditos" num
+COMENTÁRIO**. A verificação media a PALAVRA, não o comportamento. Agora ela lê
+só o código, com comentários removidos — e **provei que continua reprovando de
+verdade**: colando `export const precoPlano = 9.9` no helper, o D4 cai. 49 de
+49 verdes.
+
+**Quantas pessoas isso move de N para N+1.** A conta, sem otimismo: 103
+pessoas/30d voltam à tela e 21 apertam gerar. A porta passa a ser vista por
+essas 103 (hoje o cartão vive abaixo da dobra, com exposição desconhecida).
+Cortando a taxa medida de 60% **pela metade** — porque o clique medido veio de
+quem procurou a porta, e agora ela vem até quem não procurou — são ~30 segundos
+filmes contra os 21 de hoje: **+9 a +30 pessoas/mês saindo de 1 para 2 filmes.**
+Modesto em volume, e é exatamente o degrau que importa: a régua da casa diz 1
+filme = 0,3% de pagantes, 2-3 = 1,8%, 4-7 = 15%. Pós-marco, **22 das 27 pessoas
+que fizeram filme pararam no primeiro**.
+
+**Risco: baixo.** Nenhum preço, crédito, motor, gatilho de checkout ou caminho
+de render foi tocado. O pior caso é cosmético — a porta aparecer para quem
+esvaziou a caixa de propósito para escrever outra coisa; ela some no primeiro
+caractere. Reverter a jogada inteira: trocar o memo por `return null`.
+
+**Trava de qualidade do fundador (03/09 23:40) — conferida e trancada em teste.**
+Nada em `lib/compose.ts`, `lib/hollywood/**`, `lib/cinematic/**`, `lib/broll/**`,
+`lib/lyriaMusic`, `lib/narrationFit.ts`, `analyze-idea` ou `generate-script`.
+O bloco 6 do teste lê o `git diff` real e reprova se qualquer um desses
+aparecer.
+
+**Modelo.** Feita em Opus. O plano reserva Fable para R2 e R4 (código difícil);
+esta é superfície e instrumentação.
+
+**Como medir (contra o marco zero).**
+
+```sql
+-- 1) o denominador que nunca existiu
+select metadata->>'source' fonte, count(distinct user_id) viram
+from events where name='series_continue_seen' and created_at > '2026-09-04 19:00:00+00'
+group by 1;
+
+-- 2) a porta nova entrega filme?
+with c as (select user_id, min(created_at) ts from events
+  where name='series_continue_clicked' and metadata->>'source'='composer_empty' group by 1)
+select count(*) clicaram,
+  count(*) filter (where exists (select 1 from videos v where v.user_id=c.user_id
+    and v.status='completed' and v.created_at between c.ts and c.ts + interval '24 hours')) virou_filme
+from c;
+```
+
+Gate honesto: o controle é a fonte `generate_recent_video` (o cartão antigo,
+mesma oferta, lugar antigo, ainda vivo). Sinal de alarme: `composer_empty`
+com muita exposição e clique perto de zero — seria a porta certa na hora
+errada, e aí o conserto é a copy, não o lugar.
+
+**Próximo item.** (a) **fechamento da sprint 1** no diário dela (o relógio já
+passou das 16:30); (b) **R2 — o episódio 2 nascer do roteiro do episódio 1**,
+não de uma ordem genérica (Fable), que é o que dá valor a todas as portas que
+o #18 e o #19 abriram; (c) medir o ramo `free_engine` do momentum.
+
+**SHA.** `PLACEHOLDER_SHA` — worktree `C:\kineo-wt\r19-caixa-vazia`.
+Enfileirado em `entrega-atual` sobre `6f18315d` (fila: 3). Aguardando o clique
+no SUBIR-SITE.bat.
