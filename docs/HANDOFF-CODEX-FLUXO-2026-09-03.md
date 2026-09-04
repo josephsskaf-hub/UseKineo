@@ -1396,3 +1396,34 @@ Continua pendente apenas a ação manual da R19: publicar `docs/TAAFT-LISTING-20
 - **IMPLEMENTADO:** o comparativo Descript × Pictory deixou de recusar incorretamente roteiro curto e agora leva essa pessoa à caixa pública que preserva o texto.
 - **EVIDÊNCIA DE PRODUÇÃO:** a página teve 2 pessoas em 30 dias; o placar permanece 41/27/2/2/0/0 e o vigia está vazio.
 - **TESTADO LOCALMENTE:** 241 verificações, TypeScript real, diff check e comparação visual ficaram verdes; demais comparativos e capacidades do produto não mudaram.
+
+---
+
+## Rodada 28 — K10 · exemplo público vira remix em um clique — 04/09 15:30→15:36 BRT — IMPLEMENTADA
+
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 15:31:52 BRT:** o placar canônico desde 03/09 13:00 BRT avançou para **42 cadastros, 27 pessoas com filme, 2 checkouts com filme, 2 sem filme, 0 assinaturas e 0 pessoas com falha sem filme**. Nas duas horas anteriores houve **1 cadastro externo, origem ChatGPT**; o vigia de checkout ficou vazio. Fonte: SQL somente leitura no Supabase de produção, pessoas distintas e contas internas excluídas.
+- **EVIDÊNCIA DE PRODUÇÃO — 30 dias encerrados em 04/09/2026 15:32 BRT:** `/examples/japan-autonomous-ai` teve 67 pessoas e `/examples/runit-island-nuclear-dome`, 64. O formulário compartilhado de remix foi realmente visto por **12 pessoas / 14 eventos**, mas `example_remix_topic_submitted` teve **0 pessoas / 0 eventos**. As páginas não foram somadas porque podem compartilhar visitantes.
+- **FATO CONFIRMADO / ANTI-DUPLICAÇÃO:** a galeria e o formulário já existiam; criar `/made-with` ou outro formulário seria duplicado. A lacuna era mecânica: depois de ver o vídeo e o prompt real, a pessoa era obrigada a inventar outro tema antes de continuar. A R27 segue congelada com 0 pessoas pós-deploy e não foi retrabalhada.
+- **IMPLEMENTADO:** o card agora oferece `Use this exact prompt →` como link real, revisável no Studio e sem geração automática; a opção existente de trocar o tema continua logo abaixo. O builder tipado preserva o prompt publicado byte a byte e acrescenta apenas `remix_mode=exact_prompt`; campanha, origem, intent e caminho de autenticação existentes permanecem iguais. Fonte: SHA funcional rebaseado `fdb68a50202d2dc84c99975efc3858221c8802a2`.
+- **IMPLEMENTADO / MEDIDO:** `example_remix_exact_started(version='example_remix_exact_v1')` cria o denominador próprio e o `organic_cta_clicked` registra somente origem, placement, destino e modo; nenhum prompt ou texto do visitante entra na telemetria.
+- **HIPÓTESE:** remover a digitação obrigatória converte a prova recém-assistida em intenção de criação sem inventar outra landing. O histórico de 12 pessoas com 0 submit sustenta a fricção, não prova que o novo botão causará filme ou assinatura.
+- **TESTADO LOCALMENTE — 04/09/2026 15:34 BRT:** `test-example-remix` passou **61/61**, `test-signup-creation-proof` **274/274**, `test-seo-form-handoff` **50/50** e `test-quadro-real-2026-09-02` **39/39**: **424 verificações direcionadas**. O compilador real `node node_modules/typescript/bin/tsc --noEmit --pretty false` e `git -c core.whitespace=cr-at-eol diff --check` saíram 0. O literal `npx tsc --noEmit --pretty false` encontrou o stub `tsc` preexistente e saiu 1; não foi mascarado.
+- **INSPECIONADO VISUALMENTE — 04/09/2026 15:34 BRT:** comparação antes/depois desktop e depois mobile aberta e legível em `docs/previews/FLUXO-R28-ONE-CLICK-EXAMPLE-REMIX-2026-09-04.html` e `.png`.
+- **MEDIÇÃO:** por pessoa externa pós-deploy, seguir `example_remix_form_viewed → example_remix_exact_started → cadastro com utm_campaign=example_remix_v1 → filme concluído → checkout_started → checkout_success_viewed`; comparar o ramo exato com `example_remix_topic_submitted`, sem tratar clique como receita.
+- **GATE DE PARADA/REVERTER:** corrigir ou reverter se o prompt publicado não chegar inteiro ao Studio, se houver geração automática, se o signup perder o contexto ou se texto do prompt aparecer na telemetria. Sem exposição humana, congelar a variante.
+- **RISCO:** reutilizar o prompt exato pode produzir filmes tematicamente parecidos; a mitigação é explícita e preservada: o Studio abre para revisão antes de gerar, e a alternativa de trocar o tema permanece disponível.
+- **DECISÃO — EXECUTADO:** a maior superfície FLUXO livre com prova observada ganhou um caminho de um clique, sem preço, oferta, Stripe, banco, migration, crédito, e-mail, arquivo Claude/CAIXA ou comunicação externa.
+
+## PRÓXIMA JOGADA
+
+- **SUGESTÃO:** medir a primeira exposição do ramo exato. Sem denominador, a R29 deve mudar de superfície e auditar `/can-you-monetize-ai-videos`, página pública com 42 pessoas/30d e nenhum CTA medido, antes de alterar qualquer copy.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+Continua pendente apenas a ação manual da R19: publicar `docs/TAAFT-LISTING-2026-09-03.md` no painel TAAFT e subir as três capturas indicadas. Nenhuma ação é necessária para a R28.
+
+## 📋 O QUE ACONTECEU
+
+- **IMPLEMENTADO:** quem assiste a um exemplo real pode levar o prompt publicado ao Studio em um clique ou continuar trocando o tema como antes.
+- **EVIDÊNCIA DE PRODUÇÃO:** o placar foi a 42/27/2/2/0/0; 12 pessoas viram o formulário antigo e nenhuma submeteu tema.
+- **TESTADO LOCALMENTE:** 424 verificações, TypeScript real, diff check e preview visual ficaram verdes; o `npx` literal segue bloqueado pelo stub preexistente.
