@@ -1304,3 +1304,31 @@ Continua pendente apenas a ação manual da R19: publicar `docs/TAAFT-LISTING-20
 - **IMPLEMENTADO:** roteiro longo colado na landing pública deixa de perder o final silenciosamente; excesso permanece inteiro e requer decisão explícita.
 - **EVIDÊNCIA DE PRODUÇÃO:** o placar permanece em 41 cadastros, 27 pessoas com filme e 0 assinaturas; o vigia não trouxe pessoa nova.
 - **TESTADO LOCALMENTE:** 241 verificações, TypeScript, diff check e comparação visual ficaram verdes; o limite e o destino não mudaram.
+
+---
+
+## Rodada 25 — K18 parcial · limite público fala PT/ES — 04/09 14:30→14:38 BRT — IMPLEMENTADA
+
+- **FATO CONFIRMADO / ANTI-DUPLICAÇÃO:** `/v/[id]` e o corte silencioso do quickstart seguem fechados nos SHAs `96310071` e `341a119b`. O pedido Claude das 15:40 sobre `trialBalanceBridge`/`TrialActiveBanner` é da pista CAIXA e não foi disputado. A lacuna viva nasceu na R24: o formulário compartilhado preservava o texto longo, mas mostrava contador, ação e alertas somente em inglês também nas portas PT/ES. Fontes: `app/youtube-shorts-from-topic/TopicGeneratorForm.tsx` antes de `7379283a`; `app/gerador-de-shorts-gratis/page.tsx`; `app/generador-de-shorts-gratis/page.tsx`.
+- **IMPLEMENTADO:** `studioPromptLimit` agora possui contrato puro `en|pt|es` para contador, ação, texto preservado e confirmação pós-corte; `TopicGeneratorForm` usa o `language` que já governa o handoff. Inglês continua default e o teto de 1.000, o texto preservado, o corte explícito, o destino, o motor e a telemetria não mudaram. Fonte: SHA funcional `7379283a3e734b870ba0981f1a035e76c28f392f`.
+- **HIPÓTESE:** feedback na língua da própria landing reduz hesitação justamente no estado de erro; não há atribuição causal sem pessoa exposta pós-deploy.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 14:34:57 BRT:** placar canônico desde 03/09 13:00 BRT: **41 cadastros, 27 pessoas com filme, 2 checkouts com filme, 2 sem filme, 0 assinaturas e 0 pessoas com falha sem filme**. Nas duas horas anteriores houve **2 cadastros ChatGPT**; o vigia de checkout ficou vazio. Fonte: SQL canônico somente leitura no Supabase de produção, pessoas distintas e contas internas excluídas.
+- **TESTADO LOCALMENTE — 04/09/2026 14:36 BRT:** `test-localized-public-limit` passou **17/17**, `test-chatgpt-script-handoff` **171/171** e `test-seo-form-handoff` **50/50**: **238 verificações direcionadas**. TypeScript real e `diff --check` saíram 0. O literal `npx tsc --noEmit --pretty false` manteve o pacote-stub preexistente e saiu 1. A suíte antiga `test-studio-prompt-limit` executou as novas funções, mas caiu depois numa assert preexistente sobre a forma atual de `StudioClient.generate`; não foi mascarada nem alterada.
+- **INSPECIONADO VISUALMENTE — 04/09/2026 14:35 BRT:** comparação antes/depois aberta em 1440×1100, com PT desktop e ES mobile; contador, ação e alerta ficaram legíveis e localizados. Artefatos: `docs/previews/FLUXO-R25-LOCALIZED-SCRIPT-LIMIT-2026-09-04.html` e `.png`.
+- **MEDIÇÃO:** por pessoa externa pós-deploy, acompanhar `organic_topic_submitted`/`organic_cta_clicked` nos campaigns `seo_chatgpt_to_shorts_pt|es` até cadastro, primeiro filme, checkout com filme e assinatura. Texto acima do limite visto sem submit não é receita e hoje não tem evento próprio.
+- **GATE DE PARADA/REVERTER:** corrigir se qualquer porta PT/ES voltar a mostrar inglês no estado de excesso, se inglês mudar, se o texto desaparecer antes da decisão ou se o handoff ultrapassar 1.000 caracteres.
+- **RISCO:** `language` ausente continua inglês por segurança; futuras línguas precisam entrar explicitamente no contrato. Nenhum preço, oferta, desconto, Stripe, banco, migration, crédito, geração, arquivo Claude/CAIXA ou comunicação externa foi alterado.
+
+## PRÓXIMA JOGADA
+
+- **SUGESTÃO:** a R26 deve ser medição pura de R22→R25: remedir exposição humana da confirmação de tema, CTAs protegidos da home e launchers PT/ES, sem inferir sucesso de denominador zero. O pedido de segundo filme continua com CAIXA.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+Continua pendente apenas a ação manual da R19: publicar `docs/TAAFT-LISTING-2026-09-03.md` no painel TAAFT e subir as três capturas indicadas. Nenhuma ação é necessária para a R25.
+
+## 📋 O QUE ACONTECEU
+
+- **IMPLEMENTADO:** as portas públicas em português e espanhol deixaram de misturar inglês no estado de roteiro acima do limite.
+- **EVIDÊNCIA DE PRODUÇÃO:** o placar permanece em 41 cadastros, 27 pessoas com filme e 0 assinaturas; nenhuma pessoa entrou no vigia de checkout das últimas duas horas.
+- **TESTADO LOCALMENTE:** 238 verificações direcionadas, TypeScript real, diff check e preview visual ficaram verdes; o teto e o destino permaneceram iguais.
