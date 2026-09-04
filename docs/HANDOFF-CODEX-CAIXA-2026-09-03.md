@@ -3195,6 +3195,8 @@ novo e oferece uma consulta segura, sem tocar em preço, crédito ou Stripe.
 
 **Branch:** `codex/caixa-r47`
 
+**Commit de produto:** `79b8ece118bcb34c8feedece3fc2f84c7f41f216`
+
 ### RECONCILIAÇÃO, PLACAR E VIGIA
 
 **VALIDADO EM PRODUÇÃO — 04/09/2026 15:19 BRT:** R46 está em
@@ -3209,6 +3211,12 @@ sem filme**. O vigia móvel de duas horas tinha 0 pessoa externa com checkout
 aberto e pagamento ausente. R45 ainda tinha 0 pessoa exposta à nova atribuição;
 R46 tinha 0 evento `ready` e 0 `delayed`. As duas superfícies permanecem
 congeladas até seus gates.
+
+**VALIDADO EM PRODUÇÃO — 04/09/2026 15:34 BRT:** o commit de produto R47
+`79b8ece118bcb34c8feedece3fc2f84c7f41f216` está em `origin/main`; Guardião
+run `33906445553` terminou `success` e o deploy Vercel
+`dpl_HtmnHdP5dCKADjL6XqsLkmPTv8UY` ficou `READY`, aliasado em
+`www.usekineo.com`.
 
 ### O DADO QUE DOÍA E A HIPÓTESE
 
