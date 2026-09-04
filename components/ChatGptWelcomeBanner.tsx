@@ -12,7 +12,11 @@
 // escolheu "só ideia". A v5 remove essa decisão anterior ao trabalho: o campo
 // aparece imediatamente, "usar este roteiro" é primário e autoria por IA
 // continua explícita como alternativa. Nenhum clique daqui gera ou debita.
-import { useEffect, useRef, useState } from 'react'
+// KINEO-CHATGPT-QUICKSTART-V6-2026-09-04 — o campo antigo descartava tudo
+// depois do caractere 1.000 no próprio paste e o helper repetia o corte. A v6
+// usa o teto canônico do Studio, mostra comprimento/excesso e só encurta após
+// o clique explícito da pessoa.
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import styles from './ChatGptWelcomeBanner.module.css'
 import { trackEvent } from '@/lib/analytics'
@@ -28,6 +32,7 @@ import {
   decideChatGptWelcome,
   trialFirstDeliveryOwnsRoute,
 } from '@/lib/growth/chatgptWelcomeArbitration'
+import { formatLimitCounter, promptLimitState, trimPromptToLimit } from '@/lib/studioPromptLimit'
 
 const DISMISS_KEY = 'kineo_chatgpt_welcome_dismissed'
 const SHOWN_EVENT_KEY = `${CHATGPT_QUICKSTART_VARIANT}:shown`
@@ -101,7 +106,7 @@ export default function ChatGptWelcomeBanner() {
           variant: CHATGPT_QUICKSTART_VARIANT,
           input_type: choice,
           input_length: input.trim().length,
-          destination: '/studio/create',
+          destination: '/studio',
         })
         router.push(href)
       }}
@@ -122,8 +127,19 @@ export function ChatGptWelcomeCard({
   onDismiss: () => void
 }) {
   const [input, setInput] = useState('')
+  const [trimNotice, setTrimNotice] = useState<string | null>(null)
   const inputOpenedTracked = useRef(false)
-  const ready = input.trim().length > 0
+  const limit = useMemo(
+    () => promptLimitState(input, CHATGPT_QUICKSTART_INPUT_LIMIT),
+    [input],
+  )
+  const ready = limit.length > 0 && !limit.over
+
+  const trimToFit = () => {
+    const result = trimPromptToLimit(input, CHATGPT_QUICKSTART_INPUT_LIMIT)
+    setInput(result.text)
+    setTrimNotice(`${result.removed.toLocaleString('en-US')} characters removed. Review the ending before continuing.`)
+  }
 
   const trackInputOpened = () => {
     if (inputOpenedTracked.current) return
@@ -140,9 +156,11 @@ export function ChatGptWelcomeCard({
         <div className={styles.eyebrow}>Continue from ChatGPT</div>
         <h2>Paste the answer. Make the Short.</h2>
         <p>
-          Paste up to 1,000 characters with the labels intact. If the script contains at least two Voiceover: or
-          Narration: labels, Kineo reads only those speech blocks; recognized Visual:, Camera:, scene headers and
-          timecodes stay out of narration. Have only an idea? Kineo can write the hook, scenes and payoff instead.
+          Paste the complete answer with the labels intact. This box accepts up to{' '}
+          {CHATGPT_QUICKSTART_INPUT_LIMIT.toLocaleString('en-US')} characters and shows any excess before you choose
+          whether to trim. If the script contains at least two Voiceover: or Narration: labels, Kineo reads only those
+          speech blocks; recognized Visual:, Camera:, scene headers and timecodes stay out of narration. Have only an
+          idea? Kineo can write the hook, scenes and payoff instead.
         </p>
       </div>
       <div className={styles.editor}>
@@ -150,12 +168,34 @@ export function ChatGptWelcomeCard({
         <textarea
           id="chatgpt-quickstart-input"
           value={input}
-          maxLength={CHATGPT_QUICKSTART_INPUT_LIMIT}
           rows={3}
           placeholder="Paste the script, outline or idea here…"
           onFocus={trackInputOpened}
-          onChange={(event) => setInput(event.target.value)}
+          onChange={(event) => {
+            setInput(event.target.value)
+            setTrimNotice(null)
+          }}
         />
+        <div className={styles.limitRow}>
+          <span
+            className={`${styles.counter}${limit.over ? ` ${styles.counterOver}` : ''}`}
+            aria-live="polite"
+          >
+            {formatLimitCounter(limit)}
+          </span>
+          {limit.over ? (
+            <button type="button" className={styles.trimButton} onClick={trimToFit}>
+              ✂ Trim to fit ({limit.excess.toLocaleString('en-US')} chars)
+            </button>
+          ) : null}
+        </div>
+        {limit.over ? (
+          <p className={styles.limitMessage} role="alert">
+            Nothing was removed. Trim here or edit the text before continuing.
+          </p>
+        ) : trimNotice ? (
+          <p className={styles.trimNotice} role="status">{trimNotice}</p>
+        ) : null}
         <div className={styles.editorActions}>
           <button
             type="button"

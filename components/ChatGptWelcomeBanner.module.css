@@ -24,6 +24,14 @@
 .editor textarea { width: 100%; min-height: 76px; resize: vertical; padding: 10px 11px; color: #f5f5f7; font: inherit; font-size: 12px; line-height: 1.45; background: rgba(255, 255, 255, 0.055); border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 10px; outline: none; }
 .editor textarea:focus { border-color: #67e8f9; box-shadow: 0 0 0 2px rgba(103, 232, 249, 0.15); }
 .editor span { color: #7890a4; font-size: 10px; }
+.limitRow { display: flex; min-height: 26px; align-items: center; justify-content: space-between; gap: 10px; }
+.limitRow .counter { color: #7890a4; font-variant-numeric: tabular-nums; }
+.limitRow .counterOver { color: #fb923c; }
+.trimButton { min-height: 26px; padding: 4px 9px; color: #fed7aa; font-family: inherit; font-size: 10px; font-weight: 850; cursor: pointer; background: rgba(251, 146, 60, 0.1); border: 1px solid rgba(251, 146, 60, 0.38); border-radius: 8px; }
+.trimButton:hover { color: #fff7ed; border-color: rgba(251, 146, 60, 0.72); }
+.limitMessage, .trimNotice { margin: -2px 0 0; font-size: 10px; line-height: 1.4; }
+.limitMessage { color: #fb923c; }
+.trimNotice { color: #86efac; }
 .editorActions { display: grid; grid-template-columns: minmax(160px, 0.8fr) minmax(220px, 1.2fr); gap: 8px; }
 .continueButton, .ideaButton { min-height: 42px; padding: 10px 14px; font-family: inherit; font-size: 12px; font-weight: 900; cursor: pointer; border-radius: 10px; }
 .continueButton { color: #001018; background: linear-gradient(135deg, #67e8f9, #38bdf8); border: 0; }
@@ -46,6 +54,7 @@
 
 @media (max-width: 860px) {
   .quickstart { grid-template-columns: 1fr; margin: 10px 10px 0; padding: 17px 38px 14px 16px; }
+  .limitRow { align-items: flex-start; flex-direction: column; }
   .editorActions { grid-template-columns: 1fr; }
   .continueButton, .ideaButton { min-width: 0; min-height: 44px; }
   .proof { text-align: left; }

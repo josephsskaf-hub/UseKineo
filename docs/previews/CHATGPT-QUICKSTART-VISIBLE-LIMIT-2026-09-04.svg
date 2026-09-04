@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1240" viewBox="0 0 1440 1240">
+  <defs>
+    <linearGradient id="page" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#05070c"/><stop offset="1" stop-color="#09111b"/></linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0a2532"/><stop offset="1" stop-color="#0c101a"/></linearGradient>
+    <linearGradient id="cta" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#67e8f9"/><stop offset="1" stop-color="#38bdf8"/></linearGradient>
+    <style>
+      .title{fill:#f5f5f7;font:700 25px Inter,Segoe UI,sans-serif}.lede{fill:#8798a8;font:13px Inter,Segoe UI,sans-serif}
+      .label{fill:#cbd5e1;font:800 11px Inter,Segoe UI,sans-serif;letter-spacing:1.5px}.afterLabel{fill:#67e8f9}.meta{fill:#7890a4;font:10px Inter,Segoe UI,sans-serif}
+      .eyebrow{fill:#67e8f9;font:800 9px Inter,Segoe UI,sans-serif;letter-spacing:1.3px}.h2{fill:#f5f5f7;font:700 17px Inter,Segoe UI,sans-serif}.body{fill:#a9b8c7;font:10.5px Inter,Segoe UI,sans-serif}.fieldLabel{fill:#dbeafe;font:700 10px Inter,Segoe UI,sans-serif}.field{fill:#dbeafe;font:10px Inter,Segoe UI,sans-serif}.counter{fill:#7890a4;font:10px Inter,Segoe UI,sans-serif}.danger{fill:#fb923c}.oldDanger{fill:#fda4af}.button{fill:#001018;font:800 10px Inter,Segoe UI,sans-serif}.ghost{fill:#dbeafe;font:800 9px Inter,Segoe UI,sans-serif}.tiny{fill:#7890a4;font:9px Inter,Segoe UI,sans-serif}.trim{fill:#fed7aa;font:800 9px Inter,Segoe UI,sans-serif}.stamp{fill:#86efac;font:700 11px Inter,Segoe UI,sans-serif}
+    </style>
+  </defs>
+  <rect width="1440" height="1240" fill="url(#page)"/>
+  <text x="28" y="42" class="title">ChatGPT quickstart — no silent script loss</text>
+  <text x="28" y="66" class="lede">Static visual proof · complete 2,240-character script on desktop · explicit 5,468-character overflow on mobile</text>
+
+  <!-- BEFORE DESKTOP -->
+  <text x="28" y="105" class="label">BEFORE · DESKTOP</text><text x="690" y="105" text-anchor="end" class="meta">silent browser cutoff</text>
+  <rect x="20" y="118" width="680" height="395" rx="20" fill="#0a0f18" stroke="#1d2835"/>
+  <rect x="38" y="138" width="644" height="350" rx="18" fill="url(#card)" stroke="#2f6775"/>
+  <text x="58" y="170" class="eyebrow">CONTINUE FROM CHATGPT</text><text x="58" y="197" class="h2">Paste the answer.</text><text x="58" y="218" class="h2">Make the Short.</text>
+  <text x="58" y="247" class="body"><tspan x="58">Paste up to 1,000 characters with</tspan><tspan x="58" dy="16">the labels intact. The browser</tspan><tspan x="58" dy="16">discards the rest without warning.</tspan></text>
+  <rect x="270" y="158" width="380" height="268" rx="13" fill="#091018" stroke="#245264"/>
+  <text x="286" y="182" class="fieldLabel">Paste the answer from ChatGPT</text>
+  <rect x="286" y="194" width="348" height="84" rx="9" fill="#17212b" stroke="#3d4957"/>
+  <text x="299" y="215" class="field"><tspan x="299">Scene 1 · Visual: A silent observatory under a violet sky.</tspan><tspan x="299" dy="15">Voiceover: The signal arrived only once, but it changed…</tspan><tspan x="299" dy="15">Scene 2 · Camera: slow push toward the antenna…</tspan></text>
+  <text x="286" y="297" class="counter">1,000 / 1,000 characters</text><text x="634" y="297" text-anchor="end" class="counter oldDanger">rest discarded</text>
+  <rect x="286" y="312" width="134" height="42" rx="9" fill="url(#cta)"/><text x="353" y="337" text-anchor="middle" class="button">Use this script →</text>
+  <rect x="428" y="312" width="206" height="42" rx="9" fill="#17212b" stroke="#3d4957"/><text x="531" y="329" text-anchor="middle" class="ghost"><tspan x="531">I only have an idea —</tspan><tspan x="531" dy="13">write the script</tspan></text>
+  <text x="286" y="375" class="tiny">Your text stays editable in Studio before anything is generated.</text>
+  <text x="650" y="458" text-anchor="end" class="tiny">25 trial credits already included · no card to start</text>
+
+  <!-- AFTER DESKTOP -->
+  <text x="750" y="105" class="label afterLabel">AFTER · DESKTOP</text><text x="1410" y="105" text-anchor="end" class="meta">full cinema script retained</text>
+  <rect x="740" y="118" width="680" height="395" rx="20" fill="#0a0f18" stroke="#1d2835"/>
+  <rect x="758" y="138" width="644" height="350" rx="18" fill="url(#card)" stroke="#2f6775"/>
+  <text x="778" y="170" class="eyebrow">CONTINUE FROM CHATGPT</text><text x="778" y="197" class="h2">Paste the answer.</text><text x="778" y="218" class="h2">Make the Short.</text>
+  <text x="778" y="247" class="body"><tspan x="778">Paste the complete answer. This box</tspan><tspan x="778" dy="16">accepts up to 5,000 characters and</tspan><tspan x="778" dy="16">shows excess before any trim.</tspan></text>
+  <rect x="990" y="158" width="380" height="268" rx="13" fill="#091018" stroke="#245264"/>
+  <text x="1006" y="182" class="fieldLabel">Paste the answer from ChatGPT</text>
+  <rect x="1006" y="194" width="348" height="84" rx="9" fill="#17212b" stroke="#3d4957"/>
+  <text x="1019" y="215" class="field"><tspan x="1019">Scene 1 · Visual: A silent observatory under a violet sky.</tspan><tspan x="1019" dy="15">Voiceover: The signal arrived only once, but it changed…</tspan><tspan x="1019" dy="15">Scene 2 · Camera: slow push toward the antenna…</tspan></text>
+  <text x="1006" y="297" class="counter">2,240 / 5,000 characters</text>
+  <rect x="1006" y="312" width="134" height="42" rx="9" fill="url(#cta)"/><text x="1073" y="337" text-anchor="middle" class="button">Use this script →</text>
+  <rect x="1148" y="312" width="206" height="42" rx="9" fill="#17212b" stroke="#3d4957"/><text x="1251" y="329" text-anchor="middle" class="ghost"><tspan x="1251">I only have an idea —</tspan><tspan x="1251" dy="13">write the script</tspan></text>
+  <text x="1006" y="375" class="tiny">Your text stays editable in Studio before anything is generated.</text>
+  <text x="1370" y="458" text-anchor="end" class="tiny">25 trial credits already included · no card to start</text>
+
+  <!-- MOBILE LABELS -->
+  <text x="345" y="574" class="label">BEFORE · MOBILE</text><text x="675" y="574" text-anchor="end" class="meta">350 px</text>
+  <text x="765" y="574" class="label afterLabel">AFTER · MOBILE</text><text x="1095" y="574" text-anchor="end" class="meta">350 px · overflow</text>
+
+  <!-- BEFORE MOBILE -->
+  <rect x="335" y="588" width="350" height="545" rx="20" fill="#0a0f18" stroke="#1d2835"/>
+  <rect x="345" y="600" width="330" height="520" rx="18" fill="url(#card)" stroke="#2f6775"/>
+  <text x="362" y="632" class="eyebrow">CONTINUE FROM CHATGPT</text><text x="362" y="660" class="h2">Paste the answer. Make the Short.</text>
+  <text x="362" y="686" class="body"><tspan x="362">Paste up to 1,000 characters with the labels</tspan><tspan x="362" dy="15">intact. No signal says what the paste lost.</tspan></text>
+  <rect x="362" y="725" width="296" height="309" rx="13" fill="#091018" stroke="#245264"/>
+  <text x="376" y="750" class="fieldLabel">Paste the answer from ChatGPT</text>
+  <rect x="376" y="763" width="268" height="80" rx="9" fill="#17212b" stroke="#3d4957"/>
+  <text x="388" y="785" class="field"><tspan x="388">Scene 1 · Visual: Night sky.</tspan><tspan x="388" dy="15">Voiceover: The answer keeps going beyond…</tspan></text>
+  <text x="376" y="863" class="counter">1,000 / 1,000 characters</text><text x="644" y="863" text-anchor="end" class="counter oldDanger">silent</text>
+  <rect x="376" y="880" width="268" height="40" rx="9" fill="url(#cta)"/><text x="510" y="904" text-anchor="middle" class="button">Use this script →</text>
+  <rect x="376" y="929" width="268" height="42" rx="9" fill="#17212b" stroke="#3d4957"/><text x="510" y="954" text-anchor="middle" class="ghost">I only have an idea — write the script</text>
+  <text x="376" y="994" class="tiny">Your text stays editable in Studio.</text>
+  <text x="644" y="1085" text-anchor="end" class="tiny">25 trial credits · no card to start</text>
+
+  <!-- AFTER MOBILE -->
+  <rect x="755" y="588" width="350" height="545" rx="20" fill="#0a0f18" stroke="#1d2835"/>
+  <rect x="765" y="600" width="330" height="520" rx="18" fill="url(#card)" stroke="#2f6775"/>
+  <text x="782" y="632" class="eyebrow">CONTINUE FROM CHATGPT</text><text x="782" y="660" class="h2">Paste the answer. Make the Short.</text>
+  <text x="782" y="686" class="body"><tspan x="782">The whole paste remains visible. Nothing changes</tspan><tspan x="782" dy="15">until the person edits it or chooses Trim to fit.</tspan></text>
+  <rect x="782" y="725" width="296" height="331" rx="13" fill="#091018" stroke="#245264"/>
+  <text x="796" y="750" class="fieldLabel">Paste the answer from ChatGPT</text>
+  <rect x="796" y="763" width="268" height="80" rx="9" fill="#17212b" stroke="#3d4957"/>
+  <text x="808" y="785" class="field"><tspan x="808">Scene 1 · Visual: Night sky.</tspan><tspan x="808" dy="15">Voiceover: Every line remains here…</tspan></text>
+  <text x="796" y="863" class="counter danger">5,468 / 5,000 characters — 468 over the limit</text>
+  <rect x="796" y="877" width="154" height="27" rx="8" fill="#281a12" stroke="#8d4f26"/><text x="873" y="895" text-anchor="middle" class="trim">✂ Trim to fit (468 chars)</text>
+  <text x="796" y="922" class="counter danger"><tspan x="796">Nothing was removed. Trim here or edit the text</tspan><tspan x="796" dy="14">before continuing.</tspan></text>
+  <rect x="796" y="953" width="268" height="39" rx="9" fill="#18212a"/><text x="930" y="977" text-anchor="middle" class="counter">Use this script →</text>
+  <rect x="796" y="1000" width="268" height="39" rx="9" fill="#18212a"/><text x="930" y="1024" text-anchor="middle" class="counter">I only have an idea — write the script</text>
+  <text x="1064" y="1085" text-anchor="end" class="tiny">25 trial credits · no card to start</text>
+
+  <rect x="354" y="1170" width="195" height="32" rx="16" fill="#0f241b" stroke="#286445"/><text x="451" y="1190" text-anchor="middle" class="stamp">Silent truncation removed</text>
+  <rect x="570" y="1170" width="160" height="32" rx="16" fill="#0f241b" stroke="#286445"/><text x="650" y="1190" text-anchor="middle" class="stamp">Shared limit · 5,000</text>
+  <rect x="751" y="1170" width="246" height="32" rx="16" fill="#0f241b" stroke="#286445"/><text x="874" y="1190" text-anchor="middle" class="stamp">Explicit user-controlled trim</text>
+</svg>

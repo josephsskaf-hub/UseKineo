@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -27,7 +27,10 @@ function loadTs(rel, imports = {}) {
   return module.exports
 }
 
-const quickstart = loadTs('lib/growth/chatgptQuickstart.ts')
+const analyzeLimits = loadTs('lib/analyzeLimits.ts')
+const quickstart = loadTs('lib/growth/chatgptQuickstart.ts', {
+  '@/lib/analyzeLimits': analyzeLimits,
+})
 const engineCost = loadTs('lib/credits/engineCost.ts')
 const trialPolicy = loadTs('lib/growth/trialBalanceBridge.ts', {
   '@/lib/credits/engineCost': engineCost,
@@ -48,7 +51,8 @@ const event = (name, minute, user, metadata = null, session = null) => ({
 })
 const variant = { variant: quickstart.CHATGPT_QUICKSTART_VARIANT }
 
-equal(quickstart.CHATGPT_QUICKSTART_VARIANT, 'chatgpt_quickstart_v5', 'always-visible paste continuation has an isolated measurement variant')
+equal(quickstart.CHATGPT_QUICKSTART_VARIANT, 'chatgpt_quickstart_v6', 'visible full-script boundary has an isolated measurement variant')
+equal(quickstart.CHATGPT_QUICKSTART_INPUT_LIMIT, analyzeLimits.ANALYZE_PROMPT_MAX_CHARS, 'Quickstart and analyzer share one input ceiling')
 equal(quickstart.CHATGPT_QUICKSTARTS.length, 2, 'exactly two starting modes')
 equal(quickstart.CHATGPT_QUICKSTARTS[0].choice, 'finished_script', 'finished script is the first choice')
 equal(quickstart.CHATGPT_QUICKSTARTS[0].detail, 'Paste it exactly as ChatGPT wrote it', 'finished script explains the outcome')
@@ -70,7 +74,10 @@ equal(quickstart.isChatGptQuickstartChoice('finished_script'), true, 'finished s
 equal(quickstart.isChatGptQuickstartChoice('idea'), true, 'idea is an allow-listed continuation')
 equal(quickstart.isChatGptQuickstartChoice('other'), false, 'unknown continuation fails closed')
 equal(quickstart.normalizeChatGptQuickstartInput('  a useful idea  '), 'a useful idea', 'handoff trims surrounding whitespace')
-equal(quickstart.normalizeChatGptQuickstartInput('x'.repeat(1200)).length, 1000, 'handoff enforces the Studio input limit')
+equal(quickstart.normalizeChatGptQuickstartInput('x'.repeat(1200)).length, 1200, 'normalization never silently truncates a long script')
+equal(new URL(quickstart.buildChatGptQuickstartHref('finished_script', 'x'.repeat(2200)), 'https://www.usekineo.com').searchParams.get('prompt').length, 2200, 'a cinema-length script reaches Studio intact')
+ok(quickstart.buildChatGptQuickstartHref('finished_script', 'x'.repeat(quickstart.CHATGPT_QUICKSTART_INPUT_LIMIT)), 'the exact analyzer ceiling can continue')
+equal(quickstart.buildChatGptQuickstartHref('finished_script', 'x'.repeat(quickstart.CHATGPT_QUICKSTART_INPUT_LIMIT + 1)), null, 'over-limit input fails closed instead of being cut')
 equal(quickstart.buildChatGptQuickstartHref('idea', '  lighthouse mystery  '), `${quickstart.CHATGPT_QUICKSTARTS[1].href}&prompt=lighthouse%20mystery`, 'idea text crosses the same handoff')
 equal(quickstart.buildChatGptQuickstartHref('finished_script', ''), null, 'empty script cannot pretend to be a completed selection')
 equal(quickstart.buildChatGptQuickstartHref('idea', 'flood & fire').includes('prompt=flood%20%26%20fire'), true, 'customer text is URL encoded')
@@ -201,24 +208,31 @@ const admin = source('app/api/admin/funnel/route.ts')
 const client = source('app/(dashboard)/admin/funnel/FunnelClient.tsx')
 ok(banner.includes('Paste the answer. Make the Short.'), 'card continues the job started in ChatGPT')
 ok(banner.includes('Paste the answer from ChatGPT'), 'paste field is named before any branching decision')
-ok(banner.includes('Paste up to 1,000 characters with the labels intact.'), 'card states the real input boundary')
+ok(banner.includes("CHATGPT_QUICKSTART_INPUT_LIMIT.toLocaleString('en-US')"), 'card renders the canonical input boundary')
+ok(banner.includes('shows any excess before you choose'), 'card promises a visible choice instead of hidden truncation')
 ok(banner.includes('If the script contains at least two Voiceover: or'), 'card conditions speech-only mode on two labels')
 ok(banner.includes('recognized Visual:, Camera:, scene headers and'), 'card names recognized production directions')
-ok(banner.includes('Have only an idea? Kineo can write the hook, scenes and payoff instead.'), 'idea path remains explained beside its CTA')
+ok(/Have only an\s+idea\? Kineo can write the hook, scenes and payoff instead\./.test(banner), 'idea path remains explained beside its CTA')
 ok(!banner.includes('CHATGPT_QUICKSTARTS.map'), 'the old choice-before-input gate is gone')
 ok(banner.includes("onClick={() => onSelect('finished_script', input)}"), 'the observed script path is the primary action')
 ok(banner.includes("onClick={() => onSelect('idea', input)}"), 'idea authoring remains an explicit alternative')
 ok(banner.includes("import styles from './ChatGptWelcomeBanner.module.css'"), 'button and editor styles stay scoped to the component')
-ok(banner.includes('maxLength={CHATGPT_QUICKSTART_INPUT_LIMIT}'), 'the component uses the same input limit as the handoff builder')
+ok(!banner.includes('maxLength={CHATGPT_QUICKSTART_INPUT_LIMIT}'), 'the browser never discards pasted overflow invisibly')
+ok(banner.includes('formatLimitCounter(limit)'), 'the component exposes the exact retained input length')
+ok(banner.includes('Nothing was removed.'), 'over-limit state states that customer text remains intact')
+ok(banner.includes('trimPromptToLimit(input, CHATGPT_QUICKSTART_INPUT_LIMIT)'), 'shortening requires an explicit one-click action')
+ok(banner.includes('disabled={!ready}'), 'over-limit content cannot create an oversized URL handoff')
 ok(banner.includes("trackEvent('chatgpt_quickstart_selected'"), 'selection event is emitted')
 ok(banner.includes("trackEvent('chatgpt_quickstart_input_opened'"), 'input opening is measurable without customer content')
 ok(banner.includes('onFocus={trackInputOpened}'), 'the visible input records genuine interaction instead of a mode click')
 ok(banner.includes('inputOpenedTracked.current'), 'focus measurement is deduplicated per mounted card')
 ok(banner.includes('buildChatGptQuickstartHref(choice, input)'), 'the real caller builds the prompt-preserving Studio URL')
-ok(banner.includes('disabled={!ready}'), 'blank content cannot leave the card as a false selection')
+ok(banner.includes('const ready = limit.length > 0 && !limit.over'), 'blank and over-limit content cannot leave the card as a false selection')
 ok(banner.includes('Your text stays editable in Studio before anything is generated.'), 'the card preserves user control')
 ok(banner.includes('input_type: choice'), 'telemetry contains only the typed card choice')
 ok(banner.includes('input_length: input.trim().length'), 'telemetry records length but not content')
+ok(banner.includes("destination: '/studio'"), 'telemetry names the route the Quickstart actually opens')
+ok(!banner.includes("destination: '/studio/create'"), 'telemetry cannot claim the generation route before Studio')
 ok(banner.includes('SHOWN_EVENT_KEY'), 'banner impression has a session dedupe marker')
 ok(banner.includes("variant: CHATGPT_QUICKSTART_VARIANT"), 'new impressions are versioned')
 ok(!banner.includes('prompt: input'), 'banner telemetry never stores a prompt or script')
@@ -247,5 +261,15 @@ ok(admin.includes('eventsAvailable: retentionEventsAvailable'), 'admin distingui
 ok(client.includes('ChatGPT quick-start · source → right input mode → video'), 'admin renders the causal section')
 ok(client.includes('CHATGPT_QUICKSTART_VARIANT'), 'admin names the current measured variant')
 ok(client.includes('Attributed payments'), 'admin does not mislabel a generic payment event as a subscription')
+
+const preview = source('docs/previews/CHATGPT-QUICKSTART-VISIBLE-LIMIT-2026-09-04.html')
+for (const label of ['BEFORE · DESKTOP', 'AFTER · DESKTOP', 'BEFORE · MOBILE', 'AFTER · MOBILE']) {
+  ok(preview.includes(label), `visual proof contains ${label}`)
+}
+ok(preview.includes('1,000 / 1,000 characters'), 'visual proof shows the old silent wall')
+ok(preview.includes('2,240 / 5,000 characters'), 'visual proof shows a complete cinema-length script')
+ok(preview.includes('5,468 / 5,000 characters — 468 over the limit'), 'visual proof shows the explicit overflow state')
+ok(existsSync(join(root, 'docs/previews/CHATGPT-QUICKSTART-VISIBLE-LIMIT-2026-09-04.svg')), 'vector comparison is available for inspection')
+ok(existsSync(join(root, 'docs/previews/CHATGPT-QUICKSTART-VISIBLE-LIMIT-2026-09-04.png')), 'rendered comparison is available for the founder')
 
 console.log(`chatgpt-quickstart: ${checks}/${checks} checks passed`)

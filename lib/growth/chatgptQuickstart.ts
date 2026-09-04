@@ -1,6 +1,12 @@
-export const CHATGPT_QUICKSTART_VARIANT = 'chatgpt_quickstart_v5'
+import { ANALYZE_PROMPT_MAX_CHARS } from '@/lib/analyzeLimits'
 
-export const CHATGPT_QUICKSTART_INPUT_LIMIT = 1000
+export const CHATGPT_QUICKSTART_VARIANT = 'chatgpt_quickstart_v6'
+
+// One ceiling governs the first paste, Studio and /api/analyze-idea. The
+// Quickstart used to keep only the first 1,000 characters without telling the
+// person. Oversized text now stays visible in the card and the handoff fails
+// closed until the person explicitly trims it.
+export const CHATGPT_QUICKSTART_INPUT_LIMIT = ANALYZE_PROMPT_MAX_CHARS
 
 export type ChatGptQuickstartChoice = 'finished_script' | 'idea'
 
@@ -29,7 +35,7 @@ export const CHATGPT_QUICKSTARTS: ReadonlyArray<{
 ] as const
 
 export function normalizeChatGptQuickstartInput(value: string): string {
-  return value.trim().slice(0, CHATGPT_QUICKSTART_INPUT_LIMIT)
+  return value.trim()
 }
 
 /**
@@ -39,7 +45,7 @@ export function normalizeChatGptQuickstartInput(value: string): string {
  */
 export function buildChatGptQuickstartHref(choice: ChatGptQuickstartChoice, input: string): string | null {
   const normalized = normalizeChatGptQuickstartInput(input)
-  if (!normalized) return null
+  if (!normalized || normalized.length > CHATGPT_QUICKSTART_INPUT_LIMIT) return null
   const option = CHATGPT_QUICKSTARTS.find((candidate) => candidate.choice === choice)
   if (!option) return null
   return `${option.href}&prompt=${encodeURIComponent(normalized)}`
