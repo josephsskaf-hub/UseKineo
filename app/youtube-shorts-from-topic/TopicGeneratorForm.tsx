@@ -2,7 +2,10 @@
 
 import { useState } from 'react'
 import { rememberSignupCampaign, trackEvent } from '@/lib/analytics'
-import type { CreationIntent } from '@/lib/creationHandoff'
+import {
+  buildAuthenticatedCreationRedirect,
+  type CreationIntent,
+} from '@/lib/creationHandoff'
 
 const TOPIC_EXAMPLES = [
   'The island too dangerous to visit',
@@ -65,18 +68,15 @@ export default function TopicGeneratorForm({
   const inputId = `${formId}-input`
 
   function authRedirectFor(promptValue: string): string | null {
-    const boundedPrompt = promptValue.trim().slice(0, 1000)
-    if (!preserveHandoffForSignedIn || !boundedPrompt) return null
-    const destination = new URLSearchParams({
-      welcome: '1',
-      prompt: boundedPrompt,
-      create_intent: creationIntent,
-      intent_campaign: campaign,
+    if (!preserveHandoffForSignedIn) return null
+    return buildAuthenticatedCreationRedirect({
+      prompt: promptValue,
+      campaign,
+      createIntent: creationIntent,
+      language,
+      scriptMode,
+      duration,
     })
-    if (language) destination.set('language', language)
-    if (scriptMode) destination.set('script_mode', scriptMode)
-    if (duration) destination.set('duration', String(duration))
-    return `/studio/create?${destination.toString()}`
   }
 
   function startWithExample(example: string, exampleIndex: number) {

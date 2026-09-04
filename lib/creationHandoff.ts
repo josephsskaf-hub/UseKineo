@@ -1,6 +1,7 @@
 export type CreationScriptMode = 'ai' | 'verbatim'
 export type CreationDuration = 35 | 45 | 60 | 90
 export type CreationIntent = 'fast' | 'trial_best' | null
+export type CreationLanguage = 'en' | 'pt' | 'es'
 
 type QueryReader = Pick<URLSearchParams, 'get'>
 type QueryWriter = Pick<URLSearchParams, 'set'>
@@ -18,6 +19,43 @@ export interface ActivationCreationContract {
   scriptMode: CreationScriptMode
   duration: CreationDuration
   structureFirst: boolean
+}
+
+export interface AuthenticatedCreationRedirectInput {
+  prompt: string
+  campaign: string
+  createIntent: Exclude<CreationIntent, null>
+  language?: CreationLanguage
+  scriptMode?: CreationScriptMode
+  duration?: CreationDuration
+}
+
+/**
+ * Build the nested same-origin destination used when an authenticated visitor
+ * crosses /signup. Without it, middleware sends that visitor to /dashboard
+ * and silently discards the public form's creation contract.
+ */
+export function buildAuthenticatedCreationRedirect({
+  prompt,
+  campaign,
+  createIntent,
+  language,
+  scriptMode,
+  duration,
+}: AuthenticatedCreationRedirectInput): string | null {
+  const boundedPrompt = prompt.trim().slice(0, 1000)
+  if (!boundedPrompt) return null
+
+  const destination = new URLSearchParams({
+    welcome: '1',
+    prompt: boundedPrompt,
+    create_intent: createIntent,
+    intent_campaign: campaign,
+  })
+  if (language) destination.set('language', language)
+  if (scriptMode) destination.set('script_mode', scriptMode)
+  if (duration) destination.set('duration', String(duration))
+  return `/studio/create?${destination.toString()}`
 }
 
 /**

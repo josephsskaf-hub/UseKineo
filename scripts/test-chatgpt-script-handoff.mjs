@@ -88,6 +88,38 @@ try {
   equal(activation.duration, 35, 'activation commits the requested duration')
   equal(activation.structureFirst, false, 'verbatim activation cannot call the structure-first rewriter')
 
+  const signedInRedirect = handoff.buildAuthenticatedCreationRedirect({
+    prompt: script,
+    campaign: 'chatgpt_to_shorts',
+    createIntent: 'trial_best',
+    language: 'pt',
+    scriptMode: 'verbatim',
+    duration: 35,
+  })
+  ok(signedInRedirect, 'authenticated handoff builds a same-origin destination')
+  const signedInDestination = new URL(signedInRedirect, 'https://www.usekineo.com')
+  equal(signedInDestination.pathname, '/studio/create', 'authenticated handoff enters the current creation surface')
+  equal(signedInDestination.searchParams.get('prompt'), script, 'authenticated handoff keeps the bounded script')
+  equal(signedInDestination.searchParams.get('create_intent'), 'trial_best', 'authenticated handoff keeps the best eligible trial intent')
+  equal(signedInDestination.searchParams.get('intent_campaign'), 'chatgpt_to_shorts', 'authenticated handoff keeps its campaign')
+  equal(signedInDestination.searchParams.get('language'), 'pt', 'authenticated handoff keeps its language')
+  equal(signedInDestination.searchParams.get('script_mode'), 'verbatim', 'authenticated handoff keeps verbatim mode')
+  equal(signedInDestination.searchParams.get('duration'), '35', 'authenticated handoff keeps its duration')
+  equal(handoff.buildAuthenticatedCreationRedirect({
+    prompt: '   ', campaign: 'chatgpt_to_shorts', createIntent: 'trial_best',
+  }), null, 'empty authenticated handoff cannot arm a redirect')
+  const boundedSignedInRedirect = handoff.buildAuthenticatedCreationRedirect({
+    prompt: `  ${'a'.repeat(1100)}  `,
+    campaign: 'chatgpt_to_shorts',
+    createIntent: 'trial_best',
+  })
+  ok(boundedSignedInRedirect, 'long authenticated handoff still builds a destination')
+  equal(
+    new URL(boundedSignedInRedirect, 'https://www.usekineo.com').searchParams.get('prompt').length,
+    1000,
+    'authenticated handoff enforces the advertised script limit',
+  )
+
   const invalid = handoff.resolveActivationCreationContract(new URLSearchParams({
     prompt: 'bounded', create_intent: 'fast', script_mode: 'rewrite_everything', duration: '999',
   }))
@@ -151,7 +183,6 @@ try {
 
   // Form fields and signup both use the shared contract.
   includes(topicForm, 'name="prompt"', 'script is submitted as prompt')
-  includes(topicForm, 'promptValue.trim().slice(0, 1000)', 'handoff bounds the carried prompt to the advertised limit')
   includes(topicForm, 'maxLength={1000}', 'visible form enforces the advertised limit')
   includes(topicForm, "creationIntent = 'fast'", 'shared form preserves Fast as the default for every other caller')
   includes(topicForm, 'name="create_intent" value={creationIntent}', 'selected creation intent is explicit')
@@ -159,8 +190,8 @@ try {
   includes(topicForm, 'name="intent_campaign" value={campaign}', 'intent campaign is explicit')
   includes(topicForm, 'name="script_mode" value={scriptMode}', 'script mode is explicit')
   includes(topicForm, 'name="duration" value={duration}', 'duration is explicit')
-  includes(topicForm, 'if (!preserveHandoffForSignedIn || !boundedPrompt) return null', 'authenticated handoff remains explicitly opt-in')
-  includes(topicForm, 'return `/studio/create?${destination.toString()}`', 'authenticated handoff targets the current creation surface')
+  includes(topicForm, 'if (!preserveHandoffForSignedIn) return null', 'authenticated handoff remains explicitly opt-in')
+  includes(topicForm, 'buildAuthenticatedCreationRedirect({', 'form delegates its authenticated destination to the executable contract')
   includes(topicForm, 'name="redirect" value={authRedirectFor(topic)', 'typed scripts carry a safe authenticated redirect')
   includes(topicForm, 'name="utm_source" value={utmSource}', 'UTM source is explicit')
   includes(topicForm, 'name="utm_medium" value={utmMedium}', 'UTM medium is explicit')
