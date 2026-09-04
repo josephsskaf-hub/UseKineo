@@ -1149,3 +1149,40 @@ Nada para a R20. Continua pendente apenas a ação manual já pronta da R19: col
 - **IMPLEMENTADO / VALIDADO EM PRODUÇÃO:** o comparativo Kineo × Pictory deixou de dizer que a Kineo aceita apenas uma frase e agora responde honestamente a quem já possui um roteiro curto.
 - **TESTADO LOCALMENTE:** 227 verificações direcionadas passaram, TypeScript real e diff check ficaram verdes; o preview antes/depois desktop/mobile foi inspecionado.
 - **EVIDÊNCIA DE PRODUÇÃO:** o placar segue em 39 cadastros, 24 pessoas com filme e 0 assinaturas; o checkout direto instantâneo continua sob vigia CAIXA e o novo caminho TAAFT ainda não teve exposição humana.
+
+---
+
+## Rodada 21 — medição pura R17→R20 — 04/09 13:10→13:15 BRT — CONCLUÍDA
+
+- **DECISÃO APROVADA:** esta é a rodada sem código prevista após quatro rodadas FLUXO. O recorte mede R17→R20 contra o marco canônico e não transforma ausência de exposição em sucesso ou fracasso. Fonte: `docs/PROGRAMA-CODEX-ASSINATURAS-2026-09-03.md:471-487`.
+- **FATO CONFIRMADO:** as prioridades antigas de `/v/[id]` e do corte de 1.000 caracteres continuam concluídas; não apareceu pedido aberto executável da pista FLUXO. As mudanças novas em `GenerateClient`, créditos e retomada de checkout pertencem respectivamente a Claude e CAIXA e já chegaram à `main`; esta rodada não duplicou nenhuma delas. Fontes: histórico Git até `4dfd151a`, `docs/PEDIDOS-ENTRE-PISTAS-2026-09-03.md` e diário Claude #13.
+- **FATO CONFIRMADO:** nenhum código, preço, oferta, Stripe, banco, migration, crédito, arquivo Claude ou arquivo CAIXA foi alterado. A única edição é este registro de medição no handoff FLUXO.
+
+### Placar, vigia e origens
+
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 13:13:15 BRT:** placar canônico desde 03/09 13:00 BRT: **41 cadastros, 26 pessoas com filme, 2 checkouts com filme, 2 sem filme, 0 assinaturas e 0 pessoas com falha sem filme**. Frente ao corte da R20 às 12:44:43 BRT, são +2 cadastros e +2 pessoas com filme; checkout e assinatura não avançaram. Fonte: SQL canônico somente leitura no Supabase de produção, pessoas distintas e contas internas excluídas.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 13:13:15 BRT:** nas duas horas anteriores houve 6 cadastros externos: **ChatGPT 3, TAAFT 2 e direto 1**. Esta janela móvel não foi somada às anteriores.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 13:13:15 BRT:** o vigia encontrou a mesma pessoa direta anonimizada `0441e46ae5`: conta às 12:16:52, checkout Pro mensal às 12:16:54–12:16:55, 25 créditos, 0 filme, `had_finished_script=false`, `activation_defect`, sem evento posterior e sem pagamento. Classe **defeito**. O pedido CAIXA existente cobre o caso; nenhum pedido duplicado foi aberto.
+
+### Medição R17→R20
+
+- **EVIDÊNCIA DE PRODUÇÃO — coorte R17, medida em 04/09/2026 13:13:15 BRT:** das duas pessoas TAAFT que chegaram antes do deploy R18, a primeira (`a4a1b29726`) continua com 25 créditos, 0 job, 0 filme, 0 erro, nenhum checkout e nenhum evento novo desde 11:20:44 BRT; o silêncio segue **defeito** no pipeline, não falha da landing. A segunda (`01c8adcd3c`) terminou 1 filme às 12:15:36 BRT após 1 job e 2 erros de crédito retido; segue com 12 créditos, sem checkout e sem pagamento. Resultado observado dessa coorte: **1 de 2 pessoas com filme; 0 de 2 com checkout; 0 de 2 com pagamento**.
+- **EVIDÊNCIA DE PRODUÇÃO — R18, 04/09/2026 13:13:15 BRT:** ainda existem **0 perfis TAAFT criados depois do deploy das 12:13 BRT**. Logo o override `taaft → engine=fast` continua sem exposição humana: 0 roteiro, 0 elegibilidade fast, 0 filme, 0 checkout e 0 pagamento nessa coorte. **DESCONHECIDO:** efeito causal sobre entrega; zero denominador não é resultado.
+- **EVIDÊNCIA DE PRODUÇÃO — R19, 04/09/2026 13:13:15 BRT:** a atualização do listing continua dependente da publicação manual do fundador. Sem publicação confirmada, não existe exposição atribuível ao pacote e nenhuma mudança de tráfego foi creditada a ele.
+- **EVIDÊNCIA DE PRODUÇÃO — R20, 04/09/2026 13:13:15 BRT:** entre o deploy das 12:57 BRT e o corte da medição houve **0 pessoas** e 0 eventos na coluna `events.path` para `/vs/kineo-vs-pictory`; portanto também houve 0 CTA medido. A janela tem só 16 minutos e não autoriza conclusão sobre a copy.
+- **DECISÃO — NÃO EXECUTAR CÓDIGO:** o único avanço material foi entrega de filme numa pessoa TAAFT anterior à R18; não há exposição pós-deploy para medir R18 ou R20 e não surgiu lacuna nova numa superfície FLUXO. As mudanças ficam congeladas até existir denominador humano.
+- **TESTADO LOCALMENTE — 04/09/2026 13:15 BRT:** não houve código de produto. O comando literal `npx tsc --noEmit --pretty false` manteve o problema preexistente do pacote-stub e saiu 1; o compilador real `node node_modules/typescript/bin/tsc --noEmit --pretty false` e `git -c core.whitespace=cr-at-eol diff --check` saíram com código 0.
+
+## PRÓXIMA JOGADA
+
+- **SUGESTÃO:** na R22, voltar ao cardápio somente após nova leitura anti-duplicação e auditar uma superfície FLUXO viva ainda não resolvida, começando por `/made-with`/lançador de compartilhamento ou pelo próximo item não duplicado da ordem. Se aparecer a primeira pessoa TAAFT pós-R18 ou exposição ao comparativo, ela prevalece sobre o cardápio e deve ser seguida até filme, checkout e pagamento.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+Continua pendente apenas a ação manual já pronta da R19: colar `docs/TAAFT-LISTING-2026-09-03.md` no painel TAAFT e subir as três capturas indicadas. A R21 não pede mudança de preço, pagamento, deploy ou contato com usuário.
+
+## 📋 O QUE ACONTECEU
+
+- **EVIDÊNCIA DE PRODUÇÃO:** o placar avançou para 41 cadastros e 26 pessoas com filme, ainda com 0 assinaturas; uma das duas pessoas TAAFT pré-R18 finalmente recebeu filme.
+- **DESCONHECIDO:** R18 e R20 continuam sem exposição pós-deploy, então seus efeitos não foram inferidos.
+- **DECISÃO:** nenhuma mudança de produto foi feita; o checkout direto sem input segue coberto por CAIXA e a publicação TAAFT continua como única ação manual pendente.
