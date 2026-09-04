@@ -1023,3 +1023,42 @@ Nada.
 - **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 11:47 BRT:** duas contas TAAFT chegaram e iniciaram geração; uma delas usou comprovadamente o roteiro gratuito da home antes do cadastro.
 - **CONTRADIÇÃO DE ESTADO:** a primeira registra “generation started”, mas após quase 27 minutos não tem job, filme, erro nem débito; a segunda ainda está em voo dentro da janela normal.
 - **DECISÃO — PIVOTAR PARA CLAUDE:** a entrada FLUXO funcionou e ficou congelada; um pedido objetivo foi aberto para a pista que possui o trecho onde a primeira cadeia parou.
+
+---
+
+## Rodada 18 — TAAFT começa pelo Kineo 1 — 04/09 12:02→12:09 BRT — IMPLEMENTADA
+
+- **NOVA:** esta rodada altera pela primeira vez o motor do primeiro filme somente no bridge TAAFT; não repete a auditoria da R17, não cria página, banner ou copy e não toca ChatGPT, checkout ou gerador.
+- **CONTRADIÇÃO:** o programa aprovado em 03/09 manda `utm_source=taaft` para “Kineo 1 padrão” (`docs/PROGRAMA-CODEX-ASSINATURAS-2026-09-03.md:106-111`), mas a home ainda enviava `create_intent=trial_best`, contrato que escolhe Seedance para teste ativo com 25 créditos (`app/HomeTopicForm.tsx` antes de `0b664621`; `lib/growth/trialActivationIntent.ts:9-29`).
+- **IMPLEMENTADO:** `homeReferralCreationIntent()` agora resolve somente `taaft → fast`; ChatGPT, origem nula e tráfego geral continuam em `trial_best`. `HomeTopicForm` reutiliza essa decisão no CTA pós-roteiro, no caminho de erro e no fallback nativo sem JavaScript, evitando bifurcação silenciosa entre os três caminhos. Fontes: `lib/growth/homeReferralBridge.ts` e `app/HomeTopicForm.tsx`, commit funcional `0b66462127c6bb78d24c0832148ea83caf18a0a2`.
+
+### Evidência, placar e vigia
+
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 12:03:25 BRT:** placar canônico desde 03/09 13:00 BRT: **37 cadastros, 23 pessoas com filme, 2 checkouts com filme, 1 sem filme, 0 assinaturas e 1 pessoa com falha sem filme**. Fonte: SQL canônico somente leitura no Supabase de produção, pessoas distintas e contas internas excluídas.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 12:03:25 BRT:** nas duas horas anteriores houve 3 cadastros externos: **TAAFT 2 e ChatGPT 1**. A janela móvel não foi somada às anteriores.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 12:03:25 BRT:** o vigia obrigatório de checkout ficou vazio; o checkout observado na rodada anterior saiu da janela móvel de duas horas. Zero pessoa no recorte não significa pagamento nem resolução.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 12:03:25 BRT:** a primeira pessoa TAAFT continua com 25 créditos, 0 jobs, 0 filmes e 0 erros; seu último estado foi `activation_autostart_waiting(reason=server_claim_settling)` às 11:20:28. A segunda passou de “em voo” para 1 `render_job`, 12 créditos e 2 `generation_stage_error(reason=cinematic_gate_credits_held)`, seguidos por rechecks de saldo até 12:02:58; continua com 0 filme e 0 pagamento.
+- **FATO CONFIRMADO:** ambas pediram Seedance. Na primeira, o roteiro gratuito da home e o CTA foram comprovados; na segunda, a origem TAAFT e o contrato Seedance foram comprovados, mas **DESCONHECIDO** se ela usou exatamente o formulário da home. A correção não é apresentada como reparo retroativo dessas duas contas.
+
+### Causa, medição e limites
+
+- **HIPÓTESE:** para a próxima pessoa que chegar pelo bridge TAAFT, Kineo 1 remove a passagem observada pelo claim premium e aumenta a chance de chegar ao primeiro filme; isto ainda não prova checkout ou assinatura.
+- **MEDIÇÃO:** por pessoa externa com origem TAAFT e exposição posterior ao deploy, acompanhar `home_free_script_cta_clicked → activation_autostart_eligible(engine=fast) → video_generation_completed → checkout_started → payment_success`. Gate de sucesso inicial: primeiro filme sem `server_claim_settling` prolongado nem `cinematic_gate_credits_held`; placar final continua pagamento/assinatura.
+- **GATE DE PARADA/REVERTER:** se TAAFT pós-deploy não preservar o roteiro, não resolver `engine=fast`, ou piorar entrega frente à coorte anterior, reverter o override. ChatGPT e origem geral ficam controle estável.
+- **RISCO:** a amostra viva é de duas pessoas e as falhas pertencem ao pipeline Claude; por isso o pedido das 11:47 e a atualização das 12:05 continuam abertos e não foram duplicados. A mudança previne a mesma seleção premium em novos handoffs TAAFT, mas não conserta job, compose ou crédito existente.
+- **TESTADO LOCALMENTE — 04/09/2026 12:07 BRT:** `node scripts/test-home-referral-bridge.mjs` passou **71/71**; `node scripts/test-trial-best-activation.mjs` passou **27/27**; `node node_modules/typescript/bin/tsc --noEmit --pretty false` e `git -c core.whitespace=cr-at-eol diff --check` saíram com código 0. O comando literal `npx tsc --noEmit --pretty false` encontrou o pacote-stub incorreto preexistente nesta worktree.
+- **FATO CONFIRMADO:** nenhum preço, oferta, Stripe, banco, migration, e-mail, mensagem externa, crédito, arquivo dashboard/Claude ou arquivo CAIXA foi alterado.
+
+## PRÓXIMA JOGADA
+
+- **SUGESTÃO:** após o deploy, esperar uma nova pessoa TAAFT exposta, confirmar `engine=fast` e seguir sua cadeia até filme/checkout/pagamento. Sem exposição nova, retomar a ordem do programa por F3+K20, sem tratar zero amostra como resultado.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada agora. Os dois casos antigos continuam com Claude pelos pedidos já abertos; a mudança vale para novas entradas TAAFT.
+
+## 📋 O QUE ACONTECEU
+
+- **EVIDÊNCIA DE PRODUÇÃO:** duas pessoas TAAFT escolheram Seedance e nenhuma tinha filme às 12:03 BRT; uma ficou silenciosa antes do job e a outra caiu em crédito retido.
+- **IMPLEMENTADO:** o bridge TAAFT passa o roteiro ao Kineo 1; ChatGPT e tráfego geral não mudam.
+- **TESTADO LOCALMENTE:** 98 verificações direcionadas e o TypeScript real passaram; nenhum write de produção foi feito.
