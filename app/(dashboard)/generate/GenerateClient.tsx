@@ -1799,22 +1799,6 @@ export default function GenerateClient({
     missingWords: number
     targetSeconds: number
   } | null>(null)
-  // ═══ sprint-v1v4 #48 — A RECUSA QUE CHEGAVA UM MINUTO TARDE ═════════════
-  // `scriptTooShort` nasceu como estado de FALHA: só era preenchido pelo 422
-  // do servidor, no fim da viagem, e o painel dele só aparecia com
-  // `phase === 'failed'`. Agora ele também pode nascer ANTES da viagem, com
-  // a mesma régua (`speechSeconds` + `MIN_COVERAGE`, as duas do servidor).
-  // Esta bandeira separa os dois nascimentos: com ela ligada nada falhou,
-  // nada foi gerado e nada foi cobrado — por isso o painel abre sem depender
-  // de `phase === 'failed'`, e nenhum evento de falha é emitido.
-  const [scriptTooShortPreflight, setScriptTooShortPreflight] = useState(false)
-  // Chave `texto|duração` da última checagem que barrou. Existe para a
-  // SEGUNDA vontade: quem insiste no mesmo texto passa direto e recebe o
-  // veredito do servidor. A checagem local orienta, nunca aprisiona.
-  const preflightFiredRef = useRef<string>('')
-  useEffect(() => {
-    if (!scriptTooShort) setScriptTooShortPreflight(false)
-  }, [scriptTooShort])
   // ═══ sprint-v1v4 #33 — A SALA DE ESPERA DO CRÉDITO PRESO ════════════════
   // O 402 `credits_held_by_render` NAO e uma falha: o saldo esta preso num
   // render que ainda nao se resolveu e volta sozinho dentro da hora. Mas ele
@@ -7031,62 +7015,19 @@ export default function GenerateClient({
     setExpandState(null)
     setAuthoredScript(null)
 
-    // ═══ sprint-v1v4 #48 — A CHECAGEM QUE JÁ DAVA PARA FAZER NO CLIQUE ════
-    // Medido em produção (01/09): 4 das 8 recusas das últimas 6h são a
-    // família `speech=Xs target=Ys` — 23s/35s, 20s/35s, 33s/45s, 3s/35s. E
-    // suarezgarciakevin6 bateu três vezes em sete minutos, saindo com ZERO
-    // vídeo. O que custava caro não era o veredito: era ONDE ele chegava.
-    // O 422 vinha do estágio `generating`, ou seja, DEPOIS da análise, das
-    // cenas e de ~1 minuto de espera — para dizer uma conta que esta tela já
-    // sabia fazer no momento do clique. O contador vivo embaixo do campo
-    // usa `speechSeconds()` e `MIN_COVERAGE` desde 23/08; o servidor recusa
-    // com as MESMAS duas coisas. Eram duas testemunhas da mesma verdade e só
-    // a cara chegava a tempo de mudar alguma coisa.
-    //
-    // Agora a mesma conta roda antes da viagem e abre, imediatamente, o
-    // MESMO painel de conclusão de roteiro que apareceria um minuto depois
-    // (com o auto-expand do #25 disparando sozinho por cima do estado). Três
-    // travas para orientar sem aprisionar:
-    //   1. só em `verbatim` — em 'ai' o texto é reestruturado e pode crescer;
-    //   2. só acima de 12s de fala — abaixo disso é IDEIA, e o servidor tem
-    //      caminho próprio (escreve o roteiro inteiro); não roubo esse ramo;
-    //   3. só UMA vez por `texto|duração` — insistiu no mesmo, passa e o
-    //      servidor decide. A régua local nunca é a palavra final.
-    // Nada é gerado, nada é cobrado, nenhum evento de falha é emitido, e
-    // nenhuma linha de preço/plano/crédito é tocada.
-    // KINEO-CONTRATO-DURACAO-2026-09-02 — alvo que a analise usa; o autofit
-    // do roteiro longo (bloco abaixo) pode subi-lo para o botao que a fala enche.
+    // KINEO-FIRST-CLICK-AUTOFIT-2026-09-03 — o cliente não recusa mais um
+    // roteiro curto antes de o servidor aplicar o degrau de duração. Desde o
+    // #1 do diário, a rota cinematográfica reduz o alvo com a mesma régua e
+    // registra `script_duration_autofit_down`; manter a antiga checagem aqui
+    // exigia um segundo clique para chegar ao comportamento novo. O cliente
+    // conserva apenas o espelho de roteiro longo abaixo, que ajusta o alvo da
+    // análise sem bloquear a viagem.
     let alvoAnalise: Duration = duration
     {
       const baseChecagem = expandBaseRef.current
-      if (scriptTooShortPreflight) setScriptTooShort(null)
       if (scriptMode === 'verbatim' && baseChecagem) {
         const falaSeg = speechSeconds(baseChecagem)
-        const chavePre = `${baseChecagem}|${duration}`
         const cobre = falaSeg >= duration * MIN_COVERAGE
-        if (!cobre && falaSeg > 12 && preflightFiredRef.current !== chavePre) {
-          preflightFiredRef.current = chavePre
-          const faltam = Math.max(1, Math.ceil((duration * MIN_COVERAGE - falaSeg) * 2.3))
-          setScriptTooShortPreflight(true)
-          setScriptTooShort({
-            message:
-              `This script is about ${Math.round(falaSeg)}s of narration and you picked ${duration}s, ` +
-              `so it would stop halfway. Nothing was generated and nothing was charged — finish it here first.`,
-            speechSeconds: falaSeg,
-            suggestedDuration: largestFittingDuration(falaSeg) ?? 0,
-            missingWords: faltam,
-            targetSeconds: duration,
-          })
-          void trackEvent('script_preflight_blocked', {
-            speech_seconds: Math.round(falaSeg),
-            target_seconds: duration,
-            missing_words: faltam,
-            suggested_duration: largestFittingDuration(falaSeg) ?? null,
-            from_topic: opts?.fromTopic === true,
-          })
-          setPhase('idle')
-          return
-        }
         // KINEO-CONTRATO-DURACAO-2026-09-02 — o espelho do bloqueio acima, para
         // roteiro LONGO: "Use my script as is" com ~80s de fala e 60s no botao
         // entregava 80-90s (o compose deixa o audio mandar ate o teto de 90)
@@ -13278,13 +13219,7 @@ export default function GenerateClient({
               nada quebrou — o produto está evitando entregar um filme com um
               terço de música sem história, ANTES de cobrar por ele.
               Card azul, tom de ajuda, e a saída que resolve em um clique. */}
-          {/* sprint-v1v4 #48 — o painel de roteiro curto passa a ter DUAS
-              portas: a antiga (recusa do servidor, `phase === 'failed'`) e a
-              nova (checagem antes da viagem, `scriptTooShortPreflight`). O
-              conteúdo é o mesmo de propósito: a pessoa vê o mesmo painel,
-              com o mesmo texto completado e a mesma aprovação explícita —
-              só que um minuto antes e sem ter falhado. */}
-          {(phase === 'failed' || scriptTooShortPreflight) && scriptTooShort && (
+          {phase === 'failed' && scriptTooShort && (
             <section
               className="gv-card rounded-2xl p-5 sm:p-6 mb-6"
               style={{ background: 'rgba(41,151,255,.06)', border: '1px solid rgba(41,151,255,.28)' }}

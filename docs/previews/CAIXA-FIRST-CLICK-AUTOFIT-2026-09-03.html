@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kineo — primeiro clique do roteiro curto</title>
+<style>
+  :root{color-scheme:dark;--bg:#07090d;--card:#11151c;--line:#293240;--text:#f5f7fb;--muted:#9ba7b6;--blue:#5cb3ff;--green:#62e6a7}
+  *{box-sizing:border-box} body{margin:0;background:radial-gradient(circle at top,#18202c 0,#07090d 45%);color:var(--text);font:15px/1.45 Inter,ui-sans-serif,system-ui;padding:34px}
+  h1{font-size:26px;margin:0 0 8px}.lede{color:var(--muted);margin:0 0 28px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+  .panel{border:1px solid var(--line);border-radius:20px;background:rgba(17,21,28,.94);padding:22px;box-shadow:0 16px 50px #0008}
+  .label{display:inline-block;font-size:11px;font-weight:900;letter-spacing:.15em;text-transform:uppercase;padding:6px 9px;border-radius:999px;margin-bottom:16px}
+  .before .label{background:#3a2731;color:#ff9bac}.after .label{background:#17372c;color:var(--green)}
+  .field{border:1px solid #364151;background:#0a0d12;border-radius:14px;padding:14px;color:#dbe3ee;min-height:94px}.meta{display:flex;justify-content:space-between;color:var(--muted);font-size:12px;margin:10px 2px 18px}
+  button{width:100%;border:0;border-radius:13px;padding:14px;font-weight:900;background:linear-gradient(135deg,#2997ff,#7367ff);color:white}
+  .state{margin-top:16px;border-radius:14px;padding:15px}.before .state{border:1px solid #365d82;background:#132331}.after .state{border:1px solid #315544;background:#12281f}
+  .state strong{display:block;margin-bottom:5px}.before .state strong{color:var(--blue)}.after .state strong{color:var(--green)}.state p{margin:0;color:#bcc7d5}
+  .flow{margin-top:12px;font-size:12px;color:var(--muted)}.arrow{color:var(--green);font-weight:900}
+  .mobile{margin-top:28px;border-top:1px solid var(--line);padding-top:22px}.phone{max-width:360px;margin:auto}
+  @media(max-width:760px){body{padding:18px}.grid{grid-template-columns:1fr}.mobile{display:none}}
+</style>
+</head>
+<body>
+<h1>Roteiro curto: antes × depois</h1>
+<p class="lede">Comparação visual do mesmo primeiro clique. Nenhum preço, crédito ou motor foi alterado.</p>
+<div class="grid">
+  <section class="panel before">
+    <span class="label">Antes</span>
+    <div class="field">“A porta abriu sozinha. No corredor, o relógio marcava uma hora que não existe.”</div>
+    <div class="meta"><span>Roteiro próprio</span><span>60s selecionados</span></div>
+    <button>Analyze my script</button>
+    <div class="state"><strong>Your script is shorter than the video</strong><p>O primeiro clique para aqui. Só repetir exatamente o mesmo clique deixa o servidor decidir.</p></div>
+    <div class="flow">Clique 1 → bloqueio → clique 2 → servidor</div>
+  </section>
+  <section class="panel after">
+    <span class="label">Depois</span>
+    <div class="field">“A porta abriu sozinha. No corredor, o relógio marcava uma hora que não existe.”</div>
+    <div class="meta"><span>Roteiro próprio</span><span>60s selecionados</span></div>
+    <button>Analyze my script</button>
+    <div class="state"><strong>Analyzing your story…</strong><p>O primeiro clique segue. O servidor aplica o degrau de duração já validado e registra a decisão.</p></div>
+    <div class="flow">Clique 1 <span class="arrow">→</span> análise <span class="arrow">→</span> duração compatível</div>
+  </section>
+</div>
+<div class="mobile">
+  <h1 style="font-size:18px">Leitura mobile</h1>
+  <section class="panel after phone">
+    <span class="label">Depois · 360 px</span>
+    <div class="field">“A porta abriu sozinha. No corredor, o relógio marcava uma hora que não existe.”</div>
+    <div class="meta"><span>Roteiro próprio</span><span>60s</span></div>
+    <button>Analyze my script</button>
+    <div class="state"><strong>Analyzing your story…</strong><p>Uma ação, sem parede intermediária.</p></div>
+  </section>
+</div>
+</body>
+</html>
