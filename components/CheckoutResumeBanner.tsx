@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
+import styles from './CheckoutResumeBanner.module.css'
 import { trackClosedEvent, trackEvent } from '@/lib/analytics'
 import { useCheckoutLaunch, useStalledCheckout } from '@/lib/checkoutTelemetry'
 import {
@@ -20,6 +21,9 @@ import {
   createCheckoutResumeRecorder,
   shouldRecordCheckoutResumeAfterDwell,
 } from '@/lib/growth/checkoutResumeHumanView'
+import { useCheckoutResumeFilm } from '@/components/useCheckoutResumeFilm'
+import { checkoutResumeFilmTelemetry } from '@/lib/growth/checkoutResumeFilm'
+
 
 const COMPARE_PLANS_HREF = '/pricing?intent_campaign=checkout_resume_smaller_v1#plans'
 
@@ -47,6 +51,8 @@ export default function CheckoutResumeBanner() {
   const pathname = usePathname()
   const [offer, setOffer] = useState<CheckoutResumeOffer | null>(null)
   const viewedKey = useRef<string | null>(null)
+  const film = useCheckoutResumeFilm(offer !== null)
+  const filmLoadedKey = useRef<string | null>(null)
   const choiceRef = useRef<HTMLDivElement | null>(null)
   const humanViewStopRef = useRef<(() => void) | null>(null)
   const checkout = useCheckoutLaunch('checkout_resume_banner')
@@ -279,6 +285,7 @@ export default function CheckoutResumeBanner() {
     plan_fit_monthly_videos: offer.planFit?.monthlyVideos ?? null,
     plan_fit_seconds: offer.planFit?.seconds ?? null,
     plan_fit_selected_tier_matches: offer.planFit?.selectedTierMatches ?? null,
+    ...checkoutResumeFilmTelemetry(film),
   }
 
   const dismiss = () => {
@@ -296,6 +303,7 @@ export default function CheckoutResumeBanner() {
 
   return (
     <aside
+      className={styles.banner}
       aria-label="Resume secure checkout"
       aria-live="polite"
       style={{
@@ -318,10 +326,31 @@ export default function CheckoutResumeBanner() {
         fontFamily: 'var(--font-inter), Inter, system-ui, sans-serif',
       }}
     >
-      <div style={{ minWidth: 0, flex: 1 }}>
+      {film ? (
+        <video
+          src={film.playbackUrl}
+          poster={film.posterUrl ?? undefined}
+          className={styles.film}
+          aria-label={'Preview of ' + film.title}
+          autoPlay muted loop playsInline preload="metadata"
+          onLoadedData={() => {
+            if (filmLoadedKey.current === film.playbackUrl) return
+            filmLoadedKey.current = film.playbackUrl
+            void trackEvent('checkout_resume_film_proof_loaded', {
+              ...checkoutResumeFilmTelemetry(film),
+              resume_choice_version: CHECKOUT_RESUME_CHOICE_VERSION,
+            })
+          }}
+        />
+      ) : null}
+      <div className={styles.copy} style={{ minWidth: 0, flex: 1 }}>
         <div style={{ fontSize: '0.88rem', lineHeight: 1.25, fontWeight: 850 }}>
-          Your {offer.planName} checkout is saved
+          {film ? 'Your latest film is ready' : <>Your {offer.planName} checkout is saved</>}
         </div>
+        {film ? (
+          <div style={{ marginTop: 3, color: '#62b3ff', fontSize: '0.76rem', lineHeight: 1.35, fontWeight: 800 }}>“{film.title}”</div>
+        ) : null}
+
         {savedGoal ? (
           <div style={{ marginTop: 3, color: '#62b3ff', fontSize: '0.76rem', lineHeight: 1.35, fontWeight: 800 }}>
             {savedGoal}
@@ -336,7 +365,7 @@ export default function CheckoutResumeBanner() {
           </div>
         )}
       </div>
-      <div ref={choiceRef} style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
+      <div ref={choiceRef} className={styles.actions} style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
         <a
           href={offer.resumeUrl}
           aria-disabled={checkout.pending !== null}
@@ -366,7 +395,7 @@ export default function CheckoutResumeBanner() {
             cursor: checkout.pending !== null ? 'wait' : 'pointer',
           }}
         >
-          {checkout.pending !== null ? 'Opening…' : savedGoal ? 'Resume this goal' : 'Resume checkout'}
+          {checkout.pending !== null ? 'Opening…' : film ? 'Finish secure checkout' : savedGoal ? 'Resume this goal' : 'Resume checkout'}
         </a>
         <Link
           href={COMPARE_PLANS_HREF}
@@ -392,6 +421,7 @@ export default function CheckoutResumeBanner() {
         </Link>
       </div>
       <button
+        className={styles.dismiss}
         type="button"
         aria-label="Dismiss checkout reminder"
         onClick={dismiss}

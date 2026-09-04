@@ -3,7 +3,7 @@ import type { CheckoutResumeOffer } from '@/lib/checkoutResumeSurface'
 export const CHECKOUT_RESUME_HUMAN_VIEW_VERSION =
   'checkout_resume_human_view_v1' as const
 export const CHECKOUT_RESUME_CHOICE_VERSION =
-  'resume_smaller_choice_v1' as const
+  'resume_own_film_v2' as const
 export const CHECKOUT_RESUME_VISIBLE_RATIO = 0.5 as const
 export const CHECKOUT_RESUME_DWELL_MS = 1000 as const
 export const CHECKOUT_RESUME_RETRY_DELAY_MS = 1500 as const
