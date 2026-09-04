@@ -1511,3 +1511,165 @@ a causa que está aberta desde 25/08.
 Nenhum. Nada desta rodada cruza pista.
 
 **Entrega:** 1 arquivo (este diário). Zero código de produção. Zero risco.
+
+---
+
+#### CHECKPOINT da #7 — 22:12 UTC (19:12 BRT) — não é entrada nova, é o fecho da mesma rotação
+
+Segundo disparo da rotação. Reconferi as duas coisas que a #7 deixou como
+"medir na próxima" e a checagem zero. **Nada mudou, e o motivo é falta de
+tráfego, não defeito.**
+
+| medida | 21:44 UTC (deploy) → 22:12 UTC |
+|---|---:|
+| `video_ready_viewed` (pessoas) | **0** |
+| `series_continue_seen` (qualquer superfície) | **0** |
+| `cinematic_zero_scenes_planned` | **0** |
+| render preso > 3h | **0** |
+| `generation_stage_error` na última 1h | **4** |
+
+**Os 4 erros da última hora são todos de `f716bf22`, às 21:41 e 21:42 UTC — ou
+seja, ANTES do deploy das 21:44.** Nenhuma vítima nova depois do conserto. O
+último evento de qualquer tipo na base é de 21:53 UTC: o site está parado.
+
+**As duas perguntas da #7 continuam sem resposta possível.** Zero chegadas à
+tela de fim de filme em 28 minutos ⇒ o par `done_screen` × `done_screen_top`
+não tem como ser comparado, e o `cinematic_zero_scenes_planned` não tem como
+gravar causa raiz enquanto ninguém tropeçar no defeito já consertado. Registrar
+isso como "0" é o denominador ausente de novo, não um veredito. **Não construí
+nada e não vou construir para preencher o relógio.**
+
+**Um dado que a #7 não destacou e vale guardar.** No rastro de `a1be6766`
+(20:37→20:42 UTC) o resfriamento anti-abuso — *"Two AI attempts were just
+refunded. Please wait a few minutes"* — disparou **6 vezes em 5 minutos** contra
+uma pessoa cujas falhas eram **nossas**, sem ela ter consumido nada. É
+exatamente o caso que a razão de release `empty_plan_rejected` (da #22) tira do
+filtro do resfriamento. O conserto está no ar desde 21:44; esta é a evidência
+em produção de que ele tinha alvo real, medida em gente, não em teoria.
+
+**Placar no corte (marco 2026-09-03 16:00 UTC, contas externas) — idêntico ao
+da #7, meia hora depois:** 44 cadastros · 29 pessoas com filme · 37 filmes ·
+4 checkouts iniciados · 0 `checkout_success_viewed` · **0 `payment_success`**.
+
+**Entrega: 1 arquivo (este diário). Zero código de produção. Zero risco.**
+Sem typecheck porque não há uma linha de TypeScript nesta rodada.
+
+**Próxima rotação (19:38 BRT):** a fila tem **2 commits não publicados** — o
+fundador precisa clicar. Enquanto não clicar, nada de hoje depois de `1ee5e384`
+chega em produção. Com o site parado, a jogada certa continua sendo **medir
+quando houver gente**, e a #7 já deixou os dois fios com endereço.
+#### CORREÇÃO, escrita 3 minutos depois: a fila andou enquanto eu media
+
+Ao enfileirar, a `origin/main` já não era `1ee5e384`. O fundador **clicou às
+~19:14 BRT** e entrou junto o `c40e3782` de uma sessão paralela. Duas coisas
+que eu tinha acabado de escrever ficaram velhas na mesma rodada — é a terceira
+vez hoje que a fila é reescrita debaixo de uma sessão, e por isso fica escrito:
+
+1. **A fila NÃO tem 2 commits parados.** Publicado até `c40e3782`; sobra só
+   este diário. Não há nada represado para o fundador clicar agora.
+2. **A causa raiz do "zero cenas" foi fechada por reprodução, não por
+   telemetria.** `cleanNarration` apagava tudo entre `[colchetes]`; roteiro
+   colado do ChatGPT com a fala inteira em colchetes virava narração vazia →
+   0 cenas → **crédito debitado**. O fallback agora recupera as **palavras do
+   cliente** antes de deixar a IA reescrever
+   (`app/api/generate-video-cinematic/route.ts`, +2 testes).
+
+Isso **muda a pergunta em aberto da #7**: eu ia esperar o
+`cinematic_zero_scenes_planned` gravar a causa raiz no primeiro despacho vazio
+pós-deploy. Essa espera **não é mais o caminho** — a causa tem nome e conserto.
+O evento vira o que sempre devia ser: **rede de segurança**, e o teste passa a
+ser "ele fica em 0", não "ele finalmente acende".
+
+E encaixa com a vítima da #7: `f716bf22` veio do **`chatgpt.com`** e **colou
+roteiro pronto de 328 caracteres**. É exatamente a forma do defeito agora
+reproduzido. Não afirmo que é o mesmo caso — o roteiro dela não foi lido — mas
+o canal, o formato e o desfecho batem, e vale conferir antes de tratar como
+duas coisas.
+
+**Próxima rotação (19:38 BRT):** com o site parado e a causa raiz fechada, a
+jogada continua sendo **medir quando houver gente** — os dois fios da #7 já têm
+endereço. Nada a construir.
+#### E aí eu fui conferir a vítima da #7 — e derrubei a minha própria hipótese
+
+Escrevi acima que o caso de `f716bf22` "encaixa" no defeito dos colchetes.
+**Fui ler o rastro dela antes de deixar isso no papel, e não encaixa.** É outro
+defeito, colado no primeiro. Os 328 caracteres dela **não eram um roteiro**:
+
+> `Create a 35-second cinematic YouTube Short in English about what would
+> happen if the Moon …` — `generation_attempt_opened.topic_hint`,
+> `topic_complete: false`
+
+Isso é a **instrução que ela deu ao ChatGPT**, colada inteira na nossa caixa.
+O roteiro em si não existe em lugar nenhum do banco (nenhum evento guarda o
+texto; só `prompt_length`, `input_length` e este `topic_hint` truncado). O que
+o banco guarda é a **sequência de decisões do produto**, e ela é o achado:
+
+| hora UTC | o que o produto fez |
+|---|---|
+| 21:38:45 | `activation_autostart_skipped` · `prompt_length: 328` · `script_mode: **ai**` |
+| 21:39:02 | `chatgpt_quickstart_selected` · **`input_type: "finished_script"`** |
+| 21:40:40 | `activation_autostart_skipped` · `script_mode: **verbatim**` |
+| 21:40:48 | `script_preflight_overridden` · **`speech_seconds: 20`** vs `target_seconds: 35` |
+| 21:41:12 | `generation_attempt_opened` · `topic_complete: **false**` |
+| 21:41:14 | `cinematic_dispatch_result` · **`planned: 0`, `scenes: []`** |
+| 21:42:43 | idem — segunda tentativa, mesmo desfecho |
+
+**O produto classificou uma INSTRUÇÃO como `finished_script`.** A partir daí
+tudo o que ele fez foi coerente com uma premissa errada: ofereceu o modo
+`verbatim` (narrar o texto **como está**), ela aceitou, e o preflight ainda
+avisou que só havia **20 s de fala para um alvo de 35 s** — ela **passou por
+cima** e mandou gerar. Duas vezes. Zero cenas as duas.
+
+**Por que isso importa mais que o meu palpite.** Os dois consertos de hoje
+(`d58a0d7b`, a trava de "nunca narrar uma instrução", e `c40e3782`, os
+colchetes) atacam o **fim** dessa cadeia. Nenhum dos dois toca a
+**classificação** que a começou. Pelo que li, o desfecho dela **hoje** seria:
+a trava reconhece a instrução, recusa narrá-la, e o app diz a verdade em vez de
+culpar a fal — **melhor, e ainda assim sem filme**. Mensagem honesta não é
+entrega. Escrevo como leitura de código, não como fato medido: **não há um
+único caso pós-deploy para confirmar** (0 despachos vazios desde 21:44).
+
+**O ponto de conserto real fica a montante, e é barato:** um texto que começa
+com *"Create a 35-second …"* é um **pedido**, não uma fala. Quem cola isso quer
+que a gente **escreva** o roteiro (`script_mode: ai`), não que **narre** o
+pedido dele. Ela começou em `ai` e o produto a moveu para `verbatim`.
+
+**Não vou construir isso agora** — a rotação é de medição, e a
+classificação nasce em `chatgpt_quickstart`, superfície de aquisição
+(pista do Codex). Vira **pedido entre pistas**, com a reprodução pronta.
+
+**Próxima rotação (19:38 BRT):** com o site parado, a jogada continua sendo
+**medir quando houver gente**. Mas agora existe um item de construir com dono e
+evidência: **`finished_script` que na verdade é `instruction`**.
+
+#### Nota de processo — eu quase apaguei dois arquivos do Codex, e o `enfileirar.sh` ficou verde
+
+Registro porque é a **quarta** colisão de fila do dia e o modo de falha é novo.
+Corrigi o texto acima com `git commit --amend` **três vezes**; a cada vez o
+`enfileirar.sh` rebasava a versão nova **por cima da versão velha** — a fila
+ficou com **3 cópias** do mesmo checkpoint, e cada uma dizia "enfileirado" em
+verde. O estrago não estava nas cópias: como as minhas commits nasceram de uma
+`origin/main` que **já tinha andado duas vezes** (`c40e3782` e depois
+`c5c91f0c`), o diff acumulado da fila contra a main passou a **APAGAR**
+`docs/HANDOFF-CODEX-CAIXA-10H-2026-09-04.md` (−33) e
+`docs/queries/CAIXA-10H-PAGAMENTOS-2026-09-04.sql` (−25). Trabalho do Codex,
+que eu nunca abri.
+
+**O que pegou:** olhar `git diff --stat origin/main entrega-atual` e ver
+**linhas removidas em arquivo que não é meu**. O `--stat` do commit sozinho
+dizia só "+76" e parecia inocente.
+
+**Conserto:** reconstruí **um** commit em cima da `origin/main` atual, contendo
+só as adições aos meus dois documentos (132 inserções, **zero remoções**), e
+substituí a fila depois de provar que ela continha **apenas as minhas três
+commits superadas** — nada de terceiros. Confirmado no `--name-only`.
+
+**A regra que falta no programa da rotação**, e que vale para todas as pistas:
+
+```sh
+git diff --stat origin/main entrega-atual   # remocao em arquivo alheio = PARE
+```
+
+`amend` + `enfileirar` **não** é uma operação idempotente: o script rebasa, não
+substitui. Quem precisar corrigir um commit já enfileirado deve **reconstruir
+sobre a ponta atual**, nunca amendar e re-enfileirar.
