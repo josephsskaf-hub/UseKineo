@@ -296,7 +296,34 @@ checa(
     rota.indexOf("outcome: 'growth_limit'"),
 )
 
-// ═══ 10. NAO-REGRESSAO: quem ja enchia o alvo nao muda de caminho ═════════
+// ═══ 10. QUEM EXPLICA — o cliente REAL, antes do aceite ══════════════════
+// A rota já devolvia os dois campos acima, mas o navegador os descartava.
+// Isso fazia a pessoa pedir 35s, aprovar o texto e receber 30s sem explicação.
+// Estas âncoras cobram o contrato completo: capturar, mostrar, medir e limpar.
+const cliente = readFileSync(join(raiz, 'app', '(dashboard)', 'generate', 'GenerateClient.tsx'), 'utf8')
+checa('o cliente captura effectiveDuration', /const effectiveDuration = Number\(data\?\.effectiveDuration\)/.test(cliente))
+checa('o cliente exige autofitDown verdadeiro', /data\?\.autofitDown === true/.test(cliente))
+checa(
+  'o cliente so explica quando a duracao efetiva e menor que a pedida',
+  /effectiveDuration < scriptTooShort\.targetSeconds/.test(cliente),
+)
+checa('o aviso aparece no painel de leitura', /You asked for \{expandedDurationAdjustment\.requestedSeconds\}s/.test(cliente))
+checa('o aviso diz a duracao que cabe', /This script fits\{' '\}/.test(cliente))
+checa('a exposicao mede a duracao efetiva', /effective_duration: typeof data\?\.effectiveDuration/.test(cliente))
+checa('a exposicao mede se houve descida', /autofit_down: data\?\.autofitDown === true/.test(cliente))
+checa('o aceite leva a duracao pedida', /requested_duration: ajusteDuracao\?\.requestedSeconds/.test(cliente))
+checa('o aceite leva a duracao efetiva', /effective_duration: ajusteDuracao\?\.effectiveSeconds/.test(cliente))
+checa('o aceite distingue a descida', /autofit_down: ajusteDuracao !== null/.test(cliente))
+checa('descartar limpa o aviso', /setExpandedIsRewrite\(false\)\s*setExpandedDurationAdjustment\(null\)/.test(cliente))
+const blocoResposta = cliente.slice(
+  cliente.indexOf('const effectiveDuration = Number(data?.effectiveDuration)'),
+  cliente.indexOf('} catch {', cliente.indexOf('const effectiveDuration = Number(data?.effectiveDuration)')),
+)
+checa('explicar nao muda o seletor de duracao', !/setDuration\(/.test(blocoResposta))
+checa('o aviso nao fala de preco', !/(price|pricing|\$|USD)/i.test(cliente.match(/You asked for[\s\S]{0,350}every second narrated/)?.[0] ?? ''))
+checa('o aviso nao fala de credito', !/credit/i.test(cliente.match(/You asked for[\s\S]{0,350}every second narrated/)?.[0] ?? ''))
+
+// ═══ 11. NAO-REGRESSAO: quem ja enchia o alvo nao muda de caminho ═════════
 {
   const autor = texto(60)
   const falaAutor = parseUserScript(autor).narration || autor
