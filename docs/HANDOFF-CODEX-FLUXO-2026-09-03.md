@@ -267,3 +267,74 @@ Nada.
 - **TESTADO LOCALMENTE — 04/09/2026 00:51 BRT:** 279 verificações direcionadas passaram, TypeScript e diff check ficaram verdes; a comparação desktop/mobile foi inspecionada.
 - **VALIDADO EM PRODUÇÃO — 04/09/2026 00:49 BRT:** Vercel, Guardião, landing, `/llms.txt` e `/api/facts` confirmaram o mesmo destino com fragmento.
 - **QUESTÃO PENDENTE / DESCONHECIDO:** vigia de checkout/origem e efeito em assinatura aguardam dados pós-deploy; o pedido de waitroom permanece com a pista Claude.
+
+---
+
+## Rodada 5 — K2/K18 · roteiro do autenticado chega ao Studio — 04/09 00:59→01:12 BRT — ENTREGA CONCLUÍDA
+
+- **IMPLEMENTADO / VALIDADO EM PRODUÇÃO:** a caixa pública de roteiro agora preserva roteiro, campanha, intenção, modo e duração também quando a pessoa já está autenticada; em vez de o middleware descartá-los e mandá-la ao dashboard genérico, o salto seguro entra em `/studio/create`.
+- **BLOQUEADO / DESCONHECIDO:** o vigia individual de checkout e a origem dos cadastros das últimas 2 horas não foram remensurados; não há conector Supabase utilizável nesta sessão e nenhum zero foi inferido.
+
+### Dado, prioridade e anti-repetição
+
+- **FATO CONFIRMADO:** a instrução automática ainda citava a rota `/v/[id]` e o corte de 1.000 caracteres já concluídos nas rodadas 2 e 3; o handoff vigente selecionava K18. A auditoria de K18 encontrou primeiro um defeito no launcher-base: `preserveHandoffForSignedIn` existia, mas seu default era `false` e a landing não o ativava. Fontes: `app/youtube-shorts-from-topic/TopicGeneratorForm.tsx:28,56`, `app/chatgpt-to-youtube-shorts/page.tsx:398-416` antes de `a55e187a` e rodadas 2–4 deste documento.
+- **FATO CONFIRMADO:** uma sessão autenticada que chegava a `/signup` sem `redirect` era enviada a `/dashboard`; esse caminho descartava os campos públicos do roteiro. Fontes: `lib/supabase/middleware.ts:57-68` e `app/youtube-shorts-from-topic/TopicGeneratorForm.tsx:67-83` antes de `c879b939`.
+- **HIPÓTESE:** eliminar esse desvio aumenta a proporção de pessoas autenticadas que chegam à criação após colar roteiro; o deploy não prova efeito em assinatura sem uma janela pós-publicação.
+- **FATO CONFIRMADO:** a solução reutiliza o mesmo formulário e o mesmo contrato puro; não cria landing, signup, Studio, evento ou promessa paralelos. Fontes: `app/chatgpt-to-youtube-shorts/page.tsx:398-416`, `app/youtube-shorts-from-topic/TopicGeneratorForm.tsx:71-80`, `lib/creationHandoff.ts:20-65`.
+
+### Vigia do checkout e placar
+
+- **BLOQUEADO / DESCONHECIDO — 04/09/2026:** sem leitura aceita do Supabase, não há linha individual dos checkouts das últimas 2 horas nem corte novo por origem; nenhum zero foi inferido.
+- **EVIDÊNCIA DE PRODUÇÃO — medição de 03/09/2026 22:08 BRT:** o último placar cronologicamente coerente permanece em 15 cadastros, 10 pessoas com filme entregue (67%), 1 checkout de desejo, 1 checkout de defeito, 0 assinaturas e 0 pessoas com falha sem filme. Fonte: `docs/SPRINT-ASSINATURAS-2026-09-03.md:960-972`.
+- **CONTRADIÇÃO / DESCONHECIDO:** o diário #8 mantém cabeçalho com janela futura em relação ao próprio commit e não foi usado para atualizar o placar. Fonte: `docs/SPRINT-ASSINATURAS-2026-09-03.md:1120-1125` e commit `e34a56b8`.
+
+### O que mudou
+
+- **IMPLEMENTADO:** a instância de `TopicGeneratorForm` do launcher ChatGPT passou a ativar `preserveHandoffForSignedIn`. Fonte: `app/chatgpt-to-youtube-shorts/page.tsx:398-416`.
+- **IMPLEMENTADO:** o builder autenticado virou contrato puro compartilhado: limita o texto aos 1.000 caracteres anunciados, carrega `prompt`, `create_intent`, `intent_campaign`, `language`, `script_mode` e `duration`, e recusa prompt vazio. Fontes: `lib/creationHandoff.ts:20-65`, `app/youtube-shorts-from-topic/TopicGeneratorForm.tsx:67-80`.
+- **FATO CONFIRMADO:** nenhum preço, oferta, desconto, motor, saldo, autorização de geração, parser, arquivo de dashboard/Claude ou arquivo de CAIXA foi alterado. Fonte: diffs de `a55e187aa11e8e7a00929d6cb2610f1a00b88e8d` e `c879b93941c027609b362dc7f50f584f5941514c`.
+- **TESTADO LOCALMENTE — 04/09/2026 01:09 BRT:** `test-chatgpt-script-handoff` executou 109/109 invariantes, inclusive destino autenticado, limite, roteiro, campanha, idioma PT, modo verbatim e 35 segundos; `test-seo-form-handoff` passou 50/50, `test-checkout-auth-session-bridge` passou 61/61, TypeScript e `git diff --check` saíram com código 0.
+- **CONTRADIÇÃO / FATO CONFIRMADO:** `test-engine-landing-intent` segue vermelho porque sua fixture espera sete motores enquanto `main` já expõe oito, incluindo `s25`; nenhum arquivo desse catálogo foi alterado e a falha não foi mascarada nem atribuída à rodada.
+- **FATO CONFIRMADO — revisão independente em 04/09/2026:** três auditores somente leitura confirmaram a perda do handoff autenticado e o conserto; depois da primeira revisão, o teste deixou de ser apenas textual e passou a executar o builder com os campos do contrato.
+- **FATO CONFIRMADO:** não há comparativo visual nesta rodada porque nenhum pixel, copy ou layout mudou; a mudança é o destino observado após a ação da pessoa autenticada.
+
+### Integração e produção
+
+- **IMPLEMENTADO:** código integrado por fast-forward em `main` no SHA `c879b93941c027609b362dc7f50f584f5941514c`, com commit funcional `a55e187aa11e8e7a00929d6cb2610f1a00b88e8d` como pai direto.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 01:10 BRT:** a Vercel concluiu o deployment `2u6KnZTJmB7LXtXmXWEna3C3L5HC` para o SHA final.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 01:10 BRT:** o Guardião #53 concluiu `success`; os jobs “Suíte de testes” e “TypeScript” terminaram verdes. Fonte: `https://github.com/josephsskaf-hub/UseKineo/actions/runs/33835768291`.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 01:11 BRT:** `https://www.usekineo.com/chatgpt-to-youtube-shorts` respondeu 200 pela Vercel e o HTML publicado contém o id `chatgpt-script-handoff` e o rótulo da caixa.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** não foi usada uma conta real autenticada em produção; o ramo foi provado pelo builder executável, pelo middleware existente, pelo TypeScript e pelo deploy, não por um E2E com sessão de cliente.
+
+### Estado real de K18/F4
+
+- **FATO CONFIRMADO / BLOQUEADO:** o contrato executável de idioma é `en|pt|es`; signup e APIs fazem fallback de qualquer outro valor para inglês. Não publicar DE/FR até a pista dona implementar e testar o caminho. Fontes: `app/youtube-shorts-from-topic/TopicGeneratorForm.tsx:24`, `app/(auth)/signup/page.tsx:60`, `app/(dashboard)/generate/GenerateClient.tsx:745`, `app/api/analyze-idea/route.ts:700`, `app/api/generate-script/route.ts:288`.
+- **FATO CONFIRMADO:** as páginas PT/ES atuais são portas de tópico, não launchers de roteiro verbatim; não existe exemplo público verificado com narração nesses idiomas. K18 não foi declarado concluído. Fontes: `app/gerador-de-shorts-gratis/page.tsx:84-100`, `app/generador-de-shorts-gratis/page.tsx:82-98`, `lib/publicExamples.ts:1-11,40-125` e `docs/PROGRAMA-CODEX-ASSINATURAS-2026-09-03.md:372-377`.
+- **CONTRADIÇÃO:** a landing espanhola ainda publica seu próprio endereço como alternate `pt-BR`, enquanto as páginas EN/PT apontam ao endereço português. Fontes: `app/generador-de-shorts-gratis/page.tsx:28`, `app/gerador-de-shorts-gratis/page.tsx:30`. O defeito foi identificado, mas deliberadamente não entrou nesta rodada de uma mudança.
+- **CONTRADIÇÃO / RISCO DE MEDIÇÃO:** a landing ChatGPT envia `utm_source=seo` mesmo quando a pessoa veio de ChatGPT; esse valor pode vencer o referrer nos classificadores. Fonte: `app/chatgpt-to-youtube-shorts/page.tsx:402-403`. Não copiar esses UTMs para K18 antes de corrigir a atribuição.
+
+### Como medir e quando parar
+
+- **SUGESTÃO:** nas primeiras 24 horas completas, contar pessoas autenticadas — não eventos — que fizeram `organic_topic_submitted` com campanha `chatgpt_to_shorts` e alcançaram o primeiro evento server-side da criação na mesma sessão; comparar com a janela anterior sem somar períodos diferentes. O baseline desse ramo é **DESCONHECIDO**.
+- **SUGESTÃO — gate de parada:** corrigir ou reverter se qualquer campo do redirect autenticado sumir, se o destino sair de `/studio/create`, se prompt vazio armar criação ou se o normalizador de redirect aceitar origem externa.
+- **RISCO:** o transporte autenticado continua usando query string e o launcher público continua limitado aos 1.000 caracteres que sua copy anuncia; o pedido separado das 00:31 cobre o hardening de 2.001–5.000 no cockpit sem ampliar esta rodada.
+
+### PEDIDOS
+
+- **FATO CONFIRMADO:** nenhum pedido foi baixado nesta rodada.
+- **SUGESTÃO / BLOQUEADO:** foi aberto às 01:12 BRT um pedido para a pista Claude confirmar/implementar `de|fr` ponta a ponta antes de qualquer publicação K18 nesses idiomas. Fonte: `docs/PEDIDOS-ENTRE-PISTAS-2026-09-03.md`.
+
+## PRÓXIMA JOGADA
+
+- **SUGESTÃO:** entregar o launcher localizado PT/ES como K18 parcial, com preview desktop/mobile e sem reaproveitar exemplo silencioso como prova narrada; antes da indexação, corrigir o alternate `pt-BR` da página espanhola e remover a falsa atribuição `utm_source=seo` do canal ChatGPT. DE/FR e exemplos narrados permanecem gates explícitos.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+## 📋 O QUE ACONTECEU
+
+- **IMPLEMENTADO:** quem já estava autenticado agora cola o roteiro e chega a `/studio/create` com roteiro, campanha, intenção `trial_best`, modo `verbatim` e alvo de 35 segundos preservados.
+- **TESTADO LOCALMENTE — 04/09/2026 01:09 BRT:** 220 verificações direcionadas passaram; o contrato autenticado foi executado, e TypeScript/diff check ficaram verdes.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 01:11 BRT:** Vercel, Guardião #53 e a landing pública ficaram verdes no SHA `c879b939`.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** K18 ainda não está concluído; DE/FR, exemplos narrados, hreflang PT da landing ES e a atribuição falsa de SEO seguem abertos.
