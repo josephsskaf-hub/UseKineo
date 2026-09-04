@@ -1,5 +1,5 @@
 export const TRIAL_ACTIVE_SUBSCRIPTION_CTA_VERSION =
-  'trial_active_subscription_cta_human_view_v1' as const
+  'trial_active_subscription_cta_fresh_state_v2' as const
 
 export const TRIAL_ACTIVE_SUBSCRIPTION_CTA_VIEW_EVENT =
   'trial_active_subscription_cta_viewed' as const
