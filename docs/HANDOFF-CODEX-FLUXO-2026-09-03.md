@@ -775,3 +775,61 @@ Nada.
 - **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 09:44 BRT:** R8 teve uma sessão observável; R9 e R10 ainda não tiveram eventos de entrada pós-deploy; R11 não teve falha OAuth pós-deploy. Não há amostra para atribuir conversão às quatro mudanças.
 - **FATO CONFIRMADO:** a rodada respeitou o gate de medição pura, alterou apenas este handoff e não tocou produto, preço, checkout, banco, mensagens, dashboard Claude ou arquivos CAIXA.
 - **SUGESTÃO:** a próxima unidade pequena e observável é conservar o trabalho já validado quando o callback OAuth falha, sem misturá-la à recuperação de senha.
+
+---
+
+## Rodada 13 — falha OAuth conserva trabalho salvo — 04/09 09:57→10:17 BRT — CONCLUÍDA
+
+- **FATO CONFIRMADO:** não havia pedido aberto viável para FLUXO nem implementação equivalente no histórico. O botão Google transportava `next`, mas o fallback de falha descartava todo destino não-checkout; o login já sabia validar e mostrar `example_remix` e `free_script`. Fontes: `components/GoogleSignInButton.tsx:24-37`, `lib/growth/checkoutOAuthFailureHandoff.ts:38-42`, `app/auth/callback/route.ts:205-220` antes deste commit, `lib/growth/signupCreationPreview.ts:147-155` e `app/(auth)/login/page.tsx:69,280`.
+- **DECISÃO APROVADA:** executar somente a ramificação OAuth nesta rodada, em helper FLUXO próprio; recuperação de senha continua separada e checkout permanece soberano. Fonte: próxima jogada da Rodada 12 neste handoff e ownership do programa §8.1.
+
+### Vigia do checkout e placar
+
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 10:01–10:02 BRT:** o vigia encontrou uma pessoa externa direta, conta nova, com 0 filmes e 25 créditos: `auth_callback_completed` com destino checkout às 10:01:18, `checkout_attempted`/`checkout_started` Pro às 10:01:21–22 e retorno ao `/studio` às 10:01:56, sem `checkout_success_viewed` no corte. É checkout de defeito pela classificação canônica. Fonte: SQL somente leitura do §8.2 no projeto de produção, com filtros internos canônicos. O pedido correspondente foi encaminhado à pista CAIXA em `docs/PEDIDOS-ENTRE-PISTAS-2026-09-03.md`.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 10:01 BRT:** desde 03/09 13:00 BRT, o placar canônico é **34 cadastros, 21 pessoas com filme, 1 checkout com filme, 2 checkouts sem filme, 0 assinaturas e 0 pessoas com falha sem filme**. Fonte: SQL canônico do programa, somente leitura; pessoas distintas e contas internas excluídas.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 10:01 BRT:** nas duas horas anteriores houve 6 cadastros externos: **direto 5, ChatGPT 1**. A janela móvel não foi somada às medições anteriores.
+
+### O que mudou
+
+- **IMPLEMENTADO:** `buildCreationOAuthFailureHandoff()` normaliza o destino e conserva somente os contratos já allowlisted de remix de exemplo ou roteiro grátis; destino genérico, externo, backslash, marcador adulterado, criação executável e checkout falham fechados. Fonte: `lib/growth/creationOAuthFailureHandoff.ts:27-56`.
+- **IMPLEMENTADO:** na falha do callback, checkout é resolvido primeiro e permanece intacto; somente quando ele recusa o destino o helper FLUXO pode substituir o login genérico. O carregamento dinâmico mantém o fallback anterior se o módulo falhar. Fonte: `app/auth/callback/route.ts:204-222`.
+- **IMPLEMENTADO:** a telemetria adiciona apenas versão, booleano e enum `example_remix|free_script`; prompt, URL e redirect nunca entram no evento. Fonte: `lib/growth/creationOAuthFailureHandoff.ts:11-15,38-42` e `app/auth/callback/route.ts:225-237`.
+- **FATO CONFIRMADO:** nenhum helper/teste `checkout*`, cookie de atribuição, Stripe, preço, oferta, desconto, banco, migration, saldo, mensagem, dashboard/Claude ou arquivo CAIXA foi alterado no commit funcional `474c6f2fbe0999b1e3070d7b76da9624d5fdc7d6`.
+- **TESTADO LOCALMENTE — 04/09/2026 10:12 BRT:** cinco suítes somaram **399 verificações verdes** (`166+56+61+37+79`), inclusive as duas suítes CAIXA de regressão; TypeScript real e `git diff --check` saíram com código 0.
+- **TESTADO LOCALMENTE — 04/09/2026 10:08 BRT:** o comparativo autocontido antes/depois, desktop/mobile, foi renderizado e inspecionado sem clipping. Fontes: `docs/previews/FLUXO-OAUTH-FAILURE-SAVED-WORK-2026-09-04.html` e `.png`.
+- **FATO CONFIRMADO:** três auditores somente leitura deram GO para a unidade isolada; verificaram anti-repetição, ownership, segurança de redirect, privacidade, compatibilidade Next/TS e regressões de checkout. Nenhum auditor editou arquivo.
+
+### Integração e produção
+
+- **IMPLEMENTADO:** commit funcional `474c6f2fbe0999b1e3070d7b76da9624d5fdc7d6` integrado em `main` por fast-forward sobre `feb01a4f52fb08012c15749c7b7ea24ee75ee1f5`.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 10:11:59 BRT:** Guardião do PR #13, execução `33876629545`, concluiu `success` no SHA funcional exato.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 10:14 BRT:** a Vercel concluiu `dpl_ESMsDsjUbdryrgYrfzfY9Ca1eiiq` como `READY`, alvo `production`, no SHA funcional exato `474c6f2fbe0999b1e3070d7b76da9624d5fdc7d6`.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 10:16 BRT:** navegador in-app isolado e anônimo abriu o login canônico com o redirect real de `free_script` e renderizou H1 de continuidade, `SAVED BEFORE SIGN-IN`, três trechos preservados e opções Google/e-mail. Nenhuma conta, callback, formulário ou geração foi acionado nessa prova. Uma tentativa anterior em Chrome foi descartada porque já continha sessão autenticada e foi encerrada imediatamente, sem interação; não foi usada como evidência.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** nenhum OAuth real foi deliberadamente quebrado e nenhuma conta foi criada para validar o ramo ponta a ponta; chamar artificialmente o callback gravaria telemetria de produção e contaminaria a medição.
+
+### Decisão, risco e medição
+
+- **HIPÓTESE:** conservar a prova visível após falha de provedor reduz a chance de abandono por trabalho aparentemente perdido; ainda não existe amostra pós-deploy para atribuir primeiro filme, checkout ou assinatura.
+- **RISCO:** o prompt completo continua na query e no histórico do navegador, comportamento preexistente no auth e agora prolongado após essa falha; o gate é nunca copiá-lo para telemetria. O login não exibe mensagem textual de erro OAuth — somente conserva o trabalho — e isso não foi prometido.
+- **SUGESTÃO:** medir separadamente pessoas de `example_remix_topic_submitted` e `free_script_to_signup_clicked` que depois tenham `auth_callback_failed` com `has_saved_creation=true`, até cadastro, primeiro filme, checkout com filme e assinatura; nunca somar eventos ou janelas.
+- **SUGESTÃO — gate de parada:** corrigir ou reverter se checkout perder precedência, se qualquer destino fora dos dois contratos ganhar redirect preservado, se conteúdo entrar na telemetria ou se a falha deixar de cair no login genérico quando o helper não reconhece o destino.
+
+### PEDIDOS
+
+- **IMPLEMENTADO:** pedido `DE codex-fluxo PARA codex-caixa` registrado às 10:02 BRT para acompanhar a pessoa viva do checkout sem alterar preço, oferta ou arquivos da outra pista.
+
+## PRÓXIMA JOGADA
+
+- **SUGESTÃO:** numa rodada própria, provar e preservar os mesmos dois contratos durante recuperação de senha, mantendo checkout soberano e sem misturar mais ramificações de auth. A R14 pode implementar porque a próxima medição pura obrigatória é a R16.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+## 📋 O QUE ACONTECEU
+
+- **IMPLEMENTADO:** uma falha OAuth não apaga mais o remix ou roteiro já validado; o callback volta ao login com o trabalho preservado, sem aceitar destinos genéricos e sem tocar checkout.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 10:01 BRT:** placar em 34 cadastros, 21 pessoas com filme, 1 checkout com filme, 2 sem filme e 0 assinaturas; o vigia achou uma pessoa nova em checkout e gerou pedido para CAIXA.
+- **TESTADO LOCALMENTE:** 399 verificações, TypeScript, diff check e preview desktop/mobile ficaram verdes; três auditorias deram GO.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 10:16 BRT:** Guardião #13, Vercel e login anônimo canônico ficaram verdes no SHA `474c6f2f`.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** impacto em primeiro filme/assinatura, volume real de falhas com trabalho salvo e E2E autenticado continuam sem prova.
