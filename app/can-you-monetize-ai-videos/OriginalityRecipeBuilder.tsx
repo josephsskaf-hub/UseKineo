@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { rememberSignupCampaign, trackEvent } from '@/lib/analytics'
 import {
   buildOriginalityPrompt,
@@ -13,7 +13,28 @@ const CAMPAIGN = 'starter_monetization_originality_2026_08_28'
 export default function OriginalityRecipeBuilder() {
   const [topic, setTopic] = useState('')
   const [recipeId, setRecipeId] = useState<OriginalityRecipeId>('surprising_explanation')
+  const [copyStatus, setCopyStatus] = useState('')
+  const [error, setError] = useState('')
+  const briefRef = useRef<HTMLTextAreaElement | null>(null)
   const prompt = useMemo(() => buildOriginalityPrompt(topic, recipeId), [topic, recipeId])
+  const hasTopic = topic.trim().length >= 3
+
+  async function copyBrief() {
+    if (!hasTopic) return
+    try {
+      await navigator.clipboard.writeText(prompt)
+      setCopyStatus('Brief copied.')
+      void trackEvent('monetization_originality_brief_copied', {
+        source: CAMPAIGN,
+        version: 'originality_brief_preview_v1',
+        recipe_id: recipeId,
+      })
+    } catch {
+      briefRef.current?.focus()
+      briefRef.current?.select()
+      setCopyStatus('Select and copy the brief below. You can still continue to signup.')
+    }
+  }
 
   return (
     <section
@@ -35,16 +56,22 @@ export default function OriginalityRecipeBuilder() {
         Build an original angle for your next Short
       </h2>
       <p style={{ color: '#d2d2d7', lineHeight: 1.6, fontSize: '0.95rem', margin: '0 0 18px' }}>
-        YouTube does not reward an AI label; it rewards a reason to watch. Add your topic, choose the value you want to give the viewer, and Kineo will carry that recipe into a free first draft.
+        Add your topic and choose what the viewer should get from it. Read and copy your brief here, then continue to Kineo when you are ready to make the video.
       </p>
 
       <form
         action="/signup"
         method="get"
-        onSubmit={() => {
+        onSubmit={(event) => {
+          if (!hasTopic) {
+            event.preventDefault()
+            setError('Add a topic with at least 3 characters.')
+            return
+          }
           rememberSignupCampaign(CAMPAIGN)
           const metadata = {
             source: CAMPAIGN,
+            brief_version: 'originality_brief_preview_v1',
             placement: 'after_policy_checklist',
             recipe_id: recipeId,
             topic_length: topic.trim().length,
@@ -65,7 +92,11 @@ export default function OriginalityRecipeBuilder() {
         <input
           id="monetization-originality-topic"
           value={topic}
-          onChange={(event) => setTopic(event.target.value)}
+          onChange={(event) => {
+            setTopic(event.target.value)
+            setCopyStatus('')
+            setError('')
+          }}
           required
           minLength={3}
           maxLength={180}
@@ -82,6 +113,7 @@ export default function OriginalityRecipeBuilder() {
             fontSize: 16,
           }}
         />
+        {error ? <p role="alert" style={{ color: '#ffb86b', fontSize: 13 }}>{error}</p> : null}
 
         <fieldset style={{ border: 0, padding: 0, margin: '18px 0 0' }}>
           <legend style={{ color: '#f5f5f7', fontSize: 13, fontWeight: 800, marginBottom: 9 }}>
@@ -107,7 +139,10 @@ export default function OriginalityRecipeBuilder() {
                     name="originality_recipe"
                     value={option.id}
                     checked={selected}
-                    onChange={() => setRecipeId(option.id)}
+                    onChange={() => {
+                      setRecipeId(option.id)
+                      setCopyStatus('')
+                    }}
                     style={{ marginRight: 8 }}
                   />
                   <strong style={{ color: '#f5f5f7', fontSize: 13 }}>{option.label}</strong>
@@ -119,6 +154,29 @@ export default function OriginalityRecipeBuilder() {
             })}
           </div>
         </fieldset>
+
+        {hasTopic ? (
+          <div style={{ marginTop: 20 }}>
+            <label htmlFor="originality-brief-preview" style={{ display: 'block', fontSize: 13, fontWeight: 800, marginBottom: 8 }}>
+              Your video brief — ready to keep
+            </label>
+            <p style={{ color: '#86868b', fontSize: 12, lineHeight: 1.5, margin: '0 0 10px' }}>
+              This is the direction for your video, not a finished narration. The same text goes with you through signup.
+            </p>
+            <textarea
+              ref={briefRef}
+              id="originality-brief-preview"
+              readOnly
+              value={prompt}
+              rows={7}
+              style={{ boxSizing: 'border-box', width: '100%', resize: 'vertical', border: '1px solid #3a3a3d', borderRadius: 12, background: '#0b0b0d', color: '#d2d2d7', padding: 14, font: 'inherit', fontSize: 14, lineHeight: 1.6 }}
+            />
+            <button type="button" onClick={copyBrief} style={{ marginTop: 8, border: '1px solid #54545a', borderRadius: 10, background: 'transparent', color: '#f5f5f7', padding: '10px 16px', fontWeight: 700, cursor: 'pointer' }}>
+              Copy brief
+            </button>
+            <p role="status" style={{ color: '#d2d2d7', fontSize: 12, minHeight: 18 }}>{copyStatus}</p>
+          </div>
+        ) : null}
 
         <input type="hidden" name="prompt" value={prompt} />
         <input type="hidden" name="create_intent" value="fast" />
