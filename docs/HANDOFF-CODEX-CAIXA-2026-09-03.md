@@ -354,3 +354,67 @@ A mensagem de saldo que realmente aparece está dentro da tela do Claude; o
 arquivo de modal atribuído à CAIXA está morto. Não desperdicei uma entrega nele.
 A página de preço já usa o filme como prova e teve uma assinatura na pequena
 coorte, mas ainda não tem amostra suficiente para receber outra variante.
+
+---
+
+## ROUND 7 — K8 · prova de idioma bloqueada por ausência de fonte
+
+**Data:** 2026-09-04 10:37 BRT
+**Pista:** Growth-B2C / CAIXA
+**Branch:** `codex/caixa-language-proof-r7`
+
+### EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, 2026-09-04 10:35 BRT
+
+- O schema de produção não possui coluna com `language` ou `locale` em
+  `profiles`, `videos` ou `render_jobs`.
+- O placar e o vigia não mudaram desde a rodada anterior: 34 cadastros, 21
+  pessoas com filme, 1 checkout de desejo, 2 sem filme, 0 assinaturas, 0 falhas
+  sem filme; 1 pessoa `activation_defect` permanece no vigia de 2 horas.
+
+### FATO CONFIRMADO — o que doía
+
+- K8 pede que a caixa diga “narrated in [idioma]” com base no filme da pessoa.
+  `/api/videos` entrega motor, duração e mídia, mas não entrega idioma.
+- O runtime de narração aceita apenas `en | pt | es` em funções centrais. O
+  pedido já aberto para a pista Claude registra que `de` e `fr` hoje caem para
+  inglês; portanto “every language” seria promessa falsa.
+- Não existe implementação viva nem evento versionado de K8. O grep no código,
+  nos handoffs e no log da main não encontrou caller a medir.
+
+### DECISÃO REVERSÍVEL / GATE
+
+K8 fica BLOQUEADO até existir uma fonte owner-scoped do idioma efetivamente
+usado no TTS. Não inferir idioma a partir do roteiro, país, navegador ou origem.
+Quando a fonte existir, a CAIXA pode consumir o campo sem tocar no pipeline e
+mostrar somente `en`, `pt` ou `es` confirmados; valor ausente esconde a prova.
+
+### IMPLEMENTADO
+
+Nenhuma alteração de produto. Diagnóstico de contrato e pedido para a pista
+dona. Nenhuma promessa, migration ou leitura de conteúdo de cliente foi criada.
+
+### COMO MEDIR
+
+Após o contrato existir: impressão da prova com `effective_language_source`
+allow-listed → checkout → assinatura por pessoa em 24h. Antes disso, qualquer
+taxa seria inventada porque a exposição não existe.
+
+### RISCO
+
+Risco zero de produto. O risco evitado foi afirmar no último metro um idioma
+que o filme pode não ter usado.
+
+### PRÓXIMA JOGADA
+
+ROUND 8 será medição pura das rodadas 5–7 e das intervenções funcionais ainda
+em amostra, contra o marco zero, sem código.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+### 📋 O QUE ACONTECEU
+
+A prova de idioma seria boa para conversão, mas hoje o produto não guarda a
+verdade necessária para escrevê-la. Em vez de adivinhar pela nacionalidade ou
+pelo roteiro, o pedido foi enviado ao dono do pipeline para expor o idioma real.
