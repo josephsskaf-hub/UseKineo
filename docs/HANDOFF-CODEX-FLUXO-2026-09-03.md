@@ -1186,3 +1186,47 @@ Continua pendente apenas a ação manual já pronta da R19: colar `docs/TAAFT-LI
 - **EVIDÊNCIA DE PRODUÇÃO:** o placar avançou para 41 cadastros e 26 pessoas com filme, ainda com 0 assinaturas; uma das duas pessoas TAAFT pré-R18 finalmente recebeu filme.
 - **DESCONHECIDO:** R18 e R20 continuam sem exposição pós-deploy, então seus efeitos não foram inferidos.
 - **DECISÃO:** nenhuma mudança de produto foi feita; o checkout direto sem input segue coberto por CAIXA e a publicação TAAFT continua como única ação manual pendente.
+
+---
+
+## Rodada 22 — F1 · tema salvo confirmado no cadastro — 04/09 13:30→13:45 BRT — IMPLEMENTADA E VALIDADA
+
+- **FATO CONFIRMADO:** a leitura anti-duplicação descartou K10 nesta rodada. Não existe rota `/made-with`, mas `app/examples/[slug]/page.tsx` já publica exemplos reais com prompt e `ExampleRemixForm`, sem chamador comprovado que justifique outra galeria. Criar `/made-with` agora duplicaria uma superfície viva.
+- **FATO CONFIRMADO:** o launcher público já preservava tema, intenção, campanha e opções até `/studio/create` por `buildAuthenticatedCreationRedirect`; porém `lib/growth/signupCreationPreview.ts` só reconhecia remix de exemplo e roteiro gratuito. O redirect canônico `public_creation` continuava funcional, mas a tela de cadastro o apresentava como autenticação genérica.
+- **HIPÓTESE:** confirmar visualmente o tema salvo reduz dúvida e abandono no salto para autenticação. Esta rodada não atribui causalidade: o denominador pré-deploy é de apenas duas pessoas anônimas observadas.
+
+### Evidência, placar e vigia
+
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 13:32:01 BRT:** placar canônico desde 03/09 13:00 BRT: **41 cadastros, 27 pessoas com filme, 2 checkouts com filme, 2 sem filme, 0 assinaturas e 0 pessoas com falha sem filme**. Fonte: SQL canônico somente leitura no Supabase de produção, pessoas distintas e contas internas excluídas.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 13:32:01 BRT:** nas duas horas anteriores houve 5 cadastros externos: **ChatGPT 3, direto 1 e TAAFT 1**. A janela móvel não foi somada às anteriores. Continuam **0** perfis TAAFT pós-deploy da R18 e **0** pessoas em `/vs/kineo-vs-pictory` pós-R20.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 13:32:01 BRT:** duas pessoas anônimas chegaram por `/gerador-de-shorts-gratis` e `/ai-video-generator/kineo-1`, submeteram tema, viram o handoff e escolheram método de cadastro; 30 e 25 minutos depois, respectivamente, não havia callback nem perfil. Isso prova duas cadeias vivas até o último clique, não que a confirmação visual seja a causa da perda.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 13:32:01 BRT:** o vigia reencontrou a pessoa direta anonimizada `0441e46ae5`: conta às 12:16:52, checkout Pro mensal às 12:16:54–12:16:55, 25 créditos, 0 filme, `had_finished_script=false`, nenhum pagamento. Classe **defeito**, já coberta pelo pedido CAIXA; nenhum pedido duplicado foi aberto.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 13:32:01 BRT:** uma pessoa externa ChatGPT criou conta às 12:23:22, iniciou geração às 13:24:06, concluiu às 13:29:04 e recebeu `video_ready` às 13:31:22; ficou com 1 filme e nenhum checkout/pagamento. Ela explica o avanço de 26 para 27 pessoas com filme desde a R21.
+
+### Implementação, segurança e validação
+
+- **IMPLEMENTADO:** `buildAuthenticatedCreationSignupPreview()` aceita somente o redirect canônico de criação pública: mesma origem, path exato `/studio/create`, `welcome=1`, intenção `fast|trial_best`, campanha limitada, idiomas/modos/durações permitidos, nenhuma chave extra ou duplicada e igualdade exata com o URL reconstruído pelo builder oficial. Signup e login passam a mostrar a confirmação; recuperação de senha e falha OAuth preservam o mesmo contexto `public_creation`.
+- **IMPLEMENTADO:** o evento existente `organic_signup_handoff_viewed` ganhou apenas `saved_creation_proof` e `saved_creation_kind`, ambos limitados. Tema, roteiro e qualquer conteúdo do usuário permanecem fora da telemetria.
+- **FATO CONFIRMADO:** redirects externos, checkout, path errado, `welcome` ausente, intenção desconhecida, campanha vazia, parâmetro extra ou duplicado falham fechados e não exibem prova. A soberania de checkout continua separada.
+- **INSPECIONADO VISUALMENTE — 04/09/2026 13:38 BRT:** os previews autocontidos desktop 1440×1000 e mobile 390×1600 foram abertos e comparados; o antes mostra autenticação genérica e o depois mostra o tema salvo. Artefatos: `docs/previews/FLUXO-R22-SAVED-TOPIC-AUTH-2026-09-04.html`, `.png` e `-mobile.png`.
+- **TESTADO LOCALMENTE — 04/09/2026 13:41 BRT:** `test-signup-creation-proof` passou **274/274**, `test-chatgpt-script-handoff` **165/165**, `test-seo-form-handoff` **50/50** e `test-checkout-auth-session-bridge` **61/61**: **550 verificações direcionadas**. O compilador real `node node_modules/typescript/bin/tsc --noEmit --pretty false` e `git -c core.whitespace=cr-at-eol diff --check` saíram 0 após merge limpo de `origin/main`. O literal `npx tsc --noEmit --pretty false` encontrou o pacote-stub incorreto preexistente e saiu 1; não foi mascarado.
+- **VALIDADO NA INTEGRAÇÃO — 04/09/2026 13:43 BRT:** PR #27 passou no Guardião no SHA funcional `1c85bf6b` e novamente no SHA combinado `a99e03d8263d51d675cc9b5d61a2bd8e02e78fde`, após merge normal de `origin/main`, sem rebase nem force. A segunda execução `33896587802` concluiu `success`; o SHA entrou em `main` por fast-forward.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 13:45 BRT:** o deploy Vercel `dpl_8DJiMPo8epbkf2g9qfCz6CrSQW8c`, target `production`, framework Next.js e aliases incluindo `www.usekineo.com`, chegou a `READY` no SHA exato `a99e03d8`. GET público com cache-busting respondeu 200 na home, preservou canonical `https://www.usekineo.com` e não trouxe `noindex`; o signup com redirect canônico também respondeu 200 e preservou o redirect na URL.
+- **MEDIÇÃO:** por pessoa externa pós-deploy, seguir `organic_signup_handoff_viewed(saved_creation_proof=true, campaign) → auth callback → primeiro filme → checkout_started → pagamento`. Separar `/gerador-de-shorts-gratis` e `/ai-video-generator/kineo-1`; evento repetido não vira pessoa nem receita.
+- **GATE DE PARADA/REVERTER:** corrigir ou reverter se URL genérica, externa ou de checkout conseguir mostrar prova, se o trabalho deixar de sobreviver ao auth, ou se conteúdo do usuário entrar na telemetria.
+- **RISCO:** a igualdade canônica é deliberadamente estrita; se o builder mudar sem atualizar o parser, a confirmação pode ficar oculta. O fallback é seguro: o trabalho continua preservado no redirect, mas a prova visual desaparece.
+- **DECISÃO — EXECUTADO:** fechada a lacuna visível no último salto de duas superfícies públicas vivas, sem mudar preço, oferta, checkout, Stripe, geração, banco, migration, créditos, arquivos Claude/CAIXA ou comunicação externa.
+
+## PRÓXIMA JOGADA
+
+- **SUGESTÃO:** priorizar na R23 o pedido CAIXA de 04/09 13:39 BRT: os três CTAs de preço da home ainda pulam a proteção do último salto ao Stripe. Auditar `app/KineoLanding.tsx`, preservar preço/copy e medir por pessoa `home_pricing_checkout_clicked → checkout_started → fallback`, sem duplicar o bridge de checkout já existente.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+Continua pendente apenas a ação manual da R19: publicar `docs/TAAFT-LISTING-2026-09-03.md` no painel TAAFT e subir as três capturas indicadas. Nenhuma ação é necessária para a R22.
+
+## 📋 O QUE ACONTECEU
+
+- **IMPLEMENTADO / VALIDADO:** cadastro e login agora confirmam o tema salvo para redirects canônicos de criação pública, preservando recuperação de senha e falha OAuth com validação fail-closed.
+- **EVIDÊNCIA DE PRODUÇÃO:** o placar chegou a 41 cadastros e 27 pessoas com filme, ainda com 0 assinaturas; duas pessoas reais chegaram ao seletor de cadastro por launchers públicos e não concluíram auth na janela observada.
+- **DECISÃO:** K10 foi descartado por duplicação; o próximo trabalho é o pedido CAIXA sobre CTAs de preço da home.
