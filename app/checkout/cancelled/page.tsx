@@ -222,6 +222,7 @@ function CheckoutCancelledContent() {
     trackEvent(isAutopilotPilot ? 'autopilot_pilot_checkout_retry_clicked' : `${tier}_checkout_retry_clicked`, {
       tier,
       billing,
+      ...(!isAutopilotReturn && cancelledPrimary === 'first_delivery' ? { recovery_primary: 'first_delivery' } : {}),
       checkout_product: autopilotReturn?.kind ?? 'self_serve',
       intro,
       private_offer: privatePackPromo,
@@ -379,6 +380,29 @@ function CheckoutCancelledContent() {
               <p style={{ margin: '10px 0 0', fontSize: '0.78rem', color: 'var(--muted2)', textAlign: 'center', fontWeight: 600 }}>
                 No card · no automatic charge · your saved plan stays available
               </p>
+              {/* An unused trial is an option, never a prerequisite for buying.
+                  Keep the established launch latch and safe no-JS fallback. */}
+              {!isAutopilotReturn && (
+                <>
+                  <a
+                    data-trial-saved-checkout="true"
+                    href="/pricing"
+                    aria-disabled={checkout.pending !== null}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      startSavedCheckout()
+                    }}
+                    style={{ display: 'block', marginTop: 16, textAlign: 'center', textDecoration: 'none', padding: '12px 14px', borderRadius: 12, fontSize: '0.85rem', fontWeight: 750, color: 'var(--text)', border: '1px solid var(--border)', opacity: checkout.pending !== null ? 0.65 : 1, cursor: checkout.pending !== null ? 'wait' : 'pointer' }}
+                  >
+                    {checkout.pending !== null ? 'Opening secure checkout…' : `Continue with ${planName} →`}
+                  </a>
+                  {checkout.error && (
+                    <p role="alert" style={{ marginTop: 10, fontSize: '0.8rem', color: '#ff6b6b', fontWeight: 700, textAlign: 'center' }}>
+                      {checkout.error}
+                    </p>
+                  )}
+                </>
+              )}
             </>
           ) : (
             <>

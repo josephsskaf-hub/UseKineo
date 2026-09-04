@@ -1,0 +1,78 @@
+{
+  "sourceCommit": "c5c91f0c25c4f8e320130d1b182406aa3bc4e2d2",
+  "firstDeliveryPricingExits": 0,
+  "unchangedMarkup": {
+    "{\"resolved\":false}": "b2ec1caa12629bbab10b2ab815c633026b28eaae90a3e5cfa00cfb3331fc87b4",
+    "{\"reason\":null}": "e432c4891dc8f696118f22eaf27afe61c02e1bee3da3bdb3a7201940628edc45",
+    "{\"query\":\"tier=autopilot\"}": "9a03338599df52297d491111149e8c9aa179315ecf4f1c5ff94af437683d926e",
+    "{\"query\":\"pack=autopilot_pilot\"}": "9a03338599df52297d491111149e8c9aa179315ecf4f1c5ff94af437683d926e"
+  },
+  "autopilot": {
+    "tier=autopilot": {
+      "calls": [
+        {
+          "selection": "autopilot",
+          "href": "/api/stripe/checkout?tier=autopilot",
+          "metadata": {
+            "tier": "autopilot",
+            "billing": "monthly",
+            "checkout_product": "monthly",
+            "intro": false,
+            "private_offer": false
+          }
+        }
+      ],
+      "events": [
+        [
+          "autopilot_checkout_retry_clicked",
+          {
+            "tier": "autopilot",
+            "billing": "monthly",
+            "checkout_product": "monthly",
+            "intro": false,
+            "private_offer": false,
+            "return_to_watermark": false,
+            "intent_campaign": null,
+            "checkout_origin": "standard",
+            "plan_fit_engine": null,
+            "plan_fit_monthly_videos": null,
+            "plan_fit_seconds": null
+          }
+        ]
+      ]
+    },
+    "pack=autopilot_pilot": {
+      "calls": [
+        {
+          "selection": "autopilot_pilot",
+          "href": "/api/stripe/checkout?pack=autopilot_pilot",
+          "metadata": {
+            "tier": "autopilot",
+            "billing": "monthly",
+            "checkout_product": "pilot",
+            "intro": false,
+            "private_offer": false
+          }
+        }
+      ],
+      "events": [
+        [
+          "autopilot_pilot_checkout_retry_clicked",
+          {
+            "tier": "autopilot",
+            "billing": "monthly",
+            "checkout_product": "pilot",
+            "intro": false,
+            "private_offer": false,
+            "return_to_watermark": false,
+            "intent_campaign": null,
+            "checkout_origin": "standard",
+            "plan_fit_engine": null,
+            "plan_fit_monthly_videos": null,
+            "plan_fit_seconds": null
+          }
+        ]
+      ]
+    }
+  }
+}

@@ -101,7 +101,7 @@ Nada agora. O piloto não será executado sem autorização específica e elegib
 
 Preparada uma alternativa de venda assistida com trava contra repetição: 25 de 27 potenciais compradores já tiveram contato recente aceito pelo serviço. Nenhuma assinatura nova demonstrada, nenhum envio e nenhuma mudança visual. O resultado desta etapa é elegibilidade e proposta verificáveis, não venda atribuída.
 
-## Rotação 3 — 19:08–20:08 BRT — EM EXECUÇÃO
+## Rotação 3 — 19:08–20:08 BRT — CONCLUÍDA
 
 - **FATO CONFIRMADO:** base atual `1ee5e384`; worktree `C:/tmp/usekineo-caixa-10h-r3`, branch `codex/caixa-10h-r3`. AGENTS, estado histórico, questões, Growth, handoff, diário Claude e pedidos lidos. A main incorporou série/memória/despacho vazio e seus testes. `git log origin/main..entrega-atual` vazio na abertura; não olhar apenas a main para anti-duplicação. Nenhum arquivo Claude editado.
 - **EVIDÊNCIA OPERACIONAL, 04/09 22:08:51 UTC:** uso semanal Codex 31% consumido / 69% disponível; janela secundária indisponível. Leitura após duas rotações, nenhum reset ou compra.
@@ -128,3 +128,30 @@ Nada agora. Não há pedido para mudar cobrança nem liberar contato.
 ### 📋 O que aconteceu
 
 O pedido de mudar o webhook foi desnecessário: assinatura e avulso já têm campos próprios. A entrega resolve uma contradição de medição entre as pistas e evita código duplicado. Placar da sprint segue sem primeira assinatura demonstrada.
+
+## Rotação 4 — 20:08–21:08 BRT — EM EXECUÇÃO
+
+- **EVIDÊNCIA DE PRODUÇÃO / fechamento R3:** SHA `c5c91f0c25c4f8e320130d1b182406aa3bc4e2d2`, Guardião `33924905894` success, deploy `dpl_D8mkrngu9KPv5u4mPUv9UKHGUQ9H` READY com alias www, conferido 04/09 22:20:56 UTC. Evidência pós-push no PR41, comentário 5547106655. Checkpoint 19:38 sem mudança nem nova execução de SQL.
+- **FATO CONFIRMADO:** worktree isolada `C:/tmp/usekineo-caixa-10h-r4`, branch `codex/caixa-10h-r4`, base `c5c91f0c`; fetch repetido e fila `origin/main..entrega-atual` vazia às 20:17 BRT. Nenhuma alteração no gerador ou arquivo compartilhado.
+- **EVIDÊNCIA DE PRODUÇÃO, SELECT 04/09 23:10:28.269354 UTC:** baseline fixo 38 cadastros, 25 pessoas com filme, 3 no caixa, 0 primeiras assinaturas B2C registradas, 0 avulsos. Ciclo desde 20:08 UTC: 1 cadastro, 1 pessoa com filme, 0 no caixa, 0 primeiras assinaturas, 0 avulsos. Vigia 2h vazio. Não há amostra de nova intenção nem objeção declarada que sustente trocar oferta.
+- **FATO CONFIRMADO / fricção escolhida antes de editar:** `app/checkout/cancelled/page.tsx:358–386` oferece primeiro filme e diz que o plano está disponível, mas não renderiza botão para retomar compra nesse ramo. Os callers de `startSavedCheckout` estão no ramo irmão; o rodapé também leva ao Studio. O teste anterior verifica a existência da função, não sua acessibilidade nesta variante. Nenhuma perda de cliente atribuída sem trilha correspondente.
+- **HIPÓTESE:** manter a criação como primário, mas restaurar uma saída secundária para o plano escolhido, permite compra explícita sem pré-requisito de filme. Mudança mínima reversível: somente esse ramo B2C da tela existente, usando `startSavedCheckout`/latch já existentes, fallback `/pricing`, pending e erro visíveis. Autopilot excluído. Nenhum preço, crédito, oferta ou promessa nova.
+- **MÉTRICA / EVENTO:** reusar `checkout_cancelled_trial_delivery_offered`, retry por tier e `checkout_started`; resultado final primeira assinatura B2C confirmada no webhook, por pessoa externa. A exposição atual não garante impressão visual e não será vendida como tal. Diagnóstico de implementação terá teste executando a página/ramo e clique; não confundir clique mockado com cliente.
+- **GATE DE PARADA / RISCO:** abortar se houver checkout disparado na montagem, duplicação de lançamento, perda de seleção/parâmetros ou alteração de Autopilot/CTA de filme. Antes/depois desktop/mobile obrigatório. Gate comercial: não reeditar por baixa amostra; aguardar pelo menos 20 pessoas externas expostas e 7 dias de observação para avaliação direcional, sem alegar significância estatística. Risco residual é distração do trial, mitigada por CTA secundário sem novo destaque comercial.
+- **IMPLEMENTADO / TESTADO LOCALMENTE:** apenas 24 linhas adicionadas à página de cancelamento. O novo caller usa a função existente; metadata categórica `recovery_primary` permite separar esse ramo B2C sem identificador pessoal; demais ramos mantêm metadata anterior. `app/api/events/route.ts:152–177` aceita metadata existente, sem migration ou segundo gravador. O contrato foi RED antes da correção (saída ausente no ramo renderizado) e GREEN depois: 148/148 verificações. Inclui integração da página real com `useCheckoutLaunch` real, browser IO/timers simulados: duas chamadas de clique produzem uma navegação, um retry e um evento de supressão. Autopilot tem markup, lançamento e telemetria comparados ao baseline. Não é teste de cobrança ou sessão real.
+- **REGRESSÕES:** deliver-first 39/39, objection-visibility 77/77, verified-checkout-purchase 108/108, checkout-success-entitlement 66/66, autopilot-checkout-return 36/36. TypeScript integral real exit 0. Nenhuma asserção anterior alterada. Nenhum preço/custo/tabela comercial modificado.
+- **PREVIEW PREPARADO, NÃO VALIDADO VISUALMENTE:** `docs/previews/CAIXA-R4-CHECKOUT-CANCELLED-2026-09-04.html` contém antes/depois desktop (680px) e mobile (390px), gerados do JSX real por ReactDOMServer com estado controlado. Links ficam em frames sandbox sem scripts. A abertura do arquivo local no Chrome foi recusada pela política de segurança do navegador; nenhum proxy, CDP, outro navegador ou contorno foi tentado. A análise do markup não substitui inspeção visual.
+- **BLOQUEIO DE PUBLICAÇÃO:** código e testes podem subir na branch isolada para revisão, mas **não integrar na main** enquanto a comparação visual estiver pendente. CI/preview de branch não serão chamados de validação em produção. Nenhuma alteração na main desta R4 até esse gate.
+- **PACOTE DE REVISÃO:** PR42 em draft (`codex/caixa-10h-r4`), primeiro SHA `8bb3f1c8`, preview Vercel `dpl_Ef68G2LTcM3Q2ovfTAbVXjGiNsHR` READY, target preview, sem alias de produção. Guardião desse SHA `33929402473` success não substitui inspeção visual nem prova suíte integral. Antes de fechar o pacote, removida uma dependência do teste em histórico Git local: snapshots de markup/contrato extraídos do baseline `c5c91f0c` agora ficam em fixture, porque o CI usa checkout raso. As mesmas 148 verificações passam inclusive com subprocessos proibidos. O helper opcional `--markup --baseline` continua local, fora da execução padrão. SHA final e gate atualizado ficam no PR42; não provocar deploy só para registrar o anterior.
+
+### Próxima jogada
+
+Concluir pacote de branch e Guardião; preservar a variante de produção. Checkpoint 20:38 pertence a esta mesma rotação. Na próxima rotação, não reeditar esta superfície: conferir revisão visual e intenção nova, ou trabalhar outra fricção comprovada. Consentimento do piloto continua requisito, sem contato automático.
+
+### ✅ O que você precisa fazer
+
+Conferir o antes/depois preparado quando estiver disponível e confirmar a apresentação, caso a ferramenta de inspeção continue bloqueada. Não rodar batch nem pagamento de teste. Até lá, a main permanece intacta.
+
+### 📋 O que aconteceu
+
+Encontrada e corrigida localmente uma saída de compra escondida para quem tem trial intacto. O primeiro vídeo continua opcional. Testes verdes; comparação visual preparada, mas não inspecionada no navegador. Sem nova assinatura comprovada e sem publicação desta interface em produção.
