@@ -895,3 +895,49 @@ Nada.
 - **TESTADO LOCALMENTE:** 477 verificações direcionadas, TypeScript, diff check e preview completo ficaram verdes; três auditorias deram GO após dois NO-GO corrigidos.
 - **VALIDADO EM PRODUÇÃO — 04/09/2026 10:52 BRT:** Guardião #99, Vercel, alias canônico, quatro estados anônimos e scan de erros ficaram verdes no SHA `bd97f3d0`.
 - **CONTRADIÇÃO:** a origem da pessoa viva mudou de `direto` para `chatgpt` entre leituras, e o Guardião reportou `success` com 205 baterias vermelhas; ambas viram trabalho explícito da próxima rodada/pista dona, sem maquiagem de número.
+
+---
+
+## Rodada 15 — auditoria da aparente mutação de origem — 04/09 11:02→11:07 BRT — NÃO EXECUTAR CÓDIGO
+
+- **FATO CONFIRMADO:** as duas prioridades antigas reiteradas pela automação já estavam entregues: o título legado de `/v/[id]` no SHA `96310071` e o corte silencioso de 1.000 caracteres no SHA `341a119b`. Fontes: `docs/PEDIDOS-ENTRE-PISTAS-2026-09-03.md:17,28` e Rodadas 2–3 deste handoff.
+- **FATO CONFIRMADO:** nenhum pedido aberto viável pertence hoje à pista FLUXO. Os pedidos de 18:40, 18:45, 23:15, 23:35 e 01:15 tocam `GenerateClient`/dashboard, da pista Claude; os pedidos de 20:45 e 11:35 tocam caixa/pricing, da pista CAIXA. Fonte: `docs/PEDIDOS-ENTRE-PISTAS-2026-09-03.md:18-24,35-40,47-49`.
+
+### Dado, diagnóstico e decisão
+
+- **FATO CONFIRMADO:** o único writer encontrado para `profiles.signup_utm_source` lê o valor atual e só inclui o campo no patch quando ele ainda está vazio; não existe caminho de sobrescrita nesse endpoint. Fonte: `app/api/track-signup-source/route.ts:132-149`.
+- **FATO CONFIRMADO:** a captura é deliberadamente assíncrona: `trackSignupSource()` retorna `void`, dispara o POST sem `await` e só marca a sessão depois de resposta `ok`; signup e chegada OAuth chamam esse caminho sem bloquear navegação. Fontes: `lib/analytics.ts:379-381,385-423`, `app/(auth)/signup/page.tsx:386-388` e `app/(dashboard)/generate/GenerateClient.tsx:2975-3008`.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 11:05 BRT:** o perfil observado nasceu às 10:01:18 BRT e agora tem `signup_utm_source='chatgpt'`, `utm_source=null`; a tabela não possui `updated_at`, portanto o instante exato do primeiro preenchimento não é recuperável. Fonte: SQL somente leitura no Supabase de produção.
+- **HIPÓTESE MAIS FORTE:** a leitura das 10:01 classificou `null` como `direto` antes de o POST fire-and-forget terminar; a leitura das 10:53 viu o primeiro preenchimento como `chatgpt`. Isso explica os dois estados sem exigir mutação nem contradizer o writer first-touch.
+- **DECISÃO — NÃO EXECUTAR:** não alterar persistência, auth nem UI com base nessa aparente mutação. A correção honesta é operacional: em vigias de conta criada há poucos segundos, origem nula é `pendente/desconhecida`, não `direto`; remedir depois do POST. Forçar espera na navegação criaria latência visível sem corrigir dado já persistido.
+
+### Vigia do checkout e placar
+
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 11:05 BRT:** placar canônico desde 03/09 13:00 BRT: **35 cadastros, 23 pessoas com filme, 2 checkouts com filme, 1 sem filme, 0 assinaturas e 0 pessoas com falha sem filme**. Fonte: SQL canônico do programa, contas internas excluídas e pessoas distintas.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 11:05 BRT:** nas duas horas anteriores houve 2 cadastros externos, ambos atualmente classificados como `chatgpt`; a janela móvel não foi somada a janelas anteriores.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 11:05 BRT:** a pessoa do vigia abriu checkout às 10:01:22 BRT, chegou a `stranded_composed` às 10:46:27 e recebeu o primeiro filme às 11:00:48; tem agora 1 filme concluído, 12 créditos, 0 erro e 0 pagamento. O mesmo checkout migrou corretamente do balde sem filme para o balde com filme porque o placar canônico classifica pelo estado atual da pessoa.
+
+### Risco, medição e entrega
+
+- **RISCO:** o SQL canônico usa `coalesce(..., 'direto')`; aplicado em tempo real, mistura tráfego direto com atribuição ainda não preenchida. Não altera receita, mas pode induzir decisão errada em vigias de segundos.
+- **SUGESTÃO:** em leitura operacional, separar perfis com menos de 5 minutos e ambos os campos de origem nulos como `pending_attribution`; o placar histórico permanece canônico e inalterado. Confirmar em coorte futura se todo `pending_attribution` estabiliza ou se existem nulos persistentes.
+- **TESTADO LOCALMENTE — 04/09/2026:** não houve código de produto a testar. O `npx tsc --noEmit` exigido encontrou o stub incorreto porque `.bin` continua incompleto nesta worktree; o compilador real `node node_modules/typescript/bin/tsc --noEmit` e `git diff --check` são os gates antes da integração.
+- **FATO CONFIRMADO:** nenhum produto, preço, oferta, Stripe, banco, migration, e-mail, mensagem, crédito, arquivo Claude ou arquivo CAIXA foi alterado nesta rodada.
+
+### PEDIDOS
+
+- **FATO CONFIRMADO:** nenhum pedido foi baixado, alterado ou criado. O pedido do Guardião aberto na R14 permanece com a pista dona.
+
+## PRÓXIMA JOGADA
+
+- **SUGESTÃO:** a R16 é a rodada de medição pura obrigatória. Medir R13–R15 sem atribuir efeito causal sem amostra: falhas OAuth com trabalho salvo, recuperações de senha com trabalho salvo, estabilização de origem e o desfecho da pessoa que recebeu o primeiro filme às 11:00 BRT.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+## 📋 O QUE ACONTECEU
+
+- **FATO CONFIRMADO:** a origem não foi sobrescrita; o código só preenche campo vazio e o incidente é compatível com leitura antes da gravação assíncrona.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 11:05 BRT:** a pessoa viva finalmente recebeu o primeiro filme, elevando o placar para 23 pessoas com filme e movendo seu checkout para o balde com filme; ainda não pagou.
+- **DECISÃO — NÃO EXECUTAR:** nenhuma mudança de produto foi fabricada; a R16 remede o efeito real das entregas recentes.
