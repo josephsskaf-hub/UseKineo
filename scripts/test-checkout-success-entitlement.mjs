@@ -91,8 +91,10 @@ ok(page.includes('selfServeReady ? ('), 'primary Studio link is gated')
 ok(page.includes('Open Account status'), 'delayed buyer has a manual status path')
 ok(page.includes("countdown > 0 ? 'Confirming access…' : 'Check access again'"), 'delayed buyer can retry after the bounded wait')
 equal((page.match(/trackEvent\('checkout_success_viewed'/g) ?? []).length, 1, 'canonical success view remains exactly once')
-equal((page.match(/gtag\('event', 'conversion'/g) ?? []).length, 1, 'Google purchase pixel remains exactly once')
-equal((page.match(/ttq\.track\('Purchase'/g) ?? []).length, 1, 'TikTok purchase pixel remains exactly once')
+// R1: pixels moved behind authenticated verification. Actual route/observer/page
+// execution and dedupe are covered by test-verified-checkout-purchase.mjs.
+equal((page.match(/gtag\('event', 'conversion'/g) ?? []).length, 0, 'no unverified inline Google pixel')
+equal((page.match(/ttq\.track\('Purchase'/g) ?? []).length, 0, 'no unverified inline TikTok pixel')
 
 for (const eventName of ['checkout_success_entitlement_ready', 'checkout_success_entitlement_delayed']) {
   const start = page.indexOf(`'${eventName}'`)

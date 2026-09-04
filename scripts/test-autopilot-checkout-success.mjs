@@ -128,8 +128,10 @@ ok(page.includes("'autopilot_checkout_handoff_clicked'"), 'manual continuation i
 ok(page.includes('disabled={countdown > 0}'), 'refresh cannot restart the confirmation loop before the initial gate expires')
 ok(page.includes("countdown > 0 ? 'Confirming access…' : 'Check access again'"), 'pending CTA names its current action')
 ok(page.includes("'checkout_success_viewed'"), 'existing success view remains')
-equal((page.match(/gtag\('event', 'conversion'/g) ?? []).length, 1, 'Google purchase pixel remains exactly once')
-equal((page.match(/ttq\.track\('Purchase'/g) ?? []).length, 1, 'TikTok purchase pixel remains exactly once')
+// R1 removes unverified inline calls; executable route/page/observer tests now
+// prove both paid modes and provider dedupe in test-verified-checkout-purchase.
+equal((page.match(/gtag\('event', 'conversion'/g) ?? []).length, 0, 'Google pixel cannot bypass session verification')
+equal((page.match(/ttq\.track\('Purchase'/g) ?? []).length, 0, 'TikTok pixel cannot bypass session verification')
 equal((page.match(/armFirstWinHandshake\(\)/g) ?? []).length, 2, 'existing click and middle-click handshakes remain exactly once each')
 
 for (const eventName of [

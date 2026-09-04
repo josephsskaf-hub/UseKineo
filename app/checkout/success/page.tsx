@@ -9,6 +9,9 @@ import { useRouter } from 'next/navigation'
 import { trackEvent } from '@/lib/analytics'
 import { getViralNowTopics, type ViralTopic } from '@/lib/viralTopics'
 import { armFirstWinHandshake } from '@/lib/firstWinHandshake'
+import { observeCheckoutPurchase } from '@/lib/growth/observeCheckoutPurchase'
+import { VERIFIED_CHECKOUT_VERSION } from '@/lib/growth/verifiedCheckoutPurchase'
+import type { CheckoutPixelTargets } from '@/lib/growth/checkoutPurchasePixels'
 import {
   AUTOPILOT_CHECKOUT_SUCCESS_VERSION,
   isAutopilotEntitlementReady,
@@ -72,9 +75,6 @@ export default function CheckoutSuccessPage() {
   useEffect(() => {
     const sp = new URLSearchParams(window.location.search)
     const sessionId = sp.get('session_id') || ''
-    const purchaseCurrency = (sp.get('currency') ?? 'usd').toUpperCase()
-    const purchaseAmountTotal = Number(sp.get('amount') ?? 490)
-    const purchaseValue = purchaseAmountTotal / 100
     const successFlow = readCheckoutSuccessFlow(sp)
 
     // KINEO-PAYMENT-EVENT-2026-07-15 — `payment_success` is now written once
@@ -83,8 +83,8 @@ export default function CheckoutSuccessPage() {
     // canonical payment counts.
     const successViewMetadata: Record<string, unknown> = {
       stripe_session_id: sessionId,
-      amount_total: purchaseAmountTotal,
-      currency: purchaseCurrency.toLowerCase(),
+      version: VERIFIED_CHECKOUT_VERSION,
+      payment_evidence: 'page_view_only',
     }
     if (successFlow.kind === 'autopilot') {
       successViewMetadata.intended_tier = 'autopilot'
@@ -92,42 +92,17 @@ export default function CheckoutSuccessPage() {
     }
     void trackEvent('checkout_success_viewed', successViewMetadata)
 
-    // #376 — read Stripe checkout_session_id from the URL and use it as the
-    // transaction_id so Google Ads + TikTok DEDUPLICATE the purchase if the
-    // user refreshes the success page (same session_id = same conversion).
-    // Google Ads purchase conversion — fires once per checkout session.
-    // currency and amount come from the Stripe checkout route via URL params
-    // so the value is always correct (USD for international, BRL for Brazil).
-    // transaction_id (Stripe session id) makes Google dedup refreshes.
-    try {
-      const gtag = (window as unknown as { gtag?: Function }).gtag
-      if (typeof gtag === 'function') {
-        gtag('event', 'conversion', {
-          send_to: 'AW-18156258081/NL4bCKXEwa4cEKGGytFD',
-          value: purchaseValue,
-          currency: purchaseCurrency,
-          transaction_id: sessionId,
-        })
-      }
-    } catch {
-      // silent — never break the page
-    }
-
-    // #375/#376 — TikTok Pixel: Purchase conversion. event_id = Stripe session id
-    // so TikTok dedups refreshes (and matches server events if added later).
-    try {
-      const ttq = (window as Window & { ttq?: { track: Function } }).ttq
-      if (ttq && typeof ttq.track === 'function') {
-        ttq.track('Purchase', {
-          value: purchaseValue,
-          currency: purchaseCurrency,
-          content_type: 'product',
-          content_name: 'Kineo subscription',
-        }, { event_id: sessionId })
-      }
-    } catch {
-      // silent — never break the page
-    }
+    // Only the authenticated server response can supply purchase data. Existing
+    // entitlement polling remains independent. Verification accepts both
+    // subscriptions and one-time payments, without requiring a paid plan.
+    return observeCheckoutPurchase({
+      sessionId,
+      fetch: window.fetch.bind(window),
+      targets: () => window as unknown as CheckoutPixelTargets,
+      storage: () => {
+        try { return window.sessionStorage } catch { return undefined }
+      },
+    })
   }, [])
 
   // Poll do saldo. Agressivo no começo (o caso comum é o webhook já ter
