@@ -21,6 +21,50 @@ export type CheckoutResumeOffer = {
   firstChargeAmount: number
   renewalAmount: number
   planFit: CheckoutResumePlanFit | null
+  reopenedAfterDeliveryDismissal: boolean
+}
+
+export const CHECKOUT_RESUME_DISMISS_UNTIL_DELIVERY = 'until_delivery' as const
+
+export type CheckoutResumeDismissalMode = 'none' | 'until_delivery' | 'persistent'
+
+export function parseCheckoutResumeDismissalMode(value: unknown): CheckoutResumeDismissalMode {
+  if (value === null || value === undefined || value === '') return 'none'
+  if (value === CHECKOUT_RESUME_DISMISS_UNTIL_DELIVERY) return 'until_delivery'
+  // Existing `1` cookies and any unknown non-empty value keep the buyer's
+  // dismissal. New code must never turn a malformed cookie into more prompts.
+  return 'persistent'
+}
+
+export function shouldResolveDismissalAgainstDelivery(input: {
+  go: boolean
+  surface: CheckoutResumeSurface | null
+  dismissalMode: CheckoutResumeDismissalMode
+}): boolean {
+  return !input.go
+    && input.surface !== 'pricing'
+    && input.dismissalMode === 'until_delivery'
+}
+
+export function shouldReleaseDismissalAfterDelivery(input: {
+  dismissalMode: CheckoutResumeDismissalMode
+  historyReliable: boolean
+  completedCount: number | null
+}): boolean {
+  return input.dismissalMode === 'until_delivery'
+    && input.historyReliable
+    && Number.isInteger(input.completedCount)
+    && (input.completedCount ?? 0) >= 1
+}
+
+export function checkoutResumeDismissalCookieValue(input: {
+  historyReliable: boolean
+  completedCount: number | null
+}): '1' | typeof CHECKOUT_RESUME_DISMISS_UNTIL_DELIVERY {
+  return input.historyReliable
+    && input.completedCount === 0
+    ? CHECKOUT_RESUME_DISMISS_UNTIL_DELIVERY
+    : '1'
 }
 
 export function parseCheckoutResumeSurface(value: unknown): CheckoutResumeSurface | null {

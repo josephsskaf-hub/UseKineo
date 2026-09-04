@@ -9,9 +9,13 @@ import {
 } from '@/lib/growth/planFitCheckout'
 import type { CheckoutPlanTier } from '@/lib/checkoutPricing'
 import {
+  checkoutResumeDismissalCookieValue,
+  parseCheckoutResumeDismissalMode,
   parseCheckoutResumeSurface,
   shouldBlockDismissedCheckoutResume,
   shouldDeferPassiveCheckoutResumeForTrial,
+  shouldReleaseDismissalAfterDelivery,
+  shouldResolveDismissalAgainstDelivery,
   type CheckoutResumePlanFit,
 } from '@/lib/checkoutResumeSurface'
 import { decideTrialFirstDelivery } from '@/lib/growth/trialBalanceBridge'
@@ -443,9 +447,28 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   // `isSpeculativeRequest()` NAO detecta scanner corporativo — seria uma guarda
   // com justificativa falsa. Se um dia o custo das leituras Stripe deste hop
   // pesar, a guarda certa cobre `go` e `!go` e nasce com evento proprio.
+  const dismissalMode = parseCheckoutResumeDismissalMode(
+    req.cookies.get(DISMISSED_COOKIE)?.value,
+  )
+  let dismissalBlocks = dismissalMode !== 'none'
+  let reopenedAfterDeliveryDismissal = false
+  if (shouldResolveDismissalAgainstDelivery({ go, surface, dismissalMode })) {
+    const completed = await supabase
+      .from('videos')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('status', 'completed')
+    reopenedAfterDeliveryDismissal = shouldReleaseDismissalAfterDelivery({
+      dismissalMode,
+      historyReliable: !completed.error && typeof completed.count === 'number',
+      completedCount: typeof completed.count === 'number' ? completed.count : null,
+    })
+    dismissalBlocks = !reopenedAfterDeliveryDismissal
+  }
+
   if (shouldBlockDismissedCheckoutResume({
     go,
-    dismissed: req.cookies.get(DISMISSED_COOKIE)?.value === '1',
+    dismissed: dismissalBlocks,
     surface,
   })) {
     return unavailableResponse(req, false, 'dismissed')
@@ -540,12 +563,15 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   }
 
   if (!resolution) {
-    return unavailableResponse(req, go, 'stale', { clearSession: true })
+    return unavailableResponse(req, go, 'stale', {
+      clearSession: true,
+      clearDismissed: reopenedAfterDeliveryDismissal,
+    })
   }
 
   if (go) return noStore(NextResponse.redirect(resolution.destination))
 
-  return noStore(NextResponse.json({
+  const response = NextResponse.json({
     available: true,
     resumeUrl: '/api/stripe/checkout/resume?go=1',
     // KINEO-CHECKOUT-REDIRECT-2026-08-08 — a URL hospedada pela Stripe, crua,
@@ -570,7 +596,10 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     firstChargeAmount: resolution.firstChargeAmount,
     renewalAmount: resolution.renewalAmount,
     planFit: resolution.planFit,
-  }))
+    reopenedAfterDeliveryDismissal,
+  })
+  if (reopenedAfterDeliveryDismissal) clearDismissedCookie(response)
+  return noStore(response)
 }
 
 export async function POST(): Promise<NextResponse> {
@@ -580,10 +609,19 @@ export async function POST(): Promise<NextResponse> {
     return noStore(NextResponse.json({ ok: false }, { status: 401 }))
   }
 
+  const completed = await supabase
+    .from('videos')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+    .eq('status', 'completed')
+  const dismissalValue = checkoutResumeDismissalCookieValue({
+    historyReliable: !completed.error && typeof completed.count === 'number',
+    completedCount: typeof completed.count === 'number' ? completed.count : null,
+  })
   const response = NextResponse.json({ ok: true })
   response.cookies.set({
     name: DISMISSED_COOKIE,
-    value: '1',
+    value: dismissalValue,
     httpOnly: true,
     secure: true,
     sameSite: 'lax',

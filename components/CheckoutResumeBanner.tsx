@@ -141,7 +141,16 @@ export default function CheckoutResumeBanner() {
             plan_fit_monthly_videos: result.planFit?.monthlyVideos ?? null,
             plan_fit_seconds: result.planFit?.seconds ?? null,
             plan_fit_selected_tier_matches: result.planFit?.selectedTierMatches ?? null,
+            reopened_after_delivery_dismissal: result.reopenedAfterDeliveryDismissal,
           })
+          if (result.reopenedAfterDeliveryDismissal) {
+            void trackEvent('checkout_resume_reopened_after_delivery', {
+              resume_choice_version: CHECKOUT_RESUME_CHOICE_VERSION,
+              tier: result.tier,
+              billing: result.billing,
+              destination_kind: result.destinationKind,
+            })
+          }
         }
       })
       .catch(() => {
@@ -366,6 +375,7 @@ export default function CheckoutResumeBanner() {
     plan_fit_monthly_videos: offer.planFit?.monthlyVideos ?? null,
     plan_fit_seconds: offer.planFit?.seconds ?? null,
     plan_fit_selected_tier_matches: offer.planFit?.selectedTierMatches ?? null,
+    reopened_after_delivery_dismissal: offer.reopenedAfterDeliveryDismissal,
     ...checkoutResumeFilmTelemetry(film),
   }
 

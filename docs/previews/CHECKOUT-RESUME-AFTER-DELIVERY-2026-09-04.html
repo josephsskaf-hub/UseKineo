@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Checkout resume after delivery — before / after</title>
+  <style>
+    :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; background:#07090d; color:#f7f9fc; }
+    * { box-sizing:border-box; }
+    body { margin:0; padding:32px; background:radial-gradient(circle at 50% 0,#152032 0,#07090d 42%); }
+    h1 { max-width:1100px; margin:0 auto 8px; font-size:28px; }
+    .lead { max-width:1100px; margin:0 auto 24px; color:#aeb9cc; line-height:1.55; }
+    .grid { max-width:1100px; margin:auto; display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+    .panel { min-height:520px; border:1px solid #2a3446; border-radius:20px; background:#0b111d; overflow:hidden; position:relative; padding:20px; }
+    .tag { display:inline-flex; border-radius:999px; padding:6px 10px; font-size:12px; font-weight:900; letter-spacing:.08em; }
+    .before { background:#3b1c22; color:#ff9fa8; }
+    .after { background:#11332a; color:#69e6b9; }
+    .stage { margin-top:20px; border:1px solid #263248; border-radius:16px; padding:16px; background:#0e1625; }
+    .stage strong { display:block; font-size:14px; }
+    .stage p { color:#9eabc0; font-size:13px; line-height:1.45; margin:7px 0 0; }
+    .arrow { text-align:center; color:#5cb3ff; padding:9px; font-weight:900; }
+    .silent { border-style:dashed; opacity:.72; }
+    .banner { position:absolute; left:20px; right:20px; bottom:20px; display:flex; gap:12px; align-items:center; border:1px solid rgba(41,151,255,.45); border-radius:16px; padding:12px; background:rgba(11,17,32,.98); box-shadow:0 18px 55px rgba(0,0,0,.48); }
+    .film { width:70px; aspect-ratio:9/16; border-radius:9px; background:linear-gradient(145deg,#26395a,#966c42 48%,#14203a); position:relative; overflow:hidden; }
+    .film:after { content:'▶'; position:absolute; inset:0; display:grid; place-items:center; font-size:18px; color:white; }
+    .copy { flex:1; min-width:0; }
+    .copy b { display:block; font-size:14px; }
+    .copy span { display:block; color:#62b3ff; font-size:12px; font-weight:800; margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .copy small { display:block; color:#aeb9cc; margin-top:4px; line-height:1.35; }
+    button { border:0; border-radius:10px; min-height:44px; padding:0 14px; background:#2997ff; color:#04131f; font-weight:900; }
+    .note { margin-top:16px; color:#aeb9cc; font-size:13px; line-height:1.5; }
+    @media (max-width:760px) {
+      body { padding:18px; }
+      .grid { grid-template-columns:1fr; }
+      .panel { min-height:500px; }
+      .banner { flex-wrap:wrap; }
+      button { width:100%; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Saved checkout returns when the proof exists</h1>
+  <p class="lead">The visual component is unchanged. The behavior changes at the exact moment the buyer has a finished film to judge.</p>
+  <main class="grid">
+    <section class="panel">
+      <span class="tag before">BEFORE</span>
+      <div class="stage"><strong>1 · Checkout saved</strong><p>The buyer starts a film and sees the saved-checkout reminder too early.</p></div>
+      <div class="arrow">↓ dismisses</div>
+      <div class="stage silent"><strong>2 · Film delivered</strong><p>The seven-day dismissal still wins. No reminder returns, even though personal proof now exists.</p></div>
+      <p class="note">Observed in production: the buyer dismissed during creation, later downloaded the completed film, and received no post-delivery checkout exposure.</p>
+    </section>
+    <section class="panel">
+      <span class="tag after">AFTER</span>
+      <div class="stage"><strong>1 · Dismissed before delivery</strong><p>The payment reminder stays quiet while completed film count is zero.</p></div>
+      <div class="arrow">↓ first completed film</div>
+      <div class="stage"><strong>2 · Proof changes the decision</strong><p>The same saved choice may return once, with the buyer’s latest completed film.</p></div>
+      <div class="banner">
+        <div class="film" aria-hidden="true"></div>
+        <div class="copy"><b>Your latest film is ready</b><span>“The lighthouse that answered back”</span><small>First charge and renewal stay exactly as selected.</small></div>
+        <button>Finish secure checkout</button>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
