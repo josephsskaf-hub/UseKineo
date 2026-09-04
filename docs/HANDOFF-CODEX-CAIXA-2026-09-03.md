@@ -1600,6 +1600,10 @@ o próprio filme. Fechar depois disso continua silenciando por sete dias.
 
 **EVIDÊNCIA DE PRODUÇÃO — 12:05 BRT:** o mesmo caso chegou a `stranded_composed` às 12:02, mas seguia com 0 vídeos concluídos e 12 créditos. Foi aberto pedido à pista Claude para decidir se é atraso esperado ou fechamento órfão; CAIXA não tocou no pipeline.
 
+### VALIDADO EM PRODUÇÃO
+
+**VALIDADO EM PRODUÇÃO — 04/09/2026 12:08 BRT:** `origin/main=a5da42b189fe63cc8dc552dcdc680f4432162c87`; o commit funcional `bc544477` é ancestral direto. Guardião run `33887518967` concluiu com TypeScript e suíte verdes. Vercel Production `EvnGq2kD8MwmVKXChCkoFg7gHGwd` ficou Ready em 1m07s, origem `a5da42b`; Preview `AqE3fDCbDRK5mxpNArbeRwz51WvN` também ficou Ready. Não houve render forçado nem gasto de crédito para validar a UI.
+
 ### PRÓXIMA JOGADA
 
 Publicar e validar o estado visual. Congelar esta superfície até 10 pessoas externas em `in_flight` ou 7 dias; seguir para outro estágio do caixa.
