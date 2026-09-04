@@ -204,7 +204,10 @@ for (const [input, reason] of [
   equal(result.reason, reason, `${reason} is named`)
 }
 
-const policySource = read('lib/growth/trialBalanceBridge.ts')
+// Git can materialize tracked text as CRLF in Windows worktrees. Normalize the
+// inspected source so this assertion proves the call graph, not the checkout's
+// line-ending policy.
+const policySource = read('lib/growth/trialBalanceBridge.ts').replace(/\r\n/g, '\n')
 check(!policySource.includes('/api/'), 'policy performs no API call')
 check(!policySource.includes('video_credits'), 'policy cannot mutate a credit balance')
 check(policySource.includes("creditCostForDuration('cinematic_ai', true, 60)"), 'upper boundary comes from canonical cost')
