@@ -67,7 +67,6 @@ check('NÃO REGREDIU: o onError que marca vídeo quebrado continua lá', hist.in
 
 console.log('5 · a copy para de recusar cliente de 16:9 (é isto que a IA lê)')
 check('lib/comparisons: a linha `ratios` diz a verdade nova', comparisons.includes("ratios:\n      '9:16, 16:9, 1:1 and 4:5"))
-check('lib/comparisons: nenhum "9:16 only" sobrou', !comparisons.includes('9:16 only'))
 check('lib/comparisons: a frase que RULES OUT o comprador de 16:9 morreu', !comparisons.includes('that alone rules Kineo out and there is no workaround'))
 check('lib/kineoFacts: aspectRatio deixou de ser "vertical only"', !facts.includes("aspectRatio: '9:16 vertical only'") && facts.includes("aspectRatio: '9:16, 16:9, 1:1 or 4:5"))
 check('lib/kineoFacts: sai da lista "quando NÃO usar a Kineo"', !facts.includes('Kineo renders 9:16 vertical only, on purpose.'))
@@ -81,7 +80,6 @@ check('/sora-alternative: a honestidade que SOBRA continua dita (não cortamos u
 // que não são comentário.
 const semComentario = (f) =>
   f.split('\n').filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join('\n')
-check('nenhum "vertical only" VIVO (só sobrevive dentro de comentário)', ![comparisons, facts, llms, sora].some((f) => /vertical only/.test(semComentario(f))))
 const exclusividade9x16Falsa = [
   /\b9\s*:\s*16\s*(?:[-‐‑‒–—]\s*)?only\s+tool\s+costs\s+you\s+nothing\b/i,
   /\bYou need 4K,\s+or aspect ratios? other than 9\s*:\s*16\b/i,
@@ -96,6 +94,13 @@ const linhasComExclusividade9x16Falsa = semComentario(comparisons)
   .split('\n')
   .filter((linha) => exclusividade9x16Falsa.some((padrao) => padrao.test(linha)))
 check('lib/comparisons: nenhuma exclusividade 9:16 sobrevive por hífen, sinônimo ou negação de horizontal', linhasComExclusividade9x16Falsa.length === 0)
+const descricoes9x16Validas = [
+  'This competitor is 9:16 only.',
+  'Captions is vertical only.',
+  'You publish 9:16 exclusively, while Kineo can also render 16:9.',
+  'HeyGen supports aspect ratios other than 9:16.',
+]
+check('a guarda não bloqueia limitações verdadeiras do concorrente nem contexto comparativo', descricoes9x16Validas.every((linha) => !exclusividade9x16Falsa.some((padrao) => padrao.test(linha))))
 const ausencia4kFalsa = /(?:Kineo (?:does not publish 4K(?: at all)?|has none of that)|Submagic is the only one of the two that lists it)/i
 check('lib/comparisons: 4K fica descrito como upscale separado, não como recurso ausente', !ausencia4kFalsa.test(semComentario(comparisons)) && comparisons.includes('offers 4K only as a separate post-render upscale'))
 
