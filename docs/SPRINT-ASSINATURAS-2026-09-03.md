@@ -1614,3 +1614,163 @@ da base. Antes de codar, medir onde estão os 65 e se o `plan_fit` já os alcan�
 **SHA.** `ba8cfdba` (enfileirado em `entrega-atual`, fila = **4 commits**, que sao o #9 e o #10 — o #8 ja esta em origin/main;
 aguardando o clique no SUBIR-SITE.bat). Worktree:
 `C:\kineo-wt\historico-render-vivo`.
+
+---
+
+### #9 — 09:40→10:20 BRT (04/09) — o cadastro por E-MAIL E SENHA nascia sem os 25 créditos. 4 pessoas só hoje, e nenhum dos 14 órfãos de 21 dias fez UM vídeo na vida.
+
+**Placar da rodada** (SQL canônico, marco zero 03/09 16:00 UTC, contas externas):
+33 cadastros · 20 pessoas com filme (61%) · 1 checkout COM filme · 1 checkout sem
+filme · **0 assinaturas** · 0 pessoas com falha e sem filme.
+
+**Checagem zero: NÃO estava limpa — e a minha própria checagem não a via.**
+Render preso >25min: 0. `generation_stage_error` em 3h: 0. Cadastro sem crédito
+na última 1h: 0 — **e era falso conforto**. Alargando para 30h apareceram
+**4 contas nascidas com `video_credits = 0` e `trial_status` NULL**, todas de
+hoje, entre 04:58 e 11:09 UTC. A janela de 1 hora do roteiro é curta demais
+para um defeito que acontece ~0,7 vez por dia: ela ia continuar dizendo "limpa"
+para sempre. **Passo a varrer 30h nesta checagem.**
+
+**Correção de rota antes de codar.** Comecei lendo `app/auth/callback/route.ts`
+no diretório de trabalho e concluí que o grant do `a1fed16c` tinha sido
+revertido. **Estava errado**: a árvore local está parada no `727a869c`, que é
+ANTERIOR ao `a1fed16c`. Lido de `origin/main`, o grant do callback está vivo e
+intacto. O buraco é outro, e mais estreito.
+
+**O que estava errado (medido).** Em 28/08 o `a1fed16c` devolveu o crédito de
+cadastro ao CADASTRO: a ativação passou a rodar em `app/auth/callback/route.ts`,
+"o único ponto de servidor por onde TODA conta nova passa obrigatoriamente".
+A frase é verdadeira para OAuth e link mágico — **e só para eles**. Quem se
+cadastra com e-mail e senha **nunca cruza o `/auth/callback`**: essa conta
+continuou dependendo dos dois caminhos frágeis que o próprio `a1fed16c`
+condenou por escrito — a VISITA a `/studio/create` e o `fetch`
+fire-and-forget de `/api/track-signup-source`.
+
+| caminho de cadastro (14d, externos) | pessoas | com grant | sem grant | sem grant COM filme |
+|---|---:|---:|---:|---:|
+| `auth_callback_completed` (OAuth) | 290 | 286 | 4 | 0 |
+| **só `email_signup_completed` (senha)** | **47** | 43 | **4 (8,5%)** | **0** |
+
+Os 4 do caminho de senha são **todos de hoje**, numa janela de 6h, e têm o
+MESMO rastro: `email_signup_completed` → `homepage_view` /
+`viral_onboarding_viewed`. A pessoa se cadastrou, caiu na **vitrine** (o pouso
+padrão desde 25/08), nunca abriu o /studio, e o fetch do cliente não chegou.
+Em 21 dias são **14 órfãos no total, e NENHUM dos 14 fez um único vídeo na
+vida** — a taxa de morte desse grupo é 100%. É o mesmo defeito que em 28/08
+levou 17%→100% dos cadastros, sobrevivendo na única porta que a cura não
+cobriu.
+
+**A prova de que esta é a porta certa.** `/api/auth/activation-completed` é o
+espelho exato do callback para o caminho de senha: roda no SERVIDOR, devolve
+401 sem sessão (logo, quando ela escreve, o usuário está autenticado), e os
+**QUATRO órfãos têm `email_signup_completed` gravado** — ela foi alcançada em
+100% dos casos que ficaram sem crédito. Nenhum outro ponto tem essa
+propriedade.
+
+**O que mudou (arquivos).**
+- `app/api/auth/activation-completed/route.ts` (+70): chama
+  `maybeActivateReverseTrial` com o fingerprint desta request, **awaited**, em
+  try/catch que só loga. Idempotente por construção — a UPDATE do grant é
+  protegida por `.is('trial_status', null)` dentro de `lib/reverseTrial.ts`,
+  então callback, `/studio/create`, `track-signup-source` e esta rota podem
+  todos chamar: quem chegar primeiro concede, o resto é no-op. As guardas
+  anti-abuso continuam INTEIRAS (conta <24h, 1 trial por conta para sempre,
+  domínio descartável, N trials por fingerprint). O evento
+  `email_signup_completed` passa a carregar `trial_activated` e `trial_reason`
+  — a medição sai de graça.
+- `scripts/test-trial-grant-orfao.mjs` (+43, 11 verificações novas, 25 no
+  total): lê o `route.ts` REAL e prova import, chamada, `await` (não `void`),
+  ordem contra a guarda de 401 e contra o `return`, catch que não quebra o
+  cadastro, fingerprint da request, a medição no evento, e a **não-regressão do
+  bloco de afiliado do Codex** (`076ca7bb`, que vive no mesmo arquivo).
+  **Falsificado**: trocando o `await` por `void`, 3 verificações caem.
+
+**Para o cliente / receita.** ~0,7 pessoa por dia parava de existir como
+cliente no primeiro minuto: cadastrava, via um produto que não podia usar e ia
+embora. Nenhuma delas fez um vídeo — e o primeiro filme é o produto. A cura
+custa uma chamada idempotente e nenhuma linha nova de banco.
+
+**Decisões que tomei sozinha** (autonomia; reversíveis):
+1. **NÃO reparei as 4 contas de hoje.** Três são domínios descartáveis com
+   local-part hexadecimal (`vmail.dev` x2, `mailshan.com`) e a quarta é um
+   alias de pontos do Gmail, todas numa rajada de 6h — e uma quinta conta
+   `@vmail.dev` da mesma rajada JÁ recebeu o trial e queimou os 25cr em 3
+   filmes. Dar 25cr às outras seria pagar um farmer. Reversível pelo botão
+   "+ créditos" do `/admin/people`.
+2. **Não mexi na lista de domínios descartáveis.** `vmail.dev` e `mailshan.com`
+   **não** estão em `DISPOSABLE_EMAIL_TOKENS` (`lib/reverseTrial.ts:232`) e o
+   farmer passa por ela hoje, antes e depois desta mudança — minha correção não
+   abre porta nova. Bloquear é decisão de política de abuso, não desta jogada;
+   fica registrada abaixo como sugestão.
+3. **Estendi o teste que já existia em vez de criar outro.** A checagem contra
+   o banco ("nenhum cadastro das últimas 72h ficou sem trial") já morava lá e
+   está **VERMELHA em produção agora** — não faz sentido ter dois arquivos
+   guardando o mesmo alarme.
+
+**Risco.** Baixo e conhecido: a rota ganha um `await` a mais no caminho do
+cadastro (a mesma latência que o callback já paga desde 28/08); erro só vira
+log e o cadastro segue; e a dupla concessão é impossível pela guarda
+`.is('trial_status', null)`, que o teste tranca. O risco residual seria
+conceder a quem a guarda de fingerprint teria barrado — não existe: o
+fingerprint é calculado e passado daqui, como no callback.
+
+**Como medir (contra o marco zero, 03/09 16:00 UTC).**
+
+```sql
+-- 1) o alarme direto: cadastro externo sem trial. Meta: zero linhas.
+select p.email, p.created_at, p.video_credits
+from profiles p
+where p.trial_status is null
+  and p.created_at > now() - interval '72 hours'
+  and p.email not ilike '%josephsskaf%' and p.email not ilike '%usekineo%'
+order by p.created_at desc;
+
+-- 2) a medicao nova, de graca, dentro do proprio evento de cadastro
+select date_trunc('day', created_at)::date dia,
+       metadata->>'trial_activated' ativou,
+       metadata->>'trial_reason'    razao,
+       count(*) n
+from events
+where name = 'email_signup_completed' and created_at > '2026-09-04 12:00:00+00'
+group by 1,2,3 order by 1 desc, 4 desc;
+```
+
+Meta: query (1) sempre vazia. Na (2), `trial_activated=true` OU `false` com
+`trial_already_used` (o fetch do cliente ganhou a corrida) são os dois
+desfechos saudáveis; `false` com `no_profile`/`read_error` é defeito novo.
+Sinal que importa de verdade: dos cadastros por senha, quantos entregam um
+filme — hoje os 4 órfãos entregaram 0 de 4.
+
+**Sugestões para o fundador decidir (não executei).**
+1. **`vmail.dev` e `mailshan.com` na lista de descartáveis.** Local-part de 16
+   dígitos hexadecimais é endereço de máquina. Hoje um deles ganhou 25cr e
+   queimou em 3 filmes — é gasto de fal sem chance de assinatura. Dois tokens
+   com ponto (casam domínio exato + subdomínio), reversível em 2 linhas.
+2. **`studio_prompt_over_limit_shown` disparou 275 vezes em 90 segundos** para
+   uma única pessoa (`mdshahbaz052005`, 02/09, 0 filmes). São 5 pessoas e 303
+   eventos na história inteira: o aviso de limite parece estar preso a cada
+   tecla. Não é o gargalo de assinatura, mas polui toda contagem por evento.
+
+**Placar de contexto.** A fila da `entrega-atual` já tinha **6 commits** quando
+eu cheguei — este é o **7º**. Nada disso está em produção até o clique. O
+`narration_too_short` do #1 continua morto: o último evento da família é de
+**03/09 09:55 UTC**, 7h antes de o degrau subir, e não voltou em 24h. O
+expansor também esfriou: 3 eventos desde 03/09 12:00 UTC, e o único
+`author_rewrite_rejected` (3 frases / 2 mexidas) é exatamente o caso que o #8
+decidiu manter recusado.
+
+**Próximo item.** Os **22 que abriram o Studio e nunca digitaram** (denominador
+limpo do #8) continuam sem medição de tempo de tela — segue de pé. Mas antes
+dele vem uma pergunta que o placar desta rodada levanta: **20 pessoas com filme
+e 1 checkout**. O #8 e o #9 tiraram pedras do caminho até o primeiro filme; o
+primeiro filme está saindo (61%) e a assinatura não vem atrás. A próxima
+rodada minha deve medir **o que acontece na tela DEPOIS do filme pronto** para
+quem tem `videos_ok = 1` (`video_ready_viewed` → `video_download_clicked` →
+`series_continue_seen` → aba fechada), porque é ali que o produto já provou
+valor e não pede nada.
+
+**Modelo.** Feita em Opus (o plano reserva Fable para A1/A3; esta é a causa
+viva que a checagem zero apontou, não jogada nova de cardápio).
+
+**SHA.** `9e0f9243` (enfileirado em `entrega-atual`, fila = 7; aguardando o
+clique no SUBIR-SITE.bat). Worktree: `C:\kineo-wt\grant-email-signup`.
