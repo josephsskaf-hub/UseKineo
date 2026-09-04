@@ -1615,3 +1615,57 @@ Nada.
 ### 📋 O QUE ACONTECEU
 
 A pessoa que esperava o primeiro filme não vê mais uma falha vaga: vê que o filme está sendo feito e há quantos minutos, com a mesma rechecagem segura. O produto ainda precisa confirmar a entrega do caso vivo; isso foi encaminhado à pista correta sem mexer no render.
+
+---
+
+## ROUND 23 — duração efetiva aparece antes de aprovar o roteiro
+
+**Data:** 2026-09-04 12:10→12:20 BRT
+
+**Pista:** Growth-B2C / CAIXA, atendendo pedido explícito da pista Claude
+
+**Branch:** `codex/caixa-effective-duration-r23`
+
+**SHA funcional:** `fc427bd603d6cc547b922b8d12e24e93d0e8d677`
+
+### RECONCILIAÇÃO E PLACAR
+
+- **EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, 04/09/2026 12:15 BRT:** desde o marco de 03/09 16:00 UTC há 37 cadastros externos, 24 pessoas com filme, 2 checkouts com filme, 1 checkout sem filme, 0 assinaturas e 0 pessoas com falha sem filme.
+- **EVIDÊNCIA DE PRODUÇÃO:** a pessoa TAAFT que estava em `stranded_composed` na R22 finalmente entrou no grupo com filme; `pessoas_com_filme` subiu de 23 para 24 e `pessoas_falha_sem_filme` voltou de 1 para 0. A correção visual da R22 ainda não tem amostra pós-deploy suficiente e permanece congelada.
+- **EVIDÊNCIA DE PRODUÇÃO:** não houve pessoa externa no vigia de checkout das últimas 2h. Em 14 dias, 32 pessoas tiveram `script_expand_autostarted`, 15 tiveram `script_expand_failed` e 12 aceitaram a expansão; a razão de aceite atual é 12/32 pessoas, sem atribuição causal.
+
+### HIPÓTESE E MUDANÇA MÍNIMA
+
+**FATO CONFIRMADO:** `app/api/expand-script/route.ts` já devolvia `effectiveDuration` e `autofitDown`, mas `GenerateClient.tsx` descartava os dois campos. Quando o servidor aceitava um roteiro para 30s após pedido de 35s, o painel de aprovação não explicava a mudança.
+
+**HIPÓTESE:** esconder a duração efetiva cria surpresa depois do aceite e contribui para abandono justamente entre pessoas que já superaram o bloqueio do roteiro.
+
+**IMPLEMENTADO:** o painel “Read it before we render” mostra “You asked for 35s. This script fits 30s…” somente quando a resposta traz `autofitDown=true` e uma duração numérica menor. O cliente não muda o seletor nem altera o comportamento do render; apenas explica a decisão que o servidor já aplica. `script_expanded` e `script_expand_accepted` agora carregam duração pedida, duração efetiva e o booleano de descida, sem conteúdo do roteiro.
+
+### TESTADO E VALIDADO
+
+- **TESTADO LOCALMENTE:** contrato expansor+cliente 63/63; política de expansão 95/95; régua de narração 9/9; money-truth 313/313; public-promo-truth 68/68; TypeScript verde; whitespace limpo.
+- **TESTADO VISUALMENTE:** comparação desktop conferida em `docs/previews/EXPANDED-SCRIPT-DURATION-TRUTH-2026-09-04.html`; aviso legível, ação principal preservada e sem preço/crédito.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 12:19 BRT:** `origin/main=fc427bd603d6cc547b922b8d12e24e93d0e8d677`; Guardião run `33888661983` concluiu com sucesso em 1m14s. Vercel Production `dpl_A19ddGDuBwJbxoJr1SCyH9ZCpjBd` ficou `READY` para o mesmo SHA; preview `dpl_63ZHArumi8FMPgFU91Rat5Fhtd3K` também ficou `READY`.
+
+### COMO MEDIR E GATE
+
+`script_expanded(autofit_down=true)` → `script_expand_accepted(autofit_down=true)` → análise/filme/checkout/pagamento, por pessoa externa. Comparar aceite e abandono da aba em menos de 60 segundos com o baseline de 12 aceites entre 32 pessoas auto-iniciadas.
+
+Congelar até 10 exposições externas ou 7 dias. Reverter se o aviso aparecer com `autofit_down=false`, se a duração efetiva for maior/igual à pedida, se o cliente mudar o seletor ou se um texto ainda curto ganhar aprovação.
+
+### RISCO
+
+Baixo e reversível. O aviso depende de dois campos estruturados do servidor e falha fechado. Nenhum preço, oferta, crédito, motor ou render foi alterado.
+
+### PRÓXIMA JOGADA
+
+Não reeditar esta superfície antes do gate. Na próxima rodada, reconciliar pedidos abertos novamente e escolher outra etapa do caixa com exposição mensurável.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+### 📋 O QUE ACONTECEU
+
+Quando o sistema precisa encaixar o roteiro numa duração menor, a pessoa agora sabe disso antes de aprovar. A mudança já está em produção, com Guardião e deploy verdes, e não altera o render nem o custo.
