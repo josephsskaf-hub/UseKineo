@@ -2,6 +2,7 @@ import { ImageResponse } from 'next/og'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { notFound } from 'next/navigation'
 import { CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED } from '@/lib/publicSurfacePolicy'
+import { resolvePublicVideoTitle } from '@/lib/publicVideos'
 
 // #462 — dynamically generated OG preview image for /v/[id]. The static
 // og-image.png fallback didn't exist, so WhatsApp/Twitter showed no card at all.
@@ -21,7 +22,12 @@ async function getTitle(id: string): Promise<string> {
       auth: { autoRefreshToken: false, persistSession: false },
     })
     const { data } = await admin.from('videos').select('title, topic').eq('id', id).single()
-    const raw = ((data?.title || data?.topic || '') as string)
+    // Use the same subject recovery as the public page. This route has its own
+    // narrow query, so relying on `PublicVideo.title` alone would still let a
+    // legacy series instruction leak into the social preview bitmap.
+    const rawTitle = (data?.title ?? '').toString()
+    const rawTopic = (data?.topic ?? '').toString()
+    const raw = resolvePublicVideoTitle(rawTitle, rawTopic, rawTitle || rawTopic).title
     const line =
       raw
         .split('\n')

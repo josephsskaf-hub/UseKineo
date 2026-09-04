@@ -1,6 +1,7 @@
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { stripScriptMarkers } from '@/lib/scriptParser'
 import { CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED } from '@/lib/publicSurfacePolicy'
+import { normalizeSeriesSeed } from '@/lib/seriesContinuation'
 
 // PUSH #96+ — Shared source of truth for the PUBLIC video surface (`/v/[id]`).
 //
@@ -406,6 +407,37 @@ export function cleanTitleLine(raw: string): string {
 }
 
 /**
+ * Resolve the single title exposed by every `/v/[id]` surface. A continuation
+ * prompt can live in either column while `title` is an earlier/truncated copy,
+ * so detection covers both raw sources and recovery prefers the fuller topic.
+ */
+export function resolvePublicVideoTitle(
+  rawTitle: string | null | undefined,
+  rawTopic: string | null | undefined,
+  derivedTitle?: string | null,
+): { title: string; hasPromptScaffolding: boolean } {
+  const candidate = (derivedTitle ?? '').toString().trim() ||
+    cleanTitleLine(rawTitle ?? '') ||
+    cleanTitleLine(rawTopic ?? '') ||
+    'AI YouTube Short'
+  const hasPromptScaffolding =
+    isPromptScaffolding(rawTitle) ||
+    isPromptScaffolding(rawTopic) ||
+    isPromptScaffolding(candidate)
+
+  if (!hasPromptScaffolding) return { title: candidate, hasPromptScaffolding }
+
+  const recovered =
+    normalizeSeriesSeed(rawTopic) ||
+    normalizeSeriesSeed(rawTitle) ||
+    normalizeSeriesSeed(candidate)
+  return {
+    title: cleanTitleLine(recovered) || 'AI YouTube Short',
+    hasPromptScaffolding,
+  }
+}
+
+/**
  * First sentence of the transcript — usually the hook, the best H1 we have.
  * The terminator must be followed by end-of-string or a capitalised word, so a
  * dramatic ellipsis ("GTA 6 isn't just another game... it's a revolution.")
@@ -480,12 +512,24 @@ export function toPublicVideo(row: PublicVideoRow): PublicVideo {
   const fromTopic = cleanTitleLine(row.topic ?? '')
   // Prefer the first narration sentence: production `title` values are often a
   // hard 60-char cut that ends mid-word ("…about a strange ").
-  const title =
+  const derivedTitle =
     (fromSentence.length >= MIN_TITLE_CHARS && fromSentence) ||
     (fromTitle.length >= MIN_TITLE_CHARS && fromTitle) ||
     (fromTopic.length >= MIN_TITLE_CHARS && fromTopic) ||
     fromTitle ||
     'AI YouTube Short'
+
+  // KINEO-FLUXO-PUBLIC-TITLE-2026-09-03 — the quality gate below correctly
+  // kept continuation prompts out of search, but `/v/[id]` still rendered the
+  // internal instruction as its H1, share title and CTA seed. Reuse the same
+  // canonical normalizer as the series buttons; prefer `topic` because legacy
+  // `title` values were often truncated before the actual subject ended.
+  const resolvedTitle = resolvePublicVideoTitle(row.title, row.topic, derivedTitle)
+  const title = resolvedTitle.title
+  // Cleaning the display title must never promote a contaminated legacy row
+  // back into the sitemap. Preserve the original classification independently.
+  const hasPromptScaffolding =
+    resolvedTitle.hasPromptScaffolding || isPromptScaffolding(transcript)
 
   // `duration_seconds` is NULL on every production row today; `duration` (int
   // seconds) is the working fallback. Anything outside Google's 1–28800 band is
@@ -499,6 +543,10 @@ export function toPublicVideo(row: PublicVideoRow): PublicVideo {
   let gateFailure: string | null = null
   if (row.status !== 'completed') gateFailure = `status=${row.status ?? 'null'}`
   else if (!playbackUrl) gateFailure = 'no playable video URL'
+  // Keep the original reason even when the safe display fallback is shorter
+  // than the generic title threshold.
+  else if (hasPromptScaffolding)
+    gateFailure = 'prompt scaffolding, not a script'
   else if (title.length < MIN_TITLE_CHARS) gateFailure = `title too short (${title.length} chars)`
   else if (transcript.length < MIN_TRANSCRIPT_CHARS)
     gateFailure = `transcript too short (${transcript.length} chars)`
@@ -508,13 +556,6 @@ export function toPublicVideo(row: PublicVideoRow): PublicVideo {
   // do sitemap de produção apontavam para um MP4 que já respondia 404/401.
   else if (!hasDurablePlayback(playbackUrl))
     gateFailure = 'playback URL is not durable (signed or third-party delivery host)'
-  // KINEO-SEO-VIDEO-PAGES-2026-08-11 — the leaked series-continuation prompt.
-  // Tested against BOTH the derived title and the cleaned transcript: on the 3
-  // rows that reached the live sitemap the phrase had been promoted into the
-  // title, and on the other 10 it sat in the body.
-  else if (isPromptScaffolding(title) || isPromptScaffolding(transcript))
-    gateFailure = 'prompt scaffolding, not a script'
-
   return {
     id: row.id,
     title,

@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FLUXO — título público de série — antes e depois</title>
+  <style>
+    * { box-sizing: border-box; }
+    :root { color-scheme: dark; --blue:#2997ff; --muted:#86868b; --panel:#111114; --line:#29292e; }
+    body { margin:0; background:#050506; color:#f5f5f7; font-family:Inter,system-ui,-apple-system,sans-serif; }
+    main { max-width:1440px; margin:auto; padding:42px 28px 64px; }
+    header { max-width:900px; margin-bottom:30px; }
+    .eyebrow { color:var(--blue); font-size:12px; font-weight:900; letter-spacing:.12em; text-transform:uppercase; }
+    h1 { margin:9px 0 10px; font-size:clamp(28px,4vw,48px); letter-spacing:-.035em; }
+    header p { margin:0; color:#b9b9bf; line-height:1.6; }
+    .fact { display:inline-block; margin-top:14px; padding:8px 11px; border:1px solid #35546f; border-radius:8px; color:#cde9ff; font:700 11px ui-monospace,monospace; }
+    .section-title { margin:30px 0 12px; font-size:14px; color:#d7d7dc; }
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+    .frame { overflow:hidden; border:1px solid var(--line); border-radius:18px; background:var(--panel); box-shadow:0 22px 70px #0008; }
+    .frame-head { display:flex; align-items:center; justify-content:space-between; padding:11px 14px; background:#1b1b1f; border-bottom:1px solid var(--line); }
+    .label { font-size:12px; font-weight:900; letter-spacing:.08em; text-transform:uppercase; }
+    .before .label { color:#ff8278; } .after .label { color:#68d391; }
+    .viewport { color:#86868b; font:11px ui-monospace,monospace; }
+    .page { min-height:520px; padding:24px 20px 32px; background:#000; }
+    .page-inner { max-width:720px; margin:auto; }
+    .crumb { color:var(--blue); font-weight:800; font-size:14px; margin-bottom:18px; }
+    .crumb span { color:var(--muted); font-size:12px; font-weight:500; }
+    .public-title { margin:0 0 10px; font-size:24px; font-weight:800; line-height:1.28; overflow-wrap:anywhere; }
+    .before .public-title { color:#ffd3cf; }
+    .after .public-title { color:#fff; }
+    .meta { color:var(--muted); font-size:13px; margin:0 0 20px; }
+    .body { display:grid; grid-template-columns:210px 1fr; align-items:start; gap:18px; }
+    .video { aspect-ratio:9/16; border-radius:16px; border:1px solid #303036; background:radial-gradient(circle at 50% 20%,#233d60,#111 54%,#050505); display:grid; place-items:center; }
+    .play { width:46px; height:46px; border-radius:50%; display:grid; place-items:center; background:#ffffffea; color:#000; font-size:18px; padding-left:3px; }
+    .pitch { padding:18px; border-radius:16px; background:#2997ff14; border:1px solid #2997ff4d; }
+    .pitch strong { display:block; line-height:1.35; }
+    .pitch p { color:#cbd5e1; font-size:13px; line-height:1.5; }
+    .cta { display:inline-block; padding:11px 16px; border-radius:11px; background:var(--blue); color:#000; font-size:13px; font-weight:900; }
+    .note { margin:14px 0 0; padding:10px 12px; border-radius:9px; background:#18181c; color:#babac1; font-size:12px; line-height:1.45; }
+    .note b { color:#fff; }
+    .mobile-grid { display:flex; gap:20px; align-items:flex-start; }
+    .mobile { width:360px; flex:0 0 360px; }
+    .mobile .page { min-height:620px; padding:20px 16px; }
+    .mobile .public-title { font-size:22px; }
+    .mobile .body { display:block; }
+    .mobile .video { width:190px; margin-bottom:18px; }
+    .mobile .pitch { padding:15px; }
+    .mobile-copy { flex:1; align-self:center; color:#b9b9bf; line-height:1.65; max-width:500px; }
+    code { color:#d5ecff; }
+    @media (max-width:900px) { .grid { grid-template-columns:1fr; } .mobile-copy { display:none; } }
+    @media (max-width:430px) { main { padding:28px 12px; } .mobile { width:100%; flex-basis:100%; } .body { grid-template-columns:150px 1fr; } }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="eyebrow">Kineo · comparação visual obrigatória</div>
+    <h1>O tema volta a ser o título.</h1>
+    <p>O layout público não muda. A correção remove a instrução interna do gerador e recupera somente o assunto da série; se não houver assunto utilizável, mostra “AI YouTube Short”.</p>
+    <div class="fact">FATO CONFIRMADO · fixture legado de 03/08/2026 · scripts/test-serie-episodio-2.mjs</div>
+  </header>
+
+  <h2 class="section-title">Desktop · 1440 px</h2>
+  <section class="grid">
+    <article class="frame before">
+      <div class="frame-head"><span class="label">Antes · instrução vazava</span><span class="viewport">desktop</span></div>
+      <div class="page"><div class="page-inner">
+        <div class="crumb">Kineo <span>/ Shorts Script Library</span></div>
+        <h3 class="public-title">Create the next episode in the same Short series about “AI Revolution: Are You Ready?”. Ke</h3>
+        <p class="meta">A faceless AI Short generated with Kineo · 30 seconds</p>
+        <div class="body">
+          <div class="video"><span class="play">▶</span></div>
+          <div class="pitch"><strong>No camera. No editing. Made with AI in minutes.</strong><p>This Short was generated from a single topic — script, voiceover, captions and footage.</p><span class="cta">Remix this topic — no signup →</span></div>
+        </div>
+        <p class="note"><b>Falha visível:</b> a ordem interna ocupava o H1 e também alimentava compartilhamento, metadados e o próximo remix.</p>
+      </div></div>
+    </article>
+
+    <article class="frame after">
+      <div class="frame-head"><span class="label">Depois · assunto recuperado</span><span class="viewport">desktop</span></div>
+      <div class="page"><div class="page-inner">
+        <div class="crumb">Kineo <span>/ Shorts Script Library</span></div>
+        <h3 class="public-title">AI Revolution: Are You Ready?</h3>
+        <p class="meta">A faceless AI Short generated with Kineo · 30 seconds</p>
+        <div class="body">
+          <div class="video"><span class="play">▶</span></div>
+          <div class="pitch"><strong>No camera. No editing. Made with AI in minutes.</strong><p>This Short was generated from a single topic — script, voiceover, captions and footage.</p><span class="cta">Remix this topic — no signup →</span></div>
+        </div>
+        <p class="note"><b>Invariante:</b> a página continua <code>noindex</code>; só a camada exibida recebe o tema normalizado.</p>
+      </div></div>
+    </article>
+  </section>
+
+  <h2 class="section-title">Mobile · 360 px</h2>
+  <section class="mobile-grid">
+    <article class="frame before mobile">
+      <div class="frame-head"><span class="label">Antes</span><span class="viewport">360 px</span></div>
+      <div class="page"><div class="page-inner">
+        <div class="crumb">Kineo <span>/ Shorts Script Library</span></div>
+        <h3 class="public-title">Create the next episode in the same Short series about “AI Revolution: Are You Ready?”. Ke</h3>
+        <p class="meta">A faceless AI Short generated with Kineo</p>
+        <div class="body"><div class="video"><span class="play">▶</span></div><div class="pitch"><strong>No camera. No editing.</strong><p>Made with AI in minutes.</p><span class="cta">Remix this topic →</span></div></div>
+      </div></div>
+    </article>
+    <article class="frame after mobile">
+      <div class="frame-head"><span class="label">Depois</span><span class="viewport">360 px</span></div>
+      <div class="page"><div class="page-inner">
+        <div class="crumb">Kineo <span>/ Shorts Script Library</span></div>
+        <h3 class="public-title">AI Revolution: Are You Ready?</h3>
+        <p class="meta">A faceless AI Short generated with Kineo</p>
+        <div class="body"><div class="video"><span class="play">▶</span></div><div class="pitch"><strong>No camera. No editing.</strong><p>Made with AI in minutes.</p><span class="cta">Remix this topic →</span></div></div>
+      </div></div>
+    </article>
+    <p class="mobile-copy"><b>FATO CONFIRMADO:</b> o mesmo valor <code>PublicVideo.title</code> abastece o H1 e os consumidores públicos já existentes em <code>app/v/[id]/page.tsx</code>. A correção central evita divergência entre desktop, mobile e metadados.</p>
+  </section>
+</main>
+</body>
+</html>

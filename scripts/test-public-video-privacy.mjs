@@ -35,6 +35,7 @@ function executeTs(file, mocks = {}) {
 }
 
 const policy = executeTs('lib/publicSurfacePolicy.ts')
+const seriesContinuation = executeTs('lib/seriesContinuation.ts')
 check(policy.CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED === false, 'customer video surface must default OFF')
 const publicExamplesModule = executeTs('lib/publicExamples.ts')
 check(publicExamplesModule.PUBLIC_EXAMPLES.length === 6, 'honest examples copy must match the six static allow-listed assets')
@@ -50,12 +51,60 @@ const publicModule = executeTs('lib/publicVideos.ts', {
   '@supabase/supabase-js': { createClient: () => { publicAdminCreates++; throw new Error('private DB read') } },
   '@/lib/scriptParser': { stripScriptMarkers: (value) => value },
   '@/lib/publicSurfacePolicy': policy,
+  '@/lib/seriesContinuation': seriesContinuation,
 })
 const deniedSingle = await publicModule.getPublicVideoResult('11111111-1111-4111-8111-111111111111')
 const deniedList = await publicModule.listIndexablePublicVideos(10)
 check(deniedSingle.status === 'missing', 'real anonymous lookup must look missing')
 check(Array.isArray(deniedList) && deniedList.length === 0, 'real anonymous enumeration must be empty')
 check(publicAdminCreates === 0, 'real public-video functions must not create the admin client')
+
+const legacySeriesPrompt = 'Create the next episode in the same Short series about "AI Revolution: Are You Ready?". Keep the topic and format recognizable, but use a completely new hook, new facts, and a fresh payoff. Do not repeat the previous episode.'
+const legacySeriesRow = {
+  id: 'legacy-series',
+  title: legacySeriesPrompt,
+  topic: legacySeriesPrompt,
+  video_url: 'https://cdn.example.com/legacy.mp4',
+  final_video_url: null,
+  thumbnail_url: null,
+  thumb_url: null,
+  status: 'completed',
+  duration: 30,
+  duration_seconds: null,
+  quality: null,
+  created_at: '2026-09-03T20:10:00Z',
+  youtube_description: null,
+  hashtags: [],
+}
+const legacySeriesVideo = publicModule.toPublicVideo(legacySeriesRow)
+check(legacySeriesVideo.title === 'AI Revolution: Are You Ready?', 'legacy /v title must expose only the recovered series subject')
+check(!publicModule.isPromptScaffolding(legacySeriesVideo.title), 'legacy /v title must not expose generator scaffolding')
+check(legacySeriesVideo.isIndexable === false, 'cleaning the visible legacy title must preserve noindex')
+check(legacySeriesVideo.gateFailure === 'prompt scaffolding, not a script', 'legacy /v must preserve the explicit noindex reason')
+
+const degenerateSeriesVideo = publicModule.toPublicVideo({
+  ...legacySeriesRow,
+  id: 'degenerate-series',
+  title: 'Create the next episode in the same Short series about "5 shocking facts about". Keep the topic and format recognizable, but use a completely new hook, new facts, and a fresh payoff. Do not repeat the previous episode.',
+  topic: 'Create the next episode in the same Short series about "5 shocking facts about". Keep the topic and format recognizable, but use a completely new hook, new facts, and a fresh payoff. Do not repeat the previous episode.',
+  video_url: 'https://cdn.example.com/degenerate.mp4',
+})
+check(degenerateSeriesVideo.title === 'AI YouTube Short', 'degenerate legacy subject must use the safe generic title')
+check(degenerateSeriesVideo.gateFailure === 'prompt scaffolding, not a script', 'degenerate fallback must preserve the explicit noindex reason')
+
+const newSeriesPrompt = 'Topic: "The Boiling River of the Amazon". This is the next episode in the same Short series: same subject, same format, a completely new hook, new facts and a fresh payoff. Do not repeat the previous episode.'
+const newSeriesTitle = publicModule.resolvePublicVideoTitle(
+  'Topic: "The Boiling River of the Amazon"',
+  newSeriesPrompt,
+  'Topic: The Boiling River of the Amazon',
+)
+check(newSeriesTitle.title === 'The Boiling River of the Amazon', 'topic scaffolding must normalize even when the short title alone does not match the detector')
+check(newSeriesTitle.hasPromptScaffolding, 'raw topic contamination must remain classified')
+
+const truncatedLegacyTitle = 'Create the next episode in the same Short series about "The most astonishing undercover mi'
+const fullLegacyPrompt = 'Create the next episode in the same Short series about "The most astonishing undercover mission in history". Keep the topic and format recognizable, but use a completely new hook, new facts, and a fresh payoff. Do not repeat the previous episode.'
+const fullSeriesTitle = publicModule.resolvePublicVideoTitle(truncatedLegacyTitle, fullLegacyPrompt, truncatedLegacyTitle)
+check(fullSeriesTitle.title === 'The most astonishing undercover mission in history', 'public title recovery must prefer the complete topic over its truncated title')
 
 let wallAdminCreates = 0
 const sample = {
@@ -114,6 +163,8 @@ check(page.indexOf('getPublicVideoResult(params.id)') < page.indexOf("if (result
 const og = read('app/v/[id]/opengraph-image.tsx')
 check(og.includes('if (!CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED) notFound()'), 'OG route must share the privacy gate')
 check(og.indexOf('if (!CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED) notFound()') < og.indexOf('const title = await getTitle'), 'OG gate must run before its service-role lookup')
+check(og.includes("import { resolvePublicVideoTitle } from '@/lib/publicVideos'"), 'OG bitmap must share the public title resolver')
+check(og.includes('resolvePublicVideoTitle(rawTitle, rawTopic, rawTitle || rawTopic).title'), 'OG bitmap must recover the subject before rendering text')
 
 const engineWall = read('lib/engineWall.ts')
 const wallBlock = engineWall.slice(engineWall.indexOf('async function buildWall'))
