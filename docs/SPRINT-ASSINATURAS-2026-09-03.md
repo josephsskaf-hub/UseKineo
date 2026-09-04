@@ -1618,6 +1618,7 @@ aguardando o clique no SUBIR-SITE.bat). Worktree:
 ---
 
 ### #9 — 09:40→10:20 BRT (04/09) — o cadastro por E-MAIL E SENHA nascia sem os 25 créditos. 4 pessoas só hoje, e nenhum dos 14 órfãos de 21 dias fez UM vídeo na vida.
+### #11 — 09:40→10:20 BRT (04/09) — o cadastro por E-MAIL E SENHA nascia sem os 25 créditos. 4 pessoas só hoje, e nenhum dos 14 órfãos de 21 dias fez UM vídeo na vida.
 
 **Placar da rodada** (SQL canônico, marco zero 03/09 16:00 UTC, contas externas):
 33 cadastros · 20 pessoas com filme (61%) · 1 checkout COM filme · 1 checkout sem
@@ -1753,6 +1754,8 @@ filme — hoje os 4 órfãos entregaram 0 de 4.
 
 **Placar de contexto.** A fila da `entrega-atual` já tinha **6 commits** quando
 eu cheguei — este é o **7º**. Nada disso está em produção até o clique. O
+**Placar de contexto — e uma colisão de numeração.** Cheguei numerando esta rodada como #9 e descobri, na hora de enfileirar, que OUTRA SESSÃO já tinha colocado um #9 e um #10 na fila (os dois sobre o clique em "Rendering" que apontava para render sem id). Renumerei para #11 e refiz os dois commits: quem lê o diário depois não pode ter dois #9. Regra que fica: conferir `git log origin/main..entrega-atual` ANTES de escolher o número, porque `origin/main` só mostra o que já subiu. A fila da `entrega-atual` já tinha **6 commits** quando
+eu cheguei. Nada disso está em produção até o clique. O
 `narration_too_short` do #1 continua morto: o último evento da família é de
 **03/09 09:55 UTC**, 7h antes de o degrau subir, e não voltou em 24h. O
 expansor também esfriou: 3 eventos desde 03/09 12:00 UTC, e o único
@@ -1773,4 +1776,5 @@ valor e não pede nada.
 viva que a checagem zero apontou, não jogada nova de cardápio).
 
 **SHA.** `9e0f9243` (enfileirado em `entrega-atual`, fila = 7; aguardando o
+**SHA.** `ff33f80c` (enfileirado em `entrega-atual`; aguardando o
 clique no SUBIR-SITE.bat). Worktree: `C:\kineo-wt\grant-email-signup`.
