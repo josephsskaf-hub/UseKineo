@@ -76,3 +76,56 @@ export function alvoDaPilula(entrada: {
  */
 export const FRASE_RENDER_NO_MOTOR =
   'Your AI scenes are being generated at the engine. The film saves to My Videos on its own — you do not have to wait here.'
+
+// ═══════════════════════════════════════════════════════════════════════════
+// KINEO-HISTORICO-RENDER-VIVO-2026-09-04 (#10) — o buraco que o proprio #9
+// abriu, achado antes de subir.
+//
+// O #9 mandou o render SEM id para `/history` com o rotulo "My Videos" e a
+// promessa `FRASE_RENDER_NO_MOTOR` ("the film saves to My Videos on its own").
+// Duas coisas estavam erradas nisso, e as duas sao a MESMA doenca que o #9
+// dizia estar curando:
+//
+//   1. `/history` le SO a tabela `videos` (app/(dashboard)/history/page.tsx).
+//      Um render cinematografico ainda no fal NAO TEM linha em `videos` — a
+//      linha nasce no fim, quando o compose termina. Ou seja: a pessoa era
+//      levada para uma tela que nao sabe que o filme dela existe, e via a
+//      lista velha (ou "No videos yet"). A promessa e a tela discordavam.
+//
+//   2. A pilula e montada em TODA pagina autenticada, `/history` inclusive.
+//      Clicar "My Videos" ESTANDO em `/history` e `router.push('/history')`:
+//      a rota nao muda, a tela nao muda, nada acontece. E exatamente o loop
+//      de 16 cliques que o #9 mediu, mudado de lugar.
+//
+// `mesmaTela` e a trava pura: o clique so e oferecido quando ele MUDA de tela.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * O clique da pilula levaria para a tela em que a pessoa JA ESTA?
+ *
+ * Compara so a raiz da rota (sem query, sem barra final), porque e o que o
+ * `router.push` enxerga: `/history?x=1` e `/history/` sao a mesma tela que
+ * `/history`. Caminho desconhecido (null/vazio) devolve `false` — na duvida a
+ * pilula continua oferecendo a saida, que e o comportamento de hoje.
+ */
+export function mesmaTela(href: string, caminhoAtual: string | null | undefined): boolean {
+  if (typeof caminhoAtual !== 'string' || !caminhoAtual.trim()) return false
+  const normalizar = (v: string) => {
+    const semQuery = v.split('?')[0].split('#')[0].trim()
+    const semBarra = semQuery.replace(/\/+$/, '')
+    return semBarra === '' ? '/' : semBarra.toLowerCase()
+  }
+  return normalizar(href) === normalizar(caminhoAtual)
+}
+
+/** A rota que passa a mostrar o render em curso na propria tela. */
+export const ROTA_BIBLIOTECA = '/history'
+
+/**
+ * A frase do cartao que o `/history` passa a mostrar enquanto o filme esta no
+ * motor. E a MESMA promessa da pilula (`FRASE_RENDER_NO_MOTOR`), agora dita na
+ * tela que a cumpre. Nunca fala de credito, plano nem preco (fronteira do Codex).
+ */
+export const TITULO_RENDER_NA_BIBLIOTECA = 'Your film is being made'
+export const FRASE_RENDER_NA_BIBLIOTECA =
+  'The scenes are rendering at the engine. This page picks the film up on its own when it is done — you can close the tab.'

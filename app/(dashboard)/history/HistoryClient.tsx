@@ -17,6 +17,11 @@ import {
 } from '@/lib/videoShare'
 import { FreeTierCopy } from '@/components/FreeTierOfferProvider'
 import AffiliateMomentumCard from '@/components/AffiliateMomentumCard'
+// KINEO-HISTORICO-RENDER-VIVO-2026-09-04 (#10) — o render que ainda esta no
+// motor NAO tem linha em `videos` (a linha nasce no fim, no compose). Sem
+// este cartao esta tela recebia a promessa do #9 ("the film saves to My
+// Videos on its own") e mostrava a lista velha — ou "No videos yet".
+import HistoryActiveRenderCard from '@/components/HistoryActiveRenderCard'
 import {
   isAffiliateMomentumEligible,
   isHistorySubscriptionOfferEligible,
@@ -978,6 +983,9 @@ export default function MyVideosClient({ videos: initialVideos, loadError = fals
             </span>
           </h1>
         </header>
+        {/* #10 — a tela vazia e onde a promessa do #9 doia mais: quem chega
+            aqui com o PRIMEIRO filme ainda no motor lia "No videos yet". */}
+        <HistoryActiveRenderCard />
         {/* KINEO-HIGGSFIELD-20D dia 16 (13/08) — empty state com identidade:
             sai o fundo navy legado + emoji, entra a superficie padrao
             (#131316) e uma ilustracao no traco da marca (tres molduras 9:16
@@ -1063,6 +1071,11 @@ export default function MyVideosClient({ videos: initialVideos, loadError = fals
           ⚡ New Video
         </Link>
       </div>
+
+      {/* #10 — antes de qualquer oferta: "o meu filme esta vivo?". Mesma
+          ordem do KINEO-ESPERA-VENDE-2026-08-21 na tela de espera: entrega
+          primeiro, oferta depois. */}
+      <HistoryActiveRenderCard />
 
       {/* One completed video keeps episode two primary. Once a free creator has
           completed 2+ videos, repeat value is proven: make the honest recurring

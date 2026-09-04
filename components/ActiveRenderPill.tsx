@@ -50,7 +50,12 @@ import {
 // (14 dias) apontavam para um render SEM id, que /studio/create nao sabe
 // religar: o clique nao mudava nada e a pessoa clicava de novo (16 vezes no
 // pior caso, 03/09 23:00 BRT). A decisao de destino agora e funcao pura.
-import { alvoDaPilula, FRASE_RENDER_NO_MOTOR } from '@/lib/renderPillTarget'
+// KINEO-HISTORICO-RENDER-VIVO-2026-09-04 (#10) — o #9 mandou o render sem id
+// para /history, e a pilula e montada em TODA pagina autenticada: clicar
+// "My Videos" ESTANDO em /history era router.push da rota atual — nada muda
+// na tela, que e literalmente o loop de 16 cliques que o #9 mediu, mudado de
+// lugar. `mesmaTela` e a trava.
+import { alvoDaPilula, FRASE_RENDER_NO_MOTOR, mesmaTela } from '@/lib/renderPillTarget'
 
 const POLL_MS = 15000
 const MIN_PROBE_GAP_MS = 10000
@@ -229,8 +234,21 @@ export default function ActiveRenderPill() {
   }, [suppressed, visible, probe?.state])
 
   const identity = probeIdentity(probe)
+  // #10 — a pilula de RENDER nao aparece na tela que ja mostra o render. A
+  // condicao mora no `hidden` (e nao so no JSX) de proposito: senao o efeito
+  // de impressao gravaria `active_render_pill_shown` para uma pilula que
+  // ninguem viu, e a medicao do #9 mentiria na primeira tela consertada.
+  const renderNaPropriaTela =
+    probe?.state === 'rendering' &&
+    mesmaTela(
+      alvoDaPilula({ state: 'rendering', renderId: probe.renderId, resumable: probe.resumable }).href,
+      pathname,
+    )
   const hidden =
-    suppressed || !probe || (probe.state !== 'rendering' && dismissedId != null && dismissedId === identity)
+    suppressed ||
+    !probe ||
+    renderNaPropriaTela ||
+    (probe.state !== 'rendering' && dismissedId != null && dismissedId === identity)
 
   useEffect(() => {
     if (hidden || !probe) return
@@ -313,6 +331,13 @@ export default function ActiveRenderPill() {
     resumable: probe.state === 'rendering' ? probe.resumable : false,
   })
   const renderNoMotor = isRendering && !alvo.religavel
+  // #10 — o clique mudaria de tela? Se nao, a pilula NAO se oferece: em
+  // /history quem conta o estado do render agora e o cartao da propria
+  // pagina (components/HistoryActiveRenderCard), que le a MESMA sonda. Duas
+  // vozes dizendo a mesma coisa na mesma tela, uma delas com um botao que
+  // nao faz nada, e pior do que uma.
+  const cliqueMudaDeTela = !mesmaTela(alvo.href, pathname)
+  if (isRendering && !cliqueMudaDeTela) return null
 
   function handleAction() {
     if (!probe) return
@@ -321,6 +346,7 @@ export default function ActiveRenderPill() {
       action: alvo.acao,
       resumable: alvo.religavel,
       href: alvo.href,
+      same_screen: !cliqueMudaDeTela,
       render_id: probe.state === 'rendering' ? probe.renderId : null,
       video_id: probe.state === 'completed' ? probe.videoId : null,
       path: pathname ?? null,
@@ -331,6 +357,10 @@ export default function ActiveRenderPill() {
     // #9 — e um render SEM id tambem vai para /history: /studio/create nao
     // sabe religa-lo (resumeServerActiveRender() sai no !probe.renderId), e
     // era exatamente ali que o clique morria sem mudar nada na tela.
+    // #10 — cinto e suspensorio: o ramo acima ja nao renderiza a pilula de
+    // render na propria tela de destino, mas um push para a rota atual nunca
+    // pode sair daqui em nenhum estado.
+    if (!cliqueMudaDeTela) return
     router.push(alvo.href)
   }
 

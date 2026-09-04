@@ -53,6 +53,11 @@ function paraJs(fonte) {
   return saida
     .join('\n')
     .replace(/export function alvoDaPilula\(entrada: \{[\s\S]*?\n\}\): AlvoDaPilula \{/, 'export function alvoDaPilula(entrada) {')
+    // #10 (04/09) — o mesmo arquivo ganhou mesmaTela(); sem apagar estas duas
+    // anotacoes o import quebrava e ESTE teste ficava vermelho sem defeito
+    // nenhum no produto.
+    .replace(/export function mesmaTela\(href: string, caminhoAtual: string \| null \| undefined\): boolean \{/, 'export function mesmaTela(href, caminhoAtual) {')
+    .replace(/const normalizar = \(v: string\) =>/, 'const normalizar = (v) =>')
 }
 
 const fonteTs = lerArquivo('lib/renderPillTarget.ts')
