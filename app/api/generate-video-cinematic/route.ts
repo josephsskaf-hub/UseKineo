@@ -4579,6 +4579,31 @@ async function manipularPost(req: NextRequest) {
         // e-mail de resgate. Trocar a copy sem esse pedaco tiraria estas 25
         // pessoas da fila de recuperacao sem ninguem perceber.
         if (planoVazio) {
+          // KINEO-ZERO-SCENES-TELEMETRIA-2026-09-04 — o #21 conserta a copy e o
+          // motivo do estorno; isto grava O QUE FALTAVA para achar a causa raiz:
+          // por que o planner devolve zero cenas em 60s e nao em 35s (caso
+          // archiveunknownmedia, 3 falhas, 4a passou so pelo autofit_down).
+          // 14 dias: 34 ocorrencias / 25 pessoas / 10 sem nenhum filme.
+          try {
+            await cinematicAdmin.from('events').insert({
+              user_id: user.id,
+              name: 'cinematic_zero_scenes_planned',
+              path: '/api/generate-video-cinematic',
+              metadata: {
+                generation_id: generationId,
+                engine: usedModel,
+                quality: String(claimQuality),
+                requested_seconds: requestedDuration,
+                effective_seconds: duration,
+                clip_count: clipCount,
+                verbatim,
+                has_markers: parsedScript.hasMarkers === true,
+                segments: parsedScript.segments?.length ?? 0,
+                narration_chars: (parsedScript.narration ?? '').length,
+                refunded: released,
+              },
+            })
+          } catch { /* telemetria nunca derruba a resposta */ }
           await alertFalExhausted(`EMPTY_PLAN user=${user.id.slice(0, 8)} engine=${usedModel} duration=${duration}`)
           return NextResponse.json(
             {
