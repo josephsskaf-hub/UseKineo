@@ -63,6 +63,17 @@ equal(parsed.searchParams.get('utm_campaign'), 'example_remix_v1', 'campaign att
 equal(parsed.searchParams.get('utm_content'), 'north-sentinel-island', 'example slug is preserved')
 ok(parsed.searchParams.get('prompt')?.includes('ice caves & volcanoes'), 'URLSearchParams safely round-trips punctuation')
 
+const exactHref = remix.exampleRemixHref({
+  slug: 'north-sentinel-island',
+  referencePrompt: examples[1].prompt,
+  topic: '',
+  mode: 'exact',
+})
+const exactParsed = new URL(exactHref, 'https://www.usekineo.com')
+equal(exactParsed.searchParams.get('prompt'), examples[1].prompt, 'exact remix keeps the published prompt byte-for-byte')
+equal(exactParsed.searchParams.get('remix_mode'), 'exact_prompt', 'exact remix is distinguishable after navigation')
+equal(parsed.searchParams.get('remix_mode'), null, 'topic remix keeps its existing URL contract')
+
 const form = source('app/examples/ExampleRemixForm.tsx')
 const page = source('app/examples/[slug]/page.tsx')
 const player = source('app/examples/ExampleVideoPlayer.tsx')
@@ -76,6 +87,10 @@ ok(!page.includes('const generateHref'), 'old direct reference-prompt handoff is
 ok(player.includes("ctaTarget?: 'generate' | 'remix_form'"), 'player target contract is typed')
 ok(form.includes("trackEvent('example_remix_form_viewed'"), 'visible form is measured')
 ok(form.includes("trackEvent('example_remix_topic_submitted'"), 'topic submission is measured')
+ok(form.includes("trackEvent('example_remix_exact_started'"), 'one-click exact remix is measured separately')
+ok(form.includes("remix_mode: 'exact_prompt'"), 'organic funnel records the exact-prompt branch')
+ok(form.includes('Use this exact prompt →'), 'visitor can start without inventing another topic')
+ok(form.includes("mode: 'exact'"), 'one-click CTA carries the published prompt through the typed builder')
 ok(form.includes('intersectionRatio >= 0.5'), 'impression requires 50% visibility')
 ok(form.includes('sessionStorage.getItem(marker)'), 'form impression dedupes within the browser session')
 ok(form.includes('topic_length: safeTopic.length'), 'telemetry retains useful topic length')

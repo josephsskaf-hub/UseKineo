@@ -1,4 +1,5 @@
 export const EXAMPLE_REMIX_CAMPAIGN = 'example_remix_v1'
+export const EXAMPLE_REMIX_EXACT_VERSION = 'example_remix_exact_v1'
 export const EXAMPLE_REMIX_SOURCE = 'example_watch'
 export const MAX_EXAMPLE_REMIX_TOPIC_LENGTH = 140
 
@@ -28,6 +29,7 @@ export function exampleRemixHref(input: {
   slug: string
   referencePrompt: string
   topic: string
+  mode?: 'topic' | 'exact'
 }): string {
   const params = new URLSearchParams({
     prompt: remixExamplePrompt(input.referencePrompt, input.topic),
@@ -38,5 +40,6 @@ export function exampleRemixHref(input: {
     utm_campaign: EXAMPLE_REMIX_CAMPAIGN,
     utm_content: input.slug,
   })
+  if (input.mode === 'exact') params.set('remix_mode', 'exact_prompt')
   return `/studio/create?${params.toString()}`
 }

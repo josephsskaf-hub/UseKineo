@@ -1,10 +1,12 @@
 'use client'
 
 import { FormEvent, useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { trackEvent } from '@/lib/analytics'
 import {
   EXAMPLE_REMIX_CAMPAIGN,
+  EXAMPLE_REMIX_EXACT_VERSION,
   MAX_EXAMPLE_REMIX_TOPIC_LENGTH,
   exampleRemixHref,
   sanitizeExampleRemixTopic,
@@ -21,6 +23,7 @@ export default function ExampleRemixForm({
   const rootRef = useRef<HTMLDivElement | null>(null)
   const [topic, setTopic] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const exactHref = exampleRemixHref({ slug, referencePrompt, topic: '', mode: 'exact' })
 
   useEffect(() => {
     const element = rootRef.current
@@ -68,10 +71,30 @@ export default function ExampleRemixForm({
       className="mt-7 scroll-mt-6 rounded-[22px] border border-cyan-300/25 bg-cyan-300/[0.06] p-5 sm:p-6"
     >
       <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-300">Your version</p>
-      <h2 className="mt-2 text-xl font-black tracking-tight">Keep the format. Change the story.</h2>
+      <h2 className="mt-2 text-xl font-black tracking-tight">Use this exact prompt — or change the story.</h2>
       <p className="mt-2 text-sm leading-6 text-white/60">
-        Name your topic. Kineo carries the hook, pacing and visual structure into your Studio handoff.
+        Start with the prompt shown above in one click. You can review it in Studio before generating.
       </p>
+      <Link
+        href={exactHref}
+        onClick={() => {
+          void trackEvent('example_remix_exact_started', {
+            version: EXAMPLE_REMIX_EXACT_VERSION,
+            example_slug: slug,
+            destination: '/studio/create',
+          })
+          void trackEvent('organic_cta_clicked', {
+            source: `example_${slug}`,
+            placement: 'example_remix_exact',
+            destination: '/studio/create',
+            remix_mode: 'exact_prompt',
+          })
+        }}
+        className="mt-4 block w-full rounded-xl bg-white px-5 py-3 text-center text-sm font-black text-black transition hover:bg-cyan-200"
+      >
+        Use this exact prompt →
+      </Link>
+      <p className="mt-4 text-center text-[10px] font-black uppercase tracking-[0.16em] text-white/35">or change the topic</p>
       <form onSubmit={submit} className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-start">
         <div className="min-w-0 flex-1">
           <label htmlFor={`example-remix-topic-${slug}`} className="sr-only">Topic for your version</label>
@@ -92,7 +115,7 @@ export default function ExampleRemixForm({
           type="submit"
           className="rounded-xl bg-white px-5 py-3 text-sm font-black text-black transition hover:bg-cyan-200 sm:shrink-0"
         >
-          Build my version →
+          Build with my topic →
         </button>
       </form>
       <p className="mt-3 text-[11px] leading-5 text-white/40">No card required to start. You can edit the prompt before generating.</p>
