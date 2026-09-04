@@ -3184,3 +3184,103 @@ A tela de “compra concluída” usava saldo como se fosse prova de assinatura.
 Agora ela só afirma plano ativo e abre o Studio depois que o servidor confirma
 pagamento e plano. Se houver atraso, explica que o cliente não deve pagar de
 novo e oferece uma consulta segura, sem tocar em preço, crédito ou Stripe.
+
+---
+
+## ROUND 47 — saldo baixo ganha uma saída para o preço sem interromper trial ou assinante
+
+**Data:** 2026-09-04 15:19→15:31 BRT
+
+**Pista:** Growth-B2C / CAIXA
+
+**Branch:** `codex/caixa-r47`
+
+### RECONCILIAÇÃO, PLACAR E VIGIA
+
+**VALIDADO EM PRODUÇÃO — 04/09/2026 15:19 BRT:** R46 está em
+`a19a7b2d84430e51d4d0046024d23e1fe51417b8`; Guardião run `33905164039`
+terminou `success` e o deploy Vercel `dpl_FRSKuMPcvTjBAqe6vjGwkdiY1eDy`
+ficou `READY`, aliasado em `www.usekineo.com` no SHA exato.
+
+**EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, corte 04/09/2026 15:30
+BRT:** o placar canônico permanece em **41 cadastros externos, 27 pessoas com
+filme, 2 checkouts com filme, 2 sem filme, 0 assinaturas e 0 pessoas com falha
+sem filme**. O vigia móvel de duas horas tinha 0 pessoa externa com checkout
+aberto e pagamento ausente. R45 ainda tinha 0 pessoa exposta à nova atribuição;
+R46 tinha 0 evento `ready` e 0 `delayed`. As duas superfícies permanecem
+congeladas até seus gates.
+
+### O DADO QUE DOÍA E A HIPÓTESE
+
+**EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, 04/09/2026 15:25 BRT:**
+existem **534 pessoas externas com saldo entre 1 e 5 créditos**, todas com
+`plan=free` e sem pagamento. Oito ainda têm trial ativo; 526 estão fora do
+trial ativo. Entre estas, 143 já têm filme concluído e 3 estiveram ativas nos
+últimos sete dias. São pessoas reais, não eventos.
+
+**FATO CONFIRMADO EM CÓDIGO:** `components/TopBar.tsx` já destacava saldos de
+1 a 5 em âmbar, mas somente saldo zero abria `/pricing`. A escassez era visível
+sem oferecer uma saída. O componente alternativo `LowCreditsUpsell` não tem
+caller vivo.
+
+**HIPÓTESE:** para uma pessoa que já consumiu quase todo o saldo e não está em
+trial nem assinatura, transformar o próprio chip já visível em um caminho para
+a página de preços remove uma etapa de procura no momento de maior intenção.
+
+### MUDANÇA MÍNIMA E REVERSÍVEL
+
+**IMPLEMENTADO:** `lib/growth/lowBalancePricingBridge.ts` define uma política
+fail-closed. Somente saldo finito de 1 a 5, entitlements resolvidos, ausência de
+trial ativo e ausência de plano de assinatura habilitam a ponte. Trial ativo,
+assinante, estado não resolvido e qualquer saldo fora da faixa mantêm o
+comportamento anterior. O caminho de saldo zero permanece intacto.
+
+`components/TopBar.tsx` torna o chip elegível um link de 44px para a página de
+preços já existente. Não há modal, desconto, bloqueio, preço, oferta ou promessa
+nova. Dois eventos fechados medem visão humana (60% por 1 segundo com aba
+visível) e clique. A telemetria contém somente versão, superfície, faixa fechada
+`one_to_five` e destino; nunca saldo exato, pessoa, URL, preço ou texto livre.
+
+### TESTES, VISUAL E GATE
+
+**TESTADO LOCALMENTE:** 370 verificações verdes — política e caller 57,
+money-truth 313. TypeScript completo verde e `diff --check` limpo.
+
+**COMPARAÇÃO VISUAL:**
+`docs/previews/LOW-BALANCE-PRICING-BRIDGE-V1-2026-09-04.html` contém
+antes/depois desktop e mobile e foi renderizado no Chrome. O número e a cor
+continuam iguais; a variante elegível ganha affordance discreta e destino.
+
+Gate mínimo: 10 pessoas externas com
+`low_balance_pricing_bridge_viewed` ou sete dias, o que ocorrer primeiro.
+Medir por pessoa `viewed → clicked → checkout_started → checkout_success_viewed`
+em 48 horas. Parar imediatamente se trial ativo, assinante ou entitlement não
+resolvido produzir evento/link, ou se qualquer metadata sair da lista fechada.
+
+### RISCO E PRÓXIMA JOGADA
+
+O risco é aumentar visita à página de preço sem aumentar compra; o funil fechado
+permite detectar isso sem atribuir sessão a pessoa. A faixa 1–5 reutiliza o
+limiar visual já existente e não altera créditos.
+
+**QUESTÃO PENDENTE / FATO CONFIRMADO EM CÓDIGO:** a tela de sucesso ainda aceita
+`session_id`, valor e moeda da URL antes de verificar a sessão Stripe para emitir
+o evento canônico e pixels. A auditoria de 60 dias encontrou 9 pessoas externas
+com `checkout_success_viewed`, todas com `has_paid=true`, e nenhuma sessão vazia
+ou sem `payment_success`; portanto não há perda de produção observada. A correção
+é crítica para integridade de medição, mas a superfície R46 foi congelada e não
+foi reeditada nesta rodada.
+
+R48 começa por vigia, pedidos novos e uma superfície CAIXA diferente. R47 fica
+congelada até o gate.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+### 📋 O QUE ACONTECEU
+
+Mais de quinhentas pessoas têm só 1–5 créditos, mas o aviso âmbar do topo não
+levava a lugar nenhum. Agora, para quem não está em trial nem já assina, esse
+mesmo chip abre a página de preços. Não mudamos preço, crédito ou oferta; criamos
+um caminho curto e mensurável no momento em que o saldo quase acabou.

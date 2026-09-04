@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Low-balance pricing bridge — before and after</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#08090c;color:#f5f5f7;font:14px Inter,system-ui,sans-serif}main{max-width:1120px;margin:0 auto;padding:36px 20px 64px}h1{font-size:28px;margin:0 0 8px}.sub{color:#9296a3;margin:0 0 30px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}.panel{border:1px solid #292c35;border-radius:18px;background:#101116;overflow:hidden}.label{padding:12px 16px;background:#171920;color:#aeb2bd;font-size:12px;font-weight:800;letter-spacing:.09em}.mock{min-height:300px;padding:18px;background:radial-gradient(circle at 80% 0,#191520 0,transparent 35%),#0b0c10}.top{height:64px;border:1px solid #252832;border-radius:14px;background:#111319;display:flex;align-items:center;justify-content:space-between;padding:0 16px}.brand{font-weight:900;letter-spacing:-.04em}.right{display:flex;gap:10px;align-items:center}.chip{display:inline-flex;align-items:center;gap:7px;min-height:44px;padding:0 9px;border-radius:10px;color:#ffb020;background:rgba(255,176,32,.10);border:1px solid rgba(255,176,32,.35);font-size:12px;font-weight:800;text-decoration:none}.after .chip{outline:2px solid rgba(255,176,32,.18);outline-offset:2px;cursor:pointer}.arrow{display:none}.after .arrow{display:inline;font-size:11px}.avatar{width:34px;height:34px;border-radius:50%;background:#343845}.body{padding:38px 12px;text-align:center;color:#686d79}.note{margin-top:22px;border-radius:12px;background:#15171d;padding:14px;color:#bbbfc9;line-height:1.5}.note strong{color:#fff}.mobile{width:310px;margin:26px auto 0}.mobile .mock{min-height:210px;padding:12px}.mobile .top{padding:0 11px}.mobile .brand{font-size:13px}.mobile .avatar{display:none}@media(max-width:760px){.grid{grid-template-columns:1fr}main{padding:24px 12px}.mobile{width:100%}}
+  </style>
+</head>
+<body>
+<main>
+  <h1>Low-balance pricing bridge</h1>
+  <p class="sub">The visible balance stays the same. Only eligible non-subscribers outside an active trial gain a direct path to the existing pricing page.</p>
+  <div class="grid">
+    <section class="panel">
+      <div class="label">BEFORE · DESKTOP</div>
+      <div class="mock">
+        <div class="top"><div class="brand">KINEO</div><div class="right"><span class="chip">✦ 3 credits</span><span class="avatar"></span></div></div>
+        <div class="body">The amber chip communicates scarcity but has no action.</div>
+      </div>
+    </section>
+    <section class="panel after">
+      <div class="label">AFTER · DESKTOP</div>
+      <div class="mock">
+        <div class="top"><div class="brand">KINEO</div><div class="right"><a class="chip" href="#" title="3 credits remaining — view pricing">✦ 3 credits <span class="arrow">›</span></a><span class="avatar"></span></div></div>
+        <div class="body">The same chip now opens the existing pricing page.</div>
+      </div>
+    </section>
+    <section class="panel">
+      <div class="label">BEFORE · MOBILE</div>
+      <div class="mobile"><div class="mock"><div class="top"><div class="brand">KINEO</div><span class="chip">✦ 3 credits</span></div><div class="body">Informational only.</div></div></div>
+    </section>
+    <section class="panel after">
+      <div class="label">AFTER · MOBILE</div>
+      <div class="mobile"><div class="mock"><div class="top"><div class="brand">KINEO</div><a class="chip" href="#" title="3 credits remaining — view pricing">✦ 3 credits <span class="arrow">›</span></a></div><div class="body">44px tap target to existing pricing.</div></div></div>
+    </section>
+  </div>
+  <div class="note"><strong>Eligibility guard:</strong> active trial, paid plan, unresolved entitlement, and balances outside 1–5 keep their previous behavior. No price, credit amount, plan, offer, or promise changed.</div>
+</main>
+</body>
+</html>

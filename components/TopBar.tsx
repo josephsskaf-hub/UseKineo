@@ -3,6 +3,11 @@
 import Link from 'next/link'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { trackEvent } from '@/lib/analytics'
+import {
+  lowBalancePricingBridgeMetadata,
+  lowBalancePricingBridgeState,
+} from '@/lib/growth/lowBalancePricingBridge'
 
 interface TopBarProps {
   title: string
@@ -133,7 +138,12 @@ function CreditsBadge({ isPro }: { isPro: boolean }) {
   const [loading, setLoading] = useState(true)
   const [errored, setErrored] = useState(false)
   const [anon, setAnon] = useState(false)
+  const [entitlementsResolved, setEntitlementsResolved] = useState(false)
+  const [plan, setPlan] = useState<string | null>(null)
+  const [trialActive, setTrialActive] = useState(false)
   const mountedRef = useRef(true)
+  const lowBalanceLinkRef = useRef<HTMLAnchorElement | null>(null)
+  const lowBalanceViewSentRef = useRef(false)
 
   useEffect(() => {
     mountedRef.current = true
@@ -156,6 +166,9 @@ function CreditsBadge({ isPro }: { isPro: boolean }) {
       const data = await res.json()
       if (mountedRef.current) {
         setCredits(typeof data.credits === 'number' ? data.credits : 0)
+        setEntitlementsResolved(data.entitlementsResolved === true)
+        setPlan(typeof data.plan === 'string' ? data.plan : null)
+        setTrialActive(data.trialActive === true)
         setErrored(false)
       }
     } catch {
@@ -206,6 +219,45 @@ function CreditsBadge({ isPro }: { isPro: boolean }) {
       if (channel) supabase.removeChannel(channel)
     }
   }, [])
+
+  const lowBalanceState = lowBalancePricingBridgeState({
+    credits,
+    entitlementsResolved,
+    plan,
+    trialActive,
+  })
+  const lowBalanceBridgeEligible = lowBalanceState === 'eligible'
+
+  useEffect(() => {
+    const link = lowBalanceLinkRef.current
+    if (!lowBalanceBridgeEligible || !link || lowBalanceViewSentRef.current) return
+
+    let dwell: ReturnType<typeof setTimeout> | null = null
+    const clearDwell = () => {
+      if (dwell) clearTimeout(dwell)
+      dwell = null
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        clearDwell()
+        if (!entry?.isIntersecting || entry.intersectionRatio < 0.6 || document.visibilityState !== 'visible') return
+        dwell = setTimeout(() => {
+          if (lowBalanceViewSentRef.current || document.visibilityState !== 'visible') return
+          lowBalanceViewSentRef.current = true
+          void trackEvent(
+            'low_balance_pricing_bridge_viewed',
+            lowBalancePricingBridgeMetadata('topbar_credit_chip'),
+          )
+        }, 1_000)
+      },
+      { threshold: [0.6] },
+    )
+    observer.observe(link)
+    return () => {
+      clearDwell()
+      observer.disconnect()
+    }
+  }, [lowBalanceBridgeEligible])
 
   // Loading — fixed-width skeleton, same footprint as the resolved badge, so
   // nothing shifts when the real number lands.
@@ -277,7 +329,8 @@ function CreditsBadge({ isPro }: { isPro: boolean }) {
     ? { fg: '#ffb020', bg: 'rgba(255,176,32,.10)', border: 'rgba(255,176,32,.35)' }
     : { fg: '#f5f5f7', bg: 'rgba(255,255,255,.04)', border: 'rgba(255,255,255,.08)' }
 
-  const balanceDescription = `${credits} credit${credits === 1 ? '' : 's'} remaining${isZero ? ' — view pricing' : ''}`
+  const opensPricing = isZero || lowBalanceBridgeEligible
+  const balanceDescription = `${credits} credit${credits === 1 ? '' : 's'} remaining${opensPricing ? ' — view pricing' : ''}`
 
   const label = (
     <span
@@ -298,14 +351,22 @@ function CreditsBadge({ isPro }: { isPro: boolean }) {
     </span>
   )
 
-  if (isZero) {
+  if (opensPricing) {
     // Push #92 — ≥44px tap target on the interactive wrapper, independent of
     // the compact visual chip it wraps.
     return (
       <Link
+        ref={lowBalanceBridgeEligible ? lowBalanceLinkRef : undefined}
         href="/pricing"
         aria-label={balanceDescription}
         title={balanceDescription}
+        onClick={() => {
+          if (!lowBalanceBridgeEligible) return
+          void trackEvent(
+            'low_balance_pricing_bridge_clicked',
+            lowBalancePricingBridgeMetadata('topbar_credit_chip'),
+          )
+        }}
         style={{
           textDecoration: 'none',
           display: 'inline-flex',
