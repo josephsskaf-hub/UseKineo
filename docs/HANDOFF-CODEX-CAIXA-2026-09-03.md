@@ -2395,3 +2395,97 @@ Medi sem inventar resultado: a recuperação da home e a prova de tema salvo
 ainda têm zero exposição humana pós-deploy. O placar continua 41 cadastros, 27
 pessoas com filme e nenhuma assinatura; as variantes ficam congeladas e a
 próxima rodada ataca um defeito novo de atualização do banner.
+
+---
+
+## ROUND 37 — o banner persistente acompanha o valor que acabou de mudar
+
+**Data:** 2026-09-04 13:52→13:58 BRT
+
+**Pista:** Growth-B2C / CAIXA
+
+**Branch:** `codex/caixa-banner-freshness-r37`
+
+### DADO QUE DOÍA E CAUSA
+
+**EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, corte da R35:** 25 das 27
+pessoas externas com filme estavam atualmente elegíveis ao banner; somente 5
+tinham visualização humana confirmada do CTA de assinatura. Esse número isolado
+não prova que 20 não viram a UI, porque a medição exigia um filme confirmado
+pelo servidor no instante da interseção.
+
+**FATO CONFIRMADO:** `TrialActiveBanner` mora no layout persistente, lia
+`/api/credits` uma vez no mount e ignorava `creditsChanged`. O produto já emite
+esse evento depois de débito/conclusão/pagamento, e TopBar, Sidebar e badges já o
+consomem. O banner podia manter saldo, fase, prazo e o modo anterior durante a
+mesma sessão; se `/api/videos` respondesse antes do primeiro filme terminar, a
+medição pós-entrega também só tentava novamente depois de nova interseção ou
+foco.
+
+### HIPÓTESE, EVENTO E GATE DEFINIDOS ANTES DA EDIÇÃO
+
+**HIPÓTESE:** revalidar pela autoridade já existente no momento em que o valor
+muda faz a mesma superfície sair de “primeiro filme” para retorno/assinatura sem
+refresh manual e produz um denominador pós-entrega verdadeiro.
+
+Mudança mínima: ouvir `creditsChanged` somente no componente CAIXA e consultar
+`/api/credits` novamente; nenhum dado do evento vira verdade de saldo. Evento de
+sucesso: `trial_active_subscription_cta_viewed` com versão
+`trial_active_subscription_cta_fresh_state_v2`, seguido de
+`trial_active_banner_cta`/`checkout_started`/pagamento por pessoa. Parar ou
+corrigir se houver loop de fetch, mais de uma visualização v2 por conta, banner
+de trial em conta paga ou regressão de primeira entrega.
+
+### IMPLEMENTADO
+
+- `components/TrialActiveBanner.tsx` escuta e remove o listener de
+  `creditsChanged`, invalida a leitura antiga e reaproveita `/api/credits` como
+  autoridade; respostas antigas são descartadas pelo cleanup já existente.
+- Uma resposta válida porém inelegível agora fecha um banner que estava aberto,
+  cobrindo compra, expiração, concessão inválida e fase encerrada. Falha de rede
+  continua preservando o último estado em vez de inventar uma verdade.
+- O prazo do servidor agenda uma revalidação no vencimento; timeout é limpo no
+  unmount.
+- A mesma invalidação refaz a prova `/api/videos`, fechando o buraco de filme
+  concluído sem remount.
+- A versão de medição subiu para v2, inclusive na chave local, para não misturar
+  o denominador antigo com o novo. Nenhuma copy, preço, crédito, plano, CTA,
+  posição ou estilo mudou; não há preview porque o diff visual é zero.
+
+### TESTES E PRODUÇÃO
+
+**TESTADO LOCALMENTE:** `test-trial-active-subscription-cta` 88/88,
+`test-trial-balance-bridge` 208/208 e `test-welcome-offer-frequency` 44/44:
+**340 verificações direcionadas**. TypeScript real verde e whitespace
+`cr-at-eol` limpo, antes e depois do rebase.
+
+**VALIDADO EM PRODUÇÃO — 04/09/2026 13:57 BRT:** SHA funcional
+`1d1227f3fbb8ff1919d23855d4f87e9b6a9cc945` em `origin/main`; Guardião run
+`33897826882` verde em 1m02s. Vercel Production
+`dpl_8vrq9nFCqU8ohbFCRB7Pi9Vy4xMQ` e Preview
+`dpl_3Wf2ca5qyA7WoNDw7herVcTcVQ4S` estão `READY` no SHA exato; build completou
+em 52s sem erro.
+
+### RISCO
+
+Baixo e reversível. Eventos repetidos causam novas leituras sem mutação; o
+efeito anterior é cancelado antes da nova resposta ser aplicada. O risco
+restante é mais chamadas a `/api/credits` em uma rajada de eventos; o produto
+hoje emite poucas por geração e o gate observa loops/duplicação.
+
+### PRÓXIMA JOGADA
+
+R38 começa pelo vigia e mede a primeira exposição v2. Sem exposição, atacar
+outra superfície CAIXA não congelada. Se a FLUXO entregar o pedido dos três
+cards de preço da home, reconciliar sem editar o arquivo dela.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+### 📋 O QUE ACONTECEU
+
+O banner de trial deixava de acompanhar a própria geração: o saldo mudava, mas
+a oferta podia continuar no passo anterior até navegar ou focar a aba. Agora ele
+se atualiza no mesmo sinal que já mantém os créditos do produto corretos, fecha
+quando a conta deixa de ser elegível e mede a oferta pós-filme com estado fresco.
