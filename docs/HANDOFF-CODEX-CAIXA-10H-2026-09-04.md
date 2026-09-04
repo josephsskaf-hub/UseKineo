@@ -5,7 +5,7 @@ TÉRMINO: 05/09/2026 03:08 BRT. Sem renovação automática.
 Dez rotações de uma hora; checkpoint aos 30 minutos continua a mesma rotação.
 A décima rotação é fechamento seguro. Claude: retenção; Codex: intenção → pagamento.
 
-## Rotação 1 — 17:08–18:08 BRT — EM EXECUÇÃO
+## Rotação 1 — 17:08–18:08 BRT — CONCLUÍDA
 
 - **FATO CONFIRMADO:** base consultada `463fc378`, fila de retenção incorporada; worktree `C:/tmp/usekineo-caixa-10h-r1`, branch `codex/caixa-10h-r1`. Árvore principal intocada.
 - **FATO CONFIRMADO:** `app/checkout/success/page.tsx:73` disparava pixels com amount/currency da URL, sem autenticar a sessão paga. Entitlement da conta não comprova pagamento dessa sessão.
@@ -72,3 +72,30 @@ Nada nesta etapa.
 ### 📋 O que aconteceu
 
 Correção de pixels publicada e validada nos limites descritos; baseline por pessoa registrado e compradores potenciais reconciliados. Não houve assinatura nova demonstrada nesta leitura inicial. O restante da rotação acompanha evidência, sem substituir a métrica final por contagem de tarefas.
+
+## Rotação 2 — 18:08–19:08 BRT — EM EXECUÇÃO
+
+- **FATO CONFIRMADO:** `fetch origin` na abertura confirmou base `ad7cef42f956300bd03a9ce6db41e3d9e6f75a7f`; worktree limpa própria `C:/tmp/usekineo-caixa-10h-r2`, branch `codex/caixa-10h-r2`. Nenhum commit novo da retenção no log de main nesse corte. O arquivo `docs/ESCOPO-CLAUDE-VS-CODEX-2026-08-31.md` não existe nesta base; fronteiras continuam as aprovadas no chat e registradas neste handoff. Não reconstruir documento ausente por memória.
+- **EVIDÊNCIA DE PRODUÇÃO / fechamento R1:** deploy final documental `dpl_8tzS5m85ZsWk2iWPB6KEaQ6Xy5p8` READY, SHA `ad7cef42`, alias www, conferido 04/09 20:39:44 UTC. Negativo autenticado ausente novamente 401/no-store. Guardião PR39 `33916990519` success. Não houve teste de cobrança ao vivo.
+- **EVIDÊNCIA DE PRODUÇÃO, SELECT 04/09 21:10:10.954155 UTC:** marco zero permanece 38 cadastros, 25 pessoas com filme, 3 no caixa, 0 primeiras assinaturas registradas e 0 compradores avulsos. Ciclo 20:08→21:10:10: 0 cadastros, 1 pessoa com filme, 0 no caixa, 0 primeiras assinaturas e 0 avulsos. Contagens independentes, não funil sequencial. Vigia de duas horas repetido às 21:14 UTC sem checkout externo.
+- **HIPÓTESE escolhida:** descobrir uma objeção declarada por atendimento consentido pode remover fricção de compra; silêncio após checkout não identifica preço como causa. Mudança mínima desta rodada é preparar o piloto e sua elegibilidade, não uma campanha nem outra tela sem evidência.
+- **ANTI-REPETIÇÃO:** a pergunta de objeção já vive em `app/checkout/cancelled/page.tsx:539–550`; evento correto `checkout_cancel_reason`. SELECT de sete dias às 21:14:40 UTC: 5 pessoas / 10 cancelamentos, nenhuma resposta nem impressão da pergunta registrada. Não inventar resposta, não reconstruir a pergunta. Os três checkouts do baseline precedem a instrumentação recente de entrada; preservar a variante sem amostra nova.
+- **FATO CONFIRMADO:** exposições do `TrialActiveBanner` não têm definição idêntica: ponte de saldo registra interseção, CTA de assinatura exige um segundo contínuo visível (`components/TrialActiveBanner.tsx:355–515`). A diferença 10 versus 5 pessoas no baseline não prova que metade perdeu o botão. Nenhuma edição da hierarquia visual por essa comparação.
+- **EVIDÊNCIA DE PRODUÇÃO, SELECT 04/09 21:15:25 UTC:** 27 pessoas externas com checkout B2C em sete dias e sem assinatura B2C paga no histórico webhook; 25 têm e-mail recente aceito pelo serviço. Só 2 passam a pré-seleção limitada, ainda sem consentimento/campanhas reconciliados. Sete tinham filme antes do primeiro checkout da janela. Zero nomes excluídos/opt-outs neste recorte não significa consentimento. Nenhum destinatário aprovado.
+- **FATO CONFIRMADO:** `recordResendResponse` copia HTTP ok/status (`lib/email/quota.ts:244–258`), não entrega. Ledger best-effort: ausência de registro não prova ausência de envio. Nenhum endereço, conteúdo pessoal ou credencial exportado.
+- **PREPARAÇÃO IMPLEMENTADA:** `docs/PILOTO-VENDA-ASSISTIDA-CAIXA-2026-09-04.md` + duas consultas somente SELECT agregadas. Proposta: no máximo duas pessoas após todos os gates, nenhuma sequência automática, resultado final primeira assinatura paga; amostra não sustenta causalidade. Consentimento, fontes de supressão e campanhas previstas pedidos ao Claude. Nenhum contato ou rascunho individual.
+- **GATE DE PARADA:** falta de consentimento, cobertura de envios, exclusão, pagamento anterior, opt-out ou colisão impede contato. Preço, oferta, pipeline e crédito permanecem intocados. Nova edição de superfície só com fricção reproduzida/objeção observada, não por contagem baixa.
+- **TESTADO LOCALMENTE:** TypeScript real exit 0; contrato de compra 108/108, entitlement 66/66 e compatibilidade Autopilot 84/84, todos sem chamadas externas. `git diff --check` limpo. SQL executado somente via SELECT. Alterações desta R2 limitadas a documentação/consultas, sem runtime ou UI nova.
+- **QUESTÃO PENDENTE de publicação:** pacote documental desta R2 segue para branch própria e Guardião. SHA e estado de integração serão registrados após verificação; não declarar proposta como campanha ativa ou ganho de receita.
+
+### Próxima jogada
+
+Checkpoint de 18:38 continua R2. Reconciliar resposta do Claude sobre fonte de consentimento/campanhas e eventual intenção nova; sem resposta, manter piloto fechado e escolher apenas fricção comercial reproduzível para a próxima rotação. Não reeditar pixels sem erro nem criar uma quarta porta de episódio 2. Uso deve ser revisto após o fechamento da segunda rotação.
+
+### ✅ O que você precisa fazer
+
+Nada agora. O piloto não será executado sem autorização específica e elegibilidade comprovada; não é necessário aprovar disparo durante esta preparação.
+
+### 📋 O que aconteceu
+
+Preparada uma alternativa de venda assistida com trava contra repetição: 25 de 27 potenciais compradores já tiveram contato recente aceito pelo serviço. Nenhuma assinatura nova demonstrada, nenhum envio e nenhuma mudança visual. O resultado desta etapa é elegibilidade e proposta verificáveis, não venda atribuída.
