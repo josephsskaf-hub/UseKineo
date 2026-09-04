@@ -1730,6 +1730,75 @@ ${ep2 ? `${ep2.html}\n` : ''}  ${sig}`)
       }
     }
 
+    // ═══ sprint-assinaturas #12 (2026-09-04) — O D5 PEDIA CARTAO A QUEM NUNCA
+    // VIU UM FILME ════════════════════════════════════════════════════════════
+    //
+    // O NUMERO (medido 04/09, externos, 21 dias): 442 `expired_offer_d5` e 284
+    // `expired_lastcall_d10` enviados; 315 deles para gente que NUNCA teve um
+    // video concluido. Desde que o #21/#22 passou a gravar `body`, o recorte
+    // fica exato: `standard` = 14 (D5) + 43 (D10) = 57 envios, e 57 de 57 sao
+    // pessoas sem UM filme na vida. O `standard` destes dois e-mails nao e um
+    // corpo generico — e, por construcao, o corpo de quem nunca viu o produto
+    // funcionar. CHECKOUT DEPOIS: ZERO, nos 21 dias, em todo esse grupo.
+    //
+    // E o pedido era so o cartao: "Your Creator trial ended a few days ago...
+    // 50% off Creator". Enquanto isso o KINEO 1 CUSTA ZERO CREDITO para conta
+    // nao-pagante (`creditCostFor('fast', false)` = 0 em lib/credits/
+    // engineCost.ts) — e isso nao e teoria: 318 contas com trial_status
+    // 'downgraded', plan 'free' e video_credits = 0 entregaram 473 filmes nos
+    // ultimos 30 dias, o mais recente hoje as 11:01 UTC. A casa tinha um filme
+    // de graca para oferecer a essas 315 pessoas e escolheu falar de cupom.
+    //
+    // O QUE MUDA, E SO PARA QUEM NUNCA RODOU NADA: o trilho de 1 clique que ja
+    // existe (`oneClickBlocks`, o mesmo do d0_welcome, do ending_soon e do ramo
+    // `neverRan` do downgraded_loss — nenhuma copy nova, nenhuma consulta nova)
+    // vem PRIMEIRO, e o cupom continua no e-mail, com o MESMO codigo, a
+    // MESMA porcentagem, o MESMO prazo e a MESMA URL. O cupom e do Codex: nada
+    // aqui toca nele. Quem tem 1+ video, ou entregou clipe/imagem/audio no
+    // /animate, /images ou /audio, recebe o e-mail de hoje BYTE A BYTE.
+    //
+    // ⚠️ O ASSUNTO NAO PROMETE COTA — mesma licao de 12/08: o slot free e
+    // reservado ANTES do render, entao existe conta com 0 videos e 0 cota.
+    // "Let's get you one video first" afirma so a nossa intencao.
+    // ⚠️ SEMENTE PROPRIA (`:d5offer`): sem sufixo, `starterTopics` devolveria os
+    // MESMOS tres temas que o d0_welcome, o ending_soon e o downgraded_loss ja
+    // mandaram. Ela nao clicou nos tres primeiros; o quarto envio dos mesmos
+    // links e o pedido com o menor rendimento possivel.
+    if (c.videosMade === 0 && otherDeliveriesTotal(c.otherMade) === 0) {
+      const firstTopics = starterTopics(`${c.id}:d5offer`)
+      // Pool vazio ⇒ nunca um e-mail sem CTA: cai no corpo de hoje, intacto.
+      if (firstTopics.length > 0) {
+        const blocks = oneClickBlocks(firstTopics, 'trial_offer_d5_first_film', attr)
+        const fText = `Hey,
+
+Your Creator trial ended a few days ago, and in all that time nothing we sent you actually put a finished video in your hands.
+
+So before we talk about a plan: you can still make one on the free plan you're back on. Pick a topic and it starts writing and rendering by itself — no blank page to stare at:
+
+${blocks.text}
+
+And when you do want the Creator engines back, your 50% off Creator for 3 months (code ${COMEBACK_CODE}) is live here: ${url}
+
+Kineo Team
+usekineo.com`
+        const fHtml = wrap(`
+  <p style="margin:0 0 14px;">Hey,</p>
+  <p style="margin:0 0 14px;"><strong>Your Creator trial ended a few days ago</strong>, and in all that time nothing we sent you actually put a finished video in your hands.</p>
+  <p style="margin:0 0 14px;">So before we talk about a plan: you can still make one on the <strong>free plan you're back on</strong>. Pick a topic and it starts writing and rendering by itself &mdash; no blank page to stare at:</p>
+  ${blocks.html}
+  <p style="margin:14px 0 14px;">And when you do want the Creator engines back, your <strong>50% off Creator for 3 months</strong> (code <strong>${COMEBACK_CODE}</strong>) is live:</p>
+  ${cta(url, 'Claim 50% off')}
+  <p style="margin:0 0 20px;font-size:13px;color:#64748b;">The code applies automatically at checkout.</p>
+  ${sig}`)
+        return {
+          subject: `Let's get you one video first`,
+          text: `${fText}${footerText}`,
+          html: fHtml,
+          body: 'offer_first_film',
+        }
+      }
+    }
+
     const text = `Hey,
 
 Your Creator trial ended a few days ago. If the timing wasn't right, here's a better deal than the trial ever was:
@@ -1808,6 +1877,49 @@ ${ep2 ? `${ep2.html}\n` : ''}  ${sig}`)
         text: `${wText}${footerText}`,
         html: wHtml,
         body: 'offer_with_film',
+      }
+    }
+
+    // sprint-assinaturas #12 (2026-09-04) — mesma correcao do D5, um degrau
+    // depois no relogio, e aqui ela pesa MAIS: o D10 e a ULTIMA carta da
+    // esteira, e ate hoje ela se despedia de quem nunca viu um filme falando
+    // so de cupom. Recorte medido: `standard` do D10 = 43 envios, 43 de 43 sem
+    // UM video na vida, 0 checkout em 21 dias. A promessa "this is the last
+    // time we'll mention it" CONTINUA verdadeira — o cron nao manda nada depois
+    // do D10 — e o cupom continua identico (codigo, prazo, porcentagem, URL).
+    if (c.videosMade === 0 && otherDeliveriesTotal(c.otherMade) === 0) {
+      const firstTopics = starterTopics(`${c.id}:d10offer`)
+      if (firstTopics.length > 0) {
+        const blocks = oneClickBlocks(firstTopics, 'trial_offer_d10_first_film', attr)
+        const fText = `Hey,
+
+Quick heads-up, and then we'll leave you alone.
+
+You never got a finished video out of Kineo, and that's the part worth fixing first — you can still make one on the free plan you're back on:
+
+${blocks.text}
+
+Your 50% off Creator for 3 months (code ${COMEBACK_CODE}) is still live here, and this is the last time we'll mention it: ${url}
+
+After this it's full price. No hard feelings either way.
+
+Kineo Team
+usekineo.com`
+        const fHtml = wrap(`
+  <p style="margin:0 0 14px;">Hey,</p>
+  <p style="margin:0 0 14px;">Quick heads-up, and then we'll leave you alone.</p>
+  <p style="margin:0 0 14px;"><strong>You never got a finished video out of Kineo</strong>, and that's the part worth fixing first &mdash; you can still make one on the free plan you're back on:</p>
+  ${blocks.html}
+  <p style="margin:14px 0 14px;">Your <strong>50% off Creator for 3 months</strong> (code <strong>${COMEBACK_CODE}</strong>) is still live, and this is the last time we'll mention it:</p>
+  ${cta(url, 'Claim 50% off')}
+  <p style="margin:0 0 20px;font-size:13px;color:#64748b;">After this it's full price. No hard feelings either way.</p>
+  ${sig}`)
+        return {
+          subject: `One video first — then we'll leave you alone`,
+          text: `${fText}${footerText}`,
+          html: fHtml,
+          body: 'offer_first_film',
+        }
       }
     }
 

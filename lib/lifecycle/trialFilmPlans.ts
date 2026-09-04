@@ -22,7 +22,16 @@ import { TIER_CREDITS, type CheckoutTier } from '@/lib/checkoutPricing'
 
 /** sprint-assinaturas #21: 'offer_with_film' e o corpo do D5 (COMEBACK50)
  *  para quem tem video entregue — o D5 padrao grava 'standard'. */
-export type LossBody = 'never_ran' | 'burned_with_film' | 'standard' | 'offer_with_film'
+export type LossBody =
+  | 'never_ran'
+  | 'burned_with_film'
+  | 'standard'
+  | 'offer_with_film'
+  /** sprint-assinaturas #12 (04/09) — D5/D10 para quem NUNCA teve um video
+   *  entregue: o filme gratis vem primeiro, o COMEBACK50 continua igual,
+   *  embaixo. Discriminador proprio porque o 'standard' desses dois e-mails
+   *  era, por construcao, 100% dessa mesma gente (57 de 57 medidos em 04/09). */
+  | 'offer_first_film'
 
 export interface BurnedWithFilmInput {
   status: string
