@@ -7,6 +7,7 @@ import { createRequire } from 'node:module'
 import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(join(root, 'package.json'))
@@ -103,15 +104,19 @@ export function renderCancelled({ reason = 'trial_first_delivery_pending', resol
   return { tree, nodes, calls, events, clicks, navigations, html: renderToStaticMarkup(tree) }
 }
 
-if (process.argv.includes('--markup')) {
+const isEntry = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+if (isEntry && process.argv.includes('--markup')) {
   console.log(renderCancelled({ baseline: process.argv.includes('--baseline') }).html)
-} else {
+} else if (isEntry) {
   let checks = 0
   const ok = (value, label) => { assert.ok(value, label); checks++ }
   const eq = (actual, expected, label) => { assert.deepEqual(actual, expected, label); checks++ }
   const cta = (page) => page.nodes.find(n => n.props['data-trial-saved-checkout'] === 'true')
-  const old = renderCancelled({ baseline: true })
-  eq(old.nodes.filter(n => n.type === 'a' && n.props.href === '/pricing').length, 0,
+  // Frozen from c5c91f0c locally. CI uses a shallow checkout: never require an
+  // ancestor object at test time. --markup --baseline is only a preview helper.
+  const baseline = JSON.parse(readFileSync(join(root, 'scripts/fixtures/checkout-cancel-explicit-intent-c5c91f0c.json'), 'utf8'))
+  const hash = html => createHash('sha256').update(html).digest('hex')
+  eq(baseline.firstDeliveryPricingExits, 0,
     'red baseline: no visible saved-plan/pricing exit in actual first-delivery branch')
   const first = renderCancelled()
   ok(cta(first), 'first-delivery branch must expose an explicit saved-plan checkout')
@@ -161,19 +166,15 @@ if (process.argv.includes('--markup')) {
   eq(integrated.clicks.length, 1, 'real guard allows one checkout tracker call')
   for (const options of [{ resolved: false }, { reason: null }, { query: 'tier=autopilot' }, { query: 'pack=autopilot_pilot' }]) {
     const current = renderCancelled(options)
-    const previous = renderCancelled({ ...options, baseline: true })
-    eq(current.html, previous.html, 'unrelated/checking/Autopilot branches unchanged')
+    eq(hash(current.html), baseline.unchangedMarkup[JSON.stringify(options)], 'unrelated/checking/Autopilot branches unchanged')
     eq(current.calls.length, 0, 'no automatic checkout in other states')
   }
   for (const query of ['tier=autopilot', 'pack=autopilot_pilot']) {
     const current = renderCancelled({ query, reason: null })
-    const previous = renderCancelled({ query, reason: null, baseline: true })
-    for (const page of [current, previous]) {
-      const retry = page.nodes.find(n => n.type === 'a' && typeof n.props.onClick === 'function')
-      retry.props.onClick({ preventDefault() {} })
-    }
-    eq(current.calls, previous.calls, 'Autopilot launch contract unchanged')
-    eq(current.events, previous.events, 'Autopilot telemetry unchanged')
+    const retry = current.nodes.find(n => n.type === 'a' && typeof n.props.onClick === 'function')
+    retry.props.onClick({ preventDefault() {} })
+    eq(current.calls, baseline.autopilot[query].calls, 'Autopilot launch contract unchanged')
+    eq(current.events, baseline.autopilot[query].events, 'Autopilot telemetry unchanged')
   }
   console.log(`checkout-cancel-explicit-intent: ${checks}/${checks} passed (offline actual TSX caller)`)
 }
