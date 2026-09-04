@@ -954,3 +954,163 @@ teste, reparo dos dois vizinhos, diário e entrega na mesma sessão.
 
 **SHA.** `6ad95b32` (enfileirado em `entrega-atual`; aguardando o clique no
 SUBIR-SITE.bat). Worktree: `C:\kineo-wt\resgate-defeito`.
+
+---
+
+### #7 — 21:50→23:20 BRT — o expansor recusava o roteiro que o RENDERIZADOR aceitaria. 15 das 32 pessoas com expansão auto-disparada levaram a frase vermelha, e o último caso foi às 22:45 de hoje.
+
+**Placar medido no início da rodada** (SQL canônico, contas externas, marco
+zero 03/09 16:00 UTC; medição às 22:08 BRT / 04/09 01:08 UTC):
+
+| métrica | valor |
+|---|---:|
+| cadastros pós-marco | 15 |
+| pessoas com filme entregue pós-marco | **10 (67%)** |
+| checkout de DESEJO (tem filme) | 1 |
+| checkout de DEFEITO (0 filmes) | 1 |
+| **assinaturas pós-marco** | **0** |
+| pessoas com falha e sem filme | **0** |
+
+A razão "cadastro com ≥1 filme" saiu de **55%** (marco zero) para **67%** nas
+primeiras 9h pós-marco. Amostra pequena (15 pessoas, madrugada), mas é a
+direção que as jogadas #1 a #6 miravam.
+
+**Checagem zero (1h):** 0 cadastros, 0 cadastro sem crédito, 0 render preso, 0
+`generation_stage_error`, 1 filme entregue. Nada quebrado — madrugada em BRT,
+tráfego baixo.
+
+**Anti-repetição.** O "próximo item" do #6 era **D2, a caixa vazia**, com uma
+regra de decisão registrada de antemão: medir se a maioria digitou ou não. Fui
+medir e o número mandou noutra direção. Dos **97 sem filme em 7 dias**: 70
+chegaram ao Studio, **41 digitaram**, 31 submeteram, **19 deram erro**, 10
+digitaram e desistiram, 29 nem digitaram. Dentro dos **29 que "nem digitaram"**
+apareceu o que ninguém tinha olhado: **11 pessoas selecionaram o quickstart do
+ChatGPT 49 vezes** e 6 dispararam `script_expand_autostarted` sem nunca chegar
+ao gerador. Ou seja, boa parte do balde "não digitou" na verdade digitou — e
+morreu no expansor, que não emite `analyze_idea_clicked`. D2 continua no
+cardápio, com o denominador certo (agora ~18, não 29).
+
+**O que estava errado (medido).** Funil do expansor, 14 dias, externos:
+
+| evento | pessoas | eventos |
+|---|---:|---:|
+| `script_expand_autostarted` | **32** | 54 |
+| `script_expanded` | 19 | 26 |
+| `script_expand_failed` | **15** | 23 |
+| `script_expand_accepted` | **12** | 14 |
+
+Quase metade das pessoas cuja expansão dispara sozinha vê uma falha, e só 12 de
+32 chegam a aceitar um texto. A causa dominante é `growth_limit` **com
+`candidate_fits: true`** — o modelo escreveu um texto que ENCHE o alvo e nós o
+jogamos fora. Três casos com o número no próprio evento:
+
+    mehmetcakoglu  03/09 22:45  chatgpt.com  base 13s · teto  77 · candidato  96
+    sohamughade96  03/09 05:57  taaft        base 19s · teto 107 · candidato 114
+    livehigorxly   02/09 01:19  chatgpt.com  base 33s · teto 187 · candidato 230
+
+O primeiro aconteceu **duas horas antes desta medição**. Nenhum dos três tem um
+único filme entregue.
+
+**A causa, e por que a tesoura de 02/09 não bastava.** O `KINEO-APARAR` já
+existe desde 02/09 e apara o candidato que estourou o teto. Só que, para a apara
+ser aceita, o texto tinha de cair na janela `[0,95 × alvo , 2,5 × base]` medida
+em fala. Para o mehmet isso é **[33,25s , 33,7s]** — **meia palavra de
+largura**, enquanto a tesoura corta por FRASE (10 a 20 palavras). Janela que
+existe no papel e é intransponível na prática: a apara sempre cai fora, e a
+pessoa leva a frase vermelha.
+
+O que mudou de verdade hoje foi o vizinho. O **#1 desta sprint** (`6c822b36`,
+já em produção) fez o RENDERIZADOR descer o alvo sozinho a partir de 60% de
+cobertura, antes do custo: ele entrega um filme de 30s para quem pediu 35s. O
+expansor não soube disso e continuou exigindo encher os 35s exatos. É a doença
+das **DUAS RÉGUAS do #349** de novo, agora entre o expansor e o render — nós
+recusávamos texto que o nosso próprio renderizador entregaria.
+
+**O que mudou (arquivos).**
+- `lib/expandPolicy.ts` (+118): `judgeTrimmedCandidate`, função pura, régua
+  única do candidato aparado, **na ordem do contrato**: teto de 2,5× → Contrato
+  C1 (frase do autor) → estrutura (HOOK/PAYOFF) → crescimento real → e só então
+  o terceiro veredito honesto, `fits_lower_duration`. Devolve também o
+  diagnóstico cru (`withinCap`/`authorOk`/`markersOk`/`fitsTarget`).
+- `app/api/expand-script/route.ts` (+87/−13): o bloco da apara passa a chamar o
+  veredito em vez de quatro condições soltas; `stillShort` e `expanded_ready`
+  passam a contar a descida (**sem isso o botão de aprovar não aparece** e a
+  pessoa fica no mesmo beco); a resposta carrega `effectiveDuration` e
+  `autofitDown`; o 422 de `growth_limit` passa a carregar `trimAttempt`.
+- `scripts/test-expansor-degrau.mjs` (novo, **49 verificações, 0 falhas**):
+  executa as funções reais com os três casos do banco e **lê o `route.ts` real**
+  para provar quem chama e em que ordem.
+- `scripts/test-narration-ruler.mjs` (+11): estava **VERMELHO em origin/main** e
+  não era o produto — procurava `const falaExpandida` e a rota usa `let` desde o
+  #37. O invariante continua cobrado (a medida do "depois" sai da fala parseada,
+  nunca do texto cru); o que mudou foi o teste parar de cobrar a palavra-chave.
+  Mesma classe do teste do waitroom que apontei ao Codex às 18:45.
+
+**Para o cliente / receita.** As ~15 pessoas por quinzena que colam um roteiro
+curto, veem a expansão disparar sozinha e levam uma frase vermelha sem botão
+passam a receber um filme. É o perfil mais caro de perder: vem do ChatGPT e do
+TAAFT (os dois canais que convertem), já escreveu um texto próprio, e o primeiro
+filme é o produto.
+
+**O que este conserto NÃO faz — e o teste diz isso na cara.** Reproduzindo os
+três casos, o `mehmet` (janela estreita) é salvo pela descida; o `soham` e o
+`higor` saem por `fits_target`, ou seja **a apara antiga já deveria ter
+funcionado neles**. Portanto ainda existe uma segunda causa nesses dois, que o
+`trimAttempt` novo vai nomear na primeira ocorrência: teto, autor, marcador ou
+enchimento. Não estou fechando o assunto — estou instrumentando o que faltava.
+
+**Decisões que tomei sozinha** (autonomia; registradas para reversão):
+1. **Piso do resgate = 30s (o piso HOLLYWOOD), não 20s.** A rota do expansor não
+   sabe qual motor a pessoa escolheu, e o planner hollywood trava o alvo em
+   `Math.max(30, …)`. Prometer um filme de 20s que o planner puxaria de volta
+   para 30 recriaria o defeito que o #1 matou. Custa resgates (o caso de 25s do
+   teste fica de fora) e compra uma promessa que vale nas duas estradas.
+   Afrouxar: passar `AUTOFIT_DOWN_FLOOR_SECONDS`.
+2. **`descidoPeloRender` conta como "pronto"** no portão do #26 ("o painel só
+   aparece com expansão real e suficiente"). Não é afrouxar o portão: é ele
+   passar a medir contra a duração que o render usa de verdade desde hoje, em
+   vez de contra um número que o próprio servidor já não usa.
+3. **Consertei um teste que não é da minha entrega** (`test-narration-ruler`).
+   É do meu arquivo e estava vermelho antes de eu chegar (conferido com
+   `git stash` sobre `origin/main`); teste vermelho crônico é teste que todo
+   mundo aprende a ignorar.
+
+**Risco.** O ponto sensível é a promessa: a tela ainda mostra o botão de 35s e o
+filme sai com 30s. É o mesmo risco cosmético já registrado no #1, e a resposta
+agora carrega `effectiveDuration` para o Codex escrever a frase honesta — pedido
+aberto abaixo. Reverter a jogada inteira: `floorSeconds: 10000` na chamada de
+`judgeTrimmedCandidate` em `app/api/expand-script/route.ts` (volta ao 422 de
+hoje, sem tocar em mais nada).
+
+**Modelo.** Feita em Opus (o plano reserva Fable para A1/A3; esta é jogada nova,
+a "criatividade com critério" do dia, e vem depois de A1 e A2 entregues).
+
+**Como medir (contra o marco zero, 03/09 16:00 UTC).**
+
+```sql
+select date_trunc('day', created_at)::date dia,
+       name,
+       metadata->>'reason' reason,
+       count(*) n, count(distinct user_id) pessoas
+from events
+where name in ('script_expand_failed','script_expanded','script_expand_accepted')
+  and created_at > '2026-09-03 16:00:00+00'
+group by 1,2,3 order by 1 desc, 4 desc;
+```
+
+Meta: `script_expand_failed` com `reason='growth_limit'` **cair a zero**, e
+`script_expand_accepted` subir contra `script_expand_autostarted` (hoje 12 de
+32). Sinal secundário, o que importa: dessas pessoas, quantas entregam um filme
+(`videos.status='completed'`) no mesmo dia.
+
+**Próximo item.** **D2 com o denominador certo.** Os "29 que nem digitaram"
+encolhem para **~18** depois de descontar os 11 do quickstart do ChatGPT — e
+esses 11 são o achado novo: **49 seleções de quickstart em 11 pessoas (4,5 por
+pessoa) e nenhuma chegou a submeter**. Antes de codar caixa vazia, medir o que
+acontece entre `chatgpt_quickstart_selected` e `chatgpt_quickstart_studio_ready`
+(58 pessoas selecionam, 35 chegam ao studio_ready): **23 pessoas somem no meio
+de um fluxo de 3 eventos**. Se o buraco estiver no servidor, é meu; se estiver
+na caixa, vira pedido ao Codex (já escrito).
+
+**SHA.** `6c0885a3` (enfileirado em `entrega-atual`, fila = 1; aguardando o
+clique no SUBIR-SITE.bat). Worktree: `C:\kineo-wt\expansor-degrau`.
