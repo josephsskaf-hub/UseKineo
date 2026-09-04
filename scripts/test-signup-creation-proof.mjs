@@ -23,6 +23,7 @@ function executeTs(file, mocks = {}) {
       if (Object.hasOwn(mocks, id)) return mocks[id]
       throw new Error(`unmocked import ${id}`)
     },
+    URL,
     URLSearchParams,
     RegExp,
   }, { filename: file })
@@ -30,8 +31,11 @@ function executeTs(file, mocks = {}) {
 }
 
 const handoff = executeTs('lib/creationHandoff.ts')
+const authRedirect = executeTs('lib/authRedirect.ts')
+const exampleRemix = executeTs('lib/growth/exampleRemix.ts')
 const proof = executeTs('lib/growth/signupCreationPreview.ts', {
   '@/lib/creationHandoff': handoff,
+  '@/lib/authRedirect': authRedirect,
 })
 const preview = (values) => proof.buildSignupCreationPreview(new URLSearchParams(values))
 
@@ -78,10 +82,54 @@ check(!read('lib/growth/signupCreationPreview.ts').includes('dangerouslySetInner
 check(!read('lib/growth/signupCreationPreview.ts').toLowerCase().includes('supabase'), 'preview helper has no Supabase dependency')
 check(!read('lib/growth/signupCreationPreview.ts').includes('/api/'), 'preview helper has no API dependency')
 
+const remixRedirect = exampleRemix.exampleRemixHref({
+  slug: 'north-sentinel-island',
+  referencePrompt: 'Create a fast-paced faceless Short about North Sentinel Island, with a strong curiosity hook.',
+  topic: 'ice caves & volcanoes',
+})
+const remixPreview = proof.buildExampleRemixSignupPreview(remixRedirect)
+equal(remixPreview?.kind, 'idea', 'example remix remains an editable AI idea')
+check(remixPreview?.excerpt.join(' ').includes('ice caves & volcanoes'), 'nested auth redirect visibly confirms the visitor topic')
+const encodedSignup = new URL(`/signup?${new URLSearchParams({ redirect: remixRedirect })}`, 'https://www.usekineo.com')
+check(proof.buildExampleRemixSignupPreview(encodedSignup.searchParams.get('redirect'))?.excerpt.join(' ').includes('ice caves & volcanoes'), 'real nested signup encoding preserves punctuation')
+const unicodeRedirect = exampleRemix.exampleRemixHref({
+  slug: 'north-sentinel-island',
+  referencePrompt: 'Create a fast-paced faceless Short about North Sentinel Island, with a strong curiosity hook.',
+  topic: 'vulcões "Azuis" #7 at 50%',
+})
+const unicodeSignup = new URL(`/signup?${new URLSearchParams({ redirect: unicodeRedirect })}`, 'https://www.usekineo.com')
+check(proof.buildExampleRemixSignupPreview(unicodeSignup.searchParams.get('redirect'))?.excerpt.join(' ').includes('vulcões "Azuis" #7 at 50%'), 'double encoding preserves Unicode, quotes, hash and percent')
+equal(proof.buildExampleRemixSignupPreview('/studio/create?prompt=private'), null, 'generic creation redirect cannot claim example-remix proof')
+equal(proof.buildExampleRemixSignupPreview('//evil.example/studio/create?prompt=x'), null, 'external redirect cannot become a saved-work preview')
+equal(proof.buildExampleRemixSignupPreview('/\\evil.example/studio/create?prompt=x'), null, 'backslash redirect cannot become a saved-work preview')
+for (const [label, changed] of [
+  ['path', remixRedirect.replace('/studio/create?', '/studio/create-evil?')],
+  ['intent', remixRedirect.replace('create_intent=example_remix', 'create_intent=fast')],
+]) {
+  equal(proof.buildExampleRemixSignupPreview(changed), null, `${label} mismatch fails closed`)
+}
+check(
+  JSON.stringify(proof.buildExampleRemixSignupPreview('/studio/create?prompt=ice+caves&create_intent=example_remix')) ===
+    JSON.stringify(preview({ prompt: 'ice caves' })),
+  'analytics parameters are not an authority for whether saved work is visible',
+)
+const blankRemix = new URL(remixRedirect, 'https://kineo.local')
+blankRemix.searchParams.set('prompt', '   ')
+equal(proof.buildExampleRemixSignupPreview(`${blankRemix.pathname}${blankRemix.search}`), null, 'blank nested prompt cannot claim saved work')
+equal(handoff.readCreationHandoff(new URL(remixRedirect, 'https://kineo.local').searchParams).createIntent, null, 'example-remix marker never authorizes automatic creation')
+const authPreview = (values) => proof.buildSignupCreationPreviewFromAuthParams(new URLSearchParams(values))
+check(authPreview({ redirect: remixRedirect })?.excerpt.join(' ').includes('ice caves & volcanoes'), 'outer signup query recovers the nested remix proof')
+equal(authPreview({ reason: 'checkout', redirect: remixRedirect }), null, 'checkout wins even when a valid remix redirect is present')
+equal(authPreview({ redirect: '/pricing', prompt: 'do not promise this' }), null, 'unrelated internal redirect suppresses top-level saved-work copy')
+check(
+  JSON.stringify(authPreview({ redirect: '//evil.example', prompt: 'safe direct idea' })) ===
+    JSON.stringify(preview({ prompt: 'safe direct idea' })),
+  'invalid redirect cannot suppress the direct creation handoff',
+)
+
 const signup = read('app/(auth)/signup/page.tsx')
-check(signup.includes("import { buildSignupCreationPreview } from '@/lib/growth/signupCreationPreview'"), 'real signup imports executable preview contract')
-check(signup.includes('return buildSignupCreationPreview(params)'), 'real signup executes preview contract')
-check(signup.includes("if (isCheckoutResume || normalizeInternalRedirect(params.get('redirect'))) return null"), 'checkout and explicit redirect suppress false saved-work promises')
+check(signup.includes('buildSignupCreationPreviewFromAuthParams,'), 'real signup imports the auth-query preview contract')
+check(signup.includes('return buildSignupCreationPreviewFromAuthParams(params)'), 'real signup executes the auth-query preview contract')
 check(signup.includes('savedCreation.kind} is ready to continue'), 'auth heading names the preserved work')
 check(signup.includes('Create a free account and continue without starting over.'), 'auth copy explains continuity')
 check(signup.includes('aria-labelledby="saved-creation-heading"'), 'saved-work card has an accessible label')
@@ -89,7 +137,7 @@ check(signup.includes('Saved ${savedCreation.kind} preview'), 'excerpt exposes a
 check(signup.includes('Your {savedCreation.kind} is still saved.'), 'email-confirmation state preserves reassurance')
 check(signup.indexOf('{savedCreation && (') < signup.indexOf('<GoogleSignInButton'), 'proof appears before the first auth action')
 check(signup.includes('carryCreationHandoff(params, activationParams)'), 'existing transport remains authoritative')
-check(signup.includes('if (prompt) return `/generate?${activationParams.toString()}`'), 'saved work still lands on creation surface')
+check(signup.includes('if (prompt) return `/studio/create?${activationParams.toString()}`'), 'saved work still lands on direct creation surface')
 check(!signup.includes('signup_creation_handoff_viewed'), 'incident-safe delivery adds no new analytics write')
 
 const home = read('app/HomeTopicForm.tsx')

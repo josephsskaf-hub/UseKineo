@@ -54,7 +54,7 @@ const href = remix.exampleRemixHref({
   topic: 'ice caves & volcanoes',
 })
 const parsed = new URL(href, 'https://www.usekineo.com')
-equal(parsed.pathname, '/generate', 'handoff uses the existing Studio route')
+equal(parsed.pathname, '/studio/create', 'handoff uses the direct Studio creation route')
 equal(parsed.searchParams.get('create_intent'), 'example_remix', 'creation intent is explicit')
 equal(parsed.searchParams.get('script_mode'), 'ai', 'AI script handoff is explicit')
 equal(parsed.searchParams.get('utm_source'), 'example_watch', 'source attribution is stable')

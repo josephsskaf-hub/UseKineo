@@ -1,4 +1,5 @@
 import { readCreationHandoff } from '@/lib/creationHandoff'
+import { normalizeInternalRedirect } from '@/lib/authRedirect'
 
 type QueryReader = Pick<URLSearchParams, 'get'>
 
@@ -44,7 +45,8 @@ function previewLines(prompt: string): string[] {
 /**
  * Turns the already allow-listed creation handoff into a small, escaped-by-
  * React reminder on the auth wall. It never reads cookies, storage or a user;
- * callers must suppress it whenever an explicit redirect owns the journey.
+ * callers must suppress it whenever an unrelated explicit redirect owns the
+ * journey.
  */
 export function buildSignupCreationPreview(params: QueryReader): SignupCreationPreview | null {
   const handoff = readCreationHandoff(params)
@@ -72,4 +74,38 @@ export function buildSignupCreationPreview(params: QueryReader): SignupCreationP
         description: 'Continue with Google or email. Kineo opens this topic after sign-in, so you can pick up where you left off.',
         excerpt: previewLines(handoff.prompt),
       }
+}
+
+/**
+ * Recover only the public example-remix proof that the auth gate nested inside
+ * its allow-listed /studio/create redirect. Other product, checkout and
+ * arbitrary redirects must stay on their existing generic signup contract.
+ */
+export function buildExampleRemixSignupPreview(
+  rawRedirect: string | null | undefined
+): SignupCreationPreview | null {
+  const normalized = normalizeInternalRedirect(rawRedirect)
+  if (!normalized) return null
+
+  const destination = new URL(normalized, 'https://kineo.local')
+  const params = destination.searchParams
+  if (
+    destination.pathname !== '/studio/create' ||
+    params.get('create_intent') !== 'example_remix'
+  ) {
+    return null
+  }
+
+  return buildSignupCreationPreview(params)
+}
+
+/** Resolve the exact preview the auth page may promise for its outer query. */
+export function buildSignupCreationPreviewFromAuthParams(
+  params: QueryReader
+): SignupCreationPreview | null {
+  if (params.get('reason') === 'checkout') return null
+
+  const explicitRedirect = normalizeInternalRedirect(params.get('redirect'))
+  if (explicitRedirect) return buildExampleRemixSignupPreview(explicitRedirect)
+  return buildSignupCreationPreview(params)
 }

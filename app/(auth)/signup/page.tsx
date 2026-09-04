@@ -20,7 +20,9 @@ import { useFreeTierOffer } from '@/components/FreeTierOfferProvider'
 import AuthReel from '@/components/AuthReel'
 import { swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 import { carryCreationHandoff } from '@/lib/creationHandoff'
-import { buildSignupCreationPreview } from '@/lib/growth/signupCreationPreview'
+import {
+  buildSignupCreationPreviewFromAuthParams,
+} from '@/lib/growth/signupCreationPreview'
 import { buildSignupProductDestinationPreview } from '@/lib/growth/signupProductDestinationPreview'
 import { GOOGLE_ADS_SIGNUP_CONVERSION } from '@/lib/growth/googleAdsSignupConversion'
 import {
@@ -266,11 +268,8 @@ export default function SignupPage() {
   )
   const savedCreation = useMemo(() => {
     const params = new URLSearchParams(authSearch)
-    // An explicit, validated redirect owns the post-auth journey. Never show a
-    // saved-work promise when that destination would intentionally win.
-    if (isCheckoutResume || normalizeInternalRedirect(params.get('redirect'))) return null
-    return buildSignupCreationPreview(params)
-  }, [authSearch, isCheckoutResume])
+    return buildSignupCreationPreviewFromAuthParams(params)
+  }, [authSearch])
   const savedProductDestination = useMemo(() => {
     if (isCheckoutResume) return null
     const params = new URLSearchParams(authSearch)
