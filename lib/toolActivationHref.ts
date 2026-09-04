@@ -32,8 +32,8 @@
 //
 // O QUE ESTA FUNÇÃO FAZ.
 // Devolve a MESMA forma de href que a melhor página da casa usa hoje
-// (`activationHref` em FreeScriptClient.tsx): /signup com um `redirect` interno
-// para /generate já carregando o resultado da pessoa. O `redirect` é lido por
+// (`buildFreeScriptSignupHref`): /signup com um `redirect` interno para
+// /studio/create já carregando o resultado da pessoa. O `redirect` é lido por
 // `activationRedirectFromSearch` no /signup e passa por `normalizeInternalRedirect`,
 // então só caminhos same-origin sobrevivem — a validação é de lá, não daqui.
 //
@@ -43,9 +43,8 @@
 // ferramenta. `autoanalyze` apenas ANALISA (não debita) e é o que o
 // /free-script-generator usa. Não subir de degrau sem dado.
 //
-// Não duplico `activationHref` do FreeScriptClient de propósito: aquela página é
-// a que converte 67% e refatorá-la para provar um ponto seria trocar receita
-// medida por elegância. Ela fica intocada; esta função nasce para as três órfãs.
+// Esta função continua separada de `buildFreeScriptSignupHref`: as ferramentas
+// genéricas e o gerador de roteiro têm limites e metadados de handoff distintos.
 
 const PROMPT_MAX = 600
 const INTENT_CAMPAIGN_PATTERN = /^[A-Za-z0-9._~-]{1,100}$/

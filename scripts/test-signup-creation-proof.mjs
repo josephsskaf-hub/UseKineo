@@ -37,6 +37,7 @@ const proof = executeTs('lib/growth/signupCreationPreview.ts', {
   '@/lib/creationHandoff': handoff,
   '@/lib/authRedirect': authRedirect,
 })
+const freeScriptHandoff = executeTs('lib/growth/freeScriptSignupHandoff.ts')
 const preview = (values) => proof.buildSignupCreationPreview(new URLSearchParams(values))
 
 equal(preview({}), null, 'no prompt produces no saved-work promise')
@@ -127,6 +128,53 @@ check(
   'invalid redirect cannot suppress the direct creation handoff',
 )
 
+const generatedScriptPrompt = [
+  'HOOK: The lighthouse flashed after its keeper vanished.',
+  'MICRO REWARD 1: The logbook ended mid-sentence.',
+  'ESCALATION: Ships still saw the light for three nights.',
+  'PAYOFF: The mechanism had no fuel left.',
+].join('\n')
+const generatedScriptSignupHref = freeScriptHandoff.buildFreeScriptSignupHref([
+  { label: 'HOOK', text: 'The lighthouse flashed after its keeper vanished.' },
+  { label: 'FACT 1', text: 'The logbook ended mid-sentence.' },
+  { label: 'FACT 3', text: 'Ships still saw the light for three nights.' },
+  { label: 'PAYOFF', text: 'The mechanism had no fuel left.' },
+], { source: 'seo', medium: 'organic', campaign: 'push22_script_generator' })
+const generatedScriptSignup = new URL(generatedScriptSignupHref, 'https://www.usekineo.com')
+const generatedScriptRedirect = generatedScriptSignup.searchParams.get('redirect')
+check(generatedScriptSignup.pathname === '/signup', 'real free-script builder targets signup')
+equal(generatedScriptSignup.searchParams.get('handoff_kind'), null, 'visual marker cannot leak into the outer auth query')
+check(generatedScriptRedirect?.includes('handoff_kind=free_script'), 'real CTA builder nests the proof marker inside its Studio destination')
+check(generatedScriptRedirect?.includes('autoanalyze=1'), 'real CTA builder preserves the existing Studio analysis handoff')
+equal(
+  new URL(generatedScriptRedirect ?? '/', 'https://kineo.local').searchParams.get('prompt'),
+  generatedScriptPrompt,
+  'real CTA builder preserves the generated script exactly',
+)
+const generatedScriptPreview = authPreview({ redirect: generatedScriptRedirect })
+equal(generatedScriptPreview?.kind, 'script', 'free script generator receives the saved-script proof')
+check(generatedScriptPreview?.excerpt[0].startsWith('HOOK:'), 'generated script proof visibly keeps the visitor hook')
+equal(authPreview({ redirect: generatedScriptRedirect.replace('&handoff_kind=free_script', '') }), null, 'missing handoff marker fails closed')
+equal(authPreview({ redirect: generatedScriptRedirect.replace('handoff_kind=free_script', 'handoff_kind=unknown') }), null, 'unknown handoff marker fails closed')
+equal(authPreview({ redirect: generatedScriptRedirect.replace('autoanalyze=1', 'autoanalyze=0') }), null, 'non-analyzing destination cannot claim generated-script proof')
+equal(authPreview({ redirect: generatedScriptRedirect.replace('/studio/create?', '/studio/create-evil?') }), null, 'generated-script proof requires the exact creation path')
+equal(authPreview({ redirect: `${generatedScriptRedirect}&create_intent=fast` }), null, 'visual proof cannot authorize automatic creation')
+equal(authPreview({ reason: 'checkout', redirect: generatedScriptRedirect }), null, 'checkout stays sovereign over generated-script proof')
+equal(
+  authPreview({ redirect: '/studio/create?prompt=HOOK%3A+one+label&autoanalyze=1&handoff_kind=free_script' }),
+  null,
+  'one marker cannot overclaim an idea as a generated script',
+)
+equal(proof.buildFreeScriptSignupPreview('//evil.example/studio/create?prompt=x'), null, 'external redirect cannot become generated-script proof')
+equal(proof.buildFreeScriptSignupPreview('/\\evil.example/studio/create?prompt=x'), null, 'backslash redirect cannot become generated-script proof')
+equal(handoff.readCreationHandoff(new URL(generatedScriptRedirect, 'https://kineo.local').searchParams).createIntent, null, 'free-script marker never authorizes automatic creation')
+
+const freeScriptClient = read('app/free-script-generator/FreeScriptClient.tsx')
+check(freeScriptClient.includes("from '@/lib/growth/freeScriptSignupHandoff'"), 'real free-script client imports the tested handoff builder')
+check(/const createShortHref = buildFreeScriptSignupHref\(\s*lines,/.test(freeScriptClient), 'real free-script CTA uses the tested handoff builder result')
+check(!freeScriptClient.includes('handoff_kind'), 'proof marker has no duplicate or dead-code copy in the client')
+check(!/free_script_to_signup_clicked[\s\S]{0,500}(?:prompt|script):\s*(?:script|lines)/.test(freeScriptClient), 'free-script analytics never emits visitor content')
+
 const signup = read('app/(auth)/signup/page.tsx')
 check(signup.includes('buildSignupCreationPreviewFromAuthParams,'), 'real signup imports the auth-query preview contract')
 check(signup.includes('return buildSignupCreationPreviewFromAuthParams(params)'), 'real signup executes the auth-query preview contract')
@@ -152,5 +200,18 @@ for (const label of ['BEFORE', 'AFTER', 'DESKTOP', 'MOBILE', 'SCRIPT', 'IDEA']) 
   check(visual.includes(label), `visual comparison includes ${label.toLowerCase()}`)
 }
 check(!/https?:\/\//i.test(visual), 'visual comparison has no external dependency')
+
+const freeScriptVisualPath = 'docs/previews/FLUXO-FREE-SCRIPT-SIGNUP-PROOF-2026-09-04.html'
+const freeScriptVisualPngPath = 'docs/previews/FLUXO-FREE-SCRIPT-SIGNUP-PROOF-2026-09-04.png'
+check(fs.existsSync(path.join(root, freeScriptVisualPath)), 'free-script before/after HTML exists')
+check(fs.existsSync(path.join(root, freeScriptVisualPngPath)), 'free-script before/after PNG exists')
+const freeScriptVisual = read(freeScriptVisualPath)
+const freeScriptVisualUpper = freeScriptVisual.toUpperCase()
+for (const label of ['BEFORE', 'AFTER', 'DESKTOP', 'MOBILE']) {
+  check(freeScriptVisualUpper.includes(label), `free-script visual includes ${label.toLowerCase()}`)
+}
+check(freeScriptVisual.includes('Your script is ready to continue'), 'free-script visual includes the real after heading')
+check(!/https?:\/\//i.test(freeScriptVisual), 'free-script visual has no external dependency')
+check(fs.statSync(path.join(root, freeScriptVisualPngPath)).size > 1000, 'free-script visual PNG is non-empty')
 
 console.log(`PASS — ${checks}/${checks} signup saved-creation checks`)

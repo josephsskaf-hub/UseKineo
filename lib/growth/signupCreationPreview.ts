@@ -99,6 +99,32 @@ export function buildExampleRemixSignupPreview(
   return buildSignupCreationPreview(params)
 }
 
+/**
+ * Recover the structured script already delivered by /free-script-generator.
+ * `handoff_kind` is a visual marker only: an executable create_intent is
+ * explicitly rejected, and the normal creation contract remains unchanged.
+ */
+export function buildFreeScriptSignupPreview(
+  rawRedirect: string | null | undefined
+): SignupCreationPreview | null {
+  const normalized = normalizeInternalRedirect(rawRedirect)
+  if (!normalized) return null
+
+  const destination = new URL(normalized, 'https://kineo.local')
+  const params = destination.searchParams
+  if (
+    destination.pathname !== '/studio/create' ||
+    params.get('handoff_kind') !== 'free_script' ||
+    params.get('autoanalyze') !== '1' ||
+    params.get('create_intent') !== null
+  ) {
+    return null
+  }
+
+  const preview = buildSignupCreationPreview(params)
+  return preview?.kind === 'script' ? preview : null
+}
+
 /** Resolve the exact preview the auth page may promise for its outer query. */
 export function buildSignupCreationPreviewFromAuthParams(
   params: QueryReader
@@ -106,6 +132,9 @@ export function buildSignupCreationPreviewFromAuthParams(
   if (params.get('reason') === 'checkout') return null
 
   const explicitRedirect = normalizeInternalRedirect(params.get('redirect'))
-  if (explicitRedirect) return buildExampleRemixSignupPreview(explicitRedirect)
+  if (explicitRedirect) {
+    return buildExampleRemixSignupPreview(explicitRedirect)
+      ?? buildFreeScriptSignupPreview(explicitRedirect)
+  }
   return buildSignupCreationPreview(params)
 }

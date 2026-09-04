@@ -11,6 +11,10 @@ import AffiliateLandingContext from '@/components/AffiliateLandingContext'
 import { rememberSignupCampaign, trackClosedEvent, trackEvent } from '@/lib/analytics'
 import type { AffiliateLandingContextCopy } from '@/lib/growth/affiliateLandingContext'
 import {
+  buildFreeScriptSignupHref,
+  type FreeScriptLine,
+} from '@/lib/growth/freeScriptSignupHandoff'
+import {
   parseWebSharePayload,
   WEB_SHARE_TARGET_CAMPAIGN,
   WEB_SHARE_TARGET_MEDIUM,
@@ -29,9 +33,9 @@ const EXAMPLES = [
   'The unsolved case that broke the FBI',
 ]
 
-type Line = { label: string; text: string }
+type Line = FreeScriptLine
 
-function activationHref(lines: Line[], fromPublicVideo: boolean, fromWebShareTarget: boolean): string {
+function activationAttribution(fromPublicVideo: boolean, fromWebShareTarget: boolean) {
   const source = fromWebShareTarget ? WEB_SHARE_TARGET_SOURCE : fromPublicVideo ? 'public_video' : 'seo'
   const medium = fromWebShareTarget ? WEB_SHARE_TARGET_MEDIUM : fromPublicVideo ? 'share' : 'organic'
   const campaign = fromWebShareTarget
@@ -39,38 +43,7 @@ function activationHref(lines: Line[], fromPublicVideo: boolean, fromWebShareTar
     : fromPublicVideo
       ? 'public_video_remix_script'
       : 'push22_script_generator'
-  if (lines.length === 0) {
-    return `/signup?${new URLSearchParams({ utm_source: source, utm_medium: medium, utm_campaign: campaign }).toString()}`
-  }
-
-  // The public result uses reader-friendly FACT labels. Translate those into
-  // the markers understood by /generate so the approved script survives
-  // signup/OAuth and enters the verbatim fast-path instead of being rewritten.
-  const markerFor = (label: string): string => {
-    const normalized = label.replace(/\s+/g, ' ').trim().toUpperCase()
-    if (normalized === 'HOOK') return 'HOOK'
-    if (normalized === 'FACT 1') return 'MICRO REWARD 1'
-    if (normalized === 'FACT 2') return 'MICRO REWARD 2'
-    if (normalized === 'FACT 3') return 'ESCALATION'
-    if (normalized === 'PAYOFF') return 'PAYOFF'
-    return label
-  }
-  const script = lines
-    .slice(0, 5)
-    .map(({ label, text }) => {
-      const marker = markerFor(label)
-      const safeText = text.slice(0, 220)
-      return marker ? `${marker}: ${safeText}` : safeText
-    })
-    .join('\n')
-  const destination = `/studio/create?${new URLSearchParams({ prompt: script, autoanalyze: '1' }).toString()}`
-  const signup = new URLSearchParams({
-    utm_source: source,
-    utm_medium: medium,
-    utm_campaign: campaign,
-    redirect: destination,
-  })
-  return `/signup?${signup.toString()}`
+  return { source, medium, campaign }
 }
 
 function parseScript(raw: string): Line[] {
@@ -111,7 +84,10 @@ export default function FreeScriptClient({
   const arrivalSentRef = useRef(false)
   const webShareInputKindRef = useRef<WebShareInputKind>('empty')
   const webShareArrivalSentRef = useRef(false)
-  const createShortHref = activationHref(lines, fromPublicVideo, webShareAccepted)
+  const createShortHref = buildFreeScriptSignupHref(
+    lines,
+    activationAttribution(fromPublicVideo, webShareAccepted)
+  )
 
   useEffect(() => {
     if (!fromPublicVideo || arrivalSentRef.current) return
