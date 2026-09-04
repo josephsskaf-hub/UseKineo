@@ -470,3 +470,63 @@ Nada.
 - **VALIDADO EM PRODUÇÃO — 04/09/2026 01:53 BRT:** Guardião do PR, Vercel e rota pública ficaram verdes no SHA `d14dac6d`.
 - **CONTRADIÇÃO CORRIGIDA:** a rodada 6 tocou um arquivo Claude apesar de declarar o contrário; o fato foi registrado e a decisão foi devolvida à pista dona sem nova alteração nesse arquivo.
 - **QUESTÃO PENDENTE / DESCONHECIDO:** vigia de checkout/origem e impacto em primeiro filme/assinatura aguardam dado pós-deploy; as falsas limitações 9:16 são a próxima correção pública candidata.
+
+---
+
+## Rodada 8 — K5 · verdade multiformato nos comparativos — 04/09 02:00→02:19 BRT — ENTREGA CONCLUÍDA
+
+- **IMPLEMENTADO / VALIDADO EM PRODUÇÃO:** os comparativos públicos não dizem mais que a Kineo produz somente 9:16 ou recusa horizontal; agora distinguem os quatro formatos nativos, uma proporção por render e o upscale 4K separado.
+- **BLOQUEADO / DESCONHECIDO:** o vigia individual de checkout e a origem dos cadastros das últimas 2 horas não foram remensurados; não há conector Supabase utilizável nesta sessão e nenhum zero foi inferido.
+
+### Dado, prioridade e anti-repetição
+
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 02:05:38–02:05:57 BRT:** `/vs` e 46 comparativos canônicos responderam 47/47 HTTP 200. A varredura encontrou 13 exibições diretamente falsas em 9 URLs, além de uma segmentação estreita visível e uma branch de oferta executável não renderizada. O commit `5cb3ea75` havia corrigido a verdade central, mas não essas sobras.
+- **FATO CONFIRMADO:** não havia pedido aberto viável da pista FLUXO; os itens de 18:40, 18:45 e 23:15 pertencem ao dashboard/Claude, o de 20:45 pertence à CAIXA e o pedido de revisão do arquivo admin continua com Claude. Nenhum foi duplicado.
+- **HIPÓTESE:** parar de recusar visitantes de 16:9/1:1/4:5 melhora a passagem dos comparativos para cadastro; esta rodada não atribui assinatura sem janela posterior equivalente.
+
+### Vigia do checkout e placar
+
+- **BLOQUEADO / DESCONHECIDO — 04/09/2026:** sem leitura aceita do Supabase, não há linha individual dos checkouts das últimas 2 horas nem corte novo por origem; nenhum zero foi inferido.
+- **EVIDÊNCIA DE PRODUÇÃO — medição encerrada em 04/09/2026 00:55 BRT:** 16 cadastros, 11 pessoas com filme (69%), 1 checkout com filme, 1 checkout sem filme, 0 assinaturas e 0 pessoas com falha sem filme. Fonte: `docs/SPRINT-ASSINATURAS-2026-09-03.md:1120-1126`; esta rodada não atualiza, soma nem interpola essa janela.
+
+### O que mudou
+
+- **IMPLEMENTADO:** nove páginas head-to-head e o card de `/vs` agora descrevem 9:16, 16:9, 1:1 e 4:5 nativos, com uma proporção por render. Fontes: `lib/comparisons.ts:1150-1189,1253,1315-1338,1450,4038-4045,4125,4211-4229,4290,4365-4376`.
+- **IMPLEMENTADO:** as comparações com HeyGen, Submagic e Descript separam 4K nativo do concorrente do upscale pós-render da Kineo; não afirmam ausência absoluta de 4K. Fontes: `lib/comparisons.ts:1165,1450,4205`.
+- **IMPLEMENTADO:** a invariante contextual captura as frases regressivas sem proibir descrições verdadeiras de concorrentes limitados a 9:16. Fontes: `scripts/test-quadro-real-2026-09-02.mjs:83-105`.
+- **FATO CONFIRMADO:** nenhum preço, desconto, quota, entitlement, Stripe, banco, migration, saldo, autorização de geração, dashboard/Claude ou CAIXA foi alterado; uma descrição factual dentro da branch de oferta foi corrigida de “one format” para “one ratio per render”.
+- **TESTADO LOCALMENTE — 04/09/2026 02:11 BRT:** a nova invariante falhou antes da correção e depois passou 39/39; TypeScript e `git diff --check` saíram com código 0.
+- **TESTADO LOCALMENTE — 04/09/2026 02:09 BRT:** o comparativo autocontido antes/depois, desktop/mobile, foi inspecionado. Fontes: `docs/previews/K5-RATIO-TRUTH-2026-09-04.html` e `.png`.
+- **FATO CONFIRMADO — revisão independente em 04/09/2026:** três auditores somente leitura reconciliaram código, produção, contagem e falsos positivos; nenhum editou arquivos.
+
+### Integração e produção
+
+- **IMPLEMENTADO:** commits `28575189405f9b4b29201d6b5b0aeaa2f35f826b` e `fb25ffc1d9092f89fe90722bbe4d7432800baad8` integrados em `main` por fast-forward sobre `ab01ae9b8db83cdc71f601124f0867da935da309`.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 02:16 BRT:** o Guardião do PR #4, execução `33839538963`, concluiu `success`; TypeScript e suíte terminaram verdes antes do avanço da `main`.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 02:18 BRT:** a Vercel concluiu o deployment `Ai4MEyqTB4qrEbMjzJqMD6afC58f` para `fb25ffc1`.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 02:19 BRT:** `/vs` e nove páginas tocadas responderam HTTP 200 no slug canônico; as sete famílias de frases falsas verificadas não aparecem mais no HTML publicado.
+
+### Como medir e quando parar
+
+- **SUGESTÃO:** em janelas completas e iguais, contar pessoas distintas por pathname/referrer em `landing_session_started` → cadastro → primeiro filme → checkout com filme → assinatura; separar cada `/vs` e origem answer-engine, sem somar eventos ou janelas diferentes.
+- **SUGESTÃO — gate de parada:** corrigir ou reverter se uma frase 9:16-only atribuída à Kineo reaparecer, se 4K for descrito como render nativo da Kineo ou se a taxa por pessoas cair contra janela anterior equivalente.
+- **RISCO:** cache pode atrasar a copy; especificações dos concorrentes podem mudar; 4K da Kineo é upscale pós-render, não saída nativa do render original.
+
+### PEDIDOS
+
+- **FATO CONFIRMADO:** nenhum pedido de outra pista foi baixado, alterado ou criado nesta rodada; a revisão do arquivo admin da rodada 6 permanece com Claude.
+
+## PRÓXIMA JOGADA
+
+- **SUGESTÃO:** cumprir a próxima medição pura assim que houver leitura autorizada do Supabase; sem dado novo, auditar a confirmação invisível do tema no signup vindo de `/examples/[slug]`, sem tocar dashboard/Claude ou CAIXA.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+## 📋 O QUE ACONTECEU
+
+- **IMPLEMENTADO:** 13 exibições falsas e duas bordas de copy foram corrigidas para a capacidade real multiformato, preservando uma proporção por render e qualificando 4K como upscale separado.
+- **TESTADO LOCALMENTE — 04/09/2026 02:11 BRT:** 39 invariantes, TypeScript, diff check e preview visual ficaram verdes.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 02:19 BRT:** Guardião #4, Vercel e dez URLs públicas ficaram verdes no SHA `fb25ffc1`.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** impacto em cadastro, primeiro filme, checkout e assinatura aguarda uma janela pós-deploy e acesso autorizado aos dados.
