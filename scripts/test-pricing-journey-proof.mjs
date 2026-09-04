@@ -41,6 +41,12 @@ const policy = executeTs('lib/growth/pricingJourneyProof.ts', {
 })
 
 equal(policy.PRICING_JOURNEY_PROOF_VERSION, 'pricing_journey_proof_v1', 'version is stable')
+equal(policy.PRICING_JOURNEY_EMAIL_FILM_VERSION, 'pricing_journey_email_film_v1', 'email film version is stable')
+equal(policy.pricingJourneyEmailFilmCampaign('trial_offer_d5'), 'trial_offer_d5', 'D5 return is eligible for personal film')
+equal(policy.pricingJourneyEmailFilmCampaign('trial_offer_d10'), 'trial_offer_d10', 'D10 return is eligible for personal film')
+equal(policy.pricingJourneyEmailFilmCampaign('trial_offer_d5_library'), null, 'library navigation does not impersonate checkout email')
+equal(policy.pricingJourneyEmailFilmCampaign('TRIAL_OFFER_D5'), null, 'campaign matching fails closed')
+equal(policy.pricingJourneyEmailFilmCampaign(null), null, 'missing campaign stays generic')
 
 const base = {
   completedCount: 0,
@@ -111,6 +117,7 @@ for (const event of [
   'pricing_journey_proof_subscribe_now_clicked',
   'pricing_journey_proof_plans_clicked',
   'pricing_journey_proof_review_clicked',
+  'pricing_journey_email_film_loaded',
 ]) {
   check(component.includes(event), `component measures ${event}`)
 }
@@ -118,15 +125,21 @@ check(!component.includes('video_id:'), 'telemetry contains no video id')
 check(!component.includes('title:'), 'telemetry contains no customer title')
 check(component.includes('Nothing renders until you press Generate.'), 'proof-first copy preserves explicit user action')
 check(component.includes('I already want to subscribe'), 'high-intent buyer remains unblocked')
+check(component.includes('selectCheckoutResumeFilm(recentVideos)'), 'email proof reuses the hardened owner-film selector')
+check(component.includes('data-pricing-email-film-proof={PRICING_JOURNEY_EMAIL_FILM_VERSION}'), 'email return renders a versioned playable film')
+check(component.includes('controls'), 'personal film playback stays under the owner control')
+check(!component.includes('film_title:'), 'email proof telemetry never emits customer title')
+check(!component.includes('film_url:'), 'email proof telemetry never emits customer URL')
 
 const pricing = read('app/pricing/PricingClient.tsx')
 check(pricing.includes("import PricingJourneyProof from '@/components/growth/PricingJourneyProof'"), 'live pricing imports the bridge')
 // Compare the rendered order instead of matching a literal LF. On Windows the
 // checkout may contain CRLF; line-ending style is not a product invariant.
 check(
-  pricing.indexOf('<PricingSavedCheckout />') < pricing.indexOf('<PricingJourneyProof signedIn={signedIn} />'),
+  pricing.indexOf('<PricingSavedCheckout />') < pricing.indexOf('<PricingJourneyProof signedIn={signedIn} intentCampaign={pricingIntentCampaign} />'),
   'saved checkout remains before the new bridge',
 )
+check(pricing.includes('setPricingIntentCampaign(intentCampaign)'), 'live pricing passes only its sanitized intent campaign')
 
 const previewPath = 'docs/previews/PRICING-JOURNEY-PROOF-2026-08-30.html'
 check(fs.existsSync(path.join(root, previewPath)), 'visual comparison exists')
@@ -135,5 +148,14 @@ for (const marker of ['BEFORE · DESKTOP', 'AFTER · DESKTOP', 'BEFORE · MOBILE
   check(preview.includes(marker), `preview contains ${marker}`)
 }
 check(!/https?:\/\//i.test(preview), 'preview has no external dependency')
+
+const emailPreviewPath = 'docs/previews/PRICING-EMAIL-FILM-PROOF-2026-09-04.html'
+check(fs.existsSync(path.join(root, emailPreviewPath)), 'email film visual comparison exists')
+const emailPreview = read(emailPreviewPath)
+for (const marker of ['BEFORE · DESKTOP', 'AFTER · DESKTOP', 'BEFORE · MOBILE', 'AFTER · MOBILE']) {
+  check(emailPreview.includes(marker), `email film preview contains ${marker}`)
+}
+check(emailPreview.includes('THE FILM FROM YOUR EMAIL'), 'preview shows the scoped email-return state')
+check(!/https?:\/\//i.test(emailPreview), 'email film preview has no external dependency')
 
 console.log(`PASS — ${checks}/${checks} pricing journey-proof checks`)

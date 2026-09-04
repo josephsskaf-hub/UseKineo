@@ -6,9 +6,16 @@ import { trackEvent } from '@/lib/analytics'
 import { useFreeTierOffer } from '@/components/FreeTierOfferProvider'
 import {
   decidePricingJourneyProof,
+  pricingJourneyEmailFilmCampaign,
+  PRICING_JOURNEY_EMAIL_FILM_VERSION,
   type PricingJourneyProofDecision,
   type PricingJourneyVideo,
 } from '@/lib/growth/pricingJourneyProof'
+import {
+  checkoutResumeFilmTelemetry,
+  selectCheckoutResumeFilm,
+  type CheckoutResumeFilmProof,
+} from '@/lib/growth/checkoutResumeFilm'
 
 type VideosResponse = {
   videos?: PricingJourneyVideo[]
@@ -19,14 +26,23 @@ type VideosResponse = {
 type PlanResponse = { plan?: string; isPro?: boolean }
 type ResumeResponse = { available?: boolean }
 
-export default function PricingJourneyProof({ signedIn }: { signedIn: boolean | null }) {
+export default function PricingJourneyProof({
+  signedIn,
+  intentCampaign,
+}: {
+  signedIn: boolean | null
+  intentCampaign: string | null
+}) {
   const offer = useFreeTierOffer()
   const [decision, setDecision] = useState<PricingJourneyProofDecision | null>(null)
+  const [emailFilm, setEmailFilm] = useState<CheckoutResumeFilmProof | null>(null)
   const viewedKey = useRef<string | null>(null)
+  const emailFilmLoadedKey = useRef<string | null>(null)
 
   useEffect(() => {
     if (signedIn !== true) {
       setDecision(null)
+      setEmailFilm(null)
       return
     }
 
@@ -52,25 +68,39 @@ export default function PricingJourneyProof({ signedIn }: { signedIn: boolean | 
             : Promise.resolve({ available: false }),
         ])
         const planName = typeof plan.plan === 'string' ? plan.plan.trim().toLowerCase() : ''
-        return decidePricingJourneyProof({
+        const recentVideos = Array.isArray(videos.videos) ? videos.videos : null
+        const nextDecision = decidePricingJourneyProof({
           completedCount: typeof videos.completedCount === 'number' ? videos.completedCount : null,
           hasActivePlan: Boolean(plan.isPro) || (planName !== '' && planName !== 'free'),
           historyReliable: videos.historyReliable === true,
-          recentVideos: Array.isArray(videos.videos) ? videos.videos : null,
+          recentVideos,
           reverseTrial: offer.reverseTrial,
           savedCheckoutAvailable: resume.available === true,
           signedIn: true,
         })
+        const emailCampaign = pricingJourneyEmailFilmCampaign(intentCampaign)
+        return {
+          decision: nextDecision,
+          emailFilm:
+            emailCampaign && nextDecision.state === 'after_delivery'
+              ? selectCheckoutResumeFilm(recentVideos)
+              : null,
+        }
       })
       .then((next) => {
-        if (!controller.signal.aborted) setDecision(next)
+        if (controller.signal.aborted) return
+        setDecision(next?.decision ?? null)
+        setEmailFilm(next?.emailFilm ?? null)
       })
       .catch(() => {
-        if (!controller.signal.aborted) setDecision(null)
+        if (!controller.signal.aborted) {
+          setDecision(null)
+          setEmailFilm(null)
+        }
       })
 
     return () => controller.abort()
-  }, [offer.reverseTrial, signedIn])
+  }, [intentCampaign, offer.reverseTrial, signedIn])
 
   useEffect(() => {
     if (!decision || decision.state === 'hidden') return
@@ -101,6 +131,7 @@ export default function PricingJourneyProof({ signedIn }: { signedIn: boolean | 
     engine: decision.engineLabel,
     duration_seconds: decision.duration,
   }
+  const emailCampaign = pricingJourneyEmailFilmCampaign(intentCampaign)
 
   if (decision.state === 'before_first_delivery') {
     return (
@@ -153,15 +184,41 @@ export default function PricingJourneyProof({ signedIn }: { signedIn: boolean | 
       className="mx-auto mb-8 max-w-3xl rounded-2xl border border-[#34d399]/30 bg-gradient-to-br from-[#0e211c] via-[#111916] to-[#141416] px-5 py-5 shadow-[0_20px_65px_-35px_rgba(52,211,153,.55)] sm:px-6"
     >
       <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+        {emailCampaign && emailFilm ? (
+          <video
+            data-pricing-email-film-proof={PRICING_JOURNEY_EMAIL_FILM_VERSION}
+            src={emailFilm.playbackUrl}
+            poster={emailFilm.posterUrl ?? undefined}
+            controls
+            muted
+            playsInline
+            preload="metadata"
+            aria-label={`Your film: ${emailFilm.title}`}
+            className="mx-auto h-44 w-[99px] flex-none rounded-xl border border-[#34d399]/30 bg-black object-cover shadow-[0_14px_35px_-18px_rgba(52,211,153,.75)] sm:mx-0"
+            onLoadedData={() => {
+              if (emailFilmLoadedKey.current === emailFilm.playbackUrl) return
+              emailFilmLoadedKey.current = emailFilm.playbackUrl
+              void trackEvent('pricing_journey_email_film_loaded', {
+                version: PRICING_JOURNEY_EMAIL_FILM_VERSION,
+                intent_campaign: emailCampaign,
+                ...checkoutResumeFilmTelemetry(emailFilm),
+              })
+            }}
+          />
+        ) : null}
         <div className="min-w-0">
           <div className="mb-2 text-[10px] font-black uppercase tracking-[.15em] text-[#6ee7b7]">
-            Your result is the proof
+            {emailCampaign && emailFilm ? 'The film from your email' : 'Your result is the proof'}
           </div>
           <h2 id="pricing-owned-proof-title" className="text-xl font-black tracking-[-.02em] text-white">
-            You already completed a {deliveredLabel}.
+            {emailCampaign && emailFilm
+              ? `Watch “${emailFilm.title}” before you choose.`
+              : `You already completed a ${deliveredLabel}.`}
           </h2>
           <p className="mt-2 max-w-xl text-[13px] font-semibold leading-relaxed text-[#a9b4c5]">
-            You are not buying an unseen promise. Choose the monthly plan that lets you repeat the workflow and export clean, watermark-free MP4s.
+            {emailCampaign && emailFilm
+              ? 'This is the result that brought you back. Review it here, then choose the monthly plan that lets you repeat the workflow and export clean, watermark-free MP4s.'
+              : 'You are not buying an unseen promise. Choose the monthly plan that lets you repeat the workflow and export clean, watermark-free MP4s.'}
           </p>
         </div>
         <div className="flex flex-none flex-col gap-2 sm:items-center">

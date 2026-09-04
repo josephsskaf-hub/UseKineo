@@ -794,3 +794,87 @@ A medição mostrou que a prova antes do pagamento já tem um pagante e leva gen
 ao caixa; não devemos desmontá-la. O caso quente do ChatGPT ainda está esperando
 o Seedance, sem erro. A próxima rodada vai investigar por que quem recebe o
 e-mail com o próprio filme cai numa página de preço genérica.
+
+---
+
+## ROUND 13 — D5/D10 · o filme do e-mail chega à decisão
+
+**Data:** 2026-09-04 10:41 BRT
+**Pista:** Growth-B2C / CAIXA
+**Branch:** `codex/caixa-email-film-proof-r13`
+
+### EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, 2026-09-04 10:40 BRT
+
+- 71 pessoas externas receberam `offer_with_film` no D5/D10: 23 no D5 e 48
+  no D10. Depois do primeiro envio, 1 pessoa abriu checkout e 0 pagaram.
+- A contagem anterior dizia “70 envios”; a leitura atual é 71 pessoas e 71
+  envios. Janela viva mudou em uma pessoa; não somar snapshots diferentes.
+- Placar canônico: 35 cadastros, 22 pessoas com filme, 1 checkout de desejo, 2
+  checkouts sem filme, 0 assinaturas e 0 pessoas com falha sem filme.
+- Vigia `a8c8d6c5`: 12 créditos, zero filme, zero erro e último evento ainda
+  `active_render_pill_shown`. Render em voo, não abandono.
+
+### HIPÓTESE
+
+O e-mail cita o resultado da pessoa, mas o clique `trial_offer_d5|d10` chega a
+uma prova textual genérica antes dos cards. Tornar o mesmo filme visível e
+tocável conserva a motivação que abriu o e-mail até o ponto de decisão.
+
+### IMPLEMENTADO
+
+- `lib/growth/pricingJourneyProof.ts`: allowlist exata dos dois campaigns e
+  contrato `pricing_journey_email_film_v1`.
+- `app/pricing/PricingClient.tsx`: encaminha apenas o campaign já sanitizado.
+- `components/growth/PricingJourneyProof.tsx`: no retorno D5/D10, seleciona o
+  último filme via `selectCheckoutResumeFilm`, mostra playback com controles e
+  mantém os mesmos botões de plano e revisão. Todas as outras visitas preservam
+  o ramo atual.
+- Telemetria registra versão, campaign allow-listed e buckets de disponibilidade;
+  nunca título, URL, id, prompt ou roteiro.
+- Preview antes/depois desktop/mobile em
+  `docs/previews/PRICING-EMAIL-FILM-PROOF-2026-09-04.html`.
+
+### TESTADO LOCALMENTE
+
+`test-pricing-journey-proof` 63/63 · `test-checkout-resume-own-film` 35/35 ·
+`test-pricing-plan-choice-attribution` 26/26 · Guardião local 12/12 ·
+`npx tsc --noEmit` equivalente, verde · `git diff --check` limpo.
+
+A revisão visual automática no Chrome foi bloqueada pela política de segurança
+para URL `file://`; não houve tentativa de contorno. O HTML autocontido está no
+painel do Codex e cobre antes/depois em desktop e mobile.
+
+### COMO MEDIR
+
+`pricing_journey_email_film_loaded` → `pricing_journey_proof_plans_clicked` →
+`checkout_started` → `checkout_success_viewed`, por pessoa externa e separado
+entre D5/D10. Linha de base combinada: 71 pessoas, 1 checkout, 0 pagamentos.
+
+### GATE DE PARADA
+
+Não alterar preço, cupom, corpo do e-mail ou prova genérica. Manter a variante
+até 10 pessoas externas carregarem filme ou 7 dias, o que vier primeiro. Parar
+e reverter se houver erro de mídia ou queda do CTA de planos nesse segmento.
+
+### RISCO
+
+Baixo e segmentado. A mídia vem da rota autenticada do próprio dono e passa
+pela allowlist HTTPS já usada na retomada do checkout. O risco residual é custo
+de rede; `preload='metadata'`, sem autoplay, limita o carregamento inicial.
+
+### PRÓXIMA JOGADA
+
+Publicar, validar o deploy e confirmar o primeiro evento de carregamento. Depois,
+reconciliar o vigia e auditar a intenção preservada no cadastro sem colocar
+intersticial entre uma pessoa pronta para pagar e o Stripe.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+### 📋 O QUE ACONTECEU
+
+Quem volta pelo e-mail que fala do próprio filme agora vê e pode tocar esse
+filme antes dos planos. A mudança alcança só D5/D10, não mexe em preço nem no
+resto do pricing, e cria a primeira medição direta entre “vi meu resultado” e
+“paguei”.

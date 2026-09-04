@@ -311,6 +311,7 @@ export default function PricingClient() {
   const currencyTrackedRef = useRef(false)
   const mobileStickyRef = useRef<HTMLDivElement | null>(null)
   const [requestedTier, setRequestedTier] = useState<PricingTierHandoffTier | null>(null)
+  const [pricingIntentCampaign, setPricingIntentCampaign] = useState<string | null>(null)
   const [checkoutSetupFailure, setCheckoutSetupFailure] = useState<CheckoutSetupFailureReturnContext | null>(null)
 
   // KINEO-SPRINT-OFFER-2026-07-14 — ROI slider state removed with the widget
@@ -400,6 +401,7 @@ export default function PricingClient() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const intentCampaign = sanitizePricingIntentCampaign(params.get('intent_campaign'))
+    setPricingIntentCampaign(intentCampaign)
     setRequestedTier(sanitizePricingTierHandoff(params.get('tier')))
     if (intentCampaign) rememberSignupCampaign(intentCampaign)
     setArrivedWithPromo((params.get('promo') ?? '').trim().length > 0)
@@ -773,7 +775,7 @@ export default function PricingClient() {
             can ground that offer in the visitor's actual product experience. */}
 
         <PricingSavedCheckout />
-        <PricingJourneyProof signedIn={signedIn} />
+        <PricingJourneyProof signedIn={signedIn} intentCampaign={pricingIntentCampaign} />
 
         {/* Push #267 — Free banner removed with Free card */}
 

@@ -1,12 +1,24 @@
 import { engineLabelFor } from '@/lib/engineLabel'
 
 export const PRICING_JOURNEY_PROOF_VERSION = 'pricing_journey_proof_v1' as const
+export const PRICING_JOURNEY_EMAIL_FILM_VERSION = 'pricing_journey_email_film_v1' as const
+
+export type PricingJourneyEmailCampaign = 'trial_offer_d5' | 'trial_offer_d10'
+
+export function pricingJourneyEmailFilmCampaign(value: string | null | undefined): PricingJourneyEmailCampaign | null {
+  return value === 'trial_offer_d5' || value === 'trial_offer_d10' ? value : null
+}
 
 export type PricingJourneyVideo = {
   id: string
   status: string
   duration: number | null
   quality_mode: string | null
+  title?: string
+  video_url?: string | null
+  enhanced_url?: string | null
+  thumbnail_url?: string | null
+  created_at?: string
 }
 
 export type PricingJourneyProofInput = {
