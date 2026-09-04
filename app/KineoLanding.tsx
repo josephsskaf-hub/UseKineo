@@ -10,6 +10,7 @@ import OrganicCtaLink from '@/components/OrganicCtaLink'
 import Footer from '@/components/Footer'
 import PhWelcomeBanner from '@/components/PhWelcomeBanner'
 import CostCalculatorLink from '@/components/CostCalculatorLink'
+import HomePricingCheckoutLink, { HomePricingCheckoutGroup } from '@/components/HomePricingCheckoutLink'
 import LandingViewTracker from '@/components/LandingViewTracker'
 import ResumeStrip from '@/components/ResumeStrip' // KINEO-FAIXA-CONTINUAR-2026-09-01
 import RevealOnScroll from './RevealOnScroll'
@@ -374,6 +375,7 @@ html{scroll-behavior:smooth}
 .klp .plan li b{color:var(--txt);font-weight:650}
 .klp .plan li .ck{color:var(--blue);flex:none;display:grid;place-items:center;width:19px;height:19px;margin-top:1px;border-radius:var(--r-pill);background:rgba(41,151,255,.13);font-size:11px;font-weight:800}
 .klp .plan .btn{justify-content:center;margin-top:auto;width:100%}
+.klp .home-pricing-checkout-error{margin:9px 4px 0;color:#ff8b8b;font-size:12px;font-weight:700;line-height:1.45;text-align:center}
 .klp .snote{margin:26px auto 0;max-width:600px;text-align:center;font-size:14.5px;line-height:1.6;color:var(--muted)}
 .klp .snote b{color:var(--txt);font-weight:650}
 .klp .final{position:relative;text-align:center;overflow:hidden;border-radius:var(--r-lg);padding:88px 24px;background:linear-gradient(180deg,var(--card2) 0%,var(--card) 100%);border:1px solid var(--line);box-shadow:var(--sh-card-h)}
@@ -1425,19 +1427,16 @@ export default function KineoLanding({
       <section id="pricing">
         <div className="wrap">
           <div className="sec-h"><span className="sec-eyebrow">Pricing</span><h2>Simple pricing. Try Fast free first.</h2><p>{ft(OFFER, 'Create, download and share up to 3 watermarked Fast videos every 24h, no card.', OFFER.copy.headline)} Paid plans unlock clean MP4s.</p></div>
+          <HomePricingCheckoutGroup isSignedIn={isSignedIn}>
           <div className="price">
             {/* Signed-in buyers go straight to Stripe. Signed-out buyers go to
                 signup with the complete checkout destination encoded, which
                 preserves tier + intro and prevents crawlers from calling the
                 payment API just by following the public pricing links.
 
-                KINEO-CHECKOUT-TRIAGE-2026-07-25 — rel="nofollow" is a PARTIAL
-                mitigation only. These three CTAs are still plain <a> elements,
-                so a signed-in session has no click latch (double tap = two
-                Stripe Sessions), no pending state and no inline error. The real
-                fix is useCheckoutLaunch, which needs a client component; this
-                file is a SERVER component and a client boundary cannot be
-                declared inside it, so that requires a new file. */}
+                FLUXO R23 — the client boundary enhances only the signed-in,
+                ordinary same-tab click with useCheckoutLaunch. The href stays
+                in the HTML for signed-out, modified-click and no-JS paths. */}
             <div className="plan">
               {/* KINEO-PRICING-V5-2026-08-17 (fundador): $4.90 morreu; Starter
                   e $9.90/60cr direto e o card fala em FILMES, nao em creditos. */}
@@ -1460,7 +1459,7 @@ export default function KineoLanding({
                 <li><span className="ck">✓</span> Every video engine incl. MiniMax H3</li>
                 <li><span className="ck">✓</span> Watermark-free MP4 · 100 projects · 90-day storage</li>
               </ul>
-              <a className="btn btn-w" rel="nofollow" href={starterCheckoutHref}><LandingPlanPrice tier="starter" variant="cta" ctaLabel="Start" /></a>
+              <HomePricingCheckoutLink href={starterCheckoutHref} tier="starter"><LandingPlanPrice tier="starter" variant="cta" ctaLabel="Start" /></HomePricingCheckoutLink>
             </div>
             <div className="plan pop">
               {/* KINEO-PRICING-V5-2026-08-17 — $19.90/140cr: 7 filmes PRONTOS
@@ -1475,7 +1474,7 @@ export default function KineoLanding({
                 <li><span className="ck">✓</span> 500 projects · forever storage</li>
                 <li><span className="ck">✓</span> Cancel anytime — 7-day money-back</li>
               </ul>
-              <a className="btn btn-w" rel="nofollow" href={creatorCheckoutHref}><LandingPlanPrice tier="basic" variant="cta" ctaLabel="Go Creator" /></a>
+              <HomePricingCheckoutLink href={creatorCheckoutHref} tier="basic"><LandingPlanPrice tier="basic" variant="cta" ctaLabel="Go Creator" /></HomePricingCheckoutLink>
             </div>
             <div className="plan">
               {/* KINEO-PRICING-V5-2026-08-17 — $39.90/320cr: volume + Kling 3
@@ -1491,9 +1490,10 @@ export default function KineoLanding({
                 <li><span className="ck">✓</span> Unlimited projects · forever storage</li>
                 <li><span className="ck">✓</span> Everything in Creator</li>
               </ul>
-              <a className="btn btn-w" rel="nofollow" href={studioCheckoutHref}><LandingPlanPrice tier="pro" variant="cta" ctaLabel="Go Studio" /></a>
+              <HomePricingCheckoutLink href={studioCheckoutHref} tier="pro"><LandingPlanPrice tier="pro" variant="cta" ctaLabel="Go Studio" /></HomePricingCheckoutLink>
             </div>
           </div>
+          </HomePricingCheckoutGroup>
           {/* KINEO-SPRINT-OFFER-2026-07-14 — the "10 videos for $4.90 one-time"
               note is gone (single-offer cleanup; ?pack=starter stays alive for
               the watermark unlock only). The intro month is the entry path. */}

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>FLUXO R23 — protected home pricing checkout</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#05070b;color:#f5f7fb;font:14px Inter,Arial,sans-serif;overflow-x:hidden}.page{max-width:1180px;margin:auto;padding:38px 24px 54px}.eyebrow{color:#58a8ff;font-size:11px;font-weight:900;letter-spacing:.14em;text-transform:uppercase}.title{font-size:30px;margin:7px 0 26px}.pair{display:grid;grid-template-columns:1fr 1fr;gap:22px;min-width:0}.state{min-width:0;border:1px solid #202837;border-radius:22px;background:#0b0f17;padding:20px}.state h2{font-size:14px;margin:0 0 16px}.tag{display:inline-block;border-radius:999px;padding:5px 9px;font-size:10px;font-weight:900;letter-spacing:.1em;background:#252b35;color:#aab4c3}.after .tag{background:#12355c;color:#82c1ff}.plans{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;min-width:0}.plan{display:flex;min-width:0;min-height:205px;flex-direction:column;border:1px solid #2a3240;border-radius:16px;padding:15px;background:#111722}.plan.pop{border-color:#328dea}.name{font-size:18px;font-weight:900;margin:8px 0}.price{font-size:22px;font-weight:900}.copy{color:#9da8b8;line-height:1.5;margin:10px 0 16px}.button{margin-top:auto;padding:12px;border-radius:999px;text-align:center;background:#f5f7fb;color:#05070b;font-weight:900;overflow-wrap:anywhere}.pending{background:#dbe8f7;color:#1c2734;box-shadow:0 0 0 3px rgba(72,157,255,.14)}.error{color:#ff8b8b;font-size:11px;font-weight:800;line-height:1.4;text-align:center;margin-top:8px;overflow-wrap:anywhere}.note{color:#8e99aa;font-size:12px;line-height:1.55;margin:16px 2px 0;overflow-wrap:anywhere}.proof{margin-top:22px;padding:14px 16px;border:1px solid #214c78;border-radius:14px;background:#0a1c30;color:#badcff;line-height:1.55}.mobile-label{display:none}@media(max-width:760px){.page{padding:24px 14px}.title{font-size:24px}.pair{grid-template-columns:minmax(0,1fr)}.plans{grid-template-columns:minmax(0,1fr)}.plan{min-height:180px}.mobile-label{display:inline}.state{padding:16px}}
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="eyebrow">Visual proof · desktop + mobile responsive</div>
+    <h1 class="title">Home pricing — the last hop to secure checkout</h1>
+    <div class="pair">
+      <section class="state before">
+        <h2><span class="tag">Before</span> Plain links</h2>
+        <div class="plans">
+          <article class="plan"><div class="name">Starter</div><div class="price">Canonical price</div><p class="copy">Existing plan facts stay unchanged.</p><div class="button">Start — price/mo</div></article>
+          <article class="plan pop"><div class="name">Creator</div><div class="price">Canonical price</div><p class="copy">Double click has no visible response.</p><div class="button">Go Creator — price/mo</div></article>
+          <article class="plan"><div class="name">Studio</div><div class="price">Canonical price</div><p class="copy">A failed redirect ends in silence.</p><div class="button">Go Studio — price/mo</div></article>
+        </div>
+        <p class="note">The href works, but there is no click latch, pending state or inline error.</p>
+      </section>
+      <section class="state after">
+        <h2><span class="tag">After</span> Protected ordinary click</h2>
+        <div class="plans">
+          <article class="plan"><div class="name">Starter</div><div class="price">Canonical price</div><p class="copy">Existing plan facts stay unchanged.</p><div class="button">Start — price/mo</div></article>
+          <article class="plan pop"><div class="name">Creator</div><div class="price">Canonical price</div><p class="copy">The first click latches immediately.</p><div class="button pending">Opening secure checkout…</div></article>
+          <article class="plan"><div class="name">Studio</div><div class="price">Canonical price</div><p class="copy">Failure is visible and actionable.</p><div class="button">Go Studio — price/mo</div><div class="error">We could not open the secure checkout. You have not been charged.</div></article>
+        </div>
+        <p class="note">The original href remains available for signed-out, modified-click and no-JS navigation.</p>
+      </section>
+    </div>
+    <div class="proof"><strong>Unchanged:</strong> plan names, prices, offer terms and checkout destinations. <strong>Added:</strong> one-click latch, pending feedback, error feedback, fallback recovery and a tier-level denominator.</div>
+  </main>
+</body>
+</html>
