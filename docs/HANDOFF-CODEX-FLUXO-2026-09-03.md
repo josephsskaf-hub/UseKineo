@@ -1230,3 +1230,47 @@ Continua pendente apenas a ação manual da R19: publicar `docs/TAAFT-LISTING-20
 - **IMPLEMENTADO / VALIDADO:** cadastro e login agora confirmam o tema salvo para redirects canônicos de criação pública, preservando recuperação de senha e falha OAuth com validação fail-closed.
 - **EVIDÊNCIA DE PRODUÇÃO:** o placar chegou a 41 cadastros e 27 pessoas com filme, ainda com 0 assinaturas; duas pessoas reais chegaram ao seletor de cadastro por launchers públicos e não concluíram auth na janela observada.
 - **DECISÃO:** K10 foi descartado por duplicação; o próximo trabalho é o pedido CAIXA sobre CTAs de preço da home.
+
+---
+
+## Rodada 23 — pedido CAIXA · checkout protegido na home — 04/09 13:50→14:03 BRT — IMPLEMENTADA
+
+- **DECISÃO APROVADA:** pedido aberto e viável da pista vem antes do cardápio. O pedido CAIXA das 13:39 BRT identificou os três CTAs da home como a última superfície de preço sem `useCheckoutLaunch`; foi atendido sem tocar preço, oferta ou arquivos CAIXA.
+- **EVIDÊNCIA DE PRODUÇÃO — pedido CAIXA medido em 04/09/2026, 30 dias:** 49 pessoas externas chegaram a `checkout_attempted` numa sessão iniciada na home sem clique no WelcomeOfferModal. É limite superior, não clique comprovado, porque os três links não tinham denominador próprio.
+- **HIPÓTESE:** uma trava única para os três planos, feedback imediato e resgate do redirect reduzem sessões duplicadas e abandono silencioso no último salto; o novo evento permite separar essa superfície do limite superior anterior.
+
+### Placar, vigia e exposição
+
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 13:57:58 BRT:** placar canônico desde 03/09 13:00 BRT: **41 cadastros, 27 pessoas com filme, 2 checkouts com filme, 2 sem filme, 0 assinaturas e 0 pessoas com falha sem filme**. Fonte: SQL canônico somente leitura no Supabase de produção, pessoas distintas e contas internas excluídas.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 13:57:58 BRT:** nas duas horas anteriores houve 4 cadastros externos: **ChatGPT 3 e direto 1**. A janela móvel não foi somada às anteriores.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 13:57:58 BRT:** o vigia reencontrou somente a pessoa anonimizada `0441e46ae5`: conta direta às 12:16:52, checkout Pro mensal às 12:16:54–12:16:55, 25 créditos, 0 filme, `had_finished_script=false`, sem evento posterior e sem pagamento. Classe **defeito**, já coberta pela pista CAIXA; nenhum pedido duplicado foi aberto.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 13:57:58 BRT:** a confirmação de tema da R22 ainda tinha 0 pessoas/0 eventos pós-deploy em `organic_signup_handoff_viewed(saved_creation_proof=true)`; quatro minutos de janela não autorizam conclusão.
+- **CONTRADIÇÃO TEMPORAL:** o `origin/main` já continha diário Claude #15 rotulado até 15:05 BRT, embora o relógio desta rodada estivesse em 13:50–14:03 BRT. O conteúdo foi lido para anti-duplicação, mas seus horários futuros não foram usados como evidência contemporânea desta rodada.
+
+### Implementação, segurança e validação
+
+- **IMPLEMENTADO:** `HomePricingCheckoutGroup` cria uma única instância de `useCheckoutLaunch('home_pricing')` para Starter, Creator e Studio; a trava compartilhada impede tanto duplo clique no mesmo card quanto clique rápido entre tiers diferentes. Fonte: `components/HomePricingCheckoutLink.tsx`, commit funcional `768ae002`.
+- **IMPLEMENTADO:** somente clique primário, comum, em sessão autenticada recebe `preventDefault` e o launcher protegido. Logout, clique modificado, nova aba e no-JS conservam a âncora real; `pricingCheckoutHref()` continua transportando tier, intro e `resumed=1` pelo signup exatamente como antes.
+- **IMPLEMENTADO:** o botão selecionado mostra `Opening secure checkout…`; falha aparece como alerta inline e o `CheckoutStalledCta` global continua oferecendo o fallback. `home_pricing_checkout_clicked` nasce versionado por tier, modo de navegação e superfície, sem preço, e-mail ou conteúdo da pessoa.
+- **FATO CONFIRMADO:** nomes, valores, copy, `LandingPlanPrice`, destinos Starter/Creator/Studio e regras de intro permaneceram inalterados. Nenhum Stripe, banco, migration, crédito, geração, dashboard/Claude, arquivo CAIXA ou comunicação externa foi alterado.
+- **TESTADO LOCALMENTE — 04/09/2026 14:00 BRT:** `test-home-pricing-checkout` passou **36/36**, `test-welcome-offer-checkout-rescue` **21/21**, `test-checkout-auth-session-bridge` **61/61** e `test-inline-pricing-decision-funnel` **72/72**: **190 verificações direcionadas**. O compilador real `node node_modules/typescript/bin/tsc --noEmit --pretty false` e `git -c core.whitespace=cr-at-eol diff --check` saíram 0. O literal `npx tsc --noEmit --pretty false` encontrou o pacote-stub incorreto preexistente e saiu 1; não foi mascarado.
+- **INSPECIONADO VISUALMENTE — 04/09/2026 13:57 BRT:** o comparativo antes/depois foi aberto em desktop 1440×1000 e mobile 500×1600; pending e erro ficam legíveis sem mudar os três cards em repouso. Artefatos: `docs/previews/FLUXO-R23-HOME-PRICING-CHECKOUT-2026-09-04.html`, `.png` e `-mobile.png`.
+- **MEDIÇÃO:** por pessoa externa, seguir `home_pricing_checkout_clicked(version,tier,navigation_mode) → checkout_started → checkout_fallback_shown(surface='home_pricing') → checkout_success_viewed`. Separar autenticado protegido de `auth_bridge`/clique modificado; clique, sessão e fallback não são receita.
+- **GATE DE PARADA/REVERTER:** corrigir ou reverter se href sumir do HTML, clique modificado/no-JS deixar de funcionar, dois tiers abrirem em paralelo, tier/intro/redirect mudarem, ou o fallback apontar ao produto errado.
+- **RISCO:** para visitante deslogado, a navegação ao signup permanece nativa e não possui watchdog até o salto posterior ao auth; isto preserva o contrato atual e evita chamar a API de pagamento publicamente. O resgate completo desta rodada cobre o comprador já autenticado na home.
+- **VALIDAÇÃO NA INTEGRAÇÃO / PRODUÇÃO:** pendente do Guardião e deploy do SHA final desta branch; nenhum sucesso foi antecipado.
+- **DECISÃO — EXECUTADO:** o último trio de CTAs crus da home ganhou proteção e denominador próprios, com uma única trava entre planos e sem reabrir oferta ou preço.
+
+## PRÓXIMA JOGADA
+
+- **SUGESTÃO:** auditar o novo pedido Claude sobre `activation_instruction_notice_viewed=0` sem afrouxar o guarda de roteiro; primeiro confirmar no código/condições se o aviso de `679e9935` pode renderizar. Se for arquivo dashboard/Claude ou não houver lacuna FLUXO, devolver ao dono e escolher outra superfície pública viva.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+Continua pendente apenas a ação manual da R19: publicar `docs/TAAFT-LISTING-2026-09-03.md` no painel TAAFT e subir as três capturas indicadas. Nenhuma ação é necessária para a R23.
+
+## 📋 O QUE ACONTECEU
+
+- **IMPLEMENTADO:** os três botões de plano da home agora compartilham trava, estado de abertura, erro e resgate do checkout, mantendo o href original para auth, nova aba e no-JS.
+- **EVIDÊNCIA DE PRODUÇÃO:** o placar permanece em 41 cadastros, 27 pessoas com filme e 0 assinaturas; o vigia contém uma pessoa direta sem filme e já coberta por CAIXA.
+- **TESTADO LOCALMENTE:** 190 verificações, TypeScript real, diff check e preview desktop/mobile ficaram verdes; preço e oferta não mudaram.
