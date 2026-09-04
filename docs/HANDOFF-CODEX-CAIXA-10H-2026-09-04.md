@@ -115,6 +115,7 @@ Preparada uma alternativa de venda assistida com trava contra repetição: 25 de
 - **EXECUTADO, no âmbito da coordenação:** corrigida a leitura do evento e respondido o pedido com SQL agregado reproduzível em `docs/queries/CAIXA-10H-PAGAMENTOS-2026-09-04.sql`; reusar o placar canônico entregue na R1. **NÃO EXECUTAR** alteração redundante do webhook ou backfill inventado. Nenhuma mudança de runtime/UX, cobrança, preço, crédito, banco ou campanha nesta rotação.
 - **QUESTÃO PENDENTE:** consentimento/campanhas do piloto ainda sem resposta incorporada; zero destinatários liberados. Publicação documental R3 aguarda gates; registrar SHA/CI/deploy após resultado, sem antecipar aprovação.
 - **TESTADO LOCALMENTE na base nova:** TypeScript integral real exit 0; contrato de compra 108/108, entitlement 66/66 e compatibilidade Autopilot 84/84, offline. `git diff --check` limpo. Não confundir esses testes específicos com suíte integral verde do Guardião.
+- **RECONCILIAÇÃO DE PUBLICAÇÃO:** primeiro push de integração rejeitado porque main avançou para `c40e3782` durante o gate. Nada sobrescrito. Essa ponta foi incorporada por merge na branch isolada, sem force/rebase de história pública; diff contra main contém somente os três arquivos documentais da R3. TypeScript e as três baterias repetidos, verdes. O diff da entrega completa identificou uma linha vazia extra no EOF do SQL novo que o diff de arquivos ainda não rastreados não mostrara; removida antes do novo gate. Guardião do SHA anterior não é usado para aprovar o novo.
 
 ### Próxima jogada
 

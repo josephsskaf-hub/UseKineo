@@ -23,4 +23,3 @@ AND metadata->>'tier' IN ('starter','basic','pro','creator','studio') GROUP BY u
 film_counts AS (SELECT f.user_id,f.paid_at,(SELECT count(*) FROM public.videos v WHERE v.user_id=f.user_id AND v.status='completed' AND v.created_at<f.paid_at) films_before FROM first_sub f)
 SELECT now() measured_at,CASE WHEN films_before=0 THEN '0' WHEN films_before=1 THEN '1' WHEN films_before BETWEEN 2 AND 3 THEN '2-3' ELSE '4+' END films_before_first_subscription,count(*) first_b2c_subscribers,min(paid_at) first_at,max(paid_at) last_at
 FROM film_counts GROUP BY 2 ORDER BY 2;
-
