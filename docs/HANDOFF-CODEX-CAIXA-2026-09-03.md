@@ -878,3 +878,82 @@ Quem volta pelo e-mail que fala do próprio filme agora vê e pode tocar esse
 filme antes dos planos. A mudança alcança só D5/D10, não mexe em preço nem no
 resto do pricing, e cria a primeira medição direta entre “vi meu resultado” e
 “paguei”.
+
+---
+
+## ROUND 14 — intenção antes do produto · não bloquear quem quer pagar
+
+**Data:** 2026-09-04 10:46 BRT
+**Pista:** Growth-B2C / CAIXA
+**Branch:** `codex/caixa-auth-intent-r14`
+
+### VALIDAÇÃO DA ENTREGA ANTERIOR
+
+**VALIDADO EM PRODUÇÃO:** SHA `2df52939`, Vercel
+`dpl_93sYbm8HKeGqLgrYJkWHrZKh3L3w` READY e aliasado em
+`www.usekineo.com`; Guardião run `33879534776` verde. O Chrome abriu a
+`/pricing?intent_campaign=trial_offer_d5` sem erro visual. A conta do fundador
+é inelegível à prova segmentada, então o playback pessoal não foi forçado nem
+simulado em produção.
+
+### EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, 2026-09-04 10:45 BRT
+
+- Nos primeiros checkouts externos dos últimos 7 dias, 20 pessoas ainda não
+  tinham filme no instante do caixa; 16 chegaram em até 6 minutos de conta.
+- Dessas 20, 7 fizeram filme depois e 1 pagou depois. Bloquear checkout por
+  `videos_ok=0` teria bloqueado uma assinatura real.
+- Desde a entrada da prova antes do pagamento (`b607a8ab`, corte operacional
+  31/08 01:30 UTC), são 14 pessoas sem filme no primeiro checkout: 11 em até 6
+  minutos, 5 com filme posterior, 2 que viram a prova depois e 1 pagante.
+- Nenhuma tinha `finished_script` antes do primeiro checkout. É intenção de
+  compra anterior ao uso, não roteiro pronto nem falha técnica.
+- A origem imediatamente anterior se distribui: 4 `trial_active_banner`, 3
+  `dashboard`, 2 `generate_step_1`, 2 `generate_upgrade_modal` e 9 pessoas em
+  oito sinais unitários. Não há um único caller que explique o grupo.
+
+### VIGIA DO CHECKOUT
+
+Uma pessoa externa nas últimas 2h: `a8c8d6c5`, ChatGPT. Continua sem pagamento
+e sem filme concluído, mas às 10:45 avançou de cenas para
+`compose_submission_claim`, com 12 créditos e zero erro. Classe atual:
+`ativação em entrega`, não abandono.
+
+### DECISÃO REVERSÍVEL / GATE
+
+Não inserir intersticial no callback e não recusar Stripe para conta com zero
+filme. O dado mostra que esse grupo pode virar filme e também contém um pagante.
+As superfícies atuais fazem a escolha correta: prova primeiro como ação
+principal, “I already want to subscribe” como saída explícita.
+
+### IMPLEMENTADO
+
+Nenhuma alteração de produto. Diagnóstico por pessoa no instante real do
+checkout, separando filme anterior de filme posterior e evitando a contagem
+enganosa por estado atual da conta.
+
+### COMO MEDIR
+
+Primeiro `checkout_started` por pessoa externa; contar vídeos `completed` com
+`created_at < checkout_at`, depois filme e `checkout_success_viewed` posteriores.
+Nunca classificar “sem filme” pelo estado atual da conta.
+
+### RISCO
+
+O maior risco era otimizar o denominador removendo pessoas prontas para pagar.
+Um funil com menos checkout pode parecer melhor sem gerar uma assinatura a mais.
+
+### PRÓXIMA JOGADA
+
+Reconciliar o `compose_submission_claim` do vigia. Depois auditar uma superfície
+nova de último metro que não esteja congelada: a confiança e continuidade na
+volta de uma sessão Stripe, sem mexer em oferta nem em render.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+### 📋 O QUE ACONTECEU
+
+Descobrimos que “checkout antes do filme” não é automaticamente lixo: 7 dessas
+pessoas fizeram filme depois e uma pagou. Por isso não bloqueei o caixa. A ação
+certa é oferecer prova primeiro sem retirar a escolha de quem já quer assinar.
