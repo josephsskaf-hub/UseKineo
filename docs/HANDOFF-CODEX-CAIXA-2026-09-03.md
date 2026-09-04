@@ -2793,3 +2793,86 @@ O modal dizia “você fez filmes” para 21 pessoas que nunca receberam nenhum 
 abria o caixa antes da prova. Agora somente esse estado leva primeiro ao Studio;
 quem já viu o produto continua recebendo a oferta de Creator como antes. Nenhum
 número comercial ou regra de crédito mudou.
+
+---
+
+## ROUND 42 — o saldo baixo ainda compra o segundo filme
+
+**Data:** 2026-09-04 14:25→14:45 BRT
+
+**Pista:** Growth-B2C / CAIXA
+
+**Branch:** `codex/caixa-free-second-film-r42`
+
+**Commit de produto:** `175a88985b826e62198a3b2442b2ac2a9bf8e796`
+
+### RECONCILIAÇÃO, PLACAR E VIGIA
+
+**EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, corte 04/09/2026 14:30
+BRT:** R41 tinha 0 pessoas externas na variante
+`trial_downgrade_offer_view_v2/first_value`, 0 cliques, 0 filme, 0 checkout e 0
+pagamento. A superfície fica congelada até o gate de 10 pessoas.
+
+**EVIDÊNCIA DE PRODUÇÃO — mesmo corte:** placar canônico em **41 cadastros, 27
+pessoas com filme, 2 checkouts com filme, 2 sem filme, 0 assinaturas e 0 pessoas
+com falha sem filme**. O vigia de duas horas tinha 0 pessoas com checkout.
+
+### O DADO QUE DOÍA E A CORREÇÃO FACTUAL
+
+**EVIDÊNCIA DE PRODUÇÃO — SELECT em 04/09/2026 14:33 BRT, externos:** 112
+pessoas tinham exatamente um filme concluído nos sete dias; 73 ainda estavam em
+trial ativo. Destas, 32 tinham 3–14 créditos, 39 tinham 15–24 e 2 tinham 25 ou
+mais. A política antiga desligava a escada inteira abaixo de 15.
+
+**CONTRADIÇÃO CONFIRMADA EM CÓDIGO:** o pedido da outra pista dizia que Kineo 1
+era grátis nessa conta. Não é durante trial ativo: `TrialActiveBanner` exige
+`trial.phase='active'`, enquanto o compose só ativa Fast grátis com
+`isFreePlan && !hasPaid && !ent.isTrial`. Para essa tela, Kineo 1 usa o custo
+canônico de conta com direitos pagos. A promessa grátis foi rejeitada.
+
+### MUDANÇA MÍNIMA E REVERSÍVEL
+
+**IMPLEMENTADO:** a escada persistente agora escolhe o filme mais longo que o
+saldo real já cobre: 15–24 créditos preservam Seedance 35s; 5–14 oferecem Kineo
+1 de 60s; 3–4 oferecem Kineo 1 de 35s; 0–2 continuam sem promessa. Custos vêm
+de `creditCostForDuration(..., true, duration)`; nenhum número de preço, grant,
+crédito ou motor foi alterado.
+
+O clique abre somente `/studio/create` com engine, duração e campanha fechados.
+Não há prompt, autoanálise, render, débito ou Stripe. A copy usa o nome do motor
+decidido. A deduplicação humana inclui versão e duração, permitindo medir a
+passagem Seedance → Kineo 1 no mesmo dia sem contar remontagem.
+
+### TESTES, VISUAL E GATE
+
+**TESTADO LOCALMENTE:** 745 verificações verdes — trial balance 285,
+subscription CTA 88, checkout value-context 59 e money-truth 313. TypeScript
+completo verde, zero erros; `diff --check` limpo.
+
+**COMPARAÇÃO VISUAL:**
+`docs/previews/TRIAL-RETURN-BEST-FIT-2026-09-04.html` contém antes/depois em
+desktop e mobile e foi renderizado no Chrome. A hierarquia existente permanece:
+ação do segundo filme financiado pelo saldo, seguida do CTA de assinatura.
+
+Gate mínimo: 10 pessoas externas com
+`trial_balance_bridge_viewed(bridge_version='trial_return_fast_best_fit_v1')`.
+Medir por pessoa em 48h: view → click → novo `videos.status='completed'` →
+checkout → `checkout_success_viewed`. Não reeditar antes do gate; parar se uma
+pessoa receber 402 apesar de saldo igual ou maior ao custo registrado.
+
+### RISCO E PRÓXIMA JOGADA
+
+O risco é a conta mudar entre a leitura e o clique; o Studio e o compose seguem
+sendo autoridade e recusam sem gastar. R43 começa por reconciliar este deploy e
+o vigia. Sem exposição, congela a escada e procura outro estágio ou pedido.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+### 📋 O QUE ACONTECEU
+
+A ponte do segundo filme sumia com saldo abaixo de Seedance. Corrigi sem
+inventar gratuidade: 32 pessoas da coorte atual já têm crédito suficiente para
+um Kineo 1, e agora a tela mostra exatamente a duração que cabe. Quem não tem
+saldo suficiente não recebe promessa.
