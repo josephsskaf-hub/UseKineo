@@ -107,7 +107,15 @@ import {
   creditsPerReferenceVideo,
   videoMixForCredits,
   videosForCredits,
+  videosPerMonth,
 } from '@/lib/marketingPrice'
+// K17 — contrato de MEDICAO da copy de capacidade (pedido do Codex, 04/09
+// 09:58 BRT). Nao muda grant, custo de motor, preco nem destino de checkout:
+// so poe o filme terminado antes da unidade interna de credito.
+import {
+  formatPlanFilmCapacity,
+  planFilmLanguageMetadata,
+} from '@/lib/growth/planFilmLanguage'
 import {
   decidePostVideoOffer,
   POST_VIDEO_PLAN_COMPARE_HREF,
@@ -9841,6 +9849,9 @@ export default function GenerateClient({
       trial_active: trialActive === true,
       trial_phase: trialUi?.phase ?? 'none',
       credits: credits ?? null,
+      // K17 — sem esta versao no evento nao da para separar quem viu a caixa
+      // em linguagem de FILME de quem viu a antiga, em linguagem de credito.
+      ...planFilmLanguageMetadata(),
     })
     // KINEO-LIMIT-PURCHASE-FIT-V1-2026-08-31 — o modal já recebia a pessoa no
     // pico de intenção, mas não dizia quais compras pagavam ESTE pedido. O
@@ -9852,6 +9863,7 @@ export default function GenerateClient({
         surface: 'generate_upgrade_modal',
         reason: resolvedReason,
         ...limitPurchaseFitTelemetry(limitPurchaseFit),
+        ...planFilmLanguageMetadata(),
       })
     }
   }
@@ -18731,15 +18743,33 @@ function UpgradeModal({
   // Enquanto `currency` for null nada de dinheiro é escrito.
   function planUnlockLine(tier: 'starter' | 'basic' | 'pro'): string {
     const credits = TIER_CREDITS[tier]
-    const aiVideos = videosForCredits(credits, 'cinematic_ai')
-    const videosPart = aiVideos > 0 ? ` · up to ${aiVideos} AI-generated video${aiVideos === 1 ? '' : 's'}` : ''
-    if (!currency) return `${credits} credits / month${videosPart}`
+    const aiVideos = videosPerMonth(tier, 'cinematic_ai')
+    // K17 — O RESULTADO ANTES DA UNIDADE INTERNA. A linha dizia
+    // "150 credits / month · up to 7 AI-generated videos": pedia que o
+    // comprador fizesse a divisao de cabeca para saber o que estava
+    // comprando. Agora ela entrega a conta feita — "7 AI films / month ·
+    // 150 credits" — e o credito vira detalhe, nao manchete.
+    // NENHUM NUMERO NOVO: `videosPerMonth(t, q)` e, por definicao,
+    // `videosForCredits(TIER_CREDITS[t], q)` (lib/marketingPrice.ts:100) — a
+    // mesma derivacao que esta linha ja mostrava. So a ordem mudou.
+    const capacity = aiVideos > 0
+      ? formatPlanFilmCapacity(aiVideos, 'AI film', credits)
+      : `${credits} credits / month`
+    if (!currency) return capacity
     if (isRegionalTier(tier) && hasIntroOffer(tier, currency, region)) {
       const intro = formatCheckoutMoney(currency, getIntroPrice(tier, currency, region))
       const full = formatCheckoutMoney(currency, getTierPrice(tier, currency, region))
-      return `First month ${intro} (${INTRO_CREDITS[tier]} credits), then ${full}/mo for ${credits} credits${videosPart}`
+      // O 1o MES TEM A CAPACIDADE DELE, NAO A DA RENOVACAO. O botao deste
+      // modal manda `&intro=1`, e o 1o mes concede INTRO_CREDITS — escrever
+      // aqui os filmes de TIER_CREDITS seria a mesma cobranca-surpresa que o
+      // comentario acima ja barrou uma vez. Cada mes nomeia o proprio grant.
+      const introVideos = videosForCredits(INTRO_CREDITS[tier], 'cinematic_ai')
+      const introPart = introVideos > 0
+        ? `${introVideos} AI film${introVideos === 1 ? '' : 's'} (${INTRO_CREDITS[tier]} credits)`
+        : `${INTRO_CREDITS[tier]} credits`
+      return `First month ${intro} — ${introPart}, then ${full}/mo — ${capacity}`
     }
-    return `${credits} credits / month${videosPart}`
+    return capacity
   }
   const unlocks: Record<string, string> = {
     starter: planUnlockLine('starter'),
@@ -19012,6 +19042,7 @@ function UpgradeModal({
                       choice_type: 'plan',
                       choice_id: tier,
                       fits_request: fitsRequest,
+                      ...planFilmLanguageMetadata(),
                     })
                   }
                   onUpgrade(tier)

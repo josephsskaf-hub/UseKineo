@@ -12,6 +12,13 @@ import { swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 // que a rota da Stripe cobra. Ver PLAN_LIMITS logo abaixo.
 import { TIER_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
 import { creditCostFor } from '@/lib/credits/engineCost'
+// K17 (pedido do Codex, 04/09 09:58 BRT) — a lista de planos que fica ao lado
+// do medidor passa a dizer QUANTOS FILMES o plano faz antes de quantos
+// creditos ele concede. `videosPerMonth` deriva de TIER_CREDITS + a regua de
+// custo do caixa; nao ha numero digitado aqui.
+import { videosPerMonth } from '@/lib/marketingPrice'
+import { formatPlanFilmCapacity, planFilmLanguageMetadata } from '@/lib/growth/planFilmLanguage'
+import { trackEvent } from '@/lib/analytics'
 
 interface AccountClientProps {
   email: string
@@ -67,6 +74,18 @@ const PLAN_LIMITS = {
   basic: TIER_CREDITS.basic,
   pro: TIER_CREDITS.pro,
 } as const
+// K17 — "3 AI films / month · 60 credits". Um so lugar para as tres linhas,
+// derivado de TIER_CREDITS pela mesma regua de custo que o caixa usa. Se o
+// motor de IA mais barato mudar de preco, esta linha muda sozinha.
+// 'cinematic_ai' e o motor de IA mais barato do produto — a mesma escolha que
+// o modal de upgrade do Studio ja fazia para dizer quantos filmes cabem.
+function planCapacityLine(tier: 'starter' | 'basic' | 'pro'): string {
+  const credits = TIER_CREDITS[tier]
+  const films = videosPerMonth(tier, 'cinematic_ai')
+  return films > 0
+    ? formatPlanFilmCapacity(films, 'AI film', credits)
+    : `${credits} credits / month`
+}
 const PLAN_COLORS = {
   free: { color: '#86868b', bg: 'rgba(134,134,139,.1)', border: 'rgba(134,134,139,.2)' },
   starter: { color: '#14b8a6', bg: 'rgba(20,184,166,.1)', border: 'rgba(20,184,166,.2)' },
@@ -175,6 +194,19 @@ function AccountInner({ email, isPro, hasPaid, createdAt, planTier, trialActive 
       .catch(() => { if (!cancelled) { setCredits(0) } })
     return () => { cancelled = true }
   }, [])
+
+  // K17 — a caixa de capacidade so existe na aba de uso de quem JA PAGA.
+  // Sem este evento nao da para cruzar "viu a lista em linguagem de filme"
+  // com renovacao/upgrade; `planFilmLanguageMetadata()` e a mesma versao que
+  // as superficies da CAIXA ja carregam. Nada de saldo, id ou e-mail viaja.
+  useEffect(() => {
+    if (activeTab !== 'usage' || tier === 'free') return
+    void trackEvent('account_plan_capacity_viewed', {
+      surface: 'account_usage',
+      tier,
+      ...planFilmLanguageMetadata(),
+    })
+  }, [activeTab, tier])
 
   async function handleSignOut() {
     setSigningOut(true)
@@ -655,9 +687,14 @@ function AccountInner({ email, isPro, hasPaid, createdAt, planTier, trialActive 
                 {/* KINEO-PRICING-V6-2026-08-19 — 25/150/200 eram literais da V3.
                     Derivados de TIER_CREDITS: esta lista fica ao lado do medidor
                     de uso e contradizê-lo faz a tela parecer quebrada. */}
-                <li>🟢 Starter = <strong style={{ color: 'var(--text)' }}>{TIER_CREDITS.starter} credits / month</strong></li>
-                <li>🔵 Creator = <strong style={{ color: 'var(--text)' }}>{TIER_CREDITS.basic} credits / month</strong></li>
-                <li>⚡ Studio = <strong style={{ color: 'var(--text)' }}>{TIER_CREDITS.pro} credits / month</strong></li>
+                {/* K17 — a mesma fonte de sempre (TIER_CREDITS), a ordem
+                    invertida: o filme terminado primeiro, o credito como
+                    detalhe. Quem le "60 credits / month" ao lado de um medidor
+                    de creditos nao sabe o que isso PRODUZ; "3 AI films / month
+                    · 60 credits" responde a pergunta que a pessoa tem. */}
+                <li>🟢 Starter = <strong style={{ color: 'var(--text)' }}>{planCapacityLine('starter')}</strong></li>
+                <li>🔵 Creator = <strong style={{ color: 'var(--text)' }}>{planCapacityLine('basic')}</strong></li>
+                <li>⚡ Studio = <strong style={{ color: 'var(--text)' }}>{planCapacityLine('pro')}</strong></li>
               </ul>
 
               <p className="text-xs mt-4" style={{ color: 'var(--muted)' }}>
