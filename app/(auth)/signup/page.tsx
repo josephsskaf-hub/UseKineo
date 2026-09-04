@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import GoogleSignInButton from '@/components/GoogleSignInButton'
 import AppleSignInButton from '@/components/AppleSignInButton'
+import AuthSavedCreationCard from '@/components/AuthSavedCreationCard'
 import { rememberSignupCampaign, trackEvent, trackSignupSource } from '@/lib/analytics'
 import { isDisposableEmail } from '@/lib/emailValidation'
 import { normalizeInternalRedirect } from '@/lib/authRedirect'
@@ -592,43 +593,7 @@ export default function SignupPage() {
                 </p>
 
                 {savedCreation && (
-                  <section
-                    aria-labelledby="saved-creation-heading"
-                    className="rounded-2xl mb-5 p-4"
-                    style={{
-                      background: 'linear-gradient(145deg, rgba(41,151,255,.12), rgba(41,151,255,.035))',
-                      border: '1px solid rgba(41,151,255,.3)',
-                      boxShadow: '0 14px 36px rgba(0,0,0,.22)',
-                    }}
-                  >
-                    <div
-                      className="text-[10px] font-black uppercase tracking-[.12em] mb-1.5"
-                      style={{ color: '#7cc0ff' }}
-                    >
-                      {savedCreation.eyebrow}
-                    </div>
-                    <h2
-                      id="saved-creation-heading"
-                      className="text-sm font-black mb-2"
-                      style={{ color: '#f5f5f7' }}
-                    >
-                      {savedCreation.heading}
-                    </h2>
-                    <div className="flex flex-col gap-1.5 mb-3" aria-label={`Saved ${savedCreation.kind} preview`}>
-                      {savedCreation.excerpt.map((line, index) => (
-                        <p
-                          key={`${index}-${line.slice(0, 24)}`}
-                          className="text-xs leading-relaxed m-0"
-                          style={{ color: index === 0 ? '#e5e7eb' : '#aeb2ba' }}
-                        >
-                          {line}
-                        </p>
-                      ))}
-                    </div>
-                    <p className="text-[11px] leading-relaxed m-0" style={{ color: '#8f949e' }}>
-                      {savedCreation.description}
-                    </p>
-                  </section>
+                  <AuthSavedCreationCard preview={savedCreation} />
                 )}
 
                 {savedProductDestination && (

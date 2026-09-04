@@ -138,3 +138,19 @@ export function buildSignupCreationPreviewFromAuthParams(
   }
   return buildSignupCreationPreview(params)
 }
+
+/**
+ * Login only transports an explicit post-auth redirect. Keep its proof stricter
+ * than signup's direct-query fallback so a loose `?prompt=` can never promise
+ * work that getRedirect() would discard.
+ */
+export function buildLoginCreationPreviewFromAuthParams(
+  params: QueryReader
+): SignupCreationPreview | null {
+  if (params.get('reason') === 'checkout') return null
+
+  const rawRedirect = params.get('redirect')
+  const preview = buildExampleRemixSignupPreview(rawRedirect)
+    ?? buildFreeScriptSignupPreview(rawRedirect)
+  return preview ? { ...preview, eyebrow: 'Saved before sign-in' } : null
+}

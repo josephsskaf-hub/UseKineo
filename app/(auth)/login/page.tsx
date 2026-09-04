@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import GoogleSignInButton from '@/components/GoogleSignInButton'
@@ -19,6 +19,10 @@ import {
 import { useFreeTierOffer } from '@/components/FreeTierOfferProvider'
 import { swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 import AuthReel from '@/components/AuthReel'
+import AuthSavedCreationCard from '@/components/AuthSavedCreationCard'
+import {
+  buildLoginCreationPreviewFromAuthParams,
+} from '@/lib/growth/signupCreationPreview'
 
 // Only honor redirects that stay on our own site, so a malicious referrer
 // can't bounce a logged-in user out to an external phishing page.
@@ -60,6 +64,10 @@ export default function LoginPage() {
   // Query string forwarded to /signup so the pending checkout survives the hop
   // (state, not inline window read, to avoid an SSR hydration mismatch).
   const [authSearch, setAuthSearch] = useState('')
+  const savedCreation = useMemo(() => {
+    const params = new URLSearchParams(authSearch)
+    return buildLoginCreationPreviewFromAuthParams(params)
+  }, [authSearch])
   const passwordRecoveryContext = readCheckoutPasswordRecoveryFromSearch(authSearch)
   const forgotPasswordHref = buildCheckoutPasswordRecoveryHref(
     '/forgot-password',
@@ -232,10 +240,14 @@ export default function LoginPage() {
               className="text-2xl font-black mb-1 tracking-tight"
               style={{ color: 'var(--text)' }}
             >
-              Welcome back
+              {savedCreation
+                ? `Your ${savedCreation.kind} is ready to continue`
+                : 'Welcome back'}
             </h1>
             <p className="text-sm mb-6" style={{ color: 'var(--muted)' }}>
-              Sign in to keep creating Shorts.
+              {savedCreation
+                ? 'Sign in and continue without starting over.'
+                : 'Sign in to keep creating Shorts.'}
             </p>
 
             {/* KINEO-CHECKOUT-RESUME-2026-07-07 — buyer bounced off checkout */}
@@ -262,6 +274,13 @@ export default function LoginPage() {
                   </>
                 )}
               </div>
+            )}
+
+            {savedCreation && (
+              <AuthSavedCreationCard
+                preview={savedCreation}
+                headingId="login-saved-creation-heading"
+              />
             )}
 
             <GoogleSignInButton redirectTo={getRedirect()} analyticsSurface="login_page" onError={(msg) => setError(msg)} />
