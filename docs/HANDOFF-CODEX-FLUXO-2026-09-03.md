@@ -595,3 +595,70 @@ Nada.
 - **TESTADO LOCALMENTE — 04/09/2026 02:35 BRT:** 113 invariantes, TypeScript, diff check e preview desktop/mobile ficaram verdes; três auditores independentes deram GO.
 - **VALIDADO EM PRODUÇÃO — 04/09/2026 02:42 BRT:** Guardião #6, Vercel e redirect público ficaram verdes no SHA `46d89d89`.
 - **QUESTÃO PENDENTE / DESCONHECIDO:** impacto em primeiro filme/assinatura, E2E autenticado e atribuição pós-cadastro do remix aguardam janela ou prova específica.
+
+---
+
+## Rodada 10 — F1 · roteiro gerado confirmado no cadastro — 04/09 02:50→03:18 BRT — ENTREGA CONCLUÍDA
+
+- **IMPLEMENTADO / VALIDADO EM PRODUÇÃO:** depois de receber um roteiro estruturado em `/free-script-generator`, a pessoa anônima agora vê no cadastro o roteiro já salvo antes de escolher Google ou e-mail; autenticação, destino e autorização de render permanecem iguais.
+- **CONTRADIÇÃO OPERACIONAL:** a rodada durou 28 minutos, acima do teto de 20. A primeira revisão reprovou uma cobertura que testava um redirect fabricado; a correção passou a executar o builder usado pelo CTA. O Guardião bloqueante consumiu 5m58s, de 03:05:22 a 03:11:20 BRT. Fontes: revisão independente desta rodada e execução `33842942294`.
+
+### Dado, prioridade e anti-repetição
+
+- **FATO CONFIRMADO:** não havia pedido aberto viável da pista FLUXO: os itens existentes pertencem ao dashboard/Claude ou à CAIXA, e nenhum foi baixado, alterado ou duplicado. Fontes: `docs/PEDIDOS-ENTRE-PISTAS-2026-09-03.md` e as nove rodadas anteriores deste documento.
+- **FATO CONFIRMADO:** `/free-script-generator` já entregava o roteiro e prometia que ele seguiria após o cadastro, mas seu redirect aninhado não carregava uma prova visual reconhecida; o resolver da rodada 9 aceitava somente `create_intent=example_remix`. Fontes antes de `11bac5ce`: `app/free-script-generator/FreeScriptClient.tsx` e `lib/growth/signupCreationPreview.ts`.
+- **FATO CONFIRMADO:** a mudança não repete o remix da rodada 9: roteiro gratuito exige marcador próprio, `autoanalyze=1`, ausência de `create_intent` e classificação real como roteiro; o remix continua exigindo sua intenção própria e mostra uma ideia.
+- **HIPÓTESE:** confirmar o valor já recebido reduz incerteza no último clique antes do cadastro; efeito em primeiro filme ou assinatura exige uma janela pós-deploy equivalente.
+
+### Vigia do checkout e placar
+
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 03:17:38 BRT:** o vigia das duas horas anteriores encontrou **0 pessoas externas** com `checkout_started|checkout_attempted` sem `checkout_success_viewed`; não há linha individual para classificar como desejo, roteiro pronto ou defeito. Fonte: SQL somente leitura no projeto de produção, com pessoas distintas e filtros internos canônicos.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 03:17 BRT:** desde o marco de 03/09 13:00 BRT, o placar canônico permanece em **22 cadastros, 16 pessoas com filme (16/22), 1 checkout com filme, 1 checkout sem filme, 0 assinaturas e 0 pessoas com falha sem filme**. Fonte: SQL canônico da seção 5 do programa, executado somente leitura no projeto de produção.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 03:17:39 BRT:** nas duas horas anteriores houve 4 cadastros externos: `chatgpt` 2 e `direto` 2. A pessoa `taaft` observada às 02:43 BRT saiu da janela móvel; as duas janelas não foram somadas. Fonte: `profiles`, uma linha por pessoa, filtros internos canônicos.
+
+### O que mudou
+
+- **IMPLEMENTADO:** `buildFreeScriptSignupHref()` concentra o href realmente usado pelo CTA, preserva as três atribuições existentes e coloca `handoff_kind=free_script` somente dentro do destino `/studio/create`; o marcador não é `create_intent`. Fontes: `lib/growth/freeScriptSignupHandoff.ts:1-54`, `app/free-script-generator/FreeScriptClient.tsx:13-16,38-46,87-90`.
+- **IMPLEMENTADO:** `buildFreeScriptSignupPreview()` normaliza o redirect, exige pathname exato, marcador exato, `autoanalyze=1`, ausência total de `create_intent` e resultado classificado como roteiro; checkout segue soberano e qualquer redirect explícito alheio falha fechado. Fonte: `lib/growth/signupCreationPreview.ts:102-139`.
+- **FATO CONFIRMADO:** o ramo sem roteiro mantém apenas o cadastro com UTMs; o ramo com roteiro mantém o mapeamento `FACT`→marcadores, máximo de 5 linhas e 220 caracteres por trecho. A extração não muda a semântica anterior além do marcador visual. Fonte: `lib/growth/freeScriptSignupHandoff.ts:14-54` e revisão contra o pai `25c248b7`.
+- **FATO CONFIRMADO:** `handoff_kind` não tem consumidor na geração; `readCreationHandoff()` segue retornando `createIntent=null`, `autoanalyze=1` continua apenas analisando e nenhum novo evento recebe prompt ou roteiro. Fontes: `lib/creationHandoff.ts`, `app/(dashboard)/generate/GenerateClient.tsx` e `app/free-script-generator/FreeScriptClient.tsx:274,287`.
+- **FATO CONFIRMADO:** nenhum preço, oferta, desconto, Stripe, banco, migration, saldo, e-mail/mensagem, arquivo de dashboard/Claude ou arquivo de CAIXA foi alterado. Fonte: diff do commit `11bac5cee748bf5a807a5bc652843844f91342fa`.
+- **TESTADO LOCALMENTE — 04/09/2026 03:04 BRT:** red-first falhou antes da implementação com `actual undefined` para a prova de roteiro; depois, `test-signup-creation-proof` passou 89/89, `test-public-video-remix` 37/37, `test-web-share-target` 79/79 e `test-sem-porteiro` 52/52 — **257 verificações direcionadas**. TypeScript e `git diff --check` saíram com código 0.
+- **TESTADO LOCALMENTE — 04/09/2026 03:04 BRT:** a suíte agora executa o mesmo builder importado pelo CTA, decodifica o redirect externo e interno, compara o roteiro exato e cobre marcador ausente/desconhecido, path, `autoanalyze`, `create_intent`, checkout, falso roteiro, URL externa e barra invertida. Fonte: `scripts/test-signup-creation-proof.mjs:137-176`.
+- **TESTADO LOCALMENTE — 04/09/2026:** o comparativo autocontido foi inspecionado antes/depois, desktop/mobile, sem clipping; a suíte exige HTML, PNG, labels e heading real. Fontes: `docs/previews/FLUXO-FREE-SCRIPT-SIGNUP-PROOF-2026-09-04.html`, `.png` e `scripts/test-signup-creation-proof.mjs:204-216`.
+- **FATO CONFIRMADO — revisão independente em 04/09/2026:** três auditores somente leitura revisaram duplicação, escopo, auth/redirect, atribuição, autostart, privacidade, cobertura e visual. A primeira revisão de testes deu NO-GO ao falso positivo; após extração do builder e vínculo dos previews, os três pareceres finais deram GO. Nenhum auditor editou arquivos.
+
+### Integração e produção
+
+- **IMPLEMENTADO:** commit funcional `11bac5cee748bf5a807a5bc652843844f91342fa` integrado em `main` por fast-forward sobre `25c248b7631e2107201aeb479f107c9de2df0d92`.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 03:11 BRT:** o Guardião do PR #8, execução `33842942294`, concluiu `success`; a suíte completa e TypeScript terminaram verdes antes do avanço da `main`. Fonte: `https://github.com/josephsskaf-hub/UseKineo/actions/runs/33842942294`.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 03:13:31 BRT:** a Vercel concluiu o deployment `dpl_41b3rGWb6m2yj6tbSviwS69PrcFF` como `READY`, alvo `production`, aliases canônicos e SHA funcional exato `11bac5ce`.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 03:15 BRT:** `/free-script-generator` e o signup construído responderam HTTP 200; 18 bundles da página foram lidos em memória e o bundle publicado contém `handoff_kind` e `free_script`.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 03:17 BRT:** no hostname imutável do deployment, uma sessão anônima renderizou `Your script is ready to continue`, `Your script is waiting`, o hook preservado e as opções Google/e-mail. Nenhuma conta foi criada, formulário enviado ou render iniciado.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** o CTA real pós-geração não foi clicado em produção porque isso exigiria chamar o gerador público e criar telemetria; a travessia foi provada pelo builder executável, bundle do SHA, rota anônima renderizada e testes, não por uma nova conta de cliente.
+
+### Como medir e quando parar
+
+- **SUGESTÃO:** após uma janela completa pós-deploy, contar pessoas distintas em `free_script_to_signup_clicked` com campanha `push22_script_generator` → cadastro → primeiro filme → checkout com filme → assinatura; mostrar separadamente os ramos `public_video` e `web_share_target`, sem somar eventos ou janelas diferentes.
+- **SUGESTÃO — gate de parada:** corrigir ou reverter se o marcador sair do redirect interno, se URL externa ou falso roteiro ganhar prova, se checkout perder precedência, se aparecer qualquer `create_intent`, se o roteiro deixar de chegar exatamente a `/studio/create` ou se a taxa por pessoas cair contra janela anterior equivalente.
+- **RISCO:** o roteiro completo continua na query string durante auth, comportamento preexistente; o marcador também chega ao Studio, onde hoje é ignorado. A rodada não altera o modo de roteiro nem prova incremento causal de assinatura.
+
+### PEDIDOS
+
+- **FATO CONFIRMADO:** nenhum pedido de outra pista foi baixado, alterado ou criado nesta rodada; a revisão do arquivo admin da rodada 6 continua com Claude.
+
+## PRÓXIMA JOGADA
+
+- **SUGESTÃO:** numa rodada separada, levar a mesma confirmação fail-closed ao `/login` usado quando a sessão expira, sem tocar dashboard/Claude; hoje esse desvio conserva o redirect, mas volta a mostrar estado genérico. Medir antes a janela do cadastro desta rodada se já houver volume.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+## 📋 O QUE ACONTECEU
+
+- **IMPLEMENTADO:** o roteiro já entregue pelo gerador gratuito agora aparece confirmado no cadastro, sem mudar checkout, auth, destino ou autorização de render.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 03:17 BRT:** placar inalterado em 22 cadastros, 16 pessoas com filme, 2 pessoas em checkout e 0 assinaturas; o vigia de duas horas ficou vazio, e a origem recente foi 2 ChatGPT e 2 direta.
+- **TESTADO LOCALMENTE — 04/09/2026 03:04 BRT:** 257 invariantes, TypeScript, diff check e preview desktop/mobile ficaram verdes; um NO-GO real foi corrigido e os três auditores deram GO final.
+- **VALIDADO EM PRODUÇÃO — 04/09/2026 03:17 BRT:** Guardião #8, Vercel, bundle público e signup anônimo renderizado ficaram verdes no SHA `11bac5ce`.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** impacto em primeiro filme/assinatura, clique real pós-gerador e variante `/login` aguardam janela ou rodada específica.
