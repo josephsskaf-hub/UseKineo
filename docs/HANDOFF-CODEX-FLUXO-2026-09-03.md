@@ -1067,3 +1067,41 @@ Nada agora. Os dois casos antigos continuam com Claude pelos pedidos já abertos
 
 - **VALIDADO EM PRODUÇÃO — 04/09/2026 12:13 BRT:** PR #19 passou no Guardião no SHA integrado `457ed9fab0bca0a21fd2d21b468680c618a97bd0`; os jobs `TypeScript (mede primeiro, bloqueia depois)` e `Suíte de testes (mede, ainda não bloqueia)` concluíram `success` após reconciliação limpa com `origin/main`.
 - **VALIDADO EM PRODUÇÃO — 04/09/2026 12:13 BRT:** deploy Vercel `dpl_7vEMfycssmDb3x3pfYkDvXSA6AHs` chegou a `READY`, target `production`, framework Next.js e aliases incluindo `www.usekineo.com`, ligado ao SHA exato `457ed9fa`. GET público com cache-busting em `/?utm_source=taaft` respondeu 200, manteve canonical de produção, exibiu a ponte TAAFT e não trouxe `noindex`. A Vercel retornou zero erro de runtime para `/` e zero log `error|fatal` do deploy nos 15 minutos consultados.
+
+---
+
+## Rodada 19 — pacote factual do listing TAAFT — 04/09 12:23→12:34 BRT — IMPLEMENTADA
+
+- **NOVA:** `docs/TAAFT-LISTING-2026-09-03.md`, exigido por F3+K20, não existia. Os documentos TAAFT encontrados eram relatórios históricos de 08/08; nenhum continha a ficha atual pronta para colar mais as três capturas pedidas.
+- **DECISÃO APROVADA:** após F2, a ordem FLUXO manda executar F3+K20; ações que só o fundador pode concluir devem chegar com o material pronto, sem esperar. Fonte: `docs/PROGRAMA-CODEX-ASSINATURAS-2026-09-03.md:280-284,385-389,471-487`.
+- **CONTRADIÇÃO:** F3 ainda prescrevia “50cr grátis” e “6 engines”, mas o código atual define 25 créditos e oito motores públicos. O pacote segue `lib/freeTierOffer.ts:144-150`, `lib/reverseTrial.ts:100-140`, `lib/engineLaunch.ts:20-24` e `lib/checkoutPricing.ts:49-98`; nenhuma oferta foi mudada.
+
+### Entrega e validação
+
+- **IMPLEMENTADO:** a nova ficha pronta para colar contém name, tagline, descrições curta/longa, pricing, URL com atribuição TAAFT, categorias e bullets. A copy informa 25 créditos, oito motores, trial com marca d’água e planos a partir de $7 USD, sem prometer que os 25 créditos compram qualquer motor caro.
+- **IMPLEMENTADO:** K20 ganhou três instruções exatas de captura: home real com quatro previews em movimento; Studio/Seedance com custo no botão sem clicar em Generate; e History com filme já concluído + download, sempre sem dado pessoal e sem gastar crédito.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** a ficha pública do TAAFT respondeu HTTP 403 à leitura automatizada em 04/09. A redação velha foi comprovada em 08/08, não reconfirmada hoje; por isso o pacote corrige o material sem afirmar que o painel atual ainda mostra exatamente os mesmos campos.
+- **TESTADO LOCALMENTE — 04/09/2026 12:33 BRT:** `node scripts/test-taaft-listing-package.mjs` passou **25/25**, vinculando a ficha aos valores canônicos e provando presença das três URLs, dos gates e ausência das alegações antigas no bloco pronto para colar. `git -c core.whitespace=cr-at-eol diff --check` saiu com código 0.
+
+### Placar, vigia e medição
+
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 12:29:57 BRT:** placar canônico desde 03/09 13:00 BRT: **39 cadastros, 24 pessoas com filme, 2 checkouts com filme, 2 sem filme, 0 assinaturas e 0 pessoas com falha sem filme**. Fonte: SQL canônico somente leitura no Supabase de produção, pessoas distintas e contas internas excluídas.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 12:29:57 BRT:** nas duas horas anteriores houve 4 cadastros externos: **TAAFT 2, ChatGPT 1 e direto 1**. A janela móvel não foi somada às anteriores.
+- **EVIDÊNCIA DE PRODUÇÃO — 04/09/2026 12:29:57 BRT:** o vigia encontrou uma pessoa externa, anonimizada `0441e46ae5`, que abriu checkout às 12:16:55 com 25 créditos, 0 filme e nenhum sinal de roteiro pronto. Sua trilha observada é apenas callback → grant → checkout em 2,6 segundos; classe **defeito**. Um pedido de acompanhamento foi aberto para CAIXA sem duplicar sua implementação já existente.
+- **MEDIÇÃO:** depois que o fundador atualizar a ficha, acompanhar por pessoa externa `origem=taaft → home_free_script_succeeded → signup → video_generation_completed → checkout_started → checkout_success_viewed`. O placar final continua assinatura/pagamento; upload de imagem, impressão e cadastro não são venda.
+- **GATE DE PARADA:** ficha atualizada que traz visita mas não primeiro filme não justifica comprar destaque; corrigir entrega. Filme sem pagamento em amostra madura aponta conversão/oferta, não texto da ficha.
+- **RISCO:** a atualização depende de colagem e capturas manuais no painel do TAAFT. Esta tarefa não acessou o painel, não enviou conteúdo, não gastou crédito e não alterou preço, oferta, Stripe, banco, arquivos Claude/CAIXA ou código do produto.
+
+## PRÓXIMA JOGADA
+
+- **SUGESTÃO:** remedir a primeira entrada TAAFT pós-R18 para confirmar `engine=fast`; se ainda não houver exposição, seguir K5 com uma lacuna factual única no launcher ChatGPT, sem criar landing nova. F3+K20 fica congelado até o fundador publicar o pacote.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+Abrir `docs/TAAFT-LISTING-2026-09-03.md`, colar a seção 2 no painel e subir as três capturas da seção 3. Nenhum pagamento ou relançamento pago é necessário para esta atualização.
+
+## 📋 O QUE ACONTECEU
+
+- **IMPLEMENTADO:** a ficha TAAFT nova e o roteiro de três capturas ficaram prontos, usando 25 créditos, oito motores e $7 USD derivados do código atual.
+- **EVIDÊNCIA DE PRODUÇÃO:** o placar avançou para 39 cadastros e 24 pessoas com filme, ainda com 0 assinaturas; uma pessoa direta abriu checkout quase imediatamente após o cadastro e ficou sob vigia CAIXA.
+- **DECISÃO:** nenhum valor stale de F3 foi copiado e nenhuma ação externa foi executada.
