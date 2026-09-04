@@ -1865,3 +1865,47 @@ Nada.
 ### 📋 O QUE ACONTECEU
 
 O Creator teve expirações, mas os dados não autorizam dizer “é preço”: a maior parte desse grupo chegou ao caixa antes de ver um filme e ninguém registrou falha de pagamento. Evitei mais uma tela repetitiva, mantive o checkout aberto para quem quer comprar cedo e defini a amostra que separará uma objeção real de intenção precoce.
+
+---
+
+## ROUND 28 — medição pura · bloco 25–27 ainda sem nova exposição
+
+**Data:** 2026-09-04 12:52→12:55 BRT
+
+**Pista:** Growth-B2C / CAIXA
+
+**Branch:** `codex/caixa-measurement-r28`
+
+### RECONCILIAÇÃO
+
+**VALIDADO:** a documentação da R27 chegou à `main` em `83b6a53cbda929f1436a39c0af2ba940669858d6`; Guardião run `33891339459` concluiu verde em 1m03s. Como foi documentação apenas, não houve deploy funcional a atribuir.
+
+**EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, 04/09/2026 12:52 BRT:** desde o deploy funcional da R26, a versão `checkout_payment_guidance_v2` teve **0 pessoas expostas, 0 sessões e 0 pagamentos**. No mesmo intervalo houve **0 nova objeção declarada** e **0 pessoa com segundo download**. Logo, não existe amostra nova para julgar R25, R26 ou o diagnóstico da R27.
+
+### PLACAR E VIGIA
+
+O placar canônico mais recente do bloco, medido às 12:49 BRT, permanece: **39 cadastros externos, 24 pessoas com filme, 2 checkouts com filme, 2 checkouts sem filme, 0 assinaturas e 0 pessoas com falha sem filme**.
+
+O único caso do vigia de 2h é `0441e46ae5`, já reconciliado na R27: origem direta, Pro mensal, 25 créditos, 0 filme, checkout dois segundos após o callback e nenhum erro ou pagamento. Ele abriu o caixa antes do deploy da R26, portanto não é exposição da mensagem USD v2.
+
+### DECISÃO / GATE
+
+Nenhuma mudança de produto. R25 não teve implementação; aguarda o sinal owner-scoped do `/history`. R26 permanece congelada até 10 exposições externas com 24h completas ou 7 dias. R27 permanece diagnóstico, não autorização para mudar plano ou preço.
+
+Este bloco não mudou o placar de assinatura. Isso é **ausência de exposição**, não resultado negativo das intervenções. Empilhar outra copy agora destruiria a leitura da primeira pessoa elegível.
+
+### RISCO
+
+Zero: somente `SELECT` e documentação. Nenhum visitante, checkout, preço, crédito ou filme foi tocado.
+
+### PRÓXIMA JOGADA
+
+Começar novo bloco em uma superfície CAIXA não congelada. Primeiro reconciliar pedidos; se K8 e K4 continuarem bloqueados, auditar o ponto exato entre sessão Stripe iniciada e expirada sem assumir objeção, buscando uma ação mensurável que não repita K13/K14/R26.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+### 📋 O QUE ACONTECEU
+
+Fechei a rodada de controle sem maquiar o placar: a nova frase de USD ainda não foi vista por ninguém elegível, não apareceu objeção nova e o segundo download não gerou caso novo. Mantive as variantes intactas para que o próximo comprador produza aprendizado real.
