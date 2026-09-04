@@ -2168,3 +2168,203 @@ tirada do placar do dia, não item de cardápio).
 
 **SHA.** `2ead56d2` (código) — worktree `C:\kineo-wt\pos-filme`. Enfileirado em
 `entrega-atual`; aguardando o clique no SUBIR-SITE.bat.
+---
+
+### #14 — 10:50→12:10 BRT (04/09) — 21 pessoas apertaram GERAR em 14 dias e o servidor nunca soube que elas existiram. 19 delas nunca viram um filme da Kineo na vida.
+
+**Placar da rodada** (SQL canônico, marco zero 03/09 16:00 UTC, contas externas):
+35 cadastros · 22 pessoas com filme (**63%**) · 1 checkout COM filme · 2 checkouts
+sem filme · **0 assinaturas** · 0 pessoas com falha e sem filme.
+Idêntico ao do #13, medido 20 minutos depois — a janela não andou nesse intervalo.
+
+**Checagem zero (30h): limpa.** 0 render preso >25min · 0 `generation_stage_error`
+em 3h (8 em 30h, nenhuma dessas pessoas ficou sem filme) · 0 `compose_refused`
+em 24h · 36 filmes entregues em 24h · `narration_guard_blocked` pós-marco = **0**
+e `script_duration_autofit_down` = 1 (o degrau do #1 está vivo e a parede sumiu).
+Cadastros sem crédito em 30h: 5 — mas **4 são os mesmos do #11** (mesmos e-mails,
+mesmos horários, todos anteriores ao deploy da cura) e o 5º, `chiefsealth206.dd`,
+tem `trial_credits_granted`, 1 filme entregue e trial `downgraded`: ele **gastou**
+os créditos, não nasceu sem eles. Nenhum órfão novo.
+
+**Três hipóteses medidas e DESCARTADAS antes de codar:**
+
+1. **"A carta é o canal, então escreva a carta certa"** (o próximo item do #12).
+   **Medido e MORTO.** Para as 150 pessoas que fizeram exatamente UM filme em
+   14 dias, saíram **446 cartas** depois do filme. Voltas à tela: **9**.
+
+   | carta | envios | voltaram em 7d |
+   |---|---:|---:|
+   | `d0_welcome` | 103 | 1 |
+   | `downgraded_loss` | 76 | 3 |
+   | `ending_soon` | 62 | 0 |
+   | `momentum_nudge` | 58 | 1 |
+   | `post_nudge` | 46 | 2 |
+   | `expired_offer_d5` | 33 | 1 |
+   | demais | 68 | 1 |
+
+   Nenhuma carta chega a 4%. O #12 mandou "medir qual carta faz voltar antes de
+   escrever mais uma": a resposta é **nenhuma**. Escrever a oitava carta seria a
+   rodada mais cara e mais inútil da sprint. **Fica registrado como jogada morta.**
+2. **"O e-mail de vídeo pronto está saindo repetido"** — foi verdade e **já está
+   curado**. Até 01/09 havia gente recebendo 16, 14, 13 avisos do mesmo render
+   (o cron roda a cada 15 min e a dedupe não enxergava o próprio carimbo). De
+   02/09 para cá, todo dia fecha em **1,0 envio por pessoa**. Foi o #17 (Data
+   Cache `force-no-store`) que matou isso. Não repeti.
+3. **"Tem gente que nunca viu o próprio filme"** — existe, mas é pequeno: 36 de
+   448 pessoas em 30 dias, e só 13 sem nenhuma carta de aviso. Não é a rodada.
+
+**O que estava errado (medido).** Fui olhar, uma a uma, as pessoas que se
+cadastraram depois do marco zero e não têm filme. Quatro delas apertaram gerar
+3 ou 4 vezes e têm **zero linhas em `videos`**. Duas com o rastro completo:
+
+- `telemachusobeng@gmail.com`, 11:28:20 UTC — `generate_started` →
+  `video_generation_started` → `render_wait_abandoned` **1,5 segundo depois** →
+  homepage. Nenhum claim, nenhum despacho, nenhum erro. Duas horas e meia
+  depois, nada.
+- `floresmaykel72@gmail.com` (taaft), 14:20:10 UTC — mesma coisa, e na segunda
+  tentativa o cliente parou em `activation_autostart_waiting:
+  server_claim_settling`.
+
+Nos dois, `video_credits = 25` intactos e **nenhum** `cinematic_submission_claim`,
+`compose_submission_claim`, `cinematic_dispatch_result` ou `generation_stage_error`.
+Ampliei para 14 dias, contas externas:
+
+| | |
+|---|---:|
+| cliques em gerar | 407 |
+| pessoas | 246 |
+| cliques **sem nenhum registro no servidor** | **25** |
+| pessoas | **21** |
+| — dessas, que nunca viram um filme na vida | **19** |
+
+E o mecanismo, que o próprio dado entrega:
+
+| | |
+|---|---:|
+| p50 de segundos até o claim **quando funciona** | **20 s** |
+| p90 | 60 s |
+| p50 até essas pessoas **saírem da tela** | **7 s** |
+| das 25, saíram em < 10 s | 10 |
+| das 25, saíram em < 60 s | 13 |
+
+**A janela de vulnerabilidade tem 20 segundos de largura, e a pessoa sai em 7.**
+Não é o motor falhando: é a requisição morrendo junto com a aba, antes de o
+servidor gravar a primeira linha. Nada foi cobrado — e nada foi entregue.
+O pior é o silêncio: **nenhuma rede de segurança pode resgatar o que nunca
+existiu.** O cron de resgate procura claims; aqui não há claim. Essas 21 pessoas
+somem sem deixar sinal, e 19 delas vão embora sem nunca ver um filme da Kineo.
+
+**O que mudou (arquivos).**
+- `app/api/generate-video-cinematic/route.ts` (+61): a **caixa-preta**, o par
+  `generation_attempt_opened` / `generation_attempt_closed`. A abertura é
+  gravada no primeiro ponto em que o client admin existe — e conferi que tudo
+  antes dele é parse e leitura barata (os únicos `await` anteriores são
+  `getUser`, `req.json`, o perfil e o crédito preso), então ela acontece ~1s
+  depois de a requisição chegar, **antes do débito e antes da fal**. O fecho vai
+  num `finally`, que roda em todo caminho de saída: sucesso, 4xx, 5xx e exceção.
+  **Aberto e nunca fechado = a função foi morta no meio.** `session_id` recebe o
+  `generationId`, a mesma convenção dos claims, para o cron cruzar por chave e
+  nunca por dedução.
+- `app/api/cron/finish-stranded-renders/route.ts` (+171): **FASE 5** — o que a
+  casa faz com a informação. Aberto sem fechado, entre 20 min e 24h, vira **um**
+  aviso: *"Your film never started — one click to make it"*, dizendo que **nada
+  foi cobrado**. Contenção deliberada: só quem nunca recebeu um filme; uma vez
+  por geração **e** uma vez por pessoa, para sempre; **fail-closed** em qualquer
+  erro de leitura; dry-run fora; opt-out e contas internas/descartáveis fora;
+  teto de 10 por rodada.
+- `scripts/test-clique-perdido.mjs` (novo, **74 verificações, 0 falhas**) lendo
+  os arquivos reais e provando **por índice** que a abertura precede
+  `debitVideoCredits(` e `fal.queue.`. **Falsificado em 4 mutações:** o prefil
+  valer para roteiro truncado derruba 2; a coorte deixar de exigir zero filmes
+  derruba 1; o erro de dedupe ser engolido derruba 1; o fecho sair do `finally`
+  derruba 3.
+
+**Por que isto é dinheiro, não higiene.** O primeiro filme é o produto — a
+memória de 02/09 é explícita: os pagantes vêm de quem escreveu a própria ideia e
+viu o filme sair. Aqui há 19 pessoas por quinzena que escreveram a ideia,
+apertaram o botão, e a casa nem soube. Não dá para consertar o produto para elas
+enquanto o defeito for invisível; e, uma vez visível, a resposta custa um
+e-mail. A alternativa de hoje é a pessoa ir embora achando que não funciona.
+
+**Decisões que tomei sozinha** (autonomia; reversíveis):
+1. **O e-mail NÃO reenvia o render por conta própria.** Seria dinheiro saindo
+   sem ordem do fundador e comportamento de geração automático — as duas coisas
+   proibidas. O botão leva a pessoa a apertar de novo.
+2. **O prefil do botão só existe quando os 90 caracteres guardados SÃO o texto
+   inteiro** (`topic_complete`). Roteiro longo vira nome no e-mail, nunca
+   reenvio truncado em nome dela — é a lição do corte silencioso de 1.000
+   caracteres do quickstart, que já virou pedido ao Codex duas vezes.
+3. **Piso de 20 minutos**, não 5: é mais de 10× o p90 medido até o claim (60s),
+   com folga para qualquer lentidão de fornecedor. Reverter a fase inteira =
+   `MAX_ATTEMPT_LOST_PER_RUN = 0`.
+4. **A coorte é só quem nunca viu um filme.** Quem já recebeu algum sabe que o
+   produto funciona e não precisa de socorro — e o teto de blast radius fica em
+   ~1,5 pessoa/dia.
+
+**Risco.** Baixo e cercado. (a) A caixa-preta são dois inserts em `events` em
+try/catch: telemetria nunca derruba a geração, e o teste tranca que ali não há
+fal, openai, crédito nem `NextResponse`. (b) O `finally` roda depois de qualquer
+`return`, inclusive os do catch — não muda nenhum valor devolvido. (c) O e-mail
+novo é o primeiro que a casa manda para essa situação; se algum caminho legítimo
+de saída não fechar a caixa (não achei nenhum: o `finally` é único e final), o
+sintoma seria aviso para quem não precisa — limitado a 1 por pessoa para sempre
+e a 10 por rodada. (d) Nenhum crédito é concedido e nenhuma escrita de produto
+entra.
+
+**Trava de qualidade do fundador (03/09 23:40) — conferida linha a linha.** Nada
+em `lib/compose.ts`, `lib/hollywood/**`, `lib/cinematic/**`, `lib/broll/**`,
+`lib/lyriaMusic`, no pipeline do Kineo 1, na escolha de motor, no prompt de cena,
+na régua de palavras/segundo, em `analyze-idea` ou em `generate-script`.
+
+**Como medir (contra o marco zero).**
+
+```sql
+-- 1) o tamanho real do buraco, agora visível pela primeira vez
+select count(*) filter (where name='generation_attempt_opened') abriram,
+       count(*) filter (where name='generation_attempt_closed') fecharam,
+       count(*) filter (where name='attempt_lost_rescue_sent')  avisados
+from events where created_at > '2026-09-04 16:00:00+00';
+
+-- 2) o gate da rodada: o aviso traz a pessoa de volta e vira filme?
+with a as (select user_id, min(created_at) ts from events
+           where name='attempt_lost_rescue_sent' group by 1)
+select count(*) avisados,
+       count(*) filter (where exists (select 1 from videos v
+         where v.user_id=a.user_id and v.status='completed'
+           and v.created_at > a.ts)) viraram_filme
+from a;
+```
+
+Meta da (1): `abriram − fecharam` é o número que hoje vale 25/14 dias; ele deve
+cair sozinho se alguém um dia consertar a origem (a aba), e enquanto não cair,
+cada unidade dele vira um aviso. Sinal de alarme: `abriram − fecharam` muito
+maior que ~2/dia significaria que o `finally` não está rodando — aí o defeito é
+meu, não da aba. Meta da (2): qualquer número acima de zero é melhor que hoje,
+porque hoje essas pessoas não recebem nada.
+
+**Dívidas herdadas, registradas de novo (nenhuma é minha).**
+`scripts/test-credits-held-waitroom.mjs` e `scripts/prove-trial-clock-monotonic.mjs`
+continuam **vermelhos em `origin/main` limpo** — já pedidos ao Codex em 03/09
+18:45. Enquanto vermelhos, ninguém enxerga uma quebra de verdade nessas telas.
+
+**Sugestão para o fundador decidir (não executei).** A origem do defeito é a
+aba: a requisição de geração não sobrevive à navegação. A cura definitiva não é
+o e-mail — é o servidor **assumir o trabalho** assim que a caixa-preta abre, em
+vez de depender da conexão do navegador ficar viva por 20 segundos. Isso é
+mudança de arquitetura no caminho de geração, e a trava de qualidade de 03/09
+proíbe mexer aí sem ele acordado. Fica anotado: **enquanto a aba for o dono do
+render, a casa vai perder ~1,5 pessoa por dia no primeiro clique.**
+
+**Modelo.** Feita em Opus. O plano reserva Fable para A1/A3; esta é jogada nova
+tirada do placar do dia (A1 e A2 estão entregues desde o #1 e o #2).
+
+**Próximo item.** Duas, nesta ordem: (a) **medir a própria caixa-preta** na
+primeira rodada depois do deploy — se `abriram − fecharam` vier muito acima de
+2/dia, o `finally` não está rodando e isso vira a rodada seguinte; (b) o item
+que o #13 deixou e continua de pé: **medir a oferta de primeiro filme grátis**
+(`first_film_free_offer_shown` sem clique em 24h significa que o problema das 27
+não era informação).
+
+**SHA.** `c3e656ce` (código + teste) — worktree `C:\kineo-wt\clique-perdido`.
+Enfileirado em `entrega-atual` junto com o #13. Aguardando o clique no
+SUBIR-SITE.bat.
