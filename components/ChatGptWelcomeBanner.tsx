@@ -139,7 +139,11 @@ export function ChatGptWelcomeCard({
       <div className={styles.copy}>
         <div className={styles.eyebrow}>Continue from ChatGPT</div>
         <h2>Paste the answer. Make the Short.</h2>
-        <p>Use the script as written, or let Kineo turn a rough idea into the hook, scenes and payoff.</p>
+        <p>
+          Paste up to 1,000 characters with the labels intact. If the script contains at least two Voiceover: or
+          Narration: labels, Kineo reads only those speech blocks; recognized Visual:, Camera:, scene headers and
+          timecodes stay out of narration. Have only an idea? Kineo can write the hook, scenes and payoff instead.
+        </p>
       </div>
       <div className={styles.editor}>
         <label htmlFor="chatgpt-quickstart-input">Paste the answer from ChatGPT</label>

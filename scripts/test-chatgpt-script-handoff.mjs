@@ -25,6 +25,7 @@ const organicCta = read('components/OrganicCtaLink.tsx')
 const signup = read('app/(auth)/signup/page.tsx')
 const generate = read('app/(dashboard)/generate/GenerateClient.tsx')
 const analyze = read('app/api/analyze-idea/route.ts')
+const parser = read('lib/scriptParser.ts')
 const facts = read('lib/kineoFacts.ts')
 const llms = read('app/llms.txt/route.ts')
 const factsRoute = read('app/api/facts/route.ts')
@@ -90,7 +91,7 @@ try {
     prompt: 'bounded', create_intent: 'fast', script_mode: 'rewrite_everything', duration: '999',
   }))
   equal(invalid.scriptMode, 'ai', 'unknown script modes fail closed to the established default')
-  equal(invalid.duration, 45, 'unknown durations fail closed to the established default')
+  equal(invalid.duration, 35, 'unknown durations fail closed to the current visible short target')
   equal(invalid.structureFirst, true, 'generic legacy handoffs preserve prior structure-first behavior')
   equal(
     handoff.readCreationHandoff(new URLSearchParams({ prompt: '   ', create_intent: 'fast' })).createIntent,
@@ -108,7 +109,12 @@ try {
     { name: 'organic_topic_submitted', user_id: null, session_id: 'session-a', created_at: '2026-08-27T10:10:00Z', metadata: null },
     { name: 'organic_cta_clicked', user_id: null, session_id: 'session-a', created_at: '2026-08-27T10:10:00Z', metadata: { mirrors: 'organic_topic_submitted' } },
   ]
-  equal(organic.summarizeOrganicActions(samePerson), { handoffOpenActors: 1, intentActors: 1 }, 'scroll + submit is not double-counted')
+  equal(organic.summarizeOrganicActions(samePerson), {
+    handoffOpenActors: 1,
+    intentActors: 1,
+    signupHandoffActors: 0,
+    signupMethodActors: 0,
+  }, 'scroll + submit is not double-counted and unrelated signup stages stay empty')
   equal(organic.uniqueOrganicActorCount(samePerson.slice(0, 3)), 1, 'three CTA placements dedupe to one visitor')
   const twoPeople = [...samePerson, { ...samePerson[3], session_id: 'session-b' }]
   equal(organic.summarizeOrganicActions(twoPeople).intentActors, 2, 'a second person remains a second intent')
@@ -122,6 +128,9 @@ try {
   includes(page, 'duration={35}', 'landing explicitly requests its advertised duration')
   includes(page, 'creationIntent="trial_best"', 'landing explicitly requests the best eligible trial engine')
   includes(page, 'otherwise it falls back safely to Fast', 'landing tells the truth about the safe fallback')
+  includes(page, 'Paste up to 1,000 characters with labels intact', 'landing states the real handoff limit instead of an unbounded whole-script promise')
+  includes(page, 'If your script contains at least two Voiceover: or Narration: labels', 'landing conditions speech-only mode on two labels')
+  includes(page, 'recognized Visual:, Camera:, scene headers and timecodes stay out of narration', 'landing names only recognized production directions')
   includes(page, 'RHYTHM:', 'published prompt contains the fifth supported section')
   ok(!page.includes('Your exact text'), 'copy does not promise byte-for-byte punctuation')
   ok(!page.includes('goes in as-is'), 'copy does not claim an unqualified as-is path')
@@ -138,6 +147,8 @@ try {
 
   // Form fields and signup both use the shared contract.
   includes(topicForm, 'name="prompt"', 'script is submitted as prompt')
+  includes(topicForm, 'promptValue.trim().slice(0, 1000)', 'handoff bounds the carried prompt to the advertised limit')
+  includes(topicForm, 'maxLength={1000}', 'visible form enforces the advertised limit')
   includes(topicForm, "creationIntent = 'fast'", 'shared form preserves Fast as the default for every other caller')
   includes(topicForm, 'name="create_intent" value={creationIntent}', 'selected creation intent is explicit')
   includes(topicForm, 'create_intent: creationIntent', 'example clicks carry the selected creation intent too')
@@ -149,7 +160,7 @@ try {
   includes(topicForm, 'examples.length > 0', 'empty script examples do not render an empty control group')
   includes(signup, "import { carryCreationHandoff } from '@/lib/creationHandoff'", 'signup uses the executable carrier')
   includes(signup, 'carryCreationHandoff(params, activationParams)', 'signup forwards only allowlisted creation fields')
-  includes(signup, 'return `/generate?${activationParams.toString()}`', 'script lands on the creation surface')
+  includes(signup, 'return `/studio/create?${activationParams.toString()}`', 'script lands directly on the current creation surface')
 
   // The actual GenerateClient caller waits for state commitment, then passes
   // the resolved contract to handleAnalyze. The API receives both values.
@@ -159,9 +170,11 @@ try {
   includes(generate, 'scriptMode !== activationContract.scriptMode', 'caller waits for script mode state')
   includes(generate, 'duration !== activationContract.duration', 'caller waits for duration state')
   includes(generate, 'structureFirst: activationContract.structureFirst', 'caller disables the rewriter for verbatim handoffs')
-  includes(generate, 'JSON.stringify({ prompt: source, duration, language, scriptMode })', 'analysis API receives committed mode and duration')
+  includes(generate, 'JSON.stringify({ prompt: source, duration: alvoAnalise, language, scriptMode })', 'analysis API receives the committed or safely fitted duration')
   includes(analyze, "body.scriptMode === 'verbatim'", 'API has the verbatim fast path')
   includes(analyze, 'normalizeWords(polished) === normalizeWords(text)', 'punctuation polish is rejected if the word sequence changes')
+  includes(parser, 'if (rotulos < 2) return null', 'parser requires two speech labels before promising speech-only mode')
+  includes(parser, 'STAGE_LABEL_LINE.test(u) || TIMECODE_LINE.test(u) || SCENE_HEADER_LINE.test(u)', 'parser recognizes the production directions named by the copy')
 
   // Admin separates the two actions and uses the same executable deduper.
   includes(adminFunnel, "'organic_handoff_opened'", 'admin query includes handoff-open events')
