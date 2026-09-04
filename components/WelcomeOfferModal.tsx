@@ -29,9 +29,11 @@ import { TIER_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPr
 import { formatResultCount, videosPerMonth } from '@/lib/marketingPrice'
 import {
   WELCOME_OFFER_SEEN_KEY,
+  WELCOME_OFFER_AFTER_FILM_VERSION,
   isWelcomeOfferMeasurementHost,
   parseWelcomeOfferSeenAt,
   shouldShowWelcomeOffer,
+  shouldSuppressDashboardWelcomeOffer,
   welcomeOfferFrequencyMetadata,
   type WelcomeOfferSurface,
   type WelcomeOfferTier,
@@ -42,6 +44,7 @@ import {
 } from '@/lib/growth/planFilmLanguage'
 
 let memorySeenAt: number | null = null
+let memoryDashboardSuppressed = false
 
 function readSeenAt(now: number): number | null {
   const candidates: Array<number | null> = [memorySeenAt]
@@ -129,11 +132,46 @@ export default function WelcomeOfferModal({
         })
         .catch(() => null)
       const userPromise = createClient().auth.getUser().catch(() => null)
-      const [planInfo, userResult] = await Promise.all([planPromise, userPromise])
+      const historyPromise = surface === 'dashboard'
+        ? fetch('/api/videos', { cache: 'no-store', credentials: 'same-origin' })
+            .then(async (response) => {
+              if (!response.ok) return null
+              return (await response.json().catch(() => null)) as {
+                completedCount?: number | null
+                historyReliable?: boolean
+              } | null
+            })
+            .catch(() => null)
+        : Promise.resolve(null)
+      const [planInfo, userResult, history] = await Promise.all([
+        planPromise,
+        userPromise,
+        historyPromise,
+      ])
 
       // Assinante pagante nunca vê oferta de 1º mês — já pagou o 1º mês.
       // Se a rede falhar, mantém o comportamento anterior e segue com a oferta.
       if (planInfo?.isPro || (planInfo?.plan && planInfo.plan !== 'free')) return
+
+      // CAIXA R17 — K1 already makes delivery the primary action in the trial
+      // banner, but this global modal still covered the dashboard seconds after
+      // signup. Only exact, owner-scoped history can delay it. Pricing stays
+      // untouched because a real buyer used that pre-film path and paid.
+      if (shouldSuppressDashboardWelcomeOffer({
+        surface,
+        historyReliable: history?.historyReliable === true,
+        completedCount: typeof history?.completedCount === 'number' ? history.completedCount : null,
+      })) {
+        if (!memoryDashboardSuppressed && isWelcomeOfferMeasurementHost(window.location.hostname)) {
+          memoryDashboardSuppressed = true
+          void trackEvent('welcome_offer_suppressed_before_first_film', {
+            ...welcomeOfferMetadata(surface),
+            gate_version: WELCOME_OFFER_AFTER_FILM_VERSION,
+            completed_count_bucket: '0',
+          })
+        }
+        return
+      }
 
       try {
         const data = userResult?.data

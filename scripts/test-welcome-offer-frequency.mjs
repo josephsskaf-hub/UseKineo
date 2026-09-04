@@ -31,6 +31,7 @@ const now = 2_000_000_000_000
 
 equal(policy.WELCOME_OFFER_FREQUENCY_VERSION, 'welcome_offer_frequency_truth_v1', 'variant is frozen')
 equal(policy.WELCOME_OFFER_RESHOW_MS, 72 * hour, 'frequency remains exactly 72 hours')
+equal(policy.WELCOME_OFFER_AFTER_FILM_VERSION, 'welcome_offer_after_film_v1', 'dashboard delivery gate is versioned')
 equal(policy.parseWelcomeOfferSeenAt(null, now), null, 'missing marker is absent')
 equal(policy.parseWelcomeOfferSeenAt('', now), null, 'empty marker is absent')
 equal(policy.parseWelcomeOfferSeenAt('not-a-number', now), null, 'malformed marker is absent')
@@ -52,6 +53,12 @@ equal(policy.welcomeOfferFrequencyMetadata('pricing', 'basic'), {
   frequency_window: '72h',
   tier: 'basic',
 }, 'metadata is categorical and allow-listed')
+equal(policy.shouldSuppressDashboardWelcomeOffer({ surface: 'dashboard', historyReliable: true, completedCount: 0 }), true, 'reliable zero-film dashboard is delayed')
+equal(policy.shouldSuppressDashboardWelcomeOffer({ surface: 'dashboard', historyReliable: true, completedCount: 1 }), false, 'dashboard opens after first film')
+equal(policy.shouldSuppressDashboardWelcomeOffer({ surface: 'pricing', historyReliable: true, completedCount: 0 }), false, 'pricing preserves pre-film buyer path')
+equal(policy.shouldSuppressDashboardWelcomeOffer({ surface: 'home', historyReliable: true, completedCount: 0 }), false, 'home remains unchanged')
+equal(policy.shouldSuppressDashboardWelcomeOffer({ surface: 'dashboard', historyReliable: false, completedCount: 0 }), false, 'unreliable history fails open')
+equal(policy.shouldSuppressDashboardWelcomeOffer({ surface: 'dashboard', historyReliable: true, completedCount: null }), false, 'missing history fails open')
 
 const modal = read('components/WelcomeOfferModal.tsx')
 const markIndex = modal.indexOf('markWelcomeOfferSeen(Date.now())')
@@ -59,7 +66,12 @@ const openIndex = modal.indexOf('setOpen(true)', markIndex)
 ok(markIndex > 0 && openIndex > markIndex, 'live caller claims frequency immediately before opening')
 ok(modal.includes("document.visibilityState !== 'visible'"), 'background tab does not count an unseen exposure')
 ok(modal.includes('if (cancelled || seenRecently()) return'), 'async reads recheck cross-mount frequency')
-ok(modal.includes('await Promise.all([planPromise, userPromise])'), 'independent plan and identity reads run in parallel')
+// R17 adds owner-scoped film history to the same parallel read. The assertion
+// moves with the stronger contract; it must never regress into a waterfall.
+ok(modal.includes('const [planInfo, userResult, history] = await Promise.all(['), 'plan, identity and film history read in parallel')
+ok(modal.includes("fetch('/api/videos', { cache: 'no-store', credentials: 'same-origin' })"), 'dashboard uses owner-scoped persisted film evidence')
+ok(modal.includes("trackEvent('welcome_offer_suppressed_before_first_film'"), 'suppression is measurable without counting a view')
+ok(modal.includes('shouldSuppressDashboardWelcomeOffer({'), 'live caller is governed by executable policy')
 ok(modal.includes('localStorage'), '72-hour marker persists across visits')
 ok(modal.includes('sessionStorage'), 'session fallback survives localStorage denial')
 ok(modal.includes('memorySeenAt'), 'in-memory fallback prevents same-page repeat')

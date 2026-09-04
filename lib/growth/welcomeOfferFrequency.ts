@@ -2,9 +2,20 @@ export const WELCOME_OFFER_FREQUENCY_VERSION = 'welcome_offer_frequency_truth_v1
 export const WELCOME_OFFER_SEEN_KEY = 'kineo_welcome20_seen'
 export const WELCOME_OFFER_RESHOW_MS = 72 * 60 * 60 * 1000
 export const WELCOME_OFFER_MEASUREMENT_HOST = 'www.usekineo.com'
+export const WELCOME_OFFER_AFTER_FILM_VERSION = 'welcome_offer_after_film_v1'
 
 export type WelcomeOfferSurface = 'home' | 'pricing' | 'dashboard'
 export type WelcomeOfferTier = 'basic' | 'pro'
+
+export function shouldSuppressDashboardWelcomeOffer(input: {
+  surface: WelcomeOfferSurface
+  historyReliable: boolean
+  completedCount: number | null
+}): boolean {
+  if (input.surface !== 'dashboard') return false
+  if (!input.historyReliable || !Number.isInteger(input.completedCount)) return false
+  return input.completedCount === 0
+}
 
 export function parseWelcomeOfferSeenAt(raw: string | null, now: number): number | null {
   if (!raw) return null

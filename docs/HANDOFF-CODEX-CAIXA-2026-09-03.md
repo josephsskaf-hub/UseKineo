@@ -1125,3 +1125,99 @@ Nada.
 A rodada só mediu. Os experimentos recém-publicados ainda não tiveram pessoas
 e, por isso, não foram mexidos de novo. O cliente vivo chegou à recuperação do
 filme e segue observado até um desfecho real, sem confundir espera com erro.
+
+---
+
+## ROUND 17 — K1 completo por superfície · oferta automática só após valor
+
+**Data:** 2026-09-04 11:07 BRT
+**Pista:** Growth-B2C / CAIXA
+**Branch:** `codex/caixa-value-continuity-r17`
+
+### VALIDAÇÃO DA ENTREGA ANTERIOR
+
+**VALIDADO EM PRODUÇÃO:** R15 permanece em `cc6c05b5`, Vercel READY e Guardião
+verde. Até 10:58 BRT, zero eventos de supressão: nenhuma pessoa elegível passou
+pela variante ainda. R16 foi medição/documentação em `2a62e0f2`.
+
+### EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, 2026-09-04 11:03 BRT
+
+O K1 estava correto no `TrialActiveBanner`, mas incompleto na superfície global:
+o `WelcomeOfferModal` continuava abrindo segundos depois do cadastro.
+
+Primeiro `welcome_offer_viewed` de cada pessoa externa em 14 dias:
+
+| superfície, sem filme no instante | pessoas | fecharam | clicaram modal | pagaram |
+|---|---:|---:|---:|---:|
+| dashboard | 30 | 23 | 3 | 0 |
+| home | 5 | 4 | 0 | 0 |
+| pricing | 2 | 2 | 1 | 1 |
+
+A mediana de idade das 37 pessoas sem filme era 0,19 minuto, cerca de 11
+segundos. A única pagante clicou no próprio modal de `pricing`, abriu o checkout,
+pagou e só depois fez o primeiro filme. Portanto apagar o modal global seria
+regressão de receita; segmentar por superfície preserva o caminho comprovado.
+
+### HIPÓTESE E MUDANÇA MÍNIMA
+
+No dashboard, a primeira tarefa é ver o produto funcionar; um modal automático
+de plano antes disso interrompe a ativação. Em `pricing`, a visita já expressa
+intenção de compra e permanece exatamente como está.
+
+Somente `surface='dashboard'` com histórico owner-scoped confiável e
+`completedCount=0` adia a abertura. Falha ou ausência de histórico preserva o
+comportamento antigo. O marcador de 72h não é gravado quando há supressão, então
+a oferta existente volta a ser elegível numa visita depois do primeiro filme.
+
+### IMPLEMENTADO
+
+- `components/WelcomeOfferModal.tsx`: lê plano, identidade e histórico em
+  paralelo; nenhuma cascata de rede. Home/pricing não fazem a consulta extra.
+- `lib/growth/welcomeOfferFrequency.ts`: política pura e versão
+  `welcome_offer_after_film_v1`.
+- `scripts/test-welcome-offer-frequency.mjs`: caller real, falha aberta e
+  preservação de home/pricing travados.
+- `docs/previews/WELCOME-OFFER-AFTER-FIRST-FILM-2026-09-04.html`: comparação
+  visual responsiva e caminho de pricing preservado.
+
+### TESTADO LOCALMENTE
+
+Welcome offer 44/44 · public promo truth 68/68 · plan film language 32/32 ·
+money truth 313/313 · typecheck verde · `diff --check` limpo. O checklist React
+foi aplicado: as três leituras independentes são paralelas, abortos/erros não
+quebram a página e nenhum dado do filme entra em telemetria.
+
+### COMO MEDIR
+
+`welcome_offer_suppressed_before_first_film` → primeiro filme →
+`welcome_offer_viewed` posterior no dashboard → clique → checkout → pagamento.
+Separar sempre `surface`. Linha de base do dashboard: 30 pessoas sem filme,
+23 dismissals, 3 cliques e 0 pagamentos.
+
+### GATE DE PARADA
+
+Manter até 20 pessoas externas suprimidas ou 7 dias. Reverter se `pricing`
+deixar de emitir seu evento, se pessoa com `completedCount>=1` for suprimida ou
+se a taxa de primeiro filme cair no grupo. Não reeditar antes do gate.
+
+### RISCO
+
+Baixo e isolado ao dashboard. A decisão não mexe no desconto, preço, checkout,
+frequência, home ou pricing. Risco residual: alguém no dashboard queria pagar
+antes de testar; Pricing segue visível na navegação e o histórico indisponível
+falha aberto.
+
+### PRÓXIMA JOGADA
+
+Publicar e validar home, pricing e dashboard. Depois congelar a superfície e
+voltar ao vigia, escolhendo outro estágio do caixa.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+### 📋 O QUE ACONTECEU
+
+O modal que vendia antes de o cliente ver um filme agora espera somente no
+dashboard. A página de preços — o caminho que já gerou pagamento real antes do
+primeiro vídeo — foi preservada sem mudança.
