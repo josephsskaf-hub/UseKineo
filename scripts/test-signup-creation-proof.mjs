@@ -10,6 +10,10 @@ const read = (file) => fs.readFileSync(path.join(root, file), 'utf8')
 let checks = 0
 const check = (value, message) => { assert.ok(value, message); checks++ }
 const equal = (actual, expected, message) => { assert.equal(actual, expected, message); checks++ }
+const deepEqual = (actual, expected, message) => {
+  assert.deepEqual(JSON.parse(JSON.stringify(actual)), expected, message)
+  checks++
+}
 
 function executeTs(file, mocks = {}) {
   const compiled = ts.transpileModule(read(file), {
@@ -36,6 +40,10 @@ const exampleRemix = executeTs('lib/growth/exampleRemix.ts')
 const proof = executeTs('lib/growth/signupCreationPreview.ts', {
   '@/lib/creationHandoff': handoff,
   '@/lib/authRedirect': authRedirect,
+})
+const creationOAuthFailure = executeTs('lib/growth/creationOAuthFailureHandoff.ts', {
+  '@/lib/authRedirect': authRedirect,
+  '@/lib/growth/signupCreationPreview': proof,
 })
 const freeScriptHandoff = executeTs('lib/growth/freeScriptSignupHandoff.ts')
 const preview = (values) => proof.buildSignupCreationPreview(new URLSearchParams(values))
@@ -179,6 +187,51 @@ equal(loginPreview({ redirect: '/pricing', prompt: 'do not promise this' }), nul
 equal(loginPreview({ redirect: '//evil.example', prompt: 'do not promise this' }), null, 'invalid login redirect cannot fall through to top-level prompt')
 equal(loginPreview({ prompt: 'not transported by login' }), null, 'top-level login prompt cannot claim a handoff the login does not transport')
 
+const remixFailure = creationOAuthFailure.buildCreationOAuthFailureHandoff(remixRedirect)
+const remixFailureLogin = new URL(remixFailure.loginPath ?? '/', 'https://www.usekineo.com')
+equal(remixFailureLogin.pathname, '/login', 'failed remix OAuth returns to login')
+equal(remixFailureLogin.searchParams.get('error'), 'oauth_failed', 'failed remix OAuth keeps the existing error marker')
+equal(remixFailureLogin.searchParams.get('redirect'), remixRedirect, 'failed remix OAuth keeps the exact allow-listed destination')
+equal(remixFailure.telemetry.saved_creation_kind, 'example_remix', 'remix failure records only its bounded kind')
+equal(remixFailure.telemetry.has_saved_creation, true, 'remix failure records saved-work presence')
+deepEqual(remixFailure.telemetry, {
+  creation_oauth_failure_handoff_version: 'creation_oauth_failure_handoff_v1',
+  has_saved_creation: true,
+  saved_creation_kind: 'example_remix',
+}, 'remix failure telemetry cannot gain visitor content or redirect fields')
+
+const scriptFailure = creationOAuthFailure.buildCreationOAuthFailureHandoff(generatedScriptRedirect)
+const scriptFailureLogin = new URL(scriptFailure.loginPath ?? '/', 'https://www.usekineo.com')
+equal(scriptFailureLogin.searchParams.get('redirect'), generatedScriptRedirect, 'failed script OAuth keeps the exact allow-listed destination')
+equal(scriptFailure.telemetry.saved_creation_kind, 'free_script', 'script failure records only its bounded kind')
+
+for (const [label, destination] of [
+  ['missing', null],
+  ['generic', '/studio/create?prompt=private'],
+  ['checkout', '/api/stripe/checkout?tier=pro&billing=monthly'],
+  ['pricing', '/pricing?prompt=private'],
+  ['external', '//evil.example/studio/create?prompt=private'],
+  ['backslash', '/\\evil.example/studio/create?prompt=private'],
+  ['bad remix marker', remixRedirect.replace('create_intent=example_remix', 'create_intent=fast')],
+  ['bad script analysis', generatedScriptRedirect.replace('autoanalyze=1', 'autoanalyze=0')],
+  ['executable script', `${generatedScriptRedirect}&create_intent=fast`],
+]) {
+  const result = creationOAuthFailure.buildCreationOAuthFailureHandoff(destination)
+  equal(result.loginPath, null, `${label} cannot gain a saved-work OAuth return`)
+  equal(result.telemetry.has_saved_creation, false, `${label} cannot claim saved work in telemetry`)
+  equal(result.telemetry.saved_creation_kind, null, `${label} exposes no creation kind`)
+}
+check(!JSON.stringify(remixFailure.telemetry).includes('ice caves'), 'OAuth failure telemetry never contains the visitor topic')
+check(!JSON.stringify(scriptFailure.telemetry).includes('lighthouse'), 'OAuth failure telemetry never contains the visitor script')
+
+const callbackRoute = read('app/auth/callback/route.ts')
+check(callbackRoute.includes("await import('@/lib/growth/creationOAuthFailureHandoff')"), 'callback loads the FLUXO helper only on failure')
+check(callbackRoute.includes('if (!failureHandoff.telemetry.is_checkout_destination)'), 'checkout is rejected before creation recovery runs')
+check(callbackRoute.includes('failureHandoff.loginPath = creationFailureHandoff.loginPath'), 'valid creation recovery feeds the existing redirect path')
+check(callbackRoute.includes('...(creationFailureTelemetry ?? {})'), 'callback records only the bounded creation telemetry')
+check(callbackRoute.includes('NextResponse.redirect(new URL(failureHandoff.loginPath, origin))'), 'existing checkout redirect integration remains unchanged')
+check(!callbackRoute.includes('saved_creation_redirect:'), 'callback telemetry has no raw saved-work destination')
+
 const freeScriptClient = read('app/free-script-generator/FreeScriptClient.tsx')
 check(freeScriptClient.includes("from '@/lib/growth/freeScriptSignupHandoff'"), 'real free-script client imports the tested handoff builder')
 check(/const createShortHref = buildFreeScriptSignupHref\(\s*lines,/.test(freeScriptClient), 'real free-script CTA uses the tested handoff builder result')
@@ -245,5 +298,18 @@ for (const label of ['BEFORE', 'AFTER', 'DESKTOP', 'MOBILE']) {
 check(loginVisual.includes('Saved before sign-in'), 'login visual includes the real proof eyebrow')
 check(!/https?:\/\//i.test(loginVisual), 'login visual has no external dependency')
 check(fs.statSync(path.join(root, loginVisualPngPath)).size > 1000, 'login visual PNG is non-empty')
+
+const oauthFailureVisualPath = 'docs/previews/FLUXO-OAUTH-FAILURE-SAVED-WORK-2026-09-04.html'
+const oauthFailureVisualPngPath = 'docs/previews/FLUXO-OAUTH-FAILURE-SAVED-WORK-2026-09-04.png'
+check(fs.existsSync(path.join(root, oauthFailureVisualPath)), 'OAuth-failure before/after HTML exists')
+check(fs.existsSync(path.join(root, oauthFailureVisualPngPath)), 'OAuth-failure before/after PNG exists')
+const oauthFailureVisual = read(oauthFailureVisualPath)
+const oauthFailureVisualUpper = oauthFailureVisual.toUpperCase()
+for (const label of ['BEFORE', 'AFTER', 'DESKTOP', 'MOBILE', 'OAUTH FAILURE']) {
+  check(oauthFailureVisualUpper.includes(label), `OAuth-failure visual includes ${label.toLowerCase()}`)
+}
+check(oauthFailureVisual.includes('Saved before sign-in'), 'OAuth-failure visual includes the real proof eyebrow')
+check(!/https?:\/\//i.test(oauthFailureVisual), 'OAuth-failure visual has no external dependency')
+check(fs.statSync(path.join(root, oauthFailureVisualPngPath)).size > 1000, 'OAuth-failure visual PNG is non-empty')
 
 console.log(`PASS — ${checks}/${checks} signup saved-creation checks`)

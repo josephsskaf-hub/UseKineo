@@ -6,6 +6,7 @@ import { writeServerEvent } from '@/lib/serverEvents'
 import { maybeActivateReverseTrial } from '@/lib/reverseTrial'
 import { trialFingerprintFromHeaders } from '@/lib/trialFingerprint'
 import { buildCheckoutOAuthFailureHandoff } from '@/lib/growth/checkoutOAuthFailureHandoff'
+import type { CreationOAuthFailureTelemetry } from '@/lib/growth/creationOAuthFailureHandoff'
 import {
   CHECKOUT_AUTH_SESSION_COOKIE,
   CHECKOUT_AUTH_SESSION_BRIDGE_VERSION,
@@ -38,6 +39,7 @@ export async function GET(request: Request) {
   const code = searchParams.get('code')
   const rawNext = searchParams.get('next')
   const failureHandoff = buildCheckoutOAuthFailureHandoff(rawNext)
+  let creationFailureTelemetry: CreationOAuthFailureTelemetry | null = null
   const requestCookies = cookies()
   const checkoutAuthSessionId = normalizeEventSessionId(
     requestCookies.get(CHECKOUT_AUTH_SESSION_COOKIE)?.value,
@@ -202,6 +204,23 @@ export async function GET(request: Request) {
     }
   }
 
+  // Checkout owns its own exact recovery contract. Only after it declines the
+  // destination may FLUXO recover the two creation handoffs already allowed on
+  // the login wall. Lazy loading keeps this optional recovery fail-closed: an
+  // unexpected module failure falls back to the existing generic login path.
+  if (!failureHandoff.telemetry.is_checkout_destination) {
+    try {
+      const { buildCreationOAuthFailureHandoff } = await import('@/lib/growth/creationOAuthFailureHandoff')
+      const creationFailureHandoff = buildCreationOAuthFailureHandoff(rawNext)
+      creationFailureTelemetry = creationFailureHandoff.telemetry
+      if (creationFailureHandoff.loginPath) {
+        failureHandoff.loginPath = creationFailureHandoff.loginPath
+      }
+    } catch {
+      creationFailureTelemetry = null
+    }
+  }
+
   // Store no OAuth code or error detail. This only proves that the callback
   // failed to establish a session, which is enough to diagnose the broken hop.
   await writeServerEvent({
@@ -214,6 +233,7 @@ export async function GET(request: Request) {
         failureHandoff.telemetry.is_checkout_destination && Boolean(checkoutAuthSessionId),
       had_code: Boolean(code),
       ...failureHandoff.telemetry,
+      ...(creationFailureTelemetry ?? {}),
     },
   })
 
