@@ -404,6 +404,7 @@ export default function ChatGptToYouTubeShortsPage() {
             scriptMode="verbatim"
             duration={35}
             creationIntent="trial_best"
+            preserveHandoffForSignedIn
             examples={[]}
             formId={HANDOFF_ID}
             copy={{

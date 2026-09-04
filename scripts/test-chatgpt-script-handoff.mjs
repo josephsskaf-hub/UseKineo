@@ -31,6 +31,7 @@ const llms = read('app/llms.txt/route.ts')
 const factsRoute = read('app/api/facts/route.ts')
 const adminFunnel = read('app/api/admin/funnel/route.ts')
 const funnelClient = read('app/(dashboard)/admin/funnel/FunnelClient.tsx')
+const middleware = read('lib/supabase/middleware.ts')
 
 let checks = 0
 function ok(value, message) {
@@ -129,6 +130,7 @@ try {
   includes(page, 'scriptMode="verbatim"', 'landing explicitly requests verbatim handling')
   includes(page, 'duration={35}', 'landing explicitly requests its advertised duration')
   includes(page, 'creationIntent="trial_best"', 'landing explicitly requests the best eligible trial engine')
+  includes(page, 'preserveHandoffForSignedIn', 'landing keeps the script when an authenticated visitor skips signup')
   includes(page, 'otherwise it falls back safely to Fast', 'landing tells the truth about the safe fallback')
   includes(page, 'Paste up to 1,000 characters with labels intact', 'landing states the real handoff limit instead of an unbounded whole-script promise')
   includes(page, 'If your script contains at least two Voiceover: or Narration: labels', 'landing conditions speech-only mode on two labels')
@@ -157,12 +159,17 @@ try {
   includes(topicForm, 'name="intent_campaign" value={campaign}', 'intent campaign is explicit')
   includes(topicForm, 'name="script_mode" value={scriptMode}', 'script mode is explicit')
   includes(topicForm, 'name="duration" value={duration}', 'duration is explicit')
+  includes(topicForm, 'if (!preserveHandoffForSignedIn || !boundedPrompt) return null', 'authenticated handoff remains explicitly opt-in')
+  includes(topicForm, 'return `/studio/create?${destination.toString()}`', 'authenticated handoff targets the current creation surface')
+  includes(topicForm, 'name="redirect" value={authRedirectFor(topic)', 'typed scripts carry a safe authenticated redirect')
   includes(topicForm, 'name="utm_source" value={utmSource}', 'UTM source is explicit')
   includes(topicForm, 'name="utm_medium" value={utmMedium}', 'UTM medium is explicit')
   includes(topicForm, 'examples.length > 0', 'empty script examples do not render an empty control group')
   includes(signup, "import { carryCreationHandoff } from '@/lib/creationHandoff'", 'signup uses the executable carrier')
   includes(signup, 'carryCreationHandoff(params, activationParams)', 'signup forwards only allowlisted creation fields')
   includes(signup, 'return `/studio/create?${activationParams.toString()}`', 'script lands directly on the current creation surface')
+  includes(middleware, "request.nextUrl.searchParams.get('redirect')", 'middleware reads the authenticated visitor redirect')
+  includes(middleware, "resolveAuthRedirect(rawRedirect, '/dashboard')", 'middleware validates the authenticated redirect before following it')
 
   // The actual GenerateClient caller waits for state commitment, then passes
   // the resolved contract to handleAnalyze. The API receives both values.
