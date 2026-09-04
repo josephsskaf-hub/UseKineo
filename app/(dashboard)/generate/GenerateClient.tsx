@@ -11403,6 +11403,17 @@ export default function GenerateClient({
     if (raw.includes('voiceover generation failed')) return 'voiceover_provider'
     if (raw.includes('daily_free_limit') || raw.includes('daily free')) return 'daily_free_limit'
     if (raw.includes('could not be verified')) return 'access_not_verified'
+    // sprint-retencao #20 — causa PROPRIA para o despacho de plano vazio.
+    // Ela vem ANTES do `provider_rejected` porque as duas falam de despacho
+    // e so esta e a que nunca chamou o fornecedor. Medido em 21 dias: 34
+    // despachos vazios de 25 pessoas, 9 sem nenhum filme na vida — todos
+    // contados ate hoje como recusa da fal, que os inflava e escondia esta.
+    // NAO entra na lista de deterministicas: dos 34, 16 foram seguidos de um
+    // despacho aceito em 5 minutos, e nao da para provar pelo evento se o
+    // texto mudou no meio. Chamar de deterministico seria afirmar mais do
+    // que o dado sustenta; o contador de repeticao ja muda o tom do cartao
+    // na SEGUNDA falha igual, e agora com assinatura separada da fal.
+    if (raw.includes('build a single scene')) return 'empty_plan'
     if (raw.includes('did not accept the job')) return 'provider_rejected'
     if (raw.includes('could not submit clips')) return 'submit_failed'
     if (raw.includes('depict real people') || raw.includes('real person')) return 'real_person_guard'

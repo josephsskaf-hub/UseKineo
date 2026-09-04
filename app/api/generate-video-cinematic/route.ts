@@ -2040,6 +2040,13 @@ async function manipularPost(req: NextRequest) {
         const metadata = row.metadata && typeof row.metadata === 'object' && !Array.isArray(row.metadata)
           ? row.metadata as Record<string, unknown>
           : {}
+        // sprint-retencao #20 — o filtro casa `provider_*_refunded` DE
+        // PROPOSITO. Falha de plano vazio sai como `empty_plan_rejected_
+        // refunded` e NAO conta aqui: sem POST nenhum na fal, nao ha trabalho
+        // pago para transformar em endpoint gratuito, que e a unica coisa que
+        // este resfriamento existe para impedir. Antes ela contava, e o
+        // guarda anti-abuso trancava por 15 minutos justamente quem nao
+        // tinha consumido nada.
         return metadata.status === 'released' &&
           typeof metadata.authority === 'string' && /^[a-f0-9]{64}$/i.test(metadata.authority) &&
           typeof metadata.resolution_reason === 'string' &&
@@ -4494,7 +4501,33 @@ async function manipularPost(req: NextRequest) {
     // Um único clipe aceito já é renderizável: o compose o recicla até cobrir
     // toda a duração. Nunca descarte/refunde jobs pagos só por cobertura <50%.
     if (!hasRenderableClassicScene(falRequestIds)) {
-      const released = await releaseBirthClaim(ctxDespacho().balanceExhausted ? 'provider_balance_rejected' : 'provider_rejected')
+      // ═══ sprint-retencao #20 (04/09/2026) — PLANO VAZIO NAO E CULPA DA FAL ══
+      //
+      // `scenes.length === 0` significa que NAO HAVIA UMA UNICA CENA PARA
+      // ENVIAR: o laco de submissao nao roda, nenhum POST sai, e o desfecho
+      // cai neste mesmo `if` por um caminho completamente diferente do da
+      // fal ter recusado. Ate hoje os dois saiam pela mesma porta e a pessoa
+      // lia "our video provider did not accept the job" — uma frase sobre um
+      // fornecedor que NUNCA foi chamado (`attempted: 0`, `total_posts: 0`).
+      //
+      // Medido em 21 dias (contas externas): 34 despachos vazios de 25
+      // PESSOAS, e NOVE delas nunca viram um filme da Kineo na vida.
+      //
+      // A razao de release separada tambem tira estes casos do contador de
+      // resfriamento la em cima (`/^provider_.*_refunded$/`): aquele guarda
+      // existe para impedir que prompt propositalmente ruim vire trabalho
+      // PAGO de graca na fal — e com zero POST nao houve trabalho nenhum
+      // para farmar. Caso vivo de hoje (pessoa ffd78315, 20:27→20:42 UTC):
+      // 4 falhas de plano vazio a levaram ao 429 de 15 minutos, e ela so
+      // escapou porque mudou o texto por conta propria.
+      const planoVazio = scenes.length === 0
+      const released = await releaseBirthClaim(
+        ctxDespacho().balanceExhausted
+          ? 'provider_balance_rejected'
+          : planoVazio
+            ? 'empty_plan_rejected'
+            : 'provider_rejected',
+      )
       // KINEO-353A — o desfecho vai para o banco ANTES de responder, e vai
       // awaitado. Se a lambda morrer logo depois, a linha ja existe.
       {
@@ -4535,6 +4568,26 @@ async function manipularPost(req: NextRequest) {
       // esgotado: alarme para o fundador + mensagem que acalma e diz a
       // verdade (nada começou, crédito devolvido, nós fomos avisados).
       if (ctxDespacho().totalPosts === 0) {
+        // O ramo do Joscha continua igual quando HAVIA plano: cenas existiam,
+        // o POST e que nao saiu. Ai "tente de novo em alguns minutos" e o
+        // conselho certo, porque a proxima tentativa pega outra lambda.
+        //
+        // Com plano VAZIO a frase muda porque o fato e outro. Ela mantem de
+        // proposito o fragmento "on our side, not yours": e ele que o
+        // classificador de `app/api/cron/send-failure-recovery/route.ts`
+        // (DEFEITO_EXPLICITO) usa para reconhecer defeito nosso e mandar o
+        // e-mail de resgate. Trocar a copy sem esse pedaco tiraria estas 25
+        // pessoas da fila de recuperacao sem ninguem perceber.
+        if (planoVazio) {
+          await alertFalExhausted(`EMPTY_PLAN user=${user.id.slice(0, 8)} engine=${usedModel} duration=${duration}`)
+          return NextResponse.json(
+            {
+              queued: true,
+              error: "We couldn't build a single scene from this text, so nothing was ever sent to our video provider — this is on our side, not yours. Your credits were refunded automatically and the team was alerted. Editing the text, or letting the AI structure it for you, is the change most likely to get this through.",
+            },
+            { status: 503 },
+          )
+        }
         await alertFalExhausted(`ZERO_POSTS user=${user.id.slice(0, 8)} engine=${usedModel} planned=${ctxDespacho().planned}`)
         return NextResponse.json(
           {

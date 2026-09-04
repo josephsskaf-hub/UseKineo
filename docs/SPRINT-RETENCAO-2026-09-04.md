@@ -1078,3 +1078,183 @@ encerramento e ela fechou sozinha.
 **SHA.** `c58e4b63` (+ `cea34e7b`, o diário) — worktree
 `C:\kineo-wt\r20-memoria-episodio`. Enfileirado em `entrega-atual` sobre
 `6ee615ef` (fila: 6). Aguardando o clique no SUBIR-SITE.bat.
+
+---
+
+### #20 — 17:52-19:05 BRT — o produto culpava a fal por 34 despachos em que a fal NUNCA foi chamada: 25 pessoas, 9 delas sem nenhum filme na vida
+
+**Como esta rodada nasceu.** Não foi escolha de cardápio: foi a **checagem
+zero** da abertura. O SELECT das últimas 2h devolveu **18
+`generation_stage_error`** — e os 18 eram de **uma pessoa só**, `ffd78315`,
+cadastrada às 20:04 UTC de hoje, tentando o primeiro filme dela **naquele
+minuto**. A regra da rotação diz que causa viva vira a rotação, e virou.
+
+**O que estava errado (medido, não deduzido).**
+
+A trilha dela, 20:27→20:42 UTC: quatro gerações, todas mortas, e entre elas
+doze telas de *"Two AI attempts were just refunded. Please wait a few minutes"*.
+O claim de cada uma trazia `fal_models: []`, e o `cinematic_dispatch_result`
+trazia o retrato do crime:
+
+    "scenes": [], "planned": 0, "attempted": 0, "accepted": 0, "total_posts": 0
+
+`planned: 0` quer dizer que **não havia uma única cena para enviar**. O laço de
+submissão não roda, nenhum POST sai, e o desfecho cai no mesmo `if` de "nenhum
+clipe renderizável" por onde passa a recusa de verdade da fal. As duas saíam
+pela mesma porta — e a pessoa lia:
+
+> *"Our video provider did not accept the job… Please try again in a few minutes."*
+
+Uma frase sobre um fornecedor que **nunca foi chamado**. Ela obedeceu: tentou
+de novo, quatro vezes, no mesmo texto. Só escapou porque, por conta própria,
+passou o tema pelo `analyze-idea` e pediu 35s em vez de 60s — aí o filme saiu,
+às 20:49:04, e às 20:50 ela já estava vendo a porta do episódio 2.
+
+**O tamanho disso, 21 dias, contas externas:**
+
+| | |
+|---|---:|
+| despachos com `planned=0 attempted=0` | **34** |
+| pessoas distintas | **25** |
+| — que **nunca** viram um filme da Kineo na vida | **9** |
+| seguidos de OUTRO despacho vazio em 30 min | 8 |
+| seguidos de um despacho **aceito** em 5 min | 16 |
+| despachos com ao menos 1 cena aceita (o normal) | 107 / 101 pessoas |
+
+E a segunda armadilha, que fecha a ratoeira: o **resfriamento anti-abuso** de
+15 minutos conta claims liberados cuja razão casa `/^provider_.*_refunded$/`.
+Ele existe, com razão, para impedir que prompt propositalmente ruim vire
+trabalho **pago** da fal de graça. Só que com `total_posts: 0` **não houve
+trabalho nenhum para farmar** — e mesmo assim ele trancava. Foi o que produziu
+as 12 telas de 429 da pessoa de hoje.
+
+**O que mudou (3 arquivos).**
+
+- `app/api/generate-video-cinematic/route.ts` — `planoVazio = scenes.length === 0`
+  separa os dois desfechos: (a) o release sai como `empty_plan_rejected` em vez
+  de `provider_rejected`, o que **automaticamente** tira o caso do filtro do
+  resfriamento (sem tocar no filtro, que continua guardando o que deve);
+  (b) a resposta 503 ganha texto próprio e alarme próprio (`EMPTY_PLAN`, não
+  `ZERO_POSTS`). O ramo do Joscha — `planned>0` e `total_posts=0`, pane real da
+  nossa lambda — ficou **byte a byte** como estava, mensagem inclusive.
+- `app/(dashboard)/generate/GenerateClient.tsx` — causa própria `empty_plan`,
+  antes de `provider_rejected` na cascata. Até hoje os dois eram o mesmo
+  `provider_rejected`: a recusa real da fal vinha inflada e esta ficava
+  escondida dentro dela.
+- `scripts/test-despacho-vazio-2026-09-04.mjs` — 45 verificações.
+
+**A mensagem nova**, palavra por palavra:
+
+> *"We couldn't build a single scene from this text, so nothing was ever sent to
+> our video provider — this is on our side, not yours. Your credits were
+> refunded automatically and the team was alerted. Editing the text, or letting
+> the AI structure it for you, is the change most likely to get this through."*
+
+**A armadilha que quase engoli, e que o teste agora tranca.** O cron
+`send-failure-recovery` decide se manda e-mail de resgate procurando frases em
+que o produto **assume a culpa** (`DEFEITO_EXPLICITO`), e o fragmento é
+literalmente `on our side, not yours`. Trocar a copy sem esse pedaço tiraria
+estas 25 pessoas da fila de recuperação **sem ninguém perceber** — o tipo de
+estrago que só aparece semanas depois. A verificação 3.3 lê a lista **do
+arquivo real do cron** e prova que a frase nova ainda casa; a 3.4 prova que a
+antiga também.
+
+**O que eu deliberadamente NÃO fiz.** Não marquei `empty_plan` como causa
+determinística. Seria a mudança mais vistosa — o cartão passaria a oferecer
+"Edit my text" já na primeira falha em vez de convidar a repetir. Mas **16 dos
+34 despachos vazios foram seguidos de um despacho aceito em 5 minutos**, e o
+evento não registra se o texto mudou no meio. Afirmar "retentar igual dá no
+mesmo" seria dizer mais do que o dado sustenta — o erro que esta sprint já
+cometeu antes. O contador de repetição existente **já** muda o tom do cartão na
+segunda falha igual, e agora com assinatura separada da fal. A verificação 6.2
+tranca a lista para que ninguém adicione `empty_plan` sem trazer o número.
+
+E **não toquei no planner**. A causa raiz — por que este texto produz zero
+cenas — mora no motor de roteiro, que está sob a trava do fundador de 03/09
+("os vídeos têm saído nota 9, NÃO QUERO QUE MEXA NISSO"). O bloco 8 do teste lê
+o `git diff` real e reprova se o diff encostar em `lib/compose`, `lib/hollywood`,
+`lib/cinematic`, `lib/broll`, `lib/lyriaMusic`, `lib/narrationFit`,
+`analyze-idea` ou `generate-script`. Esta rodada conserta a **honestidade e o
+bloqueio**, que é o que a trava permite. A causa raiz vai como pedido.
+
+**Falsificado em 9 mutações, cada uma aplicada de verdade no arquivo real e
+depois desfeita.** Duas delas passaram na primeira tentativa — e o motivo
+importa: os arquivos são **CRLF**, e o `perl` com `\n` não casava, ou seja a
+mutação nunca chegou a existir. Refeitas com `\r?\n`, as duas derrubaram o que
+deviam. "Passou" sem conferir se a mutação foi aplicada é falso-verde.
+
+| mutação | verificação que cai |
+|---|---|
+| `empty_plan_rejected` volta a `provider_rejected` | 1.2 |
+| mensagem nova volta a dizer "did not accept the job" | 1.6 |
+| tirar `on our side, not yours` da mensagem nova | 1.6 |
+| desligar o ramo `if (planoVazio)` | 1.5 |
+| apagar a mensagem antiga (ramo do Joscha) | 7.1 |
+| cliente perde a causa `empty_plan` | 5.1 / 5.2 / 5.4 |
+| `empty_plan` entra na lista de determinísticas | 6.2 |
+| `empty_plan` passa a vir depois de `provider_rejected` | 5.4 |
+| encostar em `lib/hollywood/varietyAxis.ts` | 8.2 / 8.3 |
+
+**Quantas pessoas isso move.** Sem otimismo: 25 pessoas/21 dias batem neste
+desfecho, ~8/semana, e **9 nunca viram um filme**. A mudança não faz o roteiro
+virar cena — não é um filme a mais garantido. Ela faz duas coisas contáveis:
+(a) quem cair aqui recebe a ação que **pode** mudar o resultado em vez de um
+convite a repetir o fracasso; (b) ninguém mais é trancado por 15 minutos por
+uma falha em que não consumiu nada nosso. O ganho comercial é indireto e eu
+não vou fingir que é grande: é primeiro filme, que é o degrau onde 0,3% vira
+1,8%.
+
+**Testes.** 45/45 verdes em `test-despacho-vazio-2026-09-04.mjs`.
+`tsc --noEmit` **exit 0**. **Aviso honesto sobre o typecheck:** a primeira
+execução saiu "exit 0" e era **mentira** — `npx tsc` não achou o TypeScript e o
+`npx` saiu 0 sozinho; a segunda, com o tsc do repo, cuspiu centenas de
+`Cannot find module` porque a **worktree não tem `node_modules`**. Só a
+terceira, com junction de `node_modules` do repo principal, é typecheck de
+verdade. É exatamente a classe `MODULE_NOT_FOUND` que o codex-fluxo apontou no
+Guardião às 10:54 — vale para worktree também, e eu quase assinei um verde
+falso.
+
+**Risco: baixo, e reversível em uma linha.** Nenhum preço, crédito, plano,
+motor, gatilho de checkout ou caminho de render foi tocado. O comportamento de
+quem **não** cai em plano vazio é idêntico. Reverter tudo: trocar
+`empty_plan_rejected` de volta por `provider_rejected` e apagar o ramo
+`if (planoVazio)` — o resto vira código morto inofensivo.
+
+**Como medir (contra o marco).**
+
+```sql
+-- 1) o desfecho passa a ter nome proprio no financeiro
+select e.metadata->>'resolution_reason' razao, count(*), count(distinct e.user_id)
+from events e
+where e.name='cinematic_submission_claim' and e.metadata->>'status'='released'
+  and e.created_at > '2026-09-04 22:00:00+00'
+group by 1 order by 2 desc;
+
+-- 2) o resfriamento parou de trancar quem nao gastou nada
+select count(*) from events
+where name='generation_stage_error' and metadata->>'error' like 'Two AI attempts%'
+  and created_at > '2026-09-04 22:00:00+00';
+-- baseline: 12 eventos / 1 pessoa em 21 dias (todos de hoje, pessoa ffd78315)
+
+-- 3) a causa deixa de vir inflada dentro da recusa da fal
+select metadata->>'cause' causa, count(*), count(distinct user_id)
+from events where name='generation_failed_screen_shown'
+  and created_at > '2026-09-04 22:00:00+00' group by 1 order by 2 desc;
+-- esperado: 'empty_plan' aparece separado de 'provider_rejected'
+```
+
+Sinal de alarme: `empty_plan` com muita gente e **nenhum** filme depois em 24h
+— aí a copy não basta e o conserto real é o planner (que está sob trava e vira
+decisão do fundador).
+
+**Placar no corte (marco 2026-09-03 16:00 UTC, contas externas):** 43 cadastros ·
+29 pessoas com filme · 4 checkouts iniciados · **0 `payment_success`**.
+Checagem zero: 0 cadastro sem crédito em 2h · 0 claim sem filme em 3h ·
+18 `generation_stage_error` — **todos da pessoa desta rodada, e a causa está
+consertada aqui**.
+
+**Próximo item.** (a) a **R2 do cardápio** continua de pé e é a de maior valor:
+o episódio 2 nasce hoje de `Topic: "<tema>"` + ordem genérica, sem uma palavra
+do roteiro do episódio 1 — o `videos.script` do episódio anterior existe no
+banco e é jogado fora, então "não repita o episódio anterior" é uma ordem que o
+motor não tem como cumprir; (b) medir o ramo `free_engine` do momentum.
