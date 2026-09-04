@@ -169,6 +169,13 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
   const [used, setUsed] = useState<number | null>(null)
   const [credits, setCredits] = useState<number | null>(null)
   const [msLeft, setMsLeft] = useState<number | null>(null)
+  // KINEO-TRIAL-BANNER-FRESHNESS-2026-09-04 — this component lives in the
+  // persistent dashboard layout. A generation can debit credits, finish and
+  // emit `creditsChanged` without remounting the layout; previously the banner
+  // kept the response from page entry and could continue presenting the old
+  // first-delivery/return/subscription state. The token deliberately carries
+  // no balance from the event: /api/credits remains the only authority.
+  const [refreshToken, setRefreshToken] = useState(0)
   const [currency, setCurrency] = useState<CheckoutCurrency | null>(null)
   const [region, setRegion] = useState<PriceRegion>('standard')
   const checkout = useCheckoutLaunch('trial_active_banner')
@@ -185,6 +192,25 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
   const returnLadderShownKey = `${RETURN_LADDER_SHOWN_PREFIX}:${userKey}:${dayRef.current}`
   const firstDelivery = decideTrialFirstDelivery({ trialPhase: open ? 'active' : null, credits, creditsUsed: used })
   const returnLadder = decideTrialReturnLadder({ trialPhase: open ? 'active' : null, credits })
+  const refreshBanner = useCallback(() => {
+    setRefreshToken((current) => current + 1)
+  }, [])
+
+  useEffect(() => {
+    window.addEventListener('creditsChanged', refreshBanner)
+    return () => window.removeEventListener('creditsChanged', refreshBanner)
+  }, [refreshBanner])
+
+  // `msLeft` is a snapshot. Re-check at the server-owned deadline so a tab
+  // left open cannot keep advertising an active trial after it has ended.
+  // The normal trial is shorter than setTimeout's ceiling; the clamp keeps the
+  // scheduling safe if that commercial duration ever changes.
+  useEffect(() => {
+    if (!open || msLeft === null) return
+    const delay = Math.min(Math.max(msLeft + 250, 250), 2_147_483_647)
+    const timeout = window.setTimeout(refreshBanner, delay)
+    return () => window.clearTimeout(timeout)
+  }, [msLeft, open, refreshBanner])
 
   // ── Elegibilidade: só o servidor decide ────────────────────────────────────
   useEffect(() => {
@@ -208,25 +234,37 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
         // Guarda 1 — fase. Só 'active'. 'ending' e 'downgraded' são do modal de
         // downgrade, e as duas telas juntas na mesma navegação diriam a mesma
         // pessoa que o trial está correndo E que acabou.
-        if (trial?.phase !== 'active') return
+        if (trial?.phase !== 'active') {
+          setOpen(false)
+          return
+        }
 
         // Guarda 2 — quem já comprou não vê anúncio de trial. `hasPaid` sozinho
         // não basta: uma conta pode ter plano ativo sem `has_paid` (cortesia,
         // migração), e o erro caro aqui é vender de novo a quem já pagou.
-        if (data.hasPaid === true || data.isStarter === true || data.isCreator === true || data.isStudio === true) return
+        if (data.hasPaid === true || data.isStarter === true || data.isCreator === true || data.isStudio === true) {
+          setOpen(false)
+          return
+        }
 
         // Guarda 3 — só fala de concessão quem comprovadamente RECEBEU. Mesma
         // guarda de `showDowngradeModal`, pelo mesmo motivo: uma rota futura que
         // esqueça `trial_credits_granted` no SELECT perde o anúncio (silencioso,
         // do lado seguro) em vez de anunciar 0 créditos.
         const g = typeof trial.creditsGranted === 'number' ? trial.creditsGranted : 0
-        if (g <= 0) return
+        if (g <= 0) {
+          setOpen(false)
+          return
+        }
 
         // Guarda 4 — sem prazo não há manchete. `msLeft` nulo com fase 'active'
         // é dado inconsistente; falhar fechado é mais barato que pintar um
         // relógio vazio no topo de toda tela autenticada.
         const left = typeof trial.msLeft === 'number' ? trial.msLeft : null
-        if (left === null || left <= 0) return
+        if (left === null || left <= 0) {
+          setOpen(false)
+          return
+        }
 
         const currentCredits = typeof data.credits === 'number' && Number.isFinite(data.credits)
           ? data.credits
@@ -282,7 +320,7 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
     return () => {
       cancelled = true
     }
-  }, [dismissKey, returnLadderShownKey, shownKey])
+  }, [dismissKey, refreshToken, returnLadderShownKey, shownKey])
 
   // ── Moeda ──────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -473,6 +511,7 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
     msLeft,
     open,
     returnLadder.eligible,
+    refreshToken,
     userKey,
   ])
 

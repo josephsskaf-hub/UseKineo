@@ -25,7 +25,7 @@ new Function('module', 'exports', 'require', compiled)(moduleBox, moduleBox.expo
 })
 const policy = moduleBox.exports
 
-equal(policy.TRIAL_ACTIVE_SUBSCRIPTION_CTA_VERSION, 'trial_active_subscription_cta_human_view_v1', 'version is stable')
+equal(policy.TRIAL_ACTIVE_SUBSCRIPTION_CTA_VERSION, 'trial_active_subscription_cta_fresh_state_v2', 'version identifies the fresh-state denominator')
 equal(policy.TRIAL_ACTIVE_SUBSCRIPTION_CTA_VIEW_EVENT, 'trial_active_subscription_cta_viewed', 'view event is closed')
 equal(policy.TRIAL_ACTIVE_SUBSCRIPTION_CTA_MODE, 'trial_active_subscription', 'mode is closed and does not claim delivery')
 equal(policy.TRIAL_ACTIVE_SUBSCRIPTION_CTA_VIEW_RATIO, 0.5, 'half of the real CTA must be visible')
@@ -211,6 +211,14 @@ check(componentSource.includes('trialActiveSubscriptionCtaViewMetadata({'), 'cal
 check(componentSource.includes('trialActiveSubscriptionCtaClickMetadata({'), 'caller cannot hand-write click contract')
 check(/<button\s+ref=\{subscriptionCtaRef\}\s+type="button"/.test(componentSource), 'ref belongs to the real checkout button')
 check(!componentSource.includes("trial_active_subscription_cta_viewed', {"), 'component cannot hand-write the closed view payload')
+check(componentSource.includes("window.addEventListener('creditsChanged', refreshBanner)"), 'persistent banner refreshes from the existing credit authority signal')
+check(componentSource.includes("window.removeEventListener('creditsChanged', refreshBanner)"), 'banner removes its credit signal listener on unmount')
+check(componentSource.includes('setRefreshToken((current) => current + 1)'), 'credit signal invalidates the cached eligibility response')
+check(componentSource.includes('[dismissKey, refreshToken, returnLadderShownKey, shownKey]'), 'eligibility fetch reruns after the credit signal')
+check(/returnLadder\.eligible,\s+refreshToken,\s+userKey,/.test(componentSource), 'completed-video evidence rechecks after the credit signal')
+check(componentSource.includes('const timeout = window.setTimeout(refreshBanner, delay)'), 'server deadline schedules a fresh eligibility check')
+check(componentSource.includes('return () => window.clearTimeout(timeout)'), 'deadline refresh cannot survive unmount')
+equal((componentSource.match(/setOpen\(false\)/g) ?? []).length >= 5, true, 'successful ineligible refresh closes a previously open banner')
 check(reportSource.includes("'trial_active_subscription'"), 'canonical B2C report governs the experiment')
 check(reportSource.includes("'trial_active_banner', 'trial_active_subscription'"), 'canonical report maps the exact checkout surface')
 check(reportSource.includes("experiment === 'trial_active_subscription' && stage !== 'post_delivery'"), 'pre-delivery exposure is rejected independently')

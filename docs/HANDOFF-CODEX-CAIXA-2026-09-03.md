@@ -2323,3 +2323,227 @@ recebendo uma próxima ação, mas ainda não há janela madura para reescrever 
 tela; 12 de 27 não têm nenhuma exposição pós-filme registrada. Mantive as
 ofertas intactas e transformei o gargalo em duas perguntas mensuráveis: quem
 saiu antes da entrega e quem voltou sem ver convite.
+
+---
+
+## ROUND 36 — medição pura do bloco R33–R36
+
+**Data:** 2026-09-04 13:50→13:52 BRT
+
+**Pista:** Growth-B2C / CAIXA
+
+**Branch:** `codex/caixa-measurement-r36`
+
+### DECISÃO APROVADA
+
+Esta é a rodada exclusivamente de medição exigida a cada quatro rodadas. Não
+houve código, nova copy, oferta, preço, crédito, Stripe, migration ou escrita
+no banco.
+
+### RESULTADO DAS INTERVENÇÕES
+
+**R33 — recuperação do checkout da home:** desde o deploy de 13:36 BRT houve
+**0 pessoas externas** com novo `welcome_offer_checkout_clicked(surface=home)`
+e 0 `checkout_fallback_shown(surface=welcome_offer_home)`. A mudança permanece
+sem exposição; zero fallback não é sucesso e zero pagamento não é fracasso.
+
+**R34 — pedido dos cards de preço da home:** a FLUXO aceitou o pedido como
+próxima R23, mas até este corte não havia commit funcional correspondente na
+`main`. Não existe variante para medir ainda.
+
+**R35 — pós-filme:** foi diagnóstico, não mudança de produto. Fixou o
+denominador correto e o gate de 24h da ponte, ainda sem pessoa madura.
+
+**FLUXO R22 — confirmação do tema salvo no cadastro:** desde o deploy de
+13:45 BRT houve **0 pessoas externas** com
+`organic_signup_handoff_viewed(saved_creation_proof=true)` e 0 pagamentos.
+Também aqui a leitura correta é ausência de exposição.
+
+### PLACAR E VIGIA
+
+**EVIDÊNCIA DE PRODUÇÃO — corte 04/09/2026 13:51 BRT:** o placar canônico
+permanece em **41 cadastros externos, 27 pessoas com filme, 2 checkouts com
+filme, 2 sem filme, 0 assinaturas e 0 pessoas com falha sem filme**.
+
+No vigia móvel continua uma única pessoa externa: a intenção de compra
+preservada logo depois do cadastro, sem filme e sem pagamento já descrita na
+R35. Não é uma segunda pessoa nem um novo checkout.
+
+### CONCLUSÃO E RISCO
+
+Nenhuma das duas mudanças recém-publicadas recebeu uma pessoa elegível. O bloco
+R33–R36 aumentou observabilidade e fechou um caller sem resgate, mas ainda não
+produziu evidência de assinatura. O risco evitado foi reescrever duas variantes
+por causa de denominador zero.
+
+### PRÓXIMA JOGADA
+
+R37 pode voltar a produto. A lacuna nova comprovada é a atualização do
+`TrialActiveBanner`: ele não reage ao `creditsChanged` que o produto já emite,
+então saldo, fase e escolha entre primeiro filme/retorno/assinatura podem ficar
+obsoletos dentro do layout persistente. Implementar somente no componente
+CAIXA, sem tocar no caller do Claude, com teste executável de refetch/dedupe e
+comparação visual apenas se pixels mudarem.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+### 📋 O QUE ACONTECEU
+
+Medi sem inventar resultado: a recuperação da home e a prova de tema salvo
+ainda têm zero exposição humana pós-deploy. O placar continua 41 cadastros, 27
+pessoas com filme e nenhuma assinatura; as variantes ficam congeladas e a
+próxima rodada ataca um defeito novo de atualização do banner.
+
+---
+
+## ROUND 37 — o banner persistente acompanha o valor que acabou de mudar
+
+**Data:** 2026-09-04 13:52→13:58 BRT
+
+**Pista:** Growth-B2C / CAIXA
+
+**Branch:** `codex/caixa-banner-freshness-r37`
+
+### DADO QUE DOÍA E CAUSA
+
+**EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, corte da R35:** 25 das 27
+pessoas externas com filme estavam atualmente elegíveis ao banner; somente 5
+tinham visualização humana confirmada do CTA de assinatura. Esse número isolado
+não prova que 20 não viram a UI, porque a medição exigia um filme confirmado
+pelo servidor no instante da interseção.
+
+**FATO CONFIRMADO:** `TrialActiveBanner` mora no layout persistente, lia
+`/api/credits` uma vez no mount e ignorava `creditsChanged`. O produto já emite
+esse evento depois de débito/conclusão/pagamento, e TopBar, Sidebar e badges já o
+consomem. O banner podia manter saldo, fase, prazo e o modo anterior durante a
+mesma sessão; se `/api/videos` respondesse antes do primeiro filme terminar, a
+medição pós-entrega também só tentava novamente depois de nova interseção ou
+foco.
+
+### HIPÓTESE, EVENTO E GATE DEFINIDOS ANTES DA EDIÇÃO
+
+**HIPÓTESE:** revalidar pela autoridade já existente no momento em que o valor
+muda faz a mesma superfície sair de “primeiro filme” para retorno/assinatura sem
+refresh manual e produz um denominador pós-entrega verdadeiro.
+
+Mudança mínima: ouvir `creditsChanged` somente no componente CAIXA e consultar
+`/api/credits` novamente; nenhum dado do evento vira verdade de saldo. Evento de
+sucesso: `trial_active_subscription_cta_viewed` com versão
+`trial_active_subscription_cta_fresh_state_v2`, seguido de
+`trial_active_banner_cta`/`checkout_started`/pagamento por pessoa. Parar ou
+corrigir se houver loop de fetch, mais de uma visualização v2 por conta, banner
+de trial em conta paga ou regressão de primeira entrega.
+
+### IMPLEMENTADO
+
+- `components/TrialActiveBanner.tsx` escuta e remove o listener de
+  `creditsChanged`, invalida a leitura antiga e reaproveita `/api/credits` como
+  autoridade; respostas antigas são descartadas pelo cleanup já existente.
+- Uma resposta válida porém inelegível agora fecha um banner que estava aberto,
+  cobrindo compra, expiração, concessão inválida e fase encerrada. Falha de rede
+  continua preservando o último estado em vez de inventar uma verdade.
+- O prazo do servidor agenda uma revalidação no vencimento; timeout é limpo no
+  unmount.
+- A mesma invalidação refaz a prova `/api/videos`, fechando o buraco de filme
+  concluído sem remount.
+- A versão de medição subiu para v2, inclusive na chave local, para não misturar
+  o denominador antigo com o novo. Nenhuma copy, preço, crédito, plano, CTA,
+  posição ou estilo mudou; não há preview porque o diff visual é zero.
+
+### TESTES E PRODUÇÃO
+
+**TESTADO LOCALMENTE:** `test-trial-active-subscription-cta` 88/88,
+`test-trial-balance-bridge` 208/208 e `test-welcome-offer-frequency` 44/44:
+**340 verificações direcionadas**. TypeScript real verde e whitespace
+`cr-at-eol` limpo, antes e depois do rebase.
+
+**VALIDADO EM PRODUÇÃO — 04/09/2026 13:57 BRT:** SHA funcional
+`1d1227f3fbb8ff1919d23855d4f87e9b6a9cc945` em `origin/main`; Guardião run
+`33897826882` verde em 1m02s. Vercel Production
+`dpl_8vrq9nFCqU8ohbFCRB7Pi9Vy4xMQ` e Preview
+`dpl_3Wf2ca5qyA7WoNDw7herVcTcVQ4S` estão `READY` no SHA exato; build completou
+em 52s sem erro.
+
+### RISCO
+
+Baixo e reversível. Eventos repetidos causam novas leituras sem mutação; o
+efeito anterior é cancelado antes da nova resposta ser aplicada. O risco
+restante é mais chamadas a `/api/credits` em uma rajada de eventos; o produto
+hoje emite poucas por geração e o gate observa loops/duplicação.
+
+### PRÓXIMA JOGADA
+
+R38 começa pelo vigia e mede a primeira exposição v2. Sem exposição, atacar
+outra superfície CAIXA não congelada. Se a FLUXO entregar o pedido dos três
+cards de preço da home, reconciliar sem editar o arquivo dela.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+### 📋 O QUE ACONTECEU
+
+O banner de trial deixava de acompanhar a própria geração: o saldo mudava, mas
+a oferta podia continuar no passo anterior até navegar ou focar a aba. Agora ele
+se atualiza no mesmo sinal que já mantém os créditos do produto corretos, fecha
+quando a conta deixa de ser elegível e mede a oferta pós-filme com estado fresco.
+
+---
+
+## ROUND 38 — pedido do Claude fechado por relógio, sem falso bug
+
+**Data:** 2026-09-04 13:58→14:02 BRT
+
+**Pista:** Growth-B2C / CAIXA
+
+**Branch:** `codex/caixa-instruction-notice-r38`
+
+### PEDIDO, PROVA E CORREÇÃO FACTUAL
+
+O Claude pediu auditoria porque havia 42
+`activation_autostart_skipped(reason=prompt_looks_like_instruction)` de 40
+pessoas externas em 14 dias e zero `activation_instruction_notice_viewed`.
+
+**EVIDÊNCIA DE PRODUÇÃO — Supabase somente leitura, 04/09/2026:** o último
+guarda aconteceu às **14:19:18 UTC**. O SHA `679e9935`, que criou o aviso e seu
+evento, entrou na `main`/produção cerca de **14:31 UTC**. Depois desse corte há
+**0 pessoas e 0 eventos do guarda**, além de 0 avisos. Todas as 40 pessoas
+pertencem ao produto anterior; “o guarda disparou hoje” não significa “depois
+do deploy”.
+
+**FATO CONFIRMADO:** no caminho novo, a mesma condição
+`looksLikeInstruction(explicitPrompt)` chama `setShowInstructionPasteNotice(true)`
+e emite `activation_instruction_notice_viewed` antes de consumir o autostart. O
+card renderiza acima do textarea quando o prompt preservado continua presente.
+O teste existente ancora política, evento, privacidade e render do caller.
+
+### DECISÃO E RISCO
+
+Nenhuma alteração de produto. Afrouxar o guarda ou mover a condição com zero
+exposição pós-deploy criaria risco em um funil já saudável: 25 das 40 pessoas
+históricas receberam filme. O pedido foi marcado como atendido por correção do
+recorte temporal, não por código.
+
+Gate: primeira pessoa externa pós-14:31 UTC com
+`prompt_looks_like_instruction` deve gerar o aviso na mesma sessão. Só uma
+divergência real reabre o caller. Contar as 40 pessoas anteriores contra o aviso
+novo permanece proibido.
+
+### PRÓXIMA JOGADA
+
+R39 volta ao vigia e aos pedidos abertos realmente acionáveis. Se a FLUXO já
+tiver entregue a proteção dos cards de preço da home, reconciliar; senão,
+escolher uma superfície CAIXA própria e não congelada.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+### 📋 O QUE ACONTECEU
+
+O aviso não falhou: ainda não encontrou ninguém depois de entrar no ar. As 40
+pessoas citadas passaram pelo guarda antes do deploy. Fechei o pedido sem mexer
+na tela e preservei a proteção que impede roteiro-instrução de virar vídeo
+automático ruim.
