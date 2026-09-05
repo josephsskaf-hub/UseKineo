@@ -159,3 +159,9 @@ Acrescentar somente mudanças materiais, gates, uso devido e testes. Ao término
 **TRANSPARÊNCIA DO HARNESS:** a primeira asserção comparava ordem antiga dos campos e foi corrigida para identidades/valores, porque a proposta é justamente reordenar. A identidade do wrapper de custo também foi substituída por igualdade de props; Children.toArray atribui keys. O mock de useSeriesDoorSeen devolvia função em vez do objeto real e foi corrigido antes da reprodução da omissão. Esses ajustes não foram consertos do produto.
 
 **PREVIEW / GATES:** footer do HTML L3 atualizado para separar 11 estados testados em árvore React da comparação visual, que ainda mostra apenas estado vazio. Nenhuma edição de runtime ou novos serviços/dependências. L1/L2/L2b continuam preparados, não publicados. Próximo checkpoint mede uso às 14:14 e retoma preparação dentro do escopo; término 18:14.
+
+### Checkpoint 14:15 BRT — uso e reserva L2c
+
+**EVIDÊNCIA OPERACIONAL, 05/09 14:16 BRT:** conta semanal com 37% usado / 63% disponível; baseline 34%, diferença de 3 pontos compartilhada pela conta, não tokens desta tarefa. Dois resets disponíveis, nenhum usado. Abaixo do limiar de 40%; próxima consulta 16:14 BRT.
+
+**RESERVA DE ARQUIVOS / ACK DE TELAS MANTIDO:** `app/(dashboard)/history/HistoryClient.tsx` e `app/(dashboard)/library/LibraryClient.tsx`, apenas hrefs de continuação de tema e imports do adaptador UX. Main segue `2ca9a06c`, nenhuma nova edição concorrente observada. Não tocar na decisão comercial de ordem de ofertas, seus handlers, preços, elegibilidade, downloads ou estados de leitura. Acrescentar fontes history_milestone/history_video_card/library_video_card ao adaptador próprio. Helper canônico do Claude continua intocado. Preparação na branch, sem main/deploy, comparação de destino antes/depois antes de aprovação.
