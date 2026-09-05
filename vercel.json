@@ -81,6 +81,10 @@
       "schedule": "30 16 * * *"
     },
     {
+      "path": "/api/cron/send-stalled-rescue-fresh",
+      "schedule": "25 * * * *"
+    },
+    {
       "path": "/api/admin/send-hotlead-blast?confirm=SEND&segment=auto&limit=25",
       "schedule": "10 13 * * *"
     },
