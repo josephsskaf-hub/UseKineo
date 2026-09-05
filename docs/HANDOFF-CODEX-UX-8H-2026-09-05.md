@@ -76,3 +76,24 @@ Acrescentar somente mudanças materiais, gates, uso devido e testes. Ao término
 **FATO CONFIRMADO / CI:** `.github/workflows/guardiao.yml` tem `continue-on-error: true` e suíte sem instalar dependências. Verde global não é prova de todas as baterias. Nosso teste precisa de TypeScript/React instalados; não afirmar Guardião executado nesta branch, nem mudar o workflow fora deste lote. Exigir resultados dos jobs e teste específico antes de integração visual.
 
 **COORDENAÇÃO:** branch `codex/plano-ux-studio-2026-09-05` agora contém código UX em preparação, não só documentação. NÃO incorporar a branch inteira ou estes arquivos à fila de publicação do Claude: gate visual não autorizado. Nenhum merge na main nem deploy nesta rodada. Próximo checkpoint: contratos dos botões de continuação/Studio, consumindo helper do Claude sem editá-lo; L1 fica preservado aguardando revisão visual.
+
+### Checkpoint 11:15 BRT — contrato L2 caracterizado antes de trocar destinos
+
+**FATO CONFIRMADO:** fetch mantém main `2ca9a06c`; nenhuma aprovação visual nova nem alteração concorrente publicada observada. AGENTS, estado/perguntas e DESIGN lidos; números de julho não usados como placar atual. L1 preservado sem nova edição cosmética. Uso ainda não devido (próxima leitura 12:14).
+
+**TESTADO LOCALMENTE, diagnóstico e não aceite:** `node scripts/diagnose-studio-continuation.mjs`, exit 0, executa por AST o leitor de URL e o callback Generate reais de StudioClient, com setters/roteamento/storage simulados. Executa também `buildSeriesContinuationHref` real, sem editar o helper. Zero API/fornecedor; nenhum token de consentimento criado no navegador real. O teste declara explicitamente que caracteriza o comportamento atual, incluindo perdas, e NÃO certifica a correção.
+
+**FATO CONFIRMADO:** duas famílias diferentes de botão não podem receber substituição global:
+- `lib/seriesContinuation.ts:244–269`, consumido por StudioClient:812/871, ResumeStrip:84 e outras telas, leva uma INSTRUÇÃO baseada no tema para `/studio/create`, com `series`, `continuation_source`, `autoanalyze` e motor opcional. Não é roteiro pronto nem memória completa.
+- `GenerateClient.tsx:10907–10937` recebe roteiro JÁ ESCRITO por `/api/next-episode` e analisa com `structureFirst:false`; possui ainda variante trialRepeat com decisão de motor/duração própria. Deve chegar ao Studio como `verbatim`, nunca virar instrução ou novo roteiro. Variante financeira não será reimplementada pelo lote UX.
+
+**RISCO REPRODUZIDO DA TROCA INGÊNUA (não incidente novo de produção):** mandar os links de tema para `/studio` sem completar o contrato faz o próximo Generate perder `series` e `continuation_source`. O Studio nasce com 60s (`StudioClient.tsx:165`), o compositor com o primeiro botão/35s (`GenerateClient.tsx:450,1686`); uma simples troca também mudaria duração sem pedido. Se o Studio permanecer montado, a URL sem `script_mode` mantém o modo anterior. Roteiro pronto com modo/motor/duração explícitos sobreviveu à ida e volta; parâmetros de idioma e formato não sobreviveram ao leitor atual. Isso fundamenta a correção, sem afirmar que esses percursos hipotéticos já foram usados por cliente.
+
+**DESENHO L2 / gates antes de implementação:**
+1. Adaptador de navegação da pista UX consome o href canônico do Claude, sem mudar sua API pública nem e-mails. Separa tema/instrução (`ai`) de roteiro pronto (`verbatim`), preserva conteúdo e metadados próprios.
+2. Entrada no Studio é revisão sem autoanálise, token ou gasto. Não reutiliza `generationId`, `renderId`, flags de retry/restore ou consentimento antigo como novo filme.
+3. Preservar duração efetiva anterior (incluindo 35s no link genérico), motor explícito, contexto/atribuição e idioma/formato explícitos. Não alterar escolhas manuais posteriores nem vincular idioma de interface ao de narração.
+4. Testar caller de cada botão + leitor + próximo clique, troca de rota no mesmo mount, Unicode/linhas, roteiro longo, tema vazio, motor restrito, redirecionamentos antigos e nenhum gasto na chegada. Aceite exige testes de PRESERVAÇÃO, não apenas o diagnóstico atual.
+5. Começar pelos dois botões de StudioClient; outros chamadores por lotes. TrialRepeat e recuperação ficam intocados até contrato específico. Preview da jornada antes/depois e aprovação continuam obrigatórios.
+
+**PRÓXIMA JOGADA:** reservar StudioClient e adaptador novo no Git; implementar o percurso dos dois botões do Studio sem tocar em `seriesContinuation.ts` nem GenerateClient nesta primeira fatia. L1 permanece aguardando aprovação, sem novo aviso repetitivo ao fundador.
