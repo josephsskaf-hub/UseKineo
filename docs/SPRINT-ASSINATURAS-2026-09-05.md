@@ -1513,3 +1513,166 @@ lá ainda anuncia o preço e o trial antigos.
 Zero assinantes no ciclo, contra a meta de 2 a 3 por dia. A causa mais provável
 não é falta de conserto: é que **cinco dos seis consertos nunca saíram do
 computador**.
+
+---
+
+## #7 — 15:39→16:30 BRT — 21 pessoas ficaram sem saldo para repetir o filme que acabaram de fazer, e UMA achou a porta de comprar
+
+**Nota de calendário antes de tudo:** a entrada anterior está rotulada "#6 —
+18:10 BRT — FECHAMENTO DO CICLO", mas foi escrita às **15:15** (`git log` do
+commit `664a3962`). A janela do ciclo vai até **18:38 BRT** — o fechamento saiu
+**três rotações cedo**. O ciclo não acabou; esta é a rotação #7, e ainda cabem
+mais duas antes do fecho real. Registro para que a próxima sessão não leia
+"FECHAMENTO" e pare com 3 horas de janela na mesa.
+
+### 1. A jogada, e por que foi esta
+
+O cardápio manda J5. O fechamento prematuro, apesar de precoce, acertou o
+diagnóstico e nomeou a mesma peça: o degrau **2+ filmes → checkout, que era
+0 de 13**. Seis rotações trabalharam o degrau 1→2; ninguém tinha trabalhado o
+degrau de pagar. Confirmei com dado próprio antes de codar.
+
+### 2. O número que doía
+
+Marco 03/09 16:00 UTC, contas externas, cruzando **pessoa a pessoa** o saldo
+com o preço que ela pagou no último filme:
+
+| | |
+|---|---|
+| entregaram um filme | **44** |
+| ficaram com saldo MENOR que o preço do filme que acabaram de fazer | **21** |
+| dessas 21, chegaram ao checkout | **1** |
+| das 23 que ainda tinham saldo, chegaram ao checkout | **0** |
+
+E o formato da parede é sempre o mesmo:
+
+- **11 pessoas** estão no ponto idêntico: trial de 25, um Seedance de 15,
+  sobram 10 — e o próximo filme do mesmo motor custa 15.
+- **3 pessoas** estão a **UM crédito** do próximo filme (pagaram 13, sobrou 12).
+- **6 delas já tinham feito 2 ou mais filmes** — ou seja, gente que gostou.
+
+**O que a casa fazia nesse instante: nada.** O saldo mora num canto da tela, o
+preço do motor mora no /studio, e ninguém nunca junta os dois números na frente
+da pessoa. Ela clica em gerar, o modal de upgrade aparece como **recusa**
+(`upgrade_modal_opened` reason=`trial_spent`) e a conversa começa por "não".
+
+### 3. O que mudou (SHA `1b930e9a`, na fila)
+
+`app/api/next-action` — contrato de servidor que responde, **antes** do clique,
+com os dois números na mão: `state` (`first_film` / `dry` / `can_continue`),
+saldo, quanto custou o último filme, quanto falta, os motores que o saldo
+**ainda** paga, e a porta do plano.
+
+Três regras que vieram dos dados, não do gosto:
+
+1. **O preço não é inventado.** "Quanto custa o próximo" é o `credits_used` que
+   a pessoa literalmente acabou de pagar, lido do banco. As alternativas usam
+   `creditCostForDuration` — a fonte única do cobrador, mesmo `isPaidUser`,
+   mesma duração do filme feito. Um guardião compara o `PAID_PLANS` da rota com
+   o do `/api/generate-video-cinematic` e fica **vermelho se divergirem**: é a
+   trava contra a classe "copy que mente" (achado 4 da auditoria de 28/08).
+2. **Regra K1:** a porta do plano não depende de ter filme nem roteiro. Vai em
+   todos os estados, inclusive no de saldo desconhecido. Os 2 checkouts do ciclo
+   vieram de contas com 0 filmes — trancar essa porta atrás de um render seria
+   fechá-la na cara de quem mais a procura.
+3. **Leitura pura.** Não concede crédito, não cobra, não envia e-mail, não toca
+   preço nem oferta. Um evento e mais nada.
+
+Saldo desconhecido **não** vira saldo zero — a lição da #1 deste mesmo sprint,
+que mandou 22 de 26 e-mails "você está sem crédito" para gente **com** crédito.
+
+O rebaixamento de motor **reusa** `buildSeriesContinuationHref`, que já sabia
+carregar o `?engine` acessível quando quem chama **prova** que o saldo não
+cobre (sprint-retencao #2). Aqui a prova existe, e o parâmetro só viaja no
+estado seco.
+
+### 4. O que o cliente passa a receber
+
+Hoje, **nada ainda** — e isto precisa ficar escrito sem maquiagem. A rota
+devolve JSON; **a tela é da pista do Codex**. O que existe agora é (a) o
+contrato pronto e (b) o denominador: `next_action_served` passa a dar
+denominador ao degrau que hoje é 21 → 1 e que ninguém conseguia contar.
+
+### 5. Testes — e um verde falso que eu peguei no meio do caminho
+
+`scripts/test-next-action-2026-09-05.mjs`: **39/39**, lendo os arquivos REAIS
+(rota, `engineCost`, `seriesContinuation` e o cobrador). Falsificado por
+mutação: divergir o `PAID_PLANS`, mandar o `?engine` sem prova de saldo e tirar
+o dedupe deixam o guardião **vermelho**; restaurado, verde.
+
+⚠ **O primeiro `npx tsc` desta rotação deu exit 0 mentindo.** A junção do
+`node_modules` não tinha sido criada (o `mklink` falhou em silêncio) e o npx
+nem tinha TypeScript — ele "passou" porque não rodou. Depois de montar a
+junção: **0 erros**, e uma sonda com erro proposital devolveu 1 erro, provando
+que o verde é verde. Guardião verde ≠ suíte integral verde: rodei o meu, não a
+bateria inteira.
+
+### 6. Risco
+
+Baixo e reversível: rota nova, `GET`, nenhum caller em produção ainda. Se o
+contrato estiver errado, ninguém o vê — o pior caso é um evento a mais no
+banco. O único risco de verdade é o espelho do `PAID_PLANS` envelhecer, e é
+exatamente isso que o guardião trava.
+
+### 7. Placar (marco 03/09 16:00 UTC, contas externas)
+
+cadastro **67** → filme 1 **43** → filme 2 **13** → filme 3 **4** →
+checkout **3** → **pagou 0**
+
+| fonte | cadastro | filme 1 | filme 2 | filme 3 | checkout |
+|---|---|---|---|---|---|
+| chatgpt | 34 | 29 | 10 | 2 | 1 |
+| taaft | 16 | 9 | **1** | 0 | 0 |
+| (direto) | 13 | 2 | 2 | 2 | 2 |
+| nav | 3 | 3 | 0 | 0 | 0 |
+| partners | 1 | 0 | 0 | 0 | 0 |
+
+### 8. Checagem zero — limpa
+
+cadastro sem crédito (24h) **0** · render preso >2h **0** · débito sem entrega
+**0** · `next_episode_failed` pós-deploy **0** contra **4** pedidos → o conserto
+do #0 segue **4/4 (100%)**.
+
+### PRÓXIMA JOGADA
+
+**O que a rotação seguinte precisa medir é se o `?engine` rebaixado realmente
+salva a pessoa seca.** Depois que a fila subir, o SQL é `next_action_served`
+com `state='dry'` cruzado com `series_continuation_landed` de
+`source='next_action'` → filme entregue em 24h. Se as 21 pessoas do quadro
+acima virarem filme com o motor barato, o degrau seco deixa de ser 21 → 1.
+
+**A jogada não-óbvia que este dado abre:** os **11 casos idênticos** (trial 25,
+Seedance 15, sobram 10) não são azar — são **aritmética do trial**. O trial dá
+25 e o motor mais escolhido custa 15: o segundo filme do mesmo motor é
+**impossível por construção**, e três pessoas ficaram a **1 crédito** dele. Não
+estou propondo mexer em preço nem em oferta (é decisão do fundador, e limite
+deste ciclo): estou registrando que **o número 25 e o número 15 foram
+escolhidos em mesas diferentes e nunca foram somados na mesma conta.** Quem
+decidir isso deve ver os dois lado a lado.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+1. **Clicar em `SUBIR-SITE.bat`** (raiz de `C:\kineo`). A fila está em **15
+   commits** e **6 consertos** parados — nada disso tocou um cliente ainda. É a
+   ação de maior alavanca do dia, e é a mesma pendência de 15:15.
+2. **Conferir**, depois do clique, que o log termina em "SUBIU N ENTREGA(S)" e
+   que `git rev-list --count origin/main..entrega-atual` volta a **0**.
+3. **Atualizar a listagem do TAAFT** (dashboard deles): anuncia trial de 40cr e
+   "from $9.90/mo"; o real é 50cr e $7. É a fonte que mais perde gente do 1º
+   para o 2º filme — 1 em 16 hoje.
+
+### 📋 O QUE ACONTECEU
+
+Descobri, olhando pessoa a pessoa, que **21 das 44 pessoas que fizeram um filme
+terminaram sem saldo para fazer outro igual — e só uma delas achou a página de
+plano.** Onze estão no ponto exato de "trial de 25, filme de 15, sobram 10", e
+três estão a um único crédito do próximo filme. O produto entrega, a pessoa
+gosta, o crédito acaba, e a casa fica muda justamente aí.
+
+Construí a peça de servidor que quebra esse silêncio: um contrato que diz, com
+os dois números na mão, "seu último filme custou 15, você tem 10", oferece o
+motor que o saldo ainda paga e mostra a porta do plano — sem inventar preço
+(usa a mesma função que cobra) e sem prometer nada sobre os planos.
+
+A tela é da pista do Codex e já está pedida. E fica um recado de calendário: o
+"fechamento" escrito às 15:15 saiu três rotações cedo — o ciclo vai até 18:38.
