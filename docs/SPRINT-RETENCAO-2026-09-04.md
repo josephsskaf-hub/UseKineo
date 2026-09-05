@@ -2858,3 +2858,209 @@ de 4h.
 
 **Entrega:** 1 script de teste (57 verificações, 6 mutações) + 1 entrada de
 diário + 2 pedidos. Zero código de envio. Zero risco de suprimir e-mail de alguém.
+
+### #14 (global #30) — 00:09→01:40 BRT — 60% DAS PESSOAS DE UM FILME NÃO VOLTAM NUNCA, E A "CAIXA VAZIA" SÓ EXPLICA A METADE MENOR: 192 SUMIRAM, 116 VOLTARAM E NÃO APERTARAM, 12 APERTARAM
+
+Rodada de **medição decisiva e verificação da fila**, executando a pergunta que
+a #13 (global #29) deixou como critério de escolha da próxima construção.
+**Zero linha de código de produção, de propósito** — explicado no fim.
+
+#### Anti-repetição — a fila me impediu de refazer DUAS rodadas inteiras
+
+Eu abri esta rotação com o "próximo item" da **#24**: *medir quantos e-mails a
+mesma pessoa recebe por semana*. Antes de escrever uma linha rodei o passo que o
+pedido das 18:20 exigiu:
+
+```sh
+git log --oneline origin/main..entrega-atual   # 13 commits, NÃO estava vazia
+```
+
+A fila tinha **#9 a #13 (globais #25–#29)** — e **duas delas já eram exatamente
+o meu plano**: a #13 mediu a pressão de e-mail (mediana **1/semana**, máximo
+**6 em 7 dias**) e **refutou** a hipótese das cartas se atropelando; e a #11 já
+tinha **tirado a porta do episódio 2 do ramo errado** (`51f2efdb`), que era o
+"próximo item" escrito pela própria #13. **Sem a leitura da fila eu teria
+construído um teto de e-mail desnecessário e reconsertado uma porta já
+consertada.** É a terceira vez na sprint que o mesmo passo salva uma rotação —
+ele merece virar linha do programa, não recomendação.
+
+#### A pergunta da #13, respondida com a régua canônica da casa
+
+A #13 fechou assim: *"das pessoas que pararam no primeiro filme, quantas
+voltaram ao site sem gerar — essa responde se o problema é a caixa vazia ou a
+ausência de retorno."*
+
+**Correção de percurso, minha, antes do número:** o meu primeiro corte deu
+*"299 voltaram e não apertaram"* — e estava **errado**. Eu contei *qualquer*
+linha em `events` depois do filme, e a maior parte é **evento de servidor**
+(carimbo de e-mail, liquidação de claim), não presença de gente. Pior: eu
+incluí `generate_page_viewed`, `studio_page_viewed`, `dashboard_viewed` e
+`home_viewed` na consulta e **nenhum dos quatro existe** no banco — a coluna
+inteira era zero e eu não teria percebido. Refiz com a regra que o CLAUDE.md já
+fixou em 01/09 (*"live 'online' só conta evento com `session_id`; server events
+não são presença"*), e o resultado mudou de figura.
+
+**Coorte: 320 pessoas externas com EXATAMENTE 1 filme concluído em 30 dias,**
+com o filme há mais de 2h (tempo de voltar). Presença = evento com `session_id`
+mais de 10 min depois do filme.
+
+| desfecho | pessoas | |
+|---|---:|---|
+| **nunca voltaram** | **192** | **60,0%** |
+| voltaram e **não** apertaram gerar | **116** | **36,3%** |
+| apertaram gerar de novo | **12** | **3,8%** |
+| voltaram em 2+ dias distintos | 22 | 6,9% |
+
+**A resposta é "os dois, e o maior é a ausência de retorno" — mas a metade
+acionável é grande e está dentro de casa.** 116 pessoas **atravessaram a porta
+de novo, por vontade própria, e não apertaram nada**. Essas não precisam de
+carta, de anúncio nem de preço: já estão logadas na tela. É exatamente a coorte
+do #19 (`composer_empty`) e da #11 (a porta que acabou de sair do ramo errado),
+e nenhuma das duas peças tinha, até agora, um denominador honesto. **Agora tem:
+116 é o alvo, 12 é a linha de base.**
+
+**No recorte do marco** (contas nascidas depois de 2026-09-03 16:00 UTC), 24
+pessoas de 1 filme elegíveis: **16 nunca voltaram · 8 voltaram sem apertar ·
+0 apertaram**. Amostra pequena demais para conclusão própria, mas coerente com
+os 30 dias e sem nenhum contra-sinal.
+
+#### O placar do ciclo estava sendo calculado de DUAS formas, e a diferença tem nome
+
+Medi 46 / **29** / **37** e a #13 tinha publicado 46 / **31** / **39** uma hora
+antes. Filme não desaparece — então uma das duas contas estava errada. **Nenhuma
+estava:** são duas receitas diferentes que ninguém tinha escrito.
+
+| receita | pessoas | filmes |
+|---|---:|---:|
+| contas **nascidas** depois do marco | 29 | 37 |
+| filmes **feitos** depois do marco, de qualquer conta externa | 31 | 39 |
+
+A diferença são **exatamente 2 pessoas que se cadastraram ANTES do marco e
+voltaram para fazer filme depois dele** — e elas são, ironicamente, **a única
+prova de retorno da janela inteira**: uma de 20/08 fez o **2º filme** (o degrau
+1→2 que o placar diz não se mover), e uma de 30/08, com 5 filmes, **é pagante**.
+
+**Isto não muda a manchete do ciclo, e eu conferi antes de dizer:** no recorte
+do marco existem **4 `checkout_started` e ZERO `payment_success`**. O pagamento
+daquela pessoa é **anterior** ao marco. **`payment_success` do ciclo = 0**
+continua verdadeiro. Mas as duas receitas precisam parar de se alternar entre
+rotações: **proposta — a linha "pessoas com filme" do placar passa a ser sempre
+a de contas nascidas depois do marco (29/37)**, que é a que mede o ciclo, e o
+retorno de conta velha vira **linha própria**, porque hoje ele se esconde dentro
+de um número que todo mundo lê como "gente nova".
+
+#### O teto de e-mail que a casa defende NÃO EXISTE — e por que eu não o consertei
+
+Achado desta rodada, não coberto pela #12 nem pela #13 (as duas trataram
+*supressão* e *cobertura*; isto é a *cota*). `lib/email/quota.ts` faz o e-mail
+de baixa prioridade **ceder a vaga** a partir de 60% de um teto diário de
+**100/dia** (plano free do Resend, `dailyCap()`, `KINEO_EMAIL_DAILY_CAP` não
+setado — o próprio ledger grava `yield NN/100`).
+
+| medido no `email_send_log` | |
+|---|---:|
+| dias seguidos com envios **aceitos** acima de 100 | **14 de 14** |
+| faixa diária aceita (`ok=true`) | **98 – 162** |
+| `http_status = 429` em toda a história | **0** |
+| eventos `email_quota_exhausted` | **0** |
+| maior `http_status` já visto | **200** |
+| **e-mails que a casa MATOU sozinha** (`yielded`) | **91** (16 nos últimos 7d) |
+
+**O Resend aceitou 140–160/dia por duas semanas sem recusar uma única vez. O
+teto de 100 é ficção, e 100% das perdas são nossas, não do fornecedor.** Além
+disso o contador é cego: **2 de 35 rotas de envio** chamam `claimEmailSlot` /
+`recordEmailSend` (`cron/send-recovery` e `admin/send-hotlead-blast`) — o gate
+decide sobre um número que ignora 33 remetentes.
+
+**E mesmo assim eu não consertei, por três razões medidas:**
+
+1. **Quem morre é só `hotlead_*` (growth).** Os `trial_*` e o `checkout_recovery`
+   são `revenue` e **nunca** são barrados. Nada de `product` passa pelo gate hoje.
+   Raio de alcance real: ~5 e-mails/dia de campanha.
+2. **O que seria restaurado é justamente o que não funciona.** O #14 mediu 446
+   cartas → 9 voltas, nenhuma família chega a 4%. Consertar o gate devolveria
+   volume a um canal que a #13 e o #14 já fecharam como não-gargalo.
+3. **Abrir um gate de e-mail às 2h da manhã, sem webhook de bounce** (a #24
+   mediu: reclamação e quique são **invisíveis** para a casa) **e sem fonte de
+   consentimento**, é aumentar envio no exato ponto cego que já está na mesa do
+   fundador. O padrão seguro é **não aumentar envio**.
+
+Fica registrado com número para ninguém "descobrir" isto de novo — e a decisão,
+que é de política e não de código, vai nos PEDIDOS.
+
+#### A entrega desta rodada: a fila inteira verificada, verde, pronta para subir
+
+A fila tem **13 commits não publicados** de **três sessões paralelas**, e a
+última verificação sobre a ponta **combinada** foi na #11 — antes da #12 e da
+#13 entrarem. Rodei tudo sobre `f062bd3e`, em worktree limpa nascida da fila:
+
+| guardião | resultado |
+|---|---|
+| `npx tsc --noEmit` | **exit 0** |
+| `test-porta-episodio2-ramos` (#11) | **32/32** |
+| `test-cobertura-supressao` (#13) | **57/57**, exit 0 |
+| `test-serie-memoria` | **139/139** |
+| `test-despacho-vazio` | **51 verdes, 0 vermelhas** |
+| `test-diretrizes-coladas` | **61/61** |
+| `test-caixa-vazia-episodio2` | **39, 0 falhas** |
+| `test-memoria-episodio` | **42, 0 falhas** |
+| `test-porta-episodio2` | **0 falhas** |
+| `test-zero-cenas-fallback` | **22, 0 falhas** |
+
+**Ressalva honesta, e ela importa:** isto é **a bateria desta sprint verde**,
+não *"suíte histórica integral verde"*. Não rodei os testes anteriores a 04/09.
+
+#### Checagem zero (1h) — LIMPA
+
+| | |
+|---|---:|
+| render preso > 3h | **0** |
+| despacho vazio (`planned=0`) 3h | **0** |
+| `cinematic_zero_scenes_planned` (história) | **0** |
+| `generation_stage_error` 3h | **0** |
+| `generate_failed` 3h | **0** |
+| filmes concluídos 3h | 2 |
+| cadastros 3h | 1 |
+
+Nada novo, nenhuma causa antiga de volta.
+
+#### Placar (marco 2026-09-03 16:00 UTC, contas externas, medido 04:15 UTC)
+
+| | | vs #13 |
+|---|---:|---|
+| cadastros | **46** | = |
+| pessoas com filme (contas novas) | **29** | receita diferente, ver acima |
+| filmes entregues (contas novas) | **37** | idem |
+| checkout | 4 | = |
+| `checkout_success_viewed` | **0** | = |
+| **`payment_success`** | **0** | = |
+
+**Distribuição:** 24 no 1º · 4 em 2-3 · 1 em 4-7. **Ninguém subiu de faixa.**
+
+#### Quantas pessoas isso move de N para N+1
+
+**Zero hoje, e assumido.** Esta rodada não muda produto. O que ela entrega é
+**o denominador que faltava** (116 pessoas voltam e não apertam; 12 apertam) e
+**a fila verificada** para o fundador poder publicar 13 commits com um clique.
+Construir feature nova às 2h da manhã, em cima de uma pilha não publicada de
+três sessões, é o pior momento possível para adicionar risco.
+
+#### Próxima jogada
+
+**O alvo agora tem nome e tamanho: 116 pessoas de um filme voltaram sozinhas e
+não apertaram nada, contra 12 que apertaram.** A rotação seguinte não precisa
+medir mais exposição — precisa esperar a fila subir e então ler, com
+denominador real, se a porta da #11 (agora nos dois ramos) e a caixa vazia do
+#19 movem esses 116. **Antes disso, qualquer peça nova é hipótese sobre
+hipótese.** E o número a vigiar em primeiro lugar não é clique: é
+`series_continue_seen` finalmente **passar de 52 pessoas em 30 dias** — hoje as
+impressões (71) são **menos** que os cliques (122), o que só pode significar que
+o evento de exposição ainda não vê a maior parte das telas onde a porta aparece.
+
+#### Pedidos novos
+
+Dois, nos PEDIDOS: a **decisão de política do teto de e-mail** (fundador) e a
+**padronização da receita do placar** (as duas pistas).
+
+**Entrega:** 1 entrada de diário + 2 pedidos + a fila inteira verificada verde.
+Zero código de produção. Zero risco.
