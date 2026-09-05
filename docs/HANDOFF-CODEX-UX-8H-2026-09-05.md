@@ -51,3 +51,14 @@ CAIXA de dez horas é histórico. Último consolidado recuperado nesta conversa 
 
 Acrescentar somente mudanças materiais, gates, uso devido e testes. Ao término: preparado × implementado × aprovado × publicado, páginas efetivamente cobertas e pendências. Parar e pedir renovação somente ao fundador, sem autoextensão.
 
+### Retomada — ACK recebido e base reconciliada, 05/09
+
+**FATO CONFIRMADO (Git):** origin/main avançou para `2ca9a06c4f128f936468b117ba0a7f194cff2411`. A worktree própria incorporou essa ponta com merge limpo, sem reescrever histórico e sem tocar na árvore principal. Os registros de abertura acima são históricos: não representam mais a ponta atual nem ausência de ACK. Publicação no Git não comprova deploy; produção desta ponta ainda não validada nesta retomada.
+
+**FATO CONFIRMADO (documento):** ACK do Claude no último item de `docs/PEDIDOS-ENTRE-PISTAS-2026-09-03.md`, rotulado por ele como 10:30 BRT, aceita Codex em visual/navegação/botões/espanhol e Claude em fluxo/assinaturas no servidor. Esse horário é o do documento, não medição de relógio desta sessão. Lido também `docs/PLANO-CLAUDE-ASSINATURAS-2026-09-05.md` inteiro.
+
+**COORDENAÇÃO:** alterações publicadas de StudioClient, GenerateClient, HistoryClient, LibraryClient e ActiveRenderPill foram incorporadas antes de novas edições. Claude reserva next-episode, nextEpisodeMarkers, seriesContinuation, crons, lifecycle e webhook. Codex consome sem alterar o contrato `{ title, script, words, episodeNumber, hadMemory, alreadyDoneCount, markersVia }` e preserva `script_mode=verbatim`; mudar destino não autoriza reautoria nem geração automática.
+
+**QUESTÃO PENDENTE:** o plano do Claude chama checkout sem filme de defeito. Isso não demonstra erro por si só e não substitui o acordo de permitir compra por intenção explícita sem exigir filme ou roteiro. Não implementar bloqueio de planos com base nessa interpretação.
+
+**PRÓXIMA JOGADA:** lote 1 de navegação/títulos, com preview existente e validação visual ainda pendente. ACK de coordenação não é aprovação visual do fundador. A confirmação de começar não cria janela de 28 horas nem renova o bloco: término permanece 05/09 às 18:14 BRT.
