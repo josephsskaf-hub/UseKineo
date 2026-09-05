@@ -1811,3 +1811,191 @@ Resend + aceite no cadastro + destino da `send-india-price`, a unica das 31
 rotas sem guarda de opt-out — manual e nunca disparada, mas armada).
 
 **Entrega:** 2 arquivos de documentacao. Zero codigo de producao. Zero risco.
+
+---
+
+### #9 (global #25) — 21:12→22:10 BRT — 46 PESSOAS COLARAM A ORDEM QUE DERAM AO CHATGPT, PEDIRAM 2–4 MINUTOS EM 16:9, RECEBERAM 35 SEGUNDOS EM 9:16 — E 8,7% DELAS FIZERAM UM SEGUNDO FILME, CONTRA 27,5% DE QUEM COMEÇOU DE UM TEMA
+
+**SHA `bbccd82b`** · fila `entrega-atual` = 1 commit · `npx tsc --noEmit` limpo ·
+worktree `C:\kineo-wt\r9-guardiao` nascida de `origin/main` = `7a24edf7`.
+
+#### O número que doía
+
+30 dias, contas externas, SQL de 00:30 UTC. A coorte é o **primeiro** filme da
+pessoa, classificado pela primeira linha do `videos.topic`:
+
+| primeiro filme nasceu de… | pessoas | média de filmes | fizeram 2+ |
+|---|---:|---:|---:|
+| um tema normal | 714 | 1,59 | **27,5%** (196) |
+| uma **ordem colada** | 46 | 1,11 | **8,7%** (4) |
+
+**3,2× de diferença no degrau 1→2** — o degrau que o #16 mediu como sendo a
+assinatura (3 de 3 assinaturas da semana vieram de quem fez 2+ filmes).
+**18 das 46 chegaram nos últimos 14 dias**: não é coorte morta.
+
+#### A contaminação que eu tive de tirar antes de acreditar no número
+
+O filtro cru casa **116** filmes. Não são 116. **43 são a semente da PRÓPRIA
+CASA** ("Create the next episode in the same Short series about…", a porta de
+continuação que o #18/#19 puseram no ar e que **funciona**), e **6 nasceram
+ANINHADOS** — a semente dentro da semente. O último aninhado é de **03/09 12:27
+UTC**, antes do `normalizeSeriesSeed` do #20; nenhum depois. Sem excluir isso, a
+peça mais eficiente da casa entraria na medição como defeito. **Coorte limpa: 46.**
+
+#### O mecanismo, lido nas amostras reais — não suposto
+
+O texto dessas pessoas não é um tema: é o **pedido que elas deram ao ChatGPT**,
+colado inteiro, cheio de exigências que o produto descartava **calado**:
+
+```
+Create a 2–4 minute, 16:9 widescreen educational STEM documentary-style …
+Create a 25-30 second vertical YouTube Short about the psychology of …
+Create a 35–45 second YouTube Short titled:
+Create ALL visuals with AI. DO NOT use stock footage or real people.
+Create this YouTube Short ENTIRELY IN ARABIC.
+```
+
+A casa tem **três** durações (35/60/90) e é **9:16**. Quem pediu 2–4 minutos em
+16:9 recebeu 35 segundos em 9:16, **pagou por isso**, e não voltou.
+
+#### O que mudou (arquivos)
+
+| arquivo | o quê |
+|---|---|
+| `lib/pastedDirectives.ts` **(novo)** | módulo puro, **zero imports**: lê as diretrizes escritas e diz, para cada uma, se a casa atende |
+| `app/(dashboard)/generate/GenerateClient.tsx` | ligação na **análise** (que não debita) + a frase honesta ao lado dos botões de duração |
+| `scripts/test-diretrizes-coladas-2026-09-04.mjs` **(novo)** | 61 verificações com os textos REAIS do banco |
+| `scripts/test-serie-memoria-2026-09-04.mjs` | o guardião que gritava sempre (abaixo) |
+
+1. **A duração pedida acende o botão que a COBRE.** Régua do fundador (02/09):
+   "passar do alvo é bom; ficar ABAIXO é defeito (história interrompida)" — 40s
+   pedidos viram **60**, nunca 35. Hoje o texto era ignorado inteiro.
+2. **O que a casa comprovadamente não faz** (mais de 90s, 16:9) vira **uma frase**
+   ao lado dos botões, com o dedo ainda no botão. **Não é bloqueio** — o filme sai
+   igual se a pessoa seguir.
+3. Tudo isso na **análise**, que não debita crédito (Contrato C1). O ponto inteiro
+   é saber **antes** de gastar.
+4. **Idioma e "sem banco de imagens" são detectados e NÃO julgados** (`unknown`,
+   só telemetria). A cobertura real de voz por idioma e de fonte de imagem por
+   motor **não foi medida** nesta rodada, e recusar sem medir seria a mesma copy
+   que mente da auditoria de 28/08.
+5. Evento **`pasted_directives_detected`** — o denominador que nunca existiu.
+
+**Trava de qualidade (fundador 03/09): zero linhas de motor.** O módulo novo não
+importa NADA e o teste prova (10.1–10.3). O único efeito é o botão de duração — o
+mesmo que o autofit já movia — e um aviso.
+
+#### O guardião que gritava sempre (pedidos #95(b) e #97, fechados)
+
+`scripts/test-serie-memoria-2026-09-04.mjs` estava **136/138 desde as 18:20 BRT
+por motivo nenhum**: media o diff contra um **SHA congelado** e exigia que **só
+3 arquivos** aparecessem nele — impossível numa fila compartilhada, onde às 22:20
+ele listava **25 arquivos "fora", quase todos do Codex**. Ou seja: **a trava de
+qualidade do fundador passou quatro horas ilegível, porque o vermelho era rotina.**
+Guardião que grita sempre não guarda nada.
+
+- a base passa a ser `git merge-base HEAD origin/main` — sem SHA à mão;
+- "só estes 3 arquivos" vira "os 3 arquivos existem na árvore" (o **conteúdo**
+  já é provado pelas seções 1–9). Mesma correção que o `test-despacho-vazio` fez
+  na sua 8.3;
+- **a divergência do `app/api/compose` (pedido #95(a)) fica resolvida por
+  CONTEÚDO, e registrada como REVERSÍVEL.** A frase do fundador nomeia o que
+  decide **como o filme fica** e autoriza "continuidade de série"; gravar a
+  narração no banco **depois** do filme pronto não muda um pixel. Bloquear a pasta
+  inteira era mais duro que a ordem; liberar era mais frouxo. Agora reprovam os
+  **símbolos do motor** (`secondsOf`/`secondsFor`/`creditCostFor`/`scenePrompt`/
+  `fal-ai/`…) dentro daqueles arquivos. **Uma palavra do fundador reverte**: basta
+  devolver o caminho à lista cega.
+
+Resultado: **139/139** (era 136/138).
+
+#### Testes, e a falsificação
+
+- `test-diretrizes-coladas` **61/61**, com os textos reais do banco. **Falsificado
+  com 3 mutações, todas pegas**: escolher o botão **abaixo** do pedido (6 falhas),
+  idioma virar **recusa** na tela (3 falhas), a **semente da casa** virar colagem
+  (2 falhas).
+- `test-serie-memoria` **139/139** · `test-despacho-vazio` **51/51** ·
+  `test-zero-cenas` OK · `test-memoria-episodio` **42/42** · `tsc --noEmit` limpo.
+
+#### Hipótese da rotação anterior: MEDIDA E DESCARTADA
+
+A #8 deixou como próxima jogada "as 4 cartas automáticas se atropelam; medir se
+existe teto". **Medi, e não se atropelam:**
+
+| e-mails por pessoa na semana | 1 | 2 | 3 | 4 | 5 |
+|---|---:|---:|---:|---:|---:|
+| pessoas-semana | 870 | 457 | 194 | **19** | **2** |
+
+Máximo histórico: **5**. Só **15 pessoas** em toda a história receberam 2 no mesmo
+dia; 297 de 765 receberam 2 em 48h, o que é cadência normal, não bombardeio.
+**Não há teto porque não há enchente.** Fica registrado para ninguém gastar
+rotação nisso. (Ressalva honesta: o `email_send_log` cobre 11 dos 31 caminhos de
+envio — o número é piso, não teto. Mas nenhum dos 11 é campanha nova, e o piso
+está longe de qualquer limite razoável.)
+
+#### Checagem zero (1h) — LIMPA, e desta vez com o corte no relógio
+
+| | |
+|---|---:|
+| render preso > 3h | **0** |
+| último despacho vazio (`planned=0`) | **21:42:43 UTC** — o deploy do conserto foi 21:44 |
+| despacho vazio **depois** de 21:44 UTC | **0** |
+| `generation_stage_error` nas últimas 3h | 4 — **todas 21:41–21:42 UTC**, a vítima já documentada na #23 |
+| eventos de falha após 21:44 UTC | **1 evento, e é um despacho ACEITO** |
+| último filme concluído | **23:58 UTC** |
+
+`cinematic_zero_scenes_planned` segue em **0 em toda a história** — e a leitura
+correta continua sendo a da #8: **nenhum despacho vazio ocorreu desde o deploy**,
+então isso é o conserto funcionando **ou** ausência de tráfego, e com 1 filme em
+3h **não dá para distinguir**. Não vou fingir que dá.
+
+#### Placar (marco 2026-09-03 16:00 UTC, contas externas, medido 00:26 UTC)
+
+| | | vs #24 |
+|---|---:|---|
+| cadastros | 45 | = |
+| pessoas com filme | 30 | = |
+| filmes entregues | 38 | = |
+| checkout | 4 | = |
+| `checkout_success_viewed` | 0 | = |
+| **`payment_success`** | **0** | = |
+
+**Distribuição:** 25 no 1º · 4 em 2-3 · 1 em 4-7 — **idêntica à #24**. Quatro
+rotações sem ninguém subir de faixa. Numa madrugada de sábado com 45 cadastros em
+32h, isso é **falta de amostra**, não sinal.
+
+#### Limitações, ditas na cara
+
+Os 8,7% × 27,5% são **correlação**, com **n=46**. Quem cola ordem do ChatGPT pode
+diferir por outros motivos (público, expectativa, idioma). O mecanismo está lido
+no código e nas amostras, e a cura é barata e reversível — **mas ninguém deve ler
+esta entrada como causalidade provada**. Nada foi provado sobre conversão.
+
+#### Como medir
+
+`pasted_directives_detected` é o denominador (quantas pessoas colam ordem e o que
+pedem). Dentro dele: `duration_changed=true` = quantas receberam a duração que
+pediram; `unsupported` não-nulo = quantas souberam a verdade **antes** de gastar.
+**O juiz final é a taxa de 2º filme da coorte `looks_pasted=true` sair de 8,7%.**
+
+#### Próxima jogada
+
+**Ler o que a coorte de colagem pede, e escolher o que vale atender.** Esta rodada
+tratou duração e proporção porque eram os dois onde a casa tem resposta
+comprovada. Ficaram **detectados e não medidos**: idioma (Árabe, Hindi, Espanhol,
+Francês aparecem em texto colado) e "sem banco de imagens". A rotação seguinte
+deveria **medir a cobertura real de voz por idioma** — se a casa já narra em
+Árabe, a frase honesta pode virar promessa cumprida em vez de silêncio; se não
+narra, é a recusa mais barata do produto e evita o pior desfecho possível, que é
+a pessoa pagar por um filme no idioma errado. É leitura de configuração, não toca
+o motor, e não depende de tráfego.
+
+#### Pedidos novos
+
+Três, nos PEDIDOS: a **resposta ao #95** (divergência do `app/api/compose`
+resolvida por conteúdo, reversível), o **fechamento do #97** (anti-repetição já
+olha a fila), e um **aviso de arquivo ao Codex** (toquei `GenerateClient.tsx`).
+
+**Entrega:** 2 arquivos novos + 2 alterados. Zero mudança de preço, plano,
+checkout, oferta ou promessa. Zero linha de motor.
