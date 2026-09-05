@@ -111,3 +111,19 @@ Acrescentar somente mudanças materiais, gates, uso devido e testes. Ao término
 **ESCOPO PRESERVADO:** diff contra main vazio para seriesContinuation, GenerateClient, next-episode e engineCost. Não alterados botões de outras telas, roteiro pronto/trialRepeat, idioma de narração, recuperações ou créditos. Não declarar que todos os botões da plataforma estão corrigidos.
 
 **PRÓXIMO:** validação de browser/visual por lote continua gate, sem main/deploy. Preparar hierarquia Studio/mobile enquanto aguarda aprovação de L1/L2; outros chamadores de continuação só após desenho que preserve contratos específicos. Consumo seguinte às 12:14 BRT, sem reset automático.
+
+### Checkpoint 12:15 BRT — uso e proposta L3
+
+**EVIDÊNCIA OPERACIONAL, 05/09 12:16 BRT:** ferramenta de uso retornou **36% usado / 64% disponível** na janela semanal da conta; baseline 10:10 era 34%. Diferença observada de 2 pontos percentuais, não consumo exclusivo desta tarefa nem contagem de tokens. Reset segue 10/09 10:24:58 BRT; dois resets disponíveis, nenhum usado. Abaixo do limiar de reavaliação 40%; próxima consulta 14:14. Janela secundária indisponível, não interpretar como zero.
+
+**FATO CONFIRMADO:** origin/main permanece `2ca9a06c`; árvore própria limpa no início, sem aprovação visual nova registrada. L1/L2 não reeditados e não publicados. O início do bloco já registrou AGENTS, estado/perguntas e DESIGN; nenhum desses documentos mudou no fetch. Leitura atual focou o componente e o kit reais.
+
+**FATO CONFIRMADO:** StudioClient:435–717 põe rail de configurações/custo antes da caixa de ideia. `studioKit.tsx:25,35–39` empilha o grid abaixo de 900px: a ordem do documento se torna a ordem mobile. Imagem “SOON” é controle desabilitado, não recurso que esta sprint irá ligar.
+
+**PROPOSTA L3, NÃO IMPLEMENTADA NO RUNTIME:** texto primeiro no documento; configurações/custo ao lado no desktop e depois do texto no mobile. Câmera/referência preservadas em disclosure “Optional settings”; passos informativos em “How it works”. Nenhum preço ou motor alterado, nenhuma função removida. `studioKit.tsx` NÃO editado: proposta está restrita ao protótipo, evitando propagar design não aprovado a todos os ambientes.
+
+**PREVIEW:** `docs/previews/UX-BLOCO1-STUDIO-HIERARQUIA-2026-09-05.html`. Antes obtido do StudioClient de origin/main por React SSR offline. Depois é transformação da árvore React somente no builder `scripts/preview-studio-hierarchy.mjs` (stdout, nenhuma escrita automática). Usa CSS real do kit + ajustes escopados à proposta; comparações com viewports de 1100 e 390px via srcdoc sandbox. Sem vídeo, fontes remotas, APIs, analytics ou script dentro dos frames. Edição de campo no protótipo não atualiza a lógica; limite declarado.
+
+**TESTADO ESTATICAMENTE, NÃO BROWSER:** os mesmos 25 botões, uma textarea e dois controles desabilitados no estado inicial antes/depois; posição da textarea passa de depois do motor para antes. Custo calculado pela função canônica, estado vazio/saldo desconhecido/conta externa, sem consulta de conta. Builder rodou exit 0 e sem aviso React depois de adicionar key à transformação. Não certifica estados com saldo/texto/seletor aberto/retorno com vídeos; estes são gates antes do patch funcional. Não é screenshot nem aprovação visual.
+
+**PRÓXIMO:** validar variantes da proposta e receber direção visual; enquanto isso, inventariar ajustes reutilizáveis da home sem trocar nenhum vídeo e sem publicar os lotes pendentes. Sem mudança de runtime neste checkpoint, sem necessidade de repetir typecheck do produto inalterado.

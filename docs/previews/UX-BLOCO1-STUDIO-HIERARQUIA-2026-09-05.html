@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Kineo · L3 · Ideia primeiro</title><style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#0b0d11;color:#eef1f6}body{margin:0;padding:30px 20px}main{max-width:1120px;margin:auto}h1{font-size:34px;letter-spacing:-.03em}p,li{line-height:1.6;color:#a9b2bf}.notice{padding:18px;border:1px solid #36465b;border-radius:12px;background:#101d2b;line-height:1.6}.scroll{overflow:auto;margin:24px 0 40px}.pair{display:grid;gap:24px}.desktop{grid-template-columns:528px 528px}.mobile{grid-template-columns:390px 390px;justify-content:center;min-width:804px}.frame{border:1px solid #343b46;border-radius:16px;overflow:hidden;background:#0a0a0c}iframe{display:block;border:0;max-width:none}.desktop .frame{width:528px;height:552px}.desktop iframe{transform:scale(.48);transform-origin:top left}.mobile .frame{width:390px;height:1000px}h2{font-size:20px;margin-top:36px}h3{font-size:13px;text-transform:uppercase;letter-spacing:.04em}article:last-child h3{color:#67b6ff}code{overflow-wrap:anywhere}footer{border-top:1px solid #303540;padding-top:18px;font-size:13px}
+</style></head><body><main><p>Lote 3 · proposta de hierarquia, sem alteração no site</p><h1>Sua ideia primeiro. Configuração ao lado.</h1><div class="notice"><strong>Antes extraído do componente real por React SSR.</strong> Base <code>2ca9a06c4f128f936468b117ba0a7f194cff2411</code>. Depois reorganizado apenas neste protótipo, com os mesmos controles e cálculo de custo. Estado simulado de entrada: campo vazio, saldo ainda não carregado e conta externa. Não é screenshot nem validação de browser.</div>
+<ul><li>Desktop: texto à esquerda, configurações e custo à direita.</li><li>Mobile: texto vem antes dos ajustes; ordem visual acompanha a ordem do documento.</li><li>Câmera e referência de imagem permanecem em “Optional settings”; imagem continua SOON e desabilitada.</li><li>Explicação “How it works” recolhida; custo, alertas e botão de gerar continuam no bloco principal.</li></ul>
+<h2>Desktop · viewport de 1100px (reduzido para comparação)</h2><div class="scroll"><section class="pair desktop"><article><h3>Antes — origin/main</h3><div class="frame"><iframe sandbox title="Antes do Studio desktop" srcdoc="&lt;!doctype html&gt;&lt;html lang=&quot;en&quot;&gt;&lt;head&gt;&lt;meta charset=&quot;utf-8&quot;&gt;&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width,initial-scale=1&quot;&gt;&lt;style&gt;html,body{margin:0;background:#0a0a0c;font-family:Arial,sans-serif}*{box-sizing:border-box}button{font-family:inherit}a{pointer-events:none}&lt;/style&gt;&lt;/head&gt;&lt;body&gt;&lt;div class=&quot;stu&quot;&gt;&lt;style&gt;
+.stu{min-height:100vh;background:radial-gradient(110% 60% at 50% -8%,rgba(41,151,255,.10),transparent 55%),radial-gradient(70% 50% at 100% 100%,rgba(41,151,255,.05),transparent 60%),#0a0a0c;color:#fafafa;padding:26px 34px 60px;font-family:var(--font-inter),'Inter',sans-serif}
+.stu *{box-sizing:border-box}
+.stu h1{font-size:34px;font-weight:700;letter-spacing:-.02em;margin:0 0 4px;font-family:var(--font-display),var(--font-inter),sans-serif;background:linear-gradient(92deg,#fff 30%,#7cc0ff 85%);-webkit-background-clip:text;background-clip:text;color:transparent;width:fit-content}
+.stu .sub{color:rgba(255,255,255,.52);font-size:14px;margin:0 0 26px}
+.stu .grid{display:grid;grid-template-columns:352px 1fr;gap:22px;align-items:start}
+.stu .rail{position:sticky;top:20px;display:flex;flex-direction:column;gap:14px}
+/* KINEO-MOBILE-2026-08-29 — auditoria mobile do fundador (&quot;fica muito
+   esquisito, aparece os motores mas nao aparece do lado pra escrever&quot;).
+   CAUSA RAIZ: no celular o grid empilha em 1 coluna, mas o .rail continuava
+   position:sticky — a coluna dos motores GRUDAVA no topo e o resto da pagina
+   (a caixa de escrever!) rolava POR BAIXO dela, texto sobre texto. sticky so
+   faz sentido com duas colunas lado a lado; em pilha ele e o proprio bug.
+   O bloco vale para TODOS os ambientes do kit (Studio/Animate/Audio/Images),
+   pela regra de ouro do arquivo: conserto entra aqui uma vez. */
+@media(max-width:900px){
+  .stu{padding:16px 14px 96px}
+  .stu h1{font-size:27px}
+  .stu .grid{grid-template-columns:1fr;gap:16px}
+  .stu .rail{position:static}
+}
+/* KINEO-SPRINT-UI-1-2026-08-29 — ergonomia de toque (sprint noturno #1).
+   · textarea 16px no mobile: com fonte &lt;16px o iOS DA ZOOM na pagina inteira
+     ao focar o campo — o cliente escrevia a ideia com o layout estourado e
+     precisava beliscar pra voltar. 16px desarma o zoom na origem.
+   · alvos de toque: pills e tiles de camera com min-height 44px (guideline
+     Apple/Google); dedo erra menos, seletor deixa de ser loteria.
+   · rolagem com inercia e sem &quot;scroll chaining&quot; puxando o body por tras. */
+@media(max-width:900px){
+  .stu textarea{font-size:16px;padding:15px}
+  .stu .pill{min-height:44px;display:inline-flex;align-items:center;padding:10px 16px}
+  .stu .cam{min-height:64px;padding:15px 10px}
+  .stu .mdlbtn{padding:16px}
+  .stu .go{padding:16px 0;font-size:16px}
+  .stu .vrow{grid-template-columns:repeat(2,1fr);gap:10px}
+}
+.stu .card{background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.09);border-radius:16px;padding:15px 16px;transition:border-color .18s ease}
+.stu .card:hover{border-color:rgba(255,255,255,.16)}
+.stu .lab{display:flex;align-items:center;gap:8px;font-size:10.5px;color:rgba(255,255,255,.55);font-weight:700;text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px;font-family:var(--font-display),var(--font-inter),sans-serif}
+.stu .lab .n{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:6px;background:linear-gradient(140deg,#2997ff,#1668c7);color:#fff;font-size:10px;font-weight:900;box-shadow:0 2px 8px rgba(41,151,255,.4)}
+.stu .row{display:flex;gap:8px;flex-wrap:wrap}
+.stu .pill{padding:9px 14px;border-radius:999px;font-size:13px;font-weight:700;font-family:var(--font-display),var(--font-inter),sans-serif;cursor:pointer;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.72);transition:all .16s ease;position:relative}
+.stu .pill:hover{transform:translateY(-1px);border-color:rgba(255,255,255,.28);color:#fff}
+.stu .pill.on{background:linear-gradient(140deg,#2997ff,#1a72d8);border-color:rgba(120,190,255,.9);color:#fff;box-shadow:0 4px 18px rgba(41,151,255,.4),inset 0 1px 0 rgba(255,255,255,.25)}
+.stu .pill.off{opacity:.42;cursor:not-allowed}
+.stu .pill.off:hover{transform:none;border-color:rgba(255,255,255,.12);color:rgba(255,255,255,.72)}
+.stu .soon{font-size:8.5px;font-weight:900;letter-spacing:.08em;margin-left:6px;padding:1.5px 5px;border-radius:99px;background:rgba(255,180,40,.16);color:#ffb428;vertical-align:1px}
+.stu .hint{font-size:11.5px;color:rgba(255,255,255,.42);margin-top:8px;line-height:1.45}
+.stu .mdlbtn{width:100%;text-align:left;padding:14px 16px;border-radius:16px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.12);cursor:pointer;color:#fff;transition:border-color .18s ease}
+.stu .mdlbtn:hover{border-color:rgba(41,151,255,.5)}
+.stu .mdlname{display:flex;align-items:center;justify-content:space-between;margin-top:5px}
+.stu .mdlname b{font-size:17px;font-weight:700;letter-spacing:-.01em;font-family:var(--font-display),var(--font-inter),sans-serif}
+.stu .mdlname i{font-style:normal;font-size:12px;color:#5cb3ff}
+.stu .picker{position:absolute;z-index:40;top:104%;left:0;right:0;background:#141419;border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:8px;box-shadow:0 24px 60px rgba(0,0,0,.65)}
+.stu .pk{width:100%;text-align:left;padding:12px 13px;border-radius:12px;background:transparent;border:1px solid transparent;cursor:pointer;color:#fff;transition:all .14s ease;display:flex;align-items:center;gap:11px}
+.stu .pk .pk-tx{flex:1;min-width:0}
+.stu .pk{position:relative}
+.stu .pk .pkv{position:absolute;left:calc(100% + 10px);top:50%;transform:translateY(-50%);width:250px;height:140px;border-radius:12px;overflow:hidden;border:1px solid rgba(41,151,255,.3);box-shadow:0 18px 44px rgba(0,0,0,.55);background:#0a0a0c;opacity:0;pointer-events:none;transition:opacity .16s ease;z-index:5}
+.stu .pk .pkv video{width:100%;height:100%;object-fit:cover;display:block}
+.stu .pk:hover .pkv{opacity:1}
+.stu .eng-ic{flex-shrink:0;width:34px;height:34px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);font-weight:800;font-size:13px;color:#e8eaee;letter-spacing:-.02em}
+.stu .pk+.pk{margin-top:2px}
+.stu .pk:hover{background:rgba(255,255,255,.05)}
+.stu .pk.on{background:rgba(41,151,255,.12);border-color:rgba(41,151,255,.35);box-shadow:inset 3px 0 0 #2997ff}
+.stu .pk .t{display:flex;justify-content:space-between;align-items:center}
+.stu .pk .t b{font-weight:700;font-size:15px;letter-spacing:-.01em;font-family:var(--font-display),var(--font-inter),sans-serif}
+.stu .pk .t i{font-style:normal;font-size:11px;font-weight:800;color:#8fc6ff;background:rgba(41,151,255,.13);border:1px solid rgba(41,151,255,.3);border-radius:999px;padding:2.5px 9px;font-family:var(--font-display),var(--font-inter),sans-serif}
+.stu .pk .sp{display:block;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#5cb3ff;margin-top:5px;font-family:var(--font-display),var(--font-inter),sans-serif}
+.stu .pk .d{display:block;font-size:12px;color:rgba(255,255,255,.52);margin-top:2px;line-height:1.35}
+.stu .tag{font-size:9px;font-weight:800;color:#5cb3ff;border:1px solid rgba(41,151,255,.4);border-radius:999px;padding:2px 7px;margin-left:6px;vertical-align:1px}
+.stu .upl{width:100%;padding:16px 14px;border-radius:14px;background:rgba(255,255,255,.03);border:1px dashed rgba(255,255,255,.22);font-size:13px;transition:all .16s ease}
+.stu .upl.ok{cursor:pointer;color:rgba(255,255,255,.78)}
+.stu .upl.ok:hover{border-color:rgba(41,151,255,.6);background:rgba(41,151,255,.05)}
+.stu .upl.no{cursor:not-allowed;color:rgba(255,255,255,.35)}
+.stu .cost{padding:17px 16px;border-radius:18px;background:linear-gradient(160deg,#0d1e3c,#0a0f1c);border:1px solid rgba(41,151,255,.4);position:relative;overflow:hidden}
+.stu .cost::before{content:'';position:absolute;top:0;left:8%;right:8%;height:1px;background:linear-gradient(90deg,transparent,rgba(124,192,255,.7),transparent)}
+.stu .cost .sum{font-size:12.5px;color:#8fc6ff;margin-bottom:5px;font-weight:600}
+.stu .cost .val{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
+.stu .cost .val span{font-size:13px;color:rgba(255,255,255,.6)}
+.stu .cost .val b{color:#5cb3ff;font-weight:800;font-size:15px}
+.stu .go{width:100%;padding:15px 0;border-radius:999px;font-size:15px;font-weight:800;border:none;transition:all .18s ease}
+.stu .go.ok{background:linear-gradient(140deg,#3aa0ff,#1a72d8);color:#fff;cursor:pointer;box-shadow:0 8px 26px rgba(41,151,255,.4);font-family:var(--font-display),var(--font-inter),sans-serif;letter-spacing:.01em}
+.stu .go.ok:hover{transform:translateY(-1px);box-shadow:0 12px 36px rgba(41,151,255,.55)}
+.stu .go.no{background:rgba(255,255,255,.16);color:rgba(255,255,255,.5);cursor:not-allowed}
+.stu .gnote{font-size:10.5px;color:rgba(255,255,255,.4);margin-top:9px;text-align:center}
+.stu textarea{width:100%;resize:vertical;padding:17px;border-radius:16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);color:#fff;font-size:15px;line-height:1.55;outline:none;font-family:inherit;transition:border-color .18s ease;caret-color:#2997ff}
+.stu textarea::selection{background:rgba(41,151,255,.35)}
+.stu textarea:focus{border-color:rgba(41,151,255,.55);box-shadow:0 0 0 3px rgba(41,151,255,.12)}
+.stu .cnt{font-size:11px;color:rgba(255,255,255,.35);text-align:right;margin-top:5px}
+.stu .cams{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media(max-width:700px){.stu .cams{grid-template-columns:repeat(2,1fr)}}
+.stu .cam{padding:14px 10px;border-radius:14px;text-align:center;cursor:pointer;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.1);color:#fff;transition:all .16s ease}
+.stu .cam:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.3)}
+.stu .cam.on{background:rgba(41,151,255,.14);border-color:rgba(41,151,255,.65);box-shadow:0 6px 22px rgba(41,151,255,.22)}
+.stu .cam .e{font-size:21px}
+.stu .cam .l{font-size:12px;font-weight:700;margin-top:5px;letter-spacing:-.01em;font-family:var(--font-display),var(--font-inter),sans-serif}
+.stu .camline{margin-top:10px;font-size:12.5px;color:#5cb3ff;background:rgba(41,151,255,.08);border:1px solid rgba(41,151,255,.25);border-radius:10px;padding:8px 12px}
+.stu .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:4px}
+@media(max-width:700px){.stu .steps{grid-template-columns:1fr}}
+.stu .step{padding:16px;border-radius:14px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.08);border-top:2px solid rgba(41,151,255,.45)}
+.stu .step b{display:block;font-size:11px;font-weight:800;letter-spacing:.1em;color:#5cb3ff;margin-bottom:6px;font-family:var(--font-display),var(--font-inter),sans-serif}
+.stu .step p{margin:0;font-size:13px;color:rgba(255,255,255,.65);line-height:1.5}
+.stu .myv{margin-top:34px}
+.stu .myv .hd{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px}
+.stu .myv .hd a{font-size:12.5px;color:#5cb3ff;text-decoration:none;font-weight:700;font-family:var(--font-display),var(--font-inter),sans-serif}
+.stu .myv .hd a:hover{text-decoration:underline}
+.stu .vrow{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
+@media(max-width:1100px){.stu .vrow{grid-template-columns:repeat(3,1fr)}}
+.stu .vtile{position:relative;aspect-ratio:9/16;border-radius:13px;overflow:hidden;border:1px solid rgba(255,255,255,.1);background:#101014;display:block;transition:all .16s ease}
+.stu .vtile:hover{transform:translateY(-2px);border-color:rgba(41,151,255,.6);box-shadow:0 10px 30px rgba(41,151,255,.18)}
+.stu .vtile video,.stu .vtile img{width:100%;height:100%;object-fit:cover;display:block}
+.stu .vtile .vt{position:absolute;left:0;right:0;bottom:34px;z-index:2;padding:18px 9px 6px;font-size:10.5px;line-height:1.3;color:rgba(255,255,255,.85);background:linear-gradient(transparent,rgba(0,0,0,.85));white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
+/* KINEO-SPRINT-V1V4-2026-08-31 (#8) — a miniatura deixa de ser UM link para o
+   MP4 e passa a ter duas acoes com rotulo permanente. .vtwatch cobre a midia
+   (assistir, o que ja existia); .vtnext e a barra fixa embaixo que leva ao
+   proximo episodio DAQUELE tema. Nada aqui depende de :hover — no telefone o
+   antigo unico sinal de clique (a borda que acendia no hover) simplesmente
+   nao existia. ATENCAO: este bloco vive DENTRO de um template literal; crase
+   aqui encerra a string e quebra o build (foi exatamente o que aconteceu). */
+.stu .vtile .vtwatch{position:absolute;inset:0;z-index:1;display:block;-webkit-tap-highlight-color:rgba(41,151,255,.2)}
+.stu .vtile .vtplay{position:absolute;top:6px;left:6px;z-index:2;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:99px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.28);color:#fff;font-size:9px;pointer-events:none}
+.stu .vtile .vtnext{position:absolute;left:0;right:0;bottom:0;z-index:3;display:flex;align-items:center;justify-content:center;gap:4px;padding:8px 6px;font-size:10.5px;font-weight:800;letter-spacing:-.01em;text-decoration:none;color:#bfe0ff;background:rgba(41,151,255,.22);border-top:1px solid rgba(41,151,255,.55);font-family:var(--font-display),var(--font-inter),sans-serif;-webkit-tap-highlight-color:rgba(41,151,255,.35);transition:background .16s ease,color .16s ease}
+.stu .vtile .vtnext:hover,.stu .vtile .vtnext:focus-visible{background:rgba(41,151,255,.42);color:#fff;outline:none}
+.stu .vtile .vtnext:active{background:rgba(41,151,255,.55);color:#fff}
+&lt;/style&gt;&lt;h1&gt;Studio&lt;/h1&gt;&lt;p class=&quot;sub&quot;&gt;Every control on one screen. Pick, type, generate.&lt;/p&gt;&lt;div class=&quot;grid&quot;&gt;&lt;div class=&quot;rail&quot;&gt;&lt;div style=&quot;position:relative&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;mdlbtn&quot;&gt;&lt;span class=&quot;lab&quot; style=&quot;margin-bottom:0&quot;&gt;&lt;span class=&quot;n&quot;&gt;1&lt;/span&gt;Engine&lt;/span&gt;&lt;span class=&quot;mdlname&quot; style=&quot;display:flex;align-items:center;gap:10px&quot;&gt;&lt;span class=&quot;eng-ic&quot; aria-hidden=&quot;true&quot;&gt;⚡&lt;/span&gt;&lt;b&gt;Kineo 1&lt;/b&gt;&lt;i style=&quot;margin-left:auto&quot;&gt;1080p ▾&lt;/i&gt;&lt;/span&gt;&lt;/button&gt;&lt;/div&gt;&lt;div class=&quot;card&quot;&gt;&lt;div class=&quot;lab&quot;&gt;&lt;span class=&quot;n&quot;&gt;2&lt;/span&gt;Format&lt;/div&gt;&lt;div class=&quot;row&quot; style=&quot;margin-bottom:12px&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;pill&quot;&gt;35s&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;pill on&quot;&gt;60s ⭐&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;pill&quot; title=&quot;Mais alcance: no TikTok, 90s rende ~4x as views de um vídeo de 60s&quot;&gt;90s 📈&lt;/button&gt;&lt;/div&gt;&lt;div class=&quot;row&quot; style=&quot;margin-bottom:12px;flex-wrap:wrap&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;pill on&quot; title=&quot;TikTok · Reels · YouTube Shorts&quot;&gt;9:16 · Shorts&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;pill&quot; title=&quot;YouTube · site · ads&quot;&gt;16:9 · Widescreen&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;pill&quot; title=&quot;Feed do Instagram · Facebook ads&quot;&gt;1:1 · Square&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;pill&quot; title=&quot;Feed do Instagram (ocupa mais tela)&quot;&gt;4:5 · Feed tall&lt;/button&gt;&lt;/div&gt;&lt;div style=&quot;font-size:11.5px;color:var(--muted2);margin-bottom:12px;line-height:1.5&quot;&gt;TikTok · Reels · YouTube Shorts&lt;/div&gt;&lt;div class=&quot;row&quot; style=&quot;align-items:center;gap:8px;flex-wrap:wrap&quot;&gt;&lt;span class=&quot;pill on&quot; style=&quot;cursor:default&quot;&gt;1080×1920 · Full HD master&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;hint&quot;&gt;Every film is delivered as a 1080×1920 Full HD master (engines render natively at 720–768p and are mastered up). For maximum sharpness, run ✨HD Enhance on the finished film.&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;card&quot;&gt;&lt;div class=&quot;lab&quot;&gt;&lt;span class=&quot;n&quot;&gt;3&lt;/span&gt;Reference image &lt;span class=&quot;soon&quot;&gt;SOON&lt;/span&gt;&lt;/div&gt;&lt;input type=&quot;file&quot; accept=&quot;image/*&quot; style=&quot;display:none&quot;/&gt;&lt;button type=&quot;button&quot; disabled=&quot;&quot; class=&quot;upl no&quot; title=&quot;Coming soon&quot;&gt;🖼️ Start your video from an image — coming soon&lt;/button&gt;&lt;/div&gt;&lt;div class=&quot;cost&quot;&gt;&lt;div class=&quot;sum&quot; style=&quot;display:flex;align-items:center;gap:8px&quot;&gt;&lt;span class=&quot;eng-ic&quot; style=&quot;width:24px;height:24px;border-radius:7px;font-size:10.5px&quot; aria-hidden=&quot;true&quot;&gt;⚡&lt;/span&gt;Kineo 1 · 60s · 1080p · 9:16&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;&lt;span&gt;Estimated cost&lt;/span&gt;&lt;b&gt;5 cr&lt;/b&gt;&lt;/div&gt;&lt;div class=&quot;val&quot; style=&quot;opacity:0.75&quot;&gt;&lt;span&gt;Usually takes&lt;/span&gt;&lt;b style=&quot;font-weight:600&quot;&gt;3–7 min&lt;/b&gt;&lt;/div&gt;&lt;button type=&quot;button&quot; disabled=&quot;&quot; class=&quot;go no&quot;&gt;Type your idea first&lt;/button&gt;&lt;div class=&quot;gnote&quot;&gt;Voice, karaoke captions and score included. If a render fails, your credits come straight back.&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;div style=&quot;display:flex;flex-direction:column;gap:18px&quot;&gt;&lt;div&gt;&lt;div class=&quot;lab&quot; style=&quot;display:flex;align-items:center;justify-content:space-between&quot;&gt;&lt;span&gt;&lt;span class=&quot;n&quot;&gt;4&lt;/span&gt;Your idea&lt;/span&gt;&lt;button type=&quot;button&quot; class=&quot;pill&quot; style=&quot;font-size:11px&quot;&gt;🎲 Surprise me&lt;/button&gt;&lt;/div&gt;&lt;div class=&quot;row&quot; style=&quot;margin-bottom:8px&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;pill&quot; style=&quot;font-size:11.5px&quot;&gt;📊 Facts&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;pill&quot; style=&quot;font-size:11.5px&quot;&gt;🕵️ Mystery&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;pill&quot; style=&quot;font-size:11.5px&quot;&gt;📖 True Story&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;pill&quot; style=&quot;font-size:11.5px&quot;&gt;📝 My Script&lt;/button&gt;&lt;/div&gt;&lt;textarea rows=&quot;7&quot; placeholder=&quot;What’s your video about? One idea in — a finished film out: voiced, scored and captioned.&quot;&gt;&lt;/textarea&gt;&lt;div class=&quot;row&quot; style=&quot;margin-top:10px&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;pill on&quot;&gt;✨ Let AI structure it&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;pill&quot;&gt;📝 Use my script as is&lt;/button&gt;&lt;/div&gt;&lt;div class=&quot;cnt&quot;&gt;a single line is enough — or paste a full script&lt;/div&gt;&lt;/div&gt;&lt;div&gt;&lt;div class=&quot;lab&quot;&gt;&lt;span class=&quot;n&quot;&gt;5&lt;/span&gt;Camera preset &lt;span style=&quot;font-weight:600;text-transform:none;letter-spacing:0&quot;&gt;optional — a pre-tested move added to your prompt&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;cams&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;cam&quot;&gt;&lt;div class=&quot;e&quot;&gt;🎥&lt;/div&gt;&lt;div class=&quot;l&quot;&gt;Slow Dolly-In&lt;/div&gt;&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;cam&quot;&gt;&lt;div class=&quot;e&quot;&gt;⚡&lt;/div&gt;&lt;div class=&quot;l&quot;&gt;Crash Zoom&lt;/div&gt;&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;cam&quot;&gt;&lt;div class=&quot;e&quot;&gt;🌀&lt;/div&gt;&lt;div class=&quot;l&quot;&gt;Orbit&lt;/div&gt;&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;cam&quot;&gt;&lt;div class=&quot;e&quot;&gt;🚁&lt;/div&gt;&lt;div class=&quot;l&quot;&gt;FPV Drone&lt;/div&gt;&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;cam&quot;&gt;&lt;div class=&quot;e&quot;&gt;🏗️&lt;/div&gt;&lt;div class=&quot;l&quot;&gt;Crane Up&lt;/div&gt;&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;cam&quot;&gt;&lt;div class=&quot;e&quot;&gt;🎬&lt;/div&gt;&lt;div class=&quot;l&quot;&gt;Handheld&lt;/div&gt;&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;cam&quot;&gt;&lt;div class=&quot;e&quot;&gt;🔬&lt;/div&gt;&lt;div class=&quot;l&quot;&gt;Macro Detail&lt;/div&gt;&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;cam&quot;&gt;&lt;div class=&quot;e&quot;&gt;🗿&lt;/div&gt;&lt;div class=&quot;l&quot;&gt;Locked Tripod&lt;/div&gt;&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;steps&quot;&gt;&lt;div class=&quot;step&quot;&gt;&lt;b&gt;1 · CONFIGURE&lt;/b&gt;&lt;p&gt;Engine, length, resolution and camera — all on this screen.&lt;/p&gt;&lt;/div&gt;&lt;div class=&quot;step&quot;&gt;&lt;b&gt;2 · TYPE&lt;/b&gt;&lt;p&gt;One idea. Kineo writes the script and directs every scene.&lt;/p&gt;&lt;/div&gt;&lt;div class=&quot;step&quot;&gt;&lt;b&gt;3 · GET YOUR FILM&lt;/b&gt;&lt;p&gt;Voice, karaoke captions and score included. Download and post.&lt;/p&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;/body&gt;&lt;/html&gt;" width="1100" height="1150"></iframe></div></article><article><h3>Proposta — ainda não implementada</h3><div class="frame"><iframe sandbox title="Proposta do Studio desktop" srcdoc="&lt;!doctype html&gt;&lt;html lang=&quot;en&quot;&gt;&lt;head&gt;&lt;meta charset=&quot;utf-8&quot;&gt;&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width,initial-scale=1&quot;&gt;&lt;style&gt;html,body{margin:0;background:#0a0a0c;font-family:Arial,sans-serif}*{box-sizing:border-box}button{font-family:inherit}a{pointer-events:none}&lt;/style&gt;&lt;/head&gt;&lt;body&gt;&lt;div class=&quot;stu composer-proposal&quot;&gt;&lt;style&gt;
+.stu{min-height:100vh;background:radial-gradient(110% 60% at 50% -8%,rgba(41,151,255,.10),transparent 55%),radial-gradient(70% 50% at 100% 100%,rgba(41,151,255,.05),transparent 60%),#0a0a0c;color:#fafafa;padding:26px 34px 60px;font-family:var(--font-inter),'Inter',sans-serif}
+.stu *{box-sizing:border-box}
+.stu h1{font-size:34px;font-weight:700;letter-spacing:-.02em;margin:0 0 4px;font-family:var(--font-display),var(--font-inter),sans-serif;background:linear-gradient(92deg,#fff 30%,#7cc0ff 85%);-webkit-background-clip:text;background-clip:text;color:transparent;width:fit-content}
+.stu .sub{color:rgba(255,255,255,.52);font-size:14px;margin:0 0 26px}
+.stu .grid{display:grid;grid-template-columns:352px 1fr;gap:22px;align-items:start}
+.stu .rail{position:sticky;top:20px;display:flex;flex-direction:column;gap:14px}
+/* KINEO-MOBILE-2026-08-29 — auditoria mobile do fundador (&quot;fica muito
+   esquisito, aparece os motores mas nao aparece do lado pra escrever&quot;).
+   CAUSA RAIZ: no celular o grid empilha em 1 coluna, mas o .rail continuava
+   position:sticky — a coluna dos motores GRUDAVA no topo e o resto da pagina
+   (a caixa de escrever!) rolava POR BAIXO dela, texto sobre texto. sticky so
+   faz sentido com duas colunas lado a lado; em pilha ele e o proprio bug.
+   O bloco vale para TODOS os ambientes do kit (Studio/Animate/Audio/Images),
+   pela regra de ouro do arquivo: conserto entra aqui uma vez. */
+@media(max-width:900px){
+  .stu{padding:16px 14px 96px}
+  .stu h1{font-size:27px}
+  .stu .grid{grid-template-columns:1fr;gap:16px}
+  .stu .rail{position:static}
+}
+/* KINEO-SPRINT-UI-1-2026-08-29 — ergonomia de toque (sprint noturno #1).
+   · textarea 16px no mobile: com fonte &lt;16px o iOS DA ZOOM na pagina inteira
+     ao focar o campo — o cliente escrevia a ideia com o layout estourado e
+     precisava beliscar pra voltar. 16px desarma o zoom na origem.
+   · alvos de toque: pills e tiles de camera com min-height 44px (guideline
+     Apple/Google); dedo erra menos, seletor deixa de ser loteria.
+   · rolagem com inercia e sem &quot;scroll chaining&quot; puxando o body por tras. */
+@media(max-width:900px){
+  .stu textarea{font-size:16px;padding:15px}
+  .stu .pill{min-height:44px;display:inline-flex;align-items:center;padding:10px 16px}
+  .stu .cam{min-height:64px;padding:15px 10px}
+  .stu .mdlbtn{padding:16px}
+  .stu .go{padding:16px 0;font-size:16px}
+  .stu .vrow{grid-template-columns:repeat(2,1fr);gap:10px}
+}
+.stu .card{background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.09);border-radius:16px;padding:15px 16px;transition:border-color .18s ease}
+.stu .card:hover{border-color:rgba(255,255,255,.16)}
+.stu .lab{display:flex;align-items:center;gap:8px;font-size:10.5px;color:rgba(255,255,255,.55);font-weight:700;text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px;font-family:var(--font-display),var(--font-inter),sans-serif}
+.stu .lab .n{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:6px;background:linear-gradient(140deg,#2997ff,#1668c7);color:#fff;font-size:10px;font-weight:900;box-shadow:0 2px 8px rgba(41,151,255,.4)}
+.stu .row{display:flex;gap:8px;flex-wrap:wrap}
+.stu .pill{padding:9px 14px;border-radius:999px;font-size:13px;font-weight:700;font-family:var(--font-display),var(--font-inter),sans-serif;cursor:pointer;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.72);transition:all .16s ease;position:relative}
+.stu .pill:hover{transform:translateY(-1px);border-color:rgba(255,255,255,.28);color:#fff}
+.stu .pill.on{background:linear-gradient(140deg,#2997ff,#1a72d8);border-color:rgba(120,190,255,.9);color:#fff;box-shadow:0 4px 18px rgba(41,151,255,.4),inset 0 1px 0 rgba(255,255,255,.25)}
+.stu .pill.off{opacity:.42;cursor:not-allowed}
+.stu .pill.off:hover{transform:none;border-color:rgba(255,255,255,.12);color:rgba(255,255,255,.72)}
+.stu .soon{font-size:8.5px;font-weight:900;letter-spacing:.08em;margin-left:6px;padding:1.5px 5px;border-radius:99px;background:rgba(255,180,40,.16);color:#ffb428;vertical-align:1px}
+.stu .hint{font-size:11.5px;color:rgba(255,255,255,.42);margin-top:8px;line-height:1.45}
+.stu .mdlbtn{width:100%;text-align:left;padding:14px 16px;border-radius:16px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.12);cursor:pointer;color:#fff;transition:border-color .18s ease}
+.stu .mdlbtn:hover{border-color:rgba(41,151,255,.5)}
+.stu .mdlname{display:flex;align-items:center;justify-content:space-between;margin-top:5px}
+.stu .mdlname b{font-size:17px;font-weight:700;letter-spacing:-.01em;font-family:var(--font-display),var(--font-inter),sans-serif}
+.stu .mdlname i{font-style:normal;font-size:12px;color:#5cb3ff}
+.stu .picker{position:absolute;z-index:40;top:104%;left:0;right:0;background:#141419;border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:8px;box-shadow:0 24px 60px rgba(0,0,0,.65)}
+.stu .pk{width:100%;text-align:left;padding:12px 13px;border-radius:12px;background:transparent;border:1px solid transparent;cursor:pointer;color:#fff;transition:all .14s ease;display:flex;align-items:center;gap:11px}
+.stu .pk .pk-tx{flex:1;min-width:0}
+.stu .pk{position:relative}
+.stu .pk .pkv{position:absolute;left:calc(100% + 10px);top:50%;transform:translateY(-50%);width:250px;height:140px;border-radius:12px;overflow:hidden;border:1px solid rgba(41,151,255,.3);box-shadow:0 18px 44px rgba(0,0,0,.55);background:#0a0a0c;opacity:0;pointer-events:none;transition:opacity .16s ease;z-index:5}
+.stu .pk .pkv video{width:100%;height:100%;object-fit:cover;display:block}
+.stu .pk:hover .pkv{opacity:1}
+.stu .eng-ic{flex-shrink:0;width:34px;height:34px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);font-weight:800;font-size:13px;color:#e8eaee;letter-spacing:-.02em}
+.stu .pk+.pk{margin-top:2px}
+.stu .pk:hover{background:rgba(255,255,255,.05)}
+.stu .pk.on{background:rgba(41,151,255,.12);border-color:rgba(41,151,255,.35);box-shadow:inset 3px 0 0 #2997ff}
+.stu .pk .t{display:flex;justify-content:space-between;align-items:center}
+.stu .pk .t b{font-weight:700;font-size:15px;letter-spacing:-.01em;font-family:var(--font-display),var(--font-inter),sans-serif}
+.stu .pk .t i{font-style:normal;font-size:11px;font-weight:800;color:#8fc6ff;background:rgba(41,151,255,.13);border:1px solid rgba(41,151,255,.3);border-radius:999px;padding:2.5px 9px;font-family:var(--font-display),var(--font-inter),sans-serif}
+.stu .pk .sp{display:block;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#5cb3ff;margin-top:5px;font-family:var(--font-display),var(--font-inter),sans-serif}
+.stu .pk .d{display:block;font-size:12px;color:rgba(255,255,255,.52);margin-top:2px;line-height:1.35}
+.stu .tag{font-size:9px;font-weight:800;color:#5cb3ff;border:1px solid rgba(41,151,255,.4);border-radius:999px;padding:2px 7px;margin-left:6px;vertical-align:1px}
+.stu .upl{width:100%;padding:16px 14px;border-radius:14px;background:rgba(255,255,255,.03);border:1px dashed rgba(255,255,255,.22);font-size:13px;transition:all .16s ease}
+.stu .upl.ok{cursor:pointer;color:rgba(255,255,255,.78)}
+.stu .upl.ok:hover{border-color:rgba(41,151,255,.6);background:rgba(41,151,255,.05)}
+.stu .upl.no{cursor:not-allowed;color:rgba(255,255,255,.35)}
+.stu .cost{padding:17px 16px;border-radius:18px;background:linear-gradient(160deg,#0d1e3c,#0a0f1c);border:1px solid rgba(41,151,255,.4);position:relative;overflow:hidden}
+.stu .cost::before{content:'';position:absolute;top:0;left:8%;right:8%;height:1px;background:linear-gradient(90deg,transparent,rgba(124,192,255,.7),transparent)}
+.stu .cost .sum{font-size:12.5px;color:#8fc6ff;margin-bottom:5px;font-weight:600}
+.stu .cost .val{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
+.stu .cost .val span{font-size:13px;color:rgba(255,255,255,.6)}
+.stu .cost .val b{color:#5cb3ff;font-weight:800;font-size:15px}
+.stu .go{width:100%;padding:15px 0;border-radius:999px;font-size:15px;font-weight:800;border:none;transition:all .18s ease}
+.stu .go.ok{background:linear-gradient(140deg,#3aa0ff,#1a72d8);color:#fff;cursor:pointer;box-shadow:0 8px 26px rgba(41,151,255,.4);font-family:var(--font-display),var(--font-inter),sans-serif;letter-spacing:.01em}
+.stu .go.ok:hover{transform:translateY(-1px);box-shadow:0 12px 36px rgba(41,151,255,.55)}
+.stu .go.no{background:rgba(255,255,255,.16);color:rgba(255,255,255,.5);cursor:not-allowed}
+.stu .gnote{font-size:10.5px;color:rgba(255,255,255,.4);margin-top:9px;text-align:center}
+.stu textarea{width:100%;resize:vertical;padding:17px;border-radius:16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);color:#fff;font-size:15px;line-height:1.55;outline:none;font-family:inherit;transition:border-color .18s ease;caret-color:#2997ff}
+.stu textarea::selection{background:rgba(41,151,255,.35)}
+.stu textarea:focus{border-color:rgba(41,151,255,.55);box-shadow:0 0 0 3px rgba(41,151,255,.12)}
+.stu .cnt{font-size:11px;color:rgba(255,255,255,.35);text-align:right;margin-top:5px}
+.stu .cams{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media(max-width:700px){.stu .cams{grid-template-columns:repeat(2,1fr)}}
+.stu .cam{padding:14px 10px;border-radius:14px;text-align:center;cursor:pointer;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.1);color:#fff;transition:all .16s ease}
+.stu .cam:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.3)}
+.stu .cam.on{background:rgba(41,151,255,.14);border-color:rgba(41,151,255,.65);box-shadow:0 6px 22px rgba(41,151,255,.22)}
+.stu .cam .e{font-size:21px}
+.stu .cam .l{font-size:12px;font-weight:700;margin-top:5px;letter-spacing:-.01em;font-family:var(--font-display),var(--font-inter),sans-serif}
+.stu .camline{margin-top:10px;font-size:12.5px;color:#5cb3ff;background:rgba(41,151,255,.08);border:1px solid rgba(41,151,255,.25);border-radius:10px;padding:8px 12px}
+.stu .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:4px}
+@media(max-width:700px){.stu .steps{grid-template-columns:1fr}}
+.stu .step{padding:16px;border-radius:14px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.08);border-top:2px solid rgba(41,151,255,.45)}
+.stu .step b{display:block;font-size:11px;font-weight:800;letter-spacing:.1em;color:#5cb3ff;margin-bottom:6px;font-family:var(--font-display),var(--font-inter),sans-serif}
+.stu .step p{margin:0;font-size:13px;color:rgba(255,255,255,.65);line-height:1.5}
+.stu .myv{margin-top:34px}
+.stu .myv .hd{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px}
+.stu .myv .hd a{font-size:12.5px;color:#5cb3ff;text-decoration:none;font-weight:700;font-family:var(--font-display),var(--font-inter),sans-serif}
+.stu .myv .hd a:hover{text-decoration:underline}
+.stu .vrow{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
+@media(max-width:1100px){.stu .vrow{grid-template-columns:repeat(3,1fr)}}
+.stu .vtile{position:relative;aspect-ratio:9/16;border-radius:13px;overflow:hidden;border:1px solid rgba(255,255,255,.1);background:#101014;display:block;transition:all .16s ease}
+.stu .vtile:hover{transform:translateY(-2px);border-color:rgba(41,151,255,.6);box-shadow:0 10px 30px rgba(41,151,255,.18)}
+.stu .vtile video,.stu .vtile img{width:100%;height:100%;object-fit:cover;display:block}
+.stu .vtile .vt{position:absolute;left:0;right:0;bottom:34px;z-index:2;padding:18px 9px 6px;font-size:10.5px;line-height:1.3;color:rgba(255,255,255,.85);background:linear-gradient(transparent,rgba(0,0,0,.85));white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
+/* KINEO-SPRINT-V1V4-2026-08-31 (#8) — a miniatura deixa de ser UM link para o
+   MP4 e passa a ter duas acoes com rotulo permanente. .vtwatch cobre a midia
+   (assistir, o que ja existia); .vtnext e a barra fixa embaixo que leva ao
+   proximo episodio DAQUELE tema. Nada aqui depende de :hover — no telefone o
+   antigo unico sinal de clique (a borda que acendia no hover) simplesmente
+   nao existia. ATENCAO: este bloco vive DENTRO de um template literal; crase
+   aqui encerra a string e quebra o build (foi exatamente o que aconteceu). */
+.stu .vtile .vtwatch{position:absolute;inset:0;z-index:1;display:block;-webkit-tap-highlight-color:rgba(41,151,255,.2)}
+.stu .vtile .vtplay{position:absolute;top:6px;left:6px;z-index:2;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:99px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.28);color:#fff;font-size:9px;pointer-events:none}
+.stu .vtile .vtnext{position:absolute;left:0;right:0;bottom:0;z-index:3;display:flex;align-items:center;justify-content:center;gap:4px;padding:8px 6px;font-size:10.5px;font-weight:800;letter-spacing:-.01em;text-decoration:none;color:#bfe0ff;background:rgba(41,151,255,.22);border-top:1px solid rgba(41,151,255,.55);font-family:var(--font-display),var(--font-inter),sans-serif;-webkit-tap-highlight-color:rgba(41,151,255,.35);transition:background .16s ease,color .16s ease}
+.stu .vtile .vtnext:hover,.stu .vtile .vtnext:focus-visible{background:rgba(41,151,255,.42);color:#fff;outline:none}
+.stu .vtile .vtnext:active{background:rgba(41,151,255,.55);color:#fff}
+&lt;/style&gt;&lt;h1&gt;Studio&lt;/h1&gt;&lt;p class=&quot;sub&quot;&gt;Your idea first. Review the settings, then generate.&lt;/p&gt;&lt;div class=&quot;grid composer-proposal-grid&quot;&gt;&lt;section class=&quot;composer-proposal-idea&quot; aria-label=&quot;Your idea&quot;&gt;&lt;div&gt;&lt;div class=&quot;lab&quot; style=&quot;display:flex;align-items:center;justify-content:space-between&quot;&gt;&lt;span&gt;&lt;span class=&quot;n&quot;&gt;1&lt;/span&gt;Your idea&lt;/span&gt;&lt;button type=&quot;button&quot; class=&quot;pill&quot; style=&quot;font-size:11px&quot;&gt;🎲 Surprise me&lt;/button&gt;&lt;/div&gt;&lt;div class=&quot;row&quot; style=&quot;margin-bottom:8px&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;pill&quot; style=&quot;font-size:11.5px&quot;&gt;📊 Facts&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;pill&quot; style=&quot;font-size:11.5px&quot;&gt;🕵️ Mystery&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;pill&quot; style=&quot;font-size:11.5px&quot;&gt;📖 True Story&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;pill&quot; style=&quot;font-size:11.5px&quot;&gt;📝 My Script&lt;/button&gt;&lt;/div&gt;&lt;textarea rows=&quot;7&quot; placeholder=&quot;What’s your video about? One idea in — a finished film out: voiced, scored and captioned.&quot;&gt;&lt;/textarea&gt;&lt;div class=&quot;row&quot; style=&quot;margin-top:10px&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;pill on&quot;&gt;✨ Let AI structure it&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;pill&quot;&gt;📝 Use my script as is&lt;/button&gt;&lt;/div&gt;&lt;div class=&quot;cnt&quot;&gt;a single line is enough — or paste a full script&lt;/div&gt;&lt;/div&gt;&lt;/section&gt;&lt;section class=&quot;composer-proposal-settings&quot; aria-label=&quot;Settings and generation&quot;&gt;&lt;div style=&quot;position:relative&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;mdlbtn&quot;&gt;&lt;span class=&quot;lab&quot; style=&quot;margin-bottom:0&quot;&gt;&lt;span class=&quot;n&quot;&gt;2&lt;/span&gt;Engine&lt;/span&gt;&lt;span class=&quot;mdlname&quot; style=&quot;display:flex;align-items:center;gap:10px&quot;&gt;&lt;span class=&quot;eng-ic&quot; aria-hidden=&quot;true&quot;&gt;⚡&lt;/span&gt;&lt;b&gt;Kineo 1&lt;/b&gt;&lt;i style=&quot;margin-left:auto&quot;&gt;1080p ▾&lt;/i&gt;&lt;/span&gt;&lt;/button&gt;&lt;/div&gt;&lt;div class=&quot;card&quot;&gt;&lt;div class=&quot;lab&quot;&gt;&lt;span class=&quot;n&quot;&gt;3&lt;/span&gt;Format&lt;/div&gt;&lt;div class=&quot;row&quot; style=&quot;margin-bottom:12px&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;pill&quot;&gt;35s&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;pill on&quot;&gt;60s ⭐&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;pill&quot; title=&quot;Mais alcance: no TikTok, 90s rende ~4x as views de um vídeo de 60s&quot;&gt;90s 📈&lt;/button&gt;&lt;/div&gt;&lt;div class=&quot;row&quot; style=&quot;margin-bottom:12px;flex-wrap:wrap&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;pill on&quot; title=&quot;TikTok · Reels · YouTube Shorts&quot;&gt;9:16 · Shorts&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;pill&quot; title=&quot;YouTube · site · ads&quot;&gt;16:9 · Widescreen&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;pill&quot; title=&quot;Feed do Instagram · Facebook ads&quot;&gt;1:1 · Square&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;pill&quot; title=&quot;Feed do Instagram (ocupa mais tela)&quot;&gt;4:5 · Feed tall&lt;/button&gt;&lt;/div&gt;&lt;div style=&quot;font-size:11.5px;color:var(--muted2);margin-bottom:12px;line-height:1.5&quot;&gt;TikTok · Reels · YouTube Shorts&lt;/div&gt;&lt;div class=&quot;row&quot; style=&quot;align-items:center;gap:8px;flex-wrap:wrap&quot;&gt;&lt;span class=&quot;pill on&quot; style=&quot;cursor:default&quot;&gt;1080×1920 · Full HD master&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;hint&quot;&gt;Every film is delivered as a 1080×1920 Full HD master (engines render natively at 720–768p and are mastered up). For maximum sharpness, run ✨HD Enhance on the finished film.&lt;/div&gt;&lt;/div&gt;&lt;details class=&quot;composer-proposal-optional&quot;&gt;&lt;summary&gt;Optional settings&lt;/summary&gt;&lt;div&gt;&lt;div class=&quot;lab&quot;&gt;Camera preset &lt;span style=&quot;font-weight:600;text-transform:none;letter-spacing:0&quot;&gt;optional — a pre-tested move added to your prompt&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;cams&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;cam&quot;&gt;&lt;div class=&quot;e&quot;&gt;🎥&lt;/div&gt;&lt;div class=&quot;l&quot;&gt;Slow Dolly-In&lt;/div&gt;&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;cam&quot;&gt;&lt;div class=&quot;e&quot;&gt;⚡&lt;/div&gt;&lt;div class=&quot;l&quot;&gt;Crash Zoom&lt;/div&gt;&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;cam&quot;&gt;&lt;div class=&quot;e&quot;&gt;🌀&lt;/div&gt;&lt;div class=&quot;l&quot;&gt;Orbit&lt;/div&gt;&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;cam&quot;&gt;&lt;div class=&quot;e&quot;&gt;🚁&lt;/div&gt;&lt;div class=&quot;l&quot;&gt;FPV Drone&lt;/div&gt;&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;cam&quot;&gt;&lt;div class=&quot;e&quot;&gt;🏗️&lt;/div&gt;&lt;div class=&quot;l&quot;&gt;Crane Up&lt;/div&gt;&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;cam&quot;&gt;&lt;div class=&quot;e&quot;&gt;🎬&lt;/div&gt;&lt;div class=&quot;l&quot;&gt;Handheld&lt;/div&gt;&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;cam&quot;&gt;&lt;div class=&quot;e&quot;&gt;🔬&lt;/div&gt;&lt;div class=&quot;l&quot;&gt;Macro Detail&lt;/div&gt;&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;cam&quot;&gt;&lt;div class=&quot;e&quot;&gt;🗿&lt;/div&gt;&lt;div class=&quot;l&quot;&gt;Locked Tripod&lt;/div&gt;&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;card&quot;&gt;&lt;div class=&quot;lab&quot;&gt;Reference image &lt;span class=&quot;soon&quot;&gt;SOON&lt;/span&gt;&lt;/div&gt;&lt;input type=&quot;file&quot; accept=&quot;image/*&quot; style=&quot;display:none&quot;/&gt;&lt;button type=&quot;button&quot; disabled=&quot;&quot; class=&quot;upl no&quot; title=&quot;Coming soon&quot;&gt;🖼️ Start your video from an image — coming soon&lt;/button&gt;&lt;/div&gt;&lt;/details&gt;&lt;div class=&quot;cost&quot;&gt;&lt;div class=&quot;sum&quot; style=&quot;display:flex;align-items:center;gap:8px&quot;&gt;&lt;span class=&quot;eng-ic&quot; style=&quot;width:24px;height:24px;border-radius:7px;font-size:10.5px&quot; aria-hidden=&quot;true&quot;&gt;⚡&lt;/span&gt;Kineo 1 · 60s · 1080p · 9:16&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;&lt;span&gt;Estimated cost&lt;/span&gt;&lt;b&gt;5 cr&lt;/b&gt;&lt;/div&gt;&lt;div class=&quot;val&quot; style=&quot;opacity:0.75&quot;&gt;&lt;span&gt;Usually takes&lt;/span&gt;&lt;b style=&quot;font-weight:600&quot;&gt;3–7 min&lt;/b&gt;&lt;/div&gt;&lt;button type=&quot;button&quot; disabled=&quot;&quot; class=&quot;go no&quot;&gt;Type your idea first&lt;/button&gt;&lt;div class=&quot;gnote&quot;&gt;Voice, karaoke captions and score included. If a render fails, your credits come straight back.&lt;/div&gt;&lt;/div&gt;&lt;/section&gt;&lt;/div&gt;&lt;details class=&quot;composer-proposal-how&quot;&gt;&lt;summary&gt;How it works&lt;/summary&gt;&lt;div class=&quot;steps&quot;&gt;&lt;div class=&quot;step&quot;&gt;&lt;b&gt;1 · CONFIGURE&lt;/b&gt;&lt;p&gt;Engine, length, resolution and camera — all on this screen.&lt;/p&gt;&lt;/div&gt;&lt;div class=&quot;step&quot;&gt;&lt;b&gt;2 · TYPE&lt;/b&gt;&lt;p&gt;One idea. Kineo writes the script and directs every scene.&lt;/p&gt;&lt;/div&gt;&lt;div class=&quot;step&quot;&gt;&lt;b&gt;3 · GET YOUR FILM&lt;/b&gt;&lt;p&gt;Voice, karaoke captions and score included. Download and post.&lt;/p&gt;&lt;/div&gt;&lt;/div&gt;&lt;/details&gt;&lt;style&gt;
+.composer-proposal .composer-proposal-grid{grid-template-columns:minmax(0,1fr)320px;gap:28px}
+.composer-proposal-idea{min-width:0;padding:22px;border:1px solid #292a31;border-radius:18px;background:#101014}
+.composer-proposal-settings{display:flex;flex-direction:column;gap:14px;min-width:0}
+.composer-proposal-optional{border:1px solid #292a31;border-radius:14px;padding:0 14px;background:#101014}
+.composer-proposal-optional&amp;gt;summary{min-height:48px;display:list-item;align-content:center;cursor:pointer;font-size:13px;color:#c9ccd3}
+.composer-proposal-optional&amp;gt;div{margin:16px 0}.composer-proposal-optional .cams{grid-template-columns:repeat(2,1fr)}
+.composer-proposal .hint{line-height:1.6}.composer-proposal textarea{min-height:230px}
+.composer-proposal-how{margin-top:24px}.composer-proposal-how&amp;gt;summary{min-height:44px;align-content:center;cursor:pointer;color:#a1a1aa;font-size:13px}
+@media(max-width:900px){.composer-proposal .composer-proposal-grid{grid-template-columns:1fr;gap:18px}.composer-proposal-idea{padding:16px}.composer-proposal textarea{min-height:160px}}
+&lt;/style&gt;&lt;/div&gt;&lt;/body&gt;&lt;/html&gt;" width="1100" height="1150"></iframe></div></article></section></div><h2>Mobile · viewport de 390px</h2><div class="scroll"><section class="pair mobile"><article><h3>Antes — origin/main</h3><div class="frame"><iframe sandbox title="Antes do Studio mobile" srcdoc="&lt;!doctype html&gt;&lt;html lang=&quot;en&quot;&gt;&lt;head&gt;&lt;meta charset=&quot;utf-8&quot;&gt;&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width,initial-scale=1&quot;&gt;&lt;style&gt;html,body{margin:0;background:#0a0a0c;font-family:Arial,sans-serif}*{box-sizing:border-box}button{font-family:inherit}a{pointer-events:none}&lt;/style&gt;&lt;/head&gt;&lt;body&gt;&lt;div class=&quot;stu&quot;&gt;&lt;style&gt;
+.stu{min-height:100vh;background:radial-gradient(110% 60% at 50% -8%,rgba(41,151,255,.10),transparent 55%),radial-gradient(70% 50% at 100% 100%,rgba(41,151,255,.05),transparent 60%),#0a0a0c;color:#fafafa;padding:26px 34px 60px;font-family:var(--font-inter),'Inter',sans-serif}
+.stu *{box-sizing:border-box}
+.stu h1{font-size:34px;font-weight:700;letter-spacing:-.02em;margin:0 0 4px;font-family:var(--font-display),var(--font-inter),sans-serif;background:linear-gradient(92deg,#fff 30%,#7cc0ff 85%);-webkit-background-clip:text;background-clip:text;color:transparent;width:fit-content}
+.stu .sub{color:rgba(255,255,255,.52);font-size:14px;margin:0 0 26px}
+.stu .grid{display:grid;grid-template-columns:352px 1fr;gap:22px;align-items:start}
+.stu .rail{position:sticky;top:20px;display:flex;flex-direction:column;gap:14px}
+/* KINEO-MOBILE-2026-08-29 — auditoria mobile do fundador (&quot;fica muito
+   esquisito, aparece os motores mas nao aparece do lado pra escrever&quot;).
+   CAUSA RAIZ: no celular o grid empilha em 1 coluna, mas o .rail continuava
+   position:sticky — a coluna dos motores GRUDAVA no topo e o resto da pagina
+   (a caixa de escrever!) rolava POR BAIXO dela, texto sobre texto. sticky so
+   faz sentido com duas colunas lado a lado; em pilha ele e o proprio bug.
+   O bloco vale para TODOS os ambientes do kit (Studio/Animate/Audio/Images),
+   pela regra de ouro do arquivo: conserto entra aqui uma vez. */
+@media(max-width:900px){
+  .stu{padding:16px 14px 96px}
+  .stu h1{font-size:27px}
+  .stu .grid{grid-template-columns:1fr;gap:16px}
+  .stu .rail{position:static}
+}
+/* KINEO-SPRINT-UI-1-2026-08-29 — ergonomia de toque (sprint noturno #1).
+   · textarea 16px no mobile: com fonte &lt;16px o iOS DA ZOOM na pagina inteira
+     ao focar o campo — o cliente escrevia a ideia com o layout estourado e
+     precisava beliscar pra voltar. 16px desarma o zoom na origem.
+   · alvos de toque: pills e tiles de camera com min-height 44px (guideline
+     Apple/Google); dedo erra menos, seletor deixa de ser loteria.
+   · rolagem com inercia e sem &quot;scroll chaining&quot; puxando o body por tras. */
+@media(max-width:900px){
+  .stu textarea{font-size:16px;padding:15px}
+  .stu .pill{min-height:44px;display:inline-flex;align-items:center;padding:10px 16px}
+  .stu .cam{min-height:64px;padding:15px 10px}
+  .stu .mdlbtn{padding:16px}
+  .stu .go{padding:16px 0;font-size:16px}
+  .stu .vrow{grid-template-columns:repeat(2,1fr);gap:10px}
+}
+.stu .card{background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.09);border-radius:16px;padding:15px 16px;transition:border-color .18s ease}
+.stu .card:hover{border-color:rgba(255,255,255,.16)}
+.stu .lab{display:flex;align-items:center;gap:8px;font-size:10.5px;color:rgba(255,255,255,.55);font-weight:700;text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px;font-family:var(--font-display),var(--font-inter),sans-serif}
+.stu .lab .n{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:6px;background:linear-gradient(140deg,#2997ff,#1668c7);color:#fff;font-size:10px;font-weight:900;box-shadow:0 2px 8px rgba(41,151,255,.4)}
+.stu .row{display:flex;gap:8px;flex-wrap:wrap}
+.stu .pill{padding:9px 14px;border-radius:999px;font-size:13px;font-weight:700;font-family:var(--font-display),var(--font-inter),sans-serif;cursor:pointer;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.72);transition:all .16s ease;position:relative}
+.stu .pill:hover{transform:translateY(-1px);border-color:rgba(255,255,255,.28);color:#fff}
+.stu .pill.on{background:linear-gradient(140deg,#2997ff,#1a72d8);border-color:rgba(120,190,255,.9);color:#fff;box-shadow:0 4px 18px rgba(41,151,255,.4),inset 0 1px 0 rgba(255,255,255,.25)}
+.stu .pill.off{opacity:.42;cursor:not-allowed}
+.stu .pill.off:hover{transform:none;border-color:rgba(255,255,255,.12);color:rgba(255,255,255,.72)}
+.stu .soon{font-size:8.5px;font-weight:900;letter-spacing:.08em;margin-left:6px;padding:1.5px 5px;border-radius:99px;background:rgba(255,180,40,.16);color:#ffb428;vertical-align:1px}
+.stu .hint{font-size:11.5px;color:rgba(255,255,255,.42);margin-top:8px;line-height:1.45}
+.stu .mdlbtn{width:100%;text-align:left;padding:14px 16px;border-radius:16px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.12);cursor:pointer;color:#fff;transition:border-color .18s ease}
+.stu .mdlbtn:hover{border-color:rgba(41,151,255,.5)}
+.stu .mdlname{display:flex;align-items:center;justify-content:space-between;margin-top:5px}
+.stu .mdlname b{font-size:17px;font-weight:700;letter-spacing:-.01em;font-family:var(--font-display),var(--font-inter),sans-serif}
+.stu .mdlname i{font-style:normal;font-size:12px;color:#5cb3ff}
+.stu .picker{position:absolute;z-index:40;top:104%;left:0;right:0;background:#141419;border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:8px;box-shadow:0 24px 60px rgba(0,0,0,.65)}
+.stu .pk{width:100%;text-align:left;padding:12px 13px;border-radius:12px;background:transparent;border:1px solid transparent;cursor:pointer;color:#fff;transition:all .14s ease;display:flex;align-items:center;gap:11px}
+.stu .pk .pk-tx{flex:1;min-width:0}
+.stu .pk{position:relative}
+.stu .pk .pkv{position:absolute;left:calc(100% + 10px);top:50%;transform:translateY(-50%);width:250px;height:140px;border-radius:12px;overflow:hidden;border:1px solid rgba(41,151,255,.3);box-shadow:0 18px 44px rgba(0,0,0,.55);background:#0a0a0c;opacity:0;pointer-events:none;transition:opacity .16s ease;z-index:5}
+.stu .pk .pkv video{width:100%;height:100%;object-fit:cover;display:block}
+.stu .pk:hover .pkv{opacity:1}
+.stu .eng-ic{flex-shrink:0;width:34px;height:34px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);font-weight:800;font-size:13px;color:#e8eaee;letter-spacing:-.02em}
+.stu .pk+.pk{margin-top:2px}
+.stu .pk:hover{background:rgba(255,255,255,.05)}
+.stu .pk.on{background:rgba(41,151,255,.12);border-color:rgba(41,151,255,.35);box-shadow:inset 3px 0 0 #2997ff}
+.stu .pk .t{display:flex;justify-content:space-between;align-items:center}
+.stu .pk .t b{font-weight:700;font-size:15px;letter-spacing:-.01em;font-family:var(--font-display),var(--font-inter),sans-serif}
+.stu .pk .t i{font-style:normal;font-size:11px;font-weight:800;color:#8fc6ff;background:rgba(41,151,255,.13);border:1px solid rgba(41,151,255,.3);border-radius:999px;padding:2.5px 9px;font-family:var(--font-display),var(--font-inter),sans-serif}
+.stu .pk .sp{display:block;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#5cb3ff;margin-top:5px;font-family:var(--font-display),var(--font-inter),sans-serif}
+.stu .pk .d{display:block;font-size:12px;color:rgba(255,255,255,.52);margin-top:2px;line-height:1.35}
+.stu .tag{font-size:9px;font-weight:800;color:#5cb3ff;border:1px solid rgba(41,151,255,.4);border-radius:999px;padding:2px 7px;margin-left:6px;vertical-align:1px}
+.stu .upl{width:100%;padding:16px 14px;border-radius:14px;background:rgba(255,255,255,.03);border:1px dashed rgba(255,255,255,.22);font-size:13px;transition:all .16s ease}
+.stu .upl.ok{cursor:pointer;color:rgba(255,255,255,.78)}
+.stu .upl.ok:hover{border-color:rgba(41,151,255,.6);background:rgba(41,151,255,.05)}
+.stu .upl.no{cursor:not-allowed;color:rgba(255,255,255,.35)}
+.stu .cost{padding:17px 16px;border-radius:18px;background:linear-gradient(160deg,#0d1e3c,#0a0f1c);border:1px solid rgba(41,151,255,.4);position:relative;overflow:hidden}
+.stu .cost::before{content:'';position:absolute;top:0;left:8%;right:8%;height:1px;background:linear-gradient(90deg,transparent,rgba(124,192,255,.7),transparent)}
+.stu .cost .sum{font-size:12.5px;color:#8fc6ff;margin-bottom:5px;font-weight:600}
+.stu .cost .val{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
+.stu .cost .val span{font-size:13px;color:rgba(255,255,255,.6)}
+.stu .cost .val b{color:#5cb3ff;font-weight:800;font-size:15px}
+.stu .go{width:100%;padding:15px 0;border-radius:999px;font-size:15px;font-weight:800;border:none;transition:all .18s ease}
+.stu .go.ok{background:linear-gradient(140deg,#3aa0ff,#1a72d8);color:#fff;cursor:pointer;box-shadow:0 8px 26px rgba(41,151,255,.4);font-family:var(--font-display),var(--font-inter),sans-serif;letter-spacing:.01em}
+.stu .go.ok:hover{transform:translateY(-1px);box-shadow:0 12px 36px rgba(41,151,255,.55)}
+.stu .go.no{background:rgba(255,255,255,.16);color:rgba(255,255,255,.5);cursor:not-allowed}
+.stu .gnote{font-size:10.5px;color:rgba(255,255,255,.4);margin-top:9px;text-align:center}
+.stu textarea{width:100%;resize:vertical;padding:17px;border-radius:16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);color:#fff;font-size:15px;line-height:1.55;outline:none;font-family:inherit;transition:border-color .18s ease;caret-color:#2997ff}
+.stu textarea::selection{background:rgba(41,151,255,.35)}
+.stu textarea:focus{border-color:rgba(41,151,255,.55);box-shadow:0 0 0 3px rgba(41,151,255,.12)}
+.stu .cnt{font-size:11px;color:rgba(255,255,255,.35);text-align:right;margin-top:5px}
+.stu .cams{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media(max-width:700px){.stu .cams{grid-template-columns:repeat(2,1fr)}}
+.stu .cam{padding:14px 10px;border-radius:14px;text-align:center;cursor:pointer;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.1);color:#fff;transition:all .16s ease}
+.stu .cam:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.3)}
+.stu .cam.on{background:rgba(41,151,255,.14);border-color:rgba(41,151,255,.65);box-shadow:0 6px 22px rgba(41,151,255,.22)}
+.stu .cam .e{font-size:21px}
+.stu .cam .l{font-size:12px;font-weight:700;margin-top:5px;letter-spacing:-.01em;font-family:var(--font-display),var(--font-inter),sans-serif}
+.stu .camline{margin-top:10px;font-size:12.5px;color:#5cb3ff;background:rgba(41,151,255,.08);border:1px solid rgba(41,151,255,.25);border-radius:10px;padding:8px 12px}
+.stu .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:4px}
+@media(max-width:700px){.stu .steps{grid-template-columns:1fr}}
+.stu .step{padding:16px;border-radius:14px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.08);border-top:2px solid rgba(41,151,255,.45)}
+.stu .step b{display:block;font-size:11px;font-weight:800;letter-spacing:.1em;color:#5cb3ff;margin-bottom:6px;font-family:var(--font-display),var(--font-inter),sans-serif}
+.stu .step p{margin:0;font-size:13px;color:rgba(255,255,255,.65);line-height:1.5}
+.stu .myv{margin-top:34px}
+.stu .myv .hd{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px}
+.stu .myv .hd a{font-size:12.5px;color:#5cb3ff;text-decoration:none;font-weight:700;font-family:var(--font-display),var(--font-inter),sans-serif}
+.stu .myv .hd a:hover{text-decoration:underline}
+.stu .vrow{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
+@media(max-width:1100px){.stu .vrow{grid-template-columns:repeat(3,1fr)}}
+.stu .vtile{position:relative;aspect-ratio:9/16;border-radius:13px;overflow:hidden;border:1px solid rgba(255,255,255,.1);background:#101014;display:block;transition:all .16s ease}
+.stu .vtile:hover{transform:translateY(-2px);border-color:rgba(41,151,255,.6);box-shadow:0 10px 30px rgba(41,151,255,.18)}
+.stu .vtile video,.stu .vtile img{width:100%;height:100%;object-fit:cover;display:block}
+.stu .vtile .vt{position:absolute;left:0;right:0;bottom:34px;z-index:2;padding:18px 9px 6px;font-size:10.5px;line-height:1.3;color:rgba(255,255,255,.85);background:linear-gradient(transparent,rgba(0,0,0,.85));white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
+/* KINEO-SPRINT-V1V4-2026-08-31 (#8) — a miniatura deixa de ser UM link para o
+   MP4 e passa a ter duas acoes com rotulo permanente. .vtwatch cobre a midia
+   (assistir, o que ja existia); .vtnext e a barra fixa embaixo que leva ao
+   proximo episodio DAQUELE tema. Nada aqui depende de :hover — no telefone o
+   antigo unico sinal de clique (a borda que acendia no hover) simplesmente
+   nao existia. ATENCAO: este bloco vive DENTRO de um template literal; crase
+   aqui encerra a string e quebra o build (foi exatamente o que aconteceu). */
+.stu .vtile .vtwatch{position:absolute;inset:0;z-index:1;display:block;-webkit-tap-highlight-color:rgba(41,151,255,.2)}
+.stu .vtile .vtplay{position:absolute;top:6px;left:6px;z-index:2;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:99px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.28);color:#fff;font-size:9px;pointer-events:none}
+.stu .vtile .vtnext{position:absolute;left:0;right:0;bottom:0;z-index:3;display:flex;align-items:center;justify-content:center;gap:4px;padding:8px 6px;font-size:10.5px;font-weight:800;letter-spacing:-.01em;text-decoration:none;color:#bfe0ff;background:rgba(41,151,255,.22);border-top:1px solid rgba(41,151,255,.55);font-family:var(--font-display),var(--font-inter),sans-serif;-webkit-tap-highlight-color:rgba(41,151,255,.35);transition:background .16s ease,color .16s ease}
+.stu .vtile .vtnext:hover,.stu .vtile .vtnext:focus-visible{background:rgba(41,151,255,.42);color:#fff;outline:none}
+.stu .vtile .vtnext:active{background:rgba(41,151,255,.55);color:#fff}
+&lt;/style&gt;&lt;h1&gt;Studio&lt;/h1&gt;&lt;p class=&quot;sub&quot;&gt;Every control on one screen. Pick, type, generate.&lt;/p&gt;&lt;div class=&quot;grid&quot;&gt;&lt;div class=&quot;rail&quot;&gt;&lt;div style=&quot;position:relative&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;mdlbtn&quot;&gt;&lt;span class=&quot;lab&quot; style=&quot;margin-bottom:0&quot;&gt;&lt;span class=&quot;n&quot;&gt;1&lt;/span&gt;Engine&lt;/span&gt;&lt;span class=&quot;mdlname&quot; style=&quot;display:flex;align-items:center;gap:10px&quot;&gt;&lt;span class=&quot;eng-ic&quot; aria-hidden=&quot;true&quot;&gt;⚡&lt;/span&gt;&lt;b&gt;Kineo 1&lt;/b&gt;&lt;i style=&quot;margin-left:auto&quot;&gt;1080p ▾&lt;/i&gt;&lt;/span&gt;&lt;/button&gt;&lt;/div&gt;&lt;div class=&quot;card&quot;&gt;&lt;div class=&quot;lab&quot;&gt;&lt;span class=&quot;n&quot;&gt;2&lt;/span&gt;Format&lt;/div&gt;&lt;div class=&quot;row&quot; style=&quot;margin-bottom:12px&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;pill&quot;&gt;35s&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;pill on&quot;&gt;60s ⭐&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;pill&quot; title=&quot;Mais alcance: no TikTok, 90s rende ~4x as views de um vídeo de 60s&quot;&gt;90s 📈&lt;/button&gt;&lt;/div&gt;&lt;div class=&quot;row&quot; style=&quot;margin-bottom:12px;flex-wrap:wrap&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;pill on&quot; title=&quot;TikTok · Reels · YouTube Shorts&quot;&gt;9:16 · Shorts&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;pill&quot; title=&quot;YouTube · site · ads&quot;&gt;16:9 · Widescreen&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;pill&quot; title=&quot;Feed do Instagram · Facebook ads&quot;&gt;1:1 · Square&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;pill&quot; title=&quot;Feed do Instagram (ocupa mais tela)&quot;&gt;4:5 · Feed tall&lt;/button&gt;&lt;/div&gt;&lt;div style=&quot;font-size:11.5px;color:var(--muted2);margin-bottom:12px;line-height:1.5&quot;&gt;TikTok · Reels · YouTube Shorts&lt;/div&gt;&lt;div class=&quot;row&quot; style=&quot;align-items:center;gap:8px;flex-wrap:wrap&quot;&gt;&lt;span class=&quot;pill on&quot; style=&quot;cursor:default&quot;&gt;1080×1920 · Full HD master&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;hint&quot;&gt;Every film is delivered as a 1080×1920 Full HD master (engines render natively at 720–768p and are mastered up). For maximum sharpness, run ✨HD Enhance on the finished film.&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;card&quot;&gt;&lt;div class=&quot;lab&quot;&gt;&lt;span class=&quot;n&quot;&gt;3&lt;/span&gt;Reference image &lt;span class=&quot;soon&quot;&gt;SOON&lt;/span&gt;&lt;/div&gt;&lt;input type=&quot;file&quot; accept=&quot;image/*&quot; style=&quot;display:none&quot;/&gt;&lt;button type=&quot;button&quot; disabled=&quot;&quot; class=&quot;upl no&quot; title=&quot;Coming soon&quot;&gt;🖼️ Start your video from an image — coming soon&lt;/button&gt;&lt;/div&gt;&lt;div class=&quot;cost&quot;&gt;&lt;div class=&quot;sum&quot; style=&quot;display:flex;align-items:center;gap:8px&quot;&gt;&lt;span class=&quot;eng-ic&quot; style=&quot;width:24px;height:24px;border-radius:7px;font-size:10.5px&quot; aria-hidden=&quot;true&quot;&gt;⚡&lt;/span&gt;Kineo 1 · 60s · 1080p · 9:16&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;&lt;span&gt;Estimated cost&lt;/span&gt;&lt;b&gt;5 cr&lt;/b&gt;&lt;/div&gt;&lt;div class=&quot;val&quot; style=&quot;opacity:0.75&quot;&gt;&lt;span&gt;Usually takes&lt;/span&gt;&lt;b style=&quot;font-weight:600&quot;&gt;3–7 min&lt;/b&gt;&lt;/div&gt;&lt;button type=&quot;button&quot; disabled=&quot;&quot; class=&quot;go no&quot;&gt;Type your idea first&lt;/button&gt;&lt;div class=&quot;gnote&quot;&gt;Voice, karaoke captions and score included. If a render fails, your credits come straight back.&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;div style=&quot;display:flex;flex-direction:column;gap:18px&quot;&gt;&lt;div&gt;&lt;div class=&quot;lab&quot; style=&quot;display:flex;align-items:center;justify-content:space-between&quot;&gt;&lt;span&gt;&lt;span class=&quot;n&quot;&gt;4&lt;/span&gt;Your idea&lt;/span&gt;&lt;button type=&quot;button&quot; class=&quot;pill&quot; style=&quot;font-size:11px&quot;&gt;🎲 Surprise me&lt;/button&gt;&lt;/div&gt;&lt;div class=&quot;row&quot; style=&quot;margin-bottom:8px&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;pill&quot; style=&quot;font-size:11.5px&quot;&gt;📊 Facts&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;pill&quot; style=&quot;font-size:11.5px&quot;&gt;🕵️ Mystery&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;pill&quot; style=&quot;font-size:11.5px&quot;&gt;📖 True Story&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;pill&quot; style=&quot;font-size:11.5px&quot;&gt;📝 My Script&lt;/button&gt;&lt;/div&gt;&lt;textarea rows=&quot;7&quot; placeholder=&quot;What’s your video about? One idea in — a finished film out: voiced, scored and captioned.&quot;&gt;&lt;/textarea&gt;&lt;div class=&quot;row&quot; style=&quot;margin-top:10px&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;pill on&quot;&gt;✨ Let AI structure it&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;pill&quot;&gt;📝 Use my script as is&lt;/button&gt;&lt;/div&gt;&lt;div class=&quot;cnt&quot;&gt;a single line is enough — or paste a full script&lt;/div&gt;&lt;/div&gt;&lt;div&gt;&lt;div class=&quot;lab&quot;&gt;&lt;span class=&quot;n&quot;&gt;5&lt;/span&gt;Camera preset &lt;span style=&quot;font-weight:600;text-transform:none;letter-spacing:0&quot;&gt;optional — a pre-tested move added to your prompt&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;cams&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;cam&quot;&gt;&lt;div class=&quot;e&quot;&gt;🎥&lt;/div&gt;&lt;div class=&quot;l&quot;&gt;Slow Dolly-In&lt;/div&gt;&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;cam&quot;&gt;&lt;div class=&quot;e&quot;&gt;⚡&lt;/div&gt;&lt;div class=&quot;l&quot;&gt;Crash Zoom&lt;/div&gt;&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;cam&quot;&gt;&lt;div class=&quot;e&quot;&gt;🌀&lt;/div&gt;&lt;div class=&quot;l&quot;&gt;Orbit&lt;/div&gt;&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;cam&quot;&gt;&lt;div class=&quot;e&quot;&gt;🚁&lt;/div&gt;&lt;div class=&quot;l&quot;&gt;FPV Drone&lt;/div&gt;&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;cam&quot;&gt;&lt;div class=&quot;e&quot;&gt;🏗️&lt;/div&gt;&lt;div class=&quot;l&quot;&gt;Crane Up&lt;/div&gt;&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;cam&quot;&gt;&lt;div class=&quot;e&quot;&gt;🎬&lt;/div&gt;&lt;div class=&quot;l&quot;&gt;Handheld&lt;/div&gt;&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;cam&quot;&gt;&lt;div class=&quot;e&quot;&gt;🔬&lt;/div&gt;&lt;div class=&quot;l&quot;&gt;Macro Detail&lt;/div&gt;&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;cam&quot;&gt;&lt;div class=&quot;e&quot;&gt;🗿&lt;/div&gt;&lt;div class=&quot;l&quot;&gt;Locked Tripod&lt;/div&gt;&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;steps&quot;&gt;&lt;div class=&quot;step&quot;&gt;&lt;b&gt;1 · CONFIGURE&lt;/b&gt;&lt;p&gt;Engine, length, resolution and camera — all on this screen.&lt;/p&gt;&lt;/div&gt;&lt;div class=&quot;step&quot;&gt;&lt;b&gt;2 · TYPE&lt;/b&gt;&lt;p&gt;One idea. Kineo writes the script and directs every scene.&lt;/p&gt;&lt;/div&gt;&lt;div class=&quot;step&quot;&gt;&lt;b&gt;3 · GET YOUR FILM&lt;/b&gt;&lt;p&gt;Voice, karaoke captions and score included. Download and post.&lt;/p&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;/body&gt;&lt;/html&gt;" width="390" height="1000"></iframe></div></article><article><h3>Proposta — ainda não implementada</h3><div class="frame"><iframe sandbox title="Proposta do Studio mobile" srcdoc="&lt;!doctype html&gt;&lt;html lang=&quot;en&quot;&gt;&lt;head&gt;&lt;meta charset=&quot;utf-8&quot;&gt;&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width,initial-scale=1&quot;&gt;&lt;style&gt;html,body{margin:0;background:#0a0a0c;font-family:Arial,sans-serif}*{box-sizing:border-box}button{font-family:inherit}a{pointer-events:none}&lt;/style&gt;&lt;/head&gt;&lt;body&gt;&lt;div class=&quot;stu composer-proposal&quot;&gt;&lt;style&gt;
+.stu{min-height:100vh;background:radial-gradient(110% 60% at 50% -8%,rgba(41,151,255,.10),transparent 55%),radial-gradient(70% 50% at 100% 100%,rgba(41,151,255,.05),transparent 60%),#0a0a0c;color:#fafafa;padding:26px 34px 60px;font-family:var(--font-inter),'Inter',sans-serif}
+.stu *{box-sizing:border-box}
+.stu h1{font-size:34px;font-weight:700;letter-spacing:-.02em;margin:0 0 4px;font-family:var(--font-display),var(--font-inter),sans-serif;background:linear-gradient(92deg,#fff 30%,#7cc0ff 85%);-webkit-background-clip:text;background-clip:text;color:transparent;width:fit-content}
+.stu .sub{color:rgba(255,255,255,.52);font-size:14px;margin:0 0 26px}
+.stu .grid{display:grid;grid-template-columns:352px 1fr;gap:22px;align-items:start}
+.stu .rail{position:sticky;top:20px;display:flex;flex-direction:column;gap:14px}
+/* KINEO-MOBILE-2026-08-29 — auditoria mobile do fundador (&quot;fica muito
+   esquisito, aparece os motores mas nao aparece do lado pra escrever&quot;).
+   CAUSA RAIZ: no celular o grid empilha em 1 coluna, mas o .rail continuava
+   position:sticky — a coluna dos motores GRUDAVA no topo e o resto da pagina
+   (a caixa de escrever!) rolava POR BAIXO dela, texto sobre texto. sticky so
+   faz sentido com duas colunas lado a lado; em pilha ele e o proprio bug.
+   O bloco vale para TODOS os ambientes do kit (Studio/Animate/Audio/Images),
+   pela regra de ouro do arquivo: conserto entra aqui uma vez. */
+@media(max-width:900px){
+  .stu{padding:16px 14px 96px}
+  .stu h1{font-size:27px}
+  .stu .grid{grid-template-columns:1fr;gap:16px}
+  .stu .rail{position:static}
+}
+/* KINEO-SPRINT-UI-1-2026-08-29 — ergonomia de toque (sprint noturno #1).
+   · textarea 16px no mobile: com fonte &lt;16px o iOS DA ZOOM na pagina inteira
+     ao focar o campo — o cliente escrevia a ideia com o layout estourado e
+     precisava beliscar pra voltar. 16px desarma o zoom na origem.
+   · alvos de toque: pills e tiles de camera com min-height 44px (guideline
+     Apple/Google); dedo erra menos, seletor deixa de ser loteria.
+   · rolagem com inercia e sem &quot;scroll chaining&quot; puxando o body por tras. */
+@media(max-width:900px){
+  .stu textarea{font-size:16px;padding:15px}
+  .stu .pill{min-height:44px;display:inline-flex;align-items:center;padding:10px 16px}
+  .stu .cam{min-height:64px;padding:15px 10px}
+  .stu .mdlbtn{padding:16px}
+  .stu .go{padding:16px 0;font-size:16px}
+  .stu .vrow{grid-template-columns:repeat(2,1fr);gap:10px}
+}
+.stu .card{background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.09);border-radius:16px;padding:15px 16px;transition:border-color .18s ease}
+.stu .card:hover{border-color:rgba(255,255,255,.16)}
+.stu .lab{display:flex;align-items:center;gap:8px;font-size:10.5px;color:rgba(255,255,255,.55);font-weight:700;text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px;font-family:var(--font-display),var(--font-inter),sans-serif}
+.stu .lab .n{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:6px;background:linear-gradient(140deg,#2997ff,#1668c7);color:#fff;font-size:10px;font-weight:900;box-shadow:0 2px 8px rgba(41,151,255,.4)}
+.stu .row{display:flex;gap:8px;flex-wrap:wrap}
+.stu .pill{padding:9px 14px;border-radius:999px;font-size:13px;font-weight:700;font-family:var(--font-display),var(--font-inter),sans-serif;cursor:pointer;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.72);transition:all .16s ease;position:relative}
+.stu .pill:hover{transform:translateY(-1px);border-color:rgba(255,255,255,.28);color:#fff}
+.stu .pill.on{background:linear-gradient(140deg,#2997ff,#1a72d8);border-color:rgba(120,190,255,.9);color:#fff;box-shadow:0 4px 18px rgba(41,151,255,.4),inset 0 1px 0 rgba(255,255,255,.25)}
+.stu .pill.off{opacity:.42;cursor:not-allowed}
+.stu .pill.off:hover{transform:none;border-color:rgba(255,255,255,.12);color:rgba(255,255,255,.72)}
+.stu .soon{font-size:8.5px;font-weight:900;letter-spacing:.08em;margin-left:6px;padding:1.5px 5px;border-radius:99px;background:rgba(255,180,40,.16);color:#ffb428;vertical-align:1px}
+.stu .hint{font-size:11.5px;color:rgba(255,255,255,.42);margin-top:8px;line-height:1.45}
+.stu .mdlbtn{width:100%;text-align:left;padding:14px 16px;border-radius:16px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.12);cursor:pointer;color:#fff;transition:border-color .18s ease}
+.stu .mdlbtn:hover{border-color:rgba(41,151,255,.5)}
+.stu .mdlname{display:flex;align-items:center;justify-content:space-between;margin-top:5px}
+.stu .mdlname b{font-size:17px;font-weight:700;letter-spacing:-.01em;font-family:var(--font-display),var(--font-inter),sans-serif}
+.stu .mdlname i{font-style:normal;font-size:12px;color:#5cb3ff}
+.stu .picker{position:absolute;z-index:40;top:104%;left:0;right:0;background:#141419;border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:8px;box-shadow:0 24px 60px rgba(0,0,0,.65)}
+.stu .pk{width:100%;text-align:left;padding:12px 13px;border-radius:12px;background:transparent;border:1px solid transparent;cursor:pointer;color:#fff;transition:all .14s ease;display:flex;align-items:center;gap:11px}
+.stu .pk .pk-tx{flex:1;min-width:0}
+.stu .pk{position:relative}
+.stu .pk .pkv{position:absolute;left:calc(100% + 10px);top:50%;transform:translateY(-50%);width:250px;height:140px;border-radius:12px;overflow:hidden;border:1px solid rgba(41,151,255,.3);box-shadow:0 18px 44px rgba(0,0,0,.55);background:#0a0a0c;opacity:0;pointer-events:none;transition:opacity .16s ease;z-index:5}
+.stu .pk .pkv video{width:100%;height:100%;object-fit:cover;display:block}
+.stu .pk:hover .pkv{opacity:1}
+.stu .eng-ic{flex-shrink:0;width:34px;height:34px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);font-weight:800;font-size:13px;color:#e8eaee;letter-spacing:-.02em}
+.stu .pk+.pk{margin-top:2px}
+.stu .pk:hover{background:rgba(255,255,255,.05)}
+.stu .pk.on{background:rgba(41,151,255,.12);border-color:rgba(41,151,255,.35);box-shadow:inset 3px 0 0 #2997ff}
+.stu .pk .t{display:flex;justify-content:space-between;align-items:center}
+.stu .pk .t b{font-weight:700;font-size:15px;letter-spacing:-.01em;font-family:var(--font-display),var(--font-inter),sans-serif}
+.stu .pk .t i{font-style:normal;font-size:11px;font-weight:800;color:#8fc6ff;background:rgba(41,151,255,.13);border:1px solid rgba(41,151,255,.3);border-radius:999px;padding:2.5px 9px;font-family:var(--font-display),var(--font-inter),sans-serif}
+.stu .pk .sp{display:block;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#5cb3ff;margin-top:5px;font-family:var(--font-display),var(--font-inter),sans-serif}
+.stu .pk .d{display:block;font-size:12px;color:rgba(255,255,255,.52);margin-top:2px;line-height:1.35}
+.stu .tag{font-size:9px;font-weight:800;color:#5cb3ff;border:1px solid rgba(41,151,255,.4);border-radius:999px;padding:2px 7px;margin-left:6px;vertical-align:1px}
+.stu .upl{width:100%;padding:16px 14px;border-radius:14px;background:rgba(255,255,255,.03);border:1px dashed rgba(255,255,255,.22);font-size:13px;transition:all .16s ease}
+.stu .upl.ok{cursor:pointer;color:rgba(255,255,255,.78)}
+.stu .upl.ok:hover{border-color:rgba(41,151,255,.6);background:rgba(41,151,255,.05)}
+.stu .upl.no{cursor:not-allowed;color:rgba(255,255,255,.35)}
+.stu .cost{padding:17px 16px;border-radius:18px;background:linear-gradient(160deg,#0d1e3c,#0a0f1c);border:1px solid rgba(41,151,255,.4);position:relative;overflow:hidden}
+.stu .cost::before{content:'';position:absolute;top:0;left:8%;right:8%;height:1px;background:linear-gradient(90deg,transparent,rgba(124,192,255,.7),transparent)}
+.stu .cost .sum{font-size:12.5px;color:#8fc6ff;margin-bottom:5px;font-weight:600}
+.stu .cost .val{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
+.stu .cost .val span{font-size:13px;color:rgba(255,255,255,.6)}
+.stu .cost .val b{color:#5cb3ff;font-weight:800;font-size:15px}
+.stu .go{width:100%;padding:15px 0;border-radius:999px;font-size:15px;font-weight:800;border:none;transition:all .18s ease}
+.stu .go.ok{background:linear-gradient(140deg,#3aa0ff,#1a72d8);color:#fff;cursor:pointer;box-shadow:0 8px 26px rgba(41,151,255,.4);font-family:var(--font-display),var(--font-inter),sans-serif;letter-spacing:.01em}
+.stu .go.ok:hover{transform:translateY(-1px);box-shadow:0 12px 36px rgba(41,151,255,.55)}
+.stu .go.no{background:rgba(255,255,255,.16);color:rgba(255,255,255,.5);cursor:not-allowed}
+.stu .gnote{font-size:10.5px;color:rgba(255,255,255,.4);margin-top:9px;text-align:center}
+.stu textarea{width:100%;resize:vertical;padding:17px;border-radius:16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);color:#fff;font-size:15px;line-height:1.55;outline:none;font-family:inherit;transition:border-color .18s ease;caret-color:#2997ff}
+.stu textarea::selection{background:rgba(41,151,255,.35)}
+.stu textarea:focus{border-color:rgba(41,151,255,.55);box-shadow:0 0 0 3px rgba(41,151,255,.12)}
+.stu .cnt{font-size:11px;color:rgba(255,255,255,.35);text-align:right;margin-top:5px}
+.stu .cams{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media(max-width:700px){.stu .cams{grid-template-columns:repeat(2,1fr)}}
+.stu .cam{padding:14px 10px;border-radius:14px;text-align:center;cursor:pointer;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.1);color:#fff;transition:all .16s ease}
+.stu .cam:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.3)}
+.stu .cam.on{background:rgba(41,151,255,.14);border-color:rgba(41,151,255,.65);box-shadow:0 6px 22px rgba(41,151,255,.22)}
+.stu .cam .e{font-size:21px}
+.stu .cam .l{font-size:12px;font-weight:700;margin-top:5px;letter-spacing:-.01em;font-family:var(--font-display),var(--font-inter),sans-serif}
+.stu .camline{margin-top:10px;font-size:12.5px;color:#5cb3ff;background:rgba(41,151,255,.08);border:1px solid rgba(41,151,255,.25);border-radius:10px;padding:8px 12px}
+.stu .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:4px}
+@media(max-width:700px){.stu .steps{grid-template-columns:1fr}}
+.stu .step{padding:16px;border-radius:14px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.08);border-top:2px solid rgba(41,151,255,.45)}
+.stu .step b{display:block;font-size:11px;font-weight:800;letter-spacing:.1em;color:#5cb3ff;margin-bottom:6px;font-family:var(--font-display),var(--font-inter),sans-serif}
+.stu .step p{margin:0;font-size:13px;color:rgba(255,255,255,.65);line-height:1.5}
+.stu .myv{margin-top:34px}
+.stu .myv .hd{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px}
+.stu .myv .hd a{font-size:12.5px;color:#5cb3ff;text-decoration:none;font-weight:700;font-family:var(--font-display),var(--font-inter),sans-serif}
+.stu .myv .hd a:hover{text-decoration:underline}
+.stu .vrow{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
+@media(max-width:1100px){.stu .vrow{grid-template-columns:repeat(3,1fr)}}
+.stu .vtile{position:relative;aspect-ratio:9/16;border-radius:13px;overflow:hidden;border:1px solid rgba(255,255,255,.1);background:#101014;display:block;transition:all .16s ease}
+.stu .vtile:hover{transform:translateY(-2px);border-color:rgba(41,151,255,.6);box-shadow:0 10px 30px rgba(41,151,255,.18)}
+.stu .vtile video,.stu .vtile img{width:100%;height:100%;object-fit:cover;display:block}
+.stu .vtile .vt{position:absolute;left:0;right:0;bottom:34px;z-index:2;padding:18px 9px 6px;font-size:10.5px;line-height:1.3;color:rgba(255,255,255,.85);background:linear-gradient(transparent,rgba(0,0,0,.85));white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
+/* KINEO-SPRINT-V1V4-2026-08-31 (#8) — a miniatura deixa de ser UM link para o
+   MP4 e passa a ter duas acoes com rotulo permanente. .vtwatch cobre a midia
+   (assistir, o que ja existia); .vtnext e a barra fixa embaixo que leva ao
+   proximo episodio DAQUELE tema. Nada aqui depende de :hover — no telefone o
+   antigo unico sinal de clique (a borda que acendia no hover) simplesmente
+   nao existia. ATENCAO: este bloco vive DENTRO de um template literal; crase
+   aqui encerra a string e quebra o build (foi exatamente o que aconteceu). */
+.stu .vtile .vtwatch{position:absolute;inset:0;z-index:1;display:block;-webkit-tap-highlight-color:rgba(41,151,255,.2)}
+.stu .vtile .vtplay{position:absolute;top:6px;left:6px;z-index:2;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:99px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.28);color:#fff;font-size:9px;pointer-events:none}
+.stu .vtile .vtnext{position:absolute;left:0;right:0;bottom:0;z-index:3;display:flex;align-items:center;justify-content:center;gap:4px;padding:8px 6px;font-size:10.5px;font-weight:800;letter-spacing:-.01em;text-decoration:none;color:#bfe0ff;background:rgba(41,151,255,.22);border-top:1px solid rgba(41,151,255,.55);font-family:var(--font-display),var(--font-inter),sans-serif;-webkit-tap-highlight-color:rgba(41,151,255,.35);transition:background .16s ease,color .16s ease}
+.stu .vtile .vtnext:hover,.stu .vtile .vtnext:focus-visible{background:rgba(41,151,255,.42);color:#fff;outline:none}
+.stu .vtile .vtnext:active{background:rgba(41,151,255,.55);color:#fff}
+&lt;/style&gt;&lt;h1&gt;Studio&lt;/h1&gt;&lt;p class=&quot;sub&quot;&gt;Your idea first. Review the settings, then generate.&lt;/p&gt;&lt;div class=&quot;grid composer-proposal-grid&quot;&gt;&lt;section class=&quot;composer-proposal-idea&quot; aria-label=&quot;Your idea&quot;&gt;&lt;div&gt;&lt;div class=&quot;lab&quot; style=&quot;display:flex;align-items:center;justify-content:space-between&quot;&gt;&lt;span&gt;&lt;span class=&quot;n&quot;&gt;1&lt;/span&gt;Your idea&lt;/span&gt;&lt;button type=&quot;button&quot; class=&quot;pill&quot; style=&quot;font-size:11px&quot;&gt;🎲 Surprise me&lt;/button&gt;&lt;/div&gt;&lt;div class=&quot;row&quot; style=&quot;margin-bottom:8px&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;pill&quot; style=&quot;font-size:11.5px&quot;&gt;📊 Facts&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;pill&quot; style=&quot;font-size:11.5px&quot;&gt;🕵️ Mystery&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;pill&quot; style=&quot;font-size:11.5px&quot;&gt;📖 True Story&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;pill&quot; style=&quot;font-size:11.5px&quot;&gt;📝 My Script&lt;/button&gt;&lt;/div&gt;&lt;textarea rows=&quot;7&quot; placeholder=&quot;What’s your video about? One idea in — a finished film out: voiced, scored and captioned.&quot;&gt;&lt;/textarea&gt;&lt;div class=&quot;row&quot; style=&quot;margin-top:10px&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;pill on&quot;&gt;✨ Let AI structure it&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;pill&quot;&gt;📝 Use my script as is&lt;/button&gt;&lt;/div&gt;&lt;div class=&quot;cnt&quot;&gt;a single line is enough — or paste a full script&lt;/div&gt;&lt;/div&gt;&lt;/section&gt;&lt;section class=&quot;composer-proposal-settings&quot; aria-label=&quot;Settings and generation&quot;&gt;&lt;div style=&quot;position:relative&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;mdlbtn&quot;&gt;&lt;span class=&quot;lab&quot; style=&quot;margin-bottom:0&quot;&gt;&lt;span class=&quot;n&quot;&gt;2&lt;/span&gt;Engine&lt;/span&gt;&lt;span class=&quot;mdlname&quot; style=&quot;display:flex;align-items:center;gap:10px&quot;&gt;&lt;span class=&quot;eng-ic&quot; aria-hidden=&quot;true&quot;&gt;⚡&lt;/span&gt;&lt;b&gt;Kineo 1&lt;/b&gt;&lt;i style=&quot;margin-left:auto&quot;&gt;1080p ▾&lt;/i&gt;&lt;/span&gt;&lt;/button&gt;&lt;/div&gt;&lt;div class=&quot;card&quot;&gt;&lt;div class=&quot;lab&quot;&gt;&lt;span class=&quot;n&quot;&gt;3&lt;/span&gt;Format&lt;/div&gt;&lt;div class=&quot;row&quot; style=&quot;margin-bottom:12px&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;pill&quot;&gt;35s&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;pill on&quot;&gt;60s ⭐&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;pill&quot; title=&quot;Mais alcance: no TikTok, 90s rende ~4x as views de um vídeo de 60s&quot;&gt;90s 📈&lt;/button&gt;&lt;/div&gt;&lt;div class=&quot;row&quot; style=&quot;margin-bottom:12px;flex-wrap:wrap&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;pill on&quot; title=&quot;TikTok · Reels · YouTube Shorts&quot;&gt;9:16 · Shorts&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;pill&quot; title=&quot;YouTube · site · ads&quot;&gt;16:9 · Widescreen&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;pill&quot; title=&quot;Feed do Instagram · Facebook ads&quot;&gt;1:1 · Square&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;pill&quot; title=&quot;Feed do Instagram (ocupa mais tela)&quot;&gt;4:5 · Feed tall&lt;/button&gt;&lt;/div&gt;&lt;div style=&quot;font-size:11.5px;color:var(--muted2);margin-bottom:12px;line-height:1.5&quot;&gt;TikTok · Reels · YouTube Shorts&lt;/div&gt;&lt;div class=&quot;row&quot; style=&quot;align-items:center;gap:8px;flex-wrap:wrap&quot;&gt;&lt;span class=&quot;pill on&quot; style=&quot;cursor:default&quot;&gt;1080×1920 · Full HD master&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;hint&quot;&gt;Every film is delivered as a 1080×1920 Full HD master (engines render natively at 720–768p and are mastered up). For maximum sharpness, run ✨HD Enhance on the finished film.&lt;/div&gt;&lt;/div&gt;&lt;details class=&quot;composer-proposal-optional&quot;&gt;&lt;summary&gt;Optional settings&lt;/summary&gt;&lt;div&gt;&lt;div class=&quot;lab&quot;&gt;Camera preset &lt;span style=&quot;font-weight:600;text-transform:none;letter-spacing:0&quot;&gt;optional — a pre-tested move added to your prompt&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;cams&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;cam&quot;&gt;&lt;div class=&quot;e&quot;&gt;🎥&lt;/div&gt;&lt;div class=&quot;l&quot;&gt;Slow Dolly-In&lt;/div&gt;&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;cam&quot;&gt;&lt;div class=&quot;e&quot;&gt;⚡&lt;/div&gt;&lt;div class=&quot;l&quot;&gt;Crash Zoom&lt;/div&gt;&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;cam&quot;&gt;&lt;div class=&quot;e&quot;&gt;🌀&lt;/div&gt;&lt;div class=&quot;l&quot;&gt;Orbit&lt;/div&gt;&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;cam&quot;&gt;&lt;div class=&quot;e&quot;&gt;🚁&lt;/div&gt;&lt;div class=&quot;l&quot;&gt;FPV Drone&lt;/div&gt;&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;cam&quot;&gt;&lt;div class=&quot;e&quot;&gt;🏗️&lt;/div&gt;&lt;div class=&quot;l&quot;&gt;Crane Up&lt;/div&gt;&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;cam&quot;&gt;&lt;div class=&quot;e&quot;&gt;🎬&lt;/div&gt;&lt;div class=&quot;l&quot;&gt;Handheld&lt;/div&gt;&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;cam&quot;&gt;&lt;div class=&quot;e&quot;&gt;🔬&lt;/div&gt;&lt;div class=&quot;l&quot;&gt;Macro Detail&lt;/div&gt;&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;cam&quot;&gt;&lt;div class=&quot;e&quot;&gt;🗿&lt;/div&gt;&lt;div class=&quot;l&quot;&gt;Locked Tripod&lt;/div&gt;&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;card&quot;&gt;&lt;div class=&quot;lab&quot;&gt;Reference image &lt;span class=&quot;soon&quot;&gt;SOON&lt;/span&gt;&lt;/div&gt;&lt;input type=&quot;file&quot; accept=&quot;image/*&quot; style=&quot;display:none&quot;/&gt;&lt;button type=&quot;button&quot; disabled=&quot;&quot; class=&quot;upl no&quot; title=&quot;Coming soon&quot;&gt;🖼️ Start your video from an image — coming soon&lt;/button&gt;&lt;/div&gt;&lt;/details&gt;&lt;div class=&quot;cost&quot;&gt;&lt;div class=&quot;sum&quot; style=&quot;display:flex;align-items:center;gap:8px&quot;&gt;&lt;span class=&quot;eng-ic&quot; style=&quot;width:24px;height:24px;border-radius:7px;font-size:10.5px&quot; aria-hidden=&quot;true&quot;&gt;⚡&lt;/span&gt;Kineo 1 · 60s · 1080p · 9:16&lt;/div&gt;&lt;div class=&quot;val&quot;&gt;&lt;span&gt;Estimated cost&lt;/span&gt;&lt;b&gt;5 cr&lt;/b&gt;&lt;/div&gt;&lt;div class=&quot;val&quot; style=&quot;opacity:0.75&quot;&gt;&lt;span&gt;Usually takes&lt;/span&gt;&lt;b style=&quot;font-weight:600&quot;&gt;3–7 min&lt;/b&gt;&lt;/div&gt;&lt;button type=&quot;button&quot; disabled=&quot;&quot; class=&quot;go no&quot;&gt;Type your idea first&lt;/button&gt;&lt;div class=&quot;gnote&quot;&gt;Voice, karaoke captions and score included. If a render fails, your credits come straight back.&lt;/div&gt;&lt;/div&gt;&lt;/section&gt;&lt;/div&gt;&lt;details class=&quot;composer-proposal-how&quot;&gt;&lt;summary&gt;How it works&lt;/summary&gt;&lt;div class=&quot;steps&quot;&gt;&lt;div class=&quot;step&quot;&gt;&lt;b&gt;1 · CONFIGURE&lt;/b&gt;&lt;p&gt;Engine, length, resolution and camera — all on this screen.&lt;/p&gt;&lt;/div&gt;&lt;div class=&quot;step&quot;&gt;&lt;b&gt;2 · TYPE&lt;/b&gt;&lt;p&gt;One idea. Kineo writes the script and directs every scene.&lt;/p&gt;&lt;/div&gt;&lt;div class=&quot;step&quot;&gt;&lt;b&gt;3 · GET YOUR FILM&lt;/b&gt;&lt;p&gt;Voice, karaoke captions and score included. Download and post.&lt;/p&gt;&lt;/div&gt;&lt;/div&gt;&lt;/details&gt;&lt;style&gt;
+.composer-proposal .composer-proposal-grid{grid-template-columns:minmax(0,1fr)320px;gap:28px}
+.composer-proposal-idea{min-width:0;padding:22px;border:1px solid #292a31;border-radius:18px;background:#101014}
+.composer-proposal-settings{display:flex;flex-direction:column;gap:14px;min-width:0}
+.composer-proposal-optional{border:1px solid #292a31;border-radius:14px;padding:0 14px;background:#101014}
+.composer-proposal-optional&amp;gt;summary{min-height:48px;display:list-item;align-content:center;cursor:pointer;font-size:13px;color:#c9ccd3}
+.composer-proposal-optional&amp;gt;div{margin:16px 0}.composer-proposal-optional .cams{grid-template-columns:repeat(2,1fr)}
+.composer-proposal .hint{line-height:1.6}.composer-proposal textarea{min-height:230px}
+.composer-proposal-how{margin-top:24px}.composer-proposal-how&amp;gt;summary{min-height:44px;align-content:center;cursor:pointer;color:#a1a1aa;font-size:13px}
+@media(max-width:900px){.composer-proposal .composer-proposal-grid{grid-template-columns:1fr;gap:18px}.composer-proposal-idea{padding:16px}.composer-proposal textarea{min-height:160px}}
+&lt;/style&gt;&lt;/div&gt;&lt;/body&gt;&lt;/html&gt;" width="390" height="1000"></iframe></div></article></section></div>
+<footer><strong>Segurança do preview:</strong> iframe sandbox, sem JavaScript, serviços, fontes remotas, vídeos, analytics ou formulários enviados. Só os disclosures nativos abrem/fecham; editar o campo não gera nada e não recalcula o estado. Sem mudança de motor, preço, crédito, promessa ou conteúdo do usuário. Valores exibidos foram calculados pelo código da base nesta data, não são uma oferta nova.<p><strong>Pendências antes de implementar:</strong> validar estados com texto, saldo insuficiente, seletor aberto e retorno com vídeos; preservar escolhas e contagem dos controles; revisão visual pelo fundador. Nenhuma modificação em studioKit ou no runtime foi feita por este lote.</p></footer>
+</main></body></html>
