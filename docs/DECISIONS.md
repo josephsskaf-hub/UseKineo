@@ -188,3 +188,13 @@ Formato: data · decisão · motivo · consequência prática.
 **Motivo.** O fundador observou uma queda recente de entradas e Checkouts e identificou repetição na produção das sprints. Mais volume de artefatos semelhantes não reduz dependência de canal nem aumenta assinatura.
 
 **Consequência.** Toda rodada de Growth classifica a ação como `NOVA`, `PARCIAL` ou `DUPLICADA`; ação duplicada não é publicada. Diagnóstico termina em executar, não executar ou pivotar. Queda só é atribuída a código após comparação de pessoas externas em janelas equivalentes e por fonte. O placar final continua sendo assinatura e receita real.
+
+---
+
+## 2026-09-05 — Codex assume UX integral; Claude concentra fluxo e assinaturas
+
+**DECISÃO APROVADA — pedido explícito do fundador nesta conversa em 05/09/2026.** Codex passa a cuidar de navegação/botões, organização visual de TODAS as páginas, refinamento da home e espanhol com inglês padrão. Claude concentra fluxo, aquisição e novas assinaturas. Esta responsabilidade substitui a divisão de 31/08 no que conflitar com ela; não substitui regras de segurança e coordenação.
+
+**Limites preservados.** Comparação visual antes/depois e aprovação por lote, vídeos reais da vitrine mantidos, sem alterações em motores/render, preços, créditos, termos ou promessas. Idioma de interface não altera moeda nem idioma de narração. Mudanças comerciais em arquivos de UX exigem coordenação antes de editar. Não há nova autorização de contatos, gasto ou escrita no banco.
+
+**Registro operacional.** Plano, inventário integral e comunicação ao Claude em `docs/ESCOPO-CODEX-UX-CLAUDE-VENDAS-2026-09-05.md`, `docs/PLANO-UX-NAVEGACAO-EN-ES-2026-09-05.md` e `docs/INVENTARIO-PAGINAS-UX-2026-09-05.md`. Publicar o comunicado no Git não prova recebimento: ACK do Claude permanece pendente até resposta.
