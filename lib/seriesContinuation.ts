@@ -287,6 +287,11 @@ export function buildSeriesContinuationHref(
  *    igual e some nenhum parametro que ja existia.
  *  - funcao pura, zero import: da para provar em teste sem subir servidor.
  */
+/** Porta de servidor do botao de episodio 2 em E-MAIL (as telas de dentro do
+ *  app nao passam por aqui: elas sempre tem sessao viva). Ver o cabecalho de
+ *  app/api/episode-link/route.ts para a medicao que a criou. */
+export const SERIES_EMAIL_DOOR_PATH = '/api/episode-link'
+
 export function buildSeriesContinuationEmailUrl(
   appUrl: string,
   value: string | null | undefined,
@@ -304,5 +309,18 @@ export function buildSeriesContinuationEmailUrl(
   }
   for (const [k, v] of Object.entries(utm)) if (v) params.set(k, v)
   const qs = params.toString()
-  return qs ? `${base}/generate?${qs}` : `${base}/generate`
+  // KINEO-PORTA-EPISODIO-EMAIL-2026-09-05 — com tema, o botao passa pela
+  // porta de servidor (app/api/episode-link). Motivo medido em producao: as
+  // SETE fontes de dentro do app produzem aterrissagem e as QUATRO de e-mail
+  // marcam ZERO em 30 dias, com ~1.000 e-mails carregando o botao. O clique
+  // de inbox chega SEM cookie de sessao (webview do Gmail, outro aparelho,
+  // aba anonima), e a viagem /generate -> /studio/create terminava em
+  // `/signup`: um formulario de CRIAR CONTA para quem JA TEM conta. A porta
+  // conta o clique (degrau que nunca existiu entre 'enviado' e 'aterrissou')
+  // e manda para /login com o destino inteiro preservado.
+  //
+  // Sem tema a URL e byte a byte a de antes — o contrato do #24 (nunca
+  // inventar o assunto do video da pessoa) continua valendo.
+  if (!prompt) return qs ? `${base}/generate?${qs}` : `${base}/generate`
+  return `${base}${SERIES_EMAIL_DOOR_PATH}?${qs}`
 }
