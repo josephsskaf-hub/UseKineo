@@ -870,3 +870,239 @@ nas últimas 3 horas e só 2 apertaram**. Consertamos o que acontecia depois do
 clique — e agora o buraco é o clique. Esse cartão é tela, então é do Codex: deixei
 o pedido com o número. Do meu lado, o que continua sangrando há duas rotações é
 gente que aperta "gerar" e não recebe filme nenhum (11 casos em 24h).
+
+---
+
+### #4 — 13:38→14:50 BRT — o e-mail "seu vídeo não saiu" chega, na mediana, 25 DIAS depois: a campanha certa no relógio errado
+
+Rotação #4 (aberta no disparo de 13:38). **Hipótese registrada na abertura:** a
+#3 e o checkpoint dela deixaram como próxima jogada "o despacho vazio, 11 em
+24h, a maior fila de gente que aperta gerar e não recebe filme". Fui verificar
+antes de codar. **A hipótese caiu, e duas outras caíram junto** — o que mudou
+completamente o que esta rotação entregou.
+
+#### 1. As três coisas que eu ia consertar e NÃO precisavam de conserto
+
+**(a) O "despacho vazio, 11 em 24h" é uma janela CONGELADA, não uma sangria.**
+As 11 ocorrências existem, mas **todas** nasceram numa rajada de 1h15 ontem
+(04/09, 20:27→21:42 UTC). O último despacho vazio da casa foi há **19,2 horas**.
+E **6 das 11 não têm `user_id`** (`claim_action=unknown`) — são o ramo de 401 que
+o próprio CLAUDE.md registra como observação não-bloqueante, não gente esperando
+filme. Pessoas reais atrás dos 11: **duas**. O número "11 em 24h" não subiu entre
+a #2 e a #3: é a MESMA rajada passeando dentro de uma janela móvel, e vai virar
+0 sozinho hoje à noite. Duas rotações o chamaram de "a maior fila"; não é.
+
+**(b) J3 do cardápio (crédito garantido no 3º filme) resolveria um problema que
+não existe.** Medido, coorte pós-marco, saldo por degrau:
+
+| filmes | pessoas | com >=5cr (compra um Kineo 1) | saldo médio |
+|---|---|---|---|
+| 0 | 23 | **19** | 21 |
+| 1 | 28 | **27** | 15 |
+| 2 | 8 | **7** | 10 |
+| 3 | 2 | 2 | 44 |
+| 4 | 2 | 0 | 1 |
+
+Crédito só é muro no **4º** filme, onde há 2 pessoas. Dar crédito no clique do
+episódio 3 seria dar crédito a quem já tem crédito na mão. **J3 fica
+despriorizado até o degrau 4 ter gente.**
+
+**(c) A ordenação da campanha de resgate não é o defeito** — e essa era a
+suspeita óbvia. Volto a ela no item 3.
+
+#### 2. O buraco que eu achei que tinha achado — e que não era buraco
+
+Rastreando as 23 pessoas pós-marco com ZERO filmes: 14 chegaram na tela de
+gerar, 5 apertaram gerar, e **4 delas não deixaram nenhum rastro depois de
+`generation_stage_reached: generating`** — sem despacho, sem erro, sem linha em
+`videos`. Silêncio absoluto. Uma delas é de **hoje, 10:49 UTC**.
+
+Aí a hipótese que parecia matadora: `send-activation-nudge` **carimba
+`LIFECYCLE_SKIP_STAMP` de propósito em quem apertou gerar** (route.ts:126-141,
+KINEO-NUDGE-WRONG-EMAIL-2026-08-13) e `send-failure-recovery` só alcança quem
+tem mensagem de defeito explícita — e essas 4 não têm evento de erro nenhum.
+Conferido no banco: as 5 estão com `activation_nudge_sent_at = 1970-01-01` (o
+sentinela), 25 créditos intactos, `email_opted_out=false`. Parecia que a casa
+tinha marcado como "ativado" quem nunca viu um filme, e ninguém falava com elas.
+
+**Falso.** O hand-off funciona. `send-stalled-rescue` existe exatamente para essa
+coorte ("started but not completed"), tem cron em rampa desde 13/08, e no banco:
+**354 pessoas já receberam**, 175 nos últimos 7 dias, último envio **hoje às
+16:30:51 UTC** — e **4 das 5** já receberam. Não construí cron redundante. Fica
+registrado para quem vier: **essa porta existe e está aberta.**
+
+#### 3. O número que doía, e que é o que esta rotação consertou
+
+Se o e-mail certo sai sozinho, **quando** ele chega? Medido sobre os **302
+envios dos últimos 14 dias**:
+
+| medida | valor |
+|---|---|
+| mediana entre a pessoa apertar gerar e receber o e-mail que fala disso | **597 horas — 24,9 DIAS** |
+| chegaram em menos de 2 horas | **3 de 302** |
+| lote de hoje (25 pessoas, 16:30 UTC): mediana / máximo | **19,2 dias / 26,7 dias** |
+| desfecho dos 302 | **1 filme, 0 pagamentos** |
+
+E a ordenação **não** é a causa — provei antes de mexer. No lote de hoje, as 5
+pessoas com evento de início nas últimas 48h eram **exatamente** as 5 com trial
+vivo, e a prioridade por relógio as pôs na frente (a mais rápida recebeu em
+2,4h). Reordenar não mudaria um único envio.
+
+A causa é o **relógio da rampa**: um lote por dia, 16:30 UTC. Quem quebra às
+17:00 espera **23,5 horas** pelo único e-mail da casa escrito para ela. E a lei
+medida deste produto (plano, §1) é que a intenção morre em ~30 minutos.
+
+#### 4. O que mudou (SHA `01b0cbe6`, na fila como `f93668b5`)
+
+- **`app/api/admin/send-stalled-rescue/route.ts`** — `distinctUserIdsForEvents`
+  passa a devolver `latestAt`: a campanha sabia QUEM começou e nunca QUANDO. E a
+  paginação ganha `ORDER BY (created_at, id)` — `.range()` sem ordenação é o
+  defeito que o CLAUDE.md registra no broll-gc. Parâmetro **opcional**
+  `fresh_hours=N` restringe a coorte a quem tem o último início dentro de N
+  horas; **ausente = byte a byte o comportamento de hoje**. `fresh_hours` entra
+  nos payloads de DRY_RUN e de SENT ao lado da coorte total (senão uma faixa de
+  2 pessoas pareceria a coorte inteira encolhendo).
+- **`app/api/cron/send-stalled-rescue-fresh/route.ts` (novo)** — segunda passada
+  de hora em hora, janela de 48h, teto de 5 por execução, chamando o **MESMO
+  GET** da rota admin (zero duplicação, como o wrapper diário já fazia).
+- **`vercel.json`** — entrada horária, caminho **sem query string**: a armadilha
+  que o próprio docblock da rampa documenta como falha SILENCIOSA.
+
+**Nenhuma copy nova, nenhuma promessa, nenhum preço.** É o mesmo e-mail revisado,
+o mesmo `SUBJECT`, os mesmos filtros — só que hoje, não em 19 dias.
+
+#### 5. O que o cliente passa a receber
+
+A pessoa que apertar gerar e não receber filme recebe, **dentro de 1 hora**, o
+e-mail "That video you started never came out — let's fix it" — em vez de 19 a
+26 dias depois, quando já esqueceu que existiu uma Kineo. **Depois que o
+fundador armar** (item 2 da lista de ações): a rota **nasce desarmada de
+propósito**, pela regra do ciclo (rota nova nasce dry-run, o SEND é dele).
+
+#### 6. Por que isso não vira e-mail repetido nem enxurrada
+
+Pelo invariante que já sustentava a rampa e continua byte a byte:
+`stalled_rescue_emailed` é boolean e a coorte filtra `.eq(FLAG_COLUMN, false)` —
+**1 e-mail por pessoa, para sempre**. Quem a faixa rápida atender não aparece no
+lote das 16:30. Volume: a coorte fresca é minúscula por construção — medida
+hoje, **2 pessoas** com início nas últimas 48h em toda a fila (fila total
+restante: **53**, drena em ~2 dias). O teto por execução é trava para o dia de
+um apagão de fornecedor.
+
+#### 7. Testes — e a distinção honesta
+
+`scripts/test-stalled-frescor-2026-09-05.mjs`: **62 verificações, 62 ok**, lendo
+os arquivos REAIS (rota admin, os dois crons, o `vercel.json`). **Falsificado com
+14 mutações aplicadas de verdade nos arquivos** — 14 de 14 derrubam o guardião.
+
+Uma delas merece registro porque quase passou: a 1ª versão do check do
+invariante usava um regex solto de `.eq(FLAG_COLUMN, false)` e **sobreviveu à
+remoção da linha real** — porque o comentário que eu mesmo escrevi na rota cita
+a chamada, e o regex casava com o comentário. Um guardião que lê a própria
+documentação como se fosse código não guarda nada. Agora o check está ancorado
+na linha inteira.
+
+Reconferido no **checkout limpo da ponta da fila** (`C:/kineo-wt/chk4`, junção de
+`node_modules` antes): **62 ok, 0 fail** — é onde o falso vermelho por CRLF
+nasce, e não nasceu. `npx tsc --noEmit` exit 0.
+
+Vizinhos: `test-cobertura-supressao-2026-09-04` **57 ok / 0 falha**,
+`test-lifecycle-suppression-ledger` **29/29**, `test-cron-dryrun-eterno` **28 ok**,
+`test-failure-recovery-honest` **40 ok**. **Isto é a bateria de vizinhos, NÃO a
+suíte integral.**
+ATENÇÃO: `test-failure-recovery-latest-wins` está **VERMELHO** (SyntaxError ao
+montar `new Function` do trecho extraído). **Já estava vermelho na base limpa** e
+não é desta entrega: ele lê `cron/send-failure-recovery`, que meu diff não toca
+(o diff são 4 arquivos: rota admin, cron novo, guardião, vercel.json).
+
+#### 8. Risco
+
+Baixo e reversível em uma linha. Sem a env, nada muda para ninguém. Com a env, o
+que muda é **quando** um e-mail que já sai sozinho sai. O risco real é a rota
+desarmada dormir sem ninguém notar — por isso o modo desarmado é **barulhento**
+(`mode:'DISARMED'`, `would_send` preenchido, `console.warn`): o CLAUDE.md
+registra dois crons que dormiram 30 dias devolvendo 200 OK em silêncio.
+
+#### 9. Como medir
+
+Repetir a consulta do item 3 daqui a 48h com o corte no dia em que a env for
+armada: a mediana das pessoas **frescas** deve cair de dias para horas, e o
+denominador certo é `stalled_rescue_sent_at` menos o último evento de início,
+nunca "quantos e-mails saíram".
+
+#### 10. Placar (marco 03/09 16:00 UTC, externos)
+
+cadastro **63** → filme 1 **40** → filme 2 **12** → filme 3 **4** →
+checkout **3** → **pagou 0**. Sem mudança desde o checkpoint da #3 — esperado:
+**nada da fila está em produção** (agora 9 commits).
+
+#### 11. Checagem zero — ELA ACUSOU, e por isso ela é a próxima rotação
+
+`render preso` **0** · `next_episode_failed` pós-deploy **0** · `despacho vazio`
+**11 em 24h, mas o último há 19,2h e 6 sem pessoa** (item 1a) ·
+**`cadastro sem crédito`: 6 contas, e 4 são DEFEITO.**
+
+As 4 (`0327ed78`, `42a7e7c1`, `c8918db4`, `d94efa45`, todas de 04/09, três delas
+em 6 minutos) têm `video_credits = 0`, `trial_credits_used = 0`,
+`trial_status = null`, **zero** `trial_credits_granted` e **zero**
+`auth_callback_completed`. Todas têm `email_signup_completed`.
+
+Isso importa porque o conserto do trial órfão de 28/08 (`a1fed16`) moveu a
+concessão para `app/auth/callback/route.ts` justamente por ser "o único ponto
+servidor que TODA conta nova cruza". **Estas quatro não cruzaram.** O caminho de
+cadastro por **e-mail** parece não passar pelo callback — e quem entra por ele
+nasce com 0 créditos e não tem como fazer um único filme. As outras 2 do total
+de 6 gastaram tudo legitimamente (1 e 2 filmes) e não são defeito.
+
+#### PRÓXIMA JOGADA (para a próxima rotação)
+
+**As 4 contas que nasceram com 0 créditos em 04/09** — pela regra do ciclo,
+checagem zero que acusa vira a rotação seguinte, e esta já tem endereço: provar
+se `email_signup_completed` sem `auth_callback_completed` é um caminho de
+cadastro que escapa da concessão, e fechar no servidor. É o degrau ZERO do
+funil: quem nasce sem crédito não chega a ser medido em nenhum dos outros.
+
+#### Pedidos novos ao Codex
+Nenhum. Esta rotação foi inteira de servidor.
+
+---
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+1. **Clique em SUBIR-SITE.bat** (raiz do `C:\kineo`). A fila está em **9
+   commits** e **nada dela está em produção** — inclusive o conserto do
+   auto-start da #2, que hoje pula o primeiro filme de 10 pessoas por rotular o
+   roteiro da própria home como "colagem de chatbot".
+2. **Depois do deploy, crie a variável de ambiente na Vercel:**
+   `KINEO_STALLED_FRESH_ENABLED` = `true` (Production). É o interruptor único da
+   faixa rápida. Sem ela a rota roda, mede e **não manda e-mail nenhum** —
+   aparece no log como `DISARMED` com `would_send`.
+3. **Nada mais.** Nenhum crédito foi dado, nenhum preço mudou, nenhuma copy nova
+   foi escrita, nenhum e-mail novo precisa de `?confirm=SEND`.
+
+### 📋 O QUE ACONTECEU
+
+Fui atrás do que a rotação anterior apontou como a maior sangria e descobri que
+não era: os "11 casos em 24h" são uma única rajada de ontem à noite passeando
+numa janela móvel, metade deles sem pessoa nenhuma atrás. Derrubei também a
+jogada de dar crédito no 3º filme — medi o saldo degrau a degrau e **quase todo
+mundo já tem crédito**; crédito só falta no 4º filme, onde há duas pessoas.
+
+O que achei no lugar foi melhor. Existe na casa um e-mail feito exatamente para
+quem aperta "gerar" e não recebe filme — e ele funciona, sai sozinho, já foi para
+354 pessoas. Só que ele chega, na mediana, **25 dias depois**. Três de 302
+chegaram em menos de duas horas. Um e-mail que diz "seu vídeo não saiu, vamos
+consertar" chegando quase um mês depois não é resgate, é lembrete de fracasso —
+e o resultado bate: 1 filme e 0 pagamentos em 302 envios.
+
+A causa não era a fila (essa parte está certa e provei antes de mexer); era o
+relógio: a campanha roda **uma vez por dia**. Então construí uma faixa rápida:
+de hora em hora, só para quem quebrou nas últimas 48 horas, no máximo 5 por vez,
+usando o mesmo e-mail e os mesmos filtros. Quem quebrar hoje é procurado hoje.
+Ela nasce desligada de propósito — você liga com uma variável, item 2 acima.
+
+Por fim, o alarme automático acusou uma coisa que precisa de atenção:
+**quatro contas de ontem nasceram com zero créditos**. Todas entraram por
+cadastro de e-mail e nenhuma passou pelo ponto do servidor que dá o trial. É o
+mesmo defeito de 28/08 reaparecendo por outra porta — e quem nasce sem crédito
+não consegue fazer nem o primeiro filme. É a próxima rotação.
