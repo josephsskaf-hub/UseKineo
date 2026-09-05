@@ -47,10 +47,13 @@ check('a barra de progresso satura em 4', /Math\.min\(vids\.length, 4\)/.test(li
 check('nada de progresso quando o acervo esta vazio', /vids\.length > 0 && \(/.test(lib))
 
 console.log('\n4) O card devolve o TEMA para o Studio')
-check('card usa buildSeriesContinuationHref', /buildSeriesContinuationHref\(v\.title, 'library_video_card'\)/.test(lib))
-check('import do helper presente', /from '@\/lib\/seriesContinuation'/.test(lib))
+// UX L2c 05/09: three source anchors named the old direct call. The new
+// adapter still consumes that writer. These remain static wiring checks;
+// test-archive-studio-review executes the actual JSX and Studio round trip.
+check('card usa adaptador de revisao', /buildStudioSeriesReviewHref\(v\.title, 'library_video_card'\)/.test(lib))
+check('import do adaptador presente', /from '@\/lib\/navigation\/studioSeriesReview'/.test(lib))
 check('botao "Next episode" no card', /Next episode/.test(lib))
-check('so oferece episodio quando ha titulo (sem prompt vazio)', /v\.title && \([\s\S]{0,200}buildSeriesContinuationHref/.test(lib))
+check('so oferece episodio quando ha titulo (sem prompt vazio)', /v\.title && \([\s\S]{0,200}buildStudioSeriesReviewHref/.test(lib))
 check('o card deixou de ser <Link> externo (sem link aninhado)', !/<Link key=\{v\.id\} href=\{`\/history#v-/.test(lib))
 check('o video ainda leva para /history', /href=\{`\/history#v-\$\{v\.id\}`\}/.test(lib))
 

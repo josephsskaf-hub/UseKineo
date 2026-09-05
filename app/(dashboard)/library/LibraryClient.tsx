@@ -10,7 +10,7 @@ import { engineLabelFor } from '@/lib/engineLabel'
 import Link from 'next/link'
 import { STUDIO_KIT_CSS } from '@/components/studioKit'
 import { trackEvent } from '@/lib/analytics'
-import { buildSeriesContinuationHref } from '@/lib/seriesContinuation'
+import { buildStudioSeriesReviewHref } from '@/lib/navigation/studioSeriesReview'
 import { useSeriesDoorSeen } from '@/lib/seriesDoorImpressions'
 
 type Tab = 'videos' | 'images' | 'audio'
@@ -244,7 +244,8 @@ export default function LibraryClient() {
                     video nao exigir escrever tudo de novo. */}
                 {v.title && (
                   <Link
-                    href={buildSeriesContinuationHref(v.title, 'library_video_card')}
+                    href={buildStudioSeriesReviewHref(v.title, 'library_video_card')}
+                    prefetch={false}
                     ref={registrarPorta({
                       source: 'library_video_card',
                       video_id: v.id,

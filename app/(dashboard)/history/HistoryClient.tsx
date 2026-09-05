@@ -9,7 +9,7 @@ import { trackClosedEvent, trackEvent } from '@/lib/analytics'
 import { downloadVideoFile } from '@/lib/videoDownload'
 import { fitLightboxFrame } from '@/lib/frameFit'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
-import { buildSeriesContinuationHref } from '@/lib/seriesContinuation'
+import { buildStudioSeriesReviewHref } from '@/lib/navigation/studioSeriesReview'
 import { useSeriesDoorSeen } from '@/lib/seriesDoorImpressions'
 import {
   buildPublicVideoSharePath,
@@ -1034,7 +1034,7 @@ export default function MyVideosClient({ videos: initialVideos, loadError = fals
   const firstVideoTitle = extractTitle(completedVideos[0]?.topic ?? null)
   const followUpHref = firstVideoTitle === 'Untitled Short'
     ? '/studio'
-    : buildSeriesContinuationHref(firstVideoTitle, 'history_milestone')
+    : buildStudioSeriesReviewHref(firstVideoTitle, 'history_milestone')
   const showSubscriptionOffer = subscriptionOfferEligible === true && completedVideos.length >= 1
   const firstVideoSubscriptionRecovery = showSubscriptionOffer && completedVideos.length === 1
   const milestoneMode = resolveHistoryMilestoneMode({
@@ -1149,6 +1149,7 @@ export default function MyVideosClient({ videos: initialVideos, loadError = fals
             {episodeIsPrimary && (
               <Link
                 href={followUpHref}
+                prefetch={false}
                 ref={registrarPorta({
                   source: 'history_milestone',
                   video_id: completedVideos[0]?.id ?? null,
@@ -1202,6 +1203,7 @@ export default function MyVideosClient({ videos: initialVideos, loadError = fals
             {subscriptionIsPrimary && (
               <Link
                 href={followUpHref}
+                prefetch={false}
                 ref={registrarPorta({
                   source: 'history_milestone',
                   video_id: completedVideos[0]?.id ?? null,
@@ -1870,7 +1872,8 @@ export default function MyVideosClient({ videos: initialVideos, loadError = fals
                 </div>
 
                 <Link
-                  href={buildSeriesContinuationHref(title, 'history_video_card')}
+                  href={buildStudioSeriesReviewHref(title, 'history_video_card')}
+                  prefetch={false}
                   ref={registrarPorta({
                     source: 'history_video_card',
                     video_id: video.id,

@@ -27,9 +27,9 @@
 | `app/(dashboard)/create/page.tsx` | Pendente |
 | `app/(dashboard)/dashboard/page.tsx` | Pendente |
 | `app/(dashboard)/generate/page.tsx` | Pendente |
-| `app/(dashboard)/history/page.tsx` | Pendente |
+| `app/(dashboard)/history/page.tsx` | L2c: três ocorrências de continuação preparadas/testadas, preview pendente. Ofertas/downloads intactos; restante do visual pendente. |
 | `app/(dashboard)/images/page.tsx` | L1: título do shell preparado/testado; visual e conteúdo da página pendentes |
-| `app/(dashboard)/library/page.tsx` | L1: título do shell preparado/testado; visual e conteúdo da página pendentes |
+| `app/(dashboard)/library/page.tsx` | L1 título + L2c link de continuação preparado/testado, previews pendentes. Abas/downloads/erros intactos; restante do visual pendente. |
 | `app/(dashboard)/my-videos/page.tsx` | Pendente |
 | `app/(dashboard)/referral/page.tsx` | Pendente |
 | `app/(dashboard)/studio/create/page.tsx` | Pendente |
