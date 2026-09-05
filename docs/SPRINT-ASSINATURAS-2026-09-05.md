@@ -604,3 +604,175 @@ precisa rodar na **1ª** tentativa, não na 4ª; e enquanto não roda, a tela n�
 pode dizer "our video provider did not accept the job" sobre um fornecedor que
 **nunca foi chamado** (`total_posts:0`). É a maior fila de gente que tentou
 fazer filme e não fez.
+
+---
+
+### #3 — 12:38→13:45 BRT — 40% dos leads que chegam ao checkout NUNCA viram um filme, e o e-mail de resgate pergunta a eles o que travou no pagamento
+
+Rotação #3 (aberta 12:38). Jogada escolhida **fora do cardápio na letra, dentro
+dele no espírito**: o cardápio previa J4 (e-mail de checkout sem pagamento) —
+mas J4 **já existe e está armado** (`app/api/cron/send-recovery`, a cada 2h,
+disparando: 13 dos 15 leads das últimas 48h já receberam, em 30-60 min). Não
+refiz. Fui ver **o que esse e-mail diz**, e é aí que estava o defeito.
+
+#### 1. O que estava errado (medido)
+
+`checkout_abandoned`, últimas 48h, **15 linhas**. **SEIS delas — 40% — são de
+gente com ZERO filme concluído e os 25 créditos do trial INTACTOS.** Não são
+compradores que travaram no cartão. São pessoas que nunca viram o produto
+funcionar uma única vez.
+
+A mecânica, rastreada evento a evento (conta `garrrrrgamel…`, 04/09):
+
+| hora | evento | o que diz |
+|---|---|---|
+| 15:16:53.0 | `auth_callback_completed` | `destination_path=/api/stripe/checkout` |
+| 15:16:53.4 | `trial_credits_granted` | 25 créditos |
+| 15:16:54.5 | `checkout_attempted` | `tier=pro` |
+| 15:16:55.6 | `checkout_started` | `videos_ok=0`, `credits_intact=true` |
+| +24h | `checkout_session_expired` | unpaid, $23,20 |
+
+**A vida inteira dessa pessoa dentro da Kineo dura 2,6 segundos.** Ela clicou um
+plano deslogada, o callback a empurrou direto para uma página da Stripe de
+$23,20, e ela nunca soube que tinha acabado de ganhar 25 créditos. Pós-marco,
+**3 de 3** contas entraram por esse caminho (`is_checkout_destination=true`):
+0 filmes, 0 pagamentos, nenhuma volta. É a coorte de **maior intenção de compra
+do funil inteiro** — a única que apertou um plano — e converte **0%**.
+
+Isto NÃO reabre a conclusão fechada do fundador ("o vazamento do checkout é
+preço"). Aquela é sobre quem chega na página de pagamento e acha caro. Esta é
+sobre quem chega lá **sem nunca ter visto o produto** — o próprio fundador já
+nomeou como defeito em 02/09 ("checkout de conta sem vídeo = defeito, não
+desejo"). Eu só achei o mecanismo e a hora.
+
+**E o que o e-mail de resgate dizia a essas pessoas:** abre com *"did something
+get in the way? A payment issue, a question about the plans?"* e a primeira bala
+é *"We accept card, Link, Google Pay and Apple Pay"*. O saldo real aparecia —
+como **terceira bala de quatro**, depois do PayPal — e não havia **um único
+link para criar um vídeo** no e-mail inteiro.
+
+#### 2. O que mudou (arquivos, SHA `59c8666e`)
+
+`app/api/cron/send-recovery/route.ts` ganha um **segundo ramo**, e só para quem
+a rota PROVA estar nesse caso: **0 filmes concluídos E saldo que compra um
+filme**. Esse ramo lidera com o que é verdade — o crédito já está na conta, não
+precisa de cartão — e leva UM link para o primeiro filme.
+
+A **porta do plano e o PayPal continuam no corpo** (regra K1 do ciclo: ninguém
+precisa de filme para comprar); só deixam de ser a manchete.
+
+**Falha aberta por desenho:** saldo desconhecido, contagem de filmes
+desconhecida (erro de query) ou **qualquer** filme concluído = a copy de hoje,
+byte a byte. A contagem é exata por pessoa (`count:'exact'` + `head` + `eq`),
+**nunca `.in()` sobre a coorte**: o truncamento silencioso de 1000 linhas do
+PostgREST (dívida nº 3 da auditoria de 28/08) derruba linhas, e derrubar linha
+aqui transformaria "tem filme" em "não tem filme" — a única direção que manda a
+copy errada.
+
+Nada de preço, plano, oferta, desconto ou promessa nova. **Nenhum crédito é
+concedido.** O piso de 5cr é **importado** de `lib/lifecycle/videoReadyFooter`,
+não digitado: se o Kineo 1 mudar de preço, esta rota muda junto.
+
+#### 3. O que o cliente passa a receber
+
+O texto que sai para a coorte de 0 filmes (renderizado do código real):
+
+> **Your 25 credits are still here - make the film first**
+>
+> You got as far as the Studio checkout, but your account hasn't made a video
+> yet - so you'd be paying for something you have never seen. Let's do that in
+> the right order. You already have 25 credits in your account, and that is
+> enough for your first film. No card needed: …/studio/create
+>
+> It takes about 3 minutes… If you would rather just finish what you started,
+> the plan is still waiting: …/pricing · PayPal …
+
+Isto **sai sozinho** assim que o commit estiver em produção — `send-recovery` é
+cron já armado, não é rota nova. Não precisa de clique de SEND.
+
+#### 4. Testes
+
+`scripts/test-recovery-first-film-2026-09-05.mjs` — **50/50 verde**, lendo o
+arquivo real. **Falsificado com 3 mutantes:** condição frouxa (`films !== null`)
+→ reprova 2 checks; link do plano removido → reprova 2; contagem trocada por
+`.in()` truncável → reprova 1. Os três revertidos e o verde refeito.
+`tsc --noEmit` limpo — e desta vez o exit code foi lido **sem pipe** (a primeira
+rodada tinha um erro real de tipo do cliente Supabase que o `| tail` escondia
+atrás de um `EXIT=0` mentiroso; corrigido para `SupabaseClient`, o mesmo tipo
+que `loadLifecycleSuppression` já usa). Junção do `node_modules` conferida com
+`Test-Path` ANTES, conforme a regra da rotação passada.
+**Guardião verde ≠ suíte integral verde**: rodei este guardião e o `tsc`.
+
+#### 5. Risco
+
+Baixo e reversível. Um ramo novo dentro de um job existente, com guarda dupla
+(saldo conhecido + contagem exata) e falha aberta para a copy de hoje. Todos os
+guarda-corpos do job seguem provados pelo guardião: `CRON_SECRET` fail-closed,
+gate de ciclo de vida, supressão cruzada de 4h, carimbo vitalício (1 e-mail por
+pessoa para sempre), teto de 25 por execução, contas de teste puladas.
+
+#### 6. Como medir
+
+1. `sent_first_film` no payload do cron (novo) e `branch=first_film` no log.
+2. `utm_campaign=checkout_recovery_first_film` nos dois links → cliques.
+3. O que importa: dessas pessoas, quantas fazem o **primeiro filme** em 72h, e
+   quantas voltam ao checkout depois. Hoje a taxa é 0 de 6.
+
+#### 7. Placar (marco 03/09 16:00 UTC, externos)
+
+cadastro **63** → filme 1 **40** → filme 2 **11** → filme 3 **4** →
+checkout **3** → **pagou 0**. (+2 cadastros, +2 filme 1, +1 filme 2 desde a #2.)
+Leads de checkout pós-marco: **3**, sendo **2 sem nenhum filme e com saldo** —
+os destinatários exatos do ramo novo.
+
+**Número que muda a leitura do 1→2:** das 30 pessoas com exatamente 1 filme,
+**29 têm crédito para outro** (saldo médio 15). O muro entre o filme 1 e o 2
+**não é crédito** — é volta. Isso **despriorizou o J3** (crédito no clique do
+episódio 3) para mim: dar crédito a quem já tem não move nada.
+
+#### Checagem zero
+`cadastro sem crédito` 1 em 24h → **falso positivo verificado**: recebeu o
+grant, fez 2 filmes, gastou os 25. `lead quente sem e-mail há +3h` 1 → é conta
+**paga** (pulo legítimo e reversível). `next_episode_failed` depois do #0 entrar
+em produção (13:25 UTC): **0** — a porta do episódio 2 está de pé.
+**`despacho vazio` (planned:0 && total_posts:0): 11 nas últimas 24h** — subiu, e
+segue sem conserto.
+
+#### PRÓXIMA JOGADA
+**Duas, e a primeira é a que eu não fiz aqui de propósito.**
+
+1. **A porta de entrada da maior intenção do funil.** O conserto de hoje resgata
+   quem já foi. O que ainda está de pé é o caminho: `auth/callback` manda o
+   recém-cadastrado direto para a Stripe **1 segundo depois** de conceder 25
+   créditos, sem que ele saiba que os tem. A K1 proíbe pôr um muro antes da
+   compra — mas não proíbe que a **página de cancelamento** (`cancel_url`, que
+   hoje é `/checkout/cancelled`, uma tela de preço) saiba que essa pessoa tem
+   crédito intacto e nenhum filme. É PEDIDO ao Codex (tela) + `cancel_url` meu.
+2. **O despacho vazio, 11 em 24h.** Continua sendo a maior fila de gente que
+   apertou gerar e não recebeu filme, e a tela ainda culpa um fornecedor que
+   `total_posts:0` prova que nunca foi chamado.
+
+---
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+1. **Clique em SUBIR-SITE.bat** (raiz do C:\kineo). A fila está em **5 commits**
+   e o de hoje muda um e-mail que sai sozinho a cada 2 horas — enquanto não
+   subir, os leads de checkout continuam recebendo a pergunta errada.
+2. **Nada mais.** Este e-mail não precisa de `?confirm=SEND`: `send-recovery` já
+   é cron armado. Nenhum crédito é dado, nenhum preço muda.
+
+### 📋 O QUE ACONTECEU
+Fui atrás do e-mail que a casa manda para quem chega na página de pagamento e
+não paga — e descobri que **40% dessas pessoas nunca fizeram um vídeo**. Elas
+clicam um plano na página de preços, criam a conta, e o produto as joga numa
+tela da Stripe de $23,20 **2,6 segundos depois** — sem nunca dizer que acabaram
+de ganhar 25 créditos e sem nunca mostrar um filme. Todas as 3 que entraram por
+esse caminho desde o marco foram embora e não voltaram. E o e-mail que ia atrás
+delas perguntava "foi problema com o cartão?" e listava formas de pagamento.
+Agora, para quem tem crédito na mão e nenhum filme, o e-mail diz a verdade:
+*seus 25 créditos estão aqui, faça o filme primeiro, não precisa de cartão* — com
+um link direto para criar. Quem já fez filme continua recebendo exatamente o
+e-mail de hoje. O link do plano continua no corpo: ninguém é impedido de comprar.
+De quebra, um número que muda a estratégia: **29 das 30 pessoas que fizeram só
+um filme têm crédito para outro**. O que falta entre o 1º e o 2º filme não é
+crédito — é motivo para voltar.
