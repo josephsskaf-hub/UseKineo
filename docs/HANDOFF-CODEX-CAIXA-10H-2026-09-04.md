@@ -138,7 +138,7 @@ O pedido de mudar o webhook foi desnecessário: assinatura e avulso já têm cam
 - **BLOQUEADO:** Chrome recusou navegar ao arquivo local de comparação por política de segurança. Nenhum contorno tentado. HTML preparado não é comparação inspecionada. Não integrar na main sem revisão visual genuína. Não existe efeito comercial desta variante para medir ainda. Registro pós-push: PR42 comentário 5547621804.
 - **CHECKPOINT 20:38 BRT, mesma R4:** main continuava c5c91f0c, worktree limpa, fila Claude vazia. Sem aprovação visual nova; sem merge, SQL repetido, contato ou outra hipótese. R4 preservada para conferência.
 
-## Rotação 5 — 21:08–22:08 BRT — EM EXECUÇÃO
+## Rotação 5 — 21:08–22:08 BRT — CONCLUÍDA
 
 - **FATO CONFIRMADO:** base `40c4f91462773f04cbdd7a1a970666393a123573`, apenas diário/pedido Claude novos; worktree própria `C:/tmp/usekineo-caixa-10h-r5`, branch `codex/caixa-10h-r5`. Fila `origin/main..entrega-atual` vazia. Regras, estado, questões, Growth, oferta/métricas históricas, handoffs, pedido e trecho novo do diário relidos. Mandato desta janela continua somente CAIXA/B2C, não o antigo FLUXO.
 - **EVIDÊNCIA OPERACIONAL, leitura de uso 05/09 00:10 UTC:** semanal 32% consumido, 68% disponível. Segunda janela indisponível. Nenhum reset/crédito comprado; próxima leitura após R6, abertura R7.
@@ -165,3 +165,32 @@ Permanece apenas a revisão visual do PR42 antes de integrar aquela tela. A esco
 ### 📋 O que aconteceu
 
 O pedido do Claude foi rastreado até os botões reais. O evento era escolha, não classificação; mudar automaticamente a escolha também mudaria a duração. Devolvido esse limite para impedir uma correção silenciosa do texto do cliente. A sprint continua sem primeira assinatura nova comprovada neste corte.
+
+- **EVIDÊNCIA DE PRODUÇÃO / fechamento R5:** `67b15c3012cd118c395b2de04535164b87d1e1c1`, Guardião `33932473996` success, etapa tsc success, deploy `dpl_BwrnJNZu7irE7jG3MmEvkAPR2fie` READY com alias www em 05/09 00:21:54 UTC. Negativo sem login 401/private no-store, sem criação de pagamento. Documentação apenas. Registro pós-push: PR43 comentário 5548013604.
+- **CHECKPOINT R5, 21:40 BRT:** main, fila e worktree inalteradas. Sem consulta repetida nem nova hipótese.
+
+## Rotação 6 — 22:08–23:08 BRT — CONCLUÍDA, MEDIÇÃO
+
+- **FATO CONFIRMADO:** main permaneceu `67b15c30`, worktree R5 limpa, fila `origin/main..entrega-atual` vazia. Sem edição, contato ou deploy nesta rotação.
+- **EVIDÊNCIA DE PRODUÇÃO, SELECT 05/09 01:10:38 UTC:** ciclo = 3 cadastros, 2 pessoas com linha de vídeo criada na janela e hoje completed, 0 pessoas no checkout, 0 primeiras assinaturas B2C canônicas, 0 avulsos. Grupos independentes; não dividir como etapas sequenciais. Baseline fixo permanece 38/25/3/0/0. Vigia de duas horas vazio.
+- **FATO CONFIRMADO / ponto cego removido da investigação:** partir só de `checkout_started` não cobre intenção/falha antes de existir uma sessão Stripe. Cliente emite `checkout_failure` (`lib/checkoutTelemetry.ts:228`); servidor emite `checkout_attempted` e `checkout_auth_required` (`app/api/stripe/checkout/route.ts:1057–1060`), além de `checkout_failed` nos catches. Não confundir os dois nomes de falha.
+- **EVIDÊNCIA DE PRODUÇÃO, SELECT 05/09 01:14:20 UTC:** leitura ampliada para CTA, tentativa, autenticação, início, ambas as falhas, timeout e clique suprimido: zero pessoas externas identificadas no ciclo e zero linhas na janela de duas horas. Ciclo contém três pares anônimos attempted/auth_required, sem session_id, às 21:11:57, 21:53:11 e 23:00:15 UTC. Não são três compradores; origem, natureza humana e causalidade DESCONHECIDAS. Não classificar como abandono nem bot por ausência de identificação.
+- **DECISÃO: NÃO EXECUTAR outra mudança por este sinal.** R4 preservada sem produção/revisão visual; piloto não executar nesta janela. Registro compartilhado no Git: https://github.com/josephsskaf-hub/UseKineo/pull/43#issuecomment-5548342020. Não criar deploy documental apenas para registrar medição.
+- **CHECKPOINT 22:39 BRT, mesma R6:** main e fila inalteradas, worktree limpa. Sem nova abertura, SQL repetido ou notificação.
+
+## Rotação 7 — 23:08–00:08 BRT — EM EXECUÇÃO
+
+- **FATO CONFIRMADO:** fetch confirmou `67b15c30`, sem novo commit Claude nem fila pendente. Regras, estado histórico, questões, Growth, oferta/métricas, diário, PEDIDOS e handoff reconciliados. Worktree documental própria `C:/tmp/usekineo-caixa-10h-r7`, branch `codex/caixa-10h-r7`, criada dessa ponta. Não tocar a R4 pendente nem a árvore principal.
+- **EVIDÊNCIA OPERACIONAL, 05/09 02:10 UTC:** uso semanal Codex 33% consumido / 67% disponível; segunda janela indisponível. Nenhum reset ou compra. Próxima leitura na abertura R9.
+- **EVIDÊNCIA DE PRODUÇÃO, SELECT 05/09 02:10:39 UTC:** ciclo = 3 cadastros, 3 pessoas com linha de vídeo criada na janela e hoje completed, 0 pessoas no checkout / 0 sessões, 0 primeiras assinaturas B2C canônicas, 0 compradores avulsos. Baseline fixo permanece 38/25/3/0/0. Isso não prova que os três cadastrados sejam as mesmas três pessoas com vídeo nem que todos os arquivos tenham sido entregues nesta hora.
+- **EVIDÊNCIA DE PRODUÇÃO, SELECT 05/09 02:10:43 UTC:** vigia ampliado continua com zero intenção de compra externa identificada. Quatro pares attempted/auth_required anônimos no ciclo, dos quais um nas últimas duas horas, sem session_id. Não converter pares de eventos em pessoas nem diagnosticar falha de login por eles.
+- **DECISÃO: NÃO EXECUTAR novo experimento sem sinal ou liberar R4 sem seu gate.** Uma pessoa a mais com vídeo não demonstra assinatura nem prova que uma variante falhou. Piloto assistido continua fechado por decisão R5; não reabrir consulta de consentimento já respondida. Consolidação deste handoff em branch própria é coordenação, não ação comercial entregue a visitante.
+- **GATE / PRÓXIMO PASSO:** checkpoint 23:38 continua R7. Reconciliar somente mudança material, revisão visual de R4 ou intenção nova; preservar as variantes enquanto isso. Este registro não precisa de integração/deploy isolados: consolidar com a próxima entrega autorizada ou no fechamento seguro. Sem runtime alterado, nenhum teste de produto repetido apenas para documentação; conferir diff e escopo antes do push da branch.
+
+### ✅ O que você precisa fazer
+
+Nenhum pedido novo. A revisão visual de R4 permanece pendente; não há autorização para substituí-la por teste textual.
+
+### 📋 O que aconteceu
+
+Placar e coordenação consolidados sem confundir eventos anônimos com compradores. Até este corte não há primeira assinatura nova comprovada nesta janela. Nenhuma alteração cosmética, mensagem, cobrança ou publicação adicional em produção.
