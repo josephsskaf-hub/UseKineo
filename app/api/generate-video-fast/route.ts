@@ -328,6 +328,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Prompt is too long (5000 chars max).' }, { status: 400 })
     }
 
+    // KINEO-DISPATCH-ENTRY-2026-09-05 — a PRIMEIRA prova de SERVIDOR de que o
+    // POST chegou. Até aqui, tudo entre o clique e o primeiro erro era evento de
+    // CLIENTE: quando a aba ia embora nos primeiros segundos o rastro terminava
+    // em `render_wait_abandoned` e não havia como separar "o POST nunca saiu do
+    // navegador" de "o POST chegou e morreu aqui dentro". O pedido do Codex de
+    // 05/09 11:47 pedia exatamente "localizar o estágio servidor que ocorreu
+    // depois de video_generation_started" — e a resposta honesta era: NÃO EXISTE
+    // NENHUM. Este evento passa a existir. Fire-and-forget de propósito (`void`,
+    // igual a recordFastFailure): telemetria não atrasa nem derruba um render.
+    void writeServerEvent({
+      name: 'generation_dispatch_received',
+      userId: user.id,
+      path: '/api/generate-video-fast',
+      metadata: {
+        engine: 'fast',
+        // Só o TAMANHO do texto, nunca o texto — a mesma regra de prompt_too_long.
+        prompt_length: prompt.length,
+        requested_duration: Number(body.duration) || null,
+      },
+    })
+
     const requestedDuration = Number(body.duration) || 45
     const duration: Duration = SUPPORTED_DURATIONS.includes(requestedDuration as Duration)
       ? (requestedDuration as Duration)

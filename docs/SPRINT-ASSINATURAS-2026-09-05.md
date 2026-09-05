@@ -466,3 +466,141 @@ O que ficou aberto: o degrau que decide dinheiro segue em 0 pagantes pós-marco,
 e a próxima jogada é a mesma porta de entrada vista do outro lado — as sete
 pessoas que colam a conversa inteira do ChatGPT e batem no mesmo portão, com
 razão, e vão embora sem filme.
+---
+
+### checkpoint da #2 — 12:25 BRT — 4 pessoas apertaram gerar e receberam SILÊNCIO: nem filme, nem erro, nem prova de que o pedido chegou ao servidor
+
+Checkpoint da rotação #2 (aberta 11:38, entregue 11:54). Não abri jogada nova:
+continuei a mesma porta de entrada, agora vista do lado do servidor, e atendi o
+pedido aberto do `codex-fluxo` das **11:47 de hoje** — que é sobre exatamente
+esta porta.
+
+#### 1. O que estava errado (medido)
+
+Pós-marco (03/09 16:00 UTC, externos), **47 pessoas apertaram gerar**:
+41 nasceu alguma coisa · 2 falharam **com sinal** · **4 receberam silêncio
+total** — zero `render_jobs`, zero `videos`, zero `generation_stage_error`,
+zero `cinematic_dispatch_result`.
+
+Três das quatro têm a MESMA impressão digital:
+
+| pessoa | apertou | último sinal | distância |
+|---|---|---|---|
+| `telemachusoben…` (TAAFT, a do pedido) | 04 11:28:20 | `render_wait_abandoned` 11:28:21 | **1 s** |
+| `fernandadesuar…` | 04 23:11:24 | `render_wait_abandoned` 23:11:28 | **4 s** |
+| `gelecekdosyasi…` | 05 10:49:38 | `generation_stage_reached:options` 10:49:39 | **1 s** |
+
+**Ninguém desiste em 1 segundo.** Isso não é uma pessoa fechando a tela, é a
+aba indo embora com o pedido dentro dela.
+
+#### 2. A resposta ao pedido do Codex (11:47) — e ela é um "não existe"
+
+O pedido pede: *"localizar o estágio servidor que ocorreu depois de
+`video_generation_started`"*. Fui procurar e a resposta honesta é que
+**não existe estágio servidor nenhum para localizar**. Todo o rastro entre o
+clique e o primeiro erro é evento de CLIENTE. As duas rotas de despacho não
+emitiam **um único** evento na entrada. Consequência prática: hoje é
+**impossível distinguir** "o POST nunca saiu do navegador" de "o POST chegou e
+morreu aqui dentro" — os dois deixam exatamente o mesmo silêncio. Não é que a
+investigação fosse difícil; é que o dado não foi criado.
+
+#### 3. O que mudou (arquivos)
+
+`app/api/generate-video-fast/route.ts` e
+`app/api/generate-video-cinematic/route.ts` passam a emitir
+`generation_dispatch_received` na entrada, **antes de qualquer trabalho caro**
+e antes do claim. Fire-and-forget (`void`, o mesmo padrão do
+`recordFastFailure` que já morava no arquivo): telemetria não pode atrasar nem
+derrubar o render que ela veio medir. Leva `user_id`, `path`, `engine`,
+`prompt_length` (**só o tamanho, nunca o texto**) e `requested_duration`; o
+cinematic leva também o `generation_id`, para casar com o
+`cinematic_dispatch_result` do MESMO despacho.
+
+Nenhuma linha de lógica de geração foi tocada — nem planner, nem escolha de
+motor, nem prompt de cena, nem régua de palavras/segundo. Nada de tela, preço
+ou oferta.
+
+#### 4. Testes
+
+`scripts/test-dispatch-entry-2026-09-05.mjs` — **24/24 verde**, lendo os
+arquivos reais. **Falsifiquei antes de acreditar:** apagar o evento reprova
+(8 checks vermelhos) e trocar `void` por `await` reprova o check 2. Os dois
+mutantes foram revertidos e o verde refeito.
+
+Honestidade sobre a 1ª versão do guardião: o meu check 8 reprovou **código
+correto** — ele comparava a posição do evento com a primeira *menção* de um
+marco caro no arquivo, e essas menções são definições de helper que moram
+antes. Ordem de execução mede-se a partir do `POST`; corrigi a verificação, não
+o código. **Guardião verde ≠ suíte integral verde**: rodei este guardião e o
+`tsc`, não a bateria inteira.
+
+⚠️ Armadilha reconfirmada, e a culpa foi minha: `npx tsc --noEmit` devolveu
+**exit 0 com "This is not the tsc command you are looking for"** — falso verde
+clássico. A causa: eu criei a worktree, rodei o `mklink` do `node_modules`
+com a saída suprimida e **imprimi "junction ok" sem verificar**. A junção não
+existia, não havia TypeScript nenhum para achar, e o "verde" era o vazio. Só
+percebi ao pedir o compilador pelo caminho explícito. Criei a junção de
+verdade, confirmei com `Test-Path` que o binário existe, e o typecheck que
+consta acima é `node node_modules/typescript/bin/tsc --noEmit` rodando sobre
+um `node_modules` que responde. **Regra que fica: "junction ok" só se pode
+escrever depois de listar o diretório, nunca depois do comando que a cria.**
+
+#### 5. O que o cliente passa a ver
+
+Nada, hoje — e digo isso sem maquiar. Esta é uma peça de diagnóstico, não de
+tela. A entrega visível desta rotação foi a #2 (11:54). O que isto compra é a
+**próxima** rotação: quando a próxima pessoa sumir em silêncio, o banco vai
+dizer se ela chegou até nós.
+
+#### 6. Duas crenças que eu corrigi medindo (não repetir)
+
+1. **`send-stalled-rescue` NÃO está parado.** O comentário no topo do arquivo
+   diz "**0 em true**" e descreve a campanha como nunca enviada — isso é
+   verdade de **11/08** e envelheceu. Hoje: **329 pessoas** com
+   `stalled_rescue_emailed = true`. É o mesmo modo de falha que o próprio
+   arquivo registra ("comentário com justificativa envelhece e vira bug").
+2. **Ela também não precisa de clique.** O cron `/api/cron/send-stalled-rescue`
+   está registrado no `vercel.json` (`30 16 * * *`) e o wrapper põe
+   `confirm=SEND` sozinho. Cheguei a montar um link de um clique para ti —
+   e joguei fora, porque seria pedir que clicasses no que já é automático.
+   **79 pessoas** seguem na coorte (limite 50/dia), e 3 das 4 silenciosas de
+   hoje estão nela: recebem hoje às 16:30 UTC sem ninguém fazer nada.
+
+#### 7. Risco
+
+Baixo e reversível. Duas inserções de telemetria fire-and-forget; se
+`writeServerEvent` falhar, a promessa é descartada e o render segue igual.
+Reverter é apagar dois blocos.
+
+#### 8. Como medir
+
+1. `generation_dispatch_received` deve aparecer para ~100% dos
+   `video_generation_started` que não são abandonados na primeira dezena de
+   segundos. Se a razão for **menor** que isso, achamos POST que não chega.
+2. Pessoa com `video_generation_started` **sem** `generation_dispatch_received`
+   = o pedido morreu no navegador → o conserto é de cliente (pista do Codex).
+3. Pessoa **com** `generation_dispatch_received` e sem `render_jobs` = o pedido
+   chegou e morreu no servidor → conserto meu, e agora com endereço.
+
+#### 9. Placar (marco 03/09 16:00 UTC, externos)
+
+cadastro **61** → filme 1 **38** → filme 2 **10** → filme 3 **4** →
+checkout **3** → **pagou 0**. Sem mudança desde a #2 — o que é esperado:
+nada da fila está em produção.
+
+#### Checagem zero
+`planned:0 && total_posts:0` (despacho vazio, fornecedor nunca chamado):
+**0 hoje** em 7 despachos — mas **62 em 14 dias**, e continua sem conserto.
+Silêncio total pós-marco: **4 pessoas** (esta entrada). Aba que sai em ≤10 s:
+**6 despachos em 14 dias, 4 sem filme (67%)** contra **27%** de quem fica —
+direção real, **volume pequeno**; não inflo isto em epidemia.
+
+#### PRÓXIMA JOGADA
+**O despacho vazio, com a régua que já provou funcionar.** 62 ocorrências em 14
+dias, e o caso vivo do `claude-chat` mostra o mecanismo: 3 tentativas seguidas
+com `planned:0` num alvo de 60 s, e a 4ª só funcionou porque o
+`script_duration_autofit_down` baixou para 35 s — **mesmo roteiro**. O autofit
+precisa rodar na **1ª** tentativa, não na 4ª; e enquanto não roda, a tela não
+pode dizer "our video provider did not accept the job" sobre um fornecedor que
+**nunca foi chamado** (`total_posts:0`). É a maior fila de gente que tentou
+fazer filme e não fez.
