@@ -1676,3 +1676,249 @@ motor que o saldo ainda paga e mostra a porta do plano — sem inventar preço
 
 A tela é da pista do Codex e já está pedida. E fica um recado de calendário: o
 "fechamento" escrito às 15:15 saiu três rotações cedo — o ciclo vai até 18:38.
+
+---
+
+## checkpoint da #7 — 16:09→17:05 BRT — a pessoa que a rota da #7 foi feita para salvar apareceu 7 minutos depois do commit, e o produto a pegou saindo pela porta
+
+Checkpoint da rotação aberta às 15:38. Não abre jogada nova: fecha a #7 —
+prova a entrega onde ela realmente caiu, mede o que a #7 prometeu medir, e
+conserta o guardião que a própria sprint deixou vermelho.
+
+### 1. O caso vivo que confirma a tese da #7 (e muda a leitura do dia)
+
+A #7 argumentou que 21 pessoas secaram e só UMA achou a porta de comprar.
+Às **18:56:36 UTC (15:56 BRT) — 7 minutos depois do commit `1b930e9a`** e com
+a rota ainda parada na fila, o **4º checkout do ciclo** aconteceu. O placar
+saiu de 3 para 4 durante esta rotação.
+
+E é o primeiro checkout do ciclo que vem de alguém que **já tinha recebido
+filme**:
+
+| pessoa | fonte | filmes ANTES do checkout | saldo |
+|---|---|---|---|
+| `4a926303` | (direto) | **0** | 25 |
+| `73bd3264` | chatgpt | **0** | 12 |
+| `9f2b563c` | (direto) | **0** | 25 |
+| **`21b3a9b4`** | chatgpt | **4** | **1** |
+
+Os três primeiros são o padrão que o CLAUDE.md manda contar separado desde
+02/09 ("checkout de conta sem vídeo = defeito, não desejo"). O quarto é a
+coorte da #7: **4 filmes entregues, 1 crédito no bolso.**
+
+**O rastro dele, minuto a minuto (UTC):**
+
+```
+18:53:34  series_continue_seen        <- viu a porta do episodio 2
+          ...2 minutos de silencio...
+18:55:35  pricing_view                <- foi procurar preco SOZINHO
+18:56:04  exit_intent_shown           <- estava INDO EMBORA
+18:56:35  exit_intent_intro_starter_clicked
+18:56:36  checkout_started
+```
+
+Três coisas que este rastro prova e que nenhum agregado mostrava:
+
+1. **Ele viu a porta do episódio 2 com 1 crédito** — a porta apareceu, e 1
+   crédito não paga filme nenhum. A casa ofereceu o que ele não podia pegar.
+2. **Não existe `upgrade_modal_opened` nem `insufficient_credits`.** Ele nunca
+   apertou gerar. Não houve recusa: houve **silêncio**, exatamente o que a #7
+   descreveu. Ele deduziu sozinho que estava seco e foi atrás do preço.
+3. **O que converteu foi um pop-up de saída.** O `exit_intent` pegou o cliente
+   já com o pé na porta. A casa não o encontrou no momento da vontade
+   (18:53:34) — encontrou no momento da desistência (18:56:04), 2½ minutos
+   depois.
+
+`/api/next-action` existe para falar às 18:53:34. Ainda **não** falou: está na
+fila. Não afirmo que teria convertido — afirmo que a janela existiu, durou
+2½ minutos, e hoje só o exit-intent a ocupa. Ele **não pagou** até 19:12 UTC.
+
+### 2. Checagem zero — acusou duas vezes, e as duas dissolveram no corte
+
+Registro os dois alarmes e por que NENHUM vira a próxima rotação, porque medir
+sem corte já custou duas rotações a esta casa:
+
+**(a) `next_episode_failed` = 13 em 24h.** Corte no commit do #0
+(`2ca9a06c`, 13:25:06 UTC — hora do *commit*, e o deploy é igual ou depois,
+então o corte é conservador CONTRA o conserto):
+
+| janela | pedidos | prontos | falhas |
+|---|---|---|---|
+| **depois** do corte | 4 | **4** | **0** |
+| antes do corte (mesmas 24h) | 18 | 5 | **13** |
+
+As 13 falhas são todas anteriores ao conserto; a última é 13:15:43 UTC, dez
+minutos antes do corte. O #0 sai de 28% para 100% com denominador maior do que
+o que a #7 tinha. **Não é sangria nova.**
+
+**(b) `planned:0 && total_posts:0` = 11 em 24h.** Por hora:
+04/09 20:00 UTC → 9 · 04/09 21:00 UTC → 2 · **nada desde então (22h)**. São
+**11 tentativas de UMA pessoa**, na noite de 04/09 — a rajada do pedido #93.
+Janela móvel congelada não é sangria. Continua sendo dívida real (o erro culpa
+um fornecedor que nunca foi chamado), mas **não está sangrando agora**.
+
+Cadastro sem crédito (24h): **0 de 25**. Render preso >2h: **0**.
+
+### 3. A entrega da #7 provada onde ela caiu
+
+`/api/next-action` auditada em checkout limpo da PONTA DA FILA, fora da
+worktree onde nasceu: **39/39, exit 0**, sem CRLF. `npx tsc --noEmit` exit 0
+com **`tsc --version` imprimindo 5.9.3** antes — a junção do `node_modules` foi
+conferida, porque na #7 o primeiro tsc deu exit 0 mentindo. Junto: publicador-
+refspec **12/12** e despacho-vazio **51/51**.
+
+### 4. O conserto desta rotação: o guardião que a própria sprint quebrou
+
+O **#0 desta sprint** trocou o 502 seco de `temMarcadores` pelo portão
+`garantirMarcadores` — era esse 502 que matava 12 de 16 episódios. O guardião
+`test-serie-memoria-2026-09-04.mjs` não acompanhou e ficava **vermelho por uma
+entrega CORRETA**, por dois motivos, os dois falsos:
+
+1. **carregamento:** a tabela de mocks nunca ganhou `@/lib/nextEpisodeMarkers`
+   — a rota nem carregava. O módulo entra **real, não dublado**: é puro (zero
+   imports) e é ele que decide se o episódio nasce rotulado; dublar esconderia
+   o comportamento novo.
+2. **estrutural:** exigia `if (!temMarcadores(script))`, a chamada que o #0
+   removeu **de propósito**.
+
+O check morto virou **quatro** que travam o contrato novo, mais exigente que o
+antigo: o import do módulo puro, a chamada de `garantirMarcadores(script)`, o
+502 restrito ao irrecuperável, e o script **entregue ao cliente** sendo o
+rotulado.
+
+**Um dos quatro nasceu frouxo e eu peguei falsificando:** a checagem casava em
+qualquer lugar do arquivo (o texto aparece 2x), então trocar a contagem de
+palavras pelo texto cru **passava batido**. Repinado na linha que vai para o
+cliente. Mutação: apagar o import derruba 2 checks; entregar o cru ao cliente
+derruba 1; restaurado, verde. Falsificação feita em **cópia do arquivo**, nunca
+com `git checkout --`.
+
+**136/138 vermelho → 142/142** no `origin/main`. SHA `556ed91a`, enfileirado
+como `a33b7fdc`. `app/api/next-episode/route.ts` está **byte a byte igual** ao
+origin/main: nenhuma linha de produto mudou.
+
+### 5. O que a reconferência pós-enfileirar achou — e que eu NÃO consertei
+
+142/142 na minha worktree, **141/142 na ponta da fila**. A diferença não é
+CRLF. É a seção 10 (trava de qualidade do fundador) acusando
+`app/api/generate-video-cinematic/route.ts` e
+`app/api/generate-video-fast/route.ts`.
+
+Fui olhar antes de mexer, porque é a rede de proteção do fundador ("os vídeos
+têm saído nota 9, NÃO QUERO QUE MEXA NISSO"). O achado:
+
+- quem tocou foi **`55c84e13`, o checkpoint da #2 desta mesma sprint**;
+- são **40 linhas, todas inserção, zero remoção**: o evento
+  `generation_dispatch_received`, que responde ao pedido do Codex de 11:47;
+- **zero ocorrências** dos símbolos de motor nas linhas adicionadas.
+
+Ou seja: **o vermelho é substantivamente falso** — nada ali muda como o filme
+fica. Mas a regra de caminho está fazendo exatamente o que foi escrita para
+fazer.
+
+**Eu NÃO afrouxei a trava, de propósito.** Converter `generate-video-*` de
+banimento-por-caminho para regra-de-conteúdo (como já foi feito com
+`app/api/compose/**` em 04/09) é afrouxar a rede de segurança do fundador — e
+seria eu afrouxando justamente a regra que apontou para o **meu próprio**
+commit. Decisão dele, não minha. Fica registrada como reversível e barata.
+
+**E um defeito de projeto que só apareceu agora:** a seção 10 compara
+`HEAD` com `merge-base(HEAD, origin/main)`. Na worktree onde o trabalho nasce
+(criada de `origin/main`) esse diff é **vazio** — a checagem é **vacante
+justamente onde o autor poderia corrigir**, e só morde na ponta da fila, onde
+ela acusa o commit de outra pessoa. É a metade que sobrou do pedido #95.
+
+### 6. Placar (marco 03/09 16:00 UTC, contas externas)
+
+cadastro **67** → filme 1 **43** → filme 2 **13** → filme 3 **4** →
+**checkout 4** (era 3) → **pagou 0**
+
+| fonte | cadastro | filme 1 | filme 2 | filme 3 | checkout |
+|---|---|---|---|---|---|
+| chatgpt | 34 | 29 | 10 | 2 | 2 |
+| taaft | 16 | 9 | **1** | 0 | 0 |
+| (direto) | 13 | 2 | 2 | 2 | 2 |
+| nav | 3 | 3 | 0 | 0 | 0 |
+| partners | 1 | 0 | 0 | 0 | 0 |
+
+### 7. Risco
+
+Nulo para o cliente: mudei **um arquivo de teste**. Nenhuma rota, nenhuma
+tela, nenhum e-mail, nenhum crédito, nenhum preço.
+
+### PRÓXIMA JOGADA
+
+**A janela de 2½ minutos é a jogada, e ela tem dono agora.** O rastro do
+`21b3a9b4` mostra que entre "vi a porta e não posso pagar" (18:53:34) e "estou
+indo embora" (18:56:04) existem **150 segundos** em que a casa não diz nada, e
+que hoje só o `exit_intent` ocupa — no fim, não no começo. `/api/next-action`
+foi construída para falar no começo dessa janela. Quando a fila subir, o SQL
+que decide é `next_action_served(state='dry')` → `checkout_started` em 24h,
+comparado com o caminho `exit_intent_shown` → `checkout_started`. Se o contrato
+ganhar do pop-up de saída, a casa para de vender na porta e passa a vender na
+mesa.
+
+**A jogada não-óbvia:** o `exit_intent` é hoje o **único** vendedor que fala
+com quem secou — e ele só fala quando a pessoa já desistiu. Isso significa que
+a métrica de sucesso do `next-action` não é "gerou checkout", é **"gerou
+checkout ANTES do exit_intent disparar"**. Vale instrumentar a ORDEM dos dois
+eventos, não só a existência de cada um: um checkout que ainda vem depois de
+`exit_intent_shown` é a casa ganhando no desespero, não na oferta.
+
+### PEDIDOS NOVOS
+
+- [ ] DE claude PARA fundador · 16:5x BRT · **decisão sua, não minha: a trava
+  de qualidade acusa `app/api/generate-video-{cinematic,fast}/route.ts`** —
+  conferi linha a linha: 40 inserções, 0 remoções, só o evento
+  `generation_dispatch_received`, zero símbolos de motor. Nada muda como o
+  filme fica. Ou (a) `generate-video-*` vira regra de CONTEÚDO como já é
+  `app/api/compose/**`, ou (b) fica banimento por caminho e telemetria nessas
+  rotas passa a exigir seu "vai". Não decidi sozinho porque afrouxaria sua
+  rede — e apontando para o meu próprio commit.
+- [ ] DE claude PARA claude (próxima rotação) · **a seção 10 do guardião de
+  série é vacante na worktree e só morde na fila** (diff contra
+  `merge-base(HEAD, origin/main)` = vazio onde o trabalho nasce). Metade
+  restante do pedido #95: ela precisa julgar os commits DA PISTA, não o
+  acúmulo da fila compartilhada, senão continua dando vermelho pelo trabalho
+  alheio e verde para o próprio autor.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+1. **Clicar em `SUBIR-SITE.bat`** (raiz de `C:\kineo`). A fila está em **18
+   commits** e **nada disso tocou um cliente ainda**. Hoje isso deixou de ser
+   burocracia: às 15:56 apareceu exatamente a pessoa que a rota da #7 foi feita
+   para atender — 4 filmes, 1 crédito — e o produto só a encontrou quando ela
+   já estava saindo. É a ação de maior alavanca do dia, pendente desde 15:15.
+2. **Conferir**, depois do clique, que o log termina em "SUBIU N ENTREGA(S)" e
+   que `git rev-list --count origin/main..entrega-atual` volta a **0**.
+3. **Decidir a trava de qualidade** (pedido acima): `generate-video-*` vira
+   regra de conteúdo, ou telemetria nessas rotas passa a precisar do seu ok?
+4. **Atualizar a listagem do TAAFT** (dashboard deles): anuncia trial de 40cr e
+   "from $9.90/mo"; o real é 50cr e $7. Segue sendo a fonte que mais perde
+   gente do 1º para o 2º filme — **1 em 16**.
+
+### 📋 O QUE ACONTECEU
+
+Sete minutos depois de eu terminar a rota da rotação passada, apareceu no banco
+a pessoa exata para quem ela foi escrita: quatro filmes entregues, um crédito
+no bolso. Ela viu o cartão do próximo episódio, não podia pagá-lo, ficou dois
+minutos em silêncio, foi procurar preço sozinha e **só virou checkout quando um
+pop-up a pegou saindo do site**. É a primeira vez no ciclo que alguém que já
+recebeu filme chega ao checkout — os três anteriores nunca tinham visto um
+filme. O checkout do dia foi de 3 para 4; pagantes seguem em 0.
+
+Os dois alarmes da checagem zero eram velhos: as 13 falhas do episódio 2 são
+todas anteriores ao conserto da manhã (depois dele: 4 pedidos, 4 entregues, 0
+falhas), e as 11 falhas de despacho são uma rajada de uma pessoa só, de ontem à
+noite, sem repetição há 22 horas.
+
+Consertei um guardião que a nossa própria entrega da manhã tinha deixado
+vermelho — vermelho por motivo falso ensina todo mundo a ignorar vermelho.
+Ele voltou a 142/142 e ficou mais exigente do que era. No caminho descobri que
+uma das minhas próprias verificações era frouxa e a apertei.
+
+Uma coisa eu deliberadamente **não** fiz: a trava que protege a qualidade dos
+vídeos está apontando para duas rotas do pipeline. Conferi linha por linha —
+são 40 linhas de telemetria, nada que mude como o filme fica. Afrouxar essa
+regra é decisão sua, ainda mais sendo eu afrouxando a regra que aponta para o
+meu próprio commit. Deixei registrado e intacto.
