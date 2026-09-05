@@ -1922,3 +1922,206 @@ vídeos está apontando para duas rotas do pipeline. Conferi linha por linha —
 são 40 linhas de telemetria, nada que mude como o filme fica. Afrouxar essa
 regra é decisão sua, ainda mais sendo eu afrouxando a regra que aponta para o
 meu próprio commit. Deixei registrado e intacto.
+
+---
+
+### #8 — 16:38→18:10 BRT — 78 de 79 pessoas recebem o e-mail do lead mais quente em 6,6h, e ele nunca falou do filme que elas fizeram
+
+**SHA `7e85bef4`** · enfileirado · `app/api/cron/send-recovery/route.ts`,
+`lib/seriesContinuation.ts`, 2 guardiões.
+
+#### 1. A jogada da rotação era a J4 do cardápio, e o dado a derrubou antes de virar código
+
+A J4 dizia: *"checkout sem pagamento em 30 min → e-mail com o FILME da pessoa"*.
+A primeira coisa que fiz foi medir se os 30 minutos eram mesmo o buraco.
+Medido (05/09, contas externas, 21 dias):
+
+| | |
+|---|---|
+| abriram o checkout | **84** |
+| pagaram | 5 |
+| **não pagaram** | **79** |
+| viraram linha de `checkout_abandoned` | **78** |
+| **receberam o e-mail de recuperação** | **78** |
+| mediana do clique até o e-mail | **6,6 h** |
+| o mais rápido | 2,0 h |
+
+**O alcance nunca foi o problema deste job.** Construir um segundo e-mail
+"em 30 minutos" seria dobrar o volume em cima de 79 pessoas que já recebem
+um — e o `send-recovery` é o remetente cuja janela de supressão foi encurtada
+para 4h justamente porque ele é o mais quente. Volume novo ali é risco de
+domínio sem hipótese por trás.
+
+Também derrubei a suspeita óbvia do relógio: o comentário do próprio arquivo diz
+que a linha de `checkout_abandoned` *"só nasce quando a sessão Stripe expira
+(~24h)"*. **No banco, a mediana até a linha nascer é 2,0h**, não 24. A Stripe
+expira mais cedo do que o comentário supõe. Anotado, não consertado — é
+comentário, não código.
+
+#### 2. O que estava errado é CONTEÚDO, e é a metade que o #3 não cobriu
+
+Das 79 que não pagaram, **51 têm filme concluído** (49 com `videos.title`
+preenchido). O e-mail que elas receberam abre com
+*"did something get in the way? A payment issue…"* — a pergunta certa para quem
+travou no cartão, e a errada para quem **já viu o produto funcionar na própria
+ideia** e está pesando valor.
+
+E isso contraria a regra que você fixou em 02/09 depois do winback-25 (25
+créditos para 95 pessoas, **zero cliques** em 24h): **a isca é o filme pronto
+sobre o tema que a pessoa já fez** — não crédito, não desconto.
+
+O `#3` desta mesma sprint cobriu a outra metade (28 pessoas que chegaram ao
+checkout **sem nunca** ter feito um filme). Esta entrega fecha o par: as duas
+coortes que o e-mail tratava como uma pessoa só agora têm cada uma a sua carta.
+
+#### 3. O que a pessoa passa a receber
+
+Quem já fez filme recebe uma carta que **nomeia o filme dela** e quantos ela
+tem, oferece o **episódio 2 do mesmo tema em um clique** (a peça mais eficiente
+da casa) e mede o plano em **filmes como aquele** — usando `filmsPerPlan`, o
+mesmo helper do rodapé de vídeo pronto. Assunto: `"<título dela>" — about the
+checkout you didn't finish`.
+
+O que ela **não** recebe: nenhum preço digitado nesta rota, nenhum desconto,
+nenhum cupom, nenhum crédito concedido. A porta do plano e o PayPal continuam
+no corpo (**regra K1**: comprar não depende do episódio 2).
+
+#### 4. Dois cuidados que valem mais que a copy
+
+**a) A armadilha do `/v/<id>` em que eu quase caí.** O caminho óbvio para
+"mostre o filme dela" é linkar a página pública do vídeo. Fui conferir antes:
+`lib/publicSurfacePolicy.ts` tem `CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED = false
+as const` desde a contenção de privacidade de 27/08 — **toda página `/v/<id>` é
+404 hoje**. Um link desses mandaria o lead mais quente da casa para uma página
+morta. O filme é **nomeado, nunca linkado**, e o guardião trava isso. (Conferi
+também se algum e-mail já linkava `/v/`: **nenhum**. Não há defeito antigo aqui.)
+
+**b) O primeiro conteúdo de CLIENTE a entrar no HTML de um e-mail nosso.**
+`plainHtml()` não escapa nada — sempre foi seguro porque todo texto do arquivo é
+escrito pela casa. O título do vídeo é do cliente. `safeFilmTitle()` remove os
+caracteres que abrem marcação (remove, não entidifica: a mesma string vai para a
+versão texto puro) e corta em 80.
+
+#### 5. Testes — e um guardião que ficou vermelho por uma entrega correta
+
+- **`scripts/test-recovery-made-film-2026-09-05.mjs` — 47/47 VERDE** (novo). Lê o
+  arquivo real. Inclui o **comportamento real do saneador**: o corpo é extraído
+  do arquivo e executado — tag injetada não sobrevive, aspas somem, quebras
+  viram espaço, não-string vira `null`, 200 caracteres viram 80.
+- **`scripts/test-recovery-first-film-2026-09-05.mjs` — 50/50 VERDE**. Ficou
+  **vermelho em 9 checks por uma entrega correta**: eles cobravam
+  `completedFilmCount` e o gate de saldo na consulta, as duas coisas que esta
+  entrega mudou de propósito. **Reconciliado, nunca afrouxado** — 2.3 passou a
+  exigir que a consulta seja *incondicional*, 5.1 passou a exigir
+  `count:'exact'` + `order` + `limit(1)`, 9.4/9.5 passaram a cobrar os **três**
+  ramos e as **duas** campanhas.
+- **`npx tsc --noEmit`: verde, e provado real** — erro de tipo injetado foi pego
+  (worktree com junction de `node_modules`).
+- **Falsificação por mutação, sempre em CÓPIA do arquivo**, nunca
+  `git checkout --`: trocar `safeFilmTitle(film.title)` por `film.title` derruba
+  o guardião; inserir um link `/v/` derruba o guardião. **A primeira mutação
+  passou batido pelo check 3.2 e ele foi apertado** (agora prova que o título
+  cru não chega ao construtor por caminho nenhum).
+
+Honestidade sobre o alcance: **guardião verde não é suíte integral verde.** Rodei
+os dois guardiões desta rota e o typecheck do projeto, não a bateria inteira da
+sprint.
+
+#### 6. Risco
+
+Um round-trip a mais por candidato (a consulta do filme deixou de ser
+condicionada ao saldo — se continuasse condicionada, calaria justamente a coorte
+nova, que é quem **não** tem mais saldo: 51 pessoas, média 6,1 créditos). A
+coorte é de ~4 pessoas por dia. Falha aberta em todo eixo: sem título utilizável
+(2 das 51), sem contagem ou erro de consulta, a copy histórica sai intacta.
+
+#### 7. Como medir
+
+`sent_made_film` no payload do cron, `branch=` no log, e
+`utm_campaign=checkout_recovery_made_film` nos links. O placar separa as três
+cartas. O número a bater: **das 51 pessoas com filme que não pagaram, 0
+compraram** depois da carta antiga.
+
+#### 8. A FILA SUBIU — você clicou
+
+`origin/main` passou de `2ca9a06c` para **`c4cc13ef`**: as **18 entregas** que
+estavam paradas desde 15:15 estão em produção, incluindo o `#3` (carta de quem
+nunca fez filme), o `#5` (o botão de episódio 2 dos e-mails que mandava para
+`/signup`) e a rota `/api/next-action` do `#7`. A fila voltou a 0 e agora tem
+**1 commit**: este.
+
+#### 9. Placar (marco 03/09 16:00 UTC, contas externas)
+
+cadastro **68** → filme 1 **43** → filme 2 **13** → filme 3 **4** →
+checkout **4** → **pagou 0**
+
+**Checagem zero: limpa.** Cadastro sem crédito em 24h: **0**. Render preso 2h+:
+**0**. `next_episode_failed`: 13 em 24h, mas a mais recente é de **13:15 UTC** —
+nenhuma nova nas ~5h desde a checagem da #7, todas anteriores ao conserto da
+manhã. `generation_stage_error`: 25 em 24h, a mais recente de **09:39 UTC**,
+nenhuma nova em 10 horas. Nada a escalar.
+
+#### PRÓXIMA JOGADA
+
+**A carta nova só prova alguma coisa quando o cron rodar com ela em produção — e
+ela ainda está na fila.** Quando subir, a comparação que decide é direta e tem
+denominador: as 51 pessoas com filme que receberam a carta antiga converteram
+**0**. A nova roda a cada 2h sobre a mesma coorte.
+
+**A jogada não-óbvia, para a próxima rotação de quem pegar isto:** o
+`send-recovery` carimba **um e-mail por pessoa, para sempre**. Ou seja, as 78
+pessoas que já receberam a carta antiga **nunca receberão a nova** — o carimbo
+vitalício as protege de repetição e, ao mesmo tempo, as congela na versão pior.
+A coorte da carta nova é só quem chegar ao checkout **de agora em diante**
+(~4/dia). Se a comparação precisar de volume, existe um caminho honesto e que
+**não** é reenvio automático: um lote admin, **dry-run por padrão**, que oferece
+a carta nova a quem recebeu a antiga há mais de 7 dias e ainda não pagou — 51
+pessoas de denominador, disparo por link de um clique seu. Não construí porque é
+e-mail novo para gente que já recebeu, e essa decisão é sua.
+
+#### PEDIDOS NOVOS
+
+- [ ] DE claude (#8) PARA claude (próxima rotação) · **o comentário do
+  `send-recovery` afirma que a linha de `checkout_abandoned` nasce ~24h depois
+  do clique; o banco diz 2,0h de mediana.** Não é bug de código, é um comentário
+  que envelheceu e que já foi usado como premissa em pelo menos duas decisões de
+  copy dentro do próprio arquivo ("o e-mail chega em D1–D3, não em D0/D1").
+  Corrigir com o número medido, e reler as duas decisões que dependiam dele.
+
+#### ✅ O QUE VOCÊ PRECISA FAZER
+
+1. **Clicar em `SUBIR-SITE.bat`** de novo quando quiser: a fila tem **1
+   commit** (esta entrega). Enquanto ela não subir, a carta nova não sai para
+   ninguém.
+2. **Decidir a trava de qualidade** (pedido da #7, ainda aberto):
+   `generate-video-*` vira regra de conteúdo, ou telemetria nessas rotas passa a
+   precisar do seu "vai"?
+3. **Atualizar a listagem do TAAFT** (dashboard deles): anuncia trial de 40cr e
+   "from $9.90/mo"; o real é 50cr e $7. Continua sendo a fonte que mais perde
+   gente do 1º para o 2º filme.
+4. **Dizer se quer o lote de reoferta** (ver PRÓXIMA JOGADA): as 78 pessoas que
+   receberam a carta antiga nunca receberão a nova, por causa do carimbo
+   vitalício. Só com o seu "vai" eu construo o lote dry-run.
+
+#### 📋 O QUE ACONTECEU
+
+Você clicou: as 18 entregas paradas desde as 15:15 estão no ar.
+
+Nesta rotação eu ia construir o e-mail de "checkout abandonado em 30 minutos" do
+cardápio, e fui medir antes. O e-mail já existe, já alcança 78 das 79 pessoas
+que abriram o pagamento e não compraram, e chega em 6,6 horas na mediana — duas
+horas no caso mais rápido. Fazer um segundo e-mail mais cedo seria mandar o
+dobro de mensagens para a mesma gente sem mudar o motivo de ninguém comprar.
+
+O buraco não era a hora, era o texto. Cinquenta e uma dessas pessoas **já
+tinham feito um filme com a Kineo** e o e-mail nunca disse uma palavra sobre
+ele — perguntava sobre problema no cartão. É exatamente o contrário da regra que
+você fixou depois do winback: a isca é o filme pronto, não o crédito. Agora a
+carta chama o filme pelo nome, oferece o episódio 2 do mesmo tema em um clique e
+mede o plano em filmes como aquele. Nenhum preço novo, nenhum desconto, nenhum
+crédito dado.
+
+Quase caí numa armadilha: o jeito óbvio de "mostrar o filme dela" seria linkar a
+página pública do vídeo — e essa página está desligada desde agosto por
+privacidade, ou seja, o link levaria o cliente mais quente da casa para um 404.
+O filme é citado pelo nome, nunca linkado.
