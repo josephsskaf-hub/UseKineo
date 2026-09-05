@@ -80,14 +80,21 @@ check(
   '2.2 canAffordFilm exige saldo conhecido E >= piso',
   /const canAffordFilm = balance !== null && balance >= NEXT_VIDEO_MIN_CREDITS/.test(route),
 )
+// sprint-assinaturas #8 (05/09) — ESTA VERIFICAÇÃO FOI INVERTIDA DE PROPÓSITO.
+// No #3 a consulta só valia a pena com saldo, porque só o ramo do PRIMEIRO
+// filme dependia dela. No #8 ela decide também a carta de quem JÁ fez filme —
+// e essa pessoa é tipicamente quem NÃO tem mais saldo (51 medidas, média
+// 6,1cr). Manter o gate de saldo calaria exatamente a coorte nova.
 check(
-  '2.3 films só é consultado quando o saldo já compra um filme',
-  /const films = canAffordFilm \? await completedFilmCount\(admin, userId\) : null/.test(route),
+  '2.3 o filme é consultado SEMPRE, nunca só quando o saldo compra um filme',
+  /const film = await latestCompletedFilm\(admin, userId\)/.test(route) &&
+    !/canAffordFilm \? await/.test(route),
+  'gate de saldo na consulta calaria a coorte de quem já fez filme e secou',
 )
 
 console.log('\n== 3. FALHA ABERTA: desconhecido usa a copy de HOJE ==')
-const countFn = fnBody(route, 'async function completedFilmCount(')
-check('3.1 completedFilmCount existe', countFn !== null)
+const countFn = fnBody(route, 'async function latestCompletedFilm(')
+check('3.1 latestCompletedFilm existe', countFn !== null)
 check('3.2 erro de query devolve null (desconhecido)', countFn !== null && /if \(error\)[\s\S]{0,160}return null/.test(countFn))
 check('3.3 exceção devolve null (desconhecido)', countFn !== null && /catch \([\s\S]{0,120}return null/.test(countFn))
 check(
@@ -108,9 +115,16 @@ check(
 )
 
 console.log('\n== 5. Contagem de filmes à prova do truncamento de 1000 linhas ==')
+// #8: a consulta deixou de ser `head: true` porque agora ela também traz a
+// linha mais nova (título/tema/custo/duração). O que NÃO pode afrouxar é o
+// `count: 'exact'` (o total continua exato) nem o `limit(1)` — sem o limite,
+// uma conta com 300 filmes traria 300 linhas para usar UMA.
 check(
-  '5.1 usa count exato com head (não traz linhas)',
-  countFn !== null && /count: 'exact'[\s\S]{0,40}head: true/.test(countFn),
+  '5.1 count exato + apenas a linha mais nova (limit 1, ordenada)',
+  countFn !== null &&
+    /count: 'exact'/.test(countFn) &&
+    /\.order\('created_at', \{ ascending: false \}\)/.test(countFn) &&
+    /\.limit\(1\)/.test(countFn),
 )
 check('5.2 filtra por uma pessoa só (eq), nunca .in() sobre a coorte', countFn !== null && /\.eq\('user_id', userId\)/.test(countFn) && !/\.in\(/.test(countFn))
 check("5.3 conta apenas filme CONCLUÍDO", countFn !== null && /\.eq\('status', 'completed'\)/.test(countFn))
@@ -155,11 +169,18 @@ console.log('\n== 9. Medição: o placar consegue separar os dois textos ==')
 check('9.1 contador do ramo novo existe', /let sentFirstFilm = 0/.test(route))
 check('9.2 só incrementa em envio ok', /sent\+\+\n\s+if \(firstFilmBranch\) sentFirstFilm\+\+/.test(route))
 check('9.3 o payload do cron expõe sent_first_film', /sent_first_film: sentFirstFilm,/.test(route))
-check('9.4 o log diz qual ramo saiu', /branch=\$\{firstFilmBranch \? 'first_film' : 'checkout'\}/.test(route))
 check(
-  '9.5 os links do ramo novo carregam utm_campaign próprio',
+  '9.4 o log diz qual dos TRÊS ramos saiu',
+  /branch=\$\{branch\}/.test(route) &&
+    /const branch = firstFilmBranch \? 'first_film' : madeFilmBranch \? 'made_film' : 'checkout'/.test(route),
+)
+check(
+  '9.5 os DOIS ramos novos carregam utm_campaign próprio',
   /const FIRST_FILM_CAMPAIGN = 'checkout_recovery_first_film'/.test(route) &&
-    /utm_campaign=\$\{FIRST_FILM_CAMPAIGN\}/.test(route),
+    /const MADE_FILM_CAMPAIGN = 'checkout_recovery_made_film'/.test(route) &&
+    /utm_campaign=\$\{campaign\}/.test(route) &&
+    /campaign: string = FIRST_FILM_CAMPAIGN/.test(route),
+  'sem campanha própria o placar não separa as três cartas',
 )
 
 console.log('\n== 10. Guarda-corpos do job continuam de pé ==')

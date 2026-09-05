@@ -47,6 +47,11 @@ export type SeriesContinuationSource =
   // JA fez video, tambem oferecia um unico caminho: /pricing. Fonte propria
   // para nao misturar o CTR dele com o do `downgraded_loss`.
   | 'lifecycle_ending_email'
+  // sprint-assinaturas #8 (2026-09-05) — o e-mail de recuperacao de checkout
+  // para quem JA fez filme. Fonte propria porque o clique de quem chegou ao
+  // PAGAMENTO nao pode ser somado ao de quem so recebeu o filme: sao duas
+  // intencoes diferentes e o placar do ciclo compara as duas.
+  | 'lifecycle_checkout_recovery_email'
   // KINEO-SPRINT-V1V4-2026-08-31 (#3B) — o rodape da tela de video pronto
   // renderizava `null` para o maior grupo ativado (gratuito, nao pagante,
   // render Fast). Este e o unico caminho de criacao que aquele grupo ve ali.
