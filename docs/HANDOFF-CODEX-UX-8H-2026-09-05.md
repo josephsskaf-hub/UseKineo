@@ -147,3 +147,15 @@ Acrescentar somente mudanças materiais, gates, uso devido e testes. Ao término
 **PREVIEW:** `docs/previews/UX-BLOCO1-HOME-RETORNO-2026-09-05.html`: ResumeStrip antes de main `2ca9a06c` e depois da branch, React SSR real em contextos 980px/390px. Conteúdo fictício e navegação desativada; sem imagens/API/render nem restante da home. Comparação visual do fundador e browser continuam pendentes. Não altera o baseline de vídeos.
 
 **PRÓXIMO:** preservar lotes preparados até aprovação; continuar inventário/contratos específicos das outras portas, sem generalizar a migração de roteiros prontos. Gate de orçamento seguinte 14:14 BRT. Término segue 18:14 BRT.
+
+### Checkpoint 13:45 BRT — L3, estados condicionais antes de implementar
+
+**FATO CONFIRMADO:** fetch mantém main `2ca9a06c`; nenhuma decisão visual nova. Não abri outra proposta cosmética. Ampliei a verificação do mesmo construtor L3 para estados nomeados do componente real, sem efeitos, requests, conta ou mídia real.
+
+**DEFEITO DO PROTÓTIPO, NÃO DO PRODUTO:** o construtor anterior desestruturava só ideia/câmera/passos da coluna direita e descartaria os blocos condicionais de continuação quando `myVids` viesse preenchido. O preview publicado na branch dizia representar apenas estado vazio e não mostrava esse estado; o comentário “continuation sections untouched” no builder era incorreto. O novo teste reproduziu perda do handler de clique com um vídeo. Corrigido apenas no construtor: preservar os filhos restantes numa seção abaixo do formulário. Nenhuma regressão assim foi publicada ou observada em produção.
+
+**TESTADO LOCALMENTE:** `test-studio-hierarchy-proposal.mjs` → **11/11 variantes**: vazio, ideia, verbatim, picker externo/interno, saldo insuficiente, teto de texto, câmera, quickstart e um/seis vídeos fictícios. Compara handlers, destinos, campos, custo e blocos de continuação antes/depois; não executa fetch nem handlers. Estados derivam das declarações useState reais, com trava para mudança no mapeamento. Não valida montagem/hidratação/browser.
+
+**TRANSPARÊNCIA DO HARNESS:** a primeira asserção comparava ordem antiga dos campos e foi corrigida para identidades/valores, porque a proposta é justamente reordenar. A identidade do wrapper de custo também foi substituída por igualdade de props; Children.toArray atribui keys. O mock de useSeriesDoorSeen devolvia função em vez do objeto real e foi corrigido antes da reprodução da omissão. Esses ajustes não foram consertos do produto.
+
+**PREVIEW / GATES:** footer do HTML L3 atualizado para separar 11 estados testados em árvore React da comparação visual, que ainda mostra apenas estado vazio. Nenhuma edição de runtime ou novos serviços/dependências. L1/L2/L2b continuam preparados, não publicados. Próximo checkpoint mede uso às 14:14 e retoma preparação dentro do escopo; término 18:14.
