@@ -2,10 +2,10 @@ import { buildSeriesContinuationHref, type SeriesContinuationSource } from '@/li
 import { resolveActivationCreationContract } from '@/lib/creationHandoff'
 
 // UX adapter only. The canonical series writer and email links remain owned
-// by Claude. This first lot handles the two TOPIC links within Studio, not
+// by Claude. Handles TOPIC links within Studio and the home resume strip, not
 // the already-authored episode or any render/retry/credit contract.
 const VERSION = 'topic-v1'
-const SOURCES = ['studio_milestone', 'studio_video_tile'] as const
+const SOURCES = ['studio_milestone', 'studio_video_tile', 'landing_resume_strip'] as const
 type StudioSeriesSource = typeof SOURCES[number]
 type QueryReader = Pick<URLSearchParams, 'get'>
 

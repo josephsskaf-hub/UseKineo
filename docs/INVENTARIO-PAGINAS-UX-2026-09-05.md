@@ -97,7 +97,7 @@
 | `app/models-pricing/page.tsx` | Pendente |
 | `app/niche-picker/page.tsx` | Pendente |
 | `app/omni-flash-vs-sora/page.tsx` | Pendente |
-| `app/page.tsx` | Pendente |
+| `app/page.tsx` | L2b: faixa ResumeStrip preparada para revisão no Studio, preview pendente; home/servidor/mídias intactos. Demais seções pendentes. |
 | `app/partners/page.tsx` | Pendente |
 | `app/pricing/page.tsx` | Pendente |
 | `app/privacy/page.tsx` | Pendente |

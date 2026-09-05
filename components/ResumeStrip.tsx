@@ -26,7 +26,7 @@
 import { useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { trackEvent } from '@/lib/analytics'
-import { buildSeriesContinuationHref } from '@/lib/seriesContinuation'
+import { buildStudioSeriesReviewHref } from '@/lib/navigation/studioSeriesReview'
 
 type Props = {
   title: string
@@ -81,7 +81,7 @@ export default function ResumeStrip({ title, episode, videoId = null }: Props) {
   // faixa simplesmente nao existe. Nunca uma faixa vazia no topo da home.
   if (!limpo) return null
 
-  const href = buildSeriesContinuationHref(limpo, 'landing_resume_strip')
+  const href = buildStudioSeriesReviewHref(limpo, 'landing_resume_strip')
 
   return (
     <div
@@ -139,6 +139,7 @@ export default function ResumeStrip({ title, episode, videoId = null }: Props) {
 
       <Link
         href={href}
+        prefetch={false}
         onClick={() => {
           void trackEvent('resume_strip_clicked', { episode: ep, video_id: videoId })
         }}
@@ -158,7 +159,7 @@ export default function ResumeStrip({ title, episode, videoId = null }: Props) {
           boxShadow: '0 4px 16px rgba(41,151,255,.28)',
         }}
       >
-        Make episode {ep} →
+        Continue this story →
       </Link>
 
       <span style={{ flex: '0 0 auto', color: '#8f8f96', fontSize: '0.7rem' }}>

@@ -40,7 +40,11 @@ checar("observer e desconectado (sem vazamento)", vezes(strip, "disconnect()") >
 checar("IntersectionObserver dentro de try/catch", /try \{[\s\S]{0,400}new IntersectionObserver/.test(strip))
 
 // --- a aposta: ancora, nao ideia nova ---
-checar("usa a superficie que converte (buildSeriesContinuationHref)", /buildSeriesContinuationHref\(limpo, .landing_resume_strip.\)/.test(strip))
+// UX L2b 05/09: the old assertion pinned a direct helper call, not behavior.
+// Review now uses an adapter that still consumes the canonical writer.
+// This remains a SOURCE guard; real component + reader + click coverage is
+// in test-home-resume-studio.mjs. Do not call a regex proof of conversion.
+checar("adaptador de revisao preserva o escritor canonico", /buildStudioSeriesReviewHref\(limpo, .landing_resume_strip.\)/.test(strip) && /buildSeriesContinuationHref\(topic, source/.test(lerArq('lib/navigation/studioSeriesReview.ts')))
 checar("a fonte nova existe no tipo de lib/seriesContinuation", /landing_resume_strip/.test(serie))
 checar("um unico botao de acao na faixa", vezes(strip, "<Link") === 1)
 

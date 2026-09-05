@@ -135,3 +135,15 @@ Acrescentar somente mudanças materiais, gates, uso devido e testes. Ao término
 **TESTADO LOCALMENTE:** bateria existente `test-home-curation-restore.mjs` reutilizada, 247/247, exit 0. Funções reais com banco mockado e assets locais; não é playback nem browser. Não criei teste duplicado nem usei o resultado como autorização de redesign. Diff contra main vazio nos sete arquivos de integração/curadoria documentados.
 
 **PENDÊNCIA DELIMITADA:** CTA de logado no bento ainda leva a `/studio/create?src=engine_bento`; L2 não o cobre. Próximo lote precisa preservar contrato antes de mudar destino. L1/L2 preparados e L3 proposta permanecem aguardando revisão visual, sem main/deploy. Nenhuma nova ação do fundador requerida por este checkpoint. Uso só volta a ser consultado às 14:14 BRT; janela termina às 18:14 BRT.
+
+### Checkpoint 13:15 BRT — L2b, continuação da faixa da home
+
+**IMPLEMENTADO NA BRANCH / NÃO PUBLICADO:** após reserva no Git (`fe6ac0b7`), `components/ResumeStrip.tsx` passa pelo adaptador UX. Fonte adicional `landing_resume_strip`, tema canônico intacto, Fast/35s preservados, revisão no Studio sem autoanálise, prefetch desligado. Nenhuma edição de page/server, helper do Claude, crédito, mídia ou impressão. A orientação de navegação do skill Next.js foi aplicada sem mudar APIs/framework.
+
+**FATO CONFIRMADO:** o ordinal mostrado por ResumeStrip vinha da quantidade de vídeos concluídos da conta, não do episódio da série (`app/page.tsx:115–125`). CTA agora “Continue this story”, sem ordinal inventado. Evento legado conserva `episode` e `video_id` para não redefinir silenciosamente medição; **não usar esse campo como progresso de série**. O rótulo muda, não a API de analytics.
+
+**TESTADO LOCALMENTE:** novo `test-home-resume-studio.mjs` falhou antes do patch no href real `/studio/create`, passou depois: **13 cenários**, componente real → leitor/Generate reais via AST, fronteiras simuladas. Inclui Unicode/escape, vazio, contador 343 fictício, legado analytics e escolhas manuais. SSR não executa observer e não comprova impressão nem navegação real. Regressões L2 **16/16** e L1 **37/37**; TypeScript exit 0 sem diagnóstico. Teste antigo de faixa revelou uma âncora de chamada direta; atualizada com justificativa para adaptador + escritor canônico, mantendo explícito que é verificação de fonte, não prova de conversão.
+
+**PREVIEW:** `docs/previews/UX-BLOCO1-HOME-RETORNO-2026-09-05.html`: ResumeStrip antes de main `2ca9a06c` e depois da branch, React SSR real em contextos 980px/390px. Conteúdo fictício e navegação desativada; sem imagens/API/render nem restante da home. Comparação visual do fundador e browser continuam pendentes. Não altera o baseline de vídeos.
+
+**PRÓXIMO:** preservar lotes preparados até aprovação; continuar inventário/contratos específicos das outras portas, sem generalizar a migração de roteiros prontos. Gate de orçamento seguinte 14:14 BRT. Término segue 18:14 BRT.
