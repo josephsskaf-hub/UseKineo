@@ -11,7 +11,11 @@ const require = createRequire(import.meta.url)
 const ts = require(path.join(root, 'node_modules/typescript'))
 let n = 0, fail = 0
 const ok = (cond, msg) => { n++; if (!cond) { fail++; console.log('FAIL', n, msg) } else console.log('ok  ', n, msg) }
-const read = (p) => readFileSync(path.join(root, p), 'utf8')
+// sprint-assinaturas #1 (05/09) — normaliza CRLF. As asserçoes que leem a rota
+// comparam contra literais com `\n`; no checkout Windows o arquivo vem com
+// `\r\n` e DUAS delas ficavam vermelhas para sempre aqui e verdes na CI. Um
+// guardiao que vive vermelho e um guardiao que ninguem le.
+const read = (p) => readFileSync(path.join(root, p), 'utf8').split('\r\n').join('\n')
 function loadTs(p, mocks = {}) {
   const out = ts.transpileModule(read(p), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 }, fileName: p }).outputText
   const m = { exports: {} }
@@ -79,7 +83,19 @@ ok(big.html.includes('Studio &mdash;'), 'custo 150: Studio ainda aparece')
 const unk = videoReadyFooter({ ...base, isSubscriber: false, creditsRemaining: 0, cost: 0 })
 ok(unk.kind === 'plan_generic', 'custo 0/desconhecido → copy de hoje')
 ok(unk.html.includes(`${marketing.videosForCredits(checkout.TIER_CREDITS.starter, 'fast')} more Fast Shorts`) && unk.html.includes(`Starter is ${starter}/month`), 'copy de hoje com numero e preco das funcoes canonicas')
-ok(videoReadyFooter({ ...base, isSubscriber: false, creditsRemaining: null, cost: NaN }).kind === 'plan_generic', 'saldo E custo desconhecidos → copy de hoje')
+// sprint-assinaturas #1 (05/09) — CONTRATO ALTERADO DE PROPOSITO, e nao
+// afrouxado. Ate hoje `creditsRemaining: null` caia no ramo de quem esta SEM
+// saldo e PERDIA a porta do episodio 2; medido no banco (marco 03/09, 43h),
+// 22 dos 26 e-mails `plan_films` sairam com saldo NULL e 17 das 20 pessoas
+// tinham >= 5 creditos na mao. Saldo desconhecido nao e saldo zero. O que a
+// assercao original protegia — "sem numero, a linha de plano e a copy de hoje,
+// com os numeros canonicos" — continua protegido abaixo, agora explicitamente.
+const nada = videoReadyFooter({ ...base, isSubscriber: false, creditsRemaining: null, cost: NaN })
+ok(nada.kind === 'unknown_balance_episode2', 'saldo desconhecido: a porta do episodio 2 nao pode sumir')
+ok(nada.html.includes(`${marketing.videosForCredits(checkout.TIER_CREDITS.starter, 'fast')} more Fast Shorts`) && nada.html.includes(`Starter is ${starter}/month`), 'custo desconhecido: a linha de plano CONTINUA sendo a copy de hoje, com os numeros canonicos')
+ok(!/You have <strong[^>]*>\d+ credits?<\/strong> left/i.test(nada.html), 'saldo desconhecido nunca afirma um numero de saldo')
+// Sem tema nao ha porta para abrir: ai sim continua a copy de hoje, como antes.
+ok(videoReadyFooter({ ...base, topic: '', isSubscriber: false, creditsRemaining: null, cost: NaN }).kind === 'plan_generic', 'saldo E custo desconhecidos, SEM tema → copy de hoje (inalterado)')
 
 // XSS / escape
 const xss = videoReadyFooter({ ...base, isSubscriber: true, creditsRemaining: 10, topic: '<img src=x onerror=alert(1)> "quotes"' })
@@ -95,7 +111,14 @@ ok(!route.includes("import { TIER_CREDITS, TIER_PRICES } from '@/lib/checkoutPri
 ok(route.includes('${readyFooter.html}'), 'HTML do e-mail usa o rodape decidido')
 ok(route.includes('readyEmailIsSubscriber =\n            (planRow as { has_paid?: boolean } | null)?.has_paid === true ||\n            PAID_PLANS.has(planName)'), 'assinante = has_paid OU plano pago (sem isTrialActive)')
 ok(route.includes('let readyEmailIsSubscriber = false'), 'falha de leitura do perfil = nao-assinante = rodape de hoje (falha aberta)')
-ok(route.includes('creditsRemaining,\n              cost,\n              topic: topicFinal,'), 'saldo do RPC, custo do claim e topicFinal (nao topic cru) entram no rodape')
+// sprint-assinaturas #1 (05/09) — o saldo deixou de ser SO o retorno do RPC.
+// Nos motores cinematicos o credito e consumido na abertura do job e o RPC nao
+// devolve nada, entao `creditsRemaining` vinha `null` e o rodape lia isso como
+// "sem saldo" (22 de 26 e-mails `plan_films`, 17 das 20 pessoas com credito na
+// mao). Agora cai para o saldo do perfil, lido no mesmo `planRow` que ja
+// existia. O custo e o topicFinal continuam vindo de onde vinham.
+ok(route.includes('const readyCredits = creditsRemaining ?? readyEmailCreditsFallback'), 'saldo = RPC quando existe, senao o do perfil (nunca mais null tratado como zero)')
+ok(route.includes('creditsRemaining: readyCredits,\n              cost,\n              topic: topicFinal,'), 'saldo resolvido, custo do claim e topicFinal (nao topic cru) entram no rodape')
 ok(route.includes("name: 'video_ready_email_sent'") && route.includes('footer: readyFooter.kind'), 'carimbo video_ready_email_sent grava qual rodape saiu')
 ok(route.indexOf("name: 'video_ready_email_sent'") > route.indexOf('} else {\n              // sprint-assinaturas #24'), 'carimbo so depois do 2xx do Resend')
 const sc = read('lib/seriesContinuation.ts')

@@ -80,6 +80,12 @@ export type SeriesContinuationSource =
   // sprint-assinaturas #24 (02/09): e-mail "Your Short is ready" — o pico de
   // boa vontade; assinante e trial com saldo recebem o episodio 2 ali.
   | 'video_ready_email'
+  // sprint-assinaturas #1 (05/09) — a MESMA porta, no ramo de saldo
+  // DESCONHECIDO. Fonte propria porque e ela que prova o conserto: ate 05/09
+  // esse ramo nao tinha porta nenhuma, e o evento de chegada
+  // (series_continuation_landed) so carrega `source` — sem fonte propria o
+  // antes/depois desta correcao seria impossivel de contar.
+  | 'video_ready_unknown_balance'
 
 // ═══ A3 (03/09/2026) — o botao "Build the next episode" e a maquina da 2a compra ═══
 //

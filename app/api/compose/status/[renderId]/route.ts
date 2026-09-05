@@ -570,7 +570,7 @@ export async function GET(
         try {
           const { data: payerProf } = await supabase
             .from('profiles')
-            .select(`has_paid, plan, ${TRIAL_ENTITLEMENT_COLUMNS}`)
+            .select(`has_paid, plan, video_credits, ${TRIAL_ENTITLEMENT_COLUMNS}`)
             .eq('id', user.id)
             .maybeSingle()
           const PAID_PLANS = new Set([
@@ -952,6 +952,17 @@ export async function GET(
         // de video pronto (assinante x trial x sem saldo). Hoisted para fora
         // do try: falha de leitura = `isSubscriber=false` = rodape de hoje.
         let readyEmailIsSubscriber = false
+        // sprint-assinaturas #1 (05/09) — SALDO REAL PARA O RODAPE DO E-MAIL.
+        // `creditsRemaining` so tem numero quando o debito aconteceu AQUI. Nos
+        // motores cinematicos o credito e consumido na abertura do job e o
+        // `else` do bloco de debito carimba `null` de proposito — e o rodape
+        // lia esse `null` como "sem saldo". Medido (marco 03/09, 43h): 22 dos
+        // 26 e-mails `plan_films` sairam com saldo NULL e 17 das 20 pessoas
+        // tinham >= 5 creditos. Este `planRow` ja consulta `profiles` no mesmo
+        // ponto do fluxo, DEPOIS do debito: basta pedir a coluna junto. Zero
+        // consulta nova; falha de leitura mantem `null` (e o guarda novo de
+        // lib/lifecycle/videoReadyFooter.ts cobre esse caso).
+        let readyEmailCreditsFallback: number | null = null
         try {
           const { data: planRow } = await supabase
             .from('profiles')
@@ -975,6 +986,9 @@ export async function GET(
           readyEmailIsSubscriber =
             (planRow as { has_paid?: boolean } | null)?.has_paid === true ||
             PAID_PLANS.has(planName)
+          const saldoPerfil = (planRow as { video_credits?: number | null } | null)?.video_credits
+          readyEmailCreditsFallback =
+            typeof saldoPerfil === 'number' && Number.isFinite(saldoPerfil) ? saldoPerfil : null
           historyDescription = buildBrandedYouTubeDescription(ytDescriptionParam, {
             isFreePlan: !isPaid,
           })
@@ -1034,9 +1048,12 @@ export async function GET(
             // saldo — 8 assinantes e 51 trials com credito em 7d leram o pedido
             // errado no minuto certo. Zero consulta nova: `planRow`,
             // `creditsRemaining` (retorno do debito) e `cost` (claim) ja existem.
+            // Saldo do debito quando existe; senao o do perfil (lido acima, ja
+            // pos-debito). So fica `null` se as duas fontes falharem.
+            const readyCredits = creditsRemaining ?? readyEmailCreditsFallback
             const readyFooter = videoReadyFooter({
               isSubscriber: readyEmailIsSubscriber,
-              creditsRemaining,
+              creditsRemaining: readyCredits,
               cost,
               topic: topicFinal,
               durationSeconds: Number.isFinite(duration) ? duration : null,
@@ -1094,7 +1111,16 @@ export async function GET(
                         footer: readyFooter.kind,
                         subscriber: readyEmailIsSubscriber,
                         cost,
-                        credits_remaining: creditsRemaining,
+                        credits_remaining: readyCredits,
+                        // De onde veio o numero que decidiu o rodape. Antes so
+                        // existia o do debito, e o `null` dele era indistinguivel
+                        // de saldo zero no banco.
+                        credits_source:
+                          creditsRemaining !== null
+                            ? 'debit'
+                            : readyEmailCreditsFallback !== null
+                              ? 'profile'
+                              : 'unknown',
                         has_topic: topicFinal.length > 0,
                       },
                     })

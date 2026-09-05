@@ -29,13 +29,17 @@
  */
 import { TIER_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
 import { filmsPerPlan, filmNoun, sanitizeFilmCost } from '@/lib/lifecycle/trialFilmPlans'
-import { buildSeriesContinuationEmailUrl, normalizeSeriesSeed } from '@/lib/seriesContinuation'
+import { buildSeriesContinuationEmailUrl, normalizeSeriesSeed, type SeriesContinuationSource } from '@/lib/seriesContinuation'
 import { videosForCredits } from '@/lib/marketingPrice'
 
 export type VideoReadyFooterKind =
   | 'subscriber_next' // ja paga: episodio 2 + saldo, sem preco
   | 'trial_episode2' // nao paga, tem saldo para o proximo: episodio 2 primeiro
-  | 'plan_films' // nao paga, sem saldo: plano medido em filmes como este
+  | 'plan_films' // nao paga, sem saldo PROVADO: plano medido em filmes como este
+  // sprint-assinaturas #1 (05/09) — saldo DESCONHECIDO. Nao e o mesmo que
+  // saldo zero, e ate hoje era tratado como se fosse: a porta do episodio 2
+  // sumia justamente de quem tinha credito na mao. O plano continua; a porta volta.
+  | 'unknown_balance_episode2'
   | 'plan_generic' // custo/saldo desconhecido: copy de hoje (numero certo)
 
 export interface VideoReadyFooterInput {
@@ -67,10 +71,17 @@ function esc(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
 
-function episodeTwoHtml(appUrl: string, topic: string, campaign: string): string {
+function episodeTwoHtml(
+  appUrl: string,
+  topic: string,
+  campaign: string,
+  // sprint-assinaturas #1 — o ramo de saldo desconhecido usa fonte propria,
+  // senao a chegada dele fica indistinguivel das outras portas do e-mail.
+  source: SeriesContinuationSource = 'video_ready_email',
+): string {
   const tema = normalizeSeriesSeed(topic)
   if (!tema) return ''
-  const url = buildSeriesContinuationEmailUrl(appUrl, tema, 'video_ready_email', {
+  const url = buildSeriesContinuationEmailUrl(appUrl, tema, source, {
     utm_source: 'lifecycle',
     utm_medium: 'email',
     utm_campaign: campaign,
@@ -141,7 +152,42 @@ export function videoReadyFooter(input: VideoReadyFooterInput): VideoReadyFooter
     }
   }
 
-  // 3) Nao paga e o saldo nao compra o proximo: o plano, medido em filmes como este.
+  // 2b) SALDO DESCONHECIDO — sprint-assinaturas #1 (05/09).
+  //
+  // O QUE ESTAVA ERRADO. `credits === null` caia direto no ramo 3 e a pessoa
+  // recebia o rodape de quem esta SEM saldo: sem a porta do episodio 2, so o
+  // preco. E `null` aqui nunca significou "zero" — significa que o remetente
+  // NAO SABIA. Medido no banco (marco 03/09 16:00 UTC, 43h, contas externas):
+  // dos 26 e-mails `plan_films`, **22 sairam com `credits_remaining` NULL**, e
+  // 17 das 20 pessoas desse grupo tinham >= 5 creditos na mao (media 8,3; teto
+  // 12) — saldo de sobra para o proximo filme no Kineo 1 (5cr). A causa e
+  // estrutural, nao aleatoria: nos motores cinematicos o credito e consumido na
+  // ABERTURA do job, entao a rota de status nao tem retorno de debito e carimba
+  // `creditsRemaining = null` de proposito. Ou seja, quem usou o motor caro —
+  // justamente quem demonstrou mais intencao — era o unico a perder a porta.
+  //
+  // REGRA NOVA: desconhecido nao vira zero. A porta do episodio 2 e o PROPRIO
+  // tema da pessoa — nunca e mentira, nao custa nada e e a peca que mais preve
+  // pagamento (27 pessoas usaram o botao de serie e 3 pagaram, ~7x a base). O
+  // pedido de plano CONTINUA igual, byte a byte (mesma funcao, mesma copy,
+  // mesmo link): o que muda e que ele deixa de ser a UNICA saida. E nenhuma
+  // frase afirma saldo — sem numero provado, nao se cita numero.
+  if (credits === null && !input.isSubscriber) {
+    const ep2 = episodeTwoHtml(appUrl, input.topic, 'video_ready_unknown_balance_episode2', 'video_ready_unknown_balance')
+    if (ep2) {
+      const plan =
+        filmsPlanHtml(appUrl, input.cost, input.durationSeconds, 'video_ready_unknown_balance_plan_films') ??
+        genericPlanHtml(appUrl)
+      return {
+        kind: 'unknown_balance_episode2',
+        html: `<p style="color:#94a3b8;font-size:13px;margin:24px 0 0">The next episode is one click away.</p>${ep2}${plan}`,
+      }
+    }
+    // Sem tema utilizavel nao ha porta para abrir: cai no ramo de hoje.
+  }
+
+  // 3) Nao paga e o saldo PROVADO nao compra o proximo: o plano, medido em
+  //    filmes como este. So se chega aqui com numero na mao (ou sem tema).
   const films = filmsPlanHtml(appUrl, input.cost, input.durationSeconds, 'video_ready_plan_films')
   if (films) return { kind: 'plan_films', html: films }
 

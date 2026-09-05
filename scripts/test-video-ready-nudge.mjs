@@ -13,7 +13,11 @@ const require = createRequire(import.meta.url)
 const ts = require(path.join(root, 'node_modules/typescript'))
 let n = 0, fail = 0
 const ok = (cond, msg) => { n++; if (!cond) { fail++; console.log('FAIL', n, msg) } else console.log('ok  ', n, msg) }
-const read = (p) => readFileSync(path.join(root, p), 'utf8')
+// sprint-assinaturas #1 (05/09) — normaliza CRLF: a assercao do assunto casa
+// contra `\n` e no checkout Windows o arquivo vem com `\r\n`, entao ela vivia
+// vermelha aqui e verde na CI. Guardiao vermelho por sistema de arquivos e
+// guardiao que ninguem le. Ver o mesmo conserto em test-video-ready-footer.mjs.
+const read = (p) => readFileSync(path.join(root, p), 'utf8').split('\r\n').join('\n')
 function loadTs(p, mocks = {}) {
   const out = ts.transpileModule(read(p), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 }, fileName: p }).outputText
   const m = { exports: {} }
