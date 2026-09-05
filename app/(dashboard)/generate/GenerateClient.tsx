@@ -27,6 +27,8 @@ import {
 } from '@/lib/growth/resultVideoValueSample'
 import {
   INSTRUCTION_PASTE_NOTICE,
+  classifyInstructionPaste,
+  instructionPasteNoticeFor,
   instructionPasteNoticeMetadata,
   instructionPromptLengthBand,
   shouldShowInstructionPasteNotice,
@@ -3730,7 +3732,7 @@ export default function GenerateClient({
       if (shouldShowInstructionPasteNotice('prompt_looks_like_instruction')) {
         setShowInstructionPasteNotice(true)
         void trackEvent('activation_instruction_notice_viewed', {
-          ...instructionPasteNoticeMetadata(),
+          ...instructionPasteNoticeMetadata(classifyInstructionPaste(explicitPrompt)),
           source: (metadata.source as string | undefined) ?? 'unknown',
           prompt_length_band: instructionPromptLengthBand(explicitPrompt.length),
         })
@@ -12498,9 +12500,11 @@ export default function GenerateClient({
                 color: '#d9ecff',
               }}
             >
-              <div className="text-sm font-black mb-1">{INSTRUCTION_PASTE_NOTICE.title}</div>
+              <div className="text-sm font-black mb-1">
+                {instructionPasteNoticeFor(classifyInstructionPaste(prompt)).title}
+              </div>
               <div className="text-xs leading-relaxed" style={{ color: '#9dccf7' }}>
-                {INSTRUCTION_PASTE_NOTICE.body}
+                {instructionPasteNoticeFor(classifyInstructionPaste(prompt)).body}
               </div>
             </div>
           )}

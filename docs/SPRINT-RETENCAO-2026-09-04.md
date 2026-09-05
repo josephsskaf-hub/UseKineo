@@ -1935,6 +1935,101 @@ envio — o número é piso, não teto. Mas nenhum dos 11 é campanha nova, e o 
 está longe de qualquer limite razoável.)
 
 #### Checagem zero (1h) — LIMPA, e desta vez com o corte no relógio
+### #9 (global #25) — 21:40-22:40 BRT — o aviso que detectava "isto e uma instrucao" e respondia "seu roteiro esta aqui"
+
+**Dono:** Claude (pista retencao). **Arquivos:** `lib/growth/instructionPasteNotice.ts`,
+`app/(dashboard)/generate/GenerateClient.tsx`, `scripts/test-instruction-paste-notice.mjs`.
+
+#### O numero que doia: 1 pessoa, com relogio
+
+`nikitaamiran@gmail.com`, vinda do ChatGPT, 04/09:
+
+| hora (UTC) | o que o produto fez |
+|---|---|
+| 21:38:41 | cadastro, 25 creditos |
+| **21:38:45** | **`activation_instruction_notice_viewed`** — o produto DETECTOU que o texto era instrucao e, corretamente, NAO deu auto-start |
+| 21:39:02 | `chatgpt_quickstart_selected` **`input_type=finished_script`** → `script_mode=verbatim` |
+| 21:41:15 | falha |
+| 21:42:44 | falha de novo, e ela foi embora |
+| 00:01:15 | `failure_recovery_sent` (evento de SERVIDOR — nao e ela voltando) |
+
+Saldo: **0 filmes, 25 creditos intactos, 0 minutos no produto depois da 2a falha.**
+
+O texto dela era `"Create a 35-second cinematic YouTube Short in English about what
+would happen if the Moon..."` — o **pedido que ela mandou ao ChatGPT**, nao a
+resposta dele. Uma ideia escrita em forma de ordem. Em verbatim, o produto narra
+a ordem.
+
+**E o que o aviso dizia, 17 segundos antes da escolha?**
+> "Your ChatGPT script is still here. Kineo will narrate the spoken lines..."
+
+O aviso **afirma que o texto e um roteiro**. O gatilho dele diz o contrario. A copy
+estava calibrada para o OUTRO formato de colagem (a resposta do chatbot, com
+"STYLE:", "Visual:", markdown) — e para esse formato ela esta certa. Para uma ordem
+de uma linha, ela empurra a pessoa exatamente para o modo que nao pode funcionar.
+
+#### O que mudou
+
+O mesmo detector passa a distinguir as duas colagens que ele sempre pegou:
+`command_to_chatbot` (a pessoa colou a PERGUNTA) e `labeled_script` (colou a
+RESPOSTA). **So a copy muda.** Nao trocamos o modo de ninguem, nao bloqueamos o
+Generate, nao escondemos escolha nenhuma: quem quiser mandar verbatim manda, e a
+copy nova diz isso na ultima frase. Trocar o modo por conta propria seria decidir
+no lugar de quem colou — e o defeito original ja foi o produto decidindo errado com
+informacao incompleta. A copy de 02/09 sobrevive **byte a byte** no ramo que ela
+servia; o evento passa a carregar `paste_shape`, versao `v2`.
+
+#### Testes
+
+`node scripts/test-instruction-paste-notice.mjs` → **48/48**, contra 33 antes.
+**Correcao de percurso que preciso registrar:** eu sobrescrevi este arquivo de teste,
+que ja existia (68 linhas, commit `679e9935`), em vez de estende-lo. Restaurei o
+original e reimplementei por cima. As checagens antigas de **privacidade** (texto do
+cliente nunca vai na telemetria) e **acessibilidade** (`role="status"`,
+`aria-live="polite"`) estao todas de pe. Quatro afirmacoes antigas mudaram **de
+proposito**, cada uma comentada no arquivo: versao `v1`→`v2`, o deep-equal do
+metadata (ganhou `paste_shape`), o call site do evento, e os dois `div` que liam a
+constante fixa. `npx tsc --noEmit` **exit 0**.
+
+#### Limitacao honesta, e ela e grande
+
+**3 pessoas viram este aviso em toda a historia** (ele e de 02/09) e **1** caiu na
+colisao acima. **n=1 nao prova taxa nenhuma.** O que sustenta a mudanca nao e
+estatistica, e coerencia: um aviso nao pode afirmar o contrario do que o proprio
+gatilho detectou. Se a leitura de daqui a uma semana mostrar `paste_shape=
+command_to_chatbot` raro, a mudanca terá custado 3 arquivos e nenhum risco.
+
+#### O que eu ia medir e NAO era verdade
+
+A #8 fechou mandando medir **fadiga de e-mail** ("19 de 27 levam e-mail em 48h; uma
+pessoa que recebe 4 mensagens em 7 dias precisa que as 4 parem de se atropelar").
+Medi. **A fadiga nao existe do jeito que eu escrevi.**
+
+O primeiro numero que achei foi **1.670 ocorrencias de "2 e-mails no mesmo dia",
+710 pessoas**. Isso e **artefato de dois ledgers**: todo e-mail de trial e gravado
+DUAS vezes — `expired_offer_d5` em `trial_emails_log` e `trial_expired_offer_d5`
+em `email_send_log`. Deduplicando pelo `kind` sem o prefixo:
+
+| | antes (com o artefato) | real |
+|---|---:|---:|
+| maximo no mesmo dia | 3 | **2** |
+| ocorrencias de 2+ no mesmo dia (14d) | 1.670 | **50** |
+| maximo em 7 dias | 5 | **5** (7 pessoas) |
+| pessoas com 4+ em 7d | 61 | **32** |
+
+Distribuicao real em 7 dias: 375 pessoas com 1 · 186 com 2 · 64 com 3 · 25 com 4 ·
+7 com 5. **Nao ha atropelo.** A cadencia e o arco de trial (`d0_welcome` →
+`ending_soon` → `downgraded_loss` → `expired_offer_d5` → `expired_lastcall_d10`),
+uma peca por etapa. **Nao construi teto de frequencia** — seria infra nova para um
+problema que a medicao nao encontrou.
+
+**Fica o aviso para a proxima sessao (minha ou do Codex):** qualquer contagem de
+"e-mails recebidos" que una os dois ledgers **dobra todo e-mail de trial**. O
+`email_send_log` sozinho e a fonte segura (11 `kind`, desde 17/08, `user_id`
+sempre preenchido nos de trial). Foi a quinta vez hoje que um numero grande virou
+artefato quando alguem olhou de perto.
+
+#### Checagem zero (1h) — LIMPA
 
 | | |
 |---|---:|
@@ -1999,3 +2094,51 @@ olha a fila), e um **aviso de arquivo ao Codex** (toquei `GenerateClient.tsx`).
 
 **Entrega:** 2 arquivos novos + 2 alterados. Zero mudança de preço, plano,
 checkout, oferta ou promessa. Zero linha de motor.
+| `cinematic_zero_scenes_planned` (toda a historia) | **0** |
+| despacho vazio depois do deploy de 21:44 UTC | **0** |
+| filmes concluidos 12h / 3h | 10 / 1 |
+
+**Segunda correcao de percurso:** contei 2 `generation_stage_error` "nas ultimas 3h"
+e quase abri incidente. Ao ler as LINHAS, sao as de `nikitaamiran` as **21:41-21:42
+UTC** — a janela de 3h pegou a borda. **Nada novo falhou depois do deploy.** Numero
+sem linha nao e medicao.
+
+#### Placar (marco 2026-09-03 16:00 UTC, contas externas, medido 00:45 UTC)
+
+| | | vs #8 |
+|---|---:|---|
+| cadastros | **45** | = |
+| pessoas com filme | 28 | (filtro meu exclui `%kineo%`/`%test%`; a #8 usava outro) |
+| filmes entregues | 36 | idem |
+| checkout | 3 | |
+| `checkout_success_viewed` | **0** | = |
+| **`payment_success`** | **0** | = |
+
+**O degrau 1→2 nao se moveu pela quarta rotacao seguida.** E as portas de serie
+seguem sem denominador — conforme a #8 decidiu, **nao remedi nesta rotacao**.
+
+#### Risco e reversao
+
+Baixo. Uma string por ramo e um argumento opcional. O ramo novo so aparece para
+quem ja veria o aviso, e o ramo antigo e byte-identico. Reverter = apagar o ramo
+`command_to_chatbot` do mapa; o fallback ja cai no antigo por construcao.
+
+#### Como medir daqui a uma semana
+
+`activation_instruction_notice_viewed` agora separa por `metadata->>'paste_shape'`.
+A pergunta e uma so: de quem viu `command_to_chatbot`, **quantos terminam com um
+filme concluido**, contra o 0/1 de hoje.
+
+#### Proxima jogada
+
+O `chatgpt_quickstart` deixa a pessoa escolher `finished_script` **depois** de o
+produto ja ter detectado instrucao — as duas telas nao conversam. Esta rotacao
+consertou o que o aviso DIZ; **quem escolhe continua sozinho**. A jogada nao e
+bloquear a escolha (isso violaria a regra K1 e a licao do #349), e sim **levar o
+`paste_shape` ate o card do quickstart**, para que "I have the full script" apareca
+como a segunda opcao, e nao a primeira, quando o texto e uma ordem. Mede-se pelo
+mesmo evento. **Antes de codar:** `lib/growth/chatgptQuickstart.ts` e do fluxo de
+aquisicao pelo ChatGPT — confirmar com o Codex se a ordem dos cards e dele, e nesse
+caso virar PEDIDO em vez de edicao.
+
+**Entrega:** 3 arquivos (1 lib, 1 tela, 1 teste). `tsc` exit 0. 48/48 verdes.
