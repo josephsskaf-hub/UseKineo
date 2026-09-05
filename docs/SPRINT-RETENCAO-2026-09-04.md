@@ -2646,3 +2646,215 @@ contornaram.
 #### Pedidos novos
 
 Nenhum. Nada nesta rotação toca arquivo do Codex.
+
+### #13 (global #29) — 23:38→00:50 BRT — A LEI QUE O MÓDULO DE SUPRESSÃO ESCREVEU PARA SI MESMO NÃO ERA OBRIGADA POR NADA: 5 CRONS ARMADOS MANDAM E-MAIL SEM QUE OS OUTROS 13 VEJAM — E AS TRÊS "COLISÕES" QUE EU FUI CONSERTAR ERAM AS JANELAS DE 4h FUNCIONANDO
+
+Rodada de **medição com guardião**, executando o "próximo item" da #24: *"vale
+medir quantos e-mails a mesma pessoa recebe por semana e se existe um teto"*.
+**Zero linha de produção de envio.** A hipótese que motivou a rodada — "as 4
+mensagens automáticas se atropelam" — foi em grande parte **REFUTADA**, e isso
+vale mais do que o teto que eu teria construído.
+
+#### Anti-repetição — e eu errei o passo, exatamente como o pedido das 18:20 avisou
+
+**Correção antes de tudo:** na primeira versão desta entrada eu escrevi que
+`git log origin/main..entrega-atual` deu *"VAZIO, fila limpa"*. **Eu não rodei
+esse comando.** Rodei `git log origin/main -18` e li os PEDIDOS, e afirmei o
+resto. Quando fui enfileirar, a fila tinha **quatro entradas de uma sessão
+paralela** (#9, #10, #11 e #12 globais). É literalmente o defeito que o pedido
+de 18:20 (`DE claude (#21) PARA quem abrir a próxima rotação`) mandou não
+repetir. Refiz o trabalho **sobre a ponta da fila** (`74276159`) em vez de
+emendar — `amend` + `enfileirar` não é idempotente.
+
+**O que a checagem correta encontrou, e mudou meu resultado:** a #12 (global
+#28) da sessão paralela **mexeu no mesmo módulo que eu estava auditando**.
+
+#### O teto EXISTE, tem nome, e é melhor do que a auditoria de código sugeria
+
+`lib/lifecycle/suppression.ts` é uma janela de **24h entre dois e-mails de ciclo
+de vida para a mesma pessoa**, lendo 8 colunas datadas de `profiles` +
+`trial_emails_log` + `checkout_abandoned` + — desde a #12 — `email_send_log`.
+**Falha fechada** (erro = suprime todo mundo). Não precisa ser construído.
+
+**Pressão real medida (7 dias, todos os ledgers unidos), 688 pessoas:**
+
+| e-mails em 7d | pessoas | |
+|---:|---:|---|
+| 1 | 343 | 49,9% |
+| 2 | 207 | 30,1% |
+| 3 | 84 | 12,2% |
+| 4 | 45 | 6,5% |
+| 5 | 8 | 1,2% |
+| 6 | 1 | 0,1% |
+
+**A mediana é UM e-mail por semana.** 138 pessoas (20%) levam 3+; 54 levam 4+;
+o máximo da casa inteira é **6 em 7 dias, para uma pessoa**. Isso não é "4
+campanhas se atropelando" — e é por isso que esta rodada **não** construiu teto.
+
+#### As três "colisões" que eu fui consertar e que não existiam
+
+Medi todo par de e-mails da mesma pessoa a menos de 24h (30 dias). Três famílias
+suspeitas, **as três mortas na leitura do código**:
+
+| suspeita | n | o que era de verdade |
+|---|---:|---|
+| `X -> recovery` a 4-6h | 64 | `HOT_LEAD_SUPPRESSION_HOURS = 4`, **deliberada** (KINEO-RECOVERY-STARVATION-2026-08-13). Menor intervalo real: **250 min**, contra teto de 240. Respeitada byte a byte. |
+| `X -> stalled_rescue` a 5h+ | 62 | `RESCUE_SUPPRESSION_HOURS = 4` (`admin/send-stalled-rescue:657`), mesma razão. Menor intervalo real: **305 min**. |
+| `recovery -> recovery` a **0 min** | 11 | **ARTEFATO DA MINHA PRÓPRIA CONSULTA.** O laço dedupa por pessoa (`byUser`, `send-recovery:422-426`) e manda **um** e-mail; o carimbo é `.eq('user_id', userId)` e atualiza **todas** as linhas daquela pessoa. Seis checkouts abandonados = 6 carimbos no mesmo microssegundo e **um** e-mail. |
+
+Registro com peso de entrega: as duas janelas de 4h são **anticorpos** contra um
+defeito já medido (o lead que abriu checkout morria de inanição). Uma sessão
+futura que "padronize tudo em 24h" para "consertar as colisões" **reabre** aquele
+defeito. Por isso viraram teste (checks 5.2, 5.3, 5.4).
+
+#### O que sobrou, e é estrutural: a lei do módulo não era obrigada por nada
+
+O próprio arquivo escreve a regra — *"Job novo que manda e-mail entra aqui no
+MESMO commit em que nasce"* — e **nada a verificava**. Já custou caro e está
+documentado lá: `admin/send-stalled-rescue` nasceu em 26/07 e ficou **16 dias
+invisível**; *"só não queimou ninguém porque nunca chegou a rodar"*.
+
+Cobertura medida sobre a ponta da fila (30 `route.ts` reais + `vercel.json`):
+
+| | |
+|---|---:|
+| rotas que mandam e-mail | **30** |
+| **ENTRADA** — chamam `loadLifecycleSuppression` | **13** |
+| **SAÍDA** — o módulo enxerga o envio | **12** |
+| **ARMADAS em `vercel.json` E invisíveis** | **5** |
+
+As 5: `cron/send-blackout-winback` (a cada **30 min**), `cron/send-failure-recovery`
+(6h), `cron/send-momentum-nudge`, `cron/send-trial-eve-notice` e
+`cron/send-oneoff-unlock`. Duas delas — `failure-recovery` e `momentum-nudge` —
+são exatamente as que o CLAUDE.md registra como **acordadas em 01/09**.
+
+**Não é alarme, é inventário:** cada uma tem dedupe PRÓPRIO (7 dias em `events`,
+boolean vitalício). O defeito é de *direção de saída*: carimbam em `events` ou em
+BOOLEAN, e o módulo **não lê `events`** e boolean não carrega o "quando". Os 13
+jobs bem-comportados **não conseguem ceder a vez** a elas.
+
+#### Reconciliação com a #12 (global #28) — duas sessões, o mesmo buraco, pelas duas pontas
+
+Eu cheguei a **6** armadas-invisíveis medindo a `origin/main`. Sobre a ponta da
+fila são **5**: a #12 fez o módulo ler `email_send_log`, e o
+`admin/send-hotlead-blast` — que respeita na entrada e nunca carimbou nada na
+saída — **ficou visível sem ganhar coluna**, porque passa pelo helper de cota
+(`lib/email/quota.ts`). A entrada deles descreve o mesmo defeito pela outra ponta
+(*"RESPEITA esta supressão na entrada e não grava carimbo NENHUM na saída"*, 15
+pares medidos, o mais apertado a 15 minutos). **Duas sessões convergiram no mesmo
+achado por caminhos independentes** — eu por auditoria de cobertura, eles por
+pares contraditórios no ledger. Ajustei meu inventário à entrega deles em vez de
+publicar o meu número velho.
+
+#### Duas correções minhas, uma delas TIRA trabalho do fundador
+
+1. **`cron/send-stalled-rescue` NÃO está fora da trava.** É um **invólucro** que
+   importa e delega para `admin/send-stalled-rescue` (`route.ts:46,100`), que
+   respeita e é visível. Minha contagem inicial de "6 crons descobertos" estava
+   errada: são **5 crons**.
+2. **`admin/send-india-price` já está ARQUIVADA e responde `410 GONE`**
+   (KINEO-PRICING-V6-2026-08-19). Na **#24 eu pedi ao fundador** que decidisse
+   *"se ela deve ganhar guarda de opt-out ou ser arquivada"* — **o pedido estava
+   errado, a decisão já tinha sido tomada.** Item removido da lista dele.
+
+#### A entrega: `scripts/test-cobertura-supressao-2026-09-04.mjs`
+
+Guardião que transforma a lei escrita do módulo em teste. **57 verificações, 57
+verdes.** Lê os arquivos REAIS (extrai `PROFILE_TIMESTAMP_COLUMNS` do código em
+vez de copiar a lista, que apodreceria sozinha), descobre rotas no disco em vez
+de usar lista fixa, e cruza com `vercel.json` para separar **risco automático**
+(cron armado) de **risco manual** (campanha admin).
+
+**Falsificado com 6 mutações — todas reprovaram, baseline restaurado verde:**
+
+| mutação | check que pegou |
+|---|---|
+| `send-cap-hit` perde `loadLifecycleSuppression` | 5.1 |
+| o invólucro do `stalled-rescue` para de delegar | 2.3 |
+| **rota nova que envia e ninguém vê** | 4.1 |
+| o módulo passa a ler `events` | 1.5 + 1.7 |
+| **o módulo perde o `email_send_log` da #12** | 1.8 |
+| `hotlead-blast` sai do helper de cota | 3.2 + 3.3 |
+
+A mutação 3 reproduz **exatamente** o defeito histórico dos 16 dias invisíveis.
+As duas últimas **protegem a entrega da sessão paralela de mim e de quem vier** —
+é a mesma reciprocidade que o pedido das 20:50 pediu na direção contrária.
+
+`npx tsc --noEmit` **exit 0** (não há TS novo: a entrega é um `.mjs`).
+
+#### Quantas pessoas isso move de N para N+1
+
+**Zero, hoje, e de propósito.** Não muda envio, não suprime ninguém, não decide
+política. O valor é de **prevenção**: impede que a próxima rota de e-mail nasça
+invisível, e impede que uma sessão futura mate as janelas de 4h achando que são
+bug. Protege o canal que ainda fala com quem sumiu — e agora protege também o
+ledger que a #12 acabou de ligar.
+
+#### O que eu deliberadamente NÃO fiz
+
+Não trouxe as 5 para a janela de 24h, apesar de ser tecnicamente barato (o módulo
+só precisaria ler os `STAMP` em `events` — **sem migration**). Motivos: (a) a
+pressão medida é modesta (mediana 1/semana), então não há dano provado a
+corrigir; (b) o próprio módulo documenta que aumentar supressão **matou** o
+e-mail de checkout por inanição em 13/08 — o risco é conhecido e real; (c) às 3h
+da madrugada, sem ninguém para observar consequência, o padrão seguro é **não
+reduzir envio**. Fica como recomendação com evidência, reversível.
+
+#### Checagem zero (1h) — LIMPA
+
+| | |
+|---|---:|
+| render preso > 3h | **0** |
+| `generation_stage_error` (3h) | **0** |
+| despacho vazio **pós-deploy 21:44 UTC** | **0** |
+| `cinematic_zero_scenes_planned` 24h | **0** |
+| despacho vazio nas 24h (todos **pré**-deploy) | 15, o último às **21:42:43** |
+
+O último despacho vazio da história é **75 segundos antes** do deploy do
+conserto. Passadas ~6h a mais que na #24, continua sem caso novo — mas com o
+tráfego desta madrugada isso ainda **não distingue** conserto funcionando de
+ausência de gente. Não vou fingir que distingue.
+
+#### Placar (marco 2026-09-03 16:00 UTC, contas externas, medido 03:20 UTC)
+
+| | | vs #24 |
+|---|---:|---|
+| cadastros | **46** | +1 |
+| pessoas com filme | **31** | +1 |
+| filmes entregues | **39** | +1 |
+| checkout | 4 | = |
+| `checkout_success_viewed` | **0** | = |
+| **`payment_success`** | **0** | = |
+
+**Distribuição:** 26 pararam no 1º · 4 em 2-3 · 1 em 4-7 (era 25/4/1).
+**A pessoa nova parou no primeiro. Ninguém subiu de faixa.** O degrau 1→2 é o
+número que não se move.
+
+#### Próxima jogada
+
+**O e-mail está higienizado e não é o gargalo — parem de mexer nele.** Somando
+esta rodada com o #14 (446 cartas → 9 voltas, nenhuma chega a 4%), as duas
+medições dizem a mesma coisa: o canal **não traz de volta** quem já fez um filme,
+e agora também sabemos que ele **não está queimando ninguém** (mediana 1/semana).
+As duas hipóteses de e-mail estão fechadas.
+
+O que sobra é o **degrau 1→2 dentro da tela**, e a #11 (global #27) já explicou
+por que as portas não têm denominador: a porta do episódio 2 mora num ramo que só
+10,7% renderizam e que **exclui o trial de propósito** — justamente a coorte de 1
+filme. Ou seja, a próxima rotação **não** precisa de mais medição de exposição:
+precisa decidir se aquela porta sai do ramo errado. Se sair, o denominador nasce
+sozinho. Se ninguém quiser mexer nela, então a pergunta que sobra é a minha da
+#24 — das 26 pessoas que pararam no primeiro filme **desde o marco**, quantas
+voltaram ao site sem gerar — e essa responde se o problema é a caixa vazia ou a
+ausência de retorno.
+
+#### Pedidos novos
+
+Dois, ambos nos PEDIDOS: a **correção** do meu pedido da #24 ao fundador
+(`send-india-price` já responde 410 — item cancelado; os outros dois pontos
+continuam de pé) e um **aviso de não-repetição** sobre o teto de e-mail, para
+ninguém gastar rotação reconstruindo o que existe nem "padronizando" as janelas
+de 4h.
+
+**Entrega:** 1 script de teste (57 verificações, 6 mutações) + 1 entrada de
+diário + 2 pedidos. Zero código de envio. Zero risco de suprimir e-mail de alguém.
