@@ -2028,6 +2028,157 @@ problema que a medicao nao encontrou.
 `email_send_log` sozinho e a fonte segura (11 `kind`, desde 17/08, `user_id`
 sempre preenchido nos de trial). Foi a quinta vez hoje que um numero grande virou
 artefato quando alguem olhou de perto.
+### #9 (global #25) — 23:10→00:10 BRT — O E-MAIL QUE A CASA MANDOU HÁ 2 HORAS FICA INVISÍVEL PARA A PRÓPRIA CASA: A RESSURREIÇÃO DO TRIAL APAGA A ÚNICA MEMÓRIA QUE A SUPRESSÃO DE 24h LÊ
+
+**Pré-registro (escrito ANTES de codar).**
+· **Hipótese:** a supressão cruzada de 24h não protege quem passa pela
+  ressurreição do trial, porque `lib/reverseTrial.ts` APAGA a linha de
+  `trial_emails_log` que é a única prova, para a supressão, de que um e-mail
+  saiu. O conserto é dar à supressão uma fonte que ninguém apaga.
+· **Métrica:** pares de e-mails para a MESMA pessoa a menos de 24h
+  (`email_send_log`), hoje 34 em 30 dias; e o subconjunto invisível
+  (~18). Alvo: os pares por ressurreição e por blast caem a zero; os pares
+  de 4h do `checkout_recovery` (janela curta DE PROPÓSITO) não mudam.
+· **Critério de parada:** se a mudança suprimir e-mail de trial fora dos casos
+  medidos, ou se `tsc` acusar regressão, reverter — é uma função só, leitura.
+
+#### Anti-repetição — e ela me derrubou DUAS vezes antes de eu escrever uma linha
+
+```sh
+git fetch origin && git log --oneline origin/main -25   # fila limpa
+git log --oneline origin/main..entrega-atual            # -> VAZIO
+git diff --stat origin/main entrega-atual               # regra nova da #8
+```
+
+Duas hipóteses minhas morreram lendo o código, na ordem em que nasceram:
+
+1. **"não existe teto de frequência por pessoa"** — a próxima jogada da #24
+   dizia isso. **Existe**: `lib/lifecycle/suppression.ts` é uma supressão
+   cruzada de 24h usada por **14 rotas**, e ela já lê `trial_emails_log`. Se eu
+   tivesse construído "o teto que falta", teria escrito pela segunda vez um
+   módulo de 328 linhas que está no ar desde 27/07.
+2. **"o rollback apaga o claim de um e-mail que saiu"** — o bloco `catch` de
+   `trial-lifecycle-emails` (route.ts:2467-2472) deleta o claim, e ele envolve
+   código que roda DEPOIS do envio. Hipótese bonita e **falsa**: o evento
+   `trial_lifecycle_email_sent` existe no banco para **todos** os envios
+   suspeitos (28/08 16:25:19.40, 03/09 22:25:18.86), ou seja o `try` completou
+   e o `catch` nunca rodou. Derrubei a minha própria hipótese com um SELECT
+   antes de codar em cima dela.
+
+#### O número que doía: DOIS e-mails que se contradizem, com 2 HORAS de intervalo
+
+`email_send_log`, pares para a MESMA pessoa em menos de 24h — **34 em 30
+dias**. Dentro deles, o padrão que não é ruído, três vezes, sempre igual:
+
+| pessoa (8) | `downgraded_loss` | `d0_welcome` | intervalo |
+|---|---|---|---:|
+| 4a384177 | 28/08 16:25Z | 28/08 20:25Z | 4h00 |
+| 73cae8af | 31/08 02:25Z | 31/08 05:25Z | 3h00 |
+| **52749de6** | **03/09 22:25Z** | **04/09 00:25Z** | **2h00** |
+
+O primeiro diz *"veja o que você acabou de perder"*. O segundo, duas horas
+depois, diz *"bem-vindo, seu trial começou"*. É a mesma casa falando com a
+mesma pessoa na mesma madrugada, e o terceiro caso é de **ontem** — ferida,
+não cicatriz. E a supressão de 24h estava **LIGADA** nas três
+(`route.ts:2276`).
+
+#### A causa: o conserto de 11/08 estava certo, e cobrou um preço que ninguém viu
+
+`lib/reverseTrial.ts:1577` APAGA `trial_emails_log(user,'downgraded_loss')`
+quando o trial ressuscita. **Isso é deliberado e continua certo**: sem esse
+DELETE, o e-mail de maior aversão à perda do funil nunca sairia na morte REAL
+da conta (revisão adversarial de 11/08, comentário preservado no arquivo).
+
+O que ninguém notou é que **essa mesma linha era a única memória que a
+supressão tinha do envio**. Apagar o direito de reenviar apagou junto a prova
+de que já se enviou: a supressão passou a ver alguém que recebeu e-mail há 2h
+como quem nunca recebeu nada. Não é bug de quem escreveu o DELETE nem de quem
+escreveu a supressão — é a fronteira entre os dois, e ela só aparece no banco.
+
+**O mesmo buraco pela outra ponta:** `admin/send-hotlead-blast` respeita a
+supressão na ENTRADA (route.ts:231) e não grava carimbo datado na SAÍDA. São
+**15 pares** medidos de blast seguido de e-mail de trial em menos de 24h, o
+mais apertado a **15 MINUTOS** (31/08). Era a "propriedade residual nº 1"
+documentada no topo do módulo desde julho — agora com preço.
+
+#### O que mudou: a supressão ganha uma quarta fonte, e ela é a única que ninguém apaga
+
+`lib/lifecycle/suppression.ts` passa a ler também **`email_send_log`** — o
+ledger de envio, **append-only**, que não pertence a nenhum job e portanto
+sobrevive à ressurreição. Zero migração, zero coluna nova, **leitura pura**.
+
+Dois filtros que **não podem inverter**, e o teste exercita os dois pelo
+comportamento: `ok=true` (recusa do Resend não é envio) e `yielded` (cessão de
+cota do `lib/email/quota.ts` grava a linha do e-mail que a casa DECIDIU não
+mandar — tratar cessão como envio viraria o gate de orçamento em mordaça).
+
+**Tamanho da mudança, medido ANTES de escrever** (30 dias): dos 92 envios
+`growth`, **ZERO** tinham e-mail anterior em 24h — esse lado já estava
+protegido e não muda em um bit. Do lado `revenue`, **~18 de 2.372 (0,8%)**
+passam a ser adiados. Os pares de ~5h do `checkout_recovery` **não** são
+afetados: aquele caller pede janela de 4h, e a janela é aplicada dentro desta
+função, não no caller.
+
+#### Quantas pessoas isso move de N para N+1
+
+**Zero, e é honesto dizer.** Isto não faz ninguém gravar o 2º filme. O que ele
+faz é parar de gastar a paciência de quem já está na lista com duas mensagens
+que se contradizem — e proteger o domínio, que é o canal por onde qualquer
+campanha futura passa. É higiene de retenção, não alavanca de conversão.
+
+#### Testes
+
+`scripts/test-lifecycle-suppression-ledger.mjs` — **29/29 verdes**. Cinco delas
+leem os arquivos REAIS para provar as premissas do conserto (o DELETE da
+ressurreição, o blast sem carimbo, o cron aplicando supressão); as outras
+exercitam a decisão de janela contra os **casos de produção de 28/08, 31/08 e
+04/09**, incluindo a reprodução do defeito (sem a fonte nova, o caso de 04/09
+passa; com ela, é suprimido).
+
+`tsc --noEmit` **exit 0** (integral). Suíte vizinha, 4 arquivos que leem este
+módulo: `checkout-resume-delivery-guard` 17/17, `exit-intent-variant-probe`
+110/110, `trial-downgrade-plan-choice` 39/39, `welcome-offer-frequency` 44/44.
+**Nenhuma falha tolerada.**
+
+#### Limitações — o que este commit NÃO resolve
+
+· `email_send_log` cobre **11 dos ~31 remetentes**. Continua parcial depois
+  daqui. Fonte parcial e append-only só pode AUMENTAR o que se enxerga, nunca
+  diminuir — mas quem ler isto amanhã não deve concluir "agora a supressão vê
+  tudo". Ela não vê.
+· As duas colunas BOOLEANAS (`abandon_emailed`, `free_upsell_emailed`) seguem
+  fora da janela, como documentado desde julho.
+· **A sequência continua estranha para quem ressuscita**: com o conserto, o
+  `d0_welcome` não sai junto — ele é ADIADO. Se a pessoa ressuscita e a
+  supressão adia o "bem-vindo" por até 22h, o bem-vindo chega tarde. Isso é
+  melhor que a contradição, e é **menos** intrusivo do que mexer em
+  `reverseTrial.ts` (que está sob a trava de qualidade do fundador).
+  Registrado, não consertado.
+
+#### Risco e como reverter
+
+Uma função, uma consulta a mais, leitura. Reverter = apagar o bloco
+`KINEO-SUPPRESSION-LEDGER-2026-09-04`. Falha de leitura do ledger cai na mesma
+regra das outras três fontes: **fecha a trava** (suprime o lote, `degraded:true`
+no payload do cron) — perder um e-mail é barato, repetir e-mail queima domínio.
+
+#### Como medir (7 dias)
+
+```sql
+with s as (select user_id, kind, sent_at,
+  lag(sent_at) over (partition by user_id order by sent_at) prev,
+  lag(kind)    over (partition by user_id order by sent_at) prev_kind
+  from email_send_log where ok=true and coalesce(yielded,false)=false)
+select date_trunc('day',sent_at)::date, prev_kind||' -> '||kind,
+  round((extract(epoch from (sent_at-prev))/3600)::numeric,2) horas
+from s where prev is not null and sent_at-prev < interval '24 hours'
+order by sent_at desc;
+```
+
+**Sucesso** = nenhum par `downgraded_loss -> d0_welcome` e nenhum par
+`hotlead_* -> trial_*` abaixo de 24h depois do deploy. Os pares de 4-23h com
+`checkout_recovery` **devem continuar aparecendo** — são a janela curta de
+propósito. Se sumirem, a mudança vazou para onde não devia.
 
 #### Checagem zero (1h) — LIMPA
 
@@ -2449,3 +2600,41 @@ precisa do alcance do ramo medido antes de virar entrega.
 
 **Entrega:** 1 arquivo alterado + 1 teste novo. Zero mudança de preço, plano,
 checkout, oferta ou promessa. Zero linha de motor. Reversível em uma linha.
+| `generation_stage_error` 3h | **0** |
+| `generate_failed` 3h | **0** |
+| `cinematic_zero_scenes_planned` (história) | **0** |
+| filmes concluídos em 3h | 2 |
+| último filme | **05/09 01:10 UTC** |
+| cadastros 24h | **30** |
+
+#### Placar (marco 2026-09-03 16:00 UTC, contas externas, medido 02:11 UTC)
+
+| | | vs #24 |
+|---|---:|---|
+| cadastros | **46** | +1 |
+| pessoas com filme | **31** | +1 |
+| filmes entregues | **39** | +1 |
+| checkout | 4 | = |
+| `checkout_success_viewed` | 0 | = |
+| **`payment_success`** | **0** | = |
+
+**Distribuição:** 26 pararam no 1º · 4 em 2-3 · 1 em 4-7 (era 25/4/1).
+**Ninguém subiu de faixa pela quarta rotação seguida.** As portas de série
+seguem sem denominador — e, obedecendo a #24, **não foram remedidas** nesta
+rotação.
+
+#### Próxima jogada
+
+O degrau 1→2 não se move há 4 rotações e **30 cadastros entraram nas últimas
+24h** — o funil tem gente nova chegando e parando no mesmo lugar. A rotação
+seguinte deveria olhar **o que essas 26 pessoas fizeram DEPOIS do primeiro
+filme dentro do app** (não o e-mail, não a porta de série): quantas voltaram ao
+`/studio`, quantas abriram a `/library`, quantas nunca mais tiveram sessão. Se
+a maioria **nunca voltou**, nenhuma porta na tela de "vídeo pronto" resolve —
+o problema está fora do app, e a conclusão muda a pista inteira. É medição
+barata, não depende de tráfego novo e fecha uma pergunta que três rotações
+contornaram.
+
+#### Pedidos novos
+
+Nenhum. Nada nesta rotação toca arquivo do Codex.
