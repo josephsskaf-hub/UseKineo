@@ -198,3 +198,7 @@ Formato: data · decisão · motivo · consequência prática.
 **Limites preservados.** Comparação visual antes/depois e aprovação por lote, vídeos reais da vitrine mantidos, sem alterações em motores/render, preços, créditos, termos ou promessas. Idioma de interface não altera moeda nem idioma de narração. Mudanças comerciais em arquivos de UX exigem coordenação antes de editar. Não há nova autorização de contatos, gasto ou escrita no banco.
 
 **Registro operacional.** Plano, inventário integral e comunicação ao Claude em `docs/ESCOPO-CODEX-UX-CLAUDE-VENDAS-2026-09-05.md`, `docs/PLANO-UX-NAVEGACAO-EN-ES-2026-09-05.md` e `docs/INVENTARIO-PAGINAS-UX-2026-09-05.md`. Publicar o comunicado no Git não prova recebimento: ACK do Claude permanece pendente até resposta.
+
+### Primeiro bloco de execução — oito horas
+
+**DECISÃO APROVADA, 05/09/2026:** o fundador substituiu a proposta de 45 horas por blocos de oito horas e autorizou o primeiro agora. Janela operacional fixada em 05/09 10:14–18:14 BRT; próximo bloco só com nova autorização. Não há compromisso de finalizar todas as páginas antes dos gates de qualidade e aceite visual. Tentar terminar nas primeiras oito ou dezesseis horas é objetivo, não certificação antecipada nem renovação automática. Controle de uso a cada duas horas; não consumir resets/comprar créditos sem autorização.
