@@ -15075,6 +15075,72 @@ export default function GenerateClient({
                   </p>
                 )}
 
+                {/* sprint-retencao #11 (2026-09-05) — A MESMA PORTA, NO RAMO
+                    ONDE QUASE TODO MUNDO CAI.
+                    O #18 pos a porta do episodio 2 no primeiro viewport, mas
+                    so DENTRO de `{showPostVideoExportChoice && (...)}`. Esta
+                    tela tem DOIS ramos irmaos e mutuamente exclusivos, cada um
+                    com o seu proprio botao de download: o de cima, da caixa de
+                    export limpo, e este. A porta entrou so no primeiro.
+                    MEDIDO (30 dias, externos): 410 pessoas chegaram ao
+                    `video_ready_viewed` e so 44 (10,7%) satisfizeram o gate
+                    (`post_video_currency_resolved`, que roda exatamente sob a
+                    mesma condicao). O rodape alcancou 51 pessoas; o topo, 0.
+                    Ou seja: a peca feita para levar a porta de 12% para 60% de
+                    alcance nascia com teto estrutural de ~11% — e ABAIXO do
+                    rodape que ela vinha corrigir.
+                    REPRODUZIDO em pessoa viva (05/09 01:11 UTC, trial ativo):
+                    `series_continue_seen(done_screen)` disparou e
+                    `done_screen_top` nao, na mesma geracao e com o mesmo
+                    `attempt_id` — o botao de cima nunca montou.
+                    O gate exclui o trial DE PROPOSITO (ver a nota do
+                    KINEO-TRIAL-POSTVIDEO-OFFER logo abaixo) — e quem esta em
+                    trial e exatamente a coorte de 1 filme que a porta existe
+                    para mover.
+                    MESMO `ref`, MESMA `source`: os dois ramos nunca renderizam
+                    juntos, entao o efeito de impressao (que ja procura o botao
+                    por ~10s) passa a acha-lo aqui, e `done_screen_top` continua
+                    significando "primeiro viewport, logo abaixo do download"
+                    no banco — a comparacao topo x rodape segue valida.
+                    DELIVER-FIRST INTACTO: continua DEPOIS do download, com peso
+                    de acao secundaria ate `watermarkedDownloadConfirmed`. */}
+                {!showPostVideoExportChoice && episode2Seed && (
+                  <button
+                    ref={nextEpisodeTopBtnRef}
+                    type="button"
+                    onClick={() => handleContinueSeries(episode2Seed, 'done_screen_top', publicVideoId, episode2Engine)}
+                    className="flex w-full flex-col items-center justify-center rounded-xl px-5 py-3.5 text-center font-black"
+                    style={{
+                      background: watermarkedDownloadConfirmed
+                        ? 'linear-gradient(135deg, #2997ff, #0a6fd8)'
+                        : 'rgba(41,151,255,.10)',
+                      border: watermarkedDownloadConfirmed
+                        ? '1px solid rgba(41,151,255,.6)'
+                        : '1px solid rgba(41,151,255,.40)',
+                      color: watermarkedDownloadConfirmed ? '#fff' : '#5cb3ff',
+                      cursor: 'pointer',
+                      boxShadow: watermarkedDownloadConfirmed
+                        ? '0 8px 24px rgba(41,151,255,.28)'
+                        : '0 6px 18px rgba(41,151,255,.10)',
+                    }}
+                  >
+                    <span style={{ fontSize: '0.92rem' }}>Episode 2 of this story →</span>
+                    <span
+                      style={{
+                        marginTop: 4,
+                        fontSize: '0.7rem',
+                        fontWeight: 650,
+                        color: watermarkedDownloadConfirmed ? 'rgba(255,255,255,.82)' : 'rgba(92,179,255,.78)',
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      {episode2Engine === 'fast'
+                        ? 'Your balance won’t cover the same engine · this one renders on Kineo 1, free on your account, with our watermark'
+                        : 'Same subject, one click · new hook, new facts, new payoff'}
+                    </span>
+                  </button>
+                )}
+
                 {/* ═══════════════════════════════════════════════════════════
                     KINEO-TRIAL-POSTVIDEO-OFFER-2026-08-07 — a única oferta que
                     a coorte em trial vê nesta tela. Ver a nota completa em
