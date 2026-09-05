@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { createClient as createAdminClient, type SupabaseClient } from '@supabase/supabase-js'
 import { freshFetch } from '@/lib/lifecycle/freshFetch'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { loadLifecycleSuppression, HOT_LEAD_SUPPRESSION_HOURS } from '@/lib/lifecycle/suppression'
 import { recordEmailSend, recordResendResponse } from '@/lib/email/quota'
 import { LIFECYCLE_SKIP_STAMP } from '@/lib/lifecycle/skipStamp'
 import { PLANS } from '@/lib/pricing'
+// sprint-assinaturas #3 (05/09) — o piso de crédito que compra UM filme na
+// casa (Kineo 1 = 5cr). Importado, nunca digitado: se o preço do motor mais
+// barato mudar, esta rota muda junto. Ver lib/lifecycle/videoReadyFooter.ts.
+import { NEXT_VIDEO_MIN_CREDITS } from '@/lib/lifecycle/videoReadyFooter'
 
 // send-recovery — Push #425
 //
@@ -111,6 +115,50 @@ const PAID_PLANS = new Set(['starter', 'starter_trial', 'basic', 'basic_trial', 
 // do teto ficam para a execução seguinte (2h depois), na ordem em que estão.
 const RECOVERY_WINDOW_HOURS = 7 * 24
 const MAX_EMAILS_PER_RUN = 25
+
+// ═══════════════════════════════════════════════════════════════════════════
+// sprint-assinaturas #3 (05/09/2026) — O E-MAIL DE LEAD QUENTE TRATAVA
+// "DESISTIU DE PAGAR" E "NUNCA VIU O PRODUTO" COMO A MESMA PESSOA
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// MEDIDO EM PRODUÇÃO (05/09, `checkout_abandoned` das últimas 48h, 15 linhas):
+// SEIS delas — 40% — são de gente com ZERO filme concluído e os 25 créditos do
+// trial INTACTOS. Não são compradores que travaram no cartão: são pessoas que
+// nunca viram o produto funcionar uma única vez.
+//
+// A MECÂNICA, rastreada evento a evento (conta `garrrrrgamel…`, 04/09):
+//   15:16:53.0  auth_callback_completed  destination_path=/api/stripe/checkout
+//   15:16:53.4  trial_credits_granted    25 créditos
+//   15:16:54.5  checkout_attempted       tier=pro
+//   15:16:55.6  checkout_started         videos_ok=0, credits_intact=true
+//   (24h depois) checkout_session_expired, unpaid
+// A vida inteira dessa pessoa dentro da Kineo dura 2,6 SEGUNDOS. Ela clicou um
+// plano deslogada, o callback a empurrou direto para uma página da Stripe de
+// $23,20 e ela nunca soube que tinha acabado de ganhar 25 créditos. Três contas
+// pós-marco entraram por esse caminho: 3 de 3 com 0 filmes, 0 pagamentos e
+// nenhuma volta. É a coorte de MAIOR intenção de compra do funil inteiro —
+// a única que apertou um plano — e converte 0%.
+//
+// O QUE O E-MAIL DIZIA A ELAS. A abertura é "did something get in the way? A
+// payment issue, a question about the plans?" e a primeira bala é "We accept
+// card, Link, Google Pay and Apple Pay". Para quem nunca fez um filme, isso
+// responde uma pergunta que a pessoa não fez. O saldo real aparecia — mas como
+// TERCEIRA bala de quatro, depois do PayPal, e sem um único link para criar.
+//
+// O QUE MUDA. Um segundo ramo, e só para quem a rota PROVA estar nesse caso
+// (0 filmes concluídos E saldo que compra um filme): o e-mail lidera com o que
+// é verdade — o crédito já está na conta, não precisa de cartão — e leva UM
+// link para o primeiro filme. A porta do plano continua no e-mail (regra K1 do
+// ciclo: ninguém precisa de filme para comprar), só deixa de ser a manchete.
+//
+// FALHA ABERTA POR DESENHO: saldo desconhecido, contagem de filmes desconhecida
+// (erro de query) ou qualquer filme concluído = a copy de hoje, byte a byte.
+// Nada de preço, plano, oferta ou promessa nova; nenhum crédito é concedido.
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.usekineo.com'
+/** Assunto histórico deste job. Continua sendo o de TODO mundo que já fez filme. */
+const RECOVERY_SUBJECT = 'Quick question about your Kineo checkout'
+/** utm_campaign do ramo novo — para o placar separar os dois textos. */
+const FIRST_FILM_CAMPAIGN = 'checkout_recovery_first_film'
 
 // ═══ KINEO-RECOVERY-WRONG-PLAN-2026-08-11 — O E-MAIL NOMEAVA UM PLANO QUE NÃO EXISTE ═══
 //
@@ -358,18 +406,106 @@ Just hit reply and tell us what would make Kineo a yes for you. A real person re
 Kineo Team
 usekineo.com`
 
-  // Deliberately plain HTML — it must read like a person, not a campaign.
-  // URLs viram <a> porque clientes de e-mail NÃO auto-linkam texto em HTML —
-  // e o link do PayPal só cumpre a Ordem 2 se for clicável.
+  return { subject: RECOVERY_SUBJECT, text: `${text}${emailFooterText(userId)}`, html: plainHtml(text, userId) }
+}
+
+/**
+ * Deliberately plain HTML — it must read like a person, not a campaign.
+ * URLs viram <a> porque clientes de e-mail NÃO auto-linkam texto em HTML —
+ * e o link do PayPal só cumpre a Ordem 2 se for clicável.
+ *
+ * sprint-assinaturas #3 (05/09) — extraído de `buildEmail` sem uma vírgula de
+ * mudança, para o ramo do primeiro filme herdar exatamente a mesma aparência.
+ */
+function plainHtml(text: string, userId: string): string {
   const linkify = (line: string) =>
     line.replace(/https?:\/\/[^\s]+/g, (u) => `<a href="${u}" style="color:#111;">${u}</a>`)
-  const html =
+  return (
     text
       .split('\n')
       .map((line) => (line.trim() === '' ? '<br/>' : `<p style="margin:0 0 2px;font-family:Arial,sans-serif;font-size:14px;color:#111;line-height:1.55;">${linkify(line)}</p>`))
       .join('') + emailFooterHtml(userId)
+  )
+}
 
-  return { text: `${text}${emailFooterText(userId)}`, html }
+function campaignUrl(path: string): string {
+  return `${APP_URL.replace(/\/+$/, '')}${path}?utm_source=lifecycle&utm_medium=email&utm_campaign=${FIRST_FILM_CAMPAIGN}`
+}
+
+/**
+ * sprint-assinaturas #3 (05/09) — o ramo de quem chegou ao checkout ANTES do
+ * primeiro filme, com o crédito do trial intacto. Ver o bloco no topo.
+ *
+ * Regras que este texto cumpre, e que uma revisão futura não deve afrouxar:
+ *  · não inventa número: `balance` é o saldo lido em `profiles.video_credits`;
+ *  · não promete desconto, cupom nem crédito novo (nada é concedido aqui);
+ *  · não bloqueia a compra — a porta do plano e o PayPal continuam no corpo,
+ *    só deixam de ser a manchete (regra K1 do ciclo de 05/09);
+ *  · a promessa dos 3 minutos é a copy aprovada da casa (CLAUDE.md, modelo do
+ *    pacote de publicação), não uma invenção deste arquivo.
+ */
+function buildFirstFilmEmail(plan: string | null, tier: string | null, userId: string, balance: number) {
+  const n = Math.floor(balance)
+  const credits = `${n} credit${n === 1 ? '' : 's'}`
+  const checkoutPhrase = plan ? `the ${plan} checkout` : 'the checkout'
+  const text = `Hey,
+
+This is the Kineo team.
+
+You got as far as ${checkoutPhrase}, but your account hasn't made a video yet - so you'd be paying for something you have never seen. Let's do that in the right order.
+
+You already have ${credits} in your account, and that is enough for your first film. No card needed:
+
+${campaignUrl('/studio/create')}
+
+It takes about 3 minutes: you type an idea, Kineo directs it, narrates it and edits a vertical Short, and the MP4 is yours to download.
+
+If you would rather just finish what you started, the plan is still waiting:
+
+- ${campaignUrl('/pricing')}
+- Card didn't go through? You can pay with PayPal instead: ${paypalLink((tier ?? '').trim().toLowerCase())}
+
+Either way, hit reply and tell us what you were hoping Kineo would do for you. A real person reads and answers every message.
+
+Kineo Team
+usekineo.com`
+
+  return {
+    subject: `Your ${credits} are still here - make the film first`,
+    text: `${text}${emailFooterText(userId)}`,
+    html: plainHtml(text, userId),
+  }
+}
+
+/**
+ * sprint-assinaturas #3 (05/09) — quantos filmes CONCLUÍDOS a pessoa tem.
+ *
+ * Contagem exata por pessoa, com `head`, em vez de um `.in(...)` sobre a coorte
+ * inteira: o truncamento silencioso de 1000 linhas do PostgREST (a dívida nº 3
+ * da auditoria de 28/08) derruba linhas, e derrubar linha aqui transformaria
+ * "tem filme" em "não tem filme" — exatamente a direção que mandaria a copy
+ * errada. Erro de query devolve `null` (desconhecido), e desconhecido cai na
+ * copy de hoje.
+ */
+async function completedFilmCount(
+  admin: SupabaseClient,
+  userId: string,
+): Promise<number | null> {
+  try {
+    const { count, error } = await admin
+      .from('videos')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('status', 'completed')
+    if (error) {
+      console.error(`[send-recovery] film count error for ${userId}:`, error.message)
+      return null
+    }
+    return typeof count === 'number' && Number.isFinite(count) ? count : null
+  } catch (err) {
+    console.error(`[send-recovery] film count threw for ${userId}:`, err)
+    return null
+  }
 }
 
 export async function GET(req: NextRequest) {
@@ -474,6 +610,10 @@ export async function GET(req: NextRequest) {
   let sent = 0
   let skipped = 0
   let suppressed = 0
+  // sprint-assinaturas #3 (05/09) — quantos dos enviados foram pelo ramo do
+  // PRIMEIRO FILME. Sem este contador, a unica prova do ramo seria o log da
+  // Vercel, que expira; o payload do cron e o que o placar consegue ler.
+  let sentFirstFilm = 0
   // Linhas elegíveis que ficaram para a próxima execução por causa do teto —
   // reportado para que "sent" menor que "total" nunca precise ser adivinhado.
   let deferredByCap = 0
@@ -526,7 +666,17 @@ export async function GET(req: NextRequest) {
     const rawBalance = (prof as { video_credits?: number | null } | undefined)?.video_credits
     const balance =
       typeof rawBalance === 'number' && Number.isFinite(rawBalance) ? Math.max(0, rawBalance) : null
-    const { text, html } = buildEmail(planName, cand.tier, userId, balance)
+
+    // sprint-assinaturas #3 (05/09) — só perguntamos "tem filme?" quando a
+    // resposta pode MUDAR o e-mail, isto é, quando o saldo já compra um filme.
+    // Sem saldo conhecido que cubra o Kineo 1, o ramo novo não se aplica e a
+    // consulta seria um round-trip gasto no caminho quente.
+    const canAffordFilm = balance !== null && balance >= NEXT_VIDEO_MIN_CREDITS
+    const films = canAffordFilm ? await completedFilmCount(admin, userId) : null
+    const firstFilmBranch = canAffordFilm && films === 0
+    const { subject, text, html } = firstFilmBranch
+      ? buildFirstFilmEmail(planName, cand.tier, userId, balance as number)
+      : buildEmail(planName, cand.tier, userId, balance)
 
     try {
       const res = await fetch('https://api.resend.com/emails', {
@@ -539,7 +689,7 @@ export async function GET(req: NextRequest) {
           from: FROM_EMAIL,
           to: [email],
           reply_to: 'hello@usekineo.com',
-          subject: 'Quick question about your Kineo checkout',
+          subject,
           text,
           html,
           headers: unsubscribeHeaders(userId),
@@ -566,6 +716,7 @@ export async function GET(req: NextRequest) {
 
       if (res.ok) {
         sent++
+        if (firstFilmBranch) sentFirstFilm++
         await admin
           .from('checkout_abandoned')
           .update({ recovery_sent_at: new Date().toISOString() })
@@ -575,7 +726,7 @@ export async function GET(req: NextRequest) {
         // um rótulo inventado, senão o log vira a próxima fonte de verdade
         // errada sobre qual plano a pessoa tentou comprar.
         console.log(
-          `[send-recovery] sent to ${email} (tier=${cand.tier ?? 'null'} plan=${planName ?? 'no-plan-named'} credits=${balance ?? 'unknown'})`,
+          `[send-recovery] sent to ${email} (tier=${cand.tier ?? 'null'} plan=${planName ?? 'no-plan-named'} credits=${balance ?? 'unknown'} films=${films ?? 'unknown'} branch=${firstFilmBranch ? 'first_film' : 'checkout'})`,
         )
       } else {
         console.error(`[send-recovery] resend failed for ${email}:`, await res.text())
@@ -604,6 +755,7 @@ export async function GET(req: NextRequest) {
     total: byUser.size,
     suppressed_recent_lifecycle: suppressed,
     suppression_degraded: suppression.degraded,
+    sent_first_film: sentFirstFilm,
     // KINEO-RECOVERY-STARVATION-2026-08-13 — os dois campos que tornam a
     // inanição VISÍVEL na próxima vez. `suppressed` já existia e não bastava:
     // ele conta quem foi calado NESTA execução, sem dizer com que janela nem
