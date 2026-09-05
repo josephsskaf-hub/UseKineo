@@ -1673,3 +1673,141 @@ git diff --stat origin/main entrega-atual   # remocao em arquivo alheio = PARE
 `amend` + `enfileirar` **não** é uma operação idempotente: o script rebasa, não
 substitui. Quem precisar corrigir um commit já enfileirado deve **reconstruir
 sobre a ponta atual**, nunca amendar e re-enfileirar.
+### #8 (global #24) — 20:10→21:10 BRT — O PILOTO DE VENDA ASSISTIDA IA CAIR EM CIMA DO CICLO AUTOMATICO PARA 19 DAS 27 PESSOAS — E A "FONTE DE CONSENTIMENTO" QUE O CODEX PEDIU NAO EXISTE
+
+Rodada de **medicao e desbloqueio de pista**, obedecendo o "proximo item" da #23
+("continuar sem construir, por mais uma rotacao"). **Zero linha de producao.**
+Duas coisas entregues: a checagem que a #23 deixou marcada, e a resposta ao
+unico pedido do Codex que estava **bloqueando trabalho dele**.
+
+#### Anti-repeticao — e desta vez ela me impediu de reescrever um conserto de 3h atras
+
+```sh
+git fetch origin && git log --oneline origin/main -25   # refetch ANTES de codar (licao da #23)
+git log --oneline origin/main..entrega-atual            # -> VAZIO, fila limpa
+```
+
+Achei no banco o que **parecia** um defeito novo e caro: `archiveunknownmedia`
+levou **6 bloqueios** de "Two AI attempts were just refunded" entre 20:28 e
+20:56 UTC — o guarda anti-abuso trancando por 15 min exatamente quem tinha
+acabado de ser vitima do **nosso** despacho vazio. Fui ler o codigo para
+consertar e o conserto **ja estava la**, com o comentario
+`sprint-retencao #20` em `app/api/generate-video-cinematic/route.ts:2040-2050`:
+o filtro casa `provider_*_refunded` **de proposito** e `empty_plan_rejected_
+refunded` nao conta mais. Os 6 bloqueios sao de **20:28-20:56 UTC**, o deploy
+do conserto entrou **21:44 UTC** — sao cicatriz, nao ferida. **Seria a quinta
+sessao no mesmo defeito.** Registro porque o padrao ja se repetiu quatro vezes
+hoje: neste repo, ler o codigo antes de escrever vale mais que ler o log.
+
+#### O pedido do Codex (18:18 BRT, CAIXA R2) — respondido com dado, e a resposta e "nao"
+
+Ele propos um piloto de venda assistida para 27 pessoas e pediu tres coisas
+antes de qualquer contato. As tres foram medidas (SELECT 00:05 UTC):
+
+| o que ele pediu | o que existe em producao |
+|---|---|
+| fonte canonica de **consentimento afirmativo** | **NAO EXISTE.** 12 colunas de e-mail em `profiles`, todas de supressao ou carimbo. Nenhuma coluna de aceite em nenhuma tabela. O cadastro nao captura aceite. |
+| cobertura de **envios** | **PARCIAL.** `email_send_log` = 2.543 linhas, mas so desde **17/08** e so **11 `kind`**, contra **31 rotas de envio**. Nao serve de prova de "nunca contatado". |
+| cobertura de **bounces/reclamacoes** | **CEGUEIRA TOTAL.** Nao ha webhook de e-mail no repo (so Stripe/PayPal/MP/Hotmart). `ok=true` = "a API aceitou", nunca entrega. |
+
+**E o gate dele proprio reprova.** O criterio que o Codex escreveu era **"zero
+colisoes"**. Reproduzi a coorte exatamente — 27 pessoas com `checkout_started`
+em 7d sem `payment_success` de webhook — e:
+
+| | |
+|---|---:|
+| coorte | **27** |
+| opt-outs dentro dela | 0 |
+| com filme concluido | 14 |
+| receberam e-mail em 7d | 25 |
+| **receberam e-mail nas ultimas 48h** | **19 (70%)** |
+| sem nenhum registro de envio | 2 |
+
+O piloto disparado hoje bateria **em cima do ciclo automatico de trial** para
+**7 de cada 10 pessoas**. Pelo criterio dele, e pela regra do ciclo ("se a
+fonte nao existir ou nao cobrir o publico, declarar pendente e preservar o
+bloqueio"): **PENDENTE, bloqueio de pe.** Resposta completa nos PEDIDOS.
+
+#### Uma correcao que eu tive de fazer em mim mesmo antes de publicar
+
+Cheguei a ler **91 `ok=false`** no `email_send_log` como falha de entrega — e
+`hotlead_watermark` com **53% de falha** seria um incendio. **Nao e.** Todos
+tem `http_status` NULL e `detail` no formato `yield NN/100 (limite 60)`: e
+**cessao por contrapressao** (coluna `yielded`), nao recusa. **Falhas HTTP
+reais de envio: zero.** Anoto porque um numero desses no diario viraria
+prioridade falsa da proxima rotacao.
+
+#### Checagem zero (1h) — LIMPA, e o motor esta entregando
+
+| | |
+|---|---:|
+| render preso > 3h | **0** |
+| despacho vazio **depois** do deploy de 21:44 UTC | **0** |
+| `cinematic_zero_scenes_planned` (toda a historia) | **0** |
+| ultimo filme concluido | **23:58 UTC** (uma pessoa nova, 1o filme) |
+| cadastro sem credito 24h | 5 — todos com saldo **gasto em uso**, nenhum orfao |
+
+Todas as 22 `generation_stage_error` e 11 `generate_failed` das ultimas 3h sao
+das **duas vitimas ja documentadas na #23** (`archiveunknownmedia` 20:27-20:42,
+`nikitaamiran` 21:41-21:42), **nenhuma depois de 21:44 UTC**.
+
+**A prova que a #23 pediu continua faltando, e nao e defeito:** o
+`cinematic_zero_scenes_planned` tem **0 eventos em toda a historia** porque
+**nenhum despacho vazio ocorreu desde o deploy**. Isso e o conserto
+funcionando ou a ausencia de trafego — com 1 filme em 3h, **nao da para
+distinguir**, e nao vou fingir que da. A raiz, alias, foi fechada em paralelo
+as 19:14 (`c40e3782`): `cleanNarration` apagava tudo entre colchetes, e roteiro
+de ChatGPT com toda a fala em `[...]` virava narracao vazia.
+
+#### Placar (marco 2026-09-03 16:00 UTC, contas externas, medido 00:05 UTC)
+
+| | | vs #23 |
+|---|---:|---|
+| cadastros | **45** | +1 |
+| pessoas com filme | **30** | +1 |
+| filmes entregues | **38** | +1 |
+| checkout | 4 | = |
+| `checkout_success_viewed` | **0** | = |
+| **`payment_success`** | **0** | = |
+
+**Distribuicao:** 25 pararam no 1o · 4 em 2-3 · 1 em 4-7. Era 24/4/1 na #23.
+**A pessoa nova parou no primeiro, e de novo ninguem subiu de faixa.** O degrau
+1->2 nao se move ha tres rotacoes.
+
+#### As portas de serie: ainda SEM DENOMINADOR
+
+Desde 17:49 UTC: **2** pessoas chegaram a `video_ready_viewed`; `done_screen`,
+`done_screen_top` e `composer_empty` seguem em **0 exposicoes** e **0 cliques**.
+Na #23 tambem eram 2 chegadas. **Sete horas depois do deploy, o denominador nao
+cresceu um.** Continua **INCONCLUSIVO** — e a leitura correta nao e "a porta
+falhou", e "ninguem passou pela porta". O fio da #23 (a guarda
+`if (!episode2Seed) return` em `GenerateClient.tsx:10619`) segue **suspeita sem
+amostra**, nao diagnostico.
+
+#### Limitacoes desta rodada
+
+Nada foi provado sobre **eficacia** de nada. 45 cadastros e 38 filmes em 32h
+nao sustentam nenhuma afirmacao de conversao, e **0 pagamentos** com esse n e
+**esperado**, nao sinal. A resposta ao Codex e sobre **o que existe no banco**,
+nao sobre se o piloto dele venderia.
+
+#### Proxima jogada
+
+**Parar de medir as portas por uma rotacao.** Sete horas, dois visitantes: o
+denominador nao cresce porque **quase ninguem termina um filme hoje**, e
+remedir de hora em hora so gasta rotacao. A rotacao seguinte deveria pegar a
+**unica coisa acionavel que apareceu hoje e nao depende de trafego**: os
+**19 de 27** que levam e-mail do ciclo automatico em 48h. Antes de qualquer
+campanha nova — do Codex ou minha — vale medir **quantos e-mails a mesma
+pessoa recebe por semana** e se existe um teto. Uma pessoa que recebe 4
+mensagens automaticas em 7 dias nao precisa de uma 5a assistida; precisa que as
+4 parem de se atropelar. Isso e retencao, e cabe inteiro na minha pista.
+
+#### Pedidos novos
+
+Dois, ambos nos PEDIDOS: a **resposta ao Codex** (bloqueio preservado, com os
+numeros) e uma **decisao de politica para o fundador** (webhook de bounce do
+Resend + aceite no cadastro + destino da `send-india-price`, a unica das 31
+rotas sem guarda de opt-out — manual e nunca disparada, mas armada).
+
+**Entrega:** 2 arquivos de documentacao. Zero codigo de producao. Zero risco.
