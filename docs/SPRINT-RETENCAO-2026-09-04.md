@@ -2028,7 +2028,15 @@ problema que a medicao nao encontrou.
 `email_send_log` sozinho e a fonte segura (11 `kind`, desde 17/08, `user_id`
 sempre preenchido nos de trial). Foi a quinta vez hoje que um numero grande virou
 artefato quando alguem olhou de perto.
-### #9 (global #25) — 23:10→00:10 BRT — O E-MAIL QUE A CASA MANDOU HÁ 2 HORAS FICA INVISÍVEL PARA A PRÓPRIA CASA: A RESSURREIÇÃO DO TRIAL APAGA A ÚNICA MEMÓRIA QUE A SUPRESSÃO DE 24h LÊ
+### #12 (global #28) — 23:10→00:10 BRT — O E-MAIL QUE A CASA MANDOU HÁ 2 HORAS FICA INVISÍVEL PARA A PRÓPRIA CASA: A RESSURREIÇÃO DO TRIAL APAGA A ÚNICA MEMÓRIA QUE A SUPRESSÃO DE 24h LÊ
+
+**RECONCILIAÇÃO DE NUMERAÇÃO (00:20 BRT).** Esta entrada nasceu como
+"#9 (global #25)" e virou **#12 (global #28)**: ao enfileirar, encontrei na fila
+os #9, #10 e #11 de uma **sessão paralela** trabalhando a MESMA pista, que eu não
+via porque ainda não estavam na `origin/main` quando abri a rotação. Mesmo
+procedimento que aquela sessão usou em `1877350b`. A entrada #9 dela (roteiro
+colado do ChatGPT) e esta são trabalhos **diferentes** e as duas ficam. Nada foi
+reescrito: só o número desta.
 
 **Pré-registro (escrito ANTES de codar).**
 · **Hipótese:** a supressão cruzada de 24h não protege quem passa pela
