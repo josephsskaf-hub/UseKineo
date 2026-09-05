@@ -1106,3 +1106,115 @@ Por fim, o alarme automático acusou uma coisa que precisa de atenção:
 cadastro de e-mail e nenhuma passou pelo ponto do servidor que dá o trial. É o
 mesmo defeito de 28/08 reaparecendo por outra porta — e quem nasce sem crédito
 não consegue fazer nem o primeiro filme. É a próxima rotação.
+---
+
+## checkpoint da #4 — 14:00→14:50 BRT — o alarme que ia comer a próxima rotação já estava consertado havia 27 horas
+
+### 1. O que eu ia fazer, e por que não fiz
+
+O fechamento da #4 apontou a próxima rotação com endereço: **4 contas de 04/09
+nasceram com `video_credits = 0` e `trial_status = null`**, todas com
+`email_signup_completed` e **sem** `auth_callback_completed`, e a leitura era
+"o cadastro por e-mail escapa da concessão do trial — é o mesmo defeito de
+28/08 por outra porta". Degrau zero do funil: quem nasce sem crédito não faz um
+filme, não chega a checkout nenhum.
+
+Cheguei a construir a rede: `app/api/cron/trial-repair`, de hora em hora,
+delegando a concessão à função viva, desarmada por env, com guardião de 37
+verificações e 6 mutantes. **Apaguei tudo antes de commitar.** O anti-repetição
+achou o conserto já pronto na main:
+
+`292eaba4` — *"sprint-assinaturas #9: o cadastro por E-MAIL E SENHA nascia sem
+os 25 creditos"*, de **04/09 às 10:08 BRT (13:08 UTC)**. Ele põe
+`maybeActivateReverseTrial()` dentro de `app/api/auth/activation-completed/route.ts`
+— a rota de servidor que o cadastro por senha atravessa, espelho exato do
+callback do OAuth — com `await`, fingerprint dos headers e o desfecho gravado no
+próprio `email_signup_completed`. E o guardião `scripts/test-trial-grant-orfao.mjs`
+**já cobre essa porta**: rodei agora, **25 passaram, 0 falharam**, com um bloco
+inteiro ("1b) O cadastro por E-MAIL E SENHA tambem concede") escrito para ela.
+
+### 2. A prova de que está consertado EM PRODUÇÃO, com corte no deploy
+
+`email_signup_completed`, 10 dias, cortado no commit:
+
+| fase | cadastros por e-mail | sem o campo `trial_activated` | concedeu ALI | já tinha |
+|---|---|---|---|---|
+| antes de `292eaba4` | 39 | **39** | 0 | 0 |
+| depois | 3 | 0 | **2** | 1 (`lost_race`) |
+
+Ou seja: dos 3 cadastros por senha depois do deploy, **2 receberam os 25
+créditos nesta rota** — sem ela dependeriam do `fetch` do navegador, que é
+exatamente o que falhou nas 4 vítimas — e 1 chegou com o crédito já dado (o
+cliente ganhou a corrida; caso saudável).
+
+E o desfecho no banco, por dia (359 cadastros externos em 14 dias):
+
+`22/08` 0 · `23/08` 1 · `26/08` 1 · `01/09` 1 · **`04/09` 4** · **`05/09` 0 em 18**.
+
+**As 4 são de 04/09 04:58 e 11:03–11:09 UTC — todas ANTERIORES ao commit das
+13:08 UTC.** Não é uma sangria aberta; é uma poça que a janela móvel de 24h/14d
+continuava mostrando como se fosse de agora.
+
+### 3. Por que a checagem zero errou, e o que fazer para não errar de novo
+
+É a terceira vez neste ciclo que a mesma armadilha morde (a #4 já tinha
+derrubado os "11 despachos vazios em 24h" pelo mesmo motivo): **a checagem zero
+não tem corte no deploy do conserto.** Uma janela móvel sobre uma rajada velha
+lê defeito morto como defeito vivo, e a regra "checagem zero que acusa vira a
+próxima rotação" transforma isso em uma rotação inteira gasta.
+
+Regra para as próximas rotações, e ela é de uma linha:
+**antes de escalar qualquer item da checagem zero, procure o commit que
+endereça o sintoma (`git log --oneline -- <arquivo provável>`) e recorte a
+medição no horário dele.** Se todas as ocorrências forem anteriores, o item é
+histórico — anote e siga.
+
+Consulta com o corte, para copiar:
+`... and created_at > '2026-09-04 13:08:00+00'` sobre a coorte de
+`trial_status is null and video_credits = 0`. Hoje: **0**.
+
+### 4. O que eu NÃO entreguei, e por que isso é a resposta certa
+
+Não subiu cron novo. A causa está fechada na porta certa (uma rota de servidor
+que a pessoa atravessa obrigatoriamente), e a rede que eu tinha escrito seria
+uma **segunda cópia da regra de trial** — o par de bugs de 05/08 e 07/08 deste
+projeto nasceu exatamente assim. Superfície nova para um defeito medido em
+0 de 18 no dia seguinte ao conserto é custo sem receita.
+
+### 5. Correção de um fato herdado que ainda está errado no CLAUDE.md
+
+O CLAUDE.md diz que o grant mora em `app/auth/callback/route.ts`, "o único
+ponto servidor que TODA conta nova cruza". Isso é verdade **só para OAuth e
+link mágico**. Hoje a concessão tem QUATRO portas: callback (OAuth),
+`activation-completed` (e-mail+senha, desde 04/09), `track-signup-source`
+(fetch do cliente) e a visita a `/studio/create`. Quem for investigar "conta
+sem crédito" precisa saber disso — eu perdi tempo lendo a versão do arquivo na
+**main local suja** (727a869, reprovada e obsoleta), onde o callback ainda não
+concede. Ler arquivo pelo `C:\kineo` sem conferir contra `origin/main` é
+armadilha ativa.
+
+### 6. Placar (marco 03/09 16:00 UTC, externos)
+
+cadastro **64** → filme 1 **40** → filme 2 **12** → filme 3 **4** →
+checkout **3** → **pagou 0**. Uma linha a mais que o fechamento da #4, resto
+idêntico — **a fila continua inteira fora de produção**.
+
+### 7. Checagem zero (com os cortes certos)
+
+`cadastro sem crédito` pós-`292eaba4`: **0** · `render preso`: **0** ·
+`next_episode_failed` pós-`2ca9a06c` (corte 13:25 UTC de 05/09): **0** ·
+`trial_blocked_fingerprint` em 10 dias: **5, todas de 30-31/08** (guarda
+anti-abuso, não defeito). **Nada acusa.**
+
+### PRÓXIMA JOGADA (para a rotação que abrir em seguida)
+
+**J2 do cardápio, sem desvio.** O alarme que desviaria a rotação está morto, e o
+número que continua doendo é o mesmo: das pessoas que fazem UM filme, a maioria
+não volta, e o e-mail de filme pronto é o único canal de volta. J2 = o e-mail
+levar o **Episódio 2 já escrito** (título + link de 1 clique via
+`seriesContinuation`), não um convite genérico. É servidor inteiro
+(`lib/lifecycle/*`, `app/api/cron/send-video-ready`), é a peça mais eficiente do
+produto, e o #1 já preparou o terreno (`credits_source`, o ramo de saldo
+desconhecido). **Atenção ao construir:** `lib/lifecycle/videoReadyFooter.ts` foi
+tocado pelo #1, que está NA FILA — a worktree tem de nascer de `origin/main` e o
+`enfileirar.sh` rebasa por cima; conferir o arquivo depois do rebase.
