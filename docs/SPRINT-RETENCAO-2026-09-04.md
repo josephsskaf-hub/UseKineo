@@ -3315,3 +3315,174 @@ indefinidamente, e a próxima rotação leria "nenhuma impressão nova" e
 concluiria que o `IntersectionObserver` não dispara — quando a causa real seria
 que **o código nunca chegou ao ar**. Um conserto de infraestrutura evitou uma
 conclusão errada de produto.
+
+---
+
+### FECHAMENTO DO CICLO DE 10 HORAS — 05/09 01:38→02:40 BRT (rotação 10/10, global #32)
+
+Última rotação, reservada para fechamento seguro conforme o programa. **Zero
+linha de produção nova.** O ciclo combinado 04/09 16:40 → 05/09 02:40 termina
+aqui, sem renovação automática.
+
+#### O NÚMERO QUE FECHA O CICLO: 16 ENTREGAS PRONTAS, 0 EM PRODUÇÃO
+
+O ciclo produziu **16 entregas** e **nenhuma chegou ao cliente**. Não por
+defeito de código: por defeito do **publicador**. O `!RODAR-AGORA v9` lia
+*cherry-pick vazio* como CONFLITO REAL, imprimia uma lista de arquivos **em
+branco** e mandava parar. Quem clicasse via a fila inteira falhar sem um único
+arquivo nomeado.
+
+A rotação anterior (checkpoint da #15, 01:17 BRT) diagnosticou e corrigiu isso
+no `v10`. **Esta rotação re-provou o conserto de forma independente, contra a
+ponta real de agora**, porque uma prova de 20 minutos atrás não vale se a main
+tiver andado no meio:
+
+```sh
+origin/main = 67b15c30 (04/09 21:16 BRT — NÃO andou desde a prova)
+git rebase origin/main   # sobre a fila, em clone descartável
+# EXIT=0 · "Successfully rebased" · 16 de 16 aplicados · ZERO conflito
+# 1 commit pulado: a5f5b9e4 "previously applied commit"
+```
+
+O commit pulado é **exatamente** o pick vazio que derrubava o v9 — a causa
+reproduzida em cima da árvore de hoje, não em laboratório. **A fila está sã e o
+publicador está consertado. O que falta é o clique.**
+
+#### Placar final do ciclo (SQL canônico §5, marco 2026-09-03 16:00 UTC, contas externas, medido 04:41 UTC)
+
+| | fim do ciclo | na #24 (21:10 BRT) |
+|---|---:|---:|
+| cadastros | **48** | 45 |
+| pessoas com filme | **32** | 30 |
+| filmes entregues | **40** | 38 |
+| checkout COM filme (desejo) | 2 | 2 |
+| checkout SEM filme (defeito) | 2 | 2 |
+| `checkout_success_viewed` | **0** | 0 |
+| **`payment_success` (servidor)** | **0** | 0 |
+
+**Distribuição:** 27 pararam no 1º filme · 4 em 2–3 · 1 em 4–7 · 0 em 8+.
+Era 25/4/1 na #24.
+
+**O degrau 1→2 não se moveu em nenhuma das 10 rotações.** As 3 pessoas novas do
+período pararam no primeiro filme. Isso **não** reprova as portas de série
+entregues no ciclo, por um motivo simples e verificável: **elas nunca foram ao
+ar** (ver acima). Medir eficácia de código que está numa fila é impossível, e
+qualquer leitura de "não funcionou" aqui seria falsa.
+
+#### Checagem zero — LIMPA
+
+| | |
+|---|---:|
+| render preso > 3h | **0** |
+| `generation_stage_error` (3h) | **0** |
+| `cinematic_zero_scenes_planned` (toda a história) | **0** |
+| último filme concluído | **04:30 UTC** (11 min antes da medição) |
+| cadastros com 0 crédito em 24h | 4 — nenhum novo |
+
+O motor está entregando **agora**. Nenhuma causa antiga voltou.
+
+#### O único cliente ferido do ciclo, e ele NÃO é bot
+
+Os 4 cadastros com 0 crédito são os mesmos já documentados, e **nenhum é novo**
+— o mais recente é de 04/09 11:09 UTC, **17h atrás**. Todos os 4 entraram por
+**e-mail e senha**; todos os cadastros por OAuth do período receberam crédito.
+
+Mas a leitura anterior — "os 4 são cadastro automatizado, não gente" — **está
+errada para um deles**, e o erro importa:
+
+| pessoa | eventos | comportamento |
+|---|---:|---|
+| `68e953e36e` · `e353e98a1c` · `86af05fc5b` | 4 cada | 3 contas em **6 minutos**, e-mail descartável, nunca voltaram → padrão de bot |
+| **`ed3ae43179`** | **11** | cadastrou 04:58 UTC, **voltou sozinha 5h34 depois** (10:33) |
+
+`ed3ae43179` é **gente**. E as duas visitas terminaram no mesmo lugar:
+`topup_eligibility_handoff_viewed` — a tela que pede **compra de crédito**.
+Como o `trial_credits_granted` nunca disparou para ela, o produto recebeu uma
+pessoa que voltou por vontade própria e **ofereceu a ela uma cobrança em vez
+dos 25 créditos grátis que o cadastro prometeu**. Zero filmes.
+
+**Não concedi o crédito.** A regra desta rodada autônoma é que ação de escrita
+só acontece se a tarefa pedir aquela ação específica, e não pede. Fica como
+item de um clique para o fundador — 25 créditos, motivo "trial órfão de
+cadastro por e-mail, 04/09 04:58 UTC", em `/admin/people`. A correção da
+leitura fica registrada porque "os 4 são bots" arquivaria uma pessoa real.
+
+**Importante para não virar caça-fantasma:** os grants por e-mail **não** estão
+uniformemente quebrados — 10:09, 10:35 e 12:05 UTC receberam crédito
+normalmente, intercalados com as falhas. A janela sem grant é 04:58–11:09, e
+não houve mais nenhum cadastro por e-mail desde 12:05 UTC para provar que a
+porta está sã hoje. **Não afirmo que está consertada nem que está quebrada** —
+a amostra não decide.
+
+#### Uma coisa da fila que o Codex precisa ver antes de ela subir
+
+A entrega `c1cc524e` (#9) editou **`lib/growth/instructionPasteNotice.ts`**
+(+94/−6) — arquivo **criado pelo Codex** (`679e9935 feat(growth): guide
+preserved ChatGPT scripts`), e `lib/growth/**` é pista dele.
+
+Não foi edição silenciosa: a mesma entrega **declarou o pedido** no
+`PEDIDOS-ENTRE-PISTAS` e disse o que tinha mexido. O conteúdo é **correção de
+copy** (o aviso detectava "isto é uma instrução" e respondia "seu roteiro está
+aqui" — afirmava o contrário do próprio gatilho), com versão `v1→v2` e teste.
+Não muda destino de botão, duração nem modo.
+
+Registro assim mesmo porque a regra do ciclo é "mudança fora da pista vira
+PEDIDO, nunca edição": aqui virou pedido **e** edição. Não desfaço a 40 min do
+fim — reverter às cegas arrisca a fila inteira por um ganho de etiqueta. Fica
+como **o primeiro item de reconciliação** do próximo ciclo.
+
+#### O que este ciclo entregou (16 commits, prontos, fora do ar)
+
+Produção: `GenerateClient.tsx` (+167), `HistoryClient.tsx`, `LibraryClient.tsx`,
+`StudioClient.tsx`, `ActiveRenderPill.tsx`, `lib/pastedDirectives.ts` (novo),
+`lib/seriesDoorImpressions.ts` (novo), `lib/lifecycle/suppression.ts`,
+`lib/growth/instructionPasteNotice.ts`. Testes: 7 baterias novas ou endurecidas.
+Infra: `!RODAR-AGORA v10` + `SUBIR-SITE.bat` **versionados pela primeira vez**
+(viviam só no disco do fundador) e `.gitattributes` com `*.bat -text` para o
+CRLF não morrer.
+
+Os fios grossos: a coorte que cola a **ordem dada ao ChatGPT** pedia 2–4 min em
+16:9 e recebia 35s em 9:16 sem aviso; a porta do episódio 2 morava num ramo que
+**exclui o trial** — justamente a coorte de 1 filme — e alcançava 0 de 410; a
+casa tinha **11 portas** para o episódio 2 e sabia contar a aparição de **2**,
+o que tornava toda taxa de conversão da peça mais eficiente do produto
+**matematicamente impossível**; e o ledger de supressão de e-mail não obrigava
+5 crons armados.
+
+#### Limitações honestas deste fechamento
+
+Nada foi provado sobre **conversão**. 48 cadastros e 40 filmes em 36h não
+sustentam afirmação comercial nenhuma, e **0 pagamentos com esse n é esperado,
+não é sinal**. As portas de série seguem **INCONCLUSIVAS** e agora por um
+motivo pior que falta de tráfego: **não foram publicadas**. O ciclo não pode
+reivindicar nenhum resultado de retenção — só entregas prontas e uma causa de
+infraestrutura removida.
+
+#### Pendências abertas ao fim do ciclo
+
+1. **A fila não subiu** — 16 entregas, um clique.
+2. **`ed3ae43179`** sem os 25 créditos prometidos.
+3. **Reconciliar `lib/growth/instructionPasteNotice.ts`** com o Codex.
+4. **Pedido do Codex ainda aberto** (K4/segundo download no `/history`): expor
+   sinal owner-scoped de "segundo download confirmado" — 13 dos 67 segundos
+   downloads acontecem no `/history`, onde não há oferta.
+5. **Decisão de política do fundador** (da #24, sem resposta): webhook de
+   bounce do Resend, aceite no cadastro, destino da `send-india-price`.
+6. **Piloto de venda assistida do Codex: bloqueio DE PÉ** — a fonte de
+   consentimento afirmativo não existe, e 19 das 27 pessoas levariam e-mail
+   assistido em cima do ciclo automático.
+
+#### PRÓXIMA JOGADA (para quando o ciclo recomeçar)
+
+**Não construir mais nada antes de publicar.** O ciclo tem 16 entregas paradas
+e zero medição possível sobre elas; qualquer entrega nova aumenta o estoque sem
+aumentar o aprendizado. A primeira rotação do próximo ciclo deve ser: fila no
+ar → esperar tráfego → medir as portas de série com **denominador real**, que
+agora existe (`lib/seriesDoorImpressions.ts` conta as 11 portas, não 2).
+
+E a jogada não-óbvia que os dados deste ciclo entregaram de graça: a coorte que
+chega pelo **ChatGPT colando a ordem que deu ao chatbot** faz segundo filme em
+**8,7%**, contra **27,5%** de quem começa do zero. É a pior coorte de retenção
+da casa e uma das maiores de aquisição. Ela não precisa de mais uma porta de
+episódio 2 — precisa que o **primeiro** filme dela saia no formato que ela
+pediu. Isso é retenção que começa antes do primeiro render.
