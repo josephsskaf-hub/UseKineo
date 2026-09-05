@@ -27,8 +27,14 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const ROUTE_PATH = join(ROOT, 'app', 'api', 'cron', 'send-recovery', 'route.ts')
 const FOOTER_PATH = join(ROOT, 'lib', 'lifecycle', 'videoReadyFooter.ts')
 
-const route = readFileSync(ROUTE_PATH, 'utf8')
-const footer = readFileSync(FOOTER_PATH, 'utf8')
+/** Normaliza CRLF -> LF na LEITURA: sem isto o guardiao fica VERMELHO em
+ *  checkout limpo no Windows (autocrlf=true) nas duas verificacoes que casam
+ *  DUAS linhas seguidas — e vermelho que nao e do codigo ensina todo mundo a
+ *  ignorar o guardiao. Provado na ponta da fila: 8.4 e 9.2 reprovavam com o
+ *  codigo byte a byte correto. */
+const lf = (raw) => raw.replace(new RegExp(String.fromCharCode(13), 'g'), '')
+const route = lf(readFileSync(ROUTE_PATH, 'utf8'))
+const footer = lf(readFileSync(FOOTER_PATH, 'utf8'))
 
 let ok = 0
 let fail = 0
