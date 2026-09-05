@@ -178,7 +178,7 @@ O pedido do Claude foi rastreado até os botões reais. O evento era escolha, n�
 - **DECISÃO: NÃO EXECUTAR outra mudança por este sinal.** R4 preservada sem produção/revisão visual; piloto não executar nesta janela. Registro compartilhado no Git: https://github.com/josephsskaf-hub/UseKineo/pull/43#issuecomment-5548342020. Não criar deploy documental apenas para registrar medição.
 - **CHECKPOINT 22:39 BRT, mesma R6:** main e fila inalteradas, worktree limpa. Sem nova abertura, SQL repetido ou notificação.
 
-## Rotação 7 — 23:08–00:08 BRT — EM EXECUÇÃO
+## Rotação 7 — 23:08–00:08 BRT — CONCLUÍDA, MEDIÇÃO
 
 - **FATO CONFIRMADO:** fetch confirmou `67b15c30`, sem novo commit Claude nem fila pendente. Regras, estado histórico, questões, Growth, oferta/métricas, diário, PEDIDOS e handoff reconciliados. Worktree documental própria `C:/tmp/usekineo-caixa-10h-r7`, branch `codex/caixa-10h-r7`, criada dessa ponta. Não tocar a R4 pendente nem a árvore principal.
 - **EVIDÊNCIA OPERACIONAL, 05/09 02:10 UTC:** uso semanal Codex 33% consumido / 67% disponível; segunda janela indisponível. Nenhum reset ou compra. Próxima leitura na abertura R9.
@@ -194,3 +194,13 @@ Nenhum pedido novo. A revisão visual de R4 permanece pendente; não há autoriz
 ### 📋 O que aconteceu
 
 Placar e coordenação consolidados sem confundir eventos anônimos com compradores. Até este corte não há primeira assinatura nova comprovada nesta janela. Nenhuma alteração cosmética, mensagem, cobrança ou publicação adicional em produção.
+
+## Rotação 8 — 00:08–01:08 BRT — CHECKPOINT 00:40
+
+- **FATO CONFIRMADO:** abertura reconciliada em 05/09 03:09 UTC; antes de nova medição/edição comercial, o fundador pediu auditoria de navegação/layout e plano para amanhã, explicitamente sem implementar. Pedido atendido nesta conversa, separado da pista de execução CAIXA.
+- **IMPLEMENTADO — DOCUMENTAÇÃO LOCAL, não produto:** plano `C:/tmp/usekineo-plano-ux-2026-09-05/docs/PLANO-UX-NAVEGACAO-EN-ES-2026-09-05.md`, worktree isolada `codex/plano-ux-studio-2026-09-05`, base 67b15c30. Não commitado/publicado. Contém inventário dos CTAs, evidência de duas interfaces Studio/generator, hierarquia mobile, plano inglês/espanhol, divisão futura com Claude e gates. Não é entrega de conversão nem certificação de todos os botões.
+- **EVIDÊNCIA DE PRODUÇÃO, Chrome 05/09 aproximadamente 03:10–03:18 UTC:** `/studio/create?engine=fast` mantém a interface antiga; `/studio` exibe outra interface. Navegação segura, sem prompt/autoanalyze, geração ou pagamento. Viewport mobile inspecionado, restaurado e somente a aba da auditoria fechada. O fundador recebeu o link do plano; implementação depende da revisão conjunta que ele pediu.
+- **CHECKPOINT, 05/09 03:40 UTC:** fetch confirmou main em 67b15c30, sem avanço desde a abertura; worktree R7 estava limpa antes deste registro documental. Nenhum SQL repetido, novo contato, alteração de runtime ou deploy. Último placar comprovado continua o corte R7 das 02:10 UTC — não apresentado como dado desta hora.
+- **GATE / PRÓXIMO PASSO:** R4 permanece pendente de revisão visual; piloto não executar nesta janela. Na abertura R9, reconciliar Git/diários, medir a janela e verificar uso conforme cadência. Não implementar agora o plano visual pedido para amanhã e não prolongar a janela: término continua 03:08 BRT; R10 é fechamento.
+- **✅ O QUE VOCÊ PRECISA FAZER:** nenhum pedido novo durante o checkpoint. Revisão do plano com o fundador fica para amanhã; revisão visual de R4 continua separada.
+- **📋 O QUE ACONTECEU:** auditoria solicitada pelo fundador entregue como plano, sem alteração do site. Registro da mesma R8 atualizado, sem abrir uma rotação extra e sem alegar assinatura nova.
