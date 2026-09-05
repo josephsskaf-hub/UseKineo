@@ -1337,3 +1337,179 @@ pós-`2ca9a06c`: **0** · render preso >2h: **0**. **Nada acusa.**
 sem publicação, cada rotação nova empilha peça que ninguém usa. Se a fila subir,
 a primeira medição é `episode_link_clicked` por `bot=false`: ela decide entre
 consertar o `/login` (se clicam e não chegam) ou o e-mail (se não clicam).
+
+---
+
+## #6 — 18:10 BRT — FECHAMENTO DO CICLO: 13 pessoas fizeram 2+ filmes neste ciclo e NENHUMA delas viu a tela de checkout; os 3 checkouts que existiram vieram de gente com 0 e 1 filme
+
+Rotação de fechamento (J8). A janela do ciclo (10:38 → 18:38 BRT) acaba em
+28 minutos. Não abro jogada nova: o cardápio manda fechar, e abrir código agora
+empilharia peça na fila que já tem 13 commits parados.
+
+### 1. O número que doía, e que só apareceu ao olhar PESSOA A PESSOA
+
+Os placares das rotações #1 a #5 mediram degraus agregados. No fechamento eu
+cruzei os degraus por pessoa, e o funil agregado escondia isto:
+
+| pessoa (fonte) | filmes | créditos que sobraram | viu checkout? |
+|---|---|---|---|
+| zeechimzere (chatgpt) | **4** | 1 | **não** |
+| swan425225 (direto, mailshan) | 4 | 1 | não |
+| hornbrookkelly (chatgpt) | 3 | 7 | **não** |
+| 3fb44a22…@vmail.dev (direto) | 3 | 80 | não |
+| + 9 pessoas com 2 filmes | 2 | 0 a 19 | **nenhuma** |
+| muhammadalhajisanusi (chatgpt) | 1 | 12 | sim |
+| garrrrrgamel (direto) | **0** | 25 intactos | sim |
+| medtepsu (direto) | **0** | 25 intactos | sim |
+
+**13 pessoas fizeram 2 ou mais filmes neste ciclo. Zero chegaram ao checkout.**
+Os 3 únicos checkouts do ciclo vieram de 1 pessoa com um filme e **2 pessoas
+com nenhum filme e os 25 créditos do trial intactos** — o padrão que o
+CLAUDE.md já classificou como defeito, não desejo (checkout de conta sem vídeo
+é gente batendo numa parede, não gente querendo comprar).
+
+Isto reposiciona o gargalo do ciclo inteiro. As 6 rotações trabalharam o degrau
+1→2 (porta do episódio 2, e-mails, links). Esse degrau **melhorou** — 13 de 42
+chegam ao segundo filme, contra 12 na #5. Mas o degrau seguinte, 2+ filmes →
+checkout, é **0 de 13**. O produto entrega, o crédito acaba (`lirikp` está com
+2 filmes e **0 créditos**; zeechimzere com 4 filmes e 1 crédito) e a pessoa não
+encontra a porta de comprar. Ninguém trabalhou esse degrau hoje.
+
+### 2. Placar final do ciclo (marco 03/09 16:00 UTC, contas externas)
+
+cadastro **66** → filme 1 **42** → filme 2 **13** → filme 3 **4** →
+checkout **3** → **pagou 0**.
+
+Por fonte — a leitura que o fundador pediu ("fonte por fonte"):
+
+| fonte | cadastros | filme 1 | filme 2 | filme 3 | checkout | pagou |
+|---|---|---|---|---|---|---|
+| **chatgpt** | 34 | 28 (82%) | 10 (29%) | 2 | 1 | 0 |
+| **taaft** | 16 | 9 (56%) | **1 (6%)** | 0 | 0 | 0 |
+| **(direto)** | 9 | **0** | 0 | 0 | **2** | 0 |
+| nav | 3 | 3 | 0 | 0 | 0 | 0 |
+| tempmail.so | 2 | 2 | 2 | 2 | 0 | 0 |
+| google / partners | 2 | 0 | 0 | 0 | 0 | 0 |
+
+Três fatos que saem daí e que não estavam escritos em lugar nenhum:
+
+- **O ChatGPT é a casa toda.** 34 de 66 cadastros, 28 de 42 primeiros filmes,
+  10 de 13 segundos filmes. Toda a atividade do produto vem de uma fonte só.
+- **O TAAFT traz gente que não volta.** 16 cadastros, 9 fazem o primeiro filme,
+  **1 faz o segundo** (6%, contra 29% do ChatGPT) e nenhum chega ao checkout.
+  A listagem do TAAFT está desatualizada desde 01/09 (fala em 40cr e
+  "from $9.90/mo"; hoje é 50cr e $7) — quem chega por lá encontra um produto
+  diferente do anunciado. É a hipótese mais barata de testar do próximo ciclo.
+- **Os 9 cadastros "(direto)" fizeram ZERO filmes e produziram 2 dos 3
+  checkouts.** Não é tráfego frio comprando: é gente que entra sem contexto,
+  não consegue gerar, e vai bater na página de plano.
+
+### 3. A checagem zero acusou 13 falhas — e o alarme era artefato de medição
+
+A varredura bruta devolveu `next_episode_failed = 13` nas últimas 24h e
+`next_episode_requested = 22`. Isso soaria como "o conserto do #0 não pegou".
+Não é. Recortando no horário real do commit `2ca9a06c` (05/09 13:25 UTC):
+
+| janela | pedidos | prontos | falhas |
+|---|---|---|---|
+| **antes** do deploy | 18 | 5 | **13** |
+| **depois** do deploy | 4 | **4** | **0** |
+
+**5/18 (28%) antes, 4/4 (100%) depois.** As 13 falhas são todas anteriores ao
+deploy; a última é de 13:15 UTC, dez minutos antes do commit. O conserto do #0
+está provado em produção com denominador — é a primeira prova real dele.
+
+Registro o método porque esta armadilha já custou duas rotações em ciclos
+anteriores: **medição de checagem zero sem corte no horário do deploy mede o
+defeito que você acabou de consertar.** Achar o commit vem antes de escalar
+o alarme.
+
+Resto da checagem zero, com os cortes certos: cadastro sem crédito **0** ·
+render preso >2h **0** · débito sem entrega **0**. Nada acusa.
+
+### 4. O que o ciclo entregou — 6 peças, TODAS ainda fora de produção menos uma
+
+| # | o que consertou | SHA |
+|---|---|---|
+| #0 | `/api/next-episode` devolvia 502 em 12 de 16 chamadas (modelo responde em prosa, rota descartava) | `2ca9a06c` **← única no ar** |
+| #1 | 22 de 26 e-mails "você está sem crédito" foram para gente COM crédito (`null` lido como zero) | `1f3c3f9e` |
+| #2 | 36 pessoas tiveram o primeiro filme pulado porque "HOOK:" foi lido como colagem de chatbot | `547a8b87` |
+| #3 | e-mail de resgate perguntava "o que travou no pagamento?" a quem nunca viu um filme (40% dos leads) | `fe2dcd01` |
+| #4 | e-mail "seu vídeo não saiu" chegava 25 dias depois (mediana 597h) | `f93668b5` |
+| #5 | botão de episódio 2 dos e-mails levava quem JÁ TEM CONTA para a tela de criar conta | `9e02dbbb` |
+
+**13 commits na fila, 0 no ar.** O #0 subiu porque foi publicado às 10:25 BRT,
+antes de a fila crescer. Tudo de #1 a #5 espera um clique. As melhorias do
+degrau 1→2 medidas hoje (13 segundos filmes contra 12) vêm do #0 sozinho —
+os outros cinco consertos ainda não tocaram um cliente.
+
+### 5. O que eu NÃO fiz, e por quê
+
+- **J3 (3º filme garantido no clique), J4, J5, J6, J7 do cardápio: não feitos.**
+  Decisão registrada na #5 e mantida: sem publicação, cada rotação nova empilha
+  peça que ninguém usa. Seis consertos parados valem menos que um no ar.
+- **Nenhum e-mail foi enviado.** As rotas de campanha continuam dry-run; o SEND
+  é o link do fundador.
+- **Nenhum render pago, nenhuma alteração de preço, plano ou oferta.**
+- **Nenhum arquivo de tela tocado** (pista do Codex). O pedido aberto da #5
+  sobre o aterrissamento do clique de inbox continua na fila de pedidos.
+
+### 6. PRÓXIMA JOGADA (para o ciclo que o fundador decidir abrir)
+
+**Primeira, e antes de qualquer código: publicar.** Depois do clique, a medição
+que vale é `episode_link_clicked` por `bot=false` — ela separa "não clicam"
+(problema de e-mail) de "clicam e não chegam" (problema de `/login`), e os
+cinco consertos passam a existir para o cliente.
+
+**Segunda, e é a jogada nova que este fechamento descobriu: o degrau
+2+ filmes → checkout, que é 0 de 13.** Ninguém trabalhou esse degrau em nenhuma
+das 6 rotações porque o funil agregado não o mostrava. As três pessoas mais
+quentes do ciclo (4, 4 e 3 filmes) terminaram com 1, 1 e 7 créditos e nunca
+viram uma página de plano. A peça certa é de servidor e cabe na minha pista:
+quando o saldo não cobre mais um filme do motor que a pessoa **acabou de
+usar**, a resposta da geração devolve o contrato de "próxima ação" apontando
+para o plano — não um banner genérico, e sim "seu próximo filme custa N, você
+tem M". É a J5 do cardápio, reapontada do degrau 1→2 para o degrau que os
+dados de hoje mostraram estar seco.
+
+**Terceira, barata e não é código:** o TAAFT converte 6% no segundo filme
+contra 29% do ChatGPT, e a listagem promete 40cr e $9.90 quando o produto dá
+50cr e $7. Corrigir a listagem é edição de dashboard, custo zero.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+1. **Clicar em `SUBIR-SITE.bat`** (raiz de `C:\kineo`). São **13 commits** e
+   **5 consertos** parados — nada do que este ciclo fez depois das 10:25 chegou
+   a um cliente. É a única ação que transforma o dia em produto.
+2. **Conferir, depois do clique**, que o log termina em "SUBIU N ENTREGA(S)" e
+   que `git rev-list --count origin/main..entrega-atual` volta a 0.
+3. **Atualizar a listagem do TAAFT** no dashboard deles: hoje anuncia trial de
+   40cr e "from $9.90/mo"; o real é 50cr e $7. É a fonte que mais perde gente
+   entre o 1º e o 2º filme (6% contra 29% do ChatGPT).
+4. **Decidir se abre o próximo ciclo** e com qual foco — a recomendação está no
+   item 6 acima: publicar primeiro, depois atacar o degrau 2+ filmes → checkout.
+
+### 📋 O QUE ACONTECEU
+
+O ciclo de 8 horas fechou com **6 consertos prontos e 1 no ar**. O que subiu
+(#0) já deu resultado medido: a porta do episódio 2 saiu de 28% de sucesso para
+**100%** em produção, com denominador e corte no deploy — é a primeira coisa
+deste sprint que se pode chamar de provada.
+
+O que o fechamento descobriu, e que muda a prioridade do próximo ciclo: **o
+muro não está mais no segundo filme, está na hora de pagar.** Treze pessoas
+fizeram dois ou mais filmes hoje e nenhuma delas chegou a ver a página de
+plano; várias terminaram com o crédito no fim (uma com 4 filmes e 1 crédito,
+outra com 2 filmes e zero). Os três únicos checkouts do dia vieram de gente
+que **não conseguiu fazer filme nenhum** — que é sinal de defeito, não de
+intenção de compra. O produto está entregando e depois emudecendo exatamente
+no momento em que a pessoa mais gostou dele.
+
+E uma leitura de aquisição que não existia escrita: **o ChatGPT é praticamente
+a casa inteira** (34 dos 66 cadastros, 28 dos 42 primeiros filmes), enquanto o
+TAAFT traz gente que faz um filme e some — provavelmente porque a listagem de
+lá ainda anuncia o preço e o trial antigos.
+
+Zero assinantes no ciclo, contra a meta de 2 a 3 por dia. A causa mais provável
+não é falta de conserto: é que **cinco dos seis consertos nunca saíram do
+computador**.
