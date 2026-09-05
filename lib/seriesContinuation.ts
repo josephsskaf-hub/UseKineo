@@ -86,6 +86,11 @@ export type SeriesContinuationSource =
   // (series_continuation_landed) so carrega `source` — sem fonte propria o
   // antes/depois desta correcao seria impossivel de contar.
   | 'video_ready_unknown_balance'
+  // sprint-assinaturas #7 (05/09): contrato /api/next-action. Quem terminou um
+  // filme e ainda TEM saldo recebe daqui o link de continuar; quem NAO tem
+  // recebe a porta do plano. Fonte propria para separar, no banco, o clique
+  // que nasceu do contrato de proxima acao do que nasceu da tela de fim.
+  | 'next_action'
 
 // ═══ A3 (03/09/2026) — o botao "Build the next episode" e a maquina da 2a compra ═══
 //
