@@ -97,3 +97,17 @@ Acrescentar somente mudanças materiais, gates, uso devido e testes. Ao término
 5. Começar pelos dois botões de StudioClient; outros chamadores por lotes. TrialRepeat e recuperação ficam intocados até contrato específico. Preview da jornada antes/depois e aprovação continuam obrigatórios.
 
 **PRÓXIMA JOGADA:** reservar StudioClient e adaptador novo no Git; implementar o percurso dos dois botões do Studio sem tocar em `seriesContinuation.ts` nem GenerateClient nesta primeira fatia. L1 permanece aguardando aprovação, sem novo aviso repetitivo ao fundador.
+
+### Checkpoint 11:45 BRT — L2, dois botões do Studio preparados
+
+**IMPLEMENTADO NA BRANCH, NÃO PUBLICADO:** `lib/navigation/studioSeriesReview.ts` consome o helper canônico; StudioClient liga os dois hrefs reais de tema (milestone e tile) ao adaptador. Não altera helpers do Claude. Tema continua instrução no modo AI; entrada abre `/studio`, não analisa. Preserva o padrão efetivo fast/35s do destino anterior, desarma somente presets/contexto de edição anteriores ao novo tema e posiciona o foco no texto. Novas escolhas manuais feitas depois da chegada prevalecem. Links Next com prefetch desligado; navegação interna não recarrega o app inteiro.
+
+**CONTRATO:** marcador restrito `studio_continuation=topic-v1` e duas fontes reconhecidas; carrega `series`/`continuation_source` ao próximo Generate, sem sobrescrever prompt/modo/duração/motor escolhidos no editor. `studio_series_review_v1` identifica a origem e evita herdar campanha antiga. Chegada não grava consentimento, não inclui autoanalyze/studio/create_intent e não faz request de geração. O clique explícito usa o Generate que já existe, sem editar o pipeline.
+
+**TESTADO LOCALMENTE:** 16 cenários de aceite em `scripts/test-studio-series-review.mjs`, incluindo os dois hrefs JSX reais executados, ida e volta pelo reader/Generate reais via AST, Unicode, fontes, default igual ao compositor, ausência de tema, rota inválida, reset de estado herdado, foco e escolhas posteriores. Fronteiras state/storage/router simuladas, não browser. L1 permanece 37/37. `tsc --noEmit --incremental false` sem diagnóstico; `diff --check` limpo. Diagnóstico anterior atualizado apenas para compartilhar o harness e continua mostrando por que os links genéricos sem adaptador não devem ser migrados em massa.
+
+**PREVIEW:** `docs/previews/UX-BLOCO1-CONTINUACAO-STUDIO-2026-09-05.html`, comparação desktop/mobile dos DOIS botões com destinos antes/depois extraídos dos helpers reais. Esquema interativo explicitamente rotulado, não screenshot de layout completo; vídeo fictício sem mídia, cliques locais interceptados, zero rede/gasto. Browser e avaliação visual do fundador ainda pendentes.
+
+**ESCOPO PRESERVADO:** diff contra main vazio para seriesContinuation, GenerateClient, next-episode e engineCost. Não alterados botões de outras telas, roteiro pronto/trialRepeat, idioma de narração, recuperações ou créditos. Não declarar que todos os botões da plataforma estão corrigidos.
+
+**PRÓXIMO:** validação de browser/visual por lote continua gate, sem main/deploy. Preparar hierarquia Studio/mobile enquanto aguarda aprovação de L1/L2; outros chamadores de continuação só após desenho que preserve contratos específicos. Consumo seguinte às 12:14 BRT, sem reset automático.

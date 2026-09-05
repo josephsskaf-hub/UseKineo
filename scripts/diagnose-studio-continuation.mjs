@@ -5,6 +5,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import assert from 'node:assert/strict'
 import { createRequire } from 'node:module'
+import { fileURLToPath } from 'node:url'
 const require = createRequire(import.meta.url)
 const ts = require('typescript')
 const root = path.resolve(import.meta.dirname, '..')
@@ -28,12 +29,26 @@ const seriesSource = fs.readFileSync(path.join(root, 'lib/seriesContinuation.ts'
 const seriesModule = { exports: {} }
 new Function('exports', ts.transpileModule(seriesSource, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText)(seriesModule.exports)
 const { buildSeriesContinuationHref } = seriesModule.exports
-function roundTrip(href, initial = {}) {
+export function loadLocal(file) {
+  const module = { exports: {} }
+  const output = ts.transpileModule(fs.readFileSync(path.join(root, file), 'utf8'), {
+    compilerOptions: { module: ts.ModuleKind.CommonJS },
+  }).outputText
+  new Function('require', 'exports', output)((name) => {
+    if (!name.startsWith('@/lib/')) throw new Error('Unexpected dependency: ' + name)
+    return loadLocal(name.slice(2) + '.ts')
+  }, module.exports)
+  return module.exports
+}
+const review = loadLocal('lib/navigation/studioSeriesReview.ts')
+export function roundTrip(href, initial = {}, edits = {}) {
   const query = href.slice(href.indexOf('?') + 1)
   const state = { engine: 'fast', duration: 60, prompt: '', scriptMode: 'ai', aspect: '9:16', ...initial }
   const writes = []
   const navigations = []
   const events = []
+  const frames = []
+  let reviewFocus = 0
   const campaignRef = { current: 'studio_v4' }
   const onboardingGoalRef = { current: null }
   evaluate(reader, {
@@ -44,14 +59,24 @@ function roundTrip(href, initial = {}) {
     setScriptMode: (v) => { state.scriptMode = v },
     setDuration: (v) => { state.duration = v },
     setChatGptQuickstart: () => {},
+    setPreset: (v) => { state.preset = v },
+    setAspect: (v) => { state.aspect = v },
+    isStudioSeriesReview: review.isStudioSeriesReview,
+    window: { requestAnimationFrame: (callback) => frames.push(callback) },
+    promptRef: { current: { focus: () => { reviewFocus++ }, scrollIntoView: () => {} } },
     isChatGptQuickstartChoice: () => false,
     isOnboardingGoalId: () => false,
     campaignRef, onboardingGoalRef,
   })
   assert.equal(writes.length, 0, 'arrival must not grant spend consent')
   assert.equal(navigations.length, 0, 'arrival must not navigate to render')
+  frames.forEach((frame) => frame())
+  const arrived = { ...state }
+  Object.assign(state, edits)
   evaluate(generate, {
     ...state, limit: { over: false }, finalPrompt: state.prompt.trim(),
+    searchSignature: query,
+    carryStudioSeriesReview: review.carryStudioSeriesReview,
     campaignRef, onboardingGoalRef,
     sessionStorage: { setItem: (key, value) => writes.push({ key, value }), removeItem: () => {} },
     trialFirstDeliveryStudioIntent: () => null,
@@ -60,8 +85,9 @@ function roundTrip(href, initial = {}) {
   })
   assert.equal(writes.length, 1, 'only simulated Generate grants existing consent')
   assert.equal(navigations.length, 1)
-  return { state, output: new URL(navigations[0], 'https://example.invalid').searchParams }
+  return { state, arrived, reviewFocus, output: new URL(navigations[0], 'https://example.invalid').searchParams }
 }
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
 const href = buildSeriesContinuationHref('A submarine beneath the ice.', 'studio_milestone')
 assert.ok(href.startsWith('/studio/create?'))
 const title = roundTrip(href)
@@ -91,3 +117,4 @@ console.log(JSON.stringify({
   providerCalls: 0,
   warning: 'These assertions characterize defects of a path-only rewrite. They are not UX acceptance tests. Update to preservation gates when implementing the destination contract.',
 }, null, 2))
+}

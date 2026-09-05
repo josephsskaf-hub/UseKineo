@@ -33,7 +33,7 @@
 | `app/(dashboard)/my-videos/page.tsx` | Pendente |
 | `app/(dashboard)/referral/page.tsx` | Pendente |
 | `app/(dashboard)/studio/create/page.tsx` | Pendente |
-| `app/(dashboard)/studio/page.tsx` | L1: título do shell preparado/testado; hierarquia Studio e destinos pendentes |
+| `app/(dashboard)/studio/page.tsx` | L1 título + L2 dois botões de tema preparados/testados; previews pendentes de aprovação; hierarquia e demais destinos pendentes |
 | `app/(dashboard)/templates/page.tsx` | Pendente |
 | `app/(dashboard)/thumbnail-generator/page.tsx` | Pendente |
 | `app/(dashboard)/v2/page.tsx` | Pendente |

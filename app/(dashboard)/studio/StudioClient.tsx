@@ -12,6 +12,7 @@
 //   · pills com estado selecionado em glow, hover com lift de 1px
 //   · resumo vivo no card de custo: motor · duração · resolução · aspecto
 import { useEffect, useMemo, useRef, useState } from 'react'
+import Link from 'next/link'
 import { STUDIO_KIT_CSS } from '@/components/studioKit'
 import { useRouter, useSearchParams } from 'next/navigation'
 // KINEO-H3-2026-08-19 — custo por motor vem da fonte única, nunca de string.
@@ -31,7 +32,7 @@ import {
 } from '@/lib/growth/trialBalanceBridge'
 import { trackEvent } from '@/lib/analytics'
 import { formatLimitCounter, promptLimitState, trimPromptToLimit } from '@/lib/studioPromptLimit'
-import { buildSeriesContinuationHref } from '@/lib/seriesContinuation'
+import { buildStudioSeriesReviewHref, carryStudioSeriesReview, isStudioSeriesReview } from '@/lib/navigation/studioSeriesReview'
 import { useSeriesDoorSeen } from '@/lib/seriesDoorImpressions'
 
 // A chave do card → a Quality que o biller entende. Uma fonte só para os dois
@@ -245,6 +246,17 @@ export default function StudioClient() {
   // cards do hero/bento/mega-menu ja cair com o motor certo selecionado.
   useEffect(() => {
     const sp = new URLSearchParams(searchSignature)
+    if (isStudioSeriesReview(sp)) {
+      // A new topic is reviewed here, without inheriting the previous camera
+      // preset or framing. URL supplies the legacy duration/mode/engine.
+      setPreset(null)
+      setAspect('9:16')
+      onboardingGoalRef.current = null
+      window.requestAnimationFrame(() => {
+        promptRef.current?.focus({ preventScroll: true })
+        promptRef.current?.scrollIntoView({ block: 'center' })
+      })
+    }
     const e = sp.get('engine')
     if (e && ENGINES.some((x) => x.key === e) && (e !== 's25')) setEngine(e as EngineKey)
     const p = sp.get('prompt')
@@ -367,6 +379,7 @@ export default function StudioClient() {
       sessionStorage.setItem('kineo:studio:go:v1', JSON.stringify({ t: Date.now(), engine, prompt: finalPrompt }))
     } catch {}
     const q = new URLSearchParams({ engine, prompt: finalPrompt, duration: String(duration), script_mode: scriptMode, autoanalyze: '1', studio: '1', intent_campaign: campaignRef.current })
+    carryStudioSeriesReview(new URLSearchParams(searchSignature), q)
     // KINEO-MULTIFORMATO-2026-09-02 — a escolha de enquadramento PASSA A
     // VIAJAR. Até hoje o estado `aspect` existia na tela e morria nela: não
     // entrava nesta querystring, então o servidor nunca soube. Só sai da URL
@@ -808,8 +821,9 @@ export default function StudioClient() {
                   Same topic, new hook and payoff — the idea comes pre-written.
                 </div>
               </div>
-              <a
-                href={buildSeriesContinuationHref(myVids[0]?.title, 'studio_milestone')}
+              <Link
+                href={buildStudioSeriesReviewHref(myVids[0]?.title, 'studio_milestone')}
+                prefetch={false}
                 ref={registrarPorta({
                   source: 'studio_milestone',
                   video_id: myVids[0]?.id ?? null,
@@ -826,7 +840,7 @@ export default function StudioClient() {
                 }}
               >
                 Build next episode →
-              </a>
+              </Link>
             </div>
           )}
 
@@ -868,9 +882,10 @@ export default function StudioClient() {
                       <span className="vtplay" aria-hidden="true">▶</span>
                     </a>
                     {v.title && <span className="vt">{v.title}</span>}
-                    <a
+                    <Link
                       className="vtnext"
-                      href={buildSeriesContinuationHref(v.title, 'studio_video_tile')}
+                      href={buildStudioSeriesReviewHref(v.title, 'studio_video_tile')}
+                      prefetch={false}
                       ref={registrarPorta({
                         source: 'studio_video_tile',
                         video_id: v.id,
@@ -888,7 +903,7 @@ export default function StudioClient() {
                       }}
                     >
                       Episode 2 →
-                    </a>
+                    </Link>
                   </div>
                 ))}
               </div>
