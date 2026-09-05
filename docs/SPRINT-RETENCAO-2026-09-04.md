@@ -3573,3 +3573,113 @@ publicador como consertado sem nunca terem rodado o publicador.** O v10 foi
 escrito, lido e declarado bom; o que se testou foi um `git rebase` à mão, que
 é outro código. Infra de entrega só conta como verde quando o artefato que o
 fundador clica roda de ponta a ponta.
+
+---
+
+### Adendo 2 ao fechamento — 02:38→03:2x BRT — O PUBLICADOR ESTÁ CONSERTADO DE VERDADE, E O DEFEITO ERA UM SINAL DE `+`
+
+O adendo 1 (02:16) terminou honesto e incompleto: *"existe um segundo defeito
+no controle de fluxo que eu **não** isolei nesta janela. Não sei qual é, e não
+vou fingir que sei."* **Isolei. Não era controle de fluxo.**
+
+#### O que estava errado (medido, não deduzido)
+
+Rodei o publicador de verdade, com `@echo on` e com `git push` e `git branch -f`
+neutralizados. Com a supressão de saída removida, o rastro mostrou uma coisa que
+ninguém tinha visto em duas rotações: **os 19 cherry-picks passam todos.** O
+último commit da fila é aplicado com sucesso. O bat morre **depois do laço**, na
+linha seguinte:
+
+```
+git fetch -q "%TMPREPO%" "refs/heads/empurrar:refs/remotes/empurrar-novo" 2>nul || exit /b 1
+```
+
+Rodada à mão, sem o `2>nul`, ela responde:
+
+```
+ ! [rejected] empurrar -> empurrar-novo  (non-fast-forward)     rc=1
+```
+
+**A causa:** um refspec de `git fetch` sem o `+` inicial recusa atualização que
+não seja fast-forward. `refs/remotes/empurrar-novo` **sobra da rodada anterior**,
+e cada rebase produz commits NOVOS (SHAs novos). Logo: **o publicador funcionava
+uma única vez na vida da máquina e nunca mais.** O `2>nul` comia a mensagem, o
+`|| exit /b 1` fazia `:rebasar` devolver 1, e o bat anunciava **"PAROU NO
+CONFLITO"** — com a lista de arquivos vazia, porque conflito nunca houve.
+
+O defeito (a) do adendo 1 (`>/dev/null` dentro de um `.bat`) é **real e também
+foi corrigido**, mas ele nunca foi o que travava: era ruído por cima do (b).
+
+#### Por que ninguém achou isso em duas rotações
+
+As três linhas que escondiam o defeito são as três que existem para deixar a
+tela limpa: `@echo off`, `>nul`, `2>nul`. **A supressão de saída foi o bug.**
+Some-se a isso o modo de falha ser *intermitente por construção* — funciona uma
+vez, falha para sempre — e o diagnóstico "é conflito de merge" fica plausível
+por horas.
+
+#### O conserto (v11)
+
+`scripts/!RODAR-AGORA.bat`, 3 linhas de código + cabeçalho:
+1. `+` nos **três** refspecs de fetch que escrevem em `refs/remotes/` (o do
+   `empurrar-novo` e os dois do clone temporário — mesma armadilha, só não
+   disparada ainda porque o clone nasce limpo);
+2. `git cherry-pick --skip >/dev/null 2>&1` → `>nul 2>&1`;
+3. cabeçalho v11 explicando os dois defeitos, para a próxima sessão não os
+   reintroduzir por "limpeza".
+
+**A ordem de segurança não mudou:** o `git branch -f entrega-atual` continua
+acontecendo só **depois** do fetch verificado — e isso virou verificação
+automática, não promessa.
+
+#### Prova de ponta a ponta, sem publicar nada
+
+| o que rodei | resultado |
+|---|---|
+| bat neutralizado (push forçado a falhar) | rebase **completa**: `-- Rebase pronto. entrega-atual realinhada. --` (antes: PAROU NO CONFLITO) |
+| **bat REAL, sem edição, contra uma `origin` falsa** (bare repo semeado com a `main` de hoje) | **`== SUBIU 19 ENTREGA(S) ==`** |
+| os 3 commits do Codex (`67b15c30`, `5dce98a1`, `c19d6a60`) sobrevivem ao rebase? | **os 3 presentes** na ponta resultante |
+| o que chega na main | 18 commits (19 picks − 1 pick vazio pulado pelo `--skip`), **19 arquivos** de produção e teste fora de `docs/` |
+
+Nada foi empurrado para o GitHub. A `origin` do teste é um repositório bare
+descartável no diretório temporário; o repo real nunca teve `push` nem
+`branch -f`.
+
+#### Guardião novo — `scripts/test-publicador-refspec-2026-09-05.mjs`, 12/12
+
+Duas partes, porque provar o `.bat` lendo o `.bat` não basta:
+1. **Leitura do arquivo real** (não de uma cópia): nenhum `>/dev/null` em linha
+   de código — comentário `REM` é ignorado, senão o teste acusaria a si mesmo —,
+   todo refspec para `refs/remotes/` com `+`, e o `branch -f` depois do fetch.
+2. **Prova executável em git**, em repositórios descartáveis: a 1ª rodada cria a
+   ref (é por isso que o bug parecia intermitente); a 2ª, com história
+   divergente, **é recusada sem o `+` e a ref não se move**; **com o `+`, passa**.
+
+**Mutação conferida:** reintroduzi o `+` removido no arquivo real → o guardião
+cai para **10/12** e nomeia a linha; restaurado → **12/12**. O guardião tem
+dentes. Nenhum arquivo TypeScript foi tocado, então `tsc` não se aplica a esta
+entrega — digo isso em vez de colar um "verde" que não mediu nada daqui.
+
+#### O que isto muda para o fundador
+
+O fechamento das 01:46 disse "falta o clique" e estava errado. O adendo 1 disse
+"não clique, o publicador está quebrado" e estava certo. **Agora o clique
+funciona:** ao clicar em `SUBIR-SITE.bat`, ele deve ver `SUBIU 20 ENTREGA(S)`
+(as 19 + este conserto) e o deploy da Vercel começa sozinho. Se aparecer
+`PAROU NO CONFLITO`, aí sim é conflito de verdade e o arquivo vem nomeado.
+
+#### Limitação, dita com todas as letras
+
+O `SUBIU 19 ENTREGA(S)` foi contra uma `origin` **falsa**. O push real, contra o
+GitHub, é do fundador e não foi exercitado — não posso e não devo publicar. O
+que ficou provado é tudo o que estava quebrado: o rebase, o skip do pick vazio,
+a preservação dos commits alheios e o veredito final. O que resta é a rede.
+
+#### Método — a lição que vale mais que o bug
+
+**Três rotações trataram o publicador como consertado sem nunca terem rodado o
+publicador.** O v9, o v10 e o "está pronto, falta clicar" foram escritos, lidos
+e declarados bons; o que se testou foi um `git rebase` à mão, que é outro
+código. **Infra de entrega só conta como verde quando o artefato que o fundador
+clica roda de ponta a ponta.** Foi por isso que 19 entregas de um ciclo de 10
+horas ficaram fora do ar — não faltou código, faltou rodar o botão.
