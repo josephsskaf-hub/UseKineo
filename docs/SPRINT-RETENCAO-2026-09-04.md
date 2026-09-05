@@ -3486,3 +3486,90 @@ chega pelo **ChatGPT colando a ordem que deu ao chatbot** faz segundo filme em
 da casa e uma das maiores de aquisição. Ela não precisa de mais uma porta de
 episódio 2 — precisa que o **primeiro** filme dela saia no formato que ela
 pediu. Isso é retenção que começa antes do primeiro render.
+
+---
+
+### Adendo ao fechamento — 02:08→02:55 BRT (checkpoint da última rotação)
+
+O fechamento das 01:46 disse: **"a fila está sã e o publicador está consertado.
+O que falta é o clique."** A primeira metade é verdade. **A segunda é falsa, e
+eu provei rodando o clique.**
+
+#### O que eu fiz
+
+Rodei o `!RODAR-AGORA v10` de verdade contra o repo real, com `git push` e
+`git branch -f` **neutralizados** (não publiquei nada — o push é do fundador).
+O clique **para em "PAROU NO CONFLITO"** hoje, com a fila de 18 commits.
+
+#### Defeito 1 — o conserto do v10 nunca roda (reproduzido)
+
+```
+linha 120:  git cherry-pick --skip >/dev/null 2>&1
+```
+
+`>/dev/null` é sintaxe de shell POSIX. **Dentro de um `.bat` o cmd não executa
+o comando**: tenta abrir o caminho `\dev\null`, imprime *"O sistema não pode
+encontrar o caminho especificado"* e pula a linha. Provado isolado:
+
+```
+git --version >/dev/null 2>&1   -> "nao pode encontrar o caminho"  (NAO rodou)
+git --version >nul 2>&1         -> rodou
+```
+
+Ou seja: **o `--skip` que o v10 existe para dar nunca foi dado.** O resto do
+bat usa `>nul` corretamente em 11 lugares; esta linha é a única fora do padrão.
+
+#### Defeito 2 — trocar por `>nul` NÃO resolve
+
+Apliquei só a correção da redação e rodei de novo: o erro de caminho some,
+o bat imprime "commit repetido pulado: seguindo" — **e ainda assim termina em
+PAROU NO CONFLITO.** Existe um segundo defeito no controle de fluxo do
+`:uniao_docs`/laço de cherry-pick que eu **não** isolei nesta janela. Não sei
+qual é, e não vou fingir que sei.
+
+#### O que está certo, e isso é importante
+
+A lógica **git** é sã. Rodei o mesmo laço em bash, num clone descartável:
+
+```
+1 pick vazio (a5f5b9e4 "close assisted pilot gate") -> --skip -> rc=0
+17 de 18 commits rebasados, ZERO conflito real, ZERO arquivo em U
+```
+
+**A fila está boa.** O problema é 100% do `.bat`, não do conteúdo. E o modo de
+falha é **seguro**: o fluxo morre **antes** do `git branch -f`, então a
+`entrega-atual` não é truncada. Eu cheguei a suspeitar de truncamento
+silencioso da fila e **a reprodução me desmentiu** — fica registrado porque a
+suspeita errada, se virasse "fato", mandaria o próximo ciclo caçar fantasma.
+
+#### O que eu tentei e reverti
+
+Tentei trocar o laço de cherry-pick por `git rebase om` no clone temporário
+(o mecanismo que o fechamento já provou funcionar). Bateu em `cannot rebase:
+You have unstaged changes` — o clone nasce "sujo" por conversão de CRLF, mal
+conhecido desta casa. `reset --hard` e `core.autocrlf false` não fecharam em
+tempo. **Passado o horário de término, revertí o arquivo ao estado exato da
+fila** em vez de deixar o clique do fundador meio-editado e não provado.
+
+Estado conferido ao sair: `origin/main 67b15c30` · `entrega-atual 8bd52b3c` ·
+**18 commits na fila** · bat idêntico ao commitado · sandboxes descartados.
+Nada foi publicado, nada foi movido, nada foi perdido.
+
+#### Por que isso muda a primeira jogada do próximo ciclo
+
+O fechamento mandou "não construir mais nada antes de publicar". Continua
+certo — mas a tarefa não é *clicar*, é **consertar o publicador primeiro**. Se
+o fundador clicar agora, ele vê "PAROU NO CONFLITO" e as 16 entregas seguem
+fora do ar. A ordem correta é:
+
+1. Isolar o defeito 2 rodando o bat com `@echo on` e sem `>nul` (a supressão
+   de saída é o que escondeu isso por duas rotações).
+2. Considerar **abandonar o laço de cherry-pick** por `git rebase` num clone
+   criado com `-c core.autocrlf=false` desde o `clone` (não depois).
+3. Só então pedir o clique.
+
+E a lição de método, que vale mais que o bug: **duas rotações trataram o
+publicador como consertado sem nunca terem rodado o publicador.** O v10 foi
+escrito, lido e declarado bom; o que se testou foi um `git rebase` à mão, que
+é outro código. Infra de entrega só conta como verde quando o artefato que o
+fundador clica roda de ponta a ponta.
