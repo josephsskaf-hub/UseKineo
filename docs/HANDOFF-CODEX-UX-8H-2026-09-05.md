@@ -193,3 +193,13 @@ Acrescentar somente mudanças materiais, gates, uso devido e testes. Ao término
 **PREVIEW:** comparação consolidada de continuação ganhou seção L2d, desktop/mobile, botões SSR e destinos antes/depois. Somente percurso, não tela completa nem aprovação visual. Com esta fatia, o adaptador cobre sete fontes em nove ocorrências JSX: Studio 2, home 1, histórico 3, biblioteca 1, aviso 2. Algumas são mutuamente exclusivas; não são nove botões simultâneos nem métrica de cliente.
 
 **PENDENTE:** GenerateClient mantém seus caminhos de roteiro pronto/trialRepeat/recuperação, fora da troca de tema. L3 ainda é protótipo, home mantém mídias originais e espanhol não entrou no runtime. Nenhuma aprovação visual recebida; main/deploy intocados. Próximo uso 16:14; janela termina 18:14 BRT.
+
+### Checkpoint 15:45 BRT — delimitação do lote home
+
+**FATO CONFIRMADO:** main segue `2ca9a06c`; árvore própria abriu limpa em `594c693a`. Nenhuma aprovação nova. Retomei o lote home já previsto, sem abrir nova variação de L1/L2. `.hero-line` usa 14,5px e a frase de apoio permanece inline na mesma hierarquia (`KineoLanding.tsx:577–578`); os quatro carrosséis usam flex/scroll-snap, não o grid inicial da classe `.ftr-row` (`569–571`). Mexer apenas na primeira definição de CSS não descreve o layout efetivo. Bento e terceira fileira têm contratos diferentes (`257,601–604`), não devem receber uma grade genérica comum.
+
+**SUGESTÃO PARA O PREVIEW HOME:** separar visualmente a frase principal existente do inventário de motores/vozes, mantendo as palavras e todos os links; diminuir competição de brilhos/superfícies ao redor das mídias, sem mudar largura, crop, ordem ou alternância dos clipes. Comparar as três fileiras juntas, não só um recorte bonito do topo. Header, FAQ/preços, campanhas e depoimento não serão removidos por impressão de poluição; mudança de conteúdo comercial exige acordo com Claude. Nenhuma proposta deste checkpoint foi aplicada ao runtime.
+
+**LIMITE DE VERIFICAÇÃO:** SSR inicial de EngineCycleCard mostra poster e WallMedia só monta vídeo após efeito de visibilidade (`EngineCycleCard.tsx:181–190`, `WallMedia.tsx:11–55`). Um mock de SSR com efeito desligado não comprova que as três fileiras reais apareceram ou alternaram. O preview home precisa distinguir estado estático de mídia carregada; não substituir vídeos por samples para fazer um mock parecer completo. Baseline de assets e bateria 247/247 da rodada anterior permanecem, sem nova execução redundante.
+
+**PRÓXIMO:** leitura de uso no checkpoint 16:14; continuar dentro dos gates, priorizando revisão dos previews preparados. Home visual completa, browser e espanhol continuam pendentes — não contabilizar inventário/preparação como páginas reformuladas.
