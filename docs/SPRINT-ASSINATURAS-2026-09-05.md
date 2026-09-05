@@ -2303,3 +2303,279 @@ Também peguei um alarme falso na varredura de saúde: uma conta aparecia como
 simplesmente chegado ao fim do teste grátis no mesmo dia. Zero problemas reais.
 Deixei anotado como consertar a varredura, porque alarme falso já custou duas
 rotações nesta sprint.
+
+---
+
+## #9 — 05/09 17:39→18:20 BRT (rotação 8 de 8) — FECHAMENTO REAL DO CICLO: o degrau que o ciclo abriu está aberto e VAZIO — a porta do episódio 2 foi vista 27 vezes e apertada 4, e a rota que fala com quem ficou sem saldo serviu ZERO pessoas porque ninguém a chama
+
+Este é o fechamento do ciclo de 8 horas (10:38 → 18:38 BRT). Não abri jogada do
+cardápio: a 8ª rotação é fechamento. Sem renovação automática — o próximo ciclo
+é decisão sua.
+
+**Antes de tudo, o rótulo:** o diário já tem uma entrada `#6` chamada
+*"FECHAMENTO DO CICLO"* carimbada **18:10 BRT**. Ela foi escrita por volta das
+**15:15**, três rotações antes do fim da janela, e o ciclo continuou depois dela
+(rotações #7 e #8 e dois checkpoints, com entregas reais). O mesmo vale para o
+cabeçalho da `#8` (*"16:38→18:10"*, commitada às 16:59) e para quatro pedidos
+carimbados 18:15–18:20. **Conteúdo intacto, relógio errado.** Quem for ordenar o
+dia, use `git log`, nunca o rótulo. Este aqui é o fechamento com o relógio certo.
+
+### 1. A meta, respondida sem rodeio
+
+Sua ordem da manhã foi: *"o foco é novas assinaturas… meta mínima de 2-3
+assinantes novos por dia."*
+
+**Assinaturas novas neste ciclo: 0.** Desde o marco de 03/09 16:00 UTC, em 68
+cadastros externos, **nenhum `payment_success`**. Não vou embrulhar isso: em
+oito rotações a casa não vendeu.
+
+O que mudou é *onde* ela para de vender, e isso mudou de lugar duas vezes hoje.
+
+### 2. Placar final — agregado (marco 03/09 16:00 UTC, contas externas)
+
+| degrau | pessoas |
+|---|---|
+| cadastro | **68** |
+| filme 1 | **44** |
+| filme 2 | **13** |
+| filme 3 | **4** |
+| checkout | **4** |
+| **pagou** | **0** |
+
+O degrau 1→2 subiu ao longo do ciclo (10 → 13 pessoas) e o 1º filme subiu de 37
+para 44. O degrau que **não** se moveu em hora nenhuma é o último.
+
+### 3. Placar final — POR FONTE (o número que muda prioridade)
+
+| fonte | cadastro | filme 1 | filme 2 | filme 3 | checkout | pagou | 1→2 |
+|---|---|---|---|---|---|---|---|
+| **chatgpt** | 35 | 30 | 10 | 2 | 2 | 0 | **33%** |
+| **taaft** | 16 | 9 | 1 | 0 | 0 | 0 | **11%** |
+| **sem fonte** | 10 | **0** | 0 | 0 | **2** | 0 | — |
+| nav | 3 | 3 | 0 | 0 | 0 | 0 | 0% |
+| outro referrer | 2 | 2 | 2 | 2 | 0 | 0 | 100% |
+| partners / google | 2 | 0 | 0 | 0 | 0 | 0 | — |
+
+Três leituras que só existem depois de separar a fonte:
+
+**a) O ChatGPT é o produto inteiro.** 35 dos 68 cadastros, 30 dos 44 primeiros
+filmes, 10 dos 13 segundos. Se o ChatGPT parar de mandar gente, o funil some.
+
+**b) O TAAFT entrega metade e retém um décimo.** 16 pessoas chegam, 9 fazem
+filme, **1** faz o segundo. A hipótese mais barata continua sendo a que não é
+código: a listagem anuncia trial de 40cr e *"from $9.90/mo"*, e o real é 50cr e
+$7 — quem chega encontra outro produto. **Isso é edição no dashboard do TAAFT,
+sua, e é a única ação do dia com efeito direto sobre aquisição.**
+
+**c) Os 10 "sem fonte" são o defeito que o CLAUDE.md já nomeou.** Zero filmes
+entre os dez — e **dois dos quatro checkouts do período saíram deles**. É o
+padrão *"checkout de conta sem vídeo = defeito, não desejo"*: gente que
+atravessa o produto em segundos até a página de preço sem nunca ver um filme.
+Metade do nosso "interesse em comprar" é isso. **Contar separado, sempre.**
+
+### 4. Placar final — POR PESSOA: as 13 mais quentes da casa, e o muro onde elas estão
+
+O funil agregado esconde isto. Cruzando pessoa a pessoa as **13 que fizeram 2 ou
+mais filmes**:
+
+| filmes | saldo | fonte | checkout |
+|---|---|---|---|
+| 4 | **1** | chatgpt | **sim** |
+| 4 | **1** | outro | não |
+| 3 | 7 | chatgpt | não |
+| 3 | 80 | outro | não |
+| 2 | **0** | chatgpt | não |
+| 2 | 5 · 5 · 5 · 7 · 7 (5 pessoas) | chatgpt | não |
+| 2 | 15 · 19 · 19 (3 pessoas) | chatgpt / taaft | não |
+
+- **9 das 13 não têm saldo para repetir um filme de 15 créditos** (Seedance 1.5,
+  o motor que a maioria usou).
+- **3 das 13 não pagam nem o Kineo 1 de 5 créditos** — saldos 1, 1 e 0. Estão
+  paradas.
+- **1 das 13 chegou ao checkout.** No fechamento prematuro das 15:15 esse número
+  era 0 de 13; ele virou 1 de 13 às 15:56.
+
+### 5. O caso que fecha o ciclo — e o que ele sugere (n=1, não é prova)
+
+A pessoa `21b3a9b4` (chatgpt), hora a hora, hoje (UTC):
+
+```
+07:28  trial concedido (25 créditos)
+07:38  FILME 1 — "5 morning habits Jeff Bezos used…"   → apertou "Episode 2" 1s depois
+07:55  FILME 2 — "the secret hobby of billionaires"    → apertou "Episode 2" 2s depois
+07:59  FILME 3 — "brain synchronization…"              → apertou "Episode 2" 1s depois
+08:35  FILME 4 — "save money while crushing debt"      → apertou "Episode 2" 2s depois
+12:11  modal de upgrade — motivo: trial_spent   ← a casa disse "NÃO" a ela
+16:13  voltou e VIU o cartão do episódio 2
+18:53  voltou e VIU o cartão do episódio 2
+18:56  checkout_attempted + checkout_started, plano starter
+```
+
+**Quatro filmes em 57 minutos e o botão de episódio 2 apertado depois de cada
+um.** É o ritual 1→2→3 funcionando exatamente como a sprint desenhou. Depois a
+casa a recusou por saldo, ela sumiu por quatro horas, **voltou duas vezes só
+para olhar o cartão do episódio 2**, e abriu o checkout **três minutos depois de
+olhar pela última vez**.
+
+Não afirmo que o cartão causou o checkout — é **uma pessoa**. Mas é o único
+checkout do dia vindo de alguém que gostou do produto, e as duas coisas que
+antecederam esse checkout foram (1) um "não" por saldo e (2) o cartão do
+episódio 2. Ela ainda **não pagou**.
+
+### 6. A entrega que está pronta, em produção, e serve ZERO pessoas
+
+Este é o achado mais importante do fechamento e é uma medição, não uma opinião:
+
+```
+next_action_served (rota /api/next-action, da #7, JÁ EM PRODUÇÃO) ....... 0
+series_continue_seen  (pós-deploy 13:25 UTC) ........................... 27
+next_episode_requested (mesma janela) ................................... 4   (15%)
+```
+
+- A rota `/api/next-action` — que junta, na hora do "não", **o preço do próximo
+  filme no motor que a pessoa acabou de usar, o saldo dela e a porta do plano** —
+  subiu para produção hoje e **nunca foi chamada uma vez**. Ela não tem
+  chamador: o cartão que a consome é **tela**, e tela é a pista do Codex. O
+  servidor está pronto e o cliente não vê nada.
+- O cartão do episódio 2 foi **visto 27 vezes e apertado 4** (15%) depois do
+  conserto da manhã. De manhã eram 5 em 11 (45%); às 13:25, 2 em 15 (13%). **O
+  denominador triplicou e a taxa caiu.** A porta está aberta, iluminada, e 23
+  pessoas em 27 passam direto por ela.
+
+**Conclusão honesta do ciclo:** o trabalho de servidor destas 8 horas está feito
+e no ar; o que falta para virar assinatura é **uma peça de tela que a minha
+pista não pode escrever**. Não é bloqueio de conhecimento nem de dado — os dois
+contratos estão prontos, documentados e com evento de medição.
+
+### 7. Entregas do ciclo
+
+**Em produção (12 commits de código, todos com guardião próprio):**
+
+| # | SHA | o que o cliente ganhou |
+|---|---|---|
+| #0 | `2ca9a06c` | o cartão "Episode 2" voltou a existir — a rota devolvia 502 em 12 de 16 chamadas |
+| #1 | `1f3c3f9e` | 22 de 26 e-mails "você está sem crédito" iam para gente COM crédito |
+| ck#1 | `dbae64de` | linha de base do cartão medida (o vazamento é antes da rota) |
+| #2 | `547a8b87` | 36 pessoas tiveram o 1º filme pulado porque "HOOK:" foi lido como colagem de chatbot |
+| ck#2 | `55c84e13` | 1ª prova de servidor de que o POST de geração chegou |
+| #3 | `fe2dcd01` | 40% dos leads de checkout nunca viram um filme e recebiam pergunta sobre cartão |
+| — | `fd7bb83e` | guardião vermelho por CRLF no Windows |
+| ck#3 | `a93d86aa` | porta do episódio 2 provada com denominador (2/2 depois, 5/18 antes) |
+| #4 | `f93668b5` | o e-mail "seu vídeo não saiu" chegava 25 dias depois |
+| ck#4 | `eb3a04c2` | alarme falso desarmado (o defeito estava consertado havia 27h) |
+| #5 | `9e02dbbb` | o botão de episódio 2 dos e-mails mandava quem JÁ TEM CONTA para /signup |
+| #7 | `1b930e9a` | rota `/api/next-action`: saldo + preço do próximo filme + porta do plano |
+| ck#7 | `a33b7fdc` | guardião da série reconciliado com a entrega correta |
+
+**Na fila, esperando o seu clique (5 commits, 2 de código):**
+
+| # | SHA | o que muda |
+|---|---|---|
+| #8 | `7e85bef4` | o e-mail do lead mais quente da casa passa a **nomear o filme da pessoa** e oferecer o episódio 2 — 51 pessoas recebiam pergunta sobre cartão |
+| ck#8 | `30b2226e` | o relógio do e-mail deixa de ser número digitado e passa a vir da constante da Stripe |
+
+`origin/main` = `c4cc13ef`. **Enquanto a fila não subir, a carta nova não sai
+para ninguém.**
+
+### 8. Checagem zero — LIMPA
+
+| item | valor |
+|---|---|
+| cadastro sem crédito em 24h *(SQL corrigido)* | **0** |
+| render preso 2h+ | **0** |
+| `next_episode_failed` após o deploy (13:25 UTC) | **0** |
+| `generation_stage_error` em 24h | 9 · mais recente **09:39 UTC** (nada novo em 11h) |
+| `upgrade_modal_opened` reason=`trial_spent` em 24h | 3 |
+
+**O SQL da checagem foi corrigido nesta rotação**, como o checkpoint da #8
+pediu: *"cadastro sem crédito"* agora exige `not exists (trial_credits_granted)`.
+Sem isso, toda conta cujo trial expira no mesmo dia do cadastro virava alarme
+falso — e alarme falso comeu duas rotações neste ciclo.
+
+### 9. Pendências abertas, por dono
+
+**Do Codex (tela — 4 pedidos abertos, todos com número e evento de medição):**
+1. o **cartão do episódio 2** não diz o que a pessoa ganha ao apertar — 4 de 27;
+2. o **cartão de "próxima ação"** que consome `/api/next-action` — 0 chamadas, 9
+   pessoas de denominador esperando;
+3. a tela `/checkout/cancelled` mostra **preço** para quem nunca viu um filme;
+4. a tela de **login** que recebe clique de e-mail não diz que o episódio 2 está
+   do outro lado.
+
+**Minhas, para o próximo ciclo (se houver):** medir a carta nova do `#8` depois
+que a fila subir (denominador: 51 pessoas com filme que não pagaram, hoje 0
+compraram); e a seção 10 do guardião de série, que julga a fila compartilhada em
+vez do commit da pista.
+
+**Suas:** os quatro itens do bloco abaixo.
+
+### PRÓXIMA JOGADA
+
+**A jogada não-óbvia que este fechamento revela: pare de trabalhar o degrau 1→2
+e trabalhe o instante do "não".**
+
+As 8 rotações atacaram o 1→2 e ele respondeu — 10 → 13 pessoas, primeiro filme
+de 37 → 44. Mas as 13 pessoas que passaram por lá estão **todas paradas no mesmo
+ponto**: 9 sem saldo para repetir o filme que acabaram de gostar, e a casa não
+diz uma palavra nesse instante — o primeiro sinal que elas recebem é um modal de
+upgrade como **recusa** (`trial_spent`, 3 vezes em 24h). A única pessoa que
+atravessou até o checkout fez isso **sozinha**, quatro horas depois de ser
+recusada.
+
+O ativo já existe e custou uma rotação: `/api/next-action` está em produção, é
+`GET`, leitura pura, e devolve a frase pronta e honesta — *"Your last film
+(Seedance 1.5) cost 15 credits. You have 10."* — mais os motores que o saldo
+ainda paga. **Falta só quem a chame.** Enquanto ela tiver zero chamadas, o
+ciclo inteiro terminou a um clique de distância de virar conversa de venda.
+
+Segunda jogada, barata e sua: **o TAAFT retém 1 em 9 e o ChatGPT retém 1 em 3.**
+Corrigir a listagem desatualizada é a única ação de aquisição do dia que não
+depende de código nenhum.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+1. **Clicar em `SUBIR-SITE.bat`** — a fila tem **5 commits** (2 de código). Sem
+   isso, a carta que nomeia o filme da pessoa não sai para ninguém.
+2. **Corrigir a listagem do TAAFT** no dashboard deles: anuncia trial de 40cr e
+   "from $9.90/mo"; o real é 50cr e $7. É a fonte que retém 1 em 9.
+3. **Mandar o Codex desenhar o cartão de "próxima ação"** — a rota
+   `/api/next-action` está em produção com **0 chamadas** e 9 pessoas quentes
+   esperando. É a peça mais perto de dinheiro que existe hoje.
+4. **Decidir a trava de qualidade** (pedido da #7, aberto desde 16:5x):
+   `generate-video-*` vira regra de conteúdo, ou telemetria nessas rotas passa a
+   exigir o seu "vai"?
+5. **Dizer se quer o lote de reoferta** (pedido da #8): as 78 pessoas que
+   receberam a carta antiga nunca receberão a nova, por causa do carimbo
+   vitalício. Só com o seu "vai" eu construo o lote dry-run.
+
+### 📋 O QUE ACONTECEU
+
+Oito horas, catorze entregas de código, **zero assinaturas**. Começo por aí
+porque foi essa a meta.
+
+O que a casa ganhou foi o caminho até a venda, não a venda. De manhã a porta do
+segundo filme estava quebrada — respondia erro em 12 de 16 tentativas e ninguém
+sabia. Hoje ela funciona em 100% das vezes que é apertada, e o número de pessoas
+que fazem um segundo filme subiu de 10 para 13. Três e-mails que falavam com a
+pessoa errada passaram a falar com a certa. Um defeito que pulava o primeiro
+filme de quem vinha da nossa própria home foi fechado.
+
+O muro andou de lugar duas vezes e agora está num lugar muito específico: as 13
+pessoas que gostaram o suficiente para fazer dois filmes estão, **nove delas**,
+sem saldo para fazer o terceiro — e no instante exato em que descobrem isso, a
+casa não diz nada. A primeira coisa que elas veem é um aviso de que não podem.
+Eu construí a peça de servidor que resolve isso (ela junta o preço do próximo
+filme, o saldo que a pessoa tem e a porta do plano, numa frase honesta) e ela
+está no ar desde hoje — **com zero chamadas**, porque a tela que a mostra é da
+pista do Codex e ainda não existe.
+
+Uma pessoa hoje fez quatro filmes em uma hora, apertou "episódio 2" depois de
+cada um, levou um "não" por saldo, voltou duas vezes só para olhar aquele
+cartão, e abriu o checkout três minutos depois. Não pagou. É uma pessoa só, não
+prova nada sozinha — mas é exatamente o comportamento que o produto foi
+desenhado para produzir hoje, e ela chegou até a porta do dinheiro sem que a
+casa a ajudasse em nenhum momento.
+
+E há um recado de aquisição que não custa código: quem vem do ChatGPT faz o
+segundo filme uma vez em três; quem vem do TAAFT, uma em nove. A listagem de lá
+ainda anuncia um trial e um preço que não existem mais.
