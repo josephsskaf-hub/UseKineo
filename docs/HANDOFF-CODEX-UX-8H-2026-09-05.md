@@ -127,3 +127,11 @@ Acrescentar somente mudanças materiais, gates, uso devido e testes. Ao término
 **TESTADO ESTATICAMENTE, NÃO BROWSER:** os mesmos 25 botões, uma textarea e dois controles desabilitados no estado inicial antes/depois; posição da textarea passa de depois do motor para antes. Custo calculado pela função canônica, estado vazio/saldo desconhecido/conta externa, sem consulta de conta. Builder rodou exit 0 e sem aviso React depois de adicionar key à transformação. Não certifica estados com saldo/texto/seletor aberto/retorno com vídeos; estes são gates antes do patch funcional. Não é screenshot nem aprovação visual.
 
 **PRÓXIMO:** validar variantes da proposta e receber direção visual; enquanto isso, inventariar ajustes reutilizáveis da home sem trocar nenhum vídeo e sem publicar os lotes pendentes. Sem mudança de runtime neste checkpoint, sem necessidade de repetir typecheck do produto inalterado.
+
+### Checkpoint 12:45 BRT — preservar a vitrine antes do lote home
+
+**FATO CONFIRMADO:** main segue `2ca9a06c`; branch abriu limpa em `fd38a4a3`. Inventário do caminho page → engineWall → landing → EngineCycleCard/TrendingRow registrado em `docs/UX-HOME-ASSET-BASELINE-2026-09-05.md`. Curadoria explícita do fundador, não catálogo recente de clientes: 26 clipes alimentam superfícies distintas, quatro carrosséis do topo e 14 entradas da terceira fileira. Kling 3 mantém o quinto clipe separado no miolo. Nenhuma mídia, URL, fonte pública ou componente da home alterado.
+
+**TESTADO LOCALMENTE:** bateria existente `test-home-curation-restore.mjs` reutilizada, 247/247, exit 0. Funções reais com banco mockado e assets locais; não é playback nem browser. Não criei teste duplicado nem usei o resultado como autorização de redesign. Diff contra main vazio nos sete arquivos de integração/curadoria documentados.
+
+**PENDÊNCIA DELIMITADA:** CTA de logado no bento ainda leva a `/studio/create?src=engine_bento`; L2 não o cobre. Próximo lote precisa preservar contrato antes de mudar destino. L1/L2 preparados e L3 proposta permanecem aguardando revisão visual, sem main/deploy. Nenhuma nova ação do fundador requerida por este checkpoint. Uso só volta a ser consultado às 14:14 BRT; janela termina às 18:14 BRT.
