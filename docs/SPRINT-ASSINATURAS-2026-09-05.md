@@ -2579,3 +2579,123 @@ casa a ajudasse em nenhum momento.
 E há um recado de aquisição que não custa código: quem vem do ChatGPT faz o
 segundo filme uma vez em três; quem vem do TAAFT, uma em nove. A listagem de lá
 ainda anuncia um trial e um preço que não existem mais.
+
+---
+
+## checkpoint da #9 — 18:10 BRT — o fechamento é o primeiro deste ciclo escrito no relógio certo, e o placar não mudou nos 22 minutos que faltavam
+
+Disparo de `:08` — **checkpoint da 8ª rotação, não rotação nova.** Nada de
+trabalho novo foi aberto. Este bloco só verifica o que a `#9` afirmou.
+
+### 1. O rótulo bateu com o relógio (desta vez)
+
+O ciclo já produziu um "fechamento" às **15:15**, três rotações antes do fim —
+o erro está registrado no diário da `#7`. Por isso a primeira coisa que conferi
+aqui não foi o texto, foi o carimbo:
+
+| | |
+|---|---|
+| janela do ciclo | 10:38 → **18:38** |
+| `6f7e8791` (#9 FECHAMENTO) escrito em | **17:48** |
+| rotação a que pertence | 8ª (17:38–18:38) — **a de fechamento** |
+
+O fechamento é legítimo. Não há rotação nº 10 para abrir.
+
+### 2. Fila íntegra — conferida na PONTA, não na worktree
+
+Memória de erro anterior: *guardião verde na worktree, vermelho na fila.*
+Conferi na `entrega-atual` de verdade:
+
+| item | valor |
+|---|---|
+| commits na fila | **6** |
+| `origin/main` é ancestral da fila? | **sim** (nada alheio foi atropelado) |
+| `origin/main` | `c4cc13ef` |
+| ponta da fila | `6f7e8791` |
+| arquivos de código | `app/api/cron/send-recovery/route.ts`, `lib/seriesContinuation.ts` |
+| testes | 3 (`test-recovery-clock-premise`, `test-recovery-first-film`, `test-recovery-made-film`) |
+
+A `#9` disse "5 commits" às 17:48; são **6** agora porque o próprio commit do
+fechamento entrou na conta. Nenhum commit perdido.
+
+### 3. Placar reconferido às 18:10 — não mudou
+
+Marco `2026-09-03 16:00 UTC`, contas internas fora:
+
+| degrau | valor |
+|---|---|
+| cadastros | 70 |
+| checkout_started (pessoas) | 5 |
+| **payment_success (pessoas)** | **0** |
+| payment_success nas últimas 3h | 0 |
+| checkout_started nas últimas 3h | 1 |
+
+**Zero assinaturas continua sendo zero** nos 22 minutos finais. A meta do
+fundador (2-3/dia) não foi atingida em nenhuma das 8 rotações.
+
+O número que importa não é a medição estar morta — o banco está **vivo**:
+**216 eventos na última hora**, 30 filmes entregues hoje, 46 eventos
+`next_episode*`. A casa trabalhou o dia inteiro. Ninguém comprou.
+
+### 4. A rota da #7 continua sem chamador — agora com denominador de tempo
+
+| | |
+|---|---|
+| `next_action_served` (**todos os tempos**) | **0** |
+
+Não é "0 hoje": é **0 desde que existe**. A peça mais perto do dinheiro que o
+ciclo produziu segue com zero chamadas porque a tela que a consome é da pista
+do Codex. Isso confirma, com o número na mão, o item 3 da lista do fundador.
+
+### 5. Checagem zero — LIMPA na reconferência
+
+| item | valor |
+|---|---|
+| cadastro sem crédito em 24h *(SQL corrigido da #9)* | **0** |
+| render preso 2h+ | **0** |
+| `generation_stage_error` nas últimas 3h | **0** |
+| `next_episode_failed` após o deploy das 13:25 UTC | **0** |
+
+Nada acusou. Não há rotação de emergência a abrir.
+
+### 6. O que este checkpoint NÃO fez
+
+Não abriu jogada nova, não tocou em código de produto, não mandou e-mail, não
+gastou. A janela fecha às 18:38 e o cardápio está esgotado: **J8 (fechamento)
+foi entregue e verificado.** Sem renovação automática — o próximo ciclo é
+decisão do fundador.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+Os cinco itens da `#9` continuam de pé, sem alteração. Em ordem de dinheiro:
+
+1. **Clicar em `SUBIR-SITE.bat`** — fila com **6 commits** (2 de código).
+   Enquanto não subir, a carta que nomeia o filme da pessoa não sai para
+   ninguém.
+2. **Mandar o Codex desenhar o cartão de "próxima ação"** — `/api/next-action`
+   está em produção com **0 chamadas desde que nasceu** e 9 pessoas quentes
+   esperando.
+3. **Corrigir a listagem do TAAFT** (anuncia 40cr e "$9.90/mo"; o real é 50cr
+   e $7). Única ação de aquisição do dia que não depende de código.
+4. **Decidir a trava de qualidade** (pedido da `#7`).
+5. **Dizer se quer o lote de reoferta** das 78 pessoas com carimbo vitalício
+   (pedido da `#8`).
+
+### 📋 O QUE ACONTECEU
+
+Conferi o fechamento em vez de escrever outro. Três coisas ficaram provadas:
+o fechamento saiu no horário certo (o ciclo já tinha errado isso uma vez), a
+fila está inteira e por cima da main — nada de outra sessão foi atropelado — e
+o placar não se mexeu nos últimos 22 minutos.
+
+O ciclo termina com **zero assinaturas** e com as duas peças que fecham a venda
+no ar sem ninguém para apertá-las. A mais gritante: a rota que diz à pessoa
+quanto custa o próximo filme e quanto ela tem no bolso nunca foi chamada **uma
+única vez desde que foi criada** — não porque falhou, mas porque a tela que a
+mostra ainda não existe. É um clique de distância entre oito horas de trabalho
+e uma conversa de venda.
+
+O produto não está quebrado: 30 filmes saíram hoje, nenhum render preso, nenhum
+erro em três horas, nenhuma conta nascendo sem crédito. O que falta não é
+conserto — é a casa abrir a boca no instante em que a pessoa descobre que não
+tem saldo.
