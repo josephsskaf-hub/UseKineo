@@ -2246,3 +2246,206 @@ sem placar, que sao as duas obrigacoes de toda rotacao. Isso e ambiente, nao
 codigo, e so o fundador resolve.
 
 **Entrega deste checkpoint:** verificacao, nenhuma linha de produto. Zero risco.
+
+---
+
+### #11 (global #27) — 22:38→23:38 BRT — A PORTA DO EPISÓDIO 2 FOI POSTA "NO PRIMEIRO VIEWPORT" DENTRO DE UM RAMO QUE SÓ 10,7% DAS PESSOAS RENDERIZAM — E QUE EXCLUI O TRIAL DE PROPÓSITO
+
+**SHA `51f2efdb`** · worktree `C:\kineo-wt\r11-porta-topo`, nascida da **ponta
+da fila** (`ddf336da`) e não da main, porque o arquivo que eu ia tocar é o
+mesmo que a #9 e a #10 editaram há uma hora — basear na main garantiria
+conflito no rebase. `npx tsc --noEmit` exit 0.
+
+#### O número que doía
+
+A #18 moveu a porta de continuar a própria história para o primeiro viewport
+da tela de filme pronto. O objetivo escrito era tirar o alcance dela de **12%**
+e levar a **60%**. Sete horas depois do deploy, a leitura era esta:
+
+| fonte | pessoas alcançadas (30d, externos) |
+|---|---:|
+| `done_screen` (rodapé, a peça antiga) | **51** |
+| `done_screen_top` (a peça nova) | **0** |
+
+As rotações #23 e #8 leram esse zero como **falta de tráfego** ("ninguém passou
+pela porta") e o deixaram como *suspeita sem amostra*. **Não era falta de
+tráfego. Era estrutura.**
+
+#### O mecanismo, reproduzido em pessoa viva
+
+`elkestrahma@gmail.com`, **05/09 01:11 UTC**, `trial_status='active'`:
+
+| hora (UTC) | evento |
+|---|---|
+| 01:05:12 | `generation_attempt_opened` |
+| 01:10:53 | filme concluído |
+| 01:11:39 | `video_ready_viewed` (attempt `3c489a45`) |
+| 01:11:53 | **`series_continue_seen(done_screen)`** — o rodapé disparou |
+| — | **`done_screen_top` nunca disparou**, mesma geração, mesmo `attempt_id` |
+
+O `attempt_id` estava presente (o rodapé o carrega), e a semente era válida —
+rodei `buildSeriesContinuationPrompt()` no título real dela ("Teach numbers
+from 1 to 10 in both Arabic and English.") e ele devolve um prompt legítimo.
+Portanto nem a guarda `!attemptId` nem a `!episode2Seed` explicavam o zero.
+
+**A tela de filme pronto tem DOIS ramos irmãos e mutuamente exclusivos**, cada
+um com o seu próprio botão de download:
+
+- `{showPostVideoExportChoice && (…)}` — a caixa de export limpo;
+- o ramo irmão, que renderiza o download sob `{!showPostVideoExportChoice && (…)}`.
+
+**A porta do #18 entrou só no primeiro.** E o gate é:
+
+```
+phase === 'done' && Boolean(finalVideoUrl) && currentResultHasWatermark &&
+!trialActive && !wmUnlocking && trialPostVideoPhase === null
+```
+
+`!trialActive` — **quem está em trial nunca renderiza aquele ramo.** E quem
+está em trial é exatamente a coorte de 1 filme que a porta existe para mover.
+A ironia está escrita no próprio arquivo, num comentário de 07/08 que já
+avisava: *"a caixa de export limpo exclui o trial com razão, e nada tinha
+ficado no lugar"*.
+
+#### O tamanho do teto, medido e não suposto
+
+`post_video_currency_resolved` roda **exatamente sob a mesma condição** do gate
+— é o espelho dele no banco. Em 30 dias, contas externas:
+
+| | |
+|---|---:|
+| chegaram ao `video_ready_viewed` | **410** |
+| satisfizeram o gate | **44** |
+| **alcance máximo estrutural da porta nova** | **10,7%** |
+
+A peça feita para levar a porta de 12% a 60% nascia com **teto de ~11%** —
+**abaixo do rodapé que ela vinha corrigir**. Não era uma melhora pequena: era
+uma piora, mascarada por um zero que parecia falta de amostra.
+
+#### O que mudou (arquivos)
+
+| arquivo | o quê |
+|---|---|
+| `app/(dashboard)/generate/GenerateClient.tsx` | a mesma porta passa a existir também no ramo irmão |
+| `scripts/test-porta-episodio2-ramos-2026-09-05.mjs` **(novo)** | 32 verificações lendo o arquivo real |
+
+**Mesmo `ref`, mesma `source`, de propósito.** Os dois ramos nunca renderizam
+juntos, então não há colisão de `ref` nem impressão dupla — e `done_screen_top`
+continua significando "primeiro viewport, logo abaixo do download" no banco,
+o que preserva a comparação topo × rodapé que o #18 montou.
+
+**Deliver-first intacto:** a porta continua DEPOIS do download, com peso de
+ação secundária até `watermarkedDownloadConfirmed`. O KINEO-DELIVER-FIRST
+mediu 107 pessoas que viram o filme pronto e foram embora sem o arquivo; isso
+não se reverte por hipótese, e o teste 3.2 reprova quem tentar.
+
+**Trava de qualidade (fundador 03/09): zero linhas de motor.** Verificado por
+teste (seção 6: nenhum símbolo de motor dentro do bloco novo).
+
+#### Testes
+
+`test-porta-episodio2-ramos` **32/32**, com **3 mutações de falsificação, as
+três pegas**: remover a porta nova, tirar a exclusão mútua (que faria os dois
+botões coexistirem e o `ref` colidir), e mover a porta para antes do download.
+Vizinhos verdes **na mesma ponta**: `test-instruction-paste-notice` 48/48 ·
+`test-diretrizes-coladas` 61/61 · `test-serie-memoria` 139/139 ·
+`test-despacho-vazio` 51/51 · `test-memoria-episodio` 42/42 · `tsc` exit 0.
+
+**Correção de percurso:** duas das minhas primeiras verificações falharam por
+**regex do teste**, não do produto (CRLF no `\n` final e um `[\s\S]{0,240}?`
+seguido de linha vazia que não casava porque a definição do gate é seguida de
+comentário). Corrigi o teste, não o código. Registro porque um "o gate sumiu"
+no diário viraria prioridade falsa da próxima rotação.
+
+#### A hipótese da rotação anterior: MEDIDA E DESPRIORIZADA
+
+A #9 fechou mandando **medir a cobertura real de voz por idioma** ("se a casa
+já narra em Árabe, a frase honesta pode virar promessa cumprida"). Medi antes
+de codar, e **a coorte não sustenta uma rotação**:
+
+| em 60 dias, 986 filmes de contas externas | |
+|---|---:|
+| pedem idioma explicitamente (`in Arabic`, `in Hindi`…) | **0** |
+| citam "arabic" em qualquer forma | 2 |
+| citam "hindi" 2 · "french" 3 · "portuguese" 1 | — |
+| tópicos em alfabeto não-latino (árabe, cirílico, CJK, devanágari) | **9 filmes, 9 pessoas** |
+| **desses 9, concluíram o filme** | **9 de 9** |
+
+**Ninguém está sendo bloqueado por idioma**, e o volume total é ~1% dos filmes.
+Fica registrado para ninguém gastar rotação nisso. **Ressalva honesta:** eu
+medi *entrega*, não *qualidade* da narração — se a voz sai com sotaque errado
+num filme árabe, este número não vê. Mas isso é inspeção de motor, que está sob
+a trava, e não há sinal de cliente reclamando.
+
+#### Checagem zero (1h) — LIMPA
+
+Esta sessão **tem** acesso ao banco (o checkpoint da #10 estava cego; o MCP do
+Supabase respondeu normalmente agora — a cegueira era da sessão, não do
+ambiente).
+
+| | |
+|---|---:|
+| render preso > 3h | **0** |
+| despacho vazio (`planned=0`) nas últimas 4h | 2 — **ambos de `nikitaamiran` às 21:41-21:42 UTC**, antes do deploy de 21:44; os 2 despachos seguintes (23:52 e 01:05) foram `planned=9` e `planned=8`, ambos **HTTP 200 e publicados** |
+| `cinematic_zero_scenes_planned` 24h | 0 (coerente: nenhum despacho vazio pós-deploy) |
+| `generation_stage_error` 3h | **0** |
+| cadastro sem crédito 24h | 4 — **os mesmos 4 já documentados na #2** (04/09 04:58/11:03/11:05/11:09 UTC, anteriores ao conserto); 3 deles são domínios descartáveis (`vmail.dev`, `mailshan.com`) |
+| último filme concluído | **01:10:53 UTC** |
+
+**Correção de percurso, minha:** meu primeiro corte de 4h fez os 2 despachos de
+`nikitaamiran` parecerem defeito novo, e quase abri incidente. Ao ler as linhas
+com hora, são cicatriz — os mesmos da #10. **Quinta vez nesta sprint que ler a
+linha antes de reagir ao agregado evitou uma prioridade falsa.**
+
+#### Placar (marco 2026-09-03 16:00 UTC, contas externas, medido 01:41 UTC)
+
+| | | vs #8 |
+|---|---:|---|
+| cadastros | **46** | +1 |
+| pessoas com filme | **31** | +1 |
+| filmes entregues | **39** | +1 |
+| checkout com filme (desejo) | 2 | = |
+| checkout sem filme (defeito) | 2 | = |
+| `checkout_success_viewed` | **0** | = |
+| **`payment_success`** | **0** | = |
+
+**Distribuição:** 26 pararam no 1º · 4 em 2-3 · 1 em 4-7 · 0 em 8+.
+Era 25/4/1 na #8. **A pessoa nova parou no primeiro, e ninguém subiu de faixa
+pela quarta rotação seguida.**
+
+#### Limitações — e elas são grandes
+
+**Esta entrega não pode ser validada nesta janela.** A porta nova estará no ar
+só depois que o fundador publicar a fila, e mesmo então o denominador é o que
+a #8 já apontou: **4 pessoas chegaram à tela de filme pronto em 7 horas.** Com
+esse fluxo, `done_screen_top` sair de 0 é questão de dias, não de rotações.
+
+O que esta rotação **prova** é estrutural, não comercial: a porta era
+**inalcançável** para ~89% de quem termina um filme, e agora não é. **Nada aqui
+demonstra que ela converte** — a taxa de 52-60% que sustenta a aposta vem do
+mecanismo antigo, medida em outra superfície.
+
+#### Próxima jogada
+
+**Medir o par topo × rodapé assim que houver 20 chegadas à tela de filme
+pronto pós-publicação** — não antes. O #18 montou a comparação de propósito
+(duas fontes, mesma tela) e ela só significa alguma coisa com denominador. Até
+lá, a rotação seguinte **não deve remedir a porta de hora em hora** (a #8
+gastou uma rotação inteira nisso e concluiu "inconclusivo", corretamente).
+
+O que **não** depende de tráfego e vale mais: **auditar as outras superfícies
+que a sprint criou pelo mesmo defeito que esta rotação achou.** O padrão não é
+"a porta estava no lugar errado" — é **"a peça foi posta dentro de um ramo
+condicional sem que ninguém medisse o alcance do ramo"**. O `composer_empty`
+(#19) também está em **0 exposições** e merece exatamente esta mesma checagem
+de ramo antes de qualquer conclusão sobre ele. Isso é leitura de código com
+um SELECT de espelho, cabe numa rotação, e não precisa de cliente nenhum.
+
+#### Pedidos novos
+
+Dois, nos PEDIDOS: um **aviso de arquivo ao Codex** (toquei `GenerateClient.tsx`)
+e um **aviso de não-repetição** com a lição transferível — toda superfície nova
+precisa do alcance do ramo medido antes de virar entrega.
+
+**Entrega:** 1 arquivo alterado + 1 teste novo. Zero mudança de preço, plano,
+checkout, oferta ou promessa. Zero linha de motor. Reversível em uma linha.
