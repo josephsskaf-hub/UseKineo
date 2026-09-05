@@ -20,7 +20,7 @@
 | `app/(dashboard)/admin/users/page.tsx` | Pendente |
 | `app/(dashboard)/affiliate/page.tsx` | Pendente |
 | `app/(dashboard)/animate/page.tsx` | Pendente |
-| `app/(dashboard)/audio/page.tsx` | Pendente |
+| `app/(dashboard)/audio/page.tsx` | L1: título do shell preparado/testado; visual e conteúdo da página pendentes |
 | `app/(dashboard)/autopilot/page.tsx` | Pendente |
 | `app/(dashboard)/avatar/page.tsx` | Pendente |
 | `app/(dashboard)/channel/page.tsx` | Pendente |
@@ -28,12 +28,12 @@
 | `app/(dashboard)/dashboard/page.tsx` | Pendente |
 | `app/(dashboard)/generate/page.tsx` | Pendente |
 | `app/(dashboard)/history/page.tsx` | Pendente |
-| `app/(dashboard)/images/page.tsx` | Pendente |
-| `app/(dashboard)/library/page.tsx` | Pendente |
+| `app/(dashboard)/images/page.tsx` | L1: título do shell preparado/testado; visual e conteúdo da página pendentes |
+| `app/(dashboard)/library/page.tsx` | L1: título do shell preparado/testado; visual e conteúdo da página pendentes |
 | `app/(dashboard)/my-videos/page.tsx` | Pendente |
 | `app/(dashboard)/referral/page.tsx` | Pendente |
 | `app/(dashboard)/studio/create/page.tsx` | Pendente |
-| `app/(dashboard)/studio/page.tsx` | Pendente |
+| `app/(dashboard)/studio/page.tsx` | L1: título do shell preparado/testado; hierarquia Studio e destinos pendentes |
 | `app/(dashboard)/templates/page.tsx` | Pendente |
 | `app/(dashboard)/thumbnail-generator/page.tsx` | Pendente |
 | `app/(dashboard)/v2/page.tsx` | Pendente |
@@ -134,4 +134,3 @@
 | `app/youtube-shorts-title-generator/page.tsx` | Pendente |
 
 **Gate final:** nenhuma linha some para aparentar conclusão. Páginas mantidas recebem justificativa; páginas dinâmicas recebem amostras e estados; exceções e traduções pendentes permanecem explícitas.
-

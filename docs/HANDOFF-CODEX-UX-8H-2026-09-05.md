@@ -62,3 +62,17 @@ Acrescentar somente mudanças materiais, gates, uso devido e testes. Ao término
 **QUESTÃO PENDENTE:** o plano do Claude chama checkout sem filme de defeito. Isso não demonstra erro por si só e não substitui o acordo de permitir compra por intenção explícita sem exigir filme ou roteiro. Não implementar bloqueio de planos com base nessa interpretação.
 
 **PRÓXIMA JOGADA:** lote 1 de navegação/títulos, com preview existente e validação visual ainda pendente. ACK de coordenação não é aprovação visual do fundador. A confirmação de começar não cria janela de 28 horas nem renova o bloco: término permanece 05/09 às 18:14 BRT.
+
+### Checkpoint 10:45–10:55 BRT — lote 1 preparado e testado, não publicado
+
+**IMPLEMENTADO NA BRANCH / NÃO EM PRODUÇÃO:** MobileNav com cinco posições (Studio, My Videos, Tools, Pricing, More). Links de primeiro nível continuam Next Link; Tools/More são disclosures nativos, não um menu ARIA incompleto. Destinos antigos permanecem; demais ferramentas acompanham Sidebar. Invite/Affiliate continuam exclusivos de logados; Account também. Pricing permanece link direto independente de saldo, roteiro ou vídeo. Nenhuma geração, preço ou oferta alterada.
+
+**IMPLEMENTADO NA BRANCH:** DashboardShell passa os títulos Studio/Images/Audio/Library ao TopBar real, antes caíam no fallback Dashboard. TopBar e Sidebar examinados como pares e NÃO editados. Autenticação, chip de crédito, modais e backend intactos.
+
+**TESTADO LOCALMENTE, 05/09:** `node scripts/test-ux-mobile-navigation.mjs`: 37 verificações verdes executando os componentes reais com fronteiras React hooks/roteamento/DOM simuladas. Cobertura: quinze destinos existentes, cinco posições, filtro de visitante, prefixos de rota, disclosure exclusivo, Escape/foco, Tab para fora, fechamento ao navegar, limpeza do listener e sete títulos recebidos pelo TopBar. React SSR também executado. NÃO é browser nem prova completa de acessibilidade. TypeScript do projeto: `node node_modules/typescript/bin/tsc --noEmit --incremental false`, exit 0 sem diagnóstico. Dependências reutilizadas por junction exclusiva desta worktree para `C:/kineo/node_modules`, sem instalação nem env. `git diff --check` limpo.
+
+**PREVIEW ATUALIZADO:** HTML autocontido já existente agora usa a barra proposta extraída do componente real via SSR; antes continua original. Inclui os quatro títulos em pares desktop/mobile. Contexto de página esquemático e controles locais declarados; não usa APIs, dados privados nem render. Validação visual e aprovação do fundador permanecem gates abertos.
+
+**FATO CONFIRMADO / CI:** `.github/workflows/guardiao.yml` tem `continue-on-error: true` e suíte sem instalar dependências. Verde global não é prova de todas as baterias. Nosso teste precisa de TypeScript/React instalados; não afirmar Guardião executado nesta branch, nem mudar o workflow fora deste lote. Exigir resultados dos jobs e teste específico antes de integração visual.
+
+**COORDENAÇÃO:** branch `codex/plano-ux-studio-2026-09-05` agora contém código UX em preparação, não só documentação. NÃO incorporar a branch inteira ou estes arquivos à fila de publicação do Claude: gate visual não autorizado. Nenhum merge na main nem deploy nesta rodada. Próximo checkpoint: contratos dos botões de continuação/Studio, consumindo helper do Claude sem editá-lo; L1 fica preservado aguardando revisão visual.
