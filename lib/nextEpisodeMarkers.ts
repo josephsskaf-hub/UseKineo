@@ -52,6 +52,60 @@ export function temMarcadores(texto: string): boolean {
   return MARCADORES.every((m) => vistos.has(m))
 }
 
+// KINEO-MARCADOR-DA-CASA-2026-09-05
+//
+// O DEFEITO: a home escreve o roteiro da pessoa de graca (/api/demo-script),
+// ela LE, aprova e clica. app/HomeTopicForm.tsx:buildActivationPrompt entrega
+// esse roteiro ao /signup no formato de marcadores da PROPRIA CASA:
+//   "HOOK: ..." / "MICRO REWARD 1: ..." / "ESCALATION: ..." / "PAYOFF: ..."
+// Ai looksLikeInstruction (lib/momentumTopic.ts) olha a primeira linha, ve
+// "HOOK:" bater no seu LABEL_LINE (escrito para pegar "STYLE:", "MAIN
+// CHARACTER:" de colagem de chatbot) e decide que o texto e INSTRUCAO. O
+// auto-start nao dispara, e a pessoa ainda leva na tela um aviso dizendo
+// "Your ChatGPT script is still here" — para um roteiro que a NOSSA home
+// escreveu e que ela nunca colou de lugar nenhum.
+//
+// MEDIDO (05/09, campanha push69_home_one_click_starters, historico completo):
+//    36 pessoas PULADAS por este motivo — 21 fizeram filme (58%), 6 fizeram 2 (17%)
+//   292 pessoas com auto-start DISPARADO — 202 fizeram filme (69%), 66 dois (23%)
+// Pos-marco (03/09 16:00 UTC, 44h): 10 pessoas, TODAS de source=homepage,
+// prompt_length 338-431 — a assinatura exata do handoff da home. Das 8 contas
+// TAAFT sem nenhum filme no periodo, 7 pararam aqui.
+//
+// A REGRA: um texto cuja PRIMEIRA linha ja e um marcador da casa e que traz TRES
+// marcadores distintos nao e colagem de chatbot — e o formato que o proprio
+// fast-path verbatim (parseViralScriptSections) foi feito para ler. Reconhecer e
+// LISTA BRANCA, nao afrouxamento: nada que hoje e recusado por rotulo estranho,
+// markdown ou frase de regra passa a ser aceito. Exigir TRES distintos (e nao um
+// "HOOK:" solto) e o que impede uma colagem que por acaso abre com rotulo de
+// virar render automatico.
+const MIN_MARCADORES_DISTINTOS = 3
+
+/**
+ * O texto esta escrito no formato de secoes da casa (HOOK / MICRO REWARD /
+ * ESCALATION / PAYOFF), com rotulo INLINE ou em linha propria?
+ *
+ * Diferente de `temMarcadores`, que exige os QUATRO em linha propria porque
+ * governa o esqueleto que a rota de episodio devolve. Aqui o dono e outro: o
+ * porteiro do auto-start, que precisa responder "isto e roteiro nosso?" — e o
+ * handoff da home manda rotulo inline ("HOOK: In 1833, ...").
+ */
+export function pareceRoteiroDaCasa(bruto: string | null | undefined): boolean {
+  if (typeof bruto !== 'string') return false
+  const linhas = bruto.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
+  if (linhas.length === 0) return false
+  // A PRIMEIRA linha com conteudo tem de ser um marcador. Roteiro nosso nunca
+  // comeca com prosa solta, e exigir isso mantem de fora a colagem que enterra
+  // um "PAYOFF:" no meio de tres paragrafos de conversa com o chatbot.
+  if (!LINHA_ROTULO.test(linhas[0]) && !ROTULO_INLINE.test(linhas[0])) return false
+  const vistos = new Set<string>()
+  for (const linha of linhas) {
+    const m = linha.match(LINHA_ROTULO) ?? linha.match(ROTULO_INLINE)
+    if (m) vistos.add(canonico(m[1]))
+  }
+  return vistos.size >= MIN_MARCADORES_DISTINTOS
+}
+
 /** Palavras faladas, ignorando linhas que são só rótulo. Serve para provar
  *  que rotular não mudou a narração. */
 export function palavrasFaladas(texto: string): string[] {

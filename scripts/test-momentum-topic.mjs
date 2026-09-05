@@ -15,10 +15,17 @@ const R = join(dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(join(R, 'package.json'))
 const ts = require('typescript')
 const out = mkdtempSync(join(tmpdir(), 'momentum-'))
-for (const f of ['resumeStrip', 'momentumTopic']) {
+// KINEO-MARCADOR-DA-CASA-2026-09-05 — `nextEpisodeMarkers` entrou na lista porque
+// `looksLikeInstruction` passou a consultar `pareceRoteiroDaCasa` de la (o roteiro
+// que a nossa home escreve chega em marcadores da casa e era lido como colagem de
+// chatbot). Sem o vizinho copiado, este guardiao morria com ERR_MODULE_NOT_FOUND
+// numa pasta temporaria — vermelho por dependencia faltando, nao por defeito. A
+// reescrita do especificador virou GERAL pelo mesmo motivo: uma lista de nomes a
+// manter a mao e a proxima falha deste tipo.
+for (const f of ['resumeStrip', 'nextEpisodeMarkers', 'momentumTopic']) {
   const js = ts.transpileModule(readFileSync(join(R, `lib/${f}.ts`), 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 },
-  }).outputText.replace(/from '\.\/resumeStrip'/, "from './resumeStrip.mjs'")
+  }).outputText.replace(/from '\.\/([A-Za-z0-9_-]+)'/g, "from './$1.mjs'")
   writeFileSync(join(out, `${f}.mjs`), js)
 }
 const { pickMomentumTopic, momentumAnchor } = await import(pathToFileURL(join(out, 'momentumTopic.mjs')).href)

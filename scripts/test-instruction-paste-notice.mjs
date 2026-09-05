@@ -39,9 +39,17 @@ function loadInstructionGate() {
     fileName: 'lib/momentumTopic.ts',
   }).outputText
   const module = { exports: {} }
-  new Function('require', 'module', 'exports', output)(() => {
-    throw new Error('lib/momentumTopic.ts: unexpected import')
-  }, module, module.exports)
+  // KINEO-MARCADOR-DA-CASA-2026-09-05 — `looksLikeInstruction` passou a consultar
+  // `pareceRoteiroDaCasa` (lib/nextEpisodeMarkers.ts) para nao classificar como
+  // colagem de chatbot o roteiro que a NOSSA home escreve em marcadores da casa.
+  // Este unico vizinho e carregado DE VERDADE, do arquivo de producao: substitui-lo
+  // por um dublê faria o teste medir o dublê. Todo OUTRO import continua estourando,
+  // que e a garantia original deste carregador.
+  const requireVizinho = (especificador) => {
+    if (especificador === './nextEpisodeMarkers') return loadTs('lib/nextEpisodeMarkers.ts')
+    throw new Error(`lib/momentumTopic.ts: unexpected import (${especificador})`)
+  }
+  new Function('require', 'module', 'exports', output)(requireVizinho, module, module.exports)
   return module.exports.looksLikeInstruction
 }
 

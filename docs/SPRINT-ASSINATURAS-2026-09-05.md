@@ -268,3 +268,201 @@ reforço vindo deste checkpoint: além do TAAFT perder 8 de 14 antes do primeiro
 filme, agora há um segundo vazamento medido e barato de atacar (11 veem a
 porta, 5 apertam). Os dois são "a pessoa chega e não aperta", que é o gargalo
 que o funil de 24/08 já tinha nomeado.
+
+---
+
+### #2 — 11:38→11:50 BRT (14:38→14:50 UTC) — a casa escreveu o roteiro, a pessoa aprovou, e a casa recusou o próprio roteiro: 36 pessoas tiveram o primeiro filme pulado por "isso parece instrução de chatbot"
+
+Jogada da rotação: **J6 (fonte por fonte)**, como a #1 e o seu checkpoint
+recomendaram. O TAAFT perdia 8 de 14 antes do primeiro filme; a pergunta era
+*onde* a conta TAAFT para. A resposta não era do TAAFT — era da casa.
+
+#### 1. O número que doía
+
+Funil por fonte, marco 03/09 16:00 UTC, 61 contas externas:
+
+| fonte | contas | filme 1 | filme 2 | filme 3 | checkout | pagou |
+|---|---|---|---|---|---|---|
+| chatgpt.com | 31 | 25 | 7 | 2 | 1 | 0 |
+| **taaft** | **14** | **6** | 1 | 0 | 0 | 0 |
+| nav | 9 | 5 | 1 | 1 | 0 | 0 |
+| (sem fonte) | 6 | 2 | 1 | 1 | 2 | 0 |
+| partners | 1 | 0 | 0 | 0 | 0 | 0 |
+
+Das **8 contas TAAFT sem nenhum filme**, o rastro de eventos diz: 7 chegaram
+ao `/generate`, 4 clicaram em analisar (9 cliques entre 4 pessoas — gente
+clicando de novo), 2 chegaram a `video_generation_started`. E **7 das 8**
+tinham, antes de tudo isso, o mesmo evento:
+
+    activation_autostart_skipped · reason = prompt_looks_like_instruction
+
+#### 2. A causa, com o arquivo e a linha
+
+`app/HomeTopicForm.tsx` é a peça que faz a home valer: o visitante digita um
+tema, a casa escreve o roteiro dele **de graça** (`/api/demo-script`), ele LÊ,
+aprova e clica. O handoff para o `/signup` manda esse roteiro no formato de
+seções da própria casa (`buildActivationPrompt`):
+
+    HOOK: ...
+    MICRO REWARD 1: ...
+    MICRO REWARD 2: ...
+    ESCALATION: ...
+    PAYOFF: ...
+
+Do outro lado, `looksLikeInstruction` (`lib/momentumTopic.ts`) olha a primeira
+linha e testa `LABEL_LINE = /^[A-Z][A-Z /&-]{2,}:/` — regra escrita em 02/09
+para pegar `STYLE:` e `MAIN CHARACTER:` de colagem de chatbot. `HOOK:` bate.
+Veredito: **instrução**. O auto-start não dispara, e a pessoa ainda recebe na
+tela o aviso `"Your ChatGPT script is still here"` — sobre um roteiro que a
+NOSSA home escreveu e que ela nunca colou de lugar nenhum.
+
+A assinatura bate byte a byte: os `prompt_length` desses eventos são **338-431
+chars**, com `source=homepage` e `campaign=push69_home_one_click_starters`.
+
+#### 3. O tamanho (campanha push69, histórico completo)
+
+| grupo | pessoas | fez filme | fez 2 filmes |
+|---|---|---|---|
+| **auto-start PULADO** por este motivo | **36** | 21 (58%) | 6 (17%) |
+| auto-start DISPARADO | 292 | 202 (69%) | 66 (23%) |
+
+11 pontos de primeiro filme e 6 de segundo. Correlação, não prova de causa —
+mas o mecanismo aqui não é hipótese: o roteiro estava pronto e aprovado, e o
+botão não apertou sozinho como aperta para todo mundo.
+
+#### 4. O que mudou
+
+- `lib/nextEpisodeMarkers.ts`: nasce `pareceRoteiroDaCasa()`. É **lista
+  branca**, não afrouxamento: exige que a **primeira linha com conteúdo** já
+  seja um marcador da casa (rótulo inline `HOOK: …` ou em linha própria) **e**
+  que existam **3 marcadores distintos**. Um `HOOK:` solto no meio de uma
+  colagem não vira passe livre. O arquivo já era o dono do vocabulário de
+  marcadores (é dele que vive o #0), então não há segunda cópia da regex.
+- `lib/momentumTopic.ts`: `looksLikeInstruction` consulta a lista branca
+  **antes** de qualquer outro sinal e devolve `false`. Nada mais mudou —
+  `INSTRUCTION_START`, `LABEL_LINE`, `MARKDOWN` e `RULE_PHRASE` seguem
+  idênticos, e `pickMomentumTopic` (âncora do e-mail de momentum) não toca
+  nesta função e continua byte a byte o de ontem.
+- `scripts/alias-hooks.mjs`: passa a resolver também import relativo sem
+  extensão (`./resumeStrip`). Aditivo — só age quando o caminho pedido não
+  existe como está.
+- `scripts/test-momentum-topic.mjs` e `scripts/test-instruction-paste-notice.mjs`:
+  os dois carregam `momentumTopic` fora do Next (cópia temporária / `new
+  Function`) e morriam com o import novo. Ambos passam a carregar o vizinho
+  **real**, não um dublê.
+
+#### 5. O que o cliente passa a ver
+
+Quem aprova o roteiro na home e clica: **o primeiro filme começa a renderizar
+sozinho**, como já acontece com os outros 292. Antes, caía no `/generate` com
+a caixa cheia, nada acontecendo, e um aviso dizendo que o roteiro dele era
+colagem do ChatGPT.
+
+#### 6. Testes
+
+- **Guardião novo** `scripts/test-marcador-da-casa.mjs`: **40/40 verde**. Não
+  testa só a biblioteca — lê `app/HomeTopicForm.tsx` para provar que o formato
+  que ele assume é o formato que a home realmente produz, e lê
+  `GenerateClient.tsx` para provar que o porteiro do auto-start ainda consulta
+  a função consertada. Inclui 12 verificações de **NÃO AFROUXOU** (as 6
+  colagens reais de chatbot continuam sendo recusadas) e a prova de que a
+  primeira linha do handoff **ainda** bate no padrão que causava o falso
+  positivo — sem isso o teste poderia estar verde por acidente.
+- Vizinhos rodados, **todos verdes**: `test-momentum-topic` (40),
+  `test-instruction-paste-notice` (48), `test-zero-cenas-fallback` (22),
+  `test-proximo-episodio-marcadores`, `test-serie-episodio-2` (262),
+  `test-momentum-continuacao` (49), `test-rodape-saldo-desconhecido` (40),
+  `test-porta-episodio2-ramos` (32), `test-video-ready-footer`,
+  `test-video-ready-nudge`.
+- `npx tsc --noEmit` **verde** (worktree com junction de `node_modules`).
+- **Isto é a bateria de vizinhos, não a suíte integral** — a suíte inteira não
+  foi rodada nesta rotação.
+- Achado honesto de fora do escopo: `scripts/test-coerencia-historia-2026-09-02.mjs`
+  está **VERMELHO (23 ok, 2 fail)** — `duration=45 na URL vira 35` e
+  `onboarding: consulta /api/credits antes de escolher motor`. Rodei na base
+  limpa ANTES de encostar em qualquer arquivo: **já estava vermelho, não é
+  meu**. Fica registrado para não virar paisagem.
+
+#### 7. Risco
+
+Baixo e reversível. A mudança só pode transformar `true` em `false` num único
+caminho — texto que abre em marcador da casa com 3 marcadores distintos — e o
+efeito disso é o auto-start disparar para quem aprovou o roteiro. O outro
+consumidor de `looksLikeInstruction` é o resgate de zero cenas em
+`generate-video-cinematic`, onde `false` libera a divisão determinística do
+texto: exatamente o formato que `parseViralScriptSections` foi feito para ler.
+Nenhum arquivo de tela, nenhuma oferta, nenhum preço, nada do pipeline de
+qualidade do filme.
+
+#### 8. Como medir
+
+1. `activation_autostart_skipped` com `reason=prompt_looks_like_instruction`
+   **e** `campaign=push69_home_one_click_starters` deve ir a **~0** (hoje: 10
+   pessoas pós-marco, 4 nas últimas 24h).
+2. `activation_autostart_dispatched` da mesma campanha deve subir na mesma
+   proporção.
+3. Degrau `filme 1` da fonte **taaft**: 6 de 14 hoje.
+4. O que **não** pode mudar: `activation_instruction_notice_viewed` de gente
+   com `utm_source=chatgpt.com` e `prompt_length` de 900-1000 — essas são
+   colagens de verdade e devem continuar sendo pegas.
+
+#### 9. Placar de fechamento (marco 03/09 16:00 UTC, externos)
+
+cadastro **61** → filme 1 **38** → filme 2 **10** → filme 3 **4** →
+checkout **3** → **pagou 0**.
+
+#### Checagem zero — LIMPA
+`video preso >90min (24h)` **0** · `cadastro 24h sem crédito e sem filme` **0**
+· `next_episode_failed` nas 24h **13, todos ANTES do deploy do #0** (o último é
+13:15:43 UTC, e `pós-deploy = 0`) · `next_episode_ready` 5, também todos
+anteriores. Em 1h30 de produção não houve **um** `next_episode_requested`: o #0
+segue **não provado e não desmentido**, exatamente como a #1 o deixou. Não
+afirmo conserto. `series_continue_seen` teve 2 impressões pós-deploy.
+
+Fila: **3** commits — longe do limite de 30, mas nada disto vale um centavo
+até o clique.
+
+#### PRÓXIMA JOGADA
+**J6 continua, e agora com endereço.** Os 11 pulados por "instrução" nas
+últimas 24h eram 4 da nossa home (consertado agora) e **7 de `chatgpt.com` com
+`prompt_length` 900-1000** — esses são colagem de verdade e o pulo está certo.
+Só que estar certo não está fazendo filme: a pessoa cola a conversa inteira do
+ChatGPT, o auto-start recusa (com razão) e ela some. A jogada não é afrouxar o
+portão — é o servidor **devolver o roteiro limpo** dessa colagem em vez de só
+recusar. `lib/pastedDirectives.ts` e o desembrulhador de colchetes do
+`generate-video-cinematic` (KINEO-UNBRACKET-2026-09-04) já sabem separar fala
+de direção de cena; falta ligar isso ao momento do auto-start. É a maior fonte
+do produto (31 das 61 contas) parando na porta de entrada.
+
+#### Pedidos novos
+Registrados em `docs/PEDIDOS-ENTRE-PISTAS-2026-09-03.md`.
+
+---
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+1. **Clique no `SUBIR-SITE.bat`** (raiz de `C:\kineo`). São 3 commits na fila:
+   o rodapé de saldo desconhecido (#1) e o conserto do marcador da casa (#2).
+   Enquanto não clicar, nenhum dos dois existe para cliente nenhum.
+2. Nada mais depende de você nesta rotação.
+
+### 📋 O QUE ACONTECEU
+A home da Kineo escreve o roteiro do visitante de graça, ele lê, aprova e
+clica para criar a conta. Descobri que, do outro lado, o produto olhava esse
+roteiro — escrito por nós, no nosso próprio formato — e concluía "isso é
+colagem de chatbot, não vou gerar nada automaticamente". Resultado: a pessoa
+caía numa tela parada com um aviso dizendo que o roteiro dela era do ChatGPT.
+Aconteceu com **36 pessoas** desde que a home passou a escrever roteiro; delas,
+58% chegaram a fazer um filme, contra 69% de quem teve o auto-start normal.
+Nas últimas 24 horas foram 4. Sete das oito contas vindas do TAAFT que nunca
+fizeram um filme pararam exatamente aí — a fonte que você paga com listing e
+review estava batendo nessa porta.
+
+O conserto ensina o produto a reconhecer o próprio formato: roteiro que começa
+com os nossos marcadores e tem três deles é roteiro nosso, ponto. Tudo que era
+recusado ontem continua recusado — há doze verificações no guardião só para
+provar isso. Não mexi em preço, oferta, tela ou no pipeline que faz o filme.
+
+O que ficou aberto: o degrau que decide dinheiro segue em 0 pagantes pós-marco,
+e a próxima jogada é a mesma porta de entrada vista do outro lado — as sete
+pessoas que colam a conversa inteira do ChatGPT e batem no mesmo portão, com
+razão, e vão embora sem filme.
