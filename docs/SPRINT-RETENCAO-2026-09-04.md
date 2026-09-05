@@ -3210,3 +3210,108 @@ converte" com o denominador velho.
 
 **Entrega:** 1 módulo novo + 7 portas instrumentadas + 1 guardião de 34
 verificações + 1 entrada de diário + 2 pedidos. Zero mudança visível ao cliente.
+
+---
+
+### checkpoint da #15 — 01:10 BRT (04:10 UTC) — as 16 entregas da fila não subiriam: o clique do fundador para em "CONFLITO REAL" e não diz em qual arquivo, porque não há arquivo nenhum
+
+Checkpoint da rotação #9, não rotação nova: a #15 fechou às 00:50 e esta é a
+segunda metade da mesma hora. Não abri frente nova — fui verificar se o que a
+sprint enfileirou **chega em produção**. Não chegaria.
+
+#### O que estava errado (medido, e reproduzido no bat de verdade)
+
+A fila tem **16 entregas** que nunca subiram. Enquanto a sprint trabalhava, o
+Codex publicou **3 commits** direto na `main` (`67b15c30`, `5dce98a1`,
+`c19d6a60` — todos `docs/`). Isso é normal e o `!RODAR-AGORA` foi feito para
+isso: o push é rejeitado por não ser fast-forward e o script **rebasa sozinho**
+num clone temporário.
+
+Só que dois desses commits do Codex **também estão dentro da fila**, cherry-
+pickados por uma rotação anterior — mesmo conteúdo, SHA diferente. Ao replayar
+a fila por cima da `main`, esses picks ficam **VAZIOS**: o conteúdo já está lá.
+E é aí que o v9 erra. O git sai com erro e **zero arquivo em conflito**; a
+rotina `:uniao_docs` itera sobre a lista de arquivos não-mesclados, a lista é
+vazia, o corpo do laço nunca roda, o `cherry-pick --continue` falha ("The
+previous cherry-pick is now empty") e o script conclui **conflito real**.
+
+Reproduzido no bat real, num clone com a origem apontada para a `origin/main`
+verdadeira (16 pendentes, mesma divergência de produção):
+
+```
+ XX CONFLITO REAL no commit a5f5b9e4... - arquivo(s) fora de docs/: XX
+                                    <-- a lista de arquivos sai VAZIA
+ XX PAROU NO CONFLITO - nao empurrei nada. XX
+```
+
+**Nada estava quebrado no conteúdo da fila** — provei separadamente que um
+`git rebase` de verdade aplica os 16 sem um único conflito. O defeito é só a
+leitura que o v9 faz de "pick vazio". O efeito, porém, era total: 16 entregas
+paradas e um veredito que manda o fundador chamar o Claude para resolver um
+conflito **que não existe**, sem nome de arquivo para investigar.
+
+#### O que mudou (arquivos)
+
+| arquivo | o quê |
+|---|---|
+| `scripts/!RODAR-AGORA.bat` | **v10**: antes de tratar como conflito, `:uniao_docs` conta os arquivos não-mesclados. **Zero = commit já aplicado → `cherry-pick --skip` e segue.** Conflito de verdade continua parando e dizendo o arquivo. |
+| `scripts/!RODAR-AGORA.bat` | a mensagem do chamador deixou de afirmar "resolvido por união" nos dois ramos (num deles não houve união nenhuma) |
+| `SUBIR-SITE.bat` · `scripts/!RODAR-AGORA.bat` | **passam a existir no git** (ver achado 2) |
+
+#### Achado 2, e ele é maior do que parece
+
+As **duas ferramentas que publicam tudo nunca foram commitadas**. `git log
+--all -- 'scripts/!RODAR-AGORA.bat'` sai vazio; `SUBIR-SITE.bat` idem. Não
+estão no `.gitignore` — só nunca foram adicionadas, enquanto **199 outros
+`.bat` de `scripts/` estão versionados**. Ou seja: o único caminho de entrega
+da casa vivia em **uma cópia só, no disco do fundador**, sem backup e sem
+histórico. Perder a pasta era perder o mecanismo de publicar. Os dois entram
+versionados nesta entrega — é a convenção do próprio repositório, não política
+nova.
+
+#### Testes — e o que eles provam de fato
+
+| verificação | resultado |
+|---|---|
+| v9 no clone fiel (origem = `origin/main` real) | **reproduz o defeito**: "CONFLITO REAL", lista vazia, 0 entregas |
+| v10 no **mesmo** clone | **"SUBIU 16 ENTREGA(S)"** na tentativa 2 |
+| commits do Codex depois do push v10 | `67b15c30`, `5dce98a1`, `c19d6a60` — **3 de 3 ancestrais**, nenhum perdido |
+| árvore final do v10 × árvore de um `git rebase` limpo independente | **idênticas** (`c50a1a2b…`) |
+| `git rebase origin/main` sobre a fila (referência) | limpo, 15 commits, 0 conflitos |
+
+A prova que importa é a última linha da tabela: o resultado do script
+remendado é **byte a byte** o mesmo de um rebase feito à mão. O v10 não
+inventa resolução — ele só deixa de chamar de conflito o que não é.
+
+**Não rodei `npx tsc --noEmit` nesta entrega, e o motivo é que ela não tem uma
+linha de TypeScript** — são dois `.bat` e um `.md`. O verde de TS que vale
+continua sendo o da #15, e a fila não mudou de conteúdo. Dizer "guardião verde"
+aqui seria encher linguiça.
+
+**Ruído cosmético que eu NÃO consertei:** o v10 imprime uma vez "O sistema não
+pode encontrar o caminho especificado" — é o `rmdir` do clone temporário na
+primeira execução, quando a pasta ainda não existe. Não afeta o resultado e
+mexer nisso é tocar mais no script do fundador do que o problema pede.
+
+#### Quantas pessoas isso move de N para N+1
+
+**Diretamente, nenhuma. Indiretamente, todas as 16 entregas da fila** — que
+incluem o conserto do "zero cenas" e a instrumentação das 11 portas do
+episódio 2. Enquanto o clique parasse no conflito falso, **nada disso existia
+para cliente nenhum**. Esta é a entrega que faz as outras dezesseis contarem.
+
+#### Estado da fila neste minuto
+
+`entrega-atual` = 16 entregas à frente da `main` (17 com esta). **Não empurrei
+nada** — push é manual e é do fundador, por regra. O que mudou é que agora o
+clique termina em "SUBIU", e não em conflito fantasma.
+
+#### Próxima jogada
+
+Depois que o fundador clicar, a primeira leitura continua sendo a que a #15
+pediu — `series_continue_seen` por fonte. Mas agora ela é **possível**: antes
+deste conserto, a instrumentação das 11 portas ia ficar parada na fila
+indefinidamente, e a próxima rotação leria "nenhuma impressão nova" e
+concluiria que o `IntersectionObserver` não dispara — quando a causa real seria
+que **o código nunca chegou ao ar**. Um conserto de infraestrutura evitou uma
+conclusão errada de produto.
