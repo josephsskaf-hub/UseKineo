@@ -101,7 +101,7 @@ Nada agora. O piloto não será executado sem autorização específica e elegib
 
 Preparada uma alternativa de venda assistida com trava contra repetição: 25 de 27 potenciais compradores já tiveram contato recente aceito pelo serviço. Nenhuma assinatura nova demonstrada, nenhum envio e nenhuma mudança visual. O resultado desta etapa é elegibilidade e proposta verificáveis, não venda atribuída.
 
-## Rotação 3 — 19:08–20:08 BRT — EM EXECUÇÃO
+## Rotação 3 — 19:08–20:08 BRT — CONCLUÍDA
 
 - **FATO CONFIRMADO:** base atual `1ee5e384`; worktree `C:/tmp/usekineo-caixa-10h-r3`, branch `codex/caixa-10h-r3`. AGENTS, estado histórico, questões, Growth, handoff, diário Claude e pedidos lidos. A main incorporou série/memória/despacho vazio e seus testes. `git log origin/main..entrega-atual` vazio na abertura; não olhar apenas a main para anti-duplicação. Nenhum arquivo Claude editado.
 - **EVIDÊNCIA OPERACIONAL, 04/09 22:08:51 UTC:** uso semanal Codex 31% consumido / 69% disponível; janela secundária indisponível. Leitura após duas rotações, nenhum reset ou compra.
@@ -128,3 +128,37 @@ Nada agora. Não há pedido para mudar cobrança nem liberar contato.
 ### 📋 O que aconteceu
 
 O pedido de mudar o webhook foi desnecessário: assinatura e avulso já têm campos próprios. A entrega resolve uma contradição de medição entre as pistas e evita código duplicado. Placar da sprint segue sem primeira assinatura demonstrada.
+
+## Rotação 4 — 20:08–21:08 BRT — PREPARADA, INTEGRAÇÃO BLOQUEADA
+
+- **EVIDÊNCIA DE PRODUÇÃO / fechamento R3:** `c5c91f0c25c4f8e320130d1b182406aa3bc4e2d2`, Guardião `33924905894` success, deploy `dpl_D8mkrngu9KPv5u4mPUv9UKHGUQ9H` READY, www correto em 04/09 22:20:56 UTC. Registro pós-push: PR41 comentário 5547106655.
+- **FATO CONFIRMADO:** o ramo `first_delivery` de `app/checkout/cancelled/page.tsx:358–386` dizia que o plano estava disponível, mas só oferecia vídeo/Studio; o botão de retomar compra estava no ramo irmão. Correção isolada restaura CTA secundário, mantendo o filme primário e o launcher existente. Sem preços/créditos/render/Autopilot alterados.
+- **PREPARAÇÃO, NÃO AÇÃO EM PRODUÇÃO:** worktree `C:/tmp/usekineo-caixa-10h-r4`, branch `codex/caixa-10h-r4`, SHA final `dc2d4d83288654627251b859785b1263e78374b5`, PR42 draft. Handoff detalhado e comparação HTML desktop/mobile estão NESSA branch; não copiar o runtime por engano na entrega documental R5.
+- **TESTADO LOCALMENTE:** TSX real + launcher real com IO mockado, red/green, 148/148; regressões 39/77/108/66/36; tsc integral exit 0. Fixture do baseline permite checkout raso, também testado com subprocessos proibidos. **EVIDÊNCIA DE PREVIEW, 04/09 23:29 UTC:** Guardião `33929536191` success, deploy `dpl_CGe7UHDDjtmFRhXHfLZ1JqHUMfjm` READY, target preview, sem www. Não significa suíte histórica integral verde.
+- **BLOQUEADO:** Chrome recusou navegar ao arquivo local de comparação por política de segurança. Nenhum contorno tentado. HTML preparado não é comparação inspecionada. Não integrar na main sem revisão visual genuína. Não existe efeito comercial desta variante para medir ainda. Registro pós-push: PR42 comentário 5547621804.
+- **CHECKPOINT 20:38 BRT, mesma R4:** main continuava c5c91f0c, worktree limpa, fila Claude vazia. Sem aprovação visual nova; sem merge, SQL repetido, contato ou outra hipótese. R4 preservada para conferência.
+
+## Rotação 5 — 21:08–22:08 BRT — EM EXECUÇÃO
+
+- **FATO CONFIRMADO:** base `40c4f91462773f04cbdd7a1a970666393a123573`, apenas diário/pedido Claude novos; worktree própria `C:/tmp/usekineo-caixa-10h-r5`, branch `codex/caixa-10h-r5`. Fila `origin/main..entrega-atual` vazia. Regras, estado, questões, Growth, oferta/métricas históricas, handoffs, pedido e trecho novo do diário relidos. Mandato desta janela continua somente CAIXA/B2C, não o antigo FLUXO.
+- **EVIDÊNCIA OPERACIONAL, leitura de uso 05/09 00:10 UTC:** semanal 32% consumido, 68% disponível. Segunda janela indisponível. Nenhum reset/crédito comprado; próxima leitura após R6, abertura R7.
+- **EVIDÊNCIA DE PRODUÇÃO, SELECT 05/09 00:10:20.164769 UTC:** baseline fixo 38 cadastros, 25 pessoas com filme, 3 pessoas no caixa/3 sessões, 0 primeiras assinaturas e 0 avulsos. Ciclo desde 04/09 20:08 UTC: 2 cadastros, 2 pessoas com filme, 0 pessoas no caixa/0 sessões, 0 primeiras assinaturas e 0 avulsos. Não dividir esses grupos independentes como funil sequencial. Vigia 2h vazio; sem nova objeção declarada.
+- **HIPÓTESE DO PEDIDO A VERIFICAR:** o Quickstart classificaria automaticamente uma instrução como roteiro. Antes de mudar: executar o caller real com texto sintético, localizar origem do campo e mapear efeito da alternativa. Gate: se o campo mede escolha de botão, NÃO tratá-lo como classificação do conteúdo; não sobrescrever intenção por regex sem consentimento.
+- **CONTRADIÇÃO CONFIRMADA:** `components/ChatGptWelcomeBanner.tsx:105–107,204,212` grava `input_type: choice`, vindo dos botões "Use this script" / "I only have an idea — write the script". Não há classificador automático nesse caminho. O conteúdo do campo não foi semanticamente verificado; o evento demonstra opção selecionada, não prova roteiro pronto. A UI aceita "script, outline or idea" no mesmo campo e destaca "Use this script": **HIPÓTESE de indução pela apresentação**, não erro da pessoa nem causa raiz única provada do render.
+- **TESTADO LOCALMENTE, caller real offline às 21:12 BRT:** mesmo texto sintético de instrução, zero seleção na montagem; clique no botão de roteiro → `finished_script`, `verbatim`, 35s; clique de ideia → `idea`, `ai`, 60s. Texto preservado nos dois. Nenhum GPT, rede, geração ou débito. Fonte dos destinos: `lib/growth/chatgptQuickstart.ts:24–35,47–52`; Studio consome `script_mode` e duração da URL em `app/(dashboard)/studio/StudioClient.tsx:246–255`.
+- **RISCO CONCRETO DO "FIX BARATO":** trocar automaticamente para `idea` também troca 35s por 60s. Não é simples correção de etiqueta nem preserva o pedido original. Um início imperativo também pode ser fala legítima. Não introduzir autoria/retexto ou duração diferente em silêncio, não alterar Studio/modo/pipeline na pista CAIXA.
+- **DECISÃO DESTA RODADA: NÃO EXECUTAR autoclassificador nem troca de modo.** Pedido respondido no arquivo compartilhado: solução candidata é escolha assistida explícita, preservando texto e duração e permitindo manter roteiro legítimo; exige escopo alinhado entre aquisição/Studio e confirmação visual. Sem retornar ao antigo ciclo FLUXO. Diagnóstico remove uma premissa errada, mas não conta como assinatura, feature entregue ou conserto do render.
+- **QUESTÃO PENDENTE:** o caso individual e a falha final foram relatados pelo Claude no commit 40c4f914; esta rodada confirmou o caller e os destinos, não repetiu leitura do texto/trilha pessoal nem demonstrou causalidade completa. Nenhum novo contato do piloto, ainda sem prova de consentimento/campanhas.
+- **TESTADO LOCALMENTE:** tsc integral real exit 0; contrato de compra 108/108, entitlement 66/66, Autopilot return 36/36. `git diff --check` limpo. Apenas dois documentos alterados; runtime da R4 não está nesta branch. Integração documental aguarda Guardião; SHA/deploy serão registrados após a confirmação, não antecipados.
+
+### Próxima jogada
+
+Compartilhar correção factual e estado de R4 pelo Git, sem runtime novo. Aguardar revisão visual de R4 e evidência de intenção nova; não alterar uma segunda superfície apenas para preencher hora. Checkpoint 21:38 continua R5.
+
+### ✅ O que você precisa fazer
+
+Permanece apenas a revisão visual do PR42 antes de integrar aquela tela. A escolha assistida do Quickstart é proposta de escopo separado; não há batch, pagamento ou contato a executar agora.
+
+### 📋 O que aconteceu
+
+O pedido do Claude foi rastreado até os botões reais. O evento era escolha, não classificação; mudar automaticamente a escolha também mudaria a duração. Devolvido esse limite para impedir uma correção silenciosa do texto do cliente. A sprint continua sem primeira assinatura nova comprovada neste corte.
