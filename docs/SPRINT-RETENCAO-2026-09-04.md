@@ -2175,3 +2175,74 @@ e leitura de codigo, nao de tela.
 dos cards do quickstart) perde urgencia agora que a pessoa ja e avisada do que a
 casa nao entrega. O pedido fica aberto, mas com prioridade menor do que eu escrevi
 acima.
+
+---
+
+#### CHECKPOINT 22:08 BRT da mesma #10 — nenhum trabalho novo aberto
+
+Duas sessoes paralelas entregaram dentro desta hora e **as duas mexeram no mesmo
+arquivo**: `bbccd82b` (#9, +81 linhas em `GenerateClient.tsx`) as 21:25 e
+`c1cc524e` (#10, +10 linhas no mesmo arquivo) as 21:54. Cada uma rodou a **propria**
+bateria. **Ninguem tinha rodado as duas sobre a ponta combinada** — e o modo de
+falha natural aqui ja esta registrado no pedido #111: duas sessoes editando o mesmo
+`if` nao geram conflito de merge, entao a perda e silenciosa.
+
+**Verificado na ponta `1877350b` (worktree limpa, `C:/kineo-wt/ckpt-r10`):**
+
+| | |
+|---|---|
+| `npx tsc --noEmit` | **exit 0**, zero diagnosticos |
+| `test-instruction-paste-notice.mjs` | **48/48** |
+| `test-diretrizes-coladas-2026-09-04.mjs` | **61/61** |
+| `test-serie-memoria-2026-09-04.mjs` | **139/139** |
+
+**A checagem que nenhuma das duas baterias faz** — porque cada uma so conhece o
+proprio aviso: os dois textos novos **coexistem na mesma tela** para quem cola uma
+ordem longa em 16:9. Li os dois pontos de render. O aviso de colagem esta em
+`GenerateClient.tsx:12491`, **acima do textarea** (passo "2 · Your idea"); a frase
+do que a casa nao faz esta em `:12962`, **ao lado dos botoes de duracao**. Lugares
+diferentes, mensagens complementares ("isto parece uma ordem que voce deu ao
+chatbot" / "nao entregamos 16:9 nem mais de 90s"). **Nao ha empilhamento nem
+contradicao.** A ponta combinada esta sa.
+
+#### Correcao de percurso, minha, antes que vire numero no diario
+
+As minhas **tres primeiras medicoes desta noite eram falsas**, e por um motivo so:
+rodei `npx tsc --noEmit 2>&1 | tail -20; echo "TSC_EXIT=$?"`. **O `$?` depois de um
+pipe e o codigo do `tail`, nunca o do comando.** Ele ia dar 0 mesmo com o compilador
+quebrado. Somado a isso, a worktree recem-criada **nao tinha `node_modules`** (o
+`git worktree add` nao os traz), entao o `tsc` nem rodou e os tres testes morriam em
+`MODULE_NOT_FOUND`. Resolvido com uma juncao (`mklink /J`) para o `node_modules` da
+raiz; so entao os numeros da tabela acima existem.
+
+**E o que eu quase escrevi e NAO e verdade:** cheguei a tratar isso como reproducao
+do defeito do pedido das 10:54 (*"Guardiao verde nao significa suite verde"*).
+**Nao e.** Medi de proposito: `npx tsc --noEmit` sem `node_modules` sai com
+**exit 1** e imprime *"This is not the tsc command you are looking for"*. O falso
+verde foi **meu**, do meu pipe — nao do npx. Aquele pedido continua aberto pelos
+motivos que o Codex mediu (falta de `npm ci` e `continue-on-error` no job), e esta
+rodada **nao acrescenta prova nenhuma** a ele. Registro porque um "reproduzi o bug
+do Guardiao" no diario viraria prioridade falsa da proxima rotacao — foi
+exatamente o erro que a #8 registrou com os 91 `ok=false`.
+
+#### Checagem zero — NAO REFEITA NESTE CHECKPOINT, e a razao importa
+
+**Esta sessao nao tem acesso ao banco.** O MCP do Supabase respondeu
+`MCP error -32600: You do not have permission to perform this action`, e o
+`C:/kineo/.env.local` desta maquina e **placeholder** (`NEXT_PUBLIC_SUPABASE_URL`
+= `your-project...`, `SUPABASE_SERVICE_ROLE_KEY` com 21 caracteres). Escrevi o
+script de checagem, rodei, e todas as consultas devolveram `TypeError: fetch
+failed`. **Nao inventei numero para preencher a tabela.**
+
+A leitura valida desta rotacao e a que a **abertura da propria #10** fez as
+**00:45 UTC** — 28 minutos antes deste checkpoint, dentro da mesma hora, e
+**limpa** (0 render preso, 0 despacho vazio depois do deploy de 21:44 UTC, nada
+novo falhando). A obrigacao horaria esta cumprida por ela; um checkpoint da mesma
+rotacao nao deve uma segunda medicao.
+
+**Aviso operacional que vale mais que esta rotacao:** se o MCP do Supabase
+continuar negado, **a proxima sessao autonoma fica cega** — sem checagem zero e
+sem placar, que sao as duas obrigacoes de toda rotacao. Isso e ambiente, nao
+codigo, e so o fundador resolve.
+
+**Entrega deste checkpoint:** verificacao, nenhuma linha de produto. Zero risco.
