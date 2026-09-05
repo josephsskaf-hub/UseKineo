@@ -15,6 +15,15 @@ import { NEXT_VIDEO_MIN_CREDITS } from '@/lib/lifecycle/videoReadyFooter'
 // digitado nesta rota, e mudanca de preco/credito chega aqui sozinha.
 import { filmNoun, filmPlanLine, filmsPerPlan, sanitizeFilmCost } from '@/lib/lifecycle/trialFilmPlans'
 import { buildSeriesContinuationEmailUrl } from '@/lib/seriesContinuation'
+// sprint-assinaturas #8-checkpoint (05/09) — O RELÓGIO DESTE JOB NÃO É DELE.
+// Quando a linha de `checkout_abandoned` nasce é decidido inteiramente pelo
+// `expires_at` da sessão Stripe, que mora em lib/growth/checkoutSessionWindow
+// e JÁ MUDOU DUAS VEZES sem que ninguém revisse a copy daqui (ver o bloco
+// KINEO-RECOVERY-RELOGIO-MEDIDO-2026-09-05 abaixo). Importado, nunca digitado:
+// se a janela mudar de novo, o número que este arquivo reporta muda junto e o
+// guardião scripts/test-recovery-clock-premise-2026-09-05.mjs fica VERMELHO
+// para forçar a releitura das duas decisões de copy que dependem dele.
+import { RECURRING_CHECKOUT_WINDOW_HOURS } from '@/lib/growth/checkoutSessionWindow'
 
 // send-recovery — Push #425
 //
@@ -120,6 +129,39 @@ const PAID_PLANS = new Set(['starter', 'starter_trial', 'basic', 'basic_trial', 
 // do teto ficam para a execução seguinte (2h depois), na ordem em que estão.
 const RECOVERY_WINDOW_HOURS = 7 * 24
 const MAX_EMAILS_PER_RUN = 25
+
+// ═══════════════════════════════════════════════════════════════════════════
+// KINEO-RECOVERY-RELOGIO-MEDIDO-2026-09-05 — O "~24h" DESTE ARQUIVO ESTÁ
+// CERTO HOJE, JÁ ESTEVE ERRADO, E A MEDIANA HISTÓRICA "PROVA" O CONTRÁRIO
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// A #8 abriu um pedido para corrigir o "~24h" porque o banco devolve mediana de
+// 1,98h entre o `checkout_started` e o `expired_at`. A correção teria QUEBRADO
+// uma decisão de copy correta. O intervalo é BIMODAL, e a mediana de todo o
+// histórico é a média de dois regimes que nunca coexistiram (198 linhas com
+// clique rastreável, medidas em produção em 05/09):
+//
+//   semana      n    mediana    modo ~2h   modo ~24h
+//   20/07      13     24,00h        2         11
+//   27/07      13     24,00h        0         13
+//   03/08      29      1,97h       24          5
+//   10/08      36      1,95h       35          1
+//   17/08      52      1,95h       51          1
+//   24/08      24      1,97h       21          3
+//   31/08      31     23,95h        0         29
+//
+// O regime de ~2h começou em 03/08 e MORREU em 29/08. Quem mediu foi o
+// commit KINEO-CHECKOUT-24H-2026-08-30 (app/api/stripe/checkout/route.ts): o
+// timer de duas horas estava matando a página de pagamento de comprador VIVO
+// no boundary exato, e a janela voltou para 24h de propósito — aceitando
+// explicitamente ATRASAR este e-mail em vez de matar o checkout de quem estava
+// pagando. Ou seja: o atraso é uma decisão tomada, não um defeito por achar.
+//
+// REGRA QUE FICA: o relógio deste job é propriedade de
+// lib/growth/checkoutSessionWindow.ts, não deste arquivo. Nunca reescrever a
+// copy do relógio a partir de uma mediana de janela longa — ela mistura
+// regimes. Medir SEMPRE com corte na data da última mudança da janela, ou
+// simplesmente ler RECURRING_CHECKOUT_WINDOW_HOURS, que é a verdade viva.
 
 // ═══════════════════════════════════════════════════════════════════════════
 // sprint-assinaturas #3 (05/09/2026) — O E-MAIL DE LEAD QUENTE TRATAVA
@@ -382,8 +424,11 @@ function buildEmail(plan: string | null, tier: string | null, userId: string, ba
     // revisão adversarial derrubou a frase "esta pessoa está em D0/D1 e não
     // recebe desconto". Duas correções, ambas medidas:
     //   · O RELÓGIO: a linha de `checkout_abandoned` só nasce quando a sessão
-    //     Stripe EXPIRA (~24h) e a janela deste job é de 48h. O e-mail chega em
-    //     D1–D3, não em D0/D1.
+    //     Stripe EXPIRA (hoje ~24h — RECURRING_CHECKOUT_WINDOW_HOURS) e a
+    //     janela deste job é de 7 dias. O e-mail chega em D1–D3, não em D0/D1.
+    //     ⚠️ Esta frase é VERDADE HOJE e JÁ FOI MENTIRA — ver o bloco
+    //     KINEO-RECOVERY-RELOGIO-MEDIDO-2026-09-05 no topo do arquivo antes de
+    //     reescrevê-la a partir de uma mediana histórica.
     //   · A COLISÃO, que importa mais: a MESMA coorte recebe todo dia às 10:00Z
     //     o `/api/admin/send-abandon-recovery` (via cron `send-reminders`), com
     //     o assunto **"Still thinking it over? First month $4.90"** — um
@@ -961,6 +1006,11 @@ export async function GET(req: NextRequest) {
     // por quanto tempo a linha já vinha esperando.
     window_hours: RECOVERY_WINDOW_HOURS,
     suppression_window_hours: HOT_LEAD_SUPPRESSION_HOURS,
+    // KINEO-RECOVERY-RELOGIO-MEDIDO-2026-09-05 — a janela da sessão Stripe é
+    // quem decide QUANDO a linha nasce, e ela já mudou duas vezes em silêncio.
+    // No payload, a mudança aparece na primeira execução seguinte em vez de
+    // precisar ser arqueologada em `expired_at` semanas depois.
+    checkout_session_expiry_hours: RECURRING_CHECKOUT_WINDOW_HOURS,
     deferred_by_cap: deferredByCap,
   })
 }
