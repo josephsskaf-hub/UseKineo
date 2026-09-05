@@ -3071,3 +3071,142 @@ ponta `6d5e9e24`, e os dois estão verdes: `test-instruction-paste-notice`
 **48/48** e `test-lifecycle-suppression-ledger` (o da #12) **29/29**. A bateria
 desta sprint é portanto de **11 guardiões, todos verdes**, mais `tsc` exit 0.
 Continua não sendo a suíte histórica integral.
+
+---
+
+### #15 (global #31) — 00:38 BRT (05/09) — a casa tinha ONZE portas para o episódio 2 e sabia contar a aparição de DUAS; por isso a taxa de conversão da peça mais eficiente do produto era matematicamente impossível
+
+**O número que doía.** A #14 fechou com um mistério e o deixou por escrito:
+`series_continue_seen` = 71 impressões contra 122 cliques em 30 dias. Impressão
+menor que clique não é resultado ruim — é resultado **impossível**. Ninguém
+clica no que não apareceu. Fui atrás e a causa não era sutil:
+
+| `series_continue_clicked` (30d, por fonte) | cliques | pessoas | tem impressão? |
+|---|---:|---:|---|
+| `history_video_card` | 31 | 17 | **não** |
+| `history_milestone` | 26 | 19 | **não** |
+| `generate_recent_video` | 24 | 15 | **não** |
+| `done_screen` | 22 | 13 | sim |
+| `studio_milestone` | 11 | 6 | **não** |
+| `render_pill` | 7 | 7 | **não** |
+| `library_video_card` | 1 | 1 | **não** |
+| **total** | **122** | — | **2 de 11 pares (source, path)** |
+
+O evento de exposição existia em **um arquivo só** — o `GenerateClient`, nas
+fontes `done_screen` e `composer_empty`. As outras seis fontes sabiam contar
+clique e **não sabiam dizer que tinham aparecido**. Toda leitura de "a porta do
+episódio 2 converte?" saía errada **por construção**: dividia o clique de onze
+portas pela impressão de duas. E o erro não é acadêmico — foi exatamente esse
+número que sustentou a #11 (a porta "alcançava 0 de 410") e a #19.
+
+**O tamanho do ponto cego, medido na coorte que importa.** Das **320 pessoas
+externas com exatamente 1 filme** em 30 dias, **128 voltaram** — e **101
+dessas 128 pisaram numa tela que tem porta de série** (`/generate` 61 ·
+`/studio/create` 33 · `/history` 28 · `/studio` 26 · `/library` 2). Ou seja:
+**a casa expôs a oferta a pelo menos 101 pessoas de um filme e registrou a
+exposição de quase nenhuma.**
+
+#### O que mudou (arquivos)
+
+Um módulo novo e cinco `ref` pendurados em elementos que **já existiam**:
+
+| arquivo | o quê |
+|---|---|
+| `lib/seriesDoorImpressions.ts` **(novo)** | `useSeriesDoorSeen()` — uma única definição de "esta porta apareceu": metade do elemento no viewport, uma vez por porta por visita, `source` idêntico ao do clique |
+| `app/(dashboard)/history/HistoryClient.tsx` | `history_milestone` (2 ramos) + `history_video_card` |
+| `app/(dashboard)/studio/StudioClient.tsx` | `studio_milestone` + `studio_video_tile` |
+| `app/(dashboard)/library/LibraryClient.tsx` | `library_video_card` |
+| `app/(dashboard)/generate/GenerateClient.tsx` | `generate_recent_video` |
+| `components/ActiveRenderPill.tsx` | `render_pill` (os dois botões) |
+| `scripts/test-porta-serie-impressao-2026-09-05.mjs` **(novo)** | o guardião |
+
+**Três decisões de projeto, e o motivo de cada uma:**
+
+1. **`ref` no elemento que já existe, nunca um wrapper.** Um `<div>` ou
+   `<span>` em volta muda caixa em contêiner flex — e essas portas moram dentro
+   de grades e barras. A entrega é telemetria **sem um pixel novo**. O guardião
+   proíbe wrapper explicitamente (4.c).
+2. **O observer nasce no registro, não num `useEffect`.** Ref callback roda no
+   commit, **antes** de qualquer efeito. Criado no efeito, ele perderia a
+   primeira porta de toda tela que já monta com a porta na frente — que é
+   justamente o caso do `/history`.
+3. **Sem `IntersectionObserver` conta com `observed:false`** em vez de perder a
+   série. É a mesma convenção que o `done_screen` já usava desde a #47, de
+   propósito: as fontes precisam continuar comparáveis entre si.
+
+**O que esta entrega NÃO faz:** não muda copy, layout, `href`, ordem, preço,
+crédito, motor nem roteiro. Zero linha em `lib/compose`, `lib/hollywood`,
+`lib/cinematic`, `lib/broll`. A trava de qualidade do fundador não foi tocada.
+
+#### Testes
+
+| guardião | resultado |
+|---|---|
+| `test-porta-serie-impressao-2026-09-05` **(novo)** | **34/34**, exit 0 |
+| `npx tsc --noEmit` (do zero, `tsbuildinfo` apagado) | **exit 0**, 19,7s |
+| os 11 guardiões da sprint (#11, #12, #13, #14 e anteriores) | **11 de 11 exit 0** |
+
+**Um defeito do próprio guardião, achado e corrigido antes de subir:** a
+primeira versão lia o bloco de clique numa janela de 240 caracteres e ficou
+**cega para o `studio_video_tile`**, cujo bloco tem 5 campos e passa disso —
+o guardião reproduziu, em pequeno, exatamente o defeito que existe para pegar.
+Janela para 420 e a fonte apareceu: 33 → 34 verdes.
+
+**Ressalva honesta, e ela importa:** este guardião é **estrutural**. Ele lê os
+arquivos reais e prova que a instrumentação existe e está **pareada** (toda
+fonte literal de clique tem fonte de impressão). Ele **não** prova que o
+`IntersectionObserver` dispara no navegador. Essa prova só existe no banco,
+depois da publicação: `series_continue_seen` aparecendo nas seis fontes novas.
+Não chamar isto de "a medição funciona" antes disso.
+
+#### Quantas pessoas isso move de N para N+1
+
+**Zero, hoje, e de propósito.** Nenhuma pessoa vê nada diferente. O que muda é
+que a próxima rotação que perguntar "a porta converte?" vai ter **denominador
+em 11 portas em vez de 2** — e a #11, a #19 e qualquer peça futura de episódio 2
+passam a ser julgadas por exposição real. O alvo continua sendo os **116 que
+voltam e não apertam nada** contra os **12 que apertam**; a diferença é que
+agora dá para saber quantos deles a oferta alcançou.
+
+#### Checagem zero (1h) — LIMPA
+
+| | |
+|---|---:|
+| render preso > 3h | **0** |
+| `generation_stage_error` 3h | **0** |
+| `generate_failed` 3h | **0** |
+| `cinematic_zero_scenes_planned` 3h | **0** |
+| filmes concluídos 3h | 2 |
+| cadastros 3h | 1 |
+
+#### Placar (marco 2026-09-03 16:00 UTC, contas externas, medido 03:50 UTC)
+
+| | | vs #14 |
+|---|---:|---|
+| cadastros | **46** | = |
+| pessoas com filme (contas **nascidas** depois do marco) | **29** | = |
+| filmes entregues (idem) | **37** | = |
+| `checkout_started` | 4 | = |
+| **`payment_success`** | **0** | = |
+
+**Distribuição:** 17 com 0 filmes · **24 no 1º** · 4 em 2-3 · 1 em 4-7.
+**Ninguém subiu de faixa** — pela terceira rotação seguida.
+
+#### Próxima jogada
+
+**Assim que a fila subir, a primeira consulta não é de clique — é de
+impressão por fonte.** Se `series_continue_seen` aparecer em `/history` e
+`/studio` nas próximas horas, o denominador nasceu e as três peças de episódio 2
+(#11, #18, #19) finalmente podem ser julgadas. Se **não** aparecer em nenhuma
+delas, o achado é maior do que este: não é a instrumentação que falha, é
+`trackEvent` não chegando ao banco a partir dessas telas — e aí a dívida muda
+de lugar. **As duas respostas são úteis; a de hoje era a única impossível.**
+
+#### Pedidos novos
+
+Dois, nos PEDIDOS: o aviso de arquivo (5 arquivos, incluindo a zona
+compartilhada) e o aviso de não-repetição sobre não reabrir "a porta não
+converte" com o denominador velho.
+
+**Entrega:** 1 módulo novo + 7 portas instrumentadas + 1 guardião de 34
+verificações + 1 entrada de diário + 2 pedidos. Zero mudança visível ao cliente.

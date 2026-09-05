@@ -11,6 +11,7 @@ import Link from 'next/link'
 import { STUDIO_KIT_CSS } from '@/components/studioKit'
 import { trackEvent } from '@/lib/analytics'
 import { buildSeriesContinuationHref } from '@/lib/seriesContinuation'
+import { useSeriesDoorSeen } from '@/lib/seriesDoorImpressions'
 
 type Tab = 'videos' | 'images' | 'audio'
 
@@ -19,6 +20,8 @@ type Img = { id: string; url: string; upscaled_url?: string | null; model?: stri
 type Aud = { id: string; url: string; model?: string; voice?: string | null; text?: string | null }
 
 export default function LibraryClient() {
+  // sprint-retencao #15 — `library_video_card` tinha clique e zero impressao.
+  const { registrarPorta } = useSeriesDoorSeen()
   const [tab, setTab] = useState<Tab>('videos')
   const [vids, setVids] = useState<Vid[]>([])
   const [imgs, setImgs] = useState<Img[]>([])
@@ -242,6 +245,11 @@ export default function LibraryClient() {
                 {v.title && (
                   <Link
                     href={buildSeriesContinuationHref(v.title, 'library_video_card')}
+                    ref={registrarPorta({
+                      source: 'library_video_card',
+                      video_id: v.id,
+                      completed_video_count: vids.length,
+                    })}
                     className="pill"
                     style={{ marginTop: 8, display: 'block', textAlign: 'center', textDecoration: 'none', fontSize: 11.5, fontWeight: 700, color: '#7cc0ff', borderColor: 'rgba(41,151,255,.35)' }}
                     onClick={() => {

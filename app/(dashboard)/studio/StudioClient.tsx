@@ -32,6 +32,7 @@ import {
 import { trackEvent } from '@/lib/analytics'
 import { formatLimitCounter, promptLimitState, trimPromptToLimit } from '@/lib/studioPromptLimit'
 import { buildSeriesContinuationHref } from '@/lib/seriesContinuation'
+import { useSeriesDoorSeen } from '@/lib/seriesDoorImpressions'
 
 // A chave do card → a Quality que o biller entende. Uma fonte só para os dois
 // (tela e cobrança) evita a classe de bug que este arquivo já teve: custo em
@@ -141,6 +142,10 @@ const CAMERA_PRESETS: { key: string; label: string; emoji: string; prompt: strin
 // fundador entra LA, uma vez, e atualiza o produto inteiro.
 
 export default function StudioClient() {
+  // sprint-retencao #15 — `studio_milestone` (11 cliques em 30d) e
+  // `studio_video_tile` nunca tiveram denominador. So telemetria: a tela
+  // continua exatamente a mesma.
+  const { registrarPorta } = useSeriesDoorSeen()
   const router = useRouter()
   const searchParams = useSearchParams()
   const searchSignature = searchParams.toString()
@@ -805,6 +810,11 @@ export default function StudioClient() {
               </div>
               <a
                 href={buildSeriesContinuationHref(myVids[0]?.title, 'studio_milestone')}
+                ref={registrarPorta({
+                  source: 'studio_milestone',
+                  video_id: myVids[0]?.id ?? null,
+                  completed_video_count: myVids.length,
+                })}
                 className="pill on"
                 style={{ textDecoration: 'none', fontWeight: 800, whiteSpace: 'nowrap' }}
                 onClick={() => {
@@ -861,6 +871,12 @@ export default function StudioClient() {
                     <a
                       className="vtnext"
                       href={buildSeriesContinuationHref(v.title, 'studio_video_tile')}
+                      ref={registrarPorta({
+                        source: 'studio_video_tile',
+                        video_id: v.id,
+                        position: idx,
+                        completed_video_count: myVids.length,
+                      })}
                       onClick={() => {
                         void trackEvent('series_continue_clicked', {
                           source: 'studio_video_tile',

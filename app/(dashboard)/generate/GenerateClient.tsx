@@ -206,6 +206,7 @@ import {
   buildSeriesContinuationPrompt,
   type SeriesContinuationSource,
 } from '@/lib/seriesContinuation'
+import { useSeriesDoorSeen } from '@/lib/seriesDoorImpressions'
 import {
   buildPublicVideoSharePath,
   PUBLIC_VIDEO_SHARE_VERSION,
@@ -16918,6 +16919,10 @@ function RecentVideoThumb({ video }: { video: RecentVideo }) {
 }
 
 function RecentVideosSection({ videos }: { videos: RecentVideo[] | null }) {
+  // sprint-retencao #15 — `generate_recent_video` e a 3a maior fonte de
+  // clique da casa (24 em 30d) e nunca teve impressao. O hook fica ANTES do
+  // retorno de carregamento de proposito: hook nao pode nascer condicional.
+  const { registrarPorta } = useSeriesDoorSeen()
   // null = still loading initial fetch
   if (videos === null) {
     return (
@@ -17033,6 +17038,11 @@ function RecentVideosSection({ videos }: { videos: RecentVideo[] | null }) {
           </div>
           <a
             href={latestContinuationHref}
+            ref={registrarPorta({
+              source: 'generate_recent_video',
+              video_id: latestCompleted.id,
+              completed_video_count: videos.length,
+            })}
             onClick={() => {
               void trackEvent('series_continue_clicked', {
                 source: 'generate_recent_video',
