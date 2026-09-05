@@ -776,3 +776,97 @@ e-mail de hoje. O link do plano continua no corpo: ninguém é impedido de compr
 De quebra, um número que muda a estratégia: **29 das 30 pessoas que fizeram só
 um filme têm crédito para outro**. O que falta entre o 1º e o 2º filme não é
 crédito — é motivo para voltar.
+
+---
+
+### checkpoint da #3 — 13:25 BRT — a porta do episódio 2 foi provada em produção pela PRIMEIRA VEZ com denominador; e o gargalo mudou de lugar: 15 viram, 2 apertaram
+
+Checkpoint, não rotação nova: a #3 fechou às 12:56 com o código entregue e o
+diário escrito. Vim conferir o que ela deixou por conferir, e uma das duas
+conferências mudou a prioridade da próxima jogada.
+
+#### 1. O guardião da correção CRLF: VERDE na ponta da fila
+
+A correção `fd7bb83e` foi enfileirada às 12:56 e **não tinha sido reconferida
+no checkout limpo** — que é exatamente onde o falso vermelho nasce. Rodei
+`scripts/test-recovery-first-film-2026-09-05.mjs` numa worktree nova de
+`entrega-atual` (`C:/kineo-wt/chk3`, junção de `node_modules` conferida **antes**,
+porque sem ela o `tsc` mente com exit 0): **50 ok, 0 fail**. A correção está
+provada onde importa, não só na máquina onde foi escrita.
+
+#### 2. O #0 tinha "0 falhas" — mas ninguém tinha olhado o denominador
+
+A #3 registrou `next_episode_failed = 0` depois do deploy e tratou isso como
+prova. **Não era ainda.** Zero falhas sem saber quantas chamadas houve é o
+mesmo erro que o #15 da sprint passada apontou — a casa contando aparições sem
+contar tentativas. Medi os dois lados, com o corte no deploy do `2ca9a06c`
+(13:20 UTC):
+
+| janela | `next_episode_requested` | `ready` | `failed` | sucesso |
+|---|---|---|---|---|
+| **antes** do deploy | 18 | 5 | **13** | **28%** |
+| **depois** do deploy | 2 | 2 | **0** | **100%** |
+
+Agora sim é prova — com a ressalva honesta de tamanho: **2 chamadas é amostra
+pequena**, não significância. O que se pode afirmar é que 13 de 18 falhavam e
+nenhuma falhou desde então, em ~3h de tráfego real. As 13 falhas das últimas
+24h são **todas anteriores** ao deploy (a última às 13:15 UTC, 5 minutos antes).
+Quem ler o alerta `next_episode_failed = 13` sem cortar pelo deploy vai
+reabrir um defeito que já está fechado.
+
+#### 3. O número que muda a próxima jogada: a porta é VISTA e não é APERTADA
+
+Na mesma janela pós-deploy: **`series_continue_seen` = 15** e
+**`next_episode_requested` = 2**. Razão **13%**. O checkpoint da #1 mediu
+**5/11 = 45%** algumas horas antes, com um terço do denominador.
+
+Ou seja: a rota que a #0 consertou entrega 100% do que lhe pedem — mas
+**13 em cada 15 pessoas que veem o cartão não o apertam**. O vazamento grande
+não está mais atrás do clique; está no cartão. E cartão é **tela**, pista do
+Codex. Não inventei causa para a alta das impressões (1,8/h → 5,5/h): pode ser
+horário, e o #0 não mexe em impressão. Registrado como observação, não como
+explicação.
+
+#### 4. Placar (marco 03/09 16:00 UTC, externos)
+
+cadastro **63** → filme 1 **40** → filme 2 **12** → filme 3 **4** →
+checkout **3** → **pagou 0**. (**filme 2: 11 → 12** desde a #3.)
+
+#### 5. Checagem zero
+
+`cadastro sem crédito` **0** · `render preso` **0** · `next_episode_failed`
+pós-deploy **0** · **`despacho vazio` (planned:0 && total_posts:0): 11 em 24h —
+igual à #3, sem conserto, e é a maior fila de gente que apertou gerar e não
+recebeu filme.**
+
+#### PRÓXIMA JOGADA (para o disparo das 13:38)
+
+A #3 propôs o `cancel_url` do checkout. O dado desta hora **despriorizou isso**:
+o checkout tem 3 pessoas pós-marco; a porta do episódio 2 tem **15 impressões em
+3 horas** e perde 13 delas. Mas o cartão é do Codex — então a minha metade é a
+que sobrou por último e não saiu do lugar em duas rotações: **o despacho vazio,
+11 em 24h**, onde a pessoa aperta gerar, não recebe filme, e a tela culpa um
+fornecedor que `total_posts:0` prova que nunca foi chamado.
+
+---
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+1. **Clique em SUBIR-SITE.bat** (raiz do `C:\kineo`). A fila está em **8 commits**
+   e nada dela está em produção — inclusive o e-mail da #3, que sai sozinho a
+   cada 2h assim que subir.
+2. **Nada mais.** Nenhum crédito foi dado, nenhum preço mudou, nenhum e-mail
+   novo precisa de `?confirm=SEND`.
+
+### 📋 O QUE ACONTECEU
+Não abri frente nova: fui conferir o que a rotação anterior deixou no ar, e valeu
+a pena. Primeiro, o teste da entrega das 12:51 estava verde só na máquina onde
+nasceu — rodei num checkout limpo e ele passou de verdade (50 de 50). Segundo, e
+mais importante: o conserto da manhã (o cartão "Episode 2", que estava morto para
+9 em 10 pessoas) **foi provado funcionando em produção pela primeira vez** —
+antes, 13 de 18 pedidos falhavam; depois, nenhum falhou. É pouca gente ainda
+(2 pedidos), então não é para comemorar como estatística, mas a direção é clara.
+E aí apareceu o número que muda o plano: **15 pessoas viram o cartão do episódio 2
+nas últimas 3 horas e só 2 apertaram**. Consertamos o que acontecia depois do
+clique — e agora o buraco é o clique. Esse cartão é tela, então é do Codex: deixei
+o pedido com o número. Do meu lado, o que continua sangrando há duas rotações é
+gente que aperta "gerar" e não recebe filme nenhum (11 casos em 24h).
