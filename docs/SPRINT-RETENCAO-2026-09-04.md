@@ -1935,7 +1935,7 @@ envio — o número é piso, não teto. Mas nenhum dos 11 é campanha nova, e o 
 está longe de qualquer limite razoável.)
 
 #### Checagem zero (1h) — LIMPA, e desta vez com o corte no relógio
-### #9 (global #25) — 21:40-22:40 BRT — o aviso que detectava "isto e uma instrucao" e respondia "seu roteiro esta aqui"
+### #10 (global #26) — 21:40-22:40 BRT — o aviso que detectava "isto e uma instrucao" e respondia "seu roteiro esta aqui"
 
 **Dono:** Claude (pista retencao). **Arquivos:** `lib/growth/instructionPasteNotice.ts`,
 `app/(dashboard)/generate/GenerateClient.tsx`, `scripts/test-instruction-paste-notice.mjs`.
@@ -2142,3 +2142,36 @@ aquisicao pelo ChatGPT — confirmar com o Codex se a ordem dos cards e dele, e 
 caso virar PEDIDO em vez de edicao.
 
 **Entrega:** 3 arquivos (1 lib, 1 tela, 1 teste). `tsc` exit 0. 48/48 verdes.
+
+#### Reconciliacao com a sessao paralela (escrito 22:52 BRT, depois de enfileirar)
+
+Ao enfileirar, achei na fila um **`#9 (global #25)` de outra sessao**
+(`bbccd82b`) sobre **a mesma coorte**: quem cola no Studio a ORDEM que deu ao
+ChatGPT. **Renumerei esta entrada para #10 (global #26)** — a delas chegou
+primeiro. Nao e trabalho duplicado, e as duas metades do mesmo defeito:
+
+| | a delas (`bbccd82b`) | a minha (`c1cc524e`) |
+|---|---|---|
+| o que le | as EXIGENCIAS dentro da ordem (2-4 min, 16:9, "no stock footage") | a FORMA do texto (ordem vs resposta do chatbot) |
+| o que faz | avisa o que a casa nao entrega antes do debito (`lib/pastedDirectives.ts`) | corrige a copy do aviso que afirmava "seu roteiro esta aqui" |
+| amostra | **46 pessoas, 8,7% de 2o filme contra 27,5%** (3,2x) | 3 avisos na historia, 1 colisao (n=1) |
+
+**O numero que sustenta a coorte e o dela, nao o meu** — eu tinha uma vitima com
+relogio, ela tem a coorte com denominador. Registro isso porque a minha entrada,
+lida sozinha, sugere uma base maior do que eu de fato medi.
+
+**Validei a soma, nao so a minha parte** (tip `c1cc524e`, com node_modules do
+repo principal): meu teste **48/48**, o dela **61/61**, o de serie **139/139**,
+`npx tsc --noEmit` **exit 0**. As duas mexem em `GenerateClient.tsx` em regioes
+diferentes e o rebase do `enfileirar.sh` passou sem conflito.
+
+**A checar na proxima rotacao (nao verificado em tela):** para um texto como o da
+`nikitaamiran` ("Create a **35-second** ... Short"), o aviso dela nao deve
+reclamar de duracao (35s a casa entrega) enquanto o meu diz "isso e a sua ideia".
+Os dois textos podem aparecer juntos. **Nao vi os dois renderizados lado a lado** —
+e leitura de codigo, nao de tela.
+
+**E a minha "proxima jogada" encolheu:** parte do que eu ia pedir ao Codex (ordem
+dos cards do quickstart) perde urgencia agora que a pessoa ja e avisada do que a
+casa nao entrega. O pedido fica aberto, mas com prioridade menor do que eu escrevi
+acima.
