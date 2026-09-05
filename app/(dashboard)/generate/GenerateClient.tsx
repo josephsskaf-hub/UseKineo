@@ -237,6 +237,11 @@ import useWaitAbandon from '@/components/video/useWaitAbandon'
 // opcoes reais do seletor (35|45|60|90), em vez de oferecer um valor que o
 // produto nao tem.
 import { MIN_COVERAGE, speechSeconds } from '@/lib/narrationFit'
+// sprint-retencao #9 — quem cola a ORDEM que deu ao ChatGPT ("Create a 2–4
+// minute, 16:9 widescreen…") pedia coisas que a casa ignorava em silencio.
+// 46 pessoas comecaram assim e so 8,7% fizeram um segundo filme, contra 27,5%
+// de quem comecou de um tema. Ver lib/pastedDirectives.ts para o defeito.
+import { fraseDoQueNaoDamosConta, readPastedDirectives } from '@/lib/pastedDirectives'
 // sprint-v1v4 #12 — 448 linhas de `generation_stage_error` para 209 falhas
 // reais. Ver lib/failureLedger.ts para o defeito inteiro e a regra de contagem.
 import {
@@ -7090,6 +7095,56 @@ export default function GenerateClient({
     // conserva apenas o espelho de roteiro longo abaixo, que ajusta o alvo da
     // análise sem bloquear a viagem.
     let alvoAnalise: Duration = duration
+
+    // ═══ sprint-retencao #9 — O TEXTO COLADO PEDIA, E NINGUEM LIA ══════════
+    //
+    // MEDIDO (30 dias, contas externas, SQL de 00:30 UTC): 46 pessoas cujo
+    // PRIMEIRO filme nasceu de uma ordem colada ("Create a 45-second vertical
+    // 9:16 Short about…", "STYLE: Bright, colourful…", "### Scene 1 — 0–10
+    // sec") fizeram um segundo filme em 8,7% dos casos — 4 de 46, media de
+    // 1,11 filme por pessoa. As 714 que comecaram de um tema normal: 27,5% e
+    // media 1,59. 3,2x de diferenca no degrau 1->2, que e o degrau que preve
+    // assinatura. 18 das 46 chegaram nos ultimos 14 dias.
+    //
+    // O MECANISMO esta nas amostras reais do banco: o texto delas EXIGE coisas
+    // e o produto as descartava sem dizer uma palavra. "Create a 2–4 minute,
+    // 16:9 widescreen educational STEM documentary…" recebia 35 segundos em
+    // 9:16. "Create a 25-30 second vertical Short…" recebia 35 (por acaso
+    // certo) ou 90 (o que estivesse no botao). A pessoa pagava e ia embora.
+    //
+    // Aqui, na ANALISE — que nao debita credito nenhum (Contrato C1) — duas
+    // coisas passam a acontecer, ambas ANTES de qualquer gasto:
+    //   1. a duracao que a pessoa ESCREVEU acende o botao que a cobre. A regua
+    //      e a do fundador (02/09): "passar do alvo e bom; ficar ABAIXO e
+    //      defeito" — entao 40s pedidos viram 60, nunca 35;
+    //   2. o que a casa comprovadamente NAO faz (mais de 90s, 16:9) vira uma
+    //      frase honesta na tela, em vez de uma surpresa depois do débito.
+    // Idioma e "sem banco de imagens" sao DETECTADOS mas nao julgados: a
+    // cobertura real dos dois nao foi medida, e recusar sem medir seria a
+    // mesma copy que mente que a auditoria de 28/08 listou.
+    //
+    // TRAVA DE QUALIDADE (fundador 03/09): nada aqui toca motor, prompt de
+    // cena, regua de palavras por segundo ou gerador de roteiro. So o botao de
+    // duracao — o mesmo que o autofit logo abaixo ja movia — e um aviso.
+    const leituraColada = readPastedDirectives(expandBaseRef.current)
+    if (leituraColada.directives.length > 0) {
+      const aplicou = leituraColada.suggestedDuration !== null && leituraColada.suggestedDuration !== duration
+      if (leituraColada.suggestedDuration !== null && aplicou) {
+        setDuration(leituraColada.suggestedDuration as Duration)
+        alvoAnalise = leituraColada.suggestedDuration as Duration
+      }
+      void trackEvent('pasted_directives_detected', {
+        looks_pasted: leituraColada.looksPasted,
+        kinds: leituraColada.directives.map((d) => d.kind).join(','),
+        asked_seconds: leituraColada.directives.find((d) => d.kind === 'duration')?.askedSeconds ?? null,
+        applied_seconds: leituraColada.suggestedDuration,
+        duration_changed: aplicou,
+        unsupported: leituraColada.unsupported.map((d) => d.kind).join(',') || null,
+        from_topic: opts?.fromTopic === true,
+        script_mode: scriptMode,
+      })
+    }
+
     {
       const baseChecagem = expandBaseRef.current
       if (scriptMode === 'verbatim' && baseChecagem) {
@@ -10562,6 +10617,14 @@ export default function GenerateClient({
   const selectedUnaffordable =
     credits !== null && costForDurationOption(duration) > credits && costForDurationOption(duration) > 0
 
+  // sprint-retencao #9 — a frase honesta sobre o que o texto colado EXIGE e a
+  // casa comprovadamente nao faz (mais de 90s, 16:9). Derivada do texto ao
+  // vivo, e nao de estado: assim ela nasce no instante da colagem, ao lado dos
+  // botoes de duracao, e some sozinha quando a pessoa reescreve. `null` = nada
+  // comprovado a dizer — idioma e "sem banco de imagens" saem como `unknown` e
+  // NUNCA chegam aqui, porque recusar sem medir seria copy que mente.
+  const avisoColado = fraseDoQueNaoDamosConta(readPastedDirectives(prompt))
+
   // ═══════════════════════════════════════════════════════════════════════
   // sprint-retencao #2 (2026-09-04) — A PORTA DO EPISODIO 2 ESTAVA NO RODAPE
   //
@@ -12885,6 +12948,24 @@ export default function GenerateClient({
                 )
               })}
             </div>
+            {/* sprint-retencao #9 — O QUE O TEXTO PEDE E A CASA NÃO FAZ, DITO
+                ANTES DO CRÉDITO. Medido: 46 pessoas cujo 1º filme nasceu de uma
+                ordem colada fizeram um 2º em 8,7%, contra 27,5% de quem começou
+                de um tema. As amostras reais pediam "2–4 minute, 16:9
+                widescreen" e recebiam 35s em 9:16, caladas. Aqui a pessoa lê
+                isso com o botão ainda na mão — não é bloqueio, e o filme sai
+                igual se ela seguir. */}
+            {avisoColado && (
+              <div
+                className="rounded-xl px-3 py-2.5 mt-2"
+                style={{ background: 'rgba(255,214,10,.06)', border: '1px solid rgba(255,214,10,.26)' }}
+              >
+                <p className="text-xs font-bold" style={{ color: '#ffd60a', lineHeight: 1.5 }}>
+                  {avisoColado} We&apos;ll still make it — just not that part.
+                </p>
+              </div>
+            )}
+
             {/* O AVISO COM SAÍDA — a parede vira placa de desvio. Só aparece
                 quando a duração SELECIONADA não cabe no saldo. */}
             {selectedUnaffordable && (

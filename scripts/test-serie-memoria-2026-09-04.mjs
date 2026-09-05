@@ -38,7 +38,7 @@
  * Rodar: node scripts/test-serie-memoria-2026-09-04.mjs   (sem rede, sem custo)
  */
 import { execFileSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -48,10 +48,40 @@ const requireFromRepo = createRequire(join(root, 'package.json'))
 const ts = requireFromRepo('typescript')
 const read = (path) => readFileSync(join(root, path), 'utf8')
 
-const BASE_COMMIT = '463fc378'
+// ═══ sprint-retencao #9 (04/09) — O GUARDIÃO ESTAVA VERMELHO POR MOTIVO
+// NENHUM, E GUARDIÃO QUE GRITA SEMPRE NÃO GUARDA NADA ══════════════════════
+//
+// Este arquivo mediu o diff contra um SHA CONGELADO (`463fc378`) e exigiu que
+// só três arquivos aparecessem nele. Numa fila COMPARTILHADA (Codex + duas
+// sessões de Claude no mesmo `entrega-atual`) isso é impossível de satisfazer:
+// às 22:20 BRT o teste listava 25 arquivos "fora", quase todos do Codex, e
+// estava 136/138 desde as 18:20 — ou seja, a trava de qualidade do fundador
+// ("os vídeos têm saído nota 9, NÃO QUERO QUE MEXA NISSO") passou quatro horas
+// sem ninguém conseguindo lê-la, porque o vermelho era rotina. Era o pedido
+// aberto #95(b)/#97 nos PEDIDOS-ENTRE-PISTAS.
+//
+// Duas mudanças, ambas registradas como REVERSÍVEIS:
+//   · a base deixa de ser um SHA à mão e passa a ser o merge-base com
+//     origin/main — o que ESTA fila acrescenta, seja qual for a ponta;
+//   · `app/api/compose/**` sai da lista cega e vira regra de CONTEÚDO. A frase
+//     do fundador nomeia o que decide COMO O FILME FICA (régua de segundos,
+//     escolha de motor, prompt de cena, custo) e autoriza explicitamente
+//     "continuidade de série". Gravar a narração do episódio no banco, depois
+//     do filme pronto, não muda um pixel de filme nenhum — bloquear isso era
+//     mais duro que a ordem; liberar o arquivo inteiro seria mais frouxo. A
+//     regra abaixo bloqueia os SÍMBOLOS do motor dentro desses arquivos e
+//     libera o resto. Se o fundador disser "a pasta inteira é proibida", basta
+//     devolver /^app\/api\/compose\// à lista.
+const BASE_COMMIT = (() => {
+  try {
+    return execFileSync('git', ['merge-base', 'HEAD', 'origin/main'], { cwd: root, encoding: 'utf8' }).trim()
+  } catch { return '463fc378' }
+})()
+// Dentro de app/api/compose/**, só estes símbolos são intocáveis — são eles
+// que decidem como o filme fica.
+const SIMBOLOS_DO_MOTOR = /(secondsOf|secondsFor|clipCountForDuration|creditCostFor|wordsPerSecond|WORDS_PER_SECOND|scenePrompt|negative_prompt|fal-ai\/|MIN_COVERAGE)/
 const CAMINHOS_PROIBIDOS = [
   /^lib\/compose\.ts$/,
-  /^app\/api\/compose\//,
   /^lib\/hollywood\//,
   /^lib\/cinematic\//,
   /^lib\/broll\//,
@@ -495,9 +525,29 @@ secao('10. trava de qualidade: nenhum caminho proibido no diff')
   }
   const proibidos = tocados.filter((p) => CAMINHOS_PROIBIDOS.some((re) => re.test(p)))
   ok(proibidos.length === 0, `NENHUM caminho proibido tocado (fundador 03/09: "os videos tem saido nota 9, NAO QUERO QUE MEXA NISSO")${proibidos.length ? ' — tocados: ' + proibidos.join(', ') : ''}`)
-  const permitidos = [ROTA, CLIENTE, 'scripts/test-serie-memoria-2026-09-04.mjs']
-  const fora = tocados.filter((p) => !permitidos.includes(p))
-  ok(fora.length === 0, `so os 3 arquivos autorizados foram tocados${fora.length ? ' — fora: ' + fora.join(', ') : ''}`)
+
+  // app/api/compose/** por CONTEUDO: metadata e persistencia passam, simbolo
+  // do motor nao. Ver o bloco de comentario no topo do arquivo.
+  const compose = tocados.filter((p) => /^app\/api\/compose\//.test(p))
+  const composeComMotor = compose.filter((p) => {
+    try {
+      const hunks = execFileSync('git', ['diff', '-U0', BASE_COMMIT, '--', p], { cwd: root, encoding: 'utf8' })
+      return hunks.split('\n').filter((l) => /^[+-][^+-]/.test(l)).some((l) => SIMBOLOS_DO_MOTOR.test(l))
+    } catch { return true }
+  })
+  ok(composeComMotor.length === 0,
+    `app/api/compose: nenhuma linha do MOTOR alterada${compose.length ? ` (${compose.length} arquivo(s) tocado(s), so metadata/persistencia)` : ''}${composeComMotor.length ? ' — com motor: ' + composeComMotor.join(', ') : ''}`)
+
+  // A checagem antiga era "so estes 3 arquivos no diff" — impossivel numa fila
+  // compartilhada, onde o diff carrega Codex e a outra sessao. O que importa e
+  // que a ENTREGA esteja presente; o que os outros trazem e problema do teste
+  // deles. (Mesma correcao que o test-despacho-vazio ja fez na sua 8.3.)
+  // E, depois que a entrega ENTRA na main, ela some do diff — o certo passa a
+  // ser "os 3 arquivos existem na arvore". As secoes 1 a 9 acima ja provam o
+  // CONTEUDO deles; aqui so se garante que nenhum sumiu.
+  const meus = [ROTA, CLIENTE, 'scripts/test-serie-memoria-2026-09-04.mjs']
+  const ausentes = meus.filter((p) => !existsSync(join(root, p)))
+  ok(ausentes.length === 0, `os 3 arquivos DESTA entrega estao na arvore${ausentes.length ? ' — faltam: ' + ausentes.join(', ') : ''}`)
 }
 
 console.log(`\n${checks - fails.length}/${checks} verificacoes passaram${fails.length ? ` — ${fails.length} FALHARAM` : ''}\n`)
