@@ -1218,3 +1218,122 @@ produto, e o #1 já preparou o terreno (`credits_source`, o ramo de saldo
 desconhecido). **Atenção ao construir:** `lib/lifecycle/videoReadyFooter.ts` foi
 tocado pelo #1, que está NA FILA — a worktree tem de nascer de `origin/main` e o
 `enfileirar.sh` rebasa por cima; conferir o arquivo depois do rebase.
+
+---
+
+## #5 — 14:39→15:35 BRT — as 4 fontes de e-mail marcam ZERO aterrissagem em 30 dias, e as 7 de dentro do app funcionam
+
+### 1. A jogada era J2. O dado mudou a jogada — e a J2 já estava metade feita
+
+O plano mandava J2: "o e-mail de filme pronto carrega o Episódio 2 já escrito".
+O anti-repetição achou metade disso PRONTO na main: os commits `99fe4c99`
+(#24) e `f877dafa` (#26) já põem um bloco **"Episode 2: <tema da pessoa>"** no
+rodapé do e-mail de vídeo pronto, tanto na rota de status quanto no cron. Não
+refiz. Medi — e a medição achou um defeito maior que a J2.
+
+### 2. O número que doía
+
+`series_continuation_landed`, 30 dias, por fonte:
+
+| fonte | aterrissagens | onde vive |
+|---|---|---|
+| history_video_card | 42 | tela |
+| generate_recent_video | 24 | tela |
+| history_milestone | 24 | tela |
+| done_screen | 22 | tela |
+| studio_milestone | 20 | tela |
+| render_pill | 8 | tela |
+| landing_resume_strip | 7 | tela |
+| **video_ready_email** | **0** | e-mail |
+| **momentum_email** | **0** | e-mail |
+| **lifecycle_loss_email** | **0** | e-mail |
+| **lifecycle_ending_email** | **0** | e-mail |
+
+Sete fontes de dentro do app entregam. As quatro de e-mail marcam **zero
+linhas** — não "poucas". E o denominador não é pequeno: em 30 dias saíram
+**102** `momentum_nudge_sent` (a campanha cujo botão É esse), **65**
+`video_ready_email_sent` com rodapé de episódio 2 (**47 pessoas**) e **2.871**
+`trial_lifecycle_email_sent`. O botão está no e-mail: os carimbos trazem
+`has_topic:true`.
+
+### 3. O que o rastreio achou (curl na URL real, deslogado)
+
+```
+/generate?prompt=...&series=1&continuation_source=video_ready_email
+  → 307 /studio/create?...    (porteiro do #296, query intacta)
+  → 307 /signup?redirect=...  (a página decide signup vs login)
+```
+
+A query sobrevive à viagem inteira — **isso está correto e não é o defeito**.
+O defeito é o DESTINO: **`/signup`**. A escolha entre entrar e se cadastrar é
+feita por `hasPriorSession` — *existe cookie `sb-…auth-token` neste
+navegador?* Para um clique vindo do inbox essa resposta é estruturalmente
+**não**: o Gmail do telefone abre em webview própria, o link é aberto em outro
+aparelho, a aba é anônima. Ou seja: a pessoa que **já tem conta** — o e-mail
+foi endereçado a ela, cadastrada, com filme entregue — recebe um formulário de
+**CRIAR CONTA**. As sete fontes de dentro do app nunca passam por ali porque
+sempre têm sessão viva. É a única diferença entre as fontes que funcionam e as
+que marcam zero.
+
+### 4. O que mudou (SHA `9e02dbbb` na fila)
+
+Rota nova `app/api/episode-link` (só servidor) + `lib/seriesContinuation.ts`:
+
+1. **Conta o clique.** Não existia NENHUM evento entre "e-mail enviado" e
+   "aterrissou". `episode_link_clicked` grava fonte, se havia sessão, e um
+   sinalizador de robô (varredor de e-mail bate em URL de inbox e inflaria a
+   conta sem etiqueta).
+2. **Manda para a porta certa.** Com sessão → `/studio/create` direto (o
+   apelido legado `/generate` e seu 307 saem do caminho). Sem sessão →
+   `/login` (ENTRAR), com o destino inteiro no `?redirect`. O middleware já
+   honra esse `?redirect` para quem tem sessão (KINEO-CHECKOUT-RESUME).
+
+**Contrato preservado:** sem tema utilizável a URL é byte a byte a de antes
+(`/generate` + utm) — nunca inventamos o assunto do vídeo da pessoa (#24). Os
+links de dentro do app não passam pela porta. Falha sempre aberta. O destino
+passa pelo mesmo guarda do login (`normalizeInternalRedirect`), então não há
+redirecionamento aberto.
+
+### 5. O que o cliente passa a ver
+
+Quem recebe "seu filme está pronto" no celular e toca em **Episode 2: <o tema
+dela>** cai numa tela de **entrar** com o episódio 2 esperando do outro lado —
+não num formulário de criar uma conta que ela já tem.
+
+### 6. Honestidade sobre o que isto ainda NÃO prova
+
+Com o dado de hoje **não dá para separar** "ninguém clica no botão" de "clica e
+morre no cadastro" — não havia degrau entre envio e aterrissagem. O conserto
+endereça a segunda hipótese e **o contador endereça a pergunta**. Se, publicado,
+`episode_link_clicked` subir e a aterrissagem continuar zero, a causa é outra e
+o próximo passo é o `/login`, não o link. Se nem o clique aparecer, o problema é
+o e-mail (assunto/posição do botão), não a porta. **Isto é o critério de parada.**
+
+### 7. Testes
+
+Guardião novo `scripts/test-porta-episodio-email-2026-09-05.mjs` **40/40**
+(roda a função REAL e lê a rota real). `test-serie-episodio-2` **262/262** com
+a verificação de contrato atualizada. `npx tsc --noEmit` **0 erros**.
+Guardião verde ≠ suíte integral verde: rodei 8 baterias vizinhas e três já
+estavam **vermelhas em `origin/main` ANTES desta mudança** — conferido em
+worktree limpa do origin/main: `test-video-ready-footer` 44/46,
+`test-data-cache-no-store` 17/19, `test-episodio2-ending` 67/68. Não são
+minhas e não foram consertadas aqui.
+
+### 8. Placar (marco 03/09 16:00 UTC, externos)
+
+cadastro **65** → filme 1 **42** → filme 2 **12** → filme 3 **4** →
+checkout **3** → **pagou 0**. (+1 cadastro e +2 primeiros filmes desde a #4.)
+**A fila inteira continua fora de produção** — 12 commits esperando o clique.
+
+### 9. Checagem zero (com os cortes no deploy)
+
+cadastro sem crédito pós-`292eaba4`: **0** · `next_episode_failed`
+pós-`2ca9a06c`: **0** · render preso >2h: **0**. **Nada acusa.**
+
+### PRÓXIMA JOGADA
+
+**J3 do cardápio** (3º filme garantido no clique) só depois que a fila subir —
+sem publicação, cada rotação nova empilha peça que ninguém usa. Se a fila subir,
+a primeira medição é `episode_link_clicked` por `bot=false`: ela decide entre
+consertar o `/login` (se clicam e não chegam) ou o e-mail (se não clicam).
