@@ -36,6 +36,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { trackEvent } from '@/lib/analytics'
 import { buildSeriesContinuationHref } from '@/lib/seriesContinuation'
+import { useSeriesDoorSeen } from '@/lib/seriesDoorImpressions'
 // KINEO-SPRINT-V1V4-2026-08-31 (#15) — a fila da espera (#14) so existia numa
 // tela. O proprio "Watch" desta pilula manda a pessoa para /history, onde a
 // ideia guardada NAO aparece: a promessa "it'll be waiting" morria no primeiro
@@ -87,6 +88,9 @@ function probeIdentity(probe: Probe): string {
 }
 
 export default function ActiveRenderPill() {
+  // sprint-retencao #15 — a pilula somou 7 cliques de `render_pill` em 30d e
+  // zero impressao. So telemetria: a pilula continua identica.
+  const { registrarPorta } = useSeriesDoorSeen()
   const pathname = usePathname()
   const router = useRouter()
   // /generate owns this information already (server-truth resume cards).
@@ -483,6 +487,10 @@ export default function ActiveRenderPill() {
           {nextSeed && !(filaVisivel && fila) ? (
             <button
               type="button"
+              ref={registrarPorta({
+                source: 'render_pill',
+                video_id: probe && probe.state === 'completed' ? probe.videoId : null,
+              })}
               onClick={() => handleNextEpisode(nextSeed)}
               className="text-xs font-bold rounded-full flex-1 min-w-0"
               style={{
@@ -500,6 +508,10 @@ export default function ActiveRenderPill() {
           {nextSeed && filaVisivel && fila ? (
             <button
               type="button"
+              ref={registrarPorta({
+                source: 'render_pill',
+                video_id: probe && probe.state === 'completed' ? probe.videoId : null,
+              })}
               onClick={() => handleNextEpisode(nextSeed)}
               className="text-xs font-bold rounded-full flex-shrink-0"
               style={{

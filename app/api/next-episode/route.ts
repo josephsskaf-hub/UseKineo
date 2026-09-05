@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { normalizeSeriesSeed } from '@/lib/seriesContinuation'
+import { garantirMarcadores } from '@/lib/nextEpisodeMarkers'
 
 // ═══ KINEO-PROXIMO-EPISODIO-2026-08-21 ═════════════════════════════════════
 //
@@ -197,9 +198,11 @@ const MARCADORES = ['HOOK', 'MICRO REWARD', 'ESCALATION', 'PAYOFF'] as const
 const ULTIMA_CHAMADA = new Map<string, number>()
 const COOLDOWN_MS = 45_000
 
-function temMarcadores(texto: string): boolean {
-  return MARCADORES.every((m) => texto.toUpperCase().includes(m))
-}
+// KINEO-EPISODIO2-MARCADORES-2026-09-05: a checagem por substring saiu daqui.
+// Medido em 05/09: 12 de 16 chamadas voltavam 502 "sem marcadores" porque o
+// modelo, recebendo o episodio 1 em prosa, responde em prosa (sonda local:
+// 0 de 8 com marcadores). A rota agora ROTULA em vez de descartar — ver
+// lib/nextEpisodeMarkers.ts. As palavras da narracao nao mudam.
 
 export async function POST(req: NextRequest) {
   try {
@@ -276,6 +279,18 @@ a different story in the same subject area, same voice, same format.
 HARD RULES
 - Output ONLY the script, using these four markers on their own lines, in this order:
 HOOK / MICRO REWARD / ESCALATION / PAYOFF
+- Episode 1 below is shown as plain prose. Do NOT copy that shape. Your output MUST
+  use the four marker lines even though episode 1 does not.
+OUTPUT SHAPE (copy this shape exactly, replace only the <...> parts):
+TITLE: <4-8 words>
+HOOK
+<one sentence that opens a loop>
+MICRO REWARD
+<2-4 sentences: the first concrete, surprising fact>
+ESCALATION
+<3-5 sentences: it gets bigger, stranger, or more consequential>
+PAYOFF
+<1-2 sentences that close the loop opened in the HOOK>
 - 150 to 165 words of narration total. This is a contract: shorter fails.
 - Language: ${idioma}.
 - It must be a DIFFERENT story, not a rephrasing of episode 1. Same curiosity, new subject.
@@ -334,12 +349,18 @@ Write EPISODE ${episodeNumber}.`
     // analyze-idea reescreveria a narração — exatamente o que o Contrato C1
     // proíbe. Melhor devolver erro e não mostrar o card do que entregar um
     // episódio que sai diferente do que está escrito na tela.
-    if (!temMarcadores(script)) {
-      console.warn('[next-episode] sem marcadores, descartado')
+    // KINEO-EPISODIO2-MARCADORES-2026-09-05: antes, resposta sem os 4 rotulos
+    // era DESCARTADA (502) — e era 12 de 16 chamadas. Agora: aceita rotulo
+    // decorado, ou rotula a prosa por frases sem tocar numa palavra. So o
+    // irrecuperavel (menos de 4 frases) continua sendo 502.
+    const garantido = garantirMarcadores(script)
+    if (!garantido) {
+      console.warn('[next-episode] sem marcadores e sem frases para rotular, descartado')
       return NextResponse.json({ error: 'malformed script' }, { status: 502 })
     }
+    if (garantido.via !== 'model') console.info('[next-episode] marcadores via', garantido.via)
 
-    const palavras = script
+    const palavras = garantido.script
       .replace(/^(HOOK|MICRO REWARD|ESCALATION|PAYOFF)\s*$/gim, '')
       .split(/\s+/)
       .filter(Boolean).length
@@ -348,8 +369,9 @@ Write EPISODE ${episodeNumber}.`
     // três campos novos são a instrumentação que faltava (KINEO-MEMORIA-SERIE).
     return NextResponse.json({
       title: titulo || `Episode ${episodeNumber}`,
-      script,
+      script: garantido.script,
       words: palavras,
+      markersVia: garantido.via,
       episodeNumber,
       hadMemory: memoria.hadMemory,
       alreadyDoneCount: jaFeitosFinal.length,

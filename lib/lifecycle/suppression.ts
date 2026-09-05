@@ -34,8 +34,15 @@
 // de vida nas últimas LIFECYCLE_SUPPRESSION_HOURS horas, tomando o MÁXIMO das
 // colunas datadas de `profiles` listadas em PROFILE_TIMESTAMP_COLUMNS (o
 // número delas cresce; contá-lo aqui é comentário que apodrece) mais
-// `checkout_abandoned.recovery_sent_at`. Um usuário suprimido não entra na coorte de nenhum
-// job naquela execução.
+// `checkout_abandoned.recovery_sent_at`, mais `trial_emails_log`, mais — desde
+// 04/09 — `email_send_log`, o ledger de envio. Um usuário suprimido não entra
+// na coorte de nenhum job naquela execução.
+//
+// AS TRÊS PRIMEIRAS FONTES SÃO CARIMBOS; A QUARTA É O LEDGER. A diferença
+// importa e custou três pares de e-mails contraditórios (ver o bloco
+// KINEO-SUPPRESSION-LEDGER-2026-09-04, mais abaixo): carimbo pertence ao job
+// que o escreve e pode ser APAGADO quando esse job precisa se rearmar; o
+// ledger é append-only e não pertence a ninguém.
 //
 // LEITURA, NUNCA ESCRITA: este módulo só lê colunas que os jobs já mantêm.
 // (Até 11/08 a frase aqui era "SEM MIGRATION, SEM COLUNA NOVA". Deixou de ser
@@ -303,6 +310,71 @@ export async function loadLifecycleSuppression(
       }
 
       for (const row of (trialEmailRows ?? []) as unknown as Array<Record<string, unknown>>) {
+        bump(row.user_id, parseTime(row.sent_at))
+      }
+
+      // ═══ KINEO-SUPPRESSION-LEDGER-2026-09-04 (sprint-retenção #9) ══════════
+      // AS TRÊS FONTES ACIMA SÃO CARIMBOS, E CARIMBO PODE SER APAGADO. Este é
+      // o ledger de ENVIO, que é append-only e não pertence a nenhum job.
+      //
+      // O DEFEITO, MEDIDO E NÃO DEDUZIDO (04/09, `email_send_log`):
+      // três pessoas receberam `downgraded_loss` ("veja o que você acabou de
+      // perder") e, DUAS HORAS depois, `d0_welcome` ("bem-vindo, seu trial
+      // começou") — 28/08 20:25Z, 31/08 05:25Z e 04/09 00:25Z. Duas mensagens
+      // que se contradizem, da mesma casa, na mesma madrugada da pessoa. A
+      // supressão de 24h estava LIGADA nas três e deixou passar.
+      //
+      // POR QUE ELA DEIXOU PASSAR, e por que isso não é bug de ninguém:
+      // `lib/reverseTrial.ts:1577` APAGA de propósito a linha
+      // `trial_emails_log(user, 'downgraded_loss')` quando o trial ressuscita
+      // — sem esse DELETE, o e-mail de maior aversão à perda do funil nunca
+      // sairia na morte REAL da conta (revisão adversarial de 11/08, e a razão
+      // dela continua certa). Só que essa MESMA linha era a única memória que
+      // esta função tinha do envio. Apagar o direito de reenviar apagou junto
+      // a prova de que já se enviou: a supressão passou a enxergar uma pessoa
+      // que recebeu e-mail há 2h como alguém que nunca recebeu nada.
+      //
+      // O MESMO BURACO, pela outra ponta: `admin/send-hotlead-blast` RESPEITA
+      // esta supressão na entrada (route.ts:231) e não grava carimbo NENHUM na
+      // saída — o único rastro dele é este ledger. Medidos 15 pares em que um
+      // blast foi seguido de um e-mail de trial em menos de 24h, o mais
+      // apertado a 15 MINUTOS (31/08). Era a "propriedade residual nº1"
+      // documentada no topo deste arquivo, agora com preço.
+      //
+      // POR QUE ESTA FONTE E NÃO UMA COLUNA NOVA: zero migração, e a tabela já
+      // existe desde 17/08 com `user_id` + `sent_at`. Ela cobre 11 dos ~31
+      // remetentes — é PARCIAL, e continua parcial depois deste commit. Fonte
+      // parcial e append-only só pode AUMENTAR o que se enxerga; nenhuma linha
+      // daqui deixa de existir porque um job decidiu se rearmar.
+      //
+      // OS DOIS FILTROS SÃO OBRIGATÓRIOS, e inverter qualquer um deles cala
+      // gente que nunca recebeu nada:
+      //   · `ok=true`      — linha com ok=false é recusa do Resend: o e-mail
+      //                      NÃO chegou, e não pode calar o próximo.
+      //   · `yielded=false`— cessão por contrapressão de cota (lib/email/
+      //                      quota.ts) grava a linha do e-mail que a casa
+      //                      DECIDIU NÃO MANDAR. Tratar cessão como envio
+      //                      transformaria o gate de cota em mordaça de 24h.
+      //
+      // TAMANHO DA MUDANÇA, medido antes de escrever (30 dias): 92 envios
+      // `growth`, ZERO com e-mail anterior em 24h — o lado growth já estava
+      // protegido e não muda em um bit. Do lado `revenue`, ~18 de 2.372
+      // (0,8%) passam a ser adiados; os pares de ~5h do `checkout_recovery`
+      // NÃO são afetados porque aquele caller passa janela de 4h
+      // (HOT_LEAD_SUPPRESSION_HOURS), e a janela é aplicada aqui, não lá.
+      const { data: ledgerRows, error: ledgerErr } = await admin
+        .from('email_send_log')
+        .select('user_id, sent_at')
+        .in('user_id', part)
+        .gte('sent_at', new Date(cutoff).toISOString())
+        .eq('ok', true)
+        .not('yielded', 'is', true)
+
+      if (ledgerErr) {
+        return closed(`email_send_log: ${ledgerErr.code ?? '?'} ${ledgerErr.message}`)
+      }
+
+      for (const row of (ledgerRows ?? []) as unknown as Array<Record<string, unknown>>) {
         bump(row.user_id, parseTime(row.sent_at))
       }
     }

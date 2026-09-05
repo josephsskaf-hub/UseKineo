@@ -10,6 +10,7 @@ import { downloadVideoFile } from '@/lib/videoDownload'
 import { fitLightboxFrame } from '@/lib/frameFit'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import { buildSeriesContinuationHref } from '@/lib/seriesContinuation'
+import { useSeriesDoorSeen } from '@/lib/seriesDoorImpressions'
 import {
   buildPublicVideoSharePath,
   PUBLIC_VIDEO_SHARE_VERSION,
@@ -288,6 +289,10 @@ interface VideoSummary {
 }
 
 export default function MyVideosClient({ videos: initialVideos, loadError = false }: Props) {
+  // sprint-retencao #15 — as duas portas desta tela (`history_milestone` e
+  // `history_video_card`) somam 57 cliques em 30 dias e NUNCA tiveram uma
+  // impressao. So telemetria: nada aqui muda o que a tela mostra.
+  const { registrarPorta } = useSeriesDoorSeen()
   const [videos] = useState(initialVideos)
   // PUSH #92 — `videos` now holds every status. Anything that assumes a
   // finished, playable asset (the share spotlight, the "N Shorts complete"
@@ -1144,6 +1149,11 @@ export default function MyVideosClient({ videos: initialVideos, loadError = fals
             {episodeIsPrimary && (
               <Link
                 href={followUpHref}
+                ref={registrarPorta({
+                  source: 'history_milestone',
+                  video_id: completedVideos[0]?.id ?? null,
+                  completed_video_count: completedVideos.length,
+                })}
                 onClick={() => {
                   void trackEvent('series_continue_clicked', {
                     source: 'history_milestone',
@@ -1192,6 +1202,11 @@ export default function MyVideosClient({ videos: initialVideos, loadError = fals
             {subscriptionIsPrimary && (
               <Link
                 href={followUpHref}
+                ref={registrarPorta({
+                  source: 'history_milestone',
+                  video_id: completedVideos[0]?.id ?? null,
+                  completed_video_count: completedVideos.length,
+                })}
                 onClick={() => {
                   void trackEvent('series_continue_clicked', {
                     source: 'history_milestone',
@@ -1856,6 +1871,11 @@ export default function MyVideosClient({ videos: initialVideos, loadError = fals
 
                 <Link
                   href={buildSeriesContinuationHref(title, 'history_video_card')}
+                  ref={registrarPorta({
+                    source: 'history_video_card',
+                    video_id: video.id,
+                    completed_video_count: completedVideos.length,
+                  })}
                   onClick={() => {
                     void trackEvent('series_continue_clicked', {
                       source: 'history_video_card',

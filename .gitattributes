@@ -1,6 +1,6 @@
-# KINEO-ENTREGA-2026-09-01 — arquivos de DIARIO sao escritos por 3 agentes
+# KINEO-ENTREGA-2026-09-01 --- arquivos de DIARIO sao escritos por 3 agentes
 # (Claude, sprint, Codex). Conflito neles e sempre 'os dois escreveram um
-# paragrafo' — a resposta certa e guardar os dois. merge=union faz isso
+# paragrafo' --- a resposta certa e guardar os dois. merge=union faz isso
 # sozinho, no clone temporario do bat e em qualquer rebase.
 docs/SPRINT-*.md merge=union
 docs/*DIARIO*.md merge=union
@@ -9,8 +9,15 @@ docs/PAUTA-*.md merge=union
 docs/HANDOFF-*.md merge=union
 docs/ESCOPO-*.md merge=union
 # 04/09: o arquivo de PEDIDOS entre pistas e o unico que Claude e Codex escrevem
-# ao MESMO tempo, toda rodada — e ficou de fora da lista, entao o clique das
+# ao MESMO tempo, toda rodada --- e ficou de fora da lista, entao o clique das
 # 09:37 parou em conflito. Pedido novo e sempre uma linha appendada: uniao.
 docs/PEDIDOS-*.md merge=union
 docs/PROGRAMA-*.md merge=union
 docs/PLANO-*.md merge=union
+# checkpoint da #15 (05/09): os .bat de publicar entraram no git nesta rodada.
+# Bat com LF NAO RODA no Windows  a casa ja tem a cicatriz na raiz
+# (70-PUSH.bat.LF-NAO-RODA-USE-scripts-71). Dos 199 .bat ja versionados, 173
+# tem CRLF gravado no proprio blob: a convencao do repo e byte cru. -text
+# desliga QUALQUER conversao, entao o CRLF sobrevive ao commit e ao checkout
+# em qualquer maquina, e os 173 antigos nao viram diff fantasma.
+*.bat -text
