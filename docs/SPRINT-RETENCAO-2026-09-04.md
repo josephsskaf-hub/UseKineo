@@ -3064,3 +3064,10 @@ Dois, nos PEDIDOS: a **decisão de política do teto de e-mail** (fundador) e a
 
 **Entrega:** 1 entrada de diário + 2 pedidos + a fila inteira verificada verde.
 Zero código de produção. Zero risco.
+
+**Precisão sobre a tabela acima, acrescentada 01:55 BRT:** eu tinha chutado o
+nome de dois guardiões e não os havia rodado. Rodei depois de enfileirar, na
+ponta `6d5e9e24`, e os dois estão verdes: `test-instruction-paste-notice`
+**48/48** e `test-lifecycle-suppression-ledger` (o da #12) **29/29**. A bateria
+desta sprint é portanto de **11 guardiões, todos verdes**, mais `tsc` exit 0.
+Continua não sendo a suíte histórica integral.
