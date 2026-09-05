@@ -182,3 +182,89 @@ codex-fluxo das 11:47 já aponta uma conta TAAFT que apertou gerar e parou antes
 de nascer `render_jobs`). Consertar a entrada do TAAFT vale mais que a J3,
 porque J3 mexe no 3º filme de quem já está dentro, e o TAAFT nem entra.
 
+---
+
+### checkpoint da #1 — 11:20 BRT (14:20 UTC) — o #0 está NO AR e ainda não foi tocado por ninguém: 11 pessoas viram a porta em 6h e ZERO apertaram
+
+Não é entrada nova: é o checkpoint da rotação que abriu 10:38 e entregou o #1
+(`1f3c3f9e`, na fila). Nada de trabalho novo foi iniciado.
+
+**Correção de relógio:** as três linhas que a #1 assinou como "12:10 BRT" em
+`docs/PEDIDOS-ENTRE-PISTAS-2026-09-03.md` foram escritas às **10:55 BRT**
+(hora real do commit `1f3c3f9e`). Quem for ordenar pedidos por hora, use o
+`git log`, não o rótulo.
+
+#### 1. O #0 está deployado — e continua sem prova
+`git ls-remote origin main` = `2ca9a06c` = o commit do #0. Produção responde
+`200` em 0,75s e `POST /api/next-episode` sem sessão responde `401` (rota viva
+e com porta, não 500). Deploy confirmado sem tocar no painel da Vercel.
+
+O que o tráfego diz, hora a hora (`next_episode_requested` → `ready`/`failed`):
+
+| hora UTC | porta vista | pediram | falhou | ok |
+|---|---|---|---|---|
+| 07 | 2 | 3 | 2 | 1 |
+| 08 | 3 | 3 | 2 | 1 |
+| 09 | 1 | 2 | 1 | 1 |
+| 10 | 0 | 1 | 1 | 0 |
+| 11 | 2 | 3 | 3 | 0 |
+| 12 | 2 | 2 | 1 | 1 |
+| 13 (até 13:15) | 4 | 1 | 1 | 0 |
+| **13:20→14:20 (pós-deploy)** | **0** | **0** | **0** | **0** |
+
+Todo pedido é um par `requested` + resposta ~3s depois. O último `failed` é
+**13:15:43 UTC**, 5 minutos ANTES do commit do #0 subir — nenhuma falha depois.
+Mas **nenhum acerto também**: em 60 minutos de produção não houve um único
+`next_episode_requested`. A cadência anterior era ~1 a cada 20 min, então uma
+hora de silêncio é plausível e **não desmente nada**. O #0 segue **não provado
+e não desmentido** — exatamente onde a #1 o deixou. Não afirmo conserto.
+
+**O número que dói, e é maior que o #0:** `series_continue_seen` = **11 nas
+últimas 6h** e `next_episode_requested` no mesmo período = **5**. Mais da
+metade de quem VÊ a porta do episódio 2 não a aperta. O #0 consertou o que
+acontece DEPOIS do clique; o vazamento maior está ANTES dele. Isso é pauta —
+e é pauta do Codex, porque é o cartão, não a rota. Pedido registrado.
+
+#### 2. Linha de base do #1, tirada ANTES de ele subir
+O #1 está na fila, não em produção. Se a base não fosse tirada agora, o
+"depois" não teria com o que ser comparado. `video_ready_email_sent`, 7 dias:
+
+| rodapé | n | % |
+|---|---|---|
+| `trial_episode2` (tem porta) | 48 | 43% |
+| `plan_films` (parede de upgrade, **sem porta**) | 47 | 42% |
+| `subscriber_next` | 12 | 11% |
+| `plan_generic` | 4 | 4% |
+| **total** | **111** | |
+
+`credits_source` **não existe em nenhum dos 111** — o campo nasce com o #1.
+Isso torna o teste do #1 binário e à prova de discussão:
+1. `credits_source='profile'` aparecer = o saldo passou a ser resolvido;
+2. `unknown_balance_episode2` aparecer e `plan_films` **cair** dos 42%;
+3. `series_continuation_landed` com `source='video_ready_unknown_balance'` > 0
+   = a primeira chegada por porta de e-mail em 214 chegadas desde 17/07.
+
+**Risco que a base revela e a #1 não dimensionou:** `plan_films` é 42% de todo
+o e-mail de filme pronto. Se a maioria for saldo desconhecido, o #1 move um
+naco grande de gente da parede de upgrade para a porta do episódio 2 de uma
+vez. É o efeito desejado, mas é grande — vale olhar o primeiro dia depois do
+clique em vez de deixar correr uma semana.
+
+#### 3. Checagem zero — LIMPA
+`render preso >90min` **0** · `cadastro sem crédito 24h` **0** ·
+`next_episode_failed` pós-deploy **0** · fila com **1** commit (`1f3c3f9e`),
+longe do limite de 30 — não é "hora de clicar" por volume, mas o #1 só passa a
+valer quando o fundador clicar.
+
+#### Testes
+Nenhum código foi tocado neste checkpoint (só `docs/`), então não rodei
+`tsc` nem guardião — não haveria o que compilar de diferente. Os 40/40 do
+`test-rodape-saldo-desconhecido` e a bateria de vizinhos são os da #1 e
+continuam valendo; **isso é a bateria do rodapé/série, não a suíte integral.**
+
+#### PRÓXIMA JOGADA (para a rotação das 11:38)
+Mantenho a recomendação da #1 — **J6 (fonte por fonte) antes da J3** — com um
+reforço vindo deste checkpoint: além do TAAFT perder 8 de 14 antes do primeiro
+filme, agora há um segundo vazamento medido e barato de atacar (11 veem a
+porta, 5 apertam). Os dois são "a pessoa chega e não aperta", que é o gargalo
+que o funil de 24/08 já tinha nomeado.
