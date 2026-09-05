@@ -35,7 +35,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { trackEvent } from '@/lib/analytics'
-import { buildSeriesContinuationHref } from '@/lib/seriesContinuation'
+import { buildStudioSeriesReviewHref } from '@/lib/navigation/studioSeriesReview'
 import { useSeriesDoorSeen } from '@/lib/seriesDoorImpressions'
 // KINEO-SPRINT-V1V4-2026-08-31 (#15) — a fila da espera (#14) so existia numa
 // tela. O proprio "Watch" desta pilula manda a pessoa para /history, onde a
@@ -402,7 +402,7 @@ export default function ActiveRenderPill() {
       /* private mode */
     }
     setDismissedId(probeIdentity(probe))
-    router.push(buildSeriesContinuationHref(seed, 'render_pill'))
+    router.push(buildStudioSeriesReviewHref(seed, 'render_pill'))
   }
 
   const nextSeed = probe.state === 'completed' ? probe.seriesSeed : null

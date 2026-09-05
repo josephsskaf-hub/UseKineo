@@ -30,13 +30,16 @@ check('nada de escrita nesta rota (segue so leitura)', !/\.insert\(|\.update\(|\
 check('title continua na resposta (nada foi removido)', /title:\s*typeof recentVideo\.title === 'string'/.test(active))
 
 console.log('\n== components/ActiveRenderPill.tsx ==')
-check('importa o helper compartilhado', /import \{ buildSeriesContinuationHref \} from '@\/lib\/seriesContinuation'/.test(pill))
+// UX L2d 05/09: direct-call/import anchors follow the review adapter now.
+// Writer remains canonical. Actual handlers, both JSX callers, storage denial
+// and Studio round trip run in test-ready-notice-studio-review.mjs.
+check('importa o adaptador de revisao', /import \{ buildStudioSeriesReviewHref \} from '@\/lib\/navigation\/studioSeriesReview'/.test(pill))
 check('probe completed carrega seriesSeed', /state: 'completed'; videoId: string \| null; title: string \| null; seriesSeed: string \| null/.test(pill))
 check('seriesSeed cai no title quando o servidor nao mandar semente', /series_seed[\s\S]{0,400}?data\.title/.test(pill))
 check('handleNextEpisode existe', /function handleNextEpisode\(seed: string\)/.test(pill))
 check('mede com series_continue_clicked', /trackEvent\('series_continue_clicked'/.test(pill))
 check('fonte declarada e render_pill', /source: 'render_pill'/.test(pill))
-check('navega pelo helper, nao por URL escrita a mao', /router\.push\(buildSeriesContinuationHref\(seed, 'render_pill'\)\)/.test(pill))
+check('navega pelo adaptador, nao por URL escrita a mao', /router\.push\(buildStudioSeriesReviewHref\(seed, 'render_pill'\)\)/.test(pill))
 check('escolher o episodio 2 dispensa o aviso do anterior', /handleNextEpisode[\s\S]{0,900}?setDismissedId\(probeIdentity\(probe\)\)/.test(pill))
 // RODADA #9 (2026-09-03) — esta prova estava VERMELHA em origin/main desde a
 // #15 (a fila global entrou na condicao do cartao) e nao era o produto: o
