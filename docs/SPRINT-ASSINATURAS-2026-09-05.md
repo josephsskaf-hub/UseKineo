@@ -2125,3 +2125,181 @@ Quase caí numa armadilha: o jeito óbvio de "mostrar o filme dela" seria linkar
 página pública do vídeo — e essa página está desligada desde agosto por
 privacidade, ou seja, o link levaria o cliente mais quente da casa para um 404.
 O filme é citado pelo nome, nunca linkado.
+
+---
+
+### checkpoint da #8 — 17:08→17:35 BRT — o pedido que a própria #8 abriu estava errado: o "~24h" está CERTO hoje, e "corrigi-lo" para 2h quebraria uma decisão de copy correta
+
+**SHA `30b2226e`** · fila: **4 commits** · worktree `C:/kineo-wt/clock-premise`
+
+Este é o **checkpoint** da #8 (aberta 16:38, commitada 16:59), não uma rotação
+nova. Não abri jogada do cardápio: fechei o único pedido que a #8 deixou.
+
+#### 1. O que a #8 pediu — e por que eu não fiz
+
+A #8 pediu: *"o comentário do `send-recovery` afirma que a linha de
+`checkout_abandoned` nasce ~24h depois do clique; o banco diz 2,0h de mediana.
+Corrigir com o número medido."*
+
+Fui medir antes de editar. A mediana de 1,98h **existe e está certa** — e a
+conclusão tirada dela estava errada. O intervalo é **BIMODAL**, e a mediana de
+todo o histórico é a média de dois regimes que **nunca coexistiram** (198 linhas
+com clique rastreável):
+
+| semana | n | mediana | modo ~2h | modo ~24h |
+|---|---|---|---|---|
+| 20/07 | 13 | 24,00h | 2 | 11 |
+| 27/07 | 13 | 24,00h | 0 | 13 |
+| 03/08 | 29 | 1,97h | 24 | 5 |
+| 10/08 | 36 | 1,95h | 35 | 1 |
+| 17/08 | 52 | 1,95h | 51 | 1 |
+| 24/08 | 24 | 1,97h | 21 | 3 |
+| **31/08** | **31** | **23,95h** | **0** | **29** |
+
+O regime de ~2h **começou em 03/08 e morreu em 29/08**. Quem o matou tem nome:
+`KINEO-CHECKOUT-24H-2026-08-30`, em `app/api/stripe/checkout/route.ts`. O timer
+de duas horas estava **expirando a página de pagamento de comprador VIVO** no
+boundary exato; a janela voltou para 24h **de propósito**, aceitando
+explicitamente *atrasar este e-mail em vez de matar o checkout de quem estava
+pagando*.
+
+Ou seja: o atraso de ~22h no e-mail mais quente da casa **é uma decisão tomada e
+documentada**, não um defeito à espera de conserto. E o "~24h" do `send-recovery`
+descreve a produção de hoje com precisão. Editá-lo para 2h teria trocado uma
+frase verdadeira por uma frase do regime morto.
+
+**A armadilha, para quem vier depois:** medir com janela longa em cima de um
+parâmetro que mudou no meio do caminho produz um número que nunca foi verdade em
+dia nenhum. É a mesma família do erro que já custou rotações nesta sprint
+(medir sem corte na data do deploy).
+
+#### 2. O que mudou — o conserto é o acoplamento, não o número
+
+O relógio deste job **não é dele**: é o `expires_at` da sessão Stripe, que mora
+em `lib/growth/checkoutSessionWindow.ts` e **já mudou duas vezes sem que a copy
+fosse revista**. Enquanto o número for prosa digitada, a terceira mudança repete
+o silêncio.
+
+- `app/api/cron/send-recovery/route.ts` passa a **importar**
+  `RECURRING_CHECKOUT_WINDOW_HOURS` em vez de afirmar o número — mesmo padrão
+  que a #3 e a #8 já usam neste arquivo ("importado, nunca digitado").
+- O payload do cron reporta **`checkout_session_expiry_hours`**: a próxima
+  mudança de janela aparece na execução seguinte, em vez de precisar ser
+  arqueologada em `expired_at` semanas depois.
+- Bloco `KINEO-RECOVERY-RELOGIO-MEDIDO-2026-09-05` grava a tabela acima, o nome
+  do commit que mudou a janela, e a regra que fica.
+- A decisão de copy do relógio passa a apontar a constante **e** a avisar, no
+  próprio texto, que a frase já foi mentira.
+
+#### 3. O que o cliente passa a ver/receber
+
+**Nada muda para o cliente agora — e essa é a resposta certa.** A entrega desta
+rotação foi *não mexer* na copy de um e-mail que está correto. O valor é
+impedir a regressão: hoje, mudar a janela da Stripe torna a copy do lead quente
+falsa **em silêncio**. A partir daqui, torna um guardião **vermelho**.
+
+#### 4. Testes
+
+- **`scripts/test-recovery-clock-premise-2026-09-05.mjs` — 16/16 VERDE.** Lê os
+  **dois arquivos reais** e compara a prosa com a constante viva.
+- **Falsificado por mutação, sempre em CÓPIA** (nunca `git checkout --`):
+  · janela 24h → 2h **derruba o check 4.2** com a mensagem certa — *"não conserte
+    editando o número: releia as duas decisões de copy"*. É exatamente o cenário
+    da #8, e o guardião manda fazer o que eu fiz;
+  · literal no payload derruba **2.2 e 2.3**;
+  · remover o aviso "JÁ FOI MENTIRA" derruba **3.3**;
+  · regredir a elegibilidade de 7d para 48h derruba **6.1 e 6.2** (a inanição de
+    13/08).
+- **Os dois guardiões da #8 seguem verdes**: 47/47 e 50/50. Editei o mesmo
+  arquivo que eles cobrem.
+- **`npx tsc --noEmit` verde e provado real**: erro de tipo injetado foi pego
+  (worktree com junction de `node_modules`).
+- **Reconferido NA PONTA DA FILA**, não só na worktree onde escrevi: checkout
+  novo de `entrega-atual`, arquivos em **CRLF**, guardião **16/16 verde**.
+
+Honestidade sobre o alcance: **guardião verde não é suíte integral verde.**
+Rodei os três guardiões desta rota e o typecheck, não a bateria inteira.
+
+#### 5. Risco
+
+Nenhum em runtime: um `import` de constante e um campo a mais no JSON do cron.
+O risco real é de *processo* — o guardião fica vermelho quando alguém mudar a
+janela da Stripe legitimamente, e a leitura preguiçosa é editar o número para
+ficar verde. A mensagem de falha diz, em letras: **não é isso que ele pede**.
+
+#### 6. Placar (marco 03/09 16:00 UTC, contas externas)
+
+cadastro **68** → filme 1 **43** → filme 2 **13** → filme 3 **4** →
+checkout **4** → **pagou 0** *(idêntico à #8, 35 min antes)*
+
+**Checagem zero: limpa — e a própria checagem tinha um falso positivo.**
+"Cadastro sem crédito em 24h" acusou **1**. Investiguei antes de escalar: a
+conta `09acd54d` **recebeu** o `trial_credits_granted`, fez filme, recebeu o
+`video_ready_email_sent`, e depois deu `trial_expired` + `trial_downgraded` —
+87 eventos de jornada saudável. Saldo 0 porque o **trial acabou**, não porque
+o grant faltou. Refeita com a condição certa (`not exists
+trial_credits_granted`): **0 órfãos reais**.
+`render preso 2h+`: **0**. `next_episode_failed`: 13 em 24h, a mais recente de
+**13:15 UTC** — nenhuma nova em 4h. `generation_stage_error`: 25, a mais recente
+de **09:39 UTC** — nenhuma nova em 8h. Nada a escalar.
+
+⚠️ **Corrigir o SQL da checagem zero na próxima rotação**: "cadastro sem crédito
+em 24h" precisa de `and not exists (trial_credits_granted)`, senão toda conta
+cujo trial expira no mesmo dia do cadastro vira alarme falso — e alarme falso
+come rotação (já comeu duas nesta sprint).
+
+#### PRÓXIMA JOGADA
+
+**O lead mais quente da casa espera ~24h por decisão nossa, e nós já temos o
+sinal no segundo zero.** A janela de 24h protege o comprador vivo e não deve
+mudar — mas ela só governa quando a **linha de `checkout_abandoned`** nasce.
+O evento **`checkout_started` existe no instante do clique**: a conta
+`09acd54d` de hoje tem `plan_fit_checkout_cta_viewed` e `trial_downgraded` no
+mesmo dia. Um caminho de recuperação que leia o **evento** em vez da **linha**
+pode falar com a pessoa enquanto ela ainda lembra do filme, sem tocar em preço,
+em oferta, nem no `expires_at` de ninguém. Não construí: é e-mail novo, muda
+**quando** alguém é abordado, e essa é decisão do fundador — o padrão seguro
+aqui era não mandar.
+
+#### PEDIDOS NOVOS
+
+Nenhum. **Fechei o pedido aberto pela #8 com veredito contrário ao que ele
+pedia** — fica registrado como *falsificado*, não como *pendente*: se voltar a
+aparecer como tarefa, é retrabalho.
+
+#### ✅ O QUE VOCÊ PRECISA FAZER
+
+1. **Clicar em `SUBIR-SITE.bat`** — a fila tem **4 commits** (os 3 da #8 mais
+   este). Nada aqui muda preço, oferta ou texto enviado a cliente.
+2. **Dizer se quer o lote de reoferta** (pendência da #8, ainda aberta): as 78
+   pessoas que receberam a carta antiga nunca receberão a nova, por causa do
+   carimbo vitalício. Só com o seu "vai" eu construo o lote dry-run.
+3. **Decidir a trava de qualidade** (pendência da #7): `generate-video-*` vira
+   regra de conteúdo, ou telemetria nessas rotas passa a precisar do seu "vai"?
+4. **Atualizar a listagem do TAAFT**: anuncia trial de 40cr e "from $9.90/mo";
+   o real é 50cr e $7.
+
+#### 📋 O QUE ACONTECEU
+
+A rotação anterior me deixou uma tarefa: *"o comentário diz 24 horas, o banco
+diz 2 — corrija."* Fui conferir antes de escrever e a tarefa estava errada.
+
+O tempo entre a pessoa desistir do pagamento e o sistema perceber já foi de 2
+horas, entre 3 e 29 de agosto. Em 30 de agosto isso mudou de volta para 24 horas
+**de propósito**: o timer curto estava derrubando a tela de pagamento de gente
+que ainda estava pagando. A média que a tarefa citava misturava os dois períodos
+e não descreve nenhum dia real. Se eu tivesse obedecido, teria trocado uma frase
+verdadeira por uma frase de um mundo que acabou há uma semana.
+
+O conserto de verdade não era o número: era o fato de esse número ser **digitado
+à mão** num arquivo e **decidido em outro**. Já mudou duas vezes sem ninguém
+avisar o e-mail. Agora o e-mail lê o valor direto da fonte, informa esse valor
+toda vez que roda, e um teste novo fica vermelho se os dois se separarem — com
+uma mensagem que diz explicitamente para **reler a decisão**, não para editar o
+número até o teste passar.
+
+Também peguei um alarme falso na varredura de saúde: uma conta aparecia como
+"nasceu sem crédito", e na verdade tinha recebido tudo, feito o filme dela e
+simplesmente chegado ao fim do teste grátis no mesmo dia. Zero problemas reais.
+Deixei anotado como consertar a varredura, porque alarme falso já custou duas
+rotações nesta sprint.
