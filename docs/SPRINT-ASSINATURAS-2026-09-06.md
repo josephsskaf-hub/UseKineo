@@ -2638,3 +2638,130 @@ origem do denim — é o primeiro da história da casa que **sobrevive à aba**.
 **Fica de pé para a #15** medir o outro lado do contrato: a primeira leitura
 de memória (`next_episode_ready` **sem** um `next_episode_written` no mesmo
 minuto = acerto de cache), e `next_episode_failed` com `status: 429` em zero.
+
+---
+
+### CHECKPOINT DA #14 (06:38 BRT / 09:38 UTC) — A METADE QUE FALTAVA DO CONTRATO, PROVADA SEM ESPERAR TRÁFEGO
+
+O adendo das 06:25 provou a metade da **escrita**. A metade da **leitura**
+ficou em pé de fé: eu escrevi que a prova viria do dado, e o dado de tráfego
+ainda não existe. Este checkpoint fecha isso por outro caminho.
+
+#### 1. O QUE EU FUI CONFERIR — E O QUE QUASE VIROU ALARME
+
+Ao listar os três eventos da rotação, a linha `next_episode_written` voltou
+**sem `video_id` em lugar nenhum do `metadata`** — enquanto `next_episode_ready`
+trazia o `video_id` normalmente. Isso tem cara do defeito mais caro desta
+família: escritor e leitor chaveando o mesmo fato por campos diferentes. A
+memória gravaria para sempre e nunca casaria com nada — zero silencioso, do
+tipo que só aparece semanas depois.
+
+**Não era defeito.** A chave nunca esteve no `metadata`: está na **coluna
+`session_id`**, exatamente como o commit descreve ("chaveada por
+`session_id = fromVideoId`").
+
+```
+next_episode_written · session_id = c563f3e9-4893-4f5f-bcee-18f4bd393704
+next_episode_requested/ready · session_id = 9bd9db21-… (a sessão do navegador)
+```
+
+Os dois papéis usam a mesma coluna para coisas diferentes de propósito: o
+evento de telemetria guarda a **sessão do navegador**, o evento de memória
+guarda o **filme**. É legítimo e está documentado — mas é a primeira coisa que
+um leitor apressado (eu, dez minutos atrás) lê como bug. Fica registrado para
+a próxima rotação não repetir o susto.
+
+#### 2. A PROVA DA LEITURA, SEM DEPENDER DE ALGUÉM VOLTAR
+
+Em vez de esperar a pessoa reabrir a aba, rodei contra a linha REAL de produção
+a **réplica exata do predicado do leitor** (`route.ts:238-249`) — mesmo
+`user_id`, mesmo `name`, mesmo `session_id`, mesmo `order by created_at desc
+limit 1` — e em seguida as condições que `lerGravado`/`prepararParaGravar`
+impõem antes de aceitar a memória:
+
+| condição do leitor | resultado |
+|---|---|
+| linhas achadas pelo predicado | **1** |
+| TTL de 14 dias (`memoriaAindaVale`) | **passa** (idade 0,012 dia) |
+| `script` entre 40 e 4000 chars | **958** |
+| `title` entre 1 e 160 chars | **31** |
+| `words > 0` | **146** |
+| `episodeNumber >= 2` | **2** |
+| `lerGravado` aceitaria | **sim** |
+
+Ou seja: **se a pessoa 2c09bb9e voltar ao filme c563f3e9 dentro de 14 dias,
+ela recebe "The Mysterious Origins of Denim" palavra por palavra** — não um
+episódio novo, não um card vazio. As duas maneiras de esta entrega falhar em
+silêncio (chave trocada, validação recusando o próprio texto que gravou)
+estão **as duas fechadas contra o dado real**, não contra um mock.
+
+**O que continua sem prova, e eu não vou fingir que tem:** o *round trip* HTTP
+com `cached: true`. Ninguém voltou ainda. Denominador de acertos de cache =
+**0 oportunidades**, não "0 acertos" (memórias `zero-falhas-sem-denominador` e
+`contrato-de-servidor-sem-chamador`). A #15 mede isso quando houver segunda
+visita; até lá, o correto é dizer que o contrato está provado até a borda do
+banco.
+
+#### 3. ENTREGA E SAÚDE
+
+| item | valor |
+|---|---|
+| `git ls-remote origin main` | **fac39130** |
+| `git rev-list --count origin/main..entrega-atual` | **0** |
+| home `https://www.usekineo.com/` | **200** |
+
+#### CHECAGEM ZERO (pós-marco 2026-09-06 04:00 UTC)
+
+| checagem | resultado |
+|---|---|
+| cadastro sem crédito | **0** |
+| `completed` sem `video_url` | **0** |
+| render preso >15 min | **0** |
+| `next_episode_failed` (429 inclusive) | **0** |
+| `generation_stage_error` | 1 (o mesmo `broll_plan_threw_autopilot` das 07:47 UTC — não repetiu) |
+
+#### PLACAR (pós-marco 2026-09-06 04:00 UTC, contas externas)
+
+| fonte | cadastros | filme 1 | filme 2 | filme 3 | checkout | **pagou** |
+|---|---|---|---|---|---|---|
+| chatgpt | 4 | 3 | 0 | 0 | 0 | **0** |
+| seo | 1 | 1 | 0 | 0 | 1 | **0** |
+| taaft | 1 | **1** | 0 | 0 | 0 | **0** |
+| sem fonte | 1 | 1 | 0 | 0 | 0 | **0** |
+| nav | 1 | 0 | 0 | 0 | 0 | **0** |
+| **total** | **8** | **6** | **0** | **0** | **1** | **0** |
+
+Único movimento desde a medição da #14: a pessoa de **taaft** saiu de 0 para 1
+filme — e é justamente ela quem gerou a primeira memória de episódio da casa.
+Nenhum assinante novo. As duas cartas automáticas continuam à frente no
+relógio (08:00 e 08:30 BRT); o zero delas ainda é hora, não gatilho.
+
+#### PRÓXIMA JOGADA (#15, 07:08 BRT) — sem mudança
+
+A ordem da #14 continua de pé, com o item 1 mais barato do que estava: a
+leitura já está provada até a borda do banco, então a #15 só precisa conferir
+se apareceu **segunda visita** (`next_episode_ready` sem `next_episode_written`
+no mesmo minuto). Se não apareceu, não é defeito — é falta de oportunidade, e
+a rotação vai direto para o item 2 (a carta que passa a **nomear** o episódio
+gravado em vez de oferecer a semente).
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+**Nada.** Fila zerada, `origin/main` na ponta, site em 200, nenhum alarme
+aberto.
+
+### 📋 O QUE ACONTECEU
+
+Conferência da entrega anterior, sem código novo. A casa começou a lembrar o
+episódio 2 que ela mesma escreve — e neste checkpoint eu provei a metade que
+faltava: quem voltar vai encontrar **o mesmo texto**, e não um episódio
+diferente. A prova não esperou ninguém voltar; ela roda o mesmo predicado que
+o produto roda, contra a linha verdadeira que está no banco.
+
+No caminho, um susto que valia a pena ter: a linha da memória parecia não
+guardar o filme, o que teria tornado a entrega inútil em silêncio. Guardava —
+em outra coluna, de propósito. Registrado para ninguém "consertar" amanhã o
+que não está quebrado.
+
+Movimento de gente na janela: 8 cadastros, 6 primeiros filmes, 1 checkout,
+**0 assinantes**.
