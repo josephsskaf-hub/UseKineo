@@ -3163,3 +3163,111 @@ pequeno — é o que a próxima rotação faz.
 O resto está limpo: nada preso, ninguém sem crédito, nenhum filme cobrado e
 não entregue. E o placar não se moveu: 8 cadastros, 6 primeiros filmes, 1
 checkout, **0 assinantes**.
+
+═══════════════════════════════════════════════════════════════════════
+## FECHAMENTO DA SESSÃO A — 08:16 BRT (janela 01:08→09:08)
+═══════════════════════════════════════════════════════════════════════
+
+⚠️ **Este é o fechamento de UMA das duas sessões.** Outra execução desta mesma
+tarefa rodou em paralelo (checkpoint da #1, #7, #10, #11, #13…) e tem
+entregas próprias. Ordene o dia por `git log`, **nunca pelo número da entrada**.
+
+### O RESULTADO, sem maquiagem: 0 assinaturas
+
+Funil desde o marco `2026-09-06 04:00 UTC`, contas externas:
+
+| fonte | cadastros | filme 1 | filme 2 | checkout | **pagou** |
+|---|---|---|---|---|---|
+| chatgpt | 6 | 3 | 0 | 0 | **0** |
+| seo | 1 | 1 | 0 | 1 | **0** |
+| taaft | 1 | 1 | 0 | 0 | **0** |
+| sem fonte | 1 | 1 | 0 | 0 | **0** |
+| nav | 1 | 0 | 0 | 0 | **0** |
+| **total** | **10** | **6** | **0** | **1** | **0** |
+
+Uma noite de madrugada: 10 cadastros, 6 primeiros filmes, **nenhum segundo
+filme**, 1 checkout, 0 pagamentos. O volume é pequeno demais para julgar
+qualquer peça entregue hoje.
+
+### O QUE ENTROU EM PRODUÇÃO (7 entregas, todas com fila zerada e sonda)
+
+| SHA | o quê |
+|---|---|
+| `31066fd7` | o contrato mentia o preço: anunciava Kineo 1 a **0** para 798 contas de trial que a casa cobra **5** |
+| `f1dfd256` | o cartão da próxima ação no **modal de saldo** |
+| `f1d1f3c5` | o mesmo cartão na **tela de filme pronto** (depois do download e do Plan Fit) |
+| `09aaa90c`+`1d01d020` | a carta de quem bateu na parede + o conserto dos 8 assuntos quebrados |
+| `d8f216a7` | o denominador contava **montagem**, não pessoa (1 pessoa = 5 linhas) |
+| guardião | a checagem de superfície estava **cega** para a 3ª montagem (`[a-z_]+` sem dígito) |
+
+### AS TRÊS COISAS QUE FUNCIONARAM, provadas em produção
+
+1. **O contrato saiu de 0 chamadas na história para 16, de 6 pessoas.** O
+   problema que abriu o ciclo — peça pronta sem chamador — acabou.
+2. **A correção do preço está viva:** as servidas trazem `treat_as_paid: true`
+   com `is_trial: true` em conta `plan='free'` — exatamente o caso que ontem
+   receberia "Kineo 1 · 0 créditos" e uma cobrança de 5.
+3. **O cartão apareceu para quem devia:** 5 impressões, **3 pessoas**, todas em
+   estado `dry`. O caso exemplar: saldo **10**, último filme **15**, e a tela
+   ofereceu Kineo 1 por **5** — que o saldo paga.
+
+### A CARTA DISPAROU — e eu vi acontecer
+
+**11:00:47→11:00:59 UTC (08:00 BRT): 18 e-mails**, ritmo de 600ms respeitado.
+
+| fonte | enviados | com nome do filme | assunto genérico |
+|---|---|---|---|
+| chatgpt | 10 | 8 | 2 |
+| taaft | 8 | 7 | 1 |
+
+Foram **18 e não 31** porque a coorte se move: a janela de 14 dias correu 6h30
+entre o dry-run e o disparo, e carimbos de outras campanhas entraram no meio.
+**Restam 12 elegíveis** (8 chatgpt, 3 taaft) para o próximo cron, **12:00 BRT**.
+O teto de 30 não foi atingido; nenhum envio falhou (o carimbo só existe no
+sucesso).
+
+### O NÚMERO HONESTO QUE NÃO DÁ PARA MAQUIAR: 0 cliques
+
+**5 impressões, 3 pessoas, 0 cliques.** Antes de escrever isso, verifiquei que
+não é artefato:
+
+- o clique dispara `trackEvent` e navega na linha seguinte — mas
+  `persistBrowserEvent` usa `fetch(keepalive: true)`, que **sobrevive à
+  navegação**. O clique seria gravado;
+- os destinos existem: `/studio/create` com os parâmetros da série → **307**
+  (redirect de deslogado), `/pricing?src=next_action_dry` → **200**, rota
+  inventada → **404** (o controle que dá sentido aos outros).
+
+Então o zero é **comportamento real**, com denominador de **3 pessoas** — pequeno
+demais para concluir que a peça não funciona, e honesto demais para eu dizer
+que funciona.
+
+### CHECAGEM ZERO — limpa
+
+`cadastro sem crédito` 0 · `next_episode_failed` 0 · `débito sem entrega` 0 ·
+`render preso` 0 · `compose_not_ok` 0 · `recovery parado` 0 ·
+`generation_stage_error` 3 desde o marco (nenhum é defeito novo).
+
+### O QUE EU ERREI, e está tudo consertado
+
+1. **Carimbei três entradas com hora inventada** e as três couberam na rotação
+   #1 — o mesmo defeito que a #9 de 05/09 registrou. Corrigido, e a regra ficou:
+   hora sai de `date`.
+2. **Meu próprio denominador contava montagem** — 1 pessoa virou 5 no placar.
+3. **Três guardiões meus davam verde sem cobrir o que anunciavam**: `indexOf`
+   devolvendo −1 (aprovava a remoção que existia para pegar), o removedor de
+   comentários engolindo o `//` de uma URL, e uma classe `[a-z_]+` sem dígito.
+4. **Um mutante meu não rodou** (python não existe no Windows da casa) e o
+   guardião deu verde **sem mutação** — quase virou conclusão errada, 3 vezes.
+
+### O QUE SOBROU
+
+- **12 pessoas** no próximo lote da carta (12:00 BRT, automático).
+- **A 2ª e a 3ª parede de "não"**: `free_fast_limit` (15 pessoas) não vira
+  estado `dry` porque o filme grátis custa 0. Spec completa no PEDIDOS; larguei
+  o claim porque a outra sessão está nos arquivos.
+- **57% da melhor fonte vai embora sem o arquivo** (109 de 190 do chatgpt).
+  Quem leva faz um 2º filme 39,5% × 20,2% — sinal recortado ANTES do desfecho.
+  É a maior fuga isolada e está **acima** de tudo que trabalhei hoje. Superfície
+  do Codex.
+- **106 pessoas** congeladas na carta antiga — decisão do fundador.
