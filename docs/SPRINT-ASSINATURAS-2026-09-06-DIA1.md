@@ -708,3 +708,80 @@ traz `hasCredit` justamente para que a tela **não deduza o plano sozinha**.
 
 Guardião do pacote: 44 → **53** verificações.
 
+
+---
+
+## ### #23 — 13:05 BRT — o plano vira "o resto da sua temporada" para quem ficou SEM saldo
+
+### PRESS RELEASE
+
+1. A carta que fala com quem **acabou o crédito** dizia "os planos estão aqui"
+   — uma unidade que ninguém sente.
+2. Agora ela mostra os **episódios 3 a 6** que a casa escreveu a partir do
+   filme que **aquela pessoa** fez, e o plano passa a ser o que **destrava**
+   aquilo.
+3. Junto com a #19, as duas metades de quem parou no filme 1 ficam cobertas:
+   quem **tem** saldo recebe "a temporada cabe no seu saldo"; quem **não tem**
+   recebe "a temporada existe, e é isso que o plano compra".
+4. O carimbo cruzado garante que ninguém recebe as duas.
+5. **Preço público: intocado.** Nenhum valor, plano, cupom ou promessa nasce
+   aqui — é moldura, que foi exatamente o que o fundador pediu (B3).
+
+### #23b — E O NÚMERO QUE APARECEU QUANDO FUI MEDIR: 11 → 43
+
+O PEDIDOS da #19b pedia "medir antes de mexer em campanha viva". Medi, nesta
+rota, com a coorte real:
+
+| | pessoas |
+|---|---|
+| coorte antes dos carimbos | 81 |
+| elegíveis com `raw[c] != null` (como estava) | **11** |
+| elegíveis com `isRealSendStamp` (como ficou) | **43** |
+
+**32 pessoas que nunca receberam carta nenhuma** estavam fora porque
+`activation_nudge_sent_at` carrega `1970-01-01` — o carimbo de **pulo**, gravado
+quando um job **pula** alguém, e o motivo mais comum do pulo é *"a pessoa já
+fez um vídeo"*, que é a **definição** desta coorte.
+
+Apliquei **só nesta rota**. `send-checkout-recovery` continua como está, com o
+número dela ainda por medir — está no PEDIDOS.
+
+**Disparo extra hoje:** `0 11,15 * * *` → `0 11,15,20 * * *` UTC. O lote das
+15:00 saiu **antes** do #23, então sem essa linha a temporada na carta só
+apareceria amanhã. O carimbo vitalício garante que ninguém recebe duas vezes —
+o slot novo só processa a fila mais cedo.
+
+### #23c — O RISCO QUE O #23b CRIOU, E QUE EU FECHEI NO MESMO CICLO
+
+Ao passar de 11 para 43 elegíveis, a carta passa a escrever a temporada de até
+**30 pessoas numa execução** com `maxDuration = 300`. Trinta chamadas de 25s
+seriam **750s**: o cron morreria no meio, e quem ficasse para trás não seria
+carimbado nem servido — desperdício de lote **sem sintoma visível**.
+
+`garantirTemporada` ganhou `timeoutMs` (padrão 25s, intacto para
+`/api/season`, onde há alguém esperando na tela). As duas cartas em lote passam
+**10s**.
+
+### GUARDIÃO ALHEIO: ATUALIZADO, NÃO AFROUXADO
+
+A mudança de assinatura quebrou 3 verificações de um guardião que já existia, e
+a do carimbo quebrou 1 de outro. **Não relaxei nenhuma:**
+
+- as 3 continuam exigindo o episódio **na mesma posição e com o mesmo tipo** —
+  só passaram a admitir o argumento novo depois dele — e ganharam **5 travas
+  novas** (37 → 40);
+- a do carimbo ficou **mais dura**: antes exigia literalmente `raw[c] != null`;
+  agora exige que a época **não** exclua, que data ilegível **exclua**, e que o
+  piso venha da lib da casa em vez de ser redigitado (58 → 61).
+
+**SHAs `1ef575ff` + `f0fea5ae` + `c5a6a56e`.**
+
+Guardiões do ciclo, somados: **43 + 60 + 61 + 40 + 53 + 28 + 17 = 302
+verificações verdes**, `tsc` limpo na árvore combinada com o lote do Codex.
+
+### PRÓXIMOS DISPAROS AUTOMÁTICOS DE HOJE (dentro da janela, para dar tempo de medir)
+
+- **16:45 BRT** (19:45 UTC) — carta da temporada, lote 2 (as 8 retidas pela
+  supressão de 24h + as 3 sem temporada + quem entrar).
+- **17:00 BRT** (20:00 UTC) — carta da parede, agora com **43 elegíveis** e com
+  o resto da temporada dentro.
