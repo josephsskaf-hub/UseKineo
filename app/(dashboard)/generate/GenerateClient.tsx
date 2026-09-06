@@ -202,6 +202,10 @@ import {
   limitPurchaseChoiceFits,
   limitPurchaseFitTelemetry,
 } from '@/lib/growth/limitPurchaseFit'
+// KINEO-TOPUP-OFERTA-2026-09-06 (#29) — a MESMA funcao que o
+// /api/stripe/checkout usa para aceitar ou recusar a compra de recarga.
+import { canPurchaseCreditTopup } from '@/lib/growth/topupEligibility'
+import TopupUnavailableNote from '@/components/TopupUnavailableNote'
 import {
   buildSeriesContinuationHref,
   buildSeriesContinuationPrompt,
@@ -10592,10 +10596,16 @@ export default function GenerateClient({
         duration,
       )
     : (QUALITY_OPTIONS.find((q) => q.key === quality)?.credits ?? 8)
+  // KINEO-TOPUP-OFERTA-2026-09-06 (#29) — o plano no vocabulario do SERVIDOR
+  // ('free' | 'starter' | 'basic' | 'pro'), que e o que canPurchaseCreditTopup
+  // (a regra do /api/stripe/checkout) sabe ler. Derivado dos mesmos booleanos
+  // que a tela ja usa; nao ha uma segunda fonte de verdade de plano aqui.
+  const serverPlanName = isStudio ? 'pro' : isCreator ? 'basic' : isStarter ? 'starter' : 'free'
   const limitPurchaseFit = calculateLimitPurchaseFit({
     balance: credits,
     requiredCredits: selectedCost,
     isSubscriber: isStarter || isCreator || isStudio,
+    plan: serverPlanName,
   })
   const seedanceReferenceCost = creditsPerReferenceVideo('cinematic_ai')
   const shareRewardMix = videoMixForCredits(30, 'cinematic_ai', 'fast')
@@ -12033,6 +12043,7 @@ export default function GenerateClient({
         <UpgradeModal
           reason={upgradeReason}
           isSubscriber={isStarter || isCreator || isStudio}
+          plan={serverPlanName}
           balance={credits}
           requiredCredits={selectedCost}
           // KINEO-UPGRADE-MODAL-CURRENCY-2026-08-06 — o MESMO estado de moeda
@@ -19200,6 +19211,7 @@ function UpgradeModal({
   onClose,
   reason = 'credits',
   isSubscriber = false,
+  plan = null,
   balance = null,
   requiredCredits = 0,
   checkoutError = null,
@@ -19213,6 +19225,13 @@ function UpgradeModal({
   onClose: () => void
   reason?: 'credits' | 'studio' | 'creator' | 'trial_ended' | 'trial_stalled' | 'trial_spent' | 'footage'
   isSubscriber?: boolean
+  /**
+   * KINEO-TOPUP-OFERTA-2026-09-06 (#29) — o plano da conta no vocabulario do
+   * servidor ('free' | 'starter' | 'basic' | 'pro'). Nulo = trata como conta
+   * SEM direito a recarga: o padrao seguro e nao pintar um botao que o
+   * checkout responde com 403.
+   */
+  plan?: string | null
   balance?: number | null
   requiredCredits?: number
   /** Inline English error from the parent's plan-row launcher. */
@@ -19248,8 +19267,12 @@ function UpgradeModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   const reasonHasCreditFit = reason === 'credits' || reason.startsWith('trial_')
+  // KINEO-TOPUP-OFERTA-2026-09-06 (#29) — quem NAO pode comprar recarga nao ve
+  // a escadinha de pacotes. Ver components/TopupUnavailableNote.tsx para o
+  // caso medido que motivou isto (403 na cara de quem sacou a carteira).
+  const topupPurchasable = canPurchaseCreditTopup(plan)
   const purchaseFit = reasonHasCreditFit
-    ? calculateLimitPurchaseFit({ balance, requiredCredits, isSubscriber })
+    ? calculateLimitPurchaseFit({ balance, requiredCredits, isSubscriber, plan })
     : null
   // #466 fake 15-min "founding offer" countdown REMOVED
   // (KINEO-SPRINT-OFFER-2026-07-14): the timer reset per browser and nothing
@@ -19720,7 +19743,7 @@ function UpgradeModal({
             mostra a escadinha pra TODOS (era so assinante): o momento em que
             a fome bate e o momento de vender. 100cr e o destaque; 120 vira
             decoy (+\$2 compra +35cr). */}
-        {(
+        {topupPurchasable ? (
           <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
             <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#86868b', textAlign: 'center' }}>
               {/* KINEO-POPUP-AUDIT-2026-08-25 — "expires at renewal" era MENTIRA:
@@ -19858,6 +19881,8 @@ function UpgradeModal({
               </p>
             )}
           </div>
+        ) : (
+          <TopupUnavailableNote fit={purchaseFit} />
         )}
 
         {/* KINEO-INTRO-MONTH-2026-07-13 escape button removed

@@ -4,6 +4,7 @@ import {
   TOPUP_CREDITS,
   type TopupId,
 } from '@/lib/checkoutPricing'
+import { canPurchaseCreditTopup } from '@/lib/growth/topupEligibility'
 
 export const LIMIT_PURCHASE_FIT_VERSION = 'limit_purchase_fit_v1' as const
 
@@ -21,6 +22,14 @@ export type LimitPurchaseFit = {
   fittingPlanIds: LimitPurchasePlanTier[]
   fittingTopupIds: TopupId[]
   recommended: LimitPurchaseChoice | null
+  /**
+   * KINEO-TOPUP-OFERTA-2026-09-06 — se o COBRADOR venderia recarga a esta
+   * conta. Falso => `fittingTopupIds` vem VAZIO e `recommended` nunca e um
+   * pacote. O /api/stripe/checkout recusa recarga fora de Creator/Studio com
+   * 403 `topup_requires_creator_plus`; ate hoje este modulo recomendava
+   * exatamente esse 403 para quem nao tinha plano nenhum.
+   */
+  topupPurchasable: boolean
   balanceBucket: CreditAmountBucket
   requiredBucket: CreditAmountBucket
   shortfallBucket: CreditAmountBucket
@@ -62,8 +71,16 @@ export function calculateLimitPurchaseFit(input: {
   balance: number | null
   requiredCredits: number
   isSubscriber: boolean
+  /**
+   * KINEO-TOPUP-OFERTA-2026-09-06 — o plano da conta, lido pela MESMA funcao
+   * que o /api/stripe/checkout usa para aceitar ou recusar a compra
+   * (`canPurchaseCreditTopup`). Ausente = trata como NAO comprador de recarga:
+   * o padrao seguro e nao oferecer o que o cobrador recusa.
+   */
+  plan?: unknown
 }): LimitPurchaseFit | null {
   const { balance, requiredCredits, isSubscriber } = input
+  const topupPurchasable = canPurchaseCreditTopup(input.plan)
   if (
     balance === null ||
     !Number.isFinite(balance) ||
@@ -82,17 +99,26 @@ export function calculateLimitPurchaseFit(input: {
   // A subscriber already has a recurring plan. We do not claim that buying a
   // second plan changes or immediately re-grants that subscription; only
   // one-time credits are recommended for this account state.
-  const fittingPlanIds = isSubscriber
-    ? []
-    : SELF_SERVE_TIERS.filter(
-        (tier) => safeBalance + firstPurchaseCredits(tier) >= safeRequired,
-      )
+  // KINEO-TOPUP-OFERTA-2026-09-06 — o Starter e assinante E NAO pode comprar
+  // recarga (TOPUP_ELIGIBLE_PLANS = basic/pro). Com a regra antiga ele saia
+  // desta funcao com fittingPlanIds=[] E um pacote recomendado que o checkout
+  // recusa: a UNICA conta do produto que ficava sem NENHUMA saida comprável.
+  // Para ele as saidas sao os planos ACIMA do dele, nunca um segundo Starter.
+  const planCandidates: LimitPurchasePlanTier[] = isSubscriber
+    ? (topupPurchasable ? [] : SELF_SERVE_TIERS.filter((tier) => tier !== 'starter'))
+    : SELF_SERVE_TIERS
+  const fittingPlanIds = planCandidates.filter(
+    (tier) => safeBalance + firstPurchaseCredits(tier) >= safeRequired,
+  )
 
-  const fittingTopupIds = TOPUP_IDS.filter(
-    (id) => safeBalance + TOPUP_CREDITS[id] >= safeRequired,
-  ).sort((a, b) => TOPUP_CREDITS[a] - TOPUP_CREDITS[b])
+  // A recarga so entra na conta de quem o cobrador aceitaria cobrar.
+  const fittingTopupIds = topupPurchasable
+    ? TOPUP_IDS.filter(
+        (id) => safeBalance + TOPUP_CREDITS[id] >= safeRequired,
+      ).sort((a, b) => TOPUP_CREDITS[a] - TOPUP_CREDITS[b])
+    : []
 
-  const recommended: LimitPurchaseChoice | null = !isSubscriber && fittingPlanIds[0]
+  const recommended: LimitPurchaseChoice | null = fittingPlanIds[0]
     ? { type: 'plan', id: fittingPlanIds[0] }
     : fittingTopupIds[0]
       ? { type: 'topup', id: fittingTopupIds[0] }
@@ -107,6 +133,7 @@ export function calculateLimitPurchaseFit(input: {
     fittingPlanIds,
     fittingTopupIds,
     recommended,
+    topupPurchasable,
     balanceBucket: creditAmountBucket(safeBalance),
     requiredBucket: creditAmountBucket(safeRequired),
     shortfallBucket: creditAmountBucket(shortfall),
@@ -124,6 +151,7 @@ export function limitPurchaseFitTelemetry(fit: LimitPurchaseFit) {
     fitting_topup_count: fit.fittingTopupIds.length,
     recommendation_type: fit.recommended?.type ?? 'none',
     recommendation_id: fit.recommended?.id ?? 'none',
+    topup_purchasable: fit.topupPurchasable,
   }
 }
 
