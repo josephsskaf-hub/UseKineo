@@ -322,3 +322,70 @@ Disparar agora queimaria a melhor lista da casa na pior hora. O link é para
 
 **COMO MEDIR:** `next_episode_wall_emailed_v1` (carimbo) → `series_continuation_landed`
 → filme entregue em 24h → `checkout_started`. Denominador = 31.
+
+---
+
+### #5 — 01:36→01:41 BRT — o que eu NÃO construí, e o número que sobrou
+
+Três itens do cardápio foram **medidos e fechados sem código**, porque o dado
+disse que o trabalho já estava feito:
+
+**N5 (e-mail de checkout abandonado) — JÁ COBERTO, nada a fazer.** Gate do
+PEDIDOS: `checkout_abandoned` com `recovery_sent_at` nulo nas últimas 48h =
+**0**. Dos 9 leads da janela, **9 já receberam**. O `send-recovery` roda
+sozinho de 2 em 2 horas. Construir aqui seria a terceira advertência de
+"não construa de novo" ignorada em dois dias.
+
+**N4 (a volta de quem levou o "não") — BLOQUEADO PELA DIVISÃO DE PISTAS, e
+virou pedido.** `/dashboard` faz `redirect('/studio')`, então **/studio é o
+único lugar onde quem volta aterrissa** — e `StudioClient` é lote aberto do
+Codex neste ciclo. Não toquei. O componente já está em produção e a montagem é
+uma linha: pedido registrado no PEDIDOS às 01:45.
+
+**A carta do vídeo pronto já é personalizada para esta coorte.** `lib/lifecycle/
+videoReadyFooter.ts` tem o ramo `plan_films` exatamente para "não paga, sem
+saldo provado". Ou seja: **o canal do N3 já é automático para quem entregar
+filme daqui em diante** — a minha lista de 31 é o passivo de quem passou antes
+disso. Isso torna o disparo menos urgente do que o cardápio supunha, e é mais
+um motivo para ele sair no horário certo em vez de agora.
+
+**Verificação do clamp de 15s: falso alarme, e ainda bem que conferi.** Fui
+checar se o corte do free tier chegava a ser dito na tela (o comentário do
+compose diz que a pessoa lê filme curto como *produto quebrado*). **Chega:**
+`freeClampNotice` é capturado nos dois pontos de despacho e renderizado em
+`GenerateClient.tsx:14429`. Nada a consertar — rotação salva por uma conferência
+de 2 minutos.
+
+---
+
+#### O NÚMERO QUE SOBROU, e é o mais acionável da noite
+
+Fui atrás do N6 ("o que 10 de 30 do chatgpt fizeram que os outros não"). A
+leitura ingênua dava 63% × 36% em "baixou o arquivo" — mas está **contaminada
+por causalidade reversa**: quem faz mais filmes tem mais chances de baixar.
+Refiz com o sinal recortado **antes** do desfecho (só o que aconteceu até 2h
+depois do PRIMEIRO filme; o segundo só conta se veio depois):
+
+| fonte chatgpt, não pagante, 30d | pessoas | fizeram 2º filme |
+|---|---|---|
+| **baixou** o 1º filme | 81 | **39,5%** |
+| **não baixou** | 109 | **20,2%** |
+
+**O que isto NÃO prova:** que baixar *causa* o segundo filme — pode ser apenas
+a marca de "gostou". Não tratar como causal.
+
+**O que mostra com segurança:** **109 de 190 pessoas (57%) da nossa melhor
+fonte terminam o filme e vão embora sem o arquivo.** É a maior fuga isolada, e
+ela está **acima** de tudo que trabalhei nesta noite — o degrau do saldo, que
+recebeu as três peças, vem depois deste.
+
+**NÃO AGI NISTO DE PROPÓSITO.** A correção provável é de layout na hora da
+entrega — pista do Codex — e o `DELIVER-FIRST` já está implementado. Mexer no
+arranjo do botão sem preview aprovado é exatamente o que este ciclo me proíbe.
+Registrado no PEDIDOS com o método de medição.
+
+**Endurecimento do cartão (mesma rotação):** sem visual possível neste ciclo
+(browser proibido), reli o componente procurando o que quebraria na tela que
+pede dinheiro. Achei dois: `balance`/`shortBy` ausentes imprimiriam *"You have
+undefined credits"*, e `freeTier.limit` ausente quebraria a frase do grátis.
+Agora cada número só é escrito se chegou. Guardião **45 → 48**.
