@@ -34,7 +34,7 @@ TESTADO LOCALMENTE: 49 invariantes executaveis de UX; 247 de curadoria; 11 estad
 
 VALIDADO EM PRODUCAO (06/09): biblioteca da conta interna do fundador abre; trocar filtros Images/Audio funciona, sem escrita nem render. Nao e evidencia de conversao. COMPARACAO VISUAL: Chrome desktop; preview web protegido autorizado no navegador integrado a 390px, pois o override do Chrome reportava sucesso mas continuava 1920px. Home/Tools/Images/Audio com scrollWidth 390. Library exige login no preview; confirmada na sessao Chrome de producao. Artefato antes/depois em docs/previews/UX-INTEGRAL-HOME-FERRAMENTAS-2026-09-06.html.
 
-## Lote 2 — implementado, aguardando preview/deploy
+## Lote 2 — implementado, preview validado, PR #46
 
 IMPLEMENTADO: preferencia explicita English/Espanol, persistida localmente e separada do idioma de narracao. SSR continua English; spans traduzidos declaram lang=es. Nada de tradutor por DOM, reload de formulario, mudanca de URL, moeda, engine ou texto do cliente. Traducoes de numeros dinamicos conservam o valor canônico, nao congelam o trial de hoje. LandingPlanPrice muda somente verbo e /mo → /mes, com os mesmos valores USD.
 
@@ -49,3 +49,9 @@ COMPARACOES: docs/previews/UX-INTEGRAL-WORKSPACES-2026-09-06.html (oito familias
 Esta pista publica SOMENTE por codex/ux-completo-2026-09-06 e merge na main atualizada. NAO enfileirar os mesmos commits em entrega-atual: o diario Claude registrou duplicatas e recuperacao em 4dba8c16. Nao reescrever nem limpar fila alheia. Novas alteracoes Claude em SeasonStrip/temporada sao preservadas. Reserva adicional: TopBar/Sidebar e apenas rotulos em LandingPlanPrice; nenhum calculo ou CTA de destino comercial alterado.
 
 PROXIMO: validar lote 2 em browser, reconciliar main, publicar; depois concluir familias restantes e cobertura de idioma com inventario por rota, sem contar a barra herdada como reforma completa da pagina.
+
+TESTADO LOCALMENTE (06/09): test-interface-language 780 verificacoes (inclui pares do dicionario, nao 780 jornadas); test-ux-complete 49; home-curation 247; tsc sem filtros exit 0 no merge a949a0ab. Guardiao 34058967798 success, com a ressalva de permissoes do workflow ja descrita acima.
+
+VALIDADO EM PREVIEW WEB (06/09): dpl_2TpPE6JGrTk3TJ991Hpw26CdjMVt READY, SHA a949a0ab, PR #46. Chrome: espanhol persiste de Home para Images e apos reload; alternar EN/ES preserva literalmente a ideia digitada e o motor FLUX Dev, sem gerar. Navegador integrado 390px: Home espanhola sem overflow horizontal; Avatar tem preview display:flex visivel e ancora funcional, antes oculto por hidden lg:flex. Sem pagamento, render, upload ou banco. Texto ingles residual documentado, nao escondido.
+
+Reconciliacao: main ac1b7144 contem apenas diario Claude adicional; incorporado sem alterar SeasonStrip/temporada nem enfileirar em entrega-atual.
