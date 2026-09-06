@@ -1263,3 +1263,167 @@ entrega das 13:38 **não prova nada ainda**, porque nenhum e-mail saiu depois
 dela. A primeira prova real chega às 17:25 UTC. Checagem zero limpa; zero
 pagamentos hoje; um único clique humano no dia, e ele veio do e-mail de filme
 pronto.
+
+---
+
+### #27 — 14:08→15:08 BRT — O DONO GANHA O BOTÃO DE PUBLICAR O FILME DELE
+
+#### PRESS RELEASE (6 linhas, escrito ANTES de codar)
+
+> Até hoje, quem faz um filme na Kineo não tem como **mostrá-lo a ninguém**:
+> baixa um MP4 e manda por anexo. A partir de agora, o e-mail de filme pronto
+> traz um botão — *"Want a link instead of a file?"* — que cria, em um clique,
+> uma **página pública daquele filme**, com player, título e a assinatura
+> "made with usekineo.com". Um segundo link, no mesmo e-mail, devolve o filme
+> para privado. O cliente ganha um link para mandar no WhatsApp, postar no
+> perfil ou pôr na bio; a casa ganha, em cada filme publicado, um anúncio que
+> ela não precisou comprar. Nada fica público sem o dono clicar.
+
+**Hipótese:** o gargalo do dia não é conversão, é aquisição (aritmética da #20:
+32 cadastros/dia não viram 10 pagantes em porcentagem nenhuma). O ativo de
+aquisição mais barato que a casa tem são os **225 filmes entregues em 7 dias** —
+e nenhum deles pode ser visto por um estranho.
+**Métrica:** `video_published_v1` (e `video_unpublished_v1` como contrapeso
+honesto: publicação que a pessoa desfaz é sinal de que a copy enganou).
+**Parada:** se `video_unpublished_v1` passar de 20% de `video_published_v1`, a
+frase do e-mail está prometendo errado e volta para a prancheta.
+
+#### O QUE ESTAVA ERRADO (medido, não suposto)
+
+`select count(*) from videos` = **1.638**. Linhas com página pública: **ZERO**.
+E não por defeito — `lib/publicSurfacePolicy.ts` desliga a superfície pública
+desde 27/08, **de propósito**, com a justificativa escrita no próprio arquivo:
+o esquema não tem campo de consentimento *"versionado e auditável"*. A decisão
+estava certa. O que ninguém tinha medido é o **preço** dela:
+
+| | |
+|---|---|
+| filmes entregues em 7 dias | **225** (42 nas últimas 24h) |
+| filmes que um estranho consegue ver | **0** |
+| vezes que o e-mail de filme pronto diz "private by default" | **2** |
+
+E a ironia que fechou o caso: o **pacote de publicação** (#20, hoje de manhã) já
+escreve título, descrição e comentário fixado **com "made with usekineo.com"
+dentro**. A casa escreve o anúncio e não dá ao cliente a parede onde pendurá-lo.
+
+#### O QUE MUDOU
+
+**SHA `cd765601` — EM PRODUÇÃO** (`git ls-remote origin main` = cd765601,
+`rev-list origin/main..entrega-atual` = 0).
+
+- **migration** — `videos.published_at` + `videos.published_via` + índice
+  parcial. Aplicada: 1.638 linhas, **0 publicadas**. O padrão é privado por
+  construção, não por regra de código.
+- **`lib/videoShareLink.ts`** (novo) — token HMAC do id do filme. Sem segredo
+  no ambiente devolve `null` e ninguém publica nada.
+- **`app/api/video/publish/route.ts`** (novo) — publica UM filme, com token,
+  só se `completed` e com URL de reprodução, idempotente. `&undo=1` despublica
+  e **não** exige filme saudável: tirar do ar nunca pode ter porteiro.
+- **`lib/publicVideos.ts`** — a trava global continua `false`. Ela ganhou um
+  ramo: linha COM carimbo entra; sem carimbo, `missing`, byte a byte como
+  antes. A allow-list de colunas públicas **não cresceu** (consulta separada).
+- **`app/api/cron/send-video-ready/route.ts`** — o bloco no e-mail.
+
+**Por que o link é assinado e não pede login:** a lição do `/api/episode-link`
+(05/09). Clique de inbox **estruturalmente não tem sessão** — Gmail do telefone
+abre em webview própria, o link chega em outro aparelho, a aba é anônima. Uma
+rota com login mandaria o dono para um formulário em vez de publicar o filme
+dele. Foi esse exato defeito que matou as 11 primeiras cartas de hoje (#19e).
+
+**O que NÃO subiu, de propósito:** o sitemap e a indexação continuam atrás da
+trava global. Link partilhável agora; entregar 1.638 páginas ao Google é outra
+decisão (política de conteúdo em escala), e é do fundador.
+
+#### PROVA EM PRODUÇÃO (sonda com controle 404)
+
+| sonda | resposta |
+|---|---|
+| `/api/video/publish` | **302** → `/history?share=invalid` |
+| `/api/video/publish-nao-existe` (controle) | **404** |
+| `/api/video/publish?v=<uuid>&t=lixo` | **302** → `share=invalid` |
+| `/v/19c162ed…` (filme REAL, `completed`, sem consentimento) | **404** |
+| home | **200** |
+
+A última linha é a que importa: um filme entregue de verdade **continua
+invisível**. A trava de privacidade de 27/08 não foi afrouxada.
+
+**Guardião:** `scripts/test-video-share-consent.mjs`, 30 verificações de
+**ordem** (não de presença). Falsificado por mutação, com o commit feito antes:
+trava global virada para `true` ✓ morto · gate aprovando linha sem carimbo ✓
+morto · verificação de token removida ✓ morto · publicar filme não entregue ✓
+morto · segredo curto aceito ✓ morto · bloco sumindo do e-mail ✓ morto.
+**6 mutantes, 6 mortos.**
+
+#### ⚠ O ERRO QUE EU MESMO ACABEI DE COMETER — E ELE TEM NOME
+
+Liguei o botão no e-mail **errado**. Medido depois de publicar, 7 dias:
+
+| e-mail de "filme pronto" | envios | pessoas |
+|---|---|---|
+| `video_ready_email_sent` (rota de status) | **158** | **107** |
+| `stranded_ready_sent` | 42 | 27 |
+| `stranded_fast_ready_sent` | 24 | 21 |
+| **`video_ready_nudge_sent` ← onde eu liguei** | **4** | **4** |
+
+O cron `send-video-ready` manda **1 por pessoa PARA SEMPRE**, e só para quem
+nunca baixou: **4 pessoas em 7 dias**. O e-mail que 107 pessoas receberam sai
+de `app/api/compose/status/[renderId]/route.ts`. É a **mesma forma de erro** da
+#20 desta manhã ("liguei o pacote no e-mail de 4 pessoas/semana, não no de
+104"). A peça está certa, correta e provada; o **alcance** dela hoje é
+4/semana. Não vou maquiar: **a jogada só começa a valer na próxima rotação.**
+
+#### PRAXE — PLACAR E CHECAGEM ZERO (17:1x UTC)
+
+**Desde o marco (06/09 14:00 UTC):** 3 cadastros · 3 filmes · 3 pessoas com
+filme · **0 `checkout_started`** · **0 `payment_success`** · 1 `pricing_view`.
+**24h:** 32 cadastros · 9 pessoas em `pricing_view` · 2 em `checkout_started` ·
+**0 pagamentos**. **7 dias: 2 pagamentos. 30 dias: 6.**
+
+**Checagem zero — limpa:** cadastro sem crédito 0/32 · render preso >45min 0 ·
+`next_episode_failed` 0 · `generation_stage_error` 4 (normal).
+
+**E-mails da casa hoje:** carta da parede 19 · carta da temporada 11 · **porta
+de volta do checkout 21** (11:30 UTC, a coorte mais quente da casa — gente com
+link de recuperação da Stripe VIVO). Resultado até agora: **0 pagamentos**.
+
+**Achado lateral, para não se perder:** 69 checkouts expirados em 30 dias, 54
+com link de recuperação vivo. Recorte pessoa a pessoa: 21 receberam a carta ·
+**20 têm link vivo, nunca pagaram, não estão em campanha nenhuma e não
+receberam nada** · 11 estão barrados por outra campanha (todos de 17-22/08,
+fora da janela de 14 dias da rota). Os 20 são o próximo lote óbvio — e o
+motivo de eles terem ficado de fora **não está medido**.
+
+#### PRÓXIMA JOGADA (a rotação das 15:08 abre por aqui)
+
+1. **Levar o botão para o e-mail de 107 pessoas** —
+   `app/api/compose/status/[renderId]/route.ts`. É a mesma dupla de linhas
+   (`publishHref`/`unpublishHref`) já publicada e provada. Passa de 4 para ~107
+   pessoas/semana. **15 minutos.**
+2. **A caixa "Post it" na tela de filme pronto** — 130 pessoas viram
+   `video_ready_viewed` em 7 dias, mais do que qualquer e-mail alcança. Isso é
+   **PEDIDO ao Codex** (arquivo de tela), com o contrato pronto: rota, token,
+   evento.
+3. **Descobrir por que 20 pessoas com link vivo da Stripe ficaram de fora** do
+   lote das 11:30 — é a coorte com maior intenção declarada da casa inteira.
+
+#### ✅ O QUE VOCÊ PRECISA FAZER
+1. **Nada.** A entrega subiu sozinha (SHA `cd765601`), o deploy está provado em
+   produção e nenhum filme de cliente ficou público — só ficará se o próprio
+   dono clicar no botão do e-mail dele.
+
+#### 📋 O QUE ACONTECEU
+Descobri que a casa entrega ~42 filmes por dia e **nenhum deles pode ser
+mostrado a ninguém**: a página pública de vídeo está desligada desde 27/08 por
+uma razão boa (não existia consentimento no banco), e o efeito colateral é que
+o cliente só consegue compartilhar mandando o arquivo por anexo. Em vez de
+ligar a chave — o que publicaria 1.638 filmes de clientes sem eles pedirem —
+construí **o consentimento que faltava**: um botão dentro do e-mail de filme
+pronto que publica **um** filme, o dele, com carimbo de quem/quando/por onde, e
+um segundo link que volta atrás. Está em produção e provado: um filme entregue
+de verdade ainda responde 404, e só sai do 404 com o clique do dono. O valor
+para a casa é que cada filme publicado carrega "made with usekineo.com" — é
+aquisição de graça, que é onde o gargalo realmente está (32 cadastros/dia não
+viram 10 pagantes por conversão nenhuma). **A ressalva, e ela é minha:** liguei
+o botão no e-mail de menor alcance da casa (4 pessoas/semana) em vez do que 107
+pessoas receberam. A peça está certa; o alcance começa na próxima rotação, que
+já abre por aí. Placar do dia continua **0 pagamentos** — 7 dias: 2; 30 dias: 6.
