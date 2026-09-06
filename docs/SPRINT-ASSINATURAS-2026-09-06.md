@@ -3762,3 +3762,184 @@ justamente quem está sem saldo.
 Um dado a mais, e ele é do seu lado da mesa: **os dois únicos pagantes da
 semana vieram, os dois, do ChatGPT.** Essa fonte é 46% dos cadastros e 100% do
 dinheiro.
+
+---
+
+### CHECKPOINT DA #16 (2º) — 08:39→09:0x BRT — o fechamento foi escrito 44 min cedo, e nesses 44 min aconteceu o PRIMEIRO CLIQUE da história do mecanismo
+
+Este é o disparo de :38 da rotação 8 — checkpoint, não trabalho novo. Ele
+existe porque o fechamento acima foi commitado às **08:24**, e a janela do
+ciclo só fecha às **09:08**. Memória `fechamento-cedo-conferir-relogio`: o
+rótulo dizia "fechamento das 8 horas", o relógio dizia que faltavam 44
+minutos. Nesses 44 minutos o número mais importante do ciclo mudou.
+
+#### 1. A DÍVIDA DA #16 ESTÁ PAGA — o deploy está provado no osso
+
+A #16 registrou honestamente: *"a entrega é uma rota autenticada, sem marcador
+público — não dá para confirmá-la por curl"*. Não precisou de curl.
+
+Um render real de produção (pessoa `e8e8c415`, 11:32:57 UTC) gravou em
+`cinematic_dispatch_result`:
+
+    "deploy_sha": "e8a5d9051afcc9bec613021e5d7c12859db6348b"
+
+`git merge-base --is-ancestor 69afad03 e8a5d905` → **verdadeiro**. O código da
+#16 está no SHA que produção serviu. Prova direta, não inferência.
+
+E o marcador comportamental também apareceu, no mesmo minuto:
+
+| hora UTC | evento | `engine_offered` | `engine_deeplink` |
+|---|---|---|---|
+| 11:14:47 | `next_action_served` (pré-push) | `cinematic_ai` | **ausente** |
+| 11:32:43 | `next_action_served` (pós-push) | `cinematic_ai` | **`seedance`** |
+
+A tradução que a #16 construiu — vocabulário do cobrador (`cinematic_ai`) para
+o da tela (`seedance`) — está funcionando em gente de verdade.
+
+#### 2. O PRIMEIRO CLIQUE — e ele não estava no denominador
+
+O fechamento das 08:24 disse: *"0 cliques, verificado como comportamento real
+e não artefato"*. Era verdade às 08:24. Às **08:38 BRT (11:38:18 UTC)** deixou
+de ser:
+
+    next_action_clicked · choice="continue_cheaper" · surface=generate_done_screen · balance=10
+
+É o **primeiro clique na história deste mecanismo**. A pessoa `e8e8c415`
+(chatgpt.com, cadastro às 11:27) fez o primeiro filme (Seedance, 15cr), ficou
+com 10, e a caixa apareceu às 11:37:17 com `state="dry"`, `short_by=5`,
+`has_alternative=true`, `alternative_cost=5`. Ela apertou.
+
+**E o denominador não a contém.** Medido:
+
+| medida | pessoas |
+|---|---|
+| `next_action_served` com `state='dry'` (o denominador que a noite usou) | **3** |
+| `next_action_card_shown` com `state='dry'` (quem viu de verdade) | **4** |
+| clicaram | **1** |
+| clicaram **sem estar no denominador** | **1** |
+
+A causa não é bug: é o `dedupeMinutes: 30` por sessão, consertado no checkpoint
+da #15. A pessoa foi servida às 11:32:43 no estado `first_film` (saldo 25) e às
+11:37:17 no estado `dry` (saldo 10) — mesma sessão, dentro dos 30 min, então a
+**segunda serve foi engolida**. O dedupe protege contra re-montagem, mas ele
+também apaga uma **mudança de estado** dentro da mesma sessão — e o estado que
+some é justamente o `dry`, o único que este ciclo inteiro existe para mover.
+
+Consequência prática: **a taxa honesta é 1 de 4 (25%), não 0 de 3.** Qualquer
+leitura futura que use `next_action_served state='dry'` como denominador vai
+subestimar. O conserto certo é deduplicar por (sessão + estado), não por
+sessão — está na lista de pendências abaixo, não foi feito aqui.
+
+#### 3. O BURACO: o primeiro clique da história foi atendido com um beco
+
+A pessoa clicou "Continue with Kineo 1 · 5 credits" às 11:38:18 e, 1,5s depois,
+os eventos dela estão todos em `path=/studio` — a **home do studio**, não o
+compositor. Ela não fez segundo filme. `filme_2 = 0` em toda a coorte.
+
+A causa está localizada, e é uma camada abaixo do que a #16 consertou:
+
+    lib/seriesContinuation.ts:275
+    if (!prompt) return '/studio'
+
+`buildSeriesContinuationHref` devolve o **literal `/studio`** como fallback
+quando `buildSeriesContinuationPrompt(tema)` sai vazio. Em
+`app/api/next-action/route.ts:519` a #16 escreveu:
+
+    const hrefAlternativa = motorAcessivel ? (hrefContinuar ?? hrefBarato) : null
+
+`/studio` é **truthy**. Então quando o tema existe mas não vira prompt,
+`hrefContinuar` é a string `/studio`, o `??` **nunca cai** para `hrefBarato`
+— e o link do compositor com o motor acessível
+(`/studio/create?engine=fast&src=next_action_dry_cheap`), que a #16 construiu
+exatamente para isto, é descartado em favor de uma página que não começa filme
+nenhum.
+
+É o mesmo defeito que a #16 nomeou — *"a alternativa podia chegar inerte"* —
+uma camada mais fundo. A #16 consertou o **motor** que viajava no link; sobrou
+o **destino** do link.
+
+**Por que eu não consertei agora:** o disparo de :38 é checkpoint, e faltam
+menos de 15 minutos para o fim da janela. Código + guardião + typecheck +
+publicação não cabem, e entrega mal fechada na virada é pior que pendência bem
+descrita. O conserto é de uma linha e está escrito abaixo.
+
+#### 4. PLACAR FINAL — no relógio real, não no rótulo
+
+Desde o marco `2026-09-06 04:00 UTC`, contas externas, medido às 11:50 UTC:
+
+| fonte | cadastros | filme 1 | filme 2 | filme 3 | checkout | **pagou** |
+|---|---|---|---|---|---|---|
+| chatgpt | 5 | 2 | 0 | 0 | 0 | **0** |
+| seo | 1 | 1 | 0 | 0 | 1 | **0** |
+| taaft | 1 | 1 | 0 | 0 | 0 | **0** |
+| nav | 1 | 0 | 0 | 0 | 0 | **0** |
+| **total** | **8** | **4** | **0** | **0** | **1** | **0** |
+
+**0 assinaturas.** O número do fechamento se sustenta no relógio real. E o
+degrau que trava é visível: **4 pessoas fizeram o primeiro filme, nenhuma fez
+o segundo** — inclusive a que clicou pedindo o segundo.
+
+#### 5. CHECAGEM ZERO
+
+| checagem | resultado |
+|---|---|
+| render preso >30min | 0 |
+| `next_episode_failed` | 0 |
+| `compose_not_ok` | 0 |
+| dispatch `invariant_ok=false` | 0 |
+| cadastro sem `trial_credits_granted` | 0 |
+| `generation_stage_error` | **3** |
+
+Os 3 abertos, olhados um a um (`metadata->>'error'`):
+
+- **2 são a mesma pessoa (`c6145712`, 10:40 UTC) e NÃO são defeito**: pediu 60s
+  com roteiro de 32s e recebeu a recusa da trava do contrato, bem escrita
+  ("Add about 58 more words"). O produto funcionando. Custou o filme: essa
+  pessoa tem 0 vídeos.
+- **1 é `TypeError` em `broll_planning`** (`fc28af0b`, 07:47:45 UTC). A pessoa
+  **já tinha um filme completo às 07:44:28** — o `TypeError` matou a **segunda**
+  tentativa, 3 minutos depois do sucesso. `TypeError` é causa antiga nomeada no
+  CLAUDE.md. Não escalei alarme (memória
+  `anti-repeticao-procurar-o-commit-antes-de-escalar`): 1 ocorrência, sem
+  commit identificado, fora do tempo que sobra. Fica registrado com hora e
+  pessoa para a próxima sessão recortar no deploy.
+
+#### 6. O QUE ISTO MUDA NA LEITURA DO CICLO
+
+O fechamento das 08:24 está **certo no número que manda** (0 assinaturas) e
+**desatualizado em dois pontos**: "0 cliques" virou 1 de 4, e "deploy não
+provável por curl" virou deploy provado por `deploy_sha`. Não reescrevi o
+fechamento — ele é o registro do que se sabia às 08:24. Este bloco é a
+correção, e ela vale mais que o texto original: **o mecanismo que a noite
+inteira construiu funcionou na primeira pessoa que o encontrou, e falhou no
+último metro.**
+
+---
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+1. **Nada agora.** Tudo o que o ciclo produziu está em produção (SHA
+   `e8a5d905`, provado por evento de render real). Não há push esperando
+   clique, não há conflito parado.
+2. **Quando abrir a próxima sessão, mande consertar `lib/seriesContinuation.ts:275`
+   primeiro.** É uma linha: `buildSeriesContinuationHref` não pode devolver
+   `/studio` como se fosse link válido — deve devolver `null`, para o
+   `?? hrefBarato` da rota funcionar. É o que separa o clique de virar filme.
+3. **Não leia "0 cliques" do fechamento acima** — o número final do ciclo é
+   **1 clique em 4 pessoas servidas no estado seco**.
+
+### 📋 O QUE ACONTECEU
+
+O fechamento do ciclo foi escrito 44 minutos antes da janela fechar, e nesses
+44 minutos entrou a única pessoa que importava: alguém que veio do ChatGPT,
+fez um filme, ficou sem saldo para o segundo, viu a caixa que a noite inteira
+construiu, **e apertou o botão**. Foi o primeiro clique na história desse
+mecanismo — e ele caiu na home do studio em vez do compositor, porque o
+construtor do link de série devolve a string `/studio` quando não consegue
+montar o prompt, e essa string engana a verificação que escolheria o caminho
+bom. A pessoa não fez o segundo filme. Nenhuma das 4 fez.
+
+O ciclo fecha com **0 assinaturas em 8 cadastros**, o deploy de tudo provado
+por um evento de produção que carrega o SHA, a casa sem defeito aberto de
+entrega, e uma pendência de uma linha que vale mais que qualquer feature nova:
+a porta existe, a pessoa bateu nela, e ela abriu para o corredor errado.
