@@ -116,7 +116,13 @@ export async function garantirTemporada(
   admin: Admin,
   userId: string,
   filme: FilmeDaTemporada,
-  opts?: { escrever?: boolean },
+  // `timeoutMs` existe por causa do LOTE, nao por elegancia: a carta da parede
+  // (#23) escreve a temporada de ate 30 pessoas numa execucao de cron com
+  // `maxDuration = 300`. Trinta chamadas de 25s dariam 750s e o cron morreria
+  // no meio — quem ja recebeu fica carimbado (certo), o resto fica de fora
+  // sem motivo. Os chamadores em lote passam 10s; quem chama por pessoa
+  // (a rota /api/season, com alguem esperando na tela) fica nos 25s.
+  opts?: { escrever?: boolean; timeoutMs?: number },
 ): Promise<TemporadaEscrita | null> {
   const videoId = typeof filme.id === 'string' ? filme.id : null
   if (!videoId) return null
@@ -152,7 +158,9 @@ export async function garantirTemporada(
           { role: 'user', content: `EPISODE 1:\n${semente}\n\nWrite the next ${TOTAL_EPISODIOS + 1} episodes.` },
         ],
       }),
-      signal: AbortSignal.timeout(25_000),
+      signal: AbortSignal.timeout(
+        typeof opts?.timeoutMs === 'number' && opts.timeoutMs > 0 ? opts.timeoutMs : 25_000,
+      ),
     })
     if (!res.ok) {
       console.error('[temporada] openai', res.status)

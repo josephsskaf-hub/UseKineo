@@ -83,7 +83,8 @@ checa(
 )
 checa(
   '#23: a temporada e escrita no ENVIO, dentro de try/catch, nunca no dry-run',
-  /temporada = await garantirTemporada\(admin, d\.id, d\.filmeRaw\)/.test(src) &&
+  // O teto de 10s veio junto no #23b: 30 pessoas x 25s estouraria o cron.
+  /temporada = await garantirTemporada\(admin, d\.id, d\.filmeRaw, \{ timeoutMs: 10_000 \}\)/.test(src) &&
     /let temporada = null/.test(src) &&
     src.indexOf('temporada = await garantirTemporada') > src.indexOf('const batch = destinatarios.slice(0, lote)'),
 )

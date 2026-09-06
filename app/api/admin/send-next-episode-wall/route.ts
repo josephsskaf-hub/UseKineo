@@ -538,7 +538,7 @@ export async function GET(req: NextRequest) {
         let temporada = null
         if (d.filmeRaw) {
           try {
-            temporada = await garantirTemporada(admin, d.id, d.filmeRaw)
+            temporada = await garantirTemporada(admin, d.id, d.filmeRaw, { timeoutMs: 10_000 })
           } catch (e) {
             console.warn('[send-next-episode-wall] temporada falhou:', e instanceof Error ? e.message : String(e))
           }

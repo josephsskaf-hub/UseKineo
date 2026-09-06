@@ -164,6 +164,18 @@ check(
   '28. nem a rota nem o escritor debitam credito, chamam a fal ou renderizam',
   !proibidoCobrar.test(rota) && !proibidoCobrar.test(escritor),
 )
+// O TETO CURTO DO LOTE. A carta da parede escreve a temporada de ate 30
+// pessoas numa execucao com maxDuration=300; 30 x 25s = 750s mataria o cron
+// no meio. Quem chama em LOTE passa 10s; quem chama com alguem esperando na
+// tela fica no padrao de 25s.
+// `includes` e nao regex: o texto tem `?.`, `&&` e `?:`, e escapar tudo isso
+// num regex e como se escreve uma trava que passa por acidente.
+check(
+  '28b. o escritor aceita teto de tempo e o padrao continua 25s',
+  escritor.includes("typeof opts?.timeoutMs === 'number' && opts.timeoutMs > 0 ? opts.timeoutMs : 25_000"),
+)
+check('28c. as DUAS cartas em lote passam o teto curto', /timeoutMs: 10_000/.test(ler('app/api/admin/send-season-letter/route.ts')) && /timeoutMs: 10_000/.test(ler('app/api/admin/send-next-episode-wall/route.ts')))
+
 check('29. o unico insert e o da memoria em events', (escritor.match(/\.insert\(/g) ?? []).length === 1 && /name: TEMPORADA_EVENT/.test(escritor) && !/\.insert\(/.test(rota))
 check('29b. nem a rota nem o escritor fazem UPDATE em nada', !/\.update\(/.test(rota) && !/\.update\(/.test(escritor))
 // Fonte unica de custo e de entitlement (memoria `predicado-do-cobrador-nao-se-redigita`).

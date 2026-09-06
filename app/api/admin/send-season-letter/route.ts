@@ -424,7 +424,7 @@ export async function GET(req: NextRequest) {
       try {
         // A temporada é escrita AQUI, uma vez, e fica gravada: se a pessoa
         // clicar e voltar, o app encontra a MESMA temporada (lição do #14).
-        const t = await garantirTemporada(admin, d.id, d.filmeRaw)
+        const t = await garantirTemporada(admin, d.id, d.filmeRaw, { timeoutMs: 10_000 })
         if (!t) {
           // Sem temporada não há carta. Mandar "sua temporada existe" sem a
           // temporada seria a mentira que esta peça foi feita para remover —
