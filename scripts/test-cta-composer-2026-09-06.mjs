@@ -41,6 +41,12 @@ check('/studio/create renderiza o GenerateClient', /<GenerateClient/.test(criar)
 const tela = ler('app/(dashboard)/generate/GenerateClient.tsx')
 const montagens = tela.match(/<NextActionCard\s+surface="[a-z0-9_]+"/g) ?? []
 check('o NextActionCard e montado no GenerateClient', montagens.length >= 1, `montagens=${montagens.length}`)
+// A montagem que ESTE commit depende e' a do primeiro viewport do composer:
+// e' ela que a pessoa vinda do e-mail encontra ao aterrissar. As outras duas
+// (tela de filme pronto, modal de saldo) sao de outra pista e podem mudar de
+// numero sem me interessar — por isso a checagem nomeia a superficie em vez
+// de contar montagens, que criaria vermelho falso na fila a cada commit alheio.
+check('a superficie de aterrissagem (generate_step_1) esta montada', tela.includes('<NextActionCard surface="generate_step_1"'))
 // A vitrine e' a tela que a visita vazia recebe. Se ela ganhar o cartao um dia,
 // esta checagem reprova de proposito: a premissa do guardiao mudou.
 // A EXISTENCIA e verificada em separado: um arquivo que sumiu tornaria a
