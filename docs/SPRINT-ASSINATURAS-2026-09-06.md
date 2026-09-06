@@ -3001,3 +3001,165 @@ ontem (é uma ladeira de cinco semanas).
 
 Movimento de gente na janela: 8 cadastros, 6 primeiros filmes, 1 checkout,
 **0 assinantes**.
+
+### CHECKPOINT DA #15 — 07:32→07:40 BRT — o denominador da caixa que a noite inteira construiu estava INFLADO 4x, e eu quase li "0 de 22" como caixa morta
+
+**SEM CÓDIGO NOVO** (checkpoint é conferência, nunca trabalho novo). O que
+esta rotação produziu foi *o número certo* de uma coisa que já estava no ar —
+e a spec da #16, que muda por causa dele.
+
+#### O QUE EU IA CONCLUIR ERRADO
+
+A checagem zero devolveu, sem eu pedir:
+
+| evento | valor |
+|---|---|
+| `next_action_served` | **22** |
+| `next_action_clicked` | **0** |
+
+Lido assim, isso é "a caixa apareceu 22 vezes e ninguém apertou" — e a
+conclusão natural seria a mais cara possível: a porta das #2/#3/#9 não
+converte, arranque-a e construa outra coisa na #16.
+
+**Isso está errado, e a prova está no próprio repo.**
+
+#### A PROVA (leitura do código publicado, não suposição)
+
+`next_action_served` é escrito pela **rota**, em todo `GET /api/next-action`
+(`app/api/next-action/route.ts:483`). A **caixa** só existe em dois estados:
+
+```
+const visivel = seco || perdida            // components/NextActionCard.tsx
+if (!visivel || !dados) return null
+```
+
+Ou seja: a rota responde para todo mundo que abre a tela; a caixa aparece só
+para quem está `dry` ou `attempt_lost`. Os dois números medem coisas
+diferentes. E o evento honesto **já existia** — `next_action_card_shown`,
+emitido dentro do `useEffect` guardado por `visivel`.
+
+| medida | eventos | pessoas |
+|---|---|---|
+| `next_action_served` (rota respondeu) | 22 | 10 |
+| `next_action_card_shown` (**caixa apareceu**) | **5** | **3** |
+| `next_action_clicked` | 0 | 0 |
+
+Dos 22 servings, **14 eram `first_film`** — gente com os 25 créditos intactos
+e zero filmes, que não tinha parede nenhuma para bater (uma só pessoa,
+`f2b2248d`, respondeu por 7 deles). O denominador real da porta é **5
+impressões para 3 pessoas**, e `0 de 5` não é veredito sobre nada: é amostra
+pequena demais para condenar ou absolver.
+
+Terceira vez que esta armadilha aparece com roupa nova
+(`evento-por-tecla-infla-denominador`, `remedio-nunca-apertado`,
+`contrato-de-servidor-sem-chamador`). **Regra para as próximas rotações: o
+denominador da caixa é `next_action_card_shown`. `next_action_served` é
+tráfego da rota, não impressão.**
+
+#### O DEFEITO QUE APARECEU AO OLHAR AS 5 IMPRESSÕES
+
+As 5 foram **todas `dry`** — a mira está certa, a caixa não está vazando para
+quem não precisa. Mas uma delas saiu **sem a saída barata**:
+
+| pessoa | hora UTC | superfície | saldo | falta | alternativa |
+|---|---|---|---|---|---|
+| `fc28af0b` | 07:44 | `generate_done_screen` | 10 | 5 | Kineo 1 · 5cr |
+| `fc28af0b` | 07:50 | `generate_step_1` | 10 | 5 | Kineo 1 · 5cr |
+| `fc28af0b` | 07:51 | `generate_step_1` | 10 | 5 | Kineo 1 · 5cr |
+| `9f2b563c` | 08:03 | `generate_done_screen` | 7 | 8 | Kineo 1 · 5cr |
+| `940aa17d` | 09:36 | **`generate_upgrade_modal`** | 7 | 8 | **nenhuma** |
+
+O servidor **sabia** que existia motor que o saldo pagava — o `served` dessa
+mesma pessoa traz `affordable: 1`, `engine_offered: "fast"`. As 4 servings
+`dry` da noite tinham `affordable > 0`, **as 4**. Mas a oferta barata está
+soldada ao link de continuação de série:
+
+```
+const secondary = state === 'dry' && hrefContinuar && motorAcessivel ? {...} : null
+```
+
+Sem `hrefContinuar`, a alternativa **some inteira** — e sobra só "See plans".
+Aconteceu justamente na superfície mais perto do dinheiro, o modal de upgrade.
+O comentário do próprio arquivo diz o que isso quebra: *"Existir uma saída que
+não custa dinheiro é o que impede a resposta de virar pedágio."* Para
+`940aa17d`, virou pedágio.
+
+**Tamanho honesto: 1 caso de 5.** Não é sangria; é um buraco de lógica provado,
+barato de fechar, na superfície que mais importa.
+
+#### ESTADO EM PRODUÇÃO
+
+`git ls-remote origin main` = **265585d5** · fila à frente = **0** · home
+**200**. Entrega da #15 (`76800019`) no ar desde a rotação anterior.
+
+#### CHECAGEM ZERO (pós-marco 2026-09-06 04:00 UTC)
+
+| checagem | resultado |
+|---|---|
+| cadastro sem crédito | **0** |
+| `completed` sem `video_url` | **0** |
+| render preso >15 min | **0** |
+| `next_episode_failed` | **0** |
+| débito sem entrega | **0** |
+| `generation_stage_error` | 1 (o mesmo de 07:47 UTC, não repetiu) |
+
+#### PLACAR (pós-marco 2026-09-06 04:00 UTC, contas externas)
+
+| fonte | cadastros | filme 1 | filme 2 | filme 3 | checkout | **pagou** |
+|---|---|---|---|---|---|---|
+| chatgpt | 4 | 3 | 0 | 0 | 0 | **0** |
+| seo | 1 | 1 | 0 | 0 | 1 | **0** |
+| taaft | 1 | 1 | 0 | 0 | 0 | **0** |
+| sem fonte | 1 | 1 | 0 | 0 | 0 | **0** |
+| nav | 1 | 0 | 0 | 0 | 0 | **0** |
+| **total** | **8** | **6** | **0** | **0** | **1** | **0** |
+
+Idêntico ao da #15 — nenhum movimento novo. **0 assinaturas** desde o marco.
+
+#### PRÓXIMA JOGADA (#16) — spec fechada por este checkpoint
+
+**A saída barata deixa de depender do link de série.** Em `dry`, quando
+`motorAcessivel` existe mas `hrefContinuar` é nulo, o `secondary` passa a
+oferecer o motor que o saldo paga apontando para o compositor comum, em vez
+de sumir. Um arquivo (`app/api/next-action/route.ts`), sem tocar em tela, sem
+tocar em preço, sem tocar no pipeline do filme. Guardião amarrado à
+**variável que decide** (`guardiao-contar-texto-nao-prova-condicao`), com
+mutante que remove a nova perna e tem de matar o teste. Mede-se por
+`has_alternative` no `next_action_card_shown`: hoje 4 de 5, alvo 5 de 5.
+
+Fica **explicitamente fora** da #16 (herdado da #15 e ainda válido): N1/N2 do
+cardápio para coorte com saldo, e a tela do filme pronto — as superfícies que
+pagam são as do retorno.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+**Nada.** Nenhum código novo nesta rotação, entrega da #15 no ar, fila zerada,
+site 200, nenhum alarme aberto, nenhum e-mail disparado.
+
+### 📋 O QUE ACONTECEU
+
+Fui conferir a caixa que esta madrugada inteira construiu — a que aparece
+quando o saldo não cobre o próximo filme e oferece dois caminhos. O banco
+dizia "apareceu 22 vezes, ninguém clicou", e eu quase escrevi aqui que ela
+não funciona.
+
+Não é verdade. Os 22 são quantas vezes o **servidor respondeu**, não quantas
+vezes a caixa **apareceu na tela** — ela só aparece para quem realmente bateu
+na parede. O número real é **5 aparições, para 3 pessoas**, e 14 das 22
+respostas foram para gente com os 25 créditos intactos, que não tinha parede
+nenhuma. Com 3 pessoas não dá para dizer nem que funciona nem que não
+funciona. Era a terceira vez esta noite que um número grande se revelou um
+número pequeno com roupa de grande — anotei a regra para não cair de novo.
+
+Olhando as 5 aparições de perto, apareceu um defeito de verdade: uma pessoa
+com 7 créditos, precisando de 15, viu a caixa **dentro do modal de compra** e
+recebeu só o botão "ver planos" — sem a opção de fazer um filme mais barato
+com o saldo que ela já tinha. O servidor sabia que essa opção existia; a tela
+não a mostrou, porque a oferta barata está amarrada a um link de "próximo
+episódio" que naquele caso não existia. Na hora de pedir dinheiro, a casa
+tirou de campo a alternativa gratuita. É um caso de cinco, e o conserto é
+pequeno — é o que a próxima rotação faz.
+
+O resto está limpo: nada preso, ninguém sem crédito, nenhum filme cobrado e
+não entregue. E o placar não se moveu: 8 cadastros, 6 primeiros filmes, 1
+checkout, **0 assinantes**.
