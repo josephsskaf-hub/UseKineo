@@ -2135,3 +2135,154 @@ viva antes de ver linha em `checkout_recovery_emailed_v1`.**
    34 pessoas com checkout expirado, quantas voltaram ao site depois?** Se
    voltaram e não reabriram o checkout, o produto tem uma segunda porta a
    abrir dentro do app, não no e-mail.
+
+---
+
+### CHECKPOINT DA #13 — 05:39→06:0x BRT — a pergunta da #13 teve resposta (2 de 34), e ela derrubou a jogada que eu ia fazer; no lugar dela apareceu o e-mail do pico saindo CEGO de saldo
+
+#### 1. A PERGUNTA DA #13, RESPONDIDA
+
+A #13 fechou perguntando: **das 34 pessoas com checkout expirado, quantas
+voltaram ao site depois?** Se voltaram e não reabriram o checkout, haveria uma
+segunda porta a abrir DENTRO do app.
+
+Medido agora, coorte idêntica (mesmos 34, mesmos filtros da rota):
+
+| medição | número |
+|---|---|
+| coorte (expirou em 14d, nunca pagou, conta externa) | **34** |
+| **voltaram ao site** (evento de navegador, `session_id` não nulo) | **2** |
+| reabriram o checkout depois | **0** |
+| fizeram outro filme depois | **0** |
+
+**A jogada morre por denominador: 2 pessoas.** Não se constrói tela para 2.
+E o motivo de eu quase ter construído está na memória
+`retorno-pos-email-conta-email-nosso`: a consulta ingênua de "atividade depois
+da expiração" devolve **31 das 34 pessoas com atividade** — e essa atividade é
+`trial_lifecycle_email_sent`, `momentum_nudge_sent`, `post_nudge_sent`,
+`trial_downgraded`. **É a casa escrevendo para elas, não elas voltando.**
+Quem contar isso como retorno conclui "91% voltaram" e constrói para ninguém.
+
+**Consequência prática:** para esta coorte o e-mail da #13 (que dispara às
+08:30 BRT com o link que reabre a MESMA sessão da Stripe) não é *uma* das
+portas — é **a única**. Isso reforça a #13 e cancela o #14 que eu tinha escrito.
+
+#### 2. A PESSOA VIVA — e o defeito que ela expôs
+
+Uma das 2 que voltaram é `garrrrrgamel@gmail.com` (**chatgpt**, DE, trial ativo
+até 07/09, 2 filmes entregues, **7 créditos**). Ela esteve no produto **esta
+madrugada**, entre 07:07 e 08:05 UTC — 122 eventos.
+
+Na linha do tempo dela, às **08:03:41 UTC**, aconteceu a primeira coisa boa: o
+cartão da #2 apareceu **exatamente como foi desenhado**, para uma pessoa de
+verdade, no momento do "não":
+
+`next_action_card_shown` → `state=dry · balance=7 · short_by=8 ·
+has_alternative=true · alternative_cost=5`
+
+Ela não clicou. Mas **no mesmo segundo**, a casa mandou para o e-mail dela isto:
+
+`video_ready_email_sent` → `cost=15 · footer=unknown_balance_episode2 ·
+credits_source=unknown · credits_remaining=null`
+
+**A tela sabia que ela tem 7 e precisa de 15. O e-mail, no mesmo segundo, não
+sabia nada.** E o botão de série do done-screen também não
+(`series_continue_seen` com `engine_reason:"unknown_quota"`,
+`engine_offered:null`, `inherited_cost:15`).
+
+#### 3. ERRADO (medido, antes de escrever código)
+
+A rotação **#1 de 05/09** criou `readyEmailCreditsFallback` justamente para
+isso, e o comentário dela diz, literalmente: *"este `planRow` já consulta
+`profiles` no mesmo ponto do fluxo: **basta pedir a coluna junto**"*.
+
+**A coluna nunca foi pedida.** O `select` ficou `has_paid, plan,
+TRIAL_ENTITLEMENT_COLUMNS` — e `TRIAL_ENTITLEMENT_COLUMNS` é `trial_status,
+trial_ends_at, trial_credits_used`. Sem `video_credits`. Logo `saldoPerfil`
+vinha `undefined`, o fallback virava `null`, e o rodapé caía em
+`unknown_balance_episode2` **para todo motor cinemático** — isto é, para quem
+acabou de gastar o filme caro, que é exatamente quem está no degrau da compra.
+
+| medição em produção (contas externas) | número |
+|---|---|
+| e-mails com `credits_source='profile'` em toda a história do carimbo | **0** |
+| e-mails com `credits_source='unknown'` desde 05/09 | **8** (8 pessoas) |
+| dessas 8, vindas de `utm_source=chatgpt` | **6** |
+| dessas 8, que **tinham saldo** na hora | **7** — 10, 7, 55, 5, 10, 10, 7 |
+| que realmente tinham 0 | **1** |
+
+O fallback da #1 é **biblioteca morta**: nunca produziu um número, nem uma vez.
+
+**Por que sobreviveu 24h.** O guardião da #1 verifica a rota com uma regex de
+`has_paid, plan, video_credits, ...` sobre o **arquivo inteiro**. A rota tem
+**DOIS** selects de `profiles`: o do débito (~linha 573), que já pedia a
+coluna, e o do rodapé (~linha 972), que não pedia. A regex casou com o
+primeiro e disse **ok** sobre uma linha que não é a que decide. É a memória
+`guardiao-contar-texto-nao-prova-condicao` acontecendo de novo, em cima do meu
+próprio trabalho.
+
+**Achado de brinde, registrado sem conserto:** esse guardião da #1 **não roda
+neste ambiente** — ele importa `@/lib/lifecycle/videoReadyFooter.ts` e o alias
+`@/` não resolve fora do bundler (`ERR_MODULE_NOT_FOUND`). **72 dos guardiões
+de `scripts/` importam `@/`** e portanto estão na mesma situação; os que leem
+arquivo com `readFileSync` rodam normalmente. Não mexi nisso — é trabalho de
+outra rotação, e grande.
+
+#### 4. O QUE MUDOU — SHA `525f85a6`
+
+| arquivo | o que faz |
+|---|---|
+| `app/api/compose/status/[renderId]/route.ts` | `video_credits` entra no `select` que alimenta o rodapé do e-mail |
+| `scripts/test-saldo-rodape-email-2026-09-06.mjs` (novo) | 22 verificações **amarradas ao bloco que decide** |
+| `scripts/test-rodape-saldo-desconhecido-2026-09-05.mjs` | nota do falso verde, para ninguém confiar nele de novo |
+
+O guardião novo não varre o arquivo: ele **recorta** a rota entre a declaração
+e a atribuição de `readyEmailCreditsFallback` e exige que o `select` **de
+dentro desse recorte** peça a coluna. O select do débito é verificado à parte.
+
+#### 5. O QUE O CLIENTE PASSA A RECEBER
+
+Quem termina um filme de motor cinemático e **tem saldo** volta a receber, no
+e-mail de entrega, o rodapé do **episódio 2** com o número real (`You have N
+credits left`) em vez do rodapé cego. Quem **não tem** continua recebendo o de
+plano, como já era. **Nenhum preço, plano, oferta, cupom ou promessa mudou** —
+mudou só o que a casa SABE na hora de escrever.
+
+#### 6. TESTES
+
+`node scripts/test-saldo-rodape-email-2026-09-06.mjs` → **22 ok · 0 falhas**.
+`node scripts/test-checkout-recovery.mjs` (a entrega da #13) → **26 ok · 0**.
+`npx tsc --noEmit -p tsconfig.json` → **verde** (worktree com junction de
+`node_modules`, memória `worktree-tsc-node-modules`).
+
+**FALSIFICAÇÃO POR MUTAÇÃO** (commit feito antes, memória
+`falsificar-mutacao-commitar-antes`) — 7 mutantes, **7 mortos**:
+
+| mutante | resultado |
+|---|---|
+| tira `video_credits` do select do **rodapé** (o defeito original) | **morto** |
+| tira `video_credits` do select do **débito** | **morto** |
+| rodapé volta a ler só o débito (ignora o fallback) | **morto** |
+| fallback aceita qualquer coisa (`null` vira 0) | **morto** |
+| carimbo deixa de distinguir `profile` de `unknown` | **morto** |
+| o bloco passa a ler `videos` em vez de `profiles` | **morto** |
+| a variável-ponte é renomeada | **morto** |
+
+Três desses mutantes só morreram depois que eu normalizei o casamento para
+CRLF — a primeira rodada deu "ALVO NÃO ACHADO" e teria sido lida como "mutante
+vivo" (memória `guardiao-crlf-falso-vermelho`).
+
+#### 7. RISCO
+
+Baixo: uma coluna a mais num `select` que já existe, sem consulta nova. Se a
+leitura falhar, o `catch` mantém `null` e o comportamento é o de ontem. O que
+NÃO fica provado por este commit é a outra metade do mesmo sintoma: o
+`engine_reason:"unknown_quota"` do botão de série no done-screen — é outro
+caminho, é tela, e cai perto da superfície do Codex. Fica anotado, não tocado.
+
+#### 8. COMO MEDIR
+
+`credits_source` em `video_ready_email_sent` depois deste deploy: a linha
+`'profile'` tem de sair de **0**, e o `unknown` tem de cair para os casos em
+que o perfil realmente não lê. Corte no horário do deploy, nunca "últimas 24h"
+(memória `zero-falhas-sem-denominador`).
