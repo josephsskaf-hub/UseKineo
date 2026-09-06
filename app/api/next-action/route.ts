@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { writeServerEvent } from '@/lib/serverEvents'
-import { buildSeriesContinuationHref } from '@/lib/seriesContinuation'
+import { seriesContinuationHrefOrNull } from '@/lib/seriesContinuation'
 import { creditCostForDuration, type Quality } from '@/lib/credits/engineCost'
 import { getEffectiveEntitlement, TRIAL_ENTITLEMENT_COLUMNS } from '@/lib/reverseTrial'
 import { getFreeTierOffer } from '@/lib/freeTierOffer'
@@ -449,8 +449,13 @@ export async function GET(req: NextRequest) {
     // KINEO-SAIDA-BARATA-2026-09-06 (a) — o parâmetro viaja no vocabulário da
     // TELA. Antes saía `cinematic_ai` e era descartado em silêncio.
     const deeplinkAcessivel = deeplinkDoMotor(motorAcessivel)
+    // KINEO-LINK-QUE-SABE-DIZER-NAO-2026-09-06 — a variante que devolve null.
+    // `buildSeriesContinuationHref` devolve a string '/studio' quando o tema
+    // nao monta prompt, e '/studio' e truthy: o `?? hrefBarato` logo abaixo
+    // NUNCA rodava, e o evento ainda rotulava o caminho como 'series'. Era o
+    // beco que engoliu o unico clique real do mecanismo na madrugada de 06/09.
     const hrefContinuar = tema
-      ? buildSeriesContinuationHref(tema, 'next_action', {
+      ? seriesContinuationHrefOrNull(tema, 'next_action', {
           engine: state === 'dry' ? deeplinkAcessivel : null,
         })
       : null
@@ -502,12 +507,27 @@ export async function GET(req: NextRequest) {
                 label: 'Pick up your film',
                 sublabel: `Your last attempt never finished. Your ${balance} credits are still here.`,
               }
-            : {
-                kind: 'make_first_film' as const,
-                href: '/studio/create',
-                label: 'Make your first film',
-                sublabel: null,
-              }
+            : state === 'can_continue'
+              ? {
+                  // KINEO-LINK-QUE-SABE-DIZER-NAO-2026-09-06 — este ramo so
+                  // existe porque `hrefContinuar` agora pode ser null tendo
+                  // filme entregue (tema degenerado). Antes desta rodada o
+                  // codigo caia em 'make_first_film' e dizia "Make your first
+                  // film" para quem JA tem filme — frase falsa, e a casa
+                  // proibiu frase falsa no #5 de 02/09. Sem tema nao ha
+                  // episodio 2 para prometer, entao o rotulo nao promete: leva
+                  // ao compositor, que e verdade para qualquer um.
+                  kind: 'make_next_film' as const,
+                  href: '/studio/create?src=next_action_no_seed',
+                  label: 'Make your next film',
+                  sublabel: null,
+                }
+              : {
+                  kind: 'make_first_film' as const,
+                  href: '/studio/create',
+                  label: 'Make your first film',
+                  sublabel: null,
+                }
 
     // Secundário no estado seco: o filme que o saldo AINDA paga. Existir uma
     // saída que não custa dinheiro é o que impede a resposta de virar pedágio.

@@ -271,8 +271,35 @@ export function buildSeriesContinuationHref(
   // de hoje.
   opts?: { engine?: string | null },
 ): string {
+  return seriesContinuationHrefOrNull(value, source, opts) ?? '/studio'
+}
+
+/**
+ * KINEO-LINK-QUE-SABE-DIZER-NAO-2026-09-06 — A MESMA porta, mas capaz de
+ * responder "eu nao tenho link".
+ *
+ * O DEFEITO QUE ISTO MATA (medido em producao na madrugada de 06/09): quando o
+ * tema nao monta prompt utilizavel, `buildSeriesContinuationHref` devolvia a
+ * string '/studio'. Para uma TELA isso e um destino aceitavel — a pessoa cai
+ * no Studio e escolhe. Para quem PRECISA DECIDIR, '/studio' e veneno: e um
+ * valor truthy, entao todo `?? alternativa` a jusante morre sem nunca rodar.
+ * Foi exatamente o que engoliu o unico clique real do mecanismo naquela noite:
+ * `app/api/next-action/route.ts` fazia `hrefContinuar ?? hrefBarato`, recebia
+ * '/studio' no lugar de null, e mandava a pessoa para a home do Studio — sem
+ * prompt, sem motor, e ainda rotulada como 'series' no evento.
+ *
+ * Contrato: null = NAO existe episodio 2 para oferecer. Quem chama decide o
+ * que fazer com isso (cair na saida barata, mudar o rotulo, ou nao oferecer
+ * nada). `buildSeriesContinuationHref` continua devolvendo '/studio' nesse
+ * caso, byte a byte como hoje, para que nenhuma das 10 telas mude.
+ */
+export function seriesContinuationHrefOrNull(
+  value: string | null | undefined,
+  source: SeriesContinuationSource,
+  opts?: { engine?: string | null },
+): string | null {
   const prompt = buildSeriesContinuationPrompt(value)
-  if (!prompt) return '/studio'
+  if (!prompt) return null
   const params = new URLSearchParams({
     prompt,
     autoanalyze: '1',
