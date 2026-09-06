@@ -1,5 +1,15 @@
 # Publicacao dos lotes UX aprovados — 06/09/2026
 
+## ESTADO ATUAL — VALIDADO EM PRODUCAO em 06/09/2026
+
+Este fechamento substitui os checkpoints PENDENTE/BLOQUEADO historicos abaixo. PR #44 integrado por fast-forward; origin/main confirmado em 33737e95b57f77d3acd7beb61718c508c9d10461. Vercel dpl_62BMZfTBLGsG9JA7pzMHJBsws6kp READY, target production, SHA correspondente, alias www.usekineo.com. Codigo dos lotes L1/L2/L3 publicado; NAO significa redesign de todas as paginas ou espanhol entregue.
+
+EVIDENCIA DE PRODUCAO, Chrome do fundador, 06/09 por volta de 14:20 UTC: /studio com ideia primeiro, opcionais e explicacao recolhidos; videos anteriores preservados. Clique real em Episode 2 do Studio levou a /studio com texto canonico preenchido, foco no editor, duracao 35s preservada e Generate aguardando clique. Nao entrou automaticamente em /studio/create. Em 390x844, Tools abriu corretamente; Images navegou a /images, fechou o menu e mostrou titulo Images. Viewport restaurado. Nenhum botao de geracao, compra, notificacao ou compartilhamento acionado. Isto valida navegacao/revisao, nao um novo render ponta a ponta nem todos os estados de todas as contas.
+
+TESTADO LOCALMENTE no SHA final (ultimo commit so documentacao): MobileNav 37 novamente e TypeScript sem filtros exit 0; os testes de runtime/continuacao e regressao descritos abaixo mantem o mesmo codigo. Guardiao final run 34038557868: passo TypeScript concluido com sucesso, suite medidora 110 verdes/241 vermelhas. A suite geral NAO foi declarada verde; nenhuma alteracao para desativar gates. Pendencia tecnica de CI registrada para a contraparte, sem expandir este lote para centenas de testes legados.
+
+COORDENACAO: fechamento documental publicado na branch codex/plano-ux-studio-2026-09-05 e comentario no PR #44, sem nova mudanca de runtime. Claude deve fazer fetch antes de tocar arquivos compartilhados. Espanhol, home completa e demais paginas continuam sujeitos a lotes/previews; videos curados da home, precos, creditos e pipeline preservados. Sem renovacao de sprint ou automacao.
+
 ## DECISAO APROVADA
 
 Fundador nesta conversa: "Aprovada todas as paginas novas pode subir". Aprova os quatro previews enviados (navegacao, continuacao, faixa de retorno e hierarquia do Studio). Nao equivale a redesenho completo da home, espanhol implementado ou autorizacao para alterar precos, creditos, render e campanhas.
