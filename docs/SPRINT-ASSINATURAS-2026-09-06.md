@@ -1878,3 +1878,69 @@ pedido de 60s atendido. É o caminho feliz do produto funcionando inteiro na
 madrugada — e o momento exato em que ela está mais quente. Ela agora tem 10
 créditos e o próximo Seedance custa 15: **é precisamente o "NÃO" que o cardápio
 N1 descreve**, com pessoa real, viva, nesta hora.
+
+---
+
+### #12 — 05:01→05:02 BRT — O CARTÃO APARECEU PARA UMA PESSOA DE VERDADE, e a carta ganhou gatilho (correção da minha própria instrução ao fundador)
+
+#### 1) A PRIMEIRA IMPRESSÃO REAL — o degrau saiu do papel
+
+`next_action_card_shown` = **3**, e é uma pessoa (`fc28af0b`):
+
+| hora UTC | superfície | estado | saldo | falta | alternativa |
+|---|---|---|---|---|---|
+| 07:44:37 | `generate_done_screen` | **dry** | 10 | 5 | Kineo 1 · **5 cr** |
+| 07:50:34 | `generate_step_1` | dry | 10 | 5 | Kineo 1 · 5 cr |
+| 07:51:36 | `generate_step_1` | dry | 10 | 5 | Kineo 1 · 5 cr |
+
+É **exatamente** o caso que a noite inteira existiu para atender: entregou um
+filme, ficou com 10 e o próximo do mesmo motor custa 15. Ela viu, na tela, os
+dois números e uma saída de 5 créditos que o saldo paga. `clamp_seconds: null`
+está certo — ela está no caminho pago (trial), então não há corte de 15s a
+declarar.
+
+**`next_action_clicked` = 0.** Três impressões, zero cliques, uma pessoa. É
+cedo demais para ler como fracasso **ou** como sucesso — o denominador é 1. O
+que está provado é que a peça **aparece, com os números certos, para quem
+deveria vê-la**. Era isso que 24h atrás não existia.
+
+#### 2) A CARTA NÃO PRECISA MAIS DO SEU CLIQUE — corrijo o que eu mesmo pedi
+
+A outra sessão ligou a rota que eu construí a um cron (`417517b4`):
+`"/api/admin/send-next-episode-wall?confirm=SEND&limit=30"`, `0 11,15 * * *`
+UTC = **08:00 e 12:00 BRT**. **As três instruções que eu deixei nas rotações
+#4, #5 e #9 pedindo o clique do fundador estão SUPERADAS.** Ele não precisa
+fazer nada; o primeiro disparo cai às 08:00 BRT, **dentro desta janela**, e eu
+consigo relatar o resultado no fechamento.
+
+**Conferi que isso não abriu uma porta pública**, porque a rota manda e-mail de
+verdade e o carimbo é vitalício:
+
+| sonda | resultado |
+|---|---|
+| GET sem auth | **403** |
+| GET sem auth **+ `?confirm=SEND&limit=30`** | **403** |
+| GET com `Authorization: Bearer errado` | **403** |
+| GET numa rota inexistente (controle) | **404** |
+
+O gate é `Bearer ${CRON_SECRET}` e **falha fechada** quando a env não existe.
+Ninguém dispara aquilo de fora.
+
+#### 3) COMO LER `card_shown` — e por que NÃO vou "consertar" como fiz com o served
+
+Uma pessoa gerou 3 impressões, duas delas na **mesma** superfície. Quem ler
+`card_shown` como pessoas vai errar por 3x — a mesma armadilha que a #9
+consertou no `next_action_served`.
+
+**Mas os dois casos não são iguais, e a diferença decide a ação:** o
+`next_action_served` **declarava** `dedupeMinutes: 30` e o dedupe estava
+quebrado — consertar restaurou a intenção declarada. O `card_shown` é um
+contador de **impressão**, e impressão repetida é impressão. Trocar a definição
+de uma métrica **no meio da medição** tornaria as duas metades da noite
+incomparáveis — que é um defeito próprio.
+
+**Regra de leitura, então:** `card_shown` = impressões;
+`count(distinct user_id)` = pessoas. Hoje: **3 impressões, 1 pessoa.**
+
+**PLACAR:** 5 cadastros, 4 filmes entregues, 1 checkout, **0 pagamentos**.
+314 eventos em 50 min (o tráfego acordou). 1 erro pós-deploy, 0 modais de saldo.
