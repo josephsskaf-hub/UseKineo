@@ -54,9 +54,40 @@ checa('assunto recebe o episódio', /function assunto\(filme: string \| null, ep
 checa('assunto nomeia o episódio escrito', /if \(episodio\) return `Episode 2: "\$\{episodio\}"`/.test(src))
 checa('o prefill prefere o episódio ao tema do filme 1', /prompt: episodio \?\? filme/.test(src))
 checa('continuarUrl recebe os dois', /function continuarUrl\(filme: string \| null, episodio: string \| null\)/.test(src))
-checa('o corpo texto recebe o episódio', /function corpoTexto\([\s\S]{0,160}episodio: string \| null\)/.test(src))
-checa('o corpo html recebe o episódio', /function corpoHtml\([\s\S]{0,160}episodio: string \| null\)/.test(src))
-checa('o envio passa o episódio nas três peças', /assunto\(d\.filme, d\.episodio\)/.test(src) && /corpoTexto\(d\.filme, d\.saldo, d\.custo, d\.id, d\.episodio\)/.test(src) && /corpoHtml\(d\.filme, d\.saldo, d\.custo, d\.id, d\.episodio\)/.test(src))
+// ATUALIZADAS PELO #23 (06/09), E NAO AFROUXADAS.
+// A sprint-assinaturas #23 acrescentou um SEXTO argumento aos construtores (a
+// temporada). As verificacoes continuam exigindo o episodio na MESMA posicao e
+// com o MESMO tipo — o que mudou foi so admitir o argumento novo depois dele.
+// A prova de que nao afrouxou: trocar d.episodio por null na chamada de envio
+// continua deixando isto vermelho.
+checa('o corpo texto recebe o episódio', /function corpoTexto\([\s\S]{0,160}episodio: string \| null(,|\))/.test(src))
+checa('o corpo html recebe o episódio', /function corpoHtml\([\s\S]{0,160}episodio: string \| null(,|\))/.test(src))
+checa(
+  'o envio passa o episódio nas três peças',
+  /assunto\(d\.filme, d\.episodio\)/.test(src) &&
+    /corpoTexto\(d\.filme, d\.saldo, d\.custo, d\.id, d\.episodio(,|\))/.test(src) &&
+    /corpoHtml\(d\.filme, d\.saldo, d\.custo, d\.id, d\.episodio(,|\))/.test(src),
+)
+// E o argumento novo tem de ser a TEMPORADA, nao qualquer coisa: um literal
+// ali faria o e-mail prometer "o resto da temporada" sem ter uma.
+checa(
+  '#23: o sexto argumento e a temporada escrita, nos dois corpos',
+  /corpoTexto\(d\.filme, d\.saldo, d\.custo, d\.id, d\.episodio, temporada\)/.test(src) &&
+    /corpoHtml\(d\.filme, d\.saldo, d\.custo, d\.id, d\.episodio, temporada\)/.test(src),
+)
+checa(
+  '#23: sem temporada os dois blocos sao string vazia (a carta de hoje sobrevive)',
+  /const restoTexto = resto\.length/.test(src) &&
+    /const restoHtml = restoEp\.length/.test(src) &&
+    (src.match(/\n\s*: ''\n/g) ?? []).length >= 2,
+)
+checa(
+  '#23: a temporada e escrita no ENVIO, dentro de try/catch, nunca no dry-run',
+  /temporada = await garantirTemporada\(admin, d\.id, d\.filmeRaw\)/.test(src) &&
+    /let temporada = null/.test(src) &&
+    src.indexOf('temporada = await garantirTemporada') > src.indexOf('const batch = destinatarios.slice(0, lote)'),
+)
+checa('#23: o carimbo registra se a temporada viajou', /tinha_temporada: !!temporada,/.test(src))
 
 // ── 4. sem episódio, a carta de hoje sobrevive ────────────────────────────
 checa('fallback do assunto para o título do filme', /Episode 2 of "\$\{filme\}"/.test(src))

@@ -82,6 +82,8 @@ import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
 import { pickMomentumTopic } from '@/lib/momentumTopic'
 import { composerUrl } from '@/lib/lifecycle/composerUrl'
 import { EPISODIO_ESCRITO_EVENT, lerGravado, memoriaAindaVale } from '@/lib/nextEpisodeMemoria'
+import { garantirTemporada } from '@/lib/temporadaServer'
+import type { TemporadaEscrita } from '@/lib/temporada'
 
 export const maxDuration = 300
 export const dynamic = 'force-dynamic'
@@ -217,7 +219,7 @@ function assunto(filme: string | null, episodio: string | null): string {
   return filme ? `Episode 2 of "${filme}"` : 'Your next episode is ready to write'
 }
 
-function corpoTexto(filme: string | null, saldo: number, custo: number, userId: string, episodio: string | null): string {
+function corpoTexto(filme: string | null, saldo: number, custo: number, userId: string, episodio: string | null, temporada?: TemporadaEscrita | null): string {
   const nome = filme ? `"${filme}"` : 'the short you made with Kineo'
   // A frase do meio muda COM o link: com episódio escrito ela NOMEIA o
   // episódio 2; com título ela nomeia o filme 1; sem nada não promete nada.
@@ -229,6 +231,25 @@ opens the studio with it in the box, so you are not starting from a blank page.`
 so Episode 2 does not start on a blank page.`
     : `The link below opens the studio straight on the composer, so you can pick
 the thread back up without hunting for it.`
+  // ═══ sprint-assinaturas #23 — O PLANO VIRA "O RESTO DA SUA TEMPORADA" ═══
+  //
+  // A jogada B3 do fundador, sem tocar em preco: onde a carta hoje diz "os
+  // planos estao aqui" (unidade que ninguem sente), ela passa a mostrar os
+  // episodios 3 a 6 que a casa JA escreveu para esta pessoa — e o plano vira
+  // o que destrava aquilo, nao um numero de creditos.
+  //
+  // Esta e a coorte OPOSTA a da carta da temporada (#19): aqui a pessoa NAO
+  // tem saldo. Por isso a moldura e "o que falta", e nao "o que cabe".
+  //
+  // Sem temporada, `restoTexto` e string vazia e a carta sai BYTE A BYTE
+  // como saia antes desta mudanca.
+  const resto = temporada?.episodes?.slice(1) ?? []
+  const restoTexto = resto.length
+    ? `The rest of the season is written too:
+${resto.map((e) => `  Ep${e.n} — ${e.title}`).join('\n')}
+
+`
+    : ''
   return `You made ${nome} — and then the credits ran out.
 
 Here is exactly where you stand: your last film cost ${custo} credits, and you have ${saldo}.
@@ -239,7 +260,7 @@ ${ponte}
 Continue the series:
 ${continuarUrl(filme, episodio)}
 
-If you want the bigger engines to keep running, the plans are here:
+${restoTexto}If you want the bigger engines to keep running, the plans are here:
 ${planoUrl()}
 
 When you open the studio it will show you, on screen, what your current balance
@@ -252,8 +273,19 @@ Reply to this and tell me what you were making. I read these.
 ${emailFooterText(userId)}`
 }
 
-function corpoHtml(filme: string | null, saldo: number, custo: number, userId: string, episodio: string | null): string {
+function corpoHtml(filme: string | null, saldo: number, custo: number, userId: string, episodio: string | null, temporada?: TemporadaEscrita | null): string {
   const nome = filme ? `&ldquo;${escaparHtml(filme)}&rdquo;` : 'the short you made with Kineo'
+  // Ver o bloco do #23 em `corpoTexto`: sem temporada, string vazia e a carta
+  // sai como saia antes.
+  const restoEp = temporada?.episodes?.slice(1) ?? []
+  const restoHtml = restoEp.length
+    ? `<p style="font-size:14px;color:#555;margin-bottom:6px">The rest of the season is written too:</p>
+<table style="border-collapse:collapse;margin:0 0 18px">${restoEp
+        .map(
+          (e) => `<tr><td style="padding:5px 12px 5px 0;color:#8a8a8a;font-size:13px;white-space:nowrap;vertical-align:top">Ep${e.n}</td><td style="padding:5px 0;font-size:14px">${escaparHtml(e.title)}</td></tr>`,
+        )
+        .join('')}</table>`
+    : ''
   return `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;font-size:15px;line-height:1.6;color:#1a1a1a;max-width:520px">
 <p>You made <strong>${nome}</strong> — and then the credits ran out.</p>
 <p>Here is exactly where you stand: your last film cost <strong>${custo} credits</strong>, and you have <strong>${saldo}</strong>. That is the whole reason the next one did not start.</p>
@@ -265,7 +297,7 @@ function corpoHtml(filme: string | null, saldo: number, custo: number, userId: s
 <p style="margin:26px 0">
   <a href="${continuarUrl(filme, episodio)}" style="background:#2997ff;color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:700;display:inline-block">Continue the series &rarr;</a>
 </p>
-<p style="font-size:14px;color:#555">If you want the bigger engines to keep running, <a href="${planoUrl()}" style="color:#2997ff">the plans are here</a>.</p>
+${restoHtml}<p style="font-size:14px;color:#555">If you want the bigger engines to keep running, <a href="${planoUrl()}" style="color:#2997ff">the plans are here</a>.</p>
 <p style="font-size:14px;color:#555">When you open the studio it will show you, on screen, what your current balance still covers — I would rather you see the real number there than take my word for it in an email.</p>
 <p>Reply to this and tell me what you were making. I read these.</p>
 <p>&mdash; Joseph</p>
@@ -282,6 +314,11 @@ type Destinatario = {
   saldo: number
   custo: number
   fonte: string
+  /** sprint-assinaturas #23 — a temporada inteira deste filme. null e o
+   *  caminho NORMAL: sem ela a carta sai byte a byte como saia antes. */
+  temporada?: TemporadaEscrita | null
+  /** o filme cru, para o escritor da temporada */
+  filmeRaw?: { id: string; title: unknown; topic: unknown }
 }
 
 export async function GET(req: NextRequest) {
@@ -314,7 +351,12 @@ export async function GET(req: NextRequest) {
       .limit(5000)
     if (vidsErr) return NextResponse.json({ error: 'videos query failed' }, { status: 503 })
 
-    const ultimoDe = new Map<string, { custo: number; filme: string | null; videoId: string | null }>()
+    const ultimoDe = new Map<
+      string,
+      // `tituloCru`/`topicCru` (#23): o titulo acima ja passou por
+      // `pickMomentumTopic` e pode ser null; a temporada nasce do CONTEUDO.
+      { custo: number; filme: string | null; videoId: string | null; tituloCru: unknown; topicCru: unknown }
+    >()
     for (const v of vids ?? []) {
       const uid = (v as { user_id: string }).user_id
       if (!uid || ultimoDe.has(uid)) continue // já ordenado por created_at desc
@@ -324,6 +366,11 @@ export async function GET(req: NextRequest) {
         custo: typeof bruto === 'number' && bruto > 0 ? Math.floor(bruto) : 0,
         filme: tituloDoFilme((v as { title: string | null }).title, (v as { topic: string | null }).topic),
         videoId: typeof vid === 'string' && vid ? vid : null,
+        // sprint-assinaturas #23 — o cru, para o escritor da temporada. O
+        // titulo acima ja passou por `pickMomentumTopic` e pode ser null; a
+        // temporada nasce do CONTEUDO (`topic`), nao do nome bonito.
+        tituloCru: (v as { title: unknown }).title,
+        topicCru: (v as { topic: unknown }).topic,
       })
     }
     const ids = [...ultimoDe.keys()]
@@ -411,6 +458,9 @@ export async function GET(req: NextRequest) {
       candidatos.push({
         id, email, filme: ultimo.filme, episodio: episodioDe.get(id) ?? null, saldo, custo: ultimo.custo,
         fonte: ((raw.utm_source as string) || (raw.signup_utm_source as string) || 'sem fonte'),
+        filmeRaw: ultimo.videoId
+          ? { id: ultimo.videoId, title: ultimo.tituloCru, topic: ultimo.topicCru }
+          : undefined,
       })
     }
 
@@ -453,14 +503,29 @@ export async function GET(req: NextRequest) {
     const resultados: Array<{ email: string; outcome: string }> = []
     for (const d of batch) {
       try {
+        // ═══ sprint-assinaturas #23 ═══════════════════════════════════════
+        // A temporada e escrita AQUI, no envio, uma vez por pessoa — nunca no
+        // dry-run (que continua custando zero). Falha ABERTA: qualquer
+        // problema deixa `temporada` em null e a carta sai byte a byte como
+        // saia antes. Custo: uma chamada de gpt-4o-mini (~US$ 0,0003) por
+        // pessoa do lote, e ela fica gravada — quem clicar e voltar encontra
+        // a MESMA temporada dentro do app (licao do #14).
+        let temporada = null
+        if (d.filmeRaw) {
+          try {
+            temporada = await garantirTemporada(admin, d.id, d.filmeRaw)
+          } catch (e) {
+            console.warn('[send-next-episode-wall] temporada falhou:', e instanceof Error ? e.message : String(e))
+          }
+        }
         const res = await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({
             from: FROM_EMAIL, to: d.email, reply_to: REPLY_TO,
             subject: assunto(d.filme, d.episodio),
-            text: corpoTexto(d.filme, d.saldo, d.custo, d.id, d.episodio),
-            html: corpoHtml(d.filme, d.saldo, d.custo, d.id, d.episodio),
+            text: corpoTexto(d.filme, d.saldo, d.custo, d.id, d.episodio, temporada),
+            html: corpoHtml(d.filme, d.saldo, d.custo, d.id, d.episodio, temporada),
             headers: unsubscribeHeaders(d.id),
           }),
         })
@@ -474,6 +539,10 @@ export async function GET(req: NextRequest) {
             // e quem recebeu a semente. Sem isto o CTR das duas vira um número
             // só e a entrega do #15 fica impossível de medir.
             tinha_episodio_escrito: !!d.episodio,
+            // #23 — sem isto, "o resto da temporada nao converteu" ficaria
+            // indistinguivel de "o resto da temporada nunca apareceu".
+            tinha_temporada: !!temporada,
+            episodios_do_resto: temporada ? temporada.episodes.length - 1 : 0,
           },
         })
         enviados++
