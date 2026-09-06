@@ -117,6 +117,11 @@ const OTHER_CAMPAIGNS = [
   'india_price_emailed_v1',
   'comeback50_emailed_v1',
   'hot_upsell_sent',
+  // sprint-assinaturas #19 (06/09) — a CARTA DA TEMPORADA. Coorte oposta a
+  // desta rota (saldo que AINDA paga, nunca bateu na parede), mas o aviso da
+  // #13 vale nos dois sentidos: sem este carimbo aqui, a mesma pessoa poderia
+  // levar duas cartas no mesmo dia.
+  'season_letter_emailed_v1',
 ]
 
 /** Colunas de carimbo em `profiles`. A lista foi conferida contra

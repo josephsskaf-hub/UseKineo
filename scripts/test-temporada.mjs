@@ -117,20 +117,42 @@ check('22. a rota existe com GET e POST', iGet > 0 && iPost > iGet)
 // varredura de leitura passa a queimar dinheiro sem ninguem perceber.
 check('23. o GET NAO chama modelo nenhum', !/api\.openai\.com|gpt-4o|fetch\(/.test(corpoGet))
 check('24. o GET NAO grava nada', !/insert\(|guardarTemporada\(/.test(corpoGet))
-check('25. o POST chama gpt-4o-mini e so ele', /model: 'gpt-4o-mini'/.test(corpoPost) && (corpoPost.match(/api\.openai\.com/g) ?? []).length === 1)
-// A lembranca antes do gasto (licao do #14).
+// ⚠ #19 — O ESCRITOR MUDOU DE ARQUIVO, NAO DE CONTRATO. Ele foi para
+// lib/temporadaServer.ts para que a CARTA possa escrever para quem NAO esta
+// logado (a coorte inteira das 64 tem filme anterior ao deploy de hoje, entao
+// ninguem tem temporada gravada). As travas abaixo SEGUIRAM o codigo: sao as
+// mesmas invariantes, lidas no arquivo onde o codigo agora mora. Nenhuma foi
+// afrouxada, e tres nasceram (25b, 27b/27c, 29b).
+const escritor = ler('lib/temporadaServer.ts')
+
+check('25. o escritor chama gpt-4o-mini e so ele', /model: 'gpt-4o-mini'/.test(escritor) && (escritor.match(/api\.openai\.com/g) ?? []).length === 1)
+check('25b. a ROTA nao chama modelo por conta propria — so pelo escritor unico', !/api\.openai\.com|gpt-4o/.test(rota))
 check(
-  '26. o POST le a memoria ANTES de chamar o modelo',
-  corpoPost.indexOf('temporadaGravada(') > 0 && corpoPost.indexOf('temporadaGravada(') < corpoPost.indexOf('api.openai.com'),
+  '26. o escritor le a memoria ANTES de chamar o modelo',
+  escritor.indexOf('temporadaGravada(') > 0 && escritor.indexOf('temporadaGravada(') < escritor.indexOf('api.openai.com'),
 )
-check('27. memoria encontrada devolve sem gastar (return antes do fetch)', /const jaTem = await temporadaGravada\([\s\S]{0,120}?if \(jaTem\) return resposta\(jaTem/.test(corpoPost))
-// Dinheiro do cliente: esta rota nao pode cobrar nem renderizar.
+check('27. memoria encontrada devolve sem gastar (return antes do fetch)', /const jaTem = await temporadaGravada\([\s\S]{0,120}?if \(jaTem\) return jaTem/.test(escritor))
+// A promessa da metade de leitura: o modo so-leitura corta o gasto ANTES de a
+// chave da OpenAI ser sequer lida.
 check(
-  '28. a rota NAO debita credito, NAO chama a fal e NAO renderiza',
-  !/video_credits:\s|debit|fal\.run|fal\.ai|submitToFal|creditCostFor\w*\([^)]*\)\s*;?\s*await/.test(rota) &&
-    !/\.update\(/.test(rota),
+  '27b. o modo so-leitura corta o caminho do modelo antes de tudo',
+  /if \(opts\?\.escrever === false\) return null/.test(escritor) &&
+    escritor.indexOf('opts?.escrever === false') < escritor.indexOf('OPENAI_API_KEY'),
 )
-check('29. o unico insert da rota e o da memoria em events', (rota.match(/\.insert\(/g) ?? []).length === 1 && /name: TEMPORADA_EVENT/.test(rota))
+check('27c. o GET da rota usa exatamente esse modo de leitura', /garantirTemporada\(admin, userId, alvo, \{ escrever: false \}\)/.test(corpoGet))
+// ⚠ ESTA VERIFICACAO SUMIU POR UM INSTANTE NESTA MESMA ROTACAO: o splice que
+// mudou as travas 25-29 de arquivo levou a 28 junto, e o guardiao ficou verde
+// SEM a trava do dinheiro. Foi pega relendo a lista de checks, nao pelo verde.
+// Ela volta mais forte: vale para os DOIS arquivos, porque depois do #19 o
+// escritor tem o admin na mao e um debito acidental caberia la tambem — onde
+// ninguem estaria olhando.
+const proibidoCobrar = /video_credits:\s|debit|fal\.run|fal\.ai|submitToFal/
+check(
+  '28. nem a rota nem o escritor debitam credito, chamam a fal ou renderizam',
+  !proibidoCobrar.test(rota) && !proibidoCobrar.test(escritor),
+)
+check('29. o unico insert e o da memoria em events', (escritor.match(/\.insert\(/g) ?? []).length === 1 && /name: TEMPORADA_EVENT/.test(escritor) && !/\.insert\(/.test(rota))
+check('29b. nem a rota nem o escritor fazem UPDATE em nada', !/\.update\(/.test(rota) && !/\.update\(/.test(escritor))
 // Fonte unica de custo e de entitlement (memoria `predicado-do-cobrador-nao-se-redigita`).
 check('30. o custo vem de creditCostForDuration, nao de numero digitado', /creditCostForDuration\(q, pago, seg\)/.test(rota))
 check('31. free/pago vem de getEffectiveEntitlement().treatAsPaid', /getEffectiveEntitlement\(/.test(rota) && /ent\.treatAsPaid/.test(rota))

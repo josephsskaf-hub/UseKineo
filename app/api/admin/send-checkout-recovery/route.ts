@@ -89,6 +89,11 @@ const OUTRAS_CAMPANHAS = [
   'comeback50_emailed_v1',
   'hot_upsell_sent',
   'next_episode_wall_emailed_v1',
+  // sprint-assinaturas #19 (06/09) — a CARTA DA TEMPORADA. Coorte oposta
+  // (saldo que AINDA paga, nunca bateu na parede), mas o aviso da #13 vale
+  // nos dois sentidos: sem este carimbo, a mesma pessoa poderia levar duas
+  // cartas no mesmo dia.
+  'season_letter_emailed_v1',
 ]
 
 /** ⛔ NUNCA escrever para estes (limite explícito do ciclo de 06/09). */
