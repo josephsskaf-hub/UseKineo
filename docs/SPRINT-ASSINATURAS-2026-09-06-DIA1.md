@@ -1518,3 +1518,130 @@ link de partilha ao lado do download. O encanamento inteiro está provado em
 produção; o que **não** está provado é este último passo, porque ele só existe
 dentro de um e-mail e só se prova quando o próximo render terminar. Deixei as
 duas consultas que respondem isso sem margem para interpretação.
+
+---
+
+### CHECKPOINT 14:38 BRT (17:38 UTC) — rotação #28 · sem trabalho novo
+
+Este é o disparo de :38: confere o que a rotação das :08 deixou, mede, e não
+abre frente nova. As duas consultas que a #28 deixou escritas estão
+respondidas abaixo — as duas com resposta **negativa**, e nenhuma delas
+maquiada.
+
+#### 1. O e-mail de entrega SAIU depois do deploy da #28? **NÃO. Zero.**
+
+```
+video_ready_email_sent  > 2026-09-06 17:30 UTC (deploy)  →  0 envios
+video_ready_email_sent  últimas 24h                      →  42 envios
+último envio da casa                                     →  17:21:18 UTC
+```
+
+O último e-mail de entrega saiu às **17:21 UTC — três minutos ANTES** do
+commit `de5d3509` (17:24) e cerca de nove minutos antes do deploy ficar de pé.
+Ou seja: a #28 está no ar e **ainda não foi exercitada uma única vez**. Isto é
+exatamente o que a própria #28 escreveu que aconteceria (`subiu ≠
+exercitado`) — o registro aqui existe para que ninguém, inclusive eu na
+próxima rotação, conte isso como entrega provada. A casa fecha ~42 filmes/24h,
+um a cada ~35 min: a primeira prova real deve cair antes das 15:38.
+
+#### 2. Alguém apertou o botão de partilha? **NÃO. Zero desde sempre.**
+
+```
+video_published_v1     → 0 eventos, em toda a história da tabela
+video_unpublished_v1   → 0 eventos, em toda a história da tabela
+```
+
+Esperado, e não é sintoma de defeito: até 17:24 o botão só existia no e-mail
+de **4 pessoas por semana** (`video_ready_nudge_sent`). O numerador é zero
+porque o denominador é zero. Só a partir do próximo e-mail de entrega é que
+esta contagem começa a significar alguma coisa — e é aí que a pergunta passa
+a ser **copy**, não encanamento.
+
+#### 3. O ACHADO DESTE CHECKPOINT — quem levou clique hoje foi a carta GENÉRICA
+
+Não estava na lista de perguntas, apareceu ao medir. Todos os cliques em link
+de episódio hoje, com a fonte que a #25 obrigou cada carta a carregar:
+
+| fonte do clique | cliques |
+|---|---|
+| `lifecycle_loss_email` (campanha horária genérica) | **2** |
+| `video_ready_email` | 1 |
+| `unknown` (sem fonte — furo de instrumentação) | 2 |
+| `season_letter` (a carta da temporada, escrita hoje) | **0** |
+| `next_episode_wall` (a carta da parede) | **0** |
+
+E os volumes do dia, lado a lado:
+
+| carta | envios hoje | pessoas |
+|---|---|---|
+| ciclo de vida (5 campanhas, cron horário) | **108** | 108 |
+| porta de volta do checkout | 22 | 22 |
+| entrega de filme pronto | 28 | 21 |
+| carta da parede | 19 | 19 |
+| carta da temporada | 11 | 11 |
+| momentum / post nudge | 22 | 22 |
+| **TOTAL** | **~210 e-mails** | — |
+
+**210 e-mails hoje. 0 pagamentos hoje.** As duas cartas caras e raras — as que
+esta sessão construiu, com título de episódio escrito por modelo e link de
+série — somaram **30 envios e 0 cliques**. A campanha automática, genérica e
+horária somou 108 envios e os 2 únicos cliques atribuídos. É a memória
+`supressao-sem-precedencia-cala-a-carta-boa` mostrando a outra face: não é só
+que a genérica **cala** a boa por supressão — é que, medida de frente, a
+genérica está **ganhando**. Isso não conclui que a carta boa é ruim (30 envios
+é amostra pequena demais para concluir qualquer coisa), mas **inverte o ônus
+da prova** para a próxima rotação: antes de escrever a carta nº 7, provar que
+a nº 5 e a nº 6 tiram alguém do lugar.
+
+Furo lateral, barato de fechar: **2 dos 5 cliques chegaram com
+`source=unknown`**. Rota de episódio recebendo clique sem saber de onde veio
+é medição que se perde.
+
+#### PRAXE — PLACAR E CHECAGEM ZERO (17:38 UTC)
+
+**Desde o marco (06/09 14:00 UTC):** 4 cadastros (`trial_credits_granted`) ·
+4 filmes concluídos / 3 pessoas · 1 `pricing_view` · **0 `checkout_started`** ·
+**0 `payment_success`**.
+
+**24h:** 32 cadastros · 42 filmes entregues · 2 `checkout_started` ·
+**0 pagamentos**. **7 dias: 2 pagamentos. 30 dias: 6.**
+
+**Checagem zero — limpa:** cadastro sem crédito **0/32** · render preso >45 min
+**0** · `next_episode_failed` **0** · `generation_stage_error` 4 em 24h (base
+normal). Nenhum alarme.
+
+#### PISTA DO CODEX — o site novo entrou
+
+`origin/main` traz hoje `027e7996` (layout do Studio "idea-first", aprovado
+pelo fundador), `25a0d164` (nav mobile acima dos avisos de instalação) e
+`33737e95` (registro do preview verificado). **Nada meu encostou nesses
+arquivos** e a fila (`entrega-atual`) está em 0 commits à frente da ponta —
+sem conflito de pista.
+
+#### O QUE A ROTAÇÃO DAS 15:08 ABRE
+
+1. **Reconferir a consulta 1.** Se `video_ready_email_sent` correu depois de
+   17:30 e `video_published_v1` continua zero após algumas dezenas de e-mails,
+   o problema vira **a frase do botão**, não o alcance — e a jogada muda de
+   encanamento para copy.
+2. **As 20 pessoas com link de recuperação vivo da Stripe** que ficaram de fora
+   do lote — coorte de maior intenção declarada da casa. Continua sem o motivo
+   da exclusão medido. (Nota: a rota rodou de novo às 17:30 e alcançou 22
+   pessoas hoje, não 21 — o lote não está parado.)
+3. **Fechar o `source=unknown`** do clique de episódio: 2 de 5 cliques hoje
+   chegaram sem fonte.
+
+#### ✅ O QUE VOCÊ PRECISA FAZER
+1. **Nada.** Checkpoint de medição, sem código novo e sem e-mail disparado.
+
+#### 📋 O QUE ACONTECEU
+Confirmei que as duas entregas da rotação anterior estão no ar e que **nenhuma
+das duas foi usada ainda** — o botão de partilha só passa a existir de verdade
+no próximo e-mail de filme pronto, que ainda não saiu. Medindo isso, apareceu
+o fato mais desconfortável do dia: a casa mandou cerca de **210 e-mails hoje** e
+teve **0 pagamentos**; as duas cartas caras que esta sessão construiu somaram
+30 envios e nenhum clique, enquanto a campanha automática genérica levou os
+únicos 2. Não é veredito — 30 envios é pouco —, mas muda a ordem do que provar:
+a próxima carta só se justifica depois que uma das que já existem mover alguém.
+Produção está sadia: 42 filmes entregues em 24h, nenhum render preso, nenhum
+cadastro sem crédito.
