@@ -41,4 +41,9 @@ for(const tab of ['videos','images','audio']){
  eq((rendered.match(/aria-pressed="true"/g)||[]).length,1,tab+': one selected asset filter')
  ok(rendered.includes('class="library-toolbar"'),tab+': shared toolbar renders')
 }
+const toolsBefore=renderPage('app/tools/page.tsx',true),toolsAfter=renderPage('app/tools/page.tsx')
+const hrefs=html=>[...html.matchAll(/<a[^>]* href="([^"]+)"/g)].map(m=>m[1]).filter(h=>!h.startsWith('#tools-')).sort()
+eq(hrefs(toolsAfter),hrefs(toolsBefore),'tools retain every destination, no missing or duplicate tool')
+eq((toolsAfter.match(/<article /g)||[]).length,(toolsBefore.match(/<article /g)||[]).length,'tools grouping keeps every canonical card')
+for(const id of ['write','plan','publish'])ok(toolsAfter.includes(`id="tools-${id}"`),'working category anchor '+id)
 console.log(`PASS ${checks} executable UX invariants; no network, generation, tracking or credentials`)

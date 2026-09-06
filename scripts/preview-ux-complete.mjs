@@ -64,6 +64,7 @@ export function renderPage(entry, before = false, fixture = {}) {
 }
 export const PAGES = [
  ['Home','app/KineoLanding.tsx',{}],
+ ['Free tools','app/tools/page.tsx',{}],
  ['Images','app/(dashboard)/images/ImagesClient.tsx',{galleryLoading:false}],
  ['Audio','app/(dashboard)/audio/AudioClient.tsx',{galleryLoading:false}],
  ['Library','app/(dashboard)/library/LibraryClient.tsx',{loaded:true,vids:[{id:'fixture',title:'Example project · demonstration only',video_url:null}]}],

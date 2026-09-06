@@ -21,8 +21,8 @@ export const HOME_PRESENTATION_CSS = `
 .klp .tools { gap:16px; }
 .klp .cmp { border-radius:16px; box-shadow:none; }
 .klp .founder { max-width:860px; margin-left:auto; margin-right:auto; }
-.klp .faq { display:flex; flex-direction:column; max-width:960px; gap:0; border-top:1px solid var(--line); }
-.klp details.qa { padding:0; background:transparent; border:0; border-bottom:1px solid var(--line); border-radius:0; box-shadow:none; }
+.klp .faq { display:flex; flex-direction:column; align-items:stretch; width:100%; max-width:960px; gap:0; border-top:1px solid var(--line); }
+.klp details.qa { width:100%; text-align:left; padding:0; background:transparent; border:0; border-bottom:1px solid var(--line); border-radius:0; box-shadow:none; }
 .klp .qa summary { display:flex; align-items:center; justify-content:space-between; gap:24px; padding:22px 4px; list-style:none; cursor:pointer; }
 .klp .qa summary::-webkit-details-marker { display:none; }
 .klp .qa summary::after { content:'+'; color:#96baff; font-size:23px; font-weight:400; flex-shrink:0; }

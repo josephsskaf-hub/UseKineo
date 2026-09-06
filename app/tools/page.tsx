@@ -146,6 +146,13 @@ const toolsJsonLd = {
   },
 }
 
+// Presentation groups only: the facts, tool destinations and JSON-LD remain canonical.
+const TOOL_GROUPS = [
+  { id: 'write', title: 'Write', paths: ['/free-script-generator', '/free-hook-generator', '/comment-to-video', '/product-to-video-script', '/free-ai-shorts/localbusiness'] },
+  { id: 'plan', title: 'Plan', paths: ['/client-video-brief-generator', '/business-video-content-plan', '/shorts-money-calculator', '/cheapest-ai-shorts-maker', '/business-pilot-review'] },
+  { id: 'publish', title: 'Review & publish', paths: ['/youtube-shorts-title-generator', '/youtube-shorts-script-timer', '/viral-score'] },
+] as const
+
 const PAGE_CSS = `
   .tools-page { min-height: 100vh; background: #000; color: #f5f5f7; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
   .tools-shell { width: min(1120px, calc(100% - 36px)); margin: 0 auto; padding: 26px 0 72px; }
@@ -184,6 +191,20 @@ const PAGE_CSS = `
     .tools-boundary { align-items: flex-start; flex-direction: column; padding: 23px; }
     .tools-boundary > a { width: 100%; }
   }
+  .tools-page { background:linear-gradient(160deg,#11151c,#080b10 50%); }
+  .tools-hero { margin:54px 0 32px; text-align:left; max-width:780px; }
+  .tools-hero h1 { font-size:clamp(32px,4.4vw,56px); line-height:1.12; letter-spacing:-.04em; }
+  .tools-intro { margin:20px 0 0; font-size:16px; }
+  .tools-trust { justify-content:flex-start; }
+  .tools-sections { display:flex; flex-wrap:wrap; gap:10px; padding:20px 0; margin-bottom:16px; border-block:1px solid #283140; }
+  .tools-sections a { color:#c8d9f5; padding:10px 16px; text-decoration:none; border:1px solid #344258; border-radius:10px; }
+  .tools-sections a:focus-visible { outline:2px solid #96baff; outline-offset:3px; }
+  .tool-group { scroll-margin-top:24px; margin-bottom:42px; }
+  .tool-group > h2 { font-size:22px; letter-spacing:-.025em; margin:26px 0 16px; }
+  .tool-card,.tool-card-featured { grid-column:auto; min-height:220px; padding:24px; border-radius:14px; background:#131924; box-shadow:none; gap:22px; }
+  .tool-card h3 { font-size:24px; line-height:1.25; letter-spacing:-.025em; margin:12px 0 0; }
+  .tool-card-featured { border-color:#496c9e; }
+  @media(max-width:720px) { .tools-hero { margin-top:36px; } .tool-card { min-height:0; padding:20px; } .tool-card h3 { font-size:21px; } }
 `
 
 export default function ToolsPage() {
@@ -214,12 +235,18 @@ export default function ToolsPage() {
           </div>
         </header>
 
-        <section className="tools-grid" aria-label="Free YouTube Shorts tools">
-          {tools.map((tool) => (
+        <nav className="tools-sections" aria-label="Tool categories">
+          {TOOL_GROUPS.map(group => <a key={group.id} href={`#tools-${group.id}`}>{group.title}</a>)}
+        </nav>
+        {TOOL_GROUPS.map(group => (
+        <section key={group.id} id={`tools-${group.id}`} className="tool-group" aria-labelledby={`tools-${group.id}-heading`}>
+          <h2 id={`tools-${group.id}-heading`}>{group.title}</h2>
+          <div className="tools-grid">
+          {tools.filter(tool => (group.paths as readonly string[]).includes(tool.path)).map((tool) => (
             <article key={tool.path} className={`tool-card${tool.meta.featured ? ' tool-card-featured' : ''}`}>
               <div>
                 <p className="tool-eyebrow">{tool.meta.eyebrow}</p>
-                <h2>{tool.meta.prompt}</h2>
+                <h3>{tool.meta.prompt}</h3>
                 <p className="tool-description">{tool.what}</p>
               </div>
               <div className="tool-footer">
@@ -234,7 +261,9 @@ export default function ToolsPage() {
               </div>
             </article>
           ))}
+          </div>
         </section>
+        ))}
 
         <section className="tools-boundary" aria-labelledby="finished-video-title">
           <div>
