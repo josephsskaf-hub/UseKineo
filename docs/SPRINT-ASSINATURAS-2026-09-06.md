@@ -819,3 +819,46 @@ filme que não existe. Deixei o guardião com 43 verificações e falsifiquei co
 6 mutantes, todos pegos. **A causa continua aberta e não é minha:** o guard de
 narração é a régua que você mandou não tocar, e o render que morre em silêncio
 mora no arquivo que a sua trava de qualidade bane. Tratei o desfecho.
+
+---
+
+### #8 — 02:30 BRT — CLAIM: eu pego o buraco de cobertura que o checkpoint da #1 mediu
+
+**⚠️ DUAS SESSÕES NA MESMA PISTA.** Descobri às 02:28 que outra execução desta
+mesma tarefa agendada está rodando em paralelo: `origin/main` andou além do meu
+`ef821337` com o "checkpoint da #1" (`05f08f7b`) e a `#7` (`d94ebd0b`), e o HEAD
+da minha worktree foi movido por ela. **Nada se perdeu** — ela enfileirou POR
+CIMA do meu trabalho, exatamente como o `enfileirar.sh` existe para fazer.
+Registro aqui porque numeração e rótulo agora colidem entre as duas: leia o dia
+por `git log`, nunca pelo número da entrada.
+
+**O QUE ELA ACHOU E DEIXOU PARA TRÁS** (checkpoint da #1, item 3): o
+`NextActionCard` cobre **uma** das **três** paredes de "não" da casa. Em 30
+dias, `compose_refused`: `trial_credits_stalled` 15 pessoas (cobertas),
+`free_fast_limit` 15, `credits_held_by_render` 11. Ela anotou e não consertou
+("é rotação nova").
+
+**EU PEGO, e é meu por construção:** o buraco está em `app/api/next-action/
+route.ts` e `components/NextActionCard.tsx`, os dois arquivos que eu criei
+nesta noite. Ela não os toca; eu não toco no que ela está fazendo.
+
+**A HIPÓTESE, escrita antes de codar.** O `state` hoje é
+`balance < ultimoCusto ? 'dry' : 'can_continue'`. Quem foi recusado pelo
+`free_fast_limit` fez um Kineo 1 **grátis** — último custo **0** — então
+`balance >= 0` é sempre verdade e o estado sai `can_continue`. O cartão devolve
+`null` e a pessoa não recebe porta nenhuma, apesar de o servidor ter acabado de
+lhe dizer não.
+
+A definição certa de "travado" não é *"o saldo não paga o último filme"* — é
+**"não há NADA que ela consiga fazer agora"**. Isso o contrato já sabe calcular:
+é `affordable.length === 0`, e a cota do Kineo 1 já entra nessa conta desde a
+#1.
+
+**O que vou mudar:** o estado passa a considerar `affordable` vazio; a frase
+para esse caso NÃO pode ser "seu último filme custou 0 e você tem 13", que é
+absurda — precisa de texto próprio. **Não vou inventar oferta nem preço.**
+
+**O que NÃO vou mexer:** `credits_held_by_render` (11 pessoas, saldo médio
+19,7). Ali o cartão calar é **certo** — a resposta honesta é "espere o render
+terminar", não "compre". Vender para quem já tem crédito preso num render seria
+a pior copy possível. Fica registrado como pedido, não como código meu.
