@@ -51,9 +51,14 @@ export default function VideoEditor({ initialTool }: { initialTool: EditingTool 
     const size = outputSize(info.width, info.height, settings.aspect); surface.width = size.width; surface.height = size.height
     media.playbackRate = settings.speed
     let frame = 0
-    const draw = () => { drawFrame(surface, media, settings); frame = requestAnimationFrame(draw) }
+    const draw = () => {
+      cancelAnimationFrame(frame)
+      drawFrame(surface, media, settings)
+      if (!media.paused && !media.ended) frame = requestAnimationFrame(draw)
+    }
+    media.addEventListener('loadeddata', draw); media.addEventListener('seeked', draw); media.addEventListener('play', draw)
     draw()
-    return () => cancelAnimationFrame(frame)
+    return () => { cancelAnimationFrame(frame); media.removeEventListener('loadeddata', draw); media.removeEventListener('seeked', draw); media.removeEventListener('play', draw) }
   }, [settings, info, inputUrl])
   const clearResult = () => { resultVideo.current?.pause(); setResult(null) }
   const update = (patch: Partial<EditSettings>) => { clearResult(); setError(''); setSettings(previous => ({ ...previous, ...patch })) }
