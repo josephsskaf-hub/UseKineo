@@ -839,3 +839,86 @@ direto deixa vermelho. (carta da temporada 60 → **62**; carta da parede 40 →
 hoje, essa métrica tinha **1 linha em toda a história** e ela era uma sonda
 minha. Agora as duas maiores cartas de série da casa passam por lá — então o
 zero, se vier, vai ser um zero **medido**, não um zero por falta de contador.
+
+---
+
+## 🔎 O ACHADO ESTRATÉGICO DO DIA — 40% DO TRÁFEGO NUNCA PRODUZIU UM DÓLAR, E NÃO É POR FALTA DE INTENÇÃO
+
+Isto não é uma entrega de código. É o número que eu recomendo que você olhe
+antes de decidir o que a próxima semana faz.
+
+### OS 6 PAGANTES DE 30 DIAS, UM POR UM
+
+| pessoa | fonte | horas até pagar | filmes antes | plano |
+|---|---|---|---|---|
+| d51f2aac | **chatgpt** | **0,5 h** | **0** | starter |
+| 62aa2fcc | **chatgpt** | 24 h | 1 | pro |
+| e7f1a87c | **chatgpt** | 43 h | 5 | pro |
+| 8164e50a | homepage | 247 h | 1 | basic |
+| 7d4baa98 | taaft | 400 h | 1 | starter |
+| 75f76a4c | sticky_cta | 7 h | **0** | basic |
+
+Os **três pagantes mais recentes são todos do chatgpt**, e estão ficando mais
+rápidos: 43 h → 24 h → **meia hora**. Dois dos seis pagaram com **zero filmes**
+— compraram a promessa, não a demonstração.
+
+### O FUNIL POR FONTE (30 dias, contas externas)
+
+| fonte | cadastros | fez 1 filme | fez 2 | viu preços | **chegou ao checkout** | **pagou** |
+|---|---|---|---|---|---|---|
+| **chatgpt** | 332 | 204 | 60 | 60 | **40** | **3** |
+| **taaft** | **296** | 163 | 47 | 38 | **41** | **0** |
+| homepage | 42 | 35 | 5 | 6 | 2 | 1 |
+
+### E AQUI ESTÁ A PARTE QUE ME FEZ PARAR
+
+**O TAAFT chega ao checkout MAIS que o ChatGPT — 41 contra 40 — e paga zero.**
+
+Isso derruba a explicação confortável ("é público errado, gente que só quer
+ferramenta grátis"). Gente que só quer grátis **não abre o checkout 41 vezes**.
+
+Fui mais fundo para tentar derrubar o próprio achado:
+
+- **Escolhem os mesmos planos.** basic e starter dominam nos dois.
+- **Insistem igual.** TAAFT: 26 pessoas → 56 tentativas no basic. ChatGPT: 20
+  pessoas → 44 tentativas. ~2,2 tentativas por pessoa nos dois lados.
+- **Fazem filme.** 163 dos 296 entregaram pelo menos um.
+
+Ou seja: mesma intenção, mesmo plano, mesma insistência, mesma ativação —
+**e um lado converte 7,5% dos que chegam ao checkout e o outro converte 0%.**
+
+### ⚠️ O QUE ESTE NÚMERO **NÃO** PROVA
+
+Com **6 pagantes no total**, quase nada aqui é estatisticamente conclusivo.
+0 de 41 contra 3 de 40 dá algo em torno de p ≈ 0,24 — **não é significativo**.
+Eu não vou dizer que está provado que o TAAFT está quebrado.
+
+O que **é** fato, sem estatística nenhuma: **296 pessoas, 30 dias, 41
+checkouts, R$ 0,00.** É a maior coisa inexplicada do negócio hoje, e ela vem de
+~40% de todo o tráfego.
+
+### POR QUE ISSO MUDA A PRIORIDADE
+
+A meta de 10-15 pagantes/dia é uma meta de **aquisição** — a casa recebe ~30
+cadastros/dia e converte 0,87%. Mas antes de comprar tráfego novo, vale saber
+que **quase metade do tráfego atual não converte de jeito nenhum**. Otimizar
+conversão em cima dele é empurrar corda.
+
+### O QUE SÓ VOCÊ PODE FAZER (a resposta não está no nosso banco)
+
+O CLAUDE.md já registra que **a verdade sobre recusa de pagamento só existe no
+painel da Stripe** — `customer_country` vem null em 100% dos nossos eventos,
+inclusive nos que pagaram. Então a pergunta "por que 41 pessoas do TAAFT
+abriram o checkout e nenhuma pagou" tem uma única fonte: **o painel da Stripe,
+filtrado por sessões dos últimos 30 dias que não completaram**.
+
+Duas hipóteses testáveis lá, e as duas são decisão sua:
+1. **Geografia / meio de pagamento** — se as recusas se concentram numa região,
+   é trilho de pagamento, não preço.
+2. **O que o listing do TAAFT promete** — o CLAUDE.md registra que ele está
+   desatualizado (fala em trial de 40 créditos e "from $9.90/mo"). Se a pessoa
+   chega esperando uma coisa e vê outra na página de preços, ela abre o
+   checkout e desiste — exatamente o padrão de 2 tentativas por pessoa.
+
+Eu **não mexi em preço, plano nem no listing** — é decisão sua, e está assim
+registrado no CLAUDE.md.
