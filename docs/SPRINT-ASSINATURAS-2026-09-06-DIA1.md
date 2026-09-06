@@ -1828,3 +1828,117 @@ porque, olhando quem são, um está na sua lista de contatos proibidos e o outro
 usa e-mail e cartão descartáveis — deixei a proposta pronta para você decidir.
 Produção sadia: 41 filmes em 24h, nenhum render preso, nenhum cadastro sem
 crédito. Pagamentos hoje continuam em **zero**.
+
+---
+
+### CHECKPOINT — 15:38 BRT (18:38 UTC) — a #29 subiu e **não tem como se provar**; 181 cartas frias hoje, **2 retornos**
+
+Checkpoint da rotação das 15:08 — sem trabalho novo, só verificação e medida.
+
+#### ONDE ESTÁ A ENTREGA
+
+`git ls-remote origin main` = **5a9c64c2** (inclui `a23ba06f`, a #29).
+`git rev-list --count origin/main..entrega-atual` = **0**. Home 200.
+
+**E aqui vai o registro honesto: a #29 NÃO tem sonda.** A mudança é 100% de
+cliente (`GenerateClient.tsx` + `TopupUnavailableNote.tsx` + `limitPurchaseFit`),
+dentro de rota **autenticada**, e **não emite nenhum evento novo**. Tentei os
+dois caminhos e os dois falharam por construção:
+
+| tentativa | resultado |
+|---|---|
+| par 404→401 (memória `sonda-401-exige-controle-404`) | **não se aplica** — a #29 não cria rota |
+| achar a frase nova nos chunks JS de `/studio/create` | **0 de 22 chunks** — sem sessão essa URL devolve a *home pública* (`<title>Kineo — AI YouTube Shorts Generator</title>`), o bundle do dashboard não é servido |
+| `Last-Modified` de asset estático | **inútil** — é hora de preenchimento do cache da CDN (38s atrás), não hora do build |
+
+Então o que eu posso afirmar é só: **o commit está na ponta publicada**. Não
+afirmo "em produção provado", e não afirmo "exercitada". A #29 só vai aparecer
+no dado como uma **ausência** (`checkout_failed reason='topup_requires_creator_plus'`
+→ 0), e ausência não prova deploy.
+
+**Isto é um defeito de instrumentação da própria peça, e é a primeira coisa da
+próxima rotação:** um evento `topup_offer_shown{purchasable:true|false, plan}`
+no ponto onde o `topupPurchasable` decide. Custa 3 linhas, prova o deploy no
+minuto seguinte e ainda dá o tamanho diário da coorte — que hoje eu só sei em
+janela de 60 dias (18 pessoas).
+
+#### PLACAR — desde o marco 2026-09-06 14:00 UTC (4h39 de janela)
+
+| fonte | cadastros | filme 1 | filme 2 | filme 3 | checkout | **pagou** |
+|---|---|---|---|---|---|---|
+| chatgpt | 3 | 3 | 1 | 0 | 0 | **0** |
+| taaft | 1 | 1 | 0 | 0 | 0 | **0** |
+| **total** | **4** | **4** | **1** | **0** | **0** | **0** |
+
+Conversão cadastro→filme 1 de **4/4**. O degrau que não anda continua sendo o
+mesmo: filme 2 (1 de 4) e checkout (**0**). Dia inteiro: **1** `checkout_started`,
+às 04:33 UTC — antes de qualquer entrega deste ciclo.
+
+#### CHECAGEM ZERO — limpa
+
+24h: **30 cadastros · 41 filmes · 41 completos · 0 render não-terminal · 0
+preso · 0 cadastro sem crédito e sem filme · `next_episode_failed` 0 ·
+`generation_stage_error` 3 (2 pessoas, último 10:40 UTC)**. `checkout_failed` 1
+— o caso do TAAFT das 12:19 que a #29 acabou de fechar.
+
+#### O NÚMERO DO CHECKPOINT: 181 CARTAS FRIAS, 2 RETORNOS
+
+Retorno medido do jeito certo (memória `retorno-pos-email-conta-email-nosso`):
+só evento **com `session_id`** — navegador de gente — depois do carimbo de envio.
+
+| campanha | enviados hoje | voltaram |
+|---|---|---|
+| `trial_lifecycle_email_sent` (genérica) | 108 | **2** |
+| `checkout_recovery_emailed_v1` | 22 | **0** |
+| `next_episode_wall_emailed_v1` | 19 | **0** |
+| `season_letter_emailed_v1` | 11 | **0** |
+| — frias, somadas | **160** | **2** |
+| `video_ready_email_sent` (quente) | 21 | 21 ← *falso positivo: a pessoa já está na tela vendo o render quando essa carta sai; não medir por aqui* |
+
+As **três cartas caras deste ciclo somam 52 envios e ZERO retornos**. A genérica,
+que ninguém desenhou hoje, fez os 2. Isso é a memória
+`carta-nova-so-depois-da-velha-mover` batendo pela segunda vez em 8 horas — e
+agora com a coorte inteira do dia, não com uma amostra. A carta da temporada
+saiu para 11 pessoas às **15:45 UTC**; já se passaram 2h53 e nenhuma voltou.
+
+#### AS PEÇAS DO DIA QUE AINDA NÃO FORAM EXERCITADAS
+
+| peça | evento de servidor | evento de tela |
+|---|---|---|
+| temporada (#23) | `season_written` **11** | `season_shown` **0** |
+| pacote de publicação (#22/#27/#28) | rota 401 provada | `publish_pack_*` **0** |
+
+O padrão é o mesmo dos dois checkpoints anteriores e tem nome na memória:
+`contrato-de-servidor-sem-chamador`. **O servidor da casa está pronto e a tela
+não montou.** As duas peças dependem do lote do Codex — que fez 4 commits hoje
+e **nenhum nas últimas 3 horas**. Não é bloqueio meu, mas é o motivo pelo qual
+três entregas seguidas não puderam ser medidas.
+
+#### PRÓXIMA JOGADA (para a rotação das 16:08)
+
+1. **3 linhas de telemetria na #29** — sem isso, a entrega das 15:21 é fé.
+2. **Parar de escrever carta nova.** 160 cartas frias e 2 retornos hoje; o
+   problema não é qual carta, é que **e-mail frio não está movendo ninguém**.
+   O que moveu gente hoje foi a própria tela (`series_continue_seen` 108
+   eventos / 19 pessoas; `next_action_served` 42 / 25). A jogada da 16:08 é
+   **na tela de quem está dentro agora**, não na caixa de entrada de quem foi
+   embora.
+
+#### ✅ O QUE VOCÊ PRECISA FAZER
+
+1. **Nada.** Checkpoint é só medição; a #29 já estava publicada por mim.
+
+#### 📋 O QUE ACONTECEU
+
+A correção das 15:21 — a que tirou os quatro botões de compra que o sistema de
+pagamento recusava — está publicada. Não consigo, porém, **provar** que ela
+está no ar: é uma mudança que só existe dentro da tela de quem está logado e
+não deixa rastro nenhum no banco. Anotei isso como erro meu de construção e a
+primeira tarefa da próxima hora é dar a ela um rastro de três linhas.
+A casa está sadia: 41 filmes em 24 horas, todos concluídos, nada preso, ninguém
+nasceu sem crédito. Mas o número que importa continua teimoso — **181 e-mails
+saíram hoje e duas pessoas voltaram**, e as duas vieram do e-mail mais velho e
+mais genérico que temos; as três cartas novas e caras deste ciclo somaram 52
+envios e não trouxeram ninguém. Pagamentos hoje: **zero**. Por isso a próxima
+hora sai da caixa de entrada e vai para a tela de quem já está dentro do site
+agora — que é onde as pessoas de fato estão clicando.
