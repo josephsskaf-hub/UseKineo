@@ -7,9 +7,7 @@ export const HOME_PRESENTATION_CSS = `
 .klp .home-eyebrow { margin:0 0 12px; color:#96baff; font-size:12px; line-height:1.5; letter-spacing:.08em; text-transform:uppercase; }
 .klp .home-title { margin:0; max-width:750px; font-size:clamp(30px,3.5vw,52px); line-height:1.12; letter-spacing:-.045em; font-weight:650; text-wrap:balance; }
 .klp .hero-line { margin:16px 0 0; max-width:660px; text-align:left; font-size:15px; line-height:1.65; color:var(--muted); }
-.klp .home-jump { display:flex; flex-wrap:wrap; gap:8px; flex-shrink:0; }
-.klp .home-jump a { display:inline-flex; padding:11px 16px; border:1px solid var(--line); border-radius:10px; font-size:13px; color:#d9e0eb; text-decoration:none; background:rgba(255,255,255,.035); }
-.klp .home-jump a:hover { border-color:#699cec; background:rgba(68,125,218,.12); }
+.klp .nav-right .kineo-interface-language { flex-shrink:0; }
 .klp section { scroll-margin-top:88px; }
 .klp .sec-h { max-width:880px; margin-left:auto; margin-right:auto; margin-bottom:32px; }
 .klp .sec-h h2 { font-size:clamp(26px,3vw,40px); line-height:1.18; letter-spacing:-.035em; text-wrap:balance; }
@@ -38,8 +36,11 @@ export const HOME_PRESENTATION_CSS = `
  .klp .home-title { font-size:32px; }
  .klp .home-eyebrow { font-size:10px; }
  .klp .hero-line { font-size:13px; line-height:1.65; }
- .klp .home-jump { gap:6px; }
- .klp .home-jump a { padding:10px 12px; font-size:12px; }
+ .klp .nav-right,.klp .nav-cta { gap:6px; }
+ /* Dashboard remains in the mobile menu; keep language and balance visible. */
+ .klp .nav-cta .nav-dashboard { display:none; }
+ .klp .nav-cta > a:not(.nav-dashboard) { padding:8px !important; font-size:11px !important; }
+ .klp .nav-in { gap:8px; }
  .klp .qa summary { padding:18px 2px; }
  .klp .qa summary h3 { font-size:14px; }
  .klp .tcard { padding:20px; }

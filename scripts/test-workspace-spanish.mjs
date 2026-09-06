@@ -9,7 +9,11 @@ const strip=s=>s.replace(/\r\n/g,'\n').replace(/^import \{ UiLabel \} from '@\/c
 // not only selected regular-expression anchors or a disconnected library.
 for(const file of ['app/(dashboard)/studio/StudioClient.tsx','app/(dashboard)/avatar/AvatarStudioClient.tsx','app/(dashboard)/animate/AnimateClient.tsx','components/EngineCycleCard.tsx','components/NavEngineItem.tsx','components/Sidebar.tsx','app/KineoLanding.tsx']){
  const before=execFileSync('git',['show',`${baseline}:${file}`],{encoding:'utf8'})
- assert.equal(strip(source(file)),strip(before),file+' changed only presentation wrappers');checks++
+ // Founder 06/09 moved the language control into Main and removed the three
+ // duplicate hero shortcuts. Normalize only that exact approved navigation delta;
+ // test-language-navigation.mjs executes the new placement for both auth states.
+ const navigation=s=>s.replace(/\r\n/g,'\n').replace(/          <div className="home-jump" role="navigation" aria-label="On this page">\n            <a href="#samples"><UiLabel>Real videos<\/UiLabel><\/a>\n            <a href="#toolkit"><UiLabel>Tools<\/UiLabel><\/a>\n            <a href="#pricing"><UiLabel>Plans<\/UiLabel><\/a>\n            <InterfaceLanguageSelect \/>\n          <\/div>\n/,'').replace('          <InterfaceLanguageSelect />\n','').replace('btn btn-w nav-dashboard','btn btn-w')
+ assert.equal(strip(file==='app/KineoLanding.tsx'?navigation(source(file)):source(file)),strip(file==='app/KineoLanding.tsx'?navigation(before):before),file+' changed only approved presentation');checks++
 }
 const fixtures=[
  ['app/(dashboard)/studio/StudioClient.tsx',{},'Primero tu idea'],

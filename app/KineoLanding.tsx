@@ -973,8 +973,9 @@ export default function KineoLanding({
             <a href="#pricing"><UiLabel>Pricing</UiLabel></a>
           </div>
         <div className="nav-right">
+          <InterfaceLanguageSelect />
           {initialUser
-            ? <div className="nav-cta"><NavCreditsBadge /><Link className="btn btn-w" style={{ padding: '12px 20px', fontSize: '14px' }} href="/studio"><UiLabel>Dashboard</UiLabel></Link></div>
+            ? <div className="nav-cta"><NavCreditsBadge /><Link className="btn btn-w nav-dashboard" style={{ padding: '12px 20px', fontSize: '14px' }} href="/studio"><UiLabel>Dashboard</UiLabel></Link></div>
             : <Link className="btn btn-w" style={{ padding: '12px 20px', fontSize: '14px' }} href={referralBridge ? '#try-kineo' : '/signup?utm_source=nav'}><UiLabel>Start free</UiLabel></Link>}
           <div className="nav-toggle-wrap">
             <input type="checkbox" id="nav-toggle" className="nav-toggle-input" aria-label="Menu" aria-controls="mobile-nav-menu" />
@@ -1013,12 +1014,6 @@ export default function KineoLanding({
               vende o FILME PRONTO (voz, trilha, legendas) e deixa o destino em
               aberto; "real render" fica — e o selo honesto da vitrine. */}
           <p className="hero-line"><UiLabel>{VIDEO_ENGINE_COUNT_WORD}</UiLabel><UiLabel> video engines — including Omni Flash, the #1-ranked model (Aug 2026) — six image models, four voices. Every card below is a real render.</UiLabel></p>
-          </div>
-          <div className="home-jump" role="navigation" aria-label="On this page">
-            <a href="#samples"><UiLabel>Real videos</UiLabel></a>
-            <a href="#toolkit"><UiLabel>Tools</UiLabel></a>
-            <a href="#pricing"><UiLabel>Plans</UiLabel></a>
-            <InterfaceLanguageSelect />
           </div>
           </div>
           {/* Fileira Higgsfield: cards largos, video NITIDO (sem veu), nome do

@@ -2,6 +2,14 @@
 
 ## DECISAO APROVADA
 
+### Ajuste solicitado pelo fundador — idioma no menu, 06/09
+
+IMPLEMENTADO / TESTADO LOCALMENTE: seletor EN/ES sai do hero e fica na Main, junto dos creditos e Dashboard. Removidos apenas os atalhos redundantes Real videos / Tools / Plans do hero; menu principal, anchors e curadoria intactos. Em celular Dashboard permanece no menu hamburguer, liberando espaco para saldo e idioma sempre visiveis. TopBar do Studio ja usa esse agrupamento e nao foi alterada. Rodape conserva seletor de acesso nas paginas ainda sem header publico comum.
+
+Pesquisa de 06/09: W3C quicktips (https://www.w3.org/International/quicktips/index.en) recomenda navegacao de idioma claramente visivel e nomes na lingua de destino; GOV.UK Language navigation (https://design-system.service.gov.uk/components/language-navigation/) recomenda posicao unica consistente, sem perder dados. Nao ha levantamento estatistico de "maioria dos sites"; escolha de header e decisao de UX aprovada pelo fundador.
+
+23 contratos de navegacao EN/ES, visitante/logado, 22 contratos de wrappers, 49 UX, 1056 idioma, 247 curadoria; tsc sem filtros exit 0. Preview docs/previews/UX-IDIOMA-MENU-2026-09-06.html: JSX real antes 3fbe0c6f/depois desktop/mobile, saldo ficticio identificado. Duas falhas do teste novo eram do harness (adjacencia de atributos option e stub CommonJS sem __esModule); corrigidas sem mudar runtime para agradar teste. Publicacao e browser ainda em validacao neste checkpoint.
+
 Fundador nesta conversa: "Faz toda a reformulacao, a proposta do home, das ferramentas, da biblioteca, das demais paginas, espanhol. Ja ta tudo aprovado, ja pode fazer o merge."
 
 Implementacao, comparacoes, testes e publicacao autorizados, sem nova aprovacao visual. Sem alterar precos, creditos, ofertas, termos, render, banco, campanhas ou privacidade. Midias curadas da home preservadas. Nao renova automacoes.

@@ -11,12 +11,12 @@ const ts = require('typescript')
 const { renderToStaticMarkup } = require('react-dom/server')
 export const BASE = '28e7a163'
 const root = path.resolve(import.meta.dirname, '..')
-export function source(file, before = false) {
-  return before ? execFileSync('git', ['show', `${BASE}:${file}`], {cwd:root,encoding:'utf8'}) : fs.readFileSync(path.join(root,file),'utf8')
+export function source(file, before = false, comparisonBase = BASE) {
+  return before ? execFileSync('git', ['show', `${comparisonBase}:${file}`], {cwd:root,encoding:'utf8'}) : fs.readFileSync(path.join(root,file),'utf8')
 }
-export function renderPage(entry, before = false, fixture = {}, props = {}) {
+export function renderPage(entry, before = false, fixture = {}, props = {}, comparisonBase = BASE) {
   const cache = new Map()
-  const sf = ts.createSourceFile(entry,source(entry,before),99,true,4)
+  const sf = ts.createSourceFile(entry,source(entry,before,comparisonBase),99,true,4)
   const names = []
   function walk(n) {
     if (ts.isVariableDeclaration(n) && ts.isArrayBindingPattern(n.name) && n.initializer && ts.isCallExpression(n.initializer) && n.initializer.expression.getText(sf)==='useState') names.push(n.name.elements[0].getText(sf))
@@ -31,8 +31,8 @@ export function renderPage(entry, before = false, fixture = {}, props = {}) {
   }}
   function load(file) {
     if(cache.has(file))return cache.get(file)
-    const historical=before && [entry,'components/studioKit.tsx'].includes(file)
-    const code=source(file,historical)
+    const historical=before && [entry,'components/studioKit.tsx',...(comparisonBase!==BASE?['lib/ui/homePresentation.ts']:[])].includes(file)
+    const code=source(file,historical,comparisonBase)
     const box={exports:{}}; cache.set(file,box.exports)
     const shim=id=>{
       if(id==='react')return react
@@ -45,6 +45,8 @@ export function renderPage(entry, before = false, fixture = {}, props = {}) {
       if(id==='server-only')return {}
       if(id==='@/components/studioKit')return load('components/studioKit.tsx')
       if(id==='@/components/InterfaceLanguage')return load('components/InterfaceLanguage.tsx')
+      // Explicit demo balance only, never a customer balance or a DB request.
+      if(id==='@/components/NavCreditsBadge' && fixture.previewCredits!==undefined)return {__esModule:true,default:()=>React.createElement('a',{href:'/pricing',style:{whiteSpace:'nowrap',padding:'8px 14px',fontSize:13}},`⚡ ${fixture.previewCredits} credits`)}
       if(id.startsWith('@/components/') || id==='./RevealOnScroll' || id==='./HomeTopicForm'){
         const Stub=({children,...props})=>children??null
         return new Proxy({default:Stub},{get:(target,key)=>key==='__esModule'?true:target[key]??Stub})
