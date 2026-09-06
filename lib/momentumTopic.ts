@@ -22,6 +22,7 @@
 // frase que soa a robo. Sem tema utilizavel devolve null, e a rota cai na
 // mesma URL e no mesmo texto de antes: nunca inventamos o assunto do video.
 import { extractShortTitle } from './resumeStrip'
+import { pareceRoteiroDaCasa } from './nextEpisodeMarkers'
 
 const MAX_ANCHOR = 90
 const MIN_ANCHOR = 8
@@ -50,6 +51,13 @@ export function looksLikeInstruction(raw: string | null | undefined): boolean {
   const text = raw.trim()
   if (!text) return false
   const first = text.split(/\r?\n/).map((l) => l.trim()).find(Boolean) ?? ''
+  // KINEO-MARCADOR-DA-CASA-2026-09-05 - o roteiro que a NOSSA home escreveu e a
+  // pessoa aprovou chega aqui no formato de secoes da casa ("HOOK: ..."), e o
+  // LABEL_LINE abaixo - feito para "STYLE:" de colagem de chatbot - o classificava
+  // como instrucao: 36 pessoas tiveram o auto-start pulado porque a casa nao
+  // reconheceu o proprio formato. Lista branca, ANTES de qualquer outro sinal:
+  // quem esta em marcadores da casa e roteiro. Ver lib/nextEpisodeMarkers.ts.
+  if (pareceRoteiroDaCasa(text)) return false
   if (INSTRUCTION_START.test(first)) return true
   if (LABEL_LINE.test(first)) return true
   if (MARKDOWN.test(first)) return true

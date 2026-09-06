@@ -24,6 +24,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { isInternalEmail } from '@/lib/internalAccounts'
+import { composerUrl } from '@/lib/lifecycle/composerUrl'
 
 export const maxDuration = 300
 export const dynamic = 'force-dynamic'
@@ -49,7 +50,7 @@ const PAID_PLANS = new Set(['starter', 'basic', 'pro'])
 const APP = 'https://www.usekineo.com'
 
 function buildEmail(userId: string) {
-  const url = `${APP}/studio?utm_source=lifecycle&utm_medium=email&utm_campaign=winback25`
+  const url = composerUrl({ base: APP, campaign: 'winback25' })
   const text = `Hey,
 
 You made a video with Kineo and used up your credits. I just put 25 back in your account — that's one more full AI film, on us.

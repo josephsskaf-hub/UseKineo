@@ -10,6 +10,7 @@ import { STUDIO_KIT_CSS } from '@/components/studioKit'
 import { createClient } from '@/lib/supabase/client'
 import PricingCards from '@/components/PricingCards'
 import StickyGenerateBar from '@/components/StickyGenerateBar'
+import NextActionCard from '@/components/NextActionCard'
 // KINEO-SPRINT-OFFER-2026-07-14 — PostVideoPaywall import removed. It was the
 // THIRD offer block on the success screen (on top of the Push #099 intro block
 // and UpsellSection), still selling FOUNDING50 + the one-time pack — three
@@ -9004,6 +9005,23 @@ export default function GenerateClient({
         const checkpointAttemptId = generationAttemptRef.current ?? fastGenerationId
         generationAttemptRef.current = checkpointAttemptId
         lastFastRenderRef.current = checkpointUnlockInputs
+        // sprint-assinaturas #10 (06/09) — O MESMO CHECKPOINT, DURAVEL NO
+        // SERVIDOR. Ate aqui o payload de compose existia SO no localStorage
+        // (linha abaixo): se a aba morresse entre "clipes prontos" e "compose
+        // enviado", o filme morria com ela e nenhum cron conseguia termina-lo —
+        // as fases 1-3 do finish-stranded-renders entram por claims escritos
+        // DEPOIS do compose. Medido em 7 dias: 9 pessoas ficaram exatamente
+        // assim (uma delas levada para /studio 9s depois do despacho).
+        // FORA do try do localStorage de proposito: quando o storage esta
+        // bloqueado o navegador nao consegue retomar nada, e e justamente ai
+        // que o servidor precisa ter a copia. Fire-and-forget: nao atrasa nem
+        // quebra a montagem que segue.
+        void fetch('/api/render-recovery', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ generationId: fastGenerationId, composePayload: checkpointComposePayload }),
+          keepalive: true,
+        }).catch(() => {})
         let checkpointPersisted = false
         if (currentUserIdRef.current) {
           try {
@@ -12342,6 +12360,16 @@ export default function GenerateClient({
           className="gv-card rounded-2xl p-5 sm:p-6 mb-6"
           style={{ background: '#131316', border: '1px solid var(--border)' }}
         >
+          {/* KINEO-TENTATIVA-PERDIDA-2026-09-06 (#7) — a TERCEIRA montagem do
+              mesmo cartão, e a única que a coorte de `attempt_lost` alcança:
+              quem apertou gerar e não recebeu filme não passa nem pela tela de
+              filme pronto nem pelo modal de saldo. Ela volta AQUI, e até hoje a
+              casa a recebia com um composer vazio.
+              Preso a `phase === 'idle'` de propósito: durante analyzing/
+              scripting a pessoa já está gerando, e a caixa não tem o que dizer.
+              O componente devolve null fora de `dry`/`attempt_lost`, então
+              esta linha é inerte para quem está com o fluxo normal. */}
+          {phase === 'idle' && <NextActionCard surface="generate_step_1" />}
           {/* Push #047 — only show the "already loaded" helper line when the
               prompt arrived from the homepage's sessionStorage bridge. The
               line clears once the user edits the prompt themselves (the
@@ -15208,6 +15236,21 @@ export default function GenerateClient({
                     }}
                   />
                 )}
+
+              {/* KINEO-PROXIMA-ACAO-CARTAO-2026-09-06 (#3) — O MESMO CONTRATO,
+                  NA TELA ONDE A PESSOA ESTÁ FELIZ EM VEZ DE RECUSADA.
+                  O cartão do episódio 2 desta tela fala do ROTEIRO e nunca do
+                  que ele CUSTA: medido em 05/09, 27 impressões e 4 cliques
+                  (15%). Quem aperta e não tem saldo descobre no modal — a
+                  conversa de venda começa por "não". Aqui ela começa pelos dois
+                  números, antes do clique.
+                  ⚠ POSIÇÃO — DELIVER-FIRST INTACTO: fica DEPOIS do download e
+                  DEPOIS do Plan Fit, que é o dono da oferta da primeira
+                  entrega. Não empurra o botão de baixar um pixel (a regra
+                  mediu 107 pessoas que foram embora SEM O ARQUIVO).
+                  Não há card novo para quem tem saldo: fora do estado `dry` o
+                  componente não pinta nada. */}
+              {phase === 'done' && <NextActionCard surface="generate_done_screen" />}
 
               {/* KINEO-CREDITO-POR-POSTAR-2026-08-21 — só para o free tier, que
                   é quem carrega a marca d'água. Oferecer isto a um assinante
@@ -19475,6 +19518,15 @@ function UpgradeModal({
             </button>
           </div>
         )}
+        {/* KINEO-PROXIMA-ACAO-CARTAO-2026-09-06 — A PORTA, no instante do "não".
+            UMA linha: todo o comportamento (quem vê, que preço, que motor) é
+            decidido pelo servidor em /api/next-action, nunca aqui. Fora do
+            estado `dry` o componente não pinta nada, então esta linha é inerte
+            para quem tem saldo. Só é montada nas razões de FALTA DE CRÉDITO —
+            quem caiu aqui por gate de plano (studio/creator/footage) tem saldo
+            e não é desta conversa. Não substitui nem esconde as linhas de
+            plano abaixo (regra K1). */}
+        {reasonHasCreditFit && <NextActionCard surface="generate_upgrade_modal" />}
         {purchaseFit && (
           <div
             style={{

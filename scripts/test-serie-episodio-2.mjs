@@ -362,7 +362,12 @@ secao('8. href e URL de e-mail mantem o contrato')
   checa('href bom leva continuation_source=', u.searchParams.get('continuation_source') === 'history_video_card')
   const e = emailUrl('https://www.usekineo.com', FIXTURES[3].topic, 'video_ready_email', { utm_source: 'lifecycle', utm_campaign: 'ready' })
   const ue = new URL(e)
-  checa('email bom → /generate', ue.pathname === '/generate')
+  // KINEO-PORTA-EPISODIO-EMAIL-2026-09-05 — contrato NOVO. Com tema, o botao
+  // de e-mail passa pela porta de servidor: ela conta o clique e manda quem
+  // ja tem conta para /login (nao /signup, que era onde o clique de inbox
+  // caia por nao ter cookie de sessao). SEM tema a URL segue sendo /generate
+  // + utm — e a verificacao do caso degenerado logo acima prova isso.
+  checa('email bom → a porta de servidor do episodio 2', ue.pathname === '/api/episode-link')
   checa('email bom leva o assunto desaninhado', (ue.searchParams.get('prompt') ?? '').startsWith('Topic: "AI Revolution: Are You Ready?". '))
   checa('email bom leva series=1 e a fonte', ue.searchParams.get('series') === '1' && ue.searchParams.get('continuation_source') === 'video_ready_email')
   checa('email bom: prompt vem ANTES dos utm', e.indexOf('prompt=') < e.indexOf('utm_source='))

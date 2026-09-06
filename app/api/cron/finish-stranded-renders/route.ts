@@ -34,6 +34,7 @@ import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emai
 import { videoReadyFooter, type VideoReadyFooter } from '@/lib/lifecycle/videoReadyFooter'
 import { POST as composePost } from '@/app/api/compose/route'
 import { GET as composeStatusGet } from '@/app/api/compose/status/[renderId]/route'
+import { RECOVERABLE_EVENT, sanitizeFastComposePayload } from '@/app/api/render-recovery/route'
 
 export const dynamic = 'force-dynamic'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
@@ -77,6 +78,11 @@ const MIN_AGE_MS = 12 * 60 * 1000
 const MAX_AGE_MS = 20 * 60 * 60 * 1000
 const MAX_COMPOSE_PER_RUN = 3
 const MAX_COMPOSE_ATTEMPTS = 2
+// sprint-assinaturas #10 — Fase 4. Teto proprio e BAIXO: cada compose carrega
+// TTS e divide os mesmos 300s com a Fase 1 (que ja gasta ate 3).
+const RECOVERY_ATTEMPT_EVENT = 'stranded_recovery_attempt'
+const RECOVERY_COMPOSED_EVENT = 'stranded_recovery_composed'
+const MAX_RECOVERY_PER_RUN = 2
 // sprint-assinaturas #7 — um 400 do compose e DETERMINISTICO: com o mesmo codigo
 // a 2a tentativa devolve o mesmo 400 (e7f9f000, 02/09: 03:07 e 03:15 UTC, ambos
 // compose_error_400 pelo custo do claim x duracao resgatada). So um deploy muda
@@ -444,7 +450,15 @@ export async function GET(req: NextRequest) {
     const md = row.metadata as Record<string, unknown> | null
     return md && md.status === 'settled'
   })
-  if (candidates.length === 0) return NextResponse.json({ checked: 0, composed: 0, ready: 0, rescued: 0, note: 'no settled claims in window' })
+  // ⚠️ sprint-assinaturas #10 (06/09) — AQUI HAVIA UM `return` CEDO, e ele
+  // pulava TAMBEM as fases 3 e 4, que nao dependem de claim cinematografico
+  // nenhum. Consequencia medida: o Kineo 1 — o motor mais usado da casa — so
+  // era resgatado quando, POR ACASO, existia um claim cinematografico settled
+  // na mesma janela de 12min-20h. Sem nenhum, a rodada inteira ia embora sem
+  // olhar um unico render do caminho compose. Agora a saida cedo virou
+  // marcador: o laco abaixo nao roda com `candidates` vazio (ele ja e um
+  // for sobre a lista) e as fases seguintes rodam SEMPRE.
+  const noCinematicClaims = candidates.length === 0
 
   // Dedupe/attempt bookkeeping por geração.
   const genIds = candidates.map((c) => c.session_id).filter((s): s is string => !!s)
@@ -1032,6 +1046,125 @@ export async function GET(req: NextRequest) {
     console.error('[attempt-lost] pass failed:', e instanceof Error ? e.message : String(e))
   }
 
+  // ═══ FASE 4 — O FILME QUE FICOU PRONTO E NUNCA FOI MONTADO ════════════════
+  // sprint-assinaturas #10 (06/09). As fases 1-3 entram por um claim escrito
+  // DEPOIS do compose (`compose_submission_claim`) ou pelo claim cinematográfico.
+  // Existe um estado ANTES dos dois: o Kineo 1 terminou os clipes, o cliente
+  // montou o payload inteiro e o gravou no `localStorage` — e a aba morreu antes
+  // de chamar o compose. Medido em 7 dias (contas externas): 89 pessoas
+  // despacharam, 21 não têm filme nenhum, e 19 delas NUNCA foram tocadas por
+  // este cron, porque não havia por onde tocá-las. Em 30 dias são 95 pessoas.
+  //
+  // A `/api/render-recovery` torna esse payload durável no servidor no mesmo
+  // instante em que ele já é durável no navegador; aqui a gente o termina, pelo
+  // MESMO /api/compose e pelo MESMO modo serviço da Fase 1 — que substitui só o
+  // cookie, então custo por tier e recusa por saldo rodam idênticos. Nada de
+  // pipeline de qualidade é tocado: o filme montado é exatamente o que o cliente
+  // montaria. Quem avisa a pessoa é a Fase 3, que pega o `compose_submission_claim`
+  // recém-nascido na rodada seguinte — sem copy nova e sem promessa nova.
+  let fastFinished = 0
+  try {
+    const { data: recoverables, error: recErr } = await admin
+      .from('events')
+      .select('user_id, session_id, metadata, created_at')
+      .eq('name', RECOVERABLE_EVENT)
+      .gte('created_at', minIso)
+      .lte('created_at', maxIso)
+      .order('created_at', { ascending: false })
+      .limit(80)
+    if (recErr) console.error('[stranded-recovery] lookup failed:', recErr.message)
+
+    const recGenIds = (recoverables ?? []).map((r) => r.session_id).filter((x): x is string => !!x)
+    // Um único lote para as duas perguntas que decidem tudo: já tentei este? e
+    // a pessoa compôs sozinha? Erro de lote NÃO vira "pode compor" — sem a
+    // resposta a gente pula a fase inteira, senão um PostgREST ruim recompõe
+    // filme que já existe (a lição do #4, que mandou 9 resgates repetidos).
+    const { data: recMarkers, error: recMarkerErr } = recGenIds.length > 0
+      ? await admin
+          .from('events')
+          .select('session_id, name')
+          .in('name', [RECOVERY_ATTEMPT_EVENT, 'compose_submission_claim'])
+          .in('session_id', recGenIds.slice(0, 200))
+      : { data: [] as Array<{ session_id: string | null; name: string }>, error: null }
+    if (recMarkerErr) console.error('[stranded-recovery] marker batch failed:', recMarkerErr.message)
+
+    if (!recMarkerErr) {
+      const attemptsByGen = new Map<string, number>()
+      const composedGens = new Set<string>()
+      for (const m of recMarkers ?? []) {
+        const sid = m.session_id as string | null
+        if (!sid) continue
+        if (m.name === RECOVERY_ATTEMPT_EVENT) attemptsByGen.set(sid, (attemptsByGen.get(sid) ?? 0) + 1)
+        else composedGens.add(sid)
+      }
+
+      for (const row of recoverables ?? []) {
+        if (fastFinished >= MAX_RECOVERY_PER_RUN) { results.push({ generation: 'recovery', outcome: 'recovery_deferred_budget' }); break }
+        const genId = row.session_id as string | null
+        const userId = row.user_id as string | null
+        const md = row.metadata as Record<string, unknown> | null
+        if (!genId || !userId || !md) continue
+        const gen8 = genId.slice(0, 8)
+        // A pessoa terminou sozinha (voltou e o resume compôs) → não existe
+        // filme a resgatar, e recompor cobraria de novo por um filme entregue.
+        if (composedGens.has(genId)) { results.push({ generation: gen8, outcome: 'recovery_user_finished' }); continue }
+        const tried = attemptsByGen.get(genId) ?? 0
+        if (tried >= MAX_COMPOSE_ATTEMPTS) { results.push({ generation: gen8, outcome: 'recovery_gave_up' }); continue }
+
+        const { data: prof } = await admin.from('profiles').select('email').eq('id', userId).maybeSingle()
+        const email = (prof?.email ?? '') as string
+        if (!email || isInternalOrJunkEmail(email)) { results.push({ generation: gen8, outcome: 'recovery_skipped_account' }); continue }
+
+        // Revalida o payload guardado com a MESMA função da rota de escrita.
+        // Defesa em profundidade: a linha já nasceu limpa, mas o que vira
+        // compose no modo serviço nunca deve depender de uma validação feita
+        // em outro deploy.
+        const payload = sanitizeFastComposePayload(genId, (md as { payload?: unknown }).payload)
+        if (!payload) { results.push({ generation: gen8, outcome: 'recovery_payload_rejected' }); continue }
+
+        const { error: recAttemptErr } = await admin.from('events').insert({
+          user_id: userId, name: RECOVERY_ATTEMPT_EVENT, session_id: genId,
+          path: '/api/cron/finish-stranded-renders', metadata: { attempt: tried + 1 },
+        })
+        // Marcador antes do compose e fail-closed: sem marcador durável a
+        // rodada seguinte recomporia o mesmo filme para sempre.
+        if (recAttemptErr) {
+          console.error(`[stranded-recovery] attempt marker failed gen=${gen8}:`, recAttemptErr.message)
+          results.push({ generation: gen8, outcome: 'recovery_marker_failed' })
+          continue
+        }
+        try {
+          const composeReq = new NextRequest(`${APP_URL}/api/compose`, {
+            method: 'POST',
+            headers: serviceHeaders(userId),
+            body: JSON.stringify(payload),
+          })
+          const res = await composePost(composeReq)
+          const json = (await res.json().catch(() => null)) as Record<string, unknown> | null
+          if (res.ok) {
+            fastFinished++
+            const rid =
+              (typeof json?.renderId === 'string' && json.renderId) ||
+              (typeof json?.render_id === 'string' && json.render_id) ||
+              null
+            await admin.from('events').insert({ user_id: userId, name: RECOVERY_COMPOSED_EVENT, session_id: genId, metadata: { render_id: rid } })
+            console.log(`[stranded-recovery] composed gen=${gen8} renderId=${rid ?? '?'}`)
+            results.push({ generation: gen8, outcome: 'recovery_composed' })
+          } else {
+            const composeErr = typeof json?.error === 'string' ? json.error : JSON.stringify(json ?? null)
+            console.error(`[stranded-recovery] compose failed gen=${gen8}: ${res.status} ${composeErr.slice(0, 200)}`)
+            results.push({ generation: gen8, outcome: `recovery_compose_error_${res.status}`, error: composeErr.slice(0, 200) })
+          }
+        } catch (e) {
+          console.error(`[stranded-recovery] compose threw gen=${gen8}:`, e instanceof Error ? e.message : String(e))
+          results.push({ generation: gen8, outcome: 'recovery_compose_threw' })
+        }
+      }
+    }
+  } catch (e) {
+    console.error('[stranded-recovery] phase failed:', e instanceof Error ? e.message : String(e))
+  }
+
   // ═══ sprint-assinaturas #1 (02/09) — O CRON ERA MUDO NO CAMINHO QUE MAIS
   // IMPORTA. Medido no banco: 7 pessoas EXTERNAS em 5 dias (28/08→01/09), todas
   // no PRIMEIRO vídeo do trial, Seedance despachado e aceito, TODAS as cenas
@@ -1064,5 +1197,5 @@ export async function GET(req: NextRequest) {
     console.error('[stranded] outcome logging failed:', e instanceof Error ? e.message : String(e))
   }
 
-  return NextResponse.json({ checked, composed, ready, rescued: rescuedCount, fastReady, relinked, attemptsLost, results })
+  return NextResponse.json({ checked, composed, ready, rescued: rescuedCount, fastReady, fastFinished, relinked, attemptsLost, results, ...(noCinematicClaims ? { note: 'no settled claims in window' } : {}) })
 }

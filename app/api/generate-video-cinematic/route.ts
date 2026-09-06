@@ -1281,6 +1281,25 @@ async function manipularPost(req: NextRequest) {
       )
     }
 
+    // KINEO-DISPATCH-ENTRY-2026-09-05 — irmão do evento do /generate-video-fast.
+    // Prova de SERVIDOR de que este POST chegou, emitida ANTES de qualquer
+    // trabalho caro e antes do claim. É o par que faltava do
+    // `cinematic_dispatch_result`: sem ele, um despacho que morre antes do
+    // planner é indistinguível de um POST que nunca saiu do navegador — os dois
+    // deixam o mesmo silêncio. Carrega o `generation_id` justamente para casar
+    // com o `cinematic_dispatch_result` do mesmo despacho.
+    void writeServerEvent({
+      name: 'generation_dispatch_received',
+      userId: user.id,
+      path: '/api/generate-video-cinematic',
+      metadata: {
+        engine: 'cinematic',
+        generation_id: generationId,
+        prompt_length: prompt.length,
+        requested_duration: Number((body as { duration?: unknown }).duration) || null,
+      },
+    })
+
     // sprint-v1v4 #20 — `let` porque o guard de narracao abaixo pode trocar um
     // alvo FANTASMA (duracao que nenhum botao da tela oferece, tipicamente 45)
     // pela maior duracao real que a narracao enche, em vez de recusar a pessoa.

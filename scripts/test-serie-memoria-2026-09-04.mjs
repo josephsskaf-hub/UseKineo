@@ -292,10 +292,15 @@ const errosRota = []
 
 let supabaseAtual = null
 const NextResponse = { json: (body, init) => ({ status: init?.status ?? 200, body }) }
+// O modulo de marcadores entra REAL, nao dublado: ele e puro (zero imports) e
+// e ele que decide se o roteiro do episodio N nasce rotulado. Dublar aqui
+// esconderia justamente o comportamento que a rota passou a depender no #0.
+const marcadores = loadTs('lib/nextEpisodeMarkers.ts')
 const rotaMod = loadTs(ROTA, {
   'next/server': { NextRequest: class {}, NextResponse },
   '@/lib/supabase/server': { createClient: () => supabaseAtual.client },
   '@/lib/seriesContinuation': serie,
+  '@/lib/nextEpisodeMarkers': marcadores,
 })
 
 // O cooldown de 45s por user_id e REAL e intacto (a secao 11b prova). Para
@@ -463,7 +468,21 @@ secao('11. estrutural: o contrato antigo continua no arquivo')
 ok(/const MARCADORES = \['HOOK', 'MICRO REWARD', 'ESCALATION', 'PAYOFF'\] as const/.test(rota), 'MARCADORES intactos')
 ok(/const COOLDOWN_MS = 45_000/.test(rota), 'cooldown 45s')
 ok(/model: 'gpt-4o-mini'/.test(rota) && /temperature: 0\.8/.test(rota), 'gpt-4o-mini, temperatura 0.8')
-ok(/if \(!temMarcadores\(script\)\)/.test(rota), 'checagem temMarcadores')
+// KINEO-EPISODIO2-MARCADORES-2026-09-05: o #0 SUBSTITUIU de proposito o 502
+// seco de `temMarcadores` pelo portao `garantirMarcadores` — era esse 502 que
+// matava 12 de 16 episodios. Continuar exigindo a chamada morta deixava este
+// guardiao VERMELHO para sempre por causa de uma entrega CORRETA, e guardiao
+// vermelho por motivo falso ensina a ignorar vermelho. Trava-se o contrato
+// novo, que e mais exigente que o antigo: portao chamado, 502 so no
+// irrecuperavel, e o texto que segue tem de ser o ROTULADO.
+ok(/import \{ garantirMarcadores \} from '@\/lib\/nextEpisodeMarkers'/.test(rota), 'o portao de marcadores vem do modulo puro @/lib/nextEpisodeMarkers')
+ok(/const garantido = garantirMarcadores\(script\)/.test(rota), 'a rota chama garantirMarcadores(script)')
+ok(/if \(!garantido\) \{/.test(rota) && /status: 502/.test(rota), 'so o irrecuperavel (garantido null) continua virando 502')
+// Pinado na LINHA QUE ENTREGA, nao em "garantido.script existe em algum
+// lugar": `garantido.script` aparece 2x (contagem de palavras e resposta), e
+// um match solto passava mesmo trocando a contagem pelo texto cru. O que nao
+// pode regredir e o que VAI PARA O CLIENTE.
+ok(/script: garantido\.script/.test(rota), 'o script ENTREGUE ao cliente e o ROTULADO, nao o cru')
 ok(/\/\^\\s\*TITLE\\s\*:\/i\.test\(linhas\[0\]/.test(rota), 'separacao de TITLE:')
 ok(/ALREADY COVERED — do not repeat these:/.test(rota), 'a frase de exclusao tem a MESMA forma')
 ok(/t\.slice\(0, 120\)/.test(rota), 'cada item da lista cortado em 120 como antes')

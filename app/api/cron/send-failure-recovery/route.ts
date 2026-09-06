@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
+import { composerUrl } from '@/lib/lifecycle/composerUrl'
 
 // ═══ KINEO-RESGATE-FALHA-2026-08-21 — QUEM TENTOU E NÃO CONSEGUIU ════════
 //
@@ -245,7 +246,7 @@ function classifyFailure(erro: string, meta?: FalhaMeta): { kind: Kind; short?: 
 // nada cobrado, os números dela, e o conserto de 30 segundos (colar só a
 // narração). Sem "our fault", sem cupom, sem motor.
 function buildScriptLongEmail(userId: string, credits: number, l: ScriptLong) {
-  const url = `${APP}/studio?utm_source=lifecycle&utm_medium=email&utm_campaign=failure_recovery_script_long`
+  const url = composerUrl({ base: APP, campaign: 'failure_recovery_script_long' })
   const fmt = (n: number) => n.toLocaleString('en-US')
   const words = l.durationSec ? Math.round((l.durationSec * WORDS_PER_SEC) / 5) * 5 : null
   const oQue =
@@ -285,7 +286,7 @@ usekineo.com`
 
 function buildScriptShortEmail(userId: string, credits: number, s?: ScriptShort) {
   if (!s) return buildScriptShortGenericEmail(userId, credits)
-  const url = `${APP}/studio?utm_source=lifecycle&utm_medium=email&utm_campaign=failure_recovery_script`
+  const url = composerUrl({ base: APP, campaign: 'failure_recovery_script' })
   const text = `Hey,
 
 Your video didn't render — and nothing was charged. Your ${credits} credits are all still there.
@@ -325,7 +326,7 @@ usekineo.com`
 // Versao sem numeros (#6): o codigo `narration_too_short` nao traz segundos
 // nem palavras. Mesma verdade, sem cravar o que nao medimos.
 function buildScriptShortGenericEmail(userId: string, credits: number) {
-  const url = `${APP}/studio?utm_source=lifecycle&utm_medium=email&utm_campaign=failure_recovery_script`
+  const url = composerUrl({ base: APP, campaign: 'failure_recovery_script' })
   const text = `Hey,
 
 Your video didn't render — and nothing was charged. Your ${credits} credits are all still there.
@@ -384,7 +385,7 @@ function isInternalOrJunk(email: string): boolean {
 // vez de escondê-lo, porque é isso que a pessoa vai sentir ao ler.
 function buildEmail(userId: string, credits: number, staleDays = 0) {
   const velho = staleDays > 7
-  const url = `${APP}/studio?utm_source=lifecycle&utm_medium=email&utm_campaign=${velho ? 'failure_recovery_late' : 'failure_recovery'}`
+  const url = composerUrl({ base: APP, campaign: velho ? 'failure_recovery_late' : 'failure_recovery' })
   const abertura = velho
     ? 'You tried to make a video with Kineo and it failed — and then we went quiet, which was worse. The failure was on our side, not yours, and the part of the engine that broke it has been rebuilt since.'
     : 'You tried to make a video with Kineo and it failed. That was our fault, not yours — a bug on our side, and it is fixed now.'

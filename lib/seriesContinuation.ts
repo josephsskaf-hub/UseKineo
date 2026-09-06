@@ -47,6 +47,11 @@ export type SeriesContinuationSource =
   // JA fez video, tambem oferecia um unico caminho: /pricing. Fonte propria
   // para nao misturar o CTR dele com o do `downgraded_loss`.
   | 'lifecycle_ending_email'
+  // sprint-assinaturas #8 (2026-09-05) — o e-mail de recuperacao de checkout
+  // para quem JA fez filme. Fonte propria porque o clique de quem chegou ao
+  // PAGAMENTO nao pode ser somado ao de quem so recebeu o filme: sao duas
+  // intencoes diferentes e o placar do ciclo compara as duas.
+  | 'lifecycle_checkout_recovery_email'
   // KINEO-SPRINT-V1V4-2026-08-31 (#3B) — o rodape da tela de video pronto
   // renderizava `null` para o maior grupo ativado (gratuito, nao pagante,
   // render Fast). Este e o unico caminho de criacao que aquele grupo ve ali.
@@ -80,6 +85,17 @@ export type SeriesContinuationSource =
   // sprint-assinaturas #24 (02/09): e-mail "Your Short is ready" — o pico de
   // boa vontade; assinante e trial com saldo recebem o episodio 2 ali.
   | 'video_ready_email'
+  // sprint-assinaturas #1 (05/09) — a MESMA porta, no ramo de saldo
+  // DESCONHECIDO. Fonte propria porque e ela que prova o conserto: ate 05/09
+  // esse ramo nao tinha porta nenhuma, e o evento de chegada
+  // (series_continuation_landed) so carrega `source` — sem fonte propria o
+  // antes/depois desta correcao seria impossivel de contar.
+  | 'video_ready_unknown_balance'
+  // sprint-assinaturas #7 (05/09): contrato /api/next-action. Quem terminou um
+  // filme e ainda TEM saldo recebe daqui o link de continuar; quem NAO tem
+  // recebe a porta do plano. Fonte propria para separar, no banco, o clique
+  // que nasceu do contrato de proxima acao do que nasceu da tela de fim.
+  | 'next_action'
 
 // ═══ A3 (03/09/2026) — o botao "Build the next episode" e a maquina da 2a compra ═══
 //
@@ -281,6 +297,11 @@ export function buildSeriesContinuationHref(
  *    igual e some nenhum parametro que ja existia.
  *  - funcao pura, zero import: da para provar em teste sem subir servidor.
  */
+/** Porta de servidor do botao de episodio 2 em E-MAIL (as telas de dentro do
+ *  app nao passam por aqui: elas sempre tem sessao viva). Ver o cabecalho de
+ *  app/api/episode-link/route.ts para a medicao que a criou. */
+export const SERIES_EMAIL_DOOR_PATH = '/api/episode-link'
+
 export function buildSeriesContinuationEmailUrl(
   appUrl: string,
   value: string | null | undefined,
@@ -298,5 +319,18 @@ export function buildSeriesContinuationEmailUrl(
   }
   for (const [k, v] of Object.entries(utm)) if (v) params.set(k, v)
   const qs = params.toString()
-  return qs ? `${base}/generate?${qs}` : `${base}/generate`
+  // KINEO-PORTA-EPISODIO-EMAIL-2026-09-05 — com tema, o botao passa pela
+  // porta de servidor (app/api/episode-link). Motivo medido em producao: as
+  // SETE fontes de dentro do app produzem aterrissagem e as QUATRO de e-mail
+  // marcam ZERO em 30 dias, com ~1.000 e-mails carregando o botao. O clique
+  // de inbox chega SEM cookie de sessao (webview do Gmail, outro aparelho,
+  // aba anonima), e a viagem /generate -> /studio/create terminava em
+  // `/signup`: um formulario de CRIAR CONTA para quem JA TEM conta. A porta
+  // conta o clique (degrau que nunca existiu entre 'enviado' e 'aterrissou')
+  // e manda para /login com o destino inteiro preservado.
+  //
+  // Sem tema a URL e byte a byte a de antes — o contrato do #24 (nunca
+  // inventar o assunto do video da pessoa) continua valendo.
+  if (!prompt) return qs ? `${base}/generate?${qs}` : `${base}/generate`
+  return `${base}${SERIES_EMAIL_DOOR_PATH}?${qs}`
 }

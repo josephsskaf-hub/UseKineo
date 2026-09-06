@@ -81,6 +81,10 @@
       "schedule": "30 16 * * *"
     },
     {
+      "path": "/api/cron/send-stalled-rescue-fresh",
+      "schedule": "25 * * * *"
+    },
+    {
       "path": "/api/admin/send-hotlead-blast?confirm=SEND&segment=auto&limit=25",
       "schedule": "10 13 * * *"
     },
@@ -107,6 +111,14 @@
     {
       "path": "/api/cron/send-oneoff-unlock",
       "schedule": "0 15 * * *"
+    },
+    {
+      "path": "/api/admin/send-next-episode-wall?confirm=SEND&limit=30",
+      "schedule": "0 11,15 * * *"
+    },
+    {
+      "path": "/api/admin/send-checkout-recovery?confirm=SEND&limit=30",
+      "schedule": "30 11,17 * * *"
     }
   ]
 }

@@ -358,34 +358,60 @@ function adminClient() {
 type AdminDb = ReturnType<typeof adminClient>
 
 /**
- * Coleta TODOS os user_id distintos que dispararam qualquer um dos `names`.
+ * Coleta TODOS os user_id distintos que dispararam qualquer um dos `names`,
+ * e o INSTANTE MAIS RECENTE de cada um.
  *
  * Pagina explicitamente com .range(): o PostgREST corta em 1000 linhas por
  * padrão e hoje existem ~2.4k linhas só de evento de início. Sem paginação a
  * coorte sairia silenciosamente truncada — o pior tipo de bug numa campanha,
  * porque o número parece plausível.
+ *
+ * KINEO-STALLED-FRESCOR-2026-09-05 — DUAS MUDANÇAS, as duas conservadoras:
+ *
+ * 1. `latestAt` passa a existir. A campanha sempre soube QUEM começou e nunca
+ *    QUANDO — e sem o quando não há como separar quem quebrou há uma hora de
+ *    quem quebrou há 26 dias. O Set continua sendo a fonte da coorte; o mapa é
+ *    informação adicional, e ninguém é excluído por faltar nele.
+ *
+ * 2. A paginação ganha ORDER BY. `.range()` sem ordenação é o defeito que o
+ *    CLAUDE.md registra no broll-gc: o PostgREST não promete ordem estável
+ *    entre páginas, então uma linha inserida durante a varredura pode fazer
+ *    outra ser pulada. Ordenar por (created_at, id) torna as páginas
+ *    determinísticas. Só corrige; não muda quem entra na coorte.
  */
 async function distinctUserIdsForEvents(
   admin: AdminDb,
   names: string[],
-): Promise<{ ids: Set<string>; error?: string }> {
+): Promise<{ ids: Set<string>; latestAt: Map<string, number>; error?: string }> {
   const ids = new Set<string>()
+  const latestAt = new Map<string, number>()
   const PAGE = 1000
   for (let from = 0; ; from += PAGE) {
     const { data, error } = await admin
       .from('events')
-      .select('user_id')
+      .select('user_id, created_at')
       .in('name', names)
       .not('user_id', 'is', null)
+      .order('created_at', { ascending: true })
+      .order('id', { ascending: true })
       .range(from, from + PAGE - 1)
-    if (error) return { ids, error: error.message }
-    const rows = (data ?? []) as Array<{ user_id: string | null }>
-    for (const r of rows) if (r.user_id) ids.add(r.user_id)
+    if (error) return { ids, latestAt, error: error.message }
+    const rows = (data ?? []) as Array<{ user_id: string | null; created_at?: string | null }>
+    for (const r of rows) {
+      if (!r.user_id) continue
+      ids.add(r.user_id)
+      // Carimbo ilegível não pode derrubar a coorte: quem não tem `latestAt`
+      // simplesmente não é considerado FRESCO (cai no lote diário de sempre).
+      const t = r.created_at ? Date.parse(r.created_at) : NaN
+      if (!Number.isFinite(t)) continue
+      const prev = latestAt.get(r.user_id)
+      if (prev === undefined || t > prev) latestAt.set(r.user_id, t)
+    }
     if (rows.length < PAGE) break
     // Trava de segurança: nunca varrer indefinidamente se a tabela crescer.
     if (from > 200_000) break
   }
-  return { ids }
+  return { ids, latestAt }
 }
 
 /** .in() com lista grande estoura o tamanho da URL — busca em blocos. */
@@ -455,12 +481,62 @@ export async function GET(req: NextRequest) {
     }
 
     // 3) Começou e NUNCA completou.
-    const stalledIds = Array.from(started.ids).filter((id) => !completed.ids.has(id))
+    const stalledIdsAll = Array.from(started.ids).filter((id) => !completed.ids.has(id))
+
+    // ═══ KINEO-STALLED-FRESCOR-2026-09-05 — A FAIXA RÁPIDA ═══════════════════
+    //
+    // MEDIDO EM PRODUÇÃO (05/09, 302 e-mails desta campanha em 14 dias):
+    // a mediana entre "a pessoa apertou gerar e nada saiu" e "a pessoa recebeu
+    // o e-mail que fala disso" é de **597 horas — 25 dias**. Só 3 dos 302
+    // chegaram em menos de 2 horas. O lote de hoje (25 pessoas, 16:30 UTC)
+    // tinha mediana de 19,2 dias. Desfecho dos 302: 1 filme, 0 pagamentos.
+    //
+    // A causa NÃO é a ordenação — ela funciona. As 5 pessoas frescas do lote
+    // de hoje eram exatamente as 5 com trial vivo, e a prioridade por relógio
+    // as colocou na frente (a mais rápida recebeu em 2,4h). A causa é o
+    // RELÓGIO DA RAMPA: um lote por dia, 16:30 UTC. Quem quebra às 17:00
+    // espera 23,5 horas pelo único e-mail da casa escrito para ela — e a lei
+    // medida deste produto (docs/PLANO-CLAUDE-ASSINATURAS-2026-09-05.md) é que
+    // a intenção morre em ~30 minutos.
+    //
+    // `fresh_hours=N` restringe a coorte a quem tem o ÚLTIMO evento de início
+    // dentro de N horas. É o que permite uma segunda passada, de hora em hora,
+    // com teto pequeno, sem tocar no lote diário que drena o histórico.
+    //
+    // POR QUE ISSO NÃO GERA E-MAIL REPETIDO: pelo mesmo invariante que já
+    // torna a rampa segura e que está documentado acima — `stalled_rescue_
+    // emailed` é boolean e a coorte filtra `.eq(FLAG_COLUMN, false)`. Quem a
+    // faixa rápida atender simplesmente não aparece no lote diário. **1 e-mail
+    // por pessoa, para sempre**, continua valendo byte a byte.
+    //
+    // AUSENTE = COMPORTAMENTO DE HOJE. Sem o parâmetro, `stalledIds` é o mesmo
+    // array de sempre e nada nesta rota muda.
+    const freshHoursParam = Number(req.nextUrl.searchParams.get('fresh_hours'))
+    const freshHours =
+      Number.isFinite(freshHoursParam) && freshHoursParam > 0
+        ? Math.min(freshHoursParam, 720)
+        : null
+    const freshCutoffMs = freshHours === null ? null : Date.now() - freshHours * 60 * 60 * 1000
+    const stalledIds =
+      freshCutoffMs === null
+        ? stalledIdsAll
+        : stalledIdsAll.filter((id) => {
+            const t = started.latestAt.get(id)
+            // Sem carimbo legível não é PROVA de frescor — fica para o lote
+            // diário. Falha para o lado de não interromper ninguém à toa.
+            return typeof t === 'number' && t >= freshCutoffMs
+          })
+
     if (stalledIds.length === 0) {
       return NextResponse.json({
         mode: 'DRY_RUN',
         remaining_unemailed: 0,
-        note: 'no users with a start event and no completion event',
+        fresh_hours: freshHours,
+        started_never_completed_all: stalledIdsAll.length,
+        note:
+          freshHours === null
+            ? 'no users with a start event and no completion event'
+            : `no stalled user whose last start event is within ${freshHours}h`,
       })
     }
 
@@ -712,6 +788,10 @@ export async function GET(req: NextRequest) {
         started_total: started.ids.size,
         completed_total: completed.ids.size,
         started_never_completed: stalledIds.length,
+        // KINEO-STALLED-FRESCOR-2026-09-05 — sem estes dois, uma coorte de 2
+        // pessoas na faixa rápida pareceria a coorte inteira encolhendo.
+        fresh_hours: freshHours,
+        started_never_completed_all: stalledIdsAll.length,
         skipped_no_profile: skippedNoProfile,
         skipped_opted_out: optedOutCount,
         // KINEO-STALLED-RESCUE-ORPHAN-2026-08-11 — o dry run tem que mostrar
@@ -826,6 +906,9 @@ export async function GET(req: NextRequest) {
       mode: 'SENT',
       sent,
       failed,
+      // KINEO-STALLED-FRESCOR-2026-09-05 — qual passada mandou este lote.
+      // null = lote diário de sempre; N = faixa rápida de N horas.
+      fresh_hours: freshHours,
       skipped_no_profile: skippedNoProfile,
       skipped_opted_out: optedOutCount,
       skipped_in_checkout_recovery: excludedByCheckoutRecovery,

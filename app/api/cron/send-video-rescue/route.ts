@@ -3,6 +3,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { freshFetch } from '@/lib/lifecycle/freshFetch'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
+import { composerUrl } from '@/lib/lifecycle/composerUrl'
 import { LIFECYCLE_SKIP_STAMP } from '@/lib/lifecycle/skipStamp'
 import { writeServerEvent } from '@/lib/serverEvents'
 // KINEO-EMAIL-AUDIT-2026-07-31 — o e-mail prometia "25 more Shorts for $4.90";
@@ -103,7 +104,7 @@ function buildEmail(userId: string) {
   // Sessions nobody clicked and polluted the abandoned-checkout numbers. Same
   // repoint already applied to send-abandon-recovery and send-free-upsell.
   const packUrl = `${APP_URL}/pricing?intent_campaign=video_rescue_pack`
-  const makeUrl = `${APP_URL}/generate`
+  const makeUrl = composerUrl({ base: APP_URL, campaign: 'video_rescue_make' })
   const text = `Hey,
 
 This is the Kineo team.
