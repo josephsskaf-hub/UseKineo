@@ -97,6 +97,53 @@ check('a frase junta os DOIS numeros', /cost \$\{ultimoCusto\} credits[\s\S]{0,4
 check('a frase nao promete conteudo de plano', !/(unlimited|forever|priority|premium|every engine)/i.test(sublabel))
 check('a rota nao menciona preco em dinheiro', !/\$\d|USD|\/mo/.test(srcCodigo.replace(/\$\{[^}]*\}/g, '')))
 
+// ── 10. KINEO-PROXIMA-ACAO-HONESTA-2026-09-06 ─────────────────────────────
+// O contrato prometia "Kineo 1 · 0 credits" para conta em TRIAL, e o compose
+// cobrava 5 dela (caminho pago). Esta secao existe para impedir que o preco
+// do Kineo 1 volte a ser decidido por um predicado PROPRIO desta rota.
+const compose = ler('app/api/compose/route.ts')
+
+// 10a. o predicado e LIDO da fonte compartilhada, nao reconstruido aqui.
+check('rota importa getEffectiveEntitlement', /import \{[^}]*getEffectiveEntitlement[^}]*\} from '@\/lib\/reverseTrial'/.test(src))
+check('rota le as colunas de trial no profile', /TRIAL_ENTITLEMENT_COLUMNS/.test(srcCodigo) && /\.select\(`video_credits, plan, has_paid, \$\{TRIAL_ENTITLEMENT_COLUMNS\}`\)/.test(src))
+check('isPaidUser passa a ser treatAsPaid', /const isPaidUser = ent\.treatAsPaid/.test(srcCodigo))
+check('isPaidAccount so alimenta o entitlement', /getEffectiveEntitlement\(profile, \{ isPaidAccount \}\)/.test(srcCodigo))
+check('nenhum uso solto de isPaidAccount no custo', !/creditCostForDuration\([^)]*isPaidAccount/.test(srcCodigo))
+
+// 10b. o espelho do cobrador: o compose decide o Fast gratis por !ent.isTrial.
+// Se ESSA linha mudar de forma, este contrato precisa ser reavaliado junto.
+check('compose ainda decide Fast gratis por !ent.isTrial', /isFreePlanFast = isFreePlan && !hasPaid && !ent\.isTrial/.test(compose))
+check('compose cobra Fast do trial pelo caminho pago', /creditCostForDuration\('fast', true, duration\)/.test(compose))
+
+// 10c. FALHA FECHADA: cota nao verificada => Kineo 1 gratis NAO e oferecido.
+check('existe simbolo de cota indisponivel', /QUOTA_INDISPONIVEL/.test(srcCodigo))
+check('sem service key a cota nao e verificada', /if \(!url \|\| !key\) return QUOTA_INDISPONIVEL/.test(srcCodigo))
+check('erro de banco nao vira cota livre', /if \(claims\.error \|\| videos\.error\) return QUOTA_INDISPONIVEL/.test(srcCodigo))
+check('fastGratisDisponivel exige vaga CONHECIDA e > 0', /vagasConhecidas !== null && vagasConhecidas > 0/.test(srcCodigo))
+check('o filtro tira o fast quando nao ha vaga', /\.filter\(\(m\) => \(m\.engine === 'fast' \? fastGratisDisponivel : true\)\)/.test(srcCodigo))
+check('cota so e consultada no caminho gratis', /noCaminhoGratis \? await vagasFastGratis\(user\.id\) : null/.test(srcCodigo))
+
+// 10d. a contagem usa a fonte unica do compose, nao uma copia.
+check('contagem vem de lib/freeFastQuota', /import \{ countFreeFastUsage \} from '@\/lib\/freeFastQuota'/.test(src))
+check('mesma janela do FREE_OFFER (nao digitada)', /getFreeTierOffer\(\)/.test(srcCodigo) && !/30 \* 24 \* 60 \* 60 \* 1000|1000 \* 60 \* 60 \* 24/.test(srcCodigo))
+check('mesmo par de tabelas do compose', /COMPOSE_CLAIM_EVENT/.test(srcCodigo) && /\.eq\('metadata->>cost', '0'\)/.test(srcCodigo))
+check('linha sem dono nao vira cota livre', /onUnknownUser: 'throw'/.test(srcCodigo))
+check('limite nao e redigitado na rota', !/limit:\s*[13]\b/.test(srcCodigo.replace(/limit: ofertaFree\.limit/g, '')))
+
+// 10e. a verdade do free tier viaja para a tela (senao ela deduz e erra).
+check('freeTier vai na resposta', /freeTier: noCaminhoGratis/.test(srcCodigo))
+check('freeTier carrega o corte de segundos', /clampSeconds: ent\.maxDurationSeconds/.test(srcCodigo))
+check('conta paga/trial recebe freeTier null', /: null,\n\s*primary,/.test(src))
+check('alternativa carrega o teto de segundos', /maxSeconds: m\.quality === 'fast' \? ent\.maxDurationSeconds : null/.test(srcCodigo))
+
+// 10f. o evento deixa PROVAR que a correcao pegou.
+check('evento registra treat_as_paid', /treat_as_paid: ent\.treatAsPaid/.test(srcCodigo))
+check('evento registra free_slots', /free_slots: vagasConhecidas/.test(srcCodigo))
+
+// 10g. a correcao nao pode ter virado escrita nem gate de compra (K1 intacto).
+check('a leitura de cota nao escreve nada', !/admin\s*\n?\s*\.from\('[a-z_]+'\)\s*\n?\s*\.(insert|update|delete)/.test(srcCodigo))
+check('porta do plano segue sem depender de cota', !/fastGratisDisponivel[\s\S]{0,200}see_plans/.test(srcCodigo))
+
 const total = ok + falhas.length
 console.log(`\nnext-action: ${ok}/${total} verificacoes`)
 if (falhas.length) {
