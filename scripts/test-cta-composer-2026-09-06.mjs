@@ -76,6 +76,10 @@ const RESGATE = [
   'app/api/cron/send-failure-recovery/route.ts',
   'app/api/admin/send-winback-25/route.ts',
   'app/api/cron/send-video-rescue/route.ts',
+  // #11 (06/09): escrita na #4, esta carta nasceu DEPOIS do helper e ficou
+  // fora do conserto da #9 — os dois CTAs eram string a mao, sem UTM. Entra
+  // na lista para que a proxima campanha nao repita o mesmo caminho.
+  'app/api/admin/send-next-episode-wall/route.ts',
 ]
 for (const arquivo of RESGATE) {
   const src = ler(arquivo)

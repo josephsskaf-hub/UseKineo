@@ -73,7 +73,28 @@ export interface ComposerUrlOptions {
   readonly source?: string
   /** `utm_medium`. Default `email`. */
   readonly medium?: string
+  /**
+   * KINEO-PROMESSA-COM-LASTRO-2026-09-06 — sprint-assinaturas #11.
+   *
+   * Texto que o composer deve abrir JÁ NA CAIXA. O `GenerateClient` lê
+   * `?prompt=` como prefill (`initialPrompt`) e NÃO dispara nada sozinho: o
+   * autostart exige `create_intent`, que esta função nunca escreve.
+   *
+   * Existe porque uma carta desta casa dizia "abra o studio e o tópico já
+   * está lá" enquanto o link levava a uma caixa VAZIA. Ou a promessa vira
+   * verdade aqui, ou some da copy — as duas juntas é que não podem ficar.
+   *
+   * Vazio/ausente = sem prefill, e o link fica idêntico ao de antes.
+   */
+  readonly prompt?: string | null
 }
+
+/** Teto do prefill. O `?prompt=` viaja numa URL de e-mail e o cliente recusa
+ *  ideia acima de `ANALYZE_PROMPT_MAX_CHARS` (5.000): mandar alguém para uma
+ *  caixa que já nasce recusada seria a parede da #10 entregue por carta.
+ *  120 é a ordem de grandeza de um TÍTULO, que é o que `pickMomentumTopic`
+ *  devolve — não de um roteiro. */
+export const COMPOSER_PREFILL_MAX_CHARS = 120
 
 /**
  * Monta o link de "venha fazer o filme" de um e-mail.
@@ -82,11 +103,13 @@ export interface ComposerUrlOptions {
  * impede o porteiro de `/generate` de degradar o destino para a vitrine, caso
  * alguém volte a apontar um CTA para lá no futuro.
  */
-export function composerUrl({ base, campaign, source = 'lifecycle', medium = 'email' }: ComposerUrlOptions): string {
+export function composerUrl({ base, campaign, source = 'lifecycle', medium = 'email', prompt }: ComposerUrlOptions): string {
   const params = new URLSearchParams({
     utm_source: source,
     utm_medium: medium,
     utm_campaign: campaign,
   })
+  const prefill = (prompt ?? '').trim().slice(0, COMPOSER_PREFILL_MAX_CHARS).trim()
+  if (prefill) params.set('prompt', prefill)
   return `${base.replace(/\/+$/, '')}${COMPOSER_PATH}?${params.toString()}`
 }

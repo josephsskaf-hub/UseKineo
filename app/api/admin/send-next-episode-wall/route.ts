@@ -37,12 +37,50 @@
 // MODOS (GET, admin-gated):
 //   (sem params)           → DRY RUN: quem receberia, com a lista completa.
 //   ?confirm=SEND&limit=N  → envia para os próximos N (default 30).
+//
+// ═══ KINEO-CARTA-SEM-GATILHO-2026-09-06 — sprint-assinaturas #11 ═══════
+//
+// TRÊS DEFEITOS que só aparecem quando se tenta DISPARAR esta carta, e que
+// deixavam a lista mais quente da casa parada há duas rotações:
+//
+//  1. NÃO HAVIA GATILHO. A rota nasceu só-sessão-de-admin, e o diário da #4
+//     registrou o impasse com todas as letras: "não disparei porque a rota
+//     é admin-gated e eu não tenho sessão". Uma campanha que só existe se um
+//     humano estiver acordado e logado não é campanha — é rascunho. Agora o
+//     `Authorization: Bearer ${CRON_SECRET}` da casa também abre a porta
+//     (mesmo padrão de `send-activation-nudge`, fail-closed quando a env
+//     falta), e a rota está registrada no `vercel.json`.
+//
+//  2. O LINK ERA CEGO. Os dois CTAs eram string digitada à mão, sem UTM
+//     nenhum. A carta podia converter e ninguém saberia: sem `utm_campaign`,
+//     o clique dela é indistinguível de tráfego direto. E era exatamente o
+//     defeito que a #9 tinha acabado de matar em TRÊS outras campanhas com
+//     `lib/lifecycle/composerUrl.ts` — esta rota, escrita na #4, ficou de
+//     fora do conserto E do guardião.
+//
+//  3. A CARTA PROMETIA UMA TELA QUE NÃO EXISTE. O texto dizia "abra o studio
+//     e ele está esperando com o tópico já dentro". Conferido no código: o
+//     bloco de próximo episódio do `GenerateClient` só roda na tela de filme
+//     PRONTO (`phase === 'done'`), depois de um render. Quem chega por link
+//     de e-mail encontra uma CAIXA VAZIA. É a regra de 24/08 do CLAUDE.md
+//     quebrada por escrito: nunca prometer o que o produto não sabe fazer.
+//     Consertado do lado do PRODUTO, não da desculpa: o link passa a levar
+//     `?prompt=<título do filme>`, que o `GenerateClient` lê como prefill
+//     (`initialPrompt`), então a caixa abre preenchida de verdade. Quando
+//     não há título aproveitável (`pickMomentumTopic` devolve null — o caso
+//     do "人物使用参考图" e dos comandos colados do ChatGPT), não há prefill
+//     E a frase muda junto: promessa e link nunca se separam.
+//
+// O que NÃO mudou, de propósito: coorte, teto de 30, carimbo vitalício de 1
+// e-mail por pessoa, supressão de 24h fail-closed, bloqueados, opt-out e
+// cabeçalho de descadastro. Nenhum preço, plano ou oferta nova.
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
 import { pickMomentumTopic } from '@/lib/momentumTopic'
+import { composerUrl } from '@/lib/lifecycle/composerUrl'
 
 export const maxDuration = 300
 export const dynamic = 'force-dynamic'
@@ -55,6 +93,20 @@ const RESEND_API_KEY = process.env.RESEND_API_KEY ?? ''
 const FROM_EMAIL = 'Joseph at Kineo <joseph@usekineo.com>'
 const REPLY_TO = 'joseph@usekineo.com'
 const SENT_EVENT = 'next_episode_wall_emailed_v1'
+
+/** Gatilho automático. Mesmo contrato dos crons da casa
+ *  (`app/api/cron/send-activation-nudge/route.ts`): o Vercel manda
+ *  `Authorization: Bearer ${CRON_SECRET}` sozinho nas rotas do `vercel.json`,
+ *  então ninguém precisa conhecer o segredo para a campanha rodar.
+ *
+ *  FAIL-CLOSED, e a razão importa: se a env sumir, `cronSecret` é vazio e a
+ *  função devolve false. Uma rota que dispara e-mail para dezenas de pessoas
+ *  nunca fica pública porque uma variável de ambiente se perdeu. */
+function autorizadoPorCron(req: NextRequest): boolean {
+  const cronSecret = process.env.CRON_SECRET
+  if (!cronSecret) return false
+  return req.headers.get('authorization') === `Bearer ${cronSecret}`
+}
 
 /** Carimbos de e-mail de TODAS as campanhas que vivem em `events`. Ninguém
  *  entra em duas — mesma regra do send-made-video-today. */
@@ -118,6 +170,20 @@ function escaparHtml(s: string): string {
 }
 
 const SITE = 'https://www.usekineo.com'
+const CAMPANHA = 'next_episode_wall'
+
+/** A porta do plano também precisa de etiqueta: sem ela, uma assinatura vinda
+ *  desta carta chega ao painel como tráfego direto e a campanha parece morta
+ *  mesmo tendo funcionado. Link, não promessa — nenhuma oferta nasce aqui. */
+function planoUrl(): string {
+  return `${SITE}/pricing?utm_source=lifecycle&utm_medium=email&utm_campaign=${CAMPANHA}`
+}
+
+/** O destino do "continuar a série". Com título, a caixa abre preenchida;
+ *  sem título, abre vazia — e a copy sabe disso (ver `corpoTexto`). */
+function continuarUrl(filme: string | null): string {
+  return composerUrl({ base: SITE, campaign: CAMPANHA, prompt: filme })
+}
 
 function assunto(filme: string | null): string {
   // Nomeia o FILME, não o produto. A isca é o trabalho que a pessoa já fez.
@@ -126,20 +192,25 @@ function assunto(filme: string | null): string {
 
 function corpoTexto(filme: string | null, saldo: number, custo: number, userId: string): string {
   const nome = filme ? `"${filme}"` : 'the short you made with Kineo'
+  // A frase do meio muda COM o link: com título a caixa abre preenchida e a
+  // carta pode dizer isso; sem título ela não promete nada disso.
+  const ponte = filme
+    ? `The link below opens the studio with "${filme}" already typed into the box,
+so Episode 2 does not start on a blank page.`
+    : `The link below opens the studio straight on the composer, so you can pick
+the thread back up without hunting for it.`
   return `You made ${nome} — and then the credits ran out.
 
 Here is exactly where you stand: your last film cost ${custo} credits, and you have ${saldo}.
 That is the whole reason the next one did not start.
 
-The part most people miss: the sequel is already written. Kineo keeps the thread
-of what you made, so Episode 2 does not begin on a blank page — open the studio
-and it is waiting with the topic already in it.
+${ponte}
 
 Continue the series:
-${SITE}/studio/create
+${continuarUrl(filme)}
 
 If you want the bigger engines to keep running, the plans are here:
-${SITE}/pricing
+${planoUrl()}
 
 When you open the studio it will show you, on screen, what your current balance
 still covers — I would rather you see the real number there than take my word
@@ -156,11 +227,13 @@ function corpoHtml(filme: string | null, saldo: number, custo: number, userId: s
   return `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;font-size:15px;line-height:1.6;color:#1a1a1a;max-width:520px">
 <p>You made <strong>${nome}</strong> — and then the credits ran out.</p>
 <p>Here is exactly where you stand: your last film cost <strong>${custo} credits</strong>, and you have <strong>${saldo}</strong>. That is the whole reason the next one did not start.</p>
-<p>The part most people miss: <strong>the sequel is already written.</strong> Kineo keeps the thread of what you made, so Episode&nbsp;2 does not begin on a blank page — open the studio and it is waiting with the topic already in it.</p>
+<p>${filme
+  ? `The button below opens the studio with <strong>&ldquo;${escaparHtml(filme)}&rdquo;</strong> already typed into the box, so Episode&nbsp;2 does not start on a blank page.`
+  : 'The button below opens the studio straight on the composer, so you can pick the thread back up without hunting for it.'}</p>
 <p style="margin:26px 0">
-  <a href="${SITE}/studio/create" style="background:#2997ff;color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:700;display:inline-block">Continue the series &rarr;</a>
+  <a href="${continuarUrl(filme)}" style="background:#2997ff;color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:700;display:inline-block">Continue the series &rarr;</a>
 </p>
-<p style="font-size:14px;color:#555">If you want the bigger engines to keep running, <a href="${SITE}/pricing" style="color:#2997ff">the plans are here</a>.</p>
+<p style="font-size:14px;color:#555">If you want the bigger engines to keep running, <a href="${planoUrl()}" style="color:#2997ff">the plans are here</a>.</p>
 <p style="font-size:14px;color:#555">When you open the studio it will show you, on screen, what your current balance still covers — I would rather you see the real number there than take my word for it in an email.</p>
 <p>Reply to this and tell me what you were making. I read these.</p>
 <p>&mdash; Joseph</p>
@@ -178,10 +251,16 @@ type Destinatario = {
 
 export async function GET(req: NextRequest) {
   try {
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user || !ADMIN_EMAILS.has((user.email ?? '').toLowerCase())) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    // Duas portas, nenhuma a mais: o cron da casa OU uma sessão de admin.
+    // A sessão só é consultada quando o cabeçalho não bate, para que a
+    // chamada automática não dependa de cookie nenhum.
+    const porCron = autorizadoPorCron(req)
+    if (!porCron) {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user || !ADMIN_EMAILS.has((user.email ?? '').toLowerCase())) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      }
     }
     if (!RESEND_API_KEY) return NextResponse.json({ error: 'RESEND_API_KEY missing' }, { status: 503 })
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL
