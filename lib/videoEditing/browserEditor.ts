@@ -78,7 +78,11 @@ export async function exportClip(file: File, info: ClipInfo, settings: EditSetti
     if (settings.start > 0) { video.currentTime = settings.start; await waitMedia(video, 'seeked', signal, () => !video.seeking && Math.abs(video.currentTime - settings.start) < .03) }
     if (signal.aborted) throw new Error('cancelled')
     drawFrame(canvas, video, settings)
-    stream = canvas.captureStream(30)
+    // Explicit frames retain duration even when the image is momentarily still.
+    // Automatic capture may omit unchanged pixels and shorten a silent MP4.
+    stream = canvas.captureStream(0)
+    const canvasTrack = stream.getVideoTracks()[0] as CanvasCaptureMediaStreamTrack
+    if (typeof canvasTrack.requestFrame !== 'function') throw new Error('unsupported')
     if (audio) {
       source = audio.createMediaElementSource(video); destination = audio.createMediaStreamDestination(); source.connect(destination)
       destination.stream.getAudioTracks().forEach(track => stream!.addTrack(track))
@@ -100,7 +104,7 @@ export async function exportClip(file: File, info: ClipInfo, settings: EditSetti
       recorder!.onstop = () => { remove(); const blob = new Blob(chunks, { type: recorder!.mimeType || mime }); failure ? reject(failure) : blob.size ? resolve(blob) : reject(new Error('export_failed')) }
       const tick = () => {
         if (stopping) return
-        try { drawFrame(canvas, video, settings) } catch { stop(new Error('export_failed')); return }
+        try { drawFrame(canvas, video, settings); canvasTrack.requestFrame() } catch { stop(new Error('export_failed')); return }
         if (video.currentTime > lastTime + .005) { lastTime = video.currentTime; lastAdvance = performance.now() }
         if (performance.now() - lastAdvance > 10000) { stop(new Error('export_stalled')); return }
         progress(Math.min(99, Math.round((video.currentTime - settings.start) / (settings.end - settings.start) * 100)))
@@ -113,7 +117,7 @@ export async function exportClip(file: File, info: ClipInfo, settings: EditSetti
       // Start recording only once playback actually starts, not before play().
       try { video.play().then(() => {
         if (stopping) { video.pause(); return }
-        try { drawFrame(canvas, video, settings); recorder!.start(250); frame = requestAnimationFrame(tick) } catch { stop(new Error('export_failed')) }
+        try { recorder!.start(250); drawFrame(canvas, video, settings); canvasTrack.requestFrame(); frame = requestAnimationFrame(tick) } catch { stop(new Error('export_failed')) }
       }, () => stop(new Error('play_failed'))) } catch { stop(new Error('export_failed')) }
       if (signal.aborted) abort()
     })
@@ -139,9 +143,11 @@ export async function sampleClip(signal: AbortSignal): Promise<File> {
   const audio = new AudioContext(); await audio.resume()
   const destination = audio.createMediaStreamDestination(), oscillator = audio.createOscillator(), gain = audio.createGain()
   oscillator.frequency.value = 440; gain.gain.value = .05; oscillator.connect(gain); gain.connect(destination); oscillator.start()
-  const stream = canvas.captureStream(30); destination.stream.getAudioTracks().forEach(track => stream.addTrack(track))
+  const stream = canvas.captureStream(0); destination.stream.getAudioTracks().forEach(track => stream.addTrack(track))
+  const canvasTrack = stream.getVideoTracks()[0] as CanvasCaptureMediaStreamTrack
   let recorder: MediaRecorder | undefined, frame = 0
   try {
+    if (typeof canvasTrack.requestFrame !== 'function') throw new Error('unsupported')
     return await new Promise<File>((resolve, reject) => {
       const chunks: Blob[] = []; let failed = false
       recorder = new MediaRecorder(stream, { mimeType: mime })
@@ -160,6 +166,7 @@ export async function sampleClip(signal: AbortSignal): Promise<File> {
         ctx.fillStyle = '#66d9c2'; ctx.fillRect(40 + seconds * 70, 170, 90, 90)
         ctx.fillStyle = '#fff'; ctx.font = 'bold 32px system-ui'; ctx.fillText('KINEO · SAMPLE', 40, 65)
         ctx.font = '22px system-ui'; ctx.fillText(seconds.toFixed(1) + 's · test tone', 40, 112)
+        canvasTrack.requestFrame()
         if (seconds >= 4) { if (recorder!.state !== 'inactive') recorder!.stop(); return }
         frame = requestAnimationFrame(draw)
       }

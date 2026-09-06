@@ -10,8 +10,8 @@ const eq = (actual, expected, label) => { assert.deepEqual(actual, expected, lab
 const modules = {}
 const records = { contexts: [], streams: [], frames: [], audio: [], urls: new Set(), revoked: 0 }
 let clock = 0, failPlay = false, stalled = false, support = true
-class Track { constructor(kind) { this.kind = kind; this.stopped = false } stop() { this.stopped = true } }
-class Stream { constructor(tracks = []) { this.tracks = tracks; records.streams.push(this) } getTracks() { return this.tracks } getAudioTracks() { return this.tracks.filter(t => t.kind === 'audio') } addTrack(t) { this.tracks.push(t) } }
+class Track { constructor(kind) { this.kind = kind; this.stopped = false; this.frames=0 } stop() { this.stopped = true } requestFrame() { this.frames++ } }
+class Stream { constructor(tracks = []) { this.tracks = tracks; records.streams.push(this) } getTracks() { return this.tracks } getVideoTracks() { return this.tracks.filter(t => t.kind === 'video') } getAudioTracks() { return this.tracks.filter(t => t.kind === 'audio') } addTrack(t) { this.tracks.push(t) } }
 class Video extends EventTarget {
   constructor() { super(); this.duration = 4; this.videoWidth = 640; this.videoHeight = 360; this.readyState = 3; this.seeking = false; this.paused = true; this.playbackRate = 1; this.time = 0 }
   get currentTime() { return this.time }
@@ -65,6 +65,7 @@ for (const [label, patch] of [['trim', { start: 1, end: 2 }], ['resize', { aspec
   eq(JSON.parse(await blob.text()).audioTracks, patch.mute ? 0 : 1, label + ' output audio tracks')
   eq(progress.at(-1), 100, label + ' only completed export reaches 100')
   ok(records.frames.some(frame => frame[0] === 'video'), label + ' actual decoder drawn')
+  ok(records.lastRecorder.stream.getVideoTracks()[0].frames>1, label+' explicitly requests recorded frames including static content')
   if (label === 'trim') ok(records.frames.filter(f => f[0] === 'video').every(f => f[1] >= 1 && f[1] < 2.2), 'trim uses selected source range')
   if (label === 'text') ok(records.frames.some(frame => frame[0] === 'text' && frame[1] === 'TEST TITLE'), 'text burned into exported canvas')
   eq(records.urls.size, 0, label + ' source URL revoked')
