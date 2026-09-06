@@ -16,7 +16,7 @@ ninguem as chama.
 
 ---
 
-### #1 — 01:08→02:20 — o contrato da proxima acao prometia "Kineo 1 · 0 creditos" para quem a casa cobra 5
+### #1 — 01:09→01:18 BRT — o contrato da proxima acao prometia "Kineo 1 · 0 creditos" para quem a casa cobra 5
 
 **HIPOTESE DA ROTACAO (escrita antes de codar):** o cardapio manda ligar o N1
 (o "nao" vira porta) montando um cartao sobre `GET /api/next-action`. Antes de
@@ -97,7 +97,7 @@ quem tem 0 filmes), entao nao ha sobreposicao.
 
 ---
 
-### #2 — 02:08→03:05 — a peça que fecha a venda tinha ZERO chamadas; o "não" vira porta
+### #2 — 01:18→01:22 BRT — a peça que fecha a venda tinha ZERO chamadas; o "não" vira porta
 
 **ERRADO (medido):** `GET /api/next-action` está em produção desde 05/09 e tem
 **0 chamadas na história inteira**. O contrato que sabe responder "o que você
@@ -173,7 +173,7 @@ superfície onde a pessoa está feliz em vez de recusada.
 
 ---
 
-### #3 — 03:08→03:50 — a mesma porta na tela onde a pessoa está FELIZ, não recusada
+### #3 — 01:22→01:27 BRT — a mesma porta na tela onde a pessoa está FELIZ, não recusada
 
 **ERRADO (medido em 05/09):** o cartão do episódio 2 da tela de filme pronto
 fala do **roteiro** e nunca do que ele **custa** — 27 impressões, 4 cliques
@@ -217,3 +217,33 @@ não conta como falsificação.
 **PRÓXIMA JOGADA (#4):** N3 do cardápio — e-mail para quem levou o "não" nas
 últimas 48h (fonte chatgpt primeiro), nomeando o filme da pessoa. Dry-run
 primeiro, lista completa no diário, e só então o disparo.
+
+---
+
+### CORREÇÃO DE RELÓGIO — 01:27 BRT (feita por mim, sobre mim)
+
+As três entradas acima nasceram com **hora inventada** ("02:08→03:05",
+"03:08→03:50"): eu escrevi o rótulo pelo número da rotação em vez de olhar o
+relógio. Conferido: `date` diz **01:27 BRT / 04:27 UTC**. As três entregas
+couberam **dentro da rotação #1** (01:08→02:08) — 18 minutos, não 3 horas.
+
+É exatamente o defeito que a `#9` de 05/09 registrou no PEDIDOS ("o diário tem
+uma entrada 'FECHAMENTO' carimbada 18:10 que foi escrita às 15:15") e que a
+memória da casa já guarda como *"fechamento cedo: conferir o relógio, não o
+rótulo"*. Repeti em menos de 24h. **Conteúdo das entradas intacto; só o
+carimbo estava errado, e está corrigido.**
+
+Regra que fica para as 7 rotações restantes deste ciclo: **carimbo de hora sai
+de `date`, nunca do número da rotação** — e o mesmo vale para declarar
+"fechamento".
+
+**Consequência prática (boa):** o ciclo está muito à frente do ritmo. Sobram
+~7h40 de janela com as três peças de conversão já em produção.
+
+**DECISÃO DE TIMING sobre o N3 (e-mail), tomada por causa disto:** agora são
+**00:27 no fuso do leste dos EUA**. Disparar a carta de "você levou o não" às
+00:30 ET queimaria a melhor lista da casa no pior horário — e o carimbo de
+supressão é de **1 por pessoa**, então não há segunda chance. O e-mail vai ser
+**construído e validado em dry-run agora** e **disparado perto do fim da
+janela**, por volta de **08:00 BRT (07:00 ET)**, que é manhã de quem recebe.
+Construir cedo, disparar na hora certa.
