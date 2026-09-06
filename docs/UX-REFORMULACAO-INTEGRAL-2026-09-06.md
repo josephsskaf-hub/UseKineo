@@ -26,4 +26,26 @@ Gates por lote: escopo, teste executavel, tsc sem filtros, comparacao visual, pr
 
 TESTADO LOCALMENTE: causa do erro reportado pelo Claude confirmada em scripts/preview-studio-hierarchy.mjs: o "antes" era origin/main, que agora contem o "depois". Fixado no commit pre-reforma b80de68c; runtime continua carregando arquivo real. 11 estados passaram. Nao era defeito de render nem diferenca de Node. Nenhuma garantia removida.
 
-INICIADO: esta segunda entrega ainda nao esta em producao.
+## Lote 1 — publicado em 06/09
+
+VALIDADO EM PRODUCAO: main recebeu 54bfdc48 (PR #45), depois preservado nos commits Claude ate 877278ff. Deploy producao READY dpl_C8Pno27jvLddCJXxMq5kRUfwY4Sf contem o lote. Home, /tools, /images, /audio e /library: hierarquia, agrupamento, editor antes das configuracoes e biblioteca com barra de filtros/busca. Midias curadas preservadas.
+
+TESTADO LOCALMENTE: 49 invariantes executaveis de UX; 247 de curadoria; 11 estados Studio; 22 busca Library; 11 erro Library; tsc sem filtros exit 0. Guardiao workflow 34056495486 status success. RESSALVA: o workflow global tem etapas permissivas; esse status nao prova toda a suite. Os comandos locais citados passaram independentemente.
+
+VALIDADO EM PRODUCAO (06/09): biblioteca da conta interna do fundador abre; trocar filtros Images/Audio funciona, sem escrita nem render. Nao e evidencia de conversao. COMPARACAO VISUAL: Chrome desktop; preview web protegido autorizado no navegador integrado a 390px, pois o override do Chrome reportava sucesso mas continuava 1920px. Home/Tools/Images/Audio com scrollWidth 390. Library exige login no preview; confirmada na sessao Chrome de producao. Artefato antes/depois em docs/previews/UX-INTEGRAL-HOME-FERRAMENTAS-2026-09-06.html.
+
+## Lote 2 — implementado, aguardando preview/deploy
+
+IMPLEMENTADO: preferencia explicita English/Espanol, persistida localmente e separada do idioma de narracao. SSR continua English; spans traduzidos declaram lang=es. Nada de tradutor por DOM, reload de formulario, mudanca de URL, moeda, engine ou texto do cliente. Traducoes de numeros dinamicos conservam o valor canônico, nao congelam o trial de hoje. LandingPlanPrice muda somente verbo e /mo → /mes, com os mesmos valores USD.
+
+IMPLEMENTADO: navegacao e titulos, corpo principal/FAQ da home, hub de 13 ferramentas, rotulos Images/Audio/Library e rodape em espanhol. COBERTURA PARCIAL: nomes de modelos, depoimentos, artigos, formularios das ferramentas filhas, ofertas isoladas, configuracoes detalhadas Studio/Avatar/Animate e demais familias ainda nao estao inteiramente traduzidos. Nao anunciar site 100% espanhol nem reforma total concluida.
+
+IMPLEMENTADO: rodape com quatro grupos nativos abriveis, mantendo todos os links; Animate com coluna de formulario flexivel em vez da coluna de 352px do kit. Avatar com cards neutros, preview acessivel tambem no celular e ancora ate preview/resultado. FATO CONFIRMADO: o bloco que continha player, download e recomecar no Avatar tinha `hidden lg:flex`; o novo bloco nao fica mais exclusivo do desktop. Consentimento, handlers, payloads e custos intactos.
+
+COMPARACOES: docs/previews/UX-INTEGRAL-WORKSPACES-2026-09-06.html (oito familias, antes/depois desktop/mobile) e docs/previews/UX-INTERFACE-EN-ES-2026-09-06.html (English/Espanol do codigo atual, cobertura parcial explicitada). Fixtures nao sao videos de clientes. Nenhuma credencial, envio, banco ou geracao nos testes.
+
+## Coordenacao de publicacao
+
+Esta pista publica SOMENTE por codex/ux-completo-2026-09-06 e merge na main atualizada. NAO enfileirar os mesmos commits em entrega-atual: o diario Claude registrou duplicatas e recuperacao em 4dba8c16. Nao reescrever nem limpar fila alheia. Novas alteracoes Claude em SeasonStrip/temporada sao preservadas. Reserva adicional: TopBar/Sidebar e apenas rotulos em LandingPlanPrice; nenhum calculo ou CTA de destino comercial alterado.
+
+PROXIMO: validar lote 2 em browser, reconciliar main, publicar; depois concluir familias restantes e cobertura de idioma com inventario por rota, sem contar a barra herdada como reforma completa da pagina.

@@ -5,6 +5,7 @@
 // Kit. 4 motores (Eleven v3 / MiniMax Speech HD / Dia dialogo / Kokoro),
 // voz selecionavel onde o motor suporta, custo vivo por tamanho do texto,
 // player + download + galeria My Audio persistente (tabela audios + bucket).
+import { UiLabel } from '@/components/InterfaceLanguage'
 import { useEffect, useMemo, useState } from 'react'
 import { STUDIO_KIT_CSS } from '@/components/studioKit'
 import CreditsTopupModal from '@/components/CreditsTopupModal' // KINEO-TOPUP-POPUP-2026-08-18
@@ -161,12 +162,12 @@ export default function AudioClient() {
     <div className="stu">
       <style dangerouslySetInnerHTML={{ __html: STUDIO_KIT_CSS }} />
 
-      <h1>Audio</h1>
-      <p className="sub">Type it. Hear it. Four voice engines, one screen.</p>
+      <h1><UiLabel>Audio</UiLabel></h1>
+      <p className="sub"><UiLabel>Type it. Hear it. Four voice engines, one screen.</UiLabel></p>
 
 <div className="grid creation-grid">
 <div className="card creation-input">
-            <div className="lab"><span className="n">1</span>Your script</div>
+            <div className="lab"><span className="n">1</span><UiLabel>Your script</UiLabel></div>
             <textarea aria-label="Your script" value={text} onChange={(e) => setText(e.target.value)} rows={5} maxLength={2000}
               placeholder={PLACEHOLDERS[model]} />
             {!text.trim() && (
@@ -194,10 +195,10 @@ export default function AudioClient() {
                 ⚠️ {error}
                 {/* KINEO-AUDIT-401-2026-08-18: 401 vira porta, nao beco */}
                 {error.toLowerCase().includes('credits') && (
-                  <> <button type="button" onClick={openCreditsWall} style={{ color: '#7cc0ff', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Add credits →</button></>
+                  <> <button type="button" onClick={openCreditsWall} style={{ color: '#7cc0ff', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><UiLabel>Add credits →</UiLabel></button></>
                 )}
                 {error.toLowerCase().includes('signed in') && (
-                  <> <a href="/login?redirect=/audio" style={{ color: '#7cc0ff', fontWeight: 700 }}>Sign in →</a></>
+                  <> <a href="/login?redirect=/audio" style={{ color: '#7cc0ff', fontWeight: 700 }}><UiLabel>Sign in →</UiLabel></a></>
                 )}
               </p>
             )}
@@ -205,7 +206,7 @@ export default function AudioClient() {
 <div className="rail creation-settings">
           <div style={{ position: 'relative' }}>
             <button type="button" className="mdlbtn" onClick={() => setPickerOpen((o) => !o)}>
-              <span className="lab" style={{ marginBottom: 0 }}><span className="n">2</span>Engine</span>
+              <span className="lab" style={{ marginBottom: 0 }}><span className="n">2</span><UiLabel>Engine</UiLabel></span>
               <span className="mdlname" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span className="eng-ic" aria-hidden="true">{eng.icon}</span>
                 <b>{eng.name}</b>
@@ -232,7 +233,7 @@ export default function AudioClient() {
 
           {eng.voices.length > 0 && (
             <div className="card">
-              <div className="lab"><span className="n">3</span>Voice</div>
+              <div className="lab"><span className="n">3</span><UiLabel>Voice</UiLabel></div>
               <div className="row">
                 {eng.voices.map((v) => (
                   <button key={v.id} type="button" className={`pill${voice === v.id ? ' on' : ''}`} onClick={() => setVoice(v.id)}>
@@ -244,26 +245,26 @@ export default function AudioClient() {
           )}
 
           <div className="cost">
-            <div className="sum">{eng.name}{voice ? ` · ${voice}` : ''} · {text.trim().length} chars</div>
-            <div className="val"><span>Cost</span><b>{credits} cr</b></div>
+            <div className="sum">{eng.name}{voice ? ` · ${voice}` : ''} · {text.trim().length}<UiLabel> chars</UiLabel></div>
+            <div className="val"><span><UiLabel>Cost</UiLabel></span><b>{credits} cr</b></div>
             <button type="button" onClick={generate} disabled={!text.trim() || busy} className={`go ${text.trim() && !busy ? 'ok' : 'no'}`}>
-              {busy ? 'Creating…' : text.trim() ? 'Generate audio →' : 'Type your script first'}
+              <UiLabel>{busy ? 'Creating…' : text.trim() ? 'Generate audio →' : 'Type your script first'}</UiLabel>
             </button>
-            <div className="gnote">{eng.perK} cr per 1000 characters · MP3 download included.</div>
+            <div className="gnote">{eng.perK}<UiLabel> cr per 1000 characters · MP3 download included.</UiLabel></div>
           </div>
         </div>
 <div className="creation-results">
 {galleryFailed && (
             <div role="alert" className="card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', border: '1px solid rgba(251,191,36,.35)', background: 'rgba(251,191,36,.06)' }}>
-              <span style={{ fontSize: 13, color: '#fbbf24', fontWeight: 700 }}>We couldn’t load your audio right now.</span>
-              <span style={{ fontSize: 12.5, color: 'var(--txt2,#9aa0a6)' }}>Your audio and credits are safe — this is just a temporary read hiccup.</span>
-              <button type="button" className="pill" onClick={loadGallery}>↻ Try again</button>
+              <span style={{ fontSize: 13, color: '#fbbf24', fontWeight: 700 }}><UiLabel>We couldn’t load your audio right now.</UiLabel></span>
+              <span style={{ fontSize: 12.5, color: 'var(--txt2,#9aa0a6)' }}><UiLabel>Your audio and credits are safe — this is just a temporary read hiccup.</UiLabel></span>
+              <button type="button" className="pill" onClick={loadGallery}><UiLabel>↻ Try again</UiLabel></button>
             </div>
           )}
 {galleryLoading && !galleryFailed && items.length === 0 && (
             <div aria-label="Loading your audio" aria-busy="true">
               <style>{`@keyframes audsk{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
-              <div className="lab">My Audio</div>
+              <div className="lab"><UiLabel>My Audio</UiLabel></div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {Array.from({ length: 3 }).map((_, i) => (
                   <div key={i} style={{ height: 60, borderRadius: 12, border: '1px solid rgba(255,255,255,.06)', background: 'linear-gradient(100deg, rgba(255,255,255,.035) 40%, rgba(255,255,255,.09) 50%, rgba(255,255,255,.035) 60%)', backgroundSize: '200% 100%', animation: 'audsk 1.4s linear infinite', animationDelay: `${i * 120}ms` }} />
@@ -275,10 +276,10 @@ export default function AudioClient() {
             <div>
               {/* KINEO-CEO-HOUR-2026-08-17 (#4) — flywheel: voz → filme completo */}
               <div className="card" style={{ padding: '11px 14px', marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 13, color: 'var(--txt2,#9aa0a6)' }}>Like a voice? The Studio builds the whole film around it — visuals, captions and score.</span>
-                <a className="pill on" style={{ textDecoration: 'none' }} href="/studio">Open Studio →</a>
+                <span style={{ fontSize: 13, color: 'var(--txt2,#9aa0a6)' }}><UiLabel>Like a voice? The Studio builds the whole film around it — visuals, captions and score.</UiLabel></span>
+                <a className="pill on" style={{ textDecoration: 'none' }} href="/studio"><UiLabel>Open Studio →</UiLabel></a>
               </div>
-              <div className="lab">My Audio</div>
+              <div className="lab"><UiLabel>My Audio</UiLabel></div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {items.map((it, i) => (
                   <div key={it.url} className="card" style={{ padding: 12, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
@@ -287,8 +288,8 @@ export default function AudioClient() {
                       <span style={{ fontSize: 11.5, color: 'var(--txt2,#9aa0a6)' }}>
                         {AUDIO_ENGINES.find((e) => e.key === it.model)?.name ?? it.model}{it.voice ? ` · ${it.voice}` : ''}
                       </span>
-                      <button type="button" className="pill" onClick={() => download(it.url, i)}>⬇ Download</button>
-                      {it.text && <a className="pill" style={{ textDecoration: 'none' }} href={`/studio?prompt=${encodeURIComponent(it.text.slice(0, 500))}`}>🎬 Use in Studio</a>}
+                      <button type="button" className="pill" onClick={() => download(it.url, i)}><UiLabel>⬇ Download</UiLabel></button>
+                      {it.text && <a className="pill" style={{ textDecoration: 'none' }} href={`/studio?prompt=${encodeURIComponent(it.text.slice(0, 500))}`}><UiLabel>🎬 Use in Studio</UiLabel></a>}
                     </div>
                     {it.text && <div style={{ flexBasis: '100%', fontSize: 12, color: 'var(--txt2,#9aa0a6)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.text}</div>}
                   </div>

@@ -13,6 +13,7 @@
 // /api/avatar-status?engine= → /api/compose → /api/compose/status/[id].
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import { AVATAR_PRESENTATION_CSS } from '@/lib/ui/avatarPresentation'
 import { createClient } from '@/lib/supabase/client'
 // KINEO-PRICING-V6-2026-08-19 — "get credits from $9.90" era o único preço
 // desta tela e estava chumbado. Vem da tabela que a Stripe cobra.
@@ -1226,7 +1227,8 @@ export default function AvatarStudioClient({ isLoggedIn }: { isLoggedIn: boolean
     : (fidelity === 'scene' && sceneImageUrl) ? sceneImageUrl : faceUrl
 
   return (
-    <div className="px-4 sm:px-6 py-7 pb-20">
+    <div className="avatar-workspace px-4 sm:px-6 py-7 pb-20">
+      <style dangerouslySetInnerHTML={{ __html: AVATAR_PRESENTATION_CSS }} />
       {/* Header */}
       <div className="mb-7">
         <div className="font-black uppercase tracking-[.18em] mb-2" style={{ fontSize: '0.65rem', color: '#2997ff' }}>
@@ -1238,9 +1240,10 @@ export default function AvatarStudioClient({ isLoggedIn }: { isLoggedIn: boolean
         <p className="text-sm mt-1.5" style={{ color: 'var(--muted2)' }}>
           Everything you need to make yourself speak — nothing you don’t.
         </p>
+        <a className="avatar-preview-jump" href="#avatar-preview">Preview &amp; result ↓</a>
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-[1fr_480px] items-start" style={{ maxWidth: 1480 }}>
+      <div className="avatar-layout" style={{ maxWidth: 1480 }}>
         {/* ── LEFT: controls ── */}
         <div className="flex flex-col gap-5">
           {/* 1 · Source */}
@@ -1837,8 +1840,9 @@ export default function AvatarStudioClient({ isLoggedIn }: { isLoggedIn: boolean
         </div>
 
         {/* ── RIGHT: live phone preview + status ── */}
-        <div className="hidden lg:flex flex-col items-center gap-4 sticky top-20">
+        <div id="avatar-preview" className="avatar-preview flex-col items-center gap-4 sticky top-20">
           <div
+            className="avatar-preview-frame"
             style={{
               width: 340, height: 710, borderRadius: 46, padding: 11,
               background: 'linear-gradient(160deg, #1A1A1D, #0A0A0C)',

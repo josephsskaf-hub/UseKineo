@@ -3,6 +3,7 @@
 // Marker: KINEO-LANDING-V3-2026-06-30
 import { s25Visible, S25_PUBLIC, VIDEO_ENGINE_COUNT_WORD } from '@/lib/engineLaunch'
 import Link from 'next/link'
+import { InterfaceLanguageSelect, UiLabel, UiText } from '@/components/InterfaceLanguage'
 import { HOME_PRESENTATION_CSS } from '@/lib/ui/homePresentation'
 import NavCreditsBadge from '@/components/NavCreditsBadge'
 import StickyFreeShortCTA from '@/components/StickyFreeShortCTA'
@@ -866,11 +867,11 @@ export default function KineoLanding({
           Kineo
         </Link>
         <div className="nav-links">
-            <Link href="/examples">Explore</Link>
+            <Link href="/examples"><UiLabel>Explore</UiLabel></Link>
             {/* KINEO-GROWTH-TOOLS-NAV-2026-08-29 — o hub de aquisição
                 orgânica já existia no sitemap e no rodapé, mas ficava
                 invisível na principal entrada pública do produto. */}
-            <Link href="/tools">Free tools</Link>
+            <Link href="/tools"><UiLabel>Free tools</UiLabel></Link>
             {/* KINEO-ARENA-NAV-2026-08-25 — a Arena entra na nav ao lado de
                 Explore: é a página que responde "qual motor eu uso?", a
                 dúvida nº1 de quem está decidindo assinar. Explore mostra o
@@ -888,25 +889,25 @@ export default function KineoLanding({
                 de imagem"): Image vira mega-menu igual ao Video — catalogo de
                 motores com preco | ferramentas. Porta principal: /images. */}
             <span className="nd">
-              <Link href="/images">Image<span className="nd-car" aria-hidden="true">▾</span></Link>
+              <Link href="/images"><UiLabel>Image</UiLabel><span className="nd-car" aria-hidden="true">▾</span></Link>
               <span className="nd-menu nd-mega">
                 <span className="nm-col">
-                  <span className="nm-h">Engines</span>
+                  <span className="nm-h"><UiLabel>Engines</UiLabel></span>
                   {/* KINEO-MENU-ICONES-2026-08-17 (fundador, ref. Higgsfield):
                       SEM preco no menu (atrito antes da hora — preco mora na
                       pagina) + caixinha com monograma/glifo de cada produto. */}
-                  <Link href="/images?engine=schnell&intent_campaign=nav_mega"><span className="nm-ic">F</span><span className="nm-tx"><b>FLUX Schnell</b><i>Instant drafts</i></span></Link>
-                  <Link href="/images?engine=dev&intent_campaign=nav_mega"><span className="nm-ic">F+</span><span className="nm-tx"><b>FLUX Dev<em className="nm-chip">TOP</em></b><i>Sharp &amp; photorealistic</i></span></Link>
-                  <Link href="/images?engine=seedream&intent_campaign=nav_mega"><span className="nm-ic">S</span><span className="nm-tx"><b>Seedream 5.0 Pro</b><i>Deep prompt understanding</i></span></Link>
-                  <Link href="/images?engine=grok&intent_campaign=nav_mega"><span className="nm-ic">𝕏</span><span className="nm-tx"><b>Grok Imagine 2.0</b><i>Highly aesthetic, by xAI</i></span></Link>
-                  <Link href="/images?engine=recraft&intent_campaign=nav_mega"><span className="nm-ic">R</span><span className="nm-tx"><b>Recraft V3</b><i>Perfect text rendering</i></span></Link>
-                  <Link href="/images?engine=nanobanana&intent_campaign=nav_mega"><span className="nm-ic">🍌</span><span className="nm-tx"><b>Nano Banana Pro<em className="nm-chip">STUDIO</em></b><i>Google’s best image model</i></span></Link>
+                  <Link href="/images?engine=schnell&intent_campaign=nav_mega"><span className="nm-ic">F</span><span className="nm-tx"><b>FLUX Schnell</b><i><UiLabel>Instant drafts</UiLabel></i></span></Link>
+                  <Link href="/images?engine=dev&intent_campaign=nav_mega"><span className="nm-ic">F+</span><span className="nm-tx"><b>FLUX Dev<em className="nm-chip">TOP</em></b><i><UiLabel>Sharp &amp; photorealistic</UiLabel></i></span></Link>
+                  <Link href="/images?engine=seedream&intent_campaign=nav_mega"><span className="nm-ic">S</span><span className="nm-tx"><b>Seedream 5.0 Pro</b><i><UiLabel>Deep prompt understanding</UiLabel></i></span></Link>
+                  <Link href="/images?engine=grok&intent_campaign=nav_mega"><span className="nm-ic">𝕏</span><span className="nm-tx"><b>Grok Imagine 2.0</b><i><UiLabel>Highly aesthetic, by xAI</UiLabel></i></span></Link>
+                  <Link href="/images?engine=recraft&intent_campaign=nav_mega"><span className="nm-ic">R</span><span className="nm-tx"><b>Recraft V3</b><i><UiLabel>Perfect text rendering</UiLabel></i></span></Link>
+                  <Link href="/images?engine=nanobanana&intent_campaign=nav_mega"><span className="nm-ic">🍌</span><span className="nm-tx"><b>Nano Banana Pro<em className="nm-chip">STUDIO</em></b><i><UiLabel>Google’s best image model</UiLabel></i></span></Link>
                 </span>
                 <span className="nm-col">
-                  <span className="nm-h">Create</span>
-                  <Link href="/images"><span className="nm-ic">🎨</span><span className="nm-tx"><b>Create Image</b><i>Six engines, one screen</i></span></Link>
-                  <Link href="/thumbnail-generator"><span className="nm-ic">🖼</span><span className="nm-tx"><b>Thumbnails</b><i>Click-magnet YouTube covers</i></span></Link>
-                  <Link href="/animate"><span className="nm-ic">🎞</span><span className="nm-tx"><b>Animate a Photo</b><i>Bring any image to life</i></span></Link>
+                  <span className="nm-h"><UiLabel>Create</UiLabel></span>
+                  <Link href="/images"><span className="nm-ic">🎨</span><span className="nm-tx"><b><UiLabel>Create Image</UiLabel></b><i><UiLabel>Six engines, one screen</UiLabel></i></span></Link>
+                  <Link href="/thumbnail-generator"><span className="nm-ic">🖼</span><span className="nm-tx"><b><UiLabel>Thumbnails</UiLabel></b><i><UiLabel>Click-magnet YouTube covers</UiLabel></i></span></Link>
+                  <Link href="/animate"><span className="nm-ic">🎞</span><span className="nm-tx"><b><UiLabel>Animate a Photo</UiLabel></b><i><UiLabel>Bring any image to life</UiLabel></i></span></Link>
                 </span>
               </span>
             </span>
@@ -914,29 +915,29 @@ export default function KineoLanding({
                 audio conectando: imagem - audio - videos"): mega-menu Audio
                 entre Image e Video, mesmo padrao de catalogo com preco. */}
             <span className="nd">
-              <Link href="/audio">Audio<span className="nd-car" aria-hidden="true">▾</span></Link>
+              <Link href="/audio"><UiLabel>Audio</UiLabel><span className="nd-car" aria-hidden="true">▾</span></Link>
               <span className="nd-menu nd-mega">
                 <span className="nm-col">
-                  <span className="nm-h">Engines</span>
-                  <Link href="/audio?engine=minimax&intent_campaign=nav_mega"><span className="nm-ic">M</span><span className="nm-tx"><b>MiniMax Speech HD<em className="nm-chip">TOP</em></b><i>High-fidelity narration</i></span></Link>
-                  <Link href="/audio?engine=eleven&intent_campaign=nav_mega"><span className="nm-ic">11</span><span className="nm-tx"><b>Eleven v3<em className="nm-chip">STUDIO</em></b><i>Emotion &amp; delivery tags</i></span></Link>
-                  <Link href="/audio?engine=dia&intent_campaign=nav_mega"><span className="nm-ic">D</span><span className="nm-tx"><b>Dia Dialogue</b><i>Two-speaker scenes</i></span></Link>
-                  <Link href="/audio?engine=kokoro&intent_campaign=nav_mega"><span className="nm-ic">K</span><span className="nm-tx"><b>Kokoro</b><i>Instant narration</i></span></Link>
+                  <span className="nm-h"><UiLabel>Engines</UiLabel></span>
+                  <Link href="/audio?engine=minimax&intent_campaign=nav_mega"><span className="nm-ic">M</span><span className="nm-tx"><b>MiniMax Speech HD<em className="nm-chip">TOP</em></b><i><UiLabel>High-fidelity narration</UiLabel></i></span></Link>
+                  <Link href="/audio?engine=eleven&intent_campaign=nav_mega"><span className="nm-ic">11</span><span className="nm-tx"><b>Eleven v3<em className="nm-chip">STUDIO</em></b><i><UiLabel>Emotion &amp; delivery tags</UiLabel></i></span></Link>
+                  <Link href="/audio?engine=dia&intent_campaign=nav_mega"><span className="nm-ic">D</span><span className="nm-tx"><b>Dia Dialogue</b><i><UiLabel>Two-speaker scenes</UiLabel></i></span></Link>
+                  <Link href="/audio?engine=kokoro&intent_campaign=nav_mega"><span className="nm-ic">K</span><span className="nm-tx"><b>Kokoro</b><i><UiLabel>Instant narration</UiLabel></i></span></Link>
                 </span>
                 <span className="nm-col">
-                  <span className="nm-h">Create</span>
-                  <Link href="/audio"><span className="nm-ic">🎙</span><span className="nm-tx"><b>Text to Speech</b><i>Four voice engines</i></span></Link>
-                  <Link href="/avatar"><span className="nm-ic">👤</span><span className="nm-tx"><b>Talking Avatar</b><i>A face that speaks your script</i></span></Link>
+                  <span className="nm-h"><UiLabel>Create</UiLabel></span>
+                  <Link href="/audio"><span className="nm-ic">🎙</span><span className="nm-tx"><b><UiLabel>Text to Speech</UiLabel></b><i><UiLabel>Four voice engines</UiLabel></i></span></Link>
+                  <Link href="/avatar"><span className="nm-ic">👤</span><span className="nm-tx"><b><UiLabel>Talking Avatar</UiLabel></b><i><UiLabel>A face that speaks your script</UiLabel></i></span></Link>
                 </span>
               </span>
             </span>
             {/* KINEO-NAV-MEGA-2026-08-17 — Video vira mega-menu: motores
                 (catalogo com preco) | ferramentas. Pares: bento + hero cards. */}
             <span className="nd">
-              <Link href="/studio">Video<span className="nd-car" aria-hidden="true">▾</span></Link>
+              <Link href="/studio"><UiLabel>Video</UiLabel><span className="nd-car" aria-hidden="true">▾</span></Link>
               <span className="nd-menu nd-mega">
                 <span className="nm-col">
-                  <span className="nm-h">Engines</span>
+                  <span className="nm-h"><UiLabel>Engines</UiLabel></span>
                   <NavEngineItem href="/studio?engine=fast&intent_campaign=nav_mega" name="Kineo 1" desc="Kineo’s own engine — fastest" icon="⚡" />
                   <NavEngineItem href="/studio?engine=seedance&intent_campaign=nav_mega" name="Seedance 1.5" desc="The workhorse AI engine" chip="TOP" icon="S" preview="/previews/75728dfb-3b29-47fa-aea8-b806d549a2b9.mp4" />
                   <NavEngineItem href="/studio?engine=kling&intent_campaign=nav_mega" name="Kling 2.5" desc="Cinematic motion & camera" icon="K" preview="/previews/c4e4fbab-0978-4daa-9fcf-119096370210.mp4" />
@@ -960,39 +961,39 @@ export default function KineoLanding({
                   <NavEngineItem href="/studio?engine=h3&intent_campaign=nav_mega" name="MiniMax H3" desc="Cinematic film that fits your plan" icon="H3" />
                 </span>
                 <span className="nm-col">
-                  <span className="nm-h">Create</span>
-                  <Link href="/studio"><span className="nm-ic">🎬</span><span className="nm-tx"><b>Studio</b><i>Every control, one screen</i></span></Link>
-                  <Link href="/viral-now"><span className="nm-ic">🔥</span><span className="nm-tx"><b>Viral Now</b><i>Today’s trending topics</i></span></Link>
-                  <Link href="/scripts"><span className="nm-ic">✍️</span><span className="nm-tx"><b>Scripts</b><i>Ready-to-shoot viral scripts</i></span></Link>
-                  <Link href="/examples"><span className="nm-ic">▦</span><span className="nm-tx"><b>Examples</b><i>Real renders, every engine</i></span></Link>
+                  <span className="nm-h"><UiLabel>Create</UiLabel></span>
+                  <Link href="/studio"><span className="nm-ic">🎬</span><span className="nm-tx"><b><UiLabel>Studio</UiLabel></b><i><UiLabel>Every control, one screen</UiLabel></i></span></Link>
+                  <Link href="/viral-now"><span className="nm-ic">🔥</span><span className="nm-tx"><b>Viral Now</b><i><UiLabel>Today’s trending topics</UiLabel></i></span></Link>
+                  <Link href="/scripts"><span className="nm-ic">✍️</span><span className="nm-tx"><b><UiLabel>Scripts</UiLabel></b><i><UiLabel>Ready-to-shoot viral scripts</UiLabel></i></span></Link>
+                  <Link href="/examples"><span className="nm-ic">▦</span><span className="nm-tx"><b><UiLabel>Examples</UiLabel></b><i><UiLabel>Real renders, every engine</UiLabel></i></span></Link>
                 </span>
               </span>
             </span>
             <Link href="/avatar">Avatar</Link>
-            <a href="#pricing">Pricing</a>
+            <a href="#pricing"><UiLabel>Pricing</UiLabel></a>
           </div>
         <div className="nav-right">
           {initialUser
-            ? <div className="nav-cta"><NavCreditsBadge /><Link className="btn btn-w" style={{ padding: '12px 20px', fontSize: '14px' }} href="/studio">Dashboard</Link></div>
-            : <Link className="btn btn-w" style={{ padding: '12px 20px', fontSize: '14px' }} href={referralBridge ? '#try-kineo' : '/signup?utm_source=nav'}>Start free</Link>}
+            ? <div className="nav-cta"><NavCreditsBadge /><Link className="btn btn-w" style={{ padding: '12px 20px', fontSize: '14px' }} href="/studio"><UiLabel>Dashboard</UiLabel></Link></div>
+            : <Link className="btn btn-w" style={{ padding: '12px 20px', fontSize: '14px' }} href={referralBridge ? '#try-kineo' : '/signup?utm_source=nav'}><UiLabel>Start free</UiLabel></Link>}
           <div className="nav-toggle-wrap">
             <input type="checkbox" id="nav-toggle" className="nav-toggle-input" aria-label="Menu" aria-controls="mobile-nav-menu" />
             <span className="nav-toggle-btn" aria-hidden="true"><span className="bar" /><span className="bar" /><span className="bar" /></span>
             <label htmlFor="nav-toggle" id="mobile-nav-menu" className="nav-mobile-menu">
-              <Link href="/examples">Explore</Link>
-              <Link href="/tools">Free tools</Link>
-              <Link href="/studio">🎬 Studio — generate video</Link>
-              <Link href="/images">🎨 Images — create image</Link>
-              <Link href="/audio">🎙 Audio — text to speech</Link>
+              <Link href="/examples"><UiLabel>Explore</UiLabel></Link>
+              <Link href="/tools"><UiLabel>Free tools</UiLabel></Link>
+              <Link href="/studio"><UiLabel>🎬 Studio — generate video</UiLabel></Link>
+              <Link href="/images"><UiLabel>🎨 Images — create image</UiLabel></Link>
+              <Link href="/audio"><UiLabel>🎙 Audio — text to speech</UiLabel></Link>
               <Link href="/viral-now">🔥 Viral Now</Link>
-              <Link href="/scripts">Scripts</Link>
-              <Link href="/animate">Animate</Link>
-              <Link href="/thumbnail-generator">Thumbnails</Link>
+              <Link href="/scripts"><UiLabel>Scripts</UiLabel></Link>
+              <Link href="/animate"><UiLabel>Animate</UiLabel></Link>
+              <Link href="/thumbnail-generator"><UiLabel>Thumbnails</UiLabel></Link>
               <Link href="/avatar">Avatar</Link>
-              <a href="#pricing">Pricing</a>
+              <a href="#pricing"><UiLabel>Pricing</UiLabel></a>
               {initialUser
-                ? <Link className="btn btn-w" href="/studio">Dashboard</Link>
-                : <Link className="btn btn-w" href={referralBridge ? '#try-kineo' : '/signup?utm_source=nav-mobile'}>Start free</Link>}
+                ? <Link className="btn btn-w" href="/studio"><UiLabel>Dashboard</UiLabel></Link>
+                : <Link className="btn btn-w" href={referralBridge ? '#try-kineo' : '/signup?utm_source=nav-mobile'}><UiLabel>Start free</UiLabel></Link>}
             </label>
           </div>
         </div>
@@ -1003,20 +1004,21 @@ export default function KineoLanding({
         <div className="wrap">
           <div className="home-intro">
           <div className="home-intro-copy">
-          <p className="home-eyebrow">Kineo — real AI Shorts, straight from the engines</p>
-          <h1 className="home-title">Type an idea — watch it become a film.</h1>
+          <p className="home-eyebrow"><UiLabel>Kineo — real AI Shorts, straight from the engines</UiLabel></p>
+          <h1 className="home-title"><UiText es="Escribe una idea y mira cómo se convierte en un vídeo.">Type an idea — watch it become a film.</UiText></h1>
           {/* UX10 #1 — a pagina abria sem dizer O QUE e o produto. Uma linha
               fina orienta sem trazer o hero gigante de volta. */}
           {/* KINEO-HERO-LINE-2026-08-17 (fundador: "nao fazemos videos no
               YouTube, fazemos pra varias utilidades — seja criativo"): a linha
               vende o FILME PRONTO (voz, trilha, legendas) e deixa o destino em
               aberto; "real render" fica — e o selo honesto da vitrine. */}
-          <p className="hero-line">{VIDEO_ENGINE_COUNT_WORD} video engines — including Omni Flash, the #1-ranked model (Aug 2026) — six image models, four voices. Every card below is a real render.</p>
+          <p className="hero-line"><UiLabel>{VIDEO_ENGINE_COUNT_WORD}</UiLabel><UiLabel> video engines — including Omni Flash, the #1-ranked model (Aug 2026) — six image models, four voices. Every card below is a real render.</UiLabel></p>
           </div>
           <div className="home-jump" role="navigation" aria-label="On this page">
-            <a href="#samples">Real videos</a>
-            <a href="#toolkit">Tools</a>
-            <a href="#pricing">Plans</a>
+            <a href="#samples"><UiLabel>Real videos</UiLabel></a>
+            <a href="#toolkit"><UiLabel>Tools</UiLabel></a>
+            <a href="#pricing"><UiLabel>Plans</UiLabel></a>
+            <InterfaceLanguageSelect />
           </div>
           </div>
           {/* Fileira Higgsfield: cards largos, video NITIDO (sem veu), nome do
@@ -1090,9 +1092,9 @@ export default function KineoLanding({
             </p>
             <p style={{ fontSize: 12, color: '#86868b', marginTop: 6 }}>
               — Rick Crossley, paying subscriber ·{' '}
-              <a href="/reviews" style={{ color: '#2997ff', textDecoration: 'none' }}>
+              <a href="/reviews" style={{ color: '#2997ff', textDecoration: 'none' }}><UiLabel>
                 read the full review →
-              </a>
+              </UiLabel></a>
             </p>
           </div>
                   </div>
@@ -1155,8 +1157,8 @@ export default function KineoLanding({
               return (
             <div className="bento">
               <div className="promo">
-                <h3>Start with the full toolkit</h3>
-                <p>{ft(OFFER, 'Create, download and share up to 3 watermarked Fast videos every 24h — no card.', OFFER.copy.headline)}</p>
+                <h3><UiLabel>Start with the full toolkit</UiLabel></h3>
+                <p><UiLabel>{ft(OFFER, 'Create, download and share up to 3 watermarked Fast videos every 24h — no card.', OFFER.copy.headline)}</UiLabel></p>
                 {/* KINEO-SEM-PORTEIRO-2026-09-02 — este botão apontava para
                     /generate?src=engine_bento. O /generate não é mais uma
                     página: é um porteiro `force-dynamic` que só decide o
@@ -1183,7 +1185,7 @@ export default function KineoLanding({
                 </span>
                 <span className="tbody">
                   <h3>Kineo 1</h3>
-                  <p>Kineo&rsquo;s own engine &mdash; 3&ndash;7 min</p>
+                  <p><UiLabel>Kineo&rsquo;s own engine &mdash; 3&ndash;7 min</UiLabel></p>
                   <span className="tcredits">{creditLabel('fast')}</span>
                 </span>
               </Link>
@@ -1191,11 +1193,11 @@ export default function KineoLanding({
                 {tileVid('cinematic_ai')}
                 <span className="trow">
                   <span className="tic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 5v14M17 5v14M3 10h4M3 14h4M17 10h4M17 14h4"/></svg></span>
-                  <span className="tb">Popular</span>
+                  <span className="tb"><UiLabel>Popular</UiLabel></span>
                 </span>
                 <span className="tbody">
                   <h3>Seedance 1.5</h3>
-                  <p>The workhorse AI video engine</p>
+                  <p><UiLabel>The workhorse AI video engine</UiLabel></p>
                   <span className="tcredits">{creditLabel('cinematic_ai')}</span>
                 </span>
               </Link>
@@ -1203,11 +1205,11 @@ export default function KineoLanding({
                 {tileVid('cinematic_kling')}
                 <span className="trow">
                   <span className="tic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 8l6-3v14l-6-3"/><rect x="3" y="6" width="12" height="12" rx="2"/></svg></span>
-                  <span className="tb">Studio</span>
+                  <span className="tb"><UiLabel>Studio</UiLabel></span>
                 </span>
                 <span className="tbody">
                   <h3>Kling 2.5</h3>
-                  <p>Cinematic motion &amp; camera</p>
+                  <p><UiLabel>Cinematic motion &amp; camera</UiLabel></p>
                   <span className="tcredits">{creditLabel('cinematic_kling')}</span>
                 </span>
               </Link>
@@ -1215,11 +1217,11 @@ export default function KineoLanding({
                 {tileVid('cinematic_veo')}
                 <span className="trow">
                   <span className="tic"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9L12 2z"/><path d="M19 15l.9 2.6L22.5 18.5l-2.6.9L19 22l-.9-2.6-2.6-.9 2.6-.9L19 15z" opacity=".7"/></svg></span>
-                  <span className="tb">Studio</span>
+                  <span className="tb"><UiLabel>Studio</UiLabel></span>
                 </span>
                 <span className="tbody">
                   <h3>Veo 3.1</h3>
-                  <p>Google&rsquo;s flagship, on Studio</p>
+                  <p><UiLabel>Google&rsquo;s flagship, on Studio</UiLabel></p>
                   <span className="tcredits">{creditLabel('cinematic_veo')}</span>
                 </span>
               </Link>
@@ -1227,11 +1229,11 @@ export default function KineoLanding({
                 {tileVidLast('cinematic_hollywood')}
                 <span className="trow">
                   <span className="tic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 11l16-4-1-4L3 7l1 4z"/><path d="M4 11h16v9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-9z"/><path d="M8 7l2 4M13 5.7l2 4M18 4.4l2 4"/></svg></span>
-                  <span className="tb">Studio</span>
+                  <span className="tb"><UiLabel>Studio</UiLabel></span>
                 </span>
                 <span className="tbody">
                   <h3>Kling 3</h3>
-                  <p>Film scenes, native voice &amp; lip sync</p>
+                  <p><UiLabel>Film scenes, native voice &amp; lip sync</UiLabel></p>
                   <span className="tcredits">{creditLabel('cinematic_hollywood')}</span>
                 </span>
               </Link>
@@ -1239,11 +1241,11 @@ export default function KineoLanding({
                 {tileVid('presenter')}
                 <span className="trow">
                   <span className="tic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="10" cy="8" r="4"/><path d="M3 21c0-3.9 3.1-7 7-7 1.6 0 3.1.5 4.3 1.4"/><path d="M18 8c1 1.2 1 3 0 4.2M21 6c2 2.4 2 6 0 8.4"/></svg></span>
-                  <span className="tb">New</span>
+                  <span className="tb"><UiLabel>New</UiLabel></span>
                 </span>
                 <span className="tbody">
                   <h3>Avatar</h3>
-                  <p>Talking video from one photo</p>
+                  <p><UiLabel>Talking video from one photo</UiLabel></p>
                   <span className="tcredits">{creditLabel('avatar')}</span>
                 </span>
               </Link>
@@ -1268,7 +1270,7 @@ export default function KineoLanding({
                     ? 'Kineo-owned examples'
                     : 'Trending now'}
               </span>
-              <Link href="/examples" className="link tr-all">Explore all →</Link>
+              <Link href="/examples" className="link tr-all"><UiLabel>Explore all →</UiLabel></Link>
             </div>
             <TrendingRow videos={trending} />
           </div>
@@ -1277,11 +1279,11 @@ export default function KineoLanding({
 
       <section id="how">
         <div className="wrap">
-          <div className="sec-h"><span className="sec-eyebrow">How it works</span><h2>From idea to posted Short in 3 steps.</h2><p>No filming, no editing, no timeline. Type once — Kineo does the rest.</p></div>
+          <div className="sec-h"><span className="sec-eyebrow"><UiLabel>How it works</UiLabel></span><h2><UiLabel>From idea to posted Short in 3 steps.</UiLabel></h2><p><UiLabel>No filming, no editing, no timeline. Type once — Kineo does the rest.</UiLabel></p></div>
           <div className="steps">
-            <div className="step"><div className="n">Step 1</div><div className="sv sv1"><span>&ldquo;the island too dangerous to visit&rdquo;</span></div><h3>Type a topic</h3><p>One line — &ldquo;the island too dangerous to visit&rdquo; — or paste your own script. Pick a niche and go.</p></div>
-            <div className="step"><div className="n">Step 2</div><div className="sv sv2" aria-hidden="true"><i></i><i></i><i></i></div><h3>Kineo builds it</h3><p>AI writes a retention-structured script, records the voiceover, matches the footage and burns in captions — a finished 9:16 video.</p></div>
-            <div className="step"><div className="n">Step 3</div><div className="sv sv3" aria-hidden="true"><b>▶</b></div><h3>Download &amp; post</h3><p>Grab the clean MP4 and post to YouTube Shorts, TikTok or Reels. It&rsquo;s yours to keep and monetize.</p></div>
+            <div className="step"><div className="n"><UiLabel>Step 1</UiLabel></div><div className="sv sv1"><span><UiLabel>&ldquo;the island too dangerous to visit&rdquo;</UiLabel></span></div><h3><UiLabel>Type a topic</UiLabel></h3><p><UiLabel>One line — &ldquo;the island too dangerous to visit&rdquo; — or paste your own script. Pick a niche and go.</UiLabel></p></div>
+            <div className="step"><div className="n"><UiLabel>Step 2</UiLabel></div><div className="sv sv2" aria-hidden="true"><i></i><i></i><i></i></div><h3><UiLabel>Kineo builds it</UiLabel></h3><p><UiLabel>AI writes a retention-structured script, records the voiceover, matches the footage and burns in captions — a finished 9:16 video.</UiLabel></p></div>
+            <div className="step"><div className="n"><UiLabel>Step 3</UiLabel></div><div className="sv sv3" aria-hidden="true"><b>▶</b></div><h3><UiLabel>Download &amp; post</UiLabel></h3><p><UiLabel>Grab the clean MP4 and post to YouTube Shorts, TikTok or Reels. It&rsquo;s yours to keep and monetize.</UiLabel></p></div>
           </div>
         </div>
       </section>
@@ -1298,18 +1300,18 @@ export default function KineoLanding({
       <section id="compare">
         <div className="wrap">
           <div className="sec-h">
-            <span className="sec-eyebrow">Why Kineo</span>
-            <h2>One idea in. A finished Short out.</h2>
-            <p>
-              Most tools re-clip a long video you already filmed. Kineo builds it from scratch.{' '}
+            <span className="sec-eyebrow"><UiLabel>Why Kineo</UiLabel></span>
+            <h2><UiLabel>One idea in. A finished Short out.</UiLabel></h2>
+            <p><UiLabel>
+              Most tools re-clip a long video you already filmed. Kineo builds it from scratch.</UiLabel>{' '}
               <OrganicCtaLink
                 href="/ai-shorts-without-filming"
                 source="push50_home_no_camera"
                 placement="compare"
                 className="link"
-              >
+              ><UiLabel>
                 See how to make Shorts without filming →
-              </OrganicCtaLink>
+              </UiLabel></OrganicCtaLink>
             </p>
           </div>
           <div className="cmp"><table>
@@ -1319,25 +1321,25 @@ export default function KineoLanding({
                 virar o rotulo de cada linha do card, o que substitui o scroll
                 horizontal. Nenhum valor da tabela mudou. */}
             <tbody>
-              <tr><td>Generates the Short from just an idea</td><td className="us" data-label="Kineo">✓</td><td className="no" data-label="OpusClip">—</td><td className="no" data-label="HeyGen">partial</td><td className="no" data-label="Submagic">—</td></tr>
-              <tr><td>Writes the script for you</td><td className="us" data-label="Kineo">✓</td><td className="no" data-label="OpusClip">—</td><td className="no" data-label="HeyGen">—</td><td className="no" data-label="Submagic">—</td></tr>
-              <tr><td>AI voiceover included</td><td className="us" data-label="Kineo">✓</td><td className="no" data-label="OpusClip">—</td><td data-label="HeyGen">✓</td><td className="no" data-label="Submagic">—</td></tr>
-              <tr><td>Finds and matches footage</td><td className="us" data-label="Kineo">✓</td><td className="no" data-label="OpusClip">your upload</td><td className="no" data-label="HeyGen">avatar only</td><td className="no" data-label="Submagic">your upload</td></tr>
-              <tr><td>No per-minute caps</td><td className="us" data-label="Kineo">✓</td><td className="no" data-label="OpusClip">credits</td><td className="no" data-label="HeyGen">credits</td><td className="no" data-label="Submagic">—</td></tr>
-              <tr><td>Reusable AI host — same voice &amp; style every episode</td><td className="us" data-label="Kineo">✓</td><td className="no" data-label="OpusClip">—</td><td data-label="HeyGen">✓</td><td className="no" data-label="Submagic">—</td></tr>
+              <tr><td><UiLabel>Generates the Short from just an idea</UiLabel></td><td className="us" data-label="Kineo">✓</td><td className="no" data-label="OpusClip">—</td><td className="no" data-label="HeyGen"><UiLabel>partial</UiLabel></td><td className="no" data-label="Submagic">—</td></tr>
+              <tr><td><UiLabel>Writes the script for you</UiLabel></td><td className="us" data-label="Kineo">✓</td><td className="no" data-label="OpusClip">—</td><td className="no" data-label="HeyGen">—</td><td className="no" data-label="Submagic">—</td></tr>
+              <tr><td><UiLabel>AI voiceover included</UiLabel></td><td className="us" data-label="Kineo">✓</td><td className="no" data-label="OpusClip">—</td><td data-label="HeyGen">✓</td><td className="no" data-label="Submagic">—</td></tr>
+              <tr><td><UiLabel>Finds and matches footage</UiLabel></td><td className="us" data-label="Kineo">✓</td><td className="no" data-label="OpusClip"><UiLabel>your upload</UiLabel></td><td className="no" data-label="HeyGen"><UiLabel>avatar only</UiLabel></td><td className="no" data-label="Submagic"><UiLabel>your upload</UiLabel></td></tr>
+              <tr><td><UiLabel>No per-minute caps</UiLabel></td><td className="us" data-label="Kineo">✓</td><td className="no" data-label="OpusClip"><UiLabel>credits</UiLabel></td><td className="no" data-label="HeyGen"><UiLabel>credits</UiLabel></td><td className="no" data-label="Submagic">—</td></tr>
+              <tr><td><UiLabel>Reusable AI host — same voice &amp; style every episode</UiLabel></td><td className="us" data-label="Kineo">✓</td><td className="no" data-label="OpusClip">—</td><td data-label="HeyGen">✓</td><td className="no" data-label="Submagic">—</td></tr>
               {/* KINEO-PRELAUNCH-PATH-2026-08-08 — esta celula era o UNICO literal
                   de free tier da tabela que nunca passou por ft(). Com a flag ON
                   o produto entrega trial Creator (40 creditos, export limpo) e a
                   home ainda anunciava "3 / day" — uma promessa MENOR do que a real
                   e, pior, uma que o servidor recusa (o free ON e 1 Fast/mes).
                   Flag OFF devolve "3 / day" byte a byte. */}
-              <tr><td>Free videos, no credit card</td><td className="us" data-label="Kineo">{ft(OFFER, '3 / day', `${TRIAL_GRANT_CREDITS_COPY}-credit trial`)}</td><td className="no" data-label="OpusClip">limited</td><td className="no" data-label="HeyGen">trial</td><td className="no" data-label="Submagic">trial</td></tr>
+              <tr><td><UiLabel>Free videos, no credit card</UiLabel></td><td className="us" data-label="Kineo"><UiLabel>{ft(OFFER, '3 / day', `${TRIAL_GRANT_CREDITS_COPY}-credit trial`)}</UiLabel></td><td className="no" data-label="OpusClip"><UiLabel>limited</UiLabel></td><td className="no" data-label="HeyGen"><UiLabel>trial</UiLabel></td><td className="no" data-label="Submagic"><UiLabel>trial</UiLabel></td></tr>
               {/* KINEO-CEO-HOUR-2026-08-17 (#2) — as 3 features que NENHUM
                   re-clipper tem: viram linhas da comparacao (e snippet de SEO). */}
-              <tr><td>AI image studio included</td><td className="us" data-label="Kineo">6 engines</td><td className="no" data-label="OpusClip">—</td><td className="no" data-label="HeyGen">—</td><td className="no" data-label="Submagic">—</td></tr>
-              <tr><td>Voice studio (text-to-speech)</td><td className="us" data-label="Kineo">4 engines</td><td className="no" data-label="OpusClip">—</td><td className="no" data-label="HeyGen">limited</td><td className="no" data-label="Submagic">—</td></tr>
-              <tr><td>One-click HD film enhance</td><td className="us" data-label="Kineo">Topaz ✓</td><td className="no" data-label="OpusClip">—</td><td className="no" data-label="HeyGen">—</td><td className="no" data-label="Submagic">—</td></tr>
-              <tr><td>Starting price</td><td className="us" data-label="Kineo">{usdPrice(TIER_PRICES.starter.usd)}/mo</td><td data-label="OpusClip">$15/mo</td><td data-label="HeyGen">$29/mo</td><td data-label="Submagic">$19/mo</td></tr>
+              <tr><td><UiLabel>AI image studio included</UiLabel></td><td className="us" data-label="Kineo"><UiLabel>6 engines</UiLabel></td><td className="no" data-label="OpusClip">—</td><td className="no" data-label="HeyGen">—</td><td className="no" data-label="Submagic">—</td></tr>
+              <tr><td><UiLabel>Voice studio (text-to-speech)</UiLabel></td><td className="us" data-label="Kineo"><UiLabel>4 engines</UiLabel></td><td className="no" data-label="OpusClip">—</td><td className="no" data-label="HeyGen"><UiLabel>limited</UiLabel></td><td className="no" data-label="Submagic">—</td></tr>
+              <tr><td><UiLabel>One-click HD film enhance</UiLabel></td><td className="us" data-label="Kineo">Topaz ✓</td><td className="no" data-label="OpusClip">—</td><td className="no" data-label="HeyGen">—</td><td className="no" data-label="Submagic">—</td></tr>
+              <tr><td><UiLabel>Starting price</UiLabel></td><td className="us" data-label="Kineo">{usdPrice(TIER_PRICES.starter.usd)}<UiLabel>/mo</UiLabel></td><td data-label="OpusClip">$15/mo</td><td data-label="HeyGen">$29/mo</td><td data-label="Submagic">$19/mo</td></tr>
             </tbody>
           </table></div>
           <p style={{ marginTop: 12, textAlign: 'center', fontSize: 12, color: 'var(--muted2)' }}>✓ included&nbsp;&nbsp;·&nbsp;&nbsp;— not available</p>
@@ -1347,9 +1349,9 @@ export default function KineoLanding({
               source="push50_home_alternatives"
               placement="compare_table"
               className="link"
-            >
+            ><UiLabel>
               Compare Kineo with 27 AI video tools →
-            </OrganicCtaLink>
+            </UiLabel></OrganicCtaLink>
           </div>
           <LiveStatsBand />
         </div>
@@ -1359,55 +1361,55 @@ export default function KineoLanding({
         <div className="wrap">
           {/* KINEO-SHOWCASE-2026-07-10 — toolkit expanded to 8 cards (2 rows):
               the 4 new avatar-suite features on top, evergreen tools below. */}
-          <div className="sec-h"><span className="sec-eyebrow">The toolkit</span><h2>One idea — or a whole toolkit.</h2><p>Talking presenters, reusable characters, transparent clips, product ads — plus everything to find and ride a trend.</p></div>
+          <div className="sec-h"><span className="sec-eyebrow"><UiLabel>The toolkit</UiLabel></span><h2><UiLabel>One idea — or a whole toolkit.</UiLabel></h2><p><UiLabel>Talking presenters, reusable characters, transparent clips, product ads — plus everything to find and ride a trend.</UiLabel></p></div>
           <div className="tools">
             <Link href="/avatar" className="tcard">
               <span className="tico">{TOOL_ICONS.presenter}</span>
-              <h3>AI Presenter <span className="badge">New</span></h3>
-              <p>One photo + your script — a talking video with studio-grade lip-sync, HeyGen-style.</p>
-              <span className="tlink">Try AI Presenter →</span>
+              <h3><UiLabel>AI Presenter </UiLabel><span className="badge"><UiLabel>New</UiLabel></span></h3>
+              <p><UiLabel>One photo + your script — a talking video with studio-grade lip-sync, HeyGen-style.</UiLabel></p>
+              <span className="tlink"><UiLabel>Try AI Presenter →</UiLabel></span>
             </Link>
             <Link href="/avatar" className="tcard">
               <span className="tico">{TOOL_ICONS.lock}</span>
               <h3>Character Lock</h3>
-              <p>Save a character once — the exact same face in every video and thumbnail you make.</p>
-              <span className="tlink">Lock a character →</span>
+              <p><UiLabel>Save a character once — the exact same face in every video and thumbnail you make.</UiLabel></p>
+              <span className="tlink"><UiLabel>Lock a character →</UiLabel></span>
             </Link>
             <Link href="/avatar" className="tcard">
               <span className="tico">{TOOL_ICONS.transparent}</span>
-              <h3>Transparent Clips</h3>
-              <p>Presenter gestures — wave, point, present — as WebM with a real transparent background.</p>
-              <span className="tlink">Make a clip →</span>
+              <h3><UiLabel>Transparent Clips</UiLabel></h3>
+              <p><UiLabel>Presenter gestures — wave, point, present — as WebM with a real transparent background.</UiLabel></p>
+              <span className="tlink"><UiLabel>Make a clip →</UiLabel></span>
             </Link>
             <Link href="/avatar" className="tcard">
               <span className="tico">{TOOL_ICONS.product}</span>
-              <h3>UGC Product Ads</h3>
-              <p>Paste any product — get a 15-30s creator-style ad, scripted and spoken for you.</p>
-              <span className="tlink">Make an ad →</span>
+              <h3><UiLabel>UGC Product Ads</UiLabel></h3>
+              <p><UiLabel>Paste any product — get a 15-30s creator-style ad, scripted and spoken for you.</UiLabel></p>
+              <span className="tlink"><UiLabel>Make an ad →</UiLabel></span>
             </Link>
             <Link href="/animate" className="tcard">
               <span className="tico">{TOOL_ICONS.animate}</span>
-              <h3>Animate a Photo</h3>
-              <p>Bring any still photo to life as a moving, postable video.</p>
-              <span className="tlink">Animate a photo →</span>
+              <h3><UiLabel>Animate a Photo</UiLabel></h3>
+              <p><UiLabel>Bring any still photo to life as a moving, postable video.</UiLabel></p>
+              <span className="tlink"><UiLabel>Animate a photo →</UiLabel></span>
             </Link>
             <Link href="/thumbnail-generator" className="tcard">
               <span className="tico">{TOOL_ICONS.thumbnail}</span>
-              <h3>AI Thumbnails</h3>
-              <p>Click-worthy thumbnails in the style of the biggest channels — from a prompt.</p>
-              <span className="tlink">Make a thumbnail →</span>
+              <h3><UiLabel>AI Thumbnails</UiLabel></h3>
+              <p><UiLabel>Click-worthy thumbnails in the style of the biggest channels — from a prompt.</UiLabel></p>
+              <span className="tlink"><UiLabel>Make a thumbnail →</UiLabel></span>
             </Link>
             <Link href="/viral-now" className="tcard">
               <span className="tico">{TOOL_ICONS.viral}</span>
               <h3>Viral Now</h3>
-              <p>Today&apos;s trending topics, ready to turn into a Short with one click.</p>
-              <span className="tlink">See what&apos;s trending →</span>
+              <p><UiLabel>Today&apos;s trending topics, ready to turn into a Short with one click.</UiLabel></p>
+              <span className="tlink"><UiLabel>See what&apos;s trending →</UiLabel></span>
             </Link>
             <Link href="/free-ai-shorts-generator" className="tcard">
               <span className="tico">{TOOL_ICONS.bolt}</span>
-              <h3>Free AI Shorts</h3>
-              <p>Type one idea and test the full Fast workflow with no card.</p>
-              <span className="tlink">Generate free →</span>
+              <h3><UiLabel>Free AI Shorts</UiLabel></h3>
+              <p><UiLabel>Type one idea and test the full Fast workflow with no card.</UiLabel></p>
+              <span className="tlink"><UiLabel>Generate free →</UiLabel></span>
             </Link>
           </div>
         </div>
@@ -1415,29 +1417,29 @@ export default function KineoLanding({
 
       <section id="niches">
         <div className="wrap">
-          <div className="sec-h"><span className="sec-eyebrow">Pick a lane</span><h2>Start with a niche that already works.</h2><p>Every niche below has its own generator page, tuned prompts and real examples.</p></div>
+          <div className="sec-h"><span className="sec-eyebrow"><UiLabel>Pick a lane</UiLabel></span><h2><UiLabel>Start with a niche that already works.</UiLabel></h2><p><UiLabel>Every niche below has its own generator page, tuned prompts and real examples.</UiLabel></p></div>
           <div className="niches">
-            <Link href="/free-ai-shorts/mystery">Mystery</Link>
-            <Link href="/free-ai-shorts/money">Money</Link>
-            <Link href="/free-ai-shorts/truecrime">True Crime</Link>
-            <Link href="/free-ai-shorts/luxury">Billionaires</Link>
-            <Link href="/free-ai-shorts/history">History</Link>
-            <Link href="/free-ai-shorts/facts">Facts</Link>
-            <Link href="/free-ai-shorts/ai">AI</Link>
-            <Link href="/free-ai-shorts/space">Space</Link>
-            <Link href="/free-ai-shorts/psychology">Psychology</Link>
-            <Link href="/free-ai-shorts/motivation">Motivation</Link>
-            <Link href="/free-ai-shorts/horror">Horror</Link>
-            <Link href="/free-ai-shorts/geography">Geography</Link>
-            <Link href="/free-ai-shorts/stoicism">Stoicism</Link>
-            <Link href="/niche-picker">Not sure? Take the quiz →</Link>
+            <Link href="/free-ai-shorts/mystery"><UiLabel>Mystery</UiLabel></Link>
+            <Link href="/free-ai-shorts/money"><UiLabel>Money</UiLabel></Link>
+            <Link href="/free-ai-shorts/truecrime"><UiLabel>True Crime</UiLabel></Link>
+            <Link href="/free-ai-shorts/luxury"><UiLabel>Billionaires</UiLabel></Link>
+            <Link href="/free-ai-shorts/history"><UiLabel>History</UiLabel></Link>
+            <Link href="/free-ai-shorts/facts"><UiLabel>Facts</UiLabel></Link>
+            <Link href="/free-ai-shorts/ai"><UiLabel>AI</UiLabel></Link>
+            <Link href="/free-ai-shorts/space"><UiLabel>Space</UiLabel></Link>
+            <Link href="/free-ai-shorts/psychology"><UiLabel>Psychology</UiLabel></Link>
+            <Link href="/free-ai-shorts/motivation"><UiLabel>Motivation</UiLabel></Link>
+            <Link href="/free-ai-shorts/horror"><UiLabel>Horror</UiLabel></Link>
+            <Link href="/free-ai-shorts/geography"><UiLabel>Geography</UiLabel></Link>
+            <Link href="/free-ai-shorts/stoicism"><UiLabel>Stoicism</UiLabel></Link>
+            <Link href="/niche-picker"><UiLabel>Not sure? Take the quiz →</UiLabel></Link>
           </div>
         </div>
       </section>
 
       <section id="pricing">
         <div className="wrap">
-          <div className="sec-h"><span className="sec-eyebrow">Pricing</span><h2>Simple pricing. Try Fast free first.</h2><p>{ft(OFFER, 'Create, download and share up to 3 watermarked Fast videos every 24h, no card.', OFFER.copy.headline)} Paid plans unlock clean MP4s.</p></div>
+          <div className="sec-h"><span className="sec-eyebrow"><UiLabel>Pricing</UiLabel></span><h2><UiLabel>Simple pricing. Try Fast free first.</UiLabel></h2><p><UiLabel>{ft(OFFER, 'Create, download and share up to 3 watermarked Fast videos every 24h, no card.', OFFER.copy.headline)}</UiLabel><UiLabel> Paid plans unlock clean MP4s.</UiLabel></p></div>
           <HomePricingCheckoutGroup isSignedIn={isSignedIn}>
           <div className="price">
             {/* Signed-in buyers go straight to Stripe. Signed-out buyers go to
@@ -1451,7 +1453,7 @@ export default function KineoLanding({
             <div className="plan">
               {/* KINEO-PRICING-V5-2026-08-17 (fundador): $4.90 morreu; Starter
                   e $9.90/60cr direto e o card fala em FILMES, nao em creditos. */}
-              <div className="pt">Best for starting out</div><div className="nm">Starter</div>
+              <div className="pt"><UiLabel>Best for starting out</UiLabel></div><div className="nm">Starter</div>
               {/* KINEO-REGIONAL-VITRINE-2026-08-19 — o checkout JA cobra
                   $4.99/₹399/R$24,90 na regiao value desde 04/08, mas a home
                   mostrava $9.90 chumbado pra Índia/Nigéria/etc (70 signups IN
@@ -1465,25 +1467,25 @@ export default function KineoLanding({
                   os números sozinho. */}
               <ul>
                 <li><span className="ck">✓</span> <b>{filmsAndScenes('starter')}</b></li>
-                <li><span className="ck">✓</span> Up to <b>{imagesFor('starter')} AI images</b> — {nanoBananasFor('starter')} on Nano Banana</li>
-                <li><span className="ck">✓</span> <b>{voiceoversFor('starter')} AI voiceovers</b> · 4 voices</li>
-                <li><span className="ck">✓</span> Every video engine incl. MiniMax H3</li>
-                <li><span className="ck">✓</span> Watermark-free MP4 · 100 projects · 90-day storage</li>
+                <li><span className="ck">✓</span><UiLabel> Up to </UiLabel><b>{imagesFor('starter')}<UiLabel> AI images</UiLabel></b> — {nanoBananasFor('starter')}<UiLabel> on Nano Banana</UiLabel></li>
+                <li><span className="ck">✓</span> <b>{voiceoversFor('starter')}<UiLabel> AI voiceovers</UiLabel></b><UiLabel> · 4 voices</UiLabel></li>
+                <li><span className="ck">✓</span><UiLabel> Every video engine incl. MiniMax H3</UiLabel></li>
+                <li><span className="ck">✓</span><UiLabel> Watermark-free MP4 · 100 projects · 90-day storage</UiLabel></li>
               </ul>
               <HomePricingCheckoutLink href={starterCheckoutHref} tier="starter"><LandingPlanPrice tier="starter" variant="cta" ctaLabel="Start" /></HomePricingCheckoutLink>
             </div>
             <div className="plan pop">
               {/* KINEO-PRICING-V5-2026-08-17 — $19.90/140cr: 7 filmes PRONTOS
                   vs InVideo Plus $25 sem motor premium nenhum. */}
-              <div className="pt">Most popular</div><div className="nm">Creator</div>
+              <div className="pt"><UiLabel>Most popular</UiLabel></div><div className="nm">Creator</div>
               <div className="pr"><LandingPlanPrice tier="basic" variant="big" /></div>
               <ul>
-                <li><span className="ck">✓</span> <b>{filmsAndScenes('basic')}</b>, finished</li>
-                <li><span className="ck">✓</span> Or <b>{filmsOn('basic', 'cinematic_kling')} Kling 2.5 cinematic films</b> — every engine unlocked</li>
-                <li><span className="ck">✓</span> Up to <b>{imagesFor('basic')} AI images</b> — {nanoBananasFor('basic')} on Nano Banana</li>
-                <li><span className="ck">✓</span> <b>{voiceoversFor('basic')} AI voiceovers</b> · voice + karaoke captions + score</li>
-                <li><span className="ck">✓</span> 500 projects · forever storage</li>
-                <li><span className="ck">✓</span> Cancel anytime — 7-day money-back</li>
+                <li><span className="ck">✓</span> <b>{filmsAndScenes('basic')}</b><UiLabel>, finished</UiLabel></li>
+                <li><span className="ck">✓</span><UiLabel> Or </UiLabel><b>{filmsOn('basic', 'cinematic_kling')}<UiLabel> Kling 2.5 cinematic films</UiLabel></b><UiLabel> — every engine unlocked</UiLabel></li>
+                <li><span className="ck">✓</span><UiLabel> Up to </UiLabel><b>{imagesFor('basic')}<UiLabel> AI images</UiLabel></b> — {nanoBananasFor('basic')}<UiLabel> on Nano Banana</UiLabel></li>
+                <li><span className="ck">✓</span> <b>{voiceoversFor('basic')}<UiLabel> AI voiceovers</UiLabel></b><UiLabel> · voice + karaoke captions + score</UiLabel></li>
+                <li><span className="ck">✓</span><UiLabel> 500 projects · forever storage</UiLabel></li>
+                <li><span className="ck">✓</span><UiLabel> Cancel anytime — 7-day money-back</UiLabel></li>
               </ul>
               <HomePricingCheckoutLink href={creatorCheckoutHref} tier="basic"><LandingPlanPrice tier="basic" variant="cta" ctaLabel="Go Creator" /></HomePricingCheckoutLink>
             </div>
@@ -1491,15 +1493,15 @@ export default function KineoLanding({
               {/* KINEO-PRICING-V5-2026-08-17 — $39.90/320cr: volume + Kling 3
                   todo mes + 2 Enhance HD gratis + storage ilimitado. 20% abaixo
                   do Higgsfield Plus ($49), entregando filme pronto. */}
-              <div className="pt">Best value per film</div><div className="nm">Studio</div>
+              <div className="pt"><UiLabel>Best value per film</UiLabel></div><div className="nm"><UiLabel>Studio</UiLabel></div>
               <div className="pr"><LandingPlanPrice tier="pro" variant="big" /></div>
               <ul>
                 <li><span className="ck">✓</span> <b>{filmsAndScenes('pro')}</b></li>
-                <li><span className="ck">✓</span> Or <b>{filmsOn('pro', 'cinematic_omni')} films on Omni Flash</b> — the #1-ranked model</li>
-                <li><span className="ck">✓</span> Up to <b>{imagesFor('pro')} AI images</b> — {nanoBananasFor('pro')} on Nano Banana</li>
-                <li><span className="ck">✓</span> <b>{voiceoversFor('pro')} AI voiceovers</b> · 2 free HD enhances / month</li>
-                <li><span className="ck">✓</span> Unlimited projects · forever storage</li>
-                <li><span className="ck">✓</span> Everything in Creator</li>
+                <li><span className="ck">✓</span><UiLabel> Or </UiLabel><b>{filmsOn('pro', 'cinematic_omni')}<UiLabel> films on Omni Flash</UiLabel></b><UiLabel> — the #1-ranked model</UiLabel></li>
+                <li><span className="ck">✓</span><UiLabel> Up to </UiLabel><b>{imagesFor('pro')}<UiLabel> AI images</UiLabel></b> — {nanoBananasFor('pro')}<UiLabel> on Nano Banana</UiLabel></li>
+                <li><span className="ck">✓</span> <b>{voiceoversFor('pro')}<UiLabel> AI voiceovers</UiLabel></b><UiLabel> · 2 free HD enhances / month</UiLabel></li>
+                <li><span className="ck">✓</span><UiLabel> Unlimited projects · forever storage</UiLabel></li>
+                <li><span className="ck">✓</span><UiLabel> Everything in Creator</UiLabel></li>
               </ul>
               <HomePricingCheckoutLink href={studioCheckoutHref} tier="pro"><LandingPlanPrice tier="pro" variant="cta" ctaLabel="Go Studio" /></HomePricingCheckoutLink>
             </div>
@@ -1508,16 +1510,16 @@ export default function KineoLanding({
           {/* KINEO-SPRINT-OFFER-2026-07-14 — the "10 videos for $4.90 one-time"
               note is gone (single-offer cleanup; ?pack=starter stays alive for
               the watermark unlock only). The intro month is the entry path. */}
-          <div className="snote">Try it first: <b>{ft(OFFER, 'create, watch, download and share up to 3 Fast videos every 24h', `every new account gets ${TRIAL_GRANT_CREDITS_COPY} free credits with every engine unlocked, Kling 3 included`)}</b>{ft(OFFER, ' — no card, watermark included.', ' — no card.')}</div>
+          <div className="snote"><UiLabel>Try it first: </UiLabel><b><UiLabel>{ft(OFFER, 'create, watch, download and share up to 3 Fast videos every 24h', `every new account gets ${TRIAL_GRANT_CREDITS_COPY} free credits with every engine unlocked, Kling 3 included`)}</UiLabel></b><UiLabel>{ft(OFFER, ' — no card, watermark included.', ' — no card.')}</UiLabel></div>
           {/* KINEO-CRO-2026-07-25 — payment-trust line to lower checkout anxiety. */}
-          <p style={{ marginTop: 14, textAlign: 'center', fontSize: 12.5, letterSpacing: '.02em', color: 'var(--muted2)' }}>
+          <p style={{ marginTop: 14, textAlign: 'center', fontSize: 12.5, letterSpacing: '.02em', color: 'var(--muted2)' }}><UiLabel>
             Secure checkout by Stripe&nbsp;·&nbsp;Cancel in one click&nbsp;·&nbsp;Credits refunded automatically if a render fails
-          </p>
+          </UiLabel></p>
           <div className="pricing-more" style={{ display: 'flex', justifyContent: 'center', gap: 18, flexWrap: 'wrap' }}>
-            <Link className="link" href="/pricing">Full pricing, FAQ &amp; plan comparison →</Link>
-            <CostCalculatorLink className="link" placement="home_pricing" >Calculate your cost per Short →</CostCalculatorLink>
-            <Link className="link" href="/how-much-do-youtube-shorts-pay">How much do Shorts pay? →</Link>
-            <Link className="link" href="/youtube-shorts-rpm-by-niche">Highest-RPM niches →</Link>
+            <Link className="link" href="/pricing"><UiLabel>Full pricing, FAQ &amp; plan comparison →</UiLabel></Link>
+            <CostCalculatorLink className="link" placement="home_pricing" ><UiLabel>Calculate your cost per Short →</UiLabel></CostCalculatorLink>
+            <Link className="link" href="/how-much-do-youtube-shorts-pay"><UiLabel>How much do Shorts pay? →</UiLabel></Link>
+            <Link className="link" href="/youtube-shorts-rpm-by-niche"><UiLabel>Highest-RPM niches →</UiLabel></Link>
           </div>
         </div>
       </section>
@@ -1525,7 +1527,7 @@ export default function KineoLanding({
       <section id="from-the-founder">
         <div className="wrap">
           <div className="fnote">
-            <span className="sec-eyebrow" style={{ marginBottom: 18 }}>From the founder</span>
+            <span className="sec-eyebrow" style={{ marginBottom: 18 }}><UiLabel>From the founder</UiLabel></span>
             <p>&ldquo;I built Kineo because making faceless Shorts took a whole toolchain — a script tool, a voice tool, an editor, stock sites. It should take one idea and a few minutes. Every video this thing renders gets me closer to that. If something gets in your way, email me: it lands in my inbox, not a ticket queue.&rdquo;</p>
             <div className="sig"><b>Joseph</b> — founder, Kineo &nbsp;·&nbsp; hello@usekineo.com</div>
           </div>
@@ -1534,7 +1536,7 @@ export default function KineoLanding({
 
       <section id="faq">
         <div className="wrap">
-          <div className="sec-h"><span className="sec-eyebrow">FAQ</span><h2>Common questions</h2></div>
+          <div className="sec-h"><span className="sec-eyebrow">FAQ</span><h2><UiLabel>Common questions</UiLabel></h2></div>
           <div className="faq">
             {/* KINEO-PRELAUNCH-PATH-2026-08-08 — as duas respostas abaixo eram
                 literais fixos e contradiziam a resposta "Is there a watermark?"
@@ -1542,28 +1544,28 @@ export default function KineoLanding({
                 dizia, em tres paragrafos seguidos, que o download gratis TEM e
                 NAO TEM marca d'agua. Flag OFF devolve as frases atuais byte a
                 byte; o texto fora do ft() nao mudou. */}
-            <details className="qa"><summary><h3>Is the video really mine to post?</h3></summary><p>{ft(OFFER, 'Yes. Never-paid free users can download, share and post the watermarked MP4.', 'Trial films carry a small watermark — you can download, share and post the MP4. After the trial, the free Fast video carries a watermark.')} Paid plans unlock the clean, watermark-free MP4 for YouTube, TikTok or Reels.</p></details>
-            <details className="qa"><summary><h3>Do I need any editing skills?</h3></summary><p>None. You type one idea and the AI writes the script, records the voice, finds the footage and adds captions. {ft(OFFER, 'Free downloads carry a watermark; paid plans unlock the clean MP4.', 'Trial downloads carry a watermark, and so does the free Fast video after the trial, and paid plans always export clean.')}</p></details>
-            <details className="qa"><summary><h3>Is there a watermark?</h3></summary><p>{ft(OFFER, 'Free access gives new users up to 3 watermarked Fast videos every 24 hours, with no card. You can download and share them.', `New accounts get ${TRIAL_GRANT_CREDITS_COPY} credits with every engine unlocked, watermarked; after it ends, free access gives 1 watermarked Fast video per month that you can download and share.`)} Paid plans export clean, watermark-free MP4s.</p></details>
+            <details className="qa"><summary><h3><UiLabel>Is the video really mine to post?</UiLabel></h3></summary><p><UiLabel>{ft(OFFER, 'Yes. Never-paid free users can download, share and post the watermarked MP4.', 'Trial films carry a small watermark — you can download, share and post the MP4. After the trial, the free Fast video carries a watermark.')}</UiLabel><UiLabel> Paid plans unlock the clean, watermark-free MP4 for YouTube, TikTok or Reels.</UiLabel></p></details>
+            <details className="qa"><summary><h3><UiLabel>Do I need any editing skills?</UiLabel></h3></summary><p><UiLabel>None. You type one idea and the AI writes the script, records the voice, finds the footage and adds captions. </UiLabel><UiLabel>{ft(OFFER, 'Free downloads carry a watermark; paid plans unlock the clean MP4.', 'Trial downloads carry a watermark, and so does the free Fast video after the trial, and paid plans always export clean.')}</UiLabel></p></details>
+            <details className="qa"><summary><h3><UiLabel>Is there a watermark?</UiLabel></h3></summary><p><UiLabel>{ft(OFFER, 'Free access gives new users up to 3 watermarked Fast videos every 24 hours, with no card. You can download and share them.', `New accounts get ${TRIAL_GRANT_CREDITS_COPY} credits with every engine unlocked, watermarked; after it ends, free access gives 1 watermarked Fast video per month that you can download and share.`)}</UiLabel><UiLabel> Paid plans export clean, watermark-free MP4s.</UiLabel></p></details>
             {/* KINEO-CEO-HOUR-2026-08-17 (#9) — os produtos novos entram no FAQ */}
-            <details className="qa"><summary><h3>Can Kineo also generate images and voiceovers?</h3></summary><p>Yes — Kineo includes an AI image studio (6 engines including FLUX, Seedream and Nano Banana Pro, from 1 credit per image) and a voice studio with 4 text-to-speech engines (from 1 credit per 1000 characters). Everything you make lives in your Library.</p></details>
-            <details className="qa"><summary><h3>Can I make my videos sharper?</h3></summary><p>Every video has a one-click Enhance option powered by Topaz film restoration — it removes compression artifacts, recovers detail and adds fine cinematic grain. 10 credits per video; the Studio plan includes 2 free enhances a month.</p></details>
-            <details className="qa"><summary><h3>Can I use my own script?</h3></summary><p>Yes — paste your script and pick &ldquo;Use my script as is&rdquo; and the AI narrates it word for word.</p></details>
-            <details className="qa"><summary><h3>What if a generation fails?</h3></summary><p>Your credits come back automatically the moment a render fails — no support ticket, no waiting. You only pay for videos you actually get.</p></details>
+            <details className="qa"><summary><h3><UiLabel>Can Kineo also generate images and voiceovers?</UiLabel></h3></summary><p><UiLabel>Yes — Kineo includes an AI image studio (6 engines including FLUX, Seedream and Nano Banana Pro, from 1 credit per image) and a voice studio with 4 text-to-speech engines (from 1 credit per 1000 characters). Everything you make lives in your Library.</UiLabel></p></details>
+            <details className="qa"><summary><h3><UiLabel>Can I make my videos sharper?</UiLabel></h3></summary><p><UiLabel>Every video has a one-click Enhance option powered by Topaz film restoration — it removes compression artifacts, recovers detail and adds fine cinematic grain. 10 credits per video; the Studio plan includes 2 free enhances a month.</UiLabel></p></details>
+            <details className="qa"><summary><h3><UiLabel>Can I use my own script?</UiLabel></h3></summary><p><UiLabel>Yes — paste your script and pick &ldquo;Use my script as is&rdquo; and the AI narrates it word for word.</UiLabel></p></details>
+            <details className="qa"><summary><h3><UiLabel>What if a generation fails?</UiLabel></h3></summary><p><UiLabel>Your credits come back automatically the moment a render fails — no support ticket, no waiting. You only pay for videos you actually get.</UiLabel></p></details>
             {/* KINEO-SPRINT-OFFER-2026-07-14 — "credits never expire" was the
                 old one-time-pack promise; plan credits refresh monthly (no
                 rollover), same as the /pricing FAQ says. Copy aligned. */}
-            <details className="qa"><summary><h3>Can I cancel anytime?</h3></summary><p>Anytime, in one click. Plans are month to month and your credits refresh every month.</p></details>
+            <details className="qa"><summary><h3><UiLabel>Can I cancel anytime?</UiLabel></h3></summary><p><UiLabel>Anytime, in one click. Plans are month to month and your credits refresh every month.</UiLabel></p></details>
             {/* KINEO-CRO-2026-07-25 — objection-busting Q&As (also mirrored in components/StructuredData.tsx FAQPage schema). */}
-            <details className="qa"><summary><h3>Can I run a whole channel with the same host?</h3></summary><p>Yes — that&rsquo;s the point. Keep the same voice, style and captions across every episode so your channel looks consistent, without filming a single frame.</p></details>
-            <details className="qa"><summary><h3>Can I monetize the videos?</h3></summary><p>Yes. Every video is yours to keep, post and monetize — including the YouTube Partner Program, TikTok and Reels. No extra license needed.</p></details>
+            <details className="qa"><summary><h3><UiLabel>Can I run a whole channel with the same host?</UiLabel></h3></summary><p><UiLabel>Yes — that&rsquo;s the point. Keep the same voice, style and captions across every episode so your channel looks consistent, without filming a single frame.</UiLabel></p></details>
+            <details className="qa"><summary><h3><UiLabel>Can I monetize the videos?</UiLabel></h3></summary><p><UiLabel>Yes. Every video is yours to keep, post and monetize — including the YouTube Partner Program, TikTok and Reels. No extra license needed.</UiLabel></p></details>
             {/* [KINEO-COMMERCIAL-LICENSE-2026-08-12] — "posso vender pro meu
                 cliente?" e uma pergunta DIFERENTE de "posso monetizar?" (a
                 de cima), e e a primeira que uma agencia faz. Texto identico
                 byte a byte ao FAQ de /pricing e ao FAQPage JSON-LD em
                 components/StructuredData.tsx — mudar nos tres ou em nenhum. */}
-            <details className="qa"><summary><h3>Can I use the videos commercially, or for client work?</h3></summary><p>Yes. Our terms let you use Kineo for lawful personal or commercial purposes and confirm that you keep ownership of the videos you generate, so you can post them, monetize them and deliver them to a client as part of your own paid service. No extra license, no per-video royalty. Two limits come from the same terms: you cannot resell or redistribute Kineo itself, and the stock clips inside a render are licensed for use in your finished video, not for re-upload as standalone stock footage. Paid plans export the clean, watermark-free MP4.</p></details>
-            <details className="qa"><summary><h3>How long does one video take?</h3></summary><p>Fast Mode usually finishes in 3–7 minutes. AI-generated and cinematic videos take a little longer because every scene is generated before the final MP4 is composed.</p></details>
+            <details className="qa"><summary><h3><UiLabel>Can I use the videos commercially, or for client work?</UiLabel></h3></summary><p><UiLabel>Yes. Our terms let you use Kineo for lawful personal or commercial purposes and confirm that you keep ownership of the videos you generate, so you can post them, monetize them and deliver them to a client as part of your own paid service. No extra license, no per-video royalty. Two limits come from the same terms: you cannot resell or redistribute Kineo itself, and the stock clips inside a render are licensed for use in your finished video, not for re-upload as standalone stock footage. Paid plans export the clean, watermark-free MP4.</UiLabel></p></details>
+            <details className="qa"><summary><h3><UiLabel>How long does one video take?</UiLabel></h3></summary><p><UiLabel>Fast Mode usually finishes in 3–7 minutes. AI-generated and cinematic videos take a little longer because every scene is generated before the final MP4 is composed.</UiLabel></p></details>
             {/* KINEO-AEO-PRICE-TRUTH-2026-08-19 — as tres perguntas abaixo sao
                 escritas na FORMA em que a pessoa digita no ChatGPT, nao na
                 forma de FAQ institucional. 205 dos 245 cadastros desta semana
@@ -1573,9 +1575,9 @@ export default function KineoLanding({
                 verbatim em components/StructuredData.tsx (faqSchema) — mudar
                 nos dois ou em nenhum, senao o JSON-LD vira sinal de spam.
                 Precos vem de checkoutPricing.ts: nunca digitar a mao. */}
-            <details className="qa"><summary><h3>How much does Kineo cost?</h3></summary><p>Kineo has three monthly plans: Starter at ${usdPrice(TIER_PRICES.starter.usd)} for {TIER_CREDITS.starter} credits, Creator at ${usdPrice(TIER_PRICES.basic.usd)} for {TIER_CREDITS.basic} credits and Studio at ${usdPrice(TIER_PRICES.pro.usd)} for {TIER_CREDITS.pro} credits. Credits are spent per video and how many a video costs depends on the engine you pick, so a Fast render and a cinematic film come out of the same balance at very different rates. {CHECKOUT_CURRENCY_DISCLOSURE} New accounts get free credits to make a first video before paying anything.</p></details>
-            <details className="qa"><summary><h3>Which AI video engines can I use in Kineo?</h3></summary><p>{VIDEO_ENGINE_COUNT_WORD}, behind one interface and one balance: {S25_PUBLIC ? 'Seedance 2.5, ' : ''}Omni Flash (Google’s #1-ranked video model, Aug 2026), Veo 3.1, Kling 3, MiniMax H3, Kling 2.5, Seedance 1.5, Kineo 1 and Avatar. You choose the engine per video, so a cheap explainer and a cinematic flagship can come out of the same account on the same day. Every clip on this page is a real render from the engine named on the card — the badge always tells the truth about which model made it.</p></details>
-            <details className="qa"><summary><h3>What is the best AI video generator for faceless YouTube channels?</h3></summary><p>It depends on whether you want stock footage assembled or footage generated. Tools like InVideo and AutoShorts cut stock clips to your script, which is cheaper and fine for talking-point videos. Kineo generates the footage with models such as Veo 3.1 and Kling 3, keeps your narration word for word instead of rewriting it, and targets 60 seconds or more so the video qualifies for TikTok Creator Rewards. If your channel lives on visuals nobody else has, generation wins; if it lives on volume, stock is cheaper.</p></details>
+            <details className="qa"><summary><h3><UiLabel>How much does Kineo cost?</UiLabel></h3></summary><p><UiLabel>Kineo has three monthly plans: Starter at $</UiLabel>{usdPrice(TIER_PRICES.starter.usd)}<UiLabel> for </UiLabel>{TIER_CREDITS.starter}<UiLabel> credits, Creator at $</UiLabel>{usdPrice(TIER_PRICES.basic.usd)}<UiLabel> for </UiLabel>{TIER_CREDITS.basic}<UiLabel> credits and Studio at $</UiLabel>{usdPrice(TIER_PRICES.pro.usd)}<UiLabel> for </UiLabel>{TIER_CREDITS.pro}<UiLabel> credits. Credits are spent per video and how many a video costs depends on the engine you pick, so a Fast render and a cinematic film come out of the same balance at very different rates. </UiLabel><UiLabel>{CHECKOUT_CURRENCY_DISCLOSURE}</UiLabel><UiLabel> New accounts get free credits to make a first video before paying anything.</UiLabel></p></details>
+            <details className="qa"><summary><h3><UiLabel>Which AI video engines can I use in Kineo?</UiLabel></h3></summary><p><UiLabel>{VIDEO_ENGINE_COUNT_WORD}</UiLabel><UiLabel>, behind one interface and one balance: </UiLabel>{S25_PUBLIC ? 'Seedance 2.5, ' : ''}<UiLabel>Omni Flash (Google’s #1-ranked video model, Aug 2026), Veo 3.1, Kling 3, MiniMax H3, Kling 2.5, Seedance 1.5, Kineo 1 and Avatar. You choose the engine per video, so a cheap explainer and a cinematic flagship can come out of the same account on the same day. Every clip on this page is a real render from the engine named on the card — the badge always tells the truth about which model made it.</UiLabel></p></details>
+            <details className="qa"><summary><h3><UiLabel>What is the best AI video generator for faceless YouTube channels?</UiLabel></h3></summary><p><UiLabel>It depends on whether you want stock footage assembled or footage generated. Tools like InVideo and AutoShorts cut stock clips to your script, which is cheaper and fine for talking-point videos. Kineo generates the footage with models such as Veo 3.1 and Kling 3, keeps your narration word for word instead of rewriting it, and targets 60 seconds or more so the video qualifies for TikTok Creator Rewards. If your channel lives on visuals nobody else has, generation wins; if it lives on volume, stock is cheaper.</UiLabel></p></details>
           </div>
         </div>
       </section>
@@ -1585,8 +1587,8 @@ export default function KineoLanding({
           <div className="final">
             <div className="glow" />
             <div style={{ position: 'relative', zIndex: 1 }}>
-              <h2 className="gtxt">Pick your engine. Ship a Short today.</h2>
-              <p>{ft(OFFER, 'Create, watch, download and share up to 3 watermarked Fast videos every 24h — no card.', OFFER.copy.headline)}</p>
+              <h2 className="gtxt"><UiLabel>Pick your engine. Ship a Short today.</UiLabel></h2>
+              <p><UiLabel>{ft(OFFER, 'Create, watch, download and share up to 3 watermarked Fast videos every 24h — no card.', OFFER.copy.headline)}</UiLabel></p>
               {/* #10 (aprovado 15/08) — fechamento no estilo vitrine: os 5
                   motores clicaveis + Start free. O href antigo #try-kineo
                   apontava para o composer, que nao existe mais. */}
@@ -1615,7 +1617,7 @@ export default function KineoLanding({
                   varredura no repo inteiro (app/ components/ lib/) confirma que
                   era a UNICA ocorrencia crua: todas as outras ja passam por ft().
                   Com a flag OFF o texto volta byte a byte ao literal anterior. */}
-              <p style={{ marginTop: 16, fontSize: '13.5px', color: 'var(--muted2)' }}><span style={{ color: 'var(--blue)' }}>✓</span> No credit card&nbsp;·&nbsp;<span style={{ color: 'var(--blue)' }}>✓</span> {ft(OFFER, '3 free videos every 24h', OFFER.copy.chip)}&nbsp;·&nbsp;<span style={{ color: 'var(--blue)' }}>✓</span> Cancel anytime</p>
+              <p style={{ marginTop: 16, fontSize: '13.5px', color: 'var(--muted2)' }}><span style={{ color: 'var(--blue)' }}>✓</span> No credit card&nbsp;·&nbsp;<span style={{ color: 'var(--blue)' }}>✓</span> <UiLabel>{ft(OFFER, '3 free videos every 24h', OFFER.copy.chip)}</UiLabel>&nbsp;·&nbsp;<span style={{ color: 'var(--blue)' }}>✓</span><UiLabel> Cancel anytime</UiLabel></p>
             </div>
           </div>
         </div>

@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { InterfaceLanguageSelect, UiLabel } from '@/components/InterfaceLanguage'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { trackEvent } from '@/lib/analytics'
@@ -26,7 +27,7 @@ interface TopBarProps {
 export default function TopBar({ title, subtitle, onMenuToggle, isPro }: TopBarProps) {
   return (
     <div
-      className="flex items-center gap-4 flex-shrink-0 sticky top-0 z-30 px-6"
+      className="flex items-center gap-3 flex-shrink-0 sticky top-0 z-30 px-4 sm:px-6"
       style={{
         height: 64,
         // Kineo re-skin — black glass bar.
@@ -78,7 +79,7 @@ export default function TopBar({ title, subtitle, onMenuToggle, isPro }: TopBarP
         <Link href="/" className="hidden sm:inline" style={{ textDecoration: 'none', color: 'inherit' }}>Kineo</Link>
         <span className="hidden sm:inline" style={{ opacity: 0.3 }}>›</span>
         <span className="font-semibold truncate" style={{ color: 'var(--text)' }}>
-          {title}
+          <UiLabel>{title}</UiLabel>
         </span>
         {subtitle && (
           <>
@@ -93,12 +94,13 @@ export default function TopBar({ title, subtitle, onMenuToggle, isPro }: TopBarP
           was removed on every page per Joseph: the sidebar entry is the single
           nav home for the Avatar product; the top bar stays clean. */}
       <div className="ml-auto flex items-center gap-2 flex-shrink-0">
+        <InterfaceLanguageSelect />
         {/* Push #098 — header credits badge. Red link to /pricing when 0,
             amber when <=5 and not Pro, neutral otherwise. */}
         <CreditsBadge isPro={isPro} />
         {isPro && (
           <div
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold"
+            className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold"
             style={{
               background: 'rgba(41,151,255,.08)',
               border: '1px solid rgba(41,151,255,.18)',

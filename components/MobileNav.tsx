@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { UiLabel } from '@/components/InterfaceLanguage'
 import { usePathname } from 'next/navigation'
 import { useEffect, useRef } from 'react'
 
@@ -163,7 +164,7 @@ export default function MobileNav({ isLoggedIn = true }: { isLoggedIn?: boolean 
       <Link key={href} href={href} className="kineo-mobile-tab"
         aria-current={active ? (pathname === href ? 'page' : 'location') : undefined}
         data-active={active || undefined}>
-        {item.icon}<span>{item.label}</span>
+        {item.icon}<span><UiLabel>{item.label}</UiLabel></span>
       </Link>
     )
   }
@@ -183,11 +184,11 @@ export default function MobileNav({ isLoggedIn = true }: { isLoggedIn?: boolean 
             ? <><rect x="3" y="3" width="7" height="7" rx="2" /><rect x="14" y="3" width="7" height="7" rx="2" /><rect x="3" y="14" width="7" height="7" rx="2" /><rect x="14" y="14" width="7" height="7" rx="2" /></>
             : <><circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /></>}
         </svg>
-        <span>{group.label}</span>
+        <span><UiLabel>{group.label}</UiLabel></span>
       </summary>
       <div className="kineo-mobile-sheet">
         <div className="kineo-mobile-sheet-heading">
-          <strong>{group.label}</strong>
+          <strong><UiLabel>{group.label}</UiLabel></strong>
           <button type="button" aria-label={'Close ' + group.label}
             onClick={(event) => {
               const details = event.currentTarget.closest('details')
@@ -198,7 +199,7 @@ export default function MobileNav({ isLoggedIn = true }: { isLoggedIn?: boolean 
           <Link key={item.href} href={item.href}
             aria-current={isActive(pathname, item.href) ? (pathname === item.href ? 'page' : 'location') : undefined}
             onClick={() => closeDisclosures(navRef.current)}>
-            {item.label}<span aria-hidden="true">↗</span>
+            <UiLabel>{item.label}</UiLabel><span aria-hidden="true">↗</span>
           </Link>
         ))}
       </div>

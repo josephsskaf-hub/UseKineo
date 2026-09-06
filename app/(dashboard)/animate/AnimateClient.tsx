@@ -506,12 +506,12 @@ export default function AnimateClient({ isLoggedIn, userId }: { isLoggedIn: bool
   }
 
   return (
-    <div className="stu">
+    <div className="stu animate-page">
       <style dangerouslySetInnerHTML={{ __html: STUDIO_KIT_CSS }} />
       <h1>One photo. Suddenly alive.</h1>
       <p className="sub">People, pets, products, old family pictures — upload a photo or paste a public image link and watch it move.</p>
 
-      <div className="grid gap-8 lg:grid-cols-[1fr_360px] items-start" style={{ maxWidth: 1060 }}>
+      <div className="grid animate-grid" style={{ maxWidth: 1240 }}>
         <div className="flex flex-col gap-5">
           <section className="card">
             <div className="lab"><span className="n">1</span>The photo</div>

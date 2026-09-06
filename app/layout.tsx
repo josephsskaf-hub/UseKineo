@@ -10,6 +10,7 @@ import AutopilotPilotResumeBanner from '@/components/AutopilotPilotResumeBanner'
 // todas. Uma superfície esquecida seria exatamente a que perderia a venda.
 import CheckoutStalledCta from '@/components/CheckoutStalledCta'
 import { Analytics } from '@vercel/analytics/next'
+import { InterfaceLanguageProvider } from '@/components/InterfaceLanguage'
 import { FreeTierOfferProvider } from '@/components/FreeTierOfferProvider'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 import './globals.css'
@@ -234,7 +235,7 @@ export default function RootLayout({
       {/* [KINEO-TRIAL-SWAP-2026-08-07] — FreeTierOfferProvider envolve TODO o
           conteúdo: é o único caminho pelo qual client components leem a oferta
           do free tier (a env da flag não existe no browser). */}
-      <body><StructuredData /><FreeTierOfferProvider offer={OFFER}><SourceCapture /><CheckoutResumeBanner /><AutopilotPilotResumeBanner /><CheckoutStalledCta />{children}</FreeTierOfferProvider><Analytics /></body>
+      <body><StructuredData /><InterfaceLanguageProvider><FreeTierOfferProvider offer={OFFER}><SourceCapture /><CheckoutResumeBanner /><AutopilotPilotResumeBanner /><CheckoutStalledCta />{children}</FreeTierOfferProvider></InterfaceLanguageProvider><Analytics /></body>
     </html>
   )
 }

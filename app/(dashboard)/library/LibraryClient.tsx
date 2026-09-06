@@ -5,6 +5,7 @@
 // (aba Library) vestido no Studio Kit: contadores no topo (primeiro passo do
 // medidor de storage do pricing V4), abas Videos/Images/Audio, grades com
 // play/download, links pros ambientes de criacao quando a aba esta vazia.
+import { UiLabel } from '@/components/InterfaceLanguage'
 import { useCallback, useEffect, useState } from 'react'
 import { engineLabelFor } from '@/lib/engineLabel'
 import Link from 'next/link'
@@ -90,19 +91,19 @@ export default function LibraryClient() {
   const fAuds = needle ? auds.filter((a) => [a.text, a.voice, a.model].filter(Boolean).join(' ').toLowerCase().includes(needle)) : auds
   const activeCount = tab === 'videos' ? vids.length : tab === 'images' ? imgs.length : auds.length
   const clearBtn = (
-    <button type="button" className="pill" onClick={() => setQ('')} style={{ color: '#2997ff', borderColor: 'rgba(41,151,255,.4)' }}>
+    <button type="button" className="pill" onClick={() => setQ('')} style={{ color: '#2997ff', borderColor: 'rgba(41,151,255,.4)' }}><UiLabel>
       Clear search
-    </button>
+    </UiLabel></button>
   )
 
   return (
     <div className="stu library-page">
       <style dangerouslySetInnerHTML={{ __html: STUDIO_KIT_CSS }} />
 
-      <h1>Library</h1>
-      <p className="sub">
+      <h1><UiLabel>Library</UiLabel></h1>
+      <p className="sub"><UiLabel>
         Everything you’ve created, in one place.
-        {usage && (
+        </UiLabel>{usage && (
           <span style={{ marginLeft: 10, fontSize: 12, color: '#7cc0ff', fontWeight: 700 }}>
             {usage.limit ? `${usage.total} of ${usage.limit} projects` : `${usage.total} projects · unlimited`} · {usage.retention}
           </span>
@@ -131,9 +132,9 @@ export default function LibraryClient() {
                 placement: 'header',
               })
             }}
-          >
+          ><UiLabel>
             ⚡ New video
-          </Link>
+          </UiLabel></Link>
           {vids.length > 0 && (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
               <span aria-hidden="true" style={{ display: 'inline-flex', gap: 4 }}>
@@ -163,7 +164,7 @@ export default function LibraryClient() {
       <div className="row" role="group" aria-label="Asset type">
         {TABS.map((t) => (
           <button key={t.key} type="button" aria-pressed={tab === t.key} className={`pill${tab === t.key ? ' on' : ''}`} onClick={() => { setTab(t.key); setQ('') }}>
-            {t.label} · {t.count}
+            <UiLabel>{t.label}</UiLabel> · {t.count}
           </button>
         ))}
       </div>
@@ -195,18 +196,18 @@ export default function LibraryClient() {
 
       {loaded && loadFailed && (
         <div role="alert" className="card" style={{ padding: '14px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', border: '1px solid rgba(251,191,36,.35)', background: 'rgba(251,191,36,.06)' }}>
-          <span style={{ fontSize: 13, color: '#fbbf24', fontWeight: 700 }}>We couldn’t load part of your library right now.</span>
-          <span style={{ fontSize: 12.5, color: 'var(--txt2,#9aa0a6)' }}>Your videos and credits are safe — this is just a temporary read hiccup.</span>
-          <button type="button" className="pill" onClick={loadAll}>↻ Try again</button>
+          <span style={{ fontSize: 13, color: '#fbbf24', fontWeight: 700 }}><UiLabel>We couldn’t load part of your library right now.</UiLabel></span>
+          <span style={{ fontSize: 12.5, color: 'var(--txt2,#9aa0a6)' }}><UiLabel>Your videos and credits are safe — this is just a temporary read hiccup.</UiLabel></span>
+          <button type="button" className="pill" onClick={loadAll}><UiLabel>↻ Try again</UiLabel></button>
         </div>
       )}
 
       {loaded && tab === 'videos' && (
         vids.length === 0 ? (
-          loadFailed ? null : <p className="sub">No videos yet — <Link href="/studio" style={{ color: '#2997ff' }}>open the Studio</Link> and make your first film.</p>
+          loadFailed ? null : <p className="sub"><UiLabel>No videos yet — </UiLabel><Link href="/studio" style={{ color: '#2997ff' }}><UiLabel>open the Studio</UiLabel></Link><UiLabel> and make your first film.</UiLabel></p>
         ) : fVids.length === 0 ? (
           <div className="card" style={{ padding: 24, textAlign: 'center' }}>
-            <p className="sub" style={{ marginBottom: 14 }}>No videos match &ldquo;{q.trim()}&rdquo;.</p>
+            <p className="sub" style={{ marginBottom: 14 }}><UiLabel>No videos match &ldquo;</UiLabel>{q.trim()}&rdquo;.</p>
             {clearBtn}
           </div>
         ) : (
@@ -263,9 +264,9 @@ export default function LibraryClient() {
                         completed_video_count: vids.length,
                       })
                     }}
-                  >
+                  ><UiLabel>
                     Next episode →
-                  </Link>
+                  </UiLabel></Link>
                 )}
               </div>
             ))}
@@ -275,10 +276,10 @@ export default function LibraryClient() {
 
       {loaded && tab === 'images' && (
         imgs.length === 0 ? (
-          loadFailed ? null : <p className="sub">No images yet — <Link href="/images" style={{ color: '#2997ff' }}>create your first image</Link>.</p>
+          loadFailed ? null : <p className="sub"><UiLabel>No images yet — </UiLabel><Link href="/images" style={{ color: '#2997ff' }}><UiLabel>create your first image</UiLabel></Link>.</p>
         ) : fImgs.length === 0 ? (
           <div className="card" style={{ padding: 24, textAlign: 'center' }}>
-            <p className="sub" style={{ marginBottom: 14 }}>No images match &ldquo;{q.trim()}&rdquo;.</p>
+            <p className="sub" style={{ marginBottom: 14 }}><UiLabel>No images match &ldquo;</UiLabel>{q.trim()}&rdquo;.</p>
             {clearBtn}
           </div>
         ) : (
@@ -288,8 +289,8 @@ export default function LibraryClient() {
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={im.upscaled_url ?? im.url} alt="" style={{ width: '100%', borderRadius: 10, display: 'block' }} />
                 <div className="row" style={{ marginTop: 8 }}>
-                  <button type="button" className="pill" onClick={() => dl(im.upscaled_url ?? im.url, `kineo-image-${im.id.slice(0, 6)}.png`)}>⬇ Download</button>
-                  <a className="pill" style={{ textDecoration: 'none' }} href="/animate">🎬 Animate</a>
+                  <button type="button" className="pill" onClick={() => dl(im.upscaled_url ?? im.url, `kineo-image-${im.id.slice(0, 6)}.png`)}><UiLabel>⬇ Download</UiLabel></button>
+                  <a className="pill" style={{ textDecoration: 'none' }} href="/animate"><UiLabel>🎬 Animate</UiLabel></a>
                 </div>
               </div>
             ))}
@@ -299,10 +300,10 @@ export default function LibraryClient() {
 
       {loaded && tab === 'audio' && (
         auds.length === 0 ? (
-          loadFailed ? null : <p className="sub">No audio yet — <Link href="/audio" style={{ color: '#2997ff' }}>generate your first voiceover</Link>.</p>
+          loadFailed ? null : <p className="sub"><UiLabel>No audio yet — </UiLabel><Link href="/audio" style={{ color: '#2997ff' }}><UiLabel>generate your first voiceover</UiLabel></Link>.</p>
         ) : fAuds.length === 0 ? (
           <div className="card" style={{ padding: 24, textAlign: 'center' }}>
-            <p className="sub" style={{ marginBottom: 14 }}>No audio matches &ldquo;{q.trim()}&rdquo;.</p>
+            <p className="sub" style={{ marginBottom: 14 }}><UiLabel>No audio matches &ldquo;</UiLabel>{q.trim()}&rdquo;.</p>
             {clearBtn}
           </div>
         ) : (

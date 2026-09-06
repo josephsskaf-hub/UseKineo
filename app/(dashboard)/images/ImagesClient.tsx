@@ -4,6 +4,7 @@
 // Higgsfield, vestida com o Studio Kit. Multi-motor (FLUX Schnell/Dev +
 // Recraft V3 pra texto perfeito), aspecto, geracao em grade com Download e
 // Upscale 2x por imagem. Aprovado pra stage; sobe pra prod no ok do fundador.
+import { UiLabel } from '@/components/InterfaceLanguage'
 import { useEffect, useState } from 'react'
 import { STUDIO_KIT_CSS } from '@/components/studioKit'
 import CreditsTopupModal from '@/components/CreditsTopupModal' // KINEO-TOPUP-POPUP-2026-08-18
@@ -201,12 +202,12 @@ export default function ImagesClient() {
     <div className="stu">
       <style dangerouslySetInnerHTML={{ __html: STUDIO_KIT_CSS }} />
 
-      <h1>Images</h1>
-      <p className="sub">Type it. See it. Six image engines, one screen.</p>
+      <h1><UiLabel>Images</UiLabel></h1>
+      <p className="sub"><UiLabel>Type it. See it. Six image engines, one screen.</UiLabel></p>
 
 <div className="grid creation-grid">
 <div className="card creation-input">
-            <div className="lab"><span className="n">1</span>Your image</div>
+            <div className="lab"><span className="n">1</span><UiLabel>Your image</UiLabel></div>
             <textarea aria-label="Your image" value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={4} maxLength={2000}
               placeholder="A lighthouse on a cliff at dusk, storm rolling in, cinematic light — or a YouTube thumbnail with the text “ABANDONED”." />
             {/* KINEO-NOITE2-2026-08-17 (#5) — chips de ideia matam a pagina em
@@ -240,10 +241,10 @@ export default function ImagesClient() {
                 ⚠️ {error}
                 {/* KINEO-AUDIT-401-2026-08-18: 401 vira porta, nao beco */}
                 {error.toLowerCase().includes('credits') && (
-                  <> <button type="button" onClick={openCreditsWall} style={{ color: '#7cc0ff', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Add credits →</button></>
+                  <> <button type="button" onClick={openCreditsWall} style={{ color: '#7cc0ff', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><UiLabel>Add credits →</UiLabel></button></>
                 )}
                 {error.toLowerCase().includes('signed in') && (
-                  <> <a href="/login?redirect=/images" style={{ color: '#7cc0ff', fontWeight: 700 }}>Sign in →</a></>
+                  <> <a href="/login?redirect=/images" style={{ color: '#7cc0ff', fontWeight: 700 }}><UiLabel>Sign in →</UiLabel></a></>
                 )}
               </p>
             )}
@@ -251,7 +252,7 @@ export default function ImagesClient() {
 <div className="rail creation-settings">
           <div style={{ position: 'relative' }}>
             <button type="button" className="mdlbtn" onClick={() => setPickerOpen((o) => !o)}>
-              <span className="lab" style={{ marginBottom: 0 }}><span className="n">2</span>Engine</span>
+              <span className="lab" style={{ marginBottom: 0 }}><span className="n">2</span><UiLabel>Engine</UiLabel></span>
               <span className="mdlname" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span className="eng-ic" aria-hidden="true">{eng.icon}</span>
                 <b>{eng.name}</b>
@@ -277,7 +278,7 @@ export default function ImagesClient() {
           </div>
 
           <div className="card">
-            <div className="lab"><span className="n">3</span>Format</div>
+            <div className="lab"><span className="n">3</span><UiLabel>Format</UiLabel></div>
             <div className="row">
               {SIZES.map((s) => (
                 <button key={s.key} type="button" className={`pill${size === s.key ? ' on' : ''}`} onClick={() => setSize(s.key)}>
@@ -289,25 +290,25 @@ export default function ImagesClient() {
 
           <div className="cost">
             <div className="sum">{eng.name} · {SIZES.find((s) => s.key === size)?.label}</div>
-            <div className="val"><span>Cost per image</span><b>{eng.credits}</b></div>
+            <div className="val"><span><UiLabel>Cost per image</UiLabel></span><b>{eng.credits}</b></div>
             <button type="button" onClick={generate} disabled={!prompt.trim() || busy} className={`go ${prompt.trim() && !busy ? 'ok' : 'no'}`}>
-              {busy ? 'Creating…' : prompt.trim() ? 'Generate image →' : 'Describe your image first'}
+              <UiLabel>{busy ? 'Creating…' : prompt.trim() ? 'Generate image →' : 'Describe your image first'}</UiLabel>
             </button>
-            <div className="gnote">Upscale any result to 2x for 1 credit.</div>
+            <div className="gnote"><UiLabel>Upscale any result to 2x for 1 credit.</UiLabel></div>
           </div>
         </div>
 <div className="creation-results">
 {galleryFailed && (
             <div role="alert" className="card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', border: '1px solid rgba(251,191,36,.35)', background: 'rgba(251,191,36,.06)' }}>
-              <span style={{ fontSize: 13, color: '#fbbf24', fontWeight: 700 }}>We couldn’t load your images right now.</span>
-              <span style={{ fontSize: 12.5, color: 'var(--txt2,#9aa0a6)' }}>Your images and credits are safe — this is just a temporary read hiccup.</span>
-              <button type="button" className="pill" onClick={loadGallery}>↻ Try again</button>
+              <span style={{ fontSize: 13, color: '#fbbf24', fontWeight: 700 }}><UiLabel>We couldn’t load your images right now.</UiLabel></span>
+              <span style={{ fontSize: 12.5, color: 'var(--txt2,#9aa0a6)' }}><UiLabel>Your images and credits are safe — this is just a temporary read hiccup.</UiLabel></span>
+              <button type="button" className="pill" onClick={loadGallery}><UiLabel>↻ Try again</UiLabel></button>
             </div>
           )}
 {galleryLoading && !galleryFailed && items.length === 0 && (
             <div aria-label="Loading your images" aria-busy="true">
               <style>{`@keyframes imgsk{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
-              <div className="lab">My Images</div>
+              <div className="lab"><UiLabel>My Images</UiLabel></div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 12 }}>
                 {Array.from({ length: 6 }).map((_, i) => (
                   <div key={i} style={{ aspectRatio: '3/4', borderRadius: 12, border: '1px solid rgba(255,255,255,.06)', background: 'linear-gradient(100deg, rgba(255,255,255,.035) 40%, rgba(255,255,255,.09) 50%, rgba(255,255,255,.035) 60%)', backgroundSize: '200% 100%', animation: 'imgsk 1.4s linear infinite', animationDelay: `${(i % 3) * 120}ms` }} />
@@ -317,20 +318,20 @@ export default function ImagesClient() {
           )}
 {items.length > 0 && (
             <div>
-              <div className="lab">My Images</div>
+              <div className="lab"><UiLabel>My Images</UiLabel></div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 12 }}>
                 {items.map((it, i) => (
                   <div key={it.url} className="card" style={{ padding: 10 }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={it.upscaled ?? it.url} alt="" style={{ width: '100%', borderRadius: 10, display: 'block' }} />
                     <div className="row" style={{ marginTop: 9 }}>
-                      <button type="button" className="pill" onClick={() => downloadImage(it.upscaled ?? it.url, i)}>⬇ Download</button>
+                      <button type="button" className="pill" onClick={() => downloadImage(it.upscaled ?? it.url, i)}><UiLabel>⬇ Download</UiLabel></button>
                       <button type="button" className={`pill${it.upscaled ? ' on' : ''}`} disabled={!!it.upscaled || it.upscaling} onClick={() => upscale(i)}>
                         {it.upscaled ? '2x ✓' : it.upscaling ? 'Upscaling…' : '✨ Upscale 2x · 1 cr'}
                       </button>
                       {/* KINEO-CEO-HOUR-2026-08-17 (#4) — flywheel: imagem → filme */}
-                      <a className="pill" style={{ textDecoration: 'none' }} href="/animate">🎬 Animate</a>
-                      <button type="button" className={`pill${editIdx === i ? ' on' : ''}`} onClick={() => { setEditIdx(editIdx === i ? null : i); setEditTxt('') }}>✏️ Edit · 3 cr</button>
+                      <a className="pill" style={{ textDecoration: 'none' }} href="/animate"><UiLabel>🎬 Animate</UiLabel></a>
+                      <button type="button" className={`pill${editIdx === i ? ' on' : ''}`} onClick={() => { setEditIdx(editIdx === i ? null : i); setEditTxt('') }}><UiLabel>✏️ Edit · 3 cr</UiLabel></button>
                     </div>
                     {editIdx === i && (
                       <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>

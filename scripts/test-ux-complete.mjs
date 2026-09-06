@@ -13,10 +13,13 @@ for(const name of ['images/ImagesClient','audio/AudioClient','library/LibraryCli
  const file=`app/(dashboard)/${name}.tsx`
  eq(attributes(file,false,['onClick','onChange','onMouseEnter','onMouseLeave','disabled','src','poster','href']),attributes(file,true,['onClick','onChange','onMouseEnter','onMouseLeave','disabled','src','poster','href']),name+' keeps handlers, costs gates, destinations and media')
  // Normalize only Windows checkout line endings; executable text must match.
- const old=source(file,true).replace(/\r\n/g,'\n'),next=source(file).replace(/\r\n/g,'\n')
+ // InterfaceLanguage adds an import and wraps authored text (including clearBtn).
+ // Keep its English children for this baseline check; no executable setup is exempt.
+ const old=source(file,true).replace(/\r\n/g,'\n'),next=source(file).replace(/\r\n/g,'\n').replace("import { UiLabel } from '@/components/InterfaceLanguage'\n",'').replace(/<UiLabel>([^<>]*)<\/UiLabel>/g,'$1')
  eq(next.split('  return (')[0],old.split('  return (')[0],name+' setup, requests, credit handling unchanged')
 }
-const home='app/KineoLanding.tsx',oldHome=source(home,true),newHome=source(home)
+// English children remain exact; Spanish labels are verified by the locale tests.
+const home='app/KineoLanding.tsx',oldHome=source(home,true),newHome=source(home).replace(/<UiLabel>([\s\S]*?)<\/UiLabel>/g,'$1')
 const oldAnswers=[...oldHome.matchAll(/<div className="qa"><h3>(.*?)<\/h3><p>(.*?)<\/p><\/div>/g)].map(m=>[m[1],m[2]])
 const newAnswers=[...newHome.matchAll(/<details className="qa"><summary><h3>(.*?)<\/h3><\/summary><p>(.*?)<\/p><\/details>/g)].map(m=>[m[1],m[2]])
 eq(newAnswers,oldAnswers,'all FAQ answers, pricing functions and offer conditions are unchanged')

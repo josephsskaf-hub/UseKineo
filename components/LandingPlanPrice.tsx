@@ -6,6 +6,7 @@
 // Preço e fallback saem da fonte canônica; nenhuma string pode prometer
 // conversão local.
 import { useEffect, useState } from 'react'
+import { UiLabel } from '@/components/InterfaceLanguage'
 import {
   coercePriceRegion,
   formatCheckoutMoney,
@@ -72,11 +73,11 @@ export default function LandingPlanPrice({
     ? formatCheckoutMoney(resolved.currency, getTierPrice(tier, resolved.currency, resolved.region))
     : USD_FALLBACK[tier]
 
-  if (variant === 'cta') return <>{ctaLabel ?? 'Start'} — {price}/mo</>
+  if (variant === 'cta') return <><UiLabel>{ctaLabel ?? 'Start'}</UiLabel> — {price}<UiLabel>/mo</UiLabel></>
   return (
     <>
       {price}
-      <span>/mo</span>
+      <span><UiLabel>/mo</UiLabel></span>
     </>
   )
 }

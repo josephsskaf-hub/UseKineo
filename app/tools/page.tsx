@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Footer from '@/components/Footer'
+import { InterfaceLanguageSelect, UiLabel, UiText } from '@/components/InterfaceLanguage'
+import { TOOL_SPANISH } from '@/lib/ui/toolSpanish'
 import { FREE_TOOL_FACTS, PUBLIC_COST_PLANNER_FACT } from '@/lib/kineoFacts'
 
 const BASE = 'https://www.usekineo.com'
@@ -218,46 +220,46 @@ export default function ToolsPage() {
       <div className="tools-shell">
         <nav className="tools-nav" aria-label="Primary">
           <Link href="/" className="tools-logo">Kineo</Link>
-          <Link href="/free-ai-shorts-generator" className="tools-product-link">Make a finished Short →</Link>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}><InterfaceLanguageSelect /><Link href="/free-ai-shorts-generator" className="tools-product-link"><UiText es="Crear un Short completo →">Make a finished Short →</UiText></Link></div>
         </nav>
 
         <header className="tools-hero">
-          <p className="tools-kicker">Free tools · no signup · no card</p>
-          <h1>Do the next useful thing for your Short.</h1>
+          <p className="tools-kicker"><UiText es="Herramientas gratuitas · sin registro · sin tarjeta">Free tools · no signup · no card</UiText></p>
+          <h1><UiText es="Da el siguiente paso para crear tu Short.">Do the next useful thing for your Short.</UiText></h1>
           <p className="tools-intro">
-            Do not start with a blank editor. Pick what you already have — a topic, comment,
-            product, business offer, content goal, revenue target or production schedule — and leave with a made-to-order result.
+            <UiText es="No empieces con un editor en blanco. Elige lo que ya tienes: un tema, comentario, producto, oferta comercial, objetivo de contenido, meta de ingresos o calendario de producción. Obtén un resultado adaptado a tus datos.">Do not start with a blank editor. Pick what you already have — a topic, comment,
+            product, business offer, content goal, revenue target or production schedule — and leave with a made-to-order result.</UiText>
           </p>
           <div className="tools-trust" aria-label="Tool limits">
-            <span>{tools.length} free tools</span>
-            <span>Made from your input</span>
-            <span>Text, planning and cost estimates</span>
+            <span>{tools.length} <UiText es="herramientas gratuitas">free tools</UiText></span>
+            <span><UiText es="A partir de tus datos">Made from your input</UiText></span>
+            <span><UiText es="Texto, planificación y estimación de costes">Text, planning and cost estimates</UiText></span>
           </div>
         </header>
 
         <nav className="tools-sections" aria-label="Tool categories">
-          {TOOL_GROUPS.map(group => <a key={group.id} href={`#tools-${group.id}`}>{group.title}</a>)}
+          {TOOL_GROUPS.map(group => <a key={group.id} href={`#tools-${group.id}`}><UiLabel>{group.title}</UiLabel></a>)}
         </nav>
         {TOOL_GROUPS.map(group => (
         <section key={group.id} id={`tools-${group.id}`} className="tool-group" aria-labelledby={`tools-${group.id}-heading`}>
-          <h2 id={`tools-${group.id}-heading`}>{group.title}</h2>
+          <h2 id={`tools-${group.id}-heading`}><UiLabel>{group.title}</UiLabel></h2>
           <div className="tools-grid">
           {tools.filter(tool => (group.paths as readonly string[]).includes(tool.path)).map((tool) => (
             <article key={tool.path} className={`tool-card${tool.meta.featured ? ' tool-card-featured' : ''}`}>
               <div>
-                <p className="tool-eyebrow">{tool.meta.eyebrow}</p>
-                <h3>{tool.meta.prompt}</h3>
-                <p className="tool-description">{tool.what}</p>
+                <p className="tool-eyebrow"><UiText es={TOOL_SPANISH[tool.path]?.eyebrow ?? tool.meta.eyebrow}>{tool.meta.eyebrow}</UiText></p>
+                <h3><UiText es={TOOL_SPANISH[tool.path]?.prompt ?? tool.meta.prompt}>{tool.meta.prompt}</UiText></h3>
+                <p className="tool-description"><UiText es={TOOL_SPANISH[tool.path]?.what ?? tool.what}>{tool.what}</UiText></p>
               </div>
               <div className="tool-footer">
                 <span>
-                  {tool.output === 'cost_plan'
+                  <UiText es={tool.output === 'cost_plan' ? 'Sin cuenta · planes actuales de Kineo' : tool.rateLimit ? 'Sin cuenta · límite de uso razonable' : 'Sin cuenta · sin límite en el navegador'}>{tool.output === 'cost_plan'
                     ? 'No account · current Kineo plans'
                     : tool.rateLimit
                       ? 'No account · fair-use limit'
-                      : 'No account · unlimited in browser'}
+                      : 'No account · unlimited in browser'}</UiText>
                 </span>
-                <Link href={tool.path}>{tool.meta.cta} →</Link>
+                <Link href={tool.path}><UiText es={TOOL_SPANISH[tool.path]?.cta ?? tool.meta.cta}>{tool.meta.cta}</UiText> →</Link>
               </div>
             </article>
           ))}
@@ -267,15 +269,15 @@ export default function ToolsPage() {
 
         <section className="tools-boundary" aria-labelledby="finished-video-title">
           <div>
-            <p className="tool-eyebrow">Where these tools stop</p>
-            <h2 id="finished-video-title">The free tools return text, planning or a cost estimate — not a rendered video.</h2>
+            <p className="tool-eyebrow"><UiText es="Hasta dónde llegan estas herramientas">Where these tools stop</UiText></p>
+            <h2 id="finished-video-title"><UiText es="Las herramientas gratuitas ofrecen texto, planificación o una estimación de coste, no un vídeo generado.">The free tools return text, planning or a cost estimate — not a rendered video.</UiText></h2>
             <p>
-              When your idea is ready, Kineo can turn it into a finished vertical Short with
+              <UiText es="Cuando tu idea esté lista, Kineo puede convertirla en un Short vertical completo con voz, imágenes y subtítulos. Ese siguiente paso requiere una cuenta; la prueba gratuita no requiere tarjeta.">When your idea is ready, Kineo can turn it into a finished vertical Short with
               voiceover, visuals and captions. That next step requires an account; the free test
-              does not require a card.
+              does not require a card.</UiText>
             </p>
           </div>
-          <Link href="/free-ai-shorts-generator">See the finished-video workflow →</Link>
+          <Link href="/free-ai-shorts-generator"><UiText es="Ver cómo se crea el vídeo completo →">See the finished-video workflow →</UiText></Link>
         </section>
       </div>
 

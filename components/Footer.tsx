@@ -12,6 +12,8 @@
 // kept inline to match the rest of the marketing chrome.
 
 import Link from 'next/link'
+import { InterfaceLanguageSelect, UiLabel } from '@/components/InterfaceLanguage'
+import { FOOTER_PRESENTATION_CSS } from '@/lib/ui/footerPresentation'
 import CostCalculatorLink from '@/components/CostCalculatorLink'
 import FooterBusinessLink from '@/components/FooterBusinessLink'
 // PROVA-SOCIAL-REAL-2026-07-02 — client badge with real DB counts; self-hides
@@ -183,6 +185,7 @@ const navGroups: { title: string; links: { href: string; label: string; costCalc
 export default function Footer({ showStats = true }: { showStats?: boolean }) {
   return (
     <footer
+      className="kineo-footer"
       style={{
         borderTop: '1px solid rgba(255,255,255,.06)',
         padding: '32px 16px 28px',
@@ -201,14 +204,16 @@ export default function Footer({ showStats = true }: { showStats?: boolean }) {
         >
           ⚡ Kineo
         </Link>
-        <p style={{ margin: '6px auto 0', maxWidth: 460, color: '#86868b' }}>
+        <p style={{ margin: '6px auto 0', maxWidth: 460, color: '#86868b' }}><UiLabel>
           Turn one idea into a ready-to-post faceless YouTube Short — script,
-          AI voiceover, footage &amp; captions in a few minutes. {ft(OFFER, 'Create, download and share up to 3 watermarked Fast videos every 24h, no card.', OFFER.copy.headline)} Paid plans unlock clean MP4s.
-        </p>
+          AI voiceover, footage &amp; captions in a few minutes. </UiLabel><UiLabel>{ft(OFFER, 'Create, download and share up to 3 watermarked Fast videos every 24h, no card.', OFFER.copy.headline)}</UiLabel><UiLabel> Paid plans unlock clean MP4s.
+        </UiLabel></p>
+        <div style={{ marginTop: 16 }}><InterfaceLanguageSelect /></div>
       </div>
 
       {/* Internal navigation — improves crawl depth + accessibility */}
       <nav
+        className="footer-navigation"
         aria-label="Footer"
         // KINEO-FOOTER-ALIGN-2026-08-15 — era flex-wrap com maxWidth 720: as 4
         // colunas nao cabiam, a COMPARE caia pra segunda linha centralizada e o
@@ -225,7 +230,8 @@ export default function Footer({ showStats = true }: { showStats?: boolean }) {
         }}
       >
         {navGroups.map((group) => (
-          <div key={group.title}>
+          <details key={group.title} className="footer-group">
+            <summary>
             <h2
               style={{
                 margin: '0 0 10px',
@@ -236,8 +242,9 @@ export default function Footer({ showStats = true }: { showStats?: boolean }) {
                 color: '#71717A',
               }}
             >
-              {group.title}
+              <UiLabel>{group.title}</UiLabel>
             </h2>
+            </summary>
             <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
               {group.links.map((link) => {
                 const businessDestination = footerBusinessDestinationForHref(link.href)
@@ -245,7 +252,7 @@ export default function Footer({ showStats = true }: { showStats?: boolean }) {
                   <li key={link.href} style={{ marginBottom: 7 }}>
                     {link.costCalculator ? (
                       <CostCalculatorLink placement="global_footer" style={linkStyle}>
-                        {link.label}
+                        <UiLabel>{link.label}</UiLabel>
                       </CostCalculatorLink>
                     ) : businessDestination ? (
                       <FooterBusinessLink
@@ -253,18 +260,18 @@ export default function Footer({ showStats = true }: { showStats?: boolean }) {
                         href={link.href}
                         style={linkStyle}
                       >
-                        {link.label}
+                        <UiLabel>{link.label}</UiLabel>
                       </FooterBusinessLink>
                     ) : (
                       <Link href={link.href} style={linkStyle}>
-                        {link.label}
+                        <UiLabel>{link.label}</UiLabel>
                       </Link>
                     )}
                   </li>
                 )
               })}
             </ul>
-          </div>
+          </details>
         ))}
       </nav>
 
@@ -276,9 +283,9 @@ export default function Footer({ showStats = true }: { showStats?: boolean }) {
             <LiveStatsBadge />
           </div>
         )}
-        <div style={{ fontWeight: 600 }}>
+        <div style={{ fontWeight: 600 }}><UiLabel>
           © 2026 Kineo · All rights reserved
-        </div>
+        </UiLabel></div>
         <div
           style={{
             marginTop: 6,
@@ -288,29 +295,30 @@ export default function Footer({ showStats = true }: { showStats?: boolean }) {
             gap: '0 14px',
           }}
         >
-          <Link href="/terms" style={linkStyle}>
+          <Link href="/terms" style={linkStyle}><UiLabel>
             Terms of Service
-          </Link>
+          </UiLabel></Link>
           <span aria-hidden style={{ opacity: 0.4 }}>
             ·
           </span>
-          <Link href="/privacy" style={linkStyle}>
+          <Link href="/privacy" style={linkStyle}><UiLabel>
             Privacy Policy
-          </Link>
+          </UiLabel></Link>
           <span aria-hidden style={{ opacity: 0.4 }}>
             ·
           </span>
-          <Link href="/trust" style={linkStyle}>
+          <Link href="/trust" style={linkStyle}><UiLabel>
             Trust Center
-          </Link>
+          </UiLabel></Link>
           <span aria-hidden style={{ opacity: 0.4 }}>
             ·
           </span>
-          <a href="mailto:support@usekineo.com" style={linkStyle}>
+          <a href="mailto:support@usekineo.com" style={linkStyle}><UiLabel>
             Contact
-          </a>
+          </UiLabel></a>
         </div>
       </div>
+      <style dangerouslySetInnerHTML={{ __html: FOOTER_PRESENTATION_CSS }} />
     </footer>
   )
 }

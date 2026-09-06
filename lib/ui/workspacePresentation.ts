@@ -1,5 +1,7 @@
 /** Shared workspace styling: no generation, balance or offer behavior. */
 export const WORKSPACE_PRESENTATION_CSS = `
+ .stu .grid.animate-grid{grid-template-columns:minmax(0,1fr) minmax(280px,360px);gap:28px;align-items:start}
+ @media(max-width:1000px){.stu .grid.animate-grid{grid-template-columns:minmax(0,1fr)}}
 .stu { background:linear-gradient(160deg,#11151c 0,#0b0e13 45%); color:#edf1f8; }
 .stu h1 { background:none; color:#f2f5fa; -webkit-text-fill-color:currentColor; font-weight:650; letter-spacing:-.035em; }
 .stu .sub { color:#a5afc0; line-height:1.65; max-width:820px; }

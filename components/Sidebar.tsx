@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { UiLabel } from '@/components/InterfaceLanguage'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useState, useEffect, useCallback, useRef } from 'react'
@@ -257,7 +258,7 @@ function NavItem({
       >
         {icon}
       </span>
-      <span style={{ flex: 1, letterSpacing: '0.01em' }}>{label}</span>
+      <span style={{ flex: 1, letterSpacing: '0.01em' }}><UiLabel>{label}</UiLabel></span>
       {badge && (
         <span
           style={{
