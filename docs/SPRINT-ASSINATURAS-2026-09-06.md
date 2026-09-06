@@ -3271,3 +3271,286 @@ que funciona.
   É a maior fuga isolada e está **acima** de tudo que trabalhei hoje. Superfície
   do Codex.
 - **106 pessoas** congeladas na carta antiga — decisão do fundador.
+
+---
+
+### #16 — 08:09→08:5x BRT — na hora de pedir dinheiro, a casa recolhia a saída que NÃO custa dinheiro
+
+**ÚLTIMA ROTAÇÃO DO CICLO.** Uma entrega de código, publicada por mim, mais o
+fechamento das 8 horas logo abaixo.
+
+#### O ERRADO (medido, não suposto — herdado do checkpoint da #15)
+
+O checkpoint anterior olhou as **5 impressões reais** da caixa da próxima ação
+e encontrou 1 caso em que ela virou pedágio:
+
+| pessoa | hora UTC | superfície | saldo | falta | alternativa |
+|---|---|---|---|---|---|
+| `940aa17d` | 09:36 | **`generate_upgrade_modal`** | 7 | 8 | **nenhuma** |
+
+O servidor **sabia** que existia filme que aquele saldo pagava — ele mesmo
+gravou `affordable: 1`, `engine_offered: "fast"` no próprio
+`next_action_served`. Mesmo assim a caixa saiu com "See plans" e nada mais, na
+superfície mais perto do dinheiro.
+
+Investigando o arquivo antes de codar, apareceu um **segundo defeito, irmão**,
+que nunca tinha sido nomeado: mesmo quando a alternativa aparecia, ela podia
+chegar **inerte**. A rota mandava o motor no vocabulário do **cobrador**
+(`cinematic_ai`) e quem lê o parâmetro do outro lado
+(`GenerateClient.tsx:1300`) só aceita o do **deeplink** (`seedance`). Fora do
+`fast` — onde as duas línguas coincidem por acidente — o desvio de motor era
+descartado em silêncio, e a pessoa chegava ao compositor com o motor caro
+ainda selecionado. O mesmo que ela acabou de não poder pagar.
+
+#### O QUE MUDOU
+
+Um arquivo de servidor, `app/api/next-action/route.ts` (+80 linhas):
+
+1. **A condição que decide passou a ser só "existe motor que o saldo paga".**
+   O link de série virou *preferência*, não *requisito*: com tema, continua a
+   própria história; sem tema, cai no compositor de sempre
+   (`/studio/create?engine=…&src=next_action_dry_cheap`) com o motor certo já
+   escolhido.
+2. **O `?engine=` passou a falar a língua da tela.** `MOTORES` ganhou o campo
+   `deeplink` e uma função de tradução; motor fora da lista devolve `null` e o
+   link simplesmente sai sem o parâmetro — nunca um parâmetro que a tela vai
+   jogar fora.
+3. **O evento ganhou `alternative_route`** (`series` / `composer` / `none`) e
+   `engine_deeplink`, para que a perna nova tenha denominador próprio.
+
+**Nada de tela.** O cartão já lê `secondary.kind === 'continue_cheaper'` — a
+correção é inteira do lado do servidor. **Nenhum preço, plano, oferta ou
+promessa mudou**, e a regra K1 continua intacta: o primário do estado seco
+segue sendo a porta do plano.
+
+#### O QUE O CLIENTE PASSA A VER
+
+Quem bate na parede de saldo **sem ter um tema aproveitável no último filme**
+— o caso da `940aa17d`, dentro do modal de compra — deixa de receber só "See
+plans" e passa a receber também o filme que o saldo dela **já paga**. E quem
+recebe a alternativa passa a chegar no compositor com aquele motor de fato
+selecionado, em vez do motor caro que acabou de ser recusado.
+
+#### TESTES
+
+`scripts/test-saida-barata-2026-09-06.mjs` — **51 verificações, 0 falhas**.
+
+Ele não conta texto (memória `guardiao-contar-texto-nao-prova-condicao`): as
+seções 3 e 4 **extraem as expressões reais do arquivo publicado e as
+EXECUTAM** com cenários, e o vocabulário aceito é lido do `GenerateClient`
+real — é a única prova possível de que os dois lados falam a mesma língua.
+
+Falsificado por mutação, **com o commit já feito** (memória
+`falsificar-mutacao-commitar-antes`). Quatro mutantes, quatro mortos:
+
+| mutante | resultado |
+|---|---|
+| devolve o requisito de `hrefContinuar` | **3 falhas** |
+| condição vira `true` | **1 falha** |
+| volta o vocabulário do cobrador (`cinematic_ai`) | **3 falhas** |
+| fecha a porta do plano (regra K1) | **1 falha** |
+
+Honestidade sobre o mutante 2: ele só morre na verificação **estrutural**
+(1.2), não na executada — porque o `&& motorAcessivel` que sobrou na condição
+do secundário o torna inócuo na prática. Registro em vez de fingir que a
+seção executada o pegou.
+
+**Guardiões vizinhos:** rodei os 5 que tocam esta rota. Um ficou vermelho —
+`test-next-action-2026-09-05` (guardião da #7), que fixava o **nome antigo da
+variável**. Antes de mexer, provei que ele estava **verde no `origin/main`** e
+que foi a minha mudança que o quebrou (rodei-o contra a rota pristina). A
+trava **não afrouxou**: ela continua exigindo que o motor só viaje no estado
+seco, agora com o nome novo, **e ganhou uma verificação a mais** que PROÍBE
+voltar a mandar o `Quality` cru para a tela.
+
+**Achado que NÃO é meu e eu não consertei:**
+`scripts/test-publish-kit-business-path.mjs` já estava **vermelho no
+`origin/main`** antes de eu tocar em qualquer coisa (`AssertionError: test
+acknowledges global attribution is merged with experiment metadata`).
+Verificado contra a árvore pristina. Fora do meu lote, registrado no PEDIDOS.
+
+`npx tsc --noEmit` verde — e provado que o tsc **enxerga o arquivo** (erro
+deliberado ⇒ `TS2322` na linha certa; memória `worktree-tsc-node-modules`).
+
+#### ESTADO EM PRODUÇÃO
+
+`bash scripts/enfileirar.sh` → fila 1 · publicador rodado por mim
+(`SUBIU 1 ENTREGA(S)`) · `git ls-remote origin main` = **69afad03** · fila à
+frente = **0** · home **200**.
+
+**⚠ O QUE EU AINDA NÃO PROVEI, e não vou fingir que provei:** a entrega é uma
+rota **autenticada**, sem marcador público — não dá para confirmá-la por
+`curl`. A prova de código é comportamental e depende de tráfego: o campo
+`engine_deeplink` **não existia no repo** antes deste commit, então a primeira
+linha de `next_action_served` que o trouxer prova o deploy. Até 11:25 UTC
+houve **1 única chamada da rota** (11:14:47 UTC, anterior ao push), então o
+marcador está em **0 por falta de gente, não por falha**. O SQL de conferência
+está no bloco de ações abaixo.
+
+#### RISCO
+
+Baixo e reversível. A mudança só **acrescenta** uma saída onde antes havia
+`null`; nenhum caminho existente foi retirado (provado pelo caso 4.3 do
+guardião, que exige que quem tem tema continue recebendo exatamente o link de
+série de antes). O pior caso é uma pessoa receber um botão a mais.
+
+---
+
+## FECHAMENTO DO CICLO — 8 horas, 01:08 → 09:08 BRT (06/09/2026)
+
+Marco de medição: **2026-09-06 04:00 UTC**, contas externas.
+
+### O NÚMERO QUE MANDA
+
+**0 assinaturas novas.** Nenhum `payment_success` de webhook em conta externa
+desde o marco. É o resultado do ciclo, e ele é o mesmo com que o ciclo começou.
+
+### PLACAR POR FONTE (desde o marco)
+
+| fonte | cadastros | filme 1 | filme 2 | filme 3 | checkout | **pagou** |
+|---|---|---|---|---|---|---|
+| chatgpt | 6 | 3 | 0 | 0 | 0 | **0** |
+| seo | 1 | 1 | 0 | 0 | 1 | **0** |
+| taaft | 1 | 1 | 0 | 0 | 0 | **0** |
+| sem fonte | 1 | 1 | 0 | 0 | 0 | **0** |
+| nav | 1 | 0 | 0 | 0 | 0 | **0** |
+| **total** | **10** | **6** | **0** | **0** | **1** | **0** |
+
+**O degrau que matou a noite é o 1 → 2: ele foi ZERO.** Não houve segundo
+filme nenhum em 8 horas. Todo o trabalho do ciclo (a caixa da próxima ação, a
+memória do episódio 2, a carta que o nomeia) mira exatamente esse degrau — e
+ele não teve nem um caso para exercitar. **A coorte da noite é pequena demais
+para julgar qualquer uma das peças**: 10 pessoas, 6 filmes. É a lição que se
+repetiu a noite inteira (`zero-falhas-sem-denominador`,
+`janela-movel-congelada`), e vale para o próprio fechamento.
+
+### CHECAGEM ZERO (desde o marco)
+
+| checagem | resultado |
+|---|---|
+| cadastro sem crédito | **0** |
+| `completed` sem `video_url` | **0** |
+| render preso >15 min | **0** |
+| `next_episode_failed` | **0** |
+| débito sem entrega | **0** |
+| `generation_stage_error` | 3 linhas / **2 eventos** |
+
+Os 3 `generation_stage_error` são **2 acontecimentos, nenhum defeito**:
+
+1. `fc28af0b`, 07:47 UTC, `broll_planning`, `TypeError` — **o mesmo já
+   registrado na #15**, não repetiu, e a pessoa **recebeu filme** (1 vídeo
+   `completed` na janela). O item de vigia aberto na #11 sobre esta pessoa
+   (15 créditos debitados sem linha em `videos`) **está fechado: o filme
+   entrou.**
+2. `c6145712`, 10:40 UTC, duas linhas do mesmo evento (`generating` +
+   `failed`): **a régua de duração recusando um roteiro curto demais**
+   ("32 segundos de narração para um vídeo de 60 — acrescente cerca de 58
+   palavras"). Isso é o contrato funcionando, com mensagem acionável, e o
+   pipeline do filme é **intocável** por ordem do ciclo. **Não abri alarme.**
+
+   ⚠ **Mas é o caso mais caro da noite e vai para o PEDIDOS:** essa pessoa
+   veio do **chatgpt**, cadastrou às 10:39:52, levou o "não" **50 segundos
+   depois**, ficou mais 3 minutos e foi embora com **25 créditos intactos e 0
+   filmes**. A recusa é honesta; o *momento* é o pior possível. É a mesma
+   família do padrão que o PEDIDOS já nomeou três vezes (o cliente do chatgpt
+   cola o *pedido* que fez ao ChatGPT, não o assunto do vídeo).
+
+### E-MAIL — O QUE SAIU, E POR QUEM
+
+**Eu não disparei nenhum e-mail neste ciclo.** Nenhum N3, nenhum N5. Tudo o
+que saiu foi **cron automático**, e registro para que o fundador saiba o que
+chegou na caixa dos clientes:
+
+| campanha | envios | pessoas | quando (UTC) |
+|---|---|---|---|
+| `trial_lifecycle_email_sent` | 42 | 42 | 04:25 → 10:25 |
+| `next_episode_wall_emailed_v1` | **18** | 18 | 11:00:47 → 11:00:59 |
+| `video_ready_email_sent` | 8 | 7 | 05:00 → 09:24 |
+
+A carta do episódio 2 (**construída na #4, consertada na #11 e na #15**)
+**rodou pela primeira vez depois do conserto**, às 08:00 BRT, para 18 pessoas.
+O carimbo mostra que ela está instrumentada e funcionando:
+
+- **18 de 18 com título aproveitável** (`tinha_titulo: true`) — ou seja,
+  nenhuma recebeu a versão fraca da carta;
+- **0 de 18 com episódio já escrito** (`tinha_episodio_escrito: false`) —
+  **esperado, e por construção**: a memória do episódio só existe para filmes
+  entregues depois de 06/09 09:22 UTC, e essas 18 são de coortes anteriores.
+  É adoção começando do zero, não efeito ausente.
+- **0 cliques** até 11:25 UTC — 25 minutos depois do envio. Cedo demais para
+  significar coisa alguma.
+
+*(Correção minha, no mesmo parágrafo: minha primeira consulta leu a chave
+`tema` e devolveu "0 com tema". A chave do carimbo é `tinha_titulo`, e o
+número certo é 18 de 18.)*
+
+### ENTREGAS EM PRODUÇÃO NESTE CICLO
+
+Todas publicadas por mim, sem intervenção do fundador, conforme a ordem.
+
+| # | SHA | o que |
+|---|---|---|
+| #1–#9 | (ver diário) | contrato de preço honesto, os primeiros chamadores da peça, o e-mail de resgate com a porta certa |
+| #10 | `f1d1ef51` | o filme ficava pronto e nunca era montado; o cron de auto-cura pulava o Kineo 1 inteiro |
+| #10b | `d8f216a7` | o denominador da noite contava MONTAGEM e não PESSOA — defeito meu, corrigido no mesmo ciclo |
+| #11 | `417517b4` | a carta mais quente da casa não tinha gatilho e o link era cego |
+| #13 | `e6740d78` | a Stripe guarda a porta de volta por 30 dias e a casa nunca a mandou |
+| #13b | `525f85a6` | o e-mail do pico saía CEGO de saldo |
+| #14 | `2b764751` | a casa escrevia o episódio 2 inteiro e jogava fora |
+| #15 | `76800019` | a carta prometia o episódio 2 e entregava o tema do episódio 1 |
+| **#16** | **`618b99e3` → `69afad03`** | **a saída barata deixou de depender do link de série** |
+
+Fila final: **0**. `origin/main` = `69afad03`. Home **200**.
+
+### O QUE EU DIRIA SE TIVESSE UMA FRASE
+
+**Oito horas fecharam nove buracos e não venderam nada — e os dois fatos não
+se contradizem.** A noite inteira teve **10 cadastros e 6 filmes**: não existe
+coorte que prove ou refute uma porta de conversão nesse tamanho. O que ficou
+provado é outra coisa, e é real: a casa parou de mentir preço, parou de jogar
+fora o episódio que escreve, parou de mandar carta cega, parou de pular o
+Kineo 1 no resgate, e parou de recolher a alternativa gratuita na hora de
+pedir dinheiro. Nenhuma dessas peças tinha tráfego para brilhar esta noite.
+**A pergunta de amanhã não é "qual porta construir" — é de onde vêm as
+pessoas.** Seis das dez vieram do chatgpt, e uma delas levou um "não" 50
+segundos depois de se cadastrar.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+1. **Nada de push.** As 10 entregas do ciclo estão em produção; a fila está
+   zerada e o site responde 200. Você não precisa clicar em nada.
+2. **Confirme o deploy da #16 quando quiser** (é a única coisa que ficou sem
+   prova, por falta de tráfego às 8h de domingo). Um SQL:
+   `select count(*) from events where name='next_action_served' and metadata ? 'engine_deeplink';`
+   — **qualquer número acima de 0 prova que o código novo está no ar**, porque
+   esse campo não existia no repo antes do commit `618b99e3`.
+3. **Decida sobre o guardião quebrado que não é meu:**
+   `scripts/test-publish-kit-business-path.mjs` está vermelho **desde antes
+   deste ciclo** (não fui eu — provei contra a árvore pristina). Alguém
+   precisa adotá-lo ou aposentá-lo; guardião vermelho permanente deixa de ser
+   guardião.
+
+### 📋 O QUE ACONTECEU
+
+Esta última hora consertou o defeito que a rotação anterior tinha encontrado
+olhando as cinco vezes em que a caixa nova apareceu de verdade para alguém: uma
+pessoa com 7 créditos, precisando de 15, viu a caixa **dentro da tela de
+compra** e recebeu só "ver planos" — sem a opção de fazer um filme mais barato
+com o dinheiro que ela já tinha. O servidor sabia que essa opção existia. A
+tela não a mostrou porque a oferta barata estava amarrada a um link de
+"próximo episódio" que naquele caso não existia. Na hora de pedir dinheiro, a
+casa tirou de campo a alternativa que não custa nada.
+
+Consertado, e um segundo defeito apareceu no caminho: mesmo quando a
+alternativa aparecia, ela podia chegar **inerte** — a rota mandava o nome do
+motor numa língua que a tela não entende, então o desvio para o filme barato
+era jogado fora em silêncio e a pessoa chegava lá com o motor caro ainda
+selecionado. Os dois estão no ar, com 51 verificações e quatro mutantes mortos.
+
+E o fechamento das oito horas, sem maquiagem: **zero assinantes**. Mas também
+zero cadastros sem crédito, zero filmes cobrados e não entregues, zero renders
+presos. A noite teve 10 pessoas e 6 filmes — é pouca gente para provar
+qualquer porta de conversão, e eu prefiro dizer isso a inventar significado
+para um número pequeno (foi o erro que quase cometi três vezes esta noite, e
+que anotei todas as três). O ciclo entregou dez consertos reais em produção; o
+que ele não entregou foi público para atravessá-los.
