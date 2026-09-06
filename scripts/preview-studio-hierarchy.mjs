@@ -22,7 +22,7 @@ function collectStates(node) {
   ts.forEachChild(node, collectStates)
 }
 collectStates(ast)
-let fixture = {}, stateIndex = 0
+let fixture = {}, stateIndex = 0, runtimeMode = false
 const react = { ...React, useEffect: () => {}, useMemo: (fn) => fn(), useRef: (value) => ({ current: value }), useState: (value) => {
   const name = stateNames[stateIndex++]
   if (!name) throw new Error('Unexpected hook order; review fixture mapping')
@@ -30,7 +30,7 @@ const react = { ...React, useEffect: () => {}, useMemo: (fn) => fn(), useRef: (v
 } }
 function load(file) {
   if (cache.has(file)) return cache.get(file)
-  const source = file === entry ? baseline : fs.readFileSync(path.join(root, file), 'utf8')
+  const source = file === entry && !runtimeMode ? baseline : fs.readFileSync(path.join(root, file), 'utf8')
   const module = { exports: {} }
   const js = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.React, target: ts.ScriptTarget.ES2020 } }).outputText
   const shim = (name) => {
@@ -50,6 +50,8 @@ function load(file) {
 }
 function elements(node) { return React.Children.toArray(node.props.children).filter(React.isValidElement) }
 export function buildStudioHierarchyProposal(states = {}) {
+runtimeMode = false
+cache.clear()
 fixture = states
 stateIndex = 0
 for (const name of Object.keys(states)) if (!stateNames.includes(name)) throw new Error('Unknown fixture state: ' + name)
@@ -94,6 +96,18 @@ const proposed = React.cloneElement(original, { className: 'stu composer-proposa
 @media(max-width:900px){.composer-proposal .composer-proposal-grid{grid-template-columns:1fr;gap:18px}.composer-proposal-idea{padding:16px}.composer-proposal textarea{min-height:160px}}
 `))
 return { original, proposed }
+}
+// After approval, verify the actual runtime component against the proposal,
+// not merely the tree transformation. Effects remain disabled in both paths.
+export function buildStudioHierarchyRuntime(states = {}) {
+  runtimeMode = true
+  cache.clear()
+  fixture = states
+  stateIndex = 0
+  for (const name of Object.keys(states)) if (!stateNames.includes(name)) throw new Error('Unknown fixture state: ' + name)
+  const result = load(entry).default()
+  if (stateIndex !== stateNames.length) throw new Error('Runtime hook/declaration mismatch')
+  return result
 }
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
 const { original, proposed } = buildStudioHierarchyProposal()

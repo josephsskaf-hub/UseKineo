@@ -426,249 +426,17 @@ export default function StudioClient() {
   }
 
   return (
-    <div className="stu">
+    <div className="stu composer-proposal">
       <style dangerouslySetInnerHTML={{ __html: STUDIO_KIT_CSS }} />
 
       <h1>Studio</h1>
-      <p className="sub">Every control on one screen. Pick, type, generate.</p>
+      <p className="sub">Your idea first. Review the settings, then generate.</p>
 
-      <div className="grid">
-        {/* ===== RAIL ESQUERDO — controles em cards numerados ===== */}
-        <div className="rail">
-          {/* 1 · Engine */}
-          <div style={{ position: 'relative' }}>
-            <button type="button" className="mdlbtn" onClick={() => setPickerOpen((o) => !o)}>
-              <span className="lab" style={{ marginBottom: 0 }}><span className="n">1</span>Engine</span>
-              <span className="mdlname" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span className="eng-ic" aria-hidden="true">{eng.icon}</span>
-                <b>{eng.name}</b>
-                {/* KINEO-RES-1080-2026-08-24 — o fundador leu "720p ▾" ao lado
-                    do Kling 3 e "1080×1920 master" logo abaixo como CONTRADIÇÃO
-                    ("precisa arrumar isso") — e ele é o leitor mais treinado da
-                    casa; cliente tropeça igual. A decisão dele de 17/08 já dizia:
-                    "só 1080p — as pessoas não precisam saber". O rótulo do card
-                    fecha com a promessa da entrega (todo master é 1080×1920,
-                    verificado por ffprobe); a resolução NATIVA do motor sai da
-                    vitrine e vive só no hint explicativo do formato. */}
-                <i style={{ marginLeft: 'auto' }}>1080p ▾</i>
-              </span>
-            </button>
-            {pickerOpen && (
-              <div className="picker">
-                {ENGINES.filter((e) => e.key !== 's25' || internal).map((e) => (
-                  <button key={e.key} type="button" className={`pk${e.key === engine ? ' on' : ''}`}
-                    onClick={() => { setEngine(e.key); setPickerOpen(false) }}>
-                    <span className="eng-ic" aria-hidden="true">{e.icon}</span>
-                    <span className="pk-tx">
-                      {/* ═══ KINEO-PRECO-VISIVEL-2026-09-02 — REVERTE O #2026-08-18 ═══
-                          A nota antiga aqui dizia "preço não mora no seletor — só no
-                          cartão de gerar e no /pricing", citando Higgsfield/InVideo.
-                          A averiguação de 02/09 mostrou o contrário na fonte oficial:
-                          a Higgsfield imprime o custo DENTRO do botão Generate
-                          ("the exact cost is shown on the Generate button before you
-                          confirm") e publica ~70 modelos em créditos/5s; a Hailuo põe
-                          o número colado no botão Create e recalcula ao vivo. Quem
-                          esconde é Canva/InVideo — e esses têm 3 tiers, não 8 motores.
-                          O preço da nossa omissão está medido: 102 pessoas em 30 dias
-                          queimaram o trial inteiro no primeiro clique sem saber.
-                          Agora cada card diz o custo E quantos filmes o saldo compra. */}
-                      <span className="t">
-                        <b>{e.name}{e.tag && <span className="tag">{e.tag}</span>}</b>
-                        <i>{engineCostLabel(e.key)}</i>
-                      </span>
-                      <span className="d">{e.desc}</span>
-                      <span className="d" style={{ color: e.key === 'fast' ? '#5cb3ff' : undefined, marginTop: 2 }}>
-                        {filmsLabel(e.key)}
-                      </span>
-                    </span>
-                    {e.preview && (
-                      <span className="pkv" aria-hidden="true">
-                        <video src={e.preview} muted loop playsInline preload="none"
-                          onMouseEnter={(ev) => { const v = ev.currentTarget; v.currentTime = 0; v.play().catch(() => {}) }} />
-                      </span>
-                    )}
-                  </button>
-                ))}
-                {/* KINEO-SPRINT-UI8-2026-08-30 — Avatar era o motor INVISIVEL
-                    (auditoria 28/08, achado #2): anunciado como 1 dos 8 motores,
-                    0 debitos NA HISTORIA — porque nao existia em NENHUM seletor.
-                    O /generate virou porteiro do /studio, entao este picker e o
-                    UNICO lugar onde cliente escolhe motor. O Avatar tem pipeline
-                    proprio (foto → apresentador falando), entao o card nao entra
-                    no fluxo do Studio: e a PORTA para o ambiente dedicado /avatar.
-                    Selo honesto: sem claim de resolucao (0 masters verificados). */}
-                <button
-                  type="button"
-                  className="pk"
-                  onClick={() => { setPickerOpen(false); router.push('/avatar') }}
-                >
-                  <span className="eng-ic" aria-hidden="true">🧑</span>
-                  <span className="pk-tx">
-                    <span className="t">
-                      <b>Avatar<span className="tag">Presenter</span></b>
-                      <i>Avatar Studio →</i>
-                    </span>
-                    <span className="d">Talking AI presenter from a photo — lip-synced, its own studio</span>
-                  </span>
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* 2 · Format — duração + aspecto + resolução num card só */}
-          <div className="card">
-            <div className="lab"><span className="n">2</span>Format</div>
-            <div className="row" style={{ marginBottom: 12 }}>
-              {/* ═══ KINEO-DURACAO-2026-08-20 — OS TRÊS TIERS QUE O DADO PEDE ═══
-                  Medido em 6M de vídeos do TikTok (Socialinsider, jan-jun/2026):
-                  15-30s rende 1.000 views medianas · 30-60s rende 2.200 ·
-                  60-90s rende 7.200 · 90-120s rende 9.620. Ou seja, o teto de
-                  60s que a gente tinha deixava 4× de alcance na mesa. São duas
-                  lógicas de ranking rodando juntas: curto ganha em taxa de
-                  conclusão, longo acumula tempo de exibição — e VIEWS SEGUEM
-                  TEMPO DE EXIBIÇÃO.
-                  35s fica como o tier de volume (barato, para testar tema);
-                  60s continua o padrão e o piso de monetização do TikTok;
-                  90s é o tier de alcance. */}
-              <button type="button" className={`pill${duration === 35 ? ' on' : ''}`} onClick={() => setDuration(35)}>35s</button>
-              <button type="button" className={`pill${duration === 60 ? ' on' : ''}`} onClick={() => setDuration(60)}>60s ⭐</button>
-              <button type="button" className={`pill${duration === 90 ? ' on' : ''}`} onClick={() => setDuration(90)} title="Mais alcance: no TikTok, 90s rende ~4x as views de um vídeo de 60s">90s 📈</button>
-            </div>
-            {/* ═══ KINEO-MULTIFORMATO-2026-09-02 — O 16:9 SAI DO "SOON" ══════
-                O botão 16:9 esteve marcado "SOON" desde que a tela existe, e
-                o estado `aspect` morria aqui: nunca viajava para o servidor.
-                Agora os quatro formatos são reais e nativos.
-                POR QUE ISTO É DIFERENTE DO QUE O MERCADO FAZ (auditoria de
-                02/09, fonte oficial): OpusClip cobra US$ 29/mês para
-                reenquadrar com tracking; Submagic e Veed fazem crop com
-                reposicionamento manual; InVideo re-renderiza e cobra crédito
-                de novo; Pictory avisa que "some visuals may need
-                repositioning". Todos eles partem de um vídeo PRONTO e
-                precisam adivinhar onde está o assunto. Nossas cenas são
-                GERADAS: pedimos o quadro certo ao motor e ele nasce certo.
-                Custo de render: 16:9 é idêntico a 9:16 (mesmos pixels), 1:1
-                custa 44% MENOS e 4:5, 30% menos. */}
-            <div className="row" style={{ marginBottom: 12, flexWrap: 'wrap' }}>
-              {ASPECT_PILLS.map((a) => (
-                <button
-                  key={a.value}
-                  type="button"
-                  className={`pill${aspect === a.value ? ' on' : ''}`}
-                  onClick={() => setAspect(a.value)}
-                  title={a.where}
-                >
-                  {a.value} · {a.label}
-                </button>
-              ))}
-            </div>
-            <div style={{ fontSize: 11.5, color: 'var(--muted2)', marginBottom: 12, lineHeight: 1.5 }}>
-              {ASPECT_PILLS.find((a) => a.value === aspect)?.where}
-            </div>
-            {/* ⚠️ KINEO-RES-HONESTA-2026-08-20 — a tela se contradizia.
-                O card do motor mostrava "768p" (a resolução real do H3) e
-                LOGO ABAIXO um botão "1080p Full HD" aparecia selecionado. Duas
-                afirmações opostas na mesma tela, e a de baixo era a falsa.
-                A verdade, que vale para TODOS os motores: cada um gera na
-                resolução nativa dele (H3 em 768p, os demais em 720p desde a
-                mudança de margem de hoje) e o Creatomate ENTREGA o master em
-                1080×1920. Então a linha deixa de ser um seletor — que nunca
-                selecionou nada, o 720p sempre esteve desabilitado — e passa a
-                ser a informação: nativa do motor → master entregue.
-                Selo honesto é ativo de marca; um botão que mente sobre a
-                resolução é a mesma classe de erro do "Free" no Kineo 1. */}
-            {/* KINEO-RES-1080-2026-08-24 — a dupla de pills "720p native
-                (apagada) → 1080×1920 master (acesa)" era informação vestida de
-                CONTROLE: pill apagada lê como "opção quebrada/desabilitada", e
-                o fundador leu exatamente assim. Vira UMA pill de entrega; a
-                verdade sobre a resolução nativa continua dita, mas em TEXTO no
-                hint — informação em formato de informação, controle nenhum. */}
-            <div className="row" style={{ alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <span className="pill on" style={{ cursor: 'default' }}>1080×1920 · Full HD master</span>
-            </div>
-            <div className="hint">Every film is delivered as a 1080×1920 Full HD master (engines render natively at 720–768p and are mastered up). For maximum sharpness, run ✨HD Enhance on the finished film.</div>
-          </div>
-
-          {/* 3 · Reference image */}
-          <div className="card">
-            <div className="lab"><span className="n">3</span>Reference image <span className="soon">SOON</span></div>
-            {/* KINEO-STUDIO-AUDIT-2026-08-17 — auditoria de botoes do fundador
-                flagrou: o upload aceitava o arquivo mas NAO viajava pro render
-                (botao morto = promessa falsa). Ate o pipe de upload ligar,
-                vira SOON honesto — selo honesto vale dentro do produto tambem. */}
-            <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={(ev) => setRefName(ev.target.files?.[0]?.name ?? null)} />
-            <button type="button" disabled className="upl no" title="Coming soon">
-              🖼️ Start your video from an image — coming soon
-            </button>
-          </div>
-
-          {/* Custo + Generate */}
-          <div className="cost">
-            <div className="sum" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span className="eng-ic" style={{ width: 24, height: 24, borderRadius: 7, fontSize: 10.5 }} aria-hidden="true">{eng.icon}</span>{eng.name} · {duration}s · 1080p · {aspect}{preset ? ` · ${CAMERA_PRESETS.find((c) => c.key === preset)?.label}` : ''}</div>
-            {/* O número tem de mudar junto com o seletor: preço que só
-                aparece DEPOIS do clique é cobrança-surpresa. O servidor cobra
-                por esta mesma função (creditCostForDuration), então tela e
-                fatura nunca divergem. */}
-            <div className="val">
-              <span>Estimated cost</span>
-              <b style={balance !== null && cost > balance ? { color: '#fb923c' } : undefined}>{cost} cr</b>
-            </div>
-            {balance !== null && cost > balance && (
-              // A verdade ANTES da ideia ser escrita, não depois do clique.
-              <div className="val" style={{ color: '#fb923c', fontSize: '0.78rem' }}>
-                <span>You have {balance} cr</span>
-                <b style={{ fontWeight: 600 }}>{duration > 35 ? 'try 35s, or another engine' : 'try another engine'}</b>
-              </div>
-            )}
-            {/* Expectativa de tempo ANTES do clique: o cronômetro da tela de
-                render sobe sem dizer quanto é normal, e quem não conhece lê
-                como travado. Fast é minutos; motor de IA é vários minutos. */}
-            <div className="val" style={{ opacity: 0.75 }}>
-              <span>Usually takes</span>
-              <b style={{ fontWeight: 600 }}>{eng.key === 'fast' ? '3–7 min' : '8–20 min'}</b>
-            </div>
-            {/* KINEO-PRECO-VISIVEL-2026-09-02 — o saldo em FILMES, no motor e na
-                duração escolhidos. Nenhum dos nove concorrentes auditados mostra
-                isto dentro do editor. Ataca o defeito medido em 02/09: 3 dos 4
-                checkouts do dia eram contas com 25 créditos INTACTOS e zero
-                vídeos — gente que nunca soube que já tinha filme na mão. */}
-            {balance !== null && cost > 0 && Math.floor(balance / cost) > 0 && (
-              <div className="val" style={{ opacity: 0.75 }}>
-                <span>Your credits buy</span>
-                <b style={{ fontWeight: 600 }}>
-                  {Math.floor(balance / cost)} {Math.floor(balance / cost) === 1 ? 'film' : 'films'} like this
-                </b>
-              </div>
-            )}
-            <button type="button" onClick={generate} disabled={!prompt.trim() || limit.over} className={`go ${prompt.trim() && !limit.over ? 'ok' : 'no'}`}>
-              {/* KINEO-PRECO-VISIVEL-2026-09-02 — o custo entra NO BOTÃO, o
-                  padrão da Higgsfield ("the exact cost is shown on the Generate
-                  button before you confirm") e da Hailuo (número colado no botão,
-                  recalculado ao vivo). Antes: 'Generate →' e o número só no
-                  rodapé cinza acima — que ninguém lê depois de escolher. */}
-              {!prompt.trim()
-                ? 'Type your idea first'
-                : limit.over
-                  ? `Trim ${limit.excess.toLocaleString('en-US')} characters to continue`
-                  : balance !== null && cost > balance
-                    ? `Need ${cost - balance} more credits`
-                    : cost > 0
-                      ? `Generate · ${cost} cr →`
-                      : 'Generate →'}
-            </button>
-            {/* KINEO-PRECO-VISIVEL-2026-09-02 — a política de estorno vira
-                promessa VISÍVEL. Higgsfield, Kling, Hailuo e OpusClip têm a
-                mesma política e nenhum a exibe na hora da escolha; nós já
-                cumprimos (o guard de narração e o release do claim devolvem na
-                hora), então dizer isto é confiança de graça. */}
-            <div className="gnote">Voice, karaoke captions and score included. If a render fails, your credits come straight back.</div>
-          </div>
-        </div>
-
-        {/* ===== DIREITA — ideia + câmera ===== */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-          <div>
+      <div className="grid composer-proposal-grid">
+        <section className="composer-proposal-idea" aria-label="Your idea">
+<div>
             <div className="lab" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span><span className="n">4</span>{chatGptQuickstart === 'finished_script' ? 'Paste your ChatGPT script' : chatGptQuickstart === 'idea' ? 'Paste your ChatGPT idea' : 'Your idea'}</span>
+              <span><span className="n">1</span>{chatGptQuickstart === 'finished_script' ? 'Paste your ChatGPT script' : chatGptQuickstart === 'idea' ? 'Paste your ChatGPT idea' : 'Your idea'}</span>
               <button
                 type="button"
                 className="pill"
@@ -747,9 +515,161 @@ export default function StudioClient() {
               </div>
             )}
           </div>
-
-          <div>
-            <div className="lab"><span className="n">5</span>Camera preset <span style={{ fontWeight: 600, textTransform: 'none', letterSpacing: 0 }}>optional — a pre-tested move added to your prompt</span></div>
+        </section>
+        <section className="composer-proposal-settings" aria-label="Settings and generation">
+<div style={{ position: 'relative' }}>
+            <button type="button" className="mdlbtn" onClick={() => setPickerOpen((o) => !o)}>
+              <span className="lab" style={{ marginBottom: 0 }}><span className="n">2</span>Engine</span>
+              <span className="mdlname" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span className="eng-ic" aria-hidden="true">{eng.icon}</span>
+                <b>{eng.name}</b>
+                {/* KINEO-RES-1080-2026-08-24 — o fundador leu "720p ▾" ao lado
+                    do Kling 3 e "1080×1920 master" logo abaixo como CONTRADIÇÃO
+                    ("precisa arrumar isso") — e ele é o leitor mais treinado da
+                    casa; cliente tropeça igual. A decisão dele de 17/08 já dizia:
+                    "só 1080p — as pessoas não precisam saber". O rótulo do card
+                    fecha com a promessa da entrega (todo master é 1080×1920,
+                    verificado por ffprobe); a resolução NATIVA do motor sai da
+                    vitrine e vive só no hint explicativo do formato. */}
+                <i style={{ marginLeft: 'auto' }}>1080p ▾</i>
+              </span>
+            </button>
+            {pickerOpen && (
+              <div className="picker">
+                {ENGINES.filter((e) => e.key !== 's25' || internal).map((e) => (
+                  <button key={e.key} type="button" className={`pk${e.key === engine ? ' on' : ''}`}
+                    onClick={() => { setEngine(e.key); setPickerOpen(false) }}>
+                    <span className="eng-ic" aria-hidden="true">{e.icon}</span>
+                    <span className="pk-tx">
+                      {/* ═══ KINEO-PRECO-VISIVEL-2026-09-02 — REVERTE O #2026-08-18 ═══
+                          A nota antiga aqui dizia "preço não mora no seletor — só no
+                          cartão de gerar e no /pricing", citando Higgsfield/InVideo.
+                          A averiguação de 02/09 mostrou o contrário na fonte oficial:
+                          a Higgsfield imprime o custo DENTRO do botão Generate
+                          ("the exact cost is shown on the Generate button before you
+                          confirm") e publica ~70 modelos em créditos/5s; a Hailuo põe
+                          o número colado no botão Create e recalcula ao vivo. Quem
+                          esconde é Canva/InVideo — e esses têm 3 tiers, não 8 motores.
+                          O preço da nossa omissão está medido: 102 pessoas em 30 dias
+                          queimaram o trial inteiro no primeiro clique sem saber.
+                          Agora cada card diz o custo E quantos filmes o saldo compra. */}
+                      <span className="t">
+                        <b>{e.name}{e.tag && <span className="tag">{e.tag}</span>}</b>
+                        <i>{engineCostLabel(e.key)}</i>
+                      </span>
+                      <span className="d">{e.desc}</span>
+                      <span className="d" style={{ color: e.key === 'fast' ? '#5cb3ff' : undefined, marginTop: 2 }}>
+                        {filmsLabel(e.key)}
+                      </span>
+                    </span>
+                    {e.preview && (
+                      <span className="pkv" aria-hidden="true">
+                        <video src={e.preview} muted loop playsInline preload="none"
+                          onMouseEnter={(ev) => { const v = ev.currentTarget; v.currentTime = 0; v.play().catch(() => {}) }} />
+                      </span>
+                    )}
+                  </button>
+                ))}
+                {/* KINEO-SPRINT-UI8-2026-08-30 — Avatar era o motor INVISIVEL
+                    (auditoria 28/08, achado #2): anunciado como 1 dos 8 motores,
+                    0 debitos NA HISTORIA — porque nao existia em NENHUM seletor.
+                    O /generate virou porteiro do /studio, entao este picker e o
+                    UNICO lugar onde cliente escolhe motor. O Avatar tem pipeline
+                    proprio (foto → apresentador falando), entao o card nao entra
+                    no fluxo do Studio: e a PORTA para o ambiente dedicado /avatar.
+                    Selo honesto: sem claim de resolucao (0 masters verificados). */}
+                <button
+                  type="button"
+                  className="pk"
+                  onClick={() => { setPickerOpen(false); router.push('/avatar') }}
+                >
+                  <span className="eng-ic" aria-hidden="true">🧑</span>
+                  <span className="pk-tx">
+                    <span className="t">
+                      <b>Avatar<span className="tag">Presenter</span></b>
+                      <i>Avatar Studio →</i>
+                    </span>
+                    <span className="d">Talking AI presenter from a photo — lip-synced, its own studio</span>
+                  </span>
+                </button>
+              </div>
+            )}
+          </div>
+<div className="card">
+            <div className="lab"><span className="n">3</span>Format</div>
+            <div className="row" style={{ marginBottom: 12 }}>
+              {/* ═══ KINEO-DURACAO-2026-08-20 — OS TRÊS TIERS QUE O DADO PEDE ═══
+                  Medido em 6M de vídeos do TikTok (Socialinsider, jan-jun/2026):
+                  15-30s rende 1.000 views medianas · 30-60s rende 2.200 ·
+                  60-90s rende 7.200 · 90-120s rende 9.620. Ou seja, o teto de
+                  60s que a gente tinha deixava 4× de alcance na mesa. São duas
+                  lógicas de ranking rodando juntas: curto ganha em taxa de
+                  conclusão, longo acumula tempo de exibição — e VIEWS SEGUEM
+                  TEMPO DE EXIBIÇÃO.
+                  35s fica como o tier de volume (barato, para testar tema);
+                  60s continua o padrão e o piso de monetização do TikTok;
+                  90s é o tier de alcance. */}
+              <button type="button" className={`pill${duration === 35 ? ' on' : ''}`} onClick={() => setDuration(35)}>35s</button>
+              <button type="button" className={`pill${duration === 60 ? ' on' : ''}`} onClick={() => setDuration(60)}>60s ⭐</button>
+              <button type="button" className={`pill${duration === 90 ? ' on' : ''}`} onClick={() => setDuration(90)} title="Mais alcance: no TikTok, 90s rende ~4x as views de um vídeo de 60s">90s 📈</button>
+            </div>
+            {/* ═══ KINEO-MULTIFORMATO-2026-09-02 — O 16:9 SAI DO "SOON" ══════
+                O botão 16:9 esteve marcado "SOON" desde que a tela existe, e
+                o estado `aspect` morria aqui: nunca viajava para o servidor.
+                Agora os quatro formatos são reais e nativos.
+                POR QUE ISTO É DIFERENTE DO QUE O MERCADO FAZ (auditoria de
+                02/09, fonte oficial): OpusClip cobra US$ 29/mês para
+                reenquadrar com tracking; Submagic e Veed fazem crop com
+                reposicionamento manual; InVideo re-renderiza e cobra crédito
+                de novo; Pictory avisa que "some visuals may need
+                repositioning". Todos eles partem de um vídeo PRONTO e
+                precisam adivinhar onde está o assunto. Nossas cenas são
+                GERADAS: pedimos o quadro certo ao motor e ele nasce certo.
+                Custo de render: 16:9 é idêntico a 9:16 (mesmos pixels), 1:1
+                custa 44% MENOS e 4:5, 30% menos. */}
+            <div className="row" style={{ marginBottom: 12, flexWrap: 'wrap' }}>
+              {ASPECT_PILLS.map((a) => (
+                <button
+                  key={a.value}
+                  type="button"
+                  className={`pill${aspect === a.value ? ' on' : ''}`}
+                  onClick={() => setAspect(a.value)}
+                  title={a.where}
+                >
+                  {a.value} · {a.label}
+                </button>
+              ))}
+            </div>
+            <div style={{ fontSize: 11.5, color: 'var(--muted2)', marginBottom: 12, lineHeight: 1.5 }}>
+              {ASPECT_PILLS.find((a) => a.value === aspect)?.where}
+            </div>
+            {/* ⚠️ KINEO-RES-HONESTA-2026-08-20 — a tela se contradizia.
+                O card do motor mostrava "768p" (a resolução real do H3) e
+                LOGO ABAIXO um botão "1080p Full HD" aparecia selecionado. Duas
+                afirmações opostas na mesma tela, e a de baixo era a falsa.
+                A verdade, que vale para TODOS os motores: cada um gera na
+                resolução nativa dele (H3 em 768p, os demais em 720p desde a
+                mudança de margem de hoje) e o Creatomate ENTREGA o master em
+                1080×1920. Então a linha deixa de ser um seletor — que nunca
+                selecionou nada, o 720p sempre esteve desabilitado — e passa a
+                ser a informação: nativa do motor → master entregue.
+                Selo honesto é ativo de marca; um botão que mente sobre a
+                resolução é a mesma classe de erro do "Free" no Kineo 1. */}
+            {/* KINEO-RES-1080-2026-08-24 — a dupla de pills "720p native
+                (apagada) → 1080×1920 master (acesa)" era informação vestida de
+                CONTROLE: pill apagada lê como "opção quebrada/desabilitada", e
+                o fundador leu exatamente assim. Vira UMA pill de entrega; a
+                verdade sobre a resolução nativa continua dita, mas em TEXTO no
+                hint — informação em formato de informação, controle nenhum. */}
+            <div className="row" style={{ alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span className="pill on" style={{ cursor: 'default' }}>1080×1920 · Full HD master</span>
+            </div>
+            <div className="hint">Every film is delivered as a 1080×1920 Full HD master (engines render natively at 720–768p and are mastered up). For maximum sharpness, run ✨HD Enhance on the finished film.</div>
+          </div>
+          <details className="composer-proposal-optional">
+            <summary>Optional settings</summary>
+<div>
+            <div className="lab">Camera preset <span style={{ fontWeight: 600, textTransform: 'none', letterSpacing: 0 }}>optional — a pre-tested move added to your prompt</span></div>
             <div className="cams">
               {CAMERA_PRESETS.map((c) => (
                 <button key={c.key} type="button" className={`cam${preset === c.key ? ' on' : ''}`}
@@ -763,30 +683,81 @@ export default function StudioClient() {
               <div className="camline">camera: {CAMERA_PRESETS.find((c) => c.key === preset)?.prompt}</div>
             )}
           </div>
-
-          <div className="steps">
-            {[
-              ['1 · CONFIGURE', 'Engine, length, resolution and camera — all on this screen.'],
-              ['2 · TYPE', 'One idea. Kineo writes the script and directs every scene.'],
-              ['3 · GET YOUR FILM', 'Voice, karaoke captions and score included. Download and post.'],
-            ].map(([t, d]) => (
-              <div key={t} className="step"><b>{t}</b><p>{d}</p></div>
-            ))}
+<div className="card">
+            <div className="lab">Reference image <span className="soon">SOON</span></div>
+            {/* KINEO-STUDIO-AUDIT-2026-08-17 — auditoria de botoes do fundador
+                flagrou: o upload aceitava o arquivo mas NAO viajava pro render
+                (botao morto = promessa falsa). Ate o pipe de upload ligar,
+                vira SOON honesto — selo honesto vale dentro do produto tambem. */}
+            <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={(ev) => setRefName(ev.target.files?.[0]?.name ?? null)} />
+            <button type="button" disabled className="upl no" title="Coming soon">
+              🖼️ Start your video from an image — coming soon
+            </button>
           </div>
-
-          {/* KINEO-SPRINT-V1V4-2026-08-31 (#2) — O MARCO ONDE O PUBLICO ESTA.
-              Medido em 7 dias: series_continue_clicked por fonte deu
-              history_milestone=7, done_screen=2, generate_recent_video=1,
-              history_video_card=1. Ou seja, o bloco de marco do /history e
-              sozinho 64% de todo o "faca o proximo episodio" do produto — e
-              mora numa tela que 23 pessoas visitaram. O /studio, a porta de
-              criacao, teve 87 pessoas e NAO tinha marco nenhum: so a fileira
-              de 6 miniaturas, cujo clique abre o MP4 cru em outra aba.
-              Levar o padrao vencedor para onde o publico ja passa custa uma
-              caixa e nao inventa mecanica nova: mesmo helper de tema
-              (buildSeriesContinuationHref) usado pelo /history e pela tela de
-              video pronto. A contagem e do proprio acervo — nada prometido. */}
-          {myVids.length > 0 && (
+          </details>
+<div className="cost">
+            <div className="sum" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span className="eng-ic" style={{ width: 24, height: 24, borderRadius: 7, fontSize: 10.5 }} aria-hidden="true">{eng.icon}</span>{eng.name} · {duration}s · 1080p · {aspect}{preset ? ` · ${CAMERA_PRESETS.find((c) => c.key === preset)?.label}` : ''}</div>
+            {/* O número tem de mudar junto com o seletor: preço que só
+                aparece DEPOIS do clique é cobrança-surpresa. O servidor cobra
+                por esta mesma função (creditCostForDuration), então tela e
+                fatura nunca divergem. */}
+            <div className="val">
+              <span>Estimated cost</span>
+              <b style={balance !== null && cost > balance ? { color: '#fb923c' } : undefined}>{cost} cr</b>
+            </div>
+            {balance !== null && cost > balance && (
+              // A verdade ANTES da ideia ser escrita, não depois do clique.
+              <div className="val" style={{ color: '#fb923c', fontSize: '0.78rem' }}>
+                <span>You have {balance} cr</span>
+                <b style={{ fontWeight: 600 }}>{duration > 35 ? 'try 35s, or another engine' : 'try another engine'}</b>
+              </div>
+            )}
+            {/* Expectativa de tempo ANTES do clique: o cronômetro da tela de
+                render sobe sem dizer quanto é normal, e quem não conhece lê
+                como travado. Fast é minutos; motor de IA é vários minutos. */}
+            <div className="val" style={{ opacity: 0.75 }}>
+              <span>Usually takes</span>
+              <b style={{ fontWeight: 600 }}>{eng.key === 'fast' ? '3–7 min' : '8–20 min'}</b>
+            </div>
+            {/* KINEO-PRECO-VISIVEL-2026-09-02 — o saldo em FILMES, no motor e na
+                duração escolhidos. Nenhum dos nove concorrentes auditados mostra
+                isto dentro do editor. Ataca o defeito medido em 02/09: 3 dos 4
+                checkouts do dia eram contas com 25 créditos INTACTOS e zero
+                vídeos — gente que nunca soube que já tinha filme na mão. */}
+            {balance !== null && cost > 0 && Math.floor(balance / cost) > 0 && (
+              <div className="val" style={{ opacity: 0.75 }}>
+                <span>Your credits buy</span>
+                <b style={{ fontWeight: 600 }}>
+                  {Math.floor(balance / cost)} {Math.floor(balance / cost) === 1 ? 'film' : 'films'} like this
+                </b>
+              </div>
+            )}
+            <button type="button" onClick={generate} disabled={!prompt.trim() || limit.over} className={`go ${prompt.trim() && !limit.over ? 'ok' : 'no'}`}>
+              {/* KINEO-PRECO-VISIVEL-2026-09-02 — o custo entra NO BOTÃO, o
+                  padrão da Higgsfield ("the exact cost is shown on the Generate
+                  button before you confirm") e da Hailuo (número colado no botão,
+                  recalculado ao vivo). Antes: 'Generate →' e o número só no
+                  rodapé cinza acima — que ninguém lê depois de escolher. */}
+              {!prompt.trim()
+                ? 'Type your idea first'
+                : limit.over
+                  ? `Trim ${limit.excess.toLocaleString('en-US')} characters to continue`
+                  : balance !== null && cost > balance
+                    ? `Need ${cost - balance} more credits`
+                    : cost > 0
+                      ? `Generate · ${cost} cr →`
+                      : 'Generate →'}
+            </button>
+            {/* KINEO-PRECO-VISIVEL-2026-09-02 — a política de estorno vira
+                promessa VISÍVEL. Higgsfield, Kling, Hailuo e OpusClip têm a
+                mesma política e nenhum a exibe na hora da escolha; nós já
+                cumprimos (o guard de narração e o release do claim devolvem na
+                hora), então dizer isto é confiança de graça. */}
+            <div className="gnote">Voice, karaoke captions and score included. If a render fails, your credits come straight back.</div>
+          </div>
+        </section>
+        {myVids.length > 0 && <section className="composer-proposal-continuation" aria-label="Continue your videos">
+{myVids.length > 0 && (
             <div
               className="myv"
               style={{ marginBottom: 14, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', justifyContent: 'space-between' }}
@@ -843,9 +814,7 @@ export default function StudioClient() {
               </Link>
             </div>
           )}
-
-          {/* KINEO-STUDIO-MYVIDS-2026-08-17 — os ultimos renders do usuario. */}
-          {myVids.length > 0 && (
+{myVids.length > 0 && (
             <div className="myv">
               <div className="hd">
                 <div className="lab" style={{ marginBottom: 0 }}>Your latest videos</div>
@@ -909,8 +878,32 @@ export default function StudioClient() {
               </div>
             </div>
           )}
-        </div>
+        </section>}
       </div>
+      <details className="composer-proposal-how">
+        <summary>How it works</summary>
+<div className="steps">
+            {[
+              ['1 · CONFIGURE', 'Engine, length, resolution and camera — all on this screen.'],
+              ['2 · TYPE', 'One idea. Kineo writes the script and directs every scene.'],
+              ['3 · GET YOUR FILM', 'Voice, karaoke captions and score included. Download and post.'],
+            ].map(([t, d]) => (
+              <div key={t} className="step"><b>{t}</b><p>{d}</p></div>
+            ))}
+          </div>
+      </details>
+      <style>{`
+.composer-proposal .composer-proposal-grid{grid-template-columns:minmax(0,1fr)320px;gap:28px}
+.composer-proposal-idea{min-width:0;padding:22px;border:1px solid #292a31;border-radius:18px;background:#101014}
+.composer-proposal-settings{display:flex;flex-direction:column;gap:14px;min-width:0}
+.composer-proposal-continuation{grid-column:1 / -1;min-width:0}
+.composer-proposal-optional{border:1px solid #292a31;border-radius:14px;padding:0 14px;background:#101014}
+.composer-proposal-optional>summary{min-height:48px;display:list-item;align-content:center;cursor:pointer;font-size:13px;color:#c9ccd3}
+.composer-proposal-optional>div{margin:16px 0}.composer-proposal-optional .cams{grid-template-columns:repeat(2,1fr)}
+.composer-proposal .hint{line-height:1.6}.composer-proposal textarea{min-height:230px}
+.composer-proposal-how{margin-top:24px}.composer-proposal-how>summary{min-height:44px;align-content:center;cursor:pointer;color:#a1a1aa;font-size:13px}
+@media(max-width:900px){.composer-proposal .composer-proposal-grid{grid-template-columns:1fr;gap:18px}.composer-proposal-idea{padding:16px}.composer-proposal textarea{min-height:160px}}
+`}</style>
     </div>
   )
 }
