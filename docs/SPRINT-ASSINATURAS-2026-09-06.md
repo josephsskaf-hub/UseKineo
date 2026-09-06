@@ -2765,3 +2765,239 @@ que não está quebrado.
 
 Movimento de gente na janela: 8 cadastros, 6 primeiros filmes, 1 checkout,
 **0 assinantes**.
+
+---
+
+### #15 — 07:09→08:1x BRT — a parede desta coorte NÃO era crédito, e a carta que promete "episódio 2" entregava o tema do episódio 1
+
+**HIPÓTESE DA ROTAÇÃO (escrita antes de codar):** a #14 mandou conferir se
+apareceu segunda visita à memória do episódio; se não, seguir para a carta que
+NOMEIA o episódio gravado. As duas coisas aconteceram — e no caminho o
+cardápio da noite (N1/N2, "o não vira porta") perdeu a coorte que o justificava.
+
+#### 1. A SEGUNDA VISITA: FALTA DE OPORTUNIDADE, NÃO DEFEITO
+
+7 `next_episode_requested` na janela, de 6 pessoas. Nenhuma pediu DUAS VEZES o
+mesmo filme — 9f2b563c pediu 2, mas para dois `video_id` diferentes. Logo:
+**0 oportunidades de acerto de cache**, não "0 acertos" (memórias
+`zero-falhas-sem-denominador` e `contrato-de-servidor-sem-chamador`).
+
+E o susto que eu **não** transformei em alarme: só **1** dos 7 pedidos gravou
+`next_episode_written`. Não é o escritor falhando — os outros 6 são
+**anteriores ao deploy** do SHA `2b764751` (~09:22 UTC). Depois do deploy:
+1 pedido → 1 gravação. O corte no horário do deploy é o que separa as duas
+leituras (memória `anti-repeticao-procurar-o-commit-antes-de-escalar`).
+
+#### 2. O QUE DERRUBOU O CARDÁPIO: AS 6 PESSOAS TINHAM SALDO
+
+O ciclo inteiro foi construído sobre "a casa diz NÃO por saldo e fica muda".
+Medido nas 6 pessoas que pediram episódio 2 esta noite:
+
+| pessoa | fonte | saldo | filmes | 2º filme depois do pedido |
+|---|---|---|---|---|
+| fc28af0b | chatgpt | **10** | 1 | 0 |
+| 80b9e2ce | chatgpt | **22** | 1 | 0 |
+| 9f2b563c | chatgpt | 7 | 2 | 0 |
+| 766d473c | chatgpt | **20** | 1 | 0 |
+| 71bfe95b | — | **17** | 1 | 0 |
+| 2c09bb9e | taaft | **22** | 1 | 0 |
+
+**5 das 6 tinham saldo de sobra** (o Kineo 1 custa 5, o Seedance 15) e mesmo
+assim **nenhuma fez o segundo filme**. Para esta coorte o N1/N2 do cardápio
+("mostre o saldo, ofereça o motor que cabe") não tinha o que consertar: a
+porta já estava aberta e a pessoa não passou.
+
+#### 3. ONDE A PORTA FUNCIONA — E ONDE ELA NÃO FUNCIONA
+
+`series_continue_clicked` **não** é uma peça morta: 178 eventos, 84 pessoas,
+34 dias, e uma batida às 07:51 UTC de hoje. E quando é clicada, ela paga:
+
+| fonte do clique | cliques (7d) | virou filme em 30 min |
+|---|---|---|
+| studio_milestone | 14 | **10 (71%)** |
+| render_pill | 7 | 2 |
+| generate_recent_video | 4 | 2 |
+| history_video_card | 6 | 1 |
+| **total** | **37** | **18 (49%)** |
+
+O gargalo é a IMPRESSÃO → CLIQUE, e só numa superfície:
+
+| superfície | viram (7d) | pessoas | clicaram | % |
+|---|---|---|---|---|
+| **done_screen** | **94** | **67** | **3** | **3,2%** |
+| **done_screen_top** | 19 | 16 | **0** | **0%** |
+
+Ou seja: **67 pessoas viram a porta na tela do filme pronto em 7 dias e 3
+clicaram.** E o `done_screen_top` — que a sprint-retenção #2 (04/09) criou
+exatamente para resolver isso, levando a porta ao primeiro viewport — tem
+**zero** cliques. Colocar a mesma porta mais acima já foi tentado e não moveu.
+
+Contraprova de que não é a porta: as superfícies de RETORNO (studio, pílula,
+histórico) convertem 49-71%. A diferença não é o botão, é o MOMENTO — nos 10
+segundos após o filme cair a pessoa ainda está consumindo o episódio 1.
+
+⚠️ **O que eu NÃO posso concluir daqui:** que a superfície de retorno "converte
+melhor". `studio_milestone` (108%) e `render_pill` (117%) têm mais cliques que
+impressões — a instrumentação de impressão delas ainda é parcial (o próprio
+`lib/seriesDoorImpressions.ts` documenta 11 pares de clique contra 2 de
+impressão). Comparar os percentuais entre superfícies seria dividir clique de
+onze portas pela impressão de duas. O número **sólido** é o do `done_screen`,
+onde as duas pontas existem.
+
+#### 4. DOIS ALARMES QUE EU NÃO ABRI, COM A PROVA
+
+**(a) O cartão do episódio escondido pela oferta de trial — NÃO acontece.**
+`GenerateClient:15326` só renderiza o episódio quando
+`(!showTrialPostVideoOffer || showTrialRepeatEpisode)`, e a busca que paga o
+GPT **não** é gateada — tinha cara de "a casa paga e esconde". Medido em 30
+dias: **25 episódios escritos, 20 pessoas, 0 escondidos pela oferta.**
+Hipótese morta antes de virar código.
+
+**(b) `trial_post_video_offer_viewed` parar em 05/09 — NÃO é regressão.**
+É decaimento de coorte desde 20/08: 51 → 25 → 14 → 12 → 8 → 4 → 3 → 3 → 4 →
+1 → 2 → 1 → 1 → 1 → 2. Ladeira de cinco semanas, não penhasco de ontem.
+
+**O que É verdade e vale registrar:** `next_shorts_shown` acompanha a tela de
+filme pronto quase 1:1 (7/7 hoje, 24/31 ontem, 37/42 em 02/09). Praticamente
+**todo filme termina com "troque de assunto"** — confirma a medição de 04/09
+(93% recebem tema novo) e é o contexto em que a porta da série tira 3,2%.
+
+#### 5. A ENTREGA — SHA `76800019`, **EM PRODUÇÃO**
+
+**ERRADO:** `/api/next-episode` escreve um episódio 2 de verdade a cada filme,
+e desde o `2b764751` (#14) ele fica gravado em `events.next_episode_written`
+(`session_id = video_id`). O próprio módulo da memória nomeia o que sobrou:
+*"QUATRO famílias de e-mail dizem que o próximo episódio já está escrito e
+mandam um link com a SEMENTE, não com o texto."* A carta da parede era uma
+delas: assunto `Episode 2 of "<título do filme 1>"` e botão abrindo o
+compositor com o tema do **filme 1** pré-digitado. Lida de fora, ela pedia
+para a pessoa **fazer o mesmo vídeo de novo**.
+
+**MUDOU** (`app/api/admin/send-next-episode-wall/route.ts`): havendo episódio
+gravado e vivo (TTL 14d), o assunto e o prefill passam a ser o **título dele**
+— `Episode 2: "The Mysterious Origins of Denim"`. Sem memória, a carta sai
+**byte a byte** como hoje.
+
+**O QUE O CLIENTE PASSA A RECEBER:** um e-mail que nomeia um episódio que ele
+nunca viu, em vez de repetir o tema que ele já fez.
+
+**O QUE A COPY NÃO DIZ:** que o roteiro inteiro vem carregado. O link leva um
+`prompt`; a memória completa só é servida dentro do app. Prometer o roteiro no
+e-mail seria reintroduzir a mentira que o #14 acabou de remover.
+
+**DISCIPLINA:** a leitura reusa `lerGravado`/`memoriaAindaVale` do produto em
+vez de escrever uma segunda régua de "episódio válido"
+(`predicado-do-cobrador-nao-se-redigita`). Falha **ABERTA**: erro na leitura
+deixa o mapa vazio e a carta sai como antes — nunca deixa de enviar.
+
+**TESTES:** `scripts/test-next-episode-wall-episodio-2026-09-06.mjs`, **36
+verificações** lendo o arquivo real (estilo `readFileSync` —
+`guardioes-com-alias-nao-rodam`), **7 mutantes mortos**: assunto ignorando o
+episódio, prefill voltando ao filme 1, TTL removido, reader trocado por objeto
+solto, falha fechada derrubando a campanha, carimbo sem separação, e a chave
+trocada de `session_id` para `user_id`. `tsc --noEmit` verde — com o
+**junction** de `node_modules`, porque `npx tsc` mentiu com exit 0 primeiro
+(memória `worktree-tsc-node-modules`, o erro aconteceu de novo hoje).
+
+**ENTREGA:** `git ls-remote origin main` = **76800019** · fila à frente = **0**
+· home **200** · rota **403** com controle irmão inexistente em **404**
+(`sonda-401-exige-controle-404`).
+
+⚠️ **O limite honesto da prova de deploy:** a rota é admin-gated e a entrega
+**não tem marcador público próprio**. O 403/404 prova que a rota está viva e
+roteando; ele **não** prova que o meu texto está lá. A prova do conteúdo é
+typecheck + 36 verificações + 7 mutantes, não a sonda.
+
+**RISCO:** baixo e reversível. Sem memória a carta é idêntica à de ontem;
+`delete from events where name='next_episode_written'` desfaz a origem.
+
+**COMO MEDIR:** `com_episodio_escrito` no dry-run e `tinha_episodio_escrito`
+no carimbo `next_episode_wall_emailed` — separam o CTR das duas cartas. Começa
+**baixo por construção** (a memória só existe para filmes entregues depois de
+06/09 09:22 UTC — hoje **1 linha**) e cresce a cada filme. Medir **adoção**,
+não supor: é uma entrega que compõe, não que serve gente hoje.
+
+#### CHECAGEM ZERO (pós-marco 2026-09-06 04:00 UTC)
+
+| checagem | resultado |
+|---|---|
+| cadastro sem crédito | **0** |
+| `completed` sem `video_url` | **0** |
+| render preso >15 min | **0** |
+| `next_episode_failed` | **0** |
+| débito sem entrega | **0** |
+| `generation_stage_error` | 1 (o mesmo de 07:47 UTC, não repetiu) |
+
+**Item de vigia da #11 ENCERRADO:** `fc28af0b` (15cr debitados, sem linha em
+`videos` às 07:45) **recebeu o filme** — `dd17fbbd`, `completed`, com URL, às
+07:44:28. Não era débito sem entrega; eram os ~7 minutos normais do Seedance.
+
+#### PLACAR (pós-marco 2026-09-06 04:00 UTC, contas externas)
+
+| fonte | cadastros | filme 1 | filme 2 | filme 3 | checkout | **pagou** |
+|---|---|---|---|---|---|---|
+| chatgpt | 4 | 3 | 0 | 0 | 0 | **0** |
+| seo | 1 | 1 | 0 | 0 | 1 | **0** |
+| taaft | 1 | 1 | 0 | 0 | 0 | **0** |
+| sem fonte | 1 | 1 | 0 | 0 | 0 | **0** |
+| nav | 1 | 0 | 0 | 0 | 0 | **0** |
+| **total** | **8** | **6** | **0** | **0** | **1** | **0** |
+
+Sem movimento desde o checkpoint da #14. **0 assinaturas** desde o marco.
+
+#### PRÓXIMA JOGADA (#16)
+
+O dado desta rotação reordena o cardápio, e eu deixo a leitura explícita para
+a próxima rotação não repetir a minha:
+
+1. **N1/N2 do cardápio devem ficar parados até aparecer coorte com saldo
+   curto.** Esta noite as pessoas que pediram episódio 2 tinham 10 a 22
+   créditos. Construir "o não vira porta" para quem não levou não é entrega.
+2. **A jogada com denominador é o e-mail de RETORNO, não a tela do fim.** A
+   tela do filme pronto tira 3,2% de 67 pessoas e o `done_screen_top` já
+   provou que subir a porta não resolve. As superfícies que pagam são as do
+   retorno — e quem traz de volta é a carta.
+3. **O buraco que sobrou, com spec pronta:** o link do e-mail carrega
+   `prompt=<texto>`, e a memória do #14 é chaveada por `video_id`. Ou seja
+   **o clique de e-mail não alcança o episódio gravado** — ele reescreve um.
+   Passar `video_id` pela porta (`/api/episode-link` já preserva a query
+   inteira) fecharia o círculo que o #14 abriu. Não fiz nesta rotação porque
+   o consumo do lado de lá mora no `GenerateClient`, que é lote aberto do
+   codex, e isso não cabe em "uma linha no ponto exato".
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+**Nada.** Entrega no ar (SHA `76800019`), fila zerada, site 200, nenhum alarme
+aberto, nenhum e-mail disparado nesta rotação.
+
+### 📋 O QUE ACONTECEU
+
+Eu fui conferir se alguém tinha voltado para buscar o episódio 2 que a casa
+passou a lembrar — ninguém voltou ainda, e isso é falta de oportunidade, não
+falha. Mas ao olhar quem pediu episódio 2 esta noite, o plano da noite caiu:
+**as 6 pessoas tinham dinheiro na conta** (10 a 22 créditos) e mesmo assim
+nenhuma fez o segundo filme. O ciclo inteiro vinha assumindo que a barreira
+era saldo. Para esta gente, não era.
+
+O que a barreira parece ser: a tela do fim do filme não vende. 67 pessoas
+viram ali a porta de "continuar sua série" em 7 dias e 3 entraram. Já quando
+a pessoa **volta** por conta própria e encontra a mesma porta, metade termina
+com outro filme na mão. O momento importa mais que o botão — e alguém já
+tinha tentado o conserto óbvio (subir a porta para o topo da tela): zero
+cliques.
+
+A entrega do dia foi tapar uma incoerência que estava custando a carta mais
+quente da casa: ela prometia "seu episódio 2" e mandava, no assunto e no
+campo de texto, **o tema do episódio 1** — na prática, pedia para a pessoa
+refazer o vídeo que ela acabou de fazer. Agora, quando a casa já escreveu o
+episódio 2 (e desde ontem ela guarda o que escreve), a carta chama o episódio
+pelo nome dele. Sem episódio guardado, a carta sai idêntica à de antes.
+
+Sendo honesto sobre o tamanho: hoje existe **uma** memória gravada, então essa
+melhoria quase não alcança ninguém nesta madrugada — ela cresce a cada filme
+entregue. E dois sustos que pareciam incidente não eram: o cartão do episódio
+não está sendo escondido (0 casos em 30 dias) e a oferta de trial não quebrou
+ontem (é uma ladeira de cinco semanas).
+
+Movimento de gente na janela: 8 cadastros, 6 primeiros filmes, 1 checkout,
+**0 assinantes**.
