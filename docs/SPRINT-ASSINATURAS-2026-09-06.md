@@ -1194,3 +1194,56 @@ mesma régua. `generate-video-fast` não foi aberto.
 `stranded_fast_ready_sent`. E o efeito colateral do segundo conserto, que é
 maior: `stranded_fast_ready_sent` por rodada **em rodadas sem claim
 cinematográfico** — hoje, por construção, **zero**.
+### #9 — 03:20→03:24 BRT — o contrato ganhou os primeiros chamadores da história, e eles mostraram um defeito MEU
+
+**A NOTÍCIA:** `next_action_served` saiu de **0 na história inteira** para **5**.
+O "contrato de servidor sem chamador" — o problema que abriu este ciclo —
+**acabou**. E as 5 linhas trouxeram duas verdades, uma boa e uma ruim.
+
+#### A BOA: a correção da #1 está funcionando em produção, em gente real
+
+As 5 servidas trazem `treat_as_paid: true` com `is_trial: true`, conta em
+`plan='free'`, saldo 25, 0 filmes, `affordable: 2`, motor oferecido
+`cinematic_ai`, `free_slots: null`.
+
+Traduzindo: é **exatamente** a conta que o código de ontem classificaria como
+não-paga e à qual ofereceria **"Kineo 1 · 0 créditos"** — cobrando 5 depois.
+Hoje ela é tratada como paga (porque está em trial), os preços saem certos, e
+a cota do free tier corretamente **nem é consultada** (`free_slots: null`),
+porque essa pessoa não está no caminho grátis. **É a #1 provada viva.**
+
+E o cartão **ficou calado**, que é o certo: estado `first_film`, não `dry`.
+`card_shown = 0` aqui não é falha — é a regra "quem decide quem vê é o
+servidor" funcionando.
+
+#### A RUIM, e é minha: o denominador contava MONTAGEM, não PESSOA
+
+As 5 linhas são de **UMA pessoa só** (`f2b2248d`), em **2m15s**, todas com
+`session_id` **nulo**.
+
+`writeServerEvent` só deduplica `if (dedupeMinutes > 0 && sessionId)`
+(lib/serverEvents.ts:53). A rota pedia `dedupeMinutes: 30` mas lia o `sid`
+**só da query string** — e **nenhuma** das três montagens do cartão manda
+`sid`. Então `sessionId` era null, o dedupe **nunca rodou**, e cada montagem
+virou uma linha.
+
+**Lido de fora, "5 servidas" pareceria 5 pessoas. Era 1.** Este evento é o
+denominador do degrau que o ciclo inteiro existe para mover: inflado por
+re-montagem, ele faz qualquer taxa de clique despencar sem nada ter piorado —
+e a casa já perdeu rotações lendo número assim.
+
+**MUDOU** (SHA `d8f216a7`, EM PRODUÇÃO): o `sid` cai no **cookie** que o
+próprio cliente já mantém (`kineo_event_session_id`, Path=/). Isso conserta
+**todas as montagens de uma vez — inclusive as três da outra sessão — sem
+nenhuma delas mudar uma linha**. Query string mantém precedência; o nome do
+cookie é **importado**, nunca redigitado. Falha aberta: sem cookie, o evento
+sai mesmo assim (perder dedupe é barato; perder o evento seria caro).
+
+**TESTES:** guardião **65 → 71**, verde. 3 mutantes, todos pegos. O mutante da
+ordem **falhou na primeira tentativa** (âncora não casou) e o guardião deu
+verde **sem mutação** — refeito com regex tolerante a espaço. É a terceira vez
+hoje que a regra "mutante sem prova de que alterou o arquivo não conta" salva
+uma conclusão errada.
+
+**PLACAR:** 2 cadastros e 1 checkout desde o marco, **0 pagamentos**. Checagem
+zero limpa, 0 erros pós-deploy. Tráfego subiu (139 eventos em 50 min contra 12).
