@@ -46,4 +46,6 @@ export const HOME_PRESENTATION_CSS = `
  .klp .qa summary h3 { font-size:14px; }
  .klp .tcard { padding:20px; }
 }
+@media(max-width:400px) { .klp .nav-in { padding-inline:12px; } }
+@media(max-width:350px) { .klp .nav-in .logo .mk { display:none; } }
 `
