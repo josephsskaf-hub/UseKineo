@@ -72,10 +72,22 @@ check('o limite da janela vem do servidor', /dados\.freeTier\?\.limit/.test(card
 
 // ── O MONTE: UMA linha, no ponto certo, sem redesenho ──────────────────────
 const montagens = telaCodigo.match(/<NextActionCard[^>]*\/>/g) || []
-check('montado exatamente uma vez', montagens.length === 1)
-check('montado atras da razao de falta de credito', /\{reasonHasCreditFit && <NextActionCard surface="generate_upgrade_modal" \/>\}/.test(telaCodigo))
+check('montado nas DUAS superficies, e so nelas', montagens.length === 2)
+const superficies = (telaCodigo.match(/<NextActionCard surface="([a-z_]+)"/g) || []).sort()
+check('cada montagem tem superficie PROPRIA', new Set(superficies).size === 2)
+check('montado atras da razao de falta de credito (modal)', /\{reasonHasCreditFit && <NextActionCard surface="generate_upgrade_modal" \/>\}/.test(telaCodigo))
+check('montado no fim da geracao (tela de filme pronto)', /\{phase === 'done' && <NextActionCard surface="generate_done_screen" \/>\}/.test(telaCodigo))
 check('importado por caminho de alias', /import NextActionCard from '@\/components\/NextActionCard'/.test(tela))
-check('montado ANTES do bloco purchaseFit', telaCodigo.indexOf('<NextActionCard') < telaCodigo.indexOf('{purchaseFit && ('))
+check('montagem do modal vem ANTES do bloco purchaseFit', telaCodigo.indexOf('<NextActionCard surface="generate_upgrade_modal"') < telaCodigo.indexOf('{purchaseFit && ('))
+
+// ── DELIVER-FIRST: a regra que mediu 107 pessoas indo embora SEM O ARQUIVO ──
+// O cartao da tela de filme pronto NAO pode empurrar o download para baixo.
+const iDownload = telaCodigo.indexOf('onClick={handleDownload}')
+const iPlanFit = telaCodigo.indexOf('<PlanFitCard')
+const iDone = telaCodigo.indexOf('<NextActionCard surface="generate_done_screen"')
+check('o cartao vem DEPOIS do botao de baixar', iDownload > 0 && iDone > iDownload)
+check('o cartao vem DEPOIS do Plan Fit (dono da 1a entrega)', iPlanFit > 0 && iDone > iPlanFit)
+check('o botao do episodio 2 nao foi tocado', /handleContinueSeries\(episode2Seed, 'done_screen_top', publicVideoId, episode2Engine\)/.test(tela))
 check('nao mexeu no bloco purchaseFit', /This video needs \{purchaseFit\.requiredCredits\} credits\. You have \{purchaseFit\.balance\}\./.test(tela))
 check('nao mexeu na oferta de primeiro filme gratis', /firstFilmFree && onFirstFilmFree && \(/.test(tela))
 check('as linhas de plano seguem intactas', /\{PLAN_LIST\.map\(\(plan\) => \{/.test(tela))

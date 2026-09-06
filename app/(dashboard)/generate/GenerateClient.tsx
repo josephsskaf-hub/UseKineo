@@ -15210,6 +15210,21 @@ export default function GenerateClient({
                   />
                 )}
 
+              {/* KINEO-PROXIMA-ACAO-CARTAO-2026-09-06 (#3) — O MESMO CONTRATO,
+                  NA TELA ONDE A PESSOA ESTÁ FELIZ EM VEZ DE RECUSADA.
+                  O cartão do episódio 2 desta tela fala do ROTEIRO e nunca do
+                  que ele CUSTA: medido em 05/09, 27 impressões e 4 cliques
+                  (15%). Quem aperta e não tem saldo descobre no modal — a
+                  conversa de venda começa por "não". Aqui ela começa pelos dois
+                  números, antes do clique.
+                  ⚠ POSIÇÃO — DELIVER-FIRST INTACTO: fica DEPOIS do download e
+                  DEPOIS do Plan Fit, que é o dono da oferta da primeira
+                  entrega. Não empurra o botão de baixar um pixel (a regra
+                  mediu 107 pessoas que foram embora SEM O ARQUIVO).
+                  Não há card novo para quem tem saldo: fora do estado `dry` o
+                  componente não pinta nada. */}
+              {phase === 'done' && <NextActionCard surface="generate_done_screen" />}
+
               {/* KINEO-CREDITO-POR-POSTAR-2026-08-21 — só para o free tier, que
                   é quem carrega a marca d'água. Oferecer isto a um assinante
                   seria pagar por um outdoor que não existe: o filme dele sai
