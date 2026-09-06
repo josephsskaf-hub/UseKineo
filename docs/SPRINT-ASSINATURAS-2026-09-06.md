@@ -2606,3 +2606,35 @@ ocioso pelo motivo certo (as três pessoas terminaram o filme sozinhas), e o
 minutos depois da última falha.
 
 Nenhum assinante novo nesta janela: 8 cadastros, 5 filmes, 1 checkout.
+
+---
+
+#### ADENDO DA #14 (06:25 BRT) — A ENTREGA ESTÁ VIVA, E COM MARCADOR PRÓPRIO
+
+Eu tinha escrito acima que esta entrega "não tem marcador público" e que a
+prova só viria do dado. **A prova veio em dois minutos**, e ela é mais forte
+do que uma sonda de HTTP:
+
+```
+next_episode_written · filme c563f3e9 · 2026-09-06 09:24:28 UTC
+  título .... "The Mysterious Origins of Denim"
+  palavras .. 146   ·  episódio 2  ·  marcadores via "model"  ·  958 chars
+next_episode_ready   · mesmo filme · 2026-09-06 09:24:30 UTC
+```
+
+**Por que isto prova o deploy:** a string `next_episode_written` **não existia
+em lugar nenhum do repositório** antes do commit `2b764751`
+(`git grep -l next_episode_written 2b764751^` = **0 arquivos**). Nenhum código
+antigo consegue escrever essa linha. A linha existe no banco de produção,
+logo o SHA `2b764751` **está servindo**.
+
+Commit em **09:22:01 UTC**, push logo depois, primeira gravação real em
+**09:24:28 UTC** — cerca de dois minutos.
+
+E o desfecho saiu na ordem desenhada: a gravação às 09:24:**28**, a resposta
+ao cliente às 09:24:**30**. O episódio 2 dessa pessoa — 146 palavras sobre a
+origem do denim — é o primeiro da história da casa que **sobrevive à aba**.
+
+**Fica de pé para a #15** medir o outro lado do contrato: a primeira leitura
+de memória (`next_episode_ready` **sem** um `next_episode_written` no mesmo
+minuto = acerto de cache), e `next_episode_failed` com `status: 429` em zero.
