@@ -601,3 +601,147 @@ conferi antes de propor: o e-mail automático **já** nomeia o filme da pessoa, 
 mesmo assim as 781 cartas mensais para trial expirado dão zero checkout — fica
 o aviso para ninguém reconstruir isso. E uma pessoa nasceu, mandou fazer filme
 e clicou em pagar 2 minutos depois, antes de ver o resultado.
+
+---
+
+### #7 — 02:09→03:0x BRT — a casa manda "faça seu primeiro filme" para quem JÁ tentou e não recebeu nada
+
+**HIPÓTESE DA ROTAÇÃO (escrita antes de codar).** O cardápio da #1 propunha o
+estado `quota_blocked` (a parede do free tier). Fui medir o tamanho dessa
+parede antes de gastar a rotação nela — e ela é pequena: `free_fast_limit` tem
+**3 pessoas em setembro inteiro** (última em 05/09 21:11). Medindo as outras
+paredes, apareceu uma muito maior e que ninguém tinha contado.
+
+**O DEGRAU QUE EU FUI MEDIR:** 7 dias, contas externas, e-mails descartáveis
+(`vmail.dev`, `mailshan.com`, `tempmail`, `tecorix`, `nondon.site`) fora.
+
+| fonte | cadastros | nunca viu o composer | viu e não despachou | **despachou e nunca recebeu filme** | entregou |
+|---|---|---|---|---|---|
+| chatgpt | 103 | 4 | 7 | **20** | 72 |
+| taaft | 75 | 1 | 16 | **5** | 53 |
+| (sem fonte) | 38 | 21 | 3 | **5** | 9 |
+| nav | 9 | 1 | 1 | 0 | 7 |
+
+**O maior buraco no topo do funil não é gente que não aperta o botão — é gente
+que aperta e não sai filme.** São **29 pessoas reais em 7 dias**, e **20 delas
+vêm do `chatgpt`**, a fonte que o fechamento de 05/09 chamou de "o produto
+inteiro". Para comparar: só 4 pessoas do chatgpt não chegaram ao composer.
+
+**E o estado em que elas ficaram:**
+
+| medida | valor |
+|---|---|
+| pessoas | **29** |
+| com os 25 créditos do trial INTACTOS | **18** |
+| receberam a carta de recuperação de falha | **8** |
+| **invisíveis ao cron de recuperação** (sem `generate_failed` e sem `generation_stage_error`) | **15** |
+| já viram a ResumeStrip | **0** |
+| já retomaram um render (`generation_render_resumed`) | **0** |
+| linha em `generations` | **0** |
+
+`failure_recovery_sent` existe **10 vezes em toda a história** e a última saiu
+em **05/09 00:01** — com o cron rodando de 6 em 6 horas desde então.
+
+**O MODO DE MORTE, traçado inteiro no caso mais fresco** (`adebotedaniel05`,
+chatgpt, 06/09 02:11 UTC, 25 créditos intactos):
+
+```
+02:11:29  auth_callback_completed        (Google, prompt vindo do ChatGPT)
+02:11:29  trial_credits_granted          25
+02:11:48  activation_autostart_dispatched
+02:11:49  video_generation_started
+02:11:49  generation_stage_reached       stage=generating
+02:11:52  chatgpt_quickstart_input_opened      <- o banner do ChatGPT abre
+02:11:57  chatgpt_quickstart_selected          <- destination=/studio
+02:11:58  chatgpt_quickstart_studio_ready      <- a pagina NAVEGA
+02:11:58  generation_dispatch_received   /api/generate-video-fast
+02:12:28  generation_checkpoint_saved    generation_id 76827e2c
+02:18:09  trial_first_delivery_clicked   credits_before: 25
+02:18:43  trial_active_banner_dismissed  -> foi embora
+```
+
+O autostart despachou um render e **9 segundos depois** o quickstart do ChatGPT
+levou a pessoa para outra tela. O POST chegou ao servidor (`generation_dispatch_
+received`), um checkpoint foi salvo com `generation_id` — e depois disso **não
+existe mais nada**: sem erro, sem estorno, sem vídeo, sem cobrança. Doze das 15
+invisíveis têm exatamente este formato: `analyzing → scripting → options →
+generating` e o rastro acaba.
+
+**O QUE A CASA DIZ A ESSA PESSOA QUANDO ELA VOLTA.** O `/api/next-action`
+classifica por `!ultimo` (nenhum filme entregue) e devolve
+`state='first_film'` → **"Make your first film"**, apontando para um composer
+vazio. Ela tentou. Algumas tentaram 4 vezes. **É a mesma classe de defeito que
+a #1 arrancou deste mesmo arquivo hoje de madrugada:** o contrato afirmando,
+para a coorte que ele existe para servir, uma coisa que não é verdade.
+
+**O QUE EU VOU MUDAR (servidor, minha pista, sem tocar em oferta nem em preço):**
+estado novo `attempt_lost` no `GET /api/next-action` — zero filmes entregues
+**e** uma tentativa de despacho visível ao servidor com mais de 45 minutos. A
+frase passa a dizer a verdade (tentou, não saiu, o saldo está intacto) e a
+porta do plano continua valendo em todos os estados (regra K1).
+
+**O QUE EU NÃO VOU FAZER, e cada um tem motivo:**
+- **não vou mexer no guard de narração** nem em `generate-video-fast`/
+  `-cinematic`: régua de palavras/segundo e caminho banido pela trava de
+  qualidade do fundador. O guard, aliás, é a maior causa NOMEADA (8 das 29) e
+  está fora do meu alcance por decisão dele.
+- **não vou pedir desculpa nem dizer "bug consertado"**: a lição do #5 de 02/09
+  é que 7 de 11 dessas falhas são o produto recusando com razão. Desculpa falsa
+  é mentira de marca.
+- **não vou nomear o filme**: `generations` está vazia para as 29, então não há
+  tema para citar. Inventar seria a mesma classe de defeito.
+- **não vou armar e-mail automático novo** às 3 da manhã sem ninguém olhando.
+
+**COMO MEDIR:** `next_action_served` com `state='attempt_lost'` → clique →
+filme entregue em 24h. Hoje o denominador é 29 por semana e a resposta da casa
+é um convite para começar algo que a pessoa já começou.
+
+**MUDOU** — três arquivos, todos meus, nenhum no caminho banido pela trava de
+qualidade do fundador:
+
+| arquivo | o quê |
+|---|---|
+| `app/api/next-action/route.ts` | estado `attempt_lost` + helper `ultimaTentativaDeDespacho` |
+| `components/NextActionCard.tsx` | passa a pintar nos DOIS estados; a porta do plano é procurada no `primary` E no `secondary` |
+| `app/(dashboard)/generate/GenerateClient.tsx` | UMA linha: a 3ª montagem, `phase === 'idle'` |
+
+**O QUE O CLIENTE PASSA A VER**, quando volta ao composer depois de uma
+tentativa que não virou filme:
+
+| antes | agora |
+|---|---|
+| composer vazio, sem uma palavra sobre a tentativa | "YOUR FILM DIDN'T FINISH" |
+| `state='first_film'` → **"Make your first film"** (falso: ela já tentou) | "Your last attempt never finished. Your N credits are still here." |
+| nenhuma porta | botão de retomar + porta do plano (regra K1) |
+
+**POR QUE ESTA MONTAGEM, E NÃO AS DUAS QUE JÁ EXISTIAM:** quem tem ZERO filmes
+não passa pela tela de filme pronto (`phase === 'done'`) nem pelo modal de
+saldo (ela **tem** saldo). As duas montagens de hoje de madrugada são cegas
+para esta coorte. Sem a terceira, o estado novo serviria **zero pessoas** — a
+armadilha exata em que o ciclo de 05/09 caiu com o próprio `/api/next-action`.
+
+**TESTES:** `scripts/test-tentativa-perdida-2026-09-06.mjs`, **43/43**, lendo
+rota, componente e call site REAIS. Regressão: `test-next-action` **65/65**,
+`test-next-action-card` **49/49** (4 verificações reescritas para a união de
+estados — a invariante não afrouxou: continua exigindo predicado ÚNICO vindo do
+servidor), `test-serie-memoria` **142/142 com a seção 10 verde**.
+`npx tsc --noEmit` verde.
+
+**FAIL-CLOSED, e aqui o lado seguro é o CONTRÁRIO do de sempre:** sem chave de
+serviço, sem tentativa legível, com erro de consulta, com data inválida ou com
+a tentativa a menos de 45 minutos, o estado **não nasce** e a resposta é
+byte a byte a de antes. Dizer "seu filme não saiu" para alguém cujo render
+ainda está rodando seria inventar um defeito — por isso a decantação de 45 min
+(render normal fecha em 3-6 min; a varredura de encalhe resolveu um caso real
+em **53 segundos** às 04:45 UTC de hoje).
+
+**RISCO:** o composer passa a fazer 1 GET a mais em `phase === 'idle'`. Leitura
+pura; se falhar, o cartão não pinta e a tela é a de antes. A consulta de
+eventos só roda para quem tem **zero filmes entregues** — quem já recebeu um
+filme não paga esse custo nem muda de comportamento.
+
+**O QUE EU NÃO CONSERTEI, e é o maior pedaço:** a causa nomeada nº 1 dessas 29
+é o **guard de narração** (8 pessoas) — régua de palavras/segundo, intocável
+por ordem do fundador. E o `generate-video-fast`, onde 12 renders morreram em
+silêncio, é caminho banido pela trava de qualidade. **Eu tratei o desfecho, não
+a causa.** As duas causas viram linha no PEDIDOS.

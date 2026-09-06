@@ -46,7 +46,8 @@ type Porta = {
 
 type Resposta = {
   ok?: boolean
-  state?: 'first_film' | 'dry' | 'can_continue' | null
+  state?: 'first_film' | 'attempt_lost' | 'dry' | 'can_continue' | null
+  lastAttemptMinutes?: number | null
   balance?: number
   shortBy?: number
   lastFilm?: { engineLabel: string | null; cost: number; seconds: number } | null
@@ -72,28 +73,50 @@ export default function NextActionCard({ surface }: { surface: string }) {
 
   const estado = dados?.state ?? null
   const seco = estado === 'dry'
+  // KINEO-TENTATIVA-PERDIDA-2026-09-06 (#7) — a segunda coorte desta caixa:
+  // quem apertou gerar e NUNCA recebeu filme (29 pessoas em 7 dias, 20 delas
+  // do chatgpt, 18 com os 25 créditos intactos). Continua valendo a regra 2 do
+  // cabeçalho: quem decide quem vê é o `state` do SERVIDOR, nunca esta tela.
+  const perdida = estado === 'attempt_lost'
+  const visivel = seco || perdida
 
   useEffect(() => {
-    if (!seco) return
+    if (!visivel) return
     try {
       void trackEvent('next_action_card_shown', {
         surface,
+        // Sem o estado no evento, as duas coortes viram um número só e o
+        // degrau que este commit abre fica impossível de medir separado.
+        state: estado,
         balance: dados?.balance ?? null,
         short_by: dados?.shortBy ?? null,
         has_alternative: dados?.secondary?.kind === 'continue_cheaper',
         alternative_cost: dados?.secondary?.cost ?? null,
         clamp_seconds: dados?.freeTier?.clampSeconds ?? null,
+        last_attempt_minutes: dados?.lastAttemptMinutes ?? null,
       })
     } catch { /* ignore */ }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [seco])
+  }, [visivel])
 
-  // Fora do estado seco a caixa não existe. Nada de "carregando": um esqueleto
-  // piscando dentro de um modal de compra só rouba atenção do que vende.
-  if (!seco || !dados) return null
+  // Fora dos dois estados a caixa não existe. Nada de "carregando": um
+  // esqueleto piscando dentro de um modal de compra só rouba atenção do que
+  // vende.
+  if (!visivel || !dados) return null
 
   const alternativa = dados.secondary?.kind === 'continue_cheaper' ? dados.secondary : null
-  const plano = dados.primary?.kind === 'see_plans' ? dados.primary : null
+  // No estado `attempt_lost` a ação principal é retomar; no estado seco não
+  // existe. Os dois nunca coexistem, então a caixa continua com UM botão de
+  // ação e a porta do plano embaixo.
+  const retomar = dados.primary?.kind === 'retry_first_film' ? dados.primary : null
+  // A porta do plano muda de lugar conforme o estado (`primary` no seco,
+  // `secondary` na tentativa perdida) — procurar nos dois é o que mantém a
+  // regra K1 valendo sem a tela ter de saber qual estado é qual.
+  const plano = dados.primary?.kind === 'see_plans'
+    ? dados.primary
+    : dados.secondary?.kind === 'see_plans'
+      ? dados.secondary
+      : null
   const clamp = dados.freeTier?.clampSeconds ?? null
   // Só falamos em segundos quando a alternativa é DE GRAÇA e existe corte: é o
   // único caso em que o filme sai diferente do que a pessoa acabou de receber.
@@ -115,7 +138,7 @@ export default function NextActionCard({ surface }: { surface: string }) {
       }}
     >
       <span style={{ display: 'block', color: '#8fc4ff', fontSize: '0.64rem', fontWeight: 900, letterSpacing: '0.1em', marginBottom: 4 }}>
-        YOUR NEXT FILM
+        {perdida ? 'YOUR FILM DIDN\u2019T FINISH' : 'YOUR NEXT FILM'}
       </span>
       {/* A frase vem PRONTA do servidor (os dois números, sem adjetivo). A tela
           não a remonta: remontar é reintroduzir a chance de divergir. */}
@@ -124,11 +147,28 @@ export default function NextActionCard({ surface }: { surface: string }) {
           "You have undefined credits" na superfície que pede dinheiro — e a
           tela não tem como verificar o que o servidor não mandou. Sem os dois,
           a caixa mostra só os botões, que continuam corretos. */}
-      {(dados.primary?.sublabel || (typeof dados.balance === 'number' && typeof dados.shortBy === 'number')) && (
-        <strong style={{ display: 'block', color: '#fff', fontSize: '0.9rem', lineHeight: 1.35, marginBottom: alternativa ? 8 : 0 }}>
+      {(dados.primary?.sublabel || (seco && typeof dados.balance === 'number' && typeof dados.shortBy === 'number')) && (
+        <strong style={{ display: 'block', color: '#fff', fontSize: '0.9rem', lineHeight: 1.35, marginBottom: (alternativa || retomar) ? 8 : 0 }}>
+          {/* O fallback é do estado SECO e só dele: dizer "short of another one
+              like it" para quem nunca recebeu filme nenhum seria inventar um
+              filme que não existe. */}
           {dados.primary?.sublabel
             ?? `You have ${dados.balance} credits — ${dados.shortBy} short of another one like it.`}
         </strong>
+      )}
+
+      {retomar && (
+        <button
+          type="button"
+          onClick={() => clicar('retry_first_film', retomar.href)}
+          style={{
+            width: '100%', padding: '10px 14px', borderRadius: 8,
+            border: '1px solid rgba(41,151,255,.7)', background: 'rgba(41,151,255,.18)',
+            color: '#dbeeff', fontWeight: 800, fontSize: '0.86rem', cursor: 'pointer',
+          }}
+        >
+          {retomar.label}
+        </button>
       )}
 
       {alternativa && (
@@ -167,7 +207,7 @@ export default function NextActionCard({ surface }: { surface: string }) {
           type="button"
           onClick={() => clicar('see_plans', plano.href)}
           style={{
-            display: 'block', width: '100%', marginTop: alternativa ? 8 : 10,
+            display: 'block', width: '100%', marginTop: (alternativa || retomar) ? 8 : 10,
             padding: '8px 10px', borderRadius: 8, border: '1px solid transparent',
             background: 'transparent', color: '#8fc4ff', fontWeight: 700,
             fontSize: '0.8rem', cursor: 'pointer', textAlign: 'center',

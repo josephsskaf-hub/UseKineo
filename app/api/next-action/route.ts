@@ -155,6 +155,96 @@ async function vagasFastGratis(userId: string): Promise<number | typeof QUOTA_IN
   }
 }
 
+// ═══ KINEO-TENTATIVA-PERDIDA-2026-09-06 — sprint-assinaturas #7 ════════════
+//
+// O NÚMERO QUE MANDOU CONSTRUIR ISTO (7 dias, contas externas, e-mails
+// descartáveis fora): 29 pessoas apertaram gerar e NUNCA receberam filme, e
+// 20 delas vieram do `chatgpt` — a fonte que o fechamento de 05/09 chamou de
+// "o produto inteiro". Para comparar, só 4 pessoas do chatgpt não chegaram a
+// ver o composer. O maior buraco do topo do funil não é gente que não aperta o
+// botão: é gente que aperta e não sai nada.
+//
+// DEZOITO DAS 29 AINDA TÊM OS 25 CRÉDITOS DO TRIAL INTACTOS. Elas não gastaram
+// e não desistiram do produto — o produto é que não respondeu.
+//
+// E O QUE ESTE ARQUIVO DIZIA A ELAS: `state` é decidido por `!ultimo` (nenhum
+// filme entregue), então todas caíam em `first_film` → "Make your first film",
+// apontando para um composer vazio. Algumas tentaram QUATRO vezes. É a mesma
+// classe de defeito que a #1 arrancou deste arquivo hoje de madrugada: o
+// contrato afirmando, para a coorte que ele existe para servir, algo que não é
+// verdade.
+//
+// O MODO DE MORTE (traçado inteiro em `adebotedaniel05`, chatgpt, 06/09 02:11
+// UTC): o autostart despachou o render às 02:11:49 e NOVE SEGUNDOS depois o
+// quickstart do ChatGPT navegou a pessoa para /studio. O POST chegou ao
+// servidor (`generation_dispatch_received` 02:11:58) e um checkpoint foi salvo
+// — e depois disso não existe mais nada: sem erro, sem estorno, sem vídeo, sem
+// cobrança. Doze das 15 pessoas invisíveis ao cron de recuperação têm este
+// mesmo formato: analyzing → scripting → options → generating, e o rastro
+// simplesmente acaba.
+//
+// TRÊS COISAS QUE ESTE ESTADO NÃO FAZ, e cada uma tem preço conhecido:
+//
+//  1. NÃO PEDE DESCULPA E NÃO DIZ "CONSERTADO". A lição do #5 de 02/09 é que
+//     7 de 11 dessas falhas são o produto RECUSANDO com razão (roteiro curto
+//     demais para a duração pedida). Mandar "foi um bug nosso e já está
+//     resolvido" seria mentira em duas frentes — e quem clica, falha de novo e
+//     aprende que a marca mente.
+//  2. NÃO NOMEIA O FILME. A tabela `generations` está VAZIA para as 29: não há
+//     tema para citar. Citar um seria a mesma classe de defeito da #1.
+//  3. NÃO DECIDE NADA SOBRE DINHEIRO. Leitura pura, como o resto do arquivo.
+//
+// FAIL-CLOSED POR CONSTRUÇÃO: sem chave de serviço, sem tentativa legível, ou
+// com a tentativa recente demais, o estado NÃO nasce e a resposta é
+// exatamente a de antes. O lado seguro aqui é o silêncio — dizer "seu filme
+// não saiu" para alguém cujo render ainda está rodando seria inventar um
+// defeito que não existe.
+
+/** Janela de decantação. Um render normal fecha em ~3-6 min e a varredura de
+ *  encalhe (`stranded_compose_attempt`) resolve dentro da hora — medida em
+ *  53 SEGUNDOS no caso vivo de 06/09 04:45 UTC. Aos 45 min, "não saiu" já é
+ *  fato, não impaciência. */
+const MINUTOS_ATE_PERDIDA = 45
+
+/** Eventos que provam, PARA O SERVIDOR, que um despacho aconteceu. São três em
+ *  pontos diferentes do caminho, e isso é de propósito: as 15 pessoas
+ *  invisíveis ao cron de recuperação não têm `generate_failed` nem
+ *  `generation_stage_error` — o navegador delas morreu antes de contar. */
+const EVENTOS_DE_TENTATIVA = [
+  'video_generation_started',
+  'generation_dispatch_received',
+  'activation_autostart_dispatched',
+] as const
+
+/** Instante da tentativa de despacho MAIS RECENTE, ou null quando não há
+ *  tentativa OU quando não deu para verificar. Os dois casos devolvem null de
+ *  propósito: sem prova, não há estado novo. */
+async function ultimaTentativaDeDespacho(userId: string): Promise<Date | null> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  // Mesma razão de `vagasFastGratis`: `events` é service-role-only desde o
+  // lockdown de 26/08. Com o cliente do usuário isto voltaria VAZIO — e vazio
+  // aqui significaria "nunca tentou", que é justamente a mentira a corrigir.
+  if (!url || !key) return null
+  try {
+    const admin = createServiceClient(url, key, { auth: { persistSession: false } })
+    const { data, error } = await admin
+      .from('events')
+      .select('created_at')
+      .eq('user_id', userId)
+      .in('name', EVENTOS_DE_TENTATIVA as unknown as string[])
+      .order('created_at', { ascending: false })
+      .limit(1)
+    if (error) return null
+    const bruto = Array.isArray(data) && data[0] ? data[0].created_at : null
+    if (!bruto) return null
+    const quando = new Date(bruto as string)
+    return Number.isFinite(quando.getTime()) ? quando : null
+  } catch {
+    return null
+  }
+}
+
 /** Nomes PÚBLICOS dos motores (CLAUDE.md, decisão do fundador 15/08). O custo
  *  NÃO mora aqui de propósito — vem de `creditCostForDuration`. Esta lista
  *  responde "como se chama", nunca "quanto custa".
@@ -180,7 +270,7 @@ function rotuloDoMotor(quality_mode: string | null | undefined): string | null {
   return MOTORES.find((m) => m.quality === q)?.label ?? null
 }
 
-export type EstadoProximaAcao = 'first_film' | 'dry' | 'can_continue'
+export type EstadoProximaAcao = 'first_film' | 'attempt_lost' | 'dry' | 'can_continue'
 
 export async function GET(req: NextRequest) {
   try {
@@ -256,11 +346,32 @@ export async function GET(req: NextRequest) {
         ? ultimo.duration_seconds
         : 60
 
-    const state: EstadoProximaAcao = !ultimo
+    let state: EstadoProximaAcao = !ultimo
       ? 'first_film'
       : balance < ultimoCusto
         ? 'dry'
         : 'can_continue'
+
+    // KINEO-TENTATIVA-PERDIDA-2026-09-06 — `first_film` responde a DUAS
+    // pessoas muito diferentes: a que nunca tentou e a que tentou e nao
+    // recebeu nada. So a segunda existe em 29 exemplares por semana, e so para
+    // ela "Make your first film" e falso. A pergunta so e feita quando NAO ha
+    // filme entregue — quem ja recebeu um filme nunca cai aqui, por
+    // construcao, entao nenhum estado antigo muda de comportamento.
+    let tentativaMinutos: number | null = null
+    if (state === 'first_film') {
+      const tentativa = await ultimaTentativaDeDespacho(user.id)
+      if (tentativa) {
+        const minutos = Math.floor((Date.now() - tentativa.getTime()) / 60000)
+        // Minuto negativo = relogio do banco a frente do nosso (o incidente de
+        // JWT-skew de 28/08 provou que isso acontece nesta casa). Tratar como
+        // recente e o lado seguro: o estado nao nasce.
+        if (minutos >= MINUTOS_ATE_PERDIDA) {
+          state = 'attempt_lost'
+          tentativaMinutos = minutos
+        }
+      }
+    }
 
     // Alternativas: motores que o saldo AINDA paga, na MESMA duração do filme
     // que a pessoa acabou de fazer (comparar 90s com 35s daria um "cabe" que a
@@ -327,12 +438,24 @@ export async function GET(req: NextRequest) {
               label: 'Build the next episode',
               sublabel: null,
             }
-          : {
-              kind: 'make_first_film' as const,
-              href: '/studio/create',
-              label: 'Make your first film',
-              sublabel: null,
-            }
+          : state === 'attempt_lost'
+            ? {
+                // Sem desculpa e sem promessa: os dois unicos fatos que sao
+                // verdade para TODA a coorte — a tentativa nao virou filme e o
+                // saldo continua onde estava. Nada aqui afirma de quem foi a
+                // culpa, porque em boa parte dos casos o produto recusou com
+                // razao (licao do #5 de 02/09, que proibiu a desculpa falsa).
+                kind: 'retry_first_film' as const,
+                href: '/studio/create?src=next_action_lost',
+                label: 'Pick up your film',
+                sublabel: `Your last attempt never finished. Your ${balance} credits are still here.`,
+              }
+            : {
+                kind: 'make_first_film' as const,
+                href: '/studio/create',
+                label: 'Make your first film',
+                sublabel: null,
+              }
 
     // Secundário no estado seco: o filme que o saldo AINDA paga. Existir uma
     // saída que não custa dinheiro é o que impede a resposta de virar pedágio.
@@ -373,6 +496,10 @@ export async function GET(req: NextRequest) {
         treat_as_paid: ent.treatAsPaid,
         is_trial: ent.isTrial,
         free_slots: vagasConhecidas,
+        // KINEO-TENTATIVA-PERDIDA-2026-09-06 — sem isto nao da para separar
+        // "nunca tentou" de "tentou e nao saiu" no denominador, que e
+        // exatamente a distincao que este estado existe para fazer.
+        last_attempt_minutes: tentativaMinutos,
       },
       dedupeMinutes: 30,
       sessionId: req.nextUrl.searchParams.get('sid'),
@@ -384,6 +511,10 @@ export async function GET(req: NextRequest) {
       balanceKnown: true,
       balance,
       filmsDelivered: lista.length,
+      // Idade em minutos da tentativa que nao virou filme; null em todo estado
+      // que nao seja `attempt_lost`. A tela NAO precisa dele para decidir quem
+      // ve (quem decide e o `state`) — ele existe para medir e depurar.
+      lastAttemptMinutes: tentativaMinutos,
       shortBy,
       lastFilm: ultimo
         ? { engine: ultimo.quality_mode ?? null, engineLabel: rotulo, cost: ultimoCusto, seconds: segundos }

@@ -35,7 +35,13 @@ const check = (nome, cond) => { if (cond) ok += 1; else falhas.push(nome) }
 
 // ── (a) SO APARECE QUANDO O SALDO NAO COBRE — e quem decide e o SERVIDOR ────
 check('o cartao so pinta no estado seco', /const seco = estado === 'dry'/.test(cardCodigo))
-check('fora do seco nao renderiza nada', /if \(!seco \|\| !dados\) return null/.test(cardCodigo))
+check('fora dos estados do servidor nao renderiza nada', /if \(!visivel \|\| !dados\) return null/.test(cardCodigo))
+// #7 (06/09): o `visivel` tem de ser a UNIAO de estados do SERVIDOR e nada
+// mais. Se algum dia ele virar `seco || balance < algo`, voltou o terceiro
+// predicado que a #1 arrancou da rota.
+check('o predicado de visibilidade e so uniao de estados do servidor',
+  /const visivel = seco \|\| perdida/.test(cardCodigo)
+  && /const perdida = estado === 'attempt_lost'/.test(cardCodigo))
 check('o estado vem da resposta do servidor', /const estado = dados\?\.state \?\? null/.test(cardCodigo))
 // O predicado de "esta sem saldo" NAO pode ser reconstruido na tela.
 check('a tela nao compara saldo com custo', !/balance\s*[<>]=?\s*|credits\s*[<>]=?\s*cost/.test(cardCodigo))
@@ -55,7 +61,7 @@ check('o cartao nao e modal nem overlay', !/position: 'fixed'|inset: 0|zIndex/.t
 check('o cartao nao intercepta clique da tela', !/onClick=\{onClose\}|stopPropagation|preventDefault/.test(cardCodigo))
 check('o cartao nao esconde as linhas de plano', !/PLAN_LIST|setShowUpgradeModal|onClose\(/.test(cardCodigo))
 check('falha de rede nao derruba nada', /\.catch\(\(\) => \{/.test(cardCodigo) && /r\.ok \? r\.json\(\) : null/.test(cardCodigo))
-check('sem dados o cartao some, nao trava', /if \(!seco \|\| !dados\) return null/.test(cardCodigo))
+check('sem dados o cartao some, nao trava', /if \(!visivel \|\| !dados\) return null/.test(cardCodigo))
 
 // ── PRECO: a tela NUNCA recalcula ──────────────────────────────────────────
 check('nenhum numero de credito digitado no cartao', !/\b(5|15|20|25|45|50|110|150)\s*(credits|cr)\b/.test(cardCodigo))
@@ -72,7 +78,11 @@ check('o limite da janela vem do servidor', /dados\.freeTier\?\.limit/.test(card
 
 // ── O MONTE: UMA linha, no ponto certo, sem redesenho ──────────────────────
 const montagens = telaCodigo.match(/<NextActionCard[^>]*\/>/g) || []
-check('montado nas DUAS superficies, e so nelas', montagens.length === 2)
+// #7 (06/09): virou TRES. A terceira e o composer em `phase === 'idle'`, a
+// unica superficie que a coorte de `attempt_lost` (zero filmes entregues)
+// realmente alcanca — ela nao passa nem pela tela de filme pronto nem pelo
+// modal de saldo.
+check('montado nas TRES superficies, e so nelas', montagens.length === 3)
 const superficies = (telaCodigo.match(/<NextActionCard surface="([a-z_]+)"/g) || []).sort()
 check('cada montagem tem superficie PROPRIA', new Set(superficies).size === 2)
 check('montado atras da razao de falta de credito (modal)', /\{reasonHasCreditFit && <NextActionCard surface="generate_upgrade_modal" \/>\}/.test(telaCodigo))
@@ -96,7 +106,7 @@ check('as linhas de plano seguem intactas', /\{PLAN_LIST\.map\(\(plan\) => \{/.t
 check('impressao vira evento', /next_action_card_shown/.test(cardCodigo))
 check('clique vira evento com a escolha', /next_action_clicked/.test(cardCodigo) && /choice: escolha/.test(cardCodigo))
 check('a escolha separa gratis de mais barato', /alternativa\.cost === 0 \? 'continue_free' : 'continue_cheaper'/.test(cardCodigo))
-check('a impressao so conta no estado seco', /if \(!seco\) return\n\s*try \{\n\s*void trackEvent\('next_action_card_shown'/.test(cardCodigo))
+check('a impressao so conta nos estados do servidor', /if \(!visivel\) return\n\s*try \{\n\s*void trackEvent\('next_action_card_shown'/.test(cardCodigo))
 
 // ── PAYLOAD INCOMPLETO NAO VIRA COPY QUEBRADA ─────────────────────────────
 // A caixa vive na superficie que pede dinheiro. Numero ausente tem de sumir,

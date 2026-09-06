@@ -12343,6 +12343,16 @@ export default function GenerateClient({
           className="gv-card rounded-2xl p-5 sm:p-6 mb-6"
           style={{ background: '#131316', border: '1px solid var(--border)' }}
         >
+          {/* KINEO-TENTATIVA-PERDIDA-2026-09-06 (#7) — a TERCEIRA montagem do
+              mesmo cartão, e a única que a coorte de `attempt_lost` alcança:
+              quem apertou gerar e não recebeu filme não passa nem pela tela de
+              filme pronto nem pelo modal de saldo. Ela volta AQUI, e até hoje a
+              casa a recebia com um composer vazio.
+              Preso a `phase === 'idle'` de propósito: durante analyzing/
+              scripting a pessoa já está gerando, e a caixa não tem o que dizer.
+              O componente devolve null fora de `dry`/`attempt_lost`, então
+              esta linha é inerte para quem está com o fluxo normal. */}
+          {phase === 'idle' && <NextActionCard surface="generate_step_1" />}
           {/* Push #047 — only show the "already loaded" helper line when the
               prompt arrived from the homepage's sessionStorage bridge. The
               line clears once the user edits the prompt themselves (the
