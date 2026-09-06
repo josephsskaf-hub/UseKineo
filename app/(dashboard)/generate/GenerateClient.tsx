@@ -10,6 +10,7 @@ import { STUDIO_KIT_CSS } from '@/components/studioKit'
 import { createClient } from '@/lib/supabase/client'
 import PricingCards from '@/components/PricingCards'
 import StickyGenerateBar from '@/components/StickyGenerateBar'
+import NextActionCard from '@/components/NextActionCard'
 // KINEO-SPRINT-OFFER-2026-07-14 — PostVideoPaywall import removed. It was the
 // THIRD offer block on the success screen (on top of the Push #099 intro block
 // and UpsellSection), still selling FOUNDING50 + the one-time pack — three
@@ -19475,6 +19476,15 @@ function UpgradeModal({
             </button>
           </div>
         )}
+        {/* KINEO-PROXIMA-ACAO-CARTAO-2026-09-06 — A PORTA, no instante do "não".
+            UMA linha: todo o comportamento (quem vê, que preço, que motor) é
+            decidido pelo servidor em /api/next-action, nunca aqui. Fora do
+            estado `dry` o componente não pinta nada, então esta linha é inerte
+            para quem tem saldo. Só é montada nas razões de FALTA DE CRÉDITO —
+            quem caiu aqui por gate de plano (studio/creator/footage) tem saldo
+            e não é desta conversa. Não substitui nem esconde as linhas de
+            plano abaixo (regra K1). */}
+        {reasonHasCreditFit && <NextActionCard surface="generate_upgrade_modal" />}
         {purchaseFit && (
           <div
             style={{
