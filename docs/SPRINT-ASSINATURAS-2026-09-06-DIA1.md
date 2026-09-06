@@ -785,3 +785,57 @@ verificações verdes**, `tsc` limpo na árvore combinada com o lote do Codex.
   supressão de 24h + as 3 sem temporada + quem entrar).
 - **17:00 BRT** (20:00 UTC) — carta da parede, agora com **43 elegíveis** e com
   o resto da temporada dentro.
+
+---
+
+## ### #19e e #24 — 13:30 BRT — as duas cartas de série mandavam quem JÁ TEM CONTA para o formulário de CRIAR CONTA
+
+Isto saiu de uma sonda que eu fiz **depois** de as cartas já terem saído — e é
+o achado mais direto do dia em termos de dinheiro perdido por clique.
+
+### A SONDA, LADO A LADO, EM PRODUÇÃO
+
+```
+link das cartas    →  307  /signup?redirect=…    (CRIAR CONTA)
+/api/episode-link  →  302  /login?redirect=…     (ENTRAR, tema preservado)
+```
+
+A carta é endereçada a alguém **cadastrado, com filme entregue**. Ela chega no
+inbox e o botão leva a pessoa a um formulário de **criar conta**.
+
+**E não é caso de borda — é o caminho da maioria.** O clique de inbox chega
+**sem cookie de sessão por construção**: o Gmail do telefone abre em webview
+própria, o link é aberto em outro aparelho, a aba é anônima. Quem tem sessão
+viva é quem já está dentro do app, e essa pessoa não veio pelo e-mail.
+
+### E A CASA JÁ TINHA CONSERTADO ISSO — EM 05/09
+
+`/api/episode-link` existe exatamente para isso: **conta o clique** (o degrau
+que nunca existiu entre "enviado" e "aterrissou") e manda para **`/login`** com
+o destino inteiro preservado. Quatro famílias de e-mail já passaram a usar.
+
+- **A carta da temporada (#19)** não usava porque **eu** a escrevi hoje com
+  `composerUrl`. As **11 primeiras cartas foram para `/signup`**. Corrigido em
+  `ee01b81e`.
+- **A carta da parede** também não usava — e ficou de fora do conserto pela
+  **segunda vez**: o próprio cabeçalho dela registra que já tinha ficado de
+  fora do conserto anterior do `composerUrl`. **18 cartas hoje** foram por ali.
+  Corrigido em `6eed4b8b`.
+
+### O QUE ISSO DIZ SOBRE OS MEUS GUARDIÕES
+
+O guardião da carta da temporada deu **60/60 com o defeito dentro**. Nenhuma
+das 60 verificações olhava **para onde o clique ia** — todas olhavam o que a
+carta *diz*, nenhuma o que ela *faz*. Guardião que não olha o destino não
+guarda o clique.
+
+Duas travas novas em cada guardião, e a falsificação confirma: voltar ao link
+direto deixa vermelho. (carta da temporada 60 → **62**; carta da parede 40 →
+**41**.)
+
+### O QUE MEDIR AGORA
+
+`episode_link_clicked` passa a existir para estas duas campanhas. Antes de
+hoje, essa métrica tinha **1 linha em toda a história** e ela era uma sonda
+minha. Agora as duas maiores cartas de série da casa passam por lá — então o
+zero, se vier, vai ser um zero **medido**, não um zero por falta de contador.
