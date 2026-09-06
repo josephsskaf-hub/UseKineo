@@ -91,7 +91,13 @@ const SISTEMA = [
   '{"episodes":[{"title":"...","seed":"..."}]}',
   '- "title": the episode title a viewer would click. Max 70 characters. No numbering, no "Episode N".',
   '- "seed": one sentence naming the concrete subject of that episode, written so it can be handed to a video generator as the topic. Max 160 characters.',
-  `Exactly ${TOTAL_EPISODIOS} items.`,
+  // ⚠️ PEDIMOS UM A MAIS DE PROPOSITO. `prepararTemporada` exige CINCO
+  // episodios validos e unicos, e o modo de falha mais comum destes modelos e
+  // repetir um titulo. Com exatamente 5 pedidos, UMA repeticao derruba a
+  // temporada inteira e a pessoa nao recebe carta nenhuma. Com 6, a repeticao
+  // e descartada e ainda sobram 5 — o excedente ja e ignorado pelo preparador.
+  // Custa ~40 tokens.
+  `Exactly ${TOTAL_EPISODIOS + 1} items.`,
 ].join('\n')
 
 /**
@@ -143,7 +149,7 @@ export async function garantirTemporada(
         response_format: { type: 'json_object' },
         messages: [
           { role: 'system', content: SISTEMA },
-          { role: 'user', content: `EPISODE 1:\n${semente}\n\nWrite the next ${TOTAL_EPISODIOS} episodes.` },
+          { role: 'user', content: `EPISODE 1:\n${semente}\n\nWrite the next ${TOTAL_EPISODIOS + 1} episodes.` },
         ],
       }),
       signal: AbortSignal.timeout(25_000),

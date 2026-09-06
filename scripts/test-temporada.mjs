@@ -125,6 +125,19 @@ check('24. o GET NAO grava nada', !/insert\(|guardarTemporada\(/.test(corpoGet))
 // afrouxada, e tres nasceram (25b, 27b/27c, 29b).
 const escritor = ler('lib/temporadaServer.ts')
 
+// A REDUNDANCIA QUE SALVA A TEMPORADA DE UM TITULO REPETIDO. O preparador
+// exige CINCO unicos; o modo de falha mais comum destes modelos e repetir
+// um titulo. Pedindo 6, a repeticao e descartada e ainda sobram 5. Provado
+// no comportamento (verificacoes 6 e 7) e amarrado aqui ao prompt real.
+// `includes` e nao regex de proposito: o texto procurado contem `${...}`, e
+// `$` dentro de regex e ancora de fim de linha — a primeira versao desta
+// verificacao reprovou por isso, com o codigo correto do outro lado.
+check(
+  '24b. o escritor pede UM episodio a mais do que precisa',
+  escritor.includes('Exactly ${TOTAL_EPISODIOS + 1} items') &&
+    escritor.includes('Write the next ${TOTAL_EPISODIOS + 1} episodes'),
+)
+
 check('25. o escritor chama gpt-4o-mini e so ele', /model: 'gpt-4o-mini'/.test(escritor) && (escritor.match(/api\.openai\.com/g) ?? []).length === 1)
 check('25b. a ROTA nao chama modelo por conta propria — so pelo escritor unico', !/api\.openai\.com|gpt-4o/.test(rota))
 check(
