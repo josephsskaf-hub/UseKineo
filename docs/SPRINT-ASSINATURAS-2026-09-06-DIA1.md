@@ -922,3 +922,213 @@ Duas hipóteses testáveis lá, e as duas são decisão sua:
 
 Eu **não mexi em preço, plano nem no listing** — é decisão sua, e está assim
 registrado no CLAUDE.md.
+
+---
+
+## ### #26 e #26b — 13:20 BRT — a trava que impede dois e-mails no mesmo minuto não enxergava METADE das campanhas da casa
+
+### PRESS RELEASE (o que muda para o cliente)
+
+A partir de hoje, quem recebeu um e-mail nosso nas últimas 24 horas não recebe
+um segundo — **de nenhuma campanha da casa**, não só das seis que a trava
+enxergava. Antes desta entrega, sete campanhas de admin e cinco crons
+carimbavam o envio num lugar que a trava nunca abria, e o resultado media-se
+assim: **79 pares de e-mail para a mesma pessoa dentro de 30 minutos em 7 dias,
+47 pessoas distintas, intervalo mínimo zero — o mesmo instante.** Uma pessoa
+recebeu a carta da temporada às 15:45:50 e um outro e-mail às 15:50:12: **4
+minutos e 22 segundos**. Isso não é um cliente irritado; é o domínio da casa
+apanhando de filtro de spam com 1.798 pessoas na lista. E o pior par possível
+já estava armado: o aviso da Stripe de que **o cartão vai ser cobrado** era
+invisível para todo mundo — podia sair colado com um e-mail de venda.
+
+### O QUE ESTAVA ERRADO (medido em produção, não deduzido)
+
+`lib/lifecycle/suppression.ts` lia quatro fontes: colunas datadas de
+`profiles`, `checkout_abandoned`, `trial_emails_log` e o ledger
+`email_send_log`. **Nenhuma delas é `events`** — e carimbo em `events` é a
+geração NOVA de carimbo, a que toda campanha de admin usa porque não exige
+migração.
+
+Varredura em produção (`name like '%emailed%' or '%_sent'`): **28 nomes de
+evento** que significam "um e-mail saiu para esta pessoa". A trava não
+conhecia nenhum.
+
+| medida (janela de 24h, produção 06/09) | número |
+|---|---|
+| pessoas com e-mail registrado por evento | **215** |
+| já visíveis pelas quatro fontes antigas | 182 |
+| **novas — que a trava tratava como "nunca recebeu nada"** | **59** |
+
+E os pares, que é o dano de verdade:
+
+| janela | pares em ≤30 min | pessoas |
+|---|---|---|
+| 7 dias | **79** | **47** |
+| só hoje (06/09, até 13:20) | **16** | **6** |
+
+### O QUE MUDOU
+
+- **`lib/lifecycle/emailEvents.ts` (NOVO)** — a lista canônica de **31**
+  carimbos de e-mail que vivem em `events`. Ela existe porque `OTHER_CAMPAIGNS`
+  estava **copiada à mão em três rotas e já divergente**: enquanto for cópia,
+  campanha nova nasce invisível.
+- **`lib/lifecycle/suppression.ts`** — quinta fonte, com leitura **paginada por
+  `created_at`** e teto barulhento. Paginar não é zelo: PostgREST **trunca em
+  1.000 linhas SEM ERRO** (é a mesma cegueira que fez o `/admin` mentir em
+  28/08), e truncar aqui é **deixar de suprimir em silêncio**.
+- **`scripts/test-cobertura-supressao-2026-09-04.mjs`** — o guardião de
+  cobertura, atualizado. Ver o parágrafo seguinte, que é o achado bonito do dia.
+
+**SHAs: `1fb64330` (#26) + `aaad46c4` (#26b). EM PRODUÇÃO — `origin/main =
+aaad46c4`, fila vazia, `git ls-remote` confere.**
+
+### A PROPRIEDADE QUE SEPARA ESTA FONTE DAS OUTRAS QUATRO: ELA FALHA **ABERTA**
+
+O módulo inteiro é fail-closed por doutrina — se uma consulta falha, todo mundo
+é suprimido. Está escrito no topo do arquivo: *"perder um e-mail é barato;
+mandar e-mail repetido queima domínio"*.
+
+**Esta fonte é a exceção, e é decisão, não esquecimento.** As quatro antigas
+falham fechadas porque **sem elas a trava não existe**. Esta é aditiva: se a
+consulta morrer, o comportamento degrada exatamente para o que estava em
+produção ontem. Fechá-la junto transformaria um soluço de query numa **mordaça
+de 24 horas sobre a base inteira** — e eu estaria fazendo isso **três horas
+antes de dois lotes de e-mail**. Trocar um defeito conhecido por um risco pior
+não é conserto. O sinal fica em `eventsDegraded`, separado de `degraded`, para
+que ninguém confunda "a quinta fonte caiu" com "a trava fechou em cima de todo
+mundo".
+
+### O ACHADO QUE VEIO DE GRAÇA: UM CHECK QUE PREVIU A PRÓPRIA MORTE
+
+O guardião de cobertura escrito em 04/09 tinha esta linha:
+
+> `1.7 o modulo NAO le a tabela events` — *"se passar a ler events, os crons de
+> STAMP em events viram visíveis e este inventário muda"*
+
+Cumpriu-se na letra. Ao ligar a quinta fonte, a classificação `viaEvento`
+esvaziou o inventário sem que **uma única rota de envio fosse tocada**:
+
+| | 04/09 | **06/09** |
+|---|---|---|
+| rotas que enviam e ninguém vê | 19 | **7** |
+| **crons ARMADOS e invisíveis** (a classe de risco mais alta do arquivo) | 5 | **ZERO** |
+
+Um cron armado e invisível dispara sozinho, sem ninguém olhando, e nenhum outro
+job sabe que ele mandou. Eram cinco. Agora são nenhum.
+
+E o guardião pagou o próprio custo: ao rodá-lo, ele acusou **dois carimbos que
+faltavam** na minha lista canônica —
+- `trial_eve_notice_sent` (cron/send-trial-eve-notice);
+- `card_trial_ending_emailed`, que **sai de dentro do webhook da Stripe** e diz
+  *"seu cartão vai ser cobrado $X"*. É o e-mail mais sensível da casa para
+  colidir com um nudge de venda no mesmo dia, e era invisível para todos.
+
+O que **sobra** no inventário é uma classe só, e ela não se resolve lendo
+tabela nenhuma: rota cujo único carimbo é **BOOLEAN**. Boolean carrega o "se",
+nunca o "quando" — não dá para derivar 24h de um booleano. Fechar exige
+migration. **Registrado, não feito.**
+
+### TESTES
+
+- `scripts/test-supressao-events-2026-09-06.mjs` — **43 verificações, verde.**
+  Amarradas à variável que decide (`eventsDegraded`) e ao ramo que **não pode
+  existir** (`closed(` dentro do bloco da quinta fonte), nunca a contagem de
+  texto.
+- **Falsificação por mutação, 6 mutantes, 6 vermelhos, controle verde:**
+  fail-open→fail-closed · paginação removida · constante trocada por literal ·
+  carimbo dominante removido da lista · evento de LEITURA colocado na lista ·
+  retorno sem `eventsDegraded`.
+- `scripts/test-cobertura-supressao-2026-09-04.mjs` — **estava vermelho antes
+  desta entrega** (56 ok / 3 falhas, herdadas de rotações anteriores) e está
+  **43 ok / 0 falhas** agora. Ele não foi afrouxado: 1.7 inverteu porque o fato
+  que ele congelava mudou, e as 12 rotas saíram do inventário porque **passaram
+  a ser visíveis de verdade**.
+- `npx tsc --noEmit` verde — e **falsificado**: um `let eventsDegraded: number`
+  deliberado fez o tsc acusar 3 erros, provando que ele estava mesmo rodando
+  (junction de `node_modules` na worktree).
+- Guardiões irmãos que tocam a supressão: ledger, carta da temporada, carta da
+  parede (×2), checkout-recovery — **todos OK**.
+
+### O ERRO QUE EU COMETI DENTRO DESTA ROTAÇÃO (registro)
+
+A primeira versão do meu guardião ficou **vermelha pelo motivo errado**. Eu
+recortei o "bloco da quinta fonte" ancorando no texto
+`KINEO-SUPPRESSION-EVENTS-2026-09-06` — que aparece **duas vezes**: no bloco e
+na **menção a ele**, lá em cima, na interface. A fatia engoliu o laço inteiro
+das quatro fontes antigas, com os quatro `return closed(` dentro, e acusou
+fail-closed onde não havia. É a memória `falsificar-mutacao-commitar-antes` em
+ação: **regex solto casa com o próprio comentário.** A âncora virou uma linha
+de **código** (`let eventsDegraded = false`), e o guardião ganhou um check a
+mais provando que o bloco vem depois das quatro fontes antigas.
+
+### RISCO, DITO SEM MAQUIAGEM
+
+Até **59 pessoas** podem ter o próximo e-mail **adiado por 24h**. Nenhuma perde
+e-mail para sempre — todo job reconsidera a coorte na execução seguinte. Em
+troca, ninguém mais recebe dois e-mails da casa no mesmo minuto. Com 6 pagantes
+em 30 dias e 1.798 pessoas na lista, o ativo a proteger é a **entregabilidade**,
+não o volume de disparo.
+
+### COMO MEDIR (e o que eu **não** posso provar hoje)
+
+⚠️ **Esta entrega não cria rota nova, então não existe sonda HTTP que a prove.**
+O `404→401 com controle` que eu usei nas rotações anteriores não se aplica
+aqui, e eu não vou fingir que aplica. O que está provado é a **subida**
+(`origin/main = aaad46c4`, fila 0, home 200, controle 404 = 404). A prova de
+**comportamento** é a de baixo, e ela chega hoje mesmo:
+
+- **Placar a bater:** hoje, até 13:20, **16 pares / 6 pessoas**. Sete dias:
+  **79 pares / 47 pessoas**. Repetir a mesma consulta amanhã: se a quinta fonte
+  está viva, os pares **nascidos depois de 16:30 UTC** têm de ser zero.
+- **O vazamento exato que isto fecha, já medido:** no lote da carta da parede
+  das 11:00 UTC, **1 das 18 pessoas** já tinha outro e-mail de ciclo de vida
+  nas 24h anteriores. Sob o código novo, essa pessoa não teria entrado.
+  ⚠️ Ressalva honesta: os lotes de hoje são pequenos (18 e 1), então **ausência
+  de par nos próximos lotes é evidência fraca**. O número que decide é o de
+  7 dias, medido amanhã.
+
+### PRAXE — PLACAR E CHECAGEM ZERO (13:30 BRT)
+
+**Placar desde o marco (2026-09-06 14:00 UTC), domingo:** 3 cadastros ·
+3 pessoas gerando · **0 `checkout_started`** · **0 `payment_success`**.
+Tráfego de domingo à tarde, e é o que é.
+
+**Checagem zero — limpa:**
+- cadastro sem crédito nas 24h: **2 — e nenhum é órfão.** Os dois receberam os
+  25 do trial (`trial_credits_granted=25`, evento presente) e **gastaram**:
+  `e8e8c415` fez **3 filmes** hoje, `16aa454a` fez 1. Zero é saldo consumido,
+  não falha de concessão.
+- render preso >45 min: **0** · `next_episode_failed`: **0** ·
+  `generation_stage_error`: 4 (dentro do normal do dia).
+
+**E uma leitura que quase virou uma mentira boa.** `episode_link_clicked`
+marcou **5 hoje** — parece que a porta nova pegou. Abrindo linha a linha:
+
+| hora UTC | origem | bot? | é gente? |
+|---|---|---|---|
+| 09:15 | `probe_claude_r14` | sim | não — sonda minha |
+| 09:16 | `unknown`, deslogado | não | ambíguo, sem pessoa |
+| **13:31** | **`video_ready_email`, logado, pessoa `53cef8ef`** | **não** | **SIM** |
+| 16:09 | `lifecycle_loss_email` | **sim** | não |
+| 16:12 | **`season_letter`** | **sim** | não |
+
+**Um clique humano hoje**, e ele veio do e-mail de filme pronto, não da carta
+da temporada. O clique da carta da temporada das 16:12 é **scanner de inbox**
+(`bot:true`), não pessoa. Quem contar "a carta da temporada teve clique" está
+contando um robô. A carta da temporada continua com **zero cliques humanos**
+desde as 15:45.
+
+### PRÓXIMA JOGADA
+
+1. **A pessoa `e8e8c415` é o retrato do funil de hoje:** cadastrou-se às 11:27
+   UTC, fez **três filmes** em duas horas e está em **zero crédito**. É a
+   pessoa mais quente da casa neste momento, e o que ela vê é uma parede. A
+   carta da parede sai de hora em hora — vale conferir na próxima rotação se
+   ela entrou no lote e, se não entrou, **por qual filtro**.
+2. **O par mais perigoso que este commit desarmou merece virar campanha, não
+   só trava:** `card_trial_ending_emailed` é o único e-mail da casa que chega
+   quando a pessoa está prestes a ser **cobrada**. É o momento de maior atenção
+   do ciclo inteiro e hoje ele é puramente defensivo ("cancele em um clique").
+   Não custa nada acrescentar uma linha dizendo **o que vem no próximo mês** —
+   a temporada dela, pelos títulos que a casa já escreveu. Mesmo e-mail, mesmo
+   disparo, zero custo novo.
