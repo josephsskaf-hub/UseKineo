@@ -1942,3 +1942,212 @@ mais genérico que temos; as três cartas novas e caras deste ciclo somaram 52
 envios e não trouxeram ninguém. Pagamentos hoje: **zero**. Por isso a próxima
 hora sai da caixa de entrada e vai para a tela de quem já está dentro do site
 agora — que é onde as pessoas de fato estão clicando.
+
+---
+
+### #30 — 16:08 → 16:45 BRT — a temporada tinha servidor e não tinha tela; agora entra no instante de alegria máxima
+
+#### PRESS RELEASE (o que o cliente consegue fazer às 16:45 que não conseguia às 16:08)
+
+> Quando o seu filme fica pronto, a Kineo deixa de te entregar um arquivo e passa
+> a te entregar **um canal começado**. Debaixo do vídeo aparece a sua temporada:
+> o episódio 1 é o que você acabou de fazer, e os episódios 2 a 6 já estão
+> escritos, com nome próprio, na mesma série. Cada um diz quanto custa e quais
+> cabem no seu saldo de hoje. Um toque carrega o episódio no compositor — nada
+> renderiza, nada é cobrado, e o filme que você já tem continua salvo.
+> Os que não cabem no saldo não dizem "compre 60 créditos": dizem **"o resto da
+> sua temporada"**. É a mesma assinatura, com a única moldura que a pessoa
+> sente — porque ninguém assina uma fábrica de coisa que já terminou, mas quase
+> todo mundo quer ver o fim de uma temporada que já começou.
+
+#### O QUE ESTAVA ERRADO (medido, 06/09 19:00 UTC)
+
+| evento de servidor | evento de tela |
+|---|---|
+| `season_written` **11 pessoas** | `season_shown` **0** |
+
+A porta de servidor da temporada (#18/#19, `app/api/season`) subiu às 11h de hoje.
+Ela escreve os títulos dos episódios 2 a 6, devolve o **custo** de cada um vindo de
+`creditCostForDuration` e o **saldo** da pessoa. E **nenhuma tela do produto a
+chamava**. As 11 temporadas escritas hoje só existiram dentro de um e-mail: 11
+enviados, 0 retornos. É a memória `contrato-de-servidor-sem-chamador` batendo
+pela **terceira vez em oito horas** — servidor da casa pronto, tela ausente.
+
+**Por que a tela de filme pronto e não outra:** é o instante de alegria máxima
+(~130 visitas/semana em `video_ready_viewed`) e é exatamente de lá que **109 das
+145 pessoas ativadas saem para nunca mais voltar — 65 delas com saldo intacto**.
+Elas não foram barradas. Foram embora **satisfeitas**, porque receberam o que
+vieram buscar: UM vídeo. "Quer fazer outro?" é uma pergunta que exige uma ideia e
+morre num formulário em branco. "O episódio 3 chama-se assim" é uma afirmação que
+custa um clique.
+
+#### O ACHADO DE APOIO: 21 DE 29 PESSOAS NUNCA VIRAM A OFERTA DE BOAS-VINDAS
+
+Enquanto media, encontrei `welcome_offer_suppressed_before_first_film` a disparar
+**agora, às 19:10 UTC**. A trava (CAIXA R17) adia a oferta até a pessoa ter o
+primeiro filme — e adia para o **dashboard**, uma tela que a pessoa pode nunca
+revisitar.
+
+| desde 04/09 | pessoas |
+|---|---|
+| tiveram a oferta calada antes do 1º filme | **29** |
+| viram a oferta **alguma vez depois** | **8** |
+| **nunca viram a oferta, nem uma vez** | **21 (72%)** |
+| pagaram | **0** |
+
+**Todos os 29 são `utm_source: chatgpt.com`** — o canal que traz 3 dos 6 pagantes.
+Não mexi na trava: ela foi construída de propósito e o próprio comentário do autor
+regista que um comprador real usou o caminho pré-filme. Mas o número explica por
+que a faixa da temporada é a resposta certa — **ela põe o pedido no instante de
+alegria, em vez de o adiar para uma tela onde ninguém volta.** Fica como PEDIDO.
+
+#### O QUE MUDOU — **EM PRODUÇÃO, SHA `f7634d06`**
+
+- **`components/video/SeasonStrip.tsx` (novo)** — a faixa.
+- **`app/(dashboard)/generate/GenerateClient.tsx`** — um import e **uma linha de
+  montagem**, acima da prateleira "your next 3 shorts" (a prateleira diz "faça
+  outro"; a faixa diz "o episódio 3 chama-se assim").
+- **`components/TopupUnavailableNote.tsx`** — as **3 linhas de telemetria** que a
+  rotação anterior pediu como primeira tarefa: `topup_unavailable_note_shown`.
+  A #29 subiu às 15:21 sem **um** rastro no banco e às 15:38 não tinha como se
+  provar. Agora tem.
+- **`scripts/test-season-strip.mjs`** — 44 verificações.
+
+**Três decisões que merecem registo:**
+
+1. **POST, não GET.** O GET tem `escrever: false` e devolve `null` para quem ainda
+   não tem temporada gravada — que é **toda a gente** no instante em que o filme 1
+   fica pronto. Um GET aqui renderizaria nada para 100% das pessoas. O POST é o
+   contrato desenhado para este momento: escreve **uma vez por filme**
+   (`garantirTemporada` memoiza em `events`) e devolve a mesma temporada depois.
+   Não cobra crédito, não chama a fal, não renderiza — escreve cinco títulos.
+2. **A faixa não escreve preço.** Não existe **um cifrão** no componente. Custo,
+   `affordable` e `affordableEpisodes` vêm **prontos da rota**, que os deriva do
+   mesmo `creditCostForDuration` do cobrador (memória
+   `predicado-do-cobrador-nao-se-redigita`). Quem não tem saldo lê "o resto da sua
+   temporada" e vai para `/pricing`, onde o preço público do fundador vive.
+3. **`season_shown` = VISTO, não "carregou".** Só dispara quando 35% da faixa
+   entra no viewport. A lição do `next_shorts_shown`, que disparava quando o fetch
+   resolvia: numa tela com vídeo + pacote de texto + prateleira + upsell, os dois
+   números são muito diferentes.
+
+#### TESTES
+
+`npx tsc --noEmit` **verde (exit 0)** · guardião **44/44**.
+
+**Falsificado por mutação** (commit ANTES, memória `falsificar-mutacao-commitar-antes`) —
+as cinco foram ao vermelho e o verde voltou em todas:
+
+| mutação | resultado |
+|---|---|
+| desmontar `<SeasonStrip/>` do JSX | ❌ "SeasonStrip está MONTADO em JSX" |
+| `POST` → `GET` | ❌ "e chama por POST" |
+| renomear `season_shown` | ❌ 2 verificações |
+| escrever `$9.90` na faixa | ❌ "nenhum cifrão no componente" |
+| remover a telemetria da #29 | ❌ 2 verificações |
+
+**A primeira versão do guardião deu 3 falsos vermelhos** porque os regex casavam
+com os **próprios comentários** do arquivo (`creditCostForDuration`, `season_shown`
+e `<NextShortsSection/>` aparecem em prosa). O guardião passou a ler **código sem
+comentários**. Vale a pena registar que um dos três parecia um defeito real de
+ordem de montagem e não era — a única forma de saber foi imprimir os índices.
+
+#### O RISCO, DITO
+
+Uma chamada de `gpt-4o-mini` por filme concluído (~40/dia) que antes não existia.
+Não gasta crédito do cliente nem toca na fal, e o pipeline de qualidade do filme
+está intocado — título é texto **fora** do pipeline. Se a rota falhar de qualquer
+maneira (401, JSON partido, fora do ar), a faixa renderiza `null`: a tela de filme
+pronto **nunca** pode mostrar erro a quem já pagou um crédito pelo vídeo.
+
+#### COMO MEDIR (e a sonda honesta)
+
+Home **200**; `/api/season` **401** com controle **404** na mesma medição. Mas isso
+prova a **rota**, que já existia — **não prova o meu commit**. Esta entrega é
+React em rota autenticada (memória `entrega-so-de-cliente-nao-tem-sonda`), por isso
+instrumentei no **mesmo commit**. A sonda real é:
+
+```sql
+select name, count(*) n, count(distinct user_id) pessoas
+from events where name in ('season_shown','season_episode_clicked','season_plan_clicked',
+                           'topup_unavailable_note_shown')
+  and created_at > '2026-09-06 19:45:00+00' group by 1;
+```
+
+`season_shown` esteve em **0 o dia inteiro**. Qualquer número acima de zero é a
+prova de que subiu **e** de que alguém a viu. O que interessa a seguir é a razão
+`season_episode_clicked / season_shown` — e se os cliques se concentram nos
+episódios que **cabem** no saldo ou nos **bloqueados** (se forem os bloqueados, a
+moldura "o resto da sua temporada" está a funcionar e o passo seguinte é o
+checkout).
+
+#### PLACAR — desde 2026-09-06 14:00 UTC
+
+| fonte | cadastros | filme 1 | filme 2 | filme 3 | checkout | **pagou** |
+|---|---|---|---|---|---|---|
+| chatgpt | 4 | 3 | 1 | 0 | 0 | **0** |
+| taaft | 1 | 1 | 0 | 0 | 0 | **0** |
+| **total** | **5** | **4** | **1** | **0** | **0** | **0** |
+
+#### CHECAGEM ZERO — limpa
+
+24h: **31 cadastros · 40 filmes · 40 completos · 0 não-terminal · 0 preso · 0
+cadastro sem crédito · `next_episode_failed` 0 · `generation_stage_error` 4 ·
+`checkout_started` 1 · `payment_success` 0.**
+
+#### E-MAILS: NENHUM DISPARADO NESTA ROTAÇÃO, DE PROPÓSITO
+
+A rotação anterior fechou com o número: **160 cartas frias hoje, 2 retornos** — e
+os 2 vieram da campanha **genérica** que ninguém desenhou. As três cartas caras do
+ciclo somam 52 envios e **zero**. É a memória `carta-nova-so-depois-da-velha-mover`
+a bater pela segunda vez em oito horas. Escrever uma quarta carta hoje seria
+repetir o erro de propósito. **A hora foi gasta na tela de quem está dentro
+agora** — que é onde as pessoas de facto clicam (`series_continue_seen`,
+`next_action_served`). Volto a mandar carta quando uma carta mover alguém.
+
+#### PRÓXIMA JOGADA (para a rotação das 17:08)
+
+1. **Ler a sonda acima.** Se `season_shown` > 0 e `season_episode_clicked` = 0, o
+   problema é a **oferta** (os títulos não convencem) e não a colocação — e isso
+   muda tudo o que se faz a seguir.
+2. **A faixa da temporada no e-mail de filme pronto** — `video_ready_email_sent`
+   é a carta **quente** da casa (21 hoje, a única com leitura real). Ela já sai;
+   hoje não nomeia a temporada. Custo: baixo. É a mesma peça, no único canal que
+   ainda funciona.
+3. **PEDIDO ao Codex:** os 21 de 29 que nunca viram a oferta de boas-vindas.
+
+#### ✅ O QUE VOCÊ PRECISA FAZER
+
+1. **Nada.** A entrega está publicada por mim (SHA `f7634d06`, `origin/main`, fila
+   zerada) e o site respondeu 200.
+2. *(opcional, 30 segundos)* Abra `usekineo.com/studio`, faça um filme curto e
+   **role para baixo do vídeo** — a faixa "Your season" com os episódios 2 a 6 é a
+   mudança de hoje. É a primeira vez que ela aparece para alguém.
+
+#### 📋 O QUE ACONTECEU
+
+A casa tinha construído, esta manhã, a peça que escreve a **temporada** do cliente
+— os nomes dos cinco próximos episódios da série que ele acabou de começar — e
+**nenhuma tela do site a mostrava**. Onze temporadas foram escritas hoje e as onze
+só existiram dentro de um e-mail que ninguém abriu. Essa era a terceira vez em oito
+horas que a casa construiu um servidor sem tela.
+
+Nesta hora a faixa entrou no lugar certo: **debaixo do vídeo, no segundo em que
+ele fica pronto** — que é o momento de maior alegria e também o momento exato em
+que 109 das 145 pessoas ativadas vão embora para nunca mais voltar, **65 delas com
+saldo intacto e sem terem esbarrado em nada**. Elas não foram barradas; foram
+embora satisfeitas, porque vieram buscar um vídeo e receberam um vídeo. A faixa
+existe para mudar essa frase: **isto não é um vídeo, é o episódio 1.**
+
+E é aí que está a monetização, sem tocar em preço: os episódios que não cabem no
+saldo não pedem "compre 60 créditos" — dizem **"o resto da sua temporada"**. Não há
+um cifrão no código; todos os números vêm da mesma conta que o cobrador faz.
+
+Também fechei a dívida que eu próprio tinha deixado às 15:38: a correção das 15:21
+tinha subido **sem deixar rastro nenhum no banco** e eu não tinha como provar que
+estava no ar. Agora deixa.
+
+Pagamentos hoje continuam em **zero**, e não escondo isso: 1 checkout em 24 horas.
+A casa está sadia (40 filmes, todos concluídos, nada preso, ninguém sem crédito),
+o produto entrega — o que ainda não acontece é alguém achar que vale a pena
+continuar. É exatamente esse "continuar" que esta hora tentou comprar.
