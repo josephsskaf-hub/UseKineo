@@ -745,3 +745,77 @@ filme não paga esse custo nem muda de comportamento.
 por ordem do fundador. E o `generate-video-fast`, onde 12 renders morreram em
 silêncio, é caminho banido pela trava de qualidade. **Eu tratei o desfecho, não
 a causa.** As duas causas viram linha no PEDIDOS.
+
+**EM PRODUÇÃO — SHA `d94ebd0b`.** `git ls-remote origin main` = `d94ebd0b5fe0`,
+fila = **0**, `d94ebd0b` ancestral de `origin/main` = SIM. Sonda depois do
+deploy: `GET /` = **200** · `GET /api/next-action` = **401** · controle
+`GET /api/next-action-controle-inexistente` = **404** (é o controle que dá
+sentido ao 401) · `GET /studio/create` = **307** (login, esperado para anônimo).
+A entrega é auth-gated e a casa não tem rota de versão, então a dívida de
+verificação da #2 continua valendo: dá para provar que a fila subiu e que a
+rota responde, não que este SHA específico está servindo.
+
+**O NÚMERO QUE VALIDA A COORTE, e ele veio da checagem zero:** *"render preso
+>45 min, sem vídeo, sem erro e sem estorno"* = **2 nas últimas 24h** —
+`adebotedaniel05` (chatgpt, 196 min, 25cr intactos, trial ativo) e
+`gelecekdosyasimedya` (1.118 min, 25cr intactos, trial ativo). **Não é rajada
+velha: é sangria de hoje, a ~2 pessoas por dia.** As duas cairiam em
+`attempt_lost` no próximo composer que abrirem — é a previsão verificável
+desta rotação.
+
+**PLACAR (marco 2026-09-06 04:00 UTC):** 0 assinaturas. 1 cadastro (`seo`) →
+1 filme → 1 checkout → 0 pagou; denominador de 1 não conclui nada. O filme
+dessa pessoa, que no checkpoint da #1 estava encalhado, **completou** — a rede
+de auto-cura fechou o caso.
+
+**CHECAGEM ZERO:** cadastro sem crédito **0** · `next_episode_failed` **0** ·
+`compose_not_ok` 24h **0** · `generation_stage_error` 24h **4** (as mesmas 4 de
+05/09 já classificadas no checkpoint da #1, nenhuma nova) · render preso **2**
+(acima, e é o achado, não um susto novo).
+
+**`next_action_served` continua 0 e isso ainda NÃO é defeito:** as duas
+montagens da madrugada só alcançam quem já entregou filme ou está sem saldo, e
+entre 01:00 e 04:30 a casa teve 4 cadastros no total. A terceira montagem (o
+composer) é a que produz denominador quando o tráfego do dia voltar.
+
+**PRÓXIMA JOGADA (#8).** A causa que eu não posso consertar tem um vizinho que
+eu posso: o `send-failure-recovery` enxerga falha por **evento de navegador**
+ou por **estorno com 2 razões**, e por isso é cego para **15 das 29** — quem
+morreu no servidor depois de fechar a aba não deixa nenhum dos dois rastros. A
+terceira fonte de verdade é a que a checagem zero acabou de usar: **ausência de
+entrega** (despachou, passou a janela, não há vídeo, erro nem estorno). Ligar
+essa fonte no cron é servidor e é minha pista — **mas ela ARMA e-mail
+automático**, então o padrão seguro é entrar desligada, atrás de flag, com o
+dry-run no diário antes de qualquer disparo.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+1. **Decidir o guard de narração** (linha nova no PEDIDOS): quando a pessoa
+   pede 35s e escreve 33s de fala, ela é **recusada** em vez de receber um
+   filme de 33s. São **8 das 29** pessoas que apertaram gerar e não levaram
+   nada em 7 dias. É régua de palavras/segundo — intocável por ordem sua, e é
+   por isso que está aqui e não no código.
+2. **Olhar a colisão de ativação com o Codex**: `activation_autostart_dispatched`
+   e `chatgpt_quickstart_selected` disparam na mesma tela com **9 segundos** de
+   diferença, e o segundo navega a pessoa para fora do render do primeiro.
+   Está descrito com o rastro inteiro no PEDIDOS.
+3. **Depois das 08:00 BRT**, o link de 1 clique da #4 continua pendente (a
+   carta das 31 pessoas) — a rota é admin e eu não tenho sessão.
+
+### 📋 O QUE ACONTECEU
+
+Fui medir a parede que o checkpoint da #1 mandou atacar e ela é pequena: **3
+pessoas em setembro inteiro**. Medindo em volta, apareceu uma muito maior e que
+ninguém tinha contado: **29 pessoas em 7 dias apertaram gerar e nunca
+receberam filme, 20 delas vindas do ChatGPT, e 18 ainda estão com os 25
+créditos do trial intactos.** O gargalo da ativação não é gente que não aperta
+o botão — é gente que aperta e não sai nada, e isso **contradiz** a leitura de
+24/08 que está no CLAUDE.md. Pior: quando essas pessoas voltavam, a casa
+dizia "faça seu primeiro filme", como se elas nunca tivessem tentado. Isso
+está corrigido e **em produção**: o contrato passa a reconhecer a tentativa,
+dizer que o saldo está intacto e abrir duas portas — sem pedir desculpa (em
+boa parte dos casos o produto recusou com razão) e sem inventar o nome de um
+filme que não existe. Deixei o guardião com 43 verificações e falsifiquei com
+6 mutantes, todos pegos. **A causa continua aberta e não é minha:** o guard de
+narração é a régua que você mandou não tocar, e o render que morre em silêncio
+mora no arquivo que a sua trava de qualidade bane. Tratei o desfecho.
