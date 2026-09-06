@@ -114,7 +114,7 @@
     },
     {
       "path": "/api/admin/send-next-episode-wall?confirm=SEND&limit=30",
-      "schedule": "0 11,15 * * *"
+      "schedule": "0 11,15,20 * * *"
     },
     {
       "path": "/api/admin/send-checkout-recovery?confirm=SEND&limit=30",

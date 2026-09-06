@@ -79,6 +79,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
+import { isRealSendStamp } from '@/lib/lifecycle/skipStamp'
 import { pickMomentumTopic } from '@/lib/momentumTopic'
 import { composerUrl } from '@/lib/lifecycle/composerUrl'
 import { EPISODIO_ESCRITO_EVENT, lerGravado, memoriaAindaVale } from '@/lib/nextEpisodeMemoria'
@@ -452,7 +453,31 @@ export async function GET(req: NextRequest) {
       // 1 e-mail por pessoa, para sempre: qualquer carimbo de campanha exclui.
       if (jaEmailado.has(id)) continue
       if (STAMP_COLUMNS.some((c) => raw[c] === true)) continue
-      if (STAMP_DATES.some((c) => raw[c] != null)) continue
+      // ⚠️ CARIMBO DE PULO NÃO É CARIMBO DE ENVIO — e aqui isso vale 32 pessoas.
+      //
+      // `raw[c] != null` trata `1970-01-01` como "já recebeu carta". Esse valor
+      // é o `LIFECYCLE_SKIP_STAMP`: o que os jobs gravam quando **PULAM**
+      // alguém, e o motivo mais comum do pulo é "a pessoa já fez um vídeo" —
+      // que é a definição desta coorte. Medido em 06/09, nesta rota, com a
+      // coorte real: **11 elegíveis com `!= null` contra 43 com o leitor
+      // certo**. 32 pessoas silenciadas por carimbos que não registram envio.
+      //
+      // Não é afrouxamento: a regra é "não escrever para quem JÁ RECEBEU", e a
+      // época significa que nenhuma carta saiu. `isRealSendStamp` é o leitor
+      // que a própria casa escreveu para esta distinção
+      // (lib/lifecycle/skipStamp.ts, KINEO-SKIP-STAMP-2026-08-05) e que a
+      // supressão de 24h já usa há um mês. Data ilegível conta como ENVIO: na
+      // dúvida, não escrever.
+      if (
+        STAMP_DATES.some((c) => {
+          const v = raw[c]
+          if (v == null) return false
+          const t = Date.parse(String(v))
+          return !Number.isFinite(t) || isRealSendStamp(t)
+        })
+      ) {
+        continue
+      }
       // Quem tocou o checkout pertence ao resgate de checkout.
       if (tocouCheckout.has(id)) continue
       candidatos.push({

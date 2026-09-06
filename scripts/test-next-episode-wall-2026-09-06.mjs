@@ -56,7 +56,19 @@ check('carimbo proprio existe', /const SENT_EVENT = 'next_episode_wall_emailed_v
 check('carimbo do proprio envio exclui', /\.in\('name', \[SENT_EVENT, \.\.\.OTHER_CAMPAIGNS/.test(codigo))
 check('carimbo de outras campanhas exclui', /if \(jaEmailado\.has\(id\)\) continue/.test(codigo))
 check('carimbo booleano em profiles exclui', /STAMP_COLUMNS\.some\(\(c\) => raw\[c\] === true\)/.test(codigo))
-check('carimbo de data em profiles exclui', /STAMP_DATES\.some\(\(c\) => raw\[c\] != null\)/.test(codigo))
+// ⚠️ ATUALIZADA PELO #23 (06/09), E MAIS DURA, NAO MAIS FROUXA.
+// Antes exigia literalmente `raw[c] != null`, que trata o `1970-01-01`
+// (LIFECYCLE_SKIP_STAMP, gravado quando um job PULA alguem) como se fosse uma
+// carta enviada. Medido nesta rota, na coorte real: **11 elegiveis com
+// `!= null` contra 43 com o leitor certo** — 32 pessoas silenciadas por
+// carimbos que nao registram envio nenhum.
+// A trava continua exigindo que os carimbos EXCLUAM; o que mudou e QUAL
+// carimbo conta como envio. Data ilegivel conta como envio (na duvida, nao
+// escrever) e isso tambem esta amarrado abaixo.
+check('carimbo de data em profiles exclui', /STAMP_DATES\.some\(\(c\) => \{/.test(codigo) && /continue/.test(codigo))
+check('e o carimbo de PULO (epoca) NAO exclui — usa isRealSendStamp', /isRealSendStamp\(t\)/.test(codigo) && !/STAMP_DATES\.some\(\(c\) => raw\[c\] != null\)/.test(codigo))
+check('data ilegivel erra para o lado seguro (conta como envio)', /!Number\.isFinite\(t\) \|\| isRealSendStamp\(t\)/.test(codigo))
+check('o leitor vem da lib da casa, sem piso redigitado aqui', /from '@\/lib\/lifecycle\/skipStamp'/.test(codigo) && !/2020-01-01/.test(codigo))
 check('quem tocou checkout fica com a outra campanha', /if \(tocouCheckout\.has\(id\)\) continue/.test(codigo))
 // ⚠ ESTA CHECAGEM JA FOI FURADA UMA VEZ, no mutante M3 de 06/09: ela era
 // `indexOf(throw) < indexOf(carimbo)`, e apagar o throw faz o indexOf devolver
