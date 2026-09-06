@@ -1307,3 +1307,124 @@ pelo caminho e manda o mesmo "seu vídeo está pronto" que já manda hoje. Não
 inventei oferta, não mexi em preço, não toquei no motor: o filme montado é
 exatamente o que sairia se a pessoa tivesse ficado na tela. Está em produção,
 provado por sonda.
+
+### CHECKPOINT #10 — 03:39→03:55 BRT — o conserto de 02/09 embutiu um botão que NUNCA foi apertado, e hoje ele custou o cadastro mais quente da noite
+
+**Este disparo é o :38 — checkpoint da rotação #10, não trabalho novo.** Medi, e
+a medição achou uma pessoa viva batendo numa porta trancada 13 minutos antes.
+
+#### PRODUÇÃO CONFERIDA (a #10 continua de pé)
+
+`git ls-remote origin main` = `d91ee47b` · fila `origin/main..entrega-atual` =
+**0** · home **200** · sonda `GET /api/render-recovery` = **405** com controle
+`GET /api/render-recovery-controle-inexistente` = **404** na mesma medição.
+O par 405/404 é a prova; o 405 sozinho não seria (memória
+`sonda-401-exige-controle-404`).
+
+#### O ERRADO (medido): 437 batidas na parede, 6 pessoas, **0 cliques no botão que existe para isso**
+
+| medida | valor |
+|---|---|
+| `studio_prompt_over_limit_shown` (história) | **437** |
+| pessoas distintas | **6** |
+| `studio_prompt_trimmed_to_limit` (história) | **0** |
+| pessoas que apertaram "Trim to fit" | **0** |
+| batidas em `script_mode=verbatim` | 93 |
+| batidas em `script_mode=ai` | 344 |
+
+Em **02/09** esta casa achou exatamente este defeito e o consertou. O comentário
+em `lib/studioPromptLimit.ts` descreve o caso com estas palavras: um trial do
+ChatGPT com 25cr intactos bateu na parede **7 vezes em 21 minutos** e foi embora
+sem vídeo. O conserto foi honesto e é o que qualquer um faria: mostrar o teto
+onde a pessoa escreve, com o número exato, e oferecer **um clique** para caber
+("Trim to fit", corte na fronteira da última frase inteira).
+
+**O botão nunca foi apertado. Nem uma vez. Em 437 oportunidades.** É um
+contrato sem chamador — só que do lado da tela (memória
+`contrato-de-servidor-sem-chamador`, agora com um irmão de UI).
+
+#### O CASO DE HOJE, minuto a minuto (pessoa `f2b2248d`, `utm_source=nav`)
+
+- **06:03:56** cadastro novo pelo Google (`is_new_user: true`), **25 créditos** concedidos.
+- 06:04 → 06:08 onboarding, banner de trial, chega ao `/generate`.
+- **06:13:01** aperta `trial_first_delivery_clicked` — Seedance 35s, 15cr. **Ela disse SIM ao primeiro filme.**
+- **06:05 → 06:26** — **89** `studio_prompt_over_limit_shown`. Colou um roteiro de **~13.600 caracteres**. Teto: **5.000**. Excesso: **8.600**.
+- O `prompt_len` sobe de **13.517 para 13.625 de um em um** — ela estava **editando à mão, caractere a caractere**, por 21 minutos.
+- Trocou `script_mode` de `ai` para `verbatim` no meio (quis preservar o texto dela).
+- 06:23→06:25 recarrega a página três vezes. Depois, silêncio.
+- Saldo final: **25 intactos**. Filmes entregues: **0**.
+
+**21 minutos.** O mesmo número de 02/09. A mesma parede, o mesmo saldo intacto,
+o mesmo fim.
+
+#### POR QUE O CONSERTO DE 02/09 NÃO PEGOU (a leitura que muda a jogada)
+
+O botão oferece **cortar 8.600 de 13.600 caracteres — 63% do texto dela**. Para
+quem colou um roteiro próprio e escolheu `verbatim` ("use meu texto como está"),
+"Ajustar ao limite" não é ajuda: é a casa se oferecendo para **apagar dois
+terços do trabalho da pessoa**. Ela recusou 89 vezes e editou na mão. Os dados
+não deixam dúvida: 0 cliques, e o comprimento subindo de 1 em 1.
+
+E o `generate()` do `/studio` faz `if (limit.over) return` — **bloqueio mudo**.
+O botão principal simplesmente não responde.
+
+**A verdade de produto que ninguém tinha olhado:** 13.600 caracteres são ~2.300
+palavras ≈ **16 minutos de narração**. O produto faz filmes de 35–90s (~150–190
+palavras). O roteiro dela não é um filme grande demais — **são ~12 episódios**.
+A casa tem exatamente o ritual para isso (o cartão "Episode 2", o mesmo que
+produziu a única pessoa engajada da noite passada) e, em vez de oferecê-lo,
+mandou a pessoa mutilar o texto.
+
+**Quem chega com 2.300 palavras prontas é o perfil que mais assina**: já tem
+conteúdo, quer volume, e volume é assinatura. É o cliente mais quente da noite,
+e a porta estava trancada por um contador de caracteres.
+
+#### PLACAR (pós-marco 2026-09-06 04:00 UTC)
+
+2 cadastros · 1 filme · 1 checkout · **0 pagamentos**. Das 2 pessoas novas da
+noite, **1 é a `f2b2248d`** — metade dos cadastros do período morreu nesta parede.
+
+#### CHECAGEM ZERO — limpa
+
+cadastro sem crédito **0** · render preso **0** · `generation_stage_error` 24h
+**4** (as mesmas já classificadas) · `next_episode_failed` 24h **11**, evento
+mais recente **05/09 13:15** — número e ponta **idênticos** aos da #10:
+janela móvel congelada, rajada velha, não sangria (memória
+`janela-movel-congelada`). Não reabrir sem evento novo.
+`fast_compose_recoverable` **0** e `next_action_card_shown` **0** — o primeiro
+subiu há 14 minutos e não houve tráfego de Kineo 1 desde então: **cedo demais
+para ser evidência em qualquer direção**, não contar como fracasso.
+
+#### PRÓXIMA JOGADA (#11) — trocar "corte seu texto" por "seu roteiro são N episódios"
+
+Quando o texto passa do teto, parar de pedir mutilação e oferecer o que a pessoa
+de fato quer: **fazer o episódio 1 agora**, com as primeiras ~180 palavras, e
+**guardar o resto**. Mesmo contrato do N1/N2 (`/api/next-action` — números do
+servidor, nunca preço digitado), e cai no ritual do "Episode 2" que já existe.
+Falsificável: `studio_prompt_over_limit_shown` → `studio_series_offer_shown` →
+`studio_series_offer_clicked` → primeiro filme entregue. O denominador já existe
+e é grande (437 batidas / 6 pessoas em 4 dias de instrumentação).
+
+Ressalva honesta de medição: o evento só existe desde **02/09**, então "6 pessoas
+em 4 dias" mede a **instrumentação**, não a idade da parede — que é mais velha.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+1. **Nada agora.** Checkpoint não subiu código; a #10 segue em produção, conferida com sonda de controle.
+
+### 📋 O QUE ACONTECEU
+
+Fui conferir se a entrega anterior continuava de pé (continua) e esbarrei numa
+pessoa que tinha acabado de se cadastrar, tinha os 25 créditos na mão, clicou
+"quero meu primeiro filme" — e passou 21 minutos brigando com uma caixa de texto
+até desistir. Ela colou um roteiro pronto, grande, e a nossa tela disse que
+estava 8.600 caracteres acima do limite e ofereceu um botão para cortar 63% do
+que ela escreveu. Ela não apertou. Ficou apagando letra por letra e foi embora
+sem filme, com os créditos intactos. Descobri então que esse botão — que
+consertamos justamente para isso quatro dias atrás — **nunca foi apertado por
+ninguém**: 437 vezes que alguém bateu nessa parede, zero cliques. O conserto
+resolveu o problema errado. Quem chega com um roteiro de 2.300 palavras não quer
+um cortador: quer uma série, e nós já sabemos fazer episódios. É essa a jogada
+da próxima rotação — em vez de "corte seu texto", oferecer "isso aqui dá 12
+episódios, vamos fazer o primeiro agora". E é o tipo de cliente que assina, que
+é justamente o que este ciclo está atrás.
