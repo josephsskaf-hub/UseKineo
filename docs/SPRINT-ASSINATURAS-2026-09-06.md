@@ -3554,3 +3554,116 @@ qualquer porta de conversão, e eu prefiro dizer isso a inventar significado
 para um número pequeno (foi o erro que quase cometi três vezes esta noite, e
 que anotei todas as três). O ciclo entregou dez consertos reais em produção; o
 que ele não entregou foi público para atravessá-los.
+
+---
+
+### CHECKPOINT DA #16 — 08:24→08:4x BRT — o placar POR PESSOA derruba a leitura do placar POR FONTE, e o gargalo da noite não era crédito
+
+**SEM CÓDIGO NOVO** (checkpoint é conferência). O fechamento acima estava
+**incompleto**: a ordem pedia o placar por pessoa *e* por fonte, e eu tinha
+entregado só o agregado. Ao abrir por pessoa, o número mudou de significado.
+
+#### AS 10 PESSOAS DA NOITE, UMA A UMA
+
+| pessoa | fonte | cadastro UTC | filmes | tentativas | **saldo** | checkout | **bateu na parede** | última atividade |
+|---|---|---|---|---|---|---|---|---|
+| `078c3481` | seo | 04:31 | 1 | 1 | **10** | 1 | **0** | 09:25 |
+| `f2b2248d` | nav | 06:03 | 0 | 0 | 25 | 0 | **0** | 06:26 |
+| `1968136d` | chatgpt | 07:20 | 0 | 0 | 25 | 0 | **0** | 07:21 |
+| `fc28af0b` | chatgpt | 07:37 | 1 | 1 | **10** | 0 | **0** | 09:50 |
+| `80b9e2ce` | chatgpt | 07:52 | 1 | 1 | **22** | 0 | **0** | 10:50 |
+| `766d473c` | chatgpt | 08:52 | 1 | 1 | **20** | 0 | **0** | 09:18 |
+| `71bfe95b` | sem fonte | 08:57 | 1 | 1 | **17** | 0 | **0** | 09:22 |
+| `2c09bb9e` | taaft | 09:19 | 1 | 1 | **22** | 0 | **0** | 09:25 |
+| `c6145712` | chatgpt | 10:39 | 0 | 0 | 25 | 0 | **0** | 10:43 |
+| `dca4d33e` | chatgpt | 11:14 | 0 | 0 | 25 | 0 | **0** | 11:17 |
+
+#### TRÊS COISAS QUE SÓ APARECEM NESTA TABELA
+
+**1. NINGUÉM BATEU NA PAREDE DE SALDO. Zero de dez.**
+`upgrade_modal_opened` = 0 para todas as dez pessoas. Isso significa que o
+cardápio inteiro da noite — N1, N2, N3, N4, "o NÃO vira porta" — teve
+**coorte zero**. As peças que este ciclo construiu e publicou são reais e
+estão no ar, mas **nenhuma delas teve uma única pessoa para servir esta
+noite**. É a confirmação, agora com o dado por pessoa, da correção de rumo
+que a #15 já tinha registrado no PEDIDOS.
+
+**2. QUATRO DAS SEIS QUE FIZERAM FILME PODIAM FAZER O SEGUNDO NA HORA, NO
+MESMO MOTOR — e nenhuma fez.**
+Saldos depois do primeiro filme: 22, 22, 20, 17 (Seedance 1.5 custa 15) e
+10, 10 (Kineo 1 custa 5). **As seis, sem exceção, tinham dinheiro para outro
+filme.** Quatro tinham para repetir o motor caro.
+
+Isto **inverte o diagnóstico com que o ciclo começou**. O cardápio foi escrito
+sobre o fechamento de 05/09 ("9 das 13 sem saldo para repetir"), e a noite de
+06/09 é o retrato oposto: **6 de 6 com saldo, 0 de 6 voltando.** O degrau
+1 → 2 não foi bloqueado por preço. Ele simplesmente não foi tentado.
+
+**3. O PRODUTO NÃO FALHOU UMA VEZ.**
+`tentativas = filmes` em todas as seis: **6 despachos, 6 filmes, 0 falhas.**
+Nenhuma das perdas da noite é técnica. As quatro pessoas sem filme nenhum
+(`f2b2248d`, `1968136d`, `c6145712`, `dca4d33e`) **nunca despacharam nada** —
+saíram com os 25 créditos intactos. Três das quatro vêm do chatgpt, e uma
+delas (`c6145712`) é o caso do "não" 50 segundos após o cadastro já registrado
+no PEDIDOS.
+
+#### O QUE ISSO MUDA PARA A PRÓXIMA SESSÃO
+
+A pergunta do próximo ciclo **não é** "como abrir a porta para quem não tem
+saldo" — essa porta está construída, publicada e sem fila. As duas perguntas
+com gente atrás são:
+
+- **Os 4 de 10 que chegam e nunca apertam o botão** (todos com 25 créditos
+  intactos, 3 de 4 vindos do chatgpt). É o mesmo gargalo que o CLAUDE.md já
+  media em 24/08 e que a memória `gargalo-e-apertar-e-nao-sair` refinou.
+- **Os 6 de 6 que entregam um filme, têm saldo de sobra e vão embora em
+  ≤30 minutos.** Nenhum bateu em parede nenhuma. Saíram porque acabou o que
+  havia para fazer, não porque a casa disse não.
+
+⚠️ **E o aviso que vale mais que as duas:** são **10 pessoas em 8 horas**.
+Nada aqui — nem "0 bateram na parede", nem "6 de 6 tinham saldo" — é grande o
+bastante para virar jogada sozinho. É retrato de uma madrugada de domingo, e o
+próximo ciclo tem de recontar com uma janela que tenha gente
+(`janela-movel-congelada`, `zero-falhas-sem-denominador`).
+
+#### DEPLOY DA #16 — AINDA SEM PROVA, e continuo dizendo isso
+
+`origin/main` = **42137f92** · fila = **0** · home **200**.
+
+O marcador comportamental (`engine_deeplink` em `next_action_served`) continua
+em **0**. A causa está medida e **não é falha**: houve **22 eventos de
+qualquer tipo** desde o push e **nenhuma chamada de `/api/next-action`** — o
+último serving da base é de **11:14:47 UTC**, anterior ao push. A rota só é
+chamada por pessoa logada abrindo a tela, e ninguém logou desde então.
+**Fecha-se sozinho na primeira pessoa que abrir o app.** O SQL está no bloco
+de ações.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+**Nada.** Nenhum código novo neste checkpoint, tudo publicado por mim, fila
+zerada, site 200, nenhum e-mail disparado por mim, nenhum alarme aberto. As
+três ações do fechamento acima continuam valendo (todas opcionais).
+
+### 📋 O QUE ACONTECEU
+
+Voltei ao fechamento porque ele estava incompleto — eu tinha somado as pessoas
+por fonte e não tinha olhado uma por uma. Olhando uma por uma, o retrato da
+noite virou outro.
+
+**Ninguém, das dez pessoas, bateu na parede de crédito.** Nem uma vez. Ou
+seja: tudo o que eu construí esta madrugada — a caixa que aparece quando o
+saldo não cobre o próximo filme, a carta para quem levou o "não", a saída
+barata que consertei na última hora — **é real, está no ar e não teve um único
+cliente para atender esta noite**.
+
+E a razão é o oposto do que o plano da noite supunha. As seis pessoas que
+fizeram um filme **tinham dinheiro para fazer outro** — quatro delas até no
+mesmo motor caro. Nenhuma fez. Elas não foram barradas por preço; elas
+simplesmente foram embora, em média meia hora depois do filme ficar pronto. E
+outras quatro pessoas chegaram, olharam e nunca apertaram o botão, saindo com
+os 25 créditos intactos.
+
+O produto, nessa noite, não errou uma: seis pedidos, seis filmes, zero falhas.
+O que faltou não foi qualidade nem crédito — foi motivo para voltar. Guardo a
+ressalva mais importante: são dez pessoas numa madrugada de domingo, e dez
+pessoas não provam nada sozinhas. É o retrato, não a lei.
