@@ -1945,9 +1945,9 @@ agora — que é onde as pessoas de fato estão clicando.
 
 ---
 
-### #30 — 16:08 → 16:45 BRT — a temporada tinha servidor e não tinha tela; agora entra no instante de alegria máxima
+### #30 — 16:08 → 16:21 BRT — a temporada tinha servidor e não tinha tela; agora entra no instante de alegria máxima
 
-#### PRESS RELEASE (o que o cliente consegue fazer às 16:45 que não conseguia às 16:08)
+#### PRESS RELEASE (o que o cliente consegue fazer às 16:21 que não conseguia às 16:08)
 
 > Quando o seu filme fica pronto, a Kineo deixa de te entregar um arquivo e passa
 > a te entregar **um canal começado**. Debaixo do vídeo aparece a sua temporada:
@@ -2151,3 +2151,47 @@ Pagamentos hoje continuam em **zero**, e não escondo isso: 1 checkout em 24 hor
 A casa está sadia (40 filmes, todos concluídos, nada preso, ninguém sem crédito),
 o produto entrega — o que ainda não acontece é alguém achar que vale a pena
 continuar. É exatamente esse "continuar" que esta hora tentou comprar.
+
+---
+
+### #30b — 16:24 BRT — o rótulo do Ep 1 é o que a PESSOA escreveu, não um título curado
+
+**EM PRODUÇÃO, SHA `05b01558`.** Ao provar que a faixa tinha conteúdo real para
+mostrar (as 11 temporadas gravadas hoje têm 5 episódios cada, com semente e
+títulos bons — *"The Hidden Languages of Nigeria"*, *"How a 9-Year-Old Invented
+an Eco-Friendly Rocket"*), a mesma consulta mostrou o defeito que a faixa ia
+tornar visível:
+
+| nas 11 temporadas de hoje | |
+|---|---|
+| `fromTitle` acima de 70 caracteres | **5 de 11** |
+| maior | **120 caracteres** |
+| começa com marcador de roteiro colado | **1** (`*🎙️ COMPLETE VOICEOVER SCRIPT - ...`) |
+
+O rótulo do episódio 1 é o **título do filme da pessoa** — e esse campo não é
+curado: é o que ela escreveu na caixa. Numa linha de uma só altura, 120
+caracteres e um marcador de roteiro quebram a faixa **logo na primeira linha**.
+
+`rotuloDoEpisodio1()` é **só apresentação**: não reescreve o que está guardado,
+não toca no filme, não mexe no pipeline. Tira o marcador do começo, colapsa
+espaços e corta em **fronteira de palavra**.
+
+**Duas notas honestas sobre o método:**
+1. O guardião passou a **executar a função real**, extraída do próprio arquivo.
+   Não criei um espelho `.mjs` de propósito — duas cópias da mesma regra divergem
+   no primeiro ajuste (`predicado-do-cobrador-nao-se-redigita`).
+2. **Uma das verificações novas nasceu errada.** Eu tinha escrito `!/\w…$/` para
+   "não corta no meio da palavra" — mas `…wird…` é um corte **limpo** e casaria
+   na mesma. O código estava certo e o teste é que estava errado. Passou a
+   comparar o prefixo com o original e a exigir espaço no ponto de corte.
+
+Guardião **51/51** · `tsc` verde · fila zerada · home 200.
+
+#### ✅ O QUE VOCÊ PRECISA FAZER
+1. **Nada.**
+
+#### 📋 O QUE ACONTECEU
+Antes de dar a faixa por pronta, fui ver o que ela ia mostrar de verdade com os
+dados que já existem — e descobri que em quase metade dos casos a primeira linha
+sairia gigante, e num deles sairia com o roteiro colado da pessoa aparecendo como
+"título". Corrigido na apresentação, sem mexer em nada do que está guardado.
