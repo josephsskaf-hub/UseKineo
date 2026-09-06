@@ -1460,3 +1460,211 @@ lendo o campo errado. Conferir onde o dado mora antes de declarar defeito.
 
 **PLACAR:** 2 cadastros, 1 checkout, **0 pagamentos** desde o marco. 58 eventos
 em 50 min. Zero erros pós-deploy.
+
+### #11 — 04:09→04:3x BRT — a carta mais quente da casa não tinha gatilho, o link era cego, e ela prometia uma tela que não existe
+
+**A jogada que o checkpoint da #10 propôs foi ABANDONADA por dois motivos, e o
+primeiro é meu dever registrar antes de qualquer coisa.** O #10 mandou trocar
+"corte seu texto" por "seu roteiro são N episódios". Fui medir antes de codar:
+
+| pessoa | caracteres | batidas | tempo | filmes depois |
+|---|---|---|---|---|
+| `2775079d` | 11.241 | 275 | 1 min | **0** (0 na vida) |
+| `f2b2248d` | 13.625 | 89 | 21 min | **0** (0 na vida) |
+| (anônima) | 5.473 | 45 | 3 min | 0 |
+| `1bbd270e` | 5.637 | 22 | 1 min | 1 |
+| `6da5878b` | 8.827 | 3 | 2 min | 1 |
+| `1c94f925` | 5.150 | 2 | 118 min | 3 |
+| `bf0409c9` | 5.409 | 1 | 0 min | 1 |
+
+1. **O número não sustenta a jogada.** As 437 batidas são **7 sessões**, e
+   quatro delas (as de excesso PEQUENO, 150 a 637 caracteres acima) **entregaram
+   filme mesmo assim**. A coorte "chegou com um roteiro que é uma série" são
+   **2 pessoas em 4 dias**. É a mesma classe de erro que a #7 já registrou no
+   PEDIDOS sobre a parede `free_fast_limit` ("15 pessoas em 30 dias" que eram
+   rajada velha) e que a memória `janela-movel-congelada` descreve: número
+   grande, ritmo pequeno. Não construí, e recomendo não construir sem número novo.
+2. **A superfície é proibida neste ciclo.** As 437 batidas são **100% em
+   `path='/studio'`**, ou seja `app/(dashboard)/studio/StudioClient.tsx` — que
+   está no diff aberto do Codex (`codex/plano-ux-studio-2026-09-05`, conferido
+   com `git diff --name-only`). O irmão do defeito no meu lado
+   (`analyze_prompt_too_long` no `GenerateClient`) tem **7 eventos, 1 pessoa,
+   um único dia**. Não há jogada minha ali.
+
+Então fui atrás do maior número parado que é meu. E ele estava numa carta pronta.
+
+#### O ERRADO (medido): a lista mais quente da casa tem 31 pessoas e **nunca saiu um e-mail**
+
+A coorte é a melhor que existe sem campanha: **entregou um filme e ficou com
+saldo MENOR que o preço do filme que acabou de fazer**. Não desistiu do produto
+— acabou de gostar dele e bateu numa parede. Hoje: **31 pessoas · 18 chatgpt ·
+12 taaft · 1 sem fonte**. A carta foi escrita na #4 e está em produção desde
+então. Zero envios.
+
+Ao tentar disparar, apareceram **três defeitos, e cada um sozinho já bastaria**:
+
+**1. NÃO HAVIA GATILHO.** A rota nasceu só-sessão-de-admin. O diário da #4
+registrou o impasse com todas as letras: *"não disparei porque a rota é
+admin-gated e eu não tenho sessão"*. Uma campanha que só existe se um humano
+estiver acordado e logado não é campanha — é rascunho. E é o mesmo padrão da
+memória `remedio-nunca-apertado`: o conserto existe, ninguém aperta.
+
+**2. O LINK ERA CEGO.** Os dois CTAs eram string digitada à mão, **sem UTM
+nenhum**. A carta podia converter e ninguém saberia: sem `utm_campaign`, o
+clique é indistinguível de tráfego direto. Pior — era exatamente o defeito que
+a **#9 tinha acabado de matar em três outras campanhas** com
+`lib/lifecycle/composerUrl.ts`. Esta rota, escrita na #4, ficou de fora do
+conserto **e do guardião**.
+
+**3. A CARTA PROMETIA UMA TELA QUE NÃO EXISTE.** O texto dizia: *"open the
+studio and it is waiting with the topic already in it"*. Conferido no código: o
+bloco de próximo episódio do `GenerateClient` só roda em `phase === 'done'`,
+**depois de um render**. Quem chega por link de e-mail encontra **caixa vazia**.
+É a regra de 24/08 do CLAUDE.md — *nunca prometer ao cliente algo que o produto
+não sabe executar sozinho* — quebrada por escrito, na carta da lista mais quente
+da casa.
+
+#### O QUE MUDOU (SHA `417517b4`)
+
+| arquivo | mudança |
+|---|---|
+| `app/api/admin/send-next-episode-wall/route.ts` | 2ª porta de auth (cron), CTAs com etiqueta, copy amarrada ao prefill |
+| `lib/lifecycle/composerUrl.ts` | opção `prompt` (prefill), teto de 120 chars |
+| `vercel.json` | cron `0 11,15 * * *` com `confirm=SEND&limit=30` |
+| `scripts/test-carta-episodio-gatilho-2026-09-06.mjs` | guardião novo, 35 verificações |
+| `scripts/test-cta-composer-2026-09-06.mjs` | a rota entra na cobertura da #9 |
+
+- **Gatilho:** `Authorization: Bearer ${CRON_SECRET}` — o mesmo contrato de
+  `send-activation-nudge`, que o Vercel preenche sozinho nas rotas do
+  `vercel.json`. Ninguém precisa conhecer o segredo. **Fail-closed:** env
+  ausente devolve `false`, nunca `true`. A sessão de admin continua exigida
+  para quem não traz o cabeçalho, e o link de 1 clique do fundador continua
+  valendo. O `confirm=SEND` está NO caminho do cron de propósito: sem ele o job
+  rodaria em dry-run para sempre — foi assim que dois crons desta casa
+  dormiram 30 dias (CLAUDE.md, 01/09).
+- **Etiqueta:** campanha `next_episode_wall` nos dois destinos, composer e
+  `/pricing`.
+- **Promessa com lastro, consertada no PRODUTO e não na desculpa:** o link
+  agora leva `?prompt=<título do filme>`, que o `GenerateClient` lê como
+  prefill (`initialPrompt`). A caixa abre preenchida **de verdade**. E não
+  dispara render nenhum: o autostart exige `create_intent`, que o helper nunca
+  escreve. Quando não há título aproveitável — `pickMomentumTopic` devolve
+  `null` para os comandos colados do ChatGPT e para o `人物使用参考图` da lista
+  — **não há prefill E a frase muda junto**. Promessa e link nunca se separam.
+
+#### O QUE O CLIENTE PASSA A RECEBER
+
+31 pessoas que fizeram um filme, gostaram, ficaram sem saldo e **nunca ouviram
+nada da casa** recebem uma carta que nomeia o filme delas, diz os dois números
+reais (custou X, você tem Y) e abre o studio com o tópico já digitado. Sem
+desconto, sem crédito, sem preço inventado — a porta do plano é um link.
+
+#### DRY-RUN COMPLETO (obrigatório antes de qualquer envio) — 31 destinatários
+
+Reproduzi a seleção da rota em SQL, cláusula por cláusula (opt-out, pagante,
+plano, descartável, bloqueados do ciclo, saldo < custo, carimbos de 9 colunas +
+7 datas + 6 campanhas em `events`, fora do checkout). Ordem de envio = chatgpt
+primeiro, depois maior saldo.
+
+| # | e-mail | fonte | saldo | último custou | título |
+|---|---|---|---|---|---|
+| 1 | plottwistvidz@gmail.com | sem fonte | 0 | 25 | Setting: Outside a fancy restaurant at night. |
+| 2 | souzaforteslucas@gmail.com | chatgpt | 6 | 15 | "Eu aluguei um apartamento barato…" |
+| 3 | asifwriter5@gmail.com | chatgpt | 6 | 19 | This image hides two faces — can you see both? |
+| 4 | johnickcep99@gmail.com | chatgpt | 0 | 25 | (comando colado — sem título) |
+| 5 | matijasmilovic5@gmail.com | chatgpt | 0 | 4 | At 3:17 AM, Daniel heard his mother calling… |
+| 6 | irapapagavriel@gmail.com | chatgpt | 0 | 4 | The 3 AM rule... could be your ultimate lifesaver. |
+| 7 | tmmom6996@gmail.com | chatgpt | 0 | 25 | (comando colado — sem título) |
+| 8 | sonnatakliain@gmail.com | chatgpt | 0 | 25 | Old family house at night. |
+| 9 | maxkaynann1910@gmail.com | chatgpt | 0 | 15 | 5 morning habits Jeff Bezos used… |
+| 10 | ta5480767@gmail.com | chatgpt | 0 | 4 | Unleash the ultimate creamy garlic chicken… |
+| 11 | livrosaa2026@gmail.com | chatgpt | 0 | 4 | Did you know about the Ghost Army in WWII? |
+| 12 | ammuleyyyyyehh@gmail.com | chatgpt | 0 | 4 | The 3am rule — a secret you can't afford to break. |
+| 13 | ahmadjooon26@gmail.com | chatgpt | 0 | 3 | (árabe — `pickMomentumTopic` decide) |
+| 14 | linusminidalle@hotmail.com | chatgpt | 0 | 4 | The 3am rule you should NEVER break… |
+| 15 | soomroalisoomro12354@gmail.com | chatgpt | 0 | 25 | The unsolved mystery of |
+| 16 | riyadbora3i@gmail.com | chatgpt | 0 | 4 | This viral video fact... the ocean forever. |
+| 17 | omargamer2130@gmail.com | chatgpt | 0 | 4 | Tom and Jerry… a haunted palace? |
+| 18 | mrarabking507@gmail.com | chatgpt | 0 | 4 | Every night at 3 AM… Mia's window. |
+| 19 | newytch19@gmail.com | chatgpt | 0 | 15 | (comando colado — sem título) |
+| 20 | cyber09.2009@gmail.com | taaft | 10 | 15 | Cristiano Ronaldo as a clueless student! |
+| 21 | ayoolaoluwasegunfunmi@gmail.com | taaft | 7 | 15 | (sem título) |
+| 22 | nayannamha1211@gmail.com | taaft | 6 | 19 | An island where no one can survive? |
+| 23 | hdghiyd@gmail.com | taaft | 6 | 19 | This island could kill you in minutes! |
+| 24 | williamlevandovskyi@gmail.com | taaft | 0 | 4 | This school uniform trend… |
+| 25 | allanribeirocontato@gmail.com | taaft | 0 | 5 | (pt-BR, comando — sem título) |
+| 26 | gravesconsulting420@gmail.com | taaft | 0 | 20 | The lake in Venezuela where lightning… |
+| 27 | chukwuebukastanley@gmail.com | taaft | 0 | 25 | How do computers obey commands? |
+| 28 | zoya04634@gmail.com | taaft | 0 | 12 | (markdown de produção — sem título) |
+| 29 | nagac86153@kikaga.com | taaft | 0 | 12 | (comando — sem título) |
+| 30 | gaomo117169@gmail.com | taaft | 0 | 25 | 人物使用参考图 → **sem título, sem prefill** |
+| 31 | viralgyandk@gmail.com | taaft | 0 | 19 | This beach hides a secret… |
+
+**Nenhum dos 4 contatos proibidos** (den.higgins, noelrss21, emiliomontinari,
+akajitin) está na lista — excluídos por cláusula, conferido na query.
+**Observação honesta:** `nagac86153@kikaga.com` (#29) é domínio descartável que
+**não está** na lista `DISPOSABLE` da rota. Um endereço em 31. Não mexi na lista
+por conta própria — está no PEDIDOS.
+
+#### TESTES
+
+`test-carta-episodio-gatilho-2026-09-06.mjs`: **35 verificações, 0 falhas**,
+lendo os arquivos reais. Falsificado por **5 mutantes**, com o commit feito
+ANTES (memória `falsificar-mutacao-commitar-antes`):
+
+| mutante | resultado |
+|---|---|
+| `if (!cronSecret) return true` (sem env, deixa passar) | ✗ reprovado |
+| `const ponte = filme` → `= true` (frase de prefill escapa do ramo) | **passou na 1ª versão** → guardião endurecido → ✗ reprovado |
+| `<p>${filme` → `<p>${true` (o mesmo no HTML) | ✗ reprovado |
+| `confirm=SEND` some do cron | ✗ reprovado |
+| entrada do cron removida do `vercel.json` | ✗ reprovado |
+| CTA volta a ser `${SITE}/studio/create` cru | ✗ reprovado (3 checagens) |
+
+O 2º mutante é o registro que importa: **eu tinha escrito duas checagens que
+contavam TEXTO** (dois ramos presentes, duas ocorrências da frase) e as duas
+passavam com a condição destruída. Contar texto não prova condição. As
+checagens novas exigem que a frase seja decidida pela **mesma variável que
+decide o prefill** (`filme`).
+
+`test-cta-composer-2026-09-06.mjs` (guardião da #9): 25 → 0 falhas, já com a
+rota nova na cobertura. `tsc --noEmit`: **0 erros** (com junction de
+`node_modules`; `npx tsc` mente com exit 0 — memória `worktree-tsc-node-modules`).
+
+#### RISCO E COMO É REVERSÍVEL
+
+O cron passa a rodar **2×/dia para sempre**, sem ninguém olhando. O volume real
+é limitado pela coorte, não pelo horário: o carimbo `next_episode_wall_emailed_v1`
+é vitalício por pessoa e as 6 campanhas irmãs excluem. Depois da primeira leva
+(31), o job manda ~0–3/dia — só quem entrar novo no estado. Reverter = apagar
+4 linhas do `vercel.json`. Escolhi 11:00 e 15:00 UTC (08:00 e 12:00 BRT) porque
+é manhã do destinatário, e porque **a primeira rodada cai DENTRO deste ciclo**
+(08:00 BRT, antes do fechamento às 09:08) — dá para ver o resultado hoje.
+
+#### COMO MEDIR (falsificável, com data)
+
+1. **Às 11:00 UTC:** `next_episode_wall_emailed_v1` sai de 0. Se continuar 0, o
+   gatilho não funcionou e eu digo isso no fechamento.
+2. Clique: eventos com `utm_campaign=next_episode_wall` (hoje **0 por
+   construção** — o link nem carregava etiqueta).
+3. Prova de que a promessa virou verdade: `next_action_card_shown` com
+   `surface='generate_step_1'` vindo de `utm_medium=email`, que a #9 deixou em
+   0 por construção.
+4. O que interessa: `checkout_started` e `payment_success` dessas 31 pessoas.
+
+#### PLACAR (pós-marco 2026-09-06 04:00 UTC)
+
+2 cadastros (`nav` 1 · `seo` 1) · 1 filme · 1 checkout · **0 pagamentos**. Sem
+tráfego novo desde a #10 — é madrugada nos EUA. Os dois casos já foram
+dissecados nas rotações anteriores.
+
+#### PRÓXIMA JOGADA (#12)
+
+Ver, às 08:00 BRT, se a carta saiu — e se saiu, se alguém clicou. Enquanto isso,
+a pergunta que o dry-run levantou e que vale dinheiro: **10 das 31 pessoas não
+têm título aproveitável** porque colaram um comando do ChatGPT no lugar de um
+tema. É um terço da melhor lista da casa recebendo a versão fraca da carta — e
+é o mesmo material que a #10 viu virar parede de 13.600 caracteres. O padrão
+"o cliente do chatgpt cola o pedido, não o assunto" já apareceu em três
+rotações diferentes por três sintomas diferentes. Vale uma jogada de servidor
+que trate isso na entrada, não em cada consequência.
