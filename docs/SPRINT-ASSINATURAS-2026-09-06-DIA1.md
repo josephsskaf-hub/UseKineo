@@ -575,3 +575,112 @@ deploy do `8162695a`. O cron roda aos :10 e :40 mas só envia quando existe
 filme concluído na janela de 30min-24h ainda não avisado — e não houve filme
 novo desde então. A primeira linha com o campo fecha a questão.
 
+
+---
+
+## ### #19d — 12:45 BRT — A CARTA DA TEMPORADA SAIU. 11 pessoas, 11 temporadas escritas.
+
+Primeiro disparo real, **2026-09-06 15:45:50 UTC**, automático pelo cron.
+
+| | |
+|---|---|
+| Cartas enviadas | **11** |
+| Temporadas escritas (Ep2–Ep6) | **11** |
+| Por fonte | taaft **5** · chatgpt **5** · nav **1** |
+| Saldo das pessoas | 17 a 27 créditos |
+| Custo do episódio | 5 (todas em Kineo 1) |
+| Episódios que o saldo delas paga | **3 a 5** |
+| Custo do lote para a casa | ~11 × US$ 0,0003 ≈ **US$ 0,003** |
+
+Alguns dos episódios 2 que saíram, escritos a partir do filme **que cada
+pessoa fez**: *"The Mystery of Singing Sand Dunes"*, *"The Hidden Languages of
+Nigeria"*, *"How a 9-Year-Old Invented an Eco-Friendly Rocket"*, *"Das
+Abenteuer der verschwundenen Kappe"*, *"O poder do toque: como a pele sente
+amor"*. O modelo escreveu **no idioma do tema de cada um** — alemão e português
+apareceram sozinhos, como o prompt pede.
+
+### A CONTABILIDADE DAS QUE NÃO SAÍRAM (22 elegíveis − 11 = 11)
+
+Não arredondei para o meu lado. Fui atrás das 11:
+
+- **8 foram retidas pela supressão de 24h** — receberam outra carta de ciclo de
+  vida hoje. É a trava funcionando exatamente como desenhada, e elas **não
+  foram carimbadas**: voltam ao lote das **16:45 BRT** ou de amanhã.
+- **3 ficaram sem temporada** — ou a semente do filme não gera prompt
+  utilizável, ou o modelo não devolveu cinco episódios únicos. Também **não
+  foram carimbadas** (regra do #19: sem temporada não sai carta, e a pessoa
+  continua elegível). Volta no próximo lote.
+
+Ou seja: **nenhuma das 11 foi perdida**. As duas travas que as seguraram são as
+que impedem carta duplicada e carta vazia.
+
+### O QUE MEDIR AGORA
+
+`season_letter_emailed_v1` (11 pessoas nomeadas no banco) →
+`episode_link_clicked` → linha em `videos` das **mesmas** pessoas em 24h →
+`payment_success`. Denominador é gente, não evento. **11 é uma amostra
+pequena** e não vai provar nada sozinha hoje — o segundo lote sai às 16:45.
+
+---
+
+## ### #20b — 12:37 BRT — retratação: o pacote punha crédito da casa até no filme de quem PAGA
+
+Encontrei isto lendo `lib/videoDescription.ts` **depois** de a #20 estar no ar —
+e antes de ela alcançar uma única pessoa (`publish_pack_written` estava em 0).
+
+**A casa já resolve isto e resolve ao contrário do que eu fiz:**
+`buildBrandedYouTubeDescription` só acrescenta `KINEO_CREDIT_LINE` quando
+`isFreePlan` é verdadeiro. Quem assina compra, entre outras coisas, **não ter
+de anunciar a ferramenta** — e a página de preços promete "watermark-free".
+
+Minha primeira versão fazia duas coisas erradas de uma vez:
+1. creditava **todo mundo**, desfazendo pelas costas uma decisão deliberada;
+2. inventava um texto de marca próprio, criando uma **segunda régua** de como a
+   Kineo se apresenta.
+
+**Consertado:** a linha creditada agora é a **canônica da casa** e vem de quem
+chama; o crédito só entra no plano gratuito; e **fail-closed no sentido do
+cliente** — sem informação de plano, o pacote sai limpo. Dos dois erros
+possíveis, "deixei de anunciar" é o único reversível.
+
+O plano vem de `isSubscriberProfile(prof)`, o **mesmo** predicado que o rodapé
+daquele e-mail já usa. Não redigitei nenhum.
+
+### UM DETALHE DE ENGENHARIA QUE VALE O REGISTRO
+
+A primeira tentativa de conserto **importava** `KINEO_CREDIT_LINE` dentro de
+`lib/publishPack.ts` — e **quebrou o guardião**, que executa esse arquivo
+direto com o type-stripping do Node (o Node não resolve o alias `@/` do
+tsconfig, e sem extensão não resolve nem o relativo). A dependência foi
+**invertida**: o módulo continua **sem import nenhum** e recebe a linha de quem
+chama. A régua continua uma só, e o módulo continua executável num teste.
+
+**SHA `1f74e9e6`.** Guardião 38 → **44**.
+
+---
+
+## ### CORREÇÃO DE ALCANCE DA #20 — EU LIGUEI O PACOTE ONDE QUASE NINGUÉM ESTÁ
+
+Medindo para provar o deploy, descobri que errei o alvo:
+
+| e-mail | evento | 7 dias | pessoas |
+|---|---|---|---|
+| instantâneo, quando o render termina (`compose/status`) | `video_ready_email_sent` | **155** | **104** |
+| de resgate, para quem fechou a aba (`cron/send-video-ready`) | `video_ready_nudge_sent` | **4** | **4** |
+
+**Eu liguei o pacote no segundo.** Ele alcança **4 pessoas por semana**; o
+primeiro alcança **104**. É a classe de erro da memória
+`contrato-de-servidor-sem-chamador`: a peça funciona e está pendurada onde não
+há gente.
+
+**Por que eu não corrigi ainda, e é uma decisão, não esquecimento:** o e-mail
+de alto alcance é enviado **inline, com `await`, dentro do
+`/api/compose/status`** — a rota que o cliente fica *pollando* enquanto o filme
+renderiza. Pendurar ali uma chamada de modelo de até 12s bloqueia um poll e
+pode fazer a tela da pessoa parecer travada **no exato minuto em que o filme
+fica pronto**. Trocar um risco de UX no pico de alegria por um ganho de
+alcance exige um desenho diferente (escrever o pacote **antes**, quando o
+render é despachado, e o e-mail só **ler** o que já está gravado — que é
+exatamente para isso que o modo `escrever: false` existe).
+
+Fica como a **primeira jogada da próxima rotação**, com o desenho já escrito.
