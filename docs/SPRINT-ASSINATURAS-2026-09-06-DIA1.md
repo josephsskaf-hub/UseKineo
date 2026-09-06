@@ -114,3 +114,128 @@ público; `curl` não alcança. A prova é comportamental e depende de tráfego:
 `kind: 'make_next_film'` e `href` com `src=next_action_no_seed` não existiam no
 repo antes deste commit. Fecha no checkpoint.
 
+
+---
+
+## ### #18 — 11:26 BRT — a casa passa a saber que o cliente tem uma TEMPORADA, não um vídeo
+
+### PRESS RELEASE (o que muda para o cliente)
+
+1. Hoje, quando o filme fica pronto, a casa pergunta "quer fazer outro?" —
+   e entrega um **formulário em branco**. A pessoa teria que inventar um tema
+   novo, do zero, com a empolgação já passando.
+2. A partir de agora a casa **afirma** em vez de perguntar: os títulos dos
+   episódios **2 a 6** da mesma série já estão escritos quando o filme 1 cai.
+3. O cliente deixa de ter *um vídeo* e passa a ter *uma temporada* — e a
+   diferença não é estética: ninguém assina uma fábrica de coisa que já
+   terminou.
+4. O plano deixa de ser "60 créditos por $9.90" (unidade que ninguém sente) e
+   pode passar a ser **"o resto da sua temporada"** — a rota devolve quantos
+   episódios o saldo de hoje paga, calculado da fonte única de custo.
+5. Preço público: **intocado**. O que muda é a moldura, não o número.
+6. Custo: uma chamada de `gpt-4o-mini` (~$0,0003) por filme entregue, escrita
+   uma vez e lembrada. Pipeline de qualidade do filme: não encostei.
+
+### O QUE ESTAVA ERRADO (medido hoje, 7 dias, contas externas)
+
+**234 cadastros → 151 fizeram o filme 1 → 114 pararam em EXATAMENTE UM → 2
+pagaram.** Das 114 que pararam: **70 ainda têm saldo** para outro filme agora,
+e **64 nunca bateram na parede de crédito** (`upgrade_modal_opened` = 0).
+Dessas 64, **33 vieram do chatgpt** e **25 fizeram o filme nas últimas 48h**.
+
+Elas não foram barradas. Foram embora **satisfeitas**, ~30 min depois do filme.
+Toda a máquina de porta-de-saldo construída na madrugada mira as **9** que
+bateram na parede — 8% do problema. As 64 não são público de campanha nenhuma.
+
+### O QUE MUDOU
+
+- `lib/temporada.ts` (novo, puro, sem import): o que é uma temporada, o que
+  vale ser gravado, TTL de 14 dias igual ao do episódio 2 (de propósito: as
+  mesmas cartas leem as duas memórias, e validades diferentes produziriam uma
+  carta que nomeia o Ep2 e não sabe mais o nome do Ep3).
+- `app/api/season/route.ts` (novo). **GET só lê** — nunca chama modelo, nunca
+  gasta; ausência de temporada é `200 season:null`, nunca 404. **POST escreve
+  uma vez** e guarda em `events` (`season_written`, chaveado por `video_id`) —
+  **sem migration, sem DDL**, reversível com um `delete`.
+- **Ou os cinco episódios, ou nenhum.** Temporada com buracos ("Ep2 · Ep4 ·
+  Ep6") lê como defeito, não como catálogo.
+- A rota devolve `episodeCost` (de `creditCostForDuration`, fonte única),
+  `balance` e `affordableEpisodes`. **Não escreve preço nem nome de plano** — e
+  o guardião proíbe que passe a escrever.
+
+**SHA `8c73b24b`. EM PRODUÇÃO, E DESTA VEZ PROVADO NO SHA.**
+
+### A PROVA DE DEPLOY QUE FALTAVA — E COMO ELA FOI FEITA
+
+A entrega da madrugada (#16) ficou sem prova de SHA porque era uma rota
+autenticada que **já existia**: 401 antes e 401 depois (memória
+`sonda-401-exige-controle-404`). A `/api/season` é **rota nova**, e isso dá o
+par que decide:
+
+| momento | `/api/season` | controle irmão inexistente |
+|---|---|---|
+| 14:28:45 UTC (antes) | **404** | 404 |
+| 14:30:04 UTC (depois) | **401** | 404 |
+
+O controle não se mexeu; a rota nova mudou de 404 para 401. Isso prova
+`8c73b24b` servindo — e, por ancestralidade, prova também o **#17**.
+
+### TESTES
+
+`scripts/test-temporada.mjs` — **36 verificações**. Metade **executa**
+`lib/temporada.ts` (import nativo de TS no Node 24 — o **arquivo real**, não
+uma cópia nem um mock) contra os modos de falha que estes modelos realmente
+produzem: título repetido (inclusive só trocando a caixa), lista de 4 itens,
+item sem `seed`, prosa no lugar de JSON, item excedente. A outra metade amarra
+as promessas caras da rota: GET sem modelo, POST lê a memória **antes** de
+gastar, `insert` único, custo da fonte única, e nenhum preço escrito.
+
+**O teste achou um bug meu antes do push:** `texto()` removia aspas **antes**
+do `trim()`, então um título que chega como `  "Assim"  ` mantinha a aspa até a
+tela — `^["…]` não casa quando a string começa com espaço.
+
+`npx tsc --noEmit` verde na árvore combinada com o lote do Codex. Guardião do
+#17 continua 17/17.
+
+### RISCO
+
+Baixo por construção: nada consome a rota ainda. Se a temporada não nascer, a
+resposta é `season: null` e **nada na casa muda**. O gasto máximo é uma chamada
+de `gpt-4o-mini` por filme, e só se alguém chamar o POST.
+
+### PRAXE — CHECKPOINT 11:38 BRT
+
+**Placar do marco (14:00 UTC):** a janela tem 30 minutos de vida — 0 cadastros,
+0 filmes, 0 checkouts, 0 pagamentos. Número honesto, não conclusão.
+
+**Checagem zero — e ela fechou TRÊS pendências abertas:**
+
+- ✅ **Prova do #16 fechada.** `next_action_served` com `engine_deeplink` = **11
+  linhas**. O campo não existia no repo antes daquele commit — o deploy da
+  madrugada está provado.
+- ✅ **`fc28af0b` não era débito sem entrega.** O filme entrou: `completed`
+  com URL. O item de vigia da #11 pode ser riscado.
+- ✅ **O botão do episódio 2 saiu do zero.** `episode_link_clicked` = **3 em
+  8h**, contra 1 em toda a história (e aquela 1 era a minha sonda). Duas são
+  anônimas (deslogadas, caem no `/login`); **uma é real**: pessoa `53cef8ef`,
+  chatgpt, 13:31 UTC, saldo 12.
+- ⚠️ **Mas o clique real não virou filme.** `53cef8ef` clicou há ~1h e tem
+  **0 vídeos depois disso**. Com 12 créditos: o Kineo 1 cabe, o Seedance 1.5
+  (15cr) **não**. É exatamente o beco que o **#17** acabou de fechar — mas
+  **1 pessoa não é coorte** (memória `janela-movel-congelada`), e eu não vou
+  construir jogada em cima disso. Fica como o primeiro caso a reconferir.
+- Cadastro sem crédito: **1 de 17**, e não é trial órfão — `granted=25 used=25`
+  com **3 filmes entregues**. É alguém que gastou tudo hoje. Render preso: 0.
+  `next_episode_failed`: 0.
+- Cartas de hoje: `trial_lifecycle_email_sent` 56 · `checkout_recovery_emailed_v1`
+  21 · `video_ready_email_sent` 19 · `next_episode_wall_emailed_v1` 18.
+
+### PRÓXIMA JOGADA (rotação #2)
+
+**A carta da temporada, para as 64.** Coorte já dimensionada e reservada acima.
+Assunto = o **título do episódio 2** que a casa escreveu para aquela pessoa;
+corpo = a temporada inteira, Ep2 em um clique, e o resto da temporada como o
+que o plano compra. É a única peça que alcança as 64 hoje — elas não voltam
+sozinhas e não são público de campanha nenhuma. Dry-run nominal no diário antes
+do disparo.
+
