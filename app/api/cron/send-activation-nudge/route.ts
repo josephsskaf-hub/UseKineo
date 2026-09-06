@@ -5,6 +5,8 @@ import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emai
 import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
 import { LIFECYCLE_SKIP_STAMP } from '@/lib/lifecycle/skipStamp'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+import { getViralNowTopics } from '@/lib/viralTopics'
+import { composerUrl } from '@/lib/lifecycle/composerUrl'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = atual).
 const OFFER = getFreeTierOffer()
@@ -64,18 +66,107 @@ function isAuthorized(req: NextRequest): boolean {
   return auth === `Bearer ${cronSecret}`
 }
 
+// ═══ KINEO-PRIMEIRO-EPISODIO-PRONTO-2026-09-06 (sprint-assinaturas #21) ════
+//
+// O NUMERO: esta e a carta de MAIOR ALCANCE da casa — 249 envios em 30 dias,
+// contra 21 da campanha mais recente. E ela funciona: 13 dessas pessoas
+// entregaram um filme depois (5,2%), 9 em menos de 48h, e **2 pagaram**. Numa
+// casa com 6 pagantes em 30 dias, isso e um terco do dinheiro passando por
+// aqui. (Correlacao, nao causalidade — mas e a maior superficie que existe.)
+//
+// O QUE ELA FAZ DE ERRADO, e e o mesmo erro de toda a casa: ela PEDE. Diz
+// "type any idea" com dois exemplos entre parenteses e manda para um campo em
+// branco. Formulario em branco e onde a sessao morre — foi essa a leitura que
+// criou o episodio 2 (#14) e a temporada (#18), e as duas medicoes que a casa
+// tem apontam para o mesmo lado: quando a porta ja vem com o tema dentro, ~50%
+// dos cliques viram filme em 30 minutos, contra 6,6% de base.
+//
+// AGORA ELA ENTREGA: tres primeiros episodios concretos, cada um a um clique,
+// com o tema ja dentro do compositor. O material ja existia e nao custa nada —
+// `lib/viralTopics` e uma funcao PURA (semente determinstica de 4h, sem
+// banco, sem modelo). Nao ha chamada nova, nao ha centavo novo.
+//
+// ⚠️ O PREFILL E O TITULO, NAO O `prompt` DO TOPICO. O campo `prompt` do pool
+// e um roteiro estruturado inteiro (com marcadores HOOK/PAYOFF), e
+// `composerUrl` corta em 120 caracteres — cortar um roteiro no meio de um
+// marcador e exatamente a classe de erro do "menino da bolha" (27/08). O
+// titulo tem 31 a 45 caracteres, cabe inteiro, e a AUTO-STRUCTURE (#310) ja
+// sabe transformar um tema curto em roteiro estruturado.
+//
+// ⚠️ FALHA ABERTA: se o pool nao devolver 3 topicos utilizaveis, `episodios`
+// e vazio e a carta sai EXATAMENTE como saia antes desta peca.
+type EpisodioPronto = { titulo: string; gancho: string; href: string }
+
+function episodiosProntos(): EpisodioPronto[] {
+  try {
+    const pool = getViralNowTopics()
+    if (!Array.isArray(pool)) return []
+    const out: EpisodioPronto[] = []
+    for (const t of pool) {
+      const titulo = typeof t?.title === 'string' ? t.title.trim() : ''
+      if (!titulo || titulo.length > 120) continue
+      const gancho = typeof t?.hook === 'string' ? t.hook.trim().split('\n')[0].slice(0, 110) : ''
+      out.push({
+        titulo,
+        gancho,
+        href: composerUrl({ base: APP_URL, campaign: 'd0_activation_topic', prompt: titulo }),
+      })
+      if (out.length === 3) break
+    }
+    // Ou os tres, ou nenhum: uma carta com um unico exemplo le como
+    // "nao tinham mais ideias", e duas colunas ficam tortas no cliente de
+    // e-mail. Mesma regra da temporada (#18).
+    return out.length === 3 ? out : []
+  } catch {
+    return []
+  }
+}
+
 // KINEO-UNSUBSCRIBE-2026-07-26 — recebe userId para o rodapé de descadastro.
-function buildEmail(userId: string) {
+function buildEmail(userId: string, episodios: EpisodioPronto[] = []) {
   // KINEO-ACTIVATION-COPY-2026-07-06 — free plan gives 2 free videos, NOT
   // "30 credits" (stale copy that misled every signup). Short, founder-to-user
   // tone, one CTA to the video creator.
   const url = `${APP_URL}/generate?utm_source=lifecycle&utm_medium=email&utm_campaign=d0_activation`
+  // Sem os tres episodios, as duas variaveis sao string vazia e a carta sai
+  // como saia antes — a unica diferenca e que a frase deixou de listar dois
+  // exemplos entre parenteses (que ninguem podia clicar).
+  // ⚠️ O DIFF CONTRA A PRODUCAO PEGOU ISTO ANTES DE SUBIR: na primeira versao
+  // eu tirava os dois exemplos entre parenteses SEMPRE. No caminho de falha
+  // aberta (sem episodios) isso deixava a carta com MENOS concretude que a de
+  // hoje — ou seja, a "protecao" piorava o e-mail. Os exemplos so saem quando
+  // os tres episodios de verdade entram no lugar deles.
+  const exemplosText = episodios.length
+    ? 'You type a topic, the AI writes the script, adds the voiceover, captions and footage.'
+    : 'Type any idea ("the Bermuda Triangle mystery", "how Bezos starts his day") and the AI writes the script, adds the voiceover, captions and footage.'
+  const esc = (v: string) =>
+    v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+  const episodiosTexto = episodios.length
+    ? `
+Three that are working right now — each one opens the studio with the topic already in the box:
+
+${episodios.map((e, i) => `${i + 1}. ${e.titulo}\n   ${e.href}`).join('\n\n')}
+`
+    : ''
+  const episodiosHtml = episodios.length
+    ? `<p style="margin:0 0 10px;font-size:14px;color:#475569;">Three that are working right now — each one opens the studio with the topic already in the box:</p>
+  <table style="border-collapse:separate;border-spacing:0 8px;width:100%;margin:0 0 18px;">${episodios
+    .map(
+      (e) => `<tr><td style="border:1px solid #e6e8ec;border-radius:10px;padding:12px 14px;">
+    <a href="${e.href}" style="color:#111;text-decoration:none;font-weight:bold;font-size:15px;">${esc(e.titulo)}</a>
+    ${e.gancho ? `<div style="color:#64748b;font-size:13px;margin-top:4px;">${esc(e.gancho)}</div>` : ''}
+    <div style="margin-top:8px;"><a href="${e.href}" style="color:#2997ff;text-decoration:none;font-size:13px;font-weight:bold;">Make this one &rarr;</a></div>
+  </td></tr>`,
+    )
+    .join('')}</table>`
+    : ''
+
   const text = `Hey,
 
 It's the team at Kineo. You signed up a little while ago but haven't made your first video yet — so here's a nudge, because the first one is the fun part.
 
-${ft(OFFER, 'Create, watch, download and share up to 3 watermarked Fast videos every 24 hours with no card.', OFFER.copy.headline)} Type any idea ("the Bermuda Triangle mystery", "how Bezos starts his day") and the AI writes the script, adds the voiceover, captions and footage.
-
+${ft(OFFER, 'Create, watch, download and share up to 3 watermarked Fast videos every 24 hours with no card.', OFFER.copy.headline)} ${exemplosText}
+${episodiosTexto}
 Make your first video here: ${url}
 
 Stuck on anything? Just reply to this email — a real person reads every message.
@@ -86,7 +177,8 @@ usekineo.com`
   const html = `<div style="font-family:Arial,sans-serif;font-size:15px;color:#111;line-height:1.6;max-width:480px;">
   <p style="margin:0 0 14px;">Hey,</p>
   <p style="margin:0 0 14px;">It's the team at Kineo. You signed up a little while ago but haven't made your first video yet — so here's a nudge, because the first one is the fun part.</p>
-  <p style="margin:0 0 14px;">${ft(OFFER, 'Create, watch, download and share up to <strong>3 watermarked Fast videos every 24 hours</strong> with no card.', OFFER.copy.headline)} Type any idea ("the Bermuda Triangle mystery", "how Bezos starts his day") and the AI writes the script, adds the voiceover, captions and footage.</p>
+  <p style="margin:0 0 14px;">${ft(OFFER, 'Create, watch, download and share up to <strong>3 watermarked Fast videos every 24 hours</strong> with no card.', OFFER.copy.headline)} ${exemplosText}</p>
+  ${episodiosHtml}
   <p style="margin:0 0 24px;"><a href="${url}" style="display:inline-block;background:#2997ff;color:#ffffff;text-decoration:none;font-weight:bold;font-size:15px;padding:12px 26px;border-radius:10px;">Make my first video →</a></p>
   <p style="margin:0 0 14px;">Stuck on anything? Just reply to this email — a real person reads every message.</p>
   <p style="margin:0 0 2px;">Kineo Team</p>
@@ -165,6 +257,11 @@ export async function GET(req: NextRequest) {
   let skipped = 0
   let suppressed = 0
 
+  // Calculado UMA vez por execucao: a funcao e determinstica por janela de
+  // 4h, entao calcular por pessoa seria trabalho repetido — e abriria a chance
+  // de duas pessoas do MESMO lote receberem listas diferentes se a janela
+  // virasse no meio do envio.
+  const episodiosDoLote = episodiosProntos()
   for (const u of candidates ?? []) {
     // Suprimido = recebeu outro e-mail de ciclo de vida nas últimas 24h.
     // NÃO carimba `activation_nudge_sent_at` — o usuário continua elegível na
@@ -259,7 +356,7 @@ export async function GET(req: NextRequest) {
       continue
     }
 
-    const { text, html } = buildEmail(u.id)
+    const { text, html } = buildEmail(u.id, episodiosDoLote)
     try {
       const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
@@ -271,7 +368,14 @@ export async function GET(req: NextRequest) {
           from: FROM_EMAIL,
           to: [email],
           reply_to: 'hello@usekineo.com',
-          subject: 'Your first Fast video is a few minutes away',
+          // O assunto nomeia o PRIMEIRO episodio quando ele existe: e a
+          // mesma licao da carta do episodio 2 (#15) — a isca e o que a pessoa
+          // nunca viu, nao um lembrete de que ela nao fez nada. Sem episodios,
+          // volta byte a byte para o assunto de sempre.
+          subject:
+            episodiosDoLote.length > 0
+              ? `Your first video: "${episodiosDoLote[0].titulo}"`
+              : 'Your first Fast video is a few minutes away',
           text,
           html,
           headers: unsubscribeHeaders(u.id),
