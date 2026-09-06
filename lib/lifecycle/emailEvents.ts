@@ -77,6 +77,11 @@ export const LIFECYCLE_EMAIL_EVENT_NAMES = [
   'video_rescue_sent',
   'cap_hit_sent',
   'credits_back_sent',
+  'trial_eve_notice_sent',
+  // Nao e cron nosso: sai de dentro do webhook da Stripe (trial_will_end), e
+  // avisa que o cartao vai ser cobrado. E o e-mail mais sensivel da casa para
+  // colidir com um nudge de venda no mesmo dia.
+  'card_trial_ending_emailed',
 ] as const
 
 export type LifecycleEmailEventName = (typeof LIFECYCLE_EMAIL_EVENT_NAMES)[number]

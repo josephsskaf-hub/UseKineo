@@ -93,10 +93,37 @@ check(
   mod.includes("from('email_send_log')") && /'ok'/.test(mod) && /yielded/.test(mod),
   'sem os dois filtros, recusa do Resend e cessao de cota virariam mordaca de 24h',
 )
+// KINEO-SUPPRESSION-EVENTS-2026-09-06 — ESTE CHECK ESTAVA INVERTIDO ATE HOJE,
+// e a inversao era honesta: em 04/09 o modulo REALMENTE nao lia `events`, e o
+// check congelava esse fato para que ninguem passasse a ler sem mexer no
+// inventario. Foi exatamente o que aconteceu. O aviso que estava escrito aqui
+// ("se passar a ler events, os crons de STAMP em events viram visiveis e este
+// inventario muda") se cumpriu na letra: a quinta fonte entrou, e a
+// classificacao `viaEvento` mais abaixo esvaziou parte do inventario.
 check(
-  '1.7 o modulo NAO le a tabela events',
-  !/\.from\('events'\)/.test(mod),
-  'se passar a ler events, os crons de STAMP em events viram visiveis e este inventario muda',
+  '1.7 o modulo LE a tabela events (quinta fonte, 06/09)',
+  /\.from\('events'\)/.test(mod) && mod.includes('LIFECYCLE_EMAIL_EVENT_NAMES'),
+  'sem ela, 7 campanhas de admin e 5 crons voltam a ser invisiveis para os outros jobs',
+)
+check(
+  '1.9 a quinta fonte falha ABERTA e nao arrasta as outras quatro',
+  mod.includes('eventsDegraded') && !/eventsDegraded = true[\s\S]{0,200}return closed\(/.test(mod),
+  'fonte aditiva que falha fechada vira mordaca de 24h sobre a base inteira',
+)
+check(
+  '1.10 a lista de nomes e UMA constante importada, nao copia a mao',
+  mod.includes("from './emailEvents'") && !/'season_letter_emailed_v1'\s*,/.test(mod),
+  'OTHER_CAMPAIGNS ja esta copiada em 3 rotas e ja divergiu; a supressao nao repete o erro',
+)
+
+// A lista canonica dos carimbos de e-mail em `events`, lida do arquivo real.
+const NOMES_DE_EVENTO = Array.from(
+  ler('lib/lifecycle/emailEvents.ts').matchAll(/^ {2}'([a-z0-9_]+)',$/gm),
+).map((m) => m[1])
+check(
+  '1.11 a lista canonica de carimbos em events foi lida do arquivo',
+  NOMES_DE_EVENTO.length >= 25,
+  `leu ${NOMES_DE_EVENTO.length} nomes de lib/lifecycle/emailEvents.ts`,
 )
 
 console.log('\n=== 2. Inventario das rotas que mandam e-mail (medido 04/09/2026) ===')
@@ -132,11 +159,19 @@ const classificar = (rota) => {
   // carimbar coluna nenhuma — foi assim que o send-hotlead-blast saiu da
   // invisibilidade sem ganhar coluna.
   const viaLedger = src.includes('email/quota')
+  // KINEO-SUPPRESSION-EVENTS-2026-09-06 — a terceira forma de ficar visivel.
+  // Ate 06/09 so contavam coluna datada e ledger de cota; quem carimbava em
+  // `events` (a geracao NOVA de carimbo, que nao exige migracao) era invisivel
+  // por construcao. A lista canonica e lida do arquivo REAL, nunca redigitada
+  // aqui — duas listas divergem, e foi assim que OTHER_CAMPAIGNS divergiu em
+  // tres rotas.
+  const viaEvento = NOMES_DE_EVENTO.some((n) => src.includes(`'${n}'`))
   const visivel =
     COLUNAS_DATADAS.some((c) => src.includes(c)) ||
     src.includes('trial_emails_log') ||
     src.includes('recovery_sent_at') ||
-    viaLedger
+    viaLedger ||
+    viaEvento
   const morta = /status:\s*410/.test(src)
   return { envia, delega, respeita, visivel, morta }
 }
@@ -147,29 +182,25 @@ const estado = new Map(ROTAS.map((r) => [r, classificar(r)]))
 // Cada rota que envia e NAO e visivel precisa de uma linha aqui, com o motivo.
 // Isto nao e uma lista de perdao: e o registro de quem assumiu a decisao.
 const INVISIVEIS_CONHECIDAS = {
-  // Crons ARMADOS em vercel.json. Cada um tem protecao PROPRIA (dedupe em
-  // `events`, boolean vitalicio), mas nenhum aparece para os outros 12 jobs.
-  // Como o modulo NAO le `events` (check 1.7), o carimbo deles e invisivel.
-  'app/api/cron/send-blackout-winback': 'dedupe proprio de 7d em events + cede 45min ao recovery; invisivel para os outros',
-  'app/api/cron/send-failure-recovery': 'dedupe proprio via STAMP em events; invisivel para os outros',
-  'app/api/cron/send-momentum-nudge': 'dedupe proprio via STAMP em events; invisivel para os outros',
-  'app/api/cron/send-trial-eve-notice': 'dedupe proprio via STAMP em events; invisivel para os outros',
-  'app/api/cron/send-oneoff-unlock': 'boolean vitalicio oneoff_unlock_emailed; boolean nao carrega o "quando"',
+  // ⚠️ ESTA LISTA ENCOLHEU DE 19 PARA 7 EM 06/09, e nenhuma rota foi tocada
+  // para isso: a supressao passou a ler os carimbos de `events`
+  // (KINEO-SUPPRESSION-EVENTS-2026-09-06), e doze rotas que carimbavam so ali
+  // ficaram visiveis de uma vez — incluindo os CINCO crons ARMADOS que eram a
+  // classe de risco mais alta deste arquivo. O contador do bloco 3 caiu de 5
+  // (04/09) para ZERO.
+  //
+  // O QUE SOBROU e uma classe so, e ela nao se resolve lendo tabela nenhuma:
+  // rota cujo unico carimbo e um BOOLEAN. Boolean carrega o "se", nunca o
+  // "quando" (propriedade nº1 documentada no modulo), e nao da para derivar
+  // uma janela de 24h de um booleano. Fechar isto exige migration.
   // Rotas admin: exigem clique humano, risco MANUAL e nao automatico.
   'app/api/admin/send-abandon-recovery': 'boolean abandon_emailed (propriedade nº1 do modulo)',
   'app/api/admin/send-free-upsell': 'boolean free_upsell_emailed (propriedade nº1 do modulo)',
   'app/api/admin/send-avatar-launch': 'campanha manual, boolean avatar_launch_emailed',
-  'app/api/admin/send-checkout-rescue': 'campanha manual, boolean checkout_rescue_emailed',
-  'app/api/admin/send-comeback50': 'campanha manual de disparo unico',
-  'app/api/admin/send-day19-creator20': 'campanha manual, booleans',
   'app/api/admin/send-dfy-offer': 'campanha manual, boolean dfy_offer_emailed',
   'app/api/admin/send-feature-announce': 'campanha manual, boolean feature_announce_emailed',
-  'app/api/admin/send-first50-quentes': 'campanha manual, boolean',
-  'app/api/admin/send-hot-upsell': 'campanha manual',
-  'app/api/admin/send-made-video-today': 'campanha manual, booleans',
   'app/api/admin/send-pack-offer': 'campanha manual, boolean pack_offer_emailed',
   'app/api/admin/send-subscriber-idle': 'campanha manual',
-  'app/api/admin/send-winback-25': 'campanha manual, disparo por link do fundador',
 }
 
 // Rotas que NAO enviam: precisam de motivo, senao um "nao envia" por engano
@@ -217,9 +248,12 @@ const armadasInvisiveis = ROTAS.filter(
 
 // Este numero e o placar da rotacao #25. Ele NAO deve subir sem decisao humana:
 // cada unidade e um job que dispara sozinho e cujo envio nenhum outro job ve.
-const ARMADAS_INVISIVEIS_ESPERADAS = 5
+// 04/09: 5. 06/09: ZERO — a quinta fonte (carimbos em `events`) trouxe os
+// cinco para dentro. Este numero NAO pode subir sem decisao humana: cada
+// unidade e um job que dispara sozinho e cujo envio nenhum outro job ve.
+const ARMADAS_INVISIVEIS_ESPERADAS = 0
 check(
-  `3.2 exatamente ${ARMADAS_INVISIVEIS_ESPERADAS} rotas ARMADAS e invisiveis (04/09, ja com o ledger do #12)`,
+  `3.2 exatamente ${ARMADAS_INVISIVEIS_ESPERADAS} rota(s) ARMADA(s) e invisivel(is) (06/09, ja com a quinta fonte)`,
   armadasInvisiveis.length === ARMADAS_INVISIVEIS_ESPERADAS,
   `agora sao ${armadasInvisiveis.length}: ${armadasInvisiveis.map((r) => r.replace('app/api/', '')).join(', ')}`,
 )
