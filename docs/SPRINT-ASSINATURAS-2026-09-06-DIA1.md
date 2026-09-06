@@ -684,3 +684,27 @@ render é despachado, e o e-mail só **ler** o que já está gravado — que é
 exatamente para isso que o modo `escrever: false` existe).
 
 Fica como a **primeira jogada da próxima rotação**, com o desenho já escrito.
+
+---
+
+## ### #22 — 12:52 BRT — a porta do pacote para a TELA, que é onde estão as 104
+
+O parágrafo acima explica o erro de alcance; esta é a correção que **respeita a
+divisão de pistas** em vez de atropelá-la.
+
+Em vez de arriscar até 12s de modelo dentro do poll de render (a tela pareceria
+travada no minuto em que o filme fica pronto), entreguei o **contrato**:
+`GET /api/publish-pack` só lê, com **custo zero garantido**; `POST` escreve uma
+vez e guarda. Ausência é `200 pack:null`, nunca 404 — a tela simplesmente não
+mostra a caixa.
+
+A montagem é **uma linha** do lado do Codex, e o PEDIDO já foi escrito com o
+contrato inteiro, o evento sugerido (`publish_pack_copied`) e a regra que a
+tela **não pode** violar: o crédito só existe no plano gratuito, e a resposta
+traz `hasCredit` justamente para que a tela **não deduza o plano sozinha**.
+
+**SHA `557f68e2`. EM PRODUÇÃO, provado no SHA:** `/api/publish-pack` foi
+**404 → 401** com o controle irmão inexistente em **404**.
+
+Guardião do pacote: 44 → **53** verificações.
+
