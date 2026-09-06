@@ -2558,3 +2558,159 @@ primeira coisa das 18:08.
 
 Casa sadia: 42 filmes em 24h, todos concluídos, nada preso, ninguém sem crédito.
 Pagamentos hoje continuam em **zero**, com 1 checkout em 24 horas.
+
+---
+
+### CHECKPOINT — 17:38 BRT (20:38 UTC) — a #31 está no ar e **ainda não foi exercitada**; as duas cartas que este sprint inventou estão em **0 de 46**
+
+Checkpoint da rotação #31. Sem trabalho novo, por regra. Três coisas medidas:
+se a entrega das 17:14 está mesmo sendo servida, o que as cartas do dia
+moveram, e a praxe.
+
+#### 1. A #31 SUBIU — e a prova de infraestrutura está completa
+
+| prova | resultado |
+|---|---|
+| `git ls-remote origin main` | `01976a4b` (diário da #31, sobre `877278ff`) |
+| `git rev-list --count origin/main..entrega-atual` | **0** |
+| `curl https://www.usekineo.com/` | **200** |
+| `POST /api/season` | **401** — com controle `POST /api/season-inexistente-xyz` = **404** na mesma medição |
+
+O par 401/404 exclui a leitura preguiçosa de [[sonda-401-exige-controle-404]]:
+a rota existe e recusa por sessão, não por rota inexistente.
+
+#### 2. MAS O BUNDLE NOVO AINDA NÃO FOI VISTO POR NINGUÉM — e o próprio evento diz isso
+
+Só houve **duas** exposições da faixa da temporada em toda a vida dela. A mais
+recente é **posterior ao push** (20:18:47 UTC; push às 20:14):
+
+```
+20:18:47  balance 10 · episode_cost 25 · episodes 5 · affordable_episodes 0 · locked 5
+19:34:04  balance  5 · episode_cost  5 · episodes 5 · affordable_episodes 1 · locked 0
+```
+
+A linha das 20:18 **não traz o campo `offer_shown`**. E `offer_shown` é campo
+NOVO, nascido no `877278ff` — o `season_shown` antigo emitia apenas
+`locked: eps.filter(e => !e.affordable).length`. Ou seja: às 20:18 o navegador
+ainda recebeu o **bundle velho**. O deploy da Vercel leva até ~6 min e essa
+exposição caiu dentro da janela.
+
+**Conclusão sem maquiagem: a #31 está na ponta publicada e servida pela
+infraestrutura, mas o conserto do cadeado tem ZERO exposições reais.** A frase
+"o cadeado agora pergunta quantos cabem" continua **não falsificada por
+tráfego**. O que prova de verdade é a chegada do primeiro `season_shown` **com**
+`offer_shown` — e ele não chegou.
+
+**O achado de método que fica**: o campo novo no payload do evento virou a
+**impressão digital do bundle**. `ls-remote` + `curl` provam que o servidor
+mudou; só um campo que não existia antes prova que o **cliente** mudou. Sem ele,
+"publicado" e "sendo servido" são indistinguíveis.
+
+#### 3. A exposição das 20:18 ainda assim confirma a autocrítica da #31
+
+Saldo 10, episódio a 25 (Seedance): `floor(10/25) = 0`. Pela conta **nova**,
+`bloqueados = 5`; pela **velha**, os 5 episódios também davam `!affordable` →
+`locked = 5`. **As duas contas concordam neste caso.** É exatamente a coorte
+das 33 pessoas que *já viam* a oferta pelo caminho errado. Reforça o número que
+a #31 corrigiu sobre si mesma: o conserto vale **1 pessoa em 72**, não "quase
+toda a gente".
+
+#### 4. O NÚMERO DO DIA: 197 CARTAS, 5 PESSOAS DE VOLTA, 0 CHECKOUT — E AS DUAS CARTAS NOVAS DERAM ZERO
+
+Medido por evento de **navegador** (`session_id` não nulo) dentro de 12h do
+envio, nunca por evento nosso de e-mail — a armadilha de
+[[retorno-pos-email-conta-email-nosso]]:
+
+| carta | enviadas | voltaram no navegador |
+|---|---|---|
+| `trial_lifecycle_email_sent` (genérica, horária) | 99 | **2** |
+| `next_episode_wall_emailed_v1` (**inventada hoje**) | 35 | **0** |
+| `checkout_recovery_emailed_v1` | 22 | **0** |
+| `momentum_nudge_sent` | 15 | **2** |
+| `season_letter_emailed_v1` (**inventada hoje**) | 11 | **0** |
+| `post_nudge_sent` | 6 | 0 |
+| `stranded_ready_sent` | 4 | **1** |
+| `stranded_fast_ready_sent` | 4 | 0 |
+| `failure_recovery_sent` · `video_ready_nudge_sent` | 1 · 1 | 0 · 0 |
+| **total** | **197** | **5 pessoas distintas** |
+
+Dessas 5: **2 fizeram um filme**, **0 chegaram ao checkout**, **0 pagaram**.
+
+As duas peças que este sprint construiu — a carta da parede e a carta da
+temporada — somam **46 envios e 0 retornos**. A campanha **velha e genérica**,
+a que ninguém escreveu hoje, é a única que traz alguém.
+
+Isto é [[carta-nova-so-depois-da-velha-mover]] a repetir-se com denominador
+maior: às 15h eram 30 envios e 0, agora são 46 e 0. Trinta era amostra pequena;
+46 com **duas peças diferentes** já não é ruído do acaso de uma carta só.
+
+**Consequência direta para as 18:08**: a rotação **não deve escrever a carta
+nº 3**. A jogada da cota no cadeado (as 37 pessoas do Kineo 1 free) é de
+**tela**, não de e-mail — e é a certa justamente por isso.
+
+#### 5. PRAXE — PLACAR (desde 2026-09-06 14:00 UTC)
+
+| fonte | cadastros | filme 1 | filme 2 | filme 3 | checkout | **pagou** |
+|---|---|---|---|---|---|---|
+| chatgpt.com | 5 | 4 | 2 | 0 | 0 | **0** |
+| (sem fonte) | 2 | 2 | 0 | 0 | 0 | **0** |
+| taaft | 1 | 1 | 0 | 0 | 0 | **0** |
+| **total** | **8** | **7** | **2** | **0** | **0** | **0** |
+
+Em ~25 min desde a medição da #31: +1 cadastro, +2 primeiros filmes. O degrau
+1→2 continua a ser o corte (7 → 2), e o 2→3 é **seco**: ninguém.
+ChatGPT segue a ser 5 de 8 dos cadastros do ciclo.
+
+#### 6. PRAXE — CHECAGEM ZERO (24h) — LIMPA
+
+**33 cadastros · 43 filmes · 43 completos · 0 não-terminal · 0 preso (6h) ·
+0 cadastro sem crédito · `next_episode_failed` 0 · `generation_stage_error` 5 ·
+`checkout_started` 1 · `payment_success` 0.**
+
+Taxa de conclusão de filme: **43/43**. A casa de produção está sadia; o
+problema é inteiramente comercial.
+
+#### 7. B0 CONFIRMADO NA PONTA
+
+`lib/seriesContinuation.ts` — `buildSeriesContinuationHref` devolve
+`seriesContinuationHrefOrNull(...) ?? '/studio'`, e a variante que sabe dizer
+`null` existe e está exportada. A pendência de uma linha do início do ciclo
+está fechada em `origin/main`.
+
+#### 8. O QUE A ROTAÇÃO DAS 18:08 DEVE ABRIR
+
+1. **A cota entra no cadeado** (já era o plano da #31): `acessoDaTemporada`
+   passa a receber o veredito de **cota** além do de crédito, lido de
+   `getEffectiveEntitlement`/`freeTierOffer` e nunca redigitado
+   ([[predicado-do-cobrador-nao-se-redigita]]). Alcança as **37 de 72** que hoje
+   veem cinco episódios grátis que o portão vai recusar.
+2. **Não escrever carta nova.** 46 envios e 0 retornos das duas peças de hoje
+   invertem o ónus da prova.
+3. **Vigiar o primeiro `season_shown` com `offer_shown`.** É o único sinal que
+   converte a #31 de "publicada" em "exercitada".
+
+#### O QUE VOCÊ PRECISA FAZER
+
+1. **Nada.** O checkpoint não mexeu em código; a entrega das 17:14 já estava no
+   ar e a fila está em zero.
+
+#### O QUE ACONTECEU
+
+Conferi a entrega das 17:14 e ela **está no ar** — a ponta do GitHub, a fila
+vazia, o site em 200 e a rota da temporada a responder certo. Mas fui olhar se
+alguém já tinha *visto* o conserto, e a resposta honesta é **não**: a única
+pessoa que abriu a faixa depois do push ainda recebeu a versão antiga do site
+(o navegador dela não trouxe o campo novo que só existe no conserto). Então o
+conserto está publicado e **ainda não foi testado por gente de verdade**.
+
+O número grande do checkpoint é outro, e é desconfortável: a casa mandou **197
+e-mails hoje**, e **5 pessoas** voltaram ao site por causa deles — **2** fizeram
+um filme, **nenhuma** chegou ao pagamento. Pior: as **duas cartas novas que este
+sprint inventou** (a da parede e a da temporada) somam **46 envios e zero
+retornos**. Quem traz alguém de volta é a campanha antiga e genérica, que
+ninguém escreveu hoje. Por isso a próxima rotação **não vai escrever outra
+carta** — vai mexer na tela, que é onde está a metade da casa (37 de 72 pessoas)
+a quem prometemos cinco episódios grátis que o sistema vai recusar.
+
+Produção sadia: **43 filmes em 24h, 43 concluídos**, nada preso, ninguém sem
+crédito. Pagamentos hoje: **zero**, com 1 checkout em 24 horas.
