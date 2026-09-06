@@ -170,3 +170,50 @@ casa não tem rota de versão. Registrado como dívida, não resolvido aqui.
 filme pronto ganha o mesmo contrato. Medido em 05/09: 27 impressões, 4 cliques
 (15%), e o cartão fala do roteiro e nunca do que custa. É a mesma peça, na
 superfície onde a pessoa está feliz em vez de recusada.
+
+---
+
+### #3 — 03:08→03:50 — a mesma porta na tela onde a pessoa está FELIZ, não recusada
+
+**ERRADO (medido em 05/09):** o cartão do episódio 2 da tela de filme pronto
+fala do **roteiro** e nunca do que ele **custa** — 27 impressões, 4 cliques
+(15%), e a taxa CAIU conforme o denominador subiu (45% → 13% → 15% no mesmo
+dia). Quem aperta sem saldo só descobre no modal seguinte: a venda começa por
+"não".
+
+**MUDOU** — o **mesmo** `NextActionCard` da #2, montado com UMA linha em
+`phase === 'done'`. Nenhuma regra nova: o servidor já decide tudo, e fora do
+estado `dry` o componente não pinta nada, então quem tem saldo não vê card novo
+nenhum. SHA `f1d1f3c5`.
+
+**O QUE O CLIENTE PASSA A VER:** quem acabou de receber um filme e ficou sem
+saldo para outro lê, **antes** de apertar o episódio 2, os dois números e o
+motor que o saldo ainda paga — com o corte de 15s dito quando esse motor é o
+Kineo 1 grátis. A porta do plano segue sempre presente (K1).
+
+**⚠ DELIVER-FIRST INTACTO, e agora PROVADO:** o cartão fica DEPOIS do botão de
+baixar e DEPOIS do `PlanFitCard` (dono da oferta da primeira entrega). A regra
+não é estética — mediu **107 pessoas** que esperaram o filme, viram a tela
+pronta e foram embora **sem o arquivo**. Três verificações novas comparam as
+posições no arquivo real, e o mutante que sobe o cartão para antes do download
+é pego pelas três. O botão do episódio 2 não foi tocado (verificação própria).
+
+**TESTES:** `test-next-action-card` **40 → 45**, verde. Falsificado com 2
+mutantes novos: cartão antes do download (pego por 3 verificações) e as duas
+montagens com a mesma superfície, que cegaria o placar. Regressão:
+`test-next-action` 65/65, `test-serie-memoria` 142/142 (trava de qualidade
+verde), `tsc` verde.
+
+**NOTA DE MÉTODO:** o primeiro mutante desta rodada usou `python` e o Windows
+não o tem — o script não rodou e o guardião deu 45/45 **sem mutação nenhuma**.
+Um "verde" ali teria sido falso. Refeito em `node`, o mutante pegou. Regra para
+as próximas rotações: mutante que não imprime prova de que alterou o arquivo
+não conta como falsificação.
+
+**COMO MEDIR:** `next_action_card_shown` com `surface='generate_done_screen'` →
+`next_action_clicked` → filme entregue em 24h. E o alvo real:
+`checkout_started` entre pessoas com filme ≥ 2, hoje **1 de 13**.
+
+**PRÓXIMA JOGADA (#4):** N3 do cardápio — e-mail para quem levou o "não" nas
+últimas 48h (fonte chatgpt primeiro), nomeando o filme da pessoa. Dry-run
+primeiro, lista completa no diário, e só então o disparo.
