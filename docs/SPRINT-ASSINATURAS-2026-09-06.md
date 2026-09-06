@@ -918,3 +918,158 @@ cobrir o que anunciava (os outros dois: `indexOf` devolvendo −1, e o removedor
 de comentários engolindo `//` de URL). A família é sempre a mesma: **um check
 que não distingue "ausente" de "correto"**. Vale reler qualquer regex de
 guardião procurando classe de caractere estreita demais.
+
+---
+
+### #9 — 02:35→03:20 BRT — o e-mail de resgate acerta a pessoa e erra a PORTA
+
+**ERRADO (medido, e a medição matou a jogada que eu ia fazer).** Abri a rotação
+para construir o N3 do cardápio — o e-mail para quem levou o "não". Antes de
+codar, medi a coorte: **29 pessoas** em 7 dias apertaram gerar e nunca receberam
+filme (20 `chatgpt`, 5 sem fonte, 4 `taaft`), exatamente o número da #7. Aí medi
+o que já tinha ido para elas:
+
+```
+27 das 29 JA receberam o send-stalled-rescue  ·  8 receberam o failure-recovery
+2 continuam elegiveis, e a rampa diaria (16:30 UTC, 25/dia) pega as duas sozinha
+```
+
+**O N3 era duplicação.** A campanha existe, é automática desde 13/08 e já cobre
+93% da coorte. Construir a 13ª campanha seria queimar domínio para repetir o que
+já sai sozinho — o mesmo erro que o PEDIDOS de 05/09 já tinha registrado para
+outra sessão ("a campanha já é automática, e o comentário do arquivo mente por
+envelhecimento"). Não construí.
+
+**E ONDE ESTÁ O DEFEITO DE VERDADE.** Fui medir o desfecho da campanha que já
+roda: 353 e-mails em 30 dias.
+
+```
+353 e-mails -> 129 "voltaram" -> 2 tentaram -> 2 filmes -> 1 checkout -> 0 pagaram
+```
+
+Os 129 são **miragem**, e a armadilha é a mesma que o CLAUDE.md já registrou em
+01/09 para o painel de presença: os eventos mais frequentes depois do e-mail são
+`trial_lifecycle_email_sent` (112 pessoas), `trial_downgraded` (94) e
+`momentum_nudge_sent` (23) — **escritos por NÓS, não pela pessoa**. Retorno
+humano de verdade: `generate_page_view` **9 pessoas**, `landing_session_started`
+9, `homepage_view` 4. O número honesto é **~3% de retorno, não 37%**.
+
+E os 9 que voltaram chegam onde? Aí apareceu a coisa:
+
+```
+curl https://usekineo.com/generate      -> 308 -> www.usekineo.com/generate
+curl https://www.usekineo.com/generate  -> 307 -> www.usekineo.com/STUDIO
+```
+
+`/generate` virou porteiro em 24/08 e tem **duas** regras: visita **com query**
+vai para `/studio/create` (que renderiza o `GenerateClient`); visita **vazia**
+vai para `/studio`, a vitrine de tiles. E as **três** montagens do
+`NextActionCard` subidas nesta noite vivem **todas** dentro do `GenerateClient`.
+Logo:
+
+> **a vitrine `/studio` não tem composer e não tem cartão de próxima ação — e
+> era para lá que três campanhas de resgate mandavam a pessoa.**
+
+`send-failure-recovery` (4 ramos de copy) e `send-winback-25` escreviam
+`${APP}/studio` literal; `send-video-rescue` escrevia `${APP_URL}/generate`
+**sem query**, que o porteiro degrada para o mesmo lugar. O e-mail cuja frase é
+*"try the same idea again"* / *"just make another one right now"* chegava numa
+tela onde a pessoa não pode fazer nem uma coisa nem outra. As campanhas que já
+carregavam query (`stalled-rescue`, `activation-nudge`, `credits-back`,
+`avatar-launch`) **sempre** caíram no composer: nunca tiveram este defeito.
+
+O `send-winback-25` é o caso que dói: **95 pessoas, 2.375 créditos concedidos em
+01/09, ZERO cliques em 24h** — está no CLAUDE.md como prova de que "crédito não é
+isca". Pode ser que seja mesmo; mas ninguém tinha notado que o link dessas 95
+pessoas desembocava na vitrine.
+
+**MUDOU** (SHA `73f2fbfa` + `42d68f48` + `d69ae3cb`, **EM PRODUÇÃO** —
+`origin/main = d69ae3cb`, fila em 0):
+
+| arquivo | o quê |
+|---|---|
+| `lib/lifecycle/composerUrl.ts` (novo) | destino único: `/studio/create` + query que nunca sai vazia |
+| `app/api/cron/send-failure-recovery/route.ts` | 4 CTAs repontados |
+| `app/api/admin/send-winback-25/route.ts` | 1 CTA repontado |
+| `app/api/cron/send-video-rescue/route.ts` | `/generate` sem query vira composer |
+| `scripts/test-cta-composer-2026-09-06.mjs` (novo) | guardião, 22 verificações |
+
+**Um destino, não três strings.** O defeito nasceu de cada campanha digitar o
+próprio destino; corrigir as três deixaria a quarta campanha — a que ainda não
+existe — livre para nascer errada, com modo de falha **silencioso**: o link
+funciona, a tela é bonita, e nada no log distingue isso de sucesso. Foi assim
+que ele sobreviveu 13 dias.
+
+**O QUE O CLIENTE PASSA A VER.** Quem clica em "try the same idea again" cai no
+composer, com o roteiro dele a um clique — e no primeiro viewport encontra o
+`NextActionCard`, que diz com os números reais o que o saldo dele ainda paga.
+Antes ele caía numa galeria de motores e tinha de descobrir sozinho o caminho.
+
+**TESTES.** Guardião lê os arquivos reais e amarra a cadeia inteira (porteiro ->
+`/studio/create` -> `GenerateClient` -> montagens do cartão -> ausência na
+vitrine). **6 mutantes, 6 pegos** — mas o 6º só depois de eu consertar a
+checagem: `montagens.length >= 1` deixava passar quem tirasse **uma** das três
+montagens. Trocada por nomear a superfície de aterrissagem (`generate_step_1`),
+que é a de que este commit depende. Contar montagens seria pior de outro jeito:
+viraria **vermelho falso** na fila a cada montagem que a outra sessão somasse.
+`tsc --noEmit` verde (com junction de `node_modules`; sem ela o `npx tsc` mente
+com exit 0).
+
+**RISCO.** `/studio/create` roda `maybeActivateReverseTrial`. Não é efeito novo —
+é o mesmo que já acontece nos cliques das outras 4 campanhas e em qualquer
+navegação para o composer. Nada de preço, oferta, plano, copy ou tela foi
+tocado. Destinos legítimos ficaram como estavam (`/pricing`, `/history`,
+`/account`, `/wall`, `/avatar`), e o `send-video-ready` segue para `/studio` de
+propósito: o assunto dela é o filme pronto, não o composer.
+
+**COMO MEDIR.** `next_action_card_shown` com `surface='generate_step_1'` vindo de
+tráfego com `utm_medium=email`. Hoje é **0 por construção**.
+
+**PLACAR (pós-marco 2026-09-06 04:00 UTC).** 1 cadastro (fonte `seo`), 1 filme,
+1 checkout, **0 pagamentos**. Madrugada sem tráfego: nenhuma jogada de tela ia
+render assinatura nas próximas horas, e é por isso que a rotação foi para o
+caminho que serve o tráfego de amanhã.
+
+**CHECAGEM ZERO.** cadastro sem crédito **0** · render preso **0** ·
+`compose_refused` 24h **1** · `generation_stage_error` 24h **4** (as mesmas 4 de
+05/09 já registradas como recusa de negócio contada como erro).
+E dois números que ninguém tinha olhado:
+
+- `next_action_served` **0** e `next_action_card_shown` **0** — **totais, desde
+  sempre**. O contrato da #7 e as três montagens desta noite ainda serviram ZERO
+  pessoas. Parte é a madrugada; parte é isto que a #9 acabou de consertar.
+- `next_episode_failed` **11 em 24h** parecia sangria e **não é**: em 7 dias são
+  13 eventos / 10 pessoas e o mais recente é de **05/09 13:15** — rajada velha
+  numa janela móvel (a mesma classe de leitura que já custou uma rotação). Pior:
+  **o evento não grava razão nenhuma** (`reason` e `error` nulos nos 13), então
+  o ritual "Episode 2", que é o do caso 21b3a9b4, falha de um jeito que ninguém
+  consegue investigar.
+
+**PRÓXIMA JOGADA (#10).** Dar olhos ao `next_episode_failed`: gravar `reason` +
+`http_status` no ponto onde ele é emitido, do mesmo jeito que o
+`cinematic_dispatch_result` fez pelo despacho. É servidor, é minha pista, não
+toca no pipeline de qualidade, e é pré-requisito para o N2 do cardápio — não dá
+para consertar o cartão do episódio 2 sem saber por que ele quebra em 10 pessoas.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+1. **Disparar o `send-winback-25` para o próximo lote** quando acordar — agora
+   que o link cai no composer e não na vitrine, as **264 pessoas elegíveis** são
+   o teste limpo da tese "crédito não é isca". Continua sendo seu clique porque a
+   rota **concede crédito**, e conceder crédito está fora do que eu posso fazer
+   sozinho: `/api/admin/send-winback-25?confirm=SEND&limit=60`
+2. **Nada mais.** Os três commits estão em produção; eu mesmo rodei o push.
+
+### 📋 O QUE ACONTECEU
+
+Ia escrever mais um e-mail para quem tentou e não recebeu filme. Medi antes e
+descobri que **27 das 29 pessoas já tinham recebido** — a campanha existe e roda
+sozinha. Então fui ver se ela funciona: 353 e-mails em 30 dias, e o "129
+voltaram" é ilusão de ótica (a maioria são e-mails **nossos** contados como
+visita). Voltam ~9. E os 9 caíam numa tela errada: o link de "faça o filme agora"
+desembocava na galeria de motores, não no lugar de fazer o filme — e é justamente
+a tela onde o cartão que a gente subiu esta noite **não existe**. Consertei os
+três e-mails que erravam a porta, com um destino só para nenhuma campanha futura
+errar de novo, e deixei um guardião que reprova quem tentar. Está em produção. O
+que sobrou para você é um clique: o winback de 25 créditos agora tem para onde
+levar as 264 pessoas que faltam.
