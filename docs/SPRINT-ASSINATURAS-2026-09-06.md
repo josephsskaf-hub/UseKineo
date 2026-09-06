@@ -250,7 +250,7 @@ Construir cedo, disparar na hora certa.
 
 ---
 
-### #4 — 01:30→01:52 BRT — a carta de quem bateu na parede de saldo (pronta, dry-run feito, NÃO disparada)
+### #4 — 01:28→01:36 BRT — a carta de quem bateu na parede de saldo (pronta, dry-run feito, NÃO disparada)
 
 **O CARDÁPIO MANDAVA** escrever para "as 9 sem saldo + quem viu `trial_spent`
 nas últimas 48h". **Medi antes de escrever**, e a coorte real é outra:
@@ -316,7 +316,7 @@ autenticação.** Fica o padrão que a casa já usa para exatamente isto
 (send-winback-25): **link de 1 clique do fundador**, na lista ✅ no fim do
 diário.
 
-**E O TIMING JOGA A FAVOR:** às 01:52 BRT são **00:52 no leste dos EUA**.
+**E O TIMING JOGA A FAVOR:** às 01:36 BRT são **00:36 no leste dos EUA**.
 Disparar agora queimaria a melhor lista da casa na pior hora. O link é para
 **depois das 08:00 BRT**.
 
