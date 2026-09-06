@@ -355,3 +355,103 @@ Teto de 30. Custo do lote: ~21 chamadas de `gpt-4o-mini` ≈ **US$ 0,006**.
 `season_letter_emailed_v1` → `episode_link_clicked` / `series_continue_clicked`
 → linha em `videos` das **mesmas** pessoas em 24h → `payment_success`.
 Denominador é gente, não evento.
+
+---
+
+## ### #20 — 11:56 BRT — cada filme entregue passa a sair com o anúncio dele dentro
+
+### A ARITMÉTICA QUE MANDOU FAZER ISTO — e ela é desconfortável
+
+Antes de escolher esta jogada eu medi o tamanho real da meta:
+
+- A casa recebe **~30 cadastros/dia** (19 a 57, nos últimos 8 dias).
+- Em 7 dias, **230 pessoas viraram 2 pagantes: 0,87%**.
+- Para bater **10 pagantes/dia** com uma conversão **cinco vezes melhor**
+  (4,3% — que ninguém nesta indústria tem), seriam precisos **~230 cadastros
+  por dia**. Sete a oito vezes o tráfego de hoje.
+
+**Portanto: todo o trabalho de conversão deste ciclo — o meu incluído — tem
+teto de 1 a 2 pagantes por dia.** Não porque as peças sejam ruins, mas porque
+não há gente suficiente entrando. A meta de 10-15/dia é uma meta de
+**aquisição**, não de conversão, e nenhuma quantidade de aperto na base de 230
+chega lá.
+
+Eu prefiro escrever isso agora do que entregar oito horas de conversão às
+19:08 e deixar a conta implícita.
+
+### PRESS RELEASE (o que muda para o cliente)
+
+1. Hoje o cliente recebe o MP4 e fica **sozinho com a parte chata**: inventar
+   título, escrever descrição, achar hashtags, pensar num comentário fixado.
+2. A partir de agora o e-mail de filme pronto vem com o **pacote inteiro**, no
+   formato que o próprio fundador usa todo dia: título de YouTube, descrição,
+   legenda de TikTok com #fyp/#ai e comentário fixado. Pronto para colar.
+3. Para o cliente é trabalho a menos e mais chance de o vídeo dele render.
+4. Para a casa é a **única alavanca de aquisição que ela puxa sozinha**: a
+   descrição carrega "Made with AI at usekineo.com". A casa entrega ~20 filmes
+   por dia; cada um publicado é um anúncio que não custa mídia.
+5. **Não é marca escondida.** É texto sugerido, visível, que a pessoa pode
+   apagar — e "feito com IA em usekineo.com" é literalmente verdade sobre como
+   aquele arquivo nasceu.
+
+### O DETALHE QUE DÁ SENTIDO À PEÇA
+
+O modelo esquece a linha de crédito o tempo todo. Um pacote sem crédito é um
+anúncio sem endereço: o vídeo circula e ninguém descobre a Kineo. Então a casa
+**acrescenta** a linha em vez de rejeitar o pacote — e acrescenta **antes** do
+corte por tamanho. Cortar por tamanho no fim de um texto que carrega a parte
+importante na cauda foi exatamente como nasceu o **"menino da bolha"** em
+27/08; o guardião tem uma verificação só para isso (descrição de 4.000
+caracteres continua saindo com o crédito).
+
+### FALHA ABERTA — e é o centro desta entrega
+
+Este cron é o **único aviso** de que o filme ficou pronto. Um pacote de
+publicação nunca pode impedir alguém de saber que o vídeo dela está lá.
+
+- `garantirPacote` devolve `null` em **todo** caminho de erro (sem chave,
+  modelo fora do ar, JSON torto, tempo esgotado) — nunca lança.
+- Há `try/catch` por cima, como segunda rede.
+- Sem pacote, o **texto do e-mail sai byte a byte igual ao de hoje** — provado
+  por comparação de string.
+- O **HTML** sai com **uma única linha contendo apenas espaços** a mais.
+  Invisível no render, mas não é "byte a byte", e eu prefiro escrever o número
+  certo a arredondar para o meu lado.
+- Timeout de **12s** (os outros escritores da casa usam 25s) porque este roda
+  em **lote**: 30 filmes × 25s estouraria o `maxDuration` do cron e mataria os
+  e-mails seguintes.
+
+### CUSTO
+
+Uma chamada de `gpt-4o-mini` por filme **novo** (~US$ 0,0003), gravada em
+`events` e reusada — o segundo e-mail do mesmo filme não paga de novo. A ~20
+filmes/dia, **menos de US$ 0,01 por dia**.
+
+### O QUE MUDOU
+
+`lib/publishPack.ts` (novo, puro), `lib/publishPackServer.ts` (novo, o
+escritor), `app/api/cron/send-video-ready/route.ts` (o bloco "Ready to post" e
+a chamada com falha aberta). **SHA `8162695a`.**
+
+### TESTES
+
+`scripts/test-pacote-publicacao.mjs` — **38 verificações**, metade executando
+o arquivo real. Sete mutantes mortos: crédito não acrescentado, corte
+decapitando o crédito, escritor lançando em vez de devolver `null`, `try/catch`
+removido do cron, denominador some do carimbo, conteúdo do cliente sem escape
+(injeção de HTML), e timeout longo dentro do lote.
+
+Total do ciclo: **38 + 60 + 40 + 17 = 155 verificações verdes**, `tsc` limpo.
+
+### DENOMINADOR
+
+O carimbo do e-mail passa a gravar `publish_pack: true/false`. Sem isso,
+"ninguém publicou" seria indistinguível de "ninguém recebeu o pacote" — o erro
+exato da memória `remedio-nunca-apertado`.
+
+### COMO PROVAR O DEPLOY
+
+Não é rota nova, então não há o par 404→401. A prova é comportamental: o campo
+`publish_pack` **não existia no repo** antes deste commit. O cron roda aos
+:10 e :40, então a primeira linha de `video_ready_email_sent` que trouxer o
+campo fecha a questão.
