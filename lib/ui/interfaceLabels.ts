@@ -1,6 +1,15 @@
 /** Reviewed UI labels. Product names and user-created content are not translated. */
 export const INTERFACE_ES: Record<string, string> = {
   'Your idea first. Review the settings, then generate.': 'Primero tu idea. Revisa los ajustes y después genera el vídeo.',
+  'Your idea': 'Tu idea',
+  '📷 Photo': '📷 Foto', '🎥 Real video': '🎥 Vídeo real',
+  '🖼️ Upload a different photo': '🖼️ Subir otra foto',
+  '🎙️ Generating…': '🎙️ Generando…', '🔊 Preview the voice — free': '🔊 Escuchar la voz: gratis',
+  '🎙️ Cloning the voice…': '🎙️ Clonando la voz…',
+  '🎙️ Upload a different sample': '🎙️ Subir otra muestra', '🎙️ Upload a voice sample': '🎙️ Subir una muestra de voz',
+  '⏹ Stop & clone': '⏹ Detener y clonar', '🔴 Record a sample': '🔴 Grabar una muestra',
+  'Natural': 'Natural', '⚡ Energetic': '⚡ Enérgico',
+  'Working…': 'Procesando…', '🎭 Generate my avatar video': '🎭 Generar mi vídeo de avatar',
   '🎲 Surprise me': '🎲 Sorpréndeme',
   'Continue exactly where ChatGPT stopped.': 'Continúa justo donde lo dejó ChatGPT.',
   '✨ Let AI structure it': '✨ Deja que la IA lo estructure',

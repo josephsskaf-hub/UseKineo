@@ -1266,7 +1266,7 @@ export default function AvatarStudioClient({ isLoggedIn }: { isLoggedIn: boolean
                       cursor: busy ? 'not-allowed' : 'pointer',
                     }}
                   >
-                    {k === 'photo' ? '📷 Photo' : '🎥 Real video'} {k === 'video' && <span style={{ fontSize: 8, opacity: 0.9 }}><UiLabel>BEST MOTION</UiLabel></span>}
+                    <UiLabel>{k === 'photo' ? '📷 Photo' : '🎥 Real video'}</UiLabel> {k === 'video' && <span style={{ fontSize: 8, opacity: 0.9 }}><UiLabel>BEST MOTION</UiLabel></span>}
                   </button>
                 ))}
               </div>
@@ -1323,7 +1323,7 @@ export default function AvatarStudioClient({ isLoggedIn }: { isLoggedIn: boolean
                   className="rounded-xl px-4 py-2.5 text-sm font-bold"
                   style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border2)', color: 'var(--text2)', cursor: busy ? 'not-allowed' : 'pointer' }}
                 >
-                  {faceUrl ? '🖼️ Upload a different photo' : '🖼️ Upload a photo'}
+                  <UiLabel>{faceUrl ? '🖼️ Upload a different photo' : '🖼️ Upload a photo'}</UiLabel>
                 </button>
                 <input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/heic,image/heif,.heic,.heif" className="hidden" onChange={(e) => handleFile(e.target.files?.[0] ?? null, 'photo')} />
                 <p className="text-[11px] mt-2" style={{ color: 'var(--muted)' }}><UiLabel>
@@ -1588,7 +1588,7 @@ export default function AvatarStudioClient({ isLoggedIn }: { isLoggedIn: boolean
                 className="rounded-lg px-3 py-1.5 text-[12px] font-bold"
                 style={{ background: 'rgba(41,151,255,0.08)', border: '1px solid rgba(41,151,255,0.3)', color: '#2997ff', cursor: voiceLoading || busy ? 'not-allowed' : 'pointer' }}
               >
-                {voiceLoading ? '🎙️ Generating…' : '🔊 Preview the voice — free'}
+                <UiLabel>{voiceLoading ? '🎙️ Generating…' : '🔊 Preview the voice — free'}</UiLabel>
               </button>
               {voiceUrl && <audio controls autoPlay src={voiceUrl} style={{ height: 30, maxWidth: 260 }} />}
             </div>
@@ -1611,7 +1611,7 @@ export default function AvatarStudioClient({ isLoggedIn }: { isLoggedIn: boolean
                 className="rounded-lg px-3 py-2 text-[12px] font-bold"
                 style={{ background: 'rgba(41,151,255,0.12)', border: '1px solid rgba(41,151,255,0.45)', color: '#2997ff', cursor: busy || voiceCloning || recording ? 'not-allowed' : 'pointer' }}
               >
-                {voiceCloning ? '🎙️ Cloning the voice…' : voiceId ? '🎙️ Upload a different sample' : '🎙️ Upload a voice sample'}
+                <UiLabel>{voiceCloning ? '🎙️ Cloning the voice…' : voiceId ? '🎙️ Upload a different sample' : '🎙️ Upload a voice sample'}</UiLabel>
               </button>
               <button
                 type="button"
@@ -1620,7 +1620,7 @@ export default function AvatarStudioClient({ isLoggedIn }: { isLoggedIn: boolean
                 className="rounded-lg px-3 py-2 text-[12px] font-bold"
                 style={{ background: recording ? 'rgba(239,68,68,0.15)' : 'rgba(41,151,255,0.10)', border: recording ? '1px solid rgba(239,68,68,0.5)' : '1px solid rgba(41,151,255,0.4)', color: recording ? '#fca5a5' : '#2997ff', cursor: busy || voiceCloning ? 'not-allowed' : 'pointer' }}
               >
-                {recording ? '⏹ Stop & clone' : '🔴 Record a sample'}
+                <UiLabel>{recording ? '⏹ Stop & clone' : '🔴 Record a sample'}</UiLabel>
               </button>
             </div>
             <input
@@ -1729,7 +1729,7 @@ export default function AvatarStudioClient({ isLoggedIn }: { isLoggedIn: boolean
                         className="rounded-lg px-2.5 py-1.5 text-[11px] font-bold capitalize"
                         style={{ background: performanceStyle === style ? 'rgba(41,151,255,0.15)' : 'rgba(255,255,255,0.04)', border: performanceStyle === style ? '1px solid rgba(41,151,255,0.5)' : '1px solid var(--border)', color: performanceStyle === style ? '#2997ff' : 'var(--muted2)', cursor: 'pointer' }}
                       >
-                        {style === 'natural' ? 'Natural' : '⚡ Energetic'}
+                        <UiLabel>{style === 'natural' ? 'Natural' : '⚡ Energetic'}</UiLabel>
                       </button>
                     ))}
                   </div>
@@ -1752,7 +1752,7 @@ export default function AvatarStudioClient({ isLoggedIn }: { isLoggedIn: boolean
               className="btn-neon w-full px-6 py-4 text-base disabled:opacity-50"
               style={{ cursor: canGenerate ? 'pointer' : 'not-allowed' }}
             >
-              {busy ? 'Working…' : '🎭 Generate my avatar video'}
+              <UiLabel>{busy ? 'Working…' : '🎭 Generate my avatar video'}</UiLabel>
             </button>
             <p className="text-[12px] text-center" style={{ color: 'var(--muted)' }}>
               {/* KINEO-AVATAR-120-2026-07-06 — 120 universal credits per avatar video */}

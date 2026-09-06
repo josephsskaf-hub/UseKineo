@@ -19,21 +19,21 @@
 | `app/(dashboard)/admin/metrics/page.tsx` | Pendente |
 | `app/(dashboard)/admin/users/page.tsx` | Pendente |
 | `app/(dashboard)/affiliate/page.tsx` | Pendente |
-| `app/(dashboard)/animate/page.tsx` | Pendente |
-| `app/(dashboard)/audio/page.tsx` | L1: título do shell preparado/testado; visual e conteúdo da página pendentes |
+| `app/(dashboard)/animate/page.tsx` | 06/09: layout responsivo publicado no lote 2 (d8889f6c); tradução dos controles no lote 3, PR #47. Handler, custo e geração preservados. |
+| `app/(dashboard)/audio/page.tsx` | 06/09: formulário primeiro e controles agrupados publicados (54bfdc48); rótulos EN/ES em d8889f6c. Preview desktop/mobile e SSR com texto do usuário intacto. |
 | `app/(dashboard)/autopilot/page.tsx` | Pendente |
-| `app/(dashboard)/avatar/page.tsx` | Pendente |
+| `app/(dashboard)/avatar/page.tsx` | 06/09: cards, coluna de resultado e acesso ao preview/download no celular publicados em d8889f6c; corpo espanhol no lote 3, PR #47. Não valida render pago. |
 | `app/(dashboard)/channel/page.tsx` | Pendente |
 | `app/(dashboard)/create/page.tsx` | Pendente |
 | `app/(dashboard)/dashboard/page.tsx` | Pendente |
 | `app/(dashboard)/generate/page.tsx` | Pendente |
 | `app/(dashboard)/history/page.tsx` | L2c: três ocorrências de continuação preparadas/testadas, preview pendente. Ofertas/downloads intactos; restante do visual pendente. |
-| `app/(dashboard)/images/page.tsx` | L1: título do shell preparado/testado; visual e conteúdo da página pendentes |
-| `app/(dashboard)/library/page.tsx` | L1 título + L2c link de continuação preparado/testado, previews pendentes. Abas/downloads/erros intactos; restante do visual pendente. |
+| `app/(dashboard)/images/page.tsx` | 06/09: formulário primeiro e controles agrupados publicados (54bfdc48); rótulos EN/ES em d8889f6c. Troca de idioma testada no browser preserva ideia e FLUX Dev. |
+| `app/(dashboard)/library/page.tsx` | 06/09: toolbar, busca, filtros, grade e títulos publicados (54bfdc48); rótulos EN/ES em d8889f6c. Filtros Images/Audio conferidos na conta interna em produção, sem mutação. |
 | `app/(dashboard)/my-videos/page.tsx` | Pendente |
 | `app/(dashboard)/referral/page.tsx` | Pendente |
 | `app/(dashboard)/studio/create/page.tsx` | Pendente |
-| `app/(dashboard)/studio/page.tsx` | L1 título + L2 dois botões de tema preparados/testados; previews pendentes de aprovação; hierarquia e demais destinos pendentes |
+| `app/(dashboard)/studio/page.tsx` | Layout ideia-primeiro e continuação via revisão já publicados; controles principais espanhóis no lote 3, PR #47. 11 estados runtime e contratos reais de navegação; não confundir com tradução de todo GenerateClient. |
 | `app/(dashboard)/templates/page.tsx` | Pendente |
 | `app/(dashboard)/thumbnail-generator/page.tsx` | Pendente |
 | `app/(dashboard)/v2/page.tsx` | Pendente |
@@ -97,7 +97,7 @@
 | `app/models-pricing/page.tsx` | Pendente |
 | `app/niche-picker/page.tsx` | Pendente |
 | `app/omni-flash-vs-sora/page.tsx` | Pendente |
-| `app/page.tsx` | L2b: faixa ResumeStrip preparada para revisão no Studio, preview pendente; home/servidor/mídias intactos. Demais seções pendentes. |
+| `app/page.tsx` | 06/09: home KineoLanding reformulada em produção, h1 visível, hierarquia, atalhos, FAQ e rodapé agrupados; curadoria/rotação originais preservadas. EN/ES do corpo principal publicado; componentes de campanhas/depoimentos mantidos. Não cobre todas as variações personalizadas. |
 | `app/partners/page.tsx` | Pendente |
 | `app/pricing/page.tsx` | Pendente |
 | `app/privacy/page.tsx` | Pendente |
@@ -116,7 +116,7 @@
 | `app/text-to-video-shorts/page.tsx` | Pendente |
 | `app/tiktok-creator-rewards-videos/page.tsx` | Pendente |
 | `app/tiktok-vs-youtube-shorts-monetization/page.tsx` | Pendente |
-| `app/tools/page.tsx` | Pendente |
+| `app/tools/page.tsx` | 06/09: hub de 13 ferramentas em três grupos publicado; EN/ES em d8889f6c, desktop/mobile conferidos. Os formulários das ferramentas filhas continuam com revisão própria pendente. |
 | `app/trust/page.tsx` | Pendente |
 | `app/unsubscribe/page.tsx` | Pendente |
 | `app/v/[id]/page.tsx` | Pendente |
