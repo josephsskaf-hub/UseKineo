@@ -1668,3 +1668,187 @@ tema. É um terço da melhor lista da casa recebendo a versão fraca da carta �
 "o cliente do chatgpt cola o pedido, não o assunto" já apareceu em três
 rotações diferentes por três sintomas diferentes. Vale uma jogada de servidor
 que trate isso na entrada, não em cada consequência.
+
+
+### CHECKPOINT DA #11 — 04:40 BRT — a carta está EM PRODUÇÃO e ainda não disparou (é cedo, não é falha); o contrato da #9 ganhou gente de verdade; e eu quase repeti, na mesma noite, o erro de denominador que a #11 acabou de proibir
+
+Disparo de :38 = checkpoint da rotação aberta às 04:08. Sem trabalho novo:
+verificar, medir, registrar.
+
+#### 1. #11 EM PRODUÇÃO — SHA 417517b4
+
+Sonda com controle (memória `sonda-401-exige-controle-404`), 04:41 BRT:
+
+| alvo | http |
+|---|---|
+| `https://www.usekineo.com/` | **200** |
+| `/api/admin/send-next-episode-wall` (sem segredo) | **403** |
+| `/api/admin/send-next-episode-wall-CONTROLE-NAO-EXISTE` | **404** |
+| `/api/next-action` (irmã viva, #7/#9) | **401** |
+
+403 contra 404 no mesmo caminho prova que a rota existe e está guardada — não
+é 404 disfarçado. O `vercel.json` em `origin/main` tem a entrada
+`0 11,15 * * *` para `/api/admin/send-next-episode-wall?confirm=SEND&limit=30`.
+
+**Aviso para o fechamento das 09:08:** `next_episode_wall_emailed_v1` está em
+**0 agora, e isso é o esperado** — a primeira rodada do cron é às **11:00 UTC
+(08:00 BRT)**, daqui a ~3h20. Zero antes das 08:00 BRT **não falsifica nada**.
+O número que vale é o das 08:00. Se às 09:08 ainda estiver 0, aí sim o gatilho
+falhou, e é isso que o fechamento tem de dizer.
+
+#### 2. O CONTRATO DA #9 ESTÁ VIVO, E AGORA COM GENTE DE VERDADE
+
+`next_action_served`: **12 chamadas** desde o marco, **4 pessoas distintas**,
+a última às **07:37:49 UTC — 3 minutos antes desta medição**. A #9 subiu com
+0 chamadores na história; agora o servidor responde em produção, com
+`treat_as_paid=true` em conta free de trial (o conserto da #9 segurando) e os
+dois estados reais aparecendo: `first_film` (saldo 25, 0 filmes) e
+`can_continue` (saldo 22, último custou 3, oferece `fast`).
+
+Vale registrar o contraste com o resto: a peça de servidor da #7/#9 é a única
+coisa construída neste ciclo que **já tem uso orgânico**.
+
+#### 3. A CORREÇÃO — eu ia repetir o erro que a #11 proibiu HÁ UMA ROTAÇÃO
+
+Eu cheguei a escrever, e ia publicar, que a parede do teto de 5.000 tinha
+**"437 batidas, 6 pessoas e 0 saídas"**, e ia mandar a #12 consertar isso como
+jogada principal. **Está errado, e o aviso já estava escrito no PEDIDOS pela
+rotação anterior** ("NÃO REPITA ESTA JOGADA SEM NÚMERO NOVO"). Fui conferir o
+denominador antes de publicar. O que ele diz:
+
+| pessoa | batidas | tamanho do texto | filmes na vida | trims |
+|---|---|---|---|---|
+| `f2b2248d` (**esta noite**) | 89 | 10.090–13.625 | **0** | 0 |
+| `2775079d` (02/09) | 275 | 8.098–11.241 | **0** | 0 |
+| `6da5878b` | 3 | 5.271–8.827 | 1 | 0 |
+| `1bbd270e` | 22 | 5.595–5.637 | 1 | 0 |
+| anônimo (sem login) | 45 | 5.371–5.473 | — | 0 |
+| `bf0409c9` | 1 | 5.409 | 1 | 0 |
+| `1c94f925` | 2 | 5.150 | **3** | 0 |
+
+**Quatro das seis pessoas identificadas entregaram filme mesmo depois de bater
+na parede.** A parede só é fatal acima de ~8.000 caracteres, e aí são **duas
+pessoas em quatro dias** — as **mesmas duas** que a #11 já tinha nomeado. Não
+há pessoa nova: `f2b2248d` é o `13.625` do PEDIDOS dela.
+
+E as 437 batidas são **contagem inflada por repetição, não por alcance**:
+`f2b2248d` + `2775079d` sozinhos fazem **364 das 437 (83%)**, porque o evento
+dispara a cada tecla. Contar batida como se fosse gente é a mesma classe de
+erro das memórias `janela-movel-congelada` e `funil-agregado-esconde-degrau-seco`.
+
+**O que sobrevive da minha medição, e é novo:** o *mecanismo*, não o tamanho.
+`trimToFit()` (`StudioClient.tsx:340`) emite `studio_prompt_trimmed_to_limit`;
+esse evento tem **0 linhas em toda a história**. O botão está ligado e nunca
+foi apertado — não é buraco de instrumentação, é recusa. E o rastro de
+`f2b2248d` mostra por quê, minuto a minuto:
+
+| hora UTC | o que aconteceu |
+|---|---|
+| 06:18:53–55 | 13.553 caracteres (teto 5.000); a parede dispara ~20x em 2 segundos |
+| — | os contadores caem de **1 em 1**: 13553, 13551, 13550, 13548, 13546... |
+| 06:20:39 | 11.176 |
+| 06:22:22 | 10.212 |
+| 06:25:09 | dispensa o banner do trial e troca `verbatim` por `ai` |
+| 06:26:12 | **10.090** — ainda 5.090 acima. Desiste, com 25 créditos intactos. |
+
+Decrementos de 1 em 1 = **a pessoa apagando caractere por caractere**. Ela
+passou **8 minutos raspando o texto à mão** em vez de apertar o botão que
+resolveria num clique — porque o botão dizia `✂ Trim to fit (8.553 chars)`, que
+para quem colou 13.553 se lê como *"jogo fora 63% do que você escreveu"*.
+Ninguém aperta um botão que oferece mutilação (memória `remedio-nunca-apertado`).
+
+**Mas isso continua valendo para 2 pessoas em 4 dias, numa superfície que é
+lote aberto do Codex** (as 437 são 100% em `path='/studio'`). A regra da #11
+está de pé e eu a mantenho: **não é a jogada da #12.**
+
+#### 4. O PADRÃO QUE CRESCEU DE VERDADE — o cliente do ChatGPT cola a ordem
+
+Este, sim, ganhou aparições novas esta noite, e é o que a #11 mandou tratar na
+entrada. Os despachos que **deram certo** hoje tinham `prompt_length` **894** e
+**534**; os travados estão em 10.000+. A diferença não é tamanho de texto, é o
+que a pessoa colou:
+
+1. `f2b2248d` — 13.553 caracteres de roteiro/comando; 0 filmes.
+2. `9f2b563c` — o `topic` gravado no filme é literalmente
+   `"IMPORTANT: This is a completely visual story. NO narration,"`: a **ordem**
+   virou o **assunto**.
+3. `fc28af0b` — `pasted_directives_detected` **6 vezes em 30 segundos**
+   (`looks_pasted: true`, `asked_seconds: 60`).
+
+Um filme de 35–60s precisa de ~150 palavras (~900 caracteres) de narração.
+**Não falta espaço, sobra instrução** — e é por isso que "cortar o texto" é a
+resposta errada para o problema certo.
+
+#### 5. CHECAGEM ZERO
+
+| checagem | resultado |
+|---|---|
+| cadastro sem crédito | **limpo** — 4 de 4 com `trial_credits_granted=25` |
+| `status=completed` sem MP4 | **limpo** — os 2 filmes têm `video_url`; `final_video_url` nulo é a coluna legada do Creatomate, não é defeito |
+| render preso | **limpo** — nada parado há mais de 10 min |
+| `next_episode_failed` | **0 desde o marco** (os últimos são de 05/09 13:15 — rajada velha, como a #10 já concluiu) |
+| débito sem entrega | **1 EM VOO, ainda não é defeito** — ver abaixo |
+
+**ITEM DE VIGIA PARA A #12 (o mais concreto desta rodada):** `fc28af0b`
+(iesfiefq@gmail.com, chatgpt, cadastro 07:37) despachou Seedance 1.5 às
+07:38:38 — claim `published`, cenas `accepted` com HTTP 200 — e está com
+**15 créditos debitados (25 → 10) e nenhuma linha em `videos`** às 07:45. São
+~7 minutos, dentro da janela normal do Seedance. **A #12 tem de confirmar que
+esse filme entrou.** Se não entrou, é débito sem entrega e o crédito volta.
+
+#### 6. PLACAR (pós-marco 2026-09-06 04:00 UTC)
+
+| fonte | cadastros | filme 1 | filme 2 | filme 3 | checkout | **pagou** |
+|---|---|---|---|---|---|---|
+| chatgpt | 2 | 0 | 0 | 0 | 0 | **0** |
+| nav | 1 | 0 | 0 | 0 | 0 | **0** |
+| seo | 1 | 1 | 0 | 0 | 1 | **0** |
+| **total** | **4** | **1** | **0** | **0** | **1** | **0** |
+
+Cresceu de 2 para 4 cadastros desde a #11 — os dois novos são **chatgpt** e
+nenhum dos dois tem filme ainda. O único checkout da noite (`mohandasjas1`,
+seo) é também a única pessoa com filme entregue — e nela o conserto da #10
+funcionou de ponta a ponta: `stranded_compose_attempt`, `stranded_composed`,
+`stranded_ready_sent`, `video_ready_email_sent`. **A #10 está provada em
+produção, com pessoa real.**
+
+#### 7. PRÓXIMA JOGADA (#12)
+
+Nesta ordem, e sem inventar alavanca grande onde o denominador é pequeno:
+
+1. **Confirmar o filme de `fc28af0b`** (item de vigia acima). É a única coisa
+   desta rodada que pode ser defeito ativo com dinheiro do cliente dentro.
+2. **Às 08:00 BRT, ver a carta sair.** É a entrega da #11 e o único evento
+   programado do ciclo que produz efeito antes do fechamento.
+3. Só então jogada nova — e o alvo com denominador é o da seção 4 (a entrada
+   que recebe ordem em vez de tema), **não** o cortador da seção 3.
+
+#### ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada.
+
+#### 📋 O QUE ACONTECEU
+
+A carta de 31 pessoas da rotação anterior **está no ar** (provado por sonda com
+controle) e **dispara às 08:00 da manhã**, antes do fechamento — o zero de
+agora é só porque a hora não chegou. E a peça de servidor construída nas
+rotações #7/#9 **começou a ser usada de verdade**: 12 chamadas, 4 pessoas, a
+última três minutos antes desta medição.
+
+A parte honesta desta rodada é uma correção minha. Eu tinha medido que o botão
+"cortar texto" do conserto de 02/09 tem **437 oportunidades e zero cliques em
+toda a história** — isso é verdade e continua verdade. Mas eu ia vender isso
+como o grande conserto da noite, e fui conferir quantas pessoas são: **quatro
+das seis fizeram filme mesmo assim**. A parede só é fatal para quem cola mais
+de 8.000 caracteres, e aí são **duas pessoas em quatro dias** — as mesmas duas
+que a rotação anterior já tinha nomeado, com um aviso escrito de "não repita
+esta jogada sem número novo". Eu quase repeti na rotação seguinte. As 437
+"batidas" são duas pessoas digitando, não 437 clientes perdidos.
+
+O que fica de novo e verdadeiro é *por que* ninguém aperta o botão: um cadastro
+desta noite colou 13.553 caracteres e passou **oito minutos apagando letra por
+letra** em vez de clicar num botão que oferecia jogar fora 63% do texto dele.
+Preferir o trabalho manual à amputação mede o quanto a oferta é ruim — mas
+mede isso para duas pessoas, e a tela onde isso vive é lote aberto do Codex.
+
+Placar da noite: 4 cadastros, 1 filme, 1 checkout, **0 assinaturas**.
