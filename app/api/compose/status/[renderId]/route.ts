@@ -18,6 +18,7 @@ import { creditCostFor, normalizeQuality, creditCostForDuration } from '@/lib/cr
 // (mesmo RPC; com a flag OFF é byte-idêntico ao rpc direto).
 import { debitVideoCredits } from '@/lib/credits/debit'
 import { releaseFailedFreeFastClaim, settleComposeCreditHoldForRender } from '@/lib/credits/composeHold'
+import { publishHref, unpublishHref } from '@/lib/videoShareLink'
 import { getRenderIntent } from '@/lib/credits/renderIntent'
 // KINEO-TITULO-SOBREVIVE-2026-08-22 — o claim de submissao guarda o TEMA para
 // quando a URL nao trouxer (cron de resgate, worker de demo). Só o tema: a
@@ -1069,6 +1070,31 @@ export async function GET(
               durationSeconds: Number.isFinite(duration) ? duration : null,
               appUrl: process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.usekineo.com',
             })
+            // ═══ KINEO-CONSENTIMENTO-DE-PARTILHA-2026-09-06 (#28) ══════════
+            // A #27 construiu a porta e a ligou no e-mail ERRADO: o cron
+            // `send-video-ready` manda 1 por pessoa PARA SEMPRE — 4 pessoas em
+            // 7 dias. ESTE e-mail saiu 158 vezes para 107 pessoas na mesma
+            // semana; é o e-mail de entrega, vai para TODO render pronto. É
+            // aqui que a partilha alcança gente.
+            // Falha fechada em dois pontos: sem id de filme (insert duplicado
+            // que não devolveu linha) e sem segredo de assinatura, `shareHref`
+            // é null e o bloco é string vazia — o e-mail sai byte a byte como
+            // saía antes desta peça.
+            const shareVideoId = persistedVideoId ?? (await findCompletedVideoId(user.id, renderId))
+            const shareHref = shareVideoId
+              ? publishHref(shareVideoId, process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.usekineo.com', 'video_ready_delivery')
+              : null
+            const shareUndoHref = shareVideoId
+              ? unpublishHref(shareVideoId, process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.usekineo.com', 'video_ready_delivery')
+              : null
+            const shareHtml = shareHref
+              ? `<div style="border:1px solid #26262a;border-radius:12px;padding:16px;margin:18px 0 0;">
+                  <p style="color:#fff;font-weight:700;font-size:14px;margin:0 0 6px">Want a link instead of a file? 🔗</p>
+                  <p style="color:#94a3b8;font-size:13px;margin:0 0 12px">One click makes a public page for <em>this one video</em> &mdash; a real link you can text, post, or put in a bio. Nothing else in your library changes.</p>
+                  <a href="${shareHref}" style="display:inline-block;background:#fff;color:#111;text-decoration:none;padding:10px 22px;border-radius:10px;font-weight:700;font-size:14px;">Create my shareable link &rarr;</a>
+                  <p style="color:#475569;font-size:11px;margin:10px 0 0">Changed your mind? <a href="${shareUndoHref}" style="color:#475569;">Make it private again</a>.</p>
+                </div>`
+              : ''
             const html = `
               <div style="font-family:sans-serif;max-width:520px;margin:0 auto;background:#161618;color:#fff;padding:32px;border-radius:16px;">
                 <h1 style="color:#2997ff;font-size:24px;margin:0 0 8px">Your Short is ready! ⚡</h1>
@@ -1077,6 +1103,7 @@ export async function GET(
                   ⬇ Download Your Short
                 </a>
                 ${readyFooter.html}
+                ${shareHtml}
                 <!-- KINEO-REVIEW-NO-EMAIL-2026-08-24 (pacote noturno 2, AQ) — o
                      e-mail de entrega vai para TODO render pronto: é o maior
                      canal de pedido-no-pico que a casa tem, e estava mudo.

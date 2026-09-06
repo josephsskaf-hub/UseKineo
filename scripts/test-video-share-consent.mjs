@@ -106,6 +106,31 @@ checar(
 checar('o e-mail oferece o caminho de volta na mesma mensagem', /shareUndoHref/.test(email))
 checar('o link é atribuído à fonte video_ready_email', /'video_ready_email'/.test(email))
 
+// ── 8. O E-MAIL DE MAIOR ALCANCE DA CASA (#28) ─────────────────────────────
+// A #27 ligou o botão no cron `send-video-ready`: 1 por pessoa PARA SEMPRE, 4
+// pessoas em 7 dias. Este arquivo é o e-mail de ENTREGA — 158 envios para 107
+// pessoas na mesma semana. Se o bloco sumir daqui, a peça volta a alcançar 4.
+const entrega = readFileSync('app/api/compose/status/[renderId]/route.ts', 'utf8')
+checar('o e-mail de entrega importa o gerador de link', /import \{ publishHref, unpublishHref \} from '@\/lib\/videoShareLink'/.test(entrega))
+checar('o bloco de partilha entra no HTML do e-mail de entrega', /\$\{shareHtml\}/.test(entrega))
+checar(
+  'sem id de filme não há link (falha fechada)',
+  /const shareHref = shareVideoId\s*\n?\s*\?/.test(entrega) && /: null/.test(entrega),
+)
+checar('o e-mail de entrega oferece o caminho de volta', /shareUndoHref/.test(entrega))
+checar('o link do e-mail de entrega tem fonte própria', /'video_ready_delivery'/.test(entrega))
+// Ordem: o id do filme tem de ser resolvido ANTES de virar link.
+checar(
+  'o id do filme é resolvido antes do link',
+  entrega.indexOf('const shareVideoId =') < entrega.indexOf('const shareHref = shareVideoId'),
+)
+// As duas fontes são distintas — medir peça nova por dentro do contador da
+// peça velha foi o defeito da #25 desta manhã.
+checar(
+  'as duas fontes de partilha são distintas',
+  /'video_ready_email'/.test(email) && /'video_ready_delivery'/.test(entrega),
+)
+
 console.log(`\n${ok} verificações OK, ${falhas.length} falhas`)
 if (falhas.length) {
   for (const f of falhas) console.log(`  ✗ ${f}`)
