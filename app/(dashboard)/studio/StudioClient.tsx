@@ -11,6 +11,7 @@
 //     interna fica no title/tooltip)
 //   · pills com estado selecionado em glow, hover com lift de 1px
 //   · resumo vivo no card de custo: motor · duração · resolução · aspecto
+import { UiLabel } from '@/components/InterfaceLanguage'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { STUDIO_KIT_CSS } from '@/components/studioKit'
@@ -429,22 +430,22 @@ export default function StudioClient() {
     <div className="stu composer-proposal">
       <style dangerouslySetInnerHTML={{ __html: STUDIO_KIT_CSS }} />
 
-      <h1>Studio</h1>
-      <p className="sub">Your idea first. Review the settings, then generate.</p>
+      <h1><UiLabel>Studio</UiLabel></h1>
+      <p className="sub"><UiLabel>Your idea first. Review the settings, then generate.</UiLabel></p>
 
       <div className="grid composer-proposal-grid">
         <section className="composer-proposal-idea" aria-label="Your idea">
 <div>
             <div className="lab" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span><span className="n">1</span>{chatGptQuickstart === 'finished_script' ? 'Paste your ChatGPT script' : chatGptQuickstart === 'idea' ? 'Paste your ChatGPT idea' : 'Your idea'}</span>
+              <span><span className="n">1</span><UiLabel>{chatGptQuickstart === 'finished_script' ? 'Paste your ChatGPT script' : chatGptQuickstart === 'idea' ? 'Paste your ChatGPT idea' : 'Your idea'}</UiLabel></span>
               <button
                 type="button"
                 className="pill"
                 style={{ fontSize: 11 }}
                 onClick={() => setPrompt(SURPRISE_IDEAS[Math.floor(Math.random() * SURPRISE_IDEAS.length)])}
-              >
+              ><UiLabel>
                 🎲 Surprise me
-              </button>
+              </UiLabel></button>
             </div>
             {/* KINEO-TEMPLATES-2026-08-18 (roubo com critério dos format cards
                 do InVideo): um clique arma o formato — esqueleto de prompt +
@@ -463,7 +464,7 @@ export default function StudioClient() {
                   lineHeight: 1.5,
                 }}
               >
-                <b style={{ color: '#67e8f9' }}>Continue exactly where ChatGPT stopped.</b>{' '}
+                <b style={{ color: '#67e8f9' }}><UiLabel>Continue exactly where ChatGPT stopped.</UiLabel></b>{' '}
                 {chatGptQuickstart === 'finished_script'
                   ? 'Paste the full answer below. “Use my script as is” and the 35s target are already selected; review the Seedance cost, then press Generate.'
                   : 'Paste the idea or one sentence below. Kineo will write the hook, scenes and payoff; Seedance and the 60s target are already selected.'}
@@ -478,7 +479,7 @@ export default function StudioClient() {
               ] as const).map(([label, seed, mode]) => (
                 <button key={label} type="button" className="pill" style={{ fontSize: 11.5 }}
                   onClick={() => { setScriptMode(mode as 'ai' | 'verbatim'); if (seed) setPrompt(seed) }}>
-                  {label}
+                  <UiLabel>{label}</UiLabel>
                 </button>
               ))}
             </div>
@@ -489,8 +490,8 @@ export default function StudioClient() {
                   ? 'Paste the idea from ChatGPT here…'
                   : 'What’s your video about? One idea in — a finished film out: voiced, scored and captioned.'} />
             <div className="row" style={{ marginTop: 10 }}>
-              <button type="button" className={`pill${scriptMode === 'ai' ? ' on' : ''}`} onClick={() => setScriptMode('ai')}>✨ Let AI structure it</button>
-              <button type="button" className={`pill${scriptMode === 'verbatim' ? ' on' : ''}`} onClick={() => setScriptMode('verbatim')}>📝 Use my script as is</button>
+              <button type="button" className={`pill${scriptMode === 'ai' ? ' on' : ''}`} onClick={() => setScriptMode('ai')}><UiLabel>✨ Let AI structure it</UiLabel></button>
+              <button type="button" className={`pill${scriptMode === 'verbatim' ? ' on' : ''}`} onClick={() => setScriptMode('verbatim')}><UiLabel>📝 Use my script as is</UiLabel></button>
             </div>
             <div className="cnt" style={limit.over ? { color: '#fb923c', opacity: 1 } : undefined}>
               {prompt.trim()
@@ -519,7 +520,7 @@ export default function StudioClient() {
         <section className="composer-proposal-settings" aria-label="Settings and generation">
 <div style={{ position: 'relative' }}>
             <button type="button" className="mdlbtn" onClick={() => setPickerOpen((o) => !o)}>
-              <span className="lab" style={{ marginBottom: 0 }}><span className="n">2</span>Engine</span>
+              <span className="lab" style={{ marginBottom: 0 }}><span className="n">2</span><UiLabel>Engine</UiLabel></span>
               <span className="mdlname" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span className="eng-ic" aria-hidden="true">{eng.icon}</span>
                 <b>{eng.name}</b>
@@ -554,10 +555,10 @@ export default function StudioClient() {
                           queimaram o trial inteiro no primeiro clique sem saber.
                           Agora cada card diz o custo E quantos filmes o saldo compra. */}
                       <span className="t">
-                        <b>{e.name}{e.tag && <span className="tag">{e.tag}</span>}</b>
+                        <b>{e.name}{e.tag && <span className="tag"><UiLabel>{e.tag}</UiLabel></span>}</b>
                         <i>{engineCostLabel(e.key)}</i>
                       </span>
-                      <span className="d">{e.desc}</span>
+                      <span className="d"><UiLabel>{e.desc}</UiLabel></span>
                       <span className="d" style={{ color: e.key === 'fast' ? '#5cb3ff' : undefined, marginTop: 2 }}>
                         {filmsLabel(e.key)}
                       </span>
@@ -586,17 +587,17 @@ export default function StudioClient() {
                   <span className="eng-ic" aria-hidden="true">🧑</span>
                   <span className="pk-tx">
                     <span className="t">
-                      <b>Avatar<span className="tag">Presenter</span></b>
-                      <i>Avatar Studio →</i>
+                      <b>Avatar<span className="tag"><UiLabel>Presenter</UiLabel></span></b>
+                      <i><UiLabel>Avatar Studio →</UiLabel></i>
                     </span>
-                    <span className="d">Talking AI presenter from a photo — lip-synced, its own studio</span>
+                    <span className="d"><UiLabel>Talking AI presenter from a photo — lip-synced, its own studio</UiLabel></span>
                   </span>
                 </button>
               </div>
             )}
           </div>
 <div className="card">
-            <div className="lab"><span className="n">3</span>Format</div>
+            <div className="lab"><span className="n">3</span><UiLabel>Format</UiLabel></div>
             <div className="row" style={{ marginBottom: 12 }}>
               {/* ═══ KINEO-DURACAO-2026-08-20 — OS TRÊS TIERS QUE O DADO PEDE ═══
                   Medido em 6M de vídeos do TikTok (Socialinsider, jan-jun/2026):
@@ -667,15 +668,15 @@ export default function StudioClient() {
             <div className="hint">Every film is delivered as a 1080×1920 Full HD master (engines render natively at 720–768p and are mastered up). For maximum sharpness, run ✨HD Enhance on the finished film.</div>
           </div>
           <details className="composer-proposal-optional">
-            <summary>Optional settings</summary>
+            <summary><UiLabel>Optional settings</UiLabel></summary>
 <div>
-            <div className="lab">Camera preset <span style={{ fontWeight: 600, textTransform: 'none', letterSpacing: 0 }}>optional — a pre-tested move added to your prompt</span></div>
+            <div className="lab"><UiLabel>Camera preset </UiLabel><span style={{ fontWeight: 600, textTransform: 'none', letterSpacing: 0 }}><UiLabel>optional — a pre-tested move added to your prompt</UiLabel></span></div>
             <div className="cams">
               {CAMERA_PRESETS.map((c) => (
                 <button key={c.key} type="button" className={`cam${preset === c.key ? ' on' : ''}`}
                   onClick={() => setPreset(preset === c.key ? null : c.key)}>
                   <div className="e">{c.emoji}</div>
-                  <div className="l">{c.label}</div>
+                  <div className="l"><UiLabel>{c.label}</UiLabel></div>
                 </button>
               ))}
             </div>
@@ -684,15 +685,15 @@ export default function StudioClient() {
             )}
           </div>
 <div className="card">
-            <div className="lab">Reference image <span className="soon">SOON</span></div>
+            <div className="lab"><UiLabel>Reference image </UiLabel><span className="soon"><UiLabel>SOON</UiLabel></span></div>
             {/* KINEO-STUDIO-AUDIT-2026-08-17 — auditoria de botoes do fundador
                 flagrou: o upload aceitava o arquivo mas NAO viajava pro render
                 (botao morto = promessa falsa). Ate o pipe de upload ligar,
                 vira SOON honesto — selo honesto vale dentro do produto tambem. */}
             <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={(ev) => setRefName(ev.target.files?.[0]?.name ?? null)} />
-            <button type="button" disabled className="upl no" title="Coming soon">
+            <button type="button" disabled className="upl no" title="Coming soon"><UiLabel>
               🖼️ Start your video from an image — coming soon
-            </button>
+            </UiLabel></button>
           </div>
           </details>
 <div className="cost">
@@ -702,7 +703,7 @@ export default function StudioClient() {
                 por esta mesma função (creditCostForDuration), então tela e
                 fatura nunca divergem. */}
             <div className="val">
-              <span>Estimated cost</span>
+              <span><UiLabel>Estimated cost</UiLabel></span>
               <b style={balance !== null && cost > balance ? { color: '#fb923c' } : undefined}>{cost} cr</b>
             </div>
             {balance !== null && cost > balance && (
@@ -716,7 +717,7 @@ export default function StudioClient() {
                 render sobe sem dizer quanto é normal, e quem não conhece lê
                 como travado. Fast é minutos; motor de IA é vários minutos. */}
             <div className="val" style={{ opacity: 0.75 }}>
-              <span>Usually takes</span>
+              <span><UiLabel>Usually takes</UiLabel></span>
               <b style={{ fontWeight: 600 }}>{eng.key === 'fast' ? '3–7 min' : '8–20 min'}</b>
             </div>
             {/* KINEO-PRECO-VISIVEL-2026-09-02 — o saldo em FILMES, no motor e na
@@ -726,10 +727,10 @@ export default function StudioClient() {
                 vídeos — gente que nunca soube que já tinha filme na mão. */}
             {balance !== null && cost > 0 && Math.floor(balance / cost) > 0 && (
               <div className="val" style={{ opacity: 0.75 }}>
-                <span>Your credits buy</span>
+                <span><UiLabel>Your credits buy</UiLabel></span>
                 <b style={{ fontWeight: 600 }}>
-                  {Math.floor(balance / cost)} {Math.floor(balance / cost) === 1 ? 'film' : 'films'} like this
-                </b>
+                  {Math.floor(balance / cost)} {Math.floor(balance / cost) === 1 ? 'film' : 'films'}<UiLabel> like this
+                </UiLabel></b>
               </div>
             )}
             <button type="button" onClick={generate} disabled={!prompt.trim() || limit.over} className={`go ${prompt.trim() && !limit.over ? 'ok' : 'no'}`}>
@@ -738,7 +739,7 @@ export default function StudioClient() {
                   button before you confirm") e da Hailuo (número colado no botão,
                   recalculado ao vivo). Antes: 'Generate →' e o número só no
                   rodapé cinza acima — que ninguém lê depois de escolher. */}
-              {!prompt.trim()
+              <UiLabel>{!prompt.trim()
                 ? 'Type your idea first'
                 : limit.over
                   ? `Trim ${limit.excess.toLocaleString('en-US')} characters to continue`
@@ -746,14 +747,14 @@ export default function StudioClient() {
                     ? `Need ${cost - balance} more credits`
                     : cost > 0
                       ? `Generate · ${cost} cr →`
-                      : 'Generate →'}
+                      : 'Generate →'}</UiLabel>
             </button>
             {/* KINEO-PRECO-VISIVEL-2026-09-02 — a política de estorno vira
                 promessa VISÍVEL. Higgsfield, Kling, Hailuo e OpusClip têm a
                 mesma política e nenhum a exibe na hora da escolha; nós já
                 cumprimos (o guard de narração e o release do claim devolvem na
                 hora), então dizer isto é confiança de graça. */}
-            <div className="gnote">Voice, karaoke captions and score included. If a render fails, your credits come straight back.</div>
+            <div className="gnote"><UiLabel>Voice, karaoke captions and score included. If a render fails, your credits come straight back.</UiLabel></div>
           </div>
         </section>
         {myVids.length > 0 && <section className="composer-proposal-continuation" aria-label="Continue your videos">
@@ -786,11 +787,11 @@ export default function StudioClient() {
                   </span>
                 </div>
                 <div style={{ fontSize: 15, fontWeight: 700, color: '#f5f5f7' }}>
-                  {myVids.length === 1 ? 'Turn it into episode 2' : 'Keep your show moving'}
+                  <UiLabel>{myVids.length === 1 ? 'Turn it into episode 2' : 'Keep your show moving'}</UiLabel>
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--txt2,#9aa0a6)', marginTop: 2 }}>
+                <div style={{ fontSize: 12, color: 'var(--txt2,#9aa0a6)', marginTop: 2 }}><UiLabel>
                   Same topic, new hook and payoff — the idea comes pre-written.
-                </div>
+                </UiLabel></div>
               </div>
               <Link
                 href={buildStudioSeriesReviewHref(myVids[0]?.title, 'studio_milestone')}
@@ -809,15 +810,15 @@ export default function StudioClient() {
                     completed_video_count: myVids.length,
                   })
                 }}
-              >
+              ><UiLabel>
                 Build next episode →
-              </Link>
+              </UiLabel></Link>
             </div>
           )}
 {myVids.length > 0 && (
             <div className="myv">
               <div className="hd">
-                <div className="lab" style={{ marginBottom: 0 }}>Your latest videos</div>
+                <div className="lab" style={{ marginBottom: 0 }}><UiLabel>Your latest videos</UiLabel></div>
                 <a href="/history">See all →</a>
               </div>
               <div className="vrow">
@@ -870,9 +871,9 @@ export default function StudioClient() {
                           has_title: Boolean(v.title),
                         })
                       }}
-                    >
+                    ><UiLabel>
                       Episode 2 →
-                    </Link>
+                    </UiLabel></Link>
                   </div>
                 ))}
               </div>
@@ -881,7 +882,7 @@ export default function StudioClient() {
         </section>}
       </div>
       <details className="composer-proposal-how">
-        <summary>How it works</summary>
+        <summary><UiLabel>How it works</UiLabel></summary>
 <div className="steps">
             {[
               ['1 · CONFIGURE', 'Engine, length, resolution and camera — all on this screen.'],

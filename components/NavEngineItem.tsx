@@ -8,6 +8,7 @@
 // zero download ate o primeiro hover; entrar da play do inicio, sair pausa.
 // Fail-open: sem `preview`, e um link normal (Kineo 1 ainda nao tem clipe).
 import Link from 'next/link'
+import { UiLabel } from '@/components/InterfaceLanguage'
 import { useRef } from 'react'
 
 export default function NavEngineItem({
@@ -48,7 +49,7 @@ export default function NavEngineItem({
           {name}
           {chip ? <em className="nm-chip">{chip}</em> : null}
         </b>
-        <i>{desc}</i>
+        <i><UiLabel>{desc}</UiLabel></i>
       </span>
       {preview ? (
         <span className="nvp" aria-hidden="true">

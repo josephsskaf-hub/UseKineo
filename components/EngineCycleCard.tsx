@@ -9,6 +9,7 @@
 // Orcamento: nada baixa antes do started; entrada escalonada por indice;
 // Save-Data/2g/reduced-motion ficam no poster estatico (sem video).
 import Link from 'next/link'
+import { UiLabel } from '@/components/InterfaceLanguage'
 import { useEffect, useRef, useState } from 'react'
 import type { WallVideo } from '@/lib/engineWall'
 
@@ -204,10 +205,10 @@ export default function EngineCycleCard({ videos, index = 0 }: { videos: WallVid
             ))}
           </span>
         )}
-        <span className="ec-go">Generate →</span>
+        <span className="ec-go"><UiLabel>Generate →</UiLabel></span>
       </span>
       <h3>{meta.name}</h3>
-      <p>{meta.desc}</p>
+      <p><UiLabel>{meta.desc}</UiLabel></p>
     </Link>
   )
 }

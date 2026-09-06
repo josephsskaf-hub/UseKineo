@@ -290,7 +290,7 @@ function NavSection({ label, first }: { label: string; first?: boolean }) {
         userSelect: 'none',
       }}
     >
-      {label}
+      <UiLabel>{label}</UiLabel>
     </div>
   )
 }

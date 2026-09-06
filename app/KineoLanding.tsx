@@ -1186,7 +1186,7 @@ export default function KineoLanding({
                 <span className="tbody">
                   <h3>Kineo 1</h3>
                   <p><UiLabel>Kineo&rsquo;s own engine &mdash; 3&ndash;7 min</UiLabel></p>
-                  <span className="tcredits">{creditLabel('fast')}</span>
+                  <span className="tcredits"><UiLabel>{creditLabel('fast')}</UiLabel></span>
                 </span>
               </Link>
               <Link href="/studio?engine=seedance&intent_campaign=engine_tile" className="tile hot">
@@ -1198,7 +1198,7 @@ export default function KineoLanding({
                 <span className="tbody">
                   <h3>Seedance 1.5</h3>
                   <p><UiLabel>The workhorse AI video engine</UiLabel></p>
-                  <span className="tcredits">{creditLabel('cinematic_ai')}</span>
+                  <span className="tcredits"><UiLabel>{creditLabel('cinematic_ai')}</UiLabel></span>
                 </span>
               </Link>
               <Link href="/studio?engine=kling&intent_campaign=engine_tile" className="tile">
@@ -1210,7 +1210,7 @@ export default function KineoLanding({
                 <span className="tbody">
                   <h3>Kling 2.5</h3>
                   <p><UiLabel>Cinematic motion &amp; camera</UiLabel></p>
-                  <span className="tcredits">{creditLabel('cinematic_kling')}</span>
+                  <span className="tcredits"><UiLabel>{creditLabel('cinematic_kling')}</UiLabel></span>
                 </span>
               </Link>
               <Link href="/studio?engine=veo&intent_campaign=engine_tile" className="tile">
@@ -1222,7 +1222,7 @@ export default function KineoLanding({
                 <span className="tbody">
                   <h3>Veo 3.1</h3>
                   <p><UiLabel>Google&rsquo;s flagship, on Studio</UiLabel></p>
-                  <span className="tcredits">{creditLabel('cinematic_veo')}</span>
+                  <span className="tcredits"><UiLabel>{creditLabel('cinematic_veo')}</UiLabel></span>
                 </span>
               </Link>
               <Link href="/studio?engine=hollywood&intent_campaign=engine_tile" className="tile">
@@ -1234,7 +1234,7 @@ export default function KineoLanding({
                 <span className="tbody">
                   <h3>Kling 3</h3>
                   <p><UiLabel>Film scenes, native voice &amp; lip sync</UiLabel></p>
-                  <span className="tcredits">{creditLabel('cinematic_hollywood')}</span>
+                  <span className="tcredits"><UiLabel>{creditLabel('cinematic_hollywood')}</UiLabel></span>
                 </span>
               </Link>
               <Link href="/avatar" className="tile">
@@ -1246,7 +1246,7 @@ export default function KineoLanding({
                 <span className="tbody">
                   <h3>Avatar</h3>
                   <p><UiLabel>Talking video from one photo</UiLabel></p>
-                  <span className="tcredits">{creditLabel('avatar')}</span>
+                  <span className="tcredits"><UiLabel>{creditLabel('avatar')}</UiLabel></span>
                 </span>
               </Link>
             </div>
@@ -1466,7 +1466,7 @@ export default function KineoLanding({
                   de TIER_CREDITS ÷ custo (lib/marketingPrice): reprice muda
                   os números sozinho. */}
               <ul>
-                <li><span className="ck">✓</span> <b>{filmsAndScenes('starter')}</b></li>
+                <li><span className="ck">✓</span> <b><UiLabel>{filmsAndScenes('starter')}</UiLabel></b></li>
                 <li><span className="ck">✓</span><UiLabel> Up to </UiLabel><b>{imagesFor('starter')}<UiLabel> AI images</UiLabel></b> — {nanoBananasFor('starter')}<UiLabel> on Nano Banana</UiLabel></li>
                 <li><span className="ck">✓</span> <b>{voiceoversFor('starter')}<UiLabel> AI voiceovers</UiLabel></b><UiLabel> · 4 voices</UiLabel></li>
                 <li><span className="ck">✓</span><UiLabel> Every video engine incl. MiniMax H3</UiLabel></li>
@@ -1480,7 +1480,7 @@ export default function KineoLanding({
               <div className="pt"><UiLabel>Most popular</UiLabel></div><div className="nm">Creator</div>
               <div className="pr"><LandingPlanPrice tier="basic" variant="big" /></div>
               <ul>
-                <li><span className="ck">✓</span> <b>{filmsAndScenes('basic')}</b><UiLabel>, finished</UiLabel></li>
+                <li><span className="ck">✓</span> <b><UiLabel>{filmsAndScenes('basic')}</UiLabel></b><UiLabel>, finished</UiLabel></li>
                 <li><span className="ck">✓</span><UiLabel> Or </UiLabel><b>{filmsOn('basic', 'cinematic_kling')}<UiLabel> Kling 2.5 cinematic films</UiLabel></b><UiLabel> — every engine unlocked</UiLabel></li>
                 <li><span className="ck">✓</span><UiLabel> Up to </UiLabel><b>{imagesFor('basic')}<UiLabel> AI images</UiLabel></b> — {nanoBananasFor('basic')}<UiLabel> on Nano Banana</UiLabel></li>
                 <li><span className="ck">✓</span> <b>{voiceoversFor('basic')}<UiLabel> AI voiceovers</UiLabel></b><UiLabel> · voice + karaoke captions + score</UiLabel></li>
@@ -1496,7 +1496,7 @@ export default function KineoLanding({
               <div className="pt"><UiLabel>Best value per film</UiLabel></div><div className="nm"><UiLabel>Studio</UiLabel></div>
               <div className="pr"><LandingPlanPrice tier="pro" variant="big" /></div>
               <ul>
-                <li><span className="ck">✓</span> <b>{filmsAndScenes('pro')}</b></li>
+                <li><span className="ck">✓</span> <b><UiLabel>{filmsAndScenes('pro')}</UiLabel></b></li>
                 <li><span className="ck">✓</span><UiLabel> Or </UiLabel><b>{filmsOn('pro', 'cinematic_omni')}<UiLabel> films on Omni Flash</UiLabel></b><UiLabel> — the #1-ranked model</UiLabel></li>
                 <li><span className="ck">✓</span><UiLabel> Up to </UiLabel><b>{imagesFor('pro')}<UiLabel> AI images</UiLabel></b> — {nanoBananasFor('pro')}<UiLabel> on Nano Banana</UiLabel></li>
                 <li><span className="ck">✓</span> <b>{voiceoversFor('pro')}<UiLabel> AI voiceovers</UiLabel></b><UiLabel> · 2 free HD enhances / month</UiLabel></li>

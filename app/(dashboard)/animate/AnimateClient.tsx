@@ -4,6 +4,7 @@
 // Upload ANY photo (person, pet, product, old family picture), describe the
 // motion, get a living 5-10s clip. Kling 2.5 Turbo Pro via the fal queue;
 // costs ANIMATE_COST video_credits (debited upfront, atomic RPC).
+import { UiLabel } from '@/components/InterfaceLanguage'
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { trackEvent } from '@/lib/analytics'
@@ -508,13 +509,13 @@ export default function AnimateClient({ isLoggedIn, userId }: { isLoggedIn: bool
   return (
     <div className="stu animate-page">
       <style dangerouslySetInnerHTML={{ __html: STUDIO_KIT_CSS }} />
-      <h1>One photo. Suddenly alive.</h1>
-      <p className="sub">People, pets, products, old family pictures — upload a photo or paste a public image link and watch it move.</p>
+      <h1><UiLabel>One photo. Suddenly alive.</UiLabel></h1>
+      <p className="sub"><UiLabel>People, pets, products, old family pictures — upload a photo or paste a public image link and watch it move.</UiLabel></p>
 
       <div className="grid animate-grid" style={{ maxWidth: 1240 }}>
         <div className="flex flex-col gap-5">
           <section className="card">
-            <div className="lab"><span className="n">1</span>The photo</div>
+            <div className="lab"><span className="n">1</span><UiLabel>The photo</UiLabel></div>
             <div className="flex flex-col sm:flex-row gap-2">
               <button
                 type="button"
@@ -523,7 +524,7 @@ export default function AnimateClient({ isLoggedIn, userId }: { isLoggedIn: bool
                 className="pill sm:flex-none"
                 style={{ cursor: busy ? 'not-allowed' : 'pointer' }}
               >
-                {photoUrl ? '🖼️ Choose a different photo' : '🖼️ Upload a photo'}
+                <UiLabel>{photoUrl ? '🖼️ Choose a different photo' : '🖼️ Upload a photo'}</UiLabel>
               </button>
               <input
                 type="url"
@@ -538,12 +539,12 @@ export default function AnimateClient({ isLoggedIn, userId }: { isLoggedIn: bool
               />
             </div>
             <input ref={inputRef} type="file" accept="image/jpeg,image/png" className="hidden" onChange={(e) => handleFile(e.target.files?.[0] ?? null)} />
-            <p className="text-[11px] mt-2" style={{ color: 'var(--muted)' }}>JPG/PNG up to 8 MB. Public links are downloaded and validated securely on our server.</p>
+            <p className="text-[11px] mt-2" style={{ color: 'var(--muted)' }}><UiLabel>JPG/PNG up to 8 MB. Public links are downloaded and validated securely on our server.</UiLabel></p>
             {error && <p className="text-xs mt-3 font-semibold rounded-lg px-3 py-2" style={{ color: '#fca5a5', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)' }} role="alert">⚠️ {error}</p>}
           </section>
 
           <section className="card">
-            <div className="lab"><span className="n">2</span>The motion</div>
+            <div className="lab"><span className="n">2</span><UiLabel>The motion</UiLabel></div>
             <div className="flex flex-wrap gap-2 mb-3">
               {MOTION_PRESETS.map((p) => (
                 <button
@@ -554,7 +555,7 @@ export default function AnimateClient({ isLoggedIn, userId }: { isLoggedIn: bool
                   className={`pill${prompt === p.prompt ? ' on' : ''}`}
                   style={{ cursor: busy ? 'not-allowed' : 'pointer', fontSize: 12, padding: '7px 12px' }}
                 >
-                  {p.label}
+                  <UiLabel>{p.label}</UiLabel>
                 </button>
               ))}
             </div>
@@ -583,7 +584,7 @@ export default function AnimateClient({ isLoggedIn, userId }: { isLoggedIn: bool
           </section>
 
           <section className="cost">
-            <div className="val"><span>Cost per clip</span><b>{ANIMATE_COST} credits · {duration}s</b></div>
+            <div className="val"><span><UiLabel>Cost per clip</UiLabel></span><b>{ANIMATE_COST}<UiLabel> credits · </UiLabel>{duration}s</b></div>
             <button
               type="button"
               onClick={handleGenerate}
@@ -591,16 +592,16 @@ export default function AnimateClient({ isLoggedIn, userId }: { isLoggedIn: bool
               className={`go ${canGenerate ? 'ok' : 'no'}`}
             >
               {/* KINEO-REBASE-2026-07-10 — 10 → 5 credits (2:1 rebase; matches ANIMATE_COST) */}
-              {busy ? PHASE_COPY[phase] : '✨ Bring it to life'}
+              <UiLabel>{busy ? PHASE_COPY[phase] : '✨ Bring it to life'}</UiLabel>
             </button>
-            <p className="gnote">
-              you have{' '}
+            <p className="gnote"><UiLabel>
+              you have</UiLabel>{' '}
               <span style={{ color: (credits ?? 0) >= ANIMATE_COST ? '#5cb3ff' : '#f87171', fontWeight: 700 }}>
-                {credits === null ? '—' : credits} credits
-              </span>
+                {credits === null ? '—' : credits}<UiLabel> credits
+              </UiLabel></span>
               {!isLoggedIn && (
                 <>
-                  {' '}· <Link href="/login?redirect=/animate" style={{ color: '#5cb3ff', fontWeight: 700 }}>sign in</Link>
+                  {' '}· <Link href="/login?redirect=/animate" style={{ color: '#5cb3ff', fontWeight: 700 }}><UiLabel>sign in</UiLabel></Link>
                 </>
               )}
             </p>
@@ -631,27 +632,27 @@ export default function AnimateClient({ isLoggedIn, userId }: { isLoggedIn: bool
             ) : remoteImageUrl.trim() ? (
               <div className="flex h-full w-full flex-col items-center justify-center gap-3 px-6 text-center" style={{ color: 'var(--muted2)' }}>
                 <span style={{ fontSize: 38 }}>🔗</span>
-                <span className="text-xs font-bold" style={{ color: 'var(--text2)' }}>Image link ready</span>
-                <span className="text-[11px] leading-relaxed">Kineo will fetch and validate it on the server when you animate.</span>
+                <span className="text-xs font-bold" style={{ color: 'var(--text2)' }}><UiLabel>Image link ready</UiLabel></span>
+                <span className="text-[11px] leading-relaxed"><UiLabel>Kineo will fetch and validate it on the server when you animate.</UiLabel></span>
               </div>
             ) : (
               <div className="flex h-full w-full flex-col items-center justify-center gap-2" style={{ color: 'var(--muted)' }}>
                 <span style={{ fontSize: 40 }}>✨</span>
-                <span className="text-xs font-semibold">Upload a photo to preview</span>
+                <span className="text-xs font-semibold"><UiLabel>Upload a photo to preview</UiLabel></span>
               </div>
             )}
             {busy && phase === 'animating' && (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-5" style={{ background: 'rgba(10,10,11,0.55)', backdropFilter: 'blur(2px)' }}>
                 <div className="spinner-sm" style={{ position: 'relative' }}><div className="spinner-sm-inner" /></div>
-                <p className="text-center text-[12px] font-bold" style={{ color: 'var(--text2)' }}>{PHASE_COPY[phase]}</p>
+                <p className="text-center text-[12px] font-bold" style={{ color: 'var(--text2)' }}><UiLabel>{PHASE_COPY[phase]}</UiLabel></p>
               </div>
             )}
           </div>
           {phase === 'done' && resultUrl && (
             <>
-              <a href={resultUrl} download className="go ok" style={{ textDecoration: 'none', maxWidth: 280, textAlign: 'center', display: 'block' }}>
+              <a href={resultUrl} download className="go ok" style={{ textDecoration: 'none', maxWidth: 280, textAlign: 'center', display: 'block' }}><UiLabel>
                 ⬇ Download MP4
-              </a>
+              </UiLabel></a>
               {outOfCredits ? (
                 <AnimateOutOfCredits
                   destination={paywallDestination}
@@ -666,9 +667,9 @@ export default function AnimateClient({ isLoggedIn, userId }: { isLoggedIn: bool
                   onClick={() => { setPhase('idle'); setResultUrl(null) }}
                   className="text-[12px] font-bold"
                   style={{ color: 'var(--muted2)', background: 'none', border: 'none', cursor: 'pointer' }}
-                >
+                ><UiLabel>
                   ↺ Animate another
-                </button>
+                </UiLabel></button>
               )}
             </>
           )}
@@ -731,7 +732,7 @@ function AnimateOutOfCredits({
               <span style={{ color: 'var(--muted2, #86868b)' }}>
                 {r.credits} cr/mo = <b style={{ color: r.highlighted ? '#5cb3ff' : 'inherit' }}>{r.clips} clips</b>
               </span>
-              <span style={{ fontWeight: 800 }}>{r.price}/mo</span>
+              <span style={{ fontWeight: 800 }}>{r.price}<UiLabel>/mo</UiLabel></span>
             </div>
           ))}
         </div>

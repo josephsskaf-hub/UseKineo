@@ -24,6 +24,10 @@ const variants = [
 function signature(node) {
   if (Array.isArray(node)) return node.map(signature)
   if (!React.isValidElement(node)) return node
+  // The new language boundary adds a component around the SAME English text.
+  // Compare that default copy, not the extra React node. Only UiLabel qualifies;
+  // real Spanish rendering + the entire unchanged file are tested separately.
+  if (typeof node.type === 'function' && node.type.name === 'UiLabel') return signature(node.props.children)
   return { type: typeof node.type === 'string' ? node.type : 'component', props: Object.fromEntries(
     Object.entries({ ...node.props, children: node.props.children ?? [] }).filter(([key]) => key !== 'ref').map(([key, value]) => [key,
       // React.Children.map in the approved prototype wraps singleton children
@@ -42,7 +46,7 @@ for (const [name, state] of variants) {
   assert.deepEqual(signature(actual.find(n => n.props.className === 'cost')), signature(expected.find(n => n.props.className === 'cost')), name + ': financial UI unchanged')
   assert.equal(actual.filter(n => n.props.className === 'myv').length, expected.filter(n => n.props.className === 'myv').length, name + ': continuation retained')
   assert.ok(actual.findIndex(n => n.type === 'textarea') < actual.findIndex(n => n.props.className === 'mdlbtn'), name + ': idea first')
-  for (const label of ['Optional settings', 'How it works']) assert.ok(actual.some(n => n.type === 'summary' && n.props.children === label), name + ': ' + label)
+  for (const label of ['Optional settings', 'How it works']) assert.ok(actual.some(n => n.type === 'summary' && signature(n).props.children.includes(label)), name + ': ' + label)
   console.log('OK runtime matches approved controls: ' + name)
 }
 console.log('11 runtime states passed; navigation covered by separate caller tests.')

@@ -55,3 +55,15 @@ TESTADO LOCALMENTE (06/09): test-interface-language 780 verificacoes (inclui par
 VALIDADO EM PREVIEW WEB (06/09): dpl_2TpPE6JGrTk3TJ991Hpw26CdjMVt READY, SHA a949a0ab, PR #46. Chrome: espanhol persiste de Home para Images e apos reload; alternar EN/ES preserva literalmente a ideia digitada e o motor FLUX Dev, sem gerar. Navegador integrado 390px: Home espanhola sem overflow horizontal; Avatar tem preview display:flex visivel e ancora funcional, antes oculto por hidden lg:flex. Sem pagamento, render, upload ou banco. Texto ingles residual documentado, nao escondido.
 
 Reconciliacao: main ac1b7144 contem apenas diario Claude adicional; incorporado sem alterar SeasonStrip/temporada nem enfileirar em entrega-atual.
+
+## Lote 3 — reserva de interface
+
+Escopo adicional: somente rotulos JSX de StudioClient, AvatarStudioClient, AnimateClient, EngineCycleCard, NavEngineItem e titulos da Sidebar. Nao mudar geracao, callbacks, efeitos, consentimento, valores de formularios, custos ou funil Claude. Ultimo commit StudioClient 027e7996 (layout desta pista), sem colisao com SeasonStrip. A traducao de nomes de botoes nao traduz o prompt nem dispara geracao.
+
+IMPLEMENTADO: rotulos principais e instrucoes Studio/Avatar/Animate, descricoes dos cards de motor da home e numeros canonicos de custo/filmes em espanhol. Teste novo compara os SETE arquivos inteiros com d8889f6c retirando SOMENTE wrappers UiLabel/import; callbacks, efeitos, payloads, destinos e midias precisam continuar byte-a-byte iguais (normalizacao CRLF apenas). 22 contratos executaveis passaram; 49 invariantes UX e tsc exit 0. Preview desktop/mobile EN/ES em docs/previews/UX-STUDIO-AVATAR-ANIMATE-ES-2026-09-06.html.
+
+EVIDENCIA DE PRODUCAO (06/09): lote 2 em main d8889f6c, deploy dpl_4PRfhdWhkKAKA2k1n2ajgRKvvcwC READY, PR #46. Lote 3 ainda nao publicado neste registro.
+
+VALIDADO EM PRODUCAO (06/09): Chrome em www.usekineo.com exibe os dois seletores e os quatro grupos do rodape; escolher es troca o h1 para "Escribe una idea y mira como se convierte en un video" (acentos na interface). Nao apenas SHA remoto.
+
+TESTADO LOCALMENTE lote 3: locale 1026 verificacoes, curadoria 247, Studio runtime 11 estados, proposta Studio 11, contratos Espanhol 22, UX 49 e tsc sem filtros exit 0. O teste antigo runtime falhou porque comparava a arvore React antes de renderizar UiLabel; agora remove APENAS esse wrapper na assinatura, preservando todos os valores e callbacks. Motivo registrado dentro do teste; o novo contrato compara o arquivo inteiro e executa espanhol de verdade.

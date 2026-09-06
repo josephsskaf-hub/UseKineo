@@ -11,6 +11,7 @@
 //   download) when done.
 // Pipeline reused as-is: /api/avatar/upload → /api/generate-avatar →
 // /api/avatar-status?engine= → /api/compose → /api/compose/status/[id].
+import { UiLabel } from '@/components/InterfaceLanguage'
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { AVATAR_PRESENTATION_CSS } from '@/lib/ui/avatarPresentation'
@@ -1234,13 +1235,13 @@ export default function AvatarStudioClient({ isLoggedIn }: { isLoggedIn: boolean
         <div className="font-black uppercase tracking-[.18em] mb-2" style={{ fontSize: '0.65rem', color: '#2997ff' }}>
           Avatar Studio
         </div>
-        <h1 className="font-display font-bold tracking-tight" style={{ fontSize: 'clamp(1.55rem, 4vw, 2rem)', color: 'var(--text)', lineHeight: 1.1 }}>
-          Your face. Your script. <span className="grad-text">One video.</span>
+        <h1 className="font-display font-bold tracking-tight" style={{ fontSize: 'clamp(1.55rem, 4vw, 2rem)', color: 'var(--text)', lineHeight: 1.1 }}><UiLabel>
+          Your face. Your script. </UiLabel><span className="grad-text"><UiLabel>One video.</UiLabel></span>
         </h1>
-        <p className="text-sm mt-1.5" style={{ color: 'var(--muted2)' }}>
+        <p className="text-sm mt-1.5" style={{ color: 'var(--muted2)' }}><UiLabel>
           Everything you need to make yourself speak — nothing you don’t.
-        </p>
-        <a className="avatar-preview-jump" href="#avatar-preview">Preview &amp; result ↓</a>
+        </UiLabel></p>
+        <a className="avatar-preview-jump" href="#avatar-preview"><UiLabel>Preview &amp; result ↓</UiLabel></a>
       </div>
 
       <div className="avatar-layout" style={{ maxWidth: 1480 }}>
@@ -1249,7 +1250,7 @@ export default function AvatarStudioClient({ isLoggedIn }: { isLoggedIn: boolean
           {/* 1 · Source */}
           <section className="neon-card p-5">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-xs font-black uppercase tracking-widest" style={{ color: 'var(--muted2)' }}>1 · Who’s talking</h2>
+              <h2 className="text-xs font-black uppercase tracking-widest" style={{ color: 'var(--muted2)' }}><UiLabel>1 · Who’s talking</UiLabel></h2>
               <div className="flex gap-1.5">
                 {(['photo', 'video'] as const).map((k) => (
                   <button
@@ -1265,7 +1266,7 @@ export default function AvatarStudioClient({ isLoggedIn }: { isLoggedIn: boolean
                       cursor: busy ? 'not-allowed' : 'pointer',
                     }}
                   >
-                    {k === 'photo' ? '📷 Photo' : '🎥 Real video'} {k === 'video' && <span style={{ fontSize: 8, opacity: 0.9 }}>BEST MOTION</span>}
+                    {k === 'photo' ? '📷 Photo' : '🎥 Real video'} {k === 'video' && <span style={{ fontSize: 8, opacity: 0.9 }}><UiLabel>BEST MOTION</UiLabel></span>}
                   </button>
                 ))}
               </div>
@@ -1293,7 +1294,7 @@ export default function AvatarStudioClient({ isLoggedIn }: { isLoggedIn: boolean
                         <span className="text-[11px] font-bold" style={{ color: faceUrl === c.image_url ? '#2997ff' : 'var(--muted2)' }}>{c.name}</span>
                       </button>
                     ))}
-                    <span className="text-[11px]" style={{ color: 'var(--muted)' }}>🎭 your characters</span>
+                    <span className="text-[11px]" style={{ color: 'var(--muted)' }}><UiLabel>🎭 your characters</UiLabel></span>
                   </div>
                 )}
                 {savedFaces.length > 0 && (
@@ -1312,7 +1313,7 @@ export default function AvatarStudioClient({ isLoggedIn }: { isLoggedIn: boolean
                         <img src={f.url} alt="Saved face" className="h-11 w-11 rounded-full object-cover" />
                       </button>
                     ))}
-                    <span className="text-[11px]" style={{ color: 'var(--muted)' }}>your saved faces</span>
+                    <span className="text-[11px]" style={{ color: 'var(--muted)' }}><UiLabel>your saved faces</UiLabel></span>
                   </div>
                 )}
                 <button
@@ -1325,9 +1326,9 @@ export default function AvatarStudioClient({ isLoggedIn }: { isLoggedIn: boolean
                   {faceUrl ? '🖼️ Upload a different photo' : '🖼️ Upload a photo'}
                 </button>
                 <input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/heic,image/heif,.heic,.heif" className="hidden" onChange={(e) => handleFile(e.target.files?.[0] ?? null, 'photo')} />
-                <p className="text-[11px] mt-2" style={{ color: 'var(--muted)' }}>
+                <p className="text-[11px] mt-2" style={{ color: 'var(--muted)' }}><UiLabel>
                   Sharp, front-facing, one person. For body motion, use a waist-up/full-body photo with both hands visible. Black bars are removed automatically.
-                </p>
+                </UiLabel></p>
               </>
             ) : (
               <>
@@ -1341,9 +1342,9 @@ export default function AvatarStudioClient({ isLoggedIn }: { isLoggedIn: boolean
                   {videoUrl ? '🎥 Upload a different video' : '🎥 Upload a short video of you'}
                 </button>
                 <input ref={videoInputRef} type="file" accept="video/mp4,video/quicktime" className="hidden" onChange={(e) => handleFile(e.target.files?.[0] ?? null, 'video')} />
-                <p className="text-[11px] mt-2" style={{ color: 'var(--muted)' }}>
+                <p className="text-[11px] mt-2" style={{ color: 'var(--muted)' }}><UiLabel>
                   Best professional result: upload a 5–20s vertical clip doing the real gestures you want, roughly matching the script length. Sync-3 replaces the speech while preserving the real face and body motion. MP4/MOV up to 40 MB.
-                </p>
+                </UiLabel></p>
               </>
             )}
 
@@ -1355,9 +1356,9 @@ export default function AvatarStudioClient({ isLoggedIn }: { isLoggedIn: boolean
                 onChange={(e) => { setRights(e.target.checked); if (e.target.checked) setUploadError(null) }}
                 className="mt-0.5"
               />
-              <span className="text-[11px] leading-relaxed" style={{ color: 'var(--muted)' }}>
+              <span className="text-[11px] leading-relaxed" style={{ color: 'var(--muted)' }}><UiLabel>
                 I confirm I have the right to use this person’s image and consent to it being animated by AI.
-              </span>
+              </UiLabel></span>
             </label>
             {uploadError && <p className="text-xs mt-2 font-semibold" style={{ color: '#f87171' }} role="alert">⚠️ {uploadError}</p>}
           </section>
@@ -1366,9 +1367,9 @@ export default function AvatarStudioClient({ isLoggedIn }: { isLoggedIn: boolean
               person in a generated scene (more context, softer face on movement). */}
           {sourceKind === 'photo' && faceUrl && (
             <section className="neon-card p-5">
-              <h2 className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: 'var(--muted2)' }}>
+              <h2 className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: 'var(--muted2)' }}><UiLabel>
                 1.5 · Realism
-              </h2>
+              </UiLabel></h2>
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
@@ -1376,18 +1377,18 @@ export default function AvatarStudioClient({ isLoggedIn }: { isLoggedIn: boolean
                   disabled={busy}
                   className="rounded-lg px-3 py-2 text-[12px] font-bold text-left"
                   style={{ background: fidelity === 'real' ? 'rgba(41,151,255,0.15)' : 'rgba(255,255,255,0.04)', border: fidelity === 'real' ? '1px solid rgba(41,151,255,0.5)' : '1px solid var(--border)', color: fidelity === 'real' ? '#2997ff' : 'var(--muted2)', cursor: 'pointer' }}
-                >
+                ><UiLabel>
                   🎯 Max realism — animate my real photo
-                </button>
+                </UiLabel></button>
                 <button
                   type="button"
                   onClick={() => setFidelity('scene')}
                   disabled={busy}
                   className="rounded-lg px-3 py-2 text-[12px] font-bold text-left"
                   style={{ background: fidelity === 'scene' ? 'rgba(41,151,255,0.15)' : 'rgba(255,255,255,0.04)', border: fidelity === 'scene' ? '1px solid rgba(41,151,255,0.5)' : '1px solid var(--border)', color: fidelity === 'scene' ? '#2997ff' : 'var(--muted2)', cursor: 'pointer' }}
-                >
+                ><UiLabel>
                   🎬 Put me in a scene
-                </button>
+                </UiLabel></button>
               </div>
               <p className="text-[11px] mt-2" style={{ color: 'var(--muted)' }}>
                 {fidelity === 'real'
@@ -1417,11 +1418,11 @@ export default function AvatarStudioClient({ isLoggedIn }: { isLoggedIn: boolean
                       {sceneLoading ? '🎬 Building the scene…' : '🎬 Build the scene'}
                     </button>
                     {sceneImageUrl && (
-                      <span className="text-[11px] font-bold" style={{ color: '#7cc0ff' }}>
-                        ✓ Scene ready — preview on the right.{' '}
-                        <button type="button" onClick={() => setSceneImageUrl(null)} className="underline" style={{ color: 'var(--muted2)', background: 'none', border: 'none', cursor: 'pointer' }}>
+                      <span className="text-[11px] font-bold" style={{ color: '#7cc0ff' }}><UiLabel>
+                        ✓ Scene ready — preview on the right.</UiLabel>{' '}
+                        <button type="button" onClick={() => setSceneImageUrl(null)} className="underline" style={{ color: 'var(--muted2)', background: 'none', border: 'none', cursor: 'pointer' }}><UiLabel>
                           use original photo
-                        </button>
+                        </UiLabel></button>
                       </span>
                     )}
                   </div>
@@ -1450,10 +1451,10 @@ export default function AvatarStudioClient({ isLoggedIn }: { isLoggedIn: boolean
 
           {/* 2 · Script */}
           <section className="neon-card p-5">
-            <h2 className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: 'var(--muted2)' }}>2 · What they say</h2>
+            <h2 className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: 'var(--muted2)' }}><UiLabel>2 · What they say</UiLabel></h2>
             {/* Idioma da narração (13/06) */}
             <div className="flex flex-wrap items-center gap-1.5 mb-3">
-              <span className="text-[10px] font-black uppercase tracking-widest mr-1" style={{ color: 'var(--muted)' }}>Language</span>
+              <span className="text-[10px] font-black uppercase tracking-widest mr-1" style={{ color: 'var(--muted)' }}><UiLabel>Language</UiLabel></span>
               {([['en', '🇺🇸 EN'], ['pt', '🇧🇷 PT'], ['es', '🇪🇸 ES']] as const).map(([code, label]) => (
                 <button
                   key={code}
@@ -1485,9 +1486,9 @@ export default function AvatarStudioClient({ isLoggedIn }: { isLoggedIn: boolean
                   color: scriptMode === 'verbatim' ? '#2997ff' : 'var(--muted2)',
                   cursor: busy ? 'not-allowed' : 'pointer',
                 }}
-              >
+              ><UiLabel>
                 ✍️ Say exactly this — word for word
-              </button>
+              </UiLabel></button>
               <button
                 type="button"
                 disabled={busy}
@@ -1499,9 +1500,9 @@ export default function AvatarStudioClient({ isLoggedIn }: { isLoggedIn: boolean
                   color: scriptMode === 'expand' ? '#2997ff' : 'var(--muted2)',
                   cursor: busy ? 'not-allowed' : 'pointer',
                 }}
-              >
+              ><UiLabel>
                 ✨ Expand into a full Short script (45–60s)
-              </button>
+              </UiLabel></button>
             </div>
             <textarea
               value={script}
@@ -1528,9 +1529,9 @@ export default function AvatarStudioClient({ isLoggedIn }: { isLoggedIn: boolean
                 disabled={busy}
                 className="rounded-lg px-3 py-2 text-[12px] font-bold"
                 style={{ background: adOpen ? 'rgba(41,151,255,0.15)' : 'rgba(255,255,255,0.04)', border: adOpen ? '1px solid rgba(41,151,255,0.5)' : '1px solid var(--border)', color: adOpen ? '#2997ff' : 'var(--muted2)', cursor: 'pointer' }}
-              >
+              ><UiLabel>
                 📦 Product Ad mode — sell a product UGC-style
-              </button>
+              </UiLabel></button>
               {adOpen && (
                 <div className="mt-2.5 flex flex-col gap-2">
                   <textarea
@@ -1573,7 +1574,7 @@ export default function AvatarStudioClient({ isLoggedIn }: { isLoggedIn: boolean
                     >
                       {adLoading ? '📦 Writing your ad…' : '📦 Write my ad script (15–30s)'}
                     </button>
-                    <span className="text-[11px]" style={{ color: 'var(--muted)' }}>Free — fills the script box above, then generate with your presenter.</span>
+                    <span className="text-[11px]" style={{ color: 'var(--muted)' }}><UiLabel>Free — fills the script box above, then generate with your presenter.</UiLabel></span>
                   </div>
                   {adError && <p className="text-xs font-semibold" style={{ color: '#f87171' }}>⚠️ {adError}</p>}
                 </div>
@@ -1596,12 +1597,12 @@ export default function AvatarStudioClient({ isLoggedIn }: { isLoggedIn: boolean
 
           {/* 2.5 · Voice (optional) — clone the user's voice */}
           <section className="neon-card p-5">
-            <h2 className="text-xs font-black uppercase tracking-widest mb-2" style={{ color: 'var(--muted2)' }}>
-              2.5 · Speak in your own voice <span style={{ color: '#2997ff' }}>(optional)</span>
+            <h2 className="text-xs font-black uppercase tracking-widest mb-2" style={{ color: 'var(--muted2)' }}><UiLabel>
+              2.5 · Speak in your own voice </UiLabel><span style={{ color: '#2997ff' }}><UiLabel>(optional)</UiLabel></span>
             </h2>
-            <p className="text-[11px] mb-3" style={{ color: 'var(--muted)' }}>
+            <p className="text-[11px] mb-3" style={{ color: 'var(--muted)' }}><UiLabel>
               Upload a clear ~30-60s voice sample (one speaker, little background noise) and the narration will be spoken in that voice. Only use a voice you have the right to use.
-            </p>
+            </UiLabel></p>
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
@@ -1630,11 +1631,11 @@ export default function AvatarStudioClient({ isLoggedIn }: { isLoggedIn: boolean
               onChange={(e) => handleVoiceClone(e.target.files?.[0] ?? null)}
             />
             {voiceId && (
-              <p className="text-[11px] mt-2 font-bold" style={{ color: '#7cc0ff' }}>
-                ✓ Voice cloned — the narration will speak in this voice.{' '}
-                <button type="button" onClick={() => setVoiceId(null)} className="underline" style={{ color: 'var(--muted2)', background: 'none', border: 'none', cursor: 'pointer' }}>
+              <p className="text-[11px] mt-2 font-bold" style={{ color: '#7cc0ff' }}><UiLabel>
+                ✓ Voice cloned — the narration will speak in this voice.</UiLabel>{' '}
+                <button type="button" onClick={() => setVoiceId(null)} className="underline" style={{ color: 'var(--muted2)', background: 'none', border: 'none', cursor: 'pointer' }}><UiLabel>
                   use a default voice
-                </button>
+                </UiLabel></button>
               </p>
             )}
             {voiceCloneError && <p className="text-xs mt-2 font-semibold" style={{ color: '#f87171' }}>{voiceCloneError}</p>}
@@ -1643,16 +1644,16 @@ export default function AvatarStudioClient({ isLoggedIn }: { isLoggedIn: boolean
           {/* 3 · Style (photo sources only — video is always full lipsync) */}
           {sourceKind === 'photo' && (
             <section className="neon-card p-5">
-              <h2 className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: 'var(--muted2)' }}>3 · How it looks</h2>
+              <h2 className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: 'var(--muted2)' }}><UiLabel>3 · How it looks</UiLabel></h2>
               {scriptMode === 'verbatim' && (
-                <p className="text-[11px] mb-2" style={{ color: 'var(--muted)' }}>
+                <p className="text-[11px] mb-2" style={{ color: 'var(--muted)' }}><UiLabel>
                   Word-for-word videos always show your face the whole time (they’re short — no b-roll needed).
-                </p>
+                </UiLabel></p>
               )}
               {scriptMode === 'expand' && (fidelity === 'real' || Boolean(sceneImageUrl)) && (
-                <p className="text-[11px] mb-2" style={{ color: 'var(--muted)' }}>
+                <p className="text-[11px] mb-2" style={{ color: 'var(--muted)' }}><UiLabel>
                   Max-realism and built-scene videos keep the presenter on screen for the full narration.
-                </p>
+                </UiLabel></p>
               )}
               <div
                 className="flex flex-wrap gap-2"
@@ -1664,18 +1665,18 @@ export default function AvatarStudioClient({ isLoggedIn }: { isLoggedIn: boolean
                   disabled={busy}
                   className="rounded-lg px-3 py-2 text-[12px] font-bold"
                   style={{ background: hookMode ? 'rgba(41,151,255,0.15)' : 'rgba(255,255,255,0.04)', border: hookMode ? '1px solid rgba(41,151,255,0.5)' : '1px solid var(--border)', color: hookMode ? '#2997ff' : 'var(--muted2)', cursor: 'pointer' }}
-                >
+                ><UiLabel>
                   ⚡ Hook intro — you open, b-roll tells the story
-                </button>
+                </UiLabel></button>
                 <button
                   type="button"
                   onClick={() => setHookMode(false)}
                   disabled={busy}
                   className="rounded-lg px-3 py-2 text-[12px] font-bold"
                   style={{ background: !hookMode ? 'rgba(41,151,255,0.15)' : 'rgba(255,255,255,0.04)', border: !hookMode ? '1px solid rgba(41,151,255,0.5)' : '1px solid var(--border)', color: !hookMode ? '#2997ff' : 'var(--muted2)', cursor: 'pointer' }}
-                >
+                ><UiLabel>
                   🎬 Full video — face the whole time
-                </button>
+                </UiLabel></button>
               </div>
               <div className="flex flex-wrap gap-2 mt-2.5">
                 <button
@@ -1684,41 +1685,41 @@ export default function AvatarStudioClient({ isLoggedIn }: { isLoggedIn: boolean
                   disabled={busy}
                   className="rounded-lg px-3 py-2 text-[12px] font-bold"
                   style={{ background: engine === 'presenter' ? 'rgba(41,151,255,0.15)' : 'rgba(255,255,255,0.04)', border: engine === 'presenter' ? '1px solid rgba(41,151,255,0.5)' : '1px solid var(--border)', color: engine === 'presenter' ? '#2997ff' : 'var(--muted2)', cursor: 'pointer' }}
-                >
+                ><UiLabel>
                   🎬 AI Presenter — fast & natural · 70 cr
-                </button>
+                </UiLabel></button>
                 <button
                   type="button"
                   onClick={() => setEngine('presenter_pro')}
                   disabled={busy}
                   className="rounded-lg px-3 py-2 text-[12px] font-bold"
                   style={{ background: engine === 'presenter_pro' ? 'rgba(41,151,255,0.15)' : 'rgba(255,255,255,0.04)', border: engine === 'presenter_pro' ? '1px solid rgba(41,151,255,0.5)' : '1px solid var(--border)', color: engine === 'presenter_pro' ? '#2997ff' : 'var(--muted2)', cursor: 'pointer' }}
-                >
+                ><UiLabel>
                   ✨ Presenter Pro — premium photo quality · 110 cr
-                </button>
+                </UiLabel></button>
                 <button
                   type="button"
                   onClick={() => setEngine('omnihuman')}
                   disabled={busy}
                   className="rounded-lg px-3 py-2 text-[12px] font-bold"
                   style={{ background: engine === 'omnihuman' ? 'rgba(41,151,255,0.15)' : 'rgba(255,255,255,0.04)', border: engine === 'omnihuman' ? '1px solid rgba(41,151,255,0.5)' : '1px solid var(--border)', color: engine === 'omnihuman' ? '#2997ff' : 'var(--muted2)', cursor: 'pointer' }}
-                >
+                ><UiLabel>
                   🕺 Body Motion — torso, hands & gestures · 110 cr
-                </button>
+                </UiLabel></button>
                 <button
                   type="button"
                   onClick={() => setEngine('fabric')}
                   disabled={busy}
                   className="rounded-lg px-3 py-2 text-[12px] font-bold"
                   style={{ background: engine === 'fabric' ? 'rgba(41,151,255,0.15)' : 'rgba(255,255,255,0.04)', border: engine === 'fabric' ? '1px solid rgba(41,151,255,0.5)' : '1px solid var(--border)', color: engine === 'fabric' ? '#2997ff' : 'var(--muted2)', cursor: 'pointer' }}
-                >
+                ><UiLabel>
                   🎙️ Classic — talking head · 110 cr
-                </button>
+                </UiLabel></button>
               </div>
               {engine !== 'fabric' && (
                 <div className="mt-3 rounded-xl px-3.5 py-3" style={{ background: 'rgba(41,151,255,0.06)', border: '1px solid rgba(41,151,255,0.2)' }}>
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--muted)' }}>Motion</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--muted)' }}><UiLabel>Motion</UiLabel></span>
                     {(['natural', 'energetic'] as const).map((style) => (
                       <button
                         key={style}
@@ -1755,20 +1756,20 @@ export default function AvatarStudioClient({ isLoggedIn }: { isLoggedIn: boolean
             </button>
             <p className="text-[12px] text-center" style={{ color: 'var(--muted)' }}>
               {/* KINEO-AVATAR-120-2026-07-06 — 120 universal credits per avatar video */}
-              {AVATAR_COST} credits · debited only on success ·{' '}
-              <span style={{ color: (avatarCredits ?? 0) >= AVATAR_COST ? '#2997ff' : '#f87171', fontWeight: 700 }}>
-                you have {avatarCredits === null ? '—' : avatarCredits}
+              {AVATAR_COST}<UiLabel> credits · debited only on success ·</UiLabel>{' '}
+              <span style={{ color: (avatarCredits ?? 0) >= AVATAR_COST ? '#2997ff' : '#f87171', fontWeight: 700 }}><UiLabel>
+                you have </UiLabel>{avatarCredits === null ? '—' : avatarCredits}
               </span>
               {(avatarCredits ?? AVATAR_COST) < AVATAR_COST && (
                 <>
-                  {' '}· <Link href="/pricing" style={{ color: '#2997ff' }}>get credits from {formatCheckoutMoney('usd', TIER_PRICES.starter.usd)}</Link>
+                  {' '}· <Link href="/pricing" style={{ color: '#2997ff' }}><UiLabel>get credits from </UiLabel>{formatCheckoutMoney('usd', TIER_PRICES.starter.usd)}</Link>
                 </>
               )}
             </p>
             {!isLoggedIn && (
               <p className="text-[12px] text-center" style={{ color: 'var(--muted2)' }}>
-                <Link href="/login?redirect=/avatar" style={{ color: '#2997ff', fontWeight: 700 }}>Sign in</Link> to create your avatar video.
-              </p>
+                <Link href="/login?redirect=/avatar" style={{ color: '#2997ff', fontWeight: 700 }}><UiLabel>Sign in</UiLabel></Link><UiLabel> to create your avatar video.
+              </UiLabel></p>
             )}
             {error && <p className="text-sm font-semibold rounded-xl px-4 py-3" style={{ color: '#fca5a5', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)' }} role="alert">⚠️ {error}</p>}
           </section>
@@ -1777,12 +1778,12 @@ export default function AvatarStudioClient({ isLoggedIn }: { isLoggedIn: boolean
               3). E-learning/corporate deliverable: WebM with embedded alpha. */}
           {sourceKind === 'photo' && faceUrl && (
             <section className="neon-card p-5">
-              <h2 className="text-xs font-black uppercase tracking-widest mb-1" style={{ color: 'var(--muted2)' }}>
+              <h2 className="text-xs font-black uppercase tracking-widest mb-1" style={{ color: 'var(--muted2)' }}><UiLabel>
                 5 · Gesture clips — transparent background
-              </h2>
-              <p className="text-[11px] mb-3" style={{ color: 'var(--muted)' }}>
+              </UiLabel></h2>
+              <p className="text-[11px] mb-3" style={{ color: 'var(--muted)' }}><UiLabel>
                 Short clips of your presenter waving, pointing, presenting — delivered as WebM with a REAL transparent background. Drop them straight into Storyline, Premiere, CapCut or any slide. No green screen, no keying.
-              </p>
+              </UiLabel></p>
               <div className="flex flex-wrap gap-2 mb-2.5">
                 {([['wave', '👋 Wave'], ['point', '👉 Point'], ['thumbs_up', '👍 Thumbs up'], ['hold_tablet', '📱 Hold tablet'], ['nod', '🙂 Nod'], ['explain', '🗣️ Explain']] as const).map(([k, label]) => (
                   <button
@@ -1807,8 +1808,8 @@ export default function AvatarStudioClient({ isLoggedIn }: { isLoggedIn: boolean
                     className="rounded-lg px-3 py-1.5 text-[11px] font-bold"
                     style={{ background: gestureDuration === d ? 'rgba(41,151,255,0.15)' : 'rgba(255,255,255,0.04)', border: gestureDuration === d ? '1px solid rgba(41,151,255,0.5)' : '1px solid var(--border)', color: gestureDuration === d ? '#2997ff' : 'var(--muted2)', cursor: 'pointer' }}
                   >
-                    {d}s · {d === '5' ? 15 : 25} credits
-                  </button>
+                    {d}s · {d === '5' ? 15 : 25}<UiLabel> credits
+                  </UiLabel></button>
                 ))}
               </div>
               <div className="flex items-center gap-3 flex-wrap">
@@ -1821,16 +1822,16 @@ export default function AvatarStudioClient({ isLoggedIn }: { isLoggedIn: boolean
                 >
                   {gestureBusy ? '🫥 Making it transparent…' : '🫥 Generate transparent clip'}
                 </button>
-                <span className="text-[11px]" style={{ color: 'var(--muted)' }}>auto-refunded if it fails</span>
+                <span className="text-[11px]" style={{ color: 'var(--muted)' }}><UiLabel>auto-refunded if it fails</UiLabel></span>
               </div>
               {gestureError && <p className="text-xs mt-2 font-semibold" style={{ color: '#f87171' }}>⚠️ {gestureError}</p>}
               {gestureUrl && (
                 <div className="mt-3 flex flex-col gap-2">
                   <video src={gestureUrl} controls loop autoPlay muted playsInline style={{ width: 200, borderRadius: 12, background: 'repeating-conic-gradient(#2a2a2e 0% 25%, #1a1a1d 0% 50%) 50% / 20px 20px' }} />
                   <div className="flex flex-wrap gap-3">
-                    <a href={gestureUrl} download className="text-[12px] font-bold underline" style={{ color: '#2997ff' }}>⬇️ Download transparent WebM</a>
+                    <a href={gestureUrl} download className="text-[12px] font-bold underline" style={{ color: '#2997ff' }}><UiLabel>⬇️ Download transparent WebM</UiLabel></a>
                     {gestureRawUrl && (
-                      <a href={gestureRawUrl} download className="text-[12px] font-bold underline" style={{ color: 'var(--muted2)' }}>⬇️ Original MP4 (with background)</a>
+                      <a href={gestureRawUrl} download className="text-[12px] font-bold underline" style={{ color: 'var(--muted2)' }}><UiLabel>⬇️ Original MP4 (with background)</UiLabel></a>
                     )}
                   </div>
                 </div>
@@ -1863,7 +1864,7 @@ export default function AvatarStudioClient({ isLoggedIn }: { isLoggedIn: boolean
               ) : (
                 <div className="flex h-full w-full flex-col items-center justify-center gap-2" style={{ color: 'var(--muted)' }}>
                   <span style={{ fontSize: 40 }}>🎭</span>
-                  <span className="text-xs font-semibold">Pick a face to preview</span>
+                  <span className="text-xs font-semibold"><UiLabel>Pick a face to preview</UiLabel></span>
                 </div>
               )}
               {busy && (
@@ -1884,9 +1885,9 @@ export default function AvatarStudioClient({ isLoggedIn }: { isLoggedIn: boolean
               download
               className="btn-neon w-full text-center px-5 py-3 text-sm"
               style={{ textDecoration: 'none', maxWidth: 340 }}
-            >
+            ><UiLabel>
               ⬇ Download MP4
-            </a>
+            </UiLabel></a>
           )}
           {phase === 'done' && (
             <button
@@ -1901,9 +1902,9 @@ export default function AvatarStudioClient({ isLoggedIn }: { isLoggedIn: boolean
               }}
               className="text-[12px] font-bold"
               style={{ color: 'var(--muted2)', background: 'none', border: 'none', cursor: 'pointer' }}
-            >
+            ><UiLabel>
               ↺ Make another
-            </button>
+            </UiLabel></button>
           )}
         </div>
       </div>
