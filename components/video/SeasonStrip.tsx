@@ -46,6 +46,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 
+import { acessoDaTemporada } from '@/lib/temporada'
+
 export interface SeasonEpisode {
   n: number
   title: string
@@ -148,12 +150,17 @@ export default function SeasonStrip({ videoId, onPick, onEvent }: Props) {
     const marcarVisto = () => {
       if (seenRef.current) return
       seenRef.current = true
+      // O evento emite os DOIS números que decidem a visibilidade, e o
+      // `locked` sai da MESMA conta que pinta o cadeado — foi a divergência
+      // entre eles que escondeu a oferta na primeira exposição real.
+      const acesso = acessoDaTemporada(eps.length, data.affordableEpisodes)
       onEvent?.('season_shown', {
         episodes: eps.length,
         affordable_episodes: data.affordableEpisodes,
         episode_cost: data.episodeCost,
         balance: data.balance,
-        locked: eps.filter((e) => !e.affordable).length,
+        locked: acesso.bloqueados,
+        offer_shown: acesso.bloqueados > 0,
       })
     }
     const el = rootRef.current
@@ -192,7 +199,8 @@ export default function SeasonStrip({ videoId, onPick, onEvent }: Props) {
   if (!data?.season) return null
   const { season, affordableEpisodes } = data
   const episodes = season.episodes
-  const bloqueados = episodes.filter((e) => !e.affordable).length
+  // POSICIONAL, não por episódio: "quantos cabem?" e não "cabe um?".
+  const { liberados, bloqueados } = acessoDaTemporada(episodes.length, affordableEpisodes)
 
   return (
     <div
@@ -229,16 +237,18 @@ export default function SeasonStrip({ videoId, onPick, onEvent }: Props) {
           <span style={{ minWidth: 34, fontVariantNumeric: 'tabular-nums' }}>Ep 1</span>
           <span>✅ {rotuloDoEpisodio1(season.fromTitle)}</span>
         </li>
-        {episodes.map((ep) => (
+        {episodes.map((ep, i) => {
+          const desbloqueado = i < liberados
+          return (
           <li key={ep.n}>
             <button
               type="button"
-              disabled={!ep.affordable}
+              disabled={!desbloqueado}
               onClick={() => {
                 onEvent?.('season_episode_clicked', {
                   episode: ep.n,
                   cost: ep.cost,
-                  affordable: ep.affordable,
+                  affordable: desbloqueado,
                 })
                 onPick(ep)
               }}
@@ -251,10 +261,10 @@ export default function SeasonStrip({ videoId, onPick, onEvent }: Props) {
                 padding: '9px 10px',
                 borderRadius: 10,
                 border: '1px solid rgba(148,163,184,.22)',
-                background: ep.affordable ? 'rgba(59,130,246,.10)' : 'transparent',
+                background: desbloqueado ? 'rgba(59,130,246,.10)' : 'transparent',
                 color: 'inherit',
-                cursor: ep.affordable ? 'pointer' : 'default',
-                opacity: ep.affordable ? 1 : 0.45,
+                cursor: desbloqueado ? 'pointer' : 'default',
+                opacity: desbloqueado ? 1 : 0.45,
                 font: 'inherit',
                 fontSize: 13,
               }}
@@ -265,12 +275,13 @@ export default function SeasonStrip({ videoId, onPick, onEvent }: Props) {
               <span style={{ flex: 1 }}>{ep.title}</span>
               {typeof ep.cost === 'number' ? (
                 <span style={{ fontSize: 12, opacity: 0.65, whiteSpace: 'nowrap' }}>
-                  {ep.affordable ? `${ep.cost} cr` : `🔒 ${ep.cost} cr`}
+                  {desbloqueado ? `${ep.cost} cr` : `🔒 ${ep.cost} cr`}
                 </span>
               ) : null}
             </button>
           </li>
-        ))}
+          )
+        })}
       </ol>
 
       {/* A MOLDURA, e ela não inventa preço: o plano deixa de ser "N créditos"
@@ -286,9 +297,7 @@ export default function SeasonStrip({ videoId, onPick, onEvent }: Props) {
           }}
         >
           <span style={{ opacity: 0.78 }}>
-            {typeof affordableEpisodes === 'number' && affordableEpisodes > 0
-              ? `Your balance covers ${affordableEpisodes} of these. `
-              : ''}
+            {liberados > 0 ? `Your balance covers ${liberados} of these. ` : ''}
             {bloqueados === 1 ? 'The last episode' : `The remaining ${bloqueados} episodes`} of your
             season unlock with a plan.
           </span>{' '}
