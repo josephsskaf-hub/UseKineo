@@ -81,6 +81,7 @@ import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emai
 import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
 import { pickMomentumTopic } from '@/lib/momentumTopic'
 import { composerUrl } from '@/lib/lifecycle/composerUrl'
+import { EPISODIO_ESCRITO_EVENT, lerGravado, memoriaAindaVale } from '@/lib/nextEpisodeMemoria'
 
 export const maxDuration = 300
 export const dynamic = 'force-dynamic'
@@ -179,22 +180,46 @@ function planoUrl(): string {
   return `${SITE}/pricing?utm_source=lifecycle&utm_medium=email&utm_campaign=${CAMPANHA}`
 }
 
-/** O destino do "continuar a série". Com título, a caixa abre preenchida;
- *  sem título, abre vazia — e a copy sabe disso (ver `corpoTexto`). */
-function continuarUrl(filme: string | null): string {
-  return composerUrl({ base: SITE, campaign: CAMPANHA, prompt: filme })
+/** ═══ sprint-assinaturas #15 (06/09) — A CARTA NOMEIA O EPISÓDIO QUE A CASA
+ *  JÁ ESCREVEU, em vez de repetir o tema do episódio 1.
+ *
+ *  O QUE ESTAVA ERRADO. Esta carta promete "Episode 2" e entrega, no assunto
+ *  e no prefill, o título do PRIMEIRO filme — ou seja, lida de fora, ela pede
+ *  para a pessoa fazer o mesmo vídeo de novo. Enquanto isso `/api/next-episode`
+ *  escreve um episódio 2 de verdade (título próprio + narração) a cada filme
+ *  entregue, e desde o SHA 2b764751 (#14) esse texto fica GRAVADO em
+ *  `events.next_episode_written`, chaveado por `session_id = video_id`.
+ *  O próprio módulo da memória registra o defeito: "QUATRO famílias de e-mail
+ *  dizem que o próximo episódio já está escrito e mandam um link com a
+ *  SEMENTE, não com o texto". Esta é a primeira carta a usar a memória.
+ *
+ *  O QUE MUDA: quando existe episódio gravado e vivo (TTL de 14 dias), o
+ *  assunto e o prefill passam a ser o TÍTULO DELE. Sem memória, tudo sai byte
+ *  a byte como hoje — mesma função, mesma copy, mesmo link.
+ *
+ *  O QUE A COPY NÃO DIZ: que o roteiro inteiro vem carregado. O link leva um
+ *  `prompt`, não o texto; a memória completa só é servida dentro do app (#14).
+ *  Prometer o roteiro no e-mail seria a mentira que o #14 acabou de remover.
+ *  Nenhum preço, crédito, cupom ou oferta nasce aqui. */
+function continuarUrl(filme: string | null, episodio: string | null): string {
+  return composerUrl({ base: SITE, campaign: CAMPANHA, prompt: episodio ?? filme })
 }
 
-function assunto(filme: string | null): string {
-  // Nomeia o FILME, não o produto. A isca é o trabalho que a pessoa já fez.
+function assunto(filme: string | null, episodio: string | null): string {
+  // Com episódio escrito, a isca é o que a pessoa NUNCA viu — o episódio 2
+  // que a casa já redigiu. Sem ele, nomeia o FILME: o trabalho que ela fez.
+  if (episodio) return `Episode 2: "${episodio}"`
   return filme ? `Episode 2 of "${filme}"` : 'Your next episode is ready to write'
 }
 
-function corpoTexto(filme: string | null, saldo: number, custo: number, userId: string): string {
+function corpoTexto(filme: string | null, saldo: number, custo: number, userId: string, episodio: string | null): string {
   const nome = filme ? `"${filme}"` : 'the short you made with Kineo'
-  // A frase do meio muda COM o link: com título a caixa abre preenchida e a
-  // carta pode dizer isso; sem título ela não promete nada disso.
-  const ponte = filme
+  // A frase do meio muda COM o link: com episódio escrito ela NOMEIA o
+  // episódio 2; com título ela nomeia o filme 1; sem nada não promete nada.
+  const ponte = episodio
+    ? `Episode 2 is already written — it is called "${episodio}". The link below
+opens the studio with it in the box, so you are not starting from a blank page.`
+    : filme
     ? `The link below opens the studio with "${filme}" already typed into the box,
 so Episode 2 does not start on a blank page.`
     : `The link below opens the studio straight on the composer, so you can pick
@@ -207,7 +232,7 @@ That is the whole reason the next one did not start.
 ${ponte}
 
 Continue the series:
-${continuarUrl(filme)}
+${continuarUrl(filme, episodio)}
 
 If you want the bigger engines to keep running, the plans are here:
 ${planoUrl()}
@@ -222,16 +247,18 @@ Reply to this and tell me what you were making. I read these.
 ${emailFooterText(userId)}`
 }
 
-function corpoHtml(filme: string | null, saldo: number, custo: number, userId: string): string {
+function corpoHtml(filme: string | null, saldo: number, custo: number, userId: string, episodio: string | null): string {
   const nome = filme ? `&ldquo;${escaparHtml(filme)}&rdquo;` : 'the short you made with Kineo'
   return `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;font-size:15px;line-height:1.6;color:#1a1a1a;max-width:520px">
 <p>You made <strong>${nome}</strong> — and then the credits ran out.</p>
 <p>Here is exactly where you stand: your last film cost <strong>${custo} credits</strong>, and you have <strong>${saldo}</strong>. That is the whole reason the next one did not start.</p>
-<p>${filme
+<p>${episodio
+  ? `Episode&nbsp;2 is already written — it is called <strong>&ldquo;${escaparHtml(episodio)}&rdquo;</strong>. The button below opens the studio with it in the box, so you are not starting from a blank page.`
+  : filme
   ? `The button below opens the studio with <strong>&ldquo;${escaparHtml(filme)}&rdquo;</strong> already typed into the box, so Episode&nbsp;2 does not start on a blank page.`
   : 'The button below opens the studio straight on the composer, so you can pick the thread back up without hunting for it.'}</p>
 <p style="margin:26px 0">
-  <a href="${continuarUrl(filme)}" style="background:#2997ff;color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:700;display:inline-block">Continue the series &rarr;</a>
+  <a href="${continuarUrl(filme, episodio)}" style="background:#2997ff;color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:700;display:inline-block">Continue the series &rarr;</a>
 </p>
 <p style="font-size:14px;color:#555">If you want the bigger engines to keep running, <a href="${planoUrl()}" style="color:#2997ff">the plans are here</a>.</p>
 <p style="font-size:14px;color:#555">When you open the studio it will show you, on screen, what your current balance still covers — I would rather you see the real number there than take my word for it in an email.</p>
@@ -244,6 +271,9 @@ type Destinatario = {
   id: string
   email: string
   filme: string | null
+  /** Título do episódio 2 que a casa JÁ escreveu para o último filme desta
+   *  pessoa (memória do #14). null = não existe ou venceu → carta de hoje. */
+  episodio: string | null
   saldo: number
   custo: number
   fonte: string
@@ -272,25 +302,61 @@ export async function GET(req: NextRequest) {
     const since = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString()
     const { data: vids, error: vidsErr } = await admin
       .from('videos')
-      .select('user_id, credits_used, created_at, title, topic, status')
+      .select('id, user_id, credits_used, created_at, title, topic, status')
       .eq('status', 'completed')
       .gte('created_at', since)
       .order('created_at', { ascending: false })
       .limit(5000)
     if (vidsErr) return NextResponse.json({ error: 'videos query failed' }, { status: 503 })
 
-    const ultimoDe = new Map<string, { custo: number; filme: string | null }>()
+    const ultimoDe = new Map<string, { custo: number; filme: string | null; videoId: string | null }>()
     for (const v of vids ?? []) {
       const uid = (v as { user_id: string }).user_id
       if (!uid || ultimoDe.has(uid)) continue // já ordenado por created_at desc
       const bruto = (v as { credits_used: number | null }).credits_used
+      const vid = (v as { id: string | null }).id
       ultimoDe.set(uid, {
         custo: typeof bruto === 'number' && bruto > 0 ? Math.floor(bruto) : 0,
         filme: tituloDoFilme((v as { title: string | null }).title, (v as { topic: string | null }).topic),
+        videoId: typeof vid === 'string' && vid ? vid : null,
       })
     }
     const ids = [...ultimoDe.keys()]
     if (ids.length === 0) return NextResponse.json({ mode: 'DRY_RUN', elegiveis: 0 })
+
+    // ── 1b. o EPISÓDIO 2 que a casa já escreveu para aquele filme (#14) ─────
+    // Chave = `session_id = video_id`, exatamente como o escritor grava. A
+    // leitura reusa `lerGravado`/`memoriaAindaVale` de propósito: uma segunda
+    // régua de "o que é um episódio válido" divergiria da do produto, e é
+    // esse o erro que a memória `predicado-do-cobrador-nao-se-redigita`
+    // registra. Falha ABERTA: qualquer erro aqui deixa `episodioDe` vazio e a
+    // carta sai exatamente como saía antes — nunca deixa de enviar.
+    const episodioDe = new Map<string, string>()
+    const videoIds = [...ultimoDe.values()].map((u) => u.videoId).filter((v): v is string => !!v)
+    if (videoIds.length > 0) {
+      const { data: mem, error: memErr } = await admin
+        .from('events')
+        .select('session_id, metadata, created_at')
+        .eq('name', EPISODIO_ESCRITO_EVENT)
+        .in('session_id', videoIds)
+        .order('created_at', { ascending: false })
+        .limit(5000)
+      if (!memErr) {
+        const agora = Date.now()
+        const porVideo = new Map<string, string>()
+        for (const row of mem ?? []) {
+          const sid = (row as { session_id: string | null }).session_id
+          if (!sid || porVideo.has(sid)) continue // já ordenado desc: o mais novo vence
+          if (!memoriaAindaVale((row as { created_at: string | null }).created_at, agora)) continue
+          const ep = lerGravado((row as { metadata: unknown }).metadata)
+          if (ep) porVideo.set(sid, ep.title)
+        }
+        for (const [uid, u] of ultimoDe) {
+          const t = u.videoId ? porVideo.get(u.videoId) : undefined
+          if (t) episodioDe.set(uid, t)
+        }
+      }
+    }
 
     // ── 2. perfis + carimbos de campanha ───────────────────────────────────
     const colunas = [
@@ -338,7 +404,7 @@ export async function GET(req: NextRequest) {
       // Quem tocou o checkout pertence ao resgate de checkout.
       if (tocouCheckout.has(id)) continue
       candidatos.push({
-        id, email, filme: ultimo.filme, saldo, custo: ultimo.custo,
+        id, email, filme: ultimo.filme, episodio: episodioDe.get(id) ?? null, saldo, custo: ultimo.custo,
         fonte: ((raw.utm_source as string) || (raw.signup_utm_source as string) || 'sem fonte'),
       })
     }
@@ -365,8 +431,13 @@ export async function GET(req: NextRequest) {
           acc[d.fonte] = (acc[d.fonte] ?? 0) + 1; return acc
         }, {}),
         sem_titulo: destinatarios.filter((d) => !d.filme).length,
-        assunto_exemplo: assunto(destinatarios[0]?.filme ?? null),
-        lista: destinatarios.map((d) => `${d.email} · ${d.fonte} · saldo ${d.saldo} · último custou ${d.custo} · ${d.filme ?? '(sem título)'}`),
+        // O denominador da entrega do #15: quantas cartas deste lote nomeiam o
+        // episódio 2 escrito. Começa baixo por construção — a memória só passa
+        // a existir para filmes entregues depois do SHA 2b764751 (06/09 09:22
+        // UTC) — e cresce a cada filme. Medir ADOÇÃO, nunca supor.
+        com_episodio_escrito: destinatarios.filter((d) => !!d.episodio).length,
+        assunto_exemplo: assunto(destinatarios[0]?.filme ?? null, destinatarios[0]?.episodio ?? null),
+        lista: destinatarios.map((d) => `${d.email} · ${d.fonte} · saldo ${d.saldo} · último custou ${d.custo} · ${d.filme ?? '(sem título)'}${d.episodio ? ` · ep2 escrito: ${d.episodio}` : ''}`),
         from: FROM_EMAIL,
         hint: 'Append &confirm=SEND (optionally &limit=N, máx 30) to send.',
       })
@@ -382,9 +453,9 @@ export async function GET(req: NextRequest) {
           headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({
             from: FROM_EMAIL, to: d.email, reply_to: REPLY_TO,
-            subject: assunto(d.filme),
-            text: corpoTexto(d.filme, d.saldo, d.custo, d.id),
-            html: corpoHtml(d.filme, d.saldo, d.custo, d.id),
+            subject: assunto(d.filme, d.episodio),
+            text: corpoTexto(d.filme, d.saldo, d.custo, d.id, d.episodio),
+            html: corpoHtml(d.filme, d.saldo, d.custo, d.id, d.episodio),
             headers: unsubscribeHeaders(d.id),
           }),
         })
@@ -392,7 +463,13 @@ export async function GET(req: NextRequest) {
         // Carimbo SÓ no sucesso — é o que garante "1 por pessoa" de verdade.
         await admin.from('events').insert({
           user_id: d.id, name: SENT_EVENT,
-          metadata: { fonte: d.fonte, saldo: d.saldo, custo_ultimo: d.custo, tinha_titulo: !!d.filme },
+          metadata: {
+            fonte: d.fonte, saldo: d.saldo, custo_ultimo: d.custo, tinha_titulo: !!d.filme,
+            // Separa as duas cartas no placar: quem recebeu o episódio NOMEADO
+            // e quem recebeu a semente. Sem isto o CTR das duas vira um número
+            // só e a entrega do #15 fica impossível de medir.
+            tinha_episodio_escrito: !!d.episodio,
+          },
         })
         enviados++
         resultados.push({ email: d.email, outcome: 'sent' })
