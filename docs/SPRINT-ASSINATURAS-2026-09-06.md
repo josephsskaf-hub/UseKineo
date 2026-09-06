@@ -862,3 +862,59 @@ absurda — precisa de texto próprio. **Não vou inventar oferta nem preço.**
 19,7). Ali o cartão calar é **certo** — a resposta honesta é "espere o render
 terminar", não "compre". Vender para quem já tem crédito preso num render seria
 a pior copy possível. Fica registrado como pedido, não como código meu.
+
+---
+
+### #8 (revisada) — 02:30→02:40 BRT — RETIRO o claim, e conserto o guardião que a #7 deixou cego
+
+**RETIRO O CLAIM DA #8 ACIMA, e o motivo é honesto:** quando escrevi o claim eu
+ainda não tinha lido o `d94ebd0b`. A outra sessão **está dentro dos dois
+arquivos agora** — acabou de acrescentar o estado `attempt_lost` ao
+`app/api/next-action/route.ts`, uma **terceira** montagem no `GenerateClient`
+(`phase === 'idle'`, `surface="generate_step_1"`) e verificações novas no meu
+guardião, tudo nos últimos ~30 minutos.
+
+O buraco que eu ia fechar (`free_fast_limit` não vira `dry` porque o filme
+grátis custa 0) mora **exatamente na função de `state`** que ela acabou de
+editar. Duas sessões reescrevendo o mesmo cálculo em paralelo é como se produz
+o pior tipo de conflito: o que o git resolve limpo e a lógica não. **Segurar o
+claim seria vaidade; largar é a decisão certa.** Spec exata no PEDIDOS.
+
+#### O QUE EU FIZ NO LUGAR, e valia mais: o guardião estava CEGO
+
+Fui conferir o trabalho dela contra o guardião que eu escrevi ontem à noite, e
+o guardião **passava 49/49 mentindo**:
+
+```
+check('montado nas TRES superficies, e so nelas', montagens.length === 3)
+const superficies = telaCodigo.match(/<NextActionCard surface="([a-z_]+)"/g)
+check('cada montagem tem superficie PROPRIA', new Set(superficies).size === 2)
+```
+
+A classe de caractere é **`[a-z_]+`, sem dígito**. A terceira montagem chama-se
+**`generate_step_1`** — com um `1` no fim. Ela **não casava**: `superficies`
+vinha com 2 nomes, `size === 2` passava, e a checagem que existe para impedir
+duas montagens de compartilharem superfície **não enxergava a terceira**.
+Provado no node: a regex antiga devolve `null` para essa string, a corrigida
+devolve a montagem.
+
+Consequência real, não teórica: **superfície repetida funde duas coortes num
+número só** — e o placar deste ciclo inteiro depende de separar
+`generate_upgrade_modal` (recusa) de `generate_done_screen` (filme entregue) de
+`generate_step_1` (tentativa perdida). Placar cego é exatamente o que essa
+verificação existia para barrar.
+
+**A correção não é só o `0-9`.** É **amarrar as duas contagens**:
+`superficies.length === montagens.length`. Enquanto isso for exigido, nenhuma
+montagem futura pode sumir da checagem por causa do nome que escolherem — o
+defeito não pode voltar por outro caminho.
+
+**TESTES:** guardião **49 → 50**, verde. Falsificado: com duas montagens
+compartilhando `generate_done_screen`, a checagem de unicidade **reprova**
+(antes passaria). Nada do trabalho dela foi tocado — só o guardião.
+
+**NOTA DE MÉTODO:** este é o terceiro guardião do dia que ficava verde sem
+cobrir o que anunciava (os outros dois: `indexOf` devolvendo −1, e o removedor
+de comentários engolindo `//` de URL). A família é sempre a mesma: **um check
+que não distingue "ausente" de "correto"**. Vale reler qualquer regex de
+guardião procurando classe de caractere estreita demais.

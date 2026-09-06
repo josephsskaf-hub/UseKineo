@@ -83,8 +83,19 @@ const montagens = telaCodigo.match(/<NextActionCard[^>]*\/>/g) || []
 // realmente alcanca — ela nao passa nem pela tela de filme pronto nem pelo
 // modal de saldo.
 check('montado nas TRES superficies, e so nelas', montagens.length === 3)
-const superficies = (telaCodigo.match(/<NextActionCard surface="([a-z_]+)"/g) || []).sort()
-check('cada montagem tem superficie PROPRIA', new Set(superficies).size === 2)
+// ⚠ ESTA LINHA JA ESTAVA CEGA, e o guardiao ficava VERDE por isso (achado
+// 06/09 02:35). A classe de caractere era `[a-z_]+` — SEM DIGITO. A terceira
+// montagem chama-se `generate_step_1`, com um `1` no fim, entao ela NAO casava:
+// `superficies` vinha com 2 nomes, `size === 2` passava, e a checagem que
+// existe para impedir duas montagens de compartilharem superficie **nao
+// enxergava a terceira**. Placar cego e exatamente o que ela deveria barrar.
+//
+// A correcao nao e so o `0-9`: e AMARRAR as duas contagens. Enquanto
+// `superficies.length` tiver de ser igual a `montagens.length`, nenhuma
+// montagem futura pode sumir da checagem por causa do nome que escolheram.
+const superficies = (telaCodigo.match(/<NextActionCard surface="([a-z0-9_]+)"/g) || []).sort()
+check('toda montagem foi CAPTURADA pela regex de superficie', superficies.length === montagens.length)
+check('cada montagem tem superficie PROPRIA', new Set(superficies).size === montagens.length)
 check('montado atras da razao de falta de credito (modal)', /\{reasonHasCreditFit && <NextActionCard surface="generate_upgrade_modal" \/>\}/.test(telaCodigo))
 check('montado no fim da geracao (tela de filme pronto)', /\{phase === 'done' && <NextActionCard surface="generate_done_screen" \/>\}/.test(telaCodigo))
 check('importado por caminho de alias', /import NextActionCard from '@\/components\/NextActionCard'/.test(tela))
