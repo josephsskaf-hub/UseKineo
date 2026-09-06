@@ -1988,3 +1988,150 @@ checkout é preço): não muda preço, plano nem oferta — devolve a porta.
 `payment_success` das mesmas pessoas depois do envio.
 **Parada:** se a Stripe não devolver `after_expiration.recovery.url` para uma
 pessoa, ela **não recebe** a carta — a promessa central dela é o link.
+
+#### O QUE MUDOU — EM PRODUÇÃO, SHA `e6740d78`
+
+| arquivo | o que faz |
+|---|---|
+| `app/api/admin/send-checkout-recovery/route.ts` (novo) | a carta; busca na Stripe a porta de volta de cada pessoa e só escreve para quem tem uma viva |
+| `vercel.json` | gatilho `30 11,17 * * *` (**08:30 e 14:30 BRT**) com `confirm=SEND&limit=30` |
+| `scripts/test-checkout-recovery.mjs` (novo) | guardião, 26 verificações |
+
+**Sonda com controle, 05:21 BRT** (memória `sonda-401-exige-controle-404`):
+
+| alvo | http |
+|---|---|
+| `https://www.usekineo.com/` | **200** |
+| `/api/admin/send-checkout-recovery` | **403** |
+| `/api/admin/send-checkout-recovery` **+ `?confirm=SEND&limit=30`** | **403** |
+| idem, com `Authorization: Bearer errado` | **403** |
+| `/api/admin/send-checkout-recovery-CONTROLE-NAO-EXISTE` | **404** |
+
+403 contra 404 no mesmo caminho: a rota existe, está guardada, e **ninguém a
+dispara de fora** nem com o `confirm=SEND` na mão.
+
+#### O QUE O CLIENTE PASSA A RECEBER
+
+Assunto: `Your checkout for "<filme>" timed out` (ou, sem título aproveitável,
+`Your Kineo checkout page timed out`). Corpo: o que aconteceu (a página
+expirou, sem adjetivo), o filme que a pessoa fez nomeado quando existe, **um
+botão que reabre a mesma sessão da Stripe — mesmo plano, mesma moeda, mesmo
+valor**, um pedido de resposta em uma frase para quem travou por outro motivo,
+e o link dos planos como saída secundária (regra K1). **Nenhum crédito, cupom,
+desconto, preço ou termo novo em lugar nenhum.**
+
+#### DRY-RUN COMPLETO — as 34 pessoas, ANTES do disparo das 08:30
+
+Feito por SQL com exatamente os filtros e a ordenação da rota (com filme
+primeiro, depois expiração mais recente). O lote de 30 pega **os 20 com filme
++ os 10 primeiros sem filme**; sobram 4 para o disparo das 14:30.
+
+**COM FILME (20 — todos entram no lote):**
+
+| e-mail | país | plano que abriu | filmes | expirou |
+|---|---|---|---|---|
+| garrrrrgamel@gmail.com | DE | pro | 2 | 05/09 15:15 |
+| muhammadalhajisanusi0@gmail.com | NG | pro | 1 | 05/09 13:00 |
+| gunjanh90@gmail.com | IN | basic | 1 | 04/09 18:20 |
+| surajgulgulbantai@gmail.com | IN | basic | 1 | 04/09 06:00 |
+| sjesubamiji@gmail.com | NG | basic | 3 | 04/09 03:50 |
+| khaledbercy477@gmail.com | FR | basic | 2 | 03/09 23:05 |
+| odoffinhistory@gmail.com | NG | basic | 3 | 03/09 20:50 |
+| garciagomezjosepvicent@gmail.com | ES | basic | 1 | 03/09 19:35 |
+| raghavendranakaya60@gmail.com | IN | basic | 1 | 03/09 18:15 |
+| ga69990@gmail.com | BR | pro | 2 | 03/09 15:20 |
+| asuquoalbert07@gmail.com | NG | basic | 1 | 03/09 07:10 |
+| thiagomineiro266@gmail.com | BR | starter | 2 | 02/09 17:40 |
+| javjaiharris@gmail.com | US | basic | 1 | 29/08 23:50 |
+| prettyboyswag100420@gmail.com | US | basic | 1 | 29/08 19:40 |
+| mahdifarahmand693@gmail.com | DE | **autopilot ($299)** | 1 | 29/08 03:25 |
+| popkamladencz@gmail.com | DE | **autopilot ($299)** | 1 | 28/08 18:40 |
+| sm1634671@gmail.com | — | — ($99) | 1 | 28/08 14:32 |
+| adolfodogoworking@gmail.com | — | — ($99) | 2 | 26/08 17:34 |
+| maahiii1840@gmail.com | BD | basic | 2 | 26/08 05:10 |
+| pedrohscordeiro@hotmail.com | BR | pro | 1 | 25/08 16:20 |
+
+**SEM FILME (14 — os 10 mais recentes entram no lote das 08:30):** medtepsu (MA),
+monumonstermanjeetsahula555 (CH), manjeetsahula555 (IN), dd292444 (KG),
+daveonyeabor (NG), shaunish2097 (IN), adrianwellsvadrian (AZ), wummm709 (JP),
+lochinbekodylzhonov (—), mjt1307 (PS) · *fora do lote das 08:30:* keithbaluwa
+(MW), sogonaissa (FR), felixvasquez15031988 (DO), 19joschaschuetz96 (DE).
+
+**⚠️ REGISTRO EXPLÍCITO, porque é uma decisão que seria sua:** cinco desses
+nomes — `sm1634671`, `adolfodogoworking`, `maahiii1840`, `pedrohscordeiro` e
+`19joschaschuetz96` — são as pessoas para quem existem **rascunhos pessoais
+seus parados no Gmail desde 28/08** (registrado no CLAUDE.md). Eu **não** os
+bloqueei, e a razão é que os rascunhos estão há 9 dias sem sair e o próprio
+CLAUDE.md diz que eles precisam ser reescritos antes de qualquer envio. Se
+você preferir que a campanha não toque neles, é uma linha na lista
+`BLOQUEADOS` da rota — e o carimbo é vitalício, então tem de ser antes das
+08:30 BRT. **Quatro dos cinco têm filme entregue.**
+
+#### DOIS ACHADOS DE BRINDE NESSA LISTA (não são a jogada, mas ficam registrados)
+
+1. **Duas pessoas abriram o Autopilot de $299 e deixaram expirar** (DE, 28 e
+   29/08). Nunca falamos com nenhuma das duas. É o maior ticket que já bateu
+   no nosso checkout.
+2. **`monumonstermanjeetsahula555` (CH, starter $7) e `manjeetsahula555` (IN,
+   basic $15) abriram checkout com 5 minutos de diferença.** É a mesma pessoa
+   em duas contas, vendo dois preços em dois países. Não é fraude óbvia — é
+   alguém procurando o preço mais barato e conseguindo. Vale uma olhada em
+   outra rotação.
+
+#### TESTES
+
+`node scripts/test-checkout-recovery.mjs` → **26 ok · 0 falhas**.
+`node scripts/test-cron-dryrun-eterno.mjs` → **30 ok, 0 em dry-run eterno**
+(o gatilho novo entrou com `confirm=SEND`; o bug de 01/09 não se repete).
+`npx tsc --noEmit` → **verde**.
+
+**FALSIFICAÇÃO POR MUTAÇÃO** (com o commit já feito, memória
+`falsificar-mutacao-commitar-antes`) — 5 mutantes, **5 mortos**:
+
+| mutante | resultado |
+|---|---|
+| `escolherPortaDeVolta` ignora a validade e devolve todo link | **morto** |
+| compara `expires_at` (segundos) direto com `Date.now()` (ms) | **morto** |
+| o laço de envio deixa de pular quem não tem porta | **morto** |
+| o cron perde o `confirm=SEND` | **morto** |
+| a lista de contatos proibidos deixa de ser aplicada | **morto** |
+
+#### RISCO
+
+O gatilho de cron da casa (`Bearer CRON_SECRET`) ainda **não foi exercitado
+uma única vez** — a carta da #11 é a primeira e dispara às **08:00 BRT**, esta
+às **08:30 BRT**. As duas caem dentro desta janela, então o fechamento das
+09:08 vai dizer se o mecanismo funciona. Se a da #11 sair e a minha não, o
+defeito é meu; se nenhuma sair, é o gatilho. **Não vou declarar a campanha
+viva antes de ver linha em `checkout_recovery_emailed_v1`.**
+
+#### CHECAGEM ZERO (pós-marco 04:00 UTC)
+
+| checagem | resultado |
+|---|---|
+| cadastro sem crédito | **0** |
+| `completed` sem `video_url` | **0** |
+| render preso >15 min | **0** |
+| `next_episode_failed` | **0** |
+| `generation_stage_error` | 1 (o mesmo de 07:47 já lido na #12) |
+
+#### PLACAR (pós-marco 2026-09-06 04:00 UTC)
+
+| fonte | cadastros | filme 1 | filme 2 | checkout | **pagou** |
+|---|---|---|---|---|---|
+| chatgpt | 3 | 2 | 0 | 0 | **0** |
+| nav | 1 | 0 | 0 | 0 | **0** |
+| seo | 1 | 1 | 0 | 1 | **0** |
+| **total** | **5** | **3** | **0** | **1** | **0** |
+
+`next_action_card_shown` = 4 impressões / **2 pessoas** · `next_action_clicked`
+= **0**. Denominador de 2: não é fracasso nem sucesso, é cedo.
+
+#### PRÓXIMA JOGADA (#14)
+
+1. **08:00 e 08:30 BRT: ver as duas cartas saírem.** É a primeira prova de
+   que o gatilho automático da casa funciona, e ela cai dentro da janela.
+2. Enquanto isso, a pergunta que esta lista abriu e ninguém respondeu: **das
+   34 pessoas com checkout expirado, quantas voltaram ao site depois?** Se
+   voltaram e não reabriram o checkout, o produto tem uma segunda porta a
+   abrir dentro do app, não no e-mail.
