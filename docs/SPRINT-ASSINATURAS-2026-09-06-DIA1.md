@@ -1427,3 +1427,94 @@ viram 10 pagantes por conversão nenhuma). **A ressalva, e ela é minha:** ligue
 o botão no e-mail de menor alcance da casa (4 pessoas/semana) em vez do que 107
 pessoas receberam. A peça está certa; o alcance começa na próxima rotação, que
 já abre por aí. Placar do dia continua **0 pagamentos** — 7 dias: 2; 30 dias: 6.
+
+---
+
+### #28 — 15:08→16:08 BRT — O MESMO BOTÃO, NO E-MAIL QUE 107 PESSOAS RECEBEM
+
+#### PRESS RELEASE
+
+> A #27 deu ao dono do filme o botão de publicar. A #28 o coloca onde as
+> pessoas estão: no **e-mail de entrega** — o que sai a cada render pronto, 158
+> vezes para 107 pessoas nos últimos 7 dias. A partir de agora, quase todo
+> filme entregue chega com um link de partilha ao lado do botão de download.
+
+#### O QUE ESTAVA ERRADO (e o erro era meu, de uma hora antes)
+
+Medido **depois** de publicar a #27 — que é o problema: eu devia ter medido
+antes. Sete dias, só os e-mails de "filme pronto":
+
+| e-mail | envios | pessoas |
+|---|---|---|
+| `video_ready_email_sent` (rota de status) | **158** | **107** |
+| `stranded_ready_sent` | 42 | 27 |
+| `stranded_fast_ready_sent` | 24 | 21 |
+| **`video_ready_nudge_sent` ← onde a #27 ligou** | **4** | **4** |
+
+O cron `send-video-ready` manda **1 por pessoa PARA SEMPRE** e só para quem
+nunca baixou. É o e-mail de menor alcance da casa. Mesma forma de erro da #20
+desta manhã, e a razão de a memória `contrato-de-servidor-sem-chamador`
+existir: **rota publicada não é rota chamada**.
+
+#### O QUE MUDOU
+
+**SHA `de5d3509`** · `app/api/compose/status/[renderId]/route.ts` — a mesma
+dupla de linhas já provada (`publishHref`/`unpublishHref`), com **fonte
+própria** (`video_ready_delivery`, nunca o contador da #27 — medir peça nova
+por dentro do contador da peça velha foi o defeito da #25).
+
+Duas falhas fechadas novas: sem id de filme (insert duplicado que não devolveu
+linha) e sem segredo de assinatura, o bloco é string vazia e o e-mail sai byte
+a byte como saía antes.
+
+**Guardião:** 37 verificações (7 novas). Falsificado: bloco removido do e-mail
+de entrega ✓ morto · fonte colada na da peça velha ✓ morto.
+
+#### ⚠ O QUE AINDA NÃO ESTÁ PROVADO — E NÃO VOU FINGIR QUE ESTÁ
+
+A #27 tem sonda de produção (302 com controle 404, e o filme real ainda em
+404). A **#28 não tem sonda possível**: a mudança vive dentro do corpo de um
+e-mail, e não existe URL pública que a exponha. Ela só se prova quando **um
+render de verdade terminar** depois do deploy e o e-mail sair.
+
+Isto é `zero-falhas-sem-denominador` aplicado a mim mesmo: **subiu ≠
+exercitado**. A casa entrega ~42 filmes/24h (um a cada ~35 min), então a
+primeira oportunidade real deve aparecer dentro da próxima rotação.
+
+Como conferir, sem ambiguidade:
+
+```sql
+-- o e-mail saiu depois do deploy?
+select count(*), max(created_at) from events
+where name='video_ready_email_sent' and created_at > '2026-09-06 18:30:00+00';
+-- e alguém apertou o botão?
+select name, count(*), count(distinct user_id), max(created_at) from events
+where name in ('video_published_v1','video_unpublished_v1') group by 1;
+```
+
+#### PRÓXIMA JOGADA
+
+1. **Conferir as duas consultas acima** na abertura da próxima rotação. Se
+   `video_ready_email_sent` correu e `video_published_v1` continua zero por
+   várias dezenas de e-mails, o problema passa a ser **a copy**, não o alcance
+   — e aí a frase muda, não o encanamento.
+2. **PEDIDO ao Codex já escrito** (`docs/PEDIDOS-ENTRE-PISTAS-2026-09-03.md`):
+   a caixa de partilha na tela de filme pronto — **130 pessoas em 7 dias**
+   (`video_ready_viewed`), mais do que qualquer e-mail alcança.
+3. **As 20 pessoas com link vivo da Stripe** que ficaram fora do lote das
+   11:30 — a coorte de maior intenção da casa, e o motivo da exclusão ainda
+   não está medido.
+
+#### ✅ O QUE VOCÊ PRECISA FAZER
+1. **Nada.** As três entregas subiram sozinhas (`de5d3509` na ponta) e nenhum
+   filme de cliente ficou público sem o dono clicar.
+
+#### 📋 O QUE ACONTECEU
+Uma hora depois de entregar o botão de partilha, medi o alcance dele e
+descobri que o tinha pendurado no e-mail que a casa manda para **4 pessoas por
+semana**. Corrigi: o botão agora vai no e-mail de entrega, que saiu 158 vezes
+para 107 pessoas em 7 dias — quase todo filme pronto passa a chegar com um
+link de partilha ao lado do download. O encanamento inteiro está provado em
+produção; o que **não** está provado é este último passo, porque ele só existe
+dentro de um e-mail e só se prova quando o próximo render terminar. Deixei as
+duas consultas que respondem isso sem margem para interpretação.
