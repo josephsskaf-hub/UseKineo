@@ -1645,3 +1645,186 @@ teve **0 pagamentos**; as duas cartas caras que esta sessão construiu somaram
 a próxima carta só se justifica depois que uma das que já existem mover alguém.
 Produção está sadia: 42 filmes entregues em 24h, nenhum render preso, nenhum
 cadastro sem crédito.
+
+---
+
+### #29 — 15:08→16:20 BRT — o produto OFERECIA uma compra que o próprio cobrador recusa
+
+#### PRESS RELEASE
+
+> A partir de hoje, a Kineo nunca mais pinta um botão de compra que a própria
+> caixa registradora recusa. Quem chega sem plano e pede um filme maior do que
+> o saldo cobre para de ver quatro pacotes de crédito que o servidor responde
+> com erro, e passa a ver a única saída que a conta realmente tem — o plano das
+> linhas de cima, dito em filmes: "Creator cobre este filme e mais 3 como ele
+> este mês". O Starter, que era a única conta do produto sem NENHUMA saída
+> comprável, passa a enxergar os planos acima do dele. O cliente paga por isso
+> porque, pela primeira vez, o preço aparece no segundo em que ele quis pagar —
+> e não um erro vermelho.
+
+#### O QUE ESTAVA ERRADO (medido, não suposto)
+
+Desde **17/08** — o commit `KINEO-TOPUP100-2026-08-17`, cujo próprio comentário
+diz "o pop-up de créditos zerados agora mostra a escadinha pra TODOS (era só
+assinante)" — o modal de crédito curto do `/studio/create` pintava os **quatro**
+pacotes de recarga para qualquer conta. O portão no JSX era literalmente `{(`:
+nenhuma condição.
+
+O `/api/stripe/checkout` **nunca concordou com essa decisão**. `canPurchaseCreditTopup`
+(lib/growth/topupEligibility) só aceita `basic`/`pro`; todo o resto leva
+**403 `topup_requires_creator_plus`** e cai no `/pricing` com erro vermelho.
+Por três semanas a vitrine e a caixa registradora disseram coisas opostas.
+
+**60 dias, `limit_purchase_fit_viewed`: 18 pessoas viram a escadinha e ZERO
+podiam comprar** — 17 `free` e 1 `starter`.
+
+**O caso que fechou a conta — hoje, 06/09, conta vinda do TAAFT (Paquistão):**
+
+| hora (UTC) | o que aconteceu |
+|---|---|
+| 12:15:17 | cadastro pelo Google, 25 créditos de trial concedidos |
+| 12:18:55 | pede um filme de **90 segundos** (custo 38cr) |
+| 12:19:07 | modal abre com `reason: trial_spent` — **com os 25 créditos INTACTOS** |
+| 12:19:08 | clica em `topup100` (14,90 USD) — **4 minutos depois de chegar** |
+| 12:19:08 | **403 `topup_requires_creator_plus`** |
+| 12:22:35 | volta e **encolhe o próprio pedido de 90s para 35s** |
+| 12:37 | filme entregue, baixado às 12:38 — e foi embora |
+
+Uma pessoa sacou a carteira no minuto 4 e a casa disse não. Depois ela reduziu
+a própria ambição para caber no que era grátis. Isto é uma venda perdida com
+nome e horário, vinda da fonte que o diário das 13:17 apontou como **40% do
+tráfego e ZERO pagamentos em 30 dias** — aqui está um motivo mecânico.
+
+**O pior caso era o Starter**: assinante (logo `fittingPlanIds = []`) E sem
+direito a recarga — saía de `calculateLimitPurchaseFit` com nenhum plano E um
+pacote recomendado que o checkout recusa. **A única conta do produto que ficava
+sem nenhuma saída comprável.**
+
+#### O QUE MUDOU — SHA `a23ba06f` · EM PRODUÇÃO
+
+- **`lib/growth/limitPurchaseFit.ts`** — o módulo puro passa a **ler a regra do
+  cobrador** (`canPurchaseCreditTopup`, a mesma função da rota; memória
+  `predicado-do-cobrador-nao-se-redigita`) em vez de nunca perguntar.
+  `fittingTopupIds` vem vazio para quem não pode comprar, `recommended` nunca é
+  um 403, e o assinante sem recarga recebe os planos **acima** do dele.
+  Publica `topupPurchasable` no resultado e `topup_purchasable` na telemetria.
+- **`components/TopupUnavailableNote.tsx` (novo)** — o espaço dos 4 botões
+  mortos vira a saída real, dita em **filmes** e derivada de `TIER_CREDITS`.
+  Nenhum número digitado (o divisor chumbado já mentiu 3x neste mesmo bloco).
+- **`GenerateClient.tsx`** — uma condição (`topupPurchasable`) e uma linha de
+  montagem. Nada de layout, nav ou home.
+
+#### TESTES
+
+`scripts/test-topup-offer-gate.mjs` — **24 verificações**, lendo os arquivos
+reais (sem alias `@/`, que morre fora do bundler) e amarradas à **variável que
+decide**, não a contagem de texto. `npx tsc --noEmit` verde.
+
+**Falsificação por mutação** (commit ANTES, memória `falsificar-mutacao-commitar-antes`):
+
+| mutante | resultado |
+|---|---|
+| escadinha volta a ser incondicional (`{true ? (`) | pegou |
+| módulo puro deixa de perguntar ao cobrador | pegou |
+| `fittingTopupIds` deixa de ser governada | pegou |
+| alguém reabre recarga para Starter no servidor | pegou |
+
+Uma verificação minha **falhou na 1a execução casando com a própria prosa** que
+explicava a regra — corrigida para ler só o código, sem comentários.
+
+#### SONDA — E O QUE ELA NÃO PROVA
+
+`origin/main` = `a23ba06f` (`git ls-remote`), fila em 0. Home **200**, controle
+**404**. Tentei provar a frase nova dentro do bundle publicado: **não encontrei
+— e a frase ANTIGA da escadinha também não está lá**. O controle diz que a
+sonda é **cega**, não que o deploy falhou: `/studio/create` sem sessão devolve o
+HTML do login, cujos chunks não incluem o `GenerateClient`. Registro como
+**não provado por sonda anônima**, não como provado.
+
+#### PLACAR (praxe)
+
+| janela | cadastros | fizeram filme | filmes | viram preço | checkout | **pagaram** |
+|---|---|---|---|---|---|---|
+| desde o marco (14:00 UTC) | 4 | 4 | 5 | 1 | 0 | **0** |
+| 24 horas | 31 | 29 | 41 | 9 | 2 | **0** |
+| 7 dias | 228 | 155 | 224 | 40 | 25 | **2** |
+
+**Checagem zero — limpa.** Os 2 "cadastros sem crédito" das últimas 24h são
+falso alarme: os dois **receberam** o grant e gastaram fazendo filme (1 e 3
+filmes). Render preso 0 · `next_episode_failed` 0 · `generation_stage_error` 4
+(base normal) · `checkout_failed` 1 (o caso acima, agora corrigido).
+
+#### ACHADO QUE NÃO VIROU JOGADA — E POR QUÊ
+
+`checkout_payment_failed` **passou a existir** (o CLAUDE.md diz que a tabela
+nunca teve um). São **2 em 30 dias, ambos `stage: renewal`, `insufficient_funds`** —
+renovação recusada de quem **já pagava**: 24,90 USD (visa débito AU, 04/09) e
+9,90 USD (visa **pré-pago** NG, 03/09). Os dois voltaram a `plan: free` e a
+última atividade de cada um é o próprio horário da recusa. Ninguém foi avisado;
+não existe fluxo de dunning.
+
+**Não construí o remédio, e a razão é a coorte** (memória
+`dimensionar-a-coorte-antes-de-construir-o-remedio`): são 2 pessoas, uma é
+`akajitin` — **contato proibido pela ordem do ciclo** — e a outra é de domínio
+descartável com cartão pré-pago. Construir dunning hoje seria construir para
+uma coorte inalcançável. Fica a **spec** abaixo.
+
+#### COMO MEDIR ESTA ENTREGA
+
+1. `checkout_failed` com `reason='topup_requires_creator_plus'` → **0** daqui
+   para frente (era 1 hoje, 1 em 60 dias antes disso).
+2. `limit_purchase_fit_clicked` com `choice_id` de pacote vindo de conta
+   free/starter → **0**.
+3. O número que importa: `limit_purchase_fit_viewed` (18 pessoas/60d) seguido
+   de `checkout_started` **de plano** — hoje é 0 nesse balde.
+4. `topup_purchasable:false` na telemetria = o tamanho real desta coorte por dia.
+
+#### PRÓXIMA JOGADA
+
+**A régua do pedido, não a régua do saldo.** O trace de hoje mostra o padrão
+inteiro em 4 minutos: a pessoa pede **90s**, bate no paywall, e **volta pedindo
+35s**. O comentário do próprio código já registrou isso em 22/08 ("6 pessoas
+escolheram 90s com os 25 créditos INTACTOS"). Hoje o produto responde a um
+pedido grande com um preço; a resposta que converte é **entregar o filme que a
+pessoa pediu e cobrar por ele naquele segundo** — "seu filme de 90s está
+pronto para renderizar: faltam 13 créditos". É a diferença entre vender uma
+assinatura e vender **este filme**. Mensurável: `upgrade_modal_opened` seguido
+de redução de duração no mesmo attempt — hoje, 27 pessoas em `trial_spent`,
+**19 delas com o saldo cheio**.
+
+#### SPEC PARA O FUNDADOR — DUNNING (decisão dele)
+
+Renovação recusada hoje = cliente perdido em silêncio. A Stripe já tenta de
+novo sozinha; o que não existe é **avisar a pessoa**. Custo: zero (e-mail).
+Margem: recupera MRR já vendido — o cliente mais barato que existe. Só não
+executei porque as 2 pessoas da coorte atual são inalcançáveis (uma proibida,
+uma descartável). **Decisão dele:** ligar o aviso de renovação recusada para os
+próximos, ou deixar como está.
+
+#### ✅ O QUE VOCÊ PRECISA FAZER
+
+1. **Nada agora.** A entrega já subiu por mim (`a23ba06f`) e está em produção.
+2. **Decidir, quando quiser:** ligar ou não o e-mail de renovação recusada
+   (spec acima). É a única peça deste bloco que depende de você.
+
+#### 📋 O QUE ACONTECEU
+
+Achei, e consertei, um lugar onde a casa dizia **não** para quem queria pagar.
+Desde 17/08 o pop-up que aparece quando falta crédito mostrava quatro botões de
+compra de crédito para todo mundo — e o sistema de pagamento recusava todos eles
+com erro, porque só quem já é Creator ou Studio pode comprar crédito avulso.
+Dezoito pessoas viram esses botões em 60 dias e nenhuma podia clicar.
+Hoje uma delas clicou: chegou pelo TAAFT, se cadastrou 12:15, pediu um filme de
+90 segundos e às 12:19 — **quatro minutos depois de entrar** — tentou comprar
+14,90 dólares em créditos. Levou erro. Aí ela mesma diminuiu o pedido para 35
+segundos, fez um filme com o crédito grátis, baixou e foi embora. Agora, quem
+não pode comprar crédito avulso não vê mais botão morto: vê o plano que cobre
+exatamente o filme que acabou de pedir, escrito em filmes ("cobre este filme e
+mais 3 este mês"). E o Starter — que era a única conta que ficava sem saída
+nenhuma — passa a ver os planos acima do dele.
+Descobri também que dois clientes que **já pagavam** tiveram a renovação
+recusada por falta de saldo no cartão e ninguém os avisou. Não montei o aviso
+porque, olhando quem são, um está na sua lista de contatos proibidos e o outro
+usa e-mail e cartão descartáveis — deixei a proposta pronta para você decidir.
+Produção sadia: 41 filmes em 24h, nenhum render preso, nenhum cadastro sem
+crédito. Pagamentos hoje continuam em **zero**.
