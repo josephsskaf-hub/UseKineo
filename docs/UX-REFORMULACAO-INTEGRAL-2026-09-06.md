@@ -35,6 +35,7 @@ TESTADO LOCALMENTE: 49 invariantes executaveis de UX; 247 de curadoria; 11 estad
 VALIDADO EM PRODUCAO (06/09): biblioteca da conta interna do fundador abre; trocar filtros Images/Audio funciona, sem escrita nem render. Nao e evidencia de conversao. COMPARACAO VISUAL: Chrome desktop; preview web protegido autorizado no navegador integrado a 390px, pois o override do Chrome reportava sucesso mas continuava 1920px. Home/Tools/Images/Audio com scrollWidth 390. Library exige login no preview; confirmada na sessao Chrome de producao. Artefato antes/depois em docs/previews/UX-INTEGRAL-HOME-FERRAMENTAS-2026-09-06.html.
 
 ## Lote 2 — implementado, preview validado, PR #46
+## Lote 2 — implementado, aguardando preview/deploy
 
 IMPLEMENTADO: preferencia explicita English/Espanol, persistida localmente e separada do idioma de narracao. SSR continua English; spans traduzidos declaram lang=es. Nada de tradutor por DOM, reload de formulario, mudanca de URL, moeda, engine ou texto do cliente. Traducoes de numeros dinamicos conservam o valor canônico, nao congelam o trial de hoje. LandingPlanPrice muda somente verbo e /mo → /mes, com os mesmos valores USD.
 

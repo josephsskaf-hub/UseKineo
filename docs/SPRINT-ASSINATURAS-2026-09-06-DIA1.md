@@ -2714,3 +2714,172 @@ a quem prometemos cinco episódios grátis que o sistema vai recusar.
 
 Produção sadia: **43 filmes em 24h, 43 concluídos**, nada preso, ninguém sem
 crédito. Pagamentos hoje: **zero**, com 1 checkout em 24 horas.
+
+---
+
+### #32 e FECHAMENTO — 18:08 → 19:08 BRT — a última moeda que o cadeado não sabia contar, e a entrega que eu NÃO publiquei de propósito
+
+#### PRESS RELEASE (o que muda para o cliente)
+
+Quem termina um filme com o Kineo 1 gratuito via, na faixa da temporada, cinco
+episódios com cara de liberados. Não estavam: o Kineo 1 grátis não é cobrado em
+crédito — é cobrado em COTA (1 render por janela rolante de 30 dias), e o filme
+que a pessoa acabou de receber gastou exatamente essa vaga. O primeiro clique
+levaria a uma recusa. Depois desta entrega a faixa conta a moeda certa: os cinco
+aparecem atrás do plano, e a moldura que convida para a assinatura — que para
+esta gente NUNCA renderizou — passa a existir.
+
+#### O ERRADO, MEDIDO (não deduzido)
+
+`creditCostForDuration('fast', pago=false, s)` devolve **0**. A rota tratava 0 no
+mesmo ramo de "custo desconhecido" e emitia `affordableEpisodes: null`; o #31,
+por prudência deliberada, traduz `null` para "não invento cadeado" = cinco
+liberados, zero bloqueados. Custo 0 nunca significou "de graça à vontade" —
+significa "esta moeda não é crédito".
+
+**O TAMANHO REAL, e a minha própria correção dele.** O checkpoint das 17:38
+anunciou "37 de 72". Fui medir antes de codar e o número não se sustenta:
+
+| corte (7 dias, filme concluído) | pessoas |
+|---|---|
+| terminaram ao menos um filme | **156** |
+| filme mais recente é `fast` | 77 |
+| … e sem plano pago | 76 |
+| **… e sem trial ativo → `treatAsPaid` false → custo 0** | **19** |
+
+Quem está em trial ativo é `treatAsPaid = true` (`lib/reverseTrial.ts:710`), e
+para essa pessoa o Fast custa 2 créditos, não 0 — ela nunca esteve no defeito.
+O alcance honesto é **19 pessoas em 156 (12%)**, não 37, não 76. Registro isto
+como o mesmo erro de [[medir-alcance-da-superficie-antes-de-ligar]] apanhado
+**antes** de virar anúncio, não depois.
+
+#### O QUE MUDOU (código)
+
+* `lib/temporada.ts` — nova função pura `episodiosQueCabem({custo, saldo, cotaRestante, total})`.
+  Custo > 0 → conta acumulada em crédito (a do #31, intacta). Custo 0 → a conta
+  é de COTA. Custo nulo **ou** cota não contada → `null`, e `null` mantém a
+  moldura calada; nunca vira 0 (0 por ignorância acenderia cadeado inventado).
+* `app/api/season/route.ts` — `affordableEpisodes` passa a sair dessa função; o
+  `affordable` de cada episódio vira **posicional** (`i < cabem`) em vez de
+  `custo <= saldo`, que respondia "sim" para sempre quando o custo era 0.
+  As vagas de cota são contadas por `countFreeFastUsage` — a **mesma função que
+  o `/api/compose` usa para RECUSAR** — com limite e janela lidos de
+  `getFreeTierOffer`, e o evento de reserva vindo de `COMPOSE_CLAIM_EVENT` /
+  `COMPOSE_CLAIM_PATH` importados. Nada redigitado
+  ([[predicado-do-cobrador-nao-se-redigita]]). Quem decide se a pessoa paga em
+  cota é `ent.countsAgainstFreeQuota`, campo do próprio cobrador. A query extra
+  só acontece quando o episódio custa 0 — para todos os outros é uma leitura que
+  não se faz.
+* Payload ganha `costCurrency` e `freeQuotaRemaining` — campos NOVOS de
+  propósito: são a impressão digital do bundle novo dentro do `season_shown`, o
+  método que o checkpoint das 17:38 registrou.
+
+**Um erro meu, apanhado pelo próprio repositório:** escrevi o nome do evento de
+reserva de cabeça (`compose_claim`). O nome real é `compose_submission_claim`.
+Contar o evento errado devolveria "cota cheia" para toda a gente e a faixa
+mentiria ao contrário. Passou a ser importado da constante.
+
+#### TESTES
+
+* `scripts/test-season-cota.mjs` (NOVO) — **33 verificações**. Transpila e
+  **executa** `lib/temporada.ts`; não conta texto
+  ([[guardiao-contar-texto-nao-prova-condicao]]). Caso 1 é o defeito: custo 0,
+  25 créditos em carteira, cota 0 → cinco bloqueados (era zero). Caso 4 prova
+  que a moeda crédito não regrediu e que a cota **não vaza** para quem paga em
+  crédito.
+* `scripts/test-season-lock.mjs` (#31, alheio) — **ATUALIZADO, NÃO AFROUXADO**:
+  ele fixava por regex o texto da conta antiga e apanhou a minha mudança
+  (vermelho legítimo). Em vez de relaxar, a invariante passou a ser provada por
+  **execução** (5/5 = 1 e 12/5 = 2) mais a proibição explícita do retorno da
+  pergunta "cabe UM?". 37 verificações, todas verdes.
+* `npx tsc --noEmit` limpo — e **falsificado**: um arquivo-sonda com erro de
+  tipo foi rejeitado, então o verde é real e não o exit 0 mentiroso de
+  [[worktree-tsc-node-modules]].
+
+#### ⛔ NÃO PUBLIQUEI — E ESTA É A PARTE IMPORTANTE
+
+O commit está pronto e verificado (`b593bddc`, sobre `70dccb9e`), mas **não foi
+para produção**, de propósito.
+
+Enfileirei perto das 19:00; entre o meu `fetch` e o `enfileirar.sh` o **Codex
+publicou mais dois commits** (`6e30c986`, `70dccb9e`). A `entrega-atual` ficou
+montada sobre a main antiga e o diff dela contra a main nova apagava **1704
+linhas** de trabalho do Codex (Espanhol no Studio/Avatar/Animate, rótulos de
+avatar). Refiz o commit sobre a main nova — limpo, 4 arquivos, só meus. Mas o
+`enfileirar.sh` recusa mexer: vê o meu commit já lá e responde `meus novos: 0`,
+deixando a fila presa na base velha. Mover a branch à mão é a única saída — e é
+exatamente o que o CLAUDE.md proíbe (`git branch -f` apagou a fila alheia 4× em
+01/09).
+
+**Regra aplicada: o Codex ganha.** Prefiro entregar zero a entregar uma reversão
+silenciosa do trabalho dele. A fila fica como está; o conserto espera dez
+minutos de mão humana ou a próxima sessão.
+
+---
+
+## FECHAMENTO DO CICLO — 11:08 → 19:08 BRT
+
+### (a) O press release do DIA — o que o cliente consegue fazer às 19:08
+
+Ao terminar um filme, o cliente deixa de receber **um arquivo** e passa a receber
+**uma temporada**: o servidor escreve os títulos dos episódios 2 a 6 da série
+dele, a faixa mostra quais o saldo paga e quais ficam atrás do plano, e o
+episódio seguinte nasce em **um clique** — sem formulário em branco. Junto vem o
+pacote de publicação pronto (título, descrição com `usekineo.com`, legenda
+TikTok, comentário fixado), que transforma o filme dele em anúncio nosso. E o
+plano deixou de ser "60 créditos por $9.90" para ser "o resto da sua temporada".
+
+### (b) Placar por fonte (desde 2026-09-06 14:00 UTC)
+
+| fonte | cadastros | filme 1 | filme 2 | filme 3 | checkout | **pagou** |
+|---|---|---|---|---|---|---|
+| chatgpt.com | 6 | 4 | 2 | 0 | 0 | **0** |
+| (sem fonte) | 2 | 2 | 1 | 0 | 0 | **0** |
+| taaft | 1 | 1 | 0 | 0 | 0 | **0** |
+| **total** | **9** | **7** | **3** | **0** | **0** | **0** |
+
+ChatGPT = 6 de 9 cadastros. O degrau 2→3 é **seco**: ninguém.
+
+### (c) Pagantes do dia: ZERO
+
+Zero, sem maquiagem. `payment_success` no ciclo = **0**; `checkout_started` em
+24h = **1**. Não há caminho para narrar porque não houve pagamento.
+
+### (d) E-mails: 197 enviados, 5 pessoas de volta, 0 checkout
+
+Medido por evento de **navegador** ([[retorno-pos-email-conta-email-nosso]]).
+Das 5 que voltaram: 2 fizeram um filme, 0 chegaram ao pagamento. As **duas
+cartas que este sprint inventou** (parede e temporada) somam **46 envios e 0
+retornos**; quem traz alguém é a campanha velha e genérica. Foi por isso que as
+duas últimas rotações **não escreveram carta nº 3** — o ónus da prova inverteu.
+
+### (e) Entregas em produção (SHA + sonda)
+
+Publicadas e provadas ao longo do ciclo: a porta do saldo, a carta da parede, a
+carta da temporada, o episódio 2 que sobrevive à aba, o link de série corrigido,
+a trava de cadência que enxergava metade das campanhas, o botão de publicar, a
+faixa da temporada (#30) e o cadeado acumulado (#31, SHA `877278ff`, par 401/404
+conferido). **A #32 é a única que NÃO subiu** — motivo acima.
+
+**O número desconfortável que fecha o dia:** a faixa da temporada, aposta central
+do ciclo, tem **2 exposições em toda a sua vida**. Não é defeito de montagem —
+desde o deploy dela só **4 filmes** foram concluídos, e 2 mostraram a faixa. O
+produto está certo; o que falta é gente passando por ele.
+
+### (f) Spec que exige decisão do fundador
+
+Nenhuma nova. Preço público intocado (a monetização do ciclo foi moldura, momento
+e oferta — nunca número novo). Produção sadia: **42 filmes em 24h, 42
+concluídos**, 0 presos, 0 cadastros sem crédito, `next_episode_failed` = 0.
+
+### (g) O que a próxima sessão faz PRIMEIRO
+
+1. **Destravar e publicar a #32** — commit `b593bddc` na worktree
+   `C:\kineo-wt\season-cota`, já sobre a main nova, tsc e 70 verificações verdes.
+   Só falta a fila aceitar a base nova.
+2. **Vigiar o primeiro `season_shown` com `offer_shown`** — é o único sinal que
+   converte a #31 de "publicada" em "exercitada". Hoje: 0 de 2.
+3. **Não escrever carta nova.** 46 envios, 0 retornos.
+4. **Atacar o denominador, não a conversão.** 9 cadastros no ciclo e 4 filmes
+   desde as 16:21 não sustentam 10-15 pagantes/dia. ChatGPT é 2/3 do tráfego; é
+   lá que a agulha se move.
