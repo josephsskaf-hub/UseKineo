@@ -2286,3 +2286,96 @@ caminho, é tela, e cai perto da superfície do Codex. Fica anotado, não tocado
 `'profile'` tem de sair de **0**, e o `unknown` tem de cair para os casos em
 que o perfil realmente não lê. Corte no horário do deploy, nunca "últimas 24h"
 (memória `zero-falhas-sem-denominador`).
+
+#### 9. ENTREGA — SHA `525f85a6` (+ diário `9cc6492f`) EMPURRADA POR MIM
+
+`git ls-remote origin main` = **9cc6492f** · `git rev-list --count
+origin/main..entrega-atual` = **0**. Publicador rodado por mim
+(`!RODAR-AGORA.bat`, `KINEO_SEM_PAUSE=1`): **"SUBIU 2 ENTREGA(S)"**, sem
+intervenção humana.
+
+Sonda 05:49 BRT: `https://www.usekineo.com/` = **200** ·
+`/api/admin/send-checkout-recovery` = **403** ·
+`...-CONTROLE-NAO-EXISTE` = **404** (a entrega da #13 continua no ar e
+guardada).
+
+**Honestidade sobre o deploy:** esta entrega **não tem marcador público** — ela
+muda uma coluna de `select` no servidor, não cria rota nem JSON. A sonda prova
+que o site está de pé, **não** que o SHA `525f85a6` já está servindo. A prova
+real é o dado: `credits_source='profile'` aparecendo em
+`video_ready_email_sent` no primeiro filme de motor cinemático depois deste
+deploy. Enquanto essa linha não existir, **não vou declarar o conserto vivo**.
+
+#### CHECAGEM ZERO (pós-marco 2026-09-06 04:00 UTC)
+
+| checagem | resultado |
+|---|---|
+| cadastro sem crédito | **0** |
+| `completed` sem `video_url` | **0** |
+| render preso >15 min | **0** |
+| `next_episode_failed` | **0** |
+| `generation_stage_error` | 1 (o mesmo já lido na #12/#13) |
+
+#### PLACAR (pós-marco 2026-09-06 04:00 UTC)
+
+| fonte | cadastros | filme 1 | filme 2 | filme 3 | checkout | **pagou** |
+|---|---|---|---|---|---|---|
+| chatgpt | 3 | 2 | 0 | 0 | 0 | **0** |
+| seo | 1 | 1 | 0 | 0 | 1 | **0** |
+| nav | 1 | 0 | 0 | 0 | 0 | **0** |
+| **total** | **5** | **3** | **0** | **0** | **1** | **0** |
+
+`next_action_card_shown` = **2 pessoas** · `next_action_clicked` = **0**.
+Denominador de 2 continua sendo cedo, não fracasso.
+
+**As duas cartas automáticas ainda não dispararam** — a da #11 sai às 08:00
+BRT e a da #13 às 08:30 BRT; `checkout_recovery_emailed_v1` = 0 **é a hora, não
+o gatilho**. As duas caem antes das 09:08, então o fechamento do ciclo vai
+dizer se o cron da casa (`Bearer CRON_SECRET`) funciona — é a primeira vez que
+ele é exercitado.
+
+#### PRÓXIMA JOGADA (#14, 06:08 BRT)
+
+O #14 que a #13 tinha proposto (segunda porta dentro do app para a coorte de
+checkout expirado) **está cancelado**: 2 pessoas de 34.
+
+No lugar dele, o que os dados desta madrugada apontam, em ordem:
+
+1. **A outra metade do mesmo cegamento.** O done-screen ofereceu série com
+   `engine_reason:"unknown_quota"` e `engine_offered:null` no mesmo segundo em
+   que `/api/next-action` sabia `balance=7, short_by=8, alternative_cost=5`. A
+   casa tem **uma** fonte de verdade sobre saldo e **três** consumidores, e dois
+   deles inventam "desconhecido". Medir quantos `series_continue_seen` saíram
+   com `unknown_quota` e ligar esse botão ao mesmo contrato — é servidor, é
+   minha pista.
+2. **`garrrrrgamel` é o caso de teste vivo do ciclo** (chatgpt, trial até
+   07/09 15:16, 7 créditos, 2 filmes, checkout pro expirado, link de
+   recuperação da Stripe vivo até 05/10). Ela **está na lista das 20 com filme**
+   que recebem a carta das 08:30. Vai ser a primeira pessoa da história da
+   casa a receber a porta de volta da Stripe — acompanhar o desfecho dela é
+   mais informativo que qualquer agregado desta janela.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+**Nada.** O push desta rotação foi rodado por mim, a fila está zerada e o site
+responde 200. As duas cartas disparam sozinhas às 08:00 e 08:30 BRT, ainda
+dentro da janela.
+
+### 📋 O QUE ACONTECEU
+
+A pergunta que ficou aberta na rotação anterior tinha uma resposta ruim e útil:
+das 34 pessoas que abriram o checkout e deixaram expirar, **só 2 voltaram ao
+site**. Isso mata a ideia de construir uma segunda porta dentro do app para
+elas — e transforma a carta que dispara às 08:30, com o link que reabre a mesma
+página de pagamento da Stripe, na **única** porta que essa gente tem.
+
+Olhando de perto as 2 que voltaram, apareceu um defeito meu, de ontem: o e-mail
+"seu filme está pronto" — que é o momento de maior alegria do cliente — estava
+saindo **sem saber o saldo da pessoa** em todo filme de motor caro. Eu tinha
+escrito o código para ler esse saldo na rotação #1 e esqueci de pedir a coluna
+no banco; o teste que deveria pegar isso casou com outra linha do mesmo arquivo
+e disse "ok". Oito e-mails saíram cegos, e sete das oito pessoas tinham crédito
+na mão para fazer outro filme. Está consertado e no ar, com um guardião novo
+que agora aponta para a linha certa e que matou sete tentativas de quebrá-lo.
+
+Nenhum assinante novo ainda nesta janela: 5 cadastros, 3 filmes, 1 checkout.
