@@ -94,3 +94,79 @@ apos o bloco `purchaseFit`, `GenerateClient.tsx:~19480`), agora sobre o contrato
 honesto: os dois numeros, o motor que o saldo AINDA paga **com o teto de 15s
 dito**, e a porta do plano. Cohort distinta da do `firstFilmFree` (que so pega
 quem tem 0 filmes), entao nao ha sobreposicao.
+
+---
+
+### #2 — 02:08→03:05 — a peça que fecha a venda tinha ZERO chamadas; o "não" vira porta
+
+**ERRADO (medido):** `GET /api/next-action` está em produção desde 05/09 e tem
+**0 chamadas na história inteira**. O contrato que sabe responder "o que você
+pode fazer agora" nunca chegou a uma tela. Enquanto isso, **140 pessoas**
+(externas, não pagantes, 14d) estão com saldo MENOR que o preço do filme que
+acabaram de fazer — e a casa responde a esse instante com um modal que começa
+por "não".
+
+**MUDOU** — `components/NextActionCard.tsx` (novo), montado com **UMA linha**
+no `UpgradeModal` (`GenerateClient.tsx`), atrás de `reasonHasCreditFit`. Quem
+caiu no modal por gate de plano (studio/creator/footage) tem saldo e não é
+desta conversa. SHA `f1dfd256`.
+
+**O QUE O CLIENTE PASSA A VER**, no instante em que aperta gerar e não cobre:
+
+| antes | agora |
+|---|---|
+| "You're out of credits 🎉" + linhas de plano | a frase com os **dois números**, vinda pronta do servidor |
+| nenhuma saída que não custe dinheiro | o motor que o saldo **ainda paga**, com o custo que a rota mandou |
+| — | quando esse motor é o Kineo 1 grátis: **15 segundos, com marca d'água, 1 a cada 30 dias** |
+| plano | plano, **sempre** — inclusive sem alternativa, que é quando ele mais importa (K1) |
+
+**TRÊS COISAS QUE A TELA NÃO FAZ**, e cada uma é uma cicatriz: (1) não calcula
+preço — todo número vem do `cost` da rota, que sai da mesma função que cobra;
+(2) não decide quem vê — quem decide é o `state` do servidor, porque duplicar
+o predicado de "está sem saldo" seria criar o **terceiro** predicado, o defeito
+que a #1 acabou de arrancar da rota; (3) não bloqueia ninguém — não é overlay,
+não intercepta clique, não esconde as linhas de plano, e falha de rede faz o
+cartão sumir em silêncio.
+
+Coorte **distinta** da oferta de primeiro filme grátis (que só pega quem tem 0
+filmes): esta fala com quem JÁ entregou filme e ficou seco. Sem sobreposição.
+
+**TESTES:** `scripts/test-next-action-card-2026-09-06.mjs`, **40/40**, lendo o
+componente e o call site REAIS. Falsificado com **5 mutantes**, cada um pego:
+cartão pintando fora do estado seco · plano só aparecendo com alternativa ·
+preço redigitado na tela · o grátis calando o corte de 15s · montagem sem a
+guarda de falta de crédito. Regressão: `test-next-action` 65/65,
+`test-serie-memoria` **142/142 com a seção 10 (trava de qualidade do fundador)
+verde** — `GenerateClient.tsx` não está na lista de caminhos proibidos.
+`npx tsc --noEmit` verde.
+
+**VERMELHO QUE NÃO É MEU:** `test-coerencia-historia-2026-09-02` dá 23 ok / 2
+fail (`duration=45 na URL vira 35`, `onboarding: consulta /api/credits antes de
+escolher motor`). São **exatamente** as duas falhas que o claude #2 registrou
+no PEDIDOS em 05/09 11:50, já vermelhas antes deste ciclo. Não toquei.
+
+**RISCO:** o cartão faz 1 GET a mais quando o modal de crédito abre. Leitura
+pura. Se a rota falhar, o cartão não pinta e o modal segue exatamente como
+hoje — o pior caso é a tela de antes.
+
+**COMO MEDIR (o degrau que hoje é 140 → 1):** `next_action_card_shown` (novo,
+com `has_alternative` e `clamp_seconds`) → `next_action_clicked` com `choice`
+(`continue_free` | `continue_cheaper` | `see_plans`) → `checkout_started` entre
+pessoas com filme ≥ 1. Hoje o denominador é **0**, porque não havia tela.
+
+**PLACAR (marco 04:00 UTC):** 0 assinaturas, 0 cadastros novos desde o marco
+(1,5h de madrugada). Checagem zero **limpa**: 0 cadastro sem crédito (corte no
+conserto de 04/09 13:08 UTC), 0 `next_episode_failed` (corte 05/09 13:25 UTC),
+0 débito sem entrega, 0 render preso. Produto vivo: 45 eventos na última hora,
+9 vídeos em 6h.
+
+**DÍVIDA HONESTA DE VERIFICAÇÃO:** a entrega da #1 e a desta rotação são
+**auth-gated**, então não têm marcador público — dá para provar que a fila
+subiu (`origin/main` = SHA, fila = 0) e que o site responde 200 com a rota em
+401, mas **não** dá para provar por HTTP que o SHA específico está servindo. A
+casa não tem rota de versão. Registrado como dívida, não resolvido aqui.
+
+**PRÓXIMA JOGADA (#3):** o N2 do cardápio — o cartão do Episódio 2 na tela de
+filme pronto ganha o mesmo contrato. Medido em 05/09: 27 impressões, 4 cliques
+(15%), e o cartão fala do roteiro e nunca do que custa. É a mesma peça, na
+superfície onde a pessoa está feliz em vez de recusada.
