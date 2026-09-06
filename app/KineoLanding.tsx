@@ -3,6 +3,7 @@
 // Marker: KINEO-LANDING-V3-2026-06-30
 import { s25Visible, S25_PUBLIC, VIDEO_ENGINE_COUNT_WORD } from '@/lib/engineLaunch'
 import Link from 'next/link'
+import { HOME_PRESENTATION_CSS } from '@/lib/ui/homePresentation'
 import NavCreditsBadge from '@/components/NavCreditsBadge'
 import StickyFreeShortCTA from '@/components/StickyFreeShortCTA'
 import ExitIntentOffer from '@/components/ExitIntentOffer'
@@ -832,7 +833,7 @@ export default function KineoLanding({
           visitante — 16,5KB (9%) do HTML da home. Ficam no fonte, saem do
           fio. O replace so remove blocos completos, nao toca em url() nem em
           seletores. */}
-      <style dangerouslySetInnerHTML={{ __html: KLP_CSS.replace(/\/\*[\s\S]*?\*\//g, '') }} />
+      <style dangerouslySetInnerHTML={{ __html: (KLP_CSS + HOME_PRESENTATION_CSS).replace(/\/\*[\s\S]*?\*\//g, '') }} />
       <LandingViewTracker signedIn={Boolean(initialUser)} />
       <RevealOnScroll />
       {/* KINEO-WELCOME20-2026-08-25 (fundador: "pra todo mundo que entrar no
@@ -1000,14 +1001,24 @@ export default function KineoLanding({
       <header className="hero">
         <div className="glow" />
         <div className="wrap">
-          <h1 className="sr-h1">Kineo — real AI Shorts, straight from the engines</h1>
+          <div className="home-intro">
+          <div className="home-intro-copy">
+          <p className="home-eyebrow">Kineo — real AI Shorts, straight from the engines</p>
+          <h1 className="home-title">Type an idea — watch it become a film.</h1>
           {/* UX10 #1 — a pagina abria sem dizer O QUE e o produto. Uma linha
               fina orienta sem trazer o hero gigante de volta. */}
           {/* KINEO-HERO-LINE-2026-08-17 (fundador: "nao fazemos videos no
               YouTube, fazemos pra varias utilidades — seja criativo"): a linha
               vende o FILME PRONTO (voz, trilha, legendas) e deixa o destino em
               aberto; "real render" fica — e o selo honesto da vitrine. */}
-          <p className="hero-line">Type an idea — watch it become a film. <span>{VIDEO_ENGINE_COUNT_WORD} video engines — including Omni Flash, the #1-ranked model (Aug 2026) — six image models, four voices. Every card below is a real render.</span></p>
+          <p className="hero-line">{VIDEO_ENGINE_COUNT_WORD} video engines — including Omni Flash, the #1-ranked model (Aug 2026) — six image models, four voices. Every card below is a real render.</p>
+          </div>
+          <div className="home-jump" role="navigation" aria-label="On this page">
+            <a href="#samples">Real videos</a>
+            <a href="#toolkit">Tools</a>
+            <a href="#pricing">Plans</a>
+          </div>
+          </div>
           {/* Fileira Higgsfield: cards largos, video NITIDO (sem veu), nome do
               motor em caps abaixo da midia. 3 videos curados por motor passando. */}
           <div
@@ -1531,28 +1542,28 @@ export default function KineoLanding({
                 dizia, em tres paragrafos seguidos, que o download gratis TEM e
                 NAO TEM marca d'agua. Flag OFF devolve as frases atuais byte a
                 byte; o texto fora do ft() nao mudou. */}
-            <div className="qa"><h3>Is the video really mine to post?</h3><p>{ft(OFFER, 'Yes. Never-paid free users can download, share and post the watermarked MP4.', 'Trial films carry a small watermark — you can download, share and post the MP4. After the trial, the free Fast video carries a watermark.')} Paid plans unlock the clean, watermark-free MP4 for YouTube, TikTok or Reels.</p></div>
-            <div className="qa"><h3>Do I need any editing skills?</h3><p>None. You type one idea and the AI writes the script, records the voice, finds the footage and adds captions. {ft(OFFER, 'Free downloads carry a watermark; paid plans unlock the clean MP4.', 'Trial downloads carry a watermark, and so does the free Fast video after the trial, and paid plans always export clean.')}</p></div>
-            <div className="qa"><h3>Is there a watermark?</h3><p>{ft(OFFER, 'Free access gives new users up to 3 watermarked Fast videos every 24 hours, with no card. You can download and share them.', `New accounts get ${TRIAL_GRANT_CREDITS_COPY} credits with every engine unlocked, watermarked; after it ends, free access gives 1 watermarked Fast video per month that you can download and share.`)} Paid plans export clean, watermark-free MP4s.</p></div>
+            <details className="qa"><summary><h3>Is the video really mine to post?</h3></summary><p>{ft(OFFER, 'Yes. Never-paid free users can download, share and post the watermarked MP4.', 'Trial films carry a small watermark — you can download, share and post the MP4. After the trial, the free Fast video carries a watermark.')} Paid plans unlock the clean, watermark-free MP4 for YouTube, TikTok or Reels.</p></details>
+            <details className="qa"><summary><h3>Do I need any editing skills?</h3></summary><p>None. You type one idea and the AI writes the script, records the voice, finds the footage and adds captions. {ft(OFFER, 'Free downloads carry a watermark; paid plans unlock the clean MP4.', 'Trial downloads carry a watermark, and so does the free Fast video after the trial, and paid plans always export clean.')}</p></details>
+            <details className="qa"><summary><h3>Is there a watermark?</h3></summary><p>{ft(OFFER, 'Free access gives new users up to 3 watermarked Fast videos every 24 hours, with no card. You can download and share them.', `New accounts get ${TRIAL_GRANT_CREDITS_COPY} credits with every engine unlocked, watermarked; after it ends, free access gives 1 watermarked Fast video per month that you can download and share.`)} Paid plans export clean, watermark-free MP4s.</p></details>
             {/* KINEO-CEO-HOUR-2026-08-17 (#9) — os produtos novos entram no FAQ */}
-            <div className="qa"><h3>Can Kineo also generate images and voiceovers?</h3><p>Yes — Kineo includes an AI image studio (6 engines including FLUX, Seedream and Nano Banana Pro, from 1 credit per image) and a voice studio with 4 text-to-speech engines (from 1 credit per 1000 characters). Everything you make lives in your Library.</p></div>
-            <div className="qa"><h3>Can I make my videos sharper?</h3><p>Every video has a one-click Enhance option powered by Topaz film restoration — it removes compression artifacts, recovers detail and adds fine cinematic grain. 10 credits per video; the Studio plan includes 2 free enhances a month.</p></div>
-            <div className="qa"><h3>Can I use my own script?</h3><p>Yes — paste your script and pick &ldquo;Use my script as is&rdquo; and the AI narrates it word for word.</p></div>
-            <div className="qa"><h3>What if a generation fails?</h3><p>Your credits come back automatically the moment a render fails — no support ticket, no waiting. You only pay for videos you actually get.</p></div>
+            <details className="qa"><summary><h3>Can Kineo also generate images and voiceovers?</h3></summary><p>Yes — Kineo includes an AI image studio (6 engines including FLUX, Seedream and Nano Banana Pro, from 1 credit per image) and a voice studio with 4 text-to-speech engines (from 1 credit per 1000 characters). Everything you make lives in your Library.</p></details>
+            <details className="qa"><summary><h3>Can I make my videos sharper?</h3></summary><p>Every video has a one-click Enhance option powered by Topaz film restoration — it removes compression artifacts, recovers detail and adds fine cinematic grain. 10 credits per video; the Studio plan includes 2 free enhances a month.</p></details>
+            <details className="qa"><summary><h3>Can I use my own script?</h3></summary><p>Yes — paste your script and pick &ldquo;Use my script as is&rdquo; and the AI narrates it word for word.</p></details>
+            <details className="qa"><summary><h3>What if a generation fails?</h3></summary><p>Your credits come back automatically the moment a render fails — no support ticket, no waiting. You only pay for videos you actually get.</p></details>
             {/* KINEO-SPRINT-OFFER-2026-07-14 — "credits never expire" was the
                 old one-time-pack promise; plan credits refresh monthly (no
                 rollover), same as the /pricing FAQ says. Copy aligned. */}
-            <div className="qa"><h3>Can I cancel anytime?</h3><p>Anytime, in one click. Plans are month to month and your credits refresh every month.</p></div>
+            <details className="qa"><summary><h3>Can I cancel anytime?</h3></summary><p>Anytime, in one click. Plans are month to month and your credits refresh every month.</p></details>
             {/* KINEO-CRO-2026-07-25 — objection-busting Q&As (also mirrored in components/StructuredData.tsx FAQPage schema). */}
-            <div className="qa"><h3>Can I run a whole channel with the same host?</h3><p>Yes — that&rsquo;s the point. Keep the same voice, style and captions across every episode so your channel looks consistent, without filming a single frame.</p></div>
-            <div className="qa"><h3>Can I monetize the videos?</h3><p>Yes. Every video is yours to keep, post and monetize — including the YouTube Partner Program, TikTok and Reels. No extra license needed.</p></div>
+            <details className="qa"><summary><h3>Can I run a whole channel with the same host?</h3></summary><p>Yes — that&rsquo;s the point. Keep the same voice, style and captions across every episode so your channel looks consistent, without filming a single frame.</p></details>
+            <details className="qa"><summary><h3>Can I monetize the videos?</h3></summary><p>Yes. Every video is yours to keep, post and monetize — including the YouTube Partner Program, TikTok and Reels. No extra license needed.</p></details>
             {/* [KINEO-COMMERCIAL-LICENSE-2026-08-12] — "posso vender pro meu
                 cliente?" e uma pergunta DIFERENTE de "posso monetizar?" (a
                 de cima), e e a primeira que uma agencia faz. Texto identico
                 byte a byte ao FAQ de /pricing e ao FAQPage JSON-LD em
                 components/StructuredData.tsx — mudar nos tres ou em nenhum. */}
-            <div className="qa"><h3>Can I use the videos commercially, or for client work?</h3><p>Yes. Our terms let you use Kineo for lawful personal or commercial purposes and confirm that you keep ownership of the videos you generate, so you can post them, monetize them and deliver them to a client as part of your own paid service. No extra license, no per-video royalty. Two limits come from the same terms: you cannot resell or redistribute Kineo itself, and the stock clips inside a render are licensed for use in your finished video, not for re-upload as standalone stock footage. Paid plans export the clean, watermark-free MP4.</p></div>
-            <div className="qa"><h3>How long does one video take?</h3><p>Fast Mode usually finishes in 3–7 minutes. AI-generated and cinematic videos take a little longer because every scene is generated before the final MP4 is composed.</p></div>
+            <details className="qa"><summary><h3>Can I use the videos commercially, or for client work?</h3></summary><p>Yes. Our terms let you use Kineo for lawful personal or commercial purposes and confirm that you keep ownership of the videos you generate, so you can post them, monetize them and deliver them to a client as part of your own paid service. No extra license, no per-video royalty. Two limits come from the same terms: you cannot resell or redistribute Kineo itself, and the stock clips inside a render are licensed for use in your finished video, not for re-upload as standalone stock footage. Paid plans export the clean, watermark-free MP4.</p></details>
+            <details className="qa"><summary><h3>How long does one video take?</h3></summary><p>Fast Mode usually finishes in 3–7 minutes. AI-generated and cinematic videos take a little longer because every scene is generated before the final MP4 is composed.</p></details>
             {/* KINEO-AEO-PRICE-TRUTH-2026-08-19 — as tres perguntas abaixo sao
                 escritas na FORMA em que a pessoa digita no ChatGPT, nao na
                 forma de FAQ institucional. 205 dos 245 cadastros desta semana
@@ -1562,9 +1573,9 @@ export default function KineoLanding({
                 verbatim em components/StructuredData.tsx (faqSchema) — mudar
                 nos dois ou em nenhum, senao o JSON-LD vira sinal de spam.
                 Precos vem de checkoutPricing.ts: nunca digitar a mao. */}
-            <div className="qa"><h3>How much does Kineo cost?</h3><p>Kineo has three monthly plans: Starter at ${usdPrice(TIER_PRICES.starter.usd)} for {TIER_CREDITS.starter} credits, Creator at ${usdPrice(TIER_PRICES.basic.usd)} for {TIER_CREDITS.basic} credits and Studio at ${usdPrice(TIER_PRICES.pro.usd)} for {TIER_CREDITS.pro} credits. Credits are spent per video and how many a video costs depends on the engine you pick, so a Fast render and a cinematic film come out of the same balance at very different rates. {CHECKOUT_CURRENCY_DISCLOSURE} New accounts get free credits to make a first video before paying anything.</p></div>
-            <div className="qa"><h3>Which AI video engines can I use in Kineo?</h3><p>{VIDEO_ENGINE_COUNT_WORD}, behind one interface and one balance: {S25_PUBLIC ? 'Seedance 2.5, ' : ''}Omni Flash (Google’s #1-ranked video model, Aug 2026), Veo 3.1, Kling 3, MiniMax H3, Kling 2.5, Seedance 1.5, Kineo 1 and Avatar. You choose the engine per video, so a cheap explainer and a cinematic flagship can come out of the same account on the same day. Every clip on this page is a real render from the engine named on the card — the badge always tells the truth about which model made it.</p></div>
-            <div className="qa"><h3>What is the best AI video generator for faceless YouTube channels?</h3><p>It depends on whether you want stock footage assembled or footage generated. Tools like InVideo and AutoShorts cut stock clips to your script, which is cheaper and fine for talking-point videos. Kineo generates the footage with models such as Veo 3.1 and Kling 3, keeps your narration word for word instead of rewriting it, and targets 60 seconds or more so the video qualifies for TikTok Creator Rewards. If your channel lives on visuals nobody else has, generation wins; if it lives on volume, stock is cheaper.</p></div>
+            <details className="qa"><summary><h3>How much does Kineo cost?</h3></summary><p>Kineo has three monthly plans: Starter at ${usdPrice(TIER_PRICES.starter.usd)} for {TIER_CREDITS.starter} credits, Creator at ${usdPrice(TIER_PRICES.basic.usd)} for {TIER_CREDITS.basic} credits and Studio at ${usdPrice(TIER_PRICES.pro.usd)} for {TIER_CREDITS.pro} credits. Credits are spent per video and how many a video costs depends on the engine you pick, so a Fast render and a cinematic film come out of the same balance at very different rates. {CHECKOUT_CURRENCY_DISCLOSURE} New accounts get free credits to make a first video before paying anything.</p></details>
+            <details className="qa"><summary><h3>Which AI video engines can I use in Kineo?</h3></summary><p>{VIDEO_ENGINE_COUNT_WORD}, behind one interface and one balance: {S25_PUBLIC ? 'Seedance 2.5, ' : ''}Omni Flash (Google’s #1-ranked video model, Aug 2026), Veo 3.1, Kling 3, MiniMax H3, Kling 2.5, Seedance 1.5, Kineo 1 and Avatar. You choose the engine per video, so a cheap explainer and a cinematic flagship can come out of the same account on the same day. Every clip on this page is a real render from the engine named on the card — the badge always tells the truth about which model made it.</p></details>
+            <details className="qa"><summary><h3>What is the best AI video generator for faceless YouTube channels?</h3></summary><p>It depends on whether you want stock footage assembled or footage generated. Tools like InVideo and AutoShorts cut stock clips to your script, which is cheaper and fine for talking-point videos. Kineo generates the footage with models such as Veo 3.1 and Kling 3, keeps your narration word for word instead of rewriting it, and targets 60 seconds or more so the video qualifies for TikTok Creator Rewards. If your channel lives on visuals nobody else has, generation wins; if it lives on volume, stock is cheaper.</p></details>
           </div>
         </div>
       </section>

@@ -164,64 +164,10 @@ export default function AudioClient() {
       <h1>Audio</h1>
       <p className="sub">Type it. Hear it. Four voice engines, one screen.</p>
 
-      <div className="grid">
-        {/* rail esquerdo */}
-        <div className="rail">
-          <div style={{ position: 'relative' }}>
-            <button type="button" className="mdlbtn" onClick={() => setPickerOpen((o) => !o)}>
-              <span className="lab" style={{ marginBottom: 0 }}><span className="n">1</span>Engine</span>
-              <span className="mdlname" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span className="eng-ic" aria-hidden="true">{eng.icon}</span>
-                <b>{eng.name}</b>
-                <i style={{ marginLeft: 'auto' }}>▾</i>
-              </span>
-            </button>
-            {pickerOpen && (
-              <div className="picker">
-                {AUDIO_ENGINES.map((e) => (
-                  <button key={e.key} type="button" className={`pk${e.key === model ? ' on' : ''}`}
-                    onClick={() => { setModel(e.key); setPickerOpen(false) }}>
-                    <span className="eng-ic" aria-hidden="true">{e.icon}</span>
-                    <span className="pk-tx">
-                      <span className="t">
-                        <b>{e.name}{e.tag && <span className="tag">{e.tag}</span>}</b>
-                      </span>
-                      <span className="d">{e.desc}</span>
-                    </span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {eng.voices.length > 0 && (
-            <div className="card">
-              <div className="lab"><span className="n">2</span>Voice</div>
-              <div className="row">
-                {eng.voices.map((v) => (
-                  <button key={v.id} type="button" className={`pill${voice === v.id ? ' on' : ''}`} onClick={() => setVoice(v.id)}>
-                    {v.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="cost">
-            <div className="sum">{eng.name}{voice ? ` · ${voice}` : ''} · {text.trim().length} chars</div>
-            <div className="val"><span>Cost</span><b>{credits} cr</b></div>
-            <button type="button" onClick={generate} disabled={!text.trim() || busy} className={`go ${text.trim() && !busy ? 'ok' : 'no'}`}>
-              {busy ? 'Creating…' : text.trim() ? 'Generate audio →' : 'Type your script first'}
-            </button>
-            <div className="gnote">{eng.perK} cr per 1000 characters · MP3 download included.</div>
-          </div>
-        </div>
-
-        {/* direita: texto + resultados */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-          <div>
-            <div className="lab"><span className="n">{eng.voices.length > 0 ? 3 : 2}</span>Your script</div>
-            <textarea value={text} onChange={(e) => setText(e.target.value)} rows={5} maxLength={2000}
+<div className="grid creation-grid">
+<div className="card creation-input">
+            <div className="lab"><span className="n">1</span>Your script</div>
+            <textarea aria-label="Your script" value={text} onChange={(e) => setText(e.target.value)} rows={5} maxLength={2000}
               placeholder={PLACEHOLDERS[model]} />
             {!text.trim() && (
               <div className="row" style={{ marginTop: 10 }}>
@@ -256,16 +202,65 @@ export default function AudioClient() {
               </p>
             )}
           </div>
+<div className="rail creation-settings">
+          <div style={{ position: 'relative' }}>
+            <button type="button" className="mdlbtn" onClick={() => setPickerOpen((o) => !o)}>
+              <span className="lab" style={{ marginBottom: 0 }}><span className="n">2</span>Engine</span>
+              <span className="mdlname" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span className="eng-ic" aria-hidden="true">{eng.icon}</span>
+                <b>{eng.name}</b>
+                <i style={{ marginLeft: 'auto' }}>▾</i>
+              </span>
+            </button>
+            {pickerOpen && (
+              <div className="picker">
+                {AUDIO_ENGINES.map((e) => (
+                  <button key={e.key} type="button" className={`pk${e.key === model ? ' on' : ''}`}
+                    onClick={() => { setModel(e.key); setPickerOpen(false) }}>
+                    <span className="eng-ic" aria-hidden="true">{e.icon}</span>
+                    <span className="pk-tx">
+                      <span className="t">
+                        <b>{e.name}{e.tag && <span className="tag">{e.tag}</span>}</b>
+                      </span>
+                      <span className="d">{e.desc}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
-          {galleryFailed && (
+          {eng.voices.length > 0 && (
+            <div className="card">
+              <div className="lab"><span className="n">3</span>Voice</div>
+              <div className="row">
+                {eng.voices.map((v) => (
+                  <button key={v.id} type="button" className={`pill${voice === v.id ? ' on' : ''}`} onClick={() => setVoice(v.id)}>
+                    {v.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="cost">
+            <div className="sum">{eng.name}{voice ? ` · ${voice}` : ''} · {text.trim().length} chars</div>
+            <div className="val"><span>Cost</span><b>{credits} cr</b></div>
+            <button type="button" onClick={generate} disabled={!text.trim() || busy} className={`go ${text.trim() && !busy ? 'ok' : 'no'}`}>
+              {busy ? 'Creating…' : text.trim() ? 'Generate audio →' : 'Type your script first'}
+            </button>
+            <div className="gnote">{eng.perK} cr per 1000 characters · MP3 download included.</div>
+          </div>
+        </div>
+<div className="creation-results">
+{galleryFailed && (
             <div role="alert" className="card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', border: '1px solid rgba(251,191,36,.35)', background: 'rgba(251,191,36,.06)' }}>
               <span style={{ fontSize: 13, color: '#fbbf24', fontWeight: 700 }}>We couldn’t load your audio right now.</span>
               <span style={{ fontSize: 12.5, color: 'var(--txt2,#9aa0a6)' }}>Your audio and credits are safe — this is just a temporary read hiccup.</span>
               <button type="button" className="pill" onClick={loadGallery}>↻ Try again</button>
             </div>
           )}
-
-          {galleryLoading && !galleryFailed && items.length === 0 && (
+{galleryLoading && !galleryFailed && items.length === 0 && (
             <div aria-label="Loading your audio" aria-busy="true">
               <style>{`@keyframes audsk{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
               <div className="lab">My Audio</div>
@@ -276,8 +271,7 @@ export default function AudioClient() {
               </div>
             </div>
           )}
-
-          {items.length > 0 && (
+{items.length > 0 && (
             <div>
               {/* KINEO-CEO-HOUR-2026-08-17 (#4) — flywheel: voz → filme completo */}
               <div className="card" style={{ padding: '11px 14px', marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
@@ -302,8 +296,8 @@ export default function AudioClient() {
               </div>
             </div>
           )}
-        </div>
-      </div>
+</div>
+</div>
     </div>
   )
 }

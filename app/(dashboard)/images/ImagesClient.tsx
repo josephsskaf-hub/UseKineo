@@ -204,62 +204,10 @@ export default function ImagesClient() {
       <h1>Images</h1>
       <p className="sub">Type it. See it. Six image engines, one screen.</p>
 
-      <div className="grid">
-        {/* rail esquerdo */}
-        <div className="rail">
-          <div style={{ position: 'relative' }}>
-            <button type="button" className="mdlbtn" onClick={() => setPickerOpen((o) => !o)}>
-              <span className="lab" style={{ marginBottom: 0 }}><span className="n">1</span>Engine</span>
-              <span className="mdlname" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span className="eng-ic" aria-hidden="true">{eng.icon}</span>
-                <b>{eng.name}</b>
-                <i style={{ marginLeft: 'auto' }}>▾</i>
-              </span>
-            </button>
-            {pickerOpen && (
-              <div className="picker">
-                {IMG_ENGINES.map((e) => (
-                  <button key={e.key} type="button" className={`pk${e.key === model ? ' on' : ''}`}
-                    onClick={() => { setModel(e.key); setPickerOpen(false) }}>
-                    <span className="eng-ic" aria-hidden="true">{e.icon}</span>
-                    <span className="pk-tx">
-                      <span className="t">
-                        <b>{e.name}{e.tag && <span className="tag">{e.tag}</span>}</b>
-                      </span>
-                      <span className="d">{e.desc}</span>
-                    </span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="card">
-            <div className="lab"><span className="n">2</span>Format</div>
-            <div className="row">
-              {SIZES.map((s) => (
-                <button key={s.key} type="button" className={`pill${size === s.key ? ' on' : ''}`} onClick={() => setSize(s.key)}>
-                  {s.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="cost">
-            <div className="sum">{eng.name} · {SIZES.find((s) => s.key === size)?.label}</div>
-            <div className="val"><span>Cost per image</span><b>{eng.credits}</b></div>
-            <button type="button" onClick={generate} disabled={!prompt.trim() || busy} className={`go ${prompt.trim() && !busy ? 'ok' : 'no'}`}>
-              {busy ? 'Creating…' : prompt.trim() ? 'Generate image →' : 'Describe your image first'}
-            </button>
-            <div className="gnote">Upscale any result to 2x for 1 credit.</div>
-          </div>
-        </div>
-
-        {/* direita: prompt + resultados */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-          <div>
-            <div className="lab"><span className="n">3</span>Your image</div>
-            <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={4} maxLength={2000}
+<div className="grid creation-grid">
+<div className="card creation-input">
+            <div className="lab"><span className="n">1</span>Your image</div>
+            <textarea aria-label="Your image" value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={4} maxLength={2000}
               placeholder="A lighthouse on a cliff at dusk, storm rolling in, cinematic light — or a YouTube thumbnail with the text “ABANDONED”." />
             {/* KINEO-NOITE2-2026-08-17 (#5) — chips de ideia matam a pagina em
                 branco: um clique preenche o prompt. */}
@@ -300,16 +248,63 @@ export default function ImagesClient() {
               </p>
             )}
           </div>
+<div className="rail creation-settings">
+          <div style={{ position: 'relative' }}>
+            <button type="button" className="mdlbtn" onClick={() => setPickerOpen((o) => !o)}>
+              <span className="lab" style={{ marginBottom: 0 }}><span className="n">2</span>Engine</span>
+              <span className="mdlname" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span className="eng-ic" aria-hidden="true">{eng.icon}</span>
+                <b>{eng.name}</b>
+                <i style={{ marginLeft: 'auto' }}>▾</i>
+              </span>
+            </button>
+            {pickerOpen && (
+              <div className="picker">
+                {IMG_ENGINES.map((e) => (
+                  <button key={e.key} type="button" className={`pk${e.key === model ? ' on' : ''}`}
+                    onClick={() => { setModel(e.key); setPickerOpen(false) }}>
+                    <span className="eng-ic" aria-hidden="true">{e.icon}</span>
+                    <span className="pk-tx">
+                      <span className="t">
+                        <b>{e.name}{e.tag && <span className="tag">{e.tag}</span>}</b>
+                      </span>
+                      <span className="d">{e.desc}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
-          {galleryFailed && (
+          <div className="card">
+            <div className="lab"><span className="n">3</span>Format</div>
+            <div className="row">
+              {SIZES.map((s) => (
+                <button key={s.key} type="button" className={`pill${size === s.key ? ' on' : ''}`} onClick={() => setSize(s.key)}>
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="cost">
+            <div className="sum">{eng.name} · {SIZES.find((s) => s.key === size)?.label}</div>
+            <div className="val"><span>Cost per image</span><b>{eng.credits}</b></div>
+            <button type="button" onClick={generate} disabled={!prompt.trim() || busy} className={`go ${prompt.trim() && !busy ? 'ok' : 'no'}`}>
+              {busy ? 'Creating…' : prompt.trim() ? 'Generate image →' : 'Describe your image first'}
+            </button>
+            <div className="gnote">Upscale any result to 2x for 1 credit.</div>
+          </div>
+        </div>
+<div className="creation-results">
+{galleryFailed && (
             <div role="alert" className="card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', border: '1px solid rgba(251,191,36,.35)', background: 'rgba(251,191,36,.06)' }}>
               <span style={{ fontSize: 13, color: '#fbbf24', fontWeight: 700 }}>We couldn’t load your images right now.</span>
               <span style={{ fontSize: 12.5, color: 'var(--txt2,#9aa0a6)' }}>Your images and credits are safe — this is just a temporary read hiccup.</span>
               <button type="button" className="pill" onClick={loadGallery}>↻ Try again</button>
             </div>
           )}
-
-          {galleryLoading && !galleryFailed && items.length === 0 && (
+{galleryLoading && !galleryFailed && items.length === 0 && (
             <div aria-label="Loading your images" aria-busy="true">
               <style>{`@keyframes imgsk{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
               <div className="lab">My Images</div>
@@ -320,8 +315,7 @@ export default function ImagesClient() {
               </div>
             </div>
           )}
-
-          {items.length > 0 && (
+{items.length > 0 && (
             <div>
               <div className="lab">My Images</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 12 }}>
@@ -357,8 +351,8 @@ export default function ImagesClient() {
               </div>
             </div>
           )}
-        </div>
-      </div>
+</div>
+</div>
     </div>
   )
 }

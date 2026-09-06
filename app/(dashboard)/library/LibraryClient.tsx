@@ -96,7 +96,7 @@ export default function LibraryClient() {
   )
 
   return (
-    <div className="stu">
+    <div className="stu library-page">
       <style dangerouslySetInnerHTML={{ __html: STUDIO_KIT_CSS }} />
 
       <h1>Library</h1>
@@ -159,16 +159,17 @@ export default function LibraryClient() {
         </div>
       )}
 
-      <div className="row" style={{ marginBottom: 20 }}>
+      <div className="library-toolbar">
+      <div className="row" role="group" aria-label="Asset type">
         {TABS.map((t) => (
-          <button key={t.key} type="button" className={`pill${tab === t.key ? ' on' : ''}`} onClick={() => { setTab(t.key); setQ('') }}>
+          <button key={t.key} type="button" aria-pressed={tab === t.key} className={`pill${tab === t.key ? ' on' : ''}`} onClick={() => { setTab(t.key); setQ('') }}>
             {t.label} · {t.count}
           </button>
         ))}
       </div>
 
       {loaded && activeCount >= 6 && (
-        <div style={{ position: 'relative', maxWidth: 420, marginBottom: 16 }}>
+        <div className="library-search">
           <span aria-hidden="true" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 14, opacity: 0.55 }}>🔍</span>
           <input
             type="search"
@@ -180,6 +181,8 @@ export default function LibraryClient() {
           />
         </div>
       )}
+
+      </div>
 
       {!loaded && (
         <div aria-label="Loading your library" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 12 }}>
@@ -207,7 +210,7 @@ export default function LibraryClient() {
             {clearBtn}
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 12 }}>
+          <div className="library-collection">
             {fVids.map((v) => (
               <div key={v.id} className="card" style={{ padding: 8 }}>
                 <Link href={`/history#v-${v.id}`} style={{ display: 'block', textDecoration: 'none' }}>
@@ -232,7 +235,7 @@ export default function LibraryClient() {
                   />
                 </div>
                 {v.title && (
-                  <div style={{ marginTop: 7, fontSize: 11.5, color: 'var(--txt2,#9aa0a6)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div title={v.title} style={{ marginTop: 10, fontSize: 13, lineHeight: 1.5, color: '#d4ddec', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
                     {v.title}
                   </div>
                 )}
@@ -279,7 +282,7 @@ export default function LibraryClient() {
             {clearBtn}
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))', gap: 12 }}>
+          <div className="library-collection">
             {fImgs.map((im) => (
               <div key={im.id} className="card" style={{ padding: 8 }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -308,7 +311,7 @@ export default function LibraryClient() {
               <div key={a.id} className="card" style={{ padding: 12, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                 <audio controls preload="none" src={a.url} style={{ flex: '1 1 260px', height: 36 }} />
                 <span style={{ fontSize: 11.5, color: 'var(--txt2,#9aa0a6)' }}>{a.model}{a.voice ? ` · ${a.voice}` : ''}</span>
-                <button type="button" className="pill" onClick={() => dl(a.url, `kineo-audio-${a.id.slice(0, 6)}.mp3`)}>⬇</button>
+                <button type="button" aria-label="Download audio" className="pill" onClick={() => dl(a.url, `kineo-audio-${a.id.slice(0, 6)}.mp3`)}>⬇</button>
                 {a.text && <div style={{ flexBasis: '100%', fontSize: 12, color: 'var(--txt2,#9aa0a6)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.text}</div>}
               </div>
             ))}

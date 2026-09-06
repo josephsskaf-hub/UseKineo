@@ -16,6 +16,7 @@
 // REGRA DE OURO: ajuste visual aprovado pelo fundador entra AQUI, uma vez —
 // e todos os ambientes atualizam juntos. Nada de fork de estilo por página.
 import React from 'react'
+import { WORKSPACE_PRESENTATION_CSS } from '@/lib/ui/workspacePresentation'
 
 export const STUDIO_KIT_CSS = `
 .stu{min-height:100vh;background:radial-gradient(110% 60% at 50% -8%,rgba(41,151,255,.10),transparent 55%),radial-gradient(70% 50% at 100% 100%,rgba(41,151,255,.05),transparent 60%),#0a0a0c;color:#fafafa;padding:26px 34px 60px;font-family:var(--font-inter),'Inter',sans-serif}
@@ -141,6 +142,7 @@ export const STUDIO_KIT_CSS = `
 .stu .vtile .vtnext{position:absolute;left:0;right:0;bottom:0;z-index:3;display:flex;align-items:center;justify-content:center;gap:4px;padding:8px 6px;font-size:10.5px;font-weight:800;letter-spacing:-.01em;text-decoration:none;color:#bfe0ff;background:rgba(41,151,255,.22);border-top:1px solid rgba(41,151,255,.55);font-family:var(--font-display),var(--font-inter),sans-serif;-webkit-tap-highlight-color:rgba(41,151,255,.35);transition:background .16s ease,color .16s ease}
 .stu .vtile .vtnext:hover,.stu .vtile .vtnext:focus-visible{background:rgba(41,151,255,.42);color:#fff;outline:none}
 .stu .vtile .vtnext:active{background:rgba(41,151,255,.55);color:#fff}
+${WORKSPACE_PRESENTATION_CSS}
 `
 
 export function StudioShell({
