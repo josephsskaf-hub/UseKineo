@@ -3667,3 +3667,98 @@ O produto, nessa noite, não errou uma: seis pedidos, seis filmes, zero falhas.
 O que faltou não foi qualidade nem crédito — foi motivo para voltar. Guardo a
 ressalva mais importante: são dez pessoas numa madrugada de domingo, e dez
 pessoas não provam nada sozinhas. É o retrato, não a lei.
+
+---
+
+### ADENDO AO FECHAMENTO — 08:5x BRT — a mesma pergunta, numa janela QUE TEM GENTE: a parede de crédito explica 8% da parada
+
+O checkpoint acima fechou com uma ressalva honesta: **10 pessoas numa
+madrugada de domingo não provam nada.** Então, antes de encerrar, refiz a
+única pergunta que importa numa janela de **7 dias**, que tem 230 pessoas.
+Contas externas.
+
+#### O FUNIL DE 7 DIAS, POR FONTE
+
+| fonte | cadastros | fez filme 1 | **parou no 1** | fez 2+ | **pagou** |
+|---|---|---|---|---|---|
+| chatgpt | 105 | 74 | **54** | 20 | **2** |
+| taaft | 74 | 52 | **43** | 9 | 0 |
+| sem fonte | 38 | 10 | 5 | 5 | 0 |
+| nav | 10 | 7 | 5 | 2 | 0 |
+| outros (seo/partners/engine_bento) | 3 | 2 | 2 | 0 | 0 |
+| **total** | **230** | **145** | **109** | **36** | **2** |
+
+**Os 2 pagantes de 7 dias vieram os dois do chatgpt.** O fundador está certo
+sobre a fonte: ela é 46% dos cadastros, 51% dos primeiros filmes, 56% dos
+segundos filmes e **100% do dinheiro**.
+
+#### O NÚMERO QUE MUDA A PRIORIDADE DO PRÓXIMO CICLO
+
+Das **109 pessoas que pararam em exatamente 1 filme**:
+
+| | pessoas | % das 109 |
+|---|---|---|
+| **bateram na parede de crédito** (`upgrade_modal_opened`) | **9** | **8%** |
+| ainda têm saldo para um **Kineo 1** (≥5cr) agora | **65** | **60%** |
+| ainda têm saldo para repetir o **Seedance 1.5** (≥15cr) agora | **33** | **30%** |
+
+**A parede de crédito explica 8% da parada no filme 1.** Sessenta e cinco
+pessoas — 60% — estão paradas **com dinheiro na mão**, agora, e nunca ouviram
+um "não" da casa.
+
+Isto não invalida nada do que este ciclo publicou: a caixa da próxima ação, a
+saída barata da #16 e a carta de resgate continuam certas **para as 9**, e o
+defeito que a #16 consertou era real (uma daquelas 9 recebeu pedágio em vez de
+alternativa). O que o número diz é sobre **tamanho e ordem**: a próxima
+sessão que gastar 8 horas na parede de crédito estará trabalhando o menor dos
+dois grupos.
+
+#### A PRÓXIMA JOGADA (para a sessão que vier, com denominador já medido)
+
+**O alvo é `parou_no_1 AND saldo >= 5 AND nunca bateu na parede` = 65 pessoas
+(34 delas do chatgpt).** Elas não precisam de porta de pagamento, de desconto
+nem de crédito — precisam de **motivo para voltar**, e a casa tem um pronto
+que elas nunca viram: o **episódio 2 do próprio filme delas**, que o `#14`
+ensinou a casa a escrever e guardar e o `#15` ensinou a carta a nomear.
+
+A peça já existe e está no ar; o que falta é **apontá-la para esta coorte**,
+que hoje não é público de nenhuma campanha (a `next_episode_wall` mira quem
+está **sem** saldo — exatamente o grupo de 9, não o de 65). É uma mudança de
+critério de coorte, não código novo de produto.
+
+⚠️ **Duas travas antes de executar**, e elas são da casa, não minhas: a
+`next_episode_wall` e as outras campanhas compartilham a lista
+`OUTRAS_CAMPANHAS` — coorte nova exige acrescentar o carimbo nas duas rotas,
+senão a mesma pessoa leva duas cartas no mesmo dia (aviso da #13 no PEDIDOS).
+E **a memória do episódio 2 só existe para filmes entregues depois de 06/09
+09:22 UTC**, então boa parte das 65 ainda cairá na versão sem episódio
+escrito — o número começa baixo por construção, e isso é adoção, não fracasso.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+**Nada.** Adendo de medição; nenhum código, nenhum e-mail, nada publicado além
+do documento. Tudo em produção, fila zerada, site 200.
+
+### 📋 O QUE ACONTECEU
+
+Terminei desconfiando do meu próprio fechamento. Ele estava certo, mas era
+pequeno demais: dez pessoas numa madrugada de domingo. Refiz a conta em sete
+dias, onde há 230.
+
+O retrato aguentou, e ficou mais duro. **Cento e nove pessoas fizeram um filme
+esta semana e pararam ali. Apenas nove delas ouviram a casa dizer "não, seu
+saldo não cobre" — 8%. Sessenta e cinco estão paradas com dinheiro suficiente
+na conta, agora, e nunca esbarraram em nada.** Elas não estão travadas: estão
+sem motivo para voltar.
+
+Isso não joga fora a noite. As peças que subiram estão certas para aquelas
+nove, e o defeito que consertei na última hora atingia uma delas de verdade.
+Mas coloca a ordem das coisas no lugar para a próxima sessão: **o grupo grande
+não é quem foi barrado, é quem foi embora satisfeito.** E a casa já tem o
+convite pronto para eles — o episódio 2 do filme que eles mesmos fizeram — só
+não está mandando para esse grupo, porque a campanha existente procura
+justamente quem está sem saldo.
+
+Um dado a mais, e ele é do seu lado da mesa: **os dois únicos pagantes da
+semana vieram, os dois, do ChatGPT.** Essa fonte é 46% dos cadastros e 100% do
+dinheiro.
