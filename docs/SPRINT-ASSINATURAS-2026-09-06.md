@@ -1944,3 +1944,47 @@ incomparáveis — que é um defeito próprio.
 
 **PLACAR:** 5 cadastros, 4 filmes entregues, 1 checkout, **0 pagamentos**.
 314 eventos em 50 min (o tráfego acordou). 1 erro pós-deploy, 0 modais de saldo.
+
+---
+
+### #13 — 05:09→05:3x BRT — HIPÓTESE ANTES DE CODAR: a Stripe guarda a porta de volta do checkout por 30 dias, e a casa nunca mandou essa porta para ninguém
+
+**Errado (medido agora, antes de escrever código):**
+
+O webhook da Stripe recebe `checkout.session.expired` e grava, em
+`events.metadata`, o campo `recovery_url_available`. Nos últimos 4 dias ele
+veio **`true` em quase toda linha** — e o que a casa faz com isso é **nada**.
+O próprio link não é sequer guardado: gravamos que ele EXISTE e o jogamos fora.
+
+| medição (contas externas) | número |
+|---|---|
+| `checkout_session_expired` em 72h | **17 pessoas** |
+| pessoas com sessão expirada nos últimos 14d, sem pagamento, sem campanha nenhuma | **34** |
+| dessas, com link de recuperação da Stripe **vivo** | **31** |
+| dessas, que já entregaram filme | **20** |
+| `checkout_rescue_emailed_v1` — última vez que a casa escreveu para esta coorte | **19/08, 38 pessoas, em 27 segundos. Nunca mais.** |
+
+A carta de resgate de 19/08 existe, é boa, e está **parada há 18 dias** porque
+nasceu só-sessão-de-admin, sem cron — o mesmo defeito que a #11 acabou de
+consertar na carta do episódio 2. E o link dela é `/pricing`: manda a pessoa
+**re-escolher o plano e re-encarar o preço do zero**.
+
+`after_expiration.recovery.url` da Stripe faz o oposto: reabre **a mesma
+sessão, no mesmo plano, na mesma moeda e no mesmo valor** que a pessoa já
+tinha aceitado ver. Conferido: as datas em `recovery_url_expires_at` são
+**30 dias** depois da expiração (ex.: sessão de 05/09 → link vivo até
+05/10). **Nenhum dos 31 links expirou.**
+
+**Hipótese:** quem chegou ao formulário de pagamento da Stripe e não terminou
+não é "achou caro" — é gente que já passou pela decisão de preço e parou no
+degrau seguinte. Para essa pessoa, um clique que devolve exatamente a página
+onde ela estava vale mais que qualquer carta que peça para começar de novo.
+Isso **não contraria** a conclusão fechada do fundador (o vazamento do
+checkout é preço): não muda preço, plano nem oferta — devolve a porta.
+
+**Arquivos:** `app/api/admin/send-checkout-recovery/route.ts` (novo),
+`vercel.json` (gatilho), `scripts/test-checkout-recovery.mjs` (guardião).
+**Métrica:** `checkout_recovery_emailed_v1` (envios) → `checkout_started`/
+`payment_success` das mesmas pessoas depois do envio.
+**Parada:** se a Stripe não devolver `after_expiration.recovery.url` para uma
+pessoa, ela **não recebe** a carta — a promessa central dela é o link.
