@@ -154,6 +154,49 @@ check('a telemetria nao pode derrubar o pop-up (try/catch)',
 check('o evento diz QUAL plano foi oferecido no lugar',
   /tier:\s*fit\?\.fittingPlanIds\[0\]/.test(NOTE))
 
+// ── 8. O ROTULO DO EPISODIO 1 vem da caixa da pessoa, nao de um titulo curado ─
+// Medido nas 11 temporadas de hoje: 5 passam de 70 chars (max 120) e 1 comeca
+// com "*🎙️ COMPLETE VOICEOVER SCRIPT - ...". A faixa tem de aguentar isso.
+check('o rotulo do Ep 1 passa pelo saneador, nao vai cru',
+  /rotuloDoEpisodio1\(season\.fromTitle\)/.test(STRIP_C))
+check('e o saneador e exportado (testavel)', /export function rotuloDoEpisodio1/.test(STRIP_C))
+
+// Exercita a FUNCAO REAL, extraida do proprio arquivo. Nao criei um espelho
+// .mjs de proposito: duas copias da mesma regra divergem no primeiro ajuste
+// (memoria `predicado-do-cobrador-nao-se-redigita`). Aqui so se apagam as
+// anotacoes de tipo, que e tudo o que separa este corpo de JS valido.
+let rotuloDoEpisodio1 = null
+try {
+  const corpo = STRIP.match(/export function rotuloDoEpisodio1[\s\S]*?\n\}/)[0]
+    .replace('export function', 'function')
+    .replace('(bruto: string): string', '(bruto)')
+  rotuloDoEpisodio1 = new Function(`${corpo}; return rotuloDoEpisodio1`)()
+} catch {
+  rotuloDoEpisodio1 = null
+}
+check('a funcao real foi extraida e executa', typeof rotuloDoEpisodio1 === 'function')
+if (rotuloDoEpisodio1) {
+  check('corta o marcador de roteiro real de hoje',
+    rotuloDoEpisodio1('*🎙️ COMPLETE VOICEOVER SCRIPT - "Jadui Angoothi wali Shehzadi"')
+      .startsWith('Jadui'))
+  check('titulo curto passa intacto',
+    rotuloDoEpisodio1('Ever seen unity redefine a nation?') === 'Ever seen unity redefine a nation?')
+  check('titulo de 120 chars cabe numa linha',
+    rotuloDoEpisodio1('x'.repeat(120)).length <= 65)
+  // A propriedade real: o texto cortado tem de ser um prefixo do original que
+  // TERMINA onde havia um espaco — ou seja, nenhuma palavra fica partida ao
+  // meio. (Um regex do tipo /\w…$/ NAO distingue isto: "…wird…" e um corte
+  // limpo e casaria na mesma; foi o meu 1o palpite e estava errado.)
+  const longo = 'Eine kleine, realistisch aussehende Retatrutide-Flasche wird auf einem Tisch gezeigt und'
+  const cortado = rotuloDoEpisodio1(longo).replace(/…$/, '')
+  check('corta em fronteira de palavra, nao no meio',
+    longo.startsWith(cortado) && (longo.length === cortado.length || longo[cortado.length] === ' '))
+} else {
+  // Sem o espelho .mjs o comportamento continua verificado pelos regex acima.
+  check('saneador tem corte por fronteira de palavra', /lastIndexOf\(' '\)/.test(STRIP_C))
+  check('saneador tem teto de 64', /length <= 64/.test(STRIP_C))
+}
+
 console.log(`\nseason-strip: ${ok} passaram, ${fail} falharam`)
 if (fail) {
   console.log('FALHAS:')

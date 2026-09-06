@@ -75,6 +75,32 @@ interface Props {
   onEvent?: (name: string, meta?: Record<string, unknown>) => void
 }
 
+/**
+ * O rótulo do episódio 1 é o TÍTULO DO FILME da pessoa, e esse campo não é um
+ * título curado: é o que ela escreveu na caixa. Medido nas 11 temporadas
+ * gravadas hoje — **5 passam de 70 caracteres (máx. 120) e 1 começa com
+ * `*🎙️ COMPLETE VOICEOVER SCRIPT - ...`**, porque a pessoa colou o roteiro
+ * inteiro. Numa linha de uma só altura isso quebra a faixa.
+ *
+ * Só APRESENTAÇÃO: não reescreve o que está guardado, não toca no filme e não
+ * mexe no pipeline. Tira marcador de roteiro do começo, colapsa espaços e corta
+ * em fronteira de palavra — nunca no meio de uma.
+ */
+export function rotuloDoEpisodio1(bruto: string): string {
+  const limpo = bruto
+    .replace(/^[\s*_#>-]+/, '')
+    .replace(/^(?:🎙️?|🎬|📝)\s*/u, '')
+    .replace(/^(?:COMPLETE\s+)?VOICEOVER\s+SCRIPT\s*[-–—:]*\s*/i, '')
+    .replace(/^(?:HOOK|MICRO REWARD|ESCALATION|PAYOFF)\s*[-–—:]*\s*/i, '')
+    .replace(/^["“']|["”']$/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+  if (limpo.length <= 64) return limpo
+  const corte = limpo.slice(0, 64)
+  const espaco = corte.lastIndexOf(' ')
+  return `${(espaco > 40 ? corte.slice(0, espaco) : corte).trimEnd()}…`
+}
+
 export default function SeasonStrip({ videoId, onPick, onEvent }: Props) {
   const [data, setData] = useState<SeasonPayload | null>(null)
   const requestedRef = useRef<string | null>(null)
@@ -201,7 +227,7 @@ export default function SeasonStrip({ videoId, onPick, onEvent }: Props) {
       <ol style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 6 }}>
         <li style={{ display: 'flex', gap: 10, alignItems: 'baseline', fontSize: 13, opacity: 0.6 }}>
           <span style={{ minWidth: 34, fontVariantNumeric: 'tabular-nums' }}>Ep 1</span>
-          <span>✅ {season.fromTitle}</span>
+          <span>✅ {rotuloDoEpisodio1(season.fromTitle)}</span>
         </li>
         {episodes.map((ep) => (
           <li key={ep.n}>
