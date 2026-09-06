@@ -3025,3 +3025,130 @@ dentro dela: deve **subi-la para dentro da tela** e só então voltar a medir.
 Pagantes hoje: **zero**, com um único checkout em 24 horas e 197 e-mails que
 trouxeram 5 pessoas de volta. A fábrica de filmes está impecável (43 de 43
 concluídos); o funil comercial é que não abriu.
+
+---
+
+## 🏁 FECHAMENTO REAL DO CICLO — 19:08 BRT (22:08 UTC) — medido no relógio, não no rótulo
+
+**Este é o fechamento do término.** Houve dois textos de encerramento antes dele:
+um às 18:23 (`3a42dce8`) e a correção das 18:38 (`3fbe0c6f`). O primeiro encerrou
+o ciclo 45 min cedo e cristalizou um estado que ainda mudou depois
+([[fechamento-cedo-conferir-relogio]]). Os números abaixo foram remedidos agora,
+às 22:10 UTC, e **um deles corrige o número que eu mesmo anunciei duas vezes hoje.**
+
+### (a) O press release do DIA — o que o cliente consegue às 19:08 e não conseguia às 11:08
+
+Ao terminar um filme, o cliente recebe **uma temporada**, não um arquivo: o
+servidor escreve os títulos dos episódios 2 a 6 da série dele, a faixa mostra
+quais o saldo paga — em crédito **ou em cota do Kineo 1 free** — e o episódio
+seguinte nasce em um clique, sem formulário em branco. Junto vem o pacote de
+publicação pronto (título, descrição com `usekineo.com`, legenda TikTok,
+comentário fixado), que transforma o filme dele em anúncio nosso.
+
+**A ressalva que não pode sumir do press release:** isto está no ar e **quase
+ninguém chegou a ver**. A faixa foi escrita para 24 pessoas em 24h e registrou
+**2 exposições em toda a sua vida** — a última às 20:18 UTC, *antes* das duas
+entregas da tarde.
+
+### (b) Placar por fonte (desde 2026-09-06 14:00 UTC, contas externas)
+
+| fonte | cadastros | filme 1 | filme 2 | filme 3 | checkout | **pagou** |
+|---|---|---|---|---|---|---|
+| chatgpt | 7 | 6 | 2 | 0 | 0 | **0** |
+| taaft | 2 | 2 | 0 | 0 | 0 | **0** |
+| (sem fonte) | 2 | 2 | 1 | 0 | 0 | **0** |
+| **total** | **11** | **10** | **3** | **0** | **0** | **0** |
+
+ChatGPT = **7 de 11** cadastros, como no resto do mês. O degrau **2→3 é seco** e
+o **checkout não abriu uma única vez** em oito horas.
+
+### (c) Pagantes do dia: ZERO
+
+`payment_success` no ciclo = **0**. `checkout_started` no ciclo = **0** (o único
+checkout das últimas 24h é anterior às 14:00 UTC). Não há caminho de pagante para
+narrar porque não houve pagante. Meta do fundador: 10-15/dia. Entregue: 0.
+
+### (d) E-mails do ciclo: 74 envios, 71 pessoas — e as duas cartas novas seguem em 0
+
+| campanha | envios | pessoas |
+|---|---|---|
+| `trial_lifecycle_email_sent` (velha, genérica) | 32 | 32 |
+| `next_episode_wall_emailed_v1` (**nova**) | 17 | 17 |
+| `video_ready_email_sent` | 13 | 10 |
+| `season_letter_emailed_v1` (**nova**) | 11 | 11 |
+| `checkout_recovery_emailed_v1` | 1 | 1 |
+
+**As duas cartas que este sprint inventou, somadas no dia inteiro: 46 envios,
+0 retornos.** Medido por evento de navegador ([[retorno-pos-email-conta-email-nosso]]):
+0 voltaram, 0 fizeram filme, 0 chegaram ao checkout. Não escrevi carta nº 3 e a
+próxima sessão também não deve ([[carta-nova-so-depois-da-velha-mover]]).
+
+### (e) Entregas em produção (SHA + prova)
+
+| entrega | SHA | prova |
+|---|---|---|
+| #31 — o cadeado pergunta *quantos* episódios cabem | `877278ff` | ancestral de `origin/main` ✅ |
+| #32 — o cadeado pergunta *em que moeda* | `60559890` | ancestral de `origin/main` ✅ |
+
+`git ls-remote origin main` = `e7500c4f` (ponta do Codex, posterior) ·
+`git rev-list --count origin/main..entrega-atual` = **0** · site = 200.
+
+### (f) 🔴 A CORREÇÃO DO DIA — eu comparei laranja com maçã, duas vezes
+
+Escrevi hoje, duas vezes, que a temporada "é escrita para 23 pessoas e **vista
+por 2**", e concluí daí que a faixa *mora fora da tela*. **Fui falsificar essa
+conclusão antes de a entregar à próxima sessão, e ela não sobreviveu.**
+
+`SeasonStrip` está montado em `app/(dashboard)/generate/GenerateClient.tsx:16682`,
+sob `phase === 'done' && finalVideoUrl` — e **imediatamente acima** de
+`NextShortsSection`, que vive sob a mesma condição. Se a faixa estivesse fora da
+tela, a prateleira abaixo dela estaria ainda mais. Os números de 24h:
+
+| evento | como dispara | pessoas |
+|---|---|---|
+| `next_shorts_shown` | na **montagem** | **23** |
+| `next_shorts_seen` | IntersectionObserver a **33%** | **8** |
+| `season_shown` | IntersectionObserver a **35%** | **2** |
+
+`season_shown` é evento **de rolagem**, não de montagem (`SeasonStrip.tsx:104`).
+O par honesto dele é `next_shorts_seen` = **8**, não `next_shorts_shown` = 23.
+Portanto **"2 de 30" exagera a perda**: o denominador certo não é "todo mundo que
+fez um filme", é "quem rolou até um terço do bloco" — 8 pessoas.
+
+**Mas a pergunta boa continua de pé, e ficou mais afiada:** a faixa está *acima*
+da prateleira, logo deveria pontuar **mais** que 8. Pontuou **2**. A diferença não
+é rolagem — é que `SeasonStrip` tem **quatro `return` silenciosos** entre o fetch
+e o render (`SeasonStrip.tsx:64-68`): `!res.ok`, sem `season`, `episodes` não é
+array, `episodes.length === 0`. Nenhum deles emite evento. Hoje é **impossível
+distinguir "a faixa não renderizou" de "a pessoa não rolou"** — os dois casos
+somem do mesmo jeito.
+
+**Prova pontual de que o servidor faz a parte dele:** desde a subida da #32
+(21:47 UTC) houve **1** filme concluído; para ele o `season_written` disparou e o
+`season_shown` **não**. O servidor escreveu, o cliente não mostrou.
+
+### (g) O que a próxima sessão faz PRIMEIRO
+
+1. **Instrumentar os quatro `return` silenciosos** de `SeasonStrip.tsx:64-68`
+   (um `season_unavailable` com a razão, e um `season_mounted` na montagem, par
+   de `next_shorts_shown`). Sem isso, **o número da faixa é ininterpretável** —
+   e as três últimas rotações afinaram a oferta de uma peça que talvez nem
+   renderize ([[contrato-de-servidor-sem-chamador]]).
+2. **Só depois** decidir se o problema é oferta, posição ou fetch. Não consertar
+   mais nada dentro da faixa antes de o passo 1 devolver linha.
+3. **Não escrever carta nova.** 46 envios, 0 retornos.
+4. **Atacar o denominador.** 11 cadastros em 8 horas não sustentam 10-15
+   pagantes/dia por nenhuma taxa de conversão plausível. ChatGPT é 2/3 do
+   tráfego; é lá que a agulha se move, e isso é aquisição, não produto.
+
+### (h) Checagem zero — a fábrica está impecável
+
+43 filmes em 24h · **43 concluídos** · 0 não-terminal · 0 preso · 0 cadastro sem
+crédito · `next_episode_failed` **0** · `generation_stage_error` 7 (não-fatais).
+**O produto entrega. O funil comercial é que não abriu.**
+
+### (i) Spec que exige decisão do fundador
+
+**Nenhuma.** Preço público intocado o ciclo inteiro — a monetização foi moldura,
+momento e oferta, nunca número novo, conforme o limite do ciclo.
+
