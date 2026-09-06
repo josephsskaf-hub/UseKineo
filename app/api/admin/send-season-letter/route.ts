@@ -147,7 +147,7 @@ function planoUrl(): string {
 // preservado. A query com o tema sobrevive a viagem inteira: sondado nesta
 // rotacao, com controle irmao inexistente em 404.
 function episodioUrl(seed: string): string {
-  return buildSeriesContinuationEmailUrl(SITE, seed, 'lifecycle_loss_email', {
+  return buildSeriesContinuationEmailUrl(SITE, seed, 'lifecycle_season_letter', {
     utm_source: 'lifecycle',
     utm_medium: 'email',
     utm_campaign: CAMPANHA,

@@ -52,6 +52,17 @@ export type SeriesContinuationSource =
   // PAGAMENTO nao pode ser somado ao de quem so recebeu o filme: sao duas
   // intencoes diferentes e o placar do ciclo compara as duas.
   | 'lifecycle_checkout_recovery_email'
+  // sprint-assinaturas #19/#24 (2026-09-06) — as DUAS cartas de série ganharam
+  // fonte própria, e não é cosmético: sem isso o clique delas cairia dentro de
+  // `lifecycle_loss_email` e ficaria indistinguível do da campanha
+  // `downgraded_loss`, que é a maior da casa. Medir uma peça nova por dentro do
+  // contador de uma peça velha é como se declara sucesso sem ter tido nenhum.
+  //
+  // As duas coortes são OPOSTAS e por isso precisam de contadores separados:
+  //   `season_letter`      → quem parou no filme 1 e AINDA TEM saldo;
+  //   `next_episode_wall`  → quem parou no filme 1 e NÃO tem saldo.
+  | 'lifecycle_season_letter'
+  | 'lifecycle_episode_wall'
   // KINEO-SPRINT-V1V4-2026-08-31 (#3B) — o rodape da tela de video pronto
   // renderizava `null` para o maior grupo ativado (gratuito, nao pagante,
   // render Fast). Este e o unico caminho de criacao que aquele grupo ve ali.

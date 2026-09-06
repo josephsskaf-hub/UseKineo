@@ -119,7 +119,12 @@ check('C. a porta do plano e um LINK etiquetado, nao uma promessa', /pricing\?ut
 // inteiro). Guardiao que nao olha o destino nao guarda o clique.
 check(
   'C. o link do episodio passa pela PORTA CONTADA, nao direto para o compositor',
-  /buildSeriesContinuationEmailUrl\(SITE, seed,/.test(carta) && !/composerUrl\(/.test(carta),
+  // A FONTE tem de ser a PROPRIA desta carta. Emprestar `lifecycle_loss_email`
+  // (que foi o que eu fiz na primeira versao) joga o clique dela dentro do
+  // contador da maior campanha da casa — medir peca nova por dentro do
+  // contador de peca velha e como se declara sucesso sem ter tido nenhum.
+  /buildSeriesContinuationEmailUrl\(SITE, seed, 'lifecycle_season_letter'/.test(carta) &&
+    !/composerUrl\(/.test(carta),
 )
 check(
   'C. e a porta contada e a da casa, importada, nao um caminho digitado',

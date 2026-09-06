@@ -57,7 +57,9 @@ checa('assunto nomeia o episódio escrito', /if \(episodio\) return `Episode 2: 
 // e conta o clique) em vez de ir direto ao compositor — que sondado em
 // producao dava `307 -> /signup`, um formulario de CRIAR CONTA para quem ja
 // tem conta.
-checa('o prefill prefere o episódio ao tema do filme 1', /buildSeriesContinuationEmailUrl\(SITE, episodio \?\? filme,/.test(src))
+// A fonte tem de ser a PROPRIA desta carta: as duas coortes sao opostas (com
+// saldo x sem saldo) e precisam de contadores separados.
+checa('o prefill prefere o episódio ao tema do filme 1', /buildSeriesContinuationEmailUrl\(SITE, episodio \?\? filme, 'lifecycle_episode_wall'/.test(src))
 checa('#24: o link do episódio passa pela porta contada, não direto', !/composerUrl\(/.test(src) && /from '@\/lib\/seriesContinuation'/.test(src))
 checa('continuarUrl recebe os dois', /function continuarUrl\(filme: string \| null, episodio: string \| null\)/.test(src))
 // ATUALIZADAS PELO #23 (06/09), E NAO AFROUXADAS.

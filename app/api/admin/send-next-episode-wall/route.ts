@@ -232,7 +232,7 @@ function planoUrl(): string {
  *  A porta tambem CONTA o clique (`episode_link_clicked`), que e o degrau que
  *  falta entre "enviado" e "aterrissou" nesta campanha. */
 function continuarUrl(filme: string | null, episodio: string | null): string {
-  return buildSeriesContinuationEmailUrl(SITE, episodio ?? filme, 'lifecycle_loss_email', {
+  return buildSeriesContinuationEmailUrl(SITE, episodio ?? filme, 'lifecycle_episode_wall', {
     utm_source: 'lifecycle',
     utm_medium: 'email',
     utm_campaign: CAMPANHA,
