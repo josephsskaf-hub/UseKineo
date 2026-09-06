@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { normalizeSeriesSeed } from '@/lib/seriesContinuation'
 import { garantirMarcadores } from '@/lib/nextEpisodeMarkers'
+import {
+  EPISODIO_ESCRITO_EVENT,
+  lerGravado,
+  memoriaAindaVale,
+  prepararParaGravar,
+  type EpisodioEscrito,
+} from '@/lib/nextEpisodeMemoria'
 
 // ═══ KINEO-PROXIMO-EPISODIO-2026-08-21 ═════════════════════════════════════
 //
@@ -198,6 +206,70 @@ const MARCADORES = ['HOOK', 'MICRO REWARD', 'ESCALATION', 'PAYOFF'] as const
 const ULTIMA_CHAMADA = new Map<string, number>()
 const COOLDOWN_MS = 45_000
 
+// ═══ KINEO-EPISODIO2-MEMORIA-2026-09-06 (sprint-assinaturas #14) ═══════════
+// Ver o cabeçalho de lib/nextEpisodeMemoria.ts para a medição. Em uma linha:
+// a rota escrevia o episódio 2 inteiro e o jogava fora, então quem voltava
+// pelo e-mail que PROMETE "seu próximo episódio já está escrito" recebia um
+// episódio DIFERENTE — ou, dentro dos 45s de cooldown, um 429 e um card vazio.
+//
+// `events` é service-role-only desde o lockdown de 26/08: com o cliente do
+// usuário a leitura voltaria VAZIA e viraria "não há memória", que é
+// exatamente a mentira a corrigir. Sem chave de serviço, não há memória — e a
+// rota segue escrevendo do zero, como antes desta mudança.
+function adminOuNulo() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !key) return null
+  try {
+    return createServiceClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
+  } catch {
+    return null
+  }
+}
+
+/** O episódio que a casa JÁ escreveu para este filme, ou null. Falha SEMPRE
+ *  aberta: qualquer erro devolve null e a rota escreve um novo — perder a
+ *  memória custa uma chamada de GPT; derrubar o card custa o segundo filme. */
+async function episodioJaEscrito(userId: string, fromVideoId: string): Promise<EpisodioEscrito | null> {
+  const admin = adminOuNulo()
+  if (!admin) return null
+  try {
+    const { data, error } = await admin
+      .from('events')
+      .select('metadata, created_at')
+      .eq('user_id', userId)
+      .eq('name', EPISODIO_ESCRITO_EVENT)
+      .eq('session_id', fromVideoId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+    if (error) return null
+    const linha = Array.isArray(data) && data[0] ? data[0] : null
+    if (!linha) return null
+    if (!memoriaAindaVale(linha.created_at as string | null, Date.now())) return null
+    return lerGravado(linha.metadata)
+  } catch {
+    return null
+  }
+}
+
+/** Guarda o episódio recém-escrito. Fire-and-forget de propósito: um erro de
+ *  gravação NUNCA pode transformar um episódio pronto em resposta de erro. */
+async function guardarEpisodio(userId: string, fromVideoId: string, ep: EpisodioEscrito): Promise<void> {
+  const admin = adminOuNulo()
+  if (!admin) return
+  try {
+    await admin.from('events').insert({
+      user_id: userId,
+      name: EPISODIO_ESCRITO_EVENT,
+      session_id: fromVideoId.slice(0, 64),
+      path: '/api/next-episode',
+      metadata: { ...ep },
+    })
+  } catch {
+    /* a memória é bônus; o episódio na tela não é. */
+  }
+}
+
 // KINEO-EPISODIO2-MARCADORES-2026-09-05: a checagem por substring saiu daqui.
 // Medido em 05/09: 12 de 16 chamadas voltavam 502 "sem marcadores" porque o
 // modelo, recebendo o episodio 1 em prosa, responde em prosa (sonda local:
@@ -212,15 +284,43 @@ export async function POST(req: NextRequest) {
     } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'You must be signed in.' }, { status: 401 })
 
-    const apiKey = process.env.OPENAI_API_KEY
-    if (!apiKey) return NextResponse.json({ error: 'unavailable' }, { status: 503 })
-
     let body: Corpo
     try {
       body = (await req.json()) as Corpo
     } catch {
       return NextResponse.json({ error: 'invalid body' }, { status: 400 })
     }
+
+    // (a) `fromVideoId` é o handle durável do filme. Ele já era lido mais
+    // abaixo para montar a memória da série; subiu para cá porque a MEMÓRIA DO
+    // EPISÓDIO precisa dele antes de qualquer decisão cara.
+    const fromVideoId = typeof body.fromVideoId === 'string' ? body.fromVideoId.trim() : undefined
+
+    // ═══ KINEO-EPISODIO2-MEMORIA-2026-09-06 — A LEMBRANÇA VEM ANTES DE TUDO.
+    // Ordem é o contrato desta mudança, e ela é deliberada:
+    //   · ANTES do cooldown de 45s — quem volta do e-mail no mesmo minuto (ou
+    //     recarrega a tela) recebia 429 e um card VAZIO, logo depois de a casa
+    //     lhe prometer por escrito que o episódio já estava pronto;
+    //   · ANTES do OpenAI — devolver o que já foi escrito não gasta modelo e,
+    //     acima disso, garante que é O MESMO episódio, palavra por palavra.
+    // Sem `fromVideoId` não há chave durável: cai no caminho de sempre.
+    if (fromVideoId) {
+      const lembrado = await episodioJaEscrito(user.id, fromVideoId)
+      if (lembrado) {
+        return NextResponse.json({
+          title: lembrado.title,
+          script: lembrado.script,
+          words: lembrado.words,
+          markersVia: lembrado.markersVia,
+          episodeNumber: lembrado.episodeNumber,
+          hadMemory: true,
+          cached: true,
+        })
+      }
+    }
+
+    const apiKey = process.env.OPENAI_API_KEY
+    if (!apiKey) return NextResponse.json({ error: 'unavailable' }, { status: 503 })
 
     const agora = Date.now()
     const ultima = ULTIMA_CHAMADA.get(user.id) ?? 0
@@ -236,7 +336,6 @@ export async function POST(req: NextRequest) {
     // KINEO-MEMORIA-SERIE-2026-09-04 — o servidor lê o que sabe ANTES de
     // decidir se tem com o que escrever. Falha fechada: memória vazia nunca
     // derruba a rota.
-    const fromVideoId = typeof body.fromVideoId === 'string' ? body.fromVideoId.trim() : undefined
     const memoria = await lerMemoriaSerie(supabase, user.id, fromVideoId || undefined)
 
     // (b) `previousTopic` com fallback de servidor: o cliente manda a narração
@@ -365,10 +464,30 @@ Write EPISODE ${episodeNumber}.`
       .split(/\s+/)
       .filter(Boolean).length
 
+    const tituloFinal = titulo || `Episode ${episodeNumber}`
+
+    // KINEO-EPISODIO2-MEMORIA-2026-09-06 — a casa guarda o que acabou de
+    // escrever. Depois do texto estar pronto e ANTES de responder, para que a
+    // próxima leitura (outra aba, o clique do e-mail, o recarregar) encontre
+    // ESTE episódio e não um diferente. `await` de propósito: sem ele a lambda
+    // pode encerrar antes do insert e a memória nasce vazia de vez em quando —
+    // um bug intermitente é pior que um `await` de ~40ms. A função inteira é
+    // try/catch por dentro, então isto não tem como derrubar a resposta.
+    if (fromVideoId) {
+      const paraGravar = prepararParaGravar({
+        title: tituloFinal,
+        script: garantido.script,
+        words: palavras,
+        episodeNumber,
+        markersVia: garantido.via,
+      })
+      if (paraGravar) await guardarEpisodio(user.id, fromVideoId, paraGravar)
+    }
+
     // `title`/`script`/`words` mantêm o formato: o cliente depende deles. Os
     // três campos novos são a instrumentação que faltava (KINEO-MEMORIA-SERIE).
     return NextResponse.json({
-      title: titulo || `Episode ${episodeNumber}`,
+      title: tituloFinal,
       script: garantido.script,
       words: palavras,
       markersVia: garantido.via,
