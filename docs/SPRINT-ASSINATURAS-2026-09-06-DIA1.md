@@ -455,3 +455,123 @@ Não é rota nova, então não há o par 404→401. A prova é comportamental: o
 `publish_pack` **não existia no repo** antes deste commit. O cron roda aos
 :10 e :40, então a primeira linha de `video_ready_email_sent` que trouxer o
 campo fecha a questão.
+
+---
+
+## ### #21 — 12:05 BRT — a carta de maior alcance da casa parou de pedir uma ideia e passou a entregar três
+
+### PRESS RELEASE (o que muda para o cliente)
+
+1. Quem se cadastra e não faz o primeiro vídeo recebe hoje uma carta que diz
+   **"digite qualquer ideia"** e dois exemplos entre parênteses que **ninguém
+   pode clicar** — e um botão para um campo em branco.
+2. A partir de agora ela chega com **três primeiros episódios concretos**, cada
+   um abrindo o Studio com o tema **já dentro da caixa**.
+3. O **assunto** passa a nomear o primeiro deles — a isca é o que a pessoa
+   nunca viu, não um lembrete de que ela não fez nada.
+4. Para quem trava na página em branco (que é a maioria: **77 de 201** dos
+   cadastros de 7 dias nunca criaram nem uma linha de vídeo), a distância entre
+   abrir o e-mail e ter um filme cai para **um clique**.
+5. Custo: **zero**. O material já existia.
+
+### POR QUE ESTA CARTA E NÃO OUTRA
+
+`send-activation-nudge` é a **maior superfície da casa**: **249 envios em 30
+dias**, contra 21 da campanha mais nova. E ela **já funciona** — dessas 249:
+
+- **13 entregaram um filme depois** (5,2%), **9 em menos de 48h**;
+- e **2 pagaram**. Numa casa com 6 pagantes em 30 dias, **um terço do dinheiro
+  passou por esta carta**.
+
+(É correlação, não causalidade — mas é a maior superfície que existe, e é a
+única que já mostrou dinheiro do outro lado.)
+
+### CUSTO ZERO, E ISSO NÃO É FIGURA DE LINGUAGEM
+
+`lib/viralTopics` já existia: função **pura**, semente determinística de 4
+horas, sem banco e sem modelo. Nenhuma chamada nova, nenhuma leitura de banco a
+mais, nenhum centavo. Calculada **uma vez por execução**, fora do laço — se
+fosse por pessoa, duas do mesmo lote poderiam receber listas diferentes caso a
+janela de 4h virasse no meio do envio.
+
+### A ARMADILHA QUE EU EVITEI DE PROPÓSITO
+
+O pool tem um campo `prompt` que é um **roteiro estruturado inteiro**, com
+marcadores `HOOK`/`PAYOFF`. `composerUrl` corta em **120 caracteres**. Mandar
+esse campo no link cortaria o roteiro **no meio de um marcador** — que é
+exatamente a classe de erro do **"menino da bolha"** (27/08). O prefill é o
+**título** (31 a 45 caracteres, cabe inteiro), e a AUTO-STRUCTURE (#310) já
+sabe transformar tema curto em roteiro. O guardião tem duas verificações só
+para isso.
+
+### FALHA ABERTA — PROVADA POR EXECUÇÃO, NÃO POR LEITURA
+
+O guardião monta **os dois construtores de e-mail** — o de `origin/main` e o
+desta árvore — e compara as strings geradas:
+
+- sem episódios, o **texto sai byte a byte igual ao de produção**;
+- o **HTML** é igual a menos de espaço em branco, e a lista de tags é
+  **idêntica** (nenhuma tag some ou nasce).
+
+### O DEFEITO QUE ESSE DIFF PEGOU ANTES DO PUSH
+
+Na primeira versão eu tirava os dois exemplos entre parênteses **sempre**. No
+caminho de falha aberta isso deixava a carta com **menos** concretude que a de
+hoje — ou seja, a "proteção" **piorava** o e-mail. Só descobri porque comparei
+com a produção de verdade em vez de confiar no meu próprio raciocínio. Agora os
+exemplos só saem quando os três episódios reais ocupam o lugar deles.
+
+**SHA `6f46ebcd`.** 28 verificações. Total do ciclo: **28 + 38 + 60 + 40 + 17 =
+183 verificações verdes**, `tsc` limpo.
+
+### COMO MEDIR
+
+A campanha dos links é **própria** (`utm_campaign=d0_activation_topic`),
+separável do botão genérico (`d0_activation`) no mesmo e-mail. Portanto dá para
+comparar, dentro da MESMA carta, "clicou num episódio pronto" contra "clicou no
+campo em branco" — que é a pergunta que a casa nunca conseguiu responder.
+
+---
+
+## A JOGADA QUE EU **NÃO** CONSTRUÍ, E O NÚMERO QUE A MATOU
+
+O cardápio do dia trazia o **B6**: "para conta com 0 filmes e crédito intacto
+há 24h, carta com **o roteiro que a própria home escreveu para ela**". Eu medi
+antes de construir, e ela cai por dois motivos independentes:
+
+1. **A matéria-prima não existe.** `sem_filme_mas_tem_tema_gravado = **0**`.
+   Não há um único tema salvo para quem não entregou filme — o roteiro grátis
+   da home não é persistido em lugar nenhum que uma carta alcance. A jogada
+   supõe um dado que o banco não tem.
+2. **A coorte já foi trabalhada e o remédio já falhou nela.** Das 45 pessoas
+   com 0 filmes e crédito intacto, **31 já receberam o nudge de ativação de
+   verdade**. Sobram **14** nunca contactadas. Construir campanha nova para 14
+   pessoas, repetindo um remédio que já não pegou nas outras 31, é a classe de
+   erro das memórias `janela-movel-congelada` e
+   `dimensionar-a-coorte-antes-de-construir-o-remedio`.
+
+**Por isso a #21 mexeu no nudge que já alcança as 249 em vez de criar a carta
+nova das 14.** Mesma coorte, mesma intenção, superfície 18x maior e custo zero.
+
+### UM ACHADO DE PASSAGEM (não é meu lote, não abri incidente)
+
+`tentou_e_nao_saiu = **0**` nos últimos 7 dias: **ninguém** despachou e ficou
+sem filme. As 77 pessoas sem filme **nunca criaram sequer uma linha em
+`videos`**. Isso significa duas coisas: (a) o pipeline de render está saudável
+hoje; (b) a leitura da memória `gargalo-e-apertar-e-nao-sair` ("29 pessoas
+despacharam e não receberam filme") **era de outra janela e não vale mais** —
+o gargalo voltou a ser "não apertou".
+
+E um segundo, para quem pegar: a tabela `viral_now_topics` tem **0 linhas em
+toda a história**, apesar de um cron diário (`refresh-viral-now`, 05:15 UTC).
+Não quebra nada — a rota que serve lê de `lib/viralTopics`, não do banco — mas
+é um cron que roda todo dia para não escrever nada.
+
+### ⏳ PROVA DE DEPLOY DA #20 — AINDA ABERTA, E O ZERO É POR AUSÊNCIA
+
+`video_ready_email_sent` com o campo `publish_pack`: **0 de 19 nas últimas 8h**.
+Não é falha: o **último e-mail de filme pronto saiu às 13:35 UTC**, antes do
+deploy do `8162695a`. O cron roda aos :10 e :40 mas só envia quando existe
+filme concluído na janela de 30min-24h ainda não avisado — e não houve filme
+novo desde então. A primeira linha com o campo fecha a questão.
+
