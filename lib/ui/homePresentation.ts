@@ -37,6 +37,7 @@ export const HOME_PRESENTATION_CSS = `
  .klp .home-eyebrow { font-size:10px; }
  .klp .hero-line { font-size:13px; line-height:1.65; }
  .klp .nav-right,.klp .nav-cta { gap:6px; }
+ .klp .nav-right > .btn { padding:10px 12px !important; font-size:12px !important; white-space:nowrap; }
  /* Dashboard remains in the mobile menu; keep language and balance visible. */
  .klp .nav-cta .nav-dashboard { display:none; }
  .klp .nav-cta > a:not(.nav-dashboard) { padding:8px !important; font-size:11px !important; }
