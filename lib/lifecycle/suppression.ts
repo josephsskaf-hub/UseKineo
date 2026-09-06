@@ -38,6 +38,10 @@
 // 04/09 — `email_send_log`, o ledger de envio. Um usuário suprimido não entra
 // na coorte de nenhum job naquela execução.
 //
+// mais — desde 06/09 — os carimbos de e-mail que vivem na tabela `events`
+// (lib/lifecycle/emailEvents.ts), que era onde metade das campanhas da casa
+// carimbava e que esta funcao nunca abriu. Ver KINEO-SUPPRESSION-EVENTS-2026-09-06.
+//
 // AS TRÊS PRIMEIRAS FONTES SÃO CARIMBOS; A QUARTA É O LEDGER. A diferença
 // importa e custou três pares de e-mails contraditórios (ver o bloco
 // KINEO-SUPPRESSION-LEDGER-2026-09-04, mais abaixo): carimbo pertence ao job
@@ -90,6 +94,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { isRealSendStamp, REAL_SEND_FLOOR_MS } from './skipStamp'
+import { LIFECYCLE_EMAIL_EVENT_NAMES } from './emailEvents'
 
 /** Janela mínima entre dois e-mails de ciclo de vida para o MESMO usuário. */
 export const LIFECYCLE_SUPPRESSION_HOURS = 24
@@ -198,6 +203,13 @@ export interface LifecycleSuppression {
   readonly suppressedCount: number
   /** true = alguma consulta falhou e a trava fechou em cima de TODOS os ids. */
   readonly degraded: boolean
+  /**
+   * true = a QUINTA fonte (carimbos em `events`) falhou e foi IGNORADA nesta
+   * execucao. Diferente de `degraded` DE PROPOSITO — ver o bloco
+   * KINEO-SUPPRESSION-EVENTS-2026-09-06. Campo OPCIONAL para nao quebrar
+   * nenhum objeto que ja implemente esta interface.
+   */
+  readonly eventsDegraded?: boolean
 }
 
 function chunk<T>(items: T[], size: number): T[][] {
@@ -382,6 +394,94 @@ export async function loadLifecycleSuppression(
     return closed(err instanceof Error ? err.message : String(err))
   }
 
+  // ═══ KINEO-SUPPRESSION-EVENTS-2026-09-06 (sprint-assinaturas #26) ════════
+  // A QUINTA FONTE, e a que faltava para METADE das campanhas da casa.
+  //
+  // O DEFEITO, MEDIDO E NAO DEDUZIDO (06/09, janela de 7 dias):
+  // **70 pares** de e-mails de ciclo de vida para a MESMA pessoa dentro de 30
+  // minutos, **42 pessoas distintas**, intervalo minimo **0,0 minuto** — o
+  // mesmo instante. Doze combinacoes diferentes; as dominantes envolviam
+  // `stranded_ready_sent` e `video_ready_email_sent`. O caso que abriu a
+  // investigacao: a pessoa `ee8027b2` recebeu a carta da temporada as
+  // 15:45:50 e um `post_nudge` as 15:50:12 — **4 min 22 s** depois.
+  //
+  // POR QUE AS QUATRO FONTES ACIMA NAO VIAM NADA DISSO: elas leem colunas
+  // (`profiles`, `checkout_abandoned`, `trial_emails_log`) e o ledger
+  // (`email_send_log`). **Nenhuma abre a tabela `events`** — e carimbo em
+  // evento e a geracao NOVA de carimbo, a que toda campanha de admin usa
+  // porque nao exige migracao. Sete campanhas de admin e cinco crons
+  // carimbavam so ali, e portanto nao existiam para esta trava.
+  //
+  // TAMANHO DA MUDANCA, medido ANTES de escrever (janela de 24h, producao):
+  // 215 pessoas tinham e-mail registrado por evento; **182 ja eram visiveis**
+  // pelas quatro fontes antigas; **59 sao novas**. Ou seja, ate 59 pessoas
+  // passam a ter o proximo e-mail ADIADO por 24h. Nenhuma perde e-mail para
+  // sempre: todo job que consulta isto reconsidera a coorte na execucao
+  // seguinte.
+  //
+  // ⚠️ ESTA FONTE FALHA **ABERTA**, E ISSO E DECISAO, NAO ESQUECIMENTO.
+  // As quatro fontes antigas falham FECHADAS porque sem elas a trava nao
+  // existe. Esta e ADITIVA: se a consulta morrer, o comportamento degrada
+  // exatamente para o que estava em producao antes deste commit. Fecha-la
+  // junto transformaria um solucos de query numa mordaca de 24h sobre a base
+  // inteira — trocar um defeito conhecido por um risco pior. O sinal fica
+  // separado em `eventsDegraded` para que ninguem confunda "a quinta fonte
+  // caiu" com "a trava fechou em cima de todo mundo".
+  //
+  // POR QUE UMA LEITURA GLOBAL E NAO FATIADA POR ID: o filtro de janela ja e
+  // seletivo (3.735 de 116.054 linhas em 24h, e so ~300 delas sao carimbo de
+  // e-mail), `events_created_at_idx` existe e `user_id` NAO tem indice. Uma
+  // leitura paginada por data e mais barata que N consultas por lote de ids.
+  // A paginacao e obrigatoria: PostgREST trunca em 1.000 linhas SEM ERRO
+  // (memoria da casa, /admin de 28/08), e truncar aqui e deixar de suprimir
+  // em silencio.
+  let eventsDegraded = false
+  try {
+    const idSet = new Set(ids)
+    const desde = new Date(cutoff).toISOString()
+    const PAGINA = 1000
+    const MAX_PAGINAS = 20
+    let pagina = 0
+    for (; pagina < MAX_PAGINAS; pagina++) {
+      const { data: eventRows, error: eventErr } = await admin
+        .from('events')
+        .select('user_id, created_at')
+        .gte('created_at', desde)
+        .in('name', LIFECYCLE_EMAIL_EVENT_NAMES as unknown as string[])
+        .order('created_at', { ascending: true })
+        .range(pagina * PAGINA, pagina * PAGINA + PAGINA - 1)
+
+      if (eventErr) {
+        console.error(
+          `[lifecycle-suppression] quinta fonte (events) IGNORADA — ${eventErr.code ?? '?'} ${eventErr.message}. A trava segue valendo pelas outras quatro.`,
+        )
+        eventsDegraded = true
+        break
+      }
+
+      const linhas = (eventRows ?? []) as unknown as Array<Record<string, unknown>>
+      for (const row of linhas) {
+        if (typeof row.user_id === 'string' && idSet.has(row.user_id)) {
+          bump(row.user_id, parseTime(row.created_at))
+        }
+      }
+      if (linhas.length < PAGINA) break
+    }
+    if (!eventsDegraded && pagina >= MAX_PAGINAS) {
+      // Teto batido = leitura possivelmente incompleta. Nao e erro de query,
+      // entao nao cai no ramo acima — mas tambem nao pode passar por completo.
+      console.error(
+        `[lifecycle-suppression] quinta fonte (events) INCOMPLETA — ${MAX_PAGINAS} paginas de ${PAGINA} esgotadas na janela`,
+      )
+      eventsDegraded = true
+    }
+  } catch (err) {
+    console.error(
+      `[lifecycle-suppression] quinta fonte (events) IGNORADA — ${err instanceof Error ? err.message : String(err)}. A trava segue valendo pelas outras quatro.`,
+    )
+    eventsDegraded = true
+  }
+
   const suppressed = new Set<string>()
   for (const id of ids) {
     if ((lastEmailAt.get(id) ?? 0) > cutoff) suppressed.add(id)
@@ -396,5 +496,5 @@ export async function loadLifecycleSuppression(
     )
   }
 
-  return { isSuppressed: (u) => suppressed.has(u), suppressedCount: suppressed.size, degraded: false }
+  return { isSuppressed: (u) => suppressed.has(u), suppressedCount: suppressed.size, degraded: false, eventsDegraded }
 }
