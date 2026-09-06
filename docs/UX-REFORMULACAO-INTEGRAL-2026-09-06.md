@@ -4,6 +4,10 @@
 
 ### Ajuste solicitado pelo fundador — idioma no menu, 06/09
 
+VALIDADO EM PRODUCAO, 06/09 19:06 BRT: runtime 6c4e1e68f858f89b40240758c0b8bfb606f1cf7b, PR #48 merged, deploy production dpl_EQa3Pm758a3TwVUH5N8yYoMABWjt READY. Chrome www.usekineo.com na sessao do fundador: seletor dentro de Main, saldo ao lado, Dashboard/Panel preservado, troca EN/ES altera titulo, zero home-jump. English restaurado. Preview remoto final dpl_Dhwdtk4TytJNzzXF3s2TVVDRJqn4: navegação em 320/360/1280px, menu com area 44x44 e idioma visivel, abrir/fechar menu testado. Ajuste mobile exigiu compactar CTA e retirar apenas icone ao lado da palavra Kineo abaixo de 400px; marca textual continua. Guardiao 34062808994 success; tsc bruto exit 0 e baterias citadas abaixo passaram. Viewports resetados; abas auxiliares fechadas. Nenhum render, pagamento ou banco escrito.
+
+Este ajuste teve prioridade por novo feedback do fundador. As familias restantes listadas no fim deste documento continuam ABERTAS; nao houve reforma de auth/conta/admin neste lote. Nao confundir o commit documental posterior com runtime diferente.
+
 IMPLEMENTADO / TESTADO LOCALMENTE: seletor EN/ES sai do hero e fica na Main, junto dos creditos e Dashboard. Removidos apenas os atalhos redundantes Real videos / Tools / Plans do hero; menu principal, anchors e curadoria intactos. Em celular Dashboard permanece no menu hamburguer, liberando espaco para saldo e idioma sempre visiveis. TopBar do Studio ja usa esse agrupamento e nao foi alterada. Rodape conserva seletor de acesso nas paginas ainda sem header publico comum.
 
 Pesquisa de 06/09: W3C quicktips (https://www.w3.org/International/quicktips/index.en) recomenda navegacao de idioma claramente visivel e nomes na lingua de destino; GOV.UK Language navigation (https://design-system.service.gov.uk/components/language-navigation/) recomenda posicao unica consistente, sem perder dados. Nao ha levantamento estatistico de "maioria dos sites"; escolha de header e decisao de UX aprovada pelo fundador.
