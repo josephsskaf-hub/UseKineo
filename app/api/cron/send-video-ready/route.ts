@@ -5,6 +5,8 @@ import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emai
 import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
 import { LIFECYCLE_SKIP_STAMP } from '@/lib/lifecycle/skipStamp'
 import { videoReadyFooterFromRows, isSubscriberProfile, type VideoReadyFooter, type ReadyProfileRow } from '@/lib/lifecycle/videoReadyFooter'
+import { garantirPacote } from '@/lib/publishPackServer'
+import type { PacoteDePublicacao } from '@/lib/publishPack'
 
 // send-video-ready — Medida 6 do PLANO-SEMANA-2026-08-03 (Bloco B, gerar→baixar).
 //
@@ -103,6 +105,10 @@ function isAuthorized(req: NextRequest): boolean {
 interface ReadyVideo {
   id: string | null
   title: string | null
+  /** KINEO-PACOTE-DE-PUBLICACAO-2026-09-06 — o conteudo real do filme mora
+   *  aqui; `title` ja caia para `topic` quando vazio, mas o escritor do
+   *  pacote quer os DOIS (o titulo e curto, o topic e o filme). */
+  topic: string | null
   thumb: string | null
   creditsUsed: number | null
   duration: number | null
@@ -112,6 +118,9 @@ interface EmailContext {
   /** A pessoa já abriu a tela de vídeo pronto no app (video_ready_viewed). */
   sawIt: boolean
   footer: VideoReadyFooter
+  /** KINEO-PACOTE-DE-PUBLICACAO-2026-09-06 — null e o caminho NORMAL, nao um
+   *  erro: sem pacote o e-mail sai byte a byte como saia antes desta peca. */
+  pack?: PacoteDePublicacao | null
 }
 
 function escapeHtmlText(v: string): string {
@@ -146,6 +155,52 @@ function buildEmail(userId: string, video: ReadyVideo, ctx: EmailContext) {
     ? `Everything you generate stays in your library. Ready for the next one? <a href="${APP_URL}/studio" style="color:#2997ff;">usekineo.com/studio</a>`
     : 'It only took a few minutes to render, so if you closed the tab, no harm done. Everything you generate stays in your library.'
 
+  // ═══ KINEO-PACOTE-DE-PUBLICACAO-2026-09-06 ═══════════════════════════════
+  // O filme so vira anuncio se a pessoa PUBLICAR, e hoje ela baixa o MP4 e
+  // fica sozinha com a parte chata: titulo, descricao, hashtags, comentario.
+  // Este bloco entrega o pacote pronto para colar, no formato que o proprio
+  // fundador usa todo dia. A linha de credito ("Made with AI at usekineo.com")
+  // e visivel e editavel — e um texto sugerido, nao uma marca escondida.
+  //
+  // `ctx.pack` nulo e o caminho NORMAL (sem chave, modelo fora do ar, filme
+  // sem tema). Nesse caso as duas variaveis sao string vazia e o e-mail sai
+  // BYTE A BYTE como saia antes desta peca.
+  const pk = ctx.pack ?? null
+  const packText = pk
+    ? `
+── READY TO POST ──
+Everything below is written for this video. Copy, edit, publish.
+
+YOUTUBE TITLE
+${pk.ytTitle}
+
+YOUTUBE DESCRIPTION
+${pk.ytDescription}
+${pk.tiktokCaption ? `
+TIKTOK CAPTION
+${pk.tiktokCaption}` : ''}${pk.pinnedComment ? `
+
+PINNED COMMENT
+${pk.pinnedComment}` : ''}
+───────────────────
+`
+    : ''
+  const bloco = (rotulo: string, valor: string) =>
+    valor
+      ? `<p style="margin:0 0 4px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#8a8a8a;">${rotulo}</p>
+  <p style="margin:0 0 14px;font-size:14px;white-space:pre-wrap;background:#f6f7f9;border-radius:8px;padding:10px 12px;">${escapeHtmlText(valor)}</p>`
+      : ''
+  const packHtml = pk
+    ? `<div style="border:1px solid #e6e8ec;border-radius:12px;padding:16px 16px 4px;margin:0 0 16px;">
+  <p style="margin:0 0 12px;font-weight:bold;font-size:15px;">Ready to post 🚀</p>
+  <p style="margin:0 0 14px;color:#475569;font-size:14px;">Written for this video. Copy, edit, publish.</p>
+  ${bloco('YouTube title', pk.ytTitle)}
+  ${bloco('YouTube description', pk.ytDescription)}
+  ${bloco('TikTok caption', pk.tiktokCaption)}
+  ${bloco('Pinned comment', pk.pinnedComment)}
+</div>`
+    : ''
+
   const text = `Hey,
 
 ${headlineText}
@@ -153,7 +208,7 @@ ${headlineText}
 Watch it and grab the download here: ${url}
 
 Your video is private by default. Download the MP4 if you want to send it directly.
-
+${packText}
 ${closingText}
 
 Kineo Team
@@ -169,6 +224,7 @@ usekineo.com`
   ${thumbHtml}
   <p style="margin:0 0 24px;"><a href="${url}" style="display:inline-block;background:#2997ff;color:#ffffff;text-decoration:none;font-weight:bold;font-size:15px;padding:12px 26px;border-radius:10px;">${ctx.sawIt ? 'Download the MP4' : 'Watch &amp; download'} &rarr;</a></p>
   <p style="margin:0 0 14px;color:#475569;font-size:14px;">Your video is private by default. Download the MP4 if you want to send it directly.</p>
+  ${packHtml}
   <!-- rodapé do #24 foi desenhado para fundo escuro (strong em #fff): cartão escuro aqui, senão o saldo some no branco -->
   <div style="background:#161618;color:#fff;padding:4px 20px 20px;border-radius:12px;margin:0 0 14px">${ctx.footer.html}</div>
   <p style="margin:0 0 14px;">${closingHtml}</p>
@@ -240,6 +296,7 @@ export async function GET(req: NextRequest) {
       perUser.set(id, {
         id: (row.id as string | null) ?? null,
         title: (row.title as string | null) ?? (row.topic as string | null),
+        topic: (row.topic as string | null) ?? null,
         thumb: (row.thumb_url as string | null) ?? (row.thumbnail_url as string | null),
         creditsUsed: typeof row.credits_used === 'number' ? (row.credits_used as number) : null,
         duration: typeof row.duration === 'number' ? (row.duration as number) : null,
@@ -360,7 +417,24 @@ export async function GET(req: NextRequest) {
 
     const prof: ReadyProfileRow = { has_paid: u.has_paid as boolean | null, plan: u.plan as string | null, video_credits: u.video_credits as number | null }
     const footer = videoReadyFooterFromRows(prof, { title: video.title, topic: null, credits_used: video.creditsUsed, duration: video.duration }, APP_URL)
-    const ctx: EmailContext = { sawIt: sawIt.has(u.id as string), footer }
+    // ═══ KINEO-PACOTE-DE-PUBLICACAO-2026-09-06 ═════════════════════════════
+    // FALHA ABERTA, e isto nao e formalidade: este cron e o unico aviso de que
+    // o filme ficou pronto. `garantirPacote` ja devolve null em todo caminho
+    // de erro; o try/catch aqui e a segunda rede, para que nem um lancamento
+    // inesperado (rede, JSON gigante) impeca alguem de receber o e-mail.
+    // Custo: uma chamada de gpt-4o-mini por filme NOVO (~US$ 0,0003), gravada
+    // e reusada — o segundo e-mail do mesmo filme nao paga de novo.
+    let pack = null
+    try {
+      pack = await garantirPacote(admin, u.id as string, {
+        id: video.id,
+        title: video.title,
+        topic: video.topic,
+      })
+    } catch (e) {
+      console.warn('[send-video-ready] publish pack failed:', e instanceof Error ? e.message : String(e))
+    }
+    const ctx: EmailContext = { sawIt: sawIt.has(u.id as string), footer, pack }
     const { subject, text, html } = buildEmail(u.id, video, ctx)
     try {
       const res = await fetch('https://api.resend.com/emails', {
@@ -400,6 +474,11 @@ export async function GET(req: NextRequest) {
               cost: video.creditsUsed,
               credits_remaining: prof.video_credits ?? null,
               second_touch: typeof lastReady === 'number',
+              // KINEO-PACOTE-DE-PUBLICACAO-2026-09-06 — o denominador da peca.
+              // Sem isto, "ninguem publicou" e indistinguivel de "ninguem
+              // recebeu o pacote", que foi o erro que a casa ja cometeu com a
+              // porta do episodio 2 (memoria `remedio-nunca-apertado`).
+              publish_pack: !!ctx.pack,
             },
           })
         } catch (e) {

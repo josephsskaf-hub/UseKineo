@@ -1,0 +1,119 @@
+#!/usr/bin/env node
+// ═══ KINEO-PACOTE-DE-PUBLICACAO-2026-09-06 — guardiao ════════════════════
+//
+// Esta peca entra dentro de um cron de e-mail que JA FUNCIONA e que e o unico
+// aviso de que o filme ficou pronto. Por isso o guardiao gasta a maior parte
+// das verificacoes numa pergunta so: **se o pacote nao nascer, o e-mail de
+// hoje sai igual?**
+//
+//   (A) COMPORTAMENTO de lib/publishPack.ts — o arquivo REAL, importado e
+//       executado, contra os modos de falha do modelo e contra a garantia que
+//       da sentido a peca inteira (o credito sempre entra).
+//   (B) FALHA ABERTA no cron — a parte que protege o que ja existia.
+//   (C) CUSTO e DENOMINADOR.
+//
+// Rodar: node scripts/test-pacote-publicacao.mjs   (sem rede, sem custo)
+
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const raiz = join(dirname(fileURLToPath(import.meta.url)), '..')
+const ler = (rel) => readFileSync(join(raiz, rel), 'utf8').split('\r\n').join('\n')
+
+let ok = 0
+const falhas = []
+const check = (nome, cond) => {
+  if (cond) ok++
+  else falhas.push(nome)
+}
+
+// ══ (A) COMPORTAMENTO — o arquivo real, executado ════════════════════════
+const lib = await import('../lib/publishPack.ts')
+const { prepararPacote, lerPacote, pacoteAindaVale, CREDITO, MAX_YT_TITULO, PACOTE_TTL_MS } = lib
+if (typeof prepararPacote !== 'function') {
+  console.error('lib/publishPack.ts nao expos prepararPacote — teste invalido, nao verde')
+  process.exit(1)
+}
+
+const cheio = {
+  ytTitle: 'The Lake That Turns Animals To Stone',
+  ytDescription: 'Lake Natron looks like a painting and behaves like a chemical trap.\n\n#shorts #nature #africa',
+  tiktokCaption: 'This lake mummifies whatever touches it 😳 #fyp #ai #nature',
+  pinnedComment: 'The birds are not petrified — the water preserves them.',
+}
+
+check('1. pacote completo passa', !!prepararPacote(cheio))
+check('2. titulo e descricao sao obrigatorios', prepararPacote({ ytTitle: 'x' }) === null && prepararPacote({ ytDescription: 'y' }) === null)
+check('3. prosa e null devolvem null', prepararPacote('texto solto') === null && prepararPacote(null) === null)
+check('4. legenda e comentario sao opcionais (o pacote nasce mesmo sem eles)', !!prepararPacote({ ytTitle: 'a', ytDescription: 'b' }))
+check('5. aceita os nomes alternativos que o modelo usa (title/description)', !!prepararPacote({ title: 'a', description: 'b' }))
+
+// ── A GARANTIA QUE DA SENTIDO A PECA ─────────────────────────────────────
+// Sem a linha de credito o filme circula e ninguem descobre a Kineo. O modelo
+// esquece isso o tempo todo, entao a casa ACRESCENTA em vez de rejeitar.
+const semCredito = prepararPacote({ ytTitle: 'a', ytDescription: 'b', tiktokCaption: 'c', pinnedComment: 'd' })
+check('6. o credito ENTRA na descricao quando o modelo esquece', semCredito.ytDescription.includes('usekineo.com'))
+check('7. o credito entra tambem na legenda e no comentario', semCredito.tiktokCaption.includes('usekineo.com') && semCredito.pinnedComment.includes('usekineo.com'))
+check('8. o credito NAO e duplicado quando ja existe', (prepararPacote({ ytTitle: 'a', ytDescription: 'ja tem usekineo.com aqui' }).ytDescription.match(/usekineo\.com/g) ?? []).length === 1)
+check('9. o credito nao entra em campo vazio (nao inventa legenda)', prepararPacote({ ytTitle: 'a', ytDescription: 'b' }).tiktokCaption === '')
+check('10. a deteccao do credito ignora caixa', (prepararPacote({ ytTitle: 'a', ytDescription: 'USEKINEO.COM' }).ytDescription.match(/usekineo\.com/gi) ?? []).length === 1)
+check('11. o texto do credito vem da constante unica', semCredito.ytDescription.includes(CREDITO))
+
+// ── recortes: o teto nao pode decapitar o credito ────────────────────────
+// Foi assim que o "menino da bolha" nasceu em 27/08: cortar por tamanho no fim
+// de um texto que carrega a parte importante na cauda.
+const gigante = prepararPacote({ ytTitle: 'x'.repeat(300), ytDescription: 'y'.repeat(4000) })
+check('12. o titulo respeita o teto do YouTube', gigante.ytTitle.length === MAX_YT_TITULO)
+check('13. a descricao gigante NAO perde o credito no corte', gigante.ytDescription.includes('usekineo.com'))
+check('14. quebra de linha sobrevive (descricao tem paragrafo e hashtags)', prepararPacote(cheio).ytDescription.includes('\n'))
+check('15. espaco horizontal duplo e aspas de borda saem', prepararPacote({ ytTitle: '  "Um   titulo"  ', ytDescription: 'b' }).ytTitle === 'Um titulo')
+
+// ── ida e volta pela memoria ─────────────────────────────────────────────
+const gravado = prepararPacote(cheio)
+check('16. ler de volta devolve o MESMO pacote (idempotente)', JSON.stringify(lerPacote(gravado)) === JSON.stringify(gravado))
+check('17. metadata corrompida nao explode', lerPacote({ ytTitle: 123 }) === null && lerPacote(null) === null)
+const agora = Date.parse('2026-09-06T14:00:00Z')
+check('18. TTL: 1 dia vale, 15 dias nao, ilegivel nao', pacoteAindaVale('2026-09-05T14:00:00Z', agora) && !pacoteAindaVale('2026-08-22T14:00:00Z', agora) && !pacoteAindaVale('lixo', agora))
+check('19. o TTL e o mesmo das outras memorias (14 dias)', PACOTE_TTL_MS === 14 * 24 * 60 * 60 * 1000)
+
+// ══ (B) FALHA ABERTA NO CRON — a parte que protege o que ja existia ══════
+const cron = ler('app/api/cron/send-video-ready/route.ts')
+const escritor = ler('lib/publishPackServer.ts')
+
+check('20. o cron chama o escritor', /await garantirPacote\(admin, u\.id as string, \{/.test(cron))
+check('21. a chamada esta dentro de try/catch (segunda rede)', /try \{\n\s*pack = await garantirPacote\([\s\S]{0,300}?\} catch \(e\) \{/.test(cron))
+check('22. o pack comeca null, entao um catch deixa o e-mail intacto', /let pack = null/.test(cron))
+check('23. o catch NAO interrompe o laco (nada de continue/throw ali)', !/\} catch \(e\) \{\n\s*console\.warn\('\[send-video-ready\] publish pack failed[\s\S]{0,200}?(continue|throw)/.test(cron))
+// A prova de que o e-mail de hoje nao muda: as duas variaveis sao string
+// vazia quando nao ha pacote, e sao as UNICAS insercoes no template.
+check('24. sem pacote, o bloco de texto e string vazia', /const packText = pk\n\s*\? `/.test(cron) && /\n\s*: ''\n\s*const bloco/.test(cron))
+check('25. sem pacote, o bloco de html e string vazia', /const packHtml = pk\n\s*\? `/.test(cron) && /<\/div>`\n\s*: ''/.test(cron))
+check('26. o assunto do e-mail NAO foi tocado', /const subject = ctx\.sawIt/.test(cron) && !/subject[\s\S]{0,80}packText|subject[\s\S]{0,80}pk\./.test(cron))
+check('27. o botao e o link de download continuam antes do pacote', cron.indexOf('Watch &amp; download') < cron.indexOf('${packHtml}'))
+// Conteudo do cliente e escapado: um titulo com `<` nao pode injetar HTML.
+check('28. o pacote e escapado no HTML', /\$\{escapeHtmlText\(valor\)\}/.test(cron))
+
+// ══ (C) CUSTO, DENOMINADOR E LIMITES ═════════════════════════════════════
+check('29. o escritor le a memoria ANTES de gastar', escritor.indexOf('pacoteGravado(') > 0 && escritor.indexOf('pacoteGravado(') < escritor.indexOf('api.openai.com'))
+check('30. memoria encontrada devolve sem gastar', /const jaTem = await pacoteGravado\([\s\S]{0,120}?if \(jaTem\) return jaTem/.test(escritor))
+check('31. o modo so-leitura corta antes de a chave ser lida', /if \(opts\?\.escrever === false\) return null/.test(escritor) && escritor.indexOf('opts?.escrever === false') < escritor.indexOf('OPENAI_API_KEY'))
+check('32. modelo barato e so ele', /model: 'gpt-4o-mini'/.test(escritor) && (escritor.match(/api\.openai\.com/g) ?? []).length === 1)
+// Roda em LOTE dentro de um cron: 30 filmes x 25s estouraria o maxDuration.
+check('33. o timeout e curto porque roda em lote (12s, nao 25s)', /AbortSignal\.timeout\(12_000\)/.test(escritor))
+check('34. todo caminho de erro devolve null, nunca lanca', (escritor.match(/return null/g) ?? []).length >= 6 && !/throw /.test(escritor))
+check('35. o unico insert e o da memoria em events', (escritor.match(/\.insert\(/g) ?? []).length === 1 && /name: PACOTE_EVENT/.test(escritor))
+// Denominador: sem isto, "ninguem publicou" seria indistinguivel de "ninguem
+// recebeu o pacote" — o erro da memoria `remedio-nunca-apertado`.
+check('36. o carimbo do e-mail registra se o pacote viajou', /publish_pack: !!ctx\.pack,/.test(cron))
+// Dinheiro e pipeline.
+check('37. nada disto cobra credito, chama a fal ou renderiza', !/video_credits:\s|debit|fal\.run|fal\.ai|submitToFal/.test(escritor) && !/\.update\(/.test(escritor))
+check('38. o pipeline de qualidade nao e lido nem tocado', !/lib\/(compose|hollywood|cinematic|broll)|lyriaMusic|quality_mode/.test(escritor + ler('lib/publishPack.ts')))
+
+console.log(`\n${ok}/${ok + falhas.length} verificacoes passaram`)
+if (falhas.length) {
+  console.error('\nFALHOU:')
+  for (const f of falhas) console.error('  ✗ ' + f)
+  process.exit(1)
+}
+console.log('✓ o pacote nasce com credito, e quando nao nasce o e-mail de hoje segue igual')
