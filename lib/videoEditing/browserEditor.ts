@@ -75,7 +75,7 @@ export async function exportClip(file: File, info: ClipInfo, settings: EditSetti
   video.playsInline = true; video.preload = 'auto'; video.src = url; video.playbackRate = settings.speed; video.muted = settings.mute
   const size = outputSize(info.width, info.height, settings.aspect); canvas.width = size.width; canvas.height = size.height
   let stream: MediaStream | undefined, recorder: MediaRecorder | undefined, source: MediaElementAudioSourceNode | undefined, destination: MediaStreamAudioDestinationNode | undefined
-  let frame = 0, timeout: ReturnType<typeof setTimeout> | undefined
+  let frame: ReturnType<typeof setTimeout> | undefined, timeout: ReturnType<typeof setTimeout> | undefined
   const chunks: Blob[] = []
   try {
     await audioReady
@@ -96,7 +96,7 @@ export async function exportClip(file: File, info: ClipInfo, settings: EditSetti
     recorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 5_000_000, audioBitsPerSecond: 128_000 })
     const result = await new Promise<Blob>((resolve, reject) => {
       let failure: Error | undefined, stopping = false, lastTime = settings.start, lastAdvance = performance.now()
-      const remove = () => { signal.removeEventListener('abort', abort); document.removeEventListener('visibilitychange', visibility); video.removeEventListener('error', decode); video.removeEventListener('ended', ended); clearTimeout(timeout); cancelAnimationFrame(frame) }
+      const remove = () => { signal.removeEventListener('abort', abort); document.removeEventListener('visibilitychange', visibility); video.removeEventListener('error', decode); video.removeEventListener('ended', ended); clearTimeout(timeout); clearTimeout(frame) }
       const stop = (error?: Error) => {
         if (stopping) return
         stopping = true; failure = error; video.pause(); remove()
@@ -115,7 +115,9 @@ export async function exportClip(file: File, info: ClipInfo, settings: EditSetti
         if (performance.now() - lastAdvance > 10000) { stop(new Error('export_stalled')); return }
         progress(Math.min(99, Math.round((video.currentTime - settings.start) / (settings.end - settings.start) * 100)))
         if (video.currentTime >= settings.end) { stop(); return }
-        frame = requestAnimationFrame(tick)
+        // Export must not depend on paint scheduling of an offscreen canvas.
+        // Chromium can throttle requestAnimationFrame while its window is occluded.
+        frame = setTimeout(tick, 1000 / 30)
       }
       timeout = setTimeout(() => stop(new Error('export_stalled')), ((settings.end - settings.start) / settings.speed + 20) * 1000)
       // Starting MediaRecorder before playback adds a browser-dependent frozen/
@@ -123,7 +125,7 @@ export async function exportClip(file: File, info: ClipInfo, settings: EditSetti
       // Start recording only once playback actually starts, not before play().
       try { video.play().then(() => {
         if (stopping) { video.pause(); return }
-        try { recorder!.start(250); drawFrame(canvas, video, settings); canvasTrack.requestFrame(); frame = requestAnimationFrame(tick) } catch { stop(new Error('export_failed')) }
+        try { recorder!.start(250); drawFrame(canvas, video, settings); canvasTrack.requestFrame(); frame = setTimeout(tick, 1000 / 30) } catch { stop(new Error('export_failed')) }
       }, () => stop(new Error('play_failed'))) } catch { stop(new Error('export_failed')) }
       if (signal.aborted) abort()
     })
@@ -135,7 +137,7 @@ export async function exportClip(file: File, info: ClipInfo, settings: EditSetti
     progress(100)
     return result
   } finally {
-    cancelAnimationFrame(frame); clearTimeout(timeout); video.pause()
+    clearTimeout(frame); clearTimeout(timeout); video.pause()
     if (recorder && recorder.state !== 'inactive') recorder.stop()
     stream?.getTracks().forEach(track => track.stop()); destination?.stream.getTracks().forEach(track => track.stop()); source?.disconnect()
     await audio?.close().catch(() => {})
@@ -156,7 +158,7 @@ export async function sampleClip(signal: AbortSignal): Promise<File> {
   oscillator.frequency.value = 440; gain.gain.value = .05; oscillator.connect(gain); gain.connect(destination); oscillator.start()
   const stream = canvas.captureStream(0); destination.stream.getAudioTracks().forEach(track => stream.addTrack(track))
   const canvasTrack = stream.getVideoTracks()[0] as CanvasCaptureMediaStreamTrack
-  let recorder: MediaRecorder | undefined, frame = 0
+  let recorder: MediaRecorder | undefined, frame: ReturnType<typeof setTimeout> | undefined
   try {
     if (typeof canvasTrack.requestFrame !== 'function') throw new Error('unsupported')
     return await new Promise<File>((resolve, reject) => {
@@ -179,9 +181,9 @@ export async function sampleClip(signal: AbortSignal): Promise<File> {
         ctx.font = '22px system-ui'; ctx.fillText(seconds.toFixed(1) + 's · test tone', 40, 112)
         canvasTrack.requestFrame()
         if (seconds >= 4) { if (recorder!.state !== 'inactive') recorder!.stop(); return }
-        frame = requestAnimationFrame(draw)
+        frame = setTimeout(draw, 1000 / 30)
       }
       recorder.start(250); draw(); if (signal.aborted) abort()
     })
-  } finally { cancelAnimationFrame(frame); if (recorder && recorder.state !== 'inactive') recorder.stop(); oscillator.stop(); stream.getTracks().forEach(track => track.stop()); await audio.close().catch(() => {}) }
+  } finally { clearTimeout(frame); if (recorder && recorder.state !== 'inactive') recorder.stop(); oscillator.stop(); stream.getTracks().forEach(track => track.stop()); await audio.close().catch(() => {}) }
 }
