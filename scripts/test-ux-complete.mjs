@@ -46,7 +46,9 @@ for(const tab of ['videos','images','audio']){
 }
 const toolsBefore=renderPage('app/tools/page.tsx',true),toolsAfter=renderPage('app/tools/page.tsx')
 const hrefs=html=>[...html.matchAll(/<a[^>]* href="([^"]+)"/g)].map(m=>m[1]).filter(h=>!h.startsWith('#tools-')).sort()
-eq(hrefs(toolsAfter),hrefs(toolsBefore),'tools retain every destination, no missing or duplicate tool')
-eq((toolsAfter.match(/<article /g)||[]).length,(toolsBefore.match(/<article /g)||[]).length,'tools grouping keeps every canonical card')
+// 06/09: founder requested five genuine local editors. Exclude ONLY their new
+// destinations when comparing the legacy hub; none of the thirteen old tools may disappear.
+eq(hrefs(toolsAfter).filter(h=>!h.startsWith('/tools/editor?tool=')),hrefs(toolsBefore),'tools retain every original destination')
+eq((toolsAfter.match(/<article /g)||[]).length,(toolsBefore.match(/<article /g)||[]).length+5,'five additional editors; every canonical card remains')
 for(const id of ['write','plan','publish'])ok(toolsAfter.includes(`id="tools-${id}"`),'working category anchor '+id)
 console.log(`PASS ${checks} executable UX invariants; no network, generation, tracking or credentials`)

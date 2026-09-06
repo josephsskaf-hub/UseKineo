@@ -13,7 +13,10 @@ for(const file of ['app/(dashboard)/studio/StudioClient.tsx','app/(dashboard)/av
  // duplicate hero shortcuts. Normalize only that exact approved navigation delta;
  // test-language-navigation.mjs executes the new placement for both auth states.
  const navigation=s=>s.replace(/\r\n/g,'\n').replace(/          <div className="home-jump" role="navigation" aria-label="On this page">\n            <a href="#samples"><UiLabel>Real videos<\/UiLabel><\/a>\n            <a href="#toolkit"><UiLabel>Tools<\/UiLabel><\/a>\n            <a href="#pricing"><UiLabel>Plans<\/UiLabel><\/a>\n            <InterfaceLanguageSelect \/>\n          <\/div>\n/,'').replace('          <InterfaceLanguageSelect />\n','').replace('btn btn-w nav-dashboard','btn btn-w')
- assert.equal(strip(file==='app/KineoLanding.tsx'?navigation(source(file)):source(file)),strip(file==='app/KineoLanding.tsx'?navigation(before):before),file+' changed only approved presentation');checks++
+ // Founder-requested rename 06/09. The new editor tests assert both real nav links;
+ // this old wrapper test continues protecting all other home logic and media.
+ const current = file==='app/KineoLanding.tsx' ? source(file).replaceAll('<UiLabel>Editing tools</UiLabel>','<UiLabel>Free tools</UiLabel>') : source(file)
+ assert.equal(strip(file==='app/KineoLanding.tsx'?navigation(current):current),strip(file==='app/KineoLanding.tsx'?navigation(before):before),file+' changed only approved presentation');checks++
 }
 const fixtures=[
  ['app/(dashboard)/studio/StudioClient.tsx',{},'Primero tu idea'],

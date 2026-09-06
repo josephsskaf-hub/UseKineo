@@ -109,7 +109,7 @@ export const INTERFACE_ES: Record<string, string> = {
   'Viral Templates': 'Plantillas virales', 'Video Studio': 'Estudio de vídeo',
   'Channel Builder': 'Crear un canal', 'AI Thumbnail Generator': 'Crear miniaturas con IA',
   'Invite & Earn': 'Invita y gana', 'Affiliate Dashboard': 'Panel de afiliados',
-  Tools: 'Herramientas', More: 'Más', 'Free tools': 'Herramientas gratuitas',
+  Tools: 'Herramientas', More: 'Más', 'Free tools': 'Herramientas gratuitas', 'Editing tools': 'Herramientas de edición',
   'Start free': 'Empezar gratis', 'Sign in': 'Iniciar sesión', 'Log in': 'Iniciar sesión',
   Explore: 'Explorar', Scripts: 'Guiones', Animate: 'Animar', Thumbnails: 'Miniaturas',
   'Real videos': 'Vídeos reales', 'How it works': 'Cómo funciona', 'The toolkit': 'Las herramientas',

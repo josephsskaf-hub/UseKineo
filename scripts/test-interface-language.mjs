@@ -28,7 +28,8 @@ for(const [en,es] of Object.entries(labels)){
 }
 for(const [file,expected] of [
  ['app/KineoLanding.tsx','Escribe una idea'],
- ['app/tools/page.tsx','Da el siguiente paso'],
+ // 06/09: the founder added local editors; assert the new real Spanish heading.
+ ['app/tools/page.tsx','Pequeños cambios. Tu vídeo, listo.'],
  ['app/(dashboard)/images/ImagesClient.tsx','Primero describe tu imagen'],
  ['app/(dashboard)/audio/AudioClient.tsx','Primero escribe tu guion'],
  ['app/(dashboard)/library/LibraryClient.tsx','Biblioteca'],

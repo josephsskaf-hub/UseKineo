@@ -35,6 +35,7 @@ export function renderPage(entry, before = false, fixture = {}, props = {}, comp
     const code=source(file,historical,comparisonBase)
     const box={exports:{}}; cache.set(file,box.exports)
     const shim=id=>{
+      if(file==='app/tools/editor/VideoEditor.tsx' && id==='./editor.css')return {}
       if(id==='react')return react
       if(id==='react/jsx-runtime')return require(id)
       if(id==='next/link')return {__esModule:true,default:({children,prefetch,...p})=>React.createElement('a',p,children)}

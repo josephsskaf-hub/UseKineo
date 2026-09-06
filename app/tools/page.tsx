@@ -4,6 +4,7 @@ import Footer from '@/components/Footer'
 import { InterfaceLanguageSelect, UiLabel, UiText } from '@/components/InterfaceLanguage'
 import { TOOL_SPANISH } from '@/lib/ui/toolSpanish'
 import { FREE_TOOL_FACTS, PUBLIC_COST_PLANNER_FACT } from '@/lib/kineoFacts'
+import { EDITING_TOOLS } from '@/lib/videoEditing/settings'
 
 const BASE = 'https://www.usekineo.com'
 const PUBLIC_TOOL_FACTS = [...FREE_TOOL_FACTS, PUBLIC_COST_PLANNER_FACT]
@@ -11,14 +12,14 @@ type PublicToolFact = (typeof PUBLIC_TOOL_FACTS)[number]
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE),
-  title: 'Free YouTube Shorts Tools — No Signup or Card | Kineo',
+  title: 'Video Editing & Free Creator Tools | Kineo',
   description:
-    `Use ${PUBLIC_TOOL_FACTS.length} free YouTube Shorts tools without an account or card: ad briefs, scripts, hooks, publishing copy, viral score, content planning, earnings and production-cost calculators.`,
+    `Trim, resize, change speed, mute or add text to your video in your browser. Plus ${PUBLIC_TOOL_FACTS.length} free tools for scripts, hooks, publishing and planning.`,
   alternates: { canonical: `${BASE}/tools` },
   openGraph: {
-    title: 'Free YouTube Shorts Tools — No Signup',
+    title: 'Video Editing & Free Creator Tools',
     description:
-      `Go from topic, comment, product or business goal to a useful Short plan, script, publishing kit or production-cost estimate. ${PUBLIC_TOOL_FACTS.length} made-to-order tools, no account or card.`,
+      `Five local video editing tools, plus ${PUBLIC_TOOL_FACTS.length} free creator tools. Edit a clip, write a script or plan your next Short.`,
     url: `${BASE}/tools`,
     type: 'website',
     images: [{ url: '/og-card.png', width: 1200, height: 630, alt: 'Kineo free YouTube Shorts tools' }],
@@ -132,13 +133,13 @@ const tools = PUBLIC_TOOL_FACTS.map((tool) => {
 const toolsJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'CollectionPage',
-  name: 'Free YouTube Shorts tools by Kineo',
+  name: 'Video editing and creator tools by Kineo',
   url: `${BASE}/tools`,
-  description: `${tools.length} free, no-signup tools for planning, writing, publishing and evaluating YouTube Shorts.`,
+  description: `Five local video editing tools and ${tools.length} free tools for planning, writing, publishing and evaluating YouTube Shorts.`,
   mainEntity: {
     '@type': 'ItemList',
-    numberOfItems: tools.length,
-    itemListElement: tools.map((tool, index) => ({
+    numberOfItems: EDITING_TOOLS.length + tools.length,
+    itemListElement: [...EDITING_TOOLS.map(tool => ({ url: `${BASE}/tools/editor?tool=${tool.id}`, name: tool.name, what: tool.description })), ...tools].map((tool, index) => ({
       '@type': 'ListItem',
       position: index + 1,
       url: tool.url,
@@ -148,7 +149,7 @@ const toolsJsonLd = {
   },
 }
 
-// Presentation groups only: the facts, tool destinations and JSON-LD remain canonical.
+// Original planning tools keep their canonical destinations; local editors are an additional group.
 const TOOL_GROUPS = [
   { id: 'write', title: 'Write', paths: ['/free-script-generator', '/free-hook-generator', '/comment-to-video', '/product-to-video-script', '/free-ai-shorts/localbusiness'] },
   { id: 'plan', title: 'Plan', paths: ['/client-video-brief-generator', '/business-video-content-plan', '/shorts-money-calculator', '/cheapest-ai-shorts-maker', '/business-pilot-review'] },
@@ -207,6 +208,16 @@ const PAGE_CSS = `
   .tool-card h3 { font-size:24px; line-height:1.25; letter-spacing:-.025em; margin:12px 0 0; }
   .tool-card-featured { border-color:#496c9e; }
   @media(max-width:720px) { .tools-hero { margin-top:36px; } .tool-card { min-height:0; padding:20px; } .tool-card h3 { font-size:21px; } }
+  .editing-grid { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:12px; }
+  .editing-card { display:flex; flex-direction:column; min-width:0; padding:22px 18px; border:1px solid #354c4b; border-radius:14px; background:linear-gradient(155deg,#192d2c,#121c24); }
+  .editing-number { color:#91e6d0; font-size:12px; letter-spacing:.08em; }
+  .editing-card h3 { font-size:20px; margin:22px 0 12px; letter-spacing:-.03em; }
+  .editing-card p { color:#a8bdbf; font-size:13px; line-height:1.6; flex:1; margin:0 0 20px; }
+  .editing-card a { color:#a6f0dc; font-size:13px; font-weight:750; text-decoration:none; min-height:44px; display:flex; align-items:center; }
+  .editing-card a:focus-visible { outline:2px solid #a6f0dc; outline-offset:4px; }
+  .editing-note { color:#93a6b8; font-size:13px; line-height:1.6; }
+  @media(max-width:1000px) { .editing-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } }
+  @media(max-width:620px) { .editing-grid { grid-template-columns:1fr; } .editing-card { padding:18px 20px; } .editing-card h3 { margin:12px 0 10px; } .editing-card p { margin-bottom:4px; } }
 `
 
 export default function ToolsPage() {
@@ -224,22 +235,27 @@ export default function ToolsPage() {
         </nav>
 
         <header className="tools-hero">
-          <p className="tools-kicker"><UiText es="Herramientas gratuitas · sin registro · sin tarjeta">Free tools · no signup · no card</UiText></p>
-          <h1><UiText es="Da el siguiente paso para crear tu Short.">Do the next useful thing for your Short.</UiText></h1>
+          <p className="tools-kicker"><UiText es="Herramientas de edición y creación">Editing & creator tools</UiText></p>
+          <h1><UiText es="Pequeños cambios. Tu vídeo, listo.">Small edits. Your video, ready.</UiText></h1>
           <p className="tools-intro">
-            <UiText es="No empieces con un editor en blanco. Elige lo que ya tienes: un tema, comentario, producto, oferta comercial, objetivo de contenido, meta de ingresos o calendario de producción. Obtén un resultado adaptado a tus datos.">Do not start with a blank editor. Pick what you already have — a topic, comment,
-            product, business offer, content goal, revenue target or production schedule — and leave with a made-to-order result.</UiText>
+            <UiText es="Recorta, cambia el formato, ajusta la velocidad, silencia o añade texto. Edita un archivo que ya tienes, directamente en tu navegador. Las herramientas de guion y planificación siguen aquí abajo.">Trim, resize, change speed, mute or add text. Edit a file you already have, right in your browser. Your script and planning tools are still here below.</UiText>
           </p>
           <div className="tools-trust" aria-label="Tool limits">
-            <span>{tools.length} <UiText es="herramientas gratuitas">free tools</UiText></span>
-            <span><UiText es="A partir de tus datos">Made from your input</UiText></span>
-            <span><UiText es="Texto, planificación y estimación de costes">Text, planning and cost estimates</UiText></span>
+            <span><UiText es="5 herramientas de edición local">5 local editing tools</UiText></span>
+            <span><UiText es="Sin subir tu vídeo">No video upload</UiText></span>
+            <span><UiText es="Sin créditos de generación para editar">No generation credits to edit</UiText></span>
           </div>
         </header>
 
         <nav className="tools-sections" aria-label="Tool categories">
+          <a href="#tools-edit"><UiText es="Editar vídeo">Edit video</UiText></a>
           {TOOL_GROUPS.map(group => <a key={group.id} href={`#tools-${group.id}`}><UiLabel>{group.title}</UiLabel></a>)}
         </nav>
+        <section id="tools-edit" className="tool-group" aria-labelledby="tools-edit-heading">
+          <h2 id="tools-edit-heading"><UiText es="¿Qué quieres cambiar?">What would you like to change?</UiText></h2>
+          <div className="editing-grid">{EDITING_TOOLS.map(tool => <article key={tool.id} className="editing-card"><span className="editing-number" aria-hidden="true">{tool.icon} /</span><h3><UiText es={tool.es}>{tool.name}</UiText></h3><p><UiText es={tool.descriptionEs}>{tool.description}</UiText></p><Link href={`/tools/editor?tool=${tool.id}`}><UiText es="Abrir herramienta">Open tool</UiText> ↗</Link></article>)}</div>
+          <p className="editing-note"><UiText es="Archivos de hasta 100 MB y 3 minutos. Exportación local en tiempo real, hasta 1280 px en el lado largo. MP4 o WebM según el navegador; no se guardan en Mis vídeos.">Files up to 100 MB and 3 minutes. Local, real-time export up to 1280 px on the long edge. MP4 or WebM depending on your browser; downloads are not saved to My Videos.</UiText></p>
+        </section>
         {TOOL_GROUPS.map(group => (
         <section key={group.id} id={`tools-${group.id}`} className="tool-group" aria-labelledby={`tools-${group.id}-heading`}>
           <h2 id={`tools-${group.id}-heading`}><UiLabel>{group.title}</UiLabel></h2>
@@ -270,7 +286,7 @@ export default function ToolsPage() {
         <section className="tools-boundary" aria-labelledby="finished-video-title">
           <div>
             <p className="tool-eyebrow"><UiText es="Hasta dónde llegan estas herramientas">Where these tools stop</UiText></p>
-            <h2 id="finished-video-title"><UiText es="Las herramientas gratuitas ofrecen texto, planificación o una estimación de coste, no un vídeo generado.">The free tools return text, planning or a cost estimate — not a rendered video.</UiText></h2>
+            <h2 id="finished-video-title"><UiText es="Edita un vídeo existente aquí. Crea uno nuevo con Kineo.">Edit an existing video here. Create a new one with Kineo.</UiText></h2>
             <p>
               <UiText es="Cuando tu idea esté lista, Kineo puede convertirla en un Short vertical completo con voz, imágenes y subtítulos. Ese siguiente paso requiere una cuenta; la prueba gratuita no requiere tarjeta.">When your idea is ready, Kineo can turn it into a finished vertical Short with
               voiceover, visuals and captions. That next step requires an account; the free test

@@ -871,7 +871,7 @@ export default function KineoLanding({
             {/* KINEO-GROWTH-TOOLS-NAV-2026-08-29 — o hub de aquisição
                 orgânica já existia no sitemap e no rodapé, mas ficava
                 invisível na principal entrada pública do produto. */}
-            <Link href="/tools"><UiLabel>Free tools</UiLabel></Link>
+            <Link href="/tools"><UiLabel>Editing tools</UiLabel></Link>
             {/* KINEO-ARENA-NAV-2026-08-25 — a Arena entra na nav ao lado de
                 Explore: é a página que responde "qual motor eu uso?", a
                 dúvida nº1 de quem está decidindo assinar. Explore mostra o
@@ -982,7 +982,7 @@ export default function KineoLanding({
             <span className="nav-toggle-btn" aria-hidden="true"><span className="bar" /><span className="bar" /><span className="bar" /></span>
             <label htmlFor="nav-toggle" id="mobile-nav-menu" className="nav-mobile-menu">
               <Link href="/examples"><UiLabel>Explore</UiLabel></Link>
-              <Link href="/tools"><UiLabel>Free tools</UiLabel></Link>
+              <Link href="/tools"><UiLabel>Editing tools</UiLabel></Link>
               <Link href="/studio"><UiLabel>🎬 Studio — generate video</UiLabel></Link>
               <Link href="/images"><UiLabel>🎨 Images — create image</UiLabel></Link>
               <Link href="/audio"><UiLabel>🎙 Audio — text to speech</UiLabel></Link>
