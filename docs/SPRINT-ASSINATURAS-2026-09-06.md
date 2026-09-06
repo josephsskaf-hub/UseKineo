@@ -389,3 +389,41 @@ Registrado no PEDIDOS com o método de medição.
 pede dinheiro. Achei dois: `balance`/`shortBy` ausentes imprimiriam *"You have
 undefined credits"*, e `freeTier.limit` ausente quebraria a frase do grátis.
 Agora cada número só é escrito se chegou. Guardião **45 → 48**.
+
+---
+
+### #6 — 01:41→01:43 BRT — a validação que dava para fazer sem navegador: 5 pessoas DRY reais, traçadas pelo contrato
+
+Navegador é proibido neste ciclo, então não dá para OLHAR o cartão. O que dá é
+pegar **cinco pessoas reais no estado `dry`** e traçar, com os valores do banco,
+exatamente o que o contrato devolveria e o que a tela escreveria. Fiz isso.
+
+(`duration_seconds` vem **null** nas cinco → o contrato usa 60s, e
+`DURATION_REFERENCE_SECONDS` é 60, então o Kineo 1 pago fica em 5 créditos
+cheios. Confirmado no arquivo, não suposto.)
+
+| # | saldo | último filme | trial | o que o cartão escreve |
+|---|---|---|---|---|
+| 1 | 10 | 15 (Seedance 1.5) | **vivo** | *"cost 15 credits. You have 10."* + **Continue with Kineo 1 · 5 credits** + plano |
+| 2 | 0 | 15 (Seedance 1.5) | encerrado | mesma frase + **Kineo 1 · free** + *"Free films are 15 seconds and watermarked — 1 every 30 days"* + plano |
+| 3 | 10 | 15 (Seedance 1.5) | vivo | igual ao 1 |
+| 4 | 2 | 3 (Kineo 1) | vivo | frase + **só a porta do plano** (Kineo 1 custa 5 > saldo 2 — nenhuma oferta falsa) |
+| 5 | 5 | 15 (Seedance 1.5) | vivo | frase + **Kineo 1 · 5 credits** (cabe exatamente) + plano |
+
+**A LINHA 1 É A PROVA DE QUE A #1 NÃO FOI ACADEMISMO.** Essa pessoa está em
+trial vivo com `plan='free'`. Pelo código de ontem, o contrato teria anunciado
+**"Kineo 1 · 0 credits"** — e o `/api/compose` teria cobrado **5** dela, que
+tem 10. A correção da madrugada é o que faz a linha 1 dizer 5.
+
+**A LINHA 2 É A PROVA DA SEGUNDA VERDADE:** trial encerrado, saldo 0, e o Kineo
+1 realmente sai de graça — mas com **15 segundos, marca d'água e 1 a cada 30
+dias**, tudo dito na mesma caixa. Sem isso, o botão prometeria o filme que ela
+acabou de fazer e entregaria um terço dele.
+
+**A LINHA 4 É A PROVA DE QUE O CARTÃO NÃO INVENTA SAÍDA:** saldo 2, e o motor
+mais barato custa 5. Nenhuma alternativa é oferecida, e a porta do plano
+aparece sozinha — que é exatamente a regra K1.
+
+**Limite honesto desta validação:** ela prova a *lógica* com dados reais, não a
+*pintura*. Um erro puramente visual (contraste, quebra de layout no celular)
+passaria por aqui sem ser visto. Fica registrado como o que não foi verificado.
