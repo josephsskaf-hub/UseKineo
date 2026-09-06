@@ -426,11 +426,15 @@ export async function GET(req: NextRequest) {
     // e reusada — o segundo e-mail do mesmo filme nao paga de novo.
     let pack = null
     try {
-      pack = await garantirPacote(admin, u.id as string, {
-        id: video.id,
-        title: video.title,
-        topic: video.topic,
-      })
+      pack = await garantirPacote(
+        admin,
+        u.id as string,
+        { id: video.id, title: video.title, topic: video.topic },
+        // O credito da casa so entra no pacote de quem NAO assina — mesma regra
+        // de `buildBrandedYouTubeDescription`. `isSubscriberProfile` e o mesmo
+        // predicado que o rodape deste e-mail ja usa; nao redigitei nenhum.
+        { isFreePlan: !isSubscriberProfile(prof) },
+      )
     } catch (e) {
       console.warn('[send-video-ready] publish pack failed:', e instanceof Error ? e.message : String(e))
     }

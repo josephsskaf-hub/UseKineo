@@ -26,8 +26,9 @@
 //
 // ⚠️ ISTO NAO E ENGANO E NAO PODE VIRAR: o credito e uma SUGESTAO visivel num
 // texto que a pessoa vai colar e pode apagar. A carta diz o que e. Nenhuma
-// linha aqui afirma algo falso sobre o video dela — "made with AI at
-// usekineo.com" e literalmente verdade sobre como aquele arquivo nasceu.
+// linha aqui afirma algo falso sobre o video dela — a linha de credito da
+// casa e literalmente verdade sobre como aquele arquivo nasceu. E ela SO
+// aparece no plano gratuito (ver o bloco de correcao de rota abaixo).
 //
 // ⚠️ NAO TOCA NO PIPELINE DE QUALIDADE. Titulo e descricao sao texto FORA do
 // pipeline (permissao explicita do ciclo). Nenhuma palavra da narracao, do
@@ -51,10 +52,37 @@ export const MAX_YT_DESCRICAO = 1200
 export const MAX_TT_LEGENDA = 400
 export const MAX_COMENTARIO = 300
 
-/** A linha que transforma o filme do cliente em anuncio da casa. Ela e UMA e
- *  mora aqui: se cada gerador escrever a sua, metade sai sem link e ninguem
- *  descobre por que a atribuicao nao cresce. */
-export const CREDITO = 'Made with AI at usekineo.com'
+// ⚠️ CORRECAO DE ROTA DENTRO DA PROPRIA ROTACAO — LEIA ANTES DE MEXER.
+//
+// A primeira versao desta peca acrescentava um credito PROPRIO ("Made with AI
+// at usekineo.com") em TODO pacote. Duas coisas erradas nisso, as duas
+// descobertas lendo `lib/videoDescription.ts` depois de o codigo ja estar no
+// ar (e antes de ele alcancar alguem — `publish_pack_written` estava em 0):
+//
+//   1. A CASA JA TEM UMA LINHA DE CREDITO, e ela e canonica:
+//      `KINEO_CREDIT_LINE`. Escrever a minha criava uma SEGUNDA regua de "como
+//      a Kineo se apresenta" — exatamente a classe de erro da memoria
+//      `predicado-do-cobrador-nao-se-redigita`. Agora esta peca importa a da
+//      casa e nao inventa texto de marca.
+//
+//   2. A CASA NAO POE CREDITO PARA QUEM PAGA, e isso e DELIBERADO:
+//      `buildBrandedYouTubeDescription` devolve a descricao limpa quando
+//      `isFreePlan` e falso. Quem assina compra, entre outras coisas, nao ter
+//      de anunciar a ferramenta. Forcar o credito no pacote de um assinante
+//      seria desfazer uma decisao de produto pelas costas — e quebrar uma
+//      promessa que a pagina de precos faz. O pacote agora respeita a mesma
+//      regra: credito no gratuito, pacote limpo no pago.
+//
+// O flywheel continua de pe: a coorte que publica sem assinar e justamente a
+// gratuita, que e a maioria esmagadora dos ~20 filmes/dia.
+// ⚠️ ESTE ARQUIVO CONTINUA SEM IMPORT NENHUM, E ISSO E DESENHO.
+// A primeira tentativa de conserto importava `KINEO_CREDIT_LINE` de
+// `lib/videoDescription` — e quebrou o guardiao, que executa este arquivo
+// direto com o type-stripping do Node (o Node nao resolve o alias `@/` do
+// tsconfig, e sem extensao nao resolve nem o relativo; memoria
+// `guardioes-com-alias-nao-rodam`). A dependencia foi INVERTIDA: quem chama
+// passa a linha de credito da casa. A regua continua UMA (mora em
+// videoDescription), e este modulo continua puro e executavel num teste.
 export const SITE = 'https://www.usekineo.com'
 
 export type PacoteDePublicacao = {
@@ -62,6 +90,14 @@ export type PacoteDePublicacao = {
   ytDescription: string
   tiktokCaption: string
   pinnedComment: string
+}
+
+/** O mesmo criterio de `hasKineoCredit` da casa: procura o dominio, ignorando
+ *  caixa. Duplicar UMA comparacao de substring e o preco de manter este modulo
+ *  sem import; se o criterio da casa mudar, o guardiao 8 (credito nao duplica)
+ *  continua sendo o que protege. */
+function jaTemCredito(s: string): boolean {
+  return s.toLowerCase().includes('usekineo.com')
 }
 
 function texto(v: unknown, teto: number): string {
@@ -89,9 +125,18 @@ function texto(v: unknown, teto: number): string {
  * Devolve null so quando falta peca estrutural (titulo ou descricao): meio
  * pacote e pior que nenhum, porque o cliente cola e descobre o buraco depois.
  */
-export function prepararPacote(bruto: unknown): PacoteDePublicacao | null {
+export function prepararPacote(
+  bruto: unknown,
+  opts?: { creditLine?: string | null },
+): PacoteDePublicacao | null {
   if (!bruto || typeof bruto !== 'object') return null
   const b = bruto as Record<string, unknown>
+  // Fail-closed no sentido do CLIENTE: sem linha de credito passada, o pacote
+  // sai LIMPO. Errar para o lado de nao anunciar e o unico erro reversivel dos
+  // dois — o contrario poe uma linha nossa na descricao de alguem que pagou
+  // exatamente para nao te-la.
+  const credito = typeof opts?.creditLine === 'string' ? opts.creditLine.trim() : ''
+  const podeCreditar = credito.length > 0
 
   const ytTitle = texto(b.ytTitle ?? b.title, MAX_YT_TITULO)
   let ytDescription = texto(b.ytDescription ?? b.description, MAX_YT_DESCRICAO)
@@ -100,18 +145,23 @@ export function prepararPacote(bruto: unknown): PacoteDePublicacao | null {
 
   if (!ytTitle || !ytDescription) return null
 
-  // O credito entra onde faltar. O corte vem DEPOIS de acrescentar, senao a
-  // linha entraria e seria decapitada pelo teto — que e exatamente o modo de
-  // falha do "menino da bolha" (27/08): cortar por tamanho no fim de um texto
-  // que carrega a parte importante na cauda.
-  if (!ytDescription.toLowerCase().includes('usekineo.com')) {
-    ytDescription = `${ytDescription}\n\n🎬 ${CREDITO} — type an idea, get a cinematic Short in about 3 minutes. Try it free: ${SITE}`
-  }
-  if (tiktokCaption && !tiktokCaption.toLowerCase().includes('usekineo.com')) {
-    tiktokCaption = `${tiktokCaption} · ${CREDITO} 🎬`
-  }
-  if (pinnedComment && !pinnedComment.toLowerCase().includes('usekineo.com')) {
-    pinnedComment = `${pinnedComment} usekineo.com — free to try.`
+  // O credito entra onde faltar, e SO no plano gratuito. O corte vem DEPOIS de
+  // acrescentar, senao a linha entraria e seria decapitada pelo teto — que e
+  // exatamente o modo de falha do "menino da bolha" (27/08): cortar por
+  // tamanho no fim de um texto que carrega a parte importante na cauda.
+  //
+  // A deteccao evita credito duplicado quando o proprio modelo ja escreveu o
+  // dominio na descricao — acontece, e duas linhas iguais leem como spam.
+  if (podeCreditar) {
+    if (!jaTemCredito(ytDescription)) {
+      ytDescription = `${ytDescription}\n\n${credito}`
+    }
+    if (tiktokCaption && !jaTemCredito(tiktokCaption)) {
+      tiktokCaption = `${tiktokCaption} · Made with Kineo 🎬 usekineo.com`
+    }
+    if (pinnedComment && !jaTemCredito(pinnedComment)) {
+      pinnedComment = `${pinnedComment} Made with Kineo — usekineo.com, free to try.`
+    }
   }
 
   return {
@@ -125,6 +175,9 @@ export function prepararPacote(bruto: unknown): PacoteDePublicacao | null {
 /** Le o que foi gravado. Falha SEMPRE aberta. */
 export function lerPacote(metadata: unknown): PacoteDePublicacao | null {
   if (!metadata || typeof metadata !== 'object') return null
+  // Leitura NAO credita: o que foi gravado ja passou pela regra do plano no
+  // momento da escrita. Creditar de novo aqui poria a linha num pacote de
+  // assinante toda vez que ele fosse relido.
   return prepararPacote(metadata)
 }
 

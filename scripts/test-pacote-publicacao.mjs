@@ -30,7 +30,7 @@ const check = (nome, cond) => {
 
 // ══ (A) COMPORTAMENTO — o arquivo real, executado ════════════════════════
 const lib = await import('../lib/publishPack.ts')
-const { prepararPacote, lerPacote, pacoteAindaVale, CREDITO, MAX_YT_TITULO, PACOTE_TTL_MS } = lib
+const { prepararPacote, lerPacote, pacoteAindaVale, MAX_YT_TITULO, PACOTE_TTL_MS } = lib
 if (typeof prepararPacote !== 'function') {
   console.error('lib/publishPack.ts nao expos prepararPacote — teste invalido, nao verde')
   process.exit(1)
@@ -49,21 +49,39 @@ check('3. prosa e null devolvem null', prepararPacote('texto solto') === null &&
 check('4. legenda e comentario sao opcionais (o pacote nasce mesmo sem eles)', !!prepararPacote({ ytTitle: 'a', ytDescription: 'b' }))
 check('5. aceita os nomes alternativos que o modelo usa (title/description)', !!prepararPacote({ title: 'a', description: 'b' }))
 
-// ── A GARANTIA QUE DA SENTIDO A PECA ─────────────────────────────────────
-// Sem a linha de credito o filme circula e ninguem descobre a Kineo. O modelo
-// esquece isso o tempo todo, entao a casa ACRESCENTA em vez de rejeitar.
-const semCredito = prepararPacote({ ytTitle: 'a', ytDescription: 'b', tiktokCaption: 'c', pinnedComment: 'd' })
-check('6. o credito ENTRA na descricao quando o modelo esquece', semCredito.ytDescription.includes('usekineo.com'))
-check('7. o credito entra tambem na legenda e no comentario', semCredito.tiktokCaption.includes('usekineo.com') && semCredito.pinnedComment.includes('usekineo.com'))
-check('8. o credito NAO e duplicado quando ja existe', (prepararPacote({ ytTitle: 'a', ytDescription: 'ja tem usekineo.com aqui' }).ytDescription.match(/usekineo\.com/g) ?? []).length === 1)
-check('9. o credito nao entra em campo vazio (nao inventa legenda)', prepararPacote({ ytTitle: 'a', ytDescription: 'b' }).tiktokCaption === '')
-check('10. a deteccao do credito ignora caixa', (prepararPacote({ ytTitle: 'a', ytDescription: 'USEKINEO.COM' }).ytDescription.match(/usekineo\.com/gi) ?? []).length === 1)
-check('11. o texto do credito vem da constante unica', semCredito.ytDescription.includes(CREDITO))
+// ── A REGRA DO CREDITO, E ELA MUDOU DENTRO DA PROPRIA ROTACAO ────────────
+// A casa NAO poe credito para quem paga: `buildBrandedYouTubeDescription`
+// devolve a descricao limpa quando `isFreePlan` e falso. Quem assina compra,
+// entre outras coisas, nao ter de anunciar a ferramenta.
+//
+// A primeira versao desta peca creditava TODO MUNDO — desfazendo pelas costas
+// uma decisao deliberada de produto. Agora o credito so entra quando QUEM
+// CHAMA passa a linha, e quem chama so passa no plano gratuito. As cinco
+// verificacoes seguintes existem para que essa regra nao se perca de novo.
+const LINHA_TESTE = 'Made with Kineo — https://www.usekineo.com?utm_source=video_desc'
+const base4 = { ytTitle: 'a', ytDescription: 'b', tiktokCaption: 'c', pinnedComment: 'd' }
+const comCredito = prepararPacote(base4, { creditLine: LINHA_TESTE })
+const semCredito = prepararPacote(base4)
+check('6. no GRATUITO o credito entra na descricao', comCredito.ytDescription.includes('usekineo.com'))
+check('7. no GRATUITO entra tambem na legenda e no comentario', comCredito.tiktokCaption.includes('usekineo.com') && comCredito.pinnedComment.includes('usekineo.com'))
+check('7b. NO PAGO o pacote sai LIMPO nos tres campos', !semCredito.ytDescription.includes('usekineo.com') && !semCredito.tiktokCaption.includes('usekineo.com') && !semCredito.pinnedComment.includes('usekineo.com'))
+check('7c. FAIL-CLOSED: sem informacao de plano, nada de credito', !prepararPacote(base4, {}).ytDescription.includes('usekineo.com'))
+check('8. o credito NAO e duplicado quando o modelo ja escreveu o dominio', (prepararPacote({ ytTitle: 'a', ytDescription: 'ja tem usekineo.com aqui' }, { creditLine: LINHA_TESTE }).ytDescription.match(/usekineo\.com/g) ?? []).length === 1)
+check('9. o credito nao entra em campo vazio (nao inventa legenda)', prepararPacote({ ytTitle: 'a', ytDescription: 'b' }, { creditLine: LINHA_TESTE }).tiktokCaption === '')
+check('10. a deteccao do credito ignora caixa', (prepararPacote({ ytTitle: 'a', ytDescription: 'USEKINEO.COM' }, { creditLine: LINHA_TESTE }).ytDescription.match(/usekineo\.com/gi) ?? []).length === 1)
+check('11. a linha creditada e EXATAMENTE a que quem chama passou', comCredito.ytDescription.includes(LINHA_TESTE))
+// O modulo tem de continuar SEM IMPORT: e assim que este guardiao consegue
+// executa-lo direto (o Node nao resolve o alias `@/` do tsconfig — memoria
+// `guardioes-com-alias-nao-rodam`). A linha canonica mora no ESCRITOR.
+check('11b. lib/publishPack.ts continua sem nenhum import', !/^import /m.test(ler('lib/publishPack.ts')))
+check("11c. a linha canonica vem de lib/videoDescription, no escritor", /import \{ KINEO_CREDIT_LINE \} from '@\/lib\/videoDescription'/.test(ler('lib/publishPackServer.ts')))
+check('11d. o escritor so credita quando isFreePlan e explicitamente true', /creditLine: opts\?\.isFreePlan === true \? KINEO_CREDIT_LINE : null/.test(ler('lib/publishPackServer.ts')))
+check('11e. o cron deriva o plano do MESMO predicado do rodape, sem redigitar', /isFreePlan: !isSubscriberProfile\(prof\)/.test(ler('app/api/cron/send-video-ready/route.ts')))
 
 // ── recortes: o teto nao pode decapitar o credito ────────────────────────
 // Foi assim que o "menino da bolha" nasceu em 27/08: cortar por tamanho no fim
 // de um texto que carrega a parte importante na cauda.
-const gigante = prepararPacote({ ytTitle: 'x'.repeat(300), ytDescription: 'y'.repeat(4000) })
+const gigante = prepararPacote({ ytTitle: 'x'.repeat(300), ytDescription: 'y'.repeat(4000) }, { creditLine: LINHA_TESTE })
 check('12. o titulo respeita o teto do YouTube', gigante.ytTitle.length === MAX_YT_TITULO)
 check('13. a descricao gigante NAO perde o credito no corte', gigante.ytDescription.includes('usekineo.com'))
 check('14. quebra de linha sobrevive (descricao tem paragrafo e hashtags)', prepararPacote(cheio).ytDescription.includes('\n'))
@@ -81,8 +99,8 @@ check('19. o TTL e o mesmo das outras memorias (14 dias)', PACOTE_TTL_MS === 14 
 const cron = ler('app/api/cron/send-video-ready/route.ts')
 const escritor = ler('lib/publishPackServer.ts')
 
-check('20. o cron chama o escritor', /await garantirPacote\(admin, u\.id as string, \{/.test(cron))
-check('21. a chamada esta dentro de try/catch (segunda rede)', /try \{\n\s*pack = await garantirPacote\([\s\S]{0,300}?\} catch \(e\) \{/.test(cron))
+check('20. o cron chama o escritor', /pack = await garantirPacote\(\n\s*admin,\n\s*u\.id as string,/.test(cron))
+check('21. a chamada esta dentro de try/catch (segunda rede)', /try \{\n\s*pack = await garantirPacote\([\s\S]{0,900}?\} catch \(e\) \{/.test(cron))
 check('22. o pack comeca null, entao um catch deixa o e-mail intacto', /let pack = null/.test(cron))
 check('23. o catch NAO interrompe o laco (nada de continue/throw ali)', !/\} catch \(e\) \{\n\s*console\.warn\('\[send-video-ready\] publish pack failed[\s\S]{0,200}?(continue|throw)/.test(cron))
 // A prova de que o e-mail de hoje nao muda: as duas variaveis sao string

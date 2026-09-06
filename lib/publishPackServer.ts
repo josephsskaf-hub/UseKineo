@@ -16,6 +16,7 @@
 //      `maxDuration` do cron e derrubaria os e-mails que viriam depois.
 
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { KINEO_CREDIT_LINE } from '@/lib/videoDescription'
 import {
   PACOTE_EVENT,
   lerPacote,
@@ -95,7 +96,7 @@ export async function garantirPacote(
   admin: Admin,
   userId: string,
   filme: FilmeDoPacote,
-  opts?: { escrever?: boolean },
+  opts?: { escrever?: boolean; isFreePlan?: boolean },
 ): Promise<PacoteDePublicacao | null> {
   const videoId = typeof filme.id === 'string' ? filme.id : null
   if (!videoId) return null
@@ -153,7 +154,13 @@ export async function garantirPacote(
     return null
   }
 
-  const p = prepararPacote(parsed)
+  // A LINHA DE CREDITO SO VIAJA NO PLANO GRATUITO, e a regra e a MESMA de
+  // `buildBrandedYouTubeDescription`: quem assina compra, entre outras coisas,
+  // nao ter de anunciar a ferramenta. Sem `isFreePlan` explicito o pacote sai
+  // LIMPO — errar para o lado de nao anunciar e o unico erro reversivel.
+  const p = prepararPacote(parsed, {
+    creditLine: opts?.isFreePlan === true ? KINEO_CREDIT_LINE : null,
+  })
   if (!p) return null
 
   await guardar(admin, userId, videoId, p)
