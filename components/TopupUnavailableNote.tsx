@@ -20,8 +20,16 @@
 // única saída que a conta REALMENTE tem — as linhas de plano logo acima, que já
 // funcionam — e diz, em filmes, o que aquele plano compra. Todo número vem de
 // `LimitPurchaseFit` / TIER_CREDITS; nada é digitado aqui.
+//
+// ⚠ #30 — A #29 SUBIU SEM RASTRO. A troca dos quatro botões mortos por esta
+// caixa só existe dentro da tela de quem está logado e não escrevia UMA linha
+// no banco: às 15:38 de hoje a entrega das 15:21 não tinha como se provar. As
+// três linhas de telemetria abaixo fecham isso — `topup_unavailable_note_shown`
+// é a única prova de que a correção está no ar e de quem a está vendo.
+import { useEffect, useRef } from 'react'
 import type { LimitPurchaseFit, LimitPurchasePlanTier } from '@/lib/growth/limitPurchaseFit'
 import { TIER_CREDITS } from '@/lib/checkoutPricing'
+import { trackEvent } from '@/lib/analytics'
 
 const TIER_NAMES: Record<LimitPurchasePlanTier, string> = {
   starter: 'Starter',
@@ -60,6 +68,22 @@ export function topupUnavailableCopy(fit: LimitPurchaseFit | null): string {
 }
 
 export default function TopupUnavailableNote({ fit }: { fit: LimitPurchaseFit | null }) {
+  // Uma vez por montagem, fire-and-forget: telemetria nunca pode derrubar o
+  // pop-up de crédito curto de quem está a tentar comprar.
+  const trackedRef = useRef(false)
+  useEffect(() => {
+    if (trackedRef.current) return
+    trackedRef.current = true
+    try {
+      void trackEvent('topup_unavailable_note_shown', {
+        tier: fit?.fittingPlanIds[0] ?? null,
+        required_credits: fit?.requiredCredits ?? null,
+      })
+    } catch {
+      /* ignore */
+    }
+  }, [fit])
+
   return (
     <div
       style={{

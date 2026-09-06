@@ -225,6 +225,10 @@ import {
 import { buildBrandedYouTubeDescription } from '@/lib/videoDescription'
 import VisualDirector from '@/components/video/VisualDirector'
 import NextShortsSection from '@/components/video/NextShortsSection'
+// KINEO-TEMPORADA-TELA-2026-09-06 (#30) — a primeira tela do produto a chamar
+// a porta de servidor da temporada (app/api/season, no ar desde as 11h de hoje
+// com `season_shown` = 0).
+import SeasonStrip from '@/components/video/SeasonStrip'
 import PlanFitCard, { type PlanFitCheckoutMetadata } from '@/components/growth/PlanFitCard'
 import { withPlanFitCheckoutContext } from '@/lib/growth/planFitCheckout'
 // KINEO-ESPERA-VENDE-2026-08-21 — vitrine durante o render. Ver o cabeçalho do
@@ -16669,6 +16673,25 @@ export default function GenerateClient({
               Placed ABOVE the upsell on purpose — the ask to pay reads very
               differently to someone who can already see their next three
               episodes than to someone staring at a blank box. */}
+          {/* KINEO-TEMPORADA-TELA-2026-09-06 (#30) — a faixa da temporada, uma
+              linha de montagem. Acima da prateleira de propósito: a prateleira
+              diz "faça outro", a faixa diz "o episódio 3 chama-se assim". Ver o
+              cabeçalho de SeasonStrip para o número (season_written 11 /
+              season_shown 0) e para as razões do POST. Falha calada. */}
+          {phase === 'done' && finalVideoUrl && (
+            <SeasonStrip
+              videoId={publicVideoId}
+              onEvent={(name, meta) => { try { void trackEvent(name, { ...(meta ?? {}), placement: 'done_screen' }) } catch { /* ignore */ } }}
+              onPick={(ep) => {
+                // A MESMA ordem da prateleira: handleReset() limpa o prompt, por
+                // isso a semente do episódio é escrita DEPOIS do reset.
+                handleReset()
+                setPrompt(ep.seed)
+                try { window.scrollTo({ top: 0, behavior: 'smooth' }) } catch { /* ignore */ }
+              }}
+            />
+          )}
+
           {phase === 'done' && finalVideoUrl && analysis && (
             <div ref={nextShortsAnchorRef}>
             <NextShortsSection
