@@ -969,7 +969,17 @@ export async function GET(
             // KINEO-TRIAL-BLOCKERS-2026-08-07 — colunas de trial: esta é a
             // descrição PERSISTIDA no histórico, e ela tem que concordar com o
             // que /api/youtube/upload publica de fato.
-            .select(`has_paid, plan, ${TRIAL_ENTITLEMENT_COLUMNS}`)
+            // sprint-assinaturas #13 (checkpoint 06/09) — `video_credits` FALTAVA
+            // AQUI. A #1 escreveu `readyEmailCreditsFallback` para ler o saldo
+            // deste `planRow`, mas o `select` nunca pediu a coluna: o campo vinha
+            // `undefined`, o fallback virava `null`, e o rodapé do e-mail de
+            // entrega caía em `unknown_balance_episode2` para todo motor
+            // cinemático. Provado no banco: `credits_source='profile'` = ZERO
+            // linhas em toda a história do carimbo; 8 e-mails saíram 'unknown' e
+            // 7 das 8 pessoas TINHAM saldo (10, 7, 55, 5, 10, 10, 7). O outro
+            // `select` desta rota (linha ~573, do débito) já pedia a coluna — foi
+            // ele que fez o guardião da #1 passar em cima da ocorrência errada.
+            .select(`has_paid, plan, video_credits, ${TRIAL_ENTITLEMENT_COLUMNS}`)
             .eq('id', user.id)
             .maybeSingle()
           const PAID_PLANS = new Set([

@@ -99,6 +99,11 @@ checa('perfil com saldo real continua trial_episode2', linhaComSaldo.kind === 't
 
 console.log('\n== 6. a ROTA REAL (nao adianta a biblioteca estar certa sozinha) ==')
 const rota = readFileSync(new URL('../app/api/compose/status/[renderId]/route.ts', import.meta.url), 'utf8')
+// FALSO VERDE ATE 06/09: esta regex varre o arquivo INTEIRO e casava com o
+// select do DEBITO (~linha 573), nao com o do rodape (~linha 972) — que era
+// justamente a linha que faltava. A verificacao amarrada ao BLOCO que decide
+// esta em scripts/test-saldo-rodape-email-2026-09-06.mjs. Este arquivo tambem
+// NAO RODA neste ambiente: o import de '@/lib/...' nao resolve fora do bundler.
 checa('a leitura de perfil do e-mail passou a pedir video_credits', /has_paid, plan, video_credits, \$\{TRIAL_ENTITLEMENT_COLUMNS\}/.test(rota))
 checa('existe a variavel de saldo do perfil', /let readyEmailCreditsFallback: number \| null = null/.test(rota))
 checa('ela e preenchida a partir do planRow', /readyEmailCreditsFallback =[\s\S]{0,80}typeof saldoPerfil === 'number'/.test(rota))
