@@ -154,6 +154,7 @@ check('SSR outputs links and controls without network', () => {
   assert.ok(html.includes('href="/pricing"'))
   assert.ok(html.includes('aria-label="Close Tools"'))
   assert.ok(html.includes('safe-area-inset-bottom'))
+  assert.ok(html.includes('.kineo-mobile-nav:has(details[open]){z-index:71}'), 'open tools clear existing install/push layers; verify in browser too')
   assert.ok(!html.includes('<form'))
 })
 console.log(passed + ' contract checks passed. Browser/visual approval remains pending.')

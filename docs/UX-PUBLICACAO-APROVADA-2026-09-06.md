@@ -23,3 +23,11 @@ Revisao React: nenhum fetch, hook ou dependente adicionado ao layout; controles 
 Commit/push da implementacao L3, PR/checks, verificacao visual do artefato implantado e deploy producao. Nao classificar como publicado antes do deploy READY e verificacao do SHA. O Guardiao possui continue-on-error e suite sem dependencias instaladas; verde agregado nao prova que todas as baterias passaram. Registrar o resultado real, nao ocultar falhas.
 
 Espanhol e home completa continuam fora deste lote. O bloco de oito horas de 05/09 acabou; esta publicacao responde a autorizacao nova, sem renovar automacao.
+
+## CHECKPOINT 06/09 — preview READY; acesso de revisao pendente
+
+EVIDENCIA DE DEPLOY: 027e79967e0cb4c65dcbb15e04c46311991822e2, preview dpl_H7iEGxP6wEK1SLa5MZa9DDarwh2N READY na Vercel. Chrome do fundador abriu /studio neste build: titulo Studio, ideia primeiro, opcionais recolhidos, barra de cinco posicoes em 390x844 e Tools abre/fecha com Escape. Nenhum Generate/pagamento acionado.
+
+ACHADO DE BROWSER: banners legados de instalacao (z-index 70) e push (69) cobriam o menu novo aberto (nav 50). Correcao minima em MobileNav: somente enquanto details aberto, camada 71; nav fechada e avisos preservados. Requer nova verificacao do build correspondente.
+
+BLOQUEADO NO ACESSO DE REVISAO: criar PR pelo conector GitHub retornou 403 Resource not accessible by integration. Chrome esta deslogado no GitHub, campos de login vazios. Git push da branch propria funcionou; main NAO alterada. Nao reutilizar outro token nem pular o gate de revisao/Guardiao para contornar isso. Aba de login deixada ao fundador; apos login, criar PR, conferir checks reais, publicar por fast-forward e validar producao. Nao precisa de nova aprovacao visual dos lotes.

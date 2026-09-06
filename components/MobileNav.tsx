@@ -227,6 +227,9 @@ export default function MobileNav({ isLoggedIn = true }: { isLoggedIn?: boolean 
       </div>
       <style>{`
         .kineo-mobile-nav{background:#000;border-top:1px solid #2a2a2d;padding-bottom:max(env(safe-area-inset-bottom),6px)}
+        /* Open navigation must clear the install (70) and push (69) banners.
+           Closed navigation keeps its existing layer; dialogs stay above it. */
+        .kineo-mobile-nav:has(details[open]){z-index:71}
         .kineo-mobile-row{display:flex;align-items:stretch;height:62px}
         .kineo-mobile-nav .kineo-mobile-tab{flex:1;min-width:0;height:62px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;color:#a1a1aa;text-decoration:none;cursor:pointer;list-style:none;position:relative}
         .kineo-mobile-tab>span{font-size:11px;font-weight:600;white-space:nowrap}
