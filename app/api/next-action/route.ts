@@ -253,15 +253,55 @@ async function ultimaTentativaDeDespacho(userId: string): Promise<Date | null> {
  *  Seedance 2.5 fica FORA: está atrás do interruptor `S25_PUBLIC` e só contas
  *  internas o enxergam. Anunciar motor que a pessoa não pode escolher é a
  *  mesma mentira de vitrine, do lado contrário. */
-const MOTORES: ReadonlyArray<{ quality: Quality; label: string }> = [
-  { quality: 'fast', label: 'Kineo 1' },
-  { quality: 'cinematic_ai', label: 'Seedance 1.5' },
-  { quality: 'cinematic_kling', label: 'Kling 2.5' },
-  { quality: 'cinematic_veo', label: 'Veo 3.1' },
-  { quality: 'cinematic_h3', label: 'MiniMax H3' },
-  { quality: 'cinematic_omni', label: 'Omni Flash' },
-  { quality: 'cinematic_hollywood', label: 'Kling 3' },
+const MOTORES: ReadonlyArray<{ quality: Quality; label: string; deeplink: string }> = [
+  { quality: 'fast', label: 'Kineo 1', deeplink: 'fast' },
+  { quality: 'cinematic_ai', label: 'Seedance 1.5', deeplink: 'seedance' },
+  { quality: 'cinematic_kling', label: 'Kling 2.5', deeplink: 'kling' },
+  { quality: 'cinematic_veo', label: 'Veo 3.1', deeplink: 'veo' },
+  { quality: 'cinematic_h3', label: 'MiniMax H3', deeplink: 'h3' },
+  { quality: 'cinematic_omni', label: 'Omni Flash', deeplink: 'omni' },
+  { quality: 'cinematic_hollywood', label: 'Kling 3', deeplink: 'hollywood' },
 ]
+
+// ═══ KINEO-SAIDA-BARATA-2026-09-06 — sprint-assinaturas #16 ════════════
+//
+// DUAS COISAS QUE O CHECKPOINT DA #15 MEDIU NA MESMA CAIXA, e as duas tiram do
+// ar a ÚNICA saída que não custa dinheiro:
+//
+//  (a) `?engine=` FALAVA OUTRA LÍNGUA. Este arquivo mandava o motor acessível
+//      para o link de continuação no vocabulário do COBRADOR (`cinematic_ai`),
+//      e quem lê o parâmetro do outro lado (`GenerateClient.tsx:1300`) só
+//      aceita o vocabulário da TELA
+//      (`fast|seedance|kling|veo|sora|hollywood|h3|omni|s25`). Fora do `fast`,
+//      onde as duas línguas coincidem por acidente, o desvio de motor era
+//      descartado em silêncio: a pessoa chegava ao compositor com o motor caro
+//      ainda selecionado — o mesmo que ela acabou de não poder pagar.
+//
+//  (b) A OFERTA BARATA ESTAVA SOLDADA AO LINK DE SÉRIE. `secondary` exigia
+//      `hrefContinuar`, que só existe quando o último filme tem tema
+//      aproveitável. Caso vivo, medido em produção (pessoa `940aa17d`,
+//      2026-09-06 09:36 UTC): saldo 7, faltavam 8, `affordable: 1`,
+//      `engine_offered: "fast"` gravados no PRÓPRIO `next_action_served` — o
+//      servidor SABIA que existia filme que aquele saldo pagava — e a caixa
+//      saiu com "See plans" e nada mais, dentro do `generate_upgrade_modal`.
+//      Na superfície mais perto do dinheiro, a casa recolheu a alternativa
+//      gratuita e a resposta virou pedágio.
+//
+// O CONSERTO NÃO INVENTA DESTINO NOVO: sem tema, o botão aponta para o mesmo
+// compositor de sempre (`/studio/create`), carregando só o motor que o saldo
+// paga. Nenhum preço, plano, oferta ou promessa muda; a regra K1 (a porta do
+// plano existe em todos os estados) continua intacta, porque o primário do
+// estado seco continua sendo `see_plans`.
+const DEEPLINK_PADRAO_COMPOSITOR = '/studio/create'
+
+/** Traduz o motor do vocabulário do cobrador (`Quality`) para o do deeplink da
+ *  tela. Motor fora da lista devolve null e quem chama simplesmente não manda
+ *  o parâmetro — link sem `?engine=` é o comportamento de sempre, nunca um
+ *  parâmetro que a tela vai jogar fora. */
+function deeplinkDoMotor(quality: Quality | null): string | null {
+  if (!quality) return null
+  return MOTORES.find((m) => m.quality === quality)?.deeplink ?? null
+}
 
 /** `videos.quality_mode` guarda o motor. Traduz para o nome público; motor
  *  desconhecido devolve null e a resposta simplesmente omite o rótulo — dizer
@@ -406,10 +446,21 @@ export async function GET(req: NextRequest) {
     // O link de continuar já sabe rebaixar o motor quando quem chama PROVA que
     // o saldo não cobre (sprint-retencao #2). Aqui a prova existe: só passamos
     // `engine` no estado seco, e só o motor que acabou de passar no filtro.
+    // KINEO-SAIDA-BARATA-2026-09-06 (a) — o parâmetro viaja no vocabulário da
+    // TELA. Antes saía `cinematic_ai` e era descartado em silêncio.
+    const deeplinkAcessivel = deeplinkDoMotor(motorAcessivel)
     const hrefContinuar = tema
       ? buildSeriesContinuationHref(tema, 'next_action', {
-          engine: state === 'dry' ? motorAcessivel : null,
+          engine: state === 'dry' ? deeplinkAcessivel : null,
         })
+      : null
+
+    // KINEO-SAIDA-BARATA-2026-09-06 (b) — a saída barata quando NÃO há tema
+    // para continuar. Mesmo compositor de sempre, carregando só o motor que o
+    // saldo paga; `src` próprio para que o banco separe este caminho do de
+    // quem tinha série.
+    const hrefBarato = deeplinkAcessivel
+      ? `${DEEPLINK_PADRAO_COMPOSITOR}?engine=${encodeURIComponent(deeplinkAcessivel)}&src=next_action_dry_cheap`
       : null
 
     const shortBy = state === 'dry' ? Math.max(0, ultimoCusto - balance) : 0
@@ -460,11 +511,17 @@ export async function GET(req: NextRequest) {
 
     // Secundário no estado seco: o filme que o saldo AINDA paga. Existir uma
     // saída que não custa dinheiro é o que impede a resposta de virar pedágio.
+    // KINEO-SAIDA-BARATA-2026-09-06 — a condição que decide agora é APENAS
+    // "existe motor que o saldo paga". O link de série virou preferência, não
+    // requisito: com tema, continua a própria história; sem tema, cai no
+    // compositor com o motor certo já escolhido. O que NÃO pode voltar a
+    // acontecer é a alternativa sumir tendo motor acessível na mão.
+    const hrefAlternativa = motorAcessivel ? (hrefContinuar ?? hrefBarato) : null
     const secondary =
-      state === 'dry' && hrefContinuar && motorAcessivel
+      state === 'dry' && hrefAlternativa && motorAcessivel
         ? {
             kind: 'continue_cheaper' as const,
-            href: hrefContinuar,
+            href: hrefAlternativa,
             label: `Continue with ${acessiveis[0].label}`,
             cost: acessiveis[0].cost,
           }
@@ -490,6 +547,18 @@ export async function GET(req: NextRequest) {
         films_delivered: lista.length,
         affordable: acessiveis.length,
         engine_offered: motorAcessivel,
+        // KINEO-SAIDA-BARATA-2026-09-06 — sem isto não dá para provar que a
+        // perna nova pegou: `series` é quem tinha tema (comportamento antigo),
+        // `composer` é exatamente a coorte que antes ficava SEM alternativa, e
+        // `none` é o único caso honesto de caixa sem saída barata (nenhum motor
+        // cabe no saldo). `engine_deeplink` mostra o parâmetro que a tela
+        // realmente recebe.
+        alternative_route:
+          state !== 'dry' ? null
+          : !motorAcessivel ? 'none'
+          : hrefContinuar ? 'series'
+          : 'composer',
+        engine_deeplink: deeplinkAcessivel,
         // KINEO-PROXIMA-ACAO-HONESTA-2026-09-06 — sem estes três não dá para
         // provar que a correção pegou: `treat_as_paid` separa quem o contrato
         // antes classificava errado, e `free_slots` mostra quantas vezes a

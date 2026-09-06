@@ -71,7 +71,14 @@ check('melhor motor que cabe vem primeiro', /\.sort\(\(a, b\) => b\.cost - a\.co
 check('Seedance 2.5 (gated) fica fora da vitrine', !/s25|seedance 2\.5/i.test(srcCodigo))
 
 // ── 6. o rebaixamento de motor so viaja COM prova de que o saldo nao cobre ─
-check('engine so no estado seco', /engine: state === 'dry' \? motorAcessivel : null/.test(src))
+// KINEO-SAIDA-BARATA-2026-09-06 (#16) — a trava desta linha NAO afrouxou:
+// continua exigindo que o rebaixamento de motor so viaje no estado seco. O
+// que mudou e o NOME da variavel — o que viaja agora e o deeplink da TELA
+// ('seedance'), e nao o nome do cobrador ('cinematic_ai'), que o outro lado
+// descartava em silencio. A segunda verificacao e NOVA e APERTA a trava:
+// proibe voltar a mandar o Quality cru para a tela.
+check('engine so no estado seco', /engine: state === 'dry' \? deeplinkAcessivel : null/.test(src))
+check('o engine viaja no vocabulario da tela, nunca no do cobrador', !/engine: state === 'dry' \? motorAcessivel : null/.test(src))
 check('buildSeriesContinuationHref aceita engine', /opts\?: \{ engine\?: string \| null \}/.test(serie))
 check('fonte next_action existe no union', /\| 'next_action'/.test(serie))
 check('rota usa a fonte propria', src.includes("'next_action'"))
