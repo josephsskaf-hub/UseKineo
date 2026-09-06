@@ -128,6 +128,23 @@ check('36. o carimbo do e-mail registra se o pacote viajou', /publish_pack: !!ct
 check('37. nada disto cobra credito, chama a fal ou renderiza', !/video_credits:\s|debit|fal\.run|fal\.ai|submitToFal/.test(escritor) && !/\.update\(/.test(escritor))
 check('38. o pipeline de qualidade nao e lido nem tocado', !/lib\/(compose|hollywood|cinematic|broll)|lyriaMusic|quality_mode/.test(escritor + ler('lib/publishPack.ts')))
 
+// ══ (D) A PORTA DA TELA (#22) ════════════════════════════════════════════
+// A #20 pendurou o pacote no e-mail que alcanca 4 pessoas por semana; o que
+// alcanca 104 e o instantaneo, e ele sai de dentro do poll de render — nao da
+// para pendurar ate 12s de modelo ali sem arriscar a tela parecer travada no
+// minuto em que o filme fica pronto. Esta rota e o contrato para a TELA, que e
+// lote do Codex: servidor pronto, montagem de uma linha do lado de la.
+const porta = ler('app/api/publish-pack/route.ts')
+check('39. a porta da tela existe com GET e POST', /export async function GET/.test(porta) && /export async function POST/.test(porta))
+check('40. o GET so LE (escrever:false) — custo zero garantido', porta.includes('garantirPacote(admin, userId, alvo, { escrever: false, isFreePlan: gratuito })'))
+check('41. o GET nao chama modelo nem grava por conta propria', !/api\.openai\.com/.test(porta) && !/\.insert\(/.test(porta))
+check('42. ausencia de pacote e 200 com pack:null, nunca 404', !/status: 404/.test(porta) && /if \(!alvo\) return resposta\(null, null\)/.test(porta))
+check('43. so o 401 de nao-autenticado sai como erro', (porta.match(/status: \d+/g) ?? []).filter((x) => x !== 'status: 200').join() === 'status: 401')
+check('44. toda leitura de videos e filtrada pelo dono', (porta.match(/from\('videos'\)/g) ?? []).length === (porta.match(/\.eq\('user_id', user\.id\)/g) ?? []).length)
+check('45. o credito segue a MESMA regra: gratuito sim, pago nao', /gratuito: !ent\.treatAsPaid/.test(porta) && /isFreePlan: gratuito/.test(porta))
+check('46. a resposta diz a tela se o credito viajou (a tela nao deduz do plano)', /hasCredit: pack \?/.test(porta))
+check('47. a porta nao cobra credito, nao chama a fal e nao renderiza', !/video_credits:\s|debit|fal\.run|fal\.ai|submitToFal/.test(porta) && !/\.update\(/.test(porta))
+
 console.log(`\n${ok}/${ok + falhas.length} verificacoes passaram`)
 if (falhas.length) {
   console.error('\nFALHOU:')
