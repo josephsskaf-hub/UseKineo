@@ -146,3 +146,56 @@ export function temporadaAindaVale(criadoEm: string | null | undefined, agora: n
   if (!Number.isFinite(t)) return false
   return agora - t < TEMPORADA_TTL_MS
 }
+
+// ═══ KINEO-TEMPORADA-CADEADO-2026-09-06 (sprint-assinaturas #31) ═══════════
+//
+// O NÚMERO QUE MANDOU ESCREVER ISTO (medido 06/09, a ÚNICA exposição real da
+// faixa da #30, payload do próprio `season_shown`):
+//
+//   balance: 5 · episode_cost: 5 · episodes: 5 · affordable_episodes: 1 · locked: 0
+//
+// `affordable_episodes: 1` e `locked: 0` na MESMA linha do MESMO evento. Com 5
+// créditos e 5 por episódio, quatro dos cinco deviam estar atrás do plano.
+//
+// Os dois números saem de duas contas, ambas certas, que respondem a perguntas
+// DIFERENTES: `affordable` de cada episódio é "cabe UM?" (`custo <= balance`,
+// feita isoladamente cinco vezes — com 5<=5 os cinco dizem sim), e
+// `affordableEpisodes` é "quantos cabem?" (`floor(balance/custo)` = 1). A tela
+// derivava o cadeado da PRIMEIRA. Como qualquer pessoa com saldo para um
+// episódio devolve zero bloqueados, a moldura de monetização — o convite para
+// o plano — ficou desligada para praticamente toda a gente. A oferta só
+// apareceria para quem tem saldo ABAIXO de um episódio, que é justamente quem
+// não consegue agir sobre ela.
+//
+// Nada aqui redigita preço nem refaz a conta do cobrador (memória
+// `predicado-do-cobrador-nao-se-redigita`): esta função só escolhe QUAL das
+// duas contas decide o cadeado, e a escolhida é a acumulada.
+
+export type AcessoDaTemporada = {
+  /** Quantos episódios da faixa o saldo de hoje paga, em sequência a partir
+   *  do primeiro. Posicional: o episódio da posição i está liberado se
+   *  `i < liberados`. */
+  liberados: number
+  /** Quantos ficam atrás do plano. É deste número que a moldura vive. */
+  bloqueados: number
+}
+
+/**
+ * @param totalNaFaixa quantos episódios a faixa está a pintar.
+ * @param affordableEpisodes a conta ACUMULADA da rota (`floor(saldo/custo)`),
+ *        ou `null` quando o custo do episódio é desconhecido.
+ */
+export function acessoDaTemporada(
+  totalNaFaixa: number,
+  affordableEpisodes: number | null | undefined,
+): AcessoDaTemporada {
+  const total = Number.isFinite(totalNaFaixa) && totalNaFaixa > 0 ? Math.floor(totalNaFaixa) : 0
+  // DESCONHECIDO NÃO VIRA ZERO. Sem a conta acumulada não há como saber o que
+  // o saldo paga: a faixa continua clicável (clicar só carrega o roteiro, não
+  // cobra) e a moldura fica CALADA em vez de inventar um cadeado.
+  if (typeof affordableEpisodes !== 'number' || !Number.isFinite(affordableEpisodes)) {
+    return { liberados: total, bloqueados: 0 }
+  }
+  const liberados = Math.max(0, Math.min(total, Math.floor(affordableEpisodes)))
+  return { liberados, bloqueados: total - liberados }
+}
