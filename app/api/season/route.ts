@@ -34,7 +34,10 @@ import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { creditCostForDuration, type Quality } from '@/lib/credits/engineCost'
 import { getEffectiveEntitlement, TRIAL_ENTITLEMENT_COLUMNS } from '@/lib/reverseTrial'
-import { TOTAL_EPISODIOS, type TemporadaEscrita } from '@/lib/temporada'
+import { TOTAL_EPISODIOS, episodiosQueCabem, type TemporadaEscrita } from '@/lib/temporada'
+import { countFreeFastUsage } from '@/lib/freeFastQuota'
+import { getFreeTierOffer } from '@/lib/freeTierOffer'
+import { COMPOSE_CLAIM_EVENT, COMPOSE_CLAIM_PATH } from '@/lib/composeClaim'
 import { garantirTemporada, type FilmeDaTemporada } from '@/lib/temporadaServer'
 
 export const dynamic = 'force-dynamic'
@@ -68,7 +71,11 @@ function resposta(
   alvo: FilmeDaTemporada | null,
   balance: number,
   custo: number | null,
+  cotaRestante: number | null,
 ) {
+  // A conta que decide o cadeado, nas DUAS moedas (#32). `null` = nao sei, e
+  // nao-sei mantem a moldura calada — nunca vira zero.
+  const cabem = episodiosQueCabem({ custo, saldo: balance, cotaRestante, total: TOTAL_EPISODIOS })
   return NextResponse.json({
     season: t
       ? {
@@ -76,15 +83,79 @@ function resposta(
           fromTitle: t.fromTitle,
           // `affordable` é derivado, não digitado: é a MESMA conta que o
           // cobrador faz. A carta e a tela leem daqui em vez de refazerem.
-          episodes: t.episodes.map((e) => ({ ...e, cost: custo, affordable: custo !== null && custo <= balance })),
+          // `affordable` e POSICIONAL e derivado de `cabem` (#32): com custo 0
+          // a pergunta "custo <= saldo" respondia sim para sempre, mesmo com a
+          // cota esgotada. Agora o episodio i esta liberado se `i < cabem`.
+          episodes: t.episodes.map((e, i) => ({
+            ...e,
+            cost: custo,
+            affordable: cabem === null ? custo !== null : i < cabem,
+          })),
         }
       : null,
     balance,
     episodeCost: custo,
     // Quantos episódios da temporada o saldo de hoje paga. É este número que
     // transforma "60 créditos" em "o resto da sua temporada" sem inventar preço.
-    affordableEpisodes: custo && custo > 0 ? Math.min(TOTAL_EPISODIOS, Math.floor(balance / custo)) : null,
+    affordableEpisodes: cabem,
+    // #32 — a moeda que decidiu, e quantas vagas de cota sobraram. Campos
+    // NOVOS de proposito: sao a impressao digital do bundle novo no payload do
+    // `season_shown` (o metodo que o checkpoint das 17:38 registrou).
+    costCurrency: custo === null ? null : custo > 0 ? 'credits' : 'free_quota',
+    freeQuotaRemaining: cotaRestante,
   })
+}
+
+// ═══ #32 — QUANTAS VAGAS DE COTA SOBRAM ════════════════════════════════════
+// O Kineo 1 gratuito nao e cobrado em credito, e cobrado em COTA. Esta funcao
+// nao inventa a regra: usa a MESMA janela (`getFreeTierOffer`), as MESMAS duas
+// queries e a MESMA `countFreeFastUsage` que o `app/api/compose` usa para
+// RECUSAR. Se o compose mudar de regra, este numero muda junto — que e
+// exatamente o ponto de `predicado-do-cobrador-nao-se-redigita`.
+//
+// O compose recusa quando `usoDepoisDeInserir > limite`, isto e, quando o uso
+// ANTES ja alcancou o limite. Logo sobram `limite - uso` vagas.
+//
+// Devolve `null` quando NAO foi possivel contar (falha de leitura). Nunca 0:
+// zero por ignorancia acenderia um cadeado que talvez nao exista.
+async function vagasDeCotaRestantes(
+  admin: NonNullable<ReturnType<typeof adminOuNulo>>,
+  userId: string,
+): Promise<number | null> {
+  const oferta = getFreeTierOffer()
+  const desde = new Date(Date.now() - oferta.windowMs).toISOString()
+  try {
+    const [claims, videos] = await Promise.all([
+      admin
+        .from('events')
+        .select('id,metadata,created_at')
+        .eq('user_id', userId)
+        .eq('name', COMPOSE_CLAIM_EVENT)
+        .eq('path', COMPOSE_CLAIM_PATH)
+        .eq('metadata->>quality', 'fast')
+        .eq('metadata->>cost', '0')
+        .gte('created_at', desde),
+      admin
+        .from('videos')
+        .select('id,render_id,quality_mode,credits_used,created_at')
+        .eq('user_id', userId)
+        .eq('quality_mode', 'fast')
+        .eq('credits_used', 0)
+        .gte('created_at', desde),
+    ])
+    if (claims.error || videos.error) return null
+    const uso = countFreeFastUsage({
+      claims: Array.isArray(claims.data) ? claims.data : [],
+      videos: Array.isArray(videos.data) ? videos.data : [],
+      defaultUserId: userId,
+      // 'skip', nao 'throw': esta rota so PINTA uma faixa. Uma linha orfa nao
+      // pode derrubar a tela de filme pronto com um 500.
+      onUnknownUser: 'skip',
+    }).get(userId) ?? 0
+    return Math.max(0, oferta.limit - uso)
+  } catch {
+    return null
+  }
 }
 
 type Contexto =
@@ -96,6 +167,7 @@ type Contexto =
       alvo: FilmeDaTemporada | null
       balance: number
       pago: boolean
+      cotaRestante: number | null
     }
 
 async function contexto(req: NextRequest): Promise<Contexto> {
@@ -144,24 +216,32 @@ async function contexto(req: NextRequest): Promise<Contexto> {
       alvo = Array.isArray(data) && data[0] ? (data[0] as FilmeDaTemporada) : null
     }
   }
-  return { userId: user.id, admin, alvo, balance, pago: ent.treatAsPaid }
+  // So conta cota para quem PAGA em cota, e so quando o episodio custa 0 —
+  // `countsAgainstFreeQuota` e o campo do proprio cobrador, nao um predicado
+  // reescrito aqui. Para todo o resto e uma query que nao se faz.
+  const custoAqui = alvo ? custoDoEpisodio(alvo, ent.treatAsPaid) : null
+  const cotaRestante =
+    admin && ent.countsAgainstFreeQuota && custoAqui === 0
+      ? await vagasDeCotaRestantes(admin, user.id)
+      : null
+  return { userId: user.id, admin, alvo, balance, pago: ent.treatAsPaid, cotaRestante }
 }
 
 export async function GET(req: NextRequest) {
   const ctx = await contexto(req)
   if (ctx.erro) return ctx.erro
-  const { userId, admin, alvo, balance, pago } = ctx
-  if (!alvo || !admin) return resposta(null, null, balance, null)
+  const { userId, admin, alvo, balance, pago, cotaRestante } = ctx
+  if (!alvo || !admin) return resposta(null, null, balance, null, cotaRestante)
   // `escrever: false` é a promessa desta metade: leitura NUNCA gasta.
   const t = await garantirTemporada(admin, userId, alvo, { escrever: false })
-  return resposta(t, alvo, balance, custoDoEpisodio(alvo, pago))
+  return resposta(t, alvo, balance, custoDoEpisodio(alvo, pago), cotaRestante)
 }
 
 export async function POST(req: NextRequest) {
   const ctx = await contexto(req)
   if (ctx.erro) return ctx.erro
-  const { userId, admin, alvo, balance, pago } = ctx
-  if (!alvo || !admin) return resposta(null, null, balance, null)
+  const { userId, admin, alvo, balance, pago, cotaRestante } = ctx
+  if (!alvo || !admin) return resposta(null, null, balance, null, cotaRestante)
   const t = await garantirTemporada(admin, userId, alvo)
-  return resposta(t, alvo, balance, custoDoEpisodio(alvo, pago))
+  return resposta(t, alvo, balance, custoDoEpisodio(alvo, pago), cotaRestante)
 }

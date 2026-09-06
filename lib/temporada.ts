@@ -199,3 +199,66 @@ export function acessoDaTemporada(
   const liberados = Math.max(0, Math.min(total, Math.floor(affordableEpisodes)))
   return { liberados, bloqueados: total - liberados }
 }
+
+// ═══ KINEO-TEMPORADA-COTA-2026-09-06 (sprint-assinaturas #32) ══════════════
+//
+// O NÚMERO QUE MANDOU ESCREVER ISTO (medido 06/09 em produção, 7 dias):
+//
+//   156 pessoas terminaram um filme. Em **77** o filme mais recente é `fast`.
+//   Dessas, **19** não têm trial ativo nem plano pago — e para elas
+//   `creditCostForDuration('fast', false, s)` devolve **0**.
+//
+// Com custo 0, a rota devolvia `affordableEpisodes: null` — o ramo "custo
+// desconhecido" — e `acessoDaTemporada` (#31), por prudência deliberada,
+// traduz desconhecido para "não invento cadeado": cinco episódios LIBERADOS.
+// Ou seja, a faixa prometia cinco episódios grátis a quem o portão vai recusar
+// no primeiro clique: o Kineo 1 grátis não é cobrado em CRÉDITO, é cobrado em
+// COTA (1 por janela rolante de 30 dias, `lib/freeTierOffer`), e quem acabou
+// de receber o filme 1 gastou exatamente essa vaga.
+//
+// Custo 0 nunca significou "de graça à vontade". Significa "esta moeda não é
+// crédito". A pergunta certa deixa de ser `floor(saldo/custo)` — divisão por
+// zero disfarçada de `null` — e passa a ser "quantas vagas de cota sobram?".
+//
+// ⚠ NÃO REDIGITA O PREDICADO DO COBRADOR (memória
+// `predicado-do-cobrador-nao-se-redigita`): quem decide se esta pessoa paga em
+// cota é `getEffectiveEntitlement().countsAgainstFreeQuota`, e quem conta as
+// vagas é `countFreeFastUsage` — a MESMA função que o `compose` usa para
+// RECUSAR. Esta biblioteca não conhece limite, janela, plano nem preço: recebe
+// o número já contado e escolhe qual moeda decide o cadeado.
+
+/**
+ * Quantos episódios da faixa a pessoa consegue render HOJE — em qualquer das
+ * duas moedas da casa.
+ *
+ * @param custo créditos por episódio (`creditCostForDuration`), ou `null`
+ *        quando o motor/duração do filme 1 não permitiram calcular.
+ * @param saldo créditos em carteira.
+ * @param cotaRestante vagas livres da cota free na janela, já contadas pelo
+ *        mesmo código que recusa no `compose`. `null` = não foi possível
+ *        contar (falha de leitura) OU a pessoa não paga em cota.
+ * @param total quantos episódios a faixa está a pintar.
+ *
+ * @returns quantos cabem, ou `null` para "não sei" — e `null` mantém a moldura
+ *          CALADA, nunca a transforma em zero (o lado que inventaria cadeado).
+ */
+export function episodiosQueCabem(input: {
+  custo: number | null | undefined
+  saldo: number
+  cotaRestante: number | null | undefined
+  total: number
+}): number | null {
+  const { custo, saldo, cotaRestante, total } = input
+  const teto = Number.isFinite(total) && total > 0 ? Math.floor(total) : 0
+  if (typeof custo !== 'number' || !Number.isFinite(custo)) return null
+
+  // MOEDA COTA. Custo zero não é "ilimitado": é "não se paga em crédito".
+  if (custo <= 0) {
+    if (typeof cotaRestante !== 'number' || !Number.isFinite(cotaRestante)) return null
+    return Math.max(0, Math.min(teto, Math.floor(cotaRestante)))
+  }
+
+  // MOEDA CRÉDITO. Conta acumulada, a mesma que o #31 escolheu.
+  const s = Number.isFinite(saldo) && saldo > 0 ? Math.floor(saldo) : 0
+  return Math.max(0, Math.min(teto, Math.floor(s / custo)))
+}

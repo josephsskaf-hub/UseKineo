@@ -125,10 +125,23 @@ ok(strip.includes('offer_shown: acesso.bloqueados > 0'), 'o evento diz se a mold
 ok(strip.includes('{bloqueados > 0 ?'), 'a moldura continua atrás de bloqueados > 0')
 
 // ── A ROTA continua a emitir a conta acumulada que a tela consome. ─────────
+// ATUALIZADO pelo #32 (a cota entrou no cadeado), NAO AFROUXADO. A conta
+// acumulada saiu de dentro da rota e virou `episodiosQueCabem` em
+// lib/temporada.ts — o texto mudou, a INVARIANTE e a mesma e agora e provada
+// por EXECUCAO em vez de por regex: saldo 5 / custo 5 tem de dar 1, nunca 5.
 const rota = read('app/api/season/route.ts')
+ok(rota.includes('affordableEpisodes: cabem'), 'a rota devolve a conta acumulada (agora nomeada cabem)')
+ok(rota.includes('episodiosQueCabem'), 'e ela vem da funcao unica, nao recalculada na rota')
+{
+  const { episodiosQueCabem } = loadTs('lib/temporada.ts')
+  equal(episodiosQueCabem({ custo: 5, saldo: 5, cotaRestante: null, total: 5 }), 1,
+    'a conta continua ACUMULADA: 5/5 = 1 episodio, nao cinco')
+  equal(episodiosQueCabem({ custo: 5, saldo: 12, cotaRestante: null, total: 5 }), 2,
+    'a conta continua ACUMULADA: 12/5 = 2 episodios')
+}
 ok(
-  /affordableEpisodes:\s*custo && custo > 0 \? Math\.min\(TOTAL_EPISODIOS, Math\.floor\(balance \/ custo\)\) : null/.test(rota),
-  'a rota continua a devolver a conta acumulada intacta',
+  !rota.includes('affordable: custo !== null && custo <= balance'),
+  'a pergunta por episodio ("cabe UM?") nao voltou a decidir o cadeado',
 )
 ok(rota.includes('creditCostForDuration'), 'o custo continua a vir da conta do cobrador, não digitado')
 
