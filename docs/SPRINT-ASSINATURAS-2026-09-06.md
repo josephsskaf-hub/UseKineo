@@ -247,3 +247,78 @@ supressão é de **1 por pessoa**, então não há segunda chance. O e-mail vai 
 **construído e validado em dry-run agora** e **disparado perto do fim da
 janela**, por volta de **08:00 BRT (07:00 ET)**, que é manhã de quem recebe.
 Construir cedo, disparar na hora certa.
+
+---
+
+### #4 — 01:30→01:52 BRT — a carta de quem bateu na parede de saldo (pronta, dry-run feito, NÃO disparada)
+
+**O CARDÁPIO MANDAVA** escrever para "as 9 sem saldo + quem viu `trial_spent`
+nas últimas 48h". **Medi antes de escrever**, e a coorte real é outra:
+
+| medida (contas externas, 14d) | valor |
+|---|---|
+| pessoas com filme e saldo < preço do último filme | **140** |
+| dessas, **já receberam** e-mail de alguma campanha | **106 (76%)** |
+| nunca tocadas por campanha nenhuma | **34** |
+| menos 1 opt-out → mailáveis | **33** |
+| **na janela de 48h que o cardápio pedia** | **1** |
+| que já tocaram o checkout (disputa com outra campanha) | **0** |
+
+Duas consequências que mudaram a jogada: (1) a janela de 48h alcançaria **uma
+pessoa** — a janela virou 14 dias; (2) as 106 já contactadas **não entram**.
+A regra da casa é 1 e-mail por pessoa, e reofertar a quem já recebeu foi
+registrado no PEDIDOS (pela #8 de 05/09) como **decisão do fundador, não
+minha**. Fica como pergunta no fim deste bloco.
+
+**MUDOU** — `app/api/admin/send-next-episode-wall/route.ts` (novo, SHA
+`09aaa90c` + `1d01d020`). Dry-run por padrão; `?confirm=SEND&limit=N` com teto
+rígido de 30; supressão de 24h com **falha fechada**; carimbo `events`
+**só no sucesso**; contatos proibidos (den.higgins, noelrss21, emiliomontinari,
+akajitin) na lista de bloqueio; opt-out, pagante e descartável fora.
+
+**A CARTA NÃO MENTE, e isso foi decisão de projeto:** ela **não** nomeia motor,
+não promete grátis, não cita preço e não oferece crédito. O motivo é a #1 deste
+mesmo ciclo — o preço do Kineo 1 depende de o trial estar vivo, e o grátis
+ainda depende de cota (1/30 dias) e sai com 15s. **Um e-mail não reconsulta
+cota.** Então a divisão é: a carta traz a pessoa de volta nomeando o filme que
+ela fez; o cartão das #2/#3, que lê a cota em tempo real, diz o preço quando
+ela chega. A carta afirma só o verificável: o filme, o saldo e o custo do
+último filme.
+
+**O DRY-RUN PEGOU UM DEFEITO QUE TERIA QUEIMADO 8 PESSOAS.** Eu ia montar o
+assunto com um `slice` de `videos.topic`. A lista real mostrou o que mora nessa
+coluna: `"Create a professional 75–90 second advertising video for Help Me
+Tenerife…"`, `"### Clip 1 — Ingredients & Setup | 0:00–0:04"`, `"make a truck
+carrying a load…"`, `"人物使用参考图"`. Assunto `Episode 2 of "Create a
+professional 75–90 second…"` é e-mail quebrado — uma vez só, porque o carimbo é
+vitalício. Agora o título sai de `pickMomentumTopic`, a função da casa feita
+para ancorar tópico dentro de frase. **Testado com os 31 tópicos reais: 23
+viram nome, 8 caem no assunto genérico, e os 8 são exatamente os quebrados.**
+
+**TESTES:** `scripts/test-next-episode-wall-2026-09-06.mjs`, **58/58**.
+Falsificado com 6 mutantes. **Um deles furou o guardião e o conserto é a parte
+que importa:** a checagem "carimba só no sucesso" era
+`indexOf(throw) < indexOf(carimbo)`, e **apagar o `throw` faz o indexOf
+devolver −1**, que é menor que qualquer índice — o guardião **aprovava
+exatamente a remoção que existia para pegar**. Sem esse `throw`, um Resend que
+responde 4xx segue para o carimbo e a pessoa fica **queimada para sempre sem
+ter recebido nada**. Agora a existência é exigida antes da ordem, e o mutante é
+pego por 3 verificações. (Mesma família de bug apareceu duas vezes hoje: o
+`semComentarios` do guardião engole o `//` de qualquer URL e some com
+`api.resend.com` — corrigido lendo o fonte cru.)
+
+**⛔ NÃO DISPAREI, E NÃO É ESCOLHA MINHA — É CREDENCIAL.** A ordem do ciclo diz
+"nesta noite VOCÊ DISPARA". Mecanicamente eu não consigo: a rota é
+`admin-gated` por `supabase.auth.getUser()` e eu não tenho sessão de admin; o
+caminho alternativo (RESEND_API_KEY / CRON_SECRET) mora no `.env.local`, que
+este ciclo me proíbe de ler — e com razão. **Não tentei contornar a
+autenticação.** Fica o padrão que a casa já usa para exatamente isto
+(send-winback-25): **link de 1 clique do fundador**, na lista ✅ no fim do
+diário.
+
+**E O TIMING JOGA A FAVOR:** às 01:52 BRT são **00:52 no leste dos EUA**.
+Disparar agora queimaria a melhor lista da casa na pior hora. O link é para
+**depois das 08:00 BRT**.
+
+**COMO MEDIR:** `next_episode_wall_emailed_v1` (carimbo) → `series_continuation_landed`
+→ filme entregue em 24h → `checkout_started`. Denominador = 31.
