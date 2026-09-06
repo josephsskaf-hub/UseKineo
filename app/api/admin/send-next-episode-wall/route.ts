@@ -81,7 +81,7 @@ import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emai
 import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
 import { isRealSendStamp } from '@/lib/lifecycle/skipStamp'
 import { pickMomentumTopic } from '@/lib/momentumTopic'
-import { composerUrl } from '@/lib/lifecycle/composerUrl'
+import { buildSeriesContinuationEmailUrl } from '@/lib/seriesContinuation'
 import { EPISODIO_ESCRITO_EVENT, lerGravado, memoriaAindaVale } from '@/lib/nextEpisodeMemoria'
 import { garantirTemporada } from '@/lib/temporadaServer'
 import type { TemporadaEscrita } from '@/lib/temporada'
@@ -209,8 +209,34 @@ function planoUrl(): string {
  *  `prompt`, não o texto; a memória completa só é servida dentro do app (#14).
  *  Prometer o roteiro no e-mail seria a mentira que o #14 acabou de remover.
  *  Nenhum preço, crédito, cupom ou oferta nasce aqui. */
+/** ⚠️ sprint-assinaturas #24 (06/09) — A PORTA CONTADA, NAO O LINK DIRETO.
+ *
+ *  SONDADO EM PRODUCAO, LADO A LADO, depois de esta carta ja ter saido para 18
+ *  pessoas hoje:
+ *
+ *    link desta carta  →  307  /signup?redirect=…    (CRIAR CONTA)
+ *    /api/episode-link →  302  /login?redirect=…     (ENTRAR)
+ *
+ *  A carta e endereçada a alguem CADASTRADO, com filme entregue. Mandar essa
+ *  pessoa para um formulario de criar conta e o fim do clique — e nao e caso
+ *  de borda: o clique de inbox chega SEM cookie de sessao por construcao
+ *  (webview do Gmail, outro aparelho, aba anonima), entao esse era o caminho
+ *  da MAIORIA.
+ *
+ *  A casa diagnosticou e consertou isto em 05/09 (ver o cabecalho de
+ *  app/api/episode-link/route.ts) e quatro familias de e-mail ja passaram a
+ *  usar a porta. Esta rota nasceu na #4 e ficou de fora do conserto — pela
+ *  segunda vez, porque o comentario acima ja registra que ela tinha ficado de
+ *  fora do conserto anterior do `composerUrl`.
+ *
+ *  A porta tambem CONTA o clique (`episode_link_clicked`), que e o degrau que
+ *  falta entre "enviado" e "aterrissou" nesta campanha. */
 function continuarUrl(filme: string | null, episodio: string | null): string {
-  return composerUrl({ base: SITE, campaign: CAMPANHA, prompt: episodio ?? filme })
+  return buildSeriesContinuationEmailUrl(SITE, episodio ?? filme, 'lifecycle_loss_email', {
+    utm_source: 'lifecycle',
+    utm_medium: 'email',
+    utm_campaign: CAMPANHA,
+  })
 }
 
 function assunto(filme: string | null, episodio: string | null): string {

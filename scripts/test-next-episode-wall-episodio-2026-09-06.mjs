@@ -52,7 +52,13 @@ checa('o mais novo vence (ordenado desc)', /order\('created_at', \{ ascending: f
 // ── 3. assunto e prefill usam o episódio ──────────────────────────────────
 checa('assunto recebe o episódio', /function assunto\(filme: string \| null, episodio: string \| null\)/.test(src))
 checa('assunto nomeia o episódio escrito', /if \(episodio\) return `Episode 2: "\$\{episodio\}"`/.test(src))
-checa('o prefill prefere o episódio ao tema do filme 1', /prompt: episodio \?\? filme/.test(src))
+// A preferencia continua a MESMA (`episodio ?? filme`); o que mudou no #24 e
+// que ela viaja pela PORTA CONTADA (`/api/episode-link`, que manda para /login
+// e conta o clique) em vez de ir direto ao compositor — que sondado em
+// producao dava `307 -> /signup`, um formulario de CRIAR CONTA para quem ja
+// tem conta.
+checa('o prefill prefere o episódio ao tema do filme 1', /buildSeriesContinuationEmailUrl\(SITE, episodio \?\? filme,/.test(src))
+checa('#24: o link do episódio passa pela porta contada, não direto', !/composerUrl\(/.test(src) && /from '@\/lib\/seriesContinuation'/.test(src))
 checa('continuarUrl recebe os dois', /function continuarUrl\(filme: string \| null, episodio: string \| null\)/.test(src))
 // ATUALIZADAS PELO #23 (06/09), E NAO AFROUXADAS.
 // A sprint-assinaturas #23 acrescentou um SEXTO argumento aos construtores (a
