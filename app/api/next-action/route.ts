@@ -8,6 +8,7 @@ import { getEffectiveEntitlement, TRIAL_ENTITLEMENT_COLUMNS } from '@/lib/revers
 import { getFreeTierOffer } from '@/lib/freeTierOffer'
 import { countFreeFastUsage } from '@/lib/freeFastQuota'
 import { COMPOSE_CLAIM_EVENT, COMPOSE_CLAIM_PATH } from '@/lib/composeClaim'
+import { EVENT_SESSION_COOKIE } from '@/lib/growth/checkoutAuthSessionBridge'
 
 // ═══ KINEO-PROXIMA-ACAO-2026-09-05 — sprint-assinaturas #7 (J5 reapontada) ══
 //
@@ -502,7 +503,38 @@ export async function GET(req: NextRequest) {
         last_attempt_minutes: tentativaMinutos,
       },
       dedupeMinutes: 30,
-      sessionId: req.nextUrl.searchParams.get('sid'),
+      // ⚠️ KINEO-PROXIMA-ACAO-DENOMINADOR-2026-09-06 — ESTE EVENTO ESTAVA
+      // CONTANDO MONTAGEM, NÃO PESSOA, e o defeito era meu.
+      //
+      // `writeServerEvent` só deduplica `if (dedupeMinutes > 0 && sessionId)`
+      // (lib/serverEvents.ts:53). Este `sid` vinha SÓ da query string, e
+      // nenhuma das três montagens do cartão o envia — então `sessionId` era
+      // null, o dedupe de 30 min NUNCA rodava, e cada montagem virava uma
+      // linha nova.
+      //
+      // MEDIDO NA PRIMEIRA PESSOA REAL que o contrato serviu (06/09 06:09→06:11
+      // UTC): **1 pessoa, 5 eventos em 2m15s**, todos `first_film`, todos com
+      // `session_id` nulo. Lido de fora, `next_action_served = 5` parece cinco
+      // pessoas servidas. Era uma.
+      //
+      // Por que isso é grave e não cosmético: este evento é o DENOMINADOR do
+      // degrau que este ciclo inteiro existe para mover. Denominador inflado
+      // por re-montagem faz qualquer taxa de clique despencar sem nada ter
+      // piorado — e a casa já perdeu rotações lendo número assim.
+      //
+      // A cura lê o id da sessão do COOKIE que o próprio cliente já mantém
+      // (`kineo_event_session_id`, escrito por `eventSessionId()` em
+      // lib/analytics com Path=/), então vale para TODA montagem — inclusive
+      // as da outra sessão — sem nenhuma delas mudar uma linha. A query string
+      // continua tendo precedência para quem quiser mandar explícito.
+      //
+      // Falha aberta de propósito: visitante cujo cookie ainda não existe cai
+      // em `null` e o evento é escrito. Perder dedupe é barato; perder o
+      // evento seria caro.
+      sessionId:
+        req.nextUrl.searchParams.get('sid')
+        ?? req.cookies.get(EVENT_SESSION_COOKIE)?.value
+        ?? null,
     })
 
     return NextResponse.json({

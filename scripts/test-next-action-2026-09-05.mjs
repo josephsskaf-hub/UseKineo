@@ -144,6 +144,24 @@ check('evento registra free_slots', /free_slots: vagasConhecidas/.test(srcCodigo
 check('a leitura de cota nao escreve nada', !/admin\s*\n?\s*\.from\('[a-z_]+'\)\s*\n?\s*\.(insert|update|delete)/.test(srcCodigo))
 check('porta do plano segue sem depender de cota', !/fastGratisDisponivel[\s\S]{0,200}see_plans/.test(srcCodigo))
 
+
+// ── 11. O DENOMINADOR: o evento conta PESSOA, nao MONTAGEM ────────────────
+// writeServerEvent so deduplica `if (dedupeMinutes > 0 && sessionId)`. Com o
+// sid vindo SO da query string, e nenhuma montagem do cartao mandando um, o
+// dedupe nunca rodava: 1 pessoa real gerou 5 eventos em 2m15s (06/09 06:09).
+// Denominador inflado por re-montagem derruba qualquer taxa de clique sem
+// nada ter piorado.
+const iSid = srcCodigo.indexOf("searchParams.get('sid')")
+const iCookie = srcCodigo.indexOf('req.cookies.get(EVENT_SESSION_COOKIE)')
+check('o dedupe de 30 min continua pedido', /dedupeMinutes: 30/.test(srcCodigo))
+check('o sid cai no COOKIE quando nao vem na query', iCookie > 0)
+check('a query string continua existindo', iSid > 0)
+// Armadilha da noite (3x): indexOf devolve -1 e a ordem "passa" sozinha.
+// Exigir existencia ANTES de comparar posicao.
+check('a query string tem precedencia sobre o cookie', iSid > 0 && iCookie > 0 && iSid < iCookie)
+check('o nome do cookie NAO e redigitado na rota',
+  /import \{ EVENT_SESSION_COOKIE \} from/.test(src) && !/kineo_event_session_id/.test(srcCodigo))
+check('falha aberta: sem cookie o evento ainda sai', /\?\?\s*null,/.test(srcCodigo))
 const total = ok + falhas.length
 console.log(`\nnext-action: ${ok}/${total} verificacoes`)
 if (falhas.length) {
