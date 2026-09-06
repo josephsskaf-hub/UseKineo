@@ -3943,3 +3943,57 @@ O ciclo fecha com **0 assinaturas em 8 cadastros**, o deploy de tudo provado
 por um evento de produção que carrega o SHA, a casa sem defeito aberto de
 entrega, e uma pendência de uma linha que vale mais que qualquer feature nova:
 a porta existe, a pessoa bateu nela, e ela abriu para o corredor errado.
+
+### ADENDO FINAL DO FECHAMENTO — 09:03 BRT (a janela fecha 09:08)
+
+O fechamento acima foi escrito às 08:16, **52 min antes do fim da janela**, e eu
+não o declarei encerrado por causa disso. Fiz certo: **nos 46 minutos seguintes
+aconteceu a coisa mais importante da noite.**
+
+#### O PRIMEIRO CLIQUE — e ele virou dois filmes
+
+11:38:18 UTC (08:38 BRT), pessoa `e8e8c415`, tela de filme pronto, saldo **10**:
+apertou **`continue_cheaper`** — o botão do motor que o saldo ainda paga, a
+"saída que não custa dinheiro" que o cartão existe para oferecer.
+
+O que ela fez depois, no rastro do banco:
+
+| hora UTC | o que aconteceu |
+|---|---|
+| 11:38:18 | **clique em `continue_cheaper`** (saldo 10) |
+| 11:41:37 | `video_generation_started` |
+| 11:49:50 | **filme entregue** (`video_generation_completed`) |
+| 11:55:17 | `topup_eligibility_handoff_clicked` → **`pricing_view`** |
+| 11:57:35 | `video_generation_started` de novo |
+| 12:01:43 | **segundo filme entregue** |
+| 12:01:35 | `trial_expired` · saldo agora **0** |
+| 12:01:44 | `next_action_card_shown` de novo — agora com saldo 0 |
+
+**A cadeia inteira funcionou como desenhada, pela primeira vez:** seca → o
+cartão oferece o motor que cabe → ela clica → **2 filmes entregues** → o saldo
+acaba → ela **abre a página de preços sozinha**.
+
+**E ela não comprou.** É o degrau que o CLAUDE.md já fechou como sendo **preço**,
+não fluxo — e é decisão do fundador, não minha. O que a noite mudou é que ela
+chegou lá **tendo entregue dois filmes a mais**, em vez de bater num "não" seco
+e sumir.
+
+#### PLACAR FINAL DA JANELA (marco 04:00 UTC, contas externas)
+
+| métrica | valor |
+|---|---|
+| cadastros | **12** |
+| filmes entregues | **12** |
+| checkout | **1** |
+| **assinaturas** | **0** |
+| `next_action_served` | 27, de **14 pessoas** |
+| cartão: impressões / pessoas / cliques | **7 / 4 / 1** |
+| carta disparada | **18** (restam 12 para as 12:00) |
+| quem voltou por causa da carta | **0** (ela saiu às 08:00; cedo demais) |
+| `generation_stage_error` | 3, nenhum defeito novo |
+
+**A taxa de clique do cartão fecha em 1 de 4 pessoas.** Com denominador 4 isso
+não é uma taxa — é uma anedota. Mas é uma anedota que terminou em dois filmes e
+numa visita à página de preços, que é exatamente o que a peça prometia fazer.
+
+**PARADA.** Janela encerrada; nada mais entra sem ordem nova.
