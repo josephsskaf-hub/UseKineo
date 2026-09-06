@@ -107,6 +107,24 @@ check(
     !/\$\s?\d|\d+\.\d\d\b|per month|\/mo\b|starter|creator|autopilot|coupon|discount|% off/i.test(copy),
 )
 check('C. a porta do plano e um LINK etiquetado, nao uma promessa', /pricing\?utm_source=lifecycle&utm_medium=email&utm_campaign=/.test(carta))
+// ⚠️ ESTA TRAVA NASCEU DE UM DEFEITO QUE PASSOU POR ESTE GUARDIAO.
+// A primeira versao da carta montava o link do episodio com `composerUrl`
+// (destino direto /studio/create) e o guardiao deu 60/60 — porque nenhuma
+// verificacao olhava PARA ONDE o clique ia. Sondando o link real, deslogado,
+// depois de as 11 primeiras cartas terem saido: **307 -> /signup**. Quem ja
+// tem conta recebia um formulario de CRIAR CONTA, e o clique de inbox chega
+// sem cookie por construcao, entao esse era o caminho da MAIORIA.
+// A casa ja tinha diagnosticado e consertado isso em 05/09 com
+// `/api/episode-link` (conta o clique e manda para /login com o destino
+// inteiro). Guardiao que nao olha o destino nao guarda o clique.
+check(
+  'C. o link do episodio passa pela PORTA CONTADA, nao direto para o compositor',
+  /buildSeriesContinuationEmailUrl\(SITE, seed,/.test(carta) && !/composerUrl\(/.test(carta),
+)
+check(
+  'C. e a porta contada e a da casa, importada, nao um caminho digitado',
+  /from '@\/lib\/seriesContinuation'/.test(carta) && !/\/api\/episode-link/.test(carta.replace(/^\s*\/\/.*$/gm, '')),
+)
 // A frase do saldo tem de ser DERIVADA. Se virar texto fixo, a carta passa a
 // afirmar sobre o bolso da pessoa sem olhar o bolso dela.
 check('C. quantos episodios cabem e calculado, nunca digitado', /Math\.floor\(d\.saldo \/ d\.custo\)/.test(carta))

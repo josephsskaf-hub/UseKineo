@@ -48,7 +48,7 @@ import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emai
 import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
 import { isRealSendStamp } from '@/lib/lifecycle/skipStamp'
 import { pickMomentumTopic } from '@/lib/momentumTopic'
-import { composerUrl } from '@/lib/lifecycle/composerUrl'
+import { buildSeriesContinuationEmailUrl } from '@/lib/seriesContinuation'
 import { creditCostForDuration, type Quality } from '@/lib/credits/engineCost'
 import { getEffectiveEntitlement, TRIAL_ENTITLEMENT_COLUMNS } from '@/lib/reverseTrial'
 import { TOTAL_EPISODIOS, type TemporadaEscrita } from '@/lib/temporada'
@@ -130,8 +130,28 @@ function escaparHtml(s: string): string {
 function planoUrl(): string {
   return `${SITE}/pricing?utm_source=lifecycle&utm_medium=email&utm_campaign=${CAMPANHA}`
 }
+// ⚠️ A PORTA DE SERVIDOR, NAO O LINK DIRETO — e o motivo esta medido no
+// cabecalho de app/api/episode-link/route.ts (05/09).
+//
+// A primeira versao desta carta usava `composerUrl`, que aponta direto para
+// /studio/create. Eu SONDEI o link real, deslogado, DEPOIS de enviar as 11
+// primeiras cartas: **307 -> /signup?redirect=...**. Ou seja, quem ja tem
+// conta — a carta foi endereçada a ela, cadastrada, com filme entregue —
+// recebia um formulario de CRIAR CONTA. E o clique de inbox chega
+// estruturalmente SEM cookie de sessao (webview do Gmail, outro aparelho, aba
+// anonima), entao esse era o caminho da MAIORIA, nao a excecao.
+//
+// `buildSeriesContinuationEmailUrl` passa pela porta `/api/episode-link`, que
+// (a) CONTA o clique — o degrau que nunca existiu entre "enviado" e
+// "aterrissou" — e (b) manda para **/login** com o destino inteiro
+// preservado. A query com o tema sobrevive a viagem inteira: sondado nesta
+// rotacao, com controle irmao inexistente em 404.
 function episodioUrl(seed: string): string {
-  return composerUrl({ base: SITE, campaign: CAMPANHA, prompt: seed })
+  return buildSeriesContinuationEmailUrl(SITE, seed, 'lifecycle_loss_email', {
+    utm_source: 'lifecycle',
+    utm_medium: 'email',
+    utm_campaign: CAMPANHA,
+  })
 }
 
 // ── A CARTA ───────────────────────────────────────────────────────────────
