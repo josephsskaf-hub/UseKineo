@@ -427,3 +427,177 @@ aparece sozinha — que é exatamente a regra K1.
 **Limite honesto desta validação:** ela prova a *lógica* com dados reais, não a
 *pintura*. Um erro puramente visual (contraste, quebra de layout no celular)
 passaria por aqui sem ser visto. Fica registrado como o que não foi verificado.
+
+---
+
+### CHECKPOINT DA #1 — 01:47→02:0x BRT — o que está EM PRODUÇÃO, provado por sonda, e o buraco de cobertura que a checagem zero mostrou
+
+Este disparo é o **checkpoint** da rotação #1 (janela 01:08→02:08), não rotação
+nova: nada de trabalho novo, só verificar, medir e registrar.
+
+#### 1) AS TRÊS ENTREGAS DA NOITE ESTÃO NO AR — sonda, não fé
+
+| prova | resultado |
+|---|---|
+| `git ls-remote origin main` | `ef821337af00` = ponta local |
+| `git rev-list origin/main..entrega-atual` | **0** (fila vazia) |
+| `31066fd7` (contrato que mentia o preço) ancestral de main | **SIM** |
+| `f1dfd256` (cartão no modal de saldo) ancestral de main | **SIM** |
+| `f1d1f3c5` (cartão na tela de filme pronto) ancestral de main | **SIM** |
+| `GET https://www.usekineo.com/` | **200** |
+| `GET /api/next-action` | **401** (existe, exige sessão) |
+| `GET /api/next-action-xyz-nao-existe` (controle) | **404** |
+| `GET /api/admin/send-next-episode-wall` | **403** (admin-gated — o bloqueio da #4 é real) |
+
+O controle 404 é o que dá sentido ao 401: sem ele, "401" poderia ser o
+comportamento de qualquer rota inexistente. A rota do contrato **está** no ar.
+
+#### 2) CHECAGEM ZERO — tudo zero, e o único número não-zero não é defeito
+
+Com corte no deploy em cada gate, como manda a regra do PEDIDOS de 05/09:
+
+| item | valor |
+|---|---|
+| cadastro sem crédito (corte 04/09 13:08) | **0** |
+| `next_episode_failed` (corte 05/09 13:25) | **0** |
+| render preso >45 min | **0** |
+| `compose_not_ok` 24h | **0** |
+| `checkout_abandoned` sem recovery 48h | **0** |
+| fallback de JWT-skew 24h | **0** |
+| `generation_stage_error` 24h | **4** |
+
+As 4 são **todas de 05/09**, nenhuma desta madrugada, e uma delas **não é
+erro**: é a parede do free tier (*"You've used this month's free Fast video"*)
+sendo gravada como `generation_stage_error` no estágio `clips_ready`. Recusa de
+negócio contada como falha técnica **infla a métrica de erro e some com a
+métrica de venda** — anotado, não consertado (é rotação nova).
+
+#### 3) O BURACO DE COBERTURA DO CARTÃO — a descoberta deste checkpoint
+
+O `NextActionCard` só pinta no estado `dry` (saldo < preço do último filme).
+Fui ver **quantas paredes a casa realmente tem**. Em 30 dias, `compose_refused`:
+
+| motivo da recusa | pessoas | saldo ≥ 15 | saldo médio |
+|---|---|---|---|
+| `trial_credits_stalled` | 15 | 1 | **1,0** |
+| `free_fast_limit` | 15 | **4** | **13,1** |
+| `credits_held_by_render` | 11 | **5** | **19,7** |
+
+**41 pessoas levaram "não" do servidor em 30 dias, em três sabores — e o cartão
+cobre um só.** As 15 do `trial_credits_stalled` são `dry` de manual e estão
+cobertas. As outras duas paredes acontecem **com dinheiro na mão**:
+
+- `free_fast_limit` — a cota de 1 Kineo 1 por 30 dias estourou. A pessoa tem
+  saldo, o contrato devolve `can_continue`, e o cartão devolve `null`. Ela lê a
+  frase do free tier e não recebe porta nenhuma.
+- `credits_held_by_render` — saldo médio **19,7** e mesmo assim recusada,
+  porque um render em curso segura o crédito. Aqui o cartão calar é **certo**:
+  a resposta honesta não é "compre", é "espere" — mas hoje ninguém diz isso.
+
+**RESSALVA QUE MUDA A LEITURA, e é minha:** os saldos acima são os de **hoje**,
+não os do instante da recusa. Alguém recusado em 20/08 pode ter comprado,
+gastado ou ganhado crédito depois. A tabela mostra **a ordem de grandeza das
+três paredes**, não o saldo histórico de cada recusa. Quem for agir nisto mede
+de novo com o saldo do evento, não com o do perfil.
+
+#### 4) O CASO VIVO DA MADRUGADA — traçado inteiro, 04:31→04:46 UTC
+
+Uma pessoa só (`078c3481`, fonte `seo`, campanha `push63_niche_horror`):
+cadastro Google 04:31:06 → 25 créditos 04:31:06 → autostart do Seedance
+04:31:37 → **checkout de Autopilot 04:33:43**, com o filme ainda em
+`fal_polling` e `videos_ok: 0` → render encalhou e o auto-cura pegou
+(`stranded_compose_attempt` 04:45:33 → `stranded_composed` 04:46:26).
+
+Dois fatos deste rastro, nenhum deles agido agora:
+
+**(a) O rastro de encalhe FUNCIONOU** — 53 segundos entre detectar e recompor,
+sem pessoa nenhuma no meio. É a rede de 05/09 pegando um caso real.
+
+**(b) A pessoa clicou em pagar 2 minutos depois de nascer, ANTES de ver o
+primeiro filme.** O `PricingCards` mora no `showStep1`, que é justamente a tela
+da espera. Pedimos dinheiro enquanto o filme dela renderiza — a prova ainda não
+existe quando a conta chega.
+
+#### 5) O NÚMERO QUE EU NÃO ESPERAVA: a porta de $299 ganha da de $99, 6 a 1
+
+Na superfície `generate_step_1`, em 30 dias: **`autopilot` (US$ 299/mês) 6
+cliques · `autopilot_pilot` (US$ 99 uma vez) 1 clique** — e o piloto é o botão
+azul PRIMÁRIO, o mensal é o contorno secundário ("Go monthly instead"). Na
+`pricing_page`, no mesmo período, `autopilot` é **1 de 23**. Mesma casa, mesma
+oferta, 8x de diferença conforme a superfície.
+
+Não são cliques em rajada (espalhados de 16/08 a hoje), então **não é botão
+quebrado**. É a hierarquia da faixa não segurando a escolha onde a pessoa está
+mais crua — e o caso vivo de hoje é um dos seis.
+
+**NÃO MEXI, e é de propósito:** qual porta de plano recebe o clique é **oferta**,
+e este ciclo me proíbe de tocar em oferta. Vai para a lista do fundador.
+
+#### 6) MEDIÇÃO QUE EVITA A PRÓXIMA ROTAÇÃO DESPERDIÇADA: o e-mail de ciclo de vida já nomeia o filme
+
+Antes de propor "personalizar o e-mail automático com o filme da pessoa" —
+que é a tese do #4 — fui conferir se já existia. **Existe desde antes desta
+noite:** `episodeTwoBlock()` é chamado em `ending_soon`, `downgraded_loss`,
+`expired_offer_d5` **e** `expired_lastcall_d10`
+(`app/api/cron/trial-lifecycle-emails/route.ts`, linhas 1407/1584/1630/1697/1847).
+
+E o canal é o maior da casa: **2.929 e-mails em 30 dias**. O desfecho, com
+janela de 72h e o corte de 3 dias para maturar:
+
+| carta | enviados | voltaram | checkouts |
+|---|---|---|---|
+| `d0_welcome` | 591 | 384 (65%) | 6 |
+| `ending_soon` | 531 | 530 (99,8%) | 2 |
+| `downgraded_loss` | 558 | 134 (24%) | **6** |
+| `expired_offer_d5` | 454 | 39 (8,6%) | **0** |
+| `expired_lastcall_d10` | 327 | 6 (1,8%) | **0** |
+
+**Leitura honesta:** as duas primeiras linhas são **contaminadas** — `d0_welcome`
+e `ending_soon` saem para quem está ativo naquele momento, então "voltou" mede
+em boa parte a sessão que já estava em curso. Não trate 65% e 99,8% como efeito
+da carta.
+
+**O que sobra limpo: 781 e-mails por mês para trial expirado (`d5` + `d10`)
+produzem 45 voltas e ZERO checkouts.** E o filme da pessoa **já está nomeado
+lá dentro** — ou seja, a isca certa já foi aplicada e essa coorte segue fria.
+
+**AVISO DE NÃO-REPETIÇÃO:** quem abrir a próxima rotação **não** deve construir
+"nomear o filme no e-mail automático". Já está feito, e não é o que falta.
+
+#### 7) PLACAR DO MARCO (2026-09-06 04:00 UTC) — 50 minutos de idade
+
+`seo`: **1 cadastro → 0 filmes completos → 1 checkout → 0 pagou**. Denominador
+de 1: **não conclui nada**, e não vou fingir que conclui. O filme dessa pessoa
+ainda estava renderizando quando este checkpoint fechou.
+
+#### PRÓXIMA JOGADA (para a rotação #2, com o dado deste checkpoint)
+
+A parede `free_fast_limit` é a única das três em que a pessoa **tem saldo, quer
+gerar e ouve "não"** — e é a única onde vender é honesto (em
+`credits_held_by_render` a resposta certa é "espere", não "compre"). O cartão
+hoje cala nela porque o contrato devolve `can_continue`. **Estado novo no
+`/api/next-action` (`quota_blocked`), com o mesmo desenho e as mesmas regras
+K1** — servidor, minha pista, sem tocar em oferta nem em layout.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+1. **Depois das 08:00 BRT**, abrir o link de 1 clique da #4 (está na entrada da
+   #4 deste diário) para disparar a carta das 31 pessoas — a rota é admin e eu
+   não tenho sessão; 403 confirmado por sonda neste checkpoint.
+2. **Decidir a faixa do Autopilot no `/generate`**: o botão de **US$ 299**
+   levou 6 cliques contra **1** do piloto de US$ 99, que é o botão primário.
+   É oferta, então é sua. Nada a fazer no código até você dizer.
+
+### 📋 O QUE ACONTECEU
+
+Checkpoint, não rotação nova: nada de código. Confirmei por sonda que as três
+peças da noite estão mesmo em produção (a fila está vazia e a rota do contrato
+responde 401, com um 404 de controle para provar que a sonda vale). A checagem
+zero veio limpa em tudo, e o único número não-zero é a parede do free tier
+sendo contada como erro técnico. A descoberta do checkpoint é que a casa tem
+**três** paredes de "não", não uma — e o cartão que subimos hoje cobre só a de
+saldo; nas outras duas a pessoa é recusada **com dinheiro na mão**. Também
+conferi antes de propor: o e-mail automático **já** nomeia o filme da pessoa, e
+mesmo assim as 781 cartas mensais para trial expirado dão zero checkout — fica
+o aviso para ninguém reconstruir isso. E uma pessoa nasceu, mandou fazer filme
+e clicou em pagar 2 minutos depois, antes de ver o resultado.
