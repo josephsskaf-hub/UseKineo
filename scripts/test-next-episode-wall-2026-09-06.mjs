@@ -58,7 +58,18 @@ check('carimbo de outras campanhas exclui', /if \(jaEmailado\.has\(id\)\) contin
 check('carimbo booleano em profiles exclui', /STAMP_COLUMNS\.some\(\(c\) => raw\[c\] === true\)/.test(codigo))
 check('carimbo de data em profiles exclui', /STAMP_DATES\.some\(\(c\) => raw\[c\] != null\)/.test(codigo))
 check('quem tocou checkout fica com a outra campanha', /if \(tocouCheckout\.has\(id\)\) continue/.test(codigo))
-check('CARIMBA SO NO SUCESSO (depois do throw)', codigo.indexOf('throw new Error(`resend') < codigo.indexOf("name: SENT_EVENT"))
+// ⚠ ESTA CHECAGEM JA FOI FURADA UMA VEZ, no mutante M3 de 06/09: ela era
+// `indexOf(throw) < indexOf(carimbo)`, e apagar o throw faz o indexOf devolver
+// -1 — que e MENOR que qualquer indice, entao o guardiao aprovava exatamente a
+// remocao que ele existia para pegar. Sem o throw, um Resend que responde 4xx
+// segue para o carimbo e a pessoa fica QUEIMADA para sempre sem ter recebido
+// nada. Agora a existencia e exigida ANTES da ordem.
+const iThrow = codigo.indexOf('throw new Error(`resend')
+const iCarimbo = codigo.indexOf('name: SENT_EVENT')
+check('o throw de resposta ruim EXISTE', iThrow > 0)
+check('o carimbo EXISTE', iCarimbo > 0)
+check('CARIMBA SO NO SUCESSO (throw antes do carimbo)', iThrow > 0 && iCarimbo > 0 && iThrow < iCarimbo)
+check('resposta nao-ok vira erro', /if \(!res\.ok\) throw new Error/.test(codigo))
 
 // ── 5. SUPRESSAO DE 24H ───────────────────────────────────────────────────
 check('supressao carregada', /loadLifecycleSuppression\(admin, candidatos\.map/.test(codigo))
@@ -93,7 +104,12 @@ check('cabecalho de descadastro', /headers: unsubscribeHeaders\(d\.id\)/.test(co
 check('rodape de descadastro no texto', /emailFooterText\(userId\)/.test(src))
 check('rodape de descadastro no html', /emailFooterHtml\(userId\)/.test(src))
 check('titulo vindo do banco e escapado no html', /escaparHtml\(filme\)/.test(codigo))
-check('titulo tem teto de tamanho', /t\.slice\(0, 67\)/.test(codigo))
+// O teto de tamanho e a rejeicao de "titulo que e ordem" vem da funcao da casa
+// (pickMomentumTopic: MAX_ANCHOR=90, rejeita verbo de ordem, rotulo, markdown e
+// frase de regra). O que se verifica aqui e que a rota NAO tem regua propria.
+check('titulo sai da funcao da casa', /pickMomentumTopic\(title\) \?\? pickMomentumTopic\(topic\)/.test(codigo))
+check('sem regua de titulo propria na rota', !/\.slice\(0,\s*\d+\)\s*\}?…|length > 70/.test(codigo))
+check('titulo nulo cai em assunto generico', /filme \? `Episode 2 of "\$\{filme\}"` : 'Your next episode is ready to write'/.test(codigo))
 check('pacing entre envios', /setTimeout\(r, 600\)/.test(codigo))
 
 // ── 9. NAO CONCEDE, NAO COBRA, NAO MUDA PRECO ─────────────────────────────

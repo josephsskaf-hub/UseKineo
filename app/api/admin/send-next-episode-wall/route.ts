@@ -42,6 +42,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
+import { pickMomentumTopic } from '@/lib/momentumTopic'
 
 export const maxDuration = 300
 export const dynamic = 'force-dynamic'
@@ -92,13 +93,25 @@ function isBloqueado(email: string): boolean {
   return BLOQUEADOS.some((b) => e.includes(b))
 }
 
-/** O título do filme entra no assunto e no corpo. Vem do banco, então pode ter
- *  aspas, quebras e comprimento arbitrário — nada disso pode vazar para o
- *  assunto nem para o HTML. */
-function limparTitulo(raw: string | null | undefined): string | null {
-  const t = (raw ?? '').toString().replace(/\s+/g, ' ').trim()
-  if (!t || t.length < 3) return null
-  return t.length > 70 ? `${t.slice(0, 67)}…` : t
+/** O título do filme entra no ASSUNTO. Vem do banco e, em boa parte dos casos,
+ *  NÃO é um título — é a ordem que a pessoa colou do ChatGPT.
+ *
+ *  ⚠️ O DRY-RUN DE 06/09 MOSTROU ISSO NA CARA, e por isso esta função não é
+ *  um `slice`. Entre os 31 elegíveis, `videos.topic` continha coisas como
+ *  "Create a professional 75–90 second advertising video for Help Me
+ *  Tenerife, a company in Tenerife offering complete solut", "### Clip 1 —
+ *  Ingredients & Setup | 0:00–0:04", "Setting: Outside a fancy restaurant at
+ *  night." e "人物使用参考图". Um assunto `Episode 2 of "Create a
+ *  professional 75–90 second…"` chega como e-mail quebrado — para a lista mais
+ *  quente da casa, e uma única vez, porque o carimbo é vitalício.
+ *
+ *  `pickMomentumTopic` é a função da casa feita EXATAMENTE para isto: extrai
+ *  âncora curta, rejeita verbo de ordem, rótulo de produção, markdown e frase
+ *  de regra, e devolve `null` quando o texto não serve como nome. Título nulo
+ *  não é problema: o assunto genérico existe e é honesto. Reusar aqui é o que
+ *  impede uma segunda régua de "o que é um título" de nascer nesta rota. */
+function tituloDoFilme(title: string | null | undefined, topic: string | null | undefined): string | null {
+  return pickMomentumTopic(title) ?? pickMomentumTopic(topic)
 }
 function escaparHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
@@ -194,8 +207,7 @@ export async function GET(req: NextRequest) {
       const bruto = (v as { credits_used: number | null }).credits_used
       ultimoDe.set(uid, {
         custo: typeof bruto === 'number' && bruto > 0 ? Math.floor(bruto) : 0,
-        filme: limparTitulo((v as { title: string | null }).title)
-          ?? limparTitulo((v as { topic: string | null }).topic),
+        filme: tituloDoFilme((v as { title: string | null }).title, (v as { topic: string | null }).topic),
       })
     }
     const ids = [...ultimoDe.keys()]
