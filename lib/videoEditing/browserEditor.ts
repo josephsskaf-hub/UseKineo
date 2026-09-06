@@ -108,7 +108,13 @@ export async function exportClip(file: File, info: ClipInfo, settings: EditSetti
         frame = requestAnimationFrame(tick)
       }
       timeout = setTimeout(() => stop(new Error('export_stalled')), ((settings.end - settings.start) / settings.speed + 20) * 1000)
-      try { recorder!.start(250); video.play().then(() => { frame = requestAnimationFrame(tick) }, () => stop(new Error('play_failed'))) } catch { stop(new Error('export_failed')) }
+      // Starting MediaRecorder before playback adds a browser-dependent frozen/
+      // silent lead-in (Chrome can take hundreds of ms to start its audio graph).
+      // Start recording only once playback actually starts, not before play().
+      try { video.play().then(() => {
+        if (stopping) { video.pause(); return }
+        try { drawFrame(canvas, video, settings); recorder!.start(250); frame = requestAnimationFrame(tick) } catch { stop(new Error('export_failed')) }
+      }, () => stop(new Error('play_failed'))) } catch { stop(new Error('export_failed')) }
       if (signal.aborted) abort()
     })
     progress(100)

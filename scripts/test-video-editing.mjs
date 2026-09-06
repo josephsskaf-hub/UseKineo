@@ -16,7 +16,7 @@ class Video extends EventTarget {
   constructor() { super(); this.duration = 4; this.videoWidth = 640; this.videoHeight = 360; this.readyState = 3; this.seeking = false; this.paused = true; this.playbackRate = 1; this.time = 0 }
   get currentTime() { return this.time }
   set currentTime(value) { this.time = value }
-  play() { if (failPlay) return Promise.reject(new Error('blocked')); this.paused = false; this.interval = setInterval(() => { if (stalled) return; this.time += .05 * this.playbackRate; clock += 50; if (this.time >= this.duration) { this.pause(); this.dispatchEvent(new Event('ended')) } }, 1); return Promise.resolve() }
+  play() { if (failPlay) return Promise.reject(new Error('blocked')); records.playbackStarted = true; this.paused = false; this.interval = setInterval(() => { if (stalled) return; this.time += .05 * this.playbackRate; clock += 50; if (this.time >= this.duration) { this.pause(); this.dispatchEvent(new Event('ended')) } }, 1); return Promise.resolve() }
   pause() { this.paused = true; clearInterval(this.interval) }
   removeAttribute() {} load() {}
 }
@@ -27,7 +27,7 @@ class Canvas {
 class Recorder {
   static isTypeSupported() { return support }
   constructor(stream, options) { this.stream = stream; this.mimeType = options.mimeType; this.state = 'inactive'; records.lastRecorder = this }
-  start() { this.state = 'recording' }
+  start() { assert.equal(records.playbackStarted, true, 'do not record the pre-playback delay'); checks++; this.state = 'recording' }
   stop() { this.state = 'inactive'; queueMicrotask(() => { this.ondataavailable?.({ data: new Blob([JSON.stringify({ audioTracks: this.stream.getAudioTracks().length })], { type: this.mimeType }) }); this.onstop?.() }) }
 }
 class Audio {
@@ -59,7 +59,7 @@ eq(policy.downloadName('my <video>.mp4', 'video/webm'), 'my--video--kineo-edit.w
 eq((await browser.readClip(file, new AbortController().signal)).duration, 4, 'real metadata function')
 await assert.rejects(browser.readClip(new File([], 'empty.mp4'), new AbortController().signal)); checks++
 for (const [label, patch] of [['trim', { start: 1, end: 2 }], ['resize', { aspect: '9:16' }], ['speed', { speed: 2 }], ['mute', { mute: true }], ['text', { text: 'TEST TITLE' }]]) {
-  records.frames = []
+  records.frames = []; records.playbackStarted = false
   const progress = [], blob = await browser.exportClip(file, info, { ...settings, ...patch }, new AbortController().signal, p => progress.push(p))
   ok(blob.size > 0, label + ' returns actual recorded data')
   eq(JSON.parse(await blob.text()).audioTracks, patch.mute ? 0 : 1, label + ' output audio tracks')
