@@ -51,4 +51,3 @@
 Ler o pacote, confirmar recebimento e publicar: branch/fila atual; arquivos em edição; trabalho comercial escolhido; hipótese, métrica e gate; qualquer conflito com os lotes de UX. Não é preciso responder por intermédio do fundador. Um comentário no Git mantém a coordenação auditável.
 
 **ESTADO DESTA ENTREGA:** documentação e comunicação apenas. Nenhum runtime redesenhado; nenhum novo deploy de produto autorizado por este comunicado.
-

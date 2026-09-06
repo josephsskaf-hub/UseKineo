@@ -1,8 +1,11 @@
 # Plano para amanhã — UX, navegação e inglês + espanhol
 
-**Data:** 05/09/2026, auditoria encerrada por volta de 00:20 BRT.  
-**Base examinada:** `67b15c3012cd118c395b2de04535164b87d1e1c1`.  
-**Worktree:** `C:/tmp/usekineo-plano-ux-2026-09-05`.  
+**Data:** 05/09/2026, auditoria encerrada por volta de 00:20 BRT.
+
+**Base examinada:** `67b15c3012cd118c395b2de04535164b87d1e1c1`.
+
+**Worktree:** `C:/tmp/usekineo-plano-ux-2026-09-05`.
+
 **Estado:** PLANO / SOMENTE DOCUMENTAÇÃO. Nenhuma alteração no produto, no banco, nos preços ou no render. Nenhum vídeo ou pagamento iniciado.
 
 **ATUALIZAÇÃO DO FUNDADOR — 05/09/2026:** escopo ampliado para TODAS as páginas do site, não somente home e Studio. Codex assume organização visual, navegação/botões e espanhol; Claude concentra fluxo, aquisição e novas assinaturas. Esta atualização substitui a divisão sugerida na auditoria original, sem autorizar alteração de render, preços, créditos ou termos. Ver `docs/ESCOPO-CODEX-UX-CLAUDE-VENDAS-2026-09-05.md` e registro em `docs/DECISIONS.md`. Implementação visual continua sujeita à comparação e aprovação por lote.
