@@ -1428,3 +1428,35 @@ um cortador: quer uma série, e nós já sabemos fazer episódios. É essa a jog
 da próxima rotação — em vez de "corte seu texto", oferecer "isso aqui dá 12
 episódios, vamos fazer o primeiro agora". E é o tipo de cliente que assina, que
 é justamente o que este ciclo está atrás.
+
+---
+
+### CHECKPOINT DA #9 — 04:12 BRT — o conserto do denominador está PROVADO, com o corte no deploy
+
+Não é rotação nova: só a verificação do `d8f216a7`.
+
+| `next_action_served` | `session_id` | leitura |
+|---|---|---|
+| 7 eventos até 06:23:55 UTC | **todos null** | dedupe morto — 1 pessoa virou 7 linhas |
+| 2 eventos de 06:25:13 em diante | **preenchido** (`aebad0c1…`, `7db83964…`) | cookie lido, dedupe vivo |
+
+O corte cai exatamente no deploy. **Pós-conserto: 2 eventos / 2 pessoas = 1:1**
+(antes: 5 eventos / 1 pessoa). O evento voltou a contar **pessoa**.
+
+**Ressalva honesta de tamanho:** 2 eventos é amostra pequena. O que está provado
+sem dúvida é o **mecanismo** (o `session_id` deixou de ser nulo no instante do
+deploy); a razão 1:1 sobre 2 pessoas ainda não é estatística.
+
+**Erro meu na primeira leitura, corrigido aqui:** consultei
+`metadata->>'session_id'` e vi zero. O `writeServerEvent` grava `session_id`
+como **coluna**, não em `metadata` — eu quase reportei "o conserto não pegou"
+lendo o campo errado. Conferir onde o dado mora antes de declarar defeito.
+
+**Quem o contrato serviu (as 2 pessoas):**
+- `f2b2248d` — `first_film`, 25cr, 0 filmes → cartão calado, correto.
+- `8f95127b` — `can_continue`, **13cr, 4 filmes entregues**, `treat_as_paid: true`
+  → cartão calado, e também correto: com 13 ela ainda paga um Kineo 1. É a
+  pessoa mais fundo no funil que a noite viu, e a casa não a bloqueou.
+
+**PLACAR:** 2 cadastros, 1 checkout, **0 pagamentos** desde o marco. 58 eventos
+em 50 min. Zero erros pós-deploy.
