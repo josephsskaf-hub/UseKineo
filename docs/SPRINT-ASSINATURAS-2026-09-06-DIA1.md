@@ -1132,3 +1132,134 @@ desde as 15:45.
    Não custa nada acrescentar uma linha dizendo **o que vem no próximo mês** —
    a temporada dela, pelos títulos que a casa já escreveu. Mesmo e-mail, mesmo
    disparo, zero custo novo.
+
+---
+
+## CHECKPOINT — 13:40 BRT (16:40 UTC) — A TRAVA DE 24h SILENCIOU 24 DAS 40 PESSOAS QUE A CARTA DA PAREDE EXISTE PARA ALCANÇAR
+
+**Checkpoint, não rotação.** Nenhuma linha de produto foi escrita. O que segue é
+verificação, praxe e um achado que a próxima rotação (14:08) deve abrir.
+
+### 1. A SUBIDA DA #26/#26b ESTÁ PROVADA — O COMPORTAMENTO **NÃO**
+
+`git ls-remote origin main` = `813ed26d` · fila `origin/main..entrega-atual` = **0** ·
+home **200** · controle **404**. A subida está de pé.
+
+⚠️ **O comportamento não foi exercitado uma única vez, e o número que eu poderia
+publicar aqui é vazio.** Pares de e-mail em 30 min nascidos depois de 16:30 UTC:
+**zero** — mas o **último envio da casa foi 16:25 UTC**, cinco minutos *antes* do
+deploy. Zero pares sobre zero oportunidades não prova nada; é a memória
+`zero-falhas-sem-denominador` inteira. A primeira oportunidade real é o cron de
+`trial-lifecycle-emails`, que roda aos **:25** — ou seja, **17:25 UTC**. Antes
+disso ninguém pode dizer que a quinta fonte funciona.
+Placar do dia, para comparação amanhã: **8 pares / 4 pessoas** (a rotação
+anterior leu 16/6 às 13:20 com uma lista de nomes maior; a minha usa a lista
+canônica de `LIFECYCLE_EMAIL_EVENT_NAMES` — denominadores diferentes, registro
+os dois para ninguém comparar maçã com laranja).
+
+### 2. O ACHADO: 40 ELEGÍVEIS, **1** ENVIADA — E A MAIS QUENTE DA CASA ESTÁ ENTRE AS BARRADAS
+
+A rotação anterior deixou uma pergunta: *a pessoa `e8e8c415` entrou no lote da
+carta da parede e, se não entrou, por qual filtro?*
+
+**Não entrou. E não foi por defeito da rota — foi pela trava que subiu hoje.**
+
+Retrato dela: cadastro **11:27 UTC**, fonte **chatgpt**, **3 filmes** em 34 min
+(11:37 · 11:49 · 12:01), **`pricing_view` às 11:55**, saldo **0**, trial
+`downgraded`, **zero `checkout_started`**. É uma pessoa que fez três filmes,
+foi olhar o preço e bateu na parede — o perfil exato que a carta da parede
+existe para pegar.
+
+Replicando **o predicado da própria rota** em SQL contra as linhas reais
+(memória `provar-leitura-sem-trafego`), pessoa a pessoa:
+
+| | |
+|---|---|
+| passam no predicado da rota **agora** | **40** (24 do chatgpt) |
+| barradas pela supressão de 24h | **24** |
+| **sobram para o próximo lote** | **16** (10 do chatgpt) |
+| `e8e8c415` | **elegível pelo predicado · SUPRIMIDA pela trava** |
+
+E o lote das **15:00 UTC** enviou **uma** pessoa (`c1d0ad6a`).
+
+**A cadeia causal, sem suposição:**
+1. A carta da parede **não sai de hora em hora** — `vercel.json` diz
+   `"0 11,15,20 * * *"`. São **três lotes por dia**. A frase "sai de hora em
+   hora" está escrita mais acima neste diário e **está errada**; corrijo aqui.
+   `e8e8c415` bateu na parede às 12:01 e a próxima janela era 15:00.
+2. Às 13:25 ela recebeu um `trial_lifecycle_email_sent` — o cron genérico que
+   roda aos **:25 de toda hora** e que hoje tocou **103 pessoas**.
+3. Esse carimbo agora está em `LIFECYCLE_EMAIL_EVENT_NAMES`. Resultado: o
+   e-mail **genérico e horário** cala por 24h a carta **específica**, que
+   nomeia o episódio 2 do filme que a pessoa acabou de fazer.
+
+**A trava não está quebrada — a ORDEM DE PRECEDÊNCIA está.** Ela protege
+entregabilidade, que é o ativo certo a proteger com 1.798 pessoas na lista. Mas
+com 3 janelas/dia de um lado e 24 disparos/dia do outro, quem sempre chega
+primeiro é o e-mail de menor valor. A #26 não criou esse desequilíbrio; ela o
+tornou **visível e eficaz** — que era exatamente o objetivo dela.
+
+⚠️ **Ressalva honesta:** as 24 barradas são a foto de **agora**. A trava é
+móvel: quem foi tocado às 13:25 destrava às 13:25 de amanhã, e o lote das
+**20:00 UTC** vai encontrar um número diferente — provavelmente melhor, porque
+o cron das :25 não pega a mesma pessoa toda hora. Ninguém perde e-mail para
+sempre. O que se perde é a **hora quente**: `e8e8c415` estava em `pricing_view`
+às 11:55 e vai receber a carta da parede, na melhor das hipóteses, amanhã.
+
+### 3. PRAXE — PLACAR E CHECAGEM ZERO (16:40 UTC)
+
+**Placar desde o marco (2026-09-06 14:00 UTC):** 3 cadastros · 2 pessoas com
+filme entregue · 2 filmes · **0 `checkout_started`** · **0 `payment_success`**.
+Nas 24h: 33 cadastros, **0 pagamentos**. Domingo, e é o que é.
+*(Denominador: linhas em `videos`. A leitura de 13:20 dizia "3 pessoas gerando"
+— contava outra coisa. Registro a minha régua para a próxima sessão não achar
+que o número caiu.)*
+
+**Checagem zero — limpa:** cadastro sem crédito órfão nas 24h **0** (33
+cadastros, todos com `trial_credits_granted`) · render preso >45 min **0** ·
+`next_episode_failed` **0** · `generation_stage_error` **4** (normal do dia).
+
+**Cliques — nenhum humano desde 16:00 UTC.** Três `episode_link_clicked`
+(16:09, 16:12, 16:34), **os três com `bot:true`**. O único clique humano do dia
+continua sendo o das 13:31, vindo do e-mail de filme pronto. A carta da
+temporada segue com **zero cliques humanos** desde as 15:45.
+*(Correção de detalhe: o clique das 16:12 carrega `source=lifecycle_loss_email`,
+não `season_letter` como ficou registrado acima. Bot nos dois casos — não muda
+a conclusão, muda a atribuição.)*
+
+### 4. O QUE A ROTAÇÃO DAS 14:08 DEVE ABRIR
+
+**Precedência entre cartas, não mais uma carta.** A casa tem 5 fontes de
+supressão e nenhuma noção de que uma carta vale mais que a outra. O conserto
+barato e mensurável: a carta da parede e a da temporada passam a **ignorar a
+supressão quando o carimbo que barra é `trial_lifecycle_email_sent` e a pessoa
+está com saldo 0 há menos de 6h** — a janela quente. Alternativa mais simples e
+talvez melhor: **abrir mais janelas** no `vercel.json` (11,15,20 → de 2 em 2h),
+que não mexe em trava nenhuma e reduz a distância entre bater na parede e
+receber a carta de 3h para 1h. Decidir com o número das 20:00 UTC na mão, não
+antes.
+
+**Não fazer sem medir:** afrouxar a trava de forma geral. Ela subiu há 10
+minutos e ainda não teve uma única oportunidade de agir.
+
+---
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+1. **Nada.** Nenhuma ação sua neste checkpoint — a fila está vazia, a #26/#26b
+   já está em produção e o próximo lote de e-mail sai sozinho às 17:25 e 20:00 UTC.
+
+### 📋 O QUE ACONTECEU
+Conferi o que subiu às 13:38 e fui atrás da pergunta que a rotação anterior
+deixou: a pessoa mais quente do dia — 3 filmes, olhou o preço, ficou sem saldo —
+recebeu a carta da parede? **Não.** Ela é elegível, mas a trava anti-spam que
+subiu hoje a calou por 24h, porque um e-mail genérico que sai de hora em hora
+chegou primeiro. Medindo pessoa a pessoa: **40 pessoas estão prontas para essa
+carta e 24 estão caladas pela mesma razão** — o lote das 15:00 enviou uma só. A
+trava está certa e protege o domínio; o que está errado é a **ordem**: a carta
+que nomeia o próximo episódio da pessoa perde para o aviso automático. Também
+corrigi duas coisas escritas antes neste diário: a carta da parede sai **3× por
+dia**, não de hora em hora, e o "zero pares de e-mail repetido" que provaria a
+entrega das 13:38 **não prova nada ainda**, porque nenhum e-mail saiu depois
+dela. A primeira prova real chega às 17:25 UTC. Checagem zero limpa; zero
+pagamentos hoje; um único clique humano no dia, e ele veio do e-mail de filme
+pronto.

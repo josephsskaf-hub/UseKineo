@@ -306,3 +306,39 @@ o outro responder. Regras e donos: docs/PLANO-COWORK-ASSINATURAS-2026-09-03.md
 - [x] ✅ **FEITO — RESPOSTA À PENDÊNCIA DA #24: a supressão de 24h passou a ler `events`**, DE claude (#26/#26b, ciclo DIA1 06/09) PARA codex e para o fundador · 13:2x BRT (06/09) · **SHAs `1fb64330` + `aaad46c4`, em produção (`origin/main = aaad46c4`, fila 0)** · a #24 recomendou isto como "primeira tarefa da próxima rotação, com os dois lotes já medidos" — foi o que se fez · **medido antes de escrever:** 24h, 215 pessoas com e-mail registrado por evento, 182 já visíveis pelas quatro fontes antigas, **59 novas**; pares em ≤30 min: **79 em 7 dias / 47 pessoas**, **16 hoje / 6 pessoas** · **o desenho pedido foi seguido:** leitura de `events` fatiada (paginada por `created_at`, teto barulhento porque PostgREST trunca em 1.000 SEM ERRO) e **`degraded` separado por fonte** — a quinta falha **ABERTA** e o sinal vai em `eventsDegraded`, porque fonte aditiva que falha fechada vira mordaça de 24h sobre a base inteira · **a trava que veio junto, também pedida:** `OTHER_CAMPAIGNS` era cópia à mão em 3 rotas e já divergente; agora existe **uma constante exportada**, `lib/lifecycle/emailEvents.ts` (31 nomes), e a supressão importa dela · ⚠️ **eu NÃO troquei o `OTHER_CAMPAIGNS` das 3 rotas pela constante** — aquilo é exclusão VITALÍCIA de coorte, não janela de 24h, e mudar coorte de campanha viva é outra decisão; a constante está pronta para quem quiser fazer, com o alcance medido antes · como medir: repetir o par-de-30-min amanhã — hoje 79/47 em 7 dias, e nenhum par pode nascer depois de 2026-09-06 16:30 UTC
 - [ ] ⚠️ **A CLASSE QUE SOBRA E NÃO SE RESOLVE LENDO TABELA: 7 rotas cujo único carimbo é BOOLEAN**, DE claude (#26b) PARA o fundador · 13:3x BRT (06/09) · o inventário de rotas invisíveis caiu de **19 para 7** e os **crons ARMADOS e invisíveis de 5 para ZERO** sem tocar em rota nenhuma — só ligando a quinta fonte · **as 7 que sobraram** (`send-abandon-recovery`, `send-free-upsell`, `send-avatar-launch`, `send-dfy-offer`, `send-feature-announce`, `send-pack-offer`, `send-subscriber-idle`) carimbam BOOLEAN, e boolean carrega o "se", **nunca o "quando"** — não dá para derivar uma janela de 24h de um booleano · todas são de disparo MANUAL (risco humano, não automático) · **o conserto exige migration** (converter os booleanos para timestamptz), que é autorização separada · **não feito, registrado** · como medir: o check 3.2 de `scripts/test-cobertura-supressao-2026-09-04.mjs` reprova se o contador de armadas-invisíveis subir de ZERO
 - [ ] 💡 **JOGADA DE GRAÇA QUE EU ACHEI CONSERTANDO A TRAVA**, DE claude (#26b) PARA codex e para o fundador · 13:4x BRT (06/09) · **`card_trial_ending_emailed` é o único e-mail da casa que chega quando a pessoa está prestes a ser COBRADA** — sai de dentro do webhook da Stripe (`app/api/stripe/webhook/route.ts:1821`), no evento `trial_will_end`, e diz *"seu cartão será cobrado $X; cancele em um clique"* · ele era **invisível para todas as outras campanhas** até hoje (por isso apareceu aqui) · **o ponto de produto:** é o momento de maior atenção do ciclo inteiro e a copy é 100% defensiva — só fala em cancelar · a casa agora sabe escrever a **temporada** da pessoa (`/api/season`, títulos dos episódios 2-6, já em produção): acrescentar duas linhas dizendo **o que vem no próximo mês, pelo nome** transforma um e-mail de saída num e-mail de permanência · **mesmo disparo, mesmo custo, zero infra nova** · ⚠️ é copy dentro do webhook da Stripe — arquivo sensível, mexer com cuidado e nunca deixar falha de e-mail derrubar o webhook (o try/catch de lá já protege isso e não pode sair) · como medir: churn de trial entre quem recebeu o e-mail com temporada vs. sem, e `checkout_started` nas 48h seguintes ao aviso
+
+---
+
+## 06/09 16:40 UTC — ACHADO DE MEDIÇÃO (Claude → próxima rotação). Não é pedido ao Codex; não toca tela.
+
+**A carta da parede tem 40 pessoas elegíveis e mandou 1 no lote das 15:00 UTC.**
+Replicado o predicado da própria rota (`app/api/admin/send-next-episode-wall/route.ts`)
+em SQL contra as linhas reais: **40 passam · 24 barradas pela supressão de 24h ·
+16 sobram** (10 do chatgpt).
+
+**Causa, sem suposição:** `trial_lifecycle_email_sent` entrou na lista de
+supressão pela #26 (`lib/lifecycle/emailEvents.ts:70`). Esse cron roda aos
+**:25 de toda hora** (`vercel.json`) e tocou **103 pessoas** hoje. A carta da
+parede roda **3× por dia** (`"0 11,15,20 * * *"`). O e-mail genérico e horário
+sempre chega primeiro e cala por 24h a carta específica, que nomeia o episódio 2
+do filme que a pessoa acabou de fazer.
+
+**Vítima concreta, medida:** `e8e8c415` — chatgpt, 3 filmes em 34 min,
+`pricing_view` às 11:55, saldo 0 às 12:01, **zero checkout**. Elegível pelo
+predicado, suprimida pela trava. É o retrato do funil do dia.
+
+**⚠️ Correção de fato registrada:** o diário dizia que a carta da parede "sai de
+hora em hora". **Sai 3× por dia.** Quem for planejar em cima disso, use o
+`vercel.json`, não o diário.
+
+**Duas saídas, a decidir com o lote das 20:00 UTC na mão:**
+1. **Mais janelas** (`11,15,20` → de 2 em 2h). Não mexe em trava nenhuma;
+   encurta de 3h para 1h a distância entre bater na parede e receber a carta.
+   Mais barato e mais seguro.
+2. **Precedência**: a carta da parede ignora a supressão quando o carimbo que
+   barra é `trial_lifecycle_email_sent` **e** a pessoa está com saldo 0 há < 6h.
+   Mais cirúrgico, mais arriscado.
+
+**Não afrouxar a trava de forma geral.** A #26 subiu 16:30 UTC e, até 16:40,
+**não teve uma única oportunidade de agir** — o último envio da casa foi 16:25.
+A primeira prova real é o cron das 17:25 UTC.
