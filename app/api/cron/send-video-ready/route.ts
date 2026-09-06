@@ -6,6 +6,7 @@ import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
 import { LIFECYCLE_SKIP_STAMP } from '@/lib/lifecycle/skipStamp'
 import { videoReadyFooterFromRows, isSubscriberProfile, type VideoReadyFooter, type ReadyProfileRow } from '@/lib/lifecycle/videoReadyFooter'
 import { garantirPacote } from '@/lib/publishPackServer'
+import { publishHref, unpublishHref } from '@/lib/videoShareLink'
 import type { PacoteDePublicacao } from '@/lib/publishPack'
 
 // send-video-ready — Medida 6 do PLANO-SEMANA-2026-08-03 (Bloco B, gerar→baixar).
@@ -201,6 +202,34 @@ ${pk.pinnedComment}` : ''}
 </div>`
     : ''
 
+  // ═══ KINEO-CONSENTIMENTO-DE-PARTILHA-2026-09-06 (#27) ════════════════════
+  // Até hoje este e-mail dizia, duas vezes, "your video is private by default"
+  // e parava aí: a única forma de mostrar o filme a alguém era mandar o MP4
+  // por anexo. O pacote acima já escreve o anúncio da casa ("made with
+  // usekineo.com") — faltava a vitrine onde pendurá-lo.
+  // O link publica UM filme, o dele, com o consentimento carimbado no banco; o
+  // segundo link despublica. Sem segredo no ambiente, `sharePublishHref` é
+  // null e o e-mail sai byte a byte como saía antes desta peça.
+  const shareHref = video.id ? publishHref(video.id, APP_URL, 'video_ready_email') : null
+  const shareUndoHref = video.id ? unpublishHref(video.id, APP_URL, 'video_ready_email') : null
+  const shareText = shareHref
+    ? `
+── SHARE IT ──
+Want a link you can send to anyone (or post)? This makes a public page for this
+one video, with the player on it: ${shareHref}
+Changed your mind? One click puts it back to private: ${shareUndoHref}
+──────────────
+`
+    : ''
+  const shareHtml = shareHref
+    ? `<div style="border:1px solid #e6e8ec;border-radius:12px;padding:16px;margin:0 0 16px;">
+  <p style="margin:0 0 8px;font-weight:bold;font-size:15px;">Want a link instead of a file? 🔗</p>
+  <p style="margin:0 0 14px;color:#475569;font-size:14px;">One click makes a public page for <em>this one video</em> &mdash; a real link you can text, post, or put in a bio. Nothing else in your library changes.</p>
+  <p style="margin:0 0 10px;"><a href="${shareHref}" style="display:inline-block;background:#111;color:#ffffff;text-decoration:none;font-weight:bold;font-size:14px;padding:10px 22px;border-radius:10px;">Create my shareable link &rarr;</a></p>
+  <p style="margin:0;font-size:12px;color:#8a8a8a;">Changed your mind? <a href="${shareUndoHref}" style="color:#8a8a8a;">Make it private again</a> &mdash; also one click.</p>
+</div>`
+    : ''
+
   const text = `Hey,
 
 ${headlineText}
@@ -208,7 +237,7 @@ ${headlineText}
 Watch it and grab the download here: ${url}
 
 Your video is private by default. Download the MP4 if you want to send it directly.
-${packText}
+${shareText}${packText}
 ${closingText}
 
 Kineo Team
@@ -224,6 +253,7 @@ usekineo.com`
   ${thumbHtml}
   <p style="margin:0 0 24px;"><a href="${url}" style="display:inline-block;background:#2997ff;color:#ffffff;text-decoration:none;font-weight:bold;font-size:15px;padding:12px 26px;border-radius:10px;">${ctx.sawIt ? 'Download the MP4' : 'Watch &amp; download'} &rarr;</a></p>
   <p style="margin:0 0 14px;color:#475569;font-size:14px;">Your video is private by default. Download the MP4 if you want to send it directly.</p>
+  ${shareHtml}
   ${packHtml}
   <!-- rodapé do #24 foi desenhado para fundo escuro (strong em #fff): cartão escuro aqui, senão o saldo some no branco -->
   <div style="background:#161618;color:#fff;padding:4px 20px 20px;border-radius:12px;margin:0 0 14px">${ctx.footer.html}</div>

@@ -631,15 +631,40 @@ export type PublicVideoResult =
 const PGRST_NO_ROWS = 'PGRST116'
 
 export async function getPublicVideoResult(id: string): Promise<PublicVideoResult> {
-  // P0 PRIVACY CONTAINMENT (2026-08-27): a completed render has no versioned,
-  // auditable publication consent. Fail before creating the service-role client.
-  if (!CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED) return { status: 'missing' }
   // Reject anything that is not a UUID before touching the database.
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
     return { status: 'missing' }
   }
   const admin = adminClient()
   if (!admin) return { status: 'unavailable' }
+  // ═══ KINEO-CONSENTIMENTO-DE-PARTILHA-2026-09-06 (#27) ═════════════════════
+  // A contenção de 27/08 continua valendo por inteiro: `completed` NUNCA
+  // significa "publicado". O que mudou é que agora existe o campo que faltava
+  // — `videos.published_at`, carimbado só pela rota /api/video/publish, com
+  // token do dono e um filme por clique. Com a trava global em `false`, uma
+  // linha SEM carimbo é invisível exatamente como era antes desta peça; com a
+  // trava em `true`, o comportamento antigo (tudo visível) volta inteiro.
+  // Consulta separada e mínima de propósito: a lista de colunas públicas
+  // abaixo é uma allow-list auditada e não deve crescer para carregar um
+  // campo que só serve de porteiro.
+  if (!CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED) {
+    try {
+      const { data: consent, error: consentErr } = await admin
+        .from('videos')
+        .select('published_at')
+        .eq('id', id)
+        .single()
+      if (consentErr) {
+        return { status: consentErr.code === PGRST_NO_ROWS ? 'missing' : 'unavailable' }
+      }
+      // Falha FECHADA: sem carimbo de consentimento, a página não existe.
+      if (!consent || !(consent as { published_at: string | null }).published_at) {
+        return { status: 'missing' }
+      }
+    } catch {
+      return { status: 'unavailable' }
+    }
+  }
   try {
     const { data, error } = await admin
       .from('videos')
