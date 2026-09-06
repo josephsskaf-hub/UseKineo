@@ -3997,3 +3997,103 @@ não é uma taxa — é uma anedota. Mas é uma anedota que terminou em dois fil
 numa visita à página de preços, que é exatamente o que a peça prometia fazer.
 
 **PARADA.** Janela encerrada; nada mais entra sem ordem nova.
+
+---
+
+### ADENDO DE LIMITE — 09:09 BRT (12:09 UTC), depois do sino
+
+Este bloco é escrito **no relógio real do término** (a janela fecha 09:08 BRT
+= 12:08 UTC; o último evento do banco é 12:08:50). Ele não abre trabalho novo:
+mede o que os **últimos 6 minutos** — entre o adendo final das 09:03 e o sino —
+fizeram com o placar. Memória `fechamento-cedo-conferir-relogio`, aplicada uma
+terceira vez no mesmo ciclo. E ela pagou de novo.
+
+#### 1. UMA FRASE DO FECHAMENTO ESTAVA ERRADA, e a correção é a favor
+
+O fechamento das 08:24 disse, em negrito: *"O degrau que matou a noite é o
+1 → 2: ele foi ZERO. Não houve segundo filme nenhum em 8 horas."*
+
+**No relógio real, não foi zero.** Placar por pessoa, marco 04:00 UTC, contas
+externas, medido às 12:08:50:
+
+| fonte | cadastros | filme 1 | filme 2 | filme 3 | filmes | checkout | **pagou** |
+|---|---|---|---|---|---|---|---|
+| chatgpt | 8 | 6 | **1** | **1** | 8 | 0 | **0** |
+| seo | 1 | 1 | 0 | 0 | 1 | 1 | **0** |
+| taaft | 1 | 1 | 0 | 0 | 1 | 0 | **0** |
+| sem fonte | 1 | 1 | 0 | 0 | 1 | 0 | **0** |
+| nav | 1 | 0 | 0 | 0 | 0 | 0 | **0** |
+| **total** | **12** | **9** | **1** | **1** | **11** | **1** | **0** |
+
+*(Predicado, para quem for remedir: `profiles.created_at > marco`, e-mail do
+fundador fora; filme = linha em `videos` com `status='completed'` e
+`created_at > marco`; fonte = `signup_utm_source`, com `utm_source` de reserva.)*
+
+**A ÚNICA pessoa das 12 que atravessou o degrau 1 → 2 é a única que viu e
+apertou o cartão novo.** `e8e8c415`, chatgpt, 3 filmes: um pago com o saldo
+cheio, e **dois depois do clique em `continue_cheaper`**. As outras 8 que
+fizeram filme pararam no primeiro, e nenhuma delas clicou.
+
+Isto é **n=1**. Não é taxa, não é prova, e eu não vou vestir de prova — foi o
+erro que quase cometi três vezes esta noite. Mas é a assinatura exata que a
+peça foi construída para deixar, e ela apareceu na primeira pessoa que
+encontrou a peça funcionando. O degrau 1 → 2 do ciclo é **1 de 9**, e o 1 tem
+nome, hora e rastro.
+
+#### 2. E O DINHEIRO CONTINUA ZERO — conferido no sino
+
+| medida | valor |
+|---|---|
+| `payment_success` desde o marco | **0** |
+| `payment_success` nos últimos 20 min | **0** |
+| checkout desde o marco | 1 |
+| último evento do banco | 12:08:50 UTC |
+| home / pricing | **200 / 200** |
+
+**0 assinaturas.** O número que manda não mudou em 8 horas, e é o resultado do
+ciclo. A pessoa que fez 3 filmes **abriu a página de preços sozinha às 11:55 e
+não comprou** — o degrau que o CLAUDE.md já fechou como sendo **preço**, e que
+é decisão do fundador.
+
+#### 3. OS ÚLTIMOS 6 MINUTOS, e por que eles importam pouco e muito
+
+Entre 12:03 e 12:08 entraram **2 filmes de 2 pessoas novas** (`726cebd0`,
+chatgpt, 12:06:18; e a outra na mesma janela). As duas receberam
+`next_action_card_shown`, as duas tiveram `next_episode_written` +
+`next_episode_ready` — ou seja, **as peças do ciclo estão de pé e disparando em
+gente que chegou depois de tudo publicado**. Nenhuma das duas clicou ainda, e
+nenhuma teve tempo de clicar.
+
+Importa pouco para o placar: 0 assinaturas segue 0. Importa muito para a
+leitura: a máquina que a noite construiu **não está inerte** — ela é servida,
+montada e carimbada em cada pessoa nova que aparece.
+
+#### 4. CHECAGEM ZERO NO SINO — limpa, e sem novidade
+
+| checagem | resultado |
+|---|---|
+| cadastro sem crédito | **0** |
+| `completed` sem `video_url` | **0** |
+| render preso >30 min | **0** |
+| `next_episode_failed` | **0** |
+| `compose_not_ok` | **0** |
+| `generation_stage_error` | **3** — os mesmos 3 já dissecados, nenhum novo |
+
+Os 3 são os já nomeados no fechamento e no checkpoint 2: **2 são a régua de
+duração recusando um roteiro curto** (produto funcionando, mensagem acionável)
+e **1 é um `TypeError` numa segunda tentativa, 3 minutos depois de um filme
+entregue com sucesso** (a pessoa tem filme). **Nenhum defeito novo entrou nos
+últimos 6 minutos.** Fila **0**, `origin/main` = ponta, home 200.
+
+#### 5. O QUE ISTO DEIXA PARA A PRÓXIMA SESSÃO
+
+A pendência de uma linha do checkpoint 2 **continua sendo a coisa mais valiosa
+do ciclo**, e agora ela tem mais peso, não menos: `lib/seriesContinuation.ts:275`
+devolve o literal `/studio` como se fosse link válido, e por isso o
+`?? hrefBarato` de `app/api/next-action/route.ts:519` nunca cai para o
+compositor. A pessoa que clicou **caiu na home do studio** e mesmo assim
+conseguiu fazer 2 filmes — ela se salvou sozinha. **A próxima pode não se
+salvar.** Consertar isso é transformar 1 de 9 no piso, não no teto.
+
+**PARADA DEFINITIVA.** Janela encerrada às 09:08; este bloco é o registro do
+sino. Nada mais entra sem ordem nova do fundador.
