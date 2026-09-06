@@ -1,4 +1,4 @@
-// Offline proposal renderer: stdout only. Production baseline from origin/main;
+// Offline proposal renderer: stdout only. Immutable pre-redesign baseline;
 // proposed order is a React-tree transformation, NOT a runtime patch.
 import fs from 'node:fs'
 import path from 'node:path'
@@ -11,7 +11,10 @@ const ts = require('typescript')
 const { renderToStaticMarkup } = require('react-dom/server')
 const root = path.resolve(import.meta.dirname, '..')
 const entry = 'app/(dashboard)/studio/StudioClient.tsx'
-const baseline = execFileSync('git', ['show', 'origin/main:' + entry], { cwd: root, encoding: 'utf8' })
+// origin/main now contains the redesign. Transforming that layout a second
+// time broke the harness after publication. Runtime still loads current code.
+const BASELINE_SHA = 'b80de68cd12cbcb7e65a573672e90801c2986e4d'
+const baseline = execFileSync('git', ['show', BASELINE_SHA + ':' + entry], { cwd: root, encoding: 'utf8' })
 const cache = new Map()
 // Fixture state is keyed by real useState declarations, never a guessed index.
 // This is an offline render only: effects and setters are not executed.
@@ -48,7 +51,10 @@ function load(file) {
   cache.set(file, module.exports)
   return module.exports
 }
-function elements(node) { return React.Children.toArray(node.props.children).filter(React.isValidElement) }
+function elements(node) {
+  if (!React.isValidElement(node)) throw new Error('Missing baseline element; verify pinned pre-redesign commit')
+  return React.Children.toArray(node.props.children).filter(React.isValidElement)
+}
 export function buildStudioHierarchyProposal(states = {}) {
 runtimeMode = false
 cache.clear()
@@ -118,6 +124,6 @@ const after = renderToStaticMarkup(proposed)
 for (const html of [before, after]) {
   if (/<(?:script|iframe|video|img)\b/i.test(html)) throw new Error('Unexpected active/media content')
 }
-const facts = { baseline: execFileSync('git', ['rev-parse', 'origin/main'], { cwd: root, encoding: 'utf8' }).trim(), beforeOrder: ['engine', 'format', 'reference', 'cost', 'idea', 'camera', 'steps'], afterOrder: ['idea', 'engine', 'format', 'optional camera/reference', 'cost', 'optional steps'], runtimeEdited: false, state: 'default initial Studio, empty input, unknown balance, external account' }
+const facts = { baseline: BASELINE_SHA, beforeOrder: ['engine', 'format', 'reference', 'cost', 'idea', 'camera', 'steps'], afterOrder: ['idea', 'engine', 'format', 'optional camera/reference', 'cost', 'optional steps'], runtimeEdited: false, state: 'default initial Studio, empty input, unknown balance, external account' }
 console.log(JSON.stringify({ before, after, facts }))
 }
