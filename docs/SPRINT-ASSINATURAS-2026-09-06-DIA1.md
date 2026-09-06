@@ -2308,3 +2308,75 @@ Fica achado, medido e com o conserto escrito. É a primeira coisa das 17:08 — 
 
 O resto está sadio: 41 filmes em 24h, todos concluídos, nada preso, ninguém sem
 crédito. Pagamentos hoje continuam em **zero**, com 1 checkout em 24 horas.
+
+---
+
+## 🤝 NOTA DE ATRIBUIÇÃO E ENTREGA — 17:20 BRT (sessão que fez #17→#25)
+
+**Duas sessões correram nesta pista hoje.** Eu fiz de **#17 a #25**; outra
+sessão pegou a partir de **#26** (às 13:30 BRT) e seguiu até **#30b**. Ela
+executou, inclusive, a pendência que eu deixei escrita no PEDIDOS às 13:2x —
+a supressão de 24h passar a ler `events` — e usou a temporada que a #18/#19
+construiu para montar a faixa na tela (#30). O sistema funcionou como devia:
+o que ficou escrito virou trabalho da outra ponta.
+
+**Escrevo esta nota em vez de um FECHAMENTO** para não haver dois fechamentos
+concorrentes no mesmo diário. Quem estiver de pé às 19:08 escreve o do dia; o
+que segue é só a minha metade, medida.
+
+### O QUE EU ENTREGUEI (todas em produção, SHA provado)
+
+| # | o que muda para o cliente | SHA |
+|---|---|---|
+| 17 | o link de série sabe dizer "não tenho" — a saída barata volta a existir | `8d3c6061` |
+| 18 | a **temporada**: a casa escreve os episódios 2 a 6 da série da pessoa | `8c73b24b` |
+| 19 | a **carta da temporada** para quem parou no filme 1 **com** saldo | `9dff7db3` |
+| 19b | o carimbo de pulo deixa de silenciar a coorte (2 → 21 elegíveis) | `e71edb30` |
+| 19c | o escritor pede 6 episódios para entregar 5 (título repetido não mata) | `fbda4c0e` |
+| 19e | a carta parava de mandar quem tem conta para o formulário de criar conta | `ee01b81e` |
+| 20 | **pacote de publicação** em todo filme entregue | `8162695a` |
+| 20b | e o crédito da casa **não** entra no filme de quem paga | `1f74e9e6` |
+| 21 | o nudge de maior alcance entrega **3 episódios**, não um campo em branco | `6f46ebcd` |
+| 22 | a porta de servidor do pacote, para a tela (PEDIDO ao Codex) | `557f68e2` |
+| 23 | o plano vira **"o resto da sua temporada"** na carta de quem está sem saldo | `1ef575ff` |
+| 23b | e essa carta sai de **11 para 43** pessoas (mesmo carimbo de pulo) | `f0fea5ae` |
+| 23c | teto de 10s na escrita em lote, para o cron não morrer no meio | `c5a6a56e` |
+| 24 | a carta da parede também passa pela porta contada | `6eed4b8b` |
+| 25 | cada carta ganha a própria fonte de clique (medição separada) | `81696275` |
+
+**302 verificações de guardião verdes**, `tsc` limpo na árvore combinada com o
+lote do Codex.
+
+### O QUE EU DISPAREI, E O RESULTADO SEM MAQUIAGEM
+
+| carta | enviadas | tempo no ar | cliques | filmes | pagamentos |
+|---|---|---|---|---|---|
+| temporada (12:45 BRT) | **11** | 4 h 24 min | **0** | **0** | **0** |
+| parede + temporada (17:00 BRT) | **16** | 9 min | 0 | 0 | 0 |
+
+**27 pessoas alcançadas, zero resposta até agora.** As 16 da parede têm 9
+minutos de vida e não provam nada. As 11 da temporada têm 4h24 — esse zero é
+pequeno, mas é real, e conta.
+
+Das 22 elegíveis da temporada, 11 receberam; as outras 11 **não se perderam**:
+8 estavam retidas pela supressão de 24h e 3 sem temporada — e nenhuma foi
+carimbada, então voltam ao próximo lote. O lote das 16:45 mandou 0 justamente
+porque as remanescentes ainda estavam dentro da janela de 24h.
+
+Do lote da parede: **9 das 16 saíram com a temporada dentro** (Ep3–Ep6 e o
+plano como o que destrava). As outras 7 saíram no corpo antigo — que é a falha
+aberta funcionando, não um defeito.
+
+### O QUE EU DEIXO PARA QUEM CONTINUAR
+
+1. **O achado do TAAFT** (mais acima neste diário): 296 cadastros/30d, 41
+   checkouts, **zero** pagamentos, contra 40 checkouts e 3 pagamentos do
+   chatgpt. Não é público errado — é a maior coisa inexplicada do negócio, e a
+   resposta só existe no painel da Stripe.
+2. **A aritmética da meta**: ~30 cadastros/dia a 0,87% dá ~0,3 pagante/dia.
+   10/dia com conversão 5× melhor exigiria ~230 cadastros/dia. **A meta é de
+   aquisição.**
+3. **O pacote de publicação ainda não alcançou ninguém** (`publish_pack_written`
+   = 0): ele está pendurado no e-mail de 4 pessoas/semana, e a porta para a
+   tela (`/api/publish-pack`) está pronta e provada, esperando a montagem do
+   Codex — PEDIDO já escrito com o contrato inteiro.
