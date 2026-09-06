@@ -73,3 +73,17 @@ VALIDADO EM PREVIEW (06/09): PR #47, 6e30c986, deploy dpl_F5WihGfGd7B93GdjSBJbxr
 ## Abrangencia real e proxima etapa
 
 O inventario de 124 arquivos de pagina de 05/09 NAO foi convertido em "124 paginas prontas". As oito familias registradas em INVENTARIO-PAGINAS-UX-2026-09-05 foram atualizadas com evidencia individual. Permanecem: formularios de login/cadastro/recuperacao e conta; corpo detalhado de History/My Videos; ferramentas filhas; campanhas e modais comerciais em coordenacao com Claude; B2B/parceiros; editorial/SEO; suporte/legal; admin por ultimo. O gerador de processamento nao e silenciosamente reescrito para traduzir a interface. Sem nova aprovacao visual necessaria, mas cada familia exige os mesmos gates antes de publicar. Nenhuma promessa de site 100% espanhol ou reforma integral encerrada.
+
+## Checkpoint de merge do lote 3 — 06/09
+
+IMPLEMENTADO NA MAIN: 70dccb9e10d248637275c434d6015ca430af5389, PR #47. Guardiao 34060345532 success; preview final dpl_E9qSgNJeb9AZMS4BLgN3cSy1Dnqh READY, rotulos finais de upload e geracao Avatar confirmados no Chrome. Main anterior d8889f6c ancestral; push fast-forward, sem fila paralela e sem force. Deploy de producao em validacao neste checkpoint.
+
+QUESTAO PENDENTE / NAO REGRESSAO DEMONSTRADA: console Chrome reportou React #425/#418/#423 no Avatar do preview final (21:14 UTC). Controles e pagina continuam funcionando. Controles de comparacao repetiram a MESMA sequencia no deploy d8889f6c (21:16:17 UTC) e no preview 54bfdc48, anterior ao idioma (21:16:59 UTC). Navegador integrado no preview 6e30c986: nenhum erro capturado. Causa nao determinada; nao atribuir ao espanhol nem declarar zero erros globais. Nenhum suppressHydrationWarning ou alteracao de render/backend para esconder isso. Diagnostico do navegador foi separado da aprovacao dos contratos de texto, que passaram. A skill investigation-mode guiou a comparacao de logs/versoes e a pausa temporaria do merge.
+
+FATO CONFIRMADO: home usa HOME_PRESENTATION_CSS em app/KineoLanding.tsx:837 e introducao em :1005; biblioteca usa toolbar em LibraryClient.tsx:163; rodape nativo Footer.tsx:233. Sao alteracoes nos chamadores, nao bibliotecas orfas. Todos os testes de geracao desta entrega foram offline; zero geracao paga ou compra iniciada.
+
+## Validacao final do codigo publicado — 06/09, 18:22 BRT
+
+VALIDADO EM PRODUCAO: 70dccb9e, dpl_7TJQh8V47B29F3GtoqkEMXsjwNTj READY (target production). Chrome na sessao do fundador, www.usekineo.com/avatar: mudar a interface para es exibe "Tu rostro. Tu guion. Un video", "Subir otra foto", "Generar mi video de avatar" (acentos presentes no site); preview display:flex. Restaurado English depois da verificacao. Nenhum campo do projeto editado, consentimento marcado, upload, voz, geracao ou compra acionado. Preferencia de viewport temporaria resetada nos dois navegadores. PRs #45, #46 e #47 representam as tres entregas; nao ha runtime local aguardando merge.
+
+Apenas este relato de fechamento acompanha um commit documental posterior. O codigo de producao validado e 70dccb9e; nao confundir deploy de documentacao com funcionalidade nova. Reforma integral segue ABERTA nas familias pendentes explicitadas acima. Proximo lote util: autenticação/conta e ferramentas filhas, mantendo contratos de login, pagamento e uso intactos, sem renovar automacao ou exigir nova aprovacao visual.
