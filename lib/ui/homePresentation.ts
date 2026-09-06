@@ -46,6 +46,6 @@ export const HOME_PRESENTATION_CSS = `
  .klp .qa summary h3 { font-size:14px; }
  .klp .tcard { padding:20px; }
 }
-@media(max-width:400px) { .klp .nav-in { padding-inline:12px; } }
-@media(max-width:350px) { .klp .nav-in .logo .mk { display:none; } }
+@media(max-width:400px) { .klp .nav-in { padding-inline:12px; } .klp .nav-in .logo .mk { display:none; } }
+@media(max-width:350px) { .klp .nav-right > .btn { padding:8px !important; font-size:11px !important; } .klp .nav-right .kineo-interface-language { max-width:80px !important; } }
 `
