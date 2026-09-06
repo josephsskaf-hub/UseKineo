@@ -15,8 +15,7 @@ function waitMedia(video: HTMLVideoElement, event: string, signal: AbortSignal, 
   })
 }
 
-export async function readClip(file: File, signal: AbortSignal): Promise<ClipInfo> {
-  if (!file.size || file.size > MAX_FILE_BYTES) throw new Error('file_limits')
+async function decodeInfo(file: Blob, signal: AbortSignal): Promise<ClipInfo> {
   const url = URL.createObjectURL(file), video = document.createElement('video')
   video.preload = 'auto'; video.muted = true; video.playsInline = true; video.src = url
   try {
@@ -24,9 +23,16 @@ export async function readClip(file: File, signal: AbortSignal): Promise<ClipInf
     // Some locally recorded WebM files do not carry a duration header. Let the decoder locate the end.
     if (video.duration === Infinity) { video.currentTime = 1e7; await waitMedia(video, 'durationchange', signal, () => Number.isFinite(video.duration)) }
     const info = { duration: video.duration, width: video.videoWidth, height: video.videoHeight }
-    if (!Number.isFinite(info.duration) || info.duration <= 0 || info.duration > MAX_CLIP_SECONDS || !info.width || !info.height) throw new Error('clip_limits')
+    if (!Number.isFinite(info.duration) || info.duration <= 0 || !info.width || !info.height) throw new Error('decode_failed')
     return info
   } finally { video.pause(); video.removeAttribute('src'); video.load(); URL.revokeObjectURL(url) }
+}
+
+export async function readClip(file: File, signal: AbortSignal): Promise<ClipInfo> {
+  if (!file.size || file.size > MAX_FILE_BYTES) throw new Error('file_limits')
+  const info = await decodeInfo(file, signal)
+  if (info.duration > MAX_CLIP_SECONDS || info.width > 8192 || info.height > 8192) throw new Error('clip_limits')
+  return info
 }
 
 /** Same canvas drawing is used in the live preview and in the downloaded file. */
@@ -121,6 +127,11 @@ export async function exportClip(file: File, info: ClipInfo, settings: EditSetti
       }, () => stop(new Error('play_failed'))) } catch { stop(new Error('export_failed')) }
       if (signal.aborted) abort()
     })
+    // A recording can stop without producing the selected duration (especially
+    // silent/static canvas clips). Decode the actual output, never label that a success.
+    const verified = await decodeInfo(result, signal)
+    const expectedSeconds = (settings.end - settings.start) / settings.speed
+    if (Math.abs(verified.duration - expectedSeconds) > Math.max(.18, expectedSeconds * .03) || verified.width !== size.width || verified.height !== size.height) throw new Error('export_incomplete')
     progress(100)
     return result
   } finally {

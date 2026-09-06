@@ -19,6 +19,7 @@ const ERRORS: Record<string, [string, string]> = {
   play_failed: ['The browser blocked playback. Try exporting again from this tab.', 'El navegador bloqueó la reproducción. Vuelve a exportar desde esta pestaña.'],
   cancelled: ['Cancelled. Your original file is unchanged.', 'Cancelado. Tu archivo original no cambia.'],
   export_failed: ['Could not finish this export. Try a shorter clip or another supported browser.', 'No se pudo terminar la exportación. Prueba un clip más corto u otro navegador compatible.'],
+  export_incomplete: ['The browser produced an incomplete file, so we did not offer it for download. Try again with this tab visible, or use desktop Chrome.', 'El navegador produjo un archivo incompleto y no lo ofrecemos para descargar. Vuelve a intentar con esta pestaña visible o usa Chrome de escritorio.'],
 }
 
 export default function VideoEditor({ initialTool }: { initialTool: EditingTool }) {
