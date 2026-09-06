@@ -57,6 +57,14 @@ for (const [nome, re] of TRAVAS) {
   // e a mesma trava tem de continuar existindo na irma (nao afrouxei nada la)
   check(`A. ${nome} — a irma tambem continua com ela`, re.test(irma))
 }
+// -- A DISTINCAO QUE VALE A CAMPANHA INTEIRA -----------------------------
+// Carimbo de PULO nao e carimbo de ENVIO. Se alguem "simplificar" isto de
+// volta para a comparacao com null (que e o que as irmas fazem), esta carta
+// volta a silenciar 30 das 36 pessoas da coorte — e ficaria VERDE sem esta
+// trava, porque o STAMP_DATES.some( continua no arquivo nos dois casos.
+check('A. a exclusao por data usa isRealSendStamp, nao comparacao com null', /isRealSendStamp\(/.test(carta) && !/STAMP_DATES\.some\(\(c\) => raw\[c\] != null\)/.test(carta))
+check('A. data ilegivel erra para o lado seguro (conta como envio)', /!Number\.isFinite\(t\) \|\| isRealSendStamp\(t\)/.test(carta))
+check('A. o leitor vem da lib da casa, nao de um piso redigitado aqui', /from '@\/lib\/lifecycle\/skipStamp'/.test(carta) && !/2020-01-01/.test(carta))
 check('A. teto de 30 por chamada', /Math\.min\(limiteParam, 30\)/.test(carta))
 check('A. so admin da casa ou o cron entram', /ADMIN_EMAILS\.has\(/.test(carta) && /autorizadoPorCron\(req\)/.test(carta))
 check('A. cron FAIL-CLOSED: sem a env, ninguem entra', /if \(!cronSecret\) return false/.test(carta))

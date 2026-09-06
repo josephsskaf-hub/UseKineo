@@ -46,6 +46,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
+import { isRealSendStamp } from '@/lib/lifecycle/skipStamp'
 import { pickMomentumTopic } from '@/lib/momentumTopic'
 import { composerUrl } from '@/lib/lifecycle/composerUrl'
 import { creditCostForDuration, type Quality } from '@/lib/credits/engineCost'
@@ -328,7 +329,40 @@ export async function GET(req: NextRequest) {
 
       if (jaEmailado.has(id)) continue
       if (STAMP_COLUMNS.some((c) => raw[c] === true)) continue
-      if (STAMP_DATES.some((c) => raw[c] != null)) continue
+      // ⚠️ CARIMBO DE PULO NÃO É CARIMBO DE ENVIO — e o dry-run desta rotação
+      // provou que a diferença vale a campanha inteira.
+      //
+      // As irmãs excluem com `raw[c] != null`. Contra ESTA coorte isso
+      // derruba **30 das 36** pessoas, e por um motivo que é quase engraçado
+      // de tão circular: o carimbo que derruba é `activation_nudge_sent_at`
+      // com o valor `1970-01-01` — o `LIFECYCLE_SKIP_STAMP`, que o
+      // `send-activation-nudge` grava quando PULA alguém porque **a pessoa já
+      // fez um vídeo**. Esta carta é dirigida exatamente a quem já fez um
+      // vídeo. Lido como "já recebeu carta", o sentinela silenciaria a coorte
+      // inteira por definição.
+      //
+      // Não é afrouxamento: a regra é "não escrever para quem JÁ RECEBEU uma
+      // carta", e a época significa que nenhuma carta saiu. `isRealSendStamp`
+      // é o leitor que a própria casa escreveu para esta distinção
+      // (lib/lifecycle/skipStamp.ts, KINEO-SKIP-STAMP-2026-08-05) e que a
+      // supressão de 24h já usa; as listas de campanha é que nunca o adotaram.
+      //
+      // Na base inteira: 1.285 perfis têm valor nesta família de colunas e
+      // **623 deles são a época** — 35% de toda a base está silenciado para
+      // toda campanha da casa por carimbos que não registram envio nenhum.
+      // O que fazer com as IRMÃS está no PEDIDOS: mexer na coorte de campanha
+      // viva, no meio do dia, é decisão que precisa do número na mão primeiro.
+      if (
+        STAMP_DATES.some((c) => {
+          const v = raw[c]
+          if (v == null) return false
+          const t = Date.parse(String(v))
+          // Data ilegível conta como envio: na dúvida, NÃO escrever.
+          return !Number.isFinite(t) || isRealSendStamp(t)
+        })
+      ) {
+        continue
+      }
       if (tocouCheckout.has(id)) continue
 
       candidatos.push({
