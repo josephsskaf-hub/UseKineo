@@ -239,3 +239,119 @@ que o plano compra. É a única peça que alcança as 64 hoje — elas não volt
 sozinhas e não são público de campanha nenhuma. Dry-run nominal no diário antes
 do disparo.
 
+
+---
+
+## ### #19 — 11:45 BRT — a carta da temporada, e o carimbo que quase a matou antes de sair
+
+### PRESS RELEASE (o que muda para o cliente)
+
+1. A maior coorte da casa — quem fez **um** filme, **ainda tem saldo** e nunca
+   esbarrou em nada — nunca recebeu carta nenhuma. Toda carta da casa fala de
+   crédito acabando, e **para essas pessoas isso é falso**.
+2. Elas passam a receber uma carta que **não pede nada**. O assunto é o nome do
+   **episódio 2** que a casa escreveu para aquela pessoa. O corpo é a temporada
+   inteira do filme que ela mesma fez.
+3. Um clique abre o compositor com o tema já dentro. Não é "volte e faça
+   outro" (pedido, formulário em branco); é "a sua temporada existe" (entrega).
+4. O rodapé diz quantos episódios o **saldo de hoje** paga — número real, do
+   motor que a pessoa usou — e que o plano cobre o resto.
+5. **"O resto da sua temporada"** em vez de "60 créditos". Preço público:
+   intocado; o guardião proíbe valor, plano, cupom e desconto dentro da carta.
+6. Disparo armado para **12:45 e 16:45 BRT**, 30 por vez, hoje — dentro da
+   janela, para dar tempo de medir antes das 19:08.
+
+### O QUE O DRY-RUN PEGOU — E É O ACHADO MAIS CARO DO DIA
+
+Não consigo autenticar como admin sem navegador (proibido no ciclo), então o
+dry-run nominal foi feito **replicando o predicado da rota em SQL contra as
+linhas reais** (memória `provar-leitura-sem-trafego`). O funil:
+
+| passo | pessoas |
+|---|---|
+| fez EXATAMENTE 1 filme (14d) | 163 |
+| e-mail utilizável, não pagante | 162 |
+| **saldo ainda paga outro filme** | 37 |
+| sem parede, sem checkout, sem campanha | 36 |
+| **carimbos de `profiles`** | **2** |
+
+**36 → 2.** A campanha inteira morria no último passo — e eu teria concluído
+"a coorte não existe" se tivesse armado o cron sem medir.
+
+**O culpado:** `activation_nudge_sent_at` em **30 das 36**, com o valor
+`1970-01-01`. Isso é o `LIFECYCLE_SKIP_STAMP` — o carimbo que
+`send-activation-nudge` grava quando **PULA** alguém, e a razão do pulo é
+literalmente *"a pessoa já fez um vídeo"*. Esta carta é dirigida **exatamente a
+quem já fez um vídeo**. Lido como "já recebeu carta", o sentinela silencia a
+coorte **por definição**.
+
+A casa **já tinha escrito o leitor certo** para isso: `isRealSendStamp`
+(`lib/lifecycle/skipStamp.ts`, KINEO-SKIP-STAMP-2026-08-05, que nasceu do
+mesmo defeito em agosto). A supressão de 24h usa. As listas de campanha nunca
+adotaram. Não é afrouxamento: a regra é "não escrever para quem **já recebeu**
+carta", e a época significa que **nenhuma carta saiu**. Data ilegível conta
+como envio — na dúvida, não escrever.
+
+**O tamanho disso na casa inteira:** 1.285 perfis têm valor nessa família de
+colunas e **623 são a época**. **35% da base está silenciado para toda campanha
+da casa por carimbos que não registram envio nenhum.**
+
+**Não mexi nas irmãs.** Alterar a coorte de campanha viva no meio do dia exige
+o número na mão primeiro — está no PEDIDOS com a medição.
+
+**Coorte depois do conserto: 21 elegíveis** (era 2), 10 do chatgpt, 11 com o
+filme feito nas últimas 48h, todas em Kineo 1, todas com saldo para **2 a 9**
+episódios.
+
+### O QUE MUDOU
+
+- `lib/temporadaServer.ts` (novo): o escritor sai da rota para ter **um dono**.
+  A coorte não está logada e o filme dela é anterior ao deploy de hoje —
+  ninguém tem temporada gravada, então a carta precisa saber escrever.
+- `app/api/admin/send-season-letter/route.ts` (novo): a campanha.
+- `app/api/season/route.ts`: passa a delegar no escritor único.
+- **Carimbo cruzado nas duas irmãs, no mesmo commit** — o aviso da #13 vale nos
+  dois sentidos, senão a mesma pessoa leva duas cartas no mesmo dia.
+- `vercel.json`: `45 15,19 * * *` UTC.
+
+**SHAs `9dff7db3` + `e71edb30`. EM PRODUÇÃO, provado no SHA:**
+`/api/admin/send-season-letter` foi **404 → 403** enquanto o controle irmão
+inexistente ficou em **404**.
+
+### TESTES
+
+`scripts/test-carta-temporada.mjs` — **60 verificações**. As 14 travas de
+segurança são verificadas **nesta rota E na irmã** (é assim que "esqueci uma"
+aparece). Seis mutantes mortos, incluindo o mais caro possível: **inverter o
+sinal da coorte** mandaria esta carta para quem **não** tem saldo — a lista
+mais quente da casa, carimbo vitalício, sem segunda chance.
+
+Somados no ciclo: **60 + 40 + 17 = 117 verificações verdes**, `tsc` limpo na
+árvore combinada com o lote do Codex.
+
+### DOIS ERROS MEUS NESTA ROTAÇÃO (registro, porque os dois quase passaram)
+
+1. **`git checkout` não restaura arquivo novo.** Rodei os mutantes num arquivo
+   ainda **não rastreado**: as restaurações falharam em silêncio e os mutantes
+   **empilharam** — cheguei a ter a coorte invertida, a supressão removida e um
+   preço digitado, tudo ao mesmo tempo. Pior: o mutante da **irmã** era num
+   arquivo rastreado, e o `git checkout` dela **reverteu junto o carimbo
+   cruzado que eu ainda não tinha commitado**. A memória
+   `falsificar-mutacao-commitar-antes` vale nos **dois** sentidos e eu só
+   conhecia um. Reparado ponto a ponto e provado pelas 60 verificações.
+2. **Um `splice` engoliu a verificação do dinheiro.** Ao mover as travas 25-29
+   para o arquivo novo, a 28 (proíbe débito/fal/render) foi junto — e o
+   guardião ficou **verde sem ela**. Foi pega relendo a lista de checks, não
+   pelo verde. Voltou mais forte: agora vale para os dois arquivos.
+
+### RISCO
+
+O disparo é automático às 12:45 BRT. Se a temporada não nascer para alguém, a
+carta **não sai** e a pessoa **não é carimbada** — continua elegível amanhã.
+Teto de 30. Custo do lote: ~21 chamadas de `gpt-4o-mini` ≈ **US$ 0,006**.
+
+### COMO MEDIR
+
+`season_letter_emailed_v1` → `episode_link_clicked` / `series_continue_clicked`
+→ linha em `videos` das **mesmas** pessoas em 24h → `payment_success`.
+Denominador é gente, não evento.
