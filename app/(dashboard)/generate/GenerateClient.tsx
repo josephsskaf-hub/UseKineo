@@ -9005,6 +9005,23 @@ export default function GenerateClient({
         const checkpointAttemptId = generationAttemptRef.current ?? fastGenerationId
         generationAttemptRef.current = checkpointAttemptId
         lastFastRenderRef.current = checkpointUnlockInputs
+        // sprint-assinaturas #10 (06/09) — O MESMO CHECKPOINT, DURAVEL NO
+        // SERVIDOR. Ate aqui o payload de compose existia SO no localStorage
+        // (linha abaixo): se a aba morresse entre "clipes prontos" e "compose
+        // enviado", o filme morria com ela e nenhum cron conseguia termina-lo —
+        // as fases 1-3 do finish-stranded-renders entram por claims escritos
+        // DEPOIS do compose. Medido em 7 dias: 9 pessoas ficaram exatamente
+        // assim (uma delas levada para /studio 9s depois do despacho).
+        // FORA do try do localStorage de proposito: quando o storage esta
+        // bloqueado o navegador nao consegue retomar nada, e e justamente ai
+        // que o servidor precisa ter a copia. Fire-and-forget: nao atrasa nem
+        // quebra a montagem que segue.
+        void fetch('/api/render-recovery', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ generationId: fastGenerationId, composePayload: checkpointComposePayload }),
+          keepalive: true,
+        }).catch(() => {})
         let checkpointPersisted = false
         if (currentUserIdRef.current) {
           try {

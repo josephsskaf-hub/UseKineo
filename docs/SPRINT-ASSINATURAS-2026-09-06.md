@@ -1073,3 +1073,124 @@ três e-mails que erravam a porta, com um destino só para nenhuma campanha futu
 errar de novo, e deixei um guardião que reprova quem tentar. Está em produção. O
 que sobrou para você é um clique: o winback de 25 créditos agora tem para onde
 levar as 264 pessoas que faltam.
+
+---
+
+### #10 — 03:10→03:2x BRT — HIPÓTESE ANTES DE CODAR: o filme fica PRONTO e nunca é montado, porque o único que sabe montá-lo é a aba que foi embora
+
+**O QUE EU MEDI ANTES DE ESCOLHER** (contas externas, descartáveis fora, 7 dias):
+89 pessoas despacharam um render · **21 não têm nenhum filme** · dessas, **2**
+foram tocadas pela rede de auto-cura (`finish-stranded-renders`) e **19 nunca
+foram tocadas por ela**. A rede não está quebrada — ela salvou 26 pessoas em 7
+dias (`stranded_composed` 27, `stranded_ready_sent` 40). Ela simplesmente **não
+enxerga** o estado onde essas 19 morreram.
+
+**ONDE ELAS MORREM, com nome de arquivo e linha.** `GenerateClient.tsx:7012`
+grava `generation_checkpoint_saved` no instante em que o Kineo 1 termina os
+clipes e o payload de compose está montado — script, legendas, duração, tópico,
+`clip_urls`. Esse payload vai para o **`localStorage`** e **só para lá**
+(`localStorage.setItem(activeRenderStorageKey(...))`, linha 7010). O servidor
+nunca fica sabendo. Se a aba morre entre "clipes prontos" e "compose enviado",
+**o filme morre com a aba** e nenhum cron consegue terminá-lo: a rede de resgate
+entra por `compose_submission_claim` (fase 3, escrita pelo `/api/compose`) ou
+pelo claim cinematográfico (fase 1) — e aqui **nenhum dos dois existe**, porque
+o compose nunca foi chamado.
+
+**O TAMANHO.** `generation_checkpoint_saved` sem compose, sem filme e sem rede:
+**10 checkpoints / 9 pessoas em 7 dias**; em 30 dias, **163 checkpoints / 95
+pessoas**. A mais recente é `adebotedaniel05` (06/09 02:12, fonte chatgpt) — a
+mesma pessoa que a #7 rastreou: o `chatgpt_quickstart_selected` a levou para
+`/studio` **9 segundos** depois do despacho e matou a página que segurava o
+payload.
+
+**HIPÓTESE.** Se o payload for **durável no servidor** no mesmo instante em que
+já é durável no navegador, a rede que já existe termina o filme sozinha — e a
+pessoa recebe o "Your video is ready 🎬" que a casa já manda hoje para os outros
+26. Sem copy nova, sem oferta nova, sem promessa nova.
+
+**O QUE EU NÃO VOU FAZER, e o motivo.** Não toco em `generate-video-fast`
+(Kineo 1 é intocável neste ciclo) nem em nada do pipeline de qualidade: o filme
+montado é **exatamente** o que o cliente montaria, o mesmo payload, o mesmo
+`/api/compose`. E não aceito payload de cliente sem validar: a casa construiu a
+cadeia de assinatura do claim justamente para não confiar no navegador.
+
+**PARADA (o que me faria abandonar).** Se o modo serviço do `/api/compose`
+pulasse a cobrança de crédito, eu não construiria — seria dar filme de graça por
+uma porta lateral. **Conferido antes de codar** (`compose/route.ts:440-486`): o
+modo serviço substitui **só o cookie**; custo por tier, recusa por saldo e claim
+assinado rodam idênticos com o `userId` informado.
+
+**COMO VOU MEDIR.** `fast_compose_recoverable` (payload durável) →
+`stranded_fast_finished` (a rede pegou) → `compose_submission_claim` →
+`stranded_fast_ready_sent` (a pessoa foi avisada). Hoje o primeiro é **0 por
+construção** e o denominador é **9 pessoas em 7 dias**.
+
+**ERRADO (medido).** 89 pessoas despacharam um render em 7 dias · **21 sem
+filme nenhum** · **19 dessas nunca foram tocadas** pelo `finish-stranded-renders`.
+O payload de compose do Kineo 1 só existia no `localStorage`.
+
+**E UM SEGUNDO DEFEITO, ACHADO NO CAMINHO E MAIOR DO QUE O PRIMEIRO.** O cron
+tinha um `return` cedo: `if (candidates.length === 0) return` — `candidates` são
+os claims **cinematográficos** settled da janela. Só que as **Fases 3 e 4 vêm
+depois desse return** e não dependem de claim cinematográfico nenhum. Ou seja:
+**o Kineo 1 — o motor mais usado da casa, 281 de 410 vídeos numa semana — só era
+resgatado quando, POR ACASO, existia um claim cinematográfico settled na mesma
+janela de 12min-20h.** Sem nenhum, a rodada inteira ia embora sem olhar um único
+render do caminho compose. Isso não é do meu código: estava lá desde 20/08,
+quando a Fase 3 nasceu e foi posta depois de uma saída antecipada que ninguém
+releu. Consertado no mesmo commit: a saída virou marcador (`noCinematicClaims`),
+o laço de cima já é um `for` sobre lista vazia, e as fases seguintes rodam
+SEMPRE. O `note` da resposta continua igual para quem lê o JSON.
+
+**MUDOU.**
+- `app/api/render-recovery/route.ts` (**novo**) — POST autenticado por cookie
+  que torna o payload durável. Reconstrói o payload **campo a campo**, nunca
+  repassa: só `quality:'fast'`, `clip_urls` https com host na lista
+  (Pixabay / nosso bucket / fal), teto de 24 clipes, duração 5-120s, narração
+  obrigatória, `generationId` forçado ao validado. Dono = **sempre** o usuário
+  do cookie; nenhum id do corpo é lido. Idempotente por geração.
+- `app/api/cron/finish-stranded-renders/route.ts` — **Fase 4** e a morte do
+  `return` cedo. A Fase 4 compõe pelo MESMO `/api/compose` no MESMO modo serviço
+  da Fase 1, com teto de 2 por rodada, teto de 2 tentativas por filme, marcador
+  gravado **antes** do compose e **fail-closed** (falhou o marcador, não compõe),
+  pula quem compôs sozinho e revalida o payload guardado antes de usá-lo.
+- `app/(dashboard)/generate/GenerateClient.tsx` — **uma chamada**
+  fire-and-forget ao lado do checkpoint que já existia. **Fora** do `try` do
+  localStorage de propósito: quando o storage está bloqueado o navegador não
+  consegue retomar nada, e é exatamente aí que o servidor precisa da cópia.
+
+**O QUE O CLIENTE PASSA A RECEBER.** O filme. Quem fecha a aba entre "clipes
+prontos" e "compose enviado" recebe, na rodada seguinte do cron, o mesmo
+`"Your video is ready 🎬"` que a casa já manda hoje para outros 26 por semana —
+porque a Fase 3 pega o `compose_submission_claim` que a Fase 4 acabou de criar.
+**Zero copy nova, zero oferta nova, zero promessa nova.** E o crédito é cobrado
+igual: o modo serviço substitui só o cookie.
+
+**TESTES.** `scripts/test-render-recovery-2026-09-06.mjs`, **44/44**, lendo os
+três arquivos reais. Falsificado com **7 mutantes, 7 pegos**: dono vindo do
+corpo · aceita qualquer motor · host de mídia livre · **some o marcador de
+tentativa** (a família que furou o guardião da #4 — aqui a existência é exigida
+ANTES da ordem, senão `indexOf` −1 aprova a remoção) · recompõe quem já compôs
+sozinho · **volta o `return` cedo** · chamada durável bloqueante.
+`npx tsc --noEmit` verde — e provado verde de verdade: uma sonda de tipo
+deliberada foi acusada antes de eu confiar no exit 0 (memória
+`worktree-tsc-node-modules`).
+
+**RISCO, e o que eu fiz com cada um.** (1) *Compor filme que a pessoa
+abandonou* — é a ordem do fundador de 18/08 ("o vídeo continua renderizando
+mesmo com a aba fechada"), já em produção para os outros motores; a Fase 4 só
+estende para o Kineo 1 o que a casa já faz. (2) *Porta lateral de privilégio* —
+o payload é reconstruído campo a campo e o pior que um portador de sessão
+consegue é agendar, para si e com o próprio saldo, um compose que ele já podia
+disparar sozinho. (3) *Laço de recomposição* — marcador antes, fail-closed, teto
+de 2. (4) *Custo de rodada* — teto de 2 composes na Fase 4, somados aos 3 da
+Fase 1 dentro dos mesmos 300s. **Nada do pipeline de qualidade foi tocado:** o
+filme montado é exatamente o que o cliente montaria, mesmo payload, mesmo motor,
+mesma régua. `generate-video-fast` não foi aberto.
+
+**COMO MEDIR (denominador: 9 pessoas em 7 dias).**
+`fast_compose_recoverable` (payload durável, hoje 0) → `stranded_recovery_attempt`
+→ `stranded_recovery_composed` → `compose_submission_claim` →
+`stranded_fast_ready_sent`. E o efeito colateral do segundo conserto, que é
+maior: `stranded_fast_ready_sent` por rodada **em rodadas sem claim
+cinematográfico** — hoje, por construção, **zero**.
