@@ -1852,3 +1852,29 @@ Preferir o trabalho manual à amputação mede o quanto a oferta é ruim — mas
 mede isso para duas pessoas, e a tela onde isso vive é lote aberto do Codex.
 
 Placar da noite: 4 cadastros, 1 filme, 1 checkout, **0 assinaturas**.
+
+---
+
+#### ADENDO AO CHECKPOINT DA #11 — 04:48 BRT — o item de vigia FECHOU BEM
+
+`fc28af0b` (iesfiefq@gmail.com, chatgpt) **recebeu o filme**: `videos` = 1,
+`status=completed`, `video_url` no nosso bucket, saldo 10. O render levou
+~9 minutos (despacho 07:38:38, filme em `videos` antes de 07:48). **Não é
+débito sem entrega** — os 15 créditos foram cobrados por entrega real.
+
+Isso corrige o placar desta rodada para melhor, e a linha do ChatGPT deixa de
+ser zero:
+
+| fonte | cadastros | filme 1 | filme 2 | checkout | **pagou** |
+|---|---|---|---|---|---|
+| chatgpt | 2 | **1** | 0 | 0 | **0** |
+| nav | 1 | 0 | 0 | 0 | **0** |
+| seo | 1 | 1 | 0 | 1 | **0** |
+| **total** | **4** | **2** | **0** | **1** | **0** |
+
+Fica um fato para a #12 usar: essa pessoa **cadastrou e recebeu o primeiro
+filme em 11 minutos** (07:37 → 07:48), vinda do ChatGPT, com `looks_pasted` e
+pedido de 60s atendido. É o caminho feliz do produto funcionando inteiro na
+madrugada — e o momento exato em que ela está mais quente. Ela agora tem 10
+créditos e o próximo Seedance custa 15: **é precisamente o "NÃO" que o cardápio
+N1 descreve**, com pessoa real, viva, nesta hora.
