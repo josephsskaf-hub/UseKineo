@@ -1247,3 +1247,63 @@ uma conclusão errada.
 
 **PLACAR:** 2 cadastros e 1 checkout desde o marco, **0 pagamentos**. Checagem
 zero limpa, 0 erros pós-deploy. Tráfego subiu (139 eventos em 50 min contra 12).
+
+**EM PRODUÇÃO — SHA `f1d1ef51` (código) + `d95d0a8f` (pedidos), `origin/main` =
+`d95d0a8f`.** Eu mesmo rodei o publicador (`SUBIU 2 ENTREGA(S)`).
+**Sonda com controle 404**, porque 405 sozinho não prova deploy nenhum:
+`GET /api/render-recovery` = **404 → 405** entre 06:25:07 e 06:25:54 UTC,
+enquanto `GET /api/render-recovery-controle-inexistente` = **404** nas duas
+medições. A virada 404→405 na mesma sonda é a prova do deploy, não a inferência.
+`POST` sem sessão = **401** — o portão de dono está de pé em produção.
+
+**PLACAR (pós-marco 2026-09-06 04:00 UTC).** 2 cadastros (`seo` 1, `nav` 1) ·
+1 filme · 1 checkout · **0 pagamentos**. Madrugada: nada nesta rotação ia render
+assinatura nas próximas horas, e é por isso que ela foi para o defeito que
+serve o tráfego da manhã.
+
+**CHECAGEM ZERO.** cadastro sem crédito **0** · render preso **0** ·
+`compose_refused` 24h **1** · `generation_stage_error` 24h **4** (as mesmas 4 já
+classificadas na #9 como recusa de negócio contada como erro) ·
+`next_episode_failed` 24h **11** — número idêntico ao da #9 e com o mesmo evento
+mais recente (**05/09 13:15**): **janela móvel congelada, rajada velha, não
+sangria** (memória `janela-movel-congelada`). Não reabrir sem evento novo.
+`fast_compose_recoverable` **0** e `next_action_card_shown` **0** — os dois
+totais, desde sempre, **0 por construção**: o primeiro subiu há minutos, o
+segundo depende de tráfego acordado.
+
+**PRÓXIMA JOGADA (#11).** Medir o conserto do `return` cedo **antes** de
+construir qualquer coisa nova, e ele é o mais barato de provar: contar
+`stranded_fast_ready_sent` por rodada do cron em rodadas **sem** claim
+cinematográfico settled na janela. Se o número passar de zero, o Kineo 1 ganhou
+resgate que nunca teve, e isso vale mais que qualquer tela — são filmes prontos
+sendo entregues a pessoas que hoje vão embora achando que o produto não
+funciona. Depois disso, e só depois, dar olhos ao `next_episode_failed`
+(gravar `reason` + `http_status`), que a #9 deixou como próxima e que segue
+válido, mas com denominador de 10 pessoas contra as 19 desta rotação.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+1. **Nada agora.** Os dois commits estão em produção; eu mesmo rodei o push e
+   confirmei o deploy com sonda de controle.
+2. **Continua de pé da #9:** disparar o `send-winback-25` para o próximo lote
+   quando acordar — é seu clique porque a rota concede crédito:
+   `/api/admin/send-winback-25?confirm=SEND&limit=60`
+
+### 📋 O QUE ACONTECEU
+
+Fui atrás das pessoas que apertam gerar e nunca recebem filme. São 21 em 7 dias,
+e descobri que 19 delas nunca foram sequer olhadas pela rede que a casa tem
+justamente para isso — a mesma rede que salvou 26 pessoas na mesma semana. O
+motivo tem duas metades. A primeira: quando o Kineo 1 termina os clipes, o filme
+inteiro fica montado **dentro da aba do navegador** e em lugar nenhum além dela;
+se a pessoa sai antes do último passo, o filme morre com a aba e nenhum robô
+nosso consegue terminá-lo. A segunda é pior e eu não estava procurando por ela:
+o robô de resgate tinha uma saída antecipada que o fazia **desistir da rodada
+inteira** quando não havia trabalho do tipo mais caro — então o motor mais usado
+da casa só era resgatado por acaso, quando por sorte havia um filme caro na
+mesma janela. Consertei as duas: agora o servidor guarda uma cópia do filme no
+mesmo instante em que o navegador guarda a dele, e o robô termina o que ficou
+pelo caminho e manda o mesmo "seu vídeo está pronto" que já manda hoje. Não
+inventei oferta, não mexi em preço, não toquei no motor: o filme montado é
+exatamente o que sairia se a pessoa tivesse ficado na tela. Está em produção,
+provado por sonda.
