@@ -2380,3 +2380,181 @@ aberta funcionando, não um defeito.
    = 0): ele está pendurado no e-mail de 4 pessoas/semana, e a porta para a
    tela (`/api/publish-pack`) está pronta e provada, esperando a montagem do
    Codex — PEDIDO já escrito com o contrato inteiro.
+
+---
+
+### #31 — 17:08 — o cadeado da temporada passou a perguntar "quantos cabem?", e a medição da própria entrega desmentiu o tamanho que eu tinha anunciado
+
+#### PRESS RELEASE
+
+Quem termina um filme e abre a faixa da temporada com saldo curto passa a ver,
+pela primeira vez, quais episódios o saldo dele paga e quais ficam atrás do
+plano — com o convite "Finish the season →" a apontar para /pricing. Antes, a
+tela pintava os cinco episódios como disponíveis para qualquer pessoa que
+tivesse saldo para UM, e a moldura que vende o plano não renderizava. O produto
+deixa de entregar um arquivo e passa a mostrar uma temporada com um degrau
+visível — e o degrau tem preço. É a peça que faltava para a faixa da #30 poder
+fazer dinheiro em vez de só informar.
+
+#### O ERRADO (medido)
+
+A única exposição real da faixa da #30 gravou, no próprio `season_shown`:
+
+```
+balance: 5 · episode_cost: 5 · episodes: 5 · affordable_episodes: 1 · locked: 0
+```
+
+`affordable_episodes: 1` e `locked: 0` na mesma linha do mesmo evento. Nenhum
+número estava digitado errado: as duas contas estão certas para perguntas
+diferentes. O `affordable` de cada episódio é **"cabe UM?"** (`custo <= saldo`,
+feita isoladamente cinco vezes — com `5<=5` os cinco dizem sim);
+`affordableEpisodes` é **"quantos cabem?"** (`floor(saldo/custo)` = 1). A tela
+derivava o cadeado da primeira, e a moldura inteira vive atrás de
+`bloqueados > 0`. Quem escolhia errado era a tela, não a conta.
+
+#### O QUE MUDOU
+
+- `lib/temporada.ts` ganha `acessoDaTemporada(total, affordableEpisodes)` —
+  pura, devolve `{liberados, bloqueados}` a partir da conta **acumulada**.
+  Custo desconhecido **não vira zero**: sem a conta, a faixa fica clicável
+  (clicar só carrega o roteiro, não cobra) e a moldura fica calada em vez de
+  inventar cadeado.
+- `components/video/SeasonStrip.tsx` tranca por **posição** (`i < liberados`),
+  e "Your balance covers N of these" lê o mesmo `liberados`.
+- `season_shown` passa a emitir `locked` da **mesma** conta que pinta a tela,
+  mais `offer_shown` — para que a divergência entre os dois números não possa
+  esconder-se outra vez dentro do evento que devia denunciá-la (memória
+  `duas-contas-certas-portao-escolhe-a-errada`).
+- `app/api/season/route.ts` **não muda**: as duas contas de lá estão certas.
+
+**SHA `877278ff` · EM PRODUÇÃO** — `git ls-remote origin main` = `877278ff`,
+fila `origin/main..entrega-atual` = 0, home 200, `POST /api/season` 401 com
+controle 404 na mesma medição.
+
+⚠ **A sonda honesta**: a mudança é de cliente, numa tela autenticada — não há
+como prová-la de fora (memória `entrega-so-de-cliente-nao-tem-sonda`). Por isso
+o instrumento subiu **no mesmo commit**: o próximo `season_shown` traz
+`offer_shown` e um `locked` que tem de bater com `episodes − affordable_episodes`.
+Enquanto esse evento não chegar, isto está **no ar mas não exercitado**.
+
+#### TESTES
+
+`scripts/test-season-lock.mjs` — **33 verificações que EXECUTAM a função real**
+(transpila o `.ts` e chama-a; não conta texto). Começa pelo caso medido hoje
+(5cr · 5 por episódio · 5 episódios → `bloqueados = 4`, moldura visível) e cobre
+saldo zero, trial inteiro, saldo maior que a temporada, custo desconhecido e
+faixa vazia. Falsificado por mutação **depois de commitar** (memória
+`falsificar-mutacao-commitar-antes`): três mutantes — a conta acumulada trocada
+pelo total, a tela de volta ao predicado por episódio, e "desconhecido vira
+zero" — e os três derrubam o guardião. `npx tsc --noEmit` verde.
+
+#### ⛔ A CORREÇÃO DO MEU PRÓPRIO NÚMERO — o conserto é real, o tamanho não era
+
+O checkpoint das 16:38 escreveu que a oferta estava desligada "para
+praticamente toda a gente". **Medi depois de publicar, e isso está errado.**
+Aplicando as duas contas — a antiga e a nova — às 72 pessoas que terminaram um
+filme nas últimas 72h, com o custo vindo de `creditCostForDuration` e não
+digitado:
+
+| | pessoas |
+|---|---|
+| terminaram um filme (72h) | **72** |
+| viam a oferta **antes** | 33 |
+| veem a oferta **depois** | 34 |
+| **ganhas pela correção** | **1** |
+| perdidas | 0 |
+| **sem oferta nenhuma, antes e depois** | **37** |
+
+O defeito só alcançava quem tem saldo **entre** um episódio e cinco — uma
+faixa estreita. Quem não paga nem um episódio (33 pessoas, saldo médio 10 e
+episódio de 25 no Seedance) **já via** a oferta, pelo caminho errado. O conserto
+está certo e fica; o que não se sustenta é a frase "quase toda a gente". Fica
+registado sem maquiagem: **entreguei um conserto de 1 pessoa em 72.**
+
+#### 🔎 O ACHADO QUE VALE MAIS QUE A ENTREGA — 37 das 72 (51%) não têm oferta nenhuma, e a faixa promete-lhes o que o portão recusa
+
+As 37 são a coorte **Kineo 1 em conta free**. Para elas
+`creditCostForDuration('fast', pago=false, 60s)` = **0 créditos** → a rota
+devolve `affordableEpisodes: null` → a faixa pinta os **cinco episódios como
+livres e disponíveis**, sem cadeado e sem oferta.
+
+Só que o cobrador free **não** cobra em créditos: cobra em **cota**. O free tier
+residual é `limit: 1` (`lib/freeTierOffer.ts:268`), e o Kineo 1 grátis é um por
+30 dias com corte de 15s. A faixa pergunta apenas *"o saldo paga?"* e **nunca**
+pergunta *"a cota permite?"*. Resultado: à maior coorte da casa — a mesma que o
+CLAUDE.md diz ser o motor de 100% das primeiras impressões — o produto oferece
+cinco episódios grátis, e o portão vai recusar do segundo em diante.
+
+É a memória `vitrine-oferece-o-que-o-cobrador-recusa` a repetir-se e, ao mesmo
+tempo, é **a maior abertura de monetização do dia**: estas 37 pessoas são
+exatamente quem devia ler *"o resto da sua temporada precisa de um plano"* — e
+são as únicas a quem a faixa hoje diz o contrário.
+
+**Isto abre a rotação das 18:08**, e é maior do que o que acabei de entregar:
+`acessoDaTemporada` tem de receber também o veredito de **cota** (não só o de
+crédito), lido de `getEffectiveEntitlement`/`freeTierOffer` — nunca redigitado
+(memória `predicado-do-cobrador-nao-se-redigita`).
+
+#### PLACAR — desde 2026-09-06 14:00 UTC
+
+| fonte | cadastros | filme 1 | filme 2 | filme 3 | checkout | **pagou** |
+|---|---|---|---|---|---|---|
+| chatgpt | 4 | 4 | 2 | 0 | 0 | **0** |
+| (sem fonte) | 2 | 0 | 0 | 0 | 0 | **0** |
+| taaft | 1 | 1 | 0 | 0 | 0 | **0** |
+| **total** | **7** | **5** | **2** | **0** | **0** | **0** |
+
+Faixa da temporada, desde o deploy da #30 (19:20 UTC): **1 tela de filme pronto
+· 1 `season_shown`. Cobertura 1/1, denominador 1** — não prova nada sobre os
+títulos convencerem (memória `zero-falhas-sem-denominador`).
+`season_written` 21 pessoas · `season_episode_clicked` **0**.
+
+#### CHECAGEM ZERO — limpa
+
+24h: **32 cadastros · 42 filmes · 42 completos · 0 não-terminal · 0 preso ·
+0 cadastro sem crédito · `next_episode_failed` 0 · `generation_stage_error` 4 ·
+`checkout_started` 1 · `payment_success` 0.**
+
+Nenhum e-mail disparado nesta rotação.
+
+#### RISCO
+
+Baixo e contido à faixa. Se `acessoDaTemporada` falhasse, a faixa renderiza como
+antes (a função é pura, e a falha calada da #30 continua a valer: rota fora do ar
+→ `null`). Não toca no pipeline de filme, na rota, no preço nem em arquivo do
+Codex — `SeasonStrip.tsx` e `lib/temporada.ts` não foram tocados por ele em
+nenhuma das últimas 4 horas (verificado com `--author=Codex`).
+
+#### PRÓXIMA JOGADA
+
+**A cota entra no cadeado (18:08).** A faixa passa a mostrar às 37 pessoas do
+Kineo 1 free o que o portão realmente permite — "Ep 2 grátis, Ep 3-6 com um
+plano" — em vez de cinco episódios que serão recusados. É honestidade e é a
+oferta a chegar, pela primeira vez, à maior coorte da casa. Métrica:
+`offer_shown` deixa de ser `false` para metade de quem vê a faixa.
+
+#### ✅ O QUE VOCÊ PRECISA FAZER
+
+1. **Nada.** A entrega subiu sozinha e está provada no `git ls-remote`.
+
+#### 📋 O QUE ACONTECEU
+
+Consertei o cadeado da faixa da temporada: a tela decidia quem estava bloqueado
+perguntando "cabe um episódio?" quando devia perguntar "quantos cabem?", e por
+isso o convite para o plano não aparecia. Está no ar (`877278ff`), com 33
+verificações que executam a conta de verdade e três mutantes derrubados.
+
+Depois de publicar, medi o tamanho real do conserto, e ele é **muito menor do que
+eu tinha anunciado meia hora antes**: alcança **1 pessoa em 72**, não "quase toda
+a gente". Está corrigido aqui, sem maquiagem.
+
+O que a medição encontrou vale mais: **metade das pessoas que terminam um filme
+(37 de 72) usa o Kineo 1 numa conta grátis, onde o episódio custa 0 créditos** —
+então a faixa pinta os cinco episódios como livres. Mas o grátis não é cobrado em
+créditos, é cobrado em **cota**: um por 30 dias. Estamos a prometer cinco
+episódios a quem o portão vai recusar do segundo em diante — e é exatamente essa
+metade que devia estar a ler "o resto da sua temporada precisa de um plano". É a
+primeira coisa das 18:08.
+
+Casa sadia: 42 filmes em 24h, todos concluídos, nada preso, ninguém sem crédito.
+Pagamentos hoje continuam em **zero**, com 1 checkout em 24 horas.
