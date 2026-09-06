@@ -119,10 +119,17 @@ export default function NextActionCard({ surface }: { surface: string }) {
       </span>
       {/* A frase vem PRONTA do servidor (os dois números, sem adjetivo). A tela
           não a remonta: remontar é reintroduzir a chance de divergir. */}
-      <strong style={{ display: 'block', color: '#fff', fontSize: '0.9rem', lineHeight: 1.35, marginBottom: alternativa ? 8 : 0 }}>
-        {dados.primary?.sublabel ??
-          `You have ${dados.balance} credits — ${dados.shortBy} short of another one like it.`}
-      </strong>
+      {/* A frase vem PRONTA do servidor. O fallback só existe quando os DOIS
+          números chegaram: sem essa guarda, um payload incompleto imprimiria
+          "You have undefined credits" na superfície que pede dinheiro — e a
+          tela não tem como verificar o que o servidor não mandou. Sem os dois,
+          a caixa mostra só os botões, que continuam corretos. */}
+      {(dados.primary?.sublabel || (typeof dados.balance === 'number' && typeof dados.shortBy === 'number')) && (
+        <strong style={{ display: 'block', color: '#fff', fontSize: '0.9rem', lineHeight: 1.35, marginBottom: alternativa ? 8 : 0 }}>
+          {dados.primary?.sublabel
+            ?? `You have ${dados.balance} credits — ${dados.shortBy} short of another one like it.`}
+        </strong>
+      )}
 
       {alternativa && (
         <>
@@ -142,7 +149,7 @@ export default function NextActionCard({ surface }: { surface: string }) {
               </span>
             )}
           </button>
-          {dizerClamp && (
+          {dizerClamp && typeof dados.freeTier?.limit === 'number' && typeof dados.freeTier?.windowHours === 'number' && (
             // O que a pessoa REALMENTE recebe. Sem isto, o botão grátis promete
             // o filme que ela acabou de fazer e entrega um terço dele.
             <span style={{ display: 'block', color: '#93b4d4', fontSize: '0.72rem', lineHeight: 1.4, marginTop: 6 }}>

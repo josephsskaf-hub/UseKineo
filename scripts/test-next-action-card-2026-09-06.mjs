@@ -98,6 +98,13 @@ check('clique vira evento com a escolha', /next_action_clicked/.test(cardCodigo)
 check('a escolha separa gratis de mais barato', /alternativa\.cost === 0 \? 'continue_free' : 'continue_cheaper'/.test(cardCodigo))
 check('a impressao so conta no estado seco', /if \(!seco\) return\n\s*try \{\n\s*void trackEvent\('next_action_card_shown'/.test(cardCodigo))
 
+// ── PAYLOAD INCOMPLETO NAO VIRA COPY QUEBRADA ─────────────────────────────
+// A caixa vive na superficie que pede dinheiro. Numero ausente tem de sumir,
+// nunca virar "You have undefined credits".
+check('a frase so aparece com os dois numeros', /typeof dados\.balance === 'number' && typeof dados\.shortBy === 'number'/.test(cardCodigo))
+check('a frase do gratis exige limite e janela', /typeof dados\.freeTier\?\.limit === 'number' && typeof dados\.freeTier\?\.windowHours === 'number'/.test(cardCodigo))
+check('o custo so e escrito quando e numero', /typeof alternativa\.cost === 'number'/.test(cardCodigo))
+
 // ── O QUE O CARTAO NAO PODE FAZER ──────────────────────────────────────────
 check('nao concede credito', !/video_credits|grant|admin_credits/.test(cardCodigo))
 check('nao envia e-mail', !/resend|sendEmail|mailto/i.test(cardCodigo))
