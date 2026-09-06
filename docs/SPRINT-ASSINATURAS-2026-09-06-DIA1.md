@@ -2195,3 +2195,116 @@ Antes de dar a faixa por pronta, fui ver o que ela ia mostrar de verdade com os
 dados que já existem — e descobri que em quase metade dos casos a primeira linha
 sairia gigante, e num deles sairia com o roteiro colado da pessoa aparecendo como
 "título". Corrigido na apresentação, sem mexer em nada do que está guardado.
+
+---
+
+### CHECKPOINT — 16:38 BRT — a faixa foi vista pela primeira vez, e a oferta não estava lá
+
+Sem trabalho novo nesta meia hora, por regra. Só medição — e ela respondeu à
+pergunta que a #30 deixou aberta, de um jeito mais duro do que a pergunta previa.
+
+**Estado publicado:** `origin/main` = `28e7a163`, fila zerada
+(`origin/main..entrega-atual` = 0), home 200, `/api/season` = **401** contra
+controle **404** — a rota está no ar.
+
+#### A SONDA DA #30 — a faixa foi vista, 1 vez
+
+| evento (desde 14:00 UTC) | n | pessoas | último |
+|---|---|---|---|
+| `season_written` | 12 | 12 | 19:33 UTC |
+| **`season_shown`** | **1** | **1** | **19:34 UTC** |
+| `season_episode_clicked` | 0 | 0 | — |
+| `series_continue_seen` | 48 | **5** | 19:35 UTC |
+| `series_continue_clicked` | 2 | 2 | 17:22 UTC |
+| `next_action_served` | 7 | 7 | 19:09 UTC |
+
+A distância entre **12 temporadas escritas** e **1 mostrada** não é furo de
+cobertura — é a hora do deploy. Recortando na subida da faixa: **1 filme
+concluído · 1 temporada escrita · 1 faixa mostrada. Cobertura 1/1.** Quem
+terminou um filme com a faixa no ar viu a faixa.
+
+`season_episode_clicked` = 0 com **denominador 1** não prova nada em direção
+nenhuma (memória `zero-falhas-sem-denominador`). A pergunta "os títulos
+convencem?" continua sem resposta e não deve ser respondida com este número.
+
+#### O ACHADO: a moldura de monetização não apareceu na única exposição real
+
+O próprio `season_shown` trouxe o payload:
+
+```
+balance: 5 · episode_cost: 5 · episodes: 5 · affordable_episodes: 1 · locked: 0
+```
+
+`affordable_episodes: 1` e `locked: 0` **na mesma linha, no mesmo evento**. Com
+5 créditos e 5 por episódio, 4 dos 5 deviam estar bloqueados. Os dois números
+saem de contas diferentes:
+
+- `app/api/season/route.ts:79` — `affordable: custo !== null && custo <= balance`.
+  É a pergunta **"cabe UM episódio?"**, feita isoladamente para cada um dos
+  cinco. Com `5 <= 5`, os cinco respondem **sim**.
+- `app/api/season/route.ts:86` — `affordableEpisodes = floor(balance/custo)` = **1**.
+  É a pergunta **"quantos cabem?"**, acumulada.
+
+E `components/video/SeasonStrip.tsx:195` deriva `bloqueados` do flag por
+episódio — logo **0** — e a moldura inteira está atrás de `bloqueados > 0`
+(linha 279). Consequência: o bloco *"The remaining N episodes of your season
+unlock with a plan"* + o link **"Finish the season →"** para `/pricing`
+**não renderizou**. A pessoa viu os cinco episódios pintados como disponíveis,
+sem cadeado e sem oferta.
+
+Isto não é canto raro: **`bloqueados` é 0 para qualquer pessoa com saldo ≥ o
+custo de um episódio** — ou seja, para praticamente todos. A oferta só apareceria
+para quem tem saldo *abaixo* de um episódio, que é justamente quem não consegue
+agir sobre ela. A peça de monetização da #30 subiu **desligada na prática**.
+
+Nenhum número foi digitado errado; a conta do cobrador está certa. O que está
+errado é **qual das duas contas a tela usa para decidir o cadeado**.
+
+#### O CONSERTO (abre a rotação das 17:08 — não foi feito neste checkpoint)
+
+Derivar o cadeado da conta **acumulada**, não do flag isolado:
+
+1. Em `SeasonStrip.tsx`, `bloqueados = Math.max(0, episodes.length - (affordableEpisodes ?? 0))`,
+   e o cadeado/disable de cada `ep` passa a ser **posicional** (`ep.n` acima de
+   `affordableEpisodes` = bloqueado), em vez de `!ep.affordable`.
+2. Guardião que executa a função real com o caso medido hoje
+   (`balance 5 · custo 5 · 5 episódios` → `bloqueados = 4`, moldura visível) e
+   com `balance 0` e `balance 25`.
+3. Não mexer em `route.ts:79`/`:86`: as duas contas estão certas para as
+   perguntas que respondem. Quem escolhe errado é a tela.
+
+#### PLACAR — desde 2026-09-06 14:00 UTC
+
+| fonte | cadastros | filme 1 | filme 2 | filme 3 | checkout | **pagou** |
+|---|---|---|---|---|---|---|
+| chatgpt | 4 | 4 | 1 | 0 | 0 | **0** |
+| taaft | 1 | 1 | 0 | 0 | 0 | **0** |
+| **total** | **5** | **5** | **1** | **0** | **0** | **0** |
+
+#### CHECAGEM ZERO — limpa
+
+24h: **30 cadastros · 41 filmes · 41 completos · 0 não-terminal · 0 preso ·
+0 cadastro sem crédito · `next_episode_failed` 0 · `generation_stage_error` 4 ·
+`checkout_started` 1 · `payment_success` 0.**
+
+Nenhum e-mail disparado neste checkpoint — checkpoint não dispara campanha.
+
+#### ✅ O QUE VOCÊ PRECISA FAZER
+
+1. **Nada.** Medição e registo; nada mudou no site nesta meia hora.
+
+#### 📋 O QUE ACONTECEU
+
+A faixa da temporada que subiu às 16:18 **foi vista por uma pessoa real às
+16:34** — e o evento que ela deixou mostrou que a parte que faz dinheiro não
+apareceu. A pessoa tinha saldo para **1** dos 5 episódios, mas a tela pintou os
+**5** como disponíveis, sem cadeado e sem o convite para o plano, porque decide o
+cadeado perguntando "cabe um episódio?" em vez de "quantos cabem?". Como quase
+toda a gente tem saldo para pelo menos um episódio, a oferta estava desligada
+para quase toda a gente.
+
+Fica achado, medido e com o conserto escrito. É a primeira coisa das 17:08 — e
+é barato: uma linha de conta e o cadeado a contar por posição.
+
+O resto está sadio: 41 filmes em 24h, todos concluídos, nada preso, ninguém sem
+crédito. Pagamentos hoje continuam em **zero**, com 1 checkout em 24 horas.
