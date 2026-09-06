@@ -2379,3 +2379,230 @@ na mão para fazer outro filme. Está consertado e no ar, com um guardião novo
 que agora aponta para a linha certa e que matou sete tentativas de quebrá-lo.
 
 Nenhum assinante novo ainda nesta janela: 5 cadastros, 3 filmes, 1 checkout.
+
+---
+
+### #14 — 06:08→07:0x BRT — o episódio 2 que a casa escreveu morre com a aba
+
+#### 1. ANTES DE CODAR: DUAS JOGADAS MORTAS POR DENOMINADOR
+
+A #13 tinha proposto duas coisas para esta rotação. Medi as duas antes de
+tocar em arquivo:
+
+| jogada proposta | o que o banco diz | veredito |
+|---|---|---|
+| ligar o botão de série que sai com `engine_reason:"unknown_quota"` | **1 evento, 1 pessoa** em 7 dias (193 dos 209 `series_continue_seen` têm `engine_reason` nulo porque o campo é novo) | **morta** |
+| dar saldo ao cartão do episódio 2 (N2 do cardápio) | das 17 pessoas que receberam episódio 2 escrito, as **9 que NÃO fizeram outro filme têm saldo MÉDIO MAIOR (15) que as 8 que fizeram (14)**; 6 das 8 que fizeram estão abaixo de 15 créditos | **morta — saldo não é a parede aqui** |
+
+E duas hipóteses minhas morreram na mesma varredura, o que economizou a
+rotação inteira:
+
+- **`free_slots: null` em 19 de 19 chamadas do contrato não é defeito.** Todas
+  as 19 vieram com `treat_as_paid: true` (trial conta como pago), e nesse
+  caminho a rota nem consulta a cota, por desenho. Nada a consertar.
+- **A Fase 4 do cron do #10 marcar 0 resgates não é defeito.** Os 3
+  `fast_compose_recoverable` da madrugada (07:23, 07:53 e 09:10 UTC) **têm
+  `compose_submission_claim`**: a própria aba da pessoa terminou o filme. Dois
+  já saíram `completed`. O cron pulou os três pelo ramo certo
+  (`recovery_user_finished`). A rede nova está de pé e corretamente ociosa.
+- **O 502 do episódio 2 já estava consertado.** 13 falhas em 05/09, 10 pessoas,
+  **todas com `status: 502`** e a última às **13:15:43 UTC** — o commit
+  `2ca9a06c` que rotula a prosa em vez de descartá-la é de **13:20:43 UTC**,
+  cinco minutos depois. Em 06/09: 4 pedidos, 4 prontos, **0 falhas**.
+
+#### 2. ERRADO (o que eu medi e ninguém tinha ligado)
+
+**`/api/next-episode` escreve o episódio 2 inteiro — título e narração — e
+joga fora no fim da requisição.** O texto só existe no `useState` de UMA aba.
+
+O que isso custa, com denominador:
+
+| degrau | número | fonte |
+|---|---|---|
+| pessoas que receberam o episódio 2 **escrito na tela** (04→06/09) | **17** | `next_episode_ready` |
+| dessas, quantas fizeram **outro filme** | **8 (47%)** | `videos.status='completed'` depois do evento |
+| taxa de filme 1 → filme 2 de **todo mundo** | **~30%** (13 de 44) | funil do fundador |
+
+É o degrau mais eficiente da casa — e o episódio que o produz não sobrevive a
+fechar a aba.
+
+Enquanto isso, **quatro famílias de e-mail dizem à pessoa que o próximo
+episódio "já está escrito"** e mandam um link com a **semente** (o tema), não
+com o texto. Desde que a porta de e-mail subiu (`9e02dbbb`, 05/09 17:50 UTC)
+saíram **115 cartas**, das quais **~40 carregavam o botão do episódio 2** (72
+de ciclo de vida, 41 com filme, **36 com tema aproveitável**, mais 22
+`video_ready_email_sent`) — e **`episode_link_clicked` = 0**.
+
+**O zero é real, e eu provei o contador antes de acreditar nele:** curl na
+porta devolveu `302 → /login?redirect=/studio/create?prompt=…` com a query
+intacta, o controle irmão inexistente devolveu **404**, e a batida **gravou a
+linha** no banco (`bot:true`, `source:probe_claude_r14`) — que é hoje a
+**única** linha de `episode_link_clicked` na história. O contador funciona;
+ninguém clicou.
+
+E havia um terceiro defeito escondido no meio: **o cooldown de 45s por PESSOA
+rodava antes de tudo**. Quem clicava no e-mail e chegava dentro do minuto (ou
+recarregava a tela do filme) levava **429 → `next_episode_failed` → card
+vazio**, logo depois de a casa lhe prometer por escrito que o episódio estava
+pronto.
+
+#### 3. MUDOU — SHA `2b764751`, **EM PRODUÇÃO**
+
+- **`lib/nextEpisodeMemoria.ts` (novo).** Valida na escrita e **reusa a mesma
+  validação na leitura**; TTL de 14 dias (cobre o ciclo de trial inteiro, que
+  é quando as quatro cartas saem); teto de 4.000 caracteres; idade negativa
+  conta como recente (lição do JWT-skew de 28/08, quando o relógio do banco
+  ficou à frente do da lambda).
+- **`app/api/next-episode/route.ts`.** A memória é consultada **antes do
+  cooldown, antes do 503 por falta de chave e antes do OpenAI**, chaveada por
+  `session_id = fromVideoId` (o handle durável do filme, que a rota já usava).
+  Achou → devolve **o mesmo episódio, palavra por palavra**, com
+  `cached: true`. Não achou → caminho de sempre, e o episódio recém-escrito é
+  gravado **antes** da resposta.
+- **Sem migration e sem tabela nova.** A memória mora em `events`
+  (`next_episode_written`). Um `delete` desfaz tudo.
+
+**O que NÃO mudou, e é o limite do CLAUDE.md:** prompt, modelo (`gpt-4o-mini`),
+temperatura (0.8), marcadores e régua de palavras/segundo ficam **byte a
+byte** iguais. Esta camada **não escreve texto** — ela devolve o texto que a
+própria rota já tinha produzido. O guardião verifica isso em 5 checagens.
+
+#### 4. O QUE O CLIENTE PASSA A VER
+
+A promessa das quatro cartas passa a ser **verdadeira**. Quem clica em "seu
+episódio 2 já está escrito" e chega ao composer encontra **aquele** episódio —
+não um episódio diferente escrito na hora, e não um card vazio por causa de um
+cooldown de 45 segundos. Quem abre o filme em outra aba, ou recarrega, também.
+
+#### 5. TESTES
+
+`scripts/test-episodio2-memoria-2026-09-06.mjs` — **49 verificações, 0
+falhas**, lendo o arquivo real e exercitando a biblioteca. A **ordem** (a
+leitura vir antes do cooldown e do OpenAI) é verificada por **índice no
+arquivo**, não por presença de texto — é o conserto inteiro, e presença de
+texto não prova posição.
+
+Mutação, com o commit feito **antes** (memória `falsificar-mutacao-commitar-antes`):
+
+| mutante | veredito |
+|---|---|
+| leitura movida para depois do OpenAI | **morto** |
+| gravação removida | **morto** |
+| leitura passa a usar o cliente do usuário (leria vazio: `events` é service-role-only) | **morto** |
+| erro de banco deixa de falhar aberto | **morto** |
+| TTL ignorado (memória eterna) | **morto** |
+| chave deixa de ser o filme | **morto** |
+| grava sem validar | **morto** |
+| cache deixa de devolver o script gravado | **morto** |
+
+8 de 8.
+
+#### 6. RISCO
+
+Baixo e reversível. Falha **sempre aberta**: sem chave de serviço, erro de
+banco, metadata quebrada ou memória vencida, tudo devolve `null` e a rota
+escreve um episódio novo, exatamente como ontem. Perder a memória custa uma
+chamada de gpt-4o-mini (~US$ 0,0003); derrubar o card custa o segundo filme.
+
+O ponto honesto contra: em cache, `alreadyDoneCount` volta ausente (o cliente
+lê `?? 0`), então o carimbo `next_episode_ready` de um acerto de memória diz
+`already_done_count: 0`. É telemetria, não produto — e a contagem de
+`next_episode_written` contra `next_episode_ready` dá a taxa de acerto sem
+depender desse campo.
+
+#### 7. ENTREGA — EMPURRADA POR MIM
+
+`git ls-remote origin main` = **2b764751** · `git rev-list --count
+origin/main..entrega-atual` = **0**. Publicador rodado por mim
+(`!RODAR-AGORA.bat`, `KINEO_SEM_PAUSE=1`): **"SUBIU 1 ENTREGA(S)"**, sem
+intervenção humana.
+
+**Honestidade sobre o deploy:** esta entrega **não tem marcador público** — ela
+muda o comportamento de uma rota `POST` autenticada. A sonda de home prova que
+o site está de pé, não que o SHA já esteja servindo. **A prova real é o dado:**
+a primeira linha de `next_episode_written` no banco. Enquanto ela não existir,
+não declaro o conserto vivo.
+
+#### 8. COMO MEDIR
+
+1. `next_episode_written` (linhas novas) contra `next_episode_ready` (cards
+   entregues) — a diferença é a **taxa de acerto da memória**.
+2. `next_episode_failed` com `status: 429` tem de ir a **zero**.
+3. Corte no horário do deploy, nunca "últimas 24h" (memória
+   `zero-falhas-sem-denominador`).
+
+#### CHECAGEM ZERO (pós-marco 2026-09-06 04:00 UTC)
+
+| checagem | resultado |
+|---|---|
+| cadastro sem crédito | **0** |
+| `completed` sem `video_url` | **0** |
+| render preso >15 min | **0** |
+| `next_episode_failed` | **0** (contra 13 em 05/09) |
+| `generation_stage_error` | 1 (`broll_plan_threw_autopilot`, 07:47 UTC — 1 pessoa, sem repetição) |
+
+#### PLACAR (pós-marco 2026-09-06 04:00 UTC)
+
+| fonte | cadastros | filme 1 | filme 2 | filme 3 | checkout | **pagou** |
+|---|---|---|---|---|---|---|
+| chatgpt | 4 | 3 | 0 | 0 | 0 | **0** |
+| seo | 1 | 1 | 0 | 0 | 1 | **0** |
+| sem fonte | 1 | 1 | 0 | 0 | 0 | **0** |
+| taaft | 1 | 0 | 0 | 0 | 0 | **0** |
+| nav | 1 | 0 | 0 | 0 | 0 | **0** |
+| **total** | **8** | **5** | **0** | **0** | **1** | **0** |
+
+`next_episode_ready` pós-marco = **6** · `next_episode_written` = **0**, isto é,
+**o deploy ainda não estava servindo quando eu medi** (o push saiu ~5 min
+antes). O checkpoint das 06:38 reconfere: é a única prova que vale para esta
+entrega.
+
+As duas cartas automáticas ainda não tinham disparado no momento desta
+medição — a da #11 sai às 08:00 BRT e a da #13 às 08:30 BRT, as duas ainda
+dentro da janela do ciclo.
+
+#### PRÓXIMA JOGADA (#15, 07:08 BRT)
+
+1. **Conferir a memória viva** (`next_episode_written` > 0) e a taxa de acerto.
+   Se a linha não aparecer com `next_episode_ready` subindo, o defeito é meu e
+   é a primeira coisa da rotação.
+2. **A carta que finalmente pode NOMEAR o episódio.** Com a memória gravada, o
+   e-mail "seu filme está pronto" deixa de oferecer a *semente* ("Episode 2:
+   `<tema>`") e passa a oferecer o **título que a casa escreveu**, sem chamar
+   GPT nenhum — é leitura de uma linha de `events`. É a diferença entre "faça
+   o episódio 2" e "seu episódio 2 se chama *X* e já está escrito". Superfície:
+   `lib/lifecycle/videoReadyFooter.ts`, servidor, minha pista.
+3. **Reserva, se 2 não couber:** `episode_link_clicked` continua em 0 com ~40
+   cartas — depois do checkpoint isso vira número para o fundador decidir se o
+   botão muda de lugar na carta (copy é dele, não minha).
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+**Nada.** O push desta rotação foi rodado por mim, a fila está zerada e o site
+responde 200.
+
+### 📋 O QUE ACONTECEU
+
+Duas das ideias que a rotação anterior deixou marcadas morreram assim que
+foram medidas — uma valia 1 pessoa, e a outra partia de uma premissa falsa (as
+pessoas que **não** fazem o segundo filme têm **mais** crédito na mão que as
+que fazem, não menos). No lugar delas apareceu um desperdício que estava à
+vista: a casa **escreve o episódio 2 inteiro** de quem acabou de fazer um
+filme — e esse texto é o degrau mais eficiente que temos (47% dessas pessoas
+fazem outro filme, contra 30% de todo mundo) — **e joga fora no fim da
+requisição**. O episódio só existia na aba aberta.
+
+Isso tornava mentira a promessa de quatro cartas que dizem "seu próximo
+episódio já está escrito": quem clicava recebia um episódio *diferente*, ou —
+se chegasse dentro de 45 segundos — um card vazio, por causa de uma trava de
+ritmo que rodava antes de tudo. Agora a casa lembra: mesma pessoa, mesmo
+filme, **mesmo episódio, palavra por palavra**, sem gastar modelo e sem tocar
+em uma vírgula do texto.
+
+De quebra, três alarmes que eu poderia ter aberto por engano ficaram fechados
+com prova: o resgate do Kineo 1 que subiu de madrugada está de pé e ficou
+ocioso pelo motivo certo (as três pessoas terminaram o filme sozinhas), e o
+502 do episódio 2 que derrubou 10 pessoas ontem já tinha sido consertado cinco
+minutos depois da última falha.
+
+Nenhum assinante novo nesta janela: 8 cadastros, 5 filmes, 1 checkout.
