@@ -2398,7 +2398,7 @@ porque isso exige plano, e nenhuma delas assinou depois.
 
 ---
 
-## 📎 ADENDO AO FECHAMENTO (04:05 BRT) — Q9: A SPEC DO PACOTE PEQUENO, COM CUSTO E MARGEM
+## 📎 ADENDO AO FECHAMENTO (03:51 BRT) — Q9: A SPEC DO PACOTE PEQUENO, COM CUSTO E MARGEM
 
 Fechei o ciclo às 03:49 e a janela ia até 04:38 — cinquenta minutos que eu ia
 deixar na mesa. Usei-os no único item do cardápio que o ciclo pediu por escrito
