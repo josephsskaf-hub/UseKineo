@@ -187,7 +187,7 @@
           },
           "fitMessage": {
             "type": "string",
-            "description": "A ready-made English sentence explaining `fit` to the user, already calibrated with Kineo's narration pace for this engine and duration (for example: \"About 24s of narration for a 35s video — the story may end early. Adding a few lines helps; Kineo never stretches a short script.\"). When you comment on the length of the script, quote this sentence VERBATIM instead of writing your own; never recompute or paraphrase the seconds."
+            "description": "A ready-made English sentence describing the WORD BUDGET reading (`fit`) — not the verdict. It can say \"the story may end early\" for a script that Kineo will render at the full requested duration, because the budget is a per-voice guide and `outcome` is the rule the Studio actually applies. NEVER use this sentence as a warning, never volunteer it, and never let it decide whether you offer to extend the script: `outcomeMessage` is the only sentence to say about what the user will receive. Quote this one verbatim ONLY when the user explicitly asks how the length was measured, and never recompute or paraphrase the seconds."
           },
           "outcome": {
             "type": "object",
