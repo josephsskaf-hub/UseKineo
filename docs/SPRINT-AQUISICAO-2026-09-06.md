@@ -2143,3 +2143,255 @@ Duas coisas que valem dinheiro ficaram anotadas para a próxima hora, medidas e
 sem inflar: uma pessoa do TAAFT quis nos pagar $14,90 quatro minutos depois de
 se cadastrar e o produto recusou; e outra chegou ao checkout de $7 e deixou a
 sessão expirar com um link de recuperação disponível.
+
+---
+
+### #18 — 03:38→04:38 BRT — A ÚLTIMA ROTAÇÃO NÃO ESCREVEU CÓDIGO, E ESSA É A ENTREGA
+
+**Press release.** Para quem ainda não nos conhece, nada muda nesta hora — e é
+de propósito. A peça que eu vinha construir já estava no ar, feita pela outra
+pista duas horas antes. O que esta rotação entrega é a prova de que ela
+funciona, o tamanho honesto do problema que ela resolve, e a recusa de subir
+código duplicado às 4 da manhã só para ter um SHA no diário.
+
+**Hipótese.** A jogada anotada na #17b ("medir o denominador de exposição do
+top-up") viraria o Q9: spec de pacote pequeno com custo e margem.
+**Parada:** se a peça já existisse, não reconstruir — medir a adoção dela.
+
+#### O errado (medido) — e era um erro MEU, de leitura de arquivo
+
+Comecei lendo `app/api/stripe/checkout/route.ts` e achei ouro: o portão de
+top-up recusava free/Starter e **não registrava nada** no caminho GET. Ia
+consertar. Fui conferir o evento real no banco antes e ele veio com
+`stage: "redirect"`, `reason: "topup_requires_creator_plus"` — uma string que
+**não existia no arquivo que eu tinha aberto**.
+
+A causa: eu li o arquivo de `C:\kineo`, cuja `main` local está parada no
+`727a869` (reprovado, nunca pushado) — o próprio CLAUDE.md avisa. O código de
+verdade, em `origin/main`, já instrumenta o redirect desde `b6814982` (01/09).
+**Regra que fica: medição do banco contra código lido da main local suja é
+comparação entre dois mundos diferentes.** Só o worktree de `origin/main` conta.
+
+#### O tamanho honesto do problema (90 dias, dado real)
+
+| plano de quem clicou num pacote de recarga | pessoas | cliques | chegou à Stripe |
+|---|---|---|---|
+| free (o cobrador recusa) | **6** | 7 | **0** |
+| pro (o cobrador aceita) | 1 | 11 | 3 |
+
+As 6 pessoas free: **todas ainda free hoje, nenhuma pagou nada, nunca**. Cinco
+delas continuaram tentando pagar alguma coisa depois da recusa (1, 4, 6 e 8
+eventos de checkout). Não é uma sangria — é gente com dinheiro na mão, seis
+vezes em três meses.
+
+#### A peça já existia — e é da outra pista
+
+`components/TopupUnavailableNote.tsx` (sprint-assinaturas #29/#30, ontem):
+troca os quatro botões mortos pela única saída que a conta realmente tem. O
+comentário do arquivo já trazia o denominador que eu ia medir: **18 pessoas em
+60 dias viram a escadinha de pacotes e nenhuma podia comprar** (17 free, 1
+Starter). **Não reconstruí nada.** Fui medir se está sendo vista.
+
+#### A adoção do remédio (é a entrega desta rotação)
+
+| evento | eventos | pessoas | primeiro | último |
+|---|---|---|---|---|
+| `topup_unavailable_note_shown` | 10 | 4 | 06/09 22:22 UTC | 07/09 02:59 UTC |
+| `upgrade_modal_opened` (mesma janela) | 10 | 4 | — | 02:59 UTC |
+| `topup_eligibility_handoff_viewed` | 12 | 12 | — | 03:04 UTC |
+| `topup_eligibility_handoff_clicked` | 1 | 1 | — | 06/09 19:25 UTC |
+
+**A caixa está no ar e sendo vista a ~1 pessoa/hora.** E os dois números que
+importam estão colados: `upgrade_modal_opened` = 10/4 e
+`topup_unavailable_note_shown` = 10/4 — ou seja, **100% de quem abriu o pop-up
+de crédito nesta janela era inelegível**. A escadinha de pacotes não estava
+sendo mostrada "também" para quem não pode comprar; ela era mostrada **só**
+para quem não pode comprar.
+
+**O que ela ainda não prova:** as 4 pessoas que a viram são todas free, **0
+chegaram a um checkout de plano depois** e **0 pagaram**. Uma delas ainda
+estava ativa às 03:30 UTC.
+
+#### Testes / risco
+
+Nenhum código novo, nenhum commit de código, nenhum risco de layout. A única
+escrita desta rotação é este diário.
+
+#### Como medir daqui pra frente — e uma correção da minha própria conclusão
+
+`topup_unavailable_note_shown` é a prova de que a correção está no ar.
+
+Eu ia escrever aqui que falta um evento de clique na caixa. **Está errado e
+tiro antes de publicar:** as linhas de plano usam `useCheckoutLaunch`, que já
+emite telemetria de checkout. A conversão da caixa **já é mensurável hoje** — é
+exatamente o que eu medi: das 4 pessoas que a viram, **0 chegaram a um checkout
+de plano** e 0 pagaram. Não falta instrumento; falta resultado.
+
+### 📊 Placar do ciclo — janela 20:38 BRT 06/09 → 04:38 BRT 07/09 (externos)
+
+| fonte | cadastros | com filme | 2º filme | checkout | pagou |
+|---|---|---|---|---|---|
+| (sem fonte) | 4 | 1 | 0 | 0 | 0 |
+| chatgpt | 3 | 2 | 0 | 0 | 0 |
+| **total** | **7** | **3** | **0** | **0** | **0** |
+
+### ✅ Checagem zero — resolvida, sem alarme falso
+
+6 dos 7 cadastros da janela têm 0 créditos. **Não é trial órfão.** Lendo
+`trial_status` antes de escalar (a regra que já custou rotação):
+
+- 3 receberam o trial e **cada uma fez 1 filme** (`active` 22cr, `downgraded`, `expired`).
+- **4 são `blocked`** — 03:00, 03:01, 03:03 e 03:07 UTC, quatro cadastros em
+  **oito minutos**, 0 créditos, 0 filmes, 0 evento de concessão. É o antifraude
+  funcionando contra uma rajada, não um defeito nosso.
+- Render preso **0** · `next_episode_failed` **0** · **`payment_success` na janela: 0**.
+
+### 🎯 Próxima jogada (a primeira coisa da próxima sessão)
+
+**A caixa é vista e não move ninguém — 0 de 4. Mexer na OFERTA, não no
+instrumento.** As 4 eram todas free e todas bateram no pop-up de crédito curto:
+a caixa lhes oferece assinar um plano de $7-$29 no instante em que elas queriam
+gastar $5,90. Isso é o Q9, e agora ele tem o número que faltava para a decisão
+do fundador: em 90 dias, **6 pessoas free clicaram para comprar crédito avulso
+e 0 assinaram depois**. A escolha é dele, em uma palavra: ou o pacote pequeno
+passa a valer para conta free (`PACK_CREDITS.starter`, $4,90/30cr, já existe no
+código e na Stripe), ou a casa aceita que esse clique é um pedido de plano e
+para de contá-lo como perda. Eu não mexo em preço.
+
+---
+
+# 🏁 FECHAMENTO DO CICLO DE AQUISIÇÃO — 06/09 20:38 → 07/09 04:38 BRT
+
+## (a) O mapa de entrada final — 14 dias, contas externas
+
+| fonte | cadastros | com filme | 2º filme | pagou |
+|---|---|---|---|---|
+| chatgpt | 197 | 127 | 30 | **2** |
+| taaft | 94 | 66 | 9 | 0 |
+| **(sem fonte)** | **51** | 11 | 4 | 0 |
+| nav (interno) | 12 | 8 | 2 | 0 |
+| outro | 7 | 5 | 3 | 0 |
+| google | 5 | 1 | 0 | 0 |
+| engine_bento / partners / script_library / seo | 4 | 2 | 0 | 0 |
+
+**Contra o mapa de abertura do ciclo (21:00 BRT):** ChatGPT 209→197 e TAAFT
+99→94 (a janela de 14 dias andou, não é queda). **Google 2→5** — pequeno, mas é
+o primeiro movimento desse canal desde que o ciclo começou a mexer em
+sitemap/llms.txt; cedo demais para creditar às páginas de hoje.
+
+### 🔴 A correção mais importante do fechamento: "sem fonte" NÃO é só rastreio furado
+
+A rotação anterior marcou o "sem fonte" como quarta alta seguida e sugeriu
+falha de atribuição. **Fui medir a composição e ela desmente metade disso:**
+
+| grupo | `blocked` | sem registro de trial | total | com filme |
+|---|---|---|---|---|
+| **(sem fonte)** | **6** | **6** | 51 | 11 (22%) |
+| com fonte | 2 | 0 | 319 | 209 (66%) |
+
+`blocked` é **12% do "sem fonte" contra 0,6% do atribuído — 20× mais**. Somando
+os 6 sem registro de trial, **12 das 51 contas "sem fonte" (24%) são lixo de
+rajada**, não gente que a captura perdeu — e conta de robô chega sem referrer
+por natureza. O buraco de atribuição existe, mas é **um quarto menor** do que o
+número cru sugere, e a diferença de "com filme" (22% vs 66%) é o que se
+esperaria de uma coorte meio artificial. **Quem for atrás do first-touch amanhã
+deve excluir `blocked` do denominador**, senão vai caçar um defeito que é o
+antifraude trabalhando.
+
+## (b) O que entrou em produção neste ciclo
+
+Ponta atual: **`482dd0a7`**, fila zerada. Peças do ciclo, com sonda:
+
+| # | SHA | o que faz por quem chega |
+|---|---|---|
+| #1 | (evento de pouso) | a fonte do primeiro toque para de ser jogada fora |
+| #2 | `d8a552f8` | o canal que nos lê passa a poder citar o que só nós fazemos |
+| #1v | `5411b6be` | verificação pós-deploy no código servido, com controle |
+| #12 | — | a temporada ganha página pública |
+| #15/#16 | — | a porta nova ganha cartão e mapa; clique de e-mail para de pedir cadastro a quem já é cliente |
+| #17b | `939b0dc0` | `/chatgpt` entra no sitemap e no `/llms.txt` (+ teste que reprova o esquecimento) |
+| #18 | este diário | nenhum código — ver (f) |
+
+**Esta rotação não subiu código de produto de propósito.** A peça que eu ia
+construir (o portão de top-up que recusa em silêncio) **já estava no ar**, feita
+pela outra pista às 15:21 e 16:18 de ontem. Reconstruí-la teria sido trabalho
+duplicado com risco de conflito no mesmo arquivo.
+
+## (c) Páginas novas — o que ChatGPT e Google passam a poder citar
+
+- **`/chatgpt`** — a porta para quem já tem roteiro escrito por qualquer IA. No
+  ar, **agora no sitemap e no `/llms.txt`** (era a terceira peça da casa
+  publicada sem superfície).
+- **A temporada** (episódio seguinte) e o **pacote de publicação** entraram nos
+  fatos canônicos — antes existiam no produto e em nenhuma superfície legível
+  por motor de resposta.
+- Sonda de produção em todas: 200 + conteúdo no HTML servido, **com controle 404
+  na mesma medição**.
+
+## (d) Só o fundador pode fazer — script para o Cowork
+
+    1. Search Console -> Inspecao de URL -> https://www.usekineo.com/chatgpt
+       -> "Solicitar indexacao". E a pagina feita para o canal que traz 53% dos
+       cadastros e ela entrou no sitemap so ontem a meia-noite.
+
+    2. Search Console -> Paginas -> exportar a lista de "Nao indexadas" e o
+       motivo. O Google trouxe 5 cadastros em 14 dias com dezenas de paginas no
+       ar. Ja conferi no servidor: sitemap, robots, canonical e HTML renderizado
+       estao corretos. O que falta saber so existe no seu painel.
+
+    3. TAAFT -> confirmar que a listagem corrigida (25 creditos, $7, 8 motores)
+       esta publicada. 94 cadastros e 66 filmes em 14 dias, zero pagamentos — e
+       o maior canal sem receita da casa.
+
+    4. Diretorios: o script pronto esta em
+       docs/DIRETORIOS-SCRIPT-FUNDADOR-2026-09-06.md.
+
+    5. DECISAO SUA (uma palavra, sem pressa): pacote pequeno para conta free.
+       Em 90 dias, 6 pessoas free clicaram para comprar credito avulso e a casa
+       recusou; nenhuma assinou depois. O $4,90/30cr ja existe no codigo e na
+       Stripe. Ligar, ou aceitar que esse clique e pedido de plano.
+       Nao mexo em preco.
+
+## (e) Placar do ciclo (8 horas)
+
+**7 cadastros externos · 3 com filme · 0 segundo filme · 0 checkout ·
+0 `payment_success`.** Madrugada, e 4 dos 7 eram rajada bloqueada. Nenhum
+pagamento no ciclo — dito sem maquiagem.
+
+## (f) O que a próxima sessão faz primeiro
+
+1. **A oferta, não o instrumento** (ver Próxima jogada acima) — o Q9 está maduro
+   e com número.
+2. **Excluir `blocked` do denominador** em qualquer medição de first-touch.
+3. **Medir `/chatgpt` com 24h de vida**: cadastros cuja `landing_path` é
+   `/chatgpt`. Hoje o número honesto é zero-por-ser-cedo, não zero-por-fracasso.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+1. **Nada de código.** Nada quebrado, fila zerada, ponta `482dd0a7`.
+2. **Abra o Search Console** e peça indexação de `/chatgpt` (item 1 do bloco acima).
+3. **Confirme a listagem do TAAFT** — 94 cadastros, 66 filmes, 0 pagamentos.
+4. **Decida o pacote pequeno para free** quando quiser: ligar o $4,90/30cr ou
+   deixar como está. Tem número agora: 6 pessoas em 90 dias.
+
+## 📋 O QUE ACONTECEU
+
+O ciclo de aquisição fechou com o funil limpo e sem venda: 7 cadastros na
+madrugada, 4 deles uma rajada que o antifraude bloqueou corretamente.
+
+A última hora não escreveu código, e isso foi a decisão. Eu ia consertar um
+defeito no portão de compra de crédito, fui conferir o dado antes e descobri
+duas coisas: que eu estava lendo uma versão velha do código na pasta principal,
+e que a correção já tinha subido ontem à tarde pela outra frente de trabalho.
+Em vez de reconstruir, medi se ela funciona: está no ar, foi vista por 4 pessoas
+nas últimas 5 horas, e nenhuma delas assinou. Isso vale mais do que um commit a
+mais no diário.
+
+Também derrubei um alarme meu da rotação anterior. As contas "sem fonte" vinham
+subindo e eu tinha chamado isso de falha de rastreio; medindo a composição, um
+quarto delas é conta de robô — que chega sem referrer por natureza. O buraco é
+real, mas menor, e quem for atrás dele amanhã já sabe o que descontar.
+
+Fica uma decisão sua, com número em vez de opinião: seis pessoas quiseram nos
+pagar cinco dólares por crédito avulso nos últimos três meses, a casa disse não
+porque isso exige plano, e nenhuma delas assinou depois.
