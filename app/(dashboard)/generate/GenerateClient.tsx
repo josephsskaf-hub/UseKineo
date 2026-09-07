@@ -12550,6 +12550,27 @@ export default function GenerateClient({
               <div className="text-xs leading-relaxed" style={{ color: '#9dccf7' }}>
                 {instructionPasteNoticeFor(classifyInstructionPaste(prompt)).body}
               </div>
+              {/* KINEO-PORTA-CHATGPT-2026-09-07 — so o ramo `command_to_chatbot`
+                  traz ctaHref (lib/growth/instructionPasteNotice.ts). Abre em
+                  aba nova: a ideia que a pessoa colou fica aqui, intacta. */}
+              {instructionPasteNoticeFor(classifyInstructionPaste(prompt)).ctaHref && (
+                <a
+                  href={instructionPasteNoticeFor(classifyInstructionPaste(prompt)).ctaHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs font-black mt-2 inline-block"
+                  style={{ color: '#d9ecff', textDecoration: 'underline' }}
+                  onClick={() => {
+                    void trackEvent('instruction_notice_cta_clicked', {
+                      ...instructionPasteNoticeMetadata(classifyInstructionPaste(prompt)),
+                      href: instructionPasteNoticeFor(classifyInstructionPaste(prompt)).ctaHref,
+                      prompt_length_band: instructionPromptLengthBand(prompt.length),
+                    })
+                  }}
+                >
+                  {instructionPasteNoticeFor(classifyInstructionPaste(prompt)).ctaLabel}
+                </a>
+              )}
             </div>
           )}
           <textarea
