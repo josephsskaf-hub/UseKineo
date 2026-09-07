@@ -754,3 +754,124 @@ casa perdeu a confiança do Rick em agosto.
 
 Ninguém recebeu ainda: não houve nenhuma entrega de filme na última meia hora.
 A próxima já sai com a oferta e com carimbo próprio para eu medir.
+
+---
+
+### #6 — 19:52-20:10 — A PORTA DE UM DÓLAR NASCEU NAS DUAS CARTAS QUE FALAM FORA DA JANELA DE COMPRA
+
+**O QUE ESTAVA ERRADO.** O fundador mandou ligar hoje a porta de entrada
+paga — a oferta mais baixa que a casa tem. Ela foi instalada de tarde (va-r3,
+va-r4) nas cartas **D5** e **D10**: as pessoas cujo trial morreu há cinco e há
+dez dias. A rotação #3 já tinha avisado que essa janela nunca produziu um
+pagante orgânico. Eu instalei a porta lá mesmo assim, porque eram as cartas
+que eu estava lendo.
+
+**A MEDIÇÃO QUE VIROU A DECISÃO** (60 dias, contas externas, campo
+`utm_campaign` — e com **controle rodado**: o campo tem **1.073 chegadas** e
+**25 campanhas distintas**, então um zero nele é zero de verdade, memória
+`taxa-agregada-esconde-cta-morto`):
+
+| carta | envios 60d | pessoas | visitantes que voltaram |
+|---|---|---|---|
+| `d0_welcome` | 719 | 718 | **10** — e não pede dinheiro nenhum |
+| `downgraded_loss` | **686** | 676 | 4 no link de dinheiro + 2 nos temas |
+| `ending_soon` | 671 | 670 | 8 |
+| `expired_offer_d5` | 561 | 561 | ~4 |
+| `expired_lastcall_d10` | 445 | 445 | ~2 |
+| `trial_extended` | 54 | 53 | 3 |
+
+**E a janela em que a casa realmente vende, medida de novo** (12 pagantes em
+90 dias, conta do fundador fora): **DEZ pagaram em menos de 48 horas do
+cadastro** — 0,0h · 0,1h · 0,4h · 0,5h · 1,0h · 4,2h · 7,4h · 24,3h · 41,4h ·
+42,7h. Os outros dois: um no dia 10 (247h) e um no dia 16, e o do dia 16 é a
+review que a casa cobrou duas vezes em agosto. **As duas cartas que ganharam a
+porta hoje de tarde falam com a pessoa depois que a janela fechou.**
+
+⚠️ **CORREÇÃO DE UM NÚMERO MEU DA #5.** Eu escrevi no diário e nos PEDIDOS que
+o e-mail de entrega era "a maior superfície de dinheiro da casa, por ~13×".
+Ele sai ~13 vezes por dia; **o cron de ciclo de trial sai 103 vezes por dia**
+(3.137 em 60 dias). A frase valia para "superfície que pede dinheiro" e eu não
+qualifiquei. A alocação da #5 continua certa, o superlativo não.
+
+**O QUE MUDOU** — `e8b401c4`, **EM PRODUÇÃO** (ponta remota confere, fila 0,
+sonda `401` na rota do cron contra `404` no irmão inexistente, com
+User-Agent identificável e não-`curl`).
+
+A carta `downgraded_loss` — a que dispara **no minuto em que o trial morre e
+os créditos somem** — passa a oferecer a porta de entrada nos **dois ramos de
+quem já recebeu alguma coisa**, antes do `/pricing`, com **campanha própria
+por ramo** (`trial_1usd_loss_burned` e `trial_1usd_loss`; um campo que aparece
+em duas superfícies nasce de uma variável por superfície, senão os cliques
+caem no mesmo balde).
+
+**O que eu NÃO fiz, e é a metade que importa:** nenhuma carta nova, nenhuma
+lista nova, nenhum desconto, nenhum crédito, nenhum cupom tocado, nenhum preço
+público mexido. `/pricing` continua no e-mail, a tabela de filmes por plano
+continua byte a byte, o episódio 2 continua, a Library continua sendo o
+primeiro link. E o ramo **`neverRan` não recebe porta nenhuma** — quem nunca
+viu um filme sair não tem objeção de preço, tem objeção de prova. Trocar um
+CTA provado em ~zero é estritamente melhor do que escrever a sétima carta
+(memórias `carta-nova-so-depois-da-velha-mover` e
+`medir-os-remedios-existentes-antes-do-setimo`).
+
+**Nenhum valor está digitado.** A frase inteira sai de `TRIAL_ENTRY_LINE`, que
+lê a constante do cobrador — se o fundador mudar a taxa amanhã, esta carta
+muda sozinha. A trava "sem preço literal" dos guardiões antigos continua verde
+e **não foi afrouxada uma vírgula**.
+
+**MEDIÇÃO NO MESMO COMMIT:** carimbo `trial_door` no evento de envio, com
+**falso explícito** no ramo deixado de fora — sem ele o denominador vira "as
+linhas que têm o campo" e quem foi excluído de propósito some da conta
+(memória `sentinela-lido-como-valor-real`). Linha sem o campo é de antes e não
+se mistura (memória `campo-novo-e-o-carimbo-do-deploy`).
+
+**GUARDIÃO:** `scripts/test-porta-1-dolar-no-momento-da-perda.mjs` — **37
+verificações verdes**, 30 de contrato e **7 mutantes, todos pegos**, cada um
+provando que **aplicou** antes de exigir o vermelho (memória
+`mutacao-precisa-provar-que-aplicou`). **Falsificado:** o mesmo guardião
+copiado para uma worktree pristina na ponta anterior dá **15 ok / 22 falhas**
+— ele não é vacante. `npx tsc --noEmit` verde. Os 15 guardiões que leem esta
+rota rodaram: **11 verdes**, e os **4 vermelhos são herdados** — rodei os
+quatro numa worktree pristina em `b24bb8af` e eles dão exatamente o mesmo
+vermelho lá (ver PEDIDOS).
+
+**QUEM RECEBEU: ninguém ainda, e o zero está medido honestamente.** O cron
+roda de hora em hora aos :25; o último tick foi **19:25 BRT** e o deploy
+subiu às **20:02**. **O carimbo tem 0 linhas porque nenhum tick correu depois
+do deploy** — o próximo é 20:25 — zero-oportunidade, não zero-entrega. O próximo tick carrega. Pelo
+volume dos últimos 30 dias, `downgraded_loss` sai ~11 vezes por dia.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+1. **Nada de código.** `e8b401c4` está em produção, fila 0, sonda com
+   controle passada.
+2. **Continua de pé o pedido da #2:** mandar da sua caixa os dois rascunhos da
+   CAMADA 1 em `docs/RASCUNHOS-AUTOPILOT-2026-09-07.md`. É o único item da
+   noite que só você pode executar.
+3. **Continua de pé a decisão da #3:** as cartas D5/D10 mandam 1.006 e-mails a
+   cada 60 dias para uma janela que nunca produziu um pagante orgânico. Elas
+   agora carregam a porta, então não custa nada mantê-las — mas se quiser
+   cortar a esteira, me diga.
+
+## 📋 O QUE ACONTECEU
+
+Você mandou ligar a oferta de um dólar. Ela foi ligada hoje nas cartas que
+falam com quem desistiu há cinco e há dez dias. Fui medir onde a casa
+realmente vende e a resposta foi seca: **dez dos seus doze pagantes dos
+últimos noventa dias pagaram nas primeiras 48 horas**. As duas cartas que
+receberam a oferta chegam muito depois disso.
+
+Então mudei a carta que chega na hora certa: a que sai **no minuto em que o
+trial da pessoa morre e os créditos somem**. É a de maior alcance da casa —
+686 e-mails para 676 pessoas em 60 dias — e até hoje o único caminho de
+dinheiro que ela oferecia era a página de planos, que é exatamente onde você
+já concluiu, em agosto, que as pessoas acham caro. Agora ela oferece primeiro
+o caminho de um dólar, e a página de planos continua logo abaixo.
+
+Quem **nunca** conseguiu ver um filme sair continua sem receber pedido de
+dinheiro nenhum: essa pessoa não tem objeção de preço, tem objeção de prova, e
+para ela a carta continua oferecendo o filme grátis de um clique.
+
+Ninguém recebeu ainda — o cron roda de hora em hora e o próximo tick é o
+primeiro depois do deploy. Ele já sai carimbado, então na próxima rotação eu
+consigo separar quem recebeu a porta de quem recebeu a carta antiga.

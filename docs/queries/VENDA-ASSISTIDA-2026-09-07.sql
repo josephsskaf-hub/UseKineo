@@ -228,3 +228,86 @@ select
 from events e
 where e.metadata ? 'trial_door'
 group by 1 order by envios desc;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- V6 — A PORTA DE ENTRADA NO MOMENTO DA PERDA (va-r6, commit e8b401c4)
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Corte SEMPRE pelo campo novo `trial_door`, NUNCA pelo relogio
+-- (memoria `campo-novo-e-o-carimbo-do-deploy`). Linha sem o campo e de antes.
+
+-- V6.1 — ALCANCE: quantas cartas da perda sairam, e quantas levavam a porta.
+-- O ramo `neverRan` carimba FALSE de proposito: ele e denominador, nao ausencia.
+select
+  metadata->>'body'                                as ramo,
+  count(*)                                         as envios,
+  count(distinct user_id)                          as pessoas,
+  count(*) filter (where metadata ? 'trial_door')  as com_carimbo,
+  count(*) filter (where (metadata->>'trial_door') = 'true')  as com_porta,
+  count(*) filter (where (metadata->>'trial_door') = 'false') as sem_porta_de_proposito,
+  min(created_at) as primeiro, max(created_at) as ultimo
+from events
+where name = 'trial_lifecycle_email_sent'
+  and metadata->>'kind' = 'downgraded_loss'
+  and metadata ? 'trial_door'          -- so o bundle novo
+group by 1
+order by envios desc;
+
+-- V6.2 — O DEGRAU: quem RECEBEU a porta e voltou por ela.
+-- As duas campanhas sao separadas de proposito (um campo em duas superficies
+-- nasce de UMA variavel por superficie) — nao somar antes de olhar separado.
+-- ⚠️ CONTROLE OBRIGATORIO antes de ler um zero aqui: rodar a V6.3.
+select
+  coalesce(metadata->>'intent_campaign', metadata->>'utm_campaign') as campanha,
+  count(*)                                            as chegadas,
+  count(distinct user_id)                             as pessoas,
+  count(distinct coalesce(user_id::text, session_id)) as visitantes,
+  min(created_at) as primeira, max(created_at) as ultima
+from events
+where coalesce(metadata->>'intent_campaign', metadata->>'utm_campaign')
+      in ('trial_1usd_loss', 'trial_1usd_loss_burned')
+group by 1 order by chegadas desc;
+
+-- V6.3 — CONTROLE DA LEITURA (rodar SEMPRE junto com a V6.2).
+-- Se o campo nao estiver sendo escrito por ninguem, um zero na V6.2 e cegueira,
+-- nao comportamento (memoria `provar-leitura-sem-trafego`).
+select
+  count(*) filter (where metadata ? 'intent_campaign')            as com_intent_campaign,
+  count(*) filter (where metadata->>'utm_campaign' is not null)   as com_utm_campaign,
+  count(distinct metadata->>'utm_campaign')                       as campanhas_distintas
+from events
+where created_at > now() - interval '60 days';
+
+-- V6.4 — DINHEIRO: alguem que recebeu a porta da perda pagou?
+-- `payment_success` e a UNICA prova de venda — `checkout_success_viewed`
+-- dispara em visita a pagina (memoria `evento-de-sucesso-que-nao-e-dinheiro`).
+with recebeu as (
+  select distinct user_id
+  from events
+  where name = 'trial_lifecycle_email_sent'
+    and metadata->>'kind' = 'downgraded_loss'
+    and (metadata->>'trial_door') = 'true'
+)
+select
+  (select count(*) from recebeu)                                          as receberam_a_porta,
+  count(distinct e.user_id) filter (where e.name = 'checkout_started')     as chegaram_ao_checkout,
+  count(distinct e.user_id) filter (where e.name = 'payment_success')      as pagaram
+from recebeu r
+left join events e
+  on e.user_id = r.user_id
+ and e.created_at > now() - interval '60 days';
+
+-- V6.5 — A JANELA DE COMPRA, para refazer a conta que decidiu a va-r6.
+-- 12 pagantes em 90d; DEZ pagaram em menos de 48h do cadastro.
+with pay as (
+  select user_id, min(created_at) as pago
+  from events
+  where name = 'payment_success' and created_at > now() - interval '90 days'
+    and user_id is not null
+  group by 1
+)
+select
+  count(*)                                                             as pagantes,
+  count(*) filter (where pago - pr.created_at < interval '48 hours')   as pagaram_em_48h,
+  round(avg(extract(epoch from (pago - pr.created_at))/3600.0)::numeric, 1) as media_horas
+from pay join profiles pr on pr.id = pay.user_id
+where pr.email not ilike '%josephsskaf%';
