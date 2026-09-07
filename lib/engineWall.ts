@@ -13,7 +13,7 @@
 //  · falha de banco ⇒ lista vazia ⇒ a seção não renderiza. Nunca quebra a home.
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { cleanTitleLine } from '@/lib/publicVideos'
-import { PUBLIC_ENGINE_EXAMPLES, PUBLIC_EXAMPLES, posterWebpPath } from '@/lib/publicExamples'
+import { FOUNDER_SHOWCASE, PUBLIC_ENGINE_EXAMPLES, PUBLIC_EXAMPLES, posterWebpPath } from '@/lib/publicExamples'
 import { CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED } from '@/lib/publicSurfacePolicy'
 
 export type WallVideo = {
@@ -44,6 +44,20 @@ function staticExampleWall(): WallVideo[] {
     href: `/examples/${example.slug}`,
     posterUrl: posterWebpPath(example.posterPath),
     publicSource: 'founder_owned_generic_example',
+  }))
+}
+
+function founderShowcaseWall(): WallVideo[] {
+  return FOUNDER_SHOWCASE.map((v) => ({
+    id: v.id,
+    title: v.title,
+    videoUrl: v.previewPath,
+    previewUrl: v.previewPath,
+    engine: v.engine,
+    badge: ENGINE_BADGES[v.engine] ?? 'AI',
+    href: (REPOSITORY_ENGINE_HREFS[v.engine] ?? '/studio?intent_campaign=home_curated').replace('home_curated', 'examples_showcase'),
+    posterUrl: v.posterPath,
+    publicSource: 'founder_owned_engine_example',
   }))
 }
 
@@ -342,7 +356,9 @@ const EXAMPLES_BEST: string[] = [
 export async function getExamplesBest(): Promise<WallVideo[]> {
   // P0 PRIVACY CONTAINMENT (2026-08-27): only founder-owned, repository
   // assets. A hand-picked customer row is still not publication consent.
-  if (!CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED) return staticExampleWall()
+  // KINEO-VITRINE-FUNDADOR-2026-09-07 — os 30 melhores do fundador vêm primeiro;
+  // os 6 exemplos estáticos (com página própria /examples/[slug]) fecham a grade.
+  if (!CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED) return [...founderShowcaseWall(), ...staticExampleWall()]
   try {
     const db = createAdminClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL as string,
