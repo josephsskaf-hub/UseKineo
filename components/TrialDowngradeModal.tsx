@@ -46,6 +46,9 @@ import { FREE_FAST_PREVIEW_LIMIT } from '@/lib/freeFastQuota'
 // tela que pede dinheiro.
 import type { TrialUiState } from '@/lib/reverseTrial'
 import {
+  CARD_TRIAL_DAYS,
+  CARD_TRIAL_ENTRY_FEE_MINOR,
+  CARD_TRIAL_GRANT_CREDITS,
   CURRENCY_DISPLAY,
   INTRO_CREDITS,
   TIER_CREDITS,
@@ -57,6 +60,10 @@ import {
   type CheckoutCurrency,
   type PriceRegion,
 } from '@/lib/checkoutPricing'
+// A decisão e a copy de dinheiro da porta de $1 moram numa fonte única e pura,
+// testada por mutação. Este arquivo não reescreve a regra — importa (memória
+// `superficie-medida-por-copia-da-regra`).
+import { decideTrialDoorOffer } from '@/lib/growth/cleanFilmTrialDoor'
 import { FreeTierCopy } from '@/components/FreeTierOfferProvider'
 import {
   comparisonDeferralValue,
@@ -448,6 +455,31 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
       ? formatCheckoutMoney(currency, getIntroPrice('basic', currency, region))
       : null
   const firstMonthCredits = introEligible ? INTRO_CREDITS.basic : TIER_CREDITS.basic
+
+  // ═══ KINEO-PORTA-1DOLAR-NO-FIM-DO-TRIAL-2026-09-07 (fv-r9) ═══════════════
+  // A porta de $1 no instante em que o trial morre. Duas observações que
+  // sustentam a segurança desta chamada, e que valem mais que o código:
+  //  1. `hasPaid: false` NÃO é uma suposição. O efeito lá em cima aborta o
+  //     modal inteiro a menos que o servidor tenha devolvido has_paid
+  //     estritamente igual a falso — o predicado ESTRITO, não o negado
+  //     (memória `predicado-largo-negado-falha-aberta`). Quem vê esta tela já
+  //     foi provado elegível pela MESMA coluna que o cobrador consulta.
+  //     (A frase exata do gate não é repetida aqui de propósito: o guardião
+  //     desta porta muta aquela linha, e uma cópia dela na prosa sobreviveria
+  //     à mutação e devolveria verde — memória `falsificar-mutacao-commitar-antes`.)
+  //  2. Sem moeda resolvida a porta não aparece: `fullPrice` é null e a trava
+  //     de preço do núcleo bloqueia sozinha. É a mesma regra que impede o
+  //     bloco de preço abaixo de imprimir número enquanto a moeda não chega.
+  const trialDoor = decideTrialDoorOffer({
+    hasPaid: false,
+    entryFeeLabel: currency !== null ? formatCheckoutMoney(currency, CARD_TRIAL_ENTRY_FEE_MINOR) : null,
+    monthlyLabel: fullPrice,
+    grantCredits: CARD_TRIAL_GRANT_CREDITS,
+    trialDays: CARD_TRIAL_DAYS,
+    // No fim do trial não há filme em foco: a manchete não pode prometer
+    // "este filme limpo", só o trial pelo que ele é.
+    unlocksCurrentFilm: false,
+  })
   // Vídeos AI que a concessão do trial realmente comprava. Derivado, nunca
   // redigitado: no dia em que o custo do motor mudar, esta frase acompanha.
   const trialVideos = SEEDANCE_COST > 0 ? Math.floor(granted / SEEDANCE_COST) : 0
@@ -487,14 +519,32 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
       displayed_intro_price_minor: currency && introEligible ? getIntroPrice('basic', currency, region) : null,
       credits_granted: granted,
       credits_used: used,
+      // Os dois campos que separam o placar antigo do novo. Linha sem eles é de
+      // antes desta entrega e não se mistura (memória `campo-novo-e-o-carimbo-
+      // do-deploy`).
+      trial_door: trialDoor.visible,
+      card_trial: trialDoor.visible ? '1' : null,
     })
-    // `intro=1` é o mesmo link de TODAS as outras superfícies de Creator do
-    // app. Omiti-lo faria esta tela ser a única a cobrar mais caro que as
-    // outras pelo mesmo plano. Quem valida elegibilidade é o servidor.
-    checkout.launch('basic', '/api/stripe/checkout?tier=basic&intro=1', {
-      tier: 'basic',
-      pricing_surface: 'trial_downgrade_modal',
-    })
+    // ⚠️ O COMENTÁRIO QUE VIVIA AQUI ENVELHECEU HOJE. Ele dizia que `intro=1`
+    // "é o mesmo link de TODAS as outras superfícies de Creator do app, e
+    // omiti-lo faria esta tela ser a única a cobrar mais caro". Era verdade
+    // quando foi escrito; desde 07/09 15:43 `/pricing` e `PricingCards` levam
+    // `trial=1`, então manter `intro=1` passou a fazer EXATAMENTE o que o
+    // comentário queria evitar: esta tela virou a única a cobrar mais caro.
+    // A própria lógica dele pede a troca. Quem valida elegibilidade continua
+    // sendo o servidor — `?trial=1` é recusado para `has_paid`, e aí a sessão
+    // nasce como Creator normal, que é o que este link fazia antes.
+    checkout.launch(
+      'basic',
+      trialDoor.visible
+        ? '/api/stripe/checkout?tier=basic&billing=monthly&trial=1&intent_campaign=trial_1usd_downgrade'
+        : '/api/stripe/checkout?tier=basic&intro=1',
+      {
+        tier: 'basic',
+        pricing_surface: 'trial_downgrade_modal',
+        card_trial: trialDoor.visible ? '1' : '0',
+      },
+    )
   }
 
   function comparePlans() {
@@ -662,6 +712,13 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
               // AFIRMAÇÃO SOBRE PREÇO NUNCA SAI INCONDICIONALMENTE: enquanto a
               // moeda não resolveu, não há número na tela.
               <span aria-hidden="true">&nbsp;</span>
+            ) : trialDoor.visible && trialDoor.priceNote ? (
+              // A PORTA DE $1. A frase vem PRONTA do núcleo compartilhado — o
+              // mesmo texto que a caixa do pós-vídeo imprime e que o e-mail do
+              // mesmo instante manda. Ela já diz a mensalidade ("then X/month
+              // from day 8"), então o plano continua VISÍVEL: ordem do fundador
+              // "nunca esconder o plano". Nenhum número é digitado aqui.
+              <strong style={{ color: '#f5f5f7' }}>{trialDoor.priceNote}</strong>
             ) : introEligible && introPrice ? (
               <>
                 <strong style={{ color: '#f5f5f7' }}>{introPrice}</strong> your first month, then {fullPrice}/month
@@ -725,7 +782,12 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
             ? 'Make your first film →'
             : checkout.pending !== null
               ? 'Opening checkout…'
-              : 'Continue on Creator'}
+              : // O rótulo sai do núcleo ("Try Creator 7 days for $1 →"), com o
+                // valor derivado do cobrador. `Continue on Creator` continua
+                // sendo o texto para quem a porta não alcança — a tela nunca
+                // fica sem botão (memória `vitrine-oferece-o-que-o-cobrador-
+                // recusa`: a queda é para o caminho honesto, não para o vazio).
+                (trialDoor.visible && trialDoor.buttonLabel) || 'Continue on Creator'}
         </button>
 
         {needsFirstValue && (

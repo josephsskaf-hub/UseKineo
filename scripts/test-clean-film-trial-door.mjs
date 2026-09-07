@@ -180,9 +180,17 @@ console.log('── 7. MUTACAO: cada guarda tem dentes ──')
 {
   const mutants = [
     {
+      // REANCORADO em 07/09 (fv-r9): as travas 1 e 3 mudaram de LUGAR, nao de
+      // intencao — sairam do corpo de `decideCleanFilmTrialDoor` para o nucleo
+      // compartilhado `decideTrialDoorOffer`, que a segunda superficie da porta
+      // (o modal de fim de trial) tambem consome. O `breaks` continua medindo
+      // pela funcao publica ORIGINAL, entao ele agora prova as travas E a
+      // delegacao de uma vez: se alguem recopiar a regra no lugar de delegar,
+      // a mutacao no nucleo para de derrubar a porta e este teste fica
+      // vermelho. Nenhuma trava foi afrouxada.
       label: 'a trava de has_paid',
-      from: 'if (input.hasPaid) return blocked(\'already_paid\')',
-      to: 'if (false) return blocked(\'already_paid\')',
+      from: 'if (input.hasPaid) {',
+      to: 'if (false) {',
       breaks: (m) => m.decideCleanFilmTrialDoor({ ...BASE, hasPaid: true }).visible === true,
     },
     {
@@ -197,9 +205,20 @@ console.log('── 7. MUTACAO: cada guarda tem dentes ──')
     },
     {
       label: 'a trava de preco nao resolvido',
-      from: "if (!input.entryFeeLabel || !input.monthlyLabel) return blocked('price_unresolved')",
-      to: "if (false) return blocked('price_unresolved')",
+      from: 'if (!input.entryFeeLabel || !input.monthlyLabel) {',
+      to: 'if (false) {',
       breaks: (m) => m.decideCleanFilmTrialDoor({ ...BASE, entryFeeLabel: null }).visible === true,
+    },
+    {
+      // MUTANTE NOVO (fv-r9) — a delegacao em si. Se `decideCleanFilmTrialDoor`
+      // parar de chamar o nucleo e voltar a decidir sozinha, as duas superficies
+      // da porta passam a poder divergir em silencio, que e exatamente a
+      // bomba-relogio que a fv-r7 desarmou. Trocar a chamada por um objeto
+      // sempre-visivel tem que quebrar a trava de has_paid vista daqui.
+      label: 'a delegacao ao nucleo compartilhado',
+      from: 'const core = decideTrialDoorOffer({',
+      to: "const core = { visible: true, reason: 'ok', buttonLabel: 'x', priceNote: 'x' } || decideTrialDoorOffer({",
+      breaks: (m) => m.decideCleanFilmTrialDoor({ ...BASE, hasPaid: true }).visible === true,
     },
   ]
   for (const mutant of mutants) {

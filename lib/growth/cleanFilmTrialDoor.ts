@@ -86,6 +86,93 @@ export type CleanFilmTrialDoorDecision = {
   priceNote: string | null
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// KINEO-PORTA-1DOLAR-NO-FIM-DO-TRIAL-2026-09-07 (fv-r9) — O NÚCLEO PASSA A SER
+// COMPARTILHADO, PORQUE A CASA GANHOU UMA SEGUNDA SUPERFÍCIE PARA A MESMA PORTA
+// ═══════════════════════════════════════════════════════════════════════════
+// O QUE ESTAVA ERRADO, MEDIDO (eventos, contas externas, 30 dias):
+//   · `trial_downgrade_modal_shown` = 81 impressões / 75 pessoas; 23 pessoas em
+//     7 dias; a última hoje (07/09 16:18 UTC). É o modal que abre no instante
+//     em que o trial morre.
+//   · `trial_downgrade_modal_cta` = 18 cliques / 15 pessoas em 30d (~22% de
+//     CTR) — a superfície que PEDE DINHEIRO mais clicada da casa, muito acima
+//     da caixa do pós-vídeo (cujo último clique é de 22/08).
+//   · E o botão levava a `?tier=basic&intro=1`: Creator CHEIO. Desde hoje
+//     15:43 a oferta padrão da casa é o trial de $1 (`CARD_TRIAL_ENABLED` =
+//     true), e a carta `downgraded_loss` — o e-mail do MESMO instante — já
+//     leva à porta de $1 (va-r6, `e8b401c4`). Tela e e-mail do mesmo momento
+//     ofereciam preços diferentes.
+//
+// POR QUE O COMENTÁRIO DO MODAL DEIXOU DE VALER: ele dizia que `intro=1` "é o
+// mesmo link de TODAS as outras superfícies de Creator do app, e omiti-lo faria
+// esta tela ser a única a cobrar mais caro". Era verdade quando foi escrito e
+// virou falso hoje — `/pricing` e `components/PricingCards.tsx` passaram a
+// levar `trial=1`. A própria lógica do comentário agora pede a mudança.
+//
+// POR QUE UM NÚCLEO COMPARTILHADO E NÃO UMA CÓPIA: a regra de honestidade desta
+// porta (quem o cobrador aceita, e quando dá para dizer o preço) já mora aqui.
+// Recopiá-la no modal criaria a bomba-relógio que a fv-r7 acabou de desarmar —
+// superfície escolhida por uma decisão central e pintada por uma cópia local da
+// mesma regra (memória `superficie-medida-por-copia-da-regra`).
+// `decideCleanFilmTrialDoor` continua sendo a ÚNICA porta do pós-vídeo e agora
+// delega o miolo; para o chamador dela nada muda, byte a byte.
+
+export type TrialDoorOfferInput = {
+  /** `profiles.has_paid` — a MESMA coluna que o servidor consulta. */
+  hasPaid: boolean
+  /** Rótulo já formatado da taxa de entrada, ou null se a moeda não resolveu. */
+  entryFeeLabel: string | null
+  /** Rótulo já formatado da mensalidade do Creator depois do trial. */
+  monthlyLabel: string | null
+  /** Créditos concedidos no ato pelo trial pago (`CARD_TRIAL_GRANT_CREDITS`). */
+  grantCredits: number
+  /** Dias do trial pago (`CARD_TRIAL_DAYS`). */
+  trialDays: number
+  /**
+   * Existe um filme marcado na mão da pessoa AGORA? Só a tela de filme pronto
+   * pode dizer que sim; no fim do trial não há arquivo em foco, então a
+   * manchete não pode prometer "este filme limpo".
+   */
+  unlocksCurrentFilm: boolean
+}
+
+export type TrialDoorOfferDecision = {
+  visible: boolean
+  reason: 'ok' | 'already_paid' | 'price_unresolved'
+  buttonLabel: string | null
+  priceNote: string | null
+}
+
+/**
+ * As DUAS travas de honestidade que valem em QUALQUER superfície, e a copy de
+ * dinheiro. A trava de slot é exclusiva do pós-vídeo e mora no chamador.
+ */
+export function decideTrialDoorOffer(input: TrialDoorOfferInput): TrialDoorOfferDecision {
+  // Trava 1 — o cobrador recusa `?trial=1` para quem já pagou alguma vez
+  // (`card_trial_denied: 'has_paid'`). Anunciar a taxa de entrada a quem será
+  // cobrado a mensalidade cheia é uma mentira medível (memória
+  // `vitrine-oferece-o-que-o-cobrador-recusa`).
+  if (input.hasPaid) {
+    return { visible: false, reason: 'already_paid', buttonLabel: null, priceNote: null }
+  }
+
+  // Trava 2 — sem os dois rótulos não existe promessa auditável. Dinheiro nunca
+  // é digitado à mão aqui: os rótulos chegam prontos de `formatCheckoutMoney`.
+  if (!input.entryFeeLabel || !input.monthlyLabel) {
+    return { visible: false, reason: 'price_unresolved', buttonLabel: null, priceNote: null }
+  }
+
+  const buttonLabel = input.unlocksCurrentFilm
+    ? `Get this film clean — ${input.trialDays} days of Creator for ${input.entryFeeLabel} →`
+    : `Try Creator ${input.trialDays} days for ${input.entryFeeLabel} →`
+
+  const priceNote =
+    `${input.entryFeeLabel} today · ${input.grantCredits} credits now · ` +
+    `then ${input.monthlyLabel}/month from day ${input.trialDays + 1} · cancel anytime`
+
+  return { visible: true, reason: 'ok', buttonLabel, priceNote }
+}
+
 /**
  * A porta de $1 aparece SOMENTE dentro da caixa comercial, para quem o cobrador
  * de fato aceitaria no trial, e só quando dá para dizer o preço sem mentir.
@@ -107,26 +194,20 @@ export function decideCleanFilmTrialDoor(
     return blocked('not_slot_owner')
   }
 
-  // Trava 1 — o cobrador recusa `?trial=1` para quem já pagou alguma vez.
-  if (input.hasPaid) return blocked('already_paid')
+  // Travas 1 e 3 + a copy de dinheiro vivem no núcleo compartilhado. A manchete
+  // e a nota de preço saem byte a byte iguais às que esta função devolvia antes
+  // da extração — é isso que o guardião desta porta continua provando (memória
+  // `campo-validado-gravado-ecoado-nao-e-honrado`: importar a fonte única em
+  // vez de consertar a cópia).
+  const core = decideTrialDoorOffer({
+    hasPaid: input.hasPaid,
+    entryFeeLabel: input.entryFeeLabel,
+    monthlyLabel: input.monthlyLabel,
+    grantCredits: input.grantCredits,
+    trialDays: input.trialDays,
+    unlocksCurrentFilm: input.unlocksCurrentFilm,
+  })
+  if (!core.visible) return blocked(core.reason)
 
-  // Trava 3 — sem os dois rótulos não existe promessa auditável.
-  if (!input.entryFeeLabel || !input.monthlyLabel) return blocked('price_unresolved')
-
-  // A manchete lidera com o que a pessoa já tem na mão quando o filme saiu
-  // marcado; quando saiu limpo, o trial vale pelo que ele é. Em nenhum dos dois
-  // casos a frase promete motor, fila ou qualidade que o produto não entrega.
-  const buttonLabel = input.unlocksCurrentFilm
-    ? `Get this film clean — ${input.trialDays} days of Creator for ${input.entryFeeLabel} →`
-    : `Try Creator ${input.trialDays} days for ${input.entryFeeLabel} →`
-
-  // A nota de preço diz as TRÊS coisas que decidem a compra e que o cliente
-  // descobriria depois de qualquer jeito: o que sai hoje, o que sai no dia 8, e
-  // que dá para cancelar. `cancel anytime` é o mesmo compromisso que /pricing já
-  // imprime, e `trial_settings.missing_payment_method: 'cancel'` o sustenta.
-  const priceNote =
-    `${input.entryFeeLabel} today · ${input.grantCredits} credits now · ` +
-    `then ${input.monthlyLabel}/month from day ${input.trialDays + 1} · cancel anytime`
-
-  return { visible: true, reason: 'ok', buttonLabel, priceNote }
+  return { visible: true, reason: 'ok', buttonLabel: core.buttonLabel, priceNote: core.priceNote }
 }
