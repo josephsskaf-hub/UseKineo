@@ -57,6 +57,7 @@ const HANDOFF_ID = 'chatgpt-script-handoff'
 const HANDOFF_ERROR_MESSAGES: Readonly<Record<string, string>> = {
   script_missing: `The link you clicked had no script in it — ask your assistant to put the narration text in the link, or paste it below.`,
   script_too_long: `The script in that link is longer than the ${SCRIPT_MAX_CHARS.toLocaleString('en-US')}-character limit — ask your assistant to trim it, or paste a shorter version below.`,
+  script_too_short: `The script in that link is too short for the video length it asks for — Kineo would refuse it in the Studio. Ask your assistant for more words or a shorter duration, or paste a longer script below.`,
   script_html: `The script in that link contains HTML tags — ask your assistant for plain text with no markup, or paste the words below.`,
   bad_duration: `The duration in that link is not one Kineo accepts (${DURATIONS.join(', ')} seconds) — fix the number, or paste the script below.`,
   bad_aspect: `The aspect ratio in that link is not one Kineo accepts (${ASPECTS.join(', ')}) — fix it, or paste the script below.`,

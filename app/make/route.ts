@@ -10,6 +10,7 @@ import {
   RATE_LIMIT_PER_IP_PER_HOUR,
   STUDIO_PROMPT_MAX_CHARS,
   estimateHandoff,
+  handoffOutcome,
   handoffPayloadHash,
   parseAssistantLinkQuery,
   type HandoffChannel,
@@ -50,6 +51,15 @@ import {
 // Quem clica é um HUMANO: erro nunca vira JSON cru — vira 302 para a página
 // que explica o caminho, com um slug curto de lista fechada (nunca o texto do
 // erro na URL, nunca o roteiro em URL ou evento).
+//
+// A RÉGUA POR VOZ AVISA; O COBRADOR DECIDE (KINEO-GPT-VERDADE-2026-09-07).
+// Igual à Action: o VEREDITO vem de `handoffOutcome` (as mesmas funções de
+// lib/narrationFit.ts que o Studio usa antes de gastar), e o único caso
+// recusado aqui é o único que o Studio recusaria depois: `too_short`. Nada é
+// gravado nesse caso. Por ser um navegador, a recusa segue o MESMO mecanismo
+// dos outros erros: 302 com o slug `script_too_short` — a frase por pedido de
+// describeOutcome (segundos, palavras que faltam) NÃO viaja na URL; a página
+// de pouso tem a frase estática do slug e o caminho de colar de novo.
 export const dynamic = 'force-dynamic'
 // KINEO-DATA-CACHE-2026-09-02 (#17): rota SÓ-GET nasce com o Data Cache do
 // Next ligado e serviria a MESMA leitura do banco para todo mundo.
@@ -64,6 +74,7 @@ const LANDING = '/chatgpt-to-youtube-shorts'
 const HANDOFF_ERROR_SLUGS = [
   'script_missing',
   'script_too_long',
+  'script_too_short',
   'script_html',
   'bad_duration',
   'bad_aspect',
@@ -127,8 +138,14 @@ export async function GET(req: NextRequest) {
     const bot = isLikelyBot(req.headers.get('user-agent'))
     if (bot) return landing(origin)
 
-    // ── 4. A régua (aviso, não veredito) e a chave de idempotência
+    // ── 4. A régua (aviso), o veredito (do cobrador) e a chave de idempotência
     const est = estimateHandoff(input.script, input.durationSec, input.engineHint)
+    const outcome = handoffOutcome(input.script, input.durationSec, input.engineHint)
+    if (outcome.kind === 'too_short') {
+      // Sem linha, sem link: o Studio recusaria este roteiro para esta
+      // duração. Humano no navegador → o mesmo 302 dos outros erros.
+      return landing(origin, 'script_too_short')
+    }
     const payloadHash = handoffPayloadHash(input, CHANNEL)
 
     // ── 5. A linha que já existe — o mesmo link clicado 3× é UMA linha
@@ -194,6 +211,10 @@ export async function GET(req: NextRequest) {
         has_topic: Boolean(input.topic),
         script_chars: input.script.length,
         markers_found: est.markersFound,
+        // KINEO-GPT-VERDADE: o veredito do cobrador, para medir quantos links
+        // nascem para um filme mais curto que o pedido (sem coluna nova).
+        outcome: outcome.kind,
+        effective_seconds: outcome.effectiveSeconds,
         over_studio_limit: input.script.length > STUDIO_PROMPT_MAX_CHARS,
         bot: false,
         channel: CHANNEL,

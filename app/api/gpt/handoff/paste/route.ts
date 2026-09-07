@@ -9,7 +9,9 @@ import {
   RATE_LIMIT_PER_IP_PER_HOUR,
   STUDIO_PROMPT_MAX_CHARS,
   describeFit,
+  describeOutcome,
   estimateHandoff,
+  handoffOutcome,
   handoffPayloadHash,
   normalizePasteAssistant,
   validateHandoffInput,
@@ -50,6 +52,14 @@ const PASTE_PATH = '/api/gpt/handoff/paste'
 // O que esta rota NÃO faz, e é a regra inteira: não cria conta, não debita
 // crédito, não chama fornecedor, não toca em nenhum pipeline de vídeo. O
 // Studio abre preenchido e ESPERA O CLIQUE.
+//
+// A RÉGUA POR VOZ AVISA; O COBRADOR DECIDE (KINEO-GPT-VERDADE-2026-09-07).
+// Igual à Action: `fit`/`message` vêm das duas réguas por voz como orçamento;
+// o VEREDITO vem de `handoffOutcome` (as mesmas funções de lib/narrationFit.ts
+// que o Studio usa antes de gastar). O único caso recusado aqui é o único que
+// o Studio recusaria depois: `too_short`. A pessoa está com o roteiro na caixa
+// e o assistente na outra aba — corrige em um turno. Nada é gravado nesse
+// caso: link que morreria no destino não vira linha.
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 export const maxDuration = 15
@@ -89,8 +99,15 @@ export async function POST(req: NextRequest) {
       return json({ error: 'Kineo is receiving a lot of scripts right now. Try again in a few minutes.' }, 429)
     }
 
-    // ── 3. A régua (aviso, não veredito)
+    // ── 3. A régua (aviso) e o veredito (do cobrador)
     const est = estimateHandoff(input.script, input.durationSec, input.engineHint)
+    const outcome = handoffOutcome(input.script, input.durationSec, input.engineHint)
+    if (outcome.kind === 'too_short') {
+      // Sem linha, sem link: o Studio recusaria este roteiro para esta
+      // duração, e a pessoa descobriria só depois do cadastro. A frase vai
+      // para a caixa (o painel mostra `error` como texto).
+      return json({ error: describeOutcome(outcome), outcome }, 400)
+    }
 
     // ── 4. A linha — ou a linha que JÁ EXISTE para este payload (o mesmo
     // roteiro colado duas vezes reaproveita o token vivo; o índice único
@@ -163,6 +180,10 @@ export async function POST(req: NextRequest) {
         language: input.language,
         script_chars: input.script.length,
         markers_found: est.markersFound,
+        // KINEO-GPT-VERDADE: o veredito do cobrador, para medir quantos links
+        // nascem para um filme mais curto que o pedido (sem coluna nova).
+        outcome: outcome.kind,
+        effective_seconds: outcome.effectiveSeconds,
         over_studio_limit: input.script.length > STUDIO_PROMPT_MAX_CHARS,
         channel: CHANNEL,
         // `reused: true` = a linha já existia; o SQL do funil conta criação
@@ -180,6 +201,9 @@ export async function POST(req: NextRequest) {
       seconds: est.seconds,
       fit: est.fit,
       message: describeFit(est, input.durationSec),
+      // O veredito de quem cobra — o que a pessoa vai RECEBER (ver o cabeçalho).
+      outcome,
+      outcomeMessage: describeOutcome(outcome),
     })
   } catch (e) {
     console.error('[paste-handoff] unexpected failure:', e instanceof Error ? e.message : String(e))
