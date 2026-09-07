@@ -2966,3 +2966,32 @@ ela desapareça de novo. Medi antes e depois na mesma janela de dois minutos,
 então não é promessa: às 02:00 não estava, às 02:02 estava.
 
 ---
+
+### #19c — 02:12 BRT (07/09) — o guardião que reprovava o comportamento certo
+
+Na #19b anotei 11 guardiões já vermelhos antes do meu trabalho. Consertei o
+único que a MINHA mudança pressionava: `scripts/test-shorts-vendor-evaluation.mjs`
+fixava o literal `new Date('2026-09-03T07:27:36.555Z')` e, por isso, reprovava
+**todo avanço legítimo** de `LAST_MODIFIED` do sitemap — estava vermelho desde
+06/09 sem nada quebrado. A intenção original era "a data não pode voltar para
+antes do dia em que esta planilha entrou no cluster"; agora é isso que ele
+verifica, lendo e comparando a data real do arquivo.
+
+**72/72 verde.** Dentes provados: mutante que joga `LAST_MODIFIED` para
+2026-08-01 (`git diff --numstat` = `1 1`) faz a MESMA asserção reprovar;
+restaurado, 72/72 de volta.
+
+**Ficam 10 vermelhos antigos**, nenhum causado por esta janela — o mais
+provável de esconder coisa é `test-public-cost-planner-discovery` (34/37), que
+compara texto com `\n` literal sem normalizar CRLF, a mesma armadilha da
+memória `guardiao-crlf-falso-vermelho`. Tarefa da próxima rotação.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+1. **Nada.**
+
+## 📋 O QUE ACONTECEU
+Um teste da casa estava vermelho por reprovar o certo, não o errado. Isso é
+pior que teste faltando: ensina a ignorar o vermelho. Agora ele checa a regra
+("a data não anda para trás") em vez de uma foto de um dia específico.
+
+---

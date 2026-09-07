@@ -77,7 +77,21 @@ equal(response.headers.get('x-content-type-options'), 'nosniff', 'route blocks M
 equal(await response.text(), csv, 'route executes exact production builder')
 ok(!read('app/short-form-video-vendor-evaluation.csv/route.ts').includes('trackEvent'), 'crawler GET never creates a human event')
 ok(read('app/sitemap.ts').includes("{ path: '/short-form-video-vendor-evaluation.csv'"), 'sitemap discovers worksheet')
-ok(read('app/sitemap.ts').includes("new Date('2026-09-03T07:27:36.555Z')"), 'sitemap date advances with the public acquisition cluster')
+// KINEO-GUARDIAO-INVARIANTE-2026-09-07 — esta linha fixava o literal
+// `new Date('2026-09-03T07:27:36.555Z')` e portanto REPROVAVA todo avanço
+// legítimo de `LAST_MODIFIED`: estava vermelha desde o avanço de 06/09, sem
+// que nada estivesse quebrado. Guardião que reprova o comportamento correto
+// ensina a ignorar guardião. A intenção original era "a data não pode voltar
+// para antes do dia em que esta planilha entrou no cluster" — é isso que
+// passa a ser verificado, lendo a data real do arquivo.
+const sitemapDateMatch = read('app/sitemap.ts').match(
+  /const LAST_MODIFIED = new Date\('([^']+)'\)/,
+)
+ok(Boolean(sitemapDateMatch), 'sitemap declares LAST_MODIFIED as a parseable date literal')
+ok(
+  Date.parse(sitemapDateMatch?.[1] ?? '') >= Date.parse('2026-09-03T07:27:36.555Z'),
+  'sitemap date advances with the public acquisition cluster',
+)
 ok(!read('lib/growth/shortsVendorEvaluation.ts').includes('searchParams.get'), 'worksheet accepts no query-controlled content')
 
 console.log('shorts vendor evaluation: ' + checks + '/' + checks)
