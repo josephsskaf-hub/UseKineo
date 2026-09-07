@@ -508,3 +508,127 @@ download grátis com marca continua primeiro e sem pedágio. Os motores caros
 nada hoje: **nenhum trial usou motor premium em 7 dias**. Esse último número é
 a próxima jogada: a casa vende o plano de $29, que converte 21%, para gente que
 nunca viu o que ele faz.
+
+### #4 — 17:09→17:35 — A CASA LEVAVA 27 HORAS PARA FALAR COM QUEM APERTOU COMPRAR
+
+**O QUE ESTAVA ERRADO (medido, 30 dias, contas externas, contando PESSOAS):**
+
+```
+checkout_started ......................... 107 pessoas
+   dessas, payment_success ...............   6
+   não pagaram ...........................  101
+   horas até a casa dizer QUALQUER COISA ..  27   ← a média
+   nunca receberam carta nenhuma ..........  19
+```
+
+Vinte e sete horas. A pessoa aperta "comprar", chega na página de pagamento, não
+conclui — e a casa, que sabe disso **no mesmo segundo**, leva mais de um dia para
+abrir a boca. Não é desleixo: é **arquitetura**. A única carta desta coorte
+(`send-checkout-recovery`, #13 de 06/09) espera o evento
+`checkout.session.expired`, e a sessão da casa vive **24 horas**
+(KINEO-CHECKOUT-24H). Soma-se o cron dela, que roda **duas vezes ao dia**, e o
+piso é ~24h antes de qualquer palavra. **Em regime a coisa é pior do que a média
+sugere:** das 3 sessões que expiraram DEPOIS daquela rota nascer, **0 receberam
+carta** — ela drenou o passivo de 18 dias em 06/09 (22 cartas num dia, o que
+inflou a média para 93h) e ainda não pegou um caso novo.
+
+⚠️ **Duas correções do cardápio, para a próxima rotação não repetir o erro:**
+· F5 dizia "44 pessoas tentaram checkout 2+ vezes". **São 15**, e 2 delas
+  pagaram (13%, contra 4,3% de quem tentou uma vez só). A coorte que sobraria
+  para uma superfície nova é de **13 pessoas** — F5 não paga o próprio custo, e
+  eu o deixei de lado por medição, não por falta de tempo.
+· A regra do slot pós-entrega continua valendo e ficou mais forte:
+  `trial_post_video_offer_viewed` = **229 pessoas em 30d**, e
+  `trial_post_video_offer_clicked` **está morto desde 22/08**. Construir a
+  sétima caixa naquela tela era a jogada errada (memória
+  `medir-os-remedios-existentes-antes-do-setimo`).
+
+**O QUE MUDOU — SHA `1b4f3d9a`, EM PRODUÇÃO, fila 0.**
+
+Rota nova: `app/api/admin/send-checkout-hot-nudge/route.ts`. Ela **não espera a
+sessão morrer**. Trinta minutos depois do clique de comprar ela busca a sessão
+na Stripe e só escreve se a resposta for `status: 'open'` com `url` viva.
+
+**A parada, e ela é a regra central do arquivo:** sessão paga, expirada, sem
+link ou irrespondível = **silêncio**. O link é a promessa inteira; sem ele isto
+viraria mais um "volte pra gente", que é a classe de e-mail que a casa já mandou
+demais.
+
+**O QUE O CLIENTE VÊ:** meia hora depois de fechar a aba do pagamento, um e-mail
+curto do fundador dizendo a verdade — *a tua página continua aberta, nada foi
+cobrado* — com um botão que **reabre exatamente a mesma sessão**: mesmo plano,
+mesmo valor, nada para escolher de novo. Logo abaixo, em uma linha, a saída
+barata que já é pública desde hoje de manhã: **Creator por $1 nos primeiros 7
+dias**, depois $15/mês. E um convite para responder em uma frase se foi outra
+coisa. **Nenhum preço, cupom ou desconto novo foi criado** — a conclusão fechada
+do fundador (o vazamento é PREÇO) fica intacta: esta carta não reabre o assunto,
+ela devolve a porta para quem já passou pela decisão.
+
+**PRECEDÊNCIA, nos dois sentidos e no mesmo commit** (memória
+`cron-no-mesmo-minuto-nao-tem-ordem` + `a-regra-vive-em-varios-arquivos`): o
+carimbo `checkout_hot_nudge_emailed_v1` entrou em `OUTRAS_CAMPANHAS` da carta de
+expiração, e ela já estava na minha. Quem levar uma nunca leva a outra. O cron
+roda em `6,21,36,51 * * * *` — **nenhuma outra campanha de e-mail divide um
+minuto com esta**, e o guardião falha se alguém criar uma que divida.
+
+**TESTES:** `scripts/test-checkout-hot-nudge.mjs` **65/65**. Ele **não conta
+texto**: recorta do próprio `route.ts` as duas funções puras que decidem
+(`escolherPaginaViva`, `dentroDaJanela`) e as **avalia** contra uma
+tabela-verdade — sessão `complete` não recebe, `expired` não recebe,
+`payment_status: 'paid'` não recebe, sem `url` não recebe, prazo vencido não
+recebe, e `expires_at` é lido em **segundos** (comparar sem os mil diria que todo
+link morreu em 1970 e a carta nunca sairia). O arquivo é lido, não importado —
+com alias `@/` e `next/server` ele morreria antes da 1ª verificação (memória
+`guardioes-com-alias-nao-rodam`). **Mutação: 10 mutantes, 10 vermelhos**, e cada
+um **provou que foi escrito** comparando o conteúdo antes/depois antes de rodar
+(memória `mutacao-precisa-provar-que-aplicou`). Vizinhos intactos:
+`test-trial-watermark` OK, `test-post-download-ask` 34/34,
+`test-post-delivery-silence` 19/19. `tsc --noEmit` verde.
+
+---
+
+**🔴 E UMA COISA QUE NÃO ERA MINHA E TERIA MATADO O DIA INTEIRO.**
+
+Ao rodar o `tsc` eu descobri que **a ponta da `main` estava VERMELHA**. O commit
+`8647a933` (#363, pista de pagamentos) reescreveu `lib/paypal.ts` **a partir de
+uma base velha** (`-139/+54` linhas) e apagou quatro exports que **três arquivos
+ainda importam**: `PAYPAL_ENV_NAMES`, `isPaypalEnabled`, `paypalMissingEnv`
+(`app/api/admin/payment-rails`) e `paypalReleaseEvent` (`app/api/paypal/return` e
+`.../webhook`). Cinco erros `TS2305` na ponta `da0dc5d1` — quer dizer que
+**nenhum deploy do dia subiria**, nem o dele, nem o meu, nem o do Codex.
+
+Restaurei **literalmente essas quatro**, sem tocar em nada que o #363 fez com
+preço e grant. O que **não** restaurei, de propósito: o mesmo commit devolveu
+`grantPackCredits` à versão com `profile?.video_credits ?? 0` — num erro de
+**leitura** o saldo do cliente é reescrito como `0 + credits`, **apagando o que
+ele tinha**. Isso é do dono do arquivo reaplicar deliberadamente; foi exatamente
+uma terceira mão reescrevendo por cima que criou esta confusão. Exposição hoje é
+**zero** (tabelas de PayPal vazias, trilho nasce desligado), e está no PEDIDOS em
+vermelho. A bandeira que deveria ter parado o commit:
+`lib/paypal.ts | 193 ++++----` num commit cujo assunto era preço.
+
+**RISCO DECLARADO:** é uma carta nova, e a memória
+`carta-nova-so-depois-da-velha-mover` diz para não empilhar campanha. Aceito o
+risco por três motivos medidos: (1) ela **substitui** a velha para quem a
+receber, não empilha — a exclusão é mútua; (2) a velha, em regime, pegou **0 de
+3**; (3) esta é a única carta da casa cujo botão principal **não pede nova
+decisão de preço**.
+
+**COMO MEDIR (corte pelo carimbo, nunca pelo relógio — memória
+`campo-novo-e-o-carimbo-do-deploy`):**
+
+```sql
+select count(*) cartas,
+       round(avg((metadata->>'minutes_after_click')::numeric)) min_apos_o_clique,
+       count(*) filter (where exists (
+         select 1 from events p where p.user_id = e.user_id
+           and p.name = 'payment_success' and p.created_at > e.created_at)) pagou_depois
+from events e where e.name = 'checkout_hot_nudge_emailed_v1';
+```
+
+Alvo da rotação: `min_apos_o_clique` na casa dos **30-60**, contra as 27 HORAS de
+hoje. O número que paga a conta é `pagou_depois`.
+
+**A FRASE DA ROTAÇÃO:** hoje um visitante novo que aperta "comprar" e não conclui
+é procurado pela casa em **30 minutos, com a página dele ainda aberta** — ontem
+ele ficava **27 horas** no escuro, e um em cada cinco nunca ouvia nada.
