@@ -288,3 +288,90 @@ bloqueio de privacidade acima. Gravar a thumbnail continua tendo valor de
 persistência (biblioteca), mas **o ganho de aquisição do Q5 está atrás de uma
 decisão de privacidade do fundador**, não atrás de código. Não gastar rotação
 nisso achando que abre uma porta.
+
+---
+
+## ### #1 — VERIFICAÇÃO PÓS-DEPLOY, e o falso alarme que quase me fez reverter
+
+**EM PRODUÇÃO — SHA `5411b6be`.** Provado no código servido, com controle:
+
+O bundle `_next/static/chunks/app/layout-<hash>.js` contém **as duas** strings —
+`landing_session_started` (**controle**: já existia, prova que a sonda sabe
+achar) e `source_known` (**o campo novo**). E o trecho minificado mostra a
+lógica inteira sobrevivendo à build:
+
+```
+n=(i=(0,a.eX)(e))?null:(null!=e?e:"").trim().toLowerCase().slice(0,80)||null
+...
+let l=null!=t?t:n;
+(0,r.L9)("landing_session_started",{referrer_host:t,utm_source:n,surface:i,source:l,source_known:null!==l})
+```
+
+`i = internalSurfaceLabel(utm)` e `n = i ? null : normalizado` — **a guarda de
+superfície sobreviveu**. `l = referrerHost ?? utmSource` — **a precedência
+sobreviveu**. `source_known: null !== l` — **derivado, não constante**.
+
+> ⚠️ A primeira sonda de bundle deu **falso negativo**: procurei em
+> `/_next/static/chunks/*.js` extraídos com um padrão que perdia a query string
+> `?dpl=...`. O **controle também deu zero**, e foi só por isso que não conclui
+> "não subiu". Sonda sem controle não sabe dizer não.
+
+### 🚨 O falso alarme, registrado porque quase me custou a entrega
+
+Trinta minutos depois do deploy, o placar por hora mostrava **404 eventos na
+hora anterior contra 9 na hora corrente**, e **zero `landing_session_started`
+desde o deploy**. `SourceCapture` vive no **root layout** — se ele lançasse,
+todo evento de cliente morreria e sobraria só cron. O quadro batia com "eu
+quebrei a hidratação do site inteiro". **Fui reverter. Falsifiquei antes.**
+
+Eram dois artefatos somados, **nenhum deles meu**:
+
+1. **A hora-base estava inflada por UMA pessoa.** Minuto a minuto, os 404
+   eventos eram 35 / 39 / 23 / 14 por minuto entre 23:20 e 23:25 — uma única
+   sessão gerando um vídeo, de `generate_started` até `video_download_clicked`.
+   Ela terminou às 23:25 e foi embora. O resto daquela hora era tão vazio quanto
+   a hora seguinte.
+2. **A janela é madrugada.** Mesma faixa de relógio nos 9 dias anteriores:
+   **0 a 4** eventos. Dois dos nove dias tiveram exatamente **zero**.
+
+Confirmação cruzada por um caminho que **não passa pelo meu código**: desde
+23:44 houve **0 cadastros** e 1 vídeo (de quem já estava logado). Não é que o
+evento parou de disparar — **é que não entrou ninguém**.
+
+**O que ainda falta, e está honestamente em aberto:** a prova de ponta a ponta
+(um `landing_session_started` real trazendo `source_known`) depende de um
+visitante novo. Até 00:14 UTC não houve nenhum. **O campo está no bundle
+servido e a lógica está correta; o evento gravado ainda não foi visto.** Não
+conto isso como provado até aparecer linha no banco.
+
+---
+
+## ### #4 — 21:25 — DUAS FERRAMENTAS PARA O MAPA NÃO SE PERDER E O FUNDADOR PODER AGIR
+
+**PRESS RELEASE.** O mapa de entrada deste ciclo deixa de ser um texto e vira
+uma consulta que qualquer sessão futura roda em um passo — inclusive com o erro
+que eu cometi já corrigido dentro dela. E o fundador ganha o texto pronto dos
+diretórios, com a expectativa certa escrita em cima.
+
+**`docs/queries/MAPA-DE-ENTRADA-2026-09-06.sql`.** A junção que reconstrói o
+mapa (pouso → dono da sessão → pessoa → funil), **deduplicada por pessoa** e com
+o aviso do erro no cabeçalho: contar sessões transformou **uma visitante com
+três abas** em "3 cadastros e 3 pagamentos, 100% de conversão". Verificada
+rodando: **356 pessoas, 27 páginas, 2 pagamentos** — reproduz o mapa. Traz duas
+consultas irmãs comentadas: o que cada motor de resposta cita (que inclui quem
+**não** fez conta, o denominador de verdade) e a cobertura da atribuição
+pós-#1 (linha de base **12,5%**, alvo **>70%**).
+
+**`docs/DIRETORIOS-SCRIPT-FUNDADOR-2026-09-06.md`.** Tagline, descrição curta,
+descrição longa, tags, ordem dos screenshots e os seis diretórios com link de
+submissão. **Todos os números conferidos contra `/api/facts` em produção**, não
+digitados de memória — $7 / $15 / $29 / $299, 25 créditos sem cartão, 8 motores
+nomeados, mediana de render 4,2 min. Repete a trava do Product Hunt.
+
+**E ele começa com a expectativa, não com o entusiasmo:** o TAAFT mandou **99
+pessoas, 64 filmes e 0 pagamentos** em 14 dias. A instrução ao fundador é medir
+**checkout**, não cadastro — "só considere um diretório funcionando quando ele
+produzir checkout". Item de **volume**, não de receita, e por isso **abaixo** do
+ChatGPT na fila.
+
+**RISCO.** Zero: dois documentos, nenhum código de produto.
