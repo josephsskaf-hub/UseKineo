@@ -66,12 +66,32 @@ export function classifyInstructionPaste(raw: string | null | undefined): Instru
   return COMMAND_START.test(first) ? 'command_to_chatbot' : 'labeled_script'
 }
 
-const NOTICES: Record<InstructionPasteShape, { title: string; body: string }> = {
+// ─────────────────────────────────────────────────────────────────────────────
+// KINEO-PORTA-CHATGPT-2026-09-07 — o aviso ganha uma PORTA, so no ramo da ordem.
+// ─────────────────────────────────────────────────────────────────────────────
+// Medido no banco de producao ANTES de ligar (a casa ja perdeu 2 rotacoes
+// ligando peca em superficie que mede zero): 21 pessoas em 3 dias colaram uma
+// ORDEM de chatbot no Studio (`pasted_directives_detected`). Essa e a pessoa
+// exata para quem /chatgpt existe — ela QUER que uma IA escreva o roteiro; so
+// colou no lugar errado. Ate aqui o aviso dizia isso e parava.
+// O CTA aponta para /chatgpt (prompt da casa + caixa que recebe o roteiro de
+// volta). `utm_source=paste_notice` e a etiqueta desta porta na chegada; o
+// clique tem evento proprio no GenerateClient, porque o UTM de sessao e
+// first-touch e pode ja estar ocupado quando a pessoa clica daqui.
+// SO `command_to_chatbot` ganha o link: quem colou a RESPOSTA do chatbot
+// (`labeled_script`) ja tem o roteiro na mao — manda-la buscar um prompt seria
+// empurra-la para tras. Este arquivo continua PURO (sem import): e carregado
+// por componente de cliente, e o tsc nao ve a fronteira servidor/cliente.
+export const INSTRUCTION_PASTE_CTA_HREF = '/chatgpt?utm_source=paste_notice'
+
+const NOTICES: Record<InstructionPasteShape, { title: string; body: string; ctaHref?: string; ctaLabel?: string }> = {
   // A pessoa colou a ORDEM. Dizer isso na cara, e dizer o que acontece se ela
   // mandar assim mesmo — sem proibir.
   command_to_chatbot: {
     title: 'That looks like your idea, not the script',
     body: 'This reads like the request you sent ChatGPT, so “I have the full script” would narrate the request itself. Switch to “I only have the idea” and Kineo writes the hook, scenes and payoff for you — or paste what ChatGPT wrote back and keep the script mode.',
+    ctaHref: INSTRUCTION_PASTE_CTA_HREF,
+    ctaLabel: 'Want ChatGPT, Claude or Gemini to write the full script? Get the prompt that works →',
   },
   // A pessoa colou a RESPOSTA, com rotulos de producao. Copy de 02/09, intacta.
   labeled_script: {

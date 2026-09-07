@@ -128,8 +128,22 @@ function escapeHtmlText(v: string): string {
   return v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
 
+// ═══ KINEO-PORTA-CHATGPT-2026-09-07 — UM montador de link para este e-mail ═
+// O padrao de UTM da carta (utm_source=lifecycle & utm_medium=email &
+// utm_campaign=<campanha>) e o que lib/lifecycle/emailReturnDoor.ts reconhece
+// como "e-mail nosso" (OUR_EMAIL_UTM_SOURCES = {'lifecycle'}). Antes ele
+// vivia digitado no meio do template; agora o link de historico e a porta do
+// /chatgpt saem da MESMA funcao, e um segundo padrao nao pode nascer aqui.
+function lifecycleUrl(path: string, campaign: string): string {
+  return `${APP_URL}${path}?utm_source=lifecycle&utm_medium=email&utm_campaign=${campaign}`
+}
+/** A campanha da porta /chatgpt neste e-mail. Uma so (sem `_seen`): a chegada
+ *  em `chatgpt_page_viewed` se le por igualdade, e `video_ready_nudge_sent` ja
+ *  guarda saw_ready_screen para quem quiser cruzar. */
+const CHATGPT_DOOR_CAMPAIGN = 'video_ready_chatgpt'
+
 function buildEmail(userId: string, video: ReadyVideo, ctx: EmailContext) {
-  const url = `${APP_URL}/history?utm_source=lifecycle&utm_medium=email&utm_campaign=video_ready${ctx.sawIt ? '_seen' : ''}`
+  const url = lifecycleUrl('/history', `video_ready${ctx.sawIt ? '_seen' : ''}`)
   const title = (video.title ?? '').trim()
   const safeTitle = escapeHtmlText(title)
 
@@ -230,6 +244,24 @@ Changed your mind? One click puts it back to private: ${shareUndoHref}
 </div>`
     : ''
 
+  // ═══ KINEO-PORTA-CHATGPT-2026-09-07 — a porta do proximo episodio ════════
+  // Medido (7d, pessoas distintas): este e-mail alcanca 120; a faixa de
+  // temporada do app, 2. A pagina /chatgpt (prompt da casa → roteiro colado de
+  // volta → Studio preenchido) nascia sem porta nenhuma. O bloco e
+  // INCONDICIONAL: sai em todo envio, para que o denominador seja o proprio
+  // `video_ready_nudge_sent`. Nao muda assunto, destinatario nem cadencia.
+  const chatgptUrl = lifecycleUrl('/chatgpt', CHATGPT_DOOR_CAMPAIGN)
+  const chatgptText = `
+── NEXT EPISODE ──
+Write the next episode with ChatGPT (or Claude, or Gemini) — grab our prompt, paste the script back, and Kineo turns it into a film: ${chatgptUrl}
+──────────────────
+`
+  const chatgptHtml = `<div style="border:1px solid #e6e8ec;border-radius:12px;padding:16px;margin:0 0 16px;">
+  <p style="margin:0 0 8px;font-weight:bold;font-size:15px;">Next episode? Let ChatGPT write it ✍️</p>
+  <p style="margin:0 0 14px;color:#475569;font-size:14px;">Write the next episode with ChatGPT (or Claude, or Gemini) &mdash; grab our prompt, paste the script back here, and Kineo turns it into a film.</p>
+  <p style="margin:0;"><a href="${chatgptUrl}" style="display:inline-block;background:#111;color:#ffffff;text-decoration:none;font-weight:bold;font-size:14px;padding:10px 22px;border-radius:10px;">Get the prompt &rarr;</a></p>
+</div>`
+
   const text = `Hey,
 
 ${headlineText}
@@ -237,7 +269,7 @@ ${headlineText}
 Watch it and grab the download here: ${url}
 
 Your video is private by default. Download the MP4 if you want to send it directly.
-${shareText}${packText}
+${shareText}${packText}${chatgptText}
 ${closingText}
 
 Kineo Team
@@ -257,6 +289,7 @@ usekineo.com`
   ${packHtml}
   <!-- rodapé do #24 foi desenhado para fundo escuro (strong em #fff): cartão escuro aqui, senão o saldo some no branco -->
   <div style="background:#161618;color:#fff;padding:4px 20px 20px;border-radius:12px;margin:0 0 14px">${ctx.footer.html}</div>
+  ${chatgptHtml}
   <p style="margin:0 0 14px;">${closingHtml}</p>
   <p style="margin:0 0 2px;">Kineo Team</p>
   <p style="margin:0;"><a href="https://www.usekineo.com" style="color:#2997ff;">usekineo.com</a></p>
