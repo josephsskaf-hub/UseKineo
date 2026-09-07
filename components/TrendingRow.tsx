@@ -6,6 +6,7 @@ import type { WallVideo } from '@/lib/engineWall'
 import { useInterfaceLanguage } from '@/components/InterfaceLanguage'
 import { filterShowcase, showcaseEngines, showcasePoster, showcaseScrollState, shouldPlayShowcase, SHOWCASE_COPY } from '@/lib/ui/showcaseGallery'
 import styles from './TrendingRow.module.css'
+import { decodedPreviewFacts, PREVIEW_FACTS_COPY } from '@/lib/ui/previewFacts'
 
 // Scoped to this gallery; other landing-page media players remain unchanged.
 function GalleryMedia({ video, paused, limited }: { video: WallVideo; paused: boolean; limited: boolean }) {
@@ -49,7 +50,10 @@ function PreviewDialog({ video, onClose }: { video: WallVideo; onClose: () => vo
   const dialog = useRef<HTMLDialogElement>(null)
   const titleId = useId()
   const [failed, setFailed] = useState(false)
-  const copy = SHOWCASE_COPY[useInterfaceLanguage()]
+  const language = useInterfaceLanguage()
+  const copy = SHOWCASE_COPY[language]
+  const factsCopy = PREVIEW_FACTS_COPY[language]
+  const [facts, setFacts] = useState<ReturnType<typeof decodedPreviewFacts>>(null)
   useEffect(() => {
     const element = dialog.current
     if (!element) return
@@ -77,11 +81,25 @@ function PreviewDialog({ video, onClose }: { video: WallVideo; onClose: () => vo
       <div className={styles.previewMedia}>
         {failed ? <div role="status" className={styles.error}><strong>{copy.unavailable}</strong><p>{copy.fallback}</p></div>
           : <video src={video.videoUrl} poster={showcasePoster(video)} controls autoPlay muted playsInline preload="metadata"
-              aria-label={copy.previewLabel} onError={() => setFailed(true)} />}
+              aria-label={copy.previewLabel}
+              onLoadedMetadata={event => { const media = event.currentTarget; setFacts(decodedPreviewFacts(media.videoWidth, media.videoHeight, media.duration)) }}
+              onError={() => { setFailed(true); setFacts(null) }} />}
       </div>
       <div className={styles.dialogCopy}>
         <span className={styles.engine}>{video.badge} · {copy.previewLabel}</span>
         <h3 id={titleId}>{video.title}</h3>
+        <details className={styles.facts}>
+          <summary>{factsCopy.title}</summary>
+          <dl>
+            <div><dt>{factsCopy.engine}</dt><dd>{video.badge}</dd></div>
+            {facts && !failed ? <>
+              <div><dt>{factsCopy.resolution}</dt><dd>{facts.resolution} px</dd></div>
+              <div><dt>{factsCopy.duration}</dt><dd>{new Intl.NumberFormat(language, { maximumFractionDigits: 1 }).format(facts.seconds)} s</dd></div>
+            </> : null}
+          </dl>
+          {!facts && <p>{factsCopy.unavailable}</p>}
+          <p>{factsCopy.note}</p>
+        </details>
         {video.href && <Link className={styles.create} href={video.href}>{copy.create} {video.badge} <span aria-hidden="true">↗</span></Link>}
       </div>
     </div>
