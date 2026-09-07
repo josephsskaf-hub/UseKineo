@@ -83,7 +83,8 @@ module.exports = {
         out: 'var(--ease-out-expo, cubic-bezier(.16,1,.3,1))',
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['var(--font-sans)', 'Arial', 'sans-serif'],
+        display: ['var(--font-display)', 'Arial', 'sans-serif'],
       },
       colors: {
         bg: '#05070D',

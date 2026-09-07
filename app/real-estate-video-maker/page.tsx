@@ -86,7 +86,7 @@ export default function RealEstateVideoMakerPage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
-      <main style={{ minHeight: '100vh', background: '#030405', color: '#f5f5f7', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+      <main style={{ minHeight: '100vh', background: '#030405', color: '#f5f5f7', fontFamily: 'var(--font-sans), Arial, sans-serif' }}>
         <div style={{ maxWidth: 1040, margin: '0 auto', padding: '28px 18px 80px' }}>
           <nav aria-label="Page navigation" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 18 }}>
             <Link href="/" style={{ color: '#2997ff', fontWeight: 900, textDecoration: 'none', fontSize: '1.05rem' }}>Kineo</Link>

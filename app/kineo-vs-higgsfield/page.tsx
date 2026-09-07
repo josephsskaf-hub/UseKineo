@@ -77,7 +77,7 @@ const ROWS: Array<[string, string, string]> = [
 
 export default function VsHiggsfieldPage() {
   return (
-    <main style={{ maxWidth: 820, margin: '0 auto', padding: '48px 20px 64px', color: '#f5f5f7', fontFamily: 'system-ui, sans-serif', lineHeight: 1.65 }}>
+    <main style={{ maxWidth: 820, margin: '0 auto', padding: '48px 20px 64px', color: '#f5f5f7', fontFamily: 'var(--font-sans), Arial, sans-serif', lineHeight: 1.65 }}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSONLD) }} />
       <p style={{ color: '#86868b', fontSize: 12, textTransform: 'uppercase', letterSpacing: '.1em', fontWeight: 800 }}>Kineo · Comparison</p>
       <h1 style={{ fontSize: 34, fontWeight: 900, lineHeight: 1.15, margin: '10px 0 14px', letterSpacing: '-0.02em' }}>

@@ -60,7 +60,7 @@ const REVIEW_JSONLD = {
 
 export default function ReviewsPage() {
   return (
-    <main style={{ maxWidth: 720, margin: '0 auto', padding: '48px 20px', color: '#f5f5f7', fontFamily: 'system-ui, sans-serif', lineHeight: 1.65 }}>
+    <main style={{ maxWidth: 720, margin: '0 auto', padding: '48px 20px', color: '#f5f5f7', fontFamily: 'var(--font-sans), Arial, sans-serif', lineHeight: 1.65 }}>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(REVIEW_JSONLD) }}

@@ -161,7 +161,7 @@ export default function ComparisonsHubPage() {
         minHeight: '100vh',
         background: '#000',
         color: '#f5f5f7',
-        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontFamily: 'var(--font-sans), Arial, sans-serif',
       }}
     >
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd).replace(/</g, '\\u003c') }} />

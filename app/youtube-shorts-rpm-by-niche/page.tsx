@@ -149,7 +149,7 @@ export default function ShortsRpmByNichePage() {
         minHeight: '100vh',
         color: '#f5f5f7',
         fontFamily:
-          'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          'var(--font-sans), Arial, sans-serif',
         padding: '64px 20px 96px',
       }}
     >

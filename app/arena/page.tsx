@@ -154,7 +154,7 @@ const FAQ_JSONLD = {
 
 export default function ArenaPage() {
   return (
-    <main style={{ maxWidth: 1080, margin: '0 auto', padding: '48px 20px 64px', color: '#f5f5f7', fontFamily: 'system-ui, sans-serif', lineHeight: 1.65 }}>
+    <main style={{ maxWidth: 1080, margin: '0 auto', padding: '48px 20px 64px', color: '#f5f5f7', fontFamily: 'var(--font-sans), Arial, sans-serif', lineHeight: 1.65 }}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSONLD) }} />
       <p style={{ color: '#86868b', fontSize: 12, textTransform: 'uppercase', letterSpacing: '.1em', fontWeight: 800 }}>Kineo · Engine Arena</p>
       <h1 style={{ fontSize: 36, fontWeight: 900, lineHeight: 1.12, letterSpacing: '-0.02em', margin: '10px 0 14px' }}>

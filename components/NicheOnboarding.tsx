@@ -170,7 +170,7 @@ export default function NicheOnboarding({ onPick, onClose }: Props) {
           border: '1px solid #2a2a2d',
           background: '#131316',
           boxShadow: '0 24px 80px rgba(0,0,0,0.55)',
-          fontFamily: 'system-ui, -apple-system, sans-serif',
+          fontFamily: 'var(--font-sans), Arial, sans-serif',
         }}
       >
         <div style={{ marginBottom: 10, color: '#2997ff', fontSize: '0.72rem', fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase' }}>

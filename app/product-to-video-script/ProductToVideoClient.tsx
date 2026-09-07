@@ -89,7 +89,7 @@ export default function ProductToVideoClient() {
   }
 
   return (
-    <main style={{ minHeight: '100vh', background: '#000', color: '#f5f5f7', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+    <main style={{ minHeight: '100vh', background: '#000', color: '#f5f5f7', fontFamily: 'var(--font-sans), Arial, sans-serif' }}>
       <div style={{ maxWidth: 860, margin: '0 auto', padding: '28px 18px 70px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 18 }}>
           <Link href="/" style={{ color: '#2997ff', fontWeight: 850, textDecoration: 'none', fontSize: '1.05rem' }}>Kineo</Link>

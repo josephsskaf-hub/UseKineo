@@ -112,7 +112,7 @@ export default function ChatgptPastePage() {
         minHeight: '100vh',
         background: '#000',
         color: '#f5f5f7',
-        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontFamily: 'var(--font-sans), Arial, sans-serif',
       }}
     >
       <div style={{ maxWidth: 860, margin: '0 auto', padding: '64px 20px 88px' }}>

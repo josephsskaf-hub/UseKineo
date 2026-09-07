@@ -4,13 +4,14 @@ export const HOME_PRESENTATION_CSS = `
 .klp .hero { padding-top:40px; }
 .klp .home-intro { display:flex; align-items:flex-end; justify-content:space-between; gap:32px; margin:0 0 28px; }
 .klp .home-intro-copy { max-width:760px; }
-.klp .home-eyebrow { margin:0 0 12px; color:#96baff; font-size:12px; line-height:1.5; letter-spacing:.08em; text-transform:uppercase; }
-.klp .home-title { margin:0; max-width:750px; font-size:clamp(30px,3.5vw,52px); line-height:1.12; letter-spacing:-.045em; font-weight:650; text-wrap:balance; }
-.klp .hero-line { margin:16px 0 0; max-width:660px; text-align:left; font-size:15px; line-height:1.65; color:var(--muted); }
+.klp .home-eyebrow { margin:0 0 12px; color:#96baff; font-size:12px; line-height:1.5; letter-spacing:.01em; text-transform:none; font-weight:var(--type-label-weight); }
+.klp .home-title { margin:0; max-width:750px; font-size:clamp(30px,3.5vw,48px); line-height:1.15; letter-spacing:-.025em; font-weight:var(--type-title-weight); text-wrap:balance; }
+.klp .hero-line { margin:16px 0 0; max-width:660px; text-align:left; font-size:16px; line-height:1.7; color:var(--muted); font-weight:400; }
 .klp .nav-right .kineo-interface-language { flex-shrink:0; }
 .klp section { scroll-margin-top:88px; }
 .klp .sec-h { max-width:880px; margin-left:auto; margin-right:auto; margin-bottom:32px; }
-.klp .sec-h h2 { font-size:clamp(26px,3vw,40px); line-height:1.18; letter-spacing:-.035em; text-wrap:balance; }
+.klp .sec-h h2 { font-size:clamp(26px,3vw,40px); line-height:1.2; letter-spacing:-.025em; text-wrap:balance; font-weight:var(--type-title-weight); }
+.klp .ftr h3,.klp .bento .promo h3 { text-transform:none; letter-spacing:0; font-weight:var(--type-label-weight); }
 .klp .sec-h p { color:var(--muted); line-height:1.7; max-width:670px; margin-left:auto; margin-right:auto; }
 .klp .step,.klp .tcard { box-shadow:none; border:1px solid var(--line); background:linear-gradient(145deg,#171b22,#111419); border-radius:16px; }
 .klp .step p,.klp .tcard p { line-height:1.7; color:var(--muted); }
@@ -34,8 +35,8 @@ export const HOME_PRESENTATION_CSS = `
  .klp .hero { padding-top:24px; }
  .klp .home-intro { margin-bottom:22px; }
  .klp .home-title { font-size:32px; }
- .klp .home-eyebrow { font-size:10px; }
- .klp .hero-line { font-size:13px; line-height:1.65; }
+ .klp .home-eyebrow { font-size:12px; }
+ .klp .hero-line { font-size:15px; line-height:1.7; }
  .klp .nav-right,.klp .nav-cta { gap:6px; }
  .klp .nav-right > .btn { padding:10px 12px !important; font-size:12px !important; white-space:nowrap; }
  /* Dashboard remains in the mobile menu; keep language and balance visible. */

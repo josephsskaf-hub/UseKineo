@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import Script from 'next/script'
-import { Inter, Space_Grotesk } from 'next/font/google'
+import { Manrope } from 'next/font/google'
 import StructuredData from '@/components/StructuredData'
 import SourceCapture from '@/components/SourceCapture'
 import CheckoutResumeBanner from '@/components/CheckoutResumeBanner'
@@ -23,25 +23,13 @@ import './globals.css'
 // troca as páginas estáticas junto — ver lib/freeTierOffer.ts).
 const OFFER = getFreeTierOffer()
 
-// Push #92 — Core Web Vitals: self-host both families with next/font/google
-// instead of the render-blocking googleapis.com @import that used to sit at
-// the top of globals.css (CSS download -> parse -> discover googleapis ->
-// discover gstatic -> font bytes, four round trips before text painted).
-// Weights are the ones actually in use across app/ + components/ via
-// font-weight/fontWeight (400/500/600/700/800 for body copy and buttons,
-// 600/700 for Space Grotesk headings) — grepped repo-wide before picking
-// these instead of shipping all nine original weights.
-const inter = Inter({
+// Founder-approved direction B, 2026-09-07. One variable family, self-hosted
+// by Next. No Google request from a visitor; swap retains readable fallback.
+// Legacy CSS tokens are aliases in globals.css, not extra font downloads.
+const manrope = Manrope({
   subsets: ['latin'],
   display: 'swap',
-  weight: ['400', '500', '600', '700', '800'],
-  variable: '--font-inter',
-})
-const spaceGrotesk = Space_Grotesk({
-  subsets: ['latin'],
-  display: 'swap',
-  weight: ['600', '700'],
-  variable: '--font-space-grotesk',
+  variable: '--font-manrope',
 })
 
 // Push #117 — explicit viewport so iOS Safari renders pages at the
@@ -167,7 +155,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable}`}>
+    <html lang="en" className={manrope.variable}>
       <head>
         <link
           rel="alternate"

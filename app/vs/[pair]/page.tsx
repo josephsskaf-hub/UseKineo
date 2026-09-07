@@ -130,7 +130,7 @@ export default function ComparisonPage({ params }: { params: { pair: string } })
           alignItems: 'center',
           justifyContent: 'center',
           padding: '40px 20px',
-          fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          fontFamily: 'var(--font-sans), Arial, sans-serif',
         }}
       >
         <meta httpEquiv="refresh" content={`0; url=${target}`} />
@@ -257,7 +257,7 @@ export default function ComparisonPage({ params }: { params: { pair: string } })
         minHeight: '100vh',
         background: '#000',
         color: '#f5f5f7',
-        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontFamily: 'var(--font-sans), Arial, sans-serif',
       }}
     >
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd).replace(/</g, '\\u003c') }} />

@@ -109,7 +109,7 @@ function Shell({ children }: { children: React.ReactNode }) {
         // Mobile first: 20px de respiro lateral. Outbound frio é lido no
         // celular, no meio de outra coisa.
         padding: '22px 16px 64px',
-        fontFamily: 'system-ui, -apple-system, sans-serif',
+        fontFamily: 'var(--font-sans), Arial, sans-serif',
         WebkitFontSmoothing: 'antialiased',
       }}
     >

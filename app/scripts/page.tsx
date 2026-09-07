@@ -100,7 +100,7 @@ function ScriptCard({ script }: { script: LibraryScript }) {
 export default async function ScriptsHubPage() {
   if (!CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED) {
     return (
-      <main style={{ minHeight: '100vh', background: '#000', color: '#f5f5f7', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+      <main style={{ minHeight: '100vh', background: '#000', color: '#f5f5f7', fontFamily: 'var(--font-sans), Arial, sans-serif' }}>
         <div style={{ maxWidth: 760, margin: '0 auto', padding: '28px 18px 72px' }}>
           <nav aria-label="Breadcrumb" style={{ marginBottom: 34 }}>
             <Link href="/" style={{ color: BLUE, fontWeight: 800, textDecoration: 'none', fontSize: '1.05rem' }}>Kineo</Link>
@@ -192,7 +192,7 @@ export default async function ScriptsHubPage() {
   }
 
   return (
-    <main style={{ minHeight: '100vh', background: '#000', color: '#f5f5f7', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+    <main style={{ minHeight: '100vh', background: '#000', color: '#f5f5f7', fontFamily: 'var(--font-sans), Arial, sans-serif' }}>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionJsonLd).replace(/</g, '\\u003c') }}

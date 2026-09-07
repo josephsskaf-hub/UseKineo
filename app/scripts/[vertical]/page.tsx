@@ -307,7 +307,7 @@ export default async function ScriptVerticalPage({ params }: { params: { vertica
   }
 
   return (
-    <main style={{ minHeight: '100vh', background: '#000', color: '#f5f5f7', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+    <main style={{ minHeight: '100vh', background: '#000', color: '#f5f5f7', fontFamily: 'var(--font-sans), Arial, sans-serif' }}>
       {all.length >= MIN_SCRIPTS_TO_INDEX && (
         <script
           type="application/ld+json"

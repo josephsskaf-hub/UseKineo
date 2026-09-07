@@ -3,12 +3,12 @@ export const WORKSPACE_PRESENTATION_CSS = `
  .stu .grid.animate-grid{grid-template-columns:minmax(0,1fr) minmax(280px,360px);gap:28px;align-items:start}
  @media(max-width:1000px){.stu .grid.animate-grid{grid-template-columns:minmax(0,1fr)}}
 .stu { background:linear-gradient(160deg,#11151c 0,#0b0e13 45%); color:#edf1f8; }
-.stu h1 { background:none; color:#f2f5fa; -webkit-text-fill-color:currentColor; font-weight:650; letter-spacing:-.035em; }
-.stu .sub { color:#a5afc0; line-height:1.65; max-width:820px; }
+.stu h1 { background:none; color:#f2f5fa; -webkit-text-fill-color:currentColor; font-weight:var(--type-title-weight); letter-spacing:-.025em; line-height:1.2; }
+.stu .sub { color:#a5afc0; font-size:15px; line-height:1.65; max-width:820px; }
 .stu .card { background:#141922; border-color:#2a3240; box-shadow:none; border-radius:14px; }
-.stu .lab { color:#bdc8da; letter-spacing:.075em; }
+.stu .lab { color:#bdc8da; letter-spacing:.01em; text-transform:none; font-size:13px; line-height:1.5; font-weight:var(--type-label-weight); }
 .stu .lab .n { box-shadow:none; }
-.stu .pill { min-height:36px; box-shadow:none; }
+.stu .pill { min-height:36px; box-shadow:none; font-weight:var(--type-label-weight); }
 .stu .pill.on { box-shadow:none; }
 .stu textarea { line-height:1.65; min-height:150px; }
 .stu :is(button,a,input,textarea,summary):focus-visible { outline:2px solid #96baff; outline-offset:3px; }

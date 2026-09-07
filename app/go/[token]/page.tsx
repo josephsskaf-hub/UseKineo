@@ -53,7 +53,7 @@ function Shell({ children }: { children: React.ReactNode }) {
         background: '#000',
         color: TEXT,
         padding: '22px 16px 64px',
-        fontFamily: 'system-ui, -apple-system, sans-serif',
+        fontFamily: 'var(--font-sans), Arial, sans-serif',
         WebkitFontSmoothing: 'antialiased',
       }}
     >

@@ -42,7 +42,7 @@ const FAQ = [
 ] as const
 
 const PAGE_CSS = `
-  .publish-page{min-height:100vh;background:#000;color:#f5f5f7;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+  .publish-page{min-height:100vh;background:#000;color:#f5f5f7;font-family:var(--font-sans),Arial,sans-serif}
   .publish-shell{width:min(920px,calc(100% - 36px));margin:0 auto;padding:26px 0 76px}
   .publish-nav{display:flex;align-items:center;justify-content:space-between;gap:18px}
   .publish-logo{color:#2997ff;font-size:1.08rem;font-weight:900;text-decoration:none}

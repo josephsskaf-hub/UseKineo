@@ -6,8 +6,8 @@
 /* Push #92 — Core Web Vitals: the Google Fonts @import that used to live here
    forced CSS download → parse → discover googleapis → discover gstatic →
    font bytes before any text could paint. Fonts are now self-hosted via
-   next/font/google in app/layout.tsx, which injects --font-inter and
-   --font-space-grotesk on <html> at build time (no runtime request at all).
+   next/font/google in app/layout.tsx, which injects --font-manrope.
+   Legacy font tokens below resolve to the same self-hosted family.
    See the font-family declarations below that resolve through those vars. */
 @tailwind base;
 @tailwind components;
@@ -80,10 +80,15 @@ html {
   --muted2: #86868b;
   --border: #2a2a2d;
   --border2: #3a3a3d;
-  /* Push #92 — var(--font-space-grotesk)/var(--font-inter) are set by
-     next/font/google on <html> in app/layout.tsx; the literal names stay as
-     a fallback for the (unlikely) case those variables are unset. */
-  --font-display: var(--font-space-grotesk), 'Space Grotesk', var(--font-inter), 'Inter', system-ui, sans-serif;
+  /* Approved Manrope system. Keep old tokens as compatibility aliases so
+     existing Studio, nav, modal and library consumers use the SAME family.
+     Monospace/code and rendered-video font choices are deliberately separate. */
+  --font-sans: var(--font-manrope), Arial, sans-serif;
+  --font-inter: var(--font-manrope);
+  --font-space-grotesk: var(--font-manrope);
+  --font-display: var(--font-sans);
+  --type-title-weight: 500;
+  --type-label-weight: 500;
   /* KINEO-UI-DIARIO-2026-08-13 — dia 11 do roadmap Higgsfield, fora da landing.
      A escala unica de raios ja vivia dentro do bloco .klp (app/KineoLanding.tsx);
      estas 5 linhas a promovem para :root para que TODA pagina que nao e a landing
@@ -109,12 +114,12 @@ body {
   height: 100%;
   background: var(--bg);
   color: var(--text);
-  /* Push #92 — resolves through next/font's self-hosted Inter (see
-     app/layout.tsx). Literal 'Inter' kept only as a fallback name. */
-  font-family: var(--font-inter), 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans);
   font-size: 14px;
   line-height: 1.6;
 }
+
+button, input, select, textarea { font-family: inherit; }
 
 /* Neon redesign — layered ambient light: two ultra-soft radial washes so the
    violet-black base never reads as flat dead-black. Sits under everything. */

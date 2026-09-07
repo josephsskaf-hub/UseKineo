@@ -315,7 +315,7 @@ export default async function WallOfProofPage({
         background: '#000',
         color: '#f5f5f7',
         padding: '24px 16px 64px',
-        fontFamily: 'system-ui, -apple-system, sans-serif',
+        fontFamily: 'var(--font-sans), Arial, sans-serif',
       }}
     >
       {items.length > 0 && (

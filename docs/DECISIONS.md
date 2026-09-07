@@ -202,3 +202,9 @@ Formato: data · decisão · motivo · consequência prática.
 ### Primeiro bloco de execução — oito horas
 
 **DECISÃO APROVADA, 05/09/2026:** o fundador substituiu a proposta de 45 horas por blocos de oito horas e autorizou o primeiro agora. Janela operacional fixada em 05/09 10:14–18:14 BRT; próximo bloco só com nova autorização. Não há compromisso de finalizar todas as páginas antes dos gates de qualidade e aceite visual. Tentar terminar nas primeiras oito ou dezesseis horas é objetivo, não certificação antecipada nem renovação automática. Controle de uso a cada duas horas; não consumir resets/comprar créditos sem autorização.
+
+## 2026-09-07 — Direção tipográfica B aprovada
+
+**DECISÃO APROVADA:** o fundador escolheu Manrope (B), autorizou substituir a tipografia do site e entregar publicada para sua revisão. Inclui hierarquia mais leve da proposta aprovada, mantendo vídeos, layout estrutural, navegação, oferta, moeda, créditos e fontes dos vídeos intactos. Trabalho em worktree isolada, com comparação visual, typecheck, testes e validação do deploy. Não é autorização para nova reforma funcional nem mudança de segurança.
+
+O fundador também pediu cinco recomendações e sugestão de uma terceira língua. O idioma adicional depende de sua escolha; não adicionar silenciosamente. Registro e evidências em docs/HANDOFF-CODEX-MANROPE-2026-09-07.md.
