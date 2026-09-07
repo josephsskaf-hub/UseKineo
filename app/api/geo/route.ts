@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { resolveCheckoutCurrency, resolvePriceRegion } from '@/lib/checkoutPricing'
-import { isDodoEnabled } from '@/lib/dodo'
+import { localMethodFor } from '@/lib/dodo'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
 // Rota SO-GET no Next 14.2: sem POST no modulo, o store nasce com
 // revalidate=false, e `dynamic='force-dynamic'` NAO muda isso (so pula o proxy
@@ -35,20 +35,15 @@ export const fetchCache = 'force-no-store'
 // re-resolve chave e país no servidor e devolve 503 se algo faltar. Mexer nesta
 // resposta pelo devtools faz aparecer um botão que dá 503, e nada mais.
 //
-// ⛔ SÓ ENTRAM PAÍSES ONDE O DODO FAZ ALGO QUE A STRIPE NÃO FAZ:
-//   · IN → UPI / RuPay. É o pedido do fundador, e é a razão do ciclo: cartão
-//     indiano em recorrência internacional esbarra no e-mandate do RBI, e UPI
-//     pela Stripe não existe para comerciante fora da Índia.
-//   · BR → Pix. Métodos ativos confirmados pelo Cowork em 07/09; o Brasil tem
-//     5 pessoas no checkout para 1 pagamento em 30 dias.
-// Nigéria, Paquistão, Bangladesh e Quênia ficam FORA de propósito: lá o Dodo
-// seria só mais um processador de cartão, e "outro processador do mesmo cartão"
-// não é uma segunda porta — é a mesma porta com outra placa. Para esses quatro
-// a saída continua sendo a compra ÚNICA de US$ 4,90, que já está no ar.
-const METODO_LOCAL_POR_PAIS: Record<string, 'upi' | 'pix'> = {
-  IN: 'upi',
-  BR: 'pix',
-}
+// O mapa país→método e os dois portões moram em lib/dodo.ts (localMethodFor).
+// Esta rota NÃO guarda uma segunda cópia: o painel /api/admin/payment-rails
+// responde a mesma pergunta, e duas cópias divergiriam no dia em que um país
+// entrasse — a tela e o painel discordariam sobre quem vê o botão.
+//
+// ⚠️ A CHAVE SOZINHA NÃO LIGA ISTO. As envs da Vercel entram no bundle do
+// deploy que as construiu ("not applied to previous deployments, they only
+// apply to new deployments"), então depois de colar DODO_API_KEY é preciso um
+// deploy novo. Sem ele, este campo continua null e não há erro em lugar nenhum.
 
 export async function GET(req: NextRequest) {
   const country = (req.headers.get('x-vercel-ip-country') ?? 'US').toUpperCase()
@@ -57,7 +52,7 @@ export async function GET(req: NextRequest) {
 
   // Fecha por padrão nos dois eixos: sem chave, ou fora dos dois países, o
   // campo vem null e a tela não pinta botão nenhum.
-  const local_method = isDodoEnabled() ? (METODO_LOCAL_POR_PAIS[country] ?? null) : null
+  const local_method = localMethodFor(country)
 
   return NextResponse.json(
     { country, currency, region, local_method },

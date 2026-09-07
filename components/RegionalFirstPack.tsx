@@ -152,7 +152,10 @@ const COPY: Record<SuperficieDoPack, { chapeu: string; contexto: string }> = {
  * cartão, e isso não é uma segunda porta, é a mesma porta com outra placa.
  *
  * ⚠️ HOJE ISTO NÃO PINTA NADA PARA NINGUÉM: sem `DODO_API_KEY` o servidor manda
- * `local_method: null`. O botão nasce e liga sozinho quando a chave entrar.
+ * `local_method: null`. E a chave SOZINHA não acende o botão — as envs da
+ * Vercel só entram em deploys NOVOS ("not applied to previous deployments"),
+ * então é colar a chave E redeployar. Sem o deploy, este botão fica invisível
+ * para sempre e nenhuma tela reclama. Ver lib/dodo.ts e /api/admin/payment-rails.
  */
 const ROTULO_DO_METODO: Record<string, { nome: string; frase: string }> = {
   upi: {

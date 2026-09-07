@@ -29,6 +29,28 @@ export {
   type PayPalTier,
 } from '@/lib/paypalCatalog'
 
+/**
+ * KINEO-TRILHOS-2026-09-07 (#11) — os nomes EXATOS das envs do PayPal, e a
+ * pergunta "este deploy consegue cobrar por aqui?". Só NOMES, nunca valores.
+ *
+ * O PayPal não tem um `isPaypalEnabled()` histórico porque `paypalAccessToken()`
+ * simplesmente estourava quando faltava chave. Para o painel de trilhos isso não
+ * serve: ele precisa responder "ligado/desligado" sem tentar cobrar ninguém.
+ */
+export const PAYPAL_ENV_NAMES = ['PAYPAL_CLIENT_ID', 'PAYPAL_CLIENT_SECRET', 'PAYPAL_WEBHOOK_ID'] as const
+
+/** Envs que faltam para o trilho PayPal funcionar NESTE deploy. Vazio = pronto. */
+export function paypalMissingEnv(env: Record<string, string | undefined> = process.env): string[] {
+  return PAYPAL_ENV_NAMES.filter((n) => {
+    const v = env[n]
+    return typeof v !== 'string' || v.trim().length === 0
+  })
+}
+
+export function isPaypalEnabled(env: Record<string, string | undefined> = process.env): boolean {
+  return paypalMissingEnv(env).length === 0
+}
+
 export const PAYPAL_BASE =
   process.env.PAYPAL_ENV === 'sandbox'
     ? 'https://api-m.sandbox.paypal.com'

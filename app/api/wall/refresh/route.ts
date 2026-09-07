@@ -15,8 +15,9 @@
 //   modo 'youtube_api'  (só se process.env.YOUTUBE_API_KEY existir)
 //     → videos?part=snippet,statistics: título, canal, thumbnail E VIEWS.
 //     Nenhuma chave nova é pedida ao usuário; se um dia alguém adicionar a
-//     variável no Vercel, este caminho liga sozinho e o wall passa a ranquear
-//     por views sem uma linha de código a mais.
+//     variável no Vercel E redeployar, este caminho passa a ranquear por views
+//     sem uma linha de código a mais. O redeploy não é detalhe: env nova só
+//     entra em deploy novo, então a chave sozinha deixaria tudo como está.
 //
 //   modo 'oembed'  (padrão HOJE — sem chave nenhuma)
 //     → https://www.youtube.com/oembed?url=…&format=json: devolve `title` e

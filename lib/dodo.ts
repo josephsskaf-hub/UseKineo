@@ -12,8 +12,25 @@
 //
 // NASCE DESLIGADO POR ENV. Nenhuma chave existe hoje (07/09). Tudo aqui
 // consulta `isDodoEnabled()`; sem chave, a rota de checkout responde 503 com o
-// NOME da env que falta e o webhook responde 503 sem conceder nada. No dia em
-// que o fundador colar as chaves na Vercel, liga sozinho — sem deploy novo.
+// NOME da env que falta e o webhook responde 503 sem conceder nada.
+//
+// ⛔ CORRIGIDO EM 07/09 (rotação #11) — A FRASE ANTERIOR ERA FALSA. Estava
+// escrito aqui que, colada a chave na Vercel, o trilho "liga sozinho — sem
+// deploy novo". NÃO LIGA. A documentação da Vercel é literal: "Any change you
+// make to environment variables are not applied to previous deployments, they
+// only apply to new deployments" (vercel.com/docs/environment-variables), e a
+// linha de Production diz que a variável vale para "your NEXT Production
+// Deployment". O bundle da função serverless carrega as envs do deploy que a
+// construiu; colar a chave no painel não toca no deploy que já está servindo.
+//
+// CONSEQUÊNCIA PRÁTICA, e é a razão desta correção existir: o fundador colaria
+// DODO_API_KEY às 21h, abriria o site, não veria botão nenhum, e NÃO HAVERIA
+// ERRO EM LUGAR ALGUM — `isDodoEnabled()` continuaria false para sempre. A
+// ordem urgente de 07/09 morreria em silêncio, parecendo "ainda não ligou".
+//
+// O QUE LIGA DE VERDADE: colar as envs E DEPOIS um deploy novo (Redeploy no
+// painel da Vercel, ou o próximo push). Nenhuma linha de código muda.
+// Quem responde "o trilho está vivo NESTE deploy?" é /api/admin/payment-rails.
 //
 // REGRAS DESTE ARQUIVO:
 //  · ZERO imports com alias `@/` — o guardião scripts/test-dodo-trilho.mjs
@@ -115,6 +132,39 @@ export function dodoMissingEnvFor(sku: DodoSku, env: EnvLike = process.env): str
   if (!dodoApiKey(env)) missing.push(dodoApiKeyEnvName(mode))
   if (!dodoProductId(sku, env)) missing.push(dodoProductEnvName(sku, mode))
   return missing
+}
+
+// ── Método local por país (a fonte ÚNICA dos dois portões) ──────────────────
+
+// ⛔ SÓ ENTRAM PAÍSES ONDE O DODO FAZ ALGO QUE A STRIPE NÃO FAZ:
+//   · IN → UPI / RuPay. É o pedido do fundador e a razão do ciclo: cartão
+//     indiano em recorrência internacional esbarra no e-mandate do RBI, e UPI
+//     pela Stripe não existe para comerciante fora da Índia.
+//   · BR → Pix. Métodos confirmados pelo Cowork em 07/09.
+// Nigéria, Paquistão, Bangladesh e Quênia ficam FORA de propósito: lá o Dodo
+// seria só mais um processador do MESMO cartão — a mesma porta com outra placa.
+// Para esses quatro a saída continua sendo a compra ÚNICA de US$ 4,90.
+export const METODO_LOCAL_POR_PAIS: Record<string, 'upi' | 'pix'> = {
+  IN: 'upi',
+  BR: 'pix',
+}
+
+/**
+ * Os DOIS portões do método local numa função só: (a) a chave do Dodo existe,
+ * (b) o país tem método que a Stripe não faz. `null` = a tela não pinta botão.
+ *
+ * Isto mora aqui, e não dentro de `/api/geo`, porque o painel de trilhos
+ * precisa responder a MESMA pergunta. Duas cópias do mapa divergiriam no dia
+ * em que um país entrasse — e a tela e o painel passariam a discordar sobre
+ * quem vê o botão, sem ninguém notar.
+ */
+export function localMethodFor(
+  country: string | null | undefined,
+  env: EnvLike = process.env,
+): 'upi' | 'pix' | null {
+  if (!isDodoEnabled(env)) return null
+  const uf = typeof country === 'string' ? country.toUpperCase() : ''
+  return METODO_LOCAL_POR_PAIS[uf] ?? null
 }
 
 // ── Checkout ────────────────────────────────────────────────────────────────
