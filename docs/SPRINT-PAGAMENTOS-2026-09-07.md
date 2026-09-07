@@ -316,3 +316,73 @@ por **7 mutantes, 7 mortos**.
 **Risco:** a peça resolve o próprio país no navegador. Uma VPN vê a oferta —
 custo zero (é o mesmo preço para todos) e é o mesmo compromisso que `/api/geo`
 já assume. A cobrança continua sendo re-resolvida no servidor.
+
+---
+
+### #4 — 15:38→16:38 — a segunda superfície, e uma correção ao meu próprio #3
+
+**Press release:** a mesma oferta de compra única passa a aparecer também na
+tela em que a pessoa acabou de receber o filme — que é onde metade dessa coorte
+está, e onde ela nunca passaria por `/pricing`.
+
+**Errado, e o erro é meu:** publiquei o #3 montando a oferta **só no
+`/pricing`** sem antes medir quem daquela coorte chega lá. Medindo depois
+(30 dias, 86 pessoas de IN/NG/PK/BD/KE, cruzando **por pessoa**):
+
+| superfície | alcança | de 86 |
+|---|---:|---:|
+| `/pricing` | 46 | 53% |
+| oferta pós-filme (`trial_post_video_offer_viewed`) | **47** | 55% |
+| chegaram ao checkout | 40 | 47% |
+| modal do "não" (`upgrade_modal_opened`) | 11 | 13% |
+| ponte de saldo | 3 | 3% |
+
+**Nenhuma tela sozinha passa de 55%, e as duas não alcançam a mesma gente.**
+Montar só no `/pricing` deixaria metade da coorte sem ver nada. É exatamente o
+erro de medir o alcance da superfície **depois** de ligar — e a consulta que o
+evita agora está guardada como `(4)` em
+`docs/queries/PAGAMENTOS-POR-PAIS-2026-09-07.sql`.
+
+⚠️ Uma leitura intermediária minha estava errada e não vai ficar de pé: uma
+primeira consulta devolveu "5 de 20 passaram por /pricing" e isso era artefato
+do filtro — usar `ip_country` **sozinho** reduz a base a quem já chegou ao
+checkout (o campo só é carimbado pela rota de checkout), e o denominador
+colapsa de 86 para 20. O número certo é o da tabela acima, com
+`coalesce(ip_country, country)`.
+
+**Mudou — SHA `f60f87c0`.** A peça ganha a superfície `post_video` e uma segunda
+montagem de **uma linha** em `GenerateClient`, **depois** do `NextActionCard` —
+DELIVER-FIRST intacto (a regra mediu 107 pessoas que foram embora **sem o
+arquivo** por causa de um card acima do download). O guardião trava a posição.
+
+**A copy muda com a tela, e não é estética:** no `/pricing` a pessoa está
+escolhendo como pagar; na tela pós-filme ela acabou de receber um filme e **não
+foi recusada por ninguém**. Perguntar "seu cartão foi recusado?" a quem não
+tentou pagar inventa um problema que ela não tem. O que é verdadeiro nas duas é
+o núcleo da oferta: **paga uma vez, sem assinatura**.
+
+**O evento passa a carregar `surface`** (impressão, clique e `utm_source`). Sem
+ele as duas telas viram um número só e ninguém sabe qual vendeu — que é a única
+pergunta que a segunda montagem levanta. E os **denominadores são diferentes**:
+`pricing_currency_resolved` para o `/pricing`,
+`trial_post_video_offer_viewed` para a tela pós-filme. Misturar os dois seria
+laranja com maçã.
+
+**Testes:** `scripts/test-primeira-compra-regiao.mjs` — **45/45** (eram 35).
+Falsificado por **11 mutantes, 11 mortos** no total desta peça.
+
+**Sonda (conferida com o deploy no ar — o chunk do /pricing trocou de `page-8ee659441c4ef2e0` para `page-688e07be102c4ecf`):** o `/pricing` é público e o marcador `pack_first_for_region_shown`
+está no bundle servido (com controle: uma string inexistente não aparece), e a
+peça **não** aparece no HTML de um visitante fora da coorte — conferido do
+Brasil, que é `/api/geo` = `BR` e está fora da lista de propósito. A Vercel
+**ignora** um `x-vercel-ip-country` forjado, então **não consigo provar daqui
+que ela renderiza para um IP indiano**. ⚠️ E a segunda montagem fica numa rota
+**autenticada**: não tem sonda de fora nenhuma. Para as duas, o primeiro
+veredito real é o evento `pack_first_for_region_shown` com `surface` e
+`country` de um visitante de verdade. Não vou chamar isto de provado antes
+disso.
+
+**Aviso de arquivo ao Codex** registrado no PEDIDOS: duas telas dele, uma linha
+cada, componente novo, e as três coisas que ele não pode mexer sem quebrar um
+guardião (país nulo tem de fechar; preço/créditos vêm da constante; o botão é
+`?pack=` e nunca `?tier=`).

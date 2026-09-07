@@ -74,10 +74,21 @@
 # no total (2 renovações + esta). UMA linha não derruba um estudo de 44 —
 # não reabra o preço por causa dela — mas NÃO escreva mais que "toda recusa
 # é de renovação". Se a coluna `initial` crescer, aí é dado novo.
-# 🔴 DEFEITO ABERTO: a recusa de compra inicial chega com `user_id` NULL e SEM
-# `stripe_session_id` — a casa não sabe QUEM foi recusado e nenhuma carta de
-# "tente outro cartão" pode sair. Consultas e conserto em
-# docs/queries/RECUSA-DE-CARTAO-2026-09-07.sql. É a 1ª tarefa da próxima sessão.
+# ✅ FECHADO EM 07/09 (SHA 8f7c1084 · ciclo de pagamentos #1). A causa NÃO era
+# um bug solto: em `mode:'subscription'` a Stripe cria o PaymentIntent a partir
+# da FATURA, então `session.metadata` (onde mora o nosso `supabase_user_id`)
+# NUNCA chega ao intent; e o único plano B era `profiles.stripe_customer_id`,
+# coluna escrita só quando um pagamento DÁ CERTO. Resultado: a casa só sabia
+# nomear quem JÁ TINHA PAGADO — e o primeiro comprador recusado, que é o único
+# que ainda pode virar assinante, era anônimo por construção.
+# Agora existe uma escada de 5 degraus (metadata do intent → assinatura da
+# fatura → sessão de checkout → customer_id → e-mail do customer) e o evento
+# carrega `identity_source`, `owner_resolved`, `stripe_session_id`, `tier` e
+# `ip_country`. ⚠️ `identity_source='customer_email'` é INFERÊNCIA, não fato:
+# nenhuma carta sai só com ele. O corte antes/depois é `metadata ?
+# 'identity_source'`, NUNCA o relógio. Consultas em
+# docs/queries/RECUSA-COM-NOME-2026-09-07.sql; carta em
+# /api/admin/send-card-declined (dry-run por padrão, só compra INICIAL).
 # Números que sustentam a conclusão (funil 7d, medido 19/08): 247 cadastros →
 # 135 fizeram vídeo → 44 chegaram ao checkout → 0 assinaram, e os 44 tentaram
 # 2+ VEZES. Quem volta duas vezes quer comprar; travou no valor.
