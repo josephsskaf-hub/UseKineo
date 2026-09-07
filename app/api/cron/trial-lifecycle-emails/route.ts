@@ -374,6 +374,60 @@ const EXTENSION_MIN_USABLE_CREDITS = 1
  */
 const COMEBACK_CODE = 'COMEBACK50'
 
+/**
+ * ═══ KINEO-D5D10-PORTA-DE-1-DOLAR-2026-09-07 ═════════════════════════════════
+ * A PORTA MAIS BARATA QUE A CASA TEM, NA CARTA QUE MAIS SAI.
+ *
+ * O NÚMERO QUE MOTIVA (medido em 07/09, contas externas):
+ *   · 12 pagantes orgânicos em 90 dias. **10 dos 12 pagaram em menos de 48h**
+ *     do cadastro; 7 em menos de 8h; 5 na PRIMEIRA HORA. Os dois únicos que
+ *     pagaram depois do D2 (247h e 399h) são as duas pessoas da campanha de
+ *     review de agosto — compraram por acordo, não por carta.
+ *   · Nos últimos 14 dias a casa mandou **785** cartas de pós-morte
+ *     (lastcall_d10 400 + offer_d5 385) contra **285** boas-vindas. A maior
+ *     vazão de e-mail da casa aponta para a única janela do funil onde
+ *     nenhum pagante orgânico jamais nasceu.
+ *   · E o CTA dessas cartas já estava medido em zero pelos comentários das
+ *     sprints #21/#22/#12 logo abaixo: 442 D5 + 276 D10 = **718 envios,
+ *     0 checkout, 0 pagante**.
+ *
+ * POR QUE $1 E NÃO MAIS UMA CARTA. A conclusão fechada do fundador (19/08,
+ * repetida várias vezes) é que o vazamento do checkout é **PREÇO**. O cupom
+ * pede $7,50/mês; o trial pago pede **$1**. Não é oferta nova nem desconto
+ * novo — é a porta que o próprio produto abriu em 07/09 (CARD_TRIAL_ENABLED
+ * em app/api/stripe/checkout, e o botão do /pricing), com o texto da casa
+ * copiado verbatim daquele botão. Trocar um CTA provado em zero é
+ * estritamente melhor do que escrever a sétima carta (memórias
+ * `carta-nova-so-depois-da-velha-mover` e
+ * `medir-os-remedios-existentes-antes-do-setimo`).
+ *
+ * ⚠️ A PORTA ABRE PARA ESTA COORTE — CONFERIDO NO CÓDIGO DO COBRADOR, NÃO
+ * DEDUZIDO (memória `vitrine-oferece-o-que-o-cobrador-recusa`). O único gate
+ * de `?trial=1` é `profile.has_paid === true` (app/api/stripe/checkout/
+ * route.ts, KINEO-TRIAL-1DOLAR-LIGADO-2026-09-07). A coorte do D5/D10 é
+ * trial morto que NUNCA pagou: `has_paid` falso, porta aberta. Se um dia o
+ * gate mudar, esta linha vira oferta que o caixa recusa.
+ *
+ * ⚠️ O CUPOM NÃO FOI TOCADO — código, prazo, porcentagem e URL idênticos. Ele
+ * é do Codex. O $1 entra ANTES dele porque é a barreira menor, e o cupom
+ * segue no corpo como alternativa. A promessa do D10 ("last time we will
+ * mention it") continua verdadeira: o cron não manda nada depois do D10.
+ *
+ * ⚠️ SÓ NO RAMO `offer_with_film`. Quem nunca viu um filme não tem objeção de
+ * preço — tem objeção de prova; esse ramo fica byte a byte como está,
+ * oferecendo o filme grátis (decisão da sprint #12, e ela está certa).
+ *
+ * INSTRUMENTAÇÃO NO MESMO COMMIT (memória `campo-novo-e-o-carimbo-do-deploy`):
+ * o `body` passa a gravar `offer_with_film_1usd`, então a medição separa quem
+ * recebeu o bundle novo de quem recebeu o antigo sem depender de relógio.
+ */
+const TRIAL_1USD_PATH = '/api/stripe/checkout?tier=basic&billing=monthly&trial=1'
+/** Texto do botão do /pricing, verbatim, para a casa falar uma língua só. */
+const TRIAL_1USD_LINE = 'try Creator for 7 days — $1, then $15/mo'
+function trial1UsdUrl(campaign: string): string {
+  return `${APP_URL}${TRIAL_1USD_PATH}&intent_campaign=${campaign}`
+}
+
 type EmailKind =
   | 'd0_welcome'
   | 'ending_soon'
@@ -1693,6 +1747,7 @@ ${ep2 ? `${ep2.html}\n` : ''}  ${sig}`)
     if (c.videosMade >= 1) {
       const noun = filmNoun(c.lastDuration)
       const libraryUrl = `${APP_URL}/library?${utm('trial_offer_d5_library')}`
+      const trialUrl = trial1UsdUrl('trial_1usd_d5')
       const creatorRow = filmsPerPlan(c.lastCost)?.find((r) => r.tier === 'basic') ?? null
       const ep2 = episodeTwoBlock(c.lastTopic, 'trial_offer_d5_episode2', 'lifecycle_loss_email', attr)
       const madeLine = c.videosMade === 1
@@ -1706,9 +1761,10 @@ ${ep2 ? `${ep2.html}\n` : ''}  ${sig}`)
 Your Creator trial ended a few days ago, and ${madeLine}:
 ${libraryUrl}
 
-If you want the next one, here's a better deal than the trial ever was: 50% off Creator for 3 months, with code ${COMEBACK_CODE}.${filmsLine ? ` ${filmsLine}` : ''}
+If you want the next one, the cheapest way back in is a dollar: ${TRIAL_1USD_LINE}. Cancel anytime.
+${trialUrl}
 
-Claim it here — the code applies at checkout: ${url}
+Or take 50% off Creator for 3 months, with code ${COMEBACK_CODE}.${filmsLine ? ` ${filmsLine}` : ''} Claim it here — the code applies at checkout: ${url}
 ${ep2 ? `\n${ep2.text}\n` : ''}
 Kineo Team
 usekineo.com`
@@ -1716,17 +1772,19 @@ usekineo.com`
   <p style="margin:0 0 14px;">Hey,</p>
   <p style="margin:0 0 14px;">Your Creator trial ended a few days ago, and <strong>${escapeHtmlText(madeLine)}</strong>.</p>
   ${cta(libraryUrl, 'Open your Library')}
-  <p style="margin:0 0 14px;">If you want the next one, here's a better deal than the trial ever was: <strong>50% off Creator for 3 months</strong>, with code <strong>${COMEBACK_CODE}</strong>.${filmsLine ? ` ${escapeHtmlText(filmsLine)}` : ''}</p>
+  <p style="margin:0 0 14px;">If you want the next one, the cheapest way back in is a dollar: <strong>${escapeHtmlText(TRIAL_1USD_LINE)}</strong>. Cancel anytime.</p>
+  ${cta(trialUrl, 'Start Creator for $1')}
+  <p style="margin:0 0 14px;">Or take <strong>50% off Creator for 3 months</strong>, with code <strong>${COMEBACK_CODE}</strong>.${filmsLine ? ` ${escapeHtmlText(filmsLine)}` : ''}</p>
   ${cta(url, `Claim 50% off`)}
   <p style="margin:0 0 20px;font-size:13px;color:#64748b;">The code applies automatically at checkout.</p>
 ${ep2 ? `${ep2.html}\n` : ''}  ${sig}`)
       return {
         subject: c.videosMade === 1
-          ? `Your ${noun} is still in your Library — and Creator is 50% off`
-          : `Your ${c.videosMade} videos are still in your Library — and Creator is 50% off`,
+          ? `Your ${noun} is still in your Library — try Creator for $1`
+          : `Your ${c.videosMade} videos are still in your Library — try Creator for $1`,
         text: `${wText}${footerText}`,
         html: wHtml,
-        body: 'offer_with_film',
+        body: 'offer_with_film_1usd',
       }
     }
 
@@ -1843,6 +1901,7 @@ usekineo.com`
     if (c.videosMade >= 1) {
       const noun = filmNoun(c.lastDuration)
       const libraryUrl = `${APP_URL}/library?${utm('trial_offer_d10_library')}`
+      const trialUrl = trial1UsdUrl('trial_1usd_d10')
       const creatorRow = filmsPerPlan(c.lastCost)?.find((r) => r.tier === 'basic') ?? null
       const ep2 = episodeTwoBlock(c.lastTopic, 'trial_offer_d10_episode2', 'lifecycle_loss_email', attr)
       const madeLine = c.videosMade === 1
@@ -1853,11 +1912,14 @@ usekineo.com`
         : ''
       const wText = `Hey,
 
-Quick heads-up, and then we'll leave you alone: ${madeLine}, and your 50% off Creator for 3 months (code ${COMEBACK_CODE}) is still live — but this is the last time we'll mention it.
+Quick heads-up, and then we'll leave you alone: ${madeLine}, and there are two ways back in — but this is the last time we'll mention either.
 
 Your Library: ${libraryUrl}
 
-Grab the deal here — the code applies at checkout: ${url}${filmsLine ? `\n${filmsLine}` : ''}
+The cheap one, a dollar: ${TRIAL_1USD_LINE}. Cancel anytime.
+${trialUrl}
+
+The other: 50% off Creator for 3 months, code ${COMEBACK_CODE} — it applies at checkout: ${url}${filmsLine ? `\n${filmsLine}` : ''}
 ${ep2 ? `\n${ep2.text}\n` : ''}
 No hard feelings either way.
 
@@ -1865,18 +1927,20 @@ Kineo Team
 usekineo.com`
       const wHtml = wrap(`
   <p style="margin:0 0 14px;">Hey,</p>
-  <p style="margin:0 0 14px;">Quick heads-up, and then we'll leave you alone: <strong>${escapeHtmlText(madeLine)}</strong>, and your <strong>50% off Creator for 3 months</strong> (code <strong>${COMEBACK_CODE}</strong>) is still live — but this is the last time we'll mention it.</p>
+  <p style="margin:0 0 14px;">Quick heads-up, and then we'll leave you alone: <strong>${escapeHtmlText(madeLine)}</strong>, and there are two ways back in — but this is the last time we'll mention either.</p>
   ${cta(libraryUrl, 'Open your Library')}
+  <p style="margin:0 0 14px;">The cheap one, a dollar: <strong>${escapeHtmlText(TRIAL_1USD_LINE)}</strong>. Cancel anytime.</p>
+  ${cta(trialUrl, 'Start Creator for $1')}
   ${filmsLine ? `<p style="margin:0 0 14px;">${escapeHtmlText(filmsLine)}</p>\n` : ''}  ${cta(url, 'Claim 50% off')}
   <p style="margin:0 0 20px;font-size:13px;color:#64748b;">The code applies automatically at checkout. No hard feelings either way.</p>
 ${ep2 ? `${ep2.html}\n` : ''}  ${sig}`)
       return {
         subject: c.videosMade === 1
-          ? `Last call on 50% off Creator — your ${noun} is waiting in your Library`
-          : `Last call on 50% off Creator — your ${c.videosMade} videos are waiting in your Library`,
+          ? `Last call — your ${noun} is waiting, and Creator is $1 for 7 days`
+          : `Last call — your ${c.videosMade} videos are waiting, and Creator is $1 for 7 days`,
         text: `${wText}${footerText}`,
         html: wHtml,
-        body: 'offer_with_film',
+        body: 'offer_with_film_1usd',
       }
     }
 
