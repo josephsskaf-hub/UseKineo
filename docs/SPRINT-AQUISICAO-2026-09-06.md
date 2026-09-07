@@ -2995,3 +2995,98 @@ pior que teste faltando: ensina a ignorar o vermelho. Agora ele checa a regra
 ("a data não anda para trás") em vez de uma foto de um dia específico.
 
 ---
+
+### #19d — 02:08 BRT (07/09) — CHECKPOINT: a peça da rotação está de pé em produção, e o alarme de abuso se repetiu igual uma hora depois
+
+**Checkpoint, não trabalho novo.** A rotação #19 (01:38) entregou três peças e
+publicou; a fila está em **0 à frente de `origin/main`** e a ponta é
+`2d8bf11c`. Esta entrada só prova o que subiu e mede a hora.
+
+**Prova de produção (sonda com UA identificável, com controle 404):**
+
+```
+/                          200
+/tools/editor              200
+/tools/editor-que-nao-existe-xyz   404   <- controle
+sitemap.xml contém tools/editor    1
+llms.txt   contém tools/editor     1
+```
+
+O controle 404 é o que dá valor aos 200: a rota não é um catch-all. A peça da
+#19b — a página que existia e não estava em mapa nenhum — está no ar, no mapa
+do site e no arquivo que os motores de resposta leem.
+
+### Praxe — aquisição nas últimas 24h (contas externas)
+
+| fonte | cadastros | com filme | 2º filme | checkout | **pagou** |
+|---|---|---|---|---|---|
+| chatgpt | 25 | 21 | 6 | 1 | **0** |
+| (sem fonte) | 6 | 2 | 0 | 0 | **0** |
+| taaft | 5 | 5 | 0 | 1 | **0** |
+| nav (interno) | 2 | 1 | 0 | 0 | **0** |
+| bing | 1 | 1 | 1 | 0 | **0** |
+| perplexity | 1 | 1 | 0 | 0 | **0** |
+| **total** | **40** | **31** | **7** | **2** | **0** |
+
+Três leituras que o total esconde:
+
+1. **`google` continua em ZERO em 24h.** Quem apareceu de busca foi **Bing (1)**
+   e **Perplexity (1)** — motor de resposta, não busca clássica. O buraco do Q4
+   segue aberto e agora tem uma pista: nós somos achados por quem *responde*,
+   não por quem *indexa*.
+2. **O ChatGPT entrega o filme (21 de 25, 84%) e o 2º filme (6).** A máquina de
+   ativação funciona. O degrau seco é do filme para o dinheiro: **2 checkouts,
+   0 pagamentos**, o mesmo desenho do ciclo inteiro.
+3. **`(sem fonte)` NÃO é rastreio furado.** Ver abaixo.
+
+### Checagem zero — passa, e o predicado ingênuo teria mentido de novo
+
+```
+render preso (>40min)        0
+next_episode_failed 24h      0
+payment_success 24h          0     <- não é falha, é o placar
+conta nova sem fonte         6     <- olhei uma por uma
+```
+
+As 6 "sem fonte", abertas com `trial_status` e saldo na mão:
+
+| e-mail | créditos | trial_status | filmes |
+|---|---|---|---|
+| beyajie@163.com | 17 | active | 1 |
+| folesnick303@gmail | 25 | active | 0 |
+| najahava@live.com | 0 | downgraded | 1 |
+| jejababal@live.com | 0 | **blocked** | 0 |
+| yahalahau@live.com | 0 | **blocked** | 0 |
+| iwysbal@live.com | 0 | **blocked** | 0 |
+
+**Três das seis são a mesma fazenda `@live.com` da #12**, criadas em 7 minutos,
+0 filmes, corretamente bloqueadas pelo limite de impressão digital. O buraco de
+atribuição real são **2 contas**, não 6 — e as duas nasceram com o crédito
+inteiro. Se eu tivesse contado `video_credits = 0` como "trial órfão", teria
+aberto incidente pela segunda vez em duas horas e o conserto seria **premiar
+farmador**. O predicado corrigido na #12 se sustentou uma hora depois, contra
+dados novos.
+
+### O que a rotação das 02:38 faz primeiro
+
+1. **`test-public-cost-planner-discovery` (34/37)** — o mais provável dos 10
+   guardiões vermelhos antigos a esconder coisa: compara texto com `\n` literal
+   sem normalizar CRLF, a armadilha já catalogada. Normalizar na leitura e
+   reconferir na ponta da fila, não só na worktree.
+2. Se ele sair verde sem achado, **Q4 (o Google no servidor)** com a pista nova:
+   somos citados por motor de resposta e ignorados por busca. Vale conferir se
+   o HTML das páginas de conteúdo entrega o texto por `curl` (renderizado no
+   servidor) ou só no cliente — é a diferença entre o Perplexity nos ler e o
+   Google não nos indexar.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+1. **Nada.**
+
+## 📋 O QUE ACONTECEU
+A página que entrou no mapa está de pé em produção, provada com controle. Na
+hora, 40 pessoas entraram, 31 receberam filme, 7 fizeram o segundo, 2 chegaram
+ao pagamento e nenhuma pagou. O alarme de "conta nascida sem crédito" apareceu
+de novo e de novo era abuso bloqueado corretamente — o produto acertou, o
+alarme é que era burro, e ele já tinha sido consertado uma hora antes.
+
+---
