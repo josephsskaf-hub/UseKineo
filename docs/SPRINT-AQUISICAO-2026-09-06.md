@@ -859,3 +859,270 @@ guardiões que ninguém roda**, e eles se dividem em duas famílias — os que
 quebraram porque o produto mudou de propósito (como o do `s25`) e os que
 quebraram e ninguém viu. Enquanto estiverem vermelhos, **nenhum deles protege
 nada**. É trabalho de uma sessão inteira, e merece uma.
+
+---
+
+## ### #11 — 22:20 — Q8: O QUE A CASA MANDA PARA A STRIPE É IGUAL PARA TODO MUNDO — E O "41 DO TAAFT, ZERO PAGAMENTOS" ESTÁ ERRADO
+
+**Press release.** Para quem ainda não nos conhece, esta rotação não muda nada:
+ela é de medição. Para a casa, ela fecha uma suspeita cara — a de que o nosso
+próprio código estivesse mandando uma sessão de checkout pior para quem vem do
+TAAFT — e corrige um número que o ciclo estava carregando errado.
+
+**Hipótese testada:** a sessão de checkout que a Kineo cria varia conforme a
+fonte de aquisição, o país, a moeda ou o idioma. **Falsa.**
+
+### O que a casa envia, e onde está escrito
+
+Li `app/api/stripe/checkout/route.ts` inteira. A sessão é montada em
+`buildAndRedirect` e vai para a Stripe em `:1703`. Os parâmetros:
+
+| parâmetro | valor | arquivo:linha |
+|---|---|---|
+| `mode` | `subscription` | route.ts:1091 |
+| moeda | `resolveCheckoutCurrency(country)` → **sempre `usd`** | checkoutPricing.ts:615-617 |
+| região de preço | `resolvePriceRegion(country)` → **sempre `standard`** (o tipo `PriceRegion` tem um valor só) | checkoutPricing.ts:197, 635-637 |
+| valor | `TIER_PRICES[tier].usd` | checkoutPricing.ts:94-98 |
+| trial no cartão | `CARD_TRIAL_ENABLED = false` — nunca entra | route.ts:749-750 |
+| `metadata.ip_country` | carimbado, **informativo** | route.ts:1156 |
+| `automatic_tax`, `billing_address_collection`, `customer_creation`, `locale`, `payment_method_types` | **AUSENTES** → default da Stripe (os métodos de pagamento são os do painel) | grep na rota: 0 ocorrências |
+
+**A pergunta central, respondida com prova:** um `grep` na rota por
+`signup_utm_source`, `utm_source`, `signup_referrer`, `signup_country` e
+`accept-language` devolve **zero linhas**. O `select` do perfil (`:812-814`) lê
+`email, stripe_customer_id, is_pro, plan, stripe_subscription_id,
+paypal_subscription_id, affiliate_id` — a fonte de aquisição **nem é lida**. O
+país entra por `x-vercel-ip-country` (`:674`) e morre em duas funções que são
+constantes desde o preço único de 19/08.
+
+**Não há um único ramo por fonte, país, idioma ou referrer.** A única coisa que
+varia é o que a pessoa escolheu (plano, anual, promo) e o `customer` dela.
+
+### 🔴 Duas correções de premissa que o ciclo estava carregando
+
+**1. "41 checkouts do TAAFT, zero pagamentos" — o 41 é real, o zero não é.**
+1 dos 41 pagou (`gapozweb`, 17/08). Na história, TAAFT tem 4 pagantes.
+
+**2. Os 41 misturam dois regimes de preço.** O preço único em USD subiu em
+19/08; a janela de 30 dias começa em 07/08:
+
+| fonte | período | checkouts | em INR/BRL | pagou |
+|---|---|---:|---:|---:|
+| taaft | antes de 19/08 | 29 | 10 | 1 |
+| taaft | **desde 19/08** | **12** | 0 | **0** |
+| chatgpt | antes de 19/08 | 12 | 4 | 0 |
+| chatgpt | **desde 19/08** | **30** | 0 | **3** |
+
+**29 dos 41 são do regime antigo.** A comparação honesta no regime atual é
+**0 de 12 (TAAFT) contra 3 de 30 (ChatGPT)** — e o TAAFT vem escasso desde 19/08.
+
+### A diferença que existe é de COORTE, não de código
+
+País de cadastro de quem abriu checkout: **TAAFT = 22 de 41 em Índia/Nigéria**;
+ChatGPT = 7 de 42. Os 6 pagantes do período são ES, GB, SA, US, US, ZA.
+**Nenhuma conta IN/NG pagou no período.**
+
+Amostra lado a lado (10 sessões TAAFT × 10 ChatGPT): **mesmas chaves, mesmos
+valores estruturais** — `currency: usd`, `price_region: standard`,
+`checkout_origin: standard`, mesma versão de janela de sessão. Nas sessões
+expiradas (24 TAAFT, 30 ChatGPT): `payment_status: unpaid` e
+`customer_country: null` em **100% dos dois lados** — ninguém dos dois chegou a
+digitar o cartão.
+
+**Veredito: não há conserto de código a propor.** O que sobra só existe no
+painel da Stripe, e está listado no bloco de ações do fundador.
+
+---
+
+## ### #12 — 22:40 — A TEMPORADA GANHA A SUA PÁGINA PÚBLICA — A COISA QUE SÓ NÓS FAZEMOS DEIXA DE SER INVISÍVEL PARA QUEM NOS CITA
+
+**Press release (6 linhas).** Quem pergunta a um motor de resposta *"qual
+ferramenta me dá uma SÉRIE de Shorts, não um vídeo solto?"* passa a poder receber
+uma página nossa como resposta. Até hoje não podia: a Kineo escreve os próximos
+episódios da mesma história quando um filme termina — e isso não existia em
+nenhuma **página**. Existia num arquivo de fatos e no `/llms.txt`. O canal que
+traz 57% dos nossos cadastros cita **URLs de página**, não arquivos de texto.
+`https://www.usekineo.com/ai-shorts-series`
+
+**Hipótese:** o ChatGPT nos cita pelo que é grátis porque é só disso que temos
+página. Dar página à única capacidade diferenciada muda o que ele pode citar.
+
+### O errado, medido
+
+- O ChatGPT é **57% da aquisição** (188 de 355 cadastros em 14 dias) e as **seis
+  páginas que ele mais cita são todas sobre o que é grátis**.
+- A temporada disparou `season_written` **28 vezes para 28 pessoas em 24h** —
+  está viva e é real.
+- **Páginas públicas sobre ela: zero.** O fato morava só em
+  `lib/growth/afterTheFilmFacts.ts` e no `/llms.txt`.
+- E o mapa de entrada de hoje mostra a direção: as **duas únicas** páginas de
+  entrada que produziram pagamento em 14 dias são **profundas**
+  (`/ai-shorts-for-agencies`, `/ai-video-generator/seedance`). A home trouxe
+  **140 pessoas e 0 pagamentos**.
+
+### O que mudou — `6d81bc70` · **EM PRODUÇÃO**
+
+| arquivo | o que |
+|---|---|
+| `app/ai-shorts-series/page.tsx` (novo, 297 l.) | a página. Server component, **zero `className`**, zero CSS novo, só `style` inline — molde de `/facts` e `/models-pricing` |
+| `app/sitemap.ts` | +1 rota, `LAST_MODIFIED` avançado na convenção datada |
+| `app/llms.txt/route.ts` | +1 link em `## Key pages` (a seção "after a video is finished" ficou **intocada** — o guardião irmão proíbe linha solta lá) |
+| `app/facts/page.tsx` | +1 item de **dados** em `SOURCE_LINKS` (só dado, nenhum layout) |
+| `scripts/test-ai-shorts-series.mjs` (novo) | 29 verificações |
+
+**Nenhum número foi digitado.** Episódios saem de `AFTER_THE_FILM_FACT.season`
+(que deriva de `lib/temporada.ts`), planos de `PLAN_FACTS`, preços de
+`checkoutPricing`. Se o produto passar de 5 para 3 episódios, a página muda
+sozinha — em vez de virar promessa pública que o produto não cumpre mais.
+
+**A página diz o que a temporada NÃO é, visível no HTML:** que escrever a
+temporada **não renderiza** os episódios e não reserva crédito; que cada episódio
+só vira filme pelo fluxo normal e é cobrado normalmente; que a temporada continua
+o tema de um vídeo que a conta já fez, e não é calendário de conteúdo de marca.
+Isso não é modéstia: é a trava contra a classe de erro que a casa já pagou, a de
+vitrine que oferece o que o cobrador recusa.
+
+### Prova de produção (com controle, não só com 200)
+
+```
+/ai-shorts-series                       -> 200   (103.749 bytes)
+/ai-shorts-series-controle-inexistente  -> 404
+```
+
+O controle importa: um 200 sozinho não prova que a rota nova subiu. E o conteúdo
+está no **HTML do servidor**, não montado por JS — `canonical`, `What this is
+not`, `does not render` e `series instead of a one-off` aparecem no `curl`. É
+exatamente essa a condição para um motor de resposta conseguir ler e citar.
+
+### Testes
+
+- `npx tsc --noEmit` → **verde** (com junction de `node_modules`; sem ela o tsc
+  mente com exit 0).
+- guardião novo → **29/29 verde**, e **15 mutantes** foram testados um a um,
+  cada mutação aplicada com `node` (nunca `perl` — CRLF já produziu falso verde
+  três vezes esta noite) e **confirmada por `git diff` antes de contar o
+  resultado**. Apagar os limites, digitar "$7", digitar "5 episodes", tirar o
+  canonical, tirar do sitemap, mover o link para a seção proibida, apagar o item
+  do `/facts` — **cada um deixou o guardião vermelho na verificação esperada**.
+- `test-after-the-film-facts` → verde.
+- `audit-orphan-pages` → vermelho, **e já era**: a base tinha 7 páginas órfãs
+  (`/models-pricing` entre elas). Agora tem 6, e a minha não está na lista.
+  Provado rodando no commit base.
+- Dos 27 guardiões que leem sitemap/llms.txt: 14 verdes, **13 vermelhos que já
+  estavam vermelhos na base** — a mesma família registrada na #10.
+
+### Risco, dito sem maquiagem
+
+**Página nova nasce com alcance zero.** Ninguém sabe se o ChatGPT vai citá-la, e
+não existe alavanca nossa que force isso — a casa já errou hoje ligando peça sem
+medir alcance. O que esta rotação garante é só a **condição necessária**: antes,
+a citação era impossível; agora é possível. A verificação é de dias, não de horas.
+
+### Como medir (consulta pronta)
+
+```sql
+select date_trunc('day', created_at) d, count(*) pousos,
+       count(distinct session_id) sessoes
+from events
+where name = 'landing_session_started' and path = '/ai-shorts-series'
+group by 1 order by 1;
+```
+
+O degrau seguinte é o mesmo das outras páginas de entrada: dessas sessões,
+quantas viram cadastro, filme, checkout. **Sem instrumentação nova** — a #1 já
+grava fonte e `landing_path` em todo pouso.
+
+---
+
+## 📊 PRAXE — 24h até 01:30 UTC (07/09)
+
+**Aquisição por fonte (contas externas):**
+
+| fonte | cadastros | com filme | 2º filme | checkout | **pagou** |
+|---|---:|---:|---:|---:|---:|
+| chatgpt | 24 | 20 | 6 | 1 | **0** |
+| taaft | 5 | 5 | 0 | 0 | 0 |
+| nav | 2 | 1 | 0 | 0 | 0 |
+| sem-fonte | 2 | 1 | 0 | 0 | 0 |
+| seo | 1 | 1 | 0 | 1 | 0 |
+| bing / perplexity (referrer cru) | 2 | 2 | 1 | 0 | 0 |
+| **total** | **36** | **30** | **7** | **2** | **0** |
+
+**Checagem zero:** cadastro sem crédito 2 · render preso >2h **0** ·
+`next_episode_failed` **0** · `season_written` **28**.
+
+### ✅ A #1 está funcionando — e o "316 pousos sem fonte" era falso alarme
+
+O contador cru dizia `pouso com fonte conhecida: 1` contra `sem fonte: 316`.
+**Antes de escalar, cortei no deploy** (a chave `source_known` nasceu com a #1):
+
+| janela | pousos | têm a chave | fonte conhecida |
+|---|---:|---:|---:|
+| antes do deploy da #1 | 312 | **0** | 0 |
+| depois do deploy da #1 | 5 | **5** | 1 |
+
+Os 312 não têm fonte porque **a chave não existia**, não porque falhou.
+Pós-deploy, **5 de 5 pousos carregam o campo**. Contas novas sem fonte nenhuma
+em 24h: **2 de 36** — contra os 30 de 355 (10%) que abriram o ciclo.
+
+### ⚠️ Uma observação que NÃO estou chamando de queda
+
+Pousos por hora caíram para 3 (00h UTC) e 2 (01h UTC, hora incompleta) contra
+12-22/h durante o dia. **Isso não é prova de regressão**: nas mesmas horas de
+ontem foram 5 e 11, e no dia anterior 3 e 5. É a hora morta, e a série oscila
+entre 1 e 30 por hora. Registro para a próxima rotação **reconferir com a mesma
+janela de relógio**, não para consertar nada agora.
+
+### 💡 Achado lateral com valor: o Q6 já está meio construído no banco
+
+`profiles` tem **`referral_code`, `referred_by`, `referral_count` e
+`referral_reward_granted`**. `referral_code` está preenchido em **1.310 perfis**
+— e `referred_by` em **7 na história inteira**. A infraestrutura de indicação
+existe e está dormindo. Quem pegar o Q6 não precisa de migração: precisa
+descobrir por que 1.310 códigos produziram 7 atribuições.
+
+### 🎯 Próxima jogada
+
+O ChatGPT nos cita por seis páginas de "grátis" e nenhuma delas responde a
+pergunta com dinheiro atrás. A página da temporada é o primeiro tijolo do lado
+certo. **O segundo é mais barato ainda e ninguém puxou:**
+`/state-of-ai-shorts-2026` é a **2ª página mais citada** pelo ChatGPT (25 sessões
+em 14 dias), converteu **0 checkouts** — e **não está no `/llms.txt`** (um `grep`
+por `state-of` no arquivo volta vazio). Estamos sendo citados com sucesso pela
+peça que não vende, sem sequer ter dito ao motor o que ela é. Pôr a página mais
+citada no arquivo que o motor lê é **uma linha de dado, sem tela**, e o alcance
+**já existe** — ao contrário da minha página nova, que nasce com zero.
+
+---
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+1. **Abrir a Stripe → Payments → filtro "Incomplete"**, de 19/08 até hoje, e ver
+   se alguma sessão com `metadata.ip_country` = `IN` ou `NG` chegou a gerar
+   PaymentIntent (ou seja: se alguém chegou a tentar o cartão). Só o painel
+   responde isso — o nosso banco não guarda.
+2. **Stripe → Settings → Payment methods:** conferir quais métodos estão ativos
+   para Índia e Nigéria. A nossa rota **não envia** `payment_method_types`, então
+   quem decide é o painel — e metade dos checkouts do TAAFT vem desses dois países.
+3. **Abrir `https://www.usekineo.com/ai-shorts-series`** e dizer se o texto está
+   do jeito que você quer. É a primeira página pública da temporada.
+
+## 📋 O QUE ACONTECEU
+
+Duas coisas. Primeiro, fui atrás da suspeita de que a casa mandasse um checkout
+pior para quem vem do TAAFT: **não manda**. A sessão que criamos é idêntica para
+todo mundo — moeda, preço e região são constantes desde 19/08, e a fonte de
+aquisição nem é lida pela rota. De quebra, dois números que o ciclo carregava
+estavam errados: o TAAFT teve **1 pagamento nos 41 checkouts** (não zero), e
+**29 dos 41 são de antes do preço único**. A diferença real entre TAAFT e ChatGPT
+é quem chega: metade do TAAFT é Índia e Nigéria, e ninguém desses países pagou
+no período. O que falta ver só existe no painel da Stripe.
+
+Segundo, subi a **primeira página pública da temporada**
+(`usekineo.com/ai-shorts-series`). A temporada é a única coisa que a casa faz e
+os concorrentes não fazem, funcionou 28 vezes nas últimas 24 horas — e não tinha
+página nenhuma. O ChatGPT, que traz 57% dos nossos cadastros, cita páginas; sem
+página, ele não tinha como nos citar por isso. A página é feita só de fatos
+lidos do código (nenhum número digitado), diz na cara o que a temporada **não**
+é, e está no ar com prova. **O que ela não faz é prometer resultado:** página
+nova nasce sem alcance, e isso só se mede em dias.
