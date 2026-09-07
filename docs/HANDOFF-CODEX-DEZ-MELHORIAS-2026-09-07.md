@@ -1,5 +1,8 @@
 # Dez melhorias aprovadas + Omni sem preenchimento lateral
 
+## Aceite do enquadramento — atualização
+**DECISÃO DO FUNDADOR NO CHAT, 07/09/2026:** aprovou a recomendação vertical com “perfeito”. **IMPLEMENTADO:** cartão Omni 9:16, largura máxima 240px, fontes verticais sem composição de laterais. Object-fit contain preserva o robô largo inteiro dentro do palco estável; nele há espaço preto acima/abaixo, não preenchimento artificial. Outros motores, IDs e arquivos originais intactos. Ficha técnica (item 10) tem comparação em `docs/previews/FICHA-DA-PREVIA.html`.
+
 ## Mandato
 **DECISÃO DO FUNDADOR NO CHAT, 07/09/2026:** aprovadas as dez propostas da rodada de pesquisa. Pedido adicional: retirar separação/fade lateral do vídeo Omni Flash e melhorar enquadramento. Execução incremental, sem publicar funcionalidade só por estar aprovada. Worktree `C:/tmp/kineo-omni-clean-2026-09-07`, branch `codex/omni-clean-frame-sep07`, base `30fb83a6`.
 

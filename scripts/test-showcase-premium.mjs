@@ -24,6 +24,8 @@ function load(file) {
     if (id.endsWith('.module.css')) return { __esModule: true, default: new Proxy({}, { get: (_, name) => String(name) }) }
     if (id === '@/lib/ui/showcaseGallery') return load('lib/ui/showcaseGallery.ts')
     if (id === '@/lib/ui/previewFacts') return load('lib/ui/previewFacts.ts')
+    if (id === '@/lib/ui/heroFrame') return load('lib/ui/heroFrame.ts')
+    if (id === './showcaseGallery') return load('lib/ui/showcaseGallery.ts')
     throw Error('Unexpected dependency: ' + id)
   }
   vm.runInNewContext(ts.transpileModule(fs.readFileSync(file, 'utf8'), {
@@ -42,6 +44,15 @@ for (const language of ['en','es','hi']) for (const key of Object.keys(facts.PRE
   ok(Boolean(facts.PREVIEW_FACTS_COPY[language][key]), 'preview facts translation ' + language + '/' + key)
 }
 const Gallery = load('components/TrendingRow.tsx').default
+const framePolicy = load('lib/ui/heroFrame.ts')
+const EngineCard = load('components/EngineCycleCard.tsx').default
+for (const video of trending) {
+  const frame = framePolicy.heroFrame(video)
+  ok(frame.src === (video.engine === 'cinematic_omni' ? video.videoUrl : video.previewUrl ?? video.videoUrl), 'actual source avoids baked fill only for Omni ' + video.id)
+  const html = renderToStaticMarkup(React.createElement(EngineCard, { videos: [video] }))
+  ok(html.includes(video.engine === 'cinematic_omni' ? 'data-frame="natural-portrait"' : 'data-frame="wide"'), 'real caller applies frame choice ' + video.id)
+  if (video.engine === 'cinematic_omni') ok(!html.includes('-h.webp'), 'no blurred portrait poster in Omni SSR')
+}
 const original = JSON.stringify(trending)
 const engines = policy.showcaseEngines(trending)
 ok(engines.reduce((sum, e) => sum + e.count, 0) === trending.length, 'counts reconcile to real curated examples')
