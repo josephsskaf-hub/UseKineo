@@ -2780,3 +2780,106 @@ dado que não depende de relógio nenhum. De quebra apareceu uma prova boa: um
 dos testes veio de dentro da OpenAI, o que confirma que o robô consegue
 mesmo falar com a Kineo. O estado real continua o mesmo e agora está medido
 sem truque: 16 ensaios meus, nenhum visitante ainda.
+
+### #18 — 07/09 04:22→04:45 BRT — a porta media "0 de 8" e o denominador real era 1
+
+*(carimbo conferido contra `date` puro — `Mon Sep 7 04:22 2026` — e contra
+`now() at time zone 'America/Sao_Paulo'` do banco: `2026-09-07 04:23`. A janela
+segue aberta até 05:00.)*
+
+**A rotação abriu fechando a prova que faltava da #17.** O `openapi.json` em
+produção, com controle na mesma medição:
+
+```
+GET /gpt/openapi.json              → 200 · frase velha do fitMessage: 0 · "outcome": 15 · "outcomeMessage": 6
+GET /gpt/openapi-nao-existe.json   → 404   (controle)
+```
+
+A frase que mandava o GPT falar de comprimento a partir de `fit` **não existe
+mais em produção**. A entrega #17 está provada.
+
+**Depois disso, a pergunta certa era de alcance, não de copy.** As peças da
+madrugada (`/go`, `/chatgpt`, `/make`) têm tráfego real zero — as 19 linhas de
+`gpt_handoff_created` são as minhas próprias sondas. Então medi a única porta
+que dá para uma superfície VIVA: o aviso de "você colou a ordem" no Studio, que
+desde a #11 leva para `/chatgpt`.
+
+```
+pasted_directives_detected .................... 23 pessoas / 53 eventos (3 dias)
+activation_instruction_notice_viewed
+  · paste_shape = command_to_chatbot .......... 8 pessoas / 10 eventos
+instruction_notice_cta_clicked ................ 0 linhas em 14 dias
+chatgpt_page_viewed ........................... 1 pessoa / 2 eventos
+```
+
+**"0 de 8" é a leitura que eu quase escrevi, e ela é falsa.** O CTA subiu por
+volta das **02:00 BRT de hoje**. Das 8 impressões do ramo, **uma só** é depois
+disso (07/09 02:39, pessoa `17e5c0cc`). As outras sete são de 05 e 06/09 — gente
+que viu a tela quando **não havia link nenhum para clicar**. O denominador
+honesto é 1, e 0 de 1 não prova nada.
+
+**E nada no payload permitia perceber isso.** Li as chaves da metadata de todas
+as impressões dos últimos 5 dias: `version` continua `instruction_paste_notice_v2`
+nas duas telas (a copy do ramo não mudou quando o link entrou) e `paste_shape` é
+de 05/09. Corte por relógio inventaria defeito; corte por campo novo não existia.
+
+**O CONSERTO (`cd3ec9e9`) — `cta_present` no evento de impressão.**
+`instructionPasteNoticeMetadata` passa a resolver o ramo uma vez e carimbar
+`cta_present: Boolean(instructionPasteNoticeFor(resolved).ctaHref)`. Daqui em
+diante, `where metadata ? 'cta_present'` recorta exatamente quem recebeu o bundle
+com o link — sem depender de hora de deploy. O carimbo **não é hardcode**: sai do
+próprio `NOTICES`, então mover o CTA de ramo (ou tirá-lo) muda o carimbo junto e
+o evento nunca passa a mentir sozinho. E ele viaja na **impressão e no clique**,
+porque os dois eventos espalham a mesma função.
+
+**COMO PROVAR:** `scripts/test-chatgpt-porta.mjs` foi de **49 para 54**
+verificações (seção 5 nova, amarrada à expressão que deriva o carimbo, não à
+contagem de texto); `test-instruction-paste-notice.mjs` 48/48, com os dois
+`deep-equal` da metadata atualizados de propósito. `npx tsc --noEmit` exit 0
+**com a junction de `node_modules`** (sem ela o `npx tsc` devolve exit 0 sem
+compilar nada).
+
+**Falsificado por 2 mutantes**, cada um com `grep -c` provando que o arquivo
+mudou antes de rodar:
+
+```
+cta_present vira o literal `true`        → porta 53 ok / 1 falha  + o outro guardiao VERMELHO
+ctaHref removido do ramo command_to_chatbot → porta 52 ok / 2 falhas + VERMELHO
+restaurado                                → 54/0 e 48/48
+```
+
+**RISCO:** nenhum de execução — é uma chave a mais num payload categórico, sem
+texto de cliente, no mesmo formato que o guardião de privacidade já vigia.
+
+**PARADA (a que a próxima sessão deve honrar):** só se pode julgar a porta
+`/chatgpt` com `where metadata ? 'cta_present' and metadata->>'cta_present' = 'true'`.
+Com menos de ~20 impressões carimbadas, **não há veredito** — nem para matar a
+porta, nem para declarar que ela funciona.
+
+### O que a próxima sessão faz primeiro
+1. Rodar a consulta com o carimbo. Se `cta_present=true` acumulou ≥20 pessoas e
+   `instruction_notice_cta_clicked` continua em zero, **aí** a porta é ruim e o
+   problema é a frase do link, não a existência dele.
+2. Não reabrir a parede da narração nem o expansor sem rodar a consulta (5) do
+   `docs/queries/PONTE-HANDOFF-FUNIL-2026-09-07.sql` por dia. Três rotações desta
+   madrugada quase morreram medindo rajada velha como sangria de agora.
+3. O degrau que continua seco: **49 filmes, 1 pagamento** na coorte do ChatGPT
+   em 7 dias.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+1. **Nada.** A entrega subiu pela fila sozinha; a única decisão sua continua
+   sendo o ChatGPT Business (~US$ 25-30/mês) — recomendação inalterada:
+   **não pagar agora**, porque o GPT ainda não tem uma linha de tráfego real.
+
+## 📋 O QUE ACONTECEU
+Fechei a prova que faltava da entrega anterior: o arquivo que instrui o GPT já
+está em produção sem a frase errada. Depois fui medir se a porta que abri de
+madrugada — o aviso que leva para a página nova quem cola no Studio a ordem que
+mandou ao ChatGPT — alcança alguém. O banco dizia "8 pessoas viram, nenhuma
+clicou", e eu quase escrevi que a porta estava morta. Conferindo a hora, sete
+dessas oito viram a tela **antes** de o link existir: o número real é uma pessoa,
+e uma pessoa não decide nada. O pior é que nada no registro permitia perceber a
+diferença — as duas telas gravavam exatamente os mesmos campos. Então o registro
+passou a marcar se havia link na tela no momento da impressão. É uma linha, e ela
+impede que a próxima sessão mate uma peça que quase ninguém viu — que é o erro
+que mais se repete nestes diários.
