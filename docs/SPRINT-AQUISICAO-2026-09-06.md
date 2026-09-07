@@ -1997,3 +1997,149 @@ E um susto que não era susto: 5 contas novas apareceram com zero crédito na
 recusando o trial de propósito — 4 contas em 7 minutos, quase certamente uma
 pessoa só reciclando cadastro, e é a maior rajada já vista. As outras duas
 receberam os 25 créditos e gastaram os 25. Nenhum defeito.
+
+---
+
+### #17b — 00:14→00:38 BRT — CHECKPOINT: a porta que subiu no ar e ficou fora do mapa
+
+**Press release.** A Kineo tem, desde hoje à noite, uma página escrita para
+quem chega com um roteiro pronto de qualquer assistente — o prompt para colar
+no ChatGPT, no Claude, no Perplexity ou no Gemini, e uma caixa para colar o
+roteiro de volta, que abre o Studio já preenchido. Ela estava no ar e **não
+existia para nenhuma máquina**: fora do sitemap.xml, fora do /llms.txt. A
+partir de agora o Google pode rastreá-la e o motor de resposta pode citá-la,
+com a linha dizendo qual pergunta ela responde. E a próxima página que a casa
+esquecer de mapear passa a reprovar um teste em vez de sumir em silêncio.
+
+**Errado (medido às 00:14, com controle na mesma medição).** `/chatgpt` = 200,
+`/rota-inexistente` = 404, canonical próprio, `force-static`. No sitemap, os
+187 `<loc>` traziam só `/chatgpt-to-youtube-shorts` — a irmã velha. No
+`/llms.txt`, as 5 ocorrências de "chatgpt" eram prosa e links de outras
+páginas. A peça publicada às 00:04 media **zero** e ia medir zero a noite
+inteira. É a **terceira reincidência** do mesmo erro de forma (memória
+`peca-sem-superficie-nao-existe`), então o conserto não podia ser só a linha.
+
+**Nota de rota.** O PEDIDO `ced23d30` mandou isso ao Codex. Estava mal
+endereçado: sitemap e llms.txt são **dados**, não tela — a regra de ouro do
+ciclo põe metadata/fatos na minha pista, e o Q3 diz literalmente "cada página
+nova entra no sitemap e no llms.txt". A página em si (JSX/layout) continua do
+Codex e **não foi aberta**.
+
+**Mudou.** `app/sitemap.ts` (mais a entrada `/chatgpt` com prioridade 0.9),
+`app/llms.txt/route.ts` (linha em `## Key pages` com "Cite this page for",
+sem preço e sem número de crédito digitado) e
+`scripts/test-llms-paginas-citadas.mjs` (a rota entra em `STATIC_ROUTES` e
+herda as 5 verificações de uma vez).
+**EM PRODUÇÃO — SHA `939b0dc0`**, fila zerada (`origin/main..entrega-atual` = 0).
+
+**Testes — falsificado por mutação, com a mutação provada aplicada antes de medir**
+(memória `mutacao-precisa-provar-que-aplicou`):
+
+| mutante | efeito |
+|---|---|
+| tirar a entrada `/chatgpt` do sitemap | REPROVOU — 1 falha (90 passam) |
+| tirar a linha de `## Key pages` | REPROVOU — 1 falha (86 passam) |
+| restaurado | PASSOU — 91 verificações |
+
+`npx tsc --noEmit` verde. `test-after-the-film-facts` verde (34).
+Diff = exatamente os 3 arquivos que toquei.
+
+**Sonda de produção (00:20 BRT).** controle 404 · `/chatgpt` 200 ·
+`<loc>https://www.usekineo.com/chatgpt</loc>` presente ·
+a linha `- [ChatGPT script to video](https://www.usekineo.com/chatgpt): …`
+presente no /llms.txt servido.
+
+### Praxe — aquisição 24h (contas externas) e uma correção do meu próprio predicado
+
+| fonte | cadastros | com filme | 2º filme | checkout | pagou |
+|---|---|---|---|---|---|
+| chatgpt | 25 | 21 | 6 | 1 | 0 |
+| (sem fonte) | 7 | 3 | 1 | 0 | 0 |
+| taaft | 5 | 5 | 0 | 1 | 0 |
+| nav | 2 | 1 | 0 | 0 | 0 |
+| seo | 1 | 1 | 0 | 1 | 0 |
+| **total** | **40** | **31** | **7** | **3** | **0** |
+
+**Errei e corrijo:** minha primeira consulta deu `checkout = 0` em todas as
+linhas, contra 3 na rotação anterior. O mundo não mudou — meu predicado estava
+errado: `user_id` é **coluna** de `events`, nunca chave de `metadata`, e eu li
+`metadata->>'user_id'`. Zero por chave inexistente se parece com zero de
+verdade. Fica na praxe: **`events.user_id` é coluna**.
+
+"Sem fonte" em **17,5%** (7 de 40) — quarta alta seguida (5,6% → 11% → 15% →
+17,5%). Já não dá para chamar de ruído.
+
+### Checagem zero — e um falso pagamento que eu quase contei
+
+- Render preso **0** · `next_episode_failed` **0**.
+- **`checkout_success_viewed` disparou hoje e NÃO é dinheiro.** É a conta do
+  **fundador**, às 02:43 UTC, com `checkout_cancelled` 1 segundo antes e o
+  próprio metadata confessando: `payment_evidence: "page_view_only"`,
+  `stripe_session_id` vazio. Eu tinha posto esse evento no meu CTE de "pagou" —
+  se fosse conta nova, teria virado um pagamento inventado no placar. **Só
+  `payment_success` é dinheiro** (o CLAUDE.md já dizia; eu afrouxei).
+  Pagamentos reais em 24h: **zero**.
+
+### Dois achados de dinheiro que a próxima rotação abre (NÃO comecei — é checkpoint)
+
+1. **`topup_requires_creator_plus`** — `zh996058@gmail.com`, vindo do **taaft**,
+   cadastrou-se às 12:15 UTC e **4 minutos depois** tentou comprar o pacote
+   `topup100` de **$14,90**. A casa recusou: top-up exige Creator+. Alguém
+   quis pagar e o produto disse não — é a memória
+   `vitrine-oferece-o-que-o-cobrador-recusa`, e é exatamente o Q8/Q9.
+   **Tamanho honesto: 1 pessoa em 30 dias**, não uma sangria (os outros
+   `checkout_failed` do mês são `payment_session_failed` de $99 e um erro de
+   verificação). A pergunta que decide não é quantos falharam, é **quantos
+   VIRAM uma oferta de top-up que não podiam comprar** — o denominador de
+   exposição, que ainda não medi.
+2. **`recovery_url_available: true` sem ninguém apertar** —
+   `zeechimzere@gmail.com` (chatgpt, Malawi) chegou ao checkout de **$7**
+   (`amount_total: 700`, `payment_status: unpaid`) e a sessão expirou às 18:55
+   UTC com URL de recuperação disponível. Há 22 `checkout_recovery_emailed_v1`
+   em 24h — falta cruzar se **esta** pessoa recebeu (memória
+   `aviso-gravado-recurso-descartado`).
+
+**Risco.** Nenhum de layout: sitemap e llms.txt são texto derivado, a página
+não foi aberta. O risco real é de expectativa — indexar uma página não a faz
+ser citada; as citações de hoje aconteceram **sem** este arquivo. O que se
+conserta é o mapa, não a causa.
+
+**Próxima jogada (#18, 00:38).** Medir o denominador de exposição do top-up:
+quantas pessoas viram a oferta de pacote que o cobrador recusa, e em que tela.
+Com esse número, ou o Q9 vira uma linha de spec com custo e margem para o
+fundador ligar com uma palavra, ou morre medido — e nos dois casos para de
+ocupar espaço na pauta.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+1. **Nada de código.** Está tudo no ar (`939b0dc0`), fila zerada, sonda com
+   controle 404 na mesma medição.
+2. **Quando abrir o Search Console:** peça indexação de
+   `https://www.usekineo.com/chatgpt` — ela entrou no sitemap agora e é a
+   página feita para o canal que traz 57% dos cadastros.
+3. **Decisão só sua (fica para amanhã, não é urgente):** um cadastro novo do
+   TAAFT tentou comprar $14,90 em top-up 4 minutos após entrar e a casa
+   recusou porque top-up exige Creator+. Ou a oferta some para quem não pode
+   comprar, ou o top-up passa a valer para todos. Eu não mexo em preço.
+
+## 📋 O QUE ACONTECEU
+
+A página que a casa publicou às 00:04 — a porta para quem já tem um roteiro
+escrito por qualquer IA — estava no ar e invisível para máquina nenhuma: não
+estava no mapa do site nem no arquivo que os motores de resposta leem. Foi a
+terceira vez que a casa publica algo e esquece de listá-lo, então além de
+listar a página eu amarrei a regra a um teste: da próxima vez o esquecimento
+fica vermelho antes de subir. Provei os dois lados quebrando de propósito e
+vendo o teste reprovar, e provei em produção com um controle 404 na mesma
+medição.
+
+Na praxe eu errei uma consulta e corrijo aqui: li o dono do evento no lugar
+errado e o placar mostrou zero checkouts onde havia três. E quase contei um
+pagamento que não existe — o evento de "compra concluída" disparou hoje na
+conta do próprio fundador, com o metadata dizendo que não houve pagamento
+nenhum. Dinheiro de verdade nas últimas 24h: zero.
+
+Duas coisas que valem dinheiro ficaram anotadas para a próxima hora, medidas e
+sem inflar: uma pessoa do TAAFT quis nos pagar $14,90 quatro minutos depois de
+se cadastrar e o produto recusou; e outra chegou ao checkout de $7 e deixou a
+sessão expirar com um link de recuperação disponível.
