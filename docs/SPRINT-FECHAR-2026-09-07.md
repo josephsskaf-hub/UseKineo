@@ -124,3 +124,88 @@ não teve UM clique em 12 dias. As impressões da pergunta caíram de 176 por
 semana para 1. Devolvi o lugar a ela quando o trial está acabando (que é quando
 não há mais nada grátis a oferecer) e pus prazo numa trava que podia deixar a
 tela sem oferta nenhuma. Preço, crédito e o download grátis não mudaram.
+
+### #1b — 15:55→16:00 — O SILÊNCIO DA TELA DE FILME PRONTO GANHA DENOMINADOR
+
+**O QUE ME INCOMODOU NA PRÓPRIA ENTREGA ANTERIOR:** no #1 eu *inferi* a causa.
+Disse que a trava do slot deixava a tela sem oferta — mas nenhum evento na casa
+prova isso, porque toda superfície emite `*_viewed` quando **aparece** e
+**nenhuma** emite nada quando o slot fica reservado e nada renderiza. Ausência
+de evento é indistinguível de ausência de gente. Foi por isso que o buraco
+viveu 12 dias.
+
+**O QUE MEDI (12 dias, contando PESSOAS):**
+· 220 pessoas concluíram a **primeira** entrega.
+· Plan Fit — que reserva o slot único dessa tela para essa coorte exata —
+  somou **30 impressões**.
+· **89 dessas 220 não viram oferta NENHUMA**: nem a pergunta do trial, nem o
+  bridge, nem o episódio 2, nem Plan Fit, nem a caixa genérica.
+· Das 89: **todas** tinham trial concedido (ou seja, a pergunta era elegível),
+  **61** tinham `video_ready_viewed` confirmado, **26 baixaram o filme**, e
+  1 é pagante. Nenhuma bloqueada por antifraude.
+
+Isso é ~5 pessoas por dia chegando na tela de maior intenção de compra da casa
+e não sendo convidadas a nada.
+
+**CORREÇÃO DE UMA LEITURA MINHA:** cheguei a ver "30 impressões mas só 12 cards
+renderizados" e quase escrevi que o card falhava ao renderizar. Não falha:
+`plan_fit_card_rendered` só existe desde 02/09. Recortando as duas séries no
+mesmo início, elas batem (11 impressões · 12 cards · 10 CTAs). O Plan Fit
+renderiza bem para os poucos que alcança — o problema é que alcança poucos.
+
+**O QUE MUDOU — SHA `66f7d061` · EM PRODUÇÃO**
+· `lib/growth/postDeliveryOfferAudit.ts` (novo): função **pura** que NOMEIA o
+  silêncio. Os dois motivos do Plan Fit ficam separados de propósito — lookup
+  pendente é **defeito**, primeira entrega é **decisão de produto**, e os
+  consertos são diferentes. Colapsar os dois devolveria um número que não diz
+  o que fazer.
+· `GenerateClient`: emite `post_delivery_no_offer` **uma vez por filme
+  entregue**, com o motivo. A chave é o id do vídeo — sem ela o evento contaria
+  re-renders em vez de pessoas (o erro que já inflou um denominador desta casa
+  para 437 "oportunidades" que eram 2 pessoas).
+
+**O QUE O CLIENTE VÊ:** nada. É instrumento puro — não decide, não renderiza,
+não concede, não gasta.
+
+**TESTES:** `scripts/test-post-delivery-silence.mjs` 19/19 (um caso por
+superfície + a precedência do motivo + 6 provando que o /generate AUDITA e
+EMITE). `test-plan-fit.mjs` 394/394 intacto. `tsc` verde. **Mutação:** matar o
+`anyShown`, colapsar os dois motivos do Plan Fit, ou ignorar o bridge derruba
+checks distintos — os três mutantes provaram que aplicaram antes de rodar.
+Confirmado também que `/api/events` não tem allowlist de nome e que
+`post_delivery_no_offer` não é `SERVER_ONLY` — o evento vai gravar.
+
+**COMO MEDIR (a partir de agora):**
+```sql
+select metadata->>'reason' motivo, count(*) n, count(distinct user_id) pessoas
+from events where name='post_delivery_no_offer'
+  and created_at > '2026-09-07 18:38:00+00'::timestamptz
+group by 1 order by n desc;
+```
+`plan_fit_reserved_pending_lookup` = o defeito que o #1 conserta (deve cair a
+zero). `plan_fit_reserved_eligible` = a decisão de produto que ainda está de pé
+e é a próxima jogada. `no_trial_phase` = um terceiro buraco, ainda não medido.
+
+**PRÓXIMA JOGADA (agora com prova, não com palpite):** se
+`plan_fit_reserved_eligible` for o motivo dominante, a precedência de primeira
+entrega é o que está calando a pergunta — e aí o caso para tirar o slot do Plan
+Fit fica fechado com número, não com opinião. Plan Fit teve 30 impressões e
+ZERO cliques em 12 dias; a pergunta leva 17% ao checkout. Eu **não** fiz essa
+troca agora de propósito: mexer no Plan Fit de trial ATIVO afeta a coorte
+maior, e a regra desta casa é que remédio novo só entra depois que o anterior
+mostrar movimento. O #1 sobe primeiro, o número decide o resto.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+1. Nada. As quatro entregas subiram sozinhas (`bb4c6de1`, `46f7183e`,
+   `9e1a5d75`, `66f7d061` — fila 0 em todas).
+
+### 📋 O QUE ACONTECEU
+Descobri que 89 de 220 pessoas que fizeram o primeiro filme nos últimos 12 dias
+não receberam NENHUMA oferta na tela de "filme pronto" — 61 delas comprovadamente
+chegaram lá, 26 baixaram o vídeo, e a casa não pediu nada a elas. O motivo é uma
+trava que reserva o único espaço de oferta dessa tela para um card que, em 12
+dias de vida, apareceu 30 vezes e não teve um clique. Consertei a trava (#1) e,
+como eu tinha *deduzido* a causa em vez de medi-la, criei o instrumento que
+prova: agora a tela avisa quando fica em silêncio, e diz por quê. Amanhã de
+manhã esse número diz se o conserto pegou — e se o card deve perder o espaço de
+vez.
