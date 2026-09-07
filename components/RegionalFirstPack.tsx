@@ -94,7 +94,43 @@ export function regiaoSemMandato(pais: string | null | undefined): boolean {
   return (REGIOES_SEM_MANDATO as readonly string[]).includes(pais.trim().toUpperCase())
 }
 
-export default function RegionalFirstPack() {
+/**
+ * ONDE A PEÇA VIVE, e por que são DUAS superfícies e não uma.
+ *
+ * Medido em 07/09 (30 dias, 86 pessoas dos cinco países, cruzando por PESSOA):
+ *   · 46 passaram por `/pricing`         (53%)
+ *   · 47 viram a oferta pós-filme        (55%)
+ *   · 40 chegaram ao checkout
+ *   · 11 viram o modal do "não" · 3 viram a ponte de saldo
+ * Nenhuma das duas telas grandes alcança sequer 60% sozinha, e elas não são a
+ * mesma gente. Montar só em `/pricing` deixaria metade da coorte sem ver nada —
+ * o erro de "medir o alcance da superfície DEPOIS de ligar".
+ *
+ * ⚠️ A COPY MUDA COM A SUPERFÍCIE, e a razão não é estética. Em `/pricing` a
+ * pessoa está escolhendo como pagar; na tela pós-filme ela acabou de receber um
+ * filme e NÃO foi recusada por ninguém. Perguntar "seu cartão foi recusado?"
+ * para quem não tentou pagar é inventar um problema que ela não tem. O que é
+ * verdadeiro nas duas é a mesma coisa e é o núcleo da oferta: **paga uma vez,
+ * sem assinatura**.
+ */
+export type SuperficieDoPack = 'pricing' | 'post_video'
+
+const COPY: Record<SuperficieDoPack, { chapeu: string; contexto: string }> = {
+  pricing: {
+    chapeu: 'Card keeps getting declined?',
+    contexto:
+      'Many banks outside the US block recurring international charges but clear a single one.',
+  },
+  post_video: {
+    chapeu: 'No card that does subscriptions?',
+    contexto:
+      'Many banks outside the US block recurring international charges but clear a single one. Keep making films without signing up for anything.',
+  },
+}
+
+export default function RegionalFirstPack({
+  surface = 'pricing',
+}: { surface?: SuperficieDoPack } = {}) {
   const [pais, setPais] = useState<string | null>(null)
   const jaContou = useRef(false)
 
@@ -124,18 +160,18 @@ export default function RegionalFirstPack() {
     jaContou.current = true
     void trackEvent('pack_first_for_region_shown', {
       country: pais,
-      surface: 'pricing',
+      surface,
       surface_version: REGIONAL_FIRST_PACK_VERSION,
       pack_price_minor: 490,
       pack_credits: PACK_CREDITS.starter,
     })
-  }, [mostrar, pais])
+  }, [mostrar, pais, surface])
 
   if (!mostrar) return null
 
   const href =
     '/api/stripe/checkout?pack=starter' +
-    '&utm_source=pricing&utm_medium=regional_pack&utm_campaign=first_pack_no_mandate'
+    `&utm_source=${surface}&utm_medium=regional_pack&utm_campaign=first_pack_no_mandate`
 
   return (
     <div
@@ -143,7 +179,7 @@ export default function RegionalFirstPack() {
       style={{ background: 'rgba(41,151,255,0.09)', border: '1px solid rgba(41,151,255,0.45)' }}
     >
       <p className="text-[12px] font-bold uppercase tracking-wide text-[#2997ff]">
-        Card keeps getting declined?
+        {COPY[surface].chapeu}
       </p>
       <p className="mt-2 text-[15px] font-semibold text-white">
         Start with a one-time payment — {PACK_CREDITS.starter} credits for {packPriceLabel()}
@@ -153,16 +189,15 @@ export default function RegionalFirstPack() {
           não expiram — as duas coisas foram conferidas no código, e o guardião
           trava as duas. */}
       <p className="mx-auto mt-2 max-w-md text-[12.5px] leading-relaxed text-[#a1a1a6]">
-        Many banks outside the US block <em>recurring</em> international charges but
-        clear a single one. This is a one-time payment — no subscription, no renewal,
-        and the credits never expire.
+        {COPY[surface].contexto} This is a one-time payment — no subscription,
+        no renewal, and the credits never expire.
       </p>
       <a
         href={href}
         onClick={() => {
           void trackEvent('pack_first_for_region_clicked', {
             country: pais,
-            surface: 'pricing',
+            surface,
             surface_version: REGIONAL_FIRST_PACK_VERSION,
           })
         }}
@@ -172,7 +207,7 @@ export default function RegionalFirstPack() {
         Get {PACK_CREDITS.starter} credits for {packPriceLabel()} →
       </a>
       <p className="mt-3 text-[11.5px] text-[#86868b]">
-        Prefer a monthly plan? They are right below.
+        {surface === 'pricing' ? 'Prefer a monthly plan? They are right below.' : 'Prefer a monthly plan? See the options above.'}
       </p>
     </div>
   )

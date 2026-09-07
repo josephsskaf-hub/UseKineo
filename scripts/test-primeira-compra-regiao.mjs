@@ -93,11 +93,19 @@ ok('a quantidade de créditos vem de `PACK_CREDITS.starter`',
 ok('o botão aponta para a compra ÚNICA (`?pack=starter`), não para um plano',
   /\/api\/stripe\/checkout\?pack=starter/.test(comp) && !/\?tier=/.test(comp))
 ok('o link é etiquetado (senão a venda chega ao painel como tráfego direto)',
-  /utm_source=pricing/.test(comp) && /utm_campaign=first_pack_no_mandate/.test(comp))
+  /utm_medium=regional_pack/.test(comp) && /utm_campaign=first_pack_no_mandate/.test(comp))
 ok('a impressão é contada UMA vez, e só quando a peça aparece',
   /if \(!mostrar \|\| jaContou\.current\) return/.test(comp))
 ok('a impressão carrega o país (sem ele o número não separa Índia de Quênia)',
   /pack_first_for_region_shown',\s*\{\s*\n\s*country: pais,/.test(comp))
+// Sem `surface` no evento, as duas telas viram um número só e ninguém sabe
+// qual delas vendeu — que é a única pergunta que a segunda montagem levanta.
+ok('a impressão diz de QUAL tela veio (`surface`), e não um literal fixo',
+  /^\s*surface,$/m.test(comp) && !/surface: 'pricing'/.test(comp))
+ok('o clique também diz de qual tela veio',
+  (comp.match(/^\s*surface,$/gm) ?? []).length >= 2)
+ok('o link etiqueta a tela de origem (senão as duas vendas viram uma)',
+  /utm_source=\$\{surface\}/.test(comp))
 ok('a impressão carrega o carimbo de versão da tela (o corte do deploy)',
   /surface_version: REGIONAL_FIRST_PACK_VERSION/.test(comp) &&
   /REGIONAL_FIRST_PACK_VERSION = 'regional_first_pack_v1'/.test(comp))
@@ -116,6 +124,35 @@ ok('a montagem fica ACIMA do bloco de planos (avulso primeiro)',
 ok('a peça é importada de components/', /import RegionalFirstPack from '@\/components\/RegionalFirstPack'/.test(pricing))
 ok('o denominador honesto continua vivo na MESMA página e com o MESMO país',
   /pricing_currency_resolved/.test(pricing))
+
+// ── BLOCO B2 — A SEGUNDA SUPERFÍCIE ───────────────────────────────────────
+// /pricing alcança 46 das 86 pessoas dos cinco países; a tela pós-filme
+// alcança 47 — e não são a mesma gente. Uma montagem só deixaria metade da
+// coorte sem ver nada, que é o erro de medir o alcance DEPOIS de ligar.
+console.log('\nB2. a segunda superfície (a tela pós-filme alcança 47 das 86)')
+
+const gen = ler('app', '(dashboard)', 'generate', 'GenerateClient.tsx')
+ok('montada também na tela pós-filme, com UMA linha',
+  /\{phase === 'done' && <RegionalFirstPack surface="post_video" \/>\}/.test(gen))
+ok('importada de components/ na tela pós-filme',
+  /import RegionalFirstPack from '@\/components\/RegionalFirstPack'/.test(gen))
+// DELIVER-FIRST: 107 pessoas já foram embora sem o arquivo por causa de um
+// card acima do download. Esta peça fica depois de tudo que entrega.
+ok('fica DEPOIS do NextActionCard (deliver-first intacto)',
+  gen.indexOf('<RegionalFirstPack surface="post_video" />') >
+    gen.indexOf('<NextActionCard surface="generate_done_screen" />'))
+ok('a peça aceita as duas superfícies e nada mais',
+  /export type SuperficieDoPack = 'pricing' \| 'post_video'/.test(comp))
+// A copy não pode ser a mesma nas duas: quem acabou de receber um filme NÃO
+// foi recusado por ninguém, e perguntar "seu cartão foi recusado?" inventa um
+// problema que a pessoa não tem.
+ok('a copy muda com a superfície (não pergunta de recusa a quem não tentou pagar)',
+  /COPY\[surface\]\.chapeu/.test(comp) && /COPY\[surface\]\.contexto/.test(comp))
+ok('a superfície pós-filme NÃO fala em cartão recusado',
+  !/declined/i.test(comp.slice(comp.indexOf('post_video: {'), comp.indexOf('post_video: {') + 400)))
+// A promessa que precisa ser verdadeira nas DUAS telas.
+ok('as duas superfícies prometem a mesma coisa verificável: compra única',
+  /no subscription/i.test(comp) && /one-time payment/i.test(comp))
 
 // ── BLOCO C — A OFERTA É O QUE A PEÇA DIZ QUE É ───────────────────────────
 console.log('\nC. a compra única é mesmo única (arquivos do checkout e do preço)')

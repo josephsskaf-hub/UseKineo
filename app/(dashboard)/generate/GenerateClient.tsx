@@ -11,6 +11,7 @@ import { createClient } from '@/lib/supabase/client'
 import PricingCards from '@/components/PricingCards'
 import StickyGenerateBar from '@/components/StickyGenerateBar'
 import NextActionCard from '@/components/NextActionCard'
+import RegionalFirstPack from '@/components/RegionalFirstPack'
 // KINEO-SPRINT-OFFER-2026-07-14 — PostVideoPaywall import removed. It was the
 // THIRD offer block on the success screen (on top of the Push #099 intro block
 // and UpsellSection), still selling FOUNDING50 + the one-time pack — three
@@ -15547,6 +15548,24 @@ export default function GenerateClient({
                   Não há card novo para quem tem saldo: fora do estado `dry` o
                   componente não pinta nada. */}
               {phase === 'done' && <NextActionCard surface="generate_done_screen" />}
+
+              {/* KINEO-PRIMEIRA-COMPRA-POR-REGIAO-2026-09-07 (#4) — A SEGUNDA
+                  SUPERFÍCIE, e ela existe porque a primeira alcança metade.
+                  Medido em 07/09 (30 dias, 86 pessoas de IN/NG/PK/BD/KE,
+                  cruzando por PESSOA): 46 passaram por /pricing (53%) e 47
+                  viram a oferta pós-filme (55%) — e não são a mesma gente.
+                  Montar só no /pricing deixaria metade da coorte sem ver nada.
+                  Essas 86 pessoas somam 40 checkouts e ZERO pagamentos em 30
+                  dias; o cartão delas recusa mandato recorrente internacional,
+                  e o pack de US$ 4,90 é `mode: 'payment'`, cobrança única.
+                  ⚠ POSIÇÃO — DELIVER-FIRST INTACTO: depois do download, depois
+                  do Plan Fit e depois do NextActionCard. Não empurra o botão de
+                  baixar um pixel (a regra mediu 107 pessoas que foram embora
+                  SEM O ARQUIVO).
+                  ⚠ Devolve null para todo mundo fora dos cinco países: esta
+                  tela não muda para 100% de quem hoje paga. Toda a decisão mora
+                  no componente — aqui é UMA linha, e o visual é do Codex. */}
+              {phase === 'done' && <RegionalFirstPack surface="post_video" />}
 
               {/* KINEO-CREDITO-POR-POSTAR-2026-08-21 — só para o free tier, que
                   é quem carrega a marca d'água. Oferecer isto a um assinante
