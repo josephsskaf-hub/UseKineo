@@ -8,7 +8,9 @@ export const HERO_OPENING: Readonly<Record<string, string>> = {
 }
 
 export function orderHeroVideos<T extends { id: string; engine: string }>(videos: readonly T[]): T[] {
-  return [...videos].sort((a, b) =>
+  // Portrait Omni presenters remain in the gallery, not the wide hero.
+  // Keep the founder's robot until further wide clips are visually approved.
+  return videos.filter(v => v.engine !== 'cinematic_omni' || v.id === HERO_OPENING.cinematic_omni).sort((a, b) =>
     Number(b.id === HERO_OPENING[b.engine]) - Number(a.id === HERO_OPENING[a.engine]))
 }
 
