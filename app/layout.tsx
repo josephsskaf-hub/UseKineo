@@ -13,6 +13,7 @@ import { Analytics } from '@vercel/analytics/next'
 import { InterfaceLanguageProvider } from '@/components/InterfaceLanguage'
 import { FreeTierOfferProvider } from '@/components/FreeTierOfferProvider'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+import { LLMS_TXT_PATH } from '@/lib/gptHandoff'
 import './globals.css'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — a oferta do free tier (comportamento + copy)
@@ -174,6 +175,12 @@ export default function RootLayout({
           title="Kineo Shorts Idea of the Day"
           href="/shorts-ideas.xml"
         />
+        {/* KINEO-ASSISTANT-DISCOVERY-2026-09-06 — /llms.txt está no ar desde
+            26/07 e nenhum assistente agiu a partir dele: o arquivo só era
+            achado por quem já sabia o nome. Este <link> é o ponteiro padrão
+            (o mesmo mecanismo do RSS acima) para o leitor que chega pela home.
+            `type` espelha o Content-Type que app/llms.txt/route.ts devolve. */}
+        <link rel="alternate" type="text/plain" href={LLMS_TXT_PATH} title="llms.txt" />
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=AW-18156258081"
           strategy="afterInteractive"

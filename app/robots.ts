@@ -1,4 +1,5 @@
 import type { MetadataRoute } from 'next'
+import { LLMS_TXT_PATH } from '@/lib/gptHandoff'
 
 // #458 — SEO: robots.txt so crawlers know what to index and where the sitemap
 // is. Allows the public marketing pages; keeps the API, the app/dashboard and
@@ -48,7 +49,7 @@ const DISALLOW = ['/api/', '/generate', '/history', '/checkout/', '/admin', '/v2
 //                 O serializer do Next também emite todos os `Allow:` antes
 //                 dos `Disallow:`, então crawlers legados que resolvem por
 //                 ordem de aparição chegam ao mesmo resultado.
-const ALLOW = ['/', '/llms.txt', '/api/facts']
+const ALLOW = ['/', LLMS_TXT_PATH, '/api/facts']
 
 // A convenção llms.txt não tem campo próprio em robots.txt, e o tipo
 // MetadataRoute.Robots do Next só sabe emitir User-Agent / Allow / Disallow /
@@ -62,7 +63,7 @@ const ALLOW = ['/', '/llms.txt', '/api/facts']
 const HOST_WITH_LLMS_POINTER = `${BASE}
 
 # LLM / answer-engine readers: a curated, dated, plain-text fact sheet about
-# this product lives at ${BASE}/llms.txt
+# this product lives at ${BASE}${LLMS_TXT_PATH}
 # The same facts as JSON (CORS open, safe to fetch at query time):
 # ${BASE}/api/facts`
 

@@ -3,6 +3,7 @@ import { S25_PUBLIC, VIDEO_ENGINE_COUNT_WORD } from '@/lib/engineLaunch'
 import { TIER_CREDITS, TIER_PRICES } from '@/lib/checkoutPricing'
 import { CHECKOUT_CURRENCY_DISCLOSURE, formatResultCount, videosPerMonth } from '@/lib/marketingPrice'
 import { BRAND_ALIASES, BRAND_NAME, BRAND_URL } from '@/lib/brandIdentity'
+import { ASSISTANT_DEEP_LINK_FACT } from '@/lib/kineoFacts'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -56,6 +57,30 @@ const OFFER = getFreeTierOffer()
 
 /** Centavos → "19.90". Único ponto de formatação de preço deste arquivo. */
 const usd = (cents: number) => (cents / 100).toFixed(2)
+
+// KINEO-ASSISTANT-DISCOVERY-2026-09-06 — o link de um clique que qualquer
+// assistente escreve (GET /make?script=…, lib/gptHandoff.ts) só estava descrito
+// em /llms.txt, um arquivo que os assistentes raramente pedem: seis semanas no
+// ar e nenhuma evidência de um assistente agindo a partir dele. Este componente
+// sai em TODAS as páginas (app/layout.tsx), então o schema é o lugar onde o
+// formato do link fica visível para quem lê a página, não só para quem sabe o
+// nome do arquivo.
+//
+// Nada aqui é digitado: URL, verbo, chaves e a frase de comportamento vêm de
+// ASSISTANT_DEEP_LINK_FACT, que por sua vez lê os valores que a rota /make
+// VALIDA. O template segue RFC 6570: cada chave de query do exemplo publicado
+// vira uma variável, e só entra chave que a rota conhece (`in dl.params`).
+//
+// HONESTIDADE DO `result`: o link NÃO produz vídeo. Ele guarda o roteiro, abre
+// uma página e espera a pessoa clicar dentro do Studio — nada é renderizado e
+// nenhum crédito sai até esse clique. Por isso o resultado é um CreativeWork
+// ("sessão do Studio preenchida"), NUNCA um VideoObject. Prometer vídeo aqui
+// é a vitrine oferecendo o que o cobrador recusa.
+const dl = ASSISTANT_DEEP_LINK_FACT
+const assistantLinkQueryKeys = URL.canParse(dl.example)
+  ? [...new URL(dl.example).searchParams.keys()].filter((k) => k in dl.params)
+  : Object.keys(dl.params)
+const assistantLinkUrlTemplate = `${dl.url}?${assistantLinkQueryKeys.map((k) => `${k}={${k}}`).join('&')}`
 
 const organizationSchema = {
   '@context': 'https://schema.org',
@@ -128,6 +153,19 @@ const softwareApplicationSchema = {
       description: `${p.name} — $${usd(p.cents)}/month. ${p.credits} credits per billing month. ${p.extra}`,
       url: 'https://www.usekineo.com/pricing',
     })),
+  },
+  potentialAction: {
+    '@type': 'CreateAction',
+    name: `Open ${BRAND_NAME} Studio with a script prefilled`,
+    description: dl.behavior,
+    target: {
+      '@type': 'EntryPoint',
+      urlTemplate: assistantLinkUrlTemplate,
+      httpMethod: dl.method,
+      actionPlatform: ['http://schema.org/DesktopWebPlatform', 'http://schema.org/MobileWebPlatform'],
+    },
+    object: { '@type': 'CreativeWork', name: 'Short video script' },
+    result: { '@type': 'CreativeWork', name: `A ${BRAND_NAME} Studio session prefilled with the script` },
   },
 }
 

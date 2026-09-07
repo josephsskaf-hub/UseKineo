@@ -352,6 +352,13 @@ export const CHANNEL_TAGS: Readonly<Record<HandoffChannel, { utmSource: string; 
 /** O GET que qualquer assistente sabe escrever: `/make?script=…&duration=60`. */
 export const ASSISTANT_LINK_PATH = '/make'
 
+/** KINEO-ASSISTANT-DISCOVERY-2026-09-06 — onde o formato do link está descrito
+ *  em texto (app/llms.txt/route.ts). Fonte ÚNICA do caminho: o `<link
+ *  rel="alternate">` do root layout e o Allow/ponteiro de app/robots.ts leem
+ *  daqui, para que o /llms.txt nunca seja anunciado num endereço e servido em
+ *  outro. */
+export const LLMS_TXT_PATH = '/llms.txt'
+
 /** A URL do Studio já preenchido. Lista FECHADA de parâmetros — o valor vem de
  *  uma linha do banco escrita por terceiro; chave arbitrária é como se abre
  *  redirecionamento aberto.
