@@ -2447,7 +2447,7 @@ resolvido como se fosse de agora — e nas duas vezes eu quase mandei consertar 
 que já estava consertado. Deixei a consulta que evita isso guardada junto com as
 outras cinco que medem a ponte nova, para a próxima sessão não repetir.
 
-### #17 — 04:05 BRT — a Action diz as duas coisas contrárias na mesma resposta, e quem instrui o modelo mandava ler a errada
+### #17 — 03:35 BRT — a Action diz as duas coisas contrárias na mesma resposta, e quem instrui o modelo mandava ler a errada
 
 **A rotação começou como verificação, não como conserto.** O plano G1–G10 está
 todo entregue; a ponte tem três portas no ar e nenhuma medição possível ainda.
@@ -2558,10 +2558,20 @@ nova (é a única prova que falta desta entrega).
 
 ---
 
-# FECHAMENTO DO CICLO gpt-loja — 07/09/2026, 04:20 BRT
+# FECHAMENTO DO CICLO gpt-loja — 07/09/2026, 03:37 BRT (janela aberta até 05:00)
 
-*(carimbo lido com `date` puro; o commit mais recente do ciclo é 04:0x — carimbo
-depois do commit, como manda a regra que esta madrugada aprendeu a duras penas)*
+*(carimbos CONFERIDOS contra `date` puro e contra `now()` do banco às 03:38 BRT.
+A primeira versão desta seção dizia "04:20" e as três entradas abaixo diziam
+04:05 / 04:20 / 04:25 — todas no FUTURO, com o relógio em 03:38. É o mesmo erro
+que eu tinha acabado de citar como lição duas entradas antes: quem escreve a
+hora tem de LER o relógio, e ler o diário sobre isso não substitui ler. Os três
+carimbos foram corrigidos para a hora dos commits que descrevem — 03:35, 03:37
+e 03:38.)*
+
+*⚠ E a consequência quase foi grande: este fechamento foi escrito acreditando
+que faltavam 30 minutos de janela. **Faltava 1h20.** O conteúdo vale como está,
+mas a janela segue ABERTA até 05:00 — a rotação seguinte deve trabalhar, não
+encerrar por causa deste título.*
 
 ## (a) O QUE ESTÁ NO AR, com sonda e controle
 
@@ -2657,7 +2667,7 @@ gente passando por ela, e é isso que a próxima sessão vai medir.
 
 ---
 
-### ADENDO ÀS 04:25 BRT — a prova pendente do #17, fechada
+### ADENDO ÀS 03:38 BRT — a prova pendente do #17, fechada
 
 O deploy terminou e a sonda do **depois** confirma a entrega `4f103568`, com o
 mesmo controle da sonda do antes:
