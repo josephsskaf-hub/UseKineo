@@ -716,3 +716,124 @@ que é o efeito desejado.
 3. **A pergunta da #8 continua aberta e é a maior:** 38 filmes entregues em 24h
    e **2 pessoas no checkout**. Medir `filme entregue → viu preço` por pessoa
    antes de investir mais na página de pagamento.
+
+---
+
+### #10 — 14:25 — a carta URGENTE dividia o minuto com um blast genérico
+
+**Press release:** a carta que fala do cartão recusado sai amanhã de manhã
+**antes** da campanha genérica do dia, e não ao mesmo tempo que ela. A pessoa
+que teve o cartão recusado vai receber a carta sobre o *cartão dela* — e não um
+"você tem créditos, venha usar" que a calaria por 24h.
+
+**Errado (medido no `vercel.json`, não no diário):**
+
+```
+10 13 * * *  /api/admin/send-hotlead-blast?confirm=SEND&segment=auto&limit=25
+10 13 * * *  /api/admin/send-card-declined?confirm=SEND&limit=30
+```
+
+O **mesmo minuto**. As duas dividem `loadLifecycleSuppression`, uma janela de
+24h *fail-closed*: quem recebeu **qualquer** e-mail de ciclo de vida nas últimas
+24h sai da coorte de todos os outros jobs. No mesmo minuto, a **ordem não é
+garantida**.
+
+**A colisão é nominal, não teórica.** A única pessoa da coorte da carta é
+`egotisticalfr@gmail.com`: **25 créditos, ZERO vídeos, trial ativo**, nunca
+recebeu hotlead nem a carta. "Tem crédito e não fez vídeo" é exatamente a forma
+do segmento `stalled`, que o `segment=auto` **drena primeiro**. Se o blast
+rodasse antes, ela levaria o e-mail genérico e a carta específica ficaria
+suprimida por 24h — e no dia seguinte a mesma corrida recomeçaria. O primeiro
+disparo era **amanhã às 10:10 BRT, com ninguém olhando**.
+
+**Mudou — SHA `828cf2f5` · EM PRODUÇÃO** (deploy `dpl_GzMaQHkk…`). A carta passa
+a rodar às **`0 13 * * *` (10:00 BRT)**, dez minutos ANTES do blast. Precedência
+por relógio, porque a supressão não tem precedência própria. **Nenhuma copy,
+nenhuma coorte e nenhum filtro mudaram — só a ordem.**
+
+**Guardião novo:** `scripts/test-precedencia-carta-recusa.mjs` — **14/14**,
+falsificado por **7 mutantes, 7 mortos**. Além da ordem e da folga de 5 min ele
+trava: o `confirm=SEND` (esta casa já teve **dois crons dormindo 30 dias** por
+perdê-lo), os **quatro contatos proibidos** do fundador, a supressão de 24h, e o
+fato de a copy ler `reason_category`.
+
+**Duas coisas que eu ia chamar de defeito e NÃO são — as duas são erro meu:**
+
+1. **"`decline_code` está nulo nas 3 recusas."** Está — porque **esse campo não
+   existe**. O evento real traz `reason_category: "card_restricted"`. Eu
+   perguntei pela chave errada e o banco respondeu `null`, que é exatamente o
+   que ele responde para chave inexistente. A rota já lê a chave certa. Ancorar
+   número novo num já conhecido antes de publicar; aqui o âncora foi despejar o
+   `jsonb_pretty` da linha real.
+2. **`akajitin` está na coorte bruta de recusas** (NG, pré-pago, 03/09) e é
+   **contato proibido**. Ele não recebe nada porque a lista `BLOQUEADOS` existe
+   na rota — e ele também já pagou, o que o exclui por um segundo caminho. Está
+   travado por guardião agora, para não sumir num refactor.
+
+**O mutante que sobreviveu, e o que ele ensina:** renomear o símbolo da
+supressão (`loadLifecycleSuppressionXX`) **passou** na primeira versão da
+asserção — `/loadLifecycleSuppression/` casa como **substring** dentro do nome
+renomeado. Amarrada à **chamada** (`\bloadLifecycleSuppression\(`) e ao import,
+morreu. Guardião que casa substring de identificador não prova nada.
+
+**Risco:** mínimo. Uma linha de agenda. As duas colisões de minuto
+**pré-existentes** ficam anotadas e **não tocadas**, por não serem desta ordem e
+não terem risco medido: `0 14` (`send-video-rescue` + `send-trial-eve-notice`) e
+`25 *` (`trial-lifecycle-emails` + `send-stalled-rescue-fresh`).
+
+---
+
+#### E o funil que a #8 mandou medir — a hipótese dela estava ERRADA
+
+A #8 escreveu: *"o gargalo não é a página de pagamento — é que quem recebe filme
+não chega até ela."* Medido por PESSOA, 7 dias:
+
+| degrau | pessoas |
+|---|---|
+| recebeu filme | 167 |
+| **viu um preço** | **144 (86%)** |
+| tocou num botão de compra | 23 (14%) |
+| chegou ao checkout | 17 |
+| pagou | 2 |
+
+**86% de quem recebe filme VÊ preço.** O degrau seco não é "chegar ao preço" —
+é **preço → primeiro gesto**, onde 121 pessoas evaporam.
+
+**E o degrau seco tem um formato claro.** Entre as 190 pessoas que viram preço
+no grid do Studio, separando por situação:
+
+| situação | viu preço | clicou | taxa |
+|---|---|---|---|
+| ainda tem saldo | 113 | 5 | 4,4% |
+| saldo zero, nunca bateu na parede | 57 | 3 | 5,3% |
+| **bateu na parede de crédito** | **20** | **6** | **30,0%** |
+
+**A parede de crédito converte 6x melhor que qualquer outra superfície da casa**
+— e alcança 20 pessoas em 7 dias, enquanto 57 estão sem saldo.
+
+**⛔ E aqui eu quase construí a coisa errada.** A conclusão tentadora era "57
+pessoas ficaram sem crédito e ninguém avisou — construir um aviso". Fui medir
+antes, e **elas foram avisadas**: das 57, **53 viram o banner de trial**, **36 o
+chip de topup na sidebar** (com 4 cliques, 11%), 10 o modal de downgrade, 11 a
+ponte de saldo. A casa já tem **seis** superfícies de oferta em cima dessa
+mesma gente, e elas convertem a ~5%. **Uma sétima não é a resposta.**
+
+Os 30% da parede **não são uma superfície melhor — são um momento melhor**:
+alguém que estava ativamente tentando fazer um filme e foi barrado. Isso não se
+fabrica com mais banner. E 37 das 57 **voltaram ao site** depois do último filme
+(34 delas mais de 1h depois), então também não é o problema de "uma sessão por
+pessoa".
+
+**Placar 14:25 BRT:** inalterado desde a #9 — **0 pagamentos em 24h**, último
+`payment_success` **02/09 20:22Z (5 dias)**.
+
+**Próxima jogada:**
+1. **Conferir o disparo de amanhã às 10:00 BRT**: `card_declined_emailed_v1`
+   tem de aparecer com 1 linha (`egotisticalfr`). Zero linha = o cron não pegou
+   o deploy, ou a supressão pegou a pessoa por outro caminho.
+2. **NÃO construir a sétima superfície de oferta.** O dado acima é o argumento
+   contra, e ele é forte: 6 superfícies, ~5% cada, 0 pagamentos em 5 dias.
+3. **A pergunta que sobra é do fundador, não minha:** com 144 pessoas vendo
+   preço por semana e 2 pagando, e com a conclusão de preço dele já fechada
+   desde 19/08, o próximo passo real é **preço/oferta**, que é decisão dele.
+   Tudo que é engenharia de superfície já foi feito e está medido.
