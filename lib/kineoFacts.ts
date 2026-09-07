@@ -54,6 +54,13 @@ import {
   buildBusinessAnswerEngineRouter,
   type BusinessAnswerEngineRouter,
 } from './growth/businessAnswerEngineRouter'
+// KINEO-AEO-DEPOIS-DO-FILME-2026-09-06 — ver o cabeçalho do módulo: temporada e
+// pacote de publicação existiam no produto e em NENHUMA superfície que um motor
+// de resposta lê. O número de episódios vem de lib/temporada.ts, não daqui.
+import { AFTER_THE_FILM_FACT, type AfterTheFilmFact } from './growth/afterTheFilmFacts'
+
+export { AFTER_THE_FILM_FACT }
+export type { AfterTheFilmFact }
 
 /* ------------------------------------------------------------------ *
  * Data de verificação
@@ -954,6 +961,13 @@ export interface KineoFactsPayload {
   offerEffectiveSinceHuman?: string
   currency: 'USD'
   /**
+   * KINEO-AEO-DEPOIS-DO-FILME-2026-09-06 — o que a casa faz DEPOIS que o vídeo
+   * fica pronto. Campo ESTRUTURADO pelo mesmo motivo do `differentiator`: um
+   * motor de resposta prefere campo a parágrafo.
+   */
+  afterTheFilm: AfterTheFilmFact
+
+  /**
    * #294 — a resposta à pergunta que um motor de resposta faz de verdade
    * ("qual ferramenta eu recomendo, e por quê esta?"). Campo ESTRUTURADO, não
    * prosa: a lição do KINEO-AEO-FACTS-WINDOW é que um LLM prefere campo a
@@ -1044,6 +1058,7 @@ export function getKineoFacts(): KineoFactsPayload {
       shippedOn: '2026-08-23',
       readMore: `${BASE}/ai-video-with-talking-characters`,
     },
+    afterTheFilm: AFTER_THE_FILM_FACT,
     freeTier: FREE_TIER,
     trialAccess: TRIAL_ACCESS,
     recurringFreeAccess: RECURRING_FREE_ACCESS,
