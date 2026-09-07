@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Kineo Video Handoff",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "description": "Turns an approved Short script into a one-click Kineo Studio link. Call createKineoHandoff ONLY after the user has explicitly approved the final script. The response contains a URL (https://www.usekineo.com/go/<token>) that opens Kineo Studio pre-filled with the script, duration and engine. Kineo renders the film after the user clicks; this API never renders anything itself. Public, no authentication, rate-limited per IP."
   },
   "servers": [
@@ -15,7 +15,7 @@
       "post": {
         "operationId": "createKineoHandoff",
         "summary": "Create a one-click Kineo Studio link from an approved script",
-        "description": "Send the FINAL, user-approved script exactly as written (HOOK / MICRO REWARD / ESCALATION / PAYOFF markers included). Do not call this on the first message, do not call it while the user is still asking for changes, and never call it more than once per approved script. On success, show the user the `url` from the response with one short sentence and say the link opens Kineo Studio already filled in and is valid for 7 days. About cost, mirror the response: for durationSec 35 or 60 on the default engine (`seedance`) say the first film is free (25-credit trial, no card); for durationSec 90 say in one line that a 90s film costs more than the free trial and needs a paid plan, then offer 60s as the free option without talking the user out of 90s. Never invent or alter the URL. If the response is an error, tell the user what went wrong in one sentence and fix the script or wait; never fabricate a link.",
+        "description": "Send the FINAL, user-approved script exactly as shown (HOOK / MICRO REWARD / ESCALATION / PAYOFF labels included). Call only after explicit approval, never on the first message, never twice per script. Show the returned url verbatim; never invent or alter a link. On error, explain in one sentence.",
         "requestBody": {
           "required": true,
           "content": {
@@ -75,7 +75,9 @@
     "schemas": {
       "HandoffRequest": {
         "type": "object",
-        "required": ["script"],
+        "required": [
+          "script"
+        ],
         "additionalProperties": false,
         "properties": {
           "script": {
@@ -86,19 +88,36 @@
           },
           "durationSec": {
             "type": "integer",
-            "enum": [35, 60, 90],
+            "enum": [
+              35,
+              60,
+              90
+            ],
             "default": 60,
             "description": "Target length of the film in seconds. Must match the duration the user chose BEFORE the script was written. Use 60 when the user has no preference. 35 = quick fact, 60 = standard Short (recommended, best for TikTok and YouTube Shorts), 90 = deeper story. Cost on the default engine: 35s and 60s fit the free 25-credit trial; 90s does not (it costs more than the trial) and needs a paid plan — say that in one line when the user picks 90 and has not paid, offer 60s, but do not talk them out of 90s."
           },
           "aspect": {
             "type": "string",
-            "enum": ["9:16", "16:9", "1:1", "4:5"],
+            "enum": [
+              "9:16",
+              "16:9",
+              "1:1",
+              "4:5"
+            ],
             "default": "9:16",
             "description": "Frame of the video, chosen from the platform the user named — Kineo renders every frame natively (no cropping), so pick the one that fits where the video will be posted. 9:16 = vertical, for TikTok, Reels and YouTube Shorts (the default when the user asks for a Short, a TikTok, a Reel, or names no platform). 16:9 = widescreen, for regular YouTube videos, a website, or a display ad. 1:1 = square, for a square Facebook or Instagram post or ad. 4:5 = tall feed post, for the Instagram feed (takes up more of the screen than 1:1). If the user has not said where the video will be posted and it is not obvious, ASK in the same message where you ask for duration and topic — do not silently assume. Changing the frame does not change the price: every frame costs the same credits."
           },
           "engineHint": {
             "type": "string",
-            "enum": ["seedance", "fast", "kling", "veo", "hollywood", "h3", "omni"],
+            "enum": [
+              "seedance",
+              "fast",
+              "kling",
+              "veo",
+              "hollywood",
+              "h3",
+              "omni"
+            ],
             "default": "seedance",
             "description": "Which Kineo video engine Studio should pre-select. Send `seedance` (Seedance 1.5, AI-generated cinematic scenes; the only engine where a 35s or 60s film fits the free trial) unless the user asks for something specific. `fast` = Kineo 1, real stock footage with narration, fastest and cheapest, good for news/facts/money topics. `kling` = Kling 2.5, more detailed AI scenes. `veo` = Veo 3.1, premium realism (paid plans). `hollywood` = Kling 3, top-tier cinematic (150 credits at 60s, paid plans). `h3` = MiniMax H3, stylized motion (paid plans). `omni` = Omni Flash, premium (paid plans). When in doubt, send `seedance`. Never send a value outside this list."
           },
@@ -117,7 +136,21 @@
       },
       "HandoffResponse": {
         "type": "object",
-        "required": ["url", "token", "expiresAt", "words", "seconds", "fit", "fitMessage", "durationSec", "engineHint", "aspect", "language", "overStudioLimit", "studioLimitChars"],
+        "required": [
+          "url",
+          "token",
+          "expiresAt",
+          "words",
+          "seconds",
+          "fit",
+          "fitMessage",
+          "durationSec",
+          "engineHint",
+          "aspect",
+          "language",
+          "overStudioLimit",
+          "studioLimitChars"
+        ],
         "properties": {
           "url": {
             "type": "string",
@@ -143,7 +176,11 @@
           },
           "fit": {
             "type": "string",
-            "enum": ["short", "ok", "long"],
+            "enum": [
+              "short",
+              "ok",
+              "long"
+            ],
             "description": "How the script measures against durationSec. `short` = likely to come out under target (offer to extend). `ok` = on target. `long` = runs over, which is acceptable."
           },
           "fitMessage": {
@@ -152,17 +189,34 @@
           },
           "durationSec": {
             "type": "integer",
-            "enum": [35, 60, 90],
+            "enum": [
+              35,
+              60,
+              90
+            ],
             "description": "The duration Kineo stored for this handoff. Use it to decide the cost line: 35 or 60 on `seedance` = first film free (25-credit trial); 90 = costs more than the free trial, needs a paid plan."
           },
           "engineHint": {
             "type": "string",
-            "enum": ["seedance", "fast", "kling", "veo", "hollywood", "h3", "omni"],
+            "enum": [
+              "seedance",
+              "fast",
+              "kling",
+              "veo",
+              "hollywood",
+              "h3",
+              "omni"
+            ],
             "description": "The engine id Kineo stored for this handoff (aliases you sent, such as `Kling 3`, come back normalized)."
           },
           "aspect": {
             "type": "string",
-            "enum": ["9:16", "16:9", "1:1", "4:5"],
+            "enum": [
+              "9:16",
+              "16:9",
+              "1:1",
+              "4:5"
+            ],
             "description": "The frame Kineo stored for this handoff and will render when the user clicks: 9:16 vertical (TikTok, Reels, YouTube Shorts), 16:9 widescreen (YouTube, website, display ads), 1:1 square (Facebook/Instagram post or ad), 4:5 tall feed post (Instagram feed). If it is not the frame the user asked for, tell them in one line which frame the link will render and offer to re-send with the right one; the frame never changes the price."
           },
           "language": {
@@ -181,7 +235,9 @@
       },
       "ErrorResponse": {
         "type": "object",
-        "required": ["error"],
+        "required": [
+          "error"
+        ],
         "properties": {
           "error": {
             "type": "string",
