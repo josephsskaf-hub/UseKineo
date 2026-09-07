@@ -44,3 +44,16 @@
 - Inspeção visual de contact sheets dos 12, com início/meio/fim. Comparação antes/depois em `docs/previews/CURADORIA-ANTES-DEPOIS.html`, incluindo largura desktop e card mobile. O “antes” é o exemplo anterior de cada motor; não é uma réplica completa da home.
 - Teste que executa os seletores reais: 250 verificações com inspeção de mídia. TypeScript limpo. Regressões: vitrine legada 19, segurança 68, cinco melhorias 621, idiomas 2034. Nenhuma asserção antiga alterada; o teste novo diferencia explicitamente acervo histórico da curadoria ativa.
 - **PENDENTE neste checkpoint:** CI remoto, preview HTTPS e validação de produção. Abrir arquivo local no Chrome foi bloqueado pela política do navegador; não contornar esse bloqueio. Validar o site de preview HTTPS, sem acesso do browser ao filesystem.
+
+## VALIDADO EM PRODUÇÃO — 07/09/2026, conclusão desta entrega
+
+O checkpoint acima foi superado pelas verificações abaixo. **SHA funcional na main:** `b79827aa8c9a62eb8f3e59789e2c0e3cd52d4f14`, fast-forward sobre `6b339d79`, sem tocar na árvore principal.
+
+- **Guardião remoto:** execução `34148519960`, concluída com success; TypeScript e contratos críticos verdes. A resposta do conector de workflows veio vazia, mas a API oficial do GitHub confirmou a execução e o job. Não interpretar resposta vazia como CI inexistente.
+- **Preview HTTPS:** `dpl_2AuA3SjHFq34jwk8yQdp9X8m9hJH`, READY. Chrome do fundador: quatro cards; Omni com cinco indicadores; trechos novos tocando, sem MediaError. Desktop sem overflow. Mobile 390px: duas colunas de 168px, inclusive Hindi e espanhol. Viewport restaurado e idioma da revisão restaurado para inglês.
+- **Fileira:** 22 cards, contendo os 12 aprovados; seta desktop moveu scrollLeft de 0 para 1484. Novos trechos verticais reproduzindo, sem MediaError. A seta é oculta no mobile por CSS preexistente; não relatar teste de clique mobile como aprovado.
+- **Produção:** `dpl_EYPt7bkWhHTorcRUoMPQwGEEktxh`, READY, SHA funcional acima, alias `www.usekineo.com`. Os 36 assets novos responderam HTTP 200 com MIME correto; os 12 IDs aprovados constam no HTML público. Chrome em produção confirmou reprodução do novo Omni (960px), cinco indicadores, sem overflow e sem erros de console capturados.
+- **Integridade:** os 24 MP4 foram decodificados integralmente sem erro. Originais, robô, acervo Kling 3, render, créditos e preços não foram alterados. Sem geração paga, escrita em banco ou mudança de privacidade de clientes.
+- **Limite da entrega:** estes testes certificam a troca da vitrine, não todos os fluxos do produto. Veo 3.1/H3 ainda esperam substitutos aprovados dos motores corretos. A auditoria integral de idiomas é trabalho separado e não foi concluída por esta entrega.
+
+Este recibo pós-deploy pode permanecer na branch de curadoria para não disparar outro build de produção só por documentação. O código e a mídia funcionais já estão na main no SHA indicado.
