@@ -1257,3 +1257,159 @@ linhas novas com um carimbo para não se misturarem às velhas, e trava isso com
 24 verificações e 6 mutantes. Amanhã dá para responder com número, e não com
 palpite, se a porta de $1 está sendo vista. Terceiro dia sem assinante novo
 continua de pé.
+
+---
+
+### #8 — 19:52 BRT — a ordem da marca d'água alcançou 13 pessoas e deixou 72 de fora
+
+**ANTES DE TUDO, UMA PREMISSA MINHA QUE CAIU.** O cardápio manda no F1 que "o
+download não pede nada": 225 pessoas baixam o filme por mês e vão embora. Fui
+construir isso e **medi primeiro**. Em 30 dias, contas externas: **223 pessoas
+clicaram em baixar, e 175 delas viram alguma oferta** — **127** viram
+especificamente a caixa que pede dinheiro (`trial_post_video_offer_viewed`),
+**49** abriram checkout, **5** pagaram. Só **44** não-pagantes não viram
+oferta nenhuma. **A superfície não está faltando.** Não construí o F1; teria
+sido a sétima superfície empilhada num lugar que já tem seis (memória
+`medir-os-remedios-existentes-antes-do-setimo`).
+
+**O QUE ESTAVA ERRADO, ENTÃO.** Cruzei `video_downloaded` com
+`videos.quality_mode` pelo `metadata.video_id` — 486 downloads em 30 dias,
+**486 casaram** com a linha do vídeo. A tabela:
+
+| export_type | plan | has_paid | trial_status | quality_mode | filmes | pessoas |
+|---|---|---|---|---|---|---|
+| clean | free | false | **downgraded** | cinematic_ai | **143** | **72** |
+| clean | free | false | active | cinematic_ai | 23 | 13 |
+| watermarked | free | false | active | fast | 31 | 22 |
+
+A ordem do fundador das 17:35 ("liga marca d'água no trial") foi cumprida na
+linha **do meio** — 13 pessoas. A linha **de cima** é **5,5x maior** e ficou
+inteira de fora. É gente que já terminou o trial, **nunca pagou**, e leva o
+Seedance **limpo**.
+
+**A CAUSA É ARITMÉTICA, NÃO DECISÃO.** Em `app/api/compose/route.ts`,
+`watermarkApplied = isFreePlanFast || isTrialRender || FORCE`. `isFreePlanFast`
+só é atribuído no ramo `fast`; `isTrialRender` exige `ent.isTrial`, que vira
+**falso** no minuto em que o trial vence. Para quem usou o produto inteiro e não
+pagou, a expressão nascia `false || false || false`. Conta grátis
+historicamente não alcançava o Seedance — o caminho do reverse trial abriu a
+porta e a regra ficou para trás.
+
+**E É ISTO QUE RESPONDE À PERGUNTA DO FUNDADOR** ("está gerando gente que faz
+vídeo, mas as pessoas não têm fechado"). **127 dessas pessoas viram a caixa que
+pede dinheiro.** A oferta chegou. O que ela vende — o filme sem marca — a
+pessoa **já tinha no telefone**. Não é copy, não é endereço, não é (só) preço:
+o benefício pago estava sendo entregue de graça a exatamente quem estava sendo
+convidado a pagar.
+
+**MUDOU — SHA `651f28f4` · EM PRODUÇÃO** (`dpl_8tgTbRZjarmKku8r7TLV6Vc5pU9X`,
+sonda `/api/compose` 401 e `/api/compose/unlock` 401 contra controle
+`/api/compose/rota-inexistente-fv-r8` 404). Um termo novo, lido **num lugar só**:
+
+    isFreePlanCinematic = isFreePlan && !hasPaid && !ent.isPaidAccount
+
+`!ent.isPaidAccount` sai do **mesmo `getEffectiveEntitlement`** que decide
+crédito e acesso nesta rota — não é predicado redigitado (memória
+`predicado-do-cobrador-nao-se-redigita`), e é ele que protege o comprador do
+trial de $1 (`plan basic` + assinatura `trialing`) de receber marca no filme
+que acabou de pagar.
+
+**NÃO É PREÇO NOVO NEM OFERTA NOVA.** `lib/freeTierOffer.ts` já promete ao
+cliente, hoje, *"Films come out watermarked; a plan removes the watermark"*. O
+ramo `fast` cumpre isso desde sempre. Este nunca cumpriu. **A frase que a casa
+já diz passou a ser verdade** — e nenhum preço público foi tocado.
+
+**O PAR OBRIGATÓRIO JÁ ESTAVA EM PRODUÇÃO.** Marcar sem saber desmarcar seria
+vender um export limpo que a casa não entrega — o pecado que o PEDIDOS registra
+para os motores premium. Aqui **não há caso novo**: `REBUILD_QUALITIES` do
+`/api/compose/unlock` aceita `cinematic_ai` desde `9f2822b0` (hoje, 17:00), com
+o **mesmo builder e a mesma quality**. Pus mais gente num caminho construído e
+testado há três horas.
+
+**O QUE O CLIENTE VÊ.** Uma conta grátis que nunca pagou e renderiza Seedance
+recebe o filme **com marca d'água** — e, por consequência, a caixa "Want it
+clean?" (`showPostVideoExportChoice`, que exige `currentResultHasWatermark`)
+**passa a ser elegível para ela**, com o trial de $1 e o Starter dentro.
+Antes essa caixa era logicamente impossível para essa pessoa: o filme era
+limpo, não havia o que vender. **Alcance medido: 236 pessoas em 30 dias, ~8 por
+dia**, contas grátis não-pagantes que renderizam `cinematic_ai`.
+
+**TESTES.** `scripts/test-free-clean-leak.mjs` **42/42**, com **6 mutantes** —
+cada um relê o arquivo depois de escrever e só então exige vermelho (memória
+`mutacao-precisa-provar-que-aplicou`); leitura com CRLF normalizado. Os mutantes
+cobrem: apagar o termo, cravá-lo em `false` mantendo o comentário intacto,
+trocar `&&` por `||`, esquecer o comprador do trial de $1, pendurar o end card
+no termo novo, e **tirar o `cinematic_ai` do rebuild** (marcar sem saber
+desmarcar). O guardião **conta os usos** do termo: 3 em código, e falha se
+alguém o pendurar num gate de dinheiro. Irmãos verdes: `test-trial-watermark`
+**50/50** (a assinatura do evaluator ganhou o 4º termo; os 4 casos originais
+continuam lá, nenhuma trava afrouxada), `test-post-delivery-slot` **35/35**,
+`test-slot-impression-truth` **24/24**, `test-clean-film-trial-door` **83/83**.
+`npx tsc --noEmit` verde na base e depois da edição.
+
+**RISCO A DECLARAR, e ele é real.** O filme grátis de Seedance **deixa de ser
+postável limpo**. É a mesma decisão que o fundador tomou às 17:35 para o trial,
+aplicada à coorte 5x maior — mas ele decidiu sobre 13 pessoas e agora vale para
+~8 por dia. Se ele quiser reverter, é **uma linha**: apagar
+`isFreePlanCinematic ||` de `watermarkApplied`, e o guardião aponta exatamente
+onde. Segundo risco, menor: `unlock` remonta `cinematic_ai` pelo builder
+clássico; isso foi construído e testado hoje, mas **ainda não foi exercitado
+por um cliente real** — o primeiro "Download clean" de um Seedance é o que
+prova. Premium (Kling 3 / Veo / H3 / Omni / S25) continua **limpo de propósito**
+e fora do rebuild; o guardião prova que continua fora.
+
+**COMO MEDIR — a série honesta.** Nada de recorte por relógio: a coorte é
+`quality_mode='cinematic_ai'` + `plan='free'` + `has_paid=false`, e o número que
+tem de virar é `video_downloaded.export_type`, hoje **`clean` 143 / 72 pessoas
+em 30d**. Ele deve cair para perto de zero e reaparecer como `watermarked`.
+Atrás dele, nesta ordem: `post_video_offer_viewed` (a caixa que agora é
+elegível para essa gente — base de 19 pessoas/30d), `checkout_started` com
+origem `generate_watermark_unlock`, e `payment_success`. **O que NÃO conta como
+prova:** o total de downloads cair — isso seria a pessoa desistindo, não
+comprando.
+
+**PLACAR DE FECHAMENTO — marco 2026-09-07 18:38 UTC (~4h20):** filme pronto na
+tela **3 impressões / 2 pessoas** · baixou **0** · caixa comercial **0** · porta
+de $1 vista **0** · cliques no $1 **0** · checkout externo **0** · **pagou 0** ·
+33 pessoas com evento.
+
+**CHECAGEM ZERO (24h):** cadastros **27** · crédito zero **12**, **trial órfão
+0** · render preso **0** · recusas **2**, **sem dono 0** · `payment_success`
+**0 em 72h** — terceiro dia sem assinante novo.
+
+**A FRASE DA ROTAÇÃO.** Hoje um visitante novo que abre conta, gasta os créditos
+de boas-vindas num Seedance e baixa o filme encontra **uma marca d'água que
+ontem não encontrava** — e, pela primeira vez, uma caixa que tem algo de
+verdade para lhe vender.
+
+**PRÓXIMA JOGADA.** A coorte que esta entrega cria já existe e é grande: **72
+pessoas em 30 dias que baixaram um Seedance limpo e nunca pagaram**. Elas têm
+e-mail, têm um filme entregue e têm tema conhecido. A jogada não é uma carta de
+desconto — é a carta que a memória `credito-nao-e-isca` manda: *"o teu filme
+sobre X está aqui, sem marca d'água, por 7 dias por $1"*, com o link direto do
+unlock daquele render. Antes de escrever uma linha dela: rodar a Q de
+supressão e conferir quantas dessas 72 já receberam carta nas últimas 24h —
+duas das cartas caras do dia deram zero cliques contra duas da genérica
+(memória `carta-nova-so-depois-da-velha-mover`), então esta só se justifica se
+**nomear o filme da pessoa**.
+
+**✅ O QUE VOCÊ PRECISA FAZER**
+1. **Decidir se você aceita o risco desta entrega**: a partir de agora o filme
+   grátis de **Seedance** sai com marca d'água (antes só o Kineo 1 saía). É a
+   sua ordem das 17:35 estendida de 13 para ~8 pessoas por dia. Se quiser
+   reverter, me diga "tira a marca do Seedance grátis" — é uma linha.
+2. Nada mais. Não precisa clicar em publicar: já publiquei (`651f28f4`).
+
+**📋 O QUE ACONTECEU**
+Eu ia construir a oferta no botão de download, medi antes e descobri que a
+premissa estava errada: 127 das 223 pessoas que baixam já viam a caixa que pede
+dinheiro. O problema não era a oferta faltar — era ela não ter o que oferecer.
+Cruzando os downloads com o motor de cada filme, achei que **72 pessoas em 30
+dias, com o trial já encerrado e sem nunca ter pago, levavam o Seedance
+limpo** — exatamente o que a assinatura vende, e 5,5 vezes mais gente do que a
+sua ordem das 17:35 alcançou. A causa era um termo que faltava numa expressão,
+não uma decisão de produto: a página de planos já promete ao cliente que o filme
+grátis sai com marca. Publiquei o termo que faltava, com 42 verificações e 6
+mutantes, sem tocar em preço, crédito, régua, motor ou duração. Terceiro dia sem
+assinante novo continua de pé — mas pela primeira vez a caixa que pede dinheiro
+tem uma coisa concreta para vender a quem já usou o produto inteiro.
