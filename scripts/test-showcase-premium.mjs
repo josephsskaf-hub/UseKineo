@@ -54,8 +54,11 @@ for (const [engine, id] of Object.entries(opening.HERO_OPENING)) {
   const ordered = opening.orderHeroVideos(source)
   ok(ordered[0].id === id, 'founder screenshot opens ' + engine)
   ok(JSON.stringify(source) === originalOrder, 'hero order does not mutate catalogue ' + engine)
-  ok(JSON.stringify(ordered.slice(1)) === JSON.stringify(source.filter(v => v.id !== id)), 'remaining clips retain relative order ' + engine)
-  ok(new Set(ordered.map(v => v.id)).size === source.length, 'no missing or duplicate clip ' + engine)
+  // Latest founder constraint: wide hero cannot show portrait fill/cropped faces.
+  // Only Omni changes membership; portrait originals remain in trending/catalogue.
+  const eligible = engine === 'cinematic_omni' ? source.filter(v => v.id === id) : source
+  ok(JSON.stringify(ordered.slice(1)) === JSON.stringify(eligible.filter(v => v.id !== id)), 'eligible clips retain relative order ' + engine)
+  ok(new Set(ordered.map(v => v.id)).size === eligible.length, 'no missing or duplicate eligible clip ' + engine)
   ok(fs.existsSync(path.join('public', framePolicy.heroFrame(ordered[0]).poster)), 'matching opening poster exists ' + engine)
 }
 ok(opening.orderHeroVideos([]).length === 0, 'empty hero stays empty')
