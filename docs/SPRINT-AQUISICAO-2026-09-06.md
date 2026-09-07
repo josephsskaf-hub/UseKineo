@@ -3961,3 +3961,364 @@ julgamento: é a resposta errada dada com confiança.
 
 Gravado também na memória permanente (`relogio-do-shell-mente-em-brt`), porque
 uma lição que só existe no diário de um ciclo morre com o ciclo.
+
+
+### #22 — 03:38→04:38 BRT (07/09) — a fatia fácil dos "42" NÃO EXISTE: eu e o `#21e` lemos a porta com o número errado
+
+**PRESS RELEASE (o que eu ia anunciar).** "A Kineo passa a mostrar preço para
+quem tem crédito sobrando — a fatia mais saudável da base, de quem a casa mais
+escondia o preço."
+
+**Não publiquei esse anúncio, porque a medição que o sustentava está errada.**
+Fica aqui o que aconteceu, porque um erro corrigido de madrugada vale mais para
+a próxima sessão do que uma entrega maquiada.
+
+### O erro, e ele foi herdado e repetido
+
+O `#21e` classificou as 166 pessoas cegas ao preço pelas condições de
+`decideTrialBalanceBridge` e publicou esta linha:
+
+> | saldo ≥ 15 (um Seedance inteiro já cabe) | 42 (25%) | ❌ `full_seedance_already_fits` |
+
+**O limiar não é 15. É 25.** `TRIAL_BALANCE_BRIDGE_COST` = 15 e
+`FULL_SEEDANCE_COST` = 25 (`creditCostFor('cinematic_ai', true)`,
+`lib/credits/engineCost.ts:75`). A ponte é elegível na faixa **15 ≤ saldo < 25** —
+ou seja, **os "42 excluídos" são, em sua quase totalidade, a própria população
+da ponte**, que a outra pista já atendeu às 02:32.
+
+Eu não conferi a constante: peguei a tabela do `#21e` como dado e passei uma
+hora medindo em cima dela. As duas medições que rodei (156/43 "estreita" e 91/28
+"larga") estão aritmeticamente certas e **respondem à pergunta errada** — elas
+contam a faixa da ponte, não a faixa excluída.
+
+**A medição correta, feita pelo agente na coorte real de 7 dias** (trial ativo,
+não pagante, saldo ≥ 15, com vídeo `completed`): **47 pessoas — 45 na faixa
+15–24 e apenas 2 com saldo ≥ 25**, e as duas viram a ponte quando ainda tinham
+22 e 15 créditos. `trial_repeat_episode_viewed` com `credits_before ≥ 25`:
+**0 eventos em 7 dias.**
+
+**O motivo `full_seedance_already_fits` atinge ~0 pessoas por semana na tela de
+filme pronto.** A "fatia fácil de 42" que o `#21e` ofereceu como próxima jogada
+**não existe**. Quem quiser retomá-la vai gastar a rotação inteira num
+denominador de 2.
+
+### O que sobrou de verdade, e é menor — mas é real
+
+Ao mapear o roteamento para responder a pergunta acima, o agente achou um
+defeito de fato, no degrau **irmão**. Com saldo ≥ 25 a ponte sai de cena e quem
+assume é o card do **episódio 2** (`trial_repeat`), cuja linha secundária dizia:
+
+> "Prefer clean exports now? **See paid plans →**"
+
+**Link para `/pricing`, sem número.** A ponte ganhou o número às 02:32; este
+degrau ficou com o link pelado — e, pior, a impressão `trial_repeat_episode_viewed`
+**não sabia dizer se havia preço na tela**, que é exatamente a armadilha que a
+outra pista documentou às 02:32 e na qual eu mesmo caí uma hora atrás.
+
+**O que mudou (`app/(dashboard)/generate/GenerateClient.tsx`):** a linha passa a
+dizer *"Plans start at {preço}/month for {créditos} credits"*, com o número lido
+de `STARTER_PLAN_FACTS` — **nenhum preço datilografado**, e sem Starter a frase
+volta ao texto antigo em vez de mostrar um buraco. A impressão ganha
+`plans_link` + `bridge_reason`; nasce `trial_repeat_price_viewed`, emitido **só
+quando o número está na tela**; o clique carrega os mesmos campos. Botão
+principal, layout e CSS intocados — Codex não tocou neste arquivo nas últimas
+3h e continua dono do visual.
+
+**Prova:** `scripts/test-preco-para-saldo-cheio-2026-09-07.mjs`, **26/26**,
+estilo `readFileSync` com CRLF normalizado. Falsificado por **5 mutantes**, cada
+um com prova de que o arquivo foi realmente escrito (sha antes ≠ depois,
+restauração conferida): M1 preço datilografado → derruba C3/D1; M2 impressão sem
+`plans_link` → E2; M3 troca a guarda por `true` → E4; M4 degrau sem
+`showTrialRepeatEpisode` → derruba 7; M5 clique sem `bridge_reason` → E7.
+`npx tsc --noEmit` verde, **com controle**: um erro proposital devolveu `TS2322`
+e exit 2, então o verde é real.
+
+**Risco:** baixo. Uma linha de texto num degrau que já existia, com o número
+saindo da fonte única. O pior caso é a frase voltar ao texto de ontem.
+
+**Como medir:** `trial_repeat_price_viewed` contra `trial_repeat_subscription_clicked`.
+**Parada honesta:** este degrau é bem mais estreito que a ponte. Se em 7 dias a
+impressão não passar de ~10 pessoas, a peça não merece mais nenhuma rotação.
+
+### A dívida MAIOR que isto destapou, e que ninguém está olhando
+
+O degrau `trial_repeat` **só existe se o episódio 2 tiver chegado** — o bloco
+depende de `nextEpisode || nextEpisodeLoading`. Se `/api/next-episode` falha, o
+card não renderiza e **a pessoa não vê oferta nenhuma**, nem preço, nem botão.
+
+- `next_episode_failed`: **13 eventos, 10 pessoas em 7 dias**;
+- dos 12 da faixa 15–24 que não viram degrau algum, **só 5** têm
+  `video_ready_viewed` — **7 receberam filme e nunca chegaram à tela de pronto**.
+
+**Ou seja: a oferta da casa está pendurada num endpoint que falha.** Isso é
+maior que qualquer linha de copy desta madrugada e não foi tocado. Vai para a
+fila da próxima sessão, atrás só do Q2.
+
+
+### #22b — 03:48 BRT (07/09) — O ChatGPT cita as NOSSAS PÁGINAS DE SEO. Elas nunca estiveram mortas — estavam invisíveis.
+
+**Este é o achado mais valioso do ciclo, e ele desmente o mapa que abriu o ciclo.**
+
+A ordem da noite dizia: *"O Google trouxe 2 cadastros em 14 dias com DEZENAS de
+páginas de SEO/AEO no ar. Ou não está indexado, ou está indexado e não
+converte."* E o Q1 pedia: *"a lista de perguntas/paths que o ChatGPT usa — o
+path diz o que ele citou"*, com a ressalva de que **ninguém sabia** quais
+páginas nossas ele cita.
+
+**Descobri que o dado para responder isso já existe no banco há 14 dias.**
+Ninguém tinha juntado as duas metades.
+
+**Como:** o primeiro evento com `user_id` de quem vem do ChatGPT é
+`/auth/callback` (170 pessoas) ou `/signup` (28) — ou seja, **a atribuição só
+nasce no cadastro** e a página de entrada nunca foi gravada no perfil. Mas os
+eventos **anônimos** existem: 740 em 24h, 285 sessões, 38 paths distintos. E
+`events.session_id` **atravessa a fronteira do login**: 378 sessões em 14 dias
+têm eventos anônimos *e* eventos com `user_id`. Juntando as duas metades pelo
+`session_id`, a página de primeiro toque aparece para **195 das 198 pessoas
+vindas do ChatGPT (98%)**.
+
+**O resultado, por fonte gravada — 14 dias:**
+
+| fonte gravada | entrou pela home `/` | entrou por **página de SEO/AEO** | pessoas |
+|---|---|---|---|
+| **chatgpt** | 14 | **175 (90%)** | 195 |
+| taaft | 93 | **0** | 96 |
+| (sem fonte) | 25 | 22 | 53 |
+| nav | 11 | 0 | 11 |
+
+**Noventa por cento do tráfego do ChatGPT entra por uma página de SEO nossa.**
+O TAAFT é a imagem espelhada: 93 de 96 caem na home e **nenhum** numa página de
+SEO — como esperado, porque é um link de diretório.
+
+**As páginas que o ChatGPT está citando, com o que elas entregam:**
+
+| página de entrada | pessoas | com filme | pagou |
+|---|---|---|---|
+| `/` (home) | 145 | 87 | **2** |
+| **`/ai-video-generator/kineo-1`** | **59** | 38 (64%) | 0 |
+| **`/free-ai-shorts-generator`** | **48** | 31 (65%) | 0 |
+| `/text-to-video-shorts` | 27 | 19 (70%) | 0 |
+| `/free-ai-shorts/horror` | 22 | 16 (73%) | 0 |
+| `/ai-video-generator/seedance` | 15 | 6 | **1** |
+| `/gerador-de-shorts-gratis` (PT) | 13 | 10 (77%) | 0 |
+| `/state-of-ai-shorts-2026` | 6 | 4 | 0 |
+
+**O que isto muda, em uma frase:** o investimento em SEO/AEO **não está morto —
+está funcionando, e não pelo Google.** São ~193 pessoas em 14 dias, com taxa de
+filme de 64–77% (melhor que a média da casa), e a coluna `signup_utm_source`
+não tinha como enxergar nada disso, porque ela grava **o referrer** e a página
+de entrada morria antes do cadastro. O "SEO = 1 cadastro em 14 dias" era um
+artefato do instrumento, não um fato do mundo.
+
+**E isto dá ao Q3 o alvo que ele nunca teve.** "Clonar o TIPO de página que mais
+converte" deixa de ser palpite: as três que o ChatGPT mais cita são
+`/ai-video-generator/<motor>`, `/free-ai-shorts-generator` e
+`/free-ai-shorts/<nicho>` — e a versão em português (`/gerador-de-shorts-gratis`,
+13 pessoas, 77% com filme) prova que **o eixo de idioma funciona** e está
+explorado pela metade.
+
+**Ressalvas honestas, para ninguém superestimar:**
+1. A ponte é por `session_id`. No nível de **pessoa** a cobertura é alta (195 de
+   198 do ChatGPT), mas quem cadastrou noutro aparelho ou noutro navegador não
+   aparece — o viés existe e empurra o número para baixo, não para cima.
+2. `pagou` aqui é a vida inteira da pessoa, não atribuição de campanha.
+3. Isto **não** diz que o Google está bem. Diz que o **ChatGPT** está lendo
+   essas páginas. As duas coisas são independentes, e a de (c) segue valendo:
+   o lado servidor do Google está limpo e a alavanca dele é autoridade.
+
+**O que NÃO fazer com este achado:** sair clonando 40 páginas hoje. A conversão
+para **pagante** dessas páginas é 0 em ~193 pessoas. Elas trazem gente que faz
+filme e não compra — que é exatamente o degrau que as duas peças de preço desta
+madrugada atacaram. Multiplicar a porta antes de consertar a caixa registradora
+multiplica o custo de fal, não a receita. **A ordem certa é: medir as peças de
+preço primeiro (elas subiram há horas), depois clonar as páginas.**
+
+
+## 🏁 FECHAMENTO DO CICLO DE AQUISIÇÃO — 07/09, janela 20:38 → 04:38 BRT
+
+Carimbo conferido com `date` puro e contra `now()` do banco, pela lição do
+`#21g`. Oito rotações. Sem maquiagem.
+
+### (a) O mapa de entrada final — 14 dias, contas externas
+
+**Por fonte gravada** (o que o painel mostra hoje):
+
+| fonte | cadastros | com filme | pagou |
+|---|---|---|---|
+| **chatgpt** | **198** | 129 (65%) | **2** |
+| taaft | 92 | 66 (72%) | 0 |
+| **(sem fonte)** | **67 (18%)** | 17 | 0 |
+| nav (interno) | 12 | 8 | 0 |
+| seo / engine_bento / script_library / partners | 4 | 2 | 0 |
+
+**Por página de entrada real** (reconstruído no `#22b` pelo `session_id`, que
+atravessa o login — cobertura de 195 das 198 pessoas do ChatGPT):
+
+| página de primeiro toque | pessoas | com filme | pagou |
+|---|---|---|---|
+| `/` (home) | 145 | 87 | 2 |
+| `/ai-video-generator/kineo-1` | 59 | 38 | 0 |
+| `/free-ai-shorts-generator` | 48 | 31 | 0 |
+| `/text-to-video-shorts` | 27 | 19 | 0 |
+| `/free-ai-shorts/horror` | 22 | 16 | 0 |
+| `/ai-video-generator/seedance` | 15 | 6 | 1 |
+| `/gerador-de-shorts-gratis` (PT) | 13 | 10 | 0 |
+
+**As três leituras que o ciclo fecha com dado:**
+
+1. **O SEO não está morto — está invisível.** 90% de quem vem do ChatGPT entra
+   por uma página de SEO nossa, não pela home. O "SEO = 1 cadastro em 14 dias"
+   era artefato do instrumento: `signup_utm_source` grava o **referrer** e a
+   página de entrada morria antes do cadastro. Detalhe completo no `#22b`.
+2. **O buraco de atribuição PIOROU.** O mapa que abriu o ciclo media 10% sem
+   fonte; 14 dias agora dão **18%** e as últimas 24h dão **21%**. O **Q2 nunca
+   foi construído** e é a dívida mais cara que este ciclo deixa. Ressalva: parte
+   da diferença 10%→18% pode ser definição (o mapa de abertura não registrou
+   qual coluna usou); o que não é definição é a série diária, que bateu 45% em
+   28/08 e nunca ficou abaixo de 4%.
+3. **A dependência do ChatGPT não mudou** — 198 de 373 (53%) e os únicos 2
+   pagamentos. Nada no ciclo reduziu essa concentração.
+
+### (b) O que entrou em produção, e o que cada peça faz por quem chega
+
+| SHA | peça | o que muda para quem chega |
+|---|---|---|
+| `c94b140a` | **carência de cobrança** | assinante com cartão recusado na renovação para de perder o plano na hora; `past_due` deixa de ser tratado como cancelado |
+| `7e11fef3` | **FAQ só onde é visível** | 187 páginas paravam de marcar um FAQ invisível (`/pricing` 2 → 0) |
+| `710fad76` | **copy que mente** | `/models-pricing` prometia doze filmes com o trial e a tabela dizia cinco |
+| `1b4db6d3` | guardião do `/tools` | 34/37 → 39/39 |
+| `91e2f34b` | **ponte com preço** (outra pista) | o degrau mais largo da tela de filme pronto ganhou caminho para `/pricing` |
+| `b1b3e924` | **preço no degrau do episódio 2** | a linha que dizia só "See paid plans" passa a trazer o número, e a impressão passa a saber se havia preço na tela |
+
+Cada uma com sonda e controle 404. Sonda final do ciclo: `/` **200**,
+`/pricing` **200**, controle inexistente **404**.
+
+**A entrega mais cara da noite não foi aquisição — foi o ralo.** Duas renovações
+de clientes que **já pagavam** foram recusadas por `insufficient_funds`
+(US$ 24,90 AU em 04/09, US$ 9,90 NG em 03/09) e a casa revogou o plano na hora,
+enquanto a Stripe ainda ia repetir. As duas pessoas hoje: `plan='free'`, zero
+eventos depois, zero e-mails, nunca voltaram. ~US$ 34,80/mês de uma base de
+~US$ 109. A contradição que provou: `mrr.ts:120` **já** contava `past_due` como
+receita viva — o painel dizia pagante e o produto dizia grátis, no mesmo minuto.
+Isto **não reabre a conclusão de preço**: não é quem achou caro, é quem já tinha
+comprado.
+
+### (c) O que o ChatGPT e o Google passam a poder citar
+
+**Nenhuma página nova — e isso é um achado, não uma falha de entrega.** O Q4 foi
+respondido com denominador: as **189 URLs do sitemap** baixadas como Googlebot
+e como navegador. 189/189 dão 200, byte a byte iguais (não há ramo de robô); o
+texto **vem no HTML servido** — a hipótese "conteúdo só no cliente" é **falsa**;
+canonical para si mesma; zero `noindex`; zero `X-Robots-Tag`; 188 títulos
+distintos. Três rotas inventadas deram 404 na mesma medição.
+
+Depois do FAQ invisível, **não sobrou nada de técnico para consertar**. A
+alavanca do Google deixa de ser código e passa a ser **autoridade de domínio**.
+O que o `#22b` acrescenta: as páginas já são citadas — por motor de **resposta**,
+não por busca. Bing e Perplexity apareceram como fonte nesta madrugada, coisa
+que ninguém tinha olhado antes.
+
+### (d) Só você pode fazer — script para o Cowork
+
+```
+1. Stripe -> Settings -> Billing -> Subscriptions and emails:
+   confirmar se SMART RETRIES esta ligado e por quantos dias. O conserto da
+   carencia de cobranca segura o acesso pela janela da Stripe; se essa janela
+   estiver desligada, ela e ZERO e nao ha o que segurar.
+   No mesmo lugar: ligar o e-mail automatico de "pagamento falhou".
+
+2. Search Console -> Paginas (Indexacao): anotar Indexadas / Nao indexadas e,
+   dentro das nao indexadas, quantas sao "Detectada, mas nao indexada" e
+   quantas "Rastreada, mas nao indexada". Ultimo dado e de 12/08: 704
+   detectadas-nao-indexadas, 0 impressoes em 28 dias. Sao 4 numeros.
+
+3. Search Console -> Seguranca e acoes manuais -> Acoes manuais. Se houver
+   "Dados estruturados com spam", era o FAQ invisivel, que subiu corrigido
+   nesta madrugada. Pedir revisao AGORA que o deploy ja esta no ar.
+
+4. Search Console -> Sitemaps: confirmar sitemap.xml com status "Exito" e
+   189 URLs. Se estiver antigo, reenviar.
+
+5. Search Console -> Inspecao de URL em /ai-video-generator/kineo-1 e em
+   /free-ai-shorts-generator -> "Testar URL ativa" -> "Solicitar indexacao".
+   (Troquei as paginas desta lista: sao as duas que o ChatGPT MAIS cita, e as
+   que mais tem a ganhar se o Google tambem passar a cita-las.)
+
+6. TAAFT: conferir se a listagem corrigida (25 creditos, $7, 8 motores) ja
+   apareceu. 92 cadastros, 66 filmes e 0 pagamentos em 14 dias e o numero a
+   bater. NUNCA Product Hunt: producthunt.com/products/kineo NAO e nosso.
+
+7. UMA PALAVRA SUA e eu ligo em 10 minutos: os dois SKUs pequenos
+   (First Pack $4,90 / 30cr e starter290 $2,90) ja existem no codigo e na
+   Stripe, desligados desde 18/08. Spec com margem e kill-switch em
+   docs/SPEC-PRIMEIRA-COMPRA-PEQUENA-2026-09-07.md.
+   Responda so "liga o pack" ou "nao liga".
+```
+
+### (e) Placar do ciclo — últimas 24h, contas externas
+
+| fonte | cadastros | com filme | viu preço | checkout | pagou |
+|---|---|---|---|---|---|
+| chatgpt | 27 | 23 | 16 | 1 | 0 |
+| (sem fonte) | 9 | 4 | 5 | 1 | 0 |
+| taaft | 5 | 5 (100%) | 1 | 1 | 0 |
+| nav | 1 | 1 | 1 | 0 | 0 |
+| **total** | **42** | **33 (79%)** | **23** | **3** | **0** |
+
+**Zero pagamentos no ciclo**, e isso precisa ser dito sem rodeio: oito rotações
+não produziram um assinante. O último `payment_success` da história do banco
+continua sendo **02/09 20:22Z**. O que as oito rotações produziram foi a remoção
+de obstáculos mensuráveis no caminho de quem chega — e a prova de que o degrau
+que faltava não era preço alto, era preço **ausente**.
+
+**Checagem zero — passa.** Trial órfão **0** (todo trial `active` tem os 25
+créditos). `blocked` 4 — antifraude agindo, terceira rajada da noite, o guarda
+segurou as três sozinho. `downgraded` 5 — trial cumprido. Renders presos 0,
+`next_episode_failed` 0.
+
+### (f) O que a próxima sessão faz primeiro
+
+1. **Q2 — first-touch obrigatório. Nada na frente disto.** O `#22b` mostrou que
+   a informação existe e a casa a joga fora todo dia: basta gravar no perfil, no
+   `app/auth/callback`, o `landing_path` que o `session_id` já carrega. Isso
+   fecha os 18% sem fonte, transforma o mapa de páginas num número de painel em
+   vez de uma arqueologia de SQL, e é o que finalmente faz o afiliado atribuir
+   (12 ativos, 17 cliques, 0 atribuições na história).
+2. **Medir a adoção das duas peças de preço, com o corte no deploy, antes de
+   inventar remédio novo.** Hoje a ponte tem **1** impressão desde as 02:32 —
+   madrugada, denominador inexistente. **Se a impressão existir e o clique for
+   0, o problema não é visibilidade e a fila inteira muda.**
+3. **Só então clonar as páginas do Q3** — e nesta ordem: essas páginas trazem
+   193 pessoas e **0 pagantes**. Multiplicar a porta antes de consertar a caixa
+   registradora multiplica o custo de fal, não a receita.
+4. **Não construir carta nova de e-mail.** 210/dia e 0 pagamentos; as 2 cartas
+   caras deram 0 cliques contra 2 da genérica.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+1. **Rodar o bloco (d) acima no Cowork** — são 7 itens, todos de painel
+   (Stripe, Search Console, TAAFT). O item 1 é o mais urgente: sem Smart
+   Retries ligado, o conserto da carência de cobrança não tem o que segurar.
+2. **Responder "liga o pack" ou "não liga"** sobre os dois SKUs pequenos
+   (First Pack $4,90 e starter290 $2,90). Estão prontos e desligados desde
+   18/08; a decisão de preço público é sua.
+
+## 📋 O QUE ACONTECEU
+
+Oito rotações, cinco peças em produção, **zero assinantes novos** — e um achado
+que muda a estratégia de aquisição da casa. Descobri que **o ChatGPT cita as
+nossas páginas de SEO**: 90% de quem chega por ele entra por
+`/ai-video-generator/kineo-1`, `/free-ai-shorts-generator` ou irmãs, não pela
+home. O relatório que abriu a noite dizia que o SEO tinha trazido 2 cadastros em
+14 dias; o número real é ~193 pessoas, com taxa de filme melhor que a média da
+casa. As páginas nunca estiveram mortas — o instrumento é que não as enxergava,
+porque a casa só grava a fonte no momento do cadastro e joga fora a página de
+entrada. O conserto disso é pequeno e é a primeira coisa da próxima sessão.
+
+O resto da noite atacou o degrau que o Dia 1 tinha diagnosticado: a casa gasta a
+única sessão que tem com cada pessoa **sem dizer o preço**. Duas peças
+independentes agora mostram preço na tela de filme pronto. Nenhuma delas pode
+ser julgada ainda — subiram de madrugada e uma pessoa as viu. E o conserto mais
+caro da noite não foi aquisição nenhuma: era um ralo que cancelava o plano de
+quem já pagava assim que o cartão falhava, antes de a Stripe sequer tentar de
+novo. ~US$ 35/mês de uma base de ~US$ 109.
