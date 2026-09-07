@@ -181,6 +181,23 @@ for (const [nome, arquivo] of [
     ler(...arquivo).includes("'card_declined_emailed_v1'"))
 }
 
+// ── BLOCO E — A CARTA DISPARA SOZINHA (vercel.json) ───────────────────────
+// Em 01/09 dois crons desta casa DORMIRAM 30 DIAS porque o vercel.json os
+// chamava sem `?confirm=SEND` — a rota rodava, decidia "dry run" e devolvia
+// 200. Nada no log dizia que ninguém tinha recebido nada. Uma carta que só sai
+// quando alguém lembra de clicar é uma carta que não existe.
+console.log('\nE. a carta dispara sozinha, e com o gatilho armado')
+const vercel = JSON.parse(ler('vercel.json'))
+const cron = (vercel.crons ?? []).find((c) => String(c.path).includes('send-card-declined'))
+ok('a carta tem uma entrada de cron', Boolean(cron), 'nenhuma encontrada')
+ok('e o cron chama com `confirm=SEND` — sem isso ela roda em dry-run para sempre',
+  Boolean(cron) && String(cron.path).includes('confirm=SEND'),
+  cron ? String(cron.path) : '-')
+ok('e com teto de lote explícito', Boolean(cron) && /limit=\d+/.test(String(cron.path)))
+ok('a agenda é diária, não de minuto em minuto',
+  Boolean(cron) && /^\d+ \d+(,\d+)* \* \* \*$/.test(String(cron.schedule)),
+  cron ? String(cron.schedule) : '-')
+
 console.log(
   `\n${total - falhas.length}/${total} verificações passaram.` +
     (falhas.length ? `\nFALHOU: ${falhas.join(' · ')}` : ''),
