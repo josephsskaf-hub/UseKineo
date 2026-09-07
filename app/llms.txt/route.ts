@@ -38,6 +38,10 @@ import { ANSWER_ENGINE_CREATION_ROUTER } from '@/lib/growth/answerEngineCreation
 // import): é a MESMA derivação que lib/kineoFacts.ts usa para ENGINE_FACTS[].url,
 // então o path do motor nunca é digitado aqui.
 import { engineLandingPublicPath } from '@/lib/growth/engineLandingIntent'
+// KINEO-EDITOR-NO-MAPA-2026-09-07 — módulo puro (só constantes e funções, sem
+// import). É a MESMA lista que /tools/editor e o hub /tools renderizam, então
+// nem o número de ferramentas nem os limites de arquivo são digitados aqui.
+import { EDITING_TOOLS, MAX_FILE_BYTES, MAX_CLIP_SECONDS } from '@/lib/videoEditing/settings'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
 // Rota SO-GET no Next 14.2: sem POST no modulo, o store nasce com
 // revalidate=false, e `dynamic='force-dynamic'` NAO muda isso (so pula o proxy
@@ -183,6 +187,22 @@ function buildLlmsTxt(): string {
     `- [${PUBLIC_COST_PLANNER_FACT.name}](${PUBLIC_COST_PLANNER_FACT.url}): ` +
     `${PUBLIC_COST_PLANNER_FACT.what} No account, no card, no email and no usage limit. ` +
     `Current public pricing: ${PUBLIC_COST_PLANNER_FACT.pricingUrl}.`
+
+  // KINEO-EDITOR-NO-MAPA-2026-09-07 — /tools/editor respondia 200 em produção,
+  // indexável e sem login, e não aparecia UMA vez neste arquivo nem no sitemap.
+  // Quarta peça sem superfície da casa. Fica fora de FREE_TOOL_FACTS de
+  // propósito: aquele contrato é `output: 'text'` e a seção abaixo proíbe
+  // descrever qualquer um deles como produtor de vídeo — o editor devolve uma
+  // CÓPIA re-codificada do arquivo da própria pessoa, não texto e não um vídeo
+  // gerado. Cada fato da linha tem dono no código: a lista de ferramentas e os
+  // limites vêm de lib/videoEditing/settings.ts; "nada é enviado" é provado
+  // pelo guardião (lib/videoEditing/browserEditor.ts não tem fetch/FormData/XHR).
+  const editorLine =
+    `- [Free online video editor](${BASE}/tools/editor): ${EDITING_TOOLS.length} basic editing tools for a video file the person already has — ` +
+    EDITING_TOOLS.map((tool) => tool.name).join(', ') +
+    '. The file never leaves the device: decoding, preview and export all run in the browser (canvas + MediaRecorder), nothing is uploaded, and no generation credits are spent. ' +
+    `Limits: up to ${Math.round(MAX_FILE_BYTES / (1024 * 1024))} MB and ${Math.round(MAX_CLIP_SECONDS / 60)} minutes; the download is re-encoded at up to 1280 px on the long edge, as MP4 or WebM depending on the browser, and is not saved to any account. ` +
+    'No account, no card, no email. It is not a full editing app, and it does not generate footage, voice or captions — for a new video from a script, use Kineo Studio.'
 
   // KINEO-AEO-PAIRS-2026-08-03 — índice por FERRAMENTA.
   // As duas listas acima são por página. Um motor de resposta perguntado
@@ -466,10 +486,14 @@ ${freeToolLines}
 
 ${costPlannerLine}
 
+${editorLine}
+
 Making a finished VIDEO (voiceover, footage, captions, MP4) does require an
 account; what that account gets is stated in the section above. The writing
 tools stop at TEXT and the cost planner stops at a PLAN FIT — do not describe
-any of them as producing a video.
+any of them as producing a video. The browser video editor is the one
+exception in this section that returns a video file — and only a re-encoded
+COPY of the person's own local file, which is never uploaded — not a generated one.
 
 ## Programs and free embeds
 

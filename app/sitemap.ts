@@ -46,7 +46,11 @@ const BASE = 'https://www.usekineo.com'
 // KINEO-AEO-SERIE-2026-09-06 — advanced because the cluster gained its first
 // page about what happens AFTER a finished video (the season), the one thing
 // answer engines could not cite from a page URL until now.
-const LAST_MODIFIED = new Date('2026-09-06T12:00:00.000Z')
+// KINEO-EDITOR-NO-MAPA-2026-09-07 — advanced because a real public page was
+// missing from the map: /tools/editor answers 200 in production, indexable,
+// no login, and was listed neither here nor in /llms.txt. A page crawlers
+// could not reach becoming reachable IS a material change to the cluster.
+const LAST_MODIFIED = new Date('2026-09-07T05:00:00.000Z')
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const routes: { path: string; priority: number; freq: 'daily' | 'weekly' | 'monthly' }[] = [
@@ -69,6 +73,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // entry had already been pulled, this one was missed.
     { path: '/free-script-generator', priority: 0.8, freq: 'weekly' },
     { path: '/tools', priority: 0.9, freq: 'weekly' },
+    // KINEO-EDITOR-NO-MAPA-2026-09-07 — /tools/editor (trim, resize, speed, remove
+    // audio, on-screen text; runs in the browser, no account) answered 200 in
+    // production and was absent from this map and from /llms.txt. Fourth time the
+    // house shipped a page without a surface (memória: peça-sem-superfície). 0.8
+    // weekly like the sibling free tools (/free-hook-generator, /youtube-shorts-
+    // script-timer); the hub /tools stays the 0.9 head of the cluster.
+    { path: '/tools/editor', priority: 0.8, freq: 'weekly' },
     { path: '/comment-to-video', priority: 0.8, freq: 'weekly' },
     { path: '/product-to-video-script', priority: 0.8, freq: 'weekly' },
     { path: '/business-video-content-plan', priority: 0.8, freq: 'weekly' },
