@@ -287,3 +287,164 @@ cada um. Dois valem hoje: alguém que trouxe um **storyboard em russo com
 marcação de tempo** e esteve no site às 16:25, e alguém que **chegou ontem,
 clicou no plano de cima e nunca recebeu uma carta nossa** — que é justamente
 o perfil de quem paga. Um Autopilot fechado quase triplica o MRR da casa.
+
+---
+
+### #3 — 18:22-18:42 — O DINHEIRO DA CASA NASCE NO DIA ZERO, E A MAIOR VAZÃO DE E-MAIL APONTA PARA O DIA DEZ
+
+**O que eu ia fazer:** V4/V5 — a medição das cartas e a varredura de respostas.
+Fiz a V5, mas a medição virou outra coisa no meio do caminho e mandou a rotação
+para um lugar melhor.
+
+**🔴 A JANELA DE COMPRA DA KINEO TEM OITO HORAS.**
+
+Fui medir "quantas cartas cada pagante tinha recebido antes de pagar" (o achado
+da #1) por um eixo novo: **quanto tempo depois do cadastro cada um pagou.**
+12 pagantes orgânicos em 90 dias, contas externas:
+
+| horas do cadastro até pagar | quantos |
+|---|---|
+| menos de 1 hora | **5** |
+| menos de 8 horas | **7** |
+| menos de 48 horas | **10** |
+| 247h e 399h | **2** — e são as **duas pessoas da campanha de review de agosto** |
+
+**Nenhum pagante orgânico da história nasceu depois do D2.** A mediana é
+**5,8 horas**. Os dois "pagantes tardios" que sobram compraram por acordo
+(review paga), não por carta.
+
+⚠️ **O que isto NÃO prova**, e eu não vou fingir que prova: que falar cedo faz
+pagar. Quem paga em 30 minutos pode ter chegado já decidido — a carta não é a
+causa, é só a testemunha. **O que está provado é o desencontro**, e ele é
+grande.
+
+**🔴 A CASA DÁ BOM-DIA 20 HORAS DEPOIS DA VENDA.**
+
+| 380 cadastros em 14 dias | |
+|---|---|
+| receberam alguma carta (algum dia) | **380 de 380** |
+| receberam alguma carta nas primeiras **8h** | **134** |
+| **mediana até a primeira carta** | **25,3 h** |
+
+E a maior vazão de e-mail da casa aponta para o outro lado do funil:
+
+| carta | envios em 14 dias |
+|---|---|
+| `trial_expired_lastcall_d10` | **400** |
+| `trial_expired_offer_d5` | **385** |
+| `trial_downgraded_loss` | 323 |
+| `trial_ending_soon` | 296 |
+| `trial_d0_welcome` | **285** |
+
+**785 cartas de pós-morte contra 285 de boas-vindas — 2,7 para 1 na direção da
+janela onde nenhum pagante orgânico jamais nasceu.** E o CTA delas **já estava
+medido em zero dentro do próprio código**, pelos comentários das sprints
+#21/#22: 442 D5 + 276 D10 = **718 envios, 0 checkout, 0 pagante**.
+
+**FALSIFIQUEI DUAS VEZES ANTES DE ACREDITAR.** (a) A `d0_welcome` tem uma
+distribuição bimodal esquisita — 101 pessoas em ≤6h, **zero entre 6h e 24h**,
+168 entre 24h e 48h. Testei se o meu eixo estava errado (o código conta idade a
+partir do início do trial, não do cadastro): **não estava** — a mediana entre
+cadastro e concessão do trial é **0,00h**. (b) Testei se era supressão engolindo
+a carta: **também não** — `yielded` é 0 em 285 envios de welcome, e só 17 de 275
+tinham recebido outra carta antes. O atraso é a guarda `D0_MIN_AGE_MS` somada à
+janela de 24h que o "your video is ready" carimba — e isso é **decisão
+deliberada e correta** do código (o e-mail transacional é melhor que o welcome
+genérico). **Não há defeito no welcome. Não abri hotfix.**
+
+**🟢 O QUE SUBIU (EM PRODUÇÃO, `6df8d833`, ponta da main confirmada).**
+
+Em vez de escrever a sétima carta para quem já ouviu tudo, **o CTA provado em
+zero ganhou ao lado a porta mais barata que o produto tem**: o trial pago de
+7 dias, que a pista irmã ligou hoje. Nas duas cartas de maior vazão, **só no
+ramo de quem TEM filme entregue**.
+
+Antes de escrever uma linha, conferi **no código do cobrador** que a porta abre
+para esta gente: o único gate de `?trial=1` é `profile.has_paid === true`, e
+trial morto nunca pagou. Coorte elegível, caixa aberto.
+
+O que **não** mudou, de propósito:
+
+- **o cupom COMEBACK50** — código, prazo, porcentagem e URL idênticos. Ele é do
+  Codex; o trial entra **antes** dele por ser a barreira menor, e o cupom
+  continua no corpo como alternativa;
+- **o ramo de quem NUNCA fez um filme** — byte a byte. A objeção dessa pessoa é
+  **prova**, não preço; ela continua recebendo o filme grátis de 1 clique.
+
+**🔴 E A CASA ME PEGOU MENTINDO SOBRE PREÇO — DUAS VEZES, NA MESMA ROTAÇÃO.**
+
+Escrevi primeiro o texto do botão do /pricing, verbatim: *"$1, then $15/mo"*.
+Três guardiões antigos ficaram vermelhos numa regra que eu não conhecia e que
+está certa: **`sem preco literal` neste arquivo.** O motivo é que a taxa de
+entrada é `TRIAL_ENTRY_FEE_CENTS` = **100 unidades menores na moeda DA PESSOA**,
+e o plano tem preço regional. Medido, 30 dias: **696 pessoas em usd, 80 em inr,
+19 em brl.** Escrever "$1" seria mentir para **99 pessoas, 12% da base** — que é
+exatamente o item 4 da auditoria de 28/08, "COPY QUE MENTE".
+
+Troquei por "1.00" achando que resolvia. **Os guardiões ficaram vermelhos de
+novo.** E, quando consertei o assunto, corrigi só a frase do singular — a do
+**plural é outra string** e escapou com o "$1" vivo dentro. O guardião pegou
+essa também. **Não afrouxei a trava em nenhum momento; tirei o número.** O
+e-mail agora diz *"a 7-day Creator trial with a token entry fee — the checkout
+shows it in your own currency"*, que é verdade nas três moedas.
+
+**A dívida honesta que fica:** a versão com o número — que é o que realmente
+puxa o gatilho de quem achou caro — exige **resolver a moeda por pessoa dentro
+do cron**. É a próxima jogada natural, e não cabia nesta rotação sem mentir.
+
+**Guardiões:** 44 verificações novas em
+`scripts/test-porta-1-dolar-d5-d10.mjs`, amarradas à **variável que decide o
+ramo** (um mutante que troca `if (c.videosMade >= 1)` por `if (true)` é
+reprovado) e à **ordem** entre a porta e o cupom. Rodei 4 mutantes: 3 morreram
+de primeira; o 4º **sobreviveu e o guardião estava fraco de verdade** — apagava
+o cupom do corpo HTML e continuava verde, porque a frase existia também no corpo
+de texto. Apertei a verificação, e aí ela **pegou uma regressão minha**: o D10
+tinha perdido o código do cupom no HTML. Total: **138 verificações verdes**
+(44 novas + 94 reapontadas), `tsc` limpo.
+
+**Medição:** `docs/queries/VENDA-ASSISTIDA-2026-09-07.sql`, com o corte pelo
+**carimbo** (`body = 'offer_with_film_1usd'`), nunca pelo relógio, e uma
+checagem zero que fica vermelha se a carta um dia oferecer a porta a quem o
+caixa recusaria. Confirmei no banco que `kind` (1700/1700) e `intent_campaign`
+(348 eventos, `trial_1usd` já entre eles) existem de verdade antes de escrever
+a consulta.
+
+**Alcance:** ~56 cartas por dia passam por esse ramo. **Nenhum e-mail novo foi
+criado, nenhuma lista nova foi construída, nenhum desconto novo foi inventado.**
+
+**PRÓXIMA ROTAÇÃO (#4):** a moeda por pessoa dentro do cron — é o que devolve o
+número ao assunto sem mentir para 12% da base, e o número É o gatilho. Depois
+dela, a V4 (varredura de respostas).
+
+---
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+1. **Nada de código.** O `6df8d833` já está na ponta da `main` e o deploy sobe
+   sozinho; a fila ficou vazia.
+2. **Continua de pé o pedido da #2:** mandar da sua caixa os **dois rascunhos da
+   CAMADA 1** em `docs/RASCUNHOS-AUTOPILOT-2026-09-07.md` — são as duas pessoas
+   do Autopilot que estiveram no site hoje.
+3. **Uma decisão sua, quando quiser:** as cartas D5/D10 mandam **785 e-mails a
+   cada 14 dias** para uma janela que em 90 dias **nunca produziu um pagante
+   orgânico**. Eu coloquei a porta barata dentro delas em vez de desligá-las,
+   porque desligar carta é decisão de dono. Se você quiser cortar essa esteira e
+   jogar o esforço para as primeiras 8 horas, me diga e eu faço.
+
+## 📋 O QUE ACONTECEU
+
+Fui medir as cartas e descobri **onde o dinheiro da Kineo realmente acontece:
+nas primeiras horas.** Dos 12 pagantes orgânicos dos últimos 90 dias, **5
+pagaram na primeira hora, 7 em menos de 8 horas e 10 em menos de 2 dias** — e os
+dois únicos que pagaram depois disso são as duas pessoas da campanha de review
+de agosto. **Nenhum cliente orgânico nasceu depois do segundo dia.** Enquanto
+isso, a maior vazão de e-mail da casa — 785 cartas a cada 14 dias — aponta
+justamente para o dia 5 e o dia 10, e o botão dessas cartas já estava medido em
+**718 envios com zero compras**. Em vez de escrever mais uma carta, coloquei
+**dentro delas** a porta mais barata que o produto tem: o trial pago de 7 dias
+que subiu hoje, antes do cupom, sem tocar no cupom e sem mexer na carta de quem
+nunca conseguiu fazer um filme. E a casa me pegou: eu tinha escrito "$1" no
+e-mail, e três guardiões antigos apitaram — **12% da nossa base não paga em
+dólar**, então esse "$1" seria mentira para 99 pessoas. Tirei o número em vez de
+afrouxar a regra, e anotei a dívida: para devolver o número ao assunto, o cron
+precisa saber a moeda de cada pessoa. É a próxima jogada.
