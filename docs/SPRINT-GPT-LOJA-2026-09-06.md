@@ -1397,3 +1397,115 @@ intenção (o aviso que aparece exatamente quando alguém cola uma ordem de
 chatbot no Studio — 21 pessoas em 3 dias, gente que já está tentando fazer isso
 sozinha e errando). A terceira porta que o plano pedia, a faixa de temporada,
 **não** foi aberta: medi antes e ela alcança 2 pessoas por semana.
+
+---
+
+### #10 — 07/09 00:52→01:0x — **EM PRODUÇÃO**: a maior superfície de ChatGPT da casa não oferecia nada a metade de quem a via
+
+**SHA `9d7442fe` · `git ls-remote origin main` confirmado.**
+
+#### A PERGUNTA DA ROTAÇÃO
+
+As duas portas da #9 subiram às 00:32. Antes de abrir uma terceira, medi as
+superfícies **todas juntas** — a lição que já custou duas rotações neste ciclo
+(`medir-alcance-da-superficie-antes-de-ligar`). O resultado desmontou o meu
+próprio plano.
+
+| superfície (7 dias) | sessões | pessoas |
+|---|---|---|
+| `chatgpt_welcome_banner_shown` (faixa pós-login) | **196** | 116 |
+| `chatgpt_quickstart_input_opened` | 95 | 71 |
+| `chatgpt_quickstart_selected` | 79 | 61 |
+| **`chatgpt_page_viewed` (a `/chatgpt`)** | **2** | 1 |
+
+A página que este ciclo inteiro construiu tem **2 visualizações**. A faixa que
+já existia tem **196 sessões** — e ninguém tinha olhado para o degrau do meio
+dela.
+
+#### O DEFEITO, DITO EM UMA LINHA
+
+**101 das 196 sessões viram a faixa e nunca clicaram na caixa.** E para essas
+101 a faixa não tinha saída nenhuma: os dois botões são `disabled={!ready}`, e
+`ready` exige texto colado. Quem chegou do ChatGPT **sem o roteiro na mão** só
+tinha o "×".
+
+Essa é exatamente a pessoa para quem a `/chatgpt` foi feita — ela quer que uma
+IA escreva o roteiro e ainda não tem nada colado. A página estava no ar, e a
+maior superfície de ChatGPT da casa não tinha porta para ela.
+
+#### A ENTREGA
+
+Terceira saída na faixa, visível **somente com a caixa vazia**
+(`limit.length === 0`): *"No script yet? Get the prompt that makes ChatGPT write
+one →"* → `/chatgpt?utm_source=quickstart_banner`.
+
+**A decisão que evitou o estrago:** o link **some** assim que a pessoa cola
+qualquer coisa. Os 40% que colam (79 de 196 sessões) são o que a faixa tem de
+melhor; um terceiro CTA competindo com eles trocaria uma conversão boa por uma
+duvidosa. Nenhum botão, nenhuma cópia, nenhum `disabled` e nenhum dos 4 eventos
+antigos mudou. `lib/growth/chatgptQuickstart.ts` (contrato de outra pista) está
+**intocado** — o guardião compara byte a byte com `origin/main`.
+
+Clique com **evento próprio** (`chatgpt_quickstart_no_script_clicked`): o UTM de
+sessão é *first-touch* e quem veio do chatgpt.com já tem o campo ocupado —
+medir esta porta por chegada de UTM mentiria.
+
+#### COMO PROVAR
+
+`node scripts/test-quickstart-no-script-door.mjs` — **49 verificações**, estilo
+`readFileSync` do arquivo real (sem alias `@/`), amarradas ao **predicado**
+`limit.length === 0` e não a contagem de texto. Falsificado com **11 mutantes
+escritos no arquivo real** — link removido · condição virada `true` · condição
+`!ready` · condição `>= 0` · href sem utm · href para outra rota · utm trocado ·
+evento renomeado · link fora do ramo · link duplicado · classe do CSS removida —
+**todos vermelhos**, cada um relido do disco para provar que a escrita
+aconteceu, cada um restaurado com sha256 conferido. `npx tsc --noEmit` **exit 0**.
+
+#### SONDAS — e uma que ficou VACANTE, dita sem maquiagem
+
+`git ls-remote origin main` = `9d7442fe` · `/chatgpt?utm_source=quickstart_banner`
+**200** com controle `/chatgpt-nao-existe-xyz` **404** na mesma medição · home
+**200**.
+
+**A sonda de bundle não existe para esta peça.** Tentei: a faixa vive no layout
+`(dashboard)`, autenticado, e o único lugar público que renderiza o mesmo card
+(`/chatgpt-to-youtube-shorts`) o carrega **code-split atrás do ramo de erro** —
+o controle prova isso: a cópia **antiga** do card (`Paste the answer. Make the
+Short.`) também **não** aparece em nenhum dos 17 chunks servidos naquela página.
+Ou seja: 0 achados ali é **medição vazia, não resultado vermelho**. A prova real
+desta porta é o evento novo, e ela vem no fechamento das 05:00.
+
+#### O QUE ESSE MERGULHO ACHOU DE QUEBRA (vai para o fechamento)
+
+Funil da coorte ChatGPT, 14 dias: **208** viram a faixa → **134** entregaram um
+filme completo → **3** pagaram. Dos 134, **100 fizeram exatamente um filme e
+pararam** — e **79 desses 100 estão com menos de 15 créditos**, ou seja não
+conseguem repetir nem no Seedance. O gargalo desta coorte **não** é "não aperta
+o botão" nem "aperta e não sai": é o **segundo** filme.
+
+#### RISCO
+
+A faixa ganhou um terceiro caminho. Se a taxa de `chatgpt_quickstart_selected`
+por `_shown` cair abaixo dos 40% de hoje (79/196), a porta está roubando os
+coladores em vez de servir quem não tinha saída — e aí ela sai. O número que
+decide é essa razão, medida depois de hoje.
+
+#### PRÓXIMO PASSO
+
+Ler as três portas juntas (`quickstart_banner`, `paste_notice`,
+`video_ready_chatgpt`) contra `chatgpt_page_viewed` e dizer qual trouxe gente; e
+levar ao fundador a conta do ChatGPT Business com os 79 "um filme e parou" ao
+lado, que é a decisão de dinheiro que sobra deste ciclo.
+
+✅ **O QUE VOCÊ PRECISA FAZER**
+1. **Nada.** Subiu sozinho, sondado, sem mexer em preço, cadência ou cópia de
+   quem já funcionava.
+
+📋 **O QUE ACONTECEU**
+Antes de abrir mais uma porta para a página nova, medi todas as superfícies
+juntas — e descobri que a página nova tem 2 visitas enquanto a faixa velha do
+ChatGPT tem 196 sessões por semana. Olhando essa faixa de perto: metade das
+pessoas que a viam não tinham botão nenhum para apertar, porque os dois botões
+só ligam depois que você cola um roteiro. Quem chegou do ChatGPT sem roteiro
+via um cartão morto. Agora essas pessoas têm uma saída — e só elas: quem cola
+texto continua vendo exatamente o que via antes.
