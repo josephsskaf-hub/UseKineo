@@ -2395,3 +2395,89 @@ real, mas menor, e quem for atrás dele amanhã já sabe o que descontar.
 Fica uma decisão sua, com número em vez de opinião: seis pessoas quiseram nos
 pagar cinco dólares por crédito avulso nos últimos três meses, a casa disse não
 porque isso exige plano, e nenhuma delas assinou depois.
+
+---
+
+## 📎 ADENDO AO FECHAMENTO (04:05 BRT) — Q9: A SPEC DO PACOTE PEQUENO, COM CUSTO E MARGEM
+
+Fechei o ciclo às 03:49 e a janela ia até 04:38 — cinquenta minutos que eu ia
+deixar na mesa. Usei-os no único item do cardápio que o ciclo pediu por escrito
+e eu tinha entregue pela metade: **o Q9 pedia a SPEC completa** (onde apareceria,
+custo de fal por pack, margem, kill-switch), e eu tinha entregue só o
+enquadramento da decisão. Aqui está o resto, **com todo número lido do código**,
+nenhum digitado.
+
+### Os dois SKUs que já existem e estão desligados
+
+Fontes: `lib/checkoutPricing.ts` (`PACK_CREDITS`, `netAfterStripeUsd`,
+`worstCaseCogsUsd`), `lib/credits/engineCost.ts` (`cinematic_ai` = **25cr**,
+`fast` pago = **5cr**, referência de duração 60s), `lib/flags.ts`.
+
+| SKU | bruto | créditos | net pós-Stripe | COGS que o guardião usa | margem "aprovada" | **COGS real do render que o pacote anuncia** | **margem real** |
+|---|---|---|---|---|---|---|---|
+| `pack:starter` | $4,90 | 30 | $4,4579 | $1,98 | $2,48 | **$3,30** | **+$1,16 (26% do net)** |
+| `pack:starter290` | $2,90 | 25 | $2,5159 | $1,65 | $0,87 | **$3,30** | **−$0,78 (−31%)** |
+
+O $3,30 não é estimativa minha: é a fatura de agosto medida TUDO-DENTRO
+(âncoras + retries) que está escrita em `engineCost.ts` na decisão que subiu o
+Seedance de 20 para 25 créditos — o motor mais usado da casa estava no vermelho
+a 20cr e saiu do prejuízo a 25.
+
+### 🔴 O guardião de margem passa os dois — e passa o errado pelo motivo errado
+
+`checkPricingInvariants()` compara o net com `worstCaseCogsUsd(créditos)`, que
+gasta o máximo possível no pior motor (H3, 45cr) e **joga o resto no Fast a
+$0,066/cr**. Como 30 e 25 são *menores* que 45, os dois pacotes são precificados
+INTEIROS à tarifa do motor mais barato — $1,98 e $1,65. Mas o pacote não é
+vendido prometendo Fast: a própria lista do invariante o declara
+`advertisedQuality: 'cinematic_ai'`, e esse render custa **$3,30**.
+
+É a mesma família de defeito que já está registrada uma vez: **o guardião
+precifica a sobra, não o render que a oferta anuncia**. Aqui ele não deixa
+passar prejuízo no $4,90 (ainda sobra $1,16), mas **deixa passar o $2,90, que
+perde $0,78 por venda** — e o número bate exatamente com o que já havia sido
+medido antes por outro caminho, o que é um bom sinal de que a conta está certa.
+
+### A spec, então
+
+**LIGAR (recomendação):** `pack:starter` — **$4,90 / 30 créditos** para conta
+free e Starter.
+- Compra **exatamente 1 filme de 60s no Seedance 1.5** (25cr), que é o motor da
+  primeira impressão, **+ 5cr de sobra = 1 Kineo 1** (5cr para conta pagante).
+- Margem se a pessoa gastar tudo: $4,4579 − $3,30 − $0,33 = **+$0,83/venda**
+  (19% do net). Piso, não teto.
+- **Onde aparece:** exatamente onde a recusa acontece hoje — a caixa
+  `TopupUnavailableNote`, que já está no ar e **já tem denominador correndo**
+  (4 pessoas em 5 horas nesta madrugada, 100% inelegíveis). Não precisa de tela
+  nova; precisa de um botão que hoje não existe naquele espaço.
+- **Kill-switch:** o portão é `canPurchaseCreditTopup` (`lib/credits/…`), lido
+  por `app/api/stripe/checkout/route.ts`. Ligar = uma exceção nomeada para este
+  SKU, atrás de uma flag no padrão do `OFFER_290_ENABLED` que já existe.
+
+**NÃO LIGAR:** `pack:starter290` — **$2,90 / 25 créditos**. Perde **$0,78 por
+venda**. `OFFER_290_ENABLED = false` em `lib/flags.ts` deve continuar `false`.
+Se um dia for ligado, o grant tem de cair para caber no preço, ou o preço subir.
+
+**A conta de quanto isso vale:** 6 pessoas free em 90 dias clicaram para comprar
+crédito avulso. A $1,16 de margem, isso é **~$7 em três meses**. **O Q9 não é
+uma jogada de receita — é uma jogada de PRIMEIRA COMPRA:** o valor está em
+converter quem já sacou a carteira em cliente pagante, não nos $4,90. Se essa
+leitura não te convencer, a decisão correta é não ligar nada, e eu registro isso
+como fechado em vez de deixar voltando à pauta toda semana.
+
+### Uma dívida honesta que fica anotada
+
+O guardião de margem deveria comparar o net com o custo do render **que o SKU
+anuncia**, não com a sobra no motor mais barato. Como está, ele aprova o $2,90
+com prejuízo. **Não consertei agora de propósito:** mexer em invariante de preço
+às 4h da manhã, sem o fundador, num arquivo que decide o que a Stripe cobra, é
+exatamente o tipo de mudança que deve nascer acordado. Fica como a primeira
+tarefa de código da próxima sessão, com o teste pronto: um mutante que troque
+`worstCaseCogsUsd` pelo custo anunciado tem de REPROVAR o `starter290` de hoje.
+
+## ✅ O QUE VOCÊ PRECISA FAZER (atualizado — substitui o item 4 do fechamento)
+
+4. **Pacote pequeno — decida em uma palavra.** "Liga o $4,90" = eu ligo o
+   `pack:starter` para conta free atrás de flag, na caixa que já está no ar.
+   O $2,90 fica desligado de qualquer jeito: perde $0,78 por venda.
+   Se preferir, "fecha" e eu tiro isso da pauta de vez.
