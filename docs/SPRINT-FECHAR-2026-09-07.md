@@ -209,3 +209,139 @@ como eu tinha *deduzido* a causa em vez de medi-la, criei o instrumento que
 prova: agora a tela avisa quando fica em silêncio, e diz por quê. Amanhã de
 manhã esse número diz se o conserto pegou — e se o card deve perder o espaço de
 vez.
+
+### #2 — 16:01→16:20 — O DOWNLOAD ERA O MOMENTO E A TELA NÃO FICAVA SABENDO
+
+**O ERRADO (medido, 30 dias, contas externas, contando PESSOAS):**
+`video_download_clicked` 225 pessoas — **207 delas na done screen**, 40 no
+/history. `video_downloaded` 193, e o campo `export_type` diz o que levaram:
+**159 'clean' contra 45 'watermarked'**.
+
+O `handleDownload` do /generate marcava o estado pós-download numa condição só,
+desde 04/08:
+
+```js
+if (delivered && exportType === 'watermarked') setWatermarkedDownloadConfirmed(true)
+```
+
+`exportType` só é `'watermarked'` para `free && !hasPaid && !trialActive`. Logo,
+em **~8 de cada 10 entregas** os bytes chegavam na mão da pessoa e a PÁGINA NÃO
+REAGIA. No instante de maior valor percebido que este produto tem, nada mudava
+na tela.
+
+**POR QUE A OFERTA QUE EXISTE ALI NÃO COBRE ESSA GENTE — e por que eu NÃO
+construí o F1 como está escrito no cardápio.** O F1 pede "Download clean (no
+watermark) → checkout" para conta trial/free. Para a coorte que domina o
+download isso seria **mentira**: quem baixa em trial já leva um MP4 **limpo**
+(o servidor decide por `isFreePlanFast`, que exclui o trial). Vender remoção de
+marca d'água a quem não tem marca d'água é o pior desfecho possível desta tela.
+A exclusão do trial na caixa de export limpo está CERTA e não se mexe — o
+defeito é que **nada ficou no lugar** no instante do download.
+
+**O TAMANHO DO SILÊNCIO, com denominador:** `video_ready_viewed` 434 pessoas em
+30 dias; `post_video_offer_viewed` **27** (6%), e a última impressão é de
+**04/09**. `clean_paywall_opened` — o gatilho "Remove the watermark →" que
+existe no código desde 22/08 — tem **ZERO eventos em toda a história**.
+
+**QUEM SÃO OS 225 QUE BAIXAM:** 174 estão hoje `trial_status='downgraded'`,
+plano free, sem pagar — e **só 8 deles têm algum saldo**. Mais 43 em trial
+ativo. 6 pagantes. Ou seja: a maior parte de quem baixa é gente cujo trial
+morreu e que não pode fazer outro filme.
+
+**O QUE MUDOU — SHA `d3999187` · EM PRODUÇÃO**
+· `lib/growth/postDownloadAsk.ts` (novo): função **pura** que decide se — e por
+  quê — a casa fala depois que os bytes chegaram. A ordem das guardas É a
+  regra: sem download não há momento → o bloco de marca d'água, se visível, é o
+  dono do momento (**nunca empilhar**) → quem já paga não recebe oferta → só
+  então a fase do trial decide. Devolve também `no_surface`: baixou e não havia
+  nada a dizer.
+· `GenerateClient`: marca o download entregue para **qualquer** export — estado
+  NOVO, separado de `watermarkedDownloadConfirmed` de propósito, porque aquele
+  governa o paywall de export limpo e o `VideoRatingAsk`, e alargá-lo mudaria o
+  comportamento das 45 pessoas que hoje o acionam e contaminaria a série que
+  mede a pressão do watermark. Emite `post_download_ask_state` **uma vez por
+  vídeo** com o motivo. E a sobrancelha do cartão de trial passa a afirmar o
+  fato — "Your film is downloaded" — depois do download.
+
+**O QUE O CLIENTE VÊ:** uma linha de texto que muda depois que ele baixa.
+Manchete, preço e botão intactos. O download continua primeiro, grátis, sem
+pedágio — o bloco novo roda **depois** do `await` do arquivo e não pode adiar
+nem condicionar a entrega. Nenhuma caixa nova: a casa já pagou uma vez o preço
+de dois cartões azuis gêmeos e adjacentes, e este commit se recusa a repetir.
+
+**TESTES:** `scripts/test-post-download-ask.mjs` 34/34 — ordem das guardas por
+POSIÇÃO (não por presença), cada guarda amarrada à variável que decide, e 4
+checks provando que o cliente consulta e emite. `test-plan-fit` 394/394 e
+`test-post-delivery-silence` 19/19 intactos. `tsc` verde.
+**Mutação:** 4 mutantes, e cada um **provou que aplicou** comparando conteúdo
+antes/depois antes de rodar (um deles não aplicou na primeira tentativa por
+CRLF e foi refeito, em vez de virar verde falso).
+
+**ERRO MEU, REGISTRADO:** o âncora da minha edição casou um PREFIXO e orfanou o
+`&& !planFitOwnsRecurringSlot` que o #1 tinha acabado de pôr em
+`showTrialPostVideoOffer` — eu teria desligado a guarda da entrega anterior. O
+`tsc` pegou (TS2873) e a linha foi restaurada; o diff final não toca a
+declaração. Fica a lição: âncora por prefixo em arquivo que a outra pista
+acabou de mexer é armadilha.
+
+**LIMITE HONESTO DA PROVA:** mudança de cliente em rota autenticada
+(`/generate`). Não existe sonda sintética que exercite a done screen de fora.
+Provado: SHA na ponta (`git ls-remote` = `d3999187`, fila 0), site 200 com
+controle 404, guardião verde e 4 mutantes vermelhos. O comportamento se prova
+no contador abaixo.
+
+**COMO MEDIR (a partir de agora):**
+```sql
+select metadata->>'reason' motivo, count(*) n, count(distinct user_id) pessoas
+from events where name='post_download_ask_state'
+  and created_at > '2026-09-07 18:38:00+00'::timestamptz
+group by 1 order by n desc;
+```
+`no_surface` = quem baixou e a casa não teve nada a dizer — a coorte que hoje
+some, e que nunca teve número. `trial_active`/`trial_ending` = onde a fala nova
+aparece. Filtrar por `metadata ? 'reason'` (carimbo do deploy), nunca pelo
+relógio.
+
+**PLACAR DE FECHAMENTO (30d, pessoas):** `video_ready_viewed` 434 →
+`download_clicked` 225 → `downloaded` 193 → `checkout_started` 108 →
+`payment_success` 6. Checagem zero: sem cadastro com crédito zero fora do
+antifraude, sem débito sem entrega, sem render preso.
+
+**O ACHADO QUE VALE MAIS QUE ESTA ENTREGA — e que contraria a tese de preço:**
+por tier, das 108 pessoas que iniciaram checkout em 30 dias,
+**Creator $15 → 67 pessoas, 2 pagaram (3%)** ·
+**Starter $7 → 29 pessoas, 2 pagaram (6,9%)** ·
+**Studio $29 → 14 pessoas, 3 pagaram (21%)**.
+O plano MAIS BARATO **não** é o que mais fecha, e o mais caro converte 7x
+melhor que o do meio — enquanto **62% do fluxo é despejado no Creator**, o pior
+conversor da casa. Isso não reabre a conclusão de preço do fundador (ela foi
+feita sobre 44 pessoas, repetidas vezes), mas diz que **baratear não é a
+alavanca** — a alavanca é parar de empurrar todo mundo para o degrau do meio.
+O trial de $1 no Creator (`c902516f`, hoje 15:43) ataca o mesmo número por
+outro lado; deixo os dois medindo antes de mexer de novo.
+
+**PRÓXIMA JOGADA:** quem escolhe Studio já sabe o que quer — não é o preço que
+o qualifica, é a clareza. A jogada não é descer o Creator, é **deixar a pessoa
+declarar o volume antes de ver tier**: "quantos filmes por mês?" decide o
+degrau, em vez de a tela decidir por ela. É exatamente o que o Plan Fit deveria
+fazer e não faz — 30 impressões e 0 cliques em 12 dias, e nas 52 sessões de
+checkout que carregam o campo `plan_fit_recommended_tier` o **valor é null em
+todas**. Antes de construir: medir se o campo é null porque ninguém chega ao
+checkout via Plan Fit (provável, e aí é alcance) ou porque ele se perde no
+caminho (aí é defeito).
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+1. Nada. A entrega subiu sozinha (SHA `d3999187`, fila 0).
+
+### 📋 O QUE ACONTECEU
+O download é o instante em que a pessoa mais gosta da Kineo — 207 pessoas por
+mês apertam esse botão na tela do filme pronto. Descobri que, em 8 de cada 10
+vezes, a página **não ficava sabendo** que o download aconteceu: o código só
+registrava o fato quando o arquivo saía com marca d'água, o que hoje é minoria.
+Resultado: no melhor momento do produto, a tela ficava muda. Não construí a
+oferta do jeito que estava no plano ("pague para tirar a marca d'água") porque
+para quem está em trial isso seria mentira — o filme dele já sai limpo. Em vez
+disso a tela passa a reconhecer o download e a falar com a pessoa certa, sem
+caixa nova, sem mexer em preço e sem tocar no download grátis. E, medindo por
+tier, achei algo que contraria o instinto: o plano de $29 converte 21% e o de
+$15 converte 3% — e a casa manda 62% das pessoas para o de $15.
