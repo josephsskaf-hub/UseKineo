@@ -39,6 +39,13 @@ checa('passa pelo checkout.launch (mesma telemetria de todo checkout) e emite pr
 checa('a copy diz o preco de verdade: $1, depois $15/mo', /\$1, then \$15\/mo/.test(pr))
 checa('o botao principal do Creator ($15) continua la — o trial e a segunda opcao, nao substitui', /onClick=\{\(\) => handleBuy\(p\.tier as PaidTier\)\}/.test(pr))
 
+console.log('\n== cards do app (PricingCards) ==')
+const cards = readFileSync(join(RAIZ, 'components/PricingCards.tsx'), 'utf8')
+checa('PlanCard aceita secondary e renderiza abaixo do CTA', /secondary\?: \{ label: string; onClick: \(\) => void; testId\?: string \} \| null/.test(cards) && /\{cta && secondary \? \(/.test(cards))
+checa('o Creator carrega a secondary do trial pela mesma URL do /pricing', /handleTrial\(\) \{[\s\S]*?tier=basic&billing=monthly&trial=1&intent_campaign=trial_1usd_app/.test(cards) && /secondary=\{\{ label: 'or try Creator for 7 days — \$1, then \$15\/mo →', onClick: handleTrial/.test(cards))
+checa('o CTA principal do Creator (handleBuy) continua', /onClick: \(\) => handleBuy\('basic'\),/.test(cards))
+checa('so o Creator tem secondary (Starter e Studio nao)', (cards.match(/secondary=\{\{/g) || []).length === 1)
+
 console.log(`\n  verificacoes: ${ok + falhas.length} · falhas: ${falhas.length}`)
 if (falhas.length) { console.log('\nFALHOU:'); falhas.forEach((f) => console.log(`  - ${f}`)); process.exit(1) }
 console.log('\nOK — trial de $1 ligado, com porta unica, 1 por conta e credito proprio\n')

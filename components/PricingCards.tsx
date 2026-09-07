@@ -225,6 +225,17 @@ export default function PricingCards({
   // The server-side GET handler creates the Stripe session and issues a 302
   // redirect, so no fetch/await is needed here and the user gesture is
   // preserved across all browsers including mobile Safari.
+  // KINEO-TRIAL-1DOLAR-LIGADO-2026-09-07 — a porta do $1 (7 dias no Creator). O
+  // servidor (CARD_TRIAL_ENABLED) e quem decide: has_paid cai no checkout normal.
+  function handleTrial() {
+    const started = checkout.launch('basic', '/api/stripe/checkout?tier=basic&billing=monthly&trial=1&intent_campaign=trial_1usd_app', {
+      tier: 'basic',
+      pricing_surface: 'generate_step_1',
+      card_trial: true,
+    })
+    if (!started) return
+    void trackEvent('pricing_trial_1usd_clicked', { tier: 'basic', surface: 'app_cards' })
+  }
   function handleBuy(tier: CheckoutTier) {
     // KINEO-PRICING-V6-2026-08-19 — NÃO EXISTE MAIS 1º MÊS COM DESCONTO
     // (INTRO_PRICES == TIER_PRICES). O `&intro=1` continua sendo enviado de
@@ -500,6 +511,7 @@ export default function PricingCards({
             onClick: () => handleBuy('basic'),
             loading: purchasing === 'basic',
           }}
+          secondary={{ label: 'or try Creator for 7 days — $1, then $15/mo →', onClick: handleTrial, testId: 'creator-trial-1usd-app' }}
         />
 
         {/* KINEO-PRICING-V6-2026-08-19 — 200 → 180 créditos ($29). É o único
@@ -621,6 +633,7 @@ function PlanCard({
   selected,
   onSelect,
   cta,
+  secondary,
 }: {
   tier: 'free' | 'starter' | 'basic' | 'pro'
   name: string
@@ -634,6 +647,8 @@ function PlanCard({
   selected?: boolean
   onSelect?: () => void
   cta: { label: string; onClick: () => void; loading?: boolean } | null
+  // KINEO-TRIAL-1DOLAR-LIGADO-2026-09-07 — segunda porta abaixo do CTA (o $1 do Creator).
+  secondary?: { label: string; onClick: () => void; testId?: string } | null
 }) {
   const isPaid = tier === 'starter' || tier === 'basic' || tier === 'pro'
   const isSelected = !!selected
@@ -789,6 +804,20 @@ function PlanCard({
           Current plan
         </div>
       )}
+      {cta && secondary ? (
+        <button
+          type="button"
+          data-testid={secondary.testId}
+          onClick={(e) => {
+            e.stopPropagation()
+            secondary.onClick()
+          }}
+          className="mt-2 w-full rounded-xl py-2.5 text-[13px] font-bold"
+          style={{ background: 'rgba(41,151,255,0.08)', border: '1px solid rgba(41,151,255,0.4)', color: '#7cc0ff', cursor: 'pointer' }}
+        >
+          {secondary.label}
+        </button>
+      ) : null}
     </div>
   )
 }
