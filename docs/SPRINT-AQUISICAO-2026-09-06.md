@@ -2481,3 +2481,141 @@ tarefa de código da próxima sessão, com o teste pronto: um mutante que troque
    `pack:starter` para conta free atrás de flag, na caixa que já está no ar.
    O $2,90 fica desligado de qualquer jeito: perde $0,78 por venda.
    Se preferir, "fecha" e eu tiro isso da pauta de vez.
+
+---
+
+### #18b — 01:08 BRT (07/09) — CHECKPOINT: o ciclo NÃO acabou; o fechamento foi escrito 3h50 antes da hora
+
+**Press release.** Para quem chega de fora, nada muda nesta janela — e o que
+muda para a casa é o relógio. Às 00:48 BRT esta pista publicou uma entrada
+rotulada "#18 — 03:38→04:38 BRT" seguida de **FECHAMENTO DO CICLO**. O
+carimbo do commit (`b11018a3`, 07/09 00:48) e o relógio de agora (**01:08
+BRT**) dizem a verdade: **o ciclo vai até 04:38 e ainda tem três aberturas —
+01:38, 02:38 e 03:38.** O fechamento fica no arquivo como está, sem
+reescrita, mas **não vale como fecho**: o fecho real se escreve às 04:38, com
+o placar da janela inteira.
+
+**Por que isso aconteceu.** As rotações desta pista dispararam muito mais
+rápido que de hora em hora — 18 entradas entre 20:53 e 00:52, ~13 min de
+intervalo médio — e a numeração andou junto, até bater no número da última.
+**Eu numerei pelo contador, não pelo relógio.** É exatamente a memória
+`fechamento-cedo-conferir-relogio`, e é a segunda vez. A regra que fica: **a
+única coisa que fecha um ciclo é a hora do relógio, nunca o número da
+rotação.**
+
+**Checkpoint não escreve código.** Esta entrada é medição e correção de
+registro. Nenhum arquivo de produto tocado.
+
+#### Estado da produção, conferido agora
+
+| checagem | resultado |
+|---|---|
+| `origin/main` | `65d92232` |
+| fila (`origin/main..entrega-atual`) | **0** |
+| `https://www.usekineo.com/` | **200** |
+| `https://www.usekineo.com/chatgpt` | **200** (controle 404 na mesma medição: **404**) |
+| `/chatgpt` no `sitemap.xml` público | presente (2 ocorrências) |
+
+#### Praxe — aquisição nas últimas 24h (contas externas)
+
+Denominador de 24h, maior que o da janela do ciclo (que tinha 7 cadastros na
+#18) — é o mesmo mundo, medido com régua mais larga.
+
+| fonte | cadastros | com filme | 2º filme | checkout | pagou |
+|---|---|---|---|---|---|
+| chatgpt | 25 | 21 | 6 | 1 | 0 |
+| (sem fonte) | 7 | 4 | 1 | 0 | 0 |
+| taaft | 5 | 5 | 0 | 1 | 0 |
+| nav (interno) | 2 | 1 | 0 | 0 | 0 |
+| seo | 1 | 1 | 0 | 1 | 0 |
+| **total** | **40** | **32** | **7** | **3** | **0** |
+
+**80% de quem entra recebe filme. 0% paga.** Os três checkouts das 24h, um a
+um: um do chatgpt (2 filmes, trial já gasto, `checkout_started`), um do taaft
+(é o `zh996058` da #17b — `checkout_failed`, top-up recusado), e um do seo
+(trial ativo, 1 filme, `checkout_started`). **`payment_success` em 24h: 0.**
+
+#### Checagem zero — limpa, e sem alarme falso
+
+8 contas novas com 0 créditos nas 24h. Lendo `trial_status` **antes** de
+escalar: **4 `blocked`** (antifraude contra rajada) e **4 `downgraded`**
+(trial gasto, não órfão). Render preso >45min: **0**. `next_episode_failed`:
+**0**. Dos 12 `generation_stage_error` em 24h, nenhum é causa nova: são
+portões de plano/cota (3 do "free Fast video do mês", 1 `trial_ended`),
+guardas de narração curta (`speech=19s target=60s`, `speech=32s target=60s`)
+e **um render abandonado por idade** (`age_ms=812876` ≈ 13,5 min de espera
+com 5019s de vida). Um `TypeError` isolado às 07:47 UTC de 06/09 — **1 evento,
+1 pessoa, fora da janela do ciclo**; anotado, não é rajada.
+
+#### O achado que a próxima rotação herda (medido, com o n na frente)
+
+Taxa de checkout por fonte, **história inteira**, contando PESSOAS distintas:
+
+| fonte | contas | chegaram ao checkout | pagaram | taxa |
+|---|---|---|---|---|
+| **seo** | 8 | **3** | 0 | **38%** |
+| chatgpt | 361 | 43 | 3 | 12% |
+| taaft | 587 | 60 | 4 | 10% |
+| homepage | 54 | 4 | 2 | 7% |
+
+**Leitura honesta, com o n antes da conclusão:** são **3 pessoas**. Não prova
+nada sozinho. Mas inverte a pergunta do ciclo: o buraco do Google não é
+"tráfego de busca que não converte" — é **tráfego de busca que não existe**.
+Quem chega por busca aperta o botão de pagar três vezes mais que quem chega
+pelo ChatGPT, e mesmo assim são 8 contas em 34 dias.
+
+**E uma correção do meu próprio rótulo, antes que vire tese:** abri as 8
+contas de `seo` uma a uma e **elas não são Google**. Referrers: `google.com`
+**2**, `search.yahoo.com` 1, `perplexity.ai` 1, vazio 4 — e duas das linhas
+são o mesmo prefixo de e-mail, ou seja possivelmente uma pessoa com duas
+contas. **Das 3 que chegaram ao checkout, uma veio do Yahoo e outra da
+Perplexity.** O rótulo `seo` é sacola de buscador+motor de resposta, não
+canal de Google. Isso empurra a aposta para **AEO** (o `llms.txt`, a
+`/chatgpt`, as páginas citáveis do Q3), não para SEO clássico.
+
+Uma checagem que fiz e **não** deu no que eu queria: `events.path` do primeiro
+`landing_view`/`page_view` dessas 8 contas veio **nulo em todas as 8** — o
+mapa por página de entrada do Q1 não alcança essa coorte. Fica dito, não
+contornado.
+
+#### 🎯 O que a #19 (01:38) faz primeiro
+
+**Q3, não Q9.** A #18 deixou o Q9 pronto para uma palavra do fundador (o
+pacote pequeno) e isso não depende de mim. O que depende: com 80% de entrega
+de filme e 0% de pagamento, o gargalo do ciclo continua sendo **denominador**
+— e a única fonte com sinal de compra é a que quase não traz gente. A #19
+abre pelas páginas citáveis: conferir o que o `llms.txt` e o sitemap já
+listam contra o que a casa realmente tem de página de conteúdo, e publicar as
+que faltam usando componentes que já existem, com os fatos canônicos de
+`kineoFacts` (trial 25cr sem cartão, Starter $7 / Creator $15 / Studio $29 /
+Autopilot $299, 8 motores, temporada e pacote de publicação).
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+1. **Nada agora.** Nenhum código subiu nesta janela; fila zerada, site 200
+   com controle 404 na mesma medição.
+2. **Ignore o "FECHAMENTO" que aparece acima desta entrada** — foi escrito às
+   00:48 e o ciclo só termina às 04:38. O fecho válido é o que vier no fim do
+   arquivo depois das 04:38.
+3. **Quando abrir o Search Console** (segue da #17b): pedir indexação de
+   `https://www.usekineo.com/chatgpt`.
+
+## 📋 O QUE ACONTECEU
+
+Eu tinha declarado o ciclo encerrado quase quatro horas antes da hora, porque
+contei rotações em vez de olhar o relógio. Corrigi o registro e segui
+trabalhando: ainda faltam três aberturas.
+
+Na medição da hora, a casa está saudável e parada no mesmo lugar: nas últimas
+24 horas entraram 40 pessoas de fora, 32 receberam filme, 3 chegaram à página
+de pagamento e **nenhuma pagou**. Nada quebrado — as 8 contas sem crédito são
+4 bloqueios de antifraude e 4 trials gastos, e não há render preso.
+
+O que apareceu de novo é pequeno e vale a próxima hora: quem chega pela
+busca aperta o botão de pagar três vezes mais que quem chega pelo ChatGPT —
+são só 3 pessoas, então não é tese, é pista. E ao abrir essas contas uma a
+uma descobri que elas **não são do Google**: vêm de Yahoo e Perplexity. O
+canal que responde perguntas é o que traz gente com a mão no bolso, e é para
+lá que a próxima rotação empurra.
+
+---
