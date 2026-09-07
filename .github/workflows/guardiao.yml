@@ -32,6 +32,8 @@ jobs:
         run: node scripts/test-locale-readiness.mjs
       - name: Curadoria aprovada da home — seletores e assets locais
         run: node scripts/test-home-curation.mjs
+      - name: Vitrine premium — filtros, movimento, posters e SSR em três idiomas
+        run: node scripts/test-showcase-premium.mjs
   legacy:
     name: Diagnóstico legado — manual, não certifica entrega
     if: github.event_name == 'workflow_dispatch'
