@@ -32,4 +32,8 @@ Não tocar nesta fileira durante publicação. Nenhum pedido de mudança em flux
 
 ## Gate de publicação
 
-Pendente nesta versão: SHA final, Guardião remoto, preview navegável, deploy de produção e evidência de browser. Não classificar como publicado só por existir código.
+Primeiro preview 70ecbe72: Guardião remoto verde e deploy dpl_8EsyfdnSuEC2wC3tLtuToaJHW7Lo READY. Browser detectou dois defeitos que impediram publicação: reset CSS da home zerava padding/margin dos novos controles; foco tentava retornar enquanto o fundo ainda estava inert. Corrigidos com seletores escopados de maior especificidade e restauração após desmontar o dialog. Revalidação exigida antes da main.
+
+**TESTE LEGADO:** test-public-video-privacy falha no allowlist antigo (linha 42) tanto nesta árvore quanto na worktree da entrega anterior. Não foi alterado para parecer verde. Contratos ativos de publicação, curadoria e SSR permanecem verdes. test-home-b2b-bridge: 27/27.
+
+Pendente nesta versão: SHA final corrigido, novo Guardião, revalidação visual/foco e deploy de produção. Não classificar como publicado só por existir código.

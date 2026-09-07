@@ -95,6 +95,10 @@ export default function TrendingRow({ videos }: { videos: WallVideo[] }) {
   const choices = showcaseEngines(videos)
   const filtered = filterShowcase(videos, engine)
   useEffect(() => {
+    // The opener is inert while the dialog is mounted. Restore focus after removal.
+    if (selected === null) opener.current?.focus({ preventScroll: true })
+  }, [selected])
+  useEffect(() => {
     const motion = window.matchMedia('(prefers-reduced-motion: reduce)')
     const connection = (navigator as Navigator & { connection?: EventTarget & { saveData?: boolean; effectiveType?: string } }).connection
     const sync = () => setLimited(motion.matches || Boolean(connection?.saveData) || (connection?.effectiveType ?? '').includes('2g'))
@@ -123,7 +127,6 @@ export default function TrendingRow({ videos }: { videos: WallVideo[] }) {
   }
   const closePreview = () => {
     setSelected(null)
-    opener.current?.focus({ preventScroll: true })
   }
   if (!videos.length) return null
   return <div className={styles.gallery} data-showcase="premium">
