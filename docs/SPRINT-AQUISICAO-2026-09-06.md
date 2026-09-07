@@ -162,3 +162,129 @@ porque tráfego direto genuíno existe e continuará (honestamente) sem fonte.
 **PARADA.** Se depois de 200 sessões pós-deploy a cobertura não passar de 40%,
 a hipótese "o utm estava lá e não era lido" está errada, e o próximo passo é
 first-touch em cookie no servidor (Q2), não mais instrumentação no cliente.
+
+---
+
+## ### #2 — 21:00 — O CANAL QUE NOS LÊ NÃO TINHA COMO NOS CITAR PELO QUE SÓ NÓS FAZEMOS
+
+**PRESS RELEASE.** Quem hoje pergunta a um assistente de IA "qual ferramenta me
+dá uma **série** de Shorts, e não um vídeo solto?" passa a poder ouvir o nome
+Kineo. Até agora não passava — não por falta de produto, mas por falta de
+registro: a temporada e o pacote de publicação subiram hoje, são as duas coisas
+que a casa faz e as concorrentes não fazem, e não existiam em nenhuma das duas
+superfícies que um motor de resposta lê. O produto fazia; o mundo não sabia.
+
+**O QUE ESTAVA ERRADO (medido).** O ChatGPT é **57% da aquisição** (188 de 355
+em 14 dias; **23 de 36 nas últimas 24h**). E ele **nos lê**: 108 desses 188
+chegam sem `Referer` nenhum e com o **nosso próprio** `?utm_source=chatgpt`
+colado na URL — ele copia o link de uma página que rastreou. As seis páginas que
+ele mais cita são todas sobre o que é **grátis**. Nenhuma responde "e depois que
+o vídeo fica pronto?". `/llms.txt` e `/api/facts` — os dois arquivos escritos
+justamente para serem citados — não tinham uma palavra sobre temporada nem sobre
+pacote de publicação.
+
+**O QUE MUDOU.** `lib/growth/afterTheFilmFacts.ts` (novo) monta o fato
+**importando** `TOTAL_EPISODIOS`, `PRIMEIRO_EPISODIO` e `ULTIMO_EPISODIO` de
+`lib/temporada.ts` — a mesma constante que a faixa da tela e a carta usam. O
+limite do ciclo é explícito: fato público **nunca é número digitado**. Se o
+produto passar de 5 para 3 episódios, o texto público muda junto, em vez de
+virar a "copy que mente" que o CLAUDE.md já lista como dívida.
+
+O fato carrega as **fronteiras**, cada uma lida no código que a implementa:
+escrever a temporada **não gasta crédito e não chama a fal**
+(`app/api/season/route.ts`); o episódio **só é cobrado quando renderizado**; o
+pacote entrega **texto para colar** e não publica em plataforma nenhuma; e o
+crédito "made with Kineo" **só aparece no plano gratuito** — quem paga recebe a
+descrição limpa (`lib/publishPack.ts`, `isFreePlan`).
+
+Superfícies: `lib/kineoFacts.ts` exporta e serve o campo `afterTheFilm` (logo
+`/api/facts` o publica) e `app/llms.txt/route.ts` ganha a seção *"What happens
+after a video is finished"*, antes do bloco de Trust. Toda linha dela é
+interpolação do fato; nenhuma prosa digitada.
+
+**EM PRODUÇÃO — SHA `d8a552f8`.** Sonda real, com controle:
+
+- `curl /llms.txt` devolve a seção completa com **"writes the next 5 episodes"**
+  e **"episodes 2 to 6"** — números vindos de `lib/temporada.ts`, não digitados.
+- Controle na mesma medição: a string `"What happens after a podcast is
+  finished"` retorna **0 ocorrências**. A sonda sabe dizer não.
+- `curl /api/facts` → `afterTheFilm` presente, `episodes: 5`, `first: 2`,
+  `last: 6`, 4 peças, 3 fronteiras.
+
+**TESTES.** `scripts/test-after-the-film-facts.mjs`, **28 verificações**. Além do
+número não-digitado, ele **compara a lista de peças do fato com os campos reais
+do tipo `PacoteDePublicacao`** — o texto público não pode anunciar uma quinta
+peça que ninguém entrega. **5 mutantes reprovados** (e cada mutação foi conferida
+como aplicada antes de contar): número digitado, fronteira "não publica"
+apagada, fato existente mas **não servido** pelo `getKineoFacts()`, prosa de
+venda solta na seção, e a seção do `/llms.txt` sumindo. `tsc --noEmit` verde.
+
+**RISCO.** Só texto de fatos. Nenhuma tela, nenhum preço, nenhum caminho de
+cobrança tocado.
+
+**COMO MEDIR.** Cadastros com `signup_utm_source='chatgpt'` que pousam em página
+de intenção comercial (`/ai-shorts-for-agencies`, `/pricing`, `/models-pricing`)
+a partir do marco, contra a linha de base de 14 dias: **1 pessoa**.
+
+---
+
+## ### #3 — 21:20 — O GOOGLE NÃO VEM, E **NÃO É** DEFEITO DE SERVIDOR
+
+**PRESS RELEASE (negativo, e é o mais útil do ciclo).** A hipótese de que a busca
+orgânica não traz ninguém porque o site está tecnicamente quebrado foi
+**testada e reprovada**. Não há o que consertar no servidor. Quem for gastar a
+próxima rotação em encanamento de SEO está gastando à toa.
+
+**O QUE FOI CONFERIDO, em produção, com curl.**
+
+| checagem | resultado |
+|---|---|
+| `robots.txt` | válido; `Allow: /`, os bots de IA nomeados um a um, `Host` e **dois** sitemaps declarados |
+| `sitemap.xml` | HTTP 200, 32 KB, **186 URLs**, `lastmod` real |
+| 20 páginas de aquisição | **todas 200** |
+| `rel=canonical` | presente nas **20** |
+| `<title>` / `<meta description>` | presentes nas 20, **zero duplicados** entre elas |
+| `noindex` acidental | **0 em 186** páginas do sitemap |
+| conteúdo no HTML | server-rendered: 5.870 a 8.909 caracteres de texto, `<h1>` único por página |
+| structured data | JSON-LD presente (2 blocos na home, na `/free-ai-shorts-generator` e na `/ai-shorts-for-agencies`) |
+
+**O ÚNICO `noindex` ENCONTRADO NÃO É BUG.** `/scripts` traz
+`robots: noindex, follow, noarchive`, e as prateleiras de script estão fora do
+sitemap (só `/scripts/space` entra). Isso é `CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED`
+**desligada** — o bloqueio de privacidade da superfície pública de vídeo do
+cliente. É decisão deliberada, com comentário no `app/sitemap.ts` explicando, e
+**não foi tocada**: ligar isso é decisão do fundador, não de sessão.
+
+**ENTÃO POR QUE O GOOGLE NÃO VEM?** Fui ver o que ele mostra. Para
+*"best free AI faceless YouTube Shorts generator 2026"* — literalmente o tema da
+nossa página mais citada pelo ChatGPT — os sete primeiros resultados são
+**HeyGen, Fliki, InVideo (duas páginas), ReframeX, Pexo e um blog de listas**.
+Kineo não aparece. E **três dos sete são listas de terceiros**, não páginas de
+produto.
+
+**A conclusão honesta:** esta categoria não é ganha por página própria; é ganha
+por **estar dentro das listas dos outros** e por autoridade de domínio. Nós temos
+o encanamento certo e **nenhuma** menção externa. Nenhuma linha de código nossa
+muda isso.
+
+**E A CONTRAPROVA QUE IMPEDE A JOGADA ÓBVIA.** A reação natural seria "então
+manda para todos os diretórios". **Os dados dizem que não é tão simples:** o
+TAAFT — um diretório — mandou **99 pessoas, 64 filmes e 0 pagamentos** em 14
+dias, e 94 delas pousaram na home, que é a página com 0 pagamentos do período.
+Diretório traz volume de caçador de plano grátis. Os **dois** pagamentos do
+período vieram de páginas **profundas e específicas** (motor e agências), pelo
+ChatGPT. Diretório é volume; o ChatGPT é o único canal que já trouxe comprador.
+
+**PARADA / O QUE ISSO DECIDE.** Q4 está **encerrado como item de servidor**.
+Diretórios (Q7) descem de prioridade e continuam sendo tarefa do fundador — o
+texto fica pronto, mas com a expectativa correta: volume, não receita.
+
+**⚠️ E UMA CORREÇÃO AO PRÓPRIO CARDÁPIO DESTE CICLO.** O item **Q5** manda gravar
+`videos.thumbnail_url` para que "a `/v/[id]` ganhe og:image real e o link do
+pacote de publicação passe a ser a `/v/`". **Isso não é executável hoje:**
+`curl` em `/v/<id>` de um vídeo real devolve **404**, igual ao controle de um
+UUID inexistente — a superfície pública de vídeo está desligada pelo mesmo
+bloqueio de privacidade acima. Gravar a thumbnail continua tendo valor de
+persistência (biblioteca), mas **o ganho de aquisição do Q5 está atrás de uma
+decisão de privacidade do fundador**, não atrás de código. Não gastar rotação
+nisso achando que abre uma porta.
