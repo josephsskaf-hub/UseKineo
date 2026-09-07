@@ -3795,3 +3795,129 @@ sobrando e nenhum preço à vista.
 3. os **85** de trial encerrado — só com peça que aja ANTES do fim do trial,
    nunca com uma que dependa do retorno deles.
 
+
+
+### #21f — 03:12 BRT (07/09) — CHECKPOINT: o instrumento de medir a peça de hoje tinha o corte no futuro e devolvia zero por aritmética
+
+**PRESS RELEASE.** A rotação das 02:38 deixou para a próxima sessão uma ordem
+clara e certa: **medir** a adoção da ponte de preço (`91e2f34b`, 02:32), não
+reconstruí-la. A consulta pronta para isso, `docs/queries/PONTE-COM-PRECO-2026-09-07.sql`,
+tinha o corte de deploy fixado em `2026-09-07 07:10:00+00` — **04:10 BRT, um
+horário que ainda não aconteceu.** Quem rodasse o arquivo receberia zero linhas
+em todas as consultas e concluiria "a ponte não teve adoção nenhuma". Corrigido
+para o commit real (`05:32:46+00`), com uma consulta nova que torna impossível
+confundir *ninguém clicou* com *ninguém viu*.
+
+**O ERRADO, MEDIDO.** O corte estava **1h38 depois** do commit que pretendia
+marcar — exatamente a mesma deriva de relógio que o `#20c` já tinha denunciado
+no diário ("escrevi o fechamento achando que eram ~04:15 quando eram 03:02").
+A outra pista também tropeçou nela e a corrigiu no diário dela (`5e69f2e6`,
+"um carimbo de hora errado quase jogou fora 2h de ciclo"). **Ninguém corrigiu o
+arquivo de consulta.** É o padrão da memória `a-regra-vive-em-varios-arquivos`:
+conserta-se o portador que se está lendo e a mentira segue viva no arquivo que
+ninguém audita — e este, especificamente, era o arquivo que a próxima rotação
+tinha ordem de executar.
+
+Os carimbos das entradas `#21b`/`#21d` (03:20), `#21e` (03:25) e `#21c` (03:30)
+também estão adiantados: os commits que as carregam são de **03:07–03:09**, e
+a janela `03:38→04:38` no título do `#21` **ainda não tinha aberto** quando
+tudo aquilo foi escrito. O **conteúdo** delas continua válido (conferi os
+números); só as horas não se sustentam.
+
+**O QUE MUDOU.** `docs/queries/PONTE-COM-PRECO-2026-09-07.sql`:
+- as 3 constantes de corte `07:10:00+00` → `05:32:46+00` (commit `91e2f34b`),
+  que é um **piso seguro**: nenhuma impressão anterior pode carregar o marcador
+  `plans_link`, e o filtro pelo marcador segue sendo o corte de verdade;
+- cabeçalho novo explicando o defeito, para não ser "consertado" de volta;
+- **consulta (0) "HÁ OPORTUNIDADE?"**, que roda ANTES de tudo e manda PARAR se
+  o denominador for zero (memória `zero-escritas-conte-as-oportunidades`).
+
+**A LEITURA HONESTA DA ADOÇÃO — hoje ela não existe, e isso não é fracasso.**
+
+```
+impressões da ponte desde o deploy (05:32Z) ......  0
+pessoas ..........................................  0
+última impressão de todas ........................ 06/09 22:48Z  (7h24 antes)
+impressões nas últimas 24h ....................... 34
+taxa normal ...................................... 1–7 por hora, em horário de dia
+```
+
+Zero impressões em 40 minutos de vale noturno, numa peça de porta estreita
+(trial ativo + Kineo 1 + saldo 5–14), é **denominador zero, não adoção zero**.
+`plans_link = 0` e `trial_bridge_subscription_clicked = 0` são consequência
+disso e **não** provam que o bundle novo não subiu. A leitura real só existe
+depois que a casa acordar. **Não escrever "a ponte falhou" antes disso.**
+
+**PRODUÇÃO, com sonda e controle.** Home `200`; controle inexistente `404`;
+`/models-pricing` serve **"5 films" 2×** e **zero** promessa de "twelve" — o
+`710fad76` (copy que mentia sobre o crédito do trial) está de pé.
+
+### Praxe — aquisição nas últimas 24h (contas externas)
+
+| fonte | cadastros | com filme | viu preço | checkout | pagou |
+|---|---|---|---|---|---|
+| chatgpt | 26 | 17 | 8 | 1 | 0 |
+| (sem fonte) | 7 | 1 | 2 | 1 | 0 |
+| taaft | 5 | **5 (100%)** | 1 | 0 | 0 |
+| bing.com | 1 | 1 | 0 | 0 | 0 |
+| nav | 1 | 1 | 1 | 0 | 0 |
+| perplexity.ai | 1 | 1 | 0 | 0 | 0 |
+| **total** | **41** | **26** | **12** | **2** | **0** |
+
+Duas coisas que o dia inteiro não mostrava: **`bing.com` e `perplexity.ai`
+aparecem como fonte** — a casa recebe tráfego de resposta de máquina além do
+ChatGPT, e ninguém tinha olhado. E **7 de 41 (17%) nasceram sem fonte**, acima
+dos 10% do mapa de 14 dias: o Q2 (first-touch obrigatório) continua sendo a
+peça certa e segue não construída.
+
+### Checagem zero — passa
+
+`cadastro sem crédito` = **4**, e o número se decompõe exatamente como a
+memória `credito-zero-significa-tres-coisas` manda ler antes de escalar:
+
+| o que é | pessoas | veredito |
+|---|---|---|
+| `blocked`, 0 concedidos (03:00–03:07 BRT) | 4 | antifraude agindo — **não é defeito** |
+| `downgraded`, 25 de 25 gastos | 5 | trial cumprido |
+| **trial órfão (ativo com 0 concedidos)** | **0** | ✅ |
+
+Todo mundo com trial `active` tem `trial_credits_granted = 25`. **Zero trials
+órfãos.** As 4 contas `blocked` nasceram em 7 minutos — é a terceira rajada da
+noite (o `#19d` registrou as anteriores) e o guarda segurou as três.
+
+Resto: `renders presos` 0 · `next_episode_failed` 0 · `payment_success` 0 ·
+`generation_stage_error` 12, e nenhum deles é sistêmico — 3 são a mensagem de
+Kineo 1 grátis já usado, 2 são roteiro curto demais para 60s (a régua falando),
+1 é um render abandonado aos 5019s **com crédito devolvido** (o guarda
+funcionou) e 1 `TypeError` isolado, de 25h atrás, numa pessoa só. Fica anotado
+para a próxima rotação olhar se repetir; uma ocorrência não abre hotfix.
+
+### Próxima jogada
+
+**A rotação das 03:38 abre rodando a consulta (0) do arquivo corrigido.** Se
+`impressoes_desde_o_deploy` ainda for 0, a adoção da ponte **não é assunto
+desta madrugada** — é da primeira sessão diurna, e insistir nela é gastar a
+última rotação num denominador que não existe. O que sobra com tamanho medido e
+não depende de tráfego: as **42 pessoas com trial ativo e saldo ≥ 15** que o
+`#21e` dimensionou — a fatia mais fácil do buraco, com crédito sobrando, trial
+de pé e nenhum preço à vista, e a única das três que não depende de ninguém
+voltar ao site.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+1. **Nada de novo.** As ações continuam sendo as do fechamento: Stripe Smart
+   Retries, as ações manuais do Search Console, os 4 números de indexação e a
+   palavra sobre os SKUs pequenos (`starter290` / First Pack).
+
+## 📋 O QUE ACONTECEU
+
+Checkpoint das 03:12, sem trabalho novo de produto — só verificação. A peça de
+preço que subiu às 02:32 está de pé, mas **ainda não pode ser julgada**:
+ninguém a viu desde o deploy porque é madrugada e a porta dela é estreita.
+Achei e consertei o instrumento que ia mentir sobre isso: a consulta de medição
+tinha o corte de deploy marcado para as 04:10 — hora que ainda não chegou — e
+devolvia zero por aritmética pura, o que a próxima sessão leria como fracasso
+da peça. Agora ela usa a hora real do commit e começa perguntando se houve
+alguém para ver. A casa está saudável: 41 cadastros novos em 24h, 26 com filme,
+nenhum trial órfão, nenhum render preso, e a antifraude barrou 4 contas falsas
+em 7 minutos sem ajuda. Zero pagamentos nas últimas 24h.

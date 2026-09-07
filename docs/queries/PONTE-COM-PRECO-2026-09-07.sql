@@ -7,11 +7,41 @@
 -- A #13 pôs lá a mesma linha secundária que o degrau irmão já tinha.
 --
 -- ⚠ CORTE OBRIGATÓRIO NO DEPLOY. `trial_bridge_subscription_clicked` não
--- existe antes de 07/09 ~04:10 BRT (07:10Z) e `plans_link` não existe no
--- payload da impressão antes disso. Contar "últimos N dias" mistura a ponte
--- muda com a ponte com preço e não prova nada
+-- existe antes do deploy da #13, e `plans_link` não existe no payload da
+-- impressão antes disso. Contar "últimos N dias" mistura a ponte muda com a
+-- ponte com preço e não prova nada
 -- (memória `zero-falhas-sem-denominador-nao-prova-conserto`).
--- Trocar a constante abaixo pelo horário real do deploy confirmado.
+--
+-- ⛔ CORRIGIDO NO CHECKPOINT DAS 03:12 BRT (07/09). A constante deste arquivo
+-- nasceu como `2026-09-07 07:10:00+00` (04:10 BRT) — um horário NO FUTURO,
+-- 1h38 DEPOIS do commit que ela pretendia marcar. Foi o mesmo carimbo de hora
+-- estimado que o #20c já tinha denunciado no diário. Consequência medida: toda
+-- consulta abaixo devolvia ZERO LINHAS por aritmética, e quem a rodasse leria
+-- "a ponte não teve adoção" quando a verdade é "a janela ainda não começou".
+-- O commit real da #13 é `91e2f34b`, de 2026-09-07 05:32:46+00 (02:32:46 BRT),
+-- e é essa a constante usada agora. Ela é um PISO seguro: nenhuma impressão
+-- anterior a ela pode carregar `plans_link`, e o filtro pelo marcador continua
+-- sendo o corte de verdade. Hora se lê no relógio, nunca se deduz do cansaço.
+
+-- (0) HÁ OPORTUNIDADE? Rodar SEMPRE antes de (1) e (2). Sem esta consulta, um
+--     zero em (2) é ilegível: pode ser "ninguém clicou" ou "ninguém viu".
+--     Medido no checkpoint das 03:12 BRT: 0 impressões desde o deploy, e a
+--     última impressão da ponte foi às 22:00Z — 8h antes, com a casa em vale
+--     noturno. A taxa normal é 1–7 impressões/hora em horário de dia.
+--     Se `impressoes_desde_o_deploy` for 0, PARE: não existe adoção a medir
+--     ainda, e escrever "0 de 0" como fracasso é inventar defeito
+--     (memória `zero-escritas-conte-as-oportunidades`).
+select
+  count(*)                                     impressoes_desde_o_deploy,
+  count(distinct user_id)                      pessoas_desde_o_deploy,
+  (select max(created_at) from events
+    where name = 'trial_balance_bridge_viewed') ultima_impressao_de_todas,
+  (select count(*) from events
+    where name = 'trial_balance_bridge_viewed'
+      and created_at > now() - interval '24 hours') impressoes_24h
+from events
+where name = 'trial_balance_bridge_viewed'
+  and created_at > timestamptz '2026-09-07 05:32:46+00';
 
 -- (1) A VERSÃO NOVA ESTÁ NO AR? `plans_link` é o marcador de deploy. Enquanto
 --     `com_marcador` for 0 e `sem_marcador` subir, o que está servindo ainda é
@@ -23,7 +53,7 @@ select
   min(created_at) primeira, max(created_at) ultima
 from events
 where name = 'trial_balance_bridge_viewed'
-  and created_at > timestamptz '2026-09-07 07:10:00+00';
+  and created_at > timestamptz '2026-09-07 05:32:46+00';
 
 -- (2) A ADOÇÃO, com o denominador certo. O link é INCONDICIONAL dentro do
 --     bloco, então quem viu a ponte na versão nova é exatamente quem teve a
@@ -33,11 +63,11 @@ with viu as (
   select distinct user_id from events
   where name = 'trial_balance_bridge_viewed'
     and metadata->>'plans_link' = 'true'
-    and created_at > timestamptz '2026-09-07 07:10:00+00'
+    and created_at > timestamptz '2026-09-07 05:32:46+00'
 ), clicou as (
   select distinct user_id from events
   where name = 'trial_bridge_subscription_clicked'
-    and created_at > timestamptz '2026-09-07 07:10:00+00'
+    and created_at > timestamptz '2026-09-07 05:32:46+00'
 )
 select count(*) viram_a_ponte_com_preco,
        count(*) filter (where clicou.user_id is not null) clicaram_em_ver_planos
