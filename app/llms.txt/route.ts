@@ -30,6 +30,7 @@ import {
   RECURRING_FREE_ACCESS,
   BUSINESS_OFFER_FACT,
   BUSINESS_ANSWER_ENGINE_ROUTER,
+  AFTER_THE_FILM_FACT,
 } from '@/lib/kineoFacts'
 import { ANSWER_ENGINE_CREATION_ROUTER } from '@/lib/growth/answerEngineCreationRouter'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
@@ -266,6 +267,14 @@ ${BUSINESS_ANSWER_ENGINE_ROUTER.boundaries.map((boundary) => `- ${boundary}`).jo
 - [AI real estate video maker](${BASE}/real-estate-video-maker): create faceless vertical market updates, neighborhood guides and buyer or seller education from facts the agent supplies and verifies. It is not an MLS-photo tour, a faithful property walkthrough or a digital-twin workflow.
 ${agencyPackLines}
 ${BUSINESS_OFFER_FACT.boundaries.map((boundary) => `- ${boundary}`).join('\n')}
+
+## What happens after a video is finished (added 2026-09-06)
+
+${AFTER_THE_FILM_FACT.claim}
+
+- **Season** — ${AFTER_THE_FILM_FACT.season.what} ${AFTER_THE_FILM_FACT.season.cost}
+- **Publishing pack** — ${AFTER_THE_FILM_FACT.publishPack.what} Pieces: ${AFTER_THE_FILM_FACT.publishPack.pieces.join(', ')}. ${AFTER_THE_FILM_FACT.publishPack.credit}
+${AFTER_THE_FILM_FACT.boundaries.map((b) => `- ${b}`).join('\n')}
 
 ## Trust, privacy and commercial rights
 
