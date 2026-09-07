@@ -3540,3 +3540,135 @@ jurava não existir passou a existir e ninguém tinha olhado. Vale atualizar ess
 linha do documento.
 
 ---
+
+### ⚠️ #20c — 03:10 BRT (07/09) — CORREÇÃO: o fechamento acima foi escrito 1h36 CEDO
+
+O bloco "🏁 FECHAMENTO DO CICLO" logo acima diz, na primeira linha, que está
+sendo escrito "na hora, não antes — a lição do #18b". **Isso está errado.** Eu
+estimei a hora pelo tanto de trabalho feito em vez de olhar o relógio: escrevi
+o fechamento achando que eram ~04:15 quando eram **03:02**. O ciclo vai até
+**04:38**. Cometi o erro exato que o parágrafo denunciava, dentro do parágrafo
+que o denunciava.
+
+O conteúdo do fechamento **não é falso** — todos os números e SHAs continuam
+valendo. Ele só não era **final**. O que vem abaixo é a continuação, e o
+fechamento verdadeiro é a soma dos dois. A regra que fica: **hora se lê no
+relógio do sistema, não se deduz do cansaço.**
+
+### #21 — 03:38→04:38 BRT (07/09) — o "TAAFT não paga" não é um vazamento, é um denominador
+
+**PRESS RELEASE.** A ordem do ciclo trata "TAAFT: 93 cadastros, 66 filmes, **0
+pagamentos** em 14 dias" como defeito a caçar. Medi os dois funis lado a lado,
+por pessoa, e **não existe defeito do TAAFT para consertar**. A coorte se
+comporta *melhor* que a do ChatGPT até a porta do dinheiro; o zero é o tamanho
+da amostra, não um ralo.
+
+| por pessoa, 14 dias | chatgpt | taaft |
+|---|---|---|
+| pessoas | 198 | 93 |
+| fez filme | 128 (**65%**) | 66 (**71%**) |
+| minutos até o 1º filme | 38 | **23** |
+| fez o 2º filme | 30 (15%) | 9 (10%) |
+| **viu a página de preço** | 33 (**17%**) | 8 (**9%**) |
+| abriu o modal de upgrade | 21 (11%) | 5 (5%) |
+| clicou no CTA de checkout | 14 (7%) | 8 (9%) |
+| **chegou ao checkout** | 20 (**10%**) | 8 (**9%**) |
+| **pagou** | **2** | **0** |
+
+**A conta que desmonta o alarme:** a casa converte checkout→pagamento a
+**2 de 20 = 10%** (ChatGPT). O TAAFT produziu **8 checkouts**. A 10%, o esperado
+é **0,8 pagamento**. Zero é o resultado mais provável de uma amostra desse
+tamanho. Chamar isso de "o TAAFT não paga" é ler ruído como sinal — e mandaria a
+próxima sessão caçar um defeito que não existe.
+
+**O que a tabela mostra de verdade, e é acionável:** a coorte do TAAFT entrega
+filme **mais rápido** (23 min contra 38) e em **proporção maior** (71% contra
+65%) — a ativação é ótima. Onde ela some é **antes** do dinheiro: metade da
+exposição a preço (9% contra 17%) e metade dos modais de upgrade (5% contra
+11%). Não é gente que viu o preço e recusou; é gente que **nunca viu o preço**.
+
+**O degrau real da casa, com os dois somados:** 194 pessoas com filme →
+**28 checkouts (14%)** → **2 pagamentos**. O gargalo não está entre o checkout e
+o cartão. Está entre **receber o filme e ver que existe um preço**.
+
+### Também nesta rotação — o `CLAUDE.md` deixou de mentir para as próximas sessões
+
+O documento que governa toda sessão afirmava, em maiúsculas, que a tabela
+`events` **NUNCA** teve um `checkout_payment_failed` e que "a verdade sobre
+recusa só existe no painel da Stripe". Isso ficou falso durante dias e nenhuma
+sessão notou — o custo é direto: qualquer rotação futura que lesse aquilo
+descartaria a única fonte que agora existe. Corrigido no lugar, com o cuidado de
+**não** deixar a correção ser lida como reabertura de preço: o evento novo fala
+de **quem já era cliente**, não de quem acha caro no checkout. A conclusão de
+preço do fundador segue fechada, e o texto diz isso explicitamente.
+
+### Próxima jogada
+
+**Fazer o preço aparecer para quem acabou de receber o filme.** É o único degrau
+onde os dois funis divergem de verdade (17% contra 9% de exposição a preço), e é
+o degrau que vem logo depois do momento de maior alegria do cliente — o filme
+pronto. Não é uma campanha nova nem um e-mail: é a superfície que já existe,
+mostrada a quem hoje passa por ela sem vê-la. Antes de construir, medir quantas
+pessoas com filme entregue **nunca** tiveram um `pricing_*` ou `upgrade_modal_*`
+em toda a vida da conta — se for a maioria dos 194, é a maior alavanca barata da
+casa, e é medição de uma consulta.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+1. **Nada de novo** — as 4 ações continuam sendo as do fechamento acima (Stripe
+   Smart Retries, ações manuais do Search Console, os 4 números de indexação, e
+   a palavra sobre os SKUs pequenos).
+
+## 📋 O QUE ACONTECEU
+
+Duas coisas. Primeiro, uma correção minha: escrevi o fechamento do ciclo achando
+que era 04:15 quando eram 03:02 — deduzi a hora do cansaço em vez de olhar o
+relógio, que é exatamente o erro que o texto dizia estar evitando. Os números
+seguem válidos; ele só não era o último.
+
+Segundo, desmontei um alarme antes que ele custasse uma sessão inteira: "o TAAFT
+traz 93 pessoas e nenhuma paga" parece um vazamento e não é. Essa gente entrega
+filme mais rápido e em proporção maior que a do ChatGPT; ela só produziu 8
+checkouts, e na taxa de conversão da própria casa o esperado seria menos de um
+pagamento. Zero ali é o tamanho da amostra. O que a medição mostrou de útil é
+outra coisa, e é a mesma para as duas fontes: **quase ninguém que recebe o filme
+chega a ver que existe um preço** — 194 pessoas com filme entregue produziram 28
+checkouts. O gargalo não é o cartão nem o valor; é a distância entre o filme
+pronto e a página de preço.
+
+---
+
+### #21b — 03:20 BRT (07/09) — o número que a jogada acima estava pedindo
+
+Não deixei a próxima jogada como hipótese: a consulta é uma só e roda agora.
+Coorte = todas as contas externas criadas nos últimos 14 dias (as contas têm no
+máximo 14 dias, então toda a vida delas cabe na janela).
+
+```
+cadastros externos (14d) ........................ 372
+receberam pelo menos um filme ................... 221
+tocaram QUALQUER superfície de preço ............  55   (25%)
+NUNCA viram preço nenhum ........................ 166   (75%)
+```
+
+"Qualquer superfície de preço" é generoso de propósito: conta `/pricing`,
+qualquer evento `pricing_*`, qualquer `upgrade_modal_*` e qualquer `checkout_*`.
+Mesmo com a rede mais larga possível, **três de cada quatro pessoas que
+receberam um filme pronto da Kineo nunca encontraram um preço.**
+
+Isto reordena a lista da casa. Não é o cartão (3 recusas em 14 dias, 2 delas
+renovação). Não é o checkout (28 chegaram, e a conversão de lá para o pagamento
+é ~10%, normal). Não é a entrega (221 de 372 receberam filme, 59%). **É que o
+produto entrega a coisa boa e não menciona que ela custa alguma coisa.** Os 166
+não recusaram nada — eles não souberam.
+
+E isso explica os dois zeros que pareciam mistérios separados: o TAAFT com 0
+pagamentos e o degrau seco do ChatGPT são **o mesmo degrau**, medido em duas
+fontes. A diferença entre 17% e 9% de exposição a preço entre as duas coortes é
+ruído em cima de um número que é baixo para todo mundo.
+
+**Isto NÃO reabre a conclusão de preço do fundador.** Aquela conclusão é sobre
+quem *chega* ao checkout e acha caro — e continua valendo para os 28. Esta
+medição é sobre os **166 que nunca chegaram lá**. São populações disjuntas, e a
+segunda é 6x maior que a primeira.
+

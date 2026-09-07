@@ -58,12 +58,15 @@
 # Já foi investigado mais de uma vez e deu a mesma coisa todas as vezes.
 #   ⛔ NÃO gastar sessão re-investigando "será que o pagamento está quebrado?"
 #   ✅ Toda hipótese de conversão parte de PREÇO/OFERTA/PERCEPÇÃO DE VALOR.
-# Cegueira conhecida (não confundir com evidência): a tabela `events` NUNCA
-# teve um único `checkout_payment_failed`, e `metadata.customer_country` vem
-# null em 100% dos eventos — inclusive nos que PAGARAM. Ou seja, esses dois
-# campos NÃO PROVAM NADA em nenhuma direção. Quem tentar concluir a partir
-# deles (como eu tentei em 19/08) vai errar. A verdade sobre recusa só existe
-# no painel da Stripe.
+# ⚠ CORRIGIDO EM 07/09: esta cegueira ACABOU. A tabela `events` TEM
+# `checkout_payment_failed` (metadata `stripe_checkout_failure_v1`), com
+# motivo, bandeira, país, se é renovação e se foi recusa de rede. Não é mais
+# verdade que "a verdade sobre recusa só existe no painel da Stripe" — ela
+# existe aqui. `metadata.customer_country` continua null e continua não
+# provando nada; use `card_country` do evento novo.
+# ⛔ MAS: o evento novo NÃO reabre a conclusão de preço acima. Ele fala de quem
+# JÁ ERA CLIENTE (renovação recusada), não de quem acha caro no checkout. As
+# duas coisas não se misturam. A conclusão de preço segue fechada.
 # Números que sustentam a conclusão (funil 7d, medido 19/08): 247 cadastros →
 # 135 fizeram vídeo → 44 chegaram ao checkout → 0 assinaram, e os 44 tentaram
 # 2+ VEZES. Quem volta duas vezes quer comprar; travou no valor.
