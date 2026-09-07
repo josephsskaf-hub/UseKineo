@@ -102,10 +102,41 @@ interface UnlockBody {
   language?: string
   vertical?: string
   speed?: number
+  // KINEO-TRIAL-WATERMARK-2026-09-07 — o motor que MONTOU o filme original.
+  // Ver REBUILD_QUALITIES abaixo: este campo governa só o RITMO do rebuild.
+  quality?: string
 }
 
 // Keep the clean re-render identical to the just-created Fast preview.
 const SUPPORTED_DURATIONS = [10, 30, 35, 45, 50, 60, 90] as const
+
+// ═══ KINEO-TRIAL-WATERMARK-2026-09-07 — O REBUILD PRECISA DO MESMO RITMO ═══
+// Esta rota reconstruía SEMPRE com `quality: 'fast'` — e `quality` não é um
+// rótulo em lib/compose.ts: é `isFastStock`, que decide corte de 6/9s com
+// reciclagem de clipe, grade, glow e letterbox do estoque. Um filme de IA
+// (clipes únicos de 10s) remontado como 'fast' volta com OUTRA montagem —
+// mais curta, com clipe repetido. Enquanto só o Kineo 1 saía com marca isso
+// nunca aparecia; a partir do momento em que o Seedance do trial sai marcado,
+// o "Download clean" passaria a devolver um filme diferente do que a pessoa
+// viu. Vender export limpo e entregar outra montagem é a promessa que a casa
+// não sabe cumprir — por isso a marca d'água do Seedance e esta lista sobem
+// no MESMO commit.
+//
+// Só entram aqui as qualidades que o BUILDER CLÁSSICO monta (o mesmo
+// buildCreatomateSource que /api/compose usa para 'fast' e 'cinematic_ai').
+// Kling/Veo/H3/Omni/S25 passam por buildHollywoodCreatomateSource, com
+// narração POR CENA — reconstruí-los daqui devolveria um filme mudo ou
+// dessincronizado, então eles NÃO entram e continuam saindo limpos no trial.
+//
+// Vindo do cliente, `quality` governa RITMO e nada mais: não muda preço
+// (`intendedCost` continua 0), não muda crédito, não muda claim assinado e
+// não abre motor nenhum. O pior abuso possível é alguém pedir o ritmo de IA
+// num filme de estoque que ele já pagou.
+const REBUILD_QUALITIES = new Set(['fast', 'cinematic_ai'])
+function rebuildQualityOf(raw: unknown): 'fast' | 'cinematic_ai' {
+  const q = typeof raw === 'string' ? raw.trim().toLowerCase() : ''
+  return REBUILD_QUALITIES.has(q) ? (q as 'fast' | 'cinematic_ai') : 'fast'
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -456,6 +487,8 @@ export async function POST(req: NextRequest) {
       ? requestedDuration
       : 45
     const language = body.language === 'pt' ? 'pt' : body.language === 'es' ? 'es' : 'en'
+    // KINEO-TRIAL-WATERMARK-2026-09-07 — ver REBUILD_QUALITIES.
+    const rebuildQuality = rebuildQualityOf(body.quality)
     const vertical =
       typeof body.vertical === 'string' && body.vertical.trim() ? body.vertical.trim().toLowerCase() : undefined
     const explicitSpeed: number | null = (() => {
@@ -528,7 +561,11 @@ export async function POST(req: NextRequest) {
         voiceoverScript: scaledScript,
         sceneCaptions,
         duration,
-        quality: 'fast',
+        // KINEO-TRIAL-WATERMARK-2026-09-07 — era 'fast' cravado. Este é o
+        // ÚNICO ponto que passa a variar: o claim assinado, o intent de
+        // cobrança, o custo 0 e todos os rótulos da resposta continuam 'fast'
+        // (o protocolo do unlock não muda um byte).
+        quality: rebuildQuality,
         realAudioDuration,
         whisperWords,
         musicUrl,

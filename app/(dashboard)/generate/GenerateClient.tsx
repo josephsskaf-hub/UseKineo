@@ -706,6 +706,10 @@ interface FastRenderInputs {
   language: string
   vertical?: string
   speed?: number
+  // KINEO-TRIAL-WATERMARK-2026-09-07 — o motor que montou o filme. Sem ele o
+  // /api/compose/unlock remontava TUDO como 'fast' (cortes de 6/9s, clipe
+  // reciclado) e o "export limpo" de um Seedance voltava com outra montagem.
+  quality?: string
 }
 
 interface ActiveRenderSnapshot {
@@ -863,6 +867,10 @@ function normalizeFastRenderInputs(value: unknown): FastRenderInputs | undefined
     language,
     ...(typeof input.vertical === 'string' && input.vertical.trim() ? { vertical: input.vertical.slice(0, 64) } : {}),
     ...(typeof input.speed === 'number' && Number.isFinite(input.speed) ? { speed: Math.max(0.7, Math.min(1.3, input.speed)) } : {}),
+    // KINEO-TRIAL-WATERMARK-2026-09-07 — espelha REBUILD_QUALITIES do
+    // /api/compose/unlock. Qualquer outra coisa cai fora e o servidor volta
+    // ao 'fast' de sempre: o campo só pode melhorar o rebuild, nunca quebrá-lo.
+    ...(input.quality === 'fast' || input.quality === 'cinematic_ai' ? { quality: input.quality } : {}),
   }
 }
 
@@ -1862,6 +1870,12 @@ export default function GenerateClient({
   // a pessoa pedia 60, recebia 15, e concluía "produto quebrado" — o corte
   // mudo era indistinguível de defeito.
   const [freeClampNotice, setFreeClampNotice] = useState<{ from: number; to: number } | null>(null)
+  // KINEO-TRIAL-WATERMARK-2026-09-07 — a resposta do /api/compose passou a
+  // dizer se o filme saiu com marca d'água. `null` = o servidor ainda não
+  // falou (render em curso, sessão restaurada, deploy anterior) — e SÓ nesse
+  // caso a tela volta a inferir. Mesmo padrão de `freeClampNotice` logo
+  // acima: um fato do servidor viaja na resposta em vez de ser adivinhado.
+  const [serverWatermark, setServerWatermark] = useState<boolean | null>(null)
 
   // ── sprint-v1v4 #43 — O MURO QUE SE REARMAVA COMO CONVITE ────────────────
   //
@@ -2848,6 +2862,9 @@ export default function GenerateClient({
                 // do compose; guardar para avisar na tela de video pronto.
                 const fc = data?.free_duration_clamped as { from?: number; to?: number } | undefined
                 if (fc && typeof fc.from === 'number' && typeof fc.to === 'number') setFreeClampNotice({ from: fc.from, to: fc.to })
+                // KINEO-TRIAL-WATERMARK-2026-09-07 — a verdade do asset: o servidor
+                // diz se o filme saiu com marca, a tela para de deduzir.
+                if (typeof data?.watermark === 'boolean') setServerWatermark(data.watermark)
               }
             } catch {
               reconnectAttempt += 1
@@ -5016,12 +5033,21 @@ export default function GenerateClient({
     bridgeEligible: trialBalanceBridge.eligible,
     preferredDuration: duration,
   })
-  // Hoje apenas o Fast de conta free/trial recebe watermark no compose. O
-  // Seedance (`cinematic_ai`) e os demais motores Fal saem limpos; por isso
-  // `falUsedRef` faz parte da verdade do asset, não da conta.
+  // KINEO-TRIAL-WATERMARK-2026-09-07 — ESTA CONDIÇÃO ERA UM SEGUNDO DONO DA
+  // VERDADE. Ela reconstruía, no navegador, a decisão que /api/compose toma no
+  // servidor — e divergia: a partir deste commit o Seedance de conta em trial
+  // sai MARCADO, e a expressão antiga (`quality === 'fast' && !falUsedRef`)
+  // continuaria jurando que o filme está limpo. Consequência medível: o evento
+  // `video_downloaded.export_type` rotularia como 'clean' um download com marca,
+  // e a caixa de unlock nunca apareceria para quem mais precisa dela.
+  // Agora a resposta do compose carrega `watermark` e ela manda. O predicado
+  // antigo sobrevive SÓ como fallback para o que o servidor não contou (sessão
+  // restaurada de outra aba, render anterior a este deploy).
   const currentResultHasWatermark =
-    planTier === 'free' && !hasPaid && quality === 'fast' &&
-    !falUsedRef.current && Boolean(lastFastRenderRef.current)
+    serverWatermark !== null
+      ? serverWatermark
+      : planTier === 'free' && !hasPaid && quality === 'fast' &&
+        !falUsedRef.current && Boolean(lastFastRenderRef.current)
   const showPostVideoExportChoice =
     phase === 'done' && Boolean(finalVideoUrl) && currentResultHasWatermark &&
     !trialActive && !wmUnlocking && trialPostVideoPhase === null
@@ -5702,6 +5728,10 @@ export default function GenerateClient({
             language,
             vertical: analysis?.niche ?? undefined,
             speed: ttsSpeed ?? undefined,
+            // KINEO-TRIAL-WATERMARK-2026-09-07 — a MESMA expressão que o
+            // composePayload usa logo abaixo. O unlock precisa remontar com o
+            // ritmo do motor que fez o filme, não com o do seletor.
+            quality: falUsedRef.current ? falQualityRef.current : quality,
           }
         }
 
@@ -5807,6 +5837,9 @@ export default function GenerateClient({
               // do compose; guardar para avisar na tela de video pronto.
               const fc = data?.free_duration_clamped as { from?: number; to?: number } | undefined
               if (fc && typeof fc.from === 'number' && typeof fc.to === 'number') setFreeClampNotice({ from: fc.from, to: fc.to })
+              // KINEO-TRIAL-WATERMARK-2026-09-07 — a verdade do asset: o servidor
+              // diz se o filme saiu com marca, a tela para de deduzir.
+              if (typeof data?.watermark === 'boolean') setServerWatermark(data.watermark)
             }
           } catch (requestError) {
             // Only a server-correlated generation can be retried safely. The
@@ -7476,6 +7509,9 @@ export default function GenerateClient({
     setClipUrls([])
     setRenderId(null)
     setFinalVideoUrl(null)
+    // KINEO-TRIAL-WATERMARK-2026-09-07 — filme novo, veredito novo: sem
+    // este reset o render seguinte herdaria o `watermark` do anterior.
+    setServerWatermark(null)
     setWatermarkedDownloadConfirmed(false)
     setShowCleanPaywall(false)
     // KINEO-DISTRIBUTION-LOOP-2026-08-11 — vida nova, handoff novo.
@@ -8574,6 +8610,9 @@ export default function GenerateClient({
     setFalClipsDone({ done: 0, total: 0 })
     setRenderId(null)
     setFinalVideoUrl(null)
+    // KINEO-TRIAL-WATERMARK-2026-09-07 — filme novo, veredito novo: sem
+    // este reset o render seguinte herdaria o `watermark` do anterior.
+    setServerWatermark(null)
     setWatermarkedDownloadConfirmed(false)
     setShowCleanPaywall(false)
     // KINEO-DISTRIBUTION-LOOP-2026-08-11 — vida nova, handoff novo.
@@ -10034,6 +10073,9 @@ export default function GenerateClient({
     setClipUrls([])
     setRenderId(null)
     setFinalVideoUrl(null)
+    // KINEO-TRIAL-WATERMARK-2026-09-07 — filme novo, veredito novo: sem
+    // este reset o render seguinte herdaria o `watermark` do anterior.
+    setServerWatermark(null)
     setWatermarkedDownloadConfirmed(false)
     // KINEO-DISTRIBUTION-LOOP-2026-08-11 — vida nova, handoff novo.
     resetPostLoopHandoff()

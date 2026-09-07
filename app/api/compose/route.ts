@@ -1541,6 +1541,13 @@ export async function POST(req: NextRequest) {
     // Espelha exatamente o padrão de `isFreePlanFast`: declarada aqui fora,
     // atribuída lá dentro, lida no builder.
     let isTrialRender = false
+    // KINEO-TRIAL-WATERMARK-2026-09-07 — a VERDADE do asset, resolvida uma
+    // vez e devolvida na resposta. A tela decidia sozinha se o filme tinha
+    // marca (`planTier === 'free' && quality === 'fast' && …`) e errava
+    // justamente na coorte nova: trial + Seedance. Predicado reconstruído no
+    // cliente é predicado que diverge do servidor — este campo existe para
+    // que não haja dois donos da mesma verdade.
+    let watermarkApplied = false
     let withEndCard = false
     if (quality === 'cinematic_ai' || quality === 'fast') {
       let { data: prof, error: profileAccessError } = await supabase
@@ -1633,6 +1640,18 @@ export async function POST(req: NextRequest) {
         (REVERSE_TRIAL_ENABLED && cinematicUpstreamDebited)
 
       if (quality === 'cinematic_ai') {
+        // KINEO-TRIAL-WATERMARK-2026-09-07 — ORDEM DO FUNDADOR (07/09):
+        // "liga marca d'água no trial". MEDIDO em 7 dias: trial ativo baixou
+        // 31 filmes COM marca (todos Kineo 1, ramo `fast` logo abaixo) e 29
+        // LIMPOS — todos Seedance, que é ESTE ramo. A política KINEO-TETO
+        // ("o trial recebe o filme, o plano recebe o export limpo") existia
+        // pela metade: `isTrialRender` era atribuído SÓ no ramo fast, e o
+        // `cinematic_ai` nunca o preenchia — nascia false por omissão.
+        // É só o booleano: régua, motor, prompt de cena, crédito e preço
+        // ficam exatamente onde estavam. O par obrigatório desta linha é o
+        // rebuild fiel em /api/compose/unlock (mesmo builder, MESMA quality)
+        // — sem ele a casa venderia um "limpo" que volta com outra montagem.
+        isTrialRender = ent.isTrial && !ent.isPaidAccount
         const requiredCredits = creditCostFor('cinematic_ai', true)
         if (!hasPaidCreditAccess) {
           return NextResponse.json(
@@ -1666,7 +1685,13 @@ export async function POST(req: NextRequest) {
         // grátis seria invisível para o próprio cap do trial).
         // Flag OFF ⇒ ent.isTrial false ⇒ predicado idêntico ao anterior.
         isFreePlanFast = isFreePlan && !hasPaid && !ent.isTrial
-        isTrialRender = ent.isTrial
+        // KINEO-TRIAL-WATERMARK-2026-09-07 — `&& !ent.isPaidAccount`. Era
+        // `ent.isTrial` puro, e o trial de $1 (plan `basic` + assinatura
+        // `trialing`) satisfaz OS DOIS: conta paga E trial ativo. Quem acabou
+        // de pôr o cartão recebia marca d'água no filme que comprou. O
+        // predicado do cobrador não se redigita: `isPaidAccount` sai do mesmo
+        // getEffectiveEntitlement que decide todo o resto desta rota.
+        isTrialRender = ent.isTrial && !ent.isPaidAccount
         if (isFreePlanFast) {
           // The downloadable watermark + end card are the organic distribution
           // loop. Paid Starter/Creator/Studio and pack-credit renders stay clean.
@@ -2246,6 +2271,12 @@ export async function POST(req: NextRequest) {
         quality,
         duration,
         voiceover_url: narrationBlocks[0]?.url ?? '',
+        // KINEO-TRIAL-WATERMARK-2026-09-07 — o caminho hollywood marca APENAS
+        // as contas do #434 (`forced`). O trial premium continua saindo limpo
+        // DE PROPÓSITO nesta entrega: /api/compose/unlock só reconstrói pelo
+        // builder clássico, e prometer "limpo" para um Kling 3 devolveria
+        // outro filme. Dívida registrada no PEDIDOS; o campo já diz a verdade.
+        watermark: forced,
       })
     }
     // ── end KINEO-HOLLYWOOD-2026-07-09 ──────────────────────────────────────
@@ -2616,6 +2647,14 @@ export async function POST(req: NextRequest) {
       console.warn('[compose] music fetch failed, continuing WITHOUT background music:', err instanceof Error ? err.message : String(err))
     }
 
+    // KINEO-TRIAL-WATERMARK-2026-09-07 — a decisão de marca d'água mora AQUI,
+    // uma única vez, lida pelo builder logo abaixo E pela resposta lá no fim.
+    // `FORCE_WATERMARK_EMAILS` (#434) segue como último termo: as contas de
+    // autopromoção do fundador sempre saem marcadas.
+    watermarkApplied =
+      isFreePlanFast ||
+      isTrialRender ||
+      FORCE_WATERMARK_EMAILS.has((user.email ?? '').toLowerCase())
     let source: Record<string, unknown>
     try {
       source = buildCreatomateSource({
@@ -2655,10 +2694,7 @@ export async function POST(req: NextRequest) {
         // ⚠️ SE ISTO FOR REVERTIDO, REVERTER O KINEO-TETO JUNTO. Motor caro
         // liberado SEM marca d'água = produto inteiro de graça, e o trial de
         // 80 créditos passa a custar até $11,85 por pessoa sem nada em troca.
-        watermark:
-          isFreePlanFast ||
-          isTrialRender ||
-          FORCE_WATERMARK_EMAILS.has((user.email ?? '').toLowerCase()), // #434 — Joseph's self-promo accounts always watermarked
+        watermark: watermarkApplied,
         // Free growth-loop videos and Joseph's self-promo accounts carry the
         // end card. Every paid export is clean.
         endCard:
@@ -2837,6 +2873,8 @@ export async function POST(req: NextRequest) {
       duration,
       voiceover_url: voiceoverUrl,
       persona_id: detectedPersonaId,
+      // KINEO-TRIAL-WATERMARK-2026-09-07 — a tela para de adivinhar.
+      watermark: watermarkApplied,
       // KINEO-CLAMP-FALADO-2026-08-28 — presente = o free cortou a duração;
       // o cliente mostra o aviso honesto em vez de deixar a pessoa achar que
       // o produto entregou errado.
