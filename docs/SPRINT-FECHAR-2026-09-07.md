@@ -1020,3 +1020,100 @@ pessoa-dia, **quantas entregas com marca d'água acontecem fora do estado de
 trial** — se o número for grande, a porta de $1 precisa de um segundo endereço,
 e o candidato natural é o e-mail de `video_ready` (que já sai, já tem link e
 hoje não vende nada).
+
+
+---
+
+### #6b — 19:08 BRT — CHECKPOINT da #6: a porta de $1 nasceu **atrás** do ramo que ganha o slot 7 vezes em 105
+
+**ESTADO DA ENTREGA (verificado, não herdado).** `c5dd3a04` (18:51:20 BRT) é
+ancestral de `origin/main`; ponta = `92d95c41`; **fila = 0**; produção responde
+**200** em `/pricing` com **controle 404** na mesma medição (UA de navegador —
+`curl` pelado cai no ramo do robô). Nada a corrigir na publicação.
+
+**O QUE O CHECKPOINT MEDIU — e o que ele desmente da própria #6.** Desde o marco
+`2026-09-07 18:38 UTC` (3h31), contas externas: `video_ready_viewed` **3
+impressões / 2 pessoas** · `video_ready_email_sent` 4/3 · `pricing_view` 3 (todas
+anônimas) · **baixou 0 · checkout 0 · pagou 0** · `post_video_trial_1usd_shown`
+**0** · `pricing_trial_1usd_clicked` **0**.
+
+Zero impressões da porta nova **não** é o deploy: ela subiu às 21:51 UTC e a
+última entrega da janela foi 21:52:43 UTC. O problema é outro, e é maior.
+
+**AS DUAS ENTREGAS DEPOIS DO CONSERTO DA #5 SÃO O CASO EXATO DA PORTA — E
+NENHUMA DAS DUAS VIU A CAIXA.** Recortando pelo deploy da #5 (`fa09b1eb`,
+17:50 BRT ≈ 21:00 UTC), não pelo relógio:
+
+| pessoa | hora (UTC) | `trial_status` | `has_paid` | plano | créditos | viu a caixa comercial |
+|---|---|---|---|---|---|---|
+| `18838bd4…` | 21:18:02 | **active** | false | free | 15 | **não** |
+| `67fba7a9…` | 21:52:43 | **active** | false | free | 20 | **não** |
+
+**Não é "não rolou a página".** As duas dispararam `next_door_bar_shown`,
+`next_shorts_shown`, `post_invite_viewed`, `season_shown` — os observers de
+rolagem correram. O que as duas dispararam no slot foi
+**`trial_balance_bridge_viewed`**.
+
+**A CAUSA, LIDA NO CÓDIGO DA `origin/main` (não na main local suja).** O slot é
+um `IntersectionObserver` só, com três ramos e **`return` em cada um**
+(`app/(dashboard)/generate/GenerateClient.tsx`, ~5410-5474):
+
+1. `balanceBridgeForImpression.eligible` → `trial_balance_bridge_viewed` → **sai**
+2. `repeatForImpression.action === 'episode'` → `trial_repeat_episode_viewed` → **sai**
+3. só então → `trial_post_video_offer_viewed` — **a caixa comercial, onde a #6
+   montou a porta de $1**
+
+**O PLACAR DA DISPUTA (7 dias, contas externas, pessoa-dia):**
+
+| quem ganha o slot | pessoa-dia |
+|---|---|
+| ponte de saldo | **78** |
+| repetir episódio | **20** |
+| **caixa comercial (onde mora a porta de $1)** | **7** |
+| nenhuma das três | 56 |
+| **total de entregas** | **143** |
+
+Dos **105 slots disputados**, a pergunta comercial leva **7 — 6,7%**. A porta de
+$1 da #6 **herda esse 6,7%**, não os 100% que a frase da #6 sugere.
+
+**RETRATAÇÃO PARCIAL DA #6.** "A porta agora existe onde o desejo existe" é
+verdade **para 6,7% das entregas**. A frase da rotação não muda de conteúdo —
+muda de alcance, e o alcance é o que decide se ela vira dinheiro.
+
+**O QUE ISSO RESPONDE DA QUEIXA DO FUNDADOR.** "Está gerando gente que faz vídeo
+e as pessoas não fecham." No minuto de maior valor percebido da casa — filme
+pronto, com marca d'água, na mão da pessoa — a casa gasta seu **único** tiro
+propondo **gastar os créditos que a pessoa já tem em OUTRO filme**. Em 78 de 105
+vezes a resposta da casa ao filme pronto é *consuma mais de graça*, não *leve
+este limpo*.
+
+**CHECAGEM ZERO (24h):** cadastros **30** · crédito zero **12**, **trial órfão
+0** (todos com `trial_status` preenchido) · render preso **0** · recusa sem dono
+**0** · `payment_success` **0 em 48h** (6 em 30d) — **terceiro dia sem assinante
+novo**, confirmado.
+
+**PARA A ROTAÇÃO #7 — o alvo muda, e fica mais barato.** Não mexer na precedência
+primeiro: o caminho de menor risco e maior alcance é **montar a porta de $1
+dentro do bloco da ponte**, que já imprime `plans_link` e já tem o slot em 78 de
+105 entregas. Isso não tira o slot de ninguém, não reescreve a cadeia de
+`return`, e multiplica o alcance da porta por ~11. Só depois, se a ponte com
+porta não converter, discutir precedência para quem recebeu filme **com marca
+d'água**. Duas ressalvas medidas para quem pegar: (a) os 56 "nenhuma das três"
+ainda não têm dono — não é a maior alavanca, mas é o segundo buraco; (b) medir a
+porta nova pelo par `trial_balance_bridge_viewed` (denominador que dispara
+IGUAL, por rolagem) e nunca por `video_ready_viewed`, que dispara na montagem.
+
+**✅ O QUE VOCÊ PRECISA FAZER**
+1. Nada. Publicação verificada (fila 0, produção 200 com controle 404) e
+   checagem zero limpa.
+
+**📋 O QUE ACONTECEU**
+A porta de $1 da rotação anterior subiu e está em produção — mas o checkpoint
+descobriu que ela mora no ramo errado. A tela de filme pronto tem **um** espaço,
+e em 7 dias esse espaço foi para "faça outro filme com os créditos que você já
+tem" **78 vezes**, para "repita o episódio" 20, e para a pergunta comercial
+apenas **7**. As duas únicas pessoas que terminaram um filme depois do conserto
+das 17:50 eram trial ativo, não pagante, com saldo — o alvo exato — e as duas
+receberam a proposta de gastar mais crédito, não a de comprar o filme limpo. A
+correção é barata e é a próxima rotação: pôr a porta de $1 dentro do bloco que
+já ganha o slot. Terceiro dia sem assinante novo continua de pé.
