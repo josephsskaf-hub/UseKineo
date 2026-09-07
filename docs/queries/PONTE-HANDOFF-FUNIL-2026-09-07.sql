@@ -190,14 +190,28 @@ where created_at > now() - interval '30 days'
 group by 1
 order by 1 desc;
 
--- (7b) CONTROLE do mesmo recorte: quantas impressoes ficaram DE FORA por nao
--- terem o carimbo. Se este numero nao parar de crescer, o bundle novo nao
--- chegou a producao — e a leitura de (7) continua sem denominador.
+-- (7b) CONTROLE do mesmo recorte — E A CORRECAO QUE O FECHAMENTO DEVE:
+-- a versao anterior deste comentario dizia "se `carimbadas` marcar zero, o
+-- bundle novo nao chegou a producao". ISSO ESTA ERRADO, e erraria caro: medido
+-- em 07/09 04:55 BRT, 27 min depois do deploy `cd3ec9e9`, `carimbadas` = 0 e
+-- `sem_carimbo` = 22 — e o motivo NAO era deploy. A ultima impressao do aviso
+-- em toda a base e de 07/09 02:39: NINGUEM ABRIU A TELA depois do deploy. Zero
+-- escritas sem oportunidade nenhuma nao e defeito, e silencio.
+-- Por isso a consulta devolve `ultima_impressao_qualquer` ao lado de
+-- `ultima_carimbada`. LEIA AS DUAS JUNTAS:
+--   ultima_impressao_qualquer ANTERIOR ao deploy ..... ninguem passou pela tela;
+--                                                      nada a concluir, espere.
+--   ultima_impressao_qualquer POSTERIOR ao deploy
+--     e carimbadas ainda 0 ........................... AI SIM o bundle nao chegou.
+-- (o site estava vivo o tempo todo: 8 eventos de 6 pessoas distintas nos mesmos
+--  27 min. Trafego existe; o ramo especifico e que e raro.)
 select
-  count(*) filter (where metadata ? 'cta_present')      as carimbadas,
-  count(*) filter (where not (metadata ? 'cta_present')) as sem_carimbo,
+  count(*) filter (where metadata ? 'cta_present')                      as carimbadas,
+  count(*) filter (where not (metadata ? 'cta_present'))                as sem_carimbo,
   to_char(max(created_at) filter (where metadata ? 'cta_present') at time zone 'America/Sao_Paulo',
-          'DD/MM HH24:MI')                               as ultima_carimbada
+          'DD/MM HH24:MI')                                              as ultima_carimbada,
+  to_char(max(created_at) at time zone 'America/Sao_Paulo',
+          'DD/MM HH24:MI')                                              as ultima_impressao_qualquer
 from events
 where name = 'activation_instruction_notice_viewed'
   and created_at > now() - interval '30 days';

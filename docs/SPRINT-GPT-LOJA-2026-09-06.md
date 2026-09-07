@@ -2901,3 +2901,117 @@ depois do deploy, e ela chega no banco: consulta **(7b)** de
 `docs/queries/PONTE-HANDOFF-FUNIL-2026-09-07.sql` mostra `carimbadas` saindo de
 zero. Enquanto (7b) marcar zero carimbadas, o bundle novo ainda não chegou — e
 a consulta (7) continua sem denominador. As duas entraram no arquivo agora.
+
+---
+
+## 🏁 FECHAMENTO REAL DO CICLO — 07/09/2026, 04:55 BRT
+
+*(carimbo conferido contra `date` puro: `Sun Sep  7 07:52:03 UTC 2026` = **04:52
+BRT**. O relógio do Git Bash desta máquina devolve UTC — 3h adiantado — e esta
+madrugada já rotulou dois blocos com a hora errada. A janela do ciclo fecha às
+05:00; este é o último disparo dentro dela. Não há renovação.)*
+
+### (a) O QUE ESTÁ NO AR — sonda com controle na mesma medição
+
+```
+GET /                                 → 200
+GET /chatgpt                          → 200   (página de colar roteiro, G8)
+GET /gpt/openapi.json                 → 200   (a Action, G3)
+GET /make                             → 302   (deep link de assistente, G9)
+GET /go/token-inexistente-xyz         → 404   (a ponte recusa token inválido)
+GET /pagina-controle-inexistente-xyz  → 404   (CONTROLE)
+```
+
+`git ls-remote origin main` = `dbb181c8`. Tudo que este ciclo escreveu está
+em produção: endpoint de handoff (G1), página `/go` (G2), OpenAPI + documento do
+GPT (G3), fatos (G4), SQL do funil (G5), página `/chatgpt` (G8), deep link
+`/make` documentado (G9), oferta de "escreva o próximo episódio" (G10).
+
+### (b) A CONTA QUE O CICLO ENTREGA — e ela é desconfortável
+
+**A ponte não tem uma linha de tráfego orgânico.** Medido agora, sem corte de
+hora nenhum (a consulta (1b), que não pode devolver zero por aritmética):
+
+```
+handoffs orgânicos ........... 0
+abriram o /go ................ 0
+clicaram "Make this video" ... 0
+handoffs totais .............. 16, de 2 ip_hash, 3 canais  → todos sondas minhas
+```
+
+Isso não é falha de execução: a loja da OpenAI **fechou para conta pessoal em
+16/08** e o GPT não pode ser publicado. A ponte está construída, provada de
+ponta a ponta e **sem plateia**, por uma razão que não é técnica.
+
+**O que move volume de ChatGPT hoje continua sendo a porta velha** (7 dias, por
+pessoa): `banner_shown 120 → input_opened 75 → selected 65 → studio_ready 65`.
+Esse é o funil que já existia. O degrau seco também não mudou: **49 filmes,
+1 pagamento** na coorte do ChatGPT.
+
+### (c) A CORREÇÃO QUE ESTE FECHAMENTO DEVE À ENTREGA ANTERIOR
+
+O adendo #18b escreveu: *"enquanto (7b) marcar zero carimbadas, o bundle novo
+ainda não chegou"*. **Está errado, e erraria caro.** Medido às 04:55, 27 minutos
+depois do deploy `cd3ec9e9`:
+
+```
+carimbadas ................ 0
+sem_carimbo ............... 22
+última impressão do aviso . 07/09 02:39   ← ANTES do deploy
+eventos no site nos 27 min  8 eventos / 6 pessoas distintas   ← o site está vivo
+```
+
+**Ninguém abriu aquela tela depois do deploy.** Zero escritas sem nenhuma
+oportunidade não é bundle que não chegou — é silêncio. A próxima sessão que
+lesse o comentário antigo abriria uma investigação de deploy inexistente.
+`docs/queries/PONTE-HANDOFF-FUNIL-2026-09-07.sql` foi corrigido: a (7b) agora
+devolve `ultima_impressao_qualquer` ao lado de `ultima_carimbada`, e o
+comentário manda ler as duas juntas — só há veredito de deploy quando existe
+impressão POSTERIOR a ele e mesmo assim sem carimbo.
+
+### (d) A DECISÃO QUE É DO FUNDADOR — com o número na mão
+
+ChatGPT Business custa **~US$ 25-30/usuário/mês** e é a única porta para
+publicar o GPT. Contra isso: um **Starter ($7)** não paga a assinatura; um
+**Studio ($29)** paga, na margem. **Recomendação: NÃO pagar agora.** Não porque
+o GPT seja ruim — ele está pronto e testado —, mas porque nenhuma linha de dado
+ainda mostra demanda pela ponte, e existe uma versão gratuita da mesma jogada já
+publicada: a página `/chatgpt`, que faz o trabalho do GPT com prompt + caixa de
+colar, sem custo fixo. Reabra a conta quando a `/chatgpt` mostrar gente.
+
+### (e) O QUE A PRÓXIMA SESSÃO FAZ PRIMEIRO
+
+1. Rodar **(7b)** e ler as DUAS colunas. Se `ultima_impressao_qualquer` já for
+   posterior a 07/09 04:28 e `carimbadas` continuar 0 → aí é deploy, investigue.
+   Se não → ainda não houve oportunidade; **não conclua nada**.
+2. Só depois, **(7)**. Com menos de ~20 impressões carimbadas **não há veredito**
+   sobre a porta do `/chatgpt` — nem para matá-la, nem para aprová-la.
+3. Rodar **(1b)**. O dia em que aparecer `organico` é o dia em que a ponte
+   ganhou plateia; até lá, a ponte é infraestrutura parada, e a atenção pertence
+   ao degrau seco (49 filmes → 1 pagamento), não a ela.
+4. **Não** reabrir a parede da narração nem o expansor sem rodar a (5) **por
+   dia**: três rotações desta madrugada quase consertaram rajada velha.
+
+### O QUE ESTE CICLO APRENDEU, em uma frase
+
+Construir a ponte foi a parte fácil; o caro foi descobrir, três vezes na mesma
+madrugada, que **um número só vira veredito depois de provar que houve
+oportunidade de ele ser diferente de zero**.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+1. **Decidir o ChatGPT Business (~US$ 25-30/mês)** — recomendação desta sessão:
+   **não pagar agora**; a página `/chatgpt` faz a mesma jogada de graça e ainda
+   não mostrou gente.
+2. Nada mais. As entregas subiram sozinhas pela fila; nenhuma espera clique seu.
+
+## 📋 O QUE ACONTECEU
+O ciclo terminou com tudo no ar — a ponte que transforma um roteiro escrito por
+qualquer IA em um filme com um clique, a página que ensina o prompt e recebe o
+texto colado, e o documento pronto do GPT. O que não aconteceu foi plateia: a
+loja da OpenAI fechou para contas pessoais em agosto, e a ponte tem exatamente
+zero visitantes reais — os 16 registros são meus próprios testes. Antes de
+fechar, desfiz um engano que eu mesmo tinha deixado escrito para a próxima
+sessão: eu havia dito que "zero registros carimbados" provaria que o deploy
+falhou. Não prova — ninguém sequer abriu aquela tela depois do deploy. Ficasse
+como estava, a próxima sessão gastaria a rotação inteira caçando um defeito que
+não existe.
