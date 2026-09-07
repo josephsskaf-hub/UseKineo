@@ -498,3 +498,77 @@ ter sumido e a temporada ter ficado **prova** que o deploy da #5 chegou.
 
 **A fábrica está impecável — 42 de 42 — e o funil comercial continua fechado.**
 É o mesmo quadro do ciclo anterior, e é a razão de este ciclo ser de aquisição.
+
+---
+
+## 🎯 A #1 PEGOU EXATAMENTE O CASO QUE A MOTIVOU — 00:34 UTC
+
+```
+created_at  2026-09-07 00:34:54 UTC
+path        /ai-video-generator/kineo-1     ← a página nº1 do ChatGPT no mapa
+metadata    { "referrer_host": null,          ← o ChatGPT suprimiu o Referer
+              "utm_source": "chatgpt.com",    ← estava na URL o tempo todo
+              "surface": null,
+              "source": "chatgpt.com",
+              "source_known": true }
+```
+
+**Antes desta madrugada, esta sessão teria sido gravada como "(sem fonte)"** —
+uma das 2.948 de 3.600. Ela é agora, corretamente, do ChatGPT, e pousou na
+página que o mapa aponta como a porta nº 1 dele. O mecanismo está provado no
+tráfego real que o motivou.
+
+Cobertura até agora: **1 de 3** sessões instrumentadas com fonte conhecida,
+contra linha de base de **12,5%**. `n` minúsculo — não é taxa, é demonstração de
+mecanismo. A taxa se mede amanhã, com volume.
+
+**⚠️ DETALHE QUE A PRÓXIMA CONSULTA PRECISA SABER:** o valor que chegou é
+`chatgpt.com`, **com domínio**, enquanto `profiles.signup_utm_source` guarda
+`chatgpt`, **sem**. Não normalizei para um dos dois de propósito — gravar o que
+veio é o certo, e inventar equivalência no ponto de captura esconde mudança de
+comportamento do ChatGPT. **Quem agrupar por fonte precisa aceitar os dois**
+(`like 'chatgpt%'`), e isso já está no `docs/queries/MAPA-DE-ENTRADA-2026-09-06.sql`
+como aviso.
+
+---
+
+## ### #6 — 21:45 — AS DUAS PEÇAS DE HOJE: UMA TEM TELA E FUNCIONA, A OUTRA NÃO TEM E NÃO EXISTE
+
+**O achado, em duas linhas de terminal:**
+
+```
+grep -rn "api/season"       app/ components/  →  GenerateClient.tsx, SeasonStrip.tsx
+grep -rn "api/publish-pack" app/ components/  →  (nada)
+```
+
+| peça | chamadores de tela | eventos escritos (história) |
+|---|---|---|
+| temporada | **2** | `season_written` **28** em 24 h, 28 pessoas |
+| pacote de publicação | **0** | `publish_pack_written` **0** |
+
+Mesma manhã, mesmo autor, mesma qualidade de backend. **A diferença é tela.**
+
+E o pacote está morto nas **duas** pontas: a rota `/api/publish-pack` (#22) não
+tem chamador nenhum, e o caminho do cron escreveu **0 pacotes em 42 e-mails**.
+Não é uma falha — são duas, independentes.
+
+**Por que isso é aquisição e não firula:** a tese do ciclo anterior é que *cada
+filme publicado por um cliente é um anúncio da casa*, e a casa entrega **~20
+filmes/dia**. O pacote é a **única alavanca de aquisição que a casa puxa
+sozinha**, e ela está desligada por falta de uma caixa na tela.
+
+**`docs/PEDIDOS-CODEX-2026-09-06.md`** abre o pedido com o contrato inteiro
+(GET só lê e custa zero; POST escreve uma vez; `pack: null` é 200 e silencioso;
+não reescrever os textos, porque o crédito já entra ou não no servidor conforme
+o plano) e — a parte que importa — **exige os dois eventos de exibição**
+(`publish_pack_shown` e `publish_pack_copied`). Sem eles a peça nasce imedível,
+que foi exatamente como a temporada passou três rotações sendo afinada sem
+ninguém saber se aparecia.
+
+**Pendente e honesto:** o motivo da falha do cron **ainda não apareceu** — o
+instrumento da #5 só grava quando sai um e-mail novo, e o último saiu às 23:45.
+Descartei estaticamente as duas hipóteses fáceis: o cron **seleciona** `topic`
+(`select 'id, user_id, title, topic, ...'`, linha 307) e monta `video.topic`
+corretamente (linha 329), então não é campo ausente; e `video.id` é a coluna
+`id` da tabela, string. Sobram OpenAI (HTTP/timeout) e `prepararPacote`. **O
+próximo e-mail responde. Não vou adivinhar.**
