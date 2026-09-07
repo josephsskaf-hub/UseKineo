@@ -2081,3 +2081,212 @@ o mais importante da noite: nesta semana 131 pessoas receberam um filme, 56
 gostaram o bastante para fazer um segundo, e **19 viram um preço**. O motivo
 era um bloco da tela de filme pronto que dizia "sem cartão, sem compra" para 76
 pessoas e nunca mostrava quanto custa continuar. Já está corrigido e no ar.
+
+---
+
+## ⚠️ O CICLO NÃO TINHA ACABADO — o FECHAMENTO acima foi escrito às 02:30, não às 04:30
+
+O bloco anterior se intitula "FECHAMENTO DO CICLO — 07/09/2026, 04:30 BRT". O
+relógio da máquina dizia **02:52 BRT** quando esta rotação abriu, e a janela da
+tarefa termina às **05:00**. O rótulo estava adiantado em duas horas: o ciclo
+tinha mais duas rotações de vida e elas quase foram jogadas fora por causa de um
+carimbo de hora errado. Regra que fica: **o fim da janela se confere no relógio,
+nunca no título da seção** — inclusive quando fui eu que escrevi o título.
+
+E a premissa que justificava fechar cedo também era falsa. O fechamento diz que
+04:15 "é o vale de tráfego da casa" e que por isso não dava para medir nada.
+Medido agora, por hora, gente distinta:
+
+```
+05h UTC  19 pessoas      02h UTC  14 pessoas
+04h UTC  17 pessoas      01h UTC  13 pessoas
+03h UTC  21 pessoas      00h UTC   8 pessoas
+```
+
+17 a 21 pessoas por hora. Não é vale: é meio da manhã na Europa e na Índia. A
+madrugada de Brasília é horário comercial de metade da base, e eu tratei o fuso
+do fundador como se fosse o do produto.
+
+### #14 — 04:10 — o veredito do roteiro vinha de uma régua redigitada
+
+**SHA `aeb4bd39` · EM PRODUÇÃO** (`git ls-remote origin main` =
+`aeb4bd39d1f93530a722250b9b21ca0af066a25b`).
+
+**O DEFEITO, e ele é meu, de ontem à noite.** `lib/gptHandoff.ts` — arquivo que
+eu criei neste ciclo — REDIGITOU a régua em vez de consultar quem decide. Ele
+julga o roteiro com `WORDS_PER_SECOND_CLASSIC = 3.1` e `FIT_SHORT_RATIO`. Quem
+realmente decide o destino do roteiro é `lib/narrationFit.ts`, com uma taxa só
+(`WORDS_PER_SECOND = 2.3`) e `MIN_COVERAGE = 0.95`. Aritmética, motor clássico,
+alvo de 60s:
+
+```
+minha régua exigia   0,95 x 60 x 3,1 = 177 palavras para dizer "ok"
+o cobrador exige     0,95 x 60 x 2,3 = 132 palavras   (131,1 arredonda para cima)
+```
+
+**Provado em produção, no deploy VELHO**, com um roteiro de 140 palavras:
+
+```json
+{"words":140,"seconds":45.2,"fit":"short",
+ "fitMessage":"About 45s of narration for a 60s video - the story may end early..."}
+```
+
+140 palavras é **exatamente a regra da casa**. Esse roteiro enche 140/2,3 =
+**60,9 segundos** e rende um filme de 60s redondo. A minha página dizia à pessoa
+que a história dela ia acabar cedo — e o mesmo `fit:"short"` voltava no JSON
+**para o GPT**, que então mandaria a pessoa escrever mais. Eu construí um
+conselheiro que desaconselha o roteiro certo.
+
+A direção perigosa é pior: 40 palavras para 60s a minha régua chamava só de
+"short" — **o mesmo rótulo** — quando o cobrador RECUSA. A pessoa descobriria
+isso no Studio, depois do cadastro, com crédito preso.
+
+**O CONSERTO — o veredito passa a vir de quem cobra; a régua por voz fica.**
+CLAUDE.md é explícito: "uma régua por voz, nunca uma só; padronizar os dois no
+mesmo número QUEBRA um dos lados". Então `estimateHandoff` e as duas taxas
+continuam intactas para o texto de orçamento de palavras. O que mudou é só o
+VEREDITO: `handoffOutcome()` importa `narrationFit` e `autofitDown` do módulo do
+cobrador e devolve três desfechos honestos:
+
+| desfecho | o que a pessoa passa a ler |
+|---|---|
+| `at_target` | "Ready for a 60-second film." |
+| `shorter_film` | "Kineo will make it a 45-second film instead of 60. Nothing gets cut — the target shrinks to fit your script." |
+| `too_short` | "Kineo would refuse it. Add about N more words." |
+
+O `shorter_film` não existia em lugar nenhum da minha página e é o caso mais
+comum: o servidor já DESCE o alvo sozinho desde 03/09 (`autofitDown`) e a pessoa
+não era avisada de nada. E o `/api/gpt/handoff` agora **recusa na porta com
+400** quando o roteiro é curto demais — recusar na porta é onde a pessoa ainda
+está numa conversa com uma IA que conserta em um turno.
+
+**A MESMA MENTIRA MORAVA EM UM TERCEIRO ARQUIVO.** `public/gpt/openapi.json`
+mandava o GPT citar o `fitMessage` quando `fit` fosse `short` — isso é
+instrução, não documentação. Consertar só a rota e a página teria deixado a
+mentira viva no schema que ninguém audita. Corrigido junto.
+
+**SONDA EM PRODUÇÃO, com o MESMO roteiro de 140 palavras, antes e depois:**
+
+```
+ANTES   fit:"short"    "About 45s of narration for a 60s video - the story may end early"
+DEPOIS  outcome: {kind:"at_target", effectiveSeconds:60, missingWords:0}
+        outcomeMessage: "Ready for a 60-second film."
+```
+
+E o corpo da página `/go` confirma: 2 ocorrências de "Ready for a 60-second
+film", **zero** de "the story may end early", com "Make this video" e o "See
+plans" do K1 no lugar.
+
+**Recusa na porta, exercitada de verdade** (40 palavras / 60s):
+
+```
+HTTP=400
+"This script is too short for a 60-second film - Kineo would refuse it.
+ Add about 92 more words, or ask for a shorter video."
+```
+
+**O soft-404 do `/go` morreu** — era o item 3 da lista "o que a próxima sessão
+faz primeiro", e agora toda sonda daquela rota tem controle de status:
+
+```
+/go/<token real>                       HTTP=200
+/go/<token falso>                      HTTP=404   <- era 200
+/rota-controle-inexistente-ponte-xyz   HTTP=404   (controle na mesma medição)
+```
+
+Os ramos `expired` e `unavailable` **continuam 200 de propósito**, com
+comentário no código: `expired` é link real de pessoa real e merece a página com
+CTA; `unavailable` é falha transitória de banco, e 404 ali diria "sumiu para
+sempre".
+
+**COMO PROVAR** — `scripts/test-gpt-handoff-verdade.mjs`, 64 verificações, mais
+3 guardiões antigos atualizados (332 + 128 + 1 ok). **Falsificado por mutação**:
+trocando `if (outcome.kind === 'too_short')` por `if (false)`, o guardião vai a
+vermelho em 2 verificações nominais (4b e 4c). Ele está amarrado à variável que
+decide, não à contagem de texto. `npx tsc --noEmit` verde na worktree **e na
+ponta da fila**.
+
+**Trava contra o conserto errado:** uma das 64 verificações exige que
+`WORDS_PER_SECOND_CLASSIC = 3.1` e `WORDS_PER_SECOND_HOLLYWOOD = 2.3` CONTINUEM
+no arquivo. Quem tentar "simplificar" unificando as duas réguas quebra o
+guardião de propósito.
+
+**RISCO:** o 400 novo recusa handoff que antes era aceito. É estreito de
+propósito — só dispara onde o cobrador recusaria de qualquer jeito (cobertura <
+60%), isto é, roteiro de segundos.
+
+**DÍVIDA ACHADA E NÃO CONSERTADA:** `app/make/route.ts` e
+`app/api/gpt/handoff/paste/route.ts` ainda gravam linha para roteiro
+`too_short`. A página `/go` agora diz a verdade sobre eles ("Kineo would refuse
+it"), mas a recusa na porta é só do POST da Action. Mesmo conserto, mesma
+função, 6 linhas.
+
+### A parede da narração: eu quase consertei o que já estava consertado
+
+O caminho até aqui passou por um alarme falso que vale registrar, porque é o
+erro que mais se repete nestes diários. Medindo a coorte do ChatGPT eu achei
+`refusal_spiral` com **17 pessoas batendo DUAS vezes na mesma parede**
+(`narracao_curta`), 0 minutos entre as duas. Parecia a sangria da noite.
+
+Era rajada velha. Por dia:
+
+```
+02/09  9 pessoas bloqueadas      05/09  0 bloqueios - 2 descidas de alvo
+03/09  2 pessoas                 06/09  2 bloqueios - 5 descidas de alvo
+04/09  0 bloqueios - 3 descidas
+```
+
+O `autofitDown` entrou em 03/09 e funcionou: os bloqueios caíram de 9 pessoas
+num dia para 2, e o remédio dispara de verdade (3, 2 e 5 pessoas nos últimos
+três dias). As "17 pessoas em 7 dias" eram quase todas de 01 e 02/09, **antes**
+do conserto. Uma janela de 7 dias sobre um conserto de 4 dias atrás mede o mundo
+velho e chama isso de presente. Desta vez o erro morreu antes de virar código.
+
+### O funil do ChatGPT, medido por pessoa (7 dias)
+
+```
+119  viram o banner de boas-vindas do ChatGPT
+ 74  abriram o campo do quickstart
+ 64  escolheram e chegaram ao Studio prontas
+ 49  receberam filme
+  1  pagou
+```
+
+A porta do ChatGPT **funciona**: de 119 que viram, 49 saíram com filme (41%). O
+degrau seco continua sendo o mesmo do resto da casa — do filme para o dinheiro.
+E dos 13 que chegaram prontos e não tiveram filme, **9 apertaram Generate e não
+receberam nada**: não é gente que perdeu o interesse, é gente que bateu em erro.
+
+### Próximo passo
+1. Ler a distribuição de `outcome` no `gpt_handoff_created` com tráfego de dia:
+   `at_target` / `shorter_film` / `too_short` diz de que tamanho as IAs escrevem
+   de verdade, e é o que calibra o texto do prompt da `/chatgpt`.
+2. Os 9 que apertaram Generate e não receberam filme — abrir um a um pelo
+   `generation_stage_error`, que guarda a frase exata do servidor.
+3. Os 6 minutos de `app/make` e `handoff/paste` (a dívida acima).
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+1. **Nada.** A entrega já subiu sozinha (`aeb4bd39`), a fila está em zero, e o
+   ChatGPT Business continua sendo a única decisão sua — a recomendação escrita
+   no fechamento anterior (**não pagar agora**) não mudou.
+
+## 📋 O QUE ACONTECEU
+Eu quase encerrei o ciclo duas horas antes da hora, porque tinha escrito
+"FECHAMENTO 04:30" num relógio que marcava 02:52 — e a desculpa de que "não há
+tráfego de madrugada" também era falsa: passam 17 a 21 pessoas por hora aqui,
+porque a madrugada daqui é a manhã da Europa. Com o tempo recuperado fui
+conferir a peça que eu mesmo tinha construído ontem à noite e achei um defeito
+meu. A ponte que recebe o roteiro escrito por uma IA julgava o tamanho do texto
+com uma régua própria, diferente da régua que o produto usa na hora de fazer o
+filme. Na prática ela dizia "seu roteiro é curto demais, a história vai acabar
+cedo" para roteiros de 140 palavras — que é exatamente o tamanho certo e que
+rendem um filme de 60 segundos completo — e dizia a mesma coisa, com as mesmas
+palavras, para roteiros de 40 palavras que o produto vai **recusar**. O mesmo
+texto errado voltava para o ChatGPT, então a IA repetia o conselho ruim para a
+pessoa. Agora a ponte pergunta a quem decide: ela diz "pronto para 60 segundos",
+ou "vai sair um filme de 45 em vez de 60, e nada foi cortado", ou recusa ali
+mesmo pedindo as palavras que faltam — enquanto a pessoa ainda está conversando
+com a IA, que resolve isso em uma frase, em vez de ela descobrir no Studio
+depois de criar conta. De quebra, um link de roteiro inexistente passou a
+responder "não existe" de verdade, o que devolve controle a qualquer medição
+futura daquela página.
