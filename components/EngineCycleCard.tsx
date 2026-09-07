@@ -12,6 +12,7 @@ import Link from 'next/link'
 import { UiLabel } from '@/components/InterfaceLanguage'
 import { useEffect, useRef, useState } from 'react'
 import type { WallVideo } from '@/lib/engineWall'
+import { heroFrame } from '@/lib/ui/heroFrame'
 
 // Posters estaticos (public/posters) = LCP instantaneo: o frame do video
 // curado aparece no HTML servido, o video faz crossfade por cima ao chegar.
@@ -45,7 +46,7 @@ const META: Record<string, { name: string; desc: string; href: string }> = {
   static_example: { name: 'Kineo sample', desc: 'Kineo-owned finished-video preview', href: '/examples' },
 }
 
-const srcOf = (v: WallVideo) => v.previewUrl ?? v.videoUrl
+const srcOf = (v: WallVideo) => heroFrame(v).src
 
 export default function EngineCycleCard({ videos, index = 0 }: { videos: WallVideo[]; index?: number }) {
   // `active` = indice do video corrente. Slot corrente = active % 2.
@@ -108,6 +109,8 @@ export default function EngineCycleCard({ videos, index = 0 }: { videos: WallVid
     // preso no POSTER estatico. Agora a revelacao e explicita no swap: quem
     // vira corrente ganha .hv-on aqui, tocando ou nao.
     cur?.classList.add('hv-on')
+    // Natural Omni framing uses a clean cut, not a blend of two faces.
+    if (videos[0]?.engine === 'cinematic_omni') old?.classList.remove('hv-on')
     if (old && len > 1) {
       // O slot antigo segura o conteudo ate o crossfade acabar; SO ENTAO
       // recebe o proximo clipe pra pre-carregar (invisivel, opacity 0).
@@ -131,6 +134,7 @@ export default function EngineCycleCard({ videos, index = 0 }: { videos: WallVid
   const v = videos[active % len]
   const meta = META[v.engine]
   if (!meta) return null
+  const frame = heroFrame(v)
 
   const advance = () => { if (len > 1) setActive((a) => a + 1) }
 
@@ -170,7 +174,7 @@ export default function EngineCycleCard({ videos, index = 0 }: { videos: WallVid
         // Blindagem: preview 404 -> tenta o render integral; senao, pula.
         onError={(e) => {
           const el = e.currentTarget
-          if (sv.previewUrl && el.src.includes('/previews/')) {
+          if (sv.previewUrl && srcOf(sv) !== sv.videoUrl && el.src.includes('/previews/')) {
             el.src = sv.videoUrl
             if (isCur) el.play().catch(() => {})
           } else if (isCur) advance()
@@ -183,15 +187,16 @@ export default function EngineCycleCard({ videos, index = 0 }: { videos: WallVid
     <Link
       ref={boxRef}
       href={v.href ?? meta.href}
-      className="ftr ec-ftr"
+      className={`ftr ec-ftr${frame.natural ? ' ec-natural' : ''}`}
+      data-frame={frame.natural ? 'natural-portrait' : 'wide'}
       aria-label={v.engine === 'static_example'
         ? `${v.title} — open the Kineo-owned sample.`
         : `${meta.name} — ${meta.desc}. Open the generator with this engine selected.`}
     >
       <span className="ftr-media">
-        {(v.posterUrl ?? POSTER[v.engine]) && (
+        {(frame.poster ?? POSTER[v.engine]) && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={v.posterUrl ?? POSTER[v.engine]} alt="" className="ec-poster" loading="eager" fetchPriority={index === 0 ? 'high' : 'auto'} />
+          <img src={frame.poster ?? POSTER[v.engine]} alt="" className="ec-poster" loading="eager" fetchPriority={index === 0 ? 'high' : 'auto'} />
         )}
         {started && renderSlot(0)}
         {started && len > 1 && renderSlot(1)}
