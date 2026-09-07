@@ -386,3 +386,124 @@ disso.
 cada, componente novo, e as três coisas que ele não pode mexer sem quebrar um
 guardião (país nulo tem de fechar; preço/créditos vêm da constante; o botão é
 `?pack=` e nunca `?tier=`).
+
+---
+
+### #5 — 16:38→17:38 — a carta passa a sair sozinha
+
+**Press release:** a carta do cartão recusado deixa de depender de alguém
+lembrar de clicar.
+
+**Errado (medido, e é história desta casa):** em 01/09 **dois crons dormiram 30
+dias** porque o `vercel.json` os chamava sem `?confirm=SEND`. A rota rodava,
+decidia "dry run" e devolvia 200. Nada no log dizia que ninguém tinha recebido
+nada. Uma carta que só sai quando alguém aperta um botão é uma carta que não
+existe.
+
+**Mudou — SHA `48bfb7de` · EM PRODUÇÃO.** Entrada de cron para
+`send-card-declined`, com `confirm=SEND` e `limit=30`. O guardião passa a ler o
+`vercel.json` e provar as quatro coisas: existe a entrada, ela leva
+`confirm=SEND`, tem teto de lote, e a agenda é diária (não de minuto em
+minuto).
+
+**Agenda escolhida de propósito: `10 13 * * *` — 13:10 UTC, 10:10 BRT, uma vez
+por dia.** O primeiro disparo é **amanhã de manhã**, depois de você ler este
+diário. Você tem a noite inteira para vetar, e o link de 1 clique se quiser
+disparar antes.
+
+**Testes:** 46/46 (eram 42), cron falsificado por 2 mutantes, 2 mortos.
+
+---
+
+### #6 — 17:38→18:38 — PayPal: o cliente pagava e nunca recebia, sem erro em lugar nenhum
+
+**Press release:** a segunda porta de pagamento deixa de ser uma armadilha. Ela
+continua desligada (falta a conta), mas no dia em que ligar, um erro passageiro
+deixa de significar "o cliente pagou e perdeu o dinheiro".
+
+**Errado.** A auditoria de 28/08 anotou "idempotência invertida (claim antes do
+grant, erro engolido)". Lendo o código inteiro hoje são **cinco** defeitos que
+se compõem — e por isso consertar um só não resolveria:
+
+1. **A marca vinha antes da entrega e nunca era desfeita.** Se a concessão
+   falhasse, a marca ficava; a re-tentativa do PayPal batia em `23505`, lia "já
+   processado" e **pulava a concessão. Para sempre.**
+2. **A concessão engolia o próprio erro** (`console.error` + `void`). E a
+   **leitura** do perfil também: um erro ali virava `?? 0`, e o saldo do
+   cliente seria **reescrito como `0 + créditos`**, apagando o que ele tinha.
+3. **O handler devolvia 200 em qualquer exceção**, com o comentário "grants are
+   idempotent and PayPal hammer-retries 5xx". As duas metades erradas: os
+   grants eram idempotentes na direção que **perde** o pagamento, e o 200 dizia
+   ao PayPal para não tentar mais.
+4. **Tabela ausente (`42P01`) virava "pode conceder".** Sem o livro de
+   idempotência, **toda** re-tentativa concedia de novo — crédito em dobro, o
+   oposto exato do defeito 1.
+5. **A rota de retorno e o webhook dividem as chaves** de `paypal_events`.
+   Consertar só o webhook deixaria o defeito vivo: uma falha na rota de retorno
+   deixaria a marca, e o webhook — que é o caminho de **reserva** para
+   exatamente esse caso — chegaria depois e não concederia nada.
+
+**Mudou — SHA `b11bdabd` · EM PRODUÇÃO** (`POST /api/paypal/webhook` responde
+`400` a uma assinatura inválida). Padrão do webhook da Stripe: liberar o guard
+e devolver 500 para o fornecedor re-tentar. As duas rotas foram curadas juntas.
+
+**A hora de consertar era agora:** as tabelas do PayPal estão **vazias** —
+nenhum cliente passou por esse trilho na história. Dá para consertar sem migrar
+nada e sem tocar em dinheiro que já entrou. No dia do primeiro cliente já seria
+tarde.
+
+**Testes:** `scripts/test-paypal-idempotencia.mjs` — **27/27**, falsificado por
+**5 mutantes, 5 mortos**.
+
+---
+
+### #7 — 18:38→19:38 — o trilho do UPI / RuPay / Pix, nascido desligado
+
+**Press release:** o encanamento do pagamento indiano está no ar. Ele não faz
+nada hoje, e passa a funcionar sozinho no minuto em que as chaves entrarem na
+Vercel — sem mais nenhuma linha de código.
+
+**Mudou — SHA `151a63df` · EM PRODUÇÃO.** Sondas do trilho novo, com controle:
+
+| rota | resposta | esperado |
+|---|---|---|
+| `POST /api/dodo/webhook` | **503** | sem segredo, nada é concedido |
+| `GET /api/dodo/checkout?pack=first_pack` | **503** | e o corpo **nomeia a env que falta** |
+| `POST /api/dodo/webhook-que-nao-existe` (controle) | **404** | prova que o 503 acima é a rota real |
+| `POST /api/paypal/webhook` | **400** | assinatura inválida, do #6 |
+
+O corpo do 503 do checkout: `{"rail":"dodo","mode":"test","missing_env":["DODO_API_KEY_TEST","DODO_PRODUCT_FIRST_PACK_TEST"]}` — **nome da env, nunca o valor.**
+
+**O que entrou:** cliente do Dodo por env; catálogo `sku → tier/créditos/preço`
+**lido de `checkoutPricing`** (zero número digitado, zero `pdt_` cravado — os
+ids de teste do Cowork vão mudar quando o KYC sair); rota de checkout que abre
+sessão; e o webhook, com verificação de assinatura no padrão **Standard
+Webhooks** (HMAC-SHA256 sobre `id.timestamp.corpo`, prefixo `whsec_` removido,
+`timingSafeEqual`, tolerância de ±5 min).
+
+**Três decisões que valem registro:**
+- **Guard antes, liberado depois.** Idempotência por `webhook-id`, gravada
+  **antes** da concessão e **apagada** se a concessão estourar, com 500 para o
+  fornecedor reenviar. É literalmente o passo que faltava no PayPal.
+- **200 em todo tipo desconhecido.** O painel do Dodo assina **todos** os
+  eventos: `credit.*`, `dispute.*`, `refund.*` chegam aqui também. Um 4xx neles
+  geraria reenvio infinito.
+- **Em modo de teste, só contas internas passam.** Chave de teste aceita cartão
+  de teste — sem essa trava, seria crédito de graça para o público enquanto o
+  KYC não sai.
+
+**Bônus do handoff do Cowork:** o Dodo também faz **Pix**. O Brasil tem 5 no
+checkout para 1 pagamento em 30 dias — é o segundo país a ganhar botão quando o
+trilho ligar.
+
+**Testes:** `scripts/test-dodo-trilho.mjs` — **90/90**, falsificado por
+**8 mutantes, 8 mortos**. A migration `dodo_events` **não foi aplicada** de
+propósito: até ela existir o webhook devolve 500 e pede reenvio (falha
+fechada — concessão sem livro de idempotência é como se concede duas vezes).
+
+**⚠️ NÃO PROVADO, e sem rodeio:** nada foi exercitado contra a **API real do
+Dodo**. O formato do `POST /checkouts` e os nomes dos campos do webhook vêm da
+documentação, não de um payload vivo; a assinatura foi conferida contra um HMAC
+de referência meu, não contra um emitido pelo Dodo. E **ainda não existe botão**
+apontando para `/api/dodo/checkout` — isto é o trilho, não a porta. A porta é a
+próxima jogada.
