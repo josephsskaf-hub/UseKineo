@@ -23,6 +23,7 @@ function load(file) {
     if (id === '@/components/InterfaceLanguage') return { useInterfaceLanguage: () => locale }
     if (id.endsWith('.module.css')) return { __esModule: true, default: new Proxy({}, { get: (_, name) => String(name) }) }
     if (id === '@/lib/ui/showcaseGallery') return load('lib/ui/showcaseGallery.ts')
+    if (id === '@/lib/ui/previewFacts') return load('lib/ui/previewFacts.ts')
     throw Error('Unexpected dependency: ' + id)
   }
   vm.runInNewContext(ts.transpileModule(fs.readFileSync(file, 'utf8'), {
@@ -31,6 +32,15 @@ function load(file) {
   return exports
 }
 const policy = load('lib/ui/showcaseGallery.ts')
+const facts = load('lib/ui/previewFacts.ts')
+const validFacts = facts.decodedPreviewFacts(540, 960, 6.04)
+ok(validFacts.resolution === '540 × 960' && validFacts.seconds === 6, 'metadata describes decoded preview, not advertised engine resolution')
+for (const values of [[0,960,6],[540,0,6],[540,960,0],[-1,960,6],[540,960,-1],[Infinity,960,6],[540,960,Infinity],[NaN,960,6],[540,960,NaN],[540.5,960,6]]) {
+  ok(facts.decodedPreviewFacts(...values) === null, 'invalid/unloaded metadata produces no claimed dimensions/duration')
+}
+for (const language of ['en','es','hi']) for (const key of Object.keys(facts.PREVIEW_FACTS_COPY.en)) {
+  ok(Boolean(facts.PREVIEW_FACTS_COPY[language][key]), 'preview facts translation ' + language + '/' + key)
+}
 const Gallery = load('components/TrendingRow.tsx').default
 const original = JSON.stringify(trending)
 const engines = policy.showcaseEngines(trending)
