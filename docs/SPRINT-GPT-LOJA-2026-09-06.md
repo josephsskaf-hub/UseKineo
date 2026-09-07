@@ -2883,3 +2883,21 @@ diferença — as duas telas gravavam exatamente os mesmos campos. Então o regi
 passou a marcar se havia link na tela no momento da impressão. É uma linha, e ela
 impede que a próxima sessão mate uma peça que quase ninguém viu — que é o erro
 que mais se repete nestes diários.
+
+**ADENDO #18b — 04:29 BRT — a entrega subiu, e o que a prova dela exige.**
+`git ls-remote origin main` = `23919b475fad508f7dc6705bb2074f49d5cd5376` (os 2
+commits). Sanidade em produção, com controle na mesma medição:
+
+```
+GET /                                 → 200
+GET /chatgpt                          → 200
+GET /pagina-controle-inexistente-xyz  → 404   (controle)
+```
+
+**Dito sem maquiagem: esta entrega NÃO tem sonda de fora.** O carimbo vive num
+componente de cliente de rota autenticada (`/generate`) — de fora só dá para
+provar que o site está de pé. A prova real é a primeira impressão de gente
+depois do deploy, e ela chega no banco: consulta **(7b)** de
+`docs/queries/PONTE-HANDOFF-FUNIL-2026-09-07.sql` mostra `carimbadas` saindo de
+zero. Enquanto (7b) marcar zero carimbadas, o bundle novo ainda não chegou — e
+a consulta (7) continua sem denominador. As duas entraram no arquivo agora.

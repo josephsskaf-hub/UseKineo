@@ -165,3 +165,39 @@ from events
 where created_at > now() - interval '24 hours'
 group by 1
 order by 1 desc;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- (7) A PORTA DO /chatgpt — JULGADA SO PELO CARIMBO  (KINEO-CARIMBO-CTA, #18)
+-- ═══════════════════════════════════════════════════════════════════════════
+-- O CTA que leva quem colou uma ORDEM de chatbot para a /chatgpt subiu por
+-- volta das 02:00 BRT de 07/09. Impressoes ANTES disso existem no mesmo evento,
+-- com o mesmo `version` (v2) e o mesmo `paste_shape` — e nao tinham link nenhum
+-- na tela. Contar as duas juntas devolve "0 de 8" quando o denominador real e 1.
+-- Corte por relogio inventa defeito; o corte certo e o CAMPO NOVO no payload.
+-- PARADA: com menos de ~20 impressoes carimbadas nao ha veredito — nem para
+-- matar a porta, nem para dizer que ela funciona.
+select
+  date_trunc('day', created_at at time zone 'America/Sao_Paulo')::date as dia,
+  count(*) filter (where name = 'activation_instruction_notice_viewed')            as impressoes_com_link,
+  count(distinct user_id) filter (where name = 'activation_instruction_notice_viewed') as pessoas_com_link,
+  count(*) filter (where name = 'instruction_notice_cta_clicked')                  as cliques,
+  count(distinct user_id) filter (where name = 'instruction_notice_cta_clicked')   as pessoas_que_clicaram
+from events
+where created_at > now() - interval '30 days'
+  and name in ('activation_instruction_notice_viewed', 'instruction_notice_cta_clicked')
+  and metadata ? 'cta_present'                    -- <- o carimbo do deploy
+  and metadata->>'cta_present' = 'true'           -- <- havia link NA TELA
+group by 1
+order by 1 desc;
+
+-- (7b) CONTROLE do mesmo recorte: quantas impressoes ficaram DE FORA por nao
+-- terem o carimbo. Se este numero nao parar de crescer, o bundle novo nao
+-- chegou a producao — e a leitura de (7) continua sem denominador.
+select
+  count(*) filter (where metadata ? 'cta_present')      as carimbadas,
+  count(*) filter (where not (metadata ? 'cta_present')) as sem_carimbo,
+  to_char(max(created_at) filter (where metadata ? 'cta_present') at time zone 'America/Sao_Paulo',
+          'DD/MM HH24:MI')                               as ultima_carimbada
+from events
+where name = 'activation_instruction_notice_viewed'
+  and created_at > now() - interval '30 days';
