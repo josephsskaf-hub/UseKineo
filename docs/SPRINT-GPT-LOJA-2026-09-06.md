@@ -992,3 +992,196 @@ do caminho apareceu um defeito silencioso: quem acabava de criar a conta tinha
 de apertar o mesmo botão outra vez, no momento de maior vontade de continuar.
 Isso acabou. Também ficou provado, com dados de produção, que o caminho de volta
 sobrevive ao login do Google — a dúvida que ficou aberta ontem.
+
+### #7 — 23:22→01:2x — **EM PRODUÇÃO**: a Kineo pôs a porta no ar e não pôs a placa
+
+`origin/main = c1b0c46d`. Dois commits meus dentro: **`92446fae`** (descoberta)
+e **`131a5333`** (o erro que ninguém lia). Fila 0.
+
+#### A PERGUNTA QUE ABRIU A ROTAÇÃO
+
+A #6 provou o caminho com o dedo: link → página com o roteiro → cadastro →
+volta → Studio preenchido. O que ninguém tinha perguntado é o que faz esse
+caminho valer alguma coisa: **como um assistente descobre que o `/make`
+existe?**
+
+Medido: o formato do link vivia em exatamente **dois** lugares — `/llms.txt` e
+o `openapi.json` de um GPT que ainda não está na loja. E o `/llms.txt` está no
+ar desde **26/07**, seis semanas, sem uma única evidência de que algum
+assistente tenha agido a partir dele. Descoberta era **100% do valor** da
+aposta, e era o único pedaço que ninguém tinha olhado.
+
+#### MEDI ANTES DE CONSTRUIR
+
+`gpt_handoffs` inteira: **8 linhas, todas minhas, zero gente** (5 `gpt_store`,
+3 `assistant_link`, 1 delas canário). A peça tem horas de vida — isso não
+condena nada, mas também não autoriza empilhar mais em cima dela sem saber por
+onde a gente entraria.
+
+`grep -rn potentialAction` no repositório inteiro: **zero ocorrências.** O site
+tem JSON-LD em 62 páginas — `Organization`, `SoftwareApplication`, `FAQPage`,
+`HowTo`, `VideoObject` — e **nenhuma delas diz como se ENTRA no produto por
+link**. O `<head>` da raiz tinha um único `<link rel="alternate">`, para o RSS
+de ideias; nenhum para o `/llms.txt`. Um assistente que chega na home precisava
+**adivinhar** que o arquivo existe.
+
+Duas ausências, o mesmo defeito: a porta estava no ar e a placa não.
+
+#### A SONDA QUE EU NÃO CONSTRUÍ, E POR QUÊ
+
+Tentei instrumentar o `/llms.txt` para saber **quem** o busca. Desisti com
+motivo, e o motivo vale mais que a peça: a rota é `dynamic = 'force-static'`
+com `s-maxage=3600` (`app/llms.txt/route.ts:62`, `:502`) — o handler roda no
+máximo **uma vez por hora por região**, então uma sonda dentro dele seria
+**estruturalmente cega** e mentiria com cara de dado. O log da Vercel **não
+carrega user-agent**, então a resposta não é recuperável depois. E o único
+lugar que vê toda requisição é o middleware, que é o caminho quente do site
+inteiro.
+
+A conclusão honesta: **o próprio `/make` já é a sonda.** Se um assistente lê o
+`llms.txt`, a consequência observável é uma linha `assistant_link` com UA de
+gente — que a parada de 14 dias já mede.
+
+#### O QUE ENTROU NO AR (`92446fae`)
+
+* **`potentialAction`** (`CreateAction` + `EntryPoint.urlTemplate`) no
+  `SoftwareApplication` que sai do **layout raiz** — logo, em toda página.
+  Alcance: **187 URLs do sitemap**, contra a superfície única de ontem.
+* O `urlTemplate` é derivado das chaves de query do **próprio exemplo
+  publicado**, filtradas por `k in dl.params`: só entra parâmetro que a rota
+  `/make` valida. Nenhum literal (`'/make'`, `'script='`, motor, 35/60/90/5000).
+* **`<link rel="alternate" type="text/plain" href={LLMS_TXT_PATH}>`** no
+  `<head>`. A constante nasce em `lib/gptHandoff.ts` ao lado de
+  `ASSISTANT_LINK_PATH`, e o `app/robots.ts` passa a usar a **mesma** — a
+  string existe uma vez só.
+
+**A regra de honestidade que governou o schema:** o `result` **não é
+`VideoObject`**, e o guardião trava isso com o porquê escrito no arquivo. O
+link não produz vídeo: guarda o roteiro, abre uma página e **espera um clique
+humano** dentro do Studio. Prometer vídeo no schema seria a vitrine oferecendo
+o que o cobrador recusa. A `description` é `dl.behavior` **verbatim**, e ela
+termina em *"it does not generate anything on its own"*.
+
+#### O SEGUNDO DEFEITO, ACHADO ENQUANTO O PRIMEIRO COMPILAVA (`131a5333`)
+
+`grep -rn handoff_error` devolvia **dois** resultados: a linha que **escreve**
+(`app/make/route.ts:93`) e o guardião que confere que ela escreve. **Zero
+leitores.** Todo link malformado que um assistente montasse jogava a pessoa
+numa página de marketing que não dizia **uma palavra** sobre o que aconteceu —
+e o assistente nunca aprendia que errou.
+
+Agora são **11 frases**, uma por slug, com os limites reais importados da lib e
+nenhum número digitado. Em produção:
+
+```
+/make?script=            -> 302 ...?handoff_error=script_missing
+/make?...&duration=47    -> 302 ...?handoff_error=bad_duration
+frase servida            -> "…longer than the 5,000-character limit — ask your
+                            assistant to trim it, or paste a shorter version below."
+```
+
+**A restrição que mudou o desenho, e a decisão que tomei.** A página é
+`force-static`, e no Next 14.2.5 isso faz o `searchParams` de servidor ser
+**sempre vazio** (`next/dist/client/components/search-params.js:39-42`: *"If we
+forced static we omit searchParams entirely"*). Ler no servidor exigiria
+`force-dynamic` **nesta página de AEO**. Recusei: este ciclo inteiro aposta em
+ser lido por máquina, e trocar latência de crawler por um aviso do caminho de
+erro é mau negócio. O aviso passou a ser lido no cliente, com precedente da
+casa (`ChatGptWelcomeBanner.tsx`). Efeito colateral desejável: crawler nunca
+indexa copy de erro.
+
+E o evento **`gpt_handoff_error_shown`** com o slug: pela primeira vez dá para
+medir **quantos** links malformados os assistentes montam e **quais** erros.
+
+#### DOIS ERROS MEUS NESTA ROTAÇÃO, ditos sem maquiagem
+
+1. **`git checkout --` apagou trabalho não commitado.** Fui remover uma linha
+   minha de `StructuredData.tsx` e o comando levou junto o `potentialAction`
+   inteiro. É **a lição que já está na memória** e eu a repeti. Recuperado da
+   cópia de socorro no scratch. A prática que passa a valer: mutante se desfaz
+   por cópia guardada, nunca por `checkout` num arquivo com edição viva.
+2. **Quase publiquei um `import 'server-only'` que não resolve.** O pacote
+   **não está em `node_modules`** deste projeto — só resolve dentro do bundler
+   do Next — e a linha derrubava justamente o bloco `(E)` do guardião, que é a
+   prova mais valiosa do arquivo (ele **renderiza** o componente e lê o JSON-LD
+   servido). Um guardião que desliga a própria prova para se proteger não
+   protege nada. A trava virou varredura: nenhum arquivo `'use client'` importa
+   o componente, e o importador é o layout raiz — com uma asserção conferindo
+   que o **denominador da varredura não é zero**.
+
+#### PROVAS
+
+Guardiões novos: `test-descoberta-assistente.mjs` **68/0** (o bloco `E`
+transpila o `.tsx`, renderiza com `react-dom/server` e prova a **string final**
+com valor, não com regex) e `test-handoff-error-visivel.mjs` **95/0** (extrai
+os slugs do código real da rota e confere nos **dois** sentidos). Vizinhos na
+**ponta da fila**, não só na worktree: 153 assistant-deep-link · 329
+gpt-handoff · 171/171 chatgpt-script-handoff · 187/187 shorts-ideas-feed ·
+15/15 brand-entity · 313 money-truth · 21 go-auto-forward · 31/31
+comparisons-script-input · `tsc --noEmit` **exit 0**.
+
+**Falsificados com 16 mutantes** ao todo (8 + 8), todos vermelhos. Um deles
+achou um furo no meu próprio regex: a fronteira de palavra não existe entre `0`
+e `s`, então `"60s"` passava batido — corrigido. O obrigatório do segundo: um
+slug **falso** acrescentado na **rota**, sem tocar na página, reprovou — a
+asserção está amarrada ao arquivo real, não a uma cópia.
+
+**Sondas em produção, com UA identificável e controle 404:**
+
+```
+home        urlTemplate = https://www.usekineo.com/make?script={script}&duration={duration}&engine={engine}
+home        "result":{"@type":"CreativeWork", …}        <- o invariante, servido
+home        <link rel="alternate" type="text/plain" href="/llms.txt" title="llms.txt"/>
+/pricing    potentialAction presente (viaja fora da home)
+controle    /pricing-controle-inexistente -> 404
+```
+
+#### MEDIÇÃO (G5) — e a falsificação que ela exigia
+
+`docs/queries/FUNIL-DEEP-LINK-2026-09-07.sql`, com a **regra de unidade**: três
+degraus contam **handoffs** (não há pessoa ainda), três contam **pessoas**.
+Somar os seis é o erro que já custou uma rotação nesta casa.
+
+E o SQL foi **falsificado, não só escrito**: "0 de 0" é indistinguível de
+predicado quebrado, então rodei os **mesmos** predicados contra uma coorte que
+existe — **236 cadastros / 236 com perfil / 157 com filme / 1 pagante em 7
+dias**. Os joins funcionam; os zeros do funil novo são **ausência real de
+gente**.
+
+#### UM FATO QUE CORRIGE UMA NOTA PERMANENTE DO CLAUDE.md
+
+O CLAUDE.md afirma que *"a tabela `events` NUNCA teve um único
+`checkout_payment_failed`"*. **Não é mais verdade**: existem **2 eventos, de 2
+pessoas**, o último em 04/09, com `checkout_payment_failure_enriched` junto.
+Dois eventos não derrubam nada — a conclusão de preço continua de pé, e não
+gastei um minuto reabrindo o que o fundador fechou. Mas a **razão** dada ali
+para desprezar o campo ("nunca teve nenhum") está desatualizada, e quem ler
+aquela linha amanhã precisa saber disso.
+
+#### PARADA (mantida)
+
+Menos de **10 handoffs `assistant_link` de humano** (fora canário e fora as
+duas linhas sujas de 07/09) em 14 dias = a tese "os assistentes leem e entregam
+o link" está errada, e o esforço vai para a loja.
+
+#### PRÓXIMO PASSO
+
+Medir `gpt_handoff_error_shown` — se os assistentes estiverem montando links
+malformados, o slug dominante diz **exatamente** qual frase das instruções do
+GPT está sendo mal lida, e isso conserta o documento em vez de adivinhar.
+
+✅ **O QUE VOCÊ PRECISA FAZER**
+1. **Nada de código.** As duas peças estão no ar e sondadas com controle.
+2. Quando quiser o GPT na loja: `docs/GPT-KINEO-VIDEO-MAKER.md` tem o passo a
+   passo; o portão é a verificação de domínio por DNS, que é mão sua.
+
+📋 **O QUE ACONTECEU**
+A aposta do ciclo dependia de um assistente descobrir sozinho um link que só
+estava escrito num arquivo que quase ninguém pede. Agora o formato do link
+viaja no schema de **todas as 187 páginas** do site — no campo que os leitores
+de máquina já consomem — e o `<head>` finalmente aponta para o `/llms.txt`. No
+caminho apareceu um defeito silencioso: quando um assistente montava um link
+errado, a pessoa caía numa página que não explicava nada e o assistente não
+aprendia; agora explica, com os números certos, e cada erro vira medida. O
+schema foi escrito com a regra de nunca prometer vídeo — porque o link não faz
+vídeo, ele prepara o Studio e espera o clique.
