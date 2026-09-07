@@ -114,14 +114,36 @@ export function shouldShowInstructionPasteNotice(reason: string | null | undefin
   return reason === 'prompt_looks_like_instruction'
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// KINEO-CARIMBO-CTA-2026-09-07 — o evento de IMPRESSAO passa a dizer se havia
+// LINK na tela.
+// ─────────────────────────────────────────────────────────────────────────────
+// Medido no banco de producao ANTES de escrever isto: em 3 dias, OITO pessoas
+// viram `activation_instruction_notice_viewed` com paste_shape=command_to_chatbot
+// e ZERO clicaram no CTA (`instruction_notice_cta_clicked` nao tem uma linha em
+// 14 dias). Lido de fora, "0 de 8" e um veredito de porta morta. Nao e: o CTA
+// subiu por volta das 02:00 BRT de 07/09 e SETE dessas oito viram a tela quando
+// nao havia link nenhum para clicar. O denominador honesto e 1, e 0 de 1 nao
+// prova nada.
+// Nenhum campo do evento separava as duas telas: `version` e o mesmo v2 nas
+// duas (a copy do ramo nao mudou quando o link entrou) e `paste_shape` e de
+// 05/09. Sem carimbo, a proxima sessao le 0/8, conclui "ninguem quer" e mata
+// uma peca que quase ninguem viu.
+// `cta_present` e o carimbo de deploy: `where metadata ? 'cta_present'` recorta
+// exatamente quem recebeu o bundle com o link, sem depender de relogio nenhum.
+// E ele NAO e hardcode — sai do proprio NOTICES pelo ramo classificado, entao
+// mover o CTA de ramo (ou tira-lo) muda o carimbo junto, e o evento nunca passa
+// a mentir sozinho.
 export function instructionPasteNoticeMetadata(shape?: InstructionPasteShape) {
+  const resolved: InstructionPasteShape = shape ?? 'labeled_script'
   return {
     version: INSTRUCTION_PASTE_NOTICE_VERSION,
     reason: 'prompt_looks_like_instruction',
     surface: 'generate_idea',
     // Sem isto o evento nao distingue os dois ramos e a proxima sessao mede a
     // mesma coisa que eu medi hoje: um numero so, para dois defeitos.
-    paste_shape: shape ?? 'labeled_script',
+    paste_shape: resolved,
+    cta_present: Boolean(instructionPasteNoticeFor(resolved).ctaHref),
   } as const
 }
 

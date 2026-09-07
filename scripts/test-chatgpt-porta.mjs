@@ -208,5 +208,28 @@ console.log('4 · a faixa de temporada NAO ganhou porta (2 pessoas/7d — superf
 const faixa = src('components/video/SeasonStrip.tsx')
 check('SeasonStrip.tsx nao aponta para /chatgpt', !faixa.includes('/chatgpt'))
 
+// ─────────────────────────────────────────────────────────────────────────────
+// KINEO-CARIMBO-CTA-2026-09-07 — o evento de IMPRESSAO tem de dizer se havia link.
+// Medido antes de escrever: 8 pessoas viram o ramo command_to_chatbot em 3 dias
+// e 0 clicaram — mas 7 delas viram a tela ANTES do CTA existir. Sem carimbo no
+// payload, a proxima sessao le 0/8 e mata a porta. O carimbo tem de sair do
+// NOTICES (nao de um literal), senao ele mente quando o CTA mudar de ramo.
+console.log('5 · o carimbo cta_present sai do proprio NOTICES e viaja nos DOIS eventos')
+const meta = bloco(regra, 'export function instructionPasteNoticeMetadata')
+check('instructionPasteNoticeMetadata declara cta_present',
+  /cta_present\s*:/.test(meta))
+check('cta_present e DERIVADO do ramo (instructionPasteNoticeFor(...).ctaHref), nunca literal',
+  /cta_present:\s*Boolean\(instructionPasteNoticeFor\(resolved\)\.ctaHref\)/.test(meta) &&
+  !/cta_present:\s*(true|false)\b/.test(meta))
+check('o ramo classificado e resolvido UMA vez e usado nos dois campos (paste_shape e cta_present)',
+  /const resolved: InstructionPasteShape = shape \?\? 'labeled_script'/.test(meta) &&
+  /paste_shape:\s*resolved,/.test(meta))
+check('a IMPRESSAO carrega o carimbo (o evento de view espalha a mesma metadata)',
+  tela.includes("trackEvent('activation_instruction_notice_viewed'") &&
+  tela.includes('...instructionPasteNoticeMetadata(classifyInstructionPaste(explicitPrompt))'))
+check('o CLIQUE carrega o carimbo pela mesma funcao (nao por um objeto paralelo)',
+  tela.includes("trackEvent('instruction_notice_cta_clicked'") &&
+  tela.includes('...instructionPasteNoticeMetadata(classifyInstructionPaste(prompt))'))
+
 console.log(`\n${ok} ok / ${fail} falhas`)
 process.exit(fail ? 1 : 0)

@@ -74,12 +74,20 @@ equal(policy.instructionPasteNoticeMetadata(), {
   reason: 'prompt_looks_like_instruction',
   surface: 'generate_idea',
   paste_shape: 'labeled_script',
+  // KINEO-CARIMBO-CTA-2026-09-07 — carimbo de deploy do CTA. Sem ele, um
+  // evento de 06/09 (tela SEM link) e um de 07/09 (tela COM link) sao
+  // indistinguiveis, e a leitura vira 0/8 quando o denominador real e 1.
+  cta_present: false,
 }, 'metadata is categorical and contains no customer text')
 equal(policy.instructionPasteNoticeMetadata('command_to_chatbot'), {
   version: 'instruction_paste_notice_v2',
   reason: 'prompt_looks_like_instruction',
   surface: 'generate_idea',
   paste_shape: 'command_to_chatbot',
+  // KINEO-CARIMBO-CTA-2026-09-07 — carimbo de deploy do CTA. Sem ele, um
+  // evento de 06/09 (tela SEM link) e um de 07/09 (tela COM link) sao
+  // indistinguiveis, e a leitura vira 0/8 quando o denominador real e 1.
+  cta_present: true,
 }, 'the new branch is measurable and still categorical')
 equal(policy.instructionPromptLengthBand(299), 'under_300', 'short instructions are not mislabeled')
 equal(policy.instructionPromptLengthBand(300), '300_699', 'observed lower band begins at 300')
