@@ -3714,3 +3714,43 @@ que já está no ar: quatro casos catalogados. O meu número descreve o buraco; 
 conserto do buraco já foi entregue por outra mão. A próxima rotação começa
 medindo, não codando.
 
+
+### #21d — 03:20 BRT (07/09) — a confirmação cruzada: a peça da outra pista cai EXATAMENTE em cima da minha coorte cega
+
+O #21c avisou para não reconstruir a ponte de preço. Fui um passo além e
+**confirmei que ela pousa no lugar certo** — que é a única coisa que a outra
+pista não tinha como provar sozinha, porque ela mediu por *evento* e eu medi por
+*caminho*.
+
+**Onde vivem as 166 pessoas que receberam filme e nunca viram um preço:**
+
+| caminho | pessoas cegas (de 166) | eventos |
+|---|---|---|
+| **`/studio/create`** | **166 (100%)** | 7.681 |
+| `/studio` | 100 | 640 |
+| `/` | 45 | 115 |
+| `/history` | 35 | 297 |
+| `/generate` | **não aparece** | — |
+
+`/studio/create` é onde essas pessoas **moram**: 100% delas e 7.681 eventos.
+E `app/(dashboard)/studio/create/page.tsx:30` importa
+`GenerateClient` de `../../generate/GenerateClient` — **o mesmo componente** que
+o `91e2f34b` alterou. A rota `/generate` nunca aparece na coorte; se a peça
+tivesse sido feita numa página `/generate` própria, ela teria nascido sem
+plateia. Não foi o caso: **o conserto cai em cima dos 166.**
+
+**As duas medições são o mesmo buraco, vistas de ângulos diferentes:** eles
+mediram `56 → 19` (fez 2º filme → viu preço) em 7 dias; eu medi `221 → 55`
+(recebeu filme → viu preço) em 14. Os meus 166 não apareceram como "viram
+preço" justamente porque a ponte, **até as 02:32 de hoje**, não mostrava preço
+nenhum — o evento de impressão dela existia e ficava verde enquanto a falta
+seguia invisível.
+
+**A ressalva honesta, para não superestimar:** a ponte tem porta estreita
+(`lib/growth/trialBalanceBridge.ts:218-228`) — exige trial `active`, filme
+entregue no `fast` (Kineo 1), e saldo **na faixa** entre o custo da ponte e o
+custo de um Seedance inteiro. Quem está fora da faixa continua sem ver preço
+por ali. A impressão da ponte alcançava 76 pessoas em 7 dias; a minha coorte
+cega é de 166 em 14. **A peça cobre parte do buraco, não o buraco inteiro** — e
+o resto do buraco é para depois de medir a adoção, nunca antes.
+
