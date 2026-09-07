@@ -345,3 +345,166 @@ disso a tela passa a reconhecer o download e a falar com a pessoa certa, sem
 caixa nova, sem mexer em preço e sem tocar no download grátis. E, medindo por
 tier, achei algo que contraria o instinto: o plano de $29 converte 21% e o de
 $15 converte 3% — e a casa manda 62% das pessoas para o de $15.
+
+### #3 — 16:39→17:05 — A ORDEM DO FUNDADOR ERA MEIA POLÍTICA, E A OUTRA METADE NÃO SABIA ENTREGAR O QUE IA VENDER
+
+**ERRADO (medido antes do deploy, 7 dias, contas externas, `trial_status='active'`):**
+
+| export_type que o cliente registrou | downloads | pessoas |
+|---|---|---|
+| `watermarked` | 31 | 22 |
+| `clean` | **29** | **16** |
+
+E o motor por trás dos 29 limpos (cruzando as mesmas pessoas com `videos`, 7d,
+`status='completed'`): **`fast` 17 · `cinematic_ai` 13 · premium ZERO.**
+
+A política KINEO-TETO — "o trial recebe o filme, o plano recebe o export
+limpo" — existia **pela metade**. Em `app/api/compose/route.ts`,
+`isTrialRender` só era atribuído dentro do ramo `else // quality === 'fast'`.
+O ramo `cinematic_ai` (Seedance 1.5, o motor de metade das primeiras
+impressões da casa) **nunca o preenchia**, então ele chegava ao builder como
+`false` por omissão — não por decisão. Ninguém escreveu "o Seedance do trial
+sai limpo"; simplesmente não havia linha nenhuma dizendo o contrário.
+
+**O SEGUNDO DEFEITO, QUE NINGUÉM TINHA VISTO, E ESSE CUSTA DINHEIRO AO
+CONTRÁRIO:** o predicado era `isTrialRender = ent.isTrial` puro. O **trial de
+$1** (o que subiu hoje às 15:43, `plan='basic'` + assinatura `trialing`)
+satisfaz **os dois** lados: é conta paga **e** é trial ativo. Quem acabou de
+pôr o cartão recebia marca d'água no filme que comprou.
+
+**MUDOU — EM PRODUÇÃO, SHA `9f2822b0`** (fila 0, `git ls-remote origin main`
+confirmado; controle de sonda 404 numa rota irmã inexistente, `/api/compose` e
+`/api/compose/unlock` respondendo 401, home 200).
+
+1. **`app/api/compose/route.ts`** — o ramo `cinematic_ai` passa a decidir, e o
+   ramo `fast` ganha o mesmo termo: `ent.isTrial && !ent.isPaidAccount`.
+   `isPaidAccount` sai do **mesmo** `getEffectiveEntitlement` que já decide
+   crédito, clamp e cota — o predicado do cobrador não se redigita.
+2. **A decisão de marca d'água virou UMA variável** (`watermarkApplied`),
+   resolvida uma vez, lida pelo builder **e devolvida na resposta**.
+3. **`app/api/compose/unlock/route.ts` — O PAR OBRIGATÓRIO, e a parte que quase
+   virou promessa quebrada.** A rota remontava o filme limpo **sempre** com
+   `quality: 'fast'`. Só que `quality` **não é rótulo** em `lib/compose.ts`: é
+   `isFastStock`, e ele decide corte de 6/9s **com reciclagem de clipe**,
+   grade, glow e letterbox de estoque. Um Seedance (clipes únicos de 10s)
+   remontado como `'fast'` volta **com outra montagem** — mais curta e com
+   clipe repetido. Enquanto só o Kineo 1 saía marcado isso nunca aparecia; a
+   partir do instante em que o Seedance do trial sai marcado, o botão
+   "Download clean" passaria a **vender um filme e entregar outro**. As duas
+   metades subiram no MESMO commit: whitelist `REBUILD_QUALITIES =
+   {fast, cinematic_ai}` (as duas que o builder clássico monta). Custo 0,
+   claim assinado e rótulos da resposta: **intocados, byte a byte**.
+4. **`GenerateClient.tsx`** — a tela parou de adivinhar.
+   `currentResultHasWatermark` reconstruía no navegador a decisão do servidor
+   (`quality === 'fast' && !falUsedRef`) e, a partir deste commit,
+   **continuaria jurando que o filme está limpo**. Consequência medível:
+   `video_downloaded.export_type` rotularia `'clean'` um download COM marca — a
+   própria série que usei para achar este defeito ficaria cega. Agora
+   `watermark` viaja na resposta e manda; o predicado antigo sobrevive só como
+   fallback para o que o servidor não contou (sessão restaurada, render
+   anterior ao deploy).
+
+**O QUE O CLIENTE VÊ:** quem está em trial e gera um Seedance recebe o filme
+inteiro, na hora, de graça — **com a marca d'água**, como já acontecia com o
+Kineo 1. O download grátis continua **primeiro e sem pedágio**
+(KINEO-DELIVER-FIRST). A caixa que já existe na tela de filme pronto
+(`showTrialPostVideoOffer`, entregue pela pista de fluxo) passa sozinha a
+oferecer o export limpo: ela já consultava `currentResultHasWatermark` em
+`trialPrimaryUnlocksCurrentFilm` e recebia `false` de todo Seedance.
+**Nenhuma caixa nova foi criada** — a casa já pagou uma vez o preço de dois
+cartões azuis gêmeos e adjacentes.
+
+**PREMIUM CONTINUA LIMPO NO TRIAL, DE PROPÓSITO.** Kling 3 / Veo / H3 / Omni /
+S25 têm narração **por cena** e são montados por
+`buildHollywoodCreatomateSource` — o unlock não sabe remontá-los, e marcar sem
+saber desmarcar seria repetir a promessa quebrada. **Não é buraco aberto: são
+ZERO renders premium de trial em 7 dias.** A resposta hollywood já devolve
+`watermark: forced` sem mentir. Dívida registrada no PEDIDOS.
+
+**TESTES:** `scripts/test-trial-watermark.mjs` **49/49**. Ele não conta texto:
+**extrai as expressões que decidem do próprio arquivo e as avalia** contra uma
+tabela-verdade de 4 linhas por ramo (trial não-pago → marca; trial de $1 → sem
+marca; free sem trial e assinante → o termo não decide). Vizinhos intactos:
+`test-post-download-ask` 34/34, `test-post-delivery-silence` 19/19,
+`test-plan-fit` 394/394. `tsc --noEmit` verde (com junction de `node_modules` —
+sem ela o `npx tsc` mente com exit 0).
+**Mutação: 5 mutantes, 5 vermelhos**, e cada um **provou que aplicou**
+comparando o conteúdo do arquivo antes/depois antes de rodar — M1 inverte o
+termo do pagante, M2 devolve a decisão ao builder, M3 volta a cravar `'fast'`
+no unlock, M4 tira a precedência do servidor na tela, M5 apaga um dos três
+resets.
+
+**RISCO DECLARADO:** o primeiro filme grátis de Seedance deixa de ser postável
+limpo. É a ordem explícita do fundador e é o par do KINEO-TETO — se um dia for
+revertido, reverter os dois juntos.
+
+**LIMITE HONESTO DA PROVA:** `/api/compose` é autenticado e o campo novo só
+nasce num render real. Provado de fora: SHA na ponta, fila 0, sonda 401 com
+controle 404 na mesma medição, guardião verde e 5 mutantes vermelhos. O
+comportamento se prova no contador abaixo — não antes.
+
+**COMO MEDIR (corte pelo CARIMBO, nunca pelo relógio):**
+
+```sql
+select coalesce(e.metadata->>'export_type','(sem rotulo)') export_type,
+       v.quality_mode, count(*) n, count(distinct e.user_id) pessoas
+from events e
+join profiles p on p.id = e.user_id
+left join videos v on v.user_id = e.user_id
+     and v.created_at between e.created_at - interval '2 hours' and e.created_at
+where e.name = 'video_downloaded'
+  and e.created_at > '2026-09-07 20:00:00+00'::timestamptz
+  and p.trial_status = 'active'
+group by 1,2 order by n desc;
+```
+
+Alvo: `clean` em `cinematic_ai` de trial → **0**. E o número que paga a conta:
+`checkout_started` com origem `generate_watermark_unlock` vindo de trial, e
+`payment_success` atrás dele.
+
+**PLACAR DE FECHAMENTO (30d, pessoas, contas externas):** `video_ready_viewed`
+431 → `video_download_clicked` 225 → `video_downloaded` 193 →
+`checkout_started` 107 → `payment_success` 6.
+⚠️ *Correção de nome, para a próxima rotação não repetir:* a etapa que o
+cardápio chama de "download_clicked" é **`video_download_clicked`** no banco.
+Rodada com o nome curto ela devolve **0 pessoas** e parece colapso do funil —
+é chave inexistente, não queda.
+
+**CHECAGEM ZERO (24h):** render preso 0 · recusa de cartão sem dono 0 ·
+cadastro com crédito zero 12, **todos explicados**: 6 `trial_status='blocked'`
+(antifraude) e 6 `downgraded` (trial gasto). Nenhum trial órfão.
+**149 trials ativos agora** — é essa a plateia que a mudança alcança.
+
+**PRÓXIMA JOGADA, e ela não é mais marca d'água.** O achado da rotação #2 diz
+que **Studio $29 converte 21% e Creator $15 converte 3%**, com 62% do fluxo
+despejado no Creator. O achado desta diz que **ZERO trials tocam em motor
+premium**. As duas coisas são a mesma frase: **a casa vende o topo do catálogo
+para gente que nunca viu o topo do catálogo.** A jogada é dar ao trial **um**
+render premium de cortesia (Kling 3 ou S25, uma vez só, com marca d'água e sem
+opção de unlock — a limitação de hoje vira *feature*, não dívida): quem vê um
+filme de $29 sair da própria ideia não precisa que a tela explique o degrau.
+~$11 de fal por trial é caro demais como padrão — mas como **prêmio pelo
+SEGUNDO filme entregue** ele só aparece para quem já provou intenção, que é
+exatamente o perfil da coorte de 21%. Medir antes de construir: quantos trials
+chegam ao segundo render entregue em 30 dias, e quanto custaria o prêmio nessa
+fatia.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+1. Nada. A entrega subiu sozinha (SHA `9f2822b0`, fila 0).
+
+### 📋 O QUE ACONTECEU
+Você mandou ligar a marca d'água no trial. Ao abrir o código, a política estava
+escrita só pela metade: o Kineo 1 saía marcado, o Seedance saía limpo — e não
+por decisão, por uma linha que nunca foi escrita. Em 7 dias isso deu 29 filmes
+entregues limpos a quem não pagou. Consertei, e no caminho achei o defeito
+espelhado: quem assinou o trial de **$1 hoje** estava recebendo marca d'água no
+filme que **comprou** — os dois eram o mesmo predicado mal escrito. O que quase
+virou problema maior: ao ligar a marca, o botão "Download clean" iria
+**devolver outro filme** — a rota de desbloqueio remontava tudo com o ritmo do
+Kineo 1 (cortes curtos, clipe repetido). Vender limpo e entregar diferente é
+promessa que a casa não sabe cumprir, então as duas metades subiram juntas. O
+download grátis com marca continua primeiro e sem pedágio. Os motores caros
+(Kling 3, Veo) seguem saindo limpos no trial de propósito — e isso não custa
+nada hoje: **nenhum trial usou motor premium em 7 dias**. Esse último número é
+a próxima jogada: a casa vende o plano de $29, que converte 21%, para gente que
+nunca viu o que ele faz.
