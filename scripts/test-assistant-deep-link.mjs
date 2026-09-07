@@ -169,7 +169,8 @@ check('(B3) parseAssistantLinkQuery não contém regra própria (sem SCRIPT_MAX_
 check('(B4) handoffPayloadHash usa createHash(sha256) de node:crypto', /import \{ createHash \} from 'node:crypto'/.test(libCode) && /export function handoffPayloadHash\(input: HandoffInput, channel: HandoffChannel\): string \{[\s\S]*?createHash\('sha256'\)/.test(libCode))
 check('(B4) o hash serializa as chaves em ORDEM FIXA (array de pares, não o objeto)', /JSON\.stringify\(\[\s*\['channel', channel\],\s*\['script', input\.script\]/.test(libCode))
 check("(B5) ASSISTANT_LINK_PATH = '/make' na lib (única fonte)", /export const ASSISTANT_LINK_PATH = '\/make'/.test(libCode))
-check('(B5) a lib importa só @/lib/aspect e node:crypto (continua sem banco/rede)', [...lib.matchAll(/^import [^\n]* from '([^']+)'/gm)].map((m) => m[1]).every((s) => s === '@/lib/aspect' || s === 'node:crypto'))
+// KINEO-GPT-VERDADE-2026-09-07: @/lib/narrationFit entrou (o cobrador; puro, zero import).
+check('(B5) a lib importa só @/lib/aspect, @/lib/narrationFit e node:crypto (continua sem banco/rede)', [...lib.matchAll(/^import (?:\{[^}]*\}|[^\n{]*) from '([^']+)'/gm)].map((m) => m[1]).every((s) => s === '@/lib/aspect' || s === '@/lib/narrationFit' || s === 'node:crypto'))
 
 // ═══ (C) app/make/route.ts ══════════════════════════════════════════════════
 const makePath = path.join(ROOT, MAKE)

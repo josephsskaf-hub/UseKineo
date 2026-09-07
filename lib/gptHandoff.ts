@@ -11,10 +11,11 @@
 // clica UMA vez. O token é o portador durável do roteiro: sobrevive ao
 // cadastro, ao OAuth, ao e-mail e à troca de aparelho — a query de URL não.
 //
-// Este arquivo é PURO de propósito: zero banco, zero rede. Dois imports, e só:
-// lib/aspect.ts (puro) e `node:crypto` (builtin, para o hash determinístico do
-// payload — KINEO-ASSISTANT-LINK abaixo). Todo o vocabulário (motores, réguas,
-// tetos, TTL) mora aqui, e scripts/test-gpt-handoff.mjs EXECUTA estas funções
+// Este arquivo é PURO de propósito: zero banco, zero rede. Três imports, e só:
+// lib/aspect.ts (puro), lib/narrationFit.ts (puro — o COBRADOR, ver
+// KINEO-GPT-VERDADE abaixo) e `node:crypto` (builtin, para o hash
+// determinístico do payload — KINEO-ASSISTANT-LINK abaixo). Todo o vocabulário
+// (motores, réguas, tetos, TTL) mora aqui, e scripts/test-gpt-handoff.mjs EXECUTA estas funções
 // (Node 24 despe os tipos; o alias `@/` é resolvido por um hook do próprio
 // guardião) além de ler o texto das rotas. Nunca cria conta, nunca debita
 // crédito, nunca chama fornecedor — a rota que consome isto também não.
@@ -38,6 +39,12 @@
 // outro é meia-verdade. Daqui em diante a lista vem de lib/aspect.ts e o
 // guardião reprova qualquer cópia local.
 import { ASPECTS, DEFAULT_ASPECT, aspectSpec, normalizeAspect, type Aspect } from '@/lib/aspect'
+import {
+  AUTOFIT_DOWN_FLOOR_SECONDS,
+  AUTOFIT_DOWN_FLOOR_SECONDS_HOLLYWOOD,
+  autofitDown,
+  narrationFit,
+} from '@/lib/narrationFit'
 import { createHash } from 'node:crypto'
 
 /** Reexportados para quem já importava daqui (página /go, rotas): os nomes
@@ -233,6 +240,87 @@ export function describeFit(est: Pick<HandoffEstimate, 'fit' | 'seconds' | 'word
     return `About ${s}s of narration for a ${durationSec}s video — expect a longer film than the ${durationSec}s target, or trim a little.`
   }
   return `About ${s}s of narration (${est.words} words) — a good fit for a ${durationSec}s video. Running a bit over the target is fine.`
+}
+
+// ═══ KINEO-GPT-VERDADE-2026-09-07 — o VEREDITO vem de quem cobra ═══════════
+//
+// O DEFEITO (medido 07/09): `estimateHandoff` acima REDIGITOU a régua. Ela
+// mede com 3,1/2,3 pal/s e chama de 'short' tudo abaixo de 95% — mas quem
+// decide o destino do roteiro é lib/narrationFit.ts (chamada por
+// app/api/generate-video-cinematic/route.ts e pelo preflight do Studio):
+// UMA taxa, 2,3 pal/s, cobertura mínima 0,95, e quando não enche, `autofitDown`
+// DESCE o alvo (cobertura ≥ 0,60 e alvo descido ≥ piso) em vez de recusar.
+//
+// Aritmética, motor clássico, alvo 60s: a régua daqui exige 0,95·60·3,1 = 177
+// palavras para dizer 'ok'; o cobrador exige 0,95·60·2,3 = 131. Um roteiro de
+// 140-165 palavras — a regra da casa — era marcado 'short' e a página /go
+// dizia "the story may end early", sendo que ele renderiza 60s redondos. E na
+// direção perigosa: 40 palavras para 60s eram só 'short' aqui e viravam
+// RECUSA no Studio depois do cadastro.
+//
+// A régua por voz (WORDS_PER_SECOND_CLASSIC / _HOLLYWOOD) FICA: ela dimensiona
+// o ORÇAMENTO de palavras que o prompt pede ao assistente (pasteWordBudget) e
+// o `fit` informativo — "padronizar os dois no mesmo número quebra um lado"
+// (CLAUDE.md 02/09). O que muda é só o VEREDITO: ele passa a ser calculado
+// pelas MESMAS funções do cobrador, nunca por uma cópia da conta.
+//
+// Regra da casa: "predicado do cobrador não se redigita". Se narrationFit
+// mudar, isto muda junto, sem ninguém precisar lembrar.
+export type HandoffOutcomeKind = 'at_target' | 'shorter_film' | 'too_short'
+export interface HandoffOutcome {
+  kind: HandoffOutcomeKind
+  /** segundos de filme que a pessoa vai receber de fato */
+  effectiveSeconds: number
+  /** o que ela pediu */
+  requestedSeconds: number
+  /** palavras que faltam para encher o alvo pedido; 0 quando cabe */
+  missingWords: number
+  /** true quando pediu >=60s e o filme sai <60s (sai do TikTok Creator Rewards) */
+  lost60sFloor: boolean
+}
+
+/** O piso da descida é o do CAMINHO que o motor percorre no servidor: o
+ *  planner hollywood trava o alvo em Math.max(30, …) (route.ts), o clássico
+ *  não. Mesma escolha que a rota faz com `hollywoodPath`. */
+export function autofitFloorFor(engine: HandoffEngine): number {
+  return engineFamily(engine) === 'hollywood' ? AUTOFIT_DOWN_FLOOR_SECONDS_HOLLYWOOD : AUTOFIT_DOWN_FLOOR_SECONDS
+}
+
+export function handoffOutcome(script: string, durationSec: HandoffDuration, engine: HandoffEngine): HandoffOutcome {
+  const fit = narrationFit(script, durationSec)
+  if (fit.ok) {
+    return { kind: 'at_target', effectiveSeconds: durationSec, requestedSeconds: durationSec, missingWords: 0, lost60sFloor: false }
+  }
+  const descida = autofitDown(script, durationSec, { floorSeconds: autofitFloorFor(engine) })
+  if (descida.applied) {
+    return {
+      kind: 'shorter_film',
+      effectiveSeconds: descida.effectiveSeconds,
+      requestedSeconds: durationSec,
+      missingWords: 0,
+      lost60sFloor: descida.lost60sFloor,
+    }
+  }
+  return {
+    kind: 'too_short',
+    effectiveSeconds: durationSec,
+    requestedSeconds: durationSec,
+    missingWords: fit.missingWords,
+    lost60sFloor: false,
+  }
+}
+
+/** A frase para a pessoa (página /go, resposta da Action). Diz o que VAI
+ *  acontecer, não o que a régua achou. */
+export function describeOutcome(o: HandoffOutcome): string {
+  if (o.kind === 'at_target') return `Ready for a ${o.requestedSeconds}-second film.`
+  if (o.kind === 'shorter_film') {
+    const base =
+      `This script fills about ${o.effectiveSeconds} seconds, so Kineo will make it a ${o.effectiveSeconds}-second film instead of ${o.requestedSeconds}. ` +
+      `Nothing gets cut — the target shrinks to fit your script.`
+    return o.lost60sFloor ? `${base} Films under 60 seconds don't qualify for TikTok's Creator Rewards.` : base
+  }
+  return `This script is too short for a ${o.requestedSeconds}-second film — Kineo would refuse it. Add about ${o.missingWords} more words, or ask for a shorter video.`
 }
 
 // ─── Validação da entrada da ação ───────────────────────────────────────────

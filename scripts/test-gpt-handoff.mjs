@@ -77,12 +77,15 @@ const ASPECT_DEFAULT = strFrom(aspectLib, 'DEFAULT_ASPECT')
 console.log('\n(A) lib/gptHandoff.ts executada')
 {
   // KINEO-ASSISTANT-LINK-2026-09-06: o hash de idempotência trouxe `node:crypto`
-  // (builtin — zero banco, zero rede). Continua puro; a lista de módulos do
-  // PROJETO que a lib pode importar segue sendo UMA: @/lib/aspect.
-  const libImports = [...lib.matchAll(/^import [^\n]* from '([^']+)'/gm)].map((m) => m[1])
+  // (builtin — zero banco, zero rede). KINEO-GPT-VERDADE-2026-09-07: o veredito
+  // passou a vir de @/lib/narrationFit (o cobrador, puro — zero import). A
+  // lista de módulos do PROJETO que a lib pode importar é FECHADA: esses dois.
+  const PURE_ALLOWED = ['@/lib/aspect', '@/lib/narrationFit']
+  const libImports = [...lib.matchAll(/^import (?:\{[^}]*\}|[^\n{]*) from '([^']+)'/gm)].map((m) => m[1])
   const projectImports = libImports.filter((s) => !s.startsWith('node:'))
-  ok(projectImports.length === 1 && projectImports[0] === '@/lib/aspect' && libImports.every((s) => s === '@/lib/aspect' || s === 'node:crypto'), `(A0) a lib importa UM módulo do projeto, @/lib/aspect, e no máximo o builtin node:crypto (achados: ${libImports.join(', ') || 'nenhum'}) — o resto continua puro`)
+  ok(sameSetTop(projectImports, PURE_ALLOWED) && libImports.every((s) => PURE_ALLOWED.includes(s) || s === 'node:crypto'), `(A0) a lib importa SÓ @/lib/aspect e @/lib/narrationFit do projeto, e no máximo o builtin node:crypto (achados: ${libImports.join(', ') || 'nenhum'}) — o resto continua puro`)
   ok(!/^\s*import\s/m.test(aspectLib), '(A0) lib/aspect.ts é pura: zero import (é o que permite executar as duas aqui)')
+  ok(!/^\s*import\s/m.test(read('lib/narrationFit.ts')), '(A0) lib/narrationFit.ts é pura: zero import (o cobrador não traz banco nem rede para a lib)')
 }
 let L = null
 try {
@@ -271,11 +274,16 @@ ok(/if \(!bot\) await markHandoffViewed\(token\)/.test(page) && /\.is\('viewed_a
 ok(/const goHref = `\/api\/gpt\/handoff\/go\?token=\$\{encodeURIComponent\(token\)\}`/.test(page) && /<a href=\{goHref\}[\s\S]*?Make this video/.test(page), '(D3) "Make this video" é LINK para /api/gpt/handoff/go?token= (o clique passa pelo servidor)')
 ok(!/href=\{?["'`]\/studio\/create/.test(page), '(D3) a página NÃO linka o Studio direto (senão o clique não conta)')
 ok(/\{row\.script\}/.test(page) && /whiteSpace: 'pre-wrap'/.test(page), '(D4) roteiro COMPLETO como texto (React escapa; pre-wrap)')
-ok(/\{headline\}/.test(page) && /handoffHeadline\(row\)/.test(page) && /\{row\.duration_sec\}s video/.test(page) && /\{engineLabel\} engine/.test(page) && /\{fitLine\}/.test(page) && /describeFit\(/.test(page), '(D4) mostra tópico/manchete, duração, motor e a estimativa em inglês')
-ok(/if \(found\.expired\) return <Expired reason="expired" \/>/.test(page) && /if \(found\.status === 'missing'\) return <Expired reason="missing" \/>/.test(page), '(D5) vencido/inexistente → página honesta')
+// KINEO-GPT-VERDADE-2026-09-07: a frase vem do COBRADOR (describeOutcome ∘
+// handoffOutcome), recalculada do roteiro — não mais de describeFit/row.fit.
+ok(/\{headline\}/.test(page) && /handoffHeadline\(row\)/.test(page) && /\{row\.duration_sec\}s video/.test(page) && /\{engineLabel\} engine/.test(page) && /\{fitLine\}/.test(page) && /describeOutcome\(handoffOutcome\(row\.script, duration, engine\)\)/.test(page), '(D4) mostra tópico/manchete, duração, motor e o veredito do cobrador em inglês')
+// `missing` virou notFound() de verdade (404 com o mesmo visual, via
+// not-found.tsx); `expired`/`unavailable` continuam 200 — ver page.tsx.
+const notice = read('app/go/[token]/HandoffNotice.tsx')
+ok(/if \(found\.expired\) return <Expired reason="expired" \/>/.test(page) && /if \(found\.status === 'missing'\) notFound\(\)/.test(page), '(D5) vencido → página honesta (200); inexistente → notFound() (404 de verdade)')
 ok(/if \(found\.status === 'unavailable'\) return <Expired reason="unavailable" \/>/.test(page), '(D5) banco fora → "temporarily unavailable", nunca 404 nem 500')
-ok(/<Link href="\/studio\?utm_source=chatgpt_gpt[^"]*" style=\{BUTTON\}>\s*\n\s*Open the Studio/.test(page), '(D5) botão para /studio na página de expirado')
-ok(/if \(!isHandoffToken\(token\)\) return <Expired reason="missing" \/>/.test(page), '(D5) token fora do padrão não toca o banco')
+ok(/<Link href="\/studio\?utm_source=chatgpt_gpt[^"]*" style=\{BUTTON\}>\s*\n\s*Open the Studio/.test(notice), '(D5) botão para /studio na página de expirado (HandoffNotice, compartilhado com not-found.tsx)')
+ok(/if \(!isHandoffToken\(token\)\) notFound\(\)/.test(page), '(D5) token fora do padrão não toca o banco (e é 404)')
 ok(/const pricingHref = `\/api\/gpt\/handoff\/pricing\?token=/.test(page) && /<a href=\{pricingHref\}[\s\S]*?See plans/.test(page), '(D6/K1) "See plans" visível, via rota contadora')
 ok(/overStudioLimit && \(/.test(page) && /row\.script\.length > STUDIO_PROMPT_MAX_CHARS/.test(page), '(D7) aviso quando o roteiro passa do teto do Studio (5.000)')
 ok(!/<style|className=/.test(page) && (page.match(/style=\{\{/g) || []).length >= 8, '(D8) sem CSS novo: só inline style no padrão de app/revive')
@@ -436,9 +444,10 @@ console.log('\n(J) public/gpt/openapi.json amarrado ao servidor')
     ok(req.topic?.maxLength === TOPIC_MAX, `(J4) topic.maxLength = ${req.topic?.maxLength} === TOPIC_MAX_CHARS (${TOPIC_MAX})`)
 
     // (J5) tudo que a resposta REAL devolve está documentado. A lista é a
-    // resposta literal de produção de 06/09 (curl HTTP 200), e o bloco
-    // `return json({...})` do route.ts tem de bater com ela também.
-    const GROUND_TRUTH = ['url', 'token', 'expiresAt', 'words', 'seconds', 'fit', 'fitMessage', 'durationSec', 'engineHint', 'aspect', 'language', 'overStudioLimit', 'studioLimitChars']
+    // resposta literal de produção de 06/09 (curl HTTP 200) + `outcome` e
+    // `outcomeMessage` (KINEO-GPT-VERDADE-2026-09-07, o veredito do cobrador),
+    // e o bloco `return json({...})` do route.ts tem de bater com ela também.
+    const GROUND_TRUTH = ['url', 'token', 'expiresAt', 'words', 'seconds', 'fit', 'fitMessage', 'outcome', 'outcomeMessage', 'durationSec', 'engineHint', 'aspect', 'language', 'overStudioLimit', 'studioLimitChars']
     for (const k of GROUND_TRUTH) ok(Boolean(res[k]?.type), `(J5) resposta real devolve \`${k}\` → documentado em HandoffResponse.properties`)
     // O bloco de SUCESSO é o último `return json({` antes do catch — o que
     // carrega `url:`. É o único MULTI-LINHA; os `return json({ error … }, NNN)`

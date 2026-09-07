@@ -8,7 +8,9 @@ import {
   RATE_LIMIT_PER_IP_PER_HOUR,
   STUDIO_PROMPT_MAX_CHARS,
   describeFit,
+  describeOutcome,
   estimateHandoff,
+  handoffOutcome,
   handoffPayloadHash,
   validateHandoffInput,
   type HandoffChannel,
@@ -38,10 +40,16 @@ const CHANNEL: HandoffChannel = 'gpt_store'
 // crédito, não chama fornecedor, não toca em nenhum pipeline de vídeo. É uma
 // caixa postal com prazo de 7 dias.
 //
-// A RÉGUA NÃO REJEITA, AVISA. São DUAS réguas (clássico 3,1 pal/s, hollywood
-// 2,3 pal/s — lib/gptHandoff.ts) e o veredito `fit` volta no JSON para o GPT
-// mostrar à pessoa. "Passar do alvo é bom; ficar abaixo é defeito" (CLAUDE.md
-// 02/09) — por isso o piso é 95% e o teto 160%.
+// A RÉGUA POR VOZ AVISA; O COBRADOR DECIDE (KINEO-GPT-VERDADE-2026-09-07).
+// `fit`/`fitMessage` continuam vindo das DUAS réguas (clássico 3,1 pal/s,
+// hollywood 2,3 pal/s — lib/gptHandoff.ts) como informação de orçamento. O
+// VEREDITO — `outcome`/`outcomeMessage` — vem de `handoffOutcome`, que chama
+// as mesmas funções de lib/narrationFit.ts que o Studio usa antes de gastar.
+// Só um caso é recusado aqui, e é o único que o Studio recusaria depois:
+// `too_short` (a fala não enche nem com a descida de alvo). Recusar na porta,
+// onde a pessoa ainda está numa conversa com a IA que conserta em um turno, é
+// infinitamente melhor que recusar no Studio depois do cadastro. Nada é
+// gravado nesse caso — link que morreria no destino não vira linha.
 //
 // Rate limit contado no BANCO (memória de lambda mente entre instâncias), com
 // falha ABERTA: contador que não responde não barra o funil. O que barra é a
@@ -99,8 +107,14 @@ export async function POST(req: NextRequest) {
       return json({ error: 'Kineo is receiving a lot of scripts right now. Try again in a few minutes.' }, 429)
     }
 
-    // ── 3. A régua (aviso, não veredito)
+    // ── 3. A régua (aviso) e o veredito (do cobrador)
     const est = estimateHandoff(input.script, input.durationSec, input.engineHint)
+    const outcome = handoffOutcome(input.script, input.durationSec, input.engineHint)
+    if (outcome.kind === 'too_short') {
+      // Sem linha, sem link: o Studio recusaria este roteiro para esta
+      // duração, e a pessoa descobriria só depois do cadastro.
+      return json({ error: describeOutcome(outcome), outcome }, 400)
+    }
 
     // ── 4. A linha — ou a linha que JÁ EXISTE para este payload.
     // KINEO-ASSISTANT-LINK-2026-09-06: o mesmo roteiro reenviado pela Action
@@ -166,6 +180,10 @@ export async function POST(req: NextRequest) {
         has_topic: Boolean(input.topic),
         script_chars: input.script.length,
         markers_found: est.markersFound,
+        // KINEO-GPT-VERDADE: o veredito do cobrador, para medir quantos links
+        // nascem para um filme mais curto que o pedido (sem coluna nova).
+        outcome: outcome.kind,
+        effective_seconds: outcome.effectiveSeconds,
         over_studio_limit: input.script.length > STUDIO_PROMPT_MAX_CHARS,
         bot: false,
         channel: CHANNEL,
@@ -184,6 +202,9 @@ export async function POST(req: NextRequest) {
       seconds: est.seconds,
       fit: est.fit,
       fitMessage: describeFit(est, input.durationSec),
+      // O veredito de quem cobra — o que a pessoa vai RECEBER (ver o cabeçalho).
+      outcome,
+      outcomeMessage: describeOutcome(outcome),
       durationSec: input.durationSec,
       engineHint: input.engineHint,
       aspect: input.aspect,

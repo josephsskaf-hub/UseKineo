@@ -28,7 +28,7 @@
         },
         "responses": {
           "200": {
-            "description": "Link created. Show `url` to the user verbatim and say it is valid for 7 days. Then ONE line about cost, conditioned on `durationSec` and `engineHint` in this response: if durationSec is 35 or 60 and engineHint is `seedance`, say the first film is free (25-credit trial, no card); if durationSec is 90, say a 90s film costs more than the free trial and needs a paid plan, and offer 60s as the free alternative without discouraging 90s; if engineHint is `hollywood`, `h3`, `omni` or `veo`, say that engine is on paid plans. Never claim a free film for 90s or for a premium engine. Then, if `fit` is `short`, quote `fitMessage` verbatim (it is a ready, correctly calibrated sentence) and offer to extend the script and re-send; if `fit` is `long`, quote `fitMessage` only when the script is far over target; if `fit` is `ok`, say nothing about length or quote `fitMessage` as is. Never write your own estimate of the narration length: `fitMessage` already contains it. If `overStudioLimit` is true, warn the user in one line that Kineo Studio accepts up to `studioLimitChars` characters and the script must be trimmed before rendering.",
+            "description": "Link created. Show `url` to the user verbatim and say it is valid for 7 days. Then ONE line about cost, conditioned on `durationSec` and `engineHint` in this response: if durationSec is 35 or 60 and engineHint is `seedance`, say the first film is free (25-credit trial, no card); if durationSec is 90, say a 90s film costs more than the free trial and needs a paid plan, and offer 60s as the free alternative without discouraging 90s; if engineHint is `hollywood`, `h3`, `omni` or `veo`, say that engine is on paid plans. Never claim a free film for 90s or for a premium engine. Then, about length, read `outcome.kind` — it is Kineo's real verdict, computed by the same rule the Studio applies before rendering: if it is `shorter_film`, quote `outcomeMessage` verbatim (it says the film will come out shorter than requested and nothing gets cut) and offer to extend the script and re-send; if it is `at_target`, say nothing about length. Never write your own estimate of the narration length, and never call the script short on your own: `outcomeMessage` is the only sentence to use about what the user will receive. `fitMessage` is the word-budget note for this engine's voice; quote it verbatim only if the user asks how the length was measured, never as a warning. If `overStudioLimit` is true, warn the user in one line that Kineo Studio accepts up to `studioLimitChars` characters and the script must be trimmed before rendering.",
             "content": {
               "application/json": {
                 "schema": {
@@ -38,7 +38,7 @@
             }
           },
           "400": {
-            "description": "The request was rejected: missing or empty script, script over 5000 characters, HTML tags in the script or topic, invalid durationSec (must be 35, 60 or 90), invalid aspect (must be 9:16, 16:9, 1:1 or 4:5), unknown engineHint, malformed language code, topic over 200 characters, or a body that is not JSON. Read `error` (it states the exact reason and, for length, the exact limit), fix the payload, and try again once. If the script is too long, trim the script — never truncate silently without telling the user. Never show a made-up link.",
+            "description": "The request was rejected: missing or empty script, script over 5000 characters, HTML tags in the script or topic, invalid durationSec (must be 35, 60 or 90), invalid aspect (must be 9:16, 16:9, 1:1 or 4:5), unknown engineHint, malformed language code, topic over 200 characters, a body that is not JSON, or a script too short to fill durationSec (Kineo Studio would refuse it after sign-up, so it is refused here, where you can fix it in one turn — no link is created). Read `error` (it states the exact reason and, for length, the exact limit or the number of words to add; `outcome.missingWords` carries that number when present), fix the payload, and try again once. For a too-short script, either extend it with real beats to the words asked for, or re-send with a shorter durationSec the user agrees to. If the script is too long, trim the script — never truncate silently without telling the user. Never show a made-up link.",
             "content": {
               "application/json": {
                 "schema": {
@@ -144,6 +144,8 @@
           "seconds",
           "fit",
           "fitMessage",
+          "outcome",
+          "outcomeMessage",
           "durationSec",
           "engineHint",
           "aspect",
@@ -181,11 +183,52 @@
               "ok",
               "long"
             ],
-            "description": "How the script measures against durationSec. `short` = likely to come out under target (offer to extend). `ok` = on target. `long` = runs over, which is acceptable."
+            "description": "Informational word-budget reading against durationSec at this engine's narration pace (`short` = under the per-voice budget, `ok` = within it, `long` = well over it). This is NOT the verdict on what the user will receive: `outcome` is. Do not warn the user based on `fit`."
           },
           "fitMessage": {
             "type": "string",
             "description": "A ready-made English sentence explaining `fit` to the user, already calibrated with Kineo's narration pace for this engine and duration (for example: \"About 24s of narration for a 35s video — the story may end early. Adding a few lines helps; Kineo never stretches a short script.\"). When you comment on the length of the script, quote this sentence VERBATIM instead of writing your own; never recompute or paraphrase the seconds."
+          },
+          "outcome": {
+            "type": "object",
+            "required": [
+              "kind",
+              "effectiveSeconds",
+              "requestedSeconds",
+              "missingWords",
+              "lost60sFloor"
+            ],
+            "description": "Kineo's real verdict for this script and duration, computed by the same rule the Studio applies before rendering. `kind`: `at_target` = the film comes out at durationSec; `shorter_film` = the narration does not fill durationSec, so Kineo will make a shorter film of `effectiveSeconds` seconds instead (nothing is cut). A script that is too short even for that is refused with HTTP 400 and never reaches this response.",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "at_target",
+                  "shorter_film"
+                ],
+                "description": "`at_target` or `shorter_film` on a successful handoff. (`too_short` exists only inside the 400 error body.)"
+              },
+              "effectiveSeconds": {
+                "type": "integer",
+                "description": "Seconds of film the user will actually receive. Equals `requestedSeconds` when kind is `at_target`."
+              },
+              "requestedSeconds": {
+                "type": "integer",
+                "description": "The durationSec that was requested."
+              },
+              "missingWords": {
+                "type": "integer",
+                "description": "Words missing to fill `requestedSeconds`. 0 on a successful handoff."
+              },
+              "lost60sFloor": {
+                "type": "boolean",
+                "description": "True when 60 or 90 seconds were requested and the film will come out under 60 seconds — such films do not qualify for TikTok's Creator Rewards. `outcomeMessage` already says this when it applies."
+              }
+            }
+          },
+          "outcomeMessage": {
+            "type": "string",
+            "description": "The ready-made English sentence for `outcome` (for example: \"Ready for a 60-second film.\" or \"This script fills about 40 seconds, so Kineo will make it a 40-second film instead of 60. Nothing gets cut — the target shrinks to fit your script.\"). When `outcome.kind` is `shorter_film`, quote it VERBATIM and offer to extend the script; when `at_target`, say nothing about length."
           },
           "durationSec": {
             "type": "integer",
@@ -242,6 +285,30 @@
           "error": {
             "type": "string",
             "description": "Human-readable reason the request was rejected. Read it before deciding whether to retry."
+          },
+          "outcome": {
+            "type": "object",
+            "description": "Present only when a script was refused for being too short for durationSec (`kind` = `too_short`). `missingWords` is the number of spoken words to add so the script fills the requested duration; `requestedSeconds` is the duration that was asked for.",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "too_short"
+                ]
+              },
+              "requestedSeconds": {
+                "type": "integer"
+              },
+              "effectiveSeconds": {
+                "type": "integer"
+              },
+              "missingWords": {
+                "type": "integer"
+              },
+              "lost60sFloor": {
+                "type": "boolean"
+              }
+            }
           }
         }
       }

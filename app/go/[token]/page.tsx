@@ -1,21 +1,25 @@
-import Link from 'next/link'
 import type { Metadata } from 'next'
-import { redirect } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { cookies, headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { writeServerEvent } from '@/lib/serverEvents'
 import {
+  DEFAULT_DURATION,
+  DURATIONS,
   ENGINE_LABELS,
   HANDOFF_TTL_DAYS,
   STUDIO_PROMPT_MAX_CHARS,
   aspectSpec,
-  describeFit,
+  describeOutcome,
   engineFamily,
   handoffHeadline,
+  handoffOutcome,
   isHandoffEngine,
   isHandoffToken,
+  type HandoffDuration,
 } from '@/lib/gptHandoff'
 import { findHandoff, isLikelyBot, markHandoffViewed, type GptHandoffRow } from '@/lib/gptHandoffStore'
+import { BUTTON, Expired, MUTED, SOFT, Shell, Wordmark } from './HandoffNotice'
 
 // ═══ KINEO-GPT-HANDOFF-2026-09-06 — a página que o link do GPT abre ═════════
 //
@@ -26,7 +30,8 @@ import { findHandoff, isLikelyBot, markHandoffViewed, type GptHandoffRow } from 
 // ser decidida lá; nada aqui depende de JavaScript.
 //
 // Sem CSS novo: mesmo vocabulário inline de app/revive/[handle]/page.tsx e
-// app/v/[id]/page.tsx (BLUE/MUTED/TEXT/SOFT, Shell, Wordmark).
+// app/v/[id]/page.tsx (BLUE/MUTED/TEXT/SOFT, Shell, Wordmark) — desde 07/09
+// em ./HandoffNotice.tsx, compartilhado com not-found.tsx.
 //
 // `force-dynamic` + `nodejs`: lê cookies() e headers() (sessão, robô, dedupe)
 // e a linha do banco pelo service role. Uma URL com token não pode ser
@@ -38,73 +43,6 @@ export const metadata: Metadata = {
   title: 'Your script is ready · Kineo',
   description: 'A script written with ChatGPT, ready to become a video in Kineo Studio.',
   robots: { index: false, follow: false, nocache: true, googleBot: { index: false, follow: false } },
-}
-
-const BLUE = '#2997ff'
-const MUTED = '#86868b'
-const TEXT = '#f5f5f7'
-const SOFT = '#d2d2d7'
-
-function Shell({ children }: { children: React.ReactNode }) {
-  return (
-    <main
-      style={{
-        minHeight: '100vh',
-        background: '#000',
-        color: TEXT,
-        padding: '22px 16px 64px',
-        fontFamily: 'var(--font-sans), Arial, sans-serif',
-        WebkitFontSmoothing: 'antialiased',
-      }}
-    >
-      <div style={{ maxWidth: 720, margin: '0 auto' }}>{children}</div>
-    </main>
-  )
-}
-
-function Wordmark() {
-  return (
-    <Link href="/" style={{ color: BLUE, fontWeight: 800, fontSize: '1.02rem', letterSpacing: '-0.01em', textDecoration: 'none' }}>
-      Kineo
-    </Link>
-  )
-}
-
-const BUTTON: React.CSSProperties = {
-  display: 'inline-block',
-  background: BLUE,
-  color: '#fff',
-  fontWeight: 700,
-  fontSize: '1.05rem',
-  padding: '14px 26px',
-  borderRadius: 12,
-  textDecoration: 'none',
-}
-
-function Expired({ reason }: { reason: 'expired' | 'missing' | 'unavailable' }) {
-  const line =
-    reason === 'unavailable'
-      ? 'This page is temporarily unavailable. It will be back in a minute — please refresh.'
-      : reason === 'missing'
-        ? 'This link does not match any script. Links from the Kineo GPT look like /go/… and are valid for ' + HANDOFF_TTL_DAYS + ' days.'
-        : `This link has expired. Scripts handed off by the Kineo GPT stay open for ${HANDOFF_TTL_DAYS} days.`
-  return (
-    <Shell>
-      <header style={{ marginBottom: 26 }}>
-        <Wordmark />
-      </header>
-      <h1 style={{ fontSize: 'clamp(1.6rem, 6vw, 2.2rem)', fontWeight: 800, lineHeight: 1.15, letterSpacing: '-0.02em', margin: '0 0 14px' }}>
-        {reason === 'unavailable' ? 'One moment.' : 'This link has expired.'}
-      </h1>
-      <p style={{ color: SOFT, fontSize: '1.05rem', lineHeight: 1.6, margin: '0 0 24px' }}>{line}</p>
-      <p style={{ color: SOFT, fontSize: '1rem', lineHeight: 1.6, margin: '0 0 24px' }}>
-        You can still paste the script yourself: open the Studio, paste the text, choose &ldquo;Use my script as is&rdquo; and press Generate.
-      </p>
-      <Link href="/studio?utm_source=chatgpt_gpt&intent_campaign=kineo_gpt_store_expired" style={BUTTON}>
-        Open the Studio
-      </Link>
-    </Shell>
-  )
 }
 
 function Meta({ children }: { children: React.ReactNode }) {
@@ -119,11 +57,19 @@ export default async function GoPage({
   searchParams?: Record<string, string | string[] | undefined>
 }) {
   const token = params.token
-  if (!isHandoffToken(token)) return <Expired reason="missing" />
+  // KINEO-GPT-VERDADE-2026-09-07 — token fora do padrão ou inexistente é 404
+  // DE VERDADE (notFound() → ./not-found.tsx, mesmo visual de sempre). Até
+  // 07/09 era HTTP 200 com a tela "expired": soft-404 que deixava toda sonda
+  // sem controle de status. Sem tocar o banco quando o padrão já reprova.
+  if (!isHandoffToken(token)) notFound()
 
   const found = await findHandoff(token)
+  // `unavailable` e `expired` CONTINUAM 200, de propósito: `unavailable` é
+  // falha transitória de banco — 404 ali diria "sumiu para sempre" a quem só
+  // precisa recarregar; `expired` é link real de pessoa real, e merece a
+  // página com o botão do Studio, não um erro.
   if (found.status === 'unavailable') return <Expired reason="unavailable" />
-  if (found.status === 'missing') return <Expired reason="missing" />
+  if (found.status === 'missing') notFound()
   if (found.expired) return <Expired reason="expired" />
   const row: GptHandoffRow = found.row
 
@@ -216,7 +162,16 @@ export default async function GoPage({
   // buildStudioDestination() vai emitir: o que a pessoa lê é o que renderiza.
   const frame = aspectSpec(row.aspect)
   const headline = handoffHeadline(row)
-  const fitLine = describeFit({ fit: row.fit, seconds: Number(row.seconds), words: row.words }, row.duration_sec)
+  // KINEO-GPT-VERDADE-2026-09-07 — a frase vem do COBRADOR (lib/narrationFit
+  // via handoffOutcome), recalculada na leitura a partir do roteiro da linha,
+  // nunca do `fit` gravado: o `fit` é a régua por voz (orçamento de palavras),
+  // e ela dizia "the story may end early" para roteiros que rendem 60s
+  // redondos. A duração da linha passou por validateHandoffInput (só 35/60/90);
+  // o estreitamento abaixo é para o tipo, com o padrão da lib como rede.
+  const duration: HandoffDuration = (DURATIONS as readonly number[]).includes(row.duration_sec)
+    ? (row.duration_sec as HandoffDuration)
+    : DEFAULT_DURATION
+  const fitLine = describeOutcome(handoffOutcome(row.script, duration, engine))
   const overStudioLimit = row.script.length > STUDIO_PROMPT_MAX_CHARS
   const pricingHref = `/api/gpt/handoff/pricing?token=${encodeURIComponent(token)}`
 

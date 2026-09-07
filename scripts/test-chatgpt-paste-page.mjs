@@ -154,8 +154,9 @@ if (L) {
 // ═══ (B) A LIB LIDA — sem número digitado, sem import novo ═════════════════
 console.log('\n(B) lib/gptHandoff.ts lida')
 {
-  const libImports = [...lib.matchAll(/^import [^\n]* from '([^']+)'/gm)].map((m) => m[1])
-  ok(libImports.every((s) => s === '@/lib/aspect' || s === 'node:crypto'), `(B1) a lib continua importando só @/lib/aspect e node:crypto (achados: ${libImports.join(', ')})`)
+  // KINEO-GPT-VERDADE-2026-09-07: @/lib/narrationFit entrou (o cobrador; puro, zero import).
+  const libImports = [...lib.matchAll(/^import (?:\{[^}]*\}|[^\n{]*) from '([^']+)'/gm)].map((m) => m[1])
+  ok(libImports.every((s) => s === '@/lib/aspect' || s === '@/lib/narrationFit' || s === 'node:crypto'), `(B1) a lib continua importando só @/lib/aspect, @/lib/narrationFit e node:crypto (achados: ${libImports.join(', ')})`)
   ok(/export const HANDOFF_CHANNELS = \['gpt_store', 'assistant_link', 'paste_page'\] as const/.test(libCode), "(B2) HANDOFF_CHANNELS = ['gpt_store', 'assistant_link', 'paste_page'] as const")
   ok(/paste_page: \{ utmSource: 'paste_page', intentCampaign: 'kineo_paste_page' \}/.test(libCode), '(B2) CHANNEL_TAGS.paste_page escrito uma vez, na lib')
   ok(/export const ASSISTANT_PASTE_PROMPT_MAX_CHARS = 1500/.test(libCode), '(B3) ASSISTANT_PASTE_PROMPT_MAX_CHARS = 1500 declarado')
