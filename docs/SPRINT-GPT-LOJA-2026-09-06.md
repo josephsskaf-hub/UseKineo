@@ -2107,7 +2107,7 @@ Medido agora, por hora, gente distinta:
 madrugada de Brasília é horário comercial de metade da base, e eu tratei o fuso
 do fundador como se fosse o do produto.
 
-### #14 — 04:10 — o veredito do roteiro vinha de uma régua redigitada
+### #14 — 03:15 — o veredito do roteiro vinha de uma régua redigitada
 
 **SHA `aeb4bd39` · EM PRODUÇÃO** (`git ls-remote origin main` =
 `aeb4bd39d1f93530a722250b9b21ca0af066a25b`).
@@ -2291,7 +2291,7 @@ depois de criar conta. De quebra, um link de roteiro inexistente passou a
 responder "não existe" de verdade, o que devolve controle a qualquer medição
 futura daquela página.
 
-### #15 — 04:50 — as duas irmãs do handoff ainda fabricavam link morto
+### #15 — 03:20 — as duas irmãs do handoff ainda fabricavam link morto
 
 **SHA `ccb6159e` · EM PRODUÇÃO** (`git ls-remote origin main` = `ccb6159e9e1d…`).
 
@@ -2348,3 +2348,101 @@ recusa movida para DEPOIS do insert na paste    → 83 ok, 1 falha (10d, a ordem
 A verificação de ORDEM (9d/10d) é a que importa: não basta recusar, tem de
 recusar **antes** de gravar — senão o link morto continua nascendo e só deixa de
 ser devolvido.
+
+### #16 — 03:45 — a segunda pista também já estava consertada, e eu carimbei a hora errada duas vezes
+
+**Primeiro, a correção de casa.** Eu abri a #14 acusando o fechamento anterior
+de se intitular "04:30 BRT" com o relógio em 02:52 — e então carimbei as minhas
+próprias entradas como "#14 — 04:10" e "#15 — 04:50" quando o relógio marcava
+**03:15** e **03:20**. Corrigido nos dois títulos acima. O erro é pequeno e o
+motivo de consertar não é: **a próxima sessão decide se a janela está aberta
+lendo esses carimbos**, e foi exatamente assim que este ciclo quase morreu duas
+horas cedo. Quem escreve a hora tem de ler o relógio, e eu não li.
+
+**A pista que sobrou do funil, e o que ela deu.** A #14 fechou com "9 pessoas
+apertaram Generate e não receberam nada — abrir uma a uma". Abri. O padrão é
+único e é sempre o mesmo:
+
+```
+1. chega do chatgpt.com com um roteiro colado
+2. script_preflight_blocked  — roteiro curto para a duração escolhida
+3. aperta "Finish it for me" → script_expand_failed  (reason: growth_limit, 422)
+4. volta ao passo 2
+```
+
+Ou seja: o remédio EXISTE, a pessoa APERTA, e **o remédio falha**. Uma pessoa
+(`aa7bded0`) levou 6 bloqueios seguidos por **8 palavras faltando**; outra
+(`7d552c76`) bateu 7 vezes em `prompt_len=6228 limite=5000`. Em 14 dias:
+`growth_limit` 9 pessoas (5 nunca tiveram filme), `author_rewrite_rejected` 6
+pessoas (4 nunca), e **19 dos 27 bloqueios de preflight não ofereciam saída
+nenhuma** (`suggested_duration: null`).
+
+**E aí eu fui conferir a data antes de escrever o PEDIDO — e o alarme estava
+morto:**
+
+```
+dia     preflight (pessoas)   expansão falhou
+02/09      12  (8)                  8
+03/09      14  (5)                  6
+04/09       1  (1)                  1
+05/09       0                       0
+06/09       0                       1
+```
+
+O mesmo `autofitDown` de 03/09 que já tinha matado a parede da narração matou
+esta também. De 04/09 em diante é 1 evento por dia ou zero. **Segunda vez na
+mesma madrugada que uma janela de 7 ou 14 dias me vendeu uma rajada velha como
+sangria de agora** — e as duas vezes o conserto que "faltava" já estava em
+produção há quatro dias. Não abri PEDIDO: abrir teria custado à outra pista uma
+investigação de um buraco que não existe mais.
+
+O que sobra de verdade, pequeno e honesto: `author_rewrite_rejected` (6 pessoas,
+última em 04/09) e um `structure_lost` isolado em 06/09. Nada que justifique
+mexer no expansor hoje.
+
+**G5 — a medição, entregue.** `docs/queries/PONTE-HANDOFF-FUNIL-2026-09-07.sql`,
+6 consultas: (1) o funil da ponte por origem e por dia — `gpt_store`,
+`paste_page`, `assistant_link`; (2) a distribuição de `outcome` que passou a ser
+gravada hoje, e que diz de que tamanho as IAs escrevem de verdade; (3) a ponte
+até o dinheiro, com o aviso de que `gpt_handoff_created` é evento de servidor e
+**não tem pessoa** — o denominador honesto começa no clique; (4) a porta do
+ChatGPT que já existia (119 → 74 → 64 → 49 filmes → 1 pagamento em 7 dias);
+(5) a parede do roteiro curto POR DIA, guardada justamente porque o agregado
+mente; (6) tráfego por hora, a consulta que impede de escrever "não há tráfego
+agora".
+
+### O QUE ESTA MADRUGADA ENTREGOU, em uma frase
+
+A ponte que leva o roteiro escrito por uma IA até o Studio **julgava o texto com
+uma régua que não é a de quem cobra** — dizia "curto demais, a história vai
+acabar cedo" para o roteiro de tamanho certo, dizia a mesma frase para o
+roteiro que seria recusado, e as três portas dela fabricavam link vivo para
+roteiro morto. Agora ela pergunta a quem decide, responde as três verdades
+diferentes, e recusa na porta — onde a IA conserta em um turno.
+
+### O que a próxima sessão faz primeiro
+1. **Ler a consulta (2)** com tráfego de dia. A distribuição `at_target` /
+   `shorter_film` / `too_short` é a primeira medida real de como as IAs
+   dimensionam roteiro, e é o que calibra o prompt da `/chatgpt`.
+2. **Não reabrir** a parede da narração nem o expansor sem rodar a consulta (5)
+   por dia primeiro. Duas rotações desta madrugada quase morreram nisso.
+3. O degrau que continua seco e não é de motor nenhum: **49 filmes, 1 pagamento**
+   na coorte do ChatGPT em 7 dias.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+1. **Nada.** As três entregas subiram sozinhas (`aeb4bd39`, `ccb6159e` e esta),
+   a fila está em zero, e a única decisão sua continua sendo o ChatGPT Business
+   (~US$ 25-30/mês) — recomendação inalterada: **não pagar agora**.
+
+## 📋 O QUE ACONTECEU
+Fui atrás da última pista aberta — nove pessoas que apertaram "gerar" e não
+receberam filme — e descobri o mesmo padrão: o roteiro era curto para a duração
+escolhida, a pessoa apertava o botão que promete completar o texto, e esse botão
+falhava. Uma delas bateu seis vezes na mesma parede por oito palavras faltando.
+Antes de pedir conserto, conferi a data: isso acabou em 3 de setembro, quando
+entrou o ajuste que faz o servidor encolher a duração sozinho em vez de recusar.
+De 4 de setembro em diante é um caso por dia ou nenhum. Foi a segunda vez na
+mesma madrugada que um número de "últimos 7 dias" me mostrou um problema já
+resolvido como se fosse de agora — e nas duas vezes eu quase mandei consertar o
+que já estava consertado. Deixei a consulta que evita isso guardada junto com as
+outras cinco que medem a ponte nova, para a próxima sessão não repetir.
