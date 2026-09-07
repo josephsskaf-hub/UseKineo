@@ -52,7 +52,17 @@ check('NÃO REGREDIU: o evento de telemetria continua sendo gravado', chk.includ
 
 console.log('4 · o que NÃO foi tocado, e por quê (lista tão importante quanto a de cima)')
 const og = src('app/v/[id]/opengraph-image.tsx')
-check('capa do link compartilhado: o portão de produto segue intacto', og.includes('if (!CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED) notFound()'))
+// 07/09 — consentimento por linha. Em 03/09 o portão da capa era GLOBAL
+// (`if (!CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED) notFound()`), e este check
+// afirmava isso literalmente. Desde o #27 (06/09) o dono publica UM filme com
+// `published_at`, a página /v/<id> responde 200 — e a capa seguia 404 de 0
+// bytes (cartão em branco em todo link compartilhado). O portão passou a ser
+// por linha via `publicSurfaceAllowsRow`; a invariante que este check guarda
+// agora é "sem consentimento na linha, a capa não existe". A trava global
+// continua `false` (guardada em scripts/test-consentimento-superficie.mjs).
+check('capa do link compartilhado: o portão é por linha (publicSurfaceAllowsRow)', og.includes('publicSurfaceAllowsRow(row.publishedAt)'))
+check('capa do link compartilhado: sem consentimento na linha, a capa não existe', og.includes('if (!publicSurfaceAllowsRow(row.publishedAt)) notFound()'))
+check('capa do link compartilhado: o portão global incondicional foi embora', !og.includes('if (!CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED) notFound()'))
 check('url.parse continua não sendo código nosso (nada a consertar no repo)', true)
 
 console.log('5 · aritmética do painel, para saber se melhorou de verdade')

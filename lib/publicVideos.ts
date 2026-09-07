@@ -698,16 +698,40 @@ export async function getPublicVideo(id: string): Promise<PublicVideo | null> {
 export async function listIndexablePublicVideos(
   limit: number = SITEMAP_MAX_VIDEOS,
 ): Promise<PublicVideo[]> {
-  // The same gate owns libraries, rails, sitemaps and IndexNow. Most
-  // importantly, it runs before `adminClient()` so private rows are not read.
-  if (!CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED) return []
+  // ═══ KINEO-CONSENTIMENTO-POR-LINHA-2026-09-07 ═════════════════════════════
+  // Até aqui vivia um `return []` cego sob a trava global — hard return, sem
+  // exceção para linha COM consentimento. (A string exata não é citada aqui
+  // de propósito: o guardião afirma a ausência dela.) Consequência
+  // medida em 06/09: com uma linha realmente publicada pelo dono (#27), o
+  // /video-sitemap.xml seguia em `X-Video-Sitemap-Count: 6` (só os exemplos
+  // fixos). A página existia e o Google nunca era avisado.
+  //
+  // O princípio é o mesmo do helper `publicSurfaceAllowsRow`: a trava global
+  // continua fechada; o que abre a superfície é o consentimento POR LINHA.
+  // Aqui ele vira FILTRO NO SERVIDOR — com a trava fechada, a consulta só
+  // devolve `published_at IS NOT NULL`; com a trava aberta, a consulta é
+  // byte a byte a de antes. Sem nenhuma linha carimbada, o resultado é o
+  // mesmo `[]` de sempre.
+  //
+  // `PUBLIC_VIDEO_COLUMNS` NÃO ganha `published_at`: a allow-list alimenta o
+  // que é RENDERIZADO e é auditada por três guardiões; o filtro `.not(...)`
+  // roda no Postgres e não precisa que a coluna volte na resposta.
+  //
+  // Consentimento é condição NECESSÁRIA, não suficiente: tudo que vem abaixo
+  // (status, URL durável, título e transcrição mínimos, scaffolding de prompt,
+  // dedupe por transcrição e por título) continua valendo sem frouxidão. Uma
+  // linha carimbada e sem qualidade continua FORA do sitemap — o dono pode
+  // mostrar o link, mas a casa não oferece a página ao índice.
+  const global = CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED as boolean
   const admin = adminClient()
   if (!admin) return []
   try {
-    const { data, error } = await admin
+    let query = admin
       .from('videos')
       .select(PUBLIC_VIDEO_COLUMNS)
       .eq('status', 'completed')
+    if (!global) query = query.not('published_at', 'is', null)
+    const { data, error } = await query
       .order('created_at', { ascending: false })
       .limit(Math.min(limit, SITEMAP_MAX_VIDEOS) * 2)
     if (error || !data) return []

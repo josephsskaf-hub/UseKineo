@@ -224,7 +224,7 @@ Changed your mind? One click puts it back to private: ${shareUndoHref}
   const shareHtml = shareHref
     ? `<div style="border:1px solid #e6e8ec;border-radius:12px;padding:16px;margin:0 0 16px;">
   <p style="margin:0 0 8px;font-weight:bold;font-size:15px;">Want a link instead of a file? 🔗</p>
-  <p style="margin:0 0 14px;color:#475569;font-size:14px;">One click makes a public page for <em>this one video</em> &mdash; a real link you can text, post, or put in a bio. Nothing else in your library changes.</p>
+  <p style="margin:0 0 14px;color:#475569;font-size:14px;">One click makes a public page for <em>this one video</em> &mdash; a real link you can text, post, or put in a bio. The page is public, so search engines can find it too. Nothing else in your library changes, and you can make it private again any time.</p>
   <p style="margin:0 0 10px;"><a href="${shareHref}" style="display:inline-block;background:#111;color:#ffffff;text-decoration:none;font-weight:bold;font-size:14px;padding:10px 22px;border-radius:10px;">Create my shareable link &rarr;</a></p>
   <p style="margin:0;font-size:12px;color:#8a8a8a;">Changed your mind? <a href="${shareUndoHref}" style="color:#8a8a8a;">Make it private again</a> &mdash; also one click.</p>
 </div>`
