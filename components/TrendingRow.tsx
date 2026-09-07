@@ -63,6 +63,14 @@ function PreviewDialog({ video, onClose }: { video: WallVideo; onClose: () => vo
   }, [])
   return <dialog ref={dialog} className={styles.dialog} aria-labelledby={titleId}
     onClose={onClose} onCancel={onClose}
+    onKeyDown={event => {
+      if (event.key !== 'Tab') return
+      const first = event.currentTarget.querySelector<HTMLButtonElement>('button')
+      const last = event.currentTarget.querySelector<HTMLAnchorElement>('a[href]')
+      if (!first || !last) return
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus() }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus() }
+    }}
     onClick={event => { if (event.target === event.currentTarget) onClose() }}>
     <div className={styles.dialogInner}>
       <button type="button" autoFocus className={styles.close} onClick={onClose} aria-label={copy.close}>×</button>
