@@ -188,7 +188,7 @@ export default function EngineCycleCard({ videos, index = 0 }: { videos: WallVid
       ref={boxRef}
       href={v.href ?? meta.href}
       className={`ftr ec-ftr${frame.natural ? ' ec-natural' : ''}`}
-      data-frame={frame.natural ? 'natural-portrait' : 'wide'}
+      data-frame="wide"
       aria-label={v.engine === 'static_example'
         ? `${v.title} — open the Kineo-owned sample.`
         : `${meta.name} — ${meta.desc}. Open the generator with this engine selected.`}
