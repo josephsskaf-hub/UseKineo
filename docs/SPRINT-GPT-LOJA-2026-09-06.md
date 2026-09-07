@@ -2654,3 +2654,23 @@ momento. Consertei os dois lugares que instruem o modelo e deixei um guardião
 que varre as frases e reprova qualquer recaída, inclusive num arquivo novo.
 A ponte inteira está no ar e provada com sondas; o que ela ainda não tem é
 gente passando por ela, e é isso que a próxima sessão vai medir.
+
+---
+
+### ADENDO ÀS 04:25 BRT — a prova pendente do #17, fechada
+
+O deploy terminou e a sonda do **depois** confirma a entrega `4f103568`, com o
+mesmo controle da sonda do antes:
+
+```
+GET /gpt/openapi.json            → 200 · 18.989 bytes
+   frase VELHA ("When you comment on the length…")            → 0 ocorrências
+   frase NOVA  ("ONLY when the user explicitly asks how…")    → 1 ocorrência
+GET /gpt/openapi-nao-existe.json → 404   (controle)
+```
+
+Antes: velha 1, nova 0. Depois: velha 0, nova 1. O arquivo que o GPT lê para
+saber o que dizer sobre o comprimento do roteiro **não manda mais avisar a
+partir do `fit`**. Com isso o item 1 do "o que a próxima sessão faz primeiro"
+(seção (e) do fechamento) está cumprido — a próxima sessão começa pelo item 2,
+a consulta (1) do G5 com o corte que exclui as sondas.
