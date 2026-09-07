@@ -280,5 +280,404 @@ for (const col of ['token', 'script', 'duration_sec', 'aspect', 'engine_hint', '
   ok(temToken(pgR), '(I2) gpt_landing_viewed carrega o token do handoff')
 }
 
+// ═══ (J) O SCHEMA DA AÇÃO — public/gpt/openapi.json ═══════════════════════
+// É a SEGUNDA fonte de instruções que o modelo obedece (a primeira é docs/
+// GPT-KINEO-VIDEO-MAKER.md). Em 06/09 o schema dizia maxLength 6000 para um
+// servidor que recusa em 5001, `seconds` integer para um servidor que devolve
+// 24.2, prometia "first film is free" sem condição para um 90s que custa 38cr
+// contra 25 de trial, e não documentava fitMessage/overStudioLimit/503.
+// Nada aqui é digitado: todo número vem de lib/gptHandoff.ts, do route.ts e
+// de lib/credits/engineCost.ts por regex. Mudou a constante, o teste quebra
+// até o schema acompanhar.
+console.log('\n(J) public/gpt/openapi.json amarrado ao servidor')
+{
+  const OPENAPI = 'public/gpt/openapi.json'
+  let schema = null
+  try {
+    schema = JSON.parse(read(OPENAPI))
+    ok(true, '(J0) openapi.json é JSON parseável')
+  } catch (e) {
+    ok(false, `(J0) openapi.json NÃO parseia: ${e && e.message}`)
+  }
+  if (schema) {
+    // ── constantes lidas dos arquivos reais
+    const num = (src, name) => {
+      const m = src.match(new RegExp(`export const ${name} = (\\d+)`))
+      return m ? Number(m[1]) : NaN
+    }
+    const list = (name) => {
+      const m = lib.match(new RegExp(`export const ${name} = \\[([^\\]]*)\\] as const`))
+      return m ? m[1].split(',').map((s) => s.trim().replace(/^'|'$/g, '')).filter(Boolean) : null
+    }
+    const SCRIPT_MAX = num(lib, 'SCRIPT_MAX_CHARS')
+    const STUDIO_MAX = num(lib, 'STUDIO_PROMPT_MAX_CHARS')
+    const TOPIC_MAX = num(lib, 'TOPIC_MAX_CHARS')
+    const TTL_DAYS = num(lib, 'HANDOFF_TTL_DAYS')
+    const DUR = (list('DURATIONS') || []).map(Number)
+    const ASP = list('ASPECTS') || []
+    const ENG = list('HANDOFF_ENGINES') || []
+    const LANG_SRC = (lib.match(/export const LANGUAGE_PATTERN = \/(.+)\/\s*$/m) || [])[1]
+    const engineCost = read('lib/credits/engineCost.ts')
+    const costOf = (quality) => {
+      const m = engineCost.match(new RegExp(`case '${quality}':[\\s\\S]*?return (\\d+)`))
+      return m ? Number(m[1]) : NaN
+    }
+    const SEEDANCE_60 = costOf('cinematic_ai')
+    const HOLLYWOOD_60 = costOf('cinematic_hollywood')
+    const REF_SEC = num(engineCost, 'DURATION_REFERENCE_SECONDS')
+    const TRIAL_CAP = num(read('lib/reverseTrial.ts'), 'TRIAL_CREDIT_CAP')
+    ok(
+      [SCRIPT_MAX, STUDIO_MAX, TOPIC_MAX, TTL_DAYS, SEEDANCE_60, HOLLYWOOD_60, REF_SEC, TRIAL_CAP].every(Number.isFinite) && DUR.length >= 3 && ASP.length >= 3 && ENG.length >= 7 && Boolean(LANG_SRC),
+      `(J0) constantes lidas dos arquivos: SCRIPT_MAX=${SCRIPT_MAX} STUDIO_MAX=${STUDIO_MAX} TOPIC_MAX=${TOPIC_MAX} TTL=${TTL_DAYS}d DUR=[${DUR}] ASP=[${ASP}] ENG=${ENG.length} seedance@60=${SEEDANCE_60} hollywood@60=${HOLLYWOOD_60} trial=${TRIAL_CAP}`,
+    )
+
+    const op = schema.paths?.['/api/gpt/handoff']?.post
+    const req = schema.components?.schemas?.HandoffRequest?.properties ?? {}
+    const resSchema = schema.components?.schemas?.HandoffResponse ?? {}
+    const res = resSchema.properties ?? {}
+    const sameSet = (a, b) => Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every((x) => b.includes(x))
+    const strings = []
+    ;(function walk(v) {
+      if (typeof v === 'string') strings.push(v)
+      else if (Array.isArray(v)) v.forEach(walk)
+      else if (v && typeof v === 'object') Object.values(v).forEach(walk)
+    })(schema)
+
+    // (J1) o teto do script é o do cobrador.
+    ok(req.script?.maxLength === SCRIPT_MAX, `(J1) script.maxLength = ${req.script?.maxLength} === SCRIPT_MAX_CHARS da lib (${SCRIPT_MAX})`)
+
+    // (J2) nenhum texto do schema ensina um teto de caracteres diferente.
+    const charMentions = []
+    for (const s of strings) {
+      for (const m of s.matchAll(/(\d[\d,]{3,5})\s*(?:characters?|chars)\b/gi)) charMentions.push(Number(m[1].replace(/,/g, '')))
+      for (const m of s.matchAll(/\b(?:characters?|chars)\b[^.;]{0,60}?(\d[\d,]{3,5})\b/gi)) charMentions.push(Number(m[1].replace(/,/g, '')))
+    }
+    const distinct = [...new Set(charMentions)]
+    ok(charMentions.length >= 2 && distinct.every((n) => n === SCRIPT_MAX), `(J2) todo teto de caracteres citado nas descrições (${distinct.join(', ') || 'nenhum'}) === SCRIPT_MAX_CHARS (${charMentions.length} menções)`)
+    ok(/\d[\d,]{3,5}/.test(res.studioLimitChars?.description ?? '') && Number((res.studioLimitChars.description.match(/(\d[\d,]{3,5})/) || [])[1]?.replace(/,/g, '')) === STUDIO_MAX, `(J2) studioLimitChars cita ${STUDIO_MAX} (STUDIO_PROMPT_MAX_CHARS)`)
+
+    // (J3) listas fechadas = as da lib, no pedido E na resposta.
+    ok(sameSet(req.durationSec?.enum, DUR), `(J3) durationSec.enum [${req.durationSec?.enum}] === DURATIONS [${DUR}]`)
+    ok(sameSet(req.aspect?.enum, ASP), `(J3) aspect.enum [${req.aspect?.enum}] === ASPECTS [${ASP}]`)
+    ok(sameSet(req.engineHint?.enum, ENG), `(J3) engineHint.enum [${req.engineHint?.enum}] === HANDOFF_ENGINES [${ENG}]`)
+    ok(sameSet(res.durationSec?.enum, DUR) && sameSet(res.aspect?.enum, ASP) && sameSet(res.engineHint?.enum, ENG), '(J3) os mesmos enums na HandoffResponse')
+    ok(req.language?.pattern === LANG_SRC, `(J3) language.pattern "${req.language?.pattern}" === LANGUAGE_PATTERN da lib /${LANG_SRC}/`)
+
+    // (J4) tópico.
+    ok(req.topic?.maxLength === TOPIC_MAX, `(J4) topic.maxLength = ${req.topic?.maxLength} === TOPIC_MAX_CHARS (${TOPIC_MAX})`)
+
+    // (J5) tudo que a resposta REAL devolve está documentado. A lista é a
+    // resposta literal de produção de 06/09 (curl HTTP 200), e o bloco
+    // `return json({...})` do route.ts tem de bater com ela também.
+    const GROUND_TRUTH = ['url', 'token', 'expiresAt', 'words', 'seconds', 'fit', 'fitMessage', 'durationSec', 'engineHint', 'aspect', 'language', 'overStudioLimit', 'studioLimitChars']
+    for (const k of GROUND_TRUTH) ok(Boolean(res[k]?.type), `(J5) resposta real devolve \`${k}\` → documentado em HandoffResponse.properties`)
+    // O bloco de SUCESSO é o último `return json({` antes do catch — o que
+    // carrega `url:`. É o único MULTI-LINHA; os `return json({ error … }, NNN)`
+    // (400/429/503, inclusive o do catch) cabem numa linha e ficam fora.
+    const successStart = postRoute.lastIndexOf('return json({\n')
+    const successBlock = successStart >= 0 ? postRoute.slice(successStart, postRoute.indexOf('})', successStart)) : ''
+    const routeKeys = [...successBlock.matchAll(/^\s*([A-Za-z]+)\s*[,:]/gm)].map((m) => m[1])
+    ok(/^\s*url: /m.test(successBlock), '(J5) o bloco de sucesso lido do route.ts é o que devolve `url`')
+    ok(routeKeys.length >= 13 && sameSet(routeKeys, GROUND_TRUTH), `(J5) o \`return json({...})\` do route.ts devolve exatamente esses ${routeKeys.length} campos (${routeKeys.join(', ')})`)
+    ok(sameSet(Object.keys(res), GROUND_TRUTH), '(J5) HandoffResponse.properties não documenta campo que o servidor não devolve')
+    ok(sameSet(resSchema.required, GROUND_TRUTH), '(J5) HandoffResponse.required = todos os campos (o servidor sempre devolve todos)')
+
+    // (J6) seconds é decimal.
+    ok(res.seconds?.type === 'number', `(J6) seconds.type = "${res.seconds?.type}" (servidor devolve 24.2, não integer)`)
+    ok(/decimal/i.test(res.seconds?.description ?? ''), '(J6) a descrição de seconds avisa que pode ter casa decimal')
+    ok(typeof res.fitMessage?.description === 'string' && /verbatim/i.test(res.fitMessage.description), '(J6) fitMessage: instrução de usar a frase VERBATIM')
+    ok(/fitMessage/.test(op?.responses?.['200']?.description ?? '') && /verbatim/i.test(op?.responses?.['200']?.description ?? ''), '(J6) a descrição do 200 manda citar fitMessage verbatim')
+    ok(res.overStudioLimit?.type === 'boolean' && res.studioLimitChars?.type === 'integer' && /overStudioLimit/.test(op?.responses?.['200']?.description ?? ''), '(J6) overStudioLimit boolean + studioLimitChars integer, e o 200 manda avisar')
+
+    // (J7) todo status que o route.ts devolve tem entrada em responses — e só eles.
+    const routeStatuses = [...new Set([200, ...[...postRoute.matchAll(/return json\([^\n]*?, (\d{3})\)/g)].map((m) => Number(m[1]))])].sort()
+    const schemaStatuses = Object.keys(op?.responses ?? {}).map(Number).sort()
+    ok(routeStatuses.includes(400) && routeStatuses.includes(429) && routeStatuses.includes(503), `(J7) route.ts devolve ${routeStatuses.join('/')}`)
+    for (const s of routeStatuses) ok(Boolean(op?.responses?.[String(s)]?.description), `(J7) status ${s} do servidor está em responses`)
+    ok(sameSet(schemaStatuses, routeStatuses), `(J7) responses [${schemaStatuses}] === status do servidor [${routeStatuses}] (nem a mais, nem a menos)`)
+    const d503 = op?.responses?.['503']?.description ?? ''
+    ok(/try again in a minute/i.test(d503) && /never fabricate a link|never invent a link|do not invent a link/i.test(d503), '(J7) 503: "tente de novo em um minuto" + nunca fabricar link')
+    const d429 = op?.responses?.['429']?.description ?? ''
+    ok(/Too many requests right now, try again in a minute/.test(d429) && /do not invent a link|never fabricate a link/i.test(d429), '(J7) 429: frase fixa + nunca inventar link')
+    for (const s of [400, 429, 503]) ok(op?.responses?.[String(s)]?.content?.['application/json']?.schema?.$ref === '#/components/schemas/ErrorResponse', `(J7) ${s} → ErrorResponse`)
+
+    // (J8) A REGRA DO GRÁTIS, derivada do custo real: o trial de TRIAL_CAP
+    // créditos paga um Seedance de d segundos sse ceil(base·d/60) <= cap.
+    // Toda FRASE do schema que prometa filme grátis tem de citar cada duração
+    // que NÃO cabe (hoje só o 90) — a promessa incondicional é proibida.
+    const seedanceCost = (d) => Math.max(1, Math.ceil(SEEDANCE_60 * (d / REF_SEC)))
+    const freeDur = DUR.filter((d) => seedanceCost(d) <= TRIAL_CAP)
+    const paidDur = DUR.filter((d) => seedanceCost(d) > TRIAL_CAP)
+    ok(freeDur.length >= 1 && paidDur.length >= 1, `(J8) pelo custo real, cabem no trial: [${freeDur}] (${freeDur.map(seedanceCost)}cr) · não cabem: [${paidDur}] (${paidDur.map(seedanceCost)}cr vs ${TRIAL_CAP})`)
+    const CLAIM = /\bfilm\s+(?:is\s+)?free\b|\bfree\s+film\b|\bfirst\s+film\s+is\s+free\b/i
+    const sentences = strings.flatMap((s) => s.split(/(?<=[.!?])\s+/))
+    const claims = sentences.filter((s) => CLAIM.test(s))
+    // "90" ou "90s" — o `s` cola no dígito, então \b sozinho não casa "90s".
+    const mentions = (s, d) => new RegExp(`\\b${d}s?\\b`).test(s)
+    // Proibição ("Never claim a free film for 90s…") não é promessa: entra na
+    // trava do 90 (qualquer frase de grátis cita o que NÃO cabe), mas não é
+    // cobrada a citar 35 e 60.
+    const affirmative = claims.filter((s) => !/\bnever\b/i.test(s))
+    const unconditional = claims.filter((s) => !paidDur.every((d) => mentions(s, d)))
+    ok(affirmative.length >= 1, `(J8) o schema ainda conta a história do grátis (${affirmative.length} promessas, ${claims.length - affirmative.length} proibições)`)
+    ok(unconditional.length === 0, unconditional.length ? `(J8) PROMESSA INCONDICIONAL de filme grátis sem citar ${paidDur.join('/')}: "${unconditional[0].slice(0, 110)}…"` : `(J8) toda frase de "film is free" cita a duração que NÃO cabe (${paidDur.join('/')})`)
+    ok(affirmative.every((s) => freeDur.every((d) => mentions(s, d))), `(J8) toda promessa de "film is free" cita as durações que cabem (${freeDur.join(' e ')})`)
+    ok(!/first film is free \(25-credit trial, no card\)\.\s*Never invent/.test(op?.description ?? ''), '(J8) a redação antiga incondicional da operação não voltou')
+    const trialMentions = strings.flatMap((s) => [...s.matchAll(/(\d+)-credit trial/g)].map((m) => Number(m[1])))
+    ok(trialMentions.length >= 1 && trialMentions.every((n) => n === TRIAL_CAP), `(J8) todo "N-credit trial" do schema (${[...new Set(trialMentions)]}) === TRIAL_CREDIT_CAP (${TRIAL_CAP})`)
+    const hwMentions = strings.flatMap((s) => [...s.matchAll(/(\d+) credits at 60s/g)].map((m) => Number(m[1])))
+    ok(hwMentions.length >= 1 && hwMentions.every((n) => n === HOLLYWOOD_60), `(J8) custo do Kling 3 citado (${[...new Set(hwMentions)]}) === engineCost cinematic_hollywood (${HOLLYWOOD_60})`)
+    const dayMentions = strings.flatMap((s) => [...s.matchAll(/(\d+) days/g)].map((m) => Number(m[1])))
+    ok(dayMentions.length >= 2 && dayMentions.every((n) => n === TTL_DAYS), `(J8) todo "N days" do schema (${[...new Set(dayMentions)]}) === HANDOFF_TTL_DAYS (${TTL_DAYS})`)
+
+    // (J9) forma que o importador de Actions exige.
+    ok(schema.openapi === '3.1.0', `(J9) openapi ${schema.openapi}`)
+    ok(Array.isArray(schema.servers) && schema.servers.length === 1 && schema.servers[0].url === 'https://www.usekineo.com', '(J9) servers[0].url === https://www.usekineo.com')
+    const opIds = Object.values(schema.paths ?? {}).flatMap((p) => Object.values(p)).map((o) => o && o.operationId).filter(Boolean)
+    ok(opIds.length === 1 && opIds[0] === 'createKineoHandoff', `(J9) exatamente 1 operação com operationId (${opIds.join(', ')})`)
+    ok(!schema.components?.securitySchemes && !schema.security && !op?.security, '(J9) sem autenticação (a ação é pública)')
+    const refs = strings.filter((s, i) => s.startsWith('#/') || /^https?:\/\/.*\.json/.test(s))
+    ok(refs.every((r) => r.startsWith('#/components/schemas/')), '(J9) todo $ref é interno (#/components/schemas/...)')
+    ok(typeof schema.info?.description === 'string' && schema.info.description.length <= 600, `(J9) info.description curta (${schema.info?.description?.length} chars)`)
+    ok(req.script?.type === 'string' && req.script.minLength === 1 && schema.components.schemas.HandoffRequest.required?.includes('script') && schema.components.schemas.HandoffRequest.additionalProperties === false, '(J9) HandoffRequest: script obrigatório, string, minLength 1, additionalProperties false')
+  }
+}
+
+// ═══ (K) O DOCUMENTO DO GPT — docs/GPT-KINEO-VIDEO-MAKER.md ═══════════════
+// É a PRIMEIRA fonte de instruções do modelo: a seção C é o texto que o
+// fundador cola no campo Instructions do editor. Em 06/09 ela repetia as duas
+// mentiras do schema (teto 6.000; "first film is free" sem a ressalva do 90s).
+// O (J) amarra o schema ao servidor; este bloco amarra o DOCUMENTO ao servidor
+// e ao schema. Nada digitado: teto, durações, motores, TTL, trial, custos e
+// preços vêm dos arquivos reais por regex. A unidade de cobrança é o
+// PARÁGRAFO (linhas contíguas; bullet/numeração/título abre outro), porque a
+// condição do grátis pode estar na frase seguinte à promessa.
+console.log('\n(K) docs/GPT-KINEO-VIDEO-MAKER.md amarrado ao servidor e ao schema')
+{
+  const DOC = 'docs/GPT-KINEO-VIDEO-MAKER.md'
+  const md = read(DOC)
+  // Uma cópia com quebras de linha viradas em espaço: o .md quebra frases a
+  // ~80 colunas ("teto de **5.000\n  caracteres**"), e regex por linha perde.
+  const flat = md.replace(/\s*\n\s*/g, ' ')
+  const num = (src, name) => {
+    const m = src.match(new RegExp(`export const ${name}(?:: \\w+)? = (\\d+)`))
+    return m ? Number(m[1]) : NaN
+  }
+  const str =(src, name) => (src.match(new RegExp(`export const ${name}(?:: \\w+)? = '([^']*)'`)) || [])[1]
+  const list = (name) => {
+    const m = lib.match(new RegExp(`export const ${name} = \\[([^\\]]*)\\] as const`))
+    return m ? m[1].split(',').map((s) => s.trim().replace(/^'|'$/g, '')).filter(Boolean) : null
+  }
+  const sameSet = (a, b) => Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every((x) => b.includes(x))
+  const uniq = (a) => [...new Set(a)]
+  const SCRIPT_MAX = num(lib, 'SCRIPT_MAX_CHARS')
+  const TTL_DAYS = num(lib, 'HANDOFF_TTL_DAYS')
+  const DUR = (list('DURATIONS') || []).map(Number)
+  const ENG = list('HANDOFF_ENGINES') || []
+  const DEF_DUR = num(lib, 'DEFAULT_DURATION')
+  const DEF_ENG = str(lib, 'DEFAULT_ENGINE')
+  const DEF_ASP = str(lib, 'DEFAULT_ASPECT')
+  const DEF_LANG = str(lib, 'DEFAULT_LANGUAGE')
+  const GO_PREFIX = str(lib, 'GO_PATH_PREFIX')
+  const labelsSrc = (lib.match(/export const ENGINE_LABELS[^{]*\{([^}]*)\}/) || [])[1] || ''
+  const LABELS = Object.fromEntries([...labelsSrc.matchAll(/(\w+): '([^']+)'/g)].map((m) => [m[1], m[2]]))
+  const engineCost = read('lib/credits/engineCost.ts')
+  const costOf = (quality) => {
+    const m = engineCost.match(new RegExp(`case '${quality}':[\\s\\S]*?return (\\d+)`))
+    return m ? Number(m[1]) : NaN
+  }
+  const REF_SEC = num(engineCost, 'DURATION_REFERENCE_SECONDS')
+  const SEEDANCE_60 = costOf('cinematic_ai')
+  const seedanceCost = (d) => Math.max(1, Math.ceil(SEEDANCE_60 * (d / REF_SEC)))
+  const TRIAL_CAP = num(read('lib/reverseTrial.ts'), 'TRIAL_CREDIT_CAP')
+  const freeDur = DUR.filter((d) => seedanceCost(d) <= TRIAL_CAP)
+  const paidDur = DUR.filter((d) => seedanceCost(d) > TRIAL_CAP)
+  ok(
+    [SCRIPT_MAX, TTL_DAYS, DEF_DUR, REF_SEC, SEEDANCE_60, TRIAL_CAP].every(Number.isFinite) && DUR.length >= 3 && ENG.length >= 7 && Object.keys(LABELS).length === ENG.length && Boolean(DEF_ENG && DEF_ASP && DEF_LANG && GO_PREFIX) && freeDur.length >= 1 && paidDur.length >= 1,
+    `(K0) constantes lidas: SCRIPT_MAX=${SCRIPT_MAX} TTL=${TTL_DAYS}d DUR=[${DUR}] ENG=[${ENG}] defaults=${DEF_DUR}/${DEF_ENG}/${DEF_ASP}/${DEF_LANG} trial=${TRIAL_CAP} · cabem no trial [${freeDur}] · não cabem [${paidDur}]`,
+  )
+
+  // ── seções (ancoradas nos títulos "## X.") e parágrafos
+  const section = (letter) => {
+    const m = md.match(new RegExp(`^## ${letter}\\. [^\\n]*\\n([\\s\\S]*?)(?=^## [A-Z]\\. |(?![\\s\\S]))`, 'm'))
+    return m ? m[1] : ''
+  }
+  const secB = section('B')
+  const secC = section('C')
+  const secG = section('G')
+  ok(secB.length > 100 && secC.length > 1000 && secG.length > 500, `(K0) seções B (${secB.length}) · C (${secC.length}) · G (${secG.length}) localizadas pelos títulos`)
+  const instructions = (secC.match(/```\n([\s\S]*?)\n```/) || [])[1] || ''
+  ok(/^You are Short Video Maker by Kineo/.test(instructions) && /set language accordingly\.$/.test(instructions), `(K0) bloco Instructions da seção C isolado (${instructions.length} chars; começa "You are…", termina "…accordingly.")`)
+  // Cada parágrafo sai com o OFFSET real da sua primeira linha no texto de
+  // origem — é isso que ancora a exceção da seção B na seção B (um blurb
+  // copiado para outra seção tem outro offset e é cobrado).
+  const paragraphs = (src) => {
+    const out = []
+    let cur = []
+    let curIdx = -1
+    let offset = 0
+    const flush = () => { if (cur.length) out.push({ p: cur.join(' ').replace(/\s+/g, ' ').trim(), idx: curIdx }); cur = [] }
+    for (const line of src.split('\n')) {
+      if (!line.trim()) { flush(); offset += line.length + 1; continue }
+      if (/^\s*(?:[-*]\s|\d+\.\s|#)/.test(line) || /^```/.test(line)) flush()
+      if (!cur.length) curIdx = offset
+      cur.push(line)
+      offset += line.length + 1
+    }
+    flush()
+    return out.filter((x) => x.p)
+  }
+  const mentions = (s, d) => new RegExp(`\\b${d}s?\\b`).test(s)
+
+  // (K1) TETO DE CARACTERES. Todo número de 4-6 dígitos perto de "caracter/
+  // character/chars" é o teto, e o teto é SCRIPT_MAX_CHARS. "5.000" e "5,000"
+  // valem pelo VALOR. Número precedido de ≈/~ é estimativa de tamanho de
+  // roteiro, não teto: tem de ficar ABAIXO do teto (uma estimativa acima do
+  // teto seria outra contradição).
+  const charHits = [...flat.matchAll(/(≈|~)?\s*\*{0,2}(\d[\d.,]{3,6})\*{0,2}\s+(?:caracteres?|characters?|chars)\b/gi)].map((m) => ({ approx: Boolean(m[1]), raw: m[2], value: Number(m[2].replace(/[.,]/g, '')) }))
+  const ceilings = charHits.filter((h) => !h.approx)
+  const estimates = charHits.filter((h) => h.approx)
+  ok(ceilings.length >= 1 && ceilings.every((h) => h.value === SCRIPT_MAX), `(K1) todo teto de caracteres do .md (${uniq(ceilings.map((h) => h.raw)).join(', ') || 'nenhum'}) === SCRIPT_MAX_CHARS (${SCRIPT_MAX})`)
+  ok(estimates.every((h) => h.value < SCRIPT_MAX), `(K1) estimativas "≈ N caracteres" (${uniq(estimates.map((h) => h.raw)).join(', ') || 'nenhuma'}) ficam abaixo do teto`)
+  ok(/SCRIPT_MAX_CHARS/.test(secG), '(K1) a seção G aponta o nome da constante (SCRIPT_MAX_CHARS), não só o número')
+
+  // (K2) A REGRA DO GRÁTIS. Toda promessa de filme grátis — em inglês ou em
+  // português — vive num parágrafo que cita as durações que CABEM no trial
+  // (35 e 60) E a que NÃO cabe (90). Exceção NOMEADA: as duas descrições de
+  // loja da seção B, blurbs do caminho padrão (60s seedance, que É grátis).
+  // Só essas duas frases, só dentro da seção B.
+  const CLAIM = /\bfilm\s+(?:is\s+)?free\b|\bfree\s+film\b|\bfirst\s+film\s+is\s+free\b|\bgr[áa]tis\b|\bfilme[^.]{0,30}de gra[çc]a\b/i
+  const STORE_BLURBS = ['First film free.', 'Your first film is free: 25 trial credits, no card.']
+  const blurbsInB = STORE_BLURBS.filter((b) => secB.includes(b))
+  ok(blurbsInB.length === STORE_BLURBS.length, `(K2) as ${STORE_BLURBS.length} frases da exceção existem na seção B, literalmente (${blurbsInB.length} achadas)`)
+  ok(STORE_BLURBS.every((b) => !secC.includes(b) && !secG.includes(b)), '(K2) a exceção não vaza: os blurbs da seção B não aparecem em C nem em G')
+  const secBStart = md.indexOf('## B. ')
+  const secBEnd = md.indexOf('## C. ')
+  const isStoreBlurb = (p, idx) => idx >= secBStart && idx < secBEnd && STORE_BLURBS.some((b) => p.includes(b))
+  const claimParas = paragraphs(md).filter(({ p }) => CLAIM.test(p))
+  const excepted = claimParas.filter(({ p, idx }) => isStoreBlurb(p, idx))
+  const cobrados = claimParas.filter(({ p, idx }) => !isStoreBlurb(p, idx))
+  ok(claimParas.length >= 5 && excepted.length === STORE_BLURBS.length, `(K2) ${claimParas.length} parágrafos prometem filme grátis; ${excepted.length} são os blurbs da seção B; ${cobrados.length} cobrados`)
+  const semPaid = cobrados.filter(({ p }) => !paidDur.every((d) => mentions(p, d)))
+  ok(semPaid.length === 0, semPaid.length ? `(K2) PROMESSA de grátis sem citar a duração que NÃO cabe (${paidDur}): "${semPaid[0].p.slice(0, 120)}…"` : `(K2) todo parágrafo cobrado cita a exceção (${paidDur.join('/')})`)
+  const semFree = cobrados.filter(({ p }) => !freeDur.every((d) => mentions(p, d)))
+  ok(semFree.length === 0, semFree.length ? `(K2) PROMESSA de grátis sem citar a condição (${freeDur.join(' e ')}): "${semFree[0].p.slice(0, 120)}…"` : `(K2) todo parágrafo cobrado cita a condição (${freeDur.join(' e ')})`)
+  ok(cobrados.some(({ idx }) => idx >= md.indexOf('## C. ') && idx < md.indexOf('## D. ')) && cobrados.some(({ idx }) => idx >= md.indexOf('## G. ')), '(K2) há promessa cobrada (e aprovada) na seção C e na seção G')
+
+  // (K3) AS TRÊS FONTES CONCORDAM. A regra existe na seção C (a frase que o
+  // modelo lê como instrução), na seção G (o registro para o fundador) e na
+  // description do 200 do openapi.json (o que o modelo lê a cada chamada).
+  const cLine = instructions.split('\n').find((l) => /first film is free/i.test(l) && /say this only for/i.test(l)) || ''
+  ok(Boolean(cLine) && freeDur.every((d) => mentions(cLine, d)) && paidDur.every((d) => mentions(cLine, d)), `(K3) seção C: a linha "first film is free… say this only for ${freeDur.join('s and ')}s" existe e cita ${paidDur.join('/')} como exceção`)
+  const gPara = (paragraphs(secG).find(({ p }) => /first film is free/i.test(p)) || {}).p || ''
+  ok(Boolean(gPara) && freeDur.every((d) => mentions(gPara, d)) && paidDur.every((d) => mentions(gPara, d)) && /openapi\.json/.test(gPara) && /seção C/.test(gPara), '(K3) seção G: o parágrafo do grátis cita 35/60/90 e aponta para a seção C e para o openapi.json')
+  let schema200 = ''
+  try { schema200 = JSON.parse(read('public/gpt/openapi.json')).paths['/api/gpt/handoff'].post.responses['200'].description } catch {}
+  ok(/first film is free/i.test(schema200) && freeDur.every((d) => mentions(schema200, d)) && paidDur.every((d) => mentions(schema200, d)), '(K3) openapi.json: a description do 200 conta a mesma história (grátis só em 35/60; 90 é exceção)')
+  const trialPhrase = (s) => (s.match(/(\d+)-credit trial, no card/) || [])[1]
+  ok(trialPhrase(cLine) && trialPhrase(schema200) && trialPhrase(cLine) === trialPhrase(schema200), `(K3) C e o 200 usam a mesma frase "N-credit trial, no card" (N=${trialPhrase(cLine)})`)
+
+  // (K4) MOTORES E DURAÇÕES. A lista "Engine choice" da seção C envia
+  // exatamente os ids de HANDOFF_ENGINES, com os nomes públicos de
+  // ENGINE_LABELS; as duas linhas de orçamento dividem os ids nas duas
+  // famílias da lib; as opções de duração são DURATIONS.
+  const engineBlock = (instructions.match(/Engine choice[\s\S]*?Never send any other value\./) || [])[0] || ''
+  const engPairs = [...engineBlock.matchAll(/"([a-z0-9]+)" \(([^)]+)\)/g)].map((m) => [m[1], m[2]])
+  ok(engineBlock.length > 100 && sameSet(engPairs.map((p) => p[0]), ENG), `(K4) "Engine choice" da seção C envia [${engPairs.map((p) => p[0])}] === HANDOFF_ENGINES [${ENG}]`)
+  ok(engPairs.length === ENG.length && engPairs.every(([id, label]) => LABELS[id] === label), `(K4) cada id vem com o nome público de ENGINE_LABELS (${engPairs.map(([i, l]) => `${i}=${l}`).join(', ')})`)
+  ok(/Never send any other value\./.test(engineBlock) && /\(the default\)|the default for everything/.test(engineBlock.split('\n').find((l) => l.includes(`"${DEF_ENG}"`)) || ''), `(K4) "${DEF_ENG}" é o padrão da lista e a lista é fechada`)
+  const stdIds = [...((instructions.match(/Standard engines[^\n]*/) || [''])[0].matchAll(/"([a-z0-9]+)"/g))].map((m) => m[1])
+  const premIds = [...((instructions.match(/Premium engines[^\n]*/) || [''])[0].matchAll(/"([a-z0-9]+)"/g))].map((m) => m[1])
+  ok(sameSet([...stdIds, ...premIds], ENG) && stdIds.length && premIds.length, `(K4) orçamento de palavras cobre todos os motores: standard [${stdIds}] + premium [${premIds}]`)
+  if (L) {
+    ok(stdIds.every((e) => L.wordsPerSecondFor(e) === L.WORDS_PER_SECOND_CLASSIC) && premIds.every((e) => L.wordsPerSecondFor(e) === L.WORDS_PER_SECOND_HOLLYWOOD), '(K4) a divisão standard/premium do .md é a divisão clássico/hollywood da lib (wordsPerSecondFor)')
+    // As faixas de palavras, EXECUTADAS contra o estimador: o piso da faixa
+    // não pode dar fit=short (ficar abaixo é defeito) e o teto não pode dar
+    // fit=long. Uma faixa que o servidor chamaria de "curta" é mentira.
+    const mk = (n) => Array.from({ length: n }, (_, i) => `w${i}`).join(' ')
+    const rows = (header) => {
+      const block = (instructions.match(new RegExp(`${header}[^\\n]*\\n([\\s\\S]*?)\\n\\n`)) || [])[1] || ''
+      return [...block.matchAll(/^- (\d+)s: (\d+)-(\d+) words/gm)].map((m) => ({ d: Number(m[1]), lo: Number(m[2]), hi: Number(m[3]) }))
+    }
+    for (const [header, ids] of [['Standard engines', stdIds], ['Premium engines', premIds]]) {
+      const r = rows(header)
+      ok(sameSet(r.map((x) => x.d), DUR), `(K4) ${header}: linhas de orçamento para [${r.map((x) => x.d)}] === DURATIONS`)
+      const bad = r.flatMap((x) => ids.flatMap((e) => {
+        const lo = L.estimateHandoff(mk(x.lo), x.d, e).fit
+        const hi = L.estimateHandoff(mk(x.hi), x.d, e).fit
+        return lo === 'short' || hi === 'long' ? [`${e}@${x.d}s ${x.lo}-${x.hi} → ${lo}/${hi}`] : []
+      }))
+      ok(r.length === DUR.length && bad.length === 0, bad.length ? `(K4) faixa de palavras que o servidor reprovaria: ${bad.join('; ')}` : `(K4) ${header}: piso nunca dá "short", teto nunca dá "long" (estimateHandoff real)`)
+    }
+  }
+  const step1 = (instructions.match(/Duration: [^\n]*/) || [''])[0]
+  const step1Durs = [...step1.matchAll(/(\d+)s \(/g)].map((m) => Number(m[1]))
+  ok(sameSet(step1Durs, DUR) && new RegExp(`Default ${DEF_DUR}\\.`).test(step1), `(K4) Step 1 oferece [${step1Durs}] === DURATIONS, padrão ${DEF_DUR}`)
+  const step5Durs = ((instructions.match(/durationSec: ([\d, or]+),/) || [''])[1].match(/\d+/g) || []).map(Number)
+  ok(sameSet(step5Durs, DUR), `(K4) Step 5 "durationSec: ${step5Durs.join(', ')}" === DURATIONS`)
+  const longDesc = (secB.match(/write a ([\d, or]+)-second short/) || [''])[1].match(/\d+/g) || []
+  ok(sameSet(longDesc.map(Number), DUR), `(K4) descrição longa da loja oferece [${longDesc}] === DURATIONS`)
+  const starterDurs = [...(section('D').matchAll(/\b(\d+)s\b/g))].map((m) => Number(m[1]))
+  ok(starterDurs.length >= 1 && starterDurs.every((d) => DUR.includes(d)), `(K4) conversation starters pedem só durações válidas (${uniq(starterDurs)})`)
+  ok(new RegExp(`aspect: "${DEF_ASP}" unless`).test(instructions) && new RegExp(`\\("${DEF_LANG}" by default\\)`).test(instructions), `(K4) padrões de aspect (${DEF_ASP}) e language (${DEF_LANG}) são os da lib`)
+
+  // (K5) TTL. Todo "N days"/"N dias" do documento é HANDOFF_TTL_DAYS.
+  const dayHits = [...flat.matchAll(/\*{0,2}(\d+)\*{0,2}[\s-]+(?:days?|dias?)\b/gi)].map((m) => Number(m[1]))
+  ok(dayHits.length >= 2 && dayHits.every((n) => n === TTL_DAYS), `(K5) todo "N days/dias" do .md (${uniq(dayHits)}) === HANDOFF_TTL_DAYS (${TTL_DAYS}) — ${dayHits.length} menções`)
+  ok(new RegExp(`valid for ${TTL_DAYS} days`).test(instructions) && new RegExp(`expira em \\*\\*${TTL_DAYS} dias\\*\\*`).test(secG), `(K5) a validade aparece na instrução (C) e no registro (G) com o mesmo número`)
+
+  // (K6) PREÇOS. Cada "Plano $N" do .md === TIER_PRICES/AUTOPILOT_PRICES de
+  // lib/checkoutPricing.ts (em centavos), com o nome público lido de
+  // lib/pricing.ts (tier → name), nunca digitado aqui.
+  const checkout = read('lib/checkoutPricing.ts')
+  const pricingLib = read('lib/pricing.ts')
+  const tierBlock = (checkout.match(/export const TIER_PRICES[^=]*= \{([\s\S]*?)\n\}/) || [])[1] || ''
+  const minor = Object.fromEntries([...tierBlock.matchAll(/(\w+): \{ usd: (\d+) \}/g)].map((m) => [m[1], Number(m[2])]))
+  minor.autopilot = Number((checkout.match(/export const AUTOPILOT_PRICES[^=]*= \{\s*usd: (\d+)/) || [])[1])
+  const nameOf = Object.fromEntries([...pricingLib.matchAll(/(\w+): \{\s*tier: '\1',\s*name: '([^']+)'/g)].map((m) => [m[1], m[2]]))
+  const tiers = Object.keys(minor)
+  ok(tiers.length === 4 && tiers.every((t) => Number.isFinite(minor[t]) && nameOf[t]), `(K6) lib lida: ${tiers.map((t) => `${t}=${nameOf[t]} ${minor[t]}¢`).join(' · ')}`)
+  const priceHits = [...flat.matchAll(/\b(Starter|Creator|Studio|Autopilot)\s+\$(\d+(?:\.\d+)?)/g)].map((m) => ({ name: m[1], usd: Number(m[2]) }))
+  const expectedUsd = Object.fromEntries(tiers.map((t) => [nameOf[t], minor[t] / 100]))
+  const wrong = priceHits.filter((h) => h.usd !== expectedUsd[h.name])
+  ok(priceHits.length >= 8 && wrong.length === 0, wrong.length ? `(K6) PREÇO DIVERGENTE no .md: ${wrong.map((h) => `${h.name} $${h.usd} (lib: $${expectedUsd[h.name]})`).join(', ')}` : `(K6) ${priceHits.length} preços citados no .md batem com a lib (${Object.entries(expectedUsd).map(([n, v]) => `${n} $${v}`).join(' · ')})`)
+  ok(Object.keys(expectedUsd).every((n) => priceHits.some((h) => h.name === n)), '(K6) os 4 planos aparecem no .md')
+  const pricingLine = instructions.split('\n').find((l) => /^- Starter \$/.test(l)) || ''
+  ok(Object.entries(expectedUsd).every(([n, v]) => pricingLine.includes(`${n} $${v}/month`)), `(K6) a linha de preços do Step "Pricing and plans" traz os 4 com "/month": "${pricingLine.slice(0, 90)}"`)
+
+  // (K7) TRIAL. Todo "25" citado como crédito de trial === TRIAL_CREDIT_CAP.
+  const trialHits = [...flat.matchAll(/(\d+)-credit trial|(\d+) trial credits|trial de (\d+) cr[ée]ditos|Free trial: (\d+) credits|trial of (\d+) credits/gi)].map((m) => Number(m.slice(1).find(Boolean)))
+  ok(trialHits.length >= 5 && trialHits.every((n) => n === TRIAL_CAP), `(K7) todo crédito de trial citado no .md (${uniq(trialHits)}) === TRIAL_CREDIT_CAP (${TRIAL_CAP}) — ${trialHits.length} menções`)
+  ok(new RegExp(`Free trial: ${TRIAL_CAP} credits, no card required\\. Enough for one ${REF_SEC}-second`).test(instructions), `(K7) o Step "Pricing" diz o trial certo e o que ele compra (um filme de ${REF_SEC}s)`)
+
+  // (K8) CUSTOS. Os créditos por motor a 60s (cabeçalho "Fatos conferidos")
+  // e os custos do Seedance por duração (15/25/38 em G) vêm de engineCost.ts.
+  const QUALITY_OF = { Seedance: 'cinematic_ai', 'MiniMax H3': 'cinematic_h3', 'Kling 2.5': 'cinematic_kling', Veo: 'cinematic_veo', 'Kling 3': 'cinematic_hollywood', Omni: 'cinematic_omni' }
+  const costPara = (flat.match(/Custos de referência a 60s[^—]*?\. O trial/) || [''])[0]
+  const costHits = [...costPara.matchAll(/(Seedance|MiniMax H3|Kling 2\.5|Veo|Kling 3|Omni) (\d+)/g)].map((m) => ({ label: m[1], cr: Number(m[2]) }))
+  const costWrong = costHits.filter((h) => costOf(QUALITY_OF[h.label]) !== h.cr)
+  ok(costHits.length === Object.keys(QUALITY_OF).length && costWrong.length === 0, costWrong.length ? `(K8) CUSTO DIVERGENTE: ${costWrong.map((h) => `${h.label} ${h.cr} (lib ${costOf(QUALITY_OF[h.label])})`).join(', ')}` : `(K8) os ${costHits.length} custos a 60s do .md batem com engineCost.ts`)
+  const perDur = [...flat.matchAll(/(\d+)cr a (\d+)s/g)].map((m) => ({ cr: Number(m[1]), d: Number(m[2]) }))
+  const perDurWrong = perDur.filter((h) => seedanceCost(h.d) !== h.cr)
+  ok(perDur.length >= 2 && perDurWrong.length === 0, perDurWrong.length ? `(K8) custo do Seedance por duração errado: ${perDurWrong.map((h) => `${h.d}s=${h.cr} (real ${seedanceCost(h.d)})`).join(', ')}` : `(K8) "${perDur.map((h) => `${h.cr}cr a ${h.d}s`).join(', ')}" === creditCostForDuration real`)
+  const ninetyHits = [...flat.matchAll(/(\d+)s custa (\d+)cr/g)].map((m) => ({ d: Number(m[1]), cr: Number(m[2]) }))
+  ok(ninetyHits.length >= 1 && ninetyHits.every((h) => seedanceCost(h.d) === h.cr && h.cr > TRIAL_CAP), `(K8) "${ninetyHits.map((h) => `${h.d}s custa ${h.cr}cr`).join(', ')}" bate com o custo real e estoura o trial (${TRIAL_CAP})`)
+  const premCr = [...flat.matchAll(/`hollywood`\/`omni` \((\d+)cr\)/g)].map((m) => Number(m[1]))
+  ok(premCr.length >= 1 && premCr.every((n) => n === costOf('cinematic_hollywood') && n === costOf('cinematic_omni')), `(K8) "hollywood/omni (${uniq(premCr)}cr)" === engineCost de hollywood e omni`)
+
+  // (K9) O QUE O DOCUMENTO PROMETE SOBRE O CONTRATO EXISTE NO CONTRATO.
+  let schema = null
+  try { schema = JSON.parse(read('public/gpt/openapi.json')) } catch {}
+  const op = schema?.paths?.['/api/gpt/handoff']?.post
+  ok(Boolean(op) && op.operationId === 'createKineoHandoff' && (instructions.match(/createKineoHandoff/g) || []).length >= 2, '(K9) operationId createKineoHandoff é o que as instruções mandam chamar')
+  ok(schema?.servers?.[0]?.url && md.includes(`${schema.servers[0].url}/gpt/openapi.json`) && fs.existsSync(path.join(ROOT, 'public/gpt/openapi.json')), `(K9) a URL de import (${schema?.servers?.[0]?.url}/gpt/openapi.json) é o servers[0].url + o arquivo que existe em public/`)
+  const fixed429 = 'Too many requests right now, try again in a minute'
+  ok(instructions.includes(`429: say "${fixed429}."`) && (op?.responses?.['429']?.description ?? '').includes(fixed429) && secG.replace(/\s*\n\s*/g, ' ').includes(fixed429),'(K9) a frase fixa do 429 é idêntica em C, em G e no schema')
+  const fallback = 'https://www.usekineo.com/studio'
+  ok((instructions.match(new RegExp(fallback.replace(/[./]/g, '\\$&'), 'g')) || []).length >= 2 && (op?.responses?.['503']?.description ?? '').includes(fallback) && (op?.responses?.['400']?.description ?? '').length > 0, '(K9) o fallback "cole no /studio" é o mesmo em C e no 503 do schema')
+  ok(md.includes(`${schema?.servers?.[0]?.url}${GO_PREFIX}`) && instructions.includes('<the url from the response, verbatim>'), `(K9) o link esperado começa com ${GO_PREFIX} (GO_PATH_PREFIX) e a instrução manda mostrar a url verbatim`)
+  ok(instructions.split('\n').filter((l) => /^- (400|429|Any other error):/.test(l)).length === 3 && sameSet(Object.keys(op?.responses ?? {}).filter((s) => s !== '200'), ['400', '429', '503']), '(K9) as instruções tratam 400, 429 e "qualquer outro" — e o schema só tem 400/429/503 além do 200')
+}
+
 console.log(`\n${pass} ok, ${fail} falhas`)
 process.exit(fail ? 1 : 0)

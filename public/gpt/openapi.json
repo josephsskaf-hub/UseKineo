@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Kineo Video Handoff",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "description": "Turns an approved Short script into a one-click Kineo Studio link. Call createKineoHandoff ONLY after the user has explicitly approved the final script. The response contains a URL (https://www.usekineo.com/go/<token>) that opens Kineo Studio pre-filled with the script, duration and engine. Kineo renders the film after the user clicks; this API never renders anything itself. Public, no authentication, rate-limited per IP."
   },
   "servers": [
@@ -15,7 +15,7 @@
       "post": {
         "operationId": "createKineoHandoff",
         "summary": "Create a one-click Kineo Studio link from an approved script",
-        "description": "Send the FINAL, user-approved script exactly as written (HOOK / MICRO REWARD / ESCALATION / PAYOFF markers included). Do not call this on the first message, do not call it while the user is still asking for changes, and never call it more than once per approved script. On success, show the user the `url` from the response with one short sentence, say the link opens Kineo Studio already filled in, is valid for 7 days, and that the first film is free (25-credit trial, no card). Never invent or alter the URL. If the response is an error, tell the user what went wrong in one sentence and fix the script or wait; never fabricate a link.",
+        "description": "Send the FINAL, user-approved script exactly as written (HOOK / MICRO REWARD / ESCALATION / PAYOFF markers included). Do not call this on the first message, do not call it while the user is still asking for changes, and never call it more than once per approved script. On success, show the user the `url` from the response with one short sentence and say the link opens Kineo Studio already filled in and is valid for 7 days. About cost, mirror the response: for durationSec 35 or 60 on the default engine (`seedance`) say the first film is free (25-credit trial, no card); for durationSec 90 say in one line that a 90s film costs more than the free trial and needs a paid plan, then offer 60s as the free option without talking the user out of 90s. Never invent or alter the URL. If the response is an error, tell the user what went wrong in one sentence and fix the script or wait; never fabricate a link.",
         "requestBody": {
           "required": true,
           "content": {
@@ -28,7 +28,7 @@
         },
         "responses": {
           "200": {
-            "description": "Link created. Show `url` to the user verbatim. Use `fit` to add one line of guidance: `short` means the script will likely render under the chosen duration (offer to extend it), `long` means it runs past it (that is fine, mention it only if it is far past), `ok` means it matches.",
+            "description": "Link created. Show `url` to the user verbatim and say it is valid for 7 days. Then ONE line about cost, conditioned on `durationSec` and `engineHint` in this response: if durationSec is 35 or 60 and engineHint is `seedance`, say the first film is free (25-credit trial, no card); if durationSec is 90, say a 90s film costs more than the free trial and needs a paid plan, and offer 60s as the free alternative without discouraging 90s; if engineHint is `hollywood`, `h3`, `omni` or `veo`, say that engine is on paid plans. Never claim a free film for 90s or for a premium engine. Then, if `fit` is `short`, quote `fitMessage` verbatim (it is a ready, correctly calibrated sentence) and offer to extend the script and re-send; if `fit` is `long`, quote `fitMessage` only when the script is far over target; if `fit` is `ok`, say nothing about length or quote `fitMessage` as is. Never write your own estimate of the narration length: `fitMessage` already contains it. If `overStudioLimit` is true, warn the user in one line that Kineo Studio accepts up to `studioLimitChars` characters and the script must be trimmed before rendering.",
             "content": {
               "application/json": {
                 "schema": {
@@ -38,7 +38,7 @@
             }
           },
           "400": {
-            "description": "The request was rejected (missing script, script over 6000 characters, HTML in the script, or an invalid durationSec/aspect/engineHint). Read `error`, fix the payload, and try again once. Never show a made-up link.",
+            "description": "The request was rejected: missing or empty script, script over 5000 characters, HTML tags in the script or topic, invalid durationSec (must be 35, 60 or 90), invalid aspect, unknown engineHint, malformed language code, topic over 200 characters, or a body that is not JSON. Read `error` (it states the exact reason and, for length, the exact limit), fix the payload, and try again once. If the script is too long, trim the script — never truncate silently without telling the user. Never show a made-up link.",
             "content": {
               "application/json": {
                 "schema": {
@@ -48,7 +48,17 @@
             }
           },
           "429": {
-            "description": "Rate limit reached for this IP. Tell the user: \"Too many requests right now, try again in a minute.\" Do not retry automatically and do not invent a link.",
+            "description": "Rate limit reached: either too many scripts from this connection in the last hour, or Kineo is receiving too many scripts globally. Tell the user: \"Too many requests right now, try again in a minute.\" Do not retry automatically and do not invent a link.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Kineo could not save or process the script right now (temporary storage or server problem; the script was NOT stored and no link exists). Tell the user in one sentence that Kineo is temporarily unstable and ask them to try again in a minute. Do not retry automatically, never fabricate a link, and as a fallback offer that they can paste the script themselves at https://www.usekineo.com/studio.",
             "content": {
               "application/json": {
                 "schema": {
@@ -71,14 +81,14 @@
           "script": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 6000,
-            "description": "The complete, user-approved narration script, plain text only (no HTML, no markdown headings). Keep the house structure on its own lines: `HOOK:`, `MICRO REWARD:`, `ESCALATION:`, `PAYOFF:`. Every sentence is spoken aloud by the narrator, so write only what should be heard: no stage directions, no camera notes, no visual descriptions, no [brackets]. Word budget depends on the engine, because the two families narrate at different speeds — never average them. Standard engines (`seedance`, `fast`, `kling`, `veo`): 100-115 words for 35s, 175-195 for 60s, 265-290 for 90s. Premium engines (`hollywood`, `h3`, `omni`) speak slower in their own native voice: 80-90 words for 35s, 150-165 for 60s, 205-230 for 90s. Slightly over the budget is good; under it is a defect (the story gets cut short). Only verifiable facts."
+            "maxLength": 5000,
+            "description": "The complete, user-approved narration script, plain text only (no HTML, no markdown headings), at most 5000 characters — the same limit Kineo Studio enforces; a 90s script is well under it. Keep the house structure on its own lines: `HOOK:`, `MICRO REWARD:`, `ESCALATION:`, `PAYOFF:`. Every sentence is spoken aloud by the narrator, so write only what should be heard: no stage directions, no camera notes, no visual descriptions, no [brackets]. Word budget depends on the engine, because the two families narrate at different speeds — never average them. Standard engines (`seedance`, `fast`, `kling`, `veo`): 100-115 words for 35s, 175-195 for 60s, 265-290 for 90s. Premium engines (`hollywood`, `h3`, `omni`) speak slower in their own native voice: 80-90 words for 35s, 150-165 for 60s, 205-230 for 90s. Slightly over the budget is good; under it is a defect (the story gets cut short). Only verifiable facts."
           },
           "durationSec": {
             "type": "integer",
             "enum": [35, 60, 90],
             "default": 60,
-            "description": "Target length of the film in seconds. Must match the duration the user chose BEFORE the script was written. Use 60 when the user has no preference. 35 = quick fact, 60 = standard Short (recommended, best for TikTok and YouTube Shorts), 90 = deeper story."
+            "description": "Target length of the film in seconds. Must match the duration the user chose BEFORE the script was written. Use 60 when the user has no preference. 35 = quick fact, 60 = standard Short (recommended, best for TikTok and YouTube Shorts), 90 = deeper story. Cost on the default engine: 35s and 60s fit the free 25-credit trial; 90s does not (it costs more than the trial) and needs a paid plan — say that in one line when the user picks 90 and has not paid, offer 60s, but do not talk them out of 90s."
           },
           "aspect": {
             "type": "string",
@@ -90,23 +100,24 @@
             "type": "string",
             "enum": ["seedance", "fast", "kling", "veo", "hollywood", "h3", "omni"],
             "default": "seedance",
-            "description": "Which Kineo video engine Studio should pre-select. Send `seedance` (Seedance 1.5, AI-generated cinematic scenes, fits the free trial) unless the user asks for something specific. `fast` = Kineo 1, real stock footage with narration, fastest and cheapest, good for news/facts/money topics. `kling` = Kling 2.5, more detailed AI scenes. `veo` = Veo 3.1, premium realism. `hollywood` = Kling 3, top-tier cinematic (150 credits, paid plans). `h3` = MiniMax H3, stylized motion. `omni` = Omni Flash, premium. When in doubt, send `seedance`. Never send a value outside this list."
+            "description": "Which Kineo video engine Studio should pre-select. Send `seedance` (Seedance 1.5, AI-generated cinematic scenes; the only engine where a 35s or 60s film fits the free trial) unless the user asks for something specific. `fast` = Kineo 1, real stock footage with narration, fastest and cheapest, good for news/facts/money topics. `kling` = Kling 2.5, more detailed AI scenes. `veo` = Veo 3.1, premium realism (paid plans). `hollywood` = Kling 3, top-tier cinematic (150 credits at 60s, paid plans). `h3` = MiniMax H3, stylized motion (paid plans). `omni` = Omni Flash, premium (paid plans). When in doubt, send `seedance`. Never send a value outside this list."
           },
           "language": {
             "type": "string",
             "default": "en",
-            "description": "BCP-47 language code of the script text, for example `en`, `es`, `pt`. Must match the language the script is actually written in. Default `en`."
+            "pattern": "^[a-z]{2}(-[A-Z]{2})?$",
+            "description": "Language of the script text as a short code: two lowercase letters, optionally followed by a hyphen and a two-letter UPPERCASE region, for example `en`, `es`, `pt`, `pt-BR`, `en-US`. Anything else is rejected with 400 (not `eng`, not `en-us`, not `zh-Hans`, not a language name). Must match the language the script is actually written in. Default `en`."
           },
           "topic": {
             "type": "string",
             "maxLength": 200,
-            "description": "Short working title for the video, 3-8 words, no hashtags (e.g. `The Ship That Sank Twice`). Shown to the user on the landing page and used as the film title in Studio."
+            "description": "Short working title for the video, 3-8 words, no hashtags, plain text, at most 200 characters (e.g. `The Ship That Sank Twice`). Shown to the user on the landing page and used as the film title in Studio."
           }
         }
       },
       "HandoffResponse": {
         "type": "object",
-        "required": ["url", "token", "expiresAt", "words", "seconds", "fit", "durationSec", "engineHint"],
+        "required": ["url", "token", "expiresAt", "words", "seconds", "fit", "fitMessage", "durationSec", "engineHint", "aspect", "language", "overStudioLimit", "studioLimitChars"],
         "properties": {
           "url": {
             "type": "string",
@@ -124,25 +135,47 @@
           },
           "words": {
             "type": "integer",
-            "description": "Word count Kineo measured in the script."
+            "description": "Spoken word count Kineo measured in the script (structure markers like HOOK/PAYOFF and [bracketed] directions are not counted)."
           },
           "seconds": {
-            "type": "integer",
-            "description": "Estimated spoken length of the script in seconds at the house narration pace."
+            "type": "number",
+            "description": "Estimated spoken length of the script in seconds at the narration pace of the chosen engine. Decimal number with one decimal place (for example 24.2), not an integer."
           },
           "fit": {
             "type": "string",
             "enum": ["short", "ok", "long"],
             "description": "How the script measures against durationSec. `short` = likely to come out under target (offer to extend). `ok` = on target. `long` = runs over, which is acceptable."
           },
+          "fitMessage": {
+            "type": "string",
+            "description": "A ready-made English sentence explaining `fit` to the user, already calibrated with Kineo's narration pace for this engine and duration (for example: \"About 24s of narration for a 35s video — the story may end early. Adding a few lines helps; Kineo never stretches a short script.\"). When you comment on the length of the script, quote this sentence VERBATIM instead of writing your own; never recompute or paraphrase the seconds."
+          },
           "durationSec": {
             "type": "integer",
             "enum": [35, 60, 90],
-            "description": "The duration Kineo stored for this handoff."
+            "description": "The duration Kineo stored for this handoff. Use it to decide the cost line: 35 or 60 on `seedance` = first film free (25-credit trial); 90 = costs more than the free trial, needs a paid plan."
           },
           "engineHint": {
             "type": "string",
-            "description": "The engine id Kineo stored for this handoff."
+            "enum": ["seedance", "fast", "kling", "veo", "hollywood", "h3", "omni"],
+            "description": "The engine id Kineo stored for this handoff (aliases you sent, such as `Kling 3`, come back normalized)."
+          },
+          "aspect": {
+            "type": "string",
+            "enum": ["9:16", "16:9", "1:1"],
+            "description": "The frame Kineo stored for this handoff."
+          },
+          "language": {
+            "type": "string",
+            "description": "The language code Kineo stored for this handoff (for example `en`, `pt-BR`)."
+          },
+          "overStudioLimit": {
+            "type": "boolean",
+            "description": "True when the script is longer than what Kineo Studio accepts (`studioLimitChars`). If true, warn the user in one line that the script must be trimmed to `studioLimitChars` characters before it can render; the link still opens Studio."
+          },
+          "studioLimitChars": {
+            "type": "integer",
+            "description": "Maximum number of characters Kineo Studio accepts in a script (currently 5000). Quote this number when `overStudioLimit` is true."
           }
         }
       },
@@ -152,7 +185,7 @@
         "properties": {
           "error": {
             "type": "string",
-            "description": "Human-readable reason the request was rejected."
+            "description": "Human-readable reason the request was rejected. Read it before deciding whether to retry."
           }
         }
       }

@@ -19,8 +19,10 @@ Fatos conferidos no repo antes de escrever (06/09):
   (`lib/engineLaunch.ts: S25_PUBLIC = false`, só contas internas).
 - Custos de referência a 60s (`lib/credits/engineCost.ts`): Kineo 1 grátis
   no free, Seedance 25, MiniMax H3 45, Kling 2.5 50, Veo 100, Kling 3 150,
-  Omni 150. O trial de 25 créditos paga exatamente um Seedance de 60s — por
-  isso "o primeiro filme é grátis" é verdade com `engineHint: "seedance"`.
+  Omni 150. O trial de 25 créditos paga exatamente um Seedance de 60s (15cr a
+  35s, 25cr a 60s) — por isso "o primeiro filme é grátis" é verdade com
+  `engineHint: "seedance"` a 35s ou 60s, e só aí: um 90s custa 38cr e NÃO cabe
+  no trial.
 - Preços (`lib/checkoutPricing.ts:94-102`): Starter $7, Creator $15,
   Studio $29, Autopilot $299.
 - `/privacy` existe (`app/privacy/page.tsx`, canonical `/privacy`).
@@ -106,9 +108,9 @@ There are TWO budgets, because the two families of engines narrate at different
 speeds. Use the row for the engine you are going to send. Never average them.
 
 Standard engines — "seedance" (the default), "fast", "kling", "veo":
-- 35s: 100-115 words
-- 60s: 175-195 words
-- 90s: 265-290 words
+- 35s: 105-115 words
+- 60s: 180-195 words
+- 90s: 270-290 words
 
 Premium engines — "hollywood", "h3", "omni" (they speak in their own slower
 native voice, so the same seconds hold fewer words):
@@ -117,7 +119,7 @@ native voice, so the same seconds hold fewer words):
 - 90s: 205-230 words
 
 Unless the user named a premium engine, you are writing for "seedance" and the
-standard row is the one that applies — a 60-second script is 175-195 words, not
+standard row is the one that applies — a 60-second script is 180-195 words, not
 150. Going a little OVER the budget is good. Coming UNDER it is a defect: the
 story gets cut short. Count your words before you show the script. If you are
 under, add a beat; do not pad with adjectives.
@@ -129,7 +131,7 @@ This is a short documentary, not fiction with a documentary voice. Use only fact
 
 ## Step 4 — Show the script and ask for approval
 Present the script in a single code block (so it is easy to copy), then, outside the block, exactly two lines:
-- one line with the word count and the target for the engine you will send (e.g. "183 words, on target for 60s on Seedance"),
+- one line with the word count and the target for the engine you will send (e.g. "186 words, on target for 60s on Seedance"),
 - one line asking: "Want any changes, or should I send it to Kineo Studio?"
 Do NOT call the action yet. Never call the action in the first message of a conversation. If the user asks for changes, rewrite the whole script, show it again, and ask again. Only an explicit yes ("send it", "go", "looks good", "approve") counts as approval.
 
@@ -287,7 +289,7 @@ ou superior, obrigatório para publicar GPT); este commit em produção
     reportar.
 19. Conferir: o script vem em bloco de código com HOOK:/MICRO REWARD:/
     ESCALATION:/PAYOFF:, seguido de uma linha de contagem de palavras
-    (**175-195 para 60s no Seedance**, que é o padrão — 150-165 só vale se o
+    (**180-195 para 60s no Seedance**, que é o padrão — 150-165 só vale se o
     roteiro for para hollywood/h3/omni) e a pergunta de aprovação.
 20. Responder `send it`. Na primeira vez, o ChatGPT pede permissão:
     "Allow www.usekineo.com" — clicar **Allow** (ou "Always allow").
@@ -304,9 +306,12 @@ ou superior, obrigatório para publicar GPT); este commit em produção
 
 ## G. LIMITES
 
-- A ação é pública e sem chave. Tem rate limit por IP e teto de **6.000
-  caracteres** no `script`. Um 90s tem ~290 palavras ≈ 1.800 caracteres;
-  o teto só é atingido se o GPT mandar texto que não é roteiro.
+- A ação é pública e sem chave. Tem rate limit por IP e teto de **5.000
+  caracteres** no `script` — o MESMO teto que o Studio aceita
+  (`SCRIPT_MAX_CHARS` e `STUDIO_PROMPT_MAX_CHARS` em `lib/gptHandoff.ts`), de
+  propósito: a parede aparece na CONVERSA, onde custa uma reescrita de graça,
+  e não na tela de quem já clicou. Um 90s tem ~290 palavras ≈ 1.800
+  caracteres; o teto só é atingido se o GPT mandar texto que não é roteiro.
 - Se a ação devolver **429**, o GPT diz "Too many requests right now, try
   again in a minute" e para. Nunca inventa link. (Está nas instruções da
   seção C e na description do 429 no openapi.json — duas camadas, porque a
@@ -314,11 +319,18 @@ ou superior, obrigatório para publicar GPT); este commit em produção
 - O link `/go/<token>` expira em **7 dias**; o GPT avisa isso na mensagem
   final. Depois disso a pessoa precisa pedir o roteiro de novo (ou colar no
   Studio à mão).
-- O GPT não sabe se a pessoa tem conta, crédito ou plano. Ele fala "first
-  film is free" porque o trial de 25 créditos cobre um Seedance de 60s; se
-  a pessoa pedir `hollywood`/`omni` (150cr), o Studio é quem vai mostrar o
+- O GPT não sabe se a pessoa tem conta, crédito ou plano. Ele só fala "first
+  film is free" para **35s e 60s no motor padrão**, porque o trial de 25
+  créditos cobre exatamente um Seedance de 60s (15cr a 35s, 25cr a 60s). Um
+  **90s custa 38cr e NÃO cabe no trial** — nesse caso ele avisa em uma linha
+  que pede plano pago e oferece 60s, sem dissuadir quem quiser mesmo assim.
+  Se a pessoa pedir `hollywood`/`omni` (150cr), o Studio é quem vai mostrar o
   paywall. Por isso o padrão é `seedance` e os premium só entram se a pessoa
-  nomear.
+  nomear. Esta regra vive em TRÊS lugares e os três têm de concordar: a
+  seção C (linha "Your first film is free… say this only for 35s and 60s"),
+  a `description` do 200 no `openapi.json`, e este parágrafo. O guardião
+  `scripts/test-gpt-handoff.mjs` reprova se algum deles prometer grátis sem
+  citar a condição de duração.
 - `s25` (Seedance 2.5) e `sora` ficaram FORA do enum de propósito: o 2.5 só
   existe para contas internas (`S25_PUBLIC=false`) e o Sora devolve 400. No
   dia em que o 2.5 abrir, adicionar `"s25"` ao enum de `engineHint` no
