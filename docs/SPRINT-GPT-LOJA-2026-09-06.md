@@ -2684,3 +2684,99 @@ saber o que dizer sobre o comprimento do roteiro **não manda mais avisar a
 partir do `fit`**. Com isso o item 1 do "o que a próxima sessão faz primeiro"
 (seção (e) do fechamento) está cumprido — a próxima sessão começa pelo item 2,
 a consulta (1) do G5 com o corte que exclui as sondas.
+
+---
+
+### #18 — 04:05 BRT (07/09) — o corte que eu deixei para a próxima sessão estava no futuro: o instrumento da ponte passa a separar sonda de pessoa pela ORIGEM
+
+**O que eu fui fazer.** O item 2 do "o que a próxima sessão faz primeiro"
+(seção (e) do fechamento) mandava rodar a consulta (1) do G5 "cortando as
+sondas" com `created_at > '2026-09-07 07:00Z'`. Fui rodar. O banco respondeu
+`now() = 2026-09-07 06:52 UTC`.
+
+**O defeito, com relógio.** O corte que eu escrevi estava **8 minutos no
+futuro**. Rodado como estava, ele devolve zero por aritmética pura — e zero,
+nesse lugar, se lê como "ninguém veio". É a segunda vez em 07/09 que a casa
+crava um corte no futuro: a primeira foi `PONTE-COM-PRECO-2026-09-07.sql`, em
+07:10Z com o relógio em 05:32Z. Mesma causa-raiz, já documentada pela outra
+pista: o Git Bash desta máquina não tem tzdata, `TZ=America/Sao_Paulo date`
+devolve UTC rotulado GMT (3h adiantado), e quem carimba a hora a partir dali
+carimba o futuro.
+
+**A cura, e por que ela é melhor que acertar a hora.** O separador honesto é a
+**origem**, não o relógio. Agrupei `gpt_handoffs` por `ip_hash`: as 16 linhas
+vêm de exatamente **dois** hashes —
+
+| ip_hash | linhas | o que é |
+|---|---|---|
+| `67fc14c5…321e0d` | 15, em 3 canais, 00:15–06:30 UTC | esta máquina (todas as sondas da madrugada) |
+| `04b85231…410625` | 1, 02:45 UTC, UA `ChatGPT-User/1.0` | a Action chamada de dentro do **editor de GPT da OpenAI** |
+
+A segunda linha é um achado: prova que o endpoint responde à infraestrutura da
+OpenAI, não só ao curl desta máquina. E mostra por que filtrar por
+`user_agent` **não** funcionaria: duas das minhas sondas usam UA de Chrome
+comum de propósito, para atravessar o filtro de robô.
+
+**O que mudou (`78ca28aa`, EM PRODUÇÃO — arquivo de docs + guardião).**
+- a consulta (1) do G5 passa a **rotular** cada linha `organico` ou `sonda` em
+  vez de esconder — quem lê vê os dois lados na mesma tabela;
+- nasce a **(1b)**: a pergunta de uma linha ("já veio alguém?") **sem janela de
+  tempo nenhuma**, que por construção não tem como devolver zero por
+  aritmética. É a primeira consulta a rodar, sempre;
+- o arquivo guarda a explicação do erro, para quem vier depois não repetir.
+
+**Como provar.** As duas consultas rodaram contra produção agora:
+`(1)` → 16 handoffs, **todos `sonda`** (gpt_store 9 · assistant_link 4 ·
+paste_page 3). `(1b)` → **`handoffs_organicos = 0`**. Zero honesto, por
+ausência de gente, não por aritmética.
+Guardião `scripts/test-ponte-sql-sem-corte-no-futuro.mjs`: 8 verificações
+lendo o arquivo real (CRLF normalizado na leitura). **Falsificado por
+mutação, com prova de que a mutação aplicou** (`delta bytes -155`): trocando a
+exclusão por `ip_hash` de volta por um corte de data, **5 das 8 reprovam**.
+
+**Sondas das portas, com controle** (04:00 BRT, UA identificável):
+`/chatgpt` → 200 · `/gpt/openapi.json` → 200 · `/go/naoexiste123456` → 404 ·
+`/chatgpt-nao-existe-controle` → **404** (o controle prova que o 200 discrimina).
+
+**Risco.** Nenhum de produto: mudou um arquivo de consultas e nasceu um script
+de teste. O risco residual é de leitura — se alguém acrescentar sonda nova sem
+acrescentar o hash às duas listas, ela aparece como `organico`. O guardião
+trava a recaída para corte por hora, não a omissão de um hash novo; por isso o
+arquivo pede o acréscimo em letra maiúscula.
+
+**Próximo passo (substitui o item 2 do fechamento).** Rodar **(1b)** — e só
+ela — no começo da próxima sessão. Enquanto `handoffs_organicos = 0`, não há
+nada a concluir sobre a ponte, e nenhuma calibragem de prompt (consulta 2) tem
+denominador. O degrau seco que continua seco e não é de motor nenhum:
+**49 filmes, 1 pagamento** na coorte que chega do chatgpt.com em 7 dias.
+
+**Correção ao fechamento.** A seção (e), item 1, está cumprida desde 03:38 (o
+adendo acima). O item 2 estava **inexecutável como escrito** e foi substituído
+pelo parágrafo anterior. O resto do fechamento continua valendo, inclusive a
+recomendação de **não pagar ChatGPT Business agora**.
+
+**Números da madrugada que sustentam a recomendação** (7 dias, por pessoa):
+faixa de boas-vindas do ChatGPT **116 pessoas** → 63 escolheram no quickstart;
+aviso de instrução colada **20 pessoas** (de 23 que colaram ordem — 87% de
+cobertura, a peça alcança quem devia); página `/chatgpt` **1 pessoa** (eu). As
+duas portas para `/chatgpt` que este ciclo abriu (faixa e aviso) subiram há
+poucas horas e ainda não tiveram plateia — é isso que a (1b) vai medir.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+1. **Nada.** Subiu sozinho (`78ca28aa`), a fila está em zero e as portas
+   respondem 200 em produção.
+2. **Continua sua, quando quiser:** pagar ou não o ChatGPT Business
+   (~US$ 25-30/mês) para publicar o GPT na loja. Recomendação inalterada:
+   **não agora** — as três portas de graça ainda não tiveram um visitante.
+
+## 📋 O QUE ACONTECEU
+Eu tinha deixado escrito, para a próxima sessão, um jeito de medir se alguém
+usou a ponte nova. Fui usar esse jeito e descobri que ele estava quebrado: a
+data que eu mandei usar como corte ainda não tinha chegado, então a conta
+daria "zero" sempre — e zero ali parece "ninguém veio", quando na verdade é
+"a pergunta foi mal feita". Troquei o critério: em vez de separar meus testes
+dos visitantes reais pela hora, separo pela máquina de onde vieram, que é um
+dado que não depende de relógio nenhum. De quebra apareceu uma prova boa: um
+dos testes veio de dentro da OpenAI, o que confirma que o robô consegue
+mesmo falar com a Kineo. O estado real continua o mesmo e agora está medido
+sem truque: 16 ensaios meus, nenhum visitante ainda.
