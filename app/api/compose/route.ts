@@ -1541,6 +1541,21 @@ export async function POST(req: NextRequest) {
     // Espelha exatamente o padrão de `isFreePlanFast`: declarada aqui fora,
     // atribuída lá dentro, lida no builder.
     let isTrialRender = false
+    // KINEO-FREE-CLEAN-LEAK-2026-09-07 — o buraco que a ordem do fundador
+    // ("liga marca d'água no trial") deixou aberto do lado GRANDE. Medido em
+    // 30 dias, contas externas, cruzando `video_downloaded` com
+    // `videos.quality_mode`: contas `plan='free'`, `has_paid=false`, trial JÁ
+    // ENCERRADO (`trial_status='downgraded'`) baixaram **143 filmes
+    // cinematic_ai LIMPOS, 72 pessoas** — 5,5x a coorte de trial ATIVO no
+    // mesmo motor (23 filmes / 13 pessoas), que foi a única que o conserto das
+    // 17:00 (`9f2822b0`) alcançou. O motivo é aritmético: `isFreePlanFast` só
+    // é atribuído no ramo `fast` e `isTrialRender` exige `ent.isTrial`, que é
+    // FALSO depois que o trial vence — então `watermarkApplied` nascia
+    // `false || false || false` para quem já usou o produto inteiro e não
+    // pagou. Espelha o padrão das duas irmãs acima: declarada aqui fora,
+    // atribuída no bloco de entitlement, lida no builder (o `ent` não alcança
+    // o escopo do builder — ver o comentário do KINEO-TETO-HOTFIX).
+    let isFreePlanCinematic = false
     // KINEO-TRIAL-WATERMARK-2026-09-07 — a VERDADE do asset, resolvida uma
     // vez e devolvida na resposta. A tela decidia sozinha se o filme tinha
     // marca (`planTier === 'free' && quality === 'fast' && …`) e errava
@@ -1652,6 +1667,25 @@ export async function POST(req: NextRequest) {
         // rebuild fiel em /api/compose/unlock (mesmo builder, MESMA quality)
         // — sem ele a casa venderia um "limpo" que volta com outra montagem.
         isTrialRender = ent.isTrial && !ent.isPaidAccount
+        // KINEO-FREE-CLEAN-LEAK-2026-09-07 — a política da casa já é "plano
+        // grátis sai marcado": `lib/freeTierOffer.ts` promete ao cliente
+        // "Films come out watermarked; a plan removes the watermark", e o ramo
+        // `fast` cumpre isso desde sempre. Este ramo NUNCA cumpriu — não por
+        // decisão, mas porque conta grátis historicamente não alcançava o
+        // Seedance; o caminho do reverse trial abriu a porta e a regra ficou
+        // para trás. Isto NÃO é preço novo nem oferta nova: é a frase que a
+        // casa já diz passando a ser verdade.
+        // `!ent.isPaidAccount` é o predicado do COBRADOR, não uma redigitação:
+        // sai do mesmo `getEffectiveEntitlement` que decide crédito e acesso
+        // nesta rota, e é ele que protege o comprador do trial de $1 (plan
+        // `basic` + assinatura `trialing`) de receber marca no filme que
+        // acabou de pagar.
+        // O PAR OBRIGATÓRIO desta linha já está em produção: `REBUILD_QUALITIES`
+        // em /api/compose/unlock aceita `cinematic_ai` desde `9f2822b0`, com o
+        // MESMO builder e a MESMA quality — logo o "Download clean" que esta
+        // linha faz aparecer é entregável. Não estou criando um caso de unlock
+        // novo; estou pondo mais gente num caso que já foi construído e testado.
+        isFreePlanCinematic = isFreePlan && !hasPaid && !ent.isPaidAccount
         const requiredCredits = creditCostFor('cinematic_ai', true)
         if (!hasPaidCreditAccess) {
           return NextResponse.json(
@@ -2654,6 +2688,7 @@ export async function POST(req: NextRequest) {
     watermarkApplied =
       isFreePlanFast ||
       isTrialRender ||
+      isFreePlanCinematic ||
       FORCE_WATERMARK_EMAILS.has((user.email ?? '').toLowerCase())
     let source: Record<string, unknown>
     try {

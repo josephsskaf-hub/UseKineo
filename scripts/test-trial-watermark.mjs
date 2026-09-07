@@ -67,14 +67,18 @@ const wmAssign = /watermarkApplied =\n([\s\S]{0,400}?)\n    let source: Record<s
 ok('watermarkApplied e atribuido antes do builder', Boolean(wmAssign))
 if (wmAssign) {
   const expr = wmAssign[1].trim()
-  const evalWm = (isFreePlanFast, isTrialRender, forced) => {
+  // KINEO-FREE-CLEAN-LEAK-2026-09-07 — o quarto termo entrou; a assinatura
+  // acompanha. Os quatro casos originais continuam aqui, byte a byte, com o
+  // termo novo em false: nenhuma trava foi afrouxada para o termo caber.
+  const evalWm = (isFreePlanFast, isTrialRender, forced, isFreePlanCinematic = false) => {
     const src = expr.replace(/FORCE_WATERMARK_EMAILS\.has\([^)]*\)[^\n]*/g, 'FORCED')
-    return Function('isFreePlanFast', 'isTrialRender', 'FORCED', `"use strict"; return (${src})`)(isFreePlanFast, isTrialRender, forced)
+    return Function('isFreePlanFast', 'isTrialRender', 'FORCED', 'isFreePlanCinematic', `"use strict"; return (${src})`)(isFreePlanFast, isTrialRender, forced, isFreePlanCinematic)
   }
   eq('watermark: free fast', evalWm(true, false, false), true)
   eq('watermark: trial (o conserto de hoje)', evalWm(false, true, false), true)
   eq('watermark: conta do #434', evalWm(false, false, true), true)
   eq('watermark: pagante limpo', evalWm(false, false, false), false)
+  eq('watermark: free no cinematic_ai (o buraco de 72 pessoas)', evalWm(false, false, false, true), true)
 }
 
 // ── 5) A ORDEM IMPORTA: decidir DEPOIS de montar seria decidir tarde ───────
