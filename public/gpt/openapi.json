@@ -1,0 +1,161 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Kineo Video Handoff",
+    "version": "1.0.0",
+    "description": "Turns an approved Short script into a one-click Kineo Studio link. Call createKineoHandoff ONLY after the user has explicitly approved the final script. The response contains a URL (https://www.usekineo.com/go/<token>) that opens Kineo Studio pre-filled with the script, duration and engine. Kineo renders the film after the user clicks; this API never renders anything itself. Public, no authentication, rate-limited per IP."
+  },
+  "servers": [
+    {
+      "url": "https://www.usekineo.com"
+    }
+  ],
+  "paths": {
+    "/api/gpt/handoff": {
+      "post": {
+        "operationId": "createKineoHandoff",
+        "summary": "Create a one-click Kineo Studio link from an approved script",
+        "description": "Send the FINAL, user-approved script exactly as written (HOOK / MICRO REWARD / ESCALATION / PAYOFF markers included). Do not call this on the first message, do not call it while the user is still asking for changes, and never call it more than once per approved script. On success, show the user the `url` from the response with one short sentence, say the link opens Kineo Studio already filled in, is valid for 7 days, and that the first film is free (25-credit trial, no card). Never invent or alter the URL. If the response is an error, tell the user what went wrong in one sentence and fix the script or wait; never fabricate a link.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HandoffRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Link created. Show `url` to the user verbatim. Use `fit` to add one line of guidance: `short` means the script will likely render under the chosen duration (offer to extend it), `long` means it runs past it (that is fine, mention it only if it is far past), `ok` means it matches.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HandoffResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was rejected (missing script, script over 6000 characters, HTML in the script, or an invalid durationSec/aspect/engineHint). Read `error`, fix the payload, and try again once. Never show a made-up link.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit reached for this IP. Tell the user: \"Too many requests right now, try again in a minute.\" Do not retry automatically and do not invent a link.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "HandoffRequest": {
+        "type": "object",
+        "required": ["script"],
+        "additionalProperties": false,
+        "properties": {
+          "script": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 6000,
+            "description": "The complete, user-approved narration script, plain text only (no HTML, no markdown headings). Keep the house structure on its own lines: `HOOK:`, `MICRO REWARD:`, `ESCALATION:`, `PAYOFF:`. Every sentence is spoken aloud by the narrator, so write only what should be heard: no stage directions, no camera notes, no visual descriptions, no [brackets]. Word budget depends on the engine, because the two families narrate at different speeds — never average them. Standard engines (`seedance`, `fast`, `kling`, `veo`): 100-115 words for 35s, 175-195 for 60s, 265-290 for 90s. Premium engines (`hollywood`, `h3`, `omni`) speak slower in their own native voice: 80-90 words for 35s, 150-165 for 60s, 205-230 for 90s. Slightly over the budget is good; under it is a defect (the story gets cut short). Only verifiable facts."
+          },
+          "durationSec": {
+            "type": "integer",
+            "enum": [35, 60, 90],
+            "default": 60,
+            "description": "Target length of the film in seconds. Must match the duration the user chose BEFORE the script was written. Use 60 when the user has no preference. 35 = quick fact, 60 = standard Short (recommended, best for TikTok and YouTube Shorts), 90 = deeper story."
+          },
+          "aspect": {
+            "type": "string",
+            "enum": ["9:16", "16:9", "1:1"],
+            "default": "9:16",
+            "description": "Frame of the video. 9:16 is vertical (TikTok, Reels, YouTube Shorts) and is the default for virtually every request. Use 16:9 only if the user explicitly says YouTube landscape/widescreen, and 1:1 only if they explicitly ask for a square post."
+          },
+          "engineHint": {
+            "type": "string",
+            "enum": ["seedance", "fast", "kling", "veo", "hollywood", "h3", "omni"],
+            "default": "seedance",
+            "description": "Which Kineo video engine Studio should pre-select. Send `seedance` (Seedance 1.5, AI-generated cinematic scenes, fits the free trial) unless the user asks for something specific. `fast` = Kineo 1, real stock footage with narration, fastest and cheapest, good for news/facts/money topics. `kling` = Kling 2.5, more detailed AI scenes. `veo` = Veo 3.1, premium realism. `hollywood` = Kling 3, top-tier cinematic (150 credits, paid plans). `h3` = MiniMax H3, stylized motion. `omni` = Omni Flash, premium. When in doubt, send `seedance`. Never send a value outside this list."
+          },
+          "language": {
+            "type": "string",
+            "default": "en",
+            "description": "BCP-47 language code of the script text, for example `en`, `es`, `pt`. Must match the language the script is actually written in. Default `en`."
+          },
+          "topic": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Short working title for the video, 3-8 words, no hashtags (e.g. `The Ship That Sank Twice`). Shown to the user on the landing page and used as the film title in Studio."
+          }
+        }
+      },
+      "HandoffResponse": {
+        "type": "object",
+        "required": ["url", "token", "expiresAt", "words", "seconds", "fit", "durationSec", "engineHint"],
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "One-click link in the form https://www.usekineo.com/go/<token>. Show it to the user exactly as returned."
+          },
+          "token": {
+            "type": "string",
+            "description": "Opaque handoff token. Do not display; the url already contains it."
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO timestamp after which the link stops working (7 days after creation). Tell the user the link is valid for 7 days."
+          },
+          "words": {
+            "type": "integer",
+            "description": "Word count Kineo measured in the script."
+          },
+          "seconds": {
+            "type": "integer",
+            "description": "Estimated spoken length of the script in seconds at the house narration pace."
+          },
+          "fit": {
+            "type": "string",
+            "enum": ["short", "ok", "long"],
+            "description": "How the script measures against durationSec. `short` = likely to come out under target (offer to extend). `ok` = on target. `long` = runs over, which is acceptable."
+          },
+          "durationSec": {
+            "type": "integer",
+            "enum": [35, 60, 90],
+            "description": "The duration Kineo stored for this handoff."
+          },
+          "engineHint": {
+            "type": "string",
+            "description": "The engine id Kineo stored for this handoff."
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "required": ["error"],
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Human-readable reason the request was rejected."
+          }
+        }
+      }
+    }
+  }
+}
