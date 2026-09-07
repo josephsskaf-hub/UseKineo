@@ -2807,3 +2807,68 @@ vídeo. Fui medir antes e a página pública alcança **1 vídeo em 1.659** — 
 uma hora de trabalho para melhorar uma superfície que quase ninguém vê.
 
 ---
+## ### #12 — 02:05 (05:00 UTC) — FALSO ALARME MEU DE "CADASTRO SEM CRÉDITO", E O RISCO REAL QUE ELE EXPÔS
+
+**A checagem zero acusou 4 de 8 cadastros novos "nascidos sem crédito".** Esse é
+o alarme mais grave da casa — o *trial órfão* que em 28/08 fez 17%→100% das
+contas nascerem zeradas. Fui olhar as quatro **antes** de tratar como incidente.
+
+**Nenhuma era órfã.** As quatro trazem `trial_blocked_fingerprint`:
+
+```
+reason: "over_limit"   fingerprint: "452367a4fdc8"
+window_days: 30        max_activations: 2   prior_activations: 2
+```
+
+**Uma única impressão digital abriu 6 contas `@live.com` em 38 minutos.** As
+duas primeiras ganharam o trial e gastaram os 25 créditos (um filme cada); as
+**quatro seguintes foram recusadas**. O `email_signup_completed` delas grava
+`trial_reason: "fingerprint_limit"` e `trial_activated: false`. **O produto agiu
+exatamente certo. O errado era o meu predicado.**
+
+Com o predicado corrigido: **4 brutos → 0 gastaram tudo → 4 bloqueados por
+abuso → `órfãos de verdade = 0`. A checagem zero PASSA.**
+
+### O risco que isto expôs, e é maior que o falso alarme
+
+O `CLAUDE.md` autoriza a vigia a **reparar trial órfão sozinha**. Com o
+predicado ingênuo (`video_credits = 0 AND trial_credits_granted = 0`), essa
+autorização vira **uma máquina de dar 25 créditos a quem o guarda anti-abuso
+acabou de recusar** — desfazendo a proteção automaticamente, sem ninguém ver.
+Hoje seriam 4 concessões indevidas em uma madrugada.
+
+Por isso o predicado certo virou arquivo, com o aviso no topo:
+**`docs/queries/CHECAGEM-ZERO-CADASTRO-SEM-CREDITO-2026-09-07.sql`**. Duas
+populações saem da conta, por motivos opostos: quem **ganhou e gastou**
+(`trial_credits_used > 0`) e quem foi **recusado**
+(`trial_blocked_fingerprint`).
+
+### O tamanho real do abuso — pequeno, e o guarda dá conta
+
+14 dias inteiros: **3 impressões digitais, 8 contas bloqueadas**.
+`452367a4fdc8` (4 contas, hoje) · `b01e05b4660b` (2, 30/08) ·
+`954841c5e95a` (2, 31/08). Não há problema de abuso a resolver — **há um alarme
+a calibrar**, e ele está calibrado. A tela `/admin/trial-abuse` já existe.
+
+> **Quinta vez na noite, e a quarta minha.** Sessões contadas como pessoas ·
+> "0 de 42" que era "0 de ~1" · checkout de quem nunca viu o produto misturado
+> com quem viu · a minha meta de 70% sobre um denominador com teto de 50% · e
+> agora um alarme que contava abuso bloqueado como defeito. **O padrão nunca é o
+> número: é a população embaixo dele.**
+
+## 📊 Praxe — desde o marco (23:38 UTC → 05:00 UTC, 5h22)
+
+| medida | valor |
+|---|---:|
+| pousos de **aquisição** | 27 · **8 com fonte (30%)** |
+| cadastros externos | 8 |
+| filmes | 6 · **6 concluídos** |
+| render preso >40 min | **0** |
+| **órfãos de verdade** | **0** |
+| `next_episode_failed` | **0** |
+| pagamentos | **0** |
+| pacote: oportunidades / escritas | 0 / 0 |
+
+A fábrica segue impecável. O pacote **ainda não teve uma oportunidade** desde a
+instrumentação — o e-mail de resgate não saiu nenhuma vez na madrugada, o que é
+coerente com os 27 alcançados por semana da #8.
