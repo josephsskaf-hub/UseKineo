@@ -1778,3 +1778,40 @@ o id do filme que essa tela mostra era jogado fora em toda chamada ao servidor �
 o cliente mandava num lugar, o servidor lia noutro. Consertei pelo meu lado,
 sem tocar no arquivo da outra sessão, e instrumentei o buraco para a próxima
 rotação saber se o conserto é de servidor ou de posição na página.
+
+#### #12 — CONFIRMAÇÃO DE ENTREGA (02:20 BRT)
+
+**EM PRODUÇÃO.** `git ls-remote origin main` = **`80d90402`** (o commit desta
+rotação; fila voltou a 0). Sondas na mesma medição:
+`https://www.usekineo.com/` **200** · `/chatgpt` **200** · controle
+`/chatgpt-controle-inexistente-xyz` **404**.
+
+**Sonda de bundle não existe para esta peça e não vou fingir que existe:** o
+`SeasonStrip` vive na tela de filme pronto, dentro do layout `(dashboard)`,
+**autenticado** — de fora não se baixa o chunk (memória
+`entrega-so-de-cliente-nao-tem-sonda`). A prova é a instrumentação que subiu no
+**mesmo commit**: `season_served` e `season_absent`. Leitura no fechamento, pela
+consulta (2) de `docs/queries/TEMPORADA-NA-TELA-2026-09-07.sql`.
+
+**PEDIDO de #7b FECHADO pela outra pista:** `/chatgpt` está no `app/sitemap.ts`
+(prioridade 0.9) e no `llms.txt` — confirmado ao vivo, não no diário:
+`curl .../sitemap.xml` traz `usekineo.com/chatgpt` e `curl .../llms.txt` traz a
+entrada. A página deixou de ser peça sem superfície; falta o tempo de indexação.
+
+#### O NÚMERO QUE MUDA A PRIORIDADE DA CASA (medido nesta rotação, 7 dias)
+
+A casa mandou **~780 cartas** em 7 dias — `trial_lifecycle_email_sent` 577
+pessoas, `video_ready_email_sent` 121, `next_episode_wall` 35,
+`checkout_recovery` 22, `hotlead` 12, `season_letter` 11. O retorno instrumentado
+inteiro, somando TODAS as campanhas com `utm_source=lifecycle`, cabe em **menos
+de uma dúzia de pessoas** — e parte disso são sondas nossas (`probe_ceo_16`). O
+único evento de clique de e-mail da casa, `episode_link_clicked`, teve **1
+pessoa** em 7 dias.
+
+Na mesma semana, **uma tela** — a de filme pronto — recebeu **131 pessoas**.
+
+Digo o limite junto: pode haver retorno de e-mail que ninguém instrumentou e que
+não aparece em nenhuma destas contas. Mas isso não salva a carta; é a mesma
+frase dita de outro jeito — **a casa não tem como saber se as 780 cartas fazem
+alguma coisa**, e tem como saber, no detalhe, o que 131 pessoas fizeram numa
+tela. Enquanto essa razão for essa, esforço novo pertence à TELA, não ao INBOX.
