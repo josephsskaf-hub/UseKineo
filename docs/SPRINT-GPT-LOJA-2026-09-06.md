@@ -1815,3 +1815,147 @@ não aparece em nenhuma destas contas. Mas isso não salva a carta; é a mesma
 frase dita de outro jeito — **a casa não tem como saber se as 780 cartas fazem
 alguma coisa**, e tem como saber, no detalhe, o que 131 pessoas fizeram numa
 tela. Enquanto essa razão for essa, esforço novo pertence à TELA, não ao INBOX.
+
+---
+
+### #13 — 03:45 BRT — A casa tem UMA sessão por pessoa, e gastava ela inteira sem dizer o preço
+
+#### HIPÓTESE, ANTES DE CODAR
+
+A #12 terminou dizendo que esforço novo pertence à TELA e não ao INBOX, e
+deixou um passo pendente: ler `season_served` contra `season_absent`. Fui ler
+primeiro. **Não deu:** nos 12 minutos entre o deploy e esta rotação a tela não
+recebeu ninguém (03:00 BRT é o vale de tráfego da casa). Registro isso como
+resultado, não como tarefa cumprida — a bifurcação continua ilegível e volta
+para o fechamento.
+
+Então usei a rotação para responder a pergunta que a #12 abriu e não fechou:
+**se a tela é o ativo, o que exatamente ela deixa de fazer?**
+
+#### O QUE MEDI (7 dias, cruzando POR PESSOA — o agregado esconde o degrau seco)
+
+```
+230 cadastros
+184 apertaram Generate
+129 receberam filme
+131 viram a tela de filme pronto     <- o ativo da #12
+ 59 baixaram o filme
+ 56 fizeram um SEGUNDO filme          <- gostaram
+ 19 viram um preço alguma vez         <- ◄ O DEGRAU SECO
+ 15 abriram o modal de upgrade
+ 14 chegaram ao checkout
+  0 pagaram
+```
+
+**O degrau é 56 → 19.** Cinquenta e seis pessoas gostaram o bastante para fazer
+um segundo filme e a casa mostrou um preço a dezenove.
+
+E não existe segunda chance. Dos **170 trials que ENCERRARAM** em 7 dias:
+
+```
+170 trial encerrado
+  6 voltaram ao site alguma vez depois disso   (3,5%)
+  3 viram alguma oferta depois
+  3 chegaram ao checkout depois
+```
+
+Seis. Toda oferta que depende de a pessoa VOLTAR está apostando em 3,5% dela.
+E a carta também não salva: ~780 e-mails em 7 dias, `episode_link_clicked` = 1
+pessoa (medido na #12). **A casa tem uma sessão por pessoa e precisa dizer tudo
+nela.**
+
+Um número que o fundador precisa ver junto: **o último pagamento da história do
+produto é de 02/09 20:22Z** — quatro dias atrás. `payment_success` existe 17
+vezes na vida inteira do banco, para 14 pessoas. Os `checkout_success_viewed`
+de hoje NÃO são dinheiro (memória `evento-de-sucesso-que-nao-e-dinheiro`: o
+evento dispara ao VISITAR a página de sucesso).
+
+#### O ACHADO — o degrau mais largo era o único mudo
+
+A tela de filme pronto tem três degraus de oferta, e eles se excluem. Medidos
+em 7 dias:
+
+| degrau | evento | pessoas | tem caminho para o preço? |
+|---|---|---:|---|
+| ponte de saldo | `trial_balance_bridge_viewed` | **76** | **NÃO** |
+| repetir episódio | `trial_repeat_episode_viewed` | ~48 | sim, desde agosto |
+| assinatura | `trial_post_video_offer_viewed` | **7** | sim |
+
+O degrau **mais largo da tela** — dez vezes mais gente que o de assinatura —
+dizia, palavra por palavra, **"No card. No purchase."** e não tinha preço nem
+link para `/pricing`. O degrau irmão já carregava "Prefer clean exports now?
+See paid plans →" desde agosto; a ponte nasceu sem ele e ninguém notou, porque
+o evento que provaria a falta é de **impressão** e ele continuava verde — a
+armadilha exata das memórias `peca-sem-superficie-nao-existe` e
+`degrau-morto-dentro-da-superficie-viva`.
+
+#### O QUE MUDOU
+
+`app/(dashboard)/generate/GenerateClient.tsx` — a ponte ganha a **mesma linha
+secundária** do degrau irmão: "When the trial credits run out, plans start at
+$7/month for 40 credits. See plans →". O botão principal continua sendo a
+ponte (usar os créditos que a pessoa já tem). **Não é paywall e não interrompe
+nada** — é um link discreto embaixo, e é literalmente o K1 que a própria ordem
+deste ciclo exige ("link See plans visível").
+
+Nenhuma promessa nova, e **nenhum preço datilografado**: o número sai de
+`PLAN_LIST` → `TIER_PRICES`/`TIER_CREDITS`, a fonte única. Se o fundador mudar
+o preço, esta frase muda junto — a copy da casa já mentiu por preço copiado à
+mão antes (memória `campo-validado-gravado-ecoado-nao-e-honrado`).
+
+#### COMO PROVAR
+
+`scripts/test-ponte-com-preco-2026-09-07.mjs`, **14/14**, estilo `readFileSync`
+(alias `@/` mata guardião no import) e CRLF normalizado na leitura. Ele não
+conta texto solto: **recorta o bloco da ponte pela própria condição de render**
+e só procura dentro do recorte. Falsificado por três mutantes, cada um com
+prova de que foi ESCRITO antes de rodar (memória
+`mutacao-precisa-provar-que-aplicou` — o primeiro M1 rodou com `python`, que
+não existe nesta máquina, e devolveu 14/14 sem ter mutado nada):
+
+| mutante | o que fez | resultado |
+|---|---|---|
+| M1 | tirou a campanha do destino `/pricing` | **B2 reprova** |
+| M2 | trocou `trialBalanceBridge.eligible` por `true` | **8 verificações caem** — a peça está amarrada à variável que decide, não a uma frase |
+| M3 | trocou o preço da fonte única por `$9` datilografado | **C3 reprova** |
+
+Medição em produção: o link é **incondicional dentro do bloco**, então a
+impressão que já existia (`trial_balance_bridge_viewed`, 76 pessoas/7d) é o
+**denominador** da adoção, e ela passou a carregar `plans_link: true` — o
+marcador que separa, no mesmo fluxo de eventos, a ponte muda da ponte com
+preço. Sem esse campo eu leria a adoção do remédio contra um denominador que
+mistura as duas versões (memória `dedupe-por-sessao-engole-mudanca-de-estado`).
+Clique novo: `trial_bridge_subscription_clicked`. SQL em
+`docs/queries/PONTE-COM-PRECO-2026-09-07.sql`.
+
+#### RISCO
+
+Baixo e nomeado. É um `<button>` a mais dentro de um bloco que já renderiza,
+com o preço vindo da fonte única e sumindo por inteiro se `PLAN_LIST` não
+tiver Starter. O risco real não é de quebra, é de **leitura**: se
+`trial_bridge_subscription_clicked` vier em zero com `plans_link: true` alto,
+a conclusão NÃO é "o link não funciona" — é que quem está no meio do trial não
+quer preço, e aí o lugar certo é outro. Zero com denominador grande é resposta;
+zero sem denominador não é nada (memória `zero-falhas-sem-denominador`).
+
+#### PRÓXIMO PASSO
+
+Com algumas horas de vida: `plans_link: true` (versão nova no ar) contra
+`trial_bridge_subscription_clicked` (adoção). E, com tráfego, finalmente a
+bifurcação `season_served` × `season_absent` que a #12 deixou.
+
+✅ **O QUE VOCÊ PRECISA FAZER**
+1. **Nada.**
+
+📋 **O QUE ACONTECEU**
+Fui medir a tela que a rotação passada elegeu como o ativo da casa e achei o
+buraco: em 7 dias, 131 pessoas receberam um filme, 56 gostaram o bastante para
+fazer um segundo, e **19 viram um preço**. Descobri por quê: dos três blocos de
+oferta daquela tela, o mais largo — 76 pessoas contra 7 do bloco de assinatura
+— dizia "sem cartão, sem compra" e não mostrava preço nenhum. O bloco irmão já
+tinha esse caminho desde agosto; esse nasceu sem e ninguém viu, porque o evento
+que provaria a falta continuava verde. Pus a mesma linha discreta lá, com o
+preço lido da fonte única. Junto disso, dois números que o senhor precisa ter:
+**o último pagamento da história do produto foi 02/09**, e **dos 170 trials que
+acabaram nesta semana, 6 pessoas voltaram ao site** — ou seja, a casa tem uma
+sessão por pessoa e não adianta guardar a conversa de preço para depois.

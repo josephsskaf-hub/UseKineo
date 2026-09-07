@@ -464,6 +464,43 @@ const POLL_GENERATING_MS = 4000
 const POLL_COMPOSING_MS = 5000
 const MAX_TRANSIENT_POLL_ERRORS = 4
 
+// ═══ KINEO-PONTE-COM-PRECO-2026-09-07 ══════════════════════════════════════
+//
+// A CASA TEM UMA SESSÃO POR PESSOA, E GASTAVA ELA INTEIRA SEM DIZER O PREÇO.
+//
+// Medido em 07/09 sobre 7 dias, cruzando por pessoa (nunca agregado — o
+// agregado esconde o degrau seco):
+//     230 cadastros → 184 apertaram Generate → 129 receberam filme
+//     131 viram a tela de filme pronto → 59 baixaram → 56 fizeram um SEGUNDO
+//     filme →  19 viram um preço  →  14 chegaram ao checkout  →  0 pagaram.
+// O último pagamento da história da casa é de 02/09 20:22Z. São 14 pagantes
+// em toda a vida do produto.
+//
+// O degrau seco é 56 → 19. Cinquenta e seis pessoas gostaram o bastante para
+// fazer um segundo filme e a casa mostrou um preço a dezenove.
+//
+// E não há segunda chance: dos 170 trials que ENCERRARAM em 7 dias, SEIS
+// pessoas voltaram ao site alguma vez depois disso. Seis. Toda oferta que
+// depende de a pessoa voltar está apostando em 3,5% dela. E a carta também
+// não salva — a casa mandou ~780 e-mails em 7 dias e `episode_link_clicked`
+// registrou UMA pessoa (diário #12).
+//
+// ONDE ISSO ESTAVA VAZANDO: na tela de filme pronto, o bloco de oferta tem
+// três degraus e o mais LARGO deles — `trial_balance_bridge`, 76 pessoas em
+// 7 dias contra 7 do degrau de assinatura — dizia, palavra por palavra,
+// "No card. No purchase." e NUNCA mostrava um preço nem um caminho para
+// /pricing. O degrau irmão (`trial_repeat`) já carregava "See paid plans →"
+// desde agosto; a ponte nasceu sem ele e ninguém notou, porque o evento que
+// prova a falta é de IMPRESSÃO e ele continuava verde.
+//
+// O QUE MUDA: a ponte ganha a MESMA linha secundária do degrau irmão. O botão
+// principal continua sendo a ponte (usar os créditos que a pessoa já tem);
+// isto é um link discreto embaixo, não um paywall e não uma interrupção.
+// Nenhuma promessa nova: só o preço que já está em /pricing, lido da FONTE
+// ÚNICA (PLAN_LIST → TIER_PRICES/TIER_CREDITS) e nunca redigitado aqui —
+// preço datilografado à mão é como a copy da casa começou a mentir antes.
+const STARTER_PLAN_FACTS = PLAN_LIST.find((plan) => plan.tier === 'starter') ?? null
+
 // KINEO-RENDER-FANTASMA-2026-08-14 — o loop de fal_polling era LITERALMENTE
 // infinito (o próprio código dizia "this retry is unbounded", duas vezes) e só
 // 502 encerrava. Medido em produção, sobre TODOS os débitos `cinematic-%` que
@@ -5253,6 +5290,13 @@ export default function GenerateClient({
       if (balanceBridgeForImpression.eligible) {
         trackEvent('trial_balance_bridge_viewed', {
           source: 'result_trial_balance_bridge',
+          // KINEO-PONTE-COM-PRECO-2026-09-07 — marcador de versão do deploy.
+          // A impressão da ponte já existia (76 pessoas/7d) e é o DENOMINADOR
+          // do link novo, que é incondicional dentro do bloco. Sem este campo
+          // eu não conseguiria separar, no mesmo fluxo de eventos, quem viu a
+          // ponte MUDA de quem viu a ponte com preço — e leria a adoção do
+          // remédio contra um denominador que mistura as duas versões.
+          plans_link: Boolean(STARTER_PLAN_FACTS),
           bridge_version: balanceBridgeForImpression.version,
           target_engine: balanceBridgeForImpression.engine,
           target_duration: balanceBridgeForImpression.duration,
@@ -15652,6 +15696,31 @@ export default function GenerateClient({
                     >
                       Set up my {trialBalanceBridge.duration}s Seedance film →
                     </button>
+                    {/* KINEO-PONTE-COM-PRECO-2026-09-07 — ver o cabeçalho do
+                        arquivo. Este degrau é o MAIS LARGO da tela (76 pessoas
+                        em 7 dias) e era o único dos três sem caminho para o
+                        preço. Secundário de propósito: o botão de cima segue
+                        sendo a ponte. Só rende se o preço vier da fonte única,
+                        então some quando PLAN_LIST não tiver Starter. */}
+                    {STARTER_PLAN_FACTS && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          void trackEvent('trial_bridge_subscription_clicked', {
+                            source: 'result_trial_balance_bridge',
+                            bridge_version: trialBalanceBridge.version,
+                            credits_before: trialBalanceBridge.creditsBefore,
+                            starter_price_label: STARTER_PLAN_FACTS.priceLabel,
+                          })
+                          router.push('/pricing?intent_campaign=trial_bridge_secondary_v1#plans')
+                        }}
+                        className="w-full mt-2 py-1.5 text-xs font-bold"
+                        style={{ color: '#d8b4fe', background: 'transparent', border: 'none', cursor: 'pointer' }}
+                      >
+                        When the trial credits run out, plans start at{' '}
+                        {STARTER_PLAN_FACTS.priceLabel}/month for {STARTER_PLAN_FACTS.credits} credits. See plans →
+                      </button>
+                    )}
                   </div>
                 )}
 

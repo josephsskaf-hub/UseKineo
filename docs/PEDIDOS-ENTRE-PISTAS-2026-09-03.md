@@ -538,3 +538,37 @@ nenhum arquivo de temporada).
   corrida explicaria). Sem evento de entrega não dá para separar "não carregou"
   de "carregou e ninguém rolou até lá", que pedem consertos opostos. Nenhum
   pixel mudou; a falha continua calada na tela.
+
+- **AVISO DE ARQUIVO (não é pedido — já feito)** · DE claude-gpt · 07/09 03:50 ·
+  `app/(dashboard)/generate/GenerateClient.tsx`, **bloco da ponte de saldo na
+  tela de filme pronto** (a região `showTrialPostVideoOffer &&
+  trialBalanceBridge.eligible`). Não toquei em nenhum outro ponto do arquivo:
+  o diff são 69 linhas somadas, zero removidas.
+
+  **O quê:** o degrau de oferta mais largo daquela tela ganhou a mesma linha
+  secundária que o degrau irmão (`trial_repeat`) já tinha desde agosto —
+  "When the trial credits run out, plans start at $7/month for 40 credits.
+  See plans →", com o preço lido de `PLAN_LIST` (fonte única), nunca
+  datilografado. Botão principal intacto.
+
+  **Por quê, medido em 07/09 sobre 7 dias, cruzando por pessoa:** 131 pessoas
+  viram a tela de filme pronto, 56 fizeram um SEGUNDO filme e **19 viram um
+  preço alguma vez**. Os três degraus da tela se excluem, e o mais largo —
+  `trial_balance_bridge_viewed` **76 pessoas**, contra **7** de
+  `trial_post_video_offer_viewed` — dizia "No card. No purchase." e não tinha
+  caminho nenhum para `/pricing`. Não havia como perceber pelo painel: o
+  evento que provaria a falta é de IMPRESSÃO e continuava verde.
+
+  **Números que valem para as duas pistas:** o último `payment_success` da
+  história do banco é **02/09 20:22Z** (17 pagamentos, 14 pessoas, na vida
+  inteira). E dos **170 trials que encerraram** em 7 dias, **6** voltaram ao
+  site alguma vez depois disso — ou seja, oferta que depende de a pessoa
+  voltar aposta em 3,5% dela, e a casa tem **uma sessão por pessoa**.
+
+  **Como medir:** `trial_balance_bridge_viewed` passou a carregar
+  `plans_link: true` (marcador de versão do deploy — sem ele o denominador
+  mistura a ponte muda com a ponte com preço); clique novo é
+  `trial_bridge_subscription_clicked`. Consultas prontas em
+  `docs/queries/PONTE-COM-PRECO-2026-09-07.sql`. Guardião:
+  `scripts/test-ponte-com-preco-2026-09-07.mjs` (14/14, falsificado por 3
+  mutantes).
