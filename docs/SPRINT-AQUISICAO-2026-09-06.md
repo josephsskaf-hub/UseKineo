@@ -572,3 +572,92 @@ Descartei estaticamente as duas hipóteses fáceis: o cron **seleciona** `topic`
 corretamente (linha 329), então não é campo ausente; e `video.id` é a coluna
 `id` da tabela, string. Sobram OpenAI (HTTP/timeout) e `prepararPacote`. **O
 próximo e-mail responde. Não vou adivinhar.**
+
+---
+
+## ### #7 — 21:55 — O NÚMERO DO CICLO: 199 DE 217 PESSOAS RECEBERAM O FILME E NUNCA FORAM PERGUNTADAS
+
+**PRESS RELEASE.** A Kineo entregou **217 filmes prontos** para 217 pessoas
+diferentes em 14 dias. **Dezoito** delas chegaram a ver um preço. As outras
+**199 pegaram o vídeo e foram embora sem que a casa perguntasse uma única vez se
+queriam continuar.** Não é que acharam caro: **não foram perguntadas.**
+
+**COMO CHEGUEI AQUI, e não era o que eu procurava.** Fui conferir os 2 checkouts
+do dia, seguindo a instrução do fundador de 02/09 — *"contar separado de
+checkout de quem já entregou vídeo"*. Os dois eram de contas que **ainda não
+tinham filme nenhum**: `mohandasjas1` (fonte `seo`) apertou checkout **2 minutos**
+depois de criar a conta, e `fadeoags` (fonte `chatgpt`) **98 segundos** depois.
+Os dois só fizeram filme **depois**. Puxei o fio.
+
+### O funil honesto de 14 dias
+
+| degrau | pessoas | do anterior |
+|---|---:|---:|
+| cadastros (externos) | **366** | — |
+| **filme pronto na mão** | **217** | 59% |
+| viu a página de preços depois do filme | **18** | **8%** |
+| viu parede/modal de upgrade depois do filme | 14 | 6% |
+| começou checkout depois do filme | **14** | **6,5%** |
+| **pagou** | **2** | 14% dos 14 |
+
+**O degrau seco é um só, e não é onde todo mundo procura.** A fábrica entrega
+(59%, com 42 de 42 renders concluídos hoje). O checkout **fecha bem** — 2 de 14,
+**14%**, para quem chega lá com um filme na mão. **O que não acontece é o
+convite:** 92% de quem recebeu o produto nunca cruzou uma superfície com preço.
+
+### E isso NÃO contradiz a conclusão fechada do fundador — a afia
+
+A regra da casa é: *o vazamento do checkout é PREÇO, não é trilho de pagamento.*
+**Continua valendo, e agora com o denominador certo.** Segmentando os 40 que
+chegaram ao checkout em 14 dias:
+
+| segmento | pessoas | pagaram | taxa |
+|---|---:|---:|---:|
+| **já tinha filme pronto** | 13 | 2 | **15,4%** |
+| ainda sem filme | **27** | 1 | 3,7% |
+
+**68% do tráfego de checkout é gente que nunca viu o produto funcionar** — e
+converte **4,2× pior**. O "vazamento" que parecia enorme é, em boa parte, uma
+população mal qualificada chegando cedo demais. Entre quem chega no momento
+certo, a taxa é **15,4%**, que não é a taxa de um produto que ninguém quer.
+
+> ⚠️ **E a ação óbvia daqui é PROIBIDA, com razão.** Bloquear o checkout de quem
+> não tem filme "limparia" o número — e é exatamente o limite **K1** deste
+> ciclo: *quem quer comprar avança sem filme*. Ninguém é impedido de pagar.
+> A correção é **medir separado** (feito) e **convidar mais quem já recebeu**
+> (que é o Pedido 1), nunca fechar a porta de quem quer comprar.
+
+### O que isso decide, e amarra o ciclo inteiro
+
+As duas peças construídas hoje — **temporada** e **pacote de publicação** — são
+exatamente o convite pós-entrega. E é aí que a conta fecha, ou não fecha:
+
+| peça | escrita para | **vista por** |
+|---|---:|---:|
+| temporada | 28/dia | **2** |
+| pacote de publicação | — | **0** (nunca escrito) |
+
+**O momento que decide o negócio acontece ~20 vezes por dia e a casa está muda
+nele.** Não por falta de ideia nem de backend: os dois estão prontos. Falta a
+caixa na tela (`docs/PEDIDOS-CODEX-2026-09-06.md`, Pedido 1) e a instrumentação
+que diga se ela aparece (Pedido 3).
+
+### A aritmética que o fundador pediu, sem maquiagem
+
+Meta declarada: **10-15 pagantes/dia**. Hoje: **366 cadastros / 2 pagamentos em
+14 dias = 0,55%**. A essa taxa, 10 pagantes/dia exigiriam **~1.800 cadastros por
+dia** — **50× o tráfego atual**. Nem o melhor trabalho de aquisição do mundo
+entrega isso neste trimestre.
+
+**Mas o número que muda tudo não é o tráfego, é o 6,5%.** Se o convite pós-filme
+levasse **30%** dos 217 a uma superfície com preço (em vez de 6,5%), e a taxa de
+15,4% se mantivesse, seriam **~10 pagantes por 14 dias** com o tráfego de hoje —
+5× o resultado atual, **sem uma visita nova**. Com o tráfego já crescendo (11
+cadastros/dia em 24/08 → **35** em 06/09, 3× em duas semanas, 66% do ChatGPT),
+os dois se multiplicam.
+
+**A leitura de dono:** este ciclo foi pedido como aquisição, e a aquisição está
+funcionando sozinha — triplicou em 14 dias sem gastar um dólar. **O gargalo
+mudou de lugar enquanto ninguém olhava.** Ele não está mais em "trazer gente";
+está em **pedir**, uma vez, para as 20 pessoas por dia que já estão com o
+produto pronto na mão.
