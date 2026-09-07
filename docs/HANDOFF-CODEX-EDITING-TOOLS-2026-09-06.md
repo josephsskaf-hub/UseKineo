@@ -16,12 +16,23 @@
 
 ## Verificação antes de publicar
 
-- **TESTADO LOCALMENTE:** 79 contratos executam política, exportação real com primitivas de navegador mockadas, descarte de recursos, recorte, mute, desenho de texto, falhas e destinos reais do hub. Isso não comprova o codec do navegador.
+- **TESTADO LOCALMENTE:** 92 contratos executam política, exportação real com primitivas de navegador mockadas, descarte de recursos, recorte, mute, desenho de texto, falhas e destinos reais do hub. Isso não comprova o codec do navegador.
 - **TESTADO LOCALMENTE:** UX 49, idioma 1058, workspace ES 22, navegação 23, curadoria 247; `npx tsc --noEmit` código 0. Testes históricos do hub atualizados para permitir somente cinco novos destinos, sem perder os antigos; teste do título espanhol atualizado à nova copy; comparação integral da home permite apenas o rename aprovado.
 - **ARTEFATO:** `docs/previews/UX-VIDEO-EDITING-2026-09-06.html`, JSX real antes/depois (`163198f0`) desktop/mobile, editor novo EN/ES. HTML estático, sem exportação funcional e sem serviços externos.
-- **PENDENTE:** preview web, exportações de amostra no Chrome (incluindo áudio e download), layout móvel, Guardião, merge seguro e validação de produção. Não apresentar código como funcional em produção antes destes gates.
+- **PENDENTE NESTE CHECKPOINT:** merge seguro e validação de produção. Os testes de preview abaixo não são ainda produção.
 
 ## Coordenação
 
 - Não tocar nos motores/legendas/cenas/créditos do Claude. Arquivos novos concentrados em `app/tools/editor/` e `lib/videoEditing/`; somente label de navegação em `app/KineoLanding.tsx` e a central de ferramentas foram alterados.
 - Trabalho na worktree `C:/tmp/usekineo-ux-completo-2026-09-06`, branch `codex/ux-completo-2026-09-06`, base `163198f0`. Nenhum arquivo da árvore principal utilizado para escrita.
+
+## Validação funcional do preview — 06/09, 21:03 BRT
+
+- **TESTADO NO CHROME REAL:** PR #49, código de exportação `aa8c020661bcb290514a135c0584021f250dcbaa`, preview `dpl_D961z4AymJ93z6iCrTs8YJCJoJV6` READY. A amostra sintética identificada como KINEO SAMPLE é criada por clique no navegador, com animação e tom de áudio; não é vídeo de cliente nem render pago. Os arquivos foram baixados pelo link da interface e inspecionados com ffprobe/ffmpeg local.
+- **EVIDÊNCIA DO ARQUIVO, 06/09:** corte de 1–3 s silencioso: MP4 H.264, 640×360, 2,040567 s e nenhuma faixa de áudio (`Downloads/kineo-sample-kineo-edit (4).mp4`). Mesma faixa em 9:16 com texto central: 360×640, 2,033400 s, sem áudio (`(5).mp4`). O frame extraído mostra literalmente TESTE KINEO • VIDEO EDITADO nos pixels. Acelerar essa faixa a 2×, mantendo áudio: vídeo 1,020767 s, AAC 0,959042 s, volume médio −29,1 dB (`(6).mp4`). Não é apenas botão ou evento de sucesso.
+- **CORREÇÕES GUIADAS PELO TESTE:** os primeiros arquivos falharam: havia atraso de início e MP4 silencioso de ~1 s para seleção de 2 s. Iniciar MediaRecorder após play() removeu o atraso; requestFrame sozinho NÃO resolveu a duração. Trocar o relógio de exportação de requestAnimationFrame por setTimeout com requestFrame resolveu o caso reproduzido. `exportClip` agora decodifica a saída e rejeita arquivo com duração/dimensões incompatíveis antes de oferecê-lo. Arquivos experimentais anteriores não são exemplos aprovados.
+- **FATO CONFIRMADO:** proteções e relógio em `lib/videoEditing/browserEditor.ts:66`; desenho comum de texto/preview em `:39`; limites em `lib/videoEditing/settings.ts:13`. `5fc21a0c` também evita redesenhar continuamente o preview pausado, sem alterar o codificador testado.
+- **TESTADO VISUALMENTE:** hub desktop com cinco ferramentas e treze destinos preservados; editor em 390 px e espanhol em 320 px sem overflow horizontal; intervalo inválido exibe erro espanhol. HTML antes/depois em `docs/previews/UX-VIDEO-EDITING-2026-09-06.html`.
+- **LIMITAÇÃO DE VERIFICAÇÃO:** a extensão Chrome recusou atribuir arquivo ao seletor nativo (Allow access to file URLs desativado). Não contornei a permissão; carga/edição foram exercitadas com a amostra local explícita do app. Seleção de arquivo externo, Safari, telefone físico e todos os codecs não estão validados. Chrome desktop foi o navegador real dos testes, viewport móvel não prova Safari/iOS.
+- **TESTADO LOCALMENTE / CI:** Guardião `34068182182` success para `5fc21a0c`; não substitui `npx tsc --noEmit` bruto, que passou sem filtros. O workflow atual usa continue-on-error, portanto não declaro a suíte inteira perfeita pelo verde do CI.
+- **COORDENAÇÃO:** commits Claude `5411b6be` (SourceCapture) e `d8a552f8` (llms/fatos de aquisição) incorporados sem conflitos e sem alterações próprias nesses arquivos. Não há migration, serviço novo, envio de arquivo, crédito gasto ou alteração de motores.
