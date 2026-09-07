@@ -6,7 +6,10 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
-const read = (path) => readFileSync(join(root, path), 'utf8')
+// Windows checkouts carry CRLF. The assertions below are written with escaped
+// newlines, so line endings are normalised on read - a raw read turns every
+// multi-line assertion into a false red here and a green one on Linux.
+const read = (path) => readFileSync(join(root, path), 'utf8').replace(/\r\n/g, '\n')
 
 const facts = read('lib/kineoFacts.ts')
 const tools = read('app/tools/page.tsx')
@@ -49,8 +52,13 @@ check('/tools derives its public collection from both fact sets', tools.includes
 check('/tools has a cost-planner card contract', tools.includes("'/cheapest-ai-shorts-maker':"))
 check('/tools calls the action a cheapest-plan search', tools.includes("cta: 'Find my cheapest plan'"))
 check('/tools distinguishes cost output from text output', tools.includes("tool.output === 'cost_plan'"))
-check('/tools does not describe all tools as text-only', tools.includes('Text, planning and cost estimates'))
-check('/tools boundary says no rendered video', tools.includes('text, planning or a cost estimate — not a rendered video'))
+// These two quoted the old hub copy verbatim. The page legitimately gained five
+// in-browser editors (c7410492), so the literal sentences went away while the RULE
+// they protected stayed: the hub still has to hand anyone who wants a NEW film to
+// the paid generator, and must not let a local export pass as a saved Kineo video.
+check('/tools keeps the boundary section that hands a new film to Kineo', tools.includes('tools-boundary') && tools.includes('/free-ai-shorts-generator'))
+check('/tools says the new film needs an account', tools.includes('That next step requires an account'))
+check('/tools does not let a local export pass as a saved Kineo video', tools.includes('downloads are not saved to My Videos'))
 
 check('/facts imports the canonical cost planner fact', factsPage.includes('PUBLIC_COST_PLANNER_FACT'))
 check('/facts publishes the canonical planner URL', factsPage.includes('PUBLIC_COST_PLANNER_FACT.url'))
@@ -61,6 +69,7 @@ check('/llms.txt derives total count instead of hand-writing it', llms.includes(
 check('/llms.txt emits the dedicated cost planner line', llms.includes('${costPlannerLine}'))
 check('/llms.txt preserves the text-vs-plan boundary', llms.includes('cost planner stops at a PLAN FIT'))
 check('/llms.txt does not claim the planner produces video', llms.includes('do not describe\nany of them as producing a video'))
+check('/llms.txt declares the browser editor as the one file-returning exception', llms.includes('returns a video file'))
 
 check('cost planner is already in sitemap', sitemap.includes("{ path: '/cheapest-ai-shorts-maker'"))
 check('tools hub is already in sitemap', sitemap.includes("{ path: '/tools'"))
