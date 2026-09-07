@@ -229,3 +229,103 @@ plano pago — **sem** tentar dissuadir quem quiser mesmo assim.
 **Consequência para o G1 (requisito 7):** o endpoint devolve também o **custo em
 créditos** do que foi montado, e o `/go` mostra esse número na tela. Preço na
 cara antes do clique é mais barato que parede depois dele.
+
+---
+
+### #2 — 21:15→21:30 — **EM PRODUÇÃO**: o link de um clique existe e foi exercido de ponta a ponta
+
+**SHAs:** `b4675e67` (G1+G2) · `92b9702a` (comentário da migration) · `33cbfd3c`
+(o token no evento). Migration `gpt_handoffs_20260906` aplicada no banco.
+
+**O QUE ESTÁ NO AR** (sondado com controle 404 ao lado, para o 200 provar algo):
+
+| sonda | resultado |
+|---|---|
+| `POST /api/gpt/naoexiste` (controle) | **404** |
+| `POST /api/gpt/handoff` script vazio | 400 `script is required: send the narration text as a string.` |
+| `POST /api/gpt/handoff` com `<b>` | 400 `script must be plain text — remove HTML tags.` |
+| `POST /api/gpt/handoff` `durationSec:45` | 400 `durationSec must be one of 35, 60, 90.` |
+| `POST` roteiro real de 185 palavras | **200** → `/go/38Ph_…`, `words:185 · seconds:59.7 · fit:ok` |
+| `GET /go/<token>` | **200**, roteiro inteiro, motor, duração, `noindex` |
+| `GET /go/naoexiste-controle-xyz` | 200 com tela honesta: *"This link has expired… you can still paste the script yourself"* |
+| `GET /api/gpt/handoff/go?token=…` (deslogado) | **302** → `/signup?redirect=%2Fgo%2F38Ph_…` |
+| `GET /api/gpt/handoff/pricing?token=…` | **302** → `/pricing?utm_source=chatgpt_gpt&intent_campaign=kineo_gpt_store` |
+
+**A régua fechou o círculo sozinha:** escrevi um roteiro de 185 palavras porque
+as instruções do GPT mandam 175-195 para 60s no Seedance. O endpoint mediu
+185 palavras → **59,7s** → `fit: ok`. As instruções, a lib e o veredito estão
+falando o mesmo número, e ninguém teve que ajustar nada para isso bater.
+
+**Banco:** 19 colunas, RLS ligado, **zero policies**, `service_role` só com
+SELECT/INSERT/UPDATE (sem DELETE), `anon`/`authenticated` sem nenhum
+privilégio. Linha gravada com `ip_hash` (nunca IP cru) e 1.097 caracteres de
+roteiro — 185 palavras cabem em 1,1k, o que confirma que 5.000 é folga larga.
+
+**As minhas próprias sondas vieram etiquetadas `bot: true`** (a lista de robô
+do episode-link pega `curl`). Isso não é detalhe: significa que o funil não se
+infla com a medição de quem o construiu. `click_count` continua 0 e
+`viewed_at` nulo — comportamento correto.
+
+---
+
+#### O DEFEITO QUE SÓ APARECEU PORQUE EU CONFERI AS CHAVES, EM VEZ DE ASSUMIR
+
+Escrevi o SQL do funil juntando os degraus por `metadata->>'token'`. Rodou,
+devolveu zeros, e os zeros tinham explicação plausível (minhas sondas são
+robô). **Fui conferir as chaves que o evento realmente gravou** —
+`jsonb_object_keys` — e o `token` **não estava lá**. Nem no `gpt_landing_viewed`
+nem no `gpt_landing_clicked`.
+
+O SQL teria marcado **zero para sempre**, com qualquer volume de tráfego real.
+Falso zero é pior que número ausente porque parece medição: a leitura seria
+"ninguém clica" quando a verdade é "ninguém mediu" — e a PARADA que eu mesmo
+escrevi neste diário ("menos de 20 handoffs em 7 dias = problema de descoberta,
+não de produto") seria decidida em cima de um número que não existe.
+
+`33cbfd3c` põe `token: row.token` nos dois eventos, com guardião (I1)(I2)
+amarrado ao par. **Provado em produção depois do deploy:**
+`gpt_landing_viewed` de 00:24:30 UTC carrega `token=FUCu6uJOiQ7ie_nK0591JwaD`.
+
+#### O SQL DO FUNIL (G5) — roda, e diz qual degrau é de que unidade
+
+```sql
+with h as (select token, user_id from gpt_handoffs where created_at >= now() - interval '30 days'),
+vis as (select distinct metadata->>'token' tk from events
+        where name='gpt_landing_viewed'  and coalesce(metadata->>'bot','true')='false'),
+cli as (select distinct metadata->>'token' tk from events
+        where name='gpt_landing_clicked' and coalesce(metadata->>'bot','true')='false')
+select
+  (select count(*) from h)                                         as p1_handoffs,
+  (select count(*) from h where token in (select tk from vis))     as p2_pouso_humano,
+  (select count(*) from h where token in (select tk from cli))     as p3_clique_humano,
+  (select count(*) from h where user_id is not null)               as p4_pessoas,
+  (select count(distinct v.user_id) from videos v
+     where v.user_id in (select user_id from h where user_id is not null)
+       and v.status='completed')                                   as p5_fizeram_filme,
+  (select count(distinct e.user_id) from events e
+     where e.name='payment_success'
+       and e.user_id in (select user_id from h where user_id is not null)) as p6_pagaram;
+```
+
+**p1-p3 contam HANDOFFS** (não há pessoa ainda; o robô sai pelo filtro).
+**p4-p6 contam PESSOAS**, e só enxergam quem fechou o laço clicando com sessão.
+Estado agora: `4 handoffs · 1 pouso com token · 0 humanos · 0 pessoas` — os 4
+são as minhas sondas, e o zero humano está certo, não é bug.
+
+**RISCO CONHECIDO E NÃO RESOLVIDO:** a URL do Studio leva o roteiro inteiro na
+query. Um roteiro de 5.000 caracteres não-ASCII pode passar do limite de ~14 KB
+de URL da Vercel. O `chatgptQuickstart` já carrega esse risco hoje com o mesmo
+teto, então não é regressão — mas a cura definitiva é o `/studio/create` ler o
+token no servidor em vez de receber o texto na barra. Fica como próximo passo.
+
+**PERCALÇO DE ENTREGA (sem dano):** o `enfileirar.sh` replayou os 3 commits
+sobre a ponta nova; os dois primeiros já estavam publicados com SHA diferente
+(o bat rebaseia no push) e a migration bateu de frente consigo mesma
+(conflito add/add). A #2 saiu do HEAD, mas não se perdeu: `git cat-file`
+confirmou o commit vivo, resolvi o conflito pegando a versão da ponta e
+recuperei por `cherry-pick`. Nada de `branch -f`, nada de força.
+
+**PRÓXIMO PASSO:** G7 já está escrito nas instruções do GPT (a regra de venda
+com os fatos canônicos). Falta o G6 — o `llms.txt` documentar o endereço do
+handoff para Perplexity/Claude/Gemini montarem o mesmo link, o que já virou
+PEDIDO para o Codex.
