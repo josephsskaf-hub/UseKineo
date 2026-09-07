@@ -3090,3 +3090,282 @@ de novo e de novo era abuso bloqueado corretamente — o produto acertou, o
 alarme é que era burro, e ele já tinha sido consertado uma hora antes.
 
 ---
+
+### #20 — 02:38→03:38 BRT (07/09) — a casa desistia do cliente antes da cobradora desistir
+
+**PRESS RELEASE.** A partir de hoje, quem já é assinante da Kineo e tem o cartão
+recusado numa renovação **não perde o plano no mesmo instante**. A Stripe repete
+a cobrança por dias quando um cartão falha — sem saldo, limite momentâneo, banco
+fora do ar. Até esta noite a Kineo não esperava por isso: derrubava a conta para
+o plano grátis na primeira recusa, zerava os tokens de cinema e não avisava
+ninguém. Agora a casa espera a cobradora terminar. Se a Stripe recupera o
+pagamento, o cliente nunca soube que houve um problema. Se a Stripe desiste, aí
+sim o acesso sai.
+
+#### O que estava errado (medido, não suposto)
+
+O `CLAUDE.md` diz, em maiúsculas, que a tabela `events` **nunca teve um único**
+`checkout_payment_failed` e que por isso o campo "não prova nada em nenhuma
+direção". Isso **deixou de ser verdade**. A instrumentação existe, está com
+versão `stripe_checkout_failure_v1`, e disparou:
+
+| quando | valor | cartão | país | motivo | renovação? |
+|---|---|---|---|---|---|
+| 07/09 05:35 UTC | US$ 23,20 | Visa **pré-pago** | US | `card_restricted` | não |
+| 04/09 08:24 UTC | US$ 24,90 | Visa débito | AU | `insufficient_funds` | **sim** |
+| 03/09 10:26 UTC | US$ 9,90 | Visa pré-pago | NG | `insufficient_funds` | **sim** |
+
+Isto **não reabre a conclusão de preço** do fundador — o vazamento do checkout de
+quem ainda não é cliente continua sendo preço. Isto é outra coisa: **duas pessoas
+que JÁ ERAM PAGANTES**. Abertas uma a uma:
+
+| pessoa | `has_paid` | `plan` hoje | créditos | eventos depois da recusa | e-mail nosso | voltou a pagar |
+|---|---|---|---|---|---|---|
+| renovação AU · US$ 24,90 | true | **free** | 73 | **0** | **0** | não |
+| renovação NG · US$ 9,90 | true | **free** | 172 | **0** | **0** | não |
+
+Duas assinaturas mortas em cinco dias, em silêncio, sem uma linha de e-mail.
+São ~US$ 34,80/mês de uma base de ~US$ 109 com 7 pagantes — **cerca de um terço
+da receita recorrente**. E na mesma janela a casa ganhou 2 pagantes em 14 dias.
+A torneira de cima e o ralo de baixo têm quase a mesma vazão.
+
+#### A causa, no código — e a contradição que a provou
+
+Os dois pontos do webhook que **revogam** acesso escreviam o predicado à mão:
+
+```
+app/api/stripe/webhook/route.ts:1856  const isActive = subscription.status === 'active' || subscription.status === 'trialing'
+app/api/stripe/webhook/route.ts:2028  if (failedSubscription.status === 'active' || failedSubscription.status === 'trialing')
+```
+
+`past_due` não está nessa lista. E `past_due` é **exatamente** o estado em que a
+Stripe põe a assinatura quando a primeira fatura de renovação recusa — é o estado
+onde a repetição automática **começa**. A casa lia isso como "não é ativo" e
+executava `is_pro:false, plan:'free'` na hora; o ramo do
+`customer.subscription.updated` ainda zerava `cinematic_tokens` de brinde.
+
+A contradição que fecha o caso: **`app/api/admin/_shared/mrr.ts:120` já contava
+`past_due` como receita VIVA.** O painel do fundador dizia "cliente pagante" e o
+produto dizia "free" para a mesma pessoa, no mesmo minuto. Os dois não podiam
+estar certos — e quem estava certo era o painel.
+
+Conferido que não havia um segundo carrasco: o cron `trial-downgrade` só toca
+conta de trial (`trial_status` não nulo e não terminal), e `isPayingProfile`
+devolve true para `has_paid=true`. **O webhook era o único.**
+
+#### O que mudou — EM PRODUÇÃO, SHA `c94b140a`
+
+- **`lib/billing/subscriptionAccess.ts` (novo)** — fonte única. `active`/
+  `trialing` = acesso; `past_due` = acesso **mantido** enquanto a Stripe cobra;
+  `incomplete` = **sem** acesso (primeira fatura que nunca foi paga, não há o que
+  preservar); `unpaid`/`canceled`/`incomplete_expired`/`paused` = revoga.
+- **`app/api/stripe/webhook/route.ts`** — os dois pontos de revogação passam a
+  **importar** o predicado em vez de redigitá-lo. **Nenhum ponto de concessão foi
+  alargado** — quem nunca pagou não ganha nada com esta mudança.
+- Preservar acesso emite `subscription_access_held_during_dunning`. Sem isso o
+  conserto seria invisível: a ausência de uma revogação não deixa rastro nenhum.
+
+`past_due` não é porta de entrada de graça: só se chega lá **depois de pelo menos
+um ciclo pago**.
+
+#### O que o cliente passa a ver
+
+Nada — e esse é o ponto. Quem tem o cartão recusado numa renovação continua com o
+plano, com os créditos e com os tokens de cinema enquanto a Stripe tenta de novo.
+Antes, ele abria o app e encontrava a conta rebaixada sem explicação nenhuma. Foi
+o que aconteceu com as duas pessoas da tabela, e nenhuma das duas voltou.
+
+#### Testes
+
+`scripts/test-dunning-grace.mjs`, 11 verificações, amarradas na **condição** e não
+em contagem de texto. Falsificado com **7 mutantes**, cada um com a contagem de
+ocorrências antes/depois provando que o mutante foi de fato escrito:
+
+```
+M1 tira past_due da carencia .................. FAIL (10/11)
+M2 keepsAccess perde a metade da cobranca ..... FAIL (10/11)
+M3 keepsAccess vira `true` .................... FAIL (10/11)
+M4 subscription.updated redigita o predicado .. FAIL (9/11)
+M5 payment_failed redigita o predicado ........ FAIL (9/11)
+M6 apaga o rastro do acesso preservado ........ FAIL (9/11)
+M7 painel deixa de contar past_due como receita FAIL (10/11)
+restaurado ....................................  11/11
+```
+
+`npx tsc --noEmit` verde (exit 0, saída vazia).
+
+#### Risco, sem maquiagem
+
+Alguém em `past_due` continua com o plano enquanto a Stripe tenta. Se a Stripe
+esgotar as repetições, ela mesma manda `unpaid`/`canceled` e o acesso sai pelo
+caminho normal. A janela é a da própria Stripe, não uma inventada por mim.
+**Reversível em uma palavra:** tirar `'past_due'` de `STRIPE_DUNNING_STATUSES`
+restaura o comportamento antigo, e o guardião avisa.
+O que eu **não** fiz e é decisão do fundador: ligar a régua de repetição da
+Stripe (Smart Retries) e o e-mail de "seu cartão falhou" — os dois moram no
+painel dele, não no nosso código.
+
+#### Como medir
+
+```sql
+select name, count(*), max(created_at) from events
+where name in ('subscription_access_held_during_dunning','checkout_payment_failed')
+  and created_at > '2026-09-07 06:30:00+00' group by 1;
+```
+O que prova o conserto: um `subscription_access_held_during_dunning` seguido, dias
+depois, de um `payment_success` da mesma assinatura — cliente que a casa teria
+perdido e a Stripe recuperou.
+
+### Praxe — aquisição nas últimas 24h (contas externas)
+
+| fonte | cadastros | com filme | 2º filme | checkout | **pagou** |
+|---|---|---|---|---|---|
+| chatgpt | 26 | 21 | 6 | 1 | **0** |
+| (sem fonte) | 7 | 2 | 0 | 1 | **0** |
+| taaft | 5 | 5 | 0 | 1 | **0** |
+| nav (interno) | 2 | 1 | 0 | 0 | **0** |
+| bing | 1 | 1 | 1 | 0 | **0** |
+| perplexity | 1 | 1 | 0 | 0 | **0** |
+| **total** | **42** | **31** | **7** | **3** | **0** |
+
+Mapa de 14 dias, para o fechamento: chatgpt 198→127 com filme→**2 pagaram** ·
+taaft 93→66→0 · (sem fonte) 53→11→0 · nav 12 · **google 5→1→0** · outro 4 ·
+bing 2 · perplexity 1 · engine_bento/partners/script_library/seo 1 cada.
+**O Google segue em zero absoluto de pagamento e quase zero de cadastro.**
+
+### Checagem zero
+
+```
+render preso >40min ......... 0
+next_episode_failed 24h ..... 0
+generation_stage_error 24h .. 12  <- 9 pessoas, 8 causas distintas, nenhuma sistêmica
+payment_success 24h ......... 0   <- é o placar, não uma falha
+conta nova sem fonte ........ 7   <- aberta uma a uma abaixo
+```
+
+Os 12 erros de geração são 8 causas diferentes: 5 são **portões funcionando**
+(mensagem de trial/paywall), 2 são o guardião de duração recusando roteiro curto
+(`speech=19s target=60s`), 2 são render que estourou o tempo, 1 `TypeError`. Nada
+sistêmico — o pipeline entrega.
+
+As 7 "sem fonte", abertas com `trial_status` e saldo na mão: **3 são de novo a
+fazenda `@live.com`**, criadas em minutos, 0 filmes, `blocked` — o antifraude
+acertando. Das 4 restantes, 3 nasceram com crédito inteiro (17/25/25, `active`) e
+1 é `downgraded` com filme feito. **O buraco de atribuição real são 4 contas, não
+7** — e o predicado ingênuo (`video_credits = 0` ⇒ trial órfão) teria aberto
+incidente pela terceira vez em três rotações e o "conserto" seria premiar
+farmador.
+
+### Também nesta rotação — o guardião que reprovava o comportamento certo
+
+`test-public-cost-planner-discovery` estava em **34/37** havia dias. Nenhuma das
+3 reprovações era defeito:
+
+- duas citavam a **copy de ontem** (`Text, planning and cost estimates` e "não é
+  um vídeo renderizado"). A frase saiu **de propósito** quando a página ganhou os
+  cinco editores de navegador (`c7410492`) — hoje a Kineo *tem* ferramenta que
+  devolve arquivo. A regra que a frase protegia continua viva na seção
+  `tools-boundary`.
+- a terceira é a armadilha de **CRLF** já catalogada: asserção escrita com quebra
+  de linha escapada contra arquivo lido cru, que no Windows tem `\r\n`. Verde no
+  Linux, vermelha aqui, zero defeito no produto.
+
+O teste passa a amarrar na **regra** e não na foto: a fronteira que manda quem
+quer filme novo para o gerador pago, o aviso de que o filme novo pede conta, a
+proibição de deixar export local passar por vídeo salvo, e a declaração no
+`/llms.txt` de que o editor de navegador é a única exceção que devolve arquivo.
+4 mutantes, 4 reprovações, cada uma pelo seu próprio nome. **34/37 → 39/39.**
+
+### Próxima jogada
+
+**O ralo tem quase a vazão da torneira.** A casa gasta a noite inteira tentando
+pôr gente nova na porta (2 pagantes em 14 dias) e perdeu 2 assinantes em 5 dias
+pela porta dos fundos, sem mandar um e-mail. O conserto de hoje impede a perda
+automática; **falta a carta**. A jogada é um aviso de cartão recusado que sai no
+primeiro `checkout_payment_failed` de renovação — não uma cobrança, um favor:
+"seu banco recusou a renovação, seu plano continua de pé enquanto tentamos de
+novo, atualize o cartão quando puder". É o único e-mail da casa que chega numa
+hora em que a pessoa **quer** resolver. E como a coorte é minúscula (2 em 5
+dias), ele não disputa espaço com nenhuma campanha — o problema de supressão que
+matou as cartas caras não se aplica aqui.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+1. **Abra o painel da Stripe → Settings → Billing → Subscriptions and emails** e
+   confirme se **Smart Retries** está ligado e por quantos dias. O conserto de
+   hoje segura o acesso pela janela da Stripe — se essa janela estiver desligada,
+   ela é zero e o conserto não tem o que segurar.
+2. **No mesmo lugar, ligue o e-mail automático de "pagamento falhou"** da Stripe,
+   se ainda estiver desligado. É grátis e sai na hora certa.
+3. **Google Search Console** (só você tem): veja *Páginas → Por que as páginas não
+   são indexadas*. Em 14 dias o Google trouxe 5 cadastros e 0 pagamentos, com
+   dezenas de páginas nossas no ar.
+
+## 📋 O QUE ACONTECEU
+
+Descobri que a Kineo estava perdendo assinantes pela porta dos fundos e não
+sabia. Quando o cartão de um cliente falha na renovação, a Stripe tenta de novo
+por dias — mas a casa derrubava a conta para o plano grátis já na primeira
+recusa, zerava os tokens e não avisava ninguém. Duas pessoas foram embora assim
+em cinco dias, caladas: ~US$ 34,80/mês de uma receita de ~US$ 109. O painel do
+fundador ainda as contava como pagantes; o produto já as tratava como grátis.
+Agora a casa espera a Stripe terminar de cobrar antes de tirar o acesso, e cada
+vez que isso acontece fica um registro para medir se a cobrança foi recuperada.
+Está em produção. Além disso, três reprovações antigas de um guardião eram a
+copy de ontem e uma armadilha de quebra de linha do Windows, não defeito — o
+teste foi reescrito para vigiar a regra em vez da frase.
+
+---
+
+### #20b — 03:38 BRT (07/09) — Q4 fechado do lado do servidor, e o único defeito que ele escondia
+
+A pergunta do Q4 era "por que o Google não vem". Foi respondida **com
+denominador**: as **189 URLs do sitemap** baixadas duas vezes, como Googlebot e
+como navegador.
+
+**O que está certo — e por isso sai da lista de suspeitos:** 189/189 respondem
+**200**, byte a byte iguais para os dois User-Agents (não existe ramo de robô);
+o texto **vem no HTML servido** (o `<h1>` e as tabelas aparecem no corpo do
+`curl`), então a hipótese "conteúdo só no cliente" que a rotação anterior
+levantou é **falsa**; canonical aponta para si mesma; zero `noindex`; zero
+`X-Robots-Tag`; **188 títulos distintos** em 188 páginas; `robots.txt` aponta os
+dois sitemaps e não bloqueia nada indexável; os 6 domínios alternativos
+redirecionam 308 para o canônico. Três rotas inventadas deram **404** na mesma
+medição — é o controle que dá valor aos 200. E das 79 páginas públicas
+estáticas, 67 estão no sitemap e **as 12 de fora são intencionais** (checkout,
+redirects, `index:false` no código).
+
+**O defeito que a varredura achou** — e que a leitura anterior não viu:
+`components/StructuredData.tsx` é montado pelo `app/layout.tsx`, então o bloco
+`FAQPage` de 13 perguntas era servido em **187 páginas**. As 13 só são texto
+visível na **home** (13/13). Em `/pricing` são 2/13. Em `/vs/*`,
+`/alternatives/*`, `/free-ai-shorts/*`, `/ai-video-generator/*` são **0/13**. E
+**121 páginas carregavam DOIS** `FAQPage`.
+
+O Google exige Q&A **visível** na página de origem e um FAQ repetido marcado
+**uma vez** no site. Marcar conteúdo que não está lá é a definição de *structured
+data spam* — a única categoria de ação manual que este site poderia ter ganhado
+sem ninguém perceber, e que explicaria 704 URLs "detectada, mas não indexada"
+com 0 impressões em 28 dias.
+
+**EM PRODUÇÃO, SHA `476407a5`**: o componente global emite só Organization e
+SoftwareApplication; o FAQPage virou `FaqStructuredData()` e é renderizado
+**apenas pela home**. Nenhuma pergunta mudou — mudou **onde** ela é servida.
+Sitemap, robots e canonical não precisaram de nada. Guardião
+`test-faq-schema-so-onde-visivel.mjs`, 28 verificações amarradas na condição
+(varredura de quem renderiza, não contagem de texto), falsificado com 2 mutantes
+e restauração provada por md5. `tsc` verde. `test-descoberta-assistente` segue
+68/68.
+
+**O que a auditoria NÃO fecha, sem maquiagem:** com servidor, sitemap e HTML
+corretos, o que sobra só existe no Search Console do fundador. A pista é que
+somos achados por motor de **resposta** (Bing 1, Perplexity 1) e ignorados por
+busca clássica (Google 0) — isso aponta para **autoridade de domínio**, não para
+código. A alavanca deixa de ser SEO técnico e passa a ser link externo: TAAFT,
+reviews, diretórios, imprensa.
+
+**Dívidas que viraram PEDIDO ao Codex (visual, não meu):** `/models-pricing`
+promete "twelve films" com 25 créditos enquanto a tabela logo abaixo, derivada do
+código, mostra **5** para o Kineo 1 — copy que mente, e o número tem de sair do
+helper, nunca digitado. E as duas portas PT/ES servem `<html lang="en">`.
+
