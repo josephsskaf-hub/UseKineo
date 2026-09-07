@@ -20,7 +20,7 @@ function load(file) {
   const require = id => {
     if (id === 'react' || id === 'react/jsx-runtime') return requireNode(id)
     if (id === 'next/link') return { __esModule: true, default: ({ children, ...props }) => React.createElement('a', props, children) }
-    if (id === '@/components/InterfaceLanguage') return { useInterfaceLanguage: () => locale }
+    if (id === '@/components/InterfaceLanguage') return { useInterfaceLanguage: () => locale, UiLabel: ({ children }) => children }
     if (id.endsWith('.module.css')) return { __esModule: true, default: new Proxy({}, { get: (_, name) => String(name) }) }
     if (id === '@/lib/ui/showcaseGallery') return load('lib/ui/showcaseGallery.ts')
     if (id === '@/lib/ui/previewFacts') return load('lib/ui/previewFacts.ts')
