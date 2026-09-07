@@ -29,3 +29,11 @@
 **COORDENAÇÃO — 07/09/2026:** incorporada a main `a80fffb0` sem conflitos, preservando os consertos Claude de `/make` e handoff/paste. Sem edição nesses caminhos. Próximo gate: repetir typecheck/CI na integração e publicar somente com gates verdes.
 
 **PENDENTE:** deploy de produção e verificação autenticada serão acrescentados depois de acontecerem. Sem teste pago: checkout completo, envio a fornecedores e render em todas as línguas não são certificados por esta bateria. Guardião segue até 07/09 10:00 BRT, sem prolongamento automático.
+
+## Publicação e verificação autenticada
+
+**VALIDADO EM PRODUÇÃO — 07/09/2026:** merge fast-forward `530d8e01faeca5012ccbb7aeb09df8cb2c2fcc77`; Guardião `34090948402` verde; deploy `dpl_XjruTBD2MXfn8w37eLAuViDNYGqA` READY e alias `www.usekineo.com`. Chrome autenticado às 06:32 UTC mostrou Hindi no seletor, galeria com 9 elementos de mídia montados sob demanda e primeira mídia em y=433,16 px. Card principal mantido; secundários recolhidos depois da galeria. Comparação visual real antes/depois exibida ao fundador.
+
+**ACHADO RESIDUAL:** o grupo antigo de erros de hidratação 425/418/423 deu lugar a um 425/422 dentro da galeria autenticada; portanto o conserto de CSS não autoriza declarar zero erro global. O preview anônimo não exercitava esse acervo.
+
+**FATO CONFIRMADO / TESTADO LOCALMENTE:** `HistoryClient.tsx` calculava datas com relógio e fuso implícitos. Teste executando os helpers reais reproduziu diferença entre UTC e America/Sao_Paulo perto de meia-noite e diferença de idade ao cruzar uma hora entre SSR e hidratação. Complemento: `history/page.tsx` passa um snapshot de relógio, as três funções de apresentação usam esse valor na primeira renderização e calendário absoluto usa UTC. O relógio visual atualiza só depois da hidratação. Nenhuma query, cobrança ou estado persistido de job mudou. Teste ampliado para 2034 verificações, typecheck verde. Ainda exige confirmar se esse complemento elimina o erro residual em produção.

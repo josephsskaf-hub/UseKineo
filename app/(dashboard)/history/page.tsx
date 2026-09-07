@@ -52,5 +52,5 @@ export default async function MyVideosPage() {
     console.warn('[history] videos read failed; rendering safety notice instead of empty:', loadError.message)
   }
 
-  return <MyVideosClient videos={videos ?? []} loadError={Boolean(loadError)} />
+  return <MyVideosClient videos={videos ?? []} snapshotTime={Date.now()} loadError={Boolean(loadError)} />
 }

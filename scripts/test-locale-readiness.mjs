@@ -89,6 +89,37 @@ for(const file of ['components/MobileNav.tsx','app/(dashboard)/studio/StudioClie
  }
 }
 const unknown=canonicalCopyHindi('An unknown future offer with 999 credits')
+// Execute the actual calendar/age helpers under two browser clocks/timezones.
+// A UTC date near midnight used to render as the previous day in Sao Paulo.
+function historyClock(before, zone, now) {
+ const file='app/(dashboard)/history/HistoryClient.tsx', code=source(file,before,'530d8e01')
+ const ast=ts.createSourceFile(file,code,99,true,4)
+ const names=['formatDate','formatStarted','classifyVideoState']
+ const body=ast.statements.filter(n=>ts.isFunctionDeclaration(n)&&names.includes(n.name?.text)).map(n=>n.getText(ast)).join('\n')
+ class Clock extends Date {
+  constructor(...args){super(...(args.length?args:[now]))}
+  static now(){return now}
+  toLocaleDateString(locale,options){return super.toLocaleDateString(locale,{timeZone:zone,...options})}
+ }
+ const ctx={Date:Clock,exports:{}}
+ vm.runInNewContext(ts.transpileModule(`const FAILED_STATUSES=new Set(['failed','error','cancelled']);const STALE_PROCESSING_MS=1800000;${body}\nObject.assign(exports,{${names.join(',')}})`,{compilerOptions:{target:9}}).outputText,ctx)
+ return ctx.exports
+}
+const clockSnapshot=Date.parse('2026-09-07T06:00:00Z')
+const server=historyClock(false,'UTC',clockSnapshot),client=historyClock(false,'America/Sao_Paulo',clockSnapshot+2000)
+const oldServer=historyClock(true,'UTC',clockSnapshot),oldClient=historyClock(true,'America/Sao_Paulo',clockSnapshot+2000)
+ok(oldServer.formatDate('2026-08-01T01:00:00Z')!==oldClient.formatDate('2026-08-01T01:00:00Z'),'red: real old date helper differs across timezone')
+ok(oldServer.formatDate('2026-09-07T05:00:01Z')!==oldClient.formatDate('2026-09-07T05:00:01Z'),'red: real old relative date crosses hydration boundary')
+for(const date of ['2026-08-01T01:00:00Z','2026-09-07T05:00:01Z','2026-09-07T05:59:01Z']){
+ eq(server.formatDate(date,clockSnapshot),client.formatDate(date,clockSnapshot),'calendar and relative date deterministic '+date)
+ eq(server.formatStarted(date,clockSnapshot),client.formatStarted(date,clockSnapshot),'started age deterministic '+date)
+}
+for(const status of ['completed','failed','processing']){
+ const video={status,created_at:'2026-09-07T05:30:01Z'}
+ eq(server.classifyVideoState(video,clockSnapshot),client.classifyVideoState(video,clockSnapshot),'display state stable across timeout edge '+status)
+}
+ok(source('app/(dashboard)/history/page.tsx').includes('snapshotTime={Date.now()}'),'real server page supplies shared clock')
+ok(source('app/(dashboard)/history/HistoryClient.tsx').includes('useState(snapshotTime)'),'first browser render reuses server clock')
 eq(unknown,undefined,'unknown claim not rewritten')
 ok(!source('components/InterfaceLanguage.tsx').includes('navigator.language'),'manual choice only')
 ok(source('app/layout.tsx').includes('preload: false'),'no Hindi preload for every visitor')

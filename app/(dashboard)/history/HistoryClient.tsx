@@ -207,16 +207,15 @@ function extractTitle(topic: string | null): string {
   return 'Untitled Short'
 }
 
-function formatDate(dateStr: string) {
+function formatDate(dateStr: string, referenceTime: number) {
   const d = new Date(dateStr)
-  const now = new Date()
-  const diff = now.getTime() - d.getTime()
+  const diff = referenceTime - d.getTime()
   const hours = Math.floor(diff / 3600000)
   const days = Math.floor(diff / 86400000)
   if (hours < 1) return 'Just now'
   if (hours < 24) return `${hours}h ago`
   if (days < 7) return `${days}d ago`
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })
 }
 
 // PUSH #92 — recovery surfaces. /history now receives every status (not just
@@ -239,17 +238,17 @@ const STALE_PROCESSING_MS = 30 * 60 * 1000 // display-only guard; never mutates 
 
 type VideoState = 'completed' | 'processing' | 'failed' | 'timeout'
 
-function classifyVideoState(video: Video): VideoState {
+function classifyVideoState(video: Video, referenceTime: number): VideoState {
   const status = (video.status ?? '').toLowerCase().trim()
   if (status === 'completed') return 'completed'
   if (FAILED_STATUSES.has(status)) return 'failed'
-  const ageMs = Date.now() - new Date(video.created_at).getTime()
+  const ageMs = referenceTime - new Date(video.created_at).getTime()
   if (ageMs > STALE_PROCESSING_MS) return 'timeout'
   return 'processing'
 }
 
-function formatStarted(dateStr: string): string {
-  const minutes = Math.floor((Date.now() - new Date(dateStr).getTime()) / 60000)
+function formatStarted(dateStr: string, referenceTime: number): string {
+  const minutes = Math.floor((referenceTime - new Date(dateStr).getTime()) / 60000)
   if (minutes < 1) return 'Started just now'
   if (minutes < 60) return `Started ${minutes} minute${minutes === 1 ? '' : 's'} ago`
   const hours = Math.floor(minutes / 60)
@@ -274,6 +273,7 @@ function tryAgainHref(video: Video): string { return reviewVideoRetryHref(video.
 
 interface Props {
   videos: Video[]
+  snapshotTime: number
   // true quando o select da page falhou — a lista vazia NAO significa "sem videos".
   loadError?: boolean
 }
@@ -286,7 +286,11 @@ interface VideoSummary {
   hashtags: string[]
 }
 
-export default function MyVideosClient({ videos: initialVideos, loadError = false }: Props) {
+export default function MyVideosClient({ videos: initialVideos, snapshotTime, loadError = false }: Props) {
+  // The server and first browser render must use the same clock and calendar.
+  // Refresh display-only age after hydration; never change a stored job status.
+  const [displayTime, setDisplayTime] = useState(snapshotTime)
+  useEffect(() => { setDisplayTime(Date.now()) }, [])
   // sprint-retencao #15 — as duas portas desta tela (`history_milestone` e
   // `history_video_card`) somam 57 cliques em 30 dias e NUNCA tiveram uma
   // impressao. So telemetria: nada aqui muda o que a tela mostra.
@@ -1301,7 +1305,7 @@ export default function MyVideosClient({ videos: initialVideos, loadError = fals
         {visibleVideos.map((video) => {
           const title = extractTitle(video.topic)
           const isExpanded = expanded === video.id
-          const state = classifyVideoState(video)
+          const state = classifyVideoState(video, displayTime)
 
           // PUSH #92 — processing / failed / timed-out renders get a small,
           // honest card instead of being hidden. Only 'completed' renders the
@@ -1382,7 +1386,7 @@ export default function MyVideosClient({ videos: initialVideos, loadError = fals
 
                   {isProcessing ? (
                     <span style={{ fontSize: '0.6rem', color: 'var(--muted)' }}>
-                      {formatStarted(video.created_at)}
+                      {formatStarted(video.created_at, displayTime)}
                     </span>
                   ) : (
                     <Link
@@ -1551,7 +1555,7 @@ export default function MyVideosClient({ videos: initialVideos, loadError = fals
                 </p>
 
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <span style={{ fontSize: '0.6rem', color: 'var(--muted)' }}>{formatDate(video.created_at)}</span>
+                  <span style={{ fontSize: '0.6rem', color: 'var(--muted)' }}>{formatDate(video.created_at, displayTime)}</span>
                   {video.quality_mode && (
                     <span
                       style={{
