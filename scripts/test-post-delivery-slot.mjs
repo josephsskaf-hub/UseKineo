@@ -153,7 +153,11 @@ check('decisao nao muta a entrada', slot.decidePostDeliverySlot(frozen) === 'com
 const client = readFileSync(CLIENT_PATH, 'utf8')
 check(
   'a tela importa a decisao',
-  /import\s*\{\s*decidePostDeliverySlot\s*\}\s*from\s*'@\/lib\/growth\/postDeliverySlot'/.test(client),
+  // A fv-r7 somou `type PostDeliverySlotOwner` a este mesmo import (o ref que
+  // leva o dono do slot ate o evento de impressao). A checagem continua exigindo
+  // que a FUNCAO seja importada desta fonte — so deixou de exigir que ela venha
+  // sozinha entre as chaves.
+  /import\s*\{[^}]*\bdecidePostDeliverySlot\b[^}]*\}\s*from\s*'@\/lib\/growth\/postDeliverySlot'/.test(client),
 )
 check(
   'a tela calcula postDeliverySlotOwner',

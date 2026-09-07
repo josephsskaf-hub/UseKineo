@@ -105,7 +105,7 @@ import {
   supportsPlanFitQuality,
 } from '@/lib/growth/planFit'
 import { auditPostDeliveryOffer } from '@/lib/growth/postDeliveryOfferAudit'
-import { decidePostDeliverySlot } from '@/lib/growth/postDeliverySlot'
+import { decidePostDeliverySlot, type PostDeliverySlotOwner } from '@/lib/growth/postDeliverySlot'
 import { decideCleanFilmTrialDoor } from '@/lib/growth/cleanFilmTrialDoor'
 import CleanFilmTrialDoor from '@/components/CleanFilmTrialDoor'
 // KINEO-DOWNLOAD-E-O-MOMENTO-2026-09-07 — ver o bloco longo do módulo: a tela
@@ -2140,6 +2140,15 @@ export default function GenerateClient({
   // delas nunca contaria, mesmo sendo mutuamente exclusivas hoje.
   const trialPostVideoOfferRef = useRef<HTMLDivElement | null>(null)
   const trialPostVideoOfferTrackedKeyRef = useRef<string | null>(null)
+  // KINEO-SLOT-IMPRESSAO-DIZ-A-VERDADE-2026-09-07 — o nome do evento de
+  // impressão passa a vir do dono REAL do slot, e este ref é a única ponte
+  // possível: `postDeliverySlotOwner` é declarado ~6.000 linhas abaixo e lê-lo
+  // no efeito da impressão seria ReferenceError de TDZ em runtime, invisível ao
+  // tsc (é a mesma razão que obriga o efeito a remontar a elegibilidade à mão).
+  // A escrita é feita NO RENDER, ao lado do `const`, de propósito: um
+  // `useEffect` de sincronia rodaria DEPOIS do efeito que registra o
+  // IntersectionObserver, e a callback poderia disparar com o ref ainda vazio.
+  const postDeliverySlotOwnerRef = useRef<PostDeliverySlotOwner | null>(null)
   // KINEO-DOWNLOAD-WITHOUT-ASK-2026-08-13 — chave da AUSÊNCIA de oferta. Ref
   // próprio pelo mesmo motivo dos dois pares acima: esta medida é o complemento
   // deles (dispara exatamente quando nenhum dos dois é elegível), e dividir a
@@ -5400,9 +5409,32 @@ export default function GenerateClient({
       bridgeEligible: balanceBridgeForImpression.eligible,
       preferredDuration: duration,
     })
-    const impressionVariant = balanceBridgeForImpression.eligible
-      ? balanceBridgeForImpression.version
+    // KINEO-SLOT-IMPRESSAO-DIZ-A-VERDADE-2026-09-07 — QUEM DECIDE O NOME DO
+    // EVENTO É QUEM DECIDE O JSX.
+    //
+    // O DEFEITO, medido: desde a fv-r5 (`fa09b1eb`, 07/09 17:50 BRT) o JSX
+    // escolhe a superfície com `decidePostDeliverySlot` — filme com marca
+    // d'água na mão faz a pergunta comercial ganhar o slot. Este efeito
+    // continuou escolhendo o NOME do evento pela precedência ANTIGA (ponte →
+    // episódio → pergunta). As duas divergem exatamente no caso que a fv-r5
+    // criou: ponte elegível + filme marcado → a tela mostra a PERGUNTA e o
+    // evento dizia `trial_balance_bridge_viewed`.
+    //
+    // Consequência que este conserto encerra: as três séries do slot ficaram
+    // ilegíveis a partir das 17:50 — a pergunta subcontada, a ponte inflada — e
+    // é sobre elas que se decide se a porta de $1 da fv-r6 está sendo vista.
+    // O ref é a fonte única (o `const` mora ~6.000 linhas abaixo, TDZ); quando
+    // ele ainda não foi escrito, o comportamento antigo é preservado tal e qual.
+    const renderedSlotOwner = postDeliverySlotOwnerRef.current
+    const impressionIsBridge = renderedSlotOwner !== null
+      ? renderedSlotOwner === 'balance_bridge'
+      : balanceBridgeForImpression.eligible
+    const impressionIsEpisode = renderedSlotOwner !== null
+      ? renderedSlotOwner === 'repeat_episode'
       : repeatForImpression.action === 'episode'
+    const impressionVariant = impressionIsBridge
+      ? balanceBridgeForImpression.version
+      : impressionIsEpisode
         ? repeatForImpression.version
         : 'subscription'
     const offerImpressionKey = `${offerKey}:${trialOfferPhaseForImpression}:${impressionVariant}`
@@ -5411,9 +5443,14 @@ export default function GenerateClient({
     const observer = new IntersectionObserver((entries) => {
       if (!entries.some((entry) => entry.isIntersecting && entry.intersectionRatio >= 0.5)) return
       trialPostVideoOfferTrackedKeyRef.current = offerImpressionKey
-      if (balanceBridgeForImpression.eligible) {
+      if (impressionIsBridge) {
         trackEvent('trial_balance_bridge_viewed', {
           source: 'result_trial_balance_bridge',
+          // Carimbo do deploy: separa as linhas que já nascem com o nome
+          // conferido contra o JSX das linhas antigas, que não têm este campo.
+          // (memória: campo-novo-e-o-carimbo-do-deploy — recortar por relógio
+          // inventaria defeito.)
+          slot_owner: renderedSlotOwner ?? 'unknown',
           // KINEO-PONTE-COM-PRECO-2026-09-07 — marcador de versão do deploy.
           // A impressão da ponte já existia (76 pessoas/7d) e é o DENOMINADOR
           // do link novo, que é incondicional dentro do bloco. Sem este campo
@@ -5434,9 +5471,10 @@ export default function GenerateClient({
         observer.disconnect()
         return
       }
-      if (repeatForImpression.action === 'episode') {
+      if (impressionIsEpisode) {
         trackEvent('trial_repeat_episode_viewed', {
           source: 'result_trial_repeat',
+          slot_owner: renderedSlotOwner ?? 'unknown',
           repeat_version: repeatForImpression.version,
           target_engine: repeatForImpression.engine,
           target_duration: repeatForImpression.duration,
@@ -5473,6 +5511,7 @@ export default function GenerateClient({
       const offerDecision = decidePostVideoOffer(signupUtmSource, quality)
       trackEvent('trial_post_video_offer_viewed', {
         source: 'result_trial_continue',
+        slot_owner: renderedSlotOwner ?? 'unknown',
         offer: `${offerDecision.primaryTier}_monthly`,
         offer_layout: offerDecision.variant,
         first_touch_source: offerDecision.firstTouchSource,
@@ -11403,6 +11442,12 @@ export default function GenerateClient({
     bridgeEligible: trialBalanceBridge.eligible,
     repeatEligible: trialRepeatDecision.action === 'episode',
   })
+  // KINEO-SLOT-IMPRESSAO-DIZ-A-VERDADE-2026-09-07 — a MESMA decisão que governa
+  // o JSX passa a governar o NOME do evento de impressão. Escrita no render
+  // (ver a nota do ref lá em cima): o efeito da impressão roda antes deste
+  // ponto na ordem de declaração, mas o render inteiro roda antes de qualquer
+  // efeito, então a callback do observer sempre lê o dono já atualizado.
+  postDeliverySlotOwnerRef.current = postDeliverySlotOwner
   // KINEO-DOWNLOAD-E-O-MOMENTO-2026-09-07 — a decisão pura, calculada no
   // render só para a COPY. Ela não liga nem desliga o cartão (isso continua
   // sendo `showTrialPostVideoOffer`, intocado) e não cria caixa nova: quando
