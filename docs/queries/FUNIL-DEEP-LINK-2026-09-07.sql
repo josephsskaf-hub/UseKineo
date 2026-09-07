@@ -148,3 +148,85 @@ order by eventos desc;
 --   GPT da loja (que depende de verificacao de dominio por DNS, mao do
 --   fundador).
 -- ───────────────────────────────────────────────────────────────────────────
+
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- ACRESCENTADO 07/09 ~00:0x — O TERCEIRO CANAL: `paste_page`
+-- ═══════════════════════════════════════════════════════════════════════════
+--
+-- POR QUE ELE EXISTE: a loja da OpenAI fechou para conta pessoal em 16/08/2026
+-- (so workspace Business/Enterprise cria e publica GPT). O canal `gpt_store`
+-- fica de pe, mas DORMENTE, ate o fundador decidir sobre o ChatGPT Business.
+-- O canal `paste_page` nao depende de aprovacao de ninguem: a pagina /chatgpt
+-- da o PROMPT para a pessoa colar no assistente dela e recebe o roteiro de
+-- volta numa caixa. Mesma tabela, mesma pagina /go, mesmos degraus.
+--
+-- As consultas (1) a (4) acima JA cobrem o canal novo: elas agrupam por
+-- `channel` sem lista digitada, entao `paste_page` aparece sozinho. O que
+-- falta e a pergunta que so o canal novo sabe responder.
+
+
+-- ───────────────────────────────────────────────────────────────────────────
+-- (5) QUAL ASSISTENTE ESCREVEU O ROTEIRO — a pergunta de 57%
+--     Hoje sabemos que 57% dos cadastros vem de chatgpt.com, e NADA sobre o
+--     que Claude/Gemini/Perplexity representam: eles nao passam Referer que a
+--     casa saiba ler. A coluna `assistant` e declarada pela propria pessoa no
+--     select da /chatgpt (opcional). Se Claude ou Gemini aparecerem com peso,
+--     a jogada seguinte e documentacao dirigida a eles; se nao aparecerem, o
+--     esforco continua todo no ChatGPT. Ler `null` como "nenhum" seria o erro
+--     da memoria `sentinela-lido-como-valor-real`: null aqui significa
+--     "nao respondeu", nao "nenhum assistente".
+-- ───────────────────────────────────────────────────────────────────────────
+select coalesce(assistant, '(nao respondeu)')        as assistente,
+       count(*)                                      as handoffs,
+       count(*) filter (where clicked_at is not null) as cliques,
+       round(avg(words))                             as palavras_medias,
+       count(*) filter (where fit = 'short')          as roteiro_curto_demais,
+       min(created_at)::date                          as primeiro,
+       max(created_at)::date                          as ultimo
+from gpt_handoffs
+where channel = 'paste_page'
+  and coalesce(user_agent, '') not like '%KineoCanary%'
+group by 1
+order by handoffs desc;
+
+
+-- ───────────────────────────────────────────────────────────────────────────
+-- (6) O DENOMINADOR DA PAGINA — quem viu, quem copiou, quem colou
+--     Sem isto, "3 handoffs" e indistinguivel de "3 de 4" e de "3 de 900".
+--     A memoria `zero-escritas-conte-as-oportunidades` cobra exatamente isso.
+--     Os tres eventos sao emitidos pela propria /chatgpt.
+-- ───────────────────────────────────────────────────────────────────────────
+select date_trunc('day', created_at)::date as dia,
+       count(*) filter (where name = 'chatgpt_page_viewed')    as viram_a_pagina,
+       count(*) filter (where name = 'chatgpt_prompt_copied')  as copiaram_o_prompt,
+       count(*) filter (where name = 'paste_handoff_created')  as colaram_roteiro,
+       count(distinct session_id) filter (where name = 'chatgpt_page_viewed') as sessoes
+from events
+where name in ('chatgpt_page_viewed', 'chatgpt_prompt_copied', 'paste_handoff_created')
+  and created_at > now() - interval '30 days'
+group by 1
+order by dia desc;
+
+
+-- ───────────────────────────────────────────────────────────────────────────
+-- (7) A COORTE QUE MANDOU CONSTRUIR A PAGINA — medida em 07/09 00:0x
+--     Pessoas que colaram no Studio uma ORDEM PARA UM CHATBOT em vez de um
+--     roteiro (lib/growth/instructionPasteNotice.ts, reason=
+--     'prompt_looks_like_instruction'). Resultado de 14 dias, ANTES da pagina:
+--       59 pessoas · 40 com ao menos 1 filme · 57 filmes · 0 PAGANTES.
+--     E o teste da tese: se a /chatgpt funcionar, esta coorte encolhe e a
+--     `paste_page` cresce. Rodar de novo daqui a 14 dias.
+-- ───────────────────────────────────────────────────────────────────────────
+with coorte as (
+  select distinct user_id
+  from events
+  where created_at > now() - interval '14 days'
+    and metadata->>'reason' = 'prompt_looks_like_instruction'
+    and user_id is not null
+)
+select (select count(*) from coorte)                                        as pessoas,
+       (select count(distinct c.user_id) from coorte c
+          join videos v on v.user_id = c.user_id and v.status = 'completed') as com_filme,
+       (select count(distinct c.user_id) from coorte c
+          join events e on e.user_id = c.user_id and e.name = 'payment_success') as pagaram;

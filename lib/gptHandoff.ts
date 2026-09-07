@@ -335,7 +335,14 @@ export function isHandoffToken(value: unknown): value is string {
 // etiquetas de medição (utm_source / intent_campaign) são por canal, e as do
 // `gpt_store` são EXATAMENTE as constantes de sempre — mudar o valor delas
 // quebraria a medição do que já está no ar.
-export const HANDOFF_CHANNELS = ['gpt_store', 'assistant_link'] as const
+// `paste_page` (KINEO-PASTE-PAGE-2026-09-07): a página /chatgpt do PRÓPRIO
+// site. A OpenAI fechou a publicação de GPTs para contas pessoais (só
+// workspaces Business/Enterprise desde 16/08/2026), então a loja deixou de ser
+// um caminho que a Kineo controla. A página dá à pessoa o PROMPT para colar no
+// ChatGPT/Claude/Gemini e uma caixa para colar de volta o roteiro que a IA
+// escreveu — que vira a MESMA linha e o MESMO /go/<token>. Terceiro canal,
+// terceira etiqueta; as duas antigas continuam byte a byte.
+export const HANDOFF_CHANNELS = ['gpt_store', 'assistant_link', 'paste_page'] as const
 export type HandoffChannel = (typeof HANDOFF_CHANNELS)[number]
 /** Linha sem `channel` (as que já existem no banco) é da loja. */
 export const DEFAULT_CHANNEL: HandoffChannel = 'gpt_store'
@@ -347,7 +354,65 @@ export function isHandoffChannel(value: unknown): value is HandoffChannel {
 export const CHANNEL_TAGS: Readonly<Record<HandoffChannel, { utmSource: string; intentCampaign: string }>> = {
   gpt_store: { utmSource: HANDOFF_UTM_SOURCE, intentCampaign: HANDOFF_INTENT_CAMPAIGN },
   assistant_link: { utmSource: 'assistant_link', intentCampaign: 'kineo_assistant_link' },
+  paste_page: { utmSource: 'paste_page', intentCampaign: 'kineo_paste_page' },
 }
+
+// ─── A página de colar (KINEO-PASTE-PAGE-2026-09-07) ────────────────────────
+/** Qual assistente escreveu o roteiro colado. Lista FECHADA: é o número que
+ *  diz se vale a pena escrever documentação para Claude/Gemini além do
+ *  ChatGPT. Valor desconhecido vira null — nunca derruba o pedido. */
+export const PASTE_ASSISTANTS = ['chatgpt', 'claude', 'gemini', 'perplexity', 'other'] as const
+export type PasteAssistant = (typeof PASTE_ASSISTANTS)[number]
+
+export function normalizePasteAssistant(raw: unknown): PasteAssistant | null {
+  if (typeof raw !== 'string') return null
+  const key = raw.trim().toLowerCase()
+  return (PASTE_ASSISTANTS as readonly string[]).includes(key) ? (key as PasteAssistant) : null
+}
+
+/** Teto do prompt que a pessoa cola no assistente. Prompt maior que isto não
+ *  cabe numa leitura e o guardião (scripts/test-chatgpt-paste-page.mjs)
+ *  reprova. */
+export const ASSISTANT_PASTE_PROMPT_MAX_CHARS = 1500
+/** Folga acima do alvo na faixa de palavras do prompt: passar do alvo é BOM
+ *  (35→39s, nota 9), ficar abaixo é defeito. O piso da faixa é o alvo exato. */
+export const PASTE_BUDGET_OVERSHOOT = 1.08
+
+/** A faixa de palavras de uma duração, DERIVADA da régua clássica (o prompt
+ *  escreve para o motor padrão, que é clássico). Nenhum número digitado: mudar
+ *  a régua muda o prompt sozinho. */
+export function pasteWordBudget(durationSec: HandoffDuration): { min: number; max: number } {
+  const min = Math.round(durationSec * WORDS_PER_SECOND_CLASSIC)
+  return { min, max: Math.round(min * PASTE_BUDGET_OVERSHOOT) }
+}
+
+const PASTE_BUDGET_LINES = DURATIONS.map((d) => {
+  const { min, max } = pasteWordBudget(d)
+  return `- ${d}s: ${min}-${max} words`
+}).join('\n')
+
+/** O prompt que a pessoa cola no ChatGPT/Claude/Gemini. Em inglês (público
+ *  EUA). Os números vêm de DURATIONS e da régua; o texto pede SÓ o roteiro de
+ *  volta, em bloco de texto puro, no formato que lib/scriptParser.ts já lê. */
+export const ASSISTANT_PASTE_PROMPT: string = `Write a narration script for a short faceless video. Use exactly these four labels, each on its own line, in this order:
+
+HOOK:
+MICRO REWARD:
+ESCALATION:
+PAYOFF:
+
+HOOK: one or two sentences with a concrete, surprising claim. No "Did you know", no "In this video".
+MICRO REWARD: pay the hook off fast with one satisfying detail.
+ESCALATION: a few beats that raise the stakes: what happened next, what it cost, the number that changes everything.
+PAYOFF: the resolution or twist, then one closing line that lands. No call to action.
+
+Before writing, ask me one question: how long should the video be? ${DURATIONS.map((d) => `${d}s`).join(', ')}. Then write to the word budget for that length, counting only the spoken words:
+${PASTE_BUDGET_LINES}
+Running a little over the budget is good. Coming under it is a defect: the story gets cut short. If you are under, add a real beat; do not pad.
+
+Rules: write in English. Use only facts you are confident are verifiable (dates, places, names, quantities); if you are not sure of a number, rewrite the sentence without it; never invent quotes or statistics. Everything you write is spoken aloud: no camera directions, no visual descriptions, no [brackets], no hashtags, no emoji, no markdown, no title. Plain sentences, one idea per sentence.
+
+Reply with ONLY the script, as one plain-text block, nothing before or after it.`
 
 /** O GET que qualquer assistente sabe escrever: `/make?script=…&duration=60`. */
 export const ASSISTANT_LINK_PATH = '/make'

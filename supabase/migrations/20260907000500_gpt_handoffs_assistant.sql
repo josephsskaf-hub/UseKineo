@@ -1,0 +1,21 @@
+-- KINEO-PASTE-PAGE-2026-09-07
+-- Terceiro canal de entrada da caixa postal `gpt_handoffs`:
+--   paste_page = a pagina /chatgpt do PROPRIO site. A OpenAI fechou a
+--                publicacao de GPTs para contas pessoais (so workspaces
+--                Business/Enterprise desde 16/08/2026), entao a loja deixou de
+--                ser um caminho que a Kineo controla. A pagina da a pessoa o
+--                PROMPT para colar no ChatGPT/Claude/Gemini e uma caixa para
+--                colar de volta o roteiro que a IA escreveu — mesma linha,
+--                mesma pagina /go/<token>, evento proprio (paste_handoff_created).
+--
+-- `assistant` — QUAL assistente escreveu o roteiro que a pessoa colou
+--               (lista fechada em lib/gptHandoff.ts PASTE_ASSISTANTS: chatgpt,
+--               claude, gemini, perplexity, other; null = nao informado). E o
+--               numero que diz se vale a pena escrever documentacao para
+--               Claude/Gemini alem do ChatGPT. Sem CHECK: quem valida e a lib
+--               (valor desconhecido vira null antes de chegar aqui).
+--
+-- Idempotente (add column if not exists). Sem policy nova: a tabela continua
+-- deny-all (RLS ligado, nenhuma policy publica; so o service role le/escreve).
+-- NADA aqui cria conta, debita credito ou chama fornecedor.
+alter table public.gpt_handoffs add column if not exists assistant text;

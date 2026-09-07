@@ -111,7 +111,9 @@ if (L) {
   check('(A2) a lista de parâmetros continua FECHADA (6 chaves)', [...comCanal.keys()].length === 6, [...comCanal.keys()].join(','))
 
   // (A3) constantes do canal
-  check('(A3) HANDOFF_CHANNELS = gpt_store, assistant_link', Array.isArray(L.HANDOFF_CHANNELS) && L.HANDOFF_CHANNELS.length === 2 && L.HANDOFF_CHANNELS.includes('gpt_store') && L.HANDOFF_CHANNELS.includes('assistant_link'))
+  // KINEO-PASTE-PAGE-2026-09-07: o terceiro canal (paste_page, a página
+  // /chatgpt) entrou; os dois primeiros continuam nas MESMAS posições.
+  check('(A3) HANDOFF_CHANNELS = gpt_store, assistant_link, paste_page', Array.isArray(L.HANDOFF_CHANNELS) && L.HANDOFF_CHANNELS.length === 3 && L.HANDOFF_CHANNELS[0] === 'gpt_store' && L.HANDOFF_CHANNELS[1] === 'assistant_link' && L.HANDOFF_CHANNELS[2] === 'paste_page')
   check('(A3) DEFAULT_CHANNEL executado = gpt_store', L.DEFAULT_CHANNEL === 'gpt_store', String(L.DEFAULT_CHANNEL))
   check('(A3) isHandoffChannel aceita os dois e recusa o resto', L.isHandoffChannel('gpt_store') && L.isHandoffChannel('assistant_link') && !L.isHandoffChannel('chatgpt_gpt') && !L.isHandoffChannel(null))
   check('(A3) CHANNEL_TAGS.gpt_store == constantes de sempre', L.CHANNEL_TAGS.gpt_store.utmSource === L.HANDOFF_UTM_SOURCE && L.CHANNEL_TAGS.gpt_store.intentCampaign === L.HANDOFF_INTENT_CAMPAIGN)

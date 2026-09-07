@@ -125,6 +125,10 @@ export type NewHandoff = {
   expires_at: string
   ip_hash: string | null
   user_agent: string | null
+  /** KINEO-PASTE-PAGE-2026-09-07: qual assistente escreveu o roteiro colado
+   *  em /chatgpt (lib/gptHandoff.ts PASTE_ASSISTANTS). Só o canal paste_page
+   *  preenche; os outros deixam ausente/null. */
+  assistant?: string | null
   channel: string
   payload_hash: string | null
 }
