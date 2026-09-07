@@ -28,7 +28,7 @@
 
 **COORDENAÇÃO — 07/09/2026:** incorporada a main `a80fffb0` sem conflitos, preservando os consertos Claude de `/make` e handoff/paste. Sem edição nesses caminhos. Próximo gate: repetir typecheck/CI na integração e publicar somente com gates verdes.
 
-**PENDENTE:** deploy de produção e verificação autenticada serão acrescentados depois de acontecerem. Sem teste pago: checkout completo, envio a fornecedores e render em todas as línguas não são certificados por esta bateria. Guardião segue até 07/09 10:00 BRT, sem prolongamento automático.
+**ESCOPO DE VALIDAÇÃO:** resultados de produção e verificação autenticada constam abaixo. Sem teste pago: checkout completo, envio a fornecedores e render em todas as línguas não são certificados por esta bateria. Guardião segue até 07/09 10:00 BRT, sem prolongamento automático.
 
 ## Publicação e verificação autenticada
 
@@ -43,3 +43,15 @@
 **LIMITE DE TRADUÇÃO CONFERIDO NO BROWSER:** placeholders de ferramentas antigas, oferta de próximo episódio, chips de crédito e rótulos de armazenamento podem continuar em inglês mesmo com Hindi selecionado. Isso já estava fora da cobertura declarada; não equivale a uma interface integralmente localizada.
 
 **GUARDIÃO:** tarefa existente atualizada para ler este handoff, verificar EN/ES/HI e conservar a pendência do export local; término mantido em 07/09 10:00 BRT. Sem nova automação nem renovação. Fontes sobre tarefas agendadas consultadas no OpenAI Docs; implementação pelo controle próprio do app.
+
+## Fechamento desta entrega — 07/09/2026 06:47:15 UTC (03:47:15 BRT)
+
+**VALIDADO EM PRODUÇÃO:** complemento de datas `bafac16c`, integrado com o trabalho Claude até `b699401b`, publicado no SHA `91b0556694b381c3a6d842f977266323adc01d05`. Guardião integrado `34091968392` concluído com sucesso; deploy `dpl_88XwW5JxCfRQR6k5DtNfr9S3o3rs` READY, alias www.usekineo.com. `git ls-remote` confirma o SHA em main no corte acima.
+
+**VALIDADO EM PRODUÇÃO:** Chrome autenticado carregou o bundle desse deploy. Galeria EN, recarga com Hindi persistido e recarga com espanhol persistido: zero erros novos de console após 06:45 UTC, inclusive ausência do 425/422 residual. Mobile 390 px: clientWidth=scrollWidth=390 em HI/ES. Inglês e viewport original restaurados no fim. As falhas antigas do console foram separadas por timestamp/deployment, não somadas ao pós-deploy.
+
+**ENTREGUE:** Manrope anterior preservada; idiomas EN/ES/HI explícitos; galeria prioriza mídia com secundários recolhidos; CSS estático de Studio/MobileNav consistente entre SSR e browser; calendário/idade da galeria usam snapshot comum. Os vídeos do fundador, preços, saldo, oferta, roteiros, créditos e pipeline não foram alterados.
+
+**PENDÊNCIAS HONESTAS:** tradução não é integral (trechos legados listados acima); export local teve uma recusa intermitente no preview que não foi explicada nem consertada; sucesso das três repetições não a encerra. Não houve teste pago de geração, checkout ou de cada fornecedor em cada língua. Portanto esta entrega está no ar, mas NÃO equivale a certificação de todos os sistemas sem qualquer erro.
+
+**PRÓXIMO PASSO:** Guardião somente leitura até 10h BRT; consolidar seis recomendações novas, incluindo conclusão da localização legada e diagnóstico reproduzível da temporização do editor local. Não reabrir sprint comercial nem iniciar mudança no render.
