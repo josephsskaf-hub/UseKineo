@@ -22,6 +22,7 @@ import { creditCostFor } from '@/lib/credits/engineCost'
 import WallMedia from '@/components/WallMedia'
 import LiveStatsBadge from '@/components/LiveStatsBadge'
 import EngineCycleCard from '@/components/EngineCycleCard'
+import { orderHeroVideos } from '@/lib/ui/heroOpening'
 import TrendingRow from '@/components/TrendingRow'
 // KINEO-VITRINE-MOEDA-2026-08-19 — LandingStarterPrice cobria SÓ o Starter, e
 // por isso a home mostrava R$24,90 (regional) ao lado de $19.90 e $39.90
@@ -1041,7 +1042,7 @@ export default function KineoLanding({
               // Seedance/Kling 2.5 continuam nos tiles do bento logo abaixo.
               const order = ['cinematic_veo', 'cinematic_hollywood', 'cinematic_h3', 'cinematic_omni']
               return order.map((eng, i) => {
-                const vids = engineWall.filter((v) => v.engine === eng).slice(0, eng === 'cinematic_omni' ? 5 : 4)
+                const vids = orderHeroVideos(engineWall.filter((v) => v.engine === eng)).slice(0, eng === 'cinematic_omni' ? 5 : 4)
                 if (vids.length === 0) return null
                 return <EngineCycleCard key={eng} videos={vids} index={i} />
               })

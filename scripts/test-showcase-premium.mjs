@@ -12,7 +12,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 const requireNode = createRequire(import.meta.url)
 let checks = 0, locale = 'en'
 const ok = (value, label) => { assert.ok(value, label); checks++ }
-const { trending } = JSON.parse(execFileSync(process.execPath, ['scripts/test-home-curation.mjs', '--data'], { encoding: 'utf8' }))
+const { hero, trending } = JSON.parse(execFileSync(process.execPath, ['scripts/test-home-curation.mjs', '--data'], { encoding: 'utf8' }))
 const cache = new Map()
 function load(file) {
   if (cache.has(file)) return cache.get(file)
@@ -26,6 +26,7 @@ function load(file) {
     if (id === '@/lib/ui/previewFacts') return load('lib/ui/previewFacts.ts')
     if (id === '@/lib/ui/heroFrame') return load('lib/ui/heroFrame.ts')
     if (id === './showcaseGallery') return load('lib/ui/showcaseGallery.ts')
+    if (id === './heroOpening') return load('lib/ui/heroOpening.ts')
     throw Error('Unexpected dependency: ' + id)
   }
   vm.runInNewContext(ts.transpileModule(fs.readFileSync(file, 'utf8'), {
@@ -46,6 +47,19 @@ for (const language of ['en','es','hi']) for (const key of Object.keys(facts.PRE
 const Gallery = load('components/TrendingRow.tsx').default
 const framePolicy = load('lib/ui/heroFrame.ts')
 const EngineCard = load('components/EngineCycleCard.tsx').default
+const opening = load('lib/ui/heroOpening.ts')
+for (const [engine, id] of Object.entries(opening.HERO_OPENING)) {
+  const source = hero.filter(v => v.engine === engine)
+  const originalOrder = JSON.stringify(source)
+  const ordered = opening.orderHeroVideos(source)
+  ok(ordered[0].id === id, 'founder screenshot opens ' + engine)
+  ok(JSON.stringify(source) === originalOrder, 'hero order does not mutate catalogue ' + engine)
+  ok(JSON.stringify(ordered.slice(1)) === JSON.stringify(source.filter(v => v.id !== id)), 'remaining clips retain relative order ' + engine)
+  ok(new Set(ordered.map(v => v.id)).size === source.length, 'no missing or duplicate clip ' + engine)
+  ok(fs.existsSync(path.join('public', framePolicy.heroFrame(ordered[0]).poster)), 'matching opening poster exists ' + engine)
+}
+ok(opening.orderHeroVideos([]).length === 0, 'empty hero stays empty')
+ok(opening.heroOpeningPoster({id:'unknown',engine:'unknown'}) === undefined, 'unknown engine never gets invented poster')
 for (const video of trending) {
   const frame = framePolicy.heroFrame(video)
   ok(frame.src === (video.engine === 'cinematic_omni' ? video.videoUrl : video.previewUrl ?? video.videoUrl), 'actual source avoids baked fill only for Omni ' + video.id)
