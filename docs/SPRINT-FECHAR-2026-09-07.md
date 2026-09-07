@@ -1509,3 +1509,145 @@ $1, todas paradas num login: **não sei se são pessoas ou sondas nossas**, porq
 o evento não guarda nem navegador nem IP — e registrei que quase publiquei uma
 prova falsa de que eram sondas. Consertar essa cegueira é o primeiro item da
 próxima rotação.
+
+
+---
+
+### #9 — 20:38–21:38 BRT — a caixa que a #8 acabou de encher só vendia mês cheio
+
+> **DUAS SESSÕES NA MESMA PISTA.** As rotações #8 e #8b são de **outra sessão**
+> da pista Fechar a Venda, que roda em paralelo comigo. Li tudo antes de tocar
+> em qualquer coisa e **não refiz nada**: a próxima jogada que ela deixou para a
+> #9 (carimbar `ua`/`ip_hash` em `checkout_attempted`, dentro de
+> `app/api/stripe/checkout/route.ts`) **fica com ela** — não encostei nesse
+> arquivo. Esta rotação pega o buraco que a #8 **abriu** e não reivindicou.
+
+**O QUE ESTAVA ERRADO (medido, código + eventos).** A ordem do fundador das
+16:40 lista, com todas as letras, onde o trial pago de $1 passa a ser a primeira
+opção: *"caixa de export limpo, NextAction, faixa da temporada, carta da parede,
+carta de sessão expirada"*. Fui conferir uma por uma. A **caixa de export limpo**
+— o card "Want it clean?" — era a única das nomeadas que ainda oferecia
+**só** duas coisas: assinatura Starter mensal cheia e o avulso. Nenhuma porta de
+$1, nos dois caminhos dela (o direto, depois do download grátis, e o modal, antes
+dele).
+
+**E ELA ACABOU DE FICAR GRANDE.** Este card só é elegível para quem tem um filme
+**com marca d'água** e **não está em trial** (`showPostVideoExportChoice` exige
+`trialPostVideoPhase === null` — o oposto exato da caixa comercial do slot). Até
+hoje isso quase não existia: conta grátis não-pagante levava o Seedance **limpo**,
+então não havia o que vender. A rotação **#8** (`651f28f4`, 19:48, da outra
+sessão) fechou esse vazamento — e, sem querer, **criou a plateia desta caixa**.
+
+| medida | número |
+|---|---|
+| `post_video_offer_viewed` (impressão do card, 30d, contas externas) | **31 impressões / 26 pessoas** |
+| últimas 7d | **2 pessoas** · última impressão **04/09** |
+| plateia que a #8 torna elegível (número dela, 30d) | **~236 pessoas, ~8/dia** |
+
+⚠️ **O 236 é projeção, não medição minha** — é o alcance que a #8 declarou e que
+o checkpoint #8b registrou como **ainda não exercitado** (zero renders da coorte
+desde o deploy). Estou apostando na plateia que ela criou, e digo isso com todas
+as letras em vez de somar os dois números como se fossem um só.
+
+**MUDOU — SHA `c369bc26` · EM PRODUÇÃO.** A porta é a **mesma** da #6 —
+`lib/growth/cleanFilmTrialDoor.ts` e `components/CleanFilmTrialDoor.tsx`, sem
+componente novo, sem oferta nova, sem preço novo. Só o hospedeiro mudou: a trava
+de superfície virou **lista fechada** (`HOST_BOXES = ['commercial_ask',
+'clean_export']`). As três travas de honestidade continuam intactas e agora são
+verificadas nas **duas** caixas: quem já pagou não vê a porta (o cobrador
+recusaria o `?trial=1`), o tier é sempre Creator, e sem moeda resolvida a porta
+**some** em vez de chutar um dólar.
+
+**UMA TRAVA NOVA, que a caixa vizinha não tem.** `unlocksCurrentFilm` passou a
+ser `Boolean(lastFastRenderRef.current)`: **sem o handoff do render na mão, a
+porta deixa de prometer "este filme limpo"** e cai no rótulo neutro do trial. O
+botão de Starter ao lado tem a mesma exposição e não a declara — **não apertei a
+regra dele** (é de outra pista e está em edição hoje), mas não repeti o buraco na
+peça nova.
+
+**O QUE O CLIENTE VÊ.** Quem tem um filme com marca d'água e não está em trial —
+a coorte que a #8 acabou de criar — lê, como **primeira** opção da caixa:
+
+> **Get this film clean — 7 days of Creator for $1 →**
+> $1.00 today · 80 credits now · then $15.00/month from day 8 · cancel anytime
+
+**Os dois botões que já estavam ali continuam ali**, no mesmo lugar e com o mesmo
+texto: o plano Starter e o avulso. A linha *"Free export stays available"*
+também. **Nada foi escondido** — o guardião falha se algum deles sumir ou se a
+porta passar para depois do botão de plano.
+
+**OS DOIS CAMINHOS DA CAIXA FICAM SEPARÁVEIS.** A porta entra no caminho direto
+(depois do download grátis) **e** no modal (antes dele, aberto só por intenção —
+ninguém que só queria o arquivo grátis tromba nela). Impressão e clique carregam
+`host: direct_after_download | modal_before_download`: juntos, os dois caminhos
+virariam a média de dois momentos que não se parecem, e é a mesma separação que o
+`checkout_path` desta caixa já faz.
+
+**TESTES.** `scripts/test-clean-export-trial-door.mjs` **47/47** — compila e
+avalia o módulo real, 4 mutantes com prova de escrita, caso em BRL, e o tripwire
+tela × cobrador. `test-clean-film-trial-door.mjs` voltou a **83/83**: ele pegou
+**duas** coisas minhas e as duas eram reais — o mutante do dono do slot ficou sem
+âncora (corrigi a âncora, não afrouxei a trava) e eu tinha escrito o preço
+literal dentro de um comentário, o que a trava "nenhum preço digitado à mão"
+acusa com razão. Irmãos verdes: `test-post-delivery-slot` **35/35**,
+`test-slot-impression-truth` **24/24**, `test-free-clean-leak` **42/42**,
+`test-trial-watermark` **50/50**. `npx tsc --noEmit` verde. Conferi também, uma a
+uma, que **todas** as variáveis que o bloco novo lê no render são declaradas
+antes dele — TDZ neste arquivo é invisível ao `tsc` e já derrubou tela aqui.
+
+**RISCO A DECLARAR.** A porta cobra $1 de quem **já terminou o trial e não
+pagou** — gente que a casa já não convenceu uma vez. É plausível que o preço não
+seja o obstáculo dela, e sim o produto. Mas o que essa pessoa vê hoje é um
+compromisso **mensal** para levar um arquivo **que ela quer agora**, e o número
+que decide não é meu: `payment_success` de 100 centavos com
+`surface = post_video_clean_export`.
+
+**COMO MEDIR.** `post_video_trial_1usd_shown` com `host` → `pricing_trial_1usd_clicked`
+com `surface='post_video_clean_export'` → `checkout_started` com `card_trial='1'`
+→ `payment_success` de 100 centavos. O denominador honesto é
+`post_video_offer_viewed` (a impressão do card), **não** `video_ready_viewed`.
+Filtrar `josephsskaf@gmail.com` sempre.
+
+**PLACAR DE FECHAMENTO — marco 2026-09-07 18:38 UTC (~5h):** entrega real **1** ·
+filme pronto na tela **3 impressões / 2 pessoas** · baixou **0** · caixa de
+export limpo vista **0 na janela** (última impressão da casa: **04/09**) ·
+checkout externo **0** · **pagou 0** · cliques no $1 **0**.
+
+**CHECAGEM ZERO (24h):** cadastros **30** · crédito zero **12**, **trial órfão
+0** · render preso **0** · recusa sem dono **0** · último `payment_success`
+**02/09 20:22 UTC** — **jejum de 5 dias**, o número corrigido pelo checkpoint #8b
+(eu vinha repetindo "3 dias").
+
+**A FRASE DA ROTAÇÃO.** Hoje uma pessoa que gastou os créditos de boas-vindas,
+nunca pagou e quer o filme sem a marca encontra **uma porta de $1** — ontem, e
+até as 19:48 de hoje, ela encontrava o filme já limpo (nada a vender) e, depois
+disso, só um compromisso mensal.
+
+**PRÓXIMA JOGADA.** As duas portas de $1 da tela de filme pronto agora cobrem as
+duas metades da plateia (em trial → caixa comercial; fora do trial → caixa de
+export). Falta a metade que **nunca volta à tela**: o checkpoint #5c mediu que
+**7% das entregas chegam só por e-mail**, e a pista de venda assistida acabou de
+medir (`va-r5`) que **o e-mail de entrega vale 13x o slot da tela**. O e-mail de
+`video_ready` já sai, já tem link, e — depois do conserto da #8 — anuncia um
+filme que agora sai **com marca d'água** para uma coorte inteira que antes o
+recebia limpo. É a única superfície grande da casa onde a porta de $1 ainda não
+está, e o texto dela está tecnicamente **desatualizado** desde as 19:48. Quem
+pegar: confirmar antes se a `va` já não a cobriu — ela mexeu em duas cartas hoje.
+
+**✅ O QUE VOCÊ PRECISA FAZER**
+1. Nada.
+
+**📋 O QUE ACONTECEU**
+Uma correção sua das 16:40 dizia que o trial de $1 tem de ser a primeira opção em
+toda tela que mostra preço, e nomeava cinco lugares. Conferi os cinco: quatro já
+tinham a porta, e o card "Want it clean?" não tinha — ele oferecia só o plano
+mensal e o avulso. Esse card era pequeno até hoje, porque conta grátis levava o
+filme limpo e não havia o que vender; a entrega das 19:48 (da outra sessão que
+roda comigo nesta pista) pôs marca d'água nesses filmes e criou a plateia dele de
+uma vez. Pus a mesma porta de $1 lá dentro, nos dois caminhos do card, sem tirar
+nem esconder nada do que já estava — o download grátis, o plano e o pacote avulso
+continuam onde estavam. Um detalhe de honestidade que vale citar: quando o
+navegador não tem como reconstruir o arquivo, a porta **para de prometer "este
+filme limpo"** e passa a oferecer só o trial. O jejum de assinante novo é de
+**5 dias**, não 3 — eu vinha repetindo o número errado e o checkpoint da outra
+sessão o corrigiu.
