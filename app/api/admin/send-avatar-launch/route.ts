@@ -18,6 +18,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { emailFooterHtml, unsubscribeHeaders } from '@/lib/emailSuppression'
+import { composerUrl } from '@/lib/lifecycle/composerUrl'
 
 export const maxDuration = 300
 export const dynamic = 'force-dynamic'
@@ -41,6 +42,10 @@ const ADMIN_EMAILS = new Set([
 ])
 
 const FROM_EMAIL = 'Kineo Team <hello@usekineo.com>'
+// KINEO-PORTA-DE-EMAIL-2026-09-06: `launch_email` vira utm_campaign, com
+// source/medium defaults do helper (o que o portão de /studio/create
+// reconhece como e-mail nosso). `avatar=1` continua: é o que abre o painel.
+const AVATAR_CTA_URL = `${composerUrl({ base: 'https://usekineo.com', campaign: 'avatar_launch' })}&avatar=1`
 const SUBJECT = 'Your face. Your script. One click. 🎭'
 
 // KINEO-UNSUBSCRIBE-2026-07-26 — recebe userId para o rodapé de descadastro.
@@ -58,7 +63,7 @@ function emailHtml(userId: string): string {
   </ul>
   <p>Studio members get <b>15% off</b> automatically.</p>
   <p style="margin:24px 0">
-    <a href="https://usekineo.com/generate?avatar=1&utm_source=launch_email" style="background:#2997ff;color:#ffffff;padding:12px 22px;border-radius:10px;text-decoration:none;font-weight:bold">Try AI Avatar →</a>
+    <a href="${AVATAR_CTA_URL}" style="background:#2997ff;color:#ffffff;padding:12px 22px;border-radius:10px;text-decoration:none;font-weight:bold">Try AI Avatar →</a>
   </p>
   <p>— Joseph, founder<br/>Kineo · https://usekineo.com</p>
 </div>

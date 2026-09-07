@@ -26,6 +26,7 @@ import { trialFingerprintFromHeaders } from '@/lib/trialFingerprint'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { getViralTopicById } from '@/lib/viralTopics'
 import { escolherSementeDeRetorno, SEMENTE_TETO_VIDEOS } from '@/lib/returningSeed'
+import { arrivouDeEmailNosso, escolherPortaDeAuth } from '@/lib/lifecycle/emailReturnDoor'
 import GenerateClient from '../../generate/GenerateClient'
 
 // sprint-ui #11 (2026-08-30) — titulo de aba proprio. Sem isto, a aba
@@ -96,10 +97,40 @@ export default async function StudioCreatePage({ searchParams }: StudioCreatePag
     // destination. The auth page resumes this exact activation path.
     // (Racional /signup vs /login preservado do endereço antigo: visitante
     // novo vê signup; cookie de sessão anterior manda para login.)
+    //
+    // KINEO-PORTA-DE-EMAIL-2026-09-06 — o cookie deixou de ser o ÚNICO sinal.
+    // Clique de inbox chega sem cookie (webview do Gmail, outro aparelho) e
+    // a pessoa JÁ CADASTRADA — a carta foi para a conta dela — caía em
+    // /signup. Medido: /studio/create?utm_source=lifecycle&utm_medium=email
+    // &utm_campaign=X → 307 /signup; 188 `d0_welcome`/7d só nessa carta. A
+    // regra (exigência tripla + falha aberta) mora em
+    // lib/lifecycle/emailReturnDoor.ts; aqui só se lê e se chama.
     const hasPriorSession = cookies()
       .getAll()
       .some((c) => c.name.startsWith('sb-') && c.name.includes('auth-token'))
-    const authPath = hasPriorSession ? '/login' : '/signup'
+    const veioDeEmailNosso = arrivouDeEmailNosso(searchParams)
+    const authPath = escolherPortaDeAuth({
+      temCookieDeSessao: hasPriorSession,
+      veioDeEmailNosso,
+    })
+    // A CEGUEIRA: o desvio de deslogado só emitia evento fora do ramo
+    // `standard` — o caso comum não emitia NADA, e por isso ninguém viu o
+    // defeito acima. Agora TODO desvio conta, com a porta escolhida e os
+    // dois sinais que decidiram. writeServerEvent engole erro por dentro
+    // (devolve boolean): o redirect abaixo acontece sempre.
+    await writeServerEvent({
+      name: 'studio_create_auth_door_v1',
+      path: '/studio/create',
+      sessionId,
+      metadata: {
+        porta: authPath,
+        veio_de_email: veioDeEmailNosso,
+        tem_cookie: hasPriorSession,
+        utm_campaign: firstParam(searchParams, 'utm_campaign'),
+        utm_source: firstParam(searchParams, 'utm_source'),
+        activation_entry: activationEntry,
+      },
+    })
     redirect(`${authPath}?redirect=${encodeURIComponent(path)}`)
   }
 

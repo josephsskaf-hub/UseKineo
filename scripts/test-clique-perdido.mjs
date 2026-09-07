@@ -127,7 +127,9 @@ check('cron: respeita opt-out e conta interna',
 // ── 10. O BOTÃO NÃO REENVIA ROTEIRO TRUNCADO EM NOME DA PESSOA ─────────────
 check('cron: prefil condicionado ao texto INTEIRO', cron.includes('const startUrl = hintComplete && topic'))
 check('cron: sem prefil, o botão vai ao Studio', cron.includes('/studio?utm_source=attempt_lost'))
-check('cron: com prefil, o botão leva o tema codificado', cron.includes('encodeURIComponent(topic)'))
+// 06/09 (porta de e-mail): o prefil passa pelo composerUrl, que codifica via
+// URLSearchParams — a promessa continua a mesma: o tema viaja na URL.
+check('cron: com prefil, o botão leva o tema codificado', cron.includes("composerUrl({ base: APP_URL, campaign: 'attempt_lost', prompt: topic })"))
 check('cron: o carimbo registra se houve prefil', cron.includes('prefilled: hintComplete && !!topic'))
 
 // ── 11. O TEXTO DA PESSOA É ESCAPADO NO HTML ───────────────────────────────

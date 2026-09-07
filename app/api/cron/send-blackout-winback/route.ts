@@ -3,6 +3,7 @@ import { dedupeTripwire } from '@/lib/truncationTripwire'
 import { createClient as createAdminClient, type SupabaseClient } from '@supabase/supabase-js'
 import { freshFetch } from '@/lib/lifecycle/freshFetch'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
+import { composerUrl } from '@/lib/lifecycle/composerUrl'
 
 // KINEO-BLACKOUT-WINBACK-2026-07-31 — the second half of the blackout playbook.
 //
@@ -149,7 +150,11 @@ function isAuthorized(req: NextRequest): boolean {
 }
 
 function buildEmail(userId: string) {
-  const makeUrl = `${APP_URL}/generate`
+  // KINEO-PORTA-DE-EMAIL-2026-09-06: `${APP_URL}/generate` sem query caía na
+  // VITRINE (o porteiro degrada visita vazia) e, sem os três sinais de e-mail
+  // nosso, mandava cliente cadastrado para /signup. O rótulo antigo vira
+  // utm_campaign; source/medium são os defaults que o portão reconhece.
+  const makeUrl = composerUrl({ base: APP_URL, campaign: 'blackout_winback' })
   const text = `Hey,
 
 This is the Kineo team.

@@ -32,6 +32,7 @@ import { fal } from '@fal-ai/client'
 import { CINEMATIC_CLAIM_EVENT, authorizeCinematicCompletedUrls, loadVerifiedCinematicClaim } from '@/lib/cinematic/claim'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { videoReadyFooter, type VideoReadyFooter } from '@/lib/lifecycle/videoReadyFooter'
+import { composerUrl } from '@/lib/lifecycle/composerUrl'
 import { POST as composePost } from '@/app/api/compose/route'
 import { GET as composeStatusGet } from '@/app/api/compose/status/[renderId]/route'
 import { RECOVERABLE_EVENT, sanitizeFastComposePayload } from '@/app/api/render-recovery/route'
@@ -636,7 +637,10 @@ export async function GET(req: NextRequest) {
         // sprint-assinaturas #4 — confirmação direta antes de enviar (fail-closed).
         const verdict = await alreadySentDirect(admin, { eventName: RESCUE_EVENT, genId, userId, batchHad: false, batchSize: (markerRows ?? []).length, batchError: markerBatchError })
         if (!verdict.send) { results.push({ generation: gen8, outcome: verdict.reason === 'already_sent' ? 'rescue_already_sent_direct' : 'rescue_dedupe_lookup_failed' }); continue }
-        const ok = await sendEmail(email, userId, 'Your AI scenes are ready — one click to finish your video 🎬', rescueText(`${APP_URL}/generate?utm_source=stranded_rescue`), rescueHtml(`${APP_URL}/generate?utm_source=stranded_rescue`, userId))
+        // KINEO-PORTA-DE-EMAIL-2026-09-06: o rótulo `stranded_rescue` vira
+        // utm_campaign; sem utm_medium=email o portão mandava cliente p/ /signup.
+        const rescueUrl = composerUrl({ base: APP_URL, campaign: 'stranded_rescue' })
+        const ok = await sendEmail(email, userId, 'Your AI scenes are ready — one click to finish your video 🎬', rescueText(rescueUrl), rescueHtml(rescueUrl, userId))
         if (ok) {
           await admin.from('events').insert({ user_id: userId, name: RESCUE_EVENT, session_id: genId, metadata: {} })
           rescuedCount++
@@ -1016,7 +1020,10 @@ export async function GET(req: NextRequest) {
         // pessoa. Roteiro truncado nunca é reenviado em nome dela: nesse caso
         // o e-mail nomeia o tema e o botão leva ao Studio, sem inventar nada.
         const startUrl = hintComplete && topic
-          ? `${APP_URL}/studio/create?prompt=${encodeURIComponent(topic)}&utm_source=attempt_lost`
+          // KINEO-PORTA-DE-EMAIL-2026-09-06: `attempt_lost` vira utm_campaign e o
+          // prefill viaja pelo helper (que já codifica e corta em 120; a dica
+          // tem no máximo 90). O ramo sem prefill abaixo segue igual.
+          ? composerUrl({ base: APP_URL, campaign: 'attempt_lost', prompt: topic })
           : `${APP_URL}/studio?utm_source=attempt_lost`
 
         const ok = await sendEmail(
