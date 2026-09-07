@@ -4644,3 +4644,254 @@ antifraude (mesmo ator, 5 contas em 23 minutos) e 3 trials gastos que
 receberam filme, nenhum trial órfão. O placar de 24h: 42 cadastros externos,
 33 filmes (79%), 2 checkouts, **0 pagamentos** — e "sem fonte" subiu de 10%
 para 21%, que é o número que a próxima sessão deve atacar primeiro.
+
+
+---
+
+# 🏁 FECHAMENTO DEFINITIVO DO CICLO — 04:38 BRT (07:38 UTC), 07/09/2026
+
+> **Este é o fechamento no relógio certo.** Carimbo conferido com `date` puro
+> (`2026-09-07T04:38:56-03:00`) e contra o `now()` do banco
+> (`2026-09-07 07:39:36Z`), pela lição do `#21g`. Ele **substitui** os três
+> fechamentos escritos antes da hora (`03:53`, `03:57` e o do `#22`), que
+> mediram 45 a 96 minutos cedo. O que eles disseram continua valendo, **menos
+> os três números que corrijo abaixo** — e menos a frase "zero pagamentos, e
+> só isso", porque nos últimos 45 minutos da janela apareceu a coisa mais
+> importante da noite.
+
+## 🔴 (0) O ACHADO DO ÚLTIMO TRECHO: ALGUÉM TENTOU PAGAR ESTA NOITE, O CARTÃO FOI RECUSADO, E A CASA NÃO SABE QUEM FOI
+
+Às **05:35:06 UTC (02:35 BRT)** o banco registrou um
+`checkout_payment_failed`. Não é renovação. É **compra inicial**:
+
+| campo | valor |
+|---|---|
+| valor | **US$ 23,20** (Studio $29 com o `welcome_first_month_20`) |
+| cartão | Visa **pré-pago**, emitido nos **EUA** |
+| motivo | `card_restricted` · `declined_by_network` |
+| risco | `normal` — **não** foi antifraude nossa nem da Stripe |
+| fonte da pessoa | **`taaft`** (`welcome_offer_checkout_clicked`, `ref=taaft`) |
+| `checkout_intent_class` | `activation_defect` (0 vídeos, 25 créditos intactos) |
+
+A sequência dela: clicou na oferta às **05:32:03**, autenticou, a sessão da
+Stripe abriu às **05:32:12** — e o **último sinal dela na casa é esse**. A
+recusa chegou 2min54 depois, pelo webhook. Ela nunca mais apareceu.
+
+### Por que isto é o achado e não uma nota de rodapé
+
+**Primeiro: o `CLAUDE.md` está desatualizado num ponto que ele mesmo declara
+como cegueira permanente.** Ele afirma que a tabela `events` "NUNCA teve um
+único `checkout_payment_failed`" e que por isso o campo "não prova nada em
+nenhuma direção". Isso **expirou**. O evento existe **3 vezes**, o primeiro em
+**03/09 10:26 UTC** — alguém instrumentou (`stripe_checkout_failure_v1`) e o
+documento nunca foi atualizado. Os três:
+
+| quando | estágio | valor | cartão | motivo |
+|---|---|---|---|---|
+| 03/09 10:26Z | renovação | $9,90 | pré-pago **NG** | `insufficient_funds` |
+| 04/09 08:24Z | renovação | $24,90 | débito **AU** | `insufficient_funds` |
+| **07/09 05:35Z** | **inicial** | **$23,20** | pré-pago **US** | **`card_restricted`** |
+
+As duas primeiras são o **ralo** que o `c94b140a` consertou esta noite. A
+terceira é **nova, é de compra inicial, e é a única da história**.
+
+**Isto NÃO reabre a conclusão fechada do fundador sobre preço.** Uma recusa
+não derruba um estudo feito sobre 44 pessoas, e eu não vou fingir que derruba.
+O que muda é outra coisa, e é maior: **o instrumento que o `CLAUDE.md` diz que
+não existe agora existe e funciona** — ele grava bandeira, país, tipo de
+cartão, motivo e nível de risco. A partir de hoje, "é preço ou é trilho?"
+deixa de exigir o painel da Stripe e passa a ser uma consulta. Recomendo
+**corrigir o `CLAUDE.md`**: a cegueira virou visão, e continuar escrevendo que
+o campo é cego vai fazer a próxima sessão descartar dado bom.
+
+### 🔴 E o defeito real que isto destapou — este sim é para consertar
+
+O evento da recusa chega com **`user_id: null` e SEM `stripe_session_id`**.
+Ele traz um `failure_ref` que **não bate com nada** no `checkout_started`.
+
+Consequência, medida:
+
+- `checkout_payment_failed` com pessoa identificada: **2 de 3** (só as
+  renovações, que vêm pela assinatura). A **compra inicial** — justamente a que
+  interessa — vem **anônima**.
+- `checkout_recovery_emailed_v1` depois da recusa: **0**.
+- Eventos dela depois da recusa: **0**.
+
+Ou seja: **a pessoa mais qualificada das 8 horas de ciclo** — clicou, criou
+conta, autenticou, digitou um cartão e mandou US$ 23,20 — foi recusada pela
+rede do cartão, e a casa **não tem como saber que foi ela**, não mandou nada,
+e não pode mandar. Só descobri o nome dela cruzando **valor + horário** à mão.
+
+Não é hipótese: a única costura possível hoje é `2320` bater com o
+`public_promo_first_charge_minor` do `checkout_started` três minutos antes.
+
+**O conserto é pequeno e é a primeira coisa da próxima sessão:** pôr o
+`stripe_session_id` (ou o `customer`) no payload do `checkout_payment_failed`
+de estágio `initial`, e ligar nele a carta que já existe
+(`checkout_recovery_emailed_v1`, 22 disparos na história, o último em 06/09
+17:30). Um cartão pré-pago recusado por restrição de rede é o caso em que
+"tente outro cartão" converte — a pessoa **já decidiu comprar**.
+
+### O irmão do mesmo buraco, achado na mesma consulta
+
+`checkout_session_expired` tem **108 linhas na história** e **89 delas trazem
+`recovery_url_available: true`**. Contra isso, `checkout_recovery_emailed_v1`
+soma **22**. A de hoje, às **04:30 UTC**, é um **Autopilot de US$ 299** com
+`ip_country=IN`, `payment_status: unpaid`, e uma **URL de recuperação válida
+até 07/10** — um mês. Ninguém a usou. Não conferi um a um se os 89 têm dono
+identificável (a janela acabou); deixo o número, não a conclusão.
+
+## (1) O MAPA DE ENTRADA FINAL — e a correção de um alarme
+
+O mapa de 14 dias e o de páginas do `#22b` continuam valendo como escritos:
+**o ChatGPT cita as nossas páginas de SEO** (90% de quem vem por ele entra por
+`/ai-video-generator/kineo-1`, `/free-ai-shorts-generator` e irmãs, não pela
+home), e o "SEO trouxe 2 cadastros" era artefato do instrumento. Esse é o
+achado estratégico da noite e não mudou nos últimos 45 minutos.
+
+**O que mudou é o alarme do "sem fonte".** O `#22d` fechou dizendo que ele
+"subiu de 10% para 21%" e mandou a próxima sessão atacar isso primeiro. Fui
+medir de novo separando quem o antifraude bloqueou — e **parte do aumento é
+fraude, não rastreio furado**:
+
+| janela | fonte | cadastros | bloqueados (abuso) | **legítimos** |
+|---|---|---|---|---|
+| 24h | chatgpt | 25 | 1 | 24 |
+| 24h | **(sem fonte)** | **9** | **3** | **6** |
+| 24h | taaft | 5 | 0 | 5 |
+| 24h | nav | 1 | 0 | 1 |
+| **24h** | **total** | **40** | **4** | **36** |
+
+**"Sem fonte" sobre a base legítima é 6 de 36 = 17%, não 21%.** E na janela do
+ciclo (23:38→07:39 UTC) o efeito é mais gritante ainda: 11 cadastros, dos quais
+**6 sem fonte — mas 3 desses 6 são o cluster de abuso `@live.com`**, que abre
+conta direto, sem `utm`. Sobram 3 de 7 legítimos.
+
+**Por que isto importa para quem for fazer o Q2:** o número continua sendo o
+maior buraco de atribuição e o Q2 continua sendo a prioridade — mas quem for
+medir o antes/depois **tem de excluir os bloqueados**, senão vai creditar ao
+conserto uma queda que o antifraude produziu, ou culpar o rastreio por contas
+que nunca foram gente. Com a base limpa, a entrega com filme também melhora:
+**32 de 36 = 89%**, não os 79% que a praxe vinha publicando.
+
+## (2) O QUE ENTROU EM PRODUÇÃO — conferido agora
+
+`origin/main` = **`7021f4b7`** · fila `origin/main..entrega-atual` = **0**.
+
+Sonda no fechamento, com controle que discrimina:
+
+| URL | código |
+|---|---|
+| `/` | **200** |
+| `/pricing` | **200** |
+| `/ai-video-generator/kineo-1` | **200** |
+| `/free-ai-shorts-generator` | **200** |
+| **rota inexistente (controle)** | **404** |
+
+As seis peças da tabela do `#22` continuam válidas (`c94b140a` carência de
+cobrança · `7e11fef3` FAQ invisível · `710fad76` copy que mentia ·
+`1b4db6d3` guardião do `/tools` · `91e2f34b` ponte com preço · **`3273e89b`**
+preço no degrau do episódio 2 — e é `3273e89b`, não `b1b3e924`, que só existiu
+na worktree).
+
+### A peça do degrau segue PUBLICADA E NÃO PROVADA — agora com o número final
+
+Medido às 07:39 UTC, pelo carimbo de payload e não pelo relógio (regra do
+`#22d`):
+
+| medida | valor |
+|---|---|
+| `trial_repeat_episode_viewed` **com `plans_link`** (bundle novo) | **0** |
+| `trial_repeat_episode_viewed` depois do commit, pelo relógio | 1 |
+| `trial_repeat_price_viewed` | **0** |
+
+A única impressão da janela (06:55:35Z) tem o metadata **idêntico ao de 06/09**
+— sem `plans_link`, sem `bridge_reason`. Foi servida pelo bundle antigo.
+**Oportunidades reais: zero.** O `0` do evento novo é o esperado, não sintoma.
+A peça sobe para a próxima sessão **sem veredito**, e o veredito não pode ser
+dado por quem não vir uma impressão com `plans_link` presente.
+
+## (3) PLACAR DO CICLO — 8 horas, sem maquiagem
+
+| medida | valor |
+|---|---|
+| janela | 06/09 23:38 UTC → 07/09 07:39 UTC |
+| cadastros externos no ciclo | **11** (7 legítimos, 4 do cluster de abuso) |
+| cadastros externos 24h | **40** (36 legítimos) |
+| legítimos com filme (24h) | **32 = 89%** |
+| checkouts iniciados no ciclo | **2** |
+| **recusa de cartão em compra inicial** | **1 — US$ 23,20, `card_restricted`** |
+| **`payment_success` no ciclo** | **0** |
+| **`payment_success` em 24h** | **0** |
+| último pagamento da história | **02/09 20:22:43 UTC** — há 4 dias e 11 horas |
+
+**Oito rotações, seis peças em produção, zero assinantes.** É o número e não
+adianta enfeitar. O que a noite comprou foi diagnóstico caro e barreiras
+removidas; o que ela não comprou foi receita. E a diferença entre "ninguém
+quis pagar" e "uma pessoa quis pagar e o cartão dela foi recusado sem que a
+gente pudesse falar com ela" é a única coisa boa que apareceu no placar.
+
+**Checagem zero — PASSA.** Pelo predicado corrigido de
+`docs/queries/CHECAGEM-ZERO-CADASTRO-SEM-CREDITO-2026-09-07.sql`: 4 candidatos
+brutos, **4 bloqueados por abuso**, 0 gastaram, **0 órfãos de verdade**.
+Renders presos 0 · `next_episode_failed` 0.
+
+## (4) O QUE A PRÓXIMA SESSÃO FAZ PRIMEIRO — nesta ordem
+
+1. **Identificar quem teve o cartão recusado.** `stripe_session_id` no
+   `checkout_payment_failed` de estágio `initial` + a carta
+   `checkout_recovery_emailed_v1` ligada nele. É a única coisa da noite que
+   tem dinheiro do outro lado, com nome e valor. E vale conferir se as **89**
+   sessões expiradas com URL de recuperação viva têm dono identificável.
+2. **Q2 — first-touch obrigatório** (segue sendo a dívida estrutural). Com a
+   ressalva do item (1) deste fechamento: **excluir os bloqueados** ao medir.
+3. **Medir a adoção das duas peças de preço** com o corte no campo novo
+   (`metadata ? 'plans_link'`), nunca no relógio. Só depois inventar remédio.
+4. **Corrigir o `CLAUDE.md`**: a frase "`events` nunca teve um
+   `checkout_payment_failed`" está errada desde 03/09.
+5. **Não construir carta nova de e-mail.** 210/dia e 0 pagamentos.
+6. **Não clonar página nova antes de (1)**: 193 pessoas e 0 pagantes já entram
+   pelas que existem.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+1. **Rode o bloco do Cowork** que já está em
+   `docs/ACOES-DO-FUNDADOR-2026-09-06.md` e no fechamento do `#22` — 7 itens de
+   painel (Stripe Smart Retries, Search Console, TAAFT). O item do **Smart
+   Retries** continua o mais urgente: sem ele ligado, a carência de cobrança
+   que subiu esta noite não tem janela para segurar.
+2. **Responda "liga o pack" ou "não liga"** sobre os dois SKUs pequenos
+   (First Pack $4,90 / 30cr e starter290 $2,90). Spec com margem e
+   kill-switch em `docs/SPEC-PRIMEIRA-COMPRA-PEQUENA-2026-09-07.md`.
+3. **Nada mais.** O conserto da recusa de cartão é código e é meu — fica como
+   primeira tarefa da próxima sessão, não pede nada de você.
+
+## 📋 O QUE ACONTECEU
+
+Fechei o ciclo no horário certo e nos últimos 45 minutos apareceu o que a noite
+inteira não tinha achado: **uma pessoa tentou pagar US$ 23,20 às 02:35 da
+madrugada e o cartão dela foi recusado pela rede** — Visa pré-pago americano,
+`card_restricted`, risco normal. Ela veio do TAAFT, a fonte que o relatório
+classificou como "92 cadastros e zero pagamentos". Não era falta de vontade de
+comprar. E o pior: **a casa não sabe que foi ela** — o evento da recusa chega
+sem identificação nenhuma, então nenhuma carta de "tente outro cartão" pode
+sair. Eu só cheguei no nome dela cruzando valor e horário na mão. Isso vira a
+primeira tarefa da próxima sessão, porque é a única coisa da noite com dinheiro
+com nome e sobrenome do outro lado.
+
+Descobri também que o `CLAUDE.md` está mentindo para as próximas sessões num
+ponto que ele mesmo marca como verdade permanente: ele diz que esse evento de
+recusa **nunca** existiu no banco. Existe desde 03/09, três vezes, com bandeira,
+país, tipo de cartão e motivo. Isso não reabre a sua conclusão de que o
+vazamento do checkout é preço — uma recusa não derruba um estudo de 44 pessoas
+— mas devolve à casa um instrumento que estava dado como cego.
+
+E corrigi um alarme que o checkpoint anterior ia deixar para a próxima sessão
+perseguir: o "sem fonte dobrou para 21%" é **17%** quando se tiram as contas que
+o antifraude bloqueou (o mesmo sujeito abriu 4 contas `@live.com` em 23 minutos,
+e o guarda segurou todas). Pela mesma limpeza, a entrega de filme sobe de 79%
+para **89%**.
+
+O placar do ciclo, sem enfeite: 8 rotações, 6 peças em produção, 40 cadastros em
+24h, 32 com filme, **zero assinantes**. O último pagamento da casa continua
+sendo o de 02/09.

@@ -64,9 +64,20 @@
 # verdade que "a verdade sobre recusa só existe no painel da Stripe" — ela
 # existe aqui. `metadata.customer_country` continua null e continua não
 # provando nada; use `card_country` do evento novo.
-# ⛔ MAS: o evento novo NÃO reabre a conclusão de preço acima. Ele fala de quem
-# JÁ ERA CLIENTE (renovação recusada), não de quem acha caro no checkout. As
-# duas coisas não se misturam. A conclusão de preço segue fechada.
+# ⛔ MAS: o evento novo NÃO reabre a conclusão de preço acima. A conclusão de
+# preço segue FECHADA — ela foi construída sobre 44 pessoas, repetidas vezes.
+# ⚠ AJUSTE DE 07/09 04:38 (fechamento do ciclo de aquisição): até 07/09 era
+# verdade que o evento só falava de quem JÁ ERA CLIENTE. Não é mais. Em
+# 07/09 05:35 UTC entrou a PRIMEIRA recusa de COMPRA INICIAL da história:
+# $23,20 (Studio com welcome20), Visa PRÉ-PAGO dos EUA, `card_restricted`,
+# `declined_by_network`, risco normal, pessoa vinda do TAAFT. São 3 recusas
+# no total (2 renovações + esta). UMA linha não derruba um estudo de 44 —
+# não reabra o preço por causa dela — mas NÃO escreva mais que "toda recusa
+# é de renovação". Se a coluna `initial` crescer, aí é dado novo.
+# 🔴 DEFEITO ABERTO: a recusa de compra inicial chega com `user_id` NULL e SEM
+# `stripe_session_id` — a casa não sabe QUEM foi recusado e nenhuma carta de
+# "tente outro cartão" pode sair. Consultas e conserto em
+# docs/queries/RECUSA-DE-CARTAO-2026-09-07.sql. É a 1ª tarefa da próxima sessão.
 # Números que sustentam a conclusão (funil 7d, medido 19/08): 247 cadastros →
 # 135 fizeram vídeo → 44 chegaram ao checkout → 0 assinaram, e os 44 tentaram
 # 2+ VEZES. Quem volta duas vezes quer comprar; travou no valor.
