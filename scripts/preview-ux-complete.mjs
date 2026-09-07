@@ -44,6 +44,9 @@ export function renderPage(entry, before = false, fixture = {}, props = {}, comp
       if(id==='@/lib/supabase/client')return {createClient:()=>{throw Error('Database access forbidden in offline preview')}}
       if(id==='@/lib/seriesDoorImpressions')return {useSeriesDoorSeen:()=>({registrarPorta:()=>()=>{}})}
       if(id==='server-only')return {}
+      // Canonical public facts now import gptHandoff, whose hashing helper uses
+      // Node crypto. Allow this built-in only; network, DB and env stay blocked.
+      if(id==='node:crypto')return require('node:crypto')
       if(id==='@/components/studioKit')return load('components/studioKit.tsx')
       if(id==='@/components/InterfaceLanguage')return load('components/InterfaceLanguage.tsx')
       // Explicit demo balance only, never a customer balance or a DB request.
