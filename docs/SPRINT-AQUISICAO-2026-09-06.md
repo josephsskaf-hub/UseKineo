@@ -1371,3 +1371,177 @@ instrumentados (100%)**, 1 com fonte. `n = 4` é pequeno demais para virar taxa 
 **não é medição, é sinal de que o cano está aberto.** A taxa se lê amanhã, com
 tráfego de dia. A consulta salva já traz o filtro **e o aviso de que ele não é
 opcional**.
+
+---
+
+## ### #15 — 22:50→23:40 — A PORTA QUE ABRIU HOJE ESTAVA SEM CARTÃO E SEM MAPA
+
+**Press release (6 linhas).** Quem recebe um filme da Kineo agora pode
+transformá-lo, em um clique, numa **página pública com endereço próprio** — e
+essa página finalmente se comporta como página: manda cartão de pré-visualização
+quando o link é colado no WhatsApp, no X ou no Instagram, e entra no mapa que
+oferecemos ao Google. Até hoje o clique existia, a página abria, e as duas
+coisas que fazem um link virar visita estavam quebradas. Cada filme entregue
+(~20 por dia) passa a poder ser uma porta de entrada, e não só um arquivo.
+
+**Hipótese:** o gargalo da aquisição é denominador. A casa entrega ~20 filmes
+por dia; se uma fração deles virar link compartilhável com cartão, o produto
+passa a se anunciar sozinho, sem custo por clique.
+
+### O errado, medido ao vivo (com uma linha realmente publicada)
+
+Para medir precisei de uma linha com consentimento — não existia nenhuma. Usei
+um filme **do fundador** (`83db8b63…`, Lituya Bay, 62s) e carimbei
+`published_at` à mão para a prova, com `published_via` =
+`ceo_validacao_ponta_a_ponta_2026-09-06` no rastro de auditoria.
+
+| sonda | antes | o que significava |
+|---|---|---|
+| `/v/83db8b63…` | **200**, H1 real, canonical, sem noindex | a página FUNCIONA |
+| `/v/83db8b63…/opengraph-image` | **404, 0 bytes** | **cartão em branco** em todo link compartilhado |
+| `X-Video-Sitemap-Count` | **6** (só os exemplos fixos) | a página consentida era invisível ao Google |
+| `videos.published_at` não nulo | **0 de 1.652** | ninguém publicou ainda |
+
+**Causa única, nos dois defeitos:** a trava GLOBAL de 27/08
+(`CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED = false`) nunca foi ensinada sobre o
+campo de consentimento POR LINHA que subiu **hoje** (#27/#28).
+`opengraph-image.tsx` fazia `if (!FLAG) notFound()` incondicional;
+`listIndexablePublicVideos` fazia `if (!FLAG) return []` sem exceção para linha
+carimbada. A #27/#28 construiu a porta certa e a fechadura velha continuou
+mandando nas duas superfícies que trazem gente.
+
+### O que mudou — `1de0a71e` e `3bd14969` · **EM PRODUÇÃO**
+
+| arquivo | o que |
+|---|---|
+| `lib/publicSurfacePolicy.ts` | `publicSurfaceAllowsRow(publishedAt)` — a única porta nova. A flag continua `false as const` |
+| `app/v/[id]/opengraph-image.tsx` | `published_at` vem na MESMA consulta do título (uma ida ao banco). Sem credencial, sem linha, erro ou catch → `notFound()`. Antes, **sem credencial a rota devolvia título genérico** — ausência de leitura valia como permissão. O bitmap é idêntico |
+| `lib/publicVideos.ts` | com a trava fechada, a consulta do sitemap filtra `.not('published_at','is',null)` **no servidor**. `PUBLIC_VIDEO_COLUMNS` intocada |
+| `app/video-sitemap.xml/route.ts` | o **segundo cadeado** (abaixo) |
+| `app/api/compose/status/[renderId]/route.ts` · `app/api/cron/send-video-ready/route.ts` | a copy do botão |
+| `scripts/test-consentimento-superficie.mjs` (novo) | 60 verificações |
+| `scripts/test-erros-vercel-2026-09-03.mjs` | a asserção antiga afirmava o portão global incondicional, que deixou de existir — atualizada com honestidade, não apagada |
+
+**O princípio, agora escrito no código:** a trava global continua **fechada**; o
+que abre a superfície é o **consentimento por linha**. Sem `published_at`, nada
+muda em relação a ontem (falha FECHADA). Com a trava em `true`, o comportamento
+antigo volta inteiro.
+
+### O segundo cadeado — e por que eu quase o virei errado
+
+Subi a #15, a capa voltou (og 200) e o sitemap **continuou em 6**. A causa não
+era minha: `app/video-sitemap.xml/route.ts` tem cadeado próprio,
+`KINEO_VIDEO_SITEMAP_MAX`, com **padrão 0** — sem a env, a rota nem consulta o
+banco.
+
+E esse cadeado **não era sujeira**. Foi posto em 12/08 sobre número do Search
+Console: 602 páginas de vídeo = **79% de tudo** que a casa pedia ao Google · 704
+"detectada, mas não indexada" · **0 impressões e 0 cliques em 28 dias** · e a
+fila de não-rastreados começando pelas 27 páginas `/alternatives` escritas à
+mão. Virar aquilo de volta às cegas seria repetir um erro já pago.
+
+O que mudou desde 12/08 **não é o orçamento de rastreamento; é a curadoria.** Em
+12/08 o produto listava todo filme `completed` sem ninguém ter pedido. Agora só
+entra linha com carimbo do dono. Por isso o padrão virou condicional:
+
+- trava global **aberta** (todo filme vira página) → padrão **0**, igual a 12/08.
+  O modo que a medição condenou continua condenado.
+- trava global **fechada** (só quem consentiu) → `CONSENT_DEFAULT_MAX = 60`.
+  Hoje isso é **1 página**. Se um dia forem 60, ainda é uma fração das 164 que a
+  casa já pede, e cada uma tem dono que pediu.
+
+A env continua mandando mais que o padrão nos dois modos, e `0` nela continua
+desligando tudo. **Condição de morte, escrita antes de tentar e gravada no
+arquivo:** se o Search Console mostrar as páginas consentidas rastreadas e com
+**0 impressões em 30 dias**, o padrão volta a 0.
+
+### E a copy, no mesmo commit, porque a peça mudou o que o clique faz
+
+`app/api/cron/submit-indexnow` usa a **mesma** `listIndexablePublicVideos`. Ou
+seja: a página consentida passa a ser **submetida ativamente** aos buscadores.
+Os dois e-mails prometiam apenas *"um link que você manda por mensagem"*. Agora
+dizem que a página é pública, que **buscadores podem achá-la**, e que dá para
+**tornar privada de novo**. Prometer menos do que o produto faz com o dado da
+pessoa é a classe de erro mais cara desta casa.
+
+### Prova de produção — com controles, não só com 200
+
+```
+/v/83db8b63…/opengraph-image ............ 200  image/png  55.811 bytes
+/v/11111111-…-555555555555/og ........... 404   (id inexistente)
+/v/fe055601…/opengraph-image ............ 404   (filme COMPLETO, SEM consentimento)
+X-Video-Sitemap-Count ................... 6 -> 7
+sitemap.xml / home / ai-shorts-series ... 200 / 200 / 200  (nada quebrou junto)
+```
+
+E a entrada no mapa carrega o que o Google exige: `video:thumbnail_loc` (a capa
+que acabou de nascer), `video:title`, `video:description`, `video:content_loc`
+no storage durável, `video:duration` = 62.
+
+### Testes
+
+- `scripts/test-consentimento-superficie.mjs` — **60 verificações, 0 falhas**.
+  Estilo `readFileSync` (nesta casa 72 guardiões morrem no import com alias
+  `@/`), amarrado à **variável que decide**: mutante que troque a condição por
+  `true`, ou o padrão do sitemap por `SITEMAP_MAX_VIDEOS`, fica vermelho.
+  Falsificação conferida por mutação em cópia, com restauração verificada.
+- `npx tsc --noEmit` verde (com junction de `node_modules`).
+- Irmãos: `test-erros-vercel-2026-09-03` OK · `test-video-share-consent` OK (37).
+- **Vermelho alheio, não consertado:** `test-growth-space-intent.mjs` e
+  `test-public-video-privacy.mjs` já estavam vermelhos **antes** desta mudança
+  (conferido com stash isolado). O segundo morre na linha 58 desde a #27 e,
+  quando alguém consertar aquela linha, vai destampar 5 asserções que citam as
+  strings antigas — está anotado no commit.
+
+### Risco, dito sem maquiagem
+
+1. **Uma página do fundador ficou pública** — a de Lituya Bay. Foi o que provou
+   o caminho, e é hoje a única página `/v/` viva. Deixei publicada de propósito:
+   serve de demonstração e de sonda. Despublicar é um clique (`&undo=1`) ou uma
+   linha no banco.
+2. **A biblioteca de "relacionados"** (`lib/scriptLibrary.ts`) usa a mesma lista.
+   Com **dois ou mais** filmes consentidos e aprovados, um passa a aparecer como
+   "related" na página do outro. É coerente (todo membro tem consentimento e
+   nenhum link vai para 404), mas é mudança visível numa tela — e com 1 página
+   ainda não acontece.
+3. **IndexNow** vai submeter a URL consentida no próximo ciclo do cron. É o
+   objetivo; a copy agora avisa.
+
+### Como medir (e o que derruba isto)
+
+- **Adoção:** `select count(*) from events where name='video_published_v1'` —
+  hoje **0**. O botão está no e-mail de entrega desde ~22:15 (158 e-mails /
+  107 pessoas por semana). **Condição de morte:** 7 dias, 100+ e-mails com o
+  botão e **0** cliques = a partilha não é desejo, e a peça se desliga.
+- **Efeito:** `X-Video-Sitemap-Count` e, no Search Console, impressões das URLs
+  `/v/` — 30 dias, conforme a condição de morte já registrada.
+
+### Praxe — aquisição nas últimas 24h (contas externas)
+
+| fonte | cadastros | com filme | 2º filme | checkout | pagou |
+|---|---|---|---|---|---|
+| chatgpt | 24 | 20 | 6 | 1 | 0 |
+| taaft | 5 | 5 | 0 | 1 | 0 |
+| nav | 2 | 1 | 0 | 0 | 0 |
+| (sem fonte) | 2 | 1 | 0 | 0 | 0 |
+| perplexity.ai | 1 | 1 | 0 | 0 | 0 |
+| busca | 1 | 1 | 1 | 0 | 0 |
+| seo | 1 | 1 | 0 | 1 | 0 |
+| **total** | **36** | **30** | **7** | **3** | **0** |
+
+**A #1 e a #2 deste ciclo estão funcionando:** "sem fonte" caiu de **10%** (30 de
+355 em 14 dias) para **5,6%** (2 de 36 em 24h). E apareceu uma fonte que o mapa
+de 14 dias não tinha: **perplexity.ai**.
+
+**Checagem zero:** cadastro sem crédito e sem filme **0** · render preso **0** ·
+`next_episode_failed` **0** · `video_published_v1` **0** (esperado, peça de 1h) ·
+`generation_stage_error` 10 em 24h contra 30 pessoas com filme entregue.
+
+### Próxima jogada
+
+**O botão está no e-mail; a tela ainda não tem.** A #9 deste ciclo mediu que a
+tela converte **30x** o e-mail (22 pessoas contra 1 em 7 dias) para o mesmo
+pedido. O `/api/compose/status` já **calcula** `publishHref` e o devolve — e
+**nenhum cliente o renderiza**. Quem acabou de ver o filme ficar pronto no
+Studio é exatamente quem está no pico da alegria, e é a única pessoa que ainda
+não tem o botão. Isso é tela: vira **PEDIDO ao Codex**, não código meu.
