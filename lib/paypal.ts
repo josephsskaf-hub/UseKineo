@@ -11,50 +11,51 @@
 // and persisted in the paypal_config table — zero extra env vars.
 
 import { createClient as createSupabaseAdmin } from '@supabase/supabase-js'
-import {
-  PAYPAL_PACK,
-  PAYPAL_PLAN_CREDITS,
-  PAYPAL_TIER_USD,
-  paypalPlanConfigKey,
-  paypalPlanRequestId,
-  type PayPalBilling,
-  type PayPalTier,
-} from '@/lib/paypalCatalog'
+import { TIER_PRICES, ANNUAL_PRICES, TIER_CREDITS, PACK_CREDITS } from '@/lib/checkoutPricing'
 
-export {
-  PAYPAL_PACK,
-  PAYPAL_PLAN_CREDITS,
-  PAYPAL_TIER_USD,
-  type PayPalBilling,
-  type PayPalTier,
-} from '@/lib/paypalCatalog'
-
-/**
- * KINEO-TRILHOS-2026-09-07 (#11) — os nomes EXATOS das envs do PayPal, e a
- * pergunta "este deploy consegue cobrar por aqui?". Só NOMES, nunca valores.
- *
- * O PayPal não tem um `isPaypalEnabled()` histórico porque `paypalAccessToken()`
- * simplesmente estourava quando faltava chave. Para o painel de trilhos isso não
- * serve: ele precisa responder "ligado/desligado" sem tentar cobrar ninguém.
- */
-export const PAYPAL_ENV_NAMES = ['PAYPAL_CLIENT_ID', 'PAYPAL_CLIENT_SECRET', 'PAYPAL_WEBHOOK_ID'] as const
-
-/** Envs que faltam para o trilho PayPal funcionar NESTE deploy. Vazio = pronto. */
-export function paypalMissingEnv(env: Record<string, string | undefined> = process.env): string[] {
-  return PAYPAL_ENV_NAMES.filter((n) => {
-    const v = env[n]
-    return typeof v !== 'string' || v.trim().length === 0
-  })
-}
-
-export function isPaypalEnabled(env: Record<string, string | undefined> = process.env): boolean {
-  return paypalMissingEnv(env).length === 0
-}
+export type PayPalTier = 'starter' | 'basic' | 'pro'
+export type PayPalBilling = 'monthly' | 'annual'
 
 export const PAYPAL_BASE =
   process.env.PAYPAL_ENV === 'sandbox'
     ? 'https://api-m.sandbox.paypal.com'
     : 'https://api-m.paypal.com'
+
+// KINEO-PAYPAL-PRECO-UNICO-2026-09-07 — este arquivo tinha a SUA PRÓPRIA
+// tabela de preço ($9.90/$24.90/$37.90, 25/150/200cr, pack de 10cr), copiada à
+// mão em julho e nunca mais tocada. A Stripe passou por V3D, V5 e V6 e chegou
+// em $7/$15/$29 com 40/90/180cr; o PayPal ficou parado em julho. Se o botão
+// fosse ligado, quem pagasse por PayPal pagaria MAIS e receberia MENOS que o
+// vizinho da Stripe — e o site anunciaria um preço que o checkout não cobra.
+// Agora não existe segunda tabela: preço e grant vêm de lib/checkoutPricing,
+// a mesma fonte que a Stripe e a tela de preços leem. Mudou lá, mudou aqui.
+const usd = (cents: number) => (cents / 100).toFixed(2)
+
+export const PAYPAL_TIER_USD: Record<PayPalTier, { monthly: string; annual: string; name: string }> = {
+  starter: { monthly: usd(TIER_PRICES.starter.usd), annual: usd(ANNUAL_PRICES.starter.usd), name: 'Kineo — Starter' },
+  basic:   { monthly: usd(TIER_PRICES.basic.usd),   annual: usd(ANNUAL_PRICES.basic.usd),   name: 'Kineo — Creator' },
+  pro:     { monthly: usd(TIER_PRICES.pro.usd),     annual: usd(ANNUAL_PRICES.pro.usd),     name: 'Kineo — Studio' },
+}
+
+export const PAYPAL_PLAN_CREDITS: Record<PayPalTier, number> = {
+  starter: TIER_CREDITS.starter,
+  basic: TIER_CREDITS.basic,
+  pro: TIER_CREDITS.pro,
+}
+
+// First Pack — mesmo SKU da Stripe (?pack=starter): $4.90 por PACK_CREDITS.starter.
+export const PAYPAL_PACK = {
+  credits: PACK_CREDITS.starter,
+  usd: '4.90',
+  name: `Kineo — First Pack (${PACK_CREDITS.starter} credits)`,
+}
+
+// Planos no PayPal são IMUTÁVEIS no preço: um plano criado a $9.90 cobra $9.90
+// para sempre. Por isso a chave de config e a idempotency key ganham versão —
+// o /api/paypal/setup cria planos NOVOS com o preço atual em vez de reutilizar
+// os de julho. Os antigos continuam no paypal_config (ninguém assinou por eles;
+// PAYPAL_ENABLED sempre foi false), e o tierFromPlanId lê os dois formatos.
+const PLAN_VERSION = 'v2'
 
 export function paypalAdminClient() {
   return createSupabaseAdmin(
@@ -136,19 +137,14 @@ async function ensureProduct(admin: Admin, tier: PayPalTier): Promise<string> {
 }
 
 export async function ensurePlan(admin: Admin, tier: PayPalTier, billing: PayPalBilling): Promise<string> {
-  // KINEO-PAYPAL-CANONICAL-2026-08-28 — PayPal plan prices cannot be edited
-  // after creation. The old unversioned keys still point to $9.90/$24.90/
-  // $37.90 plans with 25/150/200 credits. Reusing one would charge and grant a
-  // different offer from Stripe. The canonical fingerprint forces one new
-  // PayPal plan only when price/grant changes, then caches it normally.
-  const cfgKey = paypalPlanConfigKey(tier, billing)
+  const cfgKey = `plan_${tier}_${billing}_${PLAN_VERSION}`
   const existing = await getPaypalConfig(admin, cfgKey)
   if (existing) return existing
   const productId = await ensureProduct(admin, tier)
   const price = billing === 'annual' ? PAYPAL_TIER_USD[tier].annual : PAYPAL_TIER_USD[tier].monthly
   const plan = await paypalFetch('/v1/billing/plans', {
     method: 'POST',
-    idempotencyKey: paypalPlanRequestId(tier, billing),
+    idempotencyKey: `kineo-plan-${tier}-${billing}-${PLAN_VERSION}-${price}`,
     body: JSON.stringify({
       product_id: productId,
       name: `${PAYPAL_TIER_USD[tier].name} (${billing === 'annual' ? 'Annual' : 'Monthly'})`,
@@ -179,6 +175,8 @@ export async function tierFromPlanId(admin: Admin, planId: string): Promise<{ ti
   const { data } = await admin.from('paypal_config').select('key,value').like('key', 'plan_%')
   for (const row of data ?? []) {
     if (row.value === planId) {
+      // 'plan_<tier>_<billing>' (julho) ou 'plan_<tier>_<billing>_v2' — o sufixo
+      // de versão é ignorado; só tier e billing importam para o grant.
       const [, tier, billing] = String(row.key).split('_')
       return { tier: tier as PayPalTier, billing: billing as PayPalBilling }
     }
@@ -217,99 +215,24 @@ export async function verifyPaypalWebhook(
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// KINEO-PAYPAL-IDEMPOTENCIA-2026-09-07 — O DINHEIRO DEIXA DE SUMIR EM SILÊNCIO
-// ═══════════════════════════════════════════════════════════════════════════
-// A auditoria de 28/08 registrou isto como "idempotência invertida (claim antes
-// do grant, erro engolido)". Lendo o código inteiro em 07/09, são QUATRO
-// defeitos que se compõem, e o desfecho de todos é o mesmo: **o cliente paga e
-// nunca recebe**, sem erro em lugar nenhum.
-//
-//  1. A MARCA VINHA ANTES DA ENTREGA E NUNCA ERA DESFEITA. `paypalClaimEvent`
-//     gravava a linha e devolvia `true`; a concessão vinha depois. Se ela
-//     falhasse, a marca FICAVA — e a re-tentativa do PayPal batia em `23505`,
-//     lia "já processado" e PULAVA a concessão. Para sempre.
-//  2. A CONCESSÃO ENGOLIA O PRÓPRIO ERRO. As três funções abaixo faziam
-//     `console.error` e devolviam `void`: quem chamava não tinha como saber
-//     que o crédito não entrou.
-//  3. O HANDLER DEVOLVIA 200 EM QUALQUER EXCEÇÃO, com o comentário "grants are
-//     idempotent and PayPal hammer-retries 5xx". Eles são idempotentes na
-//     direção errada — a que PERDE o pagamento —, e o 200 dizia ao PayPal para
-//     nunca mais tentar.
-//  4. TABELA AUSENTE VIRAVA "PODE CONCEDER". O ramo `42P01` devolvia `true`,
-//     ou seja: sem a tabela de idempotência, TODA re-tentativa concedia de
-//     novo. O oposto exato do defeito 1 — crédito em dobro.
-//
-// As tabelas do PayPal estão VAZIAS hoje (nenhum cliente por esse trilho na
-// história), então isto se conserta sem migrar nada e sem risco de mexer em
-// dinheiro que já entrou. O padrão adotado é o do webhook da Stripe: pegar o
-// guard ANTES, e se a concessão falhar, LIBERAR o guard e devolver 500 para
-// que o fornecedor re-tente.
-//
-// ⚠️ AGORA FALHA FECHADA, e é uma escolha: sem a tabela `paypal_events` nada é
-// concedido e o webhook devolve 500 em vez de conceder às cegas. Um 500
-// repetido é barulhento e alguém conserta; um crédito duplicado silencioso não
-// aparece em log nenhum.
-
-/** Erro que o handler traduz em 500 — o único jeito de pedir re-tentativa. */
-export class PayPalRetryableError extends Error {
-  constructor(message: string) {
-    super(message)
-    this.name = 'PayPalRetryableError'
-  }
-}
-
 // ── Idempotency (paypal_events: id text pk) ─────────────────────────────────
-/**
- * Devolve `true` quando esta chave lógica aparece pela PRIMEIRA vez.
- *
- * ⚠️ Quem recebe `true` FICA DEVENDO uma de duas coisas: concluir a concessão,
- * ou chamar `paypalReleaseEvent` com a mesma chave. Um `true` sem nenhum dos
- * dois é um pagamento perdido para sempre.
- */
+// Returns true when this logical key was seen for the FIRST time.
 export async function paypalClaimEvent(admin: Admin, id: string, type: string): Promise<boolean> {
   const { error } = await admin.from('paypal_events').insert({ id, type })
   if (!error) return true
   if (error.code === '23505') return false // duplicate — already processed
-  // 42P01 = tabela ausente. ANTES isto devolvia `true` e toda re-tentativa
-  // concedia de novo. Sem o livro de idempotência não existe concessão segura.
-  throw new PayPalRetryableError(
-    `paypal_events claim failed (${error.code ?? '?'}): ${error.message}`,
-  )
-}
-
-/**
- * Desfaz a marca quando a concessão que ela protegia NÃO aconteceu. Sem isto, a
- * primeira falha transitória congela o pagamento para sempre.
- *
- * Best-effort de propósito: se a liberação falhar, o 500 do handler ainda pede
- * re-tentativa, e a re-tentativa vai encontrar a marca e pular — situação ruim,
- * mas idêntica ao mundo anterior, e agora com dois erros no log em vez de zero.
- */
-export async function paypalReleaseEvent(admin: Admin, id: string): Promise<void> {
-  const { error } = await admin.from('paypal_events').delete().eq('id', id)
-  if (error) {
-    console.error('[paypal] FALHOU AO LIBERAR O GUARD — pagamento pode congelar:', id, error.message)
-  }
+  // 42P01 = table missing; log and allow (better than dropping live payments)
+  if (error.code !== '42P01') console.error('[paypal] claim event error:', error.code, error.message)
+  return true
 }
 
 // ── Credit granting (mirrors the Stripe webhook paths) ──────────────────────
-// As três funções abaixo LANÇAM em vez de logar: quem chama precisa saber que o
-// crédito não entrou, para liberar o guard e pedir re-tentativa.
 export async function grantPackCredits(admin: Admin, userId: string, credits: number): Promise<void> {
-  const { data: profile, error: readError } = await admin
-    .from('profiles').select('video_credits').eq('id', userId).single()
-  // A leitura também precisa falhar alto: um erro aqui virava `?? 0`, e o saldo
-  // do cliente seria REESCRITO como `0 + credits`, apagando o que ele tinha.
-  if (readError) {
-    throw new PayPalRetryableError(`pack grant: profile read failed (${userId}): ${readError.message}`)
-  }
+  const { data: profile } = await admin.from('profiles').select('video_credits').eq('id', userId).single()
   const next = (profile?.video_credits ?? 0) + credits
   const { error } = await admin.from('profiles').update({ video_credits: next }).eq('id', userId)
-  if (error) {
-    throw new PayPalRetryableError(`pack credit grant failed (${userId}): ${error.message}`)
-  }
-  console.log(`[paypal] +${credits} credits (pack) → user ${userId} (now ${next})`)
+  if (error) console.error('[paypal] pack credit grant failed:', error.message, userId)
+  else console.log(`[paypal] +${credits} credits (pack) → user ${userId} (now ${next})`)
 }
 
 export async function activateSubscription(
@@ -319,11 +242,7 @@ export async function activateSubscription(
   subscriptionId: string
 ): Promise<void> {
   const credits = PAYPAL_PLAN_CREDITS[tier]
-  const { data: profile, error: readError } = await admin
-    .from('profiles').select('video_credits').eq('id', userId).single()
-  if (readError) {
-    throw new PayPalRetryableError(`activate: profile read failed (${userId}): ${readError.message}`)
-  }
+  const { data: profile } = await admin.from('profiles').select('video_credits').eq('id', userId).single()
   const next = (profile?.video_credits ?? 0) + credits
   const { error } = await admin
     .from('profiles')
@@ -335,10 +254,8 @@ export async function activateSubscription(
       cinematic_tokens: tier === 'pro' ? 1 : 0,
     })
     .eq('id', userId)
-  if (error) {
-    throw new PayPalRetryableError(`subscription activate failed (${userId}): ${error.message}`)
-  }
-  console.log(`[paypal] subscription ACTIVE: ${tier} (+${credits} credits) → user ${userId} (now ${next})`)
+  if (error) console.error('[paypal] subscription activate failed:', error.message, userId)
+  else console.log(`[paypal] subscription ACTIVE: ${tier} (+${credits} credits) → user ${userId} (now ${next})`)
 }
 
 export async function renewSubscriptionCredits(admin: Admin, userId: string, tier: PayPalTier): Promise<void> {
@@ -348,8 +265,6 @@ export async function renewSubscriptionCredits(admin: Admin, userId: string, tie
     .from('profiles')
     .update({ video_credits: credits, cinematic_tokens: tier === 'pro' ? 1 : 0, is_pro: true, plan: tier })
     .eq('id', userId)
-  if (error) {
-    throw new PayPalRetryableError(`renewal grant failed (${userId}): ${error.message}`)
-  }
-  console.log(`[paypal] renewal: ${tier} → user ${userId} (credits reset to ${credits})`)
+  if (error) console.error('[paypal] renewal grant failed:', error.message, userId)
+  else console.log(`[paypal] renewal: ${tier} → user ${userId} (credits reset to ${credits})`)
 }
