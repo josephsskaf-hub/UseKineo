@@ -4502,3 +4502,145 @@ antes de entregar** — e a sexta, agora, foi num número da outra pista.
 O padrão nunca está no número: está na **população embaixo dele**. É por isso que
 as três consultas ficaram em `docs/queries/` **com a armadilha escrita no
 cabeçalho** — diário se lê uma vez, consulta se roda toda semana.
+
+---
+
+### #22d — 04:08→04:38 BRT (07/09) — CHECKPOINT da rotação #8: a peça de ontem à noite continua PUBLICADA E NÃO PROVADA — e agora eu sei medir isso sem olhar o relógio
+
+**Press release.** Para quem chega, nada muda nesta entrada: ela não tem
+código. O que muda é para quem vai medir. O `#22c` fechou dizendo, com todas as
+letras, que a peça do degrau `trial_repeat` estava "publicada e não provada" e
+que só o evento `trial_repeat_price_viewed` no banco a provaria. Eu fui
+conferir. O evento tem **zero linhas** — e isso **não é defeito**: no intervalo
+inteiro houve **uma única oportunidade**, e ela foi servida pelo **bundle
+antigo**. A descoberta que vale é o **como eu provei isso**, porque resolve o
+erro que já custou rotações nesta madrugada.
+
+#### O que eu conferi, e o que cada coisa devolveu
+
+| conferência | resultado |
+|---|---|
+| `git ls-remote origin main` | `d16b1017` — bate com a ponta local |
+| `origin/main..entrega-atual` | **0** — fila vazia, nada preso |
+| sonda `/`, `/pricing`, `/ai-video-generator/kineo-1`, `/free-ai-shorts-generator` | **200** |
+| **controle inexistente** | **404** — a sonda discrimina |
+| `/studio/create` | **307** — segue não sondável de fora, como o `#22c` avisou |
+| `trial_repeat_price_viewed` desde o deploy | **0 linhas** |
+| `trial_repeat_episode_viewed` desde o deploy | **1 linha**, 06:55:35 UTC |
+
+#### O erro que eu quase cometi, e o instrumento que o mata
+
+O commit `3273e89b` é de **06:53:59 UTC**. A impressão é de **06:55:35 UTC** —
+**1min36 depois**. Pelo relógio, ela é "pós-deploy", e a leitura preguiçosa
+seria: *houve 1 oportunidade e o evento novo não saiu → degrau morto*. Isso
+teria virado alarme falso, e seria a **terceira** vez nesta madrugada que um
+corte por relógio inventa um defeito (`#21f`, `#22`).
+
+O deploy da Vercel leva até 6 minutos. O corte certo nunca foi o horário do
+commit — é **quando o bundle novo passou a servir**. E o próprio código
+publicado deu, sem querer, o instrumento para responder isso: o `#22` acrescentou
+`plans_link` e `bridge_reason` ao payload da impressão. Então:
+
+> **A linha de 06:55:35 tem o metadata idêntico ao das linhas de 06/09 —
+> `source`, `utm_source`, `target_engine`, `credits_before`, `repeat_version`,
+> `intent_campaign`, `target_duration`, `credits_required`,
+> `first_touch_source`, `last_video_quality`, `credits_after_success`. Nem
+> `plans_link`, nem `bridge_reason`.** Aquela pessoa recebeu o **bundle
+> antigo**. A oportunidade é anterior ao deploy, e não conta.
+
+**Oportunidades pós-bundle-novo: 0.** O `trial_repeat_price_viewed` estar zerado
+é o esperado, não um sintoma.
+
+**A regra que fica** (e que a próxima sessão deve usar em vez do horário): quando
+uma entrega acrescenta campo ao payload de um evento que já existia, **o campo
+novo é o carimbo do deploy**. `metadata ? 'plans_link'` separa quem viu a peça
+nova de quem viu a velha, com precisão de linha, sem depender de relógio, de
+build time ou de `?dpl=`. Onde a entrega **não** acrescenta campo a um evento
+existente, vale a pena acrescentar um — é barato e é a diferença entre medir e
+adivinhar.
+
+#### Checagem zero — passa, e o susto tinha explicação
+
+O primeiro número apareceu feio: **10 cadastros externos em 6h, 7 com
+`video_credits = 0`**. Lido cru, isso é "70% dos cadastros nascendo sem
+crédito" — o defeito mais caro da casa. Não é. Lendo o `trial_status`, que é o
+que separa os três significados de crédito zero:
+
+| leitura | contas | é defeito? |
+|---|---|---|
+| `blocked` — antifraude | **4** | não: o antifraude funcionou |
+| `downgraded` — trial gasto | **3** | não: as 3 **entregaram 1 filme cada** |
+| `active` com 25 ou 12 créditos | **3** | não |
+| **trial órfão (0 crédito, `active`, 0 evento)** | **0** | — |
+
+As 4 bloqueadas são um **cluster**: todas `@live.com`, criadas em **23 minutos**
+(02:44 → 03:07 UTC). Mesmo ator, e a porta segurou. Anoto, não escalo.
+
+Renders não-terminais em 6h: **0**. Eventos de falha: **4**, e nenhum é causa
+antiga da lista de alerta — 2 são o mesmo render (`narration_too_short`,
+`speech=5s target=35s`) e 2 são o gate de `trial_ended` **funcionando**
+(`gate=trial_ended|upsell=creator|balance=0`), que é o cobrador, não um erro.
+
+#### Praxe — aquisição nas últimas 24h (contas externas)
+
+| fonte | cadastros | com filme | checkout | **payment_success** |
+|---|---|---|---|---|
+| chatgpt | 27 | 23 | 1 | **0** |
+| (sem fonte) | 9 | 4 | 1 | **0** |
+| taaft | 5 | 5 | 0 | **0** |
+| nav | 1 | 1 | 0 | **0** |
+| **total** | **42** | **33 (79%)** | **2** | **0** |
+
+Duas coisas que eu não vou maquiar. **(1)** 79% dos cadastros recebem filme — o
+produto entrega. E ainda assim **0 pagamentos** no ciclo inteiro. O funil está
+limpo e a conversão é zero; o fechamento do `#22` está certo ao dizer que o
+problema é o denominador, mas 42 cadastros/dia com 33 filmes e nenhuma venda
+também diz que a **porta do dinheiro** ainda não foi encontrada.
+**(2)** "(sem fonte)" é **9 de 42 = 21%** — o dobro dos 10% do mapa de entrada
+que abriu o ciclo. Ou o `Q2` não cobriu o caminho por onde essas 9 entraram, ou
+a piora é real e recente. **Isso é o primeiro número que a próxima sessão deve
+atacar**, e ela deve começar perguntando *por qual página* essas 9 entraram.
+
+#### Risco e limite desta entrada
+
+Não subiu código; o risco é zero. O limite é honesto: eu **não provei** que a
+peça do `#22` funciona — provei que **ainda não houve chance de ela funcionar**,
+e deixei o instrumento que dirá a verdade na primeira oportunidade real. Se na
+próxima impressão com `plans_link` presente o `trial_repeat_price_viewed`
+continuar sem linha, **aí sim** é degrau morto, e o `STARTER_PLAN_FACTS` é o
+primeiro suspeito.
+
+#### Como medir, daqui para frente
+
+```sql
+-- oportunidades REAIS (bundle novo) e a exposição ao preço
+select
+  count(*) filter (where name='trial_repeat_episode_viewed'
+                     and metadata ? 'plans_link')            as oportunidades_bundle_novo,
+  count(*) filter (where name='trial_repeat_price_viewed')   as viram_o_preco
+from events
+where created_at > timestamptz '2026-09-07T03:53:59-03:00';
+```
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada. Este checkpoint não pede nada de você — é conferência. O que já estava na
+sua lista continua em `docs/ACOES-DO-FUNDADOR-2026-09-06.md` (Search Console,
+diretórios, TAAFT).
+
+## 📋 O QUE ACONTECEU
+
+Conferi, no fim da janela, se o que as rotações da noite declararam "em
+produção" é verdade. É: a ponta bate, a fila está vazia, o site responde 200 e
+a sonda sabe distinguir (404 no controle). A peça do degrau `trial_repeat`
+continua **publicada e não provada** — e descobri que ela teve **uma única
+chance**, servida pelo bundle antigo, 1min36 depois do commit e antes do deploy
+ficar pronto. Provei isso pelo payload, não pelo relógio: o campo `plans_link`
+que a entrega acrescentou é o carimbo do deploy, e a linha não o tem. Isso vira
+regra: **campo novo em evento velho é o corte de deploy**, e mata o erro de
+corte por relógio que já custou três leituras erradas nesta madrugada. A
+checagem zero passa — os 7 cadastros com crédito zero são 4 bloqueios de
+antifraude (mesmo ator, 5 contas em 23 minutos) e 3 trials gastos que
+receberam filme, nenhum trial órfão. O placar de 24h: 42 cadastros externos,
+33 filmes (79%), 2 checkouts, **0 pagamentos** — e "sem fonte" subiu de 10%
+para 21%, que é o número que a próxima sessão deve atacar primeiro.
