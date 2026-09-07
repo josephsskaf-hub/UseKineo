@@ -154,18 +154,79 @@ ok('importada de components/ na tela pós-filme',
 ok('fica DEPOIS do NextActionCard (deliver-first intacto)',
   gen.indexOf('<RegionalFirstPack surface="post_video" />') >
     gen.indexOf('<NextActionCard surface="generate_done_screen" />'))
-ok('a peça aceita as duas superfícies e nada mais',
-  /export type SuperficieDoPack = 'pricing' \| 'post_video'/.test(comp))
+ok('a peça aceita as TRÊS superfícies e nada mais',
+  /export type SuperficieDoPack = 'pricing' \| 'post_video' \| 'studio_step1'\n/.test(comp))
 // A copy não pode ser a mesma nas duas: quem acabou de receber um filme NÃO
 // foi recusado por ninguém, e perguntar "seu cartão foi recusado?" inventa um
 // problema que a pessoa não tem.
 ok('a copy muda com a superfície (não pergunta de recusa a quem não tentou pagar)',
   /COPY\[surface\]\.chapeu/.test(comp) && /COPY\[surface\]\.contexto/.test(comp))
+// Ver B4: esta fatia era por contagem de caracteres e só acertava porque
+// post_video é a ÚLTIMA entrada do Record. Passa a cortar na fronteira.
 ok('a superfície pós-filme NÃO fala em cartão recusado',
-  !/declined/i.test(comp.slice(comp.indexOf('post_video: {'), comp.indexOf('post_video: {') + 400)))
+  (() => {
+    const i = comp.indexOf('post_video: {')
+    const fim = comp.indexOf('\n  },', i)
+    return i > 0 && fim > i && !/declined/i.test(comp.slice(i, fim))
+  })())
 // A promessa que precisa ser verdadeira nas DUAS telas.
 ok('as duas superfícies prometem a mesma coisa verificável: compra única',
   /no subscription/i.test(comp) && /one-time payment/i.test(comp))
+
+// ── BLOCO B4 — A TERCEIRA SUPERFÍCIE, E É A MAIS LARGA DAS TRÊS ───────────
+// Medido em 07/09 (30 dias, por PESSOA, coorte IN/NG/PK/BD/KE de 164):
+//   /pricing 46 · pós-filme 45 · as duas juntas 70 · ESTE grid 78 · união 86.
+// 16 pessoas passam pelo grid do Studio e NUNCA tocam nas outras duas telas.
+//
+// ⚠️ A ARMADILHA QUE QUASE ESCONDEU ESTE NÚMERO: `NOT IN (select user_id ..)`
+// devolve NULL para TODA linha quando a subconsulta tem um único user_id nulo,
+// e o "exclusivo" saiu 0 — contradizendo a própria união, que subia de 70 para
+// 86. Com `NOT EXISTS` o 16 apareceu. Coorte nunca se mede com NOT IN.
+console.log('\nB4. a terceira superfície (o grid do Studio alcança 78 das 86)')
+
+const cards = ler('components', 'PricingCards.tsx')
+ok('montada no grid do Studio, com UMA linha',
+  /^\s*<RegionalFirstPack surface="studio_step1" \/>$/m.test(cards))
+ok('importada de components/ no grid do Studio',
+  /import RegionalFirstPack from '@\/components\/RegionalFirstPack'/.test(cards))
+// Se ela nascesse ABAIXO do grid, quem já decidiu "não consigo assinar" teria
+// de rolar de volta — e o rodapé dela diz "right below", que viraria mentira.
+ok('a montagem fica ACIMA do grid de planos (avulso primeiro)',
+  cards.indexOf('<RegionalFirstPack surface="studio_step1" />') > 0 &&
+  cards.indexOf('<RegionalFirstPack surface="studio_step1" />') <
+    cards.indexOf('grid mx-auto gap-4 grid-cols-1 md:grid-cols-3'))
+// O denominador honesto: inline_pricing_currency_resolved dispara na MESMA
+// chamada /api/geo, para TODO visitante desta tela. É o par que dispara igual.
+ok('o denominador honesto dispara na MESMA tela e pela MESMA chamada de geo',
+  /pricing_surface: 'generate_step_1',/.test(cards) &&
+  /inline_pricing_currency_resolved/.test(cards))
+// A pessoa neste grid ainda não recebeu filme e ninguém recusou o cartão dela.
+//
+// ⚠️ A FATIA CORTA NA FRONTEIRA DA ENTRADA, não em N caracteres. A primeira
+// versão desta asserção lia 400 chars a partir de 'studio_step1: {' e caía
+// dentro da entrada SEGUINTE do Record — que legitimamente diz "declined" — e
+// falhou. A irmã dela (post_video) passava só por ser a ÚLTIMA entrada do
+// COPY: bastaria alguém acrescentar uma quarta superfície depois dela para o
+// mesmo falso vermelho aparecer lá. Janela por contagem não conhece fronteira.
+const entradaCopy = (nome) => {
+  const i = comp.indexOf(nome + ': {')
+  if (i < 0) return ''
+  const fim = comp.indexOf('\n  },', i)
+  return fim > i ? comp.slice(i, fim) : ''
+}
+const copyStudio = entradaCopy('studio_step1')
+ok('a entrada de copy do Studio foi encontrada e delimitada',
+  copyStudio.length > 40 && !copyStudio.includes('pricing: {'), `${copyStudio.length} chars`)
+ok('a copy do Studio NÃO inventa uma recusa que não houve',
+  copyStudio.length > 0 && !/declined/i.test(copyStudio))
+ok('nem fala em "keep making films" a quem ainda não fez nenhum',
+  copyStudio.length > 0 && !/keep making/i.test(copyStudio))
+// Antes o rodapé testava surface === 'pricing', então a terceira superfície
+// herdaria "see the options above" estando ACIMA dos planos.
+ok('o rodapé aponta para onde os planos realmente estão, por superfície',
+  /surface === 'post_video' \? 'Prefer a monthly plan\? See the options above\.'/.test(comp))
+ok('o grid do Studio NÃO ganhou uma segunda montagem por engano',
+  (cards.match(/<RegionalFirstPack/g) ?? []).length === 1)
 
 // ── BLOCO B3 — O MÉTODO LOCAL (UPI / Pix) ─────────────────────────────────
 // "Aceitar UPI só para quem vem de IP da Índia" foi a ordem literal do

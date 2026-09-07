@@ -113,9 +113,19 @@ export function regiaoSemMandato(pais: string | null | undefined): boolean {
  * verdadeiro nas duas é a mesma coisa e é o núcleo da oferta: **paga uma vez,
  * sem assinatura**.
  */
-export type SuperficieDoPack = 'pricing' | 'post_video'
+export type SuperficieDoPack = 'pricing' | 'post_video' | 'studio_step1'
 
 const COPY: Record<SuperficieDoPack, { chapeu: string; contexto: string }> = {
+  // KINEO-TERCEIRA-SUPERFICIE-2026-09-07 — o grid de planos DENTRO do Studio.
+  // Aqui a pessoa ainda não recebeu filme nenhum e ninguém recusou o cartão
+  // dela: ela está escolhendo como pagar ANTES de começar. Por isso a copy não
+  // pergunta por recusa (que ela não teve) nem fala em "keep making films"
+  // (que ela ainda não faz) — fala do começo.
+  studio_step1: {
+    chapeu: 'No card that does subscriptions?',
+    contexto:
+      'Many banks outside the US block recurring international charges but clear a single one. Start making films today without signing up for a plan.',
+  },
   pricing: {
     chapeu: 'Card keeps getting declined?',
     contexto:
@@ -286,7 +296,12 @@ export default function RegionalFirstPack({
       </>
       )}
       <p className="mt-3 text-[11.5px] text-[#86868b]">
-        {surface === 'pricing' ? 'Prefer a monthly plan? They are right below.' : 'Prefer a monthly plan? See the options above.'}
+        {/* A frase tem de dizer a verdade sobre a POSIÇÃO em cada tela: em
+            /pricing e no grid do Studio a peça fica ACIMA dos planos; na tela
+            pós-filme ela fica DEPOIS de tudo que entrega. O teste passa a ser
+            por 'post_video' para que a terceira superfície nasça certa, em vez
+            de herdar o texto errado por ser "a que não é /pricing". */}
+        {surface === 'post_video' ? 'Prefer a monthly plan? See the options above.' : 'Prefer a monthly plan? They are right below.'}
       </p>
     </div>
   )

@@ -50,6 +50,7 @@ import {
 } from '@/lib/marketingPrice'
 import { trackClosedEvent, trackEvent } from '@/lib/analytics'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
+import RegionalFirstPack from '@/components/RegionalFirstPack'
 import {
   INLINE_PRICING_DWELL_MS,
   INLINE_PRICING_RETRY_MS,
@@ -426,6 +427,19 @@ export default function PricingCards({
         voiceover, karaoke captions, soundtrack and edit included.{' '}
         <span style={{ color: '#6e6e73' }}>A freelance editor charges $30–75 for one Short.</span>
       </p>
+
+      {/* KINEO-TERCEIRA-SUPERFICIE-2026-09-07 — a MESMA peça de /pricing e da
+          tela pós-filme, na terceira superfície e a mais larga das três.
+          Medido em 07/09 (30 dias, por PESSOA, coorte IN/NG/PK/BD/KE):
+            · /pricing ..................... 46 pessoas
+            · tela pós-filme ............... 45 pessoas
+            · as duas juntas ............... 70 pessoas  ← o que subiu às 13:47
+            · ESTE grid (generate_step_1) .. 78 pessoas
+            · união das três ............... 86 pessoas
+          16 pessoas passam por AQUI e nunca tocam nas outras duas. Montar a
+          peça neste grid leva o alcance de 70 para 86 sem mudar um preço.
+          A decisão inteira (país, gate, copy, evento) mora no componente. */}
+      <RegionalFirstPack surface="studio_step1" />
 
       {/* Push #339 — 3-card layout: Spark + Basic + Pro. */}
       <div className="grid mx-auto gap-4 grid-cols-1 md:grid-cols-3" style={{ maxWidth: '62rem' }}>
