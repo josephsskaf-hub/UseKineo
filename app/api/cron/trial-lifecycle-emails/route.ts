@@ -48,6 +48,7 @@ import {
   type LossBody,
 } from '@/lib/lifecycle/trialFilmPlans'
 import { trialEntryFeeLabel, trialEntryFullPromise } from '@/lib/lifecycle/trialEntryFee'
+import { trialReachClause, trialFilmsWithinReach } from '@/lib/lifecycle/trialReachLine'
 import { CARD_TRIAL_DAYS } from '@/lib/checkoutPricing'
 
 // trial-lifecycle-emails — REVERSE TRIAL FASE 2, ITEM 4 (07/08/2026).
@@ -1259,9 +1260,15 @@ function buildEmail(c: Candidate): { subject: string; text: string; html: string
       ? `${d0Blocks.html}
   <p style="margin:14px 0 20px;font-size:14px;color:#555;">Or <a href="${attr(url)}" style="color:#2997ff;">start from your own topic</a>.</p>`
       : cta(url, ctaLabel)
+    // KINEO-D0-ALCANCE-2026-09-07 — ver o cabeçalho de lib/lifecycle/
+    // trialReachLine.ts. A frase nomeava Kling 3 (150cr) para uma conta com 25.
+    // Agora a cláusula nasce da tabela do cobrador; `null` = saldo não cobre um
+    // render, e aí a carta sai sem conta nenhuma em vez de prometer errado.
+    const reachClause = trialReachClause(c.creditsLeft)
+    const engineLine = reachClause ? `${reachClause}. ` : 'Every engine is unlocked. '
     const text = `Hey,
 
-Your Creator trial is live. ${creditLine} — EVERY engine is unlocked, Kling 3 included. Films carry a watermark until you upgrade.
+Your Creator trial is live. ${creditLine} — ${engineLine}Films carry a watermark until you upgrade.
 
 ${bodyLineSafe}
 ${topicsText}
@@ -1269,7 +1276,7 @@ Kineo Team
 usekineo.com`
     const html = wrap(`
   <p style="margin:0 0 14px;">Hey,</p>
-  <p style="margin:0 0 14px;"><strong>Your Creator trial is live.</strong> ${creditLine} &mdash; EVERY engine is unlocked, Kling 3 included. Films carry a watermark until you upgrade.</p>
+  <p style="margin:0 0 14px;"><strong>Your Creator trial is live.</strong> ${creditLine} &mdash; ${engineLine}Films carry a watermark until you upgrade.</p>
   <p style="margin:0 0 14px;">${bodyLineSafe}</p>
   ${topicsHtml}
   ${sig}`)
@@ -2603,6 +2610,12 @@ export async function GET(req: NextRequest) {
             // Linha SEM o campo é de antes e não se mistura na medição
             // (memória `campo-novo-e-o-carimbo-do-deploy`).
             ...(body.trialDoor === undefined ? {} : { trial_door: body.trialDoor }),
+            // KINEO-D0-ALCANCE-2026-09-07 — carimbo do deploy desta rotação.
+            // Só no `d0_welcome`, que é o único ramo que carrega a cláusula.
+            // Vale ZERO explícito quando o saldo não cobre um render: sem isso
+            // o denominador vira "as linhas que têm o campo" e quem saiu com a
+            // frase sem conta some (memória `sentinela-lido-como-valor-real`).
+            ...(c.kind === 'd0_welcome' ? { reach_films: trialFilmsWithinReach(c.creditsLeft) } : {}),
           },
         })
         console.log(`[trial-lifecycle-emails] sent ${c.kind} to ${c.email}`)
