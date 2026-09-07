@@ -13,6 +13,7 @@ import {
   paypalFetch,
   verifyPaypalWebhook,
   paypalClaimEvent,
+  paypalReleaseEvent,
   grantPackCredits,
   activateSubscription,
   renewSubscriptionCredits,
@@ -51,12 +52,31 @@ export async function POST(req: NextRequest) {
   const eventType = String(event.event_type ?? '')
   const resource = (event.resource ?? {}) as Record<string, unknown>
 
-  // Event-level dedupe (PayPal retries on non-2xx / slow responses).
-  if (eventId && !(await paypalClaimEvent(admin, `evt:${eventId}`, eventType))) {
-    return NextResponse.json({ received: true, duplicate: true })
+  // ═══════════════════════════════════════════════════════════════════════
+  // KINEO-PAYPAL-IDEMPOTENCIA-2026-09-07 — TODA MARCA TIRADA NESTE PEDIDO É
+  // DEVOLVIDA SE A ENTREGA NÃO ACONTECER.
+  // ═══════════════════════════════════════════════════════════════════════
+  // O `evt:` abaixo é tirado ANTES do switch, então ele sozinho já congelava o
+  // pagamento: se qualquer concessão lá dentro falhasse, a marca do evento
+  // ficava, a re-tentativa do PayPal lia "duplicate" e ninguém nunca recebia.
+  // Somando a marca por-operação de dentro do switch, eram DUAS marcas
+  // permanentes protegendo uma entrega que não aconteceu.
+  //
+  // Agora toda marca entra nesta lista, e o `catch` devolve todas antes de
+  // pedir re-tentativa com 500. Ver o cabeçalho de `paypalClaimEvent`.
+  const marcasTiradas: string[] = []
+  const marcar = async (chave: string, tipo: string): Promise<boolean> => {
+    const primeiraVez = await paypalClaimEvent(admin, chave, tipo)
+    if (primeiraVez) marcasTiradas.push(chave)
+    return primeiraVez
   }
 
   try {
+    // Event-level dedupe (PayPal retries on non-2xx / slow responses).
+    if (eventId && !(await marcar(`evt:${eventId}`, eventType))) {
+      return NextResponse.json({ received: true, duplicate: true })
+    }
+
     switch (eventType) {
       case 'PAYMENT.CAPTURE.COMPLETED': {
         // One-time pack capture. supplementary_data carries the order id.
@@ -72,7 +92,7 @@ export async function POST(req: NextRequest) {
         // Ignore subscription charges here (those come as PAYMENT.SALE.COMPLETED).
         if (amount.value !== PAYPAL_PACK.usd) break
         const claimKey = orderId ? `order:${orderId}` : `capture:${captureId}`
-        if (await paypalClaimEvent(admin, claimKey, 'pack_capture')) {
+        if (await marcar(claimKey, 'pack_capture')) {
           await grantPackCredits(admin, userId, PAYPAL_PACK.credits)
         }
         break
@@ -85,7 +105,7 @@ export async function POST(req: NextRequest) {
         if (!subId || !userId) break
         const mapped = await tierFromPlanId(admin, planId)
         const tier: PayPalTier = mapped?.tier ?? 'basic'
-        if (await paypalClaimEvent(admin, `subact:${subId}`, 'sub_activate')) {
+        if (await marcar(`subact:${subId}`, 'sub_activate')) {
           await activateSubscription(admin, userId, tier, subId)
         }
         break
@@ -97,7 +117,7 @@ export async function POST(req: NextRequest) {
         const saleId = String(resource.id ?? '')
         const subId = String(resource.billing_agreement_id ?? '')
         if (!saleId || !subId) break
-        if (!(await paypalClaimEvent(admin, `sale:${subId}:${saleId}`, 'sub_sale'))) break
+        if (!(await marcar(`sale:${subId}:${saleId}`, 'sub_sale'))) break
 
         const { count } = await admin
           .from('paypal_events')
@@ -143,8 +163,26 @@ export async function POST(req: NextRequest) {
         break
     }
   } catch (err) {
+    // ANTES: `console.error` e 200. O comentário dizia "grants are idempotent
+    // and PayPal hammer-retries 5xx" — e as duas metades estavam erradas. As
+    // concessões eram idempotentes na direção que PERDE o pagamento (a marca
+    // ficava, a re-tentativa pulava), e o 200 dizia ao PayPal para não tentar
+    // mais. Juntas, produziam o pior desfecho possível num trilho de dinheiro:
+    // o cliente paga, não recebe, e não há erro em lugar nenhum.
     console.error('[paypal webhook] handler error:', eventType, err)
-    // Return 200 anyway: grants are idempotent and PayPal hammer-retries 5xx.
+
+    // Devolve TODAS as marcas tiradas neste pedido, para que a re-tentativa
+    // encontre o caminho limpo em vez de ler "duplicate" e desistir.
+    for (const chave of marcasTiradas) {
+      await paypalReleaseEvent(admin, chave)
+    }
+
+    // 500 = "tente de novo". É o único jeito de pedir a re-tentativa, e o
+    // PayPal re-tenta por dias. Barulhento de propósito.
+    return NextResponse.json(
+      { error: 'grant failed, retry', event_type: eventType },
+      { status: 500 },
+    )
   }
 
   return NextResponse.json({ received: true })

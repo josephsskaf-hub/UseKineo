@@ -9,6 +9,7 @@ import {
   paypalAdminClient,
   paypalFetch,
   paypalClaimEvent,
+  paypalReleaseEvent,
   grantPackCredits,
   activateSubscription,
   PAYPAL_PACK,
@@ -32,6 +33,34 @@ export const fetchCache = 'force-no-store'
 
 function appUrl() {
   return 'https://www.usekineo.com'
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// KINEO-PAYPAL-IDEMPOTENCIA-2026-09-07 — A MESMA CORREÇÃO DO WEBHOOK, AQUI.
+// ═══════════════════════════════════════════════════════════════════════════
+// Esta rota e o webhook DIVIDEM as mesmas chaves em `paypal_events` (é o que o
+// cabeçalho do arquivo chama de "whichever arrives first wins"). Por isso
+// consertar só o webhook deixaria o defeito vivo: se a concessão falhasse
+// AQUI, a marca ficava, e o webhook — que é o caminho de reserva para
+// exatamente este caso — chegava depois, lia "já processado" e não concedia
+// nada. Uma falha transitória de um lado envenenava o outro.
+//
+// A regra da casa é a mesma dos outros trilhos: pegar a marca antes, e se a
+// entrega não acontecer, DEVOLVER a marca. Aqui a devolução importa ainda
+// mais, porque quem repara é o webhook e não uma re-tentativa nossa.
+async function concederOuLiberar(
+  admin: Parameters<typeof paypalReleaseEvent>[0],
+  chave: string,
+  tipo: string,
+  conceder: () => Promise<void>,
+): Promise<void> {
+  if (!(await paypalClaimEvent(admin, chave, tipo))) return // já concedido
+  try {
+    await conceder()
+  } catch (err) {
+    await paypalReleaseEvent(admin, chave)
+    throw err
+  }
 }
 
 export async function GET(req: NextRequest) {
@@ -66,9 +95,9 @@ export async function GET(req: NextRequest) {
       const userId = String(pu.custom_id ?? ((pu.payments as Record<string, unknown> | undefined)?.captures as Array<Record<string, unknown>> | undefined)?.[0]?.custom_id ?? '')
       if (!userId) throw new Error('order missing custom_id')
 
-      if (await paypalClaimEvent(admin, `order:${orderId}`, 'pack_capture')) {
-        await grantPackCredits(admin, userId, PAYPAL_PACK.credits)
-      }
+      await concederOuLiberar(admin, `order:${orderId}`, 'pack_capture', () =>
+        grantPackCredits(admin, userId, PAYPAL_PACK.credits),
+      )
       return NextResponse.redirect(
         `${appUrl()}/checkout/success?success=true&pack=starter&currency=usd&amount=490&via=paypal`
       )
@@ -90,9 +119,9 @@ export async function GET(req: NextRequest) {
         throw new Error(`subscription not active: ${status}`)
       }
 
-      if (await paypalClaimEvent(admin, `subact:${subId}`, 'sub_activate')) {
-        await activateSubscription(admin, userId, tier, subId)
-      }
+      await concederOuLiberar(admin, `subact:${subId}`, 'sub_activate', () =>
+        activateSubscription(admin, userId, tier, subId),
+      )
       const cents = Math.round(
         parseFloat(billing === 'annual' ? PAYPAL_TIER_USD[tier].annual : PAYPAL_TIER_USD[tier].monthly) * 100
       )

@@ -195,24 +195,99 @@ export async function verifyPaypalWebhook(
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// KINEO-PAYPAL-IDEMPOTENCIA-2026-09-07 — O DINHEIRO DEIXA DE SUMIR EM SILÊNCIO
+// ═══════════════════════════════════════════════════════════════════════════
+// A auditoria de 28/08 registrou isto como "idempotência invertida (claim antes
+// do grant, erro engolido)". Lendo o código inteiro em 07/09, são QUATRO
+// defeitos que se compõem, e o desfecho de todos é o mesmo: **o cliente paga e
+// nunca recebe**, sem erro em lugar nenhum.
+//
+//  1. A MARCA VINHA ANTES DA ENTREGA E NUNCA ERA DESFEITA. `paypalClaimEvent`
+//     gravava a linha e devolvia `true`; a concessão vinha depois. Se ela
+//     falhasse, a marca FICAVA — e a re-tentativa do PayPal batia em `23505`,
+//     lia "já processado" e PULAVA a concessão. Para sempre.
+//  2. A CONCESSÃO ENGOLIA O PRÓPRIO ERRO. As três funções abaixo faziam
+//     `console.error` e devolviam `void`: quem chamava não tinha como saber
+//     que o crédito não entrou.
+//  3. O HANDLER DEVOLVIA 200 EM QUALQUER EXCEÇÃO, com o comentário "grants are
+//     idempotent and PayPal hammer-retries 5xx". Eles são idempotentes na
+//     direção errada — a que PERDE o pagamento —, e o 200 dizia ao PayPal para
+//     nunca mais tentar.
+//  4. TABELA AUSENTE VIRAVA "PODE CONCEDER". O ramo `42P01` devolvia `true`,
+//     ou seja: sem a tabela de idempotência, TODA re-tentativa concedia de
+//     novo. O oposto exato do defeito 1 — crédito em dobro.
+//
+// As tabelas do PayPal estão VAZIAS hoje (nenhum cliente por esse trilho na
+// história), então isto se conserta sem migrar nada e sem risco de mexer em
+// dinheiro que já entrou. O padrão adotado é o do webhook da Stripe: pegar o
+// guard ANTES, e se a concessão falhar, LIBERAR o guard e devolver 500 para
+// que o fornecedor re-tente.
+//
+// ⚠️ AGORA FALHA FECHADA, e é uma escolha: sem a tabela `paypal_events` nada é
+// concedido e o webhook devolve 500 em vez de conceder às cegas. Um 500
+// repetido é barulhento e alguém conserta; um crédito duplicado silencioso não
+// aparece em log nenhum.
+
+/** Erro que o handler traduz em 500 — o único jeito de pedir re-tentativa. */
+export class PayPalRetryableError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'PayPalRetryableError'
+  }
+}
+
 // ── Idempotency (paypal_events: id text pk) ─────────────────────────────────
-// Returns true when this logical key was seen for the FIRST time.
+/**
+ * Devolve `true` quando esta chave lógica aparece pela PRIMEIRA vez.
+ *
+ * ⚠️ Quem recebe `true` FICA DEVENDO uma de duas coisas: concluir a concessão,
+ * ou chamar `paypalReleaseEvent` com a mesma chave. Um `true` sem nenhum dos
+ * dois é um pagamento perdido para sempre.
+ */
 export async function paypalClaimEvent(admin: Admin, id: string, type: string): Promise<boolean> {
   const { error } = await admin.from('paypal_events').insert({ id, type })
   if (!error) return true
   if (error.code === '23505') return false // duplicate — already processed
-  // 42P01 = table missing; log and allow (better than dropping live payments)
-  if (error.code !== '42P01') console.error('[paypal] claim event error:', error.code, error.message)
-  return true
+  // 42P01 = tabela ausente. ANTES isto devolvia `true` e toda re-tentativa
+  // concedia de novo. Sem o livro de idempotência não existe concessão segura.
+  throw new PayPalRetryableError(
+    `paypal_events claim failed (${error.code ?? '?'}): ${error.message}`,
+  )
+}
+
+/**
+ * Desfaz a marca quando a concessão que ela protegia NÃO aconteceu. Sem isto, a
+ * primeira falha transitória congela o pagamento para sempre.
+ *
+ * Best-effort de propósito: se a liberação falhar, o 500 do handler ainda pede
+ * re-tentativa, e a re-tentativa vai encontrar a marca e pular — situação ruim,
+ * mas idêntica ao mundo anterior, e agora com dois erros no log em vez de zero.
+ */
+export async function paypalReleaseEvent(admin: Admin, id: string): Promise<void> {
+  const { error } = await admin.from('paypal_events').delete().eq('id', id)
+  if (error) {
+    console.error('[paypal] FALHOU AO LIBERAR O GUARD — pagamento pode congelar:', id, error.message)
+  }
 }
 
 // ── Credit granting (mirrors the Stripe webhook paths) ──────────────────────
+// As três funções abaixo LANÇAM em vez de logar: quem chama precisa saber que o
+// crédito não entrou, para liberar o guard e pedir re-tentativa.
 export async function grantPackCredits(admin: Admin, userId: string, credits: number): Promise<void> {
-  const { data: profile } = await admin.from('profiles').select('video_credits').eq('id', userId).single()
+  const { data: profile, error: readError } = await admin
+    .from('profiles').select('video_credits').eq('id', userId).single()
+  // A leitura também precisa falhar alto: um erro aqui virava `?? 0`, e o saldo
+  // do cliente seria REESCRITO como `0 + credits`, apagando o que ele tinha.
+  if (readError) {
+    throw new PayPalRetryableError(`pack grant: profile read failed (${userId}): ${readError.message}`)
+  }
   const next = (profile?.video_credits ?? 0) + credits
   const { error } = await admin.from('profiles').update({ video_credits: next }).eq('id', userId)
-  if (error) console.error('[paypal] pack credit grant failed:', error.message, userId)
-  else console.log(`[paypal] +${credits} credits (pack) → user ${userId} (now ${next})`)
+  if (error) {
+    throw new PayPalRetryableError(`pack credit grant failed (${userId}): ${error.message}`)
+  }
+  console.log(`[paypal] +${credits} credits (pack) → user ${userId} (now ${next})`)
 }
 
 export async function activateSubscription(
@@ -222,7 +297,11 @@ export async function activateSubscription(
   subscriptionId: string
 ): Promise<void> {
   const credits = PAYPAL_PLAN_CREDITS[tier]
-  const { data: profile } = await admin.from('profiles').select('video_credits').eq('id', userId).single()
+  const { data: profile, error: readError } = await admin
+    .from('profiles').select('video_credits').eq('id', userId).single()
+  if (readError) {
+    throw new PayPalRetryableError(`activate: profile read failed (${userId}): ${readError.message}`)
+  }
   const next = (profile?.video_credits ?? 0) + credits
   const { error } = await admin
     .from('profiles')
@@ -234,8 +313,10 @@ export async function activateSubscription(
       cinematic_tokens: tier === 'pro' ? 1 : 0,
     })
     .eq('id', userId)
-  if (error) console.error('[paypal] subscription activate failed:', error.message, userId)
-  else console.log(`[paypal] subscription ACTIVE: ${tier} (+${credits} credits) → user ${userId} (now ${next})`)
+  if (error) {
+    throw new PayPalRetryableError(`subscription activate failed (${userId}): ${error.message}`)
+  }
+  console.log(`[paypal] subscription ACTIVE: ${tier} (+${credits} credits) → user ${userId} (now ${next})`)
 }
 
 export async function renewSubscriptionCredits(admin: Admin, userId: string, tier: PayPalTier): Promise<void> {
@@ -245,6 +326,8 @@ export async function renewSubscriptionCredits(admin: Admin, userId: string, tie
     .from('profiles')
     .update({ video_credits: credits, cinematic_tokens: tier === 'pro' ? 1 : 0, is_pro: true, plan: tier })
     .eq('id', userId)
-  if (error) console.error('[paypal] renewal grant failed:', error.message, userId)
-  else console.log(`[paypal] renewal: ${tier} → user ${userId} (credits reset to ${credits})`)
+  if (error) {
+    throw new PayPalRetryableError(`renewal grant failed (${userId}): ${error.message}`)
+  }
+  console.log(`[paypal] renewal: ${tier} → user ${userId} (credits reset to ${credits})`)
 }
