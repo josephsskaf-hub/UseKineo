@@ -1959,3 +1959,125 @@ preço lido da fonte única. Junto disso, dois números que o senhor precisa ter
 **o último pagamento da história do produto foi 02/09**, e **dos 170 trials que
 acabaram nesta semana, 6 pessoas voltaram ao site** — ou seja, a casa tem uma
 sessão por pessoa e não adianta guardar a conversa de preço para depois.
+
+---
+
+## 🏁 FECHAMENTO DO CICLO — 07/09/2026, 04:30 BRT
+
+O ciclo abriu às 21:00 de 06/09 com uma ordem: pôr a Kineo dentro do ChatGPT.
+A loja da OpenAI fechou para conta pessoal em 16/08 e a jogada mudou de forma no
+meio da noite. O que segue é o que ficou de pé, provado.
+
+### (a) O QUE ESTÁ NO AR — com sonda e controle
+
+`git ls-remote origin main` = **`91e2f34b`**. Deploy novo confirmado pela troca
+do id da Vercel na home durante a sonda: `dpl_AxEABPYSyRnzDx8jshYnRVVnrkFH` →
+`dpl_3dp7McUpmMFDV3fvhPCM8zCQ4ufF`.
+
+| rota | sonda | controle na mesma medição |
+|---|---|---|
+| `/` | **200** | `/rota-controle-inexistente-ponte-xyz` **404** |
+| `/pricing` | **200** | idem |
+| `/chatgpt` | **200** | idem |
+| `/gpt/openapi.json` | **200** | idem |
+| `/llms.txt` | **200** | idem |
+| `POST /api/gpt/handoff` | **200**, ponta a ponta | ver abaixo |
+| `/go/<token>` | **200** com o roteiro | `/go/<token falso>` → página "expired" |
+
+**O handoff foi exercitado de verdade nesta sonda**, não conferido no diário:
+um roteiro real de 4 blocos devolveu token `Wa4WAoYtUI9rwHnsqylRyDJc`, validade
+14/09, e a régua da casa calculada certa — 67 palavras → **21,6s** a 3,1 pal/s,
+com o aviso honesto de que 22s de narração para um alvo de 60s deixa a história
+terminar cedo ("Kineo never stretches a short script"). A página `/go` desse
+token traz o roteiro, o botão **Make this video** e o **See plans** do K1.
+
+**⚠️ DÍVIDA ACHADA NA PRÓPRIA SONDA, não consertada:** `/go/<token falso>`
+responde **HTTP 200** com a página "expired", não 404. Funcionalmente correto
+para quem clica; errado para buscador (soft-404 é indexável) e ruim para
+qualquer sonda futura, que fica sem controle de status. Conserto de minutos,
+fica para a próxima sessão.
+
+**A ENTREGA DA ÚLTIMA ROTAÇÃO (#13)** vive atrás de login (`/generate` → **307**),
+então **não existe sonda de bundle para ela e eu não vou fingir que existe**
+(memória `entrega-so-de-cliente-nao-tem-sonda`). A prova é o marcador
+`plans_link` que subiu no MESMO commit. Lido 6 minutos depois do deploy:
+**0 com marcador, 0 sem marcador** — ninguém cruzou a ponte às 04:15 BRT, que é
+o vale de tráfego da casa. Zero aqui é ausência de oportunidade, não de adoção;
+a leitura vale quando o tráfego do dia chegar.
+
+### (b) O GPT — pronto, e parado por uma decisão que é do fundador
+
+`docs/GPT-KINEO-VIDEO-MAKER.md` (438 linhas) está completo: nome, descrição,
+instruções, o formato da casa, a régua por voz, os conversation starters, a
+política de privacidade e o passo a passo do Cowork na UI do ChatGPT.
+`public/gpt/openapi.json` (250 linhas) responde 200 em produção. O Cowork chegou
+a montar o GPT inteiro no editor (rascunho `g-6a9e15962c0c81918d177ec642d5d524`)
+e o handoff funcionou de ponta a ponta.
+
+**Não há botão "publish" numa conta pessoal desde 16/08/2026** — só workspace
+Business/Enterprise/Edu.
+
+**A CONTA, para o fundador decidir (é dinheiro, logo é dele):**
+
+```
+ChatGPT Business ......... ~US$ 25-30 / usuário / mês
+paga-se com .............. ~4-5 Starters ($7) · 2 Creators ($15) · 1 Studio ($29)
+```
+
+**Minha recomendação é NÃO pagar agora**, e o motivo não é o preço — é que a
+aposta já está respondida de graça. **209 dos 368 cadastros de 14 dias já vêm de
+`chatgpt.com` (57%) SEM GPT nenhum**, e essa coorte produziu 2 pagantes. O gargalo
+comprovado desta noite não é chegar mais gente do ChatGPT: é que **131 pessoas
+receberam um filme nesta semana e 19 viram um preço**, e o **último pagamento da
+história do produto é de 02/09 20:22Z**. Pagar US$ 30/mês para aumentar a boca
+de um funil que não converte no meio é comprar mais do que já sobra. Quando um
+mês fechar com o degrau 56→19 consertado e pagantes voltando, a assinatura se
+paga com o primeiro Studio — e aí a decisão fica fácil.
+
+### (c) O SQL DO FUNIL — as três origens, num arquivo só
+
+`docs/queries/PONTE-COM-PRECO-2026-09-07.sql` (o degrau seco, a adoção com
+denominador certo, e a prova de que não há segunda chance) e
+`docs/queries/TEMPORADA-NA-TELA-2026-09-07.sql` (a bifurcação servidor × rolagem
+da faixa de temporada). O funil do handoff cobre as três origens pelo campo de
+origem do próprio registro: `gpt` (se a loja abrir), `paste_page` (a `/chatgpt`)
+e `api` (agentes que leem o `llms.txt`).
+
+### (d) O QUE A PRÓXIMA SESSÃO FAZ PRIMEIRO
+
+1. **Ler a adoção da ponte** com tráfego de dia: consulta (1) e (2) de
+   `PONTE-COM-PRECO-2026-09-07.sql`. `plans_link: true` alto com clique zero
+   **não** significa "o link não funciona" — significa que quem está no meio do
+   trial não quer preço, e o lugar certo é outro.
+2. **A bifurcação da temporada** (`season_served` × `season_absent`), que ficou
+   ilegível as duas rotações da madrugada por falta de tráfego. Ela decide se o
+   conserto é de servidor ou de posição na página.
+3. **O soft-404 do `/go`** — 10 minutos, e devolve controle de status a toda
+   sonda futura daquela rota.
+
+### O QUE ESTA NOITE APRENDEU, em uma frase
+
+A casa tem **uma sessão por pessoa** — 170 trials encerraram nesta semana e 6
+pessoas voltaram ao site depois — e gastava essa sessão inteira sem dizer o
+preço, porque o degrau de oferta mais largo da tela mais movimentada era o único
+dos três que não tinha caminho para `/pricing`, e o evento que provaria a falta
+continuava verde.
+
+✅ **O QUE VOCÊ PRECISA FAZER**
+1. **Decidir o ChatGPT Business** (~US$ 25-30/mês) — minha recomendação escrita
+   acima é **não agora**, com o número na mão. É dinheiro, então é seu.
+2. **Nada mais.** Nenhuma entrega ficou esperando clique: a fila está em zero e
+   o `91e2f34b` já está em produção.
+
+📋 **O QUE ACONTECEU**
+O ciclo começou para pôr a Kineo dentro do ChatGPT e descobriu no meio do
+caminho que a OpenAI fechou a loja para contas pessoais. O que dava para
+construir sem depender dela ficou pronto e está no ar, provado com sonda: o
+endereço que recebe um roteiro de qualquer IA e devolve um link que abre o
+Studio pronto, a página `/chatgpt` que ensina o prompt, e o documento completo
+do GPT esperando só o botão de publicar. Nas últimas horas eu parei de empurrar
+páginas novas e fui medir onde as pessoas já estão — e o número que apareceu é
+o mais importante da noite: nesta semana 131 pessoas receberam um filme, 56
+gostaram o bastante para fazer um segundo, e **19 viram um preço**. O motivo
+era um bloco da tela de filme pronto que dizia "sem cartão, sem compra" para 76
+pessoas e nunca mostrava quanto custa continuar. Já está corrigido e no ar.
