@@ -869,3 +869,126 @@ orgânico aparecer no funil.
 G6 fecha aqui. O que sobra do ciclo é observar o funil por canal e, se sobrar
 tempo, a faixa na landing que hoje ignora `handoff_error` (o slug é gravado e a
 tela não o lê — medição sem tela).
+
+---
+
+### #6 — 22:52-23:50 — o caminho foi provado com gente, e a prova achou um clique a mais
+
+**A sonda de baseline da #5 não provava nada.** Ela mediu `/make?script=teste`
+com o UA padrão do curl e anotou `302` como "no ar". Mas o `/make` tem um ramo
+de robô (`route.ts`, passo 3): UA de robô **não cria linha** e desvia para a
+landing. Ou seja: aquele 302 era o robô sendo mandado embora, não o caminho
+funcionando. A perna **humana** do `/make` nunca tinha rodado — a tabela tinha
+**zero** linhas de canal `assistant_link`.
+
+**Canário com UA própria, excluível do funil.** Rodei o caminho inteiro com
+`Mozilla/5.0 (KineoCanary-gpt-loja-6; probe)` — passa no detector de robô
+(nenhuma palavra da lista) e fica **auto-identificável**, então a linha sai do
+funil por `user_agent like '%KineoCanary%'`. Um UA de Chrome falso seria
+indistinguível de uma pessoa e envenenaria para sempre a métrica de
+falsificação que eu mesmo escrevi na #5.
+
+```
+/make (UA humano)        -> 302 /go/xFIgmFTulWE74-VG7XcBKK0S
+/go/<token> deslogado    -> 200, roteiro inteiro na página, "See plans" visível
+mesmo payload de novo    -> MESMO token (idempotência viva, não teórica)
+botão deslogado          -> 302 /signup?redirect=%2Fgo%2F<token>
+token inválido (controle)-> 302 de volta ao /go (comportamento distinto)
+pricing                  -> 302 /pricing?utm_source=chatgpt_gpt&intent_campaign=…
+linha no banco           -> channel=assistant_link, viewed_at E clicked_at carimbados
+```
+
+**A perna do OAuth, que a #5 deixou em aberto, está fechada — por dado, não por
+leitura.** O nome do parâmetro bate em cada salto (`redirect=` sai e `redirect=`
+é lido; `next=` só existe no salto seguinte, e `/auth/callback` lê `next`).
+`normalizeInternalRedirect` é o único portão e aceita `/go/<token>`; não há
+lista branca de caminhos. E o `next` **sobrevive ao round-trip do Google em
+produção**: `auth_callback_completed` dos últimos 14 dias tem **9 destinos
+distintos**, incluindo `/api/stripe/checkout` (5×) e `/ai-shorts-for-agencies`
+(3×) — caminhos que só chegam lá por `next`. Se o allow-list do Supabase
+cortasse a query, todos seriam `/` ou `/dashboard`.
+
+### O DEFEITO QUE A PROVA EXPÔS — e que já está no ar
+
+A pessoa deslogada aperta **"Make this video"**, vai para o cadastro, cria a
+conta — e o `/auth/callback` a devolve para `/go/<token>?signup=1`, onde a
+página **se redesenhava com o mesmo botão**. Ela precisava apertar **de novo**,
+logo depois de criar a conta, que é o ponto de maior intenção da jornada.
+Nada estava quebrado: o parâmetro nunca se perdeu. O que se perdia era um
+clique, no pior lugar possível para perder um.
+
+Agora a volta com `signup=1` desvia para a **mesma rota contadora do botão** —
+nunca para uma cópia da regra dela: é lá que a sessão é resolvida, o clique é
+contado e `buildStudioDestination()` monta a URL do Studio.
+
+**Sem laço possível, e a prova não está na página:** o desvio exige
+`signedIn`, e o ramo logado de `/api/gpt/handoff/go` termina **sempre** em
+`${destino}` (Studio), nunca em `/go` nem em `/signup`. O guardião lê a **rota**
+e trava esse invariante — no dia em que alguém mexer nela, o teste cai antes de
+virar laço em produção. Falsificado com 4 mutantes: tirar `signedIn` (vermelho),
+`redirect()` dentro do try/catch (vermelho), a **rota** voltando para `/go`
+(vermelho — mutante em OUTRO arquivo), e `/studio/create` montado à mão
+(vermelho).
+
+Nada é gerado: `create_intent` e `autoanalyze` continuam fora do caminho.
+
+**Sonda própria:** `gpt_landing_auto_forwarded` (com token e canal), para a
+próxima sessão **medir** quantas pessoas o desvio economizou em vez de supor.
+
+### O VERMELHO QUE NÃO ERA MEU, E NÃO ERA DEFEITO (#6b)
+
+O guardião do ciclo ficou verde na minha worktree (327/0) e **vermelho na ponta
+da fila** (326/1) — a armadilha já registrada em memória. Reproduzi numa
+worktree limpa de `origin/main`: **o vermelho já existia lá antes do meu
+commit**. E não era defeito de produto: o documento diz **7 dias** nos dois
+lugares que a pessoa lê. O que reprovava era uma frase **nossa**, de
+argumentação interna — "195 dos 362 cadastros de **14 dias**", uma janela de
+medição lida como promessa de validade. Ela nem aparecia num `grep` por linha:
+quebra entre "14" e "dias", e só o texto achatado a juntava. O guardião passa a
+varrer o bloco literal que o GPT recebe e o registro, não a nossa prosa —
+falsificado com a instrução em "14 days" (vermelho) e o registro em "30 dias"
+(vermelho).
+
+### O QUE ESTÁ NO AR
+
+`origin/main = 238dc502`. `/go/<token>?signup=1` **deslogado devolve 200**
+(um 302 aqui seria o laço), `/` 200, `/gpt/openapi.json` 200, `/llms.txt` 200,
+controle `/make-controle-inexistente` **404**.
+
+### MEDIÇÃO — o SQL da #5 ganha uma cláusula
+
+O funil precisa excluir o canário, senão eu falsifico a minha própria tese com
+a minha própria sonda: `and coalesce(user_agent,'') not like '%KineoCanary%'`.
+
+**Sujeira que já está lá e não é minha:** duas linhas `assistant_link` nascidas
+às 01:52 e 01:54 UTC com UA de **Chrome comum** — uma de 31 palavras ("Lake
+Natron", tema de teste da casa) e outra de **2 palavras**. Não são gente, e são
+**indistinguíveis** de gente no funil. Quem sondar o `/make` daqui para frente
+usa UA identificável, senão a métrica de 14 dias nasce mentindo.
+
+### PARADA (mantida da #5, agora com denominador limpo)
+
+Menos de **10 handoffs `assistant_link` de humano** (fora canário e fora essas
+duas linhas) em 14 dias = a tese "os assistentes leem o llms.txt e entregam o
+link" está errada, e o esforço vai para publicar o GPT da loja.
+
+### PRÓXIMO PASSO
+
+O `gpt_landing_auto_forwarded` só terá linha quando alguém de verdade criar
+conta a partir de um link — a próxima sessão mede isso antes de construir mais.
+G1-G7 estão prontos; o que falta é **mão do fundador** (publicar o GPT exige
+verificação de domínio por DNS).
+
+✅ **O QUE VOCÊ PRECISA FAZER**
+1. Nada de código. O caminho está no ar e provado com dedo.
+2. Quando quiser o GPT na loja da OpenAI: `docs/GPT-KINEO-VIDEO-MAKER.md` tem o
+   passo a passo, e o portão é a verificação de domínio por DNS (mão sua).
+
+📋 **O QUE ACONTECEU**
+O link que qualquer assistente escreve foi testado de ponta a ponta pela
+primeira vez com um visitante humano — a sonda anterior media o robô e não
+provava nada. Funciona: link → página com o roteiro → cadastro → volta. No meio
+do caminho apareceu um defeito silencioso: quem acabava de criar a conta tinha
+de apertar o mesmo botão outra vez, no momento de maior vontade de continuar.
+Isso acabou. Também ficou provado, com dados de produção, que o caminho de volta
+sobrevive ao login do Google — a dúvida que ficou aberta ontem.
