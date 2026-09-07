@@ -1,5 +1,9 @@
 # Dez melhorias aprovadas + Omni sem preenchimento lateral
 
+## Recibo da prévia — 07/09/2026, SHA 226bba560f5bb88261ce878659f715d6971ea394
+**TESTADO EM PRÉVIA, NÃO EM PRODUÇÃO:** branch `codex/home-video-first-review-sep07`; Vercel `dpl_GiomwwbjSpLt1WhapYzFxbpNTSj6` READY; https://kineo-258uwqknc-josephsskaf-hubs-projects.vercel.app . Chrome confirma ausência de `.home-intro`, quatro mídias iguais (453,5 × 253,953125 CSS px desktop; 166 × 92,953125 em viewport 390), contain centralizado, nenhum erro de mídia observado e nenhum overflow horizontal mobile. Robô exclusivo na rotação hero Omni. Teste showcase: 270/270.
+**BLOQUEADO PARA MAIN:** após rebase sobre b9307a46, TypeScript exit 1: exports ausentes PAYPAL_ENV_NAMES/isPaypalEnabled/paypalMissingEnv em app/api/admin/payment-rails/route.ts:39 e paypalReleaseEvent em app/api/paypal/return/route.ts:12 e app/api/paypal/webhook/route.ts:16. Nenhum arquivo PayPal editado nesta entrega; origem da divergência ainda não investigada. Não reutilizar o typecheck verde anterior ao rebase. Aguardando aprovação visual do fundador e gates gerais antes de qualquer merge. Este recibo é local, posterior ao SHA da prévia.
+
 ## Correção do fundador — vídeos no topo, 07/09/2026
 **PEDIDO EXPLÍCITO:** retirar o bloco introdutório visível e o espaço vazio acima dos vídeos. **IMPLEMENTADO EM PRÉVIA:** título sem espaço visual, acessível a leitores de tela; remoção de eyebrow e parágrafo introdutório; padding superior 16px e margem da fileira zero. Todos os vídeos/posters passam a contain centralizado, sem zoom CSS adicional. Omni hero somente robô, conforme proposta de retirar apresentadores verticais do hero; eles permanecem na galeria e catálogo. Demais engines preservam rotação. O plano próximo que já existe no arquivo do moletom não é reconstruído por CSS. Antes/depois desktop e mobile em `docs/previews/HOME-VIDEOS-NO-TOPO.html`. Não publicar antes da aprovação visual desta revisão.
 
