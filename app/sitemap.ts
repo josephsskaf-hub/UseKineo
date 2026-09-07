@@ -151,6 +151,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // outras cabeças de cluster de intenção (/youtube-shorts-from-topic,
     // /text-to-video-shorts), não 0.8, porque é entrada de canal nº1.
     { path: '/chatgpt-to-youtube-shorts', priority: 0.9, freq: 'weekly' },
+    // KINEO-PASTE-PAGE-2026-09-07 — /chatgpt subiu em produção respondendo 200
+    // e NÃO entrou aqui. Página viva fora do mapa mede zero, e é a terceira vez
+    // que a casa comete o mesmo erro de forma (memória: peça-sem-superfície).
+    // Ela é a porta assistente-agnóstica — o prompt para colar em qualquer IA e
+    // a caixa para colar o roteiro de volta, canal `paste_page` —, enquanto a
+    // irmã acima é a guia longa de quem já chega com o roteiro pronto. 0.9 como
+    // ela: chatgpt.com são 57% dos cadastros externos dos últimos 14 dias.
+    { path: '/chatgpt', priority: 0.9, freq: 'weekly' },
     // KINEO-B2B-BULK-2026-08-27 — the checkout and four approved one-time
     // agency packs existed without a single public caller. This is the first
     // indexable door for freelancers, agencies and businesses buying batches.

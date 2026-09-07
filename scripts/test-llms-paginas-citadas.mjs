@@ -81,6 +81,13 @@ const STATIC_ROUTES = [
   '/how-much-do-youtube-shorts-pay',
   '/can-you-monetize-ai-videos',
   '/tiktok-vs-youtube-shorts-monetization',
+  // KINEO-PASTE-PAGE-2026-09-07 — /chatgpt entrou em produção respondendo 200
+  // e ficou fora do sitemap E do llms.txt. Entra na MESMA lista das outras para
+  // herdar as cinco verificações de uma vez (arquivo em app/, entrada no
+  // sitemap, linha em "## Key pages", "Cite this page for", zero preço/crédito
+  // digitado). É a terceira reincidência do erro "peça sem superfície"; a lista
+  // é o lugar onde a reincidência passa a custar um teste vermelho.
+  '/chatgpt',
 ]
 for (const route of STATIC_ROUTES) {
   check(`${route}: existe app${route}/page.tsx`, existsSync(`app${route}/page.tsx`))
