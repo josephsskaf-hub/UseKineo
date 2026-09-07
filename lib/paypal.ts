@@ -118,12 +118,14 @@ export async function setPaypalConfig(admin: Admin, key: string, value: string):
 
 // ── Products & Plans (auto-created, ids persisted) ──────────────────────────
 async function ensureProduct(admin: Admin, tier: PayPalTier): Promise<string> {
-  const cfgKey = `product_${tier}`
+  // Versionado junto com o plano: o product_<tier> de julho pode ser um id de
+  // SANDBOX, e criar plano live apontando para produto sandbox devolve 404.
+  const cfgKey = `product_${tier}_${PLAN_VERSION}`
   const existing = await getPaypalConfig(admin, cfgKey)
   if (existing) return existing
   const product = await paypalFetch('/v1/catalogs/products', {
     method: 'POST',
-    idempotencyKey: `kineo-product-${tier}-v1`,
+    idempotencyKey: `kineo-product-${tier}-${PLAN_VERSION}`,
     body: JSON.stringify({
       name: PAYPAL_TIER_USD[tier].name,
       type: 'SERVICE',
@@ -190,9 +192,14 @@ export async function verifyPaypalWebhook(
   headers: Headers,
   rawBody: string
 ): Promise<boolean> {
-  const webhookId = await getPaypalConfig(admin, 'webhook_id')
+  // KINEO-PAYPAL-LIVE-2026-09-07 — o env manda. Em 07/09 a conta Business
+  // nasceu (joseph@usekineo.com) e o webhook live foi criado à mão no painel
+  // do PayPal. A tabela paypal_config pode guardar o id SANDBOX de julho —
+  // verificar assinatura live contra id sandbox falha sempre, e o cliente
+  // pagaria sem receber crédito. PAYPAL_WEBHOOK_ID na Vercel vence a tabela.
+  const webhookId = process.env.PAYPAL_WEBHOOK_ID || (await getPaypalConfig(admin, 'webhook_id'))
   if (!webhookId) {
-    console.error('[paypal] webhook_id missing in paypal_config — run /api/paypal/setup')
+    console.error('[paypal] webhook id missing — set PAYPAL_WEBHOOK_ID on Vercel or run /api/paypal/setup')
     return false
   }
   try {
