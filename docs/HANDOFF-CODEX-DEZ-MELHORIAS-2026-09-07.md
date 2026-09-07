@@ -1,6 +1,8 @@
 # Dez melhorias aprovadas + Omni sem preenchimento lateral
 
 ## Aceite do enquadramento — atualização
+**CORREÇÃO DO FUNDADOR NO CHAT, 07/09/2026:** cartão vertical REPROVADO. O “perfeito” anterior foi interpretado incorretamente. Todos os cards devem manter a mesma proporção horizontal 500/280. Removidos max-width 240px e aspect-ratio 9/16 do Omni; fonte sem preenchimento continua, agora com cover e ponto focal superior. Isso implica recorte mais próximo dos apresentadores verticais, não recuperação de imagem fora do quadro original. Robô preservado. Exige nova inspeção visual; versão vertical não foi enviada à main.
+
 **DECISÃO DO FUNDADOR NO CHAT, 07/09/2026:** aprovou a recomendação vertical com “perfeito”. **IMPLEMENTADO:** cartão Omni 9:16, largura máxima 240px, fontes verticais sem composição de laterais. Object-fit contain preserva o robô largo inteiro dentro do palco estável; nele há espaço preto acima/abaixo, não preenchimento artificial. Outros motores, IDs e arquivos originais intactos. Ficha técnica (item 10) tem comparação em `docs/previews/FICHA-DA-PREVIA.html`.
 
 ## Mandato

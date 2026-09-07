@@ -576,11 +576,10 @@ html{scroll-behavior:smooth}
 .klp .ec-ftr .ftr-media{display:block;aspect-ratio:500/280}
 .klp .ec-ftr .ftr-media video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .28s cubic-bezier(.4,0,.2,1)}/*KINEO-CARD-SHARP-2026-08-19: 0.65s de blend entre dois frames diferentes lia como 'sem brilho/borrado' (fundador); 0.28s = corte com respiro*/
 .klp .ec-ftr .ftr-media video.hv-on{opacity:1}
-/* Founder-approved natural Omni frame: no baked side fill or face crop.
-   The wide robot stays complete inside the same stable portrait stage. */
-.klp .ec-ftr.ec-natural{width:100%;max-width:240px;justify-self:center}
-.klp .ec-ftr.ec-natural .ftr-media{aspect-ratio:9/16;background:#000;animation:none}
-.klp .ec-ftr.ec-natural .ftr-media video,.klp .ec-ftr.ec-natural .ec-poster{object-fit:contain;object-position:center;transition:none}
+/* Same wide geometry for every engine. Only Omni source/framing differs:
+   no baked side fill; upper focal point keeps presenter faces in view. */
+.klp .ec-ftr.ec-natural .ftr-media{background:#000;animation:none}
+.klp .ec-ftr.ec-natural .ftr-media video,.klp .ec-ftr.ec-natural .ec-poster{object-fit:cover;object-position:50% 23%;transition:none}
 .klp .hero-line{position:relative;z-index:1;text-align:center;font-size:14.5px;font-weight:600;color:var(--txt);margin:2px auto 0;max-width:72ch}
 .klp .hero-line span{color:var(--muted2);font-weight:550}
 @media(max-width:700px){.klp .hero-line{font-size:12.5px}.klp .ec-go{opacity:1;transform:none;font-size:11px;padding:6px 11px}}
