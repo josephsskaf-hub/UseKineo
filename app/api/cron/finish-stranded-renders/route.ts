@@ -247,6 +247,15 @@ function readyFooterFor(prof: ReadyProfile, vid: ReadyVideoRow): VideoReadyFoote
     topic,
     durationSeconds: duration,
     appUrl: APP_URL,
+    // va-r5 — a porta de entrada paga do rodape exige o predicado ESTREITO do
+    // cobrador. (O valor NAO se escreve aqui, nem em comentario: a trava de
+    // "nenhum preco digitado neste trecho" do guardiao irmao e literal, e
+    // afrouxa-la para caber um comentario meu seria trocar uma protecao real
+    // por conforto de escrita. O numero vive em lib/lifecycle/trialEntryFee.)
+    // Este e-mail e o unico ponto de contato dos ~7% de entregas que chegam so
+    // por e-mail (medicao fv-r5c: 33 so-e-mail + 27 stranded sem tela em 30d) —
+    // essa gente nao ve NENHUMA superficie de oferta da tela.
+    hasPaid: typeof prof?.has_paid === 'boolean' ? prof.has_paid : null,
   })
 }
 
@@ -608,7 +617,7 @@ export async function GET(req: NextRequest) {
           const footer = readyFooterFor(prof, vid)
           const ok = await sendEmail(email, userId, 'Your video is ready 🎬', readyText(`${APP_URL}/history?utm_source=stranded_ready`), readyHtml(`${APP_URL}/history?utm_source=stranded_ready`, userId, footer))
           if (ok) {
-            await admin.from('events').insert({ user_id: userId, name: READY_EVENT, session_id: genId, metadata: { render_id: renderId, footer: footer.kind, subscriber: readyIsSubscriber(prof), cost: vid?.credits_used ?? null, credits_remaining: prof?.video_credits ?? null } })
+            await admin.from('events').insert({ user_id: userId, name: READY_EVENT, session_id: genId, metadata: { render_id: renderId, footer: footer.kind, trial_door: footer.trialDoor, has_paid: typeof prof?.has_paid === 'boolean' ? prof.has_paid : null, subscriber: readyIsSubscriber(prof), cost: vid?.credits_used ?? null, credits_remaining: prof?.video_credits ?? null } })
             ready++
             results.push({ generation: gen8, outcome: 'ready_email_sent' })
           } else results.push({ generation: gen8, outcome: 'ready_email_failed' })
@@ -867,7 +876,7 @@ export async function GET(req: NextRequest) {
         const link = `${APP_URL}/history?utm_source=stranded_fast_ready`
         const ok = await sendEmail(email, userId, 'Your video is ready 🎬', readyText(link), readyHtml(link, userId, footer))
         if (ok) {
-          await admin.from('events').insert({ user_id: userId, name: FAST_READY_EVENT, session_id: genId, metadata: { render_id: renderId, footer: footer.kind, subscriber: readyIsSubscriber(prof), cost: vid?.credits_used ?? null, credits_remaining: prof?.video_credits ?? null } })
+          await admin.from('events').insert({ user_id: userId, name: FAST_READY_EVENT, session_id: genId, metadata: { render_id: renderId, footer: footer.kind, trial_door: footer.trialDoor, has_paid: typeof prof?.has_paid === 'boolean' ? prof.has_paid : null, subscriber: readyIsSubscriber(prof), cost: vid?.credits_used ?? null, credits_remaining: prof?.video_credits ?? null } })
           fastReady++
           results.push({ generation: genId.slice(0, 8), outcome: 'fast_ready_email_sent' })
         }

@@ -27,8 +27,11 @@ const checkout = loadTs('lib/checkoutPricing.ts', { '@/lib/credits/engineCost': 
 const filmPlans = loadTs('lib/lifecycle/trialFilmPlans.ts', { '@/lib/checkoutPricing': checkout })
 const series = loadTs('lib/seriesContinuation.ts')
 const marketing = loadTs('lib/marketingPrice.ts', { '@/lib/checkoutPricing': checkout, '@/lib/credits/engineCost': engine })
+// va-r5 — o rodape passou a importar o preco da porta de $1 (trialEntryFee).
+const trialFee = loadTs('lib/lifecycle/trialEntryFee.ts', { '@/lib/checkoutPricing': checkout })
 const footerMod = loadTs('lib/lifecycle/videoReadyFooter.ts', {
   '@/lib/checkoutPricing': checkout, '@/lib/lifecycle/trialFilmPlans': filmPlans, '@/lib/seriesContinuation': series, '@/lib/marketingPrice': marketing,
+  '@/lib/lifecycle/trialEntryFee': trialFee,
 })
 
 const ROUTE = 'app/api/cron/finish-stranded-renders/route.ts'
@@ -62,7 +65,13 @@ ok(tr.html.includes('This 62-second film cost <strong style="color:#fff">5 credi
 const burn = readyFooterFor({ has_paid: false, plan: 'free', video_credits: 0 }, { title: '', topic: 'Create a 60-second YouTube Short about:', credits_used: 25, duration: 62 })
 ok(burn.kind === 'plan_films', 'trial com 0cr → plano medido em filmes como este')
 ok(!burn.html.includes('Episode 2'), 'sem saldo: nao manda fazer episodio 2')
-ok(!burn.html.includes('0 credits'), 'sem saldo: nao diz "0 credits left"')
+// va-r5 — a asserção era `includes('0 credits')` e ficou vermelha por COLISÃO
+// DE SUBSTRING, não por defeito: a porta de entrada paga diz "80 credits now"
+// (os créditos que o trial concede), e "80 credits" contém "0 credits". O que
+// ela sempre quis proibir é a casa afirmar que a pessoa TEM zero — isso segue
+// proibido, agora ancorado na fronteira de palavra e na frase inteira.
+ok(!/\b0 credits?\b/.test(burn.html), 'sem saldo: nao afirma "0 credits" (fronteira de palavra: "80 credits now" da porta nao colide)')
+ok(!/0 credits?<\/strong> left|0 credits? left/.test(burn.html), 'sem saldo: nao diz "0 credits left" em nenhuma forma')
 // falhas abertas
 ok(readyFooterFor(null, null).kind === 'plan_generic', 'perfil e video nulos → copy de hoje (falha aberta, nunca lanca)')
 ok(readyFooterFor({ has_paid: false, plan: 'free', video_credits: null }, { credits_used: null, duration: null }).kind === 'plan_generic', 'custo/saldo desconhecidos → copy generica com numero canonico')
@@ -90,7 +99,10 @@ ok((route.match(/readyHtml\([^)]*, userId, footer\)/g) || []).length === 2, 'rea
 ok(!/readyHtml\([^,]+, userId\)/.test(route), 'nenhuma chamada antiga readyHtml(url, userId) sobrou')
 ok(route.includes("select('email, email_opted_out, has_paid, plan, video_credits')") && (route.match(/has_paid, plan, video_credits/g) || []).length === 2, 'perfil le has_paid/plan/video_credits nas duas fases')
 ok((route.match(/select\('id, status, video_url, final_video_url, title, topic, credits_used, duration'\)/g) || []).length === 2, 'linha de videos le title/topic/credits_used/duration nas duas fases')
-ok(route.includes('footer: footer.kind, subscriber: readyIsSubscriber(prof), cost: vid?.credits_used ?? null, credits_remaining: prof?.video_credits ?? null'), 'carimbo do envio grava qual rodape saiu (footer/subscriber/cost/credits_remaining) — igual ao #24')
+ok(route.includes("footer: footer.kind, trial_door: footer.trialDoor, has_paid: typeof prof?.has_paid === 'boolean' ? prof.has_paid : null, subscriber: readyIsSubscriber(prof), cost: vid?.credits_used ?? null, credits_remaining: prof?.video_credits ?? null"), 'carimbo do envio grava qual rodape saiu E se a porta de entrada entrou (footer/trial_door/has_paid/subscriber/cost/credits_remaining)')
+// va-r5 — os DOIS envios desta rota carimbam. Sem isto, o cron que fala com os
+// ~7% que so recebem e-mail mediria a porta em metade das vezes.
+ok((route.match(/trial_door: footer\.trialDoor/g) ?? []).length === 2, 'as duas fases carimbam trial_door (nenhuma ficou para tras)')
 ok(route.indexOf('const statusMail = await statusRouteAlreadyEmailed') > route.indexOf("const verdict = await alreadySentDirect(admin, { eventName: READY_EVENT"), 'ordem Fase 2: dedupe do proprio cron (#4) primeiro, carimbo da rota de status depois, envio por ultimo')
 ok(route.includes(".in('name', [RESCUE_EVENT, ATTEMPT_EVENT, READY_EVENT, FAST_READY_EVENT, COMPOSED_EVENT, OUTCOME_EVENT])"), 'lote da Fase 2 tambem enxerga o aviso da Fase 3')
 ok(route.includes('else if (m.name === READY_EVENT || m.name === FAST_READY_EVENT) readySent.add(sid)'), 'aviso da Fase 3 conta como "ja avisado" na Fase 2 (3 filmes em 14d levaram 2 avisos)')

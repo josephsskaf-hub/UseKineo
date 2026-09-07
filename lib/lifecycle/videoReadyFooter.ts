@@ -27,7 +27,8 @@
  * desconto; nao inventa segundos (filmNoun); o `intent_campaign` do Codex
  * continua no link de preco para a medicao dele nao quebrar.
  */
-import { TIER_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
+import { CARD_TRIAL_DAYS, CARD_TRIAL_GRANT_CREDITS, TIER_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
+import { trialEntryFeeLabel, trialMonthlyAfterLabel } from '@/lib/lifecycle/trialEntryFee'
 import { filmsPerPlan, filmNoun, sanitizeFilmCost } from '@/lib/lifecycle/trialFilmPlans'
 import { buildSeriesContinuationEmailUrl, normalizeSeriesSeed, type SeriesContinuationSource } from '@/lib/seriesContinuation'
 import { videosForCredits } from '@/lib/marketingPrice'
@@ -54,11 +55,25 @@ export interface VideoReadyFooterInput {
   /** Duracao real em segundos (para "62-second film"). */
   durationSeconds: number | null
   appUrl: string
+  /**
+   * `profiles.has_paid` — a MESMA coluna que o cobrador consulta antes de
+   * aceitar `?trial=1`. `null`/ausente = NAO SABEMOS, e o desconhecido nao vira
+   * `false`: sem esta coluna provada a porta de $1 nao aparece (ver
+   * `trialDoorHtml`). Nao confundir com `isSubscriber`, que e mais largo
+   * (has_paid OU plano pago) — a porta precisa do predicado ESTREITO.
+   */
+  hasPaid?: boolean | null
 }
 
 export interface VideoReadyFooter {
   kind: VideoReadyFooterKind
   html: string
+  /**
+   * A porta de $1 entrou neste e-mail? Vai para o carimbo do evento — sem isto
+   * a medicao nao separa quem leu a oferta nova de quem leu so o plano cheio
+   * (memoria `carimbo-proprio-para-a-versao-nova`, va-r4b).
+   */
+  trialDoor: boolean
 }
 
 /** Menor custo de um video na casa (Kineo 1 = 5cr). Abaixo disso o saldo nao
@@ -122,6 +137,90 @@ function filmsPlanHtml(appUrl: string, cost: number, durationSeconds: number | n
   return `<p style="color:#94a3b8;font-size:12px;margin:24px 0 0">This ${noun} cost <strong style="color:#fff">${c} credit${c === 1 ? '' : 's'}</strong>. ${lines}. <a href="${esc(pricingUrl(appUrl, campaign))}" style="color:#2997ff;">Plans from ${starterPrice()}/month &rarr;</a></p>`
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// A PORTA DE $1 NO E-MAIL DE ENTREGA — va-r5 (07/09/2026)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// O QUE ESTAVA ERRADO, MEDIDO. Este rodape e a maior superficie de dinheiro da
+// casa: `video_ready_email_sent` saiu **187 vezes para 132 pessoas** desde
+// 02/09 com um pedido de dinheiro dentro (~13/dia), contra **7 slots em 7 dias**
+// que a pergunta comercial ganha na TELA (medicao da pista irma, fv-r6b). E o
+// pedido que ele carrega — "Plans from $7/month" / "Starter is $7/month" — tem
+// **ZERO chegadas** em toda a sua historia: `intent_campaign =
+// 'video_ready_email_plan_truth_v1'` da 0 linhas.
+//
+// CONTROLE RODADO ANTES DE CHAMAR DE ZERO (memoria `zero-escritas-conte-as-oportunidades`
+// e `provar-leitura-sem-trafego`): `intent_campaign` E escrito — 726 linhas para
+// `push69_home_one_click_starters`, 247 para `studio_v4`, e o campo aparece em
+// 1.073 eventos. Se alguem tivesse clicado, estaria la. O zero e real.
+//
+// A JOGADA. A casa tem uma oferta mais barata que $7/mes desde 07/09 — o trial
+// pago de $1 — e ela nao existia em NENHUM e-mail de entrega. O plano continua
+// visivel logo abaixo (ordem do fundador: "nunca esconder o plano"); o que muda
+// e que o primeiro degrau deixa de ser uma decisao mensal.
+//
+// ═══ AS TRES TRAVAS DE HONESTIDADE (memoria `vitrine-oferece-o-que-o-cobrador-recusa`)
+// O cobrador (`app/api/stripe/checkout/route.ts`) zera `wantsTrial` em dois
+// casos, e anunciar $1 para quem sera cobrado $15 e uma mentira medivel:
+//   1. `has_paid === true` → `card_trial_denied: 'has_paid'`. Por isso a porta
+//      exige `hasPaid === false` PROVADO, e nao `!isSubscriber`: o segundo e
+//      mais largo (inclui plano pago) e, pior, e verdadeiro quando a linha de
+//      perfil NAO CARREGOU. Falha fechada: desconhecido nao abre a porta.
+//      No banco, `has_paid` nunca e nulo (1.824 false / 13 true) — exigir o
+//      `false` explicito nao custa alcance nenhum e protege da leitura falha.
+//   2. `tier !== TRIAL_TIER` ('basic'). A porta e SEMPRE Creator — por isso ela
+//      NAO substitui o link de plano, que fala de Starter. Ela se soma.
+//   3. Sem os dois rotulos formatados nao ha promessa auditavel: nenhum numero
+//      e digitado aqui. Tudo vem de `lib/lifecycle/trialEntryFee.ts`, que le a
+//      MESMA constante que a Stripe cobra (`CARD_TRIAL_ENTRY_FEE_MINOR`) e a
+//      MESMA tabela de mensalidade (`getTierPrice('basic')`).
+//
+// O QUE A PORTA **NAO** PROMETE. A caixa da TELA diz "Get this film clean"
+// porque ela tem o `renderId` na mao e `/api/compose/unlock` sabe remontar
+// aquele filme. O e-mail **nao tem** esse caminho — prometer export limpo aqui
+// seria vender o que este link nao entrega (CLAUDE.md: "NUNCA prometer a um
+// cliente algo que o produto nao sabe executar sozinho"). Entao ela promete
+// exatamente o que a Stripe faz no clique: os dias, os creditos concedidos no
+// ato, a mensalidade a partir do dia seguinte, e o cancelamento.
+const TRIAL_DOOR_INTENT = 'video_ready_email_trial_1usd_v1'
+
+/**
+ * O degrau de $1, ou `null` quando o cobrador recusaria / o preco nao resolve.
+ * `prominent` = e o unico pedido de dinheiro do e-mail (ramos sem saldo), e ai
+ * ele ganha o botao; nos ramos com episodio 2 ele entra como linha, para nao
+ * disputar o clique com a peca que melhor preve pagamento.
+ */
+function trialDoorHtml(
+  appUrl: string,
+  hasPaid: boolean | null | undefined,
+  campaign: string,
+  prominent: boolean,
+): string | null {
+  if (hasPaid !== false) return null
+  const fee = trialEntryFeeLabel({ compact: true })
+  const monthly = trialMonthlyAfterLabel({ compact: true })
+  if (!fee || !monthly) return null
+  const url =
+    `${appUrl.replace(/\/+$/, '')}/api/stripe/checkout?tier=basic&billing=monthly&trial=1` +
+    `&intent_campaign=${TRIAL_DOOR_INTENT}` +
+    `&utm_source=lifecycle&utm_medium=email&utm_campaign=${campaign}`
+  const note =
+    `${fee} today &middot; ${CARD_TRIAL_GRANT_CREDITS} credits now &middot; ` +
+    `then ${monthly}/month from day ${CARD_TRIAL_DAYS + 1} &middot; cancel anytime`
+  if (prominent) {
+    return (
+      `<p style="margin:18px 0 0"><a href="${esc(url)}" style="display:block;background:#1f1f23;border:1px solid #2a2a30;border-left:4px solid #2997ff;color:#fff;text-decoration:none;font-weight:700;font-size:14px;padding:12px 16px;border-radius:8px;">` +
+      `Try Creator for ${fee} &mdash; ${CARD_TRIAL_DAYS} days &rarr;</a></p>` +
+      `<p style="color:#64748b;font-size:12px;margin:8px 0 0">${note}</p>`
+    )
+  }
+  return (
+    `<p style="color:#94a3b8;font-size:12px;margin:14px 0 0">Or start Creator for ${fee} &mdash; ` +
+    `<a href="${esc(url)}" style="color:#2997ff;">${CARD_TRIAL_DAYS} days, then ${monthly}/month &rarr;</a> ` +
+    `<span style="color:#64748b">${note}</span></p>`
+  )
+}
+
 export function videoReadyFooter(input: VideoReadyFooterInput): VideoReadyFooter {
   const { appUrl } = input
   const credits = typeof input.creditsRemaining === 'number' && Number.isFinite(input.creditsRemaining)
@@ -138,6 +237,9 @@ export function videoReadyFooter(input: VideoReadyFooterInput): VideoReadyFooter
     return {
       kind: 'subscriber_next',
       html: `<p style="color:#94a3b8;font-size:13px;margin:24px 0 0">${lead}</p>${ep2}`,
+      // Quem ja paga nunca ve a porta de entrada: o cobrador recusaria (`has_paid`)
+      // e o pedido dele nao e entrar, e o proximo filme.
+      trialDoor: false,
     }
   }
 
@@ -146,9 +248,15 @@ export function videoReadyFooter(input: VideoReadyFooterInput): VideoReadyFooter
     const ep2 = episodeTwoHtml(appUrl, input.topic, 'video_ready_trial_episode2')
     const left = creditsLeftLine(credits)
     const plan = filmsPlanHtml(appUrl, input.cost, input.durationSeconds, 'video_ready_trial_plan_films') ?? genericPlanHtml(appUrl)
+    // Ela tem saldo: o episodio 2 continua sendo o primeiro pedido (27 pessoas
+    // usaram o botao de serie e 3 pagaram, ~7x a base). A porta entra DEPOIS
+    // dele, como linha, e antes do plano cheio — e o degrau mais barato, nao o
+    // primeiro convite.
+    const door = trialDoorHtml(appUrl, input.hasPaid, 'video_ready_trial_door_1usd', false)
     return {
       kind: 'trial_episode2',
-      html: `<p style="color:#94a3b8;font-size:13px;margin:24px 0 0">${left} &mdash; enough for the next episode. People who make a second video are the ones who keep going.</p>${ep2}${plan}`,
+      html: `<p style="color:#94a3b8;font-size:13px;margin:24px 0 0">${left} &mdash; enough for the next episode. People who make a second video are the ones who keep going.</p>${ep2}${door ?? ''}${plan}`,
+      trialDoor: door !== null,
     }
   }
 
@@ -178,9 +286,11 @@ export function videoReadyFooter(input: VideoReadyFooterInput): VideoReadyFooter
       const plan =
         filmsPlanHtml(appUrl, input.cost, input.durationSeconds, 'video_ready_unknown_balance_plan_films') ??
         genericPlanHtml(appUrl)
+      const door = trialDoorHtml(appUrl, input.hasPaid, 'video_ready_unknown_balance_door_1usd', false)
       return {
         kind: 'unknown_balance_episode2',
-        html: `<p style="color:#94a3b8;font-size:13px;margin:24px 0 0">The next episode is one click away.</p>${ep2}${plan}`,
+        html: `<p style="color:#94a3b8;font-size:13px;margin:24px 0 0">The next episode is one click away.</p>${ep2}${door ?? ''}${plan}`,
+        trialDoor: door !== null,
       }
     }
     // Sem tema utilizavel nao ha porta para abrir: cai no ramo de hoje.
@@ -188,11 +298,17 @@ export function videoReadyFooter(input: VideoReadyFooterInput): VideoReadyFooter
 
   // 3) Nao paga e o saldo PROVADO nao compra o proximo: o plano, medido em
   //    filmes como este. So se chega aqui com numero na mao (ou sem tema).
+  // Aqui o saldo NAO compra o proximo filme: dinheiro e o unico pedido possivel,
+  // entao a porta ganha o botao e vem ANTES do plano. E o unico ramo em que a
+  // pessoa nao tem nada de graca para fazer a seguir — e era exatamente o ramo
+  // que recebia "Plans from $7/month", o pedido com zero cliques na historia.
+  const door = trialDoorHtml(appUrl, input.hasPaid, 'video_ready_no_balance_door_1usd', true)
+
   const films = filmsPlanHtml(appUrl, input.cost, input.durationSeconds, 'video_ready_plan_films')
-  if (films) return { kind: 'plan_films', html: films }
+  if (films) return { kind: 'plan_films', html: `${door ?? ''}${films}`, trialDoor: door !== null }
 
   // 4) Custo desconhecido: a copy de hoje.
-  return { kind: 'plan_generic', html: genericPlanHtml(appUrl) }
+  return { kind: 'plan_generic', html: `${door ?? ''}${genericPlanHtml(appUrl)}`, trialDoor: door !== null }
 }
 
 // ═══ sprint-assinaturas #26 (02/09) — mesma leitura de perfil + linha de
@@ -226,5 +342,9 @@ export function videoReadyFooterFromRows(prof: ReadyProfileRow, vid: ReadyVideoR
     topic,
     durationSeconds: duration,
     appUrl,
+    // O predicado ESTREITO do cobrador, propagado como esta na linha: `false`
+    // so quando a coluna existe e e falsa. Linha ausente => `undefined` => a
+    // porta de $1 nao abre (falha fechada).
+    hasPaid: typeof prof?.has_paid === 'boolean' ? prof.has_paid : null,
   })
 }

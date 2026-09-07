@@ -536,6 +536,10 @@ export async function GET(req: NextRequest) {
               video_id: video.id,
               saw_ready_screen: ctx.sawIt,
               footer: footer.kind,
+              // va-r5 — mesmo carimbo do e-mail de entrega: o `kind` nao separa
+              // a versao COM a porta de $1 da versao sem ela.
+              trial_door: footer.trialDoor,
+              has_paid: typeof prof.has_paid === 'boolean' ? prof.has_paid : null,
               subscriber: isSubscriberProfile(prof),
               cost: video.creditsUsed,
               credits_remaining: prof.video_credits ?? null,

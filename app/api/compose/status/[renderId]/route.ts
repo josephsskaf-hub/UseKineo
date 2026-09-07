@@ -966,6 +966,11 @@ export async function GET(
         // consulta nova; falha de leitura mantem `null` (e o guarda novo de
         // lib/lifecycle/videoReadyFooter.ts cobre esse caso).
         let readyEmailCreditsFallback: number | null = null
+        // va-r5 — `has_paid` PROVADO, para a porta de $1 do rodape. Nao da para
+        // reusar `readyEmailIsSubscriber`: ele e mais largo (has_paid OU plano
+        // pago) e nasce `false` quando a leitura falha, que e justamente quando
+        // a porta NAO pode aparecer. `null` = nao sabemos = porta fechada.
+        let readyEmailHasPaid: boolean | null = null
         try {
           const { data: planRow } = await supabase
             .from('profiles')
@@ -999,6 +1004,8 @@ export async function GET(
           readyEmailIsSubscriber =
             (planRow as { has_paid?: boolean } | null)?.has_paid === true ||
             PAID_PLANS.has(planName)
+          const hasPaidCol = (planRow as { has_paid?: boolean | null } | null)?.has_paid
+          readyEmailHasPaid = typeof hasPaidCol === 'boolean' ? hasPaidCol : null
           const saldoPerfil = (planRow as { video_credits?: number | null } | null)?.video_credits
           readyEmailCreditsFallback =
             typeof saldoPerfil === 'number' && Number.isFinite(saldoPerfil) ? saldoPerfil : null
@@ -1071,6 +1078,7 @@ export async function GET(
               topic: topicFinal,
               durationSeconds: Number.isFinite(duration) ? duration : null,
               appUrl: process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.usekineo.com',
+              hasPaid: readyEmailHasPaid,
             })
             // ═══ KINEO-CONSENTIMENTO-DE-PARTILHA-2026-09-06 (#28) ══════════
             // A #27 construiu a porta e a ligou no e-mail ERRADO: o cron
@@ -1239,6 +1247,13 @@ export async function GET(
                       metadata: {
                         render_id: renderId,
                         footer: readyFooter.kind,
+                        // va-r5 — a porta de $1 entrou NESTE e-mail? O `footer`
+                        // sozinho nao separa a versao com porta da sem: os dois
+                        // ramos guardam o mesmo `kind`. Sem este campo a medicao
+                        // da porta seria por relogio, e relogio nao e carimbo
+                        // (memoria `campo-novo-e-o-carimbo-do-deploy`).
+                        trial_door: readyFooter.trialDoor,
+                        has_paid: readyEmailHasPaid,
                         subscriber: readyEmailIsSubscriber,
                         cost,
                         credits_remaining: readyCredits,

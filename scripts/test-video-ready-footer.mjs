@@ -28,8 +28,12 @@ const checkout = loadTs('lib/checkoutPricing.ts', { '@/lib/credits/engineCost': 
 const filmPlans = loadTs('lib/lifecycle/trialFilmPlans.ts', { '@/lib/checkoutPricing': checkout })
 const series = loadTs('lib/seriesContinuation.ts')
 const marketing = loadTs('lib/marketingPrice.ts', { '@/lib/checkoutPricing': checkout, '@/lib/credits/engineCost': engine })
+// va-r5 — o rodape passou a importar o preco da porta de $1. Carregado REAL
+// (nao mockado) de proposito: o ponto do modulo e que nenhum numero e digitado.
+const trialFee = loadTs('lib/lifecycle/trialEntryFee.ts', { '@/lib/checkoutPricing': checkout })
 const { videoReadyFooter, NEXT_VIDEO_MIN_CREDITS } = loadTs('lib/lifecycle/videoReadyFooter.ts', {
   '@/lib/checkoutPricing': checkout, '@/lib/lifecycle/trialFilmPlans': filmPlans, '@/lib/seriesContinuation': series, '@/lib/marketingPrice': marketing,
+  '@/lib/lifecycle/trialEntryFee': trialFee,
 })
 const APP = 'https://www.usekineo.com'
 const starter = checkout.formatCheckoutMoney('usd', checkout.TIER_PRICES.starter.usd)

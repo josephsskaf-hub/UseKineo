@@ -30,8 +30,11 @@ const checkout = loadTs('lib/checkoutPricing.ts', { '@/lib/credits/engineCost': 
 const filmPlans = loadTs('lib/lifecycle/trialFilmPlans.ts', { '@/lib/checkoutPricing': checkout })
 const series = loadTs('lib/seriesContinuation.ts')
 const marketing = loadTs('lib/marketingPrice.ts', { '@/lib/checkoutPricing': checkout, '@/lib/credits/engineCost': engine })
+// va-r5 — o rodape passou a importar o preco da porta de $1 (trialEntryFee).
+const trialFee = loadTs('lib/lifecycle/trialEntryFee.ts', { '@/lib/checkoutPricing': checkout })
 const footerMod = loadTs('lib/lifecycle/videoReadyFooter.ts', {
   '@/lib/checkoutPricing': checkout, '@/lib/lifecycle/trialFilmPlans': filmPlans, '@/lib/seriesContinuation': series, '@/lib/marketingPrice': marketing,
+  '@/lib/lifecycle/trialEntryFee': trialFee,
 })
 
 // ── A) helper novo da lib, rodado com os 3 perfis reais ─────────────────────
