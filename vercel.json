@@ -126,7 +126,7 @@
     },
     {
       "path": "/api/admin/send-card-declined?confirm=SEND&limit=30",
-      "schedule": "10 13 * * *"
+      "schedule": "0 13 * * *"
     }
   ]
 }
