@@ -97,6 +97,16 @@ const SERVER_ONLY_EVENTS = new Set([
   // viral_onboarding_viewed (9,7x) e generate_arrived_server (2,7x).
   'bulk_checkout_started',
   'bulk_purchase_completed',
+  // KINEO-DODO-2026-09-07 — o trilho UPI/Pix. Escritos só por
+  // app/api/dodo/checkout e app/api/dodo/webhook; `payment_success` (com
+  // metadata.rail='dodo') já está protegido acima. Se o browser pudesse cunhar
+  // `dodo_checkout_started`, o denominador do trilho novo nasceria falso.
+  'dodo_checkout_unavailable',
+  'dodo_checkout_started',
+  'dodo_checkout_failed',
+  'dodo_webhook_orphan',
+  'dodo_payment_failed',
+  'dodo_subscription_revoked',
   // ═══ HOTFIX-EVENTS-LOCKDOWN — 2026-08-26 ═════════════════════════════════
   // A migration irmã fecha a escrita direta pela Data API. Estes nomes também
   // precisam ser recusados neste sink público: são escritos apenas no servidor
