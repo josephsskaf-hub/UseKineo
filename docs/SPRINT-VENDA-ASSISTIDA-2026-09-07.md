@@ -875,3 +875,155 @@ para ela a carta continua oferecendo o filme grátis de um clique.
 Ninguém recebeu ainda — o cron roda de hora em hora e o próximo tick é o
 primeiro depois do deploy. Ele já sai carimbado, então na próxima rotação eu
 consigo separar quem recebeu a porta de quem recebeu a carta antiga.
+
+---
+
+### #7 — 20:22-20:55 — A PRIMEIRA CARTA DA CASA PROMETIA O ÚNICO MOTOR QUE O SALDO NÃO ALCANÇA
+
+**O QUE EU IA FAZER, E POR QUE NÃO FIZ.** Entrei nesta rotação para pôr a
+porta de $1 no `d0_welcome` — a carta que fala dentro da janela em que a casa
+vende. A medição matou o plano antes do código, e o que apareceu no lugar é
+pior (e mais barato de consertar).
+
+**PRIMEIRO, A JANELA, MEDIDA DE NOVO E MAIS FUNDO.** A #6 provou que dez dos
+doze pagantes de 90 dias pagaram em menos de 48h. Fui perguntar **quantos
+filmes eles tinham visto** antes de pagar:
+
+| horas até pagar | filmes ANTES de pagar |
+|---|---|
+| 0,01 · 0,08 · 0,54 · 7,37 | **0** |
+| 0,38 · 0,96 · 24,3 · 41,4 · 247 · 400 | 1 |
+| 4,20 | 2 |
+| 42,7 | 5 |
+
+**Dez dos doze pagaram depois de ZERO ou UM filme. Quatro pagaram sem nunca
+ter visto um filme sair.** A decisão de compra desta casa não é construída ao
+longo do trial — ela acontece na chegada. E `D0_MIN_AGE_MS` é **4 horas**:
+oito dos doze pagantes **já tinham pagado antes desta carta poder sair**.
+
+**DEPOIS, O TAMANHO DA COORTE — E FOI ELE QUE MATOU A PORTA.** Eu ia pôr a
+oferta no ramo de quem já fez um filme. Esse ramo **nunca disparou**: das 720
+cartas `d0_welcome` de 60 dias, **720 foram para contas com zero filmes**.
+Controle rodado, porque um zero desses costuma ser campo quebrado e não fato
+(memória `zero-por-chave-inexistente`): o campo `videos_made` existe em 156
+das linhas do `d0`, e **nas outras cartas ele marca >0 normalmente** —
+`downgraded_loss` 70, `expired_offer_d5` 65, `expired_lastcall_d10` 90. O
+campo funciona. O zero do `d0` é real. **Eu ia construir a porta num ramo que
+não tem plateia** (memória `peca-sem-superficie-nao-existe`, terceiro caso).
+
+**O QUE ESTAVA ERRADO, E É MAIOR.** Lendo a carta para instalar a porta, achei
+a frase que 719 pessoas leram como **primeira coisa que a casa lhes disse**:
+
+> "EVERY engine is unlocked, **Kling 3 included**."
+
+A aritmética, lida das constantes e não de um documento:
+
+| | créditos |
+|---|---|
+| trial grátis (`TRIAL_CREDIT_CAP`) | **25** |
+| Seedance 1.5 (`cinematic_ai`) | **25** |
+| **Kling 3** (`cinematic_hollywood`) | **150** |
+| trial de $1 (`CARD_TRIAL_GRANT_CREDITS`) | 80 |
+| Creator (`TIER_CREDITS.basic`) | 90 |
+| Studio (`TIER_CREDITS.pro`) | 180 |
+
+**Kling 3 custa seis vezes o trial inteiro.** Não cabe nos 25 do trial, não
+cabe nos 80 do trial de $1, **e não cabe nos 90 do Creator**: o único degrau
+em que um filme Kling 3 cabe é o Studio. A pessoa lê o nome do motor mais
+caro da vitrine na linha de boas-vindas, entra, escolhe ele, e leva um não.
+
+E o detalhe que dói: o comentário `KINEO-D0-EMAIL-REVIEW-2026-08-07`, que fica
+**quatro linhas acima da string**, AFIRMA ter corrigido exatamente isto ("a
+frase passa a ser 'every engine except Studio'"). A string nunca mudou. Um
+comentário de conserto não é o conserto. É o item 4 da auditoria de 28/08
+("COPY QUE MENTE") vivo, dez dias depois, na carta de maior alcance da casa.
+
+**O QUE NÃO CONSEGUI MEDIR, E DIGO EM VEZ DE INVENTAR.** Quantas pessoas
+bateram nessa parede é **desconhecido**: a recusa por crédito insuficiente na
+escolha de motor **não emite evento nenhum**. Varri os 20 nomes de evento de
+parede/crédito de 30 dias e nenhum registra isso. A aritmética é certa; a
+contagem de vítimas não existe (memória `zero-escritas-conte-as-oportunidades`).
+
+**O QUE MUDOU** — `a9066e3c`. A cláusula do meio da carta passa a nascer de
+`trialReachClause()` (`lib/lifecycle/trialReachLine.ts`), que **lê a tabela do
+cobrador** (`creditCostFor`) e diz o que o saldo alcança: 25 créditos = **um
+filme Seedance 1.5 inteiro**, que é desenho e não acaso (o comentário
+`KINEO-V6.1-2026-08-25` diz "o trial de 25cr segue comprando EXATAMENTE 1
+Seedance"). Nenhum número digitado. Plural derivado do número na mesma
+expressão — a lição de `KINEO-TRIAL-25-2026-08-21`, que já publicou "1 films"
+na primeira linha que um estrangeiro lê do produto. Abaixo do custo de um
+render a função devolve `null` e a carta sai **sem conta nenhuma**, em vez de
+publicar "0 films".
+
+**O QUE EU NÃO FIZ, E É A METADE QUE IMPORTA.** A promessa pública "every
+engine is unlocked" **continua inteira na carta**. Eu tirei o NOME do motor
+fora de alcance e pus o que está dentro; não encolhi a oferta. Encolher a
+promessa pública é decisão de preço, e preço é seu.
+
+⚠️ **E É POR ISSO QUE ISTO SOBE PARA VOCÊ, NÃO PARA O CÓDIGO:** a MESMA
+promessa vive em **`lib/freeTierOffer.ts` (ON_COPY)**, em **quatro strings de
+vitrine pública** — `headline` ("Start free — every engine unlocked,
+**including Kling 3**"), `sentence` ("every engine unlocked — **Kling 3
+included**"), `planCardBody` ("every engine unlocked **including Kling 3**") e
+os dois `chip`. Não toquei em nenhuma: são a cara do site e mexer nelas é
+mexer na oferta. Consertar só o meu portador e fechar o caso deixaria a
+mentira viva no arquivo que ninguém audita (memória
+`regra-vive-em-varios-arquivos`).
+
+**MEDIÇÃO no mesmo commit:** carimbo `reach_films` no evento de envio, só no
+`d0_welcome`, com **zero explícito** para quem sair sem a conta — sem isso o
+denominador vira "as linhas que têm o campo" (memória
+`sentinela-lido-como-valor-real`).
+
+**GUARDIÃO:** `scripts/test-d0-alcance-do-saldo.mjs` — **44 verificações
+verdes**, 37 de contrato e **7 mutantes, todos pegos**, cada um provando que
+**aplicou** antes de exigir vermelho. A trava está amarrada à **aritmética**,
+não a uma palavra proibida: se um dia o Kling 3 couber no saldo, a proibição
+de nomeá-lo cai sozinha. **Falsificado**: numa worktree pristina em
+`3ccce5a1`, com só o módulo copiado, o mesmo guardião dá **30 ok / 14
+falhas**. `npx tsc --noEmit` verde **na base antes de eu tocar** (memória
+`ponta-da-main-pode-estar-vermelha`) e verde depois.
+
+**QUEM RECEBEU:** ninguém ainda — o cron roda aos :25 e o deploy é depois do
+tick das 20:25. O carimbo separa quem recebeu a carta nova.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+1. **DECIDIR sobre as quatro strings públicas de `lib/freeTierOffer.ts`.** Elas
+   prometem "every engine unlocked, including Kling 3" para um saldo de 25
+   quando o Kling 3 custa 150. Não mexi porque é vitrine e é preço. As saídas:
+   (a) trocar "including Kling 3" por "including Seedance 1.5" (verdade, e o
+   motor é bom); (b) deixar como está e aceitar o não na cara do cliente;
+   (c) baixar o Kling 3 para caber em algum degrau abaixo do Studio.
+2. **SABER que Kling 3 não cabe no Creator.** 150cr num plano de 90cr. Quem
+   assina o Creator por causa do Kling 3 não vai conseguir rodar um. Isso é
+   posicionamento, e é seu.
+3. **Continua de pé:** mandar da sua caixa os dois rascunhos da CAMADA 1 em
+   `docs/RASCUNHOS-AUTOPILOT-2026-09-07.md`.
+
+## 📋 O QUE ACONTECEU
+
+Fui pôr a oferta de $1 na carta de boas-vindas e descobri duas coisas melhores
+que a oferta.
+
+A primeira: **seus clientes decidem na chegada, não no trial.** Dez dos doze
+pagantes dos últimos noventa dias compraram depois de ver zero ou um filme, e
+quatro compraram sem nunca ter visto um filme sair. Oito deles já tinham pagado
+antes da primeira carta poder sair. Quem compra desta casa compra rápido — e
+quem não compra rápido, a esteira de e-mail não está resgatando.
+
+A segunda: **a primeira frase que a casa diz a uma conta nova é falsa.** Ela
+anuncia o Kling 3, o motor de topo, para uma conta com 25 créditos — e um filme
+Kling 3 custa 150. É o motor mais caro do catálogo oferecido como boas-vindas a
+quem tem um sexto do preço dele. A pessoa entra animada, escolhe o motor que
+foi prometido, e leva um não na primeira tentativa. Isso está no ar há meses e
+o próprio código tem um comentário dizendo que foi consertado — nunca foi.
+
+Consertei na carta: agora ela diz o que os 25 créditos realmente compram, que é
+**um filme Seedance 1.5 inteiro**. O número não está escrito em lugar nenhum —
+sai da mesma tabela que cobra o cliente, então no dia em que o preço mudar a
+frase muda sozinha.
+
+O que eu não fiz de propósito: **a mesma promessa está em quatro lugares da
+vitrine pública**, e ali eu não mexo. Encolher o que o site promete é decisão de
+preço, e essas são suas. Estão nomeadas lá em cima com as três saídas.
