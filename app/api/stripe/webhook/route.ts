@@ -40,6 +40,10 @@ import {
 } from '@/lib/stripeCheckoutAsyncSettlement'
 import { TRIAL_GRANT_CREDITS } from '@/lib/reverseTrial'
 import {
+  stripeSubscriptionKeepsAccess,
+  stripeSubscriptionIsDunning,
+} from '@/lib/billing/subscriptionAccess'
+import {
   AffiliateLedgerIntegrityError,
   calculateAffiliateCommission,
   commitAffiliateCommission,
@@ -1852,8 +1856,9 @@ export async function POST(req: NextRequest) {
             `Subscription update missing Customer (${subscription.id})`
           )
         }
-        const isActive =
-          subscription.status === 'active' || subscription.status === 'trialing'
+        // `past_due` conta como acesso: a Stripe ainda está repetindo o cartão
+        // de alguém que já pagou. Ver lib/billing/subscriptionAccess.ts.
+        const isActive = stripeSubscriptionKeepsAccess(subscription.status)
 
         // Push #416 — protected admin accounts are managed manually.
         if (await isProtectedProfile(supabase, { customerId })) {
@@ -2025,12 +2030,32 @@ export async function POST(req: NextRequest) {
             `payment_failed subscription identity mismatch (${failedSubscriptionId})`
           )
         }
-        if (failedSubscription.status === 'active' || failedSubscription.status === 'trialing') {
-          // A later successful retry may already have restored the subscription
-          // before this older failure event arrives. Live Stripe state wins.
+        if (stripeSubscriptionKeepsAccess(failedSubscription.status)) {
+          // Dois casos caem aqui, e os dois mandam MANTER o acesso:
+          //  · `active`/`trialing` — uma repetição posterior já deu certo e este
+          //    evento de falha chegou atrasado. O estado vivo da Stripe ganha.
+          //  · `past_due` — a Stripe AINDA está cobrando. Derrubar o plano agora
+          //    é desistir do cliente antes da cobradora desistir. Ver
+          //    lib/billing/subscriptionAccess.ts.
           entitlementConfirmed = true
           entitlementPending = false
-          console.warn('[stripe webhook] stale payment_failed ignored for live access subscription:', failedSubscriptionId, failedSubscription.status)
+          if (stripeSubscriptionIsDunning(failedSubscription.status)) {
+            // Sem este evento o "acesso preservado" é invisível: a ausência de
+            // revogação não deixa rastro nenhum, e ninguém consegue medir se a
+            // Stripe recuperou o cliente ou se ele foi embora mesmo assim.
+            await writeServerEvent({
+              name: 'subscription_access_held_during_dunning',
+              path: '/api/stripe/webhook',
+              metadata: {
+                version: 'stripe_dunning_grace_v1',
+                source: 'stripe_webhook',
+                status: failedSubscription.status,
+                subscription_ref: failedSubscriptionId,
+                is_renewal: true,
+              },
+            })
+          }
+          console.warn('[stripe webhook] payment_failed kept access for subscription:', failedSubscriptionId, failedSubscription.status)
           break
         }
 
