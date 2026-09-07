@@ -3754,3 +3754,44 @@ por ali. A impressão da ponte alcançava 76 pessoas em 7 dias; a minha coorte
 cega é de 166 em 14. **A peça cobre parte do buraco, não o buraco inteiro** — e
 o resto do buraco é para depois de medir a adoção, nunca antes.
 
+
+### #21e — 03:25 BRT (07/09) — dimensionando o buraco ANTES de alguém construir o próximo remédio
+
+A ponte consertada às 02:32 tem porta estreita. Em vez de deixar "cobre parte do
+buraco" como impressão, medi **quantos dos 166 passam por essa porta**,
+classificando cada um pelas condições literais de
+`decideTrialBalanceBridge` (`lib/growth/trialBalanceBridge.ts:218-228`):
+
+| faixa das 166 pessoas cegas ao preço | pessoas | a ponte alcança? |
+|---|---|---|
+| **trial NÃO está ativo** | **85 (51%)** | ❌ `not_active` |
+| saldo ≥ 15 (um Seedance inteiro já cabe) | 42 (25%) | ❌ `full_seedance_already_fits` |
+| **saldo 5–14 — a faixa da ponte** | **36 (22%)** | ✅ |
+| saldo < 5 | 3 (2%) | ❌ `too_few_credits` |
+
+**A ponte alcança 36 de 166. Cento e trinta ficam fora da porta.** Isso não é
+crítica à peça — ela foi desenhada para uma faixa e cumpre a faixa. É o
+dimensionamento que faltava para ninguém partir do pressuposto de que o degrau
+está resolvido.
+
+**E a maior fatia é a mais difícil pelo motivo mais duro:** os **85** com trial
+encerrado. Para eles, qualquer oferta na tela de filme pronto chega tarde — e a
+casa já sabe que **de 170 trials encerrados em 7 dias, SEIS pessoas voltaram ao
+site** (medição da outra pista, #13). Uma superfície que depende do retorno
+dessas 85 está apostando em ~3,5% delas.
+
+**A conclusão que isto força, e que muda a ordem da fila:** para os 85, o preço
+tem de aparecer **antes de o trial acabar**, não depois. Não é uma tela nova de
+"seu trial acabou" — essa chega para quem já foi embora. É o preço estar visível
+no caminho de quem **ainda está criando**, que é onde as 166 vivem
+(`/studio/create`, 7.681 eventos). A segunda fatia (42 pessoas com saldo ≥ 15)
+é a mais fácil e ninguém está falando dela: são pessoas com trial ativo, crédito
+sobrando e nenhum preço à vista.
+
+**Ordem sugerida para a próxima sessão, agora com tamanho em cada linha:**
+1. medir a adoção da ponte nova (36 alcançáveis) com corte no deploy de 02:32 —
+   `trial_balance_bridge_viewed` contra `trial_bridge_subscription_clicked`;
+2. os **42** com saldo ≥ 15 e trial ativo — a fatia barata, hoje descoberta;
+3. os **85** de trial encerrado — só com peça que aja ANTES do fim do trial,
+   nunca com uma que dependa do retorno deles.
+
