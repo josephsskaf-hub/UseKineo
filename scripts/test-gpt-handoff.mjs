@@ -690,8 +690,16 @@ console.log('\n(K) docs/GPT-KINEO-VIDEO-MAKER.md amarrado ao servidor e ao schem
   ok(starterDurs.length >= 1 && starterDurs.every((d) => DUR.includes(d)), `(K4) conversation starters pedem só durações válidas (${uniq(starterDurs)})`)
   ok(new RegExp(`aspect: "${DEF_ASP}" unless`).test(instructions) && new RegExp(`\\("${DEF_LANG}" by default\\)`).test(instructions), `(K4) padrões de aspect (${DEF_ASP}) e language (${DEF_LANG}) são os da lib`)
 
-  // (K5) TTL. Todo "N days"/"N dias" do documento é HANDOFF_TTL_DAYS.
-  const dayHits = [...flat.matchAll(/\*{0,2}(\d+)\*{0,2}[\s-]+(?:days?|dias?)\b/gi)].map((m) => Number(m[1]))
+  // (K5) TTL. Todo "N days"/"N dias" que a pessoa LÊ é HANDOFF_TTL_DAYS.
+  //
+  // A varredura é sobre `instructions` (o bloco literal que o GPT recebe) e
+  // `secG` (o registro), NÃO sobre o documento inteiro: o resto do .md é a
+  // nossa argumentação interna, onde "362 cadastros de 14 dias" é uma JANELA
+  // DE MEDIÇÃO e não uma promessa de validade. Varrendo `flat`, essa frase
+  // reprovava o guardião — vermelho que não era defeito de produto (o
+  // documento diz 7 nos dois lugares que importam). O guardião passa a medir
+  // a condição que ele nomeia: o que é dito a quem clica.
+  const dayHits = [...`${instructions}\n${secG}`.matchAll(/\*{0,2}(\d+)\*{0,2}[\s-]+(?:days?|dias?)\b/gi)].map((m) => Number(m[1]))
   ok(dayHits.length >= 2 && dayHits.every((n) => n === TTL_DAYS), `(K5) todo "N days/dias" do .md (${uniq(dayHits)}) === HANDOFF_TTL_DAYS (${TTL_DAYS}) — ${dayHits.length} menções`)
   ok(new RegExp(`valid for ${TTL_DAYS} days`).test(instructions) && new RegExp(`expira em \\*\\*${TTL_DAYS} dias\\*\\*`).test(secG), `(K5) a validade aparece na instrução (C) e no registro (G) com o mesmo número`)
 
