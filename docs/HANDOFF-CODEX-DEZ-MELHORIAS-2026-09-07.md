@@ -1,5 +1,20 @@
 # Dez melhorias aprovadas + Omni sem preenchimento lateral
 
+## Escolha final por screenshot — 07/09/2026
+**DECISÃO DO FUNDADOR NO CHAT:** screenshot `codex-clipboard-b7b6286c-c563-4c15-a617-f6c5c48a0647.png` confirma **B homem na neblina**, personagem de moletom, cidade noturna e robô. Não é a opção A inicialmente sugerida. **IMPLEMENTADO:** `lib/ui/heroOpening.ts` prioriza esses quatro IDs apenas no chamador da fileira hero (`KineoLanding`), sem mudar o catálogo global, motores ou demais IDs. Posters estáticos de cada abertura extraídos dos mesmos previews, sem render pago. Ordem relativa dos demais clipes preservada; dois mares não abrem juntos, mas podem aparecer depois. Todos os cards permanecem 500/280; Omni sem preenchimento lateral.
+**TESTADO LOCALMENTE:** contrato executável passa 270 verificações, incluindo abertura por ID/motor, não mutação, demais clipes preservados e existência dos quatro posters. Publicação e inspeção final ainda pendentes deste checkpoint. Trabalho de pagamentos/marca d'água do Claude fora desta entrega.
+
+## Curadoria da abertura — nova escolha solicitada em 07/09/2026
+**PEDIDO DO FUNDADOR:** os cards 2 (Kling 3) e 3 (MiniMax H3) começam com mar; mudar a sequência. Primeiro card (Veo 3.1) não agrada; apresentar opções antes da troca.
+**FATO CONFIRMADO:** seletores reais retornam aberturas `16742e11` (Veo), `7efd12b8` (Kling 3), `ad6cb185` (H3) e `36a04f7b` (robô Omni). Inspecionados quatro frames dos candidatos locais, sem consulta de banco/render.
+**SUGESTÃO, NÃO PUBLICADA:** A servidores vermelhos `98a5ac54` (Veo) → personagem de moletom `216cbed2` (Kling 3) → cidade noturna `8aabb05a` (H3) → robô `36a04f7b` (Omni). Alternativas do Veo: B homem na neblina `dc0fe3a6`, C rua noir `b9572715`. Alternativa Kling: professor `94d551a3`. Motores reais preservados; não reetiquetar assets.
+**IMPLEMENTADO APENAS COMO DOCUMENTO:** `docs/previews/ESCOLHER-ABERTURA-HOME.html`, CSS e posters inline, vídeos existentes por HTTPS, botões locais para comparar combinações e reproduzir a fila. Antes/depois em quatro cards iguais, grade responsiva 2×2 no mobile. **NÃO VALIDADO NO BROWSER:** política bloqueou file://; não contornado. Arquivo e vídeos entregues como links para escolha do fundador. Nenhuma mudança nova em código público, nenhum push/main/deploy nesta rodada. Não afirmar ausência de mar durante todos os ciclos: somente proposta de abertura; sequência completa depende da escolha final.
+
+## Resultado da correção de igualdade dos cards — 07/09/2026
+**TESTADO EM PRÉVIA, NÃO PUBLICADO NA MAIN:** SHA `b473b3af5150fece65bd79bb0226057888ca293c`, branch remota `codex/omni-equal-cards-sep07`, URL `https://kineo-lupshqdne-josephsskaf-hubs-projects.vercel.app`. Chrome: quatro áreas de mídia exatamente 453,5 × 253,953125 CSS px no desktop; quatro áreas 166 × 92,953125 com viewport de 390px. Proporção 500/280 em todos, sem exceção vertical. TypeScript exit 0; curadoria 250, showcase 248, cinco melhorias 621, idiomas 2034, sharing 68 verificações verdes. Comparação autocontida `docs/previews/OMNI-CARDS-IGUAIS.html`.
+
+**GATE VISUAL AINDA NÃO FECHADO:** cover elimina o fundo lateral, mas o apresentador vertical fica próximo e corta partes do cabelo/queixo durante a fala. A igualdade dos cards está corrigida; não declarar enquadramento perfeito, não publicar esse recorte sem resolver a escolha de um trecho mais aberto/horizontal. Robô e seleção original não removidos. Main continua com o trabalho do Claude preservado; nenhuma atualização nossa em produção nesta rodada.
+
 ## Aceite do enquadramento — atualização
 **CORREÇÃO DO FUNDADOR NO CHAT, 07/09/2026:** cartão vertical REPROVADO. O “perfeito” anterior foi interpretado incorretamente. Todos os cards devem manter a mesma proporção horizontal 500/280. Removidos max-width 240px e aspect-ratio 9/16 do Omni; fonte sem preenchimento continua, agora com cover e ponto focal superior. Isso implica recorte mais próximo dos apresentadores verticais, não recuperação de imagem fora do quadro original. Robô preservado. Exige nova inspeção visual; versão vertical não foi enviada à main.
 
