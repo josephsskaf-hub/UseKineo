@@ -9,7 +9,7 @@ const ok = (value, label) => { assert.ok(value, label); checks++ }
 const eq = (actual, expected, label) => { assert.deepEqual(actual, expected, label); checks++ }
 const modules = {}
 const records = { contexts: [], streams: [], frames: [], audio: [], urls: new Set(), revoked: 0 }
-let clock = 0, failPlay = false, stalled = false, support = true
+let clock = 0, failPlay = false, stalled = false, support = true, failAudio = false, failCapture = false
 class Track { constructor(kind) { this.kind = kind; this.stopped = false; this.frames=0 } stop() { this.stopped = true } requestFrame() { this.frames++ } }
 class Stream { constructor(tracks = []) { this.tracks = tracks; records.streams.push(this) } getTracks() { return this.tracks } getVideoTracks() { return this.tracks.filter(t => t.kind === 'video') } getAudioTracks() { return this.tracks.filter(t => t.kind === 'audio') } addTrack(t) { this.tracks.push(t) } }
 class Video extends EventTarget {
@@ -22,7 +22,7 @@ class Video extends EventTarget {
 }
 class Canvas {
   constructor() { this.width = 640; this.height = 360; this.ctx = { fillRect: (...args) => records.frames.push(['rect', ...args]), drawImage: (...args) => records.frames.push(['video', args[0].currentTime, ...args.slice(1)]), measureText: text => ({ width: text.length * 12 }), fillText: (...args) => records.frames.push(['text', ...args]) }; records.contexts.push(this.ctx) }
-  getContext() { return this.ctx } captureStream() { return new Stream([new Track('video')]) }
+  getContext() { return this.ctx } captureStream() { if (failCapture) throw new Error('capture failed'); return new Stream([new Track('video')]) }
 }
 class Recorder {
   static isTypeSupported() { return support }
@@ -32,8 +32,10 @@ class Recorder {
 }
 class Audio {
   constructor() { this.state = 'suspended'; records.audio.push(this) }
-  resume() { this.state = 'running'; return Promise.resolve() }
+  resume() { if (failAudio) return Promise.reject(new Error('audio blocked')); this.state = 'running'; return Promise.resolve() }
   close() { this.state = 'closed'; return Promise.resolve() }
+  createOscillator() { const oscillator = { frequency: { value: 0 }, stopped: false, start() {}, stop() { this.stopped = true }, connect() {}, disconnect() {} }; records.oscillator = oscillator; return oscillator }
+  createGain() { return { gain: { value: 1 }, connect() {} } }
   createMediaElementSource() { return { connect() {}, disconnect() {} } }
   createMediaStreamDestination() { return { stream: new Stream([new Track('audio')]) } }
 }
@@ -81,7 +83,29 @@ support = false; eq(browser.recordingMime(), null, 'unsupported formats fail clo
 eq(records.urls.size, 0, 'failure paths release source URLs')
 ok(records.streams.every(stream => stream.getTracks().every(track => track.stopped)), 'failure paths release tracks')
 ok(records.audio.every(audio => audio.state === 'closed'), 'failure paths close audio')
+// Reproduce setup failures in the actual sample builder, not a regex claim.
+failAudio = true
+await assert.rejects(browser.sampleClip(new AbortController().signal), /audio blocked/); checks++
+ok(records.audio.at(-1).state === 'closed', 'sample releases AudioContext after resume rejection')
+failAudio = false; failCapture = true
+await assert.rejects(browser.sampleClip(new AbortController().signal), /capture failed/); checks++
+ok(records.audio.at(-1).state === 'closed', 'sample closes audio after canvas setup failure')
+ok(records.oscillator.stopped, 'sample stops oscillator after setup failure')
+ok(records.streams.every(s => s.getTracks().every(t => t.stopped)), 'sample releases destination tracks even before canvas stream exists')
+failCapture = false
+// Actual newline characters, not literal backslash-n text.
+for (const [patch, reason] of [[{speed:3}, /invalid_speed/], [{text:['a','b','c','d'].join(String.fromCharCode(10))}, /invalid_text/], [{fit:'broken'}, /invalid_framing/]]) { assert.throws(()=>policy.validateSettings({...settings,...patch},info),reason); checks++ }
+policy.validateSettings({...settings,text:['First','Second','Third'].join(String.fromCharCode(10))},info); checks++
 const hub = renderPage('app/tools/page.tsx'), spanish = renderPage('app/tools/page.tsx', false, { interfaceLanguage: 'es' })
+const priorHub = renderPage('app/tools/page.tsx', true, {}, {}, '684d1614')
+const hrefs = html => [...html.matchAll(/href="([^"]+)"/g)].map(m=>m[1]).sort()
+eq(hrefs(hub),hrefs(priorHub),'all old tool destinations and category anchors preserved')
+for (const html of [hub,spanish]) {
+  const headings = [...html.matchAll(/<h3[^>]*>([\s\S]*?)<\/h3>/g)].map(m=>m[1].replace(/<[^>]+>/g,''))
+  eq(headings.length,18,'all eighteen tools have names')
+  eq(new Set(headings).size,18,'tool names are distinct')
+  ok(headings.every(h=>!h.startsWith('I need')&&!h.startsWith('Necesito')),'descriptive names replace vague first-person requests')
+}
 for (const tool of policy.EDITING_TOOLS) { ok(hub.includes(`/tools/editor?tool=${tool.id}`), tool.id + ' reachable from real hub'); ok(spanish.includes(tool.es), tool.id + ' Spanish card') }
 const home = renderPage('app/KineoLanding.tsx')
 eq((home.match(/href="\/tools">Editing tools<\/a>/g) || []).length, 2, 'desktop and mobile navigation renamed')

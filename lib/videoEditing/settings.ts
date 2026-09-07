@@ -1,10 +1,10 @@
 /** Local file editing only. Independent of generation, billing and storage. */
 export const EDITING_TOOLS = [
-  { id: 'trim', icon: '01', name: 'Trim video', es: 'Recortar vídeo', description: 'Keep the part that matters. Choose a start and an end.', descriptionEs: 'Conserva lo que importa. Elige el inicio y el final.' },
-  { id: 'resize', icon: '02', name: 'Resize video', es: 'Cambiar formato', description: 'Go vertical, square or wide. Fit the frame or crop to fill.', descriptionEs: 'Vertical, cuadrado u horizontal. Encaja la imagen o recórtala para llenar.' },
-  { id: 'speed', icon: '03', name: 'Change speed', es: 'Cambiar velocidad', description: 'Slow it down or speed it up, from 0.5× to 2×.', descriptionEs: 'Más lento o más rápido, de 0,5× a 2×.' },
-  { id: 'mute', icon: '04', name: 'Mute video', es: 'Silenciar vídeo', description: 'Download a copy without the original audio.', descriptionEs: 'Descarga una copia sin el audio original.' },
-  { id: 'text', icon: '05', name: 'Add text', es: 'Añadir texto', description: 'Put your own headline on the video. No automatic transcription.', descriptionEs: 'Pon tu propio título en el vídeo. Sin transcripción automática.' },
+  { id: 'trim', icon: '01', name: 'Video Trimmer', es: 'Cortar vídeo', action: 'Trim video', actionEs: 'Cortar vídeo', description: 'Cut the beginning or end and keep only the clip you need.', descriptionEs: 'Corta el inicio o el final y conserva solo el fragmento que necesitas.' },
+  { id: 'resize', icon: '02', name: 'Video Resizer', es: 'Redimensionar vídeo', action: 'Resize video', actionEs: 'Redimensionar vídeo', description: 'Go vertical, square or wide. Fit the frame or crop to fill.', descriptionEs: 'Vertical, cuadrado u horizontal. Encaja la imagen o recórtala para llenar.' },
+  { id: 'speed', icon: '03', name: 'Video Speed Changer', es: 'Cambiar velocidad', action: 'Change video speed', actionEs: 'Cambiar velocidad', description: 'Slow it down or speed it up, from 0.5× to 2×.', descriptionEs: 'Más lento o más rápido, de 0,5× a 2×.' },
+  { id: 'mute', icon: '04', name: 'Remove Audio', es: 'Quitar audio', action: 'Remove audio', actionEs: 'Quitar audio', description: 'Download a copy without the original audio.', descriptionEs: 'Descarga una copia sin el audio original.' },
+  { id: 'text', icon: '05', name: 'Add Text to Video', es: 'Añadir texto al vídeo', action: 'Add text to video', actionEs: 'Añadir texto al vídeo', description: 'Add a title or message that stays on screen. Not automatic subtitles.', descriptionEs: 'Añade un título o mensaje fijo en pantalla. No crea subtítulos automáticos.' },
 ] as const
 export type EditingTool = typeof EDITING_TOOLS[number]['id']
 export type Aspect = 'original' | '9:16' | '1:1' | '16:9'
@@ -19,8 +19,10 @@ export function defaults(duration: number, tool: EditingTool): EditSettings {
 export function validateSettings(settings: EditSettings, info: ClipInfo): void {
   if (![info.duration, info.width, info.height, settings.start, settings.end, settings.speed].every(Number.isFinite)) throw new Error('invalid_settings')
   if (info.duration <= 0 || info.duration > MAX_CLIP_SECONDS || info.width < 2 || info.height < 2 || info.width > 8192 || info.height > 8192) throw new Error('clip_limits')
-  if (settings.start < 0 || settings.end > info.duration + 0.001 || settings.end - settings.start < 0.25 || settings.speed < 0.5 || settings.speed > 2) throw new Error('invalid_settings')
-  if (!['original', '9:16', '1:1', '16:9'].includes(settings.aspect) || !['contain', 'cover'].includes(settings.fit) || !['top', 'center', 'bottom'].includes(settings.position) || settings.text.length > 100) throw new Error('invalid_settings')
+  if (settings.start < 0 || settings.end > info.duration + 0.001 || settings.end - settings.start < 0.25) throw new Error('invalid_settings')
+  if (settings.speed < 0.5 || settings.speed > 2) throw new Error('invalid_speed')
+  if (settings.text.length > 100 || settings.text.split('\n').length > 3) throw new Error('invalid_text')
+  if (!['original', '9:16', '1:1', '16:9'].includes(settings.aspect) || !['contain', 'cover'].includes(settings.fit) || !['top', 'center', 'bottom'].includes(settings.position)) throw new Error('invalid_framing')
 }
 export function outputSize(width: number, height: number, aspect: Aspect) {
   const ratio = aspect === 'original' ? width / height : aspect === '9:16' ? 9 / 16 : aspect === '1:1' ? 1 : 16 / 9

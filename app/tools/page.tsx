@@ -36,69 +36,69 @@ type ToolMeta = {
 const TOOL_META: Record<string, ToolMeta> = {
   '/business-pilot-review': {
     eyebrow: 'Start with an internal decision',
-    prompt: 'I need an internal decision on Kineo',
+    prompt: 'Business Approval Brief',
     cta: 'Build the decision note',
   },
   '/client-video-brief-generator': {
     eyebrow: 'Start with a client request',
-    prompt: 'I need an approvable Short brief',
+    prompt: 'Client Video Brief',
     cta: 'Build the client brief',
     featured: true,
   },
   '/free-script-generator': {
     eyebrow: 'Start with a topic',
-    prompt: 'I need the complete script',
+    prompt: 'Video Script Generator',
     cta: 'Write my Short script',
     featured: true,
   },
   '/free-hook-generator': {
     eyebrow: 'Start with a topic',
-    prompt: 'I need a stronger opening',
+    prompt: 'Hook Generator',
     cta: 'Generate five hooks',
   },
   '/youtube-shorts-title-generator': {
     eyebrow: 'Start with a topic',
-    prompt: 'I need titles, a description and hashtags',
+    prompt: 'YouTube Title & Description Generator',
     cta: 'Build my publishing kit',
   },
   '/youtube-shorts-script-timer': {
     eyebrow: 'Start with a finished draft',
-    prompt: 'I need to know if my script fits',
+    prompt: 'Script Duration Calculator',
     cta: 'Time my narration',
   },
   '/viral-score': {
     eyebrow: 'Start with an idea',
-    prompt: 'I need to pressure-test it',
+    prompt: 'Video Idea Checker',
     cta: 'Score my idea',
   },
   '/comment-to-video': {
     eyebrow: 'Start with your audience',
-    prompt: 'I have a comment or FAQ',
+    prompt: 'Comment-to-Script Generator',
     cta: 'Turn it into a response script',
   },
   '/product-to-video-script': {
     eyebrow: 'Start with verified facts',
-    prompt: 'I need a product video script',
+    prompt: 'Product Video Script Generator',
     cta: 'Build my product script',
   },
   '/free-ai-shorts/localbusiness': {
     eyebrow: 'Start with a real business offer',
-    prompt: 'I need a local business ad script',
+    prompt: 'Local Business Ad Script',
     cta: 'Build my business ad',
   },
   '/business-video-content-plan': {
     eyebrow: 'Start with a business goal',
-    prompt: 'I need a week of content',
+    prompt: 'Weekly Content Planner',
     cta: 'Plan my business Shorts',
   },
   '/shorts-money-calculator': {
     eyebrow: 'Start with your numbers',
-    prompt: 'I need an earnings estimate',
+    prompt: 'YouTube Shorts Earnings Calculator',
     cta: 'Calculate Shorts earnings',
   },
   '/cheapest-ai-shorts-maker': {
     eyebrow: 'Start with a publishing schedule',
-    prompt: 'I need the real Kineo production cost',
+    prompt: 'Video Cost Calculator',
     cta: 'Find my cheapest plan',
   },
 }
@@ -236,7 +236,7 @@ export default function ToolsPage() {
 
         <header className="tools-hero">
           <p className="tools-kicker"><UiText es="Herramientas de edición y creación">Editing & creator tools</UiText></p>
-          <h1><UiText es="Pequeños cambios. Tu vídeo, listo.">Small edits. Your video, ready.</UiText></h1>
+          <h1><UiText es="Herramientas para editar y crear vídeos">Video Editing & Creator Tools</UiText></h1>
           <p className="tools-intro">
             <UiText es="Recorta, cambia el formato, ajusta la velocidad, silencia o añade texto. Edita un archivo que ya tienes, directamente en tu navegador. Las herramientas de guion y planificación siguen aquí abajo.">Trim, resize, change speed, mute or add text. Edit a file you already have, right in your browser. Your script and planning tools are still here below.</UiText>
           </p>
@@ -252,8 +252,8 @@ export default function ToolsPage() {
           {TOOL_GROUPS.map(group => <a key={group.id} href={`#tools-${group.id}`}><UiLabel>{group.title}</UiLabel></a>)}
         </nav>
         <section id="tools-edit" className="tool-group" aria-labelledby="tools-edit-heading">
-          <h2 id="tools-edit-heading"><UiText es="¿Qué quieres cambiar?">What would you like to change?</UiText></h2>
-          <div className="editing-grid">{EDITING_TOOLS.map(tool => <article key={tool.id} className="editing-card"><span className="editing-number" aria-hidden="true">{tool.icon} /</span><h3><UiText es={tool.es}>{tool.name}</UiText></h3><p><UiText es={tool.descriptionEs}>{tool.description}</UiText></p><Link href={`/tools/editor?tool=${tool.id}`}><UiText es="Abrir herramienta">Open tool</UiText> ↗</Link></article>)}</div>
+          <h2 id="tools-edit-heading"><UiText es="Editar un vídeo">Edit your video</UiText></h2>
+          <div className="editing-grid">{EDITING_TOOLS.map(tool => <article key={tool.id} className="editing-card"><span className="editing-number" aria-hidden="true">{tool.icon} /</span><h3><UiText es={tool.es}>{tool.name}</UiText></h3><p><UiText es={tool.descriptionEs}>{tool.description}</UiText></p><Link href={`/tools/editor?tool=${tool.id}`}><UiText es={tool.actionEs}>{tool.action}</UiText> ↗</Link></article>)}</div>
           <p className="editing-note"><UiText es="Archivos de hasta 100 MB y 3 minutos. Exportación local en tiempo real, hasta 1280 px en el lado largo. MP4 o WebM según el navegador; no se guardan en Mis vídeos.">Files up to 100 MB and 3 minutes. Local, real-time export up to 1280 px on the long edge. MP4 or WebM depending on your browser; downloads are not saved to My Videos.</UiText></p>
         </section>
         {TOOL_GROUPS.map(group => (
@@ -285,7 +285,7 @@ export default function ToolsPage() {
 
         <section className="tools-boundary" aria-labelledby="finished-video-title">
           <div>
-            <p className="tool-eyebrow"><UiText es="Hasta dónde llegan estas herramientas">Where these tools stop</UiText></p>
+            <p className="tool-eyebrow"><UiText es="Crear un vídeo nuevo">Create a new video</UiText></p>
             <h2 id="finished-video-title"><UiText es="Edita un vídeo existente aquí. Crea uno nuevo con Kineo.">Edit an existing video here. Create a new one with Kineo.</UiText></h2>
             <p>
               <UiText es="Cuando tu idea esté lista, Kineo puede convertirla en un Short vertical completo con voz, imágenes y subtítulos. Ese siguiente paso requiere una cuenta; la prueba gratuita no requiere tarjeta.">When your idea is ready, Kineo can turn it into a finished vertical Short with
@@ -293,7 +293,7 @@ export default function ToolsPage() {
               does not require a card.</UiText>
             </p>
           </div>
-          <Link href="/free-ai-shorts-generator"><UiText es="Ver cómo se crea el vídeo completo →">See the finished-video workflow →</UiText></Link>
+          <Link href="/free-ai-shorts-generator"><UiText es="Crear un vídeo con IA →">Create an AI video →</UiText></Link>
         </section>
       </div>
 

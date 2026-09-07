@@ -152,38 +152,72 @@ export async function sampleClip(signal: AbortSignal): Promise<File> {
   if (signal.aborted) throw new Error('cancelled')
   if (document.hidden) throw new Error('keep_visible')
   const canvas = document.createElement('canvas'); canvas.width = 640; canvas.height = 360
-  const ctx = canvas.getContext('2d')!
-  const audio = new AudioContext(); await audio.resume()
-  const destination = audio.createMediaStreamDestination(), oscillator = audio.createOscillator(), gain = audio.createGain()
-  oscillator.frequency.value = 440; gain.gain.value = .05; oscillator.connect(gain); gain.connect(destination); oscillator.start()
-  const stream = canvas.captureStream(0); destination.stream.getAudioTracks().forEach(track => stream.addTrack(track))
-  const canvasTrack = stream.getVideoTracks()[0] as CanvasCaptureMediaStreamTrack
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('unsupported')
+  const audio = new AudioContext()
+  let stream: MediaStream | undefined, destination: MediaStreamAudioDestinationNode | undefined, oscillator: OscillatorNode | undefined
   let recorder: MediaRecorder | undefined, frame: ReturnType<typeof setTimeout> | undefined
+  let cleanup = () => {}
   try {
+    await audio.resume()
+    if (audio.state !== 'running') throw new Error('audio_unavailable')
+    if (signal.aborted) throw new Error('cancelled')
+    destination = audio.createMediaStreamDestination(); oscillator = audio.createOscillator()
+    const gain = audio.createGain()
+    oscillator.frequency.value = 440; gain.gain.value = .05
+    oscillator.connect(gain); gain.connect(destination); oscillator.start()
+    stream = canvas.captureStream(0)
+    destination.stream.getAudioTracks().forEach(track => stream!.addTrack(track))
+    const canvasTrack = stream.getVideoTracks()[0] as CanvasCaptureMediaStreamTrack
     if (typeof canvasTrack.requestFrame !== 'function') throw new Error('unsupported')
     return await new Promise<File>((resolve, reject) => {
-      const chunks: Blob[] = []; let failed = false
-      recorder = new MediaRecorder(stream, { mimeType: mime })
-      const abort = () => { failed = true; if (recorder!.state !== 'inactive') recorder!.stop() }
-      const visibility = () => { if (document.hidden) abort() }
-      const timeout = setTimeout(abort, 12000)
+      const chunks: Blob[] = []; let failure: Error | undefined, stopping = false
+      recorder = new MediaRecorder(stream!, { mimeType: mime })
+      const settle = () => {
+        cleanup()
+        if (failure) { reject(failure); return }
+        const blob = new Blob(chunks, { type: mime })
+        if (!blob.size) { reject(new Error('export_failed')); return }
+        resolve(new File([blob], 'kineo-sample.' + (mime.startsWith('video/mp4') ? 'mp4' : 'webm'), { type: mime }))
+      }
+      const stop = (error?: Error) => {
+        if (stopping) return
+        stopping = true; failure = error; clearTimeout(frame)
+        if (recorder!.state === 'inactive') { settle(); return }
+        try { recorder!.stop() } catch { failure = new Error('export_failed'); settle() }
+      }
+      const abort = () => stop(new Error('cancelled'))
+      const visibility = () => { if (document.hidden) stop(new Error('keep_visible')) }
+      const timeout = setTimeout(() => stop(new Error('export_stalled')), 12000)
+      cleanup = () => { clearTimeout(timeout); signal.removeEventListener('abort', abort); document.removeEventListener('visibilitychange', visibility) }
       recorder.ondataavailable = event => { if (event.data.size) chunks.push(event.data) }
-      recorder.onerror = abort
-      recorder.onstop = () => { clearTimeout(timeout); signal.removeEventListener('abort', abort); document.removeEventListener('visibilitychange', visibility); failed ? reject(new Error('cancelled')) : resolve(new File(chunks, 'kineo-sample.' + (mime.startsWith('video/mp4') ? 'mp4' : 'webm'), { type: mime })) }
+      recorder.onerror = () => stop(new Error('export_failed'))
+      recorder.onstop = settle
       signal.addEventListener('abort', abort, { once: true })
       document.addEventListener('visibilitychange', visibility)
       const start = performance.now()
       const draw = () => {
+        if (stopping) return
         const seconds = (performance.now() - start) / 1000
-        ctx.fillStyle = '#111c32'; ctx.fillRect(0, 0, 640, 360)
-        ctx.fillStyle = '#66d9c2'; ctx.fillRect(40 + seconds * 70, 170, 90, 90)
-        ctx.fillStyle = '#fff'; ctx.font = 'bold 32px system-ui'; ctx.fillText('KINEO · SAMPLE', 40, 65)
-        ctx.font = '22px system-ui'; ctx.fillText(seconds.toFixed(1) + 's · test tone', 40, 112)
-        canvasTrack.requestFrame()
-        if (seconds >= 4) { if (recorder!.state !== 'inactive') recorder!.stop(); return }
+        try {
+          ctx.fillStyle = '#111c32'; ctx.fillRect(0, 0, 640, 360)
+          ctx.fillStyle = '#66d9c2'; ctx.fillRect(40 + seconds * 70, 170, 90, 90)
+          ctx.fillStyle = '#fff'; ctx.font = 'bold 32px system-ui'; ctx.fillText('KINEO · SAMPLE', 40, 65)
+          ctx.font = '22px system-ui'; ctx.fillText(seconds.toFixed(1) + 's · test tone', 40, 112)
+          canvasTrack.requestFrame()
+        } catch { stop(new Error('export_failed')); return }
+        if (seconds >= 4) { stop(); return }
         frame = setTimeout(draw, 1000 / 30)
       }
       recorder.start(250); draw(); if (signal.aborted) abort()
     })
-  } finally { clearTimeout(frame); if (recorder && recorder.state !== 'inactive') recorder.stop(); oscillator.stop(); stream.getTracks().forEach(track => track.stop()); await audio.close().catch(() => {}) }
+  } finally {
+    cleanup(); clearTimeout(frame)
+    if (recorder && recorder.state !== 'inactive') { try { recorder.stop() } catch { /* release tracks below */ } }
+    try { oscillator?.stop() } catch { /* oscillator might not have started */ }
+    oscillator?.disconnect()
+    stream?.getTracks().forEach(track => track.stop())
+    destination?.stream.getTracks().forEach(track => track.stop())
+    await audio.close().catch(() => {})
+  }
 }
