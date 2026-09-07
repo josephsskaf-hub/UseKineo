@@ -156,3 +156,75 @@ where e.name = 'trial_lifecycle_email_sent'
   and e.metadata ->> 'body' = 'offer_with_film_1usd'
   and e.created_at > timestamptz '2026-09-07 20:00:00+00'
   and pr.has_paid is true;
+
+
+-- ══════════════════════════════════════════════════════════════════════════
+-- va-r5 (07/09 ~19:30 BRT) — A PORTA DE ENTRADA PAGA NO E-MAIL DE ENTREGA
+-- SHA 7d3b0817. Marco do deploy: use o CAMPO, nunca o relogio
+-- (memoria `campo-novo-e-o-carimbo-do-deploy`): so os envios do bundle novo
+-- carregam `metadata ? 'trial_door'`.
+-- ══════════════════════════════════════════════════════════════════════════
+
+-- V5.1 — ALCANCE: quantos e-mails de entrega saem por dia, por rodape, e em
+-- quantos deles a porta entrou. As tres familias de "filme pronto" juntas.
+select
+  e.name                                              as remetente,
+  coalesce(e.metadata ->> 'footer', '(sem carimbo)')  as rodape,
+  (e.metadata ->> 'trial_door')::boolean              as porta,
+  count(*)                                            as envios,
+  count(distinct e.user_id)                           as pessoas,
+  min(e.created_at)                                   as primeiro,
+  max(e.created_at)                                   as ultimo
+from events e
+where e.name in ('video_ready_email_sent', 'stranded_ready_sent', 'video_ready_nudge_sent')
+  and e.metadata ? 'trial_door'          -- so o bundle novo; relogio nao serve
+group by 1, 2, 3
+order by envios desc;
+
+-- V5.2 — O DEGRAU: quem RECEBEU a porta e chegou ao checkout por ela.
+-- O carimbo do link (`intent_campaign`) e propagado pela rota de checkout ate
+-- o `payment_success`, entao a mesma chave serve para os tres degraus.
+-- ⚠ CONTROLE OBRIGATORIO antes de ler um zero aqui: a linha `controle` conta
+-- QUALQUER chegada com intent_campaign no periodo. Se ela vier 0 tambem, o
+-- problema e a escrita do campo, nao a peca (memoria `provar-leitura-sem-trafego`).
+with recebeu as (
+  select distinct user_id
+  from events
+  where metadata ? 'trial_door'
+    and (metadata ->> 'trial_door')::boolean is true
+    and name in ('video_ready_email_sent', 'stranded_ready_sent', 'video_ready_nudge_sent')
+)
+select
+  (select count(*) from recebeu)                                                    as receberam_a_porta,
+  (select count(distinct user_id) from events
+     where metadata ->> 'intent_campaign' = 'video_ready_email_trial_1usd_v1')      as clicaram_na_porta,
+  (select count(distinct user_id) from events
+     where name = 'checkout_started'
+       and metadata ->> 'intent_campaign' = 'video_ready_email_trial_1usd_v1')      as abriram_checkout,
+  (select count(distinct user_id) from events
+     where name = 'payment_success'
+       and metadata ->> 'intent_campaign' = 'video_ready_email_trial_1usd_v1')      as pagaram,
+  (select count(distinct user_id) from events
+     where metadata ->> 'intent_campaign' = 'video_ready_email_plan_truth_v1')      as comparacao_link_do_plano,
+  (select count(*) from events
+     where metadata ? 'intent_campaign'
+       and created_at > timestamptz '2026-09-07 22:00:00+00')                       as controle_qualquer_intent;
+
+-- V5.3 — A TRAVA FUNCIONA? Ninguem com has_paid=true pode ter recebido a porta.
+-- Uma linha aqui = a casa anunciou o que o cobrador recusa. Deve dar SEMPRE 0.
+select count(*) as violacoes_da_trava
+from events
+where metadata ? 'trial_door'
+  and (metadata ->> 'trial_door')::boolean is true
+  and (metadata ->> 'has_paid')::boolean is true;
+
+-- V5.4 — QUANTOS PERDEM A PORTA POR LEITURA DE PERFIL FALHA (has_paid null).
+-- Falha fechada de proposito; se este numero for grande, o conserto e a
+-- leitura do perfil, nao afrouxar a trava.
+select
+  coalesce(e.metadata ->> 'has_paid', 'null') as has_paid_no_envio,
+  count(*)                                    as envios,
+  count(distinct e.user_id)                   as pessoas
+from events e
+where e.metadata ? 'trial_door'
+group by 1 order by envios desc;

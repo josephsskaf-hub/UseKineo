@@ -584,3 +584,173 @@ qual carta cada pessoa leu sem depender do relógio.
 
 **Estado:** `origin/main = c92e7e37`, fila vazia. A próxima rodada do cron
 (22:25 UTC) deve ser a primeira a sair com o preço na cara.
+
+---
+
+### #5 — 19:22-19:45 — O E-MAIL QUE MAIS FALA COM CLIENTE PEDIA $7/MÊS, E TEVE ZERO CLIQUES EM CINCO DIAS
+
+**O que eu ia fazer:** a V4 do cardápio — o cron de digest das respostas às
+cartas V1/V3, com o SLA de 48h.
+
+**Por que ela não sai: as cartas V1 e V3 não existem.** A #1 decidiu não
+disparar a V1 (a coorte era um erro de contagem: 9 pessoas, não 104), e a #2
+bloqueou a V3 (o trilho de afiliado não credita porque ninguém que clicou abriu
+conta). Um digest de respostas a duas cartas que nunca saíram mede o silêncio de
+uma sala vazia. E o MCP do Gmail está proibido nesta rotina, então a caixa do
+fundador eu não leio de qualquer forma. **A V4 fica registrada como
+não-aplicável, não como feita.**
+
+Fui então atrás do que o cardápio chama de V6 — "o que os dados disserem".
+
+**🔴 O ACHADO. A CASA TEM UMA SUPERFÍCIE DE DINHEIRO 13× MAIOR QUE A QUE AS DUAS
+PISTAS ESTÃO DISPUTANDO, E ELA PEDIA A COISA ERRADA.**
+
+A pista irmã passou o dia brigando pelo slot único da TELA de filme pronto, e
+mediu (fv-r6b) que a pergunta comercial ganha **7 dos 105 slots em 7 dias** — 1
+por dia. Enquanto isso, o **e-mail** de filme pronto:
+
+| | |
+|---|---|
+| envios com pedido de dinheiro dentro, desde 02/09 | **187** |
+| pessoas distintas | **132** |
+| vazão | **~13/dia** |
+| chegadas no link de plano que ele carrega | **0** |
+
+**ZERO. Em toda a história do carimbo.** O `intent_campaign` do link de plano
+(`video_ready_email_plan_truth_v1`) não tem uma linha.
+
+**CONTROLE RODADO ANTES DE CHAMAR DE ZERO** (memórias
+`zero-escritas-conte-as-oportunidades` e `provar-leitura-sem-trafego`): o campo
+`intent_campaign` **é** escrito, e muito — 726 linhas para
+`push69_home_one_click_starters`, 247 para `studio_v4`, 1.073 eventos com o
+campo no total. Se alguém tivesse clicado, estaria lá. **O zero é real, não é
+cegueira de instrumentação.**
+
+E o pedido que essas 187 cartas carregavam era *"Plans from $7/month"* — uma
+decisão mensal, no minuto em que a pessoa acabou de receber um filme. **A oferta
+mais barata da casa, ligada hoje às 16:10 por ordem sua, não existia em
+e-mail nenhum.**
+
+**🟢 O QUE SUBIU (`7d3b0817`, EM PRODUÇÃO, fila 0).** A porta de entrada paga
+entrou nos **três** remetentes de "seu filme está pronto", que compartilham um
+único módulo (`lib/lifecycle/videoReadyFooter.ts`):
+
+1. a rota de status — a de maior vazão, sai em todo render;
+2. o cron `send-video-ready`;
+3. o cron dos *stranded* — **o único ponto de contato dos ~7% de entregas que
+   chegam só por e-mail** (medição fv-r5c: 33 só-e-mail + 27 sem tela em 30d).
+   Essa gente não vê **nenhuma** superfície de oferta da tela; a pista irmã
+   registrou que não ia atrás deles, e é exatamente a minha metade da casa.
+
+**AS TRAVAS DE HONESTIDADE** (memória `vitrine-oferece-o-que-o-cobrador-recusa`):
+
+- **A porta exige `has_paid === false` PROVADO — não `!isSubscriber`.** Esta é a
+  decisão de projeto que mais importa aqui. O predicado vizinho é mais largo *e*
+  nasce `false` quando a leitura do perfil falha: usá-lo abriria a porta
+  justamente para quem a casa não sabe nada. **Desconhecido não vira `false`.**
+  No banco `has_paid` nunca é nulo (1.824 false / 13 true), então exigir o
+  `false` explícito **não custa alcance nenhum** e protege da leitura falha.
+- **Nenhum número digitado.** Taxa, mensalidade, dias e créditos saem de
+  `lib/lifecycle/trialEntryFee.ts` (a peça da #4) e de `lib/checkoutPricing.ts`
+  — as mesmas constantes que a Stripe cobra. Se você mudar a taxa amanhã, os
+  três e-mails mudam sozinhos.
+- **O `tier` do link é lido da rota do cobrador pelo guardião**, não presumido.
+- **O e-mail NÃO promete export limpo.** A caixa da tela pode dizer *"Get this
+  film clean"* porque tem o `renderId` e o `/api/compose/unlock`. O e-mail **não
+  tem esse caminho** — prometer ali seria vender o que o link não entrega
+  (CLAUDE.md: nunca prometer o que o produto não sabe executar sozinho). Ela
+  promete exatamente o que a Stripe faz no clique: os dias, os créditos que
+  entram no ato, a mensalidade a partir do dia 8, e o cancelamento.
+- **O plano continua visível** logo abaixo (sua ordem: nunca esconder o plano).
+- **Com saldo, o episódio 2 continua vindo PRIMEIRO** — é a peça que melhor
+  prevê pagamento (27 pessoas usaram o botão de série, 3 pagaram). A porta entra
+  como linha, entre o episódio 2 e o plano cheio. Sem saldo, ela lidera: é o
+  único ramo em que a pessoa não tem nada de graça para fazer a seguir.
+
+**O CONTROLE DE REGRESSÃO QUE ME DEIXOU SUBIR ISTO SEM MEDO.** Sem `hasPaid`, o
+rodapé sai **byte a byte** como saía antes — e a prova é que as **50
+verificações do guardião irmão passaram sem eu editar uma asserção sequer**.
+
+**GUARDIÃO:** `scripts/test-porta-1usd-no-email-de-entrega.mjs`, **57
+verificações** rodando a função REAL (transpileModule), com **6 mutantes, todos
+mortos**: trocar a trava pelo predicado largo · digitar o preço à mão · abrir a
+porta para assinante · carimbar a porta sem pô-la no HTML · esconder o plano ·
+prometer export limpo. **217 verificações verdes** na família inteira, `tsc`
+limpo.
+
+**⚠️ EU QUEBREI TRÊS ASSERÇÕES ALHEIAS E NÃO AFROUXEI NENHUMA.** O
+`test-stranded-ready-footer` estava 42/42 na ponta e ficou 39/42 comigo. As três
+causas, e o que fiz:
+
+1. `!html.includes('0 credits')` ficou vermelha por **colisão de substring**: a
+   porta diz *"80 credits now"*, e "8**0 credits**" contém "0 credits". A
+   intenção da asserção (a casa nunca afirmar que a pessoa tem zero) continua
+   valendo — **reancorei em fronteira de palavra e somei uma segunda** checando
+   a frase inteira. Ficou mais estrita, não menos.
+2. o carimbo do evento mudou de forma: atualizei a âncora e **somei** a
+   verificação de que as **duas** fases carimbam.
+3. a trava *"nenhum preço digitado neste trecho"* pegou o **valor citado num
+   comentário meu**. Reescrevi o comentário. Afrouxar uma trava de preço para
+   caber uma frase minha seria trocar proteção real por conforto de escrita.
+
+**MEDIÇÃO (V5 do cardápio):** carimbo próprio `trial_door` + `has_paid` nos três
+eventos de envio — o `footer` sozinho não separa a versão com porta da sem — e
+um `intent_campaign` próprio no link, que a rota de checkout propaga até o
+`payment_success`. Consultas em
+`docs/queries/VENDA-ASSISTIDA-2026-09-07.sql` (V5.1 a V5.4), **cortadas pelo
+campo novo e nunca pelo relógio** (memória `campo-novo-e-o-carimbo-do-deploy`).
+
+**SONDA EM PRODUÇÃO, COM CONTROLE:** a URL da porta devolve **307** para
+`/signup?reason=checkout&redirect=…` **preservando o `trial=1` e o
+`intent_campaign`** através do login; rota irmã inexistente devolve **404**
+(memória `sonda-401-exige-controle-404`), com User-Agent identificável e
+não-`curl` (memória `sonda-com-ua-de-curl-cai-no-ramo-do-robo`). Conferi também
+que a página de signup constrói o link de login **preservando o redirect** — os
+destinatários todos já têm conta, e sem isso a porta morreria no primeiro clique
+(memória `sondar-o-destino-do-link-antes-de-enviar`).
+
+**QUEM RECEBEU: ninguém ainda, e o zero está medido honestamente.** O carimbo
+novo tem **0 linhas** — mas **as entregas nos últimos 30 min também são 0**, e a
+última de toda a casa é de 21:52 UTC, antes do deploy. **É zero-oportunidade,
+não zero-entrega.** A próxima entrega carrega o carimbo.
+
+**Nenhum e-mail novo foi criado, nenhuma lista nova, nenhum desconto, nenhum
+crédito.** Mudou o que ~13 cartas/dia que já saíam passam a oferecer.
+
+**PRÓXIMA ROTAÇÃO (#6):** ler a V5.1/V5.2 assim que houver entregas com o
+carimbo, e — se a porta aparecer e ninguém clicar — a jogada não é uma sétima
+carta, é olhar os **56 "nenhuma das três"** que a pista irmã achou sem dono.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+1. **Nada de código.** O `7d3b0817` já está em produção, fila 0, sonda com
+   controle passada.
+2. **Continua de pé o pedido da #2:** mandar da sua caixa os dois rascunhos da
+   CAMADA 1 em `docs/RASCUNHOS-AUTOPILOT-2026-09-07.md`. É o único item da noite
+   que só você pode executar.
+3. **Continua de pé a decisão da #3:** as cartas D5/D10 mandam 785 e-mails a
+   cada 14 dias para uma janela (dia 5-10) que nunca produziu um pagante
+   orgânico — os pagantes compram no dia zero. Se quiser cortar essa esteira,
+   me diga.
+
+## 📋 O QUE ACONTECEU
+
+Passei a rotação atrás de onde a casa ainda fala com cliente e achei um
+desperdício grande: o e-mail de "seu filme está pronto" — o único que chega no
+minuto em que a pessoa está mais feliz, e que saiu **187 vezes para 132 pessoas**
+desde 02/09 — pedia *"assine por $7/mês"*, e esse pedido teve **zero cliques em
+toda a sua história**. Enquanto isso as duas pistas gastavam o dia disputando um
+espaço na tela que aparece **1 vez por dia**. O e-mail vale 13.
+
+Pus ali dentro a oferta de entrada que você mandou ligar hoje, nos três
+remetentes — incluindo o que fala com os ~7% de clientes que nunca veem a tela e
+só recebem e-mail. O plano continua visível abaixo; quem já pagou nunca vê a
+oferta de entrada, porque a Stripe recusaria e a casa não anuncia o que o
+cobrador nega. Nenhum valor está escrito no código: todos são lidos das mesmas
+constantes que a Stripe cobra, então se você mudar o preço amanhã os três
+e-mails mudam sozinhos. E o e-mail **não** promete o filme sem marca d'água —
+esse caminho só existe na tela, e prometer o que o link não entrega é como a
+casa perdeu a confiança do Rick em agosto.
+
+Ninguém recebeu ainda: não houve nenhuma entrega de filme na última meia hora.
+A próxima já sai com a oferta e com carimbo próprio para eu medir.
