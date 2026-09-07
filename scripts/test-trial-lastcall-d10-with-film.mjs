@@ -38,8 +38,9 @@ ok(d10.includes('filmNoun(c.lastDuration)'), 'segundos so quando a duracao e rea
 // va-r3 (07/09): o assunto mudou junto com o corpo — a porta de entrada paga
 // entrou antes do cupom, e o assunto deixou de anunciar os 50%. O cupom NAO
 // mudou (codigo, prazo, porcentagem, URL) e continua guardado logo acima.
-ok(d10.includes('Last call — your ${noun} is waiting, and there are two ways back in'), 'assunto com o filme dela (1 video)')
-ok(d10.includes('Last call — your ${c.videosMade} videos are waiting, and there are two ways back in'), 'assunto com N videos')
+// va-r4 (07/09): o assunto passou a carregar a taxa derivada (entryFee).
+ok(d10.includes('Last call — your ${noun} is waiting, and ${entryFee} is the cheapest way back'), 'assunto com o filme dela + taxa derivada (1 video)')
+ok(d10.includes('Last call — your ${c.videosMade} videos are waiting, and ${entryFee} is the cheapest way back'), 'assunto com N videos + taxa derivada')
 ok(d10.includes('subject: `Last call: 50% off Creator expires`'), 'quem nao tem video: assunto de hoje intocado')
 // corpo padrao intocado (controle do A/B)
 const std = d10.slice(d10.indexOf("const text = `Hey,"))

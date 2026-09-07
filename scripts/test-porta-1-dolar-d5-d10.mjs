@@ -84,10 +84,24 @@ check('4. a URL do e-mail carrega intent_campaign (medição)', src.includes('&i
 check('5. campanha do D5 distinta', src.includes("trialEntryUrl('trial_1usd_d5')"))
 check('6. campanha do D10 distinta', src.includes("trialEntryUrl('trial_1usd_d10')"))
 
-// ── B. a copy não promete preço que o e-mail não sabe localizar ─────────────
-const LINHA = 'a 7-day Creator trial with a token entry fee — the checkout shows it in your own currency'
-check('7. TRIAL_ENTRY_LINE é a linha neutra de moeda', src.includes(`const TRIAL_ENTRY_LINE = '${LINHA}'`))
-check('8. a linha não carrega preço literal nenhum', !PRECO_LITERAL.test(LINHA))
+// ── B. a copy carrega o preço, e o preço vem do cobrador ────────────────────
+// ⚠️ RETRATAÇÃO DA va-r3, ESCRITA NA va-r4 (mesma noite, 07/09).
+// Este bloco exigia uma "linha NEUTRA de moeda" porque eu acreditava que a
+// taxa de entrada era cobrada na moeda de cada pessoa. **Não é, e não era
+// havia 18 dias.** `CheckoutCurrency` é união de um valor só desde a V6
+// (19/08), `resolveCheckoutCurrency` ignora o país, e o banco confirma: dos
+// 751 eventos com moeda depois de 20/08, 751 em usd. A verificação abaixo
+// deixou de exigir o eufemismo e passou a exigir o NÚMERO — derivado, nunca
+// digitado. A tripwire que faltava (falhar no dia em que a moeda voltar a
+// variar) está em scripts/test-preco-do-trial-derivado.mjs.
+check(
+  '7. TRIAL_ENTRY_LINE é derivada do cobrador (trialEntryFullPromise), não digitada',
+  /const TRIAL_ENTRY_LINE = `\$\{trialEntryFullPromise\(CARD_TRIAL_DAYS\)\}`/.test(src),
+)
+check(
+  '8. o valor sai do módulo que lê a constante do cobrador — nenhum preço digitado no arquivo',
+  src.includes("from '@/lib/lifecycle/trialEntryFee'") && !/const TRIAL_ENTRY_LINE = '[^']*\$\d/.test(src),
+)
 check('8b. o botão do /pricing continua existindo (a tela é quem localiza)', pricing.includes('/api/stripe/checkout?tier=basic&billing=monthly&trial=1'))
 check(
   '8c. NENHUM ramo com filme carrega preço literal — o assunto plural já escapou uma vez',
@@ -140,10 +154,14 @@ for (const kind of ['expired_offer_d5', 'expired_lastcall_d10']) {
 }
 
 // ── F. assuntos: singular E plural, que são strings diferentes ──────────────
-check('24a. assunto do D5 (1 filme)', src.includes('${noun} is still in your Library — and there is a cheaper way back than the coupon'))
-check('24b. assunto do D5 (N filmes)', src.includes('videos are still in your Library — and there is a cheaper way back than the coupon'))
-check('25a. assunto do D10 (1 filme)', src.includes('Last call — your ${noun} is waiting, and there are two ways back in'))
-check('25b. assunto do D10 (N filmes)', src.includes('videos are waiting, and there are two ways back in'))
+// va-r4: os quatro assuntos passam a carregar o NÚMERO (interpolado de
+// `entryFee`, que sai do módulo). O assunto anterior dizia "there is a cheaper
+// way back than the coupon" — verdadeiro, e mudo sobre a única coisa que a
+// pessoa quer saber.
+check('24a. assunto do D5 (1 filme) carrega a taxa derivada', src.includes('${noun} is still in your Library — ${entryFee} gets Creator back for ${CARD_TRIAL_DAYS} days'))
+check('24b. assunto do D5 (N filmes) carrega a taxa derivada', src.includes('videos are still in your Library — ${entryFee} gets Creator back for ${CARD_TRIAL_DAYS} days'))
+check('25a. assunto do D10 (1 filme) carrega a taxa derivada', src.includes('Last call — your ${noun} is waiting, and ${entryFee} is the cheapest way back'))
+check('25b. assunto do D10 (N filmes) carrega a taxa derivada', src.includes('videos are waiting, and ${entryFee} is the cheapest way back'))
 check('26. nenhum assunto antigo sobrou', !src.includes('is still in your Library — and Creator is 50% off'))
 check('27. nenhum body antigo sobrou nos ramos com filme', !src.includes("body: 'offer_with_film',"))
 

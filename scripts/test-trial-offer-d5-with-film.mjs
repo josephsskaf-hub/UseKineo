@@ -35,8 +35,9 @@ ok(d5.includes('filmNoun(c.lastDuration)'), 'segundos so quando a duracao e real
 // va-r3 (07/09): o assunto mudou junto com o corpo — a porta de entrada paga
 // entrou antes do cupom, e o assunto deixou de anunciar os 50%. O cupom NAO
 // mudou (codigo, prazo, porcentagem, URL) e continua guardado logo acima.
-ok(d5.includes('Your ${noun} is still in your Library — and there is a cheaper way back than the coupon'), 'assunto com o filme dela (1 video)')
-ok(d5.includes('Your ${c.videosMade} videos are still in your Library — and there is a cheaper way back than the coupon'), 'assunto com N videos')
+// va-r4 (07/09): o assunto passou a carregar a taxa derivada (entryFee).
+ok(d5.includes('Your ${noun} is still in your Library — ${entryFee} gets Creator back for ${CARD_TRIAL_DAYS} days'), 'assunto com o filme dela + taxa derivada (1 video)')
+ok(d5.includes('Your ${c.videosMade} videos are still in your Library — ${entryFee} gets Creator back for ${CARD_TRIAL_DAYS} days'), 'assunto com N videos + taxa derivada')
 ok(d5.includes("subject: 'Come back to Creator — 50% off for 3 months'"), 'quem nao tem video: assunto de hoje intocado')
 // nada de dinheiro/credito
 ok(!/needsExtensionUpdate|restore|grantCredits|video_credits\s*:/.test(d5), 'nenhuma escrita de credito no ramo')

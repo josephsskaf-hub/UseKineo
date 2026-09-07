@@ -47,6 +47,8 @@ import {
   lossBodyFor,
   type LossBody,
 } from '@/lib/lifecycle/trialFilmPlans'
+import { trialEntryFeeLabel, trialEntryFullPromise } from '@/lib/lifecycle/trialEntryFee'
+import { CARD_TRIAL_DAYS } from '@/lib/checkoutPricing'
 
 // trial-lifecycle-emails — REVERSE TRIAL FASE 2, ITEM 4 (07/08/2026).
 // [KINEO-TRIAL-EMAILS-2026-08-07]
@@ -422,8 +424,20 @@ const COMEBACK_CODE = 'COMEBACK50'
  * recebeu o bundle novo de quem recebeu o antigo sem depender de relógio.
  */
 const TRIAL_ENTRY_PATH = '/api/stripe/checkout?tier=basic&billing=monthly&trial=1'
-/** Texto do botão do /pricing, verbatim, para a casa falar uma língua só. */
-const TRIAL_ENTRY_LINE = 'a 7-day Creator trial with a token entry fee — the checkout shows it in your own currency'
+/**
+ * A porta, com o NÚMERO — derivado do cobrador, nunca digitado.
+ *
+ * va-r4 (07/09, mesma noite): a va-r3 escreveu aqui "a token entry fee — the
+ * checkout shows it in your own currency" para não mentir a quem paga em
+ * outra moeda. **Essa coorte não existe desde 20/08** — `CheckoutCurrency` é
+ * união de um valor só (`'usd'`) desde a V6, `resolveCheckoutCurrency` ignora
+ * o país, e o banco confirma: 751 eventos com moeda depois de 20/08, 751 em
+ * usd. O eufemismo custava o gatilho da carta. O porquê inteiro, com as duas
+ * fontes e a tripwire, está em `lib/lifecycle/trialEntryFee.ts`.
+ */
+const TRIAL_ENTRY_LINE = `${trialEntryFullPromise(CARD_TRIAL_DAYS)}`
+/** Só a taxa, compacta, para caber em assunto de e-mail. Mesma fonte. */
+const entryFee = trialEntryFeeLabel({ compact: true })
 function trialEntryUrl(campaign: string): string {
   return `${APP_URL}${TRIAL_ENTRY_PATH}&intent_campaign=${campaign}`
 }
@@ -1628,7 +1642,12 @@ ${fbuLineHtml}  <p style="margin:0 0 14px;">You can still make one on the <stron
     // gastou tudo E recebeu, a 1a frase tem de ser o filme, e o pedido tem de
     // ser medido em filmes COMO AQUELE — numeros derivados de TIER_CREDITS e do
     // custo real do video (lib/lifecycle/trialFilmPlans.ts), nunca digitados.
-    // Sem preco literal (regra deste arquivo: /pricing resolve a moeda), sem
+    // Sem preco DIGITADO — a regra deste arquivo. O motivo escrito aqui ate
+    // 07/09 era "/pricing resolve a moeda", e ele venceu: desde a V6 (19/08) a
+    // moeda e uma so e o cobrador nao consulta pais nenhum. A regra continua
+    // valendo pelo motivo VERDADEIRO — numero digitado a mao deriva quando o
+    // preco muda e ninguem revisita a string. Onde o valor aparece, ele sai de
+    // lib/lifecycle/trialEntryFee.ts, que le a constante do cobrador. Sem
     // cupom. As perdas continuam listadas — so deixam de ser a manchete.
     if (c.burnedWithFilm) {
       const noun = filmNoun(c.lastDuration)
@@ -1761,7 +1780,7 @@ ${ep2 ? `${ep2.html}\n` : ''}  ${sig}`)
 Your Creator trial ended a few days ago, and ${madeLine}:
 ${libraryUrl}
 
-If you want the next one, the cheapest way back in is one unit of money: ${TRIAL_ENTRY_LINE}. Cancel anytime.
+If you want the next one, the cheapest way back in is ${TRIAL_ENTRY_LINE}. Cancel anytime.
 ${trialUrl}
 
 Or take 50% off Creator for 3 months, with code ${COMEBACK_CODE}.${filmsLine ? ` ${filmsLine}` : ''} Claim it here — the code applies at checkout: ${url}
@@ -1772,16 +1791,21 @@ usekineo.com`
   <p style="margin:0 0 14px;">Hey,</p>
   <p style="margin:0 0 14px;">Your Creator trial ended a few days ago, and <strong>${escapeHtmlText(madeLine)}</strong>.</p>
   ${cta(libraryUrl, 'Open your Library')}
-  <p style="margin:0 0 14px;">If you want the next one, the cheapest way back in is one unit of money: <strong>${escapeHtmlText(TRIAL_ENTRY_LINE)}</strong>. Cancel anytime.</p>
+  <p style="margin:0 0 14px;">If you want the next one, the cheapest way back in is <strong>${escapeHtmlText(TRIAL_ENTRY_LINE)}</strong>. Cancel anytime.</p>
   ${cta(trialUrl, 'Start the 7-day Creator trial')}
   <p style="margin:0 0 14px;">Or take <strong>50% off Creator for 3 months</strong>, with code <strong>${COMEBACK_CODE}</strong>.${filmsLine ? ` ${escapeHtmlText(filmsLine)}` : ''}</p>
   ${cta(url, `Claim 50% off`)}
   <p style="margin:0 0 20px;font-size:13px;color:#64748b;">The code applies automatically at checkout.</p>
 ${ep2 ? `${ep2.html}\n` : ''}  ${sig}`)
       return {
+        // va-r4 (07/09): o assunto volta a carregar o NÚMERO. A va-r3 tinha
+        // escrito "there is a cheaper way back than the coupon" — verdadeiro e
+        // inútil, porque quem abandonou o checkout abandonou por PREÇO
+        // (conclusão fechada do fundador, 19/08) e o preço é justamente o que
+        // a frase escondia. O valor sai da constante do cobrador.
         subject: c.videosMade === 1
-          ? `Your ${noun} is still in your Library — and there is a cheaper way back than the coupon`
-          : `Your ${c.videosMade} videos are still in your Library — and there is a cheaper way back than the coupon`,
+          ? `Your ${noun} is still in your Library — ${entryFee} gets Creator back for ${CARD_TRIAL_DAYS} days`
+          : `Your ${c.videosMade} videos are still in your Library — ${entryFee} gets Creator back for ${CARD_TRIAL_DAYS} days`,
         text: `${wText}${footerText}`,
         html: wHtml,
         body: 'offer_with_film_1usd',
@@ -1936,9 +1960,11 @@ usekineo.com`
   <p style="margin:0 0 20px;font-size:13px;color:#64748b;">The code applies automatically at checkout. No hard feelings either way.</p>
 ${ep2 ? `${ep2.html}\n` : ''}  ${sig}`)
       return {
+        // va-r4 (07/09): mesmo motivo do D5 — o número é o gatilho, e esta é a
+        // última carta que a pessoa recebe da casa.
         subject: c.videosMade === 1
-          ? `Last call — your ${noun} is waiting, and there are two ways back in`
-          : `Last call — your ${c.videosMade} videos are waiting, and there are two ways back in`,
+          ? `Last call — your ${noun} is waiting, and ${entryFee} is the cheapest way back`
+          : `Last call — your ${c.videosMade} videos are waiting, and ${entryFee} is the cheapest way back`,
         text: `${wText}${footerText}`,
         html: wHtml,
         body: 'offer_with_film_1usd',
