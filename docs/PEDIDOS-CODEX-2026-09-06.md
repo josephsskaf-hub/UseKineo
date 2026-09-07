@@ -21,6 +21,24 @@ e disparou **28 vezes para 28 pessoas em 24 h**. O pacote tem **zero**
 chamadores e **zero** escritas. Mesma manhã, mesmo autor, mesma qualidade de
 backend — a diferença é que um tem tela e o outro não.
 
+### ⚠️ Correção importante (22:00) — o backend NÃO está quebrado
+
+Eu primeiro li "0 pacotes escritos" como defeito. **Não é.** Existem **dois**
+e-mails de "filme pronto" e só o menor carrega o pacote:
+
+| caminho | quem dispara | 24 h | 7 d | leva o pacote? |
+|---|---|---:|---:|---|
+| instantâneo | `compose/status/[renderId]` | **41** | **174** | **não** |
+| resgate | `cron/send-video-ready` | **1** | **27** | sim |
+
+O pacote está no caminho que alcançou **1 pessoa em 24 h**, e subiu às 11:56
+UTC — teve **cerca de uma oportunidade na vida**. E o resgate ainda é
+**suprimido em todas as execuções** (18/18, 19/19) pela máquina de trial, que
+manda 118 e-mails/dia. **Não há bug a consertar: há alcance.** Por isso este
+pedido é a única saída — a tela é a única superfície que alcança as **217**
+pessoas com filme pronto, **incluindo as 94 que baixaram** e por isso nunca
+recebem e-mail nenhum.
+
 **Por que isso importa para AQUISIÇÃO e não é firula:** a tese do ciclo
 anterior é que *cada filme que um cliente publica é um anúncio da casa*. A casa
 entrega **~20 filmes/dia**. Hoje o cliente baixa o MP4 e some; se posta, posta
