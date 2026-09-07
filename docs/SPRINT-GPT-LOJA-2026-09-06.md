@@ -2446,3 +2446,211 @@ mesma madrugada que um número de "últimos 7 dias" me mostrou um problema já
 resolvido como se fosse de agora — e nas duas vezes eu quase mandei consertar o
 que já estava consertado. Deixei a consulta que evita isso guardada junto com as
 outras cinco que medem a ponte nova, para a próxima sessão não repetir.
+
+### #17 — 04:05 BRT — a Action diz as duas coisas contrárias na mesma resposta, e quem instrui o modelo mandava ler a errada
+
+**A rotação começou como verificação, não como conserto.** O plano G1–G10 está
+todo entregue; a ponte tem três portas no ar e nenhuma medição possível ainda.
+Rodei a consulta (1) do G5 e ela devolveu a verdade sem enfeite:
+
+```
+dia         canal            criados  abriram  clicaram
+2026-09-07  gpt_store              8        3         0
+2026-09-07  assistant_link         4        2         1
+2026-09-07  paste_page             3        1         0
+```
+
+**As quinze linhas são as minhas próprias sondas desta madrugada.** Tráfego real
+na ponte: zero. Nada a concluir sobre adoção, e qualquer mudança de copy feita
+agora seria palpite. Então fiz o que sobrava e é útil: **sondar as três portas
+em produção, de ponta a ponta**, com UA de navegador (a rota classifica `curl`
+como robô e desvia o ramo) e com controle em toda medição.
+
+```
+POST /api/gpt/handoff  (roteiro real, 150 palavras, 60s)   → 200, link criado
+GET  /go/<token>                                           → 200, "Ready for a 60-second film"
+GET  /api/gpt/handoff/go?token=… (deslogado)               → 302 /signup?redirect=%2Fgo%2F<token>
+GET  /api/gpt/handoff/pricing?token=…                      → 302 /pricing?utm_source=chatgpt_gpt
+GET  /make?script=<curto>                                  → 302 …?handoff_error=script_too_short
+GET  /go/tokenfalso…                          (controle)   → 404
+```
+
+Cinco portas boas e a recusa nova funcionando à vista. **Mas a primeira sonda
+trouxe o defeito junto, no corpo da resposta:**
+
+```json
+"fit": "short",
+"fitMessage": "About 48s of narration for a 60s video — the story may end early…",
+"outcome": { "kind": "at_target", "effectiveSeconds": 60 },
+"outcomeMessage": "Ready for a 60-second film."
+```
+
+**A mesma resposta carrega as duas frases contrárias.** `fit` é o orçamento de
+palavras por VOZ; `outcome` é a régua de quem cobra — a que o Studio aplica
+antes de renderizar. A #15 desta madrugada consertou a página `/go` para ler
+`outcome`. **Só que o GPT não lê a página.** Ele lê o `openapi.json` e as
+instruções que o fundador cola no editor, e os dois ainda mandavam falar de
+comprimento a partir de `fit`:
+
+```
+openapi.json, descrição do campo fitMessage:
+  "When you comment on the length of the script, quote this sentence VERBATIM"
+
+docs/GPT-KINEO-VIDEO-MAKER.md, Step 6:
+  "If the response says fit is \"short\", add one line offering to extend the script"
+```
+
+O efeito, com o roteiro da sonda — que é **correto** — na mão da pessoa: no
+segundo exato em que ela aprova o texto, o GPT responde *"seu roteiro pode
+acabar cedo, quer que eu estenda?"*. É a pior frase possível no melhor momento
+possível, e ela sairia do produto sem ninguém ter escrito nada errado hoje.
+
+**A lição que se repete e que eu quase repeti:** a regra vivia em TRÊS
+portadores — a descrição da resposta 200, a descrição do campo `fitMessage` e o
+Step 6 do documento. De manhã só o primeiro foi corrigido, e o caso foi dado
+por fechado. Descrição de OpenAPI **não é documentação: é instrução**, e é a que
+fica mais perto do valor que o modelo está lendo.
+
+**O conserto (`4f103568`, EM PRODUÇÃO após o deploy):** `outcome.kind` passa a
+governar toda fala sobre comprimento nos dois arquivos — `at_target` cala,
+`shorter_film` cita o `outcomeMessage` e oferece estender. `fit`/`fitMessage`
+continuam no contrato (não se quebra schema já publicado) mas só podem ser
+citados quando a **pessoa** pergunta como o comprimento foi medido.
+
+**COMO PROVAR:** `scripts/test-gpt-fit-nao-e-veredito.mjs`, 26 verificações que
+leem os arquivos reais e **resolvem o `$ref` do schema** — um guardião que
+lesse o objeto inline passaria verde num spec que o GPT não usa. A verificação
+21 é a que impede a recaída: varre as frases dos dois arquivos e reprova
+qualquer uma que mande falar de comprimento apoiada em `fit` sem negação.
+
+Falsificado por **4 mutantes**, cada um com `grep` provando que o arquivo mudou
+antes de rodar (mutante não escrito devolve verde e se lê como guardião
+resistindo):
+
+```
+frase velha do fitMessage restaurada   → 25 ok, cai a 10
+Step 6 velho restaurado                → cai a 20 e a 21 (a varredura cruzada)
+$ref da 200 apontando para schema falso→ caem as quatro checagens 22
+`outcome` fora do required             → cai a 22.outcome
+```
+
+`tsc --noEmit` exit 0 — **com a junction de `node_modules`**: sem ela o `npx tsc`
+não acha o compilador e devolve exit 0 sem compilar nada (a primeira tentativa
+desta rotação caiu nessa e quase virou um "verde" falso no diário). Baterias
+irmãs verdes: `test-gpt-handoff` 332, `test-gpt-handoff-verdade` 84,
+`test-handoff-error-visivel` 98, `test-chatgpt-paste-page` 128.
+
+**SONDA DO ANTES, com controle** (o depois fica para a próxima leitura, o deploy
+da Vercel ainda estava correndo quando escrevi):
+
+```
+GET /gpt/openapi.json                  → 200 · frase velha presente: 1 · frase nova: 0
+GET /gpt/openapi-nao-existe.json       → 404   (controle)
+```
+
+**RISCO:** nenhum de execução — os dois arquivos são texto lido por modelo, não
+código de caminho pago. O risco real é de omissão: o GPT ainda não está
+publicado, então esta correção vale para o dia em que ele for ao ar, e para as
+duas irmãs (`/chatgpt` e `/make`) que já usam o mesmo endpoint hoje.
+
+**PRÓXIMO PASSO:** reler `/gpt/openapi.json` em produção e confirmar a frase
+nova (é a única prova que falta desta entrega).
+
+---
+
+# FECHAMENTO DO CICLO gpt-loja — 07/09/2026, 04:20 BRT
+
+*(carimbo lido com `date` puro; o commit mais recente do ciclo é 04:0x — carimbo
+depois do commit, como manda a regra que esta madrugada aprendeu a duras penas)*
+
+## (a) O QUE ESTÁ NO AR, com sonda e controle
+
+Todas medidas com UA de navegador identificável (`KineoSonda`), porque a casa
+classifica `curl` pelado como robô e desvia o ramo — sonda sem isso mede a
+página errada.
+
+| superfície | sonda | resultado |
+|---|---|---|
+| Action do GPT | `POST /api/gpt/handoff` (roteiro real 150 pal., 60s) | **200**, link + veredito |
+| Página de pouso | `GET /go/<token>` | **200**, "Ready for a 60-second film" |
+| Botão, deslogado | `GET /api/gpt/handoff/go?token=` | **302** → `/signup?redirect=%2Fgo%2F<token>` |
+| Venda na conversa (G7) | `GET /api/gpt/handoff/pricing?token=` | **302** → `/pricing?utm_source=chatgpt_gpt` |
+| Deep link de assistente (G6) | `GET /make?script=…` | **302**, e roteiro curto é **recusado na porta** |
+| Página de colar (G8) | `GET /chatgpt` | **200** |
+| Documentação para agentes (G9) | `llms.txt` + `sitemap.xml` | `/chatgpt` e `/make` citados |
+| controle | `GET /go/<token falso>`, `/chatgpt-nao-existe`, `/gpt/openapi-nao-existe.json` | **404, 404, 404** |
+
+Nenhuma medição desta tabela vale sem a linha de controle: 404 no irmão
+inexistente é o que prova que os 200 acima não são uma página genérica.
+
+## (b) O DOCUMENTO DO GPT E O SCRIPT DO COWORK
+
+`docs/GPT-KINEO-VIDEO-MAKER.md` está completo e **corrigido nesta última
+rotação**: nome, descrição, instruções inteiras (formato da casa, régua por voz,
+fatos verificáveis, escolha de motor, chamada da Action só após aprovação
+explícita, e a seção de preço do G7), 4 conversation starters, privacy policy, e
+o passo a passo da UI do ChatGPT para o Cowork publicar.
+
+⚠ **A loja continua fechada para conta pessoal** (política da OpenAI de
+16/08/2026: só workspace Business/Enterprise/Edu cria e publica GPT). O rascunho
+existe (`g-6a9e15962c0c81918d177ec642d5d524`) e funcionou de ponta a ponta em
+teste real. Falta só o botão "Everyone", que a conta atual não tem.
+
+## (c) A MEDIÇÃO
+
+`docs/queries/PONTE-HANDOFF-FUNIL-2026-09-07.sql` — 6 consultas, as três origens
+(`gpt_store`, `paste_page`, `assistant_link`), com dois avisos gravados dentro
+do arquivo: as linhas de 06-07/09 são **sondas desta madrugada**, e
+`gpt_handoff_created` é evento de servidor e **não tem pessoa** — o denominador
+honesto começa no clique.
+
+Estado hoje: **15 handoffs, todos meus. Tráfego real na ponte: zero.** Não há
+nada a concluir sobre adoção antes de a ponte receber gente.
+
+## (d) A CONTA DO CHATGPT BUSINESS — a decisão que é do fundador
+
+- Custo: **~US$ 25-30 por usuário/mês** (1 assento).
+- O que paga: 1 assinante **Studio ($29)** cobre; **4 Starters ($7)** cobrem.
+- O que já existe sem pagar nada: as **três outras portas** (`/chatgpt`,
+  `/make`, `/api/gpt/handoff`) funcionam hoje, para ChatGPT, Claude, Perplexity
+  e Gemini, sem loja e sem assinatura.
+- **Recomendação: não pagar agora.** A loja da OpenAI é distribuição
+  *adicional*; o gargalo medido não é falta de porta, é que **ninguém passou por
+  nenhuma delas ainda**. Pagar antes de a `/chatgpt` mostrar um único handoff
+  orgânico é comprar vitrine para uma loja sem visitante. A hora de reabrir esta
+  conta é quando a consulta (1) do G5 mostrar handoffs que não são sondas.
+
+## (e) O QUE A PRÓXIMA SESSÃO FAZ PRIMEIRO
+
+1. **Reler `https://www.usekineo.com/gpt/openapi.json`** e confirmar a frase
+   nova (`ONLY when the user explicitly asks how the length was measured`). É a
+   única prova pendente da última entrega — o deploy ainda corria no fechamento.
+2. **Rodar a consulta (1) do G5 cortando as sondas** (`created_at > '2026-09-07
+   07:00Z'`). Se aparecer handoff que não é meu, a ponte ganhou plateia e aí sim
+   a consulta (2) — a distribuição `at_target`/`shorter_film` — calibra o prompt
+   da `/chatgpt`.
+3. **Não reabrir** a parede da narração nem o expansor sem rodar a consulta (5)
+   **por dia** antes. Duas rotações desta madrugada quase morreram consertando
+   o que o `autofitDown` de 03/09 já tinha consertado.
+4. O degrau seco que continua seco e não é de motor nenhum: **49 filmes, 1
+   pagamento** na coorte que chega do chatgpt.com em 7 dias.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+1. **Nada de código.** Tudo subiu sozinho, a fila está em zero.
+2. **Decidir, quando quiser:** pagar ChatGPT Business (~US$ 25-30/mês) para
+   publicar o GPT na loja. Recomendação desta sessão: **não agora** — as outras
+   três portas já fazem o mesmo trabalho de graça e ainda não têm visitante.
+
+## 📋 O QUE ACONTECEU
+Nesta última rotação eu fui conferir se as portas da ponte estavam mesmo em pé,
+e a primeira sonda entregou um defeito que ninguém tinha visto: quando a Kineo
+recebe um roteiro, ela devolve na mesma resposta duas frases que se contradizem
+— uma diz "o roteiro está no tamanho certo" e a outra diz "a história pode
+acabar cedo". A página já tinha sido ensinada a ler a frase certa hoje de manhã,
+mas o GPT não lê a página: ele lê o manual, e o manual ainda mandava ler a
+errada. Na prática, o robô diria para a pessoa que o roteiro dela está curto
+no exato segundo em que ela acabou de aprová-lo — a pior frase no melhor
+momento. Consertei os dois lugares que instruem o modelo e deixei um guardião
+que varre as frases e reprova qualquer recaída, inclusive num arquivo novo.
+A ponte inteira está no ar e provada com sondas; o que ela ainda não tem é
+gente passando por ela, e é isso que a próxima sessão vai medir.
