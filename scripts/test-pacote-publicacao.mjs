@@ -115,7 +115,20 @@ check('28. o pacote e escapado no HTML', /\$\{escapeHtmlText\(valor\)\}/.test(cr
 // ══ (C) CUSTO, DENOMINADOR E LIMITES ═════════════════════════════════════
 check('29. o escritor le a memoria ANTES de gastar', escritor.indexOf('pacoteGravado(') > 0 && escritor.indexOf('pacoteGravado(') < escritor.indexOf('api.openai.com'))
 check('30. memoria encontrada devolve sem gastar', /const jaTem = await pacoteGravado\([\s\S]{0,120}?if \(jaTem\) return jaTem/.test(escritor))
-check('31. o modo so-leitura corta antes de a chave ser lida', /if \(opts\?\.escrever === false\) return null/.test(escritor) && escritor.indexOf('opts?.escrever === false') < escritor.indexOf('OPENAI_API_KEY'))
+// KINEO-PACOTE-OBSERVAVEL-2026-09-06 — esta verificacao exigia o LITERAL
+// `return null`. Em 06/09 as sete saidas mudas de garantirPacote passaram a
+// nomear-se (`return falhou('so_leitura')`), porque `publish_pack_written`
+// estava em zero e nao havia como saber em qual das sete portas ele parava.
+// A SEMANTICA nao mudou — `falhou()` devolve `null` — mas o texto sim, e a
+// verificacao ficou vermelha sem que nada tivesse quebrado.
+// Agora ela cobra a PROPRIEDADE, que era o que importava desde sempre: existe
+// uma guarda de so-leitura, ela devolve (direto ou via `falhou`), e ela vem
+// ANTES da leitura da chave. Um mutante que apague a guarda, ou que a mova
+// para depois do OPENAI_API_KEY, continua reprovando.
+check('31. o modo so-leitura corta antes de a chave ser lida',
+  /if \(opts\?\.escrever === false\) return (null|falhou\([^)]*\))/.test(escritor) &&
+  escritor.indexOf('opts?.escrever === false') > 0 &&
+  escritor.indexOf('opts?.escrever === false') < escritor.indexOf('OPENAI_API_KEY'))
 check('32. modelo barato e so ele', /model: 'gpt-4o-mini'/.test(escritor) && (escritor.match(/api\.openai\.com/g) ?? []).length === 1)
 // Roda em LOTE dentro de um cron: 30 filmes x 25s estouraria o maxDuration.
 check('33. o timeout e curto porque roda em lote (12s, nao 25s)', /AbortSignal\.timeout\(12_000\)/.test(escritor))

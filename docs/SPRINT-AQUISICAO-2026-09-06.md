@@ -797,3 +797,65 @@ recebem e-mail nenhum.
 2. **Pedido 3 (Codex)** — instrumentar os quatro `return` mudos da faixa de
    temporada, para parar de afinar às cegas uma peça vista por 2.
 3. **Nada de e-mail novo** até que 1 e 2 movam o número.
+
+---
+
+## ### #10 — 22:10 — VARREDURA DE REGRESSÃO: UMA QUEBRA MINHA, CONSERTADA; 14 VERMELHOS QUE JÁ ESTAVAM LÁ
+
+Antes de fechar, rodei os **39 guardiões** que tocam nos arquivos que mexi.
+**24 passaram, 15 falharam.** Fui atribuir cada falha em vez de assumir.
+
+### A que era minha — `test-pacote-publicacao.mjs`, verificação 31
+
+```
+✗ 31. o modo so-leitura corta antes de a chave ser lida
+```
+
+A verificação exigia o **literal** `if (opts?.escrever === false) return null`.
+A #5 trocou as sete saídas mudas por saídas que se nomeiam
+(`return falhou('so_leitura')`). **A semântica não mudou — `falhou()` devolve
+`null` — mas o texto sim, e o guardião ficou vermelho sem nada ter quebrado.**
+
+Corrigi cobrando a **propriedade** em vez do texto: existe uma guarda de
+só-leitura, ela devolve (direto ou via `falhou`), e ela vem **antes** da leitura
+da chave. **Dois mutantes reprovam:** apagar a guarda, e movê-la para depois do
+`OPENAI_API_KEY`.
+
+> ⚠️ O mutante "mover a guarda" **passou na primeira tentativa** — e de novo não
+> por fraqueza do guardião: a substituição `perl` não aplicou (CRLF). Refeito em
+> `node`, com `grep` confirmando a troca de linhas **antes** de contar o
+> resultado. É a terceira vez nesta noite que uma mutação que não aplica quase
+> vira falso verde. **Conferir que a mutação entrou faz parte do teste.**
+
+### As outras 14 — já estavam vermelhas ANTES do ciclo
+
+Criei uma worktree no commit do **marco** (`163198f0`) e rodei as mesmas 14 ali.
+**As 14 falham no baseline.** Nenhuma é minha:
+
+`measure-growth-funnel` · `test-aeo-engine-destinations` ·
+`test-business-content-plan` · `test-checkout-currency-truth` ·
+`test-client-short-brief` · `test-comment-to-video` ·
+`test-cta-composer-2026-09-06` · `test-local-business-tool-discovery` ·
+`test-product-to-video` · `test-public-cost-planner-discovery` ·
+`test-public-video-privacy` · `test-shorts-vendor-evaluation` ·
+`test-text-to-video-intent-router` · `test-video-ready-nudge`
+
+**E pelo menos uma delas é vermelha POR UM MOTIVO DELIBERADO** — não é defeito:
+
+```
+AssertionError: every live engine has one public destination
++ actual   'fast,h3,hollywood,kling,omni,s25,seedance,veo'
+- expected 'fast,h3,hollywood,kling,omni,seedance,veo'
+```
+
+O motor **`s25` (Seedance 2.5) não tem página pública** — e isso é o
+interruptor `S25_PUBLIC=false` do `lib/engineLaunch.ts` funcionando como o
+fundador mandou: *"só contas internas veem o 2.5… só virar depois do canário
+aprovado"*. **O guardião não conhece a flag.** Não toquei nele: um vermelho que
+representa uma decisão do fundador não se "conserta" numa sessão autônoma.
+
+**O que registro, sem consertar (fora do escopo do ciclo):** a casa tem **14
+guardiões que ninguém roda**, e eles se dividem em duas famílias — os que
+quebraram porque o produto mudou de propósito (como o do `s25`) e os que
+quebraram e ninguém viu. Enquanto estiverem vermelhos, **nenhum deles protege
+nada**. É trabalho de uma sessão inteira, e merece uma.
