@@ -14,7 +14,7 @@
 create table if not exists public.gpt_handoffs (
   id uuid primary key default gen_random_uuid(),
   token text unique not null,                 -- randomBytes(18) base64url, >= 16 chars
-  script text not null,                       -- <= 6000 chars (validado na rota)
+  script text not null,                       -- <= 5000 chars = teto do Studio (ANALYZE_PROMPT_MAX_CHARS)
   duration_sec int not null,                  -- 35 | 60 | 90
   aspect text not null,                       -- '9:16' | '16:9' | '1:1'
   engine_hint text not null,                  -- id real do Studio: fast|seedance|kling|veo|hollywood|h3|omni
