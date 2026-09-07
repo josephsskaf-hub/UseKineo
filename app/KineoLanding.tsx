@@ -688,6 +688,13 @@ a.pl-badge:hover{color:var(--txt);border-color:rgba(41,151,255,.5)}
 .klp .plan .pr{font-size:2.5rem}
 .klp .snote{padding:18px 20px;font-size:14px}
 }
+/* Founder: videos directly below navigation, no visible introductory block.
+   Keep the semantic heading without reserving layout space. */
+.klp .hero{padding-top:16px}
+.klp .hero-ftr{margin-top:0}
+.klp .hero-title-a11y{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
+.klp .ec-ftr .ftr-media video,.klp .ec-ftr .ec-poster,.klp .ec-ftr.ec-natural .ftr-media video,.klp .ec-ftr.ec-natural .ec-poster{object-fit:contain;object-position:center}
+.klp .ec-ftr .ftr-media{background:#000;animation:none}
 /* Respeita quem desligou animacao no sistema — os lifts de hover viram
    mudanca de cor apenas. */
 @media(prefers-reduced-motion:reduce){
@@ -1008,19 +1015,7 @@ export default function KineoLanding({
       <header className="hero">
         <div className="glow" />
         <div className="wrap">
-          <div className="home-intro">
-          <div className="home-intro-copy">
-          <p className="home-eyebrow"><UiLabel>Kineo — real AI Shorts, straight from the engines</UiLabel></p>
-          <h1 className="home-title"><UiText es="Escribe una idea y mira cómo se convierte en un vídeo.">Type an idea — watch it become a film.</UiText></h1>
-          {/* UX10 #1 — a pagina abria sem dizer O QUE e o produto. Uma linha
-              fina orienta sem trazer o hero gigante de volta. */}
-          {/* KINEO-HERO-LINE-2026-08-17 (fundador: "nao fazemos videos no
-              YouTube, fazemos pra varias utilidades — seja criativo"): a linha
-              vende o FILME PRONTO (voz, trilha, legendas) e deixa o destino em
-              aberto; "real render" fica — e o selo honesto da vitrine. */}
-          <p className="hero-line"><UiLabel>{VIDEO_ENGINE_COUNT_WORD}</UiLabel><UiLabel> video engines — including Omni Flash, the #1-ranked model (Aug 2026) — six image models, four voices. Every card below is a real render.</UiLabel></p>
-          </div>
-          </div>
+          <h1 className="hero-title-a11y"><UiText es="Escribe una idea y mira cómo se convierte en un vídeo.">Type an idea — watch it become a film.</UiText></h1>
           {/* Fileira Higgsfield: cards largos, video NITIDO (sem veu), nome do
               motor em caps abaixo da midia. 3 videos curados por motor passando. */}
           <div
