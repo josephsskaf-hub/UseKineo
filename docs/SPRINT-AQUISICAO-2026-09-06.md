@@ -744,3 +744,56 @@ com filme pronto, **incluindo as 94 que baixaram** e por isso nunca recebem
 e-mail nenhum. `docs/PEDIDOS-CODEX-2026-09-06.md`, Pedido 1, deixa de ser
 "melhoria" e passa a ser **o único caminho existente** para a única alavanca de
 aquisição que a casa puxa sozinha.
+
+---
+
+## ### #9 — 22:05 — O MESMO PEDIDO, DOIS LUGARES: A TELA CONVERTE 30× O E-MAIL
+
+Antes de propor "mais um e-mail" para resolver o degrau seco da #7, fui medir se
+o e-mail que **já existe** move alguém. **A resposta fecha o ciclo.**
+
+O e-mail instantâneo de "filme pronto" **já traz o convite** — e é bem feito:
+`lib/lifecycle/videoReadyFooter.ts` escolhe o rodapé por situação
+(`subscriber_next`, `trial_episode2`, `unknown_balance_episode2`, `plan_films`,
+`plan_generic`), sempre com o link do próximo episódio ou do plano. Não falta
+copy. **Falta clique.**
+
+**7 dias, o MESMO pedido ("faça o próximo episódio"), duas superfícies:**
+
+| onde | pessoas alcançadas | **pessoas que clicaram** | taxa |
+|---|---:|---:|---:|
+| **e-mail** (`episode_link_clicked`) | **118** | **1** | **0,8%** |
+| **tela** (`series_continue_clicked`) | 93 | **22** | **24%** |
+
+**Trinta vezes.** E a única pessoa que clicou pelo e-mail em sete dias é uma
+conta externa real (`omarjrjb40@gmail.com`) — não é teste do fundador, o que
+torna o número honesto e ainda assim devastador.
+
+> ⚠️ **A ressalva que impede o exagero:** "recebeu" não é "viu". Não medimos
+> abertura de e-mail, então a taxa real entre quem **abriu** é maior que 0,8%.
+> Mas a decisão não depende disso: o que importa é **resultado por pessoa
+> alcançada**, e por essa régua a tela ganha de 30 a 1.
+
+### O que isso decide, e é a conclusão do ciclo
+
+Três rotações convergiram no mesmo ponto por caminhos diferentes:
+
+- a **#7** achou o degrau seco — 199 de 217 pessoas com filme pronto nunca
+  cruzaram uma superfície com preço;
+- a **#8** mostrou que o pacote está pendurado no e-mail que alcança 4 pessoas
+  por semana, e ainda suprimido;
+- a **#9** mostra que, mesmo alcançando, **e-mail não move**: 1 pessoa em 118.
+
+**Portanto: não escrever carta nova.** Já era a instrução herdada do ciclo
+anterior (*"46 envios, 0 retornos"*) e agora tem número próprio. O convite
+pós-entrega tem de morar **na tela**, que é onde ele já funciona a 24% e onde
+estão as **217** pessoas — inclusive as **94 que baixaram** e por isso não
+recebem e-mail nenhum.
+
+**A fila de valor da casa, medida e não opinada:**
+
+1. **Pedido 1 (Codex)** — a caixa do pacote na tela de filme pronto. Único
+   caminho para a única alavanca de aquisição que a casa puxa sozinha.
+2. **Pedido 3 (Codex)** — instrumentar os quatro `return` mudos da faixa de
+   temporada, para parar de afinar às cegas uma peça vista por 2.
+3. **Nada de e-mail novo** até que 1 e 2 movam o número.
