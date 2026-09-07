@@ -1413,3 +1413,99 @@ grátis sai com marca. Publiquei o termo que faltava, com 42 verificações e 6
 mutantes, sem tocar em preço, crédito, régua, motor ou duração. Terceiro dia sem
 assinante novo continua de pé — mas pela primeira vez a caixa que pede dinheiro
 tem uma coisa concreta para vender a quem já usou o produto inteiro.
+
+---
+
+### #8b — 20:14 BRT — CHECKPOINT da #8: a entrega ainda não foi exercitada, o jejum é de **5 dias** (não 3), e eu quase publiquei um "1 IP" que não existe
+
+**NADA DE CÓDIGO NESTE CHECKPOINT** — é medição da rotação #8 e correção de dois
+números, um deles meu, publicado há 22 minutos.
+
+**1. A ENTREGA `651f28f4` AINDA NÃO FOI EXERCITADA — e isso é esperado, não é
+falha.** O deploy fechou às 22:52 UTC. Desde então, **nenhum render
+`cinematic_ai` de conta grátis não-pagante** passou pelo compose. Os 5 renders
+externos das últimas 6h: **4 `fast`** + **1 `cinematic_ai`** (20:00 UTC, trial
+**ativo**, ou seja *antes* do deploy e já coberto pela ordem das 17:35). Os 2
+downloads das últimas 10h: um `watermarked` (fast, trial ativo, 18:00 UTC) e um
+**`clean` / `cinematic_ai` / `plan=free` / `has_paid=false` /
+`trial_status=downgraded`** às **16:02 UTC** — a coorte exata que a #8 fecha,
+seis horas antes do conserto existir. **O teste é este:** se um download com
+essa assinatura aparecer com `export_type='clean'` **depois de 22:52 UTC**, a
+entrega falhou. Até agora, zero oportunidades — e **zero oportunidades não é
+zero acertos** (memória `provar-leitura-sem-trafego`).
+
+**2. CORREÇÃO DE UM NÚMERO QUE EU PUBLIQUEI NA #8.** Escrevi "`payment_success`
+**0 em 72h** — terceiro dia sem assinante novo". **Está errado, e para menos.**
+O último `payment_success` da casa é de **02/09 20:22 UTC**: são **5 dias e 3
+horas** de jejum, não 3 dias. **Controle rodado antes de afirmar** (memória
+`zero-por-chave-inexistente`): varri **7 dias** de todos os eventos cujo nome
+casa `%payment%`, `%subscri%`, `%checkout%` ou `%pack%` — são **50 nomes
+distintos vivos**, e `payment_success` aparece **1 vez**, em 02/09. Não é
+cegueira de nome de evento; é jejum mesmo. ⚠️ Isto **não** diz que a receita
+caiu a zero (renovação de assinante antigo não emite esse evento) — diz que
+**nenhuma venda nova entrou desde 02/09**.
+
+**3. O PLACAR POR `checkout_started` É CEGO PARA TENTATIVA SEM DONO — e a
+leitura ingênua disso é uma armadilha.** Na janela do marco o placar oficial
+deu `checkout_started` **0 externo**. Mas houve **3 `checkout_attempted`
+anônimos** (18:44, 20:24, 22:35 UTC), **todos `tier=basic`** — a porta de $1 —
+e **todos mortos em `checkout_auth_required`**, sem nunca virar sessão. Parece
+o achado do ciclo: gente deslogada clicando em comprar e batendo num login.
+**Não é — ou pelo menos a casa não sabe dizer que é.** O de 18:44 tem um
+`checkout_bot_suspected` colado no mesmo minuto com `ua: curl/8.21.0`: **sonda
+nossa** (memória `sonda-com-curl-pelado-e-lida-como-robo`). São **66 em 30
+dias, ~2/dia**, e **6 dos 11 de hoje são SKU avulso** (`bulk10`, `bulk30`,
+`starter10`) — cheiro de sonda da pista de pagamentos, não de cliente.
+
+**4. E O ERRO QUE EU IA COMETER, registrado porque é barato e se repete.** Para
+separar sonda de gente eu contei `count(distinct coalesce(metadata->>'ip_hash',
+metadata->>'ip',''))` nessas 66 linhas e recebi **`1`**. Ia publicar "todas as
+tentativas anônimas vêm de um único IP, logo é sonda". **O campo não existe
+nesse evento**: o `coalesce` devolveu `''` para as 66 e o `count(distinct)`
+colapsou num único valor vazio (memória `medir-alcance-da-superficie-antes-de-
+ligar`). Um `1` que parece prova e é aritmética de campo ausente. **A verdade
+honesta é "não sei"**, e ela tem conserto barato — ver o pedido abaixo.
+
+**PLACAR DE FECHAMENTO — marco 2026-09-07 18:38 UTC (~4h35), contas externas:**
+filme pronto **3 impressões / 2 pessoas** · clique em baixar **0** · download
+**0** · caixa comercial **0** · porta de $1 vista **0** · cliques no $1 **0** ·
+`checkout_started` externo **0** (+ **3 tentativas anônimas**, natureza
+desconhecida) · **pagou 0** · **36 pessoas** com evento, 281 eventos. A janela
+é de tráfego magro: **2 pessoas** viram um filme pronto em ~4h35.
+
+**CHECAGEM ZERO (24h):** cadastros **26** · crédito zero **11**, **trial órfão
+0** · trial ativo com 0cr **0** · render preso **0** · recusas de cartão **2**,
+**sem dono 0** · último `payment_success` **02/09 20:22 UTC**.
+
+**A FRASE DA ROTAÇÃO #8 continua de pé** (é dela, não deste checkpoint): hoje um
+visitante novo que gasta os créditos de boas-vindas num Seedance e baixa o filme
+encontra uma marca d'água que ontem não encontrava. O checkpoint só acrescenta
+que **ninguém passou por essa porta ainda**.
+
+**PRÓXIMA JOGADA (para a #9, e ela é de 20 minutos).** Antes de qualquer
+superfície nova: **carimbar quem bate na porta do checkout sem estar logado.**
+`app/api/stripe/checkout/route.ts` já lê o UA — ele o grava em
+`checkout_bot_suspected`. Basta gravar `ua` + `ip_hash` também no
+`checkout_attempted`/`checkout_auth_required` **quando `user_id` é nulo**. Sem
+isso, toda rotação futura vai reencontrar essas ~2/dia e ficar entre "é robô" e
+"é cliente perdido" sem poder decidir — e uma delas pode ser gente querendo
+pagar $1. ⚠️ **É arquivo da pista de PAGAMENTOS**: vai como pedido, não como
+edição minha.
+
+**✅ O QUE VOCÊ PRECISA FAZER**
+1. **Nada.** Nenhuma decisão sua está travando este checkpoint.
+2. (Opcional, se discordar) A #8 pôs marca d'água no Seedance grátis. Se quiser
+   reverter, me diga "tira a marca do Seedance grátis" — é uma linha.
+
+**📋 O QUE ACONTECEU**
+Checkpoint de medição, sem código. A marca d'água que publiquei às 19:52 ainda
+não encontrou um único cliente — a janela teve tráfego magro (2 pessoas viram um
+filme pronto em 4h40), então não há o que comemorar nem do que suspeitar ainda;
+deixei escrito qual download exato prova que funcionou. Corrigi um número meu:
+o jejum de assinante novo é de **5 dias**, não 3 — o último pagamento é de 02/09,
+e rodei o controle de 50 nomes de evento para garantir que não era cegueira de
+nome. E encontrei 3 tentativas de compra sem dono na janela, todas na porta de
+$1, todas paradas num login: **não sei se são pessoas ou sondas nossas**, porque
+o evento não guarda nem navegador nem IP — e registrei que quase publiquei uma
+prova falsa de que eram sondas. Consertar essa cegueira é o primeiro item da
+próxima rotação.
