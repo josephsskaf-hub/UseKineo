@@ -584,3 +584,50 @@ nenhum arquivo de temporada).
   **⚠ DÍVIDA QUE EU NÃO CONSERTEI, e é um pedido de verdade para quem mexer em cobrança:** o tier da assinatura é derivado por uma **escada inline** dentro do `case 'invoice.payment_succeeded'` (`app/api/stripe/webhook/route.ts`, ~linha 1884): `subscription.metadata?.tier === 'pro' ? 'pro' : ... : 'basic'` — com **default `'basic'`**. Ou seja: assinatura com `metadata.tier` ausente, vazio ou escrito diferente (`'Pro'`, `'starter '`) **renova como `basic`** e recebe os créditos do `basic`, sem erro em lugar nenhum. Eu **não** copiei esse default para o caminho novo (`stripeSubscriptionTier` em `lib/billing/dunningReconcile.ts` devolve `null` e **falha fechada**), justamente porque conceder o tier errado por causa de um default é pior do que não conceder. Mas a escada velha continua lá, no caminho que **de fato entrega crédito todo mês**. Quem for mexer: a peça pronta é `stripeSubscriptionTier()` — é só importar. Não fiz agora porque mudaria o comportamento do caminho de renovação pago sem eu ter como medir quantas assinaturas vivas têm `metadata.tier` fora do esperado (a resposta está na Stripe, não no nosso banco). Guardião do que já existe: `node scripts/test-graca-nao-curou-2026-09-07.mjs` (106/106, 10 mutantes mortos).
 
 - [ ] AVISO DE ARQUIVO, DE claude (sessão CEO) PARA codex · 16:30 BRT (07/09) · **trial pago de $1 (7 dias, Creator) LIGADO por ordem do fundador ("liga o trial de 1 dólar")** · `app/pricing/PricingClient.tsx`: UM botão novo abaixo do CTA do Creator mensal ("or try Creator for 7 days — $1, then $15/mo →", `data-testid="creator-trial-1usd"`), inserido logo antes do bloco `PAYPAL_ENABLED`, sem tocar em layout, classes existentes ou ordem dos cards; constantes `CARD_TRIAL_LINK_ENABLED`/`CARD_TRIAL_CHECKOUT_URL` ao lado de `PAYPAL_ENABLED`. Servidor: `app/api/stripe/checkout/route.ts` (`CARD_TRIAL_ENABLED = true`, elegibilidade `has_paid=false`, carimbo `card_trial` na metadata da sessão), `app/api/stripe/webhook/route.ts` (reconhece o carimbo; concede `CARD_TRIAL_GRANT_CREDITS = 80` de `lib/checkoutPricing.ts`; dia 8 segue o caminho de renovação). Guardião `scripts/test-trial-1-dolar-2026-09-07.mjs` · POR QUÊ (30d): Creator é o plano mais clicado (63 pessoas no checkout) e o que menos converte (2, 3%); o trial foi desenhado em 20/08 para essa pessoa e ficou desligado 18 dias · COMO MEDIR: `pricing_trial_1usd_clicked` → `checkout_started` com `card_trial=1` → `payment_success` de $1 → renovação no dia 8 (`invoice.payment_succeeded`, subscription_cycle). Se quiseres redesenhar o botão no teu lote de pricing, a URL e o `checkout.launch` são o contrato; o visual é teu.
+
+---
+
+## 2026-09-07 15:38→16:00 — AVISO DE ARQUIVO (pista fluxo/servidor)
+
+**Não é pedido de trabalho. Não toquei em NENHUMA marcação.** As mudanças
+abaixo alteram apenas *qual card já existente tem permissão de aparecer* na
+tela de filme pronto, e adicionam um evento. Nenhum layout, nenhuma nav,
+nenhuma home, nenhum `MobileNav`, nenhum CSS, nenhum JSX novo.
+
+**O porquê, em um parágrafo:** a tela de filme pronto tem **um** slot de
+oferta, com precedência bridge → episódio 2 → Plan Fit → pergunta comercial.
+Medido em 30 dias, por pessoa: a pergunta leva **17%** ao checkout (39/231);
+o bridge leva **1%** (1/87); Plan Fit levou **0** em 12 dias (30 impressões,
+0 cliques). As impressões da pergunta caíram de 176/semana para 1/semana.
+E 89 de 220 primeiras entregas em 12 dias não viram **oferta nenhuma**.
+
+Arquivos que toquei (`bb4c6de1`, `66f7d061`):
+
+- `lib/growth/planFit.ts` — `shouldReservePlanFitRecurringSlot` ganhou dois
+  campos **opcionais**: `trialPhase` (um trial `'ending'` devolve o slot à
+  pergunta) e `lookupGraceExpired` (a reserva anti-flash passa a ter prazo;
+  sem ele o slot podia ficar reservado por *ninguém*). **Todo chamador
+  existente mantém o comportamento** — os dois campos são opcionais e ausentes
+  reproduzem a lógica antiga. `scripts/test-plan-fit.mjs` foi de 382 para 394
+  verificações; os casos novos ficam vermelhos se você trocar qualquer um dos
+  dois `if` por constante.
+- `app/(dashboard)/generate/GenerateClient.tsx` — **só lógica e um evento.**
+  Alimenta os dois campos acima, arma um timer de 4s, e emite
+  `post_delivery_no_offer` uma vez por vídeo quando a tela não mostra oferta
+  nenhuma. Se você mexer nessa tela, **não precisa saber de nada disso** —
+  não há marcação envolvida.
+- `lib/growth/postDeliveryOfferAudit.ts` (novo) +
+  `scripts/test-post-delivery-silence.mjs` (novo, 19 verificações).
+
+### O que eu peço que você mantenha
+
+1. **Se você adicionar uma superfície nova nessa tela, some ela ao auditor.**
+   `auditPostDeliveryOffer` recebe uma flag por superfície; uma superfície que
+   aparece e não está na lista faz o silêncio ser contado onde não existe. O
+   guardião tem um caso por superfície exatamente para isso.
+2. **Instrumente no mesmo commit** — foi a lição que me custou este ciclo: eu
+   consertei a trava no `bb4c6de1` *deduzindo* a causa, porque nenhuma
+   superfície emitia nada quando o slot ficava reservado e nada renderizava.
+   Ausência de evento é indistinguível de ausência de gente.
+3. **O download grátis com marca d'água continua intocado.** Nada aqui esconde
+   ou condiciona o download.
