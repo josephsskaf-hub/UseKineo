@@ -56,7 +56,14 @@ function loadModule(source) {
   return requireFromTemp(join(outDir, 'postDeliverySlot.js'))
 }
 
-const ORIGINAL = readFileSync(MODULE_PATH, 'utf8')
+// KINEO-CRLF-FALSO-VERMELHO-2026-09-07 — este guardiao nasceu VERDE na worktree
+// de quem o escreveu e VERMELHO no checkout seguinte, sem que uma linha do
+// modulo mudasse. Causa: o `.gitattributes` entrega o arquivo com CRLF no
+// Windows, e o mutante `trocar a ordem bridge/episodio` ancora em DUAS linhas
+// com `\n` — que nunca casa contra `\r\n`. O guardiao acusava corretamente
+// "mutante NAO ANCOROU" e a mensagem se lia como defeito do produto.
+// Normalizar na LEITURA e a cura registrada (memoria: guardiao-crlf-falso-vermelho).
+const ORIGINAL = readFileSync(MODULE_PATH, 'utf8').replace(/\r\n/g, '\n')
 const slot = loadModule(ORIGINAL)
 
 let passed = 0

@@ -329,6 +329,25 @@ export function netAfterStripeUsd(grossUsd: number): number {
 // Anti-abuso: 1 por conta (has_paid no checkout) + missing_payment_method=cancel.
 export const CARD_TRIAL_GRANT_CREDITS = 80
 
+// KINEO-TRIAL-1DOLAR-NA-ENTREGA-2026-09-07 — os dois números que a PORTA de $1
+// promete na tela, num lugar só. Até aqui eles existiam apenas como constantes
+// locais dentro de `app/api/stripe/checkout/route.ts` (`TRIAL_ENTRY_FEE_CENTS`
+// e `TRIAL_DAYS`), invisíveis para qualquer superfície que quisesse ANUNCIAR a
+// oferta. Uma tela que digita "$1" à mão enquanto o servidor cobra outra coisa
+// é a definição de vitrine que mente — e esta casa já pagou por isso.
+//
+// ⚠️ `..._ENTRY_FEE_MINOR` é em unidade MENOR da moeda RESOLVIDA, porque é
+// exatamente assim que o servidor o usa (`unit_amount` do `add_invoice_items`,
+// junto de `currency`). Em USD são $1,00; em BRL, R$ 1,00. Não é um valor em
+// dólar convertido — é 100 unidades menores na moeda de quem compra. Por isso
+// o rótulo tem de sair de `formatCheckoutMoney(currency, ...)` e NUNCA de uma
+// string com cifrão digitada na tela.
+//
+// O guardião `scripts/test-clean-film-trial-door.mjs` lê o route.ts e falha se
+// os literais de lá divergirem destes — é o que impede a cópia de envelhecer.
+export const CARD_TRIAL_ENTRY_FEE_MINOR = 100
+export const CARD_TRIAL_DAYS = 7
+
 export const TIER_CREDITS: Record<CheckoutPlanTier, number> = {
   // ═══ KINEO-PRICING-V6-2026-08-19 — O GRANT FOI RECALIBRADO PELO CONSUMO ═══
   // O preço só pôde cair porque o grant desceu junto, e o grant só pôde

@@ -106,6 +106,8 @@ import {
 } from '@/lib/growth/planFit'
 import { auditPostDeliveryOffer } from '@/lib/growth/postDeliveryOfferAudit'
 import { decidePostDeliverySlot } from '@/lib/growth/postDeliverySlot'
+import { decideCleanFilmTrialDoor } from '@/lib/growth/cleanFilmTrialDoor'
+import CleanFilmTrialDoor from '@/components/CleanFilmTrialDoor'
 // KINEO-DOWNLOAD-E-O-MOMENTO-2026-09-07 — ver o bloco longo do módulo: a tela
 // só sabia do download quando o arquivo saía COM marca d'água (45 de 193
 // pessoas em 30 dias). A decisão do que dizer depois do download mora lá,
@@ -192,6 +194,13 @@ import {
   INTRO_CREDITS,
   TIER_CREDITS,
   PACK_CREDITS,
+  // KINEO-TRIAL-1DOLAR-NA-ENTREGA-2026-09-07 — os três números da porta de $1
+  // saem da MESMA tabela que a rota da Stripe usa para cobrar e conceder.
+  // Digitar "$1" ou "80 credits" à mão aqui seria a vitrine mentindo sobre o
+  // cobrador na primeira vez que um deles mudasse.
+  CARD_TRIAL_DAYS,
+  CARD_TRIAL_ENTRY_FEE_MINOR,
+  CARD_TRIAL_GRANT_CREDITS,
   packPriceLabel,
   // KINEO-TOPUP-CURRENCY-2026-08-12 — os dois botões de top-up desta mesma
   // caixa continuavam com preço literal em dólar depois que as linhas de plano
@@ -11591,6 +11600,86 @@ export default function GenerateClient({
       return false
     }
   }
+  // ═══ KINEO-TRIAL-1DOLAR-NA-ENTREGA-2026-09-07 ═══════════════════════════
+  // MEDIDO: a caixa comercial foi vista por 241 pessoas em 60 dias e o ÚLTIMO
+  // clique no botão dela é de 22/08 17:16 UTC — desde então 35 pessoas, 37
+  // impressões, ZERO cliques. O botão pede assinatura mensal cheia a quem
+  // acabou de receber um filme marcado e quer ESTE arquivo limpo. O trial pago
+  // de $1 foi ligado hoje (`c902516f`) e `pricing_trial_1usd_clicked` tem ZERO
+  // linhas na história: a oferta existe e ninguém a encontra.
+  //
+  // ⚠️ A taxa de entrada é 100 unidades MENORES da moeda resolvida (é assim que
+  // o servidor a cobra: `unit_amount` + `currency` no `add_invoice_items`), e
+  // NÃO um dólar convertido. Por isso o rótulo sai de `formatCheckoutMoney` e a
+  // porta some quando a moeda não resolveu — 12% da base não está em dólar.
+  const cardTrialEntryFeeLabel = postVideoCurrency
+    ? formatCheckoutMoney(postVideoCurrency, CARD_TRIAL_ENTRY_FEE_MINOR)
+    : null
+  // O "depois" é SEMPRE o Creator: `TRIAL_TIER` é `basic` no servidor, mesmo
+  // quando a escada do pós-vídeo elege Starter como plano primário. Por isso a
+  // porta NÃO substitui o botão de plano — ela se soma a ele.
+  const cardTrialMonthlyLabel = postVideoCurrency
+    ? formatCheckoutMoney(postVideoCurrency, getTierPrice('basic', postVideoCurrency, postVideoRegion))
+    : null
+  const cleanFilmTrialDoor = decideCleanFilmTrialDoor({
+    slotOwner: postDeliverySlotOwner,
+    // `hasPaid` é a MESMA coluna que o cobrador lê para zerar `wantsTrial`
+    // (`card_trial_denied: 'has_paid'`). Anunciar $1 a quem seria cobrado o
+    // Creator cheio é a vitrine mentindo (memória: vitrine-oferece-o-que-o-
+    // cobrador-recusa).
+    hasPaid,
+    entryFeeLabel: cardTrialEntryFeeLabel,
+    monthlyLabel: cardTrialMonthlyLabel,
+    unlocksCurrentFilm: trialPrimaryUnlocksCurrentFilm,
+    grantCredits: CARD_TRIAL_GRANT_CREDITS,
+    trialDays: CARD_TRIAL_DAYS,
+  })
+  const cleanFilmTrialDoorTelemetry: Record<string, unknown> = {
+    source: 'result_trial_continue',
+    unlocks_current_film: trialPrimaryUnlocksCurrentFilm,
+    ladder_primary_tier: ladderPrimaryTier,
+    last_video_quality: quality,
+    trial_phase: trialPostVideoPhase,
+    price_region: postVideoRegion,
+    ...(postVideoCurrency ? { display_currency: postVideoCurrency } : {}),
+    ...(intentCampaign ? { intent_campaign: intentCampaign } : {}),
+  }
+  const startCleanFilmTrialCheckout = () => {
+    // O clique é emitido ANTES do launch, que pode recusar e navegar para fora
+    // em seguida — registrar depois perde exatamente os cliques que interessam.
+    void trackEvent('post_video_trial_1usd_clicked', cleanFilmTrialDoorTelemetry)
+    // O MESMO nome que /pricing e os cards do app já emitem: é o número que o
+    // fundador lê para saber se a porta de $1 move alguém, e ele só fecha se
+    // todas as superfícies contarem no mesmo lugar. `surface` separa as três.
+    void trackEvent('pricing_trial_1usd_clicked', {
+      tier: 'basic',
+      billing: 'monthly',
+      surface: 'post_video_clean_film',
+    })
+    // Mesmo handoff do botão de plano: sem o stash em localStorage o
+    // `?wm_unlock=1` volta sem nada para reconstruir o filme limpo.
+    if (!prepareTrialCleanCheckout('monthly')) return
+    // A URL é a MESMA que /pricing já usa e que o servidor já aceita, mais o
+    // `return=wm` que reconstrói ESTE filme limpo depois do pagamento.
+    // SEM `intro=1`: o trial já é a oferta de entrada, e empilhar o cupom de
+    // boas-vindas por cima mudaria o preço do dia 8 sem que a nota o dissesse.
+    const started = trialPostVideoCheckout.launch(
+      'basic',
+      withIntentCampaign(
+        `/api/stripe/checkout?tier=basic&billing=monthly&trial=1${trialPrimaryUnlocksCurrentFilm ? '&return=wm' : ''}`,
+      ),
+      {
+        tier: 'basic',
+        billing: 'monthly',
+        intro: false,
+        card_trial: true,
+        from: 'post_video_clean_film_trial_1usd',
+        ...(trialPrimaryUnlocksCurrentFilm ? { return_to: 'watermark_unlock' } : {}),
+      },
+    )
+    if (!started) return
+    trackCheckoutClick('basic')
+  }
   const ladderSecondaryLabel = starterFirstOffer
     ? (trialOfferFullPrice ? `need more credits? Creator is ${trialOfferFullPrice}/month →` : null)
     : (trialStarterPrice ? `or start at ${trialStarterPrice}/month →` : null)
@@ -16090,6 +16179,18 @@ export default function GenerateClient({
                         </p>
                       )}
                     </div>
+                    {/* KINEO-TRIAL-1DOLAR-NA-ENTREGA-2026-09-07 — a UMA linha de
+                        montagem da porta de $1. Ela lidera a caixa; o botão de
+                        plano abaixo continua VISÍVEL e clicável (ordem do
+                        fundador: "nunca esconder o plano"), só perde o
+                        preenchimento azul para não competir de igual para igual
+                        com um checkout de outro tier. */}
+                    <CleanFilmTrialDoor
+                      decision={cleanFilmTrialDoor}
+                      pending={trialPostVideoCheckout.pending !== null}
+                      telemetry={cleanFilmTrialDoorTelemetry}
+                      onStart={startCleanFilmTrialCheckout}
+                    />
                     <button
                       type="button"
                       onClick={() => {
@@ -16175,13 +16276,23 @@ export default function GenerateClient({
                         trackCheckoutClick(ladderPrimaryTier)
                       }}
                       disabled={trialPostVideoCheckout.pending !== null}
-                      className="flex items-center justify-center w-full rounded-xl mt-4 py-3.5 text-sm font-black text-white"
+                      className="flex items-center justify-center w-full rounded-xl mt-4 py-3.5 text-sm font-black"
+                      // KINEO-TRIAL-1DOLAR-NA-ENTREGA-2026-09-07 — o botão de
+                      // plano continua no mesmo lugar, com o mesmo texto e o
+                      // mesmo checkout; quando a porta de $1 está no ar ele vira
+                      // CONTORNO. Não é enfeite: dois botões azuis preenchidos e
+                      // adjacentes com checkouts de tier diferente já custaram
+                      // uma venda a esta casa (docs/PEDIDOS-ENTRE-PISTAS). Sem a
+                      // porta, o estilo é byte a byte o de ontem.
                       style={{
-                        background: 'linear-gradient(135deg, #2997ff, #0a6fd8)',
+                        background: cleanFilmTrialDoor.visible
+                          ? 'transparent'
+                          : 'linear-gradient(135deg, #2997ff, #0a6fd8)',
+                        color: cleanFilmTrialDoor.visible ? '#7cc0ff' : '#fff',
                         border: '1px solid rgba(41,151,255,.6)',
                         cursor: trialPostVideoCheckout.pending !== null ? 'wait' : 'pointer',
                         opacity: trialPostVideoCheckout.pending !== null ? 0.6 : 1,
-                        boxShadow: '0 8px 24px rgba(41,151,255,.28)',
+                        boxShadow: cleanFilmTrialDoor.visible ? 'none' : '0 8px 24px rgba(41,151,255,.28)',
                       }}
                     >
                       {trialPostVideoCheckout.pending !== null
