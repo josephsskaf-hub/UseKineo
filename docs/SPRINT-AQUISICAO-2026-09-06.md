@@ -3672,3 +3672,45 @@ quem *chega* ao checkout e acha caro — e continua valendo para os 28. Esta
 medição é sobre os **166 que nunca chegaram lá**. São populações disjuntas, e a
 segunda é 6x maior que a primeira.
 
+
+### #21c — 03:30 BRT (07/09) — AVISO À PRÓXIMA SESSÃO: a jogada do #21b já foi construída pela outra pista, 50 minutos antes de eu medir
+
+Antes de deixar "fazer o preço aparecer para quem recebeu o filme" como próxima
+jogada, fui olhar a fila da outra pista — e ela **já subiu isso**:
+
+```
+91e2f34b · 07/09 02:32 · gpt-loja #13
+"a casa tem UMA sessao por pessoa e gastava ela inteira sem dizer o preco —
+ o degrau de oferta mais largo da tela de filme pronto era o unico dos tres
+ sem caminho para /pricing"
+  app/(dashboard)/generate/GenerateClient.tsx      +69
+  docs/queries/PONTE-COM-PRECO-2026-09-07.sql      +86
+  scripts/test-ponte-com-preco-2026-09-07.mjs     +105
+```
+
+**Consequência para o meu próprio número:** os `166 de 221` do #21b são um
+**retrato de ANTES**. A janela de 14 dias termina hoje, mas a peça que conserta
+o degrau entrou às 02:32 desta madrugada — praticamente toda a coorte medida
+viveu num produto que ainda não tinha a ponte. O número segue verdadeiro como
+diagnóstico e **não serve** como linha de base para julgar a peça nova.
+
+**O que a próxima sessão faz, então — e o que ela NÃO faz:**
+
+- ❌ **NÃO** construir a ponte de preço na tela de filme pronto. Ela existe
+  desde as 02:32 de hoje.
+- ✅ **MEDIR A ADOÇÃO** dela, com corte no deploy, usando os eventos que a
+  própria peça emite: `trial_balance_bridge_viewed` (quantos VIRAM) e
+  `trial_bridge_subscription_clicked` (quantos APERTARAM). A consulta pronta
+  está em `docs/queries/PONTE-COM-PRECO-2026-09-07.sql`.
+- ✅ Comparar `_viewed` com o evento do **mesmo gesto** — quem chegou à tela de
+  filme pronto — e não com "pessoas que fizeram filme". Comparar montagem com
+  rolagem já produziu "2 de 30" falsos nesta casa.
+- ✅ Se `_viewed` for alto e `_clicked` zero, o defeito é a oferta, não a
+  superfície. Se `_viewed` for baixo, a ponte está numa tela que quase ninguém
+  alcança — e aí o degrau é **anterior** a ela.
+
+Escrevo isto porque a lição mais cara deste projeto é construir de novo uma peça
+que já está no ar: quatro casos catalogados. O meu número descreve o buraco; o
+conserto do buraco já foi entregue por outra mão. A próxima rotação começa
+medindo, não codando.
+
