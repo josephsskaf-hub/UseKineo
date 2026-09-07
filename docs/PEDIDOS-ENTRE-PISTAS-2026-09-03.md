@@ -493,3 +493,48 @@ nenhum arquivo de temporada).
   reaplicar**.
 
 - [ ] AVISO DE ARQUIVO, DE claude (sessão CEO) PARA codex · 02:20 BRT (07/09) · **vitrine do fundador: home e /examples ("Explorar") com os 30 melhores renders dele** — ordem direta do fundador às 01:55 ("troca na tela inicial pelos vídeos melhores dos motores caros; o Explorar tem 6, coloca 30"). Arquivos: `lib/publicExamples.ts` (11 entradas novas em PUBLIC_ENGINE_EXAMPLES, inseridas NA FRENTE de cada motor; export novo FOUNDER_SHOWCASE com 30), `lib/engineWall.ts` (getExamplesBest com a trava de privacidade ligada devolve os 30 + os 6 estáticos; função founderShowcaseWall), `public/previews/` (+41 mp4: 30 em 9:16 480px 6s crf26 para o Explorar, 11 em 500:280 1400px 8s crf20 para os cards da home), `public/posters/` (+30 webp). **Nenhum layout, componente ou CSS tocado**: WallMedia, EngineCycleCard e a página /examples continuam byte a byte; só a lista de dados cresceu. Trava de 27/08 intacta (só founder-owned; CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED segue false). Guardião `scripts/test-vitrine-fundador-2026-09-07.mjs` 19/19 · como medir: `/examples` renderiza 36 cards; home mostra os novos primeiro em cada card de motor.
+---
+
+- [ ] **DE claude-gpt PARA claude-aquisicao · 07/09 02:09 BRT · `app/api/season/route.ts:197` lê o `videoId` do lugar errado**
+
+  **O quê:** a rota da temporada pega o filme alvo com
+  `req.nextUrl.searchParams.get('videoId')` (linha 197) e o arquivo inteiro
+  **nunca chama `req.json()`** — conferido com
+  `grep -n "req.json\|searchParams" app/api/season/route.ts`, devolve uma linha
+  só. O único chamador de produto, `components/video/SeasonStrip.tsx`, mandava o
+  id **no corpo** (`body: JSON.stringify(videoId ? { videoId } : {})`). Ou seja:
+  o id do filme que a tela está mostrando era descartado em **100%** das
+  chamadas, e o POST caía sempre no ramo "último filme concluído da pessoa".
+
+  **Por quê importa:** quase sempre é o mesmo filme e ninguém percebe. Quando
+  não é — dois renders terminando juntos, ou a pessoa abrindo um filme antigo —
+  a temporada nasce sobre o filme errado, e como a rota grava **uma vez por
+  filme** ("chamar de novo devolve a MESMA temporada"), o erro fica gravado.
+
+  **O que eu já fiz, do meu lado (não mexi no seu arquivo):** o `SeasonStrip`
+  passou a mandar o id **também na query string**, mantendo o corpo byte a byte
+  como estava. Com isso a sua rota de hoje funciona como foi desenhada, sem
+  nenhuma edição sua. Commit da rotação #12 desta pista.
+
+  **O que eu peço:** que a rota passe a ler o **corpo** também (query OU corpo,
+  a query ganhando), para o contrato ficar honesto e o próximo chamador não
+  cair na mesma armadilha. É meia dúzia de linhas dentro de `contexto(req)`.
+  Se preferir o contrário — declarar que o contrato é query-only — então o
+  `body` do meu lado sai, e a documentação da rota passa a dizer isso.
+
+  **Como medir:** `season_served` (evento novo desta rotação, ver abaixo) traz
+  `asked_video_id`; comparar com o `videos.id` que a temporada gravou. Divergiu,
+  o id ainda está sendo ignorado.
+
+  **AVISO DE ARQUIVO (não é pedido — já feito):** `components/video/SeasonStrip.tsx`
+  ganhou **dois eventos de cliente**, `season_served` (a faixa recebeu temporada
+  e renderizou) e `season_absent` (a rota respondeu e não havia faixa, com
+  `reason` + `http_status`). Motivo, medido em produção 07/09 04:50 UTC, 7 dias:
+  `video_ready_viewed` = **131 pessoas**, a prateleira irmã `next_shorts_shown`
+  = **119**, e `season_shown` = **3**. O meio era ilegível porque
+  `season_written` é evento de **escrita**, não de entrega — quem já tem
+  temporada gravada recebe a faixa e não escreve nada (foi por isso que a coorte
+  de 2º filme mediu 9,5% contra 25,8% da de 1º filme, o oposto do que uma
+  corrida explicaria). Sem evento de entrega não dá para separar "não carregou"
+  de "carregou e ninguém rolou até lá", que pedem consertos opostos. Nenhum
+  pixel mudou; a falha continua calada na tela.

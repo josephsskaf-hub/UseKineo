@@ -1664,3 +1664,117 @@ Agora ele acende no caminho certo, mostra a frase exata que o narrador diria,
 oferece um botão para a IA escrever o roteiro de verdade — e, quando a pessoa
 vem do atalho do Studio (que gerava sozinho sem mostrar tela nenhuma), o
 produto **para antes de gastar** e mostra o aviso.
+
+---
+
+### #12 — 02:09 BRT — A tela mais movimentada da casa mostra a temporada a 3 de 131, e o meio era ilegível
+
+#### O QUE EU FUI FAZER, E POR QUE MUDEI DE ROTA
+
+Ia fechar o G9 (documentar o handoff para agentes numa página
+`/developers/handoff`). Fui medir o alcance antes de construir, como manda a
+memória `medir-alcance-da-superficie-antes-de-ligar`, e desisti **por número**:
+
+- `app/llms.txt/route.ts` **já documenta** o canal GET `/make` inteiro desde
+  06/09 — parâmetros, réguas, motores, prazo, e o que o link **não** faz. Um
+  assistente que lê o llms.txt já sabe montar o link, que é mais fácil do que
+  fazer um POST. O que faltava documentar (o POST) é o caminho **mais difícil**
+  para o mesmo resultado.
+- A `/chatgpt` tem **2 visitas na vida** (`chatgpt_page_viewed` = 2 pessoas). O
+  `/go` tem `gpt_landing_viewed` = 17 eventos e **1 pessoa** — eu. Uma quarta
+  página de documentação seria a quarta peça sem superfície da casa (memória
+  `peca-sem-superficie-nao-existe`), e eu já escrevi essa memória três vezes.
+
+Então gastei a rotação medindo onde as pessoas de facto estão, e achei um
+buraco maior do que o G9.
+
+#### O FUNIL, MEDIDO (7 dias, produção, 07/09 04:50 UTC)
+
+**239 cadastros → 159 fizeram filme → 40 fizeram o 2º → 23 apertaram pagar → 1 pagou.**
+
+Os **119** que fizeram exatamente UM filme, por saldo: **43** em zero, **39**
+com 1-14cr (média 9,7 — dá para um Kineo 1 e não dá para um Seedance), **37**
+com 15cr ou mais. Os **80** que nunca fizeram filme: **31** nunca tentaram com
+os 25cr do trial intactos, **25** despacharam e não saiu linha em `videos`,
+**24** nunca tentaram com saldo zero.
+
+Fui atrás dos 25 esperando um defeito só e **não há**: são ~12 causas
+diferentes, quase todas portões legítimos (trial acabado, cota grátis do dia,
+roteiro curto demais). Só 2 pessoas em 7 dias viram "o fornecedor não aceitou"
+e 2 viram `TypeError`. Não há alavanca grande ali, e digo isso em vez de
+inventar uma.
+
+#### UMA CORREÇÃO AO BRIEFING DESTE CICLO
+
+O briefing diz que a coorte "instrução colada" tem **8,7% de 2º filme**. Medido
+hoje, em 14 dias: quem colou uma ORDEM tem **40%** de 2º filme (8 de 20) contra
+**20%** de todo o resto (40 de 200). Amostra pequena (n=20), mas o sinal é o
+**oposto** do que estava escrito: essa gente é a mais engajada da casa, não a
+que desiste. O aviso da #11 continua certo — um narrador lendo "NO narration"
+em voz alta é defeito — mas ele não é a explicação dos 119.
+
+#### O BURACO QUE ACHEI
+
+Na tela de filme pronto, mesma tela, mesmo instante, 7 dias:
+
+| evento | pessoas |
+|---|---|
+| `video_ready_viewed` (a tela) | **131** |
+| `next_shorts_shown` (a prateleira irmã, renderizou) | **119** |
+| `next_shorts_seen` (a irmã, rolaram até ela) | 34 |
+| `season_written` (temporada gravada no servidor) | 30 |
+| **`season_shown`** (a faixa da temporada, vista) | **3** |
+
+A casa escreve cinco títulos de episódio para a pessoa e **3 de 131 chegam a
+ver**. E o meio era **ilegível**: `season_written` não serve de denominador
+porque é evento de **escrita** — quem já tem temporada gravada recebe a faixa e
+não escreve nada. Foi por isso que a coorte de 2º filme mediu 9,5% e a de 1º
+filme 25,8%: o **contrário** do que uma corrida explicaria. Testei a hipótese
+de corrida, ela **falhou**, e não construí em cima dela.
+
+Sem um evento de ENTREGA não dá para separar "a faixa não carregou" de "a faixa
+carregou e ninguém rolou até ela" — e os dois pedem consertos opostos.
+
+#### O QUE MUDOU (`components/video/SeasonStrip.tsx`)
+
+1. **O `videoId` era descartado em 100% das chamadas.** A rota
+   `app/api/season/route.ts:197` lê `req.nextUrl.searchParams.get('videoId')` e
+   o arquivo **nunca chama `req.json()`** — e o cliente mandava o id **no
+   corpo**. O POST caía sempre no ramo "último filme concluído". Quase sempre é
+   o mesmo filme; quando não é, a temporada nasce sobre o filme errado — e como
+   a rota grava uma vez por filme, o erro fica gravado. O id passou a viajar
+   **também na query**, com o corpo intacto: a rota da outra pista funciona como
+   foi desenhada **sem eu editar o arquivo dela**. PEDIDO aberto para ela passar
+   a ler o corpo também.
+2. **`season_served`** — a faixa recebeu temporada e renderizou.
+   **`season_absent`** — a rota respondeu e não havia faixa, com `reason`
+   (`http_not_ok` / `sem_temporada` / `zero_episodios` / `excecao`) e o status
+   HTTP. Nenhum pixel mudou; a falha continua calada na tela, por desenho.
+
+#### RISCO
+
+Nenhum de produto: as duas mudanças são aditivas e toda emissão está dentro de
+try/catch, então telemetria não derruba a tela de filme pronto. O risco real é
+de **leitura**: se `season_absent` vier alto com `sem_temporada`, o problema é
+servidor; se `season_served` vier perto de 119 e `season_shown` continuar em 3,
+o problema é rolagem e o conserto é de posição, não de rota. É essa bifurcação
+que a próxima rotação passa a conseguir ler — e ela não existia.
+
+#### PRÓXIMO PASSO
+
+Ler `season_served` contra `season_absent` com algumas horas de vida e dizer,
+com número, qual dos dois consertos é o certo.
+
+✅ **O QUE VOCÊ PRECISA FAZER**
+1. **Nada.**
+
+📋 **O QUE ACONTECEU**
+A loja do ChatGPT continua fechada para conta pessoal, e eu parei de empurrar
+páginas que ninguém visita: a `/chatgpt` tem 2 visitas na vida e o llms.txt já
+documenta o caminho fácil. Fui medir onde as pessoas estão e achei coisa maior:
+na tela em que 131 pessoas por semana veem o próprio filme, a casa escreve uma
+temporada de cinco episódios e **3 pessoas chegam a ver**. Descobri também que
+o id do filme que essa tela mostra era jogado fora em toda chamada ao servidor —
+o cliente mandava num lugar, o servidor lia noutro. Consertei pelo meu lado,
+sem tocar no arquivo da outra sessão, e instrumentei o buraco para a próxima
+rotação saber se o conserto é de servidor ou de posição na página.

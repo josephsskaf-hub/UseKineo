@@ -103,11 +103,42 @@ export function rotuloDoEpisodio1(bruto: string): string {
   return `${(espaco > 40 ? corte.slice(0, espaco) : corte).trimEnd()}…`
 }
 
+// KINEO-TEMPORADA-SONDA-2026-09-07 (gpt-loja #12) — POR QUE ESTES DOIS EVENTOS.
+//
+// Medido em produção (7 dias, 07/09 04:50 UTC): a tela de filme pronto teve
+// `video_ready_viewed` = **131 pessoas**, a prateleira irmã `next_shorts_shown`
+// renderizou para **119** — e `season_shown` disparou para **3**. O meio era
+// ilegível: `season_written` NÃO serve de denominador (é evento de ESCRITA;
+// quem já tem temporada gravada recebe a faixa e não escreve nada, e foi por
+// isso que a coorte de 2º filme mediu 9,5% contra 25,8% da de 1º filme — o
+// contrário do que uma corrida explicaria). Sem um evento de ENTREGA não dá
+// para distinguir "a faixa não carregou" de "a faixa carregou e ninguém rolou
+// até ela" — e são consertos opostos. Memórias `contrato-de-servidor-sem-
+// chamador`, `zero-escritas-conte-as-oportunidades` e `degrau-morto-dentro-da-
+// superficie-viva`.
+//
+//   `season_served`  — a faixa RECEBEU temporada e foi renderizada.
+//   `season_absent`  — a rota respondeu e não havia faixa para mostrar, com o
+//                      motivo (`http_not_ok` / `sem_temporada` / `zero_
+//                      episodios` / `excecao`) e o status HTTP.
+//
+// Nenhum dos dois muda um pixel: a falha continua calada na tela.
+type SeasonEventFn = ((name: string, meta?: Record<string, unknown>) => void) | undefined
+
+function reportarAusencia(onEvent: SeasonEventFn, motivo: string, status: number | null): void {
+  try {
+    onEvent?.('season_absent', { reason: motivo, http_status: status })
+  } catch {
+    /* ignore — telemetria nunca derruba a tela de filme pronto */
+  }
+}
+
 export default function SeasonStrip({ videoId, onPick, onEvent }: Props) {
   const [data, setData] = useState<SeasonPayload | null>(null)
   const requestedRef = useRef<string | null>(null)
   const rootRef = useRef<HTMLDivElement | null>(null)
   const seenRef = useRef(false)
+  const servedRef = useRef(false)
 
   useEffect(() => {
     // Uma escrita por filme. `videoId` null ainda vale uma tentativa (a rota
@@ -118,21 +149,47 @@ export default function SeasonStrip({ videoId, onPick, onEvent }: Props) {
     let cancelled = false
     void (async () => {
       try {
-        const res = await fetch('/api/season', {
+        // KINEO-TEMPORADA-SONDA-2026-09-07 (gpt-loja #12) — O `videoId` IA NO
+        // CORPO E O SERVIDOR LÊ DA QUERY. `app/api/season/route.ts:197` faz
+        // `req.nextUrl.searchParams.get('videoId')` e o arquivo inteiro nunca
+        // chama `req.json()` — ou seja, o id do filme que ESTA tela mostra era
+        // descartado em 100% das chamadas e a rota caía sempre no "último
+        // filme concluído da pessoa". Quase sempre é o mesmo filme; quando não
+        // é (dois renders terminando juntos, ou a pessoa abrindo um filme
+        // antigo), a temporada nascia sobre o filme errado — e a promessa
+        // "uma escrita por filme" ficava presa ao filme errado também.
+        // O id viaja agora nos DOIS lugares: a query faz o servidor de hoje
+        // funcionar como foi desenhado, sem tocar no arquivo da outra pista
+        // (PEDIDO aberto para ele passar a ler o corpo também), e o corpo fica
+        // byte a byte como estava para não quebrar nada que já o leia.
+        const qs = videoId ? `?videoId=${encodeURIComponent(videoId)}` : ''
+        const res = await fetch(`/api/season${qs}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'same-origin',
           cache: 'no-store',
           body: JSON.stringify(videoId ? { videoId } : {}),
         })
-        if (!res.ok) return
+        if (!res.ok) {
+          reportarAusencia(onEvent, 'http_not_ok', res.status)
+          return
+        }
         const payload = (await res.json()) as SeasonPayload
         if (cancelled) return
-        if (!payload?.season || !Array.isArray(payload.season.episodes)) return
-        if (payload.season.episodes.length === 0) return
+        if (!payload?.season || !Array.isArray(payload.season.episodes)) {
+          reportarAusencia(onEvent, 'sem_temporada', res.status)
+          return
+        }
+        if (payload.season.episodes.length === 0) {
+          reportarAusencia(onEvent, 'zero_episodios', res.status)
+          return
+        }
         setData(payload)
       } catch {
-        // silêncio deliberado — ver cabeçalho
+        // silêncio deliberado na TELA — ver cabeçalho. O evento não é tela:
+        // sem ele, a rotação seguinte não sabe distinguir "não carregou" de
+        // "não rolou até lá" (memória `entrega-so-de-cliente-nao-tem-sonda`).
+        if (!cancelled) reportarAusencia(onEvent, 'excecao', null)
       }
     })()
     return () => {
@@ -147,6 +204,22 @@ export default function SeasonStrip({ videoId, onPick, onEvent }: Props) {
   useEffect(() => {
     if (!data?.season) return
     const eps = data.season.episodes
+    // ENTREGA (`season_served`) antes de VISIBILIDADE (`season_shown`): este
+    // dispara assim que a faixa existe na página, aquele só quando um humano
+    // rola até 35% dela. A distância entre os dois é o número que diz qual
+    // conserto é o certo. Uma vez por temporada carregada.
+    if (!servedRef.current) {
+      servedRef.current = true
+      try {
+        onEvent?.('season_served', {
+          episodes: eps.length,
+          affordable_episodes: data.affordableEpisodes,
+          asked_video_id: videoId ?? null,
+        })
+      } catch {
+        /* ignore */
+      }
+    }
     const marcarVisto = () => {
       if (seenRef.current) return
       seenRef.current = true
