@@ -7,6 +7,10 @@ import type { ResumeStripData } from '@/lib/resumeStrip'
 import { getEngineHero, getTrending } from '@/lib/engineWall'
 import { homeReferralBridgeSource } from '@/lib/growth/homeReferralBridge'
 import { BRAND_ALIASES, BRAND_NAME, BRAND_URL } from '@/lib/brandIdentity'
+// KINEO-SEO-FAQ-SO-ONDE-VISIVEL-2026-09-07 — o FAQPage de 13 perguntas só é
+// servido aqui, a única página onde as 13 são texto visível (KineoLanding
+// #faq). Antes saía do layout em 187 páginas; ver components/StructuredData.tsx.
+import { FaqStructuredData } from '@/components/StructuredData'
 
 export const metadata: Metadata = {
   // UX10 #10 (15/08) — o title/description agora vendem o que a pagina VIROU:
@@ -149,6 +153,7 @@ export default async function HomePage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(BRAND_JSON_LD) }}
       />
+      <FaqStructuredData />
       <KineoLanding
         initialUser={user ? { id: user.id } : null}
         engineWall={engineWall}

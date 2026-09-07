@@ -248,7 +248,7 @@ const faqSchema = {
     {
       // [KINEO-COMMERCIAL-LICENSE-2026-08-12] — espelha VERBATIM o novo Q&A
       // visível no #faq de app/KineoLanding.tsx (e o mesmo texto no FAQ de
-      // /pricing, onde este schema também é servido pelo layout). Nenhuma
+      // /pricing; desde 07/09 este schema só é servido na home). Nenhuma
       // frase vai além do que /terms concede: §2 uso comercial, §3 e §5
       // propriedade do output, §5 a proibição de revender o Serviço.
       '@type': 'Question',
@@ -306,6 +306,34 @@ function jsonLd(schema: object): { __html: string } {
   return { __html: JSON.stringify(schema).replace(/</g, '\\u003c') }
 }
 
+// KINEO-SEO-FAQ-SO-ONDE-VISIVEL-2026-09-07 — o FAQPage saiu do bloco global.
+//
+// MEDIDO em produção (07/09, 189 URLs do sitemap baixadas como Googlebot): o
+// mesmo bloco FAQPage de 13 perguntas era servido em 187 páginas HTML, e as 13
+// perguntas só aparecem como texto visível na home (13/13). Em /pricing são
+// 2/13; em /vs/*, /alternatives/*, /free-ai-shorts/*, /ai-video-generator/*
+// são 0/13. Além disso 121 páginas carregavam DOIS FAQPage (o próprio + este).
+//
+// As diretrizes do Google para FAQPage exigem que pergunta e resposta estejam
+// VISÍVEIS na página de origem, e que FAQ repetido em muitas páginas seja
+// marcado UMA vez no site. Marcação de conteúdo invisível é a definição de
+// "structured data spam" — a única categoria de ação manual que este site
+// poderia ter ganhado sem ninguém notar. O comentário no topo deste arquivo
+// sempre disse "mirrors KineoLanding #faq"; só a home cumpre isso.
+//
+// Por isso o componente global (app/layout.tsx) emite só Organization e
+// SoftwareApplication, e a home (app/page.tsx) renderiza <FaqStructuredData />
+// ao lado do seu @graph. Nenhuma pergunta mudou; mudou ONDE ela é servida.
+// Guardião: scripts/test-faq-schema-so-onde-visivel.mjs.
+export function FaqStructuredData() {
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={jsonLd(faqSchema)}
+    />
+  )
+}
+
 export default function StructuredData() {
   return (
     <>
@@ -316,10 +344,6 @@ export default function StructuredData() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={jsonLd(softwareApplicationSchema)}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={jsonLd(faqSchema)}
       />
     </>
   )

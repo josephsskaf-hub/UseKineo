@@ -243,7 +243,10 @@ if (ts) {
   if (rendered && facts) {
     const dl = facts.ASSISTANT_DEEP_LINK_FACT
     const { scripts } = rendered
-    check('(E1) três blocos ld+json renderizados', scripts.length === 3, String(scripts.length))
+    // KINEO-SEO-FAQ-SO-ONDE-VISIVEL-2026-09-07 — eram três; o FAQPage saiu do
+    // bloco global (só a home o serve, via FaqStructuredData). Ver o guardião
+    // scripts/test-faq-schema-so-onde-visivel.mjs.
+    check('(E1) dois blocos ld+json renderizados (Organization + SoftwareApplication; FAQPage só na home)', scripts.length === 2, String(scripts.length))
     const app = scripts.find((o) => o['@type'] === 'SoftwareApplication')
     const pa = app && app.potentialAction
     check('(E1) SoftwareApplication renderizado tem potentialAction', Boolean(pa))
