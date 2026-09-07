@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
+import { redirect } from 'next/navigation'
 import { cookies, headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { writeServerEvent } from '@/lib/serverEvents'
@@ -110,7 +111,13 @@ function Meta({ children }: { children: React.ReactNode }) {
   return <span style={{ color: MUTED, fontSize: '0.9rem' }}>{children}</span>
 }
 
-export default async function GoPage({ params }: { params: { token: string } }) {
+export default async function GoPage({
+  params,
+  searchParams,
+}: {
+  params: { token: string }
+  searchParams?: Record<string, string | string[] | undefined>
+}) {
   const token = params.token
   if (!isHandoffToken(token)) return <Expired reason="missing" />
 
@@ -164,6 +171,41 @@ export default async function GoPage({ params }: { params: { token: string } }) 
     /* a página nunca quebra por causa do contador */
   }
 
+  const goHref = `/api/gpt/handoff/go?token=${encodeURIComponent(token)}`
+
+  // ── A VOLTA DO CADASTRO — o segundo clique que ninguém deveria dar ────────
+  //
+  // Quem chega aqui com `?signup=1` JÁ apertou "Make this video" uma vez: foi
+  // esse clique que o mandou para /signup (e ele já carimbou clicked_at). O
+  // /auth/callback devolve a pessoa para cá com essa marca. Sem o desvio
+  // abaixo, a página se redesenha com o MESMO botão e cobra um SEGUNDO clique
+  // no ponto de maior intenção da jornada — logo depois de criar a conta.
+  //
+  // Encaminhamos para a MESMA rota contadora do botão, nunca para uma cópia da
+  // regra dela: é lá que a sessão é resolvida, o clique é contado e o destino
+  // do Studio é montado por buildStudioDestination().
+  //
+  // NÃO HÁ LAÇO POSSÍVEL: só desvia com `signedIn === true`, e o ramo logado de
+  // /api/gpt/handoff/go termina SEMPRE em /studio/create — nunca volta ao /go
+  // nem ao /signup. Robô não é desviado (não tem sessão e não deve gastar a
+  // rota). Nada é gerado: o Studio abre preenchido e espera o Generate.
+  const backFromSignup = (Array.isArray(searchParams?.signup) ? searchParams?.signup[0] : searchParams?.signup) === '1'
+  const autoForward = signedIn && backFromSignup && !bot
+  if (autoForward) {
+    try {
+      await writeServerEvent({
+        name: 'gpt_landing_auto_forwarded',
+        path: '/go/[token]',
+        sessionId: cookies().get('kineo_event_session_id')?.value ?? null,
+        metadata: { token: row.token, channel: row.channel, engine_hint: row.engine_hint, duration_sec: row.duration_sec },
+      })
+    } catch {
+      /* o contador nunca segura a pessoa na porta */
+    }
+    // Fora do try: redirect() sinaliza por exceção e não pode ser engolido.
+    redirect(goHref)
+  }
+
   const engine = isHandoffEngine(row.engine_hint) ? row.engine_hint : 'seedance'
   const engineLabel = ENGINE_LABELS[engine]
   const family = engineFamily(engine)
@@ -176,7 +218,6 @@ export default async function GoPage({ params }: { params: { token: string } }) 
   const headline = handoffHeadline(row)
   const fitLine = describeFit({ fit: row.fit, seconds: Number(row.seconds), words: row.words }, row.duration_sec)
   const overStudioLimit = row.script.length > STUDIO_PROMPT_MAX_CHARS
-  const goHref = `/api/gpt/handoff/go?token=${encodeURIComponent(token)}`
   const pricingHref = `/api/gpt/handoff/pricing?token=${encodeURIComponent(token)}`
 
   return (
