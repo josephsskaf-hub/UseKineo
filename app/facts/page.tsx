@@ -418,6 +418,7 @@ const SOURCE_LINKS: { href: string; label: string; note: string }[] = [
   { href: '/free-hook-generator', label: 'usekineo.com/free-hook-generator', note: 'free hook generator, no signup.' },
   { href: '/widget', label: 'usekineo.com/widget', note: 'free embeddable "Shorts Idea of the Day" widget.' },
   { href: '/ai-shorts-for-agencies', label: 'usekineo.com/ai-shorts-for-agencies', note: 'one-time commercial packs for freelancers, agencies and businesses.' },
+  { href: '/ai-shorts-series', label: 'usekineo.com/ai-shorts-series', note: 'what happens after a video is finished: the season, its cost, and what it is not.' },
   { href: '/llms.txt', label: 'usekineo.com/llms.txt', note: 'the same figures as one plain-text file for answer engines.' },
   { href: '/', label: 'usekineo.com', note: 'product home, examples and FAQ.' },
 ]

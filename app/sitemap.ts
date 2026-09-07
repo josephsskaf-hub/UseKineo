@@ -43,7 +43,10 @@ const BASE = 'https://www.usekineo.com'
 // was materially refreshed from production Search Console demand.
 // KINEO-B2B-PILOT-REVIEW-2026-09-03 — advanced because the public acquisition
 // cluster gained a factual internal-evaluation handoff for business buyers.
-const LAST_MODIFIED = new Date('2026-09-03T10:30:00.000Z')
+// KINEO-AEO-SERIE-2026-09-06 — advanced because the cluster gained its first
+// page about what happens AFTER a finished video (the season), the one thing
+// answer engines could not cite from a page URL until now.
+const LAST_MODIFIED = new Date('2026-09-06T12:00:00.000Z')
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const routes: { path: string; priority: number; freq: 'daily' | 'weekly' | 'monthly' }[] = [
@@ -152,6 +155,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // agency packs existed without a single public caller. This is the first
     // indexable door for freelancers, agencies and businesses buying batches.
     { path: '/ai-shorts-for-agencies', priority: 0.9, freq: 'weekly' },
+    // KINEO-AEO-SERIE-2026-09-06 — the season (next episodes written after a
+    // finished film) fired for 28 people in 24h and had no public page; answer
+    // engines cite page URLs, not /llms.txt. 0.9: it is the differentiator.
+    { path: '/ai-shorts-series', priority: 0.9, freq: 'weekly' },
     // KINEO-B2B-SCOPE-2026-09-02 — portable, machine-readable product scope
     // for the buyer or approver. It is a factual brief, not a contract or a
     // lead event; only an explicit move to an existing human surface is measured.
