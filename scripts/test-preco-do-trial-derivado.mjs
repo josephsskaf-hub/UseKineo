@@ -155,5 +155,22 @@ ok(
   'quem nunca fez um filme continua recebendo o assunto de hoje, intocado',
 )
 
+console.log('\n── 6. O CARIMBO SEPARA AS DUAS VERSOES DA CARTA')
+// A va-r3 (eufemismo) e a va-r4 (numero) sao cartas DIFERENTES para quem le.
+// Se as duas gravassem o mesmo `body`, a medicao nao saberia qual delas a
+// pessoa recebeu — e a va-r3 chegou a ficar ~1h em producao, com uma rodada
+// do cron possivel no meio (memoria `campo-novo-e-o-carimbo-do-deploy`: o
+// corte se faz pelo campo novo, nunca pelo relogio).
+for (const [nome, bloco] of [['D5', d5], ['D10', d10]]) {
+  ok(
+    bloco.includes("body: 'offer_with_film_1usd_priced'"),
+    `${nome}: grava o carimbo da versao COM o numero`,
+  )
+}
+ok(
+  readFileSync('lib/lifecycle/trialFilmPlans.ts', 'utf8').includes("| 'offer_with_film_1usd_priced'"),
+  'o tipo LossBody aceita o carimbo novo',
+)
+
 console.log(`\n${n - fail}/${n} verificacoes`)
 if (fail > 0) process.exit(1)

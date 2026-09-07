@@ -15,7 +15,7 @@ const d10 = route.slice(start, end)
 ok(d10.length > 500 && end > start, 'bloco do D10 localizado')
 ok(d10.includes('if (c.videosMade >= 1)'), 'ramo novo so para quem tem video entregue (videosMade real)')
 ok(d10.indexOf('if (c.videosMade >= 1)') < d10.indexOf("const text = `Hey,"), 'ramo com filme decide ANTES do corpo padrao')
-ok(d10.includes("body: 'offer_with_film_1usd'"), 'evento grava body offer_with_film_1usd (mesma chave do D5) — va-r3 07/09')
+ok(d10.includes("body: 'offer_with_film_1usd_priced'"), 'evento grava body offer_with_film_1usd (mesma chave do D5) — va-r3 07/09')
 ok(d10.includes("html, body: 'standard' }"), 'D10 padrao grava body standard (prova qual saiu)')
 // cupom identico, nada novo prometido
 const cupons = d10.match(/\$\{COMEBACK_CODE\}/g) || []

@@ -80,8 +80,8 @@ ok(d10.indexOf('if (c.videosMade === 0 &&') < d10.indexOf('const text = `Hey,'),
   'D10: o ramo novo decide ANTES do corpo padrao')
 
 // ── (b) NAO-REGRESSAO: os corpos antigos continuam la, palavra por palavra ──
-ok(d5.includes("body: 'offer_with_film_1usd'"), 'D5: corpo de quem tem filme preservado (chave nova va-r3)')
-ok(d10.includes("body: 'offer_with_film_1usd'"), 'D10: corpo de quem tem filme preservado (chave nova va-r3)')
+ok(d5.includes("body: 'offer_with_film_1usd_priced'"), 'D5: corpo de quem tem filme preservado (chave nova va-r3)')
+ok(d10.includes("body: 'offer_with_film_1usd_priced'"), 'D10: corpo de quem tem filme preservado (chave nova va-r3)')
 ok(d5.includes("subject: 'Come back to Creator — 50% off for 3 months'"),
   'D5: assunto padrao intacto (sobra para quem tem entrega em outro produto)')
 ok(d10.includes('subject: `Last call: 50% off Creator expires`'),

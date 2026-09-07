@@ -1808,7 +1808,7 @@ ${ep2 ? `${ep2.html}\n` : ''}  ${sig}`)
           : `Your ${c.videosMade} videos are still in your Library — ${entryFee} gets Creator back for ${CARD_TRIAL_DAYS} days`,
         text: `${wText}${footerText}`,
         html: wHtml,
-        body: 'offer_with_film_1usd',
+        body: 'offer_with_film_1usd_priced',
       }
     }
 
@@ -1967,7 +1967,7 @@ ${ep2 ? `${ep2.html}\n` : ''}  ${sig}`)
           : `Last call — your ${c.videosMade} videos are waiting, and ${entryFee} is the cheapest way back`,
         text: `${wText}${footerText}`,
         html: wHtml,
-        body: 'offer_with_film_1usd',
+        body: 'offer_with_film_1usd_priced',
       }
     }
 

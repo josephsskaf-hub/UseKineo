@@ -127,7 +127,7 @@ for (const [kind, campanha] of [
   check(`13/${kind}. a porta está DENTRO desse ramo`, ramo.includes(`trialEntryUrl('${campanha}')`))
   check(`14/${kind}. o botão é servido no HTML do ramo`, ramo.includes("cta(trialUrl, 'Start the 7-day Creator trial')"))
   check(`15/${kind}. o corpo em texto puro também leva o link`, ramo.includes('${trialUrl}'))
-  check(`16/${kind}. o carimbo do bundle novo`, ramo.includes("body: 'offer_with_film_1usd'"))
+  check(`16/${kind}. o carimbo do bundle novo`, ramo.includes("body: 'offer_with_film_1usd_priced'"))
   // O CUPOM É DO CODEX — código, URL e porcentagem intactos.
   check(`17/${kind}. cupom COMEBACK50 continua no mesmo ramo`, ramo.includes('${COMEBACK_CODE}'))
   check(`18/${kind}. o link do cupom continua o /pricing?promo=`, ramo.includes('${cta(url, '))

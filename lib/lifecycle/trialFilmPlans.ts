@@ -32,6 +32,11 @@ export type LossBody =
    *  propria para a medicao separar quem recebeu o bundle novo sem depender
    *  do relogio (memoria ). */
   | 'offer_with_film_1usd'
+  // va-r4 (07/09): a versao COM O NUMERO. A `_1usd` sem sufixo e a versao da
+  // va-r3, que escondia o valor atras de um eufemismo; ela viveu ~1h e pode
+  // ter pego UMA rodada do cron. Carimbos diferentes = a medicao sabe qual
+  // carta a pessoa leu (memoria `campo-novo-e-o-carimbo-do-deploy`).
+  | 'offer_with_film_1usd_priced'
   /** sprint-assinaturas #12 (04/09) — D5/D10 para quem NUNCA teve um video
    *  entregue: o filme gratis vem primeiro, o COMEBACK50 continua igual,
    *  embaixo. Discriminador proprio porque o 'standard' desses dois e-mails

@@ -13,9 +13,9 @@ const d5 = route.slice(route.indexOf("if (c.kind === 'expired_offer_d5')"), rout
 ok(d5.length > 500, 'bloco do D5 localizado')
 ok(d5.includes('if (c.videosMade >= 1)'), 'ramo novo so para quem tem video entregue (videosMade real, nunca default)')
 ok(d5.indexOf('if (c.videosMade >= 1)') < d5.indexOf("const text = `Hey,"), 'ramo com filme decide ANTES do corpo padrao')
-ok(d5.includes("body: 'offer_with_film_1usd'"), 'evento grava body offer_with_film_1usd — va-r3 07/09')
+ok(d5.includes("body: 'offer_with_film_1usd_priced'"), 'evento grava body offer_with_film_1usd — va-r3 07/09')
 ok(d5.includes("body: 'standard' }"), 'D5 padrao grava body standard (prova qual saiu)')
-ok(lib.includes("'offer_with_film_1usd'"), 'LossBody aceita offer_with_film_1usd')
+ok(lib.includes("'offer_with_film_1usd_priced'"), 'LossBody aceita offer_with_film_1usd')
 // cupom: identico nos dois ramos, sem porcentagem/prazo novos
 const cupons = d5.match(/\$\{COMEBACK_CODE\}/g) || []
 ok(cupons.length >= 4, `cupom vem da constante COMEBACK_CODE (${cupons.length} usos), nunca digitado`)
