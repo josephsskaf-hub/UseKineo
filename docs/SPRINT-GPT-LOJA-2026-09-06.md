@@ -329,3 +329,143 @@ recuperei por `cherry-pick`. Nada de `branch -f`, nada de força.
 com os fatos canônicos). Falta o G6 — o `llms.txt` documentar o endereço do
 handoff para Perplexity/Claude/Gemini montarem o mesmo link, o que já virou
 PEDIDO para o Codex.
+
+---
+
+### #3 — 21:30→22:05 — **EM PRODUÇÃO**: o schema era a segunda instrução do modelo, e ninguém tinha auditado
+
+**SHA `5418d44b`** (`origin/main = 5418d44b`, fila 0, deploy confirmado por sonda).
+
+#### A PERGUNTA QUE ABRIU A ROTAÇÃO
+
+A #1 e a #2 puseram no ar o endpoint, a página `/go`, o schema e o documento.
+Antes de escrever peça nova, fui olhar **o que decide se tudo isso vale alguma
+coisa**: o único passo manual do fundador — importar o schema e publicar o GPT.
+Se o `openapi.json` estiver errado, as três rotações do ciclo produzem zero.
+
+E aí apareceu o que eu não tinha visto: **o `public/gpt/openapi.json` é a
+SEGUNDA fonte de instruções que o modelo obedece.** A primeira é o documento
+que o fundador cola no campo *Instructions*. A #1 auditou o documento com
+cuidado — e o schema entrou sem auditoria nenhuma, escrito de memória.
+
+#### O DEFEITO QUE ISSO ESCONDIA — a mesma mentira, no arquivo que ninguém olhou
+
+A #1 achou e consertou, **no documento**, a promessa de gratuidade: o trial é
+de 25 créditos, um 90s no Seedance custa **38**, logo "seu primeiro filme é
+grátis" só é verdade a 35s e 60s. Esse conserto **nunca chegou ao schema**. A
+`description` do 200 continuava mandando, sem condição:
+
+> *"say ... that the first film is free (25-credit trial, no card)"*
+
+E a `description` do 200 é lida pelo modelo **a cada chamada, no instante exato
+de mostrar o link** — é a última frase antes do clique. Quem pedisse 90s
+ouviria "grátis" do GPT e bateria numa parede de 38 créditos na primeira tela.
+É a memória `vitrine-oferece-o-que-o-cobrador-recusa` inteira, com um detalhe
+pior: **a rotação anterior já tinha diagnosticado o defeito e consertado só
+metade dele.** Um conserto que não varre todos os arquivos que carregam a
+regra não é conserto, é meia-verdade com data.
+
+#### AUDITEI CONTRA A PRODUÇÃO, NÃO CONTRA O CÓDIGO
+
+Chamei o endpoint real com um roteiro real e guardei a resposta literal — é
+mais barato que ler código e não mente. Seis divergências, todas confirmadas:
+
+| # | o schema dizia | a verdade do servidor |
+|---|---|---|
+| 1 | grátis, sem condição | 90s custa 38cr; trial tem 25 |
+| 2 | `maxLength: 6000`, e o 400 dizia "over 6000 characters" | recusa acima de **5000** |
+| 3 | `seconds: integer` | devolve **24.2** |
+| 4 | `fitMessage` inexistente | devolve, e é frase pronta calibrada |
+| 5 | `overStudioLimit`/`studioLimitChars` inexistentes | devolve os dois |
+| 6 | sem `503` | devolve 503 em duas situações |
+
+O **2** merece nome: o schema **autorizava** 6.000 e o cobrador recusava em
+5.001 — e a descrição do próprio 400 ensinava o número errado, então o modelo
+tentando se auto-corrigir erraria de novo, com mais confiança.
+
+O **4** é a memória `aviso-gravado-recurso-descartado` em estado puro. O
+servidor já devolvia *"About 24s of narration for a 35s video — the story may
+end early. Adding a few lines helps; Kineo never stretches a short script."* —
+uma frase em inglês, calibrada pela régua da casa, pronta. Como o schema não a
+mencionava, o modelo inventava a própria redação e a frase boa morria sem uso.
+Agora está documentada com ordem de **citar verbatim**.
+
+#### O DEFEITO VIVO QUE APARECEU NO CAMINHO (o mais caro dos dois dias)
+
+Fui amarrar o documento à lib e descobri que **o orçamento de palavras que nós
+damos ao GPT estava ABAIXO do piso do nosso próprio servidor**.
+`FIT_SHORT_RATIO` 0,95 a 3,1 pal/s exige **177** palavras para um 60s passar
+como `ok`. O documento mandava escrever **175-195**.
+
+Ou seja: o GPT escreveria um roteiro de 175 palavras — **exatamente dentro do
+orçamento que nós demos a ele** — mandaria para o nosso endpoint, e receberia
+de volta `fit: "short"`. O GPT então ofereceria "quer que eu estenda?" para um
+roteiro que ele acabara de escrever **certo**. Atrito fabricado do nada, por
+dois arquivos nossos discordando em duas palavras, na conversa que é a primeira
+impressão do produto.
+
+Agora **105-115 / 180-195 / 270-290** — dentro da régua da casa do CLAUDE.md
+(175-195) e acima do piso da lib. **A lib não foi tocada:** o pipeline de
+qualidade não se mexe por conveniência de documento.
+
+#### O GUARDIÃO — a parte que dura
+
+`scripts/test-gpt-handoff.mjs` tinha 283 linhas e **não lia o `openapi.json`
+uma única vez**. Foi por isso que o schema pôde divergir em silêncio. Agora ele
+lê os **três** arquivos reais e prova que schema, documento e servidor não
+podem discordar: **181 → 287 verificações**.
+
+O desenho importa: nenhum número é digitado no teste. O teto sai de
+`SCRIPT_MAX_CHARS`, os enums de `DURATIONS`/`ASPECTS`/`HANDOFF_ENGINES`, os
+preços de `checkoutPricing`, os custos de `engineCost`, o TTL de
+`HANDOFF_TTL_DAYS`. **Mudar a constante quebra o teste até o schema e o
+documento acompanharem** — que é a única forma de trava que sobrevive a quem
+vier depois e não leu isto aqui. A regra do grátis está amarrada à
+**condição**, não a texto: nenhuma promessa pode existir sem citar a duração.
+
+**Onze mutantes reprovados**, cada mutação conferida como aplicada no arquivo e
+cada reprovação pelo motivo certo. Um deles pegou um afrouxamento real meu: a
+exceção que libera os blurbs de loja da seção B, na primeira versão, deixava
+passar o mesmo blurb **copiado para dentro das instruções**. Ancorei por offset
+de seção e repeti.
+
+#### SONDAS — o schema em produção depois do deploy
+
+```
+version           : 1.1.0          responses  : 200, 400, 429, 503
+script.maxLength  : 5000           seconds    : number
+fitMessage doc    : true           overStudioLimit doc : true
+200 cita a condição do 90s : true  200 com promessa incondicional : false
+```
+(`/gpt/openapi.json` = 200 · controle `/gpt/naoexiste-controle.json` = 404 ·
+`/privacy` = 200, que a OpenAI exige para ação pública.)
+
+#### O PORTÃO EXTERNO QUE EU ACHEI E QUE NÃO É NOSSO
+
+Conferindo as regras reais da OpenAI: publicar um GPT com ação para
+**"Everyone"** exige **perfil de builder verificado** — por cobrança ou por
+**posse de domínio, o que significa registro TXT no DNS e espera de
+propagação**. O roteiro da seção F mencionava isso no **passo 20**. Um gate que
+depende de DNS descoberto no passo 20 transforma 20 minutos de trabalho em dias
+de espera. **Subiu para as pré-condições**, com a saída barata escrita ao lado:
+enquanto a verificação não sai, o GPT funciona como **"Anyone with the link"** —
+o handoff roda igual, e o link já serve para e-mail e teste com gente de
+verdade. **Só a busca da loja espera; o produto não.**
+
+#### O FUNIL (G5), medido agora
+
+`5 handoffs · 0 pousos humanos · 0 pessoas · 0 pagamentos`. Os 5 são sondas
+minhas, etiquetadas `bot: true` pelo próprio filtro — **o zero está certo, e é
+o zero honesto de um GPT que ainda não existe.** O instrumento está pronto e
+não se infla com a medição de quem o construiu.
+
+**PARADA que eu assumo:** se, uma semana depois do GPT publicado, houver menos
+de 20 handoffs, o problema é **descoberta na loja** (nome/descrição) e não
+produto — e a jogada vira SEO de loja, não código.
+
+**RISCO CONHECIDO, não resolvido:** a URL do Studio ainda leva o roteiro
+inteiro na query (teto ~14 KB da Vercel). Um 90s ocupa ~1.800 chars, então na
+prática não morde; a cura é o `/studio/create` ler o token no servidor.
+
+**PRÓXIMO PASSO:** G6 — o mesmo handoff serve Perplexity/Claude/Gemini; o
+PEDIDO do `llms.txt` já está aberto para o Codex (linha 391 dos PEDIDOS).

@@ -236,6 +236,29 @@ ou superior, obrigatório para publicar GPT); este commit em produção
 (`curl -sI https://www.usekineo.com/gpt/openapi.json` devolve 200 e
 `content-type: application/json`).
 
+⚠️ **CONFERIR ISTO ANTES DO PASSO 1, não no passo 20.** Publicar um GPT com
+ação para **"Everyone"** exige, do lado da OpenAI, duas coisas que NÃO se
+resolvem na hora:
+
+1. **Perfil de builder verificado.** A OpenAI só publica para todos quem tem
+   o perfil verificado — por dados de cobrança OU por posse de um domínio.
+   Verificar domínio significa **publicar um registro TXT no DNS de
+   usekineo.com e esperar propagar**. Isso é ação do fundador, é lenta, e
+   descobri-la no último passo transforma 20 minutos de trabalho em espera.
+   **Onde ver:** `chatgpt.com` → foto do perfil → *Settings* → *Builder
+   profile*. Se não aparecer verificado, **parar e resolver isto primeiro**;
+   o resto do roteiro continua válido depois.
+2. **Privacy policy URL válida** para a ação pública — nós temos
+   (`https://www.usekineo.com/privacy`, conferida com 200). Sem ela a
+   publicação é recusada com *"Public actions require valid privacy policy
+   URLs"*.
+
+Enquanto a verificação não sair, o GPT pode ficar como **"Anyone with the
+link"**: funciona igual, o handoff roda igual, e o link já serve para o
+e-mail, para o `llms.txt` e para teste real com gente. **Não esperar a
+verificação para exercitar o produto** — esperar só para aparecer na busca
+da loja.
+
 1. Abrir `https://chatgpt.com/gpts`. Conferir na tela: cabeçalho "GPTs" com
    a barra de busca. Clicar em **"+ Create"** (canto superior direito).
 2. Na tela do editor, clicar na aba **"Configure"** (ao lado de "Create").
