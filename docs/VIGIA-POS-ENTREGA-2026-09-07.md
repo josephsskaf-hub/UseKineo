@@ -10,11 +10,17 @@
 
 ## Seis candidatas para avaliar até 10h (SUGESTÃO, não executar automaticamente)
 
-1. Links de compartilhamento revogáveis por vídeo: o token de entrada legado permanece sem expiração; preservar o acesso legítimo com versão de consentimento. Exige desenho e aprovação de persistência.
+1. Fechar os tipos completos de rotas do Next antes de ativar o gate de build: preview identificou export inválido na campanha send-checkout-recovery. Pedido ao Claude sem tocar na lógica comercial. Em seguida validar outros exports, sem maquiar teste.
 2. Atualização segura das dependências críticas apontadas na auditoria integral, em branch e regressão próprias; não misturar com cosmética.
 3. Acessibilidade de teclado e leitor de tela nas ferramentas: tabulação, foco após diálogo, nomes acessíveis e contraste, com provas por fluxo, não só screenshot.
 4. Desempenho mobile: medir carregamento de fonte/vitrine e interação com formulários, preservar todos os vídeos e comparar antes/depois sem remover ativos.
 5. Recuperação de rascunho após recarregar/trocar tela: validar o contrato atual e propor apenas lacunas reais, sem mudar motor ou enviar texto sem clique.
-6. Matriz de localização de estados raros (erro, confirmação, acessibilidade e páginas secundárias) com testes que identifiquem texto faltante sem traduzir conteúdo do cliente. Não adicionar idioma novo nesta rodada.
+6. Links de compartilhamento revogáveis por vídeo: token de entrada legado permanece sem expiração; projetar revogação sem quebrar o acesso legítimo, com aprovação de persistência. A matriz ES de estados raros também permanece no inventário, sem adicionar idioma novo.
+
+## Baseline somente leitura — 07/09 04:27:07 UTC / 01:27:07 BRT
+
+**EVIDÊNCIA DE PRODUÇÃO:** Supabase `cqqukkvjjrguayiyjvhh`, SELECT, janela fechada `[00:27:07,04:27:07)` UTC, contas internas excluídas conforme `lib/internalAccounts.ts`: três vídeos de três pessoas externas, todos `completed` com arquivo; nenhum vídeo dessa coorte em estado não terminal. Não é total histórico nem validação do pacote novo.
+
+**CLASSIFICAÇÃO:** dois `generation_stage_error` e um `video_generation_failed` são uma pessoa, com `reason=cinematic_gate_trial_ended`, primeiro HTTP 402 às 02:58:54 UTC. Código da rota confirma trial encerrado como gate de plano, não indisponibilidade Supabase. A pessoa tem entrega posterior; isso não prova que seja a mesma tentativa. Dois `cinematic_dispatch_result` de duas pessoas são resultados, não necessariamente erros. Não dizer três renders falhados nem zero evento de erro. Schema render_jobs só tem render_id/user_id/quality/cost/created_at; não inventar coluna status nem afirmar ausência global de jobs presos.
 
 Prioridades finais devem ser reordenadas por evidência do vigia. Não reivindicar aumento de conversão nem ausência de falha sem amostra e fonte. Publicar recomendações como propostas para o fundador pela manhã.
