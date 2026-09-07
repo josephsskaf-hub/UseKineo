@@ -7,21 +7,74 @@
 --   paste_page     = a caixa "cole o roteiro" da página /chatgpt
 --   assistant_link = o deep link GET /make, que qualquer assistente escreve
 --
--- ⚠ LEIA ANTES DE CONCLUIR QUALQUER COISA: as linhas de 06-07/09 incluem as
--- sondas desta madrugada (roteiros de teste, sem pessoa). Corte por
--- `viewed_at is not null` ou cruze com evento de navegador antes de chamar
--- qualquer número de "adoção".
+-- ⚠ LEIA ANTES DE CONCLUIR QUALQUER COISA: as linhas de 06-07/09 são TODAS
+-- sondas desta madrugada (roteiros de teste, sem pessoa). Separá-las não é
+-- opcional: sem isso a primeira leitura orgânica nasce somada a 16 ensaios e
+-- o número se parece com adoção.
+--
+-- ═══ COMO SE SEPARA A SONDA DA PESSOA — e por que NÃO é por horário ════════
+-- A tentação (e o erro que esta casa já cometeu duas vezes em 07/09: uma em
+-- PONTE-COM-PRECO-2026-09-07.sql, outra no fechamento deste ciclo) é cravar um
+-- `created_at > '<hora>Z'` depois do fim das sondas. Dois defeitos:
+--   1. a hora costuma sair do relógio errado. O Git Bash desta máquina não tem
+--      tzdata: `TZ=America/Sao_Paulo date` devolve UTC rotulado GMT, 3h
+--      adiantado. Foi assim que o fechamento deste ciclo mandou a próxima
+--      sessão cortar em `2026-09-07 07:00Z` — instante que, quando o texto foi
+--      escrito, ainda estava 8 MINUTOS NO FUTURO. Rodada como está, a consulta
+--      devolve zero por aritmética pura e se lê como "ninguém veio".
+--   2. mesmo com a hora certa, o corte joga fora qualquer visitante real que
+--      tenha chegado DURANTE a construção — e a ponte está no ar desde
+--      00:15 UTC de 07/09.
+--
+-- O separador honesto é a ORIGEM, não o relógio. Medido em 07/09 06:52 UTC, as
+-- 16 linhas existentes vêm de exatamente DOIS `ip_hash`:
+--   67fc14c5…321e0d  → 15 linhas, 3 canais, 00:15–06:30 UTC. É esta máquina
+--                      (todas as sondas de curl e de navegador da madrugada,
+--                      inclusive as duas que usam UA de Chrome comum para
+--                      atravessar o filtro de robô — por isso filtrar por
+--                      `user_agent` NÃO funciona aqui).
+--   04b85231…410625  → 1 linha, 02:45 UTC, UA `ChatGPT-User/1.0`: a Action
+--                      chamada de dentro do editor de GPT da OpenAI. Também é
+--                      ensaio, mas de outro lugar — é a prova de que o endpoint
+--                      responde à infraestrutura da OpenAI, não só ao curl.
+-- Quem acrescentar sonda nova: acrescente o hash às duas listas abaixo. Não
+-- troque por corte de hora.
 
--- (1) O funil por origem e por dia.
+-- (1) O funil por origem e por dia, com a sonda separada da pessoa.
+--     `origem` é a primeira coluna a ler: enquanto só houver `sonda`, não há
+--     nada a concluir sobre adoção — e isso é um estado honesto, não um
+--     fracasso. A ponte ganhou plateia no dia em que aparecer `organico`.
+with sondas(ip_hash) as (
+  values ('67fc14c5443b51680991b631ce1a7ec3aa53386b95a5c76a4e386f6d77321e0d'),
+         ('04b852318d49a58963ac5a5303af0e4cbf8725197864c53dc9df553730410625')
+)
 select
-  created_at::date                                as dia,
-  channel,
-  count(*)                                        as handoffs_criados,
-  count(viewed_at)                                as abriram_o_go,
-  count(*) filter (where clicked_at is not null)  as clicaram_make_this_video
-from gpt_handoffs
-group by 1, 2
-order by 1 desc, 3 desc;
+  h.created_at::date                                           as dia,
+  case when s.ip_hash is null then 'organico' else 'sonda' end as origem,
+  h.channel,
+  count(*)                                                     as handoffs_criados,
+  count(h.viewed_at)                                           as abriram_o_go,
+  count(*) filter (where h.clicked_at is not null)             as clicaram_make_this_video
+from gpt_handoffs h
+left join sondas s on s.ip_hash = h.ip_hash
+group by 1, 2, 3
+order by 1 desc, 2, 4 desc;
+
+-- (1b) A pergunta de uma linha: JÁ VEIO ALGUÉM? Rode esta ANTES de qualquer
+--      outra. Não tem corte de tempo nenhum, então não tem como devolver zero
+--      por aritmética — só por ausência de gente, que é o que se quer saber.
+select
+  count(*)                                          as handoffs_organicos,
+  count(*) filter (where h.viewed_at  is not null)  as abriram_o_go,
+  count(*) filter (where h.clicked_at is not null)  as clicaram,
+  min(h.created_at)                                 as primeiro,
+  max(h.created_at)                                 as ultimo
+from gpt_handoffs h
+where h.ip_hash is null
+   or h.ip_hash not in (
+     '67fc14c5443b51680991b631ce1a7ec3aa53386b95a5c76a4e386f6d77321e0d',
+     '04b852318d49a58963ac5a5303af0e4cbf8725197864c53dc9df553730410625'
+   );
 
 -- (2) O DESFECHO do roteiro, que passou a ser gravado no evento em 07/09
 --     (commit aeb4bd39). Diz de que TAMANHO as IAs escrevem de verdade — é o
