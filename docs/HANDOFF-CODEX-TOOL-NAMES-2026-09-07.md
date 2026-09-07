@@ -26,3 +26,11 @@
 
 - **ARTEFATO:** docs/previews/UX-TOOL-NAMES-2026-09-07.html — JSX real antes/depois de 684d1614, central completa e editor, inglês/espanhol, 1280/390 px. Estático, sem serviços ou exportação.
 - **INFLUÊNCIA DAS SKILLS:** Next.js/React orientaram preservação de fronteiras de render e estados; verificação no Chrome e deploy de preview precedem produção. Não atualizar Next.js ou bibliotecas nesta entrega.
+
+## Preview e integração — 07/09, 02:08 UTC
+
+- **TESTADO NO CHROME REAL:** c0cd1227, preview dpl_3YQJdxMjPjdq4ZfMfMdVjq21FBcL READY. Cada um dos cinco botões de ferramenta foi acionado; mesma amostra sintética local recortada de 1 a 3 s, enquadrada 9:16, acelerada 2×, sem áudio e com texto em duas linhas. Arquivo baixado (9).mp4: H.264 360×640, 1,060733 s, sem faixa de áudio. Mudando para 0,5× e áudio presente: (10).mp4, H.264 360×640 4,049633 s; AAC 3,988646 s, volume médio −29,1 dB. Dados de ffprobe/ffmpeg sobre downloads reais, não evento ou mock.
+- **TESTADO NO CHROME REAL:** quatro linhas de texto → aviso exato de 100 caracteres/três linhas, sem download; corrigir para duas linhas → exportação concluída. Alternar espanhol mantém controles e dados. Hub mobile 390 px, scrollWidth 390, sem overflow. A primeira tentativa de viewport atingiu sessão antiga; claim da aba correta resolveu, largura medida antes da classificação.
+- **EVIDÊNCIA DO TIMER:** ferramenta anterior /youtube-shorts-script-timer, botão de exemplo estruturado → 59 palavras faladas, 26 s estimados, oito palavras de direção ignoradas, alvo 60 s. Cálculo local, sem IA, sem gerar vídeo.
+- **COORDENAÇÃO:** incorporados commits da main até 647ff7d1, incluindo /make e encaminhamento do Claude. Esse merge introduziu node:crypto na dependência dos fatos públicos; o renderizador OFFLINE de testes agora admite apenas esse builtin, sem liberar rede, credenciais ou banco. tsc bruto e 109 contratos passaram após integração. Guardião 34074863931 success em 011dda9b; gate do último SHA deve ser reconfirmado antes do merge.
+- **LIMITE DA AUDITORIA:** os sete testes herdados reprovados estão documentados; carregamento das 13 ferramentas não prova suas APIs de IA. Não declarar todas as ferramentas em todos os dispositivos sem erro. O seletor externo não foi forçado após a negativa de permissão da extensão.

@@ -85,7 +85,7 @@ ok(records.streams.every(stream => stream.getTracks().every(track => track.stopp
 ok(records.audio.every(audio => audio.state === 'closed'), 'failure paths close audio')
 // Reproduce setup failures in the actual sample builder, not a regex claim.
 failAudio = true
-await assert.rejects(browser.sampleClip(new AbortController().signal), /audio blocked/); checks++
+await assert.rejects(browser.sampleClip(new AbortController().signal), /audio_unavailable/); checks++
 ok(records.audio.at(-1).state === 'closed', 'sample releases AudioContext after resume rejection')
 failAudio = false; failCapture = true
 await assert.rejects(browser.sampleClip(new AbortController().signal), /capture failed/); checks++

@@ -78,7 +78,7 @@ export async function exportClip(file: File, info: ClipInfo, settings: EditSetti
   let frame: ReturnType<typeof setTimeout> | undefined, timeout: ReturnType<typeof setTimeout> | undefined
   const chunks: Blob[] = []
   try {
-    await audioReady
+    await audioReady?.catch(() => { throw new Error('audio_unavailable') })
     if (audio && audio.state !== 'running') throw new Error('audio_unavailable')
     await waitMedia(video, 'loadeddata', signal, () => video.readyState >= 2)
     if (settings.start > 0) { video.currentTime = settings.start; await waitMedia(video, 'seeked', signal, () => !video.seeking && Math.abs(video.currentTime - settings.start) < .03) }
@@ -159,7 +159,7 @@ export async function sampleClip(signal: AbortSignal): Promise<File> {
   let recorder: MediaRecorder | undefined, frame: ReturnType<typeof setTimeout> | undefined
   let cleanup = () => {}
   try {
-    await audio.resume()
+    await audio.resume().catch(() => { throw new Error('audio_unavailable') })
     if (audio.state !== 'running') throw new Error('audio_unavailable')
     if (signal.aborted) throw new Error('cancelled')
     destination = audio.createMediaStreamDestination(); oscillator = audio.createOscillator()
