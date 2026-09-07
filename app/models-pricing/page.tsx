@@ -18,6 +18,12 @@ import { creditCostForDuration, type Quality } from '@/lib/credits/engineCost'
 // Preço e créditos vêm da MESMA fonte que a Stripe cobra (lib/marketingPrice
 // deriva de checkoutPricing) — um reprice chega aqui sozinho.
 import { STARTER_CREDITS, STARTER_USD_AMOUNT } from '@/lib/marketingPrice'
+// O crédito do trial sai da MESMA constante que login/signup mostram
+// (lib/freeTierOffer), e a divisão usa o MESMO helper que monta a tabela logo
+// abaixo. Antes esta frase dizia "25 credits ... twelve films" com o número
+// digitado à mão, enquanto a tabela — derivada do código — mostrava 5. A página
+// se contradizia em duas linhas de distância.
+import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 import { S25_PUBLIC } from '@/lib/engineLaunch'
 import { ENGINE_LANDING_PUBLIC_PATHS } from '@/lib/growth/engineLandingIntent'
 
@@ -74,8 +80,9 @@ export default function ModelsPricingPage() {
         karaoke captions and score included in every number below.
       </p>
       <p style={{ fontSize: 15, lineHeight: 1.7, color: '#a9a9b6', margin: '0 0 32px', maxWidth: 720 }}>
-        Your free trial starts with <strong style={{ color: '#e9e9ee' }}>25 credits</strong>. On Kineo 1 that is
-        twelve films; on the biggest engines it is part of one. Both are fine — just know which one you picked.
+        Your free trial starts with <strong style={{ color: '#e9e9ee' }}>{TRIAL_GRANT_CREDITS_COPY} credits</strong>. On Kineo 1 that is{' '}
+        {Math.floor(TRIAL_GRANT_CREDITS_COPY / creditCostForDuration('fast', true, 60))} films; on the biggest engines it is
+        part of one. Both are fine — just know which one you picked.
       </p>
 
       <div style={{ overflowX: 'auto', border: '1px solid rgba(255,255,255,.12)', borderRadius: 14 }}>
