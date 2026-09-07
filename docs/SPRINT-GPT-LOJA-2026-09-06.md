@@ -469,3 +469,148 @@ prática não morde; a cura é o `/studio/create` ler o token no servidor.
 
 **PRÓXIMO PASSO:** G6 — o mesmo handoff serve Perplexity/Claude/Gemini; o
 PEDIDO do `llms.txt` já está aberto para o Codex (linha 391 dos PEDIDOS).
+
+---
+
+## ### #4 — 22:35 — O HANDOFF ACEITAVA O ENQUADRAMENTO E O JOGAVA FORA NA ÚLTIMA LINHA
+
+**SHA `dd4326e9` · EM PRODUÇÃO** (sonda no fim desta entrada).
+
+Antes de partir para o G6 fui fazer a pergunta que as memórias da casa mandam
+fazer sempre: **o contrato tem chamador?** O endpoint publicado ontem aceita
+`aspect`, valida contra uma lista, grava a coluna no banco e devolve na
+resposta um campo cuja descrição diz, com todas as letras, *"The frame Kineo
+stored for this handoff"*.
+
+`buildStudioDestination()` — a função que monta a URL do Studio, a última linha
+do caminho, a que decide o que a pessoa realmente recebe — **nunca colocava a
+chave `aspect` na query.** Emitia `prompt`, `script_mode`, `duration`,
+`engine`, `utm_source`, `intent_campaign`. O enquadramento morria ali.
+
+Consequência: **100% dos handoffs renderizariam 9:16**, inclusive o de quem
+dissesse ao GPT "quero um vídeo de YouTube widescreen". O GPT confirmaria o
+pedido (o servidor devolve `aspect: "16:9"` na resposta, e o modelo lê isso), a
+página `/go` não mostrava formato nenhum, e o filme sairia vertical. Ninguém
+seria avisado em ponto nenhum da cadeia.
+
+### O QUE FAZ DISSO O DEFEITO MAIS CARO DOS DOIS DIAS
+
+Não é um parâmetro que a casa não sabe honrar. **É o contrário.** A capacidade
+existe ponta a ponta desde 02/09:
+
+`lib/aspect.ts` (fonte única: geometria, layout de legenda, letterbox,
+`aspect_ratio` da fal, `image_size` do FLUX, framing do prompt) →
+`GenerateClient.tsx:1252` lê `?aspect=` → viaja para o compose (5581/8448/8892)
+→ chega no fornecedor. Sem gate de plano. E `relativeRenderCost` diz que 16:9
+custa **o mesmo** que 9:16, 1:1 custa 44% **menos** e 4:5 custa 30% **menos**.
+
+O comentário de cabeçalho do `lib/aspect.ts` é a tese comercial inteira: a
+auditoria de 02/09 mostrou que reenquadrar é o **upsell de US$ 29/mês do
+OpusClip**, que Submagic e Veed fazem crop manual e o InVideo re-renderiza
+cobrando de novo — todos partem de vídeo pronto e precisam rastrear sujeito.
+Nossas cenas **nascem** no quadro certo. É um campo de string.
+
+E o único consumidor novo dessa vantagem — o GPT, **a única superfície da casa
+onde a pessoa diz em inglês claro onde vai postar** — descartava a resposta.
+
+### O DEFEITO DEBAIXO DO DEFEITO
+
+A lista de formatos estava **digitada à mão** no `lib/gptHandoff.ts` com três
+valores. A fonte única tem **quatro**. O `4:5` — o formato que mais ocupa tela
+no feed do Instagram, que a própria auditoria de 02/09 registrou que **só
+Submagic e Veed oferecem** — simplesmente não existia para o GPT.
+
+É a memória `regra-vive-em-varios-arquivos` na forma mais cara: não bastava
+consertar a emissão; enquanto a lista fosse uma **cópia**, ela voltaria a
+divergir na próxima vez que alguém acrescentasse um formato à casa. Agora
+`lib/gptHandoff.ts` **importa e reexporta** `ASPECTS`/`DEFAULT_ASPECT`/
+`normalizeAspect`/`aspectSpec` do `lib/aspect.ts`. Divergir deixou de ser
+improvável e passou a ser impossível.
+
+### O QUE MUDOU, E A REGRA DE SEGURANÇA QUE EU NÃO QUEBREI
+
+| onde | o quê |
+|---|---|
+| `lib/gptHandoff.ts` | importa a fonte única; `buildStudioDestination` emite `aspect` |
+| `public/gpt/openapi.json` | `1.1.0 → 1.2.0`; dois enums com 4 formatos; a `description` **ensina a escolha pela plataforma** e manda perguntar; o 400 lista os valores |
+| `docs/GPT-KINEO-VIDEO-MAKER.md` | a instrução era literalmente **"Never ask about it"**; agora Step 1 pergunta, Step 5 nomeia os 4 com a plataforma, Step 6 diz o frame na mensagem final |
+| `app/go/[token]/page.tsx` | mostra `16:9 · Widescreen · YouTube · site · ads` **sempre**, antes do clique; `gpt_landing_viewed` carrega o `aspect` |
+| `supabase/migrations/..._gpt_handoffs.sql` | o comentário da coluna deixou de mentir (sem migration: a coluna nunca teve CHECK) |
+
+A regra de segurança do `lib/aspect.ts` é que **9:16 é o default e tudo é
+aditivo**. Respeitada ao pé da letra: a chave `aspect` só entra na URL quando o
+valor é **diferente** de 9:16 — o mesmo padrão que o `GenerateClient` já usa.
+O link de quem pede Shorts continua **byte a byte igual**, e isso está provado
+por execução no guardião, não por leitura.
+
+### O DEFEITO DE COPY QUE APARECEU DE PASSAGEM (e que não era do GPT)
+
+Fui usar o campo `where` do `lib/aspect.ts` na página `/go` e ele veio **em
+português**: *"Feed do Instagram (ocupa mais tela)"*. Segui o fio:
+
+`app/(dashboard)/studio/StudioClient.tsx:645` imprime esse mesmo campo na
+**pílula de formato do Studio**. Ou seja, todo cliente de língua inglesa que
+abrisse o seletor de formato lia português na tela de produção. Duas strings na
+fonte única — **os dois lugares consertados de uma vez**, que é a única forma
+que o conserto de fonte única tem de valer a pena.
+
+### O GUARDIÃO — 287 → 327, e nenhum formato digitado
+
+Nenhum literal de formato entra no teste. A lista sai do `lib/aspect.ts` **por
+leitura do arquivo** e é conferida contra a lib **executada**. Consequência:
+acrescentar um quinto formato à casa **quebra o teste** até o schema, o
+documento, a página e a migration acompanharem. É a única trava que sobrevive a
+quem vier depois e não leu isto.
+
+**Sete mutantes reprovados**, cada mutação conferida por grep **como aplicada
+ao arquivo** antes de rodar, e cada reprovação pelo motivo certo. Dois deles
+(M1 e M4) **não foram aplicados na primeira tentativa** — a lib está em CRLF e
+a substituição usava `\n` — e o teste ficou verde por isso. O grep de controle
+pegou; foram reaplicados. Sem esse grep eu teria registrado dois mutantes
+falsos, e a memória `falsificar-mutacao-commitar-antes` teria custado de novo.
+
+`npx tsc --noEmit` verde, também falsificado (mutante `frame.label` →
+`frame.labell` → `error TS2551`, exit 2), porque exit 0 sozinho mente.
+
+### SONDAS
+
+`git ls-remote origin main = dd4326e9` · `/gpt/openapi.json` = **200** e a
+versão servida virou **1.2.0** com `"4:5"` presente nos dois enums · controle
+`/gpt/naoexiste-controle.json` = **404** (sem o controle, um 200 não prova
+deploy) · home = **200**.
+
+### RISCO CONHECIDO, E É OPERACIONAL, NÃO DE CÓDIGO
+
+**O ChatGPT não relê o schema sozinho.** Quando o fundador publicar o GPT, e
+sempre que o `openapi.json` mudar, é preciso **reimportar** a URL no editor do
+GPT e **recolar** o bloco de instruções — senão o modelo continua com a lista
+de três formatos e com a ordem *"Never ask about it"*. Isso foi para o roteiro
+de publicação (seção F, passo 18) para não depender de memória de sessão.
+
+### PARADA QUE EU ASSUMO
+
+Se, um mês depois do GPT publicado, **menos de 5% dos handoffs** pedirem
+formato diferente de 9:16, a hipótese comercial "o GPT vende o multi-formato"
+está errada e o esforço vai para outro lugar. O `gpt_landing_viewed` agora
+carrega o `aspect`, então esse número existe **desde o primeiro pouso** — não é
+uma medição que eu vou ter de reconstruir depois.
+
+### PRÓXIMO PASSO
+
+G6 — o mesmo handoff serve Perplexity/Claude/Gemini; o PEDIDO do `llms.txt`
+continua aberto para o Codex (linha 391 dos PEDIDOS).
+
+**✅ O QUE VOCÊ PRECISA FAZER**
+1. Nada nesta rotação — a entrega subiu sozinha e está no ar.
+2. Quando for publicar o GPT: siga `docs/GPT-KINEO-VIDEO-MAKER.md`, e leia as
+   **pré-condições** antes do passo 1 (publicar para "Everyone" exige perfil de
+   builder verificado por DNS; "Anyone with the link" funciona hoje).
+
+**📋 O QUE ACONTECEU**
+O link que o GPT entrega passou a respeitar o formato que a pessoa pediu. Antes
+ele aceitava o pedido, guardava, confirmava — e renderizava vertical de
+qualquer jeito. Agora YouTube widescreen sai widescreen, feed do Instagram sai
+4:5 (formato que quase nenhum concorrente oferece e que custa 30% menos que o
+padrão), e a pessoa **vê o formato escrito na tela antes de clicar**. De
+quebra, o seletor de formato do Studio parou de mostrar português para cliente
+de língua inglesa.
