@@ -83,6 +83,11 @@ export async function GET(req: NextRequest) {
       path: '/api/gpt/handoff/go',
       sessionId,
       metadata: {
+        // O TOKEN E A CHAVE DO FUNIL. Sem ele os degraus "pouso visto" e
+        // "clique" nao se ligam ao handoff que os originou, e o SQL do funil
+        // marca ZERO ETERNO com qualquer volume de trafego real — falso zero,
+        // que e pior que numero ausente porque parece medicao.
+        token: row.token,
         signed_in: Boolean(userId),
         bot,
         engine_hint: row.engine_hint,

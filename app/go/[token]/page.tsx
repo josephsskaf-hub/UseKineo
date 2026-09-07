@@ -144,6 +144,9 @@ export default async function GoPage({ params }: { params: { token: string } }) 
       sessionId: cookies().get('kineo_event_session_id')?.value ?? null,
       dedupeMinutes: 30,
       metadata: {
+        // ver o comentario em app/api/gpt/handoff/go/route.ts: sem o token o
+        // degrau do pouso nao se liga ao handoff e o funil mede zero para sempre.
+        token: row.token,
         signed_in: signedIn,
         bot,
         engine_hint: row.engine_hint,

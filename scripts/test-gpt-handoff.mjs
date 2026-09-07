@@ -267,5 +267,18 @@ for (const col of ['token', 'script', 'duration_sec', 'aspect', 'engine_hint', '
   ok(/gpt_landing_clicked/.test(go) && /userId,/.test(go), '(H6) o evento do clique carrega user_id — coluna é 1:1, evento é N:1')
 }
 
+// ═══ (I) O TOKEN NO EVENTO — a chave que liga o degrau ao handoff ═════════
+// Falso zero é pior que número ausente, porque parece medição. Sem `token` na
+// metadata, o SQL do funil junta por metadata->>'token' (sempre nulo) e marca
+// ZERO PARA SEMPRE, com qualquer volume de tráfego real. Foi pego em produção
+// no primeiro handoff de verdade, conferindo as chaves que o evento gravou.
+{
+  const goR = read('app/api/gpt/handoff/go/route.ts')
+  const pgR = read('app/go/[token]/page.tsx')
+  const temToken = (src) => /metadata: \{[\s\S]{0,600}?token: row\.token/.test(src)
+  ok(temToken(goR), '(I1) gpt_landing_clicked carrega o token do handoff')
+  ok(temToken(pgR), '(I2) gpt_landing_viewed carrega o token do handoff')
+}
+
 console.log(`\n${pass} ok, ${fail} falhas`)
 process.exit(fail ? 1 : 0)
