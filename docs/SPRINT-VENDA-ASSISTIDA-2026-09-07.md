@@ -562,3 +562,25 @@ quem foi embora achando caro. Voltei a pôr o número, mas nunca digitado: ele �
 lido da mesma constante que a Stripe cobra, então se você mudar a taxa amanhã o
 e-mail muda sozinho. E deixei um alarme: se um dia a moeda voltar a variar, o
 teste fica vermelho antes de a carta mentir de novo.
+
+#### #4b — 19:00 — ADENDO MEDIDO: o eufemismo quase certamente não chegou a ninguém
+
+Fui medir quantas pessoas já tinham recebido a versão sem o número e o
+resultado é o melhor possível: **o carimbo `offer_with_film_1usd` tem ZERO
+linhas em toda a história do banco.**
+
+O que existe são **155 cartas `offer_with_film`** (o bundle anterior) entre
+02/09 e **hoje 21:25 UTC** — vazão de ~23/dia no ramo de quem tem filme (13 D5
++ 10 D10 só hoje). O cron roda **de hora em hora no minuto :25**, e a #3 entrou
+na `main` às **21:39 UTC — 14 minutos DEPOIS** da última rodada. A janela em
+que o eufemismo esteve em produção não pegou nenhuma rodada do cron.
+
+**Mas "quase certamente" não é medição.** As duas versões gravavam o mesmo
+`body`, então se uma rodada tivesse escapado eu não teria como distinguir a
+carta que esconde o valor da carta que o diz. Subi `c92e7e37`: a versão com o
+número passa a carimbar **`offer_with_film_1usd_priced`**. Qualquer linha com o
+carimbo **sem** o sufixo é a versão do eufemismo — e a medição passa a saber
+qual carta cada pessoa leu sem depender do relógio.
+
+**Estado:** `origin/main = c92e7e37`, fila vazia. A próxima rodada do cron
+(22:25 UTC) deve ser a primeira a sair com o preço na cara.
