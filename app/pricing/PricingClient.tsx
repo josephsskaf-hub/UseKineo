@@ -14,6 +14,7 @@ import Link from 'next/link'
 import React, { useEffect, useRef, useState } from 'react'
 import { trackCheckoutClick } from '@/lib/trackClick'
 import { rememberSignupCampaign, trackEvent } from '@/lib/analytics'
+import RegionalFirstPack from '@/components/RegionalFirstPack'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import { createClient } from '@/lib/supabase/client'
 import ExitIntentOffer from '@/components/ExitIntentOffer'
@@ -882,6 +883,14 @@ export default function PricingClient() {
             de topo (pt-5) para as fitas "Most Popular"/"Best Value", que ficam
             em -top-3 e antes encostavam no bloco de cima. Nenhum numero,
             rotulo ou plano mudou. */}
+        {/* KINEO-PRIMEIRA-COMPRA-POR-REGIAO-2026-09-07 — UMA linha de montagem;
+            toda a decisão (país, evento, copy) mora no componente. Ele devolve
+            null para todo mundo fora de IN/NG/PK/BD/KE, então esta página não
+            muda para 100% dos visitantes que hoje pagam. Fica ACIMA de #plans
+            de propósito: a ordem do fundador é "avulso primeiro, assinatura
+            logo abaixo". Ver o cabeçalho de components/RegionalFirstPack.tsx
+            para os 40 checkouts sem um pagamento que mandaram fazer isto. */}
+        <RegionalFirstPack />
         <div id="plans" className="scroll-mt-24 grid grid-cols-1 gap-7 md:grid-cols-3 max-w-5xl mx-auto pt-5 items-stretch">
           {buildPricing(resolvedCurrency, resolvedRegion).map((p) => {
             const isPaid = p.tier === 'starter' || p.tier === 'basic' || p.tier === 'pro'
