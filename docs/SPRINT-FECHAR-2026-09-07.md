@@ -906,3 +906,117 @@ já existe e chama-se `checkout_cancelled_downshift` — reaproveitar, não recr
 (b) não gastar tempo com recuperação de recusa (coorte 4/30d); (c) ao medir,
 filtrar a conta do fundador, senão o checkout do dia aparece inflado em 3.
 
+
+---
+
+### #6 — 18:38–19:38 BRT — a caixa que pede dinheiro não tinha um clique desde 22/08, e a porta de $1 entra na frente dela
+
+**ERRADO (medido, eventos, contas externas, contando PESSOAS).** A rotação #5
+ganhou o slot único da tela de filme pronto para a pergunta comercial. Fui ver
+o que essa pergunta oferece quando ganha, e o número é pior do que o da
+disputa pelo slot:
+
+| o que | número |
+|---|---|
+| `trial_post_video_offer_viewed` (60d) | **241 pessoas**, 366 impressões |
+| último clique no botão dela | **2026-08-22 17:16 UTC** |
+| desde esse clique | **35 pessoas · 37 impressões · 0 cliques** |
+| dessas 35, com `has_paid = false` | **34** |
+| `pricing_trial_1usd_clicked` (toda a história) | **0** |
+
+Duas leituras que se encaixam. A primeira: o botão pede **assinatura mensal
+cheia** ($7 Starter ou $15 Creator) a quem acabou de receber um filme **com
+marca d'água** e quer uma coisa só — **este arquivo, limpo**. A segunda: a
+oferta certa para essa pessoa **já existe e foi ligada hoje** (`c902516f`,
+15:43 — trial pago de 7 dias no Creator por $1), mas a porta dela só mora em
+`/pricing` e nos cards do app, superfícies que ninguém cruza depois de fazer um
+filme. **34 das 35 seriam aceitas pelo servidor no trial de $1**; nenhuma delas
+teve como pedi-lo.
+
+**MUDOU — SHA `c5dd3a04` · EM PRODUÇÃO.** `lib/growth/cleanFilmTrialDoor.ts`
+(novo, puro, sem imports) decide a porta; `components/CleanFilmTrialDoor.tsx`
+(novo) a pinta; **uma linha de montagem** dentro da caixa comercial. O botão
+leva ao **mesmo checkout que `/pricing` já usa** (`tier=basic&billing=monthly&trial=1`)
+mais o `&return=wm` que reconstrói **este filme limpo** depois do pagamento.
+
+**O QUE O CLIENTE VÊ.** Quem termina um filme em trial e recebe um arquivo com
+marca d'água agora lê, como primeira opção:
+
+> **Get this film clean — 7 days of Creator for $1 →**
+> $1.00 today · 80 credits now · then $15.00/month from day 8 · cancel anytime
+
+O **plano continua visível** logo abaixo, com o mesmo texto, o mesmo destino e
+no mesmo lugar (ordem do fundador: "nunca esconder o plano"). Ele só perde o
+preenchimento azul enquanto a porta está no ar — não é enfeite: dois botões
+azuis preenchidos e adjacentes com checkouts de **tier diferente** já custaram
+uma venda a esta casa, e o PEDIDOS registra isso.
+
+**AS TRÊS TRAVAS DE HONESTIDADE.** A porta replica o predicado do **cobrador**
+em vez de reescrevê-lo (memória `vitrine-oferece-o-que-o-cobrador-recusa`):
+1. `hasPaid` → o servidor zera `wantsTrial` (`card_trial_denied: 'has_paid'`) e
+   cobraria o Creator cheio. Quem já pagou **não vê** a porta.
+2. `TRIAL_TIER` é `basic`: a porta é **sempre Creator**, mesmo quando a escada
+   do pós-vídeo elege Starter. É por isso que ela **soma-se** ao botão de plano
+   em vez de substituí-lo.
+3. A taxa de entrada é **100 unidades menores da moeda resolvida** (`unit_amount`
+   + `currency` no `add_invoice_items`), **não** "um dólar convertido". O rótulo
+   sai de `formatCheckoutMoney` e a porta **some** sem moeda resolvida — 12% da
+   base não está em dólar, e a rotação `va-r3` acabou de tropeçar nisso hoje.
+
+**O RISCO QUE EU FUI CHECAR ANTES DE ESCREVER — e que não se confirmou.**
+`/api/compose/unlock` exige `session.payment_status === 'paid'`. Um trial pode
+devolver `no_payment_required`, e nesse caso a pessoa pagaria $1 e levaria **402
+no filme limpo** — pior do que não ter oferecido nada. A doc da Stripe fecha a
+questão: `paid` cobre "subscriptions with a free trial … the $0 trial invoice
+has been successfully processed", e `no_payment_required` é `setup` mode ou
+billing cycle anchor. Com o item avulso de $1 há fatura imediata. **Não afrouxei
+o gate do unlock** — seria alargar uma trava de dinheiro sem defeito medido.
+
+**NENHUM PREÇO, CUPOM OU CRÉDITO NOVO.** Os três números da promessa (taxa,
+dias, créditos) passam a viver em `lib/checkoutPricing.ts` ao lado do
+`CARD_TRIAL_GRANT_CREDITS` que já estava lá. **Não editei
+`app/api/stripe/checkout/route.ts`** — é da pista de pagamentos e está em edição;
+em vez disso o guardião **lê** a rota e falha se os literais que ela **cobra**
+divergirem dos que a tela **anuncia**.
+
+**TESTES.** `scripts/test-clean-film-trial-door.mjs` **83/83**: 3 mutantes com
+prova de que a mutação foi escrita, montagem amarrada às **variáveis** que
+decidem (não ao texto), caso em BRL, e o tripwire tela × cobrador. De quebra,
+`scripts/test-post-delivery-slot.mjs` voltou de **34/1 para 35/0** — o mutante
+de duas linhas dele nunca ancorava num checkout com **CRLF** e acusava um falso
+vermelho desde ontem (memória `guardiao-crlf-falso-vermelho`). Falso vermelho é
+perigoso: é o que treina alguém a ignorar o guardião. `npx tsc --noEmit` verde
+antes de enfileirar.
+
+**RISCO A DECLARAR.** A porta cobra **antes** do primeiro valor percebido, e a
+nota de 20/08 que desligou o trial dizia exatamente isso ("num universo de 65
+ferramentas do segmento apenas 5% pedem cartão"). A diferença é o **momento**:
+aqui a pessoa **já viu o filme** — o valor está entregue e na mão dela. Mas o
+número que decide não é meu: é `payment_success` de 100 centavos.
+
+**COMO MEDIR.** `post_video_trial_1usd_shown` (denominador) → `pricing_trial_1usd_clicked`
+com `surface='post_video_clean_film'` → `checkout_started` com `card_trial='1'`
+→ `payment_success` de 100 centavos. Filtrar `josephsskaf@gmail.com` sempre.
+
+**PLACAR DE FECHAMENTO — marco 2026-09-07 18:38 UTC (~3h30):** entrega real
+**1** · filme pronto na tela **1** · baixou **0** · caixa comercial vista **0**
+· checkout externo **0** · **pagou 0** · cliques no $1 **0** · impressões da
+porta nova **0** (ela subiu no fim da rotação) · **29 pessoas** com evento.
+
+**CHECAGEM ZERO (24h):** cadastros **31** · crédito zero **12**, todos com
+`trial_status` preenchido → **trial órfão 0** · render preso **0** · recusa sem
+dono **0** · `payment_success` **0** — **terceiro dia sem assinante novo**.
+
+**A FRASE DA ROTAÇÃO:** hoje um visitante novo que termina um filme em trial
+encontra **uma porta de $1 que lhe entrega ESTE filme limpo hoje** — ontem ele
+encontrava um pedido de assinatura mensal cheia que ninguém aperta desde 22/08.
+
+**PRÓXIMA JOGADA.** A porta agora existe onde o desejo existe, mas ela alcança
+**apenas quem volta à tela**. O checkpoint da #5c mediu que **7% das entregas
+chegam só por e-mail** — e há um segundo vazamento, maior, do mesmo tipo: a
+caixa comercial só aparece para quem está em **trial**. Quem já esgotou o trial
+e volta a fazer um filme cai noutra superfície. A rotação #7 deve medir, por
+pessoa-dia, **quantas entregas com marca d'água acontecem fora do estado de
+trial** — se o número for grande, a porta de $1 precisa de um segundo endereço,
+e o candidato natural é o e-mail de `video_ready` (que já sai, já tem link e
+hoje não vende nada).
