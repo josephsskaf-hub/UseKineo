@@ -213,3 +213,32 @@ A sessão de aquisição tocou nestes arquivos em **07/09 entre 02:00 e 02:45 UT
 - `app/video-sitemap.xml/route.ts` — só o padrão de `videoSitemapMax`.
 - `app/api/compose/status/[renderId]/route.ts` e `app/api/cron/send-video-ready/route.ts` — **uma frase de copy** no bloco do botão de partilha, nada mais.
 - `scripts/test-consentimento-superficie.mjs` (novo, 60 verificações), `scripts/test-erros-vercel-2026-09-03.mjs`.
+
+---
+
+## 🟡 PEDIDO 7 — AVISO DE ARQUIVO (não é pedido de trabalho)
+
+**Toquei `app/(dashboard)/studio/create/page.tsx`** em `c1b0c46d` (aquisição
+#16). **Não é tela:** o JSX está intocado, byte a byte. O que mudou são 2
+coisas no ramo de SERVIDOR que roda antes de qualquer render, para visitante
+DESLOGADO:
+
+1. a escolha entre `/signup` e `/login` passou a usar
+   `lib/lifecycle/emailReturnDoor.ts` (fonte única, nova);
+2. todo desvio de deslogado agora emite `studio_create_auth_door_v1`.
+
+**Por quê:** a página decidia "essa pessoa já tem conta?" só por cookie
+`sb-*auth-token` no aparelho — e o clique de caixa de entrada chega
+estruturalmente SEM cookie. Cliente cadastrado recebia formulário de **criar
+conta**. Provado em produção com controle 404; 9 remetentes de e-mail
+carregavam essa porta, sendo 188 cartas de boas-vindas por semana.
+
+**O que isso muda para você:** nada de layout, nada de CSS, nada de
+componente. Se você mexer nesse arquivo, só evite desfazer o bloco
+`escolherPortaDeAuth(...)` e o `writeServerEvent` logo acima do `redirect` —
+`scripts/test-porta-email-2026-09-06.mjs` (113 verificações) fica vermelho se
+sumirem, e o aviso é esse.
+
+Também toquei, e igualmente não é tela: `send-blackout-winback`,
+`finish-stranded-renders`, `send-avatar-launch` (só URLs de e-mail) e
+`scripts/test-clique-perdido.mjs` (uma asserção, acompanhando a fonte nova).
