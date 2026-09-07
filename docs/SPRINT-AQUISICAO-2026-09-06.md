@@ -1126,3 +1126,189 @@ página, ele não tinha como nos citar por isso. A página é feita só de fatos
 lidos do código (nenhum número digitado), diz na cara o que a temporada **não**
 é, e está no ar com prova. **O que ela não faz é prometer resultado:** página
 nova nasce sem alcance, e isso só se mede em dias.
+
+---
+
+## ### #13 — 23:00 — O MAPA QUE ENTREGAMOS AO MOTOR OMITIA AS PÁGINAS QUE ELE JÁ ACHOU SOZINHO
+
+**Press release.** Um motor de resposta que lê o nosso `/llms.txt` passa a
+encontrar lá as dez páginas que ele mais usa para nos citar — cada uma com uma
+linha dizendo **qual pergunta ela responde**. Antes, o arquivo listava 27 rotas e
+quase nenhuma delas era uma das que o motor de fato cita.
+
+### A honestidade primeiro, porque ela limita o tamanho desta rotação
+
+**O ChatGPT cita essas páginas SEM que elas estivessem no `/llms.txt`.** Logo o
+arquivo **não é** o que causa a citação, e esta mudança **não é** uma alavanca
+com número prometido. Não vou vendê-la como uma. O que ela conserta é real e
+menor: o mapa que entregamos estava errado, e agora cada linha diz para que
+serve a página — o que ajuda o motor a escolher a **página certa para a pergunta
+certa**. A leitura #3 do mapa de hoje é exatamente esse defeito: *"estamos sendo
+citados com sucesso pela peça errada"*.
+
+### O errado, medido
+
+| o que o motor mais cita | sessões/14d | estava no llms.txt? |
+|---|---:|---|
+| `/free-ai-shorts-generator` | 27 | não |
+| `/state-of-ai-shorts-2026` | 25 | **não** |
+| `/ai-video-generator/kineo-1` | 24 | só como fato de motor, sem a pergunta |
+| `/text-to-video-shorts` | 23 | só com fragmento, sem a pergunta |
+| `/how-much-do-youtube-shorts-pay` (busca) | 8 | não |
+| `/can-you-monetize-ai-videos` (busca) | 7 | não |
+| `/tiktok-vs-youtube-shorts-monetization` (busca) | 6 | não |
+
+### O que mudou — `5c3e9695` · **EM PRODUÇÃO**
+
+**10 rotas** acrescentadas em `## Key pages`, cada uma com `Cite this page
+for "…"`. Os caminhos dos motores vêm de `engineLandingPublicPath()` — a mesma
+derivação que `ENGINE_FACTS` usa —, não digitados.
+
+**Antes de listar, cada rota teve de provar que existe** (arquivo em `app/` +
+entrada no `app/sitemap.ts`). **Uma foi recusada: `/scripts`.** Ela está atrás de
+`CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED = false` e hoje devolve **404**
+(`app/scripts/page.tsx:101` → `notFound`). Uma rota morta no arquivo que o motor
+lê é pior que a omissão: ele cita, a pessoa clica e cai em nada. Ficou de fora,
+com checagem negativa no guardião para que ninguém a acrescente sem virar a flag.
+
+**Guardião novo** `scripts/test-llms-paginas-citadas.mjs` — 84 verificações, lendo
+os arquivos reais. **3 mutantes** aplicados com `node` e confirmados por
+`git diff` antes de contar: tirar uma rota do llms, tirar a mesma rota do
+sitemap, apontar o Kineo 1 para o motor errado. **Os três ficaram vermelhos.**
+
+Dos 22 guardiões que leem esse arquivo: **12 verdes continuam verdes**, e os
+**9 vermelhos já eram vermelhos** no commit base — o mesmo conjunto antes e
+depois. (Nota para quem for consertá-los: 6 dos 9 caem juntos, todos por causa do
+handoff dos geradores para o Studio.)
+
+**Aviso de arquivo** registrado no `docs/PEDIDOS-CODEX-2026-09-06.md`, para o
+Codex não duplicar a página nova da temporada.
+
+---
+
+## ### #14 — 23:20 — 🔴 O INTERRUPTOR QUE O CICLO MANDAVA DEIXAR PRONTO PERDE DINHEIRO A CADA VENDA
+
+**Press release.** Nada muda para quem chega. Muda para o caixa: a oferta de
+**$2,90** que estava pronta para ser ligada com uma palavra **dá prejuízo de
+$0,78 por venda**. Documento de decisão completo em
+`docs/SPEC-PRIMEIRA-COMPRA-PEQUENA-2026-09-07.md`. **Nada foi ligado.**
+
+### A conta que ninguém tinha feito
+
+| item | valor | onde |
+|---|---|---|
+| oferta $2,90 concede | **25 créditos** | `lib/checkoutPricing.ts:413-414` |
+| 25 créditos = | exatamente **1 Seedance de 60s** | `lib/credits/engineCost.ts` |
+| custo medido desse render | **$3,30** | `lib/credits/engineCost.ts:97` (fatura de agosto) |
+| líquido da Stripe em $2,90 | **$2,516** | taxa da Stripe |
+| **resultado** | **−$0,78 por venda** | ponto de equilíbrio: **$3,71** |
+
+**E o invariante do repositório aprova o SKU por engano:** ele contabiliza a
+sobra de crédito a $0,066/cr (`lib/checkoutPricing.ts:308-313`), preço que não
+vale para o único uso que a própria faixa da oferta anuncia. O guardião existia,
+rodava e dizia verde — porque estava medindo a coisa errada.
+
+### 🔴 E a premissa do próprio item do ciclo estava errada
+
+O cardápio dizia que o pack de **$4,90 está dormindo esperando decisão**.
+**Não está dormindo — está no ar, sem flag nenhuma, e ninguém compra:**
+
+- responde em `/api/stripe/checkout?pack=starter` **sem flag** (`route.ts:2289`);
+- mora dentro de um `<details>` **fechado por padrão**, dobrado dentro de
+  "Other options" (`GenerateClient.tsx:15695-15733`);
+- **231 pessoas** passaram pelo bloco onde ele vive em 30 dias;
+- **0 `checkout_attempted`** em **54 dias** de instrumentação;
+- `post_video_single_unlock_clicked`: **0 na história**.
+
+E as "3 vendas de $4,90" de agosto que apareciam no relatório **não eram packs**:
+eram assinaturas Starter no preço de entrada.
+
+> É a lição de sempre nesta casa, agora com um terceiro caso: **peça sem
+> superfície não existe.** A #6 mediu isso no pacote de publicação, a #9 no
+> e-mail, a #14 no pack. Não é falta de oferta — é falta de lugar onde a oferta
+> apareça.
+
+### A coorte, dimensionada ANTES de qualquer remédio
+
+**65 pessoas bateram na parede de saldo em 30 dias** (contas externas): 62 não
+pagantes · **44 já tinham filme entregue** · 22 chegaram ao checkout · 3 pagaram,
+todas **assinatura**. 41 das 65 estão com saldo **zero**. E **40 das 65 bateram
+na parede em menos de 24h depois do primeiro filme** — mediana de **0,2 hora**.
+
+**O que 30 créditos realmente compram:** 1 Seedance 60s + 1 Kineo 1, ou 2 Seedance
+de 35s, ou 6 Kineo 1 — e **zero** de Kling 2.5, MiniMax H3, Veo ou Kling 3 a 60s.
+Para **12 das 22** pessoas com déficit medido de 1 a 24 créditos, o pack fecha a
+conta. Para quem queria um motor caro, não fecha para ninguém com saldo zero.
+
+**Canibalização, medida:** dos 13 que assinaram em 90 dias, **2** tinham cruzado
+a parede de saldo antes, e só **1** comprou o plano que o pack substituiria. O
+que o dado **não** responde: o contrafactual dos 19 que bateram na parede,
+chegaram ao checkout e não pagaram.
+
+### Recomendação (a decisão continua sendo do fundador)
+
+1. **NÃO virar `OFFER_290_ENABLED`** (`lib/flags.ts:13`). Perde dinheiro.
+2. **Não construir superfície nova** para o pack antes de testar a que existe.
+3. Se for fazer algo: **expor o pack de $4,90 que já existe** dentro do modal do
+   "não" (`upgrade_modal_opened`), só para não-assinante com déficit ≤ 30cr.
+   Isso é **tela — pista do Codex**, não flag. A medição já existe no servidor
+   (`checkout_attempted sku=starter10`), então não precisa de instrumentação nova.
+4. **A condição que derruba a ideia**, escrita antes de tentar: 30 exposições
+   nesse recorte com **0** tentativas de checkout = a parede não é de $4,90, e o
+   assunto morre.
+
+### Dois achados colaterais, anotados sem consertar
+
+- **`send-video-rescue` promete o pack e manda a pessoa para `/pricing`** — que
+  não vende o pack. Quem clica não acha o que a carta ofereceu.
+- **O 402 do compose ("available on paid plans") não emite evento nenhum.** É uma
+  parede que a casa não consegue contar.
+
+### O que não foi medido (dito, não escondido)
+
+Custo real de Seedance/Kling 2.5 a **35s** não existe no repositório — "60% de
+$3,30" seria chute, e não entrou na conta. Também não dá para saber se alguma
+das 231 pessoas chegou a **abrir** o `<details>`: o evento observa o bloco
+inteiro, não o clique.
+
+---
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+1. **NÃO ligue a oferta de $2,90.** Se você já ia virar `OFFER_290_ENABLED`
+   amanhã, este é o motivo para não virar: **−$0,78 por venda**, ponto de
+   equilíbrio em $3,71. Se quiser essa oferta, ela precisa de outro preço ou de
+   outro pacote de créditos — e isso é decisão sua, de preço público.
+2. **Ler `docs/SPEC-PRIMEIRA-COMPRA-PEQUENA-2026-09-07.md`** e dizer se topa a
+   única ação recomendada: mostrar o pack de $4,90 (que já está no ar) dentro do
+   modal do "não", para quem falta ≤ 30 créditos. Se topar, vira pedido ao Codex.
+3. **Stripe → Payments → filtro "Incomplete"** (19/08 até hoje): ver se alguma
+   sessão com `metadata.ip_country` = `IN` ou `NG` chegou a gerar PaymentIntent.
+4. **Stripe → Settings → Payment methods:** conferir o que está ativo para Índia
+   e Nigéria — metade dos checkouts do TAAFT vem de lá e a nossa rota não envia
+   `payment_method_types`, então quem decide é o painel.
+5. **Abrir `https://www.usekineo.com/ai-shorts-series`** e dizer se o texto da
+   primeira página pública da temporada está do jeito que você quer.
+
+## 📋 O QUE ACONTECEU
+
+Duas entregas e um susto bom.
+
+Arrumei o **mapa que entregamos aos motores de resposta**: o `/llms.txt` listava
+27 páginas e quase nenhuma era das que o ChatGPT de fato cita. Agora as dez mais
+citadas estão lá, cada uma dizendo qual pergunta responde. Sem promessa: o motor
+já citava essas páginas sem o arquivo, então isso não é uma alavanca — é um mapa
+que estava errado e agora está certo. De quebra, tirei `/scripts` da lista porque
+ela está atrás de uma flag desligada e hoje dá **404**: melhor omitir do que
+mandar gente para o vazio.
+
+O susto: fui preparar a **spec da primeira compra pequena** para você poder ligar
+com uma palavra, e a conta não fecha. A oferta de **$2,90 dá 25 créditos, que
+compram exatamente um Seedance de 60s — e esse render custou $3,30**. Cada venda
+perderia $0,78. O invariante que deveria pegar isso aprovava, porque calculava a
+sobra de crédito a um preço que não vale para o uso anunciado. E o pack de
+**$4,90 não estava dormindo esperando você**: está no ar há meses, escondido
+dentro de um menu fechado — **231 pessoas passaram por perto e ninguém clicou uma
+vez em 54 dias**. O problema nunca foi falta de oferta barata; é que ela não tem
+onde aparecer. Sessenta e cinco pessoas bateram na parede de saldo em 30 dias, e
+quarenta delas bateram **menos de um dia depois do primeiro filme**.

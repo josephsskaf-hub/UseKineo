@@ -76,8 +76,12 @@ const ASPECT_DEFAULT = strFrom(aspectLib, 'DEFAULT_ASPECT')
 // ═══ (A) EXECUÇÃO DA LIB PURA ═══════════════════════════════════════════════
 console.log('\n(A) lib/gptHandoff.ts executada')
 {
+  // KINEO-ASSISTANT-LINK-2026-09-06: o hash de idempotência trouxe `node:crypto`
+  // (builtin — zero banco, zero rede). Continua puro; a lista de módulos do
+  // PROJETO que a lib pode importar segue sendo UMA: @/lib/aspect.
   const libImports = [...lib.matchAll(/^import [^\n]* from '([^']+)'/gm)].map((m) => m[1])
-  ok(libImports.length === 1 && libImports[0] === '@/lib/aspect', `(A0) a lib importa UM módulo, @/lib/aspect (achados: ${libImports.join(', ') || 'nenhum'}) — a fonte única do enquadramento; o resto continua puro`)
+  const projectImports = libImports.filter((s) => !s.startsWith('node:'))
+  ok(projectImports.length === 1 && projectImports[0] === '@/lib/aspect' && libImports.every((s) => s === '@/lib/aspect' || s === 'node:crypto'), `(A0) a lib importa UM módulo do projeto, @/lib/aspect, e no máximo o builtin node:crypto (achados: ${libImports.join(', ') || 'nenhum'}) — o resto continua puro`)
   ok(!/^\s*import\s/m.test(aspectLib), '(A0) lib/aspect.ts é pura: zero import (é o que permite executar as duas aqui)')
 }
 let L = null
@@ -210,7 +214,10 @@ ok(/new NextResponse\(null, \{ status: 204, headers: CORS_HEADERS \}\)/.test(pos
 ok(/NextResponse\.json\(body, \{ status, headers: \{ \.\.\.CORS_HEADERS/.test(postRoute), '(B1) toda resposta JSON (200 e 4xx) carrega CORS')
 ok(/import \{ randomBytes \} from 'crypto'/.test(postRoute) && /return randomBytes\(18\)\.toString\('base64url'\)/.test(postRoute), '(B2) token = randomBytes(18).base64url')
 ok(!/Math\.random/.test(postRoute) && !/Math\.random/.test(lib) && !/Math\.random/.test(store), '(B2) Math.random ausente na rota, na lib e no store')
-ok(/const token = newToken\(\)/.test(postRoute), '(B2) o token gravado vem de newToken()')
+// KINEO-ASSISTANT-LINK-2026-09-06: o token virou `let` (o POST reaproveita a
+// linha viva do mesmo payload_hash); o que importa é que o token NOVO vem de
+// newToken() e de nada mais.
+ok(/\btoken = newToken\(\)/.test(postRoute), '(B2) o token gravado vem de newToken()')
 ok(/new Date\(Date\.now\(\) \+ HANDOFF_TTL_MS\)\.toISOString\(\)/.test(postRoute) && /expires_at: expiresAt/.test(postRoute), '(B3) expires_at = agora + HANDOFF_TTL_MS')
 ok(/const validated = validateHandoffInput\(body\)\s*\n\s*if \(!validated\.ok\) return json\(\{ error: validated\.error \}, 400\)/.test(postRoute), '(B4) entrada inválida → 400 com {error} legível')
 ok(/catch \{\s*\n\s*return json\(\{ error: 'Send a JSON body/.test(postRoute), '(B4) JSON quebrado → 400, não 500')

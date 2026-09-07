@@ -11,12 +11,22 @@
 // clica UMA vez. O token é o portador durável do roteiro: sobrevive ao
 // cadastro, ao OAuth, ao e-mail e à troca de aparelho — a query de URL não.
 //
-// Este arquivo é PURO de propósito: zero banco, zero rede, e UM único import —
-// lib/aspect.ts, que também é puro. Todo o vocabulário (motores, réguas, tetos,
-// TTL) mora aqui, e scripts/test-gpt-handoff.mjs EXECUTA estas funções (Node 24
-// despe os tipos; o alias `@/` é resolvido por um hook do próprio guardião)
-// além de ler o texto das rotas. Nunca cria conta, nunca debita crédito, nunca
-// chama fornecedor — a rota que consome isto também não.
+// Este arquivo é PURO de propósito: zero banco, zero rede. Dois imports, e só:
+// lib/aspect.ts (puro) e `node:crypto` (builtin, para o hash determinístico do
+// payload — KINEO-ASSISTANT-LINK abaixo). Todo o vocabulário (motores, réguas,
+// tetos, TTL) mora aqui, e scripts/test-gpt-handoff.mjs EXECUTA estas funções
+// (Node 24 despe os tipos; o alias `@/` é resolvido por um hook do próprio
+// guardião) além de ler o texto das rotas. Nunca cria conta, nunca debita
+// crédito, nunca chama fornecedor — a rota que consome isto também não.
+//
+// ═══ KINEO-ASSISTANT-LINK-2026-09-06 — o mesmo caminho, por GET ═════════════
+// 209 dos 368 cadastros de 14 dias vêm do chatgpt.com, e o POST acima só
+// existe para quem publicou um GPT com Action. Um assistente QUALQUER (ChatGPT
+// sem action, Claude, Perplexity, Gemini) não sabe fazer POST — mas sabe
+// escrever um LINK. `GET /make?script=…` faz exatamente o que a Action faz:
+// mesma validação, mesma linha em `gpt_handoffs`, mesma página /go/<token>,
+// mesmos eventos. Muda só o verbo e o CANAL (`channel`), para o funil medir os
+// dois separados sem redigitar nada.
 //
 // POR QUE O ENQUADRAMENTO NÃO É DIGITADO AQUI (06/09): este arquivo nasceu com
 // a própria lista `['9:16','16:9','1:1']`, digitada à mão, e ela já nasceu
@@ -28,6 +38,7 @@
 // outro é meia-verdade. Daqui em diante a lista vem de lib/aspect.ts e o
 // guardião reprova qualquer cópia local.
 import { ASPECTS, DEFAULT_ASPECT, aspectSpec, normalizeAspect, type Aspect } from '@/lib/aspect'
+import { createHash } from 'node:crypto'
 
 /** Reexportados para quem já importava daqui (página /go, rotas): os nomes
  *  continuam, a fonte mudou. */
@@ -318,6 +329,29 @@ export function isHandoffToken(value: unknown): value is string {
   return typeof value === 'string' && TOKEN_PATTERN.test(value)
 }
 
+// ─── Canal (KINEO-ASSISTANT-LINK-2026-09-06) ────────────────────────────────
+// Por onde a linha nasceu. `gpt_store` = a Action do GPT publicado (POST);
+// `assistant_link` = qualquer assistente escrevendo o link GET /make. As
+// etiquetas de medição (utm_source / intent_campaign) são por canal, e as do
+// `gpt_store` são EXATAMENTE as constantes de sempre — mudar o valor delas
+// quebraria a medição do que já está no ar.
+export const HANDOFF_CHANNELS = ['gpt_store', 'assistant_link'] as const
+export type HandoffChannel = (typeof HANDOFF_CHANNELS)[number]
+/** Linha sem `channel` (as que já existem no banco) é da loja. */
+export const DEFAULT_CHANNEL: HandoffChannel = 'gpt_store'
+
+export function isHandoffChannel(value: unknown): value is HandoffChannel {
+  return typeof value === 'string' && (HANDOFF_CHANNELS as readonly string[]).includes(value)
+}
+
+export const CHANNEL_TAGS: Readonly<Record<HandoffChannel, { utmSource: string; intentCampaign: string }>> = {
+  gpt_store: { utmSource: HANDOFF_UTM_SOURCE, intentCampaign: HANDOFF_INTENT_CAMPAIGN },
+  assistant_link: { utmSource: 'assistant_link', intentCampaign: 'kineo_assistant_link' },
+}
+
+/** O GET que qualquer assistente sabe escrever: `/make?script=…&duration=60`. */
+export const ASSISTANT_LINK_PATH = '/make'
+
 /** A URL do Studio já preenchido. Lista FECHADA de parâmetros — o valor vem de
  *  uma linha do banco escrita por terceiro; chave arbitrária é como se abre
  *  redirecionamento aberto.
@@ -330,11 +364,16 @@ export function isHandoffToken(value: unknown): value is string {
  *  a regra de segurança de lib/aspect.ts (9:16 é o default, nada muda para
  *  quem não pediu outro formato). Assim o link de quem pede Shorts continua
  *  byte a byte igual ao de antes. Valor inválido na linha normaliza para o
- *  padrão e some da URL — nunca passa cru. */
+ *  padrão e some da URL — nunca passa cru.
+ *
+ *  `channel` (06/09, KINEO-ASSISTANT-LINK): decide SÓ as duas etiquetas de
+ *  medição, via CHANNEL_TAGS. Linha sem canal (ou com canal desconhecido) cai
+ *  em DEFAULT_CHANNEL = 'gpt_store' — byte a byte o destino de antes. */
 export function buildStudioDestination(row: {
   script: string
   duration_sec: number
   engine_hint: string
+  channel?: string | null
   aspect: string
 }): string {
   const q = new URLSearchParams()
@@ -344,9 +383,54 @@ export function buildStudioDestination(row: {
   q.set('engine', isHandoffEngine(row.engine_hint) ? row.engine_hint : DEFAULT_ENGINE)
   const aspect = normalizeAspect(row.aspect)
   if (aspect !== DEFAULT_ASPECT) q.set('aspect', aspect)
-  q.set('utm_source', HANDOFF_UTM_SOURCE)
-  q.set('intent_campaign', HANDOFF_INTENT_CAMPAIGN)
+  const tags = CHANNEL_TAGS[isHandoffChannel(row.channel) ? row.channel : DEFAULT_CHANNEL]
+  q.set('utm_source', tags.utmSource)
+  q.set('intent_campaign', tags.intentCampaign)
   return `${STUDIO_CREATE_PATH}?${q.toString()}`
+}
+
+// ─── O link GET → a MESMA validação da Action ───────────────────────────────
+/** Traduz a querystring de `/make` para o objeto que `validateHandoffInput`
+ *  já valida, e então CHAMA `validateHandoffInput` — nenhuma regra é
+ *  duplicada aqui. Sinônimos aceitos: `prompt` = `script`, `durationSec` =
+ *  `duration`, `engineHint` = `engine`. Chave desconhecida é ignorada — e é
+ *  por isso que `create_intent`/`autoanalyze`/`studio` NUNCA entram: o único
+ *  destino é o de `buildStudioDestination`, com a lista fechada dele. */
+export function parseAssistantLinkQuery(sp: URLSearchParams): HandoffValidation {
+  const pick = (...names: string[]): string | undefined => {
+    for (const n of names) {
+      const v = sp.get(n)
+      if (v !== null && v !== '') return v
+    }
+    return undefined
+  }
+  const body: Record<string, unknown> = {
+    script: pick('script', 'prompt'),
+    durationSec: pick('duration', 'durationSec'),
+    aspect: pick('aspect'),
+    engineHint: pick('engine', 'engineHint'),
+    language: pick('language'),
+    topic: pick('topic'),
+  }
+  return validateHandoffInput(body)
+}
+
+/** sha256 de um JSON com as chaves em ORDEM FIXA — mesma entrada, mesmo hash.
+ *  É a chave de idempotência da linha: o mesmo link clicado 3× (ou o mesmo
+ *  roteiro reenviado pela Action) é UMA linha, senão o funil
+ *  created→viewed→clicked mente. O canal entra no hash: a mesma entrada por
+ *  dois canais são duas linhas, porque são duas medições. */
+export function handoffPayloadHash(input: HandoffInput, channel: HandoffChannel): string {
+  const canonical = JSON.stringify([
+    ['channel', channel],
+    ['script', input.script],
+    ['durationSec', input.durationSec],
+    ['aspect', input.aspect],
+    ['engineHint', input.engineHint],
+    ['language', input.language],
+    ['topic', input.topic],
+  ])
+  return createHash('sha256').update(canonical).digest('hex')
 }
 
 /** Primeiras palavras do roteiro quando o GPT não mandou tópico. */

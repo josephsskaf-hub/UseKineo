@@ -104,3 +104,19 @@ Pedido: um `season_unavailable` com a razão, e um `season_mounted` na montagem
 (par de `next_shorts_shown`). É a **mesma classe de defeito** que o Pedido 1
 resolve para o pacote, e a mesma lição do dia: *peça sem evento de exibição é
 peça que ninguém sabe se existe.*
+
+---
+
+## 🟡 PEDIDO 4 — AVISO DE ARQUIVO (não é pedido de trabalho)
+
+A sessão de aquisição tocou nestes arquivos em **07/09 entre 01:00 e 02:00 UTC**.
+**`/ai-shorts-series` é a primeira página pública da temporada e está em
+produção** — não duplicar. Registro para não haver colisão:
+
+- `app/ai-shorts-series/page.tsx` (novo) — a página pública da temporada.
+- `app/sitemap.ts` — entrada de `/ai-shorts-series`.
+- `app/llms.txt/route.ts` — link da temporada e, em `## Key pages`, as páginas
+  que o motor de resposta já cita (cada linha diz qual pergunta responde).
+- `app/facts/page.tsx` — **apenas +1 item de dados em `SOURCE_LINKS`, nenhum
+  layout**.
+- `scripts/test-ai-shorts-series.mjs` (novo), `scripts/test-llms-paginas-citadas.mjs` (novo).
