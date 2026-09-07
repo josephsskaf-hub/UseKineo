@@ -96,17 +96,29 @@ export async function garantirPacote(
   admin: Admin,
   userId: string,
   filme: FilmeDoPacote,
-  opts?: { escrever?: boolean; isFreePlan?: boolean },
+  // KINEO-PACOTE-OBSERVAVEL-2026-09-06 — `onFalha` e OPCIONAL de proposito:
+  // o outro chamador (app/api/publish-pack/route.ts) nao muda uma linha. Sem
+  // ele, o comportamento e byte a byte o de antes.
+  opts?: { escrever?: boolean; isFreePlan?: boolean; onFalha?: (motivo: string) => void },
 ): Promise<PacoteDePublicacao | null> {
+  // ⚠️ ESTA FUNCAO TINHA SETE `return null` MUDOS, e em 06/09 isso custou caro:
+  // `publish_pack_written` estava em ZERO com 42 e-mails de "filme pronto"
+  // enviados em 24h, e NAO HAVIA COMO SABER EM QUAL DOS SETE ele parava. Cada
+  // saida passa a dizer o proprio nome. O valor de retorno nao muda.
+  const falhou = (motivo: string): null => {
+    try { opts?.onFalha?.(motivo) } catch { /* observar nunca quebra o e-mail */ }
+    return null
+  }
+
   const videoId = typeof filme.id === 'string' ? filme.id : null
-  if (!videoId) return null
+  if (!videoId) return falhou('sem_video_id')
 
   const jaTem = await pacoteGravado(admin, userId, videoId)
   if (jaTem) return jaTem
-  if (opts?.escrever === false) return null
+  if (opts?.escrever === false) return falhou('so_leitura')
 
   const apiKey = process.env.OPENAI_API_KEY
-  if (!apiKey) return null
+  if (!apiKey) return falhou('sem_openai_key')
 
   // `videos.script` esta vazio em 774 de 774 filmes de 30 dias (achado do #14):
   // o conteudo real mora em `topic`.
@@ -117,7 +129,7 @@ export async function garantirPacote(
     .filter(Boolean)
     .join('\n')
     .slice(0, 1500)
-  if (!tema) return null
+  if (!tema) return falhou('sem_tema')
 
   let bruto = ''
   try {
@@ -139,19 +151,19 @@ export async function garantirPacote(
     })
     if (!res.ok) {
       console.error('[publish-pack] openai', res.status)
-      return null
+      return falhou(`openai_http_${res.status}`)
     }
     const json = (await res.json()) as { choices?: { message?: { content?: string } }[] }
     bruto = (json.choices?.[0]?.message?.content ?? '').trim()
-  } catch {
-    return null
+  } catch (e) {
+    return falhou(e instanceof Error && e.name === 'TimeoutError' ? 'openai_timeout' : 'openai_excecao')
   }
 
   let parsed: unknown = null
   try {
     parsed = JSON.parse(bruto)
   } catch {
-    return null
+    return falhou('json_invalido')
   }
 
   // A LINHA DE CREDITO SO VIAJA NO PLANO GRATUITO, e a regra e a MESMA de
@@ -161,7 +173,7 @@ export async function garantirPacote(
   const p = prepararPacote(parsed, {
     creditLine: opts?.isFreePlan === true ? KINEO_CREDIT_LINE : null,
   })
-  if (!p) return null
+  if (!p) return falhou('pacote_invalido')
 
   await guardar(admin, userId, videoId, p)
   return p

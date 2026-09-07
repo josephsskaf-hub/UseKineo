@@ -455,6 +455,10 @@ export async function GET(req: NextRequest) {
     // Custo: uma chamada de gpt-4o-mini por filme NOVO (~US$ 0,0003), gravada
     // e reusada — o segundo e-mail do mesmo filme nao paga de novo.
     let pack = null
+    // KINEO-PACOTE-OBSERVAVEL-2026-09-06 — em 06/09, `publish_pack_written`
+    // estava em ZERO com 42 e-mails de "filme pronto" enviados em 24h, e nao
+    // havia UMA linha no banco dizendo por que. O motivo agora sobe junto.
+    let motivoPack: string | null = null
     try {
       pack = await garantirPacote(
         admin,
@@ -463,10 +467,31 @@ export async function GET(req: NextRequest) {
         // O credito da casa so entra no pacote de quem NAO assina — mesma regra
         // de `buildBrandedYouTubeDescription`. `isSubscriberProfile` e o mesmo
         // predicado que o rodape deste e-mail ja usa; nao redigitei nenhum.
-        { isFreePlan: !isSubscriberProfile(prof) },
+        {
+          isFreePlan: !isSubscriberProfile(prof),
+          onFalha: (motivo) => { motivoPack = motivo },
+        },
       )
     } catch (e) {
+      motivoPack = 'excecao_no_cron'
       console.warn('[send-video-ready] publish pack failed:', e instanceof Error ? e.message : String(e))
+    }
+    // Uma linha por e-mail SEM pacote, com o nome da porta que fechou. Nao
+    // bloqueia nada: `await` num insert que ja engole o proprio erro.
+    if (!pack) {
+      try {
+        await admin.from('events').insert({
+          user_id: u.id as string,
+          name: 'publish_pack_unavailable',
+          session_id: typeof video.id === 'string' ? video.id.slice(0, 64) : null,
+          path: '/api/cron/send-video-ready',
+          metadata: {
+            reason: motivoPack ?? 'desconhecido',
+            has_topic: Boolean(typeof video.topic === 'string' && video.topic.trim()),
+            has_title: Boolean(typeof video.title === 'string' && video.title.trim()),
+          },
+        })
+      } catch { /* observar nunca pode impedir o e-mail */ }
     }
     const ctx: EmailContext = { sawIt: sawIt.has(u.id as string), footer, pack }
     const { subject, text, html } = buildEmail(u.id, video, ctx)

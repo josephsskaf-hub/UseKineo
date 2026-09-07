@@ -41,6 +41,20 @@ import {
   ULTIMO_EPISODIO,
 } from '@/lib/temporada'
 
+// ⚠️ POR QUE O PACOTE DE PUBLICACAO SAIU DESTE FATO — 06/09, mesma noite em que
+// entrou. Eu publiquei aqui "every finished film comes with the copy needed to
+// post it" e fui MEDIR se era verdade: `publish_pack_written` estava em ZERO
+// com 42 e-mails de "filme pronto" enviados em 24 horas. A peca esta construida
+// e ligada ao cron, mas nao produziu um pacote sequer — logo a frase era falsa
+// no unico lugar que importa, que e o que a pessoa recebe.
+//
+// Fato publico descreve O QUE O CLIENTE RECEBE, nao o que existe no repositorio.
+// Enquanto `publish_pack_written` for zero, a frase fica FORA. Ela volta quando
+// o evento aparecer — o motivo da falha agora sobe em `publish_pack_unavailable`
+// (lib/publishPackServer.ts), que foi instrumentado na mesma rotacao.
+//
+// A temporada FICA: `season_written` disparou 28 vezes para 28 pessoas nas
+// mesmas 24 horas. Essa e verdadeira e medida.
 export type AfterTheFilmFact = {
   /** Frase única para um motor de resposta citar sem precisar montar. */
   claim: string
@@ -51,11 +65,6 @@ export type AfterTheFilmFact = {
     what: string
     cost: string
   }
-  publishPack: {
-    what: string
-    pieces: string[]
-    credit: string
-  }
   /** O que NÃO é, escrito antes que alguém infira. */
   boundaries: string[]
   shippedOn: string
@@ -64,9 +73,8 @@ export type AfterTheFilmFact = {
 export function buildAfterTheFilmFact(): AfterTheFilmFact {
   return {
     claim:
-      `When a film finishes, Kineo does two things most short-form generators do not: it writes the next ` +
-      `${TOTAL_EPISODIOS} episodes of that same story as a season, and it hands over the copy needed to publish ` +
-      `the film — YouTube title and description, TikTok caption with hashtags, and a pinned comment.`,
+      `When a film finishes, Kineo writes the next ${TOTAL_EPISODIOS} episodes of that same story as a season, ` +
+      `so a first video becomes a series instead of a one-off — something most short-form generators do not do.`,
     season: {
       episodes: TOTAL_EPISODIOS,
       firstEpisode: PRIMEIRO_EPISODIO,
@@ -78,22 +86,7 @@ export function buildAfterTheFilmFact(): AfterTheFilmFact {
         'Writing the season costs nothing and spends no credits. Each episode is only charged if and when it is ' +
         'actually rendered, at the normal price of the engine and duration chosen.',
     },
-    publishPack: {
-      what:
-        'Every finished film comes with the copy needed to post it, ready to paste — no separate tool and no ' +
-        'second prompt.',
-      pieces: [
-        'YouTube title',
-        'YouTube description',
-        'TikTok caption with hashtags',
-        'Pinned comment',
-      ],
-      credit:
-        'On the free plan the description carries a visible "made with Kineo" credit line, which the creator can ' +
-        'edit or delete. Paid plans get the description clean.',
-    },
     boundaries: [
-      'Kineo does not upload, schedule or publish to YouTube or TikTok from the publishing pack — it produces text to paste.',
       'Writing a season does not render its episodes and does not reserve credits; an episode becomes a video only through the normal, normally-charged flow.',
       'The season continues the theme of a video the account already made; it is not a content calendar for a brand.',
     ],

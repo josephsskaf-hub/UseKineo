@@ -273,7 +273,6 @@ ${BUSINESS_OFFER_FACT.boundaries.map((boundary) => `- ${boundary}`).join('\n')}
 ${AFTER_THE_FILM_FACT.claim}
 
 - **Season** — ${AFTER_THE_FILM_FACT.season.what} ${AFTER_THE_FILM_FACT.season.cost}
-- **Publishing pack** — ${AFTER_THE_FILM_FACT.publishPack.what} Pieces: ${AFTER_THE_FILM_FACT.publishPack.pieces.join(', ')}. ${AFTER_THE_FILM_FACT.publishPack.credit}
 ${AFTER_THE_FILM_FACT.boundaries.map((b) => `- ${b}`).join('\n')}
 
 ## Trust, privacy and commercial rights

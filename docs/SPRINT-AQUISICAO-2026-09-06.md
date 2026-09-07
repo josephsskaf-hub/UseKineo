@@ -375,3 +375,83 @@ produzir checkout". Item de **volume**, não de receita, e por isso **abaixo** d
 ChatGPT na fila.
 
 **RISCO.** Zero: dois documentos, nenhum código de produto.
+
+---
+
+## ### #5 — 21:35 — EU PUBLIQUEI UMA FRASE FALSA HÁ 40 MINUTOS. FUI MEDIR, E TIREI.
+
+**PRESS RELEASE.** A página de fatos da Kineo voltou a dizer só o que o cliente
+realmente recebe. Uma frase que eu mesmo publiquei nesta madrugada — "todo filme
+pronto vem com o texto para publicar" — foi **medida contra a produção e não se
+sustentou**: a peça existe no código, está ligada ao e-mail, e **não produziu um
+único pacote**. A frase saiu. Ela volta quando o produto provar que entrega.
+
+**O QUE ACHEI.** Rodei a checagem que a memória
+`contrato-de-servidor-sem-chamador` manda rodar — *a peça publicada tem
+chamador?*:
+
+| evento | 24h | pessoas |
+|---|---:|---:|
+| `video_generation_completed` | 29 | 25 |
+| `season_written` | **28** | **28** |
+| `video_ready_email_sent` | **42** | 32 |
+| **`publish_pack_written`** | **0** | **0** |
+
+O pacote de publicação subiu hoje às 11:56 UTC. Entre então e agora saíram
+**42 e-mails de "filme pronto"** — e **zero pacotes**. A temporada, subida na
+mesma manhã, disparou 28 vezes para 28 pessoas. **Uma das duas peças funciona; a
+outra não, e ninguém sabia.**
+
+**E ISSO ME PEGOU NO CONTRAPÉ, com razão.** Quarenta minutos antes eu tinha
+publicado em `/llms.txt` e `/api/facts`: *"Every finished film comes with the
+copy needed to post it."* Em produção isso é **falso** — 0 de 42. Eu não
+inventei o recurso: ele existe, está importado pelo cron, tem tipo, teste e
+comentário. **Mas fato público não descreve o repositório; descreve o que a
+pessoa recebe.** Publicar a existência de um recurso que não produz é exatamente
+a "copy que mente" que o CLAUDE.md lista como dívida — e desta vez a dívida
+era minha, com 40 minutos de idade.
+
+**POR QUE NINGUÉM SABIA: sete `return null` mudos.** `garantirPacote()`
+(`lib/publishPackServer.ts`) falha **aberto** de propósito — qualquer problema
+devolve `null` e o e-mail sai como sempre saiu. A decisão é certa: um pacote
+nunca pode impedir alguém de saber que o filme ficou pronto. **O erro não é
+falhar aberto; é falhar aberto e mudo.** Havia sete portas de saída e nenhuma
+dizia o próprio nome. Descartei as duas hipóteses fáceis medindo:
+`has_topic=true` em **144 de 174** e-mails de 7 dias, então não é tema vazio; e
+a chave da OpenAI é a mesma que o resto da casa usa.
+
+**O QUE MUDOU.**
+- `lib/publishPackServer.ts` — `garantirPacote` ganha `onFalha?` **opcional**
+  (o outro chamador, `app/api/publish-pack/route.ts`, não muda uma linha) e cada
+  saída passa a nomear-se: `sem_video_id`, `so_leitura`, `sem_openai_key`,
+  `sem_tema`, `openai_http_<status>`, `openai_timeout`, `openai_excecao`,
+  `json_invalido`, `pacote_invalido`. **O valor de retorno é idêntico.**
+- `app/api/cron/send-video-ready/route.ts` — todo e-mail **sem** pacote grava
+  `publish_pack_unavailable` com o motivo, `has_topic` e `has_title`. O insert
+  engole o próprio erro: observar nunca pode impedir o e-mail.
+- `lib/growth/afterTheFilmFacts.ts` + `app/llms.txt/route.ts` — **a frase do
+  pacote saiu**. A **temporada fica**, porque é medida: 28 escritas em 24h.
+
+**TESTES.** Guardião subiu de 27 para **34 verificações** e ganhou uma regra
+nova: **nenhuma afirmação pública sobre o pacote enquanto o evento for zero** —
+`publishPack`, `publishing pack`, `pinned comment` e `TikTok caption` são
+proibidos no fato e na seção do `/llms.txt`. E amarrou a instrumentação ao
+comportamento: **nenhum `return null` mudo pode sobrar** dentro de
+`garantirPacote` (recorte ancorado em `const videoId`, não por índice de
+ocorrência), pelo menos 6 motivos distintos, e o motivo gravado tem de ser a
+**variável**, não um literal. **6 mutantes reprovados**, cada mutação conferida
+como aplicada: frase do pacote de volta ao fato, frase de volta ao `/llms.txt`,
+um `return null` voltando a ser mudo, `reason` virando literal, o cron parando
+de gravar o evento, e o relator sumindo. `tsc --noEmit` verde.
+
+**COMO MEDIR, e é a próxima coisa a olhar neste ciclo.** Depois do próximo
+disparo do cron: `select metadata->>'reason', count(*) from events where
+name='publish_pack_unavailable' group by 1`. **O motivo campeão é o defeito.**
+Com ele na mão, o conserto é dirigido — e a frase pública volta no mesmo dia em
+que `publish_pack_written` deixar de ser zero.
+
+**A LIÇÃO, e ela vale além desta peça.** Eu publiquei a frase às 21:00 e a medi
+às 21:35 **só porque fui checar se a peça tinha chamador**. Se eu tivesse
+tratado "está no código, com teste e comentário" como prova de entrega, a Kineo
+estaria hoje anunciando para todo motor de resposta um recurso que **nenhum
+cliente recebeu**. **Fato público exige evento, não arquivo.**
