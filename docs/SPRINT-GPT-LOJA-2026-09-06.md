@@ -1509,3 +1509,158 @@ pessoas que a viam não tinham botão nenhum para apertar, porque os dois botõe
 só ligam depois que você cola um roteiro. Quem chegou do ChatGPT sem roteiro
 via um cartão morto. Agora essas pessoas têm uma saída — e só elas: quem cola
 texto continua vendo exatamente o que via antes.
+
+---
+
+### #11 — 07/09 01:22→02:0x — **EM PRODUÇÃO**: o produto lia a ordem do ChatGPT em voz alta, e cobrava por isso
+
+**Press release.** *Você cola no Kineo o pedido que mandou para o ChatGPT e
+aperta "Use my script as is". Até hoje o filme saía com um narrador lendo, em
+voz alta, o seu pedido — "Create a 30-second vertical YouTube Short in
+English…" — e o crédito ia embora junto. A partir de agora o Kineo te mostra,
+antes de gastar, a primeira frase que sairia da boca do narrador, e te dá um
+botão para a IA escrever o roteiro de verdade.*
+
+#### O DEFEITO, com vítima, relógio e recibo
+
+Não fui procurar isto: fui medir as portas da /chatgpt e o topo da tabela de
+eventos das últimas 30h estava com outra coisa. `pasted_directives_detected`:
+**41 eventos, 15 pessoas**. Cruzando com `script_mode`, o subconjunto que
+importa: **`looks_pasted=true` + `verbatim` = 6 pessoas em 30 horas**, 7 em 14
+dias.
+
+`verbatim` é "Use my script as is" — narração palavra por palavra. Puxei os
+filmes dessas pessoas. Todos `status=completed`, crédito debitado:
+
+| o que a pessoa colou (início do `topic`) | o que o narrador leu em voz alta |
+|---|---|
+| `Create a 30-second vertical YouTube Short in English. Topic: What would happen if Earth suddenly stopped spinning…` | isso, literalmente |
+| `IMPORTANT: This is a completely visual story. NO narration, NO voiceover, NO subtitles, NO captions, NO text, NO music.` | **a proibição de narrar, narrada** |
+| `USE THE UPLOADED STARTING FRAME AS THE EXACT REFERENCE FOR THE FIRST FRAME. Preserve the same rusty hydraulic press…` | isso |
+| `Create a 50 second viral unique Tiktok video with engaging visual. Have clear smooth flow narration. Subtitles should be below the screen…` | isso |
+
+É a família do **menino da bolha** de 27/08: o produto pegou uma INSTRUÇÃO e
+tratou como CONTEÚDO. Só que desta vez não foi o motor que se confundiu — foi
+a casa, que perguntou "quer que eu leia isto palavra por palavra?", ouviu
+"quero", e leu.
+
+#### A CAUSA: dois detectores, um aviso, e o aviso ligado no detector errado
+
+O aviso certo **já existia** (`lib/growth/instructionPasteNotice.ts`, ramo
+`command_to_chatbot`, escrito em 04/09) e a UI dele **já era renderizada**
+(`GenerateClient.tsx:12535`). O que faltava era o fio:
+
+- `GenerateClient.tsx:~3742` acende o aviso — mas só no caminho de
+  **auto-start**. É esse que alcança gente: **19 pessoas em 14 dias**.
+- `GenerateClient.tsx:~7141` é onde a pessoa que **cola no Studio** passa. Ele
+  lê as diretivas, corrige a duração, emite o evento… e **nunca acendia o
+  aviso**.
+
+O número que fecha o caso: das **7** que colaram ordem em verbatim, só **3**
+tinham visto o aviso — e **as 3 mandaram verbatim mesmo assim**. Ou seja, o
+aviso estava **mal entregue** (4 de 7 nunca o viram) **e** era **fraco onde
+chegava** (3 de 3 seguiram em frente). Memória
+`degrau-morto-dentro-da-superficie-viva`, terceira ocorrência.
+
+#### O QUE MUDOU — e o que de propósito NÃO mudou
+
+Quando `looksPasted && scriptMode === 'verbatim'`, na **análise** (Contrato C1,
+custo **zero crédito**, antes de qualquer débito):
+
+1. o aviso que já existia **acende**;
+2. entra o elemento decisivo — **a frase que vai ser falada**, entre aspas, a
+   primeira linha do texto da própria pessoa (≤120 chars, JSX puro, sem
+   `dangerouslySetInnerHTML`): *"Your video will open by saying out loud: …"*.
+   Escolhi a primeira linha e **não** o classificador `command_to_chatbot`
+   porque o classificador só pega `create|make|write|…` no começo — **4 dos 8
+   casos reais**. O `IMPORTANT: … NO narration` escapava dele. A frase falada
+   funciona para os 8;
+3. um botão de **um clique** troca para a IA escrever o roteiro — e
+   **reanalisa**, porque `/api/analyze-idea` recebe o `scriptMode`: trocar só o
+   botão mandaria ao render o mesmo brief montado com a ordem como narração.
+
+**Não** trocamos o modo sozinhos. A decisão de 04/09 ("trocar o modo por conta
+própria seria decidir no lugar de quem colou") fica **de pé** — o que mudou é
+que agora a pessoa decide **vendo a consequência**, não no escuro.
+
+#### O ACHADO QUE APARECEU NO MEIO DO CONSERTO (e que era o verdadeiro sangramento)
+
+Confirmando a causa, o caminho do **one-click do /studio** se abriu:
+`/studio/create?…&studio=1&autoanalyze=1` → análise → `phase='options'` → um
+efeito dispara **o Generate sozinho**, sob uma cortina que esconde o
+formulário. Quem cola no Studio **nunca vê o Step 1** — onde a UI do aviso
+morava. Acender o estado teria mostrado o aviso para **ninguém**: a pessoa paga
+segundos depois da análise, sem tela.
+
+Então o conserto tem uma segunda metade: com o predicado verdadeiro, o
+auto-disparo **não dispara** (`verbatim_order_autofire_held`), a cortina
+levanta, e a pessoa vê o aviso e o mesmo botão Generate. É a mesma regra que o
+auto-start já aplica desde 02/09. **Nada bloqueado, nada trocado sozinho** — só
+deixou de gastar dinheiro sem mostrar a tela.
+
+#### COMO PROVAR
+
+`node scripts/test-verbatim-order-warning.mjs` — **95 verificações**, estilo
+`readFileSync` do arquivo real, **sem alias `@/`** (memória
+`guardioes-com-alias-nao-rodam`). Ele **extrai a condição do `if` real e a
+executa numa tabela-verdade de 4 linhas**, em vez de contar texto (memória
+`guardiao-contar-texto-nao-prova-condicao`).
+
+Falsificado com **18 mutantes escritos no arquivo real** — condição virada
+`true` · só `looksPasted` · só verbatim · aviso removido · frase falada
+removida · botão removido · evento renomeado · aviso fora do ramo · hold
+removido · corte de 120 chars removido · Step 2 removido · reanálise removida ·
+frase virando HTML · detalhe vazando para o modo `ai` · e mais 4 — **todos
+vermelhos**, cada um com sha256 conferido antes e depois para provar que a
+escrita aconteceu (memória `mutacao-precisa-provar-que-aplicou`).
+
+**Refiz o mutante mais importante com a minha própria mão**, sem confiar no
+relatório: `if (true)` no lugar do predicado → sha mudou de `827e96bf…` para
+`5e66f980…` (escrita confirmada), guardião **vermelho**, restaurado ao sha
+original. `npx tsc --noEmit` **exit 0**.
+
+#### SONDAS — e o limite dito sem maquiagem
+
+`git ls-remote origin main` = **`46c53062`** (o `5eb5cf8e` da worktree foi
+rebasado pelo bat; o conteúdo confere: o predicado e o
+`verbatim_order_warned` estão em `origin/main`) · fila **0** ·
+`https://www.usekineo.com/` **200** · `/chatgpt` **200** com controle
+`/chatgpt-nao-existe-xyz` **404** na mesma medição.
+
+**Sonda de bundle não existe para esta peça, e não vou fingir que existe.** O
+`GenerateClient` vive no layout `(dashboard)`, **autenticado** — de fora não se
+baixa o chunk. É a memória `entrega-so-de-cliente-nao-tem-sonda`, e a resposta
+dela é a que apliquei: **instrumentar no mesmo commit**. A prova real são os
+três eventos novos — `verbatim_order_warned`, `verbatim_order_switched_to_ai`,
+`verbatim_order_autofire_held` — e ela vem no fechamento das 05:00.
+
+#### RISCO
+
+Falso positivo: `looksPasted` pode pegar um roteiro legítimo cheio de rótulos.
+O custo do erro é **um aviso a mais**, nunca um bloqueio — o Generate continua
+no mesmo lugar. O número que vigia isso é a razão
+`verbatim_order_switched_to_ai / verbatim_order_warned`: se ficar perto de
+**zero**, o aviso está aparecendo para quem não precisava e sai.
+
+#### PRÓXIMO PASSO
+
+Ler os três eventos novos com algumas horas de vida e dizer quantos débitos o
+`autofire_held` evitou; e levar ao fundador, no fechamento, a conta do ChatGPT
+Business ao lado dos **100 "um filme e parou"** da coorte ChatGPT.
+
+✅ **O QUE VOCÊ PRECISA FAZER**
+1. **Nada.** Subiu sozinho, sondado, sem tocar em preço, crédito, motor,
+   roteiro ou régua.
+
+📋 **O QUE ACONTECEU**
+Fui medir as portas da página nova e tropecei num defeito maior: 6 pessoas em
+30 horas colaram no Kineo o **pedido** que tinham mandado para o ChatGPT,
+marcaram "leia meu roteiro palavra por palavra", e receberam um filme com um
+narrador lendo o pedido em voz alta — uma delas ouviu o narrador dizer
+"**NO narration, NO voiceover**". Todos os filmes ficaram prontos e todos os
+créditos foram cobrados. O aviso que evitaria isso já estava escrito desde
+04/09, mas estava plugado no caminho errado e não alcançava essas pessoas.
+Agora ele acende no caminho certo, mostra a frase exata que o narrador diria,
+oferece um botão para a IA escrever o roteiro de verdade — e, quando a pessoa
+vem do atalho do Studio (que gerava sozinho sem mostrar tela nenhuma), o
+produto **para antes de gastar** e mostra o aviso.
