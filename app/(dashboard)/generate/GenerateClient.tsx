@@ -11679,6 +11679,87 @@ export default function GenerateClient({
     grantCredits: CARD_TRIAL_GRANT_CREDITS,
     trialDays: CARD_TRIAL_DAYS,
   })
+  // ═══ KINEO-1DOLAR-NA-CAIXA-DE-EXPORT-2026-09-07 ═════════════════════════
+  //
+  // A ORDEM DO FUNDADOR (07/09 16:40) NOMEIA ESTA CAIXA: "onde houver preço na
+  // tela ou no e-mail (CAIXA DE EXPORT LIMPO, NextAction, faixa da temporada,
+  // carta da parede, carta de sessão expirada), a primeira opção passa a ser o
+  // trial pago de 7 dias no Creator". A caixa "Want it clean?" era a única das
+  // nomeadas que ainda oferecia só assinatura mensal cheia (Starter) e o
+  // avulso. ⚠️ Nenhum número desta promessa é digitado aqui: taxa, mensalidade,
+  // créditos e dias saem todos das constantes partilhadas, e o guardião falha
+  // se um literal de preço reaparecer nesta tela.
+  //
+  // E ELA ACABOU DE FICAR MUITO MAIOR. A rotação #8 (`651f28f4`, hoje 19:48)
+  // pôs marca d'água no Seedance de conta grátis não-pagante — 236 pessoas em
+  // 30 dias, ~8 por dia. Essa gente NÃO está em trial (`trial_status` vazio ou
+  // `downgraded`), então ela nunca cruza a caixa comercial do slot: o
+  // `showPostVideoExportChoice` exige `trialPostVideoPhase === null`, que é o
+  // exato oposto. Sem esta porta, a coorte que a #8 acabou de criar encontra
+  // exclusivamente o compromisso mensal.
+  //
+  // A porta é a MESMA (mesmo módulo, mesmo componente, mesmas três travas de
+  // honestidade); só o hospedeiro muda. E ela usa o `wmCheckout` — o hook que
+  // já governa os dois botões desta caixa — para não haver dois `pending`
+  // independentes disputando o mesmo cartão.
+  const cleanExportTrialDoor = decideCleanFilmTrialDoor({
+    slotOwner: showPostVideoExportChoice ? 'clean_export' : null,
+    hasPaid,
+    entryFeeLabel: cardTrialEntryFeeLabel,
+    monthlyLabel: cardTrialMonthlyLabel,
+    // A promessa "ESTE filme limpo" só é honesta com o handoff na mão. Sem os
+    // inputs do render, o `?return=wm` ativa a assinatura mas não reconstrói o
+    // arquivo — e a porta cai para o rótulo neutro do trial em vez de prometer
+    // um arquivo que este navegador não sabe reconstruir. (O botão de Starter
+    // ao lado tem a mesma exposição e não a declara; não apertei a regra dele,
+    // que é de outra pista, mas não vou repetir o buraco na peça nova.)
+    unlocksCurrentFilm: Boolean(lastFastRenderRef.current),
+    grantCredits: CARD_TRIAL_GRANT_CREDITS,
+    trialDays: CARD_TRIAL_DAYS,
+  })
+  const cleanExportTrialDoorTelemetry: Record<string, unknown> = {
+    source: 'result_export_choice',
+    unlocks_current_film: Boolean(lastFastRenderRef.current),
+    last_video_quality: quality,
+    watermarked_downloaded: watermarkedDownloadConfirmed,
+    price_region: postVideoRegion,
+    ...(postVideoCurrency ? { display_currency: postVideoCurrency } : {}),
+    ...(intentCampaign ? { intent_campaign: intentCampaign } : {}),
+  }
+  // `host` separa os DOIS caminhos da mesma caixa — o direto (depois do
+  // download grátis) e o modal (antes dele, aberto por intenção). Sem ele as
+  // duas impressões caem no mesmo denominador e a taxa vira uma média de dois
+  // momentos que não se parecem: é a mesma separação que o `checkout_path`
+  // desta caixa já faz para o botão de plano.
+  const startCleanExportTrialCheckout = (host: 'direct_after_download' | 'modal_before_download') => {
+    // Mesmo handoff, mesma tolerância a falha do `handleRemoveWatermark` logo
+    // ao lado: storage bloqueado não pode impedir a assinatura de acontecer.
+    try {
+      if (lastFastRenderRef.current) {
+        localStorage.setItem('kineo_wm_unlock', JSON.stringify(lastFastRenderRef.current))
+      }
+    } catch {
+      // Modo privado / storage bloqueado — a assinatura ativa mesmo assim; o
+      // que se perde é a reconstrução deste arquivo neste navegador.
+    }
+    const started = wmCheckout.launch(
+      'basic',
+      withIntentCampaign('/api/stripe/checkout?tier=basic&billing=monthly&trial=1&return=wm'),
+      { tier: 'basic', card_trial: true, return_to: 'watermark_unlock' },
+    )
+    if (!started) return
+    void trackEvent('post_video_trial_1usd_clicked', { ...cleanExportTrialDoorTelemetry, host })
+    // O MESMO nome que /pricing, os cards do app e a caixa comercial já emitem
+    // — o número só fecha se todas as superfícies contarem no mesmo lugar.
+    // `surface` separa as quatro.
+    void trackEvent('pricing_trial_1usd_clicked', {
+      tier: 'basic',
+      billing: 'monthly',
+      surface: 'post_video_clean_export',
+      host,
+    })
+    trackCheckoutClick('basic')
+  }
   const cleanFilmTrialDoorTelemetry: Record<string, unknown> = {
     source: 'result_trial_continue',
     unlocks_current_film: trialPrimaryUnlocksCurrentFilm,
@@ -15529,6 +15610,17 @@ export default function GenerateClient({
                       <p style={{ margin: '0 0 10px', textAlign: 'center', color: '#f5f5f7', fontSize: 13, fontWeight: 800, lineHeight: 1.45 }}>
                         Your free copy is safe. Choose a clean export when you&apos;re ready.
                       </p>
+                      {/* KINEO-1DOLAR-NA-CAIXA-DE-EXPORT-2026-09-07 — UMA linha
+                          de montagem. A porta lidera a caixa (ordem do fundador
+                          das 16:40); os dois botões que já estavam aqui — plano
+                          Starter e avulso — continuam VISÍVEIS, no mesmo lugar
+                          e com o mesmo texto. Nada foi escondido. */}
+                      <CleanFilmTrialDoor
+                        decision={cleanExportTrialDoor}
+                        pending={wmCheckout.pending !== null}
+                        telemetry={{ ...cleanExportTrialDoorTelemetry, host: 'direct_after_download' }}
+                        onStart={() => startCleanExportTrialCheckout('direct_after_download')}
+                      />
                       <button
                         type="button"
                         onClick={handleRemoveWatermark}
@@ -15639,6 +15731,19 @@ export default function GenerateClient({
                           <p style={{ fontSize: 13.5, color: '#86868b', lineHeight: 1.6, margin: 0, marginBottom: 16 }}>
                             {postVideoPriceNote ?? CHECKOUT_CURRENCY_DISCLOSURE}
                           </p>
+                          {/* KINEO-1DOLAR-NA-CAIXA-DE-EXPORT-2026-09-07 — o
+                              MESMO degrau no caminho de antes do download. Este
+                              modal só abre por INTENÇÃO (a pessoa clicou em
+                              querer o limpo), então a porta aqui não fica na
+                              frente de ninguém que só queria o arquivo grátis —
+                              o botão de fechar e a linha "Free export stays
+                              available" continuam onde estavam. */}
+                          <CleanFilmTrialDoor
+                            decision={cleanExportTrialDoor}
+                            pending={wmCheckout.pending !== null}
+                            telemetry={{ ...cleanExportTrialDoorTelemetry, host: 'modal_before_download' }}
+                            onStart={() => startCleanExportTrialCheckout('modal_before_download')}
+                          />
                           <button
                             type="button"
                             onClick={handleRemoveWatermark}

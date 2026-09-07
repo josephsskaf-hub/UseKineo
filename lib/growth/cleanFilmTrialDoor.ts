@@ -37,12 +37,31 @@
 // num diretório temporário (memória: guardioes-com-alias-nao-rodam). Todo
 // rótulo de dinheiro entra pronto, formatado pela fonte canônica de preço.
 
+/**
+ * As ÚNICAS caixas que podem hospedar a porta. Lista fechada de propósito: a
+ * ordem do fundador de 07/09 16:40 põe o trial de $1 como primeira opção
+ * "onde houver preço na tela", e a caixa de export limpo é nomeada por ele —
+ * mas "onde houver preço" não é licença para pendurar a porta em superfície
+ * que não vende nada.
+ */
+export const HOST_BOXES = ['commercial_ask', 'clean_export'] as const
+
 export type CleanFilmTrialDoorInput = {
   /**
-   * Dono do slot único da tela de filme pronto (`decidePostDeliverySlot`).
-   * `null` é um estado real e frequente — significa que NENHUMA superfície
-   * ganhou o slot. Aceitar `null` aqui é o que impede a porta de aparecer
-   * sozinha, fora de qualquer caixa.
+   * A caixa que hospeda a porta. `null` é um estado real e frequente —
+   * significa que NENHUMA caixa está na tela. Aceitar `null` aqui é o que
+   * impede a porta de aparecer sozinha, fora de qualquer caixa.
+   *
+   * Dois valores são aceitos hoje, e os dois são CAIXAS QUE JÁ PEDEM DINHEIRO
+   * PARA O MESMO FILME — a porta nunca cria caixa, só entra na frente da
+   * pergunta que já estava lá:
+   *   · `commercial_ask` — o slot único da tela de filme pronto
+   *     (`decidePostDeliverySlot`), quem está EM trial.
+   *   · `clean_export`  — a caixa "Want it clean?" (`showPostVideoExportChoice`),
+   *     que exige `currentResultHasWatermark` e existe para quem NÃO está em
+   *     trial. As duas condições são mutuamente exclusivas por construção
+   *     (`showPostVideoExportChoice` exige `trialPostVideoPhase === null`),
+   *     então a porta nunca aparece duas vezes na mesma tela.
    */
   slotOwner: string | null
   /** `profiles.has_paid` — a MESMA coluna que o servidor consulta. */
@@ -81,10 +100,12 @@ export function decideCleanFilmTrialDoor(
     priceNote: null,
   })
 
-  // A porta é um degrau DENTRO da caixa comercial. Fora dela o slot pertence a
-  // outra superfície, e empilhar ofertas nesse slot é o defeito que a rotação
-  // anterior acabou de consertar.
-  if (input.slotOwner !== 'commercial_ask') return blocked('not_slot_owner')
+  // A porta é um degrau DENTRO de uma caixa que já pede dinheiro. Fora delas o
+  // espaço pertence a outra superfície, e empilhar ofertas ali é o defeito que
+  // a rotação do slot acabou de consertar.
+  if (!HOST_BOXES.includes(input.slotOwner as (typeof HOST_BOXES)[number])) {
+    return blocked('not_slot_owner')
+  }
 
   // Trava 1 — o cobrador recusa `?trial=1` para quem já pagou alguma vez.
   if (input.hasPaid) return blocked('already_paid')

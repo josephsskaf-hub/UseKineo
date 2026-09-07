@@ -186,9 +186,13 @@ console.log('── 7. MUTACAO: cada guarda tem dentes ──')
       breaks: (m) => m.decideCleanFilmTrialDoor({ ...BASE, hasPaid: true }).visible === true,
     },
     {
+      // A fv-r9 trocou a comparacao unica por uma lista fechada de caixas
+      // hospedeiras (`HOST_BOXES`), porque a caixa de export limpo passou a
+      // hospedar a mesma porta. A trava continua tendo de ter dentes: mutada,
+      // uma superficie que NAO vende nada tem de conseguir passar.
       label: 'a trava do dono do slot',
-      from: "if (input.slotOwner !== 'commercial_ask') return blocked('not_slot_owner')",
-      to: "if (false) return blocked('not_slot_owner')",
+      from: "if (!HOST_BOXES.includes(input.slotOwner as (typeof HOST_BOXES)[number])) {",
+      to: 'if (false) {',
       breaks: (m) => m.decideCleanFilmTrialDoor({ ...BASE, slotOwner: 'balance_bridge' }).visible === true,
     },
     {
