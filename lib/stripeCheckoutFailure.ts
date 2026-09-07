@@ -16,9 +16,66 @@ type FailureBaseInput = {
   paymentMethodType?: string | null
 }
 
+/**
+ * KINEO-RECUSA-COM-NOME-2026-09-07 — de onde veio o nome do recusado.
+ *
+ * Um `user_id` preenchido não diz a mesma coisa em todos os caminhos, e a
+ * diferença muda o que se pode FAZER com ele:
+ *   · `intent_metadata` / `invoice_subscription` / `checkout_session` — a
+ *     própria Stripe carregava o id que NÓS carimbamos na criação. É fato.
+ *   · `customer_id` — casamento com uma coluna que só existe em quem já pagou.
+ *     É fato, mas por definição nunca alcança um primeiro comprador.
+ *   · `customer_email` — INFERÊNCIA: dois cadastros com o mesmo e-mail no
+ *     Stripe e no Supabase. É o único degrau que erra, e é justamente o que
+ *     alcança quem nunca pagou. Quem for escrever uma carta com base nisto
+ *     tem de poder ver a diferença — daí o campo viajar no evento.
+ *   · `none` — anônima. A resposta honesta, e a que diz que não há remédio.
+ */
+export type StripeFailureIdentitySource =
+  | 'intent_metadata'
+  | 'invoice_subscription'
+  | 'checkout_session'
+  | 'customer_id'
+  | 'customer_email'
+  | 'none'
+
+const IDENTITY_SOURCES: readonly string[] = [
+  'intent_metadata',
+  'invoice_subscription',
+  'checkout_session',
+  'customer_id',
+  'customer_email',
+  'none',
+]
+
+function normalizeIdentitySource(value?: string | null): StripeFailureIdentitySource {
+  const token = normalizeToken(value)
+  return (IDENTITY_SOURCES.includes(token) ? token : 'none') as StripeFailureIdentitySource
+}
+
+/** O id da sessão de checkout NÃO é credencial (diferente da recovery URL, que
+ *  reabre o pagamento) — é o mesmo campo que `checkout_session_expired` já
+ *  guarda desde 16/08, e é o único jeito de voltar da recusa para a tentativa. */
+function normalizeStripeId(value: string | null | undefined, prefix: string): string | null {
+  const token = (value ?? '').trim()
+  return token.startsWith(prefix) && token.length <= 128 ? token : null
+}
+
+function normalizeShortLabel(value?: string | null): string | null {
+  const token = normalizeToken(value)
+  return token ? token : null
+}
+
 type CanonicalFailureInput = FailureBaseInput & {
   hasInvoice: boolean
   billingReason?: string | null
+  identitySource?: string | null
+  ownerResolved?: boolean
+  checkoutSessionId?: string | null
+  subscriptionId?: string | null
+  tier?: string | null
+  ipCountry?: string | null
+  checkoutOrigin?: string | null
 }
 
 type ChargeEnrichmentInput = FailureBaseInput & {
@@ -139,6 +196,20 @@ export function buildCanonicalStripeCheckoutFailure(input: CanonicalFailureInput
     card_brand: normalizeCardBrand(input.cardBrand),
     card_funding: normalizeFunding(input.cardFunding),
     payment_method_family: normalizePaymentMethodFamily(input.paymentMethodType),
+    // KINEO-RECUSA-COM-NOME-2026-09-07 — os campos que transformam a recusa de
+    // beco sem saída em coorte com endereço. `owner_resolved` é o que se conta:
+    // até 07/09 ele teria sido `false` em 1 de 1 recusa de compra INICIAL.
+    identity_source: normalizeIdentitySource(input.identitySource),
+    owner_resolved: input.ownerResolved === true,
+    stripe_session_id: normalizeStripeId(input.checkoutSessionId, 'cs_'),
+    stripe_subscription_id: normalizeStripeId(input.subscriptionId, 'sub_'),
+    tier: normalizeShortLabel(input.tier),
+    // O país do IP é o da CRIAÇÃO da sessão, e não o do cartão (`card_country`,
+    // logo acima). Os dois ficam lado a lado de propósito: eles discordam
+    // exatamente no caso que interessa — cartão estrangeiro comprado de dentro
+    // da Índia — e colapsá-los apagaria a pergunta.
+    ip_country: normalizeCountry(input.ipCountry),
+    checkout_origin: normalizeShortLabel(input.checkoutOrigin),
   }
 }
 

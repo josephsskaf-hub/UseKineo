@@ -114,9 +114,68 @@ function stripeObjectId(value: unknown): string | null {
   return null
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// KINEO-RECUSA-COM-NOME-2026-09-07 — A RECUSA DE CARTÃO PASSA A TER DONO.
+// ═══════════════════════════════════════════════════════════════════════════
+// O NÚMERO QUE MANDOU ESCREVER ISTO (medido 07/09, base inteira; o instrumento
+// nasceu em 03/09): `checkout_payment_failed` tem 3 linhas na história.
+//   · 2 com `stage: 'renewal'` — e as DUAS têm user_id.
+//   · 1 com `stage: 'initial'` (07/09 05:35 UTC, Visa PRÉ-PAGO dos EUA,
+//     `card_restricted`, US$ 23,20) — e ela veio com **user_id NULL**.
+// Não é coincidência, é estrutural, e a razão é mecânica:
+//
+//   1. Numa sessão `mode: 'subscription'`, a Stripe cria o PaymentIntent a
+//      partir da FATURA. `session.metadata` e `subscription_data.metadata`
+//      pousam na Sessão e na Assinatura — **nunca no PaymentIntent**
+//      (`payment_intent_data` só é aceito em `mode: 'payment'`). Logo
+//      `failedIntent.metadata.supabase_user_id` é null SEMPRE por aqui.
+//   2. O único plano B que existia era `profiles.stripe_customer_id` — coluna
+//      que só é escrita quando um pagamento DÁ CERTO
+//      (`checkout.session.completed`).
+//
+// Junte os dois: a casa só conseguia nomear quem JÁ PAGOU alguma vez. As duas
+// renovações resolveram porque o pagante já tinha a coluna preenchida; o
+// primeiro comprador recusado é anônimo por construção. E é exatamente ele o
+// alvo do pedido do fundador de 07/09 ("o cara do cartão recusado"): quem
+// nunca pagou é o único que ainda pode virar assinante novo.
+//
+// Uma recusa anônima não tem remédio — não dá para escrever para ela, nem para
+// contá-la por país, nem para saber que plano ela tentou. O evento nascia como
+// beco sem saída.
+//
+// O CONSERTO NÃO INVENTA FONTE NOVA: a fatura JÁ ERA BUSCADA aqui embaixo, e
+// dessa viagem só se aproveitava `billing_reason`. `invoice.subscription` leva
+// à Assinatura, cuja metadata carrega `supabase_user_id`, `tier` e
+// `checkout_origin`; e `checkout.sessions.list({ subscription })` devolve a
+// Sessão, que é a única que carrega `ip_country` — o campo que decide se a
+// hipótese Índia/Nigéria é verdade. O recurso estava sendo buscado e jogado
+// fora.
+//
+// ⚠️ ESCADA, e a ordem importa: cada degrau é uma chamada a mais na Stripe, e
+// este handler roda dentro do webhook. Para no PRIMEIRO que resolve, e nunca
+// passa de 4 chamadas extras. Qualquer degrau que estoure é engolido —
+// identidade é enriquecimento, e um erro de leitura aqui NÃO pode derrubar o
+// registro da recusa, que é o dado que importa.
+//
+// ⚠️ `identity_source` viaja no evento DE PROPÓSITO: sem ele, um user_id
+// preenchido não diz se veio de metadata (fato) ou de casamento por e-mail
+// (inferência). Quem for mandar e-mail com base nisto precisa saber a diferença.
+type PaymentIntentFailureContext = {
+  hasInvoice: boolean
+  billingReason: string | null
+  ownerUserId: string | null
+  identitySource: string
+  checkoutSessionId: string | null
+  subscriptionId: string | null
+  tier: string | null
+  ipCountry: string | null
+  checkoutOrigin: string | null
+}
+
 async function resolvePaymentIntentInvoiceContext(
   paymentIntent: Stripe.PaymentIntent,
-): Promise<{ hasInvoice: boolean; billingReason: string | null }> {
+  supabase?: AdminClient,
+): Promise<PaymentIntentFailureContext> {
   const runtimeIntent = paymentIntent as unknown as {
     invoice?: unknown
     latest_charge?: unknown
@@ -139,13 +198,150 @@ async function resolvePaymentIntentInvoiceContext(
     }
   }
 
-  if (!invoiceId) return { hasInvoice: invoiceLookupUncertain, billingReason: null }
+  // Identidade começa no degrau mais barato e mais confiável: a metadata do
+  // próprio intent. Ela existe para compra avulsa (`mode: 'payment'`, onde
+  // `payment_intent_data` é aceito) e nunca para assinatura.
+  let ownerUserId: string | null = paymentIntent.metadata?.supabase_user_id ?? null
+  let identitySource = ownerUserId ? 'intent_metadata' : 'none'
+  let checkoutSessionId: string | null = null
+  let subscriptionId: string | null = null
+  let tier: string | null = paymentIntent.metadata?.tier ?? null
+  let ipCountry: string | null = paymentIntent.metadata?.ip_country ?? null
+  let checkoutOrigin: string | null = paymentIntent.metadata?.checkout_origin ?? null
 
+  const absorve = (metadata: Stripe.Metadata | null | undefined): void => {
+    if (!metadata) return
+    tier = tier ?? metadata.tier ?? null
+    ipCountry = ipCountry ?? metadata.ip_country ?? null
+    checkoutOrigin = checkoutOrigin ?? metadata.checkout_origin ?? null
+  }
+
+  const resolvePorSessaoDeCheckout = async (
+    filtro: { payment_intent: string } | { subscription: string },
+  ): Promise<void> => {
+    try {
+      const sessions = await stripe.checkout.sessions.list({ ...filtro, limit: 1 })
+      const session = sessions.data[0]
+      if (!session) return
+      checkoutSessionId = session.id
+      absorve(session.metadata)
+      const fromSession = session.metadata?.supabase_user_id ?? null
+      if (!ownerUserId && fromSession) {
+        ownerUserId = fromSession
+        identitySource = 'checkout_session'
+      }
+    } catch {
+      // lista indisponível: identidade continua no degrau anterior
+    }
+  }
+
+  /** Últimos dois degraus, e os únicos que dependem do banco. `customer_id` só
+   *  existe em quem JÁ pagou; o casamento por e-mail é o que alcança o primeiro
+   *  comprador recusado — e por isso é marcado como INFERÊNCIA. */
+  const resolvePorCliente = async (): Promise<void> => {
+    if (ownerUserId || !supabase) return
+    const customerId =
+      typeof paymentIntent.customer === 'string'
+        ? paymentIntent.customer
+        : paymentIntent.customer?.id ?? null
+    if (!customerId) return
+
+    try {
+      const { data: byCustomer } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('stripe_customer_id', customerId)
+        .limit(1)
+      if (byCustomer?.[0]?.id) {
+        ownerUserId = byCustomer[0].id
+        identitySource = 'customer_id'
+        return
+      }
+    } catch {
+      // segue para o e-mail
+    }
+
+    try {
+      const customer = await stripe.customers.retrieve(customerId)
+      if (customer.deleted) return
+      const email = (customer.email ?? '').trim().toLowerCase()
+      if (!email) return
+      const { data: byEmail } = await supabase
+        .from('profiles')
+        .select('id')
+        .ilike('email', email)
+        .limit(1)
+      if (byEmail?.[0]?.id) {
+        ownerUserId = byEmail[0].id
+        identitySource = 'customer_email'
+      }
+    } catch {
+      // anônima mesmo: `identity_source: 'none'` é a resposta honesta
+    }
+  }
+
+  // Sem fatura: ou é compra avulsa, ou a leitura falhou. A Sessão de Checkout
+  // ainda pode ser achada pelo próprio PaymentIntent — é o caminho do pacote de
+  // crédito, que não passa por fatura nenhuma.
+  if (!invoiceId) {
+    await resolvePorSessaoDeCheckout({ payment_intent: paymentIntent.id })
+    await resolvePorCliente()
+    return {
+      hasInvoice: invoiceLookupUncertain,
+      billingReason: null,
+      ownerUserId,
+      identitySource,
+      checkoutSessionId,
+      subscriptionId,
+      tier,
+      ipCountry,
+      checkoutOrigin,
+    }
+  }
+
+  let billingReason: string | null = null
   try {
     const invoice = await stripe.invoices.retrieve(invoiceId)
-    return { hasInvoice: true, billingReason: invoice.billing_reason ?? null }
+    billingReason = invoice.billing_reason ?? null
+    subscriptionId = stripeObjectId(
+      (invoice as Stripe.Invoice & { subscription?: unknown }).subscription,
+    )
   } catch {
-    return { hasInvoice: true, billingReason: null }
+    // A fatura existe (o id veio de algum lugar), só não pôde ser lida.
+  }
+
+  if (!ownerUserId && subscriptionId) {
+    try {
+      const subscription = await stripe.subscriptions.retrieve(subscriptionId)
+      absorve(subscription.metadata)
+      const fromSubscription = subscription.metadata?.supabase_user_id ?? null
+      if (fromSubscription) {
+        ownerUserId = fromSubscription
+        identitySource = 'invoice_subscription'
+      }
+    } catch {
+      // sem assinatura legível, a escada segue
+    }
+  }
+
+  // A Sessão é buscada mesmo quando a Assinatura já deu o dono: ela é a ÚNICA
+  // que carrega `ip_country`, e sem país esta recusa não entra na contagem por
+  // país que decide trilho de pagamento.
+  if (subscriptionId && (!ipCountry || !checkoutSessionId)) {
+    await resolvePorSessaoDeCheckout({ subscription: subscriptionId })
+  }
+  await resolvePorCliente()
+
+  return {
+    hasInvoice: true,
+    billingReason,
+    ownerUserId,
+    identitySource,
+    checkoutSessionId,
+    subscriptionId,
+    tier,
+    ipCountry,
+    checkoutOrigin,
   }
 }
 
@@ -1551,26 +1747,13 @@ export async function POST(req: NextRequest) {
       case 'payment_intent.payment_failed': {
         const failedIntent = event.data.object as Stripe.PaymentIntent
         const lastError = failedIntent.last_payment_error ?? null
-        const intentCustomerId =
-          typeof failedIntent.customer === 'string'
-            ? failedIntent.customer
-            : failedIntent.customer?.id ?? null
-        const invoiceContext = await resolvePaymentIntentInvoiceContext(failedIntent)
-
-        let failedUserId: string | null =
-          failedIntent.metadata?.supabase_user_id ?? null
-        if (!failedUserId && intentCustomerId) {
-          try {
-            const { data: byCustomer } = await supabase
-              .from('profiles')
-              .select('id')
-              .eq('stripe_customer_id', intentCustomerId)
-              .limit(1)
-            failedUserId = byCustomer?.[0]?.id ?? null
-          } catch {
-            console.warn('[stripe webhook] payment_failed customer lookup failed')
-          }
-        }
+        // KINEO-RECUSA-COM-NOME-2026-09-07 — a escada inteira mora no
+        // resolvedor (metadata do intent → assinatura da fatura → sessão de
+        // checkout → customer_id → e-mail do customer). Antes daqui existiam
+        // só os dois primeiros passos do fim da escada, e eles alcançam
+        // exclusivamente quem já pagou uma vez.
+        const invoiceContext = await resolvePaymentIntentInvoiceContext(failedIntent, supabase)
+        const failedUserId: string | null = invoiceContext.ownerUserId
 
         const failureMetadata = buildCanonicalStripeCheckoutFailure({
           paymentIntentId: failedIntent.id,
@@ -1584,6 +1767,13 @@ export async function POST(req: NextRequest) {
           paymentMethodType: lastError?.payment_method?.type ?? null,
           hasInvoice: invoiceContext.hasInvoice,
           billingReason: invoiceContext.billingReason,
+          identitySource: invoiceContext.identitySource,
+          ownerResolved: Boolean(invoiceContext.ownerUserId),
+          checkoutSessionId: invoiceContext.checkoutSessionId,
+          subscriptionId: invoiceContext.subscriptionId,
+          tier: invoiceContext.tier,
+          ipCountry: invoiceContext.ipCountry,
+          checkoutOrigin: invoiceContext.checkoutOrigin,
         })
         const failureRef = stripeFailureReference(failedIntent.id)
         const failureRecorded = await writeServerEvent({
