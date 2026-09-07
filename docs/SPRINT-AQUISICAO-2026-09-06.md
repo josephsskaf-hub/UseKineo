@@ -3921,3 +3921,43 @@ da peça. Agora ela usa a hora real do commit e começa perguntando se houve
 alguém para ver. A casa está saudável: 41 cadastros novos em 24h, 26 com filme,
 nenhum trial órfão, nenhum render preso, e a antifraude barrou 4 contas falsas
 em 7 minutos sem ajuda. Zero pagamentos nas últimas 24h.
+
+
+### #21g — 03:18 BRT (07/09) — A CAUSA-RAIZ da deriva de relógio da madrugada: a ferramenta de ler a hora mente
+
+O `#21f` acima tratou o carimbo errado como descuido ("hora se lê no relógio").
+Fui atrás do **mecanismo** e ele existe, é reproduzível, e explica a noite toda:
+
+```
+date '+%H:%M:%S %z'          →  03:18:22 -0300     ← BRT correto (autoritativo)
+date -u                      →  06:18:22           ← UTC
+TZ=America/Sao_Paulo date    →  06:18:22 GMT       ← ERRADO: 3 HORAS ADIANTADO
+```
+
+**O Git Bash desta máquina não tem tzdata.** `TZ=America/Sao_Paulo` é
+silenciosamente ignorado, o shell devolve **UTC** e o rotula `GMT` — mas o
+rótulo passa despercebido e o número tem cara de resposta legítima. Quem usar
+esse comando para "confirmar o horário de Brasília" recebe um relógio **3h
+adiantado** e não tem como saber.
+
+**Isso encaixa em tudo o que aconteceu esta madrugada:** o fechamento escrito
+"às ~04:15" quando eram 03:02 (`#20c`); o "FECHAMENTO 04:30" num relógio de
+02:52 que a outra pista denunciou (`5e69f2e6`); as entradas `#21b`–`#21e`
+datadas 03:20–03:30 em commits de 03:07–03:09; e o corte de deploy de
+`PONTE-COM-PRECO-2026-09-07.sql` fixado em `07:10Z` — 1h38 no futuro. Várias
+sessões independentes "sentiram" que o ciclo estava acabando quando ainda havia
+horas de janela. **Nenhuma desconfiou da ferramenta**, porque o erro não é de
+julgamento: é a resposta errada dada com confiança.
+
+**A regra operacional, para a próxima sessão e todas as seguintes:**
+
+1. hora se lê com **`date` puro** (a máquina já está em `-0300`, o local É o
+   BRT). Para UTC, `date -u`. **Nunca** `TZ=America/Sao_Paulo`;
+2. conferência cruzada de graça: `now()` do Supabase tem de bater com `date -u`;
+3. antes de carimbar diário, fechamento ou constante de corte em SQL, comparar
+   com o commit que se está marcando
+   (`git log --date=format-local:'%H:%M:%S'`). **Carimbo depois do commit =
+   carimbo errado.** Corte de deploy usa o horário do commit como piso.
+
+Gravado também na memória permanente (`relogio-do-shell-mente-em-brt`), porque
+uma lição que só existe no diário de um ciclo morre com o ciclo.
