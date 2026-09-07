@@ -1312,3 +1312,62 @@ dentro de um menu fechado — **231 pessoas passaram por perto e ninguém clicou
 vez em 54 dias**. O problema nunca foi falta de oferta barata; é que ela não tem
 onde aparecer. Sessenta e cinco pessoas bateram na parede de saldo em 30 dias, e
 quarenta delas bateram **menos de um dia depois do primeiro filme**.
+## ### #11 — 23:05 — 🔴 O DENOMINADOR DA MINHA PRÓPRIA MÉTRICA ESTAVA ERRADO
+
+Na **#1** eu escrevi: *"Hoje 12,5% das sessões com fonte. **Alvo: acima de
+70%**."* Fui conferir o progresso às 02:00 UTC e a cobertura tinha **caído** para
+8% (1 de 13). Antes de inventar explicação, olhei **quais** eram as 13 sessões:
+
+| página do pouso | sessões | tem fonte? |
+|---|---:|---|
+| `/signup` | **7** | não |
+| `/admin` | 1 | não (sou eu) |
+| `/studio` | 1 | não |
+| `/` | 1 | não |
+| `/ai-video-generator/kineo-1` | 1 | **sim — `chatgpt.com`** |
+| `/youtube-shorts-script-timer` | 1 | não |
+| `/free-script-generator` | 1 | não |
+
+**Nove das treze não são pouso de aquisição.** `/signup`, `/studio` e `/admin`
+são superfícies de gente **que já está no funil** — chega por marcador, por
+e-mail ou navegando de dentro do produto. Essa gente **não tem fonte externa
+para gravar**, e isso não é falha de instrumento: é a verdade.
+
+### Medindo os 14 dias com a divisão certa
+
+| tipo de pouso | sessões | % do total | com referrer |
+|---|---:|---:|---:|
+| **interna / retorno** (`/signup`, `/login`, `/studio`, `/admin`, `/history`…) | **1.817** | **50,4%** | **0,9%** |
+| **aquisição** (página pública) | 1.791 | 49,6% | **35,7%** |
+
+**Metade de todos os "pousos" nunca poderá ter fonte.** Portanto:
+
+- **o "12,5% de linha de base" estava diluído** — a base honesta, entre pousos de
+  aquisição, já era **35,7%** só com referrer;
+- **o "alvo de 70%" era impossível.** Sobre *todas* as sessões, o teto
+  aritmético é ~50%. Eu publiquei uma meta que o instrumento não pode atingir
+  nem funcionando perfeitamente.
+
+### O alvo corrigido
+
+**A métrica é a cobertura entre pousos de AQUISIÇÃO**, não entre todos.
+Base: **35,7%** (só referrer). O ganho esperado da #1 vem de quem chega **sem
+referrer e com utm** — que é o caso de **108 dos 188** cadastros do ChatGPT em
+14 dias. **Alvo: acima de 70% dos pousos de aquisição**, e o `/signup` sai da
+conta.
+
+### Por que isto importa mais do que parece
+
+É a **quarta vez nesta noite** que um denominador errado quase virou conclusão:
+sessões contadas como pessoas (mapa de entrada), "0 de 42" que era "0 de ~1"
+(pacote), checkout de quem nunca viu o produto misturado com quem viu, e agora a
+minha própria meta. **Três das quatro eram minhas.** O padrão é sempre o mesmo —
+o número está certo e a população embaixo dele está errada — e é por isso que as
+consultas ficam salvas em `docs/queries/` **com as armadilhas escritas no
+cabeçalho**, em vez de viverem só no diário.
+
+**Com o filtro certo, desde o marco:** 4 pousos de aquisição, **4 de 4
+instrumentados (100%)**, 1 com fonte. `n = 4` é pequeno demais para virar taxa —
+**não é medição, é sinal de que o cano está aberto.** A taxa se lê amanhã, com
+tráfego de dia. A consulta salva já traz o filtro **e o aviso de que ele não é
+opcional**.
