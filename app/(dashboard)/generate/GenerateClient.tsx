@@ -33,6 +33,8 @@ import {
   instructionPasteNoticeMetadata,
   instructionPromptLengthBand,
   shouldShowInstructionPasteNotice,
+  INSTRUCTION_PASTE_NOTICE_VERSION,
+  verbatimOpeningLine,
 } from '@/lib/growth/instructionPasteNotice'
 
 // ═══ KINEO-REDE-OSCILA-2026-08-28 — o LÍDER de falhas era o wifi do cliente ═
@@ -2046,6 +2048,15 @@ export default function GenerateClient({
   //     ('package' is the top-level one).
   const [fromHome, setFromHome] = useState(false)
   const [showInstructionPasteNotice, setShowInstructionPasteNotice] = useState(false)
+  // KINEO-ORDEM-NARRADA-2026-09-07 — decisao da analise (ver handleAnalyze):
+  // quando a pessoa colou uma ORDEM e esta em "Use my script as is", o
+  // one-click do Studio NAO dispara por cima de um aviso que ela ainda nao viu.
+  // O hold carrega a decisao; o tick so forca o re-render que levanta a
+  // cortina do Studio (a cortina le um ref, nao um estado). O terceiro ref
+  // arma a reanalise depois do clique de troca (ver switchVerbatimOrderToAi).
+  const verbatimOrderHoldRef = useRef(false)
+  const [, setVerbatimOrderHeldTick] = useState(0)
+  const verbatimOrderReanalyzeRef = useRef(false)
   const [showFirstShortNudge, setShowFirstShortNudge] = useState(false) // #379 — new-user onboarding nudge
   const [credits, setCredits] = useState<number | null>(null)
 
@@ -7157,6 +7168,53 @@ export default function GenerateClient({
       })
     }
 
+    // ═══ KINEO-ORDEM-NARRADA-2026-09-07 — A ORDEM QUE VIRA NARRACAO ═════════
+    //
+    // MEDIDO (14 dias, status=completed, contas com user_id): 7 pessoas colaram
+    // no Studio a ORDEM que mandaram ao ChatGPT ("Create a 30-second vertical
+    // YouTube Short...", "IMPORTANT: This is a completely visual story. NO
+    // narration, NO voiceover...") com "Use my script as is" — e o produto
+    // NARROU a ordem em voz alta, cobrando credito. 6 pessoas em 30 horas.
+    //
+    // A CAUSA: existiam dois detectores e um aviso, e o aviso estava ligado no
+    // detector errado. O da chegada (looksLikeInstruction, no auto-start)
+    // acende o aviso e alcancou 19 pessoas; este aqui (readPastedDirectives,
+    // na analise) so emitia evento e corrigia a duracao — e e por ele que quem
+    // cola no Studio passa. So 3 das 7 viram o aviso; as 3 mandaram assim
+    // mesmo, porque a copy afirma e nao mostra.
+    //
+    // O QUE MUDA, so quando o texto PARECE COLADO **e** o modo e verbatim:
+    //   1. o aviso que ja existe acende (mesma UI, mesma copy);
+    //   2. ele mostra a PRIMEIRA LINHA do texto entre aspas — e o que o filme
+    //      vai abrir dizendo. Isso vale para os 8 casos medidos; o
+    //      classificador de copy so reconhece 4, entao nao e portao daqui;
+    //   3. um botao troca para o modo em que a IA escreve o roteiro. NADA e
+    //      trocado sozinho (decisao de lib/growth/instructionPasteNotice.ts,
+    //      mantida): a pessoa clica;
+    //   4. no Studio, o one-click NAO dispara por cima do aviso — o painel
+    //      abre com o aviso e o mesmo botao Generate de sempre. Mesma regra do
+    //      auto-start de 02/09: texto que e instrucao nao vira render
+    //      automatico. Nada e bloqueado, nada e escondido.
+    // Fora do `if (directives.length > 0)` de proposito: "IMPORTANT: ... NO
+    // narration" nao pede duracao nenhuma e mesmo assim foi narrada.
+    // Contrato C1 intacto: a analise continua sem debitar nada.
+    verbatimOrderHoldRef.current = false
+    if (leituraColada.looksPasted && scriptMode === 'verbatim') {
+      verbatimOrderHoldRef.current = true
+      setShowInstructionPasteNotice(true)
+      const aberturaFalada = verbatimOpeningLine(expandBaseRef.current)
+      void trackEvent('verbatim_order_warned', {
+        version: INSTRUCTION_PASTE_NOTICE_VERSION,
+        surface: 'generate_analyze',
+        script_mode: scriptMode,
+        shape: classifyInstructionPaste(expandBaseRef.current),
+        first_line_chars: aberturaFalada.length,
+        words: expandBaseRef.current.split(/\s+/).filter(Boolean).length,
+        from_topic: opts?.fromTopic === true,
+        studio: searchParams?.get('studio') === '1',
+      })
+    }
+
     {
       const baseChecagem = expandBaseRef.current
       if (scriptMode === 'verbatim' && baseChecagem) {
@@ -7970,6 +8028,18 @@ export default function GenerateClient({
   useEffect(() => {
     if (phase !== 'options' || studioOneClickFiredRef.current) return
     if (searchParams?.get('studio') !== '1') return
+    // KINEO-ORDEM-NARRADA-2026-09-07 — a analise acendeu o aviso da ordem
+    // colada em verbatim: o one-click nao gasta credito por cima de um aviso
+    // que a pessoa ainda nao viu. A cortina levanta, o painel classico abre
+    // com o aviso e o botao Generate de sempre; dali em diante e clique dela.
+    if (verbatimOrderHoldRef.current) {
+      studioOneClickFiredRef.current = true
+      studioAutoFirePendingRef.current = false
+      try { sessionStorage.removeItem('kineo:studio:go:v1') } catch {}
+      void trackEvent('verbatim_order_autofire_held', { script_mode: scriptMode })
+      setVerbatimOrderHeldTick((v) => v + 1)
+      return
+    }
     // KINEO-URL-ENGINE-WINS-2026-08-17 (cinto de seguranca): antes de
     // disparar, garante que motor e duracao SAO os da URL do Studio — se
     // qualquer efeito tardio tiver mexido, corrige e espera o proximo
@@ -11682,6 +11752,74 @@ export default function GenerateClient({
     return () => clearInterval(id)
   }, [phase, headlineProgress])
 
+  // KINEO-ORDEM-NARRADA-2026-09-07 — a saida de um clique do aviso. Troca o
+  // modo para o que a IA escreve e ARMA a reanalise; o efeito logo abaixo a
+  // dispara quando o estado ja e 'ai' (dentro deste clique o estado ainda e o
+  // velho). Reanalisar e obrigatorio: /api/analyze-idea recebe o scriptMode,
+  // entao o brief que esta na tela foi montado com a ordem como narracao — so
+  // trocar o botao mandaria o mesmo brief para o render. Contrato C1: a
+  // analise nao debita. NADA aqui dispara render.
+  function switchVerbatimOrderToAi() {
+    const texto = prompt.trim()
+    void trackEvent('verbatim_order_switched_to_ai', {
+      version: INSTRUCTION_PASTE_NOTICE_VERSION,
+      shape: classifyInstructionPaste(texto),
+      first_line_chars: verbatimOpeningLine(texto).length,
+      words: texto.split(/\s+/).filter(Boolean).length,
+      phase,
+      studio: searchParams?.get('studio') === '1',
+    })
+    verbatimOrderHoldRef.current = false
+    verbatimOrderReanalyzeRef.current = true
+    setShowInstructionPasteNotice(false)
+    setScriptMode('ai')
+  }
+  useEffect(() => {
+    if (!verbatimOrderReanalyzeRef.current) return
+    if (scriptMode !== 'ai') return
+    verbatimOrderReanalyzeRef.current = false
+    // No Studio o preview de roteiro e pulado, como na chegada original; fora
+    // dele a pessoa ve o roteiro que a IA escreveu antes de gerar.
+    void handleAnalyze(undefined, { skipPreview: searchParams?.get('studio') === '1' })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scriptMode])
+
+  // KINEO-ORDEM-NARRADA-2026-09-07 — o pedaco DECISIVO do aviso: a frase que
+  // o filme vai abrir dizendo, entre aspas, e o botao que troca de modo. Vive
+  // num lugar so e aparece nos dois pontos em que a pessoa decide: a caixa de
+  // ideia (Step 1) e o brief (Step 2 — o unico que quem cola no Studio ve).
+  // So em verbatim: em 'ai' a frase seria falsa. Texto puro — a primeira
+  // linha vem do que a pessoa colou e NUNCA vira HTML.
+  function renderVerbatimOrderDetails() {
+    if (scriptMode !== 'verbatim') return null
+    const aberturaFalada = verbatimOpeningLine(prompt)
+    const ocupado = phase === 'analyzing' || phase === 'scripting'
+    return (
+      <>
+        {aberturaFalada && (
+          <div className="text-xs leading-relaxed mt-2" style={{ color: '#d9ecff' }}>
+            Your video will open by saying out loud:{' '}
+            <span className="font-black">“{aberturaFalada}”</span>
+          </div>
+        )}
+        <button
+          type="button"
+          disabled={ocupado}
+          onClick={switchVerbatimOrderToAi}
+          className="text-xs font-black mt-2 rounded-lg px-3 py-1.5 block"
+          style={{
+            background: 'rgba(41,151,255,.18)',
+            border: '1px solid rgba(41,151,255,.55)',
+            color: '#d9ecff',
+            cursor: ocupado ? 'not-allowed' : 'pointer',
+          }}
+        >
+          ✨ Let AI write the script from this instead
+        </button>
+      </>
+    )
+  }
+
   // KINEO-STUDIO-CORTINA-2026-08-17 (fundador: 'ainda esta passando pela
   // pagina generation') — chegada do Studio NUNCA ve o painel antigo: nas
   // fases pre-render (analise rodando / options por milissegundos antes do
@@ -12550,6 +12688,7 @@ export default function GenerateClient({
               <div className="text-xs leading-relaxed" style={{ color: '#9dccf7' }}>
                 {instructionPasteNoticeFor(classifyInstructionPaste(prompt)).body}
               </div>
+              {renderVerbatimOrderDetails()}
               {/* KINEO-PORTA-CHATGPT-2026-09-07 — so o ramo `command_to_chatbot`
                   traz ctaHref (lib/growth/instructionPasteNotice.ts). Abre em
                   aba nova: a ideia que a pessoa colou fica aqui, intacta. */}
@@ -13384,6 +13523,33 @@ export default function GenerateClient({
                 ← Edit idea
               </button>
             </div>
+
+            {/* KINEO-ORDEM-NARRADA-2026-09-07 — quem cola no Studio nunca ve o
+                Step 1: o aviso da ordem colada em verbatim tem de estar AQUI,
+                antes do botao que gasta credito. Mesma copy do bloco do Step 1
+                (lib/growth/instructionPasteNotice.ts) + o fragmento decisivo.
+                So no modo verbatim: em 'ai' a frase "vai narrar a ordem" seria
+                falsa. */}
+            {showInstructionPasteNotice && scriptMode === 'verbatim' && prompt.trim() && (
+              <div
+                role="status"
+                aria-live="polite"
+                className="rounded-xl px-4 py-3 mb-4"
+                style={{
+                  background: 'rgba(41,151,255,.10)',
+                  border: '1px solid rgba(41,151,255,.38)',
+                  color: '#d9ecff',
+                }}
+              >
+                <div className="text-sm font-black mb-1">
+                  {instructionPasteNoticeFor(classifyInstructionPaste(prompt)).title}
+                </div>
+                <div className="text-xs leading-relaxed" style={{ color: '#9dccf7' }}>
+                  {instructionPasteNoticeFor(classifyInstructionPaste(prompt)).body}
+                </div>
+                {renderVerbatimOrderDetails()}
+              </div>
+            )}
 
             {/* KINEO-SPRINT-V1V4-49 — a oferta do ultimo setup. Aparece SO
                 quando existe memoria de um despacho real E ela e diferente do

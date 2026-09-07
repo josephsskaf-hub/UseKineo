@@ -132,10 +132,19 @@ check('instructionPromptLengthBand e instructionPasteNoticeMetadata vem de @/lib
   /import \{[^}]*\binstructionPasteNoticeMetadata\b[^}]*\} from '@\/lib\/growth\/instructionPasteNotice'/s.test(tela))
 // A condicao que ARMA o aviso: so o motivo prompt_looks_like_instruction liga o estado.
 const guarda = bloco(tela, 'if (looksLikeInstruction(explicitPrompt)) {')
-check('setShowInstructionPasteNotice(true) so acontece sob shouldShowInstructionPasteNotice(\'prompt_looks_like_instruction\')',
+// KINEO-ORDEM-NARRADA-2026-09-07 — passou a haver DOIS pontos que armam o
+// aviso, cada um sob um motivo nomeado: o auto-start (motivo
+// prompt_looks_like_instruction, acima) e a ANALISE, quando o texto parece
+// colado E o modo e verbatim (e o caminho de quem cola no Studio — 7 pessoas
+// em 14 dias tiveram a propria ordem narrada; so 3 viram o aviso do
+// auto-start). O invariante continua: nenhum acendimento sem motivo explicito.
+// Predicado e tabela-verdade ficam em scripts/test-verbatim-order-warning.mjs.
+const armaNaAnalise = bloco(tela, "if (leituraColada.looksPasted && scriptMode === 'verbatim') {")
+check('setShowInstructionPasteNotice(true) so acontece sob shouldShowInstructionPasteNotice(\'prompt_looks_like_instruction\') ou sob a ordem colada em verbatim',
   guarda.includes("if (shouldShowInstructionPasteNotice('prompt_looks_like_instruction')) {") &&
   bloco(guarda, "if (shouldShowInstructionPasteNotice('prompt_looks_like_instruction')) {").includes('setShowInstructionPasteNotice(true)') &&
-  conta(tela, 'setShowInstructionPasteNotice(true)') === 1)
+  armaNaAnalise.includes('setShowInstructionPasteNotice(true)') &&
+  conta(tela, 'setShowInstructionPasteNotice(true)') === 2)
 
 // ─────────────────────────────────────────────────────────────────────────────
 console.log('3 · send-video-ready/route.ts — a porta no e-mail sai do MESMO montador de link, com o utm da casa, e e incondicional')

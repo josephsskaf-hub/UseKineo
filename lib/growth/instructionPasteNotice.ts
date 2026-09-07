@@ -125,6 +125,34 @@ export function instructionPasteNoticeMetadata(shape?: InstructionPasteShape) {
   } as const
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// KINEO-ORDEM-NARRADA-2026-09-07 — a frase que o narrador vai dizer.
+// ─────────────────────────────────────────────────────────────────────────────
+// Medido no banco (14 dias, status=completed, contas com user_id): 7 pessoas
+// colaram a ORDEM que mandaram ao ChatGPT ("Create a 30-second vertical
+// YouTube Short in English. Topic: ...", "IMPORTANT: This is a completely
+// visual story. NO narration, NO voiceover...") com "Use my script as is", e
+// o produto NARROU a ordem em voz alta e cobrou credito por isso. So 3 das 7
+// viram o aviso acima — e as 3 mandaram verbatim mesmo assim. A copy explica;
+// nao convence. O que convence e ler a propria frase: por isso o aviso passa
+// a mostrar, entre aspas, a PRIMEIRA linha do texto — e o que o filme vai
+// abrir dizendo. Texto puro, cortado em VERBATIM_OPENING_MAX_CHARS.
+// O classificador acima so reconhece 4 dos 8 casos (verbo de ordem na 1a
+// linha); esta frase vale para todos, entao ela NAO depende dele.
+export const VERBATIM_OPENING_MAX_CHARS = 120
+
+/**
+ * Primeira linha nao vazia do texto, aparada e cortada com reticencias. E o
+ * que o narrador vai falar primeiro em "Use my script as is". Devolve '' se
+ * nao ha texto. Nunca devolve HTML: e para ir dentro de aspas, como texto.
+ */
+export function verbatimOpeningLine(raw: string | null | undefined, max = VERBATIM_OPENING_MAX_CHARS): string {
+  if (typeof raw !== 'string') return ''
+  const first = raw.split(/\r?\n/).map((line) => line.trim()).find(Boolean) ?? ''
+  if (first.length <= max) return first
+  return first.slice(0, Math.max(1, max - 1)).trimEnd() + '…'
+}
+
 export function instructionPromptLengthBand(length: number) {
   if (!Number.isFinite(length) || length < 0) return 'unknown'
   if (length < 300) return 'under_300'
