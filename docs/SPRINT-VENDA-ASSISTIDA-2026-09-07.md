@@ -448,3 +448,117 @@ e-mail, e três guardiões antigos apitaram — **12% da nossa base não paga em
 dólar**, então esse "$1" seria mentira para 99 pessoas. Tirei o número em vez de
 afrouxar a regra, e anotei a dívida: para devolver o número ao assunto, o cron
 precisa saber a moeda de cada pessoa. É a próxima jogada.
+
+---
+
+### #4 — 18:52-19:40 — EU TIREI O PREÇO DA CARTA POR UMA PREMISSA QUE ESTAVA MORTA HAVIA 18 DIAS
+
+**ERRADO.** Na rotação #3, algumas horas atrás, eu tirei o "$1" do e-mail de
+maior vazão da casa e escrevi no diário, com todas as letras, que dizer o
+número **seria mentir para 99 pessoas, 12% da base**. Deixei no lugar *"a token
+entry fee — the checkout shows it in your own currency"* e registrei como
+dívida honesta "resolver a moeda por pessoa dentro do cron".
+
+**A dívida não existia. A premissa estava morta desde 20/08.**
+
+Fui abrir o cobrador para escrever o resolvedor de moeda e encontrei, em
+`lib/checkoutPricing.ts`:
+
+```ts
+export type CheckoutCurrency = 'usd'                      // união de UM valor
+export function resolveCheckoutCurrency(_country) { return 'usd' }   // ignora o país
+```
+
+É a V6 de 19/08 — **"preço global pra todo mundo, mais simples"**, decisão do
+próprio fundador. O item avulso do trial é `unit_amount: 100` nessa moeda.
+**Toda pessoa do planeta é cobrada US$ 1,00.** O tipo tem um valor só: um
+`currency === 'brl'` em qualquer tela do produto é erro de compilação.
+
+**FALSIFIQUEI NO BANCO ANTES DE ACREDITAR NO CÓDIGO.** Eventos com
+`metadata.currency` nos últimos 30 dias: **usd 1121 · inr 143 · brl 70** — é
+daqui que saiu o meu "12%". Mas o número que eu não tinha olhado é o
+**relógio**: o último evento não-usd da história é de **20/08 10:38 UTC**. No
+corte de 20/08 12:00 até agora: **751 eventos com moeda, 751 em usd, zero
+exceções.** O `brl` inteiro era **uma pessoa**.
+
+Eu li uma tabela de 30 dias que atravessa a mudança e herdei a conclusão sem
+cortar no evento que a mudou — exatamente as memórias
+`conferir-a-constante-antes-de-herdar-a-tabela` (limiar herdado é afirmação
+sobre o código, não fato) e `cegueira-documentada-expira` (cegueira anotada tem
+prazo; reconferir no banco antes de descartar a fonte).
+
+**O QUE ISSO CUSTOU.** A conclusão fechada desta casa (fundador, 19/08,
+estudada várias vezes) é que **o vazamento do checkout é PREÇO**. O número é o
+gatilho de quem achou caro. Eu troquei o gatilho por um eufemismo para proteger
+uma coorte que não existe mais — em **~56 cartas por dia**.
+
+**🟢 O QUE SUBIU (`10ae69b4`).** O número voltou, e volta **derivado**:
+
+- `lib/lifecycle/trialEntryFee.ts` (novo, puro): o rótulo sai de
+  `formatCheckoutMoney` sobre `CARD_TRIAL_ENTRY_FEE_MINOR`, e a mensalidade de
+  `getTierPrice('basic')` — as **mesmas** funções e constantes que a caixa do
+  pós-vídeo da pista irmã e o cobrador usam. Nada digitado.
+- **Corpo (D5 e D10):** *"the cheapest way back in is 7 days of Creator for $1,
+  then $15/mo. Cancel anytime."*
+- **Assunto (D5):** *"Your 62-second film is still in your Library — $1 gets
+  Creator back for 7 days"*. **(D10):** *"Last call — your 62-second film is
+  waiting, and $1 is the cheapest way back"*.
+- **Intocados de propósito:** o cupom COMEBACK50 (código, prazo, porcentagem,
+  URL — é do Codex) e o ramo de quem nunca fez um filme, byte a byte.
+
+**🔴 E EU QUASE REPETI O ERRO DENTRO DO PRÓPRIO CONSERTO.** Dez minutos depois
+de escrever o bloco que diz "dinheiro não se digita", escrevi `then $15/mo` à
+mão. **Esse `$15` teria passado por TODOS os guardiões** — porque eles recortam
+o *bloco* do D5/D10 e a constante mora fora do recorte (memória
+`guardiao-que-conta-texto-nao-prova-condicao`). Trocado por `getTierPrice`.
+
+**PROVA DE QUE DERIVA, NÃO DESCREVE.** Guardião que lê texto não prova
+comportamento, então **compilei o módulo e rodei**. Saída real: `"7 days of
+Creator for $1, then $15/mo"`. Mutando a constante para 250 em tempo de
+execução, a mesma função devolve `"$2.50"` — e o centavo não-redondo **não** é
+cortado, porque o corte é condicionado ao sufixo `.00` e nunca um `slice` cego
+(lição do menino da bolha, 27/08).
+
+**GUARDIÃO:** `scripts/test-preco-do-trial-derivado.mjs`, 28 verificações. A que
+faltava na #3 é a **tripwire**: no dia em que `CheckoutCurrency` ganhar um
+segundo valor, o teste fica **vermelho na hora**, porque aí o rótulo resolvido
+sem país volta a ser mentira. Rodei 4 mutantes, cada um conferido como
+**escrito em disco** antes de rodar (memória `mutacao-precisa-provar-que-aplicou`):
+`$1` digitado no assunto, linha digitada à mão, multi-moeda de volta, e o
+eufemismo da #3 reintroduzido — **os 4 morreram**.
+
+A trava antiga `sem preco literal` continua **verde e não foi afrouxada**: ela
+proíbe o número **digitado**, e o derivado não aparece no fonte. Corrigi só o
+*motivo* escrito ao lado dela, que ainda dizia "/pricing resolve a moeda".
+
+**206 verificações verdes** nos 6 guardiões da família, `tsc` limpo.
+
+**Quem recebe:** ninguém novo. Nenhuma lista nova, nenhum e-mail novo, nenhum
+desconto novo. Mudou o que as ~56 cartas/dia que já saíam passam a dizer.
+
+**PRÓXIMA ROTAÇÃO (#5):** a V4 do cardápio — varredura de respostas às cartas,
+com o SLA de 48h da casa.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+1. **Nada de código.** O `10ae69b4` está na fila e sobe sozinho.
+2. **Continua de pé o pedido da #2:** mandar da sua caixa os **dois rascunhos da
+   CAMADA 1** em `docs/RASCUNHOS-AUTOPILOT-2026-09-07.md`.
+3. **Continua de pé a decisão da #3:** as cartas D5/D10 mandam 785 e-mails a
+   cada 14 dias para uma janela que nunca produziu um pagante orgânico. Agora
+   elas pelo menos dizem o preço. Se quiser cortar essa esteira, me diga.
+
+## 📋 O QUE ACONTECEU
+
+Eu me peguei mentindo — para você, no diário de algumas horas atrás. Tinha
+escrito que não dava para pôr "$1" no e-mail porque 12% da nossa base não paga
+em dólar. Fui construir a solução e descobri que **desde 19/08, por decisão sua
+de preço global único, existe uma moeda só: todo mundo paga US$ 1,00**, e o
+banco confirma — 751 eventos com moeda nos últimos 18 dias, 751 em dólar. Eu
+tinha lido uma tabela de 30 dias que atravessa essa mudança e herdado o número
+velho. Resultado: a carta que mais sai da casa passou horas dizendo *"uma taxa
+simbólica, o checkout mostra na sua moeda"* em vez de **$1** — justamente para
+quem foi embora achando caro. Voltei a pôr o número, mas nunca digitado: ele é
+lido da mesma constante que a Stripe cobra, então se você mudar a taxa amanhã o
+e-mail muda sozinho. E deixei um alarme: se um dia a moeda voltar a variar, o
+teste fica vermelho antes de a carta mentir de novo.
