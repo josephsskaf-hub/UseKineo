@@ -661,3 +661,86 @@ funcionando sozinha — triplicou em 14 dias sem gastar um dólar. **O gargalo
 mudou de lugar enquanto ninguém olhava.** Ele não está mais em "trazer gente";
 está em **pedir**, uma vez, para as 20 pessoas por dia que já estão com o
 produto pronto na mão.
+
+---
+
+## ### #8 — 22:00 — 🔴 CORREÇÃO DA MINHA PRÓPRIA #5: O PACOTE NÃO FALHOU 42 VEZES. ELE TEVE **UMA** CHANCE.
+
+**Na #5 eu escrevi que `publish_pack_written` estava em zero "com 42 e-mails de
+filme pronto em 24 h". A frase está errada, e o erro é meu.** Aqueles 42 e-mails
+**nunca passam pelo código do pacote.** Fui atrás do log e a arquitetura é outra.
+
+### Existem DOIS e-mails de "filme pronto", e só um deles carrega o pacote
+
+| caminho | quem dispara | 24 h | 7 d | leva o pacote? |
+|---|---|---:|---:|---|
+| **instantâneo** | `app/api/compose/status/[renderId]` (enquanto a tela faz poll) | **41** | **174** | **NÃO** |
+| **resgate** | `cron/send-video-ready` (a cada 30 min) | **1** | **27** | **sim** |
+| pacotes escritos | — | — | — | **0** |
+
+`grep -rn "video_ready_email_sent"` resolve em uma linha: quem emite o evento é
+`compose/status/[renderId]/route.ts:1144`, **não** o cron. Os 42 que eu contei
+são do caminho instantâneo, que não chama `garantirPacote` nem uma vez.
+
+**A conclusão certa:** o pacote está pendurado no caminho que alcançou **1
+pessoa em 24 h** — e como ele subiu às 11:56 UTC, teve **cerca de uma
+oportunidade na vida**. Não há evidência de que `garantirPacote` esteja
+quebrado. **Eu tratei "0 escritas" como "0 de 42 tentativas" quando era "0 de
+~1".** Denominador errado, de novo, e desta vez o meu.
+
+### O que continua VÁLIDO da #5, e por quê
+
+- **Tirar a frase pública foi certo, e continua certo.** Zero clientes
+  receberam o pacote. O motivo mudou (alcance, não defeito); o fato público
+  ainda seria falso.
+- **A instrumentação continua certa** — e agora é a única maneira de saber, já
+  que a oportunidade é rara: quando o resgate finalmente sair, o motivo (ou o
+  sucesso) fica gravado. Sem ela, a próxima sessão herdaria o mesmo enigma com
+  um denominador de 1.
+- **Parei de caçar bug em `garantirPacote`.** Lendo `prepararPacote` e o cron
+  eu não achei nenhuma porta que feche sempre — e agora sei por quê: **não há
+  bug a achar**, há alcance a corrigir.
+
+### E o segundo achado, que veio do mesmo log
+
+O resgate não é só pequeno por desenho — ele está sendo **calado**. Toda
+execução das últimas 3 h:
+
+```
+00:40  [lifecycle-suppression] 18/18 suprimido(s) — e-mail de ciclo de vida nas últimas 24h
+00:10  [lifecycle-suppression] 19/19 suprimido(s)
+23:40  [lifecycle-suppression] 19/19 suprimido(s)
+23:10  [lifecycle-suppression] 18/18 suprimido(s)
+```
+
+**Todos os candidatos, em todas as execuções.** O que ganha a colisão é a
+máquina de trial: **118 e-mails em 24 h** (`ending_soon` 28, `d0_welcome` 26,
+`downgraded_loss` 24, `expired_lastcall_d10` 20, `expired_offer_d5` 20), de hora
+em hora, contra um resgate que fala com 27 pessoas por semana.
+
+Isto é **exatamente** o padrão que `lib/lifecycle/suppression.ts` já documenta
+para o `send-recovery` — *"o e-mail genérico e horário vence a carta específica
+e rara"* — e a casa **já construiu o remédio**: `HOT_LEAD_SUPPRESSION_HOURS = 4`,
+uma janela curta e opcional para jobs cuja coorte é sinal de compra. Ele nunca
+foi aplicado ao video-ready.
+
+> ⚠️ **NÃO MEXI NISSO, de propósito.** Mudar precedência de e-mail aumenta o
+> volume que sai para clientes reais durante a madrugada, sem o fundador. É
+> decisão dele, não de sessão autônoma — e o ganho é pequeno de qualquer forma:
+> mesmo desbloqueado, o resgate fala com quem **não** baixou, que é a coorte
+> menos interessada.
+
+### O que isto DECIDE — e reforça o Pedido 1
+
+O pacote não pode viver em e-mail nenhum:
+
+- no **instantâneo**, uma chamada de modelo de até 12 s bloquearia o poll e
+  faria a tela parecer travada no minuto exato em que o filme fica pronto
+  (a razão, correta, que a #22 já tinha registrado);
+- no **resgate**, ele alcança 4 pessoas por semana e ainda é suprimido.
+
+**Sobra a tela — e só ela.** É a única superfície que alcança as **217** pessoas
+com filme pronto, **incluindo as 94 que baixaram** e por isso nunca recebem
+e-mail nenhum. `docs/PEDIDOS-CODEX-2026-09-06.md`, Pedido 1, deixa de ser
+"melhoria" e passa a ser **o único caminho existente** para a única alavanca de
+aquisição que a casa puxa sozinha.
