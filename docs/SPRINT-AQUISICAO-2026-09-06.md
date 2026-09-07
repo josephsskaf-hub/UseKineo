@@ -455,3 +455,46 @@ que `publish_pack_written` deixar de ser zero.
 tratado "está no código, com teste e comentário" como prova de entrega, a Kineo
 estaria hoje anunciando para todo motor de resposta um recurso que **nenhum
 cliente recebeu**. **Fato público exige evento, não arquivo.**
+
+---
+
+## ✅ PROVA DE PONTA A PONTA DA #1 — chegou às 00:21 UTC
+
+O primeiro visitante pós-deploy gravou o evento novo. Linha real do banco:
+
+```
+created_at  2026-09-07 00:21:49 UTC
+path        /signup
+metadata    { "referrer_host": null, "utm_source": null, "surface": null,
+              "source": null, "source_known": false }
+```
+
+Os **cinco** campos presentes. Esta pessoa chegou **sem fonte nenhuma** —
+direto, sem referrer e sem utm — e o instrumento diz isso **explicitamente**,
+com `source_known: false`. Antes da #1 esse caso era indistinguível de "nós não
+olhamos". **Agora "não sabemos" é um dado, não uma lacuna.** A #1 está provada
+nos três níveis: código, bundle servido e linha no banco.
+
+## ✅ Correção da #5 em produção
+
+`curl /llms.txt` → **0 ocorrências** de "Publishing pack"; `curl /api/facts` →
+**0 ocorrências** de `publishPack`. E o controle na mesma medição: a seção
+*"What happens after a video is finished"* e a frase *"writes the next 5
+episodes"* **continuam lá**. Como a #2 subiu as duas linhas **juntas**, o pacote
+ter sumido e a temporada ter ficado **prova** que o deploy da #5 chegou.
+
+## 📊 Praxe — 24h até 00:26 UTC
+
+| medida | valor |
+|---|---:|
+| cadastros (externos) | 35 |
+| filmes | 42 · **42 concluídos** |
+| render preso >40 min | **0** |
+| cadastro nascido sem crédito | **0** |
+| `next_episode_failed` | **0** |
+| checkout | 2 |
+| **payment_success** | **0** |
+| conta nova sem fonte | 2 |
+
+**A fábrica está impecável — 42 de 42 — e o funil comercial continua fechado.**
+É o mesmo quadro do ciclo anterior, e é a razão de este ciclo ser de aquisição.
