@@ -133,12 +133,28 @@ order by pessoas desc;
 -- ═══════════════════════════════════════════════════════════════════════════
 -- COBERTURA DA ATRIBUIÇÃO — quanto do tráfego anônimo tem fonte conhecida.
 -- Só faz sentido para eventos posteriores a 5411b6be (06/09 ~23:50 UTC).
--- Linha de base antes da correção: 40 de 320 em 24h = 12,5%. Alvo: >70%.
+-- ⚠️ CORRIGIDO EM 07/09 02:00 UTC — O DENOMINADOR "TODAS AS SESSÕES" ESTÁ ERRADO.
+-- Medido em 14 dias: **50,4% dos pousos** (1.817 de 3.608) caem em superfície
+-- INTERNA/RETORNO — /signup, /login, /studio, /admin, /history… — e apenas
+-- **0,9%** deles tem referrer, corretamente: é gente que JÁ está no funil e
+-- chega por marcador, e-mail ou navegação interna. Não há fonte externa a
+-- gravar. Sobre todas as sessões o teto aritmético é ~50%, então a meta de
+-- ">70%" que eu publiquei era inatingível mesmo com o instrumento perfeito.
+--
+-- A MÉTRICA CERTA é a cobertura entre pousos de AQUISIÇÃO (página pública).
+-- Base medida lá: **35,7%** só com referrer. O ganho da correção vem de quem
+-- chega SEM referrer e COM utm — 108 dos 188 cadastros do ChatGPT em 14 dias.
+-- Alvo: **>70% dos pousos de aquisição**.
 -- ═══════════════════════════════════════════════════════════════════════════
 --
--- select count(*)                                                   sessoes,
---        count(*) filter (where metadata ? 'source_known')          instrumentadas,
+-- select count(*)                                                    sessoes,
+--        count(*) filter (where metadata ? 'source_known')           instrumentadas,
 --        count(*) filter (where (metadata->>'source_known') = 'true') com_fonte
 --   from events
 --  where name = 'landing_session_started'
---    and created_at > '2026-09-06 23:38:00+00'::timestamptz;
+--    and created_at > '2026-09-06 23:38:00+00'::timestamptz
+--    -- ⚠️ O FILTRO NÃO É OPCIONAL: sem ele, metade da amostra é /signup e
+--    -- /studio, que nunca terão fonte, e a taxa nasce diluída pela metade.
+--    and path not like '/admin%'
+--    and path not in ('/signup','/login','/forgot-password','/studio','/studio/create',
+--                     '/history','/library','/images','/audio','/avatar','/animate','/unsubscribe');
