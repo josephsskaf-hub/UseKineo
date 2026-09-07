@@ -3369,3 +3369,174 @@ promete "twelve films" com 25 créditos enquanto a tabela logo abaixo, derivada 
 código, mostra **5** para o Kineo 1 — copy que mente, e o número tem de sair do
 helper, nunca digitado. E as duas portas PT/ES servem `<html lang="en">`.
 
+
+## 🏁 FECHAMENTO DO CICLO — 04:38 BRT 07/09 (janela 20:38 06/09 → 04:38 07/09)
+
+Este fechamento é escrito **na hora**, não antes — a lição do #18b, quando o
+fechamento saiu 3h50 cedo e a noite continuou depois dele.
+
+### (a) O mapa de entrada final — 14 dias, contas externas
+
+| fonte | cadastros | com filme | **pagou** |
+|---|---|---|---|
+| chatgpt | 198 | 127 | **2** |
+| taaft | 93 | 66 | 0 |
+| (sem fonte) | 53 | 11 | 0 |
+| nav (interno) | 12 | 8 | 0 |
+| **google** | **5** | **1** | **0** |
+| outro | 4 | 3 | 0 |
+| bing | 2 | 1 | 0 |
+| perplexity | 1 | 1 | 0 |
+| engine_bento · partners · script_library · seo | 1 cada | — | 0 |
+
+Nas 24h: **42 cadastros → 31 filmes → 7 segundos filmes → 3 checkouts → 0
+pagamentos**. Na janela do ciclo (7h30): 10 cadastros, 4 filmes.
+
+**A leitura que o ciclo fecha:** o ChatGPT não é *uma* fonte, é **a** fonte
+(53% dos cadastros, 100% dos pagamentos). O Google é o buraco — e a auditoria
+desta noite provou que **o buraco não está no nosso servidor** (ver c). O TAAFT
+traz gente que faz filme (66 de 93, 71%) e não paga nenhuma vez em 14 dias.
+
+### (b) O que entrou em produção, e o que cada peça faz por quem chega
+
+| SHA | peça | o que muda |
+|---|---|---|
+| `c94b140a` | **carência de cobrança** | assinante com cartão recusado na renovação **para de perder o plano na hora**. A Stripe repete por dias; a casa passa a esperar. Sonda: `/` e `/pricing` 200, controle 404 |
+| `1b4db6d3` | guardião do `/tools` | 3 vermelhos antigos eram copy de ontem + armadilha de CRLF, não defeito. **34/37 → 39/39** |
+| `7e11fef3` | **FAQ só onde é visível** | 187 páginas paravam de marcar um FAQ invisível. Provado com antes/depois na mesma sonda: `/pricing` **2 → 0**, `/vs/opus-clip-vs-submagic` **4 → 2**, `/` intacta em 2, controle 404 |
+| `69255d4f` · `4e7e5344` | diários | — |
+| `710fad76` | **copy que mente** | `/models-pricing` prometia **doze** filmes com o trial e a tabela dizia **cinco**. Provado: `that is twelve films` → `that is 5 films`, http 200, controle 404 |
+
+**A entrega principal da noite é a primeira, e ela não é aquisição — é o ralo.**
+
+### O ralo tinha quase a vazão da torneira
+
+O `CLAUDE.md` afirma que a tabela `events` **nunca** teve um
+`checkout_payment_failed`. **Deixou de ser verdade.** Existem 3, com metadata
+`stripe_checkout_failure_v1`, e **duas são renovação de quem já pagava**:
+US$ 24,90 (AU) em 04/09 e US$ 9,90 (NG) em 03/09, as duas `insufficient_funds`.
+As duas pessoas hoje: `plan='free'`, **0 eventos** depois da recusa, **0 e-mails**,
+nunca voltaram. ~US$ 34,80/mês de uma base de ~US$ 109 com 7 pagantes.
+
+A causa era nossa: os dois pontos do webhook que revogam acesso escreviam
+`status === 'active' || 'trialing'` à mão, e `past_due` — o estado onde a
+repetição da Stripe **começa** — ficava de fora. A casa desistia do cliente
+antes da cobradora desistir. A contradição que provou: `mrr.ts:120` **já**
+contava `past_due` como receita viva. O painel dizia pagante, o produto dizia
+grátis, no mesmo minuto.
+
+**A conclusão de preço do fundador NÃO foi reaberta.** Isto não é sobre quem
+acha caro na página de pagamento; é sobre quem **já tinha comprado**.
+
+### (c) O que o ChatGPT e o Google passam a poder citar
+
+Nenhuma página nova nesta parte da noite — e a razão é um achado, não uma falha
+de entrega. O Q4 foi respondido **com denominador**: as **189 URLs do sitemap**
+baixadas como Googlebot **e** como navegador. 189/189 dão **200**, byte a byte
+iguais para os dois (não há ramo de robô); **o texto vem no HTML servido** — a
+hipótese "conteúdo só no cliente" que a rotação anterior levantou é **falsa**;
+canonical para si mesma; zero `noindex`; zero `X-Robots-Tag`; 188 títulos
+distintos; robots.txt correto; 6 domínios alternativos com 308 para o canônico.
+Das 79 páginas públicas estáticas, 67 no sitemap e **as 12 de fora são
+intencionais**. Três rotas inventadas deram 404 na mesma medição.
+
+O **único** defeito de servidor que isso escondia era o FAQ invisível em 187
+páginas — corrigido e provado. Depois dele, **não sobrou nada de técnico para
+consertar**. A alavanca do Google deixa de ser código e passa a ser
+**autoridade de domínio**: link externo, review, diretório, imprensa. A pista
+que sustenta isso: somos achados por motor de **resposta** (Bing 1, Perplexity
+1) e ignorados por busca clássica (Google 0).
+
+### (d) Só você pode fazer — script para o Cowork
+
+```
+1. Stripe → Settings → Billing → Subscriptions and emails:
+   confirmar se SMART RETRIES esta ligado e por quantos dias. O conserto de
+   ontem segura o acesso pela janela da Stripe; se essa janela estiver
+   desligada, ela e zero e nao ha o que segurar.
+2. No mesmo lugar, ligar o e-mail automatico de "pagamento falhou".
+3. Search Console → Paginas (Indexacao): anotar Indexadas / Nao indexadas e,
+   dentro de nao indexadas, quantas sao "Detectada, mas nao indexada" e
+   quantas "Rastreada, mas nao indexada". Ultimo dado que temos e de 12/08:
+   704 detectadas-nao-indexadas, 0 impressoes em 28 dias.
+4. Search Console → Seguranca e acoes manuais → Acoes manuais. Se houver
+   "Dados estruturados com spam", era o FAQ invisivel que subiu corrigido
+   ontem — pedir revisao AGORA que o deploy ja esta no ar.
+5. Search Console → Sitemaps: confirmar sitemap.xml com status "Exito" e 189
+   URLs. Se estiver antigo, reenviar.
+6. Search Console → Inspecao de URL em /chatgpt e /ai-video-generator/kling-3
+   → "Testar URL ativa" → "Solicitar indexacao".
+7. TAAFT: conferir se a listagem corrigida (25 creditos, $7, 8 motores) ja
+   apareceu. 93 cadastros e 0 pagamentos em 14 dias e o numero a bater.
+```
+
+### (e) Placar do ciclo
+
+- **5 entregas em produção**, cada uma com sonda e controle 404.
+- **3 guardiões** novos ou consertados: 39/39, 28/28, 7/7 — **15 mutantes**
+  escritos e reprovados, todos com contagem de ocorrências antes/depois
+  provando que a mutação foi de fato aplicada.
+- **0 pagamentos** na janela. **2 assinantes recuperáveis** deixaram de poder
+  se perder do mesmo jeito.
+- Checagem zero limpa: 0 render preso, 0 `next_episode_failed`, 12 erros de
+  geração em 8 causas distintas (nenhuma sistêmica), e o alarme de "conta sem
+  crédito" era **de novo** a fazenda `@live.com` sendo bloqueada corretamente —
+  terceira vez em três rotações que o predicado ingênuo teria premiado farmador.
+
+### (f) O que a próxima sessão faz primeiro
+
+**A carta de cartão recusado — mas só quando houver a quem mandar.** O conserto
+de ontem impede a perda automática; falta avisar a pessoa. A coorte HOJE é
+inviável: das duas vítimas, uma está na lista de não-enviar e a outra usa
+domínio descartável. **Construir a carta agora seria construir superfície sem
+público** — o erro que este projeto já catalogou quatro vezes. O certo é deixar
+o gatilho pronto e disparar no **próximo** `checkout_payment_failed` de
+renovação, medindo com:
+
+```sql
+select name, count(*), max(created_at) from events
+where name in ('subscription_access_held_during_dunning','checkout_payment_failed')
+  and created_at > '2026-09-07 06:30:00+00' group by 1;
+```
+
+Depois disso, a fila em ordem de dinheiro: (1) por que **66 pessoas do TAAFT
+fizeram filme e nenhuma pagou** — é a maior coorte com produto entregue e zero
+receita da casa; (2) os SKUs pequenos que já existem e estão desligados
+(`starter290`, First Pack), com a spec e a margem já escritas no #18 — falta
+uma palavra do fundador; (3) autoridade de domínio, agora que o SEO técnico
+está provado limpo.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+1. **Stripe → Settings → Billing:** ligar/conferir **Smart Retries** e o e-mail
+   automático de pagamento falhou. Sem isso o conserto de ontem não tem janela
+   para segurar.
+2. **Search Console → Ações manuais:** se aparecer "dados estruturados com
+   spam", pedir revisão — a causa subiu corrigida esta madrugada.
+3. **Search Console → Páginas:** me diga os 4 números (indexadas, não
+   indexadas, detectada-não-indexada, rastreada-não-indexada). É a única coisa
+   que falta para fechar o Google, e só você enxerga.
+4. **Decidir os SKUs pequenos** (`starter290` $2,90 / First Pack $4,90): a spec
+   e a margem estão prontas no diário desde o #18. Uma palavra liga.
+
+## 📋 O QUE ACONTECEU
+
+A noite começou procurando gente nova na porta e terminou achando um ralo do
+mesmo tamanho da torneira. A Kineo estava **perdendo assinantes em silêncio**:
+quando o cartão de um cliente falha na renovação, a Stripe tenta de novo por
+dias, mas a casa já derrubava a conta para o plano grátis na primeira recusa,
+zerava os tokens e não avisava ninguém. Dois clientes foram embora assim em
+cinco dias — cerca de um terço da receita recorrente — enquanto o seu painel
+ainda os contava como pagantes. Isso está consertado e no ar.
+
+Junto disso: a auditoria do Google fechou com 189 páginas medidas uma a uma e
+o veredito de que **o problema não é o nosso servidor** — o único defeito era um
+FAQ marcado em 187 páginas onde ele não aparece, o que é exatamente o tipo de
+coisa que rende punição silenciosa; já saiu. E `/models-pricing` parou de
+prometer doze filmes grátis quando a própria tabela da página dizia cinco.
+
+Nada disso apareceu por acaso: apareceu porque um evento que o `CLAUDE.md`
+jurava não existir passou a existir e ninguém tinha olhado. Vale atualizar essa
+linha do documento.
+
+---
