@@ -1194,7 +1194,7 @@ function escapeHtmlText(v: string): string {
     .replace(/"/g, '&quot;')
 }
 
-function buildEmail(c: Candidate): { subject: string; text: string; html: string; body?: LossBody } {
+function buildEmail(c: Candidate): { subject: string; text: string; html: string; body?: LossBody; trialDoor?: boolean } {
   const footerText = emailFooterText(c.id)
   const footerHtml = emailFooterHtml(c.id)
   // KINEO-D0-EMAIL-REVIEW-2026-08-07 — 480px → 560px: o rodapé de
@@ -1630,6 +1630,10 @@ ${fbuLineHtml}  <p style="margin:0 0 14px;">You can still make one on the <stron
           text: `${nrText}${footerText}`,
           html: nrHtml,
           body: lossBodyFor({ neverRan: true, burnedWithFilm: false }),
+          // Carimbo FALSO explícito, nunca ausência: sem ele o denominador da
+          // porta vira "as linhas que têm o campo", e quem foi deliberadamente
+          // deixado de fora some da conta (memória `sentinela-lido-como-valor-real`).
+          trialDoor: false,
         }
       }
     }
@@ -1655,6 +1659,38 @@ ${fbuLineHtml}  <p style="margin:0 0 14px;">You can still make one on the <stron
       const plansUrl = `${APP_URL}/pricing?${utm('trial_loss_burned_film')}`
       const rows = filmsPerPlan(c.lastCost)
       const ep2b = episodeTwoBlock(c.lastTopic, 'trial_loss_burned_film_episode2', 'lifecycle_loss_email', attr)
+      // ═══ KINEO-PORTA-NO-MOMENTO-DA-PERDA-2026-09-07 (va-r6) ═══════════════
+      // A porta de entrada paga entra AQUI, no minuto da perda — e não só no
+      // D5/D10, onde a va-r3/va-r4 a instalou algumas horas atrás.
+      //
+      // O NÚMERO QUE MANDOU FAZER ISTO (medido nesta rotação, 60d, no campo
+      // `utm_campaign` e com controle rodado — o campo tem 1.073 chegadas e 25
+      // campanhas distintas, então um zero aqui seria zero de verdade):
+      //   · `downgraded_loss` .......... 686 envios / 676 pessoas
+      //   · `expired_offer_d5` + `d10` .. 1.006 envios → 6 visitantes distintos
+      //   · e a janela em que a casa realmente vende: dos 12 pagantes dos
+      //     últimos 90 dias, DEZ pagaram em menos de 48h do cadastro. O D10
+      //     alcançou 1 deles (247h) e o outro comprou no dia 16, depois de uma
+      //     review cobrada duas vezes. A carta que fala com a pessoa NO
+      //     instante em que ela perde os créditos ainda está dentro da janela;
+      //     as duas que ganharam a porta hoje de tarde já estão fora dela.
+      //
+      // ⚠️ A PORTA ABRE PARA ESTA COORTE — LIDO NO COBRADOR, NÃO DEDUZIDO
+      // (memória `vitrine-oferece-o-que-o-cobrador-recusa`): o único gate de
+      // `?trial=1` é `profile.has_paid === true`. Trial que acabou de morrer e
+      // nunca pagou tem `has_paid` falso — a porta abre. Se o gate mudar, o
+      // guardião `test-porta-1-dolar-no-momento-da-perda.mjs` fica vermelho.
+      //
+      // ⚠️ O QUE NÃO MUDA: `/pricing` continua no e-mail, a tabela de filmes
+      // por plano continua byte a byte, o episódio 2 continua, e o ramo
+      // `neverRan` NÃO recebe porta nenhuma — quem nunca viu um filme sair não
+      // tem objeção de preço, tem objeção de prova (a mesma decisão que o
+      // D5/D10 tomou, e ela está certa).
+      //
+      // ⚠️ NENHUM VALOR DIGITADO: a frase inteira sai de `TRIAL_ENTRY_LINE`,
+      // que lê a constante do cobrador. Se o fundador mudar a taxa amanhã,
+      // estas duas cartas mudam sozinhas.
+      const lossTrialUrl = trialEntryUrl('trial_1usd_loss_burned')
       const madeLine = c.videosMade === 1
         ? `the ${noun} you made is in your Library — yours to keep`
         : `the ${c.videosMade} videos you made are in your Library — yours to keep`
@@ -1672,6 +1708,9 @@ ${libraryUrl}
 Here's what closed with the trial:
 
 ${bullets.map((b) => `- ${b}`).join('\n')}
+
+The cheapest way back in is ${TRIAL_ENTRY_LINE}. Cancel anytime.
+${lossTrialUrl}
 ${plansText}
 See the plans: ${plansUrl}
 ${ep2b ? `\n${ep2b.text}\n` : ''}
@@ -1685,6 +1724,8 @@ usekineo.com`
   <ul style="margin:0 0 14px;padding-left:20px;color:#475569;">
     ${bullets.map((b) => `<li>${b}</li>`).join('\n    ')}
   </ul>
+  <p style="margin:0 0 14px;">The cheapest way back in is <strong>${escapeHtmlText(TRIAL_ENTRY_LINE)}</strong>. Cancel anytime.</p>
+  ${cta(lossTrialUrl, `Start the ${CARD_TRIAL_DAYS}-day Creator trial`)}
 ${plansHtml}  ${cta(plansUrl, 'See the plans')}
 ${ep2b ? `${ep2b.html}\n` : ''}  ${sig}`)
       return {
@@ -1694,6 +1735,7 @@ ${ep2b ? `${ep2b.html}\n` : ''}  ${sig}`)
         text: `${bText}${footerText}`,
         html: bHtml,
         body: lossBodyFor({ neverRan: false, burnedWithFilm: true }),
+        trialDoor: true,
       }
     }
 
@@ -1701,6 +1743,11 @@ ${ep2b ? `${ep2b.html}\n` : ''}  ${sig}`)
     // video (o ramo `neverRan` acima nao passa por aqui: quem nunca terminou um
     // video nao tem episodio 2, e ja recebe os temas de 1 clique do pool).
     const ep2 = episodeTwoBlock(c.lastTopic, 'trial_loss_episode2', 'lifecycle_loss_email', attr)
+    // A mesma porta do ramo acima, mesma fonte de valor, CAMPANHA PRÓPRIA — um
+    // campo que aparece em duas superfícies nasce de UMA variável POR
+    // superfície, senão os cliques dos dois ramos caem no mesmo balde e a
+    // pergunta "qual carta move a pessoa" fica sem resposta (a lição do #26).
+    const lossTrialUrl = trialEntryUrl('trial_1usd_loss')
 
     // #11 — a frase "the videos you already made" e verdadeira para quem tem
     // linha em `videos`. Para quem so tem clipes/imagens/audios, a frase
@@ -1722,6 +1769,9 @@ ${bullets.map((b) => `- ${b}`).join('\n')}
 
 ${keptText}
 
+The cheapest way back in is ${TRIAL_ENTRY_LINE}. Cancel anytime.
+${lossTrialUrl}
+
 If the trial was doing its job, Creator picks up exactly where it left off: ${url}
 ${ep2 ? `\n${ep2.text}\n` : ''}
 Kineo Team
@@ -1733,6 +1783,8 @@ usekineo.com`
     ${bullets.map((b) => `<li>${b}</li>`).join('\n    ')}
   </ul>
   <p style="margin:0 0 14px;">${keptHtml}</p>
+  <p style="margin:0 0 14px;">The cheapest way back in is <strong>${escapeHtmlText(TRIAL_ENTRY_LINE)}</strong>. Cancel anytime.</p>
+  ${cta(lossTrialUrl, `Start the ${CARD_TRIAL_DAYS}-day Creator trial`)}
   <p style="margin:0 0 14px;">If the trial was doing its job, Creator picks up exactly where it left off:</p>
   ${cta(url, 'Get Creator back')}
 ${ep2 ? `${ep2.html}\n` : ''}  ${sig}`)
@@ -1741,6 +1793,7 @@ ${ep2 ? `${ep2.html}\n` : ''}  ${sig}`)
       text: `${text}${footerText}`,
       html,
       body: lossBodyFor({ neverRan: false, burnedWithFilm: false }),
+      trialDoor: true,
     }
   }
 
@@ -2546,6 +2599,10 @@ export async function GET(req: NextRequest) {
             videos_made: c.videosMade,
             credits_lost: c.creditsLost,
             ...(body.body ? { body: body.body } : {}),
+            // KINEO-PORTA-NO-MOMENTO-DA-PERDA-2026-09-07 — carimbo do deploy.
+            // Linha SEM o campo é de antes e não se mistura na medição
+            // (memória `campo-novo-e-o-carimbo-do-deploy`).
+            ...(body.trialDoor === undefined ? {} : { trial_door: body.trialDoor }),
           },
         })
         console.log(`[trial-lifecycle-emails] sent ${c.kind} to ${c.email}`)
