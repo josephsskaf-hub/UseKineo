@@ -1291,3 +1291,109 @@ ar. O que descobri medindo é que isso não era ideia nova — 59 pessoas em 14 
 já vinham colando ordens de chatbot no Studio, 40 tiraram filme daquilo e
 nenhuma pagou. Agora existe um caminho certo para elas, e um número que diz, pela
 primeira vez, qual assistente escreveu o roteiro que chegou aqui.
+
+---
+
+### #9 — 07/09 00:2x→01:0x — **EM PRODUÇÃO**: a página tinha porta em nenhum lugar, e o plano mandava abrir uma que mede 2
+
+**SHA `5305bb07` — EM PRODUÇÃO** (`git ls-remote origin main` bate).
+
+A `/chatgpt` subiu na rotação passada e só era alcançável por link direto. O
+plano (G10) mandava dar-lhe porta em **duas** superfícies: o e-mail de filme
+pronto **e a faixa de temporada**. Antes de codar eu medi o alcance real das
+duas, em pessoas distintas, 7 dias, no banco de produção:
+
+| superfície | pessoas / 7d |
+|---|---|
+| `video_ready_email_sent` — e-mail de filme pronto | **120** |
+| `pasted_directives_detected` — colou uma ORDEM de chatbot no Studio | **21 em 3 dias** |
+| `season_shown` — faixa de temporada | **2** |
+
+**A faixa de temporada não ganhou porta.** Ligar a melhor peça do ciclo numa
+superfície que 2 pessoas viram em 7 dias é o erro que a memória
+`medir-alcance-da-superficie-antes-de-ligar` já cobrou duas vezes em 06/09. O
+guardião **afirma** que `SeasonStrip.tsx` não aponta para `/chatgpt` — a decisão
+está travada em teste, não só escrita aqui.
+
+No lugar dela entrou a superfície que a medição encontrou e o plano não citava.
+
+#### PORTA A — o aviso de instrução colada (a maior INTENÇÃO da casa)
+
+21 pessoas em 3 dias colaram no Studio uma ordem para um chatbot ("write me a
+script about…") em vez de um roteiro. Essa é **exatamente** a pessoa para quem a
+`/chatgpt` foi construída: ela quer que uma IA escreva o roteiro, e só colou no
+lugar errado. Até agora a casa dizia isso a ela e **parava** — aviso de texto,
+nenhuma saída. Agora o aviso tem link.
+
+Só o ramo `command_to_chatbot` ganha o CTA. Quem colou a **resposta** do chatbot
+(`labeled_script`) já tem o roteiro na mão; mandá-la buscar um prompt seria
+empurrá-la para trás. O guardião amarra isso ao ramo, não ao texto.
+
+O clique tem **evento próprio** (`instruction_notice_cta_clicked`) porque o UTM
+de sessão é *first-touch*: quem chegou do ChatGPT já tem o campo ocupado e a
+chegada por UTM mentiria sobre esta porta. O evento é a medição real.
+
+#### PORTA B — o e-mail de filme pronto (o maior ALCANCE)
+
+Bloco incondicional em todo envio, para que o denominador seja o próprio
+`video_ready_nudge_sent` — sem metadata nova para inventar. Assunto,
+destinatário e cadência **intactos** (o guardião checa `READY_EMAIL_GAP_MS`,
+idade mínima/máxima e o gate de lifecycle).
+
+**A decisão que evitou um defeito:** o link sai de um montador único e usa
+`utm_source=lifecycle`, não um `utm_source` novo. `lib/lifecycle/emailReturnDoor.ts`
+define `OUR_EMAIL_UTM_SOURCES = {'lifecycle'}` como a **única** etiqueta de
+e-mail da casa — um segundo padrão aqui quebraria, no mesmo dia, o portão de
+retorno que a outra pista acabou de consertar (`c1b0c46d`, o clique de inbox que
+chegava sem cookie). A identidade da porta fica em
+`utm_campaign=video_ready_chatgpt`.
+
+#### COMO PROVAR
+
+`scripts/test-chatgpt-porta.mjs` — **49 verificações**, estilo `readFileSync` do
+arquivo real (sem alias `@/`, que mata 72 testes desta casa antes da primeira
+asserção), amarradas à **condição** e não à contagem de texto. Falsificado com
+**10 mutantes escritos no arquivo real** — href trocado · utm removido · CTA
+movido de ramo · nome do evento trocado · gate virado `true` · CTA tornado
+incondicional · `utm_source` trocado · bloco removido do template · bloco
+condicionado · link cru digitado fora do montador — **todos vermelhos**, todos
+relidos do disco para provar que a escrita aconteceu (mutante não escrito
+devolve verde e mente), todos restaurados com sha256 conferido.
+`npx tsc --noEmit` **exit 0** · `test-instruction-paste-notice` **48/48**.
+
+**Fronteira servidor/cliente:** `instructionPasteNotice.ts` continua com **zero
+imports** — é carregado por componente `'use client'`, e o `tsc` não vê essa
+fronteira (já quebrou o build da Vercel nesta casa).
+
+#### SONDAS
+
+`git ls-remote origin main` = `5305bb07` · `/chatgpt` **200** com controle
+`/chatgpt-nao-existe-xyz` **404** na mesma medição · home **200**.
+
+#### RISCO, dito sem maquiagem
+
+O e-mail de filme pronto ganhou **mais um** bloco. Ele já carrega rodapé de
+saldo, oferta de pacote e convite de publicação; um e-mail com quatro pedidos
+converte pior que um com um. Não mexi na ordem nem tirei nada de ninguém — a
+prioridade entre os blocos é decisão de dono, não minha. O número que diz se
+isso azedou é a taxa de clique dos blocos antigos depois de hoje.
+
+#### PRÓXIMO PASSO
+
+Sonda de bundle da Porta A (o CTA é código de cliente: a prova é o texto do CTA
+aparecer no JS servido, com controle), e o SQL do funil ganhar as duas portas
+como origem — `paste_notice` e `video_ready_chatgpt` — para o fechamento das
+05:00 dizer qual das duas trouxe gente.
+
+✅ **O QUE VOCÊ PRECISA FAZER**
+1. **Nada.** Subiu sozinho, sondado, e nada muda de preço, de cadência ou de
+   quem recebe e-mail.
+
+📋 **O QUE ACONTECEU**
+A página que ensina o cliente a usar o ChatGPT para escrever o roteiro dele
+existia e não tinha porta em lugar nenhum. Agora tem duas: a maior em alcance
+(o e-mail de "seu filme está pronto", 120 pessoas por semana) e a maior em
+intenção (o aviso que aparece exatamente quando alguém cola uma ordem de
+chatbot no Studio — 21 pessoas em 3 dias, gente que já está tentando fazer isso
+sozinha e errando). A terceira porta que o plano pedia, a faixa de temporada,
+**não** foi aberta: medi antes e ela alcança 2 pessoas por semana.
