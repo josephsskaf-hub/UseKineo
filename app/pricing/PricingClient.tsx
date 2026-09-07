@@ -95,6 +95,12 @@ import {
 // "pay with PayPal" buttons are gated behind this flag. Flip to `true` to
 // re-enable everywhere at once. Stripe checkout is unaffected.
 const PAYPAL_ENABLED = false
+// KINEO-TRIAL-1DOLAR-LIGADO-2026-09-07 — ordem do fundador: "liga o trial de 1
+// dolar". O servidor (app/api/stripe/checkout, CARD_TRIAL_ENABLED) ja aceita
+// ?trial=1 no Creator mensal; este e o UNICO botao que leva la. Quem ja pagou
+// cai no checkout normal (o servidor decide, nao a tela).
+const CARD_TRIAL_LINK_ENABLED = true
+const CARD_TRIAL_CHECKOUT_URL = '/api/stripe/checkout?tier=basic&billing=monthly&trial=1&intent_campaign=trial_1usd'
 
 // Push #099 — FAQ entries shown below the pricing comparison table. Pure
 // content array so the accordion renders from one source of truth.
@@ -1104,6 +1110,21 @@ export default function PricingClient() {
                     Same GET-redirect pattern as handleBuy, zero Stripe changes.
                     USD-only — PayPal converts for the buyer.
                     Hidden until verified working (PAYPAL_ENABLED). */}
+                {CARD_TRIAL_LINK_ENABLED && billing === 'monthly' && p.tier === 'basic' && (
+                  <button
+                    type="button"
+                    data-testid="creator-trial-1usd"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      const started = checkout.launch('basic', CARD_TRIAL_CHECKOUT_URL, { tier: 'basic', billing: 'monthly', intro: false, pricing_surface: 'pricing_page' })
+                      if (!started) return
+                      void trackEvent('pricing_trial_1usd_clicked', { tier: 'basic', billing: 'monthly' })
+                    }}
+                    className="mt-2 block w-full rounded-xl border border-[#2997ff]/40 bg-[#2997ff]/[0.08] px-4 py-2.5 text-center text-[13px] font-bold text-[#7cc0ff] transition hover:bg-[#2997ff]/[0.16]"
+                  >
+                    or try Creator for 7 days — $1, then $15/mo →
+                  </button>
+                )}
                 {PAYPAL_ENABLED && isPaid && (
                   <button
                     type="button"

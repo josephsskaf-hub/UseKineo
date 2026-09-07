@@ -321,6 +321,14 @@ export function netAfterStripeUsd(grossUsd: number): number {
 // daily Short (30 Fast renders = 30 credits) leaves the customer plenty of
 // manual headroom without ever letting the plan go underwater: even if all 400
 // were burned on Seedance the COGS is $46.80 against ~$290 net.
+// KINEO-TRIAL-1DOLAR-LIGADO-2026-09-07 — o que o trial PAGO de $1 (7 dias, Creator)
+// concede no ato. O desenho de 20/08 dizia 80 (= 4 filmes Seedance) e o custo
+// aceito era ate $6,44 por trial; o cap do trial GRATIS caiu para 25 depois, e
+// TRIAL_GRANT_CREDITS passou a valer 25 — pagar $1 para receber o mesmo que o
+// gratis da nao faz sentido. Por isso o trial de cartao tem numero proprio.
+// Anti-abuso: 1 por conta (has_paid no checkout) + missing_payment_method=cancel.
+export const CARD_TRIAL_GRANT_CREDITS = 80
+
 export const TIER_CREDITS: Record<CheckoutPlanTier, number> = {
   // ═══ KINEO-PRICING-V6-2026-08-19 — O GRANT FOI RECALIBRADO PELO CONSUMO ═══
   // O preço só pôde cair porque o grant desceu junto, e o grant só pôde

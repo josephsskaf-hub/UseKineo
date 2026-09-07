@@ -13,6 +13,7 @@ import {
   BULK_PACKS,
   PACK_CREDITS,
   TIER_CREDITS,
+  CARD_TRIAL_GRANT_CREDITS,
   isAmbiguousOneTimeUsdAmount,
   isBulkPackId,
   type CheckoutCurrency,
@@ -1308,7 +1309,12 @@ export async function POST(req: NextRequest) {
         // the subscription is in trial. Grant 5 preview credits so the user
         // can experience the product before paying; full credits are granted
         // by the invoice.payment_succeeded handler on Day 4 first charge.
-        const isTrial = session.payment_status === 'no_payment_required'
+        // KINEO-TRIAL-1DOLAR-LIGADO-2026-09-07 — o trial de 7 dias cobra $1 no ato
+        // (add_invoice_items), entao payment_status vem 'paid' e amount_total=100;
+        // o carimbo card_trial na metadata da sessao e o que diz "isto e trial":
+        // concede TRIAL_GRANT_CREDITS agora; o mes cheio entra no dia 8 pela
+        // invoice.payment_succeeded (subscription_cycle), como ja acontecia.
+        const isTrial = session.payment_status === 'no_payment_required' || session.metadata?.card_trial === '1'
         // KINEO-STUDIO-400-2026-07-06 — Studio(pro)=400 (aligned with pricing.ts
         // + UI; was 600 here, 360 there → margin leak). Creator(basic) 240, Starter 50.
         // KINEO-PRICING-V3B-2026-07-10 — Creator $24.90 grants 150 credits
@@ -1341,7 +1347,11 @@ export async function POST(req: NextRequest) {
         // dia — e com razão. O restante do plano entra no dia 8, quando a
         // primeira fatura é paga (invoice.payment_succeeded, caminho que já
         // existe e concede TIER_CREDITS).
-        const creditsToGrant = isTrial ? TRIAL_GRANT_CREDITS : firstMonthCredits
+        // KINEO-TRIAL-1DOLAR-LIGADO-2026-09-07 — trial de cartao ($1) recebe
+        // CARD_TRIAL_GRANT_CREDITS (80); o trial sem cobranca (3 dias, nunca ligado)
+        // continua em TRIAL_GRANT_CREDITS. O mes cheio entra no dia 8.
+        const isCardTrial = session.metadata?.card_trial === '1'
+        const creditsToGrant = isCardTrial ? CARD_TRIAL_GRANT_CREDITS : isTrial ? TRIAL_GRANT_CREDITS : firstMonthCredits
         const subscriptionFulfillmentId = `checkout_fulfilled:${session.id}`
         const publishSubscriptionFulfillment = async (): Promise<void> => {
           const { error: fulfillmentCompleteError } = await supabase

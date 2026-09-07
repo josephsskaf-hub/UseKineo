@@ -1000,8 +1000,14 @@ async function buildAndRedirect(
   // d'água no trial, download limpo só no plano.
   // O código fica INTEIRO e testado. Se em uma semana a marca d'água não mover
   // a conversão, vira `true` e o trial pago sobe em um deploy.
-  const CARD_TRIAL_ENABLED = false
-  const wantsTrial = CARD_TRIAL_ENABLED && req.nextUrl.searchParams.get('trial') === '1' && tier === TRIAL_TIER
+  // KINEO-TRIAL-1DOLAR-LIGADO-2026-09-07 — ordem do fundador as 16:10 BRT: "liga o
+  // trial de 1 dolar". Medido em 30 dias: Creator e o plano MAIS clicado (63
+  // pessoas no checkout) e o que MENOS converte (2 pagaram, 3%). O trial foi
+  // desenhado exatamente para essa pessoa: ja disse "quero o Creator", nao
+  // quer pagar $15 antes de ver. A nota de 20/08 dizia "se em uma semana a
+  // marca d'agua nao mover a conversao, vira true" — 18 dias, 6 pagantes/30d.
+  const CARD_TRIAL_ENABLED = true
+  let wantsTrial = CARD_TRIAL_ENABLED && req.nextUrl.searchParams.get('trial') === '1' && tier === TRIAL_TIER
   const TRIAL_DAYS = 7
   // ═══ KINEO-TRIAL-1DOLAR-2026-08-20 — O TRIAL É PAGO, E DE PROPÓSITO ══════
   // Decisão do fundador depois de eu modelar cinco desenhos lado a lado. O que
@@ -1091,12 +1097,20 @@ async function buildAndRedirect(
   const profileLookup = await readCheckoutProfileWithRetry(async () => {
     const result = await supabase
       .from('profiles')
-      .select('email, stripe_customer_id, is_pro, plan, stripe_subscription_id, paypal_subscription_id, affiliate_id, video_credits, trial_credits_granted, trial_credits_used')
+      .select('email, stripe_customer_id, is_pro, plan, stripe_subscription_id, paypal_subscription_id, affiliate_id, video_credits, trial_credits_granted, trial_credits_used, has_paid')
       .eq('id', user.id)
       .single()
     return { data: result.data, error: result.error }
   })
   const { data: profile, error: profileError } = profileLookup
+  // KINEO-TRIAL-1DOLAR-LIGADO-2026-09-07 — o trial de $1 e porta de ENTRADA:
+  // quem ja pagou alguma vez (has_paid) cai no checkout normal do Creator.
+  // Sem isto um assinante cancelado voltaria a $1 todo mes.
+  if (wantsTrial && (profile as { has_paid?: boolean | null } | null)?.has_paid === true) {
+    wantsTrial = false
+    checkoutMetadata.card_trial_denied = 'has_paid'
+  }
+  if (wantsTrial) checkoutMetadata.card_trial = '1'
   checkoutMetadata.profile_lookup_attempts = profileLookup.attempts
   checkoutMetadata.profile_lookup_recovered = profileLookup.recovered
   failureContext = { ...checkoutMetadata }
@@ -1462,6 +1476,10 @@ async function buildAndRedirect(
       supabase_user_id: user.id,
       tier,
       billing,
+      // KINEO-TRIAL-1DOLAR-LIGADO-2026-09-07 — com o item de $1 a sessao fecha
+      // como 'paid' (nao 'no_payment_required'); o webhook precisa deste
+      // carimbo para conceder TRIAL_GRANT_CREDITS em vez do mes cheio.
+      ...(wantsTrial && !isAnnual ? { card_trial: '1', trial_days: String(TRIAL_DAYS) } : {}),
       // KINEO-REGIONAL-PRICING-2026-08-04 — a região viaja na metadata da
       // sessão E da assinatura. Sem isso, a fatura de renovação de um
       // assinante regional é indistinguível de um desconto aplicado por
