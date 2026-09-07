@@ -1,0 +1,98 @@
+[
+  {
+    "id": "ca6c04df-6c08-48cb-b1ce-a43b1b171869",
+    "title": "Mysterious spheres in Australia",
+    "engine": "cinematic_ai",
+    "source": "https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/renders/e92d81bf-0068-46c3-8de7-1f67e2006756/c33d6b9a-f021-4c7d-bac8-da3392948a30.mp4",
+    "startSeconds": 0.4,
+    "durationSeconds": 6
+  },
+  {
+    "id": "9aacaf46-49d9-46fb-8b7e-ef7d01d77592",
+    "title": "A mystery in the night sky",
+    "engine": "fast",
+    "source": "https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/renders/e92d81bf-0068-46c3-8de7-1f67e2006756/db8ab60e-c163-446a-8694-d16f6335a2e2.mp4",
+    "startSeconds": 0.4,
+    "durationSeconds": 6
+  },
+  {
+    "id": "f3de57b0-3486-4400-ba72-c9390774d426",
+    "title": "The Dyatlov Pass incident",
+    "engine": "cinematic_kling",
+    "source": "https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/renders/e92d81bf-0068-46c3-8de7-1f67e2006756/9d2a0570-407b-464b-b0bc-9286ac1c77f4.mp4",
+    "startSeconds": 0.4,
+    "durationSeconds": 6
+  },
+  {
+    "id": "cbd676d0-340a-4728-8a5f-439fd9dd64c5",
+    "title": "The mystery of the Mary Celeste",
+    "engine": "cinematic_ai",
+    "source": "https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/renders/e92d81bf-0068-46c3-8de7-1f67e2006756/7358f2e6-9b29-40d0-9ea5-02181eb8e18e.mp4",
+    "startSeconds": 0.4,
+    "durationSeconds": 6
+  },
+  {
+    "id": "a09706da-a79f-4029-b213-69f43d6a2775",
+    "title": "Easter Island: traces in stone",
+    "engine": "cinematic_ai",
+    "source": "https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/renders/e92d81bf-0068-46c3-8de7-1f67e2006756/af27f635-5a2a-4f98-a55e-b9e8586a5574.mp4",
+    "startSeconds": 0.4,
+    "durationSeconds": 6
+  },
+  {
+    "id": "49d10f33-3877-42c1-82b8-c0b2cb881fc7",
+    "title": "Easter Island: a new perspective",
+    "engine": "fast",
+    "source": "https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/renders/e92d81bf-0068-46c3-8de7-1f67e2006756/0ee3339c-da28-4fb2-bf6e-80161f3fb8de.mp4",
+    "startSeconds": 0.4,
+    "durationSeconds": 6
+  },
+  {
+    "id": "0ab3e871-2c99-4f6e-9f3c-59773208b12e",
+    "title": "The Norwegian town without sunlight",
+    "engine": "fast",
+    "source": "https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/renders/e92d81bf-0068-46c3-8de7-1f67e2006756/e97ea42d-f63b-4197-9cd7-e12e9a57744d.mp4",
+    "startSeconds": 0.4,
+    "durationSeconds": 6
+  },
+  {
+    "id": "7ffd064e-cb37-4a97-a207-70a202bc72b6",
+    "title": "The Voynich manuscript",
+    "engine": "cinematic_ai",
+    "source": "https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/renders/e92d81bf-0068-46c3-8de7-1f67e2006756/d7f04486-3f7b-4a3a-854f-3ef4d0fa358c.mp4",
+    "startSeconds": 0.4,
+    "durationSeconds": 6
+  },
+  {
+    "id": "a66e975a-3f6c-4bf4-9510-cd15b895b58b",
+    "title": "The secret Chinese aircraft",
+    "engine": "cinematic_omni",
+    "source": "https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/renders/e92d81bf-0068-46c3-8de7-1f67e2006756/32f09594-b59e-4460-8c4e-f89064b28001.mp4",
+    "startSeconds": 0.4,
+    "durationSeconds": 6
+  },
+  {
+    "id": "cc17475a-0707-4309-aa11-ac4b85918c78",
+    "title": "The internet’s mysterious song",
+    "engine": "cinematic_omni",
+    "source": "https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/renders/e92d81bf-0068-46c3-8de7-1f67e2006756/79a75506-fd88-450f-a540-e2de7aa513d2.mp4",
+    "startSeconds": 0.4,
+    "durationSeconds": 6
+  },
+  {
+    "id": "1b8e12f9-83e5-411c-8fda-0b277d289934",
+    "title": "Tunguska: the sky split open",
+    "engine": "cinematic_omni",
+    "source": "https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/renders/e92d81bf-0068-46c3-8de7-1f67e2006756/9d3890f8-d421-4fca-82ed-5c878deb6f62.mp4",
+    "startSeconds": 0.4,
+    "durationSeconds": 6
+  },
+  {
+    "id": "38158db0-f02e-4c6c-a4c8-3c65461413a9",
+    "title": "A witness to Tunguska",
+    "engine": "cinematic_omni",
+    "source": "https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/renders/e92d81bf-0068-46c3-8de7-1f67e2006756/703bb63e-5da7-4768-9d60-c6b945ad60a5.mp4",
+    "startSeconds": 0.4,
+    "durationSeconds": 6
+  }
+]

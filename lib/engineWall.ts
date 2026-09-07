@@ -15,6 +15,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { cleanTitleLine } from '@/lib/publicVideos'
 import { FOUNDER_SHOWCASE, PUBLIC_ENGINE_EXAMPLES, PUBLIC_EXAMPLES, posterWebpPath } from '@/lib/publicExamples'
 import { CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED } from '@/lib/publicSurfacePolicy'
+import { HOME_ENGINE_EXAMPLES } from '@/lib/homeVideoCuration'
 
 export type WallVideo = {
   id: string
@@ -72,14 +73,14 @@ const REPOSITORY_ENGINE_HREFS: Record<string, string> = {
   presenter: '/avatar?intent_campaign=home_curated',
 }
 
-type PublicEngineClip = (typeof PUBLIC_ENGINE_EXAMPLES)[number]
+type PublicEngineClip = (typeof HOME_ENGINE_EXAMPLES)[number]
 
 function repositoryOwnedEngineWall(
   caps: Record<string, number>,
   rotateFirst = false,
 ): WallVideo[] {
   const clips: Record<string, PublicEngineClip[]> = {}
-  for (const example of PUBLIC_ENGINE_EXAMPLES) {
+  for (const example of HOME_ENGINE_EXAMPLES) {
     const list = clips[example.engine] ?? []
     list.push(example)
     clips[example.engine] = list
@@ -96,6 +97,7 @@ function repositoryOwnedEngineWall(
         id: clip.id,
         title: clip.title,
         videoUrl: clip.videoPath,
+        previewUrl: clip.homePreviewPath,
         engine,
         badge: ENGINE_BADGES[engine] ?? 'AI',
         href: REPOSITORY_ENGINE_HREFS[engine],
@@ -277,7 +279,7 @@ const HERO_CAPS: Record<string, number> = {
   // 25/08 — os dois cards novos da primeira tela (fundador). Seedance/Kling
   // 2.5 seguem na lista (caps acima): os tiles do bento ainda leem daqui.
   cinematic_h3: 3,
-  cinematic_omni: 4,
+  cinematic_omni: 5,
   fast: 4,
   presenter: 1,
 }
@@ -402,7 +404,7 @@ const TRENDING_CAPS: Record<string, number> = {
   cinematic_hollywood: 3,
   cinematic_ai: 4,
   cinematic_h3: 2,
-  cinematic_omni: 3,
+  cinematic_omni: 5,
   fast: 4,
   presenter: 1,
 }
@@ -422,10 +424,11 @@ export async function getTrending(): Promise<WallVideo[]> {
     }
     const interleaved: WallVideo[] = []
     let added = true
-    while (added && interleaved.length < 14) {
+    // Keep every approved selection reachable in the horizontal scroller.
+    while (added && interleaved.length < 24) {
       added = false
       for (const engine of ENGINE_ORDER) {
-        if (interleaved.length >= 14) break
+        if (interleaved.length >= 24) break
         const list = byEngine.get(engine)
         if (list && list.length > 0) {
           interleaved.push(list.shift() as WallVideo)

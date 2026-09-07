@@ -30,6 +30,8 @@ jobs:
         run: node scripts/test-five-improvements.mjs
       - name: Idiomas, galeria e CSS SSR
         run: node scripts/test-locale-readiness.mjs
+      - name: Curadoria aprovada da home — seletores e assets locais
+        run: node scripts/test-home-curation.mjs
   legacy:
     name: Diagnóstico legado — manual, não certifica entrega
     if: github.event_name == 'workflow_dispatch'
