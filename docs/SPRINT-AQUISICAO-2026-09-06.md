@@ -1545,3 +1545,200 @@ pedido. O `/api/compose/status` já **calcula** `publishHref` e o devolve — e
 **nenhum cliente o renderiza**. Quem acabou de ver o filme ficar pronto no
 Studio é exatamente quem está no pico da alegria, e é a única pessoa que ainda
 não tem o botão. Isso é tela: vira **PEDIDO ao Codex**, não código meu.
+
+---
+
+## ### #16 — 23:20 — 🔴 O CLIQUE DE E-MAIL CHEGA SEM COOKIE, E A CASA OFERECIA **CRIAR CONTA** A QUEM JÁ ERA CLIENTE
+
+### Press release (6 linhas)
+
+> A Kineo manda ~210 e-mails por dia para gente que já tem conta aqui. Quem
+> clicava em "venha fazer outro filme" a partir da caixa de entrada não caía no
+> login: caía num formulário de **criar conta**. O motivo é banal, e é por isso
+> que sobreviveu meses — a casa decidia "essa pessoa já tem conta?" olhando um
+> cookie no aparelho, e o clique de inbox chega estruturalmente sem cookie
+> nenhum. A partir de agora, o e-mail é a prova: quem vem de carta nossa entra
+> pela porta de **entrar**, com o destino inteiro preservado.
+
+**Hipótese:** o degrau que some entre "e-mail enviado" e "pessoa voltou" não é
+só desinteresse — parte dele é uma porta errada. **Parada:** se o evento novo
+mostrar 30 dias de cliques de e-mail chegando e a taxa de retorno não mexer, a
+porta não era o gargalo e a peça se desliga.
+
+### O errado, medido em produção — com controle, não só com 200
+
+Sonda com UA de navegador real (curl pelado é lido como robô e pula o ramo bom):
+
+```
+/generate?utm_source=lifecycle&utm_medium=email&utm_campaign=trial_d0
+    307 -> /studio/create?...   307 -> /signup?redirect=...   200   ❌
+/library?utm_source=lifecycle&utm_medium=email&...   307 -> /login   ✅
+/history                                             307 -> /login   ✅
+/rota-que-nao-existe-ceo-probe                       404             (controle)
+```
+
+**Todas as outras rotas protegidas da casa já mandavam para `/login`.** Só o
+`/studio/create` mandava para `/signup` — e ele é o destino do CTA "venha fazer
+outro filme", o pedido mais repetido de toda a máquina de e-mail.
+
+A decisão morava em `app/(dashboard)/studio/create/page.tsx`:
+
+```ts
+const hasPriorSession = cookies().getAll().some((c) => c.name.startsWith('sb-') && c.name.includes('auth-token'))
+const authPath = hasPriorSession ? '/login' : '/signup'
+```
+
+Um sinal só — e é o sinal que o clique de caixa de entrada **não tem por
+construção**: webview do Gmail, outro aparelho, aba anônima. O
+`/api/episode-link` (05/09) já tinha escrito exatamente esse diagnóstico para o
+botão do episódio 2; ninguém o levou ao portão que todo mundo atravessa.
+
+### O alcance — e é o que decidiu consertar no PORTÃO, não nos remetentes
+
+**Nove** remetentes carregam essa porta: `trial-lifecycle-emails` (6 links),
+`send-failure-recovery` (4), `send-activation-nudge`, `send-video-rescue`,
+`send-winback-25`, `send-blackout-winback`, `send-credits-back`,
+`send-reminders`, `finish-stranded-renders`.
+
+| carta | envios em 7 dias | porta |
+|---|---|---|
+| `trial_lifecycle` → `d0_welcome` | **188** | ❌ /signup |
+| `trial_lifecycle` → `ending_soon` / `expired_*` / `downgraded_loss` | 692 | ✅ /pricing e /library |
+| `momentum_nudge` · `video_ready` · `next_episode_wall` | 327 | ✅ porta boa (já usavam) |
+| `failure_recovery` · `video_rescue` · `season_letter` | 23 | ❌ /signup |
+
+O `d0_welcome` é a **carta de boas-vindas**: a pessoa acabou de criar a conta e
+era convidada a criar outra. 188 vezes em 7 dias.
+
+**Consertar 9 arquivos deixaria a décima campanha nascer errada**, e o modo de
+falha é SILENCIOSO — o link "funciona", a tela é bonita, e nada no log distingue
+isso de sucesso. Foi assim que durou.
+
+### O que mudou — `c1b0c46d` · **EM PRODUÇÃO**
+
+| arquivo | o que |
+|---|---|
+| `lib/lifecycle/emailReturnDoor.ts` (novo) | A fonte única. **Exigência TRIPLA**: `utm_medium=email` + `utm_source` nosso + `utm_campaign` não vazio. Falha **ABERTA**: sem sinal nenhum, continua `/signup`, idêntico a ontem. Arquivo puro, zero imports (não pode quebrar o build da Vercel com typecheck verde) |
+| `app/(dashboard)/studio/create/page.tsx` | A decisão passa pela função. JSX intocado |
+| `send-blackout-winback` · `finish-stranded-renders` (×2) · `send-avatar-launch` | 4 links que nem **chegavam** ao portão (viajavam sem medium/campaign) passam por `composerUrl()`. O rótulo antigo vira `utm_campaign`, então nenhuma medição quebra — conferido por grep: nenhum leitor da casa lê esses `utm_source` |
+| `scripts/test-porta-email-2026-09-06.mjs` (novo) | 113 verificações |
+
+O `blackout_winback` era pior que os outros: apontava para `/generate` **sem
+query nenhuma**, e o porteiro degradava o destino para `/studio` — a vitrine,
+que não tem composer. Era o defeito "CTA cai na vitrine" que o próprio
+`composerUrl.ts` documentou hoje de manhã, ainda vivo num remetente.
+
+### E a cegueira, no mesmo commit — porque foi ela que escondeu isto
+
+O desvio de deslogado só emitia evento quando `activationEntry !== 'standard'`
+(9 em 3 dias). **O caso comum não emitia NADA.** Não era medição ruim: era
+ausência de medição por construção, e é a resposta para "por que ninguém viu".
+
+Agora todo desvio emite `studio_create_auth_door_v1` com `porta`,
+`veio_de_email`, `tem_cookie`, `utm_campaign`, `utm_source`. O evento antigo
+ficou intacto — outra medição pode depender dele.
+
+### Prova de produção — com os controles que discriminam, não só com 200
+
+```
+O CONSERTO
+  e-mail nosso (3 sinais) ................. 307 -> /login?redirect=%2Fstudio%2Fcreate%3F...
+  /generate de e-mail, cadeia inteira ..... 307 -> 307 -> /login  (200)   [era /signup]
+
+OS CONTROLES — falha ABERTA, tem de continuar /signup
+  visitante novo, sem sinal nenhum ........ 307 -> /signup
+  só utm_source (falta medium+campaign) ... 307 -> /signup
+  medium=email mas source alheio .......... 307 -> /signup
+  3 sinais mas campaign vazio ............. 307 -> /signup
+
+OS 4 LINKS QUE NEM CHEGAVAM AO PORTÃO
+  blackout_winback (ia para a VITRINE) .... 307 -> /login
+  attempt_lost com prefill ................ 307 -> /login  (&prompt=Lost+city preservado)
+
+NADA QUEBROU JUNTO
+  home / pricing / studio ................. 200 / 200 / 200
+  CONTROLE inexistente .................... 404
+```
+
+### Testes
+
+- `scripts/test-porta-email-2026-09-06.mjs` — **113 verificações, 0 falhas**.
+  Estilo `readFileSync` (alias `@/` mata 72 guardiões desta casa no import).
+  Amarrado à **variável que decide**: **9 mutantes provados vermelhos** —
+  condição por `true`, `/login`↔`/signup` invertidos, `utm_medium` removido da
+  conjunção, `||`→`&&`, página ignorando a função (prova de chamador), evento de
+  volta para dentro do ramo não-standard, redirect perdendo o destino, URL crua
+  nos 3 remetentes.
+- **A lição da rodada, registrada porque quase passou:** na primeira tentativa
+  de falsificação, 3 mutantes **não chegaram a aplicar** (cotação do shell +
+  CRLF) e o guardião reportou verde — o que se leria como "o mutante não
+  derrubou o guardião", quando na verdade não havia mutante. Rodada de mutação
+  tem de **provar que a mutação aplicou** antes de ler o veredito. Refeita com
+  essa checagem, e o `.bak` restaurado byte a byte.
+- `npx tsc --noEmit` verde (com junction de `node_modules`; conferido com
+  `--listFilesOnly` que os arquivos novos estão mesmo no programa — tsc mente
+  com exit 0 em worktree sem `node_modules`).
+- Vizinhos: conjunto de falhas **idêntico antes e depois** — os 5 vermelhos
+  (`test-cta-composer`, `test-clique-perdido`, `test-avatar-card`,
+  `test-stranded-email-dedupe`, `test-stranded-extra-attempt-4xx`) já estavam
+  vermelhos em HEAD. Alheios, listados, não consertados.
+
+### Risco, sem maquiagem
+
+1. **E-mail encaminhado a um amigo sem conta** cai em `/login` em vez de
+   `/signup`. A página de login oferece criar conta; o caso é raro e o ganho
+   inverso é ~190 e-mails por semana.
+2. **A regra agora vive em dois lugares** — aqui e no `/api/episode-link`. Não é
+   contradição (os dois mandam para `/login`), mas é dívida anotada.
+3. **Latência:** o evento é aguardado antes do redirect. `writeServerEvent`
+   engole erro por dentro; o redirect acontece sempre.
+
+### O que a peça NÃO alcança (dito antes de alguém descobrir)
+
+O ramo **sem prefill** do `attempt_lost` continua indo para `/studio` de
+propósito (rota pública, nunca caiu em `/signup`). E os 11 `season_letter`
+enviados hoje às 15:45 UTC saíram pela porta velha e estão **carimbados para
+sempre** — a rota é 1-por-pessoa-vitalício, então essas 11 pessoas nunca mais
+recebem a carta da temporada. É perda real; desfazer exige apagar o carimbo
+delas, e isso é decisão do fundador.
+
+### Como medir (consulta pronta) — e o que derruba isto
+
+```sql
+select metadata->>'porta' porta, (metadata->>'veio_de_email')::bool de_email,
+       metadata->>'utm_campaign' campanha, count(*)
+from events where name='studio_create_auth_door_v1'
+  and created_at > now() - interval '7 days' group by 1,2,3 order by 4 desc;
+```
+
+**Condição de morte, escrita antes de saber o resultado:** 30 dias, com cliques
+de e-mail comprovadamente chegando (`de_email=true` acima de 50), e a taxa de
+retorno pós-e-mail sem mexer → a porta não era o gargalo e a peça se desliga.
+
+### Praxe — aquisição nas últimas 24h (contas externas)
+
+| fonte | cadastros | com filme | 2º filme | checkout | pagou |
+|---|---|---|---|---|---|
+| chatgpt | 24 | 21 | 6 | 1 | 0 |
+| taaft | 5 | 5 | 0 | 1 | 0 |
+| (sem fonte) | 4 | 3 | 1 | 0 | 0 |
+| nav | 2 | 1 | 0 | 0 | 0 |
+| seo | 1 | 1 | 0 | 1 | 0 |
+| **total** | **36** | **31** | **7** | **3** | **0** |
+
+**Checagem zero:** cadastro sem crédito e sem filme **0** · render preso **0** ·
+`next_episode_failed` **0** · 43 filmes entregues em 24h ·
+`generation_stage_error` 10. "Sem fonte" em **11%** (4 de 36) — subiu contra os
+5,6% da rotação anterior; com 36 pessoas isso é ruído de amostra, mas fica
+anotado para a próxima medir em vez de comemorar ou entrar em pânico.
+
+### Próxima jogada
+
+**As cartas caras da casa foram para 46 pessoas hoje e ninguém clicou — e agora
+sabemos que parte delas batia numa porta errada.** As 11 da `season_letter`
+(15:45 UTC) saíram pela porta velha; as 35 do `next_episode_wall` já usavam a
+porta boa e também deram 0. A jogada não é escrever carta nova: é **re-medir as
+mesmas duas cartas com a porta consertada** — é a primeira vez que elas terão
+chance limpa. Se com a porta certa continuar 0, o problema é a oferta, e aí a
+decisão é do fundador. Isso também é o que a memória desta casa manda: carta
+nova só depois de a velha mover alguém.
