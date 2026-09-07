@@ -50,7 +50,8 @@ for (const video of trending) {
   const frame = framePolicy.heroFrame(video)
   ok(frame.src === (video.engine === 'cinematic_omni' ? video.videoUrl : video.previewUrl ?? video.videoUrl), 'actual source avoids baked fill only for Omni ' + video.id)
   const html = renderToStaticMarkup(React.createElement(EngineCard, { videos: [video] }))
-  ok(html.includes(video.engine === 'cinematic_omni' ? 'data-frame="natural-portrait"' : 'data-frame="wide"'), 'real caller applies frame choice ' + video.id)
+  // Founder correction: only the source changes; every engine keeps the same wide card.
+  ok(html.includes('data-frame="wide"'), 'all actual cards share wide layout ' + video.id)
   if (video.engine === 'cinematic_omni') ok(!html.includes('-h.webp'), 'no blurred portrait poster in Omni SSR')
 }
 const original = JSON.stringify(trending)
