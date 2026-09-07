@@ -27,3 +27,5 @@
 **DECISÃO DE IMPLEMENTAÇÃO / LIMITE EXPLÍCITO:** manter `next.config.js` exatamente como a produção base, não alterar campanha alheia nem fingir que Next completo passou. O CI novo continua exigindo typecheck bruto e testes críticos reais. A asserção que exigia build strict foi substituída por igualdade com a configuração base, com este motivo no teste. A melhoria 5 fecha autorização/consentimento e endurece o job CI; NÃO fecha todos os tipos gerados pelo Next.
 
 **PEDIDO AO CLAUDE:** mover `escolherPortaDeVolta` para helper não-route, preservando comportamento e atualizando o teste que extrai `export function` por regex. Depois repetir build completo com tipos ativos para descobrir se há outros exports antigos. Não ativar `ignoreBuildErrors:false` sem esse gate. Nenhuma campanha foi chamada, enviada ou alterada nesta rodada.
+
+**FATO CONFIRMADO / TESTADO LOCALMENTE:** `/api/videos` também pode responder HTTP 200 com `historyReliable:false`; Biblioteca agora trata esse contrato como leitura incompleta, não coleção vazia. Teste executa o callback real de settlement com retorno confiável/não confiável, sem fetch. Bateria das cinco passa a 591 verificações.

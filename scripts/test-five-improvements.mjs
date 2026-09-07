@@ -51,6 +51,19 @@ for(const tab of ['videos','images','audio']) {
  ok(!failed.includes('No '+tab+' yet'),'failed read is never empty collection')
 }
 const labels=pure('lib/ui/interfaceLabels.ts').INTERFACE_ES
+// Execute the actual Promise settlement callback: HTTP 200 can still explicitly
+// say historyReliable:false. A network-only empty-state test misses that case.
+const librarySource=fs.readFileSync('app/(dashboard)/library/LibraryClient.tsx','utf8')
+const libraryAst=ts.createSourceFile('LibraryClient.tsx',librarySource,99,true,4)
+let settlement
+function findSettlement(n){if(ts.isArrowFunction(n)&&n.parameters[0]?.name.getText(libraryAst)==='[v, i, a]')settlement=n.getText(libraryAst);ts.forEachChild(n,findSettlement)}
+findSettlement(libraryAst);ok(settlement,'real library settlement found')
+for(const reliable of [true,false]){
+ const failures=[],box={exports:{},selectRecentLibraryProject:recent.selectRecentLibraryProject,setVids:()=>{},setRecentVideo:()=>{},setImgs:()=>{},setAuds:()=>{},setLoaded:()=>{},setLoadFailed:v=>failures.push(v)}
+ vm.runInNewContext(ts.transpileModule('exports.run = '+settlement,{compilerOptions:{module:1,target:9}}).outputText,box)
+ box.exports.run([{videos:[],historyReliable:reliable},{images:[]},{audios:[]}])
+ eq(failures.includes(true),!reliable,'HTTP 200 unreliable history is not empty success')
+}
 for(const language of ['en','es']) {
  const waiting=renderPage('app/(dashboard)/library/LibraryClient.tsx',false,{loaded:true,loadFailed:false,tab:'videos',vids:[],recentVideo:two,interfaceLanguage:language})
  ok(waiting.includes(two.title),'processing project remains visible in the real library')

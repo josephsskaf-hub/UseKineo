@@ -69,6 +69,8 @@ export default function LibraryClient() {
       fetch('/api/audio', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
     ]).then(([v, i, a]) => {
       if (v === null || i === null || a === null) setLoadFailed(true)
+      // /api/videos can return HTTP 200 with an explicit unreliable-history flag.
+      if (v?.historyReliable === false) setLoadFailed(true)
       if (Array.isArray(v?.videos)) {
         setVids(v.videos.filter((x: Vid) => x.video_url))
         setRecentVideo(selectRecentLibraryProject(v.videos))
