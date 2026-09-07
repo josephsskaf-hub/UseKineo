@@ -989,3 +989,159 @@ regra de quem vê o botão (estava duplicada e ia virar três cópias), e criei 
 rota de admin que responde de uma vez: quais chaves este deploy enxerga, qual
 deploy é este, e o que falta fazer. O placar não mudou: 0 pagamentos em 24h,
 último há 5 dias.
+
+---
+
+### #12 — 15:28 BRT — a graça de hoje não curou as duas vítimas que ela mesma nomeia
+
+**Errado (medido).** Hoje às 02:51 BRT o commit `c94b140a` criou a janela de
+graça do dunning: a casa parou de derrubar o plano na primeira fatura de
+renovação recusada, enquanto a Stripe ainda repete o cartão. O cabeçalho do
+próprio arquivo (`lib/billing/subscriptionAccess.ts`) **nomeia as duas vítimas
+reais** — US$ 24,90 (AU) em 04/09 e US$ 9,90 (NG) em 03/09, ambas
+`insufficient_funds`.
+
+**Nenhuma das duas foi curada.** As duas seguem, agora:
+
+| pessoa | has_paid | plan | is_pro | assinatura na Stripe |
+|---|---|---|---|---|
+| `akajitin@gmail.com` | true | **free** | false | `sub_1U0I7b…` **intacta** |
+| `valos87196@gouziben.com` | true | **free** | false | `sub_1TyTh1…` **intacta** |
+
+A graça só age em evento NOVO: o ramo `invoice.payment_failed` mantinha o
+acesso e dava `break` **sem tocar no perfil**. Quem já tinha sido revogado
+antes dela existir ficou revogado.
+
+**A prova chegou sozinha às 17:26:28Z**, 40 minutos antes desta rotação abrir:
+a Stripe recusou de novo a assinatura de NG, e **um segundo depois** o evento
+`subscription_access_held_during_dunning` saiu dizendo "acesso preservado"
+para uma pessoa que estava `free` desde 03/09 — **e com `user_id` NULL**, então
+ninguém conseguia sequer saber de quem era. Era um evento que mentia sobre um
+desfecho anônimo: as duas metades do problema que este ciclo já tinha resolvido
+para o cartão recusado, repetidas no vizinho.
+
+**Tamanho, para não superdimensionar:** a casa tem **13 pagantes na vida
+inteira, 8 com plano ativo, 5 que pagaram e hoje estão `free`**. Destes 5,
+**3 ainda têm `stripe_subscription_id`** — e só a de NG tem cobrança viva
+(`past_due`). Não é uma sangria; são 2 clientes reais de uma base de 8, que é
+justamente o tamanho em que perder um importa. E
+`lib/billing/subscriptionAccess.ts` já documentava a contradição:
+`admin/_shared/mrr.ts` conta `past_due` como receita **viva** — o painel dizia
+"pagante" e o produto dizia "free". Os dois não podiam estar certos.
+
+**Mudou — SHA `3af3f2d0` · EM PRODUÇÃO** (deploy vivo às 18:28:00Z).
+
+1. **`lib/billing/dunningReconcile.ts`** (novo, puro, sem alias `@/`) — a
+   decisão "restaurar o plano de quem foi revogado antes da graça?". Reusa
+   `stripeSubscriptionKeepsAccess` em vez de **redigitar o predicado**. Falha
+   **fechada** em 4 portas: nunca pagou · assinatura diferente da do perfil ·
+   a Stripe revogou de verdade (aí `free` está certo) · tier desconhecido.
+   O default `'basic'` da escada do `invoice.payment_succeeded` **não foi
+   copiado**: restaurar plano é conceder direito, e conceder o tier errado por
+   causa de um default é pior do que não restaurar.
+2. **Webhook, só dentro do ramo da graça** (+100 / −0): resolve o **dono** pela
+   assinatura; o evento passa a carregar `user_id`, `owner_resolved`,
+   `plan_at_event` e **`access_was_actually_held`**; e o perfil errado é curado
+   na hora. Erro na cura vira log + evento `subscription_access_repair_failed`,
+   **nunca `throw`** — o trabalho do ramo (não revogar) já estava feito, e
+   derrubar o webhook faria a Stripe reenviar de graça.
+3. **`/api/admin/reconcile-dunning`** (novo) — **dry-run por padrão**, escreve
+   só com `?confirm=APPLY`, para quem não vai receber webhook novo tão cedo.
+4. **Crédito NUNCA é tocado** em nenhum dos dois caminhos: o update é de dois
+   campos, `plan` e `is_pro`. Saldo volta só na fatura paga — crédito é
+   dinheiro.
+
+**Sonda em produção, 18:28:00Z** (UA de navegador, não `curl` pelado):
+`/api/admin/reconcile-dunning` = **403** · controle inexistente = **404** ·
+home = **200**. Às 18:27:24Z os dois davam 404 — é o **404 do controle na mesma
+medição** que prova que a rota subiu e que o 403 é o guard de admin, não um
+catch-all.
+
+**O que o cliente vê:** nada muda de pixel. O que muda é que a próxima recusa
+da Stripe para quem foi revogado por engano **devolve o plano dele sozinha**.
+Na prática: o evento de hoje às 17:26 carregava `tier: 'starter'` — o tier do
+akajitin é recuperável da cadeia de metadata, então a decisão deve dar
+`restore`, não `tier_desconhecido`. **O dry-run é o que prova**, e é ele que
+diz também o que fazer com `brandonmooney450` (3ª pessoa da coorte, sem tier
+registrado e sem cobrança viva — deve sair como `skip`, e isso é o acerto).
+
+**Testes:** `scripts/test-graca-nao-curou-2026-09-07.mjs` — **106/106**,
+falsificado por **10 mutantes, 10 mortos**, cada um verificado como
+**efetivamente escrito em disco** antes de rodar (mutante que não aplica
+devolve verde e se lê como guardião resistindo). O guardião **importa a lib de
+verdade** e exercita a variável que decide; lê o webhook para provar que o
+**chamador existe** (contrato de servidor sem chamador serve zero) e que o
+update escreve **apenas** `plan` e `is_pro` — o mutante M6, que faz a cura
+tocar crédito, morre. `npx tsc --noEmit`: **verde**.
+
+**Risco:** baixo, e o desenho é conservador de propósito. Nenhum preço, nenhuma
+copy, nenhuma regra de cobrança. O único caminho que escreve exige que a
+**Stripe viva** diga que a assinatura mantém acesso E que a assinatura seja a
+mesma do perfil E que o tier seja explícito. Qualquer dúvida → não escreve.
+
+**Como medir:** `subscription_access_restored_after_wrong_revoke` (nasce hoje).
+E o par honesto do evento antigo: `access_was_actually_held` **false** = a cura
+tinha trabalho a fazer; **true** = a graça funcionou como anunciado. Sem esse
+campo os dois casos eram o mesmo evento verde.
+
+**Placar às 15:30 BRT:**
+
+| medida | valor |
+|---|---|
+| cadastros 24h | 35 |
+| **checagem zero (real)** | **0** ✅ |
+| filmes entregues 24h | 38 |
+| pessoas no checkout 24h | 2 |
+| pagamentos 24h | **0** |
+| último `payment_success` | **02/09 20:22Z — 5 dias** |
+| pagantes com plano ativo | **8** |
+| pagaram e hoje estão `free` | **5** (3 com assinatura ainda gravada) |
+| `pack_first_for_region_shown` | **1** ✅ *(primeira linha da história — a peça da #9 apareceu de verdade às 17:57:08Z)* |
+
+⚠ **Armadilha de placar que eu mesmo caí, para a próxima rotação não repetir:**
+"crédito zero em 24h" deu **13** na consulta crua e **7** excluindo só
+`trial_status='blocked'`. Os 7 são todos **`downgraded`** — trial gasto, não
+conta nascida sem crédito. A checagem zero honesta exclui **os dois** estados.
+Crédito zero significa três coisas e só uma delas é incidente.
+
+**Próxima jogada:**
+1. **Rodar o dry-run** (`/api/admin/reconcile-dunning`) e ver as 3 linhas com o
+   status vivo da Stripe ao lado. É a única coisa que responde se o tier das
+   duas assinaturas está explícito — e é 1 clique.
+2. **Reconciliar o painel com o produto.** `mrr.ts` conta `past_due` como
+   receita viva; a partir de agora o produto concorda. Vale conferir se o MRR
+   do `/admin` e a contagem de "pagantes ativos" (8) batem — se não baterem,
+   sobrou uma terceira régua.
+3. **A pergunta grande continua sendo do fundador e não mudou:** 8 pagantes
+   ativos, 0 pagamentos há 5 dias, 6 superfícies de oferta. Esta rotação não
+   ganha cliente novo — ela para de perder o que já foi ganho, que é o barato
+   que sobrou depois que a engenharia de superfície acabou.
+
+**✅ O QUE VOCÊ PRECISA FAZER**
+
+1. **Abra `usekineo.com/api/admin/reconcile-dunning`** logado como admin. É
+   **dry-run**: só mostra, não escreve. Vai listar 3 pessoas com o status que a
+   Stripe tem para elas agora e a ação sugerida.
+2. **Se a lista mostrar `restore`** para `akajitin@gmail.com` e/ou
+   `valos87196@gouziben.com` e você concordar, abra a mesma URL com
+   **`?confirm=APPLY`** no fim. Isso devolve **só o plano** (nunca crédito) a
+   quem a Stripe ainda considera cliente. Se preferir não mexer à mão, não
+   precisa: a próxima recusa da Stripe já cura sozinha.
+3. **As envs do Dodo/PayPal continuam pendentes** (item da #11, inalterado):
+   colar na Vercel **e depois REDEPLOY**, senão nada liga.
+4. **Não escreva para o `akajitin`** — ele está na lista de contatos proibidos
+   desta rotina. Esta entrega não manda e-mail nenhum, de propósito.
+
+**📋 O QUE ACONTECEU**
+
+O conserto que subiu hoje de madrugada parou de derrubar clientes na primeira
+recusa de renovação — mas não devolveu o plano aos dois clientes que ele mesmo
+citava como as vítimas. Eles continuaram marcados como "grátis" enquanto a
+Stripe seguia cobrando o cartão deles. Às 17:26 a Stripe tentou de novo, e o
+sistema registrou "acesso preservado" para alguém que não tinha acesso nenhum,
+sem dizer quem era. Consertei as duas metades: o registro agora diz de quem é e
+se o acesso foi mesmo preservado, e o plano de quem foi cortado por engano volta
+sozinho na próxima tentativa de cobrança. Criei também uma página de admin que
+mostra a situação real de cada um antes de mexer em nada. Crédito não é tocado
+em lugar nenhum — isso só volta quando a fatura for de fato paga. O placar não
+mudou: 0 pagamentos em 24h, o último há 5 dias, 8 pagantes ativos.
