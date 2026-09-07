@@ -19,6 +19,8 @@ import { creditCostFor, normalizeQuality, creditCostForDuration } from '@/lib/cr
 import { debitVideoCredits } from '@/lib/credits/debit'
 import { releaseFailedFreeFastClaim, settleComposeCreditHoldForRender } from '@/lib/credits/composeHold'
 import { publishHref, unpublishHref } from '@/lib/videoShareLink'
+import { garantirPacote } from '@/lib/publishPackServer'
+import { packEmailHtml } from '@/lib/publishPackEmail'
 import { getRenderIntent } from '@/lib/credits/renderIntent'
 // KINEO-TITULO-SOBREVIVE-2026-08-22 — o claim de submissao guarda o TEMA para
 // quando a URL nao trouxer (cron de resgate, worker de demo). Só o tema: a
@@ -1095,6 +1097,96 @@ export async function GET(
                   <p style="color:#475569;font-size:11px;margin:10px 0 0">Changed your mind? <a href="${shareUndoHref}" style="color:#475569;">Make it private again</a>.</p>
                 </div>`
               : ''
+            // ═══ KINEO-PACOTE-NA-ENTREGA-2026-09-07 ═══════════════════════
+            // O pacote de publicacao (#20: titulo YT, descricao com o credito
+            // da casa, legenda TikTok, comentario fixado) foi ligado no cron
+            // `send-video-ready` — 4 envios em TODA a historia, e suprimido
+            // justamente porque ESTE e-mail ja saiu. Medido 07/09: este
+            // e-mail = 178 em 7d / 121 pessoas; o cron = 4; pacote escrito =
+            // 0; sonda = 0. Razao de alcance 44x. E aqui que o pacote alcanca
+            // alguem.
+            //
+            // TRES REGRAS QUE NAO SE NEGOCIAM:
+            //   1. FALHA SEMPRE ABERTA: qualquer erro => `pack = null` e o
+            //      e-mail sai byte a byte como saia antes desta peca. Esta
+            //      rota e polada pelo cliente; um pacote nunca pode derruba-la
+            //      nem impedir a pessoa de saber que o filme ficou pronto.
+            //   2. ORCAMENTO DE TEMPO EXPLICITO: `garantirPacote` ja usa 12s
+            //      no fetch, mas ha leituras de banco antes e depois. O
+            //      `Promise.race` abaixo garante que estourar o limite so
+            //      produz `null` — a chamada perdida segue em fundo e, se
+            //      terminar, grava a memoria que o cron reaproveita de graca.
+            //   3. CREDITO DA CASA SO PARA QUEM NAO ASSINA — o MESMO predicado
+            //      que o rodape deste e-mail ja usa (`readyEmailIsSubscriber`,
+            //      lido de `planRow` acima). Nenhum predicado redigitado.
+            const PACK_TIME_BUDGET_MS = 12_000
+            let pack: Awaited<ReturnType<typeof garantirPacote>> = null
+            let motivoPack: string | null = null
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            let packAdmin: SupabaseClient<any, any, any> | null = null
+            try {
+              const pkUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+              const pkKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+              if (!pkUrl || !pkKey) {
+                motivoPack = 'sem_service_key'
+              } else if (!shareVideoId) {
+                motivoPack = 'sem_video_id'
+              } else {
+                packAdmin = createAdminClient(pkUrl, pkKey, { auth: { persistSession: false, autoRefreshToken: false } })
+                let budgetTimer: ReturnType<typeof setTimeout> | null = null
+                const budget = new Promise<null>((resolve) => {
+                  budgetTimer = setTimeout(() => {
+                    motivoPack = motivoPack ?? 'orcamento_estourado'
+                    resolve(null)
+                  }, PACK_TIME_BUDGET_MS)
+                })
+                try {
+                  pack = await Promise.race([
+                    garantirPacote(
+                      packAdmin,
+                      user.id,
+                      { id: shareVideoId, title: null, topic: topicFinal },
+                      {
+                        isFreePlan: !readyEmailIsSubscriber,
+                        onFalha: (motivo) => { motivoPack = motivo },
+                      },
+                    ),
+                    budget,
+                  ])
+                } finally {
+                  if (budgetTimer) clearTimeout(budgetTimer)
+                }
+              }
+            } catch (e) {
+              pack = null
+              motivoPack = 'excecao_na_rota'
+              console.warn('[notify-video-ready] publish pack failed:', e instanceof Error ? e.message : String(e))
+            }
+            // A SONDA VAI JUNTO. Sem ela, o zero de `publish_pack_written`
+            // volta a ser mudo — foi exatamente assim que a casa passou um dia
+            // inteiro sem saber em qual das sete portas o pacote parava.
+            // Mesmo formato do cron; best-effort, engole o proprio erro.
+            if (!pack) {
+              try {
+                if (packAdmin) {
+                  await packAdmin.from('events').insert({
+                    user_id: user.id,
+                    name: 'publish_pack_unavailable',
+                    session_id: shareVideoId ? shareVideoId.slice(0, 64) : null,
+                    path: '/api/compose/status',
+                    metadata: {
+                      reason: motivoPack ?? 'desconhecido',
+                      has_topic: topicFinal.length > 0,
+                      has_title: false,
+                      render_id: renderId,
+                    },
+                  })
+                }
+              } catch { /* observar nunca pode impedir o e-mail */ }
+            }
+            // Renderizador COMPARTILHADO com o cron (lib/publishPackEmail.ts).
+            // `null` => '' — o e-mail de hoje, byte a byte.
+            const packHtml = packEmailHtml(pack, { theme: 'dark' })
             const html = `
               <div style="font-family:sans-serif;max-width:520px;margin:0 auto;background:#161618;color:#fff;padding:32px;border-radius:16px;">
                 <h1 style="color:#2997ff;font-size:24px;margin:0 0 8px">Your Short is ready! ⚡</h1>
@@ -1104,6 +1196,7 @@ export async function GET(
                 </a>
                 ${readyFooter.html}
                 ${shareHtml}
+                ${packHtml}
                 <!-- KINEO-REVIEW-NO-EMAIL-2026-08-24 (pacote noturno 2, AQ) — o
                      e-mail de entrega vai para TODO render pronto: é o maior
                      canal de pedido-no-pico que a casa tem, e estava mudo.
@@ -1159,6 +1252,10 @@ export async function GET(
                               ? 'profile'
                               : 'unknown',
                         has_topic: topicFinal.length > 0,
+                        // KINEO-PACOTE-NA-ENTREGA-2026-09-07 — o denominador
+                        // da peca, sem cruzar tabela: "ninguem publicou" tem
+                        // de ser distinguivel de "ninguem recebeu o pacote".
+                        publish_pack: !!pack,
                       },
                     })
                 }

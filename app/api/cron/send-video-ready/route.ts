@@ -6,6 +6,7 @@ import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
 import { LIFECYCLE_SKIP_STAMP } from '@/lib/lifecycle/skipStamp'
 import { videoReadyFooterFromRows, isSubscriberProfile, type VideoReadyFooter, type ReadyProfileRow } from '@/lib/lifecycle/videoReadyFooter'
 import { garantirPacote } from '@/lib/publishPackServer'
+import { packEmailHtml, packEmailText } from '@/lib/publishPackEmail'
 import { publishHref, unpublishHref } from '@/lib/videoShareLink'
 import type { PacoteDePublicacao } from '@/lib/publishPack'
 
@@ -180,41 +181,14 @@ function buildEmail(userId: string, video: ReadyVideo, ctx: EmailContext) {
   // `ctx.pack` nulo e o caminho NORMAL (sem chave, modelo fora do ar, filme
   // sem tema). Nesse caso as duas variaveis sao string vazia e o e-mail sai
   // BYTE A BYTE como saia antes desta peca.
-  const pk = ctx.pack ?? null
-  const packText = pk
-    ? `
-── READY TO POST ──
-Everything below is written for this video. Copy, edit, publish.
-
-YOUTUBE TITLE
-${pk.ytTitle}
-
-YOUTUBE DESCRIPTION
-${pk.ytDescription}
-${pk.tiktokCaption ? `
-TIKTOK CAPTION
-${pk.tiktokCaption}` : ''}${pk.pinnedComment ? `
-
-PINNED COMMENT
-${pk.pinnedComment}` : ''}
-───────────────────
-`
-    : ''
-  const bloco = (rotulo: string, valor: string) =>
-    valor
-      ? `<p style="margin:0 0 4px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#8a8a8a;">${rotulo}</p>
-  <p style="margin:0 0 14px;font-size:14px;white-space:pre-wrap;background:#f6f7f9;border-radius:8px;padding:10px 12px;">${escapeHtmlText(valor)}</p>`
-      : ''
-  const packHtml = pk
-    ? `<div style="border:1px solid #e6e8ec;border-radius:12px;padding:16px 16px 4px;margin:0 0 16px;">
-  <p style="margin:0 0 12px;font-weight:bold;font-size:15px;">Ready to post 🚀</p>
-  <p style="margin:0 0 14px;color:#475569;font-size:14px;">Written for this video. Copy, edit, publish.</p>
-  ${bloco('YouTube title', pk.ytTitle)}
-  ${bloco('YouTube description', pk.ytDescription)}
-  ${bloco('TikTok caption', pk.tiktokCaption)}
-  ${bloco('Pinned comment', pk.pinnedComment)}
-</div>`
-    : ''
+  //
+  // KINEO-PACOTE-NA-ENTREGA-2026-09-07 — a marcacao saiu daqui para
+  // lib/publishPackEmail.ts: o e-mail de ENTREGA (rota de status, 44x o
+  // alcance deste cron) passou a mostrar o mesmo pacote, e dois templates da
+  // mesma peca e a classe de erro que a casa ja pagou. Tema claro = o deste
+  // e-mail; o de entrega usa o escuro. `null` => '' nos dois.
+  const packText = packEmailText(ctx.pack)
+  const packHtml = packEmailHtml(ctx.pack, { theme: 'light' })
 
   // ═══ KINEO-CONSENTIMENTO-DE-PARTILHA-2026-09-06 (#27) ════════════════════
   // Até hoje este e-mail dizia, duas vezes, "your video is private by default"

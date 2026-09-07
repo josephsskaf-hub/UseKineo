@@ -105,12 +105,18 @@ check('22. o pack comeca null, entao um catch deixa o e-mail intacto', /let pack
 check('23. o catch NAO interrompe o laco (nada de continue/throw ali)', !/\} catch \(e\) \{\n\s*console\.warn\('\[send-video-ready\] publish pack failed[\s\S]{0,200}?(continue|throw)/.test(cron))
 // A prova de que o e-mail de hoje nao muda: as duas variaveis sao string
 // vazia quando nao ha pacote, e sao as UNICAS insercoes no template.
-check('24. sem pacote, o bloco de texto e string vazia', /const packText = pk\n\s*\? `/.test(cron) && /\n\s*: ''\n\s*const bloco/.test(cron))
-check('25. sem pacote, o bloco de html e string vazia', /const packHtml = pk\n\s*\? `/.test(cron) && /<\/div>`\n\s*: ''/.test(cron))
+// KINEO-PACOTE-NA-ENTREGA-2026-09-07 — a marcacao saiu do cron para
+// lib/publishPackEmail.ts (fonte unica, lida tambem pelo e-mail de entrega,
+// que alcanca 44x mais gente). As verificacoes 24/25/28 passaram a olhar o
+// renderizador compartilhado e a prova de que o cron o usa, em vez do
+// template inline que nao existe mais.
+const renderizador = ler('lib/publishPackEmail.ts')
+check('24. sem pacote, o bloco de texto e string vazia', /export function packEmailText\([\s\S]{0,200}?if \(!pk\) return ''/.test(renderizador) && /const packText = packEmailText\(ctx\.pack\)/.test(cron))
+check('25. sem pacote, o bloco de html e string vazia', /export function packEmailHtml\([\s\S]{0,300}?if \(!pk\) return ''/.test(renderizador) && /const packHtml = packEmailHtml\(ctx\.pack, \{ theme: 'light' \}\)/.test(cron))
 check('26. o assunto do e-mail NAO foi tocado', /const subject = ctx\.sawIt/.test(cron) && !/subject[\s\S]{0,80}packText|subject[\s\S]{0,80}pk\./.test(cron))
 check('27. o botao e o link de download continuam antes do pacote', cron.indexOf('Watch &amp; download') < cron.indexOf('${packHtml}'))
 // Conteudo do cliente e escapado: um titulo com `<` nao pode injetar HTML.
-check('28. o pacote e escapado no HTML', /\$\{escapeHtmlText\(valor\)\}/.test(cron))
+check('28. o pacote e escapado no HTML (no renderizador; o cron nao tem mais marcacao propria)', /\$\{escapePackHtml\(valor\)\}/.test(renderizador) && !/const bloco = \(rotulo/.test(cron))
 
 // ══ (C) CUSTO, DENOMINADOR E LIMITES ═════════════════════════════════════
 check('29. o escritor le a memoria ANTES de gastar', escritor.indexOf('pacoteGravado(') > 0 && escritor.indexOf('pacoteGravado(') < escritor.indexOf('api.openai.com'))
