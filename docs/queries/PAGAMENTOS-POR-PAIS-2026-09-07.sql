@@ -74,20 +74,32 @@ order by 3 desc;
 --     ⚠️ Isto vale para a superfície `pricing`. A superfície `post_video` tem
 --     outro denominador honesto: `trial_post_video_offer_viewed` — não misture
 --     as duas num número só; é para isso que o evento carrega `surface`.
+--
+-- ⛔ NÃO USE `count(distinct user_id)` NESTA CONSULTA. `/pricing` é PÚBLICO:
+--    o visitante deslogado grava `user_id = NULL`, e `count(distinct user_id)`
+--    ignora NULL — ou seja, ele conta essas pessoas como ZERO e a peça pareceria
+--    morta estando viva. Medido em 07/09 sobre 14 dias de
+--    `pricing_currency_resolved`: 157 linhas, 123 com user_id, **157 com
+--    session_id**; `count(distinct user_id)` = 69 e o número real de visitantes
+--    é **100**. Uma subcontagem de 31% no denominador E no numerador.
+--    A unidade certa é `coalesce(user_id::text, session_id)` nos dois lados.
+--    (Na superfície `post_video` a rota é autenticada e os dois batem — 23 de
+--    23 têm dono —, mas a mesma expressão é usada para não haver duas réguas.)
 -- ───────────────────────────────────────────────────────────────────────────
 select
-  (select count(distinct user_id) from events
+  (select count(distinct coalesce(user_id::text, session_id)) from events
      where name = 'pricing_currency_resolved'
        and metadata->>'country' in ('IN','NG','PK','BD','KE')
        and created_at > timestamptz '2026-09-07 15:38:00+00') as denominador_pricing,
-  (select count(distinct user_id) from events
+  (select count(distinct coalesce(user_id::text, session_id)) from events
      where name = 'pack_first_for_region_shown' and metadata->>'surface' = 'pricing') as viram_no_pricing,
-  (select count(distinct user_id) from events
+  (select count(distinct coalesce(user_id::text, session_id)) from events
      where name = 'trial_post_video_offer_viewed'
        and created_at > timestamptz '2026-09-07 15:38:00+00') as denominador_pos_filme,
-  (select count(distinct user_id) from events
+  (select count(distinct coalesce(user_id::text, session_id)) from events
      where name = 'pack_first_for_region_shown' and metadata->>'surface' = 'post_video') as viram_pos_filme,
-  (select count(distinct user_id) from events where name = 'pack_first_for_region_clicked') as clicaram,
+  (select count(distinct coalesce(user_id::text, session_id)) from events
+     where name = 'pack_first_for_region_clicked') as clicaram,
   (select count(*) from events
      where name = 'payment_success' and metadata->>'pack' is not null
        and created_at > timestamptz '2026-09-07 15:38:00+00') as compraram_o_pack;
