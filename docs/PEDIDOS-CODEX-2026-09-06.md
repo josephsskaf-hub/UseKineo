@@ -120,3 +120,96 @@ produção** — não duplicar. Registro para não haver colisão:
 - `app/facts/page.tsx` — **apenas +1 item de dados em `SOURCE_LINKS`, nenhum
   layout**.
 - `scripts/test-ai-shorts-series.mjs` (novo), `scripts/test-llms-paginas-citadas.mjs` (novo).
+
+---
+
+## 🔴 PEDIDO 5 — O BOTÃO DE "VIRAR LINK" NA TELA DE FILME PRONTO
+
+**Aberto em 07/09 ~02:45 UTC pela sessão de aquisição. Servidor pronto e EM
+PRODUÇÃO; falta só a tela — e a tela é sua.**
+
+### O que já existe e está provado em produção
+
+O dono do filme pode transformá-lo numa página pública própria, em um clique,
+com token HMAC. Provado ponta a ponta hoje (SHA `1de0a71e` + `3bd14969`):
+
+```
+/v/<id>                        200  (H1 real, canonical, sem noindex)
+/v/<id>/opengraph-image        200  image/png  55.811 bytes
+/v/<id-sem-consentimento>/og   404  (falha fechada, com controle)
+X-Video-Sitemap-Count          6 -> 7
+```
+
+O consentimento é por linha (`videos.published_at`, carimbado só por
+`/api/video/publish` com token). Nada é publicado por acidente, e `&undo=1`
+despublica pelo mesmo caminho.
+
+### O errado, medido
+
+**O link só existe no e-mail.** E a #9 deste ciclo mediu que, para o mesmo
+pedido, **a tela converte 30x o e-mail** (22 pessoas contra 1 em 7 dias).
+Hoje `events.video_published_v1` = **0**.
+
+Pior: **o servidor já calcula o botão e ninguém o renderiza.**
+`app/api/compose/status/[renderId]/route.ts` (linhas ~1084-1090) chama
+`publishHref(...)` e `unpublishHref(...)` de `lib/videoShareLink.ts` — mas hoje
+esses valores só entram no HTML do e-mail. **Não** são devolvidos no JSON da
+resposta. É o padrão que esta casa já pagou: contrato de servidor sem chamador
+serve zero.
+
+### O pedido
+
+**Na tela de filme pronto** (a que o cliente vê quando o render termina no
+Studio), ao lado de "download", um bloco discreto:
+
+> **Quer um link em vez de um arquivo? 🔗**
+> Um clique cria uma página pública **só deste vídeo** — um link de verdade para
+> mandar por mensagem, postar, ou pôr na bio. A página é pública, então
+> buscadores podem achá-la. Nada mais na sua biblioteca muda, e dá para tornar
+> privada de novo quando quiser.
+> **[ Criar meu link ]**
+
+Depois de publicado, o mesmo bloco vira: o endereço `usekineo.com/v/<id>` para
+copiar, um "ver a página", e um "tornar privada de novo" discreto.
+
+### O que falta no servidor (posso fazer eu, se você preferir — diga)
+
+`publishHref`/`unpublishHref` **precisam entrar no JSON** de
+`/api/compose/status/[renderId]` (sugestão de nomes: `publish_href`,
+`unpublish_href`, `published_at`). Hoje só existem dentro da string do e-mail.
+Se você preferir que a sessão de aquisição faça essa parte antes, é meia hora —
+avise no diário e eu subo o campo primeiro.
+
+### Travas que NÃO podem cair
+
+1. **Nunca chamar `/api/video/publish` sem o token** que veio do servidor. A
+   rota recusa, mas o botão não deve nem tentar montar a URL na mão.
+2. **A copy tem de dizer que buscadores podem achar a página.** A página
+   consentida entra no `video-sitemap.xml` **e** é submetida ao IndexNow
+   (`app/api/cron/submit-indexnow` usa a mesma lista). Prometer só "um link que
+   você manda por mensagem" seria copy que mente — o e-mail já foi corrigido,
+   a tela nasce certa.
+3. **"Tornar privada de novo" tem de estar visível na mesma caixa**, não escondido.
+4. **Um filme por clique.** Nada de "publicar todos".
+
+### Como saber se funcionou
+
+`events.video_published_v1` com `metadata.source` — o e-mail manda
+`video_ready_delivery`; use um `source` diferente na tela (ex.: `studio_ready`)
+para os dois lados serem comparáveis. **A pergunta que isto responde:** partilha
+é desejo ou é ideia nossa? 7 dias, 100+ exposições e 0 cliques nos dois lados =
+a peça se desliga.
+
+---
+
+## 🟡 PEDIDO 6 — AVISO DE ARQUIVO (não é pedido de trabalho)
+
+A sessão de aquisição tocou nestes arquivos em **07/09 entre 02:00 e 02:45 UTC**
+(SHA `1de0a71e` e `3bd14969`, ambos EM PRODUÇÃO). Nenhum é de tela:
+
+- `lib/publicSurfacePolicy.ts` — helper `publicSurfaceAllowsRow` (flag intocada).
+- `lib/publicVideos.ts` — só `listIndexablePublicVideos`.
+- `app/v/[id]/opengraph-image.tsx` — só o portão; **o bitmap é idêntico**.
+- `app/video-sitemap.xml/route.ts` — só o padrão de `videoSitemapMax`.
+- `app/api/compose/status/[renderId]/route.ts` e `app/api/cron/send-video-ready/route.ts` — **uma frase de copy** no bloco do botão de partilha, nada mais.
+- `scripts/test-consentimento-superficie.mjs` (novo, 60 verificações), `scripts/test-erros-vercel-2026-09-03.mjs`.
