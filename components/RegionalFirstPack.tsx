@@ -128,10 +128,38 @@ const COPY: Record<SuperficieDoPack, { chapeu: string; contexto: string }> = {
   },
 }
 
+/**
+ * KINEO-METODO-LOCAL-2026-09-07 — O MÉTODO QUE O BANCO DELE ACEITA.
+ *
+ * A ordem do fundador foi literal: "aceitar UPI só para quem vem de IP da
+ * Índia". Quem decide é o SERVIDOR (`/api/geo` devolve `local_method` só quando
+ * a chave do Dodo existe E o país tem um método que a Stripe não faz), porque
+ * o navegador não sabe nem uma coisa nem outra.
+ *
+ * Só dois países entram, e a régua é "o Dodo faz algo que a Stripe NÃO faz":
+ * Índia (UPI/RuPay) e Brasil (Pix). Nigéria, Paquistão, Bangladesh e Quênia
+ * ficam fora de propósito — lá o Dodo seria só outro processador do MESMO
+ * cartão, e isso não é uma segunda porta, é a mesma porta com outra placa.
+ *
+ * ⚠️ HOJE ISTO NÃO PINTA NADA PARA NINGUÉM: sem `DODO_API_KEY` o servidor manda
+ * `local_method: null`. O botão nasce e liga sozinho quando a chave entrar.
+ */
+const ROTULO_DO_METODO: Record<string, { nome: string; frase: string }> = {
+  upi: {
+    nome: 'Pay with UPI / RuPay',
+    frase: 'Pay from your bank app in seconds — no international card needed.',
+  },
+  pix: {
+    nome: 'Pay with Pix',
+    frase: 'Pay with Pix from your bank app — no international card needed.',
+  },
+}
+
 export default function RegionalFirstPack({
   surface = 'pricing',
 }: { surface?: SuperficieDoPack } = {}) {
   const [pais, setPais] = useState<string | null>(null)
+  const [metodoLocal, setMetodoLocal] = useState<string | null>(null)
   const jaContou = useRef(false)
 
   // Mesmo padrão do ExitIntentOffer: a peça resolve o próprio país. Só
@@ -141,16 +169,30 @@ export default function RegionalFirstPack({
   useEffect(() => {
     let cancelado = false
     void fetch('/api/geo', { credentials: 'same-origin', cache: 'no-store' })
-      .then((r) => (r.ok ? (r.json() as Promise<{ country?: string }>) : Promise.reject()))
+      .then((r) =>
+        r.ok
+          ? (r.json() as Promise<{ country?: string; local_method?: string | null }>)
+          : Promise.reject(),
+      )
       .then((d) => {
         if (cancelado) return
         setPais(typeof d.country === 'string' ? d.country : null)
+        // Só um dos dois rótulos conhecidos entra: um valor inesperado vindo da
+        // rede não pode virar um botão sem texto.
+        const m = typeof d.local_method === 'string' ? d.local_method : null
+        setMetodoLocal(m && ROTULO_DO_METODO[m] ? m : null)
       })
       .catch(() => {})
     return () => { cancelado = true }
   }, [])
 
-  const mostrar = regiaoSemMandato(pais)
+  // Os dois gates são INDEPENDENTES, e é isso que faz o Brasil funcionar sem
+  // ganhar a oferta de compra única: o BR não está em REGIOES_SEM_MANDATO (lá o
+  // cartão fecha — 5 no checkout, 1 pagamento), mas ganha o botão de Pix quando
+  // o trilho ligar. E a Índia recebe os dois.
+  const mostrarPack = regiaoSemMandato(pais)
+  const mostrarMetodoLocal = Boolean(metodoLocal)
+  const mostrar = mostrarPack || mostrarMetodoLocal
 
   // A impressão é contada UMA vez por montagem, e só quando a peça REALMENTE
   // aparece. Um `_shown` que dispare junto com a montagem do componente
@@ -164,8 +206,13 @@ export default function RegionalFirstPack({
       surface_version: REGIONAL_FIRST_PACK_VERSION,
       pack_price_minor: 490,
       pack_credits: PACK_CREDITS.starter,
+      // Sem estes dois, uma impressão do Brasil (que vê SÓ o botão de Pix) e
+      // uma da Índia (que vê os dois) viram a mesma linha, e ninguém saberia
+      // qual metade da peça a pessoa realmente viu.
+      pack_shown: mostrarPack,
+      local_method: metodoLocal,
     })
-  }, [mostrar, pais, surface])
+  }, [mostrar, pais, surface, mostrarPack, metodoLocal])
 
   if (!mostrar) return null
 
@@ -181,8 +228,38 @@ export default function RegionalFirstPack({
       <p className="text-[12px] font-bold uppercase tracking-wide text-[#2997ff]">
         {COPY[surface].chapeu}
       </p>
-      <p className="mt-2 text-[15px] font-semibold text-white">
-        Start with a one-time payment — {PACK_CREDITS.starter} credits for {packPriceLabel()}
+
+      {/* KINEO-METODO-LOCAL-2026-09-07 — o método local vem PRIMEIRO quando
+          existe. Para quem tem UPI ou Pix, ele não é "outra forma de pagar": é
+          a única que o banco dela aceita sem mandato internacional. A compra
+          única de US$ 4,90 continua logo abaixo para quem não usa. */}
+      {metodoLocal && (
+        <div className="mt-3">
+          <p className="text-[15px] font-semibold text-white">
+            {ROTULO_DO_METODO[metodoLocal].frase}
+          </p>
+          <a
+            href={`/api/dodo/checkout?tier=starter&utm_source=${surface}&utm_medium=local_method&utm_campaign=${metodoLocal}`}
+            onClick={() => {
+              void trackEvent('local_method_clicked', {
+                country: pais,
+                surface,
+                method: metodoLocal,
+                surface_version: REGIONAL_FIRST_PACK_VERSION,
+              })
+            }}
+            className="mt-3 inline-block rounded-xl px-6 py-3 text-[14px] font-bold text-white no-underline"
+            style={{ background: '#00b37e' }}
+          >
+            {ROTULO_DO_METODO[metodoLocal].nome} →
+          </a>
+        </div>
+      )}
+
+      {mostrarPack && (
+      <>
+      <p className="mt-4 text-[15px] font-semibold text-white">
+        {metodoLocal ? 'Or start with a one-time payment' : 'Start with a one-time payment'} — {PACK_CREDITS.starter} credits for {packPriceLabel()}
       </p>
       {/* Cada frase aqui tem de ser verdadeira: `?pack=starter` é
           `mode: 'payment'` (cobrança única, sem mandato) e os créditos do pack
@@ -206,6 +283,8 @@ export default function RegionalFirstPack({
       >
         Get {PACK_CREDITS.starter} credits for {packPriceLabel()} →
       </a>
+      </>
+      )}
       <p className="mt-3 text-[11.5px] text-[#86868b]">
         {surface === 'pricing' ? 'Prefer a monthly plan? They are right below.' : 'Prefer a monthly plan? See the options above.'}
       </p>

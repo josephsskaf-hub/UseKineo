@@ -84,14 +84,27 @@ ok('país desconhecido FECHA em vez de abrir', decide('XX') === false && decide(
 console.log('\nB. a peça, a copy e a montagem de uma linha')
 
 ok('a decisão é MESMO usada para renderizar, não só declarada',
-  /const mostrar = regiaoSemMandato\(pais\)/.test(comp) && /if \(!mostrar\) return null/.test(comp))
+  /const mostrarPack = regiaoSemMandato\(pais\)/.test(comp) &&
+    /const mostrar = mostrarPack \|\| mostrarMetodoLocal/.test(comp) &&
+    /if \(!mostrar\) return null/.test(comp))
+// Os dois gates são independentes de propósito: o Brasil ganha o botão de Pix
+// SEM ganhar a compra única (lá o cartão fecha — 5 no checkout, 1 pagamento),
+// e a Índia recebe os dois. Um gate só faria uma das duas coisas errado.
+ok('o bloco da compra única depende do SEU gate, não do gate do método local',
+  /\{mostrarPack && \(/.test(comp))
 ok('o preço vem de `packPriceLabel()`, nunca escrito na copy',
   comp.includes('packPriceLabel()') &&
   !/\$4\.90/.test(comp.split('\n').filter((l) => !l.trim().startsWith('//')).join('\n')))
 ok('a quantidade de créditos vem de `PACK_CREDITS.starter`',
   /\{PACK_CREDITS\.starter\}/.test(comp))
-ok('o botão aponta para a compra ÚNICA (`?pack=starter`), não para um plano',
-  /\/api\/stripe\/checkout\?pack=starter/.test(comp) && !/\?tier=/.test(comp))
+// A proteção continua a mesma, agora amarrada ao href DA COMPRA ÚNICA: ele tem
+// de ser `?pack=` e nunca `?tier=`. Um `?tier=` aqui daria a um cartão que
+// recusou mandato exatamente outro mandato, e a copy "no subscription" viraria
+// mentira. (O botão do método local aponta para `/api/dodo/checkout?tier=` de
+// propósito — lá o trilho é outro e o mandato é local.)
+const hrefDoPack = comp.slice(comp.indexOf('const href ='), comp.indexOf('const href =') + 220)
+ok('o botão da compra única aponta para `?pack=starter`, não para um plano',
+  /\/api\/stripe\/checkout\?pack=starter/.test(hrefDoPack) && !/\?tier=/.test(hrefDoPack))
 ok('o link é etiquetado (senão a venda chega ao painel como tráfego direto)',
   /utm_medium=regional_pack/.test(comp) && /utm_campaign=first_pack_no_mandate/.test(comp))
 ok('a impressão é contada UMA vez, e só quando a peça aparece',
@@ -153,6 +166,33 @@ ok('a superfície pós-filme NÃO fala em cartão recusado',
 // A promessa que precisa ser verdadeira nas DUAS telas.
 ok('as duas superfícies prometem a mesma coisa verificável: compra única',
   /no subscription/i.test(comp) && /one-time payment/i.test(comp))
+
+// ── BLOCO B3 — O MÉTODO LOCAL (UPI / Pix) ─────────────────────────────────
+// "Aceitar UPI só para quem vem de IP da Índia" foi a ordem literal do
+// fundador. As duas condições que a autorizam moram no SERVIDOR: existe chave
+// do Dodo, e o país tem um método que a Stripe não faz. O navegador não pode
+// responder nenhuma das duas — se ele pudesse, o botão apareceria para todo
+// mundo e daria 503 na cara da pessoa.
+console.log('\nB3. o método local (UPI / Pix) é decidido pelo servidor')
+
+const geo = ler('app', 'api', 'geo', 'route.ts')
+ok('o /api/geo só oferece método local quando a chave do Dodo EXISTE',
+  /isDodoEnabled\(\) \? \(METODO_LOCAL_POR_PAIS\[country\] \?\? null\) : null/.test(geo))
+ok('só Índia (UPI) e Brasil (Pix) entram — onde o Dodo faz o que a Stripe não faz',
+  /IN: 'upi',/.test(geo) && /BR: 'pix',/.test(geo) &&
+    !/(NG|PK|BD|KE): '/.test(geo))
+ok('a peça lê o método do servidor, não decide sozinha',
+  /setMetodoLocal\(m && ROTULO_DO_METODO\[m\] \? m : null\)/.test(comp))
+ok('valor inesperado da rede NÃO vira botão sem texto',
+  /ROTULO_DO_METODO\[m\] \? m : null/.test(comp))
+ok('o botão do método local aponta para o trilho do Dodo',
+  /\/api\/dodo\/checkout\?tier=starter/.test(comp))
+ok('o clique no método local tem evento próprio, com o método',
+  /local_method_clicked/.test(comp) && /method: metodoLocal,/.test(comp))
+// Índia vê os dois blocos; Brasil vê só o Pix. Sem estes dois campos as duas
+// impressões seriam a mesma linha e ninguém saberia o que a pessoa viu.
+ok('a impressão diz QUAL metade da peça apareceu',
+  /pack_shown: mostrarPack,/.test(comp) && /local_method: metodoLocal,/.test(comp))
 
 // ── BLOCO C — A OFERTA É O QUE A PEÇA DIZ QUE É ───────────────────────────
 console.log('\nC. a compra única é mesmo única (arquivos do checkout e do preço)')
