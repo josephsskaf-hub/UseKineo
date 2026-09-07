@@ -2619,3 +2619,191 @@ canal que responde perguntas é o que traz gente com a mão no bolso, e é para
 lá que a próxima rotação empurra.
 
 ---
+
+### #19 — 01:38→02:38 BRT (07/09) — o pacote que faz o filme trazer o próximo cliente estava no e-mail que 4 pessoas receberam, não no que 121 receberam
+
+**Press release.** Quem termina um filme na Kineo recebe, no mesmo e-mail em
+que baixa o arquivo, o pacote de publicação pronto para colar: título de
+YouTube, descrição com o crédito da casa, legenda de TikTok e comentário
+fixado. Antes, esse pacote existia e não chegava a ninguém — ele estava
+ligado num segundo e-mail que a casa mandou **4 vezes na história inteira**.
+Agora ele viaja no e-mail de entrega, que saiu **178 vezes para 121 pessoas
+nos últimos 7 dias**. Cada filme entregue passa a sair de casa com o nome da
+Kineo escrito na legenda em vez de sair mudo.
+
+**Hipótese.** O gargalo do ciclo é denominador, e o único canal que a casa
+puxa sozinha é o filme que o cliente publica. 11 pessoas baixaram um MP4 nas
+últimas 24h e ~44 filmes ficaram prontos: se o texto que acompanha esses
+vídeos nomear a ferramenta, cada entrega vira uma porta. **Métrica de
+parada:** `publish_pack` = true em `video_ready_email_sent`. Enquanto for
+zero ou ausente, a peça não existe.
+
+#### O que estava errado (medido no banco de produção, 01:50 BRT)
+
+| evento | contagem |
+|---|---|
+| `video_ready_email_sent` — e-mail de ENTREGA (`/api/compose/status`) | **178 em 7d / 121 pessoas** · 44 em 24h / 34 pessoas |
+| `video_ready_nudge_sent` — cron de 2º toque (`/api/cron/send-video-ready`) | **4 em toda a história** |
+| `publish_pack_written` | **0** |
+| `publish_pack_unavailable` (a sonda criada ontem para explicar o zero) | **0** |
+
+`garantirPacote` só era chamado dentro do cron de 2º toque — o remetente com
+4 envios na história, que ainda por cima é **suprimido justamente porque o
+e-mail de entrega já saiu**. Razão de alcance entre os dois remetentes:
+**44x**. E a sonda que uma rotação anterior criou para descobrir por que
+`publish_pack_written` era zero foi instalada no mesmo lugar errado — por
+isso ela também mede zero. **Um zero mudo explicado por outro zero mudo.**
+
+É a memória `medir-alcance-da-superficie-antes-de-ligar` batendo pela
+terceira vez em dois dias: quatro e-mails de "filme pronto" com alcances
+muito diferentes, e a peça nova foi pendurada no menor deles.
+
+#### O que mudou
+
+- `lib/publishPackEmail.ts` (**novo**) — renderizador ÚNICO do bloco do
+  pacote (`packEmailText`, `packEmailHtml`), puro, com tema claro e escuro.
+  O cron **passou a importar daqui**; a marcação inline dele foi removida.
+  Nada de HTML duplicado (memória: importe a fonte única, não conserte a cópia).
+- `app/api/compose/status/[renderId]/route.ts` — chama `garantirPacote` e
+  renderiza o pacote depois do botão de download. **Falha sempre aberta:**
+  try/catch + `Promise.race` com orçamento de 12s; qualquer problema devolve
+  `null` e o e-mail sai byte a byte como saía ontem. O crédito da casa só
+  entra para quem não assina, usando `readyEmailIsSubscriber` — a **mesma
+  variável** que já decide o rodapé, sem predicado redigitado (memória:
+  `predicado-do-cobrador-nao-se-redigita`).
+- **A sonda foi junto:** sem pacote, grava `publish_pack_unavailable` com
+  `path='/api/compose/status'` e o motivo nomeado (`sem_openai_key`,
+  `openai_timeout`, `sem_tema`, `orcamento_estourado`, ...). E
+  `video_ready_email_sent` ganhou o campo booleano `publish_pack`, para medir
+  adoção sem cruzar tabelas.
+
+**SHA `d1dfa0ca` — EM PRODUÇÃO.** `git ls-remote origin main` = `d1dfa0ca`,
+fila `origin/main..entrega-atual` = **0**. Sonda: `https://www.usekineo.com/`
+= **200** com controle 404 na mesma medição = **404**; o id de deploy servido
+na home mudou de `dpl_7yqKCgiA...` (01:53:57) para `dpl_59AzHe2Q...` (01:54:43),
+e o único push da janela foi este.
+
+#### O que o cliente passa a ver
+
+No mesmo e-mail em que ele clica para baixar o filme, abaixo do botão: quatro
+blocos prontos para copiar — título de YouTube, descrição (com "made with
+usekineo.com" quando ele está no gratuito), legenda de TikTok e comentário
+fixado. Quem assina recebe o pacote **sem** a linha de crédito: parte do que
+se compra é não precisar anunciar a ferramenta.
+
+#### Testes
+
+- `scripts/test-pacote-no-email-de-entrega.mjs` — **42/42**, estilo
+  `readFileSync` + regex sobre o arquivo real (nunca `import` com alias `@/`,
+  memória `guardioes-com-alias-nao-rodam`).
+- `scripts/test-pacote-publicacao.mjs` — **53/53** (3 verificações
+  reapontadas para o renderizador compartilhado).
+- `npx tsc --noEmit` — **verde** (exit 0).
+- **Dentes provados por mutação, com prova de que o mutante aplicou:**
+  (1) chamada de `garantirPacote` renomeada → `git diff --numstat` = `1 1`,
+  guardião 39/42, exit 1; (2) `isFreePlan: !readyEmailIsSubscriber` trocado
+  por `true` → numstat `1 1`, guardião 41/42, exit 1 — ou seja, o guardião
+  está amarrado à **variável que decide**, não ao texto (memória
+  `guardiao-contar-texto-nao-prova-condicao`). Restaurados; 42/42 de volta.
+  Registro honesto: a primeira tentativa do mutante 1 mudou o md5 **sem mudar
+  conteúdo** (o `sed` reescreveu só terminação de linha) e o guardião seguiu
+  verde — foi o `numstat` vazio que denunciou. É a memória
+  `mutacao-precisa-provar-que-aplicou` acontecendo ao vivo.
+
+#### Risco
+
+O e-mail de entrega ganha até 12s de espera por uma chamada de gpt-4o-mini
+(~US$ 0,0003 por filme novo, reaproveitada no 2º toque). Auditei
+`garantirPacote` linha a linha: **nenhum caminho rejeita** — os sete `return
+null` são nomeados e `guardar`/`pacoteGravado` engolem o próprio erro —,
+então o `Promise.race` não deixa rejeição órfã para trás. Se a OpenAI cair, o
+e-mail sai igual ao de hoje e a sonda diz o motivo.
+
+#### Como medir (é isto que a próxima rotação abre)
+
+```sql
+select metadata->>'publish_pack' pack, count(*)
+from events where name='video_ready_email_sent'
+  and created_at > timestamptz '2026-09-07 04:54:43+00'  -- deploy
+group by 1;
+
+select metadata->>'reason', count(*) from events
+where name='publish_pack_unavailable' and path='/api/compose/status'
+group by 1 order by 2 desc;
+```
+
+**Ainda não há linha para ler:** o último e-mail de entrega saiu 04:47 UTC, o
+deploy landou 04:54 UTC. O ritmo dos últimos envios é de um a cada 30-70 min,
+então a primeira prova aparece dentro da próxima hora. **Não declaro entrega
+provada antes disso** — o que está provado é o deploy, não o pacote.
+
+#### Praxe — aquisição nas últimas 24h (contas externas)
+
+| fonte | cadastros | com filme | 2º filme | baixou | checkout | pagou |
+|---|---|---|---|---|---|---|
+| chatgpt | 25 | 21 | 6 | 8 | 1 | 0 |
+| (sem fonte) | 8 | 4 | 1 | 0 | 0 | 0 |
+| taaft | 5 | 5 | 0 | 2 | 1 | 0 |
+| nav (interno) | 2 | 1 | 0 | 1 | 0 | 0 |
+| **total** | **40** | **31** | **7** | **11** | **2** | **0** |
+
+**Checagem zero — limpa.** 8 contas novas sem crédito: `trial_status` diz
+**blocked** e **downgraded** (antifraude e trial gasto), nenhum órfão. Render
+preso >45min: **0**. `next_episode_failed`: **0**. `generation_stage_error`:
+12, todos das mesmas famílias já conhecidas (portão de plano/cota, guarda de
+narração curta). `payment_success` em 24h: **0**.
+
+#### O número que emoldura a jogada
+
+Em 14 dias: **98 pessoas clicaram em baixar, 87 baixaram o arquivo, 3
+compartilharam, e 1 vídeo em 1.659 é público** (`videos.published_at` não
+nulo = **1**). Ou seja: o filme sai de casa pelo download, não pelo link. Foi
+por isso que eu **não** fiz o Q5 (og:image da `/v/[id]`) nesta rotação —
+gravar `thumbnail_url` melhoraria uma superfície que hoje alcança **uma**
+página. Medir o alcance antes de ligar economizou a hora.
+
+#### Próxima jogada
+
+1. **Ler a sonda** (as duas consultas acima). Se `publish_pack` vier `false`
+   em massa, o `reason` diz onde parou e o conserto é de minutos.
+2. **A porta que o download não tem.** 87 pessoas levaram o MP4 embora em 14
+   dias e 3 compartilharam. O pacote agora viaja no e-mail; falta ele estar
+   **na tela**, no momento do download — mas essa tela é do Codex, então vira
+   PEDIDO com a spec, não código meu.
+3. **`/tools/editor` está no ar (200, 46 KB, sem login) e fora do sitemap e
+   do llms.txt** — quarta peça sem superfície da casa. Em execução nesta
+   mesma rotação.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+1. **Nada agora.** O que subiu subiu sozinho e está provado até onde dá para
+   provar às 2h da manhã.
+2. **Quando abrir o Search Console** (segue da #17b): pedir indexação de
+   `https://www.usekineo.com/chatgpt`.
+3. **O pacote pequeno continua esperando uma palavra sua** (item da #18):
+   "liga o $4,90" ou "fecha". O $2,90 fica desligado de qualquer jeito —
+   perde $0,78 por venda.
+
+## 📋 O QUE ACONTECEU
+
+A casa construiu ontem a peça que faz cada filme entregue trazer o próximo
+cliente — título, descrição, legenda e comentário prontos, com o nome da
+Kineo dentro — e pendurou ela no e-mail errado: o que foi enviado **4 vezes
+na história**. O e-mail que 121 pessoas realmente receberam nos últimos 7
+dias não tinha pacote nenhum. Pior: a sonda criada ontem para descobrir por
+que o pacote nunca era escrito foi instalada no mesmo lugar errado, então ela
+também marcava zero e o silêncio se explicava sozinho.
+
+Mudei o pacote para o e-mail que as pessoas recebem de verdade, com a sonda
+junto, e com a regra de que qualquer erro faz o e-mail sair exatamente como
+saía ontem. Está em produção.
+
+Na medição da hora a casa segue saudável e parada no mesmo lugar: 40 pessoas
+entraram, 31 receberam filme, 11 baixaram, 2 chegaram ao checkout, **nenhuma
+pagou**. Nada quebrado.
+
+E um item que eu decidi **não** fazer: a foto de capa da página pública do
+vídeo. Fui medir antes e a página pública alcança **1 vídeo em 1.659** — era
+uma hora de trabalho para melhorar uma superfície que quase ninguém vê.
+
+---
