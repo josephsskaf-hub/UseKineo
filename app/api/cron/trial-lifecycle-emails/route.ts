@@ -421,11 +421,11 @@ const COMEBACK_CODE = 'COMEBACK50'
  * o `body` passa a gravar `offer_with_film_1usd`, então a medição separa quem
  * recebeu o bundle novo de quem recebeu o antigo sem depender de relógio.
  */
-const TRIAL_1USD_PATH = '/api/stripe/checkout?tier=basic&billing=monthly&trial=1'
+const TRIAL_ENTRY_PATH = '/api/stripe/checkout?tier=basic&billing=monthly&trial=1'
 /** Texto do botão do /pricing, verbatim, para a casa falar uma língua só. */
-const TRIAL_1USD_LINE = 'try Creator for 7 days — $1, then $15/mo'
-function trial1UsdUrl(campaign: string): string {
-  return `${APP_URL}${TRIAL_1USD_PATH}&intent_campaign=${campaign}`
+const TRIAL_ENTRY_LINE = 'a 7-day Creator trial with a token entry fee — the checkout shows it in your own currency'
+function trialEntryUrl(campaign: string): string {
+  return `${APP_URL}${TRIAL_ENTRY_PATH}&intent_campaign=${campaign}`
 }
 
 type EmailKind =
@@ -1747,7 +1747,7 @@ ${ep2 ? `${ep2.html}\n` : ''}  ${sig}`)
     if (c.videosMade >= 1) {
       const noun = filmNoun(c.lastDuration)
       const libraryUrl = `${APP_URL}/library?${utm('trial_offer_d5_library')}`
-      const trialUrl = trial1UsdUrl('trial_1usd_d5')
+      const trialUrl = trialEntryUrl('trial_1usd_d5')
       const creatorRow = filmsPerPlan(c.lastCost)?.find((r) => r.tier === 'basic') ?? null
       const ep2 = episodeTwoBlock(c.lastTopic, 'trial_offer_d5_episode2', 'lifecycle_loss_email', attr)
       const madeLine = c.videosMade === 1
@@ -1761,7 +1761,7 @@ ${ep2 ? `${ep2.html}\n` : ''}  ${sig}`)
 Your Creator trial ended a few days ago, and ${madeLine}:
 ${libraryUrl}
 
-If you want the next one, the cheapest way back in is a dollar: ${TRIAL_1USD_LINE}. Cancel anytime.
+If you want the next one, the cheapest way back in is one unit of money: ${TRIAL_ENTRY_LINE}. Cancel anytime.
 ${trialUrl}
 
 Or take 50% off Creator for 3 months, with code ${COMEBACK_CODE}.${filmsLine ? ` ${filmsLine}` : ''} Claim it here — the code applies at checkout: ${url}
@@ -1772,16 +1772,16 @@ usekineo.com`
   <p style="margin:0 0 14px;">Hey,</p>
   <p style="margin:0 0 14px;">Your Creator trial ended a few days ago, and <strong>${escapeHtmlText(madeLine)}</strong>.</p>
   ${cta(libraryUrl, 'Open your Library')}
-  <p style="margin:0 0 14px;">If you want the next one, the cheapest way back in is a dollar: <strong>${escapeHtmlText(TRIAL_1USD_LINE)}</strong>. Cancel anytime.</p>
-  ${cta(trialUrl, 'Start Creator for $1')}
+  <p style="margin:0 0 14px;">If you want the next one, the cheapest way back in is one unit of money: <strong>${escapeHtmlText(TRIAL_ENTRY_LINE)}</strong>. Cancel anytime.</p>
+  ${cta(trialUrl, 'Start the 7-day Creator trial')}
   <p style="margin:0 0 14px;">Or take <strong>50% off Creator for 3 months</strong>, with code <strong>${COMEBACK_CODE}</strong>.${filmsLine ? ` ${escapeHtmlText(filmsLine)}` : ''}</p>
   ${cta(url, `Claim 50% off`)}
   <p style="margin:0 0 20px;font-size:13px;color:#64748b;">The code applies automatically at checkout.</p>
 ${ep2 ? `${ep2.html}\n` : ''}  ${sig}`)
       return {
         subject: c.videosMade === 1
-          ? `Your ${noun} is still in your Library — try Creator for $1`
-          : `Your ${c.videosMade} videos are still in your Library — try Creator for $1`,
+          ? `Your ${noun} is still in your Library — and there is a cheaper way back than the coupon`
+          : `Your ${c.videosMade} videos are still in your Library — and there is a cheaper way back than the coupon`,
         text: `${wText}${footerText}`,
         html: wHtml,
         body: 'offer_with_film_1usd',
@@ -1901,7 +1901,7 @@ usekineo.com`
     if (c.videosMade >= 1) {
       const noun = filmNoun(c.lastDuration)
       const libraryUrl = `${APP_URL}/library?${utm('trial_offer_d10_library')}`
-      const trialUrl = trial1UsdUrl('trial_1usd_d10')
+      const trialUrl = trialEntryUrl('trial_1usd_d10')
       const creatorRow = filmsPerPlan(c.lastCost)?.find((r) => r.tier === 'basic') ?? null
       const ep2 = episodeTwoBlock(c.lastTopic, 'trial_offer_d10_episode2', 'lifecycle_loss_email', attr)
       const madeLine = c.videosMade === 1
@@ -1916,7 +1916,7 @@ Quick heads-up, and then we'll leave you alone: ${madeLine}, and there are two w
 
 Your Library: ${libraryUrl}
 
-The cheap one, a dollar: ${TRIAL_1USD_LINE}. Cancel anytime.
+The cheap one: ${TRIAL_ENTRY_LINE}. Cancel anytime.
 ${trialUrl}
 
 The other: 50% off Creator for 3 months, code ${COMEBACK_CODE} — it applies at checkout: ${url}${filmsLine ? `\n${filmsLine}` : ''}
@@ -1929,15 +1929,16 @@ usekineo.com`
   <p style="margin:0 0 14px;">Hey,</p>
   <p style="margin:0 0 14px;">Quick heads-up, and then we'll leave you alone: <strong>${escapeHtmlText(madeLine)}</strong>, and there are two ways back in — but this is the last time we'll mention either.</p>
   ${cta(libraryUrl, 'Open your Library')}
-  <p style="margin:0 0 14px;">The cheap one, a dollar: <strong>${escapeHtmlText(TRIAL_1USD_LINE)}</strong>. Cancel anytime.</p>
-  ${cta(trialUrl, 'Start Creator for $1')}
+  <p style="margin:0 0 14px;">The cheap one: <strong>${escapeHtmlText(TRIAL_ENTRY_LINE)}</strong>. Cancel anytime.</p>
+  ${cta(trialUrl, 'Start the 7-day Creator trial')}
+  <p style="margin:0 0 14px;">The other: <strong>50% off Creator for 3 months</strong>, code <strong>${COMEBACK_CODE}</strong>.</p>
   ${filmsLine ? `<p style="margin:0 0 14px;">${escapeHtmlText(filmsLine)}</p>\n` : ''}  ${cta(url, 'Claim 50% off')}
   <p style="margin:0 0 20px;font-size:13px;color:#64748b;">The code applies automatically at checkout. No hard feelings either way.</p>
 ${ep2 ? `${ep2.html}\n` : ''}  ${sig}`)
       return {
         subject: c.videosMade === 1
-          ? `Last call — your ${noun} is waiting, and Creator is $1 for 7 days`
-          : `Last call — your ${c.videosMade} videos are waiting, and Creator is $1 for 7 days`,
+          ? `Last call — your ${noun} is waiting, and there are two ways back in`
+          : `Last call — your ${c.videosMade} videos are waiting, and there are two ways back in`,
         text: `${wText}${footerText}`,
         html: wHtml,
         body: 'offer_with_film_1usd',

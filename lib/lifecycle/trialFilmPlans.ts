@@ -27,6 +27,11 @@ export type LossBody =
   | 'burned_with_film'
   | 'standard'
   | 'offer_with_film'
+  /** va-r3 (07/09) — MESMO ramo do 'offer_with_film' (D5/D10 de quem TEM
+   *  filme), agora com a porta do trial pago ANTES do COMEBACK50. Chave
+   *  propria para a medicao separar quem recebeu o bundle novo sem depender
+   *  do relogio (memoria ). */
+  | 'offer_with_film_1usd'
   /** sprint-assinaturas #12 (04/09) — D5/D10 para quem NUNCA teve um video
    *  entregue: o filme gratis vem primeiro, o COMEBACK50 continua igual,
    *  embaixo. Discriminador proprio porque o 'standard' desses dois e-mails

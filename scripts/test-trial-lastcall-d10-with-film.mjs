@@ -15,7 +15,7 @@ const d10 = route.slice(start, end)
 ok(d10.length > 500 && end > start, 'bloco do D10 localizado')
 ok(d10.includes('if (c.videosMade >= 1)'), 'ramo novo so para quem tem video entregue (videosMade real)')
 ok(d10.indexOf('if (c.videosMade >= 1)') < d10.indexOf("const text = `Hey,"), 'ramo com filme decide ANTES do corpo padrao')
-ok(d10.includes("body: 'offer_with_film'"), 'evento grava body offer_with_film (mesma chave do D5)')
+ok(d10.includes("body: 'offer_with_film_1usd'"), 'evento grava body offer_with_film_1usd (mesma chave do D5) — va-r3 07/09')
 ok(d10.includes("html, body: 'standard' }"), 'D10 padrao grava body standard (prova qual saiu)')
 // cupom identico, nada novo prometido
 const cupons = d10.match(/\$\{COMEBACK_CODE\}/g) || []
@@ -35,8 +35,11 @@ ok(d10.includes("filmsPerPlan(c.lastCost)?.find((r) => r.tier === 'basic')"), 's
 ok(d10.includes('creatorRow && creatorRow.films >= 1'), 'sem custo conhecido ou 0 filmes = a frase cala')
 ok(d10.includes('filmNoun(c.lastDuration)'), 'segundos so quando a duracao e real')
 // assunto
-ok(d10.includes('Last call on 50% off Creator — your ${noun} is waiting in your Library'), 'assunto com o filme dela (1 video)')
-ok(d10.includes('Last call on 50% off Creator — your ${c.videosMade} videos are waiting in your Library'), 'assunto com N videos')
+// va-r3 (07/09): o assunto mudou junto com o corpo — a porta de entrada paga
+// entrou antes do cupom, e o assunto deixou de anunciar os 50%. O cupom NAO
+// mudou (codigo, prazo, porcentagem, URL) e continua guardado logo acima.
+ok(d10.includes('Last call — your ${noun} is waiting, and there are two ways back in'), 'assunto com o filme dela (1 video)')
+ok(d10.includes('Last call — your ${c.videosMade} videos are waiting, and there are two ways back in'), 'assunto com N videos')
 ok(d10.includes('subject: `Last call: 50% off Creator expires`'), 'quem nao tem video: assunto de hoje intocado')
 // corpo padrao intocado (controle do A/B)
 const std = d10.slice(d10.indexOf("const text = `Hey,"))
