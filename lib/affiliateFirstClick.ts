@@ -10,6 +10,8 @@ export const AFFILIATE_FIRST_CLICK_VIEW_SESSION_KEY =
   'kineo_affiliate_first_click_nudge_viewed_v2' as const
 
 export const AFFILIATE_FIRST_CLICK_SURFACES = [
+  '/affiliate',
+  '/referral',
   '/studio',
   '/studio/create',
   '/generate',

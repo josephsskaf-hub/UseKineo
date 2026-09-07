@@ -8,6 +8,8 @@
 // - Dismissal is remembered for 14 days.
 
 import { useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
+import { isFocusedWorkspace } from '@/lib/ui/workspaceFocus'
 import { VAPID_PUBLIC_KEY } from '@/lib/push'
 
 const DISMISS_KEY = 'sfai_push_dismissed_at'
@@ -51,6 +53,7 @@ async function subscribeAndSave(): Promise<boolean> {
 }
 
 export default function EnablePushBanner() {
+  const pathname = usePathname()
   const [show, setShow] = useState(false)
   const [busy, setBusy] = useState(false)
 
@@ -97,7 +100,8 @@ export default function EnablePushBanner() {
     }
   }
 
-  if (!show) return null
+  // Keep granted subscriptions refreshed by the effect; only suppress the prompt.
+  if (!show || isFocusedWorkspace(pathname)) return null
 
   return (
     <div

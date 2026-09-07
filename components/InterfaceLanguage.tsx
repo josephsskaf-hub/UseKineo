@@ -18,6 +18,10 @@ export function InterfaceLanguageProvider({ children }: { children: ReactNode })
     window.addEventListener('storage', sync)
     return () => window.removeEventListener('storage', sync)
   }, [])
+  useEffect(() => {
+    // Metadata/accessibility follows the explicit preference; user-authored content stays untouched.
+    document.documentElement.lang = language
+  }, [language])
   const choose = useCallback((value: InterfaceLanguage) => {
     const next = parseInterfaceLanguage(value)
     setLanguage(next)

@@ -14,6 +14,8 @@ import { createClient as createServiceClient } from '@supabase/supabase-js'
 export const dynamic = 'force-dynamic'
 
 const SERVER_ONLY_EVENTS = new Set([
+  'video_published_v1',
+  'video_unpublished_v1',
   'compose_submission_claim',
   'avatar_submission_claim',
   // ═══ KINEO-353A-2026-08-26 ═══════════════════════════════════════════════

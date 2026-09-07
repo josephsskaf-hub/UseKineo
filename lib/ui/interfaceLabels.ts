@@ -1,5 +1,9 @@
 /** Reviewed UI labels. Product names and user-created content are not translated. */
 export const INTERFACE_ES: Record<string, string> = {
+  'Create new video': 'Crear un vídeo nuevo',
+  'a single line is enough — or paste a full script': 'Basta con una frase, o pega un guion completo',
+  '1080×1920 · Full HD master': '1080×1920 · Vídeo final Full HD',
+  'Every film is delivered as a 1080×1920 Full HD master (engines render natively at 720–768p and are mastered up). For maximum sharpness, run ✨HD Enhance on the finished film.': 'Cada vídeo se entrega en 1080×1920 Full HD (los motores generan a 720–768p y se amplía la resolución). Para obtener la máxima nitidez, aplica ✨HD Enhance al vídeo terminado.',
   'Your idea first. Review the settings, then generate.': 'Primero tu idea. Revisa los ajustes y después genera el vídeo.',
   'Your idea': 'Tu idea',
   '📷 Photo': '📷 Foto', '🎥 Real video': '🎥 Vídeo real',

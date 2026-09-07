@@ -1,0 +1,21 @@
+# Cinco melhorias — coordenação de execução
+
+**DECISÃO APROVADA:** fundador autorizou as cinco propostas após a publicação da Manrope. Base 5b155dc5; worktree C:/tmp/kineo-five-improvements-2026-09-07, branch codex/five-improvements-2026-09-07. Claude continua aquisição, sem tocar em preços/ofertas nesta entrega.
+
+**ESCOPO EM EXECUÇÃO:** rotas video/publish, admin/flag-video, events (autorização e integridade, não render); Guardião; LibraryClient e componentes de navegação/avisos/idioma. Antes de qualquer alteração no Studio/GenerateClient, limitar a cópia e preservar todos os handlers/payloads. Nenhum fornecedor, cron ou cobrança alterado. Verificar main novamente antes de integrar.
+
+**HIPÓTESE:** uma próxima ação clara, sem avisos secundários sobrepostos, facilita continuar um projeto sem perder acesso a planos. Não reivindicar conversão por teste interno. Métrica posterior: pessoas externas expostas → ação correspondente → retorno/assinatura. Idioma não muda moeda nem roteiro.
+
+**GATES:** testes de rota com banco/eventos mockados; mutações nunca em GET; erro/zero linhas não é sucesso; chamada não-admin não toca métricas; publicação server-only. Typecheck bruto e bateria crítica devem reprovar CI. Comparação antes/depois das seções alteradas, desktop/mobile, EN/ES. Publicação e limites serão registrados no fechamento.
+
+## Preparado para publicação — 07/09 01:24 BRT
+
+**IMPLEMENTADO / TESTADO LOCALMENTE:** (1) avisos secundários fora das áreas de criação/acervo, preservando alertas críticos e manutenção de push já autorizado; (2) Avatar abre `/avatar` e retry do histórico abre revisão no Studio, preservando modo/motor/duração; (3) Biblioteca destaca projeto recente, incluindo processamento/erro sem confundir com biblioteca vazia; (4) lacunas EN/ES do Studio e Biblioteca, `html.lang` sincronizado, sem traduzir texto do usuário; (5) confirmação POST de compartilhamento com validade curta, CAS e sucesso real, allowlist admin em flag-video, eventos de consentimento server-only e CI crítico sem tolerar falha.
+
+**TESTADO LOCALMENTE:** `test-sharing-safety.mjs` 68; `test-five-improvements.mjs` 588; `test-interface-language.mjs` 1066; `test-language-navigation.mjs` 23. `npx tsc --noEmit --incremental false` código 0. Todos offline, dados sintéticos, nenhum fornecedor/render/débito. Comparação real de JSX em `docs/previews/CINCO-MELHORIAS-2026-09-07.html`, com Studio/Biblioteca EN/ES, Avatar, destino de retry, avisos e representação da confirmação. Inspeção visual desktop e 320/390px. Gerador aceita o HTML tipográfico aprovado como entrada; não contém caminhos privados hardcoded.
+
+**CONTRADIÇÃO / LIMITE:** o teste antigo `test-library-error-state.mjs` falha em três âncoras de texto sem UiLabel já ausentes na base; não foi alterado para aparentar verde. A nova bateria renderiza a Biblioteca com falha nas três abas e confirma erro sem estado vazio. Não declarar todos os testes legados verdes nem auditoria 100%.
+
+**QUESTÃO PENDENTE:** ES não foi certificado em todo estado raro/admin/e-mail; esta entrega cobre as lacunas core identificadas. Terceiro idioma ainda não selecionado. Links v1 existentes continuam bearer sem expiração (compatibilidade); só a confirmação POST é curta e vinculada à ação. Revogação individual de links e risco de dependências da auditoria integral são trabalho separado. CI falha de verdade, mas required checks/proteção de branch não foi confirmada no GitHub.
+
+**COORDENAÇÃO:** incorporado origin/main `19708bd0` antes do commit; alterações do Claude em ChatGptWelcomeBanner/diários preservadas, sem sobreposição. Não alterados render, preços, créditos, campanhas nem dados de cliente. Validação de produção será acrescentada após CI/deploy, não presumida.

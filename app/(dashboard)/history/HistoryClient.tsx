@@ -10,6 +10,7 @@ import { downloadVideoFile } from '@/lib/videoDownload'
 import { fitLightboxFrame } from '@/lib/frameFit'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import { buildStudioSeriesReviewHref } from '@/lib/navigation/studioSeriesReview'
+import { reviewVideoRetryHref } from '@/lib/navigation/reviewVideoRetry'
 import { useSeriesDoorSeen } from '@/lib/seriesDoorImpressions'
 import {
   buildPublicVideoSharePath,
@@ -268,11 +269,7 @@ function failedCardCopy(video: Video, state: 'failed' | 'timeout'): string {
 // prefill the composer — see app/(dashboard)/generate/GenerateClient.tsx,
 // which does `searchParams.get('prompt') ?? searchParams.get('topic')` and
 // caps the stored prompt at 1000 chars.
-function tryAgainHref(video: Video): string {
-  const topic = (video.topic ?? '').trim()
-  if (!topic) return '/studio'
-  return `/studio/create?prompt=${encodeURIComponent(topic.slice(0, 1000))}`
-}
+function tryAgainHref(video: Video): string { return reviewVideoRetryHref(video.topic) }
 
 interface Props {
   videos: Video[]

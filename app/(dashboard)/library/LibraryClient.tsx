@@ -5,7 +5,9 @@
 // (aba Library) vestido no Studio Kit: contadores no topo (primeiro passo do
 // medidor de storage do pricing V4), abas Videos/Images/Audio, grades com
 // play/download, links pros ambientes de criacao quando a aba esta vazia.
-import { UiLabel } from '@/components/InterfaceLanguage'
+import { UiLabel, useInterfaceLanguage } from '@/components/InterfaceLanguage'
+import LibraryRecentProjectCard from '@/components/LibraryRecentProject'
+import { selectRecentLibraryProject, type RecentLibraryProject } from '@/lib/ui/recentLibraryProject'
 import { useCallback, useEffect, useState } from 'react'
 import { engineLabelFor } from '@/lib/engineLabel'
 import Link from 'next/link'
@@ -21,6 +23,8 @@ type Img = { id: string; url: string; upscaled_url?: string | null; model?: stri
 type Aud = { id: string; url: string; model?: string; voice?: string | null; text?: string | null }
 
 export default function LibraryClient() {
+  const es = useInterfaceLanguage() === 'es'
+  const [recentVideo, setRecentVideo] = useState<RecentLibraryProject | null>(null)
   // sprint-retencao #15 — `library_video_card` tinha clique e zero impressao.
   const { registrarPorta } = useSeriesDoorSeen()
   const [tab, setTab] = useState<Tab>('videos')
@@ -65,7 +69,10 @@ export default function LibraryClient() {
       fetch('/api/audio', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
     ]).then(([v, i, a]) => {
       if (v === null || i === null || a === null) setLoadFailed(true)
-      if (Array.isArray(v?.videos)) setVids(v.videos.filter((x: Vid) => x.video_url))
+      if (Array.isArray(v?.videos)) {
+        setVids(v.videos.filter((x: Vid) => x.video_url))
+        setRecentVideo(selectRecentLibraryProject(v.videos))
+      }
       if (Array.isArray(i?.images)) setImgs(i.images)
       if (Array.isArray(a?.audios)) setAuds(a.audios)
       setLoaded(true)
@@ -105,10 +112,12 @@ export default function LibraryClient() {
         Everything you’ve created, in one place.
         </UiLabel>{usage && (
           <span style={{ marginLeft: 10, fontSize: 12, color: '#7cc0ff', fontWeight: 700 }}>
-            {usage.limit ? `${usage.total} of ${usage.limit} projects` : `${usage.total} projects · unlimited`} · {usage.retention}
+            {usage.limit ? (es ? `${usage.total} de ${usage.limit} proyectos` : `${usage.total} of ${usage.limit} projects`) : (es ? `${usage.total} proyectos · sin límite` : `${usage.total} projects · unlimited`)} · {usage.retention}
           </span>
         )}
       </p>
+
+      {loaded && !loadFailed && tab === 'videos' && !q.trim() && recentVideo && <LibraryRecentProjectCard video={recentVideo} />}
 
       {/* KINEO-SPRINT-V1V4-2026-08-31 (#1) — CAMINHO DE VOLTA PARA CRIAR.
           A Library e a unica tela do acervo que so oferecia link de criacao
@@ -123,7 +132,7 @@ export default function LibraryClient() {
         >
           <Link
             href="/studio"
-            className="pill on"
+            className="pill"
             style={{ textDecoration: 'none', fontWeight: 800 }}
             onClick={() => {
               void trackEvent('library_create_clicked', {
@@ -133,7 +142,7 @@ export default function LibraryClient() {
               })
             }}
           ><UiLabel>
-            ⚡ New video
+            Create new video
           </UiLabel></Link>
           {vids.length > 0 && (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
@@ -152,8 +161,8 @@ export default function LibraryClient() {
               </span>
               <span style={{ fontSize: 12, color: 'var(--txt2,#9aa0a6)', fontWeight: 700 }}>
                 {vids.length >= 4
-                  ? `${vids.length} Shorts made`
-                  : `${vids.length} of your first 4 Shorts`}
+                  ? (es ? `${vids.length} Shorts creados` : `${vids.length} Shorts made`)
+                  : (es ? `${vids.length} de tus primeros 4 Shorts` : `${vids.length} of your first 4 Shorts`)}
               </span>
             </span>
           )}
@@ -176,8 +185,8 @@ export default function LibraryClient() {
             type="search"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder={tab === 'videos' ? 'Search your videos…' : tab === 'images' ? 'Search your images…' : 'Search your audio…'}
-            aria-label={tab === 'videos' ? 'Search your videos by title' : tab === 'images' ? 'Search your images by engine' : 'Search your audio by text or voice'}
+            placeholder={es ? (tab === 'videos' ? 'Busca tus vídeos…' : tab === 'images' ? 'Busca tus imágenes…' : 'Busca tus audios…') : (tab === 'videos' ? 'Search your videos…' : tab === 'images' ? 'Search your images…' : 'Search your audio…')}
+            aria-label={es ? 'Buscar en tu biblioteca' : (tab === 'videos' ? 'Search your videos by title' : tab === 'images' ? 'Search your images by engine' : 'Search your audio by text or voice')}
             style={{ width: '100%', borderRadius: 12, background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.1)', color: '#f5f5f7', fontSize: 16, padding: '11px 14px 11px 38px', outline: 'none', boxSizing: 'border-box' }}
           />
         </div>
@@ -204,7 +213,7 @@ export default function LibraryClient() {
 
       {loaded && tab === 'videos' && (
         vids.length === 0 ? (
-          loadFailed ? null : <p className="sub"><UiLabel>No videos yet — </UiLabel><Link href="/studio" style={{ color: '#2997ff' }}><UiLabel>open the Studio</UiLabel></Link><UiLabel> and make your first film.</UiLabel></p>
+          loadFailed ? null : recentVideo ? <p className="sub">{es ? 'Todavía no hay vídeos reproducibles en tu biblioteca. Consulta el estado de tu último proyecto arriba.' : 'No playable videos in your library yet. Check your latest project above.'}</p> : <p className="sub"><UiLabel>No videos yet — </UiLabel><Link href="/studio" style={{ color: '#2997ff' }}><UiLabel>open the Studio</UiLabel></Link><UiLabel> and make your first film.</UiLabel></p>
         ) : fVids.length === 0 ? (
           <div className="card" style={{ padding: 24, textAlign: 'center' }}>
             <p className="sub" style={{ marginBottom: 14 }}><UiLabel>No videos match &ldquo;</UiLabel>{q.trim()}&rdquo;.</p>

@@ -37,7 +37,7 @@ export default function AvatarLaunchBanner() {
         <b>NEW — AI Avatar Video:</b>{' '}
         <span className="hidden sm:inline">upload a photo and it speaks your script, lip-synced in 720p.</span>{' '}
         <a
-          href="/studio/create?avatar=1"
+          href="/avatar"
           className="font-bold underline"
           style={{ color: '#c4b5fd' }}
         >

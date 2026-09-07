@@ -5,6 +5,7 @@ import DashboardShell from './DashboardShell'
 // or the Add-to-Home-Screen hint (iOS). Dashboard only, so the public
 // landing/ads funnel stays distraction-free.
 import InstallAppBanner from '@/components/InstallAppBanner'
+import WorkspaceSecondaryNotice from '@/components/WorkspaceSecondaryNotice'
 // KINEO-CHATGPT-WELCOME-2026-08-22 — faixa para quem chegou por link do
 // ChatGPT (150 pessoas, 0 conversoes; caem direto no /generate e pulam toda
 // a narrativa de valor). Ver o cabecalho do componente para a medicao.
@@ -158,8 +159,10 @@ export default async function DashboardLayout({
         <ChatGptWelcomeBanner />
       </Suspense>
       {children}
-      <InstallAppBanner />
-      {user && <ReferralPromoBanner />}
+      <WorkspaceSecondaryNotice>
+        <InstallAppBanner />
+        {user && <ReferralPromoBanner />}
+      </WorkspaceSecondaryNotice>
       <EnablePushBanner />
       {user && <ReferralAutoTrigger />}
       {user && <AffiliateAutoTrigger />}

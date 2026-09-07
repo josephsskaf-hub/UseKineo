@@ -10,17 +10,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { isAdminEmail } from '../_shared/db'
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest) {
   try {
-    // Auth check — only signed-in users can flag (add IP/role guard later if needed)
+    // Administrative quality metrics require the server-side admin allowlist.
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       return NextResponse.json({ error: 'You must be signed in.' }, { status: 401 })
     }
+
+    if (!isAdminEmail(user.email)) return NextResponse.json({ error: 'Admin access required.' }, { status: 403 })
 
     let body: { render_id?: string; generation_id?: string; flagged?: boolean }
     try {
@@ -58,8 +61,8 @@ export async function POST(req: NextRequest) {
 
     const { error, count } = await updateQuery.select()
     if (error) {
-      console.error('[flag-video] update failed:', error.message)
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      console.error('[flag-video] update failed')
+      return NextResponse.json({ error: 'Could not save the flag.' }, { status: 500 })
     }
 
     const key = body.render_id ? `render_id=${body.render_id}` : `generation_id=${body.generation_id}`
@@ -67,8 +70,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, flagged, key })
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err)
-    console.error('[flag-video] unexpected error:', msg)
+    console.error('[flag-video] unexpected error')
     return NextResponse.json({ error: 'Something went wrong.' }, { status: 500 })
   }
 }

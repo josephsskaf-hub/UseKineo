@@ -39,16 +39,17 @@ export function renderPage(entry, before = false, fixture = {}, props = {}, comp
       if(id==='react')return react
       if(id==='react/jsx-runtime')return require(id)
       if(id==='next/link')return {__esModule:true,default:({children,prefetch,...p})=>React.createElement('a',p,children)}
-      if(id==='next/navigation')return {useSearchParams:()=>new URLSearchParams(),usePathname:()=>'/studio',useRouter:()=>({})}
+      if(id==='next/navigation')return {useSearchParams:()=>new URLSearchParams(),usePathname:()=>fixture.pathname??'/studio',useRouter:()=>({})}
       if(id==='@/lib/analytics')return {trackEvent:()=>{throw Error('Analytics forbidden')}}
       if(id==='@/lib/supabase/client')return {createClient:()=>{throw Error('Database access forbidden in offline preview')}}
       if(id==='@/lib/seriesDoorImpressions')return {useSeriesDoorSeen:()=>({registrarPorta:()=>()=>{}})}
       if(id==='server-only')return {}
       // Canonical public facts now import gptHandoff, whose hashing helper uses
       // Node crypto. Allow this built-in only; network, DB and env stay blocked.
-      if(id==='node:crypto')return require('node:crypto')
+      if(id==='node:crypto'||id==='crypto')return require(id)
       if(id==='@/components/studioKit')return load('components/studioKit.tsx')
       if(id==='@/components/InterfaceLanguage')return load('components/InterfaceLanguage.tsx')
+      if(id==='@/components/LibraryRecentProject')return load('components/LibraryRecentProject.tsx')
       // Explicit demo balance only, never a customer balance or a DB request.
       if(id==='@/components/NavCreditsBadge' && fixture.previewCredits!==undefined)return {__esModule:true,default:()=>React.createElement('a',{href:'/pricing',style:{whiteSpace:'nowrap',padding:'8px 14px',fontSize:13}},`⚡ ${fixture.previewCredits} credits`)}
       if(id.startsWith('@/components/') || id==='./RevealOnScroll' || id==='./HomeTopicForm'){

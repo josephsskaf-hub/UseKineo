@@ -109,8 +109,8 @@ Para estado de sistema, use também: **IMPLEMENTADO** (código existe) · **CONF
 ### 6.2 A home NÃO usa Tailwind
 `app/KineoLanding.tsx` roda num CSS escopado próprio (classes `.klp`) dentro do próprio arquivo. **A paleta de `tailwind.config.js` tem zero uso no projeto inteiro.** Trabalho visual na home mexe no sistema `.klp`, não em classe do Tailwind.
 
-### 6.3 O build de produção não valida tipo nem lint
-`next.config.js:77-81` tem `ignoreBuildErrors: true` e `ignoreDuringBuilds: true`. Não existe CI (`.github/` não existe) nem teste (`*.test.*` não existe). **A única barreira entre um erro de tipo e produção é alguém rodar `npx tsc --noEmit` na mão.** Rode antes de propor qualquer entrega de código.
+### 6.3 Typecheck e contratos críticos são gates de entrega
+**FATO CONFIRMADO — atualização 07/09/2026:** `next.config.js` usa `ignoreBuildErrors: false`; lint permanece ignorado no build. `.github/workflows/guardiao.yml` roda typecheck bruto e os testes offline `test-sharing-safety.mjs` e `test-five-improvements.mjs` em pushes main/codex e pull requests, sem tolerar falhas no job crítico. Existem também testes legados: inventário não significa validação. Rode `npx tsc --noEmit --incremental false` e a bateria pertinente antes de entregar. A configuração de required checks/proteção de main no GitHub não foi confirmada: não afirmar que o workflow sozinho impede qualquer merge.
 
 ### 6.4 Cron só roda se estiver em `vercel.json`
 Existem 8 rotas em `app/api/cron/` e 4 agendamentos. Escrever a rota **não** a coloca no ar.

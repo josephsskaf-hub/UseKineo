@@ -5,6 +5,7 @@ import Sidebar from '@/components/Sidebar'
 import TopBar from '@/components/TopBar'
 import MobileNav from '@/components/MobileNav'
 import AvatarLaunchBanner from '@/components/AvatarLaunchBanner'
+import WorkspaceSecondaryNotice from '@/components/WorkspaceSecondaryNotice'
 import AffiliateFirstClickNudge from '@/components/AffiliateFirstClickNudge'
 // KINEO-REBASE-2026-07-10 — one-time 2:1 credit-rebase notice (self-expires 24/07)
 import CreditRebaseBanner from '@/components/CreditRebaseBanner'
@@ -128,7 +129,7 @@ export default function DashboardShell({
             20% no 1º mês de Creator/Studio, 1×/72h, pagante nunca vê. */}
         <WelcomeOfferModal surface="dashboard" />
         {/* AI Avatar launch banner — dismissible, links to /generate?avatar=1 */}
-        <AvatarLaunchBanner />
+        <WorkspaceSecondaryNotice><AvatarLaunchBanner /></WorkspaceSecondaryNotice>
         {/* KINEO-PRELAUNCH-PATH-2026-08-08 — pb-16 (64px) era MENOR que a barra
             que ele existe para compensar. MobileNav e fixed bottom:0 com uma
             linha de 62px MAIS paddingBottom: max(env(safe-area-inset-bottom),
@@ -141,7 +142,7 @@ export default function DashboardShell({
             folga. `md:pb-0` inalterado: no desktop a MobileNav e md:hidden e
             nada muda. */}
         <main className="flex-1 overflow-y-auto pb-28 md:pb-0">
-          <AffiliateFirstClickNudge pathname={pathname} isLoggedIn={isLoggedIn} />
+          <WorkspaceSecondaryNotice><AffiliateFirstClickNudge pathname={pathname} isLoggedIn={isLoggedIn} /></WorkspaceSecondaryNotice>
           {children}
         </main>
         <MobileNav isLoggedIn={isLoggedIn} />

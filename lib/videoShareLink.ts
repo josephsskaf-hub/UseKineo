@@ -88,15 +88,38 @@ export function verifyShareToken(videoId: string, token: string | null | undefin
   }
 }
 
-/** URL de publicação de um clique, para colar no e-mail. `null` sem segredo. */
+export type ShareAction = 'publish' | 'unpublish'
+const CONFIRMATION_TTL = 15 * 60
+
+/** Short-lived, action-bound capability. Inbox links only open confirmation. */
+export function mintShareConfirmation(videoId: string, action: ShareAction, now = Date.now()): string | null {
+  const secret = shareSecret()
+  if (!secret) return null
+  const expires = Math.floor(now / 1000) + CONFIRMATION_TTL
+  const mac = createHmac('sha256', secret).update(`confirm-v2:${videoId}:${action}:${expires}`).digest('base64url')
+  return `${expires}.${mac}`
+}
+
+export function verifyShareConfirmation(videoId: string, action: ShareAction, token: string, now = Date.now()): boolean {
+  const secret = shareSecret()
+  const match = /^(\d{10})\.([A-Za-z0-9_-]{43})$/.exec(token)
+  if (!secret || !match) return false
+  const expires = Number(match[1]), seconds = Math.floor(now / 1000)
+  if (expires <= seconds || expires > seconds + CONFIRMATION_TTL) return false
+  const expected = createHmac('sha256', secret).update(`confirm-v2:${videoId}:${action}:${expires}`).digest('base64url')
+  return timingSafeEqual(Buffer.from(expected), Buffer.from(match[2]))
+}
+
+/** URL de confirmação de publicação, para colar no e-mail. `null` sem segredo. */
 export function publishHref(videoId: string, base: string, source: string): string | null {
   const t = mintShareToken(videoId)
   if (!t) return null
   return `${base}/api/video/publish?v=${encodeURIComponent(videoId)}&t=${encodeURIComponent(t)}&src=${encodeURIComponent(source)}`
 }
 
-/** URL que DESPUBLICA o mesmo filme. Sai no mesmo e-mail que publica: quem
- *  publica em um clique precisa poder voltar atrás em um clique. */
+/** URL de confirmação para despublicar. GET abre a decisão; só POST altera.
+ * Links v1 continuam capacidades de entrada sem expiração, por compatibilidade;
+ * a confirmação v2 expira em 15 minutos e está vinculada à ação e ao vídeo. */
 export function unpublishHref(videoId: string, base: string, source: string): string | null {
   const href = publishHref(videoId, base, source)
   return href ? `${href}&undo=1` : null
