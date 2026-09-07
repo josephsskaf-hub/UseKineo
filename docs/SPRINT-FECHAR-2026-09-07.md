@@ -826,3 +826,83 @@ em `/pricing` e nos cards do app, superfícies que **154 pessoas** alcançam em
 Creator 7 days for $1*". Próxima rotação: o $1 como primeira opção **dentro da
 caixa que acabou de ganhar o slot** — é a única superfície da casa que combina
 o maior denominador com um motivo concreto para pagar agora.
+
+---
+
+### #5c — 18:08–18:35 BRT — CHECKPOINT da rotação #5: o placar não tinha 0 entregas, tinha 1 — e as 3 "checkouts" eram do fundador
+
+**Não é rotação nova.** É o checkpoint `:08` da rotação que abriu às 17:38.
+Nenhum código novo; três números da rotação #5 reconferidos e dois corrigidos.
+
+**CORREÇÃO 1 — "filme pronto 0" era `video_ready_viewed` 0, não entrega 0.**
+Na janela do marco (18:38–21:09 UTC) **houve uma entrega real**:
+`mohansharma859596` (IN, veio do `chatgpt.com`, campanha `push63_niche_fitness`),
+cadastro 19:30:17, autostart Seedance 35s, `stranded_composed` **19:46:19**,
+render `a157d597`. O filme ficou pronto. O que **não** houve foi ele **na tela**:
+a pessoa mandou o render para segundo plano aos 52s (`render_wait_backgrounded`,
+19:31:45) e nunca voltou — recebeu `video_ready_email_sent` às 20:00:43 e pronto.
+O placar da #5 não estava errado no que mediu; estava incompleto no que nomeou.
+
+**CORREÇÃO 2 — os 3 `checkout_started` da janela são da conta do fundador**
+(`e92d81bf` = josephsskaf@gmail.com, plan pro, has_paid). A #5 escreveu
+"checkout 0" contando externas e **acertou**; quem reproduzir a consulta sem o
+filtro vai ver 3 e achar que apareceu demanda. Não apareceu. Um deles tem
+`checkout_origin = 'checkout_cancelled_downshift'` (basic → starter): o
+mecanismo de downshift no cancelamento **existe e disparou** — é vizinho direto
+do F5 e quem for fazer o F5 deve ler esse caminho antes de criar outro.
+
+**O QUE EU FUI CHECAR E DEU MENOR DO QUE O SUSTO.** A entrega de hoje chegou só
+por e-mail, e a #5 acabou de gastar uma rotação ganhando o slot único da **tela**
+de filme pronto. Se a entrega por e-mail fosse a regra, o trabalho da #5 nasceria
+sem plateia (memória `peca-sem-superficie-nao-existe`). **Medido, 30d, contas
+externas, por pessoa-dia com sinal de entrega:** 509 pessoa-dia no total, **473
+com a tela** e **36 sem** — só-e-mail **33**, `stranded` sem tela **27**. O
+caminho só-e-mail é **7%**. **A premissa da #5 se sustenta: ela cobre ~93% das
+entregas.** Fica registrado como vazamento pequeno e separado, não como motivo
+para desviar a rotação #6.
+
+**O QUE ISSO FECHA — recusa de cartão NÃO é o vazamento, e agora com número.**
+Em **30 dias há 4 `checkout_payment_failed`** contra 107 `checkout_started`.
+Os 4 têm `checkout_payment_failure_enriched` e `owner_resolved: true` — o
+trabalho da pista de PAGAMENTOS de hoje está funcionando, e a **checagem zero
+"recusa sem dono" dá 0**. Também disparou 1 `subscription_access_held_during_dunning`
+(hoje, 17:26 UTC). **Nenhuma carta de recusa saiu na história** — e com coorte de
+4 em 30 dias, **não vale uma rotação**. Isto **re-confirma com dado fresco a
+conclusão fechada do fundador (19/08): o vazamento é PREÇO, não trilho.**
+
+**DUAS PESSOAS QUE O NÚMERO ESCONDE:**
+1. `akajitin@gmail.com` — **renovação de Starter recusada hoje** 17:26 UTC
+   ($9,90, visa, `is_renewal: true`), já com `plan='free'` e `has_paid=true`.
+   É **perda de MRR existente** enquanto a casa caça MRR novo. **Contato
+   proibido pela rotina — nenhuma carta foi nem será enviada por mim.** Fica
+   para decisão do fundador.
+2. `egotisticalfr@gmail.com` — cadastrou-se hoje 05:32 UTC e **3 minutos depois
+   tentou comprar o Studio a $23,20** (`amount_minor 2320` = $29 com o welcome
+   de 20%), cartão **pré-pago dos EUA recusado**, e **nunca mais voltou** (última
+   atividade = a própria recusa). Não recebeu carta: a recusa é de 02:35 BRT e a
+   carta automática da pista de pagamentos só existiu a partir das ~14:25. É o
+   retrato de que **quem quer pagar, paga caro primeiro** — ele foi direto no
+   tier mais alto.
+
+**PLACAR DE FECHAMENTO — marco 2026-09-07 18:38 UTC (2h31):** entrega real **1**
+· filme pronto na tela **0** · baixou **0** · viu preço **1** (o resto anônimo)
+· checkout externo **0** (3 do fundador) · **pagou 0** · cliques no trial de $1
+**0** · cartas quentes **0**. **21 pessoas** com evento na janela.
+
+**CHECAGEM ZERO (24h):** render preso **0** · cadastros **32**, com crédito zero
+**12**, **todos com `trial_status` preenchido → trial órfão 0** · recusa sem dono
+**0** · `payment_success` **0** — **terceiro dia sem assinante novo**, que é
+exatamente a queixa do fundador das 16:40.
+
+**A FRASE DA ROTAÇÃO (a da #5 continua valendo, sem correção):** quem termina um
+filme em trial com marca d'água encontra a pergunta de compra de volta no slot.
+O checkpoint não muda isso — **só prova que ela alcança 93% das entregas, não 100%.**
+
+**PARA A ROTAÇÃO #6, sem mudança de alvo.** A próxima jogada da #5 continua de pé
+e continua sendo a certa: **o trial de $1 como primeira opção dentro da caixa que
+acabou de ganhar o slot** (`pricing_trial_1usd_clicked` segue com 0 linhas). Três
+coisas que este checkpoint entrega prontas para ela: (a) o caminho de downshift
+já existe e chama-se `checkout_cancelled_downshift` — reaproveitar, não recriar;
+(b) não gastar tempo com recuperação de recusa (coorte 4/30d); (c) ao medir,
+filtrar a conta do fundador, senão o checkout do dia aparece inflado em 3.
+
