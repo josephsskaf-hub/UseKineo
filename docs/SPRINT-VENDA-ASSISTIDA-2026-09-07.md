@@ -155,3 +155,135 @@ pessoa com **18 filmes entregues** que voltou ao checkout 4 vezes em 42 horas e
 recebeu **uma** carta na vida, e o trilho de afiliados, que tem 25 cliques e
 **zero atribuições na história inteira** — receita que a casa deixa cair no
 chão. É o que a próxima rotação conserta.
+
+---
+
+### #2 — 17:52-18:35 — O TRILHO DE AFILIADO NÃO ESTÁ QUEBRADO: ESTÁ VAZIO. E OS 7 RASCUNHOS DO AUTOPILOT ESTÃO PRONTOS
+
+**O que eu ia fazer:** o que a rotação #1 mandou — consertar a atribuição de
+afiliado (25 cliques → 0 atribuições), com guardião e sonda, para destravar a
+V3. **Não consertei, e a razão desmonta a própria premissa da #1.**
+
+**🔴 O CONSERTO JÁ EXISTE HÁ 9 DIAS. O QUE NÃO EXISTE É GENTE.**
+
+A auditoria de 28/08 dizia que o cookie `sf_aff` só era lido por rota chamada
+de dentro do `(dashboard)` — o caminho de compra não passava lá. Fui ver se
+ainda é verdade **antes** de escrever código. Não é: `076ca7bb` (29/08,
+"finalize affiliate attribution at signup") pôs
+`finalizeAffiliateSignupAttribution()` dentro de `app/auth/callback/route.ts`,
+que é o ponto por onde **toda** conta nova passa, lendo os dois cookies
+enquanto o OAuth ainda os carrega.
+
+Então medi a adoção em vez da existência (memória
+`contrato-de-servidor-sem-chamador`): a função grava
+`affiliate_signup_attribution_result` em **toda** finalização — sucesso ou
+falha — e só volta cedo, sem gravar, quando **não há cookie nenhum**.
+
+| desde o conserto (29/08) | |
+|---|---|
+| cadastros novos | **313** |
+| cliques em link de afiliado | 8 |
+| desses, **humanos** (fora bot/preview) | **6** |
+| eventos `affiliate_signup_attribution_result` | **0** |
+
+**Zero atribuições porque zero pessoas que clicaram num link de afiliado
+criaram conta.** Não é o cadeado emperrado; é ninguém batendo na porta. Rodei
+o denominador exatamente porque "0 escritas" mente sem ele (memória
+`zero-escritas-conte-as-oportunidades`): aqui o denominador é **6**, não 313.
+
+**E os "25 cliques da história" também encolhem quando se olha o user-agent:**
+
+| | cliques | visitantes aprox. |
+|---|---|---|
+| bot / preview (SemrushBot, WhatsApp) | **10** | 10 |
+| plausivelmente humano | 15 | **9** |
+
+Dos 15 "humanos", **10 são uma rajada de 25 minutos no mesmo código
+(`YDRP6UR5`, 04/08)** com o mesmo Android — é o próprio afiliado testando o
+link dele. Sobra **um punhado de visitas reais em cinco semanas**, contra 313
+cadastros no mesmo período: o canal de afiliados responde por
+**arredondamento zero** da aquisição.
+
+**DECISÃO: a V3 não sai, e a razão mudou.** A #1 bloqueou a V3 porque "o
+trilho não credita". O motivo verdadeiro é outro e é mais duro: **pedir a 12
+afiliados que divulguem mais é pedir esforço a um canal que produziu 6 visitas
+humanas em 9 dias.** Construir a atribuição perfeita agora seria instalar uma
+caixa registradora numa loja sem clientes (memórias
+`medir-alcance-da-superficie-antes-de-ligar` e
+`dimensionar-a-coorte-antes-de-construir-o-remedio`). ⚠️ Registro o que isto
+**não** prova: a atribuição nunca foi exercitada por um caso real, então ela
+não está *verificada* — está *sem oportunidade*. No dia em que houver tráfego,
+o primeiro `affiliate_signup_attribution_result` é o que prova ou derruba ela.
+
+**🟢 O QUE EU ENTREGUEI NO LUGAR: A V2 INTEIRA.**
+
+`docs/RASCUNHOS-AUTOPILOT-2026-09-07.md` — **7 rascunhos individuais**,
+assunto + corpo + destinatário, prontos para o fundador copiar da caixa dele.
+Nenhum e-mail saiu da casa e nenhuma rota de envio foi criada: a ordem V2 pede
+rascunho, e lista B é B2B.
+
+O que a medição mudou nos rascunhos, e vale para qualquer carta futura:
+
+1. **Nenhum diz "você voltou duas vezes".** Os 7 têm 2-3 eventos de checkout
+   com **menos de 1 segundo** entre o primeiro e o último — são sete cliques
+   únicos. É a mesma armadilha que matou a V1 hoje, e ela reaparece em toda
+   lista construída por contagem de evento.
+2. **Nenhum cita $299.** `amount_total` é **nulo nos 7**: a casa sabe o tier
+   clicado, não o preço que apareceu na tela. Afirmar o número seria inventar.
+3. **Nenhum promete crédito ou desconto.**
+
+**A lista B, sem maquiagem:** 10 registros → menos a conta do fundador → menos
+2 e-mails descartáveis = **7**. Destes, **1** parece empresa (`krk.infotech`),
+**6** estão com saldo 0, **1 nunca fez um filme**. Não é uma lista de agências;
+são 7 pessoas físicas que clicaram uma vez no plano do topo. **O upside é o
+ticket, não a temperatura da lista** — o MRR de hoje é ~$109, e um Autopilot
+sozinho quase triplica isso. É por isso que 7 e-mails à mão valem a noite.
+
+**Os dois que eu marquei para hoje, e por quê:**
+- **um deles colou um storyboard inteiro em russo, com marcação de tempo**
+  (`0–8 сек`, cena a cena). Quem chega com decupagem por segundo produz para
+  alguém. Esteve no site **hoje às 16:25**. Fiz uma versão RU do e-mail.
+- **outro cadastrou ontem, fez o filme, clicou no Autopilot 2 minutos depois e
+  voltou hoje às 13:30** — e **nunca recebeu carta nenhuma da casa**. Que é
+  exatamente o perfil dos pagantes: 7 dos últimos 9 tinham recebido **zero**
+  cartas antes de pagar (medido na #1).
+
+**O contraste que resume a noite:** a pessoa mais bombardeada desta lista
+recebeu **11 cartas** e não pagou; as duas que nunca receberam nenhuma são as
+duas com sinal de compra. A casa vem gritando com quem já desistiu e ficando
+muda para quem acabou de chegar.
+
+**PRÓXIMA ROTAÇÃO (#3):** V4/V5 — a medição das cartas (`docs/queries/`) e a
+varredura de respostas, que é onde o SLA de 48h da casa já falhou uma vez
+(24/08: 5 clientes escreveram, 4 ficaram sem resposta). E, como o canal de
+afiliado saiu do cardápio, a vaga livre vai para a **lista A honesta de 9
+pessoas** — em especial a que tem 18 filmes entregues, 4 sessões de checkout
+em 42,5 horas e **uma** carta na vida.
+
+---
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+1. **Abrir `docs/RASCUNHOS-AUTOPILOT-2026-09-07.md` e mandar os dois da
+   CAMADA 1 da sua caixa** (`popkamladencz@gmail.com` — tem versão em russo
+   pronta — e `mohandasjas1@gmail.com`). São os dois que estiveram no site
+   hoje. Assunto e corpo estão prontos para copiar.
+2. **Os outros 5 (camadas 2 e 3) ficam para quando sobrar tempo** — o arquivo
+   diz, um a um, o sinal de cada um e por que o #7 provavelmente não vale o
+   e-mail.
+3. **Nada mais.** Nenhum disparo automático esperando você; nenhuma rota de
+   e-mail nova foi criada nesta rotação.
+
+## 📋 O QUE ACONTECEU
+Fui consertar a atribuição de afiliado e descobri que **ela já foi consertada
+há 9 dias** — e que o número que assustava ("25 cliques, 0 atribuições") é
+outro erro de denominador: 10 dos 25 cliques são robô, 10 são o próprio
+afiliado testando o link dele, e **desde o conserto foram 6 cliques humanos
+contra 313 cadastros novos**. Zero atribuições porque **zero** dessas pessoas
+abriu conta. O trilho não está furado; está vazio — e mandar 12 afiliados
+divulgarem mais seria pedir esforço a um canal que traz arredondamento zero.
+Em vez disso entreguei a V2 inteira: **7 rascunhos individuais** para as
+pessoas que abriram o plano Autopilot, prontos na sua caixa, com a verdade de
+cada um. Dois valem hoje: alguém que trouxe um **storyboard em russo com
+marcação de tempo** e esteve no site às 16:25, e alguém que **chegou ontem,
+clicou no plano de cima e nunca recebeu uma carta nossa** — que é justamente
+o perfil de quem paga. Um Autopilot fechado quase triplica o MRR da casa.

@@ -177,3 +177,56 @@ where e.created_at > '2026-09-07 20:00:00+00'::timestamptz
   and (e.name like '%emailed%' or e.name like '%_rescue_sent')
 group by 1
 order by enviadas desc;
+
+-- ═══════════════════════════════════════════════════════════════════════
+-- ROTAÇÃO #2 (07/09) — O TRILHO DE AFILIADO: VAZIO, NÃO QUEBRADO
+-- ═══════════════════════════════════════════════════════════════════════
+
+-- Q10 — A ADOÇÃO DO CONSERTO, NÃO A EXISTÊNCIA DELE.
+-- `finalizeAffiliateSignupAttribution` (076ca7bb, 29/08) grava
+-- `affiliate_signup_attribution_result` em TODA finalização, e só volta cedo
+-- SEM gravar quando não há cookie. Logo: 0 eventos = 0 cadastros carregando
+-- cookie de afiliado. O denominador honesto é `cliques_humanos_pos` (6), NUNCA
+-- `cadastros_pos_conserto` (313).
+select
+ (select count(*) from affiliate_clicks where created_at > '2026-08-29') cliques_pos_conserto,
+ (select count(*) from affiliate_clicks where created_at > '2026-08-29'
+    and user_agent not ilike '%bot%' and user_agent not ilike '%whatsapp%') cliques_humanos_pos,
+ (select count(*) from events where name='affiliate_signup_attribution_result') eventos_atribuicao,
+ (select count(*) from profiles where created_at > '2026-08-29') cadastros_pos_conserto;
+
+-- Q11 — OS "25 CLIQUES DA HISTÓRIA" DEPOIS DE TIRAR ROBÔ E AUTOTESTE.
+-- 10 de 25 são bot/preview (SemrushBot, WhatsApp). Dos 15 restantes, 10 são
+-- uma rajada de 25 min no mesmo código com o mesmo Android = o afiliado
+-- testando o próprio link. Nunca citar "25 cliques" sem este recorte.
+with cl as (
+  select c.*, a.code,
+    case when c.user_agent ilike '%bot%' or c.user_agent ilike '%WhatsApp%'
+          or c.user_agent ilike '%crawler%' or c.user_agent ilike '%spider%'
+         then 'bot/preview' else 'humano?' end tipo
+  from affiliate_clicks c join affiliates a on a.id = c.affiliate_id)
+select tipo, count(*) cliques, count(distinct code) codigos,
+       count(distinct (code || coalesce(ip_hash,'?') || left(user_agent,60))) visitantes_aprox,
+       count(*) filter (where created_at > now() - interval '30 days') em_30d
+from cl group by tipo;
+
+-- Q12 — LISTA B (AUTOPILOT), COM AS DUAS ARMADILHAS À MOSTRA.
+-- `eventos_ck` 2-3 com `primeiro_ck`/`ultimo_ck` a <1s = UM clique, não uma
+-- deliberação (mesmo artefato da Q1). `amt` nulo nos 7 = a casa NÃO sabe que
+-- preço a pessoa viu; nenhuma carta pode citar $299.
+with b as (
+  select user_id, min(created_at) primeiro_ck, max(created_at) ultimo_ck,
+         count(*) eventos_ck, max(metadata->>'amount_total') amt
+  from events
+  where name in ('checkout_started','checkout_cta_clicked','checkout_attempted','checkout_session_created')
+    and metadata->>'tier' ilike '%autopilot%'
+  group by user_id)
+select p.email, p.plan, p.has_paid, p.video_credits,
+       b.primeiro_ck, b.eventos_ck,
+       extract(epoch from (b.ultimo_ck - b.primeiro_ck)) segundos_entre_1o_e_ultimo,
+       b.amt,
+       (select count(*) from videos v where v.user_id = b.user_id) filmes,
+       (select count(*) from events e where e.user_id = b.user_id and e.name like '%emailed%') cartas_recebidas,
+       (select max(e.created_at) from events e where e.user_id = b.user_id) ultima_atividade
+from b join profiles p on p.id = b.user_id
+order by b.ultimo_ck desc;
