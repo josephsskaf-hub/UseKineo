@@ -105,6 +105,7 @@ import {
   supportsPlanFitQuality,
 } from '@/lib/growth/planFit'
 import { auditPostDeliveryOffer } from '@/lib/growth/postDeliveryOfferAudit'
+import { decidePostDeliverySlot } from '@/lib/growth/postDeliverySlot'
 // KINEO-DOWNLOAD-E-O-MOMENTO-2026-09-07 — ver o bloco longo do módulo: a tela
 // só sabia do download quando o arquivo saía COM marca d'água (45 de 193
 // pessoas em 30 dias). A decisão do que dizer depois do download mora lá,
@@ -11377,6 +11378,22 @@ export default function GenerateClient({
   // Incluir 'downgraded' aqui poria duas superfícies pedindo cartão na mesma
   // tela, que é o defeito que esta mudança está consertando, invertido.
   const showTrialPostVideoOffer = trialPostVideoPhase !== null && !planFitOwnsRecurringSlot
+  // KINEO-SLOT-PEDE-DINHEIRO-2026-09-07 — QUEM OCUPA O SLOT. Ver o bloco longo
+  // de lib/growth/postDeliverySlot.ts: a pergunta comercial era a ULTIMA de
+  // tres, e as duas gratis na frente dela nasceram entre 27/08 e 06/09. Desde
+  // KINEO-TRIAL-WATERMARK-2026-09-07 o filme do trial sai marcado, entao no
+  // instante da entrega existe algo concreto que so o dinheiro resolve: ESTE
+  // filme, limpo. Quando existe, a pergunta vem primeiro. Quando o filme ja
+  // saiu limpo, a ordem antiga fica byte a byte como estava.
+  // `currentResultHasWatermark` e a MESMA fonte que `trialPrimaryUnlocksCurrentFilm`
+  // usa para montar o checkout do export limpo — divergir as duas faria a caixa
+  // ganhar o slot prometendo um limpo que ela nao sabe entregar.
+  const postDeliverySlotOwner = decidePostDeliverySlot({
+    askEligible: showTrialPostVideoOffer,
+    deliveredFilmWatermarked: currentResultHasWatermark,
+    bridgeEligible: trialBalanceBridge.eligible,
+    repeatEligible: trialRepeatDecision.action === 'episode',
+  })
   // KINEO-DOWNLOAD-E-O-MOMENTO-2026-09-07 — a decisão pura, calculada no
   // render só para a COPY. Ela não liga nem desliga o cartão (isso continua
   // sendo `showTrialPostVideoOffer`, intocado) e não cria caixa nova: quando
@@ -11410,8 +11427,7 @@ export default function GenerateClient({
     lookupPending: planFitLookupPending,
     trialPhase: trialPostVideoPhase,
   })
-  const showTrialRepeatEpisode =
-    showTrialPostVideoOffer && trialRepeatDecision.action === 'episode'
+  const showTrialRepeatEpisode = postDeliverySlotOwner === 'repeat_episode'
 
   // KINEO-SILENCIO-POS-ENTREGA-2026-09-07 — emite UMA vez por filme entregue,
   // e so quando a tela nao pediu nada. `postDeliverySilenceKeyRef` guarda o id
@@ -15925,7 +15941,7 @@ export default function GenerateClient({
                 </div>
               )}
 
-                {showTrialPostVideoOffer && trialBalanceBridge.eligible && (
+                {postDeliverySlotOwner === 'balance_bridge' && (
                   <div
                     ref={trialPostVideoOfferRef}
                     data-trial-balance-bridge={trialBalanceBridge.version}
@@ -15999,7 +16015,7 @@ export default function GenerateClient({
                   </div>
                 )}
 
-                {showTrialPostVideoOffer && !trialBalanceBridge.eligible && !showTrialRepeatEpisode && (
+                {postDeliverySlotOwner === 'commercial_ask' && (
                   <div
                     ref={trialPostVideoOfferRef}
                     className="w-full rounded-2xl px-5 py-5"
