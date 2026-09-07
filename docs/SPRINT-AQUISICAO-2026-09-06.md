@@ -2872,3 +2872,97 @@ a calibrar**, e ele está calibrado. A tela `/admin/trial-abuse` já existe.
 A fábrica segue impecável. O pacote **ainda não teve uma oportunidade** desde a
 instrumentação — o e-mail de resgate não saiu nenhuma vez na madrugada, o que é
 coerente com os 27 alcançados por semana da #8.
+
+### #19b — 02:08 BRT (07/09) — a quarta peça sem superfície da casa entrou no mapa, com o antes e o depois medidos na mesma janela
+
+**Press release.** Quem procura "editor de vídeo online grátis" passa a poder
+achar a Kineo. A página `usekineo.com/tools/editor` já respondia **200** — 5
+ferramentas (cortar, redimensionar, mudar velocidade, tirar áudio, escrever
+texto), rodando no próprio navegador, **sem conta, sem cartão e sem upload** —
+e não estava **nem no `sitemap.xml`, nem no `/llms.txt`**. Buscador não a
+rastreava e motor de resposta não tinha o que citar. Agora está nos dois.
+
+#### O que estava errado
+
+Comparando as páginas estáticas de `app/**/page.tsx` com as 188 URLs do
+`sitemap.xml` ao vivo: `/tools/editor` = **HTTP 200**, 46 KB de HTML, sem
+`noindex`, sem login (controle 404 na mesma medição = **404**), e
+`grep -c '/tools/editor' llms.txt` = **0**. A página-mãe `/tools` estava nos
+dois; a filha, em nenhum. **Quarta peça publicada sem superfície** — depois
+do pack de $4,90 dentro de um `<details>` fechado, da `/chatgpt` fora do
+sitemap e do próprio pacote de publicação desta mesma rotação.
+
+#### O que mudou — SHA `8a81c9c3`, EM PRODUÇÃO
+
+- `app/sitemap.ts` — `/tools/editor` em `priority 0.8 / weekly`, a mesma das
+  ferramentas gratuitas irmãs (`/free-hook-generator`,
+  `/youtube-shorts-script-timer`), não a 0.9 do hub. `LAST_MODIFIED` avançou
+  para `2026-09-07T05:00:00.000Z`. **Correção minha sobre o agente:** ele
+  tinha posto `T12:00:00Z`, que às 02:00 BRT é **7 horas no futuro** — data
+  de futuro num sitemap é um sinal que o Google ignora. Baixei para a hora
+  corrente antes de publicar.
+- `app/llms.txt/route.ts` — uma linha dentro de "## Free public tools that
+  need no account and no card", **com todo fato ancorado no código**: os 5
+  nomes vêm de `EDITING_TOOLS`, o teto de 100 MB / 3 min de `MAX_FILE_BYTES`
+  e `MAX_CLIP_SECONDS`, o 1280 px de `settings.ts`, e o "nada é enviado" foi
+  verificado por ausência de `fetch`/XHR/FormData em `browserEditor.ts` e
+  `VideoEditor.tsx` — o guardião checa cada um. Mais uma frase de fronteira
+  dizendo que este é o único item da seção que devolve um arquivo de vídeo, e
+  que é **cópia do arquivo local da pessoa**, não vídeo gerado.
+- `scripts/test-editor-no-mapa.mjs` — **45 verificações**, `readFileSync` +
+  regex, sem alias `@/`.
+
+#### Prova, com antes e depois na mesma janela
+
+| relógio | `/tools/editor` no sitemap ao vivo | no `/llms.txt` ao vivo |
+|---|---|---|
+| 02:00:19 | **0** | **0** |
+| 02:01:10 | **0** | **0** |
+| **02:02:02** | **1** | **1** |
+
+`git ls-remote origin main` = `8a81c9c3`; fila `origin/main..entrega-atual` =
+**0**. Guardião 45/45 com 3 mutantes provados (linha removida do sitemap;
+`${editorLine}` removida; linha movida para fora da seção — os três com
+mudança real de conteúdo confirmada por `git diff --numstat`, guardião
+vermelho nos três). Vizinhos verdes: `test-llms-paginas-citadas` 91,
+`test-video-editing` 109. `npx tsc --noEmit` verde.
+
+#### Dívida encontrada, não consertada (com o motivo)
+
+- **11 scripts de teste já estavam vermelhos ANTES deste trabalho** —
+  confirmado rodando-os com `sitemap.ts` e `llms.txt` no estado de
+  `d1dfa0ca`: mesmos 11, mesmas mensagens. O caso mais feio é
+  `test-shorts-vendor-evaluation`, que **fixa `LAST_MODIFIED` num literal de
+  03/09** e portanto quebra a cada avanço legítimo da data — está vermelho
+  desde 06/09. Um guardião que reprova o comportamento correto ensina a
+  ignorar guardião. Fica anotado para a próxima rotação.
+- `scripts/audit-orphan-pages.mjs` marca `/tools/editor` como órfã com 0
+  links internos, mas `app/tools/page.tsx:256` linka
+  `/tools/editor?tool=${tool.id}`. **Falso órfão:** o regex do auditor não
+  enxerga `href` em template literal com query. É o auditor que precisa de
+  conserto, não a página.
+
+#### A sonda do pacote (item 1 da #19) — ainda sem linha
+
+`video_ready_email_sent` com `created_at > 04:54:43 UTC` (o deploy):
+**nenhuma linha** às 02:08 BRT. O último e-mail de entrega saiu 04:47 UTC, 7
+minutos antes do deploy. **O pacote continua não provado** — provado está o
+deploy. A #20 abre por esta consulta.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+1. **Nada agora.**
+2. **No Search Console** (acumula com a #17b): pedir indexação de
+   `https://www.usekineo.com/chatgpt` **e** de
+   `https://www.usekineo.com/tools/editor`.
+
+## 📋 O QUE ACONTECEU
+
+Achei uma página nossa que funciona, é grátis, não pede conta nem upload — e
+que nem o Google nem o ChatGPT conseguiam encontrar, porque ela não estava no
+mapa do site nem no arquivo que os motores de resposta leem. Agora está nos
+dois, descrita só com o que o código prova, e com um guardião que impede que
+ela desapareça de novo. Medi antes e depois na mesma janela de dois minutos,
+então não é promessa: às 02:00 não estava, às 02:02 estava.
+
+---
