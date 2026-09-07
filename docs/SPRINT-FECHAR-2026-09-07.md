@@ -632,3 +632,42 @@ hoje. O número que paga a conta é `pagou_depois`.
 **A FRASE DA ROTAÇÃO:** hoje um visitante novo que aperta "comprar" e não conclui
 é procurado pela casa em **30 minutos, com a página dele ainda aberta** — ontem
 ele ficava **27 horas** no escuro, e um em cada cinco nunca ouvia nada.
+
+**PLACAR DE FECHAMENTO — desde o marco (2026-09-07 18:38 UTC, ~1h50 de tráfego):**
+filme pronto 0 · clicou baixar 0 · baixou 0 · viu preço 1 · checkout 1 · **pagou 0**
+· cliques no trial de $1: 0 · cartas quentes enviadas: 0.
+
+⚠️ **"0 filmes prontos" aqui NÃO é incidente, e eu conferi antes de escrever**
+(memória `queda-de-trafego-contra-hora-inflada`). Na MESMA janela de relógio
+(18:38–20:30 UTC) dos últimos 6 dias: 09/06 → 2 · 09/05 → **0** · 09/04 → 1 ·
+09/03 → 2 · 09/02 → 4 · 09/01 → **0**. E 19 pessoas ativas hoje, dentro da faixa
+de 13–33 dos outros dias. É a hora, não o produto. O marco tem menos de duas
+horas: este placar ainda não prova nem nega nada, e o primeiro número honesto
+sai na rotação da noite.
+
+**As cartas quentes serem 0 é o desfecho esperado e o mais seguro possível.**
+Repliquei o predicado da rota em SQL contra as linhas reais (memória
+`provar-leitura-sem-trafego`): na janela de 30–360 min existe **1** pessoa, e é
+a conta interna do fundador — excluída por dois motivos independentes
+(`has_paid` e o filtro de e-mail). O predicado não está vazio por acidente. Com
+~107 cliques de comprar em 30 dias, a carta sai a conta-gotas (3–4 por dia no
+pico), nunca em rajada, e o teto de 30 por execução mais o carimbo vitalício
+seguram o resto.
+
+**CHECAGEM ZERO (24h):** render preso **0** · recusa de cartão sem dono **0** ·
+cadastro com crédito zero **12**, todos explicados por `trial_status`
+(`blocked` = antifraude, `downgraded` = trial gasto). **Nenhum trial órfão.**
+
+**PRÓXIMA JOGADA, e ela sai da tabela que eu levantei nesta rotação.** Por tier,
+em 30 dias: **Studio $29 → 13 pessoas no checkout, 3 pagaram (23%)** · Starter
+$7 → 25 / 2 (8%) · **Creator $15 → 52 / 2 (3,8%)** · INR (IN) → 17 / 0. A casa
+despeja **quase metade do fluxo no SKU que menos converte**, e o de maior preço
+é o que mais fecha. Isso desmonta a leitura fácil ("é caro"): quem escolhe o
+plano caro é quem já sabe para que veio. O que a Creator tem de diferente não é
+o preço, é a **indefinição** — é o plano que a pessoa clica quando não sabe o
+que quer. Antes de construir qualquer coisa, a medição de 10 minutos que decide:
+**de onde vem o clique de Creator** (`checkout_entry_surface` já existe no
+`checkout_started`, com 7 registros — provavelmente novo). Se a maioria vier de
+uma superfície que **escolhe o tier pela pessoa** (card do meio, "recomendado",
+default do paywall), o conserto não é preço nem carta: é parar de escolher
+errado por ela. Se vier de escolha livre, aí sim a hipótese é oferta.
