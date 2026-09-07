@@ -172,3 +172,147 @@ recusou o cartão pré-pago dela, e ela nunca mais voltou — com 25 créditos
 intactos e nenhum filme feito. Veio para comprar, não para experimentar.
 
 O cano está no ar. A carta que passa por ele é a próxima rotação.
+
+---
+
+### #2 — 13:38→14:38 — a carta do cartão recusado (e por que ela não podia reusar a rota que já existia)
+
+**Press release:** o comprador que levou "não" do banco passa a receber, no
+mesmo dia, uma carta que diz de quem foi a culpa (do emissor, não dele) e
+oferece **duas saídas de verdade**: outro cartão no mesmo preço, ou a compra
+única de US$ 4,90 — que não pede mandato nenhum.
+
+**Errado (medido):** a casa tinha uma rota de recuperação de checkout
+(`send-checkout-recovery`) e ela **não serve para esta coorte**.
+`send-checkout-recovery` depende de `after_expiration.recovery.url`, que a
+Stripe só cria quando a sessão **expira**. Cartão recusado **não expira** — a
+sessão morre com a recusa e não existe porta de volta para buscar. Se eu
+tivesse mandado a coorte da recusa por aquela rota, todo mundo cairia no filtro
+"sem porta de volta" e **ninguém receberia nada, em silêncio**. Duas mortes
+diferentes pedem dois remédios diferentes.
+
+**Mudou — SHA `e5ac66c5` · EM PRODUÇÃO.** Rota nova
+`app/api/admin/send-card-declined`. Sonda: `GET /api/admin/send-card-declined`
+= **403** (existe e exige admin) contra controle
+`/api/admin/send-card-declined-que-nao-existe` = **404**.
+
+**A segunda porta é honesta e já existia:** o First Pack de US$ 4,90
+(`?pack=starter`, 30 créditos) é `mode: 'payment'` — **cobrança única, não
+mandato**. Conferido no código e **travado por guardião**: se algum dia virar
+assinatura, a carta passaria a oferecer, a um cartão que recusou mandato,
+exatamente outro mandato — e nada no texto acusaria. Margem +36,3%. Nenhum
+preço novo, nenhum desconto, nenhum crédito de graça.
+
+**O link foi sondado ANTES de entrar na carta:** `GET ?pack=starter` anônimo
+devolve **307 para /login** com o destino preservado. Um scanner corporativo
+(Outlook Safe Links) que abrir o link **não cunha sessão na Stripe** — a
+armadilha do `KINEO-RECOVERY-NO-MINT-LINK-2026-08-11` está fechada nesse
+caminho.
+
+**Reparo da recusa anônima de 07/09.** Ela foi identificada por correlação, e a
+correlação fecha por **quatro** coincidências, não por uma:
+(a) um **único** checkout na janela 04:40–06:30Z; (b) `checkout_started`
+05:32:12 com tier `pro`, recusa 05:35:06 — 3 minutos; (c) `pro` =
+`TIER_PRICES.pro` = 2900, menos os 20% do `welcome_first_month_20`, dá
+**2320** — exatamente o `amount_minor` da recusa; (d) a conta nasceu 05:32:09 e
+**não tem nenhum evento depois de 05:32:12**. As duas linhas do evento foram
+reparadas com `identity_source: 'backfill_correlation'` — valor que a escada do
+webhook **nunca** produz, para que nenhuma medição do conserto confunda reparo
+com código funcionando.
+
+**DRY-RUN NOMINAL** (o predicado da rota replicado em SQL contra as linhas
+reais — não prova a rota, prova a coorte):
+
+| e-mail | estágio | motivo | país | plano | valor | veredito |
+|---|---|---|---|---|---|---|
+| egotisticalfr@gmail.com | initial | card_restricted | US | pro | $23,20 | **RECEBE A CARTA** |
+| valos87196@gouziben.com | renewal | insufficient_funds | AU | — | $24,90 | FORA: não é compra inicial |
+| akajitin@gmail.com | renewal | insufficient_funds | NG | — | $9,90 | FORA: não é compra inicial |
+
+**Coorte honesta de hoje: 1 pessoa.** As outras duas recusas da história são
+renovações de quem já paga — a Stripe já tem régua de cobrança para elas, e uma
+delas está na lista de bloqueados do ciclo. Não vou inflar isso.
+
+**Identidade inferida NÃO envia sozinha:** `identity_source='customer_email'` é
+casamento por e-mail e pode ser outra pessoa. Escrever "seu banco recusou seu
+cartão" para quem não tentou comprar nada é pior do que não escrever — ela
+aparece no dry-run marcada e a decisão é do fundador.
+
+**Testes:** `scripts/test-carta-da-recusa.mjs` — **42/42**, falsificado por
+**7 mutantes, 7 mortos** (renovação voltando a receber; identidade inferida
+enviando sozinha; a decisão deixando de ser usada no laço; supressão de 24h
+parando de filtrar; preço cravado na copy; o pacote virando assinatura; o
+carimbo sumindo do registro de supressão).
+
+**Risco:** a carta manda para `/api/stripe/checkout`, que exige login — a
+pessoa passa por `/login` antes da Stripe. É a mecânica de retomada que a casa
+já usa e que preserva o destino; é um degrau a mais, e ele está no link.
+
+---
+
+### #3 — 14:38→15:38 — 40 checkouts, zero pagamentos: a compra única passa a existir na tela deles
+
+**Press release:** o visitante da Índia, Nigéria, Paquistão, Bangladesh ou
+Quênia que chega em `/pricing` passa a ver, **acima dos planos**, a compra
+única de US$ 4,90 — a única forma de pagamento que o cartão dele não precisa de
+mandato recorrente para aceitar. Para o resto do mundo a página não muda em
+nada.
+
+**Errado (medido, 30 dias, por PESSOA):** ver a tabela no topo deste diário.
+**40 pessoas desses cinco países abriram a página de pagamento e nenhuma
+pagou**; EUA+BR+GB, com 17 no checkout, fizeram 3 pagamentos. Não é falta de
+interesse — elas escolheram plano e chegaram até a Stripe. É a assinatura que
+não fecha.
+
+**Mudou — SHA `ede96491`.** `components/RegionalFirstPack.tsx` (novo) + **uma
+linha** de montagem em `app/pricing/PricingClient.tsx`, acima de `#plans`. O
+visual é do Codex; nada de layout/nav/home foi tocado, e nenhum arquivo que ele
+encostou em 24h.
+
+**O que o cliente vê:** um bloco com "Card keeps getting declined?" e o botão
+"Get 30 credits for $4.90", com a explicação verdadeira — muitos bancos fora
+dos EUA bloqueiam cobrança internacional **recorrente** e liberam uma única. As
+assinaturas continuam logo abaixo.
+
+**Por que o pack e não "uma versão mais barata":** `?pack=starter` é
+`mode: 'payment'`. As duas coisas que o cartão dessas pessoas recusa
+(assinatura internacional e mandato) são exatamente o que a compra única não
+pede.
+
+**Duas coisas que isto NÃO faz, e as duas foram conferidas antes:**
+1. Não contradiz o `KINEO-SPRINT-OFFER-2026-07-14`, que tirou o pack do
+   `/pricing`. Aquela limpeza matou **três** ofertas empilhadas para **todo
+   mundo**; aqui é **uma** opção a mais, para uma coorte que converte a 0%, e
+   invisível para os demais.
+2. Não reabre a conclusão de preço de 19/08. Nenhum preço nasce aqui.
+
+**Por que o pack media zero até hoje** (`docs/SPEC-PRIMEIRA-COMPRA-PEQUENA-2026-09-07.md`,
+escrito por outra pista): ele está no ar sem flag desde julho com **zero
+`checkout_attempted` em 54 dias** — e a causa medida **não é rejeição**. Os
+dois lugares onde ele mora exigem marca d'água fora do trial (0 exposições na
+história) ou **abrir um `<details>` fechado** (0 cliques em 231 exposições do
+bloco de fora). Peça sem superfície mede zero e não prova nada. Esta é a
+primeira superfície viva dele.
+
+**O SKU de $2.90 ficou de fora de propósito:** 25 créditos = 1 Seedance de 60s,
+que custou $3.30 na fatura de agosto, contra líquido de $2.516 — **prejuízo de
+$0,78 por venda**. O guardião trava a entrada dele nesta peça.
+
+**Como medir — o denominador é a parte que engana:**
+`pack_first_for_region_shown` só pode ser comparado com
+`pricing_currency_resolved`, que o `PricingClient` emite no **mesmo instante**
+(a mesma chamada `/api/geo`), para **todo** visitante e com o **mesmo** campo
+`country`. É o único par que dispara igual; comparar com montagem de página ou
+com `checkout_started` seria laranja com maçã. O corte antes/depois é
+`surface_version = 'regional_first_pack_v1'`, nunca o relógio.
+
+**Testes:** `scripts/test-primeira-compra-regiao.mjs` — **35/35**. 13
+**executam** a decisão extraída do arquivo real, e a mais importante delas é
+que país `null` tem de **fechar**: durante o `fetch('/api/geo')` o país é null
+em **todo carregamento de página**, e um "não sei" virando "sim" mostraria a
+oferta ao mundo inteiro por alguns milissegundos de cada visita. Falsificado
+por **7 mutantes, 7 mortos**.
+
+**Risco:** a peça resolve o próprio país no navegador. Uma VPN vê a oferta —
+custo zero (é o mesmo preço para todos) e é o mesmo compromisso que `/api/geo`
+já assume. A cobrança continua sendo re-resolvida no servidor.
