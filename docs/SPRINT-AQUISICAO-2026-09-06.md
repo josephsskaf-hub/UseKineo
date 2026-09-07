@@ -1742,3 +1742,258 @@ mesmas duas cartas com a porta consertada** — é a primeira vez que elas terã
 chance limpa. Se com a porta certa continuar 0, o problema é a oferta, e aí a
 decisão é do fundador. Isso também é o que a memória desta casa manda: carta
 nova só depois de a velha mover alguém.
+
+---
+
+## ### #17 — 23:50→00:45 — 🔴 A CAMPANHA MANDOU **ZERO** COM GENTE NA FILA, E NADA EM LUGAR NENHUM REGISTROU POR QUÊ
+
+### Press release (6 linhas)
+
+Para quem ainda não nos conhece isto não muda nada hoje — e é de propósito.
+Muda para quem já fez o primeiro filme conosco e está esperando o convite do
+episódio 2. A carta que leva esse convite rodou duas vezes hoje: uma alcançou
+11 pessoas, a outra alcançou zero, e a casa não tinha como saber que a
+segunda tinha falhado. A partir de agora toda corrida de campanha deixa uma
+linha dizendo quantas pessoas havia, quantas foram alcançadas e — quando
+ninguém foi — **qual degrau do funil comeu o lote**. Campanha que apaga
+sozinha deixa de ser invisível.
+
+### O errado, medido em produção
+
+`vercel.json` agenda a carta da temporada em `45 15,19 * * *`, limite 30.
+Hoje ela rodou duas vezes:
+
+| corrida | e-mails | temporadas escritas |
+|---|---|---|
+| 15:45 UTC | **11** | 11 |
+| 19:45 UTC | **0** | 0 |
+
+```sql
+select name, date_trunc('hour',created_at) h, count(*)
+from events where name in ('season_letter_emailed_v1','season_written')
+  and created_at > now() - interval '2 days' group by 1,2 order by 2 desc;
+```
+
+**A coorte não estava vazia às 19:45.** Replicando o predicado da própria rota
+em SQL contra as linhas reais (filme concluído em 14 dias · exatamente 1 ·
+não pagante · sem opt-out · saldo ainda paga outro episódio · nunca bateu na
+parede · fora do checkout · sem carimbo REAL de campanha):
+
+- **10 pessoas** passavam por todos os filtros às 19:45 (filme `fast`, saldo
+  17-22, episódio custa ~5) — 3 do chatgpt, 4 do taaft, 1 nav, 2 sem fonte;
+- **13 passam agora**;
+- e a supressão de 24h não explica: nas 30h anteriores o total de e-mails de
+  ciclo de vida foi de 1-3 pessoas por hora.
+
+Pode ter sido a rota morrendo, a supressão fechando o lote, o modelo
+estourando o `timeoutMs: 10_000` da temporada, ou a coorte ter fechado de
+verdade por um custo que eu não consigo recalcular de fora com honestidade.
+
+**Não sei qual foi — e é exatamente esse o defeito.** O desfecho de cada
+corrida existe SÓ no corpo da resposta HTTP (`{ enviados, falhas, ... }`), e
+quem chama é um cron da Vercel, que joga o corpo fora. No banco,
+zero-porque-a-coorte-fechou e zero-porque-a-rota-morreu são **o mesmo
+silêncio**. É a terceira vez que esta casa registra a mesma classe com outro
+nome: `peca-sem-superficie-nao-existe`, `contrato-de-servidor-sem-chamador`,
+`zero-escritas-conte-as-oportunidades`.
+
+### O que mudou — `c2d51c18` · **EM PRODUÇÃO**
+
+`lib/lifecycle/campaignRun.ts` é a fonte única. Uma linha em `events` por
+**CORRIDA** (não por pessoa), com o funil inteiro — `coorte_bruta`,
+`candidatos`, `suprimidos_24h`, `supressao_degradada`, `elegiveis`,
+`no_lote`, `enviados`, `falhas`, `pulados` — e, quando `enviados === 0`, o
+**motivo DERIVADO** desses números, na ordem do funil, nunca digitado:
+
+`janela_sem_ninguem` · `todos_filtrados_pela_coorte` · `supressao_degradada` ·
+`todos_suprimidos_24h` · `lote_vazio` · `lote_inteiro_sem_insumo` ·
+`lote_inteiro_falhou_no_envio` · `parou_em_auth|env|query|erro` ·
+`desconhecido`.
+
+Ligado nas **duas** campanhas em lote — `send-season-letter` e
+`send-next-episode-wall` — nas quatro saídas que decidem envio (coorte vazia,
+falha de query, ensaio, envio).
+
+Um detalhe que quase passou: o `confirm` era lido **depois** da saída de
+coorte vazia. Sem subir a leitura, o zero mais comum de todos — coorte fechada
+num envio de verdade — sairia carimbado como ensaio, e o relatório mentiria
+justo no caso que ele existe para pegar. Subiu nas duas.
+
+**Nunca derruba o lote:** a gravação é `try/catch` mudo. Instrumentação que
+transforma envio bom em erro é pior que a cegueira que ela cura.
+
+### O que o cliente passa a ver
+
+Nada. Esta peça não tem tela e não deve ter — ela é a diferença entre a casa
+descobrir amanhã de manhã que a carta parou, e descobrir daqui a três semanas
+lendo um diário antigo.
+
+### Medido e DESCARTADO na mesma rotação (a parte que não virou código)
+
+`videos.duration_seconds` é **NULL em 1.653 de 1.653** filmes concluídos —
+nunca foi escrito uma vez, exatamente como o `thumbnail_url`. A rota faz
+`const seg = ... ? duration_seconds : 60`, então **o custo do episódio que a
+carta anuncia ao cliente sai sempre do preço de 60 segundos**, que é
+suposição apresentada como fato. `credits_used` — o que a pessoa realmente
+pagou pelo episódio 1 — está preenchido em 100% dos casos e é a fonte
+honesta; a rota inclusive já o LÊ e guarda em `filmeRaw.custo`, e depois o
+joga fora (`aviso-gravado-recurso-descartado`).
+
+**Não entrou nesta entrega porque eu medi antes de construir:** trocar o
+predicado move **zero** pessoas hoje — 13 passam pelos dois caminhos. Fica
+como dívida de honestidade de copy, não como código especulativo.
+
+### Testes
+
+`scripts/test-campaign-run.mjs` — **55 verificações**, estilo `readFileSync`
+sobre os arquivos reais (`guardioes-com-alias-nao-rodam`: 72 testes desta
+pasta morrem no `import '@/...'` antes da primeira asserção).
+
+Elas amarram cada número à **variável que a rota usa para decidir**, não ao
+texto — `guardiao-contar-texto-nao-prova-condicao`. Falsificado de fora:
+troquei `enviados, falhas, pulados: semTemporada` por literais zero →
+**1 vermelho** (`pulados vem de semTemporada`), restaurei → 55 verdes. A
+mutação interna confere que foi **escrita no arquivo** antes de exigir
+vermelho e que o arquivo voltou byte a byte
+(`mutacao-precisa-provar-que-aplicou`). `npx tsc --noEmit` verde.
+
+### Prova de produção — e o que ela NÃO prova
+
+```
+/api/admin/send-season-letter ......... 403   (existe, protegida)
+/api/admin/send-next-episode-wall ..... 403   (existe, protegida)
+/api/admin/send-nao-existe-r17 ........ 404   (o controle que discrimina)
+/ ..................................... 200
+```
+
+`git ls-remote origin main` = `c2d51c18` · fila = 0.
+
+**Sem maquiagem:** esses 403 provam que as rotas subiram, não que a
+instrumentação funciona — elas já davam 403 ontem. A prova real é a **primeira
+linha `campaign_run_v1`**, e ela nasce sozinha na próxima corrida de cron:
+`send-next-episode-wall` às **11:00 UTC**, `send-season-letter` às **15:45
+UTC**. Agora o contador está em **0** e é assim que tem de estar.
+
+### Como medir (consulta pronta) — e o que derruba isto
+
+```sql
+select metadata->>'campanha' campanha, metadata->>'modo' modo,
+       metadata->>'motivo_do_zero' motivo,
+       metadata->>'coorte_bruta' bruta, metadata->>'elegiveis' elegiveis,
+       metadata->>'enviados' enviados, created_at
+from events where name='campaign_run_v1'
+order by created_at desc limit 30;
+```
+
+**Condição de morte, escrita antes de saber o resultado:** se em 7 dias todas
+as linhas com `enviados=0` vierem com `motivo_do_zero = 'desconhecido'`, o
+funil que eu instrumentei não é o funil que decide, e a peça precisa de outros
+degraus — não de mais um campo.
+
+### Praxe — aquisição nas últimas 24h (contas externas)
+
+| fonte | cadastros | com filme | 2º filme | checkout | pagou |
+|---|---|---|---|---|---|
+| chatgpt | 25 | 21 | 6 | 1 | 0 |
+| (sem fonte) | 6 | 3 | 1 | 0 | 0 |
+| taaft | 5 | 5 | 0 | 1 | 0 |
+| nav | 2 | 1 | 0 | 0 | 0 |
+| seo | 1 | 1 | 0 | 1 | 0 |
+| **total** | **39** | **31** | **7** | **3** | **0** |
+
+43 filmes entregues · render preso **0** · `next_episode_failed` **0** ·
+`generation_stage_error` 12 · "sem fonte" em **15%** (6 de 39), terceira alta
+seguida (5,6% → 11% → 15%) — com 39 pessoas ainda é amostra pequena, mas já
+não dá para chamar de ruído sem olhar: fica como primeira medição da próxima.
+
+### 🟡 Checagem zero — o alarme que eu levantei e derrubei na mesma rotação
+
+A consulta padrão (`video_credits = 0` e nenhum filme) devolveu **5 cadastros
+sem crédito**, todos nos últimos 24 minutos, contra **zero** o dia inteiro.
+Parecia o trial órfão voltando. Não é — e a diferença importa:
+
+- **4 delas** (03:00→03:07 UTC, 4 contas em 7 minutos) têm
+  `trial_status = 'blocked'` e o evento `trial_blocked_fingerprint`: é o
+  antifraude da casa **recusando o trial de propósito**. Na história inteira
+  isso aconteceu com 2 pessoas em 30/08 e 2 em 31/08 — a rajada de hoje é a
+  maior já vista e está concentrada em 7 minutos, o que parece uma pessoa só
+  reciclando conta. O bloqueador está trabalhando.
+- **as outras 2** têm `trial_credits_used = 25`: receberam os 25 e
+  **gastaram os 25**. Saldo zero por consumo, não por falta de concessão.
+
+**Defeito real: zero.** O que quase virou incidente foi eu ler `video_credits
+= 0` como "nunca recebeu" — o mesmo erro de forma que a memória
+`sentinela-lido-como-valor-real` registra: um zero que significa três coisas
+diferentes. O predicado certo é `trial_credits_granted` ausente **e**
+`trial_status <> 'blocked'`. Fica anotado para a praxe das próximas rotações.
+
+### Risco, dito sem maquiagem
+
+1. **Uma linha a mais em `events` por corrida.** São 5 corridas por dia entre
+   as duas campanhas. Irrelevante ao lado dos 43 filmes/dia.
+2. **`pulados` na irmã é sempre 0** — a `next_episode_wall` não tem o conceito
+   de "sem insumo" (a temporada dela falha aberta e a carta sai mesmo assim).
+   Está correto hoje; se aquela rota ganhar um pulo, tem de alimentar o campo,
+   e o guardião **não** pega isso.
+3. **As outras campanhas continuam cegas.** `send-winback-25`,
+   `send-blackout-winback`, `send-credits-back`, `send-recovery` e o
+   `trial-lifecycle-emails` não chamam `registrarCorrida`. Instrumentei as
+   duas que já falharam em silêncio hoje, não as sete que ainda não falharam.
+
+### Próxima jogada
+
+**Hoje às 15:45 UTC a carta da temporada roda pela primeira vez com a porta
+do #16 consertada E com o relatório do #17 ligado.** É a primeira corrida da
+história da casa em que as três perguntas têm resposta no banco: quantas
+pessoas havia, quantas foram alcançadas, e — se der zero de novo — qual degrau
+comeu o lote. A jogada **não** é escrever carta nova (a memória
+`carta-nova-so-depois-da-velha-mover` proíbe, e com razão: 210 e-mails/dia e 0
+pagamentos). É ler essa linha antes de qualquer outra coisa. Se o motivo vier
+`lote_inteiro_sem_insumo`, o inimigo é o `timeoutMs: 10_000` do escritor da
+temporada e o conserto é de um dígito. Se vier `todos_filtrados_pela_coorte`
+com 13 pessoas passando no meu SQL, então o predicado da rota e o meu
+divergem, e aí o suspeito é o custo de 60 segundos suposto sobre um
+`duration_seconds` que nunca foi escrito — a dívida que eu medi e deixei
+anotada acima. Os dois caminhos ficam decidíveis por uma consulta, o que
+nenhum deles era há uma hora.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+1. **Nada de código.** Está tudo no ar (`c2d51c18`), fila zerada.
+2. Depois das **12:45 BRT** (15:45 UTC), rode esta consulta e me diga o que
+   apareceu — é a resposta de por que a carta da temporada mandou zero ontem:
+   `select metadata->>'campanha', metadata->>'motivo_do_zero', metadata->>'elegiveis', metadata->>'enviados', created_at from events where name='campaign_run_v1' order by created_at desc limit 20;`
+3. **Decisão só sua:** as 11 pessoas que receberam a carta da temporada às
+   15:45 UTC de ontem passaram pela porta velha (caía em "criar conta"). A
+   rota é 1-por-pessoa-vitalícia, então elas **nunca mais** recebem essa carta.
+   Desfazer exige apagar o carimbo delas. Me diga "apaga as 11" se quiser que
+   elas tenham a chance com a porta certa.
+
+## 📋 O QUE ACONTECEU
+
+A carta que convida a pessoa a fazer o episódio 2 da própria série roda duas
+vezes por dia sozinha. Ontem, na primeira vez alcançou 11 pessoas; na segunda,
+zero — e havia pelo menos 10 pessoas na fila naquele momento. O pior não é o
+zero: é que **a casa não tinha como saber**. O relatório de cada disparo
+existia só na resposta HTTP que o robô da Vercel joga fora, então "não havia
+ninguém" e "a rota morreu" ficavam idênticos no banco.
+
+Agora toda corrida de campanha grava uma linha com o funil inteiro e, quando
+não sai e-mail nenhum, com o motivo — derivado dos próprios números, não
+escrito à mão. Vale para as duas campanhas que mandam o convite do episódio 2.
+As outras sete campanhas de e-mail da casa continuam cegas; instrumentei as
+duas que já falharam em silêncio, não as que ainda não falharam.
+
+Achei e **descartei** uma segunda coisa na mesma hora, e a descartei porque
+medi: a coluna que diz quantos segundos o filme tem nunca foi preenchida —
+1.653 de 1.653 estão vazios —, então o preço do episódio que a carta anuncia
+ao cliente é sempre o preço de 60 segundos, um chute. A fonte honesta (o que a
+pessoa realmente pagou) já está no banco. Não troquei porque a troca não move
+uma única pessoa hoje. Fica anotado como dívida de honestidade, não como
+código feito no escuro.
+
+E um susto que não era susto: 5 contas novas apareceram com zero crédito na
+última meia hora, contra zero o dia inteiro. Quatro delas são o antifraude
+recusando o trial de propósito — 4 contas em 7 minutos, quase certamente uma
+pessoa só reciclando cadastro, e é a maior rajada já vista. As outras duas
+receberam os 25 créditos e gastaram os 25. Nenhum defeito.
