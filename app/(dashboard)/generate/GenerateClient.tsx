@@ -100,6 +100,7 @@ import {
 import {
   classifyPlanFitAccount,
   isConfirmedFirstDelivery,
+  PLAN_FIT_LOOKUP_GRACE_MS,
   shouldReservePlanFitRecurringSlot,
   supportsPlanFitQuality,
 } from '@/lib/growth/planFit'
@@ -2252,6 +2253,14 @@ export default function GenerateClient({
   // Unlike `historyEvidenceForVideoId`, this is also set on a failed lookup so
   // legacy offers can resume instead of staying hidden indefinitely.
   const [historyCheckedForVideoId, setHistoryCheckedForVideoId] = useState<string | null>(null)
+  // KINEO-ASK-OUTRANKS-PLANFIT-2026-09-07 — a reserva do slot recorrente por
+  // lookup PENDENTE e um anti-flash com prazo. O ramo AbortError de
+  // refreshVideoHistory retorna sem carimbar `historyCheckedForVideoId`, e cada
+  // foco/visibilitychange re-zera o carimbo; sem prazo, o slot pode ficar
+  // reservado por ninguem — Plan Fit nao renderiza (nao e elegivel) e a pergunta
+  // do trial tambem nao (o slot esta tomado). Este flag devolve o slot a
+  // pergunta quando a resposta definitiva nao chega a tempo.
+  const [planFitLookupGraceExpired, setPlanFitLookupGraceExpired] = useState(false)
   // Cross-tab completions do not emit this tab's `creditsChanged` event. A
   // sequenced, abortable refresh lets focus/visibility and the Plan Fit card
   // re-check the server without an older response restoring stale evidence.
@@ -5241,7 +5250,17 @@ export default function GenerateClient({
     eligible: planFitOfferEligible,
     historyCheckedForVideoId,
     currentVideoId: publicVideoId,
+    // Mesma fonte que governa a caixa do trial. Trial ENDING = a pergunta
+    // comercial vence o Plan Fit; ver a nota em lib/growth/planFit.ts.
+    trialPhase: trialPostVideoPhase,
+    lookupGraceExpired: planFitLookupGraceExpired,
   })
+  // O relogio da carencia. `planFitLookupPending` repete a condicao exata do
+  // ramo de reserva por pendencia — divergir faria o timer correr sobre um
+  // estado que nao e o que a decisao le.
+  const planFitLookupPending =
+    planFitOfferCandidate && !planFitOfferEligible && Boolean(publicVideoId) &&
+    historyCheckedForVideoId !== publicVideoId
 
   // KINEO-TRIAL-POSTVIDEO-OFFER-2026-08-07 — carimba a chegada em `done`. É o
   // relógio contra o qual a leitura do trial é julgada fresca ou velha (ver
@@ -5251,6 +5270,21 @@ export default function GenerateClient({
   useEffect(() => {
     if (phase === 'done') trialDoneAtRef.current = Date.now()
   }, [phase])
+
+  // KINEO-ASK-OUTRANKS-PLANFIT-2026-09-07 — carencia do lookup de primeira
+  // entrega. Enquanto pendente, o slot segue reservado (anti-flash); passados
+  // PLAN_FIT_LOOKUP_GRACE_MS sem resposta definitiva, o slot volta para a
+  // pergunta. Sem este efeito nada re-renderiza quando o prazo vence, e a
+  // decisao ficaria congelada no ultimo valor.
+  useEffect(() => {
+    if (!planFitLookupPending) {
+      setPlanFitLookupGraceExpired(false)
+      return
+    }
+    setPlanFitLookupGraceExpired(false)
+    const timer = setTimeout(() => setPlanFitLookupGraceExpired(true), PLAN_FIT_LOOKUP_GRACE_MS)
+    return () => clearTimeout(timer)
+  }, [planFitLookupPending, publicVideoId])
 
   // KINEO-TRIAL-POSTVIDEO-OFFER-2026-08-07 — impressão REAL da caixa do trial.
   // A elegibilidade é recalculada aqui em vez de reusar `showTrialPostVideoOffer`

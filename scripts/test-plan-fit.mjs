@@ -320,6 +320,56 @@ check('confirmed non-first video releases legacy offers', reserveSlot({
 }) === false)
 check('non-candidate never reserves the recurring slot', reserveSlot({ candidate: false }) === false)
 
+// KINEO-ASK-OUTRANKS-PLANFIT-2026-09-07 — a precedencia do slot pos-entrega.
+// Medido em 30 dias, por PESSOA: a pergunta do trial leva 17% ao checkout
+// (39/231); o bridge leva 1% (1/87); Plan Fit levou 0 em 12 dias de vida
+// (30 impressoes, 0 cliques). Estes casos amarram a decisao as DUAS variaveis
+// novas — trocar qualquer um dos dois `if` por constante derruba um check.
+check('ending trial takes the slot back from an eligible Plan Fit', reserveSlot({
+  eligible: true,
+  historyCheckedForVideoId: 'first',
+  trialPhase: 'ending',
+}) === false)
+check('ending trial takes the slot back from a pending lookup', reserveSlot({
+  trialPhase: 'ending',
+}) === false)
+check('active trial leaves the eligible Plan Fit reservation untouched', reserveSlot({
+  eligible: true,
+  historyCheckedForVideoId: 'first',
+  trialPhase: 'active',
+}) === true)
+check('absent trial phase keeps the historical reservation', reserveSlot({
+  eligible: true,
+  historyCheckedForVideoId: 'first',
+  trialPhase: null,
+}) === true)
+check('an unanswered lookup releases the slot once the grace expires', reserveSlot({
+  lookupGraceExpired: true,
+}) === false)
+check('the grace never overrides a confirmed first delivery', reserveSlot({
+  eligible: true,
+  historyCheckedForVideoId: 'first',
+  lookupGraceExpired: true,
+}) === true)
+check('a still-running lookup keeps the anti-flash reservation', reserveSlot({
+  lookupGraceExpired: false,
+}) === true)
+check('the grace window is a real positive number of milliseconds',
+  Number.isFinite(planFit.PLAN_FIT_LOOKUP_GRACE_MS) && planFit.PLAN_FIT_LOOKUP_GRACE_MS > 0)
+
+// Contrato sem chamador serve zero: a funcao pura pode ficar certa e o
+// produto continuar errado. Estas tres provam que o /generate ALIMENTA as
+// entradas novas e que o relogio da carencia existe de fato.
+const generateClientSource = readFileSync(join(root, 'app/(dashboard)/generate/GenerateClient.tsx'), 'utf8')
+check('GenerateClient feeds the trial phase into the slot decision',
+  generateClientSource.includes('trialPhase: trialPostVideoPhase,'))
+check('GenerateClient feeds the grace flag into the slot decision',
+  generateClientSource.includes('lookupGraceExpired: planFitLookupGraceExpired,'))
+check('GenerateClient arms a timer that flips the grace flag',
+  generateClientSource.includes('setTimeout(() => setPlanFitLookupGraceExpired(true), PLAN_FIT_LOOKUP_GRACE_MS)'))
+check('GenerateClient mirrors the pending condition the timer runs on',
+  generateClientSource.includes('historyCheckedForVideoId !== publicVideoId'))
+
 // 6. The current commercial contract is one global USD price. Geography is
 // tested through the canonical resolver, never by recreating BRL/INR tables.
 check('Brazil resolves to canonical global USD', pricing.resolveCheckoutCurrency('BR') === 'usd')

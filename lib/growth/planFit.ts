@@ -89,11 +89,33 @@ export function isConfirmedFirstDelivery(evidence: FirstDeliveryEvidence): boole
   return completed.length === 1 && completed[0]?.id === evidence.currentVideoId
 }
 
+/**
+ * Prazo da reserva anti-flash do slot recorrente. Curto de proposito: e o teto
+ * de tempo em que a tela de entrega pode ficar SEM nenhuma oferta enquanto o
+ * lookup de primeira entrega nao responde. Passado ele, a pergunta comercial
+ * volta a valer.
+ */
+export const PLAN_FIT_LOOKUP_GRACE_MS = 4000
+
 export interface PlanFitRecurringSlotInput {
   candidate: boolean
   eligible: boolean
   historyCheckedForVideoId: string | null
   currentVideoId: string | null
+  /**
+   * Trial phase measured on the delivered film, from the same source that
+   * governs the trial ask. An ENDING trial is the one moment where the free
+   * next step Plan Fit is built around no longer exists, so the ask outranks
+   * it. Optional, so every existing caller keeps its behaviour.
+   */
+  trialPhase?: 'active' | 'ending' | null
+  /**
+   * True once the pending first-delivery lookup has outlived its grace window.
+   * The reservation below exists ONLY to stop a legacy card flashing while that
+   * lookup is in flight; a lookup that never answers must not hold the slot shut
+   * forever. Optional, and false keeps the historical behaviour.
+   */
+  lookupGraceExpired?: boolean
 }
 
 /**
@@ -103,7 +125,23 @@ export interface PlanFitRecurringSlotInput {
  * legacy behavior resumes immediately.
  */
 export function shouldReservePlanFitRecurringSlot(input: PlanFitRecurringSlotInput): boolean {
+  // KINEO-ASK-OUTRANKS-PLANFIT-2026-09-07 — MEDIDO, 30 dias, contando PESSOAS:
+  //   trial_post_video_offer_viewed  231 pessoas -> 39 checkout (17%) -> 1 pago
+  //   trial_balance_bridge_viewed     87 pessoas ->  1 checkout ( 1%) -> 0 pago
+  //   plan_fit_impression             30 pessoas ->  0 checkout       -> 0 pago
+  // O slot unico pos-entrega e o instante de maior intencao de compra da casa,
+  // e a ordem de precedencia punha as superficies de 1% na frente da de 17%.
+  // Um trial ENDING nao tem proximo passo gratis a ganhar: o saldo acabou. Nesse
+  // estado a pergunta comercial e a unica acao honesta, e Plan Fit — que em 12
+  // dias de vida somou 30 impressoes e ZERO cliques — nao a desloca.
+  if (input.trialPhase === 'ending') return false
   if (input.eligible) return true
+  // A reserva abaixo e anti-flash, nao portao. Sem este corte ela vira permanente
+  // para qualquer lookup que nunca devolva resposta definitiva (o ramo AbortError
+  // de refreshVideoHistory retorna SEM carimbar o id), e o slot fica reservado
+  // por ninguem: Plan Fit nao renderiza porque nao e elegivel, e a pergunta nao
+  // renderiza porque o slot esta tomado.
+  if (input.lookupGraceExpired === true) return false
   return Boolean(
     input.candidate &&
     input.currentVideoId &&
