@@ -1090,7 +1090,7 @@ export async function GET(
             const shareHtml = shareHref
               ? `<div style="border:1px solid #26262a;border-radius:12px;padding:16px;margin:18px 0 0;">
                   <p style="color:#fff;font-weight:700;font-size:14px;margin:0 0 6px">Want a link instead of a file? 🔗</p>
-                  <p style="color:#94a3b8;font-size:13px;margin:0 0 12px">One click makes a public page for <em>this one video</em> &mdash; a real link you can text, post, or put in a bio. Nothing else in your library changes.</p>
+                  <p style="color:#94a3b8;font-size:13px;margin:0 0 12px">One click makes a public page for <em>this one video</em> &mdash; a real link you can text, post, or put in a bio. The page is public, so search engines can find it too. Nothing else in your library changes, and you can make it private again any time.</p>
                   <a href="${shareHref}" style="display:inline-block;background:#fff;color:#111;text-decoration:none;padding:10px 22px;border-radius:10px;font-weight:700;font-size:14px;">Create my shareable link &rarr;</a>
                   <p style="color:#475569;font-size:11px;margin:10px 0 0">Changed your mind? <a href="${shareUndoHref}" style="color:#475569;">Make it private again</a>.</p>
                 </div>`
