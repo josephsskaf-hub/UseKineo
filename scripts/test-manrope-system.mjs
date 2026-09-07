@@ -4,7 +4,8 @@ import fs from 'node:fs'
 import {execFileSync} from 'node:child_process'
 import {createRequire} from 'node:module'
 const require=createRequire(import.meta.url), postcss=require('postcss')
-const base='19514335'
+// Integration base includes Claude's concurrent GPT handoff, preserved verbatim.
+const base='482dd0a7'
 const read=f=>fs.readFileSync(f,'utf8')
 const before=f=>execFileSync('git',['show',`${base}:${f}`],{encoding:'utf8'})
 let checks=0
