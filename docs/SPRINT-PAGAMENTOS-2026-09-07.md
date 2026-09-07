@@ -588,3 +588,131 @@ veredito honesto vem do placar de amanhã, não deste.
    no checkout. O gargalo de hoje não é a página de pagamento — é que quem
    recebe filme não chega até ela. Vale medir o caminho `filme entregue →
    viu preço` antes de investir mais no checkout.
+
+---
+
+### #9 — 14:05→15:00 — o ciclo tinha fechado 6h30 cedo, e a oferta estava nas duas telas menores
+
+**Antes de tudo, uma correção de relógio.** A entrada #8 acima se chama
+FECHAMENTO e foi escrita às **14:03 BRT**. O ciclo termina às **20:38**. As oito
+rotações couberam em 1h25 de relógio, e o rótulo "fechamento" fez o ciclo
+*parecer* encerrado com 6h30 de janela pela frente. O relógio manda no
+fechamento, nunca o rótulo — o ciclo continua, e esta é a rotação #9.
+
+**Press release:** um cliente indiano que abre o Studio hoje às 15h vê a opção
+de pagar **uma vez, US$ 4,90, sem assinatura** logo acima dos planos. Às 12h38
+ele não via nada; às 13h47 ele passou a ver — **mas só se tivesse ido ao
+/pricing ou terminado um filme**. A tela por onde ele realmente passa não tinha
+a oferta.
+
+**Errado (medido) — a oferta subiu nas duas superfícies mais estreitas.**
+30 dias, por PESSOA, coorte IN/NG/PK/BD/KE (164 pessoas com carimbo de país):
+
+| superfície | alcança | tinha a peça às 13:47 |
+|---|---|---|
+| `/pricing` | 46 | ✅ |
+| tela pós-filme | 45 | ✅ |
+| **as duas juntas** | **70** | — |
+| **grid de planos do Studio** (`generate_step_1`) | **78** | ❌ |
+| **união das três** | **86** | — |
+
+O grid do Studio sozinho alcança **mais gente da coorte do que as outras duas
+somadas**, e **16 pessoas** passam por ele sem nunca tocar nas outras duas
+telas. A peça de ontem-de-manhã nasceu nos dois lugares menores.
+
+**Por que o erro era invisível:** o alcance foi medido *depois* de escolher onde
+montar. `/pricing` e a tela pós-filme são as telas que a gente *pensa* como
+"lugar de preço"; a tela onde a pessoa realmente encosta num número é o passo 1
+do Studio, que ninguém chama de página de preço.
+
+**O número quase não apareceu, e a armadilha vale registro:**
+`NOT IN (select user_id ...)` devolve **NULL para TODA linha** quando a
+subconsulta tem um único `user_id` nulo. O "exclusivo do Studio" saiu **0** —
+contradizendo a própria união, que subia de 70 para 86 **na mesma consulta**.
+Com `NOT EXISTS` o **16** apareceu. Coorte nunca se mede com `NOT IN`.
+
+**Mudou — SHA `4eee3e64` · EM PRODUÇÃO** (deploy `dpl_3pyUnFjN…` às 14:16 BRT).
+UMA linha de montagem em `components/PricingCards.tsx`, acima do grid. A peça
+ganha a superfície `studio_step1` com copy própria: aqui a pessoa **ainda não
+recebeu filme e ninguém recusou o cartão dela**, então a copy não pergunta por
+recusa (que ela não teve) nem diz "keep making films" (que ela ainda não faz).
+Nenhum preço mudou, nenhum SKU novo, e a peça continua devolvendo `null` para
+todo o resto do mundo.
+
+**O que o cliente vê:** alcance de **70 → 86** pessoas da coorte (**+23%**), sem
+tocar em quem já paga.
+
+**Sonda — e o que ela prova e o que NÃO prova.** A copy nova viaja no bundle
+público do `/pricing` (as três superfícies compartilham o componente):
+
+| medida | resultado |
+|---|---|
+| `"without signing up for a plan"` nos chunks do `/pricing` | **1 chunk** ✅ |
+| string de **controle** inexistente, mesma varredura | **0 chunks** ✅ |
+| home | `200` |
+
+⚠️ **Isto prova o componente no ar, não a montagem.** O grid do Studio é rota
+**autenticada** e não tem sonda de fora — o App Router não expõe
+`_buildManifest`, então não há como pegar o chunk do `/generate` sem sessão. A
+montagem está provada só pelo guardião (que lê o arquivo real) e pelo
+typecheck. **A prova de produção é a primeira linha de
+`pack_first_for_region_shown` com `surface: 'studio_step1'`** — e ela depende de
+uma pessoa dos cinco países abrir o Studio.
+
+**Testes:** `scripts/test-primeira-compra-regiao.mjs` — **62/62**, falsificado
+por **7 mutantes, 7 mortos** (mount removido · superfície trocada · mount abaixo
+do grid · montagem duplicada · copy inventando recusa · rodapé revertido · tipo
+sem a terceira superfície). Cada mutante confere o conteúdo antes/depois e
+aborta se a escrita não pegou.
+
+**E o guardião acusou a si mesmo.** A asserção "a copy não fala em recusa" lia
+**400 caracteres** a partir da entrada e **atravessava a fronteira**, caindo na
+entrada seguinte do `Record` — que legitimamente diz "declined". A asserção irmã
+(`post_video`) só passava **por ser a última entrada do COPY**: bastaria uma
+quarta superfície para o mesmo falso vermelho nascer lá. As duas passam a cortar
+na fronteira real da entrada.
+
+**Risco:** baixo. A peça já estava em produção há 20 min em duas telas; esta é a
+mesma peça numa terceira. O gate de país é o mesmo e continua fechando em
+`null`. Se o Codex redesenhar o componente, as três superfícies mudam juntas —
+que é o efeito desejado.
+
+**Placar às 14:30 BRT:**
+
+| medida | valor |
+|---|---|
+| cadastros 24h | 34 |
+| checagem zero (cadastro sem crédito) | **0** ✅ |
+| filmes entregues 24h | 38 |
+| pessoas no checkout 24h | 2 |
+| pagamentos 24h | **0** |
+| último `payment_success` | **02/09 20:22Z — 5 dias** |
+| `pack_first_for_region_shown` | 0 |
+| `card_declined_emailed_v1` | 0 (cron dispara 10:10 BRT de amanhã) |
+
+**Dois números do placar que precisam de nota, senão viram alarme falso:**
+
+1. **`checagem zero` deu 6 na primeira consulta, e o número é falso.** Meu
+   predicado era `video_credits = 0 AND sem vídeo`. As **6** contas têm
+   `trial_status = 'blocked'` — são **antifraude**, não trial órfão. Crédito
+   zero significa três coisas diferentes e elas colapsam no mesmo campo; sem
+   ler `trial_status` antes, a rotação escala um incidente que não existe. O
+   **0** da rotação anterior estava certo.
+2. **`checkout_attempted` está poluído pelas NOSSAS sondas.** 16 das 70
+   tentativas em 7 dias vêm com `user_id` e `session_id` nulos, em rajadas de
+   3-4 SKUs em menos de 10 segundos (`bulk10/20/30/50` às 21:50:33→21:50:40).
+   Nenhuma delas vira sessão de checkout. **Não é defeito** — é sonda de
+   rotação anterior. O `count(distinct user_id)` ignora nulo e por isso o
+   "2 pessoas no checkout" continua limpo; a **contagem bruta**, não.
+
+**Próxima jogada:**
+1. **Medir a exposição com o par que dispara igual.** `pack_first_for_region_shown`
+   contra `inline_pricing_currency_resolved` (`pricing_surface='generate_step_1'`),
+   que dispara na MESMA chamada `/api/geo` e para todo visitante da tela. É o
+   único par honesto; comparar com montagem de página seria laranja com maçã.
+   Denominador esperado: ~78 pessoas/30d, ~7-10/dia.
+2. **Se der exposição > 10 e 0 clique**, o problema passa a ser a OFERTA e não a
+   superfície — e aí a pergunta é o preço do pack, que é decisão do fundador.
+3. **A pergunta da #8 continua aberta e é a maior:** 38 filmes entregues em 24h
+   e **2 pessoas no checkout**. Medir `filme entregue → viu preço` por pessoa
+   antes de investir mais na página de pagamento.
