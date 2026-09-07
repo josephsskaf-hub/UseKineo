@@ -1651,3 +1651,183 @@ navegador não tem como reconstruir o arquivo, a porta **para de prometer "este
 filme limpo"** e passa a oferecer só o trial. O jejum de assinante novo é de
 **5 dias**, não 3 — eu vinha repetindo o número errado e o checkpoint da outra
 sessão o corrigiu.
+
+---
+
+### #9 — 20:58 BRT — o botão mais clicado da casa mandava para o preço CHEIO, no mesmo instante em que a carta já mandava para a porta de $1
+
+**O QUE ESTAVA ERRADO (medido, eventos, contas externas, 30 dias).** Fui atrás
+do F5 e encontrei antes um degrau mais barato e maior. O modal que abre quando
+o trial morre (`components/TrialDowngradeModal.tsx`) tem:
+
+| evento | 30 dias | 7 dias |
+|---|---|---|
+| `trial_downgrade_modal_shown` | 81 impressões / **75 pessoas** | 23 pessoas |
+| `trial_downgrade_modal_cta` (o botão que pede dinheiro) | 18 cliques / **15 pessoas** | 5 pessoas |
+
+São **~22% de CTR**. Para comparar com o que esta pista vinha medindo: a caixa
+comercial do pós-vídeo ganha 7 dos 105 slots em 7 dias e **o último clique dela
+é de 22/08**. O modal do fim do trial é, de longe, **a superfície que pede
+dinheiro mais clicada da casa** — e o botão dela levava a
+`?tier=basic&intro=1`, ou seja **Creator cheio**. Enquanto isso a carta
+`downgraded_loss`, que fala no **mesmo instante**, já leva à porta de $1 desde
+a va-r6 (`e8b401c4`). Tela e e-mail do mesmo momento ofereciam preços
+diferentes.
+
+**A CAUSA NÃO FOI DESCUIDO — FOI UM COMENTÁRIO QUE ENVELHECEU HOJE.** Estava
+escrito ao lado do link: *"`intro=1` é o mesmo link de TODAS as outras
+superfícies de Creator do app; omiti-lo faria esta tela ser a única a cobrar
+mais caro."* Era **verdade quando foi escrito**. Deixou de ser às 15:43 de
+hoje, quando `/pricing` e `components/PricingCards.tsx` passaram a levar
+`trial=1`. A partir daí manter `intro=1` fazia **exatamente o que o comentário
+queria evitar**: esta tela virou a única a cobrar mais caro. A própria lógica
+dele pedia a troca.
+
+**O QUE MUDOU — SHA `72171bff`, EM PRODUÇÃO** (deploy
+`dpl_2XsEdpUQMn1bTkrWvk84FLBxnH7V`, trocou às 20:55:54 BRT, ~3 min depois do
+push; `origin/main` = `72171bff`, fila = 0).
+
+O núcleo de honestidade da porta de $1 (quem o cobrador aceita + quando dá para
+dizer o preço sem mentir) **saiu do corpo** de `decideCleanFilmTrialDoor` e
+virou `decideTrialDoorOffer`, no **mesmo arquivo puro**. As duas superfícies da
+porta passam a consumir a **mesma fonte**. O modal **importa** a regra; não a
+recopia — que é a bomba-relógio que a fv-r7 desarmou há duas rotações (memória
+`superficie-medida-por-copia-da-regra`).
+
+**O QUE O CLIENTE VÊ.** Quem chega ao fim do trial sem nunca ter pago vê, no
+mesmo lugar onde antes lia *"$15/month · 140 credits every month"*:
+
+> **$1.00 today · 80 credits now · then $15.00/month from day 8 · cancel anytime**
+> **[ Try Creator 7 days for $1.00 → ]**
+
+O plano **continua visível** — a própria nota diz a mensalidade e o dia em que
+ela começa (ordem do fundador: "nunca esconder o plano"). Nenhum número é
+digitado: todos derivam de `CARD_TRIAL_ENTRY_FEE_MINOR`,
+`CARD_TRIAL_GRANT_CREDITS`, `CARD_TRIAL_DAYS` e `formatCheckoutMoney` — as
+mesmas constantes que a Stripe cobra.
+
+**POR QUE É SEGURO PROMETER $1 AQUI** (a trava que decide tudo). O modal só
+abre depois de um predicado **estrito**: o servidor tem de devolver `has_paid`
+**igual a falso**, não "não-verdadeiro" (memória
+`predicado-largo-negado-falha-aberta`). Quem vê essa tela já foi provado
+elegível pela **mesma coluna** que o cobrador consulta. Quem já pagou nunca vê
+o modal; e se por qualquer caminho chegasse lá, cai no `intro=1` antigo, byte a
+byte. Sem moeda resolvida a porta não aparece — a trava de preço do núcleo
+bloqueia sozinha, igual ao bloco de preço que já existia.
+
+**O QUE NÃO MUDOU:** preço público, crédito, cupom, motor, régua, duração,
+cota, marca d'água, pipeline. **Reversão** = trocar `trialDoor.visible` por
+`false` numa linha.
+
+**TESTES.** `test-clean-film-trial-door` **86/86** (era 83 — somei **um mutante
+novo que prova a DELEGAÇÃO**: se alguém voltar a decidir sozinho no lugar de
+chamar o núcleo, fica vermelho). Guardião novo
+`scripts/test-porta-1dolar-no-fim-do-trial.mjs` **39/39 com 4 mutantes** (o
+destino do trial, o gate estrito de `has_paid`, a delegação, e a queda honesta
+para "Continue on Creator"). `tsc` verde **na base e depois**. Vizinhos do
+modal verdes: first-value 49/49, human-view 107/107, plan-choice 39/39,
+money-truth 313/313, post-delivery-slot 35/35. Tudo **reconferido na ponta da
+fila depois do rebase** — o `enfileirar` rebasou sobre uma main nova
+(`b41b86fd`) que também mexeu nesse arquivo (`HOST_BOXES`/`clean_export`, de
+outra pista); a junção casou limpa, a trava de slot deles + a minha delegação,
+e rodei tudo de novo (memória `guardiao-verde-na-worktree-vermelho-na-fila`).
+
+**DUAS COISAS DO CARDÁPIO QUE NÃO PRECISAM SER FEITAS — medidas, não supostas.**
+
+- **F2 (carteiras) JÁ ESTÁ FEITO.** `app/api/stripe/checkout/route.ts` removeu
+  o `payment_method_types: ['card']` no **Push #414**, com o motivo escrito no
+  código. A sessão já oferece todo método habilitado no dashboard da Stripe
+  para a moeda/país do comprador. **Não refaçam** — e não é preciso arriscar a
+  caixa registradora para isso.
+- **F3 (carta de sessão expirada) EXISTE E SAI**, mas não move ninguém:
+  `checkout_recovery_emailed_v1` = **27 cartas / 27 pessoas em 60 dias**, a
+  última **hoje 17:30 UTC**. Dessas 27, **zero pagaram**. Há 32 pessoas com
+  URL de retomada que nunca receberam carta — mas estender uma carta que
+  converteu 0/27 é construir a sétima superfície antes de medir as seis
+  (memórias `carta-nova-so-depois-da-velha-mover` e
+  `medir-os-remedios-existentes-antes-do-setimo`). **Não fiz, de propósito.**
+
+**RISCO.** Um: a pessoa que fez 7 dias de trial grátis agora ganha 7 dias de
+Creator por $1 — é a oferta padrão da casa desde as 16:40 e converte um perdido
+em cartão na casa, mas é o fundador quem manda no preço; reverter é uma linha.
+Dois: o modal cobre quem chega **ao fim** do trial, e a memória
+`janela-de-compra-e-o-dia-zero` diz que 10 dos 12 pagantes compraram em 48h —
+esta superfície fala **fora** dessa janela. Ela se justifica pelo CTR de 22%,
+não por estar na hora certa.
+
+**COMO MEDIR (e o que ainda NÃO prova nada).** O teste é
+`trial_downgrade_modal_cta` com **`trial_door = true`**, depois
+`checkout_started` com **`card_trial = '1'`** e `intent_campaign =
+trial_1usd_downgrade`, depois `payment_success` de **100 centavos**. Os dois
+campos novos são o **carimbo do deploy**: linha sem eles é de antes e não se
+mistura (memória `campo-novo-e-o-carimbo-do-deploy`). ⚠️ **A sonda de bundle é
+CEGA aqui e eu rodei o controle**: o modal vive em rota autenticada; varri 14
+chunks públicos de `/pricing` e não achei nem a string nova **nem** a string de
+controle `trial_1usd` que já estava no ar — ou seja o método não sabe
+responder, não que o código falte (memória `entrega-so-de-cliente-nao-tem-sonda`).
+O que **está** provado: `origin/main` = o commit, fila 0, deploy trocou, 200 na
+home e **404 no controle**.
+
+**PLACAR DE FECHAMENTO — marco 2026-09-07 18:38 UTC (~5h20), contas externas:**
+filme pronto **2 pessoas** · clique em baixar **0** · modal de fim de trial
+**0** · clique no modal **0** · `checkout_started` **0** · **pagou 0** · 39
+pessoas com evento. A janela continua de tráfego magro; **ninguém passou pela
+porta nova ainda**, e zero oportunidades não é zero acertos (memória
+`provar-leitura-sem-trafego`).
+
+**CHECAGEM ZERO (24h):** cadastros **26** · crédito zero **11**, **trial órfão
+0** · render preso **0** · recusas de cartão **2**, **sem dono 0** · último
+`payment_success` **02/09 20:22 UTC** (jejum de 5 dias, inalterado).
+
+**DUAS CORREÇÕES DE FATO, uma delas de uma memória minha.**
+
+1. **O relógio do shell NÃO mente.** A memória `relogio-do-shell-mente-em-brt`
+   diz que `date` puro devolve UTC 3h adiantado. **Está errada.** Medido agora,
+   no mesmo comando: `date` = `20:54 BRT`, `date -u` = `23:54 UTC`, e o
+   `%aI` do meu commit fecha em `-03:00`. `date` puro **é BRT**. Perdi minutos
+   raciocinando em cima da memória errada; ela vai ser corrigida.
+2. **São SEIS guardiões vermelhos herdados na ponta, não cinco.** Somo à lista
+   da va-r6 o `scripts/test-guardiao-yaml-2026-09-03.mjs` (6 ok / 6 falhas).
+   **Falsifiquei antes de acusar**: ele lê `.github/workflows/guardiao.yml`, e
+   eu mudei **0** arquivos sob `.github/` — o arquivo que ele julga está byte a
+   byte igual a `origin/main`. Não é meu.
+
+**A FRASE DA ROTAÇÃO.** Hoje um visitante novo que gasta o trial inteiro e bate
+na parede encontra uma porta de **$1** que ontem não encontrava — no botão que
+15 pessoas por mês já apertavam para achar $15.
+
+**PRÓXIMA JOGADA (#10), e ela nasce do que eu vi medindo esta.** Existem **68
+sessões de `checkout_started` em `tier=basic` sem `card_trial`** em 30 dias —
+55% de todos os checkouts da casa foram para o Creator cheio. Isso é história
+(a porta nasceu hoje), **mas a lista de quem ainda manda para o preço cheio é
+curta e conhecida**: `components/TrialActiveBanner.tsx:731`,
+`components/ExitIntentOffer.tsx:328`, `app/KineoLanding.tsx:838` e quatro
+pontos de `GenerateClient.tsx` — todos com `tier=basic&intro=1`, e `intro=1`
+**é um no-op** (`hasIntroOffer()` é falso desde a V5). A jogada da #10 é
+**varrer os construtores de link**, não inventar superfície: cada um deles é
+uma linha, o núcleo já existe e o guardião já está escrito. Comece pelo
+`ExitIntentOffer` — é o único que fala com quem está **saindo**, e portanto o
+único onde a porta mais barata é a última chance real.
+
+**✅ O QUE VOCÊ PRECISA FAZER**
+1. **Nada para publicar** — já publiquei (`72171bff`, deploy confirmado).
+2. **Decidir se aceita a oferta**: quem termina o trial sem nunca ter pago
+   agora vê **"Try Creator 7 days for $1"** em vez de "$15/month". Se não
+   quiser, me diga "tira o $1 do modal de fim de trial" — é uma linha.
+
+**📋 O QUE ACONTECEU**
+Eu ia construir a oferta da segunda tentativa de checkout e, medindo antes,
+achei um buraco maior e mais barato: **o botão que pede dinheiro mais clicado
+da casa** (75 pessoas por mês o veem, 15 clicam — 22%) mandava para o Creator
+cheio, no mesmo minuto em que o e-mail que sai daquele instante já mandava para
+a porta de $1 que você abriu hoje. A causa era um comentário no código que era
+verdadeiro de manhã e virou falso às 15:43. Consertei sem tocar em preço,
+crédito ou pipeline, com a regra morando numa fonte única que as duas telas
+compartilham, 125 verificações e 5 mutantes. Aproveitei para provar que **duas
+tarefas do seu cardápio não precisam ser feitas**: as carteiras de pagamento já
+estavam ligadas desde o Push #414, e a carta de sessão expirada já existe e já
+sai — só que converteu 0 de 27, então empilhar mais carta ali seria desperdício.
+Corrigi ainda uma memória minha que estava errada sobre o relógio e registrei um
+sexto guardião vermelho herdado. O jejum de assinante novo segue em 5 dias e a
+janela desta noite continua com pouquíssimo tráfego — ninguém passou pela porta
+nova ainda.
