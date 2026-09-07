@@ -2290,3 +2290,61 @@ com a IA, que resolve isso em uma frase, em vez de ela descobrir no Studio
 depois de criar conta. De quebra, um link de roteiro inexistente passou a
 responder "não existe" de verdade, o que devolve controle a qualquer medição
 futura daquela página.
+
+### #15 — 04:50 — as duas irmãs do handoff ainda fabricavam link morto
+
+**SHA `ccb6159e` · EM PRODUÇÃO** (`git ls-remote origin main` = `ccb6159e9e1d…`).
+
+A #14 consertou o POST da Action. Faltavam as duas rotas irmãs que criam handoff
+pelo mesmo caminho: `app/make/route.ts` (o deep link GET que qualquer assistente
+sabe escrever) e `app/api/gpt/handoff/paste/route.ts` (a caixa "cole o roteiro"
+da página `/chatgpt`). **Medido em produção antes do deploy**, com o mesmo
+roteiro de 40 palavras para 60s:
+
+```
+paste  → HTTP 200  {"token":"IWqTuJkSKQ…","fit":"short"}   ← link vivo
+/make  → HTTP 302  → /go/XFOMOYc62IW0SzsO5GP9jgDV          ← link vivo
+```
+
+As duas fabricavam um link que **o Studio vai recusar**. A pessoa clica, cria
+conta, aperta Generate e só ali descobre que o roteiro não serve — com o crédito
+preso. Link morto emitido com 200.
+
+**Depois, mesma sonda, com controle:**
+
+```
+paste   40 palavras → HTTP 400  "…Kineo would refuse it. Add about 92 more words…"
+/make   40 palavras → HTTP 302  → /chatgpt-to-youtube-shorts?handoff_error=script_too_short
+paste  140 palavras → HTTP 200  ← CONTROLE: a recusa é estreita, não é bloqueio geral
+```
+
+**A decisão de desenho no `/make` merece registro:** a rota é GET de navegador e
+tem contrato explícito — erro nunca vira JSON cru, vira 302 com slug de uma
+**lista fechada**, e a frase nunca viaja na URL (dois guardiões vigiam isso:
+`test-assistant-deep-link` e `test-handoff-error-visivel`). Devolver 400 ali
+teria sido "consertar" quebrando o contrato e mostrando JSON a um ser humano.
+Então entrou um slug novo `script_too_short` com frase estática na página de
+pouso. Os números por pedido (quantas palavras faltam) continuam vivos no
+`outcome` do evento — só não viajam na URL, que é a regra da casa.
+
+**COMO PROVAR:** `scripts/test-gpt-handoff-verdade.mjs` foi de 64 para **84
+verificações**; `test-handoff-error-visivel` de 95 para 98 (o slug novo entrou na
+lista fechada que ele cruza); `test-gpt-handoff` 332, `test-chatgpt-paste-page`
+128, `test-assistant-deep-link` 153 — todos verdes. `npx tsc --noEmit` exit 0,
+zero linhas.
+
+**Falsificado por mutação, cinco vezes**, sempre com `grep -c` provando que o
+arquivo mudou de verdade antes de rodar (mutante que não foi escrito devolve
+verde e se lê como guardião resistindo):
+
+```
+if (outcome.kind === 'too_short') → if (true)   na paste   → 82 ok, 2 falhas (9c, 9d)
+mesmo mutante no /make                          → 82 ok, 2 falhas (10c, 10d)
+if (false) nas duas                             → mesmas 2 falhas cada
+slug trocado ('script_too_short' → 'invalid')   → 83 ok, 1 falha (10c)
+recusa movida para DEPOIS do insert na paste    → 83 ok, 1 falha (10d, a ordem)
+```
+
+A verificação de ORDEM (9d/10d) é a que importa: não basta recusar, tem de
+recusar **antes** de gravar — senão o link morto continua nascendo e só deixa de
+ser devolvido.
