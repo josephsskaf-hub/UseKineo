@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
-import { InterfaceLanguageSelect, useInterfaceLanguage } from '@/components/InterfaceLanguage'
+import { InterfaceLanguageSelect, useUiCopy } from '@/components/InterfaceLanguage'
 import { EDITING_TOOLS, defaults, downloadName, outputSize, validateSettings, type EditingTool, type EditSettings, type ClipInfo } from '@/lib/videoEditing/settings'
 import { drawFrame, exportClip, readClip, recordingMime, sampleClip } from '@/lib/videoEditing/browserEditor'
 import './editor.css'
@@ -26,8 +26,7 @@ const ERRORS: Record<string, [string, string]> = {
 }
 
 export default function VideoEditor({ initialTool }: { initialTool: EditingTool }) {
-  const es = useInterfaceLanguage() === 'es'
-  const t = (en: string, spanish: string) => es ? spanish : en
+  const t = useUiCopy()
   const [tool, setTool] = useState(initialTool)
   const [file, setFile] = useState<File | null>(null)
   const [info, setInfo] = useState<ClipInfo | null>(null)
@@ -101,8 +100,8 @@ export default function VideoEditor({ initialTool }: { initialTool: EditingTool 
   return <main className="ke-editor">
     <div className="ke-shell">
       <nav className="ke-nav" aria-label={t('Primary', 'Principal')}><Link href="/" className="ke-logo">Kineo</Link><div><Link href="/tools">← {t('All tools', 'Todas las herramientas')}</Link><InterfaceLanguageSelect /></div></nav>
-      <header className="ke-heading"><p className="ke-eyebrow">{t('EDITING TOOLS', 'HERRAMIENTAS DE EDICIÓN')}</p><h1>{es ? selected.es : selected.name}</h1><p>{t('Edit your video, preview the changes, then export a copy.', 'Edita tu vídeo, revisa los cambios y exporta una copia.')}</p></header>
-      <nav className="ke-tool-tabs" aria-label={t('Editing tools', 'Herramientas de edición')}>{EDITING_TOOLS.map(item => <button key={item.id} type="button" aria-pressed={tool === item.id} disabled={Boolean(busy)} onClick={() => selectTool(item.id)}>{es ? item.es : item.name}</button>)}</nav>
+      <header className="ke-heading"><p className="ke-eyebrow">{t('EDITING TOOLS', 'HERRAMIENTAS DE EDICIÓN')}</p><h1>{t(selected.name, selected.es)}</h1><p>{t('Edit your video, preview the changes, then export a copy.', 'Edita tu vídeo, revisa los cambios y exporta una copia.')}</p></header>
+      <nav className="ke-tool-tabs" aria-label={t('Editing tools', 'Herramientas de edición')}>{EDITING_TOOLS.map(item => <button key={item.id} type="button" aria-pressed={tool === item.id} disabled={Boolean(busy)} onClick={() => selectTool(item.id)}>{t(item.name, item.es)}</button>)}</nav>
       <div className="ke-layout">
         <section className="ke-stage" aria-label={t('Video preview', 'Vista previa del vídeo')}>
           {inputUrl && info ? <>
@@ -129,9 +128,9 @@ export default function VideoEditor({ initialTool }: { initialTool: EditingTool 
           <p className="ke-small">{t('Export happens in real time. Keep this tab visible. Re-encoded at up to 1280 px on the long edge; format depends on your browser.', 'La exportación ocurre en tiempo real. Mantén esta pestaña visible. Se recodifica hasta 1280 px en el lado largo; el formato depende del navegador.')}</p>
         </section>
       </div>
-      {supported === false ? <p className="ke-error" role="alert">{ERRORS.unsupported[es ? 1 : 0]}</p> : null}
+      {supported === false ? <p className="ke-error" role="alert">{t(...ERRORS.unsupported)}</p> : null}
       {busy ? <div className="ke-status" role="status"><span>{busy === 'export' ? t(`Exporting ${progress}% — keep this tab visible`, `Exportando ${progress}% — mantén esta pestaña visible`) : busy === 'sample' ? t('Making a 4-second sample on your device…', 'Creando una muestra de 4 segundos en tu dispositivo…') : t('Reading your file…', 'Leyendo tu archivo…')}</span><button type="button" onClick={() => operation.current?.abort()}>{t('Cancel', 'Cancelar')}</button></div> : null}
-      {error ? <p className="ke-error" role="alert">{ERRORS[error]?.[es ? 1 : 0] ?? ERRORS.export_failed[es ? 1 : 0]}</p> : null}
+      {error ? <p className="ke-error" role="alert">{t(...(ERRORS[error] ?? ERRORS.export_failed))}</p> : null}
       {result ? <section className="ke-result" aria-label={t('Export result', 'Resultado de exportación')}><div><p className="ke-eyebrow">{t('EXPORT READY', 'EXPORTACIÓN LISTA')}</p><h2>{t('Your edited video', 'Tu vídeo editado')}</h2><a className="ke-primary" href={result.url} download={result.name}>{t('Download video', 'Descargar vídeo')} {result.mime.startsWith('video/mp4') ? 'MP4' : 'WebM'} ↓</a><p className="ke-small">{t('Local download only. This copy is not saved to My Videos.', 'Solo descarga local. Esta copia no se guarda en Mis vídeos.')}</p></div><video ref={resultVideo} src={result.url} controls playsInline preload="metadata" aria-label={t('Exported video', 'Vídeo exportado')} /></section> : null}
       <footer className="ke-footer"><p>{t('No upload. No generation credits. Your original is never overwritten.', 'Sin subir archivos. Sin créditos de generación. Tu original nunca se sobrescribe.')}</p><p>{t('Up to 100 MB · 3 minutes · MP4/WebM input recommended. These are basic editing tools, not the CapCut app.', 'Hasta 100 MB · 3 minutos · Se recomienda MP4/WebM. Son herramientas de edición básica, no la aplicación CapCut.')}</p><Link href="/studio">{t('Need a new video? Open Kineo Studio →', '¿Necesitas un vídeo nuevo? Abre Kineo Studio →')}</Link></footer>
     </div>

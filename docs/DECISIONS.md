@@ -212,3 +212,9 @@ O fundador também pediu cinco recomendações e sugestão de uma terceira líng
 ## 2026-09-07 — Cinco melhorias autorizadas após Manrope
 
 **DECISÃO APROVADA:** executar as cinco recomendações: reduzir avisos concorrentes, uniformizar ações/destinos, destacar continuidade na biblioteca, completar lacunas de espanhol e corrigir pendências de privacidade/garantias críticas de CI. Worktree codex/five-improvements-2026-09-07 a partir de origin/main 5b155dc5. Comparação visual e testes antes de publicação. Sem nova língua, preço, crédito, render, campanha ou operação manual em dados de clientes. Mudanças de segurança testadas com dependências simuladas.
+
+## 2026-09-07 — Complemento aprovado: galeria, CSS e terceiro idioma por evidência
+
+**DECISÃO APROVADA:** o fundador aprovou as cinco melhorias olhando o preview, pediu Meus vídeos sem múltiplas propagandas acima da galeria, rejeitou português e escolheu selecionar a terceira língua pelos dados de países. Após o relatório `docs/IDIOMA-POR-EVIDENCIA-2026-09-07.md`, autorizou os ajustes pendentes e a verificação dos sistemas em todas as línguas. Hindi é opção manual, não idioma imposto pela localização. Inglês continua padrão e espanhol é preservado. País não é prova de língua individual.
+
+**ESCOPO:** corrigir o CSS estático que causa divergência SSR/hidratação; manter uma oferta principal em Meus vídeos e recolher opções secundárias após a galeria; hindi no sistema explícito de rótulos com fonte Devanagari; testes locais e de navegação nos três idiomas. Textos desconhecidos permanecem em inglês, não recebem tradução automática. Não afirmar tradução integral de artigos SEO/admin/e-mails nem teste pago completo. Sem mudar roteiro, idioma de geração, valores, créditos, preços, render, campanha ou dados de clientes. Commit, CI e deploy seguem os gates já aprovados.

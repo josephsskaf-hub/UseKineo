@@ -11,7 +11,7 @@
 //     interna fica no title/tooltip)
 //   · pills com estado selecionado em glow, hover com lift de 1px
 //   · resumo vivo no card de custo: motor · duração · resolução · aspecto
-import { UiLabel, useInterfaceLanguage } from '@/components/InterfaceLanguage'
+import { UiLabel, useUiCopy } from '@/components/InterfaceLanguage'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { STUDIO_KIT_CSS } from '@/components/studioKit'
@@ -144,7 +144,7 @@ const CAMERA_PRESETS: { key: string; label: string; emoji: string; prompt: strin
 // fundador entra LA, uma vez, e atualiza o produto inteiro.
 
 export default function StudioClient() {
-  const es = useInterfaceLanguage() === 'es'
+  const t = useUiCopy()
   // sprint-retencao #15 — `studio_milestone` (11 cliques em 30d) e
   // `studio_video_tile` nunca tiveram denominador. So telemetria: a tela
   // continua exatamente a mesma.
@@ -435,7 +435,7 @@ export default function StudioClient() {
       <p className="sub"><UiLabel>Your idea first. Review the settings, then generate.</UiLabel></p>
 
       <div className="grid composer-proposal-grid">
-        <section className="composer-proposal-idea" aria-label={es ? 'Tu idea' : 'Your idea'}>
+        <section className="composer-proposal-idea" aria-label={t('Your idea', 'Tu idea')}>
 <div>
             <div className="lab" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span><span className="n">1</span><UiLabel>{chatGptQuickstart === 'finished_script' ? 'Paste your ChatGPT script' : chatGptQuickstart === 'idea' ? 'Paste your ChatGPT idea' : 'Your idea'}</UiLabel></span>
@@ -486,17 +486,17 @@ export default function StudioClient() {
             </div>
             <textarea ref={promptRef} value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={7}
               placeholder={chatGptQuickstart === 'finished_script'
-                ? (es ? 'Pega aquí el guion completo de ChatGPT…' : 'Paste the complete script from ChatGPT here…')
+                ? (t('Paste the complete script from ChatGPT here…', 'Pega aquí el guion completo de ChatGPT…'))
                 : chatGptQuickstart === 'idea'
-                  ? (es ? 'Pega aquí la idea de ChatGPT…' : 'Paste the idea from ChatGPT here…')
-                  : (es ? '¿De qué trata tu vídeo? Una idea se convierte en un vídeo con voz, música y subtítulos.' : 'What’s your video about? One idea in — a finished film out: voiced, scored and captioned.')} />
+                  ? (t('Paste the idea from ChatGPT here…', 'Pega aquí la idea de ChatGPT…'))
+                  : (t('What’s your video about? One idea in — a finished film out: voiced, scored and captioned.', '¿De qué trata tu vídeo? Una idea se convierte en un vídeo con voz, música y subtítulos.'))} />
             <div className="row" style={{ marginTop: 10 }}>
               <button type="button" className={`pill${scriptMode === 'ai' ? ' on' : ''}`} onClick={() => setScriptMode('ai')}><UiLabel>✨ Let AI structure it</UiLabel></button>
               <button type="button" className={`pill${scriptMode === 'verbatim' ? ' on' : ''}`} onClick={() => setScriptMode('verbatim')}><UiLabel>📝 Use my script as is</UiLabel></button>
             </div>
             <div className="cnt" style={limit.over ? { color: '#fb923c', opacity: 1 } : undefined}>
               {prompt.trim()
-                ? `${prompt.trim().split(/\s+/).length} ${es ? 'palabras' : 'words'}${scriptMode === 'verbatim' ? (es ? ' · narradas palabra por palabra' : ' · narrated word for word') : ''} · ${formatLimitCounter(limit)}`
+                ? `${prompt.trim().split(/\s+/).length} ${t('words', 'palabras')}${scriptMode === 'verbatim' ? (t(' · narrated word for word', ' · narradas palabra por palabra')) : ''} · ${formatLimitCounter(limit)}`
                 : <UiLabel>a single line is enough — or paste a full script</UiLabel>}
             </div>
             {limit.over && (
@@ -518,7 +518,7 @@ export default function StudioClient() {
             )}
           </div>
         </section>
-        <section className="composer-proposal-settings" aria-label={es ? 'Ajustes y generación' : 'Settings and generation'}>
+        <section className="composer-proposal-settings" aria-label={t('Settings and generation', 'Ajustes y generación')}>
 <div style={{ position: 'relative' }}>
             <button type="button" className="mdlbtn" onClick={() => setPickerOpen((o) => !o)}>
               <span className="lab" style={{ marginBottom: 0 }}><span className="n">2</span><UiLabel>Engine</UiLabel></span>
@@ -730,7 +730,7 @@ export default function StudioClient() {
               <div className="val" style={{ opacity: 0.75 }}>
                 <span><UiLabel>Your credits buy</UiLabel></span>
                 <b style={{ fontWeight: 600 }}>
-                  {Math.floor(balance / cost)} {Math.floor(balance / cost) === 1 ? (es ? 'vídeo' : 'film') : (es ? 'vídeos' : 'films')}<UiLabel> like this
+                  {Math.floor(balance / cost)} {Math.floor(balance / cost) === 1 ? (t('film', 'vídeo')) : (t('films', 'vídeos'))}<UiLabel> like this
                 </UiLabel></b>
               </div>
             )}
@@ -894,7 +894,9 @@ export default function StudioClient() {
             ))}
           </div>
       </details>
-      <style>{`
+      {/* Static, developer-authored CSS only: style is HTML raw text, so React's
+          escaped text children would disagree with the browser during hydration. */}
+      <style dangerouslySetInnerHTML={{ __html: `
 .composer-proposal .composer-proposal-grid{grid-template-columns:minmax(0,1fr)320px;gap:28px}
 .composer-proposal-idea{min-width:0;padding:22px;border:1px solid #292a31;border-radius:18px;background:#101014}
 .composer-proposal-settings{display:flex;flex-direction:column;gap:14px;min-width:0}
@@ -905,7 +907,7 @@ export default function StudioClient() {
 .composer-proposal .hint{line-height:1.6}.composer-proposal textarea{min-height:230px}
 .composer-proposal-how{margin-top:24px}.composer-proposal-how>summary{min-height:44px;align-content:center;cursor:pointer;color:#a1a1aa;font-size:13px}
 @media(max-width:900px){.composer-proposal .composer-proposal-grid{grid-template-columns:1fr;gap:18px}.composer-proposal-idea{padding:16px}.composer-proposal textarea{min-height:160px}}
-`}</style>
+` }} />
     </div>
   )
 }

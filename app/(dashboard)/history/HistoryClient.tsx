@@ -1,4 +1,5 @@
 'use client'
+import { UiLabel } from '@/components/InterfaceLanguage'
 
 // Push #323 - My Videos: show first frame via preload=metadata; no more black cards
 
@@ -330,6 +331,9 @@ export default function MyVideosClient({ videos: initialVideos, loadError = fals
   const [referralRewardCredits, setReferralRewardCredits] = useState<number | null>(null)
   const [referralInviteUrl, setReferralInviteUrl] = useState<string | null>(null)
   const [referralInviteCopied, setReferralInviteCopied] = useState(false)
+  // Mount secondary integrations on first expansion and keep them mounted.
+  // Closing native details hides them without re-emitting mount impressions.
+  const [sharingOptionsOpen, setSharingOptionsOpen] = useState(false)
   const sharePromptRef = useRef<HTMLElement | null>(null)
   const sharePromptTrackedKeyRef = useRef<string | null>(null)
   const referralMissionRef = useRef<HTMLElement | null>(null)
@@ -419,7 +423,7 @@ export default function MyVideosClient({ videos: initialVideos, loadError = fals
     }, { threshold: [0.5] })
     observer.observe(element)
     return () => observer.disconnect()
-  }, [latestVideo?.id, referralCode])
+  }, [latestVideo?.id, referralCode, sharingOptionsOpen])
 
   // KINEO-HISTORY-REFERRAL-MISSION-2026-08-28 — public /v links are disabled
   // for privacy containment. This is a separate acquisition action: it shares
@@ -447,7 +451,7 @@ export default function MyVideosClient({ videos: initialVideos, loadError = fals
     }, { threshold: [0.5] })
     observer.observe(element)
     return () => observer.disconnect()
-  }, [latestVideo, referralInviteUrl, referralRewardCredits])
+  }, [latestVideo, referralInviteUrl, referralRewardCredits, sharingOptionsOpen])
 
   useEffect(() => {
     if (subscriptionOfferTracked.current || subscriptionOfferEligible !== true || completedVideos.length < 1) return
@@ -945,18 +949,18 @@ export default function MyVideosClient({ videos: initialVideos, loadError = fals
       <div className="px-4 sm:px-6 py-7">
         <div role="alert" className="rounded-2xl p-8 sm:p-12 text-center mx-auto" style={{ maxWidth: 560, marginTop: 40, background: 'rgba(251,191,36,.06)', border: '1px solid rgba(251,191,36,.35)' }}>
           <div className="text-4xl mb-3">⚠️</div>
-          <h2 className="text-xl font-black mb-2" style={{ color: '#fbbf24' }}>We couldn’t load your videos right now</h2>
-          <p className="text-sm mb-6" style={{ color: 'var(--muted)' }}>
+          <h2 className="text-xl font-black mb-2" style={{ color: '#fbbf24' }}><UiLabel>We couldn’t load your videos right now</UiLabel></h2>
+          <p className="text-sm mb-6" style={{ color: 'var(--muted)' }}><UiLabel>
             Your videos and credits are safe — this is a temporary read hiccup, not a lost library.
-          </p>
+          </UiLabel></p>
           <button
             type="button"
             onClick={() => window.location.reload()}
             className="inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-black text-white"
             style={{ background: '#2997ff', boxShadow: '0 6px 28px rgba(41,151,255,.4)', border: 'none', cursor: 'pointer' }}
-          >
+          ><UiLabel>
             ↻ Try again
-          </button>
+          </UiLabel></button>
         </div>
       </div>
     )
@@ -971,18 +975,18 @@ export default function MyVideosClient({ videos: initialVideos, loadError = fals
             className="font-black uppercase tracking-[.18em] mb-2 flex items-center gap-2"
             style={{ fontSize: '0.65rem', color: '#2997ff' }}
           >
-            <span style={{ display: 'inline-block', width: 18, height: 1, background: '#2997ff', verticalAlign: 'middle' }} />
+            <span style={{ display: 'inline-block', width: 18, height: 1, background: '#2997ff', verticalAlign: 'middle' }} /><UiLabel>
             My Videos
-            <span style={{ display: 'inline-block', width: 18, height: 1, background: '#2997ff', verticalAlign: 'middle' }} />
+            </UiLabel><span style={{ display: 'inline-block', width: 18, height: 1, background: '#2997ff', verticalAlign: 'middle' }} />
           </div>
           <h1
             className="font-black tracking-tight"
             style={{ fontSize: 'clamp(1.55rem, 4vw, 2rem)', color: 'var(--text)', lineHeight: 1.1 }}
-          >
-            Your{' '}
-            <span style={{ background: 'linear-gradient(180deg,#fff 35%,#a1a1a6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+          ><UiLabel>
+            Your</UiLabel>{' '}
+            <span style={{ background: 'linear-gradient(180deg,#fff 35%,#a1a1a6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}><UiLabel>
               Videos
-            </span>
+            </UiLabel></span>
           </h1>
         </header>
         {/* #10 — a tela vazia e onde a promessa do #9 doia mais: quem chega
@@ -1006,17 +1010,17 @@ export default function MyVideosClient({ videos: initialVideos, loadError = fals
             <rect x="70" y="64" width="30" height="4" rx="2" fill="rgba(255,255,255,.16)" />
             <rect x="70" y="71" width="20" height="4" rx="2" fill="rgba(255,255,255,.09)" />
           </svg>
-          <h2 className="text-xl font-black mb-2" style={{ color: 'var(--text)' }}>No videos yet</h2>
-          <p className="text-sm mb-6" style={{ color: 'var(--muted)' }}>
+          <h2 className="text-xl font-black mb-2" style={{ color: 'var(--text)' }}><UiLabel>No videos yet</UiLabel></h2>
+          <p className="text-sm mb-6" style={{ color: 'var(--muted)' }}><UiLabel>
             Generate your first AI Short and it’ll appear here automatically.
-          </p>
+          </UiLabel></p>
           <Link
             href="/studio"
             className="inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-black text-white"
             style={{ background: '#2997ff', textDecoration: 'none', boxShadow: '0 6px 28px rgba(41,151,255,.4)' }}
-          >
+          ><UiLabel>
             ⚡ Generate Video
-          </Link>
+          </UiLabel></Link>
         </div>
       </div>
     )
@@ -1051,27 +1055,27 @@ export default function MyVideosClient({ videos: initialVideos, loadError = fals
             className="font-black uppercase tracking-[.18em] mb-2 flex items-center gap-2"
             style={{ fontSize: '0.65rem', color: '#2997ff' }}
           >
-            <span style={{ display: 'inline-block', width: 18, height: 1, background: '#2997ff', verticalAlign: 'middle' }} />
+            <span style={{ display: 'inline-block', width: 18, height: 1, background: '#2997ff', verticalAlign: 'middle' }} /><UiLabel>
             My Videos
-            <span style={{ display: 'inline-block', width: 18, height: 1, background: '#2997ff', verticalAlign: 'middle' }} />
+            </UiLabel><span style={{ display: 'inline-block', width: 18, height: 1, background: '#2997ff', verticalAlign: 'middle' }} />
           </div>
           <h1
             className="font-black tracking-tight"
             style={{ fontSize: 'clamp(1.55rem, 4vw, 2rem)', color: 'var(--text)', lineHeight: 1.1 }}
-          >
-            Your{' '}
-            <span style={{ background: 'linear-gradient(180deg,#fff 35%,#a1a1a6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+          ><UiLabel>
+            Your</UiLabel>{' '}
+            <span style={{ background: 'linear-gradient(180deg,#fff 35%,#a1a1a6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}><UiLabel>
               Videos
-            </span>
+            </UiLabel></span>
           </h1>
         </div>
         <Link
           href="/studio"
           className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-black text-white flex-shrink-0"
           style={{ background: '#2997ff', textDecoration: 'none', boxShadow: '0 4px 18px rgba(41,151,255,.35)' }}
-        >
+        ><UiLabel>
           ⚡ New Video
-        </Link>
+        </UiLabel></Link>
       </div>
 
       {/* #10 — antes de qualquer oferta: "o meu filme esta vivo?". Mesma
@@ -1129,13 +1133,13 @@ export default function MyVideosClient({ videos: initialVideos, loadError = fals
                 : 'Continue from your latest Short with a fresh hook, new facts and a new payoff. Review the brief and settings before rendering.'}
             </p>
             {milestoneMode === 'episode_primary' ? (
-              <p className="text-xs leading-relaxed mt-2" style={{ color: 'var(--muted)', marginBottom: 0 }}>
-                Prefer clean exports now? Starter includes {TIER_CREDITS.starter} credits each month for {STARTER_PRICE_USD}/month. Cancel anytime.
-              </p>
+              <p className="text-xs leading-relaxed mt-2" style={{ color: 'var(--muted)', marginBottom: 0 }}><UiLabel>
+                Prefer clean exports now? Starter includes </UiLabel>{TIER_CREDITS.starter}<UiLabel> credits each month for </UiLabel>{STARTER_PRICE_USD}<UiLabel>/month. Cancel anytime.
+              </UiLabel></p>
             ) : subscriptionIsPrimary ? (
-              <p className="text-xs leading-relaxed mt-2" style={{ color: 'var(--muted)', marginBottom: 0 }}>
+              <p className="text-xs leading-relaxed mt-2" style={{ color: 'var(--muted)', marginBottom: 0 }}><UiLabel>
                 Your existing files stay available. Starter applies to new exports after checkout.
-              </p>
+              </UiLabel></p>
             ) : cleanExportLocked === true ? (
               <p className="text-xs leading-relaxed mt-2" style={{ color: '#5cb3ff', marginBottom: 0 }}>
                 <FreeTierCopy legacy="Fast includes up to 3 watermarked previews per 24 hours. Download and share them free; Starter unlocks clean watermark-free exports." on="Free accounts include 1 watermarked Fast video per month. Download and share it free; Starter unlocks clean watermark-free exports." />
@@ -1220,164 +1224,14 @@ export default function MyVideosClient({ videos: initialVideos, loadError = fals
                   textDecoration: 'none',
                   boxShadow: 'none',
                 }}
-              >
+              ><UiLabel>
                 Build Next Episode First
-              </Link>
+              </UiLabel></Link>
             )}
           </div>
         </section>
       )}
 
-      {affiliateMomentumEligible ? (
-        <AffiliateMomentumCard completedVideoCount={completedVideos.length} />
-      ) : null}
-
-      {latestVideo && PUBLIC_VIDEO_SHARING_ENABLED && (
-        <section
-          ref={sharePromptRef}
-          aria-label="Share your latest Short for feedback"
-          className="rounded-2xl p-5 sm:p-6 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
-          style={{
-            background: 'linear-gradient(135deg, rgba(139,92,246,.14), rgba(41,151,255,.05))',
-            border: '1px solid rgba(167,139,250,.42)',
-            boxShadow: '0 10px 32px rgba(139,92,246,.09)',
-          }}
-        >
-          <div style={{ minWidth: 0 }}>
-            <div
-              className="font-black uppercase tracking-[.16em] mb-1.5"
-              style={{ fontSize: '0.62rem', color: '#c4b5fd' }}
-            >
-              Free distribution · latest Short
-            </div>
-            <h2 className="font-black tracking-tight mb-1.5" style={{ color: 'var(--text)', fontSize: '1.05rem' }}>
-              Send it to one person for feedback
-            </h2>
-            <p className="text-xs leading-relaxed" style={{ color: 'var(--muted2)', margin: 0, maxWidth: 620 }}>
-              Copy a public watch page for your finished video. Your friend can watch it without logging in, then use “Make one like this” if the idea inspires them.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2 w-full sm:w-auto flex-shrink-0">
-            <button
-              type="button"
-              onClick={() => handleShare(latestVideo, 'history_spotlight')}
-              className="flex-1 sm:flex-none rounded-xl px-5 py-3 text-sm font-black text-white"
-              style={{
-                minWidth: 150,
-                background: 'linear-gradient(135deg, #7c3aed, #2997ff)',
-                border: 'none',
-                cursor: 'pointer',
-                boxShadow: '0 6px 22px rgba(124,58,237,.28)',
-              }}
-            >
-              {sharedId === latestVideo.id ? '✓ Watch page copied' : 'Copy watch page →'}
-            </button>
-            <button
-              type="button"
-              onClick={() => handleShareChannel(latestVideo, 'whatsapp')}
-              className="rounded-xl px-4 py-3 text-sm font-black"
-              style={{
-                background: 'rgba(37,211,102,.11)',
-                border: '1px solid rgba(37,211,102,.38)',
-                color: '#25D366',
-                cursor: 'pointer',
-              }}
-            >
-              WhatsApp
-            </button>
-            <a
-              href={publicSharePath(latestVideo) ?? '#'}
-              target="_blank"
-              rel="noreferrer"
-              className="rounded-xl px-4 py-3 text-sm font-black"
-              style={{
-                background: 'rgba(255,255,255,.06)',
-                border: '1px solid var(--border)',
-                color: 'var(--text)',
-                textDecoration: 'none',
-              }}
-            >
-              Preview
-            </a>
-          </div>
-        </section>
-      )}
-
-      {latestVideo && !PUBLIC_VIDEO_SHARING_ENABLED && historyReferralCopy && referralInviteUrl ? (
-        <section
-          ref={referralMissionRef}
-          aria-label="Invite one creator while keeping your video private"
-          className="rounded-2xl p-5 sm:p-6 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
-          style={{
-            background: 'linear-gradient(135deg, rgba(37,211,102,.15), rgba(41,151,255,.08))',
-            border: '1px solid rgba(37,211,102,.46)',
-            boxShadow: '0 10px 32px rgba(37,211,102,.10)',
-          }}
-        >
-          <div style={{ minWidth: 0 }}>
-            <div className="font-black uppercase tracking-[.16em] mb-1.5" style={{ fontSize: '0.62rem', color: '#5cb3ff' }}>
-              {historyReferralCopy.eyebrow}
-            </div>
-            <h2 className="font-black tracking-tight mb-1.5" style={{ color: 'var(--text)', fontSize: '1.05rem' }}>
-              {historyReferralCopy.headline}
-            </h2>
-            <p className="text-xs leading-relaxed" style={{ color: 'var(--muted2)', margin: 0, maxWidth: 680 }}>
-              {historyReferralCopy.description}
-            </p>
-            <p className="text-xs leading-relaxed mt-2" style={{ color: '#8ecbff', marginBottom: 0, maxWidth: 680 }}>
-              🔒 {historyReferralCopy.privacyNote}
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2 w-full sm:w-auto flex-shrink-0">
-            <button
-              type="button"
-              onClick={handleReferralInviteWhatsApp}
-              className="flex-1 sm:flex-none rounded-xl px-5 py-3 text-sm font-black text-white"
-              style={{
-                minWidth: 150,
-                background: 'linear-gradient(135deg, #25D366, #128C4A)',
-                border: '1px solid rgba(37,211,102,.45)',
-                cursor: 'pointer',
-                boxShadow: '0 8px 24px rgba(37,211,102,.24)',
-              }}
-            >
-              {historyReferralCopy.primaryAction}
-            </button>
-            <button
-              type="button"
-              onClick={handleReferralInviteCopy}
-              className="flex-1 sm:flex-none rounded-xl px-4 py-3 text-sm font-black"
-              style={{
-                background: 'rgba(255,255,255,.06)',
-                border: '1px solid var(--border)',
-                color: 'var(--text)',
-                cursor: 'pointer',
-              }}
-            >
-              {referralInviteCopied ? '✓ Invite link copied' : 'Copy invite link'}
-            </button>
-          </div>
-        </section>
-      ) : latestVideo && !PUBLIC_VIDEO_SHARING_ENABLED ? (
-        <section
-          aria-label="Private sharing notice"
-          className="rounded-2xl p-5 sm:p-6 mb-6"
-          style={{
-            background: 'rgba(41,151,255,.06)',
-            border: '1px solid rgba(41,151,255,.24)',
-          }}
-        >
-          <div className="font-black uppercase tracking-[.16em] mb-1.5" style={{ fontSize: '0.62rem', color: '#7cc0ff' }}>
-            Private by default
-          </div>
-          <h2 className="font-black tracking-tight mb-1.5" style={{ color: 'var(--text)', fontSize: '1.05rem' }}>
-            Public watch links are temporarily paused
-          </h2>
-          <p className="text-xs leading-relaxed" style={{ color: 'var(--muted2)', margin: 0, maxWidth: 680 }}>
-            Your video stays in your account. Download the MP4 if you want to send it directly; Kineo will not publish a public page without an explicit visibility choice.
-          </p>
-        </section>
-      ) : null}
 
       {/* Stats */}
       <div
@@ -1422,17 +1276,17 @@ export default function MyVideosClient({ videos: initialVideos, loadError = fals
 
       {query.trim() && visibleVideos.length === 0 && (
         <div className="rounded-2xl p-8 text-center" style={{ background: '#161618', border: '1px solid rgba(255,255,255,0.07)' }}>
-          <p className="text-sm" style={{ color: 'var(--muted)', margin: 0 }}>
-            No videos match &ldquo;{query.trim()}&rdquo;.
-          </p>
+          <p className="text-sm" style={{ color: 'var(--muted)', margin: 0 }}><UiLabel>
+            No videos match &ldquo;</UiLabel>{query.trim()}<UiLabel>&rdquo;.
+          </UiLabel></p>
           <button
             type="button"
             onClick={() => setQuery('')}
             className="mt-4 rounded-xl px-4 py-2 text-sm font-bold"
             style={{ background: 'rgba(41,151,255,.12)', border: '1px solid rgba(41,151,255,.4)', color: '#2997ff', cursor: 'pointer' }}
-          >
+          ><UiLabel>
             Clear search
-          </button>
+          </UiLabel></button>
         </div>
       )}
 
@@ -1546,9 +1400,9 @@ export default function MyVideosClient({ videos: initialVideos, loadError = fals
                         fontWeight: 800,
                         textDecoration: 'none',
                       }}
-                    >
+                    ><UiLabel>
                       Try again →
-                    </Link>
+                    </UiLabel></Link>
                   )}
                 </div>
               </div>
@@ -1592,18 +1446,18 @@ export default function MyVideosClient({ videos: initialVideos, loadError = fals
                       }}
                     >
                       <span style={{ fontSize: '1.5rem' }}>⚠️</span>
-                      <span style={{ fontSize: '0.75rem', color: '#f87171', fontWeight: 700, textAlign: 'center' }}>
+                      <span style={{ fontSize: '0.75rem', color: '#f87171', fontWeight: 700, textAlign: 'center' }}><UiLabel>
                         Video unavailable
-                      </span>
+                      </UiLabel></span>
                       <a
                         href={video.video_url}
                         target="_blank"
                         rel="noopener noreferrer"
                         download
                         style={{ fontSize: '0.7rem', color: '#2997ff', textDecoration: 'underline' }}
-                      >
+                      ><UiLabel>
                         ⬇ Download
-                      </a>
+                      </UiLabel></a>
                     </div>
                   ) : (
                     <div
@@ -1640,9 +1494,9 @@ export default function MyVideosClient({ videos: initialVideos, loadError = fals
                             border: '1px solid rgba(52,211,153,0.45)',
                             color: '#34d399',
                           }}
-                        >
+                        ><UiLabel>
                           ✨ HD
-                        </span>
+                        </UiLabel></span>
                       )}
                       {/* Dark overlay so play button is always visible */}
                       <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.3)', pointerEvents: 'none' }} />
@@ -1814,9 +1668,9 @@ export default function MyVideosClient({ videos: initialVideos, loadError = fals
                         padding: '5px 4px', borderRadius: 6, background: 'rgba(255,255,255,.05)',
                         border: '1px solid var(--border)', color: 'var(--muted2)', fontSize: '0.6rem', fontWeight: 700,
                       }}
-                    >
+                    ><UiLabel>
                       Private
-                    </span>
+                    </UiLabel></span>
                   )}
 
                   <a
@@ -1838,9 +1692,9 @@ export default function MyVideosClient({ videos: initialVideos, loadError = fals
                       fontWeight: 700,
                       textDecoration: 'none',
                     }}
-                  >
+                  ><UiLabel>
                     ▶ YT
-                  </a>
+                  </UiLabel></a>
 
                   {/* Push #421 — YouTube summary (title + description + hashtags) */}
                   <button
@@ -1896,14 +1750,14 @@ export default function MyVideosClient({ videos: initialVideos, loadError = fals
                     fontWeight: 800,
                     textDecoration: 'none',
                   }}
-                >
+                ><UiLabel>
                   Next episode →
-                </Link>
+                </UiLabel></Link>
 
                 {isWatermarkedFastAsset(video) && (
-                  <p style={{ margin: '5px 0 0', color: 'var(--muted2)', fontSize: '0.54rem', textAlign: 'center', lineHeight: 1.25 }}>
+                  <p style={{ margin: '5px 0 0', color: 'var(--muted2)', fontSize: '0.54rem', textAlign: 'center', lineHeight: 1.25 }}><UiLabel>
                     Free MP4 includes the Kineo watermark
-                  </p>
+                  </UiLabel></p>
                 )}
 
                 {/* Push #421 — summary fetch error */}
@@ -1999,6 +1853,169 @@ export default function MyVideosClient({ videos: initialVideos, loadError = fals
         })}
       </div>
 
+
+      {/* Secondary actions never push owned videos below promotional cards. */}
+      {latestVideo && (
+        <details className="mt-6 rounded-2xl border border-white/10 p-4"
+          onToggle={event => { if (event.currentTarget.open) setSharingOptionsOpen(true) }}>
+          <summary className="cursor-pointer text-sm font-semibold py-2">
+            <UiLabel>Sharing & creator options</UiLabel>
+          </summary>
+          {sharingOptionsOpen && <div className="pt-4">
+      {affiliateMomentumEligible ? (
+        <AffiliateMomentumCard completedVideoCount={completedVideos.length} />
+      ) : null}
+
+      {latestVideo && PUBLIC_VIDEO_SHARING_ENABLED && (
+        <section
+          ref={sharePromptRef}
+          aria-label="Share your latest Short for feedback"
+          className="rounded-2xl p-5 sm:p-6 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+          style={{
+            background: 'linear-gradient(135deg, rgba(139,92,246,.14), rgba(41,151,255,.05))',
+            border: '1px solid rgba(167,139,250,.42)',
+            boxShadow: '0 10px 32px rgba(139,92,246,.09)',
+          }}
+        >
+          <div style={{ minWidth: 0 }}>
+            <div
+              className="font-black uppercase tracking-[.16em] mb-1.5"
+              style={{ fontSize: '0.62rem', color: '#c4b5fd' }}
+            ><UiLabel>
+              Free distribution · latest Short
+            </UiLabel></div>
+            <h2 className="font-black tracking-tight mb-1.5" style={{ color: 'var(--text)', fontSize: '1.05rem' }}><UiLabel>
+              Send it to one person for feedback
+            </UiLabel></h2>
+            <p className="text-xs leading-relaxed" style={{ color: 'var(--muted2)', margin: 0, maxWidth: 620 }}><UiLabel>
+              Copy a public watch page for your finished video. Your friend can watch it without logging in, then use “Make one like this” if the idea inspires them.
+            </UiLabel></p>
+          </div>
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => handleShare(latestVideo, 'history_spotlight')}
+              className="flex-1 sm:flex-none rounded-xl px-5 py-3 text-sm font-black text-white"
+              style={{
+                minWidth: 150,
+                background: 'linear-gradient(135deg, #7c3aed, #2997ff)',
+                border: 'none',
+                cursor: 'pointer',
+                boxShadow: '0 6px 22px rgba(124,58,237,.28)',
+              }}
+            >
+              {sharedId === latestVideo.id ? '✓ Watch page copied' : 'Copy watch page →'}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleShareChannel(latestVideo, 'whatsapp')}
+              className="rounded-xl px-4 py-3 text-sm font-black"
+              style={{
+                background: 'rgba(37,211,102,.11)',
+                border: '1px solid rgba(37,211,102,.38)',
+                color: '#25D366',
+                cursor: 'pointer',
+              }}
+            >
+              WhatsApp
+            </button>
+            <a
+              href={publicSharePath(latestVideo) ?? '#'}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-xl px-4 py-3 text-sm font-black"
+              style={{
+                background: 'rgba(255,255,255,.06)',
+                border: '1px solid var(--border)',
+                color: 'var(--text)',
+                textDecoration: 'none',
+              }}
+            ><UiLabel>
+              Preview
+            </UiLabel></a>
+          </div>
+        </section>
+      )}
+
+      {latestVideo && !PUBLIC_VIDEO_SHARING_ENABLED && historyReferralCopy && referralInviteUrl ? (
+        <section
+          ref={referralMissionRef}
+          aria-label="Invite one creator while keeping your video private"
+          className="rounded-2xl p-5 sm:p-6 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+          style={{
+            background: 'linear-gradient(135deg, rgba(37,211,102,.15), rgba(41,151,255,.08))',
+            border: '1px solid rgba(37,211,102,.46)',
+            boxShadow: '0 10px 32px rgba(37,211,102,.10)',
+          }}
+        >
+          <div style={{ minWidth: 0 }}>
+            <div className="font-black uppercase tracking-[.16em] mb-1.5" style={{ fontSize: '0.62rem', color: '#5cb3ff' }}>
+              {historyReferralCopy.eyebrow}
+            </div>
+            <h2 className="font-black tracking-tight mb-1.5" style={{ color: 'var(--text)', fontSize: '1.05rem' }}>
+              {historyReferralCopy.headline}
+            </h2>
+            <p className="text-xs leading-relaxed" style={{ color: 'var(--muted2)', margin: 0, maxWidth: 680 }}>
+              {historyReferralCopy.description}
+            </p>
+            <p className="text-xs leading-relaxed mt-2" style={{ color: '#8ecbff', marginBottom: 0, maxWidth: 680 }}>
+              🔒 {historyReferralCopy.privacyNote}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto flex-shrink-0">
+            <button
+              type="button"
+              onClick={handleReferralInviteWhatsApp}
+              className="flex-1 sm:flex-none rounded-xl px-5 py-3 text-sm font-black text-white"
+              style={{
+                minWidth: 150,
+                background: 'linear-gradient(135deg, #25D366, #128C4A)',
+                border: '1px solid rgba(37,211,102,.45)',
+                cursor: 'pointer',
+                boxShadow: '0 8px 24px rgba(37,211,102,.24)',
+              }}
+            >
+              {historyReferralCopy.primaryAction}
+            </button>
+            <button
+              type="button"
+              onClick={handleReferralInviteCopy}
+              className="flex-1 sm:flex-none rounded-xl px-4 py-3 text-sm font-black"
+              style={{
+                background: 'rgba(255,255,255,.06)',
+                border: '1px solid var(--border)',
+                color: 'var(--text)',
+                cursor: 'pointer',
+              }}
+            >
+              {referralInviteCopied ? '✓ Invite link copied' : 'Copy invite link'}
+            </button>
+          </div>
+        </section>
+      ) : latestVideo && !PUBLIC_VIDEO_SHARING_ENABLED ? (
+        <section
+          aria-label="Private sharing notice"
+          className="rounded-2xl p-5 sm:p-6 mb-6"
+          style={{
+            background: 'rgba(41,151,255,.06)',
+            border: '1px solid rgba(41,151,255,.24)',
+          }}
+        >
+          <div className="font-black uppercase tracking-[.16em] mb-1.5" style={{ fontSize: '0.62rem', color: '#7cc0ff' }}><UiLabel>
+            Private by default
+          </UiLabel></div>
+          <h2 className="font-black tracking-tight mb-1.5" style={{ color: 'var(--text)', fontSize: '1.05rem' }}><UiLabel>
+            Public watch links are temporarily paused
+          </UiLabel></h2>
+          <p className="text-xs leading-relaxed" style={{ color: 'var(--muted2)', margin: 0, maxWidth: 680 }}><UiLabel>
+            Your video stays in your account. Download the MP4 if you want to send it directly; Kineo will not publish a public page without an explicit visibility choice.
+          </UiLabel></p>
+        </section>
+      ) : null}
+          </div>}
+        </details>
+      )}
+
       {/* Push #098 — big-player overlay (the large view). Clicking a card opens
           the Short here with a download button that always saves the correctly
           named MP4. controlsList="nodownload" removes the ⋮ menu's raw download. */}
@@ -2046,14 +2063,14 @@ export default function MyVideosClient({ videos: initialVideos, loadError = fals
                   style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, width: '100%', padding: '13px 10px', borderRadius: 14, cursor: checkout.pending ? 'wait' : 'pointer', opacity: checkout.pending ? 0.7 : 1, background: 'linear-gradient(135deg, #2997ff, #1d6fe0)', border: '1px solid transparent', color: '#fff', fontWeight: 800, fontSize: '0.9rem', boxShadow: '0 8px 28px rgba(41,151,255,0.35)' }}
                 >
                   {checkout.pending === 'history_lightbox' ? (
-                    <span>Loading…</span>
+                    <span><UiLabel>Loading…</UiLabel></span>
                   ) : (
                     <>
-                      <span>Unlock clean exports — Start Starter for {STARTER_PRICE_USD}</span>
+                      <span><UiLabel>Unlock clean exports — Start Starter for </UiLabel>{STARTER_PRICE_USD}</span>
                       {/* KINEO-PRICING-V6-2026-08-19 — "then $X/month" insinuava
                           um preço de entrada diferente do de renovação. Não há
                           intro em nenhum plano: é o MESMO valor todo mês. */}
-                      <span style={{ fontSize: '0.65rem', fontWeight: 700, opacity: 0.9 }}>For new videos · {STARTER_PRICE_USD}/month · cancel anytime</span>
+                      <span style={{ fontSize: '0.65rem', fontWeight: 700, opacity: 0.9 }}><UiLabel>For new videos · </UiLabel>{STARTER_PRICE_USD}<UiLabel>/month · cancel anytime</UiLabel></span>
                     </>
                   )}
                 </button>
@@ -2069,23 +2086,23 @@ export default function MyVideosClient({ videos: initialVideos, loadError = fals
                   campo "cola o link" na tela de sucesso do /generate) e à
                   página pública /wall. Sem estado novo, sem redesenho, sem
                   encostar em paywall ou créditos. */}
-              <p style={{ margin: 0, textAlign: 'center', fontSize: '0.75rem', color: 'var(--muted)', lineHeight: 1.5 }}>
-                Published it?{' '}
+              <p style={{ margin: 0, textAlign: 'center', fontSize: '0.75rem', color: 'var(--muted)', lineHeight: 1.5 }}><UiLabel>
+                Published it?</UiLabel>{' '}
                 <a
                   href="/wall"
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{ color: '#2997ff', textDecoration: 'none', fontWeight: 700 }}
-                >
+                ><UiLabel>
                   Paste the link and get on the wall →
-                </a>
+                </UiLabel></a>
               </p>
               <button
                 onClick={() => setLightbox(null)}
                 style={{ width: '100%', padding: '10px', borderRadius: 12, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--muted)', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer' }}
-              >
+              ><UiLabel>
                 Close
-              </button>
+              </UiLabel></button>
             </div>
           </div>
         )

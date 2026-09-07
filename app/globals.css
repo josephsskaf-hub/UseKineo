@@ -17,6 +17,15 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Manrope remains the Latin face. Devanagari is a self-hosted glyph fallback,
+   activated only for an explicit Hindi interface preference. */
+html[lang='hi'] {
+  --font-sans: var(--font-manrope), var(--font-devanagari), Arial, sans-serif;
+  --font-inter: var(--font-manrope), var(--font-devanagari);
+  --font-space-grotesk: var(--font-manrope), var(--font-devanagari);
+}
+html[lang='hi'] :is(h1,h2,h3,button,label,summary) { letter-spacing: normal; }
+
 /* MONO PREMIUM (12/06) — high-end clean: neutral graphite-black surfaces,
    hairline gray borders, generous space, and ONE accent (emerald) used
    sparingly for CTAs, live numbers and active states. Cyan as a quiet

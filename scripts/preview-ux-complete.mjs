@@ -18,21 +18,31 @@ export function renderPage(entry, before = false, fixture = {}, props = {}, comp
   const cache = new Map()
   const sf = ts.createSourceFile(entry,source(entry,before,comparisonBase),99,true,4)
   const names = []
+  const stateCalls = []
   function walk(n) {
-    if (ts.isVariableDeclaration(n) && ts.isArrayBindingPattern(n.name) && n.initializer && ts.isCallExpression(n.initializer) && n.initializer.expression.getText(sf)==='useState') names.push(n.name.elements[0].getText(sf))
+    if (ts.isVariableDeclaration(n) && ts.isArrayBindingPattern(n.name) && n.initializer && ts.isCallExpression(n.initializer) && n.initializer.expression.getText(sf)==='useState') {
+      const name=n.name.elements[0].getText(sf)
+      names.push(name)
+      stateCalls.push([n.initializer.getStart(sf),n.initializer.end,`__previewState(${JSON.stringify(name)}, ${n.initializer.arguments[0]?.getText(sf)??'undefined'})`])
+    }
     ts.forEachChild(n,walk)
   }
-  walk(sf)
+  // Only the page's own state receives fixtures. Child components and imported
+  // hooks use real SSR defaults; their call order must not shift page fixtures.
+  const component=sf.statements.find(n=>ts.isFunctionDeclaration(n)&&n.modifiers?.some(m=>m.kind===ts.SyntaxKind.DefaultKeyword))
+  if(component)walk(component)
   let index=0
-  const react={...React,useContext:context=>fixture.interfaceLanguage ? {language:fixture.interfaceLanguage,choose:()=>{throw Error('Language mutation in offline render')}} : React.useContext(context),useEffect:()=>{},useCallback:fn=>fn,useMemo:fn=>fn(),useRef:current=>({current}),useState:value=>{
-    const name=names[index++]
-    if(!name)throw Error('Unmapped state in '+entry)
+  const previewState=(name,value)=>{
+    if(!names.includes(name))throw Error('Unmapped state in '+entry)
+    index++
     return [Object.hasOwn(fixture,name)?fixture[name]:typeof value==='function'?value():value,()=>{throw Error('State mutation in offline render')}]
-  }}
+  }
+  const react={...React,useContext:context=>fixture.interfaceLanguage ? {language:fixture.interfaceLanguage,choose:()=>{throw Error('Language mutation in offline render')}} : React.useContext(context),useEffect:()=>{},useCallback:fn=>fn,useMemo:fn=>fn(),useRef:current=>({current})}
   function load(file) {
     if(cache.has(file))return cache.get(file)
     const historical=before && [entry,'components/studioKit.tsx',...(comparisonBase!==BASE?['lib/ui/homePresentation.ts']:[])].includes(file)
-    const code=source(file,historical,comparisonBase)
+    let code=source(file,historical,comparisonBase)
+    if(file===entry)for(const [start,end,text] of [...stateCalls].sort((a,b)=>b[0]-a[0]))code=code.slice(0,start)+text+code.slice(end)
     const box={exports:{}}; cache.set(file,box.exports)
     const shim=id=>{
       if(file==='app/tools/editor/VideoEditor.tsx' && id==='./editor.css')return {}
@@ -62,7 +72,7 @@ export function renderPage(entry, before = false, fixture = {}, props = {}, comp
       throw Error('Missing '+base)
     }
     const js=ts.transpileModule(code,{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.React,target:ts.ScriptTarget.ES2020,esModuleInterop:true}}).outputText
-    const context={module:box,exports:box.exports,require:shim,React:react,process:{env:{}},URL,URLSearchParams,console,fetch:()=>{throw Error('Network forbidden')}}
+    const context={module:box,exports:box.exports,require:shim,React:react,__previewState:previewState,process:{env:{}},URL,URLSearchParams,console,fetch:()=>{throw Error('Network forbidden')}}
     vm.runInNewContext(js,context,{filename:file})
     cache.set(file,box.exports);return box.exports
   }

@@ -5,7 +5,7 @@
 // (aba Library) vestido no Studio Kit: contadores no topo (primeiro passo do
 // medidor de storage do pricing V4), abas Videos/Images/Audio, grades com
 // play/download, links pros ambientes de criacao quando a aba esta vazia.
-import { UiLabel, useInterfaceLanguage } from '@/components/InterfaceLanguage'
+import { UiLabel, useUiCopy } from '@/components/InterfaceLanguage'
 import LibraryRecentProjectCard from '@/components/LibraryRecentProject'
 import { selectRecentLibraryProject, type RecentLibraryProject } from '@/lib/ui/recentLibraryProject'
 import { useCallback, useEffect, useState } from 'react'
@@ -23,7 +23,7 @@ type Img = { id: string; url: string; upscaled_url?: string | null; model?: stri
 type Aud = { id: string; url: string; model?: string; voice?: string | null; text?: string | null }
 
 export default function LibraryClient() {
-  const es = useInterfaceLanguage() === 'es'
+  const t = useUiCopy()
   const [recentVideo, setRecentVideo] = useState<RecentLibraryProject | null>(null)
   // sprint-retencao #15 — `library_video_card` tinha clique e zero impressao.
   const { registrarPorta } = useSeriesDoorSeen()
@@ -114,7 +114,7 @@ export default function LibraryClient() {
         Everything you’ve created, in one place.
         </UiLabel>{usage && (
           <span style={{ marginLeft: 10, fontSize: 12, color: '#7cc0ff', fontWeight: 700 }}>
-            {usage.limit ? (es ? `${usage.total} de ${usage.limit} proyectos` : `${usage.total} of ${usage.limit} projects`) : (es ? `${usage.total} proyectos · sin límite` : `${usage.total} projects · unlimited`)} · {usage.retention}
+            {usage.limit ? (t(`${usage.total} of ${usage.limit} projects`, `${usage.total} de ${usage.limit} proyectos`)) : (t(`${usage.total} projects · unlimited`, `${usage.total} proyectos · sin límite`))} · {usage.retention}
           </span>
         )}
       </p>
@@ -163,8 +163,8 @@ export default function LibraryClient() {
               </span>
               <span style={{ fontSize: 12, color: 'var(--txt2,#9aa0a6)', fontWeight: 700 }}>
                 {vids.length >= 4
-                  ? (es ? `${vids.length} Shorts creados` : `${vids.length} Shorts made`)
-                  : (es ? `${vids.length} de tus primeros 4 Shorts` : `${vids.length} of your first 4 Shorts`)}
+                  ? (t(`${vids.length} Shorts made`, `${vids.length} Shorts creados`))
+                  : (t(`${vids.length} of your first 4 Shorts`, `${vids.length} de tus primeros 4 Shorts`))}
               </span>
             </span>
           )}
@@ -187,8 +187,8 @@ export default function LibraryClient() {
             type="search"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder={es ? (tab === 'videos' ? 'Busca tus vídeos…' : tab === 'images' ? 'Busca tus imágenes…' : 'Busca tus audios…') : (tab === 'videos' ? 'Search your videos…' : tab === 'images' ? 'Search your images…' : 'Search your audio…')}
-            aria-label={es ? 'Buscar en tu biblioteca' : (tab === 'videos' ? 'Search your videos by title' : tab === 'images' ? 'Search your images by engine' : 'Search your audio by text or voice')}
+            placeholder={t((tab === 'videos' ? 'Search your videos…' : tab === 'images' ? 'Search your images…' : 'Search your audio…'), (tab === 'videos' ? 'Busca tus vídeos…' : tab === 'images' ? 'Busca tus imágenes…' : 'Busca tus audios…'))}
+            aria-label={t((tab === 'videos' ? 'Search your videos by title' : tab === 'images' ? 'Search your images by engine' : 'Search your audio by text or voice'), 'Buscar en tu biblioteca')}
             style={{ width: '100%', borderRadius: 12, background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.1)', color: '#f5f5f7', fontSize: 16, padding: '11px 14px 11px 38px', outline: 'none', boxSizing: 'border-box' }}
           />
         </div>
@@ -215,7 +215,7 @@ export default function LibraryClient() {
 
       {loaded && tab === 'videos' && (
         vids.length === 0 ? (
-          loadFailed ? null : recentVideo ? <p className="sub">{es ? 'Todavía no hay vídeos reproducibles en tu biblioteca. Consulta el estado de tu último proyecto arriba.' : 'No playable videos in your library yet. Check your latest project above.'}</p> : <p className="sub"><UiLabel>No videos yet — </UiLabel><Link href="/studio" style={{ color: '#2997ff' }}><UiLabel>open the Studio</UiLabel></Link><UiLabel> and make your first film.</UiLabel></p>
+          loadFailed ? null : recentVideo ? <p className="sub">{t('No playable videos in your library yet. Check your latest project above.', 'Todavía no hay vídeos reproducibles en tu biblioteca. Consulta el estado de tu último proyecto arriba.')}</p> : <p className="sub"><UiLabel>No videos yet — </UiLabel><Link href="/studio" style={{ color: '#2997ff' }}><UiLabel>open the Studio</UiLabel></Link><UiLabel> and make your first film.</UiLabel></p>
         ) : fVids.length === 0 ? (
           <div className="card" style={{ padding: 24, textAlign: 'center' }}>
             <p className="sub" style={{ marginBottom: 14 }}><UiLabel>No videos match &ldquo;</UiLabel>{q.trim()}&rdquo;.</p>

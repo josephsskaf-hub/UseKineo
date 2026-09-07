@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import Script from 'next/script'
-import { Manrope } from 'next/font/google'
+import { Manrope, Noto_Sans_Devanagari } from 'next/font/google'
 import StructuredData from '@/components/StructuredData'
 import SourceCapture from '@/components/SourceCapture'
 import CheckoutResumeBanner from '@/components/CheckoutResumeBanner'
@@ -30,6 +30,14 @@ const manrope = Manrope({
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-manrope',
+})
+// Script coverage for the explicitly selected Hindi UI. No font request to Google
+// from visitors and no eager preload for English/Spanish visits.
+const devanagari = Noto_Sans_Devanagari({
+  subsets: ['devanagari'],
+  display: 'swap',
+  preload: false,
+  variable: '--font-devanagari',
 })
 
 // Push #117 — explicit viewport so iOS Safari renders pages at the
@@ -155,7 +163,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={manrope.variable}>
+    <html lang="en" className={`${manrope.variable} ${devanagari.variable}`}>
       <head>
         <link
           rel="alternate"

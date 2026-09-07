@@ -6,8 +6,8 @@ import { buildStudioSeriesReviewHref } from '@/lib/navigation/studioSeriesReview
 import { trackEvent } from '@/lib/analytics'
 
 export default function LibraryRecentProjectCard({video}: {video: RecentLibraryProject}) {
-  const es = useInterfaceLanguage() === 'es', state = recentProjectState(video)
-  const labels = es ? {recent:'Tu proyecto más reciente',ready:'Listo para revisar',processing:'Consulta el estado de la generación',failed:'Este proyecto necesita revisión',open:'Abrir vídeo',status:'Ver estado',review:'Revisar detalles',next:'Crear el siguiente episodio',untitled:'Vídeo sin título'} : {recent:'Your most recent project',ready:'Ready to review',processing:'Check the generation status',failed:'This project needs a review',open:'Open video',status:'View status',review:'Review details',next:'Create next episode',untitled:'Untitled video'}
+  const language = useInterfaceLanguage(), state = recentProjectState(video)
+  const labels = language === 'hi' ? {recent:'आपका सबसे हाल का प्रोजेक्ट',ready:'समीक्षा के लिए तैयार',processing:'वीडियो बनने की स्थिति देखें',failed:'इस प्रोजेक्ट की समीक्षा ज़रूरी है',open:'वीडियो खोलें',status:'स्थिति देखें',review:'विवरण देखें',next:'अगला एपिसोड बनाएँ',untitled:'बिना शीर्षक का वीडियो'} : language === 'es' ? {recent:'Tu proyecto más reciente',ready:'Listo para revisar',processing:'Consulta el estado de la generación',failed:'Este proyecto necesita revisión',open:'Abrir vídeo',status:'Ver estado',review:'Revisar detalles',next:'Crear el siguiente episodio',untitled:'Vídeo sin título'} : {recent:'Your most recent project',ready:'Ready to review',processing:'Check the generation status',failed:'This project needs a review',open:'Open video',status:'View status',review:'Review details',next:'Create next episode',untitled:'Untitled video'}
   return <section className="card" aria-label={labels.recent} style={{padding:20,marginBottom:20,borderColor:'#35526e'}}>
     <p style={{fontSize:12,color:'#9baec4',margin:'0 0 8px'}}>{labels.recent}</p>
     <h2 style={{fontSize:20,lineHeight:1.35,fontWeight:500,margin:'0 0 8px',overflowWrap:'anywhere'}}>{video.title || labels.untitled}</h2>

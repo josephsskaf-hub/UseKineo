@@ -226,7 +226,8 @@ export default function MobileNav({ isLoggedIn = true }: { isLoggedIn?: boolean 
         {primaryLink('/pricing')}
         {disclosure(groups[1])}
       </div>
-      <style>{`
+      {/* Static CSS, never user input. Preserve raw-text selectors in SSR. */}
+      <style dangerouslySetInnerHTML={{ __html: `
         .kineo-mobile-nav{background:#000;border-top:1px solid #2a2a2d;padding-bottom:max(env(safe-area-inset-bottom),6px)}
         /* Open navigation must clear the install (70) and push (69) banners.
            Closed navigation keeps its existing layer; dialogs stay above it. */
@@ -245,7 +246,7 @@ export default function MobileNav({ isLoggedIn = true }: { isLoggedIn?: boolean 
         .kineo-mobile-sheet a{display:flex;align-items:center;justify-content:space-between;min-height:44px;padding:8px 12px;color:#d4d4d8;text-decoration:none;font-size:14px;border-radius:8px}
         .kineo-mobile-sheet a[aria-current],.kineo-mobile-sheet a:hover{background:#1f1f24;color:#fff}
         .kineo-mobile-nav a:focus-visible,.kineo-mobile-nav summary:focus-visible,.kineo-mobile-nav button:focus-visible{outline:2px solid #2997ff;outline-offset:-3px;border-radius:8px}
-      `}</style>
+      ` }} />
     </nav>
   )
 }
