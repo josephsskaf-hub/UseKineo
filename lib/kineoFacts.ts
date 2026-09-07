@@ -58,6 +58,23 @@ import {
 // pacote de publicação existiam no produto e em NENHUMA superfície que um motor
 // de resposta lê. O número de episódios vem de lib/temporada.ts, não daqui.
 import { AFTER_THE_FILM_FACT, type AfterTheFilmFact } from './growth/afterTheFilmFacts'
+// KINEO-ASSISTANT-LINK-2026-09-06 — o link GET que qualquer assistente escreve.
+// TODO valor (caminho, réguas, motores, formatos, teto, TTL) vem de
+// lib/gptHandoff.ts, a mesma fonte que a rota /make VALIDA. Nada digitado aqui:
+// scripts/test-assistant-deep-link.mjs reprova cópia local.
+import {
+  ASPECTS,
+  ASSISTANT_LINK_PATH,
+  DEFAULT_ASPECT,
+  DEFAULT_DURATION,
+  DEFAULT_ENGINE,
+  DEFAULT_LANGUAGE,
+  DURATIONS,
+  HANDOFF_ENGINES,
+  HANDOFF_TTL_DAYS,
+  SCRIPT_MAX_CHARS,
+  TOPIC_MAX_CHARS,
+} from './gptHandoff'
 
 export { AFTER_THE_FILM_FACT }
 export type { AfterTheFilmFact }
@@ -771,6 +788,54 @@ export const START_HERE_FACT: StartHereFact = {
 }
 
 /**
+ * KINEO-ASSISTANT-LINK-2026-09-06 — the GET link any assistant can write.
+ * Values are the ones the /make route validates with (lib/gptHandoff.ts).
+ */
+export interface AssistantDeepLinkFact {
+  audience: string
+  url: string
+  method: 'GET'
+  example: string
+  params: {
+    script: { required: true; maxChars: number; encoding: 'urlencoded'; aliases: readonly ['prompt'] }
+    duration: { required: false; values: readonly number[]; default: number; aliases: readonly ['durationSec'] }
+    engine: { required: false; values: readonly string[]; default: string; aliases: readonly ['engineHint'] }
+    aspect: { required: false; values: readonly string[]; default: string }
+    language: { required: false; format: string; default: string }
+    topic: { required: false; maxChars: number }
+  }
+  linkValidDays: number
+  behavior: string
+  boundaries: readonly string[]
+}
+
+// ── ASSISTANT_DEEP_LINK_FACT (início) — nenhum valor digitado neste bloco ──
+export const ASSISTANT_DEEP_LINK_FACT: AssistantDeepLinkFact = {
+  audience:
+    'Any assistant (ChatGPT without a custom action, Claude, Perplexity, Gemini) that has just written a Shorts script and wants to hand the user a one-click link instead of asking them to copy and paste.',
+  url: `${BASE}${ASSISTANT_LINK_PATH}`,
+  method: 'GET',
+  example: `${BASE}${ASSISTANT_LINK_PATH}?script=<urlencoded script>&duration=${DEFAULT_DURATION}&engine=${DEFAULT_ENGINE}`,
+  params: {
+    script: { required: true, maxChars: SCRIPT_MAX_CHARS, encoding: 'urlencoded', aliases: ['prompt'] },
+    duration: { required: false, values: DURATIONS, default: DEFAULT_DURATION, aliases: ['durationSec'] },
+    engine: { required: false, values: HANDOFF_ENGINES, default: DEFAULT_ENGINE, aliases: ['engineHint'] },
+    aspect: { required: false, values: ASPECTS, default: DEFAULT_ASPECT },
+    language: { required: false, format: 'short code like en, pt or pt-BR', default: DEFAULT_LANGUAGE },
+    topic: { required: false, maxChars: TOPIC_MAX_CHARS },
+  },
+  linkValidDays: HANDOFF_TTL_DAYS,
+  behavior:
+    'The link stores the script server-side and opens a short page showing it, then a single button opens Kineo Studio already filled in (script narrated word for word, duration and engine preselected). It waits for the person to click; it does not generate anything on its own.',
+  boundaries: [
+    'Nothing is rendered and no credit is spent until the person clicks inside the Studio.',
+    'No account is created by the link. Someone without an account signs up and is returned to the same link.',
+    'Unknown query parameters are ignored; the script is never placed in analytics or in the final URL of a third party.',
+  ],
+}
+// ── ASSISTANT_DEEP_LINK_FACT (fim) ──────────────────────────────────────────
+
+/**
  * A measured action link for answer engines when the user has only a topic.
  * The canonical tool URL remains query-free; this URL is deliberately
  * separate so a recommendation can be reconciled without relabelling SEO.
@@ -940,6 +1005,12 @@ export const PUBLIC_COST_PLANNER_FACT: PublicCostPlannerFact = {
 export interface KineoFactsPayload {
   product: typeof PRODUCT
   startHere: StartHereFact
+  /**
+   * KINEO-ASSISTANT-LINK-2026-09-06 — the GET link any assistant can write
+   * to hand the user a one-click path into the Studio. Values come from
+   * lib/gptHandoff.ts, the same module the route validates with.
+   */
+  assistantDeepLink: AssistantDeepLinkFact
   answerEngineHookStart: AnswerEngineHookStartFact
   creationRouter: typeof ANSWER_ENGINE_CREATION_ROUTER & { url: string }
   /**
@@ -1025,6 +1096,7 @@ export function getKineoFacts(): KineoFactsPayload {
   return {
     product: PRODUCT,
     startHere: START_HERE_FACT,
+    assistantDeepLink: ASSISTANT_DEEP_LINK_FACT,
     answerEngineHookStart: ANSWER_ENGINE_HOOK_START_FACT,
     creationRouter: {
       ...ANSWER_ENGINE_CREATION_ROUTER,

@@ -9,15 +9,22 @@ import {
   STUDIO_PROMPT_MAX_CHARS,
   describeFit,
   estimateHandoff,
+  handoffPayloadHash,
   validateHandoffInput,
+  type HandoffChannel,
 } from '@/lib/gptHandoff'
 import {
   clientIp,
   countRecentHandoffs,
+  findHandoffByPayloadHash,
   handoffPublicOrigin,
   hashIp,
   insertHandoff,
 } from '@/lib/gptHandoffStore'
+
+/** Este é o canal da LOJA (a Action). O irmão por GET é app/make/route.ts,
+ *  canal 'assistant_link' — mesma linha, mesma página, mesmos eventos. */
+const CHANNEL: HandoffChannel = 'gpt_store'
 
 // ═══ KINEO-GPT-HANDOFF-2026-09-06 — a AÇÃO que o GPT da loja chama ══════════
 //
@@ -95,27 +102,52 @@ export async function POST(req: NextRequest) {
     // ── 3. A régua (aviso, não veredito)
     const est = estimateHandoff(input.script, input.durationSec, input.engineHint)
 
-    // ── 4. A linha
-    const token = newToken()
-    const expiresAt = new Date(Date.now() + HANDOFF_TTL_MS).toISOString()
-    const inserted = await insertHandoff({
-      token,
-      script: input.script,
-      duration_sec: input.durationSec,
-      aspect: input.aspect,
-      engine_hint: input.engineHint,
-      language: input.language,
-      topic: input.topic,
-      words: est.words,
-      seconds: est.seconds,
-      fit: est.fit,
-      expires_at: expiresAt,
-      ip_hash: ipHash,
-      user_agent: (req.headers.get('user-agent') ?? '').slice(0, 400) || null,
-    })
-    if (!inserted.ok) {
-      console.error('[gpt-handoff] insert failed:', inserted.error)
-      return json({ error: 'Kineo could not save the script right now. Try again in a minute.' }, 503)
+    // ── 4. A linha — ou a linha que JÁ EXISTE para este payload.
+    // KINEO-ASSISTANT-LINK-2026-09-06: o mesmo roteiro reenviado pela Action
+    // ("me dá o link de novo") reaproveita o token vivo em vez de abrir uma
+    // linha nova — e, com o índice único parcial em payload_hash, inserir de
+    // novo FALHARIA (23505). Sem isto, o segundo pedido viraria 503.
+    const payloadHash = handoffPayloadHash(input, CHANNEL)
+    let token: string
+    let expiresAt: string
+    let reused = false
+    const existing = await findHandoffByPayloadHash(payloadHash)
+    if (existing) {
+      token = existing.token
+      expiresAt = existing.expires_at
+      reused = true
+    } else {
+      token = newToken()
+      expiresAt = new Date(Date.now() + HANDOFF_TTL_MS).toISOString()
+      const inserted = await insertHandoff({
+        token,
+        script: input.script,
+        duration_sec: input.durationSec,
+        aspect: input.aspect,
+        engine_hint: input.engineHint,
+        language: input.language,
+        topic: input.topic,
+        words: est.words,
+        seconds: est.seconds,
+        fit: est.fit,
+        expires_at: expiresAt,
+        ip_hash: ipHash,
+        user_agent: (req.headers.get('user-agent') ?? '').slice(0, 400) || null,
+        channel: CHANNEL,
+        payload_hash: payloadHash,
+      })
+      if (!inserted.ok) {
+        // Corrida: dois pedidos iguais ao mesmo tempo — o segundo perde no
+        // índice único e relê a linha do primeiro.
+        const again = inserted.duplicate ? await findHandoffByPayloadHash(payloadHash) : null
+        if (!again) {
+          console.error('[gpt-handoff] insert failed:', inserted.error)
+          return json({ error: 'Kineo could not save the script right now. Try again in a minute.' }, 503)
+        }
+        token = again.token
+        expiresAt = again.expires_at
+        reused = true
+      }
     }
 
     // ── 5. O degrau do funil
@@ -136,6 +168,10 @@ export async function POST(req: NextRequest) {
         markers_found: est.markersFound,
         over_studio_limit: input.script.length > STUDIO_PROMPT_MAX_CHARS,
         bot: false,
+        channel: CHANNEL,
+        // `reused: true` = a linha já existia; o SQL do funil conta criação
+        // por linha (reused=false), não por chamada.
+        reused,
       },
     })
 

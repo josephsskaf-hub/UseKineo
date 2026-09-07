@@ -35,10 +35,17 @@ export type GptHandoffRow = {
   viewed_at: string | null
   clicked_at: string | null
   click_count: number
+  /** KINEO-ASSISTANT-LINK-2026-09-06: 'gpt_store' (Action/POST) ou
+   *  'assistant_link' (GET /make). Linhas anteriores à coluna vêm com o
+   *  default do banco, 'gpt_store'. */
+  channel?: string | null
+  /** sha256 do payload+canal (lib/gptHandoff.ts handoffPayloadHash) — chave
+   *  de idempotência: mesmo link/roteiro = mesma linha. */
+  payload_hash?: string | null
 }
 
 const ROW_COLUMNS =
-  'id, token, script, duration_sec, aspect, engine_hint, language, topic, words, seconds, fit, created_at, expires_at, viewed_at, clicked_at, click_count'
+  'id, token, script, duration_sec, aspect, engine_hint, language, topic, words, seconds, fit, created_at, expires_at, viewed_at, clicked_at, click_count, channel, payload_hash'
 
 export function serviceClient(): SupabaseClient | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -118,17 +125,51 @@ export type NewHandoff = {
   expires_at: string
   ip_hash: string | null
   user_agent: string | null
+  channel: string
+  payload_hash: string | null
 }
 
-export async function insertHandoff(row: NewHandoff): Promise<{ ok: true } | { ok: false; error: string }> {
+/** Postgres 23505 = unique_violation. Com o índice único parcial em
+ *  payload_hash, dois inserts do MESMO payload correndo juntos fazem o segundo
+ *  perder aqui — e o chamador reaproveita a linha do primeiro em vez de 503. */
+export const UNIQUE_VIOLATION = '23505'
+
+export async function insertHandoff(
+  row: NewHandoff,
+): Promise<{ ok: true } | { ok: false; error: string; duplicate: boolean }> {
   const db = serviceClient()
-  if (!db) return { ok: false, error: 'service role not configured' }
+  if (!db) return { ok: false, error: 'service role not configured', duplicate: false }
   try {
     const { error } = await db.from(GPT_HANDOFFS_TABLE).insert(row)
-    if (error) return { ok: false, error: error.message }
+    if (error) return { ok: false, error: error.message, duplicate: error.code === UNIQUE_VIOLATION }
     return { ok: true }
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) }
+    return { ok: false, error: e instanceof Error ? e.message : String(e), duplicate: false }
+  }
+}
+
+/** KINEO-ASSISTANT-LINK-2026-09-06 — a linha VIVA (expires_at > agora) com
+ *  este hash, se houver. É o que faz o mesmo link clicado 3× ser UMA linha.
+ *  Linha vencida não conta: quem clica num link de 8 dias ganha linha nova,
+ *  com prazo novo. Erro ou sem service client → null, nunca lança — a rota
+ *  segue e insere (no pior caso o índice único recusa e ela relê). */
+export async function findHandoffByPayloadHash(hash: string): Promise<{ token: string; expires_at: string } | null> {
+  const db = serviceClient()
+  if (!db) return null
+  try {
+    const { data, error } = await db
+      .from(GPT_HANDOFFS_TABLE)
+      .select('token, expires_at')
+      .eq('payload_hash', hash)
+      .gt('expires_at', new Date().toISOString())
+      .limit(1)
+      .maybeSingle()
+    if (error || !data) return null
+    const row = data as { token?: unknown; expires_at?: unknown }
+    if (typeof row.token !== 'string' || typeof row.expires_at !== 'string') return null
+    return { token: row.token, expires_at: row.expires_at }
+  } catch {
+    return null
   }
 }
 

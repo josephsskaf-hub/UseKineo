@@ -614,3 +614,162 @@ qualquer jeito. Agora YouTube widescreen sai widescreen, feed do Instagram sai
 padrão), e a pessoa **vê o formato escrito na tela antes de clicar**. De
 quebra, o seletor de formato do Studio parou de mostrar português para cliente
 de língua inglesa.
+
+---
+
+### #5 — 22:20→23:0x — a Kineo deixa de depender da loja: o MESMO handoff passa a atender qualquer assistente
+
+**A VIRADA DESTA ROTAÇÃO.** As rotações #1–#4 construíram o caminho do GPT da
+loja e ele está pronto — mas ele **depende do fundador publicar**, e publicar
+para "Everyone" exige verificação de domínio por DNS (achado da #3b). Enquanto
+isso, o dado que motivou o ciclo inteiro continua correndo sozinho.
+
+**O denominador, medido agora (14 dias, `signup_utm_source`):**
+
+| fonte | cadastros | fizeram filme | pagaram |
+|---|---|---|---|
+| **chatgpt** | **195** | 126 | **2** |
+| taaft | 94 | 66 | 0 |
+| (sem utm) | 61 | 16 | 0 |
+| nav | 12 | 8 | 0 |
+
+O ChatGPT é **54% da aquisição** e o **único canal que produziu pagante**. O
+TAAFT trouxe 94 pessoas e zero. Não é empate entre canais: é um canal que
+carrega o negócio e vários que não carregam.
+
+**A ferida que dá para medir**, também de 14 dias: `pasted_directives_detected`
+= **20 pessoas** colaram a *ordem* do ChatGPT em vez do roteiro. E no caminho
+de colar, `chatgpt_quickstart_selected` = 91 pessoas → `..._studio_ready` = 68:
+**23 pessoas somem entre escolher e estar pronta**. Cada passo de "vá no site e
+cole isto" cobra pedágio.
+
+### A HIPÓTESE, E POR QUE ELA É MAIOR QUE O G6 PEDIA
+
+O G6 pedia documentar o handoff para Perplexity/Claude/Gemini. A leitura do
+código mostrou algo mais forte: **um assistente não sabe fazer POST, mas sabe
+escrever um LINK**. Se existir um GET que faça exatamente o que a Action faz,
+então o link de um clique existe **hoje**, sem loja, sem DNS e sem o fundador.
+
+Então o desenho não é "um segundo caminho". É **o mesmo handoff**, mudando só o
+verbo HTTP e o canal: mesma tabela, mesma página `/go`, mesmos eventos, mesmo
+funil. Um funil, não dois.
+
+### O QUE FOI REJEITADO, E A PROVA DE PRODUÇÃO QUE DECIDIU
+
+A alternativa óbvia era mandar o assistente montar
+`/studio/create?prompt=…&script_mode=verbatim&duration=60` direto — o formato
+existe e funciona (é o que `buildStudioDestination` já emite,
+`lib/gptHandoff.ts:334-350`). **Rejeitado por medição, não por gosto:** o
+público do ChatGPT é **deslogado**, e a query atravessa `/signup?redirect=`
+que **corta cada valor em 2.000 chars** (`studio/create/page.tsx:49`); havia
+ainda uma dúvida registrada em `go/route.ts:27-28` sobre a query sobreviver ao
+OAuth. Sondei a produção com um token real:
+
+```
+/go/<token>            deslogado -> http 200 (a pagina abre e mostra o roteiro)
+/api/gpt/handoff/go    deslogado -> 302 -> /signup?redirect=%2Fgo%2F<token>
+token invalido         (controle) -> 302 de volta para /go (comportamento distinto)
+```
+
+O token viaja com **24 caracteres**. Um roteiro de 90s viajaria com ~1.700 e
+ficaria a 300 do corte. **O token não é enfeite: é o que faz o link sobreviver
+ao cadastro.** Fica honesto o que ainda não provei: a perna de VOLTA do OAuth
+(cadastro Google real) só foi verificada por leitura de código na #1b — sonda
+de ponta a ponta exige uma conta nova de verdade.
+
+### O QUE JÁ ESTÁ NO BANCO DE PRODUÇÃO (aplicado nesta rotação)
+
+Migration `gpt_handoffs_channel_and_payload_hash_20260906`, **aditiva**:
+
+* `channel text not null default 'gpt_store'` — o default é deliberado: as 5
+  linhas que já existiam nasceram da loja, e o código que está no ar insere
+  sem a coluna. **A migration sobe antes do deploy sem quebrar nada.**
+* `payload_hash text` + índice único **parcial** (`where payload_hash is not
+  null`, para não exigir hash das linhas velhas).
+
+**Por que o hash existe.** Um link de chat é clicado várias vezes e sofre
+prefetch. Sem idempotência, cada clique viraria uma linha nova e a razão
+`criado → visto → clicado` — que é o G5 inteiro — **mentiria para sempre**.
+Conferido depois de aplicar: 5 linhas, 5 no canal default, 2 colunas, 1 índice,
+RLS ligado com **0 policies** (só service role, sem leitura pública).
+
+### O FALSO ALARME QUE EU QUASE ESCREVI
+
+O funil devolveu `pousos_vistos = 0` e `cliques = 0` **com 7
+`gpt_landing_viewed` e 1 `gpt_landing_clicked` na tabela de eventos**. Parecia
+o meio do funil cego — o padrão "campo gravado e não honrado" que já custou
+caro aqui. Fui ao código antes de escalar: `app/go/[token]/page.tsx:140` e
+`api/gpt/handoff/go/route.ts:74` dizem `if (!bot) await mark…`, e os 8 eventos
+carregam `bot: true` — eram os meus próprios curls. **As colunas em zero estão
+certas.**
+
+Isso deixa uma regra para o G5, que vai para o SQL: **as colunas da linha
+contam só humanos; os eventos contam todos, com bandeira.** Somar os dois no
+mesmo degrau é laranja com maçã.
+
+### G5 — O SQL DO FUNIL, JÁ RODANDO
+
+Três degraus por **handoff** (não existe pessoa ainda) e três por **pessoa**,
+nunca somados como se fossem a mesma unidade:
+
+```sql
+with por_handoff as (
+  select date(created_at at time zone 'America/Sao_Paulo') as dia, channel,
+         count(*)                                      as d1_criados,
+         count(*) filter (where viewed_at  is not null) as d2_pouso_humano,
+         count(*) filter (where clicked_at is not null) as d3_clique_humano,
+         count(distinct user_id) filter (where user_id is not null) as pessoas_ligadas
+  from public.gpt_handoffs group by 1,2
+),
+por_pessoa as (
+  select date(p.created_at at time zone 'America/Sao_Paulo') as dia,
+         case when p.signup_utm_source='chatgpt_gpt' then 'gpt_store'
+              else 'assistant_link' end as channel,
+         count(*) as d4_cadastros,
+         count(*) filter (where exists (select 1 from public.videos v where v.user_id=p.id)) as d5_fez_filme,
+         count(*) filter (where exists (select 1 from public.events e
+                                        where e.user_id=p.id and e.name='payment_success')) as d6_pagou
+  from public.profiles p
+  where p.signup_utm_source in ('chatgpt_gpt','assistant_link')
+  group by 1,2
+)
+select coalesce(h.dia,s.dia) as dia, coalesce(h.channel,s.channel) as canal,
+       coalesce(h.d1_criados,0), coalesce(h.d2_pouso_humano,0), coalesce(h.d3_clique_humano,0),
+       coalesce(s.d4_cadastros,0), coalesce(s.d5_fez_filme,0), coalesce(s.d6_pagou,0)
+from por_handoff h
+full outer join por_pessoa s on s.dia=h.dia and s.channel=h.channel
+order by dia desc, canal;
+```
+
+Estado de hoje, sem maquiagem: **5 criados (meus canários), todo o resto zero.**
+O GPT não está publicado e o `/make` ainda não subiu.
+
+### A TRAVA DE SEGURANÇA QUE O DESENHO CARREGA
+
+A leitura achou que `create_intent=fast|trial_best` **dispara render sozinho**
+para conta grátis (`GenerateClient.tsx:3406-3763`). Documentar esse parâmetro
+publicamente deixaria **qualquer link de terceiro gastar o crédito do primeiro
+vídeo de quem clicasse**, sem a pessoa apertar Generate. Por isso o `/make`
+emite uma **lista fechada** de parâmetros e o guardião reprova o arquivo se as
+palavras `create_intent`, `autoanalyze` ou `studio=` aparecerem nele ou no
+`llms.txt`. O que documentamos preenche a caixa e **espera o clique humano** —
+provado em `GenerateClient.tsx:7946`.
+
+### SONDAS DE BASELINE (o par que torna a próxima medição conclusiva)
+
+`/` 200 · `/gpt/openapi.json` 200 · `/llms.txt` 200 · **`/make` 404** ·
+controle `/make-controle-inexistente` **404**. Depois do deploy, `/make` tem de
+virar 302 **com o controle ainda em 404** — sem o controle, um código novo não
+prova deploy nenhum.
+
+### PARADA QUE EU ASSUMO
+
+Se, 14 dias depois do `/make` no ar e citado no `llms.txt`, houver **menos de
+10 handoffs de canal `assistant_link` criados por humano** (`bot=false`), a
+tese "os assistentes leem o llms.txt e entregam link" está errada, e o esforço
+vai para publicar o GPT da loja, que não depende de ninguém ler nada.
+
+### PRÓXIMO PASSO
+
+Código do `/make` + fato em `kineoFacts` + seção no `llms.txt` + guardião com
+mutantes; depois `tsc`, enfileirar, publicar e a sonda do par.

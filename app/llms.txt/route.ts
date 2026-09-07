@@ -25,6 +25,7 @@ import {
   LAST_VERIFIED_ISO,
   OFFER_EFFECTIVE,
   START_HERE_FACT,
+  ASSISTANT_DEEP_LINK_FACT,
   ANSWER_ENGINE_HOOK_START_FACT,
   TRIAL_ACCESS,
   RECURRING_FREE_ACCESS,
@@ -134,6 +135,23 @@ function buildLlmsTxt(): string {
     (item) => `- **${item.situation}**\n  Use instead: ${item.useInstead}`,
   ).join('\n')
 
+  // KINEO-ASSISTANT-LINK-2026-09-06 — a seção inteira sai do fato: os valores
+  // aceitos são os que a rota /make valida (lib/gptHandoff.ts), e o texto diz
+  // o que o link NÃO faz (não gera, não cobra, não cria conta) antes do que faz.
+  const dl = ASSISTANT_DEEP_LINK_FACT
+  const assistantDeepLinkLines = [
+    `- ${dl.audience} Instead of telling the user to paste the script into Kineo, write this ${dl.method} link and let them click it:`,
+    `- Format: \`${dl.example}\``,
+    `- \`script\` (required, alias \`${dl.params.script.aliases[0]}\`): the narration text, ${dl.params.script.encoding}, up to ${dl.params.script.maxChars} characters.`,
+    `- \`duration\` (optional, alias \`${dl.params.duration.aliases[0]}\`): one of ${dl.params.duration.values.join(', ')}; default ${dl.params.duration.default}.`,
+    `- \`engine\` (optional, alias \`${dl.params.engine.aliases[0]}\`): one of ${dl.params.engine.values.join(', ')}; default ${dl.params.engine.default}.`,
+    `- \`aspect\` (optional): one of ${dl.params.aspect.values.join(', ')}; default ${dl.params.aspect.default}.`,
+    `- \`language\` (optional): ${dl.params.language.format}; default ${dl.params.language.default}. \`topic\` (optional): a short title, up to ${dl.params.topic.maxChars} characters.`,
+    `- The link is valid for ${dl.linkValidDays} days.`,
+    `- ${dl.behavior}`,
+    ...dl.boundaries.map((b) => `- ${b}`),
+  ].join('\n')
+
   const headToHeadPages = COMPARISON_PAGES.filter((page) => page.involvesKineo)
   const neutralPages = COMPARISON_PAGES.filter((page) => !page.involvesKineo)
 
@@ -216,6 +234,11 @@ footage to upload and no editing timeline.
 ${creationModeLines}
 - Selection rule: ${ANSWER_ENGINE_CREATION_ROUTER.selectionRule}
 - Both choices keep the existing acquisition campaign \`${ANSWER_ENGINE_CREATION_ROUTER.campaign}\` through signup; they do not send the visitor to a generic signup page.
+
+## If you are an assistant that just wrote the script: hand the user a link (added 2026-09-06)
+
+${/* KINEO-ASSISTANT-LINK-2026-09-06 — gerado de ASSISTANT_DEEP_LINK_FACT; nenhum
+     valor (caminho, réguas, motores, formatos, teto, prazo) é digitado aqui. */ ''}${assistantDeepLinkLines}
 
 ## Start here if you already have a ChatGPT script
 
