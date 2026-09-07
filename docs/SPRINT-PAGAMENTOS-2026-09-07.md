@@ -837,3 +837,155 @@ pessoa".
    preço por semana e 2 pagando, e com a conclusão de preço dele já fechada
    desde 19/08, o próximo passo real é **preço/oferta**, que é decisão dele.
    Tudo que é engenharia de superfície já foi feito e está medido.
+
+---
+
+### #11 — 15:05 — a chave sozinha não liga o trilho, e ninguém tinha como saber
+
+**Press release:** o fundador vai colar `DODO_API_KEY` na Vercel hoje à noite.
+Às 12:38 isso **não teria ligado nada** — nem botão, nem erro, nem log — e o dia
+inteiro de trabalho ficaria invisível parecendo "ainda não ligou". Às 20:38 a
+chave liga o trilho de verdade, porque agora está escrito em 4 arquivos e na
+própria resposta HTTP que **falta um passo**: redeploy. E existe uma rota que
+responde, em uma linha, se o trilho está vivo *neste* deploy.
+
+**Errado (medido na documentação da Vercel, não no diário):** `lib/dodo.ts:16`
+dizia, sobre as chaves do Dodo:
+
+> "No dia em que o fundador colar as chaves na Vercel, liga sozinho — **sem
+> deploy novo**."
+
+A documentação da Vercel é literal, e contradiz a frase palavra por palavra:
+
+> "Any change you make to environment variables **are not applied to previous
+> deployments, they only apply to new deployments**."
+> — vercel.com/docs/environment-variables
+
+E a linha de Production da mesma página: a variável vale para "your **next**
+Production Deployment". A função serverless que está servindo agora carrega as
+envs do deploy que a **construiu**; colar a chave no painel não a alcança.
+
+**Por que isso era o defeito mais caro do dia, e não uma nota de rodapé.** Os
+três estados abaixo se parecem **idênticos** para quem olha o site — nenhum
+botão de UPI, nenhum erro, nenhum log:
+
+| estado | o que acontece | como se parecia |
+|---|---|---|
+| 1. chave nunca colada | esperado | sem botão |
+| **2. chave colada, deploy não refeito** | **⚠ o trilho fica morto para sempre** | **sem botão** |
+| 3. chave colada + redeploy | vende | sem botão *(até o país certo entrar)* |
+
+O estado 2 era o **padrão**, não a exceção. A ordem urgente de 07/09 morreria
+em silêncio, e a rotação seguinte leria "0 pagamentos da Índia" como se fosse
+um problema de oferta.
+
+**Mudou — SHA `ee94da49` · EM PRODUÇÃO.**
+
+1. **A crença falsa foi corrigida nos 4 portadores**, não só no que eu achei
+   primeiro: `lib/dodo.ts`, `app/api/geo/route.ts`, `components/RegionalFirstPack.tsx`
+   e — o que eu não estava procurando — `app/api/wall/refresh/route.ts`, que
+   tinha exatamente a mesma crença por outro motivo (a chave do YouTube: "se um
+   dia alguém adicionar a variável no Vercel, este caminho liga sozinho").
+2. **O portão país→método virou fonte única** (`localMethodFor` em `lib/dodo.ts`).
+   O `/api/geo` mantinha a própria cópia do mapa `IN:upi / BR:pix` e o painel
+   novo teria feito a **terceira**. Duas cópias divergem no dia em que um país
+   entra, e aí a tela e o painel discordam sobre quem vê o botão.
+3. **Rota nova `/api/admin/payment-rails`** — a pergunta que ninguém conseguia
+   fazer. Devolve, lado a lado: quais envs **este processo** enxerga (por
+   **NOME**, nunca valor), o SHA do deploy, a hora em que o processo subiu, e o
+   `passo_2: REDEPLOY` **na própria resposta HTTP** — não só num comentário,
+   porque quem lê isso às 21h é o fundador, não o código.
+
+**Sonda em produção, 14:50:35 BRT** (com UA de navegador, não `curl` pelado):
+`/api/admin/payment-rails` = **403** · controle inexistente
+`/api/admin/payment-rails-inexistente-controle` = **404** · home = **200**.
+O 403 sozinho não provaria nada — poderia ser um catch-all respondendo a tudo.
+É o **404 do controle na mesma medição** que prova que a rota subiu e que o 403
+é o guard de admin funcionando. Antes do deploy, às 14:49, os dois davam 404.
+
+**O que o cliente vê:** nada, hoje, e isso é honesto — esta rotação não move um
+pixel. Ela é a diferença entre as chaves de hoje à noite funcionarem ou não.
+
+**Testes:** `scripts/test-painel-trilhos.mjs` — **33/33**, falsificado por
+**6 mutantes, 6 mortos**, cada mutante verificado como **efetivamente escrito em
+disco** antes de rodar (mutante que não aplica devolve verde e se lê como
+guardião resistindo). O guardião **importa `lib/dodo.ts` de verdade** e exercita
+os dois portões contra a variável que decide — sem chave, `IN` e `BR` devolvem
+`null`; com chave, `upi`/`pix`; e `NG`/`PK`/`US` continuam `null` **mesmo com
+chave**, que é a linha que impede a Nigéria de virar "outro processador do mesmo
+cartão". Ele também trava que o painel **nunca ecoa valor de env**: só
+`VERCEL_GIT_COMMIT_SHA`, `VERCEL_DEPLOYMENT_ID` e `VERCEL_ENV` podem ser lidos
+por valor. `npx tsc --noEmit`: verde.
+
+**Risco:** baixo. Nenhuma regra de cobrança mudou, nenhum preço, nenhuma copy de
+cliente. O único comportamento novo é uma rota admin-only que responde 403 a
+quem não é admin.
+
+**Como medir:** abrir `/api/admin/payment-rails` logado como admin. `live:true` e
+`missing_env` vazio no trilho Dodo provam que ele vende. Se as envs estiverem
+coladas e o painel ainda listar `DODO_API_KEY` como faltando, a resposta é
+**estado 2** — falta o redeploy, e o campo `deploy.processo_subiu_em` mostra que
+este processo é mais velho que a colagem da chave.
+
+**Placar às 15:00 BRT:**
+
+| medida | valor |
+|---|---|
+| cadastros 24h | 34 |
+| **checagem zero (real)** | **0** ✅ |
+| filmes entregues 24h | 37 |
+| pessoas no checkout 24h | 2 |
+| pagamentos 24h | **0** |
+| último `payment_success` | **02/09 20:22Z — 5 dias** |
+| `pack_first_for_region_shown` | 0 |
+| `local_method_clicked` | 0 (trilho desligado, esperado) |
+
+**Duas notas de placar, para a próxima rotação não errar:**
+
+1. **`checagem zero` = 0, e as 6 contas de crédito zero são `trial_status =
+   blocked`** — antifraude, não trial órfão. Mesmo achado da #10; confirmado,
+   não é incidente novo.
+2. **⛔ `pack_first_for_region_shown = 0` NÃO prova que a peça está morta.** O
+   par honesto — `inline_pricing_currency_resolved`, que dispara na MESMA
+   chamada `/api/geo` — também deu **0** desde o deploy da #9 (17:14Z). Zero
+   contra zero é **ausência de tráfego naquela janela**, não superfície cega. A
+   #9 subiu há menos de uma hora. Comparar `_shown` com um evento que dispara
+   diferente (montagem de página) daria "2 de 30" e seria laranja com maçã.
+
+**Próxima jogada:**
+1. **Quando as chaves entrarem: colar → redeploy → abrir `/api/admin/payment-rails`.**
+   Essa ordem é o produto desta rotação. Sem o passo 2 nada acontece e nada
+   reclama.
+2. **Medir a exposição regional só com denominador vivo.** Repetir o par honesto
+   quando `inline_pricing_currency_resolved` passar de ~10 na janela; antes
+   disso o número não decide nada.
+3. **A pergunta grande continua a da #10 e continua sendo do fundador:** 144
+   pessoas vendo preço por semana, 2 pagando, 6 superfícies de oferta a ~5%. A
+   engenharia de superfície acabou; o que sobra é preço/oferta.
+
+**✅ O QUE VOCÊ PRECISA FAZER**
+
+1. **Cole as envs na Vercel (Production)** quando o Cowork abrir as contas:
+   `DODO_API_KEY`, `DODO_WEBHOOK_SECRET`, `DODO_MODE=live`,
+   `DODO_PRODUCT_STARTER`, `DODO_PRODUCT_CREATOR`, `DODO_PRODUCT_STUDIO`,
+   `DODO_PRODUCT_FIRST_PACK` · PayPal: `PAYPAL_CLIENT_ID`,
+   `PAYPAL_CLIENT_SECRET`, `PAYPAL_WEBHOOK_ID`.
+2. **Depois de colar, clique em REDEPLOY na Vercel.** Este é o passo que faltava
+   e sem ele nada liga — a chave só entra em deploy novo.
+3. **Abra `usekineo.com/api/admin/payment-rails`** logado como admin. Quer ver
+   `live: true` e nenhuma env faltando. Se aparecer faltando uma env que você
+   acabou de colar, faltou o redeploy.
+4. **Nada mais.** Não precisa mexer em código nem rodar bat: a entrega já subiu.
+
+**📋 O QUE ACONTECEU**
+
+Achei um defeito que teria feito o trabalho do dia inteiro parecer que
+funcionou e não funcionar. Três arquivos prometiam que colar a chave na Vercel
+ligava o trilho de pagamento sozinho. A Vercel não faz isso: variável nova só
+vale para deploy novo. Você colaria a chave hoje à noite, abriria o site, não
+veria botão de UPI nenhum — e não haveria erro em lugar nenhum para explicar por
+quê. Corrigi a frase nos quatro lugares onde ela morava, juntei num só lugar a
+regra de quem vê o botão (estava duplicada e ia virar três cópias), e criei uma
+rota de admin que responde de uma vez: quais chaves este deploy enxerga, qual
+deploy é este, e o que falta fazer. O placar não mudou: 0 pagamentos em 24h,
+último há 5 dias.
