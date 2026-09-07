@@ -1185,3 +1185,109 @@ errado, a pessoa caía numa página que não explicava nada e o assistente não
 aprendia; agora explica, com os números certos, e cada erro vira medida. O
 schema foi escrito com a regra de nunca prometer vídeo — porque o link não faz
 vídeo, ele prepara o Studio e espera o clique.
+
+---
+
+### #8 — 07/09 00:0x — a loja fechou, e a casa passou a fazer o trabalho do GPT sozinha
+
+**SHA `deee90be` — EM PRODUÇÃO** (`git ls-remote origin main` bate).
+
+**O fato que mudou a rota:** desde 16/08/2026 conta pessoal do ChatGPT não cria
+nem publica GPT — só workspace Business/Enterprise. O rascunho está montado, o
+handoff funcionou ponta a ponta, e não existe botão "Everyone". Pagar o Business
+é decisão do fundador, e **esperar por ela era parar**. Não parou: o trabalho do
+GPT tem duas metades — **dar o prompt certo** e **receber o roteiro de volta** —
+e nenhuma das duas precisa da OpenAI. A página `/chatgpt` faz as duas.
+
+#### O NÚMERO QUE MANDOU CONSTRUIR (medido antes de codar, 14 dias)
+
+`reason='prompt_looks_like_instruction'` (lib/growth/instructionPasteNotice.ts):
+**59 pessoas distintas** colaram no Studio uma **ordem para um chatbot** em vez
+de um roteiro. **40** tiraram ao menos um filme. **57 filmes**. **0 PAGANTES.**
+Não é coorte hipotética: é gente que **já está tentando fazer exatamente isto**,
+do jeito errado, sozinha, e que a casa vinha corrigindo com um aviso em vez de
+com uma ferramenta.
+
+#### O QUE SUBIU
+
+| peça | o que é |
+|---|---|
+| `/chatgpt` | passo 1: o prompt da casa (HOOK/MICRO REWARD/ESCALATION/PAYOFF) pronto para colar no ChatGPT, Claude ou Gemini, com botão de copiar. passo 2: a caixa que recebe o roteiro de volta e devolve o mesmo `/go/<token>` que já estava no ar. K1: "See plans" → `/pricing?utm_source=paste_page` |
+| canal `paste_page` | terceiro canal do MESMO handoff. Os dois antigos ficam byte a byte iguais — há asserção de **regressão explícita** para isso |
+| `POST /api/gpt/handoff/paste` | irmão do POST da Action, com uma diferença de segurança: **sem `Access-Control-Allow-Origin: '*'`**. A Action é chamada pelo servidor da OpenAI; esta é chamada pelo navegador da própria pessoa, mesma origem. Abrir CORS aqui seria dar a qualquer site um POST público nosso |
+| coluna `assistant` | `chatgpt\|claude\|gemini\|perplexity\|other`, declarada pela pessoa, opcional. **Aplicada no banco de produção** (`gpt_handoffs_assistant_20260907`) |
+
+**O prompt não tem número digitado:** as faixas de palavras (35s 109-118 · 60s
+186-201 · 90s 279-301) nascem de `DURATIONS` e da régua clássica (3,1 pal/s) por
+**cálculo** — mexer na régua muda o prompt sozinho. E ele diz a verdade da casa:
+*passar do alvo é bom, ficar abaixo é defeito*. 1.377 caracteres, teto de 1.500
+cobrado pelo guardião.
+
+**O que continua não acontecendo, e é a regra inteira:** não cria conta, não
+debita crédito, não chama fornecedor, não gera filme. O link **prepara** o
+Studio e espera o clique.
+
+#### COMO PROVAR
+
+`scripts/test-chatgpt-paste-page.mjs` — **128 verificações**, falsificado com
+**7 mutantes escritos no arquivo real** (etiqueta de canal trocada · prompt além
+do teto · link de planos removido · nome do evento trocado · CORS aberto · faixa
+de palavras digitada à mão · painel importando a lib que puxa `node:crypto`) —
+**todos vermelhos**, todos restaurados, guardião 128/0 no fim.
+`test-gpt-handoff` 329 ok · `test-assistant-deep-link` 153 ok (a asserção A3 foi
+**apertada** para os 3 canais em posição fixa, nunca afrouxada — a trava é do
+fundador) · `npx tsc --noEmit` **exit 0**.
+
+**Fronteira servidor/cliente conferida à mão** (a memória diz que o `tsc` não a
+vê): o painel `'use client'` importa **só** `react` e `@/lib/analytics`; o prompt
+e as listas chegam **por props** do server component. Nenhum `use client` importa
+`lib/gptHandoff.ts`, que puxa `node:crypto`.
+
+#### MEDIÇÃO (G5) — e a validação que ela exigia
+
+`docs/queries/FUNIL-DEEP-LINK-2026-09-07.sql` ganhou três consultas: **(5)** qual
+assistente escreveu · **(6)** o denominador da página (viu → copiou → colou) ·
+**(7)** a coorte de instrução colada como **teste da tese**, para rodar de novo
+em 14 dias. As três foram **rodadas contra o banco real antes de subir** — "0 de
+0" é indistinguível de predicado quebrado, e as consultas (1) a (4) já agrupam
+por `channel` sem lista digitada, então `paste_page` aparece sozinho.
+
+#### RISCO CONHECIDO, dito sem maquiagem
+
+`payload_hash` **não inclui** o `assistant`. Duas pessoas colando o roteiro
+idêntico com assistentes diferentes reaproveitam a mesma linha, e a segunda não
+grava o assistente dela. Escolhi idempotência (o funil `created→viewed→clicked`
+mentir é pior) e o preço é uma distorção pequena na consulta (5). Roteiro
+byte a byte igual entre duas pessoas é raro; se aparecer, o conserto é acrescentar
+o campo ao hash.
+
+**Segundo risco:** `/chatgpt` **não está anunciada em lugar nenhum** — nem no
+sitemap, nem no `llms.txt`, nem no menu. Os limites do ciclo proíbem tocar nesses
+arquivos. Enquanto isso, a página só é alcançável por link direto, e a consulta
+(6) vai medir **zero** por ausência de porta, não por rejeição.
+
+#### PRÓXIMO PASSO
+
+Dar **porta** à página: o e-mail de filme pronto e a faixa de temporada passam a
+oferecer "write the next episode with ChatGPT → paste it here" (**G10**, servidor
+e componente são meus), e um AVISO no PEDIDOS para o sitemap e o `llms.txt`.
+Sem porta, a melhor peça do ciclo mede zero — foi exatamente o erro que a memória
+`peca-sem-superficie-nao-existe` já cobrou três vezes nesta casa.
+
+✅ **O QUE VOCÊ PRECISA FAZER**
+1. **Nada de código.** A página subiu sozinha e está sondada.
+2. **Uma decisão, com o número na mão:** publicar o GPT na loja exige **ChatGPT
+   Business (~US$ 25-30/usuário/mês)** = 4 Starters ($7) ou 1 Studio ($29) só
+   para empatar. A `/chatgpt` faz o mesmo trabalho **hoje, de graça**. Minha
+   recomendação: **não pagar agora** — deixar a `/chatgpt` medir por 14 dias e
+   decidir com dado, não com aposta.
+
+📋 **O QUE ACONTECEU**
+A jogada do ciclo dependia de a OpenAI deixar publicar um GPT, e ela não deixa
+mais para conta pessoal. Em vez de esperar, a casa passou a fazer o que o GPT
+faria: entrega o prompt pronto para a pessoa colar no ChatGPT dela e recebe o
+roteiro de volta numa caixa, que vira o mesmo link de um clique que já estava no
+ar. O que descobri medindo é que isso não era ideia nova — 59 pessoas em 14 dias
+já vinham colando ordens de chatbot no Studio, 40 tiraram filme daquilo e
+nenhuma pagou. Agora existe um caminho certo para elas, e um número que diz, pela
+primeira vez, qual assistente escreveu o roteiro que chegou aqui.
