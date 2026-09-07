@@ -99,6 +99,11 @@ const OUTRAS_CAMPANHAS = [
   // diferentes (a sessão expirou × o banco recusou). Quem levou uma não leva
   // a outra.
   'card_declined_emailed_v1',
+  // KINEO-SILENCIO-QUENTE-2026-09-07 — a carta QUENTE fala do mesmo momento
+  // (a página de pagamento) 30 min depois do clique, enquanto a sessão ainda
+  // está aberta. Esta aqui fala depois que a sessão morreu. Excludentes nos
+  // dois sentidos, e o par mora em app/api/admin/send-checkout-hot-nudge.
+  'checkout_hot_nudge_emailed_v1',
 ]
 
 /** ⛔ NUNCA escrever para estes (limite explícito do ciclo de 06/09). */

@@ -16,6 +16,27 @@ import { TIER_PRICES, ANNUAL_PRICES, TIER_CREDITS, PACK_CREDITS } from '@/lib/ch
 export type PayPalTier = 'starter' | 'basic' | 'pro'
 export type PayPalBilling = 'monthly' | 'annual'
 
+// ═══ KINEO-PAYPAL-EXPORTS-RESTAURADOS-2026-09-07 (rotina Fechar a Venda) ═══
+// Estas três nasceram HOJE na pista de PAGAMENTOS (painel de trilhos: responder
+// "ligado/desligado" sem tentar cobrar ninguém) e foram APAGADAS pelo #363, que
+// reescreveu este arquivo a partir de uma base velha. Elas continuam importadas
+// por app/api/admin/payment-rails/route.ts, então a ponta da main parou de
+// compilar e NENHUM deploy do dia subiria. Restauro literal, sem mudar nada do
+// que o #363 fez com preço e grant.
+export const PAYPAL_ENV_NAMES = ['PAYPAL_CLIENT_ID', 'PAYPAL_CLIENT_SECRET', 'PAYPAL_WEBHOOK_ID'] as const
+
+/** Envs que faltam para o trilho PayPal funcionar NESTE deploy. Vazio = pronto. */
+export function paypalMissingEnv(env: Record<string, string | undefined> = process.env): string[] {
+  return PAYPAL_ENV_NAMES.filter((n) => {
+    const v = env[n]
+    return typeof v !== 'string' || v.trim().length === 0
+  })
+}
+
+export function isPaypalEnabled(env: Record<string, string | undefined> = process.env): boolean {
+  return paypalMissingEnv(env).length === 0
+}
+
 export const PAYPAL_BASE =
   process.env.PAYPAL_ENV === 'sandbox'
     ? 'https://api-m.sandbox.paypal.com'
@@ -231,6 +252,18 @@ export async function paypalClaimEvent(admin: Admin, id: string, type: string): 
   // 42P01 = table missing; log and allow (better than dropping live payments)
   if (error.code !== '42P01') console.error('[paypal] claim event error:', error.code, error.message)
   return true
+}
+
+/** Libera o guard de idempotência quando o processamento FALHOU — sem isto, a
+ *  primeira falha transitória congela o pagamento para sempre. Best-effort de
+ *  propósito: se a liberação falhar, o 500 do handler ainda pede re-tentativa.
+ *  Também apagada pelo #363 e ainda importada por app/api/paypal/return e
+ *  app/api/paypal/webhook. */
+export async function paypalReleaseEvent(admin: Admin, id: string): Promise<void> {
+  const { error } = await admin.from('paypal_events').delete().eq('id', id)
+  if (error) {
+    console.error('[paypal] FALHOU AO LIBERAR O GUARD — pagamento pode congelar:', id, error.message)
+  }
 }
 
 // ── Credit granting (mirrors the Stripe webhook paths) ──────────────────────

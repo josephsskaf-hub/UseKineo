@@ -121,6 +121,10 @@
       "schedule": "30 11,17 * * *"
     },
     {
+      "path": "/api/admin/send-checkout-hot-nudge?confirm=SEND&limit=30",
+      "schedule": "6,21,36,51 * * * *"
+    },
+    {
       "path": "/api/admin/send-season-letter?confirm=SEND&limit=30",
       "schedule": "45 15,19 * * *"
     },
