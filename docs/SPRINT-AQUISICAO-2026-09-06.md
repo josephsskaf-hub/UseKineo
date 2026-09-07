@@ -4322,3 +4322,37 @@ ser julgada ainda — subiram de madrugada e uma pessoa as viu. E o conserto mai
 caro da noite não foi aquisição nenhuma: era um ralo que cancelava o plano de
 quem já pagava assim que o cartão falhava, antes de a Stripe sequer tentar de
 novo. ~US$ 35/mês de uma base de ~US$ 109.
+
+
+### #22c — 03:57 BRT (07/09) — EM PRODUÇÃO, com a correção do SHA e o limite honesto da sonda
+
+**EM PRODUÇÃO.** `origin/main` = **`cdc71ad0`**; fila
+`origin/main..entrega-atual` = **0**.
+
+**Correção de SHA:** a tabela (b) do fechamento e o `#22` citam `b1b3e924` para
+a peça de código. O `!RODAR-AGORA` rebasou por cima de um push do Codex na
+tentativa 1, e o commit **em produção é `3273e89b`**. `b1b3e924` só existiu
+dentro da worktree. Quem for medir a adoção usa **`3273e89b`** como corte de
+deploy — e, pela lição do `#21f`, o corte é o horário do **commit**, nunca o
+horário em que se escreve a consulta.
+
+**Sonda, com controle:**
+
+| rota | http |
+|---|---|
+| `/` | **200** |
+| `/pricing` | **200** |
+| `/ai-video-generator/kineo-1` (a página que o ChatGPT mais cita) | **200** |
+| `/free-ai-shorts-generator` (a segunda) | **200** |
+| **controle inexistente** | **404** |
+| `/studio/create` | **307** (redireciona para login) |
+
+**O limite que eu não vou disfarçar:** a peça de código desta rotação vive num
+componente React de **rota autenticada** — o `307` acima é a prova de que ela
+**não é sondável de fora**. Não existe curl que mostre a frase nova. O que
+sustenta a entrega é o guardião (26/26, 5 mutantes com prova de escrita) e o
+`tsc` verde com controle; o que vai **provar em produção** é o evento novo
+`trial_repeat_price_viewed` aparecendo no banco quando a primeira pessoa
+elegível abrir a tela. **Enquanto esse evento não tiver linha, a peça está
+publicada e não está provada** — e a próxima sessão deve dizer isso com essas
+palavras, em vez de contá-la como entrega validada.
