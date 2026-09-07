@@ -501,6 +501,36 @@ const MAX_TRANSIENT_POLL_ERRORS = 4
 // preço datilografado à mão é como a copy da casa começou a mentir antes.
 const STARTER_PLAN_FACTS = PLAN_LIST.find((plan) => plan.tier === 'starter') ?? null
 
+// ═══ KINEO-PRECO-PARA-SALDO-CHEIO-2026-09-07 ═══════════════════════════════
+//
+// A PONTE COM PREÇO (acima) SÓ ALCANÇA QUEM TEM MENOS CRÉDITO. Ela nasce de
+// `decideTrialBalanceBridge`, que devolve `full_seedance_already_fits` para
+// todo saldo >= FULL_SEEDANCE_COST (25) — e aí o bloco da ponte, com a linha
+// de preço de 02:32, não renderiza. Medido no banco nesta madrugada: de 166
+// pessoas que receberam filme e nunca viram um preço, 42 (25%) têm trial
+// ativo e saldo >= 15. As de 15–24 caem na ponte e já veem o preço; as de
+// 25+ — a fatia mais saudável da base — caem no degrau irmão `trial_repeat`.
+//
+// O QUE O DEGRAU IRMÃO MOSTRAVA A ELAS: "Prefer clean exports now? See paid
+// plans →" — um caminho para /pricing, mas SEM número, e uma impressão
+// (`trial_repeat_episode_viewed`) que não sabe se havia preço na tela. Para a
+// pergunta "quantas pessoas VIRAM um preço" essa linha é invisível.
+//
+// O QUE MUDA: a mesma linha secundária ganha o MESMO preço da ponte, da MESMA
+// fonte única (STARTER_PLAN_FACTS → PLAN_LIST → TIER_PRICES/TIER_CREDITS),
+// e a impressão passa a carregar `plans_link` + o motivo pelo qual a ponte
+// não renderizou (`bridge_reason`), mais um evento irmão
+// `trial_repeat_price_viewed` que só existe quando o número está na tela.
+// Sem Starter em PLAN_LIST o texto volta ao antigo (link sem número) — nunca
+// um preço datilografado. O botão principal (episódio 2 com o saldo que a
+// pessoa já tem) continua sendo o botão principal. Não é paywall.
+//
+// O QUE ESTA MUDANÇA NÃO COBRE (registrado, não escondido): o degrau
+// `trial_repeat` só renderiza se o episódio 2 chegou (`nextEpisode ||
+// nextEpisodeLoading`). Quando /api/next-episode falha, o bloco de oferta
+// fica realmente MUDO para esse perfil — nem ponte, nem assinatura, nem este
+// link. Esse caso se mede por `next_episode_failed` e é outra mudança.
+
 // KINEO-RENDER-FANTASMA-2026-08-14 — o loop de fal_polling era LITERALMENTE
 // infinito (o próprio código dizia "this retry is unbounded", duas vezes) e só
 // 502 encerrava. Medido em produção, sobre TODOS os débitos `cinematic-%` que
@@ -5321,8 +5351,28 @@ export default function GenerateClient({
           credits_after_success: repeatForImpression.creditsAfterSuccess,
           last_video_quality: quality,
           first_touch_source: decidePostVideoOffer(signupUtmSource, quality).firstTouchSource,
+          // KINEO-PRECO-PARA-SALDO-CHEIO-2026-09-07 — marcador de versão do
+          // deploy (mesmo papel do `plans_link` da ponte) e o MOTIVO pelo qual
+          // a ponte não ficou com este slot. `full_seedance_already_fits` é a
+          // fatia de saldo >= 25 que este degrau passa a atender com preço.
+          plans_link: Boolean(STARTER_PLAN_FACTS),
+          bridge_reason: balanceBridgeForImpression.reason,
           ...(intentCampaign ? { intent_campaign: intentCampaign } : {}),
         })
+        // Evento irmão, distinguível: só existe quando o NÚMERO está na tela.
+        // A impressão acima é o denominador (já existia); esta é a exposição
+        // ao preço, com o saldo que a pessoa tinha ao vê-lo.
+        if (STARTER_PLAN_FACTS) {
+          trackEvent('trial_repeat_price_viewed', {
+            source: 'result_trial_repeat',
+            repeat_version: repeatForImpression.version,
+            bridge_reason: balanceBridgeForImpression.reason,
+            credits_before: repeatForImpression.creditsBefore,
+            starter_price_label: STARTER_PLAN_FACTS.priceLabel,
+            last_video_quality: quality,
+            ...(intentCampaign ? { intent_campaign: intentCampaign } : {}),
+          })
+        }
         observer.disconnect()
         return
       }
@@ -15635,13 +15685,24 @@ export default function GenerateClient({
                                 source: 'result_trial_repeat',
                                 repeat_version: trialRepeatDecision.version,
                                 credits_before: trialRepeatDecision.creditsBefore,
+                                // KINEO-PRECO-PARA-SALDO-CHEIO-2026-09-07 — o
+                                // clique diz se havia preço na tela e por que
+                                // a ponte não ficou com o slot.
+                                plans_link: Boolean(STARTER_PLAN_FACTS),
+                                bridge_reason: trialBalanceBridge.reason,
+                                ...(STARTER_PLAN_FACTS ? { starter_price_label: STARTER_PLAN_FACTS.priceLabel } : {}),
                               })
                               router.push('/pricing?intent_campaign=trial_repeat_secondary_v1#plans')
                             }}
                             className="w-full mt-2 py-1.5 text-xs font-bold"
                             style={{ color: '#5cb3ff', background: 'transparent', border: 'none', cursor: 'pointer' }}
                           >
-                            Prefer clean exports now? See paid plans →
+                            {/* KINEO-PRECO-PARA-SALDO-CHEIO-2026-09-07 — ver o
+                                cabeçalho. O número sai da fonte única; sem
+                                Starter em PLAN_LIST o texto volta ao antigo. */}
+                            {STARTER_PLAN_FACTS
+                              ? <>Prefer clean exports now? Plans start at {STARTER_PLAN_FACTS.priceLabel}/month for {STARTER_PLAN_FACTS.credits} credits. See plans →</>
+                              : 'Prefer clean exports now? See paid plans →'}
                           </button>
                         </>
                       )}
