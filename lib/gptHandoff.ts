@@ -11,11 +11,28 @@
 // clica UMA vez. O token é o portador durável do roteiro: sobrevive ao
 // cadastro, ao OAuth, ao e-mail e à troca de aparelho — a query de URL não.
 //
-// Este arquivo é PURO de propósito: zero import, zero banco, zero rede. Todo o
-// vocabulário (motores, réguas, tetos, TTL) mora aqui, e scripts/test-gpt-
-// handoff.mjs EXECUTA estas funções (Node 24 despe os tipos) além de ler o
-// texto das rotas. Nunca cria conta, nunca debita crédito, nunca chama
-// fornecedor — a rota que consome isto também não.
+// Este arquivo é PURO de propósito: zero banco, zero rede, e UM único import —
+// lib/aspect.ts, que também é puro. Todo o vocabulário (motores, réguas, tetos,
+// TTL) mora aqui, e scripts/test-gpt-handoff.mjs EXECUTA estas funções (Node 24
+// despe os tipos; o alias `@/` é resolvido por um hook do próprio guardião)
+// além de ler o texto das rotas. Nunca cria conta, nunca debita crédito, nunca
+// chama fornecedor — a rota que consome isto também não.
+//
+// POR QUE O ENQUADRAMENTO NÃO É DIGITADO AQUI (06/09): este arquivo nasceu com
+// a própria lista `['9:16','16:9','1:1']`, digitada à mão, e ela já nasceu
+// DIVERGENTE de lib/aspect.ts (a fonte única, KINEO-MULTIFORMATO-2026-09-02):
+// faltava o 4:5 do feed do Instagram. Pior: a ação validava, gravava e DEVOLVIA
+// o `aspect`, e buildStudioDestination() o jogava fora — 100% dos handoffs
+// renderizavam 9:16, inclusive quem pediu YouTube widescreen ao GPT. Regra da
+// casa: "a regra vive em vários arquivos" — consertar um portador e deixar o
+// outro é meia-verdade. Daqui em diante a lista vem de lib/aspect.ts e o
+// guardião reprova qualquer cópia local.
+import { ASPECTS, DEFAULT_ASPECT, aspectSpec, normalizeAspect, type Aspect } from '@/lib/aspect'
+
+/** Reexportados para quem já importava daqui (página /go, rotas): os nomes
+ *  continuam, a fonte mudou. */
+export { ASPECTS, DEFAULT_ASPECT, aspectSpec, normalizeAspect }
+export type HandoffAspect = Aspect
 
 /** Teto do roteiro aceito pela ação — o MESMO que o Studio cobra
  *  (ANALYZE_PROMPT_MAX_CHARS = 5.000). Nasceu 6.000, e 6.000 estava errado:
@@ -35,8 +52,6 @@ export const STUDIO_PROMPT_MAX_CHARS = 5000
 export const TOPIC_MAX_CHARS = 200
 export const DURATIONS = [35, 60, 90] as const
 export const DEFAULT_DURATION: HandoffDuration = 60
-export const ASPECTS = ['9:16', '16:9', '1:1'] as const
-export const DEFAULT_ASPECT: HandoffAspect = '9:16'
 export const DEFAULT_ENGINE: HandoffEngine = 'seedance'
 export const DEFAULT_LANGUAGE = 'en'
 /** TTL do link: 7 dias. Quem pediu roteiro ao ChatGPT e não clicou em uma
@@ -67,7 +82,6 @@ export const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000
 export const HANDOFF_ENGINES = ['fast', 'seedance', 'kling', 'veo', 'hollywood', 'h3', 'omni'] as const
 export type HandoffEngine = (typeof HANDOFF_ENGINES)[number]
 export type HandoffDuration = (typeof DURATIONS)[number]
-export type HandoffAspect = (typeof ASPECTS)[number]
 export type HandoffFamily = 'classic' | 'hollywood'
 export type HandoffFit = 'short' | 'ok' | 'long'
 
@@ -250,6 +264,10 @@ export function validateHandoffInput(body: unknown): HandoffValidation {
     durationSec = n as HandoffDuration
   }
 
+  // Aqui NÃO se usa normalizeAspect(): ela engole valor inválido e devolve
+  // 9:16 em silêncio, o que serve para URL e banco, mas não para a AÇÃO — o
+  // GPT precisa do 400 para aprender a lista certa em vez de entregar um
+  // Short para quem pediu widescreen. A lista é a de lib/aspect.ts (4 formatos).
   let aspect: HandoffAspect = DEFAULT_ASPECT
   if (b.aspect !== undefined && b.aspect !== null) {
     if (typeof b.aspect !== 'string' || !(ASPECTS as readonly string[]).includes(b.aspect)) {
@@ -302,17 +320,30 @@ export function isHandoffToken(value: unknown): value is string {
 
 /** A URL do Studio já preenchido. Lista FECHADA de parâmetros — o valor vem de
  *  uma linha do banco escrita por terceiro; chave arbitrária é como se abre
- *  redirecionamento aberto. */
+ *  redirecionamento aberto.
+ *
+ *  `aspect` (06/09): o Studio lê `?aspect=` (GenerateClient.tsx:1252,
+ *  normalizeAspect) e o valor viaja até o compose/fal — a capacidade sempre
+ *  existiu ponta a ponta; era esta função que a jogava fora. A chave só é
+ *  emitida quando o formato normalizado NÃO é o padrão: é o mesmo padrão
+ *  `...(aspectRequested !== '9:16' ? { aspect } : {})` do GenerateClient, e
+ *  a regra de segurança de lib/aspect.ts (9:16 é o default, nada muda para
+ *  quem não pediu outro formato). Assim o link de quem pede Shorts continua
+ *  byte a byte igual ao de antes. Valor inválido na linha normaliza para o
+ *  padrão e some da URL — nunca passa cru. */
 export function buildStudioDestination(row: {
   script: string
   duration_sec: number
   engine_hint: string
+  aspect: string
 }): string {
   const q = new URLSearchParams()
   q.set('prompt', row.script)
   q.set('script_mode', 'verbatim')
   q.set('duration', String(row.duration_sec))
   q.set('engine', isHandoffEngine(row.engine_hint) ? row.engine_hint : DEFAULT_ENGINE)
+  const aspect = normalizeAspect(row.aspect)
+  if (aspect !== DEFAULT_ASPECT) q.set('aspect', aspect)
   q.set('utm_source', HANDOFF_UTM_SOURCE)
   q.set('intent_campaign', HANDOFF_INTENT_CAMPAIGN)
   return `${STUDIO_CREATE_PATH}?${q.toString()}`

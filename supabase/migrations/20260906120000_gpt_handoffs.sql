@@ -16,7 +16,7 @@ create table if not exists public.gpt_handoffs (
   token text unique not null,                 -- randomBytes(18) base64url, >= 16 chars
   script text not null,                       -- <= 5000 chars = teto do Studio (ANALYZE_PROMPT_MAX_CHARS)
   duration_sec int not null,                  -- 35 | 60 | 90
-  aspect text not null,                       -- '9:16' | '16:9' | '1:1'
+  aspect text not null,                       -- '9:16' | '16:9' | '1:1' | '4:5' — a lista de lib/aspect.ts (sem CHECK: a lib valida)
   engine_hint text not null,                  -- id real do Studio: fast|seedance|kling|veo|hollywood|h3|omni
   language text not null,                     -- 'en', 'pt-BR'…
   topic text,                                 -- <= 200 chars, opcional

@@ -1,18 +1,25 @@
 // KINEO-GPT-HANDOFF-2026-09-06 — guardião do "link de um clique" do GPT.
 //
 // Duas camadas, de propósito:
-//   (A) EXECUÇÃO da lib pura (lib/gptHandoff.ts não tem import; Node >= 22.6
-//       despe os tipos) — as duas réguas, o teto, o HTML e a contagem de
-//       palavras são provados com números, não com regex.
+//   (A) EXECUÇÃO da lib pura (lib/gptHandoff.ts tem UM import, lib/aspect.ts,
+//       que é pura; Node >= 22.6 despe os tipos) — as duas réguas, o teto, o
+//       HTML, a contagem de palavras e o destino do clique são provados com
+//       números, não com regex.
 //   (B) TEXTO REAL das rotas, da página e da migration — cada asserção amarrada
 //       à VARIÁVEL/CONDIÇÃO que decide (um mutante que troca o `if` por `true`
 //       ou o `randomBytes` por `Math.random` tem que reprovar).
-// Sem import com alias `@/` (72 testes do repo morrem no resolver antes da 1ª
-// verificação).
+// Este arquivo NÃO importa nada com alias `@/` (72 testes do repo morrem no
+// resolver antes da 1ª verificação). O que ele faz, desde 06/09, é resolver o
+// alias PARA A LIB: `registerHooks` abaixo mapeia `@/x` → `<raiz>/x(.ts)` em
+// processo, só o suficiente para lib/gptHandoff.ts importar lib/aspect.ts —
+// a fonte única do enquadramento, que o handoff copiava à mão e copiava
+// errado (faltava o 4:5). Nenhum formato é digitado neste arquivo: a lista
+// vem de lib/aspect.ts por regex E por execução, e as duas têm de bater.
 import fs from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { randomBytes } from 'node:crypto'
+import { registerHooks } from 'node:module'
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')), '..')
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n')
@@ -22,7 +29,29 @@ const ok = (c, m) => {
   if (c) { pass++; console.log('  ok  ' + m) } else { fail++; console.log('  FAIL ' + m) }
 }
 
+// O alias do tsconfig (`paths: { "@/*": ["./*"] }`), resolvido em processo.
+// Só prefixo `@/`; tudo o mais segue o resolvedor normal do Node.
+registerHooks({
+  resolve(specifier, context, nextResolve) {
+    if (specifier.startsWith('@/')) {
+      const abs = path.join(ROOT, specifier.slice(2))
+      const file = fs.existsSync(abs) && fs.statSync(abs).isFile() ? abs : `${abs}.ts`
+      return { url: pathToFileURL(file).href, shortCircuit: true }
+    }
+    return nextResolve(specifier, context)
+  },
+})
+
+/** `export const NAME = ['a', 'b'] as const` lido do TEXTO de um arquivo. */
+const listFrom = (src, name) => {
+  const m = src.match(new RegExp(`export const ${name} = \\[([^\\]]*)\\] as const`))
+  return m ? m[1].split(',').map((s) => s.trim().replace(/^'|'$/g, '')).filter(Boolean) : null
+}
+const strFrom = (src, name) => (src.match(new RegExp(`export const ${name}(?:: \\w+)? = '([^']*)'`)) || [])[1]
+const sameSetTop = (a, b) => Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every((x) => b.includes(x))
+
 const LIB = 'lib/gptHandoff.ts'
+const ASPECT_LIB = 'lib/aspect.ts'
 const STORE = 'lib/gptHandoffStore.ts'
 const POST_ROUTE = 'app/api/gpt/handoff/route.ts'
 const GO_ROUTE = 'app/api/gpt/handoff/go/route.ts'
@@ -31,6 +60,7 @@ const PAGE = 'app/go/[token]/page.tsx'
 const MIGRATION = 'supabase/migrations/20260906120000_gpt_handoffs.sql'
 
 const lib = read(LIB)
+const aspectLib = read(ASPECT_LIB)
 const store = read(STORE)
 const postRoute = read(POST_ROUTE)
 const goRoute = read(GO_ROUTE)
@@ -38,9 +68,18 @@ const pricingRoute = read(PRICING_ROUTE)
 const page = read(PAGE)
 const migration = read(MIGRATION)
 
+// O ENQUADRAMENTO — nunca digitado aqui. A lista e o padrão vêm do texto de
+// lib/aspect.ts; o bloco (A) confere que a lib EXECUTADA devolve a mesma coisa.
+const ASPECT_LIST = listFrom(aspectLib, 'ASPECTS') || []
+const ASPECT_DEFAULT = strFrom(aspectLib, 'DEFAULT_ASPECT')
+
 // ═══ (A) EXECUÇÃO DA LIB PURA ═══════════════════════════════════════════════
 console.log('\n(A) lib/gptHandoff.ts executada')
-ok(!/^\s*import\s/m.test(lib), '(A0) a lib é pura: zero import (é o que permite executá-la aqui)')
+{
+  const libImports = [...lib.matchAll(/^import [^\n]* from '([^']+)'/gm)].map((m) => m[1])
+  ok(libImports.length === 1 && libImports[0] === '@/lib/aspect', `(A0) a lib importa UM módulo, @/lib/aspect (achados: ${libImports.join(', ') || 'nenhum'}) — a fonte única do enquadramento; o resto continua puro`)
+  ok(!/^\s*import\s/m.test(aspectLib), '(A0) lib/aspect.ts é pura: zero import (é o que permite executar as duas aqui)')
+}
 let L = null
 try {
   L = await import(pathToFileURL(path.join(ROOT, LIB)).href)
@@ -139,6 +178,28 @@ if (L) {
   // alguem subir SCRIPT_MAX_CHARS acima do teto do /api/analyze-idea, o link
   // volta a nascer valido para morrer na primeira tela do produto.
   ok(L.SCRIPT_MAX_CHARS <= L.STUDIO_PROMPT_MAX_CHARS, '(A11) INVARIANTE: SCRIPT_MAX_CHARS <= STUDIO_PROMPT_MAX_CHARS')
+
+  // (A12) O ENQUADRAMENTO, EXECUTADO. Até 06/09 a lib tinha a própria lista
+  // (3 formatos, digitada) e buildStudioDestination() descartava o aspect:
+  // 100% dos handoffs renderizavam 9:16. Agora: a lista executada é a de
+  // lib/aspect.ts; a validação aceita cada um e recusa o resto citando a lista
+  // real; e o destino emite `aspect` para TODO formato que não é o padrão e
+  // para NENHUM outro (o link de quem pede Shorts continua byte a byte igual).
+  ok(ASPECT_LIST.length >= 2 && ASPECT_LIST.includes(ASPECT_DEFAULT), `(A12) lib/aspect.ts lida: ASPECTS=[${ASPECT_LIST}] padrão=${ASPECT_DEFAULT}`)
+  ok(sameSetTop([...L.ASPECTS], ASPECT_LIST) && L.DEFAULT_ASPECT === ASPECT_DEFAULT, `(A12) L.ASPECTS executada [${[...L.ASPECTS]}] === lista de lib/aspect.ts, e L.DEFAULT_ASPECT === ${ASPECT_DEFAULT}`)
+  ok(ASPECT_LIST.every((a) => { const v = L.validateHandoffInput({ script: 'x', aspect: a }); return v.ok === true && v.value.aspect === a }), `(A12) validateHandoffInput aceita cada um dos ${ASPECT_LIST.length} formatos e o devolve intacto`)
+  const bogusAspect = ASPECT_LIST.join('') + 'x'
+  const rejected = L.validateHandoffInput({ script: 'x', aspect: bogusAspect })
+  ok(rejected.ok === false && ASPECT_LIST.every((a) => rejected.error.includes(a)), `(A12) formato fora da lista → recusado, e a frase cita os ${ASPECT_LIST.length} formatos reais: "${rejected.error}"`)
+  const destAspect = (a) => new URLSearchParams(L.buildStudioDestination({ script: 'x', duration_sec: 60, engine_hint: 'seedance', aspect: a }).split('?')[1]).get('aspect')
+  for (const a of ASPECT_LIST) {
+    if (a === ASPECT_DEFAULT) ok(destAspect(a) === null, `(A12) destino para ${a} (o padrão) NÃO leva a chave aspect — link de Shorts inalterado`)
+    else ok(destAspect(a) === a, `(A12) destino para ${a} leva aspect=${destAspect(a)} — o Studio vai renderizar o que a pessoa pediu`)
+  }
+  ok(destAspect(bogusAspect) === null && destAspect(undefined) === null, '(A12) valor inválido/ausente na linha normaliza para o padrão e some da URL (nunca passa cru)')
+  const withDefault = L.buildStudioDestination({ script: 'Hello', duration_sec: 60, engine_hint: 'seedance', aspect: ASPECT_DEFAULT })
+  const withNothing = L.buildStudioDestination({ script: 'Hello', duration_sec: 60, engine_hint: 'seedance', aspect: '' })
+  ok(withDefault === withNothing && !/aspect=/.test(withDefault), '(A12) destino com o padrão === destino sem formato, byte a byte')
 }
 
 // ═══ (B) TEXTO REAL — rota POST ═════════════════════════════════════════════
@@ -314,7 +375,8 @@ console.log('\n(J) public/gpt/openapi.json amarrado ao servidor')
     const TOPIC_MAX = num(lib, 'TOPIC_MAX_CHARS')
     const TTL_DAYS = num(lib, 'HANDOFF_TTL_DAYS')
     const DUR = (list('DURATIONS') || []).map(Number)
-    const ASP = list('ASPECTS') || []
+    // O enquadramento vem de lib/aspect.ts (a lib do handoff só reexporta).
+    const ASP = ASPECT_LIST
     const ENG = list('HANDOFF_ENGINES') || []
     const LANG_SRC = (lib.match(/export const LANGUAGE_PATTERN = \/(.+)\/\s*$/m) || [])[1]
     const engineCost = read('lib/credits/engineCost.ts')
@@ -476,7 +538,7 @@ console.log('\n(K) docs/GPT-KINEO-VIDEO-MAKER.md amarrado ao servidor e ao schem
   const ENG = list('HANDOFF_ENGINES') || []
   const DEF_DUR = num(lib, 'DEFAULT_DURATION')
   const DEF_ENG = str(lib, 'DEFAULT_ENGINE')
-  const DEF_ASP = str(lib, 'DEFAULT_ASPECT')
+  const DEF_ASP = ASPECT_DEFAULT
   const DEF_LANG = str(lib, 'DEFAULT_LANGUAGE')
   const GO_PREFIX = str(lib, 'GO_PATH_PREFIX')
   const labelsSrc = (lib.match(/export const ENGINE_LABELS[^{]*\{([^}]*)\}/) || [])[1] || ''
@@ -677,6 +739,74 @@ console.log('\n(K) docs/GPT-KINEO-VIDEO-MAKER.md amarrado ao servidor e ao schem
   ok((instructions.match(new RegExp(fallback.replace(/[./]/g, '\\$&'), 'g')) || []).length >= 2 && (op?.responses?.['503']?.description ?? '').includes(fallback) && (op?.responses?.['400']?.description ?? '').length > 0, '(K9) o fallback "cole no /studio" é o mesmo em C e no 503 do schema')
   ok(md.includes(`${schema?.servers?.[0]?.url}${GO_PREFIX}`) && instructions.includes('<the url from the response, verbatim>'), `(K9) o link esperado começa com ${GO_PREFIX} (GO_PATH_PREFIX) e a instrução manda mostrar a url verbatim`)
   ok(instructions.split('\n').filter((l) => /^- (400|429|Any other error):/.test(l)).length === 3 && sameSet(Object.keys(op?.responses ?? {}).filter((s) => s !== '200'), ['400', '429', '503']), '(K9) as instruções tratam 400, 429 e "qualquer outro" — e o schema só tem 400/429/503 além do 200')
+}
+
+// ═══ (L) O ENQUADRAMENTO — uma fonte, cinco portadores ═══════════════════
+// O defeito de 06/09: a ação aceitava, gravava e DEVOLVIA `aspect`, e
+// buildStudioDestination() não o punha na URL — 100% dos handoffs saíam 9:16.
+// E a lista do handoff, digitada à mão, tinha perdido o 4:5 de lib/aspect.ts.
+// Regra da casa ("a regra vive em vários arquivos"): consertar um portador e
+// deixar o outro é meia-verdade. Os portadores: a lib (reexporta), a URL do
+// clique (emite), o schema (dois enums + três descriptions), as instruções do
+// GPT (pergunta/infere), a migration (comentário) e a página /go (mostra).
+// NENHUM formato é digitado aqui: ASPECT_LIST/ASPECT_DEFAULT vêm de
+// lib/aspect.ts, e o mutante que tira um formato de qualquer portador reprova.
+console.log('\n(L) enquadramento: lib/aspect.ts é a fonte; nenhum formato digitado aqui')
+{
+  const sameSet = sameSetTop
+  // ── (L1) a lib do handoff não tem cópia própria.
+  ok(!/ASPECTS\s*=\s*\[/.test(lib) && !/DEFAULT_ASPECT\s*(?::\s*\w+)?\s*=\s*'/.test(lib), '(L1) lib/gptHandoff.ts NÃO digita ASPECTS nem DEFAULT_ASPECT')
+  ok(/^import \{[^}]*\bASPECTS\b[^}]*\bDEFAULT_ASPECT\b[^}]*\bnormalizeAspect\b[^}]*\} from '@\/lib\/aspect'/m.test(lib) && /^export \{[^}]*\bASPECTS\b[^}]*\bDEFAULT_ASPECT\b[^}]*\bnormalizeAspect\b[^}]*\}/m.test(lib), '(L1) importa ASPECTS/DEFAULT_ASPECT/normalizeAspect de @/lib/aspect e reexporta os nomes antigos (quem importava daqui continua funcionando)')
+  const libCode = lib.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+  ok(ASPECT_LIST.every((a) => !libCode.includes(`'${a}'`)), `(L1) nenhum dos ${ASPECT_LIST.length} formatos aparece como literal no CÓDIGO da lib (só em comentário) — uma cópia digitada reprova aqui`)
+  // ── (L2) a emissão condicional, no texto, amarrada ao padrão da fonte.
+  ok(/const aspect = normalizeAspect\(row\.aspect\)\s*\n\s*if \(aspect !== DEFAULT_ASPECT\) q\.set\('aspect', aspect\)/.test(lib), "(L2) buildStudioDestination: `if (aspect !== DEFAULT_ASPECT) q.set('aspect', aspect)` — emite só fora do padrão")
+  ok(/aspect: string\s*\n\s*\}\): string \{/.test(lib), '(L2) a assinatura de buildStudioDestination exige `aspect` na linha (a rota do clique passa a linha inteira)')
+  // O Studio LÊ o parâmetro — a capacidade existe do outro lado (só leitura
+  // do arquivo; o GenerateClient não é editado por este trabalho).
+  const gen = read('app/(dashboard)/generate/GenerateClient.tsx')
+  ok(/normalizeAspect\(searchParams\.get\('aspect'\)\)/.test(gen), "(L2) o Studio lê ?aspect= — GenerateClient: normalizeAspect(searchParams.get('aspect'))")
+  ok((gen.match(new RegExp(`aspectRequested !== '${ASPECT_DEFAULT}' \\? \\{ aspect`, 'g')) || []).length >= 3, `(L2) o GenerateClient usa o MESMO padrão (só viaja quando != ${ASPECT_DEFAULT}) em ≥3 pontos — o handoff copia a casa, não inventa`)
+  // ── (L3) o schema: dois enums, três descriptions, versão.
+  let schema = null
+  try { schema = JSON.parse(read('public/gpt/openapi.json')) } catch {}
+  const reqA = schema?.components?.schemas?.HandoffRequest?.properties?.aspect ?? {}
+  const resA = schema?.components?.schemas?.HandoffResponse?.properties?.aspect ?? {}
+  const d400 = schema?.paths?.['/api/gpt/handoff']?.post?.responses?.['400']?.description ?? ''
+  ok(sameSet(reqA.enum, ASPECT_LIST), `(L3) HandoffRequest.aspect.enum [${reqA.enum}] === lib/aspect.ts [${ASPECT_LIST}]`)
+  ok(sameSet(resA.enum, ASPECT_LIST), `(L3) HandoffResponse.aspect.enum [${resA.enum}] === lib/aspect.ts [${ASPECT_LIST}]`)
+  ok(reqA.default === ASPECT_DEFAULT, `(L3) HandoffRequest.aspect.default === ${ASPECT_DEFAULT}`)
+  ok(ASPECT_LIST.every((a) => (reqA.description ?? '').includes(a)) && /\bask\b/i.test(reqA.description ?? '') && /price/i.test(reqA.description ?? ''), '(L3) a description do pedido ensina cada formato pela plataforma, manda PERGUNTAR onde vai postar quando não está claro, e diz que o preço não muda')
+  ok(/TikTok/.test(reqA.description ?? '') && /YouTube/.test(reqA.description ?? '') && /Instagram/.test(reqA.description ?? ''), '(L3) a escolha é ensinada por PLATAFORMA (TikTok, YouTube, Instagram), não por "evite"')
+  ok(ASPECT_LIST.every((a) => (resA.description ?? '').includes(a)), '(L3) a description da resposta cita cada formato (o modelo confirma à pessoa o que vai renderizar)')
+  ok(ASPECT_LIST.every((a) => d400.includes(a)), `(L3) o 400 diz quais valores de aspect existem (${ASPECT_LIST.join(', ')})`)
+  const ver = String(schema?.info?.version ?? '')
+  const [vMaj, vMin] = ver.split('.').map(Number)
+  ok(/^\d+\.\d+\.\d+$/.test(ver) && (vMaj > 1 || (vMaj === 1 && vMin >= 2)), `(L3) info.version ${ver || '?'} é semver e ≥ 1.2.0 — o enum mudou de forma; o editor do GPT só relê o schema com reimport`)
+  // ── (L4) as instruções do GPT: infere pela plataforma, pergunta se não sabe.
+  const md = read('docs/GPT-KINEO-VIDEO-MAKER.md')
+  const sectionOf = (letter) => (md.match(new RegExp(`^## ${letter}\\. [^\\n]*\\n([\\s\\S]*?)(?=^## [A-Z]\\. |(?![\\s\\S]))`, 'm')) || [])[1] || ''
+  const instr = (sectionOf('C').match(/```\n([\s\S]*?)\n```/) || [])[1] || ''
+  ok(ASPECT_LIST.every((a) => instr.includes(a)), `(L4) as instruções (seção C) citam cada um dos ${ASPECT_LIST.length} formatos`)
+  const frameBlock = (instr.match(/Frame \(aspect ratio\)[\s\S]*?never changes the price\./) || [''])[0]
+  ok(frameBlock.length > 200 && ASPECT_LIST.every((a) => new RegExp(`→ ${a}`).test(frameBlock)), '(L4) Step 1: cada formato tem a plataforma que o pede ("plataforma → formato")')
+  ok(/add ONE short question/.test(frameBlock) && /Where will you post it/.test(frameBlock), '(L4) Step 1: o GPT PERGUNTA onde a pessoa vai postar quando não está claro')
+  ok(!/Never ask about it/.test(instr), '(L4) a instrução antiga "Never ask about it" (que travava todo mundo em 9:16) morreu')
+  const step5Aspect = instr.split('\n').find((l) => /^- aspect: /.test(l)) || ''
+  ok(step5Aspect.startsWith(`- aspect: "${ASPECT_DEFAULT}" unless`) && ASPECT_LIST.every((a) => step5Aspect.includes(`"${a}"`)), `(L4) Step 5 envia "${ASPECT_DEFAULT}" por padrão e nomeia os outros formatos com a plataforma`)
+  ok(/frame/.test(instr.split('\n').find((l) => /already filled in/.test(l) && /valid for/.test(l)) || ''), '(L4) Step 6: a mensagem final diz que o frame também vai preenchido')
+  ok(ASPECT_LIST.every((a) => sectionOf('G').includes(`\`${a}\``)) && /lib\/aspect\.ts/.test(sectionOf('G')), '(L4) seção G registra os formatos e aponta lib/aspect.ts como fonte')
+  // ── (L5) a migration: sem CHECK (a lib valida), comentário com a lista real.
+  const aspectCol = (migration.match(/^\s*aspect text not null.*$/m) || [''])[0]
+  ok(aspectCol.length > 0 && ASPECT_LIST.every((a) => aspectCol.includes(`'${a}'`)), `(L5) o comentário da coluna aspect cita os ${ASPECT_LIST.length} formatos reais: "${aspectCol.trim().slice(0, 100)}"`)
+  ok(!/check\s*\(\s*aspect/i.test(migration), '(L5) sem CHECK na coluna — formato novo não exige migration; quem valida é a lib')
+  // ── (L6) a página /go mostra o enquadramento SEMPRE, com nome e destino.
+  ok(/import \{[^}]*\baspectSpec\b[^}]*\} from '@\/lib\/gptHandoff'/.test(page) && /const frame = aspectSpec\(row\.aspect\)/.test(page), '(L6) a página usa aspectSpec(row.aspect) — o mesmo normalizador que o destino do clique')
+  const frameLine = page.split('\n').find((l) => /\{frame\.label\}/.test(l)) || ''
+  ok(/<Meta>\{frame\.aspect\} · \{frame\.label\} · \{frame\.where\}<\/Meta>/.test(frameLine), '(L6) a linha do formato mostra ratio · rótulo humano · onde posta (aspectSpec().label e .where)')
+  ok(!/&&|\?/.test(frameLine), '(L6) a linha do formato é INCONDICIONAL — aparece também em 9:16 (quem pousa precisa saber o que vem)')
+  ok(ASPECT_LIST.every((a) => new RegExp(`'${a}': \\{[\\s\\S]*?label: '[^']+',\\s*where: '[^']+'`).test(aspectLib)), '(L6) lib/aspect.ts tem label e where para cada formato — o que a página mostra existe')
+  ok(/metadata: \{[\s\S]{0,900}?aspect: row\.aspect/.test(page), '(L6) gpt_landing_viewed carrega o aspect — adoção do não-padrão mede-se no pouso, não por data')
 }
 
 console.log(`\n${pass} ok, ${fail} falhas`)

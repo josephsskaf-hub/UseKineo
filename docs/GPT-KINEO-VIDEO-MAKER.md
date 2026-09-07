@@ -25,6 +25,14 @@ Fatos conferidos no repo antes de escrever (06/09):
   no trial.
 - Preços (`lib/checkoutPricing.ts:94-102`): Starter $7, Creator $15,
   Studio $29, Autopilot $299.
+- Enquadramento (06/09): `lib/aspect.ts` é a FONTE ÚNICA da casa, com quatro
+  formatos — `9:16` (Shorts/TikTok/Reels), `16:9` (YouTube/site/anúncio),
+  `1:1` (post quadrado de Facebook/Instagram) e `4:5` (feed do Instagram).
+  O Studio lê `?aspect=` em `app/(dashboard)/generate/GenerateClient.tsx:1252`
+  (`normalizeAspect`) e o valor chega ao compose/fal; não há gate por plano no
+  formato, e `relativeRenderCost` mostra que 1:1 e 4:5 custam MENOS para nós
+  que 9:16. `lib/gptHandoff.ts` reexporta a lista de lá — nunca digita uma
+  cópia (foi assim que o handoff perdeu o 4:5).
 - `/privacy` existe (`app/privacy/page.tsx`, canonical `/privacy`).
 - `public/` é servido na raiz pelo Next (ex.: `public/badge-made-with-kineo.svg`
   → `https://www.usekineo.com/badge-made-with-kineo.svg`, usado em
@@ -69,7 +77,7 @@ Turns your idea into a ready-to-render short video script, then hands it to Kine
 ```
 Tell me what your video is about and I'll write a 35, 60 or 90-second short in the format that actually performs: a hook that stops the scroll, a quick reward, an escalation, and a payoff. Only verifiable facts, written to be spoken aloud.
 
-When you approve the script, I hand it to Kineo (usekineo.com) and give you one link. Click it and Kineo Studio opens with the script, duration and engine already filled in. Kineo directs, narrates, scores and edits a cinematic vertical video in about three minutes. Your first film is free: 25 trial credits, no card.
+When you approve the script, I hand it to Kineo (usekineo.com) and give you one link. Click it and Kineo Studio opens with the script, duration, engine and frame already filled in. Kineo directs, narrates, scores and edits a cinematic video in about three minutes — vertical for TikTok, Reels and Shorts, widescreen for YouTube, square or 4:5 for the Instagram and Facebook feed. Your first film is free: 25 trial credits, no card.
 
 Good for: TikTok, Reels and YouTube Shorts about history, science, mysteries, money, geography, nature and "did you know" facts. Choose from Kineo's 8 video engines, from real stock footage (Kineo 1) to fully AI-generated cinematic scenes (Seedance, Kling, Veo).
 ```
@@ -86,7 +94,13 @@ Before writing anything, you need two things. Ask for both in ONE short message,
 1. Duration: 35s (quick fact), 60s (standard Short, recommended), or 90s (deeper story). Default 60.
 2. The topic or angle, if the user only gave a vague theme.
 If the user already gave both, do not ask; write the script.
-Aspect ratio is 9:16 unless the user explicitly asks for landscape (16:9) or square (1:1). Never ask about it.
+
+Frame (aspect ratio) follows the PLATFORM the user named. Kineo renders every frame natively, at the same price, so pick it from what the user said instead of assuming vertical:
+- Shorts, TikTok, Reels, "a short", or no platform named → 9:16 vertical (the default).
+- A regular YouTube video, a website, or a display ad → 16:9 widescreen.
+- A square Facebook or Instagram post or ad → 1:1 square.
+- An Instagram feed post that should fill more of the screen → 4:5 tall.
+If the user has not said where the video will be posted and the request could be either a Short or a regular video, add ONE short question to the same message ("Where will you post it — TikTok/Shorts, YouTube, or the Instagram feed?"). Do not ask when the platform is obvious from the request. Changing the frame never changes the price.
 
 What 90s costs (say this only when the user asks for 90s): the free 25-credit trial pays for one 60-second film on the default engine. A 90-second film costs about half again as much and does not fit the free trial, so a 90s video needs a paid plan. If the user has not paid yet and asks for 90s, say that in one line and offer 60s instead — do not talk them out of it if they still want 90s.
 
@@ -139,7 +153,7 @@ Do NOT call the action yet. Never call the action in the first message of a conv
 Call createKineoHandoff once, with:
 - script: the approved script exactly as shown, including the four labels.
 - durationSec: 35, 60 or 90, the one the user chose.
-- aspect: "9:16" unless the user asked for 16:9 or 1:1.
+- aspect: "9:16" unless the platform calls for another frame (Step 1): "16:9" for a regular YouTube video, website or display ad; "1:1" for a square Facebook/Instagram post or ad; "4:5" for the Instagram feed.
 - engineHint: pick by story type (see below).
 - language: the language the script is written in ("en" by default).
 - topic: a 3-8 word working title, no hashtags.
@@ -155,7 +169,7 @@ Never send any other value.
 After a successful action call, reply with exactly this shape:
 "Your video is ready to start — one click:"
 <the url from the response, verbatim>
-Then, in two short lines: the link opens Kineo Studio with your script, duration and engine already filled in, and is valid for 7 days. Your first film is free (25-credit trial, no card needed) — say this only for 35s and 60s films on the default engine; a 90s film or a premium engine costs more than the trial.
+Then, in two short lines: the link opens Kineo Studio with your script, duration, engine and frame already filled in (name the frame when it is not 9:16, e.g. "16:9 widescreen for YouTube"), and is valid for 7 days. Your first film is free (25-credit trial, no card needed) — say this only for 35s and 60s films on the default engine; a 90s film or a premium engine costs more than the trial.
 If the response says fit is "short", add one line offering to extend the script and re-send. If fit is "long", say nothing unless it is far over; running over the target is fine.
 Never alter, shorten, or reformat the URL. Never show a URL you did not receive from the action.
 
@@ -306,8 +320,8 @@ da loja.
 16. Abrir o link `https://chatgpt.com/g/g-...` numa aba nova.
 17. Clicar no primeiro conversation starter ("Make a 60s video about a
     historical event most people have never heard of").
-18. Conferir: o GPT PERGUNTA duração/tema OU já escreve o script (se o
-    starter bastar). Ele NÃO deve chamar a ação ainda — se aparecer "Talked
+18. Conferir: o GPT PERGUNTA duração/tema (e onde a pessoa vai postar, se o
+    pedido não deixar claro) OU já escreve o script (se o starter bastar). Ele NÃO deve chamar a ação ainda — se aparecer "Talked
     to www.usekineo.com" antes de mostrar o script, é defeito de instrução:
     reportar.
 19. Conferir: o script vem em bloco de código com HOOK:/MICRO REWARD:/
@@ -354,6 +368,20 @@ da loja.
   a `description` do 200 no `openapi.json`, e este parágrafo. O guardião
   `scripts/test-gpt-handoff.mjs` reprova se algum deles prometer grátis sem
   citar a condição de duração.
+- O ENQUADRAMENTO tem quatro formatos e a lista mora em `lib/aspect.ts`
+  (`9:16` Shorts/TikTok/Reels · `16:9` YouTube/site/anúncio · `1:1` post
+  quadrado de Facebook/Instagram · `4:5` feed do Instagram). Até 06/09 a ação
+  aceitava, gravava e DEVOLVIA o `aspect`, mas `buildStudioDestination()` não
+  o punha na URL do Studio: 100% dos links renderizavam 9:16, inclusive de
+  quem pediu YouTube widescreen — e a lista do handoff, digitada à mão, tinha
+  perdido o `4:5`. Agora `lib/gptHandoff.ts` REEXPORTA a lista de
+  `lib/aspect.ts`, a chave `aspect` só viaja na URL quando o formato não é
+  9:16 (o mesmo padrão do GenerateClient: o link de quem pede Shorts continua
+  idêntico), a página `/go` mostra o formato com nome e destino ANTES do
+  clique, e o GPT pergunta onde a pessoa vai postar quando não estiver claro
+  (Step 1 da seção C). Trocar de formato não muda o preço. O guardião deriva
+  a lista de `lib/aspect.ts` e reprova enum, instrução, migration e página
+  que perderem um dos quatro.
 - `s25` (Seedance 2.5) e `sora` ficaram FORA do enum de propósito: o 2.5 só
   existe para contas internas (`S25_PUBLIC=false`) e o Sora devolve 400. No
   dia em que o 2.5 abrir, adicionar `"s25"` ao enum de `engineHint` no

@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Kineo Video Handoff",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "description": "Turns an approved Short script into a one-click Kineo Studio link. Call createKineoHandoff ONLY after the user has explicitly approved the final script. The response contains a URL (https://www.usekineo.com/go/<token>) that opens Kineo Studio pre-filled with the script, duration and engine. Kineo renders the film after the user clicks; this API never renders anything itself. Public, no authentication, rate-limited per IP."
   },
   "servers": [
@@ -38,7 +38,7 @@
             }
           },
           "400": {
-            "description": "The request was rejected: missing or empty script, script over 5000 characters, HTML tags in the script or topic, invalid durationSec (must be 35, 60 or 90), invalid aspect, unknown engineHint, malformed language code, topic over 200 characters, or a body that is not JSON. Read `error` (it states the exact reason and, for length, the exact limit), fix the payload, and try again once. If the script is too long, trim the script — never truncate silently without telling the user. Never show a made-up link.",
+            "description": "The request was rejected: missing or empty script, script over 5000 characters, HTML tags in the script or topic, invalid durationSec (must be 35, 60 or 90), invalid aspect (must be 9:16, 16:9, 1:1 or 4:5), unknown engineHint, malformed language code, topic over 200 characters, or a body that is not JSON. Read `error` (it states the exact reason and, for length, the exact limit), fix the payload, and try again once. If the script is too long, trim the script — never truncate silently without telling the user. Never show a made-up link.",
             "content": {
               "application/json": {
                 "schema": {
@@ -92,9 +92,9 @@
           },
           "aspect": {
             "type": "string",
-            "enum": ["9:16", "16:9", "1:1"],
+            "enum": ["9:16", "16:9", "1:1", "4:5"],
             "default": "9:16",
-            "description": "Frame of the video. 9:16 is vertical (TikTok, Reels, YouTube Shorts) and is the default for virtually every request. Use 16:9 only if the user explicitly says YouTube landscape/widescreen, and 1:1 only if they explicitly ask for a square post."
+            "description": "Frame of the video, chosen from the platform the user named — Kineo renders every frame natively (no cropping), so pick the one that fits where the video will be posted. 9:16 = vertical, for TikTok, Reels and YouTube Shorts (the default when the user asks for a Short, a TikTok, a Reel, or names no platform). 16:9 = widescreen, for regular YouTube videos, a website, or a display ad. 1:1 = square, for a square Facebook or Instagram post or ad. 4:5 = tall feed post, for the Instagram feed (takes up more of the screen than 1:1). If the user has not said where the video will be posted and it is not obvious, ASK in the same message where you ask for duration and topic — do not silently assume. Changing the frame does not change the price: every frame costs the same credits."
           },
           "engineHint": {
             "type": "string",
@@ -162,8 +162,8 @@
           },
           "aspect": {
             "type": "string",
-            "enum": ["9:16", "16:9", "1:1"],
-            "description": "The frame Kineo stored for this handoff."
+            "enum": ["9:16", "16:9", "1:1", "4:5"],
+            "description": "The frame Kineo stored for this handoff and will render when the user clicks: 9:16 vertical (TikTok, Reels, YouTube Shorts), 16:9 widescreen (YouTube, website, display ads), 1:1 square (Facebook/Instagram post or ad), 4:5 tall feed post (Instagram feed). If it is not the frame the user asked for, tell them in one line which frame the link will render and offer to re-send with the right one; the frame never changes the price."
           },
           "language": {
             "type": "string",

@@ -4,10 +4,10 @@ import { cookies, headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { writeServerEvent } from '@/lib/serverEvents'
 import {
-  ASPECTS,
   ENGINE_LABELS,
   HANDOFF_TTL_DAYS,
   STUDIO_PROMPT_MAX_CHARS,
+  aspectSpec,
   describeFit,
   engineFamily,
   handoffHeadline,
@@ -151,6 +151,9 @@ export default async function GoPage({ params }: { params: { token: string } }) 
         bot,
         engine_hint: row.engine_hint,
         duration_sec: row.duration_sec,
+        // 06/09: o formato entra no pouso para medir adoção do não-9:16 sem
+        // juntar com gpt_handoff_created por data (junção fraca).
+        aspect: row.aspect,
         fit: row.fit,
         words: row.words,
         language: row.language,
@@ -164,7 +167,12 @@ export default async function GoPage({ params }: { params: { token: string } }) 
   const engine = isHandoffEngine(row.engine_hint) ? row.engine_hint : 'seedance'
   const engineLabel = ENGINE_LABELS[engine]
   const family = engineFamily(engine)
-  const aspect = (ASPECTS as readonly string[]).includes(row.aspect) ? row.aspect : '9:16'
+  // O ENQUADRAMENTO, com nome humano e destino (lib/aspect.ts). Até 06/09 a
+  // página mostrava só "9:16" cru, e o link do botão descartava o formato —
+  // quem pediu widescreen ao GPT via a promessa aqui e recebia um Short no
+  // Studio. aspectSpec() normaliza valor inválido para o padrão, o MESMO que
+  // buildStudioDestination() vai emitir: o que a pessoa lê é o que renderiza.
+  const frame = aspectSpec(row.aspect)
   const headline = handoffHeadline(row)
   const fitLine = describeFit({ fit: row.fit, seconds: Number(row.seconds), words: row.words }, row.duration_sec)
   const overStudioLimit = row.script.length > STUDIO_PROMPT_MAX_CHARS
@@ -191,7 +199,8 @@ export default async function GoPage({ params }: { params: { token: string } }) 
       <p style={{ margin: '0 0 8px', display: 'flex', flexWrap: 'wrap', gap: '6px 14px' }}>
         <Meta>{row.duration_sec}s video</Meta>
         <Meta>{engineLabel} engine{family === 'hollywood' ? ' · characters speak on screen' : ''}</Meta>
-        <Meta>{aspect}</Meta>
+        {/* Sempre visível, inclusive em 9:16: quem pousa precisa saber o que vem. */}
+        <Meta>{frame.aspect} · {frame.label} · {frame.where}</Meta>
         <Meta>{row.language}</Meta>
         <Meta>{row.words} words</Meta>
       </p>
