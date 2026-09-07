@@ -90,6 +90,7 @@ const OTHER_CAMPAIGNS = [
   'hot_upsell_sent',
   'next_episode_wall_emailed_v1',
   'checkout_recovery_emailed_v1',
+  'card_declined_emailed_v1',
 ]
 
 /** Colunas de carimbo em `profiles`, conferidas contra information_schema em

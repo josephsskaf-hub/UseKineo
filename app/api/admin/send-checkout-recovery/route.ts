@@ -94,6 +94,11 @@ const OUTRAS_CAMPANHAS = [
   // nos dois sentidos: sem este carimbo, a mesma pessoa poderia levar duas
   // cartas no mesmo dia.
   'season_letter_emailed_v1',
+  // KINEO-CARTA-DA-RECUSA-2026-09-07 — coorte VIZINHA e excludente: as duas
+  // cartas falam do mesmo momento (a página de pagamento) e de mortes
+  // diferentes (a sessão expirou × o banco recusou). Quem levou uma não leva
+  // a outra.
+  'card_declined_emailed_v1',
 ]
 
 /** ⛔ NUNCA escrever para estes (limite explícito do ciclo de 06/09). */

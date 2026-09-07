@@ -46,6 +46,10 @@ export const LIFECYCLE_EMAIL_EVENT_NAMES = [
   'season_letter_emailed_v1',
   'next_episode_wall_emailed_v1',
   'checkout_recovery_emailed_v1',
+  // KINEO-CARTA-DA-RECUSA-2026-09-07 — a carta de cartao recusado. Entra aqui
+  // no MESMO commit em que nasce: sem este nome a supressao de 24h nao a ve, e
+  // a pessoa recusada leva duas cartas nossas com minutos de diferenca.
+  'card_declined_emailed_v1',
   'checkout_rescue_emailed_v1',
   'made_video_today_emailed_v1',
   'comeback50_emailed_v1',
