@@ -157,5 +157,25 @@ for (const [nome, texto] of [['e-mail de entrega', emailEntrega], ['cron send-vi
     at > 0 && texto.slice(Math.max(0, at - 1500), at + 1500).includes('shareHref'))
 }
 
+console.log('6 · o segundo cadeado do sitemap: env de 12/08 vs consentimento')
+// A env KINEO_VIDEO_SITEMAP_MAX foi posta em 12/08 sobre uma medicao real:
+// 602 paginas listadas SEM pedido de ninguem comeram 79% do orcamento de
+// rastreamento e deram 0 impressoes em 28 dias. Ela continua valendo para o
+// modo antigo. O que muda e que no modo consentimento o conjunto e curado
+// pelo dono do filme, entao o padrao deixa de ser 0 e passa a ser um teto
+// pequeno. Este bloco existe para que ninguem afrouxe isso por descuido.
+const sitemapRoute = src('app/video-sitemap.xml/route.ts')
+const fn = corpo(sitemapRoute, 'function videoSitemapMax(): number {')
+check('videoSitemapMax foi localizada', fn.length > 40)
+check('o padrao depende da trava global (variavel que decide)', fn.includes('CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED'))
+check('trava ABERTA continua com padrao 0 — o modo que a medicao condenou', fn.includes('global ? 0 : CONSENT_DEFAULT_MAX'))
+check('trava FECHADA usa o teto do consentimento', fn.includes('CONSENT_DEFAULT_MAX'))
+check('a env continua podendo desligar tudo com 0', fn.includes('if (n <= 0) return 0'))
+check('env ilegivel cai no padrao, nunca em tudo ligado', fn.includes('if (!Number.isFinite(n)) return padrao'))
+const teto = (sitemapRoute.match(/const CONSENT_DEFAULT_MAX = ([0-9]+)/) ?? [])[1]
+check('o teto do consentimento e pequeno (<= 100), nao um portao aberto', Number(teto) > 0 && Number(teto) <= 100)
+check('a condicao de morte da escolha esta escrita', sitemapRoute.includes('CONDICAO DE MORTE'))
+check('a medicao de 12/08 nao foi apagada do arquivo', sitemapRoute.includes('0 impress'))
+
 console.log(`\n${ok} ok, ${fail} fail`)
 process.exit(fail ? 1 : 0)

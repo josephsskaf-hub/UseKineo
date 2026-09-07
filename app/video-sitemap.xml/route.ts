@@ -1,4 +1,5 @@
 import { PUBLIC_EXAMPLES } from '@/lib/publicExamples'
+import { CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED } from '@/lib/publicSurfacePolicy'
 import {
   listIndexablePublicVideos,
   metaDescriptionFor,
@@ -138,12 +139,40 @@ ${parts.join('\n')}
 // IMPORTANTE — isto NÃO desindexa nada. Retira apenas o PEDIDO de rastreamento;
 // cada `/v/[id]` continua no ar e continua decidindo sozinho o próprio robots
 // (lib/publicVideos.ts). Religar = `KINEO_VIDEO_SITEMAP_MAX=600` na Vercel.
+//
+// === KINEO-CONSENTIMENTO-POR-LINHA-2026-09-07 ==============================
+// A medicao acima continua inteiramente valida - e e POR ISSO que o padrao de
+// baixo nao e "tudo ligado". O que ela mediu foram 602 paginas listadas SEM
+// ninguem ter pedido: o produto decidia sozinho publicar todo filme
+// `completed`. Desde o #27 (06/09) existe `videos.published_at`, carimbado so
+// quando o DONO clica. Isso muda a natureza do conjunto: o que envenenou a
+// fila de rastreamento foi VOLUME sem curadoria, nao a existencia de paginas
+// de video.
+//
+// Por isso o padrao passa a ser condicional, e conservador dos dois lados:
+//   - trava global ABERTA (todo filme vira pagina) -> padrao 0, exatamente
+//     como em 12/08. E o modo que a medicao condenou, e continua condenado.
+//   - trava global FECHADA (so entra quem consentiu) -> CONSENT_DEFAULT_MAX,
+//     um teto pequeno. Hoje isso e 1 pagina; se um dia forem 60, ainda e uma
+//     fracao do que a casa ja pede ao Google (164) e cada uma tem um dono que
+//     pediu para ela existir.
+// A env `KINEO_VIDEO_SITEMAP_MAX` continua mandando mais que o padrao nos dois
+// modos, e `0` nela continua desligando tudo.
+//
+// A CONDICAO DE MORTE desta escolha, escrita antes de tentar: se o Search
+// Console mostrar as paginas consentidas rastreadas e com 0 impressoes em 30
+// dias, o padrao volta a 0 - a alavanca se desliga, nao se apaga.
+/** Teto do modo consentimento. Pequeno de proposito: aqui volume e o veneno. */
+const CONSENT_DEFAULT_MAX = 60
 function videoSitemapMax(): number {
+  const global = CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED as boolean
+  const padrao = global ? 0 : CONSENT_DEFAULT_MAX
   const raw = process.env.KINEO_VIDEO_SITEMAP_MAX
-  if (!raw) return 0
+  if (!raw) return padrao
   const n = Number.parseInt(raw, 10)
-  // Env ilegível não vira "tudo ligado": falha fechada, no valor padrão.
-  if (!Number.isFinite(n) || n <= 0) return 0
+  // Env ilegivel nao vira "tudo ligado": falha fechada, no valor padrao.
+  if (!Number.isFinite(n)) return padrao
+  if (n <= 0) return 0
   return Math.min(n, SITEMAP_MAX_VIDEOS)
 }
 
