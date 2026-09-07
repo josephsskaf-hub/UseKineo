@@ -671,3 +671,158 @@ que quer. Antes de construir qualquer coisa, a medição de 10 minutos que decid
 uma superfície que **escolhe o tier pela pessoa** (card do meio, "recomendado",
 default do paywall), o conserto não é preço nem carta: é parar de escolher
 errado por ela. Se vier de escolha livre, aí sim a hipótese é oferta.
+
+---
+
+### #5 — 17:39-18:10 — A TELA DE FILME PRONTO PAROU DE PEDIR DINHEIRO, E FAZ DUAS SEMANAS
+
+**ERRADO (medido, contas externas, contando PESSOAS).** A rotação anterior
+deixou uma medição de 10 minutos como próxima jogada: descobrir de qual
+superfície vem o clique de Creator, lendo `checkout_entry_surface`. **Ela não
+é respondível** — esse campo tem **4 linhas** em 30 dias, e o campo que existe
+de verdade (`checkout_origin`, 120 linhas) é a constante `'standard'` em
+100% delas. Não discrimina nada. Anotado para ninguém gastar outra rotação
+com ela.
+
+Fui atrás do funil por outro lado e achei uma coisa maior. **A tela de filme
+pronto — o instante de maior intenção de compra da casa — parou de pedir
+dinheiro:**
+
+| | filme pronto | pergunta comercial na tela |
+|---|---|---|
+| 19/08 | 35 pessoas | **34** |
+| 20/08 | 22 | 19 |
+| 23/08 | 8 | 7 |
+| 02/09 | 31 | **1** |
+| 05/09 | 20 | **2** |
+| 06/09 | 25 | **1** |
+| 07/09 | 13 | **1** |
+
+De ~90% para ~4%, **com o volume de filmes subindo**. E a caixa genérica de
+export limpo (`post_video_offer_viewed`) **não dispara uma única vez desde
+04/09**.
+
+**Três controles rodados antes de acreditar no número:**
+1. **Não é queda de tráfego** — `video_ready_viewed` tem 133 pessoas em 7d e
+   43 em 2d, dentro da faixa normal (memória `queda-de-trafego-contra-hora-inflada`).
+2. **Não é rename** — nenhum evento de oferta pós-vídeo nasceu no lugar dela.
+3. **Não é a coorte** — a leitura fácil seria "todo mundo virou `downgraded`",
+   mas `trial_status` é estado ATUAL: em agosto ele mostra "gasto" para gente
+   que estava em trial na hora. Essa consulta não prova nada e foi descartada.
+
+**A CAUSA É SUCESSÃO, NÃO DEFEITO.** O que nasceu não foi um substituto, foi
+**concorrência pelo mesmo slot único**, tudo em duas semanas: Plan Fit 27/08,
+history_first_video 28/08, **trial_balance_bridge 30/08**, trial_repeat 30/08,
+welcome_offer 01/09, next_action 06/09. **Todas dizem "faça outro vídeo".
+Nenhuma pede dinheiro.** No JSX a pergunta comercial era a **última de três**:
+o bridge de saldo renderizava no lugar dela, e ela só sobrava quando as duas
+grátis desistiam.
+
+⚠️ **Corrijo um número herdado.** O comentário de `postDeliveryOfferAudit.ts`
+(escrito hoje, rotação #1b) chama a pergunta comercial de "a de maior conversão
+medida: **17%**". **Não reproduzi esse número.** Medido por mim em 60 dias,
+contando pessoas: a pergunta **22 cliques / 241 impressões = 9,1%**; o bridge
+de saldo **5 / 88 = 5,7%**. A conclusão sobrevive (a pergunta converte 1,6x
+melhor **e é a única das duas que termina em checkout**), mas o 17% não deve
+ser recitado.
+
+**MUDOU — EM PRODUÇÃO, SHA `fa09b1eb`** (deploy `dpl_FAZrqthofUgmUQXh5BGaCDyLiwMP`,
+state READY, target production, `githubCommitSha` = fa09b1eb; a ponta atual
+`5fe8550b` da pista de aquisição tem o meu commit como ancestral — conferido
+com `git merge-base --is-ancestor`).
+
+`lib/growth/postDeliverySlot.ts` (novo, puro) decide o dono do slot único.
+**A única virada: quando o filme entregue carrega marca d'água, a pergunta
+comercial vem primeiro.** Isso só passou a fazer sentido **hoje** — desde o
+`9f2822b0` (fv-r3) o filme do trial sai marcado, então no instante da entrega
+existe, pela primeira vez, algo concreto que só o dinheiro resolve: **este
+filme, limpo**. Quando o filme já sai limpo, a ordem antiga fica byte a byte
+como estava.
+
+A fonte é `currentResultHasWatermark` — a **mesma** que `trialPrimaryUnlocksCurrentFilm`
+usa para montar o checkout do export limpo. Divergir as duas faria a caixa
+ganhar o slot prometendo um limpo que ela não sabe entregar.
+
+**O QUE O CLIENTE VÊ:** quem termina um filme em trial e o filme sai com marca
+d'água encontra, logo abaixo do vídeo, **a caixa que vende este filme limpo** —
+no lugar de mais um convite grátis para gastar o saldo em outro vídeo. **K1
+intacto:** o download com marca continua primeiro e de graça; nada aqui virou
+pedágio, mudou só qual caixa ocupa o slot.
+
+**TESTES:** `scripts/test-post-delivery-slot.mjs` **35/35**. Amarrado às
+variáveis que decidem, não ao texto (memória `guardiao-contar-texto-nao-prova-condicao`):
+compila o módulo real e o **avalia**, inclui a matriz completa de 8 combinações
+provando que nunca há dois donos, **3 verificações de CALLER** (o módulo não
+pode virar biblioteca morta — a casa já pagou esse preço com o `sceneTruth` em
+27/08) e **2 que exigem a morte das guardas antigas** (memória
+`duas-fechaduras-na-mesma-porta`). **Mutação: 6 mutantes, 6 vermelhos**, cada
+um provando que foi **escrito** antes de rodar (memória
+`mutacao-precisa-provar-que-aplicou`). Vizinhos intactos:
+`test-post-delivery-silence` 19/19, `test-post-download-ask` 34/34,
+`test-trial-watermark` 49/49. `npx tsc --noEmit` verde.
+
+**RISCO DECLARADO, e é real.** O bridge de saldo (136 impressões desde 30/08)
+perde o slot em toda entrega marcada — que é a maior parte da coorte `fast` em
+trial, já que o bridge só existe para `fast`. Na prática ele quase desaparece.
+Aceito porque a pergunta converte 1,6x melhor, é a única que termina em
+dinheiro, e a casa está há dois dias sem assinante novo. **É uma linha para
+reverter** (`if (input.deliveredFilmWatermarked) return 'commercial_ask'`).
+
+⚠️ **LIMITE HONESTO DA SONDA.** Não consigo provar de fora que a caixa mudou:
+`/generate` responde **307 → /studio** para anônimo, e o chunk do
+`GenerateClient` só é servido a sessão autenticada — procurei `'commercial_ask'`
+nos 24 chunks de `/studio/create` e nos 29 de `/generate`, com controle
+(string inexistente → 0 achados, como esperado), e ele não está lá porque a
+página não é servida a mim. O que **está** provado é o deploy: build READY em
+produção no SHA exato. Não instrumentei evento novo — a prova de comportamento
+vem dos instrumentos que já existem, na próxima entrega real (ver abaixo).
+
+**COMO MEDIR (corte pelo SHA, não pelo relógio).** Na próxima entrega de trial
+com filme marcado, `trial_post_video_offer_viewed` volta a subir e
+`trial_balance_bridge_viewed` cai. O par decisivo:
+
+```sql
+select date_trunc('day', e.created_at)::date dia,
+  count(distinct e.user_id) filter (where e.name='video_ready_viewed') filme_pronto,
+  count(distinct e.user_id) filter (where e.name='trial_post_video_offer_viewed') pergunta,
+  count(distinct e.user_id) filter (where e.name='trial_balance_bridge_viewed') bridge,
+  count(distinct e.user_id) filter (where e.name='post_delivery_no_offer') silencio
+from events e where e.created_at > '2026-09-07 20:50:00+00' group by 1 order by 1 desc;
+```
+
+Alvo: `pergunta` saindo de ~1/dia para a casa dos 60-90% de `filme_pronto`,
+como era em 17-23/08. O número que paga a conta continua sendo `payment_success`.
+
+**PLACAR DE FECHAMENTO — desde o marco (2026-09-07 18:38 UTC, ~2h25):**
+filme pronto **0** · baixou **0** · viu preço **0** · checkout **0** ·
+**pagou 0** · cliques no trial de $1 **0** · cartas quentes **0** ·
+`trial_balance_bridge_viewed` **1** (19:32 UTC, 1h20 antes do meu deploy — a
+última vez que o slot foi para uma superfície grátis).
+
+⚠️ **"0 filmes prontos" NÃO é incidente, e eu conferi antes de escrever.** Na
+MESMA janela de relógio (18:38–21:05 UTC) dos últimos 7 dias: 06/09 → 2 ·
+05/09 → 2 · 04/09 → 2 · 03/09 → 2 · 02/09 → 6 · 01/09 → 1 · 31/08 → 1. O
+normal desta faixa é **1 a 2**; hoje deu 0, abaixo mas dentro do ruído de uma
+janela que nunca passou de 6. **201 pessoas ativas em 24h.** É a hora, não o
+produto — e o marco tem 2h25, então este placar ainda não prova nem nega nada.
+
+**CHECAGEM ZERO (24h):** render preso **0** · cadastro com crédito zero **12**,
+todos com `trial_status` preenchido (antifraude/trial gasto) → **trial órfão 0**
+· recusa de cartão sem dono **0**.
+
+**A FRASE DA ROTAÇÃO:** hoje um visitante novo que termina um filme em trial
+encontra **a pergunta de compra de volta na tela, vendendo o filme que está na
+mão dele, limpo** — ontem ele encontrava mais um convite grátis para gastar
+saldo, e a pergunta aparecia para 1 pessoa por dia em 13 a 31 entregas.
+
+**PRÓXIMA JOGADA.** O slot agora pede dinheiro, mas **a caixa ainda abre com o
+plano errado**. O botão azul dela é `Start Starter — $7/mês`, e o trial de $1
+que o fundador ligou hoje não aparece ali: `pricing_trial_1usd_clicked` existe
+no código (`PricingCards.tsx`, `CARD_TRIAL_ENABLED = true` no servidor — não há
+segunda fechadura) mas tem **0 linhas no banco**, porque a porta do $1 só mora
+em `/pricing` e nos cards do app, superfícies que **154 pessoas** alcançam em
+30 dias contra as **428** que terminam um filme. A ordem do fundador de 16:40
+é literal: "onde houver preço na tela, a primeira opção passa a ser *Try
+Creator 7 days for $1*". Próxima rotação: o $1 como primeira opção **dentro da
+caixa que acabou de ganhar o slot** — é a única superfície da casa que combina
+o maior denominador com um motivo concreto para pagar agora.
