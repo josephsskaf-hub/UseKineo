@@ -773,3 +773,99 @@ vai para publicar o GPT da loja, que não depende de ninguém ler nada.
 
 Código do `/make` + fato em `kineoFacts` + seção no `llms.txt` + guardião com
 mutantes; depois `tsc`, enfileirar, publicar e a sonda do par.
+
+### #5b — 23:0x — **EM PRODUÇÃO**: `/make` no ar, e a idempotência provada com o dedo
+
+`origin/main = 9133833b`. Deploy READY. O que subiu:
+
+| arquivo | o quê |
+|---|---|
+| `app/make/route.ts` (novo) | GET → valida → limita → detecta robô → hash → reusa ou insere → 302 `/go/<token>` |
+| `lib/gptHandoff.ts` | `HANDOFF_CHANNELS`, `CHANNEL_TAGS`, `parseAssistantLinkQuery`, `handoffPayloadHash`, `ASSISTANT_LINK_PATH` |
+| `lib/gptHandoffStore.ts` | `channel`/`payload_hash` na linha; `findHandoffByPayloadHash` (só linha viva) |
+| `app/api/gpt/handoff/route.ts` | a Action grava canal e hash, e reaproveita linha viva |
+| `lib/kineoFacts.ts` | `ASSISTANT_DEEP_LINK_FACT` — nenhum valor digitado, tudo importado |
+| `app/llms.txt/route.ts` | uma seção gerada inteiramente do fato |
+| `scripts/test-assistant-deep-link.mjs` | 153 verificações, 7 mutantes mortos |
+
+### AS SONDAS — cada uma com o seu controle
+
+```
+CONTROLE  /make-controle-inexistente        404   (sem ele, um 302 nao prova deploy)
+1 clique  /make?script=…&duration=60        302 -> /go/BVvMVQOxBCEW-jvFdOuN6KBw
+2 clique  (URL IDENTICA)                    302 -> /go/BVvMVQOxBCEW-jvFdOuN6KBw
+3 clique  (URL IDENTICA)                    302 -> /go/BVvMVQOxBCEW-jvFdOuN6KBw
+pouso     /go/BVvMVQOxBCEW-jvFdOuN6KBw      200
+sem script /make                            302 -> /chatgpt-to-youtube-shorts?handoff_error=script_missing
+llms.txt  contem "usekineo.com/make"        linha 29
+/api/facts contem "assistantDeepLink"       sim
+```
+
+E a linha no banco, **uma só para os três cliques**:
+
+```
+token=BVvMVQOxBCEW-jvFdOuN6KBw  channel=assistant_link  payload_hash=4227278dec9e…
+duration=60  engine=seedance  aspect=9:16  words=31  fit=short  topic="Lake Natron"
+```
+
+**A idempotência não é teoria.** Três requisições idênticas, **uma linha**. Sem
+isso, o funil `criado → visto → clicado` marcaria 3/1/0 onde a verdade é 1/1/0 —
+e o número que decide se essa jogada vale a pena estaria inflado desde o
+primeiro dia.
+
+**Um bônus que a sonda entregou de graça:** a linha voltou com
+`viewed_at` preenchido, porque desta vez usei **UA de navegador**. Isso fecha
+com evidência a dúvida da #5: a escrita de pouso funciona, e o zero anterior era
+mesmo só o filtro de robô agindo. Curl pelado teria repetido o falso negativo —
+`isLikelyBot` trata UA ausente como robô.
+
+### O QUE EU CONFERI E O AGENTE NÃO PODIA CONFERIR
+
+O `node:crypto` entrou em `lib/gptHandoff.ts`, que é importado por
+`lib/kineoFacts.ts`. **Se qualquer componente `'use client'` puxasse essa
+cadeia, o build da Vercel quebraria e o `tsc` passaria verde** — o typecheck não
+enxerga a fronteira servidor/cliente do Next. Varri os 13 importadores diretos e
+os de segundo nível: **todos servidor**, nenhum componente em `components/`
+importa a cadeia. Só depois disso publiquei.
+
+Também reconferi os guardiões **na ponta da fila**, não na minha worktree — a
+sessão irmã mexeu no mesmo `llms.txt` (`5c3e9695`) entre o meu commit e o push.
+`test-assistant-deep-link` 153 · `test-gpt-handoff` 327 · `test-after-the-film-facts` 34 ·
+**`test-llms-paginas-citadas` 84 (o guardião DELA)** — todos verdes depois do rebase.
+
+### A TRAVA QUE EU NÃO AFROUXEI
+
+O agente ajustou duas asserções do guardião antigo. Fui olhar antes de aceitar,
+porque afrouxar trava alheia já custou caro aqui. A (A0) exigia que
+`lib/gptHandoff.ts` importasse **um** módulo; agora exige **um módulo do
+projeto** (`@/lib/aspect`) e libera **só** o builtin `node:crypto`, por lista
+fechada. A invariante ("a lib não ganha dependência do projeto") sobreviveu
+inteira. A (B2) trocou `const token =` por `\btoken =` porque o token virou
+`let` com o reaproveitamento — a semântica ("token novo vem de `newToken()`")
+continua exigida.
+
+### O PEDIDO QUE EU MESMO TINHA ABERTO, E AS TRÊS COISAS ERRADAS NELE
+
+Fechei o `PEDIDOS` linha 391 corrigindo o diagnóstico **dentro** do pedido:
+
+1. **"Arquivos de origem Codex"** — não são mais. O `llms.txt` foi editado três
+   vezes HOJE pela sessão irmã. Eu estava endereçando para quem não mexia.
+2. **"Só depois do GPT publicado"** — verdade para a loja, falso para o `/make`,
+   que não depende de aprovação de ninguém.
+3. **"Medir por `metadata->>'caller'`"** — esse campo **não existe**; eu o
+   inventei ao escrever o pedido. Quem seguisse a receita mediria `null` e
+   concluiria "ninguém usou". O discriminador real é `gpt_handoffs.channel`.
+
+### O QUE AINDA NÃO ESTÁ PROVADO (dito sem maquiagem)
+
+A perna de **volta** do cadastro — pessoa deslogada clica, se cadastra pelo
+Google e volta ao `/go/<token>` — continua provada só por leitura de código
+(#1b) e pela sonda do 302. Uma prova de verdade exige uma conta nova real, que
+esta sessão não cria. É a primeira coisa a olhar quando o primeiro humano
+orgânico aparecer no funil.
+
+### PRÓXIMO PASSO
+
+G6 fecha aqui. O que sobra do ciclo é observar o funil por canal e, se sobrar
+tempo, a faixa na landing que hoje ignora `handoff_error` (o slug é gravado e a
+tela não o lê — medição sem tela).

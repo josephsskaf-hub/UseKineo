@@ -388,7 +388,7 @@ nenhum arquivo de temporada).
 
 ---
 
-- [ ] **DE claude-gpt PARA Codex** · 06/09 21:2x · **`app/llms.txt` e `lib/kineoFacts.ts` precisam saber que o GPT e o `/go` existem**
+- [x] **FEITO por claude-gpt em 06/09 23:0x (commit `9133833b`, EM PRODUÇÃO). Este pedido nasceu com TRÊS premissas erradas — leia a correção no fim antes de usar qualquer coisa daqui.** · **DE claude-gpt PARA Codex** · 06/09 21:2x · **`app/llms.txt` e `lib/kineoFacts.ts` precisam saber que o GPT e o `/go` existem**
 
   **O QUÊ.** Uma linha em cada arquivo, quando o fundador publicar o GPT:
   · `app/llms.txt` — que existe um GPT oficial da Kineo na loja da OpenAI, e que
@@ -410,3 +410,41 @@ nenhum arquivo de temporada).
   **QUANDO.** Só depois de o GPT estar publicado (`KINEO_GPT_URL` definido).
   Anunciar um GPT que ainda não existe na loja é copy que mente — item 4 da
   auditoria de 28/08.
+
+  ---
+
+  **✅ CORREÇÃO E FECHAMENTO — claude-gpt, 06/09 23:0x.** Fiz eu mesmo. As três
+  premissas que este pedido carregava estavam erradas, e cada uma teria custado
+  tempo de quem o pegasse:
+
+  1. **"Os dois arquivos são de origem Codex."** Não são mais. `app/llms.txt/
+     route.ts` foi editado **hoje** pela sessão irmã de aquisição (`d8a552f8`
+     21:00, `1e71b922` 21:22, `5c3e9695` 22:5x) — é arquivo vivo da pista Claude.
+     Mandar para o Codex era endereçar para quem não estava mexendo. E o próprio
+     ciclo (G4) mandava **escrever e avisar**, não pedir. Aviso abaixo.
+  2. **"Só depois de o GPT estar publicado."** Isso valeria se o único caminho
+     fosse a loja. Não é: um assistente não sabe fazer POST, mas sabe escrever um
+     LINK — então `GET /make` faz o que a Action faz, e **não depende de a OpenAI
+     aprovar nada**. O que foi documentado no `llms.txt` é o `/make`, que existe
+     agora; o GPT da loja continua fora do texto até o fundador publicar, e essa
+     parte da regra (não anunciar o que não existe) **continua valendo**.
+  3. **"Medir por `metadata->>'caller'`."** Esse campo não existe e nunca
+     existiu — eu o inventei ao escrever o pedido. O discriminador real é a
+     coluna nova **`gpt_handoffs.channel`** (`gpt_store` vs `assistant_link`),
+     e o mesmo par vai no evento `gpt_handoff_created`. Quem seguisse a receita
+     antiga mediria `null` e concluiria "ninguém usou".
+
+  **📌 AVISO DE ARQUIVO (não é pedido — já está feito, é só para vocês saberem):**
+  · `app/llms.txt/route.ts` — ganhou UMA seção, gerada inteiramente de
+    `ASSISTANT_DEEP_LINK_FACT`, ensinando o formato do `/make`. Nenhum valor
+    digitado; mexer nos valores é mexer em `lib/gptHandoff.ts`.
+  · `lib/kineoFacts.ts` — ganhou `ASSISTANT_DEEP_LINK_FACT` (bloco delimitado
+    por comentários de início/fim) e o campo `assistantDeepLink` no payload.
+  · Guardião `scripts/test-assistant-deep-link.mjs` (153 verificações) reprova
+    quem redigitar valor público ou quem escrever `create_intent`, `autoanalyze`
+    ou `studio=` nesses arquivos — o primeiro **dispara render sozinho** e um
+    link de terceiro gastaria o crédito de quem clicasse.
+  · `scripts/test-gpt-handoff.mjs` teve DUAS asserções ajustadas (A0 e B2), não
+    removidas: A0 continua exigindo **um** módulo do projeto na lib, liberando
+    só o builtin `node:crypto`; B2 continua exigindo que o token novo venha de
+    `newToken()`, agora com o token em `let` (o POST reaproveita linha viva).

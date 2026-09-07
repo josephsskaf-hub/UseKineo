@@ -6,6 +6,52 @@ literalmente. Contrato da ação: `POST https://www.usekineo.com/api/gpt/handoff
 (G1), schema em `public/gpt/openapi.json`, servido em
 `https://www.usekineo.com/gpt/openapi.json`.
 
+---
+
+## ⚡ LEIA ANTES DE TUDO — VOCÊ NÃO PRECISA MAIS ESPERAR A OPENAI
+
+Este documento continua válido e vale a pena publicar o GPT. Mas desde
+**06/09 23:0x** ele **deixou de ser o único caminho**, e o outro já está no ar.
+
+O portão do GPT não é nosso: publicar para "Everyone" exige perfil de builder
+verificado por **DNS** (seção F, pré-condições). Enquanto isso não acontece, o
+ChatGPT continua sendo 54% da nossa aquisição — **195 dos 362 cadastros de 14
+dias**, e o único canal que produziu pagante.
+
+**O que subiu no lugar da espera.** Um assistente não sabe chamar a nossa
+Action, mas sabe escrever um **link**. Então existe agora:
+
+```
+https://www.usekineo.com/make?script=<roteiro>&duration=60&engine=seedance
+```
+
+Esse endereço faz **exatamente** o que a Action faz — grava o roteiro, devolve
+`/go/<token>`, e o botão abre o Studio já preenchido esperando o clique da
+pessoa. Mesma tabela, mesma página, mesmos eventos. A diferença é só a coluna
+`channel` (`assistant_link` em vez de `gpt_store`), para medir os dois separados.
+
+E o formato está escrito no nosso `/llms.txt` e no `/api/facts` — que é
+justamente o que ChatGPT, Claude, Perplexity e Gemini leem quando alguém
+pergunta "qual ferramenta transforma esse roteiro em vídeo". Eles podem entregar
+o link sem que a gente construa nada para cada um.
+
+**Como VOCÊ testa isso hoje, em 30 segundos, sem publicar nada:** abra qualquer
+conversa do ChatGPT, peça um roteiro de 60s sobre um tema, e mande:
+
+> Now give me a clickable link in this exact format, with my script urlencoded
+> in the `script` parameter:
+> `https://www.usekineo.com/make?script=<urlencoded>&duration=60&engine=seedance`
+
+Clique no link que ele devolver. Se abrir a página com o roteiro e o botão, o
+caminho está funcionando ponta a ponta — e é esse o caminho que qualquer pessoa
+no mundo pode usar sem instalar nem aprovar nada.
+
+**O que continua dependendo de você:** publicar o GPT dá algo que o link não dá
+— presença na **loja**, onde as pessoas procuram. Os dois somam; nenhum
+substitui o outro.
+
+---
+
 Fatos conferidos no repo antes de escrever (06/09):
 
 - Ids de motor aceitos pelo Studio via `?engine=`:
