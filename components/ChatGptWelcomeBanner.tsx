@@ -37,6 +37,17 @@ import { formatLimitCounter, promptLimitState, trimPromptToLimit } from '@/lib/s
 const DISMISS_KEY = 'kineo_chatgpt_welcome_dismissed'
 const SHOWN_EVENT_KEY = `${CHATGPT_QUICKSTART_VARIANT}:shown`
 
+// KINEO-PORTA-QUICKSTART-2026-09-07 — a terceira saida da faixa, so com a caixa
+// VAZIA. Medido em producao (7d): 196 sessoes viram a faixa, 95 abriram a caixa
+// — 101 sessoes nunca clicaram nela e, para essas, os dois botoes ficam
+// `disabled` (exigem texto colado): a unica saida era o "×". A pagina /chatgpt
+// (prompt da casa + caixa que recebe o roteiro de volta) teve 2 visualizacoes
+// no mesmo periodo — existe e nao tinha porta aqui. O link some assim que a
+// pessoa cola qualquer coisa (`limit.length > 0`), para nao canibalizar os 40%
+// que ja chegam com o roteiro na mao. Mesmo padrao de <a> + trackEvent da porta
+// do aviso de instrucao (lib/growth/instructionPasteNotice.ts).
+export const QUICKSTART_NO_SCRIPT_HREF = '/chatgpt?utm_source=quickstart_banner'
+
 function firstTouchIsChatGpt(): boolean {
   try {
     const raw = localStorage.getItem('kineo_src')
@@ -214,6 +225,19 @@ export function ChatGptWelcomeCard({
             I only have an idea — write the script
           </button>
         </div>
+        {/* KINEO-PORTA-QUICKSTART-2026-09-07 — so aparece com a caixa VAZIA;
+            quem ja colou texto tem os dois botoes acima e nao ve esta porta. */}
+        {limit.length === 0 ? (
+          <a
+            href={QUICKSTART_NO_SCRIPT_HREF}
+            className={styles.noScript}
+            onClick={() => {
+              void trackEvent('chatgpt_quickstart_no_script_clicked', { variant: CHATGPT_QUICKSTART_VARIANT })
+            }}
+          >
+            No script yet? Get the prompt that makes ChatGPT write one →
+          </a>
+        ) : null}
         <span>Your text stays editable in Studio before anything is generated.</span>
       </div>
       <p className={styles.proof}>
