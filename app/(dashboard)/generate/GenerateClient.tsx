@@ -104,6 +104,7 @@ import {
   shouldReservePlanFitRecurringSlot,
   supportsPlanFitQuality,
 } from '@/lib/growth/planFit'
+import { auditPostDeliveryOffer } from '@/lib/growth/postDeliveryOfferAudit'
 // KINEO-PRICING-V6-2026-08-19 — "1 Hollywood film included" e "~7 AI videos"
 // eram literais em três caixas de venda desta tela. Ver o bloco "QUANTOS FILMES
 // O PLANO REALMENTE FAZ" em lib/marketingPrice.ts.
@@ -2261,6 +2262,10 @@ export default function GenerateClient({
   // do trial tambem nao (o slot esta tomado). Este flag devolve o slot a
   // pergunta quando a resposta definitiva nao chega a tempo.
   const [planFitLookupGraceExpired, setPlanFitLookupGraceExpired] = useState(false)
+  // KINEO-SILENCIO-POS-ENTREGA-2026-09-07 — uma emissao por filme entregue.
+  // A chave e o id do video: sem ela, cada re-render do /generate emitiria de
+  // novo e o denominador do silencio contaria teclas em vez de entregas.
+  const postDeliverySilenceKeyRef = useRef<string | null>(null)
   // Cross-tab completions do not emit this tab's `creditsChanged` event. A
   // sequenced, abortable refresh lets focus/visibility and the Plan Fit card
   // re-check the server without an older response restoring stale evidence.
@@ -11272,8 +11277,49 @@ export default function GenerateClient({
   // Incluir 'downgraded' aqui poria duas superfícies pedindo cartão na mesma
   // tela, que é o defeito que esta mudança está consertando, invertido.
   const showTrialPostVideoOffer = trialPostVideoPhase !== null && !planFitOwnsRecurringSlot
+  // KINEO-SILENCIO-POS-ENTREGA-2026-09-07 — MEDIDO em 12 dias: 220 primeiras
+  // entregas, 30 impressoes de Plan Fit (o dono do slot dessa coorte) e 89
+  // pessoas — 61 com `video_ready_viewed` confirmado — sem NENHUMA oferta.
+  // Toda superficie emite quando aparece; nenhuma emitia quando o slot ficava
+  // reservado e nada renderizava, entao ausencia de evento era indistinguivel
+  // de ausencia de gente. Este evento da denominador ao silencio. Ele nao
+  // decide nada e nao muda a tela: so descreve o que ela fez.
+  const postDeliveryAudit = auditPostDeliveryOffer({
+    delivered: phase === 'done' && Boolean(finalVideoUrl),
+    askShown: showTrialPostVideoOffer,
+    planFitShown: planFitOfferEligible,
+    bridgeShown: trialBalanceBridge.eligible,
+    repeatShown: trialRepeatDecision.action === 'episode',
+    exportChoiceShown: showPostVideoExportChoice,
+    planFitOwnsSlot: planFitOwnsRecurringSlot,
+    lookupPending: planFitLookupPending,
+    trialPhase: trialPostVideoPhase,
+  })
   const showTrialRepeatEpisode =
     showTrialPostVideoOffer && trialRepeatDecision.action === 'episode'
+
+  // KINEO-SILENCIO-POS-ENTREGA-2026-09-07 — emite UMA vez por filme entregue,
+  // e so quando a tela nao pediu nada. `postDeliverySilenceKeyRef` guarda o id
+  // do video: o /generate re-renderiza muitas vezes por entrega, e sem a chave
+  // este evento contaria re-renders em vez de pessoas — o erro que ja inflou
+  // um denominador nesta casa (437 "oportunidades" que eram 2 pessoas).
+  useEffect(() => {
+    if (!postDeliveryAudit.silent) return
+    const key = publicVideoId || finalVideoUrl
+    if (!key || postDeliverySilenceKeyRef.current === key) return
+    postDeliverySilenceKeyRef.current = key
+    void trackEvent('post_delivery_no_offer', {
+      reason: postDeliveryAudit.reason,
+      trial_phase: trialPostVideoPhase,
+      plan_fit_owns_slot: planFitOwnsRecurringSlot,
+      lookup_pending: planFitLookupPending,
+      quality,
+      plan_tier: planTier,
+    })
+  }, [
+    postDeliveryAudit.silent, postDeliveryAudit.reason, publicVideoId, finalVideoUrl,
+    trialPostVideoPhase, planFitOwnsRecurringSlot, planFitLookupPending, quality, planTier,
+  ])
   // POR QUE o trial acabou. Só tem sentido em 'ending'.
   //
   // ⚠️ REVISÃO ADVERSARIAL, PASSADA 1 — a comparação é contra o CONCEDIDO, não
