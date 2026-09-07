@@ -4356,3 +4356,149 @@ sustenta a entrega é o guardião (26/26, 5 mutantes com prova de escrita) e o
 elegível abrir a tela. **Enquanto esse evento não tiver linha, a peça está
 publicada e não está provada** — e a próxima sessão deve dizer isso com essas
 palavras, em vez de contá-la como entrega validada.
+---
+
+# 🏁 FECHAMENTO DA PISTA "MEDIÇÃO / CONVITE" — 04:38 BRT 07/09
+
+> **Este ciclo teve DUAS sessões em paralelo no mesmo diário.** A outra numerou
+> #15–#22 e já escreveu o fechamento dela (cobrança, FAQ invisível, sitemap como
+> Googlebot, o ralo das renovações). Este fecho **não repete** aquele: traz o que
+> só esta pista mediu, **uma correção ao número dela**, e o que fica de pé.
+
+## 🔴 (0) CORREÇÃO A UM NÚMERO DO OUTRO FECHAMENTO — os pagantes NÃO vieram da home
+
+O fechamento das 04:38 traz, na tabela "por página de entrada",
+**`/` (home) — 145 pessoas — pagou 2**. **Os dois pagantes do período não
+entraram pela home.** São exatamente estes, e são só dois:
+
+| pessoa | conta criada | pagou em | fonte | **primeira página** |
+|---|---|---|---|---|
+| `godofloki888@gmail.com` | 30/08 20:39 | 31/08 20:58 | chatgpt | **`/ai-video-generator/seedance`** |
+| `cintia@hello-chat.eu` | 02/09 19:50 | 02/09 20:22 | chatgpt | **`/ai-shorts-for-agencies`** |
+
+A reconstrução por `session_id` atravessa o login e acaba pegando **uma sessão
+posterior** (a pessoa volta e entra pela home), não o primeiro toque. O jeito que
+não erra é ancorar no pagamento e olhar a primeira `landing_session_started` da
+pessoa — o que a consulta acima faz.
+
+**Por que a diferença importa:** com a home creditada, a leitura é "a home
+converte". Com o dado certo, **os dois únicos pagantes entraram por páginas
+profundas e específicas** — uma de motor e a única página escrita para quem tem
+**orçamento** (`/ai-shorts-for-agencies`, que o ChatGPT citou **1 vez em 14
+dias**). E `cintia` pagou **32 minutos** depois de criar a conta. Não é uma taxa;
+é uma direção — e ela aponta para o oposto da home.
+
+## (1) O QUE SÓ ESTA PISTA MEDIU
+
+**O degrau seco não é o checkout — é o convite.**
+
+| degrau (14 d, contas externas) | pessoas |
+|---|---:|
+| cadastros | 366 |
+| **filme pronto na mão** | **217** |
+| viu página de preços depois do filme | **18** |
+| começou checkout depois do filme | **14** |
+| **pagou** | **2** (14% dos 14) |
+
+**199 de 217 nunca viram um preço.** Não acharam caro: **não foram
+perguntadas.** E o checkout, quando alcançado no momento certo, **fecha**:
+
+| quem chegou ao checkout | pessoas | pagou | taxa |
+|---|---:|---:|---:|
+| **já tinha filme** | 13 | 2 | **15,4%** |
+| ainda sem filme | **27** | 1 | 3,7% |
+
+68% do tráfego de checkout nunca viu o produto funcionar e converte **4,2×
+pior**. *(Isto não reabre a conclusão de preço — implementa a ordem de 02/09 de
+contar separado. E **não** vira bloqueio: o limite K1 garante que quem quer
+comprar avança sem filme.)*
+
+**E onde o convite existe, ele funciona — mas só num lugar.** Mesmo pedido
+("faça o próximo episódio"), 7 dias:
+
+| superfície | alcançou | clicou | taxa |
+|---|---:|---:|---:|
+| e-mail | 118 | **1** | 0,8% |
+| **tela** | 93 | **22** | **24%** |
+
+**Trinta vezes.** Por isso: **nenhuma carta nova**, e a caixa do pacote **na
+tela** é o item nº 1.
+
+## (2) O QUE ENTROU EM PRODUÇÃO NESTA PISTA
+
+| SHA | peça | provado por |
+|---|---|---|
+| `5411b6be` | evento de pouso grava `utm_source`/`surface`/`source`/`source_known` | string nova **e** antiga no bundle servido + linha real: às 00:34 uma pessoa do ChatGPT (sem `Referer`, com `utm_source=chatgpt.com`) foi atribuída — antes seria "(sem fonte)" |
+| `d8a552f8` | temporada em `/llms.txt` e `/api/facts` | `curl` mostra "writes the next 5 episodes"; controle inexistente = 0 ocorrências |
+| `1e71b922` | frase falsa removida + 7 saídas mudas do pacote nomeadas | guardião 34 verificações, 5 mutantes |
+| `e825997e` | predicado da checagem zero corrigido | 4 "órfãos" eram abuso bloqueado; órfãos reais = 0 |
+
+**Cobertura de atribuição, com o denominador certo** (pousos de **aquisição**,
+`/signup` e `/studio` fora): **18 de 39 = 46%**, contra **35,7%** de linha de
+base só-referrer. O cano está aberto; a taxa firme se lê com tráfego de dia.
+
+> ⚠️ **Ressalva ao outro fechamento:** ele diz que "o Q2 nunca foi construído".
+> **Correto quanto ao perfil** — não toquei em `app/auth/callback`, de propósito:
+> é o único ponto que toda conta cruza e já causou o incidente de 17%→100% em
+> 28/08; mexer nele de madrugada, sem o fundador, é risco sem simetria.
+> **O que FOI construído é o lado do evento de pouso**, que é o que permite medir
+> o visitante anônimo por página. São dois lados; um está feito e provado, o
+> outro continua em aberto.
+
+## (3) O PACOTE DE PUBLICAÇÃO FUNCIONOU PELA PRIMEIRA VEZ — 05:46 UTC
+
+`publish_pack_written` saiu de **0 (história inteira)** para **4**, para **2
+pessoas**, cada uma com o e-mail ao lado (`email_junto = true`), crédito
+"made with Kineo" presente e plano `free` — a regra do crédito respeitada.
+
+Isso **confirma a correção da #8**: não havia bug em `garantirPacote`; havia
+**alcance**. Eu tinha lido "0 escritas com 42 e-mails" como defeito quando era
+"0 de ~1 oportunidade" — os 42 vêm do e-mail **instantâneo**, que não chama o
+pacote.
+
+**A frase pública continua fora, e deve continuar:** o pacote só existe no
+caminho de resgate (**27 pessoas/semana**), não no instantâneo (**174/semana**)
+nem na tela (**0**). "Every finished film comes with…" seguiria falso.
+
+## (4) SÓ VOCÊ PODE FAZER — em `docs/ACOES-DO-FUNDADOR-2026-09-06.md`
+
+1. **Codex → Pedido 1**: a caixa do pacote na tela. É o único lugar que alcança
+   as **217**, inclusive as **94 que baixaram** e nunca recebem e-mail.
+2. **Decidir** a precedência do e-mail de resgate (`HOT_LEAD_SUPPRESSION_HOURS`):
+   ele é suprimido em **100%** das execuções pela máquina de trial (118
+   e-mails/dia). Não mexi — aumenta e-mail para cliente real, de madrugada.
+3. **Search Console**: só Cobertura e Desempenho. O servidor está limpo nas duas
+   auditorias independentes desta noite.
+
+## (5) PLACAR DO CICLO (marco 23:38 UTC → 07:00 UTC)
+
+39 pousos de aquisição · **18 com fonte (46%)** · 11 cadastros · 10 filmes,
+**10 concluídos** · 1 checkout · **0 pagamentos** · 0 preso · **0 órfão real** ·
+0 `next_episode_failed` · pacote **4 escritas, 2 pessoas**.
+
+## (6) O QUE A PRÓXIMA SESSÃO FAZ PRIMEIRO
+
+1. **Conferir se o Codex montou a caixa.** Se sim, medir `publish_pack_shown` e
+   `publish_pack_copied` — **é a primeira vez que a alavanca de aquisição da casa
+   vai ter denominador.**
+2. **Ler a cobertura de atribuição com o filtro certo**
+   (`docs/queries/MAPA-DE-ENTRADA-2026-09-06.sql`, seção de cobertura). Base
+   35,7% → meta >70% **entre pousos de aquisição**. Não usar `/signup` no
+   denominador.
+3. **Não escrever carta nova.** 1 clique em 118 alcançados, e a tela ganha de 30
+   a 1.
+4. **Se for medir "cadastro sem crédito", usar
+   `docs/queries/CHECAGEM-ZERO-CADASTRO-SEM-CREDITO-2026-09-07.sql`.** O
+   predicado ingênuo transforma a vigia numa máquina de premiar farmador.
+
+## (7) A LIÇÃO DA NOITE, e ela é sobre mim
+
+**Cinco vezes um denominador errado quase virou conclusão, e quatro eram
+minhas:** sessões contadas como pessoas · "0 de 42" que era "0 de ~1" · checkout
+pré-produto misturado com pós-produto · uma meta de 70% sobre um teto de 50% ·
+abuso bloqueado contado como defeito. Nenhuma sobreviveu porque **fui falsificar
+antes de entregar** — e a sexta, agora, foi num número da outra pista.
+
+O padrão nunca está no número: está na **população embaixo dele**. É por isso que
+as três consultas ficaram em `docs/queries/` **com a armadilha escrita no
+cabeçalho** — diário se lê uma vez, consulta se roda toda semana.
