@@ -105,6 +105,12 @@ import {
   supportsPlanFitQuality,
 } from '@/lib/growth/planFit'
 import { auditPostDeliveryOffer } from '@/lib/growth/postDeliveryOfferAudit'
+// KINEO-DOWNLOAD-E-O-MOMENTO-2026-09-07 — ver o bloco longo do módulo: a tela
+// só sabia do download quando o arquivo saía COM marca d'água (45 de 193
+// pessoas em 30 dias). A decisão do que dizer depois do download mora lá,
+// pura e auditável, e nunca cria caixa nova — só troca a copy de uma que já
+// está na tela.
+import { decidePostDownloadAsk, postDownloadEyebrow } from '@/lib/growth/postDownloadAsk'
 // KINEO-PRICING-V6-2026-08-19 — "1 Hollywood film included" e "~7 AI videos"
 // eram literais em três caixas de venda desta tela. Ver o bloco "QUANTOS FILMES
 // O PLANO REALMENTE FAZ" em lib/marketingPrice.ts.
@@ -2087,6 +2093,18 @@ export default function GenerateClient({
   useEffect(() => { if (showCleanPaywall) void trackEvent('clean_paywall_shown', { placement: 'download' }) }, [showCleanPaywall])
   const [wmUnlockError, setWmUnlockError] = useState<string | null>(null)
   const [watermarkedDownloadConfirmed, setWatermarkedDownloadConfirmed] = useState(false)
+  // KINEO-DOWNLOAD-E-O-MOMENTO-2026-09-07 — estado NOVO, de propósito separado
+  // de `watermarkedDownloadConfirmed`. Aquele significa "baixou um arquivo COM
+  // marca d'água" e governa o paywall de export limpo e o `VideoRatingAsk`;
+  // alargá-lo mudaria o comportamento das 45 pessoas que hoje o acionam e
+  // contaminaria a série que mede a pressão do watermark. Este significa só
+  // "os bytes chegaram", para qualquer export — que é o fato que faltava.
+  const [downloadDelivered, setDownloadDelivered] = useState(false)
+  // Uma vez por VÍDEO, não por clique: quem clica em baixar duas vezes (comum
+  // quando o primeiro clique cai no fallback de aba) não pode virar duas
+  // observações. Mesma lição que já inflou um denominador desta casa para 437
+  // "oportunidades" que eram 2 pessoas.
+  const postDownloadAskLoggedRef = useRef<Set<string>>(new Set())
   const lastFastRenderRef = useRef<FastRenderInputs | null>(null)
   const wmUnlockRanRef = useRef(false)
   const postVideoOfferRef = useRef<HTMLDivElement | null>(null)
@@ -9620,6 +9638,46 @@ export default function GenerateClient({
       setWatermarkedDownloadConfirmed(true)
     }
 
+    // ═══ KINEO-DOWNLOAD-E-O-MOMENTO-2026-09-07 ═══════════════════════════
+    // O `if` acima é o defeito que este bloco corrige, e ele é de 04/08: o
+    // estado pós-download só existia para `exportType === 'watermarked'`.
+    // MEDIDO hoje em 30 dias: `video_downloaded` traz **159 pessoas 'clean'**
+    // contra **45 'watermarked'**. Ou seja, em ~8 de cada 10 entregas os bytes
+    // chegavam na mão da pessoa e a PÁGINA NÃO FICAVA SABENDO — no instante de
+    // maior valor percebido que este produto tem, nada na tela reagia.
+    //
+    // A entrega NÃO muda uma linha: isto roda depois do `await`, depois do
+    // arquivo, e nada aqui pode impedir, adiar ou condicionar o download.
+    if (delivered) {
+      setDownloadDelivered(true)
+      // O `reason` é gravado mesmo quando a resposta é "não havia nada a
+      // dizer" (`no_surface`). É o denominador que nunca existiu: sem ele,
+      // silêncio e ausência de gente são indistinguíveis — exatamente a
+      // cegueira que deixou o buraco anterior desta tela viver 12 dias.
+      const decision = decidePostDownloadAsk({
+        downloadDelivered: true,
+        exportType,
+        trialPhase: trialPostVideoPhase,
+        hasPaid,
+        watermarkOfferVisible: showPostVideoExportChoice,
+      })
+      const askKey = publicVideoId ?? 'sem-id'
+      if (!postDownloadAskLoggedRef.current.has(askKey)) {
+        postDownloadAskLoggedRef.current.add(askKey)
+        void trackEvent('post_download_ask_state', {
+          reason: decision.reason,
+          ask: decision.ask,
+          export_type: exportType,
+          outcome,
+          trial_phase: trialPostVideoPhase,
+          has_paid: hasPaid,
+          plan_tier: planTier,
+          surface: 'done_screen',
+          video_id: publicVideoId ?? null,
+        })
+      }
+    }
+
     // KINEO-DISTRIBUTION-LOOP-2026-08-11 — O MOMENTO. Até hoje o download
     // terminava e a página não fazia NADA a respeito de postar: o convite
     // ficava ~600 linhas de JSX abaixo, fora da tela, e o único lembrete
@@ -11277,6 +11335,21 @@ export default function GenerateClient({
   // Incluir 'downgraded' aqui poria duas superfícies pedindo cartão na mesma
   // tela, que é o defeito que esta mudança está consertando, invertido.
   const showTrialPostVideoOffer = trialPostVideoPhase !== null && !planFitOwnsRecurringSlot
+  // KINEO-DOWNLOAD-E-O-MOMENTO-2026-09-07 — a decisão pura, calculada no
+  // render só para a COPY. Ela não liga nem desliga o cartão (isso continua
+  // sendo `showTrialPostVideoOffer`, intocado) e não cria caixa nova: quando
+  // `ask` é true, a sobrancelha passa a afirmar o fato que acabou de
+  // acontecer. Antes do download tudo abaixo fica byte a byte como estava.
+  const postDownloadAsk = decidePostDownloadAsk({
+    downloadDelivered,
+    exportType: null,
+    trialPhase: trialPostVideoPhase,
+    hasPaid,
+    watermarkOfferVisible: showPostVideoExportChoice,
+  })
+  const postDownloadAskEyebrow = postDownloadAsk.ask
+    ? postDownloadEyebrow(postDownloadAsk.reason)
+    : null
   // KINEO-SILENCIO-POS-ENTREGA-2026-09-07 — MEDIDO em 12 dias: 220 primeiras
   // entregas, 30 impressoes de Plan Fit (o dono do slot dessa coorte) e 89
   // pessoas — 61 com `video_ready_viewed` confirmado — sem NENHUMA oferta.
@@ -15903,7 +15976,17 @@ export default function GenerateClient({
                             carrega o SUJEITO e o tempo verbal; a manchete
                             carrega só o que mudou. Em 'ending' o sujeito deixa
                             de ser um trial que corre. */}
-                        {trialPostVideoPhase === 'ending' ? 'Your Creator trial has ended' : 'Your Creator trial'}
+                        {/* KINEO-DOWNLOAD-E-O-MOMENTO-2026-09-07 — depois que
+                            os bytes chegaram, a sobrancelha afirma o FATO
+                            ("Your film is downloaded") em vez de repetir o
+                            sujeito que a pessoa já leu ao chegar na tela. É a
+                            única mudança visível desta entrega, e ela não
+                            promete nada: a manchete, o preço e o botão
+                            continuam exatamente os mesmos. Sem download
+                            entregue, `postDownloadAskEyebrow` é null e a
+                            linha volta a ser a de sempre. */}
+                        {postDownloadAskEyebrow
+                          ?? (trialPostVideoPhase === 'ending' ? 'Your Creator trial has ended' : 'Your Creator trial')}
                       </div>
                       <p className="text-xs mt-1 font-bold" style={{ color: '#5cb3ff', lineHeight: 1.4 }}>
                         {trialOfferHeadline}
