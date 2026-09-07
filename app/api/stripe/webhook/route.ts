@@ -43,6 +43,9 @@ import {
   stripeSubscriptionKeepsAccess,
   stripeSubscriptionIsDunning,
 } from '@/lib/billing/subscriptionAccess'
+// KINEO-GRACA-NAO-CUROU-2026-09-07 — a decisão pura de "restaurar o plano de
+// quem foi revogado antes da graça?". Mesma peça que /api/admin/reconcile-dunning.
+import { decideDunningReconcile } from '@/lib/billing/dunningReconcile'
 import {
   AffiliateLedgerIntegrityError,
   calculateAffiliateCommission,
@@ -2230,11 +2233,49 @@ export async function POST(req: NextRequest) {
           entitlementConfirmed = true
           entitlementPending = false
           if (stripeSubscriptionIsDunning(failedSubscription.status)) {
+            // KINEO-GRACA-NAO-CUROU-2026-09-07 — a graça só age em evento NOVO.
+            // Quem foi revogado ANTES de ela existir (as duas vítimas que o
+            // cabeçalho de subscriptionAccess.ts nomeia) continuava `free` a
+            // cada recusa: este ramo dava `break` sem tocar no perfil. Medido em
+            // 07/09 17:26:28Z — a Stripe recusou de novo a assinatura de NG e,
+            // um segundo depois, este evento saiu dizendo "acesso preservado"
+            // para uma pessoa que já estava `free` desde 03/09, e sem user_id.
+            //
+            // Agora: (1) resolve o DONO pela assinatura, (2) o evento carrega
+            // `access_was_actually_held` — sem esse campo ele afirma "acesso
+            // preservado" para quem já tinha sido revogado, e a próxima rotação
+            // leria isso como sucesso — e (3) se o perfil está errado, cura.
+            // Nada aqui pode derrubar o webhook: o trabalho deste ramo é NÃO
+            // revogar, e isso já está feito (entitlementConfirmed acima).
+            let dunningOwner: { id: string; plan: string | null; is_pro: boolean; has_paid: boolean } | null = null
+            try {
+              const { data, error: ownerErr } = await supabase
+                .from('profiles')
+                .select('id, plan, is_pro, has_paid')
+                .eq('stripe_subscription_id', failedSubscriptionId)
+                .maybeSingle()
+              // Erro de leitura (inclusive duas contas com a mesma assinatura,
+              // que faz o maybeSingle devolver erro em vez de lançar) não pode
+              // virar silêncio: `owner_resolved:false` no evento sem um log ao
+              // lado seria lido como "assinatura sem dono".
+              if (ownerErr) console.error('[stripe webhook] dunning owner lookup error:', failedSubscriptionId, ownerErr.message)
+              dunningOwner = data
+                ? {
+                    id: String(data.id),
+                    plan: (data.plan as string | null) ?? null,
+                    is_pro: data.is_pro === true,
+                    has_paid: data.has_paid === true,
+                  }
+                : null
+            } catch (err) {
+              console.error('[stripe webhook] dunning owner lookup failed:', failedSubscriptionId, err instanceof Error ? err.message : String(err))
+            }
             // Sem este evento o "acesso preservado" é invisível: a ausência de
             // revogação não deixa rastro nenhum, e ninguém consegue medir se a
             // Stripe recuperou o cliente ou se ele foi embora mesmo assim.
             await writeServerEvent({
               name: 'subscription_access_held_during_dunning',
+              userId: dunningOwner?.id ?? null,
               path: '/api/stripe/webhook',
               metadata: {
                 version: 'stripe_dunning_grace_v1',
@@ -2242,8 +2283,67 @@ export async function POST(req: NextRequest) {
                 status: failedSubscription.status,
                 subscription_ref: failedSubscriptionId,
                 is_renewal: true,
+                owner_resolved: dunningOwner !== null,
+                plan_at_event: dunningOwner?.plan ?? null,
+                access_was_actually_held: dunningOwner !== null && dunningOwner.plan !== 'free',
               },
             })
+
+            // Auto-cura. A decisão é a mesma peça pura que a rota admin usa
+            // (lib/billing/dunningReconcile.ts); aqui só se executa. O update
+            // é de DOIS campos — `plan` e `is_pro` — e NUNCA toca crédito:
+            // crédito volta só na fatura paga (invoice.payment_succeeded).
+            if (dunningOwner) {
+              const repair = decideDunningReconcile({
+                hasPaid: dunningOwner.has_paid,
+                plan: dunningOwner.plan,
+                isPro: dunningOwner.is_pro,
+                profileSubscriptionId: failedSubscriptionId,
+                liveSubscriptionId: failedSubscription.id,
+                liveStatus: failedSubscription.status,
+                metadataTier: failedSubscription.metadata?.tier,
+              })
+              if (repair.action === 'restore' && repair.tier) {
+                try {
+                  const { error: repairErr } = await supabase
+                    .from('profiles')
+                    .update({ plan: repair.tier, is_pro: true })
+                    .eq('id', dunningOwner.id)
+                  if (repairErr) throw new Error(repairErr.message)
+                  await writeServerEvent({
+                    name: 'subscription_access_restored_after_wrong_revoke',
+                    userId: dunningOwner.id,
+                    path: '/api/stripe/webhook',
+                    metadata: {
+                      version: 'stripe_dunning_repair_v1',
+                      source: 'stripe_webhook',
+                      tier: repair.tier,
+                      previous_plan: dunningOwner.plan,
+                      subscription_ref: failedSubscriptionId,
+                    },
+                  })
+                  console.warn('[stripe webhook] restored access wrongly revoked before dunning grace:', dunningOwner.id, failedSubscriptionId, repair.tier)
+                } catch (err) {
+                  // Erro de banco na cura NÃO derruba o webhook (nem faz a Stripe
+                  // reenviar): vira log + evento, e a rota admin de
+                  // reconciliação pega quem ficou para trás.
+                  const message = err instanceof Error ? err.message : String(err)
+                  console.error('[stripe webhook] dunning repair failed:', dunningOwner.id, failedSubscriptionId, message)
+                  await writeServerEvent({
+                    name: 'subscription_access_repair_failed',
+                    userId: dunningOwner.id,
+                    path: '/api/stripe/webhook',
+                    metadata: {
+                      version: 'stripe_dunning_repair_v1',
+                      source: 'stripe_webhook',
+                      tier: repair.tier,
+                      subscription_ref: failedSubscriptionId,
+                      error: message.slice(0, 200),
+                    },
+                  })
+                }
+              }
+            }
           }
           console.warn('[stripe webhook] payment_failed kept access for subscription:', failedSubscriptionId, failedSubscription.status)
           break
