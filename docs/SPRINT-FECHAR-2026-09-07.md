@@ -1117,3 +1117,143 @@ das 17:50 eram trial ativo, não pagante, com saldo — o alvo exato — e as du
 receberam a proposta de gastar mais crédito, não a de comprar o filme limpo. A
 correção é barata e é a próxima rotação: pôr a porta de $1 dentro do bloco que
 já ganha o slot. Terceiro dia sem assinante novo continua de pé.
+
+
+---
+
+### #7 — aberta 19:25 BRT (adiantada) — o evento do slot passou a mentir às 17:50 de hoje, e fui eu que quebrei
+
+> **NOTA DE RELÓGIO.** Esta rotação abriu **13 min antes** do :38. Motivo: o
+> checkpoint das 19:08 descobriu um defeito que **eu** introduzi às 17:50 e que
+> estava corrompendo a medição em tempo real — segurar o conserto por 13 minutos
+> só produziria mais linhas com o nome errado. O ciclo segue no relógio: a #8
+> abre às 20:38.
+
+**PRIMEIRO, A RETRATAÇÃO — o checkpoint #6b está ERRADO no que tem de mais
+importante.** Eu escrevi lá, às 19:08, que "a porta de $1 nasceu atrás do ramo
+que ganha 7 dos 105 slots" e que as duas pessoas de hoje não viram a caixa
+comercial. **As duas provavelmente VIRAM.** O que eu li como "a ponte ganhou o
+slot" era o **nome do evento**, não a superfície na tela. A conclusão de que a
+porta precisa mudar de endereço **cai inteira**; a tabela de 7 dias (ponte 78 /
+episódio 20 / pergunta 7) continua **válida para o mundo de antes das 17:50 BRT**
+— e só para ele.
+
+**O DEFEITO DE VERDADE, e ele é meu.** A rotação #5 (`fa09b1eb`, 17:50 BRT) fez o
+**JSX** escolher a superfície do slot por `decidePostDeliverySlot` — filme com
+marca d'água na mão faz a pergunta comercial ganhar. O **efeito da impressão**
+(`GenerateClient.tsx`, ~5410) continuou escolhendo o **nome do evento** pela
+precedência **antiga**: ponte → episódio → pergunta. Os dois nunca se
+consultaram — o `const` do dono do slot mora ~6.000 linhas abaixo do efeito, e
+lê-lo de lá é ReferenceError de TDZ em runtime, invisível ao `tsc`. As duas
+leituras divergem exatamente no caso que a #5 criou: **ponte elegível + filme
+marcado → a tela mostra a PERGUNTA e o evento diz `trial_balance_bridge_viewed`.**
+
+**O TAMANHO, medido.** Desde o deploy da #5 (20:56 UTC) até agora, as impressões
+do slot são:
+
+| evento | impressões | pessoas |
+|---|---|---|
+| `trial_balance_bridge_viewed` | **4** | 2 |
+| `trial_post_video_offer_viewed` | 0 | 0 |
+| `trial_repeat_episode_viewed` | 0 | 0 |
+
+As duas pessoas renderizaram em `fast`, com `trial_status = active`, `has_paid =
+false`. Por `app/api/compose/route.ts` (`watermarkApplied = isFreePlanFast ||
+isTrialRender || …`) o filme delas saiu **marcado** — logo o JSX renderizou a
+**pergunta comercial**. **As 4 impressões, 4 de 4, carregam o nome errado.**
+⚠️ O que é prova e o que é inferência: a divergência das duas leituras é **prova
+de código** (guardião abaixo, 6 mutantes); que estas 4 linhas específicas sejam
+da pergunta é **inferência** a partir do predicado do compose — não existe hoje
+nenhuma linha no banco que grave o watermark do asset (`videos` não tem coluna,
+`events` não tem a chave; conferido).
+
+**POR QUE ISSO PASSA NA FRENTE DE VENDER MAIS.** Não é higiene de telemetria: é
+que **as três séries do slot ficaram ilegíveis exatamente quando a casa começou a
+mexer nelas**. A #5 e a #6 se justificam por essas séries, e a pergunta que o
+fundador vai fazer amanhã — "a porta de $1 está sendo vista?" — se responde com
+`trial_post_video_offer_viewed` ao lado de `post_video_trial_1usd_shown`. Com o
+nome errado, a resposta seria "a pergunta comercial não apareceu nenhuma vez",
+que é falso, e a jogada seguinte nasceria de um número inventado. Duas horas de
+cegueira ainda são baratas; um dia inteiro decidindo sobre elas não é.
+
+**MUDOU — SHA `2e546f39` · EM PRODUÇÃO.** Um ref (`postDeliverySlotOwnerRef`)
+carrega a decisão do JSX até o efeito da impressão, e o nome do evento passa a
+sair dela. Três detalhes que não são enfeite:
+1. A escrita do ref é **no render**, colada no `const`. Um `useEffect` de
+   sincronia rodaria **depois** do efeito que registra o `IntersectionObserver`,
+   e a callback poderia disparar com o ref vazio — o guardião proíbe a versão
+   com `useEffect`.
+2. A **chave de deduplicação** passou a usar a mesma decisão. Divergir ali faria
+   a impressão ser contada sob a variante da superfície errada — o mesmo defeito
+   um degrau abaixo.
+3. Os três eventos ganharam `slot_owner`, **carimbo do deploy**: separa as linhas
+   com nome conferido das antigas sem recortar por relógio (memória
+   `campo-novo-e-o-carimbo-do-deploy`).
+
+**Nenhum pixel mudou.** Nenhuma superfície ganhou ou perdeu o slot; nenhuma
+oferta, preço ou copy foi tocada. Quando o ref está vazio o comportamento antigo
+é preservado tal e qual — este conserto **não pode perder impressão**.
+
+**O QUE O CLIENTE VÊ.** Nada. É a primeira entrega do ciclo que não muda a tela —
+e é por isso que ela precisa de uma justificativa explícita, acima.
+
+**TESTES.** `scripts/test-slot-impression-truth.mjs` **24/24**, 6 mutantes, cada
+um **provando que a mutação foi escrita** antes de exigir vermelho (memória
+`mutacao-precisa-provar-que-aplicou`); leitura com CRLF normalizado. Inclui o
+mutante que crava `impressionIsBridge = true` mantendo o texto intacto — texto
+não prova condição. Irmãos: `test-post-delivery-slot.mjs` **35/35** (ajustei
+**uma** linha: o import da tela agora traz o `type` junto, e a checagem passou a
+exigir a **função** em vez de exigi-la sozinha entre as chaves — não afrouxei
+nenhuma trava de precedência) e `test-clean-film-trial-door.mjs` **83/83**.
+`npx tsc --noEmit` verde.
+
+**RISCO A DECLARAR.** A escrita de ref durante o render é desaconselhada pelo
+React; aqui ela espelha um valor derivado, não cria estado, e a alternativa
+idiomática é justamente a que tem a corrida. Se algum dia este componente for
+para modo concorrente, esta linha é a primeira a revisitar.
+
+**COMO MEDIR.** A partir de agora: `trial_post_video_offer_viewed` **com**
+`slot_owner = 'commercial_ask'` é o denominador honesto da caixa que vende, e
+`post_video_trial_1usd_shown` deve caminhar **junto** com ele (a porta monta
+dentro da caixa). Se os dois divergirem, o defeito é da porta, não do nome.
+Linhas sem `slot_owner` são de antes deste deploy e **não se misturam** com as
+novas.
+
+**PLACAR DE FECHAMENTO — marco 2026-09-07 18:38 UTC (~4h):** entrega real **1** ·
+filme pronto na tela **3 impressões / 2 pessoas** · baixou **0** · caixa
+comercial (nome conferido) **0 — a série começa agora** · checkout externo **0**
+(3 do fundador) · **pagou 0** · cliques no $1 **0** · **29 pessoas** com evento.
+
+**CHECAGEM ZERO (24h):** cadastros **30** · crédito zero **12**, **trial órfão
+0** · render preso **0** · recusa sem dono **0** · `payment_success` **0 em 48h**
+(6 em 30d) — terceiro dia sem assinante novo.
+
+**A FRASE DA ROTAÇÃO.** Hoje um visitante novo que termina um filme em trial
+encontra a mesma tela de uma hora atrás — mas a casa, pela primeira vez desde as
+17:50, **sabe qual caixa ele viu**. Sem isso a rotação seguinte escolheria onde
+mexer com um número que ela mesma inventou.
+
+**PRÓXIMA JOGADA.** Com a série honesta, a #8 tem uma pergunta respondível em 10
+minutos e uma jogada barata atrás dela: comparar, por pessoa, `slot_owner =
+'commercial_ask'` com `post_video_trial_1usd_shown`. Se os dois baterem, a porta
+de $1 está sendo vista e o que falta é o **clique** — e aí o alvo é a copy do
+botão, não o endereço dela. Se a porta ficar **abaixo** da caixa, existe um
+terceiro portão comendo a porta dentro da própria caixa (candidato: a trava de
+moeda não resolvida, `price_unresolved`, que o próprio evento já carrega em
+`reason`) — e esse é um conserto de minutos com efeito em toda a base fora do
+dólar.
+
+**✅ O QUE VOCÊ PRECISA FAZER**
+1. Nada.
+
+**📋 O QUE ACONTECEU**
+Corrigi um erro meu de uma hora atrás. Às 17:50 eu fiz a tela de filme pronto
+mostrar a caixa que vende quando o filme sai com marca d'água — mas esqueci de
+avisar o **medidor**, que continuou anotando o nome da caixa antiga. Resultado:
+as 4 impressões que a casa registrou desde então têm o nome errado, e qualquer
+decisão tomada em cima delas seria tomada às cegas. Esta entrega não muda nada
+na tela: faz o medidor perguntar à mesma fonte que desenha a tela, marca as
+linhas novas com um carimbo para não se misturarem às velhas, e trava isso com
+24 verificações e 6 mutantes. Amanhã dá para responder com número, e não com
+palpite, se a porta de $1 está sendo vista. Terceiro dia sem assinante novo
+continua de pé.
