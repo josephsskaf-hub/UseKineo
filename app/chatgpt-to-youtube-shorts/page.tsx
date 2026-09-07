@@ -32,6 +32,9 @@ import OrganicCtaLink from '@/components/OrganicCtaLink'
 import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
 import { CREATION_HANDOFF_PROMPT_MAX_CHARS } from '@/lib/creationHandoff'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+import { ASPECTS } from '@/lib/aspect'
+import { DEFAULT_LANGUAGE, DURATIONS, HANDOFF_ENGINES, SCRIPT_MAX_CHARS, TOPIC_MAX_CHARS } from '@/lib/gptHandoff'
+import HandoffErrorNotice from './HandoffErrorNotice'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -41,6 +44,29 @@ export const dynamic = 'force-static'
 const BASE = 'https://www.usekineo.com'
 const CAMPAIGN = 'chatgpt_to_shorts'
 const HANDOFF_ID = 'chatgpt-script-handoff'
+
+// ═══ KINEO-HANDOFF-ERROR-VISIVEL-2026-09-06 — o que a pessoa lê quando o link
+// do assistente reprova em /make. A rota faz 302 para cá com
+// ?handoff_error=<slug> (lista fechada em app/make/route.ts HANDOFF_ERROR_SLUGS)
+// e até 06/09 ninguém lia o parâmetro: página muda, assistente que errou nunca
+// aprende. Este mapa é FECHADO (slug desconhecido = nada na tela), cada frase
+// diz o que aconteceu E o que corrigir, e todo número/lista vem IMPORTADO de
+// @/lib/gptHandoff e @/lib/aspect — nunca digitado. O guardião
+// scripts/test-handoff-error-visivel.mjs confere slug a slug contra a rota.
+// Sem promessa nova: nenhuma frase fala de preço, fila, velocidade ou grátis.
+const HANDOFF_ERROR_MESSAGES: Readonly<Record<string, string>> = {
+  script_missing: `The link you clicked had no script in it — ask your assistant to put the narration text in the link, or paste it below.`,
+  script_too_long: `The script in that link is longer than the ${SCRIPT_MAX_CHARS.toLocaleString('en-US')}-character limit — ask your assistant to trim it, or paste a shorter version below.`,
+  script_html: `The script in that link contains HTML tags — ask your assistant for plain text with no markup, or paste the words below.`,
+  bad_duration: `The duration in that link is not one Kineo accepts (${DURATIONS.join(', ')} seconds) — fix the number, or paste the script below.`,
+  bad_aspect: `The aspect ratio in that link is not one Kineo accepts (${ASPECTS.join(', ')}) — fix it, or paste the script below.`,
+  bad_engine: `The engine in that link is not one Kineo accepts (${HANDOFF_ENGINES.join(', ')}) — fix the name, or paste the script below.`,
+  bad_language: `The language in that link is not a valid code (use a short code like ${DEFAULT_LANGUAGE}) — fix it, or paste the script below.`,
+  bad_topic: `The topic in that link is not plain text or is longer than ${TOPIC_MAX_CHARS} characters — shorten it or leave it out, or paste the script below.`,
+  invalid: `Something in that link did not pass validation — ask your assistant for a fresh link, or paste the script below.`,
+  rate_limited: `Too many links came from this source in the last hour — wait a little and try the link again, or paste the script below.`,
+  unavailable: `Kineo could not process that link just now — try it again in a moment, or paste the script below.`,
+}
 const UPDATED = 'August 2026'
 
 const SHORTS_SPEC = 'https://support.google.com/youtube/answer/10059070?hl=en'
@@ -339,6 +365,9 @@ export default function ChatGptToYouTubeShortsPage() {
           <span style={{ color: MUTED, fontSize: '0.85rem' }}> / </span>
           <span style={{ color: '#d2d2d7', fontSize: '0.85rem' }}>ChatGPT to YouTube Shorts</span>
         </nav>
+
+        {/* KINEO-HANDOFF-ERROR-VISIVEL-2026-09-06: só aparece com ?handoff_error=<slug conhecido>; lido no cliente para a página seguir force-static. */}
+        <HandoffErrorNotice handoffId={HANDOFF_ID} campaign={CAMPAIGN} messages={HANDOFF_ERROR_MESSAGES} cardStyle={CARD} accent={ACCENT} />
 
         <span
           style={{
