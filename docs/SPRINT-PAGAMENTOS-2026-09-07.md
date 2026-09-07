@@ -507,3 +507,84 @@ documentação, não de um payload vivo; a assinatura foi conferida contra um HM
 de referência meu, não contra um emitido pelo Dodo. E **ainda não existe botão**
 apontando para `/api/dodo/checkout` — isto é o trilho, não a porta. A porta é a
 próxima jogada.
+
+---
+
+### #8 — FECHAMENTO do ciclo de pagamentos
+
+**O que o cliente indiano — ou o recusado — consegue fazer hoje que não
+conseguia às 12:38.**
+
+| # | entrega | SHA | estado |
+|---|---|---|---|
+| 1 | a recusa de cartão ganha DONO | `8f7c1084` | no ar |
+| 2 | carta do cartão recusado (rota + copy) | `e5ac66c5` | no ar (403 vs controle 404) |
+| 3 | compra única de US$ 4,90 no `/pricing` para 5 países | `ede96491` | no ar (marcador no bundle) |
+| 4 | 2ª superfície: a tela pós-filme | `f60f87c0` | no ar |
+| 5 | a carta passa a sair sozinha (cron) | `48bfb7de` | no ar, 1º disparo 10:10 BRT de amanhã |
+| 6 | PayPal: 5 defeitos de idempotência | `b11bdabd` | no ar (400 em assinatura inválida) |
+| 7 | trilho Dodo (UPI/RuPay/Pix), desligado | `151a63df` | no ar (503 vs controle 404) |
+| 8 | a PORTA do método local, liga sozinha | `de92c9f0` | no ar (`local_method: null`) |
+
+**A prova mais bonita do dia, e ela é acidental:** eu estou no **Brasil**, que
+**está** na lista do Pix. `GET /api/geo` me devolve
+`{"country":"BR", ..., "local_method":null}` — nulo **só** porque não existe
+`DODO_API_KEY`. Se o portão da chave estivesse quebrado, eu teria recebido
+`"pix"`. No minuto em que você colar a chave, essa mesma sonda vira `"pix"`
+sozinha. É o teste de que "nasce desligado e liga sozinho" é verdade, e não
+promessa.
+
+E `dodo_checkout_unavailable` já tem **2 linhas** — são as minhas duas sondas.
+A rota executou de verdade, decidiu "não tenho chave" e registrou. O trilho
+está vivo, só está sem combustível.
+
+**Placar às 14:0x BRT** (praxe, com o corte no marco de 15:38 UTC):
+
+| medida | valor |
+|---|---|
+| cadastros 24h | 35 |
+| cadastros 24h **sem crédito** (checagem zero) | **0** ✅ |
+| filmes entregues 24h | 39 |
+| pessoas no checkout 24h | 2 |
+| pagamentos 24h | **0** |
+| último `payment_success` da casa | **02/09 20:22Z — 5 dias atrás** |
+| recusas **sem dono** na história | **0** (era 1) ✅ |
+| coorte da carta agora | **1 pessoa** |
+| `pack_first_for_region_shown` | 0 (a peça tem ~20 min de vida) |
+
+**O número que não mexeu, e é o que importa: 5 dias sem um pagamento.** Nada
+do que subiu hoje já teve chance de mudar isso — a oferta regional nasceu há
+minutos, a carta sai amanhã de manhã, e o trilho local está sem chave. O
+veredito honesto vem do placar de amanhã, não deste.
+
+**⚠️ O QUE FICOU SEM PROVA, e não vou chamar de pronto:**
+- **Nada foi exercitado contra a API real do Dodo.** Formato do
+  `POST /checkouts`, nomes dos campos do webhook e o esquema de assinatura vêm
+  da documentação. A assinatura foi conferida contra um HMAC de referência meu.
+- **A migration `dodo_events` NÃO foi aplicada.** Até ela existir o webhook
+  responde 500 e pede reenvio — falha fechada de propósito.
+- **A escada da identidade não rodou em produção.** Ela só será exercitada pela
+  **próxima** recusa; `identity_source` é o carimbo que dirá se ela pegou o
+  código novo. A recusa de hoje foi reparada à mão (`backfill_correlation`),
+  que é coisa diferente e está marcada como tal.
+- **A oferta regional não foi vista por ninguém dos 5 países ainda**, e a
+  Vercel ignora `x-vercel-ip-country` forjado — não dá para provar daqui que
+  ela renderiza para um IP indiano. A segunda montagem está em rota
+  autenticada e não tem sonda de fora nenhuma.
+- **O cron da carta nunca disparou.** A entrada está no `vercel.json` e o
+  guardião prova as quatro condições, mas o primeiro disparo real é amanhã.
+
+**Próxima jogada (para a rotação seguinte, em ordem):**
+1. **Conferir o primeiro disparo do cron** às 10:10 BRT — `card_declined_emailed_v1`
+   tem de aparecer com 1 linha. Zero linha = o cron não pegou o deploy.
+2. **Aplicar a migration do Dodo** no minuto em que a chave chegar (o webhook
+   está fail-closed até lá — é seguro, mas silencioso).
+3. **Medir a oferta regional com o denominador certo** —
+   `pricing_currency_resolved` contando `coalesce(user_id, session_id)`,
+   consulta (3) do arquivo de queries. Se der 0 exposição com denominador > 20,
+   a peça não está alcançando; se der exposição e 0 clique, o problema é a
+   oferta, não a superfície.
+4. **A pergunta que ninguém fez ainda:** 39 filmes entregues em 24h e 2 pessoas
+   no checkout. O gargalo de hoje não é a página de pagamento — é que quem
+   recebe filme não chega até ela. Vale medir o caminho `filme entregue →
+   viu preço` antes de investir mais no checkout.
