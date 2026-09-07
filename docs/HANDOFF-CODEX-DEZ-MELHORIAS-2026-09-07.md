@@ -1,5 +1,8 @@
 # Dez melhorias aprovadas + Omni sem preenchimento lateral
 
+## Retentativa autorizada — gate corrigido, 07/09/2026
+**FATO CONFIRMADO:** `origin/main=bda416e8`, com os exports PayPal restaurados pelo commit `1b4f3d9a`. Rebase limpo, sem tocar em arquivos financeiros. **TESTADO LOCALMENTE:** TypeScript bruto exit 0; showcase 270, curadoria 178, sharing 68, cinco melhorias 621 e idiomas 2034 verificações verdes; diff --check limpo. GitHub Guardião da base bda416e8 = success. Fundador já aprovou a prévia e pediu nova tentativa. Release em `codex/home-video-first-release-sep07`; publicar somente após Guardião do SHA da release verde e fast-forward válido. Produção ainda não validada neste registro.
+
 ## Aprovação do fundador e bloqueio de publicação — 07/09/2026
 **APROVADO NO CHAT:** fundador respondeu "ok aprovado" à prévia 226bba56. Autorizada a publicação do visual sem bloco introdutório, quatro cards iguais e imagem centralizada. Rebase limpo sobre `da0dc5d1`; nenhum arquivo de pagamentos alterado.
 **BLOQUEADO:** TypeScript bruto segue com os cinco TS2305 documentados abaixo. GitHub Check Runs de `da0dc5d1` confirma `TypeScript e contratos críticos = completed/failure`. Diff entre origin/main e esta worktree nos quatro arquivos PayPal = vazio. Não é um motivo para remover o gate nem inventar implementações financeiras nesta pista.
