@@ -230,3 +230,87 @@ select (select count(*) from coorte)                                        as p
           join videos v on v.user_id = c.user_id and v.status = 'completed') as com_filme,
        (select count(distinct c.user_id) from coorte c
           join events e on e.user_id = c.user_id and e.name = 'payment_success') as pagaram;
+
+
+-- ───────────────────────────────────────────────────────────────────────────
+-- (8) AS DUAS PORTAS DA /chatgpt — acrescentadas em 07/09 00:3x (SHA 5305bb07)
+--     A pagina nascia sem porta nenhuma. Ganhou duas, escolhidas por ALCANCE
+--     MEDIDO e nao pelo que o plano dizia:
+--       A · o aviso de instrucao colada no Studio ...... 21 pessoas / 3 dias
+--       B · o e-mail de filme pronto .................. 121 pessoas / 7 dias
+--       C · a faixa de temporada (NAO ligada) ............ 2 pessoas / 7 dias
+--     A porta C existe nesta consulta de proposito: ela e o CONTROLE. Se um
+--     dia alguem ligar a faixa de temporada, o numero dela aparece aqui ao
+--     lado das outras duas em vez de virar promessa em documento.
+--
+--     A REGRA DE UNIDADE: `expostos` conta PESSOAS distintas em todas as
+--     linhas — as tres portas sao superficies vistas por gente logada. Nao
+--     misturar com as consultas (1)-(3), que contam HANDOFFS anonimos.
+--
+--     POR QUE A PORTA A NAO SE MEDE POR UTM: `captureUtmsOnce` guarda o
+--     PRIMEIRO utm da sessao. Quem chegou do chatgpt.com ja tem o campo
+--     ocupado quando clica no aviso, e a chegada por utm ficaria muda. Por
+--     isso a porta A tem evento proprio de clique, e a porta B (que vem de
+--     fora, sessao nova) se le pelo utm_campaign.
+--
+--     VALIDADA CONTRA O BANCO REAL antes de entrar no arquivo — os tres
+--     denominadores devolveram 21 / 121 / 2, e nao zero. "0 de 0" e
+--     indistinguivel de predicado quebrado.
+-- ───────────────────────────────────────────────────────────────────────────
+with porta_a as (
+  select 'A · aviso de instrucao colada'         as porta,
+         (select count(distinct user_id) from events
+           where name = 'pasted_directives_detected'
+             and created_at > now() - interval '7 days')          as expostos_7d,
+         (select count(distinct user_id) from events
+           where name = 'instruction_notice_cta_clicked'
+             and created_at > now() - interval '7 days')          as clicaram_7d
+), porta_b as (
+  select 'B · e-mail de filme pronto'            as porta,
+         (select count(distinct user_id) from events
+           where name = 'video_ready_email_sent'
+             and created_at > now() - interval '7 days')          as expostos_7d,
+         -- a etiqueta desta porta e a CAMPANHA; o utm_source e `lifecycle`
+         -- porque lib/lifecycle/emailReturnDoor.ts so reconhece esse valor
+         -- como e-mail da casa. Inventar um segundo utm_source aqui quebraria
+         -- o portao de retorno consertado no mesmo dia (c1b0c46d).
+         (select count(distinct session_id) from events
+           where name = 'chatgpt_page_viewed'
+             and metadata->>'utm_campaign' = 'video_ready_chatgpt'
+             and created_at > now() - interval '7 days')          as clicaram_7d
+), porta_c as (
+  select 'C · faixa de temporada (NAO ligada)'   as porta,
+         (select count(distinct user_id) from events
+           where name = 'season_shown'
+             and created_at > now() - interval '7 days')          as expostos_7d,
+         0::bigint                                                as clicaram_7d
+)
+select porta, expostos_7d, clicaram_7d,
+       case when expostos_7d = 0 then null
+            else round(100.0 * clicaram_7d / expostos_7d, 1) end  as pct
+from (select * from porta_a union all select * from porta_b union all select * from porta_c) t
+order by expostos_7d desc;
+
+
+-- ───────────────────────────────────────────────────────────────────────────
+-- (9) A PAGINA ESTA VIVA? — a prova de que o evento de cliente DISPARA
+--     Em 07/09 03:30 UTC esta consulta devolvia ZERO, e zero aqui e ambiguo:
+--     pode ser evento quebrado ou pode ser ninguem tendo entrado. As 03:32:15
+--     UTC — dois minutos depois das portas subirem — chegou a PRIMEIRA linha,
+--     de um navegador de verdade, com session_id. O caminho de cliente da
+--     pagina esta provado; o que faltava era gente, e o que faltava para ter
+--     gente era porta.
+--     Rodar esta consulta antes de concluir qualquer coisa sobre a (8): se
+--     `primeiro` nao existir, a (8) esta medindo ausencia de trafego, nao
+--     rejeicao da oferta.
+-- ───────────────────────────────────────────────────────────────────────────
+select name,
+       count(*)                                        as eventos,
+       count(distinct session_id)                      as sessoes,
+       min(created_at)                                 as primeiro,
+       max(created_at)                                 as ultimo
+from events
+where name in ('chatgpt_page_viewed', 'chatgpt_prompt_copied',
+               'paste_handoff_created', 'instruction_notice_cta_clicked')
+group by 1
+order by 1;
