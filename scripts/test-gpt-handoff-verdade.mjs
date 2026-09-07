@@ -203,5 +203,65 @@ console.log('\n(8) a conta do cobrador (constantes LIDAS de lib/narrationFit.ts)
   ok(cand60 === 25 && cand60 >= FLOOR && cand60 < FLOOR_H, `(8i) 60 pal/35s: candidato ${cand60}s passa no piso clássico (${FLOOR}) e reprova no hollywood (${FLOOR_H}) — por isso o piso é por motor`)
 }
 
+// ═══ (9) As IRMÃS recusam too_short pelo MESMO veredito (KINEO-GPT-VERDADE, 2ª leva) ═
+// O DEFEITO: o POST da Action recusava na porta, mas /make (GET de qualquer
+// assistente) e /api/gpt/handoff/paste (a página /chatgpt) gravavam linha para
+// roteiro too_short — a pessoa só descobria a recusa no Studio, depois de
+// criar conta. Cada verificação amarra à VARIÁVEL que decide
+// (`outcome.kind === 'too_short'`): um mutante `if (true)`/`if (false)` reprova.
+const PASTE_ROUTE = 'app/api/gpt/handoff/paste/route.ts'
+const MAKE_ROUTE = 'app/make/route.ts'
+const LANDING_PAGE = 'app/chatgpt-to-youtube-shorts/page.tsx'
+const PASTE_PANEL = 'app/chatgpt/ChatgptPastePanel.tsx'
+const pasteRoute = read(PASTE_ROUTE)
+const makeRoute = read(MAKE_ROUTE)
+const landingPage = read(LANDING_PAGE)
+const pastePanel = read(PASTE_PANEL)
+const OUTCOME_CALL = /const outcome = handoffOutcome\(input\.script, input\.durationSec, input\.engineHint\)/
+const TOO_SHORT_IF = "if (outcome.kind === 'too_short')"
+
+console.log('\n(9) POST /api/gpt/handoff/paste (a página /chatgpt)')
+{
+  const imp = (pasteRoute.match(/^import \{([^}]*)\} from '@\/lib\/gptHandoff'/m) || ['', ''])[1]
+  ok(/\bhandoffOutcome\b/.test(imp) && /\bdescribeOutcome\b/.test(imp), '(9a) importa handoffOutcome E describeOutcome de @/lib/gptHandoff (as MESMAS da Action — nada reimplementado)')
+  ok(OUTCOME_CALL.test(pasteRoute), '(9b) a rota calcula outcome = handoffOutcome(input.script, input.durationSec, input.engineHint)')
+  ok(/if \(outcome\.kind === 'too_short'\) \{[\s\S]{0,500}?return json\(\{ error: describeOutcome\(outcome\), outcome \}, 400\)/.test(pasteRoute), "(9c) `if (outcome.kind === 'too_short')` → 400 com { error: describeOutcome(outcome), outcome } — o MESMO formato da Action (mutante `if (true)` reprova)")
+  const i400 = pasteRoute.indexOf(TOO_SHORT_IF)
+  const iHash = pasteRoute.indexOf('handoffPayloadHash(input, CHANNEL)')
+  const iFind = pasteRoute.indexOf('await findHandoffByPayloadHash(')
+  const iInsert = pasteRoute.indexOf('await insertHandoff(')
+  ok(i400 > 0 && iHash > i400 && iFind > i400 && iInsert > i400, '(9d) a recusa acontece ANTES de handoffPayloadHash/findHandoffByPayloadHash/insertHandoff — too_short não vira linha')
+  ok(!/WORDS_PER_SECOND_CLASSIC|WORDS_PER_SECOND_HOLLYWOOD|FIT_SHORT_RATIO|narrationFit\(|autofitDown\(/.test(pasteRoute), '(9e) a rota NÃO redigita régua nenhuma (sem WORDS_PER_SECOND_*, FIT_*_RATIO, narrationFit, autofitDown)')
+  const meta = (pasteRoute.match(/name: 'paste_handoff_created',[\s\S]*?metadata: \{([\s\S]*?)\n\s*\},\s*\n\s*\}\)/) || ['', ''])[1]
+  ok(/\n\s*outcome: outcome\.kind,/.test(meta) && /\n\s*effective_seconds: outcome\.effectiveSeconds,/.test(meta), '(9f) paste_handoff_created grava outcome/effective_seconds no metadata (sem coluna nova)')
+  ok(/message: describeFit\(est, input\.durationSec\),\s*\n[\s\S]{0,200}?outcome,\s*\n\s*outcomeMessage: describeOutcome\(outcome\),/.test(pasteRoute), '(9g) o 200 mantém `message` (régua) e ganha outcome + outcomeMessage (veredito)')
+  ok(/setError\(\s*\n?\s*typeof data\?\.error === 'string'/.test(pastePanel) && /\{error\}/.test(pastePanel), '(9h) o painel mostra `error` do 400 como TEXTO — a frase de describeOutcome chega na caixa, com o roteiro ainda editável')
+}
+
+console.log('\n(10) GET /make (o link de qualquer assistente)')
+{
+  const imp = (makeRoute.match(/^import \{([^}]*)\} from '@\/lib\/gptHandoff'/m) || ['', ''])[1]
+  ok(/\bhandoffOutcome\b/.test(imp), '(10a) importa handoffOutcome de @/lib/gptHandoff (o MESMO veredito da Action)')
+  ok(OUTCOME_CALL.test(makeRoute), '(10b) a rota calcula outcome = handoffOutcome(input.script, input.durationSec, input.engineHint)')
+  ok(/if \(outcome\.kind === 'too_short'\) \{[\s\S]{0,400}?return landing\(origin, 'script_too_short'\)/.test(makeRoute), "(10c) `if (outcome.kind === 'too_short')` → landing(origin, 'script_too_short') — 302 como todo erro desta rota (mutante `if (true)` reprova)")
+  const iIf = makeRoute.indexOf(TOO_SHORT_IF)
+  const iHash = makeRoute.indexOf('handoffPayloadHash(input, CHANNEL)')
+  const iFind = makeRoute.indexOf('await findHandoffByPayloadHash(')
+  const iInsert = makeRoute.indexOf('await insertHandoff(')
+  ok(iIf > 0 && iHash > iIf && iFind > iIf && iInsert > iIf, '(10d) a recusa acontece ANTES de handoffPayloadHash/findHandoffByPayloadHash/insertHandoff — too_short não vira linha')
+  const list = (makeRoute.match(/const HANDOFF_ERROR_SLUGS = \[([\s\S]*?)\] as const/) || ['', ''])[1]
+  ok(/'script_too_short'/.test(list), "(10e) 'script_too_short' está na lista FECHADA HANDOFF_ERROR_SLUGS (slug inventado não compila)")
+  ok(!/NextResponse\.json/.test(makeRoute), '(10f) a rota continua sem NextResponse.json — humano no navegador nunca recebe 400 cru')
+  ok(!/describeOutcome/.test(makeRoute.replace(/^\s*\/\/.*$/gm, '')) && !/\$\{[^}]*outcome[^}]*\}/.test(makeRoute), '(10g) nem a frase por pedido nem o outcome viajam na URL (só o slug — a regra da rota: a frase NUNCA viaja)')
+  const mapBlock = (landingPage.match(/const HANDOFF_ERROR_MESSAGES: Readonly<Record<string, string>> = \{\n([\s\S]*?)\n\}/) || ['', ''])[1]
+  const line = (mapBlock.match(/^ {2}script_too_short: `([^`]*)`/m) || ['', ''])[1]
+  ok(line.length > 0, '(10h) a página de pouso tem a frase do slug script_too_short (slug sem frase = tela muda)')
+  ok(/too short/i.test(line) && /refuse/i.test(line) && /paste[^`]*below/i.test(line), '(10i) a frase diz que é curto, que o Studio recusaria, e aponta o caminho de colar de novo')
+  ok(!/\b(5000|200|35|60|90)\b/.test(line), '(10j) a frase não digita número nenhum (o guardião visível proíbe; os números por pedido vivem em describeOutcome, que não viaja)')
+  ok(!/WORDS_PER_SECOND_CLASSIC|WORDS_PER_SECOND_HOLLYWOOD|FIT_SHORT_RATIO|narrationFit\(|autofitDown\(/.test(makeRoute), '(10k) a rota NÃO redigita régua nenhuma')
+  const meta = (makeRoute.match(/name: 'gpt_handoff_created',[\s\S]*?metadata: \{([\s\S]*?)\n\s*\},\s*\n\s*\}\)/) || ['', ''])[1]
+  ok(/\n\s*outcome: outcome\.kind,/.test(meta) && /\n\s*effective_seconds: outcome\.effectiveSeconds,/.test(meta), '(10l) gpt_handoff_created (canal assistant_link) grava outcome/effective_seconds no metadata')
+}
+
 console.log(`\n${pass} ok, ${fail} falhas`)
 process.exit(fail ? 1 : 0)
