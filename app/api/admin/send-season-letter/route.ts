@@ -53,6 +53,7 @@ import { creditCostForDuration, type Quality } from '@/lib/credits/engineCost'
 import { getEffectiveEntitlement, TRIAL_ENTITLEMENT_COLUMNS } from '@/lib/reverseTrial'
 import { TOTAL_EPISODIOS, type TemporadaEscrita } from '@/lib/temporada'
 import { garantirTemporada } from '@/lib/temporadaServer'
+import { registrarCorrida, corridaAbortada, type CorridaDeCampanha } from '@/lib/lifecycle/campaignRun'
 
 export const maxDuration = 300
 export const dynamic = 'force-dynamic'
@@ -288,7 +289,15 @@ export async function GET(req: NextRequest) {
       })
     }
     const ids = [...ultimoDe.keys()].filter((u) => contagem.get(u) === 1)
-    if (ids.length === 0) return NextResponse.json({ mode: 'DRY_RUN', elegiveis: 0 })
+    // ⚠️ O `confirm` é lido AQUI e não mais lá embaixo: a corrida precisa saber
+    // se era ensaio ou envio ANTES do primeiro return, senão o zero mais comum
+    // de todos (coorte fechada) sai rotulado como ensaio.
+    const confirm = req.nextUrl.searchParams.get('confirm') === 'SEND'
+    const modo: CorridaDeCampanha['modo'] = confirm ? 'SENT' : 'DRY_RUN'
+    if (ids.length === 0) {
+      await registrarCorrida(admin, corridaAbortada(CAMPANHA, modo, 'coorte_vazia'))
+      return NextResponse.json({ mode: modo, elegiveis: 0 })
+    }
 
     // ── 2. perfis + carimbos + a PAREDE (que aqui é critério de EXCLUSÃO) ──
     const colunas = [
@@ -303,6 +312,7 @@ export async function GET(req: NextRequest) {
         .in('name', [SENT_EVENT, ...OTHER_CAMPAIGNS, 'checkout_started', 'checkout_attempted', 'upgrade_modal_opened']),
     ])
     if (profRes.error || evtRes.error) {
+      await registrarCorrida(admin, corridaAbortada(CAMPANHA, modo, 'query', { coorte_bruta: ids.length }))
       return NextResponse.json({ error: 'profile/event query failed' }, { status: 503 })
     }
 
@@ -402,7 +412,6 @@ export async function GET(req: NextRequest) {
       // única que já produziu pagante nesta base.
       .sort((a, b) => Number(b.fonte === 'chatgpt') - Number(a.fonte === 'chatgpt') || b.saldo - a.saldo)
 
-    const confirm = req.nextUrl.searchParams.get('confirm') === 'SEND'
     const limiteParam = Number(req.nextUrl.searchParams.get('limit'))
     const lote = Number.isFinite(limiteParam) && limiteParam > 0 ? Math.min(limiteParam, 30) : 30
 
@@ -417,6 +426,12 @@ export async function GET(req: NextRequest) {
         const t = await garantirTemporada(admin, d.id, d.filmeRaw, { escrever: false })
         if (t) comTemporada++
       }
+      await registrarCorrida(admin, {
+        campanha: CAMPANHA, modo, coorte_bruta: ids.length, candidatos: candidatos.length,
+        suprimidos_24h: sup.suppressedCount, supressao_degradada: sup.degraded,
+        elegiveis: destinatarios.length, no_lote: amostra.length,
+        enviados: 0, falhas: 0, pulados: 0,
+      })
       return NextResponse.json({
         mode: 'DRY_RUN',
         coorte: 'entregou EXATAMENTE 1 filme · saldo AINDA paga outro · nunca bateu na parede · fora do checkout · não pagante · sem campanha anterior',
@@ -482,6 +497,12 @@ export async function GET(req: NextRequest) {
         resultados.push({ email: d.email, outcome: `failed: ${e instanceof Error ? e.message : 'error'}` })
       }
     }
+    await registrarCorrida(admin, {
+      campanha: CAMPANHA, modo, coorte_bruta: ids.length, candidatos: candidatos.length,
+      suprimidos_24h: sup.suppressedCount, supressao_degradada: sup.degraded,
+      elegiveis: destinatarios.length, no_lote: batch.length,
+      enviados, falhas, pulados: semTemporada,
+    })
     return NextResponse.json({
       mode: 'SENT', enviados, falhas, sem_temporada: semTemporada,
       restantes: destinatarios.length - batch.length,
