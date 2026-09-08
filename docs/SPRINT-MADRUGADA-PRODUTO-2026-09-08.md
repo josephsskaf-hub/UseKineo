@@ -1559,3 +1559,140 @@ meu** — o +1 é o guardião novo, verde. Comparado **por lista, não por
 contagem**: `comm` nos dois sentidos devolve **vazio dos dois lados**. Zero
 regressão e zero conserto acidental. (Contagem igual pode esconder "quebrei um,
 consertei outro"; a lista não.)
+
+---
+
+### #12 — 07:06→07:30 BRT — M9: a única leitura SEM JANELA do cron de trial já estava acima do teto invisível de 1.000
+
+**O que estava errado.** O `db.max_rows` deste projeto corta **toda** resposta do
+PostgREST em **1.000 linhas e não devolve erro** — foi o mecanismo do reenvio 8×
+de 21/08, e a casa tem remédio próprio para ele desde 28/08
+(`lib/truncationTripwire.ts`). Medi a **cobertura** do remédio antes de escrever
+qualquer linha: ele é importado por **9 rotas de e-mail**, e **a maior máquina de
+e-mail da casa não é uma delas**. `trial_lifecycle_email_sent` tem **3.165
+linhas para 812 pessoas** — uma ordem de grandeza acima de qualquer outro
+carimbo de campanha (o 2º maior tem 225).
+
+Dentro de `app/api/cron/trial-lifecycle-emails/route.ts` existe **uma** leitura
+sem corte por tempo: a de idempotência, em `trial_emails_log`, que responde
+"quem já recebeu qual kind". Idempotência vale para sempre, então aquela tabela
+**só cresce**, e cada conta traz **uma linha por kind**, não uma linha. Ela
+pedia **200 contas por requisição** — e o comentário que justificava o 200
+falava de **comprimento de URL**, uma razão que nunca contou linhas por conta.
+
+Medido no banco, hoje, antes de tocar no código:
+
+| medida | valor | contra o teto de 1.000 |
+|---|---|---|
+| linhas / contas em `trial_emails_log` | 3.149 / 812 = **3,88 kinds por conta** | — |
+| bloco de 200 contas **maduras** (>14d) | **962 linhas** | **96%** |
+| as **200 contas mais pesadas** | **1.033 linhas** | **já passou** |
+| bloco de 200 com os 6 kinds maduros | **1.200 linhas** | **17% perdido** |
+
+**O que isto NÃO é — e digo com o código na mão, porque a diferença decide se
+alguém vai "consertar" de novo o que já está fechado: não é spam.** O passo 4b
+faz um `upsert` em `trial_emails_log` com PK `(user_id, email_kind)` e
+`ignoreDuplicates: true`, e não envia quando o claim volta com 0 linhas — envio
+duplo é **impossível por construção**, mesmo com a leitura do passo 2 truncada.
+O dano é outro e menor: quem **já recebeu** reaparece em `fresh`, ocupa vaga no
+`batch` de `MAX_PER_RUN = 40` e some no claim. **O teto da execução é gasto com
+no-op, e quem devia receber naquela hora fica para a próxima.**
+
+**O que NÃO tinha o defeito, medido para não consertar o que está certo.**
+`lib/lifecycle/suppression.ts` abre as mesmas tabelas com o mesmo bloco de 200,
+mas **corta na origem** com `.gte(cutoff)` de 24h: a casa inteira teve **109
+linhas em `trial_emails_log` e 117 em `email_send_log` nas últimas 24h**. Não
+encostei nela. As outras duas leituras multi-linha do próprio cron (contagem de
+vídeos e "derrubado por nós") já pediam **50** contas por requisição
+exatamente por causa do teto — a de dedupe era **a única fora do padrão do
+próprio arquivo**.
+
+**O que mudou (SHA `84b6564e` + `33d55572`, EM PRODUÇÃO).** Cura no padrão que o
+arquivo já usava: bloco de **50** contas (`EMAIL_LOG_USERS_PER_QUERY`, folga de
+3,3× mesmo com a coorte inteira madura) + página de **500**
+(`EMAIL_LOG_PAGE`, abaixo do teto do servidor, para "página cheia" significar
+"tem mais" e não "o servidor cortou") + **ordem TOTAL** pela PK
+(`user_id`, `email_kind`, as duas NOT NULL) + **falha FECHADA**: o teto de bloco
+responde **503**, não um `break` que seguiria com a lista de "já recebeu"
+incompleta. Junto saiu `CHUNK_SIZE = 200`, que ficou **sem nenhum chamador**, e
+o comentário da leitura irmã, que se comparava a ele, deixou de mentir.
+
+**O carimbo, porque esta rota não tem sonda.** Cron autenticado respondia 401
+anônimo antes e responde 401 anônimo agora: **nenhuma sonda de fora distingue os
+dois builds**, e dizer "está em produção" sem isso seria torcida. Por isso
+`dedupe_rows` e `dedupe_pages` viajam no evento `trial_lifecycle_email_sent`. A
+partir da próxima corrida das **:25 UTC**, o corte honesto é
+`metadata ? 'dedupe_rows'` — **nunca o relógio** — e `dedupe_pages` maior que o
+número de blocos seria a primeira execução que precisou de uma 2ª página, ou
+seja, o dia em que o teto teria mordido no código antigo.
+
+```sql
+-- corte pelo CAMPO NOVO, não pela hora
+select created_at, user_id, metadata->>'kind',
+       metadata->>'dedupe_rows', metadata->>'dedupe_pages'
+from events
+where name = 'trial_lifecycle_email_sent' and metadata ? 'dedupe_rows'
+order by created_at desc limit 20;
+```
+
+**Prova.** `scripts/test-dedupe-teto-1000-2026-09-08.mjs`, **29 verificações**,
+todas amarradas à **condição**: o pior bloco é recalculado a partir de quantos
+kinds existem em `KIND_PRIORITY`, então **um 7º kind fica vermelho sozinho**
+quando a folga acabar (falsifiquei isso: 7 kinds × 80 contas = 560 → vermelho).
+**9 mutações**, cada uma provada por `grep` antes de acreditar no vermelho
+(mutacao-precisa-provar-que-aplicou), e cada uma mordendo a verificação certa:
+volta do bloco de 200 (2 falhas), teto virando `break` — a falha aberta
+disfarçada de proteção — (3), ordem total incompleta (1), `CHUNK_SIZE` ressuscitando
+(1), `ignoreDuplicates` caindo (1), e as 3 do carimbo. `tsc --noEmit` verde pelo
+binário local (`npx tsc` mente com exit 0 nesta worktree).
+
+**Um erro meu no meio, registrado porque é a memória exata que existe para
+isto.** Rodei as 3 primeiras mutações do carimbo com o carimbo ainda **não
+commitado**; o `git checkout --` da própria bateria apagou a mudança, e duas
+mutações devolveram "não aplicou" em vez de vermelho. O harness pegou porque ele
+**exige provar por `grep` que a mutação entrou** antes de ler o resultado — sem
+essa trava, dois "verdes" falsos teriam passado por prova.
+
+**Uma segunda bomba no mesmo arquivo, medida e NÃO consertada — e a razão de
+não.** A leitura da **coorte** (`.in('trial_status', [...]).limit(5000)`)
+devolve **835 linhas**, 84% do teto, e o `.limit(5000)` **lê como cuidado e não
+é**: o servidor corta em 1.000 do mesmo jeito e a consulta não tem `ORDER BY`,
+então *qual* pedaço ficaria de fora não é sequer estável entre execuções.
+Antes de hoje entravam **20 a 55 pessoas por dia** nessa coorte e o teto cairia
+em ~6 dias. **Parou de crescer hoje:** a Versão B manda conta nova para
+`trial_status='card_required'`, que **não está na lista** — agora são **3
+`card_required`** (todas de hoje) contra **140 `active` + 711 `downgraded`** do
+regime antigo, e só entra quem passa o cartão. **A bomba foi desarmada por uma
+decisão de produto, não por mim**, e rearma se a conversão de $1 escalar. Ficou
+no PEDIDOS com o conserto descrito; consertar hoje seria mexer na consulta que
+alimenta a esteira inteira para resolver um número que acabou de parar.
+
+**Suíte inteira, contra worktree pristina no meu próprio pai (`61136003`), com
+as duas listas FECHADAS:** **107 vermelhos em 446 na base · 107 em 447 no meu** —
+o +1 é o guardião novo, verde. Comparado **por lista, não por contagem**: `comm`
+nos dois sentidos devolve **vazio dos dois lados**. Zero regressão e zero
+conserto acidental. ⚠️ E uma armadilha do próprio harness, porque ela quase me
+deu um número: a primeira tentativa da base rodou com o `mklink` do
+`node_modules` **falhando em silêncio**, o `&&` cortou o laço, e o arquivo de
+saída ficou **vazio** — que de fora é idêntico a "ainda rodando". Eu estava
+esperando por nada. Denominador conferido dos dois lados antes de comparar
+(baseline-incompleto-inventa-regressao).
+
+**✅ O QUE VOCÊ PRECISA FAZER**
+
+1. **Nada nesta entrada.** A entrega subiu sozinha pelo bat; nenhuma decisão sua
+   está bloqueando nada aqui.
+
+**📋 O QUE ACONTECEU**
+
+A esteira de e-mails do trial — a maior máquina de e-mail da casa, 3.165 envios
+para 812 pessoas — lia "quem já recebeu o quê" num pedaço que já estava **acima**
+do limite invisível de 1.000 linhas do banco. Não estava mandando e-mail
+repetido (existe uma segunda trava que impede isso por construção), mas estava
+**gastando as 40 vagas de cada rodada com gente que já tinha recebido** — e quem
+devia receber naquela hora ficava para a próxima. Agora a leitura vem em pedaços
+pequenos, em ordem fixa, e **prefere não mandar nada a mandar com a lista pela
+metade**. Também deixei um carimbo no evento para a próxima corrida provar, sem
+achismo, que o código novo é o que está rodando. Ficou anotado no PEDIDOS um
+segundo ponto do mesmo tipo que **parou de crescer sozinho** quando a Versão B
+entrou — não gastei rotação nele.
