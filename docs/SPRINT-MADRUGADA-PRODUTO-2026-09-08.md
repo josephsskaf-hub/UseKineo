@@ -1204,3 +1204,115 @@ voltam ao que eram sozinhas, sem ninguém precisar lembrar.
 
 **Hoje quem chega ao fim do trial sem ter conseguido um filme recebe uma carta
 que não promete o que a casa não entrega mais.**
+
+### #10 — 06:06→07:05 BRT — M7: as TELAS mais vistas da casa ainda prometiam "free" e "no card" — 224 pessoas em 7 dias
+
+**O que estava errado.** A #9 consertou as **cartas**. Estas são as **telas**, e
+elas estavam piores: as frases eram **JSX cru** — nunca passaram por
+`swapFreeTierCopy`, nunca leram o limite do cobrador, e por isso atravessaram a
+Versão B intactas. Desde as 04:22 UTC a casa não entrega filme grátis, e as
+quatro superfícies abaixo continuaram anunciando um.
+
+O caso mais alto é o do exit-intent da home. No **mesmo painel**, ao mesmo
+tempo: a coluna da esquerda com o selo `80 CREDITS FOR $1` e o ladrilho
+`$1 · for 7 days of Creator, no trick` — e a **manchete**, em 26px, dizendo
+*"You haven't tried it yet — and trying it is free"*. O parágrafo logo abaixo
+já estava certo (passa por `FreeTierCopy` e cai na copy da porta): quem lia de
+cima para baixo via a promessa, o preço e o desmentido em três linhas seguidas.
+
+**A coorte, medida por evento de impressão (7 dias):**
+
+| superfície | evento | alcance |
+|---|---|---|
+| exit-intent da home | `exit_intent_shown` / `_free_clicked` | **104 sessões viram, 20 clicaram (19%)** |
+| caixa inline do `/generate` | `viral_onboarding_viewed` `source=inline_first_video` | **175 pessoas** |
+| overlay `NicheOnboarding` | `viral_onboarding_viewed` (sem `source`) | **49 pessoas** |
+| modal de upgrade | `first_film_free_offer_shown` | **0 em 30 dias** |
+
+Duas leituras que mudam o peso disso. A primeira: **19% de clique**. Comparado
+com o pack de $4,90 (231 expostos, 0 cliques em 54 dias) e com a oferta de 14
+superfícies e clique zero, este painel é **a superfície de aquisição que mais
+converte na casa** — e era a que mentia mais alto. A segunda: o modal de upgrade
+tem **zero impressões em 30 dias**. Consertei o predicado dele porque estava
+errado, mas ele **não** entra na conta das 224 pessoas: peça sem superfície não
+existe, e inflar o número com ela seria exatamente o erro que já me custou
+rotações.
+
+**O que mudou — `d97d55f6` + `96037a8a`.**
+
+A condição sai do **limite que o cobrador lê** — `getFreeTierOffer().limit`, o
+mesmo número que `/api/compose` compara contra `reservedOrCompleted` antes de
+recusar a reserva — e nunca de uma flag redigitada:
+
+```ts
+const freeFilmAvailable = OFFER.limit > 0        // /generate
+const freeFilmAvailable = useFreeTierOffer().limit > 0   // NicheOnboarding
+```
+
+**Nenhuma frase nova foi inventada.** A manchete do exit-intent virou uma
+constante (`EXIT_FREE_HEADLINE`) que só chega à tela através do
+`swapFreeTierCopy` que já existia — sob a porta única ela cai na copy canônica
+de `lib/entryPolicy`; `on` repete o `legacy` de propósito, para que a versão A
+continue byte a byte o que era. As outras duas apenas **perdem a palavra** que o
+cobrador não honra mais (`'Create my free Short →'` → `'Create my Short →'`;
+`· no card ·` sai da linha). Não toquei em preço, checkout, porta de $1 nem
+página pública de SEO.
+
+**E `firstFilmFreeAvailable` era um espelho que tinha parado de espelhar.** O
+comentário dele promete responder *"o servidor entregaria um Kineo 1 de graça
+para esta conta agora?"* — mas o predicado só olhava plano, pagamento e filmes
+entregues, e **nunca consultou a cota**. Desde a Versão B a resposta do servidor
+é NÃO para todo mundo, e ele continuava dizendo SIM. Agora consulta.
+
+**As caixas ficam.** O degrau de ativação é bom e é o primeiro gesto de quem
+chega — 175 pessoas por semana. O que sai é a promessa que termina em 402, não a
+caixa.
+
+**Prova.** `scripts/test-telas-sem-filme-gratis-2026-09-08.mjs`, **19
+verificações** amarradas à condição e não à redação (a trava reprova
+explicitamente a forma `= !CARD_ENTRY_ONLY`). **Seis mutações**, cada uma com o
+md5 do arquivo antes e depois para provar que a mutação de fato aplicou — o
+mutante que não é escrito devolve verde e se lê como guardião resistindo:
+
+| mutação | vermelhas |
+|---|---|
+| manchete volta a ser JSX cru no `<h2>` | 4 |
+| `No card needed` volta a ser incondicional | 1 |
+| botão volta a `Create my free Short →` fixo | 1 |
+| linha `· no card ·` deixa de ser condicional | 1 |
+| espelho para de consultar a cota | 1 |
+| condição vira `!CARD_ENTRY_ONLY` | 2 |
+
+`npx tsc --noEmit` verde, com a junction de `node_modules` criada antes — sem
+ela o `npx tsc` sai com código 0 sem typecheckar nada e o verde é mentira.
+
+Duas armadilhas conhecidas apareceram e foram tratadas: a contagem de
+ocorrências casava com **o meu próprio comentário** que explica o conserto (toda
+contagem passou a rodar sobre o código sem comentário), e a âncora do contrato
+tinha um `|| /limit:\s*0/` que a fazia **falhar aberta** — removido.
+
+#### ✅ O QUE VOCÊ PRECISA FAZER
+1. **Nada.** Subiu sozinho pelo `!RODAR-AGORA.bat`.
+2. Continua em aberto, da #2: **a decisão sobre a trava do `lib/compose.ts`**
+   (commit `f42e410d`) — reverter ou aceitar que a intenção está respeitada.
+
+#### 📋 O QUE ACONTECEU
+Quando o trial grátis acabou às 04:22 da manhã, três telas não ficaram sabendo.
+A pior delas é a janelinha que aparece quando alguém está saindo do site: ela
+mostra, um do lado do outro, o selo "80 créditos por $1" e um título gigante
+dizendo "experimentar é grátis". Essa janelinha é a peça que mais funciona na
+casa inteira — 104 pessoas viram nos últimos sete dias e 20 clicaram, quase uma
+em cada cinco — e era justamente a que estava mentindo mais alto. As outras duas
+são a caixa que aparece embaixo do campo de texto para quem nunca fez um filme
+(175 pessoas na semana) e o balãozinho de boas-vindas (49), que prometiam
+"grátis" e "sem cartão" para gente que hoje precisa do cartão.
+
+Agora as três perguntam ao próprio cobrador se existe filme grátis antes de
+oferecer um. Como não existe, elas param de oferecer. Não inventei frase nova,
+não mexi em preço e não tirei nenhuma caixa do lugar — as caixas continuam onde
+estavam, porque elas são o primeiro gesto de quem chega. No dia em que você
+reabrir o grátis, as três voltam sozinhas ao que eram: a condição é o limite, não
+uma chave nova.
+
+**Hoje quem chega para ir embora lê o preço certo na mesma tela em que decide —
+e não uma promessa que morreria no clique seguinte.**
