@@ -1941,3 +1941,127 @@ resposta só repassa o número quando alguém pergunta, e a reindexação dos
 motores leva dias. O que ficou provado hoje é o **caminho** — o número certo
 está publicado, no lugar que é lido, com a URL que responde 307 e chega ao
 checkout. A medição de efeito é da próxima janela.
+
+---
+
+### #14 — 23:52→00:50 BRT — FECHAMENTO DA JANELA: a casa falou com 39 pessoas, e escreveu para a coorte errada por construção
+
+**Primeiro, um acerto de relógio.** A #13 datou a própria sonda de "00:20 BRT".
+O commit dela diz `2026-09-07T23:38:23-03:00`. Não havia 00:20 ainda quando ela
+escreveu — o carimbo do diário está adiantado em ~45 min. Nada mais dela muda;
+só não use aquele horário para cruzar com log.
+
+**O PLACAR DA JANELA (V5/V7), medido no banco de produção:**
+
+| | |
+|---|---|
+| pessoas com quem a casa falou | **39** (30 da lista A + 9 afiliados) |
+| voltaram ao site depois da carta | **0** |
+| cliques na porta de $1 | **0 reais** (os 4 registrados são as minhas sondas: sem UA, sem `ip_hash`) |
+| pagaram | **0** |
+| responderam | **0** |
+| rascunhos esperando você | **7** (Autopilot) + **2** (diretórios) |
+
+**Uma honestidade sobre o zero:** a carta dos afiliados tinha **35 minutos de
+vida** quando medi, e a dos 30 tinha **101 minutos**. Zero em 35 minutos não é
+um resultado, é um relógio. O zero que vale é o da carta dos 30 — e mesmo esse
+é jovem.
+
+**ERRADO — e é o achado da noite.** Fui perguntar por que as 30 cartas não
+moveram ninguém, e a resposta não estava na copy nem no preço. Estava em **para
+quem elas foram**:
+
+- a intenção de compra de quem recebeu tinha **mediana de 23,4 dias**;
+- **zero** dos 30 estavam dentro de 48h. **Zero** dentro de 7 dias;
+- a intenção mais antiga era de **02/08** — mais de um mês;
+- e a casa já tinha provado, em 90 dias e 12 pagantes, que **10 pagaram em menos
+  de 48h** e que **nenhum pagante orgânico nasceu depois do D2**.
+
+Ou seja: a carta foi endereçada, por construção, à faixa onde a casa **nunca
+fez uma venda**. Não era uma aposta ruim — era uma aposta fora da mesa.
+
+**A causa, no código.** O seletor não tinha **nenhum** limite de recência. A
+fila era ordenada por `b.films - a.films` — "quem mais entregou primeiro, é quem
+mais tem a perder por ter parado". Soa certo, e é exatamente ao contrário do que
+o próprio banco diz. E o custo foi medido: **25 pessoas com intenção mais nova
+que 7 dias — 4 delas dentro de 48h — ficaram na fila**, preteridas por terem
+feito **menos filmes**.
+
+**MUDOU — SHA `4b7bf1dd` + `4c1a51eb`, `origin/main` = `4c1a51eb`, fila 0, EM
+PRODUÇÃO:**
+
+1. a fila ordena por **recência da intenção**; `films` vira desempate; quem não
+   tem carimbo de intenção cai para o fim em vez de passar por recente;
+2. o **dry-run passa a publicar `intent_age_days`** (mediana, dentro de 48h,
+   dentro de 7d, acima de 30d, sem carimbo) medido sobre **o lote que vai sair**.
+   Sem isso, a tela de aprovação mostrava 30 cartas para intenção de 23 dias sem
+   dizer uma palavra sobre idade — que é justamente o número que decide.
+
+**Guardião:** `scripts/test-second-try-ordem-recencia.mjs`, **26 verificações,
+26 verdes**, amarradas ao comparador que decide a fila e à função que o dry-run
+chama — não à prosa. `tsc` verde (exit 0).
+
+**Falsifiquei por mutação, com o commit feito antes**, e os três mutantes
+derrubaram verificações **diferentes**:
+
+| mutação | resultado |
+|---|---|
+| voltar a ordenar por filmes primeiro | 🔴 22/26 |
+| medir a idade da fila inteira, não do lote | 🔴 25/26 |
+| data ilegível virando idade 0 | 🔴 25/26 |
+| restaurado | ✅ 26/26 |
+
+Duas armadilhas caíram no caminho e valem registro: **a primeira rodada de
+mutação voltou VERDE porque o mutante nunca foi escrito** (alvo multi-linha com
+`\n` contra o `\r\n` do checkout do Windows) — um mutante que não aplica se lê
+como guardião resistindo; passei a exigir que a mutação **prove** que aplicou. E
+uma das verificações estava **verde por substring**: procurar `Number.isFinite`
+sobrevivia ao mutante que trocava o `.filter` por `.map(... ? d : 0)`. Endurecida
+no `4c1a51eb`.
+
+**O que investiguei e NÃO era defeito** (para ninguém gastar rotação nisso):
+o link da carta leva a `/signup?reason=checkout`, e eu suspeitei que estivesse
+mandando quem já tem conta para uma tela de cadastro. Não está: com
+`?reason=checkout` a página **auto-dispara o Google de um clique** e preserva o
+`redirect` até o checkout. O caminho está inteiro. E a rota de envio **só carimba
+`_sent` quando o Resend responde ok** — as 39 saíram de verdade.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+1. **Enviar os 7 rascunhos do Autopilot** — `docs/RASCUNHOS-AUTOPILOT-2026-09-07.md`.
+   São os $299 e a única lista da noite que pede conversa humana, não e-mail.
+2. **Enviar os 2 rascunhos de diretório** — `docs/RASCUNHOS-DIRETORIOS-2026-09-07.md`
+   (`colormango`, `toolriot`).
+3. **Corrigir a ficha do TAAFT** no dashboard: ela ainda anuncia "from $9.90/mo"
+   e trial de 40 créditos. Os dois números morreram. O número de hoje é a
+   **entrada de $1 por 7 dias**.
+4. **Decisão sua, herdada:** as quatro strings de `lib/freeTierOffer.ts` que
+   prometem *"every engine unlocked, including Kling 3"* para 25 créditos,
+   quando o Kling 3 custa 150.
+
+## 📋 O QUE ACONTECEU
+
+A casa falou com **39 pessoas** hoje, uma a uma, com o que sabia de cada uma, e
+**ninguém voltou**. Mas o zero não quer dizer que falar com as pessoas não
+funcione — quer dizer que **falamos com as pessoas erradas**. As 30 cartas foram
+para gente cuja vontade de comprar tinha **23 dias**, e a casa já sabia, pelos
+seus próprios 12 pagantes, que **ninguém nunca comprou depois do segundo dia**.
+A fila estava ordenada pelo número de filmes que a pessoa já tinha feito — o
+passado dela — em vez do quão perto ela estava de comprar.
+
+Isso está corrigido e no ar. A partir da próxima leva, a carta sai **para quem
+tentou comprar mais recentemente**, e o dry-run mostra a idade da intenção do
+lote antes de você aprovar — o número que faltava na tela.
+
+**A próxima jogada, e ela é a mais barata da semana.** Existem **4 pessoas
+dentro da janela de 48h** e **25 dentro de 7 dias** que ainda não receberam
+carta nenhuma. Essa é a única coorte que se parece com todo pagante orgânico que
+a Kineo já teve. Mas o ponto maior é outro: **uma varredura noturna sempre chega
+tarde**. Se a compra acontece em horas, a carta tem que sair em horas — não numa
+passagem diária. A jogada da próxima janela é transformar esta carta de
+*campanha* em *gatilho*: dispara sozinha algumas horas depois de alguém abrir o
+checkout e não pagar, enquanto a pessoa ainda quer. Antes de construir isso,
+medir as rotas de resgate que já existem (`send-checkout-hot-nudge`,
+`send-checkout-recovery`, `send-abandon-recovery`) — a casa tem seis remédios
+para esta doença e nenhum deles foi medido; pode ser que o certo seja **ligar um
+que já existe**, não escrever o sétimo.
