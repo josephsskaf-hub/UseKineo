@@ -2223,3 +2223,71 @@ todo render — o evento é deduplicado por dia. E conferi, sem consertar nada, 
 caixa que parecia morta há 16 dias e não está: são 35 pessoas, os quatro botões
 funcionam, e zero de 35 é ruído. Restam uma superfície sem porta (o exit intent,
 28 pessoas) e a pergunta que só o tráfego responde: qual das portas vende.
+
+---
+
+### #11b — 21:40 BRT — CHECKPOINT: A JOGADA #12 MORREU NA MEDIÇÃO, E OS GUARDIÕES VERMELHOS HERDADOS SÃO **DOZE**, NÃO SEIS
+
+**A #12 QUE EU IA FAZER NÃO DEVE SER FEITA — e o erro era meu, de uma hora
+atrás.** Eu escrevi na #11 que a última superfície sem porta era o
+`ExitIntentOffer` com "28 pessoas/30d". Fui medir com a unidade certa antes de
+codar e o número se partiu em três:
+
+```
+exit_intent_shown ..... 415 linhas · 404 visitantes · 28 com conta
+   └─ variante 'free' (deslogado, CTA de cadastro) .... 93 visitantes
+   └─ variante 'deal' (os DOIS cards de assinatura) ...  8 visitantes  ← aqui
+   └─ '(sem variant)' — código anterior a 01/09 ....... 304 visitantes
+```
+
+A porta de $1 caberia na variante **`deal`**, e ela alcança **8 visitantes em 30
+dias** — a MENOR superfície de dinheiro da casa, não a segunda maior. Os 404 são
+quase todos deslogados vendo um convite de cadastro, onde não há preço nenhum
+para trocar. **Uma rotação salva por uma consulta de 30 segundos.** É a terceira
+vez hoje que a unidade composta (`coalesce(user_id::text, session_id)`) muda a
+decisão — e a segunda vez que eu mesmo publiquei um número por `user_id` numa
+superfície pública antes de conferir.
+
+**SONDA DO CAMINHO DO DINHEIRO — feita, e passou.** Antes de assumir que as
+portas funcionam para quem não está logado, sondei o destino real com um
+User-Agent de navegador (memórias `sondar-o-destino-do-link-antes-de-enviar` e
+`sonda-com-ua-de-curl-cai-no-ramo-do-robo`):
+
+| pedido | resposta |
+|---|---|
+| porta de $1, deslogado | **307** → `/signup?reason=checkout&redirect=…trial=1…intent_campaign=…` |
+| mês cheio, deslogado (controle) | 307 → `/signup…intro=1…` |
+| rota inexistente (controle) | **404** |
+
+O `trial=1` e o `intent_campaign` **sobrevivem** dentro do `redirect`: quem se
+cadastra depois de clicar volta para a porta de $1, não para o mês cheio. E o
+`/pricing` público serve a porta para deslogado — conferido no HTML servido:
+`try Creator for 7 days — $1, then $15/mo →`.
+
+**⚠️ CORREÇÃO DE FATO: SÃO DOZE GUARDIÕES VERMELHOS HERDADOS, NÃO SEIS.** A #9
+somou um sexto à lista da va-r6. Rodei a suíte inteira de dinheiro/trial na
+ponta — **82 verdes, 12 vermelhos** — e depois **falsifiquei numa worktree
+pristina no commit `5f3803b1`** (a ponta de quando esta rotação começou): os
+**doze já estavam vermelhos antes de eu tocar em qualquer arquivo**. Nenhum é
+meu. A lista, com a natureza de cada um:
+
+`test-animate-paywall` · `test-business-content-plan` ·
+`test-checkout-currency-truth` · `test-checkout-password-recovery` ·
+`test-checkout-profile-read` · `test-credito-vitrine` (1/15 — "as 6 etiquetas de
+motor são derivadas — achei **0**": âncora perdida) · `test-next-door-bar` (3
+falhas, todas sobre a guarda do #47) · `test-porta-serie-impressao-2026-09-05` ·
+`test-rewrite-candidate-offer` · `test-stripe-checkout-failure-truth` ·
+`test-trial-balance-bridge` (**não falha: ESTOURA** com `AssertionError` no
+`check` — morre na 1ª verificação e nunca chega às outras) ·
+`test-trial-post-video-primary` (**25/57** — a acusação mais séria da lista:
+"trial offer card is found", "deliver-first remains true", "clean-film benefit
+is the heading" — a caixa que 228 pessoas/mês veem).
+
+Enquanto vivem vermelhos, os doze não protegem nada, e falso vermelho treina
+gente a ignorar guardião (memória `guardiao-crlf-falso-vermelho`). **Não os
+consertei**: são doze arquivos de donos diferentes e consertar guardião alheio
+às pressas, num ciclo que fecha em duas horas, é como se quebra trava de
+dinheiro. Fica nomeado, com denominador e com a prova de que não é meu.
+
+**O QUE NÃO MUDOU NESTE CHECKPOINT:** nenhum arquivo de produto. Só medição,
+sonda e auditoria.
