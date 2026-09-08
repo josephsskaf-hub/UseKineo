@@ -1087,3 +1087,120 @@ passou o cartão.** Uma. Não é notícia boa nem ruim — é pouca gente para t
 notícia. As visitas continuam chegando no mesmo ritmo de ontem, o que
 significa que a mudança ainda não espantou ninguém da porta. Amanhã de manhã,
 com mais horas de relógio, o número vira resposta.
+
+---
+
+### #9 — 05:36→06:35 BRT — M7: três cartas prometiam um filme grátis que a casa parou de entregar às 04:22 UTC — 126 pessoas em 7 dias
+
+**O que estava errado.** A esteira de trial manda ~124 e-mails por dia (866 em
+7 dias, 549 pessoas) e continuou mandando depois da Versão B — o último saiu
+às 08:25 UTC, onze minutos antes de eu medir. Três dos ramos dela dizem, com
+estas palavras:
+
+> *"You can still make one on the **free plan you're back on**. Pick a topic and
+> it starts writing and rendering by itself — no blank page to stare at:"*
+
+e entregam três links `create_intent=fast`, que **disparam o render sozinhos**.
+
+Desde a Versão B (`lib/entryPolicy.ts CARD_ENTRY_ONLY`, em produção 08/09
+**04:22 UTC**) esse plano não existe: `getFreeTierOffer()` devolve
+`CARD_ENTRY_OFFER` com `limit: 0`, e `/api/compose` recusa em
+`reservedOrCompleted > FREE_OFFER.limit` — ou seja, **na primeira reserva**. A
+carta promete o filme; o link entrega um 402.
+
+O detalhe que fecha o caso: **a própria carta se contradiz**. A lista de perdas
+logo acima já sai da fonte única e diz `You're back to No free tier — $1 trial
+only`. Três parágrafos depois, o literal escrito à mão em 12/08 oferece o filme
+grátis. O comentário do código que justificava a frase — *"o free residual do
+plano em que a pessoa acabou de cair cobre esse vídeo"* — envelheceu junto com
+ela.
+
+**Quantas pessoas** (`events.trial_lifecycle_email_sent`, por
+`metadata->>'body'`, 7 dias):
+
+    downgraded_loss      / never_ran ............ 61 pessoas
+    expired_offer_d5     / offer_first_film ..... 37 pessoas
+    expired_lastcall_d10 / offer_first_film ..... 28 pessoas
+    ────────────────────────────────────────────────────────
+                                          126 pessoas (~18/dia)
+
+Depois da Versão B, em quatro horas, **4 pessoas** já receberam a promessa
+morta: 04:25:19 (dois D5), 07:25:18 (um downgraded_loss) e 08:25:17 (um D10).
+
+**O que mudou — `2b6a4043`, EM PRODUÇÃO** (`git ls-remote origin main` =
+`2b6a4043`, fila 0).
+
+Nenhuma linha de copy foi reescrita — e isso é de propósito. A condição nova
+sai do **limite do cobrador**, não de uma flag redigitada:
+
+```ts
+const LIFECYCLE_FREE_OFFER = getFreeTierOffer()
+const FREE_FILM_AVAILABLE = LIFECYCLE_FREE_OFFER.limit > 0
+```
+
+e os três ramos passam a montar a lista de temas só quando há filme grátis
+(`FREE_FILM_AVAILABLE ? starterTopics(...) : []`). Os três **já tinham** o
+desvio pronto para pool vazio — *"Pool vazio ⇒ nunca um e-mail sem CTA: cai no
+corpo de hoje, intacto"* — então caem no corpo `standard`, que é honesto e já
+carrega a porta aprovada. No dia em que o fundador virar `CARD_ENTRY_ONLY` de
+volta, os três ramos voltam sozinhos: a condição é o limite, não uma chave nova.
+
+**Um efeito colateral, declarado e não escondido.** O ramo `neverRan` era o
+único que **não** oferecia a porta de $1, de propósito: *"quem nunca viu um
+filme sair tem objeção de prova, não de preço"* (decisão de 07/09). Aquela
+decisão pressupunha uma prova **grátis** disponível. Sem ela, o corpo `standard`
+é a única coisa verdadeira que sobrou para dizer. E o `standard` também foi
+corrigido: ele afirmava *"the videos you already made are yours"* — falso para
+quem nunca entregou nada, e exatamente a frase que o `neverRan` havia sido
+criado para não dizer. Agora a frase **some** quando não há acervo, em vez de
+virar outra frase.
+
+**Prova.** `scripts/test-esteira-sem-filme-gratis-2026-09-08.mjs`, 24
+verificações, amarradas à **condição** e não à redação: a trava exige que
+`FREE_FILM_AVAILABLE` venha de `getFreeTierOffer().limit`, e reprova
+explicitamente a forma `= !CARD_ENTRY_ONLY` (predicado do cobrador não se
+redigita). Falsifiquei trocando os três ramos por `true`: **4 verificações
+ficam vermelhas**. `npx tsc --noEmit` verde — com a junction de `node_modules`
+criada primeiro, porque sem ela o `npx tsc` sai com **código 0 sem
+typecheckar nada** e o verde é mentira.
+
+⚠️ E uma lição que já me custou uma hora: rodei a falsificação **antes de
+commitar** e o `git checkout --` de volta apagou as três edições inteiras.
+A regra existe na memória (`falsificar-mutacao-commitar-antes`) e mesmo assim
+foi preciso reaplicar tudo. Commit antes da mutação, sempre.
+
+**M6, de tabela.** `scripts/test-other-deliveries.mjs` estava **vermelho por
+herança** na ponta `8149a04d` — não foi a minha mudança. A asserção
+`'D5/D10 untouched'` prendia a **forma** (a palavra `otherMade`), e a
+sprint-assinaturas de 04/09 passou a usar `otherMade` no predicado do D5/D10 de
+propósito. Reancorada pela **condição** que ela realmente protege — o D5/D10 não
+*imprime* o acervo, só o lê no predicado (medido: 2 usos, ambos no `if`, zero na
+copy). 30/30 verde. Os outros seis guardiões vizinhos já estavam e seguem
+verdes.
+
+#### ✅ O QUE VOCÊ PRECISA FAZER
+1. **Nada.** Já subiu sozinho pelo `!RODAR-AGORA.bat` (`2b6a4043`, fila 0).
+2. Se você quiser reverter o efeito colateral e devolver ao ramo `neverRan` o
+   tratamento de antes (sem porta de $1), a decisão é sua e é **uma linha**:
+   me diga e eu separo um corpo próprio para essa coorte. Hoje ela recebe o
+   corpo `standard`, que oferece a porta.
+3. Continua em aberto, da #2: **a decisão sobre a trava do `lib/compose.ts`**
+   (commit `f42e410d`).
+
+#### 📋 O QUE ACONTECEU
+Quando o trial grátis acabou às 04:22 da manhã, a máquina de e-mails não ficou
+sabendo. Ela continuou mandando, para gente que nunca conseguiu terminar um
+vídeo, uma carta dizendo "você ainda pode fazer um no plano grátis" com três
+botões que começam o vídeo sozinhos. O plano grátis tinha acabado de deixar de
+existir — quem clicasse ia bater numa parede de pagamento com a promessa ainda
+aberta na outra aba. Foram 126 pessoas nos últimos sete dias, e quatro já
+tinham recebido a carta hoje, a última onze minutos antes de eu ver.
+
+Agora a carta pergunta ao próprio cobrador se existe filme grátis antes de
+oferecer um. Como não existe, ela para de oferecer e manda o texto honesto que
+já estava pronto no mesmo arquivo. Não inventei frase nova, não mexi em preço e
+não criei oferta nenhuma — e no dia em que você reabrir o grátis, as três cartas
+voltam ao que eram sozinhas, sem ninguém precisar lembrar.
+
+**Hoje quem chega ao fim do trial sem ter conseguido um filme recebe uma carta
+que não promete o que a casa não entrega mais.**
