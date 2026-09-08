@@ -14,7 +14,7 @@ import { createClient as createServiceClient } from '@supabase/supabase-js'
 // usadas pelo handoff do GPT e pelo episode-link. REUSAR em vez de redigitar:
 // duas cópias da mesma regra divergem e a que ninguém audita passa a mentir
 // (memória `a-regra-vive-em-varios-arquivos`).
-import { clientIp, hashIp, isLikelyBot } from '@/lib/gptHandoffStore'
+import { clientIp, hashIp, isLikelyBot } from '@/lib/requestIdentity'
 
 export const dynamic = 'force-dynamic'
 
@@ -216,10 +216,18 @@ export async function POST(req: NextRequest) {
     //      `metadata` do cliente. O navegador não pode forjá-las — se pudesse,
     //      o carimbo que existe para separar robô de gente seria escrito pelo
     //      próprio robô.
+    //   4. O CARIMBO NUNCA PODE IMPEDIR A GRAVAÇÃO. Ler `req.headers.get(...)`
+    //      direto derruba a rota inteira quando a requisição não traz
+    //      cabeçalhos — e como todo este corpo está dentro de um `try`, o
+    //      desfecho seria o pior possível: `ok: true` para o cliente e evento
+    //      NÃO gravado, em silêncio. Foi o guardião de segurança que pegou
+    //      isto, executando a rota com uma requisição mínima.
+    const uaHeader =
+      typeof req.headers?.get === 'function' ? req.headers.get('user-agent') : null
     const stampedMetadata: Record<string, unknown> = {
       ...metadata,
       ip_hash: hashIp(clientIp(req.headers)),
-      is_bot: isLikelyBot(req.headers.get('user-agent')),
+      is_bot: isLikelyBot(uaHeader),
     }
 
     const row: Record<string, unknown> = {

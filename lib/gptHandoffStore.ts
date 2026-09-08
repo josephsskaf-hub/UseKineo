@@ -10,7 +10,6 @@
 // página pública. Um erro de banco aqui deve virar "link expirado" ou um
 // redirecionamento — nunca um 500.
 import { createClient as createServiceClient, type SupabaseClient } from '@supabase/supabase-js'
-import { createHash } from 'crypto'
 import { RATE_LIMIT_WINDOW_MS, type HandoffFit } from '@/lib/gptHandoff'
 
 export const GPT_HANDOFFS_TABLE = 'gpt_handoffs'
@@ -54,38 +53,14 @@ export function serviceClient(): SupabaseClient | null {
   return createServiceClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
 }
 
-/** Primeiro IP de x-forwarded-for (o do cliente), fallback x-real-ip — o mesmo
- *  critério de lib/trialFingerprint.ts. Loopback/unknown = sem sinal. */
-export function clientIp(headers: Headers): string | null {
-  const fwd = headers.get('x-forwarded-for')
-  const first = fwd ? fwd.split(',')[0]?.trim() : ''
-  const ip = first || (headers.get('x-real-ip') ?? '').trim()
-  if (!ip || ip === '127.0.0.1' || ip === '::1' || ip === 'unknown') return null
-  return ip.slice(0, 64)
-}
-
-/** SHA-256(salt|ip). Nunca gravamos IP cru. Sem KINEO_TRIAL_FINGERPRINT_SALT
- *  no ambiente cai num pepper fixo — o hash continua não reversível na
- *  prática, só deixa de ser rotacionável; o rate limit precisa de ALGUM
- *  identificador para existir, então aqui, ao contrário do trial, não se
- *  desliga sem salt. */
-export function hashIp(ip: string | null): string | null {
-  if (!ip) return null
-  const salt = process.env.KINEO_TRIAL_FINGERPRINT_SALT?.trim() || 'kineo-gpt-handoff-v1'
-  try {
-    return createHash('sha256').update(`${salt}|${ip}`).digest('hex')
-  } catch {
-    return null
-  }
-}
-
-/** Varredor, pré-visualização de link e robô de segurança batem em URL sem
- *  humano por perto. Não bloqueamos — só etiquetamos (padrão episode-link). */
-const ROBO = /(bot|crawler|spider|slurp|preview|scanner|monitor|curl|wget|python-requests|headless|proxy|fetcher|validator)/i
-export function isLikelyBot(ua: string | null): boolean {
-  if (!ua) return true
-  return ROBO.test(ua)
-}
+// KINEO-QUEM-E-GENTE-2026-09-07 (fv-r10) — as tres funcoes de identidade de
+// origem MUDARAM DE CASA para lib/requestIdentity.ts (puro, so crypto), para
+// que o sink publico de eventos pudesse usa-las sem arrastar este store e o
+// cliente Supabase junto — o guardiao scripts/test-sharing-safety.mjs reprova,
+// com razao, dependencia pesada dentro da rota de analytics. Sao reexportadas
+// aqui sem uma virgula de mudanca: todo chamador antigo continua igual e a
+// regra continua tendo UMA fonte.
+export { clientIp, hashIp, isLikelyBot } from '@/lib/requestIdentity'
 
 export type RecentCounts = { ip: number; global: number }
 

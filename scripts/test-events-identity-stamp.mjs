@@ -24,7 +24,7 @@ import { fileURLToPath } from 'node:url'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const ROUTE_PATH = join(root, 'app/api/events/route.ts')
-const HELPER_PATH = join(root, 'lib/gptHandoffStore.ts')
+const HELPER_PATH = join(root, 'lib/requestIdentity.ts')
 
 const read = (p) => readFileSync(p, 'utf8').replace(/\r\n/g, '\n')
 const stripComments = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '')
@@ -45,7 +45,7 @@ function contract(src) {
 
   // 1. Reuso da fonte unica — nao uma segunda copia da regra.
   t('importa as tres funcoes da fonte que ja existe',
-    /import \{ clientIp, hashIp, isLikelyBot \} from '@\/lib\/gptHandoffStore'/.test(code))
+    /import \{ clientIp, hashIp, isLikelyBot \} from '@\/lib\/requestIdentity'/.test(code))
   t('nao redigita hash nem regex de robo dentro da rota',
     !/createHash\(/.test(code) && !/bot\|crawler\|spider/.test(code))
 
@@ -53,7 +53,13 @@ function contract(src) {
   t('carimba ip_hash a partir do IP da requisicao',
     /ip_hash: hashIp\(clientIp\(req\.headers\)\)/.test(code))
   t('carimba is_bot a partir do user-agent da requisicao',
-    /is_bot: isLikelyBot\(req\.headers\.get\('user-agent'\)\)/.test(code))
+    /is_bot: isLikelyBot\(uaHeader\)/.test(code))
+  // O carimbo NUNCA pode derrubar a gravacao. Ler `req.headers.get` direto
+  // estoura quando a requisicao nao traz cabecalhos, e como tudo isto corre
+  // dentro de um `try`, o desfecho seria `ok: true` com o evento NAO gravado,
+  // em silencio. Foi o guardiao de seguranca que pegou isto.
+  t('a leitura do user-agent tolera requisicao sem cabecalhos',
+    /typeof req\.headers\?\.get === 'function' \? req\.headers\.get\('user-agent'\) : null/.test(code))
 
   // 3. PRECEDENCIA: o servidor escreve DEPOIS do cliente. Esta e a trava que
   //    impede o proprio robo de se etiquetar como gente.
@@ -98,14 +104,14 @@ console.log('── mutantes ──')
 const mutants = [
   ['carimbar ANTES do metadata do cliente (o robo se etiqueta)',
     (s) => s.replace(
-      "      ...metadata,\n      ip_hash: hashIp(clientIp(req.headers)),\n      is_bot: isLikelyBot(req.headers.get('user-agent')),",
-      "      ip_hash: hashIp(clientIp(req.headers)),\n      is_bot: isLikelyBot(req.headers.get('user-agent')),\n      ...metadata,")],
+      "      ...metadata,\n      ip_hash: hashIp(clientIp(req.headers)),\n      is_bot: isLikelyBot(uaHeader),",
+      "      ip_hash: hashIp(clientIp(req.headers)),\n      is_bot: isLikelyBot(uaHeader),\n      ...metadata,")],
   ['gravar o IP cru ao lado do hash',
     (s) => s.replace('      ip_hash: hashIp(clientIp(req.headers)),',
       '      ip_hash: hashIp(clientIp(req.headers)),\n      raw_ip: clientIp(req.headers),')],
   ['gravar o user-agent inteiro',
-    (s) => s.replace("      is_bot: isLikelyBot(req.headers.get('user-agent')),",
-      "      is_bot: isLikelyBot(req.headers.get('user-agent')),\n      user_agent: req.headers.get('user-agent'),")],
+    (s) => s.replace("      is_bot: isLikelyBot(uaHeader),",
+      "      is_bot: isLikelyBot(uaHeader),\n      user_agent: req.headers.get('user-agent'),")],
   ['voltar a gravar o metadata cru',
     (s) => s.replace('    row.metadata = stampedMetadata',
       '    if (Object.keys(metadata).length > 0) row.metadata = metadata')],
