@@ -123,7 +123,20 @@ equal(activation.searchParams.get('utm_source'), 'business_planner', 'signup sou
 equal(activation.searchParams.get('utm_medium'), 'organic', 'signup medium is organic')
 equal(activation.searchParams.get('utm_campaign'), 'weekly_business_video_plan', 'campaign is exact')
 const redirect = new URL(activation.searchParams.get('redirect'), 'https://www.usekineo.com')
-equal(redirect.pathname, '/generate', 'first idea carries to the existing generator')
+// KINEO-REANCORA-PLANNER-2026-09-07 — a trava exigia `/generate`. A casa moveu
+// a sala de criação para `/studio/create` e o destino acompanhou; a rota existe
+// (`app/(dashboard)/studio/create/page.tsx`) e a INTENÇÃO da verificação — a
+// primeira ideia atravessa o cadastro e cai numa sala de criação AUTENTICADA,
+// com o prompt e a atribuição intactos — está preservada. Verifico agora as
+// três coisas que importam, em vez de um literal: o caminho, que ele não é
+// página de marketing, e que o prompt e a campanha sobreviveram à viagem.
+equal(redirect.pathname, '/studio/create', 'first idea carries to the creation room')
+equal(
+  ['/pricing', '/signup', '/login', '/'].includes(redirect.pathname), false,
+  'the first idea never lands on a marketing page',
+)
+equal(Boolean(redirect.searchParams.get('prompt')?.trim()), true, 'the prompt survives the signup detour')
+equal(redirect.searchParams.get('intent_campaign'), planner.BUSINESS_PLAN_CAMPAIGN, 'attribution survives the signup detour')
 equal(redirect.searchParams.get('duration'), '35', 'first idea uses a supported duration')
 equal(redirect.searchParams.get('autoanalyze'), '1', 'handoff analyzes without auto-rendering')
 equal(redirect.searchParams.get('intent_campaign'), 'weekly_business_video_plan', 'creator keeps business-plan intent')
