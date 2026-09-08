@@ -311,3 +311,79 @@ select
   round(avg(extract(epoch from (pago - pr.created_at))/3600.0)::numeric, 1) as media_horas
 from pay join profiles pr on pr.id = pay.user_id
 where pr.email not ilike '%josephsskaf%';
+
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- V3 · A CARTA DOS SÓCIOS (va-r11, 07/09) — carimbo `affiliate_wakeup_1usd_sent`
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Por que estas consultas existem separadas das da carta da segunda tentativa:
+-- o sócio não é medido por "voltou e pagou". Ele é medido por POSTOU — e a
+-- única prova de que postou é um clique no link dele vindo de fora. Por isso a
+-- primeira consulta olha `affiliate_clicks` DEPOIS da carta, não `events`.
+
+-- 1) Quem recebeu, e o que o carimbo guardou (nunca o código do sócio).
+select
+  count(*)                                          as cartas,
+  count(distinct user_id)                           as socios,
+  min(created_at)                                   as primeira,
+  max(created_at)                                   as ultima,
+  jsonb_agg(distinct metadata->>'rate')             as taxas_prometidas,
+  jsonb_agg(distinct metadata->>'fee')              as entrada_citada
+from events
+where name = 'affiliate_wakeup_1usd_sent';
+
+-- 2) O NÚMERO QUE IMPORTA: cliques no link de um sócio DEPOIS da carta dele.
+--    Antes da carta a casa tinha 25 cliques em 5 semanas, 10 dos 15 sócios com
+--    zero na vida. Qualquer coisa acima de zero aqui é distribuição nova.
+with carta as (
+  select e.user_id, min(e.created_at) as enviada
+  from events e where e.name = 'affiliate_wakeup_1usd_sent' group by 1
+)
+select
+  count(*)                                                     as cliques_pos_carta,
+  count(distinct a.user_id)                                    as socios_que_postaram,
+  count(*) filter (where c.user_agent !~* '(bot|spider|crawl|curl|preview)') as cliques_de_cara_humana,
+  min(c.created_at)                                            as primeiro,
+  max(c.created_at)                                            as ultimo
+from carta
+join affiliates a on a.user_id = carta.user_id
+join affiliate_clicks c on c.affiliate_id = a.id and c.created_at > carta.enviada;
+
+-- 3) A cadeia inteira, do clique ao dinheiro. Hoje é 0/0/0 em toda a história;
+--    o que se observa é se ALGUM degrau deixa de ser zero, e qual primeiro.
+select
+  (select count(*) from affiliate_clicks)                          as cliques_total,
+  (select count(*) from affiliate_referrals)                       as atribuicoes,
+  (select count(*) from affiliate_commissions)                     as comissoes,
+  (select count(*) from events
+     where name = 'affiliate_signup_attribution_result')           as cadastros_com_cookie,
+  (select count(*) from events
+     where name = 'affiliate_signup_attribution_result'
+       and metadata->>'outcome' = 'attributed')                    as cadastros_atribuidos;
+
+-- 4) Chegadas na porta de $1 vindas de um sócio (utm_source=affiliate).
+--    Separa o que a carta dos sócios trouxe do que veio das outras portas.
+select
+  date_trunc('hour', created_at) as hora,
+  count(*)                       as chegadas,
+  count(distinct session_id)     as sessoes
+from events
+where name in ('checkout_started','checkout_attempted','checkout_cta_clicked')
+  and (metadata->>'utm_source' = 'affiliate' or metadata->>'intent_campaign' = 'affiliate_wakeup_1usd')
+  and created_at > '2026-09-08 02:00:00+00'
+group by 1 order by 1;
+
+-- 5) Respostas: o sócio responde para joseph@usekineo.com, então o sinal aqui
+--    é indireto — quem recebeu a carta e VOLTOU ao site nas 72h seguintes.
+with carta as (
+  select user_id, min(created_at) as enviada
+  from events where name = 'affiliate_wakeup_1usd_sent' group by 1
+)
+select
+  count(distinct carta.user_id)                          as receberam,
+  count(distinct e.user_id)                              as voltaram_ao_site
+from carta
+left join events e
+  on e.user_id = carta.user_id
+ and e.created_at between carta.enviada and carta.enviada + interval '72 hours'
+ and e.session_id is not null;

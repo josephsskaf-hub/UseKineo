@@ -1475,3 +1475,123 @@ cinco portas de $1 que a casa construiu hoje tiveram quatro cliques em seis
 horas, e os quatro somos nós mesmos sondando.** Os únicos cliques humanos do
 dia vieram da home, no mês cheio, sem passar perto do dólar. As portas estão
 certas; o que faltava era alguém na frente delas. Às 22:12 passaram a ter 30.
+
+---
+
+### #11 — 22:35 BRT — os 15 sócios nunca tiveram motivo para postar, e o portão que a auditoria de 28/08 deixou aberto já estava fechado
+
+**O que estava errado.** O cardápio (V3) mandava escrever para os afiliados
+**só depois** de provar que o link deles atribui — porque a auditoria de 28/08
+tinha registrado *"12 ativos, 17 cliques, 0 atribuições, 0 comissões; o cookie
+`sf_aff` só é lido por rota chamada de dentro do (dashboard)"*. Convidar 14
+pessoas a divulgar um link que não credita seria a promessa sem executor que
+custou o e-mail *"Feeling forgotten"* em 22/08.
+
+**Conferi os três degraus antes de escrever uma linha de e-mail, e os três
+estão de pé:**
+
+| degrau | como foi provado | resultado |
+|---|---|---|
+| **clique** | sonda em produção, UA de navegador, no código do afiliado **interno** (para não distorcer parceiro) | `307` + `sf_aff` + `sf_aff_click` + `sf_aff_hint`, e a linha gravada em `affiliate_clicks` |
+| **controle da sonda** | mesma medição, código inexistente | `307` para a home e **nenhum** `Set-Cookie` |
+| **cadastro** | `app/auth/callback/route.ts:171` | chama de verdade `finalizeAffiliateSignupAttribution` com os dois cookies, enquanto o OAuth ainda os carrega |
+| **dinheiro** | `app/api/stripe/webhook/route.ts:613` | lança a linha em `affiliate_commissions` e marca o referral como `paid` |
+
+**Então por que 0 atribuições na história? Não é defeito — é ausência de
+tráfego.** Medido hoje:
+
+| | |
+|---|---|
+| sócios ativos | **15** |
+| cliques em 5 semanas | **25** |
+| códigos que já receberam um clique | **5** de 15 |
+| **sócios sem UM clique na vida** | **10** |
+| cliques do maior deles | 10, no **mesmo dia**, de **3 IPs** (cara de auto-teste) |
+| cliques com UA de robô | 6 |
+| `affiliate_signup_attribution_result` na história | **0** — nenhum cadastro jamais chegou carregando o cookie |
+
+Contar "0 escritas" sem contar as oportunidades teria virado um conserto
+inventado. A máquina está inteira; **ninguém nunca foi convidado a clicar.**
+
+**O que mudou (SHA `09f11484`, EM PRODUÇÃO — 403 na rota nova contra 404 no
+controle, às 22:30 BRT).** `app/api/admin/send-affiliate-wakeup-1usd`, no padrão
+da casa: admin/cron, dry-run por padrão, teto de lote, pacing de 600ms, 1× por
+pessoa para sempre, supressão de 24h, descadastro, proibidos e internos fora.
+Mais o carimbo em `LIFECYCLE_EMAIL_EVENT_NAMES` e o gatilho de cron no **mesmo
+commit** — sem ele, os 5 sócios que a supressão segura hoje só receberiam se um
+humano clicasse.
+
+**O que a carta diz, e o que eu recusei escrever.** Ela leva o link dele, a
+comissão dele **lida do banco por pessoa** (não os "40%" da página), a vitrine
+`/examples` para pegar filmes, e o fato novo: até esta tarde ele precisava
+convencer alguém a assinar um mês inteiro; agora a porta mais barata da casa é
+a entrada de um dólar. **O pedido dele ao público mudou depois que ele parou de
+postar.**
+
+⚠️ **Recusei "seu link teve N cliques".** É verdade aritmética e mentira útil:
+os 10 do maior vieram de 3 IPs no mesmo dia, há UA de robô no meio, e quando o
+sócio perguntar quantos viraram conta a resposta é zero. A carta não cita
+clique, conversão nem ganho acumulado — para ninguém. Cita o link, que é
+verdadeiro para os 15.
+
+**Dry-run nominal (predicado da rota replicado em SQL contra a linha real):**
+
+| | |
+|---|---|
+| sócios elegíveis (14 = 15 − o interno) | **14** |
+| opt-out | 0 |
+| já receberam esta carta | 0 |
+| **suprimidos 24h** (já receberam outra carta nossa hoje) | **5** |
+| **saem no primeiro lote, 02:18 UTC** | **9** |
+| saem no segundo lote, 14:18 UTC | 5 |
+
+**Quem são os 14:** 9 nunca tiveram um clique; 7 também já fizeram filme aqui
+(conhecem o produto); **nenhum é pagante**. E dois deles não são usuário avulso:
+os domínios são **`colormango.com`** e **`toolriot.com`** — sites de diretório
+de software. A casa tem dois parceiros de distribuição parados há semanas sem
+nunca terem recebido material.
+
+**Guardião:** `scripts/test-afiliados-acordam.mjs`, **60 verificações, 60
+verdes**, rodando a função real por `transpileModule`, com mutante do `confirm`
+que prova ter sido aplicado e duas travas anti-vacância (uma delas pegou um
+vermelho legítimo meu: a checagem do código do sócio estava medindo a resposta
+de dry-run em vez da metadata do evento).
+
+**Quem recebeu até agora:** ninguém — o cron dispara às **02:18 UTC (23:18
+BRT)**, dentro da janela. A rotação seguinte confere o envio pelo carimbo.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+1. **Nada para a carta dos sócios.** Ela sai sozinha às **23:18 BRT** para 9
+   pessoas e às 11:18 de amanhã para as outras 5. Com o carimbo de 1×-para-
+   sempre, a coorte de 14 se esgota nessas duas rodadas e a rota vira inerte.
+2. **Reserve a caixa de entrada de amanhã para DUAS cartas, não uma.** A dos 30
+   (segunda tentativa, saiu às 22:12) e a dos 9 sócios (23:18). As duas terminam
+   com *"hit reply"* e as duas caem em `joseph@usekineo.com`. Me mande o texto
+   de qualquer resposta e eu preparo o retorno.
+3. **Continua de pé, e só você pode:** mandar da sua caixa os 7 rascunhos de
+   `docs/RASCUNHOS-AUTOPILOT-2026-09-07.md` (os que abriram o checkout de $299).
+4. **Decisão sua, herdada da #7:** as quatro strings de `lib/freeTierOffer.ts`
+   que prometem *"every engine unlocked, including Kling 3"* para 25 créditos,
+   quando o Kling 3 custa 150.
+
+## 📋 O QUE ACONTECEU
+
+A casa tem **15 sócios comerciais** e nunca falou com nenhum deles. Não é que o
+programa de afiliados esteja quebrado — eu conferi os três degraus (clique,
+cadastro, comissão) em produção e os três funcionam. É que **10 dos 15 nunca
+tiveram um único clique no link**, e o programa inteiro produziu 25 cliques em
+cinco semanas, com robô e auto-teste dentro. Ninguém foi convidado a postar.
+
+Hoje eles ganham um motivo que não existia ontem: o que eles pedem ao público
+deles deixou de ser "assine um mês" e passou a ser "gaste um dólar". E dois dos
+14 são sites de diretório de software — distribuição de verdade, parada.
+
+**A próxima jogada, tirada do que a medição mostrou hoje:** os dois sócios de
+diretório (`colormango`, `toolriot`) não deveriam receber a mesma carta que um
+criador — para eles, o ativo não é o link, é a **ficha do produto atualizada**.
+Nossa listagem no TAAFT ainda diz trial de 40cr e "from $9.90/mo", e agora
+existe uma entrada de $1 que nenhum diretório do mundo sabe que existe. Um
+"changelog de preço" enviado a diretórios é distribuição gratuita que não
+depende de o sócio ter audiência — e é a única alavanca do dia que não pede
+nada de ninguém além de um e-mail.
