@@ -51,7 +51,39 @@ check('monthly checkout is one click after download', primaryStart > directStart
 check('one-time checkout is one click after download', secondaryStart > primaryStart)
 check('monthly checkout stays visually primary', /onClick=\{handleRemoveWatermark\}[\s\S]{0,700}background: '#2997ff'/.test(directArea))
 check('one-time checkout stays visually secondary', /onClick=\{handleBuyThisVideoOnly\}[\s\S]{0,700}background: 'transparent'/.test(directArea))
-check('monthly value names the clean current video', directArea.includes('this video clean + {TIER_CREDITS.starter} credits every month'))
+// KINEO-REANCORA-PROMESSA-CONDICIONAL-2026-09-07 — a trava exigia a frase
+// INCONDICIONAL `this video clean + {TIER_CREDITS.starter} credits every month`.
+// Hoje o commit `13da4504` ("o botao de plano prometia 'this video clean' sem
+// saber cumprir — a promessa do arquivo passa a exigir o handoff") tornou a
+// primeira metade CONDICIONAL a `cleanExportRebuildReady`, que é
+// `Boolean(lastFastRenderRef.current)`: sem o handoff na mão, a casa não pode
+// prometer ESTE filme limpo. Foi uma decisão deliberada de outra sessão, e é
+// mais honesta que a frase antiga — a trava é que ficou para trás.
+//
+// A regra agora exige as DUAS metades da verdade: a promessa do filme limpo
+// aparece SOMENTE atrás do portão do handoff, e o valor mensal (os créditos)
+// continua sendo dito SEMPRE, com ou sem handoff. ⚠️ Se a sessão dona daquele
+// commit preferir outra redação, este é o lugar de mudar — a intenção que eu
+// li está escrita acima.
+// ⚠️ A promessa aparece DUAS vezes nesta área (o botão em bloco e o rótulo
+// compacto), então casar com uma ocorrência não prova nada: mutar a primeira
+// deixava a trava verde pela segunda. O que se exige é a AUSÊNCIA de promessa
+// solta — nenhuma menção a "this video clean" fora do portão do handoff
+// (memória `zero-escritas-conte-as-oportunidades`: contar as ocorrências, não
+// perguntar se existe alguma).
+{
+  const portoes = (directArea.match(/cleanExportRebuildReady \? 'this video clean \+ ' : ''/g) ?? []).length
+  const mencoes = (directArea.match(/this video clean/g) ?? []).length
+  check(`the clean-video promise exists in the direct branch (portoes=${portoes})`, portoes >= 1)
+  check(
+    `no ungated "this video clean" promise survives (mencoes=${mencoes} vs portoes=${portoes})`,
+    mencoes === portoes,
+  )
+}
+check(
+  'monthly value always names the credits, handoff or not',
+  /\{TIER_CREDITS\.starter\} credits every month/.test(directArea),
+)
 check('one-time value names one video', directArea.includes('Just this video — {packPriceLabel()}, one-time'))
 check('monthly price is derived, not literal', directArea.includes('postVideoIntroPrice'))
 check('one-time price is derived, not literal', directArea.includes('packPriceLabel()'))
