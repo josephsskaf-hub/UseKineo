@@ -1504,3 +1504,58 @@ uma fatura for de fato paga.
 **Hoje quem teve o cartão recusado numa renovação tem o plano de volta em até
 uma hora depois de a Stripe voltar a aceitar — ontem dependia de alguém lembrar
 de clicar num botão que ninguém clicou.**
+
+#### #11b — o resto do M4: os 5 calados, um por um — e por que não há rascunho nenhum
+
+A ordem pede um rascunho pessoal por pagante calado. **Não há nenhum, e a razão
+é medida, não preguiça.** O retrato, pessoa a pessoa (apelido = 4 primeiras
+letras do e-mail; a coluna que decide é a última):
+
+| quem | pagou | filmes | apertou "gerar" | erros | última visita REAL | o que aconteceu |
+|---|---|---|---|---|---|---|
+| …akaj | 03/08 starter | 5 | 5 | 3 | 03/08 | **defeito**: renovação recusada 03/09 e 07/09 → `free`, 172cr parados |
+| …valo | 09/07 + renov. | 7 | 20 | **76** | 16/08 | **defeito**: renovação recusada 04/09 → `free`, 73cr parados |
+| …den | 18/08 basic | 1 | 1 | 0 | **05/09** | abriu o Studio, viu os ladrilhos e **saiu sem apertar** |
+| …emil | 01/08 starter | **0** | **0** | 0 | 01/09 | pagou e **nunca apertou gerar uma vez**; olhou preço e Autopilot |
+| …bran | 10/07 | 6 | 27 | 0 | 23/07 | fez 6 filmes e não voltou |
+| …ramo | 06/07 pack | 2 | 8 | 0 | 06/07 | fez 2 no dia da compra e não voltou |
+
+⚠️ **Um detalhe de leitura que quase me fez errar:** `akaj` e `valo` aparecem
+com "atividade" em 07/09 e 04/09 — mas esses eventos são **webhook da Stripe**,
+não navegador. A última vez que essas duas pessoas de fato abriram o site foi
+**03/08** e **16/08**. Contar webhook como visita transformaria "cliente sumido
+há 5 semanas" em "cliente ativo ontem".
+
+**A conclusão do M4, e ela é mais estreita do que a ordem supunha.** Dos casos
+acima, **exatamente dois têm defeito de produto** — e é o mesmo defeito, que
+esta rotação consertou. Os outros quatro não encontraram nada quebrado: `bran` e
+`ramo` fizeram os filmes que queriam e foram embora, `emil` pagou e nunca chegou
+a apertar o botão, `den` voltou ao Studio em 05/09 e saiu sem gerar. **Não houve
+tela de erro, não houve crédito preso, não houve render perdido.** Chamar isso
+de "produto travou" seria inventar um conserto.
+
+**Por que não escrevo rascunho para eles.** Três dos cinco (`akaj`, `den`,
+`emil`) estão na **sua lista de contatos proibidos** — não escrevo, nem em
+rascunho. Os outros dois (`bran`, `ramo`) sumiram há **6 e 9 semanas** depois de
+receber o que compraram; carta minha aí é chute, não conversa. E `valo` — o
+único caso vivo e contactável — tem uma decisão de ontem já tomada em cima
+dele: a `send-card-declined` **exclui de propósito** recusa de renovação, com o
+argumento de que a Stripe já tem régua própria e carta nossa por cima é ruído.
+**Não vou reverter em silêncio uma decisão de outra pista tomada há 12 horas.**
+
+**O que fica anotado no lugar do rascunho.** `valo` levou **76
+`generation_stage_error`** antes de parar — 31 `idle`, 31
+`resolved=false resumed=false retries=0`, 7 `composing` e **7 vezes a frase
+"We couldn't confirm the credits for this clean video, so it wasn't delivered"**
+(29-30/07 e 07/08). É o cliente que mais bateu na parede na história da casa, e
+ele renovou mesmo assim. **Se alguma carta valer a pena para ele, o assunto não
+é o cartão — é essa parede.** Fica para quem tiver o dado dos dois lados; eu não
+vou escrever oferta às 7 da manhã em cima de erro de julho sem medir se ele
+ainda existe.
+
+**Suíte inteira, medida contra worktree pristina em `origin/main` (`9699b395`)
+com as duas listas FECHADAS:** **107 vermelhos em 445 na base · 107 em 446 no
+meu** — o +1 é o guardião novo, verde. Comparado **por lista, não por
+contagem**: `comm` nos dois sentidos devolve **vazio dos dois lados**. Zero
+regressão e zero conserto acidental. (Contagem igual pode esconder "quebrei um,
+consertei outro"; a lista não.)
