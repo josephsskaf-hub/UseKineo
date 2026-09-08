@@ -24,6 +24,7 @@ import { STARTER_CREDITS, STARTER_USD_AMOUNT } from '@/lib/marketingPrice'
 // digitado à mão, enquanto a tabela — derivada do código — mostrava 5. A página
 // se contradizia em duas linhas de distância.
 import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
+import { CARD_ENTRY_TRIAL_CREDITS } from '@/lib/entryPolicy'
 import { S25_PUBLIC } from '@/lib/engineLaunch'
 import { ENGINE_LANDING_PUBLIC_PATHS } from '@/lib/growth/engineLandingIntent'
 
@@ -103,7 +104,7 @@ export default function ModelsPricingPage() {
           <tbody>
             {ROWS.map((r) => {
               const c60 = creditCostForDuration(r.quality, true, 60)
-              const free = c60 > 0 ? Math.floor(25 / c60) : 0
+              const free = c60 > 0 ? Math.floor(CARD_ENTRY_TRIAL_CREDITS / c60) : 0
               return (
                 <tr key={r.key} style={{ borderTop: '1px solid rgba(255,255,255,.08)' }}>
                   <td style={{ padding: '14px 16px' }}>
@@ -145,7 +146,7 @@ export default function ModelsPricingPage() {
         The Starter plan is ${starterPrice}/month for {starterCredits} credits — {Math.floor(starterCredits / creditCostForDuration('fast', true, 60))} films
         on Kineo 1, or {Math.floor(starterCredits / creditCostForDuration('cinematic_ai', true, 60))} on Seedance 1.5.
         See every plan on the <Link href="/pricing" style={{ color: '#5cb3ff' }}>pricing page</Link>, or start
-        free in the <Link href="/studio" style={{ color: '#5cb3ff' }}>studio</Link>.
+        your $1 trial in the <Link href="/studio" style={{ color: '#5cb3ff' }}>studio</Link>.
       </p>
 
       <script
