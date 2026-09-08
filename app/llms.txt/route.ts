@@ -406,7 +406,7 @@ synthetic voice. None of them alternate the two inside one finished Short.
 - 2026-08-23: talking characters with lip sync alternate with narration on
   Kling 3 AND MiniMax H3 inside one Short — verified frame-by-frame on
   customer renders.
-- 2026-08-19/20: pricing rebuilt — Starter \$7 / Creator \$15 / Studio \$29,
+- 2026-08-19/20 (superseded on 2026-09-08, see above): pricing rebuilt — Starter \$7 / Creator \$15 / Studio \$29,
   single USD price worldwide; a single finished video unlock costs \$4.90.
 - 2026-08-18: AI image generation (6 engines), audio studio (4 voice
   engines) and HD enhancement shipped alongside video.
