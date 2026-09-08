@@ -1,5 +1,6 @@
 'use client'
 import { UiLabel } from '@/components/InterfaceLanguage'
+import PostFilmCreatorOffer from '@/components/PostFilmCreatorOffer'
 
 // Push #323 - My Videos: show first frame via preload=metadata; no more black cards
 
@@ -274,6 +275,7 @@ function tryAgainHref(video: Video): string { return reviewVideoRetryHref(video.
 interface Props {
   videos: Video[]
   snapshotTime: number
+  creatorTrialEligible?: boolean
   // true quando o select da page falhou — a lista vazia NAO significa "sem videos".
   loadError?: boolean
 }
@@ -286,7 +288,7 @@ interface VideoSummary {
   hashtags: string[]
 }
 
-export default function MyVideosClient({ videos: initialVideos, snapshotTime, loadError = false }: Props) {
+export default function MyVideosClient({ videos: initialVideos, snapshotTime, loadError = false, creatorTrialEligible = false }: Props) {
   // The server and first browser render must use the same clock and calendar.
   // Refresh display-only age after hydration; never change a stored job status.
   const [displayTime, setDisplayTime] = useState(snapshotTime)
@@ -312,6 +314,13 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
   // user expects when clicking a card), and a proper blob download that works
   // from My Videos any time — not just once on the result page.
   const [lightbox, setLightbox] = useState<string | null>(null)
+  const filmDialogRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!lightbox) return
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    filmDialogRef.current?.focus()
+    return () => previousFocus?.focus()
+  }, [lightbox])
   // sprint-ui #9 (29-30/08) — busca por titulo/tema. O fundador tem 327 videos
   // e achar um era rolagem infinita; cliente com 20+ sofre igual. Client-side.
   const [query, setQuery] = useState('')
@@ -1580,8 +1589,8 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                   <button
                     onClick={() => handleDownload(video)}
                     disabled={downloadingId === video.id}
-                    title={isWatermarkedFastAsset(video) ? 'Download MP4 with Kineo watermark' : 'Download clean MP4'}
-                    aria-label={isWatermarkedFastAsset(video) ? 'Download MP4 with Kineo watermark' : 'Download clean MP4'}
+                    title={isWatermarkedFastAsset(video) ? 'Download MP4 with Kineo watermark' : 'Download saved MP4'}
+                    aria-label={isWatermarkedFastAsset(video) ? 'Download MP4 with Kineo watermark' : 'Download saved MP4'}
                     style={{
                       flex: 1,
                       display: 'flex',
@@ -2029,14 +2038,33 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
         return (
           <div
             onClick={() => setLightbox(null)}
-            style={{ position: 'fixed', inset: 0, zIndex: 80, background: 'rgba(0,0,0,0.86)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+            ref={filmDialogRef} tabIndex={-1}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') { event.preventDefault(); setLightbox(null) }
+              if (event.key !== 'Tab') return
+              const controls = [...event.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled), a[href], video[controls]')]
+              const first = controls[0], last = controls[controls.length - 1]
+              if (!first || !last) return
+              if (event.shiftKey && (document.activeElement === first || document.activeElement === event.currentTarget)) { event.preventDefault(); last.focus() }
+              else if (!event.shiftKey && (document.activeElement === last || document.activeElement === event.currentTarget)) { event.preventDefault(); first.focus() }
+            }}
+            role="dialog" aria-modal="true" aria-label="Your film"
+            style={{ position: 'fixed', inset: 0, zIndex: 80, background: 'rgba(0,0,0,0.94)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '24px 16px', overflowY: 'auto' }}
           >
+            <style>{`
+              .p3-film-layout { width: min(980px, 100%); margin: auto 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 380px); gap: 28px; align-items: center; }
+              .p3-film-player { width: 100%; max-width: 100%; margin: auto; }
+              .p3-film-player [data-kineo-frame] { max-height: 72vh; }
+              .p3-film-actions { min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+              @media(max-width: 700px) { .p3-film-layout { grid-template-columns: minmax(0, 1fr); gap: 18px; max-width: 440px; } .p3-film-player [data-kineo-frame] { max-height: 40vh; } }
+            `}</style>
+            <div className="p3-film-layout" onClick={(e) => e.stopPropagation()}>
             {/* KINEO-QUADRO-QUE-SE-AJUSTA-2026-09-02 — a coluna do lightbox e a
                 moldura abaixo nasciam verticais e ficavam verticais. Com o
                 multi-formato no ar, `data-kineo-frame` deixa lib/frameFit
                 reajustar as duas ao quadro real do arquivo. */}
-            <div onClick={(e) => e.stopPropagation()} data-kineo-frame-shell style={{ width: 'min(420px, 92vw)', display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div data-kineo-frame data-kineo-frame-wide="min(820px, 94vw)" style={{ position: 'relative', width: '100%', aspectRatio: '9 / 16', borderRadius: 16, overflow: 'hidden', background: '#000', border: '1px solid rgba(41,151,255,0.4)', boxShadow: '0 18px 60px rgba(41,151,255,0.25)' }}>
+            <div className="p3-film-player" data-kineo-frame-shell>
+              <div data-kineo-frame data-kineo-frame-wide="100%" style={{ position: 'relative', width: '100%', aspectRatio: '9 / 16', borderRadius: 16, overflow: 'hidden', background: '#000', border: '1px solid rgba(41,151,255,0.4)', boxShadow: '0 18px 60px rgba(41,151,255,0.15)' }}>
                 <video
                   src={enhUrls[v.id] ?? v.video_url}
                   controls
@@ -2044,11 +2072,14 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                   playsInline
                   controlsList="nodownload"
                   disablePictureInPicture
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                   onLoadedMetadata={(e) => fitLightboxFrame(e.currentTarget)}
                   onError={() => setErrors((prev) => new Set([...prev, v.id]))}
                 />
               </div>
+            </div>
+            <div className="p3-film-actions">
+              <p style={{ margin: 0, fontSize: 18, lineHeight: 1.4, fontWeight: 750, color: '#f5f5f7', overflowWrap: 'anywhere' }}>{extractTitle(v.topic)}</p>
               <button
                 onClick={() => handleDownload(v)}
                 disabled={downloadingId === v.id}
@@ -2058,13 +2089,16 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                   ? 'Downloading…'
                   : isWatermarkedFastAsset(v)
                     ? '⬇ Download with Kineo watermark (MP4)'
-                    : '⬇ Download clean MP4'}
+                    : '⬇ Download saved MP4'}
               </button>
+              {v.status === 'completed' && Boolean(v.video_url) && (
+                <PostFilmCreatorOffer key={v.id} surface="history_film" eligible={creatorTrialEligible} videoId={v.id} pending={checkout.pending !== null} onLaunch={checkout.launch} error={checkout.error} />
+              )}
               {isWatermarkedFastAsset(v) && cleanExportLocked === true && (
                 <button
                   onClick={() => handleStarterCheckout('history_lightbox')}
                   disabled={checkout.pending !== null}
-                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, width: '100%', padding: '13px 10px', borderRadius: 14, cursor: checkout.pending ? 'wait' : 'pointer', opacity: checkout.pending ? 0.7 : 1, background: 'linear-gradient(135deg, #2997ff, #1d6fe0)', border: '1px solid transparent', color: '#fff', fontWeight: 800, fontSize: '0.9rem', boxShadow: '0 8px 28px rgba(41,151,255,0.35)' }}
+                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, width: '100%', padding: '13px 10px', borderRadius: 14, cursor: checkout.pending ? 'wait' : 'pointer', opacity: checkout.pending ? 0.7 : 1, background: 'transparent', border: '1px solid #31587a', color: '#a7d7ff', fontWeight: 800, fontSize: '0.9rem' }}
                 >
                   {checkout.pending === 'history_lightbox' ? (
                     <span><UiLabel>Loading…</UiLabel></span>
@@ -2107,6 +2141,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
               ><UiLabel>
                 Close
               </UiLabel></button>
+            </div>
             </div>
           </div>
         )

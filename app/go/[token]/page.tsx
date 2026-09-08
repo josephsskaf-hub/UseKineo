@@ -20,6 +20,8 @@ import {
 } from '@/lib/gptHandoff'
 import { findHandoff, isLikelyBot, markHandoffViewed, type GptHandoffRow } from '@/lib/gptHandoffStore'
 import { BUTTON, Expired, MUTED, SOFT, Shell, Wordmark } from './HandoffNotice'
+import PostFilmCreatorOffer from '@/components/PostFilmCreatorOffer'
+import { CREATOR_OFFER_PROFILE_COLUMNS, isPostFilmCreatorEligible } from '@/lib/growth/postFilmCreatorOffer'
 
 // ═══ KINEO-GPT-HANDOFF-2026-09-06 — a página que o link do GPT abre ═════════
 //
@@ -75,11 +77,20 @@ export default async function GoPage({
 
   // ── Quem está olhando (só para a frase do botão; a porta é decidida na rota).
   let signedIn = false
+  let creatorTrialEligible = false
   try {
+    const supabase = createClient()
     const {
       data: { user },
-    } = await createClient().auth.getUser()
+    } = await supabase.auth.getUser()
     signedIn = Boolean(user?.id)
+    if (user) {
+      const profile = await supabase.from('profiles').select(CREATOR_OFFER_PROFILE_COLUMNS).eq('id', user.id).maybeSingle()
+      creatorTrialEligible = !profile.error && isPostFilmCreatorEligible(profile.data)
+    } else {
+      // Public explanation is explicitly limited to a first purchase.
+      creatorTrialEligible = true
+    }
   } catch {
     signedIn = false
   }
@@ -216,7 +227,7 @@ export default async function GoPage({
         <p style={{ color: MUTED, fontSize: '0.88rem', lineHeight: 1.5, margin: '10px 0 0' }}>
           {signedIn
             ? 'Opens your Studio with this script loaded, exactly as written.'
-            : 'Free to try — no card. Create your account and you come straight back to this script.'}
+            : 'Create your account to open this script in Studio. The Creator trial requires a payment method.'}
         </p>
       </div>
 
@@ -228,6 +239,10 @@ export default async function GoPage({
           {row.script}
         </div>
       </section>
+
+      <div style={{ marginTop: 28 }}>
+        <PostFilmCreatorOffer surface="gpt_handoff" eligible={creatorTrialEligible && !bot} firstPurchaseOnly={!signedIn} handoffHref={goHref} />
+      </div>
 
       <p style={{ color: MUTED, fontSize: '0.8rem', lineHeight: 1.5, marginTop: 28 }}>
         Kineo directs, narrates and edits the film from this text. Nothing is generated until you press Generate in the Studio.

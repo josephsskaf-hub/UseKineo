@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import MyVideosClient from './HistoryClient'
+import { CREATOR_OFFER_PROFILE_COLUMNS, isPostFilmCreatorEligible } from '@/lib/growth/postFilmCreatorOffer'
 
 // sprint-ui #11 (2026-08-30) — titulo de aba proprio. Sem isto, a aba
 // mostrava o title SEO da landing ('Kineo — AI YouTube Shorts Generator
@@ -16,6 +17,12 @@ export default async function MyVideosPage() {
   } = await supabase.auth.getUser()
 
   if (!user) redirect('/login')
+
+  // Read alongside the films, with the same authenticated owner and RLS.
+  // A failed/missing profile never turns into an advertised first-payment price.
+  const creatorProfileRead = Promise.resolve(supabase.from('profiles')
+    .select(CREATOR_OFFER_PROFILE_COLUMNS).eq('id', user.id).maybeSingle())
+    .catch(() => ({ data: null, error: true }))
 
   // PUSH #92 — the status filter used to hide every non-completed render.
   // The render flow's recovery snapshot lives in sessionStorage-keyed
@@ -52,5 +59,7 @@ export default async function MyVideosPage() {
     console.warn('[history] videos read failed; rendering safety notice instead of empty:', loadError.message)
   }
 
-  return <MyVideosClient videos={videos ?? []} snapshotTime={Date.now()} loadError={Boolean(loadError)} />
+  const creatorProfile = await creatorProfileRead
+  const creatorTrialEligible = !creatorProfile.error && isPostFilmCreatorEligible(creatorProfile.data)
+  return <MyVideosClient videos={videos ?? []} snapshotTime={Date.now()} loadError={Boolean(loadError)} creatorTrialEligible={creatorTrialEligible} />
 }

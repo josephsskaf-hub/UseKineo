@@ -1,5 +1,7 @@
 # BRIEF — PISTA 3: CHATGPT COMO VENDEDOR (07/09/2026, do fundador para o Codex)
 
+**ATUALIZAÇÃO DO FUNDADOR — 08/09/2026 11:48 BRT, via Board:** o plano vigente desta execução é `docs/HANDOFF-PISTA3-VERSAO-B-2026-09-08.md`: primeira compra na Versão B, três públicos separados, /go e filme próprio, fechamento às 12:10 BRT. O texto abaixo é o brief histórico de 07/09; seus números, classificação de pagamento e ciclo não descrevem automaticamente o regime atual. Não usar a entrega de primeira compra como solução universal para quem já pagou o trial.
+
 > Isto é um START, não um roteiro. Leia, meça, e reescreva com a sua cabeça
 > antes de começar. A sua versão vira a primeira entrada do seu diário.
 
