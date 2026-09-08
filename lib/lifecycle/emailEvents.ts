@@ -62,6 +62,10 @@ export const LIFECYCLE_EMAIL_EVENT_NAMES = [
   'oneoff_unlock_emailed',
   'hot_upsell_sent',
   'winback25_sent',
+  // KINEO-SEGUNDA-TENTATIVA-1USD-2026-09-07 — a carta de quem entregou filme,
+  // ficou sem crédito e bateu no checkout antes da porta de $1 existir. Entra
+  // aqui no MESMO commit em que nasce (a regra do cabeçalho deste arquivo).
+  'second_try_1usd_sent',
   'comeback50_sent',
   'blackout_winback_sent',
   // ── crons de ciclo de vida (carimbo `*_sent`) ────────────────────────────
