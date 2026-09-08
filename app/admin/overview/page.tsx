@@ -26,33 +26,7 @@ import { isInternalEmail, INTERNAL_ACCOUNTS_LABEL } from '@/lib/internalAccounts
 import { stripeMrrUsd } from '@/app/api/admin/_shared/mrr'
 import { PAID_PLANS, PLAN_PRICE_USD, isTrialPlan } from '@/app/api/admin/_shared/mrr'
 
-// KINEO-VERSAO-B-PAINEL-2026-09-08 — o funil da porta de $1, por PESSOA.
-type EventRow = { name: string; user_id: string | null; created_at?: string | null; metadata?: Record<string, unknown> | null }
-type FunilB = { signups: number; sawDoor: number; clickedDoor: number; checkout: number; paid1: number; autostart: number; converted: number; paywallHits: number }
-const VERSAO_B_SINCE = '2026-09-08T05:00:00.000Z'
-const metaTrue = (m: Record<string, unknown> | null | undefined, k: string) => m?.[k] === true || m?.[k] === 'true' || m?.[k] === '1'
-function funilVersaoB(rows: EventRow[], sinceMs: number, extIds: Set<string>): FunilB {
-  const sets: Record<keyof FunilB, Set<string>> = { signups: new Set(), sawDoor: new Set(), clickedDoor: new Set(), checkout: new Set(), paid1: new Set(), autostart: new Set(), converted: new Set(), paywallHits: new Set() }
-  for (const e of rows) {
-    if (!e.user_id || !extIds.has(e.user_id)) continue
-    const t = e.created_at ? new Date(e.created_at).getTime() : 0
-    if (t < sinceMs) continue
-    const m = e.metadata ?? null
-    const ic = typeof m?.intent_campaign === 'string' ? m.intent_campaign : ''
-    switch (e.name) {
-      case 'card_entry_required': sets.signups.add(e.user_id); break
-      case 'card_entry_banner_shown': sets.sawDoor.add(e.user_id); break
-      case 'card_entry_banner_clicked': sets.clickedDoor.add(e.user_id); break
-      case 'checkout_started': if (metaTrue(m, 'card_trial') || ic === 'card_entry' || ic.startsWith('trial_1usd')) sets.checkout.add(e.user_id); break
-      case 'payment_success': if (metaTrue(m, 'card_trial')) sets.paid1.add(e.user_id); break
-      case 'card_entry_resume_autostart': sets.autostart.add(e.user_id); break
-      case 'subscription_invoice_paid': if (metaTrue(m, 'trial_conversion')) sets.converted.add(e.user_id); break
-      case 'paywall_hit': sets.paywallHits.add(e.user_id); break
-    }
-  }
-  const n = (k: keyof FunilB) => sets[k].size
-  return { signups: n('signups'), sawDoor: n('sawDoor'), clickedDoor: n('clickedDoor'), checkout: n('checkout'), paid1: n('paid1'), autostart: n('autostart'), converted: n('converted'), paywallHits: n('paywallHits') }
-}
+import { funilVersaoB, VERSAO_B_SINCE, metaTrue, type EventRow, type FunilB } from '@/lib/admin/versaoBFunnel'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
