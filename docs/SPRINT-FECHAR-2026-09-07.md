@@ -3238,3 +3238,34 @@ que quando abertos são 6 contas bloqueadas por antifraude e 5 trials gastos por
 quem de fato fez vídeo, e não 11 pessoas prejudicadas. Corrigi um erro meu de
 medição antes de publicá-lo, e deixei anotado que uma afirmação do CLAUDE.md
 sobre recusa de cartão envelheceu hoje.
+
+---
+
+### 📎 ADENDO AO FECHAMENTO fv (sessão A) — 23:34 BRT, últimos 4 minutos da janela
+
+**Sem clique e sem venda** — a porta do banner segue com 1 impressão e 0 cliques,
+e o jejum de assinante novo fecha o ciclo em **5 dias**. Duas coisas mudaram
+entre o fechamento (23:05) e o fim da janela, e as duas são medição, não venda:
+
+1. **A instrumentação da marca d'água respondeu a primeira pergunta com gente de
+   verdade.** Às **02:30 UTC (23:30 BRT)** chegou a primeira `watermark_landing`
+   com o campo novo vinda de um humano: `client_class = **browser**`,
+   `browser_session = false`, país **US**, `referrer_host` **null** — ou seja,
+   alguém **digitou** `usekineo.com/free` depois de ver um filme da casa em
+   algum lugar. A outra linha com o campo é a minha própria sonda, auto-rotulada
+   `bot` de propósito.
+   ⚠️ **n = 1. Isso NÃO responde a pergunta ainda** — responde que o
+   instrumento funciona e que o corte `client_class='browser'` produz o número
+   certo. A pergunta ("as 45 chegadas/mês são pessoas ou varredores?") continua
+   aberta e precisa de ~30 linhas com o campo, o que a 1,5 chegada/dia significa
+   ~3 semanas.
+
+2. **A porta nova apareceu junto com o banner, no mesmo segundo** (`01:33:19.12`
+   o banner, `01:33:19.63` a porta): a montagem condicional funciona, a porta
+   não roubou o lugar de nada e a caixa verde do primeiro filme continuou acima
+   dela. Era a única coisa que eu não conseguia provar sem um cliente real.
+
+**Estado final do ciclo, pista fv (sessão A):** `origin/main` = `57fea8e2` mais
+este adendo, **fila 0**, `tsc` verde, **337 verdes / 94 vermelhos** na suíte.
+Checagem zero (24h): cadastros **26** · crédito zero **11** · **trial órfão 0** ·
+render preso **0** · recusas de cartão **2**, **sem dono 0**.
