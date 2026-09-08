@@ -35,17 +35,28 @@ const checa = (n, ok, d = '') => { total++; if (!ok) { falhas++; console.log(`  
 
 console.log('\nKINEO — credito da vitrine\n')
 
+const fonteCusto = readFileSync(join(raiz, 'lib/credits/engineCost.ts'), 'utf8')
 const landing = readFileSync(join(raiz, 'app/KineoLanding.tsx'), 'utf8')
 const semComentarios = landing.replace(/\/\*[\s\S]*?\*\//g, '')
   .split('\n').filter((l) => !l.trim().startsWith('//')).join('\n')
 
-// 1. NENHUMA etiqueta de credito escrita a mao na vitrine.
-const chumbados = semComentarios.match(/<span className="tcredits">(?!\{)[^<]*<\/span>/g) ?? []
+// KINEO-REANCORA-VITRINE-2026-09-07 — as duas regras abaixo casavam com a
+// FORMA `<span className="tcredits">{creditLabel('x')}</span>`. As seis
+// etiquetas ganharam um `<UiLabel>` por dentro em algum momento e a regra 2
+// passou a "achar 0" — a invariante (nenhuma etiqueta chumbada, todas
+// derivadas) continuava intacta e o guardião acusava mesmo assim. Agora as
+// regras leem a ESTRUTURA e não a forma: cada etiqueta é recortada inteira, e
+// o que se exige dela é que derive do helper e não imprima número à mão. Um
+// wrapper novo amanhã não volta a produzir falso vermelho — mas trocar
+// `creditLabel` por um literal continua reprovando.
+const etiquetas = semComentarios.match(/<span className="tcredits">[\s\S]*?<\/span>/g) ?? []
+checa('as 6 etiquetas de motor existem na vitrine', etiquetas.length === 6, `achei ${etiquetas.length}`)
+
+const chumbados = etiquetas.filter((e) => !/creditLabel\('[a-z_0-9]+'\)/.test(e))
 checa('nenhuma etiqueta de credito chumbada', chumbados.length === 0, JSON.stringify(chumbados))
 
-// 2. Todas derivam de creditCostFor via o helper.
-const derivadas = semComentarios.match(/<span className="tcredits">\{creditLabel\('([a-z_0-9]+)'\)\}<\/span>/g) ?? []
-checa('as 6 etiquetas de motor sao derivadas', derivadas.length === 6, `achei ${derivadas.length}`)
+const comNumeroAMao = etiquetas.filter((e) => /\d/.test(e.replace(/creditLabel\('[a-z_0-9]+'\)/g, '')))
+checa('nenhuma etiqueta imprime numero a mao', comNumeroAMao.length === 0, JSON.stringify(comNumeroAMao))
 checa('a landing importa a fonte canonica de custo',
   /import \{ creditCostFor \} from '@\/lib\/credits\/engineCost'/.test(semComentarios))
 
@@ -56,10 +67,17 @@ checa('e o mega-menu tambem parou de dizer "free"',
   !/Kineo’s own engine — free/.test(semComentarios))
 
 // 4. Cada motor citado existe e tem custo > 0 na fonte canonica.
-for (const m of derivadas) {
+for (const m of etiquetas) {
   const q = m.match(/creditLabel\('([a-z_0-9]+)'\)/)[1]
   const custo = EC.creditCostFor(q, true)
   checa(`${q}: custo real > 0 (${custo} cr)`, Number.isFinite(custo) && custo > 0, String(custo))
+  // ⚠️ "> 0" NÃO tinha dentes contra erro de digitação: `creditCostFor` termina
+  // em `default: return 8`, então um motor inexistente devolve 8 e a vitrine
+  // anunciaria 8 créditos com cara de preço real. Falsificado hoje: trocar
+  // `cinematic_ai` por `motor_que_nao_existe` deixava a suíte VERDE. A trava
+  // passa a exigir que o id seja um `case` declarado na fonte canônica.
+  checa(`${q}: e um motor DECLARADO no engineCost (nao caiu no default 8)`,
+    new RegExp(`case '${q}':`).test(fonteCusto), q)
 }
 
 // 5. O CUSTO ESCALA COM A DURACAO — a razao do "4" que parecia erro no admin.
