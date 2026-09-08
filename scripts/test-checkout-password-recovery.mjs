@@ -142,7 +142,25 @@ ok(forgot.includes('href={loginHref}'), 'forgot page return keeps checkout conte
 ok(reset.includes("trackCheckoutPasswordRecoveryStep('completed', context)"), 'successful password update is measured')
 ok(reset.includes("trackCheckoutPasswordRecoveryStep('resumed', context)"), 'checkout resumption is measured')
 ok(reset.includes('window.location.assign(context.destination)'), 'successful recovery hard-navigates to the exact checkout')
-ok(reset.includes("router.push('/generate')"), 'ordinary password reset keeps its prior destination')
+// KINEO-REANCORA-RESET-2026-09-07 — a trava exigia `router.push('/generate')`.
+// A tela autenticada dessa casa virou `/studio` e o push mudou junto; a rota
+// `/generate` continua existindo, mas não é mais o pouso padrão. A INTENÇÃO
+// desta verificação nunca foi o literal `/generate`: era garantir que uma
+// troca de senha COMUM (sem contexto de checkout e sem contexto de criação)
+// termine na casa da pessoa e NUNCA num destino de compra. É isso que ela
+// passa a exigir — e passa a exigir também que o ramo comum seja o ÚLTIMO,
+// depois dos dois contextos, para nunca sequestrar quem estava comprando.
+{
+  const pushComum = reset.match(/router\.push\('(\/[a-z0-9/_-]*)'\)/)
+  ok(Boolean(pushComum), 'ordinary password reset still navigates somewhere explicit')
+  ok(pushComum && pushComum[1] === '/studio', `ordinary reset lands on the app home (achei ${pushComum?.[1]})`)
+  ok(pushComum && !/checkout|stripe|pricing|upgrade/.test(pushComum[1]), 'ordinary reset never lands on a purchase destination')
+  ok(
+    reset.indexOf('window.location.assign(context.destination)') < reset.indexOf("router.push('/studio')") &&
+      reset.indexOf('window.location.assign(creationContext.destination)') < reset.indexOf("router.push('/studio')"),
+    'the ordinary landing is the LAST branch — checkout and creation contexts win first',
+  )
+}
 ok(reset.includes('href={forgotPasswordHref}'), 'expired-link retry keeps checkout context')
 ok(reset.includes('href={loginHref}'), 'reset page sign-in return keeps checkout context')
 
