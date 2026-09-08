@@ -166,22 +166,56 @@ export async function POST(req: NextRequest) {
   // Idempotente: um checkpoint por geração. O cliente regrava o checkpoint em
   // cada re-render da tela, e reescrever aqui só multiplicaria linha para a
   // fase 4 varrer.
+  //
+  // ⚠️ KINEO-ENTREGA-SERVIDOR-2026-09-09 — A ÚNICA EXCEÇÃO À IDEMPOTÊNCIA.
+  // Desde o conserto da causa nº1 desta noite, a própria rota do Kineo 1 grava
+  // um checkpoint `source:'server'` ANTES de devolver a resposta (é o que
+  // salva o filme quando a aba morre e a resposta cai no vazio). Esse
+  // checkpoint é montado só com o que o SERVIDOR sabe. O cliente sabe mais —
+  // hoje `vertical` (a vertical vinda do analyze-idea), e amanhã o que for
+  // acrescentado ao payload dele. Se a idempotência tratasse o checkpoint do
+  // servidor como definitivo, ligar o conserto REBAIXARIA o resgate de todo
+  // mundo cuja aba continuou viva: o payload mais pobre venceria o mais rico.
+  // Então o do cliente SUBSTITUI o do servidor, uma vez. Entre dois do
+  // cliente a regra antiga continua valendo.
   const { data: existing } = await admin
     .from('events')
-    .select('id')
+    .select('id, metadata')
     .eq('user_id', user.id)
     .eq('name', RECOVERABLE_EVENT)
     .eq('session_id', generationId)
     .limit(1)
-  if ((existing ?? []).length > 0) {
-    return NextResponse.json({ ok: true, stored: false, reason: 'already_recoverable' })
+  const prior = (existing ?? [])[0] as { id?: string; metadata?: unknown } | undefined
+  if (prior) {
+    const priorSource = ((prior.metadata ?? {}) as Record<string, unknown>).source
+    if (priorSource !== 'server') {
+      return NextResponse.json({ ok: true, stored: false, reason: 'already_recoverable' })
+    }
+    const { error: upErr } = await admin
+      .from('events')
+      .update({
+        metadata: {
+          payload,
+          clips: (payload.clip_urls as string[]).length,
+          source: 'client',
+          replaced_source: 'server',
+        },
+      })
+      .eq('id', prior.id as string)
+    if (upErr) {
+      // Falha FECHADA para a escrita, ABERTA para o filme: o checkpoint do
+      // servidor continua lá e a fase 4 ainda termina o render.
+      console.error('[render-recovery] upgrade failed:', upErr.message)
+      return NextResponse.json({ ok: true, stored: false, reason: 'server_checkpoint_kept' })
+    }
+    return NextResponse.json({ ok: true, stored: true, replaced: 'server' })
   }
 
   const { error } = await admin.from('events').insert({
     user_id: user.id,
     name: RECOVERABLE_EVENT,
     session_id: generationId,
-    metadata: { payload, clips: (payload.clip_urls as string[]).length },
+    metadata: { payload, clips: (payload.clip_urls as string[]).length, source: 'client' },
   })
   if (error) {
     console.error('[render-recovery] insert failed:', error.message)

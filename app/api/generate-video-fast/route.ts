@@ -18,6 +18,11 @@ import { pickLibraryClips, type LibraryClip } from '@/lib/stockLibrary'
 // import { ensureAccessibleUrl } from '@/lib/videoCache'
 import { parseUserScript } from '@/lib/scriptParser'
 import { writeServerEvent } from '@/lib/serverEvents'
+// KINEO-ENTREGA-SERVIDOR-2026-09-09 — o MESMO saneador e o MESMO nome de
+// evento que a rota do cliente usa. Importar (em vez de copiar as regras) é o
+// que garante que servidor e cliente gravem exatamente o mesmo bilhete para a
+// fase 4 ler. O cron já importa deste mesmo módulo.
+import { RECOVERABLE_EVENT, sanitizeFastComposePayload } from '@/app/api/render-recovery/route'
 import {
   looksOpenAiQuotaDead,
   looksOpenAiHanging,
@@ -1137,6 +1142,61 @@ export async function POST(req: NextRequest) {
     console.log(
       `[generate-fast] OK user=${user.id.slice(0, 8)} clips=${filtered.length} duration=${duration}s captions=${sceneCaptions.length}`
     )
+
+    // ═══ KINEO-ENTREGA-SERVIDOR-2026-09-09 — O FILME DEIXA DE DEPENDER DA ABA
+    //
+    // O DEFEITO, medido na auditoria desta noite (14 dias, contas externas):
+    // 280 pessoas apertaram Generate, 50 não receberam filme, e a MAIOR fatia
+    // — 22 pessoas — não tem NENHUM erro registrado e NENHUMA tela de falha.
+    // O rastro típico (pessoa `1968136d`, 06/09, vinda do ChatGPT): despacho
+    // 07:21:19 · `generation_dispatch_received` 07:21:27 · aba embora 07:21:45
+    // · nunca mais nada.
+    //
+    // O mecanismo estava aqui, logo abaixo: esta rota trabalha 30-40s e
+    // termina devolvendo o payload COMPLETO do compose. O checkpoint durável
+    // (`/api/render-recovery`, KINEO-RECOVERY-2026-09-06) só nasce quando o
+    // CLIENTE recebe essa resposta e a reenvia. Se a aba morreu enquanto o
+    // servidor trabalhava, a resposta cai no vazio: clipes buscados e script
+    // pronto EVAPORAM, nenhum checkpoint existe, a fase 4 do cron é cega — o
+    // remédio dependia do sobrevivente para socorrer o afogado.
+    //
+    // Agora o checkpoint nasce AQUI, do lado que sobreviveu, no instante em
+    // que o payload existe e antes de qualquer coisa poder se perder.
+    //
+    // ⚠️ NÃO MUDA UM FIO DO FILME: mesmo `sanitizeFastComposePayload` que a
+    // rota do cliente usa, mesmos campos, mesma fase 4, mesmo `/api/compose`
+    // com custo por tier, recusa por saldo e claim assinado. Prompt de cena,
+    // contrato, régua de voz, planner, motor e crédito ficam intocados. O que
+    // muda é só QUEM grava o bilhete, e quando.
+    //
+    // ⚠️ `source:'server'` NÃO é decoração: é o que deixa o checkpoint do
+    // cliente substituir este quando a aba está viva (render-recovery), e é o
+    // corte pelo qual esta entrega se mede — campo novo, nunca relógio.
+    //
+    // Fire-and-forget: telemetria e rede de segurança não atrasam nem
+    // derrubam um render que já deu certo.
+    const recoveryPayload = sanitizeFastComposePayload(generationId, {
+      quality: 'fast',
+      clip_urls: filtered,
+      duration,
+      voiceover_script: voiceoverScript,
+      scene_captions: sceneCaptions,
+      topic: prompt,
+      language: body.language,
+      ...(parsedScript.speed != null ? { speed: parsedScript.speed } : {}),
+    })
+    if (recoveryPayload) {
+      void writeServerEvent({
+        name: RECOVERABLE_EVENT,
+        userId: user.id,
+        sessionId: generationId,
+        metadata: {
+          payload: recoveryPayload,
+          clips: (recoveryPayload.clip_urls as string[]).length,
+          source: 'server',
+        },
+      })
+    }
 
     // Client expects `scenes` to be a string array of descriptions for the
     // result-page recap UI — flatten before serializing. We also surface
