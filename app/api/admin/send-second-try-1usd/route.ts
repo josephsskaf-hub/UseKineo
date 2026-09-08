@@ -119,6 +119,46 @@ export interface SecondTryPerson {
 }
 
 /**
+ * A idade da INTENÇÃO do lote, em dias, para o dry-run.
+ *
+ * Existe por causa de um erro medido: o primeiro lote de 30 cartas saiu para
+ * uma coorte cuja intenção tinha mediana de 23,4 dias, e o dry-run que a
+ * aprovou não dizia nada sobre idade. A casa só sabe de uma coisa que prevê
+ * venda — recência — e era exatamente a coisa que a tela de aprovação não
+ * mostrava.
+ *
+ * Função pura, sem I/O: o guardião a exercita com datas fixas.
+ */
+export function intentAgeReport(
+  batch: Array<{ lastCheckoutAt: string | null }>,
+  now: Date = new Date(),
+): { median: number | null; within_48h: number; within_7d: number; older_than_30d: number; unknown: number } {
+  const idades = batch
+    .map((p) => p.lastCheckoutAt)
+    .filter((s): s is string => typeof s === 'string' && s.length > 0)
+    .map((s) => (now.getTime() - new Date(s).getTime()) / 86_400_000)
+    // Data ilegível não vira idade 0 — descartar é honesto, 0 seria uma
+    // afirmação de que a intenção é de hoje (memória: sentinela lido como
+    // valor real).
+    .filter((d) => Number.isFinite(d))
+    .sort((a, b) => a - b)
+
+  const meio = idades.length === 0
+    ? null
+    : idades.length % 2 === 1
+      ? idades[(idades.length - 1) / 2]
+      : (idades[idades.length / 2 - 1] + idades[idades.length / 2]) / 2
+
+  return {
+    median: meio === null ? null : Math.round(meio * 10) / 10,
+    within_48h: idades.filter((d) => d <= 2).length,
+    within_7d: idades.filter((d) => d <= 7).length,
+    older_than_30d: idades.filter((d) => d > 30).length,
+    unknown: batch.length - idades.length,
+  }
+}
+
+/**
  * A carta. Seis linhas, voz do fundador, uma pergunta de verdade no fim.
  *
  * `visits` só vira frase quando é >= 2 — é a correção literal do achado da
@@ -277,8 +317,29 @@ export async function GET(req: NextRequest) {
     const supressao = await loadLifecycleSuppression(admin, candidatos.map((c) => c.id))
     const alvos = candidatos
       .filter((c) => !supressao.isSuppressed(c.id))
-      // Quem mais entregou primeiro: é quem mais tem a perder por ter parado.
-      .sort((a, b) => b.films - a.films || b.visits - a.visits)
+      // A ORDEM É A RECÊNCIA DA INTENÇÃO — corrigido na rotação #14 (07/09).
+      //
+      // Até aqui a fila era `b.films - a.films`: "quem mais entregou primeiro,
+      // é quem mais tem a perder". Soa certo e está errado, e a casa já tinha
+      // a prova no próprio banco. Em 90 dias, 12 pagantes: 10 pagaram em menos
+      // de 48h do primeiro checkout e NENHUM pagante orgânico nasceu depois do
+      // D2 (docs/queries/VENDA-ASSISTIDA-2026-09-07.sql, seção 1). Recência da
+      // intenção é o único preditor que a casa já mediu; contagem de filmes
+      // nunca previu uma venda.
+      //
+      // O preço de ordenar por filmes foi medido: as 30 primeiras cartas
+      // saíram para uma coorte de intenção com MEDIANA de 23,4 dias — zero
+      // dentro de 48h, zero dentro de 7 dias — enquanto 25 pessoas com
+      // intenção mais nova que 7 dias (4 delas dentro de 48h) ficaram na fila
+      // por terem feito MENOS filmes. Zero retornos.
+      //
+      // `lastCheckoutAt` null vai para o fim: sem carimbo de intenção não há
+      // recência para afirmar. Filmes viram só o desempate.
+      .sort((a, b) =>
+        (b.lastCheckoutAt ?? '').localeCompare(a.lastCheckoutAt ?? '')
+        || b.films - a.films
+        || b.visits - a.visits,
+      )
 
     if (!confirm) {
       return NextResponse.json({
@@ -290,6 +351,12 @@ export async function GET(req: NextRequest) {
         remaining_unemailed: alvos.length,
         next_batch_size: Math.min(batch, alvos.length),
         visits_2_or_more: alvos.filter((a) => a.visits >= 2).length,
+        // A IDADE DA INTENÇÃO DO LOTE QUE VAI SAIR — sem isto o dry-run
+        // aprovava 30 cartas para intenção de 23 dias sem dizer uma palavra
+        // sobre idade, que é justamente o número que decide se a carta tem
+        // chance. Medido sobre o LOTE (`slice(0, batch)`), não sobre a fila
+        // inteira: é o lote que é enviado.
+        intent_age_days: intentAgeReport(alvos.slice(0, batch)),
         sample: alvos.slice(0, 12).map((a) => ({ email: a.email, films: a.films, visits: a.visits, last_checkout: a.lastCheckoutAt })),
         subject_preview: alvos.length > 0 ? buildSecondTryEmail(alvos[0]).subject : null,
         hint: `Append &confirm=SEND (optionally &limit=N, max ${MAX_BATCH}) to send the next batch.`,
