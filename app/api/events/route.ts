@@ -10,6 +10,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
+// KINEO-QUEM-E-GENTE-2026-09-07 (fv-r10) — as três funções já existem e são
+// usadas pelo handoff do GPT e pelo episode-link. REUSAR em vez de redigitar:
+// duas cópias da mesma regra divergem e a que ninguém audita passa a mentir
+// (memória `a-regra-vive-em-varios-arquivos`).
+import { clientIp, hashIp, isLikelyBot } from '@/lib/gptHandoffStore'
 
 export const dynamic = 'force-dynamic'
 
@@ -182,11 +187,46 @@ export async function POST(req: NextRequest) {
       // Expired or malformed cookies must not prevent anonymous funnel data.
     }
 
+    // ═══ KINEO-QUEM-E-GENTE-2026-09-07 (fv-r10) ═════════════════════════════
+    // O QUE ESTAVA ERRADO, MEDIDO HOJE: em 07/09, das 21:48 UTC em diante, a
+    // casa registrou 3h15 sem UM clique no CTA da landing, sem UM cadastro e
+    // sem UM render — com `landing_session_started` ACIMA da média das mesmas
+    // horas dos 3 dias anteriores (35 sessões contra 26 na mesma janela de
+    // ontem, que rendeu 6 cadastros e 11 renders). Não deu para decidir entre
+    // "madrugada magra com tráfego de robô" e "defeito no funil", porque o
+    // evento da landing NÃO GRAVA NADA que distinga pessoa de varredor: uma
+    // tentativa de contar visitantes distintos por `ip_hash` devolve o número
+    // de um campo que não existe — e um `count(distinct)` sobre campo ausente
+    // devolve 1, que parece resposta (mesma armadilha registrada no checkpoint
+    // #8b desta noite, por outra sessão, três horas antes).
+    //
+    // O QUE ESTE CARIMBO RESOLVE, e vale para todo evento deste sink: passa a
+    // existir (a) um identificador pseudônimo por origem, para contar
+    // VISITANTES em vez de SESSÕES, e (b) uma etiqueta de robô. Nenhum dos dois
+    // barra ou muda o que quer que seja — só etiqueta (mesmo padrão do
+    // episode-link).
+    //
+    // TRÊS DECISÕES DE PRIVACIDADE, deliberadas:
+    //   1. IP CRU NUNCA É GRAVADO. `hashIp` é SHA-256(salt|ip), a MESMA função
+    //      que o handoff do GPT já usa — não uma segunda cópia da regra.
+    //   2. O USER-AGENT COMPLETO NÃO É GRAVADO. Ele é lido, reduzido a um
+    //      booleano e descartado: guardar a string inteira seria impressão
+    //      digital de navegador, que esta medição não precisa.
+    //   3. AS DUAS CHAVES SÃO RESERVADAS E ESCRITAS DEPOIS do spread do
+    //      `metadata` do cliente. O navegador não pode forjá-las — se pudesse,
+    //      o carimbo que existe para separar robô de gente seria escrito pelo
+    //      próprio robô.
+    const stampedMetadata: Record<string, unknown> = {
+      ...metadata,
+      ip_hash: hashIp(clientIp(req.headers)),
+      is_bot: isLikelyBot(req.headers.get('user-agent')),
+    }
+
     const row: Record<string, unknown> = {
       name,
       user_id: userId,
     }
-    if (Object.keys(metadata).length > 0) row.metadata = metadata
+    row.metadata = stampedMetadata
     if (path) row.path = path
     if (sessionId) row.session_id = sessionId
 
