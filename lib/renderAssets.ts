@@ -147,5 +147,37 @@ export async function persistRenderAssets(args: {
   const permanentThumb =
     thumbRes.status === 'fulfilled' && thumbRes.value ? thumbRes.value : snapshotUrl
 
+  // KINEO-RESGATE-FILME-DO-FORNECEDOR-2026-09-08 — O SILÊNCIO ERA O DEFEITO.
+  // Quando a cópia falha, esta função devolve a URL do Creatomate e segue em
+  // frente: o filme é entregue, a pessoa fica feliz, e ~30 dias depois o link
+  // morre. A única marca que ficava era um `console.warn` que expira junto com
+  // o log da Vercel — por isso 126 filmes de 57 pessoas vazaram sem que
+  // ninguém visse, e 91 já estão mortos (medido em 08/09; a fronteira de
+  // retenção está entre 06/08 e 17/08).
+  // O `downloadTimeoutMs` de 25s NÃO foi aumentado de propósito: quem chama
+  // isto é `/api/compose/status`, que tem `maxDuration = 60` e a PESSOA
+  // esperando o filme do outro lado. Um orçamento maior aqui trocaria um link
+  // que morre em 30 dias por uma entrega que falha agora. O download longo
+  // mora onde não há ninguém esperando: `/api/cron/rescue-vendor-assets`.
+  // O que muda aqui é só isto: a falha passa a deixar rastro em `events`, com
+  // dono e render, para que o resgate saiba a quem voltar.
+  if (permanentVideo === videoUrl) {
+    try {
+      await supabase.from('events').insert({
+        user_id: userId,
+        name: 'render_asset_left_on_vendor',
+        path: '/lib/renderAssets',
+        metadata: {
+          render_id: renderId,
+          vendor_url: videoUrl,
+          thumb_migrated: !!permanentThumb && permanentThumb !== snapshotUrl,
+          download_timeout_ms: 25_000,
+        },
+      })
+    } catch {
+      // Carimbo é best-effort: nunca pode atrapalhar a entrega do filme.
+    }
+  }
+
   return { videoUrl: permanentVideo, thumbnailUrl: permanentThumb }
 }

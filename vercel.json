@@ -139,6 +139,10 @@
     {
       "path": "/api/admin/send-affiliate-wakeup-1usd?confirm=SEND&limit=30",
       "schedule": "18 2,14 * * *"
+    },
+    {
+      "path": "/api/cron/rescue-vendor-assets",
+      "schedule": "23 * * * *"
     }
   ]
 }
