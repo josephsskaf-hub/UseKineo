@@ -3156,3 +3156,85 @@ exposto). Nenhum preço público mudou, nenhum crédito saiu, nenhum plano foi
 escondido. O jejum de assinante novo continua em 5 dias: as portas têm duas horas
 de vida; a do banner do trial acabou de encontrar a primeira pessoa (impressão
 real às 22:33, `visible=true`, saldo 25, nunca pagou), e o clique ainda não veio.
+
+---
+
+### #13c — 23:03 BRT (02:03 UTC) — CHECKPOINT FINAL DA JANELA: nada mudou nos 35 minutos finais, e os 11 "crédito zero" não são 11 defeitos
+
+Este é o checkpoint da rotação das 22:38, 35 minutos antes do término das 23:38.
+**Não abri trabalho novo** e não reescrevi o fechamento — ele já estava no ar
+desde as 23:01 (`57fea8e2`). O que cabia aqui era uma coisa só: conferir se algo
+mudou depois que o fechamento foi escrito, e provar a checagem zero em vez de
+herdá-la.
+
+**Estado da entrega.** `origin/main = c1bb2e66`. **Fila = 0** (nenhum commit em
+`entrega-atual` fora da main). Codex: **nenhum commit nas últimas 3 horas** —
+nada dele para respeitar nesta janela. Produção respondendo: `/` **200** em
+1,46s, `/pricing` **200** em 0,72s, com controle **404** na mesma medição (a
+sonda prova o caminho, não só a rede).
+
+**O delta desde o fechamento: zero.** Reconferido no banco com o marco do ciclo
+(2026-09-07 18:38 UTC):
+
+| evento | eventos | pessoas | último (UTC) |
+|---|---|---|---|
+| `trial_first_film_pay_door_shown` | 1 | 1 | 08/09 01:33 |
+| `trial_first_film_pay_door_clicked` | **0** | 0 | — |
+| `checkout_started` | 3 | 1 | 07/09 19:40 |
+| `video_ready_viewed` | 3 | 2 | 07/09 21:52 |
+| `payment_success` | **0** | 0 | — |
+
+A porta de $1 do banner de trial continua com **uma impressão e nenhum clique**.
+Ela tem 1h49 de vida. Uma impressão não vira conclusão: o certo é deixá-la juntar
+gente, não trocá-la por outra porta às pressas.
+
+**O site não parou** — o alarme de "funil mudo" que a #10b levantou às 22:08 era
+madrugada, não defeito. Pulso por hora (UTC): 21h **28 pessoas** · 22h 17 · 23h
+19 · 00h 13 · **01h 43 pessoas / 110 eventos**. A hora das 02h tem 1 evento
+porque tem 3 minutos de idade. Isso é a curva de sempre, com a Europa acordando.
+
+**CHECAGEM ZERO (24h) — e a parte que eu quase reportei errado.** Cadastros
+**26** · vídeos **26**, **26 completos (100%)** · render preso **0** · recusas de
+cartão **2**, **com dono 2, sem dono 0** · sessões expiradas **2**, ambas com
+dono · `payment_success` **0**.
+
+O número que exigiu trabalho foi o de crédito zero. Meu primeiro predicado
+devolveu **"11 órfãos suspeitos"** — e teria contradito o fechamento, que diz
+**órfão 0**. Não escalei: fui ver *quais* 11.
+
+```
+trial_status = blocked      6 pessoas   0 fizeram vídeo   ← antifraude, é o esperado
+trial_status = downgraded   5 pessoas   5 fizeram vídeo   ← trial gasto, correto
+```
+
+**Zero órfãos.** O erro era meu: eu chutei os valores de `trial_status` em vez de
+lê-los. É exatamente a armadilha que a casa já conhece — antifraude, trial gasto
+e trial órfão colapsam no mesmo `video_credits = 0`, e só o `trial_status`
+separa os três. O fechamento estava certo; o predicado é que era palpite.
+
+**Um registro para o CLAUDE.md.** O documento afirma que a tabela `events`
+"NUNCA teve um único `checkout_payment_failed`". **Isso deixou de ser verdade
+hoje**: há 2 eventos, ambos com dono, o último às 17:26 UTC. Não é surpresa — o
+ciclo de pagamentos de hoje construiu exatamente isso — mas a frase do documento
+virou mentira e vai enganar a próxima sessão que a ler como cegueira permanente.
+
+**Risco desta entrada:** nenhum. É documento; o `.gitattributes` funde diários
+por união.
+
+**A frase da rotação:** *hoje um visitante novo que faz um filme encontra um
+botão de dinheiro na tela do filme pronto — que ontem, para 93,5% de quem a via,
+simplesmente não existia.*
+
+**✅ O QUE VOCÊ PRECISA FAZER**
+1. **Nada.** Fila em 0, produção 200, checagem zero limpa, nenhuma decisão
+   pendente de você nesta janela.
+
+**📋 O QUE ACONTECEU**
+Checkpoint de fim de janela. Confirmei que a noite fechou no lugar em que o
+fechamento das 23:01 disse que fechou: nada mudou nos 35 minutos finais, a porta
+de $1 segue com uma impressão real e nenhum clique, e o jejum de assinante novo
+continua em 5 dias. A checagem zero está limpa — inclusive os 11 "crédito zero",
+que quando abertos são 6 contas bloqueadas por antifraude e 5 trials gastos por
+quem de fato fez vídeo, e não 11 pessoas prejudicadas. Corrigi um erro meu de
+medição antes de publicá-lo, e deixei anotado que uma afirmação do CLAUDE.md
+sobre recusa de cartão envelheceu hoje.
