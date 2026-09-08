@@ -228,9 +228,16 @@ export default function CheckoutSuccessPage() {
   useEffect(() => {
     if (!flow) return
     if (countdown <= 0) {
-      const destination = checkoutReady
+      let destination = checkoutReady
         ? readyCheckoutSuccessDestination(flow, accountPlan)
         : null
+      // KINEO-VERSAO-B-FUNIL-VOLTA-2026-09-08 — se a pessoa deixou uma ideia no
+      // Studio antes de pagar o $1, a volta cai NELA (e dispara), não no pouso.
+      if (destination === '/studio') {
+        try {
+          if (sessionStorage.getItem('kineo_studio_draft_v1')) destination = '/studio/create?resume=card_entry'
+        } catch { /* ignore */ }
+      }
       if (destination) {
         router.push(destination)
       } else if (isAutopilot && !autopilotPendingEventSent.current) {

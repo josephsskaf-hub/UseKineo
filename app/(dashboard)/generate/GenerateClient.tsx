@@ -992,6 +992,10 @@ const PUSH96_INLINE_FIRST_VIDEO_VIEW_MARKER = 'kineo_push96_inline_first_video_v
 const ACTIVATION_AUTOSTART_VARIANT = 'activation_autostart_fast_v1'
 const TRIAL_BEST_AUTOSTART_VARIANT = 'activation_autostart_trial_best_v1'
 const ACTIVATION_AUTOSTART_SESSION_PREFIX = 'kineo_activation_autostart_fast_v1'
+// KINEO-VERSAO-B-FUNIL-VOLTA-2026-09-08 — rascunho do Studio que sobrevive à ida
+// ao Stripe ($1): ideia + motor + duração. sessionStorage (morre com a aba).
+const STUDIO_DRAFT_KEY = 'kineo_studio_draft_v1'
+const STUDIO_DRAFT_TTL_MS = 45 * 60 * 1000
 
 type ActivationAccountStatus = 'loading' | 'free' | 'paid' | 'unavailable'
 
@@ -3212,6 +3216,49 @@ export default function GenerateClient({
     trackSignupSource()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // KINEO-VERSAO-B-FUNIL-VOLTA-2026-09-08 — versão B (fundador 08/09): a pessoa
+  // escreve a ideia, escolhe motor e duração, aperta Generate e vai ao Stripe
+  // pagar o $1. Sem isto ela voltava para um Studio vazio e recomeçava. Agora:
+  // (1) todo estado relevante é gravado a cada mudança; (2) o /checkout/success
+  // manda para /studio/create?resume=card_entry quando existe rascunho;
+  // (3) na volta, com crédito confirmado, o filme dispara sozinho UMA vez.
+  useEffect(() => {
+    try {
+      const clean = prompt.trim()
+      if (!clean) return
+      sessionStorage.setItem(STUDIO_DRAFT_KEY, JSON.stringify({ prompt: clean, quality, duration, at: Date.now() }))
+    } catch { /* ignore */ }
+  }, [prompt, quality, duration])
+  const resumeArmedRef = useRef(false)
+  const resumeFiredRef = useRef(false)
+  useEffect(() => {
+    if (searchParams?.get('resume') !== 'card_entry') return
+    try {
+      const raw = sessionStorage.getItem(STUDIO_DRAFT_KEY)
+      if (!raw) return
+      const draft = JSON.parse(raw) as { prompt?: string; quality?: Quality; duration?: Duration; at?: number }
+      const cleanDraft = typeof draft.prompt === 'string' ? draft.prompt.trim() : ''
+      if (cleanDraft) setPrompt(cleanDraft)
+      if (draft.quality && QUALITY_OPTIONS.some((q) => q.key === draft.quality)) setQuality(draft.quality)
+      if (draft.duration && ([35, 45, 60, 90] as number[]).includes(draft.duration)) setDuration(draft.duration)
+      const fresh = typeof draft.at === 'number' && Date.now() - draft.at < STUDIO_DRAFT_TTL_MS
+      resumeArmedRef.current = Boolean(cleanDraft) && fresh
+      void trackEvent('card_entry_resume_restored', { armed: resumeArmedRef.current, fresh, quality: draft.quality ?? null, duration: draft.duration ?? null })
+    } catch { /* ignore */ }
+    // Mount-only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  useEffect(() => {
+    if (!resumeArmedRef.current || resumeFiredRef.current) return
+    if (credits === null || credits <= 0) return
+    if (!prompt.trim() || isProcessingPhase(phase)) return
+    resumeFiredRef.current = true
+    try { sessionStorage.removeItem(STUDIO_DRAFT_KEY) } catch { /* ignore */ }
+    void trackEvent('card_entry_resume_autostart', { quality, duration, credits })
+    handleGenerateGuarded()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [credits, prompt, quality, duration, phase])
 
   // Push #033: pull a prompt forwarded by the homepage's Generate Video card.
   // app/page.tsx stashes the user's idea under `pendingVideoPrompt` in
