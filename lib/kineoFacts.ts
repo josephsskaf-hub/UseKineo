@@ -33,6 +33,11 @@ import {
   TIER_CREDITS,
   CURRENCY_DISPLAY,
   formatCheckoutMoney,
+  // KINEO-PORTA-1DOLAR-NO-MAPA-2026-09-07 — os três números da porta de $1 vêm
+  // do MESMO módulo que a rota do Stripe usa para cobrar. Ver CARD_TRIAL_FACT.
+  CARD_TRIAL_ENTRY_FEE_MINOR,
+  CARD_TRIAL_DAYS,
+  CARD_TRIAL_GRANT_CREDITS,
   type CheckoutTier,
 } from './checkoutPricing'
 import { PLANS } from './pricing'
@@ -499,18 +504,25 @@ export const FREE_TIER = {
   //     cartão. Agora a concessão é a oração principal e o limite residual vem
   //     depois, sem deixar de ser dito. Com a flag OFF, string byte a byte
   //     idêntica à de hoje.
-  // ⚠️ COMENTÁRIO OBSOLETO REMOVIDO EM 21/08 — o que estava escrito aqui
-  // descrevia o trial de US$1 com cartão obrigatório como se fosse o modelo no
-  // ar. NÃO É: `CARD_TRIAL_ENABLED = false` em app/api/stripe/checkout, e o
-  // modelo vigente é o do OpusClip — créditos definidos por TRIAL_CREDIT_CAP na
-  // inscrição, todos os motores
-  // liberados, SEM cartão, filmes com marca d'água, e o plano pago é que
-  // desbloqueia o download limpo. A string abaixo sempre esteve certa; era só o
-  // comentário que mentia.
-  // Isso não é detalhe: em 21/08 eu li esta descrição, acreditei nela e quase
-  // publiquei um cupom prometendo "trial grátis" para um trial que não existe.
-  // Se o trial de $1 for religado um dia, ESTE comentário volta junto — e não
-  // antes.
+  // ⚠️ ESTE CAMPO DESCREVE A PORTA GRÁTIS, E SÓ ELA. O modelo aqui é o do
+  // OpusClip — créditos definidos por TRIAL_CREDIT_CAP na inscrição, todos os
+  // motores liberados, SEM cartão, filmes com marca d'água, e o plano pago é
+  // que desbloqueia o download limpo.
+  //
+  // HISTÓRICO, porque a armadilha é real: até 21/08 o comentário daqui
+  // descrevia o trial de US$1 com cartão como se fosse o modelo no ar quando
+  // ele estava desligado. Eu li a descrição, acreditei nela e quase publiquei
+  // um cupom prometendo um trial que não existia. O comentário foi corrigido
+  // com uma condição escrita: "se o trial de $1 for religado um dia, ESTE
+  // comentário volta junto — e não antes."
+  //
+  // ✅ 07/09/2026 — RELIGADO. `CARD_TRIAL_ENABLED = true` em
+  // app/api/stripe/checkout (ordem do fundador, 15:43). A condição foi cumprida
+  // e a descrição da porta paga vive em `CARD_TRIAL_FACT`, logo abaixo de
+  // RECURRING_FREE_ACCESS — NÃO neste campo, que continua sendo só a franquia
+  // gratuita. As duas portas coexistem e são coisas diferentes: 25 créditos sem
+  // cartão aqui, $1 por 7 dias com cartão lá. A string abaixo sempre esteve
+  // certa; era só o comentário que mentia.
   allowance: FREE_OFFER.reverseTrial
     ? `${TRIAL_CREDIT_CAP} free credits on signup with every engine unlocked (Kling 3 included), no credit card; trial films render watermarked and any paid plan unlocks clean, watermark-free downloads`
     : 'up to 3 watermarked Fast videos every 24 hours',
@@ -540,6 +552,63 @@ export const RECURRING_FREE_ACCESS = buildRecurringFreeAccessFact({
   videosPerWindow: FREE_OFFER.limit,
   rollingWindowHours: FREE_OFFER.windowMs / (60 * 60 * 1000),
 })
+
+// ═══ KINEO-PORTA-1DOLAR-NO-MAPA-2026-09-07 ═════════════════════════════════
+// A OFERTA MAIS BARATA DA CASA ERA INVISÍVEL PARA QUEM NUNCA OUVIU FALAR DELA.
+//
+// O QUE ESTÁ ERRADO, MEDIDO. O trial pago de $1 foi ligado hoje (07/09 15:43,
+// `c902516f`). Catorze superfícies já o anunciam — `PricingCards`, o banner do
+// trial, a caixa do filme pronto, as cartas de ciclo de vida. TODAS elas falam
+// com quem JÁ está no site ou JÁ está na nossa lista. Nenhuma fala com quem
+// ainda não nos conhece.
+//
+// E é exatamente daí que vem o crescimento de hoje: o fundador abriu a janela
+// dizendo "visitante cresce, três línguas, o GPT fala da gente — e não
+// converte". Fui ler o que o GPT lê. Em `/llms.txt` (47 KB, o documento que os
+// motores de resposta usam para nos descrever) a coisa mais barata que existe
+// sobre a Kineo é **$7.00/month**. A porta de $1 não aparece em uma única
+// linha. Um motor de resposta perguntado "qual é a forma mais barata de testar
+// o Kineo?" responde $7 — porque $7 é o menor número que nós contamos a ele.
+//
+// Isso não é uma tela mal desenhada: é a oferta certa entregue ao público
+// errado. Quem vê a porta de $1 hoje é quem já decidiu nos visitar. Quem
+// precisa dela é quem está decidindo, dentro do ChatGPT, se vale a pena.
+//
+// ⚠️ O COMENTÁRIO DE 21/08 LOGO ACIMA (em FREE_TIER.allowance) DIZIA:
+//   "Se o trial de $1 for religado um dia, ESTE comentário volta junto — e não
+//    antes."
+// Hoje é esse dia. `CARD_TRIAL_ENABLED` é `true` em app/api/stripe/checkout.
+// O comentário de lá foi corrigido no mesmo commit que criou este fato.
+//
+// ═══ HONESTIDADE: ESTE FATO REPLICA O COBRADOR, NÃO O REESCREVE ════════════
+// Todo número abaixo vem de `lib/checkoutPricing.ts` — o mesmo módulo que a
+// rota do Stripe usa para cobrar. Nenhuma string de dinheiro é digitada aqui
+// (memória: preço literal em e-mail/AEO mente). E as duas recusas do servidor
+// são publicadas JUNTO da oferta, porque um motor de resposta que cita "$1"
+// sem citar "não vale para quem já assinou" produz exatamente a vitrine que
+// promete o que o cobrador recusa.
+export const CARD_TRIAL_FACT = {
+  /** A porta está no ar. Espelha `CARD_TRIAL_ENABLED` em app/api/stripe/checkout. */
+  enabled: true,
+  /** Rótulo pronto, formatado pela fonte canônica de preço. Nunca digitado. */
+  entryPrice: formatCheckoutMoney('usd', CARD_TRIAL_ENTRY_FEE_MINOR),
+  entryPriceMinor: CARD_TRIAL_ENTRY_FEE_MINOR,
+  days: CARD_TRIAL_DAYS,
+  credits: CARD_TRIAL_GRANT_CREDITS,
+  /** A porta é SEMPRE Creator: `TRIAL_TIER` é `basic` no servidor. */
+  planName: 'Creator',
+  /** O que passa a ser cobrado quando os 7 dias terminam. */
+  thenMonthly: formatCheckoutMoney('usd', TIER_PRICES.basic.usd),
+  cardRequired: true,
+  /** Plano pago desbloqueia download limpo — é o ponto inteiro da porta. */
+  removesWatermark: true,
+  url: `${BASE}/api/stripe/checkout?tier=basic&billing=monthly&trial=1`,
+  /** As duas recusas do servidor, ditas na mesma frase que a oferta. */
+  notAvailableTo: [
+    'anyone who has subscribed to a paid Kineo plan before (the server charges the full plan price instead)',
+    'annual billing — the entry price exists on monthly checkout only',
+  ],
+} as const
 
 /* ------------------------------------------------------------------ *
  * Produto

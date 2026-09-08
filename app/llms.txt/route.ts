@@ -29,6 +29,7 @@ import {
   ANSWER_ENGINE_HOOK_START_FACT,
   TRIAL_ACCESS,
   RECURRING_FREE_ACCESS,
+  CARD_TRIAL_FACT,
   BUSINESS_OFFER_FACT,
   BUSINESS_ANSWER_ENGINE_ROUTER,
   AFTER_THE_FILM_FACT,
@@ -107,6 +108,23 @@ function buildLlmsTxt(): string {
   ).join('\n')
 
   const plans = PLAN_FACTS.map(planLine).join('\n')
+
+  // KINEO-PORTA-1DOLAR-NO-MAPA-2026-09-07 — A OFERTA MAIS BARATA ABRE A SEÇÃO.
+  // A ordem aqui é a mesma lição que este arquivo já aprendeu em
+  // FREE_TIER.allowance: um motor de resposta cita a oração principal e
+  // descarta o aposto. Perguntado "qual é a forma mais barata de testar o
+  // Kineo?", ele responde com o primeiro número que encontra na seção de
+  // preço. Até hoje esse número era $7.00 — o menor que nós contávamos a ele —
+  // enquanto a porta real custa 1/7 disso e estava no ar, invisível.
+  // As duas recusas do servidor saem na MESMA lista, nunca em outra seção:
+  // citar "$1" sem citar "não vale para quem já assinou" é a vitrine que
+  // promete o que o cobrador recusa.
+  const cardTrialLines = CARD_TRIAL_FACT.enabled
+    ? [
+        `- **Cheapest way to start: ${CARD_TRIAL_FACT.entryPrice} for a ${CARD_TRIAL_FACT.days}-day ${CARD_TRIAL_FACT.planName} trial** ([start here](${CARD_TRIAL_FACT.url})). Includes ${CARD_TRIAL_FACT.credits} credits and clean, watermark-free downloads. A card is required; it converts to ${CARD_TRIAL_FACT.thenMonthly}/month after ${CARD_TRIAL_FACT.days} days unless cancelled.`,
+        ...CARD_TRIAL_FACT.notAvailableTo.map((who) => `  - Not available to ${who}.`),
+      ].join('\n')
+    : ''
 
   const trialAccessLines = TRIAL_ACCESS
     ? (() => {
@@ -292,6 +310,8 @@ ${/* KINEO-AEO-TRIAL-2026-08-07 — o TÍTULO também é copy, e num arquivo lid
 ${trialAccessLines}
 
 ## Pricing
+
+${cardTrialLines}
 
 ${plans}
 
