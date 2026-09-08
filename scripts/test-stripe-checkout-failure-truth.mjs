@@ -128,7 +128,18 @@ const failureRegion = webhook.slice(failureStart, failureEnd)
 expect(failureStart >= 0 && failureEnd > failureStart, 'failure handlers are reachable in webhook switch')
 equal((failureRegion.match(/name: 'checkout_payment_failed'/g) ?? []).length, 1, 'only PaymentIntent writes canonical failure')
 equal((failureRegion.match(/name: 'checkout_payment_failure_enriched'/g) ?? []).length, 1, 'Charge writes one enrichment event')
-expect(failureRegion.includes('resolvePaymentIntentInvoiceContext(failedIntent)'), 'PaymentIntent resolves billing reason')
+// KINEO-REANCORA-RESOLVER-2026-09-07 — a trava exigia a chamada com UM
+// argumento: `resolvePaymentIntentInvoiceContext(failedIntent)`. O resolvedor
+// ganhou um segundo parâmetro (o cliente do banco, para a escada de identidade
+// que passou a dar NOME ao comprador recusado) e a assinatura mudou sem que a
+// verdade mudasse: o ramo de PaymentIntent continua resolvendo a razão de
+// cobrança pelo resolvedor compartilhado. A âncora passa a aceitar argumentos
+// extras e a exigir, além da chamada, que o resultado seja AGUARDADO — uma
+// promessa não-aguardada aqui devolveria `undefined` como razão de cobrança.
+expect(
+  /await resolvePaymentIntentInvoiceContext\(failedIntent\b/.test(failureRegion),
+  'PaymentIntent resolves billing reason (awaited, extra args allowed)',
+)
 // The invoice lookup lives in the shared resolver above the switch; restricting
 // this assertion to the case body falsely reported that the lookup did not exist.
 expect(webhook.includes('stripe.invoices.retrieve(invoiceId)'), 'route reads authoritative invoice')
