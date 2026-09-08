@@ -135,6 +135,10 @@
     {
       "path": "/api/admin/send-second-try-1usd?confirm=SEND&limit=30",
       "schedule": "12 1,13,18 * * *"
+    },
+    {
+      "path": "/api/admin/send-affiliate-wakeup-1usd?confirm=SEND&limit=30",
+      "schedule": "18 2,14 * * *"
     }
   ]
 }

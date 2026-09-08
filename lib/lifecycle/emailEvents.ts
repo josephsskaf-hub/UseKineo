@@ -66,6 +66,11 @@ export const LIFECYCLE_EMAIL_EVENT_NAMES = [
   // ficou sem crédito e bateu no checkout antes da porta de $1 existir. Entra
   // aqui no MESMO commit em que nasce (a regra do cabeçalho deste arquivo).
   'second_try_1usd_sent',
+  // KINEO-AFILIADOS-ACORDAM-2026-09-07 — a carta dos sócios. Um afiliado
+  // TAMBÉM é cliente da casa (6 dos 15 receberam outra carta nossa nas 24h
+  // anteriores ao commit), então este carimbo precisa contar como "e-mail
+  // nosso" para todas as outras campanhas, e não só para a própria.
+  'affiliate_wakeup_1usd_sent',
   'comeback50_sent',
   'blackout_winback_sent',
   // ── crons de ciclo de vida (carimbo `*_sent`) ────────────────────────────
