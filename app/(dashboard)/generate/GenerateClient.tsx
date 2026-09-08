@@ -320,6 +320,10 @@ import VideoRatingAsk from '@/components/VideoRatingAsk'
 // OFFER_290_ENABLED (renders null while the flag is off — build-only for now).
 import Offer290Banner from './Offer290Banner'
 import { CARD_ENTRY_ONLY } from '@/lib/entryPolicy'
+// KINEO-PORTA-V2-2026-09-09 — a folha que substitui o UpgradeModal para a coorte
+// da porta de $1. Ver o cabeçalho do componente: medido em 08/09, a porta de $1
+// estava VISÍVEL dentro do modal e perdeu para a grade de planos da mesma caixa.
+import CardEntryDoor from '@/components/CardEntryDoor'
 // KINEO-LOWCREDITS-UPSELL import removed 09/07 — banner retired (see note at
 // the old render site; 0 credits is the normal free state now).
 
@@ -2249,6 +2253,10 @@ export default function GenerateClient({
   // any Generate/Analyze/Generate-Similar CTA while credits <= 0. Routes
   // through /api/stripe/checkout?tier=basic (GET redirect to Stripe).
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  // KINEO-PORTA-V2-2026-09-09 — a folha da porta de $1. Mutuamente exclusiva com
+  // o UpgradeModal de propósito: duas caixas de dinheiro na mesma tela é o
+  // defeito que esta entrega existe para matar.
+  const [showCardEntryDoor, setShowCardEntryDoor] = useState(false)
   // KINEO-PLAN-GATE-MODAL-2026-07-05 — why the upsell modal opened: 'credits'
   // (real shortage) vs 'studio'/'creator' (engine needs a higher plan). Drives an
   // accurate headline instead of a misleading "out of credits" for users who HAVE
@@ -10424,6 +10432,45 @@ export default function GenerateClient({
             : null
     const resolvedReason = trialReasonHere ?? reason
     setUpgradeReason(resolvedReason)
+
+    // ═══ KINEO-PORTA-V2-2026-09-09 — A COORTE DA PORTA VÊ UMA PORTA, NÃO UMA
+    // GRADE DE PLANOS ══════════════════════════════════════════════════════
+    // Medido em 08/09 (contas externas): a porta de $1 apareceu 5 vezes para 3
+    // pessoas DENTRO deste modal, com `door_reason:'ok'`. A única que clicou
+    // escolheu `tier:'starter'` — o plano de $9, ao lado — foi ao Stripe e não
+    // pagou. A porta não perdeu por copy: perdeu por competição interna.
+    //
+    // Quem entra aqui: conta sob a versão B, que NUNCA pagou, com saldo lido e
+    // igual a zero, e que não é assinante. `credits !== null` é obrigatório —
+    // saldo desconhecido não abre oferta nenhuma (falha fechada, a lição do
+    // predicado largo negado). `footage` fica de fora: aquele bloqueio se
+    // resolve com pacote, e o pacote mora no UpgradeModal.
+    const cardEntryCohort =
+      CARD_ENTRY_ONLY &&
+      !hasPaid &&
+      !(isStarter || isCreator || isStudio) &&
+      credits !== null &&
+      credits <= 0 &&
+      (resolvedReason === 'credits' || resolvedReason.startsWith('trial_'))
+
+    if (cardEntryCohort) {
+      setShowCardEntryDoor(true)
+      void trackEvent('upgrade_modal_opened', {
+        reason: resolvedReason,
+        requested_reason: reason,
+        surface: 'generate',
+        // O placar tem que conseguir separar quem viu a FOLHA de quem viu o
+        // modal antigo sem cruzar duas tabelas.
+        replaced_by: 'card_entry_door',
+        door_version: 'door_v2',
+        trial_active: trialActive === true,
+        trial_phase: trialUi?.phase ?? 'none',
+        credits: credits ?? null,
+        ...planFilmLanguageMetadata(),
+      })
+      return
+    }
+
     setShowUpgradeModal(true)
     // A CAIXA QUE PEDE DINHEIRO PRECISA APARECER NO PLACAR. Sem isto, o
     // bloqueio de saldo zero segue sendo o caso que NÃO passa pelo servidor
@@ -12858,6 +12905,19 @@ export default function GenerateClient({
           ve UMA superficie de welcome por vez. */}
       {showStep1 && showWelcome && !showNicheOnboarding && (
         <WelcomeBanner onDismiss={dismissWelcome} trialLive={trialActive || trialPhase === 'active'} grantedCredits={trialUi?.creditsGranted ?? null} />
+      )}
+
+      {/* KINEO-PORTA-V2-2026-09-09 — a porta de $1 no momento do bloqueio. Abre
+          NO LUGAR do UpgradeModal para quem nunca pagou e está em zero (ver
+          `cardEntryCohort` em openOutOfCreditsModal). Um botão só. */}
+      {showCardEntryDoor && (
+        <CardEntryDoor
+          prompt={prompt}
+          currency={postVideoCurrency}
+          region={postVideoRegion}
+          reason={upgradeReason}
+          onDismiss={() => setShowCardEntryDoor(false)}
+        />
       )}
 
       {/* Push #098 — out-of-credits upgrade modal. Opened by any Generate /
