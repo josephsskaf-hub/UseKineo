@@ -10284,7 +10284,19 @@ export default function GenerateClient({
   //
   // `filmsDelivered === 0` (e nao `!filmsDelivered`) de proposito: `null` e
   // "nao sei" e tem de esconder a oferta.
+  //
+  // KINEO-PROMESSA-GRATIS-2026-09-08 (M7) — O ESPELHO TINHA PARADO DE ESPELHAR.
+  // O bloco acima promete responder "o servidor entregaria um Kineo 1 de graca
+  // para esta conta agora?", mas o predicado nunca consultou a COTA: ele so
+  // olhava plano, pagamento e filmes entregues. Desde a Versao B
+  // (`getFreeTierOffer().limit === 0`, 08/09 04:22 UTC) a resposta do servidor
+  // e NAO para todo mundo, e este predicado continuava dizendo SIM — pintando
+  // "your first one is free" e "Kineo 1 costs 0 credits on your account" para
+  // exatamente a coorte que nasce com 0 credito. `OFFER.limit` e o mesmo numero
+  // que /api/compose compara contra `reservedOrCompleted` antes de recusar.
+  const freeFilmAvailable = OFFER.limit > 0
   const firstFilmFreeAvailable =
+    freeFilmAvailable &&
     filmsDelivered === 0 &&
     !isStarter && !isCreator && !isStudio &&
     !hasPaid &&
@@ -13438,10 +13450,19 @@ export default function GenerateClient({
                   boxShadow: prompt.trim() && !isProcessingPhase(phase) ? '0 10px 34px rgba(41,151,255,.38)' : 'none',
                 }}
               >
-                Create my free Short →
+                {freeFilmAvailable ? 'Create my free Short →' : 'Create my Short →'}
               </button>
               <p className="text-center text-xs mt-2" style={{ color: 'var(--muted2)' }}>
-                Fast preview · no card · watermark · advanced settings are optional below
+                {/* KINEO-PROMESSA-GRATIS-2026-09-08 (M7) — esta caixa é a
+                    superfície de ativação mais vista da casa: 175 pessoas em 7
+                    dias (`viral_onboarding_viewed` com source=inline_first_video).
+                    Ela anunciava "free" e "no card" e sobreviveu intacta à
+                    Versão B. A caixa FICA — o degrau é bom e é o primeiro gesto
+                    de quem chega; o que sai é a palavra que o cobrador não
+                    honra mais. */}
+                {freeFilmAvailable
+                  ? 'Fast preview · no card · watermark · advanced settings are optional below'
+                  : 'Fast preview · watermark · advanced settings are optional below'}
               </p>
             </div>
           )}

@@ -11,7 +11,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { trackEvent } from '@/lib/analytics'
-import { FreeTierCopy } from '@/components/FreeTierOfferProvider'
+import { FreeTierCopy, useFreeTierOffer } from '@/components/FreeTierOfferProvider'
 import {
   ACTIVATION_HANDOFF_SURFACE_VERSION,
   DEFAULT_ONBOARDING_GOAL,
@@ -41,6 +41,10 @@ export default function NicheOnboarding({ onPick, onClose }: Props) {
   // the Escape effect's dependency array tore down and re-subscribed the
   // listener on every render. The ref keeps the handler stable ([] deps) while
   // always calling the latest callback.
+  // KINEO-PROMESSA-GRATIS-2026-09-08 (M7) — o predicado do cobrador, não uma
+  // flag redigitada: `limit` é o mesmo número que /api/compose compara contra
+  // `reservedOrCompleted` antes de recusar a reserva.
+  const freeFilmAvailable = useFreeTierOffer().limit > 0
   const onCloseRef = useRef(onClose)
   const onPickRef = useRef(onPick)
   onCloseRef.current = onClose
@@ -220,8 +224,16 @@ export default function NicheOnboarding({ onPick, onClose }: Props) {
         >
           <FreeTierCopy legacy={selectedGoal.cta} on={selectedGoal.cta} />
         </button>
+        {/* KINEO-PROMESSA-GRATIS-2026-09-08 (M7) — "No card needed" era literal
+            e sobreviveu à Versão B. 49 pessoas viram este overlay em 7 dias, e
+            desde 04:22 UTC nenhuma delas podia começar um vídeo sem cartão. A
+            condição sai do LIMITE QUE O COBRADOR LÊ (getFreeTierOffer().limit,
+            o mesmo que /api/compose usa para recusar), nunca de uma flag
+            redigitada. A segunda metade da frase continua verdadeira nos dois
+            regimes e por isso fica de fora da troca. */}
         <p style={{ margin: '9px 0 16px', color: '#8f8f98', fontSize: '0.74rem', lineHeight: 1.45, textAlign: 'center' }}>
-          This starts your first video. No card needed; Kineo uses the best engine already available to this account.
+          This starts your first video.{' '}
+          {freeFilmAvailable ? 'No card needed; Kineo' : 'Kineo'} uses the best engine already available to this account.
         </p>
 
         <style jsx>{`

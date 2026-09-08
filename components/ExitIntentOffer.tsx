@@ -111,6 +111,11 @@ function checkoutIntentParam(): string {
 // deslogado — gente que nunca gerou um vídeo levava tabela de preço como
 // última impressão (diagnóstico do fundador: "poluído"; diagnóstico do funil:
 // vender antes de entregar, o erro que já corrigimos na tela de download).
+// KINEO-PROMESSA-GRATIS-2026-09-08 (M7) — a manchete da versão A, isolada numa
+// constante para que a trava consiga provar que ela só chega à tela através do
+// swapFreeTierCopy (e nunca mais como JSX cru).
+const EXIT_FREE_HEADLINE = 'You haven’t tried it yet — and trying it is free'
+
 // Na home o objetivo do exit-intent é CADASTRO, não venda: variant="free"
 // vende os 3 vídeos grátis sem cartão. O /pricing continua com o deal —
 // lá a pessoa já está decidindo preço.
@@ -391,8 +396,21 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
           {/* ── Decisão ───────────────────────────────────────────────── */}
           <div style={{ padding: '26px 26px 22px' }}>
             <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#5cb3ff', marginBottom: 10 }}>Before you go</div>
+            {/* KINEO-PROMESSA-GRATIS-2026-09-08 (M7) — a MANCHETE deste painel
+                era JSX cru: nunca passou por swapFreeTierCopy e por isso
+                sobreviveu à Versão B dizendo "trying it is free" ao lado do
+                próprio selo "$1 FOR 7 DAYS" da coluna da esquerda. Medido: 104
+                sessões viram este painel em 7 dias e 20 clicaram (19%) — é a
+                superfície de aquisição que mais converte na casa, e era a que
+                mentia mais alto. Agora o texto passa pela MESMA troca das
+                outras frases: sob a porta única cai na copy canônica de
+                lib/entryPolicy. `on` repete o `legacy` de propósito, para que
+                a versão A continue byte a byte o que era. */}
             <h2 id="exit-free-title" style={{ fontSize: 26, lineHeight: 1.12, fontWeight: 900, letterSpacing: '-0.02em', color: '#f5f5f7', margin: 0, marginBottom: 10 }}>
-              You haven&apos;t tried it yet —<br />and trying it is free
+              <FreeTierCopy
+                legacy={EXIT_FREE_HEADLINE}
+                on={EXIT_FREE_HEADLINE}
+              />
             </h2>
             <p style={{ fontSize: 13.5, color: '#86868b', lineHeight: 1.6, margin: 0, marginBottom: 18 }}>
               {/* KINEO-GRANT-COPY-UNICA — número derivado; ver lib/freeTierOffer.ts. */}
