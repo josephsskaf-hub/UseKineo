@@ -2744,3 +2744,42 @@ olhando se as sessões da landing são de gente ou de varredor.
 pagamentos (`pg-r7`, trilho Dodo). Minha edição é **aditiva** — dois campos e um
 import; não mexi na lista `SERVER_ONLY_EVENTS`, no guarda de ambiente, nem no
 caminho de erro.
+
+---
+
+### #17 — 22:35 BRT — ACHEI A CAUSA COMUM: O `<UiLabel>` DE 06/09 QUEBROU O ESTADO DOS GUARDIÕES POR FORMA, NÃO POR DEFEITO
+
+Depois de consertar catorze travas, o padrão parou de ser coincidência e virou
+uma causa datável. **Seis dos meus catorze consertos foram exatamente o mesmo
+acidente**: a trava casava com um texto de tela e alguém envolveu esse texto num
+`<UiLabel>`.
+
+**A ORIGEM, com data e autor:** `<UiLabel>` entrou em **06/09**, pelos commits
+`5aa0734a` e `6e30c986` do **Codex** ("add Spanish interface" / "extend Spanish
+to Studio, Avatar and Animate controls"). Hoje são **500 ocorrências em 16
+arquivos** — `StudioClient`, `LibraryClient`, `HistoryClient`, `KineoLanding`,
+`AnimateClient`, `Sidebar`, `TopBar`, `MobileNav`, `Footer` e mais sete. É a
+mudança certa para o produto (interface em espanhol) e não há nada a reverter.
+
+**O CUSTO, medido:** a suíte inteira estava em **310 verdes / 115 vermelhos** na
+base desta rotação. Está em **327 / 102** agora. E dos **102 que sobram, pelo
+menos 25 leem um dos 16 arquivos que ganharam `<UiLabel>`** — ou seja, a maior
+causa isolada do estado vermelho da casa não é defeito de produto: é um wrapper
+de tradução que passou por baixo de travas que liam texto.
+
+**O CONSERTO DESTA ROTAÇÃO** (`df48bdf9`): `test-avatar-card` acusava "nome do
+site: Avatar" porque a etiqueta virou `<span className="tag"><UiLabel>Presenter
+</UiLabel></span>`. O nome nunca mudou — a regra do CLAUDE.md continua cumprida.
+Re-ancorado por estrutura, **11 ok / 0 fail**, e com uma trava que antes não
+existia: o nome antigo "AI Presenter" não pode voltar ao card. Falsificado.
+
+**ONDE PARAR, E POR QUÊ.** Olhei mais quatro dos 102 (`test-manrope-system`,
+`test-library-search`, `test-studio-prompt-limit`, `test-free-limit-wall`) e
+**não** são desta classe: acusam comportamento (navegação acima do teto, regra
+de 16px anti-zoom do iOS, limite que só existe em comentário). Consertar trava
+de comportamento em área que eu não trabalhei, no fim de um ciclo, é como se
+quebra trava de dinheiro. Ficam nomeadas.
+
+**A FRASE DA ROTAÇÃO.** Hoje a casa sabe POR QUE um quarto dos seus guardiões
+está vermelho — e a resposta não é "o produto está quebrado", é "as travas leem
+texto e o texto ganhou uma camada de tradução em 06/09".
