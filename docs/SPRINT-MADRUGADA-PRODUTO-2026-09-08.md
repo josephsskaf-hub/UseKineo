@@ -982,3 +982,108 @@ nada e guarda o endereço antigo, caso a gente precise voltar atrás. Para os
 que já morreram não há milagre — mas eles param de ser invisíveis: cada um
 fica carimbado com o nome do dono, para a gente decidir o que dizer a essas
 30 pessoas.
+
+---
+
+### #8 — 05:06→05:30 BRT — M8/M6: quatro alarmes nasceram e morreram na mesma rotação, e a Versão B ainda não tem plateia (n=1)
+
+**Esta rotação não mudou uma linha de código, de propósito.** Todas as quatro
+coisas que pareciam defeito grave viraram artefato quando medidas direito. Vale
+mais escrever os quatro do que publicar um conserto para problema que não existe.
+
+**Alarme 1 — "12 pessoas foram barradas na porta de compra".** `checkout_auth_required`
+pulou de 1 (ontem) para 12 (hoje) na mesma janela. Fui olhar os carimbos: **dez
+deles saíram entre 05:47:28 e 05:47:31 UTC — 3,3 segundos** — varrendo starter,
+basic, pro, autopilot, mensal, anual, `starter10` e `bulk10`, um por SKU, todos
+sem `user_id`. Isso é varredura automática, não gente. E a casa **já sabia
+disso**: o comentário em `app/api/stripe/checkout/route.ts:402` descreve o
+padrão com precisão ("rajadas de 2-8 ms, uma por tier, sem user_id"). Anônimos
+de verdade barrados na janela: **4 momentos**, não 12.
+
+**Alarme 2 — "a Versão B matou o cadastro: 8 ontem, 1 hoje".** Verdade nos
+números, mentira na conta. A Versão B (`89a65eb9`) entrou às **04:22 UTC** e
+ficou viva por volta de 04:30. As horas 02, 03 e 04 UTC — onde estavam os zeros
+mais assustadores — são **de antes do deploy**. Recortando no carimbo certo,
+janela 04:30→08:00 UTC:
+
+    dia          chegadas  porta vista  metodo escolhido  contas
+    08/09 (B)        47          2             0            1
+    07/09            46          7             2            3
+    06/09            33          3             3            5
+    05/09            15          6             4            1
+
+Contas: **1 · 3 · 5 · 1**. O 1 de hoje cabe dentro da variação normal — o
+05/09 também deu 1, sem Versão B nenhuma. **Não dá para afirmar que a porta
+nova derrubou o cadastro**, e não vou afirmar. O que dá para afirmar é que
+**as chegadas não caíram**: 47 hoje contra 46 ontem, medidas por
+`landing_session_started`. Quem quiser responder a pergunta de verdade precisa
+de mais horas, não de mais opinião.
+
+**Alarme 3 — "o Guardião está vermelho na main".** Nove e-mails de
+`Run failed: Guardião - main` entre 01:16 e 01:30 UTC, mais quatro na noite
+anterior. Todos os commits acusados **estão mesmo na main**. Só que o GitHub
+só manda e-mail **quando falha** — e não veio nenhum depois das 01:30, com
+muita coisa publicada desde então (Versão B às 04:22, minhas rotações até
+07:48). Reproduzi a ponta `7427bbc0` numa worktree limpa, rodando exatamente o
+que o CI roda: `tsc --noEmit --incremental false` **verde**, e os cinco
+guardiões do job crítico (`sharing-safety`, `five-improvements`,
+`locale-readiness`, `home-curation`, `showcase-premium`) **verdes**. A main
+teve uma janela vermelha ontem à noite e **já está verde**.
+
+**Alarme 4 — M8, "toda carta pede resposta e ninguém lê resposta".** Fui ler.
+O inbox do fundador nos últimos 16 dias é **99% máquina** (Upwork, Quora,
+Stripe, GitHub, newsletters). Busquei resposta humana em 20 dias: as últimas
+de cliente são **Rick (gapozweb), Matthew, Marc e akajitin — e as quatro foram
+respondidas em 24/08**. Nos últimos 20 dias **não entrou uma única resposta
+nova de cliente**. Construir rota de entrada, tabela `inbox_reply` e digest
+seria remédio para uma **coorte de zero**. O M8 não cabe — e o achado é pior
+que o problema que ele ia resolver: **as campanhas não recebem resposta
+nenhuma**, o que é um fato sobre as cartas, não sobre a caixa de entrada.
+⚠️ Limite honesto: minha busca exigiu `subject:Re` e excluiu remetentes de
+robô; carta de cliente com assunto novo pode ter escapado.
+
+**O resgate do fornecedor (#7) ainda não rodou** — e isso também é aritmética,
+não defeito. O cron dispara no minuto 23 de cada hora e o deploy saiu 07:48
+UTC; o primeiro disparo possível era 08:23 UTC, depois do fim desta rotação.
+`vendor_asset_rescued`/`_expired`/`_rescue_failed`: **zero linhas de qualquer
+tipo**, como esperado. A consulta da #7 continua valendo para a próxima.
+
+**M5, na pergunta nova que a Versão B criou** ("quantos passaram o cartão por
+$1 e quantos fizeram o filme depois"): desde 04:22 UTC nasceu **exatamente uma
+conta** — `atoyebiolakam2010`, 05:14 UTC, `video_credits=0`,
+`trial_status='card_required'`, `has_paid=false`, **0 filmes**. A
+instrumentação funciona (1 evento `card_entry_required` para 1 conta nova, e
+`auth.users` = `profiles` em toda hora das últimas 36h, sem perfil perdido).
+Mas **n=1**: não é amostra, é anedota. Ninguém passou o cartão ainda.
+
+#### ✅ O QUE VOCÊ PRECISA FAZER
+1. **Nada nesta rotação.** Não há conserto pendente do meu lado nem nada
+   quebrado que eu tenha encontrado.
+2. Quando quiser saber se a Versão B pegou, use **esta** conta e não outra:
+   janela recortada em **08/09 04:22 UTC** (o commit `89a65eb9`), comparada com
+   **a mesma janela de relógio** dos dias anteriores, e **jogando fora** as
+   rajadas de `checkout_*` que saem em menos de 5 segundos varrendo todo SKU.
+   Sem esses dois cuidados, os números mentem nas duas direções — mentiram
+   para mim duas vezes nesta rotação.
+3. Continua em aberto, da #2: **a decisão sobre a trava do `lib/compose.ts`**
+   (commit `f42e410d`).
+
+#### 📋 O QUE ACONTECEU
+Passei a rotação inteira perseguindo quatro coisas que pareciam estar pegando
+fogo, e as quatro apagaram sozinhas quando eu olhei de perto. Doze pessoas
+barradas na porta de compra eram um robô varrendo os preços em três segundos.
+O cadastro que tinha "despencado de 8 para 1" tinha despencado antes da
+mudança entrar no ar — quando recorto na hora certa, hoje deu 1 e os outros
+dias deram 1, 3 e 5, ou seja, dentro do normal. O Guardião "vermelho na main"
+ficou vermelho ontem à noite e já está verde de novo — conferi rodando aqui o
+mesmo teste que o robô do GitHub roda. E a ideia de fazer a casa ler as
+respostas dos clientes não tem para quem servir: nos últimos vinte dias
+**nenhum cliente respondeu nenhuma carta**, e as últimas quatro respostas que
+existiram já foram respondidas em agosto.
+
+O que sobra de verdade é uma frase só, e ela é sobre a porta nova: **desde que
+o trial grátis acabou, uma pessoa se cadastrou, ficou com zero créditos e não
+passou o cartão.** Uma. Não é notícia boa nem ruim — é pouca gente para ter
+notícia. As visitas continuam chegando no mesmo ritmo de ontem, o que
+significa que a mudança ainda não espantou ninguém da porta. Amanhã de manhã,
+com mais horas de relógio, o número vira resposta.
