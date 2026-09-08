@@ -2806,3 +2806,130 @@ diferentes. O primeiro **tentou forjar** o carimbo, mandando
 As duas linhas de sonda estão nomeadas `ops_probe_identity_stamp` (não
 `landing_session_started`), então **não contaminam nenhuma série do funil** —
 qualquer consulta futura as exclui pelo nome.
+
+---
+
+## FECHAMENTO (sessão B) — 22:38–23:38 BRT · ciclo de 8h encerrado
+
+### 📣 O QUE UM VISITANTE ENCONTRA ÀS 23:38 QUE NÃO ENCONTRAVA ÀS 15:38
+
+Quem faz um filme hoje à noite e quer ficar com ele **sem a marca d'água**
+encontra, pela primeira vez, uma porta que custa **um dólar** — e a encontra
+**onde o desejo existe**, não numa página de preços que ninguém visita depois de
+gerar um vídeo. São duas caixas diferentes, para as duas metades da plateia:
+quem ainda está em trial vê a porta dentro da pergunta comercial da tela de filme
+pronto; quem **já esgotou o trial** — a coorte maior, que até as 19:48 de hoje
+levava o filme premium **limpo e de graça** — vê a mesma porta dentro da caixa
+"Want it clean?", que até hoje só oferecia assinatura mensal cheia.
+
+E duas coisas deixaram de mentir. O botão que vende o filme limpo **parou de
+prometer "this video clean"** quando o navegador não tem como reconstruir o
+arquivo (quem volta pelo e-mail, pela pílula de render ou recarrega a página).
+E a casa **parou de confundir visitante com varredor**: cada evento passa a
+carregar uma origem pseudônima e uma etiqueta de robô — sem gravar IP cru nem
+user-agent.
+
+### 📊 PLACAR DO CICLO — marco 2026-09-07 18:38 UTC → 02:38 UTC (contas externas)
+
+| degrau | número |
+|---|---|
+| sessões na landing | **95** |
+| cadastros | **4** |
+| renders iniciados | **5** |
+| pessoas com filme pronto na tela | **2** |
+| baixaram | **0** |
+| caixas de venda vistas | **0** |
+| porta de $1 vista / clicada | **0 / 0** |
+| checkout externo | **0** |
+| **pagou** | **0** |
+
+**Último `payment_success` da casa: 02/09 20:22 UTC — jejum de 5 dias.**
+
+**A leitura honesta deste placar:** foi a janela de **menor tráfego útil** do
+dia, e **nenhuma** das cinco portas de $1 criadas hoje pelas duas sessões foi
+vista por uma pessoa sequer. Isso **não** as valida nem as condena — elas nasceram
+com **zero oportunidades**. O teste delas é o tráfego de amanhã de manhã.
+
+### ✅ O SUSTO DA NOITE — resolvido, e resolvido contra mim
+
+Às 22:08 eu levantei um alarme: **3h15 sem um clique no CTA da landing, sem um
+cadastro e sem um render**, com o tráfego da home **acima** da média das mesmas
+horas dos 3 dias anteriores. Publiquei um "não sei" honesto e um teste para
+amanhã. **O teste respondeu-se sozinho em uma hora:** `organic_cta_clicked`
+voltou às **01:33 UTC** e um render começou às **01:35 UTC**. **Não era defeito
+— era uma faixa magra da madrugada.** Fica registrado que o alarme era grande
+demais para o dado que eu tinha, e que a linha de base é que decide.
+
+### 🛠️ O CONSERTO DE UM DEFEITO QUE EU MESMO PUS NO AR HÁ 25 MINUTOS
+
+Rodei a **suíte inteira** (430 guardiões) na ponta final, como prometi — e ela
+me pegou. O `test-sharing-safety` estava **verde antes do meu commit e vermelho
+depois**, com a mensagem certa: **"Unapproved import"**. Ele executa o sink de
+eventos numa caixa com lista fechada de dependências, e eu tinha importado
+`lib/gptHandoffStore` — que arrasta o cliente Supabase para dentro da rota de
+analytics. **O guardião estava certo e o meu import estava errado.**
+
+E ele achou um segundo defeito, pior: ele monta uma requisição **sem
+cabeçalhos**, e o meu código fazia `req.headers.get('user-agent')` direto.
+Como todo o corpo corre dentro de um `try`, o desfecho era **`ok: true` para o
+cliente e o evento NÃO gravado, em silêncio** — o pior desfecho possível para
+uma medição que existe justamente para contar.
+
+**MUDOU — SHA `6534efeb`.** As três funções de identidade saíram para
+`lib/requestIdentity.ts` — **puro, só `crypto`** — e `gptHandoffStore` passa a
+**reexportá-las**, então todo chamador antigo continua igual e a regra continua
+tendo **uma** fonte. A leitura do user-agent virou tolerante. Estendi o guardião
+alheio em vez de só desbloqueá-lo: ele agora **exige** que a linha gravada
+carregue o carimbo e **nunca** carregue IP cru. `test-sharing-safety` **70/70**,
+`test-events-identity-stamp` **21/21**, `tsc` verde.
+
+### 🔍 O NÚMERO QUE EU PROMETI, E A RESSALVA QUE ELE EXIGE
+
+**Suíte completa na ponta final: 430 guardiões — 328 verdes, 102 vermelhos.**
+O "doze vermelhos" que circulou hoje era o **subconjunto de dinheiro/trial**, não
+a casa inteira. ⚠️ **Mas 102 não é "102 contratos quebrados"** — amostrei cinco e
+os modos são diferentes: `test-runway` só pede `RUNWAY_API_KEY` (ambiente, não
+defeito); `test-library-search` falha 1 de 22 por uma regra de CSS;
+`test-manrope-system` e `test-free-limit-wall` acusam contrato de copy de
+verdade. **Não transforme 102 em manchete sem classificar** — e vale lembrar o
+que hoje ensinou três vezes: **em nenhum dos guardiões consertados hoje o produto
+estava quebrado; era sempre a âncora que envelheceu.**
+
+### ⏳ O QUE FICA ABERTO
+
+1. **As cinco portas de $1 estão sem uma única impressão.** Prioridade absoluta
+   de amanhã: medir, não construir a sexta.
+2. **~141 verificações desligadas** em cinco guardiões do tipo `assert`, que
+   morrem na primeira falha e escondem a suíte inteira. Nomeados no PEDIDOS.
+3. **Duas sessões na mesma pista colidiram três vezes hoje.** O `enfileirar`
+   segurou todas — ninguém sobrescreveu ninguém — mas custou-me uma hora.
+4. **`test-gpt-handoff` e `test-topup-eligibility-handoff`** estão vermelhos e
+   **já estavam antes** de eu tocar em qualquer coisa (falsifiquei na ponta
+   anterior). Não são meus e não os consertei.
+
+### ✅ O QUE VOCÊ PRECISA FAZER
+
+1. **Amanhã de manhã, primeiro de tudo:** conferir se alguma das portas de $1 foi
+   **vista** — `post_video_trial_1usd_shown` e `pricing_trial_1usd_clicked` nas
+   últimas 12h. Se continuarem em zero **com tráfego normal**, o problema não é a
+   oferta: é que ninguém chega até ela, e aí o alvo muda de superfície para
+   aquisição.
+2. **Use o carimbo novo** para responder a pergunta que você faz há dias:
+   `count(distinct metadata->>'ip_hash')` com `is_bot = 'false'` dá **visitantes**
+   de verdade, não sessões. Só vale para linhas com o campo — as antigas não têm.
+
+### 📋 O QUE ACONTECEU
+
+Oito horas, duas sessões na mesma pista e nenhuma venda nova — o jejum chega a
+cinco dias. O que mudou de concreto para o cliente: quem quer o filme sem marca
+d'água agora encontra uma porta de um dólar nos dois lugares onde esse desejo
+aparece, e dois botões pararam de prometer coisas que a casa não sabia cumprir.
+O que não mudou: ninguém passou por essas portas ainda, porque a janela da noite
+teve 95 sessões na página inicial e apenas 2 pessoas chegando a ver um filme
+pronto. Duas coisas que valem mais que a entrega: levantei um alarme de "funil
+parado" que a própria linha de base derrubou uma hora depois — registrei o erro
+em vez de deixá-lo passar — e a suíte completa de testes pegou um defeito que eu
+mesmo tinha posto no ar 25 minutos antes, que teria feito eventos deixarem de ser
+gravados em silêncio. Consertei, e ainda deixei o teste alheio mais exigente do
+que estava. Amanhã a primeira pergunta não é o que construir: é se alguém vê o
+que já foi construído.
