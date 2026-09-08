@@ -2783,3 +2783,26 @@ quebra trava de dinheiro. Ficam nomeadas.
 **A FRASE DA ROTAÇÃO.** Hoje a casa sabe POR QUE um quarto dos seus guardiões
 está vermelho — e a resposta não é "o produto está quebrado", é "as travas leem
 texto e o texto ganhou uma camada de tradução em 06/09".
+
+**SONDA DO CARIMBO — feita em produção, e ela prova as três coisas que
+importam.** Dois POSTs reais no sink, do mesmo lugar, com user-agents
+diferentes. O primeiro **tentou forjar** o carimbo, mandando
+`"ip_hash":"FORJADO_PELO_CLIENTE","is_bot":false` no metadata:
+
+| variante | UA enviado | `is_bot` gravado | `ip_hash` gravado |
+|---|---|---|---|
+| bot (com `is_bot:false` forjado) | `KineoOpsProbe/1.0 (+bot; …)` | **`true`** | `67fc14c5443b…` |
+| navegador | Chrome 128 | **`false`** | `67fc14c5443b…` |
+
+1. **A etiqueta funciona:** o mesmo endpoint classificou robô e navegador
+   corretamente.
+2. **A forja não passa:** o cliente mandou `is_bot: false` e a linha gravada diz
+   **`true`** — a precedência servidor-depois-do-cliente está de pé em produção,
+   não só no guardião.
+3. **A origem é estável:** os dois pedidos vieram do mesmo lugar e receberam o
+   **mesmo** `ip_hash` — é isso que permite contar **visitantes** em vez de
+   sessões. E `FORJADO_PELO_CLIENTE` não está em lugar nenhum.
+
+As duas linhas de sonda estão nomeadas `ops_probe_identity_stamp` (não
+`landing_session_started`), então **não contaminam nenhuma série do funil** —
+qualquer consulta futura as exclui pelo nome.
