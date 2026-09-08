@@ -106,7 +106,19 @@ for (const [file, minimum] of Object.entries(requiredUses)) {
 
 const home = source('app/KineoLanding.tsx')
 const structured = source('components/StructuredData.tsx')
-ok(home.includes('{CHECKOUT_CURRENCY_DISCLOSURE} New accounts get free credits'), 'visible home FAQ uses canonical disclosure')
+// KINEO-REANCORA-FAQ-2026-09-07 — a trava exigia a ADJACÊNCIA literal
+// `{CHECKOUT_CURRENCY_DISCLOSURE} New accounts get free credits`. As duas
+// frases ganharam `<UiLabel>` por dentro e deixaram de ser vizinhas no texto,
+// sem que uma vírgula da resposta mudasse para quem lê a página. É a quinta
+// vez hoje que uma trava casa com FORMA e morre no primeiro wrapper. Agora ela
+// exige a mesma verdade por estrutura: a resposta VISÍVEL do "quanto custa"
+// carrega a divulgação canônica de moeda E a frase dos créditos grátis.
+{
+  const faq = (home.split('\n').find((l) => l.includes('CHECKOUT_CURRENCY_DISCLOSURE') && l.includes('<details')) ?? '')
+  ok(faq.length > 0, 'the visible pricing FAQ answer exists on the home')
+  ok(faq.includes('{CHECKOUT_CURRENCY_DISCLOSURE}'), 'visible home FAQ uses canonical disclosure')
+  ok(/New accounts get free credits/.test(faq), 'the same visible answer still promises the free first video')
+}
 ok(structured.includes('${CHECKOUT_CURRENCY_DISCLOSURE} New accounts get free credits'), 'FAQ JSON-LD uses the same canonical disclosure')
 ok(!home.includes(disclosure), 'visible FAQ does not duplicate the disclosure literal')
 ok(!structured.includes(disclosure), 'JSON-LD does not duplicate the disclosure literal')
