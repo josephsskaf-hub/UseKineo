@@ -56,7 +56,8 @@ for (const [engine, id] of Object.entries(opening.HERO_OPENING)) {
   ok(JSON.stringify(source) === originalOrder, 'hero order does not mutate catalogue ' + engine)
   // Latest founder constraint: wide hero cannot show portrait fill/cropped faces.
   // Only Omni changes membership; portrait originals remain in trending/catalogue.
-  const eligible = engine === 'cinematic_omni' ? source.filter(v => v.id === id) : source
+  // Founder 08/09: previews -h are now true crops; Omni presenters return to the wide hero.
+  const eligible = source
   ok(JSON.stringify(ordered.slice(1)) === JSON.stringify(eligible.filter(v => v.id !== id)), 'eligible clips retain relative order ' + engine)
   ok(new Set(ordered.map(v => v.id)).size === eligible.length, 'no missing or duplicate eligible clip ' + engine)
   ok(fs.existsSync(path.join('public', framePolicy.heroFrame(ordered[0]).poster)), 'matching opening poster exists ' + engine)
@@ -65,11 +66,11 @@ ok(opening.orderHeroVideos([]).length === 0, 'empty hero stays empty')
 ok(opening.heroOpeningPoster({id:'unknown',engine:'unknown'}) === undefined, 'unknown engine never gets invented poster')
 for (const video of trending) {
   const frame = framePolicy.heroFrame(video)
-  ok(frame.src === (video.engine === 'cinematic_omni' ? video.videoUrl : video.previewUrl ?? video.videoUrl), 'actual source avoids baked fill only for Omni ' + video.id)
+  ok(frame.src === (video.previewUrl ?? video.videoUrl), 'actual source is the true wide crop for every engine ' + video.id)
   const html = renderToStaticMarkup(React.createElement(EngineCard, { videos: [video] }))
   // Founder correction: only the source changes; every engine keeps the same wide card.
   ok(html.includes('data-frame="wide"'), 'all actual cards share wide layout ' + video.id)
-  if (video.engine === 'cinematic_omni') ok(!html.includes('-h.webp'), 'no blurred portrait poster in Omni SSR')
+  ok(html.includes('data-frame'), 'card renders for ' + video.id)
 }
 const original = JSON.stringify(trending)
 const engines = policy.showcaseEngines(trending)

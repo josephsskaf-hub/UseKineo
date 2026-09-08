@@ -1037,7 +1037,7 @@ export default function KineoLanding({
               // Seedance/Kling 2.5 continuam nos tiles do bento logo abaixo.
               const order = ['cinematic_veo', 'cinematic_hollywood', 'cinematic_h3', 'cinematic_omni']
               return order.map((eng, i) => {
-                const vids = orderHeroVideos(engineWall.filter((v) => v.engine === eng)).slice(0, eng === 'cinematic_omni' ? 5 : 4)
+                const vids = orderHeroVideos(engineWall.filter((v) => v.engine === eng)).slice(0, 4)
                 if (vids.length === 0) return null
                 return <EngineCycleCard key={eng} videos={vids} index={i} />
               })

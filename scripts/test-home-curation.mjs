@@ -37,7 +37,7 @@ for(const e of approved){
   ok(fs.existsSync(f),'asset exists '+asset)
   ok(fs.statSync(f).size>1000 && fs.statSync(f).size<1500000,'bounded asset size')
  }
- if(process.argv.includes('--media'))for(const [asset,w,h] of [[v.videoUrl,540,960],[v.previewUrl,960,540]]){
+ if(process.argv.includes('--media'))for(const [asset,w,h] of [[v.videoUrl,540,960],[v.previewUrl,1400,782]]){
   const data=JSON.parse(execFileSync('ffprobe',['-v','error','-show_streams','-show_format','-of','json',path.join('public',asset)],{encoding:'utf8'}))
   ok(data.streams.length===1 && data.streams[0].codec_type==='video','no audio')
   ok(data.streams[0].width===w && data.streams[0].height===h,'dimensions')
@@ -45,7 +45,7 @@ for(const e of approved){
  }
 }
 ok(hero.filter(v=>v.engine==='cinematic_omni')[0].id===home.ROBOT_VIDEO_ID,'robot opens Omni')
-ok(hero.filter(v=>v.engine==='cinematic_omni').length===5,'robot and four approved presenters cycle')
+ok(hero.filter(v=>v.engine==='cinematic_omni').length===5,'robot and four approved presenters reach the wall (card shows four)')
 for(const engine of ['cinematic_veo','cinematic_hollywood','cinematic_h3']){
  const expected=old.PUBLIC_ENGINE_EXAMPLES.filter(v=>v.engine===engine)
  const actual=home.HOME_ENGINE_EXAMPLES.filter(v=>v.engine===engine)
@@ -54,6 +54,6 @@ for(const engine of ['cinematic_veo','cinematic_hollywood','cinematic_h3']){
 for(const list of [hero,trending])ok(new Set(list.map(v=>v.id)).size===list.length,'no duplicates')
 ok(load('lib/publicSurfacePolicy.ts').CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED===false,'customer gallery remains closed')
 const jsx=fs.readFileSync('app/KineoLanding.tsx','utf8')
-ok(jsx.includes("eng === 'cinematic_omni' ? 5 : 4"),'caller retains fifth Omni in cycle')
+ok(jsx.includes(".slice(0, 4)") && !jsx.includes("cinematic_omni' ? 5"),'caller shows four per card, Omni included (founder 08/09)')
 if(process.argv.includes('--data'))console.log(JSON.stringify({hero,trending,old:old.PUBLIC_ENGINE_EXAMPLES}))
 else console.log('Home curation: '+checks+' checks passed; no database or provider calls.')

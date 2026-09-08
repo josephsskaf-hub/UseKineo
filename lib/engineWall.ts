@@ -278,7 +278,10 @@ const HERO_CAPS: Record<string, number> = {
   cinematic_ai: 4,
   // 25/08 — os dois cards novos da primeira tela (fundador). Seedance/Kling
   // 2.5 seguem na lista (caps acima): os tiles do bento ainda leem daqui.
-  cinematic_h3: 3,
+  // KINEO-CARDS-ENQUADRADOS-2026-09-08 (fundador): quatro por card — o H3 ganha
+  // o 4o render; o Omni entrega 5 (robo + 4 apresentadores), o card mostra 4 e o
+  // 5o fica exclusivo do tile do bento (tileVidLast).
+  cinematic_h3: 4,
   cinematic_omni: 5,
   fast: 4,
   presenter: 1,

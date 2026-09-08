@@ -1,15 +1,16 @@
 import type { WallVideo } from '@/lib/engineWall'
-import { showcasePoster } from './showcaseGallery'
 import { heroOpeningPoster } from './heroOpening'
 
-// The approved Omni presenters are portrait originals. Their wide previews
-// contain baked-in blurred side fill; CSS cannot remove that background.
+// KINEO-CARDS-ENQUADRADOS-2026-09-08 — todo motor usa o preview largo (500:280)
+// recortado do master. Os 12 aprovados de 07/09 tinham preview -h com
+// preenchimento lateral desfocado ("aquele nas laterais", fundador 08/09);
+// foram recortados de novo em public/previews/curation-sep07/*-h.mp4, com a
+// janela escolhida por video (rosto/ombros nos apresentadores). O Omni deixa de
+// ser caso especial: mesmo card, mesma fonte, mesmo poster que os outros.
 export function heroFrame(video: WallVideo) {
-  const natural = video.engine === 'cinematic_omni'
   return {
-    natural,
-    src: natural ? video.videoUrl : (video.previewUrl ?? video.videoUrl),
-    // Robot has a wide original/poster; do not substitute a cropped portrait poster.
-    poster: heroOpeningPoster(video) ?? (natural && video.id !== '36a04f7b-65f7-42d9-a2ab-198b5a7f115e' ? showcasePoster(video) : video.posterUrl),
+    natural: false,
+    src: video.previewUrl ?? video.videoUrl,
+    poster: heroOpeningPoster(video) ?? video.posterUrl,
   }
 }

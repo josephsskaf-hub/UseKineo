@@ -44,3 +44,28 @@
 - Inspeção visual de contact sheets dos 12, com início/meio/fim. Comparação antes/depois em `docs/previews/CURADORIA-ANTES-DEPOIS.html`, incluindo largura desktop e card mobile. O “antes” é o exemplo anterior de cada motor; não é uma réplica completa da home.
 - Teste que executa os seletores reais: 250 verificações com inspeção de mídia. TypeScript limpo. Regressões: vitrine legada 19, segurança 68, cinco melhorias 621, idiomas 2034. Nenhuma asserção antiga alterada; o teste novo diferencia explicitamente acervo histórico da curadoria ativa.
 - **PENDENTE neste checkpoint:** CI remoto, preview HTTPS e validação de produção. Abrir arquivo local no Chrome foi bloqueado pela política do navegador; não contornar esse bloqueio. Validar o site de preview HTTPS, sem acesso do browser ao filesystem.
+
+## REENQUADRAMENTO — 08/09/2026 ~00:30 BRT (ordem do fundador, executado pelo Claude)
+
+**ORDEM:** "O motor está com um vídeo só rodando. Pega os melhores vídeos, os que eu dei nota nove e meio, e coloca bem enquadrado, no quatro. No menu do meio está cortado alguns vídeos, com aquele nas laterais."
+
+**O que era:** o card Omni só ciclava o robô (`orderHeroVideos` filtrava os apresentadores para fora do hero) e os previews largos `-h.mp4` dos 12 aprovados eram o vídeo vertical inteiro com fundo lateral desfocado (960×540) — o "aquele nas laterais".
+
+**O que ficou:** os 12 `-h.mp4`/`-h.webp` recortados de novo do master 1080×1920 como janela real 1080×605 (500:280) → 1400×782, 6s a partir de 0,4s, 24fps, sem áudio, crf 25 (Noruega crf 27 para caber no teto de 1,5 MB do guardião). Faixa (`top` em px do master) escolhida olhando início/meio/fim:
+
+| vídeo | assunto | top |
+|---|---|---:|
+| 0ab3e871 | Noruega | 500 |
+| 1b8e12f9 | Tunguska, homem de chapéu | 250 |
+| 38158db0 | Tunguska, testemunha de gorro | 280 |
+| 49d10f33 | Ilha de Páscoa, céu/mar | 693 |
+| 7ffd064e | Voynich, livro | 657 |
+| 9aacaf46 | céu noturno | 657 |
+| a09706da | moai, muro | 657 |
+| a66e975a | apresentador, avião chinês | 340 |
+| ca6c04df | esferas / antenas | 700 |
+| cbd676d0 | Mary Celeste, navio | 562 |
+| cc17475a | apresentador de óculos | 400 |
+| f3de57b0 | Urais | 466 |
+
+Código: `lib/ui/heroFrame.ts` (Omni deixa de ser caso especial), `lib/ui/heroOpening.ts` (sem filtro; robô abre), `lib/engineWall.ts` (HERO_CAPS h3 3→4), `app/KineoLanding.tsx` (todo card `.slice(0, 4)`). Masters, `-v.mp4`, posters verticais, /examples e /arena intactos.

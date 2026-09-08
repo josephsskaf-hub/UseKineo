@@ -8,9 +8,9 @@ export const HERO_OPENING: Readonly<Record<string, string>> = {
 }
 
 export function orderHeroVideos<T extends { id: string; engine: string }>(videos: readonly T[]): T[] {
-  // Portrait Omni presenters remain in the gallery, not the wide hero.
-  // Keep the founder's robot until further wide clips are visually approved.
-  return videos.filter(v => v.engine !== 'cinematic_omni' || v.id === HERO_OPENING.cinematic_omni).sort((a, b) =>
+  // KINEO-CARDS-ENQUADRADOS-2026-09-08 (fundador): os apresentadores do Omni voltam ao card largo —
+  // os previews -h agora sao recortes reais 500:280 do master (rosto e ombros), sem laterais. O robo abre.
+  return [...videos].sort((a, b) =>
     Number(b.id === HERO_OPENING[b.engine]) - Number(a.id === HERO_OPENING[a.engine]))
 }
 
