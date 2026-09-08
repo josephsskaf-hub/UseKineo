@@ -2695,3 +2695,52 @@ servidor de render não recusou ninguém — simplesmente não pediram. Também 
 posso garantir que seja só uma madrugada fraca, porque o evento da landing não
 grava nada que distinga pessoa de robô. Deixei o teste que decide, para amanhã
 cedo, e a instrumentação que resolveria isso de vez.
+
+**ADENDO À #10 (22:15 BRT) — a pergunta que o checkpoint não soube responder
+passa a ter resposta permanente.** O checkpoint #10b terminou com um "não sei"
+honesto: 3h15 sem clique no CTA, sem cadastro e sem render, com a landing **acima
+da média** — e sem como decidir entre madrugada de robô e defeito, porque
+`landing_session_started` **não grava nada que distinga pessoa de varredor**. Um
+"não sei" que se repete todo dia é um instrumento faltando, não uma dúvida.
+
+**MUDOU — SHA `75ef30e4` · EM PRODUÇÃO.** O sink público de eventos
+(`app/api/events/route.ts`, o ponto único por onde passa todo evento de
+navegador) passa a carimbar **duas** chaves em cada linha: `ip_hash` (origem
+pseudônima, para contar **visitantes** em vez de **sessões**) e `is_bot`.
+
+**REUSO, NÃO CÓPIA.** As três funções — `clientIp`, `hashIp`, `isLikelyBot` — já
+existiam e já são usadas pelo handoff do GPT e pelo episode-link. Importei-as.
+Redigitar a regex de robô ou o hash criaria a segunda cópia que diverge e passa a
+mentir onde ninguém audita (memória `a-regra-vive-em-varios-arquivos`).
+
+**TRÊS DECISÕES DE PRIVACIDADE, deliberadas e travadas por teste:**
+1. **IP cru nunca é gravado** — só `SHA-256(salt|ip)`, a mesma função do handoff.
+2. **O user-agent inteiro nunca é gravado** — ele é lido, reduzido a um booleano
+   e descartado. Guardar a string seria impressão digital de navegador, e esta
+   medição não precisa disso.
+3. **As duas chaves são escritas DEPOIS do `metadata` do cliente.** Se fossem
+   antes, o navegador poderia sobrescrevê-las — e o carimbo que existe para
+   separar robô de gente seria escrito pelo próprio robô.
+
+**E O SINK CONTINUA SENDO ANALYTICS.** Nada passou a barrar nada: `is_bot` é
+**etiqueta**, não porta (mesmo padrão do episode-link). O guardião **falha** se
+alguém transformar o carimbo em bloqueio — analytics que interrompe funil é pior
+que analytics ausente.
+
+**TESTES.** `scripts/test-events-identity-stamp.mjs` **20/20**, com **5
+mutantes**, cada um com prova de escrita: carimbar antes do cliente, gravar IP
+cru, gravar o user-agent inteiro, voltar a gravar o metadata cru, e transformar o
+carimbo em bloqueio. Nove irmãos verdes, `tsc` limpo.
+
+**COMO MEDIR — e o corte é por CAMPO, nunca por relógio.** Linha com
+`metadata ? 'ip_hash'` é de depois deste deploy; sem o campo, é de antes, e as
+duas **não se misturam** (memória `campo-novo-e-o-carimbo-do-deploy`). A partir
+de amanhã, "quantos visitantes a casa teve" responde-se com
+`count(distinct metadata->>'ip_hash') filter (where metadata->>'is_bot' = 'false')`
+— e a pergunta desta noite (madrugada magra ou funil quebrado?) responde-se
+olhando se as sessões da landing são de gente ou de varredor.
+
+**⚠️ AVISO DE ARQUIVO:** `app/api/events/route.ts` foi tocado hoje pela pista de
+pagamentos (`pg-r7`, trilho Dodo). Minha edição é **aditiva** — dois campos e um
+import; não mexi na lista `SERVER_ONLY_EVENTS`, no guarda de ambiente, nem no
+caminho de erro.
