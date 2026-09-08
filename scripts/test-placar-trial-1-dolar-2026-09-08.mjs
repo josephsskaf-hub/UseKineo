@@ -36,7 +36,7 @@ console.log('== tarefas 3 e 4 ==')
 const gcl = rd('app/(dashboard)/generate/GenerateClient.tsx')
 checa('a porta de $1 vira paywall_hit no cliente, não generation_stage_error', /if \(data\?\.cardEntry === true\) void trackEvent\('paywall_hit'/.test(gcl))
 checa('painel Versão B no /admin/overview (por pessoa, hoje e 7 dias)', /title="Versão B — porta de \$1"/.test(page) && /function funilVersaoB\(/.test(page))
-checa('painel conta o $1 como pago só com card_trial', /case 'payment_success': if \(metaTrue\(m, 'card_trial'\)\) sets\.paid1\.add/.test(page))
+checa('painel conta o $1 como pago só com card_trial (função da lib, importada pelo painel)', /case 'payment_success': if \(metaTrue\(m, 'card_trial'\)\) sets\.paid1\.add/.test(rd('lib/admin/versaoBFunnel.ts')) && /from '@\/lib\/admin\/versaoBFunnel'/.test(page))
 checa('compra avulsa exclui o $1', /!metaTrue\(e\.metadata, 'card_trial'\)/.test(page))
 checa('ao vivo: selo sub só para quem paga agora; trial tem selo próprio', /is_paid: isPayingPlan\(/.test(rd('app/api/admin/live/route.ts')) && /trial \$1<\/span>/.test(rd('components/LiveNowPanel.tsx')))
 
