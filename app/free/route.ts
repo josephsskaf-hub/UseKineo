@@ -120,6 +120,41 @@ export async function GET(req: NextRequest) {
         referrer = null
       }
 
+      // ═══ KINEO-QUEM-DIGITOU-2026-09-07 ═══════════════════════════════════
+      // O NÚMERO QUE MOTIVOU (medido 07/09 ~22:20 BRT, contas externas):
+      // `watermark_landing` = **45 chegadas em 30 dias, de 14 países** →
+      // `profiles.signup_utm_source='watermark'` = **0**, em 832 cadastros do
+      // período. E, de todos os eventos de 30 dias, só **2** visitantes
+      // carregam `utm_source=watermark` em qualquer lugar.
+      //
+      // Duas leituras possíveis, e o dado de hoje NÃO separa uma da outra:
+      //   (a) 45 pessoas digitaram a URL da marca d'água e nenhuma se cadastrou;
+      //   (b) boa parte das 45 são varredores que não executam JS — o evento
+      //       desta rota é de SERVIDOR, mas a captura de `utm_source` é de
+      //       CLIENTE (`components/SourceCapture.tsx`, no layout raiz).
+      // A diferença muda a decisão inteira: em (a) o problema é a página de
+      // destino; em (b) o denominador é ficção. Enquanto as duas couberem no
+      // mesmo 45, a pergunta que o comentário lá em cima diz que o fundador
+      // precisa responder — "quanto vale um vídeo postado?" — não tem resposta.
+      //
+      // O QUE ENTRA, e o que deliberadamente NÃO entra: NÃO gravo user-agent
+      // (a regra deste arquivo continua valendo, e o repositório é público).
+      // Gravo dois derivados que não identificam ninguém: se a requisição
+      // trouxe o cookie de sessão do nosso próprio analytics — prova de que
+      // aquele navegador já executou o nosso JS alguma vez — e uma CLASSE de
+      // cliente de três valores. Um varredor não tem o cookie e quase sempre se
+      // anuncia no UA; um humano de verdade tem pelo menos a forma de navegador.
+      // (memórias `sonda-com-curl-pelado-e-lida-como-robo` e
+      // `separador-de-sonda-e-origem-nao-relogio`.)
+      const hasEventSession = Boolean(req.cookies.get('kineo_event_session_id')?.value)
+      const ua = req.headers.get('user-agent') ?? ''
+      const clientClass: 'browser' | 'bot' | 'unknown' =
+        /bot|crawl|spider|slurp|preview|fetch|curl|wget|python|headless|monitor|scan/i.test(ua)
+          ? 'bot'
+          : /mozilla|applewebkit|gecko|safari|chrome|firefox|edge/i.test(ua)
+            ? 'browser'
+            : 'unknown'
+
       // O timer é limpo no `finally`: sem isso ele seguraria a lambda viva por
       // até 800 ms DEPOIS de a escrita já ter voltado, em toda visita.
       //
@@ -143,6 +178,11 @@ export async function GET(req: NextRequest) {
               // marca d'água queimada no frame, e o único jeito de separar
               // "alguém leu o vídeo" de "alguém clicou num link em algum lugar".
               referrer_host: referrer,
+              // Os dois campos que separam gente de varredor. Campo novo é o
+              // carimbo do deploy: linha sem eles é de antes e não se mistura
+              // (memória `campo-novo-e-o-carimbo-do-deploy`).
+              browser_session: hasEventSession,
+              client_class: clientClass,
             },
           }),
           new Promise<boolean>((resolve) => {
