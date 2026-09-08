@@ -3,7 +3,7 @@
 Decisão do fundador (08/09): investir $50 para comprar SINAL, não assinantes — 50 a 100 pessoas certas passando pela porta de $1 em 48h. Diretório foi descartado (gotejo). Product Hunt de quinta é grátis e segue em paralelo.
 
 ## O que a casa já preparou
-- Criativo 16:9, 19 s, 1280×720, sem áudio: `C:\kineo\docs\ads\kineo-reddit-sep09-16x9.mp4` (quadros em `kineo-reddit-sep09-frames.png`).
+- Criativos (19 s, sem áudio, filme inteiro no centro com laterais desfocadas): 4:5 `C:kineodocsdskineo-reddit-sep09-4x5.mp4` (recomendado, feed mobile) e 16:9 `kineo-reddit-sep09-16x9-v2.mp4`. Links públicos: https://www.usekineo.com/ads/kineo-reddit-sep09-4x5.mp4 e https://www.usekineo.com/ads/kineo-reddit-sep09-16x9-v2.mp4 (quadros em `kineo-reddit-sep09-quadros.png`).
 - Página de pouso: `https://www.usekineo.com/ph?utm_source=reddit&utm_medium=cpc&utm_campaign=reddit_sep09`
   - o utm de primeiro toque vai para `profiles.utm_source` no cadastro;
   - o CTA da /ph passa a carregar `intent_campaign=reddit_sep09` quando a URL traz `utm_campaign` (PhLandingBeacon) → `checkout_started`/`payment_success` separam Reddit de Product Hunt.
