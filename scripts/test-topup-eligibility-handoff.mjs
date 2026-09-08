@@ -13,9 +13,19 @@ const root = process.cwd()
 // defeito de produto — a copy estava intacta, byte a byte. Normalizacao SO na
 // leitura do teste (memoria `guardiao-crlf-falso-vermelho`).
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8').replace(/\r\n/g, '\n')
+// KINEO-M6-CONTAGEM-2026-09-08 — este arquivo usava `assert` puro: a PRIMEIRA
+// falha matava o processo e as outras ~40 verificacoes nunca chegavam a rodar,
+// entao um vermelho aqui nunca dizia QUANTAS coisas estavam quebradas. Pior: o
+// rodape imprimia `checks/checks`, que passa 100% por construcao. Agora conta.
 let checks = 0
-const check = (value, message) => { assert.ok(value, message); checks++ }
-const equal = (actual, expected, message) => { assert.equal(actual, expected, message); checks++ }
+let falhou = 0
+const falhas = []
+const registrar = (ok, message) => {
+  checks++
+  if (!ok) { falhou++; falhas.push(message) }
+}
+const check = (value, message) => registrar(!!value, message)
+const equal = (actual, expected, message) => registrar(actual === expected, `${message} (esperado ${JSON.stringify(expected)}, veio ${JSON.stringify(actual)})`)
 
 function executeTs(file) {
   const compiled = ts.transpileModule(read(file), {
@@ -77,7 +87,18 @@ check(sidebar.includes('if (!stored) return false'), 'failed analytics writes do
 check(sidebar.includes('window.sessionStorage.setItem(marker'), 'successful events dedupe per browser session')
 check(sidebar.includes('isTopupEligibilityMeasurementHost(window.location.hostname)'), 'local and preview traffic cannot enter the production gate')
 check(sidebar.includes("topupEligible ? '+' : '→'"), 'visible affordance matches the action')
-check(sidebar.includes("topupEligible\n                        ? (creditsZero ? 'Buy more with +' : 'Top up anytime')\n                        : 'See plans'"), 'chip copy states the real next step')
+// KINEO-REANCORAGEM-2026-09-08 (M6) — a ancora antiga cravava a INDENTACAO
+// exata das tres linhas. Em 08/09 a copy foi aninhada um nivel a mais (o chip
+// ganhou uma terceira posicao, "nao consegui ler o saldo", em
+// lib/creditsReadFailure.ts) e o guardiao ficou vermelho sem que uma virgula
+// da copy mudasse. A CONDICAO que ele defende continua a mesma e e esta: as
+// tres frases existem e continuam governadas por `topupEligible` e
+// `creditsZero`. Reancorado por condicao, tolerante a espaco em branco.
+const chipCopy = sidebar.replace(/\s+/g, ' ')
+check(
+  chipCopy.includes("topupEligible ? (creditsZero ? 'Buy more with +' : 'Top up anytime') : 'See plans'"),
+  'chip copy states the real next step (topupEligible/creditsZero governam as 3 frases)',
+)
 check(sidebar.includes('{showTopup && <CreditsTopupModal'), 'existing top-up modal remains mounted only after an eligible click')
 
 const account = read('components/AccountPanel.tsx')
@@ -150,4 +171,9 @@ check(preview.includes('Creator / Studio'), 'preview shows the preserved subscri
 check(preview.includes('3 external people'), 'preview carries the dated production evidence')
 check(!/https?:\/\//i.test(preview), 'preview has no external dependency')
 
+if (falhou > 0) {
+  console.log(`FAIL — ${checks - falhou}/${checks} top-up eligibility handoff checks`)
+  for (const m of falhas) console.log('  x ' + m)
+  process.exit(1)
+}
 console.log(`PASS — ${checks}/${checks} top-up eligibility handoff checks`)

@@ -10,6 +10,8 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { trackEvent } from '@/lib/analytics'
+import { isCreditsReadFailure, READ_FAILED_EVENT } from '@/lib/creditsReadFailure'
 
 export default function NavCreditsBadge() {
   const [credits, setCredits] = useState<number | null>(null)
@@ -24,6 +26,18 @@ export default function NavCreditsBadge() {
           return
         }
         const data = await res.json()
+        // KINEO-TELA-QUE-NAO-MENTE-2026-09-08 (M10) — sem isto, um 500 caia
+        // no `: 0` da linha abaixo e este badge pintava uma pilula VERMELHA
+        // de "0 credits" apontando para /pricing. A porta da loja aberta por
+        // uma leitura que falhou. `credits === null` ja esconde o badge (mais
+        // abaixo): esconder e honesto, inventar zero nao e.
+        if (isCreditsReadFailure(res.status, data)) {
+          if (!cancelled) {
+            setCredits(null)
+            void trackEvent(READ_FAILED_EVENT, { surface: 'landing_nav_badge', status: res.status })
+          }
+          return
+        }
         if (!cancelled) {
           // Bug fix 30/06: /api/credits responds with the field `credits`
           // (see app/api/credits/route.ts), not `video_credits` (that's the

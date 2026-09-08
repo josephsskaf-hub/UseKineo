@@ -5,6 +5,7 @@ import { InterfaceLanguageSelect, UiLabel } from '@/components/InterfaceLanguage
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { trackEvent } from '@/lib/analytics'
+import { isCreditsReadFailure, READ_FAILED_EVENT, READ_FAILED_LABEL, READ_FAILED_HINT } from '@/lib/creditsReadFailure'
 import {
   lowBalancePricingBridgeMetadata,
   lowBalancePricingBridgeState,
@@ -143,6 +144,12 @@ function CreditsBadge({ isPro }: { isPro: boolean }) {
   const [entitlementsResolved, setEntitlementsResolved] = useState(false)
   const [plan, setPlan] = useState<string | null>(null)
   const [trialActive, setTrialActive] = useState(false)
+  // KINEO-TELA-QUE-NAO-MENTE-2026-09-08 (M10) — o evento read_failed_shown
+  // sai UMA vez por montagem. O chip refaz o fetch a cada creditsChanged e a
+  // cada update do realtime; sem esta trava, um Supabase doente encheria a
+  // tabela de eventos com a mesma pessoa e o denominador da proxima medicao
+  // seria tecla, nao gente.
+  const readFailedSentRef = useRef(false)
   const mountedRef = useRef(true)
   const lowBalanceLinkRef = useRef<HTMLAnchorElement | null>(null)
   const lowBalanceViewSentRef = useRef(false)
@@ -166,6 +173,23 @@ function CreditsBadge({ isPro }: { isPro: boolean }) {
         return
       }
       const data = await res.json()
+      // KINEO-TELA-QUE-NAO-MENTE-2026-09-08 (M10) — o catch abaixo so pega
+      // fetch que ESTOURA (rede). Um 500/503 chega aqui como resposta normal,
+      // data.credits nao e number, e a linha antiga caia no `: 0`: a tela
+      // dizia "0 credits" e setErrored(false) apagava o unico sinal de que
+      // algo tinha falhado. Pior desde a versao B: com credits=0 a ponte de
+      // saldo baixo abre, e um cliente pagante era empurrado para a loja por
+      // causa de uma leitura que nao aconteceu. Ver lib/creditsReadFailure.ts.
+      if (isCreditsReadFailure(res.status, data)) {
+        if (mountedRef.current) {
+          setErrored(true)
+          if (!readFailedSentRef.current) {
+            readFailedSentRef.current = true
+            void trackEvent(READ_FAILED_EVENT, { surface: 'topbar_credit_chip', status: res.status })
+          }
+        }
+        return
+      }
       if (mountedRef.current) {
         setCredits(typeof data.credits === 'number' ? data.credits : 0)
         setEntitlementsResolved(data.entitlementsResolved === true)
@@ -174,7 +198,13 @@ function CreditsBadge({ isPro }: { isPro: boolean }) {
         setErrored(false)
       }
     } catch {
-      if (mountedRef.current) setErrored(true)
+      if (mountedRef.current) {
+        setErrored(true)
+        if (!readFailedSentRef.current) {
+          readFailedSentRef.current = true
+          void trackEvent(READ_FAILED_EVENT, { surface: 'topbar_credit_chip', status: 0 })
+        }
+      }
     } finally {
       if (mountedRef.current) setLoading(false)
     }
@@ -296,8 +326,11 @@ function CreditsBadge({ isPro }: { isPro: boolean }) {
           setLoading(true)
           void fetchCredits()
         }}
-        aria-label="Retry loading credits"
-        title="Couldn't load your credit balance — tap to retry"
+        // KINEO-TELA-QUE-NAO-MENTE-2026-09-08 (M10) — a copy sai da fonte
+        // unica, a mesma que a barra lateral usa. Duas telas dizendo a mesma
+        // verdade com palavras diferentes e como ter duas verdades.
+        aria-label={`${READ_FAILED_LABEL} — ${READ_FAILED_HINT}`}
+        title={`${READ_FAILED_LABEL} — ${READ_FAILED_HINT}`}
         className="flex items-center justify-center gap-1.5 rounded-lg text-xs font-bold"
         style={{
           minWidth: 44,

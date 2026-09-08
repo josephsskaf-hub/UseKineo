@@ -11,6 +11,7 @@ import CreditsTopupModal from '@/components/CreditsTopupModal' // KINEO-TOPUP-PO
 import AccountPanel from '@/components/AccountPanel' // KINEO-ACCOUNT-PANEL-2026-08-19
 import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 import { trackEvent } from '@/lib/analytics'
+import { isCreditsReadFailure, READ_FAILED_EVENT, READ_FAILED_LABEL, READ_FAILED_HINT } from '@/lib/creditsReadFailure'
 import {
   TOPUP_ELIGIBILITY_HANDOFF_VERSION,
   TOPUP_ELIGIBILITY_VISIBLE_RATIO,
@@ -314,6 +315,13 @@ export default function Sidebar({
   const [isLoggedIn, setIsLoggedIn] = useState(initialLoggedIn)
   const [credits, setCredits] = useState<number | null>(null)
   const [creditsLoading, setCreditsLoading] = useState(true)
+  // KINEO-TELA-QUE-NAO-MENTE-2026-09-08 (M10) — estado proprio para "nao
+  // consegui ler". `credits === null` ja significava outra coisa aqui
+  // (deslogado) e o chip renderiza `credits ?? 0`, ou seja, null tambem
+  // virava 0 na tela. Sem esta terceira posicao nao ha como a barra lateral
+  // dizer a verdade.
+  const [creditsReadFailed, setCreditsReadFailed] = useState(false)
+  const creditsReadFailedSentRef = useRef(false)
   // Push #088 — Cinematic tokens are a separate pool (Pro = 1/month) shown
   // next to the regular credits as a subtle "· 🎬 N" suffix. Null while
   // loading; 0 hides the badge so non-Pro users don't see a meaningless
@@ -370,11 +378,29 @@ export default function Sidebar({
     setCreditsLoading(true)
     try {
       const res = await fetch('/api/credits', { cache: 'no-store' })
-      if (res.ok) {
-        const data = await res.json()
-        setCredits(typeof data.credits === 'number' ? data.credits : 0)
-      } else setCredits(0)
-    } catch { setCredits(0) }
+      const data = res.status === 401 ? null : await res.json().catch(() => null)
+      // KINEO-TELA-QUE-NAO-MENTE-2026-09-08 (M10) — o `else setCredits(0)` e o
+      // `catch { setCredits(0) }` eram a mentira mais explicita das tres: a
+      // barra SABIA que a resposta nao estava ok e escrevia zero assim mesmo.
+      if (isCreditsReadFailure(res.status, data)) {
+        setCreditsReadFailed(true)
+        setCredits(null)
+        if (!creditsReadFailedSentRef.current) {
+          creditsReadFailedSentRef.current = true
+          void trackEvent(READ_FAILED_EVENT, { surface: 'sidebar_credit_chip', status: res.status })
+        }
+      } else {
+        setCreditsReadFailed(false)
+        setCredits(typeof data?.credits === 'number' ? data.credits : 0)
+      }
+    } catch {
+      setCreditsReadFailed(true)
+      setCredits(null)
+      if (!creditsReadFailedSentRef.current) {
+        creditsReadFailedSentRef.current = true
+        void trackEvent(READ_FAILED_EVENT, { surface: 'sidebar_credit_chip', status: 0 })
+      }
+    }
     finally { setCreditsLoading(false) }
     // Push #088 — fetch cinematic tokens in parallel. We swallow errors so
     // a missing column or 401 never blocks the credit chip from rendering.
@@ -665,8 +691,10 @@ export default function Sidebar({
                   <span style={{ display: 'inline-block', width: 64, height: 14, borderRadius: 4, background: 'rgba(255,255,255,0.07)', animation: 'pulse 1.4s ease-in-out infinite' }} />
                 ) : (
                   <div>
-                    <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#2997ff', lineHeight: 1.1 }}>
-                      {credits ?? 0} {credits === 1 ? 'credit' : 'credits'}
+                    <div style={{ fontSize: '0.88rem', fontWeight: 900, color: creditsReadFailed ? '#86868b' : '#2997ff', lineHeight: 1.1 }}>
+                      {creditsReadFailed
+                        ? READ_FAILED_LABEL
+                        : `${credits ?? 0} ${credits === 1 ? 'credit' : 'credits'}`}
                       {/* Push #088 — Cinematic token badge. Only show when
                           the user has at least 1 token (Pro plan) so the
                           chip doesn't clutter Free/Basic accounts. */}
@@ -685,9 +713,11 @@ export default function Sidebar({
                       )}
                     </div>
                     <div style={{ fontSize: '0.6rem', color: '#86868b', marginTop: 1 }}>
-                      {topupEligible
-                        ? (creditsZero ? 'Buy more with +' : 'Top up anytime')
-                        : 'See plans'}
+                      {creditsReadFailed
+                        ? READ_FAILED_HINT
+                        : topupEligible
+                          ? (creditsZero ? 'Buy more with +' : 'Top up anytime')
+                          : 'See plans'}
                     </div>
                   </div>
                 )}

@@ -3,6 +3,7 @@
 
 import { NextResponse } from 'next/server'
 import { retryOwnReadOnSkew } from '@/lib/jwtSkewFallback'
+import { CREDITS_READ_FAILED_FIELD } from '@/lib/creditsReadFailure'
 import { createClient } from '@/lib/supabase/server'
 import { OFFER_290_ENABLED } from '@/lib/flags'
 // KINEO-REVERSE-TRIAL-P1-2026-08-06 — reverse trial surface para a UI do
@@ -214,8 +215,13 @@ export async function GET(req: Request) {
       // Don't fall back to DEFAULT_CREDITS on an unknown error — that would hide a
       // real DB failure and let users start a generation they can't actually pay for.
       console.error('[credits GET] db error:', error.code, error.message)
+      // KINEO-TELA-QUE-NAO-MENTE-2026-09-08 (M10) — a marca explicita. O 500
+      // sozinho nao bastava: as tres superficies que leem esta rota faziam
+      // `res.json()` e caiam em `typeof data.credits === 'number' ? ... : 0`,
+      // transformando a falha de leitura em "0 credits" na tela. Racional
+      // inteiro em lib/creditsReadFailure.ts.
       return NextResponse.json(
-        { error: 'Could not load your credit balance. Please retry.' },
+        { error: 'Could not load your credit balance. Please retry.', [CREDITS_READ_FAILED_FIELD]: true },
         { status: 500 }
       )
     }
@@ -292,6 +298,13 @@ export async function GET(req: Request) {
     })
   } catch (err) {
     console.error('[credits GET] unexpected:', err)
-    return NextResponse.json({ credits: 0, error: 'Failed to load credits' }, { status: 500 })
+    // KINEO-TELA-QUE-NAO-MENTE-2026-09-08 (M10) — este ramo mandava
+    // `credits: 0` JUNTO com o erro. Qualquer cliente que lesse o corpo antes
+    // de olhar o status via um saldo zerado inventado por um catch. Nao sai
+    // mais numero nenhum de onde o numero nao foi lido.
+    return NextResponse.json(
+      { error: 'Failed to load credits', [CREDITS_READ_FAILED_FIELD]: true },
+      { status: 500 },
+    )
   }
 }
