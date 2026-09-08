@@ -237,8 +237,8 @@ ok('o grid do Studio NÃO ganhou uma segunda montagem por engano',
 console.log('\nB3. o método local (UPI / Pix) é decidido pelo servidor')
 
 const geo = ler('app', 'api', 'geo', 'route.ts')
-ok('o /api/geo só oferece método local quando a chave do Dodo EXISTE',
-  /isDodoEnabled\(\) \? \(METODO_LOCAL_POR_PAIS\[country\] \?\? null\) : null/.test(geo))
+ok('o /api/geo só oferece método local com o trilho AO VIVO (lib/dodo decide o país; reancorado 08/09)',
+  /const local_method = dodoMode\(\) === 'live' \? planned : null/.test(geo) && /localMethodFor\(country\)/.test(geo))
 ok('só Índia (UPI) e Brasil (Pix) entram — onde o Dodo faz o que a Stripe não faz',
   /IN: 'upi',/.test(ler('lib', 'dodo.ts')) && /BR: 'pix',/.test(ler('lib', 'dodo.ts')) &&
     !/(NG|PK|BD|KE): '/.test(ler('lib', 'dodo.ts')))
