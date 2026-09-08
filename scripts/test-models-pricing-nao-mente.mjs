@@ -1,7 +1,12 @@
+// KINEO-VERSAO-B-2026-09-08 (M7): a porta virou o trial de $1 e o numero que
+// a pagina pode mostrar virou TRIAL_CREDITS_SHOWN. Reancorado pela CONDICAO que
+// este guardiao sempre defendeu — o credito e a contagem de filmes sao DERIVADOS,
+// nunca digitados —, nunca pela frase antiga. A trava do numeral escrito a mao
+// ficou mais larga: qualquer digito na frase reprova, nao so o 25.
 // /models-pricing não pode prometer um número que a própria tabela desmente.
 // Sem rede, sem banco, sem credencial.
 //
-// Medido em 07/09/2026: a página dizia "Your free trial starts with 25 credits.
+// Medido em 07/09/2026: a página dizia "Your [$]1 trial starts with [0-9]+ credits.
 // On Kineo 1 that is twelve films" com o número escrito à mão, enquanto a tabela
 // duas linhas abaixo — derivada de `creditCostForDuration` — mostrava 5 créditos
 // para um filme de 60s no Kineo 1. Ou seja: 25/5 = 5 filmes, não doze. A página
@@ -28,23 +33,23 @@ function check(name, condition) {
 console.log('\nKINEO — /models-pricing não mente sobre o trial\n')
 
 // A frase do trial, isolada, é o objeto do teste.
-const frase = (page.match(/Your free trial starts with[\s\S]{0,420}?<\/p>/) || [''])[0]
+const frase = (page.match(/Your [$]1 trial starts with[\s\S]{0,420}?<\/p>/) || [''])[0]
 check('a frase do trial existe na página', frase.length > 0)
 
 // 1. O crédito vem da constante canônica, não digitado.
 check(
   'a página importa o crédito de trial da fonte canônica',
-  /import \{ TRIAL_GRANT_CREDITS_COPY \} from '@\/lib\/freeTierOffer'/.test(page)
+  /import \{ TRIAL_CREDITS_SHOWN \} from '@\/lib\/freeTierOffer'/.test(page)
 )
 check(
   'a frase usa a constante, não um número escrito à mão',
-  frase.includes('{TRIAL_GRANT_CREDITS_COPY} credits') && !/\b25 credits\b/.test(frase)
+  frase.includes('{TRIAL_CREDITS_SHOWN} credits') && !/\b[0-9]+ credits\b/.test(frase)
 )
 
 // 2. A contagem de filmes é DERIVADA do mesmo helper que monta a tabela.
 check(
   'a contagem de filmes é dividida pelo mesmo helper da tabela',
-  /Math\.floor\(TRIAL_GRANT_CREDITS_COPY \/ creditCostForDuration\('fast', true, 60\)\)/.test(
+  /Math\.floor\(TRIAL_CREDITS_SHOWN \/ creditCostForDuration\('fast', true, 60\)\)/.test(
     frase
   )
 )

@@ -373,3 +373,126 @@ conta de "quantos filmes o teste de $1 dá". Consertei os dois e provei, quebran
 o código de propósito, que os alarmes agora reagem de verdade. De brinde, com o
 alarme funcionando eu consegui listar exatamente quais telas ainda prometem "25
 créditos grátis, sem cartão" — que hoje é mentira — e elas são a próxima rotação.
+
+---
+
+### #4 — 03:55 BRT — M7: o número que a casa MOSTRA saía de um espelho de 25, e três botões da porta de $1 estavam sem preço
+
+**O que estava errado.** A rotação #3 me deixou a lista pronta e ela estava
+certa pela metade. A VERSÃO B ensinou o *swap* (`swapFreeTierCopy` e o
+`<FreeTierCopy>`) a devolver a copy da porta de $1 — e isso de fato salvou
+**todos** os call sites que passam por ele, os 12 do componente e as dezenas do
+`ft()`. Conferi lendo a função, não o diário: sob `offer.cardEntry` ela
+curto-circuita antes de olhar o texto do call site.
+
+O que ninguém tinha medido é o que passa **por fora**. Oito superfícies
+renderizavam a constante `TRIAL_GRANT_CREDITS_COPY` — que vale **25** — crua,
+sem nenhum ramo para a porta. Com o interruptor ligado há duas horas, elas
+continuavam publicando o mundo antigo.
+
+**Quanta gente via isso** (banco, 7 dias, eventos reais — medi antes de codar):
+
+| superfície | pessoas / 7d | o que dizia |
+|---|---|---|
+| faixa de quem chega do ChatGPT | **116** | "25 trial credits already included · **no card to start**" |
+| modal de saída | **102** (20 clicaram) | selos "25 FREE CREDITS" / "NO CARD" e o quadro **"$0 — to try, no card, no trick"** |
+| páginas de motor | **87** | "the 25-credit trial covers one" + o rótulo do botão |
+
+E `/models-pricing` fazia pior do que repetir número velho: a frase **promete
+"80 credits"** e a linha seguinte dividia por **25**. A página dizia que o trial
+dá **5 filmes** no Kineo 1 quando dá **16**. Ela subestimava o próprio produto em
+3×. O JSON-LD do `/omni-flash-vs-sora` — o texto que vai para o Google e para os
+robôs de resposta — ainda afirmava "25 free credits **with no card**".
+
+**O defeito que não era copy velha.** Dentro da varredura apareceu outra coisa:
+**três botões diziam "Try 7 days for" com o preço AUSENTE**. `/kineo-vs-higgsfield`,
+`/omni-flash-vs-sora` e o CTA de **toda** página `/ai-video-generator/[engine]`.
+O botão que vende a única porta de entrada da casa estava sem o número que ele
+vende. A causa é nomeável e vale mais do que o conserto: uma varredura anterior
+trocou copy com `replace()` e o **`$1` da frase foi lido como retrovisor de grupo
+da regex**. O texto não foi "esquecido" — foi comido pela própria ferramenta que
+arrumava a copy. Escrevi as minhas trocas de hoje com função de substituição
+justamente por isso.
+
+**O que mudou** — `d49f5921`. `lib/freeTierOffer.ts` passa a exportar
+`TRIAL_CREDITS_SHOWN`, **derivado** de `CARD_ENTRY_ONLY`, nunca digitado.
+`TRIAL_GRANT_CREDITS_COPY` continua existindo porque precisa existir: é o espelho
+de `TRIAL_CREDIT_CAP` de que depende a asserção de tipo do `reverseTrial.ts`, e é
+a copy da versão A se o fundador virar o interruptor de volta. Ele só não pode
+mais ser **renderizado**. As 8 superfícies foram repontadas, os 3 botões
+recuperaram o `$1`, e o fallback da faixa de boas-vindas do Studio (que caía nos
+25 quando o saldo ainda não tinha chegado) passou a cair no número em vigor.
+
+**A prova.** Guardião novo `scripts/test-grant-copy-single-source.mjs`, 12
+verificações em estilo `readFileSync`/contagem — não morre na primeira falha e
+não importa nada com alias `@/` (guardião com alias não roda: morre no import
+antes da 1ª verificação). Ele varre **547** arquivos de `app/` e `components/`.
+
+Vale registrar **como ele se pagou na primeira execução**: eu já tinha dado a
+varredura por encerrada com 5 arquivos consertados, e ele reprovou apontando
+**mais 4 casos** que eu não tinha visto — inclusive os dois botões sem preço e o
+`$0` do modal. Não foi trava confirmando o que eu já sabia; foi trava me
+corrigindo.
+
+Falsificado por mutação, com o conteúdo do arquivo **conferido antes de medir**
+(mutante que não chegou a ser escrito devolve verde e se lê como guardião
+resistindo):
+
+    render cru do espelho volta ..... VERMELHO ✔
+    CTA perde o preço ............... VERMELHO ✔
+    fonte única vira literal 80 ...... VERMELHO ✔
+    "no card" volta ao modal ........ VERMELHO ✔
+
+Todos restaurados; base e final **verdes**; `tsc` limpo.
+
+**Suíte inteira.** 517 arquivos: **332 verdes / 108 vermelhos**. Dos 138
+guardiões que tocam em algum dos meus 9 arquivos, rodei os vermelhos também
+contra a base pristina (`e7e4cb85`, worktree separada) para separar herança de
+estrago meu. Nenhum arquivo do pipeline de qualidade foi tocado — nada de
+`lib/compose.ts`, rota de render, motores ou régua.
+
+**O que isto NÃO fecha.** O M7 continua aberto do lado das **páginas públicas de
+SEO**, que hoje são do Codex (`PEDIDOS`, ordem de 01:20): sobram ~50 linhas de
+"no card" literal em `/alternatives`, `/free-ai-shorts-generator`,
+`/faceless-video-generator`, `/reviews`, `/sora-alternative`, `/trust`, os dois
+`og-image` e o `HomeTopicForm`. Eu deliberadamente não entrei nelas — a divisão
+combinada é essa, e mexer lá hoje colide com o trabalho dele.
+
+#### ✅ O QUE VOCÊ PRECISA FAZER
+1. **Nada nesta rotação.** A única coisa esperando você continua sendo a decisão
+   sobre a trava do `lib/compose.ts`, no fecho da #2.
+
+#### 📋 O QUE ACONTECEU
+Ontem à noite a casa trocou a porta de entrada: acabou o teste grátis, agora é
+$1 por 7 dias com 80 créditos. A troca funcionou onde o texto passa por um
+tradutor central — mas oito telas escreviam o número velho na mão e continuaram
+prometendo "25 créditos grátis, sem cartão". Duzentas e trinta pessoas viram
+isso em uma semana, e vinte delas clicaram numa oferta que o produto não pode
+mais cumprir. Consertei as oito, e no caminho achei uma coisa pior: **três
+botões de compra estavam escritos "experimente 7 dias por" — sem o preço.** O
+"$1" tinha sido apagado por um acidente técnico numa limpeza anterior de textos.
+A página de preços também se contradizia sozinha: prometia 80 créditos e depois
+dizia que isso dá 5 filmes, quando dá 16. Tudo isso está no ar. E deixei um
+alarme que impede o número velho de voltar a aparecer na tela — foi ele, aliás,
+que achou 4 dos casos depois que eu já tinha achado que tinha terminado.
+
+
+**Adendo — o guardião alheio estava certo, e o meu não bastava.** Rodei a suíte
+inteira (517 arquivos: **332 verdes / 108 vermelhos**), separei os 9 guardiões
+que podem reagir ao que mudei e rodei os 9 contra a base pristina. **Nenhum**
+ficou vermelho por minha causa. Mas dois seguiam vermelhos por herança, e um
+deles — `test-models-pricing-nao-mente` — acusava justamente a página que eu
+acabara de editar. Fui ler em vez de reancorar, e a **condição** dele estava
+certa: a página dizia `Your $1 trial starts with 80 credits` com o **80 digitado
+à mão**, ao lado da conta derivada. O meu guardião novo não pegou porque ele
+procura o *espelho antigo*, não um numeral cravado.
+
+Derivei o número e reancorei aquele guardião pela condição (frase da porta de
+$1, fonte `TRIAL_CREDITS_SHOWN`), deixando a trava do numeral **mais larga do
+que era**: antes reprovava só o literal `25`, agora reprova qualquer dígito na
+frase. De 3/7 para **7/7**, falsificado por dois mutantes — número digitado
+volta; contagem de filmes vira literal — ambos vermelhos, ambos restaurados.
+
+⚠️ Fica registrada uma cegueira do meu próprio guardião: ele prova que ninguém
+renderiza o **espelho de 25**, não que ninguém **digite o número na mão**. São
+condições diferentes, e foi a segunda que quase escapou.

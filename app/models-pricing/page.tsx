@@ -81,7 +81,7 @@ export default function ModelsPricingPage() {
         karaoke captions and score included in every number below.
       </p>
       <p style={{ fontSize: 15, lineHeight: 1.7, color: '#a9a9b6', margin: '0 0 32px', maxWidth: 720 }}>
-        Your $1 trial starts with <strong style={{ color: '#e9e9ee' }}>80 credits</strong>. On Kineo 1 that is{' '}
+        Your $1 trial starts with <strong style={{ color: '#e9e9ee' }}>{TRIAL_CREDITS_SHOWN} credits</strong>. On Kineo 1 that is{' '}
         {Math.floor(TRIAL_CREDITS_SHOWN / creditCostForDuration('fast', true, 60))} films; on the biggest engines it is
         part of one. Both are fine — just know which one you picked.
       </p>
