@@ -1,5 +1,7 @@
 # Rascunhos para os DOIS SÓCIOS DE DIRETÓRIO — 07/09/2026 (va-r12)
 
+> ⚠️ **DESATUALIZADO EM 08/09 (versão B + planos novos).** Antes de enviar, trocar a tabela por: **$1 trial (7 dias de Creator, 80cr, cartão) · Starter $9/60cr · Creator $19/150cr · Studio $29/180cr · anual 10 meses · SEM free tier.** "Free trial $0 — 25 credits" e "Starter $7" abaixo estão MORTOS. Ver docs/AUDITORIA-PRECOS-2026-09-08.md §4.
+
 > **O fundador envia da caixa dele.** A casa NÃO manda e-mail automático para
 > estes dois de propósito — é a mesma regra da lista do Autopilot: contato B2B
 > merece pessoa, não campanha.
