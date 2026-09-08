@@ -21,6 +21,7 @@ import FooterBusinessLink from '@/components/FooterBusinessLink'
 import LiveStatsBadge from '@/components/LiveStatsBadge'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 import { footerBusinessDestinationForHref } from '@/lib/growth/footerBusinessDiscovery'
+import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -127,7 +128,7 @@ const navGroups: { title: string; links: { href: string; label: string; costCalc
       // (components/Sidebar.tsx), não o rodapé público.)
       // ═══════════════════════════════════════════════════════════════════════
       { href: '/pricing', label: 'Pricing' },
-      { href: '/signup', label: 'Start free' },
+      { href: '/signup', label: CARD_ENTRY_COPY.ctaShort }, // KINEO-VERSAO-B-2026-09-08
     ],
   },
   {
