@@ -496,3 +496,151 @@ volta; contagem de filmes vira literal — ambos vermelhos, ambos restaurados.
 ⚠️ Fica registrada uma cegueira do meu próprio guardião: ele prova que ninguém
 renderiza o **espelho de 25**, não que ninguém **digite o número na mão**. São
 condições diferentes, e foi a segunda que quase escapou.
+---
+
+### #5 — 04:40 BRT — M10: as três telas do saldo escreviam ZERO quando a leitura FALHAVA
+
+**Antes de codar, conferi se M4 e M5 cabiam. Não cabiam, e o motivo importa.**
+
+*M5 (o primeiro filme dos 77), na forma nova que a ordem de 01:20 deu a ele —
+"quantos passaram o cartão por $1 e quantos fizeram o filme depois":*
+
+| hora (UTC) | cadastros | com 0 créditos | `trial_status=card_required` |
+|---|---|---|---|
+| 07/09 17h–08/09 01h | 5 | 0 | 0 |
+| **08/09 05h** | **1** | **1** | **1** |
+
+A versão B **funciona**: a única conta nascida depois do interruptor nasceu
+com 0 créditos e `card_required`, e emitiu `card_entry_required`. Mas a coorte
+é **uma pessoa**. Não há o que medir nem o que consertar — M5 volta quando a
+manhã trouxer gente. Fica o número para a próxima rotação não repetir a
+consulta: 6 cadastros em 14 horas.
+
+*M4 (os pagantes calados):* levantei os 14 (12 pagantes + 2 contas do
+fundador). Cinco estão sem filme há 30 dias — e **três deles
+(emiliomontinari, akajitin, den.higgins) estão na lista de contatos proibidos
+da própria rotina**. Sobram dois (ramonwilliamson, brandonmooney450), ambos
+parados desde julho. Escrever dois rascunhos que o fundador talvez nem mande
+não é a melhor hora da madrugada; a tabela fica registrada e M4 vale uma
+rotação inteira quando não competir com um defeito ao vivo.
+
+*M9 (o truncamento em 1000), de passagem:* **a manchete dele é falsa hoje.** O
+retrato falava em "7 campanhas com dedupe truncável, reenvio 8× rearmado".
+Medido:
+
+| evento | linhas | pessoas | por pessoa |
+|---|---|---|---|
+| `trial_lifecycle_email_sent` (5 estágios) | 3.156 | 811 | **1,00–1,02** |
+| `oneoff_unlock_emailed` | 212 | 29 | 7,3 — **tudo em 21/08**, um dia só |
+
+O dedupe da esteira de trial **segura**, com 3.156 linhas (muito acima do teto
+de 1000). O reenvio de 7× existiu, foi numa campanha só e num dia só, há
+dezoito dias. M9 continua valendo pelo lado do admin, mas **não é uma sangria
+em curso** — e quem for fazê-lo não deve começar pelo e-mail.
+
+---
+
+**O que estava errado (e é de hoje, não de agosto).**
+
+Em 28/08 o PostgREST recusou todo token fresco (`PGRST303`, relógio do auth
+adiantado). As telas mostraram o resultado como se fosse um **fato**: "0
+credits". O fundador abriu o app e viu zero com 1.489 créditos no banco; três
+cadastros vindos do ChatGPT bateram 24 vezes em erro e desistiram. A infra foi
+curada no mesmo dia e o `lib/jwtSkewFallback.ts` passou a resgatar aquele erro
+específico. **A mentira ficou no código.** Nenhuma das três superfícies que
+mostram saldo distingue "seu saldo é zero" de "não consegui ler seu saldo":
+
+| superfície | o que fazia numa resposta 500/503 |
+|---|---|
+| `TopBar` (chip do topo) | `catch` só pega fetch que **estoura**. Um 500 chega como resposta normal, `data.credits` não é number, cai no `: 0` — e `setErrored(false)` logo abaixo **apaga o único sinal de falha** |
+| `NavCreditsBadge` (landing) | pinta pílula **vermelha** de "0 credits" apontando para `/pricing` |
+| `Sidebar` | `else setCredits(0)` e `catch { setCredits(0) }` — **sabia** que a resposta não estava ok e escrevia zero assim mesmo |
+
+O `TopBar` é o caso mais irônico: o comentário do próprio arquivo (Push #92)
+promete "um `—` com retry na falha, nunca um vazio". Esse ramo existe, está
+bem feito — e era **inalcançável exatamente para a falha que o motivou**, porque
+só um fetch que estoura chegava nele.
+
+**Por que isso ficou pior hoje de madrugada.** Com a versão B, conta nova
+nasce **legitimamente** com 0 créditos, e o produto REAGE a esse zero: faixa da
+porta de $1, ponte de saldo baixo, chip vermelho apontando para a loja. O
+`TopBar` alimenta `lowBalancePricingBridgeState({ credits })` com o número que
+inventou. Um zero falso deixou de ser um número errado e virou **o produto
+tratando quem já pagou como quem precisa passar o cartão.**
+
+**O que mudou** (`598cab2d`, **EM PRODUÇÃO**).
+
+`lib/creditsReadFailure.ts` é a fonte única: o predicado
+`isCreditsReadFailure(status, body)`, o nome do evento e a copy. A rota
+`/api/credits` **marca** a falha (`readFailed: true`) nos dois ramos de erro e
+para de mandar `credits: 0` junto com o erro no catch externo. As três telas
+**importam** o predicado em vez de recopiar a regra: o chip do topo cai no seu
+`— ↻`, o badge da landing **se esconde** em vez de inventar zero, e a barra
+lateral ganha uma terceira posição ("Balance unavailable / Unstable right now
+— retry"). `401` e perfil inexistente continuam como estavam: são respostas
+honestas do servidor, não falha de leitura.
+
+**A casa passa a enxergar.** Evento novo `read_failed_shown` com superfície e
+status, travado por `ref` para sair **uma vez por montagem** — o chip refaz o
+fetch a cada `creditsChanged` e a cada update do realtime, e sem a trava o
+denominador da próxima medição seria tecla, não gente. ⚠️ Registro honesto: **a
+frequência disso hoje é desconhecida por construção.** Não existia evento
+nenhum; o único caso conhecido é o de 28/08. Este commit não prova que a falha
+é comum — ele torna possível saber, e para de mentir enquanto isso.
+
+**A prova.** Guardião novo `scripts/test-tela-que-nao-mente-2026-09-08.mjs`,
+**40 verificações** em estilo `readFileSync`/contagem, ancorado pela CONDIÇÃO:
+o predicado precisa **governar um `if`**, e o ramo que ele governa — recortado
+por **contagem de chaves**, não por fatia de N caracteres — não pode escrever
+saldo nenhum. Falsificado por 5 mutantes, com o conteúdo do arquivo conferido
+antes de medir:
+
+    Sidebar volta a escrever zero no erro ......... VERMELHO ✔
+    TopBar deixa de consultar o predicado ......... VERMELHO ✔
+    servidor para de marcar readFailed ............ VERMELHO ✔
+    predicado para de olhar o status HTTP ......... VERMELHO ✔
+    NavCreditsBadge deixa de emitir o evento ...... VERMELHO ✔
+
+⚠️ **A primeira versão do meu guardião deixou passar o primeiro desses cinco.**
+Eu tinha proibido as *formas* antigas (`else setCredits(0)`, `catch {
+setCredits(0) }`) — e um mutante que troca `setCredits(null)` por
+`setCredits(0)` **dentro** do ramo de falha passou verde. Ausência da forma
+velha não é ausência do valor. As verificações D8/D9 nasceram desse furo, e só
+existem porque a mutação rodou.
+
+**Suíte inteira.** 441 arquivos: **333 verdes / 108 vermelhos** (base
+`0b7d0472`: 332/108 — o verde a mais é o guardião novo; o número de vermelhos
+não mexeu). Dos 5 vermelhos que citam meus arquivos, rodei os 5 contra a base
+pristina em worktree separada: **4 herdados, 1 era meu.**
+`test-topup-eligibility-handoff` cravava a **indentação exata** da copy do chip
+da barra lateral, que ganhou um nível de aninhamento. A condição dele continua
+certa; a forma é que envelheceu. Reancorei pela condição (as três frases seguem
+governadas por `topupEligible`/`creditsZero`, tolerante a espaço em branco) e
+falsifiquei. De quebra, aquele arquivo usava `assert` puro: **a primeira falha
+matava o processo** e o rodapé imprimia `checks/checks`, que passa 100% por
+construção. Agora conta — **107/107 verificações rodando de verdade**, onde
+antes ~40 nunca chegavam a ser avaliadas.
+
+Nada do pipeline de qualidade foi tocado: nem `lib/compose.ts`, nem rota de
+render, nem motor, nem régua. `tsc` limpo (916 arquivos do projeto lidos —
+conferido com `--listFiles`, porque worktree sem junction devolve exit 0 sem
+checar nada).
+
+#### ✅ O QUE VOCÊ PRECISA FAZER
+1. **Nada nesta rotação.** A única coisa ainda esperando você continua sendo a
+   decisão sobre a trava do `lib/compose.ts`, no fecho da #2.
+
+#### 📋 O QUE ACONTECEU
+Quando o banco tropeça e o site não consegue ler quanto crédito você tem, as
+três telas que mostram seu saldo diziam **"0 créditos"** — com toda a
+convicção de quem sabe a resposta. Foi o que aconteceu com você em 28/08: 1.489
+créditos no banco, zero na tela. O problema de infra foi resolvido naquele dia;
+**o hábito de mentir, não.** E desde ontem à noite isso ficou perigoso de
+verdade: com a porta de $1, o número zero é o gatilho que faz o site pedir
+cartão. Ou seja, uma piscada do banco podia fazer o produto cobrar de novo
+quem já pagou. As três telas agora dizem "não consegui ler agora, tente de
+novo" — e, pela primeira vez, avisam a casa quando isso acontece, porque até
+hoje ninguém tinha como saber com que frequência acontecia. No caminho, um
+alarme de outra rodada apontou uma coisa certa sobre a barra lateral, e o
+consertei em vez de calá-lo — ele estava, aliás, com quase metade das próprias
+verificações desligadas há tempos.
