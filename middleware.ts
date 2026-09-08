@@ -53,6 +53,20 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(canonicalUrl, 308)
   }
 
+  // KINEO-AFILIADO-REF-2026-09-08 (tarefa 9) — `?ref=CODE` NUNCA gravou clique nem
+  // cookie: só `/a/CODE` grava. Os rascunhos da casa e afiliados antigos usam o
+  // primeiro formato → 27 cliques na história, 0 atribuições. Agora `?ref=` com
+  // cara de código de afiliado (8 caracteres A-Z0-9) redireciona para `/a/CODE`,
+  // que faz o trabalho de sempre. Nada mais no `ref` é tocado (Product Hunt manda
+  // `?ref=producthunt`, que não casa com o formato).
+  const ref = request.nextUrl.searchParams.get('ref')
+  if (ref && /^[A-Z0-9]{8}$/.test(ref) && request.method === 'GET' && !request.nextUrl.pathname.startsWith('/a/') && !request.nextUrl.pathname.startsWith('/api/')) {
+    const dest = request.nextUrl.clone()
+    dest.pathname = '/a/' + ref
+    dest.search = ''
+    return NextResponse.redirect(dest, 307)
+  }
+
   return await updateSession(request)
 }
 

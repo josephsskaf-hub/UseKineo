@@ -74,7 +74,7 @@ edits a cinematic vertical short in about three minutes — nine engines
 behind one button, including Veo, Kling and Seedance.
 
 Your affiliate link is still live and still 40%:
-https://www.usekineo.com/?ref=8WVZSBUX
+https://www.usekineo.com/a/8WVZSBUX
 
 If a deal page or a coupon would work better for your audience than a plain
 listing, tell me what format you need and I'll set it up.
@@ -114,7 +114,7 @@ button (Veo, Kling, Seedance and others). Examples, if you want stills or
 clips for the listing: https://www.usekineo.com/examples
 
 Your partner link, 40% recurring:
-https://www.usekineo.com/?ref=J7SCBLLU
+https://www.usekineo.com/a/J7SCBLLU
 
 If you need screenshots, a logo pack, or a short demo clip in a specific
 size, just tell me the spec and I'll send it over.
