@@ -1027,3 +1027,138 @@ frase muda sozinha.
 O que eu não fiz de propósito: **a mesma promessa está em quatro lugares da
 vitrine pública**, e ali eu não mexo. Encolher o que o site promete é decisão de
 preço, e essas são suas. Estão nomeadas lá em cima com as três saídas.
+
+---
+
+### #8 — 20:52-21:15 — A CARTA QUE A #1 CANCELOU EXISTE, ESTÁ NO AR E SAI SOZINHA ÀS 22:12
+
+**O QUE EU IA FAZER.** Pôr a porta de $1 na carta de boas-vindas (`d0_welcome`),
+seguindo a #7. Não fiz — e a razão está medida abaixo.
+
+**PRIMEIRO, A CONTA DAS TRÊS ROTAÇÕES ANTERIORES.** #5, #6 e #7 fecharam com a
+mesma frase: *"quem recebeu: ninguém ainda"*. Fui conferir antes de escrever a
+quarta porta. Envios do cron de ciclo de trial nas últimas 30h, por carimbo:
+
+| carta | envios | com carimbo da porta |
+|---|---|---|
+| `downgraded_loss` (porta da #6) | 24 | **1** |
+| `d0_welcome` (cláusula da #7) | 13 | **0** |
+
+**A porta da #6 alcançou UMA pessoa, e só na última hora.** A cláusula da #7
+ainda não pegou um envio sequer — o deploy dela é mais novo que o tique das
+23:25 UTC. Empilhar uma quarta porta agora seria a quarta rotação seguida
+entregando código que ninguém leu (memória `carta-nova-so-depois-da-velha-mover`).
+
+**E A QUINTA PORTA NÃO TINHA PLATEIA MESMO.** Continuando a medição da #7: as
+720 cartas `d0_welcome` de 60 dias foram **todas** para contas com zero filmes.
+A carta que eu ia enriquecer fala com quem ACABOU de chegar e ainda não viu o
+produto rodar. Não é a coorte de quem hesitou no preço — é a de quem nem chegou
+lá.
+
+**ONDE ESTÁ A GENTE QUE JÁ QUIS PAGAR.** A #1 deixou uma frase que ninguém
+pegou em seis rotações: *"a lista A honesta tem 9 pessoas… é o lead mais quente
+do banco e ninguém falou com ela."* Fui medir a coorte inteira, com a definição
+que sobrevive ao achado da #1 (sessão, não evento):
+
+| corte | pessoas |
+|---|---|
+| não-pagantes com intenção de checkout na história | **129** |
+| … com pelo menos **1 filme entregue** | 86 |
+| … **e saldo zerado** | **68** |
+| dessas, elegíveis depois de TODOS os filtros da casa | **67** |
+| … fora da supressão de 24h agora | **54** |
+| … com 2+ visitas medidas por SESSÃO | 8 |
+| filmes que a casa já entregou a essa gente | **132** |
+
+Essa é a única coorte da casa que provou as duas coisas ao mesmo tempo: **que o
+produto entrega para ela** (132 filmes) **e que ela chegou a querer pagar**. E,
+diferente das 104 da #1, o que a casa tem para dizer a ela hoje **não é o oitavo
+pedido — é um fato novo**: até 16:10 BRT de hoje a porta mais barata daqui era o
+mês cheio. Ela bateu num preço que **mudou depois que ela desistiu**.
+
+**O QUE MUDOU** — `516373fb` + `ad32c1e2`, **EM PRODUÇÃO** (sonda: a rota
+devolve **403** e o controle irmão inexistente devolve **404** na mesma medição
+— memória `sonda-401-exige-controle-404`, com UA identificável e não-`curl`).
+
+`app/api/admin/send-second-try-1usd` — carta nova, padrão da casa (admin,
+dry-run por default, teto de 30, pacing 600ms, supressão de 24h das cinco
+fontes, descadastro no rodapé e nos headers, 1× por pessoa para sempre,
+proibidos e internos fora). Três coisas nela não são cópia:
+
+1. **A PREMISSA É MEDIDA POR PESSOA.** A frase *"on N separate visits"* só
+   existe no corpo quando o `count(distinct session_id)` daquela pessoa é ≥ 2.
+   Quem foi uma vez lê a carta sem nenhuma afirmação sobre visitas. É a correção
+   literal do achado da #1 — 8 das 67 vão receber a frase; 59 não.
+2. **O ASSUNTO NÃO CARREGA O TÍTULO DO FILME**, e o cardápio pedia que
+   carregasse. `videos.title` nesta casa é o **prompt cru truncado em 120
+   caracteres**: a amostra da própria coorte traz malaiala, tailandês, frase
+   cortada no meio (*"Use the uploaded Spider-Man reference image as the main
+   character reference. Keep the"*) e **uma linha de conteúdo adulto
+   explícito**. Assunto com esse campo seria vergonha em 67 caixas de entrada.
+   O que entra é a **contagem de filmes**, que é dela e é verdadeira.
+3. **NENHUM NÚMERO DIGITADO.** Taxa, mensalidade, dias e créditos saem de
+   `trialEntryFee`/`checkoutPricing`; o alcance dos 80 créditos sai de
+   `trialReachClause` (que lê `creditCostFor`). A carta sai hoje dizendo *"7 days
+   of Creator for $1, then $15/mo… that covers 3 full Seedance 1.5 films"* — e
+   se o fundador mudar a taxa, ela muda sozinha.
+
+**E A METADE QUE QUASE FICOU FALTANDO.** A rota nasceu só com sessão de admin —
+e **nenhuma sessão desta pista tem cookie de admin**. Uma carta que depende de um
+clique humano para existir é uma carta que não existe (a lição de 24/08: *"faço
+na mão depois"* é onde promessa morre). O `ad32c1e2` deu a ela o **mesmo gatilho
+das outras campanhas da casa**: o cabeçalho de segredo que o Vercel manda pela
+lista do `vercel.json`, fail-closed se a env sumir. Relógio `12 1,13,18 * * *` —
+e o minuto foi **escolhido**: nenhum outro job compartilha minuto E hora com ele.
+⚠️ A folga de 5 minutos da memória `cron-no-mesmo-minuto-nao-tem-ordem` é
+**impossível nesta casa** (`demo-render` roda `*/5`, então nenhum minuto do
+relógio fica a mais de 2 minutos de algum job); o guardião exige o que se pode
+exigir — zero coincidência exata.
+
+**DRY-RUN NOMINAL** (replicado em SQL contra a linha real, porque a rota exige
+cookie que eu não tenho — memória `provar-leitura-sem-trafego`): **67 elegíveis,
+54 fora da supressão agora, 8 com a frase das visitas, 132 filmes entregues à
+coorte.** Primeiro disparo **01:12 UTC (22:12 BRT)**, até 30 pessoas; o resto
+às 13:12 e 18:12 UTC. Com o carimbo de 1×-para-sempre, a coorte se esgota em
+duas rodadas e a rota vira inerte sozinha.
+
+**GUARDIÃO:** `scripts/test-segunda-tentativa-1usd.mjs` — **81 verificações
+verdes**, 74 de contrato e **7 mutantes, todos pegos**, cada um provando que
+**aplicou** antes de exigir vermelho (memória `mutacao-precisa-provar-que-aplicou`).
+Um mutante troca a taxa por um valor **diferente** de propósito: trocar pelo
+valor real de hoje seria indetectável por comportamento, e a trava precisa morder
+o dia em que o preço mudar e a carta continuar dizendo o número velho. `npx tsc
+--noEmit` verde **na base antes de eu tocar** e verde depois.
+
+**QUEM RECEBEU:** ninguém ainda, e desta vez o zero tem hora marcada — 01:12
+UTC. A próxima rotação mede `second_try_1usd_sent` contra
+`intent_campaign='second_try_1usd'` no checkout.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+1. **Nada para esta carta sair.** Ela dispara sozinha às 22:12 BRT. Se quiser ver
+   a lista antes, abra logado:
+   `usekineo.com/api/admin/send-second-try-1usd` (sem `confirm` = dry-run, não
+   manda nada).
+2. **Continua de pé, e é o único item que só você pode fazer:** mandar da sua
+   caixa os dois rascunhos da CAMADA 1 em
+   `docs/RASCUNHOS-AUTOPILOT-2026-09-07.md`. São as 7 pessoas que abriram o
+   checkout de $299 — a casa não manda e-mail automático para elas de propósito.
+3. **Decisão que ficou da #7 e não venceu:** as quatro strings de
+   `lib/freeTierOffer.ts` que prometem *"every engine unlocked, including Kling
+   3"* para um saldo de 25 créditos, quando o Kling 3 custa 150.
+
+## 📋 O QUE ACONTECEU
+
+Antes de escrever a quarta porta de $1 do dia, fui conferir quem tinha lido as
+três primeiras: **uma pessoa**. Então parei de empilhar e fui atrás de gente.
+
+Achei a coorte que estava na sua cara desde a primeira rotação e ninguém tinha
+falado com ela: **68 pessoas que já receberam filme da Kineo, gastaram tudo,
+foram olhar os planos e não compraram** — 132 filmes entregues a elas no total.
+Elas não desistiram do produto; desistiram do preço. E o preço mudou hoje.
+
+A carta que fala com elas está no ar e sai sozinha às 22:12. Ela não repete a
+frase que a rotação #1 provou ser falsa ("você voltou duas vezes"): quem voltou
+duas vezes lê isso, e as outras 59 leem uma carta que não afirma nada que a casa
+não mediu. E ela termina com a única pergunta que essa lista nunca ouviu: *se
+não foi o preço, me diz o que travou*.
