@@ -13,6 +13,8 @@ export const INTERFACE_HI: Record<string, string> = {
   'Invite & Earn': 'आमंत्रित करें और कमाएँ', 'Affiliate Dashboard': 'अफ़िलिएट डैशबोर्ड',
   Tools: 'टूल', More: 'और', 'Free tools': 'मुफ़्त टूल', 'Editing tools': 'एडिटिंग टूल',
   'Start free': 'मुफ़्त शुरू करें', 'Sign in': 'साइन इन करें', 'Log in': 'लॉग इन करें',
+  // KINEO-VERSAO-B-2026-09-08 (tarefa 8) — rótulos da porta de $1 e dos planos
+  'Try 7 days for $1': '$1 में 7 दिन आज़माएँ', 'Try Creator 7 days for $1 →': 'Creator को $1 में 7 दिन आज़माएँ →', 'Simple pricing. Start with 7 days for $1.': 'सरल कीमतें। $1 में 7 दिन से शुरू करें।', 'Type one idea, start your $1 trial and make the film.': 'एक आइडिया लिखें, $1 ट्रायल शुरू करें और फ़िल्म बनाएँ।', 'Entry': 'प्रवेश', 'Continue now': 'अभी जारी रखें', 'Start for $1: 7 days of Creator with 80 credits, Kineo 1 and Seedance unlocked. Then $19/month, cancel anytime.': '$1 में शुरू करें: Creator के 7 दिन, 80 क्रेडिट, Kineo 1 और Seedance अनलॉक। फिर $19/माह, कभी भी रद्द करें।',
   Explore: 'देखें', Scripts: 'स्क्रिप्ट', Animate: 'एनिमेट करें', Thumbnails: 'थंबनेल',
   'Real videos': 'असली वीडियो', 'How it works': 'यह कैसे काम करता है', 'The toolkit': 'टूलकिट',
   'Pick a lane': 'विषय चुनें', 'Common questions': 'आम सवाल',
