@@ -267,3 +267,109 @@ só não fez. Corrigi o endereço, e a partir de agora todo filme novo nasce com
 capa. Ainda não posso jurar que funcionou: às duas da manhã ninguém está
 gerando filme, e essa é exatamente a prova que falta — deixei a consulta
 pronta para a próxima rotação, junto com a regra de quando desfazer.
+
+---
+
+### #3 — 02:49 BRT — M6: os dois guardiões do dinheiro estavam PARADOS, e 372 verificações não avaliavam nada
+
+**A prova que a #2 me devia, primeiro.** A consulta que eu deixei armada
+(`filmes completados depois do deploy da capa`) rodou duas vezes nesta rotação,
+às 02:36 e às 02:47: **0 filmes novos** nas duas. `filmes_novos = 0` é o caso
+que eu mesmo escrevi como "não concluir nada". Então **não concluo nada** sobre
+a capa: ela não foi provada nem desmentida, e a consulta segue armada para a #4.
+Não há denominador porque não há tráfego — às 2h da manhã ninguém faz filme.
+
+**O que estava errado.** A tarefa dizia "93 guardiões vermelhos". Fui medir e
+achei **106** na ponta. Antes de consertar 106 coisas, fiz a pergunta que separa
+o herdado do recém-quebrado: **rodei os 439 guardiões duas vezes** — na ponta
+(`96e84fd7`) e no último commit anterior à VERSÃO B (`20054b5b`, 00:54).
+
+    vermelhos antes da VERSÃO B ....... 95
+    vermelhos na ponta ................ 106
+    ficaram vermelhos ESTA NOITE ...... 12
+    herdados (vermelhos nos dois) ..... 94
+    viraram verdes .................... 1
+
+Os 94 herdados são de outras noites. Os **12** são acusações contra código que
+foi para produção há uma hora. Fui ler os 12 e dois deles se chamam
+`money-truth-contract` e `models-pricing-nao-mente`.
+
+**A causa, e ela é pior do que "vermelho".** A VERSÃO B somou uma linha a
+`lib/freeTierOffer.ts`: `import { ... } from './entryPolicy'`. Os guardiões que
+auditam preço carregam esse arquivo dentro de um **sandbox de módulos com
+allowlist** — cada import tem que estar declarado no teste. O import novo não
+estava, e os dois guardiões passaram a **morrer na primeira linha**.
+
+O detalhe que importa: na contagem da suíte, "morreu antes de começar" e
+"reprovou" são **o mesmo exit 1**. Eles não estavam reprovando nada. Estavam
+avaliando **zero verificações** — 313 de `money-truth-contract` e 59 de
+`aeo-trial-access`, **372 no total**, sobre preços, grants e a porta de entrada.
+Exatamente a área que a casa inteira reescreveu esta noite. É o caso do
+`guardiao-vermelho-pode-estar-parado` de novo, agora do lado do dinheiro.
+
+**O que mudou** — `90bc834e`, na fila como `45b1521b`, **EM PRODUÇÃO**
+(`git ls-remote origin main` = `45b1521b`, fila = 0). Nenhum arquivo de produto
+neste commit: só os dois guardiões.
+
+Passei o módulo **real**, nunca um stub — um stub faria o contrato aprovar uma
+política que a casa não aplica. Com eles enxergando outra vez, **apareceram 2
+acusações**, as duas contra números presos no mundo antigo:
+
+| o que o guardião disse | o que era |
+|---|---|
+| `TRIAL_FILMS` (3) ≠ `floor(TRIAL_GRANT_CREDITS_COPY / Seedance60)` (1) | o guardião lia o espelho histórico de **25**; o grant em vigor é o da porta de $1 (**80**). Reancorei ao **mesmo seletor que o produto usa**, não ao número. |
+| `'$1.67'` por 10 créditos do Creator | literal preso no plano antigo. A derivação ao lado **já passava** — só o número digitado ficou para trás. Vira `$1.27` ($19/150cr) e **segue como alarme proposital**. |
+
+E em `aeo-trial-access`, `limit: 1` da franquia recorrente: sob a porta única ela
+foi desligada, então **0 é a política e não um defeito** — passei a ler o seletor.
+
+**A prova, por mutação, e uma que falhou.** Toda mutação foi conferida no
+conteúdo do arquivo antes de medir:
+
+    G = TRIAL_GRANT_CREDITS_COPY (tira o seletor) → money-truth VERMELHO ✔
+    CARD_ENTRY_OFFER.limit 0 → 1 ................ → aeo-trial   VERMELHO ✔
+    CARD_ENTRY_TRIAL_CREDITS 80 → 40 ............ → money-truth VERDE     ✘
+
+**O terceiro mutante sobreviveu e eu deixo registrado em vez de esconder:**
+aquela verificação compara `TRIAL_FILMS` com uma derivação do mesmo grant, então
+os dois lados andam juntos e **o valor do grant ela não guarda**. Ela guarda a
+outra coisa — que o filme do trial seja contado a partir da política, e não de um
+número histórico —, e isso o primeiro mutante prova. Quem quiser travar o *valor*
+80 precisa de outra verificação; não é esta.
+
+Estado no fim: os 2 saem da lista de vermelhos, **94 herdados intactos** (não
+toquei em nenhum), `tsc` verde, e reconferi os dois **na ponta depois do
+enfileirar** — não só na minha worktree.
+
+**O que isto destravou para a #4, já localizado.** Com `money-truth` enxergando,
+fui atrás do resto do M7 e a varredura de hoje à noite está **quase** completa —
+o `swapFreeTierCopy` foi ensinado a curto-circuitar sob a porta de $1, então
+**todos os call sites `ft(OFFER, ...)` estão salvos**. O que sobrou são as
+superfícies que renderizam `TRIAL_GRANT_CREDITS_COPY` **por fora** do `ft()`, e
+essas ainda publicam o mundo velho — várias com a frase **"no card"**, que hoje
+é o contrário da verdade. As nomeadas: `ChatGptWelcomeBanner` ("25 trial credits
+already included · no card to start", sem condição nenhuma), `ExitIntentOffer`
+("25 FREE CREDITS", "NO CARD"), `omni-flash-vs-sora`, `models-pricing`,
+`ai-video-with-talking-characters` (3 lugares), `ai-video-generator/[engine]`.
+A #4 varre essas e sobe um guardião que proíbe render do grant fora da fonte
+única. Não mexi nelas agora de propósito: a sessão principal estava escrevendo
+nesses arquivos esta noite e o commit dela é de uma hora atrás.
+
+#### ✅ O QUE VOCÊ PRECISA FAZER
+1. **Nada nesta rotação.** A decisão da #2 sobre a trava do `lib/compose.ts`
+   continua sendo a única coisa esperando você — está no fecho da #2.
+
+#### 📋 O QUE ACONTECEU
+A casa tem 439 alarmes automáticos que conferem se o site está dizendo a
+verdade. Eu fui contar quantos estavam tocando e achei 106. Em vez de sair
+calando alarme, perguntei quais tocaram **hoje à noite** — e eram 12, todos
+depois da mudança de preço. Dois deles eram os alarmes do dinheiro, e a
+descoberta feia é que eles não estavam tocando por acharem um erro: eles
+estavam **quebrados**, morrendo antes de conferir a primeira coisa. São 372
+conferências sobre preço, crédito e a porta de entrada que estavam desligadas
+justamente na noite em que a casa mudou o preço todo. Consertei, e assim que
+voltaram a enxergar acharam dois números velhos escondidos — um deles fazia a
+conta de "quantos filmes o teste de $1 dá". Consertei os dois e provei, quebrando
+o código de propósito, que os alarmes agora reagem de verdade. De brinde, com o
+alarme funcionando eu consegui listar exatamente quais telas ainda prometem "25
+créditos grátis, sem cartão" — que hoje é mentira — e elas são a próxima rotação.
