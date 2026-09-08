@@ -1354,3 +1354,153 @@ em `'` (U+0027); no novo ela é uma string JS com `’` (U+2019).
 
 A primeira linha é a foto do "antes" — não a joguei fora: é ela que prova que a
 sonda sabe distinguir os dois estados, em vez de só concordar comigo.
+
+### #11 — 06:36→07:05 BRT — M4: o remédio existia havia 24h e nunca tinha rodado — 2 das 12 assinaturas seguiam cobradas e sem acesso
+
+**O que estava errado.** A ordem manda olhar os 5 pagantes calados. Fui pela
+lista e o retrato bateu exato: dos **12 pagantes** da casa (13 contas com
+`has_paid`, uma é a sua), **5 não fazem um filme há 30 dias**. Mas dois deles
+não pararam por desinteresse — **pararam porque a renovação foi recusada**:
+
+| conta | cobrança | quando | motivo | estado hoje |
+|---|---|---|---|---|
+| …NG, Visa pré-pago | **US$ 9,90** (starter) | 03/09 · **de novo 07/09 17:26** | `insufficient_funds` | `plan='free'`, 172cr parados |
+| …AU, Visa débito | **US$ 24,90** | 04/09 | `insufficient_funds` | `plan='free'`, 73cr parados |
+
+As duas assinaturas continuam **vivas na Stripe e sendo cobradas**. A casa
+gravou `plan='free'` e não avisou ninguém — nem a pessoa, nem o painel.
+
+E aqui está o ponto que fez esta rotação: **o remédio para isso já existia, já
+estava certo, e nunca tinha sido apertado.** A rota
+`/api/admin/reconcile-dunning` nasceu em **07/09** — pergunta à Stripe o estado
+vivo de cada assinatura e devolve o tier pela decisão pura
+`decideDunningReconcile`. O cabeçalho dela **nomeia estas duas vítimas**.
+Vinte e quatro horas depois:
+
+```
+subscription_access_restored_after_wrong_revoke  →  ZERO linhas na história inteira
+```
+
+A causa não é a decisão, que está certa e é conservadora. **É o gatilho: a rota
+só abria por cookie de admin.** Rota de admin que espera clique não dispara — o
+remédio ficou escrito, correto e fechado a chave, enquanto duas das doze
+assinaturas da casa seguiam cobradas e sem acesso. É a terceira vez que esta
+mesma armadilha aparece no meu caderno; desta vez custou 24h de plano a dois
+clientes pagantes.
+
+**O que mudou — `34a6d574`, EM PRODUÇÃO.**
+
+A rota passa a aceitar **o mesmo contrato de cron das irmãs** (`Bearer
+CRON_SECRET`, fail-closed sem a env — bloco copiado do vizinho
+`send-card-declined`), e o `vercel.json` ganha `47 * * * *` com `?confirm=APPLY`.
+
+**A decisão não mudou uma vírgula.** Continua sendo
+`stripeSubscriptionKeepsAccess` quem responde, e ela só devolve acesso em
+`active` / `trialing` / `past_due` — **enquanto a Stripe ainda cobra**. Em
+`unpaid` / `canceled` / `incomplete*` / `paused` ninguém é restaurado, e uma
+falha da Stripe numa pessoa vira `skip`, nunca restauração. O update é de dois
+campos (`plan`, `is_pro`).
+
+⛔ **O que o gatilho NÃO passa a fazer:** não toca crédito (crédito volta só em
+`invoice.payment_succeeded`), não manda e-mail, não cria oferta, não muda preço.
+Ele devolve à pessoa **o tier que ela contratou e que a Stripe está cobrando
+neste minuto** — repara um valor que a casa escreveu errado.
+
+**Prova.** `scripts/test-reconcile-dunning-gatilho-2026-09-08.mjs`, **23
+verificações** amarradas à condição. D1/D2 **executam o predicado real**
+(`stripeSubscriptionKeepsAccess`, importado de verdade pelo node) em vez de
+descrevê-lo por regex — trava por nome de constante mente quando alguém
+renomeia. Oito mutações, todas mordidas:
+
+| mutação | vermelhas |
+|---|---|
+| cron sai, volta a ser só cookie de admin | 1 |
+| fail-open: sem a env, autoriza | 1 |
+| cron agendado em dry-run (perde o `confirm=APPLY`) | 1 |
+| cron sumiu do `vercel.json` | 4 |
+| crédito passa a ser tocado no restore | 2 |
+| predicado redigitado dentro da rota | 1 |
+| colide de minuto com outro cron | 1 |
+| carimbo de origem some do evento | 1 |
+
+⚠️ **Uma armadilha nova, e ela quase me enganou.** Eu provava cada mutação pelo
+**md5 antes/depois**. Num checkout **CRLF** o `sed -i` reescreve as terminações
+do arquivo inteiro: **o md5 muda mesmo quando o padrão não casa com nada**. Uma
+mutação minha não aplicou, o md5 mudou assim mesmo, e o resultado apareceu como
+"0 vermelhas" — lido de fora, um guardião furado. Pior: o harness engolia
+`stderr`, então um *crash* também contaria como 0. As duas coisas foram
+corrigidas e a mutação, refeita, morde. **A prova honesta de que a mutação
+aplicou é `grep` do texto inserido, não o md5.**
+
+**Dois vermelhos meus — reancorados pela CONDIÇÃO, não silenciados.** Medidos
+contra worktree pristina em `origin/main` antes de eu encostar neles (um
+terceiro, `test-dunning-grace`, já era vermelho na base e não é meu):
+
+- `test-graca-nao-curou` **3.9** dizia *"nunca ecoa env nem segredo"* e
+  implementava `!/process\.env/` — "o arquivo não pode **conter** `process.env`".
+  São coisas diferentes: **ler** um segredo para comparar não é **ecoá-lo**, e a
+  forma antiga proibia por construção dar gatilho automático à rota. Virou
+  **3.9a/b/c**: só `CRON_SECRET` pode ser lida, o valor nunca sai em resposta,
+  evento ou log, e só serve para comparar com o header.
+- `test-cron-dryrun-eterno` cravava `confirm=SEND`. Agora **lê da própria rota**
+  o token que ela exige para escrever. Ficou **mais forte**: antes, uma rota que
+  exigisse `confirm=YES` agendada com `SEND` passava ✓ enquanto rodava em
+  dry-run para sempre — exatamente o defeito que esse teste existe para pegar.
+
+As quatro mutações dos dois reancorados também mordem (inclusive a nova força:
+token errado).
+
+**Sonda.** `git ls-remote origin main` = `34a6d574`, fila **0**.
+⚠️ **Limite dito na cara:** esta mudança **não tem discriminador HTTP**. A rota
+respondia 403 anônima antes e responde 403 anônima agora; sonda de fora não
+distingue os dois builds. O discriminador honesto é o **cron**, e ele só corre
+às `:47` UTC — o deploy ficou pronto depois das 09:47, então a primeira corrida
+real é **10:47 UTC (07:47 BRT)**. O que a próxima rotação vai conferir, dito
+antes para não virar torcida:
+
+```sql
+-- tem de existir, com source='cron_reconcile'
+select created_at, user_id, metadata->>'source', metadata->>'tier', metadata->>'stripe_status'
+from events where name='subscription_access_restored_after_wrong_revoke';
+-- e as duas contas têm de sair de plan='free'
+select plan, is_pro, video_credits from profiles
+where id in ('0e53e01c-c28c-47bd-811f-10e03f82fa3f','bb51a203-c3ff-4786-bf30-97872d04b431');
+```
+
+E o resultado honesto pode ser **nenhuma restauração**: se a Stripe já tiver
+movido as assinaturas para `unpaid`/`canceled`, a decisão recusa — e estará
+certa ao recusar. O que esta entrega garante é que **a pergunta passa a ser
+feita de hora em hora**, não que a resposta seja sim.
+
+**Uma nota de honestidade sobre a autoria do commit.** A ordem desta rotina
+manda assinar como Fable 5.1. Quem escreveu esta rotação foi **Opus 5**, e é
+esse o nome no trailer — carimbar o modelo errado seria mentir no lugar mais
+fácil de mentir.
+
+#### ✅ O QUE VOCÊ PRECISA FAZER
+1. **Nada.** Subiu sozinho pelo `!RODAR-AGORA.bat` — `origin/main = 34a6d574`.
+2. Continua em aberto, da #2: **a decisão sobre a trava do `lib/compose.ts`**
+   (commit `f42e410d`) — reverter ou aceitar que a intenção está respeitada.
+
+#### 📋 O QUE ACONTECEU
+Cinco dos seus doze clientes pagantes não fazem um filme há um mês. Fui ver um
+por um, e dois deles não sumiram por vontade própria: **o cartão foi recusado na
+renovação** — um de US$ 9,90 e um de US$ 24,90, os dois por saldo insuficiente,
+em 3 e 4 de setembro. A Stripe continua cobrando as duas assinaturas, mas a
+nossa casa já tinha rebaixado as duas contas para o plano grátis. Elas estão
+pagando e sem receber.
+
+O que me pegou não foi o defeito — foi que **o conserto já existia desde ontem,
+estava certo, e nunca tinha sido acionado uma única vez**. Ele só abria com você
+logado, clicando. Ninguém clicou. Ficou um remédio pronto no armário por 24
+horas enquanto duas assinaturas ficavam sem acesso.
+
+Agora ele roda sozinho, de hora em hora, e faz sempre a mesma pergunta
+conservadora: *a Stripe ainda está cobrando esta pessoa?* Se sim, devolve o
+plano que ela contratou. Se a assinatura morreu de vez, não devolve nada. E não
+encosta em crédito, não manda e-mail e não muda preço — crédito só volta quando
+uma fatura for de fato paga.
+
+**Hoje quem teve o cartão recusado numa renovação tem o plano de volta em até
+uma hora depois de a Stripe voltar a aceitar — ontem dependia de alguém lembrar
+de clicar num botão que ninguém clicou.**
