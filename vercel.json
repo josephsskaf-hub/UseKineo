@@ -1,6 +1,10 @@
 {
   "crons": [
     {
+      "path": "/api/admin/send-card-entry-d1?confirm=SEND&limit=30",
+      "schedule": "30 12 * * *"
+    },
+    {
       "path": "/api/cron/placar-versao-b",
       "schedule": "5 12 * * *"
     },
