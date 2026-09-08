@@ -270,7 +270,12 @@ import useWaitAbandon from '@/components/video/useWaitAbandon'
 // para recusar. A tela precisa dela para encaixar a sugestao de duracao nas
 // opcoes reais do seletor (35|45|60|90), em vez de oferecer um valor que o
 // produto nao tem.
-import { MIN_COVERAGE, speechSeconds } from '@/lib/narrationFit'
+import { MIN_COVERAGE, autofitDown, speechSeconds } from '@/lib/narrationFit'
+// KINEO-PREFLIGHT-QUE-NAO-ACUSA-2026-09-08 — o preflight desta tela precisa
+// medir a MESMA narração que o servidor mede. Ler o texto cru conta bullets e
+// `Voice:` como fala e infla o número: era metade da razão de ele prever uma
+// recusa que não vinha.
+import { parseUserScript } from '@/lib/scriptParser'
 // sprint-retencao #9 — quem cola a ORDEM que deu ao ChatGPT ("Create a 2–4
 // minute, 16:9 widescreen…") pedia coisas que a casa ignorava em silencio.
 // 46 pessoas comecaram assim e so 8,7% fizeram um segundo filme, contra 27,5%
@@ -7536,11 +7541,46 @@ export default function GenerateClient({
           }
         }
         if (!cobre && falaSeg > 12) {
-          // Insistiu no mesmo texto: a viagem segue e o servidor dá a palavra
-          // final. Medir isto separa "a régua local errou" de "a pessoa quis".
+          // ═══ KINEO-PREFLIGHT-QUE-NAO-ACUSA-2026-09-08 ═════════════════════
+          //
+          // O nome do evento afirma DUAS coisas, e o código não conferia
+          // nenhuma delas. MEDIDO em 45 dias, nos 17 disparos que existem:
+          //
+          //   · "OVERRIDDEN" — nada checa se um aviso chegou a aparecer, e 2
+          //     dos 17 saíram de AUTO-START: quem apertou Generate foi a
+          //     máquina, não a pessoa (caso 21bc07da, 06/09 20:18, vindo do
+          //     banner de primeira entrega do trial). Ninguém insistiu ali.
+          //   · "A VIAGEM VAI BATER NA TRAVA" — errado em 13 dos 17. DEZ
+          //     viraram vídeo, inclusive com 32% e 37% de cobertura.
+          //
+          // Por que a régua local erra: ela mede o texto CRU contra
+          // MIN_COVERAGE, e o servidor mede a narração DEPOIS da análise —
+          // e, desde 03/09 (`autofitDown`, 6c0885a3), ainda DESCE o alvo
+          // sozinho acima de 60% de cobertura em vez de recusar
+          // (`script_duration_autofit_down`: 11 pessoas em 4 dias). São duas
+          // réguas de novo — a doença do #349, desta vez na instrumentação.
+          //
+          // ⚠️ NADA É BLOQUEADO AQUI, DE PROPÓSITO. A régua local já provou
+          // que erra: barrar o despacho pela previsão dela teria matado dez
+          // filmes reais. O que muda é que o evento passa a carregar o
+          // veredito da MESMA função que o servidor usa e a dizer quem
+          // apertou o botão — para a próxima rotação ler a verdade em vez de
+          // construir remédio para uma parede que não existe.
+          const falaServidor = parseUserScript(baseChecagem).narration || baseChecagem
+          const degrau = autofitDown(falaServidor, duration)
           void trackEvent('script_preflight_overridden', {
             speech_seconds: Math.round(falaSeg),
             target_seconds: duration,
+            // A recusa só está prevista quando o degrau do servidor NÃO pega.
+            refusal_predicted: !degrau.applied,
+            server_would_descend: degrau.applied,
+            server_descend_reason: degrau.reason,
+            server_effective_seconds: degrau.effectiveSeconds,
+            server_speech_seconds: Math.round(degrau.speechSeconds),
+            // Ninguém "insistiu" quando quem vai apertar Generate é o
+            // auto-start da ativação.
+            autostart_pending: activationAutostartEngineRef.current !== null,
+            from_topic: opts?.fromTopic === true,
           })
         }
       }

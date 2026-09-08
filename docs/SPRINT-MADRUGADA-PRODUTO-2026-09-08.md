@@ -653,3 +653,136 @@ verificações desligadas há tempos.
 > #5 = 03:49. Os títulos foram corrigidos para a hora real do commit. Uma
 > linha do tempo fora de ordem faz o fechamento das 09:30 contar rotação que
 > não existiu.
+
+---
+
+### #6 — 04:18 BRT — M1/M2 ENCERRADO POR MEDIÇÃO: a parede que eu ia consertar já tinha sido consertada, e o evento que me mandava lá mente 13 vezes em 17
+
+**Onde esta rotação começou.** A #1 fechou dizendo que o alvo novo era o
+`growth_limit` do expansor — "9 pessoas barradas por um teto nosso", e que a
+#2 mexeria nele. A #2 foi para o M3 e o assunto ficou aberto. Vim fechá-lo.
+
+**O que eu descobri antes de escrever uma linha de código.**
+
+O `growth_limit` **não acontece há quatro dias e meio**:
+
+| motivo de `script_expand_failed` (30d) | eventos | pessoas | último |
+|---|---|---|---|
+| `author_rewrite_rejected` | 11 | 6 | 04/09 00:05 |
+| **`growth_limit`** | **10** | **9** | **03/09 22:45** |
+| `network` | 2 | 2 | 03/09 22:40 |
+| `structure_lost` | 1 | 1 | 06/09 10:41 |
+
+E existe o commit que explica a data. `6c0885a3` (03/09 **22:22** BRT,
+`judgeTrimmedCandidate`) nasceu citando **nominalmente** o último caso —
+"o último caso foi às 22:45 de hoje". O `914eb661` (02/09) já tinha posto a
+tesoura que apara em vez de jogar fora, e o `2fae37c7` (01/09) já tinha
+mandado o teto **dentro do pedido** ao modelo, porque ele era secreto. Três
+consertos, nesta ordem, na exata parede que eu ia atacar como se fosse nova.
+
+⚠️ **Zero sem denominador não prova conserto** — e aqui o denominador é
+minúsculo: houve ~3 expansões desde então. O que sustenta a leitura não é o
+zero, é o **irmão do lado**, que tem denominador próprio:
+
+    script_duration_autofit_down .......... 11 eventos, 11 PESSOAS DISTINTAS
+                                            04/09 13:20 → 07/09 11:59
+
+Onze pessoas em quatro dias receberam filme **descendo o alvo**, no lugar
+exato onde antes vinha a parede vermelha. E depois que essa descida entrou no
+ar, o único `narration_guard_blocked` que sobrou foi de cobertura **32%** —
+abaixo do piso de 60% documentado no próprio `narrationFit.ts`, onde recusar
+continua certo. **Nada a construir aqui. M1 e M2 fecham.**
+
+**A cobertura do socorro, que eu também suspeitava estar furada.** Das 30
+pessoas que bateram na parede de narração curta em 14 dias, **24 receberam o
+expansor** no mesmo minuto; das 6 que não, a mais recente (08/09 01:35)
+recebeu o **outro** remédio, o certo para o caso dela — 2s de fala não é
+roteiro curto, é ideia, e o `script_authoring_auto_started` disparou sozinho
+e **entregou 81 palavras em 3 segundos**. Ela não aceitou e foi embora, mas
+isso é outra conversa: a peça funcionou. 17 das 30 fizeram filme depois.
+
+---
+
+**O defeito que eu achei no caminho — e é de instrumentação, o pior tipo.**
+
+O que me mandou para a parede errada foi um evento. Vale entender por quê,
+porque ele vai mandar a próxima rotação também.
+
+`script_preflight_overridden` é emitido em `GenerateClient.tsx` quando a fala
+não cobre o alvo. O nome afirma **duas** coisas, e o código **não conferia
+nenhuma**. Medido nos 17 disparos que existem em 45 dias:
+
+| o que o nome afirma | a realidade |
+|---|---|
+| a pessoa **ignorou um aviso** | nada checa se algum aviso apareceu; **2 dos 17** saíram de **auto-start** — quem apertou Generate foi a máquina |
+| a viagem **vai bater na trava** | **errado em 13 dos 17**; **dez viraram vídeo**, inclusive com 32% e 37% de cobertura |
+
+O caso `21bc07da` (06/09 20:18) tem os dois erros no mesmo trilho: veio do
+banner de primeira entrega do trial, `activation_autostart_dispatched`, e o
+evento registrou que **ele** insistiu.
+
+A causa é velha e conhecida: **duas réguas**. A tela mede o texto **cru**
+contra `MIN_COVERAGE`; o servidor mede a narração **depois da análise** e,
+desde 03/09, ainda **desce o alvo sozinho** acima de 60%. A tela nunca soube
+que a descida existe — então prevê uma recusa que o servidor não vai dar. É a
+doença do #349 de novo, desta vez na instrumentação.
+
+**O que mudou** (`SHA_AQUI`, **EM PRODUÇÃO**). O veredito passa a vir da
+**mesma função** que o servidor usa (`autofitDown` de `lib/narrationFit`,
+alimentada pela narração do `parseUserScript`, não pelo texto cru), e o evento
+passa a dizer quem apertou o botão: `refusal_predicted`,
+`server_would_descend`, `server_descend_reason`, `server_effective_seconds`,
+`server_speech_seconds`, `autostart_pending`.
+
+⚠️ **NADA foi bloqueado, de propósito** — e essa era a jogada óbvia. Eu
+cheguei a desenhar o preflight barrando o despacho condenado antes de gastar
+a viagem. **Os dados mataram a ideia**: a régua local erra 13 de 17, e barrar
+por ela teria **matado dez filmes reais**, dois deles de gente com 32% e 37%
+de cobertura que recebeu vídeo. O produto continua deixando a pessoa ir; o
+que muda é que a casa para de acusá-la de teimosia.
+
+**A prova.** `scripts/test-preflight-que-nao-acusa-2026-09-08.mjs`, **28
+verificações** em estilo `readFileSync`/contagem, com o bloco recortado por
+**contagem de chaves** (não por fatia de N caracteres) e ancorado pela
+CONDIÇÃO. Falsificado por 5 mutantes, cada um com o conteúdo do arquivo
+conferido antes de medir:
+
+    o bloco deixa de chamar autofitDown .......... VERMELHO ✔
+    volta a medir o texto cru .................... VERMELHO ✔
+    refusal_predicted cravado em true ............ VERMELHO ✔
+    autostart_pending cravado em false ........... VERMELHO ✔
+    a previsão local vira `return` (bloqueio) .... VERMELHO ✔
+
+O grupo **D** existe só para isso: se alguma rotação futura transformar esta
+previsão em bloqueio, o guardião fica vermelho e este parágrafo explica por
+quê. ⚠️ Registro honesto de limite: as verificações C do primeiro rascunho
+usavam `new RegExp` montada em *template literal* — onde `\b` não é fronteira
+de palavra, é **backspace**. As seis passavam por construção. Trocadas por
+`includes` e reconferidas.
+
+`tsc` limpo (916 arquivos do projeto lidos, conferido com `--listFiles`).
+Nada do pipeline de qualidade foi tocado: nem régua, nem roteiro, nem motor,
+nem custo — o único arquivo de produto mexido emite um evento.
+
+#### ✅ O QUE VOCÊ PRECISA FAZER
+1. **Nada nesta rotação.** A única coisa que ainda espera você continua sendo
+   a decisão sobre a trava do `lib/compose.ts`, no fecho da #2.
+
+#### 📋 O QUE ACONTECEU
+Eu ia consertar uma parede do expansor de roteiro que a rotação das 01:36
+tinha apontado. Antes de codar, fui conferir se ela ainda existia: **não
+existe há quatro dias e meio**, e três consertos de 01, 02 e 03 de setembro a
+derrubaram — o último foi escrito citando pelo nome a última vítima. No lugar
+dela, o produto agora **encolhe o botão de duração** para caber no roteiro
+que a pessoa escreveu, e fez isso para **onze pessoas diferentes** entre
+sexta e domingo. Teria sido uma noite inteira reconstruindo um remédio que já
+está no ar.
+
+O que me mandou para lá foi um **medidor mentiroso**: um evento que se chama
+"a pessoa insistiu mesmo avisada" e que, nos 17 casos que existem, estava
+errado 13 vezes — dez daquelas pessoas receberam o filme normalmente, e em
+duas quem apertou o botão nem foi gente, foi o disparo automático. Consertei o
+medidor: ele agora pergunta ao servidor, com a mesma conta que o servidor faz,
+e registra quem apertou. Não bloqueei nada — cheguei a desenhar o bloqueio e
+os dados mostraram que ele teria matado dez filmes de verdade. Fica um
+guardião que impede a próxima sessão de ligar esse bloqueio sem ler isto aqui.
