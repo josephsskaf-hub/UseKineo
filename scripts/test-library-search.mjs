@@ -15,7 +15,20 @@ check('audio filtra por texto/voz/motor', src.includes('[a.text, a.voice, a.mode
 // campo de busca
 check('so aparece com 6+ itens na aba ativa', src.includes('activeCount >= 6'))
 check('placeholder por aba', src.includes("'Search your videos…'") && src.includes("'Search your images…'") && src.includes("'Search your audio…'"))
-check('16px anti-zoom iOS (licao sprint #1)', /type="search"[\s\S]{0,600}fontSize: 16/.test(src))
+// KINEO-JANELA-DO-INPUT-2026-09-07 — a regra olhava 600 caracteres a frente de
+// `type="search"`. O placeholder e o aria-label ganharam as traducoes em
+// espanhol (06/09) e o `fontSize: 16` saiu da janela — a regra do iOS estava
+// cumprida na tela o tempo todo. Em vez de aumentar o numero (que envelhece de
+// novo na proxima frase), a janela passa a ser o PROPRIO elemento: do
+// `<input` que declara `type="search"` ate o `/>` que o fecha.
+{
+  const inicio = src.indexOf('<input')
+  const marca = src.indexOf('type="search"', inicio)
+  const fim = src.indexOf('/>', marca)
+  const elemento = marca > 0 && fim > marca ? src.slice(inicio, fim) : ''
+  check('o campo de busca foi encontrado inteiro', elemento.length > 0)
+  check('16px anti-zoom iOS (licao sprint #1)', /fontSize: 16\b/.test(elemento))
+}
 check('input type=search', src.includes('type="search"'))
 check('aria-label acessivel', src.includes("'Search your videos by title'"))
 
