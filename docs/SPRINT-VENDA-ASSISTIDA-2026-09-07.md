@@ -1750,3 +1750,144 @@ dos 30 voltaram" com corte `created_at > 01:12` devolve **30**, porque o corte
 pega os próprios eventos `second_try_1usd_sent` (gravados 01:12:43–01:13:03).
 O denominador se contava a si mesmo. A pergunta certa exclui os eventos de
 envio, e a resposta continua **0**.
+
+---
+
+### #13 — 23:22-23:55 BRT — as duas cartas saíram inteiras e ninguém clicou; e a oferta mais barata da casa era invisível para o ChatGPT
+
+**O placar honesto primeiro.** As duas cartas da janela saíram, no horário, sem
+nenhuma falha de entrega:
+
+| carta | pessoas | disparo (UTC) | voltaram ao site | chegaram ao checkout | pagaram |
+|---|---|---|---|---|---|
+| A — segunda tentativa | **30** | 08/09 01:12-01:13 | **0** | **0** | **0** |
+| C — sócios | **9** | 08/09 02:18 | **0** | **0** | **0** |
+
+Medido excluindo os próprios eventos `*_sent` do corte (memória
+`corte-que-pega-o-proprio-envio`: contar com corte na hora do disparo devolve
+100% porque o denominador se conta a si mesmo). A carta dos sócios tem **4
+minutos de vida** neste registro — não significa nada ainda. A dos 30 tem 2h10.
+
+**39 pessoas faladas hoje, zero retornos.** Não vou embrulhar isso: a lista que
+a casa tinha para falar acabou, e ela não moveu ninguém.
+
+---
+
+**Foi por isso que eu parei de escrever carta e fui olhar de onde o crescimento
+realmente vem.** A ordem da janela abre com a frase do fundador: *"visitante
+cresce, três línguas, ótimos vídeos, **o GPT fala da gente** — e não converte."*
+Eu tratei essa frase como um dado, não como desabafo, e fui ler **o que o GPT
+lê**.
+
+**O ERRADO — e ele é grande.** O trial pago de **$1 por 7 dias** (Creator, 80
+créditos, download limpo) foi ligado hoje às 15:43. Contei **14 superfícies** que
+já o anunciam: `PricingCards`, `TrialActiveBanner`, `TrialFirstFilmPayDoor`,
+`UpgradeModalTrialDoor`, a caixa do filme pronto, as cartas de ciclo de vida.
+
+**Todas as catorze falam com quem JÁ está no site ou JÁ está na nossa lista.
+Nenhuma fala com quem ainda não nos conhece.**
+
+Aí eu abri `https://www.usekineo.com/llms.txt` — 47 KB, o documento que os
+motores de resposta usam para nos descrever, e que existe exatamente para que
+sejamos citados com o número certo:
+
+```
+- **Starter** — $7.00 for the first month, then $7.00/month …
+- **Creator** — $15.00 for the first month, then $15.00/month …
+$7/month; there is also a watermarked free tier with no card.
+```
+
+**A porta de $1 não aparece em uma única linha.** A coisa mais barata que o
+ChatGPT sabe dizer sobre a Kineo é **$7.00/month** — porque **$7 é o menor
+número que nós contamos a ele**. E o módulo da outra pista já tinha registrado o
+outro lado da mesma moeda: `pricing_trial_1usd_clicked` tem **ZERO linhas em
+toda a história**. A oferta está no ar, custa 1/7 do que anunciamos, e é
+invisível justamente no canal que está crescendo.
+
+Isso não é tela mal desenhada. É **a oferta certa entregue ao público errado**:
+quem vê a porta de $1 hoje é quem já decidiu nos visitar; quem precisa dela é
+quem está decidindo, dentro do ChatGPT, se vale a pena clicar.
+
+---
+
+**O QUE MUDOU — SHA `90a82d72`.**
+
+· `lib/kineoFacts.ts` — `CARD_TRIAL_FACT` novo. **Todo número vem de
+  `lib/checkoutPricing.ts`**, o mesmo módulo que a rota do Stripe usa para
+  cobrar; nenhuma string de dinheiro é digitada (memória
+  `preco-literal-em-email-mente`). Descobri no caminho que a outra pista **já
+  havia exportado** `CARD_TRIAL_ENTRY_FEE_MINOR`, `CARD_TRIAL_DAYS` e
+  `CARD_TRIAL_GRANT_CREDITS` — então não dupliquei constante nenhuma, só
+  importei. O que faltava era **alguém publicá-las**.
+· `app/llms.txt/route.ts` — a porta abre a seção `## Pricing`, **antes** da
+  tabela de planos. A ordem é a lição que este próprio arquivo já tinha
+  aprendido em `FREE_TIER.allowance`: *um motor de resposta cita a oração
+  principal e descarta o aposto*. Porta depois dos planos = a resposta continua
+  sendo "$7/month".
+· **As DUAS recusas do servidor saem na MESMA lista da oferta** — quem já
+  assinou alguma vez, e faturamento anual (memória
+  `vitrine-oferece-o-que-o-cobrador-recusa`). Citar "$1" sem elas seria a
+  vitrine que promete o que o cobrador nega.
+· **Uma dívida de 21/08 cobrada.** O comentário em `FREE_TIER.allowance` dizia:
+  *"se o trial de $1 for religado um dia, ESTE comentário volta junto — e não
+  antes."* Ele ainda afirmava `CARD_TRIAL_ENABLED = false`. Hoje é esse dia; a
+  afirmação morta saiu.
+
+**GUARDIÃO: `scripts/test-porta-1dolar-no-mapa.mjs`, 26 verificações, todas
+verdes.** Ele amarra os números ao **módulo que cobra E à rota que cobra** — não
+à prosa (memória `guardiao-contar-texto-nao-prova-condicao`). **Falsifiquei por
+mutação, com o commit feito antes** (memória
+`falsificar-mutacao-commitar-antes`), e cada mutante derrubou uma verificação
+diferente:
+
+| mutação | resultado |
+|---|---|
+| mover a porta para DEPOIS dos planos | 🔴 25/26 |
+| `enabled: false` no fato com a rota ligada | 🔴 25/26 |
+| trocar `formatCheckoutMoney(...)` por `'$1.00'` digitado | 🔴 25/26 |
+| restaurado | ✅ 26/26 |
+
+O guardião nasceu **vermelho por CRLF** na primeira execução (âncora em `\n`
+contra `\r\n` do checkout do Windows) — memória `guardiao-crlf-falso-vermelho`,
+normalizado na leitura. Vizinhos conferidos: `test-llms-paginas-citadas` 91/91 e
+`test-clean-film-trial-door` 86/86, ambos verdes. `tsc` verde.
+
+**Quem recebeu:** nenhum envio novo nesta rotação. Esta entrega não manda
+e-mail — ela muda o que o ChatGPT responde quando alguém pergunta por nós.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+1. **Nada de novo daqui.** Esta entrega publica sozinha.
+2. **Continua de pé, e agora vale mais:** os **2 rascunhos de diretório**
+   (`docs/RASCUNHOS-DIRETORIOS-2026-09-07.md`, para `colormango` e `toolriot`) e
+   a **ficha do TAAFT**, que ainda anuncia "from $9.90/mo" e trial de 40
+   créditos — dois números que morreram. Agora há um terceiro número para pôr
+   lá: **a entrada de $1**.
+3. **Continua de pé:** os 7 rascunhos de `docs/RASCUNHOS-AUTOPILOT-2026-09-07.md`.
+4. **Decisão sua, herdada da #7:** as quatro strings de `lib/freeTierOffer.ts`
+   que prometem *"every engine unlocked, including Kling 3"* para 25 créditos,
+   quando o Kling 3 custa 150.
+
+## 📋 O QUE ACONTECEU
+
+As duas cartas do dia saíram inteiras — 39 pessoas — e **ninguém voltou**. A
+lista que a casa tinha para falar acabou hoje.
+
+Então fui atrás da frase que abriu a janela: *"o GPT fala da gente e não
+converte."* Fui ler o que o GPT lê sobre nós. **A coisa mais barata que ele sabe
+dizer é $7/mês** — enquanto a porta de $1, ligada hoje, está anunciada em
+catorze telas que só quem já nos visitou consegue ver. O canal que mais cresce
+estava recebendo a versão mais cara da nossa oferta, e o clique na porta de $1
+tem zero linhas em toda a história.
+
+A partir deste deploy, quem perguntar ao ChatGPT *"qual é a forma mais barata de
+testar o Kineo?"* recebe **$1 por 7 dias, com as duas recusas ditas na mesma
+frase** — em vez de $7/mês.
+
+**A próxima jogada.** Esta correção vale para todo motor de resposta que nos lê,
+mas ela é **passiva**: só funciona quando alguém pergunta. As três fichas que
+publicam a Kineo para quem nunca ouviu falar dela — `colormango`, `toolriot` e o
+TAAFT — continuam anunciando **$9.90**, um preço 41% mais caro que o real e 10×
+a entrada que existe hoje. **Corrigir três fichas é a única alavanca da noite
+que traz gente nova sem depender de ninguém abrir e-mail** — e é a única que
+ainda depende de você, porque as três páginas são suas.
