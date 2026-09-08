@@ -143,6 +143,10 @@
     {
       "path": "/api/cron/rescue-vendor-assets",
       "schedule": "23 * * * *"
+    },
+    {
+      "path": "/api/admin/reconcile-dunning?confirm=APPLY",
+      "schedule": "47 * * * *"
     }
   ]
 }

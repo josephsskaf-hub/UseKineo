@@ -28,6 +28,33 @@
 //
 // GET /api/admin/reconcile-dunning            → relatório, nada escrito
 // GET /api/admin/reconcile-dunning?confirm=APPLY → aplica e grava os eventos
+//
+// ═══════════════════════════════════════════════════════════════════════════
+// KINEO-REMEDIO-NUNCA-APERTADO-2026-09-08 — o gatilho que faltava
+// ═══════════════════════════════════════════════════════════════════════════
+// MEDIDO EM 08/09 06:45 BRT, um dia depois de esta rota nascer:
+// `subscription_access_restored_after_wrong_revoke` tem **ZERO linhas na
+// história inteira**, e as DUAS vítimas que o cabeçalho acima nomeia continuam
+// `plan='free'` com a assinatura viva. A Stripe recusou a de NG de novo em
+// 07/09 17:26 — segunda recusa, mesmo `failure_ref`.
+//
+// A causa não é a decisão, que está certa e é conservadora: é que a rota só
+// aceitava **cookie de admin**. Rota de admin que espera clique não dispara —
+// o remédio ficou escrito, correto e fechado a chave por 24h enquanto duas
+// das 12 assinaturas da casa seguiam cobradas e sem acesso.
+//
+// Por isso o guard passa a aceitar o MESMO contrato de cron das outras rotas
+// da casa (Bearer CRON_SECRET, fail-closed sem a env), e o `vercel.json` ganha
+// `47 * * * *` com `?confirm=APPLY`. Nada na decisão mudou: continua sendo
+// `stripeSubscriptionKeepsAccess` quem responde, e ela só devolve acesso em
+// `active` / `trialing` / `past_due` — enquanto a Stripe ainda cobra. Em
+// `unpaid` / `canceled` / `incomplete*` ninguém é restaurado, e uma falha da
+// Stripe vira `skip`, nunca restauração.
+//
+// ⛔ O QUE O GATILHO **NÃO** PASSA A FAZER: não toca crédito (crédito volta só
+// em `invoice.payment_succeeded`), não cria oferta, não muda preço, não manda
+// e-mail. Ele devolve à pessoa o tier que ela contratou e que a Stripe está
+// cobrando neste minuto — repara um valor que a casa escreveu errado.
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { isAdminEmail, serviceClient } from '../_shared/db'
@@ -62,11 +89,24 @@ type Linha = {
   aplicado?: 'ok' | 'falhou'
 }
 
+/** Gatilho automático, mesmo contrato dos crons da casa (o irmão
+ *  `send-card-declined` usa este mesmo bloco). FAIL-CLOSED: sem a env,
+ *  ninguém entra — e sem esta função a rota só abria por cookie de admin,
+ *  que é o motivo de o reparo nunca ter rodado. */
+function autorizadoPorCron(req: NextRequest): boolean {
+  const cronSecret = process.env.CRON_SECRET
+  if (!cronSecret) return false
+  return req.headers.get('authorization') === `Bearer ${cronSecret}`
+}
+
 export async function GET(req: NextRequest) {
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user?.email || !isAdminEmail(user.email)) {
-    return NextResponse.json({ error: 'forbidden' }, { status: 403 })
+  const porCron = autorizadoPorCron(req)
+  if (!porCron) {
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user?.email || !isAdminEmail(user.email)) {
+      return NextResponse.json({ error: 'forbidden' }, { status: 403 })
+    }
   }
   const admin = serviceClient()
   if (!admin) {
@@ -160,7 +200,7 @@ export async function GET(req: NextRequest) {
           path: '/api/admin/reconcile-dunning',
           metadata: {
             version: 'stripe_dunning_repair_v1',
-            source: 'admin_reconcile',
+            source: porCron ? 'cron_reconcile' : 'admin_reconcile',
             subscription_ref: subscriptionRef,
             tier: decision.tier,
             error: upErr.message.slice(0, 200),
@@ -174,7 +214,7 @@ export async function GET(req: NextRequest) {
           path: '/api/admin/reconcile-dunning',
           metadata: {
             version: 'stripe_dunning_repair_v1',
-            source: 'admin_reconcile',
+            source: porCron ? 'cron_reconcile' : 'admin_reconcile',
             tier: decision.tier,
             previous_plan: base.plan_atual,
             subscription_ref: subscriptionRef,
@@ -196,6 +236,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json(
     {
       mode: confirm ? 'APPLIED' : 'DRY_RUN',
+      trigger: porCron ? 'cron' : 'admin',
       cohort: "has_paid=true · plan='free' · stripe_subscription_id not null",
       total: linhas.length,
       para_restaurar: linhas.filter((l) => l.action === 'restore').length,

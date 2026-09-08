@@ -215,7 +215,19 @@ function adminFailures(text) {
     /decideDunningReconcile\(\{/.test(text) && !/=== 'past_due'/.test(text))
   t('3.8 Stripe indisponível numa pessoa → skip stripe_indisponivel e continue',
     /reason: 'stripe_indisponivel',[\s\S]{0,80}?\}\)\s*\n\s*continue/.test(text))
-  t('3.9 nunca ecoa env nem segredo', !/process\.env/.test(text))
+  // 08/09: esta trava dizia "nunca ECOA env" e implementava "o arquivo não
+  // pode CONTER process.env". São coisas diferentes — LER um segredo para
+  // comparar (o `Bearer CRON_SECRET` que todo cron da casa usa) não é ecoá-lo,
+  // e a forma antiga proibia dar gatilho automático à rota. Reancorada na
+  // condição: a única env que pode ser lida é CRON_SECRET, e o valor dela não
+  // pode sair em resposta, evento ou log.
+  const envsLidas = [...text.matchAll(/process\.env\.([A-Z0-9_]+)/g)].map((m) => m[1])
+  t('3.9a a única env lida é CRON_SECRET (nenhuma chave de serviço aqui)',
+    envsLidas.every((e) => e === 'CRON_SECRET'))
+  t('3.9b o valor do segredo nunca sai em resposta, evento ou log',
+    !/(NextResponse\.json|writeServerEvent|console\.(log|error|warn))\([\s\S]{0,600}?(cronSecret|process\.env)/.test(text))
+  t('3.9c o segredo só é usado para comparar com o header authorization',
+    !/cronSecret/.test(text) || /headers\.get\(\s*'authorization'\s*\)\s*===\s*`Bearer \$\{cronSecret\}`/.test(text))
   t('3.10 os eventos são os mesmos do webhook',
     /name: 'subscription_access_restored_after_wrong_revoke'/.test(text) && /name: 'subscription_access_repair_failed'/.test(text))
   t('3.11 coorte = has_paid · plan free · assinatura não nula',
