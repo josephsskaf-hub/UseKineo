@@ -116,6 +116,9 @@ export default function LiveNowPanel() {
                     {v.is_paid && (
                       <span className="ml-2 rounded px-1.5 py-0.5 text-[9px] font-black uppercase" style={{ background: 'rgba(52,211,153,.12)', color: '#34d399', border: '1px solid rgba(52,211,153,.35)' }}>sub</span>
                     )}
+                    {v.is_trial && (
+                      <span className="ml-2 rounded px-1.5 py-0.5 text-[9px] font-black uppercase" title="trial de $1 — vira assinante no dia 8" style={{ background: 'rgba(41,151,255,.12)', color: '#7cc0ff', border: '1px solid rgba(41,151,255,.35)' }}>trial $1</span>
+                    )}
                   </td>
                   <td style={{ padding: '9px 12px', color: heatColor(v.heat), fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
                     {v.did.join(' · ')}

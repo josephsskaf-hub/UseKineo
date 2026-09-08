@@ -18,7 +18,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { isAdminEmail, serviceClient } from '../_shared/db'
 import { INTERNAL_EXACT_EMAILS, INTERNAL_LIKE_PATTERNS, isInternalEmail } from '@/lib/internalAccounts'
-import { isPaidPlan, isTrialPlan } from '../_shared/mrr'
+import { isPayingPlan, isTrialPlan } from '../_shared/mrr'
 
 export const dynamic = 'force-dynamic'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
@@ -528,7 +528,7 @@ export async function GET() {
             last_page: row.last.path ?? null,
             credits: typeof p.video_credits === 'number' ? p.video_credits : null,
             plan: (p.plan as string | null) ?? null,
-            is_paid: isPaidPlan((p.plan as string) ?? null),
+            is_paid: isPayingPlan((p.plan as string) ?? null), // KINEO-ADMIN-FONTE-UNICA: trial de $1 não é 'sub'
             is_trial: isTrialPlan((p.plan as string) ?? null),
             videos: vidCount.get(p.id as string) ?? 0,
             did,

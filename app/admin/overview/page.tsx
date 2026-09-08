@@ -26,6 +26,34 @@ import { isInternalEmail, INTERNAL_ACCOUNTS_LABEL } from '@/lib/internalAccounts
 import { stripeMrrUsd } from '@/app/api/admin/_shared/mrr'
 import { PAID_PLANS, PLAN_PRICE_USD, isTrialPlan } from '@/app/api/admin/_shared/mrr'
 
+// KINEO-VERSAO-B-PAINEL-2026-09-08 — o funil da porta de $1, por PESSOA.
+type EventRow = { name: string; user_id: string | null; created_at?: string | null; metadata?: Record<string, unknown> | null }
+type FunilB = { signups: number; sawDoor: number; clickedDoor: number; checkout: number; paid1: number; autostart: number; converted: number; paywallHits: number }
+const VERSAO_B_SINCE = '2026-09-08T05:00:00.000Z'
+const metaTrue = (m: Record<string, unknown> | null | undefined, k: string) => m?.[k] === true || m?.[k] === 'true' || m?.[k] === '1'
+function funilVersaoB(rows: EventRow[], sinceMs: number, extIds: Set<string>): FunilB {
+  const sets: Record<keyof FunilB, Set<string>> = { signups: new Set(), sawDoor: new Set(), clickedDoor: new Set(), checkout: new Set(), paid1: new Set(), autostart: new Set(), converted: new Set(), paywallHits: new Set() }
+  for (const e of rows) {
+    if (!e.user_id || !extIds.has(e.user_id)) continue
+    const t = e.created_at ? new Date(e.created_at).getTime() : 0
+    if (t < sinceMs) continue
+    const m = e.metadata ?? null
+    const ic = typeof m?.intent_campaign === 'string' ? m.intent_campaign : ''
+    switch (e.name) {
+      case 'card_entry_required': sets.signups.add(e.user_id); break
+      case 'card_entry_banner_shown': sets.sawDoor.add(e.user_id); break
+      case 'card_entry_banner_clicked': sets.clickedDoor.add(e.user_id); break
+      case 'checkout_started': if (metaTrue(m, 'card_trial') || ic === 'card_entry' || ic.startsWith('trial_1usd')) sets.checkout.add(e.user_id); break
+      case 'payment_success': if (metaTrue(m, 'card_trial')) sets.paid1.add(e.user_id); break
+      case 'card_entry_resume_autostart': sets.autostart.add(e.user_id); break
+      case 'subscription_invoice_paid': if (metaTrue(m, 'trial_conversion')) sets.converted.add(e.user_id); break
+      case 'paywall_hit': sets.paywallHits.add(e.user_id); break
+    }
+  }
+  const n = (k: keyof FunilB) => sets[k].size
+  return { signups: n('signups'), sawDoor: n('sawDoor'), clickedDoor: n('clickedDoor'), checkout: n('checkout'), paid1: n('paid1'), autostart: n('autostart'), converted: n('converted'), paywallHits: n('paywallHits') }
+}
+
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
@@ -90,6 +118,7 @@ type Metrics = {
   mrrStripeCounted: number
   arpuUsd: number | null
   oneTimePurchases: number
+  versaoB: { today: FunilB; d7: FunilB; since: string }
   // growth
   signupsToday: number
   signups7d: number
@@ -142,10 +171,18 @@ async function loadMetrics(): Promise<Metrics | null> {
     fetchAllRows<{ user_id: string | null; refunded_at: string | null }>(admin, 'credit_debits', 'user_id, refunded_at'),
     fetchAllRows<{ user_id: string | null }>(admin, 'checkout_abandoned', 'user_id'),
     fetchAllRows<{ user_id: string | null; event: string | null }>(admin, 'click_events', 'user_id, event'),
-    fetchAllRows<{ name: string; user_id: string | null }>(admin, 'events', 'id, name, user_id', {
+    fetchAllRows<EventRow>(admin, 'events', 'id, name, user_id, created_at, metadata', {
       column: 'name',
       values: [
         'payment_success',
+        // KINEO-VERSAO-B-PAINEL-2026-09-08 — a porta de $1, elo por elo
+        'card_entry_required',
+        'card_entry_banner_shown',
+        'card_entry_banner_clicked',
+        'checkout_started',
+        'card_entry_resume_autostart',
+        'subscription_invoice_paid',
+        'paywall_hit',
         'starter_checkout_clicked',
         'basic_checkout_clicked',
         'pro_checkout_clicked',
@@ -212,10 +249,12 @@ async function loadMetrics(): Promise<Metrics | null> {
   const mrrStripeCounted = stripeMrr?.counted ?? 0
   const arpuUsd = payingTotal > 0 ? (mrrStripeUsd ?? mrrUsd) / payingTotal : null
 
-  const eventRows = (eventsQ.data ?? []) as Array<{ name: string; user_id: string | null }>
+  const eventRows = (eventsQ.data ?? []) as EventRow[]
   const oneTimePurchases = eventRows.filter(
-    (e) => e.name === 'payment_success' && e.user_id != null && extIds.has(e.user_id)
+    // KINEO-VERSAO-B-PAINEL — o $1 do trial NÃO é compra avulsa
+    (e) => e.name === 'payment_success' && e.user_id != null && extIds.has(e.user_id) && !metaTrue(e.metadata, 'card_trial')
   ).length
+  const versaoB = { today: funilVersaoB(eventRows, todayStart, extIds), d7: funilVersaoB(eventRows, Math.max(since7d, new Date(VERSAO_B_SINCE).getTime()), extIds), since: VERSAO_B_SINCE }
 
   // ── growth ────────────────────────────────────────────────────────────────
   let signupsToday = 0
@@ -329,6 +368,7 @@ async function loadMetrics(): Promise<Metrics | null> {
     mrrStripeCounted,
     arpuUsd,
     oneTimePurchases,
+    versaoB,
     signupsToday,
     signups7d,
     signupsPrev7d,
@@ -495,6 +535,24 @@ export default async function AdminOverviewPage() {
           </div>
         </div>
 
+        {/* 🚪 Versão B — porta de $1 (KINEO-VERSAO-B-PAINEL-2026-09-08) */}
+        <Section emoji="🚪" title="Versão B — porta de $1" right={<span style={{ fontSize: 11, color: 'var(--muted2)' }}>por pessoa · desde 08/09 05:00 UTC · hoje (UTC) e 7 dias</span>}>
+          {([['Hoje', m.versaoB.today], ['7 dias', m.versaoB.d7]] as Array<[string, FunilB]>).map(([label, f]) => (
+            <div key={label} style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 6 }}>{label}</div>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
+                <Kpi label="Nasceram na porta" value={String(f.signups)} sub="card_required" />
+                <Kpi label="Viram a faixa" value={String(f.sawDoor)} />
+                <Kpi label="Clicaram" value={String(f.clickedDoor)} />
+                <Kpi label="Abriram checkout" value={String(f.checkout)} />
+                <Kpi label="Pagaram $1" value={String(f.paid1)} accent="52,211,153" />
+                <Kpi label="Filme disparou" value={String(f.autostart)} sub="na volta do Stripe" />
+                <Kpi label="Viraram (dia 8)" value={String(f.converted)} accent="52,211,153" />
+                <Kpi label="Bateram na porta" value={String(f.paywallHits)} sub="Generate sem crédito" />
+              </div>
+            </div>
+          ))}
+        </Section>
         {/* 💰 Revenue */}
         <Section emoji="💰" title="Revenue">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

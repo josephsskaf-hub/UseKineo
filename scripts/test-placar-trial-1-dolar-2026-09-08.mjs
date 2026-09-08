@@ -32,6 +32,14 @@ checa('página: perfis trazem stripe_subscription_id', /'id, email, plan, create
 checa('rota JSON: trial separado do pagante', /if \(isTrialPlan\(plan\)\) \{ trialsActive \+= 1; trialPotentialMrrUsd \+= PLAN_PRICE_USD\[plan\] \?\? 0; continue \}/.test(route))
 checa('rota JSON: devolve trialsActive', /trialsActive,/.test(route))
 
+console.log('== tarefas 3 e 4 ==')
+const gcl = rd('app/(dashboard)/generate/GenerateClient.tsx')
+checa('a porta de $1 vira paywall_hit no cliente, não generation_stage_error', /if \(data\?\.cardEntry === true\) void trackEvent\('paywall_hit'/.test(gcl))
+checa('painel Versão B no /admin/overview (por pessoa, hoje e 7 dias)', /title="Versão B — porta de \$1"/.test(page) && /function funilVersaoB\(/.test(page))
+checa('painel conta o $1 como pago só com card_trial', /case 'payment_success': if \(metaTrue\(m, 'card_trial'\)\) sets\.paid1\.add/.test(page))
+checa('compra avulsa exclui o $1', /!metaTrue\(e\.metadata, 'card_trial'\)/.test(page))
+checa('ao vivo: selo sub só para quem paga agora; trial tem selo próprio', /is_paid: isPayingPlan\(/.test(rd('app/api/admin/live/route.ts')) && /trial \$1<\/span>/.test(rd('components/LiveNowPanel.tsx')))
+
 console.log(`\n  verificacoes: ${ok + falhas.length} · falhas: ${falhas.length}`)
 if (falhas.length) { for (const f of falhas) console.log('  ✗ ' + f); process.exit(1) }
 console.log('OK — o $1 e o dia 8 existem no placar; trial nunca é pagante antes de virar')

@@ -6007,7 +6007,11 @@ export default function GenerateClient({
           // parede era MUDA. Ela nao era: a frase estava na tela (tarja
           // vermelha da fase `options`) e era o EVENTO que estava cego. Fica
           // registrado para ninguem reabrir a investigacao errada.
-          trackGenerationFailure('clips_ready', 'compose_daily_free_limit', {
+          // KINEO-ALARME-FALSO-2026-09-08 (tarefa 4) — sob a versão B esta recusa é a
+          // PORTA de $1, não uma falha: gravar como generation_stage_error acordava
+          // os vigias a cada pessoa que encostava nela. Vira paywall_hit.
+          if (data?.cardEntry === true) void trackEvent('paywall_hit', { source: 'compose_free_fast_limit', http_status: 402, surface: 'generate' })
+          else trackGenerationFailure('clips_ready', 'compose_daily_free_limit', {
             httpStatus: 402,
             detail: typeof data?.error === 'string' ? data.error : undefined,
           })
