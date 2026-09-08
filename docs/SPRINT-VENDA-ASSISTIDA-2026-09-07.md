@@ -1162,3 +1162,142 @@ frase que a rotação #1 provou ser falsa ("você voltou duas vezes"): quem volt
 duas vezes lê isso, e as outras 59 leem uma carta que não afirma nada que a casa
 não mediu. E ela termina com a única pergunta que essa lista nunca ouviu: *se
 não foi o preço, me diz o que travou*.
+
+### #9 — 21:22-21:55 — TRÊS ALARMES QUE EU IA PUBLICAR, TODOS FALSOS. E A COORTE MAIS QUENTE DA CASA É 46% ÍNDIA+NIGÉRIA
+
+**ESTA ROTAÇÃO NÃO ENTREGOU CÓDIGO, DE PROPÓSITO.** A carta da #8 dispara às
+01:12 UTC (22:12 BRT) e ninguém a leu ainda. Empilhar uma quinta porta de $1
+antes disso é a quarta rotação seguida entregando peça que ninguém abriu
+(memória `carta-nova-so-depois-da-velha-mover`). Com 50 minutos até o disparo, o
+trabalho certo era **conferir a carta que já está armada** — porque a coorte é
+1×-para-sempre: se o disparo sair torto, 30 dos leads mais quentes do banco
+queimam e não voltam.
+
+Conferi quatro coisas. **Três eram alarmes meus, e os três morreram na medição.**
+
+**ALARME 1 — a supressão de 24h ia calar a carta. NÃO IA.** Entre agora e 01:12
+UTC disparam oito jobs de e-mail; um deles, o `send-checkout-hot-nudge`, roda
+4× por hora e fala com **intenção de checkout** — a mesma gente. É o desenho
+exato da memória `supressao-sem-precedencia-cala-a-carta-boa`. Medi a coorte
+inteira contra as cinco fontes de supressão, na hora do disparo:
+
+| corte, medido na hora do disparo (01:12 UTC) | pessoas |
+|---|---|
+| coorte elegível | **67** (132 filmes — bate com a #8) |
+| suprimidas no disparo | 13 |
+| **livres no disparo** | **54** |
+| último e-mail que a coorte recebeu | 07/09 21:25 UTC |
+
+Sai para 30 às 01:12 e para as 24 restantes às 13:12. **A carta não vai ser
+calada.** A memória não mordeu aqui, e agora está medido em vez de temido.
+
+**ALARME 2 — o link da carta manda cliente antigo para o CADASTRO. FALSO, e
+quase publiquei.** Sondei o CTA da carta com UA identificável e não-`curl`
+(memória `sonda-com-ua-de-curl-cai-no-ramo-do-robo`), com controle irmão
+inexistente na mesma medição (memória `sonda-401-exige-controle-404`):
+
+- alvo → **307** para `/signup?reason=checkout&redirect=<checkout com trial=1,
+  intent_campaign e resumed=1 inteiros>`
+- controle inexistente → **404**
+
+Fui ler o `/signup` no HTML e o link "Already have an account?" apontava para
+`/login?redirect=%2Fstudio%2Fcreate%3Fwelcome%3D1` — **o checkout de $1
+desaparecido**. Era o defeito perfeito: 67 pessoas que JÁ TÊM CONTA mandadas
+para uma página de cadastro que joga fora a oferta.
+
+**Só que o HTML que o curl busca é o placeholder do SSR.** O `loginHref` é
+calculado no cliente (`app/(auth)/signup/page.tsx:296`, a partir de
+`activationRedirectFromSearch`, com `useState` inicial `/studio/create?welcome=1`
+justamente para não quebrar a hidratação — o comentário na linha 144 diz isso
+com todas as letras). Depois de hidratar, o link carrega o checkout inteiro. E
+`normalizeInternalRedirect` (`lib/authRedirect.ts:9`) **aceita caminho `/api/…`**
+— só recusa origem externa, `//`, `\` e caracteres de controle. A corrente
+resiste inteira: checkout → signup → login → checkout → Stripe.
+
+⚠️ **A LIÇÃO, que é nova e vai para a memória:** `curl` numa página client-side
+não prova o link que a pessoa clica — prova o valor inicial do `useState`. Eu
+tinha memórias sobre bundle e sobre impressão; nenhuma cobria *placeholder de
+SSR que a hidratação substitui*. Faltavam 40 minutos para o disparo e eu ia
+mexer no caminho de compra da casa por causa de uma string que nunca chega a
+aparecer para ninguém.
+
+**ALARME 3 — a carta diz "$1" e "$15/mo" para quem não paga em dólar. NÃO
+MAIS.** É a memória `preco-literal-em-email-mente`. Fui conferir e o
+`lib/checkoutPricing.ts` tem hoje `export type CheckoutCurrency = 'usd'` — moeda
+única, o desconto regional foi enterrado em 19/08 por nunca ter vendido uma vez.
+**O número literal da carta é verdadeiro para os 67.** A memória valia enquanto
+existia preço regional; hoje não morde.
+
+**ALARME 4 — a carta é EN e a casa fala três línguas.** Medido: **66 dos 67 não
+têm nenhum sinal de idioma** no banco (1 tem `pt`). Não há em que ramificar.
+EN-only está certo, e não é preguiça — é ausência de sinal.
+
+---
+
+**O QUE SOBROU DA MEDIÇÃO É O ACHADO DA ROTAÇÃO — e é de dono, não de código.**
+Fui ver de onde é a coorte mais quente do banco (entregou filme + gastou tudo +
+bateu no checkout):
+
+| país | pessoas |
+|---|---|
+| **Índia** | **21** |
+| **Nigéria** | **10** |
+| Estados Unidos | 6 |
+| Alemanha | 3 |
+| França · Brasil · Canadá · Austrália · Argélia · Espanha · Paquistão | 2 cada |
+| Tailândia · África do Sul · Zâmbia · Bangladesh · (cauda) | 1 cada |
+
+**46% da gente que mais quis comprar nesta casa está na Índia e na Nigéria.** E
+em 19/08 a casa matou o preço regional porque "nunca vendeu nem uma vez" — o que
+era verdade, com a ressalva registrada no próprio arquivo de que **o preço
+regional ficou invisível na vitrine** durante quase toda a vida dele.
+
+Isso muda a leitura da conclusão fixa do `CLAUDE.md` ("o vazamento do checkout é
+PREÇO"). Ela continua certa; o que estava faltando é **de quem** é o preço. Não
+é que $15 seja caro em abstrato: é que a metade mais quente da fila mede $15 em
+rúpia e naira. E a porta de $1 que nasceu hoje é **a primeira oferta da história
+desta casa que funciona nessa aritmética** — sem tocar em preço público, sem
+cupom, sem desconto regional novo.
+
+**A PREVISÃO QUE ISSO DEIXA, e que a próxima rotação pode falsificar:** se a
+porta de $1 converter, o primeiro pagante de $1 sai de **IN ou NG**. Se sair dos
+EUA, a tese de que a barreira é aritmética regional está errada e eu quero saber
+disso hoje, não semana que vem.
+
+**PLACAR DA NOITE** (marco 2026-09-07 18:38 UTC, contas externas): 1 pessoa com
+`checkout_started`, **0 pagamentos**, nenhum evento de porta de $1 ainda. Último
+`payment_success` da casa: **02/09 20:22 UTC — jejum de 5 dias, inalterado.**
+
+**QUEM RECEBEU:** ninguém ainda. 30 às 01:12 UTC, 24 às 13:12 UTC.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+1. **Nada para a carta sair** — ela dispara sozinha às 22:12 BRT, para 30
+   pessoas. Conferido nesta rotação: a supressão não a cala e o link resolve
+   até a Stripe.
+2. **Continua de pé, e só você pode:** mandar da sua caixa os rascunhos da
+   CAMADA 1 em `docs/RASCUNHOS-AUTOPILOT-2026-09-07.md` — as 7 pessoas que
+   abriram o checkout de $299. A casa não manda e-mail automático para elas de
+   propósito.
+3. **Decisão sua, herdada da #7 e ainda não vencida:** as quatro strings de
+   `lib/freeTierOffer.ts` que prometem *"every engine unlocked, including Kling
+   3"* para um saldo de 25 créditos, quando o Kling 3 custa 150.
+
+## 📋 O QUE ACONTECEU
+
+Não escrevi código nesta meia hora, e foi a escolha certa: a carta da rotação
+anterior estava armada para disparar em 50 minutos, para uma lista que só pode
+ser usada **uma vez na vida**. Gastei o tempo conferindo se ela ia sair inteira.
+
+Achei três motivos para abortar e derrubei os três com medição. O mais perto de
+custar caro: o link da carta *parecia* mandar cliente antigo para uma página de
+cadastro que jogava a oferta de $1 fora. Era o HTML cru mentindo — a página monta
+o link certo no navegador. Se eu tivesse "consertado" isso, teria mexido no
+caminho de compra da casa 40 minutos antes de um disparo, para corrigir uma
+string que nenhum cliente jamais vê.
+
+O que sobrou foi o achado que vale mais que o código que eu não escrevi: **a
+metade mais quente da nossa fila de compra é Índia e Nigéria (31 de 67).** A casa
+enterrou o preço regional em agosto por falta de vendas, e essa gente vem batendo
+no mês cheio em dólar desde então. A porta de $1 de hoje é a primeira coisa que a
+casa oferece que cabe no bolso dela — e às 22:12 ela vai saber que existe.
