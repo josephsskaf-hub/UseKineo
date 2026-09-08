@@ -259,8 +259,45 @@ check(client.includes("import {\n  decideTrialBalanceBridge"), 'production clien
 check(client.includes("trackEvent('trial_balance_bridge_viewed'"), 'real impression emits bridge event')
 check(client.includes("trackEvent('trial_balance_bridge_clicked'"), 'real CTA emits bridge click')
 check(client.includes('intent_campaign: intentCampaign || null'), 'completion preserves bridge campaign')
-check(client.includes('showTrialPostVideoOffer && trialBalanceBridge.eligible'), 'bridge renders only inside the proven trial slot')
-check(client.includes('showTrialPostVideoOffer && !trialBalanceBridge.eligible'), 'subscription offer and bridge are mutually exclusive')
+// KINEO-REANCORA-PONTE-2026-09-07 — ESTE GUARDIÃO ESTAVA ESTOURANDO, e a
+// causa era âncora, não produto. As duas verificações antigas liam as strings
+// `showTrialPostVideoOffer && trialBalanceBridge.eligible` e
+// `showTrialPostVideoOffer && !trialBalanceBridge.eligible`; a distribuição do
+// slot pós-entrega passou a ser feita por `decidePostDeliverySlot`, que devolve
+// UM dono, e as duas strings deixaram de existir. Como `check` usa `assert.ok`,
+// a primeira falha DERRUBAVA o arquivo inteiro na linha 262 de 418 — as ~60
+// verificações seguintes nunca rodavam, e o guardião parecia estar acusando o
+// produto quando na verdade não chegava a olhar para ele.
+//
+// A intenção original está PRESERVADA e ficou mais forte: em vez de casar com
+// um texto, as três verificações abaixo executam a política pura e provam a
+// exclusividade por construção — um slot, um dono, nunca dois.
+check(
+  client.includes("postDeliverySlotOwner === 'balance_bridge'"),
+  'bridge renders only when the post-delivery slot names it owner',
+)
+check(
+  client.includes('bridgeEligible: trialBalanceBridge.eligible'),
+  'the slot decision is fed by the executed bridge policy, not by a second predicate',
+)
+{
+  const slot = executeTs('lib/growth/postDeliverySlot.ts')
+  const owner = (over) => slot.decidePostDeliverySlot({
+    askEligible: true,
+    deliveredFilmWatermarked: false,
+    bridgeEligible: false,
+    repeatEligible: false,
+    ...over,
+  })
+  equal(owner({ askEligible: false, bridgeEligible: true }), null, 'no trial slot means no bridge')
+  equal(owner({ bridgeEligible: true }), 'balance_bridge', 'a funded bridge owns the slot')
+  equal(
+    owner({ bridgeEligible: true, deliveredFilmWatermarked: true }),
+    'commercial_ask',
+    'a watermarked film in hand outranks the bridge — and only one of them can own the slot',
+  )
+  equal(owner({}), 'commercial_ask', 'without a funded bridge the commercial ask owns the slot')
+}
 const bridgeDecisionIndex = client.indexOf('const trialBalanceBridge = decideTrialBalanceBridge({')
 const planFitCandidateIndex = client.indexOf('const planFitOfferCandidate =')
 check(bridgeDecisionIndex >= 0 && bridgeDecisionIndex < planFitCandidateIndex, 'bridge eligibility is resolved before Plan Fit reserves the slot')
