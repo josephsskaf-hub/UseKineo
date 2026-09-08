@@ -100,7 +100,19 @@ console.log('AnimateClient: liga os fios')
 const client = read('app/(dashboard)/animate/AnimateClient.tsx')
 ok(client.includes("import CreditsTopupModal from '@/components/CreditsTopupModal'") && client.includes('surface="animate_402"'), 'popup de recarga com surface animate_402 (mesmo padrao de images/audio)')
 ok(client.includes("import { ANIMATE_COST } from '@/lib/animate/cost'") && !client.includes("from '@/lib/animate/service'"), 'cliente importa o custo de cost.ts, nunca de service.ts (node:crypto)')
-ok(client.includes('{ANIMATE_COST} credits · {duration}s') && !client.includes('<b>5 credits'), '"Cost per clip" derivado, nao digitado')
+// KINEO-REANCORA-ANIMATE-2026-09-07 — a regra casava com a FORMA exata
+// `{ANIMATE_COST} credits · {duration}s`. A linha ganhou `<UiLabel>` por dentro
+// (`{ANIMATE_COST}<UiLabel> credits · </UiLabel>{duration}s`) e a regra passou a
+// reprovar uma tela que continuava correta. Agora ela recorta a LINHA do "Cost
+// per clip" e exige o que importa: que o número venha da constante e que nenhum
+// dígito seja escrito à mão ali. Wrapper novo amanhã não volta a dar falso
+// vermelho; digitar "5" continua reprovando.
+{
+  const linhaCusto = (client.split('\n').find((l) => l.includes('Cost per clip')) ?? '')
+  ok(linhaCusto.length > 0, 'a linha "Cost per clip" existe na tela')
+  ok(linhaCusto.includes('{ANIMATE_COST}'), '"Cost per clip" deriva de ANIMATE_COST')
+  ok(!/\d/.test(linhaCusto.replace(/\{[^{}]*\}/g, '')), '"Cost per clip" nao digita numero a mao')
+}
 ok(client.includes("(credits ?? 0) >= ANIMATE_COST ? '#5cb3ff'"), 'cor do saldo compara com o custo real')
 ok(client.includes("if (typeof data?.plan === 'string') setPlan(data.plan)"), 'plano vem de /api/credits')
 const r402 = client.slice(client.indexOf('if (res.status === 402) {'), client.indexOf('if (!res.ok || typeof data?.request_id'))
