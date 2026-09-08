@@ -199,3 +199,76 @@ Medir os eventos `door_v2`; conferir a folha no celular; e uma pergunta que a r1
 deixou aberta: `topup_unavailable_note_shown` aparece 5× no mesmo instante do
 bloqueio — na folha ele não existe, mas continua no caminho de quem cai no
 UpgradeModal.
+
+---
+
+## r3 21:40 — TRÊS LÍNGUAS, CELULAR, E O DEFEITO QUE SÓ O OLHO ACHOU
+
+Deploy da r2 confirmado: `ff4c28c5` = `dpl_7R6nb2r9EB7iEMRPvB5B3HeYB74Q`,
+**READY**, aliasado em `www.usekineo.com`, `shortsforgeai.com` e mais 5.
+
+### O defeito
+
+Escrevi `scripts/preview-porta-v2-2026-09-09.mjs` — renderiza o COMPONENTE REAL
+para HTML e serve num navegador. Olhando a folha a 375px apareceram **dois
+defeitos que as 34 verificações não pegavam**, porque asserção nenhuma sabe ler
+uma tela:
+
+1. **O título saía em INGLÊS nas três línguas.** Ele vinha de
+   `CARD_ENTRY_COPY.headline`, que é uma **constante de copy** — não passa pelo
+   dicionário de interface. Quem escolheu español ou हिन्दी recebia um parágrafo
+   inglês de 4 linhas no exato instante de pagar. A r3 estava listada como
+   "traduzir os rótulos novos"; os rótulos NOVOS estavam traduzidos desde a r2 —
+   o que não estava era o texto **maior da tela**.
+2. **Ele ocupava 103px e repetia o preço da linha logo abaixo**, empurrando o
+   único botão para fora da dobra: a folha media 823px numa tela de 812px.
+   A pessoa tinha de ROLAR para achar o botão de comprar.
+
+### O conserto
+
+Título trocado por uma promessa curta, traduzida e **sem preço**:
+"Kineo directs it, narrates it and edits it for you." / "Kineo la dirige, la
+narra y la edita por ti." / "Kineo इसे निर्देशित करता है, आवाज़ देता है और एडिट करता है।"
+Nenhum fato se perdeu — taxa, dias, créditos e mensalidade continuam na tela,
+vindos de `lib/checkoutPricing`, e agora nas três línguas.
+
+### Medido no navegador, viewport 375×812
+
+| língua | altura da folha | precisa rolar | botão visível sem rolar |
+|---|---|---|---|
+| inglês | 625px | **não** | sim (base em 648 de 812) |
+| हिन्दी | 630px | **não** | sim (base em 650 de 812) |
+
+Tudo cabe: ideia, robô, promessa, preço, três linhas, botão de 48px e "Not now".
+A ideia da pessoa **não é traduzida** (conteúdo de gente nunca é) — o vídeo do
+robô carrega do domínio de produção, então o preview também prova que o arquivo
+está no ar.
+
+### Guardião: 34 → 36 verificações
+
+Duas travas novas para o defeito não voltar: o `<h2>` tem de MUDAR entre as três
+línguas e não pode conter `CARD_ENTRY_COPY.headline` nem `.sentence`; e não pode
+conter cifrão nem dígito (o preço é papel da linha de preço, uma vez só).
+
+### Ficou para a r4
+
+Medir `card_entry_door_shown` de gente externa com corte por
+`metadata ? 'version'`. E uma pergunta viva da r1: `topup_unavailable_note_shown`
+ainda aparece no mesmo instante do bloqueio para quem cai no UpgradeModal.
+
+### Primeira leitura dos eventos `door_v2` — 23:23 UTC (20:23 BRT)
+
+`0` eventos. **E isso ainda não significa nada**, porque o denominador também é
+zero. Medido desde o READY (`2026-09-08 23:18:19 UTC`), 5 minutos no ar:
+
+| oportunidade | pessoas |
+|---|---|
+| pessoas externas com qualquer evento | 2 |
+| viram a faixa da porta | 0 |
+| tentaram gerar | 0 |
+| **bateram na parede** (o gatilho da folha) | **0** |
+| contas novas | 0 |
+
+Zero cliques sobre zero oportunidades. A folha só monta quando alguém da coorte
+aperta Generate sem crédito — não houve ninguém ainda. O corte de toda medição
+seguinte é `metadata ? 'version'` (ou `= 'door_v2'`), **nunca o relógio**.

@@ -85,6 +85,7 @@ type Lang = 'en' | 'es' | 'hi'
 // tradução nunca carrega preço (lição: preço literal em texto envelhece e mente).
 const T: Record<Lang, {
   yourIdea: string
+  promise: string
   makeIt: string
   notNow: string
   opening: string
@@ -95,6 +96,7 @@ const T: Record<Lang, {
 }> = {
   en: {
     yourIdea: 'Your film, waiting to be made',
+    promise: 'Kineo directs it, narrates it and edits it for you.',
     makeIt: 'Make this film',
     notNow: 'Not now',
     opening: 'Opening checkout…',
@@ -105,6 +107,7 @@ const T: Record<Lang, {
   },
   es: {
     yourIdea: 'Tu película, esperando a existir',
+    promise: 'Kineo la dirige, la narra y la edita por ti.',
     makeIt: 'Crear esta película',
     notNow: 'Ahora no',
     opening: 'Abriendo el pago…',
@@ -115,6 +118,7 @@ const T: Record<Lang, {
   },
   hi: {
     yourIdea: 'आपकी फ़िल्म, बनने का इंतज़ार कर रही है',
+    promise: 'Kineo इसे निर्देशित करता है, आवाज़ देता है और एडिट करता है।',
     makeIt: 'यह फ़िल्म बनाएँ',
     notNow: 'अभी नहीं',
     opening: 'चेकआउट खुल रहा है…',
@@ -325,9 +329,19 @@ export default function CardEntryDoor({
           }}
         />
 
-        {/* 3 — O QUE A CASA OFERECE, pela fonte única. */}
-        <h2 style={{ margin: '16px 0 0', fontSize: 19, lineHeight: 1.35, fontWeight: 800, color: '#fff' }}>
-          {CARD_ENTRY_COPY.headline}
+        {/* ═══ 3 — O QUE O PRODUTO FAZ, na língua da pessoa ═══════════════════
+            Aqui vivia `CARD_ENTRY_COPY.headline`. Olhando a folha renderizada a
+            375px (scripts/preview-porta-v2-2026-09-09.mjs) apareceram dois
+            defeitos que nenhuma asserção pegava:
+              · o parágrafo saía EM INGLÊS nas três línguas — é uma constante de
+                copy, não passa pelo dicionário de interface;
+              · ocupava 103px (4 linhas) REPETINDO o preço da linha logo abaixo,
+                e empurrava o único botão para fora da dobra do celular.
+            Trocado por uma promessa curta e traduzida, SEM preço. Nenhum fato
+            se perdeu: taxa, dias, créditos e mensalidade continuam na tela,
+            vindos de lib/checkoutPricing — e agora nas três línguas. */}
+        <h2 style={{ margin: '16px 0 0', fontSize: 18, lineHeight: 1.35, fontWeight: 800, color: '#fff' }}>
+          {t.promise}
         </h2>
 
         {/* 4 — O PREÇO, montado em runtime a partir de lib/checkoutPricing. */}

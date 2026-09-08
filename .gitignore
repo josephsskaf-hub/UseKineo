@@ -28,3 +28,5 @@ tsconfig.*.json
 # docs/PUSH-SEM-O-FUNDADOR-2026-08-31.md). NUNCA pode ser commitado.
 .kineo-push-credentials
 .kineo-push-credentials.*
+porta-v2-preview.html
+porta-v2-celular.html

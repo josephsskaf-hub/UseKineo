@@ -348,6 +348,30 @@ check('as três línguas trocam a frase, e nenhuma delas carrega preço', () => 
     assert.ok(html.includes(fee), 'a moeda sumiu em ' + lang)
   }
 })
+// A trava do defeito que o OLHO achou e as asserções não: `CARD_ENTRY_COPY` é
+// uma constante de copy, não passa pelo dicionário de interface. Renderizá-la
+// aqui devolve um parágrafo em INGLÊS para quem escolheu espanhol ou hindi — e,
+// de quebra, repete o preço da linha de baixo e empurra o botão para fora da
+// dobra do celular. Nenhum texto longo da tela pode vir de lá.
+check('o título da folha é traduzido — nada de copy travada em inglês', () => {
+  const en = renderDoor({ language: 'en' }).html
+  const es = renderDoor({ language: 'es' }).html
+  const hi = renderDoor({ language: 'hi' }).html
+  const titulo = (html) => (html.match(/<h2[^>]*>([\s\S]*?)<\/h2>/) ?? [, ''])[1]
+  assert.ok(titulo(en).length > 0, 'a folha ficou sem título')
+  assert.notEqual(titulo(es), titulo(en), 'o título não muda em espanhol')
+  assert.notEqual(titulo(hi), titulo(en), 'o título não muda em hindi')
+  for (const [lang, html] of [['es', es], ['hi', hi]]) {
+    assert.ok(!html.includes(entry.CARD_ENTRY_COPY.headline), 'headline em inglês renderizada em ' + lang)
+    assert.ok(!html.includes(entry.CARD_ENTRY_COPY.sentence), 'sentence em inglês renderizada em ' + lang)
+  }
+})
+check('o título não repete o preço que a linha de preço já diz', () => {
+  const titulo = (renderDoor().html.match(/<h2[^>]*>([\s\S]*?)<\/h2>/) ?? [, ''])[1]
+  assert.ok(!titulo.includes('$'), 'preço dentro do título: ' + titulo)
+  assert.ok(!/\d/.test(titulo), 'número dentro do título: ' + titulo)
+})
+
 check('a impressão NÃO é emitida por renderizar no servidor', () => {
   const { events } = renderDoor()
   assert.equal(events.length, 0, 'SSR disparou telemetria de impressão')
