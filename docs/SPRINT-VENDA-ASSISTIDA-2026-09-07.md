@@ -2153,3 +2153,96 @@ aqui?" não tem resposta. **(b)** Dar um limite de tempo à `OUTRAS_CAMPANHAS`
 tendo recebido a carta da temporada há um mês. Isso devolve ~74 pessoas ao
 alcance do único remédio que fala em 30 minutos — sem escrever uma linha de
 copy nova.
+
+#### #15b — 00:35 BRT — O CONSERTO SAIU NA MESMA ROTAÇÃO (SHA `d72831f4`, EM PRODUÇÃO)
+
+Ainda deu tempo da metade barata da jogada. A exclusão *"já entrou em outra
+campanha"* do `send-checkout-hot-nudge` **deixou de ser eterna**: passa a
+valer por **7 dias** (`OUTRAS_CAMPANHAS_JANELA_DIAS`), com o corte aplicado
+na própria consulta (`.gte('created_at', corteOutrasCampanhas(agora))`) e
+publicado no dry-run, para a tela de aprovação parar de esconder a regra que
+decide. **Efeito medido na coorte de hoje: de 25 alcançáveis para ~99.**
+
+**As cinco travas que NÃO se mexeram** — e o guardião prova uma a uma que
+nenhuma afrouxou junto: supressão de 24h da casa, carimbo `SENT_EVENT`
+1×-para-sempre, opt-out, os 4 contatos proibidos, e o filtro de pagante.
+Nenhuma delas ganhou prazo. O que ficou mais largo foi só a exclusão que não
+protegia ninguém — protegia uma carta de agosto.
+
+**Guardião:** `scripts/test-hot-nudge-janela-campanhas.mjs`, **26 verificações,
+26 verdes**, amarradas à chamada que decide. `tsc` verde (exit 0). Falsifiquei
+por mutação **com o commit feito antes**, e os quatro mutantes **aplicaram de
+verdade** (conferido por hash do arquivo, não por fé) e derrubaram verificações
+diferentes:
+
+| mutação | resultado |
+|---|---|
+| tirar o corte (voltar à exclusão eterna) | 🔴 24/26 |
+| janela de 100 anos (eterna disfarçada) | 🔴 24/26 |
+| dar prazo também ao carimbo 1×-para-sempre | 🔴 25/26 |
+| aritmética do corte em minutos, não em horas | 🔴 25/26 |
+| restaurado | ✅ 26/26 |
+
+**Suíte inteira rodada antes de publicar** (434 guardiões, ~4 min): **94
+vermelhos, todos anteriores a esta entrega** — a amostra que abri morre em
+`Missing RUNWAY_API_KEY` e em asserções sem relação. Os **dois** guardiões que
+leem o arquivo que eu toquei — o meu e o `test-checkout-hot-nudge.mjs` da pista
+irmã — estão **verdes**. Fica o registro para quem for medir depois: 94 de 434
+vermelhos é um número que merece uma rotação só dele, e não é ruído meu.
+
+---
+
+## 🏁 FECHAMENTO DA JANELA — 07/09 17:00 → 08/09 01:00 BRT
+
+| | |
+|---|---|
+| pessoas com quem a casa falou | **39** (30 da lista A + 9 afiliados) |
+| voltaram ao site | **0** |
+| pagaram | **0** |
+| responderam | **0** |
+| rascunhos esperando você | **7** (Autopilot) + **2** (diretórios) |
+| entregas em produção nesta rotação | **2** — `0044fccf` (medição) e `d72831f4` (conserto) |
+
+**O saldo honesto da noite:** a casa passou a falar com as pessoas uma a uma, e
+nenhuma respondeu. Mas as duas últimas rotações explicaram o zero, e a
+explicação não é "e-mail não funciona". É que a casa estava mirando errado de
+dois jeitos ao mesmo tempo: falava com **intenção de 23 dias** (consertado na
+#14) e, quando ia falar com quem está quente, **75% dessa gente estava calada
+para sempre por uma carta antiga** (consertado agora) — e a metade restante
+**não tem nome nenhum** (medido agora, ainda por consertar).
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+1. **Enviar os 7 rascunhos do Autopilot** — `docs/RASCUNHOS-AUTOPILOT-2026-09-07.md`.
+   São os $299, é a única lista que pede conversa humana, e é a de maior valor
+   parada na mesa.
+2. **Enviar os 2 rascunhos de diretório** — `docs/RASCUNHOS-DIRETORIOS-2026-09-07.md`.
+3. **Corrigir a ficha do TAAFT**: ainda diz "from $9.90/mo" e trial de 40
+   créditos. A porta de hoje é **$1 por 7 dias**.
+4. **Decisão sua:** as strings de `lib/freeTierOffer.ts` que prometem *"every
+   engine unlocked, including Kling 3"* para 25 créditos (o Kling 3 custa 150).
+
+## 📋 O QUE ACONTECEU
+
+Você pediu um caminho diferente para trazer cliente novo, porque a casa está há
+dois dias sem assinante. A noite tentou o caminho de falar com as pessoas uma a
+uma — e o resultado imediato foi zero. O que ela descobriu vale mais que o zero:
+**a casa vinha escrevendo para quem já tinha desistido há semanas, e estava
+proibida de escrever para quem estava quente.** As duas coisas foram
+consertadas e estão no ar. A carta de amanhã de manhã (13:12 UTC) já sai pela
+ordem nova, para quem tentou comprar mais recentemente.
+
+E ficou de pé um problema maior, que eu não consertei porque a janela fechou e
+porque ele merece ser feito direito: **quase metade de quem aperta o botão de
+comprar nesta casa não deixa nome nenhum** — nem `user_id`, nem `session_id`.
+Sete pessoas apertaram comprar entre ontem à noite e agora. Nenhuma delas pode
+receber e-mail, entrar num funil, ou sequer ser contada. Enquanto isso for
+verdade, metade do dinheiro que bate na porta some sem deixar endereço, e
+nenhuma carta nova — por melhor que seja — alcança essa metade.
+
+**A primeira jogada da próxima janela, e ela é de instrumentação, não de copy:**
+fazer o `checkout_attempted` anônimo carregar o `session_id` do navegador e o
+`ip_hash`. É barato, não muda nada para o cliente, e transforma a maior coorte
+cega da casa em gente que dá para contar — e depois alcançar. Sem isso, todo
+número que a casa produzir sobre "quantos clientes perdemos no checkout" está
+errado por um fator de dois.
