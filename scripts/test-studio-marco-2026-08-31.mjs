@@ -23,14 +23,22 @@ function check(name, cond) {
 
 console.log('\n1) A fonte studio_milestone existe e e a mesma mecanica do vencedor')
 check('union tem studio_milestone', /\|\s*'studio_milestone'/.test(series))
-check('o /studio usa o MESMO helper do /history', /buildSeriesContinuationHref/.test(studio) && /buildSeriesContinuationHref/.test(history))
-check('import do helper no StudioClient', /from '@\/lib\/seriesContinuation'/.test(studio))
+// KINEO-REANCORA-MARCO-2026-09-07 — as tres travas exigiam a chamada DIRETA a
+// buildSeriesContinuationHref no StudioClient. O commit 9448d2ef (Codex, 05/09)
+// passou /studio e /history a chamarem o adaptador buildStudioSeriesReviewHref,
+// que por dentro chama a MESMA funcao canonica com a MESMA source. A intencao —
+// as duas telas usam o MESMO mecanismo, e o /studio nao inventa logica de tema —
+// continua valendo, uma camada acima.
+const adaptador = readFileSync(join(root, 'lib/navigation/studioSeriesReview.ts'), 'utf8')
+check('o /studio usa o MESMO helper do /history', /buildStudioSeriesReviewHref/.test(studio) && /buildStudioSeriesReviewHref/.test(history))
+check('o adaptador deriva do escritor canonico', adaptador.includes('buildSeriesContinuationHref(topic, source'))
+check('import do adaptador no StudioClient', /from '@\/lib\/navigation\/studioSeriesReview'/.test(studio))
 check('nenhuma logica de tema nova foi inventada no /studio', !/next episode in the same Short series/.test(studio))
 
 console.log('\n2) O marco aparece no /studio, e so para quem ja tem video')
 check('bloco gated por myVids.length > 0', /myVids\.length > 0 && \(/.test(studio))
 check('CTA "Build next episode"', /Build next episode/.test(studio))
-check('o CTA leva o tema do video mais recente', /buildSeriesContinuationHref\(myVids\[0\]\?\.title, 'studio_milestone'\)/.test(studio))
+check('o CTA leva o tema do video mais recente', /buildStudioSeriesReviewHref\(myVids\[0\]\?\.title, 'studio_milestone'\)/.test(studio))
 check('promete o que entrega: tema pre-escrito', /the idea comes pre-written/.test(studio))
 check('o marco vem ANTES da fileira de miniaturas', (() => {
   const marco = studio.indexOf('Build next episode')
