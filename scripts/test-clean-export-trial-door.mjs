@@ -201,16 +201,22 @@ const mutants = [
     breaks: (m) => /this film clean/i.test(
       m.decideCleanFilmTrialDoor({ ...BASE, unlocksCurrentFilm: false }).buttonLabel || ''),
   },
+  // ⚠️ Estas duas travas MUDARAM DE ENDERECO na mesma noite: a outra sessao da
+  // pista (fv-r9 do modal de fim de trial) extraiu o miolo para
+  // `decideTrialDoorOffer`, compartilhado pelas duas superficies. As ancoras
+  // seguem o codigo; o que se exige delas continua identico — mutadas, a porta
+  // tem de mentir. Foi o proprio guardiao que apontou a mudanca, recusando-se a
+  // passar com a mutacao nao escrita.
   {
-    label: 'esquecer quem ja pagou',
-    from: "if (input.hasPaid) return blocked('already_paid')",
-    to: "if (false) return blocked('already_paid')",
+    label: 'esquecer quem ja pagou (nucleo compartilhado)',
+    from: "  if (input.hasPaid) {\n    return { visible: false, reason: 'already_paid', buttonLabel: null, priceNote: null }\n  }",
+    to: '  if (false) {\n    return { visible: false, reason: \'already_paid\', buttonLabel: null, priceNote: null }\n  }',
     breaks: (m) => m.decideCleanFilmTrialDoor({ ...BASE, hasPaid: true }).visible === true,
   },
   {
-    label: 'chutar preco sem moeda resolvida',
-    from: "if (!input.entryFeeLabel || !input.monthlyLabel) return blocked('price_unresolved')",
-    to: "if (false) return blocked('price_unresolved')",
+    label: 'chutar preco sem moeda resolvida (nucleo compartilhado)',
+    from: "  if (!input.entryFeeLabel || !input.monthlyLabel) {\n    return { visible: false, reason: 'price_unresolved', buttonLabel: null, priceNote: null }\n  }",
+    to: '  if (false) {\n    return { visible: false, reason: \'price_unresolved\', buttonLabel: null, priceNote: null }\n  }',
     breaks: (m) => m.decideCleanFilmTrialDoor({ ...BASE, entryFeeLabel: null }).visible === true,
   },
 ]

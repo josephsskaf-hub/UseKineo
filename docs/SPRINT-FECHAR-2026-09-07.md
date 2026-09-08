@@ -1922,3 +1922,20 @@ tiveram uma única chance de aparecer para alguém, e digo isso com o número na
 mão em vez de contar como vitória. O que a janela trouxe de concreto: duas
 pessoas tiveram o trial vencido agora — são exatamente as primeiras candidatas à
 porta de $1 que entrou na última hora, se voltarem à tela.
+
+**ADENDO AO #9b (21:20 BRT) — a outra sessão mexeu no meu módulo e o guardião
+avisou.** Enquanto eu media, a outra sessão da pista publicou a própria `fv-r9`
+(a porta de $1 no modal de fim de trial) e **extraiu o miolo de
+`lib/growth/cleanFilmTrialDoor.ts` para um núcleo compartilhado**
+(`decideTrialDoorOffer`). O trabalho dela é bom e a decisão é a certa — é o
+oposto de recopiar a regra. Rodei os seis guardiões na ponta com as duas
+entregas juntas: **cinco verdes e o meu vermelho**, com a mensagem exata
+*"a mutação não foi escrita"* — duas travas (quem já pagou / sem moeda
+resolvida) **mudaram de endereço** e as minhas âncoras ficaram apontando para o
+vazio. O comportamento nunca quebrou; **as verificações de comportamento
+passaram as duas vezes**. Reancorei no núcleo novo, **sem afrouxar nada**: o que
+se exige continua sendo que, mutadas, as travas deixem a porta mentir.
+`HOST_BOXES` sobreviveu intacto e `test-clean-export-trial-door` voltou a
+**47/47**; os outros cinco seguem verdes e o `tsc` limpo. **É a segunda vez hoje
+que um guardião de mutação paga o próprio custo** — o falso verde teria sido
+"tudo certo" enquanto duas travas de dinheiro estavam sem teste.
