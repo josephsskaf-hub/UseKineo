@@ -276,5 +276,53 @@ mutante(
   },
 )
 
+console.log('\n── 12. O GATILHO: a carta sai sozinha, e o relogio dela nao pisa em ninguem')
+{
+  ok(/function autorizadoPorCron/.test(src), 'a rota aceita o gatilho automatico da casa (CRON_SECRET)')
+  ok(/if \(!cronSecret\) return false/.test(src), 'fail-closed: env ausente NAO abre a rota')
+  ok(/const porCron = autorizadoPorCron\(req\)[\s\S]{0,200}if \(!porCron\) \{/.test(src), 'sem o segredo, a rota ainda exige admin logado')
+  const vercel = JSON.parse(read('vercel.json'))
+  const meu = (vercel.crons ?? []).filter((c) => String(c.path).includes('send-second-try-1usd'))
+  ok(meu.length === 1, 'a carta tem UMA entrada de cron, nao duas')
+  ok(/confirm=SEND/.test(meu[0]?.path ?? ''), 'o cron dispara de verdade (confirm=SEND)')
+  ok(/limit=30/.test(meu[0]?.path ?? ''), 'e respeita o teto de 30 por disparo')
+  // MEMORIA `cron-no-mesmo-minuto-nao-tem-ordem`: dois jobs no MESMO minuto nao
+  // tem ordem, e a supressao comum cala justamente a carta rara. A folga de
+  // 5 min daquela memoria e IMPOSSIVEL nesta casa — `demo-render` roda `*/5`,
+  // entao nenhum minuto do relogio fica a mais de 2 minutos de algum job. O que
+  // esta trava exige e o que de fato se pode exigir: NENHUMA coincidencia exata
+  // de minuto com um job que possa rodar na mesma hora.
+  const minutosDe = (expr) => {
+    const campo = String(expr).split(' ')[0]
+    if (campo === '*') return Array.from({ length: 60 }, (_, i) => i)
+    const out = new Set()
+    for (const parte of campo.split(',')) {
+      const passo = parte.startsWith('*/') ? Number(parte.slice(2)) : null
+      if (passo) { for (let i = 0; i < 60; i += passo) out.add(i) } else out.add(Number(parte))
+    }
+    return [...out]
+  }
+  const horasDe = (expr) => {
+    const campo = String(expr).split(' ')[1] ?? '*'
+    if (campo === '*') return Array.from({ length: 24 }, (_, i) => i)
+    const out = new Set()
+    for (const parte of campo.split(',')) {
+      const passo = parte.startsWith('*/') ? Number(parte.slice(2)) : null
+      if (passo) { for (let i = 0; i < 24; i += passo) out.add(i) } else out.add(Number(parte))
+    }
+    return [...out]
+  }
+  const meusMin = new Set(minutosDe(meu[0]?.schedule ?? ''))
+  const minhasH = new Set(horasDe(meu[0]?.schedule ?? ''))
+  const colisoes = []
+  for (const c of vercel.crons ?? []) {
+    if (String(c.path).includes('send-second-try-1usd')) continue
+    const mesmoMin = minutosDe(c.schedule).some((m) => meusMin.has(m))
+    const mesmaHora = horasDe(c.schedule).some((h) => minhasH.has(h))
+    if (mesmoMin && mesmaHora) colisoes.push(String(c.path).split('?')[0])
+  }
+  ok(colisoes.length === 0, `nenhum job compartilha minuto E hora com a carta (colisoes: ${colisoes.join(', ') || 'nenhuma'})`)
+}
+
 console.log(`\n${n - fail} ok / ${fail} falhas`)
 process.exit(fail === 0 ? 0 : 1)

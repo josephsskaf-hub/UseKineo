@@ -92,6 +92,21 @@ function proibido(email: string): boolean {
   return CONTATOS_PROIBIDOS.some((c) => e.includes(c))
 }
 
+/**
+ * Gatilho automático — MESMO contrato das outras campanhas de admin da casa
+ * (`send-next-episode-wall`, `send-card-declined`, `send-checkout-hot-nudge`):
+ * o Vercel manda `Authorization: Bearer ${CRON_SECRET}` nas rotas listadas no
+ * `vercel.json`, então ninguém precisa conhecer o segredo para a carta sair.
+ *
+ * FAIL-CLOSED de propósito: env ausente → `false`. Uma rota que manda e-mail
+ * para dezenas de pessoas nunca fica pública porque uma variável se perdeu.
+ */
+function autorizadoPorCron(req: NextRequest): boolean {
+  const cronSecret = process.env.CRON_SECRET
+  if (!cronSecret) return false
+  return req.headers.get('authorization') === `Bearer ${cronSecret}`
+}
+
 /** Os três nomes de evento que significam "esta pessoa foi ao checkout". */
 const CHECKOUT_INTENT = ['checkout_started', 'checkout_attempted', 'checkout_cta_clicked']
 
@@ -161,10 +176,13 @@ usekineo.com`
 
 export async function GET(req: NextRequest) {
   try {
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    const adminEmail = (user?.email ?? '').toLowerCase()
-    if (!user || !ADMIN_EMAILS.has(adminEmail)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const porCron = autorizadoPorCron(req)
+    if (!porCron) {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      const adminEmail = (user?.email ?? '').toLowerCase()
+      if (!user || !ADMIN_EMAILS.has(adminEmail)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
     const resendKey = process.env.RESEND_API_KEY
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL
     const svc = process.env.SUPABASE_SERVICE_ROLE_KEY
