@@ -11,7 +11,7 @@ const env={VIDEO_SHARE_SECRET:'synthetic-share-secret-for-local-tests',NEXT_PUBL
 function load(file,imports={},environment=env){
  const exports={}
  const code=ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:1,target:9}}).outputText
- vm.runInNewContext(code,{exports,require:id=>{if(id in imports)return imports[id];throw Error('Unapproved import '+id)},process:{env:environment},URL,URLSearchParams,Buffer,console:{log(){},error(){}},Date},{timeout:5000})
+ vm.runInNewContext(code,{exports,require:id=>{if(id in imports)return imports[id];throw Error('Unapproved import '+id)},process:{env:environment},URL,URLSearchParams,Headers,Buffer,console:{log(){},error(){}},Date},{timeout:5000})
  return exports
 }
 class Reply extends Response {
@@ -19,6 +19,18 @@ class Reply extends Response {
  static json(body,opts={}){return new Reply(JSON.stringify(body),{status:opts.status??200,headers:opts.headers})}
 }
 const next={'next/server':{NextResponse:Reply}}
+// KINEO-SANDBOX-IMPORT-2026-09-07 — em 07/09 o commit `4d2ad170` somou
+// `import { clientIp, hashIp, isLikelyBot } from '@/lib/gptHandoffStore'` a
+// `app/api/events/route.ts`. A caixa de areia deste guardiao so aceita imports
+// da lista, entao ele passou a ESTOURAR com "Unapproved import" ANTES da
+// primeira verificacao — ou seja, a trava que decide QUAIS eventos um chamador
+// anonimo pode inserir parou de rodar, calada, num commit de outra pista.
+//
+// Os tres helpers sao INCIDENTAIS ao que este arquivo julga (carimbo de origem,
+// nao autorizacao), entao entram como coto inerte e conservador: sem IP, sem
+// hash e "nao e robo". Se um dia a autorizacao passar a DEPENDER de um deles, o
+// coto tem de sair daqui e virar a funcao real — e este comentario e o aviso.
+const handoffStub={'@/lib/gptHandoffStore':{clientIp:()=>null,hashIp:()=>null,isLikelyBot:()=>false}}
 const shares=load('lib/videoShareLink.ts',{crypto})
 const id='11111111-1111-4111-8111-111111111111',other='22222222-2222-4222-8222-222222222222'
 const now=Date.now(), signed=shares.mintShareConfirmation(id,'publish',now)
@@ -97,8 +109,16 @@ for(const user of [null,{email:'outside@example.invalid'},{email:'josephsskaf@gm
 }
 for(const name of ['payment_success','video_published_v1','video_unpublished_v1','library_recent_project_opened']){
  let inserted=0
- const mod=load('app/api/events/route.ts',{...next,'@/lib/supabase/server':{createClient:()=>({auth:{getUser:async()=>({data:{user:null}})}})},'@supabase/supabase-js':{createClient:()=>({from:()=>({insert:async()=>{inserted++;return {error:null}}})})}})
- await mod.POST({nextUrl:{hostname:'www.usekineo.com'},json:async()=>({name})})
+ const mod=load('app/api/events/route.ts',{...next,...handoffStub,'@/lib/supabase/server':{createClient:()=>({auth:{getUser:async()=>({data:{user:null}})}})},'@supabase/supabase-js':{createClient:()=>({from:()=>({insert:async()=>{inserted++;return {error:null}}})})}})
+ // O pedido falso NAO tinha `headers`. Enquanto a rota nao lia cabecalho isso
+ // era inofensivo; com o carimbo de origem de 07/09 ela chama
+ // `req.headers.get('user-agent')` DIRETO, e o pedido sem cabecalho passou a
+ // estourar por dentro — o resultado era `inserted=0` para os QUATRO nomes,
+ // inclusive o inofensivo, e a suite lia isso como "evento reservado bloqueado".
+ // Verde por acidente nos tres primeiros e vermelho no quarto: a trava deixou de
+ // provar a autorizacao e passou a provar um TypeError. Agora o pedido falso tem
+ // cabecalhos de verdade, como o Next entrega.
+ await mod.POST({nextUrl:{hostname:'www.usekineo.com'},headers:new Headers({'user-agent':'Mozilla/5.0 (teste)'}),json:async()=>({name})})
  eq(inserted,name==='library_recent_project_opened'?1:0,'authoritative events reserved; harmless analytics works')
 }
 console.log(`Sharing safety: ${checks} checks passed; no network, live data or credentials.`)
