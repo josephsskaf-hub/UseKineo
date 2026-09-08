@@ -1595,3 +1595,141 @@ existe uma entrada de $1 que nenhum diretório do mundo sabe que existe. Um
 "changelog de preço" enviado a diretórios é distribuição gratuita que não
 depende de o sócio ter audiência — e é a única alavanca do dia que não pede
 nada de ninguém além de um e-mail.
+
+---
+
+### #12 — 23:00 BRT — a carta funciona e ninguém clicou ainda; a caixa de respostas não existe; e dois sócios de diretório receberam o pedido errado
+
+**O que eu vim conferir.** A carta das 22:12 saiu para 30 pessoas. A pergunta
+da rotação não era "deu certo?" (40 minutos não respondem isso) e sim **"o
+caminho está de pé para as 24 que ainda vão receber amanhã às 10:12?"** — porque
+o carimbo é 1×-para-sempre: se o link estiver quebrado, a coorte inteira se
+queima e não há segunda chance.
+
+**Medição da carta, 46 minutos depois do envio:**
+
+| | |
+|---|---|
+| `second_try_1usd_sent` | **30 pessoas**, 01:12–01:13 UTC |
+| voltaram ao site (qualquer evento) | **0** |
+| clicaram o link da carta | **0** |
+| pagaram | **0** |
+
+⚠️ **A primeira medição que eu fiz estava errada e eu a joguei fora.** Cruzei os
+30 por `user_id` — e **clique de caixa de entrada chega deslogado**, sem cookie,
+com `user_id` nulo (memória `clique-de-inbox-chega-sem-cookie`). Um clique
+humano teria ficado invisível. Refiz por **campanha**, que é o campo que
+sobrevive ao deslogado: `intent_campaign`/`utm_campaign` contendo `second_try`
+ou `1usd`, sem join de usuário. **Continua zero, e agora o zero é confiável.**
+Zero às 22h de um domingo, 46 minutos depois do disparo, é *cedo*, não é
+veredito — a coorte tem gente em vários fusos e a rotação seguinte remede.
+
+**O caminho da carta está PROVADO de ponta a ponta, e é o que importa para as
+24 de amanhã.** Sondei a URL exata que saiu no e-mail, com UA de navegador
+(nunca `curl` pelado — memória `sonda-com-ua-de-curl-cai-no-ramo-do-robo`):
+
+| degrau | resultado |
+|---|---|
+| link da carta, deslogado | **307** para `/signup?reason=checkout&redirect=…` com **`trial=1`, `intent_campaign` e os três `utm` intactos** + `resumed=1` |
+| **controle** (rota inexistente, mesma medição) | **404** — a sonda separa |
+| a pessoa já tem conta e cai no `/signup` | a página oferece *"Already have an account? Sign in"* |
+| esse "Sign in" preserva a porta? | **sim** — `loginHref = /login?redirect=<activationRedirect>`, e `activationRedirectFromSearch` devolve o redirect explícito antes de qualquer padrão |
+| o `/login` honra? | **sim** — `resolveAuthRedirect(params.get('redirect'), '/')` |
+| o normalizador não come a query? | **não** — `normalizeInternalRedirect` devolve `pathname + search + hash` |
+
+Ou seja: **carta → porta de $1 → signup → sign in → de volta à porta de $1**.
+A corrente está inteira nos cinco elos. O zero de hoje é ausência de clique,
+não caminho quebrado.
+
+**V4 (digest de respostas) É IMPOSSÍVEL COMO ESTÁ ESCRITO — e eu não construí.**
+O cardápio pedia um cron que listasse as respostas às cartas. Conferi: `reply_to`
+aparece **só na saída** (os 30+ remetentes em `app/api/admin/send-*`), não existe
+nenhuma rota de cron com `inbox`/`reply`/`digest`, e **não há webhook de entrada
+da Resend em lugar nenhum**. As respostas caem na caixa do fundador e **o
+aplicativo nunca as vê**. Um cron construído assim imprimiria zero para sempre, e
+"ninguém respondeu" se lê igual a "a casa é cega" (memória
+`corrida-de-campanha-sem-linha`). **Não subi máquina de zero.** Quem quiser V4 de
+verdade precisa antes de captura de entrada (webhook inbound), que é decisão de
+infraestrutura do fundador — não de código meu.
+
+**O erro que eu peguei tarde demais para consertar, e a escolha que fiz.** A
+carta de sócios dispara às 23:18 BRT. Medindo quem está nela, achei que
+**`colormango.com` e `toolriot.com` NÃO estão suprimidos** — ou seja, os dois
+diretórios de software estão no primeiro lote e vão receber a carta escrita para
+**criador** ("poste para o seu público"), gastando o único tiro do carimbo
+1×-para-sempre no pedido errado. A va-r11 já tinha previsto isso na jogada final
+dela; o que ela não viu é que eles cairiam no **primeiro** lote.
+
+**Decidi NÃO mexer no cron, e o motivo é a régua da casa.** Faltavam 20 minutos:
+código + `tsc` + fila + publicar + deploy (até 6 min) não cabe com segurança, e
+um deploy pousando **no meio** do disparo pode derrubar a carta dos 9. A carta
+genérica também **não é falsa** para um diretório — leva o link deles e leva a
+notícia que interessa (a entrada de $1). Hotfix impulsivo em caminho de cron vivo
+é exatamente o que o `CLAUDE.md` proíbe.
+
+**O que mudou (arquivo novo, rotação sem código): `docs/RASCUNHOS-DIRETORIOS-2026-09-07.md`.**
+Dois rascunhos individuais, para o fundador enviar da caixa dele — a mesma regra
+da lista do Autopilot: **contato B2B merece pessoa, não campanha**. O pedido é o
+que serve a um diretório e que a carta automática não faz: **atualizar a ficha
+do produto**, com a tabela de preço conferida.
+
+⚠️ **E foi conferindo a tabela que apareceu o achado que vale mais que os dois
+e-mails: o `CLAUDE.md` publica preço errado.** Ele ainda descreve a tabela **V5**
+(`$9.90 / $19.90 / $39.90`, trial de 50 créditos) como se fosse vigente. No
+código (`lib/checkoutPricing.ts`, ponta de `origin/main`) a V6 de 19/08 mandou:
+**Starter $7/40cr · Creator $15/90cr · Studio $29/160cr**, trial grátis de **25**
+créditos (`TRIAL_GRANT_CREDITS_COPY = 25`), mais a entrada de **$1 por 7 dias
+com 80 créditos**. **Qualquer sessão que escrever preço a partir do `CLAUDE.md`
+vai publicar dois números que não existem mais** — e foi por pouco que eu não
+mandei "$9.90" para dois diretórios. Não editei o `CLAUDE.md` porque ele não é
+arquivo desta pista; fica registrado no PEDIDOS.
+
+**Quem recebeu:** nenhum envio novo nesta rotação. A carta de sócios (9 pessoas)
+dispara às 23:18 BRT, 20 minutos depois deste registro; a rotação seguinte
+confere pelo carimbo `affiliate_wakeup_1usd_sent`.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+1. **Enviar os 2 rascunhos de `docs/RASCUNHOS-DIRETORIOS-2026-09-07.md`** —
+   `john@colormango.com` e `hello@toolriot.com`. São os dois únicos sócios que
+   são canal de distribuição de verdade, parados desde julho/agosto.
+2. **Corrigir o preço da nossa ficha no TAAFT** (a página é sua): hoje ela
+   anuncia "from $9.90/mo" e trial de 40 créditos — os dois números morreram.
+   O texto pronto para colar está no mesmo arquivo.
+3. **Continua de pé:** os 7 rascunhos de `docs/RASCUNHOS-AUTOPILOT-2026-09-07.md`
+   (os que abriram o checkout de $299).
+4. **Reserve a caixa de entrada de amanhã para DUAS cartas** (os 30 da segunda
+   tentativa e os 9 sócios). As duas pedem resposta e as duas caem em
+   `joseph@usekineo.com` — **e a casa não consegue lê-las sozinha** (não existe
+   captura de entrada). Me mande o texto de qualquer resposta e eu preparo o
+   retorno.
+5. **Decisão sua, herdada da #7:** as quatro strings de `lib/freeTierOffer.ts`
+   que prometem *"every engine unlocked, including Kling 3"* para 25 créditos,
+   quando o Kling 3 custa 150.
+
+## 📋 O QUE ACONTECEU
+
+A carta saiu para 30 pessoas e **ninguém clicou em 46 minutos**. Antes de tratar
+isso como fracasso, conferi a única coisa que ainda dá para salvar: o caminho.
+Ele está inteiro nos cinco elos, do link do e-mail até a porta de $1, inclusive
+no desvio de quem já tem conta e cai no cadastro. **As 24 de amanhã vão para um
+caminho que funciona.** Zero às 22h de domingo, 46 minutos depois do envio, é
+cedo demais para significar alguma coisa.
+
+Duas descobertas valem mais que o placar de hoje. A primeira: **a casa é cega
+para as respostas.** As cartas terminam pedindo "responde e me diz o que
+travou", e não existe nenhum mecanismo que traga essas respostas para dentro —
+o cron que o cardápio pedia imprimiria zero para sempre. Preferi não construir a
+máquina de zero e dizer isso.
+
+A segunda apareceu por acidente, conferindo preço para escrever a dois
+diretórios: **o documento permanente da casa está anunciando a tabela de preço
+antiga**. Eu ia mandar "$9.90/mo" para dois sites que publicam nossa ficha para
+milhares de pessoas. O preço real é $7, e existe uma entrada de $1 que nenhum
+diretório do mundo sabe que existe.
+
+**A próxima jogada:** os 30 e os 9 são a lista inteira que a casa tem — ela
+acaba amanhã. O que não acaba é a ficha: `colormango`, `toolriot` e o TAAFT
+publicam para gente que nunca ouviu falar de nós, e os três estão anunciando um
+preço que é **mais caro do que o real**. Corrigir três fichas é a única alavanca
+do dia que traz gente nova sem depender de mais ninguém abrir e-mail.
