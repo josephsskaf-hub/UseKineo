@@ -178,12 +178,33 @@ checa(
 // ── 4. NADA DE PRODUTO MUDOU NAS TELAS ────────────────────────────────────
 console.log('\n4) As portas continuam levando ao mesmo lugar')
 
+// KINEO-REANCORA-PORTA-SERIE-2026-09-07 — as quatro travas exigiam a chamada
+// DIRETA a `buildSeriesContinuationHref` nas três telas. Em 05/09 o `9448d2ef`
+// (Codex, "prepare archive continuation review without changing offers") passou
+// as três a chamar o adaptador `buildStudioSeriesReviewHref`, que por dentro
+// chama a MESMA função canônica com a MESMA `source`. A porta continua de pé e
+// continua nomeando de onde veio; o que mudou foi a camada. Falsifiquei antes
+// de reancorar: `grep -rn buildSeriesContinuationHref` mostra a função viva em
+// `lib/seriesContinuation.ts` e consumida pelo adaptador — não foi removida.
+// A trava agora exige as duas pontas do fio: a tela chama o adaptador com a
+// source certa, e o adaptador deriva do escritor canônico.
 const ESPERADO_HREF = [
-  ['app/(dashboard)/history/HistoryClient.tsx', "buildSeriesContinuationHref(title, 'history_video_card')"],
-  ['app/(dashboard)/library/LibraryClient.tsx', "buildSeriesContinuationHref(v.title, 'library_video_card')"],
-  ['app/(dashboard)/studio/StudioClient.tsx', "buildSeriesContinuationHref(myVids[0]?.title, 'studio_milestone')"],
-  ['app/(dashboard)/studio/StudioClient.tsx', "buildSeriesContinuationHref(v.title, 'studio_video_tile')"],
+  ['app/(dashboard)/history/HistoryClient.tsx', "buildStudioSeriesReviewHref(title, 'history_video_card')"],
+  ['app/(dashboard)/library/LibraryClient.tsx', "buildStudioSeriesReviewHref(v.title, 'library_video_card')"],
+  ['app/(dashboard)/studio/StudioClient.tsx', "buildStudioSeriesReviewHref(myVids[0]?.title, 'studio_milestone')"],
+  ['app/(dashboard)/studio/StudioClient.tsx', "buildStudioSeriesReviewHref(v.title, 'studio_video_tile')"],
 ]
+{
+  const adaptador = ler('lib/navigation/studioSeriesReview.ts')
+  checa(
+    '4.0 o adaptador deriva do escritor canonico (a porta nao foi reescrita, foi embrulhada)',
+    /const legacy = buildSeriesContinuationHref\(topic, source satisfies SeriesContinuationSource\)/.test(adaptador),
+  )
+  checa(
+    '4.0 o adaptador carrega a MESMA source para o destino',
+    /continuation_source: source/.test(adaptador),
+  )
+}
 for (const [rel, trecho] of ESPERADO_HREF) {
   checa(`4.a ${rel}: href intacto (${trecho.slice(0, 44)}…)`, ler(rel).includes(trecho))
 }
