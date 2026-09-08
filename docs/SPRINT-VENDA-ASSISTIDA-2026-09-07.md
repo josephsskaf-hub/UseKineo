@@ -1891,3 +1891,20 @@ TAAFT — continuam anunciando **$9.90**, um preço 41% mais caro que o real e 1
 a entrada que existe hoje. **Corrigir três fichas é a única alavanca da noite
 que traz gente nova sem depender de ninguém abrir e-mail** — e é a única que
 ainda depende de você, porque as três páginas são suas.
+
+**ADENDO à #13 — EM PRODUÇÃO, SHA `b3f7f5b6` (diário `486229e9`).**
+
+`origin/main` = `486229e9`, fila = 0. Antes de enfileirar, `origin/main` já tinha
+andado sob mim (a sessão A entregou `85b11b38` no meio da minha rotação) —
+refetch antes do `enfileirar.sh`, que rebasou por cima (memória
+`enfileirar-move-o-head-e-a-base-envelhece`).
+
+**SUÍTE INTEIRA, 432 guardiões: 338 verdes / 94 vermelhos.** A ponta anterior
+estava em **337/94** — ou seja, **+1 verde (o meu) e nenhum vermelho novo**.
+Não aceitei isso por aritmética: três dos 94 vermelhos são de AEO
+(`test-aeo-engine-destinations`, `test-gpt-handoff`,
+`test-affiliate-destinations`) e AEO é exatamente o que eu toquei, então
+devolvi meus dois arquivos à versão de `2ecbfc89` e rodei os três de novo:
+**vermelhos ANTES da minha mudança**. São herdados (memória
+`assercao-alheia-vermelha-se-reancora`), não meus. `test-llms-paginas-citadas`
+seguiu verde nas duas pontas.
