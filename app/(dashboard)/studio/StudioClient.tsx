@@ -35,6 +35,7 @@ import { trackEvent } from '@/lib/analytics'
 import { formatLimitCounter, promptLimitState, trimPromptToLimit } from '@/lib/studioPromptLimit'
 import { buildStudioSeriesReviewHref, carryStudioSeriesReview, isStudioSeriesReview } from '@/lib/navigation/studioSeriesReview'
 import { useSeriesDoorSeen } from '@/lib/seriesDoorImpressions'
+import { STUDIO_ONLY_ENGINE_KEYS } from '@/lib/enginePlanGate'
 
 // A chave do card → a Quality que o biller entende. Uma fonte só para os dois
 // (tela e cobrança) evita a classe de bug que este arquivo já teve: custo em
@@ -556,7 +557,7 @@ export default function StudioClient() {
                           queimaram o trial inteiro no primeiro clique sem saber.
                           Agora cada card diz o custo E quantos filmes o saldo compra. */}
                       <span className="t">
-                        <b>{e.name}{e.tag && <span className="tag"><UiLabel>{e.tag}</UiLabel></span>}</b>
+                        <b>{e.name}{e.tag && <span className="tag"><UiLabel>{e.tag}</UiLabel></span>}{STUDIO_ONLY_ENGINE_KEYS.has(e.key) && <span className="tag" title="Studio plan engine"><UiLabel>Studio</UiLabel></span>}</b>
                         <i>{engineCostLabel(e.key)}</i>
                       </span>
                       <span className="d"><UiLabel>{e.desc}</UiLabel></span>

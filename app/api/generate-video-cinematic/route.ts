@@ -151,6 +151,7 @@ import {
   type CinematicClaim,
   type CinematicRequestId,
 } from '@/lib/cinematic/claim'
+import { decideEngineGate, engineGateMessage } from '@/lib/enginePlanGate'
 
 // KINEO-POLL-FATAL-2026-08-17 — era 60. Na noite do fal travado a rota morreu
 // em "Task timed out after 60 seconds" DEPOIS do débito e ANTES do estorno
@@ -1475,7 +1476,7 @@ async function manipularPost(req: NextRequest) {
       // leitura porque trialUiState() precisa dele para o paywall contextual
       // dizer QUANTOS créditos a pessoa teve. O número mora na LINHA, não na
       // constante: um trial ativado antes de um teto novo recebeu outro valor.
-      .select('video_credits, plan, has_paid, trial_status, trial_ends_at, trial_credits_used, trial_credits_granted')
+      .select('video_credits, plan, has_paid, trial_status, trial_ends_at, trial_credits_used, trial_credits_granted, created_at')
       .eq('id', user.id)
       .single()
 
@@ -1564,6 +1565,32 @@ async function manipularPost(req: NextRequest) {
           // alcançada por esta rota. Copy e payload agora dizem a mesma coisa.
           upsell: 'studio',
           reason: trialActive ? 'trial_studio_engine' : 'plan_studio_engine',
+          balance,
+        },
+        { status: 402 },
+      )
+    }
+
+    // KINEO-PLANOS-9-19-29-2026-09-08 — motores caros só do Studio para conta
+    // nova (lib/enginePlanGate.ts). Starter/Creator = Kineo 1 + Seedance; é o
+    // que fecha a margem dos planos de $9/$19. Conta criada antes de
+    // ENGINE_GATE_SINCE não perde nada (grandfather). Roda ANTES de qualquer
+    // reserva de crédito: recusar aqui custa zero.
+    const gateEngineKey = wantsS25 ? 's25' : wantsOmni ? 'omni' : wantsH3 ? 'h3' : wantsHollywood ? 'hollywood' : wantsKling ? 'kling' : wantsVeo ? 'veo' : 'seedance'
+    const engineGate = decideEngineGate({
+      engine: gateEngineKey,
+      plan: planVal,
+      profileCreatedAt: (profile as { created_at?: string | null } | null)?.created_at ?? null,
+    })
+    if (!engineGate.allowed) {
+      console.log(`[cinematic] studio-engine gate: user=${user.id.slice(0, 8)} engine=${gateEngineKey} plan=${planVal}`)
+      return NextResponse.json(
+        {
+          error: engineGateMessage(gateEngineKey),
+          upsell: 'studio',
+          reason: 'studio_engine_plan_gate',
+          requiredTier: 'pro',
+          engine: gateEngineKey,
           balance,
         },
         { status: 402 },
