@@ -101,7 +101,10 @@ check('devolve quantos estão dentro de 7 dias', /within_7d:\s*idades\.filter\(\
 check('devolve quantos passaram de 30 dias', /older_than_30d/.test(fn))
 check(
   'data ilegível NÃO vira idade 0 — é descartada (`Number.isFinite`)',
-  /Number\.isFinite\(d\)/.test(fn),
+  // Exigir a forma `.filter(...)` E negar a forma que a substitui: só
+  // procurar "Number.isFinite" passava verde num mutante que trocava o filtro
+  // por `.map((d) => (Number.isFinite(d) ? d : 0))` — a substring sobrevivia.
+  /\.filter\(\(d\) => Number\.isFinite\(d\)\)/.test(fn) && !/\? d : 0/.test(fn),
 )
 check(
   'quem não tem carimbo é contado à parte em `unknown`, não somado como recente',
