@@ -1205,7 +1205,7 @@ voltam ao que eram sozinhas, sem ninguém precisar lembrar.
 **Hoje quem chega ao fim do trial sem ter conseguido um filme recebe uma carta
 que não promete o que a casa não entrega mais.**
 
-### #10 — 06:06→07:05 BRT — M7: as TELAS mais vistas da casa ainda prometiam "free" e "no card" — 224 pessoas em 7 dias
+### #10 — 06:06→06:30 BRT — M7: as TELAS mais vistas da casa ainda prometiam "free" e "no card" — 224 pessoas em 7 dias
 
 **O que estava errado.** A #9 consertou as **cartas**. Estas são as **telas**, e
 elas estavam piores: as frases eram **JSX cru** — nunca passaram por
@@ -1320,3 +1320,19 @@ uma chave nova.
 
 **Hoje quem chega para ir embora lê o preço certo na mesma tela em que decide —
 e não uma promessa que morreria no clique seguinte.**
+
+**Suíte inteira, medida contra worktree pristina em `origin/main`** (445
+guardiões meus × 444 na base — a diferença é o guardião novo, que lá não
+existe): **107 vermelhos antes, 107 depois, zero regressão e zero conserto
+acidental**. Um deles era meu de verdade e foi consertado antes de publicar:
+`test-exit-intent-variant-probe` (110/110 na base) prendia a **codificação** do
+apóstrofo (`You haven&apos;t tried it yet`) e ficou vermelho quando a manchete
+virou constante. Reancorado pela **frase**, normalizando o apóstrofo, e
+falsificado: apagar a frase de verdade continua deixando-o vermelho.
+`test-free-limit-wall` (6 falhas) é **herdado** — reproduzido idêntico na
+worktree pristina, não encostei nele.
+
+⚠️ Uma leitura errada minha, corrigida antes de virar acusação: na primeira
+comparação apareceram **cinco** vermelhos "só meus" — todos no fim do alfabeto
+(`test-v*`, `test-w*`). O baseline ainda estava rodando (425 de 445). Denominador
+incompleto inventa regressão; a diferença só vale com as duas listas fechadas.
