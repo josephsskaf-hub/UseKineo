@@ -29,12 +29,20 @@ function loadTs(path, mocks = {}) {
 }
 
 const engineCost = loadTs('lib/credits/engineCost.ts')
-const offer = loadTs('lib/freeTierOffer.ts', { './credits/engineCost': engineCost })
+// Idem: entryPolicy entrou em 08/09 e e a fonte unica da porta de $1.
+const entryPolicy = loadTs('lib/entryPolicy.ts')
+const offer = loadTs('lib/freeTierOffer.ts', { './credits/engineCost': engineCost, './entryPolicy': entryPolicy })
 const facts = loadTs('lib/growth/trialAccessFacts.ts')
 
 equal(offer.TRIAL_GRANT_CREDITS_COPY, 25, 'test reads the canonical current grant')
 equal(offer.buildFreeTierOffer(true).reverseTrial, true, 'reverse trial branch is executable')
-equal(offer.buildFreeTierOffer(true).limit, 1, 'recurring post-trial limit comes from the offer')
+// 08/09 (VERSAO B): sob a porta unica nao ha franquia recorrente — limit 0 e a
+// politica, nao um defeito. Lido do mesmo seletor que o produto usa.
+equal(
+  offer.buildFreeTierOffer(true).limit,
+  entryPolicy.CARD_ENTRY_ONLY ? 0 : 1,
+  'recurring post-trial limit comes from the offer',
+)
 
 const engines = [
   ['Kineo 1', 'fast'],

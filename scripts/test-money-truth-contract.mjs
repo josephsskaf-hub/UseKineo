@@ -52,8 +52,13 @@ const marketing = loadTs('lib/marketingPrice.ts', {
   '@/lib/checkoutPricing': checkout,
   '@/lib/credits/engineCost': engine,
 })
+// A porta de entrada (VERSAO B, 08/09) virou dependencia REAL de freeTierOffer.
+// Carregamos o modulo de verdade, nunca um stub: um stub faria o contrato
+// aprovar uma politica que a casa nao aplica.
+const entryPolicy = loadTs('lib/entryPolicy.ts')
 const freeTier = loadTs('lib/freeTierOffer.ts', {
   './credits/engineCost': engine,
+  './entryPolicy': entryPolicy,
 })
 const comparisons = loadTs('lib/comparisons.ts', {
   '@/lib/checkoutPricing': checkout,
@@ -129,12 +134,15 @@ for (const [id, credits] of Object.entries({
 }
 
 check('trial traduz grant pelo custo Seedance de 60s', () => {
+  // 08/09: sob a porta unica de $1 o grant em vigor e CARD_ENTRY_TRIAL_CREDITS,
+  // nao o espelho historico TRIAL_GRANT_CREDITS_COPY. A verificacao passa a ler
+  // O MESMO seletor que o codigo usa — se a porta mudar, ela acompanha sozinha.
+  const grantEmVigor = entryPolicy.CARD_ENTRY_ONLY
+    ? entryPolicy.CARD_ENTRY_TRIAL_CREDITS
+    : freeTier.TRIAL_GRANT_CREDITS_COPY
   assert.equal(
     freeTier.TRIAL_FILMS,
-    Math.floor(
-      freeTier.TRIAL_GRANT_CREDITS_COPY /
-        engine.creditCostForDuration('cinematic_ai', true, 60),
-    ),
+    Math.floor(grantEmVigor / engine.creditCostForDuration('cinematic_ai', true, 60)),
   )
 })
 
@@ -143,7 +151,9 @@ check('valor de créditos no Creator deriva de preço e grant canônicos', () =>
     marketing.planCreditSpendUsd('basic', 10),
     (checkout.TIER_PRICES.basic.usd / 100) * (10 / checkout.TIER_CREDITS.basic),
   )
-  assert.equal(marketing.formatUsd(marketing.planCreditSpendUsd('basic', 10)), '$1.67')
+  // Alarme proposital: com Creator a $19/150cr, 10 creditos valem $1.27. Se o
+  // preco ou o grant do Creator mudarem, esta linha fica vermelha DE PROPOSITO.
+  assert.equal(marketing.formatUsd(marketing.planCreditSpendUsd('basic', 10)), '$1.27')
 })
 
 check('checker canônico de pricing fica verde', () => {
