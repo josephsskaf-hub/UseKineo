@@ -1935,3 +1935,188 @@ aceitou.
 O conserto está escrito, testado (26 verificações, 7 mutações, `tsc` verde) e
 **não subiu**: ele toca um arquivo que a sua trava de qualidade de 03/09
 protege. Preferi te entregar a decisão do que decidir por você às oito da manhã.
+
+---
+
+### #14 — 08:06→08:3X BRT — M5: a carta que socorre quem apertou e não saiu filme procurava um evento que o motor gratuito nunca emite
+
+**Onde esta rotação começou.** A #13 mediu o funil dos 80 sem filme e nomeou
+dois degraus secos: **51→32** (chegou ao Studio e não apertou — resolvido lá) e
+**24→0** (apertou e não recebeu nada). Vim para o segundo.
+
+**O que estava errado.** Refiz a conta por pessoa, 7 dias, contas externas:
+
+    184 pessoas despacharam
+    158 receberam filme .................... 86%
+     26 não receberam nada
+        · 15 têm erro registrado (foram avisadas)
+        · 11 NÃO TÊM ERRO NENHUM  ← estas somem em silêncio
+
+Das 11, **9 não têm sequer `generation_dispatch_received`** — o evento que o
+servidor grava na entrada da rota, antes de qualquer trabalho caro. Ou seja: o
+POST **morreu dentro do navegador** e o servidor nunca soube que existiu. A
+impressão digital delas é sempre a mesma — `render_wait_backgrounded` /
+`render_wait_abandoned` segundos depois do clique, ou uma navegação para outra
+página (`agency_bulk_page_viewed`, `landing_session_started`,
+`organic_signup_handoff_viewed`) com o render em voo.
+
+**A casa já tem uma carta escrita exatamente para elas.** `attemptLostText()`
+diz, literalmente: *"The tab closed before our engine picked the job up, so
+nothing was ever made — and nothing was charged."* Tem assunto, HTML,
+unsubscribe, prefill, opt-out, cron de 15 em 15 minutos desde 04/09.
+
+E ela **nunca saiu**. `attempt_lost_rescue_sent`: **zero linhas na história
+inteira.**
+
+**Por que — e são dois motivos somados, não um.** Fui atrás antes de escrever
+código, porque zero pode ser coorte vazia legítima (memória
+`corrida-de-campanha-sem-linha`):
+
+1. o detector procura `generation_attempt_opened` **sem**
+   `generation_attempt_closed`. Esse par é emitido em **um arquivo só** —
+   `git grep` devolve `app/api/generate-video-cinematic/route.ts:2017` e mais
+   nada. **O Fast não emite nenhum dos dois** — e o Fast é o motor padrão, o
+   único gratuito, o de maior volume do funil (palavras do próprio código) e o
+   motor de **todas** as pessoas que essa carta descreve. Elas nunca tiveram um
+   `opened` para ficar aberto;
+2. e mesmo **dentro** do cinematográfico a coorte é vazia: **61 abertos e 61
+   fechados** na história inteira. "Aberto sem fechado" nunca teve um único
+   elemento, nem uma vez.
+
+Não era a decisão, não era a copy, não era o agendamento. Era o detector
+olhando para um lugar onde a coorte, por construção, não pode aparecer.
+
+**O irmão do lado, que eu também conferi e que NÃO é defeito.** A
+`/api/next-action` tem um estado `attempt_lost` para a mesma gente, com o
+predicado **certo** (`video_generation_started` + nenhum filme + 45 min). Ele
+também nunca apareceu: `next_action_served` tem 60 servidas em `first_film`,
+17 em `can_continue`, 13 em `dry` e **0 em `attempt_lost`**. Testei se era bug
+replicando o predicado em SQL contra as 60 servidas reais:
+
+    servidas com estado first_film ................. 60
+    dessas, com alguma tentativa anterior ........... 8
+    dessas 8, com tentativa de 45 min ou mais ....... 0   ← nenhuma qualificaria
+
+**O card não está quebrado: ele não tem plateia.** Ele só desenha quando a
+pessoa está *na página*, e as pessoas que ele socorre foram embora e não
+voltaram (memória `uma-sessao-por-pessoa`). Para essa coorte, e-mail é a única
+superfície possível — o que torna o detector cego da Fase 5 o problema real, e
+não uma dupla redundante. **Não mexi no card**, de propósito.
+
+**O que mudou (SHA `944c2d0f`).** Em
+`app/api/cron/finish-stranded-renders/route.ts`, a Fase 5 passa a ler o sinal
+de perda que existe em **todos** os motores — `video_generation_started`,
+evento de cliente, 112 em 3 dias, 100% com `session_id` — que é **o mesmo** que
+a `/api/next-action` já usa. Copy, janela (20 min a 24h), teto por rodada,
+opt-out, conta interna/descartável e "só quem nunca recebeu filme" ficam
+idênticos.
+
+Duas travas novas, as duas por um motivo específico:
+
+* **quem viu tela de erro fica fora.** A carta afirma *"nothing was ever made"*;
+  para quem recebeu erro explícito e estorno isso seria uma segunda versão dos
+  fatos, e quem responde a essa pessoa é a campanha de failure-recovery.
+  Fail-closed: leitura que falha não vira carta;
+* **o dedupe "uma vez por pessoa, para sempre" passa a exigir `sent = true`**
+  em vez da mera existência da linha. Sem isso, medir **queimaria a coorte**:
+  cada pessoa carimbada hoje ficaria bloqueada para sempre e a carta continuaria
+  sem sair no dia em que o envio fosse ligado — o remédio se desarmaria sozinho
+  ao ser medido (memória `sentinela-lido-como-valor-real`).
+
+**⛔ O ENVIO NASCE DESLIGADO, e isso é decisão, não esquecimento.**
+`ATTEMPT_LOST_SEND_ENABLED = false`. O limite escrito desta rotina é **"nenhum
+e-mail sai"**, e a coorte real nunca tinha sido vista por ninguém — ligar
+detector e envio no mesmo commit mandaria a **primeira carta da história** para
+uma lista que ninguém conferiu, às oito da manhã, com você dormindo. Desligado,
+cada candidato vira uma linha `attempt_lost_rescue_candidate` com
+`would_send: true`: dá para contar quem receberia, **por nome**, antes de
+qualquer carta sair. Nome de evento próprio de propósito —
+`attempt_lost_rescue_sent` quer dizer "a carta saiu" e não pode passar a querer
+dizer "a carta sairia".
+
+**Quem receberia, medido agora** (predicado do cobrador replicado em SQL contra
+as linhas reais):
+
+    janela real do cron (24h) ......... 1 pessoa
+    mesmo predicado em 7 dias ........ 12 pessoas, 12 tentativas
+
+Ou seja **~1-2 por dia**. Não é uma enchente e eu não vou vendê-la como uma:
+é a cauda que hoje some sem deixar rastro. Uma das 12 é de e-mail descartável
+(`tecorix`) e o `isInternalOrJunkEmail` do próprio cron a corta — o meu SQL não
+replicou esse filtro, então o número real é **11**.
+
+**Prova.** `scripts/test-tentativa-perdida-ve-o-fast-2026-09-08.mjs`, **24
+verificações** em estilo `readFileSync`/contagem, todas passando por
+`semComentarios()`. **8 mutações, 8 vermelhas**, cada uma provada por `grep` do
+texto inserido antes de eu ler o resultado — nunca por md5, que muda sozinho num
+checkout CRLF:
+
+    detector volta ao evento do cinematográfico ....... VERMELHO
+    envio nasce ligado ............................... VERMELHO
+    dedupe volta a contar a LINHA (queima a coorte) ... VERMELHO
+    carimbo de medição mente dizendo "sent" .......... VERMELHO
+    quem viu erro volta a receber a carta ............. VERMELHO
+    exclusão por erro deixa de ser fail-closed ........ VERMELHO
+    teto volta a contar ENVIO (800 leituras/rodada) ... VERMELHO
+    envio deixa de ser condicional ................... VERMELHO
+
+Uma verificação é deliberadamente uma **trava de premissa**: `1.5` fica vermelha
+se um dia o Fast passar a emitir `generation_attempt_opened`, para que a escolha
+do sinal seja revisitada em vez de herdada (memória
+`comentario-que-justifica-envelhece`).
+
+`tsc --noEmit` verde pelo binário local, com a junction conferida antes.
+Trava de qualidade do fundador: **51/51 verde** — `finish-stranded-renders` não
+está na lista de caminhos proibidos. `test-cron-dryrun-eterno`: 37 ok, 0 em
+dry-run eterno.
+
+**A suíte inteira, comparada por lista nos dois sentidos** contra worktree
+pristina no meu próprio pai (`5dc8a1b8`):
+
+    base .... 146 vermelhos em 524 arquivos
+    meu ..... 146 vermelhos em 525 arquivos   (+1 = o meu guardião, verde)
+    comm nos dois sentidos ....... 0 regressões, 0 consertos acidentais
+
+(Contagem por `scripts/*.mjs` inteiro, que é maior que o denominador de 447 da
+#13 — aquele filtrava auxiliares. O que importa é o delta, medido pelo mesmo
+método dos dois lados: memória `baseline-incompleto-inventa-regressao`.)
+
+**✅ O QUE VOCÊ PRECISA FAZER**
+
+1. **Decidir se a carta pode sair — é uma palavra em uma linha.** Em
+   `app/api/cron/finish-stranded-renders/route.ts`, trocar
+   `const ATTEMPT_LOST_SEND_ENABLED = false` por `true`. A partir daí, ~1-2
+   pessoas por dia que apertaram gerar e não receberam nada recebem a carta que
+   já estava escrita. Antes de decidir, dá para ver a lista: as linhas
+   `attempt_lost_rescue_candidate` no banco dizem exatamente quem receberia.
+2. **A decisão da #13 continua aberta** (teto de entrada em
+   `app/api/analyze-idea/`, branch `mp13-roteiro-longo`, commit `fde757ad`,
+   não publicado). "vai" ou "não".
+3. Nada mais.
+
+**📋 O QUE ACONTECEU**
+
+Fui atrás das pessoas que apertam gerar e não recebem filme. São 26 em 184 numa
+semana, e **11 delas somem sem deixar um único erro registrado** — em 9 casos o
+pedido morreu dentro do navegador (a aba fechou, a pessoa navegou para outra
+página) e o nosso servidor nunca soube que aquele filme foi pedido.
+
+A casa já tinha a carta certa para essa gente, escrita em 04/09, com cron
+rodando de 15 em 15 minutos e um texto que descreve o caso com precisão: *"a aba
+fechou antes do nosso motor pegar o trabalho; nada foi feito e nada foi
+cobrado"*. Ela **nunca saiu uma vez**. O motivo não era a decisão nem o texto:
+o detector procurava um evento que só o motor pago emite, e **o Kineo 1 — o
+motor gratuito, o padrão, o de 100% dessas pessoas — nunca emitiu esse evento na
+vida**. A carta esperava por uma coorte que, por construção, não podia existir.
+
+Agora ela olha o sinal que todo motor emite. Mas **não liguei o envio**: o
+limite desta madrugada é "nenhum e-mail sai", e essa lista nunca tinha sido
+vista por ninguém — mandar a primeira carta da história para uma lista não
+conferida, com você dormindo, seria trocar uma cegueira por um risco. O que
+subiu foi o detector medindo: a partir de agora o banco registra, por nome,
+quem receberia. Você lê a lista e troca uma palavra.
+
+O irmão desse remédio eu conferi e **não** consertei: existe um card dentro do
+produto para a mesma gente, com o predicado certo, que também nunca apareceu —
+mas ali não há defeito. Ele só desenha para quem volta ao site, e essas pessoas
+não voltam. Para elas, e-mail é a única porta que existe.
