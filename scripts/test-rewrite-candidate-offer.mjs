@@ -40,7 +40,22 @@ checa('devolve o candidato (antes ele morria em silencio)', /candidate: expandid
 checa('devolve os segundos do candidato', /candidateSeconds: Math\.round\(depois\.speech\)/.test(blocoAR))
 checa('devolve candidateFits: o portao que impede oferecer texto curto', /candidateFits: depois\.ok/.test(blocoAR))
 checa('devolve QUANTAS frases da autora foram mexidas', /rewrittenSentences: preservado\.missing\.length/.test(blocoAR))
-checa('devolve o TOTAL de frases da autora (denominador)', /authorSentenceCount: authorSentences\(falaOriginal\)\.length/.test(blocoAR))
+// KINEO-REANCORA-DENOMINADOR-2026-09-07 — a regra exigia a expressão INLINE
+// `authorSentenceCount: authorSentences(falaOriginal).length`. A rota passou a
+// calcular o denominador uma vez, num `const` nomeado, e a usar o nome nos dois
+// lugares que o devolvem — melhor código, e o guardião acusava. A trava agora
+// segue o FIO: aceita a expressão inline OU um identificador, e nesse caso
+// exige que a rota o defina exatamente como `authorSentences(falaOriginal).length`.
+// Assim continua impossível devolver um denominador que não seja o total de
+// frases da autora, que é o que esta verificação sempre quis proteger.
+{
+  const inline = /authorSentenceCount: authorSentences\(falaOriginal\)\.length/.test(blocoAR)
+  const viaConst = blocoAR.match(/authorSentenceCount: ([A-Za-z_$][\w$]*)/)
+  const ligado = viaConst
+    ? new RegExp(`const ${viaConst[1]} = authorSentences\\(falaOriginal\\)\\.length`).test(rota)
+    : false
+  checa('devolve o TOTAL de frases da autora (denominador)', inline || ligado)
+}
 checa('devolve o `after` para a tela poder falar em segundos', /after: medida\(depois\.speech, target\)/.test(blocoAR))
 checa('mantem suggestedDuration (o caminho antigo nao foi removido)', /suggestedDuration: largestFittingDuration\(antes\.speech\)/.test(blocoAR))
 checa('mantem rewroteAuthor: true', /rewroteAuthor: true/.test(blocoAR))
