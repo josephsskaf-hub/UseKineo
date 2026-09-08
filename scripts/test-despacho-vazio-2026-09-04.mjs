@@ -186,7 +186,20 @@ const PROIBIDOS = [
   'lib/lyriaMusic', 'lib/narrationFit', 'app/api/analyze-idea/', 'app/api/generate-script/',
 ]
 const tocados = diff.split('\n').map((s) => s.trim()).filter(Boolean)
-check('8.1 o git diff foi lido', tocados.length > 0)
+// KINEO-DIFF-VAZIO-NAO-E-FALHA-2026-09-07 — esta linha exigia diff NÃO-VAZIO, e
+// isso inverte a própria trava. A regra 8.2 diz "a sua entrega não pode tocar o
+// motor de vídeo"; um diff vazio significa "não há entrega pendente", que é o
+// caso que MENOS pode reprovar. Consequência medida hoje: rodar a suíte a
+// partir de um checkout limpo da ponta (o jeito honesto de conferir o que está
+// no ar) deixava este guardião permanentemente vermelho, sem defeito nenhum —
+// e falso vermelho treina gente a ignorar guardião
+// (memória `guardiao-crlf-falso-vermelho`).
+//
+// O diff continua sendo LIDO e a leitura continua tendo de funcionar: o que
+// muda é que "nada pendente" passa a ser um resultado válido, e não uma falha.
+// A trava de qualidade do fundador (8.2) roda igual nos dois casos — sobre uma
+// lista vazia ela é trivialmente verdadeira, que é exatamente o correto.
+check('8.1 o git diff foi lido (vazio = nada pendente, e isso e valido)', typeof diff === 'string')
 for (const p of PROIBIDOS) {
   check(`8.2 nao toca ${p}`, !tocados.some((f) => f.startsWith(p)))
 }
