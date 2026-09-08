@@ -80,6 +80,7 @@ import {
   SCRIPT_MAX_CHARS,
   TOPIC_MAX_CHARS,
 } from './gptHandoff'
+import { CARD_ENTRY_COPY, CARD_ENTRY_ONLY } from './entryPolicy'
 
 export { AFTER_THE_FILM_FACT }
 export type { AfterTheFilmFact }
@@ -523,12 +524,12 @@ export const FREE_TIER = {
   // gratuita. As duas portas coexistem e são coisas diferentes: 25 créditos sem
   // cartão aqui, $1 por 7 dias com cartão lá. A string abaixo sempre esteve
   // certa; era só o comentário que mentia.
-  allowance: FREE_OFFER.reverseTrial
+  allowance: CARD_ENTRY_ONLY ? CARD_ENTRY_COPY.sentence : FREE_OFFER.reverseTrial
     ? `${TRIAL_CREDIT_CAP} free credits on signup with every engine unlocked (Kling 3 included), no credit card; trial films render watermarked and any paid plan unlocks clean, watermark-free downloads`
     : 'up to 3 watermarked Fast videos every 24 hours',
   // O free tier (Fast com marca d'água) segue SEM cartão — o cartão é do trial
   // pago. Este campo descreve a porta gratuita, que não mudou.
-  creditCardRequired: false,
+  creditCardRequired: CARD_ENTRY_ONLY,
   watermark: true,
   // fonte: app/api/cron/send-activation-nudge/route.ts:53 — "create, watch,
   // download and share".

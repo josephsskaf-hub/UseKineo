@@ -68,6 +68,7 @@ import TrialActiveBanner from '@/components/TrialActiveBanner'
 import PaymentConfirmedToast from '@/components/PaymentConfirmedToast'
 import { REVERSE_TRIAL_ENABLED } from '@/lib/reverseTrial'
 import type { Metadata } from 'next'
+import CardEntryBanner from '@/components/CardEntryBanner'
 
 // KINEO-ACQ-SPRINT-2026-07-29 — KEEP THE APP OUT OF THE SEARCH INDEX.
 //
@@ -122,7 +123,7 @@ export default async function DashboardLayout({
   if (user) {
     const { data } = await supabase
       .from('profiles')
-      .select('is_pro, email')
+      .select('is_pro, email, trial_status, has_paid')
       .eq('id', user.id)
       .single()
     profile = data
@@ -155,6 +156,14 @@ export default async function DashboardLayout({
           que toda tela autenticada atravessa e que não cobre nada. `userKey`
           vem do SERVIDOR pelo mesmo motivo do modal abaixo. */}
       {user && REVERSE_TRIAL_ENABLED && <TrialActiveBanner userKey={user.id.slice(0, 8)} />}
+      {/* KINEO-VERSAO-B-ENTRADA-1-DOLAR-2026-09-08 — quem nasceu card_required vê a
+          porta única antes de qualquer outra coisa. Some sozinha quando paga. */}
+      {user && (
+        <CardEntryBanner
+          status={(profile as { trial_status?: string | null } | null)?.trial_status ?? null}
+          hasPaid={(profile as { has_paid?: boolean | null } | null)?.has_paid === true}
+        />
+      )}
       <Suspense fallback={null}>
         <ChatGptWelcomeBanner />
       </Suspense>

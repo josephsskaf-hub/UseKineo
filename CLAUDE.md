@@ -1,6 +1,15 @@
 # CLAUDE.md — Regras Permanentes para todas as sessões
 
 # ══════════════════════════════════════════════════════════════════════════
+# 🔴 08/09/2026 01:20 — VERSÃO B (ordem do fundador): ACABOU O TRIAL GRÁTIS.
+#   Conta nova = 0 créditos + trial_status=card_required. Única entrada: $1 por
+#   7 dias no Creator (80cr), depois $15/mês. Sem Kineo 1 grátis. Starter $7 e
+#   Studio $29 seguem compra direta. Interruptor: lib/entryPolicy.ts
+#   CARD_ENTRY_ONLY. Doc: docs/DECISAO-VERSAO-B-ENTRADA-1-DOLAR-2026-09-08.md
+#   ⚠ A tabela "PRICING V5" mais abaixo neste arquivo está MORTA (19/08):
+#   preço real = Starter $7/40cr · Creator $15/90cr · Studio $29/180cr.
+# ══════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════════
 # 🧠 LER PRIMEIRO — docs/MEMORIA-SESSAO-CEO-2026-09-02.md (02/09)
 # ══════════════════════════════════════════════════════════════════════════
 # · SEM SPRINT AUTOMÁTICA: o fundador desligou as tarefas programadas em 02/09

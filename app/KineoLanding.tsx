@@ -68,6 +68,7 @@ import {
   HOME_REFERRAL_BRIDGE_COPY,
   type HomeReferralBridgeSource,
 } from '@/lib/growth/homeReferralBridge'
+import { CARD_ENTRY_COPY, CARD_ENTRY_ONLY } from '@/lib/entryPolicy'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -988,7 +989,7 @@ export default function KineoLanding({
           <InterfaceLanguageSelect />
           {initialUser
             ? <div className="nav-cta"><NavCreditsBadge /><Link className="btn btn-w nav-dashboard" style={{ padding: '12px 20px', fontSize: '14px' }} href="/studio"><UiLabel>Dashboard</UiLabel></Link></div>
-            : <Link className="btn btn-w" style={{ padding: '12px 20px', fontSize: '14px' }} href={referralBridge ? '#try-kineo' : '/signup?utm_source=nav'}><UiLabel>Start free</UiLabel></Link>}
+            : <Link className="btn btn-w" style={{ padding: '12px 20px', fontSize: '14px' }} href={referralBridge ? '#try-kineo' : '/signup?utm_source=nav'}><UiLabel>{CARD_ENTRY_COPY.ctaShort}</UiLabel></Link>}
           <div className="nav-toggle-wrap">
             <input type="checkbox" id="nav-toggle" className="nav-toggle-input" aria-label="Menu" aria-controls="mobile-nav-menu" />
             <span className="nav-toggle-btn" aria-hidden="true"><span className="bar" /><span className="bar" /><span className="bar" /></span>
@@ -1006,7 +1007,7 @@ export default function KineoLanding({
               <a href="#pricing"><UiLabel>Pricing</UiLabel></a>
               {initialUser
                 ? <Link className="btn btn-w" href="/studio"><UiLabel>Dashboard</UiLabel></Link>
-                : <Link className="btn btn-w" href={referralBridge ? '#try-kineo' : '/signup?utm_source=nav-mobile'}><UiLabel>Start free</UiLabel></Link>}
+                : <Link className="btn btn-w" href={referralBridge ? '#try-kineo' : '/signup?utm_source=nav-mobile'}><UiLabel>{CARD_ENTRY_COPY.ctaShort}</UiLabel></Link>}
             </label>
           </div>
         </div>
@@ -1166,7 +1167,7 @@ export default function KineoLanding({
                     quebrar nunca. O que muda é que os NOSSOS botões param de
                     passar por ele e vão direto ao destino final — que é
                     exatamente o mesmo /studio/create, com a query intacta. */}
-                <Link className="btn btn-w" href={isSignedIn ? '/studio/create?src=engine_bento' : referralBridge ? '#try-kineo' : '/signup?utm_source=engine_bento'}>{isSignedIn ? 'Open the generator' : 'Start free'}</Link>
+                <Link className="btn btn-w" href={isSignedIn ? '/studio/create?src=engine_bento' : referralBridge ? '#try-kineo' : '/signup?utm_source=engine_bento'}>{isSignedIn ? 'Open the generator' : CARD_ENTRY_COPY.ctaShort}</Link>
                 <span className="pstack" aria-hidden="true">
                   <img src="/posters/hero-veo31.webp" alt="" loading="lazy" />
                   <img src="/posters/hero-kling25.webp" alt="" loading="lazy" />
@@ -1403,7 +1404,7 @@ export default function KineoLanding({
             <Link href="/free-ai-shorts-generator" className="tcard">
               <span className="tico">{TOOL_ICONS.bolt}</span>
               <h3><UiLabel>Free AI Shorts</UiLabel></h3>
-              <p><UiLabel>Type one idea and test the full Fast workflow with no card.</UiLabel></p>
+              <p><UiLabel>{CARD_ENTRY_ONLY ? 'Type one idea, start your $1 trial and make the film.' : 'Type one idea and test the full Fast workflow with no card.'}</UiLabel></p>
               <span className="tlink"><UiLabel>Generate free →</UiLabel></span>
             </Link>
           </div>
@@ -1434,7 +1435,7 @@ export default function KineoLanding({
 
       <section id="pricing">
         <div className="wrap">
-          <div className="sec-h"><span className="sec-eyebrow"><UiLabel>Pricing</UiLabel></span><h2><UiLabel>Simple pricing. Try Fast free first.</UiLabel></h2><p><UiLabel>{ft(OFFER, 'Create, download and share up to 3 watermarked Fast videos every 24h, no card.', OFFER.copy.headline)}</UiLabel><UiLabel> Paid plans unlock clean MP4s.</UiLabel></p></div>
+          <div className="sec-h"><span className="sec-eyebrow"><UiLabel>Pricing</UiLabel></span><h2><UiLabel>{CARD_ENTRY_ONLY ? 'Simple pricing. Start with 7 days for $1.' : 'Simple pricing. Try Fast free first.'}</UiLabel></h2><p><UiLabel>{ft(OFFER, 'Create, download and share up to 3 watermarked Fast videos every 24h, no card.', OFFER.copy.headline)}</UiLabel><UiLabel> Paid plans unlock clean MP4s.</UiLabel></p></div>
           <HomePricingCheckoutGroup isSignedIn={isSignedIn}>
           <div className="price">
             {/* Signed-in buyers go straight to Stripe. Signed-out buyers go to
@@ -1599,7 +1600,7 @@ export default function KineoLanding({
                   o caminho vive dentro de um ternário. Lição registrada: para
                   achar link nesta base não basta procurar `href=`, tem que
                   procurar a STRING do caminho. */}
-              <div className="fcta"><Link className="btn btn-w" href={isSignedIn ? '/studio' : referralBridge ? '#try-kineo' : '/signup?utm_source=final_cta'}>{isSignedIn ? 'Create a video' : 'Start free'}</Link></div>
+              <div className="fcta"><Link className="btn btn-w" href={isSignedIn ? '/studio' : referralBridge ? '#try-kineo' : '/signup?utm_source=final_cta'}>{isSignedIn ? 'Create a video' : CARD_ENTRY_COPY.ctaShort}</Link></div>
               {/* ONDA6 #1 (14/08) — o fechamento ganha a linha de reversao de
                   risco do hero: fecha a pagina com a mesma forca que abre.
                   KINEO-TRIAL-SWAP-LEAK-2026-08-15 — esta linha NASCEU fora da

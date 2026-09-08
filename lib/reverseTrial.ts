@@ -69,6 +69,7 @@ import {
 // o free tier vigente (clamp de duração) para responder o que um NÃO-pago
 // recebe. lib/freeTierOffer.ts importa apenas engineCost (puro) — sem ciclo.
 import { getFreeTierOffer, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
+import { CARD_ENTRY_ONLY, CARD_ENTRY_REQUIRED_EVENT, CARD_ENTRY_TRIAL_STATUS } from './entryPolicy'
 
 // Mesmo idioma de flag dos crons de lifecycle (KINEO_LIFECYCLE_EMAILS_ENABLED):
 // igualdade estrita com 'true'. Qualquer outro valor (ausente, '1', 'yes') = OFF.
@@ -807,6 +808,28 @@ export async function maybeActivateReverseTrial(args: {
     const plan = ((profile as { plan?: string | null }).plan ?? 'free').toLowerCase()
     if ((plan !== 'free' && plan !== '') || (profile as { has_paid?: boolean }).has_paid === true) {
       return { activated: false, reason: 'already_paid' }
+    }
+
+    // KINEO-VERSAO-B-ENTRADA-1-DOLAR-2026-09-08 — ordem do fundador: "tirar os
+    // 25 créditos de todos". Sob CARD_ENTRY_ONLY a conta nova NÃO recebe
+    // crédito nenhum: recebe o carimbo card_required (idempotente pelo mesmo
+    // `.is('trial_status', null)` do grant) e um evento. O trial de $1 (Stripe,
+    // 80cr) é a única porta; o webhook carimba converted a partir daqui.
+    if (CARD_ENTRY_ONLY) {
+      const { error: portaErr } = await db
+        .from('profiles')
+        .update({ trial_status: CARD_ENTRY_TRIAL_STATUS })
+        .eq('id', args.userId)
+        .is('trial_status', null)
+      if (portaErr) {
+        console.warn(`[reverse-trial] could not mark card_required user=${args.userId.slice(0, 8)}:`, portaErr.message)
+      }
+      await writeServerEvent({
+        name: CARD_ENTRY_REQUIRED_EVENT,
+        userId: args.userId,
+        metadata: { policy: 'card_entry_only', grant_credits: 0, marked: !portaErr },
+      })
+      return { activated: false, reason: 'card_entry_only' }
     }
 
     // ── GUARDA 7 (KINEO-TRIAL-ABUSE-PMP-2026-08-07): DEVICE/IP ───────────────

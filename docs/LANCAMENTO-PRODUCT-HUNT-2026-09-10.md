@@ -77,7 +77,7 @@ Nine video engines behind one button (Veo 3.1, Kling 3, Seedance, MiniMax,
 Omni). Try Creator for 7 days for $1.
 ```
 **Topics:** Artificial Intelligence, Video, Marketing, Productivity
-**Pricing:** Paid (free trial available)
+**Pricing:** Paid ($1 trial — no free tier since 08/09)
 **Link:** https://www.usekineo.com/ph?utm_source=producthunt&utm_medium=launch&utm_campaign=ph_sep10
 **Galeria:** hero 1270×760 (frame do robô do Omni com a frase da tagline) + 5 vídeos verticais dos 12 aprovados: robô (Omni), Tunguska chapéu (Omni), Passo Dyatlov (Kling 2.5), Mary Celeste (Seedance), Noruega (Kineo 1).
 
@@ -124,7 +124,7 @@ today and would love brutal feedback from people who actually make video.
 
 ## A PÁGINA `/ph` (Claude)
 
-- Hero: tagline + o robô do Omni rodando + botão **"Try Creator 7 days for $1"** (mesma URL do trial, `intent_campaign=ph_sep10`) e, abaixo, "or start free — 25 credits, no card".
+- Hero: tagline + o robô do Omni rodando + botão **"Try Creator 7 days for $1"** (mesma URL do trial, `intent_campaign=ph_sep10`). Sem "start free": desde 08/09 não existe free tier (versão B).
 - Faixa "As seen on Product Hunt" com o badge oficial (embed do PH).
 - Grade dos 12 aprovados (já existe como `FOUNDER_SHOWCASE` / curadoria) com "made from N words".
 - Preços em texto puro (Starter $7 · Creator $15 · Studio $29) — sem card novo.

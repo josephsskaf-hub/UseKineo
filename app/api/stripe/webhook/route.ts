@@ -56,6 +56,7 @@ import {
   type AffiliatePaymentKind,
   type ExistingAffiliateCommission,
 } from '@/lib/affiliateLedger'
+import { CARD_ENTRY_TRIAL_STATUS } from '@/lib/entryPolicy'
 
 // KINEO-PILOT-99-2026-07-26 — fallback por valor para o piloto de $99, QUALIFICADO
 // POR MOEDA. Sem a moeda isto seria um bug de caixa: topup40 em INR custa 49900 e
@@ -915,7 +916,7 @@ async function markTrialConverted(
       .from('profiles')
       .update({ trial_status: 'converted' })
       .eq('id', userId)
-      .in('trial_status', ['active', 'expired'])
+      .in('trial_status', ['active', 'expired', CARD_ENTRY_TRIAL_STATUS])
       .select('id')
     if (error) {
       console.error('[stripe webhook] trial_converted update failed:', error.message, userId)

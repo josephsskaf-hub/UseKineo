@@ -2,6 +2,7 @@
 // free tier + copy, decidida por UMA flag.
 
 import { creditCostForDuration } from './credits/engineCost'
+import { CARD_ENTRY_COPY, CARD_ENTRY_ONLY } from './entryPolicy'
 //
 //   KINEO_REVERSE_TRIAL_ENABLED === 'true'  (a MESMA flag de lib/reverseTrial.ts)
 //
@@ -89,6 +90,8 @@ export interface FreeTierCopy {
 export interface FreeTierOffer {
   /** true = reverse trial ligado (free tier novo + copy nova). */
   reverseTrial: boolean
+  /** true = versão B (lib/entryPolicy.ts): sem free tier; a única entrada é o trial de $1. */
+  cardEntry: boolean
   /** Vídeos Fast grátis por janela. */
   limit: number
   /** Janela rolante do limite, em ms. */
@@ -257,6 +260,7 @@ const DAY_MS = 24 * 60 * 60 * 1000
 
 const OFF_OFFER: FreeTierOffer = {
   reverseTrial: false,
+  cardEntry: false,
   limit: 3,
   windowMs: DAY_MS, // idêntico a FREE_FAST_WINDOW_MS (lib/freeFastQuota.ts)
   maxFreeFastSeconds: null,
@@ -265,6 +269,7 @@ const OFF_OFFER: FreeTierOffer = {
 
 const ON_OFFER: FreeTierOffer = {
   reverseTrial: true,
+  cardEntry: false,
   limit: 1,
   // "1 Fast/mês" implementado como janela ROLANTE de 30 dias — mesma mecânica
   // de contagem do compose (reservas na janela), sem calendário novo.
@@ -274,7 +279,42 @@ const ON_OFFER: FreeTierOffer = {
 }
 
 /** Puro, sem env — é o que o provider client-side recebe já resolvido. */
+// KINEO-VERSAO-B-ENTRADA-1-DOLAR-2026-09-08 — ordem do fundador ("tirar os 25
+// créditos de todos"): sem free tier. `limit: 0` faz o /api/compose recusar o
+// Fast grátis na primeira reserva (reservas > limit); a copy é a da porta de $1.
+// `reverseTrial: true` de propósito: todo call site `ft(OFFER, legacy, on)`
+// cai no ramo ON e recebe a copy da porta (ver swapFreeTierCopy abaixo).
+const CARD_ENTRY_TIER_COPY: FreeTierCopy = {
+  headline: CARD_ENTRY_COPY.headline,
+  residual: 'No free tier — $1 trial only',
+  sentence: CARD_ENTRY_COPY.sentence,
+  chip: CARD_ENTRY_COPY.chip,
+  chipLower: CARD_ENTRY_COPY.chip,
+  planCardBody:
+    'Kineo starts at $1: 7 days of Creator with 80 credits and every engine unlocked. Then $15/month, cancel anytime. There is no free tier.',
+  counterNoun: 'this month',
+  planLimitLine: 'free Fast videos — none; every account starts with the $1 trial',
+  limitHitError:
+    'Kineo starts at $1: 7 days of Creator with 80 credits and every engine unlocked. Start your trial to make this film.',
+  cmpKineoFree: 'Kineo: no free tier — $1 for 7 days of Creator (80 credits, every engine), then $15/month.',
+  limitHitEmailSubject: 'Start your Kineo trial — $1 for 7 days',
+  limitHitEmailIntro: 'Your account has no credits yet — Kineo starts with a $1 trial: 7 days of Creator with 80 credits.',
+  limitHitEmailIntroHtml: 'Your account has no credits yet — Kineo starts with a <strong>$1 trial</strong>: 7 days of Creator with 80 credits.',
+  limitResetLine: 'Start the trial whenever you are ready — your account and your ideas are saved.',
+  ctaPrimary: CARD_ENTRY_COPY.ctaLong,
+  ctaHeading: 'Make a real film for $1 — 7 days of Creator',
+}
+const CARD_ENTRY_OFFER: FreeTierOffer = {
+  reverseTrial: true,
+  cardEntry: true,
+  limit: 0,
+  windowMs: 30 * DAY_MS,
+  maxFreeFastSeconds: 15,
+  copy: CARD_ENTRY_TIER_COPY,
+}
+
 export function buildFreeTierOffer(reverseTrialEnabled: boolean): FreeTierOffer {
+  if (CARD_ENTRY_ONLY) return CARD_ENTRY_OFFER
   return reverseTrialEnabled ? ON_OFFER : OFF_OFFER
 }
 
@@ -301,5 +341,9 @@ export function getFreeTierOffer(): FreeTierOffer {
  * por inspeção local, e a copy nova continua morando só neste arquivo.
  */
 export function swapFreeTierCopy(offer: FreeTierOffer, legacy: string, on?: string): string {
+  // Versão B: o texto do call site (escrito para "25 créditos grátis") não
+  // vale mais; devolve a copy canônica da porta — chip para frases curtas,
+  // sentença para as longas. A varredura fina de cada call site é o M7.
+  if (offer.cardEntry) return (on ?? legacy).length <= 70 ? offer.copy.chip : offer.copy.sentence
   return offer.reverseTrial ? (on ?? offer.copy.sentence) : legacy
 }
