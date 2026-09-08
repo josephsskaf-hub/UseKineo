@@ -97,7 +97,18 @@ for (const path of blankPages) {
 
 const pair = read('app/vs/[pair]/page.tsx')
 ok(pair.includes('const START_FREE_URL = buildBlankStudioSignupHref({ campaign: CAMPAIGN })'), 'comparison pairs build one safe destination')
-ok(pair.includes('href={START_FREE_URL}'), 'comparison CTA uses that destination')
+// KINEO-REANCORA-VS-2026-09-07 — a trava exigia `href={START_FREE_URL}` no JSX.
+// A pagina passou a permitir uma acao POR PAR (`pair.kineoAction`) e o
+// `START_FREE_URL` virou o PADRAO dela. A intencao — o CTA do comparativo leva
+// ao destino seguro construido uma vez — continua valendo, e o que mudou foi a
+// camada. Agora a trava exige as duas pontas do fio: o padrao e o destino
+// seguro, e o JSX renderiza o href dessa acao (nunca uma URL escrita a mao).
+ok(
+  /const kineoAction = pair\.kineoAction \?\? \{ href: START_FREE_URL/.test(pair),
+  'the safe destination is the default of the per-pair action',
+)
+ok(pair.includes('href={kineoAction.href}'), 'comparison CTA uses that destination')
+ok(!/href="https?:\/\//.test(pair), 'no hand-written absolute CTA slipped into the comparison page')
 ok(!pair.includes('/signup?create_intent=fast'), 'comparison CTA no longer loses automatic intent')
 
 const niches = read('app/free-ai-shorts/[niche]/page.tsx')
