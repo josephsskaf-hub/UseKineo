@@ -1252,8 +1252,12 @@ const freeFilmAvailable = useFreeTierOffer().limit > 0   // NicheOnboarding
 **Nenhuma frase nova foi inventada.** A manchete do exit-intent virou uma
 constante (`EXIT_FREE_HEADLINE`) que só chega à tela através do
 `swapFreeTierCopy` que já existia — sob a porta única ela cai na copy canônica
-de `lib/entryPolicy`; `on` repete o `legacy` de propósito, para que a versão A
-continue byte a byte o que era. As outras duas apenas **perdem a palavra** que o
+de `lib/entryPolicy`; `on` repete o `legacy` de propósito, para que o TEXTO da
+versão A continue o mesmo. Uma diferença, dita para não passar por exata: a
+manchete perdeu o `<br />` que a quebrava em duas linhas, porque agora ela é uma
+string e não JSX — sob a versão A (hoje desligada) ela quebra sozinha em vez de
+quebrar no ponto escolhido. E o apóstrofo virou tipográfico (`’`): dentro de uma
+string JS o `&apos;` apareceria literal na tela. As outras duas apenas **perdem a palavra** que o
 cobrador não honra mais (`'Create my free Short →'` → `'Create my Short →'`;
 `· no card ·` sai da linha). Não toquei em preço, checkout, porta de $1 nem
 página pública de SEO.
