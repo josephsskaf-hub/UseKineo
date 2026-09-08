@@ -2375,3 +2375,47 @@ novo, de última hora, para quem pegar a próxima pista: **a porta de $1 da
 Versão B está sendo gravada na tabela de erro de geração** — três pessoas hoje,
 e os vigias vão passar a acordar com alarme falso toda vez que alguém encostar
 nela.
+
+---
+
+### ADENDO — 09:40 BRT — os 19 minutos que faltavam, medidos
+
+O fechamento acima foi escrito às **09:11**, e o próprio commit `c0243094`
+registrou a dívida: os últimos 19 minutos da janela (09:11→09:30) não estavam
+medidos. A janela agora fechou de verdade. Medido no banco de produção:
+
+| medida | número |
+|---|---|
+| eventos entre 09:11 e 09:30 BRT | **18** |
+| falhas de geração nesses 19 min | **0** |
+| falhas de geração na janela inteira (8h) | **5** |
+| pessoas atrás dessas 5 | **3** |
+| falhas nos 7 dias ANTES da janela | 112 |
+
+**Mas as 5 não são 5.** Quebradas por `reason` — a lição que a memória
+`gate-de-negocio-na-tabela-de-erro` mandou aplicar antes de somar:
+
+- **3 são a porta de $1**, não defeito: `compose_daily_free_limit` (2) e
+  `compose_resume_daily_free_limit` (1), 2 pessoas, todas com o texto
+  *"Kineo starts at $1: 7 days of Creator with 80 credits"*. Isso é a Versão B
+  funcionando — e sendo gravada na tabela de erro.
+- **2 são UMA falha real**, de UMA pessoa, às 10:36:36 UTC: duas linhas no
+  mesmo milissegundo, uma com `TypeError` e outra com a frase que o cliente
+  leu. É o M1 da noite (`e3971a73`) já em produção: a casa agora guarda o que
+  a exceção disse, não só o sobrenome dela.
+
+Ou seja: **a noite inteira teve 1 incidente real de geração, de 1 pessoa.**
+O número "5" que um vigia leria é 60% pedágio.
+
+**Isto confirma, com número, o achado de última hora do fechamento** — os
+vigias vão acordar com alarme falso toda vez que alguém encostar na porta de
+$1, e o alarme cresce junto com o sucesso da Versão B. Continua sendo o
+primeiro item para quem pegar a próxima pista.
+
+#### O que o adendo NÃO conserta
+
+`videos` criados na janela de 8 horas: **0**. Nenhum filme foi feito a noite
+inteira — por isso a capa (M3) segue sem prova de campo e `thumbnail_url`
+continua parado. Não é defeito do conserto; é falta de oportunidade, e só um
+render fecha. A ação nº 2 da sua lista continua de pé, inteira.
+
