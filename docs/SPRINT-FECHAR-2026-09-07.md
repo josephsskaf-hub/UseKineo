@@ -2490,3 +2490,47 @@ continuam apagados, cinco dos quais escondem cerca de 141 verificações atrás 
 uma única linha de erro, porque morrem na primeira falha. Nenhuma venda nova:
 jejum de cinco dias, e nenhuma das portas de $1 criadas hoje foi vista por
 alguém.
+
+**ADENDO À #10 (21:55 BRT) — a rotação fechou depois de tudo, e com um conserto
+de honestidade que ninguém quis.** Com 40 minutos restando, apliquei a lição que
+acabei de escrever (`git log origin/main --since='25 minutes ago' --name-only`)
+e descartei **três** alvos por já estarem tomados: os guardiões (a outra sessão
+está varrendo a lista, `fv-r12` a `fv-r12e`), o `GenerateClient` de venda (ela
+acabou de mexer na `fv-r11`) e o **e-mail de entrega** — que era a minha próxima
+jogada declarada e que a pista de venda assistida **já entregou na `va-r5`**.
+Terceira colisão evitada por uma consulta de 20 segundos.
+
+**O QUE SOBROU, e é um defeito de verdade que eu mesmo declarei e ninguém
+pegou.** Na #9 registrei no PEDIDOS que o botão de Starter da caixa "Want it
+clean?" promete **"this video clean"** mesmo quando o navegador **não tem o
+handoff** para reconstruir o arquivo — `handleRemoveWatermark` grava
+`kineo_wm_unlock` só `if (lastFastRenderRef.current)` e segue para a Stripe de
+qualquer jeito. Quem chega pela pílula de render ativo, pelo link do e-mail ou
+depois de recarregar a página cai exatamente nesse estado: **paga, a assinatura
+ativa, e o arquivo não volta limpo.** Eu não tinha consertado porque o botão é de
+outra pista; passadas quatro horas e três rotações sem dono, prometer arquivo que
+não volta é a definição de copy que mente — e o CLAUDE.md tem uma seção inteira
+sobre isso.
+
+**MUDOU — SHA `b085a815` · EM PRODUÇÃO.** Um predicado com **nome**
+(`cleanExportRebuildReady = Boolean(lastFastRenderRef.current)`) governa agora as
+**três** promessas da mesma caixa: a porta de $1 (que já o respeitava, com o
+predicado anônimo) e os **dois** botões de plano, que não o respeitavam. Sem
+handoff, o rótulo perde o `this video clean +` e mantém o que é verdade em
+qualquer estado — `N credits every month`. **O botão não sai, não muda de lugar,
+não muda de preço e não muda de checkout: some só a promessa que a casa não sabe
+cumprir.**
+
+**FALSIFICADO.** Devolver a promessa incondicional → guardião **vermelho**;
+cravar o predicado em `true` mantendo o texto → **vermelho**; restaurado →
+**verde**. `test-clean-export-trial-door` **52/52**. Os nove irmãos verdes,
+`tsc` limpo. ⚠️ Uma nota para quem for mexer neste arquivo: o `test-next-door-bar`
+(#47) reprova qualquer **diff não commitado** que toque preço/plano/crédito nesta
+tela — ele lê `git diff HEAD`, não o produto. Ele acusou a minha edição enquanto
+ela estava por commitar e voltou a 28/28 no instante do commit. **Não é defeito e
+não deve ser afrouxado** — mas custa cinco minutos de susto a quem não sabe.
+
+**A FRASE DA ROTAÇÃO — agora existe.** Quem chega na tela de filme pronto sem o
+handoff no navegador (voltou pelo e-mail, pela pílula ou recarregou a página) não
+lê mais uma promessa de que a assinatura devolve **este** arquivo limpo. Ontem, e
+até as 21:55 de hoje, lia — e pagava por ela.
