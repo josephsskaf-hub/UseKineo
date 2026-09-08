@@ -240,8 +240,8 @@ const geo = ler('app', 'api', 'geo', 'route.ts')
 ok('o /api/geo só oferece método local quando a chave do Dodo EXISTE',
   /isDodoEnabled\(\) \? \(METODO_LOCAL_POR_PAIS\[country\] \?\? null\) : null/.test(geo))
 ok('só Índia (UPI) e Brasil (Pix) entram — onde o Dodo faz o que a Stripe não faz',
-  /IN: 'upi',/.test(geo) && /BR: 'pix',/.test(geo) &&
-    !/(NG|PK|BD|KE): '/.test(geo))
+  /IN: 'upi',/.test(ler('lib', 'dodo.ts')) && /BR: 'pix',/.test(ler('lib', 'dodo.ts')) &&
+    !/(NG|PK|BD|KE): '/.test(ler('lib', 'dodo.ts')))
 ok('a peça lê o método do servidor, não decide sozinha',
   /setMetodoLocal\(m && ROTULO_DO_METODO\[m\] \? m : null\)/.test(comp))
 ok('valor inesperado da rede NÃO vira botão sem texto',

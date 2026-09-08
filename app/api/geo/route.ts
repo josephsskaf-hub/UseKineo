@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { resolveCheckoutCurrency, resolvePriceRegion } from '@/lib/checkoutPricing'
-import { localMethodFor } from '@/lib/dodo'
+import { dodoMode, localMethodFor } from '@/lib/dodo'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
 // Rota SO-GET no Next 14.2: sem POST no modulo, o store nasce com
 // revalidate=false, e `dynamic='force-dynamic'` NAO muda isso (so pula o proxy
@@ -52,10 +52,17 @@ export async function GET(req: NextRequest) {
 
   // Fecha por padrão nos dois eixos: sem chave, ou fora dos dois países, o
   // campo vem null e a tela não pinta botão nenhum.
-  const local_method = localMethodFor(country)
+  // KINEO-TRILHOS-POR-PAIS-2026-09-08 (tarefa 6) — a vitrine só anuncia UPI/Pix
+  // quando o trilho está AO VIVO. Em modo test o /api/dodo/checkout recusa quem
+  // não é interno ("not available yet"): mostrar o botão era oferecer o que o
+  // cobrador recusa. `local_method_planned` diz o que VAI existir, para a copy
+  // "cartão por enquanto — Pix/UPI em breve" sem prometer data.
+  const planned = localMethodFor(country)
+  const local_method = dodoMode() === 'live' ? planned : null
+  const local_method_planned = planned
 
   return NextResponse.json(
-    { country, currency, region, local_method },
+    { country, currency, region, local_method, local_method_planned, rail_live: local_method !== null },
     { headers: { 'Cache-Control': 'private, no-store, max-age=0' } },
   )
 }

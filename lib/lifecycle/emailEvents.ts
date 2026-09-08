@@ -66,6 +66,9 @@ export const LIFECYCLE_EMAIL_EVENT_NAMES = [
   // ficou sem crédito e bateu no checkout antes da porta de $1 existir. Entra
   // aqui no MESMO commit em que nasce (a regra do cabeçalho deste arquivo).
   'second_try_1usd_sent',
+  // KINEO-CARTA-D1-PORTA-2026-09-08 — a carta de quem viu a porta de $1 e não
+  // entrou (versão B, card_required sem pagamento, 20h–7d). Nasce no mesmo commit.
+  'card_entry_d1_sent',
   // KINEO-AFILIADOS-ACORDAM-2026-09-07 — a carta dos sócios. Um afiliado
   // TAMBÉM é cliente da casa (6 dos 15 receberam outra carta nossa nas 24h
   // anteriores ao commit), então este carimbo precisa contar como "e-mail

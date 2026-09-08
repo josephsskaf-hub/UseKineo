@@ -43,6 +43,9 @@ export default function CardEntryBanner({
   const semCarimboMasSemCredito = status === null && credits === 0
   const visible = CARD_ENTRY_ONLY && !hasPaid && (status === CARD_ENTRY_TRIAL_STATUS || semCarimboMasSemCredito)
   const [region, setRegion] = useState<PriceRegion>('standard')
+  // KINEO-TRILHOS-POR-PAIS-2026-09-08 — Índia/Brasil: cartão internacional por
+  // enquanto; UPI/Pix quando o trilho estiver ao vivo. Sem prometer data.
+  const [plannedRail, setPlannedRail] = useState<string | null>(null)
   const checkout = useCheckoutLaunch('card_entry_banner')
   const impressionSentRef = useRef(false)
 
@@ -50,9 +53,11 @@ export default function CardEntryBanner({
     if (!visible) return
     let cancelled = false
     void fetch('/api/geo', { cache: 'no-store', credentials: 'same-origin' })
-      .then(async (r) => (r.ok ? ((await r.json()) as { region?: string }) : {}))
+      .then(async (r) => (r.ok ? ((await r.json()) as { region?: string; local_method_planned?: string | null; rail_live?: boolean }) : {}))
       .then((data) => {
-        if (!cancelled) setRegion(coercePriceRegion(data.region))
+        if (cancelled) return
+        setRegion(coercePriceRegion(data.region))
+        if (typeof data.local_method_planned === 'string' && data.rail_live !== true) setPlannedRail(data.local_method_planned)
       })
       .catch(() => {})
     return () => {
@@ -103,6 +108,9 @@ export default function CardEntryBanner({
         <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>{CARD_ENTRY_COPY.headline}</div>
         {door.priceNote ? (
           <div style={{ marginTop: 4, fontSize: 12.5, color: 'rgba(255,255,255,.72)' }}>{door.priceNote}</div>
+        ) : null}
+        {plannedRail ? (
+          <div data-rail-note={plannedRail} style={{ marginTop: 4, fontSize: 12, color: 'rgba(255,255,255,.6)' }}>International Visa/Mastercard for now — {plannedRail === 'upi' ? 'UPI' : 'Pix'} is coming.</div>
         ) : null}
       </div>
       <button
