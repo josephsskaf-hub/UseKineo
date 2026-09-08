@@ -1355,7 +1355,7 @@ em `'` (U+0027); no novo ela é uma string JS com `’` (U+2019).
 A primeira linha é a foto do "antes" — não a joguei fora: é ela que prova que a
 sonda sabe distinguir os dois estados, em vez de só concordar comigo.
 
-### #11 — 06:36→07:05 BRT — M4: o remédio existia havia 24h e nunca tinha rodado — 2 das 12 assinaturas seguiam cobradas e sem acesso
+### #11 — 06:36→06:53 BRT — M4: o remédio existia havia 24h e nunca tinha rodado — 2 das 12 assinaturas seguiam cobradas e sem acesso
 
 **O que estava errado.** A ordem manda olhar os 5 pagantes calados. Fui pela
 lista e o retrato bateu exato: dos **12 pagantes** da casa (13 contas com
