@@ -1939,3 +1939,147 @@ se exige continua sendo que, mutadas, as travas deixem a porta mentir.
 **47/47**; os outros cinco seguem verdes e o `tsc` limpo. **É a segunda vez hoje
 que um guardião de mutação paga o próprio custo** — o falso verde teria sido
 "tudo certo" enquanto duas travas de dinheiro estavam sem teste.
+
+---
+
+### #10 — 21:15 BRT (00:15 UTC) — A MAIOR SUPERFÍCIE DA CASA NÃO TINHA BOTÃO DE DINHEIRO PARA 93,5% DE QUEM A VIA
+
+**A JOGADA QUE EU IA FAZER, E POR QUE NÃO FIZ.** A #9 deixou escrita a varredura
+dos construtores de link que ainda mandam para o mês cheio, começando por
+`components/TrialActiveBanner.tsx:731`. Fui medir o alcance antes de mexer
+(memória `medir-alcance-da-superficie-antes-de-ligar`) e o número parou a
+varredura no lugar:
+
+```
+trial_active_banner_shown ........................ 793 pessoas / 30d
+   <- a MAIOR superfície da casa. Para comparação: caixa pós-entrega 75,
+      exit intent 28, modal de fim de trial 15.
+trial_active_banner_cta (o clique de comprar) .... 15 pessoas
+   última vez que alguém apertou: 03/09 06:02 UTC — quatro dias atrás.
+```
+
+**ERRADO (medido, contas externas, 30 dias).** O botão de assinatura desse
+banner só é montado dentro de `{!firstDelivery.eligible && …}`. Das 231
+impressões que carimbam o campo desde 01/09:
+
+| ramo | pessoas | tem controle de dinheiro? |
+|---|---:|---|
+| `first_delivery_eligible = true` | **216** | **NÃO — nenhum** |
+| `first_delivery_eligible = false` | 15 | sim |
+
+**216 pessoas (93,5%) viam a maior superfície da casa e não tinham o que
+apertar para pagar.** O `trial_active_banner_cta` mudo desde 03/09 não era
+desinteresse: era ausência de botão. É o padrão exato das memórias
+`degrau-morto-dentro-da-superficie-viva` e `superficie-nova-empurra-a-que-vende`
+— a caixa do primeiro filme (nova, e correta) ocupou o lugar inteiro e a
+superfície que vende sumiu junto.
+
+**E A DEMANDA EXISTIA.** Das 216: **49 clicaram no botão grátis** do primeiro
+filme (23% — o caminho grátis funciona e não se toca), **20 chegaram a um
+`checkout_started` por conta própria**, procurando a porta em outra tela, e 1
+pagou. Vinte pessoas saíram para achar o que estava na frente delas.
+Confirmação ao vivo: desde o marco das 18:38 UTC, **3 pessoas** viram o banner
+e **as 3** caíram no ramo sem botão.
+
+**MUDOU — EM PRODUÇÃO, SHA `301a9d59`** (`origin/main` = 376f1029 contém;
+fila 0; deploy `dpl_AYfQr569Bo4zTwGXEpZDwkVMpBj8` **READY**, target production,
+`githubCommitSha = 301a9d59766d61da30efc67a8a122784fc46c37b` conferido pela API
+da Vercel, não pelo relógio).
+
+**O QUE O CLIENTE VÊ.**
+1. **Quem ainda não gastou um crédito** (216/mês) continua vendo a caixa verde
+   do primeiro filme, intacta, como manchete — e agora, **abaixo dela e fora
+   dela**, uma linha discreta: *"Try Creator 7 days for $1 →"*, com a nota
+   *"$1 today · 80 credits now · then $15/month from day 8 · cancel anytime"*.
+   Peso visual de link, nunca de botão: o filme grátis não perde a disputa
+   porque não há disputa.
+2. **Quem já gastou crédito** (15/mês) tinha *"Keep Creator after the trial —
+   $15.00"*. Passa a ter a porta de $1 com a mesma nota. Queda honesta: sem
+   moeda resolvida, ou em conta que já pagou, volta o rótulo e o destino
+   `intro=1` de sempre, byte a byte.
+
+**A REGRA NÃO FOI REDIGITADA.** As duas telas chamam `decideTrialDoorOffer` —
+a mesma fonte única da caixa de export limpo e do modal de fim de trial. Zero
+preço literal, zero cifrão escrito à mão (memória
+`superficie-medida-por-copia-da-regra`).
+
+**O GATE É O PREDICADO ESTRITO.** A Guarda 2 do banner fecha a tela quando
+`hasPaid === true` — mas `undefined` passaria por ela. Dinheiro exige prova
+positiva: guardei `data.hasPaid === false` em estado próprio e a porta só nasce
+com ele (memória `predicado-largo-negado-falha-aberta`).
+
+**TESTES.** Guardião novo `scripts/test-porta-1dolar-no-banner-do-trial.mjs`:
+**38 verificações e 6 mutantes** — o gate estrito, a montagem condicional, o
+predicado negado, a queda honesta do destino, a nota que diz o preço do dia 8,
+e o peso visual que impede a porta paga de virar um segundo botão sólido. Cada
+mutante **prova que foi escrito em disco** antes de ser julgado (memória
+`mutacao-precisa-provar-que-aplicou`), e a restauração é reconferida no fim.
+`tsc` verde, **falsificado com um erro deliberado** (`TS2322` na linha 187) para
+provar que o compilador estava mesmo rodando. Vizinhos verdes: clean-film-trial-
+door 86/86, porta-1dolar-fim-do-trial 39/39, trial-active-subscription-cta
+88/88, money-truth 313/313, downgrade first-value 49/49, human-view 107/107,
+plan-choice 39/39, post-delivery-slot 35/35, checkout-resume 111/111. **Tudo
+reconferido na ponta da fila depois do rebase**, que caiu sobre uma main nova
+de outra sessão (memória `guardiao-verde-na-worktree-vermelho-na-fila`).
+
+**RISCO.** Um: oferecer pagamento a quem ainda não recebeu o primeiro filme
+contraria "o primeiro vídeo é o produto". Mitigação medida — o botão grátis
+continua primeiro, sólido e maior; a porta é link, abaixo, fora da caixa; e a
+memória `janela-de-compra-e-o-dia-zero` mais o achado da va-r7 dizem que a
+janela de compra **é** a chegada (0-1 filme). Dois: é o fundador quem manda no
+preço; reverter é apagar uma linha de montagem.
+
+**COMO MEDIR.** `trial_first_film_pay_door_shown` (leva `visible` e `reason` no
+mesmo evento — sem os dois, zero clique não distingue "ninguém quis" de "nunca
+apareceu", memória `duas-contas-certas-portao-escolhe-a-errada`) →
+`trial_first_film_pay_door_clicked` → `checkout_started` com
+`intent_campaign = trial_1usd_first_film` → `payment_success` de 100 centavos.
+O CTA do outro ramo usa carimbo **diferente** (`trial_1usd_active_banner`): as
+duas coortes não podem virar uma só. Campo novo = carimbo do deploy; linha sem
+ele é de antes (memória `campo-novo-e-o-carimbo-do-deploy`).
+
+**PLACAR DE FECHAMENTO — marco 2026-09-07 18:38 UTC (~5h40), contas externas:**
+filme pronto **2 pessoas** · clique em baixar **0** · banner de trial **3**,
+e **3 de 3** no ramo sem botão de dinheiro · porta nova shown **0** / click
+**0** (nasceu às 21:14) · `checkout_started` **1**, com `card_trial=1` **0** ·
+**pagou 0** · 40 pessoas com evento.
+
+**CHECAGEM ZERO (24h):** cadastros **26** · crédito zero **11**, **trial órfão
+0** · render preso **0** · recusas de cartão **2**, **sem dono 0** · último
+`payment_success` **02/09 20:22 UTC** (jejum de 5 dias, inalterado).
+
+**A FRASE DA ROTAÇÃO.** Hoje um visitante novo que entra no trial e ainda não
+gastou um crédito encontra, pela primeira vez, **uma forma de pagar sem sair da
+tela** — 216 pessoas por mês estavam numa superfície que não tinha nenhuma.
+
+**PRÓXIMA JOGADA (#11).** A varredura de links que a #9 desenhou continua de pé,
+mas com a ordem corrigida pelo alcance real, e agora eu sei medir antes de
+mexer: `components/ExitIntentOffer.tsx:328` fala com **28 pessoas/30d** e
+`app/KineoLanding.tsx:838` é a landing pública (denominador ainda não medido —
+**meça `pricing_view` e o clique do card Creator antes de tocar**). Mas a
+alavanca maior que eu vi medindo esta: **`trial_balance_bridge_viewed` = 90
+pessoas / `trial_balance_bridge_clicked` = 5** — a ponte do segundo filme, no
+mesmo arquivo, tem 90 pessoas por mês e **também não tem porta de dinheiro
+nenhuma**. É o mesmo defeito, na mesma tela, um degrau adiante; e a peça já
+está escrita, é montar.
+
+**✅ O QUE VOCÊ PRECISA FAZER**
+1. **Nada para publicar** — já publiquei (`301a9d59`, deploy READY conferido
+   pela API da Vercel).
+2. **Decidir se aceita a oferta**: quem está no trial grátis e ainda não gastou
+   um crédito passa a ver, abaixo do botão grátis, *"Try Creator 7 days for
+   $1"*. Se não quiser, me diga "tira o $1 do banner do trial" — é apagar uma
+   linha.
+
+**📋 O QUE ACONTECEU**
+Eu ia varrer links de checkout e, medindo antes, achei o buraco maior da noite:
+**a maior superfície da casa — 793 pessoas por mês — não mostra botão de
+dinheiro nenhum para 93,5% de quem a vê.** Não era desinteresse: 20 dessas
+pessoas saíram da tela para procurar um checkout em outro canto do site. A causa
+é a caixa (correta) do primeiro filme, que ocupou o lugar inteiro e levou junto
+o pedido de venda. Consertei sem tocar em preço, crédito, motor ou pipeline, e
+sem mexer no caminho grátis: a porta de $1 nasce **fora** da caixa verde, com
+peso de link, e o botão grátis continua primeiro e maior. Regra de dinheiro na
+fonte única já testada, 38 verificações, 6 mutantes, e o `tsc` falsificado de
+propósito para provar que estava rodando. O jejum de assinante novo segue em 5
+dias; hoje, pelo menos, quem quer comprar não precisa mais procurar.
