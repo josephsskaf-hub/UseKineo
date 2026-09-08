@@ -2271,7 +2271,13 @@ diagnosticável em minutos em vez de virar mais uma linha muda no banco.
 
 ---
 
-### #16 — 09:06→09:30 BRT — M11 FECHAMENTO DA JANELA
+### #16 — 09:06→09:11 BRT — M11 FECHAMENTO DA JANELA
+
+> **Relógio conferido, não suposto.** `date` no shell marcava **09:11 BRT**
+> quando este fechamento subiu (`1edbd8dd`) — não 09:30. Escrevi 09:30 no
+> título por hábito de fim de janela e corrigi: **os últimos 19 minutos
+> (09:11 → 09:30) não estão cobertos por nenhum número aqui.** Todo corte de
+> medição abaixo é **12:11 UTC**.
 
 Janela **01:30 → 09:30 BRT**, 16 rotações. `origin/main` na hora do fechamento
 = **`bf8267dd`**, fila = **0**. **12 entregas de código publicadas**, 1 retida
