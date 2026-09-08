@@ -2494,6 +2494,15 @@ export async function GET(req: NextRequest) {
   // Cura no padrão do próprio arquivo: bloco pequeno + página ABAIXO do teto do
   // servidor + ordem TOTAL + falha FECHADA.
   const alreadySent = new Set<string>()
+  // KINEO-DEDUPE-TETO-1000-2026-09-08 — estes dois números são o CARIMBO DO
+  // DEPLOY desta mudança. Uma rota de cron autenticada não tem discriminador
+  // HTTP: ela respondia 401 anônima antes e responde 401 anônima agora, então
+  // sonda de fora não distingue os dois builds. Com eles no evento, a consulta
+  // `metadata ? 'dedupe_rows'` separa por CONSTRUÇÃO quem rodou no código novo
+  // — e `dedupe_pages > blocos` seria a primeira execução que precisou de uma
+  // segunda página, ou seja, o dia em que o teto teria mordido.
+  let dedupeRows = 0
+  let dedupePages = 0
   for (const part of chunk(Array.from(new Set(candidates.map((c) => c.id))), EMAIL_LOG_USERS_PER_QUERY)) {
     let fromRow = 0
     for (;;) {
@@ -2513,6 +2522,8 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: 'email_log_unavailable' }, { status: 503 })
       }
       const got = (logRows ?? []) as Array<Record<string, unknown>>
+      dedupePages++
+      dedupeRows += got.length
       for (const r of got) {
         if (typeof r.user_id === 'string' && typeof r.email_kind === 'string') {
           alreadySent.add(`${r.user_id}:${r.email_kind}`)
@@ -2552,6 +2563,8 @@ export async function GET(req: NextRequest) {
       cohort: (rows ?? []).length,
       due: candidates.length,
       already_sent_filtered: candidates.length - fresh.length,
+      dedupe_rows: dedupeRows,
+      dedupe_pages: dedupePages,
       suppressed_recent_lifecycle: suppression.suppressedCount,
       suppression_degraded: suppression.degraded,
       capped_out: Math.max(0, eligible.length - batch.length),
@@ -2716,6 +2729,10 @@ export async function GET(req: NextRequest) {
             // do `downgraded_loss` saiu para o zare; agora fica no evento.
             videos_made: c.videosMade,
             credits_lost: c.creditsLost,
+            // KINEO-DEDUPE-TETO-1000-2026-09-08 — ver o bloco da leitura de
+            // idempotência. Carimbo do build, não métrica de produto.
+            dedupe_rows: dedupeRows,
+            dedupe_pages: dedupePages,
             ...(body.body ? { body: body.body } : {}),
             // KINEO-PORTA-NO-MOMENTO-DA-PERDA-2026-09-07 — carimbo do deploy.
             // Linha SEM o campo é de antes e não se mistura na medição

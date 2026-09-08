@@ -174,6 +174,24 @@ check(
 )
 check('o claim do passo 4b continua com ignoreDuplicates: true', /ignoreDuplicates:\s*true/.test(src))
 
+// ── O carimbo do deploy ──────────────────────────────────────────────────────
+// Cron autenticado não tem discriminador HTTP: respondia 401 anônimo antes e
+// responde 401 anônimo agora. Sem estes dois campos no evento, nenhuma consulta
+// separa uma execução do código novo de uma do antigo, e a prova vira torcida.
+check(
+  'os contadores do dedupe são declarados no bloco da leitura',
+  /let dedupeRows = 0/.test(bloco) && /let dedupePages = 0/.test(bloco),
+)
+check(
+  'os contadores são somados por PÁGINA lida, dentro do laço',
+  bloco.includes('dedupePages++') && bloco.includes('dedupeRows += got.length'),
+)
+check(
+  'dedupe_rows e dedupe_pages viajam no evento trial_lifecycle_email_sent',
+  /name: 'trial_lifecycle_email_sent'[\s\S]{0,1200}?dedupe_rows: dedupeRows/.test(src) &&
+    /name: 'trial_lifecycle_email_sent'[\s\S]{0,1200}?dedupe_pages: dedupePages/.test(src),
+)
+
 // ── Relatório ────────────────────────────────────────────────────────────────
 console.log(`\n[dedupe-teto-1000] ${ok} verificações passaram, ${mal} falharam.`)
 if (mal > 0) {
