@@ -29,7 +29,8 @@ checa('robô do Omni e poster existem em public/', Boolean(robot && poster) && e
 const posters = [...rd('lib/publicExamples.ts').matchAll(/posterPath: '([^']+)'/g)].map((m) => m[1])
 checa('todos os posters da vitrine existem', posters.length >= 12 && posters.every((p) => existsSync(join(RAIZ, 'public', p))))
 
-checa('tráfego pago: utm_campaign na URL vira intent_campaign do CTA (Reddit ≠ PH no checkout)', /u.searchParams.set('intent_campaign', campaign)/.test(rd('components/PhLandingBeacon.tsx')) && /a[data-testid^="ph-cta-trial"]/.test(rd('components/PhLandingBeacon.tsx')))
+const beacon = rd('components/PhLandingBeacon.tsx')
+checa('tráfego pago: utm_campaign na URL vira intent_campaign do CTA (Reddit ≠ PH no checkout)', beacon.includes("u.searchParams.set('intent_campaign', campaign)") && beacon.includes('a[data-testid^="ph-cta-trial"]') && beacon.includes('CAMPAIGN_OK.test(campaign)'))
 
 console.log(`\n  verificacoes: ${ok + falhas.length} · falhas: ${falhas.length}`)
 if (falhas.length) { for (const f of falhas) console.log('  ✗ ' + f); process.exit(1) }
