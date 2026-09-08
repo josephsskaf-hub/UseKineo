@@ -387,7 +387,7 @@ const QA: { q: string; a: string }[] = [
     a:
       `Kineo is ${priceSentence(STARTER)}, against ${TOOLS.opusclip.entryPrice} for the cheapest ` +
       `paid ${TOOLS.opusclip.name} plan (read off ${TOOLS.opusclip.source} on ` +
-      `${TOOLS.opusclip.verified}), plus a free tier of ${FREE_TIER_ALLOWANCE} with no card. ` +
+      `${TOOLS.opusclip.verified}). ${FREE_TIER_ALLOWANCE} ` +
       `It is not a ` +
       `like-for-like replacement: ${TOOLS.opusclip.name} repurposes existing long-form video, ` +
       `while Kineo generates a new Short from a text idea. If you have no source footage, Kineo ` +
