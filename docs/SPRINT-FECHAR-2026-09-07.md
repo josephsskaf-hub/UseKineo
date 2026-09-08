@@ -2534,3 +2534,68 @@ não deve ser afrouxado** — mas custa cinco minutos de susto a quem não sabe.
 handoff no navegador (voltou pelo e-mail, pela pílula ou recarregou a página) não
 lê mais uma promessa de que a assinatura devolve **este** arquivo limpo. Ontem, e
 até as 21:55 de hoje, lia — e pagava por ela.
+
+---
+
+### #13 — 22:05 BRT — DOZE DE DOZE: A SUÍTE DE DINHEIRO E TRIAL VOLTOU A 94 VERDES / 0 VERMELHOS
+
+Continuei a #12 até o fim. **82 verdes / 12 vermelhos → 94 verdes / 0
+vermelhos**, `tsc` verde, e **nenhum arquivo de produto tocado em nenhum dos
+doze** — os oito commits desta leva mexem só em `scripts/`.
+
+| guardião | era | ficou | causa |
+|---|---:|---:|---|
+| `test-animate-paywall` | 1 falha | **61/61** | forma: `<UiLabel>` dentro do "Cost per clip" |
+| `test-rewrite-candidate-offer` | 1 falha | **47/47** | expressão inline virou `const` nomeado |
+| `test-porta-serie-impressao` | 4 falhas | **36/36** | as portas foram **embrulhadas**, não removidas |
+| `test-checkout-profile-read` | estourava | **25/25** | **acusação legítima** — ver abaixo |
+| `test-checkout-password-recovery` | estourava | **60/60** | destino `/generate` → `/studio` |
+| `test-checkout-currency-truth` | estourava | **8158/8158** | adjacência literal quebrada por `<UiLabel>` |
+| `test-stripe-checkout-failure-truth` | estourava | **67/67** | resolvedor ganhou 2º argumento |
+| `test-business-content-plan` | estourava | **216/216** | destino `/generate` → `/studio/create` |
+
+**ONZE ERAM FORMA. UM ERA VERDADE — e vale mais que os outros onze juntos.**
+`test-checkout-profile-read` exigia que o `select` do checkout lesse
+exatamente sete colunas de `profiles`. O commit de hoje que ligou o trial de $1
+(`c902516f`) somou **quatro**: `video_credits`, `trial_credits_granted`,
+`trial_credits_used`, `has_paid`. **A trava fez exatamente o que devia** — ela
+existe para impedir que a rota de pagamento amplie em silêncio o que lê do
+perfil. Conferi campo a campo que os quatro são consumidos (o `has_paid` é o
+que o cobrador usa para recusar `?trial=1`; os outros três são o saldo do
+trial), e então **atualizei a lista de propósito, com o motivo escrito** — não
+afrouxei a regra. Falsifiquei nos **dois sentidos**: somar um campo ao `select`
+deixa vermelho, remover um campo também.
+
+**E UMA TRAVA QUE EU TENTEI E NÃO ENTREGUEI.** Quis somar ao mesmo guardião uma
+segunda regra: cada campo lido tem de ser **consumido** na rota (ler dado de
+`profiles` sem usar é ampliar permissão de graça). Ela passava com a rota real —
+e **eu não consegui falsificá-la**: trocar o único uso de `has_paid` por
+`is_pro` deixava a regra **verde**. Trava que não fica vermelha quando o defeito
+existe é enfeite, então **ela não subiu**; ficou registrada como pendência
+dentro do próprio arquivo, com a pista de por que a abordagem textual falha (a
+rota lê esses campos por *cast*). Preferi um guardião menor e honesto a um
+maior e decorativo.
+
+**DUAS TRAVAS FICARAM MAIS APERTADAS DO QUE ERAM**, porque re-ancorar é a hora
+de perguntar "o que isto deveria estar exigindo e não exigia":
+- o webhook de recusa agora exige que o resolvedor de razão de cobrança seja
+  **aguardado** — uma promessa não-aguardada ali gravaria `undefined` e a recusa
+  entraria no banco sem saber se era renovação ou compra inicial, que é
+  exatamente a distinção que o CLAUDE.md manda não perder;
+- o reset de senha comum agora exige ser o **último** ramo, depois dos contextos
+  de checkout e de criação — antes nada impedia que ele sequestrasse quem estava
+  no meio de uma compra.
+
+**O PADRÃO QUE SE REPETIU CINCO VEZES, e que vale mais que os doze consertos:**
+guardião que casa com **FORMA** (`{creditLabel('x')}`, `{ANIMATE_COST} credits`,
+duas frases grudadas, uma chamada com um argumento) morre no primeiro wrapper
+ou no primeiro refactor honesto. Guardião que exige **ESTRUTURA** (o rótulo
+deriva da constante; a decisão vem da política executada; o destino não é página
+de marketing) sobrevive. Todos os doze foram falsificados por mutação no
+**arquivo de produção**, com a mutação conferida em disco antes do julgamento —
+e uma delas não provou nada na primeira tentativa porque caiu dentro de um
+comentário.
+
+**A FRASE DA ROTAÇÃO.** Hoje as travas que vigiam o dinheiro voltaram a ser
+capazes de ficar vermelhas — onze delas estavam vermelhas por motivo nenhum, e
+uma estava certa e ninguém tinha lido.
