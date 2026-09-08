@@ -1301,3 +1301,177 @@ metade mais quente da nossa fila de compra é Índia e Nigéria (31 de 67).** A 
 enterrou o preço regional em agosto por falta de vendas, e essa gente vem batendo
 no mês cheio em dólar desde então. A porta de $1 de hoje é a primeira coisa que a
 casa oferece que cabe no bolso dela — e às 22:12 ela vai saber que existe.
+
+---
+
+### #10 — 21:52-22:25 — AS CINCO PORTAS DE $1 DA CASA TIVERAM QUATRO CLIQUES EM SEIS HORAS, E OS QUATRO SOMOS NÓS
+
+**O que eu ia fazer:** a V4 do cardápio (o digest de respostas). **Não dá para
+fazer como está escrita** — o cardápio pede um cron que liste *respostas de
+e-mail*, e o MCP do Gmail está na lista de ferramentas proibidas desta tarefa.
+Um cron não tem como ler a caixa do fundador. Registro isso como limite, não
+como pendência: o que dá para medir de resposta é o **clique**, e é o que a
+V5 já mede.
+
+**Então usei os 20 minutos antes do disparo para conferir se a carta sai
+inteira — e o que apareceu no meio do caminho vale mais que o cron.**
+
+---
+
+#### 🔴 O ACHADO DA ROTAÇÃO: A PORTA DE $1 EXISTE HÁ SEIS HORAS E NENHUM HUMANO A TOCOU
+
+A pista irmã construiu hoje **cinco portas de $1** (`trial_1usd`,
+`trial_1usd_first_film`, `trial_1usd_active_banner`, `trial_1usd_upgrade_modal`,
+`trial_1usd_downgrade`) e a minha carta abriu a sexta
+(`video_ready_email_trial_1usd_v1` + `second_try_1usd`). Fui medir o que passou
+por elas desde que a primeira subiu (**18:30 UTC**), separando por **origem**, e
+não pelo relógio (memória `separador-de-sonda-e-origem-nao-relogio`):
+
+| clique em checkout desde 18:30 UTC | `intent_campaign` | `session_id` | superfície | chegou ao `checkout_started`? |
+|---|---|---|---|---|
+| 18:44 | `trial_1usd` | **nulo** | `missing` | ❌ `auth_required` |
+| 18:56 · 18:57 · 18:57 | — | real | `home` | ✅ (mês cheio) |
+| 19:40 | — | real | `home` | ✅ (mês cheio) |
+| 20:24 | — | nulo | `missing` | ❌ |
+| 22:35 | `video_ready_email_trial_1usd_v1` | **nulo** | `missing` | ❌ `auth_required` |
+| 00:24 | `second_try_1usd` | **nulo** | `missing` | ❌ `auth_required` |
+| 00:31 | `trial_1usd_upgrade_modal` | **nulo** | `missing` | ❌ `auth_required` |
+
+**Os quatro cliques que carregam campanha de $1 têm `session_id` nulo e
+`checkout_entry_surface = 'missing'` — a assinatura de quem bate direto na API
+sem navegador. São as nossas próprias sondas** (a minha da #9 às 00:24; a da
+pista irmã às 00:31; as outras duas, das rotações da tarde).
+
+**Os únicos cliques humanos da janela — três sessões reais, com `session_id` e
+`surface = 'home'` — vieram todos SEM campanha nenhuma, ou seja, das linhas de
+mês cheio da home.** Nenhum ser humano encontrou uma porta de $1 hoje.
+
+Isto não acusa a pista irmã de nada: as portas estão montadas, a tubulação de
+atribuição está verificada, e o caminho do deslogado foi sondado. **O que falta
+não é porta — é gente na frente dela.** Seis horas de tráfego real (124
+visitantes nas últimas 12h) passaram pela casa e a oferta mais barata da
+história dela não apareceu para ninguém que pudesse comprar.
+
+**É exatamente a razão de existir desta pista.** Às 01:12 UTC a carta põe a
+porta de $1 na frente de 30 pessoas escolhidas por terem feito filme, gastado
+tudo e ido olhar o preço. Se o clique humano existir, **ele nasce da carta, não
+da tela** — e isso é falsificável hoje, não semana que vem.
+
+---
+
+#### QUATRO ALARMES CONFERIDOS ANTES DO DISPARO — TRÊS FALSOS, UM É ARMADILHA DE MEDIÇÃO
+
+**1. "A carta pede resposta para um endereço que não recebe." FALSO.** O corpo
+diz *"hit reply… it comes to me, not a helpdesk"*, com
+`reply_to = joseph@usekineo.com`. O MX de `usekineo.com` resolve para
+`smtp.google.com` (Google Workspace), e o endereço é o mesmo de **18 outras
+rotas** da casa. Não é risco novo introduzido por esta carta.
+
+**2. "O link da carta não carrega campanha, então o disparo é imedível." FALSO —
+e o erro foi meu, de ler `grep` truncado.** A URL é montada em três linhas
+(`route.ts:134-136`) e carrega `intent_campaign` **e** `utm_source/medium/
+campaign`. Provado no banco: o clique de sonda das 00:24 chegou com
+`intent_campaign = second_try_1usd` **mesmo deslogado** — o elo sobrevive ao
+`checkout_auth_required`, que é o degrau onde a carta vai perder gente.
+
+**3. "O checkout pode recusar o $1 para esta coorte." FALSO.**
+`CARD_TRIAL_ENABLED = true` está **no código**, não em env (então não depende de
+deploy novo — memória `env-nova-so-vale-em-deploy-novo`), `TRIAL_TIER = 'basic'`
+bate com o `tier=basic` da carta, e a única recusa é `has_paid === true`, que é
+**estrita** e exclui exatamente quem a coorte já exclui.
+
+**4. ⚠️ ARMADILHA REAL, E EU QUASE PUBLIQUEI O NÚMERO: "0 checkouts com trial em
+24h".** Rodei `metadata->>'card_trial' = '1'` e deu **0** contra 4 checkouts.
+Antes de escrever, rodei o denominador certo: **`metadata ? 'card_trial'`
+devolve ZERO linhas na história inteira da tabela** — a chave nunca foi gravada
+uma vez. O meu "0 de 4" era `zero-por-chave-inexistente`, não um defeito.
+⚠️ E o zero **também não prova o contrário**: como nenhum clique de $1 passou do
+`auth_required`, a linha 1113 do checkout (`checkoutMetadata.card_trial = '1'`)
+**nunca teve oportunidade de rodar**. Fica registrado como *sem oportunidade*,
+nunca como *verificado* — o primeiro `checkout_started` da carta é o que prova.
+
+---
+
+#### 🟢 O DISPARO ACONTECEU. 30 CARTAS, 01:12:43 → 01:13:03 UTC.
+
+Fiquei acordado em cima do relógio para ver, porque toda rotação desta pista
+desde a #5 fechou com *"quem recebeu: ninguém ainda"*. **Acabou.**
+
+| o disparo, medido no banco | |
+|---|---|
+| `second_try_1usd_sent` | **30** |
+| janela do envio | 01:12:43 → 01:13:03 UTC (20 segundos, pacing de 600ms) |
+| filmes que a casa já entregou às 30 | **90** (de 1 a 18 por pessoa) |
+| receberam a frase *"on N separate visits"* | **7** — as outras 23 leem uma carta que não afirma nada sobre visitas |
+| restantes da coorte, para 13:12 UTC | 24 |
+
+**E o país das 30 é o teste da tese da #9, mais afiado do que eu esperava:**
+
+| país | cartas |
+|---|---|
+| **Índia** | **9** |
+| **Nigéria** | **8** |
+| Argélia | 2 |
+| Camarões · Alemanha · Espanha · Macedônia · Paquistão · Arábia Saudita · EUA · Austrália · Zâmbia · Canadá · Suíça | 1 cada |
+
+**17 das 30 (57%) estão na Índia ou na Nigéria** — a coorte inteira era 46%, e
+o sorteio das 30 saiu ainda mais concentrado. A previsão da #9 continua de pé e
+agora tem denominador: **se a porta de $1 converter, o primeiro pagante sai de
+IN ou NG.** Se sair dos EUA (1 carta), a tese de que a barreira é aritmética
+regional está errada — e essa é a única carta americana da leva.
+
+---
+
+#### O DIA INTEIRO, PARA O FUNDADOR LER DE UMA VEZ (07/09, contas externas)
+
+| | |
+|---|---|
+| cadastros novos | **26** |
+| filmes entregues | **27**, para **19** pessoas |
+| e-mails que a casa mandou | **184** |
+| pessoas que chegaram ao checkout | 3 sessões humanas, **todas no mês cheio** |
+| cliques humanos em porta de $1 | **0** |
+| **pagamentos** | **0** — último em 02/09 20:22 UTC, **jejum de 5 dias** |
+
+A casa produziu 27 filmes e 184 e-mails hoje e não vendeu nada. As portas de $1
+existem desde 18:30 UTC e nenhum humano as viu. **As 30 cartas de 01:12 são a
+primeira vez no dia em que a oferta mais barata da casa foi posta na frente de
+alguém que já provou que quer comprar.**
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+1. **Nada para a carta.** Saiu sozinha às 22:12 BRT para **30 pessoas**; as
+   outras 24 saem às 10:12 BRT de amanhã. Com o carimbo de 1×-para-sempre, a
+   coorte se esgota nessas duas rodadas e a rota vira inerte sozinha.
+2. **Reserve 20 minutos amanhã para a caixa de entrada.** A carta termina com
+   *"hit reply and tell me what actually stopped you"* e o `reply_to` é
+   `joseph@usekineo.com` — as respostas caem na **sua** caixa, não na minha. A
+   regra da casa é 48h (24/08: 5 clientes escreveram, 4 ficaram sem resposta).
+   Me mande o texto de qualquer resposta e eu preparo o retorno.
+3. **Continua de pé, e só você pode:** mandar da sua caixa os 7 rascunhos de
+   `docs/RASCUNHOS-AUTOPILOT-2026-09-07.md` — as pessoas que abriram o checkout
+   de $299. A casa não manda e-mail automático para elas de propósito.
+4. **Decisão sua, herdada da #7 e ainda não vencida:** as quatro strings de
+   `lib/freeTierOffer.ts` que prometem *"every engine unlocked, including
+   Kling 3"* para um saldo de 25 créditos, quando o Kling 3 custa 150.
+
+## 📋 O QUE ACONTECEU
+
+**A casa falou com 30 pessoas.** É a primeira vez hoje que essa frase é
+verdadeira, e essas 30 não foram escolhidas por lista comprada nem por "quem
+não abre e-mail há muito tempo": são gente que **fez filme aqui** (90 filmes
+somados), **gastou tudo**, **foi olhar o preço** e não comprou. A carta diz o
+que mudou hoje, sem desconto novo, e termina perguntando o que travou.
+
+Antes de deixá-la sair, gastei os 20 minutos anteriores conferindo quatro
+motivos de abortar. Três eram falsos — inclusive um que era erro meu de ler um
+`grep` cortado. O quarto era uma armadilha de medição que eu ia publicar como
+defeito: *"nenhum checkout carimbou o trial"* é verdade e não significa nada,
+porque a chave nunca foi gravada uma vez na história da tabela e nenhum clique
+chegou perto do ponto onde ela seria escrita.
+
+E foi conferindo isso que apareceu o achado que importa mais que a carta: **as
+cinco portas de $1 que a casa construiu hoje tiveram quatro cliques em seis
+horas, e os quatro somos nós mesmos sondando.** Os únicos cliques humanos do
+dia vieram da home, no mês cheio, sem passar perto do dólar. As portas estão
+certas; o que faltava era alguém na frente delas. Às 22:12 passaram a ter 30.
