@@ -68,6 +68,23 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { trackClosedEvent, trackEvent } from '@/lib/analytics'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
+// A porta de $1 para quem AINDA NÃO gastou um crédito é peça própria: a caixa
+// verde do primeiro filme é caminho grátis e continua sendo a manchete. Ver o
+// cabeçalho do arquivo para a medição que a justifica (216 pessoas sem controle
+// de dinheiro nenhum, 20 delas indo procurar checkout em outra tela).
+import TrialFirstFilmPayDoor from '@/components/TrialFirstFilmPayDoor'
+import { decideTrialDoorOffer } from '@/lib/growth/cleanFilmTrialDoor'
+import {
+  CARD_TRIAL_DAYS,
+  CARD_TRIAL_ENTRY_FEE_MINOR,
+  CARD_TRIAL_GRANT_CREDITS,
+} from '@/lib/checkoutPricing'
+
+// Carimbo próprio da porta deste banner. Separado do `trial_1usd_first_film`
+// de propósito: as duas falam com coortes diferentes (quem ainda não gastou um
+// crédito × quem já gastou) e misturá-las num campanha só apagaria a diferença
+// (memória `campo-novo-e-o-carimbo-do-deploy`).
+const TRIAL_ACTIVE_BANNER_DOOR_VERSION = 'trial_1usd_active_banner' as const
 import { creditsPerReferenceVideo } from '@/lib/marketingPrice'
 import {
   buildTrialReturnLadderHref,
@@ -178,6 +195,12 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
   const [refreshToken, setRefreshToken] = useState(0)
   const [currency, setCurrency] = useState<CheckoutCurrency | null>(null)
   const [region, setRegion] = useState<PriceRegion>('standard')
+  // KINEO-TRIAL-FIRST-FILM-PAY-DOOR-2026-09-07 — o predicado ESTRITO, não o
+  // negado. A Guarda 2 abaixo fecha o banner quando `hasPaid === true`, mas uma
+  // rota que pare de devolver o campo deixaria `undefined` passar por ela. A
+  // porta de $1 é dinheiro e exige a prova positiva: só nasce quando o servidor
+  // disse `false` com todas as letras (memória `predicado-largo-negado-falha-aberta`).
+  const [notPaidProven, setNotPaidProven] = useState(false)
   const checkout = useCheckoutLaunch('trial_active_banner')
   const returnLadderRef = useRef<HTMLDivElement | null>(null)
   const subscriptionCtaRef = useRef<HTMLButtonElement | null>(null)
@@ -291,6 +314,7 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
         setUsed(typeof trial.creditsUsedForDisplay === 'number' ? trial.creditsUsedForDisplay : null)
         setCredits(currentCredits)
         setMsLeft(left)
+        setNotPaidProven(data.hasPaid === false)
         setOpen(true)
 
         // Impressão: uma por conta por dia. Sai aqui, e não no render, porque
@@ -543,6 +567,22 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
   // Preço SEMPRE de lib/checkoutPricing, por moeda. Zero literal nesta tela.
   const priceLabel = currency !== null && priceMinor !== null ? formatCheckoutMoney(currency, priceMinor) : null
 
+  // KINEO-TRIAL-CTA-PORTA-1USD-2026-09-07 — a MESMA fonte única que a caixa de
+  // export limpo, o modal de fim de trial e a porta do primeiro filme
+  // consomem. Este CTA era o último ponto desta tela que ainda mandava para o
+  // mês CHEIO, e a ordem do fundador de 07/09 16:40 é explícita: onde houver
+  // preço na tela, a primeira opção passa a ser o trial de $1 — sem esconder o
+  // plano. Quando a porta não é visível (moeda ainda resolvendo, ou conta que
+  // já pagou), a queda é HONESTA: volta o rótulo e o destino de sempre.
+  const subscriptionDoor = decideTrialDoorOffer({
+    hasPaid: !notPaidProven,
+    entryFeeLabel: currency !== null ? formatCheckoutMoney(currency, CARD_TRIAL_ENTRY_FEE_MINOR) : null,
+    monthlyLabel: currency !== null ? formatCheckoutMoney(currency, getTierPrice('basic', currency, region)) : null,
+    grantCredits: CARD_TRIAL_GRANT_CREDITS,
+    trialDays: CARD_TRIAL_DAYS,
+    unlocksCurrentFilm: false,
+  })
+
   // Vídeos cinematográficos que a concessão realmente compra. DERIVADO, nunca
   // redigitado: no dia em que o custo do motor mudar, esta frase acompanha.
   const trialVideos = SEEDANCE_COST > 0 ? Math.floor(granted / SEEDANCE_COST) : 0
@@ -669,6 +709,7 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
           </button>
         </div>
       )}
+      {firstDelivery.eligible && <TrialFirstFilmPayDoor userKey={userKey} dayKey={dayRef.current} currency={currency} region={region} notPaidProven={notPaidProven} creditsBefore={firstDelivery.creditsBefore} msLeft={msLeft} />}
       {!firstDelivery.eligible && returnLadder.eligible && (
         <div
           ref={returnLadderRef}
@@ -724,17 +765,30 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
             credits_granted: granted,
             credits_used: used,
             trial_counter_rendered: counterRendered,
+            trial_door: subscriptionDoor.visible,
+            card_trial: subscriptionDoor.visible ? '1' : null,
+            trial_door_reason: subscriptionDoor.reason,
           })
-          // `intro=1` é o MESMO link de todas as outras superfícies de Creator
-          // do app. Omiti-lo faria esta tela ser a única a cobrar mais caro
-          // pelo mesmo plano. Quem valida elegibilidade é o servidor.
-          checkout.launch('basic', '/api/stripe/checkout?tier=basic&intro=1', {
-            ...trialActiveSubscriptionCtaClickMetadata({
-              returnLadderRendered: returnLadder.eligible,
-            }),
-            tier: 'basic',
-            pricing_surface: 'trial_active_banner',
-          })
+          // O destino segue a MESMA decisão que pintou o rótulo — nunca uma
+          // segunda régua. `intro=1` continua no ramo de queda porque é o link
+          // histórico das outras superfícies de Creator (e um no-op de preço
+          // desde a V5); quem valida elegibilidade é sempre o servidor, que
+          // recusa `?trial=1` para quem já pagou.
+          checkout.launch(
+            'basic',
+            subscriptionDoor.visible
+              ? `/api/stripe/checkout?tier=basic&billing=monthly&trial=1&intent_campaign=${TRIAL_ACTIVE_BANNER_DOOR_VERSION}`
+              : '/api/stripe/checkout?tier=basic&intro=1',
+            {
+              ...trialActiveSubscriptionCtaClickMetadata({
+                returnLadderRendered: returnLadder.eligible,
+              }),
+              tier: 'basic',
+              pricing_surface: 'trial_active_banner',
+              card_trial: subscriptionDoor.visible ? '1' : '0',
+              intent_campaign: subscriptionDoor.visible ? TRIAL_ACTIVE_BANNER_DOOR_VERSION : null,
+            },
+          )
         }}
         disabled={checkout.pending !== null}
         // ═══ KINEO-TRIAL-CTA-TAPTARGET-2026-08-12 ═══════════════════════════
@@ -817,10 +871,17 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
       >
         {checkout.pending !== null
           ? 'Opening checkout…'
-          : priceLabel
-            ? `Keep Creator after the trial — ${priceLabel}`
-            : 'Keep Creator after the trial'}
+          : (subscriptionDoor.visible && subscriptionDoor.buttonLabel) ||
+            (priceLabel ? `Keep Creator after the trial — ${priceLabel}` : 'Keep Creator after the trial')}
       </button>}
+      {/* A nota de preço não é enfeite: sem ela o botão diria "$1" e calaria o
+          que acontece no dia 8. A frase vem pronta do núcleo — esta tela não
+          escreve dinheiro à mão. */}
+      {!firstDelivery.eligible && subscriptionDoor.visible && subscriptionDoor.priceNote && (
+        <p className="mt-1 text-xs" style={{ color: 'var(--muted2)', lineHeight: 1.45 }}>
+          {subscriptionDoor.priceNote}
+        </p>
+      )}
       {!firstDelivery.eligible && checkout.error && (
         <p className="mt-1 text-xs" style={{ color: '#ff6b6b' }}>
           {checkout.error}
