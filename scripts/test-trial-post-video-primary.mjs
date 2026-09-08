@@ -25,7 +25,17 @@ function check(name, condition) {
 // KINEO-TRIAL-REPEAT-BEFORE-CHECKOUT-2026-08-30 — the subscription card now
 // owns only the no-bridge, no-funded-repeat branch. The prior anchor described
 // the old hierarchy, so it is updated to the actual rendered contract.
-const cardStart = source.indexOf('{showTrialPostVideoOffer && !trialBalanceBridge.eligible && !showTrialRepeatEpisode && (')
+// KINEO-REANCORA-CAIXA-COMERCIAL-2026-09-07 — a âncora acima descrevia a
+// hierarquia à mão (`showTrialPostVideoOffer && !bridge && !repeat`), que a
+// distribuição do slot pós-entrega substituiu por UM dono nomeado. A string
+// deixou de existir, `card` virava '' e as 57 verificações desta suíte caíam em
+// cascata a partir de "trial offer card is found" — 25/57, e as 32 falhas se
+// liam como acusação ao produto quando o produto nunca foi lido. A condição
+// nova é EQUIVALENTE e mais forte: `decidePostDeliverySlot` só devolve
+// 'commercial_ask' quando o slot do trial existe e nem a ponte nem o episódio 2
+// o reservaram — a exclusividade passou a ser garantida por construção, e é
+// `scripts/test-post-delivery-slot.mjs` quem a prova.
+const cardStart = source.indexOf("{postDeliverySlotOwner === 'commercial_ask' && (")
 const cardEnd = source.indexOf('{/* Keep the revenue/export decision first.', cardStart)
 const card = cardStart >= 0 && cardEnd > cardStart ? source.slice(cardStart, cardEnd) : ''
 const downloadStart = source.indexOf('Download clean Short')
@@ -113,7 +123,17 @@ check('watermark note uses asset truth', source.includes('!showPostVideoExportCh
 check('credits follow the tier selected by policy', card.includes('TIER_CREDITS[ladderPrimaryTier]'))
 check('one-time credits remain sourced from PACK_CREDITS', card.includes('PACK_CREDITS.starter'))
 check('price remains sourced from helpers', card.includes('trialOfferPriceNote') && card.includes('packPriceLabel()'))
-check('no literal dollar price was added to card', !/\$\s*\d/.test(card))
+// A trava vale para o que a TELA imprime, não para a prosa que explica por que
+// ela imprime. Depois que a porta de $1 entrou nesta caixa (07/09), dois
+// comentários passaram a citar "$1" ao justificar a hierarquia, e a regra
+// reprovava a explicação em vez do preço — falso vermelho que treina gente a
+// ignorar guardião. Comentários de bloco (inclusive `{/* … */}` de JSX) e de
+// linha saem antes do julgamento; `//` só é cortado no início da linha, para
+// não amputar `https://`.
+const cardCode = card
+  .replace(/\/\*[\s\S]*?\*\//g, '')
+  .replace(/^\s*\/\/.*$/gm, '')
+check('no literal dollar price was added to card', !/\$\s*\d/.test(cardCode))
 check('no render endpoint was added to offer card', !card.includes('/api/generate-video'))
 check('security/cancellation copy remains visible', card.includes('Secure checkout · cancel anytime'))
 
