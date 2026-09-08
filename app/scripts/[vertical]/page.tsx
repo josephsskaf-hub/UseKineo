@@ -48,6 +48,7 @@ import {
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 import { CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED } from '@/lib/publicSurfacePolicy'
 import { toolActivationHref } from '@/lib/toolActivationHref'
+import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -446,7 +447,7 @@ export default async function ScriptVerticalPage({ params }: { params: { vertica
               fontSize: '1.01rem',
             }}
           >
-            Start free →
+            {CARD_ENTRY_COPY.ctaLong}
           </OrganicCtaLink>
         </section>}
 

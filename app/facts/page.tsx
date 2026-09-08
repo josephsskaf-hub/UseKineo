@@ -121,7 +121,7 @@ const COMPETITOR_NAMES = listEn(COMPETITOR_FACTS.map((c) => c.name))
 const FREE_TIER_ALLOWANCE = FREE_TIER.allowance
 
 /** Franquia + cartão, para vir logo depois de um verbo ("can create ..."). */
-const FREE_TIER_SENTENCE = `${FREE_TIER_ALLOWANCE}, with no credit card`
+const FREE_TIER_SENTENCE = `${FREE_TIER_ALLOWANCE}`
 
 const OUTPUT_FORMAT = `${PRODUCT.outputFormat}, ${PRODUCT.aspectRatio}`
 const TRIAL_COVERED_ENGINES = TRIAL_ACCESS?.engineCoverage

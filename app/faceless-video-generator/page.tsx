@@ -17,6 +17,7 @@ import {
   affiliateLandingContext,
   type PublicSearchParams,
 } from '@/lib/growth/affiliateLandingContext'
+import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -164,7 +165,7 @@ export default function FacelessVideoGeneratorPage({ searchParams }: { searchPar
             Generate a faceless video
           </OrganicCtaLink>
           <OrganicCtaLink href={signupUrl} source={CAMPAIGN} placement="hero_signup" style={{ border: '1px solid #48484a', color: '#f5f5f7', fontWeight: 750, padding: '14px 22px', borderRadius: 980, textDecoration: 'none' }}>
-            Start free with no card
+            {CARD_ENTRY_COPY.ctaLong}
           </OrganicCtaLink>
         </div>
         <p style={{ fontSize: 13, color: '#2997ff', fontWeight: 750, margin: '12px 0 0' }}>

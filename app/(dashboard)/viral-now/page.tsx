@@ -11,7 +11,7 @@ const VIRAL_NOW_URL = 'https://www.usekineo.com/viral-now'
 // below is a curated catalogue rotated deterministically every four hours.
 const TITLE = '#ViralNow: 8 YouTube Shorts Ideas to Post Today | Kineo'
 const DESCRIPTION =
-  'Browse 8 ready-to-create YouTube Shorts ideas, rotated every 4 hours from Kineo’s curated library. Pick one and keep it through signup—no card required.'
+  'Browse 8 ready-to-create YouTube Shorts ideas, rotated every 4 hours from Kineo’s curated library. Pick one and keep it through signup—$1 trial required.'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.usekineo.com'),

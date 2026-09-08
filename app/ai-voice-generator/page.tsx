@@ -6,6 +6,7 @@ import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 import Link from 'next/link'
 import Footer from '@/components/Footer'
 import { buildProductSurfaceSignupHref } from '@/lib/growth/productSurfaceIntent'
+import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
 
 const BASE = 'https://www.usekineo.com'
 const VOICE_SIGNUP_HREF = buildProductSurfaceSignupHref({
@@ -17,7 +18,7 @@ const VOICE_SIGNUP_HREF = buildProductSurfaceSignupHref({
 export const metadata: Metadata = {
   title: 'AI Voice Generator — Text to Speech with 4 Engines (MiniMax, ElevenLabs) | Kineo',
   description:
-    `Turn text into natural speech with four AI voice engines: MiniMax Speech HD, ElevenLabs v3, Dia and Kokoro. From 1 credit per 1,000 characters. Use any voice in your videos. ${TRIAL_GRANT_CREDITS_COPY} free credits on signup.`,
+    `Turn text into natural speech with four AI voice engines: MiniMax Speech HD, ElevenLabs v3, Dia and Kokoro. From 1 credit per 1,000 characters. Use any voice in your videos. Starts with the $1 trial: 7 days of Creator, 80 credits.`,
   alternates: { canonical: `${BASE}/ai-voice-generator` },
   openGraph: {
     title: 'AI Voice Generator — four TTS engines, one studio',
@@ -34,7 +35,7 @@ const FAQS = [
   },
   {
     q: 'How much does AI voiceover cost?',
-    a: `From 1 credit per 1,000 characters — a typical 60-second narration (~1,000 characters) costs 1–2 credits. Every new account gets ${TRIAL_GRANT_CREDITS_COPY} free credits on signup. Credits are shared with image and video generation on the same balance.`,
+    a: `From 1 credit per 1,000 characters — a typical 60-second narration (~1,000 characters) costs 1–2 credits. Every new account starts with the $1 trial (7 days of Creator, 80 credits) on signup. Credits are shared with image and video generation on the same balance.`,
   },
   {
     q: 'Can I use the voices in my videos?',
@@ -80,7 +81,7 @@ export default function AiVoiceGeneratorPage() {
             href={VOICE_SIGNUP_HREF}
             style={{ background: '#2997ff', color: '#fff', fontWeight: 800, padding: '13px 22px', borderRadius: 12, textDecoration: 'none', boxShadow: '0 8px 24px rgba(41,151,255,.35)' }}
           >
-            {`Start free — ${TRIAL_GRANT_CREDITS_COPY} credits →`}
+            {CARD_ENTRY_COPY.ctaLong}
           </Link>
           <Link
             href="/login"
@@ -93,7 +94,7 @@ export default function AiVoiceGeneratorPage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 14, marginBottom: 44 }}>
           {[
             ['🎙 Four engines, your pick', 'Premium documentary voices (MiniMax, ElevenLabs) or fast natural reads (Dia, Kokoro) — compare on the same script.'],
-            ['💸 From 1 credit / 1k chars', `A full 60-second narration costs 1–2 credits. Your ${TRIAL_GRANT_CREDITS_COPY} free credits cover a dozen takes or more.`],
+            ['💸 From 1 credit / 1k chars', `A full 60-second narration costs 1–2 credits. Your 80 trial credits cover a dozen takes or more.`],
             ['🎬 Voice → video', 'One click sends any take into the video studio — narration, karaoke captions and score sync automatically.'],
           ].map(([t, d]) => (
             <div key={t} style={{ background: '#131316', border: '1px solid rgba(255,255,255,.07)', borderRadius: 14, padding: '18px 16px' }}>

@@ -13,6 +13,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { STARTER_MO, CREATOR_MO } from '@/lib/marketingPrice'
+import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
 
 export const dynamic = 'force-static'
 
@@ -122,7 +123,7 @@ export default function RewardsPage() {
           href="/free?utm_source=seo&utm_medium=tiktok_rewards&utm_campaign=one_minute"
           style={{ display: 'inline-block', background: '#2997ff', color: '#fff', fontWeight: 900, fontSize: 15, padding: '12px 28px', borderRadius: 12, textDecoration: 'none' }}
         >
-          Start free — no card
+          {CARD_ENTRY_COPY.ctaLong}
         </Link>
         <p style={{ color: '#86868b', fontSize: 12, marginTop: 10 }}>25 credits on signup · every engine unlocked</p>
       </div>

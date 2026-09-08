@@ -615,7 +615,7 @@ export default function BestAiShortsGeneratorsPage() {
               placeholder: 'Type one topic — nothing else needed, no footage, no script',
               submit: 'Turn this topic into a Short →',
               examplesLabel: 'Example topics to test it with',
-              note: 'Nothing but a topic goes in. Your topic stays attached through signup. No card required for the free Fast workflow.',
+              note: 'Nothing but a topic goes in. Your topic stays attached through signup. Starts with the $1 trial (7 days of Creator, 80 credits).',
             }}
           />
         </section>

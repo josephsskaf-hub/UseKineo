@@ -21,6 +21,7 @@ import { buildPromptedSignupHref } from '@/lib/growth/publicCreationIntent'
 // lib/marketingPrice.ts. Digitado à mão ele já sobreviveu a duas mudanças
 // de tabela publicando um valor que o checkout não cobrava mais.
 import { STARTER_MONTH } from '@/lib/marketingPrice'
+import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -685,7 +686,7 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
               placement="final"
               style={{ display: 'inline-block', background: '#2997ff', color: '#000', fontWeight: 900, padding: '14px 30px', borderRadius: 12, textDecoration: 'none', fontSize: '1.02rem' }}
             >
-              Start free →
+              {CARD_ENTRY_COPY.ctaLong}
             </OrganicCtaLink>
           )}
         </section>

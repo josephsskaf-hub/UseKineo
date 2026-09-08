@@ -12,6 +12,7 @@ import { useEffect, useState } from 'react'
 import { trackEvent } from '@/lib/analytics'
 import { FreeTierCopy } from '@/components/FreeTierOfferProvider'
 import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
+import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
 
 export default function PhWelcomeBanner() {
   const [show, setShow] = useState(false)
@@ -48,7 +49,7 @@ export default function PhWelcomeBanner() {
         onClick={() => { void trackEvent('ph_welcome_banner_clicked') }}
         style={{ color: '#5cb3ff', textDecoration: 'underline', fontWeight: 800 }}
       >
-        Start free →
+        {CARD_ENTRY_COPY.ctaLong}
       </a>
       {/*
         ⚠️ KINEO-SEM-CUPOM-PUBLICO-2026-08-21 — A LINHA DO CUPOM SAIU DAQUI.

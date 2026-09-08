@@ -2,7 +2,7 @@
 // free tier + copy, decidida por UMA flag.
 
 import { creditCostForDuration } from './credits/engineCost'
-import { CARD_ENTRY_COPY, CARD_ENTRY_ONLY } from './entryPolicy'
+import { CARD_ENTRY_COPY, CARD_ENTRY_ONLY, CARD_ENTRY_TRIAL_CREDITS } from './entryPolicy'
 //
 //   KINEO_REVERSE_TRIAL_ENABLED === 'true'  (a MESMA flag de lib/reverseTrial.ts)
 //
@@ -155,7 +155,8 @@ export const TRIAL_GRANT_CREDITS_COPY = 25
 // ON = decisão do fundador (docs/ORDENS-AQUISICAO-2026-08-02.md, bloco
 // "DECISÕES FINAIS — REVERSE TRIAL"). NUNCA mencionar desconto/50% aqui:
 // o 50% é exclusivo dos e-mails D5/D10 pós-trial, jamais superfície pública.
-const G = TRIAL_GRANT_CREDITS_COPY
+// KINEO-VERSAO-B: sob a porta única, a conta que faz filme tem os 80 do trial de $1, não 25.
+const G = CARD_ENTRY_ONLY ? CARD_ENTRY_TRIAL_CREDITS : TRIAL_GRANT_CREDITS_COPY
 // KINEO-TRIAL-FILMES-2026-08-20 — "80 credits" não significa nada para quem
 // acabou de chegar; "4 AI films" significa tudo. É a mesma regra que a página
 // de preços já segue (fala em filmes, não em créditos) e agora vale também na
@@ -163,7 +164,7 @@ const G = TRIAL_GRANT_CREDITS_COPY
 // Derivado do grant ÷ custo do Seedance de 60s (o motor premium que o grant
 // atual consegue cobrir), nunca digitado: se um dos dois mudar, acompanha.
 export const TRIAL_FILMS = Math.floor(
-  TRIAL_GRANT_CREDITS_COPY / creditCostForDuration('cinematic_ai', true, 60),
+  G / creditCostForDuration('cinematic_ai', true, 60),
 )
 
 // ═══ KINEO-TRIAL-COBRE-MOTOR-2026-08-21 ════════════════════════════════════
@@ -187,7 +188,7 @@ export const TRIAL_FILMS = Math.floor(
 /** Quantos filmes de um motor de `custo` créditos o trial cobre. 0 = nenhum. */
 export function trialFilmsForEngine(custo: number): number {
   if (!Number.isFinite(custo) || custo <= 0) return 0
-  return Math.floor(TRIAL_GRANT_CREDITS_COPY / custo)
+  return Math.floor(G / custo)
 }
 
 // ⚠️ KINEO-TETO-COPY-2026-08-20 — A COPY DO MODELO NOVO (leia antes de mexer)

@@ -113,7 +113,7 @@ export default function OmniVsSoraPage() {
         >
           Try the pipeline free — no card
         </a>
-        <p style={{ color: '#86868b', fontSize: 12, marginTop: 10 }}>{TRIAL_GRANT_CREDITS_COPY} free credits on signup · switch before Sept 24</p>
+        <p style={{ color: '#86868b', fontSize: 12, marginTop: 10 }}>$1 trial — 80 credits, 7 days · switch before Sept 24</p>
       </div>
     </main>
   )

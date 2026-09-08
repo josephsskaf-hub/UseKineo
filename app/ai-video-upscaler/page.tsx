@@ -11,6 +11,7 @@ import { creditsPerReferenceVideo, formatUsd, planCreditSpendUsd } from '@/lib/m
 import Link from 'next/link'
 import Footer from '@/components/Footer'
 import { buildProductSurfaceSignupHref } from '@/lib/growth/productSurfaceIntent'
+import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
 
 const BASE = 'https://www.usekineo.com'
 const UPSCALER_SIGNUP_HREF = buildProductSurfaceSignupHref({
@@ -46,11 +47,11 @@ const FAQS = [
   },
   {
     q: 'Can I enhance a video I made in another tool?',
-    a: `The fastest path is to remake it in Kineo — type the same idea, pick a cinematic engine (Seedance, Kling, Veo), and the film comes out finished with voice, karaoke captions and score. Then one click of Enhance gives it the HD film polish. New accounts get ${TRIAL_GRANT_CREDITS_COPY} free credits, every engine unlocked.`,
+    a: `The fastest path is to remake it in Kineo — type the same idea, pick a cinematic engine (Seedance, Kling, Veo), and the film comes out finished with voice, karaoke captions and score. Then one click of Enhance gives it the HD film polish. New accounts start with the $1 trial: 7 days of Creator, 80 credits.`,
   },
   {
     q: 'How much does it cost?',
-    a: `Enhance is ${ENHANCE_CREDITS} credits per video (${CREATOR_ENHANCE_VALUE} of Creator-plan credits). Generating a full 60-second film starts at ${SEEDANCE_CREDITS} credits with Seedance. Every new account gets ${TRIAL_GRANT_CREDITS_COPY} free credits on signup.`,
+    a: `Enhance is ${ENHANCE_CREDITS} credits per video (${CREATOR_ENHANCE_VALUE} of Creator-plan credits). Generating a full 60-second film starts at ${SEEDANCE_CREDITS} credits with Seedance. Every new account starts with the $1 trial (7 days of Creator, 80 credits).`,
   },
 ]
 
@@ -88,7 +89,7 @@ export default function AiVideoUpscalerPage() {
             href={UPSCALER_SIGNUP_HREF}
             style={{ background: '#2997ff', color: '#fff', fontWeight: 800, padding: '13px 22px', borderRadius: 12, textDecoration: 'none', boxShadow: '0 8px 24px rgba(41,151,255,.35)' }}
           >
-            {`Start free — ${TRIAL_GRANT_CREDITS_COPY} credits →`}
+            {CARD_ENTRY_COPY.ctaLong}
           </Link>
           <Link
             href="/login"

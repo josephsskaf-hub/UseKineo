@@ -13,6 +13,7 @@ import { buildProductSurfaceSignupHref } from '@/lib/growth/productSurfaceIntent
 // digitados juntos: quando a escada desceu para $7/40, nada aqui apontava
 // para a tabela que cobra, então a página seguiu vendendo o plano antigo.
 import { STARTER_MONTH, STARTER_CREDITS } from '@/lib/marketingPrice'
+import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
 
 const BASE = 'https://www.usekineo.com'
 const IMAGE_SIGNUP_HREF = buildProductSurfaceSignupHref({
@@ -24,7 +25,7 @@ const IMAGE_SIGNUP_HREF = buildProductSurfaceSignupHref({
 export const metadata: Metadata = {
   title: 'AI Image Generator — 6 Engines, One Studio (FLUX, Seedream, Grok, Recraft) | Kineo',
   description:
-    `Generate images with six AI engines in one place: FLUX Schnell & Dev, Seedream, Grok, Recraft and Nano Banana Pro. Edit with instructions, upscale to HD. ${TRIAL_GRANT_CREDITS_COPY} free credits on signup, no card.`,
+    `Generate images with six AI engines in one place: FLUX Schnell & Dev, Seedream, Grok, Recraft and Nano Banana Pro. Edit with instructions, upscale to HD. Starts with the $1 trial: 7 days of Creator, 80 credits.`,
   alternates: { canonical: `${BASE}/ai-image-generator` },
   openGraph: {
     title: 'AI Image Generator — six engines, one studio',
@@ -45,7 +46,7 @@ const FAQS = [
   },
   {
     q: 'How much does it cost?',
-    a: `Images cost 1–5 credits depending on the engine. Every new account gets ${TRIAL_GRANT_CREDITS_COPY} free credits — enough to try every engine. Paid plans start at ` + STARTER_MONTH + ' for ' + STARTER_CREDITS + ' credits, charged in USD worldwide, and credits are shared across images, voice and video.',
+    a: `Images cost 1–5 credits depending on the engine. Every new account starts with the $1 trial: 7 days of Creator with 80 credits — enough to try every image engine. Paid plans start at ` + STARTER_MONTH + ' for ' + STARTER_CREDITS + ' credits, charged in USD worldwide, and credits are shared across images, voice and video.',
   },
   {
     q: 'Can I turn my images into videos?',
@@ -87,7 +88,7 @@ export default function AiImageGeneratorPage() {
             href={IMAGE_SIGNUP_HREF}
             style={{ background: '#2997ff', color: '#fff', fontWeight: 800, padding: '13px 22px', borderRadius: 12, textDecoration: 'none', boxShadow: '0 8px 24px rgba(41,151,255,.35)' }}
           >
-            {`Start free — ${TRIAL_GRANT_CREDITS_COPY} credits →`}
+            {CARD_ENTRY_COPY.ctaLong}
           </Link>
           <Link
             href="/login"

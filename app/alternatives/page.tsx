@@ -23,6 +23,7 @@ import {
   ALTERNATIVE_JOB_PATHS,
   KINEO_ALTERNATIVES_SIGNUP_HREF,
 } from '@/lib/growth/alternativeJobChooser'
+import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -196,7 +197,7 @@ export default function AlternativesIndexPage() {
             placement="final"
             style={{ display: 'inline-block', background: '#f5f5f7', color: '#000', fontWeight: 900, padding: '14px 30px', borderRadius: 980, textDecoration: 'none', fontSize: '1.02rem' }}
           >
-            Start free →
+            {CARD_ENTRY_COPY.ctaLong}
           </OrganicCtaLink>
         </section>
       </div>

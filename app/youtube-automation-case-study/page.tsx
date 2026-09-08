@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import { getFreeTierOffer, swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
+import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -95,7 +96,7 @@ export default function CaseStudyPage() {
               href="/signup?utm_source=case_study&utm_medium=proof&utm_campaign=live_channel"
               className="rounded-full bg-white px-4 py-2 text-black transition hover:bg-cyan-200"
             >
-              Start free
+              {CARD_ENTRY_COPY.ctaLong}
             </Link>
           </nav>
         </div>

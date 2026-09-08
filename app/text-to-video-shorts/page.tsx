@@ -200,7 +200,7 @@ export default function TextToVideoShortsPage() {
 
         <div style={{ marginTop: 44, textAlign: 'center', background: 'radial-gradient(circle at 50% 0%, rgba(41,151,255,0.14), #0c0c0e 70%)', border: '1px solid rgba(41,151,255,0.25)', borderRadius: 18, padding: '34px 22px' }}>
           <div style={{ fontSize: 'clamp(1.3rem, 4vw, 1.85rem)', fontWeight: 900 }}>Paste text. Get a Short.</div>
-          <p style={{ color: '#86868b', margin: '8px 0 18px' }}>No camera, no editing timeline, no credit card for the free Fast test.</p>
+          <p style={{ color: '#86868b', margin: '8px 0 18px' }}>No camera, no editing timeline. Starts with the $1 trial (7 days, 80 credits).</p>
           <OrganicCtaLink href={`#${FORM_ID}`} source={CAMPAIGN} placement="final" style={{ background: '#f5f5f7', color: '#000', fontWeight: 850, padding: '14px 30px', borderRadius: 980, textDecoration: 'none' }}>
             Try my text
           </OrganicCtaLink>

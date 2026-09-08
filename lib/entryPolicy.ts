@@ -39,6 +39,9 @@ export const CARD_ENTRY_CHECKOUT_PATH =
 /** Evento gravado no cadastro (servidor) quando o grant é substituído pela porta. */
 export const CARD_ENTRY_REQUIRED_EVENT = 'card_entry_required' as const
 
+/** Créditos do trial de $1 — espelho de CARD_TRIAL_GRANT_CREDITS (lib/checkoutPricing); o guardião confere. */
+export const CARD_ENTRY_TRIAL_CREDITS = 80
+
 /**
  * Copy canônica da porta única. Os números vêm de lib/checkoutPricing
  * (CARD_TRIAL_ENTRY_FEE_MINOR=100, CARD_TRIAL_DAYS=7, CARD_TRIAL_GRANT_CREDITS=80,

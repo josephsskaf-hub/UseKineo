@@ -54,6 +54,7 @@ import {
   buildEngineLandingSignupHref,
   type EngineLandingParam,
 } from '@/lib/growth/engineLandingIntent'
+import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -110,7 +111,7 @@ export const ENGINES: Record<string, Engine> = {
     faq: [
       {
         q: 'Is Kineo 1 really free?',
-        a: `Yes — Kineo 1 renders and plays with a watermark at no cost and with no credit card. ${ft(OFFER, 'A new account can create up to 3 watermarked Fast videos every 24 hours.', OFFER.copy.sentence)} A clean, watermark-free 60-second export costs ${FAST_COST} credits on a paid plan.`,
+        a: `Kineo 1 is included in every plan, and in the $1 trial (7 days of Creator, 80 credits). ${ft(OFFER, 'A new account can create up to 3 watermarked Fast videos every 24 hours.', OFFER.copy.sentence)} A clean, watermark-free 60-second export costs ${FAST_COST} credits on a paid plan.`,
       },
       {
         q: 'How long does a Kineo 1 video take?',
@@ -164,7 +165,7 @@ export const ENGINES: Record<string, Engine> = {
     faq: [
       {
         q: 'Is Kling 2.5 free on Kineo?',
-        a: `Yes — every new account unlocks Kling 2.5 along with every other engine. It costs ${KLING_COST} credits per 60-second video, and the ${TRIAL_GRANT_CREDITS_COPY} free credits ${trialFilmsForEngine(KLING_COST) > 0 ? `cover ${trialFilmsForEngine(KLING_COST)}` : 'do not stretch to one — they cover a full Seedance film instead, which is the same pipeline on a cheaper engine'}. A Creator plan or a sufficient top-up covers Kling. Trial films come out watermarked; a plan unlocks the clean download.`,
+        a: `Kling 2.5 is a Studio engine ($29/month); Starter and Creator include Kineo 1 and Seedance 1.5. It costs ${KLING_COST} credits per 60-second video, and the 80 trial credits ${trialFilmsForEngine(KLING_COST) > 0 ? `cover ${trialFilmsForEngine(KLING_COST)}` : 'do not stretch to one — they cover a full Seedance film instead, which is the same pipeline on a cheaper engine'}. A Creator plan or a sufficient top-up covers Kling. Trial films come out watermarked; a plan unlocks the clean download.`,
       },
       {
         q: 'Which Kling model does Kineo use?',
@@ -191,7 +192,7 @@ export const ENGINES: Record<string, Engine> = {
     faq: [
       {
         q: 'Can I try Veo 3.1 for free?',
-        a: `Yes — Veo 3.1 is unlocked on every account at ${VEO_COST} credits per 60-second video; the ${TRIAL_GRANT_CREDITS_COPY} free credits do not cover one, so it takes the Studio plan or a sufficient top-up. What you can test at no cost is the pipeline itself: run the same topic through Kineo 1 or Seedance, see the script, voice and captions, then switch engines once you like the format.`,
+        a: `Veo 3.1 is a Studio engine ($29/month) at ${VEO_COST} credits per 60-second video; the 80 trial credits do not cover one, so it takes the Studio plan or a sufficient top-up. What you can test at no cost is the pipeline itself: run the same topic through Kineo 1 or Seedance, see the script, voice and captions, then switch engines once you like the format.`,
       },
       {
         q: 'What is different about Veo inside Kineo versus using Veo directly?',
@@ -443,8 +444,9 @@ export default async function EnginePage({ params }: { params: { engine: string 
               style={{ display: 'inline-block', background: '#f5f5f7', color: '#000', fontWeight: 900, padding: '15px 32px', borderRadius: 980, textDecoration: 'none', fontSize: '1.05rem' }}
             >
               {e.tier === 'Free' || TRIAL_GRANT_CREDITS_COPY >= e.creditCost
-                ? `Start free with ${e.name} →`
-                : 'Start free — try the workflow →'}
+                ? `Try ${e.name} — 7 days for 
+                 →`
+                : CARD_ENTRY_COPY.ctaLong}
             </OrganicCtaLink>
             <Link
               href="/pricing"
@@ -627,7 +629,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
             placement="final"
             style={{ display: 'inline-block', background: '#f5f5f7', color: '#000', fontWeight: 900, padding: '14px 30px', borderRadius: 980, textDecoration: 'none', fontSize: '1.02rem' }}
           >
-            Start free →
+            {CARD_ENTRY_COPY.ctaLong}
           </OrganicCtaLink>
           <p style={{ margin: '14px 0 0', fontSize: '0.82rem', color: '#6e6e73' }}>
             Already have an account?{' '}

@@ -680,7 +680,7 @@ export default function HowMuchDoYouTubeShortsPayPage() {
               placeholder: 'Type one topic — e.g. why your savings account is losing money',
               submit: 'Turn this topic into a Short →',
               examplesLabel: 'High-RPM topic starters',
-              note: 'Your topic stays attached through signup. No card required for the free Fast workflow.',
+              note: 'Your topic stays attached through signup. Starts with the $1 trial (7 days of Creator, 80 credits).',
             }}
           />
         </div>
