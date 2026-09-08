@@ -6,7 +6,18 @@ let ok = 0, fail = 0
 const check = (name, cond) => { cond ? ok++ : (fail++, console.error('FAIL: ' + name)) }
 
 check('card Avatar existe no arquivo', src.includes('KINEO-SPRINT-UI8-2026-08-30'))
-check('nome do site: Avatar (par de nomes reais)', /<b>Avatar<span className="tag">Presenter<\/span><\/b>/.test(src))
+// KINEO-REANCORA-AVATAR-2026-09-07 — sexta ocorrencia do mesmo padrao hoje: a
+// regra casava com a FORMA exata `<b>Avatar<span className="tag">Presenter
+// </span></b>` e o rotulo ganhou um `<UiLabel>` por dentro. O NOME nao mudou —
+// a regra do CLAUDE.md ("nomes reais dos motores no site: ... Avatar
+// (ex-AI Presenter)") continua cumprida. Passa a exigir estrutura: o nome
+// principal e `Avatar`, a etiqueta diz `Presenter`, e nenhum dos dois virou o
+// nome antigo.
+check(
+  'nome do site: Avatar (par de nomes reais)',
+  /<b>Avatar<span className="tag">[\s\S]{0,40}Presenter[\s\S]{0,20}<\/span><\/b>/.test(src),
+)
+check('o nome antigo "AI Presenter" nao voltou ao card', !/<b>AI Presenter/.test(src))
 check('navega para /avatar', src.includes("router.push('/avatar')"))
 check('fecha o picker ao clicar', src.includes('setPickerOpen(false); router.push'))
 check('usa a mesma classe pk dos motores', /className="pk"\s*\n\s*onClick=\{\(\) => \{ setPickerOpen\(false\); router\.push\('\/avatar'\)/.test(src))
