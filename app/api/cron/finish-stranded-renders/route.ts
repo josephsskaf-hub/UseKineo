@@ -340,6 +340,28 @@ async function sendEmail(to: string, userId: string, subject: string, text: stri
 const ATTEMPT_OPENED_EVENT = 'generation_attempt_opened'
 const ATTEMPT_CLOSED_EVENT = 'generation_attempt_closed'
 const ATTEMPT_LOST_EVENT = 'attempt_lost_rescue_sent'
+/** Carimbo de MEDIÇÃO: nasce quando o interruptor de envio está desligado.
+ *  Nome próprio de propósito — `attempt_lost_rescue_sent` quer dizer "a carta
+ *  saiu", e não pode passar a querer dizer "a carta sairia". */
+const ATTEMPT_LOST_CANDIDATE_EVENT = 'attempt_lost_rescue_candidate'
+/** O sinal de perda que existe para TODOS os motores (o par aberto/fechado
+ *  acima só é emitido pelo cinematográfico — ver o bloco da Fase 5). É o mesmo
+ *  evento que a `/api/next-action` usa para decidir o estado `attempt_lost`. */
+const ATTEMPT_LOSS_SIGNAL_EVENT = 'video_generation_started'
+/** Erros que provam que a pessoa FOI AVISADA. Quem viu uma tela de falha não
+ *  recebe esta carta: ela diz "nothing was ever made", e para quem teve erro
+ *  explícito quem responde é a campanha de failure-recovery, não esta. */
+const ATTEMPT_ERROR_EVENTS = ['generation_stage_error', 'video_generation_failed'] as const
+/** ⛔ INTERRUPTOR DO ENVIO — `false` = a fase MEDE e não manda nada.
+ *  Nasceu desligado de propósito (rotina madrugada-produto de 08/09, cujo
+ *  limite escrito é "nenhum e-mail sai"): o detector estava cego desde 04/09 e
+ *  a coorte real nunca tinha sido vista, então ligar o envio e o detector no
+ *  mesmo commit mandaria a primeira carta da história para uma lista que
+ *  ninguém conferiu. Com `false` cada candidato vira uma linha
+ *  `attempt_lost_rescue_sent` com `sent:false, would_send:true` — dá para
+ *  contar quem receberia, por nome, antes de qualquer carta sair.
+ *  Para ligar: trocar esta palavra por `true`. É a única mudança necessária. */
+const ATTEMPT_LOST_SEND_ENABLED = false
 // 20 min de piso: mais que o dobro do p90 até o claim (60s), com folga para
 // qualquer lentidão do fornecedor. Teto de 24h: depois disso o aviso deixa de
 // ser socorro e vira spam.
@@ -959,13 +981,37 @@ export async function GET(req: NextRequest) {
   //     lição do #4, quando o erro engolido virou 9 e-mails repetidos);
   //   · teto por rodada, opt-out e contas internas/descartáveis fora.
   let attemptsLost = 0
+  let attemptsLostWouldSend = 0
   try {
     const lostFloorIso = new Date(Date.now() - ATTEMPT_LOST_MAX_AGE_MS).toISOString()
     const lostCeilIso = new Date(Date.now() - ATTEMPT_LOST_MIN_AGE_MS).toISOString()
+    // KINEO-TENTATIVA-PERDIDA-VE-O-FAST-2026-09-08 — esta fase procurava
+    // `generation_attempt_opened` SEM `generation_attempt_closed`. Medido hoje,
+    // e o resultado é que a coorte era vazia por construção, por DOIS motivos
+    // somados:
+    //   1. o par aberto/fechado é emitido em UM arquivo só,
+    //      `app/api/generate-video-cinematic/route.ts`. O Fast — o motor
+    //      padrão, o único gratuito e o de maior volume do funil — não emite
+    //      nenhum dos dois. Todas as pessoas que esta carta descreve usaram
+    //      Fast, então nenhuma delas jamais teve um `opened` para abrir;
+    //   2. mesmo dentro do cinematográfico, a história inteira tem 61 abertos
+    //      e 61 fechados. "Aberto sem fechado" nunca aconteceu uma vez.
+    // Consequência: `attempt_lost_rescue_sent` tem ZERO linhas desde que
+    // nasceu, em 04/09. A carta existe, está escrita, tem cron de 15 em 15
+    // minutos — e nunca teve para quem sair.
+    //
+    // O sinal que EXISTE para todo motor é o mesmo que a `/api/next-action` já
+    // usa para o estado `attempt_lost`: `video_generation_started`, evento de
+    // CLIENTE (112 em 3 dias, 100% com `session_id`). Medido em 7 dias, contas
+    // externas: 184 pessoas despacharam, 158 receberam filme, 26 não; 11
+    // dessas 26 não têm NENHUM erro registrado, e 9 das 11 não têm sequer
+    // `generation_dispatch_received` — o POST morreu dentro do navegador e o
+    // servidor nunca soube que existiu. É exatamente a frase da carta:
+    // "the tab closed before our engine picked the job up".
     const { data: openedRows, error: openedErr } = await admin
       .from('events')
       .select('user_id, session_id, created_at, metadata')
-      .eq('name', ATTEMPT_OPENED_EVENT)
+      .eq('name', ATTEMPT_LOSS_SIGNAL_EVENT)
       .gte('created_at', lostFloorIso)
       .lte('created_at', lostCeilIso)
       .order('created_at', { ascending: false })
@@ -980,14 +1026,20 @@ export async function GET(req: NextRequest) {
       const { data: settledRows, error: settledErr } = await admin
         .from('events')
         .select('session_id')
-        .in('name', [ATTEMPT_CLOSED_EVENT, ATTEMPT_LOST_EVENT])
+        .in('name', [ATTEMPT_CLOSED_EVENT, ATTEMPT_LOST_EVENT, ATTEMPT_LOST_CANDIDATE_EVENT])
         .in('session_id', openedGenIds.slice(0, 200))
       // fail-closed: sem a lista de já-fechados/já-avisados não se manda nada.
       if (settledErr) throw new Error(`settled lookup failed: ${settledErr.message}`)
       const settled = new Set((settledRows ?? []).map((r) => r.session_id as string))
 
+      // O teto por rodada passa a contar CANDIDATOS EXAMINADOS, não cartas
+      // enviadas. Com o envio desligado (abaixo) nenhuma carta sai, e um teto
+      // que só contasse envio deixaria o laço varrer os 200 candidatos fazendo
+      // 4 consultas cada — 800 leituras por rodada, de 15 em 15 minutos. O
+      // custo por rodada fica idêntico ao de antes.
+      let examinados = 0
       for (const row of openedRows ?? []) {
-        if (attemptsLost >= MAX_ATTEMPT_LOST_PER_RUN) break
+        if (examinados >= MAX_ATTEMPT_LOST_PER_RUN) break
         const genId = typeof row.session_id === 'string' ? row.session_id : null
         const userId = typeof row.user_id === 'string' ? row.user_id : null
         if (!genId || !userId) continue
@@ -995,15 +1047,35 @@ export async function GET(req: NextRequest) {
 
         const md = (row.metadata ?? {}) as Record<string, unknown>
         if (md.dry_run === true) continue
+        examinados += 1
 
         // Um aviso destes por pessoa, para sempre — quem já recebeu e não
         // voltou não recebe um segundo.
+        // ⚠ `sent = 'true'` NÃO é decoração. Enquanto o interruptor está
+        // desligado esta fase grava uma linha por candidato; se o dedupe
+        // contasse a LINHA em vez do ENVIO, cada pessoa medida hoje ficaria
+        // queimada para sempre e a carta continuaria sem sair no dia em que o
+        // envio fosse ligado — o remédio se desarmaria sozinho ao ser medido
+        // (memória `sentinela-lido-como-valor-real`).
         const { count: priorCount, error: priorErr } = await admin
           .from('events')
           .select('id', { count: 'exact', head: true })
           .eq('name', ATTEMPT_LOST_EVENT)
           .eq('user_id', userId)
+          .eq('metadata->>sent', 'true')
         if (priorErr || (priorCount ?? 0) > 0) continue
+
+        // Quem VIU uma tela de erro já foi avisado, e por outra campanha. Esta
+        // carta afirma "nothing was ever made — and nothing was charged"; para
+        // quem recebeu erro explícito (e estorno) isso seria uma segunda
+        // versão dos fatos. Fail-closed: leitura que falha não vira carta.
+        const { count: avisado, error: avisadoErr } = await admin
+          .from('events')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', userId)
+          .in('name', ATTEMPT_ERROR_EVENTS as unknown as string[])
+          .gte('created_at', row.created_at as string)
+        if (avisadoErr || (avisado ?? 0) > 0) continue
 
         // A coorte é quem nunca viu um filme sair. Quem já recebeu algum não
         // precisa de socorro: sabe que o produto funciona.
@@ -1035,27 +1107,36 @@ export async function GET(req: NextRequest) {
           ? composerUrl({ base: APP_URL, campaign: 'attempt_lost', prompt: topic })
           : `${APP_URL}/studio?utm_source=attempt_lost`
 
-        const ok = await sendEmail(
-          email,
-          userId,
-          'Your film never started — one click to make it 🎬',
-          attemptLostText(startUrl, topic),
-          attemptLostHtml(startUrl, topic, userId),
-        )
+        // ⛔ O ENVIO É CONDICIONAL. Com o interruptor desligado nenhuma carta
+        // sai: a fase grava quem RECEBERIA, sob outro nome de evento, e o
+        // resto do caminho (coorte, filtros, URL) roda idêntico ao dia em que
+        // ele for ligado — é a mesma decisão, sem a carta.
+        const ok = ATTEMPT_LOST_SEND_ENABLED
+          ? await sendEmail(
+              email,
+              userId,
+              'Your film never started — one click to make it 🎬',
+              attemptLostText(startUrl, topic),
+              attemptLostHtml(startUrl, topic, userId),
+            )
+          : false
         const { error: stampErr } = await admin.from('events').insert({
           user_id: userId,
-          name: ATTEMPT_LOST_EVENT,
+          name: ATTEMPT_LOST_SEND_ENABLED ? ATTEMPT_LOST_EVENT : ATTEMPT_LOST_CANDIDATE_EVENT,
           session_id: genId,
           path: '/api/cron/finish-stranded-renders',
           metadata: {
             generation_id: genId,
             sent: ok,
+            would_send: !ATTEMPT_LOST_SEND_ENABLED,
+            signal: ATTEMPT_LOSS_SIGNAL_EVENT,
             prefilled: hintComplete && !!topic,
             opened_at: row.created_at,
           },
         })
         if (stampErr) console.error('[attempt-lost] stamp insert failed:', stampErr.message)
         if (ok) attemptsLost += 1
+        if (!ATTEMPT_LOST_SEND_ENABLED) attemptsLostWouldSend += 1
       }
     }
   } catch (e) {
@@ -1213,5 +1294,5 @@ export async function GET(req: NextRequest) {
     console.error('[stranded] outcome logging failed:', e instanceof Error ? e.message : String(e))
   }
 
-  return NextResponse.json({ checked, composed, ready, rescued: rescuedCount, fastReady, fastFinished, relinked, attemptsLost, results, ...(noCinematicClaims ? { note: 'no settled claims in window' } : {}) })
+  return NextResponse.json({ checked, composed, ready, rescued: rescuedCount, fastReady, fastFinished, relinked, attemptsLost, attemptsLostWouldSend, results, ...(noCinematicClaims ? { note: 'no settled claims in window' } : {}) })
 }
