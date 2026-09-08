@@ -1831,3 +1831,94 @@ Corrigi ainda uma memória minha que estava errada sobre o relógio e registrei 
 sexto guardião vermelho herdado. O jejum de assinante novo segue em 5 dias e a
 janela desta noite continua com pouquíssimo tráfego — ninguém passou pela porta
 nova ainda.
+
+
+---
+
+### #9b — 21:08 BRT — CHECKPOINT da #9: duas entregas minhas sem uma única oportunidade, e um alarme meu que a linha de base derrubou
+
+**NADA DE CÓDIGO.** Medição da #9 e a correção de uma leitura minha desta noite.
+
+**1. O ALARME QUE EU LEVANTEI E QUE NÃO SE SUSTENTA.** Ao abrir o checkpoint vi
+**zero renders em 2 horas** com gente na casa e escrevi que "não é maré baixa".
+**Está errado.** Fui buscar a linha de base hora a hora (12h, UTC) antes de
+escalar, e ela desmente o alarme:
+
+| hora UTC | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| sessões na landing | 13 | 18 | 11 | 18 | 15 | 17 | 20 | 20 | 14 | 20 | 10 | 15 |
+| renders iniciados | 4 | 1 | 1 | 4 | 1 | 1 | **0** | 1 | **0** | 3 | **0** | **0** |
+| cadastros | 1 | 1 | 0 | 3 | 0 | 1 | 0 | 1 | 0 | 2 | 0 | 0 |
+
+**O tráfego da landing é plano o dia inteiro** (10 a 20 por hora, sem degrau), e
+**hora com zero render já tinha acontecido duas vezes hoje — às 18h e às 20h
+UTC**, *antes* de qualquer deploy desta noite. O último render começou **21:48
+UTC**; o meu deploy foi **~22:00** e o da #8 **~22:52**. **O silêncio começou
+antes dos dois.** Somando: `generation_stage_error` tem **zero linhas em 6
+horas** — o pipeline não está recusando ninguém, e o `/api/compose` não tem uma
+única falha registrada. **Não é incidente; é uma noite magra dentro da variação
+do próprio dia.**
+
+⚠️ **E um número que eu NÃO posso dar:** tentei contar visitantes distintos por
+`ip_hash` nas sessões da landing e recebi **0** — a chave **não existe** nesse
+evento, e `count(distinct)` sobre campo ausente devolve um número que parece
+resposta. São **24 sessões** em 2h, **não** 24 pessoas. É exatamente a armadilha
+que o checkpoint #8b registrou há uma hora, e eu caí nela na hora seguinte.
+
+**2. AS DUAS ENTREGAS DE HOJE NÃO TIVERAM UMA ÚNICA OPORTUNIDADE — e isso é
+esperado, não é falha.**
+
+| entrega | evento que a prova | linhas | por quê |
+|---|---|---|---|
+| #7 — nome honesto do slot | qualquer impressão do slot com `slot_owner` | **0** | a última impressão da casa foi **21:53 UTC**, ~7 min antes do deploy |
+| #9 — porta de $1 no export limpo | `post_video_offer_viewed` | **0 na janela** | a última impressão desse card na casa é de **04/09** |
+
+**Zero oportunidades não é zero acertos** (memória `provar-leitura-sem-trafego`).
+O teste da #7 é a primeira impressão do slot que aparecer **com** o campo
+`slot_owner`; o da #9 é a primeira `post_video_trial_1usd_shown` com
+`host`. Nenhum dos dois é respondível hoje à noite.
+
+**3. O QUE SIM ACONTECEU NA JANELA, e liga direto na #9.** Nas últimas 2h a casa
+registrou **2 `trial_downgraded`** — duas pessoas cujo trial venceu agora. Essa
+é **exatamente** a coorte que a #9 passou a atender: fora do trial, sem pagar,
+elegível à caixa "Want it clean?" e, desde as 19:48 (#8), com filme **marcado**
+para vender. As duas ainda não voltaram à tela. Se voltarem e renderizarem, são
+as primeiras candidatas naturais a exercitar as duas entregas de uma vez.
+
+**PLACAR DE FECHAMENTO — marco 2026-09-07 18:38 UTC (~5h30), contas externas:**
+entrega real **1** · filme pronto na tela **3 impressões / 2 pessoas** · baixou
+**0** · caixa de export limpo vista **0** · porta de $1 vista **0** · cliques no
+$1 **0** · `checkout_started` externo **0** · **pagou 0**.
+
+**CHECAGEM ZERO (24h, relida agora):** cadastros **26** · crédito zero **11**,
+**trial órfão 0** · render preso **0** · recusa sem dono **0** · último
+`payment_success` **02/09 20:22 UTC**. ⚠️ Publiquei **30/12** na #9 — é a mesma
+janela móvel lida ~2h antes, não um número diferente; nenhuma conclusão muda.
+
+**A FRASE DA #9 CONTINUA DE PÉ, sem correção:** quem gastou os créditos de
+boas-vindas, nunca pagou e quer o filme sem marca encontra uma porta de $1 onde
+ontem só havia compromisso mensal. O checkpoint só acrescenta que **ninguém
+passou por ela ainda** — e que, esta noite, ninguém passou por porta nenhuma.
+
+**PARA A ROTAÇÃO #10.** Com a tela coberta nas duas metades e sem tráfego para
+medir, a alavanca que sobra é a que **não depende de a pessoa voltar**: o e-mail
+de `video_ready`. Dois fatos frescos o recomendam — a `va-r5` mediu que ele
+**vale 13x o slot da tela**, e desde as 19:48 ele anuncia um filme que agora sai
+**com marca d'água** para uma coorte inteira, sem dizer isso. ⚠️ **Antes de
+escrever uma linha: conferir o que a pista de venda assistida já fez nele** — ela
+mexeu em duas cartas hoje (`va-r3`, `va-r6`) e uma terceira mão no mesmo arquivo
+é como esta casa perdeu trabalho em 01/09.
+
+**✅ O QUE VOCÊ PRECISA FAZER**
+1. Nada.
+
+**📋 O QUE ACONTECEU**
+Checkpoint de medição, sem código. Levantei um alarme — "duas horas sem ninguém
+gerar vídeo" — e a própria linha de base o derrubou: o tráfego da landing está
+plano o dia todo, horas sem render já tinham acontecido duas vezes hoje antes de
+qualquer entrega minha, e o pipeline não registrou uma única falha em seis horas.
+Não é defeito; é uma noite magra. As duas coisas que publiquei hoje ainda não
+tiveram uma única chance de aparecer para alguém, e digo isso com o número na
+mão em vez de contar como vitória. O que a janela trouxe de concreto: duas
+pessoas tiveram o trial vencido agora — são exatamente as primeiras candidatas à
+porta de $1 que entrou na última hora, se voltarem à tela.
