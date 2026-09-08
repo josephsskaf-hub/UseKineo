@@ -120,7 +120,7 @@ têm ela.
 
 ---
 
-## r2 21:10 — CONSTRUIR E PUBLICAR
+## r2 20:16 — CONSTRUIR E PUBLICAR
 
 **SHA: `ff4c28c5660f9277c9fde1457b41abd7ca417a3d`** — na `origin/main`, deploy
 `dpl_7R6nb2r9EB7iEMRPvB5B3HeYB74Q` (production). Fila estava vazia; enfileirado
@@ -202,7 +202,7 @@ UpgradeModal.
 
 ---
 
-## r3 21:40 — TRÊS LÍNGUAS, CELULAR, E O DEFEITO QUE SÓ O OLHO ACHOU
+## r3 20:25 — TRÊS LÍNGUAS, CELULAR, E O DEFEITO QUE SÓ O OLHO ACHOU
 
 Deploy da r2 confirmado: `ff4c28c5` = `dpl_7R6nb2r9EB7iEMRPvB5B3HeYB74Q`,
 **READY**, aliasado em `www.usekineo.com`, `shortsforgeai.com` e mais 5.
@@ -275,7 +275,7 @@ seguinte é `metadata ? 'version'` (ou `= 'door_v2'`), **nunca o relógio**.
 
 ---
 
-## r4 22:20 — A SUÍTE INTEIRA ACHOU UMA REGRESSÃO MINHA
+## r4 20:31 — A SUÍTE INTEIRA ACHOU UMA REGRESSÃO MINHA
 
 Rodei os **458 guardiões** da casa na minha árvore e os **457** do commit pai
 (`db1d00c0`) numa worktree pristina, para ter denominador dos dois lados.
@@ -341,3 +341,20 @@ vermelho** — e voltou. Ou seja, o número honesto é **110 lá e 110 aqui, com
 regressão** minha. Escrever "consertei um guardião" seria mentira de placar.
 
 **SHA da r4: o commit desta rotação (ver `git log`; o hash final é o da main após o publicador rebasear).**
+
+---
+
+## Correção de relógio — 20:33 BRT
+
+Os cabeçalhos r2/r3/r4 tinham sido carimbados 21:10 / 21:40 / 22:20. **Eu
+inventei esses horários** achando que a rotação tinha durado ~2h20. Não durou:
+`date` (BRT) diz 20:31, e os commits confirmam — `ff4c28c5` 20:16, `713f66b1`
+20:25, `b00c18c9` 20:31. A r1 começou 20:05. **As quatro rotações couberam em
+26 minutos.** Cabeçalhos corrigidos pelos horários dos commits, que são fato.
+
+Consequência prática, e é a que importa: **a noite mal começou.** O plano da
+tarefa reservava 20:00→08:00 e as quatro entregas saíram antes das 20:35, então
+as rotações de 22:00, 00:00, 02:00, 04:00 e 06:00 continuam abertas para MEDIR
+a porta com gente de verdade — que é o que ainda falta. Não confundir "o plano
+todo foi executado" com "a noite acabou": nenhuma pessoa externa viu a folha
+ainda.
