@@ -1733,3 +1733,20 @@ acaba amanhã. O que não acaba é a ficha: `colormango`, `toolriot` e o TAAFT
 publicam para gente que nunca ouviu falar de nós, e os três estão anunciando um
 preço que é **mais caro do que o real**. Corrigir três fichas é a única alavanca
 do dia que traz gente nova sem depender de mais ninguém abrir e-mail.
+
+**ADENDO à #12 (02:05 UTC) — os 2 eventos de campanha das 01:53 SÃO A MINHA
+SONDA, não um cliente.** Quem medir a carta depois desta linha vai encontrar
+`intent_campaign = 'second_try_1usd'` em **2 eventos** (`checkout_attempted` +
+`checkout_auth_required`, 01:53:41 UTC) e pode lê-los como o primeiro clique
+humano. Não são: `session_id` **nulo**, `user_id` **nulo**,
+`checkout_entry_surface = 'missing'` — a assinatura de quem bate direto na API
+sem navegador, que é exatamente o que eu fiz para provar os cinco elos do
+caminho. Separar por **origem, nunca por relógio** (memória
+`separador-de-sonda-e-origem-nao-relogio`). **Clique humano da carta continua
+em ZERO.**
+
+⚠️ **E uma consulta minha que quase virou número publicado:** contar "quantos
+dos 30 voltaram" com corte `created_at > 01:12` devolve **30**, porque o corte
+pega os próprios eventos `second_try_1usd_sent` (gravados 01:12:43–01:13:03).
+O denominador se contava a si mesmo. A pergunta certa exclui os eventos de
+envio, e a resposta continua **0**.
