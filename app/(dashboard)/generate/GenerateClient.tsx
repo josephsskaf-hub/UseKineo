@@ -4377,6 +4377,7 @@ export default function GenerateClient({
           // `composing` (21). Emit the failure explicitly, once per attempt.
           trackGenerationFailure('generating', 'poll_retries_exhausted', {
             detail: err instanceof Error ? err.name : 'unknown',
+            message: err instanceof Error ? err.message.slice(0, 200) : String(err).slice(0, 200),
           })
         }
         setError("Your clips are still rendering. We are reconnecting automatically — you can close this tab, we'll email you when it's ready.")
@@ -4594,6 +4595,7 @@ export default function GenerateClient({
         if (++falPollErrorsRef.current === MAX_TRANSIENT_POLL_ERRORS + 1) {
           trackGenerationFailure('fal_polling', 'fal_poll_threw_retries_exhausted', {
             detail: err instanceof Error ? err.name : 'unknown',
+            message: err instanceof Error ? err.message.slice(0, 200) : String(err).slice(0, 200),
           })
         }
         scheduleNextPoll(8000)
@@ -4667,6 +4669,7 @@ export default function GenerateClient({
         if (++avatarPollErrorsRef.current === MAX_TRANSIENT_POLL_ERRORS + 1) {
           trackGenerationFailure('generating', 'avatar_poll_retries_exhausted', {
             detail: err instanceof Error ? err.name : 'unknown',
+            message: err instanceof Error ? err.message.slice(0, 200) : String(err).slice(0, 200),
           })
         }
         timer = setTimeout(poll, 7000)
@@ -6071,6 +6074,7 @@ export default function GenerateClient({
         setError(GENERIC_ERROR)
         trackGenerationFailure('clips_ready', 'compose_threw', {
           detail: err instanceof Error ? err.name : 'unknown',
+          message: err instanceof Error ? err.message.slice(0, 200) : String(err).slice(0, 200),
         })
         setPhase('failed')
       }
@@ -6279,6 +6283,7 @@ export default function GenerateClient({
           // produced a generate_failed.
           trackGenerationFailure('composing', 'poll_retries_exhausted', {
             detail: err instanceof Error ? err.name : 'unknown',
+            message: err instanceof Error ? err.message.slice(0, 200) : String(err).slice(0, 200),
           })
         }
         setError("Your video is still rendering. We are reconnecting automatically — you can close this tab, we'll email you when it's ready.")
@@ -6692,6 +6697,16 @@ export default function GenerateClient({
       const detalhe = typeof extra?.detail === 'string' && extra.detail.trim().length > 0
         ? extra.detail.trim().slice(0, 180)
         : null
+      // KINEO-SOBRENOME-DO-ERRO-2026-09-08 — `detail` guarda o NOME da exceção
+      // (`TypeError`) e `message` guarda o que ela DISSE. Os dois juntos, sempre:
+      // sozinho, `TypeError` é indiagnosticável e ainda por cima está na lista de
+      // "causa antiga" dos vigias, então vira alarme que ninguém consegue fechar.
+      // Medido em 08/09 sobre a história inteira: 1.929 `generation_stage_error`
+      // e só 24 com mensagem — e nesses 24, TODO "TypeError" era `Failed to
+      // fetch`/`Load failed`, ou seja rede/aba arrancada, NÃO bug nosso.
+      // REGRA: todo `catch` que reporta aqui manda `detail: err.name` E
+      // `message: err.message.slice(0, 200)`. Nunca só o nome.
+      // (guardião: scripts/test-mensagem-da-excecao-2026-09-08.mjs)
       const mensagem = typeof extra?.message === 'string' && extra.message.trim().length > 0
         ? extra.message.trim().slice(0, 200)
         : null
@@ -8058,6 +8073,7 @@ export default function GenerateClient({
           // Fall through — show options phase without VisualDirector
           trackGenerationFailure('broll_planning', 'broll_plan_threw_creator', {
             detail: err instanceof Error ? err.name : 'unknown',
+            message: err instanceof Error ? err.message.slice(0, 200) : String(err).slice(0, 200),
           })
         }
         setBrollPlanLoading(false)
@@ -8106,6 +8122,7 @@ export default function GenerateClient({
             // Non-blocking — Autopilot continues without the plan
             trackGenerationFailure('broll_planning', 'broll_plan_threw_autopilot', {
               detail: err instanceof Error ? err.name : 'unknown',
+              message: err instanceof Error ? err.message.slice(0, 200) : String(err).slice(0, 200),
             })
           } finally {
             setBrollPlanLoading(false)
@@ -9211,6 +9228,7 @@ export default function GenerateClient({
         setError(GENERIC_ERROR)
         trackGenerationFailure('generating', 'cinematic_threw', {
           detail: err instanceof Error ? err.name : 'unknown',
+          message: err instanceof Error ? err.message.slice(0, 200) : String(err).slice(0, 200),
         })
         setPhase('failed')
       }
@@ -9512,6 +9530,7 @@ export default function GenerateClient({
         // (`TimeoutError`, ~150s por chamada). `err.name` vai no mesmo evento.
         trackGenerationFailure('generating', 'fast_threw', {
           detail: err instanceof Error ? err.name : 'unknown',
+          message: err instanceof Error ? err.message.slice(0, 200) : String(err).slice(0, 200),
           elapsedMs: Date.now() - fastBranchStartedAt,
         })
         setPhase('failed')
@@ -9593,6 +9612,7 @@ export default function GenerateClient({
       setError(GENERIC_ERROR)
       trackGenerationFailure('generating', 'legacy_threw', {
         detail: err instanceof Error ? err.name : 'unknown',
+        message: err instanceof Error ? err.message.slice(0, 200) : String(err).slice(0, 200),
       })
       setPhase('failed')
     }
