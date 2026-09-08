@@ -80,7 +80,7 @@ console.log('\nKINEO A2 — Plan Fit\n')
 
 // 1. Monthly, canonical arithmetic. No weekly conversion exists.
 check('monthly presets are explicit', JSON.stringify(planFit.MONTHLY_CADENCES) === JSON.stringify([1, 4, 8, 12]))
-const seedanceFour = planFit.calculatePlanFit({ quality: 'cinematic_ai', seconds: 60, monthlyFilms: 7, currency: 'usd' }) // KINEO-PLANOS-9-19-29: 7 Seedance = 175cr > Creator 150 → Studio
+const seedanceFour = planFit.calculatePlanFit({ quality: 'cinematic_ai', seconds: 45, monthlyFilms: 8, currency: 'usd' }) // KINEO-PLANOS-9-19-29: 8 Seedance de 45s = 152cr > Creator 150 → Studio
 check('first-delivery default is the smallest honest cadence', planFit.DEFAULT_PLAN_FIT_MONTHLY_FILMS === 1)
 check('direct-win cohort has an explicit version', planFit.PLAN_FIT_OFFER_VERSION === 'plan_fit_direct_win_v3')
 check('card render denominator has a distinct event', ctaExposure.PLAN_FIT_CARD_RENDERED_EVENT === 'plan_fit_card_rendered')
@@ -151,8 +151,8 @@ check('card render metadata carries no customer content', JSON.stringify(Object.
   'surface_state', 'video_id',
 ].sort()))
 
-check('Seedance cost comes from canonical duration cost', seedanceFour.filmCredits === costs.creditCostForDuration('cinematic_ai', true, 60))
-check('monthly credits are exact multiplication', seedanceFour.monthlyCredits === seedanceFour.filmCredits * 7)
+check('Seedance cost comes from canonical duration cost', seedanceFour.filmCredits === costs.creditCostForDuration('cinematic_ai', true, 45))
+check('monthly credits are exact multiplication', seedanceFour.monthlyCredits === seedanceFour.filmCredits * 8)
 check('current recommendation covers its target', seedanceFour.plan !== null && seedanceFour.plan.credits >= seedanceFour.monthlyCredits)
 check('recommended grant is canonical', seedanceFour.plan?.credits === pricing.TIER_CREDITS[seedanceFour.plan?.tier])
 const tiersBeforeRecommendation = planFit.tiersByPrice('usd').slice(
@@ -174,7 +174,7 @@ check('paid projection is nonzero', freeProjection.filmCredits > 0)
 check('free projection can recommend a plan', freeProjection.plan !== null)
 check('Starter recommendation has no fictional cheaper subscription', freeProjection.lowerCostAlternative === null)
 
-const fastTwelve = planFit.calculatePlanFit({ quality: 'fast', seconds: 60, monthlyFilms: 20, currency: 'usd' }) // KINEO-PLANOS-9-19-29: 20 Kineo 1 = 100cr > Starter 60 → Creator
+const fastTwelve = planFit.calculatePlanFit({ quality: 'fast', seconds: 90, monthlyFilms: 12, currency: 'usd' }) // KINEO-PLANOS-9-19-29: 12 Kineo 1 de 90s = 96cr > Starter 60 → Creator
 check('Creator recommendation can expose Starter capacity', fastTwelve.lowerCostAlternative?.plan.tier === 'starter' && fastTwelve.lowerCostAlternative.monthlyFilms === Math.floor(pricing.TIER_CREDITS.starter / fastTwelve.filmCredits))
 
 // 3. No-plan result always carries honest, actionable exits.
@@ -392,8 +392,8 @@ check('Kineo 1 supported', planFit.supportsPlanFitQuality('fast') === true)
 // 8. Checkout context is transported by the client but recomputed by server.
 const validContextUrl = checkout.withPlanFitCheckoutContext(`/api/stripe/checkout?tier=${seedanceFour.plan.tier}`, {
   planned_engine: 'cinematic_ai',
-  monthly_videos: 7,
-  seconds: 60,
+  monthly_videos: 8,
+  seconds: 45,
   recommended_tier: seedanceFour.plan.tier,
   video_id: '11111111-1111-4111-8111-111111111111',
 })
