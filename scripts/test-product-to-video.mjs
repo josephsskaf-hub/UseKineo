@@ -63,7 +63,14 @@ equal(activation.searchParams.get('utm_source'), 'product_tool', 'signup source 
 equal(activation.searchParams.get('utm_medium'), 'organic', 'signup medium stays organic')
 equal(activation.searchParams.get('utm_campaign'), 'product_to_short', 'signup campaign is exact')
 const redirect = new URL(activation.searchParams.get('redirect'), 'https://www.usekineo.com')
-equal(redirect.pathname, '/generate', 'product script carries into the established creator')
+// KINEO-REANCORA-SALA-DE-CRIACAO-2026-09-07 — a trava exigia '/generate'. A casa
+// moveu a sala de criacao para '/studio/create' (a rota existe em
+// app/(dashboard)/studio/create/page.tsx) e o destino acompanhou. A INTENCAO nunca
+// foi o literal: era garantir que o roteiro atravessa o cadastro e cai numa sala de
+// criacao AUTENTICADA — nunca numa pagina de marketing — com o texto intacto.
+equal(redirect.pathname, '/studio/create', 'product script carries into the established creator')
+equal(['/pricing','/signup','/login','/'].includes(redirect.pathname), false, 'o roteiro nunca cai numa pagina de marketing')
+equal(Boolean(redirect.searchParams.get('prompt')?.trim()), true, 'o texto sobrevive ao desvio pelo cadastro')
 equal(redirect.searchParams.get('script_mode'), 'verbatim', 'product words use the preservation mode')
 equal(redirect.searchParams.get('duration'), '35', 'product script has a supported 35-second contract')
 equal(redirect.searchParams.get('autoanalyze'), '1', 'handoff analyzes without auto-rendering')

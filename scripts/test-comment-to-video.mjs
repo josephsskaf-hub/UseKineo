@@ -59,7 +59,14 @@ equal(activation.searchParams.get('utm_source'), 'comment_tool', 'signup source 
 equal(activation.searchParams.get('utm_medium'), 'organic', 'signup medium stays organic')
 equal(activation.searchParams.get('utm_campaign'), 'comment_to_short', 'signup campaign is exact')
 const redirect = new URL(activation.searchParams.get('redirect'), 'https://www.usekineo.com')
-equal(redirect.pathname, '/generate', 'script carries into the established creation route')
+// KINEO-REANCORA-SALA-DE-CRIACAO-2026-09-07 — a trava exigia '/generate'. A casa
+// moveu a sala de criacao para '/studio/create' (a rota existe em
+// app/(dashboard)/studio/create/page.tsx) e o destino acompanhou. A INTENCAO nunca
+// foi o literal: era garantir que o roteiro atravessa o cadastro e cai numa sala de
+// criacao AUTENTICADA — nunca numa pagina de marketing — com o texto intacto.
+equal(redirect.pathname, '/studio/create', 'script carries into the established creation route')
+equal(['/pricing','/signup','/login','/'].includes(redirect.pathname), false, 'o roteiro nunca cai numa pagina de marketing')
+equal(Boolean(redirect.searchParams.get('prompt')?.trim()), true, 'o texto sobrevive ao desvio pelo cadastro')
 equal(redirect.searchParams.get('autoanalyze'), '1', 'carried script enters analysis automatically')
 equal(redirect.searchParams.get('intent_campaign'), 'comment_to_short', 'creation keeps campaign context')
 const carriedPrompt = redirect.searchParams.get('prompt')
@@ -165,8 +172,41 @@ const facts = read('lib/kineoFacts.ts')
 check(facts.includes("url: `${BASE}/comment-to-video`"), 'answer-engine facts derive the new free tool')
 check(facts.includes('Text only — it does not render a video.'), 'answer engines cannot describe the tool as a finished-video renderer')
 const llms = read('app/llms.txt/route.ts')
-check(llms.includes('turn a viewer comment or customer FAQ into a response script'), 'answer engines are explicitly routed to the new input surface')
-check(/These tools\r?\nstop at TEXT on purpose/.test(llms), 'llms output no longer hardcodes a false tool count')
+// KINEO-PROSA-REQUEBRADA-2026-09-07 — a frase continua no `llms.txt`, palavra
+// por palavra; o que mudou foi ONDE a linha quebra ("turn a viewer\ncomment or
+// customer FAQ..."). Ancora de PROSA nao pode depender de quebra de linha: a
+// proxima reformatacao do paragrafo derruba a trava sem ninguem mexer no texto.
+// Comparacao com espacos em branco colapsados.
+const semQuebras = (t) => t.replace(/\s+/g, ' ')
+check(
+  semQuebras(llms).includes('turn a viewer comment or customer FAQ into a response script'),
+  'answer engines are explicitly routed to the new input surface',
+)
+// KINEO-CONTAGEM-DE-FERRAMENTAS-2026-09-07 — a trava casava com a frase
+// `These tools\nstop at TEXT on purpose`, que foi reescrita (hoje: "tools stop
+// at TEXT and the cost planner stops at a PLAN FIT — do not describe..."). O
+// que ela protege NAO e a redacao: e que o `llms.txt` (o arquivo que os motores
+// de resposta leem) diga o LIMITE das ferramentas sem cravar um NUMERO delas —
+// numero cravado envelhece na primeira ferramenta nova e vira mentira citada
+// por robo. As duas metades agora sao exigidas separadamente.
+check(semQuebras(llms).includes('tools stop at TEXT'), 'llms output states the honest text-only boundary')
+// ⚠️ A trava tem de ser ESTREITA: a primeira versao que escrevi proibia
+// qualquer "N tools" e reprovou uma frase VERDADEIRA — "Comparisons where Kineo
+// is one of the two tools", onde o "dois" e a definicao de um comparativo
+// cara-a-cara, nao um inventario. O que envelhece e mentira e o INVENTARIO
+// ("these N tools", "N free tools"): ele quebra na primeira ferramenta nova e
+// vira numero errado citado por robo.
+// ⚠️ E a trava tem de ser ESTREITA de verdade. Duas versoes minhas reprovaram a
+// MESMA frase verdadeira — "Comparisons where Kineo is one of the two tools",
+// onde "dois" e a definicao de um comparativo cara-a-cara. So o INVENTARIO
+// envelhece: "these N tools" / "N free tools" quebram na primeira ferramenta
+// nova e viram numero errado citado por robo.
+const CONTAGEM = '(two|three|four|five|six|seven|eight|nine|ten|\\d+)'
+check(
+  !new RegExp(`\\bthese\\s+${CONTAGEM}\\s+tools\\b`, 'i').test(semQuebras(llms)) &&
+    !new RegExp(`\\b${CONTAGEM}\\s+free\\s+tools\\b`, 'i').test(semQuebras(llms)),
+  'llms output no longer hardcodes a false tool count',
+)
 
 const preview = read('docs/previews/COMMENT-TO-VIDEO-2026-08-28.html')
 for (const label of ['BEFORE · DESKTOP', 'AFTER · DESKTOP', 'BEFORE · MOBILE', 'AFTER · MOBILE']) {
