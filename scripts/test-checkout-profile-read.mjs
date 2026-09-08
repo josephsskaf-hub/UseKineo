@@ -105,7 +105,33 @@ try {
   check(route.includes('checkoutMetadata.profile_lookup_attempts = profileLookup.attempts'), 'attempt count reaches checkout metadata')
   check(route.includes('checkoutMetadata.profile_lookup_recovered = profileLookup.recovered'), 'recovery outcome reaches checkout metadata')
   check(route.includes('failureContext = { ...checkoutMetadata }'), 'failure telemetry receives the retry outcome')
-  check(route.includes(".select('email, stripe_customer_id, is_pro, plan, stripe_subscription_id, paypal_subscription_id, affiliate_id')"), 'profile permission fields stay unchanged')
+  // KINEO-CAMPOS-DO-CHECKOUT-2026-09-07 — esta trava fez o trabalho dela: o
+  // `c902516f` (trial pago de $1, hoje) somou QUATRO campos ao `select` do
+  // checkout e ela ficou vermelha, como devia. A lista é atualizada de
+  // propósito, com o motivo, e NÃO afrouxada: `has_paid` é o campo que o
+  // cobrador consulta para recusar `?trial=1`; `video_credits`,
+  // `trial_credits_granted` e `trial_credits_used` são o saldo do trial que a
+  // decisão de entrada usa. Para a regra não virar carimbo, cada campo novo
+  // tem de ser CONSUMIDO na rota — ler dado de `profiles` sem usar é ampliar
+  // permissão de graça.
+  const CAMPOS_PERFIL = [
+    'email', 'stripe_customer_id', 'is_pro', 'plan', 'stripe_subscription_id',
+    'paypal_subscription_id', 'affiliate_id',
+    'video_credits', 'trial_credits_granted', 'trial_credits_used', 'has_paid',
+  ]
+  check(
+    route.includes(`.select('${CAMPOS_PERFIL.join(', ')}')`),
+    'profile permission fields stay exactly the declared list',
+  )
+  // ⚠️ O QUE EU TENTEI E NÃO ENTREGUEI, de propósito: uma segunda trava que
+  // exigisse que cada campo da lista fosse CONSUMIDO na rota (ler dado de
+  // `profiles` sem usar é ampliar permissão de graça). Ela passava com a rota
+  // real, mas eu NÃO consegui falsificá-la — trocar o único uso de `has_paid`
+  // por `is_pro` deixava a trava verde, e trava que não fica vermelha quando o
+  // defeito existe é enfeite (memória `guardiao-contar-texto-nao-prova-condicao`).
+  // Fica registrada como pendência honesta em vez de virar carimbo: quem for
+  // escrevê-la precisa amarrar ao ponto de decisão, não a um `profile.<campo>`
+  // textual — a rota lê esses campos por cast e por desestruturação.
   check(!route.includes('upsertProfileForCheckout'), 'checkout does not create or overwrite profiles')
 
   console.log(`checkout-profile-read: ${checks}/${checks} checks passed`)
