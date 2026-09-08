@@ -2291,3 +2291,86 @@ dinheiro. Fica nomeado, com denominador e com a prova de que não é meu.
 
 **O QUE NÃO MUDOU NESTE CHECKPOINT:** nenhum arquivo de produto. Só medição,
 sonda e auditoria.
+
+---
+
+### #12 — 22:25 BRT — QUATRO GUARDIÕES VERMELHOS CONSERTADOS, E OS QUATRO ACUSAVAM O PRODUTO POR ÂNCORA MORTA OU FIM DE LINHA
+
+**POR QUE ISTO, E NÃO MAIS UMA PORTA.** A #11b mediu a última superfície de
+dinheiro sem porta de $1 (o exit intent) e ela alcança **8 visitantes em 30
+dias** — a jogada morreu na medição. Com as cinco superfícies que importam já
+servidas, a maior alavanca que sobrou nesta janela de tráfego magro era
+**devolver os dentes aos guardiões que vigiam essas mesmas superfícies**. Doze
+estavam vermelhos, e enquanto vivem vermelhos não protegem nada.
+
+**EM PRODUÇÃO — quatro commits, quatro guardiões, zero arquivos de produto
+tocados** (`bed67be9`, `6a727de0`, `74d16464`, `14cc900f`; fila 0 depois de
+cada um):
+
+| guardião | era | ficou | causa real |
+|---|---:|---:|---|
+| `test-trial-balance-bridge` | **estourava** na 262ª de 418 | **289/289** | âncora morta na hierarquia do slot |
+| `test-trial-post-video-primary` | 25/57 | **57/57** | recorte vazio + trava de preço reprovando a **prosa** |
+| `test-credito-vitrine` | 1 falha em 15, depois estourava | **28/28** | forma (`<UiLabel>`) em vez de estrutura |
+| `test-next-door-bar` | 25/3 | **28/28** | `\r\n` do Windows numa âncora de duas linhas |
+
+**NENHUM ERA MEU, e eu provei antes de dizer:** criei uma worktree pristina em
+`5f3803b1` (a ponta de quando esta rotação começou) e rodei os doze lá — os doze
+já estavam vermelhos antes de eu tocar em qualquer arquivo (memória
+`assercao-alheia-vermelha-se-reancora`).
+
+**O QUE CADA UM ESTAVA ESCONDENDO — e o pior é o segundo.**
+
+1. **A ponte estourava na verificação 262 de 418.** `check` usa `assert.ok`:
+   a primeira falha **derruba o arquivo**. As outras ~60 verificações **nunca
+   rodavam** — a superfície ficou sem proteção e ninguém viu, porque a saída
+   parecia uma acusação e não uma parada. Re-ancorei na política executada
+   (`decidePostDeliverySlot`) em vez de num texto: a exclusividade agora é
+   provada por construção — um slot, um dono.
+2. **A caixa que 228 pessoas/mês veem estava sendo lida como uma tela VAZIA.**
+   O recorte do cartão casava com a hierarquia antiga escrita à mão; a string
+   sumiu, `card` virou `''`, e **32 verificações falharam em cascata sobre zero
+   caractere**. As 32 se liam como acusação grave ao produto — e o guardião
+   nunca chegou a olhar para o produto.
+3. **A trava de preço da mesma caixa reprovava a EXPLICAÇÃO.** Depois que a
+   porta de $1 entrou ali hoje, dois **comentários** passaram a citar "$1" e a
+   regra `!/\$\s*\d/` os reprovava. (Eu cometi o mesmo erro no meu próprio
+   guardião uma hora antes — a cura é a mesma: julgar o código com os
+   comentários fora, cortando `//` só no início da linha para não amputar
+   `https://`.)
+4. **E uma trava que estava viva mas sem dentes.** Na vitrine, "custo real > 0"
+   não pegava erro de digitação: `creditCostFor` termina em `default: return 8`,
+   então um motor inexistente devolve 8 e a home anunciaria "8 créditos" com
+   cara de preço real. **Provado**: trocar `cinematic_ai` por
+   `motor_que_nao_existe` deixava a suíte **verde**. Agora o id tem de ser um
+   `case` declarado em `lib/credits/engineCost.ts`.
+
+**TODOS FALSIFICADOS POR MUTAÇÃO NO ARQUIVO DE PRODUÇÃO, com a mutação
+conferida em disco antes do julgamento** (memória
+`mutacao-precisa-provar-que-aplicou`) — e uma das falsificações **não provou
+nada na primeira tentativa**: o `<span>Only $9 today</span>` caiu dentro de um
+bloco `{/* … */}` e foi corretamente removido pelo próprio stripper. Repeti em
+código de verdade, e aí sim ficou vermelho. Restauração conferida nos quatro
+(`git status` limpo, contagem de ocorrências em zero, suíte verde de novo).
+
+**RESTAM OITO VERMELHOS HERDADOS, e estes NÃO são âncora óbvia** — não os toquei
+porque acusam comportamento, e mexer em trava de dinheiro no fim de um ciclo é
+como se quebra trava de dinheiro. A primeira falha de cada um, para quem pegar
+amanhã: `test-animate-paywall` ("Cost per clip" derivado, não digitado) ·
+`test-business-content-plan` (first idea carries to the existing generator) ·
+`test-checkout-currency-truth` (visible home FAQ uses canonical disclosure) ·
+`test-checkout-password-recovery` (ordinary password reset keeps its prior
+destination) · `test-checkout-profile-read` (profile permission fields stay
+unchanged) · `test-porta-serie-impressao-2026-09-05` · `test-rewrite-candidate-
+offer` (devolve o TOTAL de frases da autora) · `test-stripe-checkout-failure-
+truth` (PaymentIntent resolves billing reason).
+
+**RISCO.** Zero em produção: os quatro commits mexem só em `scripts/`. O risco
+é o oposto — um guardião re-ancorado por mim que afrouxe a trava sem eu notar.
+Contra isso: cada um foi falsificado, e em dois casos a trava ficou **mais**
+apertada do que era (a ponte prova a exclusividade por construção; a vitrine
+passou a exigir motor declarado).
+
+**A FRASE DA ROTAÇÃO.** Hoje as quatro superfícies onde a casa pede dinheiro
+voltaram a ter vigia de verdade — três delas estavam sendo "vigiadas" por
+guardiões que nem chegavam a ler a tela.
