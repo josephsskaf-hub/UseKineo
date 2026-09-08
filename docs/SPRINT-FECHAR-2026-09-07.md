@@ -2933,3 +2933,24 @@ mesmo tinha posto no ar 25 minutos antes, que teria feito eventos deixarem de se
 gravados em silêncio. Consertei, e ainda deixei o teste alheio mais exigente do
 que estava. Amanhã a primeira pergunta não é o que construir: é se alguém vê o
 que já foi construído.
+
+**ADENDO AO FECHAMENTO (22:54 BRT) — o número da suíte que publiquei há 20
+minutos já está desatualizado, e para melhor.** Rodei a suíte inteira de novo na
+ponta final (`6568d806`), depois dos últimos commits das duas sessões:
+
+| medição | verdes | vermelhos | total |
+|---|---|---|---|
+| 23:00, quando escrevi o fechamento | 328 | 102 | 430 |
+| **22:54, ponta final** | **337** | **94** | **431** |
+
+**Oito guardiões a menos no vermelho e um arquivo novo** — a outra sessão
+continuou o mutirão durante a hora de fechamento. **Vale o número novo**, e a
+ressalva do fechamento continua valendo inteira: 94 **não** é "94 contratos
+quebrados" (um deles só pede `RUNWAY_API_KEY`), e nenhum dos consertados hoje
+tinha produto quebrado — era sempre a âncora envelhecida.
+
+**Estado final do ciclo:** ponta `6568d806`, **fila 0**, `tsc` verde, e os oito
+guardiões das superfícies que esta sessão tocou (`sharing-safety`,
+`events-identity-stamp`, `clean-export-trial-door`, `trial-post-video-primary`,
+`next-door-bar`, `post-delivery-slot`, `slot-impression-truth`,
+`free-clean-leak`) **todos verdes**.
