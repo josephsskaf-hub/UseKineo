@@ -10440,13 +10440,22 @@ export default function GenerateClient({
     // escolheu `tier:'starter'` — o plano de $9, ao lado — foi ao Stripe e não
     // pagou. A porta não perdeu por copy: perdeu por competição interna.
     //
-    // Quem entra aqui: conta sob a versão B, que NUNCA pagou, com saldo lido e
-    // igual a zero, e que não é assinante. `credits !== null` é obrigatório —
-    // saldo desconhecido não abre oferta nenhuma (falha fechada, a lição do
-    // predicado largo negado). `footage` fica de fora: aquele bloqueio se
+    // Quem entra aqui: pessoa para quem NÃO EXISTE filme grátis, que NUNCA
+    // pagou, com saldo lido e igual a zero, e que não é assinante.
+    //
+    // ⚠️ A primeira versão desta linha escrevia `CARD_ENTRY_ONLY &&` — e o
+    // guardião de outra pista (`test-telas-sem-filme-gratis-2026-09-08`)
+    // reprovou, com razão: "a condição não se redigita". `freeFilmAvailable`
+    // é `OFFER.limit > 0`, o número do PRÓPRIO COBRADOR. Derivar da política
+    // é uma segunda régua que diverge no dia em que a casa reabrir o grátis:
+    // a folha continuaria aparecendo para quem TEM filme incluído. Perguntar
+    // ao cobrador faz a porta se recolher sozinha nesse dia.
+    //
+    // `credits !== null` é obrigatório — saldo desconhecido não abre oferta
+    // nenhuma (falha fechada). `footage` fica de fora: aquele bloqueio se
     // resolve com pacote, e o pacote mora no UpgradeModal.
     const cardEntryCohort =
-      CARD_ENTRY_ONLY &&
+      !freeFilmAvailable &&
       !hasPaid &&
       !(isStarter || isCreator || isStudio) &&
       credits !== null &&

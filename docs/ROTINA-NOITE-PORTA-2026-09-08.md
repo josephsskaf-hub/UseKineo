@@ -272,3 +272,72 @@ zero. Medido desde o READY (`2026-09-08 23:18:19 UTC`), 5 minutos no ar:
 Zero cliques sobre zero oportunidades. A folha só monta quando alguém da coorte
 aperta Generate sem crédito — não houve ninguém ainda. O corte de toda medição
 seguinte é `metadata ? 'version'` (ou `= 'door_v2'`), **nunca o relógio**.
+
+---
+
+## r4 22:20 — A SUÍTE INTEIRA ACHOU UMA REGRESSÃO MINHA
+
+Rodei os **458 guardiões** da casa na minha árvore e os **457** do commit pai
+(`db1d00c0`) numa worktree pristina, para ter denominador dos dois lados.
+
+| árvore | rodados | vermelhos |
+|---|---|---|
+| `db1d00c0` (sem a minha entrega) | 457 | **110** |
+| a minha | 458 | **111** |
+
+Os 110 são herança — a maioria são travas por diff, que ficam vermelhas quando o
+commit que elas mediam entra na main. Conferido caso a caso pelo `comm`: **um
+único guardião ficou vermelho por minha causa**, e ele estava certo.
+
+### `test-telas-sem-filme-gratis-2026-09-08` — "a condição não se redigita"
+
+Eu tinha escrito a coorte da folha assim:
+
+```
+const cardEntryCohort = CARD_ENTRY_ONLY && !hasPaid && …
+```
+
+A trava de outra pista reprova qualquer `= CARD_ENTRY_ONLY` no `GenerateClient`,
+e o motivo é bom: **`freeFilmAvailable` é `OFFER.limit > 0`, o número do próprio
+cobrador**. Derivar da política cria uma SEGUNDA RÉGUA, que diverge no dia em que
+a casa reabrir o filme grátis — a folha continuaria aparecendo para quem tem
+filme incluído, oferecendo a compra de algo que a pessoa já tem. Consertado para
+`!freeFilmAvailable && …`: agora a porta se recolhe sozinha nesse dia.
+
+Não afrouxei a trava alheia. **O que estava errado era o meu código — e também o
+meu próprio guardião**, que exigia `CARD_ENTRY_ONLY` na coorte, ou seja, exigia
+exatamente o que a regra da casa proíbe. Inverti: o meu check agora exige
+`!freeFilmAvailable` e REPROVA `= CARD_ENTRY_ONLY`. As duas travas passaram a
+puxar para o mesmo lado.
+
+### Um ganho de tabela que veio junto, agora travado
+
+`TopupUnavailableNote` — "recarga indisponível" — é montado DENTRO do
+UpgradeModal. Em 08/09 ele apareceu **5× para 3 pessoas no mesmo instante do
+bloqueio**: a casa anunciava um produto INDISPONÍVEL colado na única oferta que
+queria ver aceita, no pico de intenção. Trocando a caixa pela folha, a coorte da
+porta deixou de ver isso. Verificação nova prova que a nota só é montada depois
+da definição do `UpgradeModal`; falsificada montando-a no caminho da folha
+(mutante aplicado, guardião 🔴 "montada FORA do UpgradeModal").
+
+Guardião: **36 → 38 verificações**, 4 mutantes falsificados no total.
+
+### Confirmação depois do conserto — e um verde que NÃO é meu
+
+| árvore | rodados | vermelhos | regressões minhas |
+|---|---|---|---|
+| `db1d00c0` (baseline) | 457 | 110 | — |
+| minha, com o conserto | 458 | **109** | **nenhuma** |
+
+O `comm` nos dois sentidos: zero guardiões vermelhos só na minha. Mas apareceu
+**um vermelho do baseline que ficou verde na minha — e ele não é mérito meu**.
+`test-last-setup-memory` mede por `git diff HEAD`: só passa quando existe
+mudança NÃO COMMITADA em `GenerateClient.tsx`. Na minha árvore havia (o conserto
+da r4); na pristina não. Determinístico nos dois lados (3 rodadas cada), e não
+flakiness.
+
+Previsão registrada e verificada: **depois de commitar, ele voltaria ao
+vermelho** — e voltou. Ou seja, o número honesto é **110 lá e 110 aqui, com zero
+regressão** minha. Escrever "consertei um guardião" seria mentira de placar.
+
+**SHA da r4: o commit desta rotação (ver `git log`; o hash final é o da main após o publicador rebasear).**

@@ -225,15 +225,44 @@ check('a folha abre NO LUGAR do UpgradeModal para a coorte da porta', () => {
 })
 check('a coorte exige saldo LIDO (falha fechada) e conta que nunca pagou', () => {
   const fn = generateSrc.slice(generateSrc.indexOf('const cardEntryCohort'), generateSrc.indexOf('if (cardEntryCohort)'))
-  assert.ok(fn.includes('CARD_ENTRY_ONLY'), 'a coorte ignora a política de entrada')
   assert.ok(fn.includes('!hasPaid'), 'a coorte não exclui quem já pagou')
   assert.ok(fn.includes('credits !== null'), 'saldo desconhecido abriria a oferta')
   assert.ok(/isStarter \|\| isCreator \|\| isStudio/.test(fn), 'a coorte não exclui assinante')
+})
+// A REGRA DA CASA, que esta entrega quase quebrou. A primeira versão da coorte
+// escrevia `CARD_ENTRY_ONLY &&`, e o guardião de outra pista
+// (`test-telas-sem-filme-gratis-2026-09-08`) reprovou: "a condição não se
+// redigita". `freeFilmAvailable` é `OFFER.limit > 0`, o número do PRÓPRIO
+// cobrador — derivar da política cria uma segunda régua, que diverge no dia em
+// que a casa reabrir o filme grátis (a folha apareceria para quem TEM filme
+// incluído). Este check impede a volta pela porta dos fundos.
+check('a coorte pergunta ao COBRADOR, não redigita a política de entrada', () => {
+  const fn = generateSrc.slice(generateSrc.indexOf('const cardEntryCohort'), generateSrc.indexOf('if (cardEntryCohort)'))
+  assert.ok(fn.includes('!freeFilmAvailable'), 'a coorte não consulta freeFilmAvailable (OFFER.limit)')
+  assert.ok(!/=\s*!?\s*CARD_ENTRY_ONLY/.test(fn), 'a coorte foi redigitada a partir de CARD_ENTRY_ONLY')
+  assert.match(generateSrc, /const freeFilmAvailable\s*=\s*OFFER\.limit\s*>\s*0/, 'freeFilmAvailable deixou de sair de OFFER.limit')
 })
 check('footage continua indo para o UpgradeModal (é lá que mora o pacote)', () => {
   const fn = generateSrc.slice(generateSrc.indexOf('const cardEntryCohort'), generateSrc.indexOf('if (cardEntryCohort)'))
   assert.ok(!fn.includes("'footage'"), 'footage entraria na folha')
   assert.ok(fn.includes("=== 'credits'"), 'a folha não está restrita aos motivos de crédito')
+})
+
+// O ganho de tabela da substituição, e por que ele não pode ser desfeito sem
+// querer: `TopupUnavailableNote` — "recarga indisponível" — é montado DENTRO do
+// UpgradeModal. Medido em 08/09, ele apareceu 5× para 3 pessoas no MESMO
+// instante do bloqueio: a casa anunciava um produto indisponível colado na
+// única oferta que queria ver aceita, no pico de intenção. Trocando a caixa
+// pela folha, a coorte da porta deixa de ver isso. Se alguém montar a nota
+// fora do modal, este check fica vermelho.
+check('o aviso de "recarga indisponível" vive dentro do UpgradeModal, não no caminho da folha', () => {
+  const modalIdx = generateSrc.indexOf('function UpgradeModal')
+  assert.ok(modalIdx > 0, 'não achei a definição do UpgradeModal')
+  const montagens = [...generateSrc.matchAll(/<TopupUnavailableNote/g)].map((m) => m.index)
+  assert.ok(montagens.length > 0, 'a nota sumiu da tela — quem pode comprar recarga precisa dela')
+  for (const idx of montagens) {
+    assert.ok(idx > modalIdx, 'TopupUnavailableNote montada FORA do UpgradeModal: a folha voltaria a exibi-la')
+  }
 })
 
 // ═══ 6. A FAIXA ANTIGA CONTINUA MONTADA ═════════════════════════════════════
