@@ -2268,3 +2268,104 @@ impossível fechar.
 A partir de agora toda falha de geração chega com o nome **e** com a frase.
 Não conserta nenhuma falha por si só — é o que faz a **próxima** ser
 diagnosticável em minutos em vez de virar mais uma linha muda no banco.
+
+---
+
+### #16 — 09:06→09:30 BRT — M11 FECHAMENTO DA JANELA
+
+Janela **01:30 → 09:30 BRT**, 16 rotações. `origin/main` na hora do fechamento
+= **`bf8267dd`**, fila = **0**. **12 entregas de código publicadas**, 1 retida
+por trava do fundador, 2 ações encerradas por medição sem escrever código.
+
+#### As dez, uma por uma
+
+| # | ação | desfecho | SHA |
+|---|---|---|---|
+| **M1** | cena que falha não mata o filme | **encerrado por medição + instrumentado.** A parede que a lista mandava consertar já tinha sido derrubada em 01-03/09; o evento que apontava para lá errava **13 de 17**. O que faltava de verdade era a **frase** da exceção: 1.905 de 1.929 falhas da história chegavam só com o sobrenome (`TypeError`). Os 10 `catch` cegos passaram a mandar `message`. | `4bd873a2` · `77230465` · `e3971a73` — **em produção** |
+| **M2** | roteiro longo não é erro | **conserto pronto, RETIDO.** 19 das 80 pessoas sem filme chegaram ao Studio e nunca apertaram nada; duas brigaram com o contador de caracteres (uma apagou o próprio texto **275 vezes em um minuto**). A caixa cobra régua de *roteiro* (5.000) de quem colou *matéria-prima*. Toca `app/api/analyze-idea/` — caminho protegido pela sua trava de 03/09. | `fde757ad`, branch `mp13-roteiro-longo` — **NÃO publicado, espera 1 palavra** |
+| **M3** | thumbnail em todo filme | **código em produção, 0 oportunidades para provar.** O parâmetro estava um nível acima e a capa nunca nascia. Junto veio o achado maior: **126 filmes moram no disco do fornecedor e 91 já morreram** — o resgate agora roda sozinho. **Nenhum filme foi renderizado desde o deploy** (os 3 de hoje são de 03:27/03:52/04:00 UTC, anteriores ao conserto), então `thumbnail_url` segue **0 de 1.685**: zero oportunidade, não zero acerto. | `f42e410d` · `2fc6784d` — **em produção** |
+| **M4** | os 5 pagantes calados | **entregue.** Só 2 dos 5 tinham defeito, e o defeito era o mesmo: o reparo de dunning **existia havia 24h e nunca tinha sido apertado** — 2 das 12 assinaturas seguiam **cobradas e sem acesso**. | `34a6d574` — **em produção** |
+| **M5** | o primeiro filme dos 77 | **entregue.** A carta que socorre quem apertou e não saiu filme procurava um evento que **só o motor pago emite** — 0 envios em 4 dias. Reancorada. Continua **desligada por flag**. | `944c2d0f` — **em produção, flag `false`** |
+| **M6** | suíte verde | **entregue, e o achado foi pior que o esperado.** Os **dois guardiões do dinheiro** estavam *parados* desde a Versão B — **372 verificações que não avaliavam nada**. Mais dois vermelhos que eram **forma, não condição**, reancorados e falsificados. | `45b1521b` · `77230465` · `96037a8a` · `1a4dcda3` — **em produção** |
+| **M7** | honestidade | **a maior fatia da noite — 5 entregas.** O número do trial que a casa **mostra** saía de um espelho de 25 e 3 botões da porta de $1 estavam **sem preço**; a coluna "filmes do trial" calculava com 25 fixo; **três cartas da esteira prometiam um filme grátis que a casa parou de entregar às 04:22 UTC** (126 pessoas em 7 dias); e as **3 superfícies mais vistas** ainda diziam "free" e "no card" (224 pessoas em 7 dias). | `d49f5921` · `0b7d0472` · `2b6a4043` · `d97d55f6` — **em produção** |
+| **M8** | a casa passa a ler resposta | **NÃO COUBE.** Exige env nova (Resend inbound ou Gmail API) e a regra proíbe chave no chat. Virou PEDIDO com o nome da env. | — |
+| **M9** | fim do truncamento em 1000 | **entregue no ponto que mais doía.** A **única leitura sem janela** do cron de trial — a maior máquina de e-mail da casa — já estava **acima** do teto invisível de 1.000, ou seja, o dedupe já falhava em silêncio. Corrigido + carimbo que separa build novo de velho num cron autenticado. | `84b6564e` · `33d55572` — **em produção** |
+| **M10** | tela que não mente | **entregue.** As 3 telas do saldo escreviam **ZERO** quando a leitura **falhava** — e desde a Versão B isso empurra **cliente pagante** para a porta de $1. Agora dizem "instável" e emitem `read_failed_shown`. **0 disparos até agora** — o incidente é raro, e é isso que se espera. | `598cab2d` — **em produção** |
+
+#### Placar de falhas — antes × depois do marco (04:30 UTC)
+
+    24h ANTES do marco ........ 12 falhas de geracao
+    7,5h DEPOIS do marco ......  5 falhas, 3 pessoas
+
+**E as 5 precisam ser lidas, não somadas.** Duas são a mesma pessoa às 10:36
+(rede caiu — a de #15). **As outras três, às 11:18, 11:19 e 12:05, não são
+falha nenhuma:** são `compose_daily_free_limit` — a **porta de $1 da Versão B**
+funcionando, gravada na tabela de **erro de geração**. Achado novo, sem
+conserto ainda: os vigias alarmam em `generation_stage_error`, então **cada
+pessoa que encosta na porta nova acorda a casa com um alarme falso** — e o
+volume só cresce daqui pra frente. Fica como primeiro item da próxima pista.
+O lado bom do mesmo número: a Versão B **tem plateia** — na rotação #8 era
+`n=1`; na última hora foram **2 pessoas distintas** batendo na porta de $1.
+
+#### Guardiões — início → fim
+
+    retrato de entrada ............... 93 vermelhos de 430 (desatualizado)
+    1a medicao real (worktree limpa) . 107 de 445
+    FECHAMENTO em bf8267dd ........... 107 de 449   (342 verdes)
+
+Medido na worktree pristina `C:\kineo-wt\mp-fecho`, criada de `bf8267dd`, suíte
+inteira rodada arquivo a arquivo. **Nenhuma entrega da noite adicionou um
+vermelho** — o total de vermelhos não se mexeu enquanto **3 guardiões novos**
+nasciam (445 → 449). Dos 14 vermelhos que tocam o meu trabalho, **13 foram
+provados herdados** na #6b. E os **372** do dinheiro que não avaliavam nada
+voltaram a avaliar.
+
+#### O que espera você
+
+1. **`fde757ad`** (M2, teto de entrada do roteiro) — uma palavra: "vai" ou "não".
+2. **`ATTEMPT_LOST_SEND_ENABLED`** (M5) — `false` → `true` liga a carta de socorro.
+3. **M8** — o nome da env de leitura de resposta está no `PEDIDOS`.
+
+Nenhum e-mail saiu. Nenhum preço mudou. Nenhum render pago. Nenhum dado apagado.
+
+#### A frase
+
+> **Hoje quem faz um filme encontra uma casa que não mente sobre o preço, não
+> escreve "zero créditos" quando não conseguiu ler o saldo, não some com o
+> filme entregue em 30 dias, e guarda o que a falha DISSE — não só o sobrenome
+> dela. Ontem ela encontrava as quatro coisas ao contrário.**
+
+**✅ O QUE VOCÊ PRECISA FAZER**
+
+1. **Responder "vai" ou "não"** ao commit `fde757ad` (branch `mp13-roteiro-longo`):
+   o teto de entrada pode encostar em `app/api/analyze-idea/`? É a única coisa
+   travada, e destrava 19 pessoas que chegam ao Studio e não apertam nada.
+2. **Renderizar UM filme qualquer** em `usekineo.com/studio`. É o único jeito
+   de provar a capa (M3): o código subiu, mas ninguém renderizou desde então,
+   e `thumbnail_url` segue 0 de 1.685 por **falta de oportunidade**. Um filme
+   fecha a prova.
+3. **Decidir se liga a carta de socorro** (M5): `ATTEMPT_LOST_SEND_ENABLED`
+   de `false` para `true`.
+
+**📋 O QUE ACONTECEU**
+
+Oito horas, 16 rotações, **12 entregas em produção**. A noite não vendeu nada —
+essa era a ordem — e o que ela fez foi tirar quatro mentiras do caminho de quem
+já está dentro: **o preço que a casa mostrava** (o trial exibia 25 quando a
+porta é 80, e três botões de $1 apareciam sem preço), **o saldo** (três telas
+escreviam "0 créditos" quando na verdade tinham falhado ao ler — e isso mandava
+**cliente pagante** para a porta de compra), **o filme entregue** (126 vídeos
+moravam no disco do fornecedor e 91 já tinham morrido; o resgate agora roda
+sozinho) e **a falha** (1.905 de 1.929 erros da história eram guardados só como
+a palavra "TypeError", sem uma linha do que a exceção disse).
+
+Duas ações da lista **morreram por medição, antes de virar código** — a parede
+que eu ia consertar já tinha sido derrubada em 01-03/09, e o evento que me
+mandava lá errava 13 de 17 vezes. Foi o melhor uso de duas rotações da noite.
+
+Três coisas continuam abertas e são suas: a palavra sobre `fde757ad`, o
+interruptor da carta de socorro, e a env da caixa de entrada. E fica um achado
+novo, de última hora, para quem pegar a próxima pista: **a porta de $1 da
+Versão B está sendo gravada na tabela de erro de geração** — três pessoas hoje,
+e os vigias vão passar a acordar com alarme falso toda vez que alguém encostar
+nela.
