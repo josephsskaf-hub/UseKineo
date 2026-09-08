@@ -117,3 +117,85 @@ têm ela.
 
 **SHA desta rotação:** só documento — nada de código publicado na r1.
 **Ficou para a r2:** construir a folha e ligá-la no bloqueio.
+
+---
+
+## r2 21:10 — CONSTRUIR E PUBLICAR
+
+**SHA: `ff4c28c5660f9277c9fde1457b41abd7ca417a3d`** — na `origin/main`, deploy
+`dpl_7R6nb2r9EB7iEMRPvB5B3HeYB74Q` (production). Fila estava vazia; enfileirado
+por `scripts/enfileirar.sh` e publicado pelo `!RODAR-AGORA.bat`.
+
+### O que mudou para o cliente
+
+`components/CardEntryDoor.tsx` (novo) + 3 pontos em `GenerateClient.tsx`.
+No instante em que a pessoa aperta Generate sem crédito, ela deixa de ver a
+grade de planos e passa a ver, em tela cheia:
+
+1. a própria ideia entre aspas (140 chars);
+2. o robô da vitrine rodando, mudo, com poster;
+3. o título de `CARD_ENTRY_COPY`;
+4. o preço montado em runtime de `formatCheckoutMoney` + `CARD_TRIAL_DAYS` +
+   `getTierPrice('basic')`;
+5. três linhas do que ela ganha — a do meio é CALCULADA (`80 ÷ custo do Kineo 1`);
+6. UM botão para `tier=basic&billing=monthly&trial=1&intent_campaign=door_v2`;
+7. "Not now" discreto.
+
+**A folha ABRE NO LUGAR do UpgradeModal**, não além dele — é isso que mata a
+competição medida na r1. A coorte é estreita e falha fechada:
+`CARD_ENTRY_ONLY && !hasPaid && !assinante && credits !== null && credits <= 0`
+e só nos motivos de crédito. **Assinante, saldo parcial e `footage` continuam no
+UpgradeModal com os pacotes de sempre** — o remédio deles não está na folha.
+
+### Uma armadilha que quase entrou (e o que ela ensina)
+
+A primeira versão importava `TRIAL_ACCESS` de `@/lib/kineoFacts` para a linha de
+cobertura. **O `tsc` ficou verde e o build da Vercel teria quebrado**: a árvore
+do `kineoFacts` puxa `node:crypto` (via `lib/gptHandoff`) e `crypto` (via
+`lib/trialFingerprint`), e esta folha teria sido o **primeiro componente client
+da casa a importá-lo** (varri os 9 importadores: todos servidor). Conserto: usar
+o MESMO CONSTRUTOR e as MESMAS fontes que o `kineoFacts` usa —
+`buildTrialAccessFact` + `creditsPerReferenceVideo('fast')` + `engineLabelFor('fast')`,
+os três puros — em vez de copiar a conta. O guardião tem uma verificação que
+varre a árvore de imports da folha e reprova qualquer builtin de servidor.
+
+### Guardião — `scripts/test-porta-v2-2026-09-09.mjs`, 34 verificações
+
+Estático (readFileSync) + **render real** com `react-dom/server`: o módulo de
+preço, a política de entrada e os fatos são os REAIS do repositório; só React,
+telemetria e idioma entram como dublês.
+
+**Falsificado por mutação — 3 mutantes, cada um provado que APLICOU antes de rodar:**
+
+| mutante | prova de que aplicou | guardião |
+|---|---|---|
+| preço digitado à mão no lugar da fonte única | `grep -c "for 7 days, then"` = 1 | 🔴 "literal da taxa no corpo de components/CardEntryDoor.tsx" |
+| `if (cardEntryCohort && false)` — o modal volta a abrir junto | `grep -c "cardEntryCohort && false"` = 1 | 🔴 "a coorte não é usada" |
+| rascunho gravado DEPOIS do checkout | `setItem` linha 235 · `launch` linha 224 | 🔴 "o rascunho é gravado DEPOIS do checkout — a ideia se perde" |
+
+Os três revertidos por `git checkout --` (com o commit já feito antes), suíte de
+volta ao verde. ⚠️ A primeira tentativa do 3º mutante **não aplicou** (regex com
+`\n` contra arquivo em CRLF) e o guardião devolveu VERDE — que se lê como
+"guardião resistiu". Só a prova de aplicação separou uma coisa da outra; refeito
+por manipulação de linhas.
+
+### Vizinhos, todos verdes (rodados de verdade, com contagem)
+
+`test-versao-b-entrada-1-dolar` 36 · `test-sistema-de-compra` 27 ·
+`test-funil-volta-1-dolar` · `test-continue-now` · `test-placar-trial-1-dolar`.
+`npx tsc --noEmit --incremental false` verde com a junção de `node_modules`.
+
+### Sonda
+
+Home `200` com controle `404` na mesma medição (`/api/rota-que-nao-existe-sonda`).
+`/api/health` não existe nesta casa — devolve 404 e **não prova nada**.
+**A folha vive em rota autenticada**: não dá para provar o bundle dela de fora.
+A prova real é o evento `card_entry_door_shown` de uma pessoa externa — é o que
+a r3 vai medir, com corte por `metadata ? 'version'`, nunca por relógio.
+
+### Ficou para a r3
+
+Medir os eventos `door_v2`; conferir a folha no celular; e uma pergunta que a r1
+deixou aberta: `topup_unavailable_note_shown` aparece 5× no mesmo instante do
+bloqueio — na folha ele não existe, mas continua no caminho de quem cai no
+UpgradeModal.
