@@ -735,6 +735,10 @@ async function recordPaymentSuccess(
       plan_fit_selected_tier_matches: session.metadata?.plan_fit_selected_tier_matches ?? null,
       plan_fit_video_id: session.metadata?.plan_fit_video_id ?? null,
       intro: session.metadata?.intro === '1',
+      // KINEO-PLACAR-TRIAL-2026-09-08 — o $1 e dinheiro, mas nao e assinatura: quem le
+      // o placar precisa separar "entrou no trial" de "pagou o mes".
+      card_trial: session.metadata?.card_trial === '1',
+      trial_days: session.metadata?.trial_days ?? null,
       amount_total: session.amount_total ?? 0,
       currency: session.currency ?? 'usd',
     },
@@ -1926,7 +1930,7 @@ export async function POST(req: NextRequest) {
 
         const { data: renewalProfile, error: renewalProfileError } = await supabase
           .from('profiles')
-          .select('id, stripe_customer_id, stripe_subscription_id')
+          .select('id, stripe_customer_id, stripe_subscription_id, plan')
           .eq('id', renewalUserId)
           .maybeSingle()
         if (renewalProfileError || !renewalProfile?.id) {
@@ -1983,6 +1987,27 @@ export async function POST(req: NextRequest) {
           entitlementPending = false
           console.log(`[stripe webhook] renewal: ${renewalTier} (${renewalCredits}, cin=${renewalCinematicTokens}) → user ${renewalUserId}`)
         }
+        // KINEO-PLACAR-TRIAL-2026-09-08 — a fatura paga (renovacao OU a primeira
+        // cobranca do dia 8 depois do trial de $1) nunca virava evento: o placar so
+        // via payment_success da sessao de checkout. Agora existe um evento por
+        // fatura, com trial_conversion quando o plano anterior era *_trial.
+        const previousPlanNormalized = String(renewalProfile.plan ?? '').toLowerCase()
+        await writeServerEvent({
+          name: 'subscription_invoice_paid',
+          userId: renewalUserId,
+          metadata: {
+            source: 'stripe_webhook',
+            billing_reason: billingReason ?? null,
+            stripe_invoice_id: invoice.id ?? null,
+            stripe_subscription_id: subscriptionId,
+            tier: renewalTier,
+            previous_plan: previousPlanNormalized || null,
+            trial_conversion: previousPlanNormalized.endsWith('_trial'),
+            amount_paid: invoice.amount_paid ?? 0,
+            currency: invoice.currency ?? 'usd',
+            credits_granted: renewalCredits,
+          },
+        })
 
         // KINEO-REVERSE-TRIAL-P2-2026-08-07 — cobre pagamento que só chega como
         // invoice (ex.: primeira cobrança do dia 4 pós-trial do Stripe, ou sub

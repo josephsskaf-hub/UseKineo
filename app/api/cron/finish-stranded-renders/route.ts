@@ -361,7 +361,8 @@ const ATTEMPT_ERROR_EVENTS = ['generation_stage_error', 'video_generation_failed
  *  `attempt_lost_rescue_sent` com `sent:false, would_send:true` — dá para
  *  contar quem receberia, por nome, antes de qualquer carta sair.
  *  Para ligar: trocar esta palavra por `true`. É a única mudança necessária. */
-const ATTEMPT_LOST_SEND_ENABLED = false
+// KINEO-2026-09-08 — ligada pelo fundador ("aprovado"): a carta de socorro sai de verdade.
+const ATTEMPT_LOST_SEND_ENABLED = true
 // 20 min de piso: mais que o dobro do p90 até o claim (60s), com folga para
 // qualquer lentidão do fornecedor. Teto de 24h: depois disso o aviso deixa de
 // ser socorro e vira spam.

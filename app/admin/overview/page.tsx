@@ -24,6 +24,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { isInternalEmail, INTERNAL_ACCOUNTS_LABEL } from '@/lib/internalAccounts'
 import { PLANS } from '@/lib/pricing'
+import { stripeMrrUsd } from '@/app/api/admin/_shared/mrr'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -100,6 +101,11 @@ type Metrics = {
   payingTotal: number
   payingByPlan: { starter: number; creator: number; studio: number }
   mrrUsd: number
+  // KINEO-PLACAR-TRIAL-2026-09-08 — trial de $1 NAO e pagante nem MRR ate o dia 8.
+  trialsActive: number
+  trialPotentialMrrUsd: number
+  mrrStripeUsd: number | null
+  mrrStripeCounted: number
   arpuUsd: number | null
   oneTimePurchases: number
   // growth
@@ -149,7 +155,7 @@ async function loadMetrics(): Promise<Metrics | null> {
   // A cura é a mesma da casa: fetchAllRows pagina de 1.000 em 1.000, com
   // ORDER BY id estável (consertado em 28/08 no próprio helper).
   const [profilesR, videosR, debitsR, abandR, clicksR, eventsR] = await Promise.all([
-    fetchAllRows<ProfileRow>(admin, 'profiles', 'id, email, plan, created_at, utm_source'),
+    fetchAllRows<ProfileRow>(admin, 'profiles', 'id, email, plan, created_at, utm_source, stripe_subscription_id'),
     fetchAllRows<VideoRow>(admin, 'videos', 'user_id, created_at, status, credits_used'),
     fetchAllRows<{ user_id: string | null; refunded_at: string | null }>(admin, 'credit_debits', 'user_id, refunded_at'),
     fetchAllRows<{ user_id: string | null }>(admin, 'checkout_abandoned', 'user_id'),
@@ -172,7 +178,7 @@ async function loadMetrics(): Promise<Metrics | null> {
   const clicksQ = { data: clicksR }
   const eventsQ = { data: eventsR }
 
-  type ProfileRow = { id: string; email: string | null; plan: string | null; created_at: string | null; utm_source: string | null }
+  type ProfileRow = { id: string; email: string | null; plan: string | null; created_at: string | null; stripe_subscription_id?: string | null; utm_source: string | null }
   type VideoRow = { user_id: string | null; created_at: string | null; status: string | null; credits_used: number | null }
 
   const profiles = (profilesQ.data ?? []) as ProfileRow[]
@@ -194,9 +200,21 @@ async function loadMetrics(): Promise<Metrics | null> {
   // ── revenue ────────────────────────────────────────────────────────────────
   const payingByPlan = { starter: 0, creator: 0, studio: 0 }
   let mrrUsd = 0
+  let trialsActive = 0
+  let trialPotentialMrrUsd = 0
+  const payingSubscriptionIds: string[] = []
   for (const p of external) {
     const plan = (p.plan ?? 'free').toLowerCase()
     if (!PAID_PLANS.has(plan)) continue
+    if (plan.endsWith('_trial')) {
+      // KINEO-PLACAR-TRIAL-2026-09-08 — quem pagou $1 esta em trial: conta como
+      // trial, com o MRR que VIRA no dia 8, nunca como pagante de hoje.
+      trialsActive += 1
+      trialPotentialMrrUsd += PLAN_PRICE_USD[plan] ?? 0
+      continue
+    }
+    const sid = (p as { stripe_subscription_id?: string | null }).stripe_subscription_id
+    if (typeof sid === 'string' && sid.startsWith('sub_')) payingSubscriptionIds.push(sid)
     const key = plan.replace('_trial', '')
     if (key === 'starter') payingByPlan.starter += 1
     else if (key === 'basic') payingByPlan.creator += 1
@@ -204,7 +222,13 @@ async function loadMetrics(): Promise<Metrics | null> {
     mrrUsd += PLAN_PRICE_USD[plan] ?? 0
   }
   const payingTotal = payingByPlan.starter + payingByPlan.creator + payingByPlan.studio
-  const arpuUsd = payingTotal > 0 ? mrrUsd / payingTotal : null
+  // KINEO-PLACAR-TRIAL-2026-09-08 — a tabela usa o preco NOVO ($9/$19/$29); os 12
+  // pagantes antigos seguem no preco antigo na Stripe. O MRR real vem da Stripe;
+  // a tabela fica como fallback e como "MRR se todos estivessem no preco novo".
+  const stripeMrr = await stripeMrrUsd(payingSubscriptionIds)
+  const mrrStripeUsd = stripeMrr ? Math.round(stripeMrr.mrr * 100) / 100 : null
+  const mrrStripeCounted = stripeMrr?.counted ?? 0
+  const arpuUsd = payingTotal > 0 ? (mrrStripeUsd ?? mrrUsd) / payingTotal : null
 
   const eventRows = (eventsQ.data ?? []) as Array<{ name: string; user_id: string | null }>
   const oneTimePurchases = eventRows.filter(
@@ -317,6 +341,10 @@ async function loadMetrics(): Promise<Metrics | null> {
     payingTotal,
     payingByPlan,
     mrrUsd: Math.round(mrrUsd * 100) / 100,
+    trialsActive,
+    trialPotentialMrrUsd: Math.round(trialPotentialMrrUsd * 100) / 100,
+    mrrStripeUsd,
+    mrrStripeCounted,
     arpuUsd,
     oneTimePurchases,
     signupsToday,
@@ -488,7 +516,17 @@ export default async function AdminOverviewPage() {
         {/* 💰 Revenue */}
         <Section emoji="💰" title="Revenue">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <Kpi label="MRR" value={fmtMoney(m.mrrUsd)} sub={`${m.payingTotal} active external subs`} accent="245,245,247" />
+            <Kpi
+              label="MRR"
+              value={fmtMoney(m.mrrStripeUsd ?? m.mrrUsd)}
+              sub={m.mrrStripeUsd != null ? `Stripe · ${m.mrrStripeCounted} subs cobradas · tabela ${fmtMoney(m.mrrUsd)} no preço novo` : `${m.payingTotal} active external subs (tabela)`}
+              accent="245,245,247"
+            />
+            <Kpi
+              label="Trials $1"
+              value={String(m.trialsActive)}
+              sub={`viram ${fmtMoney(m.trialPotentialMrrUsd)}/mês no dia 8 · não contam como pagante`}
+            />
             <Kpi
               label="Paying by plan"
               value={String(m.payingTotal)}

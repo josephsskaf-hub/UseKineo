@@ -81,8 +81,8 @@ check(
 
 // ── 2. O ENVIO NASCE DESLIGADO, E O DESLIGAMENTO É DE VERDADE ────────────────
 check(
-  '2.1 o interruptor existe e esta em false',
-  /const ATTEMPT_LOST_SEND_ENABLED\s*=\s*false/.test(cron),
+  '2.1 o interruptor existe e esta em true (fundador ligou em 08/09)',
+  /const ATTEMPT_LOST_SEND_ENABLED\s*=\s*true/.test(cron),
 )
 check(
   '2.2 o sendEmail da fase 5 esta CONDICIONADO ao interruptor',

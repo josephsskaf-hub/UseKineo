@@ -235,8 +235,11 @@ export async function GET() {
 
     let payingByPlan: Record<string, number> = {}
     let mrrUsd = 0
+    let trialsActive = 0
+    let trialPotentialMrrUsd = 0
     for (const [, plan] of planById) {
       if (PAID_PLANS.has(plan)) {
+        if (plan.endsWith('_trial')) { trialsActive += 1; trialPotentialMrrUsd += PLAN_PRICE_USD[plan] ?? 0; continue }
         const key = plan.replace('_trial', '')
         payingByPlan[key] = (payingByPlan[key] ?? 0) + 1
         mrrUsd += PLAN_PRICE_USD[plan] ?? 0
@@ -346,6 +349,8 @@ export async function GET() {
         logins24h,
         payingTotal,
         payingByPlan,
+        trialsActive,
+        trialPotentialMrrUsd,
         mrrUsd: Math.round(mrrUsd * 100) / 100,
         videosTotal,
         videos7d,
