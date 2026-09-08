@@ -1,5 +1,11 @@
 # Pista 3 — handoff vigente da Versão B
 
+**ATUALIZAÇÃO / EVIDÊNCIA DE PRODUÇÃO — 08/09/2026, 15:37 UTC:** o pacote abaixo foi recebido pelo Claude e integrado em `7a7b259c539f3a11614f378ff1b70ef33ae8a5f8`, publicado no deploy `dpl_5CSpf5cue1Z5pcivgPqJGR8rxcSt`, READY em `15:32:56.985 UTC`, alias `www.usekineo.com` sem erro. A main/alias depois avançou a `23a6646d` documental. O clone vivo é `C:/kineo`; a pista agora trabalha em `C:/kineo-wt/p3-novo` com git-common-dir confirmado `C:/kineo/.git`. Não reaplicar o pacote nem usar a fila do OneDrive. Canal e publicação seguem o arquivo PEDIDOS e os scripts oficiais do clone vivo, conforme esclarecimento direto do fundador. O pedido de localizar sessão do Claude foi resolvido.
+
+**ESCOPO TEMPORAL / INSTRUÇÃO DIRETA DO FUNDADOR — 08/09:** os registros abaixo de encerramento às 12h10 e publicação pendente pertencem à janela anterior. O fundador autorizou outra sprint de 12h23 a 22h BRT de hoje, documentada em `docs/SPRINT-FLUXO-ASSINATURAS-ATE-22H-2026-09-08.md`; a rotina foi corrigida para o clone vivo e continua única. Ver aquele diário para baseline, provas e limites atuais. A confirmação independente cobriu deploy, alias, HTTP 200 de sonda /go com token preservado e chunk da variante; não validou pessoa elegível, History autenticado ou pagamento. O corte de exposição possível é o READY de `15:32:56.985 UTC`, não `16:05 UTC` citado no PEDIDOS antigo.
+
+## Registro histórico da preparação e contratos preservados
+
 **DECISÃO DO FUNDADOR — 08/09/2026, retransmitida pelo Board às 11:48 BRT:** alinhar o trabalho pendente à Versão B e aos novos clientes, mantendo o mesmo executor, escopo, proibição de repetir o enfileiramento e encerramento de 12:10 BRT. Este registro orienta a publicação pendente; os diários anteriores permanecem históricos.
 
 ## Decisão executável para a entrega
