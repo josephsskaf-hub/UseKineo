@@ -786,3 +786,22 @@ medidor: ele agora pergunta ao servidor, com a mesma conta que o servidor faz,
 e registra quem apertou. Não bloqueei nada — cheguei a desenhar o bloqueio e
 os dados mostraram que ele teria matado dez filmes de verdade. Fica um
 guardião que impede a próxima sessão de ligar esse bloqueio sem ler isto aqui.
+
+**#6b — 04:33 BRT — o vermelho que a minha própria mudança criou** (`77230465`,
+**EM PRODUÇÃO**). Rodei os 40 guardiões que leem o `GenerateClient` e 14 deram
+vermelho. Em vez de herdar o número, rodei os 14 contra a base pristina
+`2087c785` numa worktree separada: **13 são herdados, 1 era meu.**
+`test-duracao-que-nao-existe-2026-08-31` cravava a **linha de import inteira**,
+palavra por palavra — somei `autofitDown` a ela e a trava caiu, sem que nada da
+condição dela tivesse mudado. Reancorado pela CONDIÇÃO (as duas peças vêm de
+`narrationFit`, em qualquer ordem, com qualquer vizinho na lista) e falsificado
+por 2 mutantes. Nenhum arquivo de produto neste commit.
+
+⚠️ **Limite da sonda, dito na cara.** `main` = `77230465`, fila = 0, home 200
+com controle 404 na mesma medição. Mas o que este commit muda são **campos de
+um evento emitido no navegador de quem está logado** — não existe sonda externa
+que prove que o campo novo viaja. A prova real vem sozinha: o primeiro
+`script_preflight_overridden` que aparecer com `refusal_predicted` no
+`metadata` é o carimbo do deploy (memória: campo novo é o carimbo, não o
+relógio). Enquanto nenhum aparecer, o correto é dizer **desconhecido**, não
+"funcionando".
