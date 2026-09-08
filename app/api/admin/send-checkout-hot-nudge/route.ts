@@ -102,6 +102,31 @@ const OUTRAS_CAMPANHAS = [
 ]
 
 /** ⛔ NUNCA escrever para estes (limite explícito do ciclo de 06/09). */
+/**
+ * A regra "ninguém entra em duas campanhas" TEM PRAZO — desde va-r15 (08/09).
+ *
+ * ERRADO ATÉ AQUI: `OUTRAS_CAMPANHAS` era consultada sem nenhum limite de
+ * tempo, então uma `season_letter` de agosto calava PARA SEMPRE a carta que
+ * fala em 30 minutos. Medido no banco em 08/09: das 99 pessoas com nome que
+ * bateram no checkout em 30 dias, **74 (75%) estavam excluídas para sempre** —
+ * sobravam 25. A carta genérica e antiga vencia a carta rara e quente, que é
+ * exatamente a doença da memória `supressao-sem-precedencia-cala-a-carta-boa`.
+ *
+ * A regra continua valendo onde ela protege: quem recebeu OUTRA campanha nos
+ * últimos 7 dias continua fora, porque aí a caixa de entrada dela é nossa de
+ * verdade. O que morre é a exclusão eterna.
+ *
+ * Isto NÃO afrouxa nenhuma das outras travas: a supressão de 24h da casa, o
+ * `SENT_EVENT` 1×-para-sempre, o opt-out, os bloqueados e o filtro de pagante
+ * seguem intactos e sem prazo.
+ */
+export const OUTRAS_CAMPANHAS_JANELA_DIAS = 7
+
+/** Pura e exportada: o guardião prova a fronteira, não a existência da constante. */
+export function corteOutrasCampanhas(agoraMs: number, dias: number = OUTRAS_CAMPANHAS_JANELA_DIAS): string {
+  return new Date(agoraMs - dias * 24 * 60 * 60 * 1000).toISOString()
+}
+
 const BLOQUEADOS = ['den.higgins', 'noelrss21', 'emiliomontinari', 'akajitin']
 
 const DISPOSABLE = ['mailinator', 'yopmail', 'tempmail', 'hutdot.com', 'beiwoh.com', 'playboot.com', 'skyprofy.com', 'gouziben.com', 'joystill.com', 'lanvos.com', 'minitts.net', 'dysonc.com', 'guerrillamail', 'sharklasers', 'getnada', 'maildrop', 'trashmail', '10minutemail', 'dispostable', 'fakeinbox', 'temp-mail']
@@ -345,6 +370,7 @@ export async function GET(req: NextRequest) {
     const pagou = new Set(dedupeTripwire(pagouRows, 'checkout-hot-nudge payment_success').map((r) => r.user_id as string))
     const { data: outrasRows } = await admin
       .from('events').select('user_id').in('name', OUTRAS_CAMPANHAS).in('user_id', baseIds)
+      .gte('created_at', corteOutrasCampanhas(agora))
     const outras = new Set(dedupeTripwire(outrasRows, 'checkout-hot-nudge OUTRAS_CAMPANHAS').map((r) => r.user_id as string))
     const { data: jaRows } = await admin
       .from('events').select('user_id').eq('name', SENT_EVENT).in('user_id', baseIds)
@@ -410,8 +436,9 @@ export async function GET(req: NextRequest) {
     if (!confirm) {
       return NextResponse.json({
         mode: 'DRY_RUN',
-        coorte: `apertou comprar há ${JANELA_MIN_MINUTOS}-${JANELA_MAX_MINUTOS} min · sessão ainda ABERTA na Stripe · nunca pagou · nenhuma outra campanha · opt-in · e-mail real`,
+        coorte: `apertou comprar há ${JANELA_MIN_MINUTOS}-${JANELA_MAX_MINUTOS} min · sessão ainda ABERTA na Stripe · nunca pagou · nenhuma outra campanha nos últimos ${OUTRAS_CAMPANHAS_JANELA_DIAS} dias · opt-in · e-mail real`,
         janela_minutos: [JANELA_MIN_MINUTOS, JANELA_MAX_MINUTOS],
+        outras_campanhas_janela_dias: OUTRAS_CAMPANHAS_JANELA_DIAS,
         candidatos_apos_filtros: naoSuprimidos.length,
         no_proximo_lote: alvo.length,
         com_pagina_viva: comPagina.length,
