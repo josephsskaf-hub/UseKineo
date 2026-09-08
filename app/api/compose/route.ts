@@ -179,6 +179,7 @@ const DURATION_TOLERANCE_SECONDS = 3
 // KINEO-PREAQUECER-VOZ-2026-08-28 — a salt migrou para lib/compose (fonte
 // única, compartilhada com /api/prewarm-voiceover). Ver comentário lá.
 import { VOICEOVER_ENGINE_VERSION } from '@/lib/compose'
+import { CARD_ENTRY_CHECKOUT_PATH, CARD_ENTRY_ONLY } from '@/lib/entryPolicy'
 
 // FREE_FAST_PREVIEW_LIMIT e FREE_FAST_WINDOW_MS moraram aqui até 06/08/2026.
 // Agora vêm de lib/freeFastQuota.ts, junto da contagem que os usa — o cron
@@ -1382,7 +1383,9 @@ export async function POST(req: NextRequest) {
             free_quota_reset_at: liberaEm ? new Date(liberaEm).toISOString() : null,
             upsell: 'credits',
             outOfCredits: true,
-            upgrade: '/pricing',
+            // KINEO-SISTEMA-DE-COMPRA-2026-09-08 — versão B: a recusa É a porta de $1.
+            cardEntry: CARD_ENTRY_ONLY,
+            upgrade: CARD_ENTRY_ONLY ? CARD_ENTRY_CHECKOUT_PATH : '/pricing',
           },
           { status: 402 },
         )

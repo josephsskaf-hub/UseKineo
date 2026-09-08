@@ -30,11 +30,18 @@ export const CARD_ENTRY_BANNER_VERSION = 'card_entry_banner_v1' as const
 export default function CardEntryBanner({
   status,
   hasPaid,
+  credits = null,
 }: {
   status: string | null
   hasPaid: boolean
+  /** saldo lido no servidor; null = desconhecido (não decide sozinho) */
+  credits?: number | null
 }) {
-  const visible = CARD_ENTRY_ONLY && status === CARD_ENTRY_TRIAL_STATUS && !hasPaid
+  // KINEO-SISTEMA-DE-COMPRA-2026-09-08 — conta que nasceu sem o carimbo (porta de
+  // cadastro que não passa pelo callback) mas está sem crédito e nunca pagou
+  // também é da porta. Falha fechada: sem status e sem saldo lido, não mostra.
+  const semCarimboMasSemCredito = status === null && credits === 0
+  const visible = CARD_ENTRY_ONLY && !hasPaid && (status === CARD_ENTRY_TRIAL_STATUS || semCarimboMasSemCredito)
   const [region, setRegion] = useState<PriceRegion>('standard')
   const checkout = useCheckoutLaunch('card_entry_banner')
   const impressionSentRef = useRef(false)

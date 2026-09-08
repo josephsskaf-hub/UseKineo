@@ -169,6 +169,7 @@ export default async function DashboardLayout({
         <CardEntryBanner
           status={(profile as { trial_status?: string | null } | null)?.trial_status ?? null}
           hasPaid={(profile as { has_paid?: boolean | null } | null)?.has_paid === true}
+          credits={typeof (profile as { video_credits?: number | null } | null)?.video_credits === 'number' ? (profile as { video_credits?: number | null }).video_credits ?? null : null}
         />
       )}
       <Suspense fallback={null}>

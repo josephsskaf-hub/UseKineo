@@ -319,6 +319,7 @@ import VideoRatingAsk from '@/components/VideoRatingAsk'
 // KINEO-OFFER290-2026-07-07 — first-purchase $2.90 urgency banner. Self-gated on
 // OFFER_290_ENABLED (renders null while the flag is off — build-only for now).
 import Offer290Banner from './Offer290Banner'
+import { CARD_ENTRY_ONLY } from '@/lib/entryPolicy'
 // KINEO-LOWCREDITS-UPSELL import removed 09/07 — banner retired (see note at
 // the old render site; 0 credits is the normal free state now).
 
@@ -2924,6 +2925,8 @@ export default function GenerateClient({
               localStorage.removeItem(activeRenderStorageKey(currentUserIdRef.current))
               resumedRenderRef.current = false
               setError(typeof data?.error === 'string' ? data.error : "You've hit today's free limit.")
+              // KINEO-SISTEMA-DE-COMPRA-2026-09-08 — recusa por crédito abre o caixa ($1).
+              if (data?.outOfCredits === true) openOutOfCreditsModal('credits')
               // KINEO-REFUSAL-TELEMETRY-2026-07-30 — este ramo (retomada de render)
               // era o ÚNICO 402 do arquivo que não abria o modal de upgrade e não
               // registrava nada. O ramo de despacho principal (~L2728) já faz as
@@ -10327,6 +10330,12 @@ export default function GenerateClient({
     trialActive !== true
 
   function outOfCredits(): boolean {
+    // KINEO-SISTEMA-DE-COMPRA-2026-09-08 — versão B: sem crédito e sem nunca ter
+    // pago, NÃO existe filme grátis (o servidor recusa com free_fast_limit).
+    // Sem esta linha o clique ia ao /api/compose e voltava como MENSAGEM; com
+    // ela abre o modal com a porta de $1 — o caixa — antes de qualquer request.
+    // `credits === null` = ainda não lido: não decide (regra antiga preservada).
+    if (CARD_ENTRY_ONLY && !hasPaid && credits !== null && credits <= 0) return true
     // KINEO-ZERO-SIGNUP-2026-07-09 — Fast renders are FREE (InVideo model):
     // new signups get 0 credits but can always generate/watch Fast videos.
     // Monetization happens at the clean, watermark-free export moment, never here.
@@ -12895,7 +12904,7 @@ export default function GenerateClient({
           checkoutError={upgradeModalCheckout.error}
           // KINEO-PRIMEIRO-FILME-GRATIS-2026-09-04 — a saida honesta, quando ela
           // existe de verdade. Ver `firstFilmFreeAvailable`.
-          firstFilmFree={firstFilmFreeAvailable}
+          firstFilmFree={!CARD_ENTRY_ONLY && firstFilmFreeAvailable}
           onFirstFilmFree={() => {
             // NAO gera nada: seleciona o motor gratuito e devolve a tela a ela.
             // O clique e da pessoa, exatamente como o card do Kineo 1 no seletor.
