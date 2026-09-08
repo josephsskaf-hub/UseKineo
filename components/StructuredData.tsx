@@ -278,7 +278,7 @@ const faqSchema = {
       name: 'How much does Kineo cost?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: `Kineo has three monthly plans: Starter at $${usd(TIER_PRICES.starter.usd)} for ${TIER_CREDITS.starter} credits, Creator at $${usd(TIER_PRICES.basic.usd)} for ${TIER_CREDITS.basic} credits and Studio at $${usd(TIER_PRICES.pro.usd)} for ${TIER_CREDITS.pro} credits. Credits are spent per video and how many a video costs depends on the engine you pick, so a Fast render and a cinematic film come out of the same balance at very different rates. ${CHECKOUT_CURRENCY_DISCLOSURE} New accounts get free credits to make a first video before paying anything.`,
+        text: `Kineo has three monthly plans: Starter at $${usd(TIER_PRICES.starter.usd)} for ${TIER_CREDITS.starter} credits, Creator at $${usd(TIER_PRICES.basic.usd)} for ${TIER_CREDITS.basic} credits and Studio at $${usd(TIER_PRICES.pro.usd)} for ${TIER_CREDITS.pro} credits. Credits are spent per video and how many a video costs depends on the engine you pick, so a Fast render and a cinematic film come out of the same balance at very different rates. ${CHECKOUT_CURRENCY_DISCLOSURE} Every new account starts with the $1 trial: 7 days of Creator with 80 credits.`,
       },
     },
     {

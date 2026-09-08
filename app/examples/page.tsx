@@ -15,6 +15,7 @@ import { createClient } from '@/lib/supabase/server'
 // de creditCostFor (a função que o caixa usa, #296) — nunca escrito à mão.
 import { creditCostFor, type Quality } from '@/lib/credits/engineCost'
 import ExamplesBusinessProofBridge from './ExamplesBusinessProofBridge'
+import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
 
 const BADGE_QUALITY: Record<string, Quality> = {
   'KINEO 1': 'fast', 'SEEDANCE 1.5': 'cinematic_ai', 'KLING 2.5': 'cinematic_kling',
@@ -76,7 +77,7 @@ export default async function ExamplesPage() {
                 placement="header"
                 className="rounded-full bg-white px-4 py-2 text-black transition hover:bg-white"
               >
-                Start free
+                {CARD_ENTRY_COPY.ctaShort}
               </OrganicCtaLink>
             )}
           </nav>

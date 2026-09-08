@@ -2142,7 +2142,7 @@ usekineo.com`
   const html = wrap(`
   <p style="margin:0 0 14px;">Hey,</p>
   <p style="margin:0 0 14px;">${madeLine}. So <strong>we put ${EXTENSION_DAYS} more days back on it, starting now.</strong></p>
-  <p style="margin:0 0 14px;">${creditLine}. Same engine, same clean exports, no card needed.</p>
+  <p style="margin:0 0 14px;">${creditLine}. Same engine, same clean exports.</p>
   ${cta(url, 'Keep creating')}
   <p style="margin:0 0 20px;font-size:13px;color:#64748b;">This is a one-time extension &mdash; after it, Creator goes back to being a paid plan.</p>
   ${sig}`)

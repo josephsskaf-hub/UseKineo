@@ -132,13 +132,14 @@ export const ENGINES: Record<string, Engine> = {
     tier: 'Starter',
     h1: 'Seedance 1.5 AI video generator — every scene generated, not stock',
     intro:
-      `Seedance 1.5 Pro (ByteDance) is the workhorse generative engine inside Kineo: instead of matching stock footage to your script, it generates every scene from the script itself. You still type one idea — Kineo writes the beats, prompts Seedance scene by scene, voices it, captions it and returns a finished vertical Short. ${SEEDANCE_COST} credits per 60-second video — and the free trial grants exactly enough for one.`,
+      `Seedance 1.5 Pro (ByteDance) is the workhorse generative engine inside Kineo: instead of matching stock footage to your script, it generates every scene from the script itself. You still type one idea — Kineo writes the beats, prompts Seedance scene by scene, voices it, captions it and returns a finished vertical Short. ${SEEDANCE_COST} credits per 60-second video — and the $1 trial (80 credits) covers three of them.`,
     bestFor: 'Anything that does not exist on a stock site: an abandoned island, a burning crater, a 1922 expedition. Mystery, history and “weird facts” channels live here.',
     tradeoff: 'Generated scenes cost more than stock and take longer than Kineo 1. If your topic is well covered by real footage, Kineo 1 is faster and free.',
     faq: [
       {
         q: 'Can I use Seedance 1.5 without paying?',
-        a: `Seedance costs ${SEEDANCE_COST} credits per 60-second video. ${ft(OFFER, 'A new account starts with free watermarked Fast videos; Seedance runs on a paid plan starting at ' + STARTER_MONTH + '.', `Every new account gets ${TRIAL_GRANT_CREDITS_COPY} free credits with no card, and Seedance is included — so your first ${trialFilmsForEngine(SEEDANCE_COST)} Seedance ${trialFilmsForEngine(SEEDANCE_COST) === 1 ? 'film comes' : 'films come'} out of the free credits, watermarked. A plan unlocks the clean download.`)}`,
+        a: `Seedance costs ${SEEDANCE_COST} credits per 60-second video. Every new account starts with the 
+         trial (7 days of Creator, 80 credits) and Seedance is included — so your first Seedance films come out of those 80 credits. After the trial, Starter (${STARTER_MONTH}) and Creator keep Seedance unlocked.`,
       },
       {
         q: 'What model is behind Kineo’s Seedance engine?',
@@ -146,7 +147,7 @@ export const ENGINES: Record<string, Engine> = {
       },
       {
         q: 'Seedance vs Kling vs Veo — which should I pick?',
-        a: `Seedance is the lowest-cost generated video (${SEEDANCE_COST} credits per 60 seconds) and handles most faceless Shorts; Kling 2.5 at ${KLING_COST} credits is the house best-value pick for camera motion. Kling 2.5 is stronger on camera movement and physical motion. Veo 3.1 is Google’s flagship and the most expensive. Kling 2.5, Veo 3.1 and Kling 3 are unlocked on every new account — the free credits just have to cover the engine cost.`,
+        a: `Seedance is the lowest-cost generated video (${SEEDANCE_COST} credits per 60 seconds) and handles most faceless Shorts; Kling 2.5 at ${KLING_COST} credits is the house best-value pick for camera motion. Kling 2.5 is stronger on camera movement and physical motion. Veo 3.1 is Google’s flagship and the most expensive. Kling 2.5, Veo 3.1 and Kling 3 are Studio-plan engines ($29/month).`,
       },
     ],
   },
@@ -621,7 +622,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
         <section style={{ marginTop: 48, textAlign: 'center', ...CARD, borderRadius: 18, padding: '28px 20px' }}>
           <h2 style={{ fontSize: '1.4rem', fontWeight: 900, margin: 0 }}>Put your own topic through {e.name}</h2>
           <p style={{ color: '#86868b', margin: '8px 0 18px', fontSize: '0.95rem' }}>
-            One idea in, a ready-to-post vertical Short out. No editing timeline, no card to start.
+            One idea in, a ready-to-post vertical Short out. No editing timeline. $1 to start.
           </p>
           <OrganicCtaLink
             href={primaryCtaHref}

@@ -80,7 +80,7 @@ import {
   SCRIPT_MAX_CHARS,
   TOPIC_MAX_CHARS,
 } from './gptHandoff'
-import { CARD_ENTRY_COPY, CARD_ENTRY_ONLY } from './entryPolicy'
+import { CARD_ENTRY_COPY, CARD_ENTRY_ONLY, CARD_ENTRY_TRIAL_CREDITS } from './entryPolicy'
 
 export { AFTER_THE_FILM_FACT }
 export type { AfterTheFilmFact }
@@ -541,10 +541,17 @@ export const FREE_TIER = {
  * recurring free allowance. `freeTier` remains for backwards compatibility;
  * new answer-engine consumers should use these unambiguous records.
  */
+// KINEO-VERSAO-B-2026-09-08 — o fato do trial descreve a porta de $1: 80 créditos,
+// cartão obrigatório, só Kineo 1 + Seedance (os outros motores são do Studio).
 export const TRIAL_ACCESS = buildTrialAccessFact({
   enabled: FREE_OFFER.reverseTrial,
-  credits: TRIAL_CREDIT_CAP,
-  engines: ENGINE_FACTS,
+  credits: CARD_ENTRY_ONLY ? CARD_ENTRY_TRIAL_CREDITS : TRIAL_CREDIT_CAP,
+  engines: CARD_ENTRY_ONLY ? ENGINE_FACTS.filter((e) => e.name === 'Kineo 1' || e.name === 'Seedance 1.5') : ENGINE_FACTS,
+  noCardRequired: !CARD_ENTRY_ONLY,
+  everyEngineUnlocked: !CARD_ENTRY_ONLY,
+  entryFeeUsdMinor: CARD_ENTRY_ONLY ? CARD_TRIAL_ENTRY_FEE_MINOR : null,
+  trialDays: CARD_ENTRY_ONLY ? CARD_TRIAL_DAYS : null,
+  thenMonthlyUsdMinor: CARD_ENTRY_ONLY ? TIER_PRICES.basic.usd : null,
 })
 
 export const RECURRING_FREE_ACCESS = buildRecurringFreeAccessFact({

@@ -6,8 +6,14 @@ export interface TrialEngineCoverage {
 
 export interface TrialAccessFact {
   credits: number
-  noCardRequired: true
-  everyEngineUnlocked: true
+  // KINEO-VERSAO-B-2026-09-08 — deixaram de ser literais `true`: sob a porta única
+  // o trial exige cartão e libera só Kineo 1 + Seedance.
+  noCardRequired: boolean
+  everyEngineUnlocked: boolean
+  /** Taxa de entrada em centavos (trial de $1); null = trial grátis. */
+  entryFeeUsdMinor: number | null
+  trialDays: number | null
+  thenMonthlyUsdMinor: number | null
   watermark: true
   cleanDownloadRequiresPaidPlan: true
   engineCoverage: TrialEngineCoverage[]
@@ -32,6 +38,11 @@ export function buildTrialAccessFact(input: {
   enabled: boolean
   credits: number
   engines: readonly EngineInput[]
+  noCardRequired?: boolean
+  everyEngineUnlocked?: boolean
+  entryFeeUsdMinor?: number | null
+  trialDays?: number | null
+  thenMonthlyUsdMinor?: number | null
 }): TrialAccessFact | null {
   if (!input.enabled) return null
   if (!Number.isFinite(input.credits) || input.credits < 0) {
@@ -40,8 +51,11 @@ export function buildTrialAccessFact(input: {
 
   return {
     credits: input.credits,
-    noCardRequired: true,
-    everyEngineUnlocked: true,
+    noCardRequired: input.noCardRequired ?? true,
+    everyEngineUnlocked: input.everyEngineUnlocked ?? true,
+    entryFeeUsdMinor: input.entryFeeUsdMinor ?? null,
+    trialDays: input.trialDays ?? null,
+    thenMonthlyUsdMinor: input.thenMonthlyUsdMinor ?? null,
     watermark: true,
     cleanDownloadRequiresPaidPlan: true,
     engineCoverage: input.engines.map((engine) => {

@@ -137,7 +137,7 @@ export default function ChatgptPastePage() {
           already filled in. Nothing is generated until you press Generate there.
         </p>
         <p style={{ fontSize: 13, color: ACCENT, fontWeight: 700, margin: '12px 0 0' }}>
-          {ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)} · No card ·{' '}
+          {ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)} · $1 to start ·{' '}
           <Link href={PRICING_HREF} style={link}>See plans</Link>
         </p>
 

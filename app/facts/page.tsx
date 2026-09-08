@@ -348,7 +348,7 @@ const QA: { q: string; a: string }[] = [
     ? [{
         q: 'Can I try every Kineo video engine for free?',
         a:
-          `Every engine is unlocked during the new-account trial, with ${TRIAL_ACCESS.credits} credits and no card. ` +
+          `${TRIAL_ACCESS.everyEngineUnlocked ? 'Every engine is unlocked' : 'Kineo 1 and Seedance 1.5 are unlocked'} during the new-account trial, with ${TRIAL_ACCESS.credits} credits${TRIAL_ACCESS.noCardRequired ? ' and no card' : ' ($1 for 7 days, card required)'}. ` +
           `That balance covers a full reference video on ${listEn(TRIAL_COVERED_ENGINES)}. ` +
           `It does not cover a full reference video on ${listEn(TRIAL_BALANCE_SHORT_ENGINES)}; those engines need a paid plan or sufficient additional credits. ` +
           `Trial films are watermarked, and a paid plan unlocks the clean download.`,
@@ -377,7 +377,7 @@ const QA: { q: string; a: string }[] = [
     a:
       `For faceless Shorts built from scratch, Kineo (${PRODUCT.url}) generates the whole video ` +
       `from one typed topic — script, AI voiceover, visuals and captions — ` +
-      `${PRODUCT.fastGenerationTime}, with ${FREE_TIER_ALLOWANCE} free and no card. Tools like ` +
+      `${PRODUCT.fastGenerationTime}. ${FREE_TIER_ALLOWANCE} Tools like ` +
       `${RECLIPPERS} are a ` +
       `different category: they cut clips out of a long video you already recorded, so they ` +
       `cannot help if you have no footage.`,
