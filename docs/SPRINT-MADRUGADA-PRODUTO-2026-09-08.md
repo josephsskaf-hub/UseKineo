@@ -1711,3 +1711,227 @@ deploy não pegou, ou **ninguém estava devido** naquela hora (que é o caso com
 `MAX_PER_RUN` só enche quando há coorte). As duas se separam pelo campo, não
 pela ausência dele — para distinguir, olhe se saiu **qualquer**
 `trial_lifecycle_email_sent` na janela.
+
+---
+
+### #13 — 07:36→08:0X BRT — M2: a régua de ROTEIRO era cobrada de quem colou MATÉRIA-PRIMA
+
+**Onde esta rotação começou.** Das dez ações, M5 ("o primeiro filme dos 77") era
+a única sem rotação. Fui medir o funil dela por pessoa e o degrau seco me
+levou a outro lugar — que é o M2, e estava aberto.
+
+**O funil dos 7 dias, por pessoa** (235 cadastros externos, `videos` só ganha
+linha quando o filme FICA PRONTO — conferido: `status` distinto de `completed`
+= 0 linhas):
+
+| degrau | pessoas |
+|---|---|
+| cadastrou | 235 |
+| **sem nenhum filme** | **80** |
+| desses: chegou ao Studio | 51 |
+| desses: apertou "analyze" | 32 |
+| desses: despachou render | 24 |
+| desses: recebeu filme | **0** |
+
+Dos 80 sem filme, **19 chegaram ao Studio e nunca apertaram nada**. Fui ver o
+que estava na tela dessas 19 e uma linha tinha razão absurda:
+
+    studio_prompt_over_limit_shown ....... 2 pessoas, 364 eventos
+
+**Duas pessoas, 364 eventos, e nenhuma das duas apertou nada.**
+
+**A parede, medida na casa inteira.** `studio_prompt_over_limit_shown`: **444
+eventos, 10 pessoas, 5 dias**. O contador é por comprimento distinto do texto —
+ou seja, **por tecla**. Contei gente e dias antes de acreditar no número
+(memória `evento-por-tecla-infla-denominador`), e a leitura por pessoa é o que
+dói:
+
+| pessoa | teclas | maior texto | modos | fez filme depois? |
+|---|---|---|---|---|
+| mdshahbaz052005 | **275 em 1 minuto** | 11.241 | ai+verbatim | **nunca — 0 filmes** |
+| harrybell8989 | **89 em 21 minutos** | 13.625 | ai+verbatim | **nunca — 0 filmes** |
+| sshivanna28146 | 1 | 10.404 | ai | **nunca — 0 filmes** |
+| outras 7 | 1 a 22 | 5.150 a 20.191 | — | 7 fizeram |
+
+275 comprimentos distintos em sessenta segundos é uma pessoa **segurando o
+backspace**, apagando o próprio texto letra por letra para caber num teto, com
+o botão Generate travado. Ela foi embora sem filme.
+
+**A saída que a casa oferecia era cortar o texto dela.** O `/studio` bloqueia o
+despacho (`if (limit.over) return`) e oferece **um** botão: `trimToFit`, que
+apara o texto no fim. Medido em toda a história: **10 pessoas bateram, 1
+apertou o corte**. Nove recusaram a mutilação — que é a resposta sadia, e é
+exatamente o que a regra do fundador manda (*"nunca amputar o filme"*) e o que
+a memória `remedio-nunca-apertado` já tinha escrito: não se oferece mutilação
+do trabalho da pessoa como único remédio.
+
+---
+
+**O errado, em uma frase.** O teto de 5.000 é uma **régua de roteiro** e estava
+sendo cobrado de um texto que **não é roteiro**.
+
+A razão do número está escrita em `lib/gptHandoff.ts` e é honesta: *"Um 90s cabe
+em ~1.800 caracteres — 5.000 é folga, não aperto."* Isso é **verdade** quando o
+texto **é** o filme (`script_mode='verbatim'`): ali as palavras da pessoa viram
+narração, e 13.000 caracteres não são um Short, são 16 minutos de fala. Só que
+a **mesma** régua era cobrada de quem escolheu *"Let AI structure my text"*
+(`script_mode='ai'`) — e ali o texto é **matéria-prima que este mesmo endpoint
+manda o modelo condensar em 150-265 palavras**. Colar um artigo de 11.000
+caracteres para o modelo resumir não é um roteiro comprido demais: é o uso que
+o modo existe para servir. A mediana do texto barrado no modo `ai` era **11.033
+caracteres**.
+
+**O que eu conferi ANTES de subir o número, porque quase não subi.** O texto
+viaja do `/studio` para o `/generate` **pela querystring** — então o teto podia
+ser da URL, e trocar um beco sem saída conhecido por um 431 desconhecido seria
+pior. Sondei a produção com controle ao lado:
+
+    prompt_len=2.000  -> 307      prompt_len=14.000 -> 307
+    prompt_len=6.000  -> 307      prompt_len=20.000 -> 307
+    prompt_len=10.000 -> 307      prompt_len=30.000 -> 307
+    controle /generate-CONTROLE-404 -> 404   (a sonda discrimina)
+
+Trinta mil caracteres passam. **A URL não é o teto.** Conferi também o custo:
+`gpt-4o-mini`, 128k de contexto, e `max_tokens` ali é orçamento de **saída** —
+não muda. O texto entra duas vezes na mensagem, então 20.000 caracteres ≈ 10k
+tokens de entrada ≈ **US$ 0,0015** por análise.
+
+**O que mudou (SHA `fde757ad`).** O teto passa a ser **do modo**, com fonte
+única em `lib/analyzeLimits.ts`:
+
+* `verbatim` → **5.000, intacto**. A razão original continua valendo e o
+  guardião trava a subida: as palavras são o filme.
+* `ai` → **20.000**. Cobre os dez casos medidos (o maior foi 20.191 — um artigo
+  inteiro vindo do `chatgpt.com`).
+
+As três pontas leem **a mesma função** `analyzePromptMaxChars(scriptMode)`: o
+cobrador (`/api/analyze-idea`), a tela que trava o botão (`/studio`) e a recusa
+antes da rede (`/generate`). A **frase** de recusa passa a receber o teto por
+parâmetro — antes ela citava a constante, então sob o teto novo ela diria "over
+the 5,000 limit" enquanto o servidor cobrava 20.000 (`campo-validado-gravado-
+ecoado-nao-e-honrado`: auditei o construtor final da mensagem, não só a
+validação). A telemetria passa a gravar `script_mode` e o teto cobrado.
+
+⚠️ **O que este commit NÃO faz, de propósito.** Não toca em como o filme é feito
+— é teto de **entrada**, e o pipeline (régua 35/60/90, roteiro, motores, custos)
+está intocado. Não remove a trava do Studio: `if (limit.over) return` continua
+lá e o guardião fica vermelho se alguém a tirar, porque subir o teto não pode
+virar "deixa ir e quebra no servidor". E não mexe em `ANALYZE_PROMPT_MAX_CHARS`
+(segue 5000), para que **nenhum importador existente** — `chatgptQuickstart`,
+`gptHandoff`, `composerUrl` — mude de comportamento junto.
+
+**Prova.** `scripts/test-roteiro-longo-nao-e-erro-2026-09-08.mjs`, **26
+verificações** em estilo `readFileSync`/contagem, todas passando por
+`semComentarios()` (senão a contagem casa com o próprio comentário que explica o
+conserto). **7 mutações, 7 vermelhas**, cada uma provada por `grep` do texto
+inserido antes de eu ler o resultado — nunca por md5, que num checkout CRLF muda
+sozinho:
+
+    verbatim sobe junto (a régua do filme cai) ........ VERMELHO
+    a rota volta a cobrar a constante velha ........... VERMELHO
+    a frase do 400 deixa de citar o teto cobrado ...... VERMELHO
+    o Studio para de barrar o Generate ................ VERMELHO
+    a tela do Studio volta ao teto padrão ............. VERMELHO
+    a frase do /generate mente (cita outro teto) ...... VERMELHO
+    o maxLength da caixa volta a cravar 5.000 ......... VERMELHO
+
+`tsc --noEmit` verde pelo **binário local** (`node node_modules/typescript/bin/
+tsc`), com a junction conferida antes — `npx tsc` devolve exit 0 sem compilar
+nada em worktree sem `node_modules`.
+
+---
+
+**A atribuição, que eu fui conferir para não superestimar — e que saiu mais
+forte do que eu esperava.** Perguntei o óbvio primeiro (memória
+`credito-zero-significa-tres-coisas`): será que essas pessoas simplesmente não
+tinham crédito? Não é isso.
+
+| pessoa | conta criada | bateu na parede | crédito | **cliques em analyze/generate na VIDA INTEIRA** |
+|---|---|---|---|---|
+| mdshahbaz052005 | 02/09 07:19 | 07:20 (**+1 min**) | 25 no dia, hoje 0 (trial venceu sem uso) | **0** |
+| harrybell8989 | 06/09 06:03 | 06:05 (**+2 min**) | **25, intactos** | **0** |
+| sshivanna28146 | 07/09 09:18 | 09:18 (**no mesmo minuto**) | **25, intactos** | **0** |
+
+As três bateram na parede **dentro dos dois primeiros minutos de conta**, e
+nenhuma das três apertou o botão de gerar **uma única vez na história**. A
+primeira coisa que o produto fez com elas foi travar a caixa de texto. Das 293
+coisas que mdshahbaz052005 fez na Kineo inteira, **275 foram apagar o próprio
+texto** contra um contador de caracteres. Duas delas ainda têm os 25 créditos
+parados: a casa deu crédito para gente que ela então não deixou digitar.
+
+⚠️ **Onde eu NÃO vou além do dado:** isto prova que a parede foi o **primeiro**
+degrau delas e que nenhuma passou dele — não prova que elas teriam pago. E o
+tamanho é o que é: **10 pessoas em 5 dias**, ~2 por dia. Não é a maior parede da
+casa; é a mais **injusta**, porque acerta no minuto um e a única saída que
+oferecia era a pessoa mutilar o próprio texto.
+
+---
+
+**⛔ E AQUI EU PAREI — A TRAVA DE QUALIDADE DO FUNDADOR REPROVA ESTA ENTREGA.**
+
+Rodei a suíte inteira contra worktree pristina no meu próprio pai (`c0bc22fe`),
+comparada **por lista** nos dois sentidos: **107 vermelhos em 447 na base · 108
+em 448 no meu**. O denominador +1 é o meu guardião, verde. E o `comm` devolveu
+**exatamente uma** regressão:
+
+    scripts/test-despacho-vazio-2026-09-04.mjs
+      ✗ 8.2 nao toca app/api/analyze-idea/
+
+Não é falso vermelho e não é âncora podre. É a **trava de qualidade que o
+fundador pôs em 03/09**, e ela lista `app/api/analyze-idea/` ao lado de
+`lib/compose`, `lib/hollywood/`, `lib/cinematic/`, `lib/broll/`,
+`lib/lyriaMusic`, `lib/narrationFit` e `app/api/generate-script/` — o motor de
+vídeo. É uma trava de **CAMINHO**, não de intenção.
+
+**Eu tenho um argumento e não vou usá-lo para passar por cima dela.** O
+argumento existe: a ordem desta rotina diz que "M1 e M2 mexem em retry e em
+**limite de entrada**, não em como o filme é feito", e o meu diff mexe só na
+conferência de comprimento no topo da rota, antes de qualquer geração — o
+pipeline não muda em nada. Mas *"eu julguei que o meu caso é exceção"* é
+exatamente o raciocínio que uma trava de caminho existe para vencer, e o
+`PEDIDOS` **já tem uma violação desta mesma família aberta hoje**, sem
+julgamento dele (a entrada sobre `f42e410d`). Publicar a segunda enquanto a
+primeira espera seria compor o erro. **Com o fundador dormindo, a trava dele
+vale mais que a minha leitura.**
+
+**O que fiz em vez disso.** O commit está pronto, testado e **guardado**, não
+descartado:
+
+    branch local .... mp13-roteiro-longo
+    SHA ............. fde757ad
+    estado .......... NÃO enfileirado, NÃO publicado
+    worktree ........ C:\kineo-wt\mp-prompt-longo, de volta em c0bc22fe
+    trava do fundador ... 51/51 VERDE de novo depois do reset
+
+Não está em produção. A decisão é de uma palavra e é dele.
+
+**✅ O QUE VOCÊ PRECISA FAZER**
+
+1. **Decidir uma coisa só: o teto de entrada pode encostar em
+   `app/api/analyze-idea/`?** O commit `fde757ad` (branch `mp13-roteiro-longo`)
+   sobe o teto de 5.000 para 20.000 **só** no modo "Let AI structure my text",
+   mexendo apenas na linha que confere comprimento — o roteiro, a régua e os
+   motores ficam idênticos. Se for **"vai"**, responda isso e a próxima rotação
+   enfileira e publica em 10 minutos. Se for **"não"**, eu apago a branch e o
+   achado vira PEDIDO para o Codex resolver por outro caminho.
+2. **Nada mais.** Nenhuma outra ação sua está bloqueando nada nesta rotação.
+
+**📋 O QUE ACONTECEU**
+
+Fui atrás das 80 pessoas de 7 dias que se cadastraram e nunca receberam um
+filme, e o degrau mais seco não era falta de vontade: **19 chegaram ao Studio e
+nunca apertaram nada**. Duas delas passaram a vida inteira na Kineo brigando
+com um contador de caracteres — uma apagou o próprio texto **275 vezes em um
+minuto**, com o botão travado, e foi embora. A causa é que a caixa cobra uma
+régua de **roteiro** (5.000 caracteres, o tamanho certo para um filme de 90
+segundos) mesmo de quem escolheu *"deixe a IA estruturar meu texto"* — onde o
+que a pessoa cola é **matéria-prima** para a IA resumir, e colar um artigo
+inteiro é o uso que esse modo existe para servir. Três pessoas bateram nessa
+parede **nos dois primeiros minutos de conta** e nenhuma delas apertou o botão
+de gerar uma única vez; duas ainda têm os 25 créditos parados. A única saída
+que a casa oferecia era um botão para **cortar o texto da pessoa** — 1 em 10
+aceitou.
+
+O conserto está escrito, testado (26 verificações, 7 mutações, `tsc` verde) e
+**não subiu**: ele toca um arquivo que a sua trava de qualidade de 03/09
+protege. Preferi te entregar a decisão do que decidir por você às oito da manhã.
