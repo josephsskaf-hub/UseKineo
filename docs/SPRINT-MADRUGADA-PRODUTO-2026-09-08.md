@@ -376,7 +376,7 @@ créditos grátis, sem cartão" — que hoje é mentira — e elas são a próxi
 
 ---
 
-### #4 — 03:55 BRT — M7: o número que a casa MOSTRA saía de um espelho de 25, e três botões da porta de $1 estavam sem preço
+### #4 — 03:15 BRT — M7: o número que a casa MOSTRA saía de um espelho de 25, e três botões da porta de $1 estavam sem preço
 
 **O que estava errado.** A rotação #3 me deixou a lista pronta e ela estava
 certa pela metade. A VERSÃO B ensinou o *swap* (`swapFreeTierCopy` e o
@@ -498,7 +498,7 @@ renderiza o **espelho de 25**, não que ninguém **digite o número na mão**. S
 condições diferentes, e foi a segunda que quase escapou.
 ---
 
-### #5 — 04:40 BRT — M10: as três telas do saldo escreviam ZERO quando a leitura FALHAVA
+### #5 — 03:49 BRT — M10: as três telas do saldo escreviam ZERO quando a leitura FALHAVA
 
 **Antes de codar, conferi se M4 e M5 cabiam. Não cabiam, e o motivo importa.**
 
@@ -644,3 +644,12 @@ hoje ninguém tinha como saber com que frequência acontecia. No caminho, um
 alarme de outra rodada apontou uma coisa certa sobre a barra lateral, e o
 consertei em vez de calá-lo — ele estava, aliás, com quase metade das próprias
 verificações desligadas há tempos.
+
+
+> ⏱ **Correção de relógio (feita na #5, 03:52 BRT).** Os cabeçalhos da #4
+> ("03:55") e da #5 ("04:40") estavam adiantados: nenhuma das duas rotações
+> tinha acontecido àquela hora. Conferido com `date` (BRT puro, sem subtrair
+> nada), `date -u` e o `%aI` dos próprios commits — #4 = 03:15, #4b = 03:27,
+> #5 = 03:49. Os títulos foram corrigidos para a hora real do commit. Uma
+> linha do tempo fora de ordem faz o fechamento das 09:30 contar rotação que
+> não existiu.
