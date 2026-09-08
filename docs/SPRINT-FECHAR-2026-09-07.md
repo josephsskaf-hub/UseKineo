@@ -2083,3 +2083,143 @@ peso de link, e o botão grátis continua primeiro e maior. Regra de dinheiro na
 fonte única já testada, 38 verificações, 6 mutantes, e o `tsc` falsificado de
 propósito para provar que estava rodando. O jejum de assinante novo segue em 5
 dias; hoje, pelo menos, quem quer comprar não precisa mais procurar.
+
+---
+
+### #11 — 21:30 BRT (00:30 UTC) — A SUPERFÍCIE DE VENDA MAIS BATIDA DO PRODUTO SÓ VENDIA MÊS CHEIO · E DUAS RETRATAÇÕES DA #10
+
+**ERRADO (medido, contas externas, 30 dias).** `upgrade_modal_opened` = **62
+pessoas**. É o modal que abre sozinho quando a pessoa aperta Generate sem
+saldo — a única superfície de dinheiro da casa que **a própria pessoa manda
+abrir**. O código o descreve como "a superfície de venda MAIS BATIDA do
+produto", e todas as suas saídas — as três linhas de plano — mandavam para a
+mensalidade cheia.
+
+Tabela de alcance completa, para parar de escolher superfície por intuição:
+
+| superfície | pessoas / 30d | tem a porta de $1? |
+|---|---:|---|
+| banner do trial | 793 | sim (fv-r10, hoje) |
+| ponte do 2º filme | 90 | sim (herda o CTA do banner) |
+| caixa pós-entrega | 75 | sim (fv-r9, hoje) |
+| **modal de upgrade** | **62** | **sim — esta entrega** |
+| exit intent | 28 | ainda não |
+| modal de fim de trial | 15 | sim (fv-r9, hoje) |
+
+**MUDOU — EM PRODUÇÃO, SHA `658db9af`** (deploy
+`dpl_FUzp4pEXpanYmWPsazTBx8DVcBYV` **READY**, target production,
+`githubCommitSha = 658db9afee8d53cbbc3cd028895376f8f4b6cc80` conferido pela
+API da Vercel; fila 0).
+
+**O QUE O CLIENTE VÊ.** No modal de "sem créditos", **acima** das três linhas
+de plano e **abaixo** da caixa verde "your first one is free", uma caixa azul:
+sobrancelha *CHEAPEST WAY IN*, manchete *"Try Creator 7 days for $1"*, e a nota
+*"$1 today · 80 credits now · then $15/month from day 8 · cancel anytime"*.
+**Nenhum plano foi removido, escondido ou reordenado** — a ordem do fundador de
+16:40 é "primeira opção", nunca "única opção".
+
+**A ORDEM DA TELA É REGRA, NÃO DECORAÇÃO**, e o guardião a trava por índice:
+grátis → porta de $1 → planos. Quem nunca fez um filme continua vendo primeiro
+a saída que não custa nada.
+
+**O GATE ESTRITO, e por que `!isSubscriber` não servia.** O modal recebia
+`isSubscriber`, e usá-lo negado é exatamente a memória
+`predicado-largo-negado-falha-aberta`: ele abre a porta justo quando a leitura
+falha. `hasPaid` também não bastava — nasce `false` e não distingue "o servidor
+disse que não pagou" de "a resposta ainda não voltou". Criei
+`notPaidProven`, escrito no MESMO ponto em que `hasPaid` é lido, com padrão
+**fechado**; o guardião mata um mutante que o faz nascer aberto.
+
+**TESTES.** `scripts/test-porta-1dolar-no-upgrade-modal.mjs` **29 verificações,
+5 mutantes**. Um deles **sobreviveu no primeiro rascunho** e a causa vale mais
+que o teste: `notPaidProven={notPaidProven}` aparece **duas vezes** na tela (o
+modal e a peça nova), `String.replace` troca só a primeira, e a trava casava com
+a segunda intacta — o mutante "morria" por acidente. A trava passou a **contar
+as duas ocorrências**. Outra falha honesta do primeiro rascunho: a regra "nenhum
+preço literal" reprovou a própria **prosa** do cabeçalho, que cita `$1` ao
+explicar a ordem do fundador; agora ela julga o código com os comentários fora.
+`tsc` verde. Vizinhos verdes: clean-film-trial-door 86/86,
+porta-1dolar-fim-do-trial 39/39, porta-1dolar-banner-do-trial 38/38, money-truth
+313/313, post-delivery-slot 35/35.
+
+**⛔ DUAS RETRATAÇÕES DA #10 — as duas minhas, as duas escritas antes de eu
+conferir a exclusividade dos ramos.**
+
+1. **A ponte do 2º filme NÃO está sem porta de dinheiro.** Eu escrevi no
+   PEDIDOS que ela "também não tem porta nenhuma" e mandei a próxima rotação
+   montar uma lá. **Falso.** O bloco da ponte exige `!firstDelivery.eligible`,
+   que é **a mesma guarda** do CTA de assinatura — logo, quem vê a ponte vê
+   também o botão de dinheiro, que desde as 21:14 é a porta de $1. Montar outra
+   ali criaria **duas ofertas na mesma tela**. Corrigido no PEDIDOS.
+2. **O "216 sem botão" é o estado NA CHEGADA, não em todo render.** A impressão
+   do banner é deduplicada por conta **por dia** (localStorage), então o flag do
+   ramo é um **retrato do primeiro render do dia**: quem gasta crédito depois
+   muda de ramo sem gerar impressão nova. A direção do achado continua de pé (é
+   o que a pessoa encontra ao chegar, e a chegada é a janela de compra), mas o
+   número não é "216 pessoas nunca viram botão". E era isso que fazia a conta da
+   ponte não fechar: 81 pessoas viram a ponte desde 01/09 contra 15 impressões
+   carimbadas com `first_delivery_eligible=false`.
+
+**✅ CONFERIDO E NÃO É DEFEITO — para ninguém gastar rotação nisso.**
+`trial_post_video_offer_viewed` = 228 pessoas/30d e
+`trial_post_video_offer_clicked` **parado desde 22/08** (16 dias). Parece degrau
+morto, e não é: desde aquele clique foram **35 pessoas**, e os **quatro** botões
+daquela caixa (`offer_clicked`, `compare_plans_clicked`, `creator_upgrade`,
+`starter_escape`) estão **wired a onClick reais** — conferido linha a linha.
+0 de 35 numa caixa de paywall está dentro do ruído de uma taxa de 1-3%
+(esperado: 1). É denominador pequeno, não peça quebrada (memória
+`zero-escritas-conte-as-oportunidades`).
+
+**RISCO.** A casca deste modal foi aprovada pelo fundador em preview HTML
+("gostei bastante… aprovado"). Eu **não** toquei nela: nem na coluna de prova
+com os clipes curados, nem nas linhas de plano, nem no grid, nem no top-up. A
+caixa nova segue o mesmo molde da caixa verde que já vivia ali. Reverter é
+apagar uma linha de montagem.
+
+**COMO MEDIR.** `upgrade_modal_trial_door_shown` (com `visible` e `door_reason`)
+→ `upgrade_modal_trial_door_clicked` → `checkout_started` com
+`intent_campaign = trial_1usd_upgrade_modal` → `payment_success` de 100
+centavos. ✅ **Verifiquei a tubulação inteira, não presumi**: `intent_campaign`
+é lido de `searchParams` em `app/api/stripe/checkout/route.ts:874`, passa o
+sanitizador `^[A-Za-z0-9._~-]{1,100}$` (o `_` está na classe) e entra no
+`checkout_started` do servidor; e o `card_trial='1'` é escrito pelo próprio
+servidor na linha 1113 quando `wantsTrial`. O `(sem campo)` que aparece nas 123
+sessões de 30 dias não é furo de instrumentação — é a porta ter nascido hoje às
+15:43.
+
+**PLACAR DE FECHAMENTO — marco 2026-09-07 18:38 UTC, contas externas:** sem
+mudança material desde a #10 (janela de tráfego magro); as três portas novas
+nasceram entre 20:47 e 21:29 e ainda não encontraram cliente.
+
+**A FRASE DA ROTAÇÃO.** Hoje um visitante novo que aperta Generate sem saldo
+encontra, como PRIMEIRA opção, uma entrada de $1 — onde ontem só havia três
+mensalidades cheias.
+
+**PRÓXIMA JOGADA (#12).** Sobrou **uma** superfície de dinheiro sem a porta:
+`components/ExitIntentOffer.tsx:328`, 28 pessoas/30d — e ela é a única que fala
+com quem está **saindo**, onde a oferta mais barata é a última chance real.
+⚠️ **Meça-a por `coalesce(user_id::text, session_id)`**: `exit_intent_shown` tem
+416 linhas para 28 pessoas e `exit_intent_free_clicked` tem 75 linhas com
+`count(distinct user_id) = 0` — é superfície de deslogado, e contar por
+`user_id` zera metade dela (memória
+`medir-alcance-da-superficie-antes-de-ligar`). Depois disso, a pergunta deixa de
+ser "onde falta a porta" e passa a ser **"qual das cinco portas converte"** — o
+que exige tráfego, não código.
+
+**✅ O QUE VOCÊ PRECISA FAZER**
+1. **Nada para publicar** — já publiquei (`658db9af`, deploy READY conferido).
+2. **Olhar uma tela, se quiser**: abra o Studio numa conta sem créditos. O modal
+   agora abre com "Try Creator 7 days for $1" no topo e os três planos logo
+   abaixo. Se preferir sem, me diga "tira o $1 do modal de créditos".
+
+**📋 O QUE ACONTECEU**
+Fechei a quarta das cinco superfícies onde a casa pede dinheiro: o modal que
+abre quando alguém aperta Generate sem saldo (62 pessoas/mês) só oferecia
+mensalidade cheia e agora abre com a entrada de $1 no topo, com os planos
+intactos logo abaixo. Também **retratei duas coisas que eu mesmo escrevi uma
+hora antes**: a ponte do segundo filme não estava sem porta (ela herda o mesmo
+botão que consertei), e o "216 pessoas sem botão" é o estado de chegada, não de
+todo render — o evento é deduplicado por dia. E conferi, sem consertar nada, uma
+caixa que parecia morta há 16 dias e não está: são 35 pessoas, os quatro botões
+funcionam, e zero de 35 é ruído. Restam uma superfície sem porta (o exit intent,
+28 pessoas) e a pergunta que só o tráfego responde: qual das portas vende.
