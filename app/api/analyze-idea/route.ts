@@ -4,7 +4,7 @@ import { openai, durationPlanFor, MICRO_KNOWLEDGE_SYSTEM_RULES, SAFE_COMPOSITION
 import { writeServerEvent } from '@/lib/serverEvents'
 import { buildRefusalEvent } from '@/lib/stageRefusal'
 import { looksOpenAiQuotaDead } from '@/lib/openaiAlert'
-import { ANALYZE_PROMPT_MAX_CHARS, analyzePromptTooLongMessage } from '@/lib/analyzeLimits'
+import { analyzePromptMaxChars, analyzePromptTooLongMessage } from '@/lib/analyzeLimits'
 import {
   analyzeRefusalCopy,
   analyzeRefusalTelemetry,
@@ -701,13 +701,20 @@ export async function POST(req: NextRequest) {
     // KINEO-RECUSA-NAO-E-TENTE-DE-NOVO-2026-08-31 — teto e frase vem da fonte
     // unica (lib/analyzeLimits). O cliente le o MESMO numero antes de chamar,
     // entao este 400 deixa de ser a primeira noticia que a pessoa tem do teto.
-    if (prompt.length > ANALYZE_PROMPT_MAX_CHARS) {
+    // KINEO-ROTEIRO-LONGO-NAO-E-ERRO-2026-09-08 — o teto passa a ser o do MODO.
+    // 'verbatim' segue em 5.000 porque ali o texto E a narracao; 'ai' sobe para
+    // 20.000 porque ali o texto e materia-prima que este mesmo endpoint manda o
+    // modelo condensar. O numero da FRASE vem do mesmo calculo, senao o 400
+    // citaria um teto que nao foi o cobrado.
+    const promptMaxChars = analyzePromptMaxChars(body.scriptMode)
+    if (prompt.length > promptMaxChars) {
       return await recusarAnalise(
         400,
-        { error: analyzePromptTooLongMessage() },
+        { error: analyzePromptTooLongMessage(promptMaxChars) },
         user.id,
         {
-          max_chars: ANALYZE_PROMPT_MAX_CHARS,
+          max_chars: promptMaxChars,
+          script_mode: body.scriptMode ?? null,
           // A FRASE continua vindo de lib/analyzeLimits (fonte unica do teto).
           // Daqui sai so o rotulo, para o banco poder separar as quatro portas.
           ...analyzeRefusalTelemetry('prompt_too_long', bodyCru, prompt),

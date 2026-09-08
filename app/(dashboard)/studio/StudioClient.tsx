@@ -32,6 +32,7 @@ import {
   TRIAL_FIRST_DELIVERY_VERSION,
 } from '@/lib/growth/trialBalanceBridge'
 import { trackEvent } from '@/lib/analytics'
+import { analyzePromptMaxChars } from '@/lib/analyzeLimits'
 import { formatLimitCounter, promptLimitState, trimPromptToLimit } from '@/lib/studioPromptLimit'
 import { buildStudioSeriesReviewHref, carryStudioSeriesReview, isStudioSeriesReview } from '@/lib/navigation/studioSeriesReview'
 import { useSeriesDoorSeen } from '@/lib/seriesDoorImpressions'
@@ -339,7 +340,14 @@ export default function StudioClient() {
   // KINEO-STUDIO-TETO-VISIVEL-2026-09-02 (sprint-assinaturas #9) — o teto do
   // /api/analyze-idea (5.000) medido AQUI, no texto que a pessoa ve, e nao na
   // tela seguinte. O [camera: ...] do preset conta, porque viaja junto.
-  const limit = useMemo(() => promptLimitState(finalPrompt), [finalPrompt])
+  // KINEO-ROTEIRO-LONGO-NAO-E-ERRO-2026-09-08 — o teto medido AQUI passa a ser
+  // o do MODO. Antes a tela cobrava a regua de roteiro (5.000) tambem de quem
+  // escolheu "Let AI structure my text", onde o texto e materia-prima e nao
+  // narracao — e travava o botao Generate com a unica saida de CORTAR o texto
+  // da pessoa. Medido em 5 dias: 10 pessoas bateram 444 vezes, 1 apertou o
+  // corte, 3 nunca fizeram filme nenhum. Mesma funcao que o servidor cobra.
+  const promptMax = useMemo(() => analyzePromptMaxChars(scriptMode), [scriptMode])
+  const limit = useMemo(() => promptLimitState(finalPrompt, promptMax), [finalPrompt, promptMax])
   const limitTrackedRef = useRef<number | null>(null)
   useEffect(() => {
     if (!limit.over || limitTrackedRef.current === limit.length) return

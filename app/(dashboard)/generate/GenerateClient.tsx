@@ -169,7 +169,7 @@ import {
 // Ver o comentário longo em lib/flags.ts: com 'off' esta tela volta a ser
 // idêntica à de antes da sprint.
 import { POST_HANDOFF_ENABLED } from '@/lib/flags'
-import { ANALYZE_PROMPT_MAX_CHARS } from '@/lib/analyzeLimits'
+import { analyzePromptMaxChars } from '@/lib/analyzeLimits'
 // KINEO-FIRST-PAID-MINUTE-2026-08-11 — a chave e o TTL do handshake vivem num
 // módulo único (lib/firstWinHandshake.ts). Enquanto eram literais duplicados
 // aqui e em /checkout/success, renomear um dos lados desligava o recurso em
@@ -7886,14 +7886,18 @@ export default function GenerateClient({
         setPhase('idle')
         return
       }
-      if (sourceLen > ANALYZE_PROMPT_MAX_CHARS) {
-        const excedente = sourceLen - ANALYZE_PROMPT_MAX_CHARS
+      // KINEO-ROTEIRO-LONGO-NAO-E-ERRO-2026-09-08 — mesmo teto do servidor, e
+      // ele depende do MODO: em 'verbatim' as palavras sao o filme (5.000), em
+      // 'ai' sao materia-prima que o modelo condensa (20.000).
+      const promptMaxAqui = analyzePromptMaxChars(scriptMode)
+      if (sourceLen > promptMaxAqui) {
+        const excedente = sourceLen - promptMaxAqui
         setError(
-          `Your text is ${sourceLen.toLocaleString('en-US')} characters — ${excedente.toLocaleString('en-US')} over the ${ANALYZE_PROMPT_MAX_CHARS.toLocaleString('en-US')} limit. Trim it and try again.`,
+          `Your text is ${sourceLen.toLocaleString('en-US')} characters — ${excedente.toLocaleString('en-US')} over the ${promptMaxAqui.toLocaleString('en-US')} limit. Trim it and try again.`,
         )
         trackGenerationFailure('analyzing', 'analyze_prompt_too_long', {
           httpStatus: null,
-          detail: `prompt_len=${sourceLen} limite=${ANALYZE_PROMPT_MAX_CHARS}`,
+          detail: `prompt_len=${sourceLen} limite=${promptMaxAqui} modo=${scriptMode}`,
           responded: false,
         })
         setPhase('idle')
@@ -13397,7 +13401,7 @@ export default function GenerateClient({
               const ex = NICHE_EXAMPLES[pickedNiche] ?? NICHE_EXAMPLES.billionaire
               return `What’s your Short about? Try "${ex[0]}" or "${ex[1] ?? ex[0]}"`
             })()}
-            maxLength={ANALYZE_PROMPT_MAX_CHARS}
+            maxLength={analyzePromptMaxChars(scriptMode)}
             disabled={phase === 'analyzing'}
             // PUSH #38 keeps the first-video box compact so its free CTA stays
             // in the first viewport. Returning creators keep the larger script
