@@ -6,7 +6,13 @@ import vm from 'node:vm'
 import ts from 'typescript'
 
 const root = process.cwd()
-const read = (file) => fs.readFileSync(path.join(root, file), 'utf8')
+// KINEO-CRLF-NA-LEITURA-2026-09-07 — este arquivo tem uma ancora que atravessa
+// TRES linhas (a copy do chip: `topupEligible \n ? (...) \n : 'See plans'`), e o
+// checkout do Windows entrega `components/Sidebar.tsx` com `\r\n`. A ancora
+// nunca casava, e a mensagem "chip copy states the real next step" se lia como
+// defeito de produto — a copy estava intacta, byte a byte. Normalizacao SO na
+// leitura do teste (memoria `guardiao-crlf-falso-vermelho`).
+const read = (file) => fs.readFileSync(path.join(root, file), 'utf8').replace(/\r\n/g, '\n')
 let checks = 0
 const check = (value, message) => { assert.ok(value, message); checks++ }
 const equal = (actual, expected, message) => { assert.equal(actual, expected, message); checks++ }
@@ -93,7 +99,26 @@ const topupEnd = route.indexOf('// ─── KINEO-PILOT-99', topupStart)
 check(topupStart >= 0 && topupEnd > topupStart, 'real top-up route is located')
 const topupRoute = route.slice(topupStart, topupEnd)
 check(topupRoute.includes('canPurchaseCreditTopup(profile?.plan)'), 'server uses the same policy as both clients')
-check(topupRoute.includes("destination: '/generate' | '/pricing' = '/generate'"), 'error helper supports an honest pricing destination')
+// KINEO-REANCORA-DESTINO-2026-09-07 — a trava exigia
+// `destination: '/generate' | '/pricing' = '/generate'`. A casa moveu a sala de
+// criacao para `/studio` (`KINEO-SEM-PORTEIRO-2026-09-03`, comentado na propria
+// linha da rota) e a assinatura acompanhou. A INTENCAO da trava nao era o
+// literal `/generate`: era garantir que o helper de erro possa mandar a pessoa
+// para o preco quando o preco e a resposta honesta, e que o PADRAO NAO seja o
+// preco (mandar todo erro para a pagina de planos e transformar falha em
+// pedido de dinheiro). E isso que ela passa a exigir.
+{
+  const assinatura = topupRoute.match(/destination: '(\/[a-z/]+)' \| '(\/[a-z/]+)' = '(\/[a-z/]+)'/)
+  check(Boolean(assinatura), 'error helper declares an explicit destination union')
+  check(
+    Boolean(assinatura) && [assinatura[1], assinatura[2]].includes('/pricing'),
+    'error helper supports an honest pricing destination',
+  )
+  check(
+    Boolean(assinatura) && assinatura[3] !== '/pricing',
+    'the DEFAULT destination is never the pricing page — a failure is not a sales pitch',
+  )
+}
 check(topupRoute.includes("reasonOverride ?? checkoutFailureReason(msg)"), 'server can record the explicit eligibility reason')
 check(topupRoute.includes("'topup_requires_creator_plus'"), 'ineligible attempts have a categorical diagnostic')
 check(topupRoute.includes("'/pricing',"), 'ineligible GET redirects to pricing through the measured helper')
