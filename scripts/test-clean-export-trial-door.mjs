@@ -131,8 +131,26 @@ check('o hospedeiro vem da variavel que guarda a propria caixa',
   /slotOwner: showPostVideoExportChoice \? 'clean_export' : null/.test(clientCode))
 check('hasPaid e a coluna do cobrador, nao um literal',
   /const cleanExportTrialDoor = decideCleanFilmTrialDoor\(\{[\s\S]{0,300}?\n\s*hasPaid,/.test(clientCode))
+// A fv-r10 deu NOME ao predicado e o estendeu aos dois botoes de plano da
+// mesma caixa, que prometiam "this video clean" sem saber cumprir. Um nome so
+// para a mesma regra (memoria: a-regra-vive-em-varios-arquivos).
+check('o predicado do handoff tem UM nome e sai do ref real',
+  /const cleanExportRebuildReady = Boolean\(lastFastRenderRef\.current\)/.test(clientCode))
 check('a promessa do arquivo esta amarrada ao handoff real',
-  /unlocksCurrentFilm: Boolean\(lastFastRenderRef\.current\)/.test(clientCode))
+  /unlocksCurrentFilm: cleanExportRebuildReady/.test(clientCode))
+// ── A PROMESSA DO BOTAO DE PLANO, nos DOIS caminhos da caixa ──────────────
+// Sem handoff o `?return=wm` ativa a assinatura e NAO devolve o arquivo. O
+// beneficio do plano (creditos/mes) e verdadeiro sempre e continua escrito; o
+// que desaparece e a promessa do ARQUIVO.
+check('o botao de plano do caminho direto condiciona a promessa do arquivo',
+  /\{cleanExportRebuildReady \? 'this video clean \+ ' : ''\}\{TIER_CREDITS\.starter\} credits every month/.test(clientCode))
+check('o botao de plano do modal condiciona a promessa do arquivo',
+  /\$\{cleanExportRebuildReady \? 'this video clean \+ ' : ''\}\$\{TIER_CREDITS\.starter\} credits\/mo/.test(clientCode))
+check('nenhum dos dois botoes promete o arquivo incondicionalmente',
+  !/· this video clean \+ \$\{TIER_CREDITS\.starter\}/.test(clientCode) &&
+  !/^\s*this video clean \+ \{TIER_CREDITS\.starter\}/m.test(clientCode))
+check('o beneficio do plano continua escrito nos dois estados',
+  (clientCode.match(/TIER_CREDITS\.starter\} credits/g) || []).length >= 2)
 check('creditos e dias vem das constantes partilhadas',
   /const cleanExportTrialDoor = decideCleanFilmTrialDoor\(\{[\s\S]{0,700}?grantCredits: CARD_TRIAL_GRANT_CREDITS/.test(clientCode) &&
   /const cleanExportTrialDoor = decideCleanFilmTrialDoor\(\{[\s\S]{0,800}?trialDays: CARD_TRIAL_DAYS/.test(clientCode))

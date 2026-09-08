@@ -11709,6 +11709,23 @@ export default function GenerateClient({
   // honestidade); só o hospedeiro muda. E ela usa o `wmCheckout` — o hook que
   // já governa os dois botões desta caixa — para não haver dois `pending`
   // independentes disputando o mesmo cartão.
+  // ═══ KINEO-PROMESSA-DO-ARQUIVO-2026-09-07 (fv-r10) ══════════════════════
+  // O `?return=wm` só reconstrói ESTE filme se os inputs do render estiverem no
+  // navegador: `handleRemoveWatermark` grava `kineo_wm_unlock` apenas
+  // `if (lastFastRenderRef.current)` e segue para a Stripe de qualquer jeito.
+  // Sem eles a assinatura ativa e o arquivo NÃO volta limpo — e o botão prometia
+  // "this video clean" nos dois caminhos da caixa mesmo assim. Quem chega pela
+  // pílula de render ativo, pelo link do e-mail ou depois de recarregar a página
+  // cai exatamente nesse estado.
+  //
+  // O CONSERTO É DE COPY, NÃO DE VENDA: o botão continua no mesmo lugar, com o
+  // mesmo checkout e o mesmo preço. O que cai é a promessa do ARQUIVO quando a
+  // casa não sabe cumpri-la; o benefício do plano (os créditos mensais) é
+  // verdadeiro nos dois estados e continua escrito.
+  // (Eu declarei este buraco no PEDIDOS ao montar a porta de $1 ao lado dele e
+  // deixei para o dono; ninguém pegou, e prometer arquivo que não volta é a
+  // definição de copy que mente.)
+  const cleanExportRebuildReady = Boolean(lastFastRenderRef.current)
   const cleanExportTrialDoor = decideCleanFilmTrialDoor({
     slotOwner: showPostVideoExportChoice ? 'clean_export' : null,
     hasPaid,
@@ -11720,13 +11737,13 @@ export default function GenerateClient({
     // um arquivo que este navegador não sabe reconstruir. (O botão de Starter
     // ao lado tem a mesma exposição e não a declara; não apertei a regra dele,
     // que é de outra pista, mas não vou repetir o buraco na peça nova.)
-    unlocksCurrentFilm: Boolean(lastFastRenderRef.current),
+    unlocksCurrentFilm: cleanExportRebuildReady,
     grantCredits: CARD_TRIAL_GRANT_CREDITS,
     trialDays: CARD_TRIAL_DAYS,
   })
   const cleanExportTrialDoorTelemetry: Record<string, unknown> = {
     source: 'result_export_choice',
-    unlocks_current_film: Boolean(lastFastRenderRef.current),
+    unlocks_current_film: cleanExportRebuildReady,
     last_video_quality: quality,
     watermarked_downloaded: watermarkedDownloadConfirmed,
     price_region: postVideoRegion,
@@ -15653,7 +15670,7 @@ export default function GenerateClient({
                           : `Start Starter${postVideoIntroPrice ? ` — ${postVideoIntroPrice}` : ''}`}
                         {wmCheckout.pending === null && (
                           <span style={{ display: 'block', marginTop: 3, fontSize: 11, fontWeight: 700, opacity: 0.92 }}>
-                            this video clean + {TIER_CREDITS.starter} credits every month
+                            {cleanExportRebuildReady ? 'this video clean + ' : ''}{TIER_CREDITS.starter} credits every month
                           </span>
                         )}
                       </button>
@@ -15758,7 +15775,7 @@ export default function GenerateClient({
                             disabled={wmCheckout.pending !== null}
                             style={{ display: 'block', width: '100%', textAlign: 'center', background: '#2997ff', color: '#fff', border: 'none', borderRadius: 8, padding: 15, fontSize: 15, fontWeight: 800, cursor: wmCheckout.pending ? 'wait' : 'pointer', opacity: wmCheckout.pending ? 0.7 : 1 }}
                           >
-                            {wmCheckout.pending ? 'Opening secure checkout…' : `Start Starter${postVideoIntroPrice ? ` — ${postVideoIntroPrice}` : ''} · this video clean + ${TIER_CREDITS.starter} credits/mo`}
+                            {wmCheckout.pending ? 'Opening secure checkout…' : `Start Starter${postVideoIntroPrice ? ` — ${postVideoIntroPrice}` : ''} · ${cleanExportRebuildReady ? 'this video clean + ' : ''}${TIER_CREDITS.starter} credits/mo`}
                           </button>
                           <button
                             type="button"
