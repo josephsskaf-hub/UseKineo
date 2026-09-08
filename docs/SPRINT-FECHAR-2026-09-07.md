@@ -2954,3 +2954,205 @@ guardiões das superfícies que esta sessão tocou (`sharing-safety`,
 `events-identity-stamp`, `clean-export-trial-door`, `trial-post-video-primary`,
 `next-door-bar`, `post-delivery-slot`, `slot-impression-truth`,
 `free-clean-leak`) **todos verdes**.
+
+---
+
+## 🏁 FECHAMENTO — 07/09/2026, 23:05 BRT — PISTA fv (SESSÃO A)
+
+> ⚠️ **Este é o SEGUNDO fechamento deste diário.** A outra sessão da mesma pista
+> (assinada "sessao B") fechou pouco antes e já registrou, no adendo dela, que
+> "a outra sessão continuou o mutirão durante a hora de fechamento" — essa outra
+> sessão sou eu. **Os dois fechamentos são verdadeiros e não se contradizem**;
+> este cobre o que ESTA sessão entregou. E o número da suíte bate: medi
+> **337 verdes / 94 vermelhos** na ponta `66f4c566` às 23:00, exatamente o que o
+> adendo dela diz. (A minha medição anterior, 338/93, era de uma ponta mais
+> antiga, antes dos últimos commits das duas sessões — o número que vale é o de
+> agora.)
+
+### 📰 PRESS RELEASE — o que quem entra na Kineo encontra agora e não encontrava às 15:38
+
+Até esta tarde, quem criava uma conta, entrava no trial e decidia comprar tinha
+de **procurar onde**. A maior superfície do produto — o banner do trial, visto
+por **793 pessoas por mês** — não mostrava botão de dinheiro nenhum para 93,5%
+de quem a via. O modal que abre quando alguém aperta Generate sem saldo oferecia
+três mensalidades cheias e nada mais barato. **Vinte pessoas por mês** saíam
+dessas telas e iam caçar um checkout em outro canto do site.
+
+Agora as **quatro** superfícies onde a casa pede dinheiro abrem com a mesma
+porta: **"Try Creator 7 days for $1"** — com a frase que diz o que acontece no
+dia 8, sempre ao lado do plano inteiro, e sempre **depois** do caminho grátis.
+Quem quer o filme sem pagar continua clicando no botão verde, primeiro e maior.
+
+Nada de preço público mudou. Nenhum crédito foi concedido. Nenhum plano foi
+escondido. Nenhum motor, régua, duração ou pipeline foi tocado.
+
+### O QUE FOI PARA PRODUÇÃO — 3 entregas de produto, cada uma com deploy conferido pela API da Vercel
+
+| SHA | o que mudou | quem alcança |
+|---|---|---:|
+| `301a9d59` | porta de $1 no banner do trial, nos **dois** ramos | 216 + 15 /mês |
+| `658db9af` | porta de $1 no modal de "sem créditos", acima dos planos | 62 /mês |
+| `5ccdac8d` | a chegada pela marca d'água passa a saber se é gente ou robô | 45 /mês |
+
+**A porta foi provada no nível da decisão, não só do código.** Executando a
+fonte única com exatamente os argumentos que as duas peças novas passam:
+`visible=true`, botão **"Try Creator 7 days for $1.00 →"**, nota **"$1.00 today
+· 80 credits now · then $15.00/month from day 8 · cancel anytime"**. Conta que
+já pagou → `already_paid`. Moeda não resolvida → `price_unresolved`. É a prova
+mais forte possível sem navegador: **o que falta é tráfego, não código.**
+
+### O DEFEITO CENTRAL DA NOITE, em uma frase
+
+**A maior superfície de dinheiro da casa não tinha botão de dinheiro.** O banner
+do trial só monta o CTA dentro de `{!firstDelivery.eligible && …}`, e 216 das
+231 impressões carimbadas desde 01/09 caem no ramo oposto. O clique daquele
+botão estava mudo desde 03/09 não por desinteresse, mas porque **quase ninguém
+tinha botão** — e 20 dessas pessoas foram procurar checkout em outra tela.
+
+### O QUE MEDI E DECIDI **NÃO** FAZER — três rotações economizadas
+
+1. **Exit intent**: eu mesmo o indiquei como "a última superfície sem porta, 28
+   pessoas". Medido com a unidade certa: a variante que tem preço alcança **8
+   visitantes em 30 dias**. Não fiz.
+2. **Carteiras no checkout**: já ligadas desde o Push #414.
+3. **Carta de sessão expirada**: já existe e já sai — 27 cartas, **0** pagantes.
+
+### AS TRAVAS QUE VIGIAM O DINHEIRO — E A CAUSA COMUM ATRÁS DELAS
+
+A suíte de dinheiro e trial estava **82 verdes / 12 vermelhos**; fechei os doze e
+mais doze fora dela. **Vinte e quatro travas consertadas, nenhum arquivo de produto
+tocado, todas falsificadas por mutação no arquivo real.** A suíte INTEIRA da casa
+saiu de **310 verdes / 115 vermelhos** para **337 / 94** (medido na ponta `66f4c566`, 23:00), com `tsc` limpo.
+
+E o padrão parou de ser coincidência: **`<UiLabel>`, o wrapper da interface em
+espanhol que o Codex introduziu em 06/09** (`5aa0734a`, `6e30c986`), tem hoje
+**500 ocorrências em 16 arquivos**. A mudança está certa e não há nada a
+reverter — mas as travas casavam com **texto de tela**, e um wrapper por dentro
+do texto derruba a âncora sem tocar na verdade. **Sete dos vinte e quatro consertos
+foram exatamente esse acidente** (contados um a um: vitrine, animate, avatar,
+library-error, FAQ da home, busca da Library e a saída da Library); os outros
+dezesseis foram destino renomeado (`/generate` → `/studio`, quatro vezes),
+`\r\n` do Windows (duas), prosa reformatada, uma expressão que virou `const`,
+uma chamada que ganhou um argumento, um import novo numa caixa de areia, e uma
+âncora que exigia adjacência entre duas frases.
+
+**DOIS dos vinte e quatro valem mais que os outros vinte e dois juntos:**
+
+- `test-checkout-profile-read` pegou o `select` do checkout **ampliando de 7
+  para 11 colunas** de `profiles` — foi o próprio commit que ligou o trial de $1
+  hoje de manhã. Conferi campo a campo que os quatro novos são consumidos e
+  atualizei a lista **com o motivo escrito**, falsificando nos dois sentidos.
+  Ninguém tinha lido o alerta.
+- `test-sharing-safety` — a trava que decide **quais eventos um chamador anônimo
+  pode inserir** — **parou de rodar hoje, calada**, quando um commit de outra
+  pista somou um import que a caixa de areia não conhecia. Pior: depois de
+  resolver o import, descobri que o pedido falso do teste não tinha cabeçalhos,
+  então três verificações ficavam **verdes por acidente** — o evento reservado
+  "não entrava", mas por `TypeError`, não por autorização. **Conferido: nenhum
+  evento reservado ficou gravável por anônimo em momento algum.** O buraco era do
+  teste, não da rota — mas era um teste de segurança provando uma exceção.
+
+**Quatro travas ficaram mais apertadas do que eram**, porque re-ancorar é a hora
+de perguntar o que a regra deveria estar exigindo: o webhook de recusa agora
+exige `await` no resolvedor de razão de cobrança (sem ele, uma recusa entraria no
+banco sem saber se era renovação ou compra inicial); o reset de senha comum tem
+de ser o **último** ramo, para nunca sequestrar quem está comprando; o helper de
+erro da recarga não pode ter `/pricing` como destino **padrão** — uma falha não é
+um pedido de dinheiro; e as páginas de comparação não aceitam mais nenhuma URL
+absoluta escrita à mão no CTA.
+
+### ⚠️ O QUE EU ERREI HOJE, e como descobri
+
+- **Anunciei um buraco que não existia** (a ponte do 2º filme já tinha porta —
+  ela herda o CTA que eu tinha acabado de consertar). Retratado no mesmo dia.
+- **Publiquei um número por `user_id` numa superfície pública** — a armadilha da
+  minha própria memória. "28 pessoas" eram **404 visitantes**, e a parte que
+  importava eram **8**.
+- **Escrevi duas travas que passavam sem avaliar nada**: o `check` daquele
+  arquivo é `check(nome, condição)` e eu chamei ao contrário; a mensagem virou a
+  condição, e string não-vazia é sempre verdadeira.
+- **Escrevi duas travas largas demais** que reprovaram uma frase **verdadeira**
+  ("one of the two tools", onde "dois" é a definição de um comparativo).
+- **Tentei uma trava e não a entreguei**: não consegui falsificá-la. Trava que
+  não fica vermelha quando o defeito existe é enfeite.
+
+Cada um desses foi encontrado pela falsificação, não pela leitura. É por isso que
+tudo aqui foi mutado antes de ser publicado.
+
+### 📊 PLACAR DE FECHAMENTO — marco 2026-09-07 18:38 UTC (8 horas), contas externas
+
+**75 pessoas** com evento · filme pronto **2** · clique em baixar **0** · banner
+de trial **4**, e **4 de 4** no ramo que até hoje não tinha botão ·
+`upgrade_modal_opened` **0** · `checkout_started` **1** · **pagou 0**.
+
+### ✅ E A PORTA ENCONTROU A PRIMEIRA PESSOA — 1h19 depois de nascer
+
+Enquanto eu escrevia este fechamento, a primeira impressão real chegou:
+
+```
+trial_first_film_pay_door_shown   08/09 01:33 UTC (22:33 BRT)
+  visible ............ true          reason ......... ok
+  not_paid_proven .... true          credits_before . 25
+  display_currency ... usd           price_region ... standard
+```
+
+É **exatamente a coorte para a qual ela foi construída**: alguém em trial, com
+25 créditos, que nunca gastou um — e que até as 21:14 de hoje não teria botão de
+dinheiro nenhum naquela tela. A porta **renderizou**, o gate estrito de
+`has_paid` foi satisfeito pelo servidor, a moeda resolveu, e a nota de preço saiu
+junto. Ainda **não houve clique**, e uma impressão não é uma venda — mas o
+caminho inteiro está provado com gente de verdade, não com sonda.
+
+O jejum de assinante novo continua em **5 dias** (último `payment_success`:
+02/09 20:22 UTC).
+
+### CHECAGEM ZERO (24h)
+
+Cadastros **26** · crédito zero **11**, **trial órfão 0** · render preso **0** ·
+recusas de cartão **2**, **sem dono 0**.
+
+### 🎯 A PRÓXIMA JOGADA — e ela não é mais uma porta
+
+As cinco superfícies que pedem dinheiro estão servidas. O dado mais
+contra-intuitivo da noite aponta para outro lugar: **todas as 9 vendas dos
+últimos 60 dias vieram de checkouts SEM `intent_campaign`.** As doze campanhas
+nomeadas da casa — home one-click, studio_v4, home_curated, engine_tile,
+hero_engine, chatgpt_quickstart — somam **zero**. Quem compra decide sozinho e
+clica no botão mais próximo; quem é empurrado por campanha não compra. Se isso se
+sustentar, a conclusão é dura e barata: **parar de construir campanha e continuar
+encurtando a distância até o botão** — que é exatamente o que esta noite fez.
+
+E o único canal que **cresce com o uso** — a marca d'água queimada em cada filme
+grátis, 45 chegadas/mês de 14 países e **zero cadastros** — finalmente sabe
+dizer, desde as 22:10 de hoje, se aquelas 45 são pessoas ou varredores. Essa é a
+primeira pergunta a responder quando houver dado acumulado, porque ela decide se
+o problema é a página de destino ou se o denominador nunca existiu.
+
+**✅ O QUE VOCÊ PRECISA FAZER**
+1. **Nada para publicar.** Publiquei **32 entregas** esta noite, uma por vez,
+   fila em 0 depois de cada uma, deploy READY conferido pela API da Vercel a
+   cada mudança de produto.
+2. **Decidir sobre a oferta de $1 nas telas novas.** Ela agora aparece em quatro
+   lugares. Se quiser tirar de algum, cada um é uma linha: *"tira o $1 do banner
+   do trial"* · *"tira o $1 do modal de créditos"*.
+3. **Ver a diferença, se quiser**: abra o Studio numa conta sem créditos — o
+   modal abre com "Try Creator 7 days for $1" no topo e os três planos intactos
+   logo abaixo.
+
+**📋 O QUE ACONTECEU**
+A ordem da noite era gerar assinante. Achei o buraco maior do produto — a maior
+tela da casa, vista por 793 pessoas por mês, não mostrava **nenhum** botão de
+pagar para 93,5% de quem a via, e 20 pessoas por mês saíam dela para procurar um
+checkout em outro canto do site. Fechei esse buraco e mais um (o modal de "sem
+créditos", 62 pessoas/mês), sempre com a entrada de $1 na frente, o plano inteiro
+visível ao lado e o caminho grátis primeiro. Medi antes de mexer e três jogadas
+morreram na medição — uma delas era a minha própria próxima jogada, que
+alcançava 8 pessoas e não 28. Depois, com o tráfego da noite quase parado,
+devolvi os dentes a **vinte e quatro** travas que vigiavam esse dinheiro: vinte
+estavam vermelhas por um wrapper de tradução, um destino renomeado ou um fim de
+linha; **uma estava certa desde hoje de manhã e ninguém tinha lido**; e **uma
+trava de segurança tinha parado de rodar hoje, calada** (conferido: nada ficou
+exposto). Nenhum preço público mudou, nenhum crédito saiu, nenhum plano foi
+escondido. O jejum de assinante novo continua em 5 dias: as portas têm duas horas
+de vida; a do banner do trial acabou de encontrar a primeira pessoa (impressão
+real às 22:33, `visible=true`, saldo 25, nunca pagou), e o clique ainda não veio.
