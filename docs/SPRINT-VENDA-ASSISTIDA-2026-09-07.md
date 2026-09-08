@@ -2246,3 +2246,80 @@ fazer o `checkout_attempted` anônimo carregar o `session_id` do navegador e o
 cega da casa em gente que dá para contar — e depois alcançar. Sem isso, todo
 número que a casa produzir sobre "quantos clientes perdemos no checkout" está
 errado por um fator de dois.
+
+---
+
+### #16 — 00:52-00:58 BRT — CONFERÊNCIA DE FECHAMENTO: A CEGUEIRA NÃO É DE METADE, É DE 100%
+
+Última rotação da janela. Não codei nada: fui **conferir se os números do
+fechamento (#15, escrito às 00:35) ainda valem** e se ficou alguma coisa por
+publicar. Um dos números estava **errado para menos**, e a correção endurece
+a jogada da próxima janela em vez de amolecê-la.
+
+**A fila está limpa e nada ficou na mesa.** `git ls-remote origin main` =
+`a75633e0` = a ponta local. Nenhuma worktree com trabalho pendente, nenhum
+disparo represado.
+
+**Os números do fechamento, reconferidos no banco** (marco da pista,
+`created_at > '2026-09-07 20:00:00+00'`):
+
+| | |
+|---|---|
+| pagamentos na janela | **0** — confirmado |
+| tentativas de compra (`checkout_attempted`) | **7** |
+| último evento da casa | 03:52 UTC (banco vivo, não é medição de banco parado) |
+
+**🔴 A CORREÇÃO.** O fechamento disse *"quase metade de quem aperta comprar não
+deixa nome"* — número medido sobre 30 dias. Dentro **desta janela** o número é
+outro:
+
+| das 7 tentativas de compra | quantas |
+|---|---|
+| com `user_id` | **0** |
+| com `session_id` | **0** |
+| com `ip_hash` no metadata | **0** |
+
+**Sete de sete. Não é metade da casa cega: nesta janela a casa ficou cega
+inteira.** As três âncoras que existem para reconhecer alguém vieram nulas nas
+três colunas, nas sete linhas. A primeira dessas tentativas foi às 20:24 UTC e
+a última às 02:37 UTC — seis horas de gente apertando comprar sem que reste
+uma única forma de saber se foram sete pessoas ou uma pessoa sete vezes.
+
+⚠️ **O que isto NÃO prova:** que a taxa de 30 dias esteja errada. Sete linhas é
+amostra pequena, e a coorte de 30 dias inclui o tráfego logado que esta janela
+da madrugada quase não teve. O que está provado é que **o caso ruim é 100%, não
+50%** — e que qualquer número da casa sobre "quantos clientes perdemos no
+checkout" tem, no pior dia, um denominador inteiramente imaginário.
+
+**Isto não muda a jogada da próxima janela — confirma que ela é a primeira.**
+Instrumentar o `checkout_attempted` anônimo com `session_id` + `ip_hash` deixa
+de ser "melhorar a medição" e passa a ser **a condição para que exista qualquer
+medição**. Enquanto as sete linhas forem sete nulos, nenhuma carta nova alcança
+essa gente e nenhum relatório sobre ela é verdadeiro.
+
+**JANELA ENCERRADA às 01:00 BRT.** Sem renovação automática.
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+Nada de novo — a lista do fechamento (#15) continua valendo, na mesma ordem:
+
+1. **Enviar os 7 rascunhos do Autopilot** (`docs/RASCUNHOS-AUTOPILOT-2026-09-07.md`)
+   — os $299 parados na mesa; comece pelos 2 da CAMADA 1.
+2. **Enviar os 2 rascunhos de diretório** (`docs/RASCUNHOS-DIRETORIOS-2026-09-07.md`).
+3. **Corrigir a ficha do TAAFT** — ainda anuncia "from $9.90/mo" e trial de 40
+   créditos; a porta de hoje é o trial de 7 dias por taxa simbólica.
+4. **Decisão sua:** as strings de `lib/freeTierOffer.ts` que prometem *"every
+   engine unlocked, including Kling 3"* para 25 créditos (Kling 3 custa 150).
+
+## 📋 O QUE ACONTECEU
+
+Rotação de conferência, sem código. Os números do fechamento se confirmaram —
+**zero pagamentos na janela** — com uma exceção que piorou para melhor: o
+fechamento dizia que *quase metade* de quem aperta comprar não deixa nome; na
+janela de hoje foram **sete tentativas de compra e as sete completamente
+anônimas** — sem conta, sem sessão, sem sequer um identificador de navegador.
+Seis horas de gente batendo na porta de pagamento sem deixar como responder.
+Isso põe a jogada da próxima janela em primeiro lugar por necessidade, não por
+preferência: **antes de escrever qualquer carta nova, a casa precisa conseguir
+enxergar quem aperta o botão.** A fila está limpa, tudo o que foi feito hoje
+está em produção, e a janela fechou.
