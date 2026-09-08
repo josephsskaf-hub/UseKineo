@@ -2120,3 +2120,151 @@ O irmão desse remédio eu conferi e **não** consertei: existe um card dentro d
 produto para a mesma gente, com o predicado certo, que também nunca apareceu —
 mas ali não há defeito. Ele só desenha para quem volta ao site, e essas pessoas
 não voltam. Para elas, e-mail é a única porta que existe.
+
+### #15 — 08:36→09:2X BRT — M1: a casa gravava o SOBRENOME da exceção e jogava fora o que ela disse
+
+**Como cheguei aqui.** A #7 deixou uma falsificação marcada: a capa (`f42e410d`)
+só poderia ser julgada quando aparecesse um filme completado depois de 05:25
+UTC. Rodei a consulta que ela deixou escrita:
+
+```
+completos_total=1681 · com_capa_total=0
+novos_pos_deploy=0 · com_capa_pos_deploy=0 · ultimo_video=2026-09-08 04:00 UTC
+```
+
+**Ainda 0 filmes novos** — sete horas e meia sem um único filme completado. A
+capa segue **nem provada nem desmentida**, e eu não concluo nada sobre ela.
+Mas a pergunta seguinte era obrigatória: *isso é a casa parada ou a casa
+quebrada?* Medido na **mesma janela de relógio** (04:00–11:40 UTC) dos dias
+anteriores, que é a única comparação honesta (memória
+`queda-de-trafego-contra-hora-inflada`):
+
+| dia | filmes na janela | pessoas |
+|---|---|---|
+| 08/09 (hoje) | **1** | 1 |
+| 07/09 | 6 | 3 |
+| 06/09 | 9 | 8 |
+| 05/09 | 14 | 9 |
+| 04/09 | 13 | 8 |
+| 03/09 | 16 | 13 |
+| 31/08 | 2 | 1 |
+
+Baixo, mas dentro de uma série que já teve 2 e 0. **Não vou vender isso como
+alarme** — a Versão B entrou às 04:22 UTC e é ela que decide quem pode
+gerar; medir o efeito dela é da pista que a ligou, não desta.
+
+**O que eu encontrei olhando as tentativas em vez das entregas.** Desde as
+04:22 UTC: **4 `video_generation_started`** de 2 pessoas e **4
+`generation_stage_error`** de 2 pessoas. Duas histórias diferentes:
+
+* **11:18 e 11:19 UTC** — 402 `compose_daily_free_limit` com a copy nova da
+  Versão B (*"Kineo starts at $1: 7 days of Creator with 80 credits"*). É o
+  portão da entrada funcionando; **não toquei**, é da outra pista.
+* **10:36 UTC** — `fast_threw`, stage `generating`, **121.644 ms de relógio**,
+  vinda do `chatgpt.com`. Causa registrada: **`TypeError`**. E só.
+  `message: null`.
+
+**O erro.** `TypeError` **sozinho** não diz nada — e é pior do que nada,
+porque está na lista de "causa antiga" dos vigias do CLAUDE.md: alarme que
+dispara e que ninguém consegue fechar. Fui ver por quê, e o campo que
+resolveria já existe inteiro:
+
+```ts
+// trackGenerationFailure — assinatura de sempre
+extra?: { httpStatus?; detail?: string; message?: string; responded?; elapsedMs? }
+```
+
+`message` é aceito, truncado em 200 e **gravado no evento**. O que faltava era
+alguém preencher. Dos **12** `catch` do `GenerateClient` que reportam exceção,
+**10 mandavam só `detail: err.name`**. É a família da memória
+`aviso-gravado-recurso-descartado`: o campo existe, o valor é descartado.
+
+**Medido na história inteira, não em amostra:**
+
+```
+generation_stage_error .................. 1.929 linhas (desde 22/07)
+com metadata->>'message' ................... 24    (1,2%)
+```
+
+E o que dizem essas 24 é a prova de valor do conserto:
+
+| reason | error | message | n |
+|---|---|---|---|
+| analyze_threw | TypeError | **Failed to fetch** | 10 |
+| generate_script_threw | TypeError | **Failed to fetch** | 7 |
+| analyze_threw | TypeError | **Load failed** | 2 |
+| generate_script_threw | TypeError | **Load failed** | 2 |
+| analyze_timeout_50s | AbortError | signal is aborted without reason | 3 |
+
+**Todo "TypeError" com mensagem era rede ou aba arrancada — nenhum era bug
+nosso.** Sem a mensagem, os outros 1.905 são lidos como bug (ou não são lidos).
+
+**O que mudou (SHA `e3971a73`).** Os 10 `catch` cegos passam a mandar
+`message: err instanceof Error ? err.message.slice(0, 200) : String(err).slice(0, 200)`
+— **a mesma forma** que os 2 que já estavam certos usam desde 14/08, com
+`String(err)` cobrindo o `throw` que não é `Error`. Nada mais:
+
+* **o histograma antigo não se mexe.** `const causa = detalhe ?? mensagem ?? …`
+  continua preferindo o detalhe, então o campo `error` segue dizendo
+  `TypeError` e toda consulta antiga continua valendo. O ganho é aditivo.
+* **nenhuma mensagem do usuário viaja** — é o texto da exceção, truncado em
+  200 por higiene de payload, exatamente como o comentário de 14/08 já
+  justificava para os outros dois.
+
+**Prova.** `scripts/test-mensagem-da-excecao-2026-09-08.mjs`, **18
+verificações**, ancoradas na CONDIÇÃO ("todo `err.name` tem um `message:` no
+mesmo objeto"), nunca na contagem — se nascer o 13º `catch`, ele nasce coberto
+sem ninguém mexer no guardião. **8 mutações, 8 vermelhas**, cada uma provada
+por `grep` do texto inserido antes de eu ler o resultado:
+
+    um catch volta a mandar so o NOME (orfao) ......... VERMELHO
+    a mensagem deixa de ser truncada ................. VERMELHO
+    o campo message some do evento ................... VERMELHO
+    o emissor para de truncar em 200 ................. VERMELHO
+    error passa a preferir a MENSAGEM ................ VERMELHO
+    a ancora do comentario e apagada ................. VERMELHO
+    o comentario deixa de nomear o guardiao .......... VERMELHO
+    o numero medido vira "muitos" .................... VERMELHO
+
+**⚠️ E a primeira rodada dessa bateria pegou um furo no meu próprio
+guardião, antes de publicar.** O mutante do órfão — o único que testa a
+condição que dá nome ao conserto — aplicou (provado por `grep`) e o guardião
+ficou **verde**. Causa: eu varria o texto já passado pelo `semComentarios()`,
+e a remoção de blocos `/* */` de várias linhas **junta linhas** — a numeração
+deixa de bater e a janela de 20 linhas passa a enxergar o `message:` do
+`catch` **vizinho**. Consertado: a varredura da condição lê o arquivo
+**bruto** e **pula** a linha de comentário em vez de esvaziá-la. Depois do
+conserto o mesmo mutante fica vermelho e aponta a linha exata (4379). Fica a
+regra: `semComentarios()` serve para **contar ocorrências**, nunca para
+**varredura posicional**.
+
+`tsc --noEmit` verde pelo binário local (junction conferida antes). Trava de
+qualidade do fundador: **51/51 verde** — `GenerateClient.tsx` não está na
+lista de caminhos proibidos.
+
+**✅ O QUE VOCÊ PRECISA FAZER**
+
+1. **Nada nesta entrega** — ela é instrumentação e não muda uma tela.
+2. As duas decisões anteriores continuam abertas: **ligar a carta de socorro**
+   (`ATTEMPT_LOST_SEND_ENABLED = false` → `true`, #14) e **o teto de entrada
+   do roteiro** (branch `mp13-roteiro-longo`, "vai" ou "não", #13).
+
+**📋 O QUE ACONTECEU**
+
+Uma pessoa vinda do ChatGPT apertou gerar às 10:36 UTC, esperou **dois
+minutos** e recebeu tela de erro. O que a casa guardou sobre isso foi a
+palavra **"TypeError"** — o sobrenome da exceção, sem uma linha do que ela
+disse. Não é um caso isolado: das 1.929 falhas de geração da história, **1.905
+chegaram assim**.
+
+O campo para guardar a frase existe desde agosto, funciona, e estava
+preenchido em 24 eventos. Nesses 24, **todo "TypeError" era `Failed to fetch`
+ou `Load failed`** — a aba foi embora, a rede caiu, o motor não respondeu:
+nada quebrado do nosso lado. Os outros 1.905 podem ser a mesma coisa ou podem
+ser bug nosso, e ninguém tem como saber. Pior: "TypeError" está na lista de
+alarmes dos vigias, então a casa vinha acordando com um alerta que é
+impossível fechar.
+
+A partir de agora toda falha de geração chega com o nome **e** com a frase.
+Não conserta nenhuma falha por si só — é o que faz a **próxima** ser
+diagnosticável em minutos em vez de virar mais uma linha muda no banco.
