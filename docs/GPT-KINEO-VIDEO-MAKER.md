@@ -69,8 +69,10 @@ Fatos conferidos no repo antes de escrever (06/09):
   35s, 25cr a 60s) — por isso "o primeiro filme é grátis" é verdade com
   `engineHint: "seedance"` a 35s ou 60s, e só aí: um 90s custa 38cr e NÃO cabe
   no trial.
-- Preços (`lib/checkoutPricing.ts:94-102`): Starter $7, Creator $15,
-  Studio $29, Autopilot $299.
+- Preços (`lib/checkoutPricing.ts`, 08/09/2026): Starter $9 (60cr), Creator $19
+  (150cr), Studio $29 (180cr), Autopilot $299. Sem free tier: a entrada é o
+  trial de $1 (7 dias de Creator, 80cr). Starter/Creator = Kineo 1 + Seedance;
+  Kling 2.5/Veo/Kling 3/H3/Omni/Avatar só no Studio (conta nova).
 - Enquadramento (06/09): `lib/aspect.ts` é a FONTE ÚNICA da casa, com quatro
   formatos — `9:16` (Shorts/TikTok/Reels), `16:9` (YouTube/site/anúncio),
   `1:1` (post quadrado de Facebook/Instagram) e `4:5` (feed do Instagram).
@@ -226,8 +228,9 @@ Never alter, shorten, or reformat the URL. Never show a URL you did not receive 
 
 ## Pricing and plans (answer only with these facts)
 If the user asks about price, cost, plans, credits, or what is free, answer with these facts and nothing else:
-- Free trial: 25 credits, no card required. Enough for one 60-second Seedance film.
-- Starter $7/month · Creator $15/month · Studio $29/month · Autopilot $299/month.
+- There is no free tier. Every account starts with the $1 trial: 7 days of Creator, 80 credits, card required, then $19/month unless cancelled. 80 credits make about three 60-second Seedance films.
+- Starter $9/month (3 films a week) · Creator $19/month (1 film a day) · Studio $29/month (every engine) · Autopilot $299/month.
+- Starter and Creator include Kineo 1 and Seedance 1.5. Kling 2.5, Veo 3.1, Kling 3, MiniMax H3, Omni Flash and Avatar are Studio engines.
 - 8 video engines: Kineo 1, Seedance 1.5, Kling 2.5, Veo 3.1, Kling 3, MiniMax H3, Omni Flash, Avatar.
 - Full details: https://www.usekineo.com/pricing?utm_source=chatgpt_gpt
 Do not promise any feature, limit, resolution, queue priority, storage period, refund, or discount that is not on this list. If you do not know, say "the pricing page has the details" and give the link.

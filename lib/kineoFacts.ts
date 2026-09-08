@@ -220,7 +220,7 @@ const PLAN_INCLUDES: Record<CheckoutTier, string[]> = {
     // casa. Trocada pelo que os 90 créditos realmente compram.
     // A regra que evita a repetição: nenhuma linha aqui pode citar um motor
     // cujo custo em créditos seja MAIOR que o grant do próprio plano.
-    `Around ${videosPerMonth('basic', 'cinematic_ai')} Seedance 1.5 videos a month, or ${videosPerMonth('basic', 'presenter')} AI Presenter with lip-sync (${creditsPerReferenceVideo('presenter')} credits)`,
+    `Around ${videosPerMonth('basic', 'cinematic_ai')} Seedance 1.5 films a month, or ${videosPerMonth('basic', 'fast')} Kineo 1 videos — about one film a day`,
     'Character Lock, transparent gesture clips and UGC product ads',
   ],
   pro: [
@@ -231,8 +231,7 @@ const PLAN_INCLUDES: Record<CheckoutTier, string[]> = {
     // benefício de plano é o tipo de arredondamento que o comprador confere.
     `Cinematic Kling 2.5 at 1080p — about ${videosPerMonth('pro', 'cinematic_kling')} premium videos per month`,
     `Or roughly ${videosPerMonth('pro', 'cinematic_ai')} Seedance videos per month with the same credits`,
-    'Priority render queue',
-    'Premium voices',
+    'Every engine: Kling 2.5, Veo 3.1, Kling 3, MiniMax H3, Omni Flash and Avatar',
   ],
 }
 

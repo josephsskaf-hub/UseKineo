@@ -11,6 +11,7 @@ import {
   coercePriceRegion,
   formatCheckoutMoney,
   getTierPrice,
+  TIER_PRICES,
   type CheckoutCurrency,
   type CheckoutTier,
   type PriceRegion,
@@ -40,10 +41,12 @@ function resolveGeoOnce(): Promise<Resolved> {
 // três tiers da vitrine — o Autopilot ($299) não tem preço regional nem card
 // nesta grade, e deixá-lo fora do tipo impede que alguém o adicione aqui sem
 // perceber que getTierPrice() nem o aceita.
+// KINEO-PLANOS-9-19-29-2026-09-08 — o fallback SSR era digitado ($7/$15) e
+// mentia na home até o /api/geo responder. Agora sai da fonte única.
 const USD_FALLBACK: Record<CheckoutTier, string> = {
-  starter: '$7.00',
-  basic: '$15.00',
-  pro: '$29.00',
+  starter: formatCheckoutMoney('usd', TIER_PRICES.starter.usd),
+  basic: formatCheckoutMoney('usd', TIER_PRICES.basic.usd),
+  pro: formatCheckoutMoney('usd', TIER_PRICES.pro.usd),
 }
 
 export default function LandingPlanPrice({

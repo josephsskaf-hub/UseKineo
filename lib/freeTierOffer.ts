@@ -253,7 +253,7 @@ const ON_COPY: FreeTierCopy = {
   // numero de tracao. O numero e verificavel: e o grant exato, derivado.
   ctaPrimary: `Start free — every engine unlocked →`,
   // Primeira oracao da headline aprovada pelo fundador, verbatim.
-  ctaHeading: 'Make a real film free — keep it for $7',
+  ctaHeading: 'Make a real film free — keep it for $9',
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000
