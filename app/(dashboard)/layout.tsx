@@ -69,6 +69,7 @@ import PaymentConfirmedToast from '@/components/PaymentConfirmedToast'
 import { REVERSE_TRIAL_ENABLED } from '@/lib/reverseTrial'
 import type { Metadata } from 'next'
 import CardEntryBanner from '@/components/CardEntryBanner'
+import TrialContinueNowBanner from '@/components/TrialContinueNowBanner'
 
 // KINEO-ACQ-SPRINT-2026-07-29 — KEEP THE APP OUT OF THE SEARCH INDEX.
 //
@@ -123,7 +124,7 @@ export default async function DashboardLayout({
   if (user) {
     const { data } = await supabase
       .from('profiles')
-      .select('is_pro, email, trial_status, has_paid')
+      .select('is_pro, email, trial_status, has_paid, plan, video_credits')
       .eq('id', user.id)
       .single()
     profile = data
@@ -158,6 +159,12 @@ export default async function DashboardLayout({
       {user && REVERSE_TRIAL_ENABLED && <TrialActiveBanner userKey={user.id.slice(0, 8)} />}
       {/* KINEO-VERSAO-B-ENTRADA-1-DOLAR-2026-09-08 — quem nasceu card_required vê a
           porta única antes de qualquer outra coisa. Some sozinha quando paga. */}
+      {user && (
+        <TrialContinueNowBanner
+          plan={(profile as { plan?: string | null } | null)?.plan ?? null}
+          credits={typeof (profile as { video_credits?: number | null } | null)?.video_credits === 'number' ? (profile as { video_credits?: number | null }).video_credits ?? null : null}
+        />
+      )}
       {user && (
         <CardEntryBanner
           status={(profile as { trial_status?: string | null } | null)?.trial_status ?? null}
