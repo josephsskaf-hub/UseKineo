@@ -2599,3 +2599,99 @@ comentário.
 **A FRASE DA ROTAÇÃO.** Hoje as travas que vigiam o dinheiro voltaram a ser
 capazes de ficar vermelhas — onze delas estavam vermelhas por motivo nenhum, e
 uma estava certa e ninguém tinha lido.
+
+---
+
+### #10b — 22:08 BRT — CHECKPOINT: o funil PÓS-CTA está mudo há 3h15 com tráfego ACIMA do normal — não é queda, e eu não consigo provar que não é
+
+**NADA DE CÓDIGO.** Medição — e a retificação de uma leitura minha de duas horas
+atrás, agora com controle de dia anterior em vez de só a linha de base de hoje.
+
+**1. O QUE EU DISSE ÀS 21:08 E PRECISA DE AJUSTE.** No checkpoint #9b eu derrubei
+o meu próprio alarme de "zero renders" comparando com **as outras horas de
+hoje**. Com o controle certo — **a mesma hora de relógio nos 3 dias anteriores** —
+o quadro muda:
+
+| hora UTC | renders (média 3 dias) | renders hoje | landing (média) | landing hoje |
+|---|---|---|---|---|
+| 21 | 3,25 | **3** | 11,3 | 20 |
+| 22 | 2,00 | **0** | 7,8 | 10 |
+| 23 | 2,75 | **0** | 8,5 | 15 |
+| 00 | 0,67 | **0** | 2,7 | 10 |
+
+**A hora 21 foi normal.** Das 22h em diante esperavam-se ~5,4 renders e saíram
+**0** — com o tráfego da landing **acima** da média em todas as horas. A leitura
+"está dentro da variação de hoje" era fraca: variação de hoje inclui horas
+mortas isoladas, não três seguidas contra tráfego acima da média.
+
+**2. O DEGRAU EXATO ONDE O FUNIL PARA.** Todos os eventos **depois** do clique na
+landing param no mesmo minuto, e o de antes continua vivo:
+
+| evento | última ocorrência (UTC) | 6h | 24h |
+|---|---|---|---|
+| `landing_session_started` | **00:59 (agora)** | 87 | 348 |
+| `organic_signup_handoff_viewed` | **00:00** | 3 | 27 |
+| `organic_cta_clicked` | **21:46** | 6 | 35 |
+| `generate_page_view` | 21:46 | 6 | 63 |
+| `analyze_idea_clicked` | 21:48 | 6 | 52 |
+| `video_generation_started` | 21:48 | 4 | 30 |
+
+Contra a mesma janela de **ontem**: landing **35 vs 26** (mais hoje), eventos de
+studio **0 vs 41**, renders **0 vs 11**, cadastros **0 vs 6**.
+
+**3. O QUE JÁ ESTÁ DESCARTADO — sondado, não suposto.** `/` `200` · `/signup`
+`200` · `/login` `200` · `/pricing` `200` · `/studio` `200` · `/studio/create`
+`307` (deslogado, correto) · controle inexistente `404`. HTML da home com 350 KB
+e o do signup com 43 KB — nada truncado. O JS do cliente **está rodando**: é ele
+que emite `landing_session_started`, que continua chegando neste minuto.
+`generation_stage_error`: **zero linhas em 6 horas**. Render preso **0**. E o
+`organic_signup_handoff_viewed` disparou às **00:00 UTC — depois** do início do
+silêncio, o que mostra que gente ainda atravessa a landing.
+
+**4. O QUE EU NÃO CONSIGO DECIDIR, E POR QUÊ.** Faltam-me exatamente **duas**
+informações para separar "noite magra com tráfego de robô" de "defeito sutil no
+funil": `landing_session_started` **não carrega `ip_hash` nem UA**. Sem isso, 35
+sessões podem ser 35 pessoas ou 3 crawlers — e eu já caí hoje, às 21:08, no
+`count(distinct)` sobre um campo que não existe, que devolve um número com cara
+de resposta. **Não vou repetir o erro na direção oposta declarando incidente.**
+A estimativa honesta: com ~1,5 clique de CTA por hora nas últimas 24h, três horas
+zeradas têm probabilidade de ~1% — **improvável, não impossível**.
+
+**5. O TESTE QUE DECIDE, e ele é de amanhã de manhã.** Se às **09:00 BRT** o
+funil pós-CTA voltar sozinho (`organic_cta_clicked` > 0 com tráfego normal), foi
+a madrugada e não há defeito. **Se continuar zerado com a landing ativa, é
+defeito** e o primeiro suspeito é o caminho landing → signup, não o render — o
+servidor de render não recusou ninguém em 6 horas porque **ninguém pediu**.
+
+**A INSTRUMENTAÇÃO QUE FALTA, e ela já foi pedida hoje por outra rotação.** O
+checkpoint #11b da outra sessão propôs carimbar `ua` + `ip_hash` no
+`checkout_attempted`. **O mesmo carimbo em `landing_session_started` responderia
+esta pergunta para sempre** — e responderia também "quantos visitantes de
+verdade a casa tem", que é a pergunta que o fundador faz há dias e que hoje só
+tem resposta por estimativa.
+
+**PLACAR DE FECHAMENTO — marco 2026-09-07 18:38 UTC (~6h30):** entrega real
+**1** · filme pronto na tela **3** · baixou **0** · porta de $1 vista **0** ·
+clique no $1 **0** · impressão com `slot_owner` **0** · checkout externo **0** ·
+**pagou 0**.
+
+**CHECAGEM ZERO (24h):** trial órfão **0** · render preso **0** · recusa sem
+dono **0** · último `payment_success` **02/09 20:22 UTC**.
+
+**✅ O QUE VOCÊ PRECISA FAZER**
+1. **Amanhã de manhã, antes de qualquer coisa:** conferir se o funil voltou.
+   Uma consulta responde — `organic_cta_clicked` e `video_generation_started` nas
+   últimas 3 horas. Se estiverem zerados com a landing ativa, **isso passa na
+   frente de qualquer superfície nova**.
+
+**📋 O QUE ACONTECEU**
+Checkpoint de medição, sem código. Refiz o alarme que eu mesmo tinha derrubado às
+21:08, agora com o controle certo — a mesma hora nos três dias anteriores em vez
+de só as outras horas de hoje — e ele fica de pé em parte: desde 21:48 UTC
+ninguém clicou no botão da landing, ninguém se cadastrou e ninguém gerou vídeo,
+enquanto o tráfego que chega na página inicial está **acima** da média. Não é
+apagão: todas as páginas respondem, o JavaScript do site está rodando e o
+servidor de render não recusou ninguém — simplesmente não pediram. Também não
+posso garantir que seja só uma madrugada fraca, porque o evento da landing não
+grava nada que distinga pessoa de robô. Deixei o teste que decide, para amanhã
+cedo, e a instrumentação que resolveria isso de vez.
