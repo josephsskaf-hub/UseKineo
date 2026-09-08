@@ -2065,3 +2065,91 @@ medir as rotas de resgate que já existem (`send-checkout-hot-nudge`,
 `send-checkout-recovery`, `send-abandon-recovery`) — a casa tem seis remédios
 para esta doença e nenhum deles foi medido; pode ser que o certo seja **ligar um
 que já existe**, não escrever o sétimo.
+
+---
+
+### #15 — 00:22→00:55 BRT — METADE DE QUEM APERTA COMPRAR NÃO TEM NOME, E NENHUM DOS SEIS REMÉDIOS DA CASA ALCANÇA ESSA METADE
+
+**Esta rotação não entregou código, de propósito.** A #14 fechou pedindo uma
+coisa antes de qualquer construção nova: *"a casa tem seis remédios para esta
+doença e nenhum deles foi medido; pode ser que o certo seja ligar um que já
+existe, não escrever o sétimo."* Fui medir. O que achei muda o alvo.
+
+**PRIMEIRO, O ALARME FALSO — e ele quase virou a entrega da noite.**
+`send-checkout-hot-nudge` roda **a cada 15 minutos** (96×/dia) e tem **zero**
+`checkout_hot_nudge_emailed_v1` no banco. Parece remédio morto. Não é: a rota
+nasceu em `1b4f3d9a`, **07/09 17:22 BRT** — tinha **7 horas de vida** quando
+medi. E o último `checkout_started` da casa é de **19:40 UTC**, *antes* do
+deploy dela. O denominador honesto não é 30 dias: é **zero oportunidades**
+(memórias `zero-escritas-conte-as-oportunidades` e `campo-novo-e-o-carimbo-do-deploy`).
+Não há defeito aqui. Quem for medir essa rota de novo: corte a medição em
+`2026-09-07 20:22 UTC`, não no relógio.
+
+**O QUE ESTAVA ERRADO, e é estrutural.** Fui ver por que ninguém apertou
+comprar em 7 horas — e a resposta é que **apertaram**. Sete vezes, das 20:24
+UTC às 02:37 UTC, espalhadas, não em rajada. Todas as sete com **`user_id`
+NULO e `session_id` NULO**. Não é uma noite atípica:
+
+| dia | `checkout_attempted` | sem nome | % |
+|---|---|---|---|
+| 08/09 | 5 | 5 | 100% |
+| 07/09 | 16 | 11 | 69% |
+| 06/09 | 9 | 6 | 67% |
+| 04/09 | 9 | 7 | 78% |
+| **14 dias** | **136** | **64** | **47%** |
+
+**Quase metade de toda a intenção de compra da casa chega sem nome.** E os
+seis remédios — `checkout-hot-nudge`, `checkout-recovery`, `checkout-rescue`,
+`abandon-recovery`, `card-declined`, `second-try-1usd` — **todos** selecionam
+por `user_id`. Não é que estejam desligados: é que **a metade que aperta
+comprar agora é invisível para os seis**, por construção. A casa escreve para
+quem tem nome, e quem tem nome é justamente a metade velha — foi exatamente o
+erro que a #14 achou por outro caminho (intenção de 23 dias).
+
+**O SEGUNDO ACHADO, menor mas caro.** Entre as 99 pessoas COM nome que bateram
+no checkout em 30 dias, **74 (75%) estão excluídas do hot-nudge para sempre**
+pela lista `OUTRAS_CAMPANHAS` — dez campanhas, sem nenhum limite de tempo.
+Quem recebeu uma `season_letter` em agosto nunca mais recebe a carta quente,
+mesmo apertando comprar hoje. Sobram **25**. É a mesma doença da memória
+`supressao-sem-precedencia-cala-a-carta-boa`: a carta genérica e antiga vence
+a carta rara e quente. É conserto de uma linha, e não foi feito nesta rotação
+porque a janela fecha às 01:00 — fica anotado, com o número medido.
+
+**SQL de tudo isso:** `docs/queries/VENDA-ASSISTIDA-2026-09-07.sql`, com os
+cortes já embutidos (janela de relógio, corte no deploy, funil de exclusão).
+
+## ✅ O QUE VOCÊ PRECISA FAZER
+
+1. **Enviar os 7 rascunhos do Autopilot** — `docs/RASCUNHOS-AUTOPILOT-2026-09-07.md`.
+   São os $299 e continuam parados desde ontem.
+2. **Enviar os 2 rascunhos de diretório** — `docs/RASCUNHOS-DIRETORIOS-2026-09-07.md`
+   (`colormango`, `toolriot`).
+3. **Corrigir a ficha do TAAFT** no dashboard: ainda anuncia "from $9.90/mo" e
+   trial de 40 créditos. Hoje a entrada é **$1 por 7 dias**.
+4. **Decisão sua:** as strings de `lib/freeTierOffer.ts` que prometem *"every
+   engine unlocked, including Kling 3"* para 25 créditos (o Kling 3 custa 150).
+
+## 📋 O QUE ACONTECEU
+
+A noite falou com 39 pessoas e nenhuma voltou. A #14 descobriu que falamos com
+gente cuja vontade de comprar tinha 23 dias, e consertou a ordem da fila. Esta
+rotação foi atrás da pergunta seguinte — *por que a casa demora tanto a falar
+com quem está quente* — e a resposta é pior e mais simples do que ordem de
+fila: **na metade das vezes a casa não sabe com quem falar**. Sete pessoas
+apertaram comprar entre ontem à noite e agora; nenhuma delas deixou nome. Os
+seis mecanismos de resgate que a casa construiu só sabem procurar por nome.
+
+Então o gargalo desta pista não é a carta, nem o preço, nem a hora do disparo.
+É que **o botão de comprar aceita ser apertado por quem a casa não consegue
+reconhecer** — e aí não sobra nem remédio, nem medição, nem culpado.
+
+**A jogada da próxima janela, e ela é barata:** não escrever a sétima carta.
+São duas coisas, nesta ordem. **(a)** Fazer o `checkout_attempted` anônimo
+carregar pelo menos o `session_id` do navegador — hoje vem nulo também, então
+nem dá para saber se foram 7 pessoas ou 2. Sem isso, nenhum número sobre essa
+metade da casa é confiável, e a própria pergunta "quantos clientes perdemos
+aqui?" não tem resposta. **(b)** Dar um limite de tempo à `OUTRAS_CAMPANHAS`
+(por exemplo 7 dias): quem apertou comprar *hoje* merece a carta quente mesmo
+tendo recebido a carta da temporada há um mês. Isso devolve ~74 pessoas ao
+alcance do único remédio que fala em 30 minutos — sem escrever uma linha de
+copy nova.
