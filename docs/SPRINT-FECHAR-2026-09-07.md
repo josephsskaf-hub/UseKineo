@@ -2374,3 +2374,119 @@ passou a exigir motor declarado).
 **A FRASE DA ROTAÇÃO.** Hoje as quatro superfícies onde a casa pede dinheiro
 voltaram a ter vigia de verdade — três delas estavam sendo "vigiadas" por
 guardiões que nem chegavam a ler a tela.
+### #10 (fv, sessão B) — 21:38–22:38 BRT — gastei uma hora consertando três guardiões que a outra sessão consertou nos mesmos minutos
+
+> **ENTRADA DE TRABALHO DUPLICADO. Zero linhas minhas foram para produção nesta
+> rotação.** Escrevi duas versões anteriores deste texto reivindicando consertos;
+> as duas estavam erradas e as reescrevi **antes de publicar**. O placar honesto:
+> os **três** guardiões que consertei foram consertados em paralelo pela outra
+> sessão da pista (`6a727de0` e `14cc900f`), e o meu commit de código chegou
+> **vazio** na fila — o rebase o descartou sozinho, porque não restava diferença.
+
+**O QUE EU FUI FAZER.** O checkpoint #11b da outra sessão listou doze guardiões
+vermelhos e disse que **não** os consertaria. Fui olhar a lista com outra
+pergunta — *algum está vermelho por causa da MINHA pista?* — e três estavam, os
+três na tela de filme pronto:
+
+| guardião | antes | causa |
+|---|---|---|
+| `test-trial-post-video-primary` | 25/57 | âncora da fv-r5 |
+| `test-trial-balance-bridge` | estoura na 1ª (286 desligadas) | âncora da fv-r5 |
+| `test-next-door-bar` | 25/28 | CRLF |
+
+A causa dos dois primeiros **é da nossa pista**: a fv-r5 (`fa09b1eb`, 17:50)
+trocou as guardas do JSX e os guardiões localizavam a caixa pela guarda antiga.
+Desde as 17:50 a caixa que ~228 pessoas/mês veem estava sem teste. **O
+diagnóstico continua valendo — o que não vale é a autoria do conserto.**
+
+**A COLISÃO, nos dois tempos em que ela aconteceu.** Consertei os três,
+falsifiquei por mutação do produto, commitei. O `enfileirar` bateu em **conflito
+real** nos dois primeiros: ela tinha acabado de reancorá-los. Cedi a versão dela
+— e num ponto a dela é **melhor**: a trava *"no literal dollar price"* me pegou
+um preço escrito num comentário meu e eu **reescrevi o comentário**; ela ensinou
+o teste a **ignorar comentários** (`cardCode`), que é a solução certa, porque
+comentário não é copy de tela. Refiz a fila com só o terceiro guardião — e
+**bateu em conflito de novo**: ela tinha consertado esse também, com a linha
+**idêntica** à minha (`.replace(/\r\n/g, '\n')` na leitura). Cedi outra vez.
+
+**NÃO MUDOU NADA EM PRODUÇÃO POR MINHA MÃO NESTA HORA.** Não há SHA de código
+para citar aqui, e não vou citar o dela como se fosse meu. O que está no ar é o
+trabalho dela; o que esta entrada acrescenta é diagnóstico e método.
+
+**O QUE SOBREVIVE, e é a parte que ninguém mediu ainda.** Guardião escrito com
+`assert`/`ok` **morre na primeira falha e leva a suíte inteira junto** — o do
+bridge exibia *uma* linha de erro e escondia **285 verificações desligadas**.
+Guardião com `check` perde só a linha. **Cinco dos doze são desse tipo**, e por
+isso "12 vermelhos" **subestima** o buraco. Triagem dos nove que **ninguém**
+tocou (são de outras pistas, e a de pagamentos está editando esses arquivos
+agora):
+
+| guardião | desligadas | 1ª falha |
+|---|---|---|
+| `test-business-content-plan` | ~56 | *first idea carries to the existing generator* |
+| `test-checkout-password-recovery` | ~27 | *ordinary password reset keeps its prior destination* |
+| `test-checkout-profile-read` | ~24 | *profile permission fields stay unchanged* |
+| `test-checkout-currency-truth` | ~18 | *visible home FAQ uses canonical disclosure* |
+| `test-stripe-checkout-failure-truth` | ~16 | *PaymentIntent resolves billing reason* |
+| `test-animate-paywall` | 1 de 59 | "Cost per clip" derivado |
+| `test-credito-vitrine` | 1 de 15 | âncora perdida |
+| `test-porta-serie-impressao` | 3 | `href` em 3 telas |
+| `test-rewrite-candidate-offer` | 1 | denominador |
+
+**~141 verificações a mais estão desligadas** nos cinco do tipo `assert`. E o
+padrão de reparo, medido nos três de hoje: **em nenhum o produto estava quebrado
+— era sempre a âncora que envelheceu.**
+
+**O MÉTODO QUE EU DEIXO REGISTRADO, porque vale para quem pegar os nove.**
+Guardião que volta ao verde por mudança de âncora **tem de ser falsificado**,
+senão troca-se um vermelho barulhento por um **verde mudo**, que é pior. Commitar
+antes (o `git checkout --` do próprio teste apaga edição não commitada — memória
+`falsificar-mutacao-commitar-antes`), mutar o **produto**, exigir vermelho,
+restaurar, exigir verde. Fiz isso nos três antes de ceder: apagar a guarda da
+caixa comercial derruba os dois primeiros; apagar os dois desarmes da barra
+derruba o terceiro.
+
+**A LIÇÃO DE GESTÃO, que é o item mais caro desta entrada.** Li o checkpoint dela
+("**não os consertei**") e tratei aquilo como reserva durável. Não era — vinte
+minutos depois ela mudou de ideia, e é direito dela. **Duas sessões na mesma
+pista se coordenam por um documento que cada uma escreve uma vez por hora, e a
+colisão acontece dentro da hora.** O que funcionou foi o resto do protocolo: o
+`enfileirar` **não deixou ninguém sobrescrever ninguém** — parou com conflito e
+exigiu decisão, exatamente como foi desenhado depois de 01/09. O que faltou é
+barato: **antes de consertar arquivo que não é da sua entrega, `git log
+origin/main --since='20 minutes ago' --name-only` e procurar o arquivo ali.**
+
+**PLACAR DE FECHAMENTO — marco 2026-09-07 18:38 UTC (~6h):** entrega real **1** ·
+filme pronto na tela **3 impressões / 2 pessoas** · baixou **0** · caixa
+comercial **0** · porta de $1 vista **0** · checkout externo **0** · **pagou 0**.
+
+**CHECAGEM ZERO (24h):** trial órfão **0** · render preso **0** · recusa sem
+dono **0** · último `payment_success` **02/09 20:22 UTC** (jejum de 5 dias).
+
+**A FRASE DA ROTAÇÃO.** Não tem. Um visitante novo não encontra hoje nada que não
+encontrasse há uma hora **por minha causa** — e a regra do ciclo é que sem isso a
+rotação não fechou. Esta não fechou.
+
+**PRÓXIMA JOGADA.** O ciclo fecha às 23:38 e a próxima é a de fechamento. Duas
+coisas valem mais que uma superfície nova: (1) rodar a suíte inteira na ponta
+final e publicar o número honesto de verdes/vermelhos, depois de um dia em que
+duas pistas subiram muito código; (2) deixar escrito que **nenhuma das cinco
+portas de $1 criadas hoje foi vista por uma pessoa sequer** — o teste delas é o
+tráfego de amanhã de manhã, não o desta madrugada.
+
+**✅ O QUE VOCÊ PRECISA FAZER**
+1. Nada.
+
+**📋 O QUE ACONTECEU**
+Esta hora não rendeu. Fui consertar três testes de segurança apagados que
+guardavam a tela em que trabalhei hoje — dois deles quebrados por uma mudança da
+nossa própria pista às 17:50, que deixou a caixa de venda de ~228 pessoas/mês sem
+teste por quatro horas. A outra sessão que roda comigo consertou os três nos
+mesmos minutos, e o meu trabalho chegou vazio na fila. Podia ter escondido isso
+atrás de um resumo vago; prefiro que você saiba onde a hora foi. Duas coisas
+salvo dela: o mecanismo de entrega funcionou como devia — parou com conflito em
+vez de deixar uma sessão apagar a outra — e o diagnóstico dos nove testes que
+continuam apagados, cinco dos quais escondem cerca de 141 verificações atrás de
+uma única linha de erro, porque morrem na primeira falha. Nenhuma venda nova:
+jejum de cinco dias, e nenhuma das portas de $1 criadas hoje foi vista por
+alguém.
