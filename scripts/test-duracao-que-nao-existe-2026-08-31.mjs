@@ -121,8 +121,21 @@ checa('DEFAULT_DURATION deriva do próprio seletor',
 checa('o estado da tela nasce em DEFAULT_DURATION',
   /useState<Duration>\(DEFAULT_DURATION\)/.test(fonteClient))
 checa('nenhum useState de duração escrito à mão com 45', !/useState<Duration>\(45\)/.test(fonteClient))
+// 08/09 — REANCORADO PELA CONDIÇÃO. A trava cravava a linha de import INTEIRA,
+// palavra por palavra. O #6 da madrugada somou `autofitDown` à mesma linha (para
+// o preflight parar de usar régua própria) e este guardião ficou vermelho sem que
+// nada da CONDIÇÃO dele tivesse mudado: narrationFit continua sendo a régua do
+// contador. O que importa é que as DUAS peças venham de lá — não a ordem nem a
+// ausência de vizinhos na lista.
+const importaDeNarrationFit = (nome) => {
+  const fim = fonteClient.indexOf("} from '@/lib/narrationFit'")
+  if (fim < 0) return false
+  const abre = fonteClient.lastIndexOf('{', fim)
+  if (abre < 0) return false
+  return fonteClient.slice(abre + 1, fim).split(',').map((t) => t.trim()).includes(nome)
+}
 checa('narrationFit continua sendo a régua do contador vivo da tela',
-  fonteClient.includes("import { MIN_COVERAGE, speechSeconds } from '@/lib/narrationFit'"))
+  importaDeNarrationFit('MIN_COVERAGE') && importaDeNarrationFit('speechSeconds'))
 
 console.log('\nF) Fronteira com o Codex e armadilhas conhecidas')
 checa('nada de preço/crédito/plano nesta mudança',
