@@ -1908,3 +1908,36 @@ devolvi meus dois arquivos à versão de `2ecbfc89` e rodei os três de novo:
 **vermelhos ANTES da minha mudança**. São herdados (memória
 `assercao-alheia-vermelha-se-reancora`), não meus. `test-llms-paginas-citadas`
 seguiu verde nas duas pontas.
+
+**ADENDO 2 à #13 — SONDADO NO AR ÀS 00:20 BRT. A PORTA DE $1 É A PRIMEIRA COISA
+QUE UM MOTOR DE RESPOSTA LÊ SOBRE PREÇO.**
+
+`/llms.txt` passou de **47.083 → 47.592 bytes** (HTTP 200, controle
+`llms-nao-existe.txt` = **404** na mesma medição — a sonda separa; memória
+`sonda-401-exige-controle-404`). UA identificável, não `curl` pelado (memória
+`sonda-com-ua-de-curl-cai-no-ramo-do-robo`).
+
+A seção `## Pricing` agora abre assim, textualmente:
+
+```
+- **Cheapest way to start: $1.00 for a 7-day Creator trial** ([start here](…trial=1)).
+  Includes 80 credits and clean, watermark-free downloads. A card is required;
+  it converts to $15.00/month after 7 days unless cancelled.
+  - Not available to anyone who has subscribed to a paid Kineo plan before…
+  - Not available to annual billing…
+```
+
+**E o link publicado funciona deslogado:** `307` para
+`/signup?reason=checkout&redirect=…` com `tier=basic`, `billing=monthly`,
+`trial=1` e `resumed=1` **preservados** — os mesmos cinco elos que a #12 já
+tinha provado à mão.
+
+**Antes:** a coisa mais barata que o ChatGPT sabia dizer sobre a Kineo era
+`$7.00/month`. **Agora:** `$1.00` por 7 dias, com as duas recusas do servidor
+na mesma frase.
+
+**O que isto NÃO prova.** Não prova venda, nem tráfego, nem citação: motor de
+resposta só repassa o número quando alguém pergunta, e a reindexação dos
+motores leva dias. O que ficou provado hoje é o **caminho** — o número certo
+está publicado, no lugar que é lido, com a URL que responde 307 e chega ao
+checkout. A medição de efeito é da próxima janela.
