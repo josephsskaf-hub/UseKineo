@@ -5,7 +5,14 @@ import { readFileSync } from 'node:fs'
 import { execSync } from 'node:child_process'
 
 const P = 'app/(dashboard)/generate/GenerateClient.tsx'
-const src = readFileSync(P, 'utf8')
+// KINEO-CRLF-NA-LEITURA-2026-09-07 — TRÊS verificações desta suíte ancoram em
+// DUAS linhas (a guarda completa da barra, o piso de `nextIdeasCount > 0` e o
+// desarme C). O checkout do Windows entrega este arquivo com `\r\n`, e uma
+// âncora que atravessa linha com `\n` literal nunca casa. As três acusavam o
+// produto por uma diferença de fim de linha, e falso vermelho treina gente a
+// ignorar guardião (memória `guardiao-crlf-falso-vermelho`). A normalização é
+// só na LEITURA do teste: o arquivo em disco não é tocado.
+const src = readFileSync(P, 'utf8').replace(/\r\n/g, '\n')
 const diff = (() => { try { return execSync('git diff -U0 HEAD -- "' + P + '"', { encoding: 'utf8' }) } catch { return '' } })()
 const mais = diff.split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++'))
 
