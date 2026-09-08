@@ -805,3 +805,180 @@ que prove que o campo novo viaja. A prova real vem sozinha: o primeiro
 `metadata` é o carimbo do deploy (memória: campo novo é o carimbo, não o
 relógio). Enquanto nenhum aparecer, o correto é dizer **desconhecido**, não
 "funcionando".
+
+---
+
+### #7 — 04:48 BRT — M3: 126 filmes moram no disco do fornecedor, 91 já morreram, e ninguém sabia
+
+**Primeiro: a falsificação que a #2 deixou marcada.** A #2 publicou a capa
+(`f42e410d`) e escreveu a consulta que decidiria se ela pega, com as três
+saídas já nomeadas. Rodei:
+
+```
+completos_total=1681 · com_capa_total=0
+novos_pos_deploy=0 · com_capa_pos_deploy=0 · ultimo_video=2026-09-08 04:00 UTC
+```
+
+`filmes_novos = 0` ⇒ **não há denominador; não concluo nada**, exatamente
+como a #2 mandou. A capa não está provada nem desmentida. Fica para a
+primeira rotação que encontrar um filme completado depois de 05:25 UTC.
+⚠️ Também conferi a coluna irmã `thumb_url` (existe no schema, é lida em
+`/api/videos` e `/my-videos`): **0 de 1.685**. Não havia um segundo lugar com
+a capa escondida.
+
+**O alvo desta rotação apareceu enquanto eu media o denominador.** Perguntei
+de onde os filmes são servidos, e a resposta tem três hosts:
+
+| onde o filme mora | filmes | pessoas | duração mediana |
+|---|---|---|---|
+| nosso bucket (`…supabase.co/storage/…`) | 1.549 | 819 | 45s |
+| **disco do Creatomate** (`f002.backblazeb2.com/file/creatomate-…`) | **126** | **57** | **60s** |
+| CDN da fal (maio) | 6 | 2 | 10s |
+
+**Sondei a rede, com controle na mesma medição.** Range `0-99`, UA de
+navegador, e um nome inexistente no MESMO bucket como controle (ele também dá
+404 — então 404 ali significa "sumiu", não "bloqueado"):
+
+```
+12/05 · 27/05 · 06/07 · 08/07 · 02/08 · 05/08 · 06/08 ......... 404
+17/08 · 18 · 19 · 20 · 21 · 24 · 25 · 26 · 28 ................. 206
+01/09 · 02 · 03 · 04 · 05 · 06 · 07 · 08 ...................... 206
+```
+
+A fronteira está entre **06/08 e 17/08** — retenção de ~30 dias. Traduzido
+para gente:
+
+- **91 filmes de 30 pessoas já estão MORTOS.** O card abre, o player tenta,
+  e não há arquivo. A casa entregou, cobrou, e o filme sumiu do disco de
+  outra empresa.
+- **35 filmes de 28 pessoas ainda vivem, com prazo.** O mais antigo é de
+  **17/08 02:04** e deve morrer por volta de **17/09**.
+
+**A causa tem assinatura, e ela acusa o arquivo certo.**
+`persistRenderAssets` (`lib/renderAssets.ts`) baixa o MP4 com
+`downloadTimeoutMs: 25_000` e, em qualquer falha, **devolve a URL do
+fornecedor e segue em frente** — a única marca era um `console.warn` que
+expira junto com o log da Vercel. Um filme de 60s pesa 35-65 MB; 25s de
+orçamento pedem ~20 Mbit/s sustentados. Quem estoura é o arquivo **grande**.
+Medido desde 01/08:
+
+| | filmes | pessoas | duração média | quantos têm ≥60s |
+|---|---|---|---|---|
+| copiados para nós | 1.035 | 613 | 48,3s | 250 (**24%**) |
+| ficaram no fornecedor | 43 | 34 | 67,0s | 38 (**88%**) |
+
+Ou seja: **o vazamento cai exatamente sobre o filme que a casa manda todo
+mundo fazer** — a regra fixa dos 60s+ do TikTok Creator Rewards.
+
+**O que mudou** (`2fc6784d`, **EM PRODUÇÃO**, `origin/main` = `2fc6784d`,
+fila = 0).
+
+`app/api/cron/rescue-vendor-assets` passa nos filmes que ainda estão no
+fornecedor, **do mais antigo para o mais novo** (a fila é por prazo de morte,
+não por tamanho nem por quem usou mais), confere se a fonte existe, copia
+para o nosso bucket e reponta o `video_url`. Como **não há ninguém
+esperando**, o orçamento de download é de 120s — e é exatamente por isso que
+a rota existe: o caminho vivo (`/api/compose/status`) tem `maxDuration = 60`
+**com a pessoa olhando a tela**, então esticar o prazo lá trocaria um link
+que morre em 30 dias por uma entrega que falha agora. Por isso **os 25s do
+caminho vivo NÃO foram aumentados**, de propósito.
+
+Três recusas deliberadas, porque são elas que tornam o passo seguro:
+1. **Nada é apagado, em lugar nenhum.** A URL antiga vai inteira para o
+   evento — o passo é desfazível à mão.
+2. **O `video_url` só é repontado depois de PROVAR** que o objeto novo existe
+   no nosso bucket e tem o **mesmo tamanho** do que foi baixado. Repontar às
+   cegas trocaria um filme com prazo por um filme quebrado agora.
+3. **Nada é gerado, recomposto ou cobrado.** Nenhum crédito é tocado.
+
+`lib/renderAssets.ts` deixa de falhar em silêncio: quando a cópia não
+acontece, carimba `render_asset_left_on_vendor` com dono, render e a URL do
+fornecedor. É o que faltava para que os próximos 5% não levem 4 meses para
+serem descobertos.
+
+O filme **já morto** não tem resgate — a fonte não existe mais. O que a rota
+faz por ele é **parar de fingir**: carimba `vendor_asset_expired` uma vez,
+com dono e data, para que a próxima rotação saiba de quem é o prejuízo e
+possa avisar a pessoa. Hoje ninguém sabe.
+
+E o gatilho é automático: `vercel.json` ganhou `/api/cron/rescue-vendor-assets`
+no **minuto 23** de cada hora (minuto livre; 36 crons no total, teto do plano
+é 40). Remédio que depende de alguém lembrar de clicar não conserta nada —
+foi assim que `send-failure-recovery` dormiu 30 dias. Pelo mesmo motivo o
+padrão da rota é **AGIR**; `?dry=1` é a inspeção, opt-in.
+
+**A prova.** `scripts/test-resgate-filme-do-fornecedor-2026-09-08.mjs`,
+**35 verificações** em estilo `readFileSync`/contagem (nunca `assert` que
+morre na primeira falha), ancoradas pela CONDIÇÃO. A trava do tamanho é
+**estrutural**, não textual: exige que a comparação apareça ANTES do update e
+que o ramo divergente saia sem escrever. Falsificado por **10 mutantes**, cada
+um com o md5 do arquivo conferido antes de medir:
+
+    tira o fail-closed do CRON_SECRET ................. VERMELHO ✔ (A2)
+    apaga a comparação de tamanho antes do update ..... VERMELHO ✔ (B1/B3/B4)
+    fila do mais NOVO para o mais antigo .............. VERMELHO ✔ (D1)
+    orçamento do resgate igual ao do caminho vivo ..... VERMELHO ✔ (D5)
+    dry-run vira o padrão ............................. VERMELHO ✔ (H2)
+    o carimbo de "ficou no fornecedor" some ........... VERMELHO ✔ (F2/F3)
+    o carimbo sai de dentro do ramo da falha .......... VERMELHO ✔ (F1/F3/F5)
+    o caminho vivo estica o orçamento para 90s ........ VERMELHO ✔ (F7)
+    o cron some do vercel.json ........................ VERMELHO ✔ (G1/G2)
+    o resgate divide o minuto com outro cron .......... VERMELHO ✔ (G3)
+
+`tsc --noEmit` limpo, e a base `39a11f55` foi conferida verde ANTES de eu
+escrever uma linha. Nenhum arquivo do pipeline de qualidade foi tocado:
+`lib/renderAssets.ts` não está na lista de proibidos do fundador (03/09) — a
+lista é `lib/compose`, `lib/hollywood/`, `lib/cinematic/`, `lib/broll/`,
+`lib/lyriaMusic`, `lib/narrationFit`, `analyze-idea`, `generate-script`.
+
+**⚠ O limite desta rotação, dito na cara.** A rota está publicada e o cron
+está agendado, mas **ela ainda não rodou** — o primeiro disparo é às
+**xx:23**. Enquanto nenhum `vendor_asset_rescued` aparecer em `events`, o
+correto é dizer **"o resgate existe"**, nunca "os 35 estão salvos". A
+consulta que decide, para a próxima rotação:
+
+```sql
+select name, count(*), count(distinct user_id), max(created_at)
+from events
+where name in ('vendor_asset_rescued','vendor_asset_expired','vendor_asset_rescue_failed')
+group by 1;
+```
+
+`rescued > 0` ⇒ o resgate pega e os 35 vão sendo trazidos a 6 por hora
+(≈6 horas para a fila inteira). `failed > 0` com `stage='verify'` ⇒ a trava de
+tamanho fez o trabalho dela e o update foi recusado, o que é o
+comportamento **certo**, não um defeito. Zero linhas de qualquer tipo depois
+de duas horas ⇒ o cron não está disparando, e aí o suspeito é o `vercel.json`,
+não o código.
+
+#### ✅ O QUE VOCÊ PRECISA FAZER
+1. **Nada nesta rotação.** O resgate roda sozinho de hora em hora.
+2. Continua em aberto, do fecho da #2: **a decisão sobre a trava do
+   `lib/compose.ts`** (commit `f42e410d`, a capa). Nada nesta rotação depende
+   dela.
+
+#### 📋 O QUE ACONTECEU
+Fui conferir se a capa que subiu às duas da manhã tinha funcionado. Não deu
+para saber — ninguém gerou filme desde então, e sem filme novo não há o que
+medir; deixei a conta pronta para a próxima rotação, como estava combinado.
+Mas, perguntando de onde os filmes são servidos, achei uma coisa pior: **126
+dos nossos filmes nunca saíram do disco do fornecedor**, e o disco dele
+apaga tudo depois de uns 30 dias. Fui na rede conferir um por um: os de maio,
+julho e começo de agosto **já não existem**. São **91 filmes de 30 pessoas
+que a casa entregou e que hoje não abrem**. Outros **35, de 28 pessoas**,
+ainda estão lá e morrem nas próximas semanas.
+
+A causa é o tipo de coisa que só aparece quando alguém mede: a rotina que
+traz o filme para a nossa casa tem 25 segundos para baixar o arquivo e, se
+não consegue, **desiste calada**. Filme de 60 segundos pesa demais para esse
+prazo — e por isso o vazamento pegou justamente os filmes longos, que são os
+que a gente pede que todo mundo faça por causa do TikTok. Dos que ficaram
+para trás, 88% passam de um minuto.
+
+Agora existe um resgate que roda sozinho toda hora: ele vai buscar os filmes
+que ainda estão lá, do mais antigo primeiro, traz para a nossa casa e só
+troca o endereço depois de conferir que o arquivo chegou inteiro. Não apaga
+nada e guarda o endereço antigo, caso a gente precise voltar atrás. Para os
+que já morreram não há milagre — mas eles param de ser invisíveis: cada um
+fica carimbado com o nome do dono, para a gente decidir o que dizer a essas
+30 pessoas.
