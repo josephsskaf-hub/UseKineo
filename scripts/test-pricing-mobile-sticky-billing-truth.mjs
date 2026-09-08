@@ -31,8 +31,8 @@ const ok = (value, label) => { assert.ok(value, label); checks += 1 }
 equal(policy.MOBILE_STICKY_BILLING_TRUTH_VERSION, 'pricing_mobile_sticky_billing_truth_v1', 'version is stable')
 
 const names = { starter: 'Starter', basic: 'Creator', pro: 'Studio' }
-const monthly = { starter: '$7', basic: '$15', pro: '$29' }
-const annual = { starter: '$70', basic: '$150', pro: '$290' }
+const monthly = { starter: '$9', basic: '$19', pro: '$29' }
+const annual = { starter: '$90', basic: '$190', pro: '$290' }
 for (const tier of ['starter', 'basic', 'pro']) {
   const flame = tier === 'basic' ? ' 🔥' : ''
   equal(policy.mobileStickyPlanLabel({ tier, billing: 'monthly', monthlyLabel: monthly[tier], annualTotalLabel: annual[tier] }), `${names[tier]} ${monthly[tier]}${flame}`, `${tier} monthly label stays unchanged`)
@@ -66,8 +66,8 @@ const telemetryKeys = Object.keys(policy.mobileStickyTelemetry({ billing: 'annua
 equal(telemetryKeys, ['billing', 'placement', 'tier', 'version'], 'telemetry emits only categorical, non-identity keys')
 
 const checkoutPricing = read('lib/checkoutPricing.ts')
-ok(checkoutPricing.includes("starter: { usd: 7000 }"), 'Starter annual total remains canonical')
-ok(checkoutPricing.includes("basic: { usd: 15000 }"), 'Creator annual total remains canonical')
+ok(checkoutPricing.includes("starter: { usd: 9000 }"), 'Starter annual total remains canonical')
+ok(checkoutPricing.includes("basic: { usd: 19000 }"), 'Creator annual total remains canonical')
 ok(checkoutPricing.includes("pro: { usd: 29000 }"), 'Studio annual total remains canonical')
 
 console.log(`pricing mobile sticky billing truth: ${checks}/${checks} checks passed`)

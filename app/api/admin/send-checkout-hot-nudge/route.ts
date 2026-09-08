@@ -55,6 +55,7 @@ import { dedupeTripwire } from '@/lib/truncationTripwire'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
 import { pickMomentumTopic } from '@/lib/momentumTopic'
+import { CARD_TRIAL_THEN_LABEL } from '@/lib/checkoutPricing'
 
 export const maxDuration = 300
 export const dynamic = 'force-dynamic'
@@ -185,7 +186,7 @@ If life just got in the way, this is the same page you left — same plan, same 
 
 ${liveUrl}
 
-If it was the price and not the tab: Creator is $1 for the first 7 days, then $15/month. Same engines, same films.
+If it was the price and not the tab: Creator is $1 for the first 7 days, ${CARD_TRIAL_THEN_LABEL.replace('/mo', '/month')}. Same films.
 ${planoUrl()}
 
 And if something on that page did not add up, hit reply and tell me in one sentence. It comes straight to me, and I would rather know than guess.
@@ -209,7 +210,7 @@ function corpoHtml(filme: string | null, liveUrl: string, userId: string, temFil
 <p style="margin:26px 0">
   <a href="${liveUrl}" style="background:#2997ff;color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:700;display:inline-block">Finish where you left off &rarr;</a>
 </p>
-<p style="font-size:14px;color:#555">If it was the price and not the tab: <a href="${planoUrl()}" style="color:#2997ff">Creator is $1 for the first 7 days</a>, then $15/month. Same engines, same films.</p>
+<p style="font-size:14px;color:#555">If it was the price and not the tab: <a href="${planoUrl()}" style="color:#2997ff">Creator is $1 for the first 7 days</a>, ${CARD_TRIAL_THEN_LABEL.replace('/mo', '/month')}. Same films.</p>
 <p>And if something on that page did not add up, hit reply and tell me in one sentence. It comes straight to me, and I would rather know than guess.</p>
 <p>&mdash; Joseph, founder<br/>Kineo &middot; <a href="https://usekineo.com" style="color:#2997ff">usekineo.com</a></p>
 ${emailFooterHtml(userId)}</div>`

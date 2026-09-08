@@ -91,9 +91,13 @@ export type CheckoutCurrency = 'usd'
 // tradução do mesmo preço. Isso caiu no mesmo dia — ver o bloco USD-ONLY no
 // topo do arquivo: números locais fixos derivam contra o dólar quando o câmbio
 // anda, e ninguém revisita nove números. Hoje existe UM preço, em USD.)
+// KINEO-PLANOS-9-19-29-2026-09-08 — decisão do fundador (08/09 03:20 BRT): Starter $9,
+// Creator $19, Studio $29. Vitrine fala em FILMES por calendário ("3 a week", "1 a
+// day", "every engine"); Starter e Creator só Kineo 1 + Seedance (lib/enginePlanGate.ts),
+// o que fecha a margem no piso da casa. Doc: docs/DECISAO-PLANOS-2026-09-08.md.
 export const TIER_PRICES: Record<CheckoutTier, Record<CheckoutCurrency, number>> = {
-  starter: { usd: 700 },
-  basic: { usd: 1500 },
+  starter: { usd: 900 },
+  basic: { usd: 1900 },
   pro: { usd: 2900 },
 }
 
@@ -158,8 +162,9 @@ export function monthlyPriceMinor(
 // KINEO-PRICING-V6-2026-08-19 — anual segue a mesma regra de sempre: 10× o
 // mensal (dois meses de graça). $70 / $150 / $290.
 export const ANNUAL_PRICES: Record<CheckoutTier, Record<CheckoutCurrency, number>> = {
-  starter: { usd: 7000 },
-  basic: { usd: 15000 },
+  // KINEO-PLANOS-9-19-29-2026-09-08 — anual = 10 meses (2 grátis), padrão do mercado.
+  starter: { usd: 9000 },
+  basic: { usd: 19000 },
   pro: { usd: 29000 },
 }
 
@@ -174,8 +179,8 @@ export const INTRO_PRICES: Record<CheckoutIntroTier, Record<CheckoutCurrency, nu
   // KINEO-PRICING-V6-2026-08-19 — segue espelhando TIER_PRICES. Se algum dia
   // voltar a existir intro, é AQUI que ele nasce, e o hasIntroOffer() acende
   // a UI sozinho. Enquanto for igual, nenhuma tela promete desconto.
-  starter: { usd: 700 },
-  basic: { usd: 1500 },
+  starter: { usd: 900 },
+  basic: { usd: 1900 },
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -328,6 +333,9 @@ export function netAfterStripeUsd(grossUsd: number): number {
 // gratis da nao faz sentido. Por isso o trial de cartao tem numero proprio.
 // Anti-abuso: 1 por conta (has_paid no checkout) + missing_payment_method=cancel.
 export const CARD_TRIAL_GRANT_CREDITS = 80
+/** "then $19/mo" — nunca digitado: sai de TIER_PRICES.basic (USD-only). */
+export const CARD_TRIAL_THEN_LABEL = `then ${TIER_PRICES.basic.usd / 100}/mo`
+export const CARD_TRIAL_SECONDARY_LABEL = `or try Creator for 7 days — $1, ${CARD_TRIAL_THEN_LABEL} →`
 
 // KINEO-TRIAL-1DOLAR-NA-ENTREGA-2026-09-07 — os dois números que a PORTA de $1
 // promete na tela, num lugar só. Até aqui eles existiam apenas como constantes
@@ -397,8 +405,10 @@ export const TIER_CREDITS: Record<CheckoutPlanTier, number> = {
   // ~50% no mix real). Segue oito vezes acima dos 3% que o Studio da V5 tinha,
   // e 180 mantém verdadeira a promessa que sustenta o plano premium: um filme
   // Kling 3 (150cr) por mês com folga.
-  starter: 40,
-  basic: 90,
+  // KINEO-PLANOS-9-19-29-2026-09-08 — 60 = "3 films a week" (12 Kineo 1 ou 3 Seedance);
+  // 150 = "1 film a day" (30 Kineo 1 + 2 Seedance); 180 = Studio como estava (piso de margem).
+  starter: 60,
+  basic: 150,
   pro: 180,
   autopilot: 400,
 }
@@ -420,8 +430,8 @@ export const INTRO_CREDITS: Record<CheckoutIntroTier, number> = {
   // abaixo do custo no pior caso (net $6.50 vs COGS $7.02; $14.26 vs $16.38) —
   // ou seja, o primeiro mês de todo assinante novo seria prejuízo. É o tipo de
   // erro que só aparece em produção, no extrato, um mês depois.
-  starter: 40,
-  basic: 90,
+  starter: 60,
+  basic: 150,
 }
 
 // KINEO-PRICING-V3D-2026-07-26 — DEFECT (a). The entry packs used to grant 10

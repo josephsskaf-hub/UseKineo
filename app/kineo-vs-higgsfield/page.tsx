@@ -49,7 +49,7 @@ const FAQ_JSONLD = {
       name: 'Is Kineo cheaper than Higgsfield?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Kineo plans start at $7/month and the mid plan is $15/month; Higgsfield entry plans are typically $15/month with the popular tier around $39/month billed annually. The honest comparison is per finished video: with Kineo the credits include the whole film — narration, captions and music — while on a generation platform a finished Short usually means several generations plus your editing time.',
+        text: `Kineo plans start at ${TIER_PRICES.starter.usd / 100}/month and the mid plan is ${TIER_PRICES.basic.usd / 100}/month; Higgsfield entry plans are typically $15/month with the popular tier around $39/month billed annually. The honest comparison is per finished video: with Kineo the credits include the whole film — narration, captions and music — while on a generation platform a finished Short usually means several generations plus your editing time.`,
       },
     },
     {

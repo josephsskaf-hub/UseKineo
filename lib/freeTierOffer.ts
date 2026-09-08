@@ -291,12 +291,12 @@ const CARD_ENTRY_TIER_COPY: FreeTierCopy = {
   chip: CARD_ENTRY_COPY.chip,
   chipLower: CARD_ENTRY_COPY.chip,
   planCardBody:
-    'Kineo starts at $1: 7 days of Creator with 80 credits and every engine unlocked. Then $15/month, cancel anytime. There is no free tier.',
+    'Kineo starts at $1: 7 days of Creator with 80 credits. Then $19/month for about one film a day, cancel anytime. There is no free tier.',
   counterNoun: 'this month',
   planLimitLine: 'free Fast videos — none; every account starts with the $1 trial',
   limitHitError:
-    'Kineo starts at $1: 7 days of Creator with 80 credits and every engine unlocked. Start your trial to make this film.',
-  cmpKineoFree: 'Kineo: no free tier — $1 for 7 days of Creator (80 credits, every engine), then $15/month.',
+    'Kineo starts at $1: 7 days of Creator with 80 credits. Start your trial to make this film.',
+  cmpKineoFree: 'Kineo: no free tier — $1 for 7 days of Creator (80 credits), then $19/month.',
   limitHitEmailSubject: 'Start your Kineo trial — $1 for 7 days',
   limitHitEmailIntro: 'Your account has no credits yet — Kineo starts with a $1 trial: 7 days of Creator with 80 credits.',
   limitHitEmailIntroHtml: 'Your account has no credits yet — Kineo starts with a <strong>$1 trial</strong>: 7 days of Creator with 80 credits.',

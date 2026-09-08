@@ -49,9 +49,9 @@ export const CARD_ENTRY_REQUIRED_EVENT = 'card_entry_required' as const
 export const CARD_ENTRY_COPY = {
   ctaShort: 'Try 7 days for $1',
   ctaLong: 'Try Creator 7 days for $1 →',
-  chip: '$1 for 7 days — 80 credits, every engine',
-  headline: 'Start for $1: 7 days of Creator with 80 credits and every engine unlocked. Then $15/month, cancel anytime.',
+  chip: '$1 for 7 days — 80 credits, then $19/mo',
+  headline: 'Start for $1: 7 days of Creator with 80 credits, Kineo 1 and Seedance unlocked. Then $19/month, cancel anytime.',
   sentence:
-    'Every new account starts with the Creator trial: $1 for 7 days, 80 credits up front, every engine unlocked (Kling 3 included). After 7 days it continues at $15/month unless you cancel.',
+    'Every new account starts with the Creator trial: $1 for 7 days, 80 credits up front, Kineo 1 and Seedance unlocked. After 7 days it continues at $19/month (about one film a day) unless you cancel.',
   noFreeTier: 'There is no free tier: the $1 trial is the only way in.',
 } as const

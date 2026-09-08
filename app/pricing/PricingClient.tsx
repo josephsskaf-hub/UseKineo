@@ -89,6 +89,7 @@ import {
   checkoutResumeUnavailableTelemetry,
   isCheckoutResumeUnavailable,
 } from '@/lib/growth/checkoutResumeUnavailable'
+import { CARD_TRIAL_SECONDARY_LABEL } from '@/lib/checkoutPricing'
 
 // PAYPAL-DISABLED-2026-07-06 — PayPal checkout is hidden on pricing until it's
 // verified working end-to-end (business account still needs verification). All
@@ -1122,7 +1123,7 @@ export default function PricingClient() {
                     }}
                     className="mt-2 block w-full rounded-xl border border-[#2997ff]/40 bg-[#2997ff]/[0.08] px-4 py-2.5 text-center text-[13px] font-bold text-[#7cc0ff] transition hover:bg-[#2997ff]/[0.16]"
                   >
-                    or try Creator for 7 days — $1, then $15/mo →
+                    {CARD_TRIAL_SECONDARY_LABEL}
                   </button>
                 )}
                 {PAYPAL_ENABLED && isPaid && (

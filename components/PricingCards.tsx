@@ -58,6 +58,7 @@ import {
   createInlinePricingDecisionRecorder,
   createInlinePricingDwellController,
 } from '@/lib/growth/inlinePricingDecision'
+import { CARD_TRIAL_SECONDARY_LABEL } from '@/lib/checkoutPricing'
 
 const inlinePricingDecisionRecorder = createInlinePricingDecisionRecorder({
   transport: (eventName, metadata) => trackClosedEvent(eventName, metadata),
@@ -511,7 +512,7 @@ export default function PricingCards({
             onClick: () => handleBuy('basic'),
             loading: purchasing === 'basic',
           }}
-          secondary={{ label: 'or try Creator for 7 days — $1, then $15/mo →', onClick: handleTrial, testId: 'creator-trial-1usd-app' }}
+          secondary={{ label: CARD_TRIAL_SECONDARY_LABEL, onClick: handleTrial, testId: 'creator-trial-1usd-app' }}
         />
 
         {/* KINEO-PRICING-V6-2026-08-19 — 200 → 180 créditos ($29). É o único

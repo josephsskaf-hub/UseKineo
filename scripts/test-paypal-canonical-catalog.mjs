@@ -53,10 +53,10 @@ for (const tier of tiers) {
   }
 }
 
-equal(catalog.PAYPAL_TIER_USD.starter.monthly, '7.00', 'Starter recovery link charges current $7 monthly price')
-equal(catalog.PAYPAL_TIER_USD.basic.monthly, '15.00', 'Creator recovery link charges current $15 monthly price')
+equal(catalog.PAYPAL_TIER_USD.starter.monthly, '9.00', 'Starter recovery link charges current $9 monthly price')
+equal(catalog.PAYPAL_TIER_USD.basic.monthly, '19.00', 'Creator recovery link charges current $19 monthly price')
 equal(catalog.PAYPAL_TIER_USD.pro.monthly, '29.00', 'Studio recovery link charges current $29 monthly price')
-equal(catalog.PAYPAL_PLAN_CREDITS, { starter: 40, basic: 90, pro: 180 }, 'PayPal grants current 40/90/180 ladder')
+equal(catalog.PAYPAL_PLAN_CREDITS, { starter: 60, basic: 150, pro: 180 }, 'PayPal grants current 40/90/180 ladder')
 equal(catalog.PAYPAL_PACK.usd, (checkout.PACK_PRICE_MINOR.usd / 100).toFixed(2), 'PayPal First Pack price is canonical')
 equal(catalog.PAYPAL_PACK.credits, checkout.PACK_CREDITS.starter, 'PayPal First Pack grant is canonical')
 
@@ -225,7 +225,7 @@ try {
   const canonicalPlanId = await paypal.ensurePlan(fakeAdmin, 'basic', 'monthly')
   equal(canonicalPlanId, 'PLAN-CANONICAL-CREATOR', 'legacy cached Creator plan is not reused')
   equal(planPosts.length, 1, 'one canonical provider plan is created')
-  equal(planPosts[0].billing_cycles[0].pricing_scheme.fixed_price.value, '15.00', 'provider request charges canonical Creator amount')
+  equal(planPosts[0].billing_cycles[0].pricing_scheme.fixed_price.value, '19.00', 'provider request charges canonical Creator amount')
   equal(planPosts[0].billing_cycles[0].frequency.interval_unit, 'MONTH', 'monthly cadence is preserved')
   equal(storedConfig.get('plan_basic_monthly_usd1500_c90_v2'), 'PLAN-CANONICAL-CREATOR', 'canonical plan id is cached under fingerprinted key')
 
