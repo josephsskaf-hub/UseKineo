@@ -358,3 +358,44 @@ as rotações de 22:00, 00:00, 02:00, 04:00 e 06:00 continuam abertas para MEDIR
 a porta com gente de verdade — que é o que ainda falta. Não confundir "o plano
 todo foi executado" com "a noite acabou": nenhuma pessoa externa viu a folha
 ainda.
+
+---
+
+## r5 20:40 — O TETO DE ALCANCE DA FOLHA (dimensionar antes de afinar)
+
+Com zero tráfego para medir a folha, a pergunta útil é outra: **quantas pessoas
+a folha CONSEGUE alcançar, no melhor dos casos?** Coorte inteira da versão B
+(`trial_status='card_required'`, contas externas, história completa — 8 pessoas):
+
+| degrau | pessoas | % da coorte |
+|---|---|---|
+| coorte `card_required` | 8 | 100% |
+| viram a **faixa** | 6 | **75%** |
+| tentaram gerar | 4 | 50% |
+| abriram a caixa de dinheiro (**gatilho da folha**) | 3 | **38%** |
+| chegaram ao checkout | 2 | 25% |
+
+**A folha tem teto de 38%. A faixa alcança 75%.** Três pessoas (38% da coorte)
+são alcançáveis SÓ pela faixa — nunca apertaram nada. Duas não são alcançadas
+por superfície nenhuma: entraram e sumiram sem ver nem a faixa.
+
+### Um erro meu, corrigido antes de virar número publicado
+
+A primeira consulta mediu o gatilho por eventos de SERVIDOR (`compose_refused`,
+`free_limit_wall_shown`, `paywall_hit`) e deu **25%**. Está errado: `outOfCredits()`
+barra o clique NO CLIENTE em saldo zero, então para essa coorte **a request nem
+sai** e o servidor nunca registra nada. O gatilho verdadeiro da folha é
+`upgrade_modal_opened` — o mesmo ponto onde ela foi plugada. Medido pelo gatilho
+certo: 38%, não 25%. Um terço de alcance a mais, e a diferença era só a escolha
+do predicado.
+
+### O que isto manda fazer — e o que manda NÃO fazer
+
+A folha era a aposta certa: ela pega quem já demonstrou intenção (tentou fazer o
+filme), que é de onde saiu o único clique de checkout do dia. Mas **ela nunca vai
+falar com a maioria**. A alavanca das próximas rotações não é afinar a folha —
+é a **faixa**, que já alcança 75% e converteu 0. Afinar a folha antes de ela ter
+UMA impressão real seria mexer no que não foi medido.
+
+Números pequenos: 8 pessoas. Não são taxa, são contagem. Servem para escolher
+onde olhar, não para provar efeito.
