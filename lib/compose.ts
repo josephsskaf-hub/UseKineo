@@ -3259,6 +3259,66 @@ export class CreatomateSubmitError extends Error {
   }
 }
 
+// ═══ KINEO-CAPA-NASCE-NO-RENDER-2026-09-08 ══════════════════════
+//
+// MEDIDO (08/09 04:50 UTC): `select count(*), count(thumbnail_url) from videos`
+// = 1.685 e ZERO. Nenhum filme da história tem capa, e a coluna é LIDA em
+// quatro telas (/library, /my-videos, /studio, /generate) e no og:image do
+// /v/. 850 pessoas têm filme entregue; todas veem o retângulo vazio.
+//
+// POR QUE ISTO NÃO É A TENTATIVA DE 28/08 DE NOVO. Naquele dia um
+// `snapshot_time: 1.2` morou 3 horas no CORPO do POST /v1/renders, o
+// Creatomate o ignorou em silêncio, e a auditoria o removeu com a lição certa:
+// "parâmetro não documentado NÃO EXISTE". A lição continua de pé — o que
+// estava errado era o LUGAR, não o parâmetro. Na documentação oficial,
+// `snapshot_time` é propriedade DE TOPO DO RenderScript, irmã de
+// `output_format`/`width`/`height`/`elements` — isto é, vai DENTRO do `source`,
+// um nível abaixo de onde ele foi posto. Com ela, o render passa a exportar um
+// JPEG junto do MP4 e a resposta traz `snapshot_url`.
+//
+// TUDO A JUSANTE JÁ EXISTE e não é tocado aqui: `persistRenderAssets` copia o
+// snapshot para o nosso bucket (a URL do Creatomate expira) e
+// `persistCompletedVideo` grava `thumbnail_url`. Faltava a origem.
+//
+// `snapshot_location` fica AUSENTE de propósito: ele SUBSTITUI o primeiro ou o
+// último quadro do vídeo pela imagem. A gente quer uma capa ao lado do filme,
+// nunca um filme alterado.
+//
+// A PROVA (nunca "não deu erro", que foi exatamente o engano de 28/08):
+// `count(thumbnail_url)` sobre os vídeos criados DEPOIS do deploy tem de sair
+// de zero. Se sair zero com denominador > 0, o parâmetro não pegou e este
+// bloco volta atrás.
+
+/** Segundo do filme que vira capa. Depois da abertura em fade, e sempre
+ *  dentro de qualquer filme que a casa entrega. */
+export const SNAPSHOT_TIME_SECONDS = 2
+
+/**
+ * O instante da capa para uma duração. Função pura: `scripts/test-capa-snapshot.mjs`
+ * exercita o contrato real em vez de procurar string em arquivo.
+ * Duração desconhecida ou generosa ⇒ 2s. Filme curto demais para 2s (o clamp
+ * de 15s do free, ou um avatar de 4s) ⇒ metade dele, para o pedido nunca
+ * apontar para depois do fim — snapshot fora da linha do tempo não nasce.
+ */
+export function snapshotTimeFor(durationSeconds: unknown): number {
+  const d = typeof durationSeconds === 'number' && Number.isFinite(durationSeconds) ? durationSeconds : null
+  if (d === null || d <= 0) return SNAPSHOT_TIME_SECONDS
+  if (d > SNAPSHOT_TIME_SECONDS * 2) return SNAPSHOT_TIME_SECONDS
+  return Number((d / 2).toFixed(2))
+}
+
+/**
+ * O `source` que vai para o Creatomate, com a capa pedida. CÓPIA RASA: o
+ * objeto do caller não é mutado. `snapshot_time` já escolhido pelo caller é
+ * respeitado — esta função preenche uma ausência, nunca sobrescreve intenção.
+ */
+export function withSnapshotRequest(source: Record<string, unknown>): Record<string, unknown> {
+  if ('snapshot_time' in source && source.snapshot_time !== null && source.snapshot_time !== undefined) {
+    return source
+  }
+  return { ...source, snapshot_time: snapshotTimeFor(source.duration) }
+}
+
 export async function submitCreatomateRender(source: Record<string, unknown>): Promise<string> {
   const key = process.env.CREATOMATE_API_KEY
   if (!key) throw new Error('CREATOMATE_API_KEY is not configured.')
@@ -3291,7 +3351,10 @@ export async function submitCreatomateRender(source: Record<string, unknown>): P
         // "funcionou sem erro" não é prova de que funcionou.
         // O plano REAL da capa (pendente): still FLUX dos cinematográficos
         // (já pago, hoje jogado fora) no settle; fast decide depois.
-        body: JSON.stringify({ source }),
+        // KINEO-CAPA-NASCE-NO-RENDER-2026-09-08 — `snapshot_time` vai DENTRO do
+        // `source` (propriedade de topo do RenderScript), não no corpo do POST.
+        // Ver o bloco sobre a tentativa de 28/08 acima de `snapshotTimeFor`.
+        body: JSON.stringify({ source: withSnapshotRequest(source) }),
       })
     } catch (error) {
       throw new CreatomateSubmitError(
