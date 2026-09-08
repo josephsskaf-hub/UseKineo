@@ -379,7 +379,7 @@ const expectedUsdOrder = [...selfServeTiers].sort(
   (left, right) => pricing.TIER_PRICES[left].usd - pricing.TIER_PRICES[right].usd,
 )
 check('known currency recommendation is price ordered', JSON.stringify(planFit.tiersByPrice('usd')) === JSON.stringify(expectedUsdOrder))
-const unresolvedCurrency = planFit.calculatePlanFit({ quality: 'cinematic_ai', seconds: 60, monthlyFilms: 4, currency: null })
+const unresolvedCurrency = planFit.calculatePlanFit({ quality: 'cinematic_ai', seconds: 45, monthlyFilms: 8, currency: null })
 check('unresolved currency still has an honest capacity answer', unresolvedCurrency.plan !== null && unresolvedCurrency.plan.credits >= unresolvedCurrency.monthlyCredits)
 check('unresolved currency does not change paid credit math', unresolvedCurrency.monthlyCredits === seedanceFour.monthlyCredits)
 
@@ -434,7 +434,7 @@ check('Stripe retry metadata rehydrates closed context', checkout.planFitRetrySe
 check('Stripe retry rejects arbitrary origin', checkout.planFitRetrySearchParamsFromMetadata({ ...validContext, checkout_origin: 'forged' }) === null)
 const metadataReturnSummary = checkout.readPlanFitCheckoutReturnFromMetadata(validContext, seedanceFour.plan.tier, 'usd')
 check('saved-session metadata rebuilds the verified engine', metadataReturnSummary?.engineLabel === 'Seedance 1.5')
-check('saved-session metadata rebuilds the verified goal', metadataReturnSummary?.monthlyVideos === 4 && metadataReturnSummary?.seconds === 60)
+check('saved-session metadata rebuilds the verified goal', metadataReturnSummary?.monthlyVideos === 8 && metadataReturnSummary?.seconds === 45)
 check('saved-session metadata rejects a forged origin', checkout.readPlanFitCheckoutReturnFromMetadata({ ...validContext, checkout_origin: 'forged' }, seedanceFour.plan.tier, 'usd') === null)
 const originOnly = new URL('/api/stripe/checkout?checkout_origin=plan_fit_first_delivery', 'https://www.usekineo.com')
 check('origin without complete contract fails closed', checkout.verifyPlanFitCheckoutContext(originOnly.searchParams, 'basic', 'usd') === null)
@@ -553,8 +553,8 @@ const returnSummary = checkout.readPlanFitCheckoutReturn(
   'usd',
 )
 check('cancel return rebuilds the verified engine label', returnSummary?.engineLabel === 'Seedance 1.5')
-check('cancel return rebuilds the verified monthly cadence', returnSummary?.monthlyVideos === 4)
-check('cancel return rebuilds the verified duration', returnSummary?.seconds === 60)
+check('cancel return rebuilds the verified monthly cadence', returnSummary?.monthlyVideos === 8)
+check('cancel return rebuilds the verified duration', returnSummary?.seconds === 45)
 check('cancel return marks the recommended tier as matching', returnSummary?.selectedTierMatches === true)
 const downgradedReturnSummary = checkout.readPlanFitCheckoutReturn(
   new URL(validContextUrl, 'https://www.usekineo.com').searchParams,
