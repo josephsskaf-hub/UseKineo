@@ -1696,3 +1696,18 @@ metade**. Também deixei um carimbo no evento para a próxima corrida provar, se
 achismo, que o código novo é o que está rodando. Ficou anotado no PEDIDOS um
 segundo ponto do mesmo tipo que **parou de crescer sozinho** quando a Versão B
 entrou — não gastei rotação nele.
+
+**Publicação.** `bash scripts/enfileirar.sh` (fila estava em 0, entrou com 3) e
+o bat: **`git ls-remote origin main` = `6fcff9ee`, fila = 0**, às **10:24 UTC**.
+Sonda com controle: `/api/cron/trial-lifecycle-emails` responde **401** e o
+irmão inexistente `-CONTROLE-404` responde **404** — a rota está viva e continua
+fechada, que é tudo o que uma sonda externa pode provar aqui.
+⚠️ **O relógio importa e digo antes de virar torcida:** o push saiu às 10:24 e o
+deploy leva até ~6 min, então a corrida das **10:25 UTC ainda roda o build
+velho**. A **primeira** execução com o código novo é a de **11:25 UTC (08:25
+BRT)**, e o teste dela é a consulta do bloco acima — `metadata ? 'dedupe_rows'`,
+nunca o relógio. Se ela voltar **vazia**, a resposta honesta é uma de duas: o
+deploy não pegou, ou **ninguém estava devido** naquela hora (que é o caso comum:
+`MAX_PER_RUN` só enche quando há coorte). As duas se separam pelo campo, não
+pela ausência dele — para distinguir, olhe se saiu **qualquer**
+`trial_lifecycle_email_sent` na janela.
