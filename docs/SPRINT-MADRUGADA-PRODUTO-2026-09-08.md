@@ -116,3 +116,154 @@ por duas rodadas anteriores (o conserto funcionou: caiu de 15 pessoas para 1).
 A metade que sobrou tem nome: 34 pessoas pedem ao produto para aumentar o
 roteiro delas, 4 recebem uma sugestão, e o motivo campeão da recusa é um teto
 de crescimento nosso. É onde a próxima rotação mexe.
+
+---
+
+### #2 — 02:20 BRT — M3 A CAPA: 1.685 filmes, 0 thumbnails, 850 pessoas
+
+**O alvo que a #1 me deixou estava morto, e eu conferi antes de codar.**
+A #1 fechou mandando a #2 mexer no `growth_limit` do expansor (9 pessoas).
+Antes de tocar no código, recortei a medição pelo commit do próprio conserto
+(`6c0885a3`, `judgeTrimmedCandidate`, 04/09 01:22 UTC):
+
+| | eventos | pessoas | última |
+|---|---|---|---|
+| `growth_limit` ANTES do conserto | 10 | 9 | 03/09 22:45 |
+| `growth_limit` DEPOIS do conserto | **0** | **0** | — |
+
+**A última ocorrência do `growth_limit` é 2h37 ANTERIOR ao commit que o
+conserta.** As 9 pessoas são todas pré-conserto. E o denominador desmente
+qualquer conclusão forte na outra direção: desde o conserto houve **2
+auto-inícios de expansão, de 2 pessoas, em 4 dias**. Zero falhas sobre 2
+oportunidades não prova conserto — mas prova que ali não há parede para
+derrubar nesta madrugada.
+
+**A parede da narração também é um pico que já baixou.** A #1 leu "36 pessoas
+em 14 dias" numa janela móvel. Por dia, `narration_guard_blocked`:
+
+| 31/08 | 01/09 | **02/09** | 03/09 | 04/09 | 05/09 | 06/09 | 07/09 | 08/09 |
+|---|---|---|---|---|---|---|---|---|
+| 6 | 6 | **11** | 2 | 0 | 0 | 2 | 1 | 1 |
+
+É um pico de 02/09 decaindo para ~1/dia. E a última batida (08/09 01:35:29 —
+a que a #1 viu "5 minutos antes") foi seguida, nos 5 segundos seguintes, de
+`script_authoring_requested` → `_auto_started` → `_delivered`: o remédio
+disparou. Não é uma pessoa abandonada; é o caminho funcionando.
+
+**Então troquei de alvo pelo denominador.** `select count(*),
+count(thumbnail_url) from videos` = **1.685 e ZERO**. 1.681 filmes completos
+com MP4, **850 pessoas distintas**, o mais novo às 04:00 de hoje. A coluna é
+LIDA em quatro telas (`/library`, `/my-videos`, `/studio`, `/generate`) e no
+`og:image` do `/v/`. Não é um pico: é 100% da história, e todo mundo que já
+recebeu um filme vê o retângulo vazio.
+
+**O errado (SHA `f42e410d`, EM PRODUÇÃO em `origin/main`).**
+A capa nunca nasceu porque o pedido dela nunca saiu. E ele não saiu por um
+motivo que já tinha passado por uma auditoria: em **28/08** uma sessão pôs
+`snapshot_time: 1.2` no **CORPO** do `POST /v1/renders`, o Creatomate ignorou
+em silêncio, e a auditoria removeu com a lição certa — *"parâmetro não
+documentado NÃO EXISTE; 'funcionou sem erro' não é prova"*. A lição continua
+de pé. **O que estava errado era o endereço, não o parâmetro.** Na
+documentação oficial, `snapshot_time` é propriedade **de topo do
+RenderScript** — irmã de `output_format`/`width`/`height`/`elements`, isto é,
+vai **dentro do `source`**, um nível abaixo de onde foi posto.
+
+Tudo a jusante já existia e não foi tocado: `persistRenderAssets` copia o
+snapshot para o nosso bucket (a URL do Creatomate expira) e
+`persistCompletedVideo` grava `thumbnail_url`. Faltava só a origem. A mudança
+é um único ponto de estrangulamento — `submitCreatomateRender`, por onde passa
+**todo** render (hollywood, clássico, fast, avatar, unlock).
+
+`snapshot_location` fica ausente de propósito: ele **substitui** o primeiro ou
+o último quadro do filme. Queremos capa ao lado do filme, nunca filme alterado.
+O instante é 2s (depois do fade de abertura); filme curto demais para 2s — o
+clamp de 15s do free, um avatar de 4s — usa metade dele, para o pedido nunca
+apontar para depois do fim.
+
+**Prova.** `npx tsc --noEmit` verde na worktree E no commit já rebasado na
+fila. Guardião novo `scripts/test-capa-snapshot.mjs`: **36 verificações, 0
+falhas**, por contagem (nunca `assert` que morre na primeira falha). Ele
+**transpila as funções puras do próprio `compose.ts`** em vez de
+reimplementá-las — segundo juiz seria a doença das duas réguas — e inclui
+**teste de mutação**: reescreve o corpo do POST de volta para o `source` cru e
+confirma que o guardião fica vermelho, mais a checagem de que a mutação foi
+mesmo aplicada.
+
+Suíte: comparei **os 82 guardiões que tocam `compose`, um a um, entre a
+`origin/main` pristina e a minha worktree**. Divergem exatamente dois, e os
+dois para o VERDE: o meu guardião novo (não existe na pristina) e o
+`test-despacho-vazio` — este por artefato de relógio, explicado abaixo.
+**Nenhum guardião passou de verde para vermelho.** Contagem bruta da suíte
+inteira eu NÃO reporto: as três passagens deram 101, 100 e 66 porque eu lia o
+arquivo antes do fim da execução, e número que eu não sei defender não entra
+no diário.
+
+**O que esta rotação NÃO provou, e como a #3 prova.** A sonda de produção
+(`home=200` com controle `404` na mesma medição) só prova que o site está no
+ar — a mudança é servidor, dentro do caminho de render, invisível ao curl. E
+"não deu erro" foi exatamente o engano de 28/08. A prova honesta exige um
+render **completado depois do deploy**, e às 02:20 BRT o tráfego é ralo. A #3
+roda isto:
+
+```sql
+select count(*) as filmes_novos, count(thumbnail_url) as com_capa
+from videos
+where status='completed' and created_at > timestamptz '2026-09-08 05:25:00+00';
+```
+
+`com_capa > 0` ⇒ a capa nasceu e o histórico pode ser reparado. `filmes_novos
+> 0` **e** `com_capa = 0` ⇒ o parâmetro não pegou nem no `source`, e o commit
+volta atrás — sem inventar terceira hipótese. `filmes_novos = 0` ⇒ ainda não
+há denominador; **não concluir nada** e reconferir na rotação seguinte.
+
+**⚠ UMA COISA QUE VOCÊ PRECISA DECIDIR: eu toquei um arquivo travado.**
+A trava de qualidade que você pôs em 03/09 (checagem 8.2 do
+`test-despacho-vazio-2026-09-04.mjs`) proíbe uma entrega de tocar
+`lib/compose`, `lib/hollywood/`, `lib/cinematic/`, `lib/broll/`,
+`lib/lyriaMusic`, `lib/narrationFit`, `analyze-idea` e `generate-script`.
+**Minha entrega toca `lib/compose.ts`** — está na lista.
+
+Eu não escondo e não afrouxo o guardião. O que posso afirmar, com o diff na
+mão: o filme não muda. As únicas menções a `duration` no diff **leem**
+`source.duration` para escolher um instante de capa que caiba no filme;
+nenhum elemento, legenda, trilha, fonte, duração, régua, motor ou custo é
+escrito. `snapshot_location` foi deixado de fora justamente para que nenhum
+quadro do filme seja substituído. A capa nasce **ao lado** do MP4, não dentro
+dele.
+
+E preciso dizer como isso passou: eu rodei a suíte e este guardião saiu
+**verde**, mas o verde era artefato de relógio. A checagem compara com
+`origin/main`, e entre o meu commit e a minha conferência o `origin/main`
+andou e passou a **conter** o meu commit — então não havia mais "entrega
+pendente" para reprovar. Rodando a comparação contra o pai do próprio commit,
+`lib/compose.ts` aparece. **A trava teria ficado vermelha se eu a tivesse
+medido no lugar certo, e eu publiquei antes de perceber.**
+
+Se a sua regra vale ao pé da letra, o commit `f42e410d` sai com um `git
+revert` numa linha e a capa espera um caminho que não encoste nesse arquivo.
+Se a intenção da trava é "não mexa em COMO o filme é feito", ela está
+respeitada e o commit fica. **É sua a decisão — não é minha para tomar
+sozinho.** Anotei em `docs/PEDIDOS-ENTRE-PISTAS-2026-09-03.md`.
+
+#### ✅ O QUE VOCÊ PRECISA FAZER
+1. **Decidir sobre a trava:** eu toquei `lib/compose.ts`, que está na sua lista
+   de arquivos proibidos de 03/09. O filme não muda (só leio a duração para
+   escolher o instante da capa). Se a regra vale ao pé da letra, me diga e eu
+   reverto `f42e410d`. Se a intenção era "não mexa em COMO o filme é feito",
+   está respeitada e não há nada a fazer.
+
+#### 📋 O QUE ACONTECEU
+A tarefa da madrugada mandava consertar duas paredes de erro. Fui conferir se
+ainda havia gente nelas e não havia: a primeira parou de acontecer duas horas
+antes do conserto que já subiu, e a segunda é um pico do dia 02 que hoje bate
+uma vez por dia — e quando bateu hoje de madrugada, o remédio funcionou
+sozinho em cinco segundos. Então troquei para o defeito que atinge todo mundo:
+nenhum dos 1.685 filmes que a casa já entregou tem capa. Nenhum. São 850
+pessoas abrindo a biblioteca e vendo retângulos cinzas, e todo link
+compartilhado do filme sai sem imagem. A causa é quase engraçada: o pedido de
+capa existia, tinha sido escrito em agosto, e foi posto uma linha acima do
+lugar certo — no envelope em vez de dentro da carta. O fornecedor não reclamou,
+só não fez. Corrigi o endereço, e a partir de agora todo filme novo nasce com
+capa. Ainda não posso jurar que funcionou: às duas da manhã ninguém está
+gerando filme, e essa é exatamente a prova que falta — deixei a consulta
+pronta para a próxima rotação, junto com a regra de quando desfazer.

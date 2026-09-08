@@ -869,3 +869,15 @@ mesmo dia: **ancore por linha inteira, e rode o `tsc` antes de enfileirar.**
 - [ ] 🟡 **PARA O M6 DA ROTINA — `scripts/test-paypal-canonical-catalog.mjs` está vermelho por HERANÇA, não pelos planos novos** (achado 08/09 ~04:30 BRT ao reancorar os guardiões de preço). A asserção "PayPal provider layer imports the canonical adapter" exige `from '@/lib/paypalCatalog'` em `lib/paypal.ts`, mas o #363 do Codex (07/09) fez o arquivo importar de `@/lib/checkoutPricing` de propósito ("fim da tabela paralela de julho"). O guardião ficou preso à forma antiga. Reancorar pela CONDIÇÃO (preço e grant vêm de checkoutPricing), não pelo nome do módulo. As asserções de valor (9.00/19.00/29.00 e 60/150/180) já foram atualizadas por mim.
 
 - [ ] 🟢 **FEITO NA MADRUGADA DE 08/09 (Claude, sessão principal, ordem do fundador "sobe tudo agora") — o que já está no ar e o que sobrou.** No ar: planos $9/$19/$29 (60/150/180cr, anual 10 meses), gate de motor (`lib/enginePlanGate.ts`, Studio para motores caros em conta nova, grandfather antes de 08/09 07:00 UTC), funil de volta do Stripe (`kineo_studio_draft_v1` → `/studio/create?resume=card_entry` → dispara 1×), `POST /api/stripe/end-trial-now` + `TrialContinueNowBanner` (trial vira cliente na hora), fallback da home pela fonte única, e-mail de fim de trial com o valor certo, /pricing em cadência, fatos sem "priority queue"/"premium voices", llms.txt com changelog, doc do GPT e ficha do TAAFT, e varredura de 42 páginas públicas (zero "Start free"/"25 credits"/"no card required" fora de referral e do banner de trial antigo). **Sobrou (M7/Codex):** (1) traduções ES dos rótulos novos (`Try 7 days for $1`, `Try Creator 7 days for $1 →`, `Simple pricing. Start with 7 days for $1.`, `Type one idea, start your $1 trial and make the film.`); (2) e-mails de lifecycle (`lib/lifecycle/**`, `app/api/cron/trial-lifecycle-emails`, `send-*`) que ainda citem 25 créditos/free — o `ft()` cobre os que usam `OFFER`, os literais não; (3) "créditos não acumulam" NÃO foi ligado: a renovação soma (`next = current + renewalCredits`) e zerar apagaria pacotes comprados — precisa de saldo de pacote separado antes; (4) Channel $99 (série com memória + agendamento) — produto antes da venda; (5) `scripts/test-paypal-canonical-catalog.mjs` herdado vermelho (import de `paypalCatalog`).
+
+- **[madrugada-produto #2 → fundador, 08/09 02:30 BRT] DECISÃO SOBRE A TRAVA DE
+  QUALIDADE.** O commit `f42e410d` (capa: `snapshot_time` dentro do `source` do
+  Creatomate) **toca `lib/compose.ts`**, arquivo da sua lista de proibidos de
+  03/09 (checagem 8.2 de `scripts/test-despacho-vazio-2026-09-04.mjs`). O filme
+  NÃO muda: o diff só LÊ `source.duration` para escolher um instante de capa que
+  caiba no filme, e `snapshot_location` foi deixado de fora de propósito para
+  que nenhum quadro seja substituído. Publiquei porque a trava saiu verde na
+  minha conferência — e o verde era artefato: ela compara com `origin/main`, que
+  andou e passou a conter o meu commit. Medida contra o pai do commit, fica
+  vermelha. Se a regra vale ao pé da letra: `git revert f42e410d`. Se a intenção
+  é "não mexa em COMO o filme é feito": está respeitada.
