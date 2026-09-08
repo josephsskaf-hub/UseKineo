@@ -12,6 +12,9 @@ import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import {
   AUTOPILOT_PILOT_DAYS,
   AUTOPILOT_PILOT_PRICES,
+  CARD_TRIAL_DAYS,
+  CARD_TRIAL_ENTRY_FEE_MINOR,
+  CARD_TRIAL_GRANT_CREDITS,
   coercePriceRegion,
   formatCheckoutMoney,
   getAnnualPrice,
@@ -87,6 +90,8 @@ function CheckoutCancelledContent() {
   const billing = tier === 'autopilot'
     ? 'monthly'
     : searchParams.get('billing') === 'annual' ? 'annual' : 'monthly'
+  // A return marker preserves intent; the checkout server still checks eligibility.
+  const cardTrial = searchParams.get('trial') === '1' && rawTier === 'basic' && billing === 'monthly' && !autopilotReturn
   const intro = searchParams.get('intro') === '1' && billing === 'monthly' && (tier === 'starter' || tier === 'basic')
   const rawPromo = (searchParams.get('promo') ?? '').trim()
   const promo = /^[A-Za-z0-9_-]{1,64}$/.test(rawPromo) ? rawPromo : null
@@ -109,6 +114,7 @@ function CheckoutCancelledContent() {
     ? rawIntentCampaign
     : null
   const retryParams = new URLSearchParams({ tier, billing })
+  if (cardTrial) retryParams.set('trial', '1')
   if (intro) retryParams.set('intro', '1')
   if (promo) retryParams.set('promo', promo)
   if (returnToWatermark) retryParams.set('return', 'wm')
@@ -150,7 +156,9 @@ function CheckoutCancelledContent() {
       ? money(getIntroPrice(tier, checkoutCurrency, priceRegion))
       : null
   const privateFirstLabel = checkoutCurrency === 'usd' ? 'US$5' : 'the verified private price'
-  const todayPrice = isAutopilotPilot
+  const todayPrice = cardTrial
+    ? `${money(CARD_TRIAL_ENTRY_FEE_MINOR)} for ${CARD_TRIAL_DAYS} days`
+    : isAutopilotPilot
     ? `${autopilotPilotPrice} once`
     : billing === 'annual' && annualPrice
     ? `${annualPrice}/year`
@@ -159,7 +167,9 @@ function CheckoutCancelledContent() {
       : introEligible && introPrice
         ? `${introPrice} today`
         : `${monthlyPrice}/month`
-  const renewalCopy = isAutopilotPilot
+  const renewalCopy = cardTrial
+    ? `${CARD_TRIAL_GRANT_CREDITS} credits. Then ${monthlyPrice}/month after ${CARD_TRIAL_DAYS} days unless you cancel. First purchase only; eligibility is checked at checkout.`
+    : isAutopilotPilot
     ? `One-time payment. Nothing renews; the pilot ends after ${AUTOPILOT_PILOT_DAYS} days.`
     : tier === 'autopilot'
       ? `Renews at ${monthlyPrice}/month. Cancel anytime.`
@@ -202,7 +212,7 @@ function CheckoutCancelledContent() {
     resumeReason: trialResumeProbe.reason,
   })
   const downshiftAvailable =
-    cancelledPrimary === 'checkout' && !isAutopilotReturn && cheaperTier !== null
+    cancelledPrimary === 'checkout' && !cardTrial && !isAutopilotReturn && cheaperTier !== null
   const objectionCheckoutProduct = isAutopilotPilot
     ? 'autopilot_pilot'
     : isAutopilotReturn
@@ -559,7 +569,19 @@ function CheckoutCancelledContent() {
           ) : (
             <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: 14, padding: 16 }}>
               {reasonSent === 'too_expensive' && (
-                isAutopilotReturn ? (
+                cardTrial ? (
+                  <>
+                    <p style={{ margin: 0, fontSize: '0.88rem', fontWeight: 800, color: 'var(--text)' }}>
+                      Your trial starts at {money(CARD_TRIAL_ENTRY_FEE_MINOR)}.
+                    </p>
+                    <p style={{ margin: '6px 0 12px', fontSize: '0.82rem', color: 'var(--muted2)', lineHeight: 1.55 }}>
+                      {renewalCopy} You can review the full price before paying.
+                    </p>
+                    <Link href="/pricing" style={{ color: '#62b3ff', fontWeight: 700 }}>
+                      Review plans and billing →
+                    </Link>
+                  </>
+                ) : isAutopilotReturn ? (
                   isAutopilotPilot ? (
                     <>
                       <p style={{ margin: 0, fontSize: '0.88rem', fontWeight: 800, color: 'var(--text)' }}>
@@ -744,8 +766,9 @@ function CheckoutCancelledContent() {
                     </p>
                   ) : (
                     <p style={{ margin: '6px 0 12px', fontSize: '0.82rem', color: 'var(--muted2)', lineHeight: 1.55 }}>
-                      {ft(OFFER, 'Make up to 3 Fast videos every 24h on the free account, no card.', `Use your ${TRIAL_GRANT_CREDITS_COPY} free credits — every engine unlocked.`)} If one of them is good
-                      enough to post, that&apos;s the only argument for paying that actually works.
+                      {cardTrial
+                        ? 'You can return to Studio to review your idea. Starting this Creator trial requires payment.'
+                        : <>{ft(OFFER, 'Make up to 3 Fast videos every 24h on the free account, no card.', `Use your ${TRIAL_GRANT_CREDITS_COPY} free credits — every engine unlocked.`)} If one of them is good enough to post, that&apos;s the only argument for paying that actually works.</>}
                     </p>
                   )}
                   <Link
@@ -756,7 +779,7 @@ function CheckoutCancelledContent() {
                     )}
                     style={{ display: 'block', textAlign: 'center', textDecoration: 'none', padding: '11px 14px', borderRadius: 12, fontSize: '0.85rem', fontWeight: 900, color: '#fff', background: 'linear-gradient(135deg, #2997ff, #1d6fe0)' }}
                   >
-                    {isAutopilotReturn ? 'See how Autopilot works →' : 'Make a free Short →'}
+                    {isAutopilotReturn ? 'See how Autopilot works →' : cardTrial ? 'Back to Studio →' : 'Make a free Short →'}
                   </Link>
                 </>
               )}

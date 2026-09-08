@@ -84,3 +84,63 @@
 **DECISÃO OPERACIONAL / LIMITE — rodada das 14h:** a ingestão de uma exposição real de History está demonstrada. Isso não é compra, assinatura nem atribuição causal; uma pessoa não permite julgar taxa de conversão. Preservar a variante e verificar a continuidade por identidade após a primeira exposição, sem exigir que pagamento carregue o marcador da campanha. History conserva o pacote autorizado, sem nova expansão. O primeiro registro externo é um marco para publicar o diário agrupado.
 
 **EVIDÊNCIA DE PRODUÇÃO / CONTINUIDADE — SELECT de 08/09, mesmo corte `17:01:33.171 UTC`:** a coorte contém 1 pessoa externa exposta. Após sua primeira exposição, a junção pela mesma identidade encontrou zero linhas de `checkout_cta_clicked`, `checkout_started`, `payment_success` e `subscription_invoice_paid`. Fonte exata: `docs/queries/PISTA3-CONTINUIDADE-EXPOSTOS-2026-09-08.sql`, projeto Supabase já indicado. O pagamento não é filtrado por campanha. Esse resultado descreve apenas a continuidade observada na janela curta, não receita global nem abandono definitivo. Sessões/faturas distintas são separadas de pessoas; como não houve linha financeira, nenhuma venda ou renovação foi classificada. Se surgir dinheiro, reconciliar contratos/conflitos por Session/invoice antes de divulgar valores ou tipo de compra.
+
+**EVIDÊNCIA DE PRODUÇÃO — leituras seguintes de 08/09:** todas as linhas abaixo começam em `15:32:56.985 UTC` e têm corte final exclusivo; não somar linhas cumulativas. Fonte: as SQLs `PISTA3-PRIMEIRA-EXPOSICAO-2026-09-08.sql` (wanted limitado ao evento de exposição), `PISTA3-CHEGADAS-GO-2026-09-08.sql` e `PISTA3-CONTINUIDADE-EXPOSTOS-2026-09-08.sql`, trocando somente seus cortes pela coluna abaixo e executando as três como CTEs independentes em uma SELECT no projeto já indicado. Os quatro degraus de continuidade contam pessoas da coorte após a primeira exposição, não exigem campanha no pagamento e não provam causalidade.
+
+| Corte UTC | Pessoas externas expostas | Eventos anônimos de exposição | Pessoas com clique posterior | Pessoas com checkout posterior | Pessoas com payment_success posterior | Pessoas com fatura posterior |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 17:21:33.436 | 1 | 0 | 0 | 0 | 0 | 0 |
+| 17:41:33.734 | 1 | 0 | 0 | 0 | 0 | 0 |
+| 18:01:04.041 | 1 | 0 | 0 | 0 | 0 | 0 |
+| 18:21:04.343 | 1 | 0 | 0 | 0 | 0 | 0 |
+| 18:41:04.666 | 1 | 0 | 0 | 0 | 0 | 0 |
+| 19:00:34.995 | 1 | 0 | 0 | 0 | 0 | 0 |
+| 19:20:35.245 | 1 | 0 | 0 | 0 | 0 | 0 |
+| 19:42:05.530 | 1 | 0 | 0 | 0 | 0 | 0 |
+| 20:00:35.765 | 1 | 0 | 0 | 0 | 0 | 0 |
+| 20:21:06.050 | 1 | 0 | 0 | 0 | 0 | 0 |
+| 20:41:06.423 | 1 | 0 | 0 | 0 | 0 | 0 |
+| 21:01:36.761 | 1 | 0 | 0 | 0 | 0 | 0 |
+| 21:21:07.086 | 1 | 0 | 0 | 0 | 0 | 0 |
+| 21:41:37.441 | 1 | 0 | 0 | 0 | 0 | 0 |
+| 22:00:07.667 | 1 | 0 | 0 | 0 | 0 | 0 |
+
+**LIMITE / ESTADO — rodada das 19h BRT:** permanece a mesma pessoa de History, sem nova exposição de /go; todas as linhas financeiras posteriores estão ausentes. O pouso mantém somente as 2 sondas já registradas, com zero linhas nas demais classes. origin/main permanece `3eeae0d1`, sem nova alteração; PEDIDOS não mudou desde `c9a145ad`. Variante preservada, leitura sem mudança acionável registrada localmente para publicação agrupada. O encerramento continua às22h BRT, que corresponde a01h UTC de09/09; esta leitura das22h UTC não é o encerramento.
+
+**EVIDÊNCIA DE PRODUÇÃO / VERSÃO B SEPARADA — SELECT de 08/09, rodada das 15h40:** a consulta `BASELINE-VERSAO-B-ATE-22H-2026-09-08.sql` foi reaplicada com a mesma origem `04:30 UTC` e corte exclusivo ampliado para `18:41:04.666 UTC`, como uma quarta CTE independente. Continua com 7 pessoas de ingresso comprovado: 3 com sinal ChatGPT (3 viram banner), 1 de origem desconhecida (1 viu), 3 de outra fonte declarada (2 viram). Zero clique após visualização e zero checkout após clique; todas as categorias financeiras e conflitos retornaram zero nessa coorte, inclusive entradas de trial por qualquer rota. Não houve mudança no placar observado desde a baseline. Esta janela começa antes da sprint e não se mistura à coorte exposta; não é receita global nem efeito atribuível à P3. Fonte e projeto são os mesmos da baseline, sem alterar a SQL histórica arquivada.
+
+## Handoff vigente recebido pelo Board — 08/09, incorporado após 19h48 UTC
+
+**INSTRUÇÃO DIRETA DO FUNDADOR / RETRANSMISSÃO PELO BOARD — 08/09:** conservar o modelo comercial e as entregas já publicadas: entrada Creator de US$1/7 dias/80 créditos, depois US$19; Starter9/60, Creator19/150, Studio29/180 e anual10x. Preço/copy derivam de checkoutPricing/entryPolicy; motores e elegibilidade vêm de enginePlanGate, sem resumir a lista completa a quatro motores. Continue now permanece escolha explícita. Nenhuma mudança nova em preço, oferta, Stripe ou pipeline. /ph, D+1 (09h30, teto30), afiliados, geo/Dodo e retomada de rascunho45min continuam com Claude. Esta incorporação não reconstrói as entregas nem amplia a caneta da P3.
+
+**FATO CONFIRMADO / FONTE DO PLACAR — `c9a145ad:lib/admin/versaoBFunnel.ts:8`:** `VERSAO_B_SINCE='2026-09-08T05:00:00.000Z'`; a função `funilVersaoB` em `:23` conta conjuntos independentes por pessoa. Para o placar da casa, usar esse contrato e `app/api/admin/_shared/mrr.ts`, sem contagem paralela ou taxa sequencial inventada. As leituras anteriores de origem04h30 ficam preservadas como análises históricas declaradas; não voltar a executá-las como placar da casa nem rebatizar seus totais como painel. A coorte específica P3 desde READY15:32:56.985UTC permanece separada e temporal, com contratos financeiros reconciliados antes de classificar trial, primeira mensalidade ou renovação.
+
+**NOVO GATE EXPLÍCITO ANTES DO PRÓXIMO ENFILEIRAMENTO:** ler e executar somente se offline os11 scripts abaixo, além de typecheck sem emissão/incremental e QA própria pertinente. Não executar chamadas/escritas de produção nem ler .env.local/credenciais; não alterar guardiões para ocultar regressão. Há outros scripts datados08/09: estes11 não significam todos os21. Evidência da mesma árvore de código pode ser reaproveitada; mudança de código, falha ou preocupação concreta exige nova verificação pertinente.
+
+1. `scripts/test-admin-fonte-unica-2026-09-08.mjs`
+2. `scripts/test-afiliado-ref-2026-09-08.mjs`
+3. `scripts/test-continue-now-2026-09-08.mjs`
+4. `scripts/test-funil-volta-1-dolar-2026-09-08.mjs`
+5. `scripts/test-motor-so-no-studio-2026-09-08.mjs`
+6. `scripts/test-ph-landing-2026-09-08.mjs`
+7. `scripts/test-placar-diario-2026-09-08.mjs`
+8. `scripts/test-placar-trial-1-dolar-2026-09-08.mjs`
+9. `scripts/test-sistema-de-compra-2026-09-08.mjs`
+10. `scripts/test-tarefas-5-6-2026-09-08.mjs`
+11. `scripts/test-versao-b-entrada-1-dolar-2026-09-08.mjs`
+
+**CONFIGURADO — 08/09:** prompt integral da rotina atualizado com esse handoff, fonte canônica das05h, novos gates e término inalterado às22h BRT. Registro agrupado: não publicar apenas para acusar recebimento. A variante já publicada não será reaplicada.
+
+**FATO CONFIRMADO / INSPEÇÃO DOS NOVOS GATES — 08/09, árvore `c9a145ad`:** os11 scripts listados e helpers executados relevantes foram lidos integralmente. Todos são offline no caminho testado: leitura local e helpers puros em memória; o ramo Stripe do MRR recebe mocks e não é chamado, e a VM de entryPolicy usa env vazio. Nenhum dos11 lê .env.local, faz chamada de rede/banco, envia mensagem, escreve arquivo/produção ou inicia subprocesso. Isso autoriza apenas essa verificação local, não o acionamento das rotas que os testes leem como texto.
+
+**TESTADO LOCALMENTE — 08/09 às19:52 UTC:** os11 guardiões passaram com 236 verificações e zero falhas. Na ordem da lista acima: 27, 10, 20, 20, 23, 14, 17, 17, 27, 25 e 36 verificações. Também passaram `node node_modules/typescript/bin/tsc --noEmit --incremental false` (exit0, sem saída), `node docs/qa/test-pista3-post-film.mjs` (100 verificações) e `node scripts/test-gpt-handoff-verdade.mjs` (84, zero falhas). Fonte: saídas dos processos locais nesta tarefa, HEAD `c9a145adc470dd52ba3d78cec730cf09eae80ac5`. Nenhum teste foi editado. O único arquivo modificado após a bateria era este diário; não há alteração de produto. Os resultados não significam21 scripts testados, execução real de cobrança, D+1 enviado ou render em produção. Reaproveitar essa evidência enquanto a árvore de código e os contratos verificados não mudarem; não criar deploy para registrar somente o recebimento do handoff.
+
+**FATO CONFIRMADO / ATUALIZAÇÃO DA BASE — 08/09, rodada das17h:** `origin/main` avançou pelos commits `8fa95fba` e `42d4b512`, recebidos na worktree por fast-forward, preservando o diário local. O diff acrescenta propagação validada de utm_campaign para intent_campaign nos CTAs de /ph (`components/PhLandingBeacon.tsx:26`) e uma asserção no guardião de PH; a preparação de anúncios permanece com seus responsáveis. As consultas arquivadas, fontes de preço, elegibilidade e produto P3 não mudaram; a leitura específica usa os mesmos contratos. A bateria de19h52 é evidência da base anterior, não comprova a nova asserção de PH: antes do próximo enfileiramento, validar a árvore atual conforme o gate vigente. Nenhum anúncio, gasto ou edição de /ph foi realizado por esta pista.
+
+## 08/09 19h — pedido do fundador sobre pagamento
+
+**EVIDÊNCIA DE PRODUÇÃO — corte22:05:17UTC:** função canônica VersãoB desde05h retornou8 ingressos,7 pessoas com banner mostrado,0 clique e0 checkout trial. São conjuntos independentes. Checkout geral separado:2 pessoas em tentativa/abertura; nenhuma falha externa do app registrada. Stripe MCP pediu reautenticação, portanto recusas bancárias seguem desconhecidas. Método e limites em docs/PAGAMENTO-RETORNO-2026-09-08.md.
+
+**FATO CONFIRMADO / IMPLEMENTADO — nova entrega:** retorno de checkout preserva o trial aceito pelo servidor; cancelamento mantém taxa/prazo/renovação e não troca a oferta por Starter; CardEntryBanner mostra erro do launcher; botão e contador após compra confirmada levam à mesma ideia salva. Preços, grants, webhook e medição intactos. Comparação visual em docs/previews/PAGAMENTO-RETORNO-2026-09-08.html.
+
+**TESTADO LOCALMENTE — 08/09:** typecheck verde;237 verificações nos11 comerciais,47 novas de retorno,100 pós-filme e84 handoff. Base de produto3eeae0d1; novos commits externos até3f4c6dd1/7cdb5fe5 só acrescentam documentação. A sprint desta tarefa ainda termina22hBRT; o marco da campanha Reddit às19h15 e sua avaliação48h pertencem ao placar/distribuição da casa, sem prorrogar esta rotina.

@@ -140,6 +140,11 @@ export default function CardEntryBanner({
       >
         {checkout.pending !== null ? 'Opening checkout…' : door.buttonLabel}
       </button>
+      {checkout.error ? (
+        <p role="alert" style={{ flexBasis: '100%', margin: 0, fontSize: 13, lineHeight: 1.5, color: '#ff9b9b' }}>
+          {checkout.error}
+        </p>
+      ) : null}
     </div>
   )
 }

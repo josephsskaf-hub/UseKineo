@@ -1471,7 +1471,8 @@ async function buildAndRedirect(
     // da REGIÃO: sem este parâmetro, o comprador brasileiro que desiste do
     // Starter a R$24,90 aterrissa numa tela que promete R$49,90 e a única
     // superfície de recuperação que temos passa a trabalhar CONTRA a venda.
-    cancel_url: `${appUrl}/checkout/cancelled?tier=${tier}&billing=${billing}&currency=${currency}&region=${region}${intro ? '&intro=1' : ''}${requestedPromo ? `&promo=${encodeURIComponent(requestedPromo)}` : ''}${returnToWatermark ? '&return=wm' : ''}${intentCampaignParam}${planFitRetryParam}`,
+    // Preserve only the trial accepted by the server, including on cancellation.
+    cancel_url: `${appUrl}/checkout/cancelled?tier=${tier}&billing=${billing}&currency=${currency}&region=${region}${wantsTrial && !isAnnual ? '&trial=1' : ''}${intro ? '&intro=1' : ''}${requestedPromo ? `&promo=${encodeURIComponent(requestedPromo)}` : ''}${returnToWatermark ? '&return=wm' : ''}${intentCampaignParam}${planFitRetryParam}`,
     metadata: {
       supabase_user_id: user.id,
       tier,

@@ -77,7 +77,7 @@ ok(page.includes("display: cancelledPrimary === 'checkout' ? undefined : 'none'"
 ok(page.includes("cancelledPrimary === 'first_delivery' ? '← Back to studio' : '← Go back to pricing'"), 'secondary navigation follows the same decision')
 ok(page.includes("checkout.launch(checkoutSelection, retryHref"), 'existing explicit checkout retry remains implemented')
 ok(page.includes('7-day money-back guarantee · cancel anytime in one click'), 'existing checkout reassurance remains implemented')
-ok(page.includes("cancelledPrimary === 'checkout' && !isAutopilotReturn && cheaperTier !== null"), 'downshift is limited to self-serve checkout recovery after trial truth resolves')
+ok(page.includes("cancelledPrimary === 'checkout' && !cardTrial && !isAutopilotReturn && cheaperTier !== null"), 'downshift is limited to ordinary self-serve recovery, excluding the lower-entry trial')
 ok(page.includes('data-checkout-downshift-primary="true"'), 'eligible cancelled checkouts render the lower recurring tier as the primary choice')
 ok(page.indexOf('data-checkout-downshift-primary="true"') < page.indexOf('What stopped you?'), 'the actionable lower tier appears before the optional objection question')
 ok(page.includes('`Start ${cheaperName} — ${monthlyOf(cheaperTier)}/month →`'), 'primary downshift CTA derives its visible price from canonical pricing')

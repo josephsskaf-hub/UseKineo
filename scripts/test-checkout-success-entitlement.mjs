@@ -86,7 +86,7 @@ ok(page.includes("'Your checkout is complete. We are confirming secure access.'"
 ok(page.includes('You do not need to pay again.'), 'delay state prevents a duplicate-payment instruction')
 ok(page.includes("'checkout_success_entitlement_ready'"), 'ready state is measurable')
 ok(page.includes("'checkout_success_entitlement_delayed'"), 'delayed state is measurable')
-ok(page.includes('checkoutReady\n        ? readyCheckoutSuccessDestination'), 'redirect is gated by paid entitlement')
+ok(/checkoutReady\s*\?\s*readyCheckoutSuccessDestination/.test(page), 'redirect is gated by paid entitlement')
 ok(page.includes('selfServeReady ? ('), 'primary Studio link is gated')
 ok(page.includes('Open Account status'), 'delayed buyer has a manual status path')
 ok(page.includes("countdown > 0 ? 'Confirming access…' : 'Check access again'"), 'delayed buyer can retry after the bounded wait')

@@ -55,10 +55,14 @@ export default function CheckoutSuccessPage() {
   // ~20s de poll, e a copy passa a afirmar o que foi LIDO.
   const [credits, setCredits] = useState<number | null>(null)
   const [syncing, setSyncing] = useState(true)
+  const [hasSavedDraft, setHasSavedDraft] = useState(false)
 
   useEffect(() => {
     const resolved = readCheckoutSuccessFlow(new URLSearchParams(window.location.search))
     setFlow(resolved)
+    try {
+      setHasSavedDraft(Boolean(sessionStorage.getItem('kineo_studio_draft_v1')))
+    } catch { /* Storage may be unavailable; the ordinary Studio remains usable. */ }
 
     // Computed after mount so the time-seeded shuffle can never cause a
     // hydration mismatch. Autopilot buyers need channel setup, not a generic
@@ -207,6 +211,14 @@ export default function CheckoutSuccessPage() {
   })
   const selfServeReady = isSelfServe && selfServeState === 'ready'
   const checkoutReady = autopilotReady || selfServeReady
+  // Both the immediate button and the timer continue the same confirmed purchase.
+  // Studio retains ownership of draft freshness, credit checks and generation.
+  let destination = flow && checkoutReady
+    ? readyCheckoutSuccessDestination(flow, accountPlan)
+    : null
+  if (destination === '/studio') {
+    if (hasSavedDraft) destination = '/studio/create?resume=card_entry'
+  }
   useEffect(() => {
     if (!autopilotReady || autopilotReadyEventSent.current) return
     autopilotReadyEventSent.current = true
@@ -228,16 +240,6 @@ export default function CheckoutSuccessPage() {
   useEffect(() => {
     if (!flow) return
     if (countdown <= 0) {
-      let destination = checkoutReady
-        ? readyCheckoutSuccessDestination(flow, accountPlan)
-        : null
-      // KINEO-VERSAO-B-FUNIL-VOLTA-2026-09-08 — se a pessoa deixou uma ideia no
-      // Studio antes de pagar o $1, a volta cai NELA (e dispara), não no pouso.
-      if (destination === '/studio') {
-        try {
-          if (sessionStorage.getItem('kineo_studio_draft_v1')) destination = '/studio/create?resume=card_entry'
-        } catch { /* ignore */ }
-      }
       if (destination) {
         router.push(destination)
       } else if (isAutopilot && !autopilotPendingEventSent.current) {
@@ -258,7 +260,7 @@ export default function CheckoutSuccessPage() {
     }
     const timer = setTimeout(() => setCountdown((c) => c - 1), 1000)
     return () => clearTimeout(timer)
-  }, [accountPlan, checkoutReady, countdown, flow, isAutopilot, isSelfServe, router, selfServeState])
+  }, [countdown, destination, flow, isAutopilot, isSelfServe, router, selfServeState])
 
   return (
     <main
@@ -546,7 +548,7 @@ export default function CheckoutSuccessPage() {
             )
           ) : selfServeReady ? (
             <Link
-              href="/studio"
+              href={destination ?? '/studio'}
               style={{
                 display: 'block',
                 textAlign: 'center',
