@@ -727,7 +727,7 @@ desde 03/09, ainda **desce o alvo sozinho** acima de 60%. A tela nunca soube
 que a descida existe — então prevê uma recusa que o servidor não vai dar. É a
 doença do #349 de novo, desta vez na instrumentação.
 
-**O que mudou** (`SHA_AQUI`, **EM PRODUÇÃO**). O veredito passa a vir da
+**O que mudou** (`4bd873a2`, **EM PRODUÇÃO**). O veredito passa a vir da
 **mesma função** que o servidor usa (`autofitDown` de `lib/narrationFit`,
 alimentada pela narração do `parseUserScript`, não pelo texto cru), e o evento
 passa a dizer quem apertou o botão: `refusal_predicted`,
