@@ -199,8 +199,6 @@ const HOUR_MS = 60 * 60 * 1000
  * run, ordenado por KIND_PRIORITY.
  */
 const MAX_PER_RUN = 40
-/** PostgREST manda `in.(...)` na query string — fatiar para não estourar a URL. */
-const CHUNK_SIZE = 200
 /**
  * KINEO-TRIAL-EXTENSION-INVERTED-2026-08-12 — contagem de vídeos concluídos.
  * 50 contas por requisição contra um teto de 1.000 linhas: saturar exigiria
@@ -213,6 +211,21 @@ const VIDEO_COUNT_USERS_PER_QUERY = 50
 const VIDEO_COUNT_PAGE = 500
 /** Teto de segurança por bloco: acima disto, fecha em vez de paginar sem fim. */
 const VIDEO_COUNT_HARD_CAP = 50_000
+/**
+ * KINEO-DEDUPE-TETO-1000-2026-09-08 — leitura de idempotência (`trial_emails_log`).
+ * É a ÚNICA leitura do arquivo SEM janela de tempo: idempotência vale para
+ * sempre, então o volume só cresce. Uma conta traz uma linha POR KIND (6 hoje),
+ * não uma linha. 50 contas × 6 kinds = 300 linhas — folga de 3,3× contra o teto
+ * de 1.000 do PostgREST mesmo com a coorte inteira madura. O `CHUNK_SIZE` de
+ * 200 que estava aqui é justificado por comprimento de URL e nunca contou
+ * linhas por conta: medido em 08/09, 200 contas maduras = 962 linhas, e as 200
+ * mais pesadas = 1.033 — acima do teto.
+ */
+const EMAIL_LOG_USERS_PER_QUERY = 50
+/** Página de leitura do dedupe. ABAIXO do max-rows do PostgREST — ver o laço. */
+const EMAIL_LOG_PAGE = 500
+/** Teto por bloco: acima disto FECHA (não envia) em vez de paginar sem fim. */
+const EMAIL_LOG_HARD_CAP = 20_000
 /**
  * KINEO-FAILED-BY-US-2026-08-12 — leitura de "esta conta foi derrubada por
  * NÓS". Mesmos parâmetros da contagem de vídeos (50 contas por requisição,
@@ -2254,11 +2267,14 @@ export async function GET(req: NextRequest) {
   //
   // Contagem em JS sobre os ids da coorte (dezenas de contas, não milhares) —
   // PostgREST não faz group-by, e uma RPC nova seria superfície nova para uma
-  // soma. `.in()` em blocos de VIDEO_COUNT_USERS_PER_QUERY (50), MENOR que o
-  // CHUNK_SIZE de 200 usado no log: aqui cada conta traz N linhas, não 1, então
-  // o bloco tem de ser menor para a paginação abaixo ser rasa.
+  // soma. `.in()` em blocos de VIDEO_COUNT_USERS_PER_QUERY (50), porque aqui
+  // cada conta traz N linhas, não 1, e o bloco tem de ser pequeno o bastante
+  // para a paginação abaixo ser rasa e ficar longe do teto de 1.000.
   // (A 1ª versão deste comentário dizia "blocos de CHUNK_SIZE" e era falsa —
-  // número afirmado em comentário entra na revisão como código entra.)
+  // número afirmado em comentário entra na revisão como código entra. A 2ª se
+  // comparava ao `CHUNK_SIZE` de 200 da leitura de dedupe, e apodreceu em
+  // 08/09, quando aquela leitura passou a ter o seu próprio bloco de 50 —
+  // KINEO-DEDUPE-TETO-1000-2026-09-08.)
   //
   // `null` = leitura falhou ⇒ FALHA FECHADA nos ramos que dependem dela (ver
   // `dueKind`). Nunca vira 0 silencioso: 0 significaria "não fez nada" e
@@ -2455,20 +2471,64 @@ export async function GET(req: NextRequest) {
   // ── 2) Idempotência: quem já recebeu este kind não entra nem no batch ──────
   // (O claim do passo 4 é a trava real contra corrida; este filtro só evita
   // gastar supressão e teto com quem certamente será pulado.)
+  //
+  // ⚠️ KINEO-DEDUPE-TETO-1000-2026-09-08 — ESTA É A ÚNICA LEITURA SEM JANELA DO
+  // ARQUIVO, e por isso a única que cresce até o teto invisível de 1.000 linhas
+  // do PostgREST (`db.max_rows`, que trunca em SILÊNCIO, sem erro — o mecanismo
+  // do reenvio 8× de 21/08, ver lib/truncationTripwire.ts). As duas leituras
+  // irmãs deste arquivo (contagem de vídeos e "derrubado por nós") já pedem 50
+  // contas por requisição EXATAMENTE por isto; a supressão de 24h escapa porque
+  // a janela corta na origem (medido 08/09: 109 e 117 linhas na casa inteira em
+  // 24h). Esta aqui lia `CHUNK_SIZE` = 200 contas, e o comentário que justifica
+  // o 200 fala de COMPRIMENTO DE URL — razão que nunca contou linhas por conta.
+  // Medido no banco em 08/09:
+  //   · 3.149 linhas para 812 contas = 3,88 kinds por conta;
+  //   · bloco de 200 contas MADURAS (>14d) = 962 linhas — 96% do teto;
+  //   · as 200 contas mais pesadas = 1.033 linhas — JÁ PASSOU do teto;
+  //   · com os 6 kinds de hoje maduros, 200 contas = 1.200 (17% perdido).
+  // O dano de truncar aqui NÃO é spam, e isso foi conferido antes de escrever:
+  // o claim do passo 4b (PK user_id+email_kind, ignoreDuplicates) torna envio
+  // duplo impossível por construção. O dano é que quem JÁ recebeu volta a
+  // `fresh`, ocupa vaga no `batch` de MAX_PER_RUN e some no claim — o teto da
+  // execução é gasto com no-op e quem devia receber hoje fica para a próxima.
+  // Cura no padrão do próprio arquivo: bloco pequeno + página ABAIXO do teto do
+  // servidor + ordem TOTAL + falha FECHADA.
   const alreadySent = new Set<string>()
-  for (const part of chunk(Array.from(new Set(candidates.map((c) => c.id))), CHUNK_SIZE)) {
-    const { data: logRows, error: logErr } = await admin
-      .from('trial_emails_log')
-      .select('user_id, email_kind')
-      .in('user_id', part)
-    if (logErr) {
-      // Falha fechada: sem enxergar o log, enviar é arriscar duplicata.
-      console.error('[trial-lifecycle-emails] log query failed:', logErr.message)
-      return NextResponse.json({ error: 'email_log_unavailable' }, { status: 503 })
-    }
-    for (const r of (logRows ?? []) as Array<Record<string, unknown>>) {
-      if (typeof r.user_id === 'string' && typeof r.email_kind === 'string') {
-        alreadySent.add(`${r.user_id}:${r.email_kind}`)
+  for (const part of chunk(Array.from(new Set(candidates.map((c) => c.id))), EMAIL_LOG_USERS_PER_QUERY)) {
+    let fromRow = 0
+    for (;;) {
+      const { data: logRows, error: logErr } = await admin
+        .from('trial_emails_log')
+        .select('user_id, email_kind')
+        .in('user_id', part)
+        // Ordem TOTAL: a PK é (user_id, email_kind), as duas NOT NULL. Sem ela
+        // `.range()` repete linha numa página e pula na outra — e a linha
+        // pulada aqui é um "já enviei", exatamente o que não pode faltar.
+        .order('user_id', { ascending: true })
+        .order('email_kind', { ascending: true })
+        .range(fromRow, fromRow + EMAIL_LOG_PAGE - 1)
+      if (logErr) {
+        // Falha fechada: sem enxergar o log, enviar é arriscar duplicata.
+        console.error('[trial-lifecycle-emails] log query failed:', logErr.message)
+        return NextResponse.json({ error: 'email_log_unavailable' }, { status: 503 })
+      }
+      const got = (logRows ?? []) as Array<Record<string, unknown>>
+      for (const r of got) {
+        if (typeof r.user_id === 'string' && typeof r.email_kind === 'string') {
+          alreadySent.add(`${r.user_id}:${r.email_kind}`)
+        }
+      }
+      // Página curta é o único sinal de fim que o PostgREST dá — e só vale
+      // porque EMAIL_LOG_PAGE fica ABAIXO do max-rows do servidor.
+      if (got.length < EMAIL_LOG_PAGE) break
+      fromRow += got.length
+      if (fromRow >= EMAIL_LOG_HARD_CAP) {
+        // FECHADO, não truncado: lista de "já recebeu" incompleta é o primeiro
+        // passo do reenvio. Campanha que não sai nesta hora sai na próxima.
+        console.error(
+          `[trial-lifecycle-emails] dedupe log passou de ${EMAIL_LOG_HARD_CAP} linhas para ${part.length} contas — falhando FECHADO`,
+        )
+        return NextResponse.json({ error: 'email_log_unavailable' }, { status: 503 })
       }
     }
   }
