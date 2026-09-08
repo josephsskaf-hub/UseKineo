@@ -11,6 +11,7 @@ import { createClient } from '@/lib/supabase/client'
 import PricingCards from '@/components/PricingCards'
 import StickyGenerateBar from '@/components/StickyGenerateBar'
 import NextActionCard from '@/components/NextActionCard'
+import UpgradeModalTrialDoor from '@/components/UpgradeModalTrialDoor'
 import RegionalFirstPack from '@/components/RegionalFirstPack'
 // KINEO-SPRINT-OFFER-2026-07-14 — PostVideoPaywall import removed. It was the
 // THIRD offer block on the success screen (on top of the Push #099 intro block
@@ -2101,6 +2102,12 @@ export default function GenerateClient({
   //  - lastFastRenderRef: the exact inputs of the just-made non-avatar video, so the
   //    clean re-render reproduces the SAME video (not a fresh random one).
   const [hasPaid, setHasPaid] = useState(false)
+  // KINEO-UPGRADE-MODAL-TRIAL-DOOR-2026-09-07 — `hasPaid` nasce `false` e só
+  // muda quando a rota responde: `hasPaid === false` NÃO distingue "o servidor
+  // disse que não pagou" de "a leitura ainda não voltou". Dinheiro exige a
+  // prova positiva, então ela mora num estado próprio, escrito no mesmo ponto
+  // (memória `predicado-largo-negado-falha-aberta`).
+  const [notPaidProven, setNotPaidProven] = useState(false)
   // KINEO-BUGHUNT-FILA-2026-08-08 (item #4) — o cadeado do bloco "My footage".
   // A justificativa completa do predicado está junto de `footageInputRef`; aqui
   // só porque `hasPaid` é declarado nesta linha e um `const` não pode ser lido
@@ -3309,7 +3316,7 @@ export default function GenerateClient({
           // #384 — refresh free-AI-trial availability from the same source.
           if (typeof data.freeAiUsed === 'boolean') setFreeAiUsed(data.freeAiUsed)
           // KINEO-WM-CHECKOUT-2026-07-07 — paid flag hides the "remove watermark" CTA.
-          if (typeof data.hasPaid === 'boolean') setHasPaid(data.hasPaid)
+          if (typeof data.hasPaid === 'boolean') { setHasPaid(data.hasPaid); setNotPaidProven(data.hasPaid === false) }
           // KINEO-PRIMEIRO-FILME-GRATIS-2026-09-04 — quantos filmes esta conta
           // ja recebeu. Campo ausente (deploy antigo) ou null deixa o estado em
           // null e a oferta simplesmente nao aparece.
@@ -12714,6 +12721,7 @@ export default function GenerateClient({
           // resolução por tela, não uma por modal.
           currency={postVideoCurrency}
           region={postVideoRegion}
+          notPaidProven={notPaidProven}
           // Driven by the launcher, not `upgradeLoading`: the old flag was set
           // once and never cleared, so a failed redirect left the modal stuck
           // on "…" forever. The launcher's watchdog releases it after 15 s.
@@ -20060,6 +20068,10 @@ function UpgradeModal({
   region = 'standard',
   firstFilmFree = false,
   onFirstFilmFree,
+  // KINEO-UPGRADE-MODAL-TRIAL-DOOR-2026-09-07 — o predicado ESTRITO. `false`
+  // por padrão fecha a porta: nunca se anuncia $1 sem o servidor ter dito
+  // `has_paid === false` com todas as letras.
+  notPaidProven = false,
 }: {
   loading: boolean
   onUpgrade: (tier: 'starter' | 'basic' | 'pro') => void
@@ -20093,6 +20105,8 @@ function UpgradeModal({
    */
   firstFilmFree?: boolean
   onFirstFilmFree?: () => void
+  /** Prova positiva de `has_paid === false` vinda do servidor. Ver acima. */
+  notPaidProven?: boolean
 }) {
   // KINEO-CHECKOUT-TRIAGE-2026-07-25 — the top-up buttons below were raw
   // window.location.href with only `loading` (a prop that is never true for
@@ -20422,6 +20436,13 @@ function UpgradeModal({
             "Join 300+ creators" was unverifiable and the "50% off · mm:ss"
             pill was a fake countdown competing with the intro-month offer
             shown on the plan rows below. One modal, one offer. */}
+
+        {/* A porta de $1 entra ACIMA das linhas de plano e ABAIXO da caixa
+            verde do primeiro filme grátis. Não remove plano nenhum, não muda
+            preço e não esconde nada — a ordem do fundador de 07/09 16:40 é
+            "primeira opção", não "única opção". Peça própria: ver o cabeçalho
+            de components/UpgradeModalTrialDoor.tsx para a medição. */}
+        <UpgradeModalTrialDoor currency={currency} region={region} notPaidProven={notPaidProven} reason={reason} />
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {PLAN_LIST.map((plan) => {
