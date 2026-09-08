@@ -941,6 +941,8 @@ export async function GET(req: Request) {
         (typeof metadata.stripe_subscription_id === 'string' && metadata.stripe_subscription_id.length > 0) ||
         (typeof metadata.tier === 'string' && !metadata.pack)
       if (!isSubscription) continue
+      // KINEO-ADMIN-FONTE-UNICA-2026-09-08 — o $1 do trial é dinheiro, não pagante.
+      if (metadata.card_trial === true || metadata.card_trial === 'true') continue
       const eventUserId = event.user_id || (typeof metadata.supabase_user_id === 'string' ? metadata.supabase_user_id : null)
       if (eventUserId && cohortIds.has(eventUserId)) paidUserSet.add(eventUserId)
     }

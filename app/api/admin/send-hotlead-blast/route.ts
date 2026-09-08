@@ -36,6 +36,7 @@ import { claimEmailSlot, recordEmailSend, recordResendResponse } from '@/lib/ema
 // Este blast fala com os leads MAIS quentes da base (gente que zerou o
 // trial) — é o público que menos perdoa uma diferença entre e-mail e fatura.
 import { TIER_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
+import { PAID_PLANS } from '../_shared/mrr'
 
 const STARTER_PRICE = formatCheckoutMoney('usd', TIER_PRICES.starter.usd)
 const CREATOR_PRICE = formatCheckoutMoney('usd', TIER_PRICES.basic.usd)
@@ -64,9 +65,7 @@ const ADMIN_EMAILS = new Set([
 const FROM_EMAIL = 'Joseph at Kineo <hello@usekineo.com>'
 const REPLY_TO = 'hello@usekineo.com'
 const FLAG_EVENT = 'hotlead_emailed_v1'
-const TRIAL_START = '2026-08-07'
-const PAID_PLANS = new Set(['starter', 'starter_trial', 'basic', 'basic_trial', 'pro', 'pro_trial'])
-
+const TRIAL_START = '2026-08-07'
 const DISPOSABLE_DOMAINS = new Set([
   'yopmail.com', 'gmeenramy.com', 'kinws.com', 'doefy.com', 'x-box.in',
   'mailinator.com', 'guerrillamail.com', 'sharklasers.com', 'tempmail.com',

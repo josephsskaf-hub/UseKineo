@@ -65,6 +65,7 @@ import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
 import { trialEntryFeeLabel, trialEntryFullPromise } from '@/lib/lifecycle/trialEntryFee'
 import { trialReachClause } from '@/lib/lifecycle/trialReachLine'
 import { CARD_TRIAL_DAYS, CARD_TRIAL_GRANT_CREDITS } from '@/lib/checkoutPricing'
+import { PAID_PLANS } from '../_shared/mrr'
 
 export const maxDuration = 300
 export const dynamic = 'force-dynamic'
@@ -76,9 +77,7 @@ const ADMIN_EMAILS = new Set(['josephsskaf@gmail.com', 'josephskaf@gmail.com', '
 const FROM_EMAIL = 'Joseph at Kineo <joseph@usekineo.com>'
 const REPLY_TO = 'joseph@usekineo.com'
 const STAMP = 'second_try_1usd_sent'
-const CAMPAIGN = 'second_try_1usd'
-const PAID_PLANS = new Set(['starter', 'basic', 'pro', 'autopilot'])
-const APP = 'https://www.usekineo.com'
+const CAMPAIGN = 'second_try_1usd'const APP = 'https://www.usekineo.com'
 const MAX_BATCH = 30
 
 /**

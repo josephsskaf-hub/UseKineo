@@ -20,6 +20,7 @@ import type { User } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { isInternalEmail } from '@/lib/internalAccounts'
+import { PAID_PLANS } from '../_shared/mrr'
 
 export const dynamic = 'force-dynamic'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
@@ -45,14 +46,6 @@ const ADMIN_EMAILS = new Set([
 // write to profiles.plan for a PAYING user. Sources: app/api/stripe/webhook
 // (`${tier}_trial` | tier for starter/basic/pro/autopilot), checkout route
 // ('autopilot_pilot'), lib/plan.ts (legacy creator/studio labels).
-const PAID_PLANS = new Set([
-  'starter', 'starter_trial',
-  'basic', 'basic_trial',
-  'creator', 'creator_trial',
-  'pro', 'pro_trial',
-  'studio', 'studio_trial',
-  'autopilot', 'autopilot_trial', 'autopilot_pilot',
-])
 
 interface AdminUserRow {
   id: string

@@ -15,6 +15,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { fetchAllRows, isAdminEmail, serviceClient } from '../_shared/db'
+import { isPayingPlan } from '../_shared/mrr'
 
 export const dynamic = 'force-dynamic'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
@@ -209,7 +210,6 @@ export async function GET() {
       if (!cur || e.created_at < cur) firstPaid.set(e.user_id, e.created_at)
     }
 
-    const PAID_PLANS = new Set(['starter', 'basic', 'pro', 'autopilot'])
     const isInternal = (email: string) => {
       const e = email.toLowerCase()
       return e.startsWith('josephsskaf') || e.startsWith('josephskaf') || e.endsWith('@shortsforgeai.com')
@@ -221,7 +221,7 @@ export async function GET() {
         const used = agg?.used ?? 0
         const left = typeof p.video_credits === 'number' ? p.video_credits : null
         const hasSub = !!(p.stripe_subscription_id || p.paddle_subscription_id || p.paypal_subscription_id)
-        const planPaid = PAID_PLANS.has((p.plan ?? '').toLowerCase())
+        const planPaid = isPayingPlan((p.plan ?? '').toLowerCase())
         const paidKind: PaidKind = p.has_paid !== true ? null : planPaid ? 'active' : hasSub ? 'churned' : 'one_time'
         return {
           email: p.email as string,

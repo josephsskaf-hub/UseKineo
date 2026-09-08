@@ -33,6 +33,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { TIER_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
+import { PAID_PLANS } from '../_shared/mrr'
 
 export const maxDuration = 300
 export const dynamic = 'force-dynamic'
@@ -185,7 +186,7 @@ export async function GET(req: NextRequest) {
     // include_recent continua existindo como interruptor de emergência, mas o
     // default agora reflete a ordem: quem já recebeu marketing NÃO entra.
     const includeRecent = req.nextUrl.searchParams.get('include_recent') === '1'
-    const PAID = new Set(['starter', 'basic', 'pro', 'autopilot'])
+    const PAID = PAID_PLANS // KINEO-ADMIN-FONTE-UNICA-2026-09-08
     const recipients = profiles
       .filter((p) => {
         if (!p.email || p.email_opted_out || p.has_paid === true) return false

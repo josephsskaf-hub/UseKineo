@@ -25,6 +25,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { isInternalEmail } from '@/lib/internalAccounts'
 import { composerUrl } from '@/lib/lifecycle/composerUrl'
+import { PAID_PLANS } from '../_shared/mrr'
 
 export const maxDuration = 300
 export const dynamic = 'force-dynamic'
@@ -45,9 +46,7 @@ const ADMIN_EMAILS = new Set(['josephsskaf@gmail.com', 'josephskaf@gmail.com', '
 const FROM_EMAIL = 'Joseph at Kineo <joseph@usekineo.com>'
 const REPLY_TO = 'joseph@usekineo.com'
 const STAMP = 'winback25_sent'
-const GRANT = 25
-const PAID_PLANS = new Set(['starter', 'basic', 'pro'])
-const APP = 'https://www.usekineo.com'
+const GRANT = 25const APP = 'https://www.usekineo.com'
 
 function buildEmail(userId: string) {
   const url = composerUrl({ base: APP, campaign: 'winback25' })

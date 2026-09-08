@@ -34,7 +34,7 @@ import type { CSSProperties } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { isAdminEmail, serviceClient } from '@/app/api/admin/_shared/db'
 import { isInternalEmail } from '@/lib/internalAccounts'
-import { formatUsd, isPaidPlan } from '@/app/api/admin/_shared/mrr'
+import { formatUsd, isPayingPlan, isTrialPlan } from '@/app/api/admin/_shared/mrr'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -135,7 +135,8 @@ export default async function TrialRoiPage() {
     if (!prof) continue
     const q = raw.metadata?.quality ?? 'fast'
     const unit = USD_PER_RENDER[q] ?? 0
-    const paid = isPaidPlan(prof.plan) || prof.has_paid === true
+    // KINEO-ADMIN-FONTE-UNICA-2026-09-08 — o trial de $1 tem has_paid=true e NÃO é pagante.
+    const paid = isPayingPlan(prof.plan) || (prof.has_paid === true && !isTrialPlan(prof.plan))
 
     const p = people.get(uid) ?? {
       email: prof.email, plan: prof.plan, paid,

@@ -26,6 +26,7 @@ import { fetchAllRows, serviceClient } from '../_shared/db'
 import {
   formatUsd,
   isPaidPlan,
+  isPayingPlan,
   mrrForPlan,
   stripeMrrUsd,
   pct,
@@ -253,7 +254,7 @@ export async function computeCeoData(): Promise<CeoData | null> {
 
   for (const p of external) {
     if (p.has_paid) hasPaidEver += 1
-    if (!isPaidPlan(p.plan)) continue
+    if (!isPayingPlan(p.plan)) continue // KINEO-ADMIN-FONTE-UNICA: trial de $1 não é pagante
     payingActive += 1
     const price = mrrForPlan(p.plan)
     mrr += price

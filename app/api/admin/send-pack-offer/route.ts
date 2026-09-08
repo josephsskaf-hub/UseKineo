@@ -22,6 +22,7 @@ import { emailFooterHtml, unsubscribeHeaders } from '@/lib/emailSuppression'
 // videos", e o SKU concede PACK_CREDITS.starter (30) desde a V3D. Três números
 // para uma coisa só, no mesmo e-mail. Agora é um, derivado.
 import { PACK_CREDITS } from '@/lib/checkoutPricing'
+import { PAID_PLANS } from '../_shared/mrr'
 
 export const maxDuration = 300
 export const dynamic = 'force-dynamic'
@@ -77,10 +78,7 @@ function isInternal(email: string): boolean {
   const dom = email.split('@')[1] ?? ''
   if (dom === 'shortsforgeai.com' || dom === 'usekineo.com' || dom === 'theresanaiforthat.com') return true
   return false
-}
-
-const PAID_PLANS = new Set(['starter', 'starter_trial', 'basic', 'basic_trial', 'pro', 'pro_trial'])
-
+}
 function isValidExternalEmail(email: string): boolean {
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return false
   if (email.includes('example.com') || email.startsWith('test@') || email.startsWith('smoketest')) return false

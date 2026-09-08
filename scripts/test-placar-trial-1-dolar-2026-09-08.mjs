@@ -25,11 +25,11 @@ const iEvent = wh.indexOf("name: 'subscription_invoice_paid'")
 checa('o evento sai DEPOIS do perfil atualizado (nunca antes do dinheiro virar acesso)', iUpdate > 0 && iEvent > iUpdate)
 
 console.log('== o admin ==')
-checa('página: trial NÃO conta como pagante', /if \(plan\.endsWith\('_trial'\)\) \{[\s\S]{0,400}trialsActive \+= 1[\s\S]{0,200}continue/.test(page))
+checa('página: trial NÃO conta como pagante', /if (isTrialPlan(plan)) {[sS]{0,400}trialsActive += 1[sS]{0,200}continue/.test(page))
 checa('página: MRR real vem da Stripe, tabela é fallback', /const stripeMrr = await stripeMrrUsd\(payingSubscriptionIds\)/.test(page) && /value=\{fmtMoney\(m\.mrrStripeUsd \?\? m\.mrrUsd\)\}/.test(page))
 checa('página: KPI "Trials $1" separado', /label="Trials \$1"/.test(page))
 checa('página: perfis trazem stripe_subscription_id', /'id, email, plan, created_at, utm_source, stripe_subscription_id'/.test(page))
-checa('rota JSON: trial separado do pagante', /if \(plan\.endsWith\('_trial'\)\) \{ trialsActive \+= 1; trialPotentialMrrUsd \+= PLAN_PRICE_USD\[plan\] \?\? 0; continue \}/.test(route))
+checa('rota JSON: trial separado do pagante', /if (isTrialPlan(plan)) { trialsActive += 1; trialPotentialMrrUsd += PLAN_PRICE_USD[plan] ?? 0; continue }/.test(route))
 checa('rota JSON: devolve trialsActive', /trialsActive,/.test(route))
 
 console.log(`\n  verificacoes: ${ok + falhas.length} · falhas: ${falhas.length}`)

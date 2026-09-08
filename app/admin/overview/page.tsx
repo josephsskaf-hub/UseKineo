@@ -23,8 +23,8 @@ import type { CSSProperties, ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { isInternalEmail, INTERNAL_ACCOUNTS_LABEL } from '@/lib/internalAccounts'
-import { PLANS } from '@/lib/pricing'
 import { stripeMrrUsd } from '@/app/api/admin/_shared/mrr'
+import { PAID_PLANS, PLAN_PRICE_USD, isTrialPlan } from '@/app/api/admin/_shared/mrr'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -37,26 +37,8 @@ const ADMIN_EMAILS = new Set([
 
 // Monthly USD per plan — sourced from lib/pricing so a price change there
 // updates the MRR math automatically. Trials count at full price (card on file).
-const PLAN_PRICE_USD: Record<string, number> = {
-  starter: PLANS.starter.price,
-  starter_trial: PLANS.starter.price,
-  basic: PLANS.basic.price,
-  basic_trial: PLANS.basic.price,
-  pro: PLANS.pro.price,
-  pro_trial: PLANS.pro.price,
-  // KINEO-AUTOPILOT-299-2026-07-26 — sem estas duas linhas o Autopilot cai em
-  // PLAN_PRICE_USD[plan] === undefined, sai de PAID_PLANS, e a primeira venda
-  // de $299 (8x o ARPU de qualquer outro SKU) apareceria como $0 no MRR.
-  autopilot: PLANS.autopilot.price,
-  autopilot_trial: PLANS.autopilot.price,
-  // KINEO-PILOT-99-2026-07-26 — o piloto PRECISA ser uma CHAVE (PAID_PLANS =
-  // Object.keys, então sem a chave o comprador de $99 não conta como cliente
-  // pago em lugar nenhum do painel) com VALOR 0: é pagamento ÚNICO, não
-  // assinatura. Somar $99 ao MRR inflaria a métrica que decide se a empresa
-  // pode gastar em aquisição — o erro mais caro que este painel pode cometer.
-  autopilot_pilot: 0,
-}
-const PAID_PLANS = new Set(Object.keys(PLAN_PRICE_USD))
+// KINEO-ADMIN-FONTE-UNICA-2026-09-08 — a tabela local morreu: PAID_PLANS e
+// PLAN_PRICE_USD vêm de app/api/admin/_shared/mrr (uma fonte para todo o admin).
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -206,7 +188,7 @@ async function loadMetrics(): Promise<Metrics | null> {
   for (const p of external) {
     const plan = (p.plan ?? 'free').toLowerCase()
     if (!PAID_PLANS.has(plan)) continue
-    if (plan.endsWith('_trial')) {
+    if (isTrialPlan(plan)) {
       // KINEO-PLACAR-TRIAL-2026-09-08 — quem pagou $1 esta em trial: conta como
       // trial, com o MRR que VIRA no dia 8, nunca como pagante de hoje.
       trialsActive += 1

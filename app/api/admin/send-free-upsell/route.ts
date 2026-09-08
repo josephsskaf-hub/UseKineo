@@ -28,6 +28,7 @@ import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
 // Derivando da tabela, uma correção vale para todas.
 import { TIER_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
 import { CREATOR_AI_FILMS } from '@/lib/marketingPrice'
+import { PAID_PLANS } from '../_shared/mrr'
 
 const STARTER_PRICE = formatCheckoutMoney('usd', TIER_PRICES.starter.usd)
 const CREATOR_PRICE = formatCheckoutMoney('usd', TIER_PRICES.basic.usd)
@@ -76,10 +77,7 @@ function isInternal(email: string): boolean {
   const dom = email.split('@')[1] ?? ''
   if (dom === 'shortsforgeai.com' || dom === 'usekineo.com' || dom === 'theresanaiforthat.com') return true
   return false
-}
-
-const PAID_PLANS = new Set(['starter', 'starter_trial', 'basic', 'basic_trial', 'pro', 'pro_trial'])
-
+}
 function isValidExternalEmail(email: string): boolean {
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return false
   if (email.includes('example.com') || email.startsWith('test@') || email.startsWith('smoketest')) return false

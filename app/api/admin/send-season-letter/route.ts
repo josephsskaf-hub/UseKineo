@@ -54,6 +54,7 @@ import { getEffectiveEntitlement, TRIAL_ENTITLEMENT_COLUMNS } from '@/lib/revers
 import { TOTAL_EPISODIOS, type TemporadaEscrita } from '@/lib/temporada'
 import { garantirTemporada } from '@/lib/temporadaServer'
 import { registrarCorrida, corridaAbortada, type CorridaDeCampanha } from '@/lib/lifecycle/campaignRun'
+import { PAID_PLANS } from '../_shared/mrr'
 
 export const maxDuration = 300
 export const dynamic = 'force-dynamic'
@@ -328,7 +329,7 @@ export async function GET(req: NextRequest) {
       else jaEmailado.add(uid)
     }
 
-    const PAGOS = new Set(['starter', 'basic', 'pro', 'creator', 'studio', 'autopilot'])
+    const PAGOS = PAID_PLANS // KINEO-ADMIN-FONTE-UNICA-2026-09-08
     const candidatos: Destinatario[] = []
     for (const raw of (profRes.data ?? []) as unknown as Record<string, unknown>[]) {
       const id = raw.id as string

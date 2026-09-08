@@ -18,7 +18,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { isAdminEmail, serviceClient } from '../_shared/db'
 import { INTERNAL_EXACT_EMAILS, INTERNAL_LIKE_PATTERNS, isInternalEmail } from '@/lib/internalAccounts'
-import { isPaidPlan } from '../_shared/mrr'
+import { isPaidPlan, isTrialPlan } from '../_shared/mrr'
 
 export const dynamic = 'force-dynamic'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
@@ -47,6 +47,7 @@ export interface LiveVisitor {
   credits: number | null
   plan: string | null
   is_paid: boolean
+  is_trial: boolean
   videos: number
   /** Sinais do que a pessoa fez NESTA sessão de hoje — o "testou algo". */
   did: string[]
@@ -528,6 +529,7 @@ export async function GET() {
             credits: typeof p.video_credits === 'number' ? p.video_credits : null,
             plan: (p.plan as string | null) ?? null,
             is_paid: isPaidPlan((p.plan as string) ?? null),
+            is_trial: isTrialPlan((p.plan as string) ?? null),
             videos: vidCount.get(p.id as string) ?? 0,
             did,
             heat,

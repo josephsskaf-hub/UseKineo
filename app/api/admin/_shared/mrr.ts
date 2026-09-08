@@ -101,7 +101,21 @@ export function mrrForPlan(plan: string | null | undefined): number {
  * caso o chamador cai no cálculo por tabela. Nunca inventa: melhor mostrar a
  * estimativa rotulada do que um número inventado com cara de exato.
  */
-export async function stripeMrrUsd(subscriptionIds: string[]): Promise<{
+type StripeMrr = { mrr: number; counted: number; perSubscription: Array<{ id: string; usd: number; status: string }> }
+const STRIPE_MRR_TTL_MS = 5 * 60 * 1000
+const stripeMrrCache = new Map<string, { at: number; value: StripeMrr | null }>()
+
+/** Cache de 5 min: quatro telas do admin abrindo em sequência não fazem 48 chamadas à Stripe. */
+export async function stripeMrrUsd(subscriptionIds: string[]): Promise<StripeMrr | null> {
+  const key = [...subscriptionIds].sort().join(',')
+  const hit = stripeMrrCache.get(key)
+  if (hit && Date.now() - hit.at < STRIPE_MRR_TTL_MS) return hit.value
+  const value = await stripeMrrUsdUncached(subscriptionIds)
+  stripeMrrCache.set(key, { at: Date.now(), value })
+  return value
+}
+
+async function stripeMrrUsdUncached(subscriptionIds: string[]): Promise<{
   mrr: number
   counted: number
   perSubscription: Array<{ id: string; usd: number; status: string }>
@@ -191,4 +205,61 @@ export function formatUsd(n: number): string {
 export function pct(num: number, denom: number): string {
   if (!denom || denom <= 0) return '—'
   return `${((num / denom) * 100).toFixed(1)}%`
+}
+
+// ═══ KINEO-ADMIN-FONTE-UNICA-2026-09-08 ═══════════════════════════════════════
+// Ordem do fundador (08/09 09:50): "arruma o administrador de forma completa, pra
+// não ter esse tipo de erro mais". O erro: 16 lugares do admin e das campanhas
+// tinham a própria tabela de "plano pago" — umas sem *_trial, outras sem
+// autopilot, outras sem creator/studio — e cada tela contava um cliente
+// diferente. Daqui em diante NENHUM arquivo fora deste define plano pago; o
+// guardião scripts/test-admin-fonte-unica-2026-09-08.mjs falha se voltar.
+//
+// Vocabulário (use o nome certo, os três significam coisas diferentes):
+//   isPaidPlan   = tem relação paga com a casa (inclui *_trial e pilot).
+//                  Use para EXCLUIR de campanha/oferta.
+//   isPayingPlan = paga mensalidade AGORA (exclui *_trial). Use para
+//                  "pagantes" e MRR.
+//   isTrialPlan  = está no trial de $1 (cartão na Stripe, cobra no dia 8).
+
+/** Paga mensalidade agora. Trial de $1 NÃO é pagante até o dia 8. */
+export function isPayingPlan(plan: string | null | undefined): boolean {
+  return isPaidPlan(plan) && !isTrialPlan(plan)
+}
+
+export type AccountClass = 'internal' | 'paying' | 'trial_1usd' | 'card_required' | 'free'
+
+/** Uma conta, uma classe. `isInternal` é a régua da casa (lib/internalAccounts). */
+export function classifyAccount(
+  p: { email?: string | null; plan?: string | null; trial_status?: string | null },
+  isInternal: (email: string) => boolean,
+): AccountClass {
+  if (p.email && isInternal(p.email)) return 'internal'
+  if (isPayingPlan(p.plan)) return 'paying'
+  if (isTrialPlan(p.plan)) return 'trial_1usd'
+  if (normalizePlan(p.trial_status) === 'card_required') return 'card_required'
+  return 'free'
+}
+
+type EventMeta = Record<string, unknown> | null | undefined
+const metaTrue = (m: EventMeta, k: string) => m?.[k] === true || m?.[k] === 'true' || m?.[k] === '1'
+
+/** Entrou no trial de $1 (dinheiro, mas NÃO assinante). */
+export function isTrialEntryEvent(name: string, metadata: EventMeta): boolean {
+  return name === 'payment_success' && metaTrue(metadata, 'card_trial')
+}
+
+/**
+ * Assinante NOVO: checkout de assinatura sem ser o $1, ou a primeira fatura
+ * cobrada depois do trial (subscription_invoice_paid com trial_conversion).
+ * Renovação de quem já pagava NÃO é assinante novo.
+ */
+export function isNewSubscriberEvent(name: string, metadata: EventMeta): boolean {
+  if (name === 'subscription_invoice_paid') return metaTrue(metadata, 'trial_conversion')
+  if (name !== 'payment_success') return false
+  if (metaTrue(metadata, 'card_trial')) return false
+  const mode = typeof metadata?.checkout_mode === 'string' ? metadata.checkout_mode : null
+  const tier = typeof metadata?.tier === 'string' ? metadata.tier : null
+  const pack = metadata?.pack
+  return mode === 'subscription' || (tier !== null && !pack)
 }

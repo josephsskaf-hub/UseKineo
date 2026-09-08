@@ -32,6 +32,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
+import { PAID_PLANS } from '../_shared/mrr'
 
 export const maxDuration = 300
 export const dynamic = 'force-dynamic'
@@ -170,7 +171,7 @@ export async function GET(req: NextRequest) {
       else alreadyMailed.add(uid)
     }
 
-    const PAID = new Set(['starter', 'basic', 'pro', 'autopilot'])
+    const PAID = PAID_PLANS // KINEO-ADMIN-FONTE-UNICA-2026-09-08
     const recipients = (profRes.data ?? [])
       .filter((p) => {
         const email = p.email as string | null

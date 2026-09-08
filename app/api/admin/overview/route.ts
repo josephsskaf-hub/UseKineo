@@ -7,8 +7,8 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { isInternalEmail } from '@/lib/internalAccounts'
-import { PLANS } from '@/lib/pricing'
 import { fetchAllRows } from '@/app/api/admin/_shared/db'
+import { PAID_PLANS, PLAN_PRICE_USD, isTrialPlan } from '@/app/api/admin/_shared/mrr'
 
 export const dynamic = 'force-dynamic'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
@@ -42,20 +42,8 @@ const ADMIN_EMAILS = new Set([
 //      seu próprio mapa) contava. Duas telas de dinheiro discordando é pior
 //      que uma errada, porque nenhuma das duas parece suspeita sozinha.
 // Agora deriva de lib/pricing, igual /admin, e PAID_PLANS deriva das chaves.
-const PLAN_PRICE_USD: Record<string, number> = {
-  starter: PLANS.starter.price,
-  starter_trial: PLANS.starter.price,
-  basic: PLANS.basic.price,
-  basic_trial: PLANS.basic.price,
-  pro: PLANS.pro.price,
-  pro_trial: PLANS.pro.price,
-  autopilot: PLANS.autopilot.price,
-  autopilot_trial: PLANS.autopilot.price,
-  // Pagamento único de $99: conta como cliente pago, vale 0 de MRR.
-  autopilot_pilot: 0,
-}
-
-const PAID_PLANS = new Set(Object.keys(PLAN_PRICE_USD))
+// KINEO-ADMIN-FONTE-UNICA-2026-09-08 — a tabela local morreu: PAID_PLANS e
+// PLAN_PRICE_USD vêm de app/api/admin/_shared/mrr (uma fonte para todo o admin).
 
 // Push #417 — keep founder/test/throwaway accounts out of every dashboard
 // number so Joseph sees only REAL customers.
@@ -239,7 +227,7 @@ export async function GET() {
     let trialPotentialMrrUsd = 0
     for (const [, plan] of planById) {
       if (PAID_PLANS.has(plan)) {
-        if (plan.endsWith('_trial')) { trialsActive += 1; trialPotentialMrrUsd += PLAN_PRICE_USD[plan] ?? 0; continue }
+        if (isTrialPlan(plan)) { trialsActive += 1; trialPotentialMrrUsd += PLAN_PRICE_USD[plan] ?? 0; continue }
         const key = plan.replace('_trial', '')
         payingByPlan[key] = (payingByPlan[key] ?? 0) + 1
         mrrUsd += PLAN_PRICE_USD[plan] ?? 0

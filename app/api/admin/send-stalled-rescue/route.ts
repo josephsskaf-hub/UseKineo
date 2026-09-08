@@ -84,6 +84,7 @@ import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emai
 import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
 import { isInternalEmail } from '@/lib/internalAccounts'
 import { TRIAL_CREDIT_CAP } from '@/lib/reverseTrial'
+import { PAID_PLANS } from '../_shared/mrr'
 
 export const maxDuration = 300
 export const dynamic = 'force-dynamic'
@@ -193,12 +194,7 @@ function isInternal(email: string): boolean {
 // que eles dão é só contra uma linha com `has_paid` desatualizado. Se algum dia
 // alguém "consertar" a coluna `plan` para escrever 'creator_trial', esta lista
 // de exclusão passa a apagar exatamente o público do ramo de trial da copy
-// acima — as duas metades deste arquivo entrariam em guerra. Fica registrado.
-const PAID_PLANS = new Set([
-  'starter', 'starter_trial', 'basic', 'basic_trial', 'pro', 'pro_trial',
-  'creator', 'creator_trial', 'studio', 'studio_trial',
-])
-
+// acima — as duas metades deste arquivo entrariam em guerra. Fica registrado.
 function isValidExternalEmail(email: string): boolean {
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return false
   if (email.includes('example.com') || email.startsWith('test@') || email.startsWith('smoketest')) return false
