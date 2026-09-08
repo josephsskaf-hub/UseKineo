@@ -156,7 +156,21 @@ export const TRIAL_GRANT_CREDITS_COPY = 25
 // "DECISÕES FINAIS — REVERSE TRIAL"). NUNCA mencionar desconto/50% aqui:
 // o 50% é exclusivo dos e-mails D5/D10 pós-trial, jamais superfície pública.
 // KINEO-VERSAO-B: sob a porta única, a conta que faz filme tem os 80 do trial de $1, não 25.
-const G = CARD_ENTRY_ONLY ? CARD_ENTRY_TRIAL_CREDITS : TRIAL_GRANT_CREDITS_COPY
+// KINEO-GRANT-RENDER-UNICO-2026-09-08 (M7) — O NUMERO QUE A CASA PODE MOSTRAR.
+//
+// TRIAL_GRANT_CREDITS_COPY acima e o espelho HISTORICO de TRIAL_CREDIT_CAP (25):
+// existe para a assercao de tipo de lib/reverseTrial.ts e para a copy da versao
+// A, que volta a valer se o fundador desligar CARD_ENTRY_ONLY. Ele NAO e o
+// numero em vigor. Sob a porta de $1, quem faz filme tem 80.
+//
+// Oito superficies renderizavam o 25 CRU, fora de qualquer swap, e por isso
+// publicavam o mundo antigo mesmo com a porta ligada — inclusive um JSON-LD
+// (omni-flash-vs-sora) e o rotulo do botao das paginas de motor. Quem MOSTRA o
+// grant usa esta constante; quem guarda a copy da versao A continua usando
+// aquela, dentro de ft()/<FreeTierCopy>, onde o swap decide.
+// scripts/test-grant-copy-single-source.mjs trava a volta.
+export const TRIAL_CREDITS_SHOWN = CARD_ENTRY_ONLY ? CARD_ENTRY_TRIAL_CREDITS : TRIAL_GRANT_CREDITS_COPY
+const G = TRIAL_CREDITS_SHOWN
 // KINEO-TRIAL-FILMES-2026-08-20 — "80 credits" não significa nada para quem
 // acabou de chegar; "4 AI films" significa tudo. É a mesma regra que a página
 // de preços já segue (fala em filmes, não em créditos) e agora vale também na

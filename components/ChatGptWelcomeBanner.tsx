@@ -20,7 +20,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import styles from './ChatGptWelcomeBanner.module.css'
 import { trackEvent } from '@/lib/analytics'
-import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
+import { TRIAL_CREDITS_SHOWN } from '@/lib/freeTierOffer'
 import { STARTER_MO } from '@/lib/marketingPrice'
 import {
   CHATGPT_QUICKSTART_INPUT_LIMIT,
@@ -241,7 +241,7 @@ export function ChatGptWelcomeCard({
         <span>Your text stays editable in Studio before anything is generated.</span>
       </div>
       <p className={styles.proof}>
-        {TRIAL_GRANT_CREDITS_COPY} trial credits already included · no card to start · plans from {STARTER_MO}
+        {TRIAL_CREDITS_SHOWN} credits with the $1 trial · 7 days, card required · plans from {STARTER_MO}
       </p>
       <button type="button" aria-label="Dismiss" className={styles.dismiss} onClick={onDismiss}>
         ×

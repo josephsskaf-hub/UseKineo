@@ -23,7 +23,7 @@ import { STARTER_CREDITS, STARTER_USD_AMOUNT } from '@/lib/marketingPrice'
 // abaixo. Antes esta frase dizia "25 credits ... twelve films" com o número
 // digitado à mão, enquanto a tabela — derivada do código — mostrava 5. A página
 // se contradizia em duas linhas de distância.
-import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
+import { TRIAL_CREDITS_SHOWN } from '@/lib/freeTierOffer'
 import { CARD_ENTRY_TRIAL_CREDITS } from '@/lib/entryPolicy'
 import { S25_PUBLIC } from '@/lib/engineLaunch'
 import { ENGINE_LANDING_PUBLIC_PATHS } from '@/lib/growth/engineLandingIntent'
@@ -82,7 +82,7 @@ export default function ModelsPricingPage() {
       </p>
       <p style={{ fontSize: 15, lineHeight: 1.7, color: '#a9a9b6', margin: '0 0 32px', maxWidth: 720 }}>
         Your $1 trial starts with <strong style={{ color: '#e9e9ee' }}>80 credits</strong>. On Kineo 1 that is{' '}
-        {Math.floor(TRIAL_GRANT_CREDITS_COPY / creditCostForDuration('fast', true, 60))} films; on the biggest engines it is
+        {Math.floor(TRIAL_CREDITS_SHOWN / creditCostForDuration('fast', true, 60))} films; on the biggest engines it is
         part of one. Both are fine — just know which one you picked.
       </p>
 

@@ -301,7 +301,7 @@ import {
   type OnboardingGoalId,
 } from '@/lib/growth/onboardingGoals'
 import { FreeTierCopy, useFreeTierOffer } from '@/components/FreeTierOfferProvider'
-import { swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
+import { swapFreeTierCopy as ft, TRIAL_CREDITS_SHOWN } from '@/lib/freeTierOffer'
 // KINEO-AVATAR-PACKS-RETIRED-2026-07-06 — AvatarPaywallModal import removed.
 // That modal only sold the retired avatar_credits packs (?pack=avatar*). Avatar
 // videos now cost 120 universal credits; the avatar 402 already routes to the
@@ -21057,7 +21057,7 @@ function WelcomeBanner({ onDismiss, trialLive, grantedCredits }: { onDismiss: ()
   const grant =
     typeof grantedCredits === 'number' && grantedCredits > 0
       ? grantedCredits
-      : TRIAL_GRANT_CREDITS_COPY
+      : TRIAL_CREDITS_SHOWN
   return (
     <div
       role="status"

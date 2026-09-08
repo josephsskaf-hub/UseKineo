@@ -138,8 +138,7 @@ export default function VsHiggsfieldPage() {
           href="/free?utm_source=seo&utm_medium=vs_higgsfield&utm_campaign=comparison"
           style={{ display: 'inline-block', background: '#2997ff', color: '#fff', fontWeight: 900, fontSize: 15, padding: '12px 28px', borderRadius: 12, textDecoration: 'none' }}
         >
-          Try 7 days for 
-          
+          Try 7 days for $1
         </Link>
         <p style={{ color: '#86868b', fontSize: 12, marginTop: 10 }}>$1 trial — 80 credits, 7 days · Kineo 1 + Seedance</p>
       </div>

@@ -33,7 +33,7 @@ import { getEngineRenders } from '@/lib/engineWall'
 import {
   getFreeTierOffer,
   swapFreeTierCopy as ft,
-  TRIAL_GRANT_CREDITS_COPY,
+  TRIAL_CREDITS_SHOWN,
   // KINEO-TRIAL-COBRE-MOTOR-2026-08-21 — as FAQs desta página afirmavam
   // quantos vídeos de CADA motor os créditos grátis pagavam. Com o grant em
   // 25 (era 80), duas dessas frases viraram falsas: Kling 2.5 "cover one"
@@ -414,7 +414,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
 
   const tierNote = e.tier === 'Free'
     ? ft(OFFER, 'Free with a watermark · no card', OFFER.copy.chip)
-    : `${e.name} is unlocked on every account. Its ${e.creditCost}-credit 60-second cost is covered by the ${e.tier} monthly grant; the ${TRIAL_GRANT_CREDITS_COPY}-credit trial ${TRIAL_GRANT_CREDITS_COPY >= e.creditCost ? 'covers one' : 'does not cover one'}.`
+    : `${e.name} is unlocked on every account. Its ${e.creditCost}-credit 60-second cost is covered by the ${e.tier} monthly grant; the ${TRIAL_CREDITS_SHOWN}-credit $1 trial ${TRIAL_CREDITS_SHOWN >= e.creditCost ? 'covers one' : 'does not cover one'}.`
 
   return (
     <main style={{ minHeight: '100vh', background: '#000', color: '#f5f5f7', fontFamily: 'var(--font-sans), Arial, sans-serif' }}>
@@ -444,9 +444,8 @@ export default async function EnginePage({ params }: { params: { engine: string 
               placement="hero"
               style={{ display: 'inline-block', background: '#f5f5f7', color: '#000', fontWeight: 900, padding: '15px 32px', borderRadius: 980, textDecoration: 'none', fontSize: '1.05rem' }}
             >
-              {e.tier === 'Free' || TRIAL_GRANT_CREDITS_COPY >= e.creditCost
-                ? `Try ${e.name} — 7 days for 
-                 →`
+              {e.tier === 'Free' || TRIAL_CREDITS_SHOWN >= e.creditCost
+                ? `Try ${e.name} — 7 days for $1 →`
                 : CARD_ENTRY_COPY.ctaLong}
             </OrganicCtaLink>
             <Link

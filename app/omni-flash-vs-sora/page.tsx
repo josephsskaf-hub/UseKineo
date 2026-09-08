@@ -4,7 +4,7 @@
 // resposta que esta página existe para dar — a Google, ao ChatGPT e ao
 // comprador. Casa com /sora-alternative (link cruzado) e com o banner da home.
 import type { Metadata } from 'next'
-import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
+import { TRIAL_CREDITS_SHOWN } from '@/lib/freeTierOffer'
 import {
   STUDIO_CREDITS,
   STUDIO_MONTH,
@@ -54,7 +54,7 @@ const FAQ_JSONLD = {
       name: 'What does an Omni Flash film cost on Kineo?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: `${creditsPerReferenceVideo('cinematic_omni')} credits per 60-second film — the Studio plan (${STUDIO_MONTH}, ${STUDIO_CREDITS} credits) fits ${videosPerMonth('pro', 'cinematic_omni')} flagship film a month. Every new account gets ${TRIAL_GRANT_CREDITS_COPY} free credits with no card to test the pipeline on the lighter engines first.`,
+        text: `${creditsPerReferenceVideo('cinematic_omni')} credits per 60-second film — the Studio plan (${STUDIO_MONTH}, ${STUDIO_CREDITS} credits) fits ${videosPerMonth('pro', 'cinematic_omni')} flagship film a month. Every new account starts with the $1 Creator trial: ${TRIAL_CREDITS_SHOWN} credits for 7 days, card required, enough to test the pipeline on the lighter engines first.`,
       },
     },
   ],
@@ -111,8 +111,7 @@ export default function OmniVsSoraPage() {
           href="/free?utm_source=seo&utm_medium=omni_vs_sora&utm_campaign=sora_switch"
           style={{ display: 'inline-block', background: '#2997ff', color: '#fff', fontWeight: 900, fontSize: 15, padding: '12px 28px', borderRadius: 12, textDecoration: 'none' }}
         >
-          Try 7 days for 
-          
+          Try 7 days for $1
         </a>
         <p style={{ color: '#86868b', fontSize: 12, marginTop: 10 }}>$1 trial — 80 credits, 7 days · switch before Sept 24</p>
       </div>

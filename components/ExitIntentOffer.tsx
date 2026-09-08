@@ -42,7 +42,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { trackEvent as trackAnalyticsEvent } from '@/lib/analytics'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import { FreeTierCopy } from '@/components/FreeTierOfferProvider'
-import { TRIAL_FILMS, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
+import { TRIAL_CREDITS_SHOWN, TRIAL_FILMS, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 import { videosPerMonth } from '@/lib/marketingPrice'
 // KINEO-VITRINE-MOEDA-2026-08-19 — ver o bloco grande junto ao texto do modal.
 import {
@@ -383,7 +383,7 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
               Kineo writes the script, records the voiceover, cuts the scenes, captions and delivers the MP4. <b style={{ color: '#f5f5f7', fontWeight: 800 }}>You just type the topic.</b>
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {[`${TRIAL_GRANT_CREDITS_COPY} FREE CREDITS`, 'NO CARD', 'EVERY ENGINE UNLOCKED'].map((t) => (
+              {[`${TRIAL_CREDITS_SHOWN} CREDITS FOR $1`, '7 DAYS', 'KINEO 1 + SEEDANCE'].map((t) => (
                 <span key={t} style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '0.08em', padding: '4px 9px', borderRadius: 4, background: '#1d1d1f', border: '1px solid #2a2a2d', color: '#a8a8ad' }}>{t}</span>
               ))}
             </div>
@@ -406,7 +406,7 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
                 ['~3 min', 'from topic to finished video'],
                 ['9:16', 'built for Shorts, TikTok & Reels'],
                 ['6 engines', 'Veo, Kling 3, Seedance…'],
-                ['$0', 'to try — no card, no trick'],
+                ['$1', 'for 7 days of Creator, no trick'],
               ].map(([n, d]) => (
                 <div key={n} style={{ background: '#1d1d1f', border: '1px solid #2a2a2d', borderRadius: 8, padding: '12px 13px' }}>
                   <div style={{ fontSize: 20, fontWeight: 800, color: '#f5f5f7' }}>{n}</div>

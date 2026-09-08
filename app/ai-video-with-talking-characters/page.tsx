@@ -17,7 +17,7 @@ import type { CSSProperties } from 'react'
 import Link from 'next/link'
 import Footer from '@/components/Footer'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
-import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
+import { TRIAL_CREDITS_SHOWN } from '@/lib/freeTierOffer'
 import { STARTER_MONTH } from '@/lib/marketingPrice'
 import { creditCostForDuration } from '@/lib/credits/engineCost'
 import { buildProductSurfaceSignupHref } from '@/lib/growth/productSurfaceIntent'
@@ -77,7 +77,7 @@ const FAQ: { q: string; a: string }[] = [
   { q: 'Do I need to record or clone a voice?', a: 'No. The character speaks with a voice generated at render time, and the narrator uses a voice matched to the subject of your script. Nothing to record, nothing to upload, no voice cloning step.' },
   { q: 'Will the character say exactly what I wrote?', a: 'If you choose "Use my script as is", yes — the spoken lines come from your text, split into scenes in code rather than rewritten by a model. If you prefer, the AI can structure a one-line idea into a full script first.' },
   { q: 'Which engine should I use for talking characters?', a: 'MiniMax H3 at 45 credits is the everyday choice and covers dialogue plus narration. Kling 3 at 150 credits gives the strongest dialogue scenes and the most cinematic look. Every video is labelled with the engine that actually rendered it.' },
-  { q: 'How much does it cost?', a: `A 60-second MiniMax H3 film costs ${H3_60_CREDITS} credits; Kling 3 costs ${KLING3_60_CREDITS}. A new account receives ${TRIAL_GRANT_CREDITS_COPY} trial credits, which does not cover a full 60-second H3 film by itself. Paid plans start at ${STARTER_MONTH}, and the Studio shows the exact engine cost before submission.` },
+  { q: 'How much does it cost?', a: `A 60-second MiniMax H3 film costs ${H3_60_CREDITS} credits; Kling 3 costs ${KLING3_60_CREDITS}. A new account starts with the $1 Creator trial (7 days, card required) and its ${TRIAL_CREDITS_SHOWN} credits, which do not cover a full 60-second H3 film by themselves. Paid plans start at ${STARTER_MONTH}, and the Studio shows the exact engine cost before submission.` },
 ]
 
 export default function TalkingCharactersPage() {
@@ -128,7 +128,7 @@ export default function TalkingCharactersPage() {
           Works on Kling 3 and MiniMax H3 · No avatar to pick · No voice cloning
         </p>
         <p style={{ fontSize: 12.5, color: '#86868b', lineHeight: 1.55, margin: '8px 0 0', maxWidth: 650 }}>
-          Your {TRIAL_GRANT_CREDITS_COPY} trial credits apply to your account. A 60-second MiniMax H3 film costs {H3_60_CREDITS} credits, so this specific engine needs additional balance; the Studio shows the selected engine and cost before you submit.
+          Your {TRIAL_CREDITS_SHOWN} $1-trial credits apply to your account. A 60-second MiniMax H3 film costs {H3_60_CREDITS} credits, so this specific engine needs additional balance; the Studio shows the selected engine and cost before you submit.
         </p>
 
         <h2 style={h2}>How a talking-character film is built</h2>
@@ -186,7 +186,7 @@ export default function TalkingCharactersPage() {
             Write one script. Get a film that talks back.
           </h2>
           <p style={{ ...p, margin: '0 auto 18px', maxWidth: 520 }}>
-            The Studio opens with MiniMax H3 selected and shows the cost before submission. Your {TRIAL_GRANT_CREDITS_COPY} trial credits apply; a 60-second H3 film costs {H3_60_CREDITS}. Paid plans start at {STARTER_MONTH}.
+            The Studio opens with MiniMax H3 selected and shows the cost before submission. Your {TRIAL_CREDITS_SHOWN} $1-trial credits apply; a 60-second H3 film costs {H3_60_CREDITS}. Paid plans start at {STARTER_MONTH}.
           </p>
           <OrganicCtaLink href={TALKING_CHARACTERS_SIGNUP_HREF} source={INTENT_CAMPAIGN} placement="footer" style={{ background: '#2997ff', color: '#fff', fontWeight: 800, padding: '14px 28px', borderRadius: 980, textDecoration: 'none', display: 'inline-block' }}>
             Open MiniMax H3 →
