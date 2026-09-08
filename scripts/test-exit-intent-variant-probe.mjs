@@ -200,8 +200,19 @@ ok(home.includes('<ExitIntentOffer variant="free" />'), 'home still requests the
 ok(component.indexOf("sessionStorage.getItem(SESSION_KEY) === '1'") < component.indexOf('const params = new URLSearchParams'), 'collision probe runs at the existing session guard before trigger wiring')
 ok(!eventSink.includes("'exit_intent_suppressed',"), 'suppression remains browser analytics, not server authority')
 
+// KINEO-PROMESSA-GRATIS-2026-09-08 (madrugada-produto #10) — a manchete do
+// painel "free" saiu do JSX e virou a constante EXIT_FREE_HEADLINE, para poder
+// atravessar o swapFreeTierCopy: a Versão B matou o filme grátis e a frase
+// "trying it is free" não podia mais chegar crua à tela, ao lado do selo
+// "80 CREDITS FOR $1" do mesmo painel. Dentro de uma string JS o `&apos;`
+// apareceria LITERAL na tela, então a constante usa o apóstrofo tipográfico.
+// A copy não sumiu — mudou de codificação. Esta trava protege a CONDIÇÃO ("a
+// frase continua no componente"), e por isso passa a comparar normalizando o
+// apóstrofo, em vez de prender a forma HTML de uma das duas variantes.
+const mesmoApostrofo = (s) => s.replace(/&apos;|&#39;|&#x27;|’/g, "'")
+const componentCopy = mesmoApostrofo(component)
 for (const visualToken of ['Wait — pick your', 'You haven&apos;t tried it yet', 'Start for', 'Sign up and make my first video']) {
-  ok(component.includes(visualToken), `existing visual copy remains: ${visualToken}`)
+  ok(componentCopy.includes(mesmoApostrofo(visualToken)), `existing visual copy remains: ${visualToken}`)
 }
 
 console.log(`Exit intent variant probe: ${checks}/${checks} checks passed`)
