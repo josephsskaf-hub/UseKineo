@@ -1336,3 +1336,21 @@ worktree pristina, não encostei nele.
 comparação apareceram **cinco** vermelhos "só meus" — todos no fim do alfabeto
 (`test-v*`, `test-w*`). O baseline ainda estava rodando (425 de 445). Denominador
 incompleto inventa regressão; a diferença só vale com as duas listas fechadas.
+
+**Sonda em produção — `458b4568`, EM PRODUÇÃO.** `git ls-remote origin main` =
+`458b4568`, fila 0. A mudança é React de componente de cliente, então a sonda é
+no **bundle** da home, com a `src` completa lida do HTML (o `src` traz `?dpl=`;
+procurar só em `/_next/static/chunks` dá falso negativo) e com **controle**:
+`/_next/static/chunks/kineo-sonda-inexistente-r10.js` → **404**, home → **200**.
+
+O discriminador é o **apóstrofo**, e ele separa os dois builds sem ambiguidade:
+no build antigo a frase era texto JSX com `&apos;`, que o compilador transforma
+em `'` (U+0027); no novo ela é uma string JS com `’` (U+2019).
+
+| momento | `You haven't…` (U+0027) | `You haven’t…` (U+2019) |
+|---|---|---|
+| logo após o push (deploy ainda não pronto) | **1** | 0 |
+| depois do deploy | 0 | **1** |
+
+A primeira linha é a foto do "antes" — não a joguei fora: é ela que prova que a
+sonda sabe distinguir os dois estados, em vez de só concordar comigo.
