@@ -25,17 +25,35 @@ check('prompt continua encapsulando o tema anterior', /next episode in the same 
 
 console.log('\n2) O botao de criar deixou de depender do acervo vazio')
 check('LibraryClient importa Link', /import Link from 'next\/link'/.test(lib))
-check('existe CTA "New video"', /New video/.test(lib))
-check('o CTA aponta para o Studio', /href="\/studio"[\s\S]{0,400}New video/.test(lib))
+// KINEO-REANCORA-SAIDA-DA-BIBLIOTECA-2026-09-07 — as quatro travas casavam com
+// o RÓTULO literal `⚡ New video`. Ele virou `Create new video` (Codex,
+// `58be2322`) e ganhou `<UiLabel>` por dentro (interface em espanhol, 06/09). A
+// saída continua lá, no mesmo lugar e com o mesmo destino — o que este arquivo
+// nasceu para impedir ("a Library deixa de ser beco") continua impedido.
+//
+// A identidade do CTA passa a ser o EVENTO que ele emite
+// (`library_create_clicked` com `placement: 'header'`), que é o que o produto
+// mede e o que nenhum renomeio de copy muda. O rótulo pode ser traduzido,
+// reescrito ou trocado de emoji sem derrubar a trava; tirar a saída, mudá-la de
+// destino ou enfiá-la dentro da aba de vídeos derruba.
+// ⚠️ A ancora inclui a ASPA DE FECHAMENTO. Sem ela, procurar o nome do evento
+// tambem casa com um nome RENOMEADO que so acrescenta sufixo — e o mutante do
+// renomeio sobrevive por colisao de prefixo. Aconteceu comigo na primeira
+// versao desta trava, hoje, e so a falsificacao mostrou.
+const ctaIdx = lib.indexOf("library_create_clicked'")
+check('existe o CTA de criar (identificado pelo evento que ele emite)', ctaIdx > -1)
+check(
+  'o CTA aponta para o Studio',
+  /href="\/studio"[\s\S]{0,600}library_create_clicked'/.test(lib),
+)
+check("o CTA se declara no cabecalho (placement: 'header')", /placement: 'header'/.test(lib))
 check('o CTA vive FORA da aba de videos (vale nas 3 abas)', (() => {
-  const cta = lib.indexOf('⚡ New video')
   const abaVideos = lib.indexOf("loaded && tab === 'videos'")
-  return cta > -1 && abaVideos > -1 && cta < abaVideos
+  return ctaIdx > -1 && abaVideos > -1 && ctaIdx < abaVideos
 })())
 check('o estado vazio continua existindo, mas nao e mais a unica saida', (() => {
-  const cta = lib.indexOf('⚡ New video')
   const vazio = lib.indexOf('open the Studio')
-  return cta > -1 && vazio > -1 && cta < vazio
+  return ctaIdx > -1 && vazio > -1 && ctaIdx < vazio
 })())
 check('o CTA so aparece com a leitura OK (nao mascara erro)', /loaded && !loadFailed && \(/.test(lib))
 
