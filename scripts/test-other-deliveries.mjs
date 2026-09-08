@@ -77,7 +77,17 @@ ok(/dueKind\(row, now, videoCounts, ourFailureIds, lastTopics, lastFilms, other\
 ok((route.match(/other_deliveries_degraded: other\.degraded/g) || []).length === 3, 'degrade flag in all 3 JSON responses')
 ok(route.includes('they stay in your Library.`') && route.includes('The ${otherKept} you already made are yours'), 'loss e-mail names what stays (clips/images/voiceovers)')
 ok(!/otherMade|otherTotal|otherKept/.test(route.slice(route.indexOf("if (c.kind === 'ending_soon')"), route.indexOf("if (c.kind === 'downgraded_loss')"))), 'ending_soon untouched (byte-for-byte copy of today)')
-ok(!/otherMade/.test(route.slice(route.indexOf("if (c.kind === 'expired_offer_d5')"))), 'D5/D10 untouched')
+// REANCORADO 08/09/2026 (madrugada-produto #9, M6) — VERMELHO HERDADO, NAO REGRESSAO.
+// A asserção original era 'nenhum otherMade depois do D5'. A sprint-assinaturas
+// (04/09) passou a USAR otherMade no D5/D10 de propósito, no MESMO predicado do
+// downgraded_loss ('c.videosMade === 0 && otherDeliveriesTotal(c.otherMade) === 0'):
+// quem entregou clipe/imagem/áudio não é 'quem nunca viu nada'. A trava ficou presa
+// à FORMA (a palavra otherMade) em vez da CONDIÇÃO que ela protege — que é a COPY:
+// o D5/D10 não descreve o acervo alheio, isso é exclusivo do e-mail de perda.
+// Medido na ponta origin/main 8149a04d: 2 usos, ambos no predicado, zero na copy.
+const d5d10 = route.slice(route.indexOf("if (c.kind === 'expired_offer_d5')"))
+ok(!/describeOtherDeliveries|otherKept/.test(d5d10), 'D5/D10 nao imprime o acervo (so o le no predicado)')
+ok((d5d10.match(/otherMade/g) || []).length === 2, 'os 2 usos de otherMade no D5/D10 sao os do predicado')
 const lossBlock = route.slice(route.indexOf("if (c.kind === 'downgraded_loss')"), route.indexOf("if (c.kind === 'expired_offer_d5')"))
 ok(!/\$\{c\.otherMade\.(clips|images|audios)\}/.test(lossBlock), 'no raw counter printed — only describe() (never "0 clips")')
 ok(!/restore|video_credits|creditsLeft \+|COMEBACK/.test(lossBlock.replace(/\/\/.*$/gm, '').replace(/creditsLost/g, '')), 'loss branch grants nothing: no credit, no coupon')

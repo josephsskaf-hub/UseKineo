@@ -319,6 +319,49 @@ const ENDING_SOON_MS: Record<TrialVariant, number> = {
 const DOWNGRADED_LOSS_TO_MS = 48 * HOUR_MS
 
 /** Janela do e-mail de oferta D5: [5, 10) dias após o fim do trial. */
+/**
+ * ═══ KINEO-VERSAO-B-SEM-FILME-GRATIS-2026-09-08 ══════════════════════════════
+ * TRÊS CARTAS DESTA ESTEIRA OFERECIAM UM FILME QUE A CASA NÃO ENTREGA MAIS.
+ *
+ * Os ramos "primeiro filme" (`neverRan` do downgraded_loss, `offer_first_film`
+ * do D5 e do D10) dizem, com estas palavras, "you can still make one on the
+ * free plan you're back on" e entregam três links que DISPARAM o render
+ * sozinhos (`create_intent=fast`). A frase era verdadeira enquanto o free tier
+ * residual existia — o comentário do ramo até explica isso: "o free residual do
+ * plano em que a pessoa acabou de cair cobre esse vídeo".
+ *
+ * Desde a VERSÃO B (lib/entryPolicy.ts `CARD_ENTRY_ONLY`, em produção 08/09
+ * 04:22 UTC) esse plano não existe: `getFreeTierOffer()` devolve
+ * `CARD_ENTRY_OFFER` com `limit: 0`, e /api/compose recusa em
+ * `reservedOrCompleted > FREE_OFFER.limit` — ou seja, na PRIMEIRA reserva. O
+ * link do e-mail leva a pessoa a um 402, e a carta que a trouxe até lá prometeu
+ * o contrário. É a `vitrine-oferece-o-que-o-cobrador-recusa` pela porta do
+ * e-mail, e o comentário que justificava a frase envelheceu junto com ela.
+ *
+ * MEDIDO ANTES DO CONSERTO (events.trial_lifecycle_email_sent, 7 dias, por
+ * `metadata->>'body'`):
+ *   · downgraded_loss      / never_ran ......... 61 pessoas
+ *   · expired_offer_d5     / offer_first_film ... 37 pessoas
+ *   · expired_lastcall_d10 / offer_first_film ... 28 pessoas
+ *   = 126 pessoas em 7 dias (~18/dia). Depois da versão B: 4 pessoas em 4
+ *   horas, a última às 08:25 UTC — 11 minutos antes de isto ser medido.
+ *
+ * O CONSERTO NÃO REESCREVE COPY NENHUMA. Ele esvazia a lista de temas quando
+ * não há filme grátis; os três ramos JÁ TÊM o desvio pronto para pool vazio
+ * ("Pool vazio ⇒ nunca um e-mail sem CTA: cai no corpo de hoje, intacto") e
+ * caem no corpo `standard`, que é honesto e já carrega a porta aprovada.
+ * Quando o fundador virar `CARD_ENTRY_ONLY` de volta, os três ramos voltam
+ * sozinhos — a condição é o LIMITE DO COBRADOR, não uma flag nova.
+ *
+ * ⚠️ EFEITO COLATERAL DECLARADO: o ramo `neverRan` era o único que NÃO oferecia
+ * a porta de $1 de propósito ("quem nunca viu um filme sair tem objeção de
+ * prova, não de preço" — KINEO-PORTA-NO-MOMENTO-DA-PERDA-2026-09-07). Aquela
+ * decisão pressupunha uma prova GRÁTIS disponível. Sem ela, o corpo `standard`
+ * é a única coisa verdadeira que sobrou para dizer.
+ */
+const LIFECYCLE_FREE_OFFER = getFreeTierOffer()
+const FREE_FILM_AVAILABLE = LIFECYCLE_FREE_OFFER.limit > 0
+
 const OFFER_D5_FROM_MS = 5 * DAY_MS
 /** D10 (última chamada): [10, 15) dias. Depois disso, silêncio — coorte morta. */
 const OFFER_D10_FROM_MS = 10 * DAY_MS
@@ -1574,7 +1617,7 @@ ${ep2 ? `${ep2.html}\n` : ''}  ${sig}`)
       // o offset da rotação sem tocar no pool nem na copy, e mantém a
       // propriedade que a semente existe para ter: dado o id, ainda dá para
       // reconstruir exatamente quais links a pessoa recebeu.
-      const lossTopics = starterTopics(`${c.id}:loss`)
+      const lossTopics = FREE_FILM_AVAILABLE ? starterTopics(`${c.id}:loss`) : []
       // Pool vazio ⇒ nada de e-mail sem CTA: devolve o texto anterior intacto.
       if (lossTopics.length > 0) {
         // ── KINEO-FAILED-BY-US-2026-08-12 ─────────────────────────────────────
@@ -1761,21 +1804,30 @@ ${ep2b ? `${ep2b.html}\n` : ''}  ${sig}`)
     // nomeia EXATAMENTE o que ficou (numero medido, nao adjetivo). Quem tem os
     // dois recebe a frase de sempre — "videos" ja cobre.
     const otherKept = c.videosMade === 0 && otherTotal > 0 ? describeOtherDeliveries(c.otherMade) : ''
-    const keptText = otherKept
-      ? `The ${otherKept} you already made are yours — they stay in your Library.`
-      : `The videos you already made are yours — they stay in your account.`
-    const keptHtml = otherKept
-      ? `The ${otherKept} you already made are yours &mdash; they stay in your Library.`
-      : `The videos you already made are yours &mdash; they stay in your account.`
+    // KINEO-VERSAO-B-SEM-FILME-GRATIS-2026-09-08 — quem NUNCA entregou nada
+    // passa a cair AQUI: o ramo `neverRan` acima só existe enquanto houver
+    // filme grátis para oferecer. Para essa pessoa "the videos you already
+    // made are yours" é falso — é exatamente a frase que o `neverRan` foi
+    // criado para não dizer (KINEO-LOSS-NEVER-RAN-2026-08-12). Ela SOME em vez
+    // de virar outra: não há nada verdadeiro a afirmar sobre um acervo vazio.
+    const nothingKept = c.videosMade === 0 && otherTotal === 0
+    const keptText = nothingKept
+      ? ''
+      : otherKept
+        ? `The ${otherKept} you already made are yours — they stay in your Library.`
+        : `The videos you already made are yours — they stay in your account.`
+    const keptHtml = nothingKept
+      ? ''
+      : otherKept
+        ? `The ${otherKept} you already made are yours &mdash; they stay in your Library.`
+        : `The videos you already made are yours &mdash; they stay in your account.`
 
     const text = `Hey,
 
 Your Creator trial ended. Here's what you just lost access to:
 
 ${bullets.map((b) => `- ${b}`).join('\n')}
-
-${keptText}
-
+${keptText ? `\n${keptText}\n` : ''}
 The cheapest way back in is ${TRIAL_ENTRY_LINE}. Cancel anytime.
 ${lossTrialUrl}
 
@@ -1789,8 +1841,7 @@ usekineo.com`
   <ul style="margin:0 0 14px;padding-left:20px;color:#475569;">
     ${bullets.map((b) => `<li>${b}</li>`).join('\n    ')}
   </ul>
-  <p style="margin:0 0 14px;">${keptHtml}</p>
-  <p style="margin:0 0 14px;">The cheapest way back in is <strong>${escapeHtmlText(TRIAL_ENTRY_LINE)}</strong>. Cancel anytime.</p>
+${keptHtml ? `  <p style="margin:0 0 14px;">${keptHtml}</p>\n` : ''}  <p style="margin:0 0 14px;">The cheapest way back in is <strong>${escapeHtmlText(TRIAL_ENTRY_LINE)}</strong>. Cancel anytime.</p>
   ${cta(lossTrialUrl, `Start the ${CARD_TRIAL_DAYS}-day Creator trial`)}
   <p style="margin:0 0 14px;">If the trial was doing its job, Creator picks up exactly where it left off:</p>
   ${cta(url, 'Get Creator back')}
@@ -1907,7 +1958,7 @@ ${ep2 ? `${ep2.html}\n` : ''}  ${sig}`)
     // mandaram. Ela nao clicou nos tres primeiros; o quarto envio dos mesmos
     // links e o pedido com o menor rendimento possivel.
     if (c.videosMade === 0 && otherDeliveriesTotal(c.otherMade) === 0) {
-      const firstTopics = starterTopics(`${c.id}:d5offer`)
+      const firstTopics = FREE_FILM_AVAILABLE ? starterTopics(`${c.id}:d5offer`) : []
       // Pool vazio ⇒ nunca um e-mail sem CTA: cai no corpo de hoje, intacto.
       if (firstTopics.length > 0) {
         const blocks = oneClickBlocks(firstTopics, 'trial_offer_d5_first_film', attr)
@@ -2039,7 +2090,7 @@ ${ep2 ? `${ep2.html}\n` : ''}  ${sig}`)
     // time we'll mention it" CONTINUA verdadeira — o cron nao manda nada depois
     // do D10 — e o cupom continua identico (codigo, prazo, porcentagem, URL).
     if (c.videosMade === 0 && otherDeliveriesTotal(c.otherMade) === 0) {
-      const firstTopics = starterTopics(`${c.id}:d10offer`)
+      const firstTopics = FREE_FILM_AVAILABLE ? starterTopics(`${c.id}:d10offer`) : []
       if (firstTopics.length > 0) {
         const blocks = oneClickBlocks(firstTopics, 'trial_offer_d10_first_film', attr)
         const fText = `Hey,
