@@ -558,6 +558,28 @@ export default async function AdminOverviewPage() {
             </div>
           ))}
           {/* KINEO-ADMIN-ENTRANTES-2026-09-09 — a lista por pessoa, embaixo dos números. */}
+          {/* KINEO-ADMIN-PAGARAM-1-2026-09-09 — fundador: "uma coluna só das pessoas que entram através de um dólar". */}
+          {(() => { const pagaram = m.entrantes.filter((e) => e.paid1At); return (
+            <div style={{ marginTop: 8, marginBottom: 14, borderRadius: 12, border: '1px solid rgba(52,211,153,.35)', background: 'rgba(52,211,153,.05)', padding: '10px 12px' }} data-testid="pagaram-1">
+              <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', color: '#34d399', marginBottom: 6 }}>Entraram pelo $1 · {pagaram.length} desde o marco</div>
+              {pagaram.length === 0 ? <div style={{ fontSize: 12, color: 'var(--muted2)' }}>Ninguém pagou o $1 ainda desde o marco.</div> : (
+                <div style={{ overflowX: 'auto' }}><table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                  <thead><tr style={{ color: 'var(--muted2)', textAlign: 'left' }}>{['Pessoa', 'Pagou $1', 'Entrou', 'Plano', 'Usou dos 80', 'Créditos agora', 'Filmes'].map((h) => <th key={h} style={{ padding: '4px 8px', fontWeight: 700 }}>{h}</th>)}</tr></thead>
+                  <tbody>{pagaram.map((e) => (
+                    <tr key={e.id} data-testid="pagou-1" style={{ borderTop: '1px solid rgba(255,255,255,.06)' }}>
+                      <td style={{ padding: '4px 8px', fontFamily: 'ui-monospace, monospace' }}>{e.email}</td>
+                      <td style={{ padding: '4px 8px', color: '#34d399', fontWeight: 800 }}>{timeAgo(e.paid1At)}</td>
+                      <td style={{ padding: '4px 8px' }}>{timeAgo(e.bornAt)}</td>
+                      <td style={{ padding: '4px 8px' }}>{e.plan ?? '—'}</td>
+                      <td style={{ padding: '4px 8px' }}>{e.credits != null ? `${Math.max(0, CARD_ENTRY_TRIAL_CREDITS - e.credits)} de ${CARD_ENTRY_TRIAL_CREDITS}` : '—'}</td>
+                      <td style={{ padding: '4px 8px' }}>{e.credits ?? '—'}</td>
+                      <td style={{ padding: '4px 8px' }}>{e.films}</td>
+                    </tr>
+                  ))}</tbody>
+                </table></div>
+              )}
+            </div>
+          ) })()}
           <div style={{ marginTop: 8, fontSize: 11, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 6 }}>Quem entrou pela porta · últimos {m.entrantes.length} desde o marco</div>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
