@@ -61,7 +61,18 @@ echo "[1/5] a porta esta fechada na main de origem. Seguindo."
 WT="${WT_BASE}-$(date +%H%M%S)"
 git worktree add --detach "$WT" origin/main -q || { echo "PAROU: nao consegui criar a worktree $WT"; exit 1; }
 cd "$WT" || exit 1
-[ -e node_modules ] || ln -s "$RAIZ/node_modules" node_modules
+# node_modules: JUNCAO, nao copia. Medido em 09/09: neste Windows o
+# "ln -s" do git-bash nao cria link — ele COPIA 21.296 arquivos (0,31 GB) a
+# cada rodada. mklink /J faz a juncao de verdade em um piscar. A copia fica
+# como recuo, e o passo so segue depois de PROVAR que o tsc tem o que ler.
+if [ ! -e node_modules ]; then
+  cmd //c "mklink /J \"$(cygpath -w "$WT")\node_modules\" \"$(cygpath -w "$RAIZ")\node_modules\"" >/dev/null 2>&1
+  [ -e node_modules/typescript/package.json ] || { rm -rf node_modules 2>/dev/null; cp -r "$RAIZ/node_modules" node_modules; }
+fi
+if [ ! -e node_modules/typescript/package.json ]; then
+  echo "PAROU: sem node_modules utilizavel em $WT — o typecheck mentiria verde."
+  exit 1
+fi
 echo "[2/5] worktree limpa em $WT sobre $(git rev-parse --short origin/main)"
 
 # ── 3. o conserto

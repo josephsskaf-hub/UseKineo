@@ -533,6 +533,13 @@ ABERTA"**. Um bat que diz "nada a fazer" é pior do que bat nenhum — o fundado
 lançaria tranquilo com a porta trancada. `grep -c` lê a entrada inteira e não
 gera SIGPIPE; depois da troca, **6 de 6** rodadas dizem "fechada".
 
+**(c) O typecheck podia ficar verde sobre o nada.** O passo 2 montava
+`node_modules` com `ln -s`. Neste Windows isso **não cria link — copia** 21.296
+arquivos (0,31 GB) por rodada. Tentei trocar por `mklink /J` e a junção não
+pegou; a cópia ficou como recuo. O que **não** ficou opcional foi a prova: o
+script agora **exige** `node_modules/typescript/package.json` antes de
+typecheckar e **para** se não achar — senão o `npx tsc` sai 0 sem compilar
+nada e o verde é mentira. Custo aceito do clique: ~30 s e 0,31 GB.
 Com isso o caminho inteiro está provado contra a main mais nova (`7ef8232c`):
 worktree criada, cherry-pick limpo, `tsc` verde, os dois guardiões verdes, e
 parada limpa antes da fila.
