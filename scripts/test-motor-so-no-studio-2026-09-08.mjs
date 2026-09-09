@@ -1,3 +1,17 @@
+// KINEO-RESTAURACAO-2026-09-09 — APOSENTADO ENQUANTO A FONTE DISSER QUE ISTO ESTÁ DESLIGADO.
+// Fundador (09/09 18h): "tira esse negócio de 1 dólar" / "voltar na minha melhor fase". Este guardião
+// guarda o gate de motores caros só no Studio. Se a fonte religar, o preâmbulo deixa de disparar e as verificações voltam.
+import { readFileSync as __rf } from 'node:fs'
+import { join as __j, dirname as __d } from 'node:path'
+import { fileURLToPath as __f } from 'node:url'
+{
+  const __raiz = __j(__d(__f(import.meta.url)), '..')
+  const __src = __rf(__j(__raiz, 'lib/enginePlanGate.ts'), 'utf8').replace(/\r\n/g, '\n')
+  if (/export const ENGINE_GATE_SINCE = '2099-/.test(__src)) {
+    console.log('APOSENTADO (restauração 09/09/2026): o gate de motores caros só no Studio está desligado na fonte (lib/enginePlanGate.ts). Volta a valer sozinho no dia em que religar.')
+    process.exit(0)
+  }
+}
 // KINEO-PLANOS-9-19-29 — guardião do gate "motores caros só do Studio".
 // Executa a decisão (pura) e lê a rota para provar que o gate roda antes da
 // reserva de crédito e que conta antiga não perde nada.

@@ -1,3 +1,17 @@
+// KINEO-RESTAURACAO-2026-09-09 — APOSENTADO ENQUANTO A FONTE DISSER QUE ISTO ESTÁ DESLIGADO.
+// Fundador (09/09 18h): "tira esse negócio de 1 dólar" / "voltar na minha melhor fase". Este guardião
+// guarda a porta de $1 na caixa comercial. Se a fonte religar, o preâmbulo deixa de disparar e as verificações voltam.
+import { readFileSync as __rf } from 'node:fs'
+import { join as __j, dirname as __d } from 'node:path'
+import { fileURLToPath as __f } from 'node:url'
+{
+  const __raiz = __j(__d(__f(import.meta.url)), '..')
+  const __src = __rf(__j(__raiz, 'lib/checkoutPricing.ts'), 'utf8').replace(/\r\n/g, '\n')
+  if (/export const CARD_TRIAL_LIVE = false/.test(__src)) {
+    console.log('APOSENTADO (restauração 09/09/2026): a porta de $1 na caixa comercial está desligado na fonte (lib/checkoutPricing.ts). Volta a valer sozinho no dia em que religar.')
+    process.exit(0)
+  }
+}
 // KINEO-TRIAL-1DOLAR-NA-ENTREGA-2026-09-07 — contrato da porta de $1 na tela de
 // filme pronto. Sem rede, sem banco, sem credencial, sem escrita.
 //

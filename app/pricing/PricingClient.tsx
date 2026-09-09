@@ -96,7 +96,7 @@ import {
   readCheckoutErrorSignal,
   type CheckoutErrorSignal,
 } from '@/lib/growth/checkoutErrorSignal'
-import { CARD_TRIAL_SECONDARY_LABEL } from '@/lib/checkoutPricing'
+import { CARD_TRIAL_LIVE, CARD_TRIAL_SECONDARY_LABEL } from '@/lib/checkoutPricing'
 
 // PAYPAL-DISABLED-2026-07-06 — PayPal checkout is hidden on pricing until it's
 // verified working end-to-end (business account still needs verification). All
@@ -107,7 +107,7 @@ const PAYPAL_ENABLED = false
 // dolar". O servidor (app/api/stripe/checkout, CARD_TRIAL_ENABLED) ja aceita
 // ?trial=1 no Creator mensal; este e o UNICO botao que leva la. Quem ja pagou
 // cai no checkout normal (o servidor decide, nao a tela).
-const CARD_TRIAL_LINK_ENABLED = true
+const CARD_TRIAL_LINK_ENABLED = CARD_TRIAL_LIVE // KINEO-RESTAURACAO-2026-09-09
 const CARD_TRIAL_CHECKOUT_URL = '/api/stripe/checkout?tier=basic&billing=monthly&trial=1&intent_campaign=trial_1usd'
 
 // Push #099 — FAQ entries shown below the pricing comparison table. Pure

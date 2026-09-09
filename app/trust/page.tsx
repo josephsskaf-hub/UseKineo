@@ -138,7 +138,7 @@ export default function TrustPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <Link href="/terms" style={{ color: '#a5a5ac', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>Terms</Link>
             <Link href="/privacy" style={{ color: '#a5a5ac', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>Privacy</Link>
-            <Link href="/signup?utm_source=trust&utm_medium=organic&utm_campaign=trust_center" style={{ color: '#fff', textDecoration: 'none', fontSize: 13, fontWeight: 850, background: '#24262c', border: '1px solid rgba(255,255,255,.12)', borderRadius: 999, padding: '9px 15px' }}>Try 7 days for $1</Link>
+            <Link href="/signup?utm_source=trust&utm_medium=organic&utm_campaign=trust_center" style={{ color: '#fff', textDecoration: 'none', fontSize: 13, fontWeight: 850, background: '#24262c', border: '1px solid rgba(255,255,255,.12)', borderRadius: 999, padding: '9px 15px' }}>Start free</Link>
           </div>
         </div>
       </header>

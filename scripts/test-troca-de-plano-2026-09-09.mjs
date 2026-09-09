@@ -36,7 +36,7 @@ checa('/pricing: rótulo "Current plan" / "Switch to X" via planSwitchLabel', /p
 checa('/pricing: confirma antes de trocar e mostra o desfecho', /window\.confirm\(planSwitchConfirmText/.test(pc) && /data-testid="plan-switch-notice"/.test(pc))
 checa('cards do app: mesma regra (assinante troca, não compra)', /if \(planSwitch\.subscribed && \(tier === 'starter' \|\| tier === 'basic' \|\| tier === 'pro'\)\) \{ void handleSwitchPlan\(tier\); return \}/.test(cards))
 checa('cards do app: rótulos dos três planos passam pelo planSwitchLabel', (cards.match(/planSwitchLabel\(planSwitch, '(starter|basic|pro)'/g) || []).length === 3)
-checa('cards do app: o botão do trial de $1 some para quem já assina', /secondary=\{planSwitch\.subscribed \? null : \{ label: CARD_TRIAL_SECONDARY_LABEL/.test(cards))
+checa('cards do app: o botão do trial de $1 some para quem já assina', /secondary=\{planSwitch\.subscribed \|\| !CARD_TRIAL_LIVE \? null : \{ label: CARD_TRIAL_SECONDARY_LABEL/.test(cards))
 const lib = rd('lib/growth/planSwitch.ts')
 checa('helper: POST /api/stripe/change-plan e textos de erro honestos', /fetch\('\/api\/stripe\/change-plan', \{\s*\n?\s*method: 'POST'/.test(lib) && /Nothing was changed/.test(lib) && /annual_needs_support/.test(lib))
 

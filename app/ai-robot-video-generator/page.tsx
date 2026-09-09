@@ -6,7 +6,7 @@
 // A ARMA DESTA PÁGINA É A PROVA: o vídeo embedado é um render REAL do Omni
 // Flash (id 36a04f7b, 25/08), e o ROTEIRO EXATO que o gerou está publicado ao
 // lado — "this exact text made this film". Nenhum demo reel fabricado.
-import { CARD_ENTRY_COPY, CARD_ENTRY_TRIAL_CREDITS } from '@/lib/entryPolicy'
+import { CARD_ENTRY_COPY, FREE_ENTRY_CREDITS } from '@/lib/entryPolicy'
 import type { Metadata } from 'next'
 import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 import {
@@ -78,7 +78,7 @@ const FAQ_JSONLD = {
       name: 'How much does a robot battle film cost?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: `On Omni Flash, a full 60-second multi-scene film costs ${creditsPerReferenceVideo('cinematic_omni')} credits — the Studio plan (${STUDIO_MONTH}, ${STUDIO_CREDITS} credits) fits ${videosPerMonth('pro', 'cinematic_omni')} flagship film a month plus change. Cheaper engines start at ${creditsPerReferenceVideo('cinematic_ai')} credits per 60-second film, and every new account starts with the $1 trial (7 days of Creator, 80 credits).`,
+        text: `On Omni Flash, a full 60-second multi-scene film costs ${creditsPerReferenceVideo('cinematic_omni')} credits — the Studio plan (${STUDIO_MONTH}, ${STUDIO_CREDITS} credits) fits ${videosPerMonth('pro', 'cinematic_omni')} flagship film a month plus change. Cheaper engines start at ${creditsPerReferenceVideo('cinematic_ai')} credits per 60-second film, and every new account starts free with 30 credits, no card.`,
       },
     },
   ],
@@ -127,7 +127,7 @@ export default function RobotVideoPage() {
         >
           {CARD_ENTRY_COPY.ctaLong}
         </a>
-        <p style={{ color: '#86868b', fontSize: 12, marginTop: 10 }}>$1 trial — {CARD_ENTRY_TRIAL_CREDITS} credits, 7 days · robots, mysteries, horror, history — the same text box directs them all</p>
+        <p style={{ color: '#86868b', fontSize: 12, marginTop: 10 }}>Free to start — {FREE_ENTRY_CREDITS} credits, no card · robots, mysteries, horror, history — the same text box directs them all</p>
       </div>
 
       <h2 style={{ fontSize: 22, fontWeight: 900, margin: '30px 0 10px' }}>How it works</h2>

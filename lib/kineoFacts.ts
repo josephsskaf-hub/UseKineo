@@ -38,6 +38,7 @@ import {
   CARD_TRIAL_ENTRY_FEE_MINOR,
   CARD_TRIAL_DAYS,
   CARD_TRIAL_GRANT_CREDITS,
+  CARD_TRIAL_LIVE,
   type CheckoutTier,
 } from './checkoutPricing'
 import { PLANS } from './pricing'
@@ -597,9 +598,10 @@ export const RECURRING_FREE_ACCESS = buildRecurringFreeAccessFact({
 // são publicadas JUNTO da oferta, porque um motor de resposta que cita "$1"
 // sem citar "não vale para quem já assinou" produz exatamente a vitrine que
 // promete o que o cobrador recusa.
+// KINEO-RESTAURACAO-2026-09-09 — o trial de $1 está desligado (CARD_TRIAL_LIVE); o fato fica como histórico e `enabled` lê a fonte.
 export const CARD_TRIAL_FACT = {
-  /** A porta está no ar. Espelha `CARD_TRIAL_ENABLED` em app/api/stripe/checkout. */
-  enabled: true,
+  /** A porta está no ar. Lê a MESMA fonte que app/api/stripe/checkout (CARD_TRIAL_ENABLED = CARD_TRIAL_LIVE). */
+  enabled: CARD_TRIAL_LIVE,
   /** Rótulo pronto, formatado pela fonte canônica de preço. Nunca digitado. */
   entryPrice: formatCheckoutMoney('usd', CARD_TRIAL_ENTRY_FEE_MINOR),
   entryPriceMinor: CARD_TRIAL_ENTRY_FEE_MINOR,
@@ -669,7 +671,7 @@ export const PRODUCT = {
   userOwnsOutput: true,
   // fonte: lib/comparisons.ts:306.
   watermarkPolicy:
-    'The $1 trial and every paid plan export a clean, watermark-free MP4.',
+    'Every paid plan exports a clean, watermark-free MP4; free-trial films carry a small Kineo watermark.',
   // fonte: lib/pricing.ts:96 e lib/comparisons.ts:311.
   creditsRollOver: false,
   // fonte: app/pricing/PricingClient.tsx:59.

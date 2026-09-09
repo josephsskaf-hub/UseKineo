@@ -14,7 +14,7 @@ import PhLandingBeacon from '@/components/PhLandingBeacon'
 import { FOUNDER_SHOWCASE } from '@/lib/publicExamples'
 import { engineDisplayName } from '@/lib/enginePlanGate'
 import { CARD_TRIAL_DAYS, CARD_TRIAL_GRANT_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
-import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
+import { CARD_ENTRY_COPY, FREE_ENTRY_CREDITS } from '@/lib/entryPolicy'
 // KINEO-PH-CONTAGEM-2026-09-09 — a contagem de motores É DERIVADA. Esta página
 // era o ÚNICO lugar do site que digitava "Nine" à mão, em três lugares (título
 // social, descrição social e o parágrafo do herói) enquanto
@@ -28,7 +28,8 @@ import { VIDEO_ENGINE_COUNT_WORD } from '@/lib/engineLaunch'
 export const dynamic = 'force-static'
 
 const BASE = 'https://www.usekineo.com'
-const CTA = '/api/stripe/checkout?tier=basic&billing=monthly&trial=1&intent_campaign=ph_sep10'
+// KINEO-RESTAURACAO-2026-09-09 — o trial de $1 morreu; a entrada é o cadastro grátis.
+const CTA = '/signup?utm_source=producthunt&utm_medium=launch&utm_campaign=ph_sep10&intent_campaign=ph_sep10'
 const ROBOT = '/previews/36a04f7b-65f7-42d9-a2ab-198b5a7f115e.mp4'
 const ROBOT_POSTER = '/posters/hero-opening-sep07/36a04f7b-65f7-42d9-a2ab-198b5a7f115e.webp'
 const ENGINES = VIDEO_ENGINE_COUNT_WORD.toLowerCase()
@@ -132,7 +133,7 @@ export default function PhPage() {
                 {CARD_ENTRY_COPY.ctaLong}
               </a>
               <span style={{ fontSize: 13, color: 'rgba(255,255,255,.6)' }}>
-                {usd(100)} today · {CARD_TRIAL_GRANT_CREDITS} credits · then {monthly}/mo from day {CARD_TRIAL_DAYS + 1} · cancel anytime
+                {FREE_ENTRY_CREDITS} credits free · every engine unlocked · no card · plans from {usd(TIER_PRICES.starter.usd)}/mo
               </span>
             </div>
             <p style={{ marginTop: 12, fontSize: 13, color: 'rgba(255,255,255,.5)' }}>{CARD_ENTRY_COPY.noFreeTier}</p>
@@ -184,14 +185,14 @@ export default function PhPage() {
           ))}
         </section>
         <p style={{ marginTop: 10, fontSize: 13, color: 'rgba(255,255,255,.55)' }}>
-          Every account starts with the {usd(100)} trial ({CARD_TRIAL_DAYS} days of Creator, {CARD_TRIAL_GRANT_CREDITS} credits). Full details on the <Link href="/pricing" style={{ color: '#7cc0ff' }}>pricing page</Link>.
+          Every account starts free with {FREE_ENTRY_CREDITS} credits (one Seedance film and one Kineo 1 film of 60 seconds), every engine unlocked, no card. Full details on the <Link href="/pricing" style={{ color: '#7cc0ff' }}>pricing page</Link>.
         </p>
 
         <section style={{ marginTop: 48, maxWidth: 720 }}>
           <h2 style={{ fontSize: 20, fontWeight: 900, margin: '0 0 12px' }}>Honest answers</h2>
           {[
-            ['Is the $1 real?', `Yes. You pay ${usd(100)} today, get ${CARD_TRIAL_GRANT_CREDITS} credits and ${CARD_TRIAL_DAYS} days of the Creator plan. Cancel inside the week and that is all you paid. On day ${CARD_TRIAL_DAYS + 1} it continues at ${monthly}/month.`],
-            ['Is there a free tier?', 'No. There used to be one; it is gone. The trial is the door.'],
+            ['Is it really free to start?', `Yes. Sign up and you get ${FREE_ENTRY_CREDITS} credits — one Seedance 1.5 film and one Kineo 1 film of 60 seconds — with every engine unlocked. No card. Plans start at ${usd(TIER_PRICES.starter.usd)}/month when you want more.`],
+            ['Is there a free tier?', `Yes: ${FREE_ENTRY_CREDITS} credits on signup, no card. Trial films are watermarked; any paid plan unlocks clean downloads.`],
             ['How long does a film take?', 'About 3 minutes on Kineo 1 and Seedance; cinematic engines (Kling 3, Veo 3.1) take longer, sometimes 10–15 minutes when the provider is busy.'],
             ['Who owns the videos?', 'You do. Download the MP4 and post it anywhere.'],
           ].map(([q, a]) => (

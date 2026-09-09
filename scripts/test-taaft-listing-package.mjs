@@ -12,8 +12,8 @@ const pasteReady = listing.split('## 2. Texto pronto para colar')[1]?.split('## 
 let checks = 0
 const check = (value, message) => { assert.ok(value, message); checks += 1 }
 
-check(/starter:\s*\{\s*usd:\s*1400\s*\}/.test(pricing), 'canonical Starter price is $14 USD (planos V7 de 09/09)')
-check(/CARD_ENTRY_ONLY\s*=\s*true/.test(read('lib/entryPolicy.ts')), 'versão B: não existe free tier, a entrada é o trial de $1')
+check(/starter:\s*\{\s*usd:\s*990\s*\}/.test(pricing), 'canonical Starter price is $9.90 USD (V5, restauração de 09/09)')
+check(/CARD_ENTRY_ONLY\s*=\s*false/.test(read('lib/entryPolicy.ts')), 'restauração 09/09: a entrada é grátis (30 créditos), o $1 morreu')
 check(/VIDEO_ENGINE_COUNT_WORD\s*=\s*S25_PUBLIC\s*\?\s*'Nine'\s*:\s*'Eight'/.test(engines), 'public engine count remains eight before S25 launch')
 
 for (const truth of [
@@ -26,7 +26,7 @@ for (const truth of [
   check(listing.toLowerCase().includes(truth.toLowerCase()), `listing carries current truth: ${truth}`)
 }
 
-for (const stale of ['Five engines', '40 credits', '50 credits', '25 free credits', 'from $9.90/mo', '$7/month']) {
+for (const stale of ['Five engines', '40 credits', '50 credits', '25 free credits', 'from $14/month', '$7/month', '$1 trial', '80 credits']) {
   check(!pasteReady.includes(stale), `stale claim is never proposed: ${stale}`)
 }
 

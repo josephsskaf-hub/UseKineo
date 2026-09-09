@@ -310,7 +310,7 @@ export default function RedditStoryVideoGeneratorPage() {
             placeholder: 'Paste the script you rewrote, or type the dilemma in one sentence',
             submit: 'Turn this story into a Short →',
             examplesLabel: 'Premises to start from',
-            note: 'Your text stays attached through signup. Paste a full script and it is narrated verbatim — it starts with the $1 trial (7 days of Creator, 80 credits).',
+            note: 'Your text stays attached through signup. Paste a full script and it is narrated verbatim — it starts free with 30 credits, no card.',
           }}
         />
 

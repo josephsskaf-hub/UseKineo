@@ -95,10 +95,15 @@ export type CheckoutCurrency = 'usd'
 // Creator $19, Studio $29. Vitrine fala em FILMES por calendário ("3 a week", "1 a
 // day", "every engine"); Starter e Creator só Kineo 1 + Seedance (lib/enginePlanGate.ts),
 // o que fecha a margem no piso da casa. Doc: docs/DECISAO-PLANOS-2026-09-08.md.
+// ═══ KINEO-RESTAURACAO-2026-09-09 — DE VOLTA AO V5 ($9,90 / $19,90 / $39,90) ═══
+// Ordem do fundador (09/09 18h): "quero todas as mudanças pra agora, inclusive o
+// preço, 9.90, 19.90 e 39.90". Motivo medido: a semana de 17/08 (V5, trial grátis,
+// todo motor aberto) foi o recorde de cadastros (243), checkouts (35) e pagantes
+// (3). Os créditos do V7 (60/150/300) FICAM. Preço congelado por 30 dias.
 export const TIER_PRICES: Record<CheckoutTier, Record<CheckoutCurrency, number>> = {
-  starter: { usd: 1400 },
-  basic: { usd: 2900 },
-  pro: { usd: 5900 },
+  starter: { usd: 990 },
+  basic: { usd: 1990 },
+  pro: { usd: 3990 },
 }
 
 // KINEO-AUTOPILOT-299-2026-07-26 — $299/mo done-for-you tier.
@@ -163,9 +168,9 @@ export function monthlyPriceMinor(
 // mensal (dois meses de graça). $70 / $150 / $290.
 export const ANNUAL_PRICES: Record<CheckoutTier, Record<CheckoutCurrency, number>> = {
   // KINEO-PLANOS-9-19-29-2026-09-08 — anual = 10 meses (2 grátis), padrão do mercado.
-  starter: { usd: 14000 },
-  basic: { usd: 29000 },
-  pro: { usd: 59000 },
+  starter: { usd: 9900 },
+  basic: { usd: 19900 },
+  pro: { usd: 39900 },
 }
 
 export const INTRO_PRICES: Record<CheckoutIntroTier, Record<CheckoutCurrency, number>> = {
@@ -179,8 +184,8 @@ export const INTRO_PRICES: Record<CheckoutIntroTier, Record<CheckoutCurrency, nu
   // KINEO-PRICING-V6-2026-08-19 — segue espelhando TIER_PRICES. Se algum dia
   // voltar a existir intro, é AQUI que ele nasce, e o hasIntroOffer() acende
   // a UI sozinho. Enquanto for igual, nenhuma tela promete desconto.
-  starter: { usd: 1400 },
-  basic: { usd: 2900 },
+  starter: { usd: 990 },
+  basic: { usd: 1990 },
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -333,6 +338,15 @@ export function netAfterStripeUsd(grossUsd: number): number {
 // gratis da nao faz sentido. Por isso o trial de cartao tem numero proprio.
 // Anti-abuso: 1 por conta (has_paid no checkout) + missing_payment_method=cancel.
 export const CARD_TRIAL_GRANT_CREDITS = 80
+// ═══ KINEO-RESTAURACAO-2026-09-09 — O TRIAL DE $1 ESTÁ DESLIGADO ═══
+// Fundador (09/09 18h): "tira esse negócio de 1 dólar, isso só nos atrapalha,
+// deixa mais confuso em vez de mais claro". Medido: 9 tentativas na história,
+// 0 sessões abertas até 09/09 12:03 (bug), 0 pagamentos depois. Este é o ÚNICO
+// interruptor: o cobrador (app/api/stripe/checkout) ignora `?trial=1`, e toda
+// superfície que oferecia o $1 (pricing, pós-vídeo, modais, e-mail de entrega)
+// lê esta constante antes de renderizar. A entrada da casa voltou a ser o trial
+// grátis (lib/reverseTrial.ts TRIAL_CREDIT_CAP) com todo motor aberto.
+export const CARD_TRIAL_LIVE = false
 /** "then $19/mo" — nunca digitado: sai de TIER_PRICES.basic (USD-only). */
 export const CARD_TRIAL_THEN_LABEL = `then ${TIER_PRICES.basic.usd / 100}/mo`
 export const CARD_TRIAL_SECONDARY_LABEL = `or try Creator for 7 days — $1, ${CARD_TRIAL_THEN_LABEL} →`
@@ -643,7 +657,7 @@ export function isBulkPackId(raw: string | null | undefined): raw is BulkPackId 
 // Esta lista é o contrato entre o preço e o webhook: para QUALQUER valor aqui,
 // o webhook resolve SÓ por metadata.pack exata e NUNCA por valor.
 // KINEO-PRICING-V7-2026-09-09 — bulk10 saiu de $99 (era o que colidia com o piloto de $99); a lista fica vazia até a próxima colisão real.
-export const AMBIGUOUS_ONE_TIME_USD_AMOUNTS: ReadonlySet<number> = new Set<number>([])
+export const AMBIGUOUS_ONE_TIME_USD_AMOUNTS: ReadonlySet<number> = new Set<number>([9900]) // KINEO-RESTAURACAO-2026-09-09 — Starter anual ($99) colide com o piloto de $99
 
 /** true = este valor em USD não identifica um SKU sozinho. */
 export function isAmbiguousOneTimeUsdAmount(amountMinor: number, currency: string | null | undefined): boolean {

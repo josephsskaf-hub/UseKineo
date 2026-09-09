@@ -41,6 +41,7 @@ import {
   isBulkPackId,
   monthlyPriceMinor,
   resolveCheckoutCurrency,
+  CARD_TRIAL_LIVE,
   resolvePriceRegion,
   PACK_PRICE_MINOR,
   type BulkPackId,
@@ -1006,7 +1007,8 @@ async function buildAndRedirect(
   // desenhado exatamente para essa pessoa: ja disse "quero o Creator", nao
   // quer pagar $15 antes de ver. A nota de 20/08 dizia "se em uma semana a
   // marca d'agua nao mover a conversao, vira true" — 18 dias, 6 pagantes/30d.
-  const CARD_TRIAL_ENABLED = true
+  // KINEO-RESTAURACAO-2026-09-09 — o trial de $1 está DESLIGADO (fonte única).
+  const CARD_TRIAL_ENABLED = CARD_TRIAL_LIVE
   let wantsTrial = CARD_TRIAL_ENABLED && req.nextUrl.searchParams.get('trial') === '1' && tier === TRIAL_TIER
   const TRIAL_DAYS = 7
   // ═══ KINEO-TRIAL-1DOLAR-2026-08-20 — O TRIAL É PAGO, E DE PROPÓSITO ══════

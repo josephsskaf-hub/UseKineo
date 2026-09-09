@@ -1,3 +1,17 @@
+// KINEO-RESTAURACAO-2026-09-09 — APOSENTADO ENQUANTO A FONTE DISSER QUE ISTO ESTÁ DESLIGADO.
+// Fundador (09/09 18h): "tira esse negócio de 1 dólar" / "voltar na minha melhor fase". Este guardião
+// guarda a versão B (entrada só por $1). Se a fonte religar, o preâmbulo deixa de disparar e as verificações voltam.
+import { readFileSync as __rf } from 'node:fs'
+import { join as __j, dirname as __d } from 'node:path'
+import { fileURLToPath as __f } from 'node:url'
+{
+  const __raiz = __j(__d(__f(import.meta.url)), '..')
+  const __src = __rf(__j(__raiz, 'lib/entryPolicy.ts'), 'utf8').replace(/\r\n/g, '\n')
+  if (/export const CARD_ENTRY_ONLY = false/.test(__src)) {
+    console.log('APOSENTADO (restauração 09/09/2026): a versão B (entrada só por $1) está desligado na fonte (lib/entryPolicy.ts). Volta a valer sozinho no dia em que religar.')
+    process.exit(0)
+  }
+}
 // KINEO-VERSAO-B-ENTRADA-1-DOLAR-2026-09-08 — guardião da porta única.
 // Ordem do fundador (08/09 01:20 BRT): "tirar os 25 créditos de todos; dar os
 // 80 do Creator por $1; se usarem ou depois de 1 semana viram cliente a $15".

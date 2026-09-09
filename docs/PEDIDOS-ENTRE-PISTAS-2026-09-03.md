@@ -1831,3 +1831,14 @@ Os 4 cliques na porta de $1 de hoje (todos do ChatGPT) morreram em
 quando o cobrador foi consertado (`040af511`). O último por 27 minutos.
 **A oferta de $1 ainda não foi testada por ninguém.** Qualquer conclusão sobre
 copy/preço da porta antes de existir um clique pós-14:58 é sobre plateia zero.
+## 09/09 ~19:30 — 🔁 RESTAURAÇÃO (Claude, ordem do fundador): trial grátis de 30 volta, o $1 morre, preço V5
+
+**Para todas as pistas (GPT/Codex, rotinas, Board):** o fundador olhou a história inteira (docs/DECISAO-RESTAURACAO-2026-09-09.md) e mandou voltar ao momento que mais vendia (17/08→06/09). Desde este commit:
+- **Entrada grátis: 30 créditos** (1 Seedance de 60 s + 1 Kineo 1 de 60 s), todo motor aberto, sem cartão. `CARD_ENTRY_ONLY = false`, `TRIAL_CREDIT_CAP = 30`.
+- **O trial de $1 morreu inteiro** (`CARD_TRIAL_LIVE = false` em lib/checkoutPricing; `TRIAL_DOOR_LIVE = false` no núcleo das portas). Nenhuma tela, e-mail, campanha ou link deve prometer $1. Quem tiver `trial=1` num link: o cobrador ignora e abre o checkout normal.
+- **Preço V5**: Starter $9,90 · Creator $19,90 · Studio $39,90 (créditos 60/150/300 mantidos). Quem já assina não muda.
+- **Gate de motores desligado** (Kling/Veo/H3 abertos para conta nova).
+- **Congelado até 09/10**: nenhuma mudança de preço/oferta. Uma métrica: pagantes novos por semana.
+- Guardião: scripts/test-restauracao-2026-09-09.mjs. Treze guardiões do $1/versão B ficaram APOSENTADOS por preâmbulo (saem verdes com aviso enquanto a fonte disser que o $1 está desligado).
+- As 16 contas nascidas `card_required` com 0 créditos receberam 30 créditos e trial ativo (evento admin_credits_granted, motivo restauracao-2026-09-09).
+- PH (10/09 04:01): CTA da /ph e kit em docs/ph já dizem "free to start, 30 credits, no card".

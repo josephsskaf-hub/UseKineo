@@ -207,6 +207,7 @@ import {
   CARD_TRIAL_DAYS,
   CARD_TRIAL_ENTRY_FEE_MINOR,
   CARD_TRIAL_GRANT_CREDITS,
+  CARD_TRIAL_LIVE,
   packPriceLabel,
   // KINEO-TOPUP-CURRENCY-2026-08-12 — os dois botões de top-up desta mesma
   // caixa continuavam com preço literal em dólar depois que as linhas de plano
@@ -10551,6 +10552,7 @@ export default function GenerateClient({
     // nenhuma (falha fechada). `footage` fica de fora: aquele bloqueio se
     // resolve com pacote, e o pacote mora no UpgradeModal.
     const cardEntryCohort =
+      CARD_TRIAL_LIVE && // KINEO-RESTAURACAO-2026-09-09 — trial de $1 desligado: a porta não abre
       !freeFilmAvailable &&
       !hasPaid &&
       !(isStarter || isCreator || isStudio) &&

@@ -131,7 +131,10 @@ export const REVERSE_TRIAL_ENABLED = process.env.KINEO_REVERSE_TRIAL_ENABLED ===
 // próximas 2 semanas, a causa provável é ter tirado o 2º/3º/4º filme de
 // quem ia se convencer no volume — e a reversão é trocar este número aqui.
 // Hollywood/Veo/Kling seguem fora do trial por design — 25 não compra nenhum.
-export const TRIAL_CREDIT_CAP = 25
+// KINEO-RESTAURACAO-2026-09-09 — fundador: "algo entre 25 e 40: 30 faz sentido,
+// 1 Seedance e 1 Kineo". 30 = Seedance 60 s (25) + Kineo 1 60 s (5). Custo se
+// gasto inteiro: ~$1,00–1,30 por conta; média real de uso: 8 créditos.
+export const TRIAL_CREDIT_CAP = 30
 
 /**
  * Créditos concedidos na ATIVAÇÃO do trial. Decisão final do fundador (06/08):

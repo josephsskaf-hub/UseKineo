@@ -77,7 +77,7 @@ const FAQ: { q: string; a: string }[] = [
   { q: 'Do I need to record or clone a voice?', a: 'No. The character speaks with a voice generated at render time, and the narrator uses a voice matched to the subject of your script. Nothing to record, nothing to upload, no voice cloning step.' },
   { q: 'Will the character say exactly what I wrote?', a: 'If you choose "Use my script as is", yes — the spoken lines come from your text, split into scenes in code rather than rewritten by a model. If you prefer, the AI can structure a one-line idea into a full script first.' },
   { q: 'Which engine should I use for talking characters?', a: 'MiniMax H3 at 45 credits is the everyday choice and covers dialogue plus narration. Kling 3 at 150 credits gives the strongest dialogue scenes and the most cinematic look. Every video is labelled with the engine that actually rendered it.' },
-  { q: 'How much does it cost?', a: `A 60-second MiniMax H3 film costs ${H3_60_CREDITS} credits; Kling 3 costs ${KLING3_60_CREDITS}. A new account starts with the $1 Creator trial (7 days, card required) and its ${TRIAL_CREDITS_SHOWN} credits, which do not cover a full 60-second H3 film by themselves. Paid plans start at ${STARTER_MONTH}, and the Studio shows the exact engine cost before submission.` },
+  { q: 'How much does it cost?', a: `A 60-second MiniMax H3 film costs ${H3_60_CREDITS} credits; Kling 3 costs ${KLING3_60_CREDITS}. A new account starts free with ${TRIAL_CREDITS_SHOWN} credits, which do not cover a full 60-second H3 film by themselves. Paid plans start at ${STARTER_MONTH}, and the Studio shows the exact engine cost before submission.` },
 ]
 
 export default function TalkingCharactersPage() {

@@ -1,3 +1,17 @@
+// KINEO-RESTAURACAO-2026-09-09 — APOSENTADO ENQUANTO A FONTE DISSER QUE ISTO ESTÁ DESLIGADO.
+// Fundador (09/09 18h): "tira esse negócio de 1 dólar" / "voltar na minha melhor fase". Este guardião
+// guarda a folha CardEntryDoor (porta de $1 v2). Se a fonte religar, o preâmbulo deixa de disparar e as verificações voltam.
+import { readFileSync as __rf } from 'node:fs'
+import { join as __j, dirname as __d } from 'node:path'
+import { fileURLToPath as __f } from 'node:url'
+{
+  const __raiz = __j(__d(__f(import.meta.url)), '..')
+  const __src = __rf(__j(__raiz, 'lib/checkoutPricing.ts'), 'utf8').replace(/\r\n/g, '\n')
+  if (/export const CARD_TRIAL_LIVE = false/.test(__src)) {
+    console.log('APOSENTADO (restauração 09/09/2026): a folha CardEntryDoor (porta de $1 v2) está desligado na fonte (lib/checkoutPricing.ts). Volta a valer sozinho no dia em que religar.')
+    process.exit(0)
+  }
+}
 // GUARDIÃO DA PORTA V2 (folha de $1 no momento do bloqueio) — 09/09/2026.
 //
 // Por que ele existe: em 08/09 a porta de $1 estava VISÍVEL dentro do

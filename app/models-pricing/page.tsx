@@ -81,7 +81,7 @@ export default function ModelsPricingPage() {
         karaoke captions and score included in every number below.
       </p>
       <p style={{ fontSize: 15, lineHeight: 1.7, color: '#a9a9b6', margin: '0 0 32px', maxWidth: 720 }}>
-        Your $1 trial starts with <strong style={{ color: '#e9e9ee' }}>{TRIAL_CREDITS_SHOWN} credits</strong>. On Kineo 1 that is{' '}
+        Your free trial starts with <strong style={{ color: '#e9e9ee' }}>{TRIAL_CREDITS_SHOWN} credits</strong>. On Kineo 1 that is{' '}
         {Math.floor(TRIAL_CREDITS_SHOWN / creditCostForDuration('fast', true, 60))} films; on the biggest engines it is
         part of one. Both are fine — just know which one you picked.
       </p>
@@ -146,7 +146,7 @@ export default function ModelsPricingPage() {
         The Starter plan is ${starterPrice}/month for {starterCredits} credits — {Math.floor(starterCredits / creditCostForDuration('fast', true, 60))} films
         on Kineo 1, or {Math.floor(starterCredits / creditCostForDuration('cinematic_ai', true, 60))} on Seedance 1.5.
         See every plan on the <Link href="/pricing" style={{ color: '#5cb3ff' }}>pricing page</Link>, or start
-        your $1 trial in the <Link href="/studio" style={{ color: '#5cb3ff' }}>studio</Link>.
+        your free trial in the <Link href="/studio" style={{ color: '#5cb3ff' }}>studio</Link>.
       </p>
 
       <script

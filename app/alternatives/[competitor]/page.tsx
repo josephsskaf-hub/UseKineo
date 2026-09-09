@@ -95,7 +95,7 @@ export const COMPETITORS: Record<string, Competitor> = {
     name: 'InVideo AI',
     h1: 'A Free InVideo AI Alternative for Faceless Shorts',
     intro:
-      `Kineo starts with a $1 trial (7 days of Creator, 80 credits, card required); InVideo AI has its own free tier. The useful difference is the workflow: InVideo is a broad video creator, while Kineo is built specifically for faceless 9:16 Shorts. One idea becomes a hook-driven script, voiceover, footage and captions, usually in 3–7 minutes. ${ft(OFFER, 'Kineo free access includes up to 3 watermarked Fast videos every 24 hours.', `Kineo starts with ${TRIAL_GRANT_CREDITS_COPY} free credits and every engine unlocked; trial films are watermarked.`)}`,
+      `Kineo starts free (30 credits, every engine unlocked, no card); InVideo AI has its own free tier. The useful difference is the workflow: InVideo is a broad video creator, while Kineo is built specifically for faceless 9:16 Shorts. One idea becomes a hook-driven script, voiceover, footage and captions, usually in 3–7 minutes. ${ft(OFFER, 'Kineo free access includes up to 3 watermarked Fast videos every 24 hours.', `Kineo starts with ${TRIAL_GRANT_CREDITS_COPY} free credits and every engine unlocked; trial films are watermarked.`)}`,
     theyDo: 'InVideo AI is a broad, general-purpose AI video maker for many formats.',
     pickThem:
       'Pick InVideo if you need long-form, horizontal, or many different video formats from one tool. Pick Kineo if your whole game is posting faceless Shorts daily and you want them optimized for retention out of the box.',
@@ -114,7 +114,7 @@ export const COMPETITORS: Record<string, Competitor> = {
     faq: [
       {
         q: 'Is there a free InVideo AI alternative?',
-        a: `Kineo starts with a $1 trial (7 days of Creator, 80 credits) and is focused on faceless vertical Shorts. ${ft(OFFER, 'Free access includes up to 3 watermarked Fast videos every 24 hours.', `A new account receives ${TRIAL_GRANT_CREDITS_COPY} free credits with every engine unlocked; trial films are watermarked.`)} InVideo also has a no-card free plan with limited credits that reset weekly, according to its official help center checked ${INVIDEO_FACTS_CHECKED}.`,
+        a: `Kineo starts free (30 credits, no card) and is focused on faceless vertical Shorts. ${ft(OFFER, 'Free access includes up to 3 watermarked Fast videos every 24 hours.', `A new account receives ${TRIAL_GRANT_CREDITS_COPY} free credits with every engine unlocked; trial films are watermarked.`)} InVideo also has a no-card free plan with limited credits that reset weekly, according to its official help center checked ${INVIDEO_FACTS_CHECKED}.`,
       },
       {
         q: 'What is the best InVideo alternative for faceless YouTube Shorts?',
@@ -514,7 +514,7 @@ export const COMPETITORS: Record<string, Competitor> = {
       { q: 'Is Kineo a direct replacement for Synthesia?', a: 'No. Choose Kineo for a focused topic-to-faceless-Short workflow. Choose Synthesia when you need a broad avatar library, multilingual business video, team review, Brand Kit, SCORM or enterprise governance.' },
       { q: 'Does Kineo have an AI presenter?', a: 'Yes. Kineo can animate one suitable photo into a 720p lip-synced presenter video. It is an optional render type, not a stock-avatar library or an enterprise avatar workspace.' },
       { q: 'Can both tools create a full video from a prompt?', a: 'Yes. Synthesia combines avatars, templates and AI-generated assets in a business-video workspace. Kineo combines a script, narration, selected visual engine and captions into a faceless vertical Short.' },
-      { q: 'Can I try Kineo and Synthesia without a card?', a: `Kineo: no — it starts with a $1 trial. ${OFFER.copy.sentence} Synthesia’s official pricing page lists a Basic plan with no card required. Usage and plan terms can change, so verify the current vendor pages before choosing.` },
+      { q: 'Can I try Kineo and Synthesia without a card?', a: `Kineo: yes — no card required. ${OFFER.copy.sentence} Synthesia’s official pricing page lists a Basic plan with no card required. Usage and plan terms can change, so verify the current vendor pages before choosing.` },
     ],
   },
   canva: {

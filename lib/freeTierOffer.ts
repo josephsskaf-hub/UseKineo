@@ -150,7 +150,7 @@ const OFF_COPY: FreeTierCopy = {
 // O porquê do número está inteiro no bloco KINEO-TRIAL-25 de lib/reverseTrial.ts
 // — resumo: $17/dia de fal contra 2 assinaturas em 14 dias, e nenhum abuso
 // (ninguém fez 3+ vídeos caros), então o corte é no TAMANHO, não no motor.
-export const TRIAL_GRANT_CREDITS_COPY = 25
+export const TRIAL_GRANT_CREDITS_COPY = 30 // KINEO-RESTAURACAO-2026-09-09 — espelho de TRIAL_CREDIT_CAP
 
 // ON = decisão do fundador (docs/ORDENS-AQUISICAO-2026-08-02.md, bloco
 // "DECISÕES FINAIS — REVERSE TRIAL"). NUNCA mencionar desconto/50% aqui:
@@ -306,12 +306,12 @@ const CARD_ENTRY_TIER_COPY: FreeTierCopy = {
   chip: CARD_ENTRY_COPY.chip,
   chipLower: CARD_ENTRY_COPY.chip,
   planCardBody:
-    'Kineo starts at $1: 7 days of Creator with 80 credits. Then $29/month for about one film a day, cancel anytime. There is no free tier.',
+    'Kineo starts at $1: 7 days of Creator with 80 credits. Then $19.90/month for about one film a day, cancel anytime. There is no free tier.',
   counterNoun: 'this month',
   planLimitLine: 'free Fast videos — none; every account starts with the $1 trial',
   limitHitError:
     'Kineo starts at $1: 7 days of Creator with 80 credits. Start your trial to make this film.',
-  cmpKineoFree: 'Kineo: no free tier — $1 for 7 days of Creator (80 credits), then $29/month.',
+  cmpKineoFree: 'Kineo: no free tier — $1 for 7 days of Creator (80 credits), then $19.90/month.',
   limitHitEmailSubject: 'Start your Kineo trial — $1 for 7 days',
   limitHitEmailIntro: 'Your account has no credits yet — Kineo starts with a $1 trial: 7 days of Creator with 80 credits.',
   limitHitEmailIntroHtml: 'Your account has no credits yet — Kineo starts with a <strong>$1 trial</strong>: 7 days of Creator with 80 credits.',

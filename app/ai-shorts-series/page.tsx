@@ -64,7 +64,7 @@ function priceSentence(p: PlanFact): string {
 // A porta de entrada, derivada da mesma oferta que o cobrador aplica. Com o
 // trial no ar a frase é a do trial; sem ele, é a franquia recorrente.
 const START_SENTENCE = TRIAL_ACCESS
-  ? `A new account starts with the $1 trial: 7 days of Creator, 80 credits, card required. ` +
+  ? `A new account starts free with 30 credits and every engine unlocked, no card. ` +
     `Trial films are watermarked; any paid plan unlocks the clean download.`
   : `A new account gets ${RECURRING_FREE_ACCESS.videosPerWindow} watermarked ${RECURRING_FREE_ACCESS.engine} video ` +
     `per ${RECURRING_FREE_ACCESS.rollingWindowHours}-hour window on paid plans.`

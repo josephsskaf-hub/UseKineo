@@ -147,7 +147,7 @@ export const INTERFACE_ES: Record<string, string> = {
   'Channel Builder': 'Crear un canal', 'AI Thumbnail Generator': 'Crear miniaturas con IA',
   'Invite & Earn': 'Invita y gana', 'Affiliate Dashboard': 'Panel de afiliados',
   Tools: 'Herramientas', More: 'Más', 'Free tools': 'Herramientas gratuitas', 'Editing tools': 'Herramientas de edición',
-  'Start free': 'Empezar gratis', 'Sign in': 'Iniciar sesión', 'Log in': 'Iniciar sesión',
+  'Start free': 'Empezar gratis', 'Start free — 30 credits →': 'Empieza gratis — 30 créditos →', 'Sign in': 'Iniciar sesión', 'Log in': 'Iniciar sesión',
   // KINEO-VERSAO-B-2026-09-08 (tarefa 8) — rótulos da porta de $1 e dos planos
   'Try 7 days for $1': 'Prueba 7 días por $1', 'Try Creator 7 days for $1 →': 'Prueba Creator 7 días por $1 →', 'Simple pricing. Start with 7 days for $1.': 'Precios simples. Empieza con 7 días por $1.', 'Type one idea, start your $1 trial and make the film.': 'Escribe una idea, empieza tu prueba de $1 y haz la película.', 'Entry': 'Entrada', 'Continue now': 'Continuar ahora', 'Start for $1: 7 days of Creator with 80 credits, Kineo 1 and Seedance unlocked. Then $29/month, cancel anytime.': 'Empieza por $1: 7 días de Creator con 80 créditos, Kineo 1 y Seedance desbloqueados. Después $29/mes, cancela cuando quieras.',
   Explore: 'Explorar', Scripts: 'Guiones', Animate: 'Animar', Thumbnails: 'Miniaturas',

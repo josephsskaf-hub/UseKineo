@@ -60,8 +60,8 @@ check('lê o grant do trial grátis', GRANT_TRIAL !== null)
 check('lê o grant do trial de $1', GRANT_1USD !== null)
 // Âncora: os números lidos batem com o que a rotação mediu. Se um deles mudar,
 // o guardião ACUSA em vez de seguir calculando com um número que ninguém viu.
-check('grant do trial grátis segue 25', GRANT_TRIAL === 25)
-check('Seedance segue custando o trial inteiro', CUSTO_SEEDANCE === GRANT_TRIAL)
+check('grant do trial grátis é 30 (restauração 09/09: 1 Seedance + 1 Kineo 1)', GRANT_TRIAL === 30)
+check('Seedance (25) cabe no trial de 30 com 5 sobrando para um Kineo 1', CUSTO_SEEDANCE === 25 && GRANT_TRIAL - CUSTO_SEEDANCE === 5)
 check('Kling 3 segue em 150', CUSTO_KLING3 === 150)
 
 // ── A PREMISSA: o motor nomeado antes NÃO cabe no saldo ───────────────────

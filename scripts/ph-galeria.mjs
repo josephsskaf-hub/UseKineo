@@ -128,7 +128,7 @@ pag('gallery-03.png', `
       <div class="eyebrow">the real screen</div>
       <h2 style="margin-top:10px;font-size:34px">Every engine, with its price in the open.</h2>
     </div>
-    <div style="font-size:15px;color:#7d8a9c">no free tier &middot; ${F.copy.ctaShort}</div>
+    <div style="font-size:15px;color:#7d8a9c">free to start &middot; ${F.copy.ctaShort}</div>
   </div>
   <div class="frame">
     <div class="bar"><i></i><i></i><i></i><span class="url">usekineo.com</span></div>

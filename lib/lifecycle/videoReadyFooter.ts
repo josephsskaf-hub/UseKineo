@@ -27,7 +27,7 @@
  * desconto; nao inventa segundos (filmNoun); o `intent_campaign` do Codex
  * continua no link de preco para a medicao dele nao quebrar.
  */
-import { CARD_TRIAL_DAYS, CARD_TRIAL_GRANT_CREDITS, TIER_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
+import { CARD_TRIAL_DAYS, CARD_TRIAL_GRANT_CREDITS, CARD_TRIAL_LIVE, TIER_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
 import { trialEntryFeeLabel, trialMonthlyAfterLabel } from '@/lib/lifecycle/trialEntryFee'
 import { filmsPerPlan, filmNoun, sanitizeFilmCost } from '@/lib/lifecycle/trialFilmPlans'
 import { buildSeriesContinuationEmailUrl, normalizeSeriesSeed, type SeriesContinuationSource } from '@/lib/seriesContinuation'
@@ -196,6 +196,7 @@ function trialDoorHtml(
   campaign: string,
   prominent: boolean,
 ): string | null {
+  if (!CARD_TRIAL_LIVE) return null // KINEO-RESTAURACAO-2026-09-09 — trial de $1 desligado
   if (hasPaid !== false) return null
   const fee = trialEntryFeeLabel({ compact: true })
   const monthly = trialMonthlyAfterLabel({ compact: true })

@@ -18,7 +18,7 @@ const VOICE_SIGNUP_HREF = buildProductSurfaceSignupHref({
 export const metadata: Metadata = {
   title: 'AI Voice Generator — Text to Speech with 4 Engines (MiniMax, ElevenLabs) | Kineo',
   description:
-    `Turn text into natural speech with four AI voice engines: MiniMax Speech HD, ElevenLabs v3, Dia and Kokoro. From 1 credit per 1,000 characters. Use any voice in your videos. Starts with the $1 trial: 7 days of Creator, 80 credits.`,
+    `Turn text into natural speech with four AI voice engines: MiniMax Speech HD, ElevenLabs v3, Dia and Kokoro. From 1 credit per 1,000 characters. Use any voice in your videos. Free to start: 30 credits, no card.`,
   alternates: { canonical: `${BASE}/ai-voice-generator` },
   openGraph: {
     title: 'AI Voice Generator — four TTS engines, one studio',
@@ -35,7 +35,7 @@ const FAQS = [
   },
   {
     q: 'How much does AI voiceover cost?',
-    a: `From 1 credit per 1,000 characters — a typical 60-second narration (~1,000 characters) costs 1–2 credits. Every new account starts with the $1 trial (7 days of Creator, 80 credits) on signup. Credits are shared with image and video generation on the same balance.`,
+    a: `From 1 credit per 1,000 characters — a typical 60-second narration (~1,000 characters) costs 1–2 credits. Every new account starts free with 30 credits on signup, no card. Credits are shared with image and video generation on the same balance.`,
   },
   {
     q: 'Can I use the voices in my videos?',

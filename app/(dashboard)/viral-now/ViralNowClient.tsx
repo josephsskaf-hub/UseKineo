@@ -397,7 +397,7 @@ export default function ViralNowClient({
           color: 'var(--muted2)',
           lineHeight: 1.5,
         }}>
-          Pick a trending topic and create a faceless Short on your $1 trial (7 days, 80 credits).
+          Pick a trending topic and create a faceless Short with your free credits — every engine unlocked.
           Your exact idea stays selected through signup.
         </p>
       </div>

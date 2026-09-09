@@ -2,6 +2,7 @@ import {
   CARD_TRIAL_DAYS,
   CARD_TRIAL_ENTRY_FEE_MINOR,
   CARD_TRIAL_GRANT_CREDITS,
+  CARD_TRIAL_LIVE,
   TIER_PRICES,
   formatCheckoutMoney,
 } from '@/lib/checkoutPricing'
@@ -11,6 +12,7 @@ export type CreatorOfferSurface = 'gpt_handoff' | 'history_film'
 
 // A successful owner-scoped profile read is required. Unknown is not unpaid.
 export function isPostFilmCreatorEligible(profile: unknown): boolean {
+  if (!CARD_TRIAL_LIVE) return false // KINEO-RESTAURACAO-2026-09-09 — trial de $1 desligado
   if (!profile || typeof profile !== 'object') return false
   const p = profile as Record<string, unknown>
   return p.has_paid === false && p.plan === 'free' && p.is_pro === false

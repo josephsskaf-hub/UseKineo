@@ -93,8 +93,11 @@ for (const arq of ARQUIVOS) {
 check('C1 nenhum "7 days for" fica sem preco na mesma linha',
   semPreco.length === 0, `${semPreco.length}: ${semPreco.join(', ')}`)
 
-// ── D. as duas faixas do app nao prometem mais "no card" incondicional ──────
-for (const arq of ['components/ChatGptWelcomeBanner.tsx', 'components/ExitIntentOffer.tsx']) {
+// KINEO-RESTAURACAO-2026-09-09 — com a entrada grátis de volta (CARD_ENTRY_ONLY = false),
+// "no card" é VERDADE e a faixa do ChatGPT nomeia a entrada grátis, não a porta de $1.
+const VERSAO_B = /export const CARD_ENTRY_ONLY = true/.test(readFileSync('lib/entryPolicy.ts', 'utf8'))
+// ── D. as duas faixas do app nao prometem mais "no card" incondicional (só sob a versão B) ──────
+for (const arq of VERSAO_B ? ['components/ChatGptWelcomeBanner.tsx', 'components/ExitIntentOffer.tsx'] : []) {
   const linhas = readFileSync(arq, 'utf8').split(/\r?\n/)
   const mentiras = []
   linhas.forEach((linha, i) => {
@@ -112,8 +115,8 @@ for (const arq of ['components/ChatGptWelcomeBanner.tsx', 'components/ExitIntent
 const CG = readFileSync('components/ChatGptWelcomeBanner.tsx', 'utf8')
 check('E1 ChatGptWelcomeBanner mostra o grant pela fonte unica',
   CG.includes('TRIAL_CREDITS_SHOWN'))
-check('E2 ChatGptWelcomeBanner nomeia a porta de $1',
-  /\$1 trial|for \$1/.test(CG))
+check(VERSAO_B ? 'E2 ChatGptWelcomeBanner nomeia a porta de $1' : 'E2 ChatGptWelcomeBanner nomeia a entrada grátis (restauração 09/09)',
+  VERSAO_B ? /\$1 trial|for \$1/.test(CG) : /free credits/.test(CG))
 
 console.log(`\n${notas.map((n) => `  · ${n}`).join('\n')}`)
 const total = 12

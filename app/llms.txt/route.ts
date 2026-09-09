@@ -389,7 +389,12 @@ synthetic voice. None of them alternate the two inside one finished Short.
   validated the same day: 72s, zero silent gaps, frame-audited.
 - 2026-08-24: /generate retired; the Studio (usekineo.com/studio) is the
   single creation surface. Every film is delivered as a 1080×1920 master.
-- 2026-09-09: plans repriced to sit with the market while keeping more films
+- 2026-09-09 (evening — supersedes the two entries below): the free trial is back.
+  Every new account starts with 30 credits (one Seedance 1.5 film and one Kineo 1
+  film of 60 s), every engine unlocked, no card required. The \$1 trial is retired.
+  Prices return to Starter \$${TIER_PRICES.starter.usd / 100} / Creator \$${TIER_PRICES.basic.usd / 100} / Studio \$${TIER_PRICES.pro.usd / 100}
+  (credits 60 / 150 / 300 unchanged). Existing subscribers keep the price they signed up at.
+- 2026-09-09 (morning, superseded the same day): plans repriced to sit with the market while keeping more films
   per plan than peers: Starter \$${TIER_PRICES.starter.usd / 100} (60 credits, about ${videosPerMonth('starter', 'fast')} Kineo 1 films of 60 s),
   Creator \$${TIER_PRICES.basic.usd / 100} (150 credits, about ${videosPerMonth('basic', 'cinematic_ai')} Seedance 1.5 or ${videosPerMonth('basic', 'fast')} Kineo 1 films of 60 s),
   Studio \$${TIER_PRICES.pro.usd / 100} (300 credits, about ${videosPerMonth('pro', 'cinematic_ai')} Seedance 1.5, ${videosPerMonth('pro', 'cinematic_h3')} MiniMax H3 or ${videosPerMonth('pro', 'cinematic_hollywood')} Kling 3

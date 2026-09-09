@@ -118,7 +118,7 @@ export default function RewardsPage() {
       </p>
 
       <div style={{ margin: '28px 0 0', padding: '20px 22px', borderRadius: 14, background: 'rgba(41,151,255,.08)', border: '1px solid rgba(41,151,255,.3)', textAlign: 'center' }}>
-        <p style={{ fontSize: 17, fontWeight: 800, margin: '0 0 10px' }}>Make your first minute-plus film for $1.</p>
+        <p style={{ fontSize: 17, fontWeight: 800, margin: '0 0 10px' }}>Make your first minute-plus film free.</p>
         <Link
           href="/free?utm_source=seo&utm_medium=tiktok_rewards&utm_campaign=one_minute"
           style={{ display: 'inline-block', background: '#2997ff', color: '#fff', fontWeight: 900, fontSize: 15, padding: '12px 28px', borderRadius: 12, textDecoration: 'none' }}

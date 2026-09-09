@@ -360,7 +360,7 @@ export default function ShortsRpmByNichePage() {
               placeholder: 'Type one topic in your niche — e.g. the fee eating your index fund',
               submit: 'Turn this topic into a Short →',
               examplesLabel: 'Topics from the highest-RPM niches above',
-              note: 'Your topic stays attached through signup. Starts with the $1 trial (7 days of Creator, 80 credits).',
+              note: 'Your topic stays attached through signup. Free to start: 30 credits, no card.',
             }}
           />
         </section>

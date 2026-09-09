@@ -1404,7 +1404,7 @@ export default function KineoLanding({
             <Link href="/free-ai-shorts-generator" className="tcard">
               <span className="tico">{TOOL_ICONS.bolt}</span>
               <h3><UiLabel>Free AI Shorts</UiLabel></h3>
-              <p><UiLabel>{CARD_ENTRY_ONLY ? 'Type one idea, start your $1 trial and make the film.' : 'Type one idea and test the full Fast workflow with no card.'}</UiLabel></p>
+              <p><UiLabel>{CARD_ENTRY_ONLY ? 'Type one idea, start your $1 trial and make the film.' : 'Type one idea and make your first film free — every engine unlocked, no card.'}</UiLabel></p>
               <span className="tlink"><UiLabel>Generate free →</UiLabel></span>
             </Link>
           </div>
@@ -1435,7 +1435,7 @@ export default function KineoLanding({
 
       <section id="pricing">
         <div className="wrap">
-          <div className="sec-h"><span className="sec-eyebrow"><UiLabel>Pricing</UiLabel></span><h2><UiLabel>{CARD_ENTRY_ONLY ? 'Simple pricing. Start with 7 days for $1.' : 'Simple pricing. Try Fast free first.'}</UiLabel></h2><p><UiLabel>{ft(OFFER, 'Create, download and share up to 3 watermarked Fast videos every 24h, no card.', OFFER.copy.headline)}</UiLabel><UiLabel> Paid plans unlock clean MP4s.</UiLabel></p></div>
+          <div className="sec-h"><span className="sec-eyebrow"><UiLabel>Pricing</UiLabel></span><h2><UiLabel>{CARD_ENTRY_ONLY ? 'Simple pricing. Start with 7 days for $1.' : 'Simple pricing. Start free first.'}</UiLabel></h2><p><UiLabel>{ft(OFFER, 'Create, download and share up to 3 watermarked Fast videos every 24h, no card.', OFFER.copy.headline)}</UiLabel><UiLabel> Paid plans unlock clean MP4s.</UiLabel></p></div>
           <HomePricingCheckoutGroup isSignedIn={isSignedIn}>
           <div className="price">
             {/* Signed-in buyers go straight to Stripe. Signed-out buyers go to
@@ -1571,7 +1571,7 @@ export default function KineoLanding({
                 verbatim em components/StructuredData.tsx (faqSchema) — mudar
                 nos dois ou em nenhum, senao o JSON-LD vira sinal de spam.
                 Precos vem de checkoutPricing.ts: nunca digitar a mao. */}
-            <details className="qa"><summary><h3><UiLabel>How much does Kineo cost?</UiLabel></h3></summary><p><UiLabel>Kineo has three monthly plans: Starter at $</UiLabel>{usdPrice(TIER_PRICES.starter.usd)}<UiLabel> for </UiLabel>{TIER_CREDITS.starter}<UiLabel> credits, Creator at $</UiLabel>{usdPrice(TIER_PRICES.basic.usd)}<UiLabel> for </UiLabel>{TIER_CREDITS.basic}<UiLabel> credits and Studio at $</UiLabel>{usdPrice(TIER_PRICES.pro.usd)}<UiLabel> for </UiLabel>{TIER_CREDITS.pro}<UiLabel> credits. Credits are spent per video and how many a video costs depends on the engine you pick, so a Fast render and a cinematic film come out of the same balance at very different rates. </UiLabel><UiLabel>{CHECKOUT_CURRENCY_DISCLOSURE}</UiLabel><UiLabel> Every new account starts with the $1 trial: 7 days of Creator with 80 credits.</UiLabel></p></details>
+            <details className="qa"><summary><h3><UiLabel>How much does Kineo cost?</UiLabel></h3></summary><p><UiLabel>Kineo has three monthly plans: Starter at $</UiLabel>{usdPrice(TIER_PRICES.starter.usd)}<UiLabel> for </UiLabel>{TIER_CREDITS.starter}<UiLabel> credits, Creator at $</UiLabel>{usdPrice(TIER_PRICES.basic.usd)}<UiLabel> for </UiLabel>{TIER_CREDITS.basic}<UiLabel> credits and Studio at $</UiLabel>{usdPrice(TIER_PRICES.pro.usd)}<UiLabel> for </UiLabel>{TIER_CREDITS.pro}<UiLabel> credits. Credits are spent per video and how many a video costs depends on the engine you pick, so a Fast render and a cinematic film come out of the same balance at very different rates. </UiLabel><UiLabel>{CHECKOUT_CURRENCY_DISCLOSURE}</UiLabel><UiLabel> Every new account starts free with 30 credits and every engine unlocked, no card.</UiLabel></p></details>
             <details className="qa"><summary><h3><UiLabel>Which AI video engines can I use in Kineo?</UiLabel></h3></summary><p><UiLabel>{VIDEO_ENGINE_COUNT_WORD}</UiLabel><UiLabel>, behind one interface and one balance: </UiLabel>{S25_PUBLIC ? 'Seedance 2.5, ' : ''}<UiLabel>Omni Flash (Google’s #1-ranked video model, Aug 2026), Veo 3.1, Kling 3, MiniMax H3, Kling 2.5, Seedance 1.5, Kineo 1 and Avatar. You choose the engine per video, so a cheap explainer and a cinematic flagship can come out of the same account on the same day. Every clip on this page is a real render from the engine named on the card — the badge always tells the truth about which model made it.</UiLabel></p></details>
             <details className="qa"><summary><h3><UiLabel>What is the best AI video generator for faceless YouTube channels?</UiLabel></h3></summary><p><UiLabel>It depends on whether you want stock footage assembled or footage generated. Tools like InVideo and AutoShorts cut stock clips to your script, which is cheaper and fine for talking-point videos. Kineo generates the footage with models such as Veo 3.1 and Kling 3, keeps your narration word for word instead of rewriting it, and targets 60 seconds or more so the video qualifies for TikTok Creator Rewards. If your channel lives on visuals nobody else has, generation wins; if it lives on volume, stock is cheaper.</UiLabel></p></details>
           </div>

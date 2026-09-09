@@ -33,7 +33,7 @@ function check(name, condition) {
 console.log('\nKINEO — /models-pricing não mente sobre o trial\n')
 
 // A frase do trial, isolada, é o objeto do teste.
-const frase = (page.match(/Your [$]1 trial starts with[\s\S]{0,420}?<\/p>/) || [''])[0]
+const frase = (page.match(/Your free trial starts with[\s\S]{0,420}?<\/p>/) || [''])[0]
 check('a frase do trial existe na página', frase.length > 0)
 
 // 1. O crédito vem da constante canônica, não digitado.

@@ -61,7 +61,11 @@ export function fatos() {
   const P = roda([bloco(cp, 'TIER_PRICES'), bloco(cp, 'TIER_CREDITS')].join('\n'))
   const E = roda([fn(ec, 'creditCostFor'), fn(ec, 'creditCostForDuration')].join('\n')
     .replace(/DURATION_REFERENCE_SECONDS/g, String(num(ec, 'DURATION_REFERENCE_SECONDS'))))
-  const C = roda(bloco(ep, 'CARD_ENTRY_COPY')).CARD_ENTRY_COPY
+  // KINEO-RESTAURACAO-2026-09-09 — CARD_ENTRY_COPY virou um ternário (versão B × entrada grátis);
+  // o kit lê o bloco que está em vigor, com o número de créditos que a copy interpola.
+  const versaoB = !/export const CARD_ENTRY_ONLY = false/.test(ep)
+  const nomeCopy = versaoB ? 'CARD_ENTRY_COPY_V_B' : 'FREE_ENTRY_COPY'
+  const C = roda(`const FREE_ENTRY_CREDITS = ${num(ep, 'FREE_ENTRY_CREDITS')}\n` + bloco(ep, nomeCopy))[nomeCopy]
   const M = roda([
     `const creditCostFor=${E.creditCostFor};`,
     `const creditCostForDuration=${E.creditCostForDuration};`,

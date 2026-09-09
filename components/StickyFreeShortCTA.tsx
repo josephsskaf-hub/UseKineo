@@ -28,7 +28,7 @@ const Z_INDEX = 60
 export default function StickyFreeShortCTA({
   href = '/signup?utm_source=sticky_cta',
   label,
-  cta = 'Try 7 days for $1',
+  cta = 'Start free',
   onCtaClick,
 }: {
   href?: string

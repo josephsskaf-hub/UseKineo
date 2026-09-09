@@ -241,7 +241,7 @@ export function ChatGptWelcomeCard({
         <span>Your text stays editable in Studio before anything is generated.</span>
       </div>
       <p className={styles.proof}>
-        {TRIAL_CREDITS_SHOWN} credits with the $1 trial · 7 days, card required · plans from {STARTER_MO}
+        {TRIAL_CREDITS_SHOWN} free credits · every engine unlocked · no card · plans from {STARTER_MO}
       </p>
       <button type="button" aria-label="Dismiss" className={styles.dismiss} onClick={onDismiss}>
         ×

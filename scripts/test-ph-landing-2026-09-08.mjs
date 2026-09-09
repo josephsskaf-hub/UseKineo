@@ -11,17 +11,17 @@ const checa = (n, c) => { if (c) ok++; else falhas.push(n) }
 
 const page = rd('app/ph/page.tsx')
 const semComentario = page.replace(/\/\/[^\n]*/g, '').replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
-checa('CTA é o trial do Creator com a campanha do lançamento', /tier=basic&billing=monthly&trial=1&intent_campaign=ph_sep10/.test(page))
+checa('CTA é o cadastro grátis com a campanha do lançamento (restauração 09/09)', /\/signup\?utm_source=producthunt[^']*intent_campaign=ph_sep10/.test(page) && !/trial=1'/.test(page))
 checa('dois CTAs (topo e rodapé) com data-testid', /data-testid="ph-cta-trial"/.test(page) && /data-testid="ph-cta-trial-bottom"/.test(page))
 checa('preços pela fonte única, nunca digitados', /TIER_PRICES\.starter\.usd/.test(page) && /TIER_PRICES\.basic\.usd/.test(page) && /TIER_PRICES\.pro\.usd/.test(page) && !/\$(7|15|9|19|29)\b/.test(semComentario))
-checa('trial pela fonte única ($1 = usd(100), dias e créditos)', /CARD_TRIAL_DAYS/.test(page) && /CARD_TRIAL_GRANT_CREDITS/.test(page) && /usd\(100\)/.test(page))
+checa('entrada grátis pela fonte única (FREE_ENTRY_CREDITS e preço do Starter)', /\{FREE_ENTRY_CREDITS\} credits free/.test(page) && /usd\(TIER_PRICES\.starter\.usd\)/.test(page) && !/usd\(100\)/.test(page))
 checa('copy da porta pela política (ctaLong, noFreeTier)', /CARD_ENTRY_COPY\.ctaLong/.test(page) && /CARD_ENTRY_COPY\.noFreeTier/.test(page))
 checa('galeria = os 12 filmes do fundador com o motor real', /FOUNDER_SHOWCASE\.slice\(0, 12\)/.test(page) && /engineLabel\(v\.engine\)/.test(page))
 checa('sem número inventado (filmes/pagantes) na página', !/1,6\d\d\+? films|paying creators/.test(semComentario))
 checa('noindex (é pouso de campanha, não página de SEO)', /robots: \{ index: false/.test(page))
 checa('estática (aguenta pico do dia)', /export const dynamic = 'force-static'/.test(page))
 checa('sinal de impressão com utm (placar por pessoa)', /<PhLandingBeacon \/>/.test(page) && /ph_landing_shown/.test(rd('components/PhLandingBeacon.tsx')))
-checa('FAQ diz que não há free tier e que o $1 é real', /Is there a free tier\?/.test(page) && /Is the \$1 real\?/.test(page))
+checa('FAQ diz que é grátis para começar e que há free tier', /Is there a free tier\?/.test(page) && /Is it really free to start\?/.test(page))
 checa('não promete 3 minutos para motores cinematográficos', /cinematic engines \(Kling 3, Veo 3\.1\) take longer/.test(page))
 const robot = page.match(/const ROBOT = '([^']+)'/)?.[1]
 const poster = page.match(/const ROBOT_POSTER = '([^']+)'/)?.[1]

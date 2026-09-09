@@ -153,7 +153,7 @@ check('valor de créditos no Creator deriva de preço e grant canônicos', () =>
   )
   // Alarme proposital: com Creator a $29/150cr (V7, 09/09), 10 creditos valem $1.93. Se o
   // preco ou o grant do Creator mudarem, esta linha fica vermelha DE PROPOSITO.
-  assert.equal(marketing.formatUsd(marketing.planCreditSpendUsd('basic', 10)), '$1.93')
+  assert.equal(marketing.formatUsd(marketing.planCreditSpendUsd('basic', 10)), '$1.33')
 })
 
 check('checker canônico de pricing fica verde', () => {

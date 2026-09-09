@@ -36,7 +36,7 @@ check(niches.includes('buildPromptedSignupHref({'), 'niche links use the intent-
 check(niches.includes("creationIntent: OFFER.reverseTrial ? 'trial_best' : 'fast'"), 'niche links obey the active offer')
 check(trial.includes("input.createIntent === 'trial_best'"), 'premium intent remains guarded')
 check(trial.includes('input.credits >= input.seedanceCreditCost'), 'insufficient balance cannot dispatch Seedance')
-check(offer.includes('export const TRIAL_GRANT_CREDITS_COPY = 25'), 'grant remains 25 credits')
+check(offer.includes('export const TRIAL_GRANT_CREDITS_COPY = 30'), 'grant is 30 credits (restauração 09/09)')
 
 const preview = read('docs/previews/ORGANIC-PREMIUM-FIRST-2026-08-29.html')
 for (const label of [

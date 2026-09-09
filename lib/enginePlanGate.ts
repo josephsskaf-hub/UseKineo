@@ -12,7 +12,11 @@
 // os 12 pagantes e os 146 trials ativos continuam com todo motor. O gate só
 // existe para conta nova. Puro (sem env, sem banco) para o guardião executar.
 
-export const ENGINE_GATE_SINCE = '2026-09-08T07:00:00.000Z'
+// KINEO-RESTAURACAO-2026-09-09 — GATE DESLIGADO (fundador 09/09 18h: voltar ao
+// momento de 17/08, "todo motor liberado"). Data no futuro = toda conta é
+// grandfathered; a função e os guardiões continuam valendo para o dia em que o
+// fundador quiser religar (basta trazer a data de volta).
+export const ENGINE_GATE_SINCE = '2099-01-01T00:00:00.000Z'
 
 /** Qualities que exigem Studio (pro) em conta nova. */
 export const STUDIO_ONLY_QUALITIES: ReadonlySet<string> = new Set([
@@ -91,5 +95,5 @@ export function engineDisplayName(engine: string): string {
 }
 
 export function engineGateMessage(engine: string): string {
-  return `${engineDisplayName(engine)} is a Studio engine ($59/mo, every engine). Starter and Creator include Kineo 1 and Seedance 1.5.`
+  return `${engineDisplayName(engine)} is a Studio engine ($39.90/mo, every engine). Starter and Creator include Kineo 1 and Seedance 1.5.`
 }

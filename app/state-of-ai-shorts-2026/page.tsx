@@ -213,7 +213,7 @@ export default async function StateOfAiShortsPage() {
           placeholder: 'Type one topic — e.g. the animal that outlived the dinosaurs',
           submit: 'Turn this topic into a Short →',
           examplesLabel: 'Top-ranked niches from this study',
-          note: `Median finish time in the data above is ${s.medianMinutes} minutes. Your topic stays attached through signup. Starts with the $1 trial (7 days of Creator, 80 credits).`,
+          note: `Median finish time in the data above is ${s.medianMinutes} minutes. Your topic stays attached through signup. Free to start: 30 credits, no card.`,
         }}
       />
     </section>

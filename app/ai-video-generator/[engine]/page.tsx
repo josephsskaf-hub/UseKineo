@@ -114,7 +114,7 @@ export const ENGINES: Record<string, Engine> = {
     faq: [
       {
         q: 'Is Kineo 1 really free?',
-        a: `Kineo 1 is included in every plan, and in the $1 trial (7 days of Creator, 80 credits). ${ft(OFFER, 'A new account can create up to 3 watermarked Fast videos every 24 hours.', OFFER.copy.sentence)} A clean, watermark-free 60-second export costs ${FAST_COST} credits on a paid plan.`,
+        a: `Kineo 1 is included in every plan and in the free trial (30 credits, every engine unlocked, no card). ${ft(OFFER, 'A new account can create up to 3 watermarked Fast videos every 24 hours.', OFFER.copy.sentence)} A clean, watermark-free 60-second export costs ${FAST_COST} credits on a paid plan.`,
       },
       {
         q: 'How long does a Kineo 1 video take?',
@@ -135,14 +135,14 @@ export const ENGINES: Record<string, Engine> = {
     tier: 'Starter',
     h1: 'Seedance 1.5 AI video generator — every scene generated, not stock',
     intro:
-      `Seedance 1.5 Pro (ByteDance) is the workhorse generative engine inside Kineo: instead of matching stock footage to your script, it generates every scene from the script itself. You still type one idea — Kineo writes the beats, prompts Seedance scene by scene, voices it, captions it and returns a finished vertical Short. ${SEEDANCE_COST} credits per 60-second video — and the $1 trial (80 credits) covers three of them.`,
+      `Seedance 1.5 Pro (ByteDance) is the workhorse generative engine inside Kineo: instead of matching stock footage to your script, it generates every scene from the script itself. You still type one idea — Kineo writes the beats, prompts Seedance scene by scene, voices it, captions it and returns a finished vertical Short. ${SEEDANCE_COST} credits per 60-second video — and the free trial (30 credits) covers one of them.`,
     bestFor: 'Anything that does not exist on a stock site: an abandoned island, a burning crater, a 1922 expedition. Mystery, history and “weird facts” channels live here.',
     tradeoff: 'Generated scenes cost more than stock and take longer than Kineo 1. If your topic is well covered by real footage, Kineo 1 is faster and free.',
     faq: [
       {
         q: 'Can I use Seedance 1.5 without paying?',
-        a: `Seedance costs ${SEEDANCE_COST} credits per 60-second video. Every new account starts with the 
-         trial (7 days of Creator, 80 credits) and Seedance is included — so your first Seedance films come out of those 80 credits. After the trial, Starter (${STARTER_MONTH}) and Creator keep Seedance unlocked.`,
+        a: `Seedance costs ${SEEDANCE_COST} credits per 60-second video. Every new account starts with the
+         free trial (30 credits, every engine unlocked, no card) and Seedance is included — so your first Seedance film comes out of those 30 credits. After the trial, Starter (${STARTER_MONTH}) and Creator keep Seedance unlocked.`,
       },
       {
         q: 'What model is behind Kineo’s Seedance engine?',
@@ -223,7 +223,7 @@ export const ENGINES: Record<string, Engine> = {
     faq: [
       {
         q: 'How much does a Kling 3 video cost on Kineo?',
-        a: `${KLING3_COST} credits per 60-second video. The Studio monthly grant covers ${videosPerMonth('pro', 'cinematic_hollywood')}; the $1 trial grant (80 credits) does not.`,
+        a: `${KLING3_COST} credits per 60-second video. The Studio monthly grant covers ${videosPerMonth('pro', 'cinematic_hollywood')}; the 30-credit free trial does not.`,
       },
       {
         q: 'Can Kling 3 make a character speak on camera?',
@@ -417,7 +417,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
 
   const tierNote = e.tier === 'Free'
     ? ft(OFFER, 'Free with a watermark · no card', OFFER.copy.chip)
-    : `${e.name} is unlocked on every account. Its ${e.creditCost}-credit 60-second cost is covered by the ${e.tier} monthly grant; the ${TRIAL_CREDITS_SHOWN}-credit $1 trial ${TRIAL_CREDITS_SHOWN >= e.creditCost ? 'covers one' : 'does not cover one'}.`
+    : `${e.name} is unlocked on every account. Its ${e.creditCost}-credit 60-second cost is covered by the ${e.tier} monthly grant; the ${TRIAL_CREDITS_SHOWN}-credit free trial ${TRIAL_CREDITS_SHOWN >= e.creditCost ? 'covers one' : 'does not cover one'}.`
 
   return (
     <main style={{ minHeight: '100vh', background: '#000', color: '#f5f5f7', fontFamily: 'var(--font-sans), Arial, sans-serif' }}>
@@ -448,7 +448,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
               style={{ display: 'inline-block', background: '#f5f5f7', color: '#000', fontWeight: 900, padding: '15px 32px', borderRadius: 980, textDecoration: 'none', fontSize: '1.05rem' }}
             >
               {e.tier === 'Free' || TRIAL_CREDITS_SHOWN >= e.creditCost
-                ? `Try ${e.name} — 7 days for $1 →`
+                ? `Try ${e.name} free →`
                 : CARD_ENTRY_COPY.ctaLong}
             </OrganicCtaLink>
             <Link

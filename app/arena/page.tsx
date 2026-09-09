@@ -138,7 +138,7 @@ const FAQ_JSONLD = {
       name: 'Can I compare AI video engines on the same script?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: `Yes. Every clip on this page is a real Kineo render, labeled with the engine that actually generated it. You can render your own script on any engine from the same text box and compare the results yourself — every new account starts with the $1 trial (7 days of Creator, 80 credits).`,
+        text: `Yes. Every clip on this page is a real Kineo render, labeled with the engine that actually generated it. You can render your own script on any engine from the same text box and compare the results yourself — every new account starts free with 30 credits, no card.`,
       },
     },
     {
@@ -213,7 +213,7 @@ export default function ArenaPage() {
       <div style={{ padding: '22px 24px', borderRadius: 16, background: 'rgba(41,151,255,.08)', border: '1px solid rgba(41,151,255,.3)', textAlign: 'center' }}>
         <p style={{ fontSize: 18, fontWeight: 900, margin: '0 0 6px' }}>One subscription. All seven.</p>
         <p style={{ color: '#a1a1a8', fontSize: 14, margin: '0 0 14px' }}>
-          You don&apos;t pick an engine when you subscribe — you pick it per video, from the same text box. Plans from {STARTER_PRICE_LABEL}/month; every new account starts with the $1 trial (7 days of Creator, 80 credits).
+          You don&apos;t pick an engine when you subscribe — you pick it per video, from the same text box. Plans from {STARTER_PRICE_LABEL}/month; every new account starts free with 30 credits, no card.
         </p>
         <Link
           href="/studio?intent_campaign=arena&utm_source=seo&utm_medium=arena&utm_campaign=engine_arena"

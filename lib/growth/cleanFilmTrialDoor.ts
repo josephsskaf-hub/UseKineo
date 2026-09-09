@@ -81,7 +81,7 @@ export type CleanFilmTrialDoorInput = {
 export type CleanFilmTrialDoorDecision = {
   visible: boolean
   /** Por que a porta não apareceu — auditável no evento de impressão. */
-  reason: 'ok' | 'not_slot_owner' | 'already_paid' | 'price_unresolved'
+  reason: 'ok' | 'not_slot_owner' | 'already_paid' | 'price_unresolved' | 'retired'
   buttonLabel: string | null
   priceNote: string | null
 }
@@ -149,7 +149,7 @@ export type TrialDoorOfferInput = {
 
 export type TrialDoorOfferDecision = {
   visible: boolean
-  reason: 'ok' | 'already_paid' | 'price_unresolved'
+  reason: 'ok' | 'already_paid' | 'price_unresolved' | 'retired'
   buttonLabel: string | null
   priceNote: string | null
   /**
@@ -166,7 +166,18 @@ export type TrialDoorOfferDecision = {
  * As DUAS travas de honestidade que valem em QUALQUER superfície, e a copy de
  * dinheiro. A trava de slot é exclusiva do pós-vídeo e mora no chamador.
  */
+// KINEO-RESTAURACAO-2026-09-09 — o trial de $1 foi DESLIGADO pelo fundador
+// ("tira esse negócio de 1 dólar"). Este arquivo é puro (guardiões o carregam
+// sem imports), por isso o interruptor é um literal espelhado de
+// lib/checkoutPricing.ts CARD_TRIAL_LIVE; scripts/test-restauracao-2026-09-09.mjs
+// prova que os dois dizem a mesma coisa. Com ele em false, NENHUMA porta de $1
+// (pós-vídeo, export limpo, modal de upgrade, fim de trial, faixa) renderiza.
+export const TRIAL_DOOR_LIVE = false
+
 export function decideTrialDoorOffer(input: TrialDoorOfferInput): TrialDoorOfferDecision {
+  if (!TRIAL_DOOR_LIVE) {
+    return { visible: false, reason: 'retired', buttonLabel: null, priceNote: null, capacityNote: null }
+  }
   // Trava 1 — o cobrador recusa `?trial=1` para quem já pagou alguma vez
   // (`card_trial_denied: 'has_paid'`). Anunciar a taxa de entrada a quem será
   // cobrado a mensalidade cheia é uma mentira medível (memória
