@@ -20,8 +20,11 @@
 # ANTES de enfileirar, e para com a explicação na tela se algo falhar.
 # ═══════════════════════════════════════════════════════════════════════════
 set -uo pipefail
+# CONFERIR=1 faz tudo menos enfileirar. E como esta rotina provou o caminho
+# inteiro sem publicar uma linha de app/api/ (caminho travado para ela).
+CONFERIR="${CONFERIR:-0}"
 RAIZ="/c/kineo"
-WT="/c/kineo-wt/porta-1dolar"
+WT_BASE="/c/kineo-wt/porta-1dolar"
 FIX="0f5a53e4"
 
 echo ""
@@ -32,7 +35,17 @@ cd "$RAIZ" || { echo "PAROU: nao achei C:\kineo"; exit 1; }
 git fetch origin -q || { echo "PAROU: sem rede para o fetch"; exit 1; }
 
 # ── 1. o conserto ja esta no ar? (rodar duas vezes nao pode fazer estrago)
-if ! git show "origin/main:app/api/stripe/checkout/route.ts" | grep -q "add_invoice_items:"; then
+# NAO usar "| grep -q" aqui. Com pipefail, o grep sai no primeiro acerto, o
+# git show (160 KB, maior que o buffer do pipe) morre de SIGPIPE e o status da
+# PIPELINE vira 141 — a condicao INVERTE. Medido em 09/09: a mesma main,
+# fechada, respondeu "JA ESTA ABERTA" em 5 de 6 rodadas. Um falso "nada a
+# fazer" aqui e o pior desfecho possivel: o fundador lanca com a porta trancada.
+# grep -c le a entrada inteira e nao gera SIGPIPE.
+MARCA="$(git show "origin/main:app/api/stripe/checkout/route.ts" 2>/dev/null | grep -c "add_invoice_items:")"
+case "$MARCA" in
+  ''|*[!0-9]*) echo "PAROU: nao consegui ler o checkout na origin/main."; exit 1;;
+esac
+if [ "$MARCA" -eq 0 ]; then
   echo "NADA A FAZER — a porta de \$1 JA ESTA ABERTA na main."
   echo "Confira com: node scripts/test-taxa-de-entrada-chega-na-stripe-2026-09-09.mjs"
   exit 0
@@ -40,18 +53,12 @@ fi
 echo "[1/5] a porta esta fechada na main de origem. Seguindo."
 
 # ── 2. worktree isolada, sempre do zero, nunca a arvore principal
-# ATENCAO: a juncao node_modules sai ANTES do rm -rf. A casa ja perdeu
-# C:\kineo\node_modules por um rm -rf que atravessou a juncao de uma worktree.
-if [ -e "$WT/node_modules" ]; then
-  rm -f "$WT/node_modules" 2>/dev/null || rmdir "$WT/node_modules" 2>/dev/null
-fi
-if [ -e "$WT/node_modules" ]; then
-  echo "PAROU: nao consegui desfazer a juncao $WT/node_modules."
-  echo "Apagar assim arriscaria C:\kineo\node_modules. Remova a mao e rode de novo."
-  exit 1
-fi
-git worktree remove --force "$WT" >/dev/null 2>&1
-rm -rf "$WT" 2>/dev/null
+# ESTE SCRIPT NUNCA APAGA NADA. A worktree e sempre NOVA, com o horario no
+# nome. Motivo medido em 09/09: a juncao node_modules dentro de uma worktree
+# NAO sai com rm -f, unlink nem find -delete (o Windows a trata como pasta), e
+# um rm -rf por cima dela e o jeito conhecido de apagar C:\kineo\node_modules.
+# Worktrees velhas em C:\kineo-wt\ sao inofensivas; apague a mao se incomodar.
+WT="${WT_BASE}-$(date +%H%M%S)"
 git worktree add --detach "$WT" origin/main -q || { echo "PAROU: nao consegui criar a worktree $WT"; exit 1; }
 cd "$WT" || exit 1
 [ -e node_modules ] || ln -s "$RAIZ/node_modules" node_modules
@@ -82,7 +89,13 @@ for G in scripts/test-taxa-de-entrada-chega-na-stripe-2026-09-09.mjs \
   echo "      verde: $(basename "$G")"
 done
 
-# ── 5. fila (nunca branch -f; nunca push direto)
+# -- 5. fila (nunca branch -f; nunca push direto)
+if [ "$CONFERIR" = "1" ]; then
+  echo ""
+  echo "MODO CONFERIR: tudo verde ate aqui, e NADA foi enfileirado."
+  echo "O conserto esta em $WT ($(git rev-parse --short HEAD))."
+  exit 0
+fi
 echo "[5/5] enfileirando..."
 if ! bash scripts/enfileirar.sh; then
   echo ""; echo "PAROU na fila. Nada foi perdido: o conserto esta em $WT."; exit 1

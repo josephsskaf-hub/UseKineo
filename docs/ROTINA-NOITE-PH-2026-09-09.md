@@ -511,6 +511,32 @@ Falsifiquei o que dava para falsificar sem executar a publicação:
   `C:\kineo\node_modules`. O script agora desfaz a junção **antes**, confere se
   ela saiu, e **para** se não conseguiu.
 
+### 7. O bat mentiu — e era a mentira mais cara possível
+
+Rodei o caminho inteiro num modo `CONFERIR=1` que faz tudo **menos** enfileirar.
+Foi assim que dois defeitos meus apareceram antes de chegarem ao fundador.
+
+**(a) O `rm -rf` que a casa já conhece.** A primeira versão apagava a worktree
+antiga com a junção `node_modules` dentro. Medi: essa junção **não sai** com
+`rm -f`, `unlink` nem `find -type l -delete` — o Windows a trata como pasta, e
+um `rm -rf` por cima é o jeito conhecido de apagar `C:\kineo\node_modules`. O
+guarda que eu tinha posto disparou e salvou a pasta (conferido: intacta). A
+correção não foi um guarda melhor: **o script deixou de apagar qualquer coisa**
+e passou a criar worktree nova com o horário no nome.
+
+**(b) O detector invertia, e dizia "nada a fazer".** O passo 1 era
+`git show origin/main:...route.ts | grep -q add_invoice_items:`. Com `pipefail`,
+o `grep -q` sai no primeiro acerto, o `git show` (160 KB, maior que o buffer do
+pipe) morre de **SIGPIPE**, a pipeline vira 141 e o `!` **inverte a condição**.
+Medido na mesma main fechada: **5 de 6 rodadas responderam "A PORTA JÁ ESTÁ
+ABERTA"**. Um bat que diz "nada a fazer" é pior do que bat nenhum — o fundador
+lançaria tranquilo com a porta trancada. `grep -c` lê a entrada inteira e não
+gera SIGPIPE; depois da troca, **6 de 6** rodadas dizem "fechada".
+
+Com isso o caminho inteiro está provado contra a main mais nova (`7ef8232c`):
+worktree criada, cherry-pick limpo, `tsc` verde, os dois guardiões verdes, e
+parada limpa antes da fila.
+
 Não rodei o bat. Executá-lo enfileiraria uma mudança em `app/api/**`, que é
 exatamente o que a trava me proíbe. Ele existe para o dono do caminho clicar.
 
