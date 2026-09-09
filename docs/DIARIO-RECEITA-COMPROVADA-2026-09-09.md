@@ -23,3 +23,25 @@ HIPÓTESES CANDIDATAS (ainda não selecionadas nem chamadas de novas): intençã
 COORDENAÇÃO: documentação e skill estão locais; nenhuma mensagem enviada a Claude nem publicação remota afirmada. AGENTS e PEDIDOS correntes devem ser respeitados antes de escolher arquivos. Esta nova janela não autoriza tocar no conserto do checkout, campanhas e arquivos reservados.
 
 TESTADO LOCALMENTE: skill passou no quick_validate.py oficial e YAML da interface foi lido com sucesso; descrição curta e seleção implícita válidas. A validação inicial encontrou PyYAML ausente; dependência instalada em pasta temporária isolada apenas para rodar o validador, sem mudar dependências do produto. Validação estrutural não comprova aumento de vendas. Revisão de cenários: patch já publicado não é reaplicado; acesso ausente não vira zero; contato sem consentimento não sai; conta já pagante não valida o trial; poucas exposições não autorizam declarar variante vencedora. Não foram executados testes de produção ou cobrança nesta criação de skill.
+
+## #1 — Marco zero, checkpoint de 09/09 às 12h50–12h55 BRT
+
+**EVIDÊNCIA DE PRODUÇÃO — SELECT, corte fixo 15h52 UTC:** acesso Supabase disponível; projeto de produção confirmado pelo inventário e PROJECT_STATE. Nenhuma escrita, pagamento, render ou comunicação externa. `origin/main` permanece `6d977d80`; não há novo patch financeiro a executar. O arquivo ESCOPO-CLAUDE-VS-CODEX-2026-08-31 não está nessa referência remota; fronteiras atuais seguem o mandato do fundador, este plano e PEDIDOS. PROJECT_STATE/OPEN_QUESTIONS são históricos de julho, não placar atual.
+
+**MÉTODO:** exclusão externa gerada executando `externalAccountsSqlCondition('p.email')` do código atual. Consulta trouxe somente campos necessários, sem textos livres nem e-mails de compradores. O placar abaixo foi calculado executando a função real `funilVersaoB` de `lib/admin/versaoBFunnel.ts`, transpilada com TypeScript já instalado, sem criar contador concorrente. A primeira leitura do envelope de resposta falhou no parser local; foi corrigida, sem alterar SQL financeiro, dados ou testes do produto.
+
+| Janela UTC, fim exclusivo | Entradas card_required | Viram porta | Clicaram | Checkout da porta | Pagaram entrada | Autostart | Conversão dia 8 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 09/09 00h00–15h03, antes do horário de publicação informado | 7 | 8 | 5 | 2 | 0 | 0 | 0 |
+| 09/09 15h03–15h52, depois | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| 09/09 15h30–15h52, início desta sprint | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+
+**LIMITES:** períodos têm durações diferentes; a tabela NÃO compara taxas antes/depois. Contagens são pessoas por estágio, não uma coorte sequencial de novos cadastros: por isso oito viram e sete nasceram. `autostart` não prova filme entregue. Zero evento financeiro nessas janelas não é auditoria independente da Stripe nem prova de zero dinheiro em todos os trilhos. Visitas anônimas, caixa líquido e margem continuam DESCONHECIDOS. Sem amostra externa após o hotfix, não declarar checkout validado por cliente nem melhora comercial. Consulta de controle incluindo internos encontrou um checkout aberto pós-fix e nenhum payment_success/subscription_invoice_paid; ele não entra no placar externo.
+
+**M1 — coorte reconciliada:** 32 eventos `checkout_failed` de SEIS pessoas externas com card_trial, 00h00–15h03; último 14h31m32 UTC. O relato anterior de 31/5 tinha corte anterior: não é regressão pós-hotfix. Nenhuma dessas seis tem payment_success no dia até 15h52 ou reabriu checkout após 15h03. Uma apareceu em evento pós-fix, mas ao abrir o nome era `trial_lifecycle_email_sent` às 15h25m20: evento do servidor, NÃO retorno humano. Esse carimbo comprova registro de envio, não entrega na caixa de entrada. Não contatar a coorte automaticamente nem sobrepor essa campanha.
+
+**DECISÃO — NÃO EXECUTAR:** novo conserto do checkout, novo banner de retomada, e-mail de recuperação ou mudança de oferta. O patch está entregue; a retomada já existe/tem variante local; a amostra pós-fix ainda não permite veredicto. Preservar a implementação e a dependência de conta elegível já comunicada, sem pedir de novo nem clicar na conta do fundador.
+
+**PRÓXIMA JOGADA — M2, hipótese candidata PARCIAL:** conferir se o handoff público ChatGPT preserva idioma, ideia e origem até a porta vigente. Antes de editar, cruzar /go e /chatgpt com os diários locais e remotos e escolher apenas perda de contexto reproduzível ainda não coberta. Se já estiver correto, não trocar headline nem criar landing; passar à procura pública específica M3. O próximo checkpoint continua esta rotação até 13h30 BRT, sem novo painel.
+
+**ESTADO:** diagnóstico LOCAL, nenhum código novo publicado, nenhum cliente ou pagamento atribuído à sprint. Sem dependência nova do fundador; não notificar ausência de amostra como incidente. Documento ainda não recebido pelo Claude no remoto.
