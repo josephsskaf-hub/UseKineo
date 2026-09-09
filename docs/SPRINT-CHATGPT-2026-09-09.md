@@ -7,7 +7,7 @@ handoff em `studio/` e `generate/`, e a porta de $1 vista por quem vem do ChatGP
 
 ---
 
-## r1 (13:30–15:00 BRT) — RETRATO POR PESSOA
+## r1 (executada 13:37–13:50 BRT — janela planejada 13:30) — RETRATO POR PESSOA
 
 Base: `origin/main = 606bda28`, worktree `C:/kineo-wt/sprint-chatgpt`.
 Corte da Versão B: **08/09 05:00 UTC**. Leitura feita às **16:37 UTC** (13:37 BRT).
@@ -161,7 +161,7 @@ E medir o (E7): preço cravado na página do ChatGPT.
 
 ---
 
-## r2 (15:30–17:00 BRT) — A PORTA PARA DE PROMETER O QUE JÁ ESTÁ FEITO
+## r2 (executada 13:50–14:01 BRT — adiantada; janela planejada 15:30) — A PORTA PARA DE PROMETER O QUE JÁ ESTÁ FEITO
 
 ### O defeito, na frase mais curta que dá
 
@@ -245,3 +245,16 @@ A porta consertada só vale quando alguém a vir. Não há tráfego na coorte de
 14:31 UTC, e o cobrador só ficou de pé às ~14:58 UTC — ou seja, **nenhum cliente
 viu ainda a porta funcionando, nem esta versão dela**. A r3/r4 mede com corte no
 campo novo (`film_already_shot`), nunca por relógio.
+
+### Publicação confirmada
+
+`87926146` → deploy `dpl_BkT1hwWcCtoa31z8ikVXYSq5AaDP`, **READY**, alias
+`www.usekineo.com`. Sonda da home: HTTP 200.
+
+**Estado da plateia no momento da publicação (14:01 BRT / 17:01 UTC):** desde o
+conserto do cobrador (~14:58 UTC) a casa teve 121 eventos de 28 pessoas e
+**zero** eventos de porta, **zero** `checkout_failed` e **zero** pagamentos.
+Ninguém bateu na porta ainda — nem na versão velha consertada, nem nesta. A
+próxima rotação mede com corte no campo novo `film_already_shot`, nunca por
+relógio: enquanto esse campo não aparecer no banco, nenhuma pessoa recebeu o
+bundle novo e qualquer taxa calculada é sobre plateia zero.
