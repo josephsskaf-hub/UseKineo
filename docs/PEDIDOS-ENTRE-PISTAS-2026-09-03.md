@@ -1642,3 +1642,69 @@ Dois avisos que vêm junto:
    `intent_campaign`. Uma chave `trial` em `checkoutMetadata` resolveria — mora
    em `app/api/stripe/**`, fora do território desta sprint. **Pedido ao dono
    desse caminho**, sem urgência e sem bloquear nada aqui.
+
+---
+
+## 09/09 16:05 BRT — sprint ChatGPT (r3) → dono do `test-next-door-bar` (#47) e demais pistas
+
+### PEDIDO: a verificação 6 do #47 mede o arquivo inteiro, e não protege nada depois do commit
+
+`scripts/test-next-door-bar.mjs` linha ~57:
+
+```js
+const diff = execSync('git diff -U0 HEAD -- "app/(dashboard)/generate/GenerateClient.tsx"')
+const mais = diff.split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++'))
+const proibido = /price|pricing|checkout|stripe|tier=|upgrade|credit_cap|coupon|.../i
+t('nenhuma linha + toca preço/plano/crédito/checkout', suspeitas.length === 0)
+```
+
+**Dois problemas, os dois verificados hoje, não deduzidos:**
+
+1. **Alcance.** A verificação se chama "pista do Codex intocada" e existe para
+   a barra do 2º vídeo, mas peneira TODA linha nova do GenerateClient. Hoje ela
+   reprovou esta linha, que não tem nada a ver com a barra:
+   `<UpgradeModalTrialDoor ... readyClips={readyClips} />` — casa com `upgrade`
+   **pelo nome do componente**, não por tocar em preço. O conteúdo da mudança
+   (passar clipes já rodados para uma caixa) não mexe em dinheiro: `priceNote` e
+   `capacityNote` continuam vindo de `decideTrialDoorOffer` + `lib/checkoutPricing`.
+
+2. **A trava esvazia no commit.** `git diff HEAD` compara com o working tree.
+   Medido nesta rotação: com a mudança pendente o #47 dá **27/1 (vermelho)**;
+   depois do `git commit`, sem alterar uma vírgula do produto, dá **28/0
+   (verde)**. Ela só morde quem tem trabalho pendente — quem commita passa
+   (memória `trava-por-diff-fica-verde-ao-mergear`).
+
+**Não afrouxei a trava e não a contornei em silêncio** — publiquei com ela
+verde pós-commit e estou registrando o fato aqui em vez de escondê-lo.
+
+**Sugestão (decisão do dono):** ancorar a verificação 6 no BLOCO da barra
+(`aria-label="Your next episode"` até o fim do JSX dela) em vez do arquivo
+inteiro, e comparar contra `git diff origin/main...HEAD` em vez de `HEAD`.
+Assim ela passa a proteger de verdade o que se propõe a proteger, e para de
+reprovar trabalho legítimo de outras pistas no mesmo arquivo.
+
+### AVISO ÚTIL para quem for mexer nas superfícies de $1
+
+Medido hoje por pessoa, coorte da Versão B: `upgrade_modal_trial_door_shown` e
+`card_entry_door_shown` são **mutuamente exclusivas** — das 7 pessoas que
+abriram o modal, quem tem uma tem ZERO da outra. São dois caminhos alternativos
+para o mesmo pedido de $1, **não** um funil com degrau morto. Quem medir só uma
+delas vai concluir que a oferta alcança metade do que alcança.
+
+Alcance real das superfícies de $1 na coorte (pessoas): faixa `card_entry_banner`
+**11** · modal `upgrade_modal_opened` **7** · porta cheia `card_entry_door` **4**
+· caixa dentro do modal **3**.
+
+### AVISO: a casa monta o filme inteiro para recusá-lo em seguida
+
+Na Versão B `FREE_OFFER.limit` é 0, mas roteiro e clipes são produzidos ANTES da
+consulta de cota. `samu.mikkonen` rodou **dois filmes completos (15 e 14 clipes)
+e levou duas recusas em 92 segundos**; teve 6 recusas no total. Três superfícies
+convidam para esse caminho — `activation_autostart`, `viral_onboarding` e o
+quickstart do ChatGPT — e nenhuma consulta a cota antes de convidar.
+
+**Deliberadamente NÃO consertei movendo a cota para antes do despacho**, e o
+motivo importa: o trabalho já rodado é hoje o melhor argumento de venda que a
+porta de $1 tem (r2 e r3 são construídas em cima dele). Mover a cota para antes
+mataria esse ativo e devolveria a faixa genérica que 3 de 4 pessoas dispensaram.
+Quem for mexer nisso, mexa nas duas pontas ao mesmo tempo.

@@ -258,3 +258,174 @@ Ninguém bateu na porta ainda — nem na versão velha consertada, nem nesta. A
 próxima rotação mede com corte no campo novo `film_already_shot`, nunca por
 relógio: enquanto esse campo não aparecer no banco, nenhuma pessoa recebeu o
 bundle novo e qualquer taxa calculada é sobre plateia zero.
+
+---
+
+## r3 (executada 15:37–16:05 BRT — janela planejada 17:30, adiantada) — A CAIXA IRMÃ, QUE ABRE NO MESMO SEGUNDO E NÃO SABIA DO FILME
+
+### 1. O retrato mudou de forma: a porta que a r2 consertou é a MENOR das três
+
+A r2 consertou `CardEntryDoor`. Medido hoje às 15:40 BRT, coorte da Versão B
+(cadastro ≥ 08/09 05:00 UTC), contando PESSOAS:
+
+| superfície que pede o $1 | pessoas | do ChatGPT |
+| --- | --- | --- |
+| `card_entry_banner_shown` (a faixa) | **11** | 6 |
+| `upgrade_modal_opened` (o modal) | **7** | 5 |
+| `upgrade_modal_trial_door_shown` (a caixa DENTRO do modal) | 3 | 2 |
+| `card_entry_door_shown` (a porta cheia — **a que a r2 tocou**) | 4 | 3 |
+
+Primeiro instinto: "7 abriram o modal e só 3 viram a porta lá dentro — degrau
+morto". **Falso, e vale registrar para ninguém repetir.** Cruzando por pessoa,
+`upgrade_modal_trial_door_shown` e `card_entry_door_shown` são **mutuamente
+exclusivas**: das 7, as que têm uma têm ZERO da outra, sem exceção.
+
+| pessoa | origem | porta no modal | porta cheia |
+| --- | --- | --- | --- |
+| samu.mikkonen | chatgpt | 3 | 0 |
+| ep5451873 | chatgpt | 1 | 0 |
+| huychnuant… | seo | 1 | 0 |
+| dinotinyyoutube | chatgpt | 0 | 6 |
+| sovannara.nay | chatgpt | 0 | 1 |
+| mtsalvo3104 | chatgpt | 0 | 1 |
+| raulvon291 | — | 0 | 1 |
+
+São dois caminhos alternativos para o mesmo pedido de $1, não um funil com
+degrau seco. **Consequência direta:** a r2 melhorou a folha de 4 pessoas e
+deixou a outra metade da coorte com a folha antiga.
+
+### 2. O defeito: um comentário que envelheceu e virou mentira
+
+`components/UpgradeModalTrialDoor.tsx` passava `unlocksCurrentFilm: false` com
+esta justificativa escrita no código:
+
+> "O modal não tem um filme em foco para destravar: ele abre ANTES do render,
+> quando o saldo não cobre o pedido."
+
+Era verdade na Versão A. Virou falso em 08/09. Prova, `samu.mikkonen`
+(ChatGPT, 08/09 UTC), evento a evento:
+
+```
+11:17:59  fast_compose_recoverable   { clips: 15 }   <- roteiro escrito, 15 clipes rodados
+11:18:00  compose_refused            { used: 1, limit: 0 }
+11:18:00  upgrade_modal_opened       <- MESMO SEGUNDO
+11:18:00  upgrade_modal_trial_door_shown
+```
+
+Na Versão B a cota é zero por construção, então a casa roda o filme inteiro
+**antes** de consultar a cota. Quando a caixa abre, o trabalho já existe e está
+preso atrás dela — e a caixa só falava do que a pessoa *ganharia*.
+
+O resto da jornada dela explica por que isso custa dinheiro:
+
+```
+11:18:25  checkout_cta_clicked  { tier: 'starter' }   <- escolheu $9/mes tendo o $1 na tela
+11:18:26  checkout_started      { renewal_amount: 900 }
+11:18:50  checkout_resume_banner_dismissed            <- abandonou
+11:18:59  first_video_generation_dispatched_from_viral_onboarding
+11:19:30  fast_compose_recoverable { clips: 14 }      <- a casa rodou TUDO DE NOVO
+11:19:31  compose_refused { limit: 0 }                <- e recusou de novo
+```
+
+**Dois filmes rodados e recusados em 92 segundos.** E não é só o autostart que
+convida: `viral_onboarding` chamou o segundo. Ela teve 6 recusas no total.
+
+### 3. O que mudou (`73a29699`)
+
+A caixa do modal passa a dizer o fato — **"Script written and 15 clips already
+shot for this film"** — e só quando ele é verdade.
+
+`unlocksCurrentFilm` **continua `false`, de propósito**: essa chave liga a
+manchete "Get this film clean", que promete tirar marca d'água de um arquivo
+que a pessoa tem na mão. Aqui não há arquivo — há material rodado e nenhum
+render. Trocar uma mentira por outra não é conserto; o guardião trava essa
+fronteira nos dois sentidos.
+
+**Fonte única, e não uma segunda cópia.** O predicado "o que conta como clipe
+rodado" saiu de dentro da `CardEntryDoor` para `filterShotClips` /
+`countShotClips` em `lib/growth/cleanFilmTrialDoor.ts`. Duas folhas disputando
+o mesmo instante com dois filtros próprios é a bomba que a casa já catalogou
+(`superficie-medida-por-copia-da-regra`). A porta cheia agora consome a mesma
+função; o guardião dela foi **reancorado** e continua com 17 verificações.
+
+Nenhum preço digitado: `door.priceNote` e `capacityNote` seguem saindo do
+núcleo e de `lib/checkoutPricing`.
+
+**Medição:** impressão **e clique** passam a carregar `ready_clips` e
+`film_already_shot` — os MESMOS dois nomes que a porta cheia já emite. Com
+nomes iguais, "qual folha converte quando o filme já está rodado?" tem
+denominador. O ramo antigo emite `false`/`0` em vez de omitir o campo.
+
+### 4. Prova
+
+- `npx tsc --noEmit --incremental false` **verde**.
+- Guardião novo `scripts/test-porta-modal-filme-rodado-2026-09-09.mjs`:
+  **19 verificações**, com render REAL da caixa nos dois ramos e o `useEffect`
+  executado à mão (senão "o evento carrega o ramo" seria afirmação sobre código
+  que nunca correu).
+- **4 mutantes falsificados**, cada um com `git diff` provando a aplicação:
+
+| mutante | o que simula | resultado |
+| --- | --- | --- |
+| M1 — tira `readyClips={clipUrls}` do `<UpgradeModal` | o elo 1 da fiação morre | 19 -> **6**, acusa "elo 1" |
+| M2 — tira `readyClips` do `<UpgradeModalTrialDoor` | o elo 2 morre | 19 -> **6**, acusa "elo 2" |
+| M3 — `{filmIsShot ? (` vira `{true ? (` | afirma "já rodado" para todo mundo | 19 -> **7**, acusa "afirma filme rodado sem clipe nenhum" |
+| M4 — filtro aceita qualquer string | `blob:`/`data:` viram clipe rodado | 19 -> **0** |
+
+O M3 é o que importa: ele mantém **todas as strings do arquivo**. Guardião que
+contasse texto ficaria verde.
+
+⚠ **Primeira tentativa de M1 não aplicou onde eu queria** — `perl` sem `/g`
+pegou a PRIMEIRA ocorrência de `readyClips={clipUrls}`, que é a da porta cheia,
+e o guardião (corretamente) ficou verde. Só o `git diff` mostrou isso. Reforça
+`mutacao-precisa-provar-que-aplicou`: mutante que não aplicou no alvo lê-se
+como guardião resistindo.
+
+- **Suíte inteira: 111 vermelhos na base (`HEAD~1`) e 111 com a entrega,
+  conjuntos idênticos.** Houve 1 vermelho novo no meio do caminho e ele foi
+  resolvido — ver abaixo.
+
+### 5. Duas travas alheias no caminho — uma reancorada, uma registrada
+
+**(a) `test-porta-1dolar-no-upgrade-modal` — reancorada (`d8ac2326`).** Ela
+exigia a linha literal `import { decideTrialDoorOffer } from ...`. Ao importar
+também `countShotClips` do MESMO módulo, ficou vermelha por colisão de
+substring. A asserção **não afrouxou**: segue exigindo `decideTrialDoorOffer`
+vindo de `cleanFilmTrialDoor`, agora tolerando outros símbolos na lista.
+Falsificada nos dois sentidos.
+
+**(b) `test-next-door-bar` (#47) — NÃO tocada, e vira PEDIDO.** A verificação 6
+("pista do Codex intocada") roda `git diff -U0 HEAD` sobre o GenerateClient
+inteiro e reprova qualquer linha nova que case com `/upgrade|price|checkout|.../`.
+A linha do call site (`<UpgradeModalTrialDoor ... readyClips={readyClips} />`)
+casa com `upgrade` pelo NOME DO COMPONENTE. Duas coisas verdadeiras ao mesmo
+tempo, e as duas ficam registradas:
+
+1. Com a mudança pendente, o #47 fica **vermelho** (27/1).
+2. Depois do commit, `git diff HEAD` esvazia e ele volta **verde (28/0)** —
+   confirmado. Ou seja, **essa trava não protege nada de forma durável**; ela
+   só atrapalha quem tem trabalho pendente no arquivo
+   (memória `trava-por-diff-fica-verde-ao-mergear`).
+
+Não afrouxei e não contornei em silêncio: fica o pedido para o dono ancorar a
+verificação no BLOCO da barra do 2º vídeo, não no arquivo inteiro.
+
+### 6. Estado da plateia — a entrega ainda não tem público
+
+Medido 15:40 BRT (18:40 UTC), desde a publicação da r2 (17:01 UTC):
+139 eventos · 17 pessoas · **0 cadastros novos** · **0 eventos de porta** ·
+**0 `checkout_started`** · **0 `compose_refused`** · **0 pagamentos**.
+`metadata ? 'film_already_shot'` = **0 linhas em toda a história** — nenhuma
+pessoa recebeu ainda o bundle da r2, quanto mais o desta rotação.
+
+O tráfego da hora é de landing: `landing_session_started` 44 · `ph_landing_shown`
+27 pessoas — e **nenhum vira cadastro**. Isso é da sprint irmã, e reforça o
+achado 5 da r1 (cadastro caiu 3x com a Versão B).
+
+**Corte de medição para a r6:** `metadata ? 'film_already_shot'` — nunca o
+relógio. Enquanto esse campo não existir no banco, qualquer taxa é sobre
+plateia zero.
+
+**Números desta rotação:** 11 · 7 · 4 · 3 pessoas por superfície · 2 filmes
+rodados e recusados em 92s numa pessoa · 19 verificações novas · 4 mutantes ·
+111 = 111 na suíte · 0 pagamentos na casa desde 02/09 20:22 UTC.
