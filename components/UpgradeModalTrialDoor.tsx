@@ -36,7 +36,7 @@ import {
   type CheckoutCurrency,
   type PriceRegion,
 } from '@/lib/checkoutPricing'
-import { decideTrialDoorOffer } from '@/lib/growth/cleanFilmTrialDoor'
+import { countShotClips, decideTrialDoorOffer } from '@/lib/growth/cleanFilmTrialDoor'
 import { videosForCredits } from '@/lib/marketingPrice'
 
 export const UPGRADE_MODAL_TRIAL_DOOR_VERSION = 'trial_1usd_upgrade_modal' as const
@@ -55,6 +55,12 @@ export type UpgradeModalTrialDoorProps = {
   notPaidProven: boolean
   /** Razão pela qual o modal abriu — só telemetria, nunca decide visibilidade. */
   reason: string
+  /**
+   * KINEO-PORTA-MODAL-FILME-RODADO-2026-09-09 — os clipes que a casa JÁ rodou
+   * para o filme que acabou de ser recusado. Vazio/ausente é o caso normal
+   * (modal aberto sem geração em curso) e aí a caixa é byte a byte a de antes.
+   */
+  readyClips?: readonly string[] | null
 }
 
 export default function UpgradeModalTrialDoor({
@@ -62,6 +68,7 @@ export default function UpgradeModalTrialDoor({
   region,
   notPaidProven,
   reason,
+  readyClips,
 }: UpgradeModalTrialDoorProps) {
   const checkout = useCheckoutLaunch('generate_upgrade_modal_trial_door')
   // KINEO-PORTA-1DOLAR-FALA-EM-FILMES-2026-09-09 — a MESMA conta que escreve
@@ -71,6 +78,11 @@ export default function UpgradeModalTrialDoor({
   // fazia, aplicada à oferta que não a fazia. Fica na peça, e não no pai, pelo
   // mesmo motivo que na faixa: quem monta a caixa não precisa saber a conta.
   const filmsNow = videosForCredits(CARD_TRIAL_GRANT_CREDITS, 'cinematic_ai')
+  // KINEO-PORTA-MODAL-FILME-RODADO-2026-09-09 — ver o bloco grande abaixo do
+  // `decideTrialDoorOffer`: na Versão B esta caixa abre DEPOIS do trabalho
+  // pronto, não antes.
+  const shotClips = countShotClips(readyClips)
+  const filmIsShot = shotClips > 0
   const impressionSentRef = useRef(false)
 
   const door = decideTrialDoorOffer({
@@ -79,8 +91,20 @@ export default function UpgradeModalTrialDoor({
     monthlyLabel: currency !== null ? formatCheckoutMoney(currency, getTierPrice('basic', currency, region)) : null,
     grantCredits: CARD_TRIAL_GRANT_CREDITS,
     trialDays: CARD_TRIAL_DAYS,
-    // O modal não tem um filme em foco para destravar: ele abre ANTES do
-    // render, quando o saldo não cobre o pedido.
+    // CONTINUA `false`, e agora pelo motivo CERTO. O comentário antigo dizia
+    // "ele abre ANTES do render" — isso era verdade na Versão A e virou falso
+    // em 08/09 (memória `comentario-que-justifica-envelhece`). Medido evento a
+    // evento em `samu.mikkonen` (08/09 11:18:00 UTC): `fast_compose_recoverable`
+    // com 15 clipes às 11:17:59, `compose_refused {limit:0}` às 11:18:00, e
+    // este modal aberto no MESMO segundo. Na Versão B a cota é zero por
+    // construção, então a casa escreve o roteiro e roda os clipes ANTES de
+    // consultar a cota: quando esta caixa abre, o trabalho já existe.
+    //
+    // Mesmo assim `unlocksCurrentFilm` fica `false`, porque essa chave liga a
+    // manchete "Get this film clean" — a promessa de tirar a marca d'água de um
+    // arquivo QUE A PESSOA JÁ TEM NA MÃO. Aqui não há arquivo: há material
+    // rodado e nenhum render. Dizer "this film clean" seria trocar uma mentira
+    // por outra. O fato novo entra como nota própria (`filmIsShot`), abaixo.
     unlocksCurrentFilm: false,
     filmsNow,
   })
@@ -107,8 +131,15 @@ export default function UpgradeModalTrialDoor({
       // linha (memória `evento-de-impressao-nao-prova-o-conteudo`).
       films_now: typeof filmsNow === 'number' ? filmsNow : null,
       capacity_note_shown: door.capacityNote !== null,
+      // Os MESMOS dois nomes que a `CardEntryDoor` emite (87926146). As duas
+      // portas competem pelo mesmo instante e são mutuamente exclusivas —
+      // medido hoje: quem viu uma não viu a outra. Com os campos iguais, a
+      // pergunta "qual folha converte quando o filme já está rodado?" tem
+      // denominador; com nomes diferentes, viram duas séries incomparáveis.
+      ready_clips: shotClips,
+      film_already_shot: filmIsShot,
     })
-  }, [currency, door.capacityNote, door.reason, door.visible, filmsNow, notPaidProven, reason, region])
+  }, [currency, door.capacityNote, door.reason, door.visible, filmIsShot, filmsNow, notPaidProven, reason, region, shotClips])
 
   if (!door.visible || !door.buttonLabel) return null
 
@@ -154,9 +185,23 @@ export default function UpgradeModalTrialDoor({
       <strong style={{ display: 'block', color: door.capacityNote ? '#bcd9f7' : '#fff', fontSize: door.capacityNote ? '0.86rem' : '0.95rem', fontWeight: door.capacityNote ? 700 : 800, lineHeight: 1.35, marginBottom: 3 }}>
         {door.buttonLabel.replace(/\s*→\s*$/, '')}
       </strong>
-      <span style={{ display: 'block', color: '#bcd9f7', fontSize: '0.78rem', lineHeight: 1.45, marginBottom: 10 }}>
+      <span style={{ display: 'block', color: '#bcd9f7', fontSize: '0.78rem', lineHeight: 1.45, marginBottom: filmIsShot ? 8 : 10 }}>
         {door.priceNote}
       </span>
+      {/* KINEO-PORTA-MODAL-FILME-RODADO-2026-09-09 — O QUE JÁ ESTÁ FEITO, dito
+          antes do botão. Esta caixa abre 1 segundo depois de a casa terminar o
+          roteiro e os clipes (ver o bloco no `unlocksCurrentFilm`), e mesmo
+          assim só falava do que a pessoa GANHARIA. O trabalho pronto é o
+          argumento mais forte que existe aqui, e estava invisível.
+          Nada de preço nesta linha: é um fato contado, não uma oferta. */}
+      {filmIsShot ? (
+        <span
+          data-trial-door-shot={shotClips}
+          style={{ display: 'block', color: '#9fe6b4', fontSize: '0.78rem', lineHeight: 1.45, marginBottom: 10, fontWeight: 700 }}
+        >
+          {`✓ Script written and ${shotClips} clip${shotClips === 1 ? '' : 's'} already shot for this film`}
+        </span>
+      ) : null}
       <button
         type="button"
         disabled={checkout.pending !== null}
@@ -170,6 +215,10 @@ export default function UpgradeModalTrialDoor({
             price_region: region,
             entry_fee_minor: CARD_TRIAL_ENTRY_FEE_MINOR,
             modal_reason: reason,
+            // Sem o ramo no CLIQUE, a impressão sabe qual folha apareceu e o
+            // clique não — e a taxa por ramo fica sem numerador.
+            ready_clips: shotClips,
+            film_already_shot: filmIsShot,
           })
           checkout.launch('basic', UPGRADE_MODAL_TRIAL_DOOR_HREF, {
             tier: 'basic',

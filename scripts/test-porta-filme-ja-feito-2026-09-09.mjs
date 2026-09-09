@@ -123,13 +123,33 @@ check('filmIsShot deriva do numero de clipes validos, e nada mais', () => {
   assert.match(doorBody, /const shotClips = useMemo\(/, 'shotClips nao e derivado de readyClips')
 })
 
-check('so URL http(s) conta como clipe rodado', () => {
-  const m = doorBody.match(/const shotClips = useMemo\(([\s\S]{0,400}?)\n  \)/)
-  assert.ok(m, 'nao achei o corpo de shotClips')
+// REANCORADO em 09/09 (r3): o predicado saiu de dentro da folha para a fonte
+// unica `lib/growth/cleanFilmTrialDoor.filterShotClips`, porque o modal de
+// upgrade — a superficie irma — passou a precisar da MESMA conta. A verificacao
+// segue provando a mesma coisa; so mudou onde a regra mora. Duas metades: a
+// folha CONSOME a fonte unica, e a fonte unica exige http(s).
+check('a folha nao tem predicado proprio: consome a fonte unica', () => {
+  assert.match(
+    doorBody,
+    /const shotClips = useMemo\(\(\) => filterShotClips\(readyClips\), \[readyClips\]\)/,
+    'a folha voltou a filtrar por conta propria',
+  )
+  assert.match(
+    doorSrc.replace(/\r\n/g, '\n'),
+    /import \{ filterShotClips \} from '@\/lib\/growth\/cleanFilmTrialDoor'/,
+    'a folha nao importa a fonte unica',
+  )
+})
+
+check('so URL http(s) conta como clipe rodado (na fonte unica)', () => {
+  const nucleo = read('lib/growth/cleanFilmTrialDoor.ts').replace(/\r\n/g, '\n')
+  const m = nucleo.match(/export function filterShotClips\([\s\S]{0,600}?\n\}/)
+  assert.ok(m, 'nao achei filterShotClips na fonte unica')
   assert.ok(
-    m[1].includes("startsWith('https://')") && m[1].includes("startsWith('http://')"),
+    m[0].includes("startsWith('https://')") && m[0].includes("startsWith('http://')"),
     'o filtro nao exige http(s) — blob:/data: entrariam na contagem',
   )
+  assert.match(m[0], /if \(!Array\.isArray\(urls\)\) return \[\]/, 'entrada nao-array nao falha fechada')
 })
 
 check('o rotulo da ideia e escolhido por filmIsShot', () => {

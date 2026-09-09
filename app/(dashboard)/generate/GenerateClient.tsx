@@ -13186,6 +13186,10 @@ export default function GenerateClient({
           currency={postVideoCurrency}
           region={postVideoRegion}
           notPaidProven={notPaidProven}
+          // KINEO-PORTA-MODAL-FILME-RODADO-2026-09-09 — os mesmos clipes que a
+          // porta cheia recebe 20 linhas acima. As duas caixas disputam o
+          // mesmo instante e agora contam a mesma coisa.
+          readyClips={clipUrls}
           // Driven by the launcher, not `upgradeLoading`: the old flag was set
           // once and never cleared, so a failed redirect left the modal stuck
           // on "…" forever. The launcher's watchdog releases it after 15 s.
@@ -20571,6 +20575,10 @@ function UpgradeModal({
   // por padrão fecha a porta: nunca se anuncia $1 sem o servidor ter dito
   // `has_paid === false` com todas as letras.
   notPaidProven = false,
+  // KINEO-PORTA-MODAL-FILME-RODADO-2026-09-09 — os clipes já rodados para o
+  // filme que acabou de ser recusado. Só atravessa até a caixa de $1; o modal
+  // não decide nada com isto.
+  readyClips = null,
 }: {
   loading: boolean
   onUpgrade: (tier: 'starter' | 'basic' | 'pro') => void
@@ -20606,6 +20614,8 @@ function UpgradeModal({
   onFirstFilmFree?: () => void
   /** Prova positiva de `has_paid === false` vinda do servidor. Ver acima. */
   notPaidProven?: boolean
+  /** Clipes já rodados para o filme recusado. Ver acima. */
+  readyClips?: readonly string[] | null
 }) {
   // KINEO-CHECKOUT-TRIAGE-2026-07-25 — the top-up buttons below were raw
   // window.location.href with only `loading` (a prop that is never true for
@@ -20941,7 +20951,7 @@ function UpgradeModal({
             preço e não esconde nada — a ordem do fundador de 07/09 16:40 é
             "primeira opção", não "única opção". Peça própria: ver o cabeçalho
             de components/UpgradeModalTrialDoor.tsx para a medição. */}
-        <UpgradeModalTrialDoor currency={currency} region={region} notPaidProven={notPaidProven} reason={reason} />
+        <UpgradeModalTrialDoor currency={currency} region={region} notPaidProven={notPaidProven} reason={reason} readyClips={readyClips} />
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {PLAN_LIST.map((plan) => {

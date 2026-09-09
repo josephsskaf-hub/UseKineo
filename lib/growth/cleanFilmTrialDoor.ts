@@ -209,6 +209,39 @@ export function decideTrialDoorOffer(input: TrialDoorOfferInput): TrialDoorOffer
   return { visible: true, reason: 'ok', buttonLabel, priceNote, capacityNote }
 }
 
+// KINEO-PORTA-MODAL-FILME-RODADO-2026-09-09 ════════════════════════════════
+// QUANTOS CLIPES A CASA JÁ RODOU PARA ESTE FILME — a regra FACTUAL, num lugar
+// só, porque ela já nasceu duplicada.
+//
+// A `CardEntryDoor` (87926146, hoje 13:53) passou a dizer "your film is already
+// shot" contando clipes com este mesmo predicado, escrito inline. O modal de
+// upgrade — a superfície IRMÃ, que na Versão B abre no MESMO instante — ia
+// precisar da mesma contagem. Duas cópias da mesma regra numa tela só é o
+// defeito que a casa já catalogou (memória `superficie-medida-por-copia-da-
+// regra`): a peça A conta de um jeito, a peça B de outro, e o evento de
+// impressão passa a mentir sobre qual folha a pessoa viu.
+//
+// A REDAÇÃO fica em cada peça (a porta cheia é traduzida em três línguas, o
+// modal é só inglês). O que mora aqui é o FATO: o que conta como clipe rodado.
+//
+// Só `http(s)` conta, e isso não é preciosismo: `blob:` e `data:` são restos de
+// uma tentativa que morreu no navegador — não existem no servidor. Este número
+// vira texto na cara da pessoa ("N clips already shot"), então um resto de
+// tentativa morta viraria promessa falsa.
+// A porta cheia precisa da LISTA (ela toca o primeiro clipe como preview); o
+// modal precisa só da CONTAGEM. Uma função devolve a lista, a outra deriva o
+// número dela — nunca dois predicados que podem divergir.
+export function filterShotClips(urls: readonly string[] | null | undefined): string[] {
+  if (!Array.isArray(urls)) return []
+  return urls.filter(
+    (u) => typeof u === 'string' && (u.startsWith('https://') || u.startsWith('http://')),
+  )
+}
+
+export function countShotClips(urls: readonly string[] | null | undefined): number {
+  return filterShotClips(urls).length
+}
+
 /**
  * A porta de $1 aparece SOMENTE dentro da caixa comercial, para quem o cobrador
  * de fato aceitaria no trial, e só quando dá para dizer o preço sem mentir.

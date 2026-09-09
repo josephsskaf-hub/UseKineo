@@ -52,6 +52,7 @@ import { CARD_ENTRY_CHECKOUT_PATH, CARD_ENTRY_COPY, CARD_ENTRY_INTENT_CAMPAIGN }
 // usa para montar aquele fato — `buildTrialAccessFact`, `creditsPerReferenceVideo`
 // e `engineLabelFor` —, não uma cópia da conta. Os três módulos são puros
 // (verificado por varredura de importadores).
+import { filterShotClips } from '@/lib/growth/cleanFilmTrialDoor'
 import { buildTrialAccessFact } from '@/lib/growth/trialAccessFacts'
 import { creditsPerReferenceVideo } from '@/lib/marketingPrice'
 import { engineLabelFor } from '@/lib/engineLabel'
@@ -185,12 +186,12 @@ export default function CardEntryDoor({
   const idea = useMemo(() => trimIdeaForDoor(prompt ?? ''), [prompt])
   // Só URL http(s) conta: blob/data de uma tentativa morta não é clipe rodado,
   // e o número desta linha vira texto na cara da pessoa.
-  const shotClips = useMemo(
-    () => (readyClips ?? []).filter(
-      (u) => typeof u === 'string' && (u.startsWith('https://') || u.startsWith('http://')),
-    ),
-    [readyClips],
-  )
+  // KINEO-PORTA-MODAL-FILME-RODADO-2026-09-09 — o predicado saiu daqui para
+  // `lib/growth/cleanFilmTrialDoor` quando o modal de upgrade, a superfície
+  // irmã que abre no MESMO instante, passou a precisar da mesma conta. Duas
+  // cópias e as duas folhas contariam "clipes rodados" de jeitos que podem
+  // divergir sem ninguém ver.
+  const shotClips = useMemo(() => filterShotClips(readyClips), [readyClips])
   const filmIsShot = shotClips.length > 0
   // O preview do clipe é enfeite: se a URL do fornecedor expirou ou o navegador
   // recusou, a folha volta ao vídeo da casa. O TEXTO não depende disso — os
