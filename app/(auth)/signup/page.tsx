@@ -43,6 +43,10 @@ import {
   checkoutAuthChoiceCopy,
   checkoutSignupResolutionCopy,
 } from '@/lib/growth/checkoutSignupResolution'
+import {
+  coldTrialPromiseTelemetry,
+  readColdTrialPromise,
+} from '@/lib/growth/coldTrafficTrialPromise'
 
 type Strength = { level: 0 | 1 | 2 | 3 | 4; label: string; color: string }
 
@@ -278,6 +282,13 @@ export default function SignupPage() {
     passwordRecoveryContext?.tier ?? null,
     passwordRecoveryContext?.billing ?? null,
   ), [passwordRecoveryContext?.tier, passwordRecoveryContext?.billing])
+  // KINEO-SPRINT-FRIO-2026-09-09 r3 — a promessa que pagou o clique ($1, 7
+  // dias, 80 creditos) so existe aqui quando o destino preservado tem trial=1.
+  // Sem ela a tela fala de "Creator monthly" para quem clicou um teste de $1.
+  const trialPromise = useMemo(
+    () => (isCheckoutResume ? readColdTrialPromise(activationRedirect) : null),
+    [isCheckoutResume, activationRedirect],
+  )
   const creationPasswordRecoveryContext = isCheckoutResume
     ? null
     : readCreationPasswordRecoveryContext(activationRedirect)
@@ -314,6 +325,19 @@ export default function SignupPage() {
       surface: 'signup_page',
     })
   }, [bulkCheckoutContext, checkoutChoice])
+
+  // KINEO-SPRINT-FRIO-2026-09-09 r3 — carimbo de bundle da promessa. A r4 corta
+  // a medicao por ESTE campo (metadata->>'version'), nunca por relogio: entrega
+  // so de cliente que nao emite evento novo e improvavel de provar de fora.
+  useEffect(() => {
+    if (!trialPromise || bulkCheckoutContext) return
+    const marker = `kineo_cold_trial_promise:${Math.round(performance.timeOrigin).toString(36)}`
+    try {
+      if (sessionStorage.getItem(marker)) return
+      sessionStorage.setItem(marker, '1')
+    } catch { /* analytics remains best-effort */ }
+    void trackEvent('cold_trial_promise_shown', coldTrialPromiseTelemetry(trialPromise, 'signup_page'))
+  }, [bulkCheckoutContext, trialPromise])
 
   useEffect(() => {
     if (!checkoutResolution) return
@@ -618,7 +642,7 @@ export default function SignupPage() {
                   {isCheckoutResume
                     ? bulkCheckoutContext
                       ? `${bulkCheckoutContext.priceLabel} USD one time · no subscription. Create your account and continue without choosing the pack again.`
-                      : checkoutChoice?.continuity ?? 'Your selected plan is saved. Continue securely below.'
+                      : trialPromise?.sentence ?? checkoutChoice?.continuity ?? 'Your selected plan is saved. Continue securely below.'
                     : savedProductDestination
                       ? 'Create a free account and continue to the product you chose.'
                       : savedCreation
@@ -635,7 +659,7 @@ export default function SignupPage() {
                       border: '1px solid rgba(41,151,255,.3)',
                     }}
                   >
-                    {checkoutChoice.summary}
+                    {trialPromise?.chip ?? checkoutChoice.summary}
                   </div>
                 )}
 
@@ -891,6 +915,20 @@ export default function SignupPage() {
                       <div style={{ background: '#131316', border: '1px solid rgba(41,151,255,.35)', borderRadius: 18, padding: '28px 26px', maxWidth: 380, textAlign: 'center', boxShadow: '0 18px 60px rgba(0,0,0,.6)' }}>
                         <div style={{ fontSize: '1.6rem', marginBottom: 10 }} aria-hidden="true">🔐</div>
                         <div style={{ fontWeight: 800, color: '#f5f5f7', marginBottom: 6 }}>Taking you to Google sign-in…</div>
+                        {/* KINEO-SPRINT-FRIO-2026-09-09 r3 — 24 das 27 pessoas
+                            que chegaram no cadastro vindas de um checkout foram
+                            levadas ao Google SEM escolher (selection_kind
+                            'automatic'). Para elas este overlay e a unica tela
+                            que da tempo de ler: a promessa que pagou o clique
+                            tem que estar AQUI, nao so no formulario atras. */}
+                        {trialPromise && (
+                          <div
+                            data-testid="cold-trial-promise-oauth"
+                            style={{ display: 'inline-block', margin: '0 0 10px', padding: '6px 12px', borderRadius: 999, fontSize: '0.78rem', fontWeight: 900, color: '#7cc0ff', background: 'rgba(41,151,255,.1)', border: '1px solid rgba(41,151,255,.3)' }}
+                          >
+                            {trialPromise.chip}
+                          </div>
+                        )}
                         <div style={{ fontSize: '0.85rem', color: '#a1a1a8', lineHeight: 1.5 }}>
                           {bulkCheckoutContext
                             ? `Your ${bulkCheckoutContext.videos}-video pack is saved. One tap takes you back to its one-time checkout.`
@@ -918,7 +956,7 @@ export default function SignupPage() {
                       : isCheckoutResume
                         ? bulkCheckoutContext
                           ? `Continue to ${bulkCheckoutContext.videos}-video checkout →`
-                          : checkoutChoice?.button ?? 'Continue to secure checkout →'
+                          : trialPromise?.cta ?? checkoutChoice?.button ?? 'Continue to secure checkout →'
                         : '⚡ Create Free Account'}
                   </button>
                 </form>
