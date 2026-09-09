@@ -16,7 +16,7 @@ Anual = 10× o mensal ($140 / $290 / $590). Margem pior caso (motor mais caro do
 
 ## O que muda para o cliente
 
-- A porta de $1 continua igual (7 dias de Creator, 80 créditos) e passa a dizer **"depois $29/mês"** sozinha: o rótulo deriva de `TIER_PRICES.basic` (lib/entryPolicy.ts `CREATOR_USD`).
+- A porta de $1 continua igual (7 dias de Creator, 80 créditos) e passa a dizer **"depois $29/mês"** sozinha: lib/entryPolicy.ts é pura (guardiões a carregam sem imports), então o preço ali é literal espelhado, conferido contra `TIER_PRICES.basic` por `scripts/test-preco-v7-2026-09-09.mjs`.
 - Studio ganha 300 créditos: 2 filmes Kling 3 por mês em vez de 1.
 - **Quem já assina paga o preço antigo** (a Stripe cobra o que está na assinatura) e recebe na renovação o grant que esse preço comprava: `renewalCreditsFor(tier, invoice.amount_paid)` → fatura abaixo do preço vigente = `LEGACY_TIER_CREDITS_V6` (60/150/180). Studio a $29 segue com 180.
 
