@@ -1130,3 +1130,62 @@ literal) é descartada e o evento guarda só `payment_session_failed`. Foi por
 isso que descobrir uma coisa que a Stripe disse por escrito às 02:16 exigiu um
 probe de tipos às 02:40. Guardar os primeiros ~120 caracteres da mensagem num
 campo separado (`reason_detail`) pagaria a próxima investigação inteira.
+
+
+---
+
+## Rotina PH — fechamento (09/09 04:30)
+
+### O que está pronto (caminhos)
+
+| peça | caminho |
+|---|---|
+| galeria, 6 imagens 1270x760 | `docs/ph/gallery-01..06.png` |
+| vídeo de 60 s (7,67 MB) | `docs/ph/kineo-ph-60s.mp4` |
+| thumbnail | `docs/ph/kineo-ph-thumb.png` |
+| todos os textos, prontos para colar | `docs/ph/PH-TEXTOS-2026-09-10.md` |
+| página de pouso | `https://www.usekineo.com/ph` |
+
+Reprodutíveis: `bash scripts/ph-quadros.sh` → `node scripts/ph-galeria.mjs` →
+`node scripts/ph-video.mjs` → `bash scripts/ph-posters.sh`. Guardião:
+`node scripts/test-ph-kit-2026-09-09.mjs`.
+
+Três entregas publicadas na noite: `70821391` (galeria) · `5bdebc13` (vídeo) ·
+`2b338fd9` (textos + `/ph` + guardião).
+
+### O que o fundador precisa fazer na quinta, em ordem
+
+1. **Hoje (quarta), criar a conta** em producthunt.com com
+   josephsskaf@gmail.com, foto e bio. Seguir 20-30 makers de IA — conta nova e
+   vazia pesa contra.
+2. **Criar a ficha** com o nome **`Kineo AI`** (nunca `Kineo` puro: o slug
+   `kineo` é de um concorrente homônimo). Copiar tagline, descrição, tópicos e
+   link do `PH-TEXTOS-2026-09-10.md`, e subir a galeria na ordem listada lá.
+3. **Agendar para 10/09, 00:01 PT.** O PH permite agendar; ele dorme.
+4. **Assim que a ficha existir**, abrir a URL real e mandar a rotação da manhã
+   preencher `PH_LISTING_URL` em `app/ph/page.tsx` — enquanto for `null`, o
+   selo "Live on Product Hunt" não aparece na `/ph`. Uma linha e um push.
+5. **Pôr crédito na fal por Pix ainda hoje.** Dia de PH pode trazer 200-500
+   filmes; saldo baixo = render falhando na frente de todo mundo.
+6. **07:00 BRT de quinta:** postar o primeiro comentário do maker (está pronto)
+   e responder tudo. O algoritmo do PH pesa resposta do maker; silêncio mata.
+7. **Nunca escrever "upvote"** em post, e-mail ou DM. Pedir *comentário* e
+   *feedback*.
+
+### O que a rotação da manhã (ou a próxima sessão) deve olhar
+
+- **`/studio` deslogado mostra "🔥 Get Started Free →"** na barra lateral, logo
+  abaixo do card que diz `$1 for 7 days — 80 credits, then $29/mo`. Contradiz
+  `CARD_ENTRY_COPY.noFreeTier` na tela que o visitante do PH mais provavelmente
+  abre depois da `/ph`. Não consertei: é fora do escopo desta rotina e mexe em
+  tela de produto viva.
+- **A marca antiga fora da `/ph`.** Cortei só os 12 pôsteres da `/ph`. Os
+  arquivos `public/posters/ex-*.webp` continuam com `usekineo.com/free` no topo
+  e aparecem na home e no `/examples`. Vale o mesmo corte, mas é curadoria do
+  fundador — precisa do "vai" dele.
+- **`emiliomontinari`** paga há um ciclo inteiro e tem **0 filmes**. Para ele o
+  convite certo não é o Product Hunt: é perguntar por que não usa.
+- **Dívida com o Rick (gapozweb)**, o único apoiador com peça pública sobre a
+  Kineo: ele cobrou o crédito prometido duas vezes e mandou "Feeling
+  forgotten" em 22/08. Conferir se o crédito saiu ANTES de pedir qualquer
+  favor de lançamento.
