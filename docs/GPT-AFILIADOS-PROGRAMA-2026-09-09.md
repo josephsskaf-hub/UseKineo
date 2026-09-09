@@ -1,5 +1,13 @@
 # Script para o GPT — Programa de Afiliados da Kineo (09/09/2026)
 
+## Ressalvas verificadas pelo Codex — 09/09, base `32610938`
+
+**CONTRADIÇÃO RESOLVIDA EM CÓDIGO:** os 120 dias em `lib/growth/affiliateProgramComparison.ts:52` pertencem à linha **InVideo**, não à Kineo. `/partners` declara 90 dias (`app/partners/page.tsx:93,97`); o cookie tem 90 dias (`app/a/[code]/route.ts:35`) e a validação do clique também (`lib/affiliateAttribution.ts:34`). Não existe nessa evidência uma escolha pendente “90 ou 120” para corrigir. Manter os 90 vigentes; qualquer proposta de alterar termos exige decisão separada.
+
+**LIMITE DA PROVA:** clique/cookies já têm uma sonda de produção RELATADA em 07/09 no cabeçalho de `app/api/admin/send-affiliate-wakeup-1usd/route.ts:13–18`; não é prova independente de cadastro, pagamento ou payout. Callback, ativação de email e checkout já chamam a atribuição (código atual). Zero referrals não prova defeito sem denominador de cadastros elegíveis que chegaram com cookie/prova. Autoindicação é recusada; não propor teste financeiro com o próprio afiliado como se validasse aquisição. Nenhuma conta, pagamento, envio ou escrita em banco foi executada nesta leitura.
+
+**KIT ANTIGO NÃO USAR:** `docs/KIT-AFILIADOS-2026-09-08.md` continua HISTÓRICO, com $1 e até 40% dentro do texto da mensagem apesar de o cabeçalho falar 30%. Não copiar/enviar. O piloto delimitado desta conversa tem duas pessoas já excluídas por contato nos últimos sete dias; este documento não autoriza expandi-lo ou escrever mensagens para elas. A lista de 100 e as novas abordagens abaixo são proposta para aprovação, não autorização adicional de envio nesta rotina. Nenhum recrutamento ou receita foi atribuído a esta revisão.
+
 Pedido do fundador (09/09 ~19h): "uma script robusta e majorada para usar a quantidade imensa de tokens do ChatGPT, para ele majorar o nosso programa de afiliados; quero voar com afiliados, talvez uma das saídas para aumentar assinaturas; ele pode opinar e ser o executor."
 
 O bloco abaixo é o que o fundador cola no GPT. Tudo o que está nele foi lido do banco e do código em 09/09 ~19h. O GPT opina, executa o que é dele (pesquisa, listas, textos, planilhas, operação) e registra em `docs/PEDIDOS-ENTRE-PISTAS-2026-09-03.md` o que depende de código (pista do Claude) ou de dinheiro/envio (fundador).
