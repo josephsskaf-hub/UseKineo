@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import AuthModal from '@/components/AuthModal'
-import { FreeTierCopy } from '@/components/FreeTierOfferProvider'
+import { FreeTierCopy, useFreeTierOffer } from '@/components/FreeTierOfferProvider'
 import CreditsTopupModal from '@/components/CreditsTopupModal' // KINEO-TOPUP-POPUP-2026-08-18
 import AccountPanel from '@/components/AccountPanel' // KINEO-ACCOUNT-PANEL-2026-08-19
 import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
@@ -306,6 +306,14 @@ export default function Sidebar({
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
+  // KINEO-PORTA-CTA-UNICA-2026-09-09 (rotina noite r9) — o BOTAO da caixa de
+  // cadastro dizia "Get Started Free" enquanto a linha ACIMA dele, que ja passa
+  // pelo swap, anuncia a taxa de entrada de $1. Duas frases contraditorias na
+  // mesma caixa, e a de baixo e a que tem maior taxa de leitura. Sob a porta
+  // unica o rotulo vem da fonte unica (CARD_ENTRY_COPY.ctaLong via ctaPrimary);
+  // fora dela o literal legado fica no call site, diff byte a byte zero.
+  const freeTierOffer = useFreeTierOffer()
+  const signupCtaLabel = freeTierOffer.cardEntry ? freeTierOffer.copy.ctaPrimary : 'Get Started Free →'
   const [showAuthModal, setShowAuthModal] = useState(false)
   // KINEO-TOPUP-POPUP-2026-08-18 — popup de recarga sem troca de plano
   const [showTopup, setShowTopup] = useState(false)
@@ -746,10 +754,10 @@ export default function Sidebar({
               <p style={{ fontSize: '0.72rem', color: '#86868b', lineHeight: 1.5, marginBottom: 10 }}>Sign up and start creating in under a minute.</p>
               <button
                 onClick={() => setShowAuthModal(true)}
-                aria-label="Get started free — sign up"
+                aria-label={`${signupCtaLabel} — sign up`}
                 style={{ display: 'block', width: '100%', textAlign: 'center', borderRadius: 10, padding: '9px 0', fontSize: '0.8rem', fontWeight: 800, color: '#0A0A0B', background: '#2997ff', border: 'none', cursor: 'pointer', boxShadow: '0 4px 14px rgba(41,151,255,0.35)' }}
               >
-                <span aria-hidden="true">⚡ </span>Get Started Free →
+                <span aria-hidden="true">⚡ </span>{signupCtaLabel}
               </button>
             </div>
           </div>

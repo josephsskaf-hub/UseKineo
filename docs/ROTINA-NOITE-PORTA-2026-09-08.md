@@ -951,3 +951,215 @@ pública — FAQ da `/pricing`, `/studio` deslogado, home — e medir quantas
 pessoas que viram a porta também viram uma promessa de grátis na mesma sessão.
 Corrigir a contradição é trabalho de copy fora da fonte de preço, portanto
 dentro desta pista; mudar preço, plano ou crédito continua fora.
+
+---
+
+## r9 07:35 — O ANÚNCIO DIZ "GRÁTIS", A PORTA COBRA $1. ELES FICAM NA MESMA CAIXA.
+
+A rotação das 06:00 não disparou (o agendador tinha sido recriado às 01:20 e a
+grade não pegou as duas últimas). Esta rodou às 07:35 e executa a jogada que a
+r8 tinha deixado escrita: **varrer a promessa de grátis nas superfícies
+públicas.**
+
+### O que mediu — e o que NÃO consegui medir
+
+O banco recusou toda consulta desta rotação:
+
+```
+mcp execute_sql → "You do not have permission to perform this action"   (2 tentativas)
+```
+
+É a intermitência conhecida do MCP em sessão autônoma. **Portanto esta seção
+não tem número novo.** O último placar medido continua sendo o da r8 (04:05),
+e está repetido no FECHAMENTO abaixo marcado com a hora em que foi medido.
+Não inventei leitura nova nem reaproveitei a da r8 como se fosse de agora.
+
+### O que a varredura achou
+
+A r8 tinha duas denúncias vindas de rotinas que não conversaram: o FAQ da
+`/pricing`/home prometendo "free first video", e o `/studio` deslogado com um
+botão "Get Started Free". Fui conferir as duas **antes** de codar.
+
+**A primeira já estava consertada.** O FAQ visível da home (`KineoLanding.tsx`
+:1574) hoje termina com *"Every new account starts with the $1 trial: 7 days of
+Creator with 80 credits."* Outra pista corrigiu. O que sobrou é um **guardião
+velho** — `test-checkout-currency-truth.mjs` — que continua exigindo a frase
+antiga:
+
+```js
+ok(/New accounts get free credits/.test(faq), 'the same visible answer still promises the free first video')
+```
+
+Ele está vermelho **porque o produto andou e a trava não**. Isso é a inversão
+perigosa: uma trava que, lida de fora, manda alguém **reintroduzir** a promessa
+que a Versão B matou. Não mexi nela — trava alheia, e desarmar guardião no
+apagar das luzes é como se enterra regressão. Fica anotada no `PEDIDOS`.
+
+**A segunda é real e estava viva.** `components/Sidebar.tsx`, a caixa que a
+pessoa **deslogada** vê:
+
+| linha | de onde vinha | o que dizia sob a porta |
+|---|---|---|
+| título | `<FreeTierCopy>` → swap | `$1 for 7 days — 80 credits, then $29/mo` |
+| **botão** | **literal cru no JSX** | **`⚡ Get Started Free →`** |
+| aria-label | literal cru | `Get started free — sign up` |
+
+Duas frases contraditórias **dentro da mesma caixa, uma embaixo da outra**. A
+de cima passou pelo swap quando a Versão B subiu; a de baixo nunca passou por
+lugar nenhum. E a de baixo é a que tem maior taxa de leitura da caixa: é o
+botão.
+
+**Por que isto importa para esta pista, e não é polimento.** A campanha paga do
+Reddit chega **deslogada**. O caminho medido na r8 — a pessoa das 05:37,
+`utm_source=reddit`, quatro tentativas de compra em 105 segundos — passa por
+esta caixa antes de ver qualquer porta. Ela lê "Get Started Free", cria a
+conta, e a primeira coisa que a casa faz é pedir $1. Não é uma copy velha
+esquecida: é **a promessa que o anúncio pago está comprando**, contradita pelo
+produto 30 segundos depois.
+
+É também a melhor hipótese disponível para o clique baixo da porta, e é mais
+barata de testar do que qualquer ajuste dentro da folha: ninguém paga $1 pelo
+que a tela anterior ofereceu de graça.
+
+### O que mudou (publicado)
+
+`components/Sidebar.tsx` — o rótulo do botão deixa de ser literal e passa a
+sair da **fonte única**:
+
+```tsx
+const freeTierOffer = useFreeTierOffer()
+const signupCtaLabel = freeTierOffer.cardEntry
+  ? freeTierOffer.copy.ctaPrimary      // = CARD_ENTRY_COPY.ctaLong
+  : 'Get Started Free →'               // versão A, byte a byte
+```
+
+Sob a porta ligada o botão passa a dizer **"Try Creator 7 days for $1 →"**, que
+é o `ctaLong` de `lib/entryPolicy.ts` — nenhum preço digitado aqui. O
+`aria-label` passa a derivar do mesmo rótulo (o leitor de tela lia a promessa
+velha mesmo depois de o olho parar de ler). Com `CARD_ENTRY_ONLY` desligado o
+literal legado volta byte a byte, que é a disciplina que o próprio
+`freeTierOffer.ts` prega: o legado mora no call site para a versão A ser
+auditável por inspeção local.
+
+**Por que não usei `swapFreeTierCopy` aqui**, que seria o reflexo óbvio: o ramo
+`cardEntry` daquele helper devolve `chip` ou `sentence` conforme o tamanho —
+nunca um CTA. Um botão receberia *"$1 for 7 days — 80 credits, then $29/mo"*,
+que é um chip de preço, não um convite. É exatamente a "varredura fina de cada
+call site" que o comentário do M7 deixou pendente naquele arquivo.
+
+`scripts/test-cadastro-nao-promete-gratis-2026-09-09.mjs` — 13 verificações,
+**13 ok**. A trava é de comportamento, não de texto: recorta o JSX do botão
+(não o arquivo inteiro, senão o literal legado da linha de decisão a satisfaria
+sozinho) e exige que o rótulo venha da variável; exige que a decisão leia
+`offer.cardEntry` em vez de redigitar a flag (memória
+`predicado-do-cobrador-nao-se-redigita`); e lê o `ctaLong` da fonte para provar
+que **o CTA da porta não contém a palavra "free"** — se alguém amaciar a copy
+da entrada lá na fonte, acende aqui.
+
+### Falsificação por mutação
+
+| mutação | esperado | resultado |
+|---|---|---|
+| **M1** botão volta ao literal `Get Started Free →` | acende a do rótulo | `o rotulo do botao nao e mais o literal "Get Started Free"` **vermelha** ✔ |
+| **M2** decisão redigita a flag (`true ? 'Try 7 days for $1'`) | acende a do predicado | `a decisao le offer.cardEntry, nao uma flag propria` **vermelha** ✔ |
+| **M3** `ctaLong` da fonte passa a dizer "Start free for 7 days" | acende a da fonte | `o CTA da porta nao contem a palavra "free": Start free for 7 days →` **vermelha** ✔ |
+
+Cada mutante foi confirmado como **aplicado por `grep` do texto inserido** antes
+de rodar, nunca por hash (memória `mutacao-precisa-provar-que-aplicou`). O M2 é
+o que prova que a trava não passa por texto presente: o arquivo continua tendo
+um rótulo de $1: o que muda é **de onde ele vem**.
+
+### Suíte
+
+`npx tsc --noEmit --incremental false` **verde** (exit 0, com junção de
+`node_modules`). Os 8 guardiões pedidos, mais os desta pista: **todos verdes**.
+
+Rodei também **todos os guardiões que leem os arquivos que toquei** (`Sidebar
+.tsx`, `entryPolicy.ts`) — 17 deles. Quatro vermelhos, e provei que **nenhum é
+meu** rodando os três candidatos numa worktree pristina em `origin/main`
+(`main-pristine`, f50da38c): `ph-galeria`, `test-manrope-system` e
+`test-workspace-spanish` falham **igual** no pai. O quarto,
+`test-taxa-de-entrada-chega-na-stripe`, segue vermelho **de propósito** desde a
+r7 — o dólar continua não-cobrável.
+
+### O que ficou
+
+1. **O conserto do cobrador continua parado.** Confirmei nesta rotação que
+   `add_invoice_items` ainda está em `app/api/stripe/checkout/route.ts:1545` na
+   `origin/main` de agora. Branch `salvo/porta-taxa-entrada-line-item`, commit
+   **`0f5a53e4`**. Terceira rotação seguida pedindo uma palavra.
+2. `test-checkout-currency-truth.mjs` exige a promessa de grátis que a Versão B
+   matou. Trava alheia, invertida pelo tempo.
+3. Sem banco nesta rotação: o efeito desta mudança na taxa de clique da porta
+   só se mede na próxima leitura.
+
+---
+
+## FECHAMENTO 09/09 08:00
+
+Escrito às 07:40, na última rotação da janela (a das 06:00 não disparou; o
+agendador foi recriado às 01:20 e perdeu duas). Não há leitura de banco nesta
+rotação — o MCP recusou as duas consultas —, então **todo número abaixo é o da
+r8, medido às 04:05**, e está marcado como tal. Nenhum número foi extrapolado.
+
+### O que está no ar (SHAs)
+
+| rotação | o que entregou | SHA |
+|---|---|---|
+| r1–r6 | a folha `CardEntryDoor` (`door_v2`), 3 línguas, celular, e a tela que parou de mandar a pessoa bater numa porta trancada | ff4c28c5 · 713f66b1 · b00c18c9 · 5d0a1c03 · 08641311 |
+| r7 | guardião que prova, contra os tipos do SDK instalado, que a taxa de entrada chega na Stripe — nasce **vermelho de propósito** | (diário + `test-taxa-de-entrada-chega-na-stripe`) |
+| r8 | `lib/growth/checkoutErrorSignal.ts` + `checkout_error_shown`: a frase da Stripe passa a ser gravada (redigida) em vez de virar `payment_session_failed`; e quem falha lê "your card was not charged" e volta ao rascunho | e69fed0f (diário) |
+| r9 | a caixa de cadastro deslogada para de prometer "Get Started Free" ao lado da porta de $1 | **este commit** |
+
+**Não está no ar, e é o que decide tudo:** `0f5a53e4` (branch
+`salvo/porta-taxa-entrada-line-item`). `app/api/stripe/*` é caminho travado
+para esta rotina.
+
+### Tabela por pessoa (medida na r8, 04:05 — sem leitura nova depois disso)
+
+| pessoa | de onde veio | viu porta | clicou | checkout abriu | pagou | o que fez |
+|---|---|---|---|---|---|---|
+| `…` (02:16) | chatgpt.com, conta de 04/09, 2 filmes entregues e baixados | **sim** (`door_v2`) | **sim**, 8s depois | **não** — `checkout_failed` em 800 ms | não | despejada em `/pricing`, viu 3 ofertas, saiu |
+| `35ce4512` (05:37) | **anúncio pago do Reddit** (`cpc`, `reddit_sep09`) | faixa `card_entry_banner` | **sim** | **não** nas duas tentativas de $1; sim nas duas de plano | não | 4 tentativas em 105s, foi embora |
+| `fe5505d5` (06:11) | `/studio/create`, **1.364 caracteres de roteiro escritos** | **sim** (`door_v2`) | não | — | não | dispensou em 8 segundos |
+
+**Placar da taxa de entrada, história completa (r8):** 2 pessoas viram a porta
+nova · 1 clicou · 2 falharam na taxa · **0 abriram sessão de checkout** ·
+**0 pagaram**. A faixa antiga (`card_entry_banner`) cai na **mesma** parede — é
+a mesma taxa de entrada, não uma folha experimental.
+
+### Três frases do que aprendi
+
+1. **A porta não tem problema de copy; ela tem uma parede atrás.** A primeira
+   pessoa que a viu clicou em 8 segundos, depois de ter recusado uma oferta de
+   plano 35 segundos antes. A taxa de clique da folha nova é 1/1. O que é 0/2 é
+   o cobrador: `subscription_data.add_invoice_items` não existe na criação de
+   uma Checkout Session, e o `tsc` ficou verde 20 dias porque o campo entrava
+   por **spread condicional**, que não recebe excess property check.
+2. **A explicação estava na tela do cliente e não na nossa.** A rota devolve
+   `302 /pricing?checkout_error=<a frase inteira da Stripe>`: as duas pessoas
+   leram por escrito o que quebrou, enquanto nós tínhamos três linhas
+   `payment_session_failed` indistinguíveis — porque o código de motivo corta
+   no primeiro `':'`, e corta por uma boa razão (privacidade). Uma rotação
+   inteira foi gasta sondando tipos de SDK para redescobrir isso.
+3. **A casa vendia duas ofertas incompatíveis na mesma caixa.** O botão de
+   cadastro dizia "Get Started Free" logo abaixo da linha que anuncia $1 — e é
+   por aí que entra o tráfego pago do Reddit. Ninguém paga $1 pelo que a tela
+   anterior ofereceu de graça.
+
+### A próxima jogada
+
+**Publicar `0f5a53e4` e, no mesmo dia, escrever para as três.** As duas metades
+importam:
+
+- Sem o conserto, cada impressão da oferta de $1 — porta, faixa, e agora o
+  botão de cadastro que esta rotação corrigiu — é um anúncio de porta trancada,
+  e a campanha do Reddit está **comprando cliques para ela**.
+- Com o conserto, existe uma coorte pequena e quentíssima que já provou
+  intenção com o dedo: a de 02:16 (2 filmes entregues e baixados, quis pagar),
+  a do Reddit (4 tentativas em 105 segundos) e a de 06:11 (1.364 caracteres de
+  roteiro escritos, dispensou em 8s). São três pessoas que a casa **fez
+  falhar**. Uma carta curta que diga a verdade — *"o pagamento quebrou do nosso
+  lado, está consertado, seu roteiro está salvo"* — é a maior taxa de
+  conversão disponível hoje, e não custa mídia. Enviar e-mail está fora da
+  minha pista; a carta é da pista que manda e-mail, e o gatilho é o SHA.
