@@ -106,6 +106,11 @@ import {
   supportsPlanFitQuality,
 } from '@/lib/growth/planFit'
 import { auditPostDeliveryOffer } from '@/lib/growth/postDeliveryOfferAudit'
+import {
+  CARD_ENTRY_DRAFT_KEY,
+  readCardEntryDraft,
+  serializeCardEntryDraft,
+} from '@/lib/growth/cardEntryResumeDraft'
 import { decidePostDeliverySlot, type PostDeliverySlotOwner } from '@/lib/growth/postDeliverySlot'
 import { decideCleanFilmTrialDoor } from '@/lib/growth/cleanFilmTrialDoor'
 import CleanFilmTrialDoor from '@/components/CleanFilmTrialDoor'
@@ -1007,8 +1012,9 @@ const TRIAL_BEST_AUTOSTART_VARIANT = 'activation_autostart_trial_best_v1'
 const ACTIVATION_AUTOSTART_SESSION_PREFIX = 'kineo_activation_autostart_fast_v1'
 // KINEO-VERSAO-B-FUNIL-VOLTA-2026-09-08 — rascunho do Studio que sobrevive à ida
 // ao Stripe ($1): ideia + motor + duração. sessionStorage (morre com a aba).
-const STUDIO_DRAFT_KEY = 'kineo_studio_draft_v1'
-const STUDIO_DRAFT_TTL_MS = 45 * 60 * 1000
+// KINEO-RESUME-1DOLAR-FIEL-2026-09-09 — a chave e o TTL do rascunho passaram a
+// morar em lib/growth/cardEntryResumeDraft.ts, junto da leitura que os valida.
+// Deixar copias aqui era a receita de a chave mudar num lado so.
 
 type ActivationAccountStatus = 'loading' | 'free' | 'paid' | 'unavailable'
 
@@ -3249,42 +3255,81 @@ export default function GenerateClient({
   // (1) todo estado relevante é gravado a cada mudança; (2) o /checkout/success
   // manda para /studio/create?resume=card_entry quando existe rascunho;
   // (3) na volta, com crédito confirmado, o filme dispara sozinho UMA vez.
+  // KINEO-RESUME-1DOLAR-FIEL-2026-09-09 — o rascunho passa a levar o MOTOR.
+  // `quality` e `duration` sozinhos nao dizem qual motor a pessoa escolheu:
+  // quem decide sao `mode` e `aiEngine`. Sem os dois no rascunho, a volta do
+  // Stripe renascia em `mode: 'fast'` (padrao de fabrica) e o primeiro minuto
+  // pago entregava um Kineo 1 a quem tinha escolhido — e comprado — um motor
+  // cinematografico. Ver lib/growth/cardEntryResumeDraft.ts.
   useEffect(() => {
     try {
       const clean = prompt.trim()
       if (!clean) return
-      sessionStorage.setItem(STUDIO_DRAFT_KEY, JSON.stringify({ prompt: clean, quality, duration, at: Date.now() }))
+      sessionStorage.setItem(
+        CARD_ENTRY_DRAFT_KEY,
+        serializeCardEntryDraft({ prompt: clean, quality, duration, mode, engine: aiEngine, at: Date.now() }),
+      )
     } catch { /* ignore */ }
-  }, [prompt, quality, duration])
+  }, [prompt, quality, duration, mode, aiEngine])
   const resumeArmedRef = useRef(false)
   const resumeFiredRef = useRef(false)
+  const resumeBlockedReportedRef = useRef(false)
   useEffect(() => {
     if (searchParams?.get('resume') !== 'card_entry') return
     try {
-      const raw = sessionStorage.getItem(STUDIO_DRAFT_KEY)
-      if (!raw) return
-      const draft = JSON.parse(raw) as { prompt?: string; quality?: Quality; duration?: Duration; at?: number }
-      const cleanDraft = typeof draft.prompt === 'string' ? draft.prompt.trim() : ''
-      if (cleanDraft) setPrompt(cleanDraft)
-      if (draft.quality && QUALITY_OPTIONS.some((q) => q.key === draft.quality)) setQuality(draft.quality)
-      if (draft.duration && ([35, 45, 60, 90] as number[]).includes(draft.duration)) setDuration(draft.duration)
-      const fresh = typeof draft.at === 'number' && Date.now() - draft.at < STUDIO_DRAFT_TTL_MS
-      resumeArmedRef.current = Boolean(cleanDraft) && fresh
-      void trackEvent('card_entry_resume_restored', { armed: resumeArmedRef.current, fresh, quality: draft.quality ?? null, duration: draft.duration ?? null })
+      const draft = readCardEntryDraft(sessionStorage.getItem(CARD_ENTRY_DRAFT_KEY), Date.now())
+      if (!draft) return
+      setPrompt(draft.prompt)
+      // Nulo = campo ausente ou invalido no rascunho: nao mexer no que a tela
+      // ja tem. Sobrescrever com um padrao seria trocar a escolha da pessoa por
+      // um chute — exatamente o defeito que este bloco existe para fechar.
+      if (draft.quality) setQuality(draft.quality)
+      if (draft.duration) setDuration(draft.duration as Duration)
+      if (draft.mode) setMode(draft.mode)
+      if (draft.engine) setAiEngine(draft.engine)
+      resumeArmedRef.current = draft.fresh
+      void trackEvent('card_entry_resume_restored', {
+        armed: resumeArmedRef.current,
+        fresh: draft.fresh,
+        quality: draft.quality,
+        duration: draft.duration,
+        // Os dois campos novos. Sem eles nenhuma leitura posterior consegue
+        // separar "voltou com o motor certo" de "voltou no padrao de fabrica".
+        mode: draft.mode,
+        engine: draft.engine,
+        engine_restored: draft.mode !== null,
+      })
     } catch { /* ignore */ }
     // Mount-only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   useEffect(() => {
     if (!resumeArmedRef.current || resumeFiredRef.current) return
-    if (credits === null || credits <= 0) return
+    if (credits === null) return
     if (!prompt.trim() || isProcessingPhase(phase)) return
+    // KINEO-RESUME-1DOLAR-FIEL-2026-09-09 — o resume pergunta ao MESMO caixa que
+    // o botao pergunta. A condicao anterior era `credits <= 0`, uma segunda
+    // regua: os $1 entregam 80 creditos, e um motor de 150 passava por ela. O
+    // efeito era o pior desfecho possivel — o evento `card_entry_resume_autostart`
+    // afirmava que o filme comecou, o rascunho era APAGADO, e a pessoa recebia
+    // um modal de "sem creditos" logo depois de pagar, sem como tentar de novo.
+    // `outOfCredits()` e a funcao que `handleGenerateGuarded` consulta: nao ha
+    // copia da regra, entao as duas nunca divergem.
+    if (outOfCredits()) {
+      if (!resumeBlockedReportedRef.current) {
+        resumeBlockedReportedRef.current = true
+        void trackEvent('card_entry_resume_blocked', { reason: 'insufficient_credits', quality, duration, mode, engine: aiEngine, credits })
+      }
+      // O rascunho FICA. Quem pagou e nao coube tem de poder escolher outro
+      // motor e disparar; apagar aqui deixaria a pessoa sem o proprio texto.
+      return
+    }
     resumeFiredRef.current = true
-    try { sessionStorage.removeItem(STUDIO_DRAFT_KEY) } catch { /* ignore */ }
-    void trackEvent('card_entry_resume_autostart', { quality, duration, credits })
+    try { sessionStorage.removeItem(CARD_ENTRY_DRAFT_KEY) } catch { /* ignore */ }
+    void trackEvent('card_entry_resume_autostart', { quality, duration, credits, mode, engine: aiEngine })
     handleGenerateGuarded()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [credits, prompt, quality, duration, phase])
+  }, [credits, prompt, quality, duration, phase, mode, aiEngine])
 
   // Push #033: pull a prompt forwarded by the homepage's Generate Video card.
   // app/page.tsx stashes the user's idea under `pendingVideoPrompt` in

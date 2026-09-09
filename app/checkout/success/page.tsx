@@ -24,6 +24,7 @@ import {
   isSelfServeEntitlementReady,
   selfServeEntitlementState,
 } from '@/lib/growth/checkoutSuccessEntitlement'
+import { CARD_ENTRY_DRAFT_KEY } from '@/lib/growth/cardEntryResumeDraft'
 
 // KINEO-FIRST-WIN-2026-08-02 — the 5th buyer ever (01/08) paid straight from
 // TAAFT, was auto-redirected here into an EMPTY /generate, wandered between
@@ -61,7 +62,10 @@ export default function CheckoutSuccessPage() {
     const resolved = readCheckoutSuccessFlow(new URLSearchParams(window.location.search))
     setFlow(resolved)
     try {
-      setHasSavedDraft(Boolean(sessionStorage.getItem('kineo_studio_draft_v1')))
+      // KINEO-RESUME-1DOLAR-FIEL-2026-09-09 — a chave vem do modulo que a define.
+      // Era literal aqui e literal no GenerateClient: no dia em que uma mudasse,
+      // esta tela mandaria o comprador para o Studio vazio sem nenhum erro.
+      setHasSavedDraft(Boolean(sessionStorage.getItem(CARD_ENTRY_DRAFT_KEY)))
     } catch { /* Storage may be unavailable; the ordinary Studio remains usable. */ }
 
     // Computed after mount so the time-seeded shuffle can never cause a
