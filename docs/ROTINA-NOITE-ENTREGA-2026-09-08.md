@@ -369,3 +369,158 @@ placar. As três perguntas da r6:
   filmes de MAIO cuja URL do fornecedor deu 404. É a memória
   `fallback-silencioso-vaza-no-caso-caro` cobrando — filme entregue que morre
   depois. Fora da janela desta rotação; fica nomeado para o fechamento.
+
+---
+
+## r6 04:40 — "GENERATION FAILED · YOU CAN RETRY SAFELY" DENTRO DE UMA TRANCA DE 15 MINUTOS
+
+### O QUE MEDI — 1: o gargalo da missão, com denominador
+
+7 dias, por pessoa, `video_generation_started` como porta de entrada:
+
+| degrau | pessoas |
+|---|---:|
+| apertaram Generate | **163** |
+| chegaram a `video_generation_completed` | 118 |
+| têm evento de falha (`video_generation_failed`) | 16 |
+| **nem completou, nem falhou, nem tem `generation_stage_error`** | **31** |
+
+Os 31 são o número que a ordem chama de "apertou e não saiu". **Ele está
+errado, e para melhor.** Cruzando com a tabela `videos`:
+
+> **24 dos 31 têm um vídeo `completed` na janela.** O filme SAIU. 23 deles
+> receberam `video_ready_email_sent`. O que faltou foi o evento do CLIENTE —
+> a aba já tinha ido embora quando o servidor terminou.
+
+O gargalo real de 7 dias é **7 pessoas**, não 29/31. E dessas 7: **nenhuma tem
+`compose_submission_claim`, `cinematic_submission_claim` nem
+`cinematic_dispatch_result`** — morreram antes de qualquer despacho, 6 delas
+vindas de `activation_autostart_dispatched`. Em 9 dias a coorte é 13 pessoas,
+e o degrau seco é `generating` → `fal_polling`: **10 chegam, 2 passam**.
+Corrijo o número herdado do CLAUDE.md aqui, com o denominador na mão
+(memória: `zero-falhas-sem-denominador`, `funil-agregado-esconde-degrau-seco`).
+
+### O QUE MEDI — 2: a tela, que é o alvo da rotação das 04:30
+
+`generation_failed_screen_shown`, 45 dias:
+
+| screen | cause | eventos | pessoas | último |
+|---|---|---:|---:|---|
+| narration_short | narration_short | 22 | 12 | 07/09 |
+| **generic** | **other** | **15** | **7** | **08/09** |
+| **generic** | **provider_rejected** | 5 | 2 | 04/09 |
+| credits_held | credits_held | 2 | 2 | 04/09 |
+
+⚠️ Primeiro tentei cruzar por `attempt_id` e todo reason deu `com_tela = 0`.
+Era **falso**: o evento da tela não carrega `attempt_id`. Medi com a chave
+errada e quase publiquei "nenhuma falha em 30 dias chega à tela"
+(memória: `superficie-medida-por-copia-da-regra`).
+
+Quebrando o balde `other` pelo texto que o servidor devolveu — **são mensagens
+honestas que o classificador do cartão simplesmente não reconhece**:
+
+| estado | pessoas (60d) | eventos |
+|---|---:|---:|
+| portão de trial/plano | **19** | 41 |
+| prazo estourado (deadline/retries) | 5 | 12 |
+| plano de cenas não saiu | 2 | 7 |
+| resfriamento de 429 | 1 | 6 |
+
+### A CAUSA QUE FECHEI
+
+Para todos eles o cartão dizia a mesma coisa: **"Generation failed"**,
+**"You can retry safely."** e um botão azul primário **"🔄 Retry"**.
+
+O retrato está no 429. `app/api/generate-video-cinematic/route.ts` devolve,
+junto com a frase, **`retry_after_ms: 15 * 60 * 1000`** — quinze minutos, um
+número exato que o servidor calculou. O cliente nunca leu esse campo neste
+ramo: as únicas leituras de `retry_after_ms` no produto inteiro são backoff de
+polling, **todas com `Math.min(…, 10000)`**. Em 04/09 uma pessoa apertou
+**onze vezes em doze minutos** dentro de uma tranca de quinze, lendo "you can
+retry safely" a cada vez. Depois foi embora.
+
+O portão de trial é o mesmo defeito com 19 pessoas: retentar **nunca** pode
+funcionar, e o produto oferecia isso como o gesto azul.
+
+### O QUE MUDOU
+
+`lib/entrega/generationWaitNotice.ts` — a decisão **pura**, sem um único
+`import`. Responde a pergunta que o cartão nunca fez: **apertar de novo muda
+alguma coisa?** (`'no'` · `'after_wait'` · `'yes'`). Quatro estados nomeados
+(portão, resfriamento, prazo estourado, fornecedor ocupado) e **`null` para
+todo o resto — e `null` deixa o cartão byte a byte como estava.**
+
+Três disciplinas, cada uma por causa de erro já cometido nesta casa:
+1. **Falha fechada** — dúvida não vira estado novo.
+2. **Número só do servidor** — `waitSeconds` sai de `retry_after_ms` e de mais
+   lugar nenhum; sem número do servidor, a frase não tem número e não há
+   relógio. O CLAUDE.md proíbe prometer fila que o código não tem.
+3. **Dinheiro só quando o servidor falou** — `serverSaidRefunded` é lido da
+   frase dele. O módulo nunca afirma estorno por conta própria.
+
+No cliente, o sinal é gravado no **ponto de estrangulamento**
+(`trackGenerationFailure`, por onde toda saída de falha já passava) — não em
+cada `catch`, para que um ramo novo não nasça mudo, que foi exatamente como 4
+ramos nasceram sem `detail` em 31/08. O título nomeia o estado; a frase "you
+can retry safely" **só sobrevive quando é verdade**; e no resfriamento o botão
+trava mostrando `🔒 Retry in 14:32` e **destrava sozinho**.
+
+`credits_held` ficou **de fora do portão de propósito**: aquele estado se
+resolve sozinho dentro da hora, então ali retentar funciona — chamá-lo de
+portão seria mentira na direção contrária.
+
+en/es/hi nas 9 frases novas (`INTERFACE_ES` + `INTERFACE_HI`, via `UiLabel`).
+
+**Nada de prompt de cena, contrato, régua de voz, planner, motor, custo,
+crédito, preço ou arquivo de portão.** O servidor não mudou uma linha.
+
+### GUARDIÃO
+
+`scripts/test-entrega-noite-r6-2026-09-09.mjs` — **55 verificações, verdes.**
+Estilo `readFileSync`, CRLF normalizado, zero alias `@/`. As 9 frases não são
+redigitadas no teste: são **extraídas do próprio módulo**, então frase nova sem
+tradução deixa o guardião vermelho sozinho.
+
+Falsificado por **4 mutações, cada uma com a aplicação provada por `grep`**:
+
+| mutação | o que quebra | resultado |
+|---|---|---|
+| trava perde `&& segundosRestantesDaEspera > 0` | botão travado para sempre | ✓ pegou (nº 42) |
+| `waitSeconds: espera` → `waitSeconds: 900` | relógio inventado pelo cliente | ✓ pegou (nº 23) |
+| `if (!texto && !reason)` → `if (false)` | falha aberta | ✓ pegou (nº 14) |
+| `retryWorks !== 'yes'` → `true` | frase trocada sempre | ✓ pegou (nº 41) |
+
+### SUÍTE
+
+`npx tsc --noEmit --incremental false` verde. `test-variety-axis` (23) ·
+`test-versao-b-entrada-1-dolar-2026-09-08` (36) ·
+`test-sistema-de-compra-2026-09-08` (27) · `test-preco-v7-2026-09-09` (31) ·
+`test-entrega-noite-r5-2026-09-09` — **todos verdes**.
+
+### SHA
+
+**`08641311` em `origin/main`** (fila 1→0, bat oficial). Home 200.
+
+### COMO MEDIR (corte no campo novo, nunca no relógio)
+
+`generation_wait_notice_shown` é o carimbo — e nasce com `has_server_wait`,
+para que "ninguém esperou" e "não havia relógio" nunca tenham o mesmo placar.
+
+1. `generation_wait_notice_shown` quebrado por `kind` — quantas pessoas.
+2. Dos `kind='cooldown'` com `has_server_wait=true`: quantos
+   `generation_retry_clicked` com `wait_remaining_s > 0` **ainda** aparecem
+   (alvo: zero — o botão está desabilitado).
+3. `generation_retry_clicked` por `wait_kind`: o portão ainda é apertado?
+4. Dos que viram o aviso: quantos despacharam depois **e completaram**.
+
+### O QUE FICOU
+
+· **Os 24 de 31 que receberam o filme e cuja tela nunca soube.** Não é falha de
+  entrega — é falha de *notícia*. Vale mais que qualquer conserto de render
+  nesta janela, e é a coorte maior de todas as que medi hoje.
+· A coorte pura de "apertou e não saiu" são **7 pessoas / 7 dias**, e o degrau
+  seco é `generating` → `fal_polling` (10 chegam, 2 passam) — sem nenhum claim
+  registrado. Nenhum evento existe hoje entre esses dois pontos.
+· `vendor_asset_expired` segue de pé (r5): 36 eventos / 8 pessoas, filmes de
+  maio com URL do fornecedor em 404.
+· Retentativa de cena: dívida real, **coorte zero** — o 503 orgânico não voltou.
