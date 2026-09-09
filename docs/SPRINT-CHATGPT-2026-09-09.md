@@ -429,3 +429,81 @@ plateia zero.
 **Números desta rotação:** 11 · 7 · 4 · 3 pessoas por superfície · 2 filmes
 rodados e recusados em 92s numa pessoa · 19 verificações novas · 4 mutantes ·
 111 = 111 na suíte · 0 pagamentos na casa desde 02/09 20:22 UTC.
+
+### 7. ADENDO 16:20 BRT — a plateia chegou, e ela CORRIGE a leitura do item 1
+
+Publicado: `0ff88967` → deploy `dpl_GVT1izvTnkm7QfY31k4yM35tsvNr`, **READY**,
+alias `www.usekineo.com`.
+
+Entre a medição do item 6 (18:40 UTC) e agora, a primeira pessoa recebeu o
+bundle da r2. `metadata ? 'film_already_shot'` saiu de **0 para 6 linhas**.
+
+**Quem:** `farooquihuzaifa998` (ChatGPT, PK), cadastro 18:41:36 UTC. Viu a porta
+**3 vezes** e dispensou **3 vezes**, em 15 segundos — e nas 3 com
+`ready_clips: 0, film_already_shot: false`.
+
+**Por que zero clipes, e por que isso é o guardião funcionando:** ela escolheu
+`cinematic_ai` (Seedance, 25cr), não o `fast`. Nesse caminho o bloqueio ocorre
+em `analyzing`, ANTES de qualquer clipe — a checagem de saldo vem primeiro, como
+deve. O ramo "already shot" **não se aplicou e corretamente não apareceu**: a
+folha não inventou um fato que não existia. Isso é a falha fechada exercida em
+produção, não só no guardião.
+
+#### ⚠ A correção que importa: a caixa que consertei tem plateia ZERO desde ontem
+
+Medição que eu deveria ter feito ANTES de escolher o alvo:
+
+| dia | `card_entry_door_shown` (pessoas) | `upgrade_modal_trial_door_shown` (pessoas) | `upgrade_modal_opened` |
+| --- | --- | --- | --- |
+| 07/09 | 0 | 0 | 3 |
+| 08/09 | 0 | **3** | 5 |
+| 09/09 | **7** | **0** | 17 |
+
+A `CardEntryDoor` entrou em 09/09 e **substituiu** a caixa do modal: hoje são
+**17 aberturas de modal e ZERO impressões** da caixa que esta rotação consertou.
+As 3 pessoas dela são **todas de 08/09**.
+
+**Onde eu errei:** no item 1 escrevi que as duas superfícies são "dois caminhos
+alternativos" — verdade sobre a coorte inteira, e **falso sobre hoje**. Eu li o
+alcance somando 2 dias e não quebrei por dia, que é exatamente o erro que a
+memória `superficie-nova-empurra-a-que-vende` descreve: penhasco de cobertura
+por **sucessão**, não por defeito. A tabela do item 1 continua correta como
+retrato acumulado; ela não autoriza a conclusão de alcance que tirei dela.
+
+**O que a entrega vale, então, sem inflar:**
+- Hoje, **nada** — a caixa não é renderizada para ninguém.
+- É defensiva e continua certa: `cardEntryCohort` decide qual das duas abre, e
+  no dia em que essa coorte mudar (ou a porta cheia for desarmada), a caixa do
+  modal volta com o fato certo em vez do comentário que envelheceu.
+- O que tem valor imediato e **permanece**: a **fonte única** (`filterShotClips`
+  / `countShotClips`), que impede as duas folhas de contarem "clipes rodados" de
+  jeitos diferentes; e os campos `ready_clips` / `film_already_shot` iguais nas
+  duas, sem os quais nenhuma comparação futura teria denominador.
+
+#### O alvo certo, agora com número (para a r4)
+
+Das **7 pessoas que viram a porta cheia hoje**:
+
+| | pessoas |
+| --- | --- |
+| viram a porta | **7** |
+| tinham clipes rodados (`fast_compose_recoverable`) | **2** |
+| bateram na cota (`compose_refused`) | 1 |
+| **clicaram na porta** | **4** |
+| pagaram | **0** |
+
+Duas leituras que a próxima rotação não deve confundir:
+
+1. O ramo "already shot" da r2 alcança **2 de 7 (29%)** — não é raro, mas
+   também não é a maioria. Quem vai por `cinematic_ai` nunca o vê, por
+   construção.
+2. **4 de 7 clicaram e 0 pagaram.** Esse é o degrau que seca agora, e ele é
+   depois da porta — no cobrador, não na folha. O cobrador só ficou de pé às
+   14:58 UTC de hoje; das 4 que clicaram, é preciso separar quem clicou antes e
+   depois desse instante antes de culpar a oferta.
+
+**Próxima jogada (r4):** parar de escrever copy de porta e seguir os 4 cliques
+até o fim — `card_entry_door_clicked` → `checkout_attempted` → `checkout_started`
+→ `checkout_failed`/`payment_success`, por pessoa, com corte no conserto do
+cobrador. Se os 4 morreram no cobrador, a oferta nunca foi testada e nenhuma
+folha nova muda nada.
