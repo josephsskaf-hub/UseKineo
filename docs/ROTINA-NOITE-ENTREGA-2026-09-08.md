@@ -524,3 +524,263 @@ para que "ninguém esperou" e "não havia relógio" nunca tenham o mesmo placar.
 · `vendor_asset_expired` segue de pé (r5): 36 eventos / 8 pessoas, filmes de
   maio com URL do fornecedor em 404.
 · Retentativa de cena: dívida real, **coorte zero** — o 503 orgânico não voltou.
+
+---
+
+## r7 07:35 — O QUE OS TRÊS CONSERTOS FIZERAM, MEDIDO PELO CAMPO NOVO
+
+Rotação de medição (a das 06:30, atrasada — o agendador foi recriado às 01:20).
+**Nenhuma linha de código mudou nesta rotação**, de propósito: o que a ordem
+pede aqui é o veredito, e o veredito de dois dos três consertos é "ainda não
+houve o que medir". Inventar entrega para não escrever isso seria o erro.
+
+### 1. r2 (`8feb2ea1`, no ar desde 08/09 23:52 UTC) — ✅ **PROVADO EM PRODUÇÃO**
+
+Primeiro despacho real depois do deploy, hoje às **09:45:25 UTC**:
+
+| campo | valor |
+|---|---|
+| `source` | `client` |
+| **`replaced_source`** | **`server`** |
+| `clips` | 13 |
+
+As **duas metades correram na ordem desenhada**: a rota do Kineo 1 gravou o
+checkpoint antes de responder, e o cliente o promoveu depois — a única exceção
+à idempotência, exercida na primeira oportunidade que existiu.
+
+⚠️ E quase publiquei o contrário. A leitura crua (`source='client'`) é
+idêntica ao mundo em que o servidor **nunca** gravou. Só o carimbo
+`replaced_source` separa os dois. Foi ele que transformou "o conserto não
+pegou" em "o conserto pegou inteiro" — a razão de o campo existir.
+
+O que **não** está provado: a aba desta pessoa estava viva. O resgate de aba
+morta (a razão do conserto) segue sem ocorrência orgânica. Provado é o
+mecanismo; não o socorro.
+
+### 2. r5 (`3f9337fa`, no ar desde 09/09 05:48 UTC) — **zero oportunidades, provado**
+
+`refusal_notice_shown` = **0**. Antes de chamar isso de defeito, repliquei o
+predicado do leitor (`refusalNoticeServer.ts`) em SQL contra as pessoas reais:
+
+| chegou ao /studio/create desde o deploy | 5 pessoas / 15 eventos |
+|---|---|
+| **com `narration_guard_blocked` na história** | **0 de 5** |
+
+As cinco **nunca foram bloqueadas**. O aviso estava certo em calar. O evento
+existe e a coorte também (43 eventos / 31 pessoas), mas o último bloqueio da
+casa foi **08/09 01:35 UTC — 33 horas atrás**. Nenhuma das 31 voltou ao
+/studio/create desde que o aviso subiu.
+
+(memória: `provar-leitura-sem-trafego`, `zero-escritas-conte-as-oportunidades`)
+
+### 3. r6 (`08641311`, no ar desde 09/09 07:51 UTC) — **sem veredito**
+
+`generation_wait_notice_shown` = 0, e o denominador explica sozinho:
+
+| desde 07:51 UTC | |
+|---|---:|
+| `generation_stage_error` + `video_generation_failed` + `generation_failed_screen_shown` | **0** |
+| despachos | 1 (completou) |
+
+Duas horas e quarenta de produção **sem uma única falha**. Não houve cartão de
+erro para o módulo decidir. Não mexeu porque não teve o que mexer — e isso é
+diferente de não funcionar.
+
+### 4. O que ainda falha, por `reason` (7 dias)
+
+| reason | eventos | pessoas | último |
+|---|---:|---:|---|
+| narration_too_short | 19 | 11 | 08/09 01:35 |
+| cinematic_dispatch_not_ok | 12 | 1 | 04/09 |
+| cinematic_provider_queued | 10 | 2 | 04/09 |
+| compose_daily_free_limit (PORTÃO) | 7 | 4 | 08/09 |
+| fast_dispatch_not_ok | 6 | 1 | 07/09 |
+| cinematic_gate_trial_ended (PORTÃO) | 6 | 2 | 07/09 |
+| scene_generation_failed | 3 | 1 | 07/09 |
+| (mais 8 reasons com 1-2 pessoas cada) | | | |
+
+Nada novo. Nenhuma causa histórica (503 da fal, PGRST303, openai_quota_dead,
+"full capacity", TypeError) voltou.
+
+---
+
+### ⚠️ 5. O NÚMERO QUE ATROPELA TUDO O QUE MEDI ESTA NOITE
+
+Fui medir o denominador da missão e ele desabou. **Mesmo dia da semana, mais
+tráfego, um terço dos filmes:**
+
+| | Seg 31/08 | **Seg 07/09** | Ter 01/09 | **Ter 08/09** |
+|---|---:|---:|---:|---:|
+| sessões de chegada | 140 | **340** | 218 | **312** |
+| pessoas que apertaram Generate | 17 | **19** | 23 | **8** |
+| **chegada → despacho** | 12,1% | 5,6% | **10,6%** | **2,6%** |
+
+Semana a semana, na mesma terça: **+43% de gente chegando, −65% de gente
+apertando.** A conversão caiu 4x.
+
+A série diária mostra onde começa a queda — e que ela não é do meu conserto,
+porque começa **antes** dele (07/09):
+
+| dia | chegada | /studio | apertaram | cadastros |
+|---|---:|---:|---:|---:|
+| 05/09 | 168 | 37 | 29 | 29 |
+| 06/09 | 319 | 41 | 36 | 35 |
+| **07/09** | 340 | 20 | **19** | **26** |
+| **08/09** | 312 | 12 | **8** | **9** |
+| 09/09 (10,5h) | 273 | 8 | 1 | 5 |
+
+**Cadastros: 35 → 26 → 9.** Com a chegada estável em 312-340. A casa recebe
+tanta gente quanto na semana passada e produz um terço dos filmes.
+
+**O que NÃO afirmo:** qual mudança causou isso. `is_bot` só existe nos eventos
+desde 08/09 (295 humanas de 312 naquele dia), então não consigo comparar a
+composição do tráfego com 06/09 — pode ser robô a mais em cima, pode ser
+degrau novo embaixo. E o passo mais fundo que achei (`organic_cta_clicked`
+53→10 sessões) é de **outras páginas** que não a home: comparar com
+`homepage_view` seria laranja com maçã, e eu quase fiz isso.
+(memória: `peca-escrita-para-muitos-vista-por-poucos`, `queda-de-trafego-contra-hora-inflada`)
+
+**O que afirmo, e basta:** o gargalo da missão desta noite ("apertou e não
+saiu", 7 pessoas em 7 dias) é hoje **uma ordem de grandeza menor** que
+"chegou e não apertou". Consertar a entrega enquanto a plateia some é polir
+uma porta que ninguém atravessa.
+
+### 6. RECONCILIAÇÃO 7 DIAS — só para o fundador decidir (não estornei nada)
+
+215 débitos não estornados (2.558 créditos) · 214 vídeos `completed` · 0 vídeo
+em outro estado. 95 débitos sem linha em `videos` — mas **93 são o ponto cego
+conhecido do CLAUDE.md** (`animate-*`, `enhance4k-*`, /images, /audio nunca
+criam linha em `videos`; a pessoa RECEBEU). Cruzando com quem não teve
+**nenhum** filme na janela, sobram **duas linhas**, e uma delas é real:
+
+| pessoa | débito | quando | o que aconteceu |
+|---|---:|---|---|
+| **mitochondrialglowugc@gmail.com** | **40cr** | **09/09 09:02 UTC** | 4K Enhance do vídeo `b9bf7629`. `enhance_request_id` **gravado**, `enhanced_at` **NULL**, `enhanced_url` **NULL**, `refunded_at` **NULL**. Pagou, o pedido saiu, o arquivo não voltou. |
+| nicolasvicentenifa@gmail.com | 5+5cr | 02/09 | dois `animate-*`. Ponto cego, provavelmente entregue — não confirmei. |
+
+O que faz a primeira linha valer a atenção: **dos 13 débitos de Enhance em 45
+dias, 12 foram estornados.** O estorno é a regra da casa nesse fluxo. Este é o
+único de pé, e já tem ~1h30. Ou o self-heal do GET ainda vai resolver, ou são
+40 créditos presos de um cliente que pagou.
+
+**Decisão é do fundador** (a rotina tem proibição explícita de estornar e de
+conceder crédito). Se for para devolver, o caminho é /admin/people → "+
+créditos" com motivo — nunca o banco na mão.
+
+### O QUE FICOU
+
+· `vendor_asset_expired` **explodiu**: 96 eventos só em 08/09 (era 0 em 06 e
+  07/09), 162 em 4 dias. Filmes antigos cuja URL do fornecedor morreu. É a
+  memória `fallback-silencioso-vaza-no-caso-caro` cobrando em produção.
+· Retentativa de cena: dívida real, **coorte zero** — o 503 orgânico não voltou
+  em 30 dias (`accepted == planned` em 25 de 25 `cinematic_dispatch_result`).
+· O socorro de aba morta segue sem ocorrência orgânica para provar.
+
+
+---
+
+## FECHAMENTO 09/09 08:30
+
+*(escrito às 08:18 BRT, com os dados fechados às 10:33 UTC. A janela da rotina
+vai até 09:00 — nada que aconteça entre 08:18 e 09:00 está contado aqui.)*
+
+### 1. CAUSAS FECHADAS — com SHA na main
+
+| # | a causa, em uma linha | SHA | estado da prova |
+|---|---|---|---|
+| 1 | O filme do Kineo 1 morria junto com a aba: o bilhete de resgate só nascia quando o CLIENTE recebia a resposta. Agora a própria rota grava antes de responder. | **`8feb2ea1`** | ✅ **provado em produção** (09:45 UTC: `replaced_source='server'` — as duas metades correram) |
+| 2 | A recusa de narração curta tinha **um leitor só**, e ele só existia enquanto a aba estava aberta. Quem foi embora nunca soube por que não saiu filme. Agora a tela de criar conta na volta, com os números reais e um botão que muda a duração de verdade. | **`3f9337fa`** | ⏸ **zero oportunidades** — as 5 pessoas que voltaram ao /studio nunca foram bloqueadas (predicado do leitor replicado em SQL) |
+| 3 | Todo erro dizia "Generation failed · **you can retry safely**" e oferecia um botão azul — inclusive dentro de uma tranca de 15 minutos que o próprio servidor calculou, e inclusive para 19 pessoas em portão de trial, onde retentar **nunca** podia funcionar. Agora a frase só sobrevive quando é verdade, e no resfriamento o botão trava e destrava sozinho. | **`08641311`** | ⏸ **zero oportunidades** — 2h40 de produção sem uma única falha |
+
+Guardiões no ar: `test-entrega-noite-2026-09-09` (23) ·
+`test-entrega-noite-r5-2026-09-09` (27) · `test-entrega-noite-r6-2026-09-09`
+(55) — **105 verificações, 10 mutações falsificadas com a aplicação provada
+por grep**. Nenhuma linha do pipeline de qualidade foi tocada em nenhuma das
+três: prompt de cena, contrato, régua de voz, planner, motor, custo e preço
+estão byte a byte como estavam.
+
+### 2. ANTES / DEPOIS — e por que a tabela não conclui
+
+| janela (mesmo relógio, 23:52→10:33 UTC) | apertaram | filme no banco | com erro |
+|---|---:|---:|---:|
+| 04/09 → 05/09 | 10 | 10 | 1 |
+| 05/09 → 06/09 | 11 | 9 | 1 |
+| 06/09 → 07/09 | 6 | 6 | 2 |
+| 07/09 → 08/09 | 2 | 1 | 1 |
+| **08/09 → 09/09 (a noite dos consertos)** | **1** | **1** | **0** |
+
+1 de 1 é 100% e **não prova nada**. Escrever "a entrega melhorou" com n=1
+seria o erro que esta casa já cometeu duas vezes
+(memória: `zero-falhas-sem-denominador`). O veredito honesto do fechamento é:
+**dois dos três consertos ainda não tiveram plateia; o terceiro está provado.**
+
+### 3. O QUE AINDA FALHA — e quanta gente
+
+| o que falha | pessoas | janela |
+|---|---:|---|
+| narração curta (a recusa que o conserto 2 vai encontrar quando alguém voltar) | 11 | 7d |
+| portões (limite grátis, trial encerrado) — **não é falha** | 6 | 7d |
+| despacho cinematográfico não ok | 1 | 7d |
+| **"apertou e não saiu" puro (nem filme, nem falha, nem erro)** | **7** | 7d |
+| `vendor_asset_expired` — filme entregue cuja URL do fornecedor morreu depois | 8 | 96 eventos só em 08/09 |
+
+### 4. ⚠️ O QUE ATROPELA TODO O RESTO
+
+**A casa não recebe um pagamento desde 02/09.** Sete dias. Medido por
+`payment_success`, não por `checkout_success_viewed` (que é visita de página).
+
+E hoje, 09/09: **31 `checkout_failed` para 5 pessoas** contra 6
+`checkout_started`. A pista PORTA já nomeou a causa e já deixou o conserto
+pronto para colher (`0f5a53e4`, toca só `app/api/stripe/checkout/route.ts` —
+caminho que esta rotina tem proibição de tocar).
+
+Junto disso, o denominador da missão:
+
+> Mesma terça, **+43% de gente chegando** (218 → 312 sessões), **−65% de gente
+> apertando Generate** (23 → 8). Cadastros 35 → 26 → **9**.
+
+**A consequência prática, que é a razão de isto estar no fechamento:**
+enquanto o checkout está quebrado, a Versão B **não pode ser julgada**. O
+experimento não está medindo se $1 converte melhor que o trial grátis — está
+medindo uma porta trancada, e o anúncio do Reddit está comprando cliques para
+ela. Todo dia que passa assim gera dados que não respondem a pergunta que
+motivou o teste.
+
+### 5. RECONCILIAÇÃO — para o fundador decidir (nada foi estornado)
+
+| pessoa | valor | quando | evidência |
+|---|---:|---|---|
+| **mitochondrialglowugc@gmail.com** | **40 cr** | 09/09 09:02 UTC | 4K Enhance pedido (`enhance_request_id` gravado), `enhanced_at` e `enhanced_url` nulos, `refunded_at` nulo. **12 dos 13 Enhances de 45 dias foram estornados** — este é o único de pé. |
+| nicolasvicentenifa@gmail.com | 10 cr | 02/09 | dois `animate-*`; ponto cego conhecido (Animate não cria linha em `videos`) — provavelmente entregue, não confirmado. |
+
+Fora dessas duas linhas, **os 7 dias fecham**: 215 débitos, 214 filmes, 0 vídeo
+presos em outro estado, e os outros 93 débitos "sem vídeo" são o ponto cego já
+documentado no CLAUDE.md (Animate/Enhance/Images/Audio).
+
+### 6. A PRÓXIMA JOGADA
+
+**Pare de comprar clique para uma porta trancada, e transforme os 7 dias sem
+pagamento em prazo.**
+
+O que eu faria na sua cadeira, nesta ordem, hoje:
+
+1. **Colher o `0f5a53e4` antes de qualquer outra coisa.** É um cherry-pick de
+   um arquivo. Enquanto ele não sobe, cada real do Reddit compra uma tentativa
+   que não pode terminar em venda, e cada hora de Versão B produz dado que não
+   serve para decidir nada.
+2. **Pausar o anúncio do Reddit até o 200 do primeiro checkout.** O critério
+   das 48h (≥5% clicam → escala) foi desenhado para medir *interesse na
+   oferta*. Com o cobrador quebrado ele mede outra coisa e vai reprovar uma
+   oferta que nunca foi testada.
+3. **Ancorar a decisão da Versão B em cadastros, não em cliques.** Cadastro é
+   o único degrau desta semana que nenhum robô inflou e nenhum bug travou:
+   35 → 26 → 9. Se depois do checkout consertado o cadastro não voltar para a
+   casa dos 30, a resposta sobre a Versão B já está dada, e ela não depende de
+   mais nenhuma tela nova.
+
+**A sacada não é "conserte o checkout"** — a pista PORTA já disse isso. É que
+**a Versão B e a campanha do Reddit estão sendo julgadas por um instrumento
+quebrado**, e a coisa mais cara desta noite não é o filme que não saiu para 7
+pessoas: é a decisão de preço que o senhor está prestes a tomar com dados que
+não medem preço.
+

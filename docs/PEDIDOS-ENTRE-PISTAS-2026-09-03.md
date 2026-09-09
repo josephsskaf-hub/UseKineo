@@ -1354,3 +1354,67 @@ conserto aplicado.
 conversão da porta de $1 anterior a esse conserto mede **a parede, não a
 oferta**. O denominador é `card_entry_door_clicked` + `card_entry_banner_clicked`
 (13 cliques, 4 pessoas); o numerador foi zero por defeito, não por preço.
+
+---
+
+## Rotina ENTREGA — fechamento (09/09, madrugada 08→09/09)
+
+**Três causas fechadas, com SHA na main:**
+
+| SHA | a causa |
+|---|---|
+| `8feb2ea1` | o filme do Kineo 1 morria junto com a aba — a rota grava o bilhete de resgate antes de responder. **Provado em produção** hoje 09:45 UTC (`replaced_source='server'`: as duas metades correram) |
+| `3f9337fa` | a recusa de narração curta tinha um leitor só, e ele morria com a aba — a tela de criar conta na volta, com números reais e um botão que muda a duração |
+| `08641311` | "you can retry safely" era dito dentro de uma tranca de 15 min e para 19 pessoas em portão, onde retentar nunca podia funcionar — a frase só sobrevive quando é verdade |
+
+105 verificações em 3 guardiões, 10 mutações falsificadas. **Pipeline de
+qualidade intocado** (prompt, contrato, régua de voz, planner, motor, custo,
+preço byte a byte iguais).
+
+**Veredito honesto:** 1 de 3 provado. Os outros dois tiveram **zero
+oportunidades** — não "não funcionou". As 5 pessoas que voltaram ao /studio
+desde o deploy nunca foram bloqueadas (predicado do leitor replicado em SQL), e
+houve **2h40 de produção sem uma única falha**.
+
+### ⚠️ O que qualquer pista precisa saber antes de medir a Versão B
+
+**Sem `payment_success` desde 02/09 — sete dias.** (Medido por
+`payment_success`; `checkout_success_viewed` é visita de página, não venda.)
+Hoje: **31 `checkout_failed` para 5 pessoas** contra 6 `checkout_started`.
+
+E o denominador, mesma terça semana a semana:
+
+| | Ter 01/09 | **Ter 08/09** |
+|---|---:|---:|
+| sessões de chegada | 218 | **312** (+43%) |
+| pessoas que apertaram Generate | 23 | **8** (−65%) |
+| cadastros | (24) | **9** |
+
+**A consequência:** enquanto o cobrador está quebrado, a Versão B não está
+sendo testada — está sendo medida por um instrumento quebrado, e a campanha do
+Reddit compra cliques para uma porta trancada. O `0f5a53e4` (um arquivo,
+`app/api/stripe/checkout/route.ts`) precisa subir **antes** de qualquer
+julgamento da oferta de $1.
+
+Se for preciso decidir a Versão B mesmo assim, **use cadastro como régua** —
+é o único degrau desta semana que nenhum robô inflou (`is_bot` só existe nos
+eventos desde 08/09) e nenhum bug travou.
+
+### Reconciliação — decisão do fundador (a rotina não estornou nada)
+
+· **mitochondrialglowugc@gmail.com — 40 cr, hoje 09:02 UTC.** 4K Enhance
+  pedido, `enhanced_at`/`enhanced_url`/`refunded_at` todos nulos.
+  **12 dos 13 Enhances de 45 dias foram estornados**; este é o único de pé.
+· nicolasvicentenifa@gmail.com — 10 cr (02/09, dois `animate-*`): ponto cego
+  conhecido, provavelmente entregue.
+· Fora essas duas linhas os 7 dias fecham: 215 débitos / 214 filmes / 0 preso.
+
+### Dívidas nomeadas, sem coorte ou fora da janela
+
+· **Retentativa de cena**: `accepted == planned` em 25 de 25
+  `cinematic_dispatch_result` de 30 dias. O 503 da fal não voltou —
+  construir hoje seria código para zero ocorrências.
+· **`vendor_asset_expired` explodiu**: 96 eventos só em 08/09 (0 em 06 e
+  07/09), 8 pessoas. Filme entregue cuja URL do fornecedor morreu depois.
+
+Diário completo: `docs/ROTINA-NOITE-ENTREGA-2026-09-08.md`.
