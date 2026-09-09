@@ -53,6 +53,9 @@ checa('entryPolicy segue PURA (sem import): o preço é literal espelhado, guard
 const creatorUsd = Number((cp.match(/basic: \{ usd: (\d+) \}/) || [])[1]) / 100
 checa('chip/headline/sentence dizem exatamente $' + creatorUsd + ' (= TIER_PRICES.basic)', creatorUsd === 29 && (ep.match(/then \$29\/mo'|Then \$29\/month|continues at \$29\/month/g) || []).length === 3)
 checa('nenhum "$19" literal sobrou na copy da porta', !/\$19\b/.test(ep.replace(/\/\/[^\n]*/g, '')))
+const fto = rd('lib/freeTierOffer.ts')
+checa('freeTierOffer (pura, sandbox): planCardBody e cmpKineoFree dizem $29 e nenhum $19 sobrou', /Then \$29\/month for about one film a day/.test(fto) && /then \$29\/month\.'/.test(fto) && !/\$19\b/.test(fto.replace(/\/\/[^\n]*/g, '')))
+for (const lab of ['lib/ui/interfaceLabels.ts', 'lib/ui/interfaceHindi.ts']) checa(`${lab}: nenhum rótulo com $19 (chave inglesa tem que casar com a copy nova)`, !/\$19\b/.test(rd(lab)))
 const studioUsd = Number((cp.match(/pro: \{ usd: (\d+) \}/) || [])[1]) / 100
 checa('enginePlanGate diz exatamente $' + studioUsd + ' (= TIER_PRICES.pro) e segue puro', studioUsd === 59 && /\(\$59\/mo, every engine\)/.test(rd('lib/enginePlanGate.ts')) && !/^import /m.test(rd('lib/enginePlanGate.ts')))
 
