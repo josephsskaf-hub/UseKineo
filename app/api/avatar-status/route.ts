@@ -3,6 +3,7 @@
 // The client polls every ~5s; on `done` it kicks /api/compose with the
 // avatar video as the main track.
 import { NextRequest, NextResponse } from 'next/server'
+import { writeServerEvent } from '@/lib/serverEvents'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { checkAvatarJob, type AvatarEngine } from '@/lib/avatar/veed'
@@ -130,6 +131,8 @@ export async function GET(req: NextRequest) {
         )
       }
       const creditsRefunded = refunded.credits
+      // KINEO-AVATAR-R1-2026-09-09 — desfecho do fornecedor gravado (antes: só o log).
+      void writeServerEvent({ name: 'avatar_provider_settled', userId: user.id, path: '/api/avatar-status', metadata: { engine, request_id: requestId, status: 'failed', credits_refunded: creditsRefunded } })
       return NextResponse.json({
         status: 'failed',
         video_url: null,
@@ -169,6 +172,8 @@ export async function GET(req: NextRequest) {
           { status: 503 },
         )
       }
+      // KINEO-AVATAR-R1-2026-09-09 — o clipe do apresentador existe e o débito fechou.
+      void writeServerEvent({ name: 'avatar_provider_settled', userId: user.id, path: '/api/avatar-status', metadata: { engine, request_id: requestId, status: 'done', generation_id: bound.claim.generationId, credits: bound.claim.creditCost } })
     }
 
     return NextResponse.json({ status: state.status, video_url: state.videoUrl })

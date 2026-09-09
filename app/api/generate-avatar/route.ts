@@ -34,6 +34,7 @@ import {
   uploadVoiceoverToSupabase,
 } from '@/lib/compose'
 import { parseUserScript, stripScriptMarkers } from '@/lib/scriptParser'
+import { writeServerEvent } from '@/lib/serverEvents'
 // KINEO-REVERSE-TRIAL-P1-2026-08-06 — todo débito passa pelo wrapper único
 // (mesmo RPC; com a flag OFF é byte-idêntico ao rpc direto).
 import { debitVideoCredits } from '@/lib/credits/debit'
@@ -775,6 +776,39 @@ export async function POST(req: NextRequest) {
     }
     const realAudioDuration = estimateMp3DurationSeconds(audioBuffer)
 
+    // ═══ KINEO-AVATAR-R1-2026-09-09 — O AVATAR NUNCA TEVE RASTRO NEM PISO ═══
+    // Relatório dos motores (09/09): os 3 únicos filmes de Avatar da história
+    // têm 3 segundos — o compose usa a duração REAL da narração e o roteiro de
+    // teste era uma frase. 70–110 créditos por 3 s é um defeito de produto, não
+    // do fornecedor. E o fluxo inteiro não gravava um único evento de servidor.
+    // (1) piso de narração: menos de 12 s de fala não vira render pago;
+    // (2) evento de despacho com a duração real, para o placar enxergar o motor.
+    const AVATAR_MIN_NARRATION_SECONDS = 12
+    void writeServerEvent({
+      name: 'avatar_dispatch_received',
+      userId: user.id,
+      path: '/api/generate-avatar',
+      metadata: { engine, dry_run: dryRun, requested_duration: duration, real_audio_duration: Number(realAudioDuration.toFixed(1)), verbatim, prompt_length: prompt.length },
+    })
+    if (!dryRun && realAudioDuration < AVATAR_MIN_NARRATION_SECONDS) {
+      await releaseAvatarSubmission()
+      void writeServerEvent({
+        name: 'avatar_narration_too_short',
+        userId: user.id,
+        path: '/api/generate-avatar',
+        metadata: { engine, real_audio_duration: Number(realAudioDuration.toFixed(1)), min_seconds: AVATAR_MIN_NARRATION_SECONDS, verbatim },
+      })
+      return NextResponse.json(
+        {
+          error: `Your narration is ${realAudioDuration.toFixed(1)} seconds. An avatar film needs at least ${AVATAR_MIN_NARRATION_SECONDS} seconds of speech (about 30 words) — add to your script, or switch off "use my script as is" to let Kineo expand it. You were not charged.`,
+          narration_too_short: true,
+          real_audio_duration: Number(realAudioDuration.toFixed(1)),
+          min_seconds: AVATAR_MIN_NARRATION_SECONDS,
+        },
+        { status: 422 },
+      )
+    }
+
     // OmniHuman 1.5 at 720p hard-caps audio at 60 seconds. Reject before any
     // upload/provider submit so the user gets a clear message and spends no
     // credits. Voice-only dry runs remain available for longer scripts.
@@ -968,6 +1002,14 @@ export async function POST(req: NextRequest) {
       : engine === 'presenter_pro' ? PRESENTER_PRO_USD_PER_SECOND
       : engine === 'omnihuman' ? OMNIHUMAN_720P_USD_PER_SECOND
       : VEED_720P_USD_PER_SECOND
+    // KINEO-AVATAR-R1-2026-09-09 — o fornecedor aceitou: request id, custo estimado
+    // e a duração real ficam no banco (antes, só no log da Vercel, que expira).
+    void writeServerEvent({
+      name: 'avatar_provider_submitted',
+      userId: user.id,
+      path: '/api/generate-avatar',
+      metadata: { engine, request_id: requestId, generation_id: generationId, real_audio_duration: Number(realAudioDuration.toFixed(1)), estimated_seconds: Math.round(estSeconds), estimated_cost_usd: Number((estSeconds * usdPerSecond).toFixed(2)), credits: AVATAR_CREDIT_COST },
+    })
     const baseResponse: Record<string, unknown> = {
       mode: 'avatar',
       engine,

@@ -104,3 +104,24 @@ Ordem do fundador: "começa pelo número 2 e vai até o 6, arruma, deixa todos m
 - Seedance a 720p nos 60 s: margem (docs KINEO-SEEDANCE-720-MARGEM); decisão de custo do fundador.
 - Avatar (item 1): decisão do fundador (tirar ou consertar) — pendente.
 - Contrato de cena para o Seedance como o do Kling 3: é obra maior (âncoras por cena com still); a trava de estilo desta rodada cobre o defeito visto.
+
+---
+
+# Item 1 — Avatar (09/09, ~22h): o que estava quebrado de verdade e o que mudou
+
+**Investigação (custo zero):**
+- Os 4 filmes de Avatar/Presenter da história (todos de julho, todos do fundador) têm **3,0 s com áudio** porque o Avatar Studio manda ao compose `duration = max(3, ceil(duração real da narração))` e o roteiro de teste era uma frase. O pipeline não estava "quebrado": ele entregou exatamente 3 s de fala. **O defeito de produto é não ter piso**: 70–110 créditos por um filme de 3 s.
+- Os seis modelos usados na fal (Kling AI Avatar v2 standard/pro, VEED Fabric 1.0, OmniHuman 1.5, sync-lipsync v3, Kling 2.5 i2v) respondem **HTTP 200** em 09/09 — nenhum foi aposentado.
+- O fluxo inteiro (generate-avatar → avatar-status → compose) gravava **zero eventos de servidor**: não existia como saber se alguém tentou, se o fornecedor aceitou ou o que saiu. Só `hero_avatar_cta_click` (junho).
+- O Avatar já está no seletor do Studio (card "Avatar · Presenter" desde 30/08) e na navegação como "AI Presenter".
+
+**O que mudou (guardião `scripts/test-avatar-r1-2026-09-09.mjs`, 13 verificações):**
+1. **Piso de 12 s de fala** antes de qualquer submissão paga: narração menor devolve 422 com a duração real, o mínimo e "you were not charged"; a submissão é liberada antes de responder. Dry-run (só voz, $0) continua sem piso. Tetos de 60 s (OmniHuman/VEED/Pro) intactos.
+2. **Rastro de ponta a ponta:** `avatar_dispatch_received` (motor, dry-run, duração pedida e real), `avatar_narration_too_short`, `avatar_provider_submitted` (request id, custo estimado em US$, créditos) e `avatar_provider_settled` (done com débito confirmado / failed com estorno).
+
+**Nota:** sai de 10% para "sem nota até o primeiro filme real". O motor não tem defeito conhecido; tem zero uso e zero prova. A nota real vem do teste abaixo.
+
+**Como o fundador prova (2 passos, ~$3,40 no 2º):**
+1. /avatar → foto + roteiro de ~150 palavras → **dry-run** primeiro (só voz): deve responder com a duração real (≥ 12 s) e nenhum crédito.
+2. Mesmo roteiro, render real no **Presenter (70 cr)**: o placar deve mostrar `avatar_dispatch_received` → `avatar_provider_submitted` → `avatar_provider_settled done` → filme com a duração da narração (~60 s), com lip-sync.
+Se der 3 s de novo com 150 palavras, aí é defeito de pipeline e eu abro o compose.
