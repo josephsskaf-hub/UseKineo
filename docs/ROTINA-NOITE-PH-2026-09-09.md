@@ -78,3 +78,40 @@ Kling/Veo/Kling 3/H3/Omni/Avatar para **Studio** em conta criada depois de
 
 **O que ficou para as próximas rotações:** vídeo de 60 s + thumb (04:30),
 textos do PH (06:30), `/ph` polida + guardião do kit + fechamento (08:30).
+
+## r2 03:35 — o vídeo de 60 s + thumbnail
+
+**O que ficou pronto:** `docs/ph/kineo-ph-60s.mp4` — 1280x720, **60,03 s**,
+**7,67 MB** (teto era 50), 30 fps, sem áudio. `docs/ph/kineo-ph-thumb.png`
+1270x760.
+
+**Como foi gerado (comando):**
+
+```bash
+node scripts/ph-video.mjs
+```
+
+**Linguagem visual:** a mesma do anúncio do Reddit publicado hoje
+(`public/ads/kineo-reddit-sep09-16x9-v2.mp4`, commit `3eeae0d1`): o filme
+vertical **inteiro** no centro, laterais desfocadas do próprio filme, texto no
+topo. O produto é o filme 9:16 — mostrá-lo cortado seria vender outro produto.
+
+**Montagem (4 filmes de 12 s + cartela de 12 s):**
+
+| trecho | filme | motor | frase no topo |
+|---|---|---|---|
+| 0–12 s | The robot rising from the harbor | Omni Flash · 150cr | "Type an idea." |
+| 12–24 s | The Dyatlov Pass incident | Kling 2.5 · 50cr | "One paragraph of text." |
+| 24–36 s | The ghost ship Mary Celeste | Seedance 1.5 · 25cr | "Eight engines, one button." |
+| 36–48 s | Storm over Lake Maracaibo | Kling 3 · 150cr | "A finished 9:16 film." |
+| 48–60 s | cartela | — | `CARD_ENTRY_COPY.chip` + `.headline` + `.noFreeTier` |
+
+O nome e o custo em créditos no selo de cada trecho saem de `ph-fatos.mjs`; a
+cartela final é o `CARD_ENTRY_COPY` inteiro, palavra por palavra da fonte
+única. Os quatro masters passam por `crop=1080:1776:0:144` — a marca antiga
+não aparece em um quadro sequer.
+
+**Detalhe técnico que vale para a próxima peça:** as tarjas de texto são PNG
+com alfa capturados pelo Edge (`--default-background-color=00000000`) e
+sobrepostos com `overlay`, em vez de `drawtext`. Sai a tipografia da casa, e
+não há inferno de escape de `:` no filtro do ffmpeg.
