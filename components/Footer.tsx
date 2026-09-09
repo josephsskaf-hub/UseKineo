@@ -94,13 +94,13 @@ const navGroups: { title: string; links: { href: string; label: string; costCalc
       { href: '/youtube-automation-case-study', label: 'Live case study: our channel on Autopilot' },
       { href: '/ai-shorts-for-agencies', label: 'AI Shorts for agencies & client work' },
       { href: '/trust', label: 'Trust Center — privacy, payments & ownership' },
-      { href: '/partners', label: 'Affiliate program - 40% recurring' },
+      { href: '/partners', label: 'Affiliate program - 30% recurring' },
       // ═══════════════════════════════════════════════════════════════════════
       // KINEO-AFFILIATE-DEDUPE-2026-07-30 — o segundo link foi REMOVIDO daqui.
       //
       // O que existia: duas linhas consecutivas no rodapé com rótulo praticamente
-      // idêntico — 'Affiliate program - 40% recurring' (/partners) e
-      // 'Affiliate Program — 40% recurring' (/affiliate). Para quem lê, é um bug
+      // idêntico — 'Affiliate program - 30% recurring' (/partners) e
+      // 'Affiliate Program — 30% recurring' (/affiliate). Para quem lê, é um bug
       // de duplicação; a diferença era só o hífen contra o travessão.
       //
       // Por que o de /affiliate saiu, e não o de /partners:

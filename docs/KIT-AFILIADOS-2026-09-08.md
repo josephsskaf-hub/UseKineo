@@ -1,6 +1,6 @@
 # KIT PARA 20 CRIADORES DE CANAL FACELESS — afiliados com o $1 (08/09/2026, tarefa 9)
 
-**O que a auditoria achou primeiro:** 15 afiliados ativos, 40% recorrente, 27
+**O que a auditoria achou primeiro:** 15 afiliados ativos, 30% recorrente, 27
 cliques na história, **0 atribuições, 0 comissões**. Dois motivos:
 1. Os afiliados nunca receberam material nem motivo para postar (carta de
    07/09 foi a primeira).
@@ -12,8 +12,8 @@ cliques na história, **0 atribuições, 0 comissões**. Dois motivos:
 
 ## O que o criador ganha (sem inventar nada)
 
-- **40% recorrente** sobre tudo que a pessoa pagar, pelo tempo que ficar.
-  $29/mês → $11,60/mês por assinante, todo mês.
+- **30% recorrente** sobre tudo que a pessoa pagar, pelo tempo que ficar.
+  $29/mês → $8,70/mês por assinante, todo mês.
 - Link próprio `usekineo.com/a/CODE`, cookie de 90 dias, painel em /affiliate.
 - O gancho para o público dele: **$1 por 7 dias** (80 créditos, Creator).
   É a menor entrada do nicho — nenhum concorrente faz.
@@ -32,7 +32,7 @@ vídeos; quem já é cliente e tem canal (lista em /admin/people, coluna vídeos
 
 ## A mensagem (DM ou e-mail, voz do fundador — EN)
 
-**Assunto:** 40% forever + a $1 door for your audience
+**Assunto:** 30% forever + a $1 door for your audience
 
 ```
 Hey [name],

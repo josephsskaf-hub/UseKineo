@@ -579,23 +579,33 @@ export type BulkPackId = 'bulk10' | 'bulk20' | 'bulk30' | 'bulk50'
 /** Folga sobre o número de vídeos vendido. Ver o bloco acima. */
 export const BULK_HEADROOM_RATIO = 0.2
 
-/** Créditos concedidos por um pacote de N vídeos Fast, já com a folga. */
+// KINEO-PRICING-V7-2026-09-09 — o pack vendia "N vídeos Fast" com N + folga
+// créditos, da época em que o Fast custava 1 crédito. O Kineo 1 de 60 s custa
+// KINEO1_60S_CREDITS hoje: 12 créditos compravam 2 filmes de um pack "de 10".
+// Agora o pack promete N filmes Kineo 1 de 60 s e concede o que isso custa,
+// mais a folga.
+const KINEO1_60S_CREDITS = creditCostForDuration('fast', true, 60)
+
+/** Créditos concedidos por um pacote de N filmes Kineo 1 de 60 s, já com a folga. */
 export function bulkCreditsFor(videos: number): number {
-  return videos + Math.max(2, Math.ceil(videos * BULK_HEADROOM_RATIO))
+  const base = videos * KINEO1_60S_CREDITS
+  return base + Math.max(KINEO1_60S_CREDITS * 2, Math.ceil(base * BULK_HEADROOM_RATIO))
 }
 
 export const BULK_PACKS: Record<BulkPackId, {
-  /** Número de vídeos Fast vendido — é o que a copy promete. */
+  /** Número de filmes Kineo 1 (60 s) vendido — é o que a copy promete. */
   videos: number
-  /** Preço em centavos de dólar. APROVADO pelo fundador; não altere. */
+  /** Preço em centavos de dólar. V7 (09/09, fundador: "você escolhe"): acima
+   *  do Starter por filme ($1,17) porque é sem assinatura, e acima do Creator
+   *  por crédito ($0,193) — a regra da casa para tudo que é avulso. */
   usdMinor: number
   /** Créditos concedidos = videos + folga. */
   credits: number
 }> = {
-  bulk10: { videos: 10, usdMinor: 9900, credits: bulkCreditsFor(10) },
-  bulk20: { videos: 20, usdMinor: 17900, credits: bulkCreditsFor(20) },
-  bulk30: { videos: 30, usdMinor: 24900, credits: bulkCreditsFor(30) },
-  bulk50: { videos: 50, usdMinor: 37900, credits: bulkCreditsFor(50) },
+  bulk10: { videos: 10, usdMinor: 1900, credits: bulkCreditsFor(10) },
+  bulk20: { videos: 20, usdMinor: 3500, credits: bulkCreditsFor(20) },
+  bulk30: { videos: 30, usdMinor: 4900, credits: bulkCreditsFor(30) },
+  bulk50: { videos: 50, usdMinor: 7500, credits: bulkCreditsFor(50) },
 }
 
 export const BULK_PACK_IDS = Object.keys(BULK_PACKS) as BulkPackId[]
@@ -632,7 +642,8 @@ export function isBulkPackId(raw: string | null | undefined): raw is BulkPackId 
 //
 // Esta lista é o contrato entre o preço e o webhook: para QUALQUER valor aqui,
 // o webhook resolve SÓ por metadata.pack exata e NUNCA por valor.
-export const AMBIGUOUS_ONE_TIME_USD_AMOUNTS: ReadonlySet<number> = new Set([9900])
+// KINEO-PRICING-V7-2026-09-09 — bulk10 saiu de $99 (era o que colidia com o piloto de $99); a lista fica vazia até a próxima colisão real.
+export const AMBIGUOUS_ONE_TIME_USD_AMOUNTS: ReadonlySet<number> = new Set<number>([])
 
 /** true = este valor em USD não identifica um SKU sozinho. */
 export function isAmbiguousOneTimeUsdAmount(amountMinor: number, currency: string | null | undefined): boolean {

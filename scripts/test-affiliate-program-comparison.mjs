@@ -31,7 +31,7 @@ equal(comparison.AFFILIATE_PROGRAM_COMPARISON.length, 4, 'four settled official 
 equal(comparison.affiliateComparisonPrograms().join(','), 'Kineo,OpusClip,InVideo,VEED', 'program order is intentional')
 
 const kineo = comparison.kineoAffiliateComparisonRow()
-equal(kineo.commission, '40% recurring', 'Kineo rate is explicit')
+equal(kineo.commission, '30% recurring', 'Kineo rate is explicit (30% desde 09/09)')
 ok(kineo.recurrence.includes('stays subscribed'), 'Kineo duration is explicit')
 ok(kineo.activation.includes('Instant'), 'Kineo instant activation is explicit')
 ok(kineo.distribution.includes('coupon'), 'Kineo linkless-video advantage is explicit')

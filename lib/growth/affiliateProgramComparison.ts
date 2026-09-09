@@ -26,7 +26,7 @@ export interface AffiliateProgramComparisonRow {
 export const AFFILIATE_PROGRAM_COMPARISON: readonly AffiliateProgramComparisonRow[] = [
   {
     program: 'Kineo',
-    commission: '40% recurring',
+    commission: '30% recurring',
     recurrence: 'Eligible payments while the referred customer stays subscribed',
     activation: 'Instant, self-serve in Kineo',
     distribution: 'Tracked link plus a spoken checkout coupon for linkless video',

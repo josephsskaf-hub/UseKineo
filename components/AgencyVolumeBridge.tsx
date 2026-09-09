@@ -66,7 +66,7 @@ export default function AgencyVolumeBridge({ entry }: { entry: AgencyDistributio
         </h2>
         <p style={{ color: '#aaaab1', fontSize: 14, lineHeight: 1.62, margin: '10px 0 0' }}>
           Buy 10–50 Fast Shorts once, download clean commercial-use MP4s and keep the margin.
-          Packs start at {formatCheckoutMoney('usd', LOWEST_UNIT_PRICE_MINOR)} per finished Fast Short.
+          Packs start at {formatCheckoutMoney('usd', LOWEST_UNIT_PRICE_MINOR)} per finished 60-second Kineo 1 film.
         </p>
       </div>
 

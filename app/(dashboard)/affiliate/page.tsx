@@ -299,12 +299,12 @@ export default function AffiliatePage() {
                 backgroundClip: 'text',
               }}
             >
-              earn 40% recurring
+              earn 30% recurring
             </span>{' '}
             on eligible payments
           </h1>
           <p className="text-sm mb-6 mx-auto" style={{ color: MUTED, maxWidth: 460, lineHeight: 1.6 }}>
-            Share your link, send people to Kineo, and earn 40% recurring on eligible subscription
+            Share your link, send people to Kineo, and earn 30% recurring on eligible subscription
             payments from customers you bring. No review queue: your link is active the second you
             press the button, and starts tracking link visits immediately.
           </p>

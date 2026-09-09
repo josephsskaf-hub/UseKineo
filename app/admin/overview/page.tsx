@@ -17,6 +17,7 @@
 // Access gate: identical to the /api/admin/* routes — cookie session +
 // ADMIN_EMAILS allowlist, checked server-side before any data is fetched.
 
+import { CARD_ENTRY_TRIAL_CREDITS } from '@/lib/entryPolicy'
 import Link from 'next/link'
 import { fetchAllRows } from '@/app/api/admin/_shared/db'
 import type { CSSProperties, ReactNode } from 'react'
@@ -78,6 +79,8 @@ function maskEmail(email: string): string {
 
 // ── data layer ──────────────────────────────────────────────────────────────
 
+type Entrante = { id: string; email: string; bornAt: string | null; sawDoor: boolean; clicked: boolean; checkout: boolean; paid1At: string | null; plan: string | null; credits: number | null; films: number }
+
 type Metrics = {
   internalCount: number
   externalUsers: number
@@ -93,6 +96,8 @@ type Metrics = {
   arpuUsd: number | null
   oneTimePurchases: number
   versaoB: { today: FunilB; d7: FunilB; since: string }
+  // KINEO-ADMIN-ENTRANTES-2026-09-09 — quem entrou pela porta, por pessoa.
+  entrantes: Entrante[]
   // growth
   signupsToday: number
   signups7d: number
@@ -140,7 +145,7 @@ async function loadMetrics(): Promise<Metrics | null> {
   // A cura é a mesma da casa: fetchAllRows pagina de 1.000 em 1.000, com
   // ORDER BY id estável (consertado em 28/08 no próprio helper).
   const [profilesR, videosR, debitsR, abandR, clicksR, eventsR] = await Promise.all([
-    fetchAllRows<ProfileRow>(admin, 'profiles', 'id, email, plan, created_at, utm_source, stripe_subscription_id'),
+    fetchAllRows<ProfileRow>(admin, 'profiles', 'id, email, plan, created_at, utm_source, stripe_subscription_id, video_credits'),
     fetchAllRows<VideoRow>(admin, 'videos', 'user_id, created_at, status, credits_used'),
     fetchAllRows<{ user_id: string | null; refunded_at: string | null }>(admin, 'credit_debits', 'user_id, refunded_at'),
     fetchAllRows<{ user_id: string | null }>(admin, 'checkout_abandoned', 'user_id'),
@@ -171,7 +176,7 @@ async function loadMetrics(): Promise<Metrics | null> {
   const clicksQ = { data: clicksR }
   const eventsQ = { data: eventsR }
 
-  type ProfileRow = { id: string; email: string | null; plan: string | null; created_at: string | null; stripe_subscription_id?: string | null; utm_source: string | null }
+  type ProfileRow = { id: string; email: string | null; plan: string | null; created_at: string | null; stripe_subscription_id?: string | null; utm_source: string | null; video_credits: number | null }
   type VideoRow = { user_id: string | null; created_at: string | null; status: string | null; credits_used: number | null }
 
   const profiles = (profilesQ.data ?? []) as ProfileRow[]
@@ -330,6 +335,31 @@ async function loadMetrics(): Promise<Metrics | null> {
     .slice(0, 5)
     .map((p) => ({ masked: maskEmail(p.email ?? ''), at: p.created_at, utm: p.utm_source }))
 
+  // KINEO-ADMIN-ENTRANTES-2026-09-09 — fundador: "as pessoas que estão entrando,
+  // quem está comprando, os 80 créditos". Por pessoa, desde o marco.
+  const profileById = new Map(profiles.map((p) => [p.id, p]))
+  const filmsByUser = new Map<string, number>()
+  for (const v of videos) if (v.user_id && (v.status ?? '') === 'completed') filmsByUser.set(v.user_id, (filmsByUser.get(v.user_id) ?? 0) + 1)
+  const marcoMs = new Date(VERSAO_B_SINCE).getTime()
+  const entrantesMap = new Map<string, Entrante>()
+  for (const e of eventRows) {
+    if (!e.user_id || !extIds.has(e.user_id) || e.name !== 'card_entry_required') continue
+    const t = e.created_at ? new Date(e.created_at).getTime() : 0
+    if (t < marcoMs || entrantesMap.has(e.user_id)) continue
+    const p = profileById.get(e.user_id)
+    entrantesMap.set(e.user_id, { id: e.user_id, email: maskEmail(p?.email ?? ''), bornAt: e.created_at ?? null, sawDoor: false, clicked: false, checkout: false, paid1At: null, plan: p?.plan ?? null, credits: p?.video_credits ?? null, films: filmsByUser.get(e.user_id) ?? 0 })
+  }
+  for (const e of eventRows) {
+    const row = e.user_id ? entrantesMap.get(e.user_id) : undefined
+    if (!row) continue
+    const m = e.metadata ?? null
+    const ic = typeof m?.intent_campaign === 'string' ? m.intent_campaign : ''
+    if (e.name === 'card_entry_banner_shown' || e.name === 'card_entry_door_shown') row.sawDoor = true
+    if (e.name === 'card_entry_banner_clicked' || e.name === 'card_entry_door_clicked') row.clicked = true
+    if (e.name === 'checkout_started' && (metaTrue(m, 'card_trial') || ic === 'card_entry' || ic === 'door_v2' || ic.startsWith('trial_1usd'))) row.checkout = true
+    if (e.name === 'payment_success' && metaTrue(m, 'card_trial')) row.paid1At = e.created_at ?? row.paid1At
+  }
+  const entrantes = [...entrantesMap.values()].sort((a, b) => (b.bornAt ?? '').localeCompare(a.bornAt ?? '')).slice(0, 40)
   return {
     internalCount,
     externalUsers: external.length,
@@ -343,6 +373,7 @@ async function loadMetrics(): Promise<Metrics | null> {
     arpuUsd,
     oneTimePurchases,
     versaoB,
+    entrantes,
     signupsToday,
     signups7d,
     signupsPrev7d,
@@ -526,6 +557,29 @@ export default async function AdminOverviewPage() {
               </div>
             </div>
           ))}
+          {/* KINEO-ADMIN-ENTRANTES-2026-09-09 — a lista por pessoa, embaixo dos números. */}
+          <div style={{ marginTop: 8, fontSize: 11, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 6 }}>Quem entrou pela porta · últimos {m.entrantes.length} desde o marco</div>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+              <thead><tr style={{ color: 'var(--muted2)', textAlign: 'left' }}>{['Pessoa', 'Entrou', 'Viu', 'Clicou', 'Checkout', 'Pagou $1', 'Plano', 'Créditos', 'Filmes'].map((h) => <th key={h} style={{ padding: '4px 8px', fontWeight: 700 }}>{h}</th>)}</tr></thead>
+              <tbody>
+                {m.entrantes.length === 0 && <tr><td colSpan={9} style={{ padding: 8, color: 'var(--muted2)' }}>Ninguém ainda desde o marco.</td></tr>}
+                {m.entrantes.map((e) => (
+                  <tr key={e.id} data-testid="entrante" style={{ borderTop: '1px solid rgba(255,255,255,.06)', background: e.paid1At ? 'rgba(52,211,153,.06)' : undefined }}>
+                    <td style={{ padding: '4px 8px', fontFamily: 'ui-monospace, monospace' }}>{e.email}</td>
+                    <td style={{ padding: '4px 8px' }}>{timeAgo(e.bornAt)}</td>
+                    <td style={{ padding: '4px 8px' }}>{e.sawDoor ? '✓' : '—'}</td>
+                    <td style={{ padding: '4px 8px' }}>{e.clicked ? '✓' : '—'}</td>
+                    <td style={{ padding: '4px 8px' }}>{e.checkout ? '✓' : '—'}</td>
+                    <td style={{ padding: '4px 8px', color: e.paid1At ? '#34d399' : 'var(--muted2)', fontWeight: e.paid1At ? 800 : 400 }}>{e.paid1At ? timeAgo(e.paid1At) : '—'}</td>
+                    <td style={{ padding: '4px 8px' }}>{e.plan ?? '—'}</td>
+                    <td style={{ padding: '4px 8px' }}>{e.credits ?? '—'}{e.paid1At && e.credits != null ? ` · usou ${Math.max(0, CARD_ENTRY_TRIAL_CREDITS - e.credits)} de ${CARD_ENTRY_TRIAL_CREDITS}` : ''}</td>
+                    <td style={{ padding: '4px 8px' }}>{e.films}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </Section>
         {/* 💰 Revenue */}
         <Section emoji="💰" title="Revenue">

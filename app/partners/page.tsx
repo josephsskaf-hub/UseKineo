@@ -1,5 +1,5 @@
 // #486 — Public affiliate-recruiting landing. The page every outreach links to.
-// Explains the verified 40% recurring model, first-touch window and how to
+// Explains the verified 30% recurring model, first-touch window and how to
 // apply through the built-in affiliate dashboard. Static, in sitemap for SEO.
 //
 // PUSH #101 — COPY DRIFT KILLED. This page used to promise a human review step
@@ -7,7 +7,7 @@
 // true when app/api/affiliate/apply/route.ts:110 started inserting new
 // affiliates with `status: 'active'` instead of 'pending'. Every claim below is
 // now traceable to code:
-//   40% commission      → app/api/affiliate/apply/route.ts:111 (commission_rate: 0.4)
+//   30% commission      → app/api/affiliate/apply/route.ts:111 (commission_rate: 0.4)
 //                         read back by app/api/stripe/webhook/route.ts:72-77
 //   90-day first touch  → app/a/[code]/route.ts:13 (COOKIE_MAX_AGE) + :58-68
 //                         (cookie is only set when absent = first touch wins)
@@ -29,6 +29,7 @@
 //                         SEPARATE gate from affiliate activation.
 // If the insert status is ever reverted to 'pending', the "live the moment you
 // apply" copy on this page becomes false again and must be reverted with it.
+import { AFFILIATE_COMMISSION_RATE } from '@/lib/affiliateCommission'
 import type { Metadata } from 'next'
 import { TIER_PRICES } from '@/lib/checkoutPricing'
 import Link from 'next/link'
@@ -41,15 +42,15 @@ import {
 } from '@/lib/growth/affiliateProgramComparison'
 
 // KINEO-PRICING-V6-2026-08-19 — a ilustração de ganhos é CALCULADA, não
-// digitada. 40% é a taxa que app/api/affiliate/apply/route.ts grava
+// digitada. 30% é a taxa que app/api/affiliate/apply/route.ts grava
 // (commission_rate: 0.4); o piso e o teto são o plano mais barato e o mais caro
 // da escada de assinatura (Autopilot fica de fora de propósito: $299/mês num
 // exemplo de afiliado infla a promessa com um produto que quase ninguém compra).
-const COMMISSION_RATE = 0.4
+const COMMISSION_RATE = AFFILIATE_COMMISSION_RATE
 const CHEAPEST_PLAN_USD = TIER_PRICES.starter.usd / 100
 const PRICIEST_PLAN_USD = TIER_PRICES.pro.usd / 100
 
-/** "~$28–$116 / mo" para N clientes indicados, a 40% recorrente. */
+/** "~$28–$116 / mo" para N clientes indicados, a 30% recorrente. */
 function monthlyRange(customers: number): string {
   const money = (usd: number) => '$' + Math.round(customers * COMMISSION_RATE * usd).toLocaleString('en-US')
   return `~${money(CHEAPEST_PLAN_USD)}–${money(PRICIEST_PLAN_USD)} / mo`
@@ -61,12 +62,12 @@ export const dynamic = 'force-static'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.usekineo.com'),
-  title: 'AI Video Affiliate Program — 40% Recurring, Compared | Kineo',
+  title: 'AI Video Affiliate Program — 30% Recurring, Compared | Kineo',
   description:
-    'Compare Kineo’s 40% recurring affiliate program with official terms from OpusClip, InVideo and VEED. Your Kineo link goes live the moment you apply.',
+    'Compare Kineo’s 30% recurring affiliate program with official terms from OpusClip, InVideo and VEED. Your Kineo link goes live the moment you apply.',
   alternates: { canonical: 'https://www.usekineo.com/partners' },
   openGraph: {
-    title: 'AI Video Affiliate Program — 40% Recurring, Compared | Kineo',
+    title: 'AI Video Affiliate Program — 30% Recurring, Compared | Kineo',
     description: 'Compare the commission shape, duration and activation path before choosing an AI video affiliate program.',
     url: 'https://www.usekineo.com/partners',
     type: 'website',
@@ -89,8 +90,8 @@ const SUPPORT = 'mailto:hello@usekineo.com?subject=Kineo%20affiliate%20program%2
 export default function PartnersPage() {
   const faq = [
     { q: 'Do I have to be approved first?', a: 'No. There is no review queue and no waiting. The moment you submit the application your affiliate link is active — it starts logging clicks and setting the 90-day attribution cookie on the very first visitor you send.' },
-    { q: 'How much do I earn?', a: 'Affiliates earn 40% of each eligible payment from customers they refer, including recurring payments while the customer remains subscribed and the affiliate account remains active. First-touch tracking lasts 90 days.' },
-    { q: 'How does Kineo compare with other AI video affiliate programs?', a: `Rates are not directly comparable unless duration is included. As verified ${AFFILIATE_COMPARISON_VERIFIED_HUMAN}, Kineo publishes 40% recurring while the referred customer stays subscribed; OpusClip publishes 25% recurring through the first year; InVideo publishes 50% on monthly or 25% on annual purchases for the first billing cycle only; and VEED publishes a 20% recurring base with performance bonuses up to 50%. The comparison on this page links every official source.` },
+    { q: 'How much do I earn?', a: 'Affiliates earn 30% of each eligible payment from customers they refer, including recurring payments while the customer remains subscribed and the affiliate account remains active. First-touch tracking lasts 90 days.' },
+    { q: 'How does Kineo compare with other AI video affiliate programs?', a: `Rates are not directly comparable unless duration is included. As verified ${AFFILIATE_COMPARISON_VERIFIED_HUMAN}, Kineo publishes 30% recurring while the referred customer stays subscribed; OpusClip publishes 25% recurring through the first year; InVideo publishes 50% on monthly or 25% on annual purchases for the first billing cycle only; and VEED publishes a 20% recurring base with performance bonuses up to 50%. The comparison on this page links every official source.` },
     { q: 'Can I test Kineo first?', a: 'Yes. Every new account starts with the $1 trial: 7 days of Creator with 80 credits, card required. If you need extra demo access for a specific audience or tutorial, email us and we will sort it out with you.' },
     { q: 'What do I promote?', a: 'Kineo turns one topic or script into a finished 9:16 Short with script structure, AI voice, matched visuals and captions. Paid plans unlock clean exports and recurring-show tools.' },
     { q: 'How is attribution tracked?', a: 'Your Kineo affiliate link records first-touch clicks, signups, payments and renewals in your affiliate dashboard. The first affiliate link a visitor touches wins, and that attribution holds for 90 days.' },
@@ -116,9 +117,9 @@ export default function PartnersPage() {
 
         <section style={{ marginTop: 36, textAlign: 'center' }}>
           <div style={{ display: 'inline-block', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#2997ff', background: 'rgba(41,151,255,0.1)', borderRadius: 999, padding: '6px 14px' }}>Affiliate program</div>
-          <h1 style={{ fontSize: 'clamp(1.9rem, 5.5vw, 2.7rem)', fontWeight: 900, lineHeight: 1.12, margin: '16px 0 0' }}>AI Video Affiliate Program: Earn 40% Recurring</h1>
+          <h1 style={{ fontSize: 'clamp(1.9rem, 5.5vw, 2.7rem)', fontWeight: 900, lineHeight: 1.12, margin: '16px 0 0' }}>AI Video Affiliate Program: Earn 30% Recurring</h1>
           <p style={{ fontSize: '1.05rem', color: '#CBD5E1', lineHeight: 1.6, margin: '16px auto 0', maxWidth: 600 }}>
-            Send creators a tool that turns one topic into a scripted, voiced and captioned 9:16 Short — and earn <b style={{ color: '#fff' }}>40% of eligible payments</b> while referred customers stay subscribed. Some competitors advertise a larger first-payment percentage; the table below separates headline rate from recurring duration. Track with a link (90-day first touch) <b style={{ color: '#fff' }}>or with a coupon code your viewers just type</b> — so it works in video, where links do not.
+            Send creators a tool that turns one topic into a scripted, voiced and captioned 9:16 Short — and earn <b style={{ color: '#fff' }}>30% of eligible payments</b> while referred customers stay subscribed. Some competitors advertise a larger first-payment percentage; the table below separates headline rate from recurring duration. Track with a link (90-day first touch) <b style={{ color: '#fff' }}>or with a coupon code your viewers just type</b> — so it works in video, where links do not.
           </p>
           <OrganicCtaLink href={APPLY} source="partners" placement="hero" style={{ display: 'inline-block', marginTop: 22, background: 'linear-gradient(135deg,#2997ff,#2997ff)', color: '#000', fontWeight: 900, padding: '15px 32px', borderRadius: 14, textDecoration: 'none', fontSize: '1.05rem' }}>Apply in Kineo →</OrganicCtaLink>
           <div style={{ marginTop: 14 }}>
@@ -131,7 +132,7 @@ export default function PartnersPage() {
 
         {/* Earnings */}
         <section style={{ marginTop: 48 }}>
-          <h2 style={{ fontSize: '1.3rem', fontWeight: 900, textAlign: 'center', margin: '0 0 18px' }}>What 40% recurring looks like</h2>
+          <h2 style={{ fontSize: '1.3rem', fontWeight: 900, textAlign: 'center', margin: '0 0 18px' }}>What 30% recurring looks like</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
             {[
               { n: '10', d: 'referred customers', e: monthlyRange(10) },
@@ -156,7 +157,7 @@ export default function PartnersPage() {
     pena promover. Errar contra o parceiro é o tipo de erro que ele descobre
     sozinho no primeiro pagamento, e aí a gente perde o parceiro e a confiança
     junto. Agora a frase diz a mecânica real, com o número derivado. */}
-Illustration based on 40% of current USD list prices ({PRICE_RANGE}), before taxes, refunds or failed payments. Plan prices are charged in USD worldwide. If your viewer redeems your coupon code, their first month is 20% smaller — so is that one commission; every renewal after it is calculated on the full price.</p>
+Illustration based on 30% of current USD list prices ({PRICE_RANGE}), before taxes, refunds or failed payments. Plan prices are charged in USD worldwide. If your viewer redeems your coupon code, their first month is 20% smaller — so is that one commission; every renewal after it is calculated on the full price.</p>
         </section>
 
         <section id="ai-video-affiliate-program-comparison" style={{ marginTop: 46 }}>
@@ -195,9 +196,9 @@ Illustration based on 40% of current USD list prices ({PRICE_RANGE}), before tax
           <div style={{ ...CARD, marginTop: 14, borderRadius: 14, padding: '16px 18px', textAlign: 'center' }}>
             <div style={{ fontWeight: 900, color: '#F8FAFC' }}>Kineo’s wager is retention, not a one-payment headline.</div>
             <p style={{ margin: '6px auto 13px', color: '#94A3B8', fontSize: '0.82rem', lineHeight: 1.55, maxWidth: 610 }}>
-              You get 40% recurring, instant self-serve activation, and both a tracked link and a spoken coupon for TikTok, Reels and Shorts. Terms verified {AFFILIATE_COMPARISON_VERIFIED_HUMAN}; competitor programs can change.
+              You get 30% recurring, instant self-serve activation, and both a tracked link and a spoken coupon for TikTok, Reels and Shorts. Terms verified {AFFILIATE_COMPARISON_VERIFIED_HUMAN}; competitor programs can change.
             </p>
-            <OrganicCtaLink href={APPLY} source="partners" placement="comparison" style={{ display: 'inline-block', background: '#2997ff', color: '#000', fontWeight: 900, padding: '11px 22px', borderRadius: 11, textDecoration: 'none', fontSize: '0.9rem' }}>Activate my 40% recurring link →</OrganicCtaLink>
+            <OrganicCtaLink href={APPLY} source="partners" placement="comparison" style={{ display: 'inline-block', background: '#2997ff', color: '#000', fontWeight: 900, padding: '11px 22px', borderRadius: 11, textDecoration: 'none', fontSize: '0.9rem' }}>Activate my 30% recurring link →</OrganicCtaLink>
           </div>
         </section>
 
@@ -253,7 +254,7 @@ Illustration based on 40% of current USD list prices ({PRICE_RANGE}), before tax
         </section>
 
         <section style={{ marginTop: 44, textAlign: 'center', ...CARD, borderRadius: 18, padding: '28px 20px' }}>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 900, margin: 0 }}>Start earning 40% recurring</h2>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 900, margin: 0 }}>Start earning 30% recurring</h2>
           <p style={{ color: '#CBD5E1', margin: '8px 0 18px', fontSize: '0.95rem' }}>No payment is required to apply, and nothing sits in a review queue. You will be holding a working link about a minute from now.</p>
           <OrganicCtaLink href={APPLY} source="partners" placement="bottom" style={{ display: 'inline-block', background: '#2997ff', color: '#000', fontWeight: 900, padding: '14px 30px', borderRadius: 12, textDecoration: 'none', fontSize: '1.02rem' }}>Apply now →</OrganicCtaLink>
           <div style={{ marginTop: 12, fontSize: '0.78rem' }}><a href={SUPPORT} style={{ color: '#86868b' }}>Questions before applying? Email us.</a></div>

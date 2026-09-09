@@ -1073,3 +1073,5 @@ carimbo nasce 3 s depois do clique).
 - Lote 2 (c5679a1d): assinante troca de plano sem cancelar — `POST /api/stripe/change-plan`, "Switch to" no /pricing e nos cards do app, "Change plan" em /account; fatura de proration não é renovação. Guardião test-troca-de-plano (23). Sonda: rota responde `{subscribed:false}` para anônimo, controle 404 ok.
 - Doc completo: docs/AUDITORIA-SISTEMA-V7-2026-09-09.md. Decisões pendentes do fundador: packs de agência (matar/manter) e comissão de afiliado (só 1º pagamento).
 - Codex: não tocar em checkout/webhook/change-plan/PricingClient/PricingCards sem coordenar; a troca de plano é a única forma de mudar de tier.
+
+## 09/09 01:02 — LOTE 3 (Claude): afiliado 30%, packs de agência V7 ($19/$35/$49/$75 por 10/20/30/50 filmes Kineo 1), porta v2 no funil, tabela de entrantes no admin. Detalhe em docs/AUDITORIA-SISTEMA-V7-2026-09-09.md §8.

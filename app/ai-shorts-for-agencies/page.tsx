@@ -54,7 +54,7 @@ const FAQ = [
   },
   {
     q: 'Does a 30-video pack always create exactly 30 videos?',
-    a: 'It covers 30 Fast videos and includes operating headroom. Credits are universal, so choosing a premium generative engine uses more credits per video and reduces the number you can make.',
+    a: 'It covers 30 Kineo 1 films of 60 seconds and includes operating headroom. Credits are universal, so choosing a premium generative engine uses more credits per video and reduces the number you can make.',
   },
   {
     q: 'Does Kineo include team seats, client approval portals or white-label software?',

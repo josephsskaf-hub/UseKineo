@@ -69,7 +69,7 @@ checa('llms.txt: a entrada de 08/09 está marcada como superada e sem preço lit
 checa('placar: marco anda para 2026-09-09T00:00:00.000Z', /export const VERSAO_B_SINCE = '2026-09-09T00:00:00\.000Z'/.test(rd('lib/admin/versaoBFunnel.ts')))
 checa('PayPal e Dodo derivam da fonte única', /TIER_PRICES\.starter\.usd/.test(rd('lib/paypalCatalog.ts')) && /TIER_PRICES\[DODO_SKU_TO_TIER\[sku\]\]\.usd/.test(rd('lib/dodoCatalog.ts')))
 checa('admin: PLAN_PRICE_USD vem de PLANS (que vem de TIER_PRICES)', /starter: PLANS\.starter\.price/.test(rd('app/api/admin/_shared/mrr.ts')) && /price: TIER_PRICES\.pro\.usd \/ 100/.test(rd('lib/pricing.ts')))
-checa('docs vivas: TAAFT e kit de afiliados nos preços novos', /Starter \$14 · Creator \$29 · Studio \$59/.test(rd('docs/TAAFT-LISTING-2026-09-03.md')) && /\$29\/mês → \$11,60/.test(rd('docs/KIT-AFILIADOS-2026-09-08.md')))
+checa('docs vivas: TAAFT e kit de afiliados nos preços novos', /Starter \$14 · Creator \$29 · Studio \$59/.test(rd('docs/TAAFT-LISTING-2026-09-03.md')) && /\$29\/mês → \$8,70/.test(rd('docs/KIT-AFILIADOS-2026-09-08.md')))
 
 console.log(`\n  verificacoes: ${ok + falhas.length} · falhas: ${falhas.length}`)
 if (falhas.length) { for (const f of falhas) console.log('  ✗ ' + f); process.exit(1) }

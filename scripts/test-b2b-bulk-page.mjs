@@ -44,10 +44,10 @@ const equal = (actual, expected, message) => { assert.deepEqual(actual, expected
 const ok = (value, message) => { assert.ok(value, message); checks++ }
 
 equal(checkout.BULK_PACK_IDS, ['bulk10', 'bulk20', 'bulk30', 'bulk50'], 'four approved pack ids execute')
-equal(checkout.BULK_PACKS.bulk10, { videos: 10, usdMinor: 9900, credits: 12 }, '10-pack contract executes')
-equal(checkout.BULK_PACKS.bulk20, { videos: 20, usdMinor: 17900, credits: 24 }, '20-pack contract executes')
-equal(checkout.BULK_PACKS.bulk30, { videos: 30, usdMinor: 24900, credits: 36 }, '30-pack contract executes')
-equal(checkout.BULK_PACKS.bulk50, { videos: 50, usdMinor: 37900, credits: 60 }, '50-pack contract executes')
+equal(checkout.BULK_PACKS.bulk10, { videos: 10, usdMinor: 1900, credits: 60 }, '10-pack contract executes (V7: filmes Kineo 1 de 60 s)')
+equal(checkout.BULK_PACKS.bulk20, { videos: 20, usdMinor: 3500, credits: 120 }, '20-pack contract executes (V7: filmes Kineo 1 de 60 s)')
+equal(checkout.BULK_PACKS.bulk30, { videos: 30, usdMinor: 4900, credits: 180 }, '30-pack contract executes (V7: filmes Kineo 1 de 60 s)')
+equal(checkout.BULK_PACKS.bulk50, { videos: 50, usdMinor: 7500, credits: 300 }, '50-pack contract executes (V7: filmes Kineo 1 de 60 s)')
 
 const unitPrices = checkout.BULK_PACK_IDS.map((id) => {
   const pack = checkout.BULK_PACKS[id]

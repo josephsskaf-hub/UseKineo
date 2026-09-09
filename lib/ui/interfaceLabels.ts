@@ -340,7 +340,7 @@ export const INTERFACE_ES: Record<string, string> = {
   'Live case study: our channel on Autopilot': 'Caso práctico: nuestro canal en Autopilot',
   'AI Shorts for agencies & client work': 'Shorts IA para agencias y clientes',
   'Trust Center — privacy, payments & ownership': 'Centro de confianza: privacidad, pagos y propiedad',
-  'Affiliate program - 40% recurring': 'Programa de afiliados: 40% recurrente',
+  'Affiliate program - 30% recurring': 'Programa de afiliados: 30% recurrente',
   'Free AI Shorts by niche': 'Shorts IA gratuitos por temática',
   'Free YouTube Shorts scripts': 'Guiones gratuitos para YouTube Shorts',
   'Free script generator': 'Generador gratuito de guiones',

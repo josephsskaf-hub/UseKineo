@@ -36,7 +36,7 @@ UI: /pricing e os cards do app mostram "Current plan" e "Switch to X" para quem 
 - Starter/Creator/Studio mensal e anual: `price_data` inline de `TIER_PRICES`/`ANNUAL_PRICES`; grant `TIER_CREDITS` (60/150/300). ✅ V7.
 - Renovação: `renewalCreditsFor(tier, amount_paid)`; quem paga o preço antigo recebe o grant antigo (`LEGACY_TIER_CREDITS_V6`). Guardião `test-preco-v7` executa 8 casos. ✅
 - Top-up 300: $59,90 (invariante: top-up nunca abaixo do plano mais barato por crédito). ✅
-- Packs de agência (bulk10/20/50: $99/$179/$379): produto B2B antigo, ainda no ar em /ai-shorts-for-agencies e no "Packs start at $7.58" de 6 páginas. **Decisão do fundador pendente: matar ou manter.**
+- Packs de agência: reformulados no lote 3 (ver §8).
 
 ## 4. Copy pública (lote 1, 812ba9fa)
 
@@ -54,6 +54,13 @@ Morreram: "Generate your first film free — no card", "Try Kineo free", "Make o
 
 ## 7. O que ainda é decisão do fundador
 
-1. Packs de agência: matar ou manter (item 3).
-2. Comissão de afiliado 40% recorrente: no Studio, pior caso H3 ($34,80) + comissão ($23,60) em $59 → margem ~0. Proposta: comissão só no primeiro pagamento.
+1. ~~Packs de agência~~ — decidido: reformular (lote 3).
+2. ~~Comissão de afiliado~~ — decidido: 30% recorrente (lote 3).
 3. Dodo/TAAFT: em análise externa (~72h).
+
+## 8. Lote 3 (09/09, ~01h) — decisões do fundador executadas
+
+- **Comissão de afiliado 40% → 30%** (fundador: "pode diminuir de quarenta pra trinta"). Fonte única `lib/affiliateCommission.ts`; cadastro novo grava 0,3; /partners, painel do afiliado, rodapé, rótulos es/hi, comparativo e kit em 30%. Afiliados existentes (todos com 0 comissão paga na história) atualizados no banco para 0,3.
+- **Packs de agência no V7** (fundador: "reformular o valor, você escolhe"). O pack prometia "N vídeos Fast" e concedia N + folga créditos, da época em que o Fast custava 1 crédito; com o Kineo 1 a 5 créditos por 60 s, um pack "de 10" ($99) comprava 2 filmes. Agora: N filmes Kineo 1 de 60 s, créditos = N × 5 + folga, preços $19 / $35 / $49 / $75 (10/20/30/50 filmes) — acima do Starter por filme ($1,17, porque é sem assinatura) e acima do Creator por crédito ($0,193, regra da casa para avulso). Margem pior caso (H3) ≥ 60%. A lista de valores ambíguos ficou vazia (bulk10 saiu de $99, que colidia com o piloto).
+- **Porta v2 no funil**: `card_entry_door_shown/clicked` e `intent_campaign=door_v2` contam em viram/clicaram/checkout (a rotina da noite não podia tocar em lib/admin).
+- **Admin: quem entrou pela porta** — tabela por pessoa no /admin/overview (entrou, viu, clicou, checkout, pagou $1, plano, créditos com "usou X de 80", filmes), últimos 40 desde o marco.

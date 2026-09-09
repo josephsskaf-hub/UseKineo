@@ -15,6 +15,10 @@ export const VERSAO_B_EVENT_NAMES = [
   'card_entry_required',
   'card_entry_banner_shown',
   'card_entry_banner_clicked',
+  // KINEO-TROCA-2026-09-09 — a folha door_v2 (rotina da noite de 08/09) é a
+  // mesma porta, vista de outro jeito: conta em viram/clicaram.
+  'card_entry_door_shown',
+  'card_entry_door_clicked',
   'checkout_started',
   'payment_success',
   'card_entry_resume_autostart',
@@ -34,9 +38,11 @@ export function funilVersaoB(rows: EventRow[], sinceMs: number, extIds: Set<stri
     const ic = typeof m?.intent_campaign === 'string' ? m.intent_campaign : ''
     switch (e.name) {
       case 'card_entry_required': sets.signups.add(e.user_id); break
-      case 'card_entry_banner_shown': sets.sawDoor.add(e.user_id); break
-      case 'card_entry_banner_clicked': sets.clickedDoor.add(e.user_id); break
-      case 'checkout_started': if (metaTrue(m, 'card_trial') || ic === 'card_entry' || ic.startsWith('trial_1usd')) sets.checkout.add(e.user_id); break
+      case 'card_entry_banner_shown':
+      case 'card_entry_door_shown': sets.sawDoor.add(e.user_id); break
+      case 'card_entry_banner_clicked':
+      case 'card_entry_door_clicked': sets.clickedDoor.add(e.user_id); break
+      case 'checkout_started': if (metaTrue(m, 'card_trial') || ic === 'card_entry' || ic === 'door_v2' || ic.startsWith('trial_1usd')) sets.checkout.add(e.user_id); break
       case 'payment_success': if (metaTrue(m, 'card_trial')) sets.paid1.add(e.user_id); break
       case 'card_entry_resume_autostart': sets.autostart.add(e.user_id); break
       case 'subscription_invoice_paid': if (metaTrue(m, 'trial_conversion')) sets.converted.add(e.user_id); break

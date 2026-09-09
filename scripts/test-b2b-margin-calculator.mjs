@@ -57,9 +57,9 @@ const scenario = margin.calculateAgencyMargin({
 equal(scenario.clientRevenueMinor, 75000, '30 x $25 client revenue executes')
 equal(scenario.marketplaceFeeMinor, 15000, '20% marketplace fee executes')
 equal(scenario.netRevenueMinor, 60000, 'net marketplace revenue executes')
-equal(scenario.cashAfterKineoMinor, 35100, 'cash left after canonical Kineo pack executes')
-equal(scenario.grossCashMarginPct, 58.5, 'gross cash margin is based on net marketplace revenue')
-equal(scenario.breakEvenClientPriceMinor, 1038, 'break-even client price rounds upward to the cent')
+equal(scenario.cashAfterKineoMinor, 55100, 'cash left after canonical Kineo pack executes')
+equal(scenario.grossCashMarginPct, 91.8, 'gross cash margin is based on net marketplace revenue')
+equal(scenario.breakEvenClientPriceMinor, 205, 'break-even client price rounds upward to the cent')
 
 const direct = margin.calculateAgencyMargin({ videos: 10, packCostMinor: 9900, clientPriceMinor: 1500, marketplaceFeePct: 0 })
 equal(direct.marketplaceFeeMinor, 0, 'direct client scenario has no marketplace fee')

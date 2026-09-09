@@ -28,6 +28,7 @@
 // suspender ou aprovar afiliados manualmente, e afiliados já criados mantêm o
 // status que têm hoje (este arquivo só decide o status de linhas NOVAS).
 
+import { AFFILIATE_COMMISSION_RATE } from '@/lib/affiliateCommission'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createSupabaseAdmin } from '@supabase/supabase-js'
@@ -108,7 +109,7 @@ export async function POST(req: Request) {
           // do afiliado só funciona com status 'active', e a comissão continua
           // nascendo 'pending' no webhook do Stripe. Reverter = 'pending'.
           status: 'active',
-          commission_rate: 0.4,
+          commission_rate: AFFILIATE_COMMISSION_RATE,
         })
         .select('status, code')
         .single()
