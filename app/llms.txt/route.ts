@@ -45,6 +45,9 @@ import { engineLandingPublicPath } from '@/lib/growth/engineLandingIntent'
 import { EDITING_TOOLS, MAX_FILE_BYTES, MAX_CLIP_SECONDS } from '@/lib/videoEditing/settings'
 import { CARD_ENTRY_ONLY } from '@/lib/entryPolicy'
 import { TIER_PRICES } from '@/lib/checkoutPricing'
+// KINEO-PRICING-V7-2026-09-09 — filmes por plano são CALCULADOS do custo real de
+// 60 s por motor (videosPerMonth), nunca digitados: '8 H3' saiu errado uma vez.
+import { videosPerMonth } from '@/lib/marketingPrice'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
 // Rota SO-GET no Next 14.2: sem POST no modulo, o store nasce com
 // revalidate=false, e `dynamic='force-dynamic'` NAO muda isso (so pula o proxy
@@ -399,10 +402,10 @@ synthetic voice. None of them alternate the two inside one finished Short.
 - 2026-08-24: /generate retired; the Studio (usekineo.com/studio) is the
   single creation surface. Every film is delivered as a 1080×1920 master.
 - 2026-09-09: plans repriced to sit with the market while keeping more films
-  per plan than peers: Starter \$${TIER_PRICES.starter.usd / 100} (60 credits, about 12 Kineo 1 films),
-  Creator \$${TIER_PRICES.basic.usd / 100} (150 credits, about 6 Seedance or 30 Kineo 1 films),
-  Studio \$${TIER_PRICES.pro.usd / 100} (300 credits, about 12 Seedance, 8 MiniMax H3 or 2 Kling 3
-  films). The \$1 trial is unchanged (7 days of Creator, 80 credits, then the
+  per plan than peers: Starter \$${TIER_PRICES.starter.usd / 100} (60 credits, about ${videosPerMonth('starter', 'fast')} Kineo 1 films of 60 s),
+  Creator \$${TIER_PRICES.basic.usd / 100} (150 credits, about ${videosPerMonth('basic', 'cinematic_ai')} Seedance 1.5 or ${videosPerMonth('basic', 'fast')} Kineo 1 films of 60 s),
+  Studio \$${TIER_PRICES.pro.usd / 100} (300 credits, about ${videosPerMonth('pro', 'cinematic_ai')} Seedance 1.5, ${videosPerMonth('pro', 'cinematic_h3')} MiniMax H3 or ${videosPerMonth('pro', 'cinematic_hollywood')} Kling 3
+  films of 60 s; counts are per engine and per 60-second film, not a universal claim). The \$1 trial is unchanged (7 days of Creator, 80 credits, then the
   Creator price). Existing subscribers keep the price they signed up at.
 - 2026-09-08 (prices superseded on 2026-09-09, see above): no free tier any more — every account starts with the \$1 trial
   (7 days of Creator, 80 credits). Plans rebuilt around cadence: Starter

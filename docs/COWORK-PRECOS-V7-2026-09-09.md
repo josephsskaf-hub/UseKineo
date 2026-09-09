@@ -11,9 +11,9 @@ Decisão do fundador (08/09 ~20h): Starter **$14** / Creator **$29** / Studio **
 ```
 TAREFA 1 — DODO PAYMENTS (Chrome já logado em app.dodopayments.com, modo LIVE)
 1. Abra Products. Para cada produto abaixo, ajuste o preço (moeda USD) e a descrição; se não existir, crie como assinatura (recurring):
-   - "Kineo Starter — monthly": $14.00 / month · descrição: "60 credits/month — about 12 Kineo 1 films. Cancel anytime."
-   - "Kineo Creator — monthly": $29.00 / month · "150 credits/month — about 6 Seedance or 30 Kineo 1 films. Cancel anytime."
-   - "Kineo Studio — monthly": $59.00 / month · "300 credits/month — every engine: about 12 Seedance, 8 MiniMax H3 or 2 Kling 3 films. Cancel anytime."
+   - "Kineo Starter — monthly": $14.00 / month · descrição: "60 credits/month — about 12 Kineo 1 films of 60 s. Cancel anytime."
+   - "Kineo Creator — monthly": $29.00 / month · "150 credits/month — about 6 Seedance 1.5 or 30 Kineo 1 films of 60 s. Cancel anytime."
+   - "Kineo Studio — monthly": $59.00 / month · "300 credits/month — every engine: about 12 Seedance 1.5, 6 MiniMax H3 or 2 Kling 3 films of 60 s. Cancel anytime."
    - "Kineo Starter — yearly": $140.00 / year · "Starter billed yearly (2 months free)."
    - "Kineo Creator — yearly": $290.00 / year · "Creator billed yearly (2 months free)."
    - "Kineo Studio — yearly": $590.00 / year · "Studio billed yearly (2 months free)."

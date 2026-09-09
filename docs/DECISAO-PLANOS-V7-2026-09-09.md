@@ -10,7 +10,7 @@ O benchmark do Board (08/09, `C:/kineo-wt/board-caixa-12h-20260908/docs/BENCHMAR
 |---|---|---|---|---|---|
 | Starter | $9 | **$14** | 60 | 12 Kineo 1 | AutoShorts $19 = 13 por imagem |
 | Creator | $19 | **$29** | 150 | 30 Kineo 1 ou 6 Seedance | HeyGen $29 = 5 Seedance |
-| Studio | $29 | **$59** | **300** (era 180) | 60 Kineo 1 · 12 Seedance · 8 H3 · 2 Kling 3 | AutoShorts $69 = 60 por imagem · InVideo $100 |
+| Studio | $29 | **$59** | **300** (era 180) | 60 Kineo 1 · 12 Seedance · 6 H3 (45cr) · 2 Kling 3 — filmes de 60 s, por motor | AutoShorts $69 = 60 por imagem · InVideo $100 |
 
 Anual = 10× o mensal ($140 / $290 / $590). Margem pior caso (motor mais caro do plano, antes de taxa e afiliado): 72% / 58% / 41%.
 
