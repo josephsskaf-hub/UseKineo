@@ -1435,13 +1435,35 @@ async function buildAndRedirect(
         quantity: 1,
       }
 
+  // ═══ KINEO-TAXA-ENTRADA-LINE-ITEM-2026-09-09 — O DÓLAR PRECISA SER COBRÁVEL
+  // A taxa de entrada nasceu (20/08) em `subscription_data.add_invoice_items`.
+  // Esse parâmetro NÃO existe em `Checkout.SessionCreateParams.SubscriptionData`
+  // — ele é de Invoices/Subscriptions. A Stripe respondia `Received unknown
+  // parameter` e TODO clique na porta de $1 morria em "Payment session failed".
+  // Medido em 09/09: 1 clique na história da porta, 1 falha, 0 sessões criadas.
+  // O `tsc` nunca viu porque o campo entrava por spread condicional, e spread
+  // não sofre excess property check.
+  //
+  // O caminho vivo é `line_items`: em `mode: 'subscription'`, um item AVULSO
+  // (price_data SEM `recurring`) ao lado do recorrente entra na primeira
+  // fatura, que é emitida no ato do checkout mesmo com trial — a mensalidade
+  // continua começando ao fim dos 7 dias. É o padrão "paid trial".
+  const trialEntryFeeItem: Stripe.Checkout.SessionCreateParams.LineItem = {
+    price_data: {
+      currency,
+      product_data: { name: `Kineo — ${TRIAL_DAYS}-day trial access` },
+      unit_amount: TRIAL_ENTRY_FEE_CENTS,
+    },
+    quantity: 1,
+  }
+
   const planFitRetryParam = planFitContext
     ? `&${planFitRetrySearchParams(planFitContext)}`
     : ''
 
   const sessionParams: Stripe.Checkout.SessionCreateParams = {
     customer: customerId,
-    line_items: [lineItem],
+    line_items: wantsTrial && !isAnnual ? [lineItem, trialEntryFeeItem] : [lineItem],
     mode: 'subscription',
     after_expiration: {
       recovery: { enabled: true },
@@ -1541,17 +1563,10 @@ async function buildAndRedirect(
         ? {
             trial_period_days: TRIAL_DAYS,
             trial_settings: { end_behavior: { missing_payment_method: 'cancel' as const } },
-            // A taxa de entrada de $1: cobrada AGORA, no ato do checkout.
-            add_invoice_items: [
-              {
-                price_data: {
-                  currency,
-                  product_data: { name: `Kineo — 7-day Creator trial (${TRIAL_DAYS} days)` },
-                  unit_amount: TRIAL_ENTRY_FEE_CENTS,
-                },
-                quantity: 1,
-              },
-            ],
+            // A taxa de entrada de $1 MUDOU DE LUGAR em 09/09: virou um
+            // line_item avulso lá em cima (KINEO-TAXA-ENTRADA-LINE-ITEM).
+            // Aqui ela era um parâmetro que a Checkout Session não aceita, e
+            // derrubava 100% dos cliques da porta.
           }
         : {}),
       metadata: {
