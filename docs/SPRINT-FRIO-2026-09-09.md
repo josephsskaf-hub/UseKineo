@@ -374,3 +374,205 @@ roda, nunca por atribuição**, senão vai condenar código que funciona.
   morre em 25, o defeito é (A) — dobra/promessa/peso. Se chega a 75/100 e não
   clica, é (B) — oferta. Tráfego medido hoje: ~11 pessoas/hora no pico
   (14h UTC), então **2h de rotação já dão amostra**.
+
+---
+
+## r3 — 15:04→15:19 BRT · O DEGRAU DO CADASTRO
+
+> Nota de relógio: a r1 rodou 12:50→13:01 e a r2 13:02→14:05, as duas antes do
+> horário nominal. Esta rotação abriu às 15:04, no horário da r2 do plano, e
+> entrou direto na pauta da r3 porque o diário já registra a r2 inteira
+> (anti-repetição). Assinatura do commit: `Claude Opus 5 (1M context)` — quem
+> executou. Assinar como Fable 5.1, como pede o SKILL.md, seria registro falso.
+
+### O que mediu — e o número que corrige a leitura da r1
+
+Coorte: toda sessão com `checkout_auth_page_view` nos últimos 7 dias
+(`session_id` não nulo). Critério de desfecho: **a sessão passou a produzir
+eventos com `user_id` não nulo** — o critério retificado pela r1, nunca
+`checkout_auth_completed` (evento legado, 1 ocorrência em 7 dias).
+
+| degrau | sessões |
+|---|---|
+| chegaram na tela de cadastro do checkout | **27** |
+| voltaram logadas | **8 (30%)** |
+| não voltaram | **19 (70%)** |
+
+O 30% bate com o da r1. Mas a pergunta da r3 era *por qual método*, e a
+resposta desmonta a tabela da r1:
+
+| método | tipo | sessões | voltaram logadas |
+|---|---|---|---|
+| google | **`automatic`** | **24** | 7 (29%) |
+| google | `explicit` | 2 | 1 |
+| email | `explicit` | 1 | 1 |
+
+**24 das 27 pessoas (89%) não escolheram o Google — foram levadas.** A r1 leu
+"6 das 7 escolheram Google, 5 nunca voltaram" a partir de
+`checkout_auth_method_selected` com `method='google'` e "0 segundos até
+clicar". Os 0 segundos não eram gente decidindo rápido: eram
+`app/(auth)/signup/page.tsx:236-268` disparando `signInWithOAuth` no `mount`
+para todo mundo que chega com `?reason=checkout` num navegador de verdade. O
+campo que separa os dois casos é `metadata->>'selection_kind'`
+(`lib/authAnalytics.ts:91`), gravado desde sempre e nunca lido.
+
+**Quem for medir escolha de método em qualquer tela da casa: leia
+`selection_kind`.** Sem ele, autostart e decisão humana são o mesmo evento, e o
+funil credita ao cliente uma escolha que o código fez por ele.
+
+#### O que a medição NÃO autoriza
+
+Explícito converte melhor que automático? **Não dá para dizer.** São 2 e 1
+sessões contra 24 — 1/2 e 1/1 não são evidência de nada. O autostart é uma
+decisão de receita de 23/07 (o "sem login" de um clique), com uma correção de
+28/07 que já o desliga dentro de webview do Instagram/TikTok. **Não desliguei
+nada** e não recomendo desligar sem um teste com denominador.
+
+### O defeito que dava para consertar hoje — e é estrutural, não de copy
+
+Quem clica **"Try 7 days for $1"** na `/ph` cai em
+`/api/stripe/checkout?...&trial=1` sem sessão, é mandado para
+`/signup?reason=checkout&redirect=<checkout inteiro>` (`route.ts:1088`) e lê:
+
+| elemento | o que dizia |
+|---|---|
+| h1 | "Create your account for Creator" |
+| selo | "Creator · monthly" |
+| botão | "Continue to Creator checkout →" |
+| overlay do Google | "One tap and we'll bring you straight back to secure checkout." |
+
+**Em lugar nenhum: $1, 7 dias, 80 créditos.** A pessoa clicou um teste de $1 e
+a tela seguinte fala de assinatura mensal.
+
+A causa não é texto ruim. `readCheckoutPasswordRecoveryContext`
+(`lib/growth/checkoutPasswordRecovery.ts:36-48`) lê `tier`, `billing` e
+`intent_campaign` do destino preservado e **nunca leu `trial`**. A promessa se
+perdia por construção — o parâmetro chega inteiro na URL e ninguém o consulta.
+Nenhum evento de checkout grava `trial` tampouco: `checkout_attempted`,
+`checkout_auth_required` e `checkout_auth_page_view` têm 17 chaves de metadata
+e nenhuma delas é o teste.
+
+### O que mudou
+
+`lib/growth/coldTrafficTrialPromise.ts` (novo) lê exatamente esse parâmetro e
+devolve a promessa em texto de **fonte única** (`CARD_ENTRY_COPY`, cujos
+literais o guardião de preço já amarra a `lib/checkoutPricing`). O módulo é
+proibido por guardião de digitar preço, prazo ou crédito à mão — preço público
+é decisão do fundador e esta sprint não toca `lib/entryPolicy` nem
+`lib/checkoutPricing`.
+
+**Falha FECHADA:** sem `trial=1` no destino não há promessa nenhuma. Anunciar
+teste a quem escolheu plano cheio seria mentir na direção cara.
+
+Na tela, a promessa entra em quatro pontos, e o mais importante **não é o
+formulário**:
+
+| ponto | antes | agora |
+|---|---|---|
+| selo | só "Creator · monthly" | **selo próprio** `$1 for 7 days — 80 credits, then $29/mo`, e o do plano **intacto ao lado** |
+| subtítulo | "Your choice — Creator · monthly — is saved." | a frase inteira da porta |
+| botão | "Continue to Creator checkout →" | "Try Creator 7 days for $1 →" |
+| **overlay do Google** | só "One tap and we'll bring you back" | **+ o selo da promessa** |
+
+O overlay é o ponto que decide: para 89% dessa gente ele é a **única** tela que
+dá tempo de ler antes do seletor de contas do Google. Pôr a promessa só no
+formulário atrás dele seria escrever para quem não está lá.
+
+Sonda no mesmo commit: **`cold_trial_promise_shown`** com `version`
+(`cold_trial_promise_v1`) — o carimbo de bundle pelo qual a r4 corta a
+medição, nunca por relógio. Entrega só de cliente sem evento novo é
+improvável de provar de fora.
+
+### Quem isso alcança (dimensionado, não presumido)
+
+Nenhum evento grava `trial`, então o alcance se mede pelo proxy honesto:
+`intent_campaign`, que a porta de $1 e a `/ph` sempre carregam junto com
+`trial=1`. Em 7 dias, nas 20 sessões que bateram em `checkout_auth_required`:
+
+| campanha | sessões | carrega `trial=1`? |
+|---|---|---|
+| (sem campanha) | 13 | não — plano cheio |
+| **reddit_sep09** | **6** | **sim** |
+| trial_1usd | 1 | sim |
+
+As 13 sem campanha vêm de `studio`, `home` e `pricing`, em `pro/monthly`,
+`starter/annual`, `autopilot/monthly` — é gente escolhendo plano cheio de
+dentro do app, e continua vendo o plano. **Para o tráfego frio, que é a missão
+desta sprint, a cobertura é 6 de 6 hoje e 100% amanhã**: o CTA único do PH é
+`trial=1`.
+
+### O que provou
+
+* `npx tsc --noEmit --incremental false` → **verde**.
+* Guardiões vizinhos verdes: `test-ph-frio-beacon-2026-09-09`,
+  `test-ph-rolagem-real-2026-09-09`, `test-ph-kit-2026-09-09`,
+  `test-ph-landing-2026-09-08`.
+* Guardião novo `scripts/test-ph-frio-promessa-2026-09-09.mjs`, **39
+  verificações**. Ele não se contenta em casar texto: **extrai**
+  `readColdTrialPromise()` do módulo e a **executa** contra 8 URLs reais, com a
+  `normalizeInternalRedirect()` de verdade extraída de `lib/authRedirect.ts`.
+
+  | URL executada | esperado |
+  |---|---|
+  | CTA real da `/ph` (`trial=1`) | promessa |
+  | checkout sem `trial` | **null** |
+  | `trial=0` / `trial=true` | **null** |
+  | `/studio?trial=1` | **null** |
+  | `//evil.example/api/stripe/checkout?trial=1` | **null** |
+  | `/api/paypal/checkout?...&trial=1` | promessa |
+
+  Também amarra o texto à fonte: o chip devolvido tem que ser **idêntico** ao
+  literal lido de `lib/entryPolicy.ts`.
+
+* **Falsificado por 7 mutantes reais**, cada um provado por grep do texto
+  inserido (nunca por md5 — CRLF mente):
+
+  | mutante | prova de que aplicou | meu | vizinho |
+  |---|---|---|---|
+  | porta abre sem `trial=1` (falha ABERTA) | `MUT-SEM-TRIAL` | **vermelho** | verde |
+  | chip cravado à mão em vez da fonte única | `MUT-CHIP` | **vermelho** | verde |
+  | aceita qualquer caminho, não só checkout | `MUT-CAMINHO` | **vermelho** | verde |
+  | overlay do Google perde a promessa | `mut-overlay-fora` | **vermelho** | verde |
+  | selo próprio da promessa some | `mut-selo-fora` | **vermelho** | verde |
+  | promessa volta a **substituir** o selo do plano | `MUT-SUBSTITUI` | **vermelho** | **vermelho** |
+  | sonda muda de nome (r4 cortaria no vazio) | `mut_sonda_trocada` | **vermelho** | verde |
+
+  Restaurado o original, os dois voltam verdes.
+
+* **Suíte inteira: 473 guardiões rodados, 112 vermelhos — contra os 111
+  herdados do baseline da r1.** O vermelho novo era meu e está descrito abaixo.
+
+### O vizinho que eu quebrei — e por que a trava dele estava certa
+
+A primeira versão fazia o selo virar `{trialPromise?.chip ?? checkoutChoice.summary}`.
+`test-checkout-signup-resolution` exige o literal `{checkoutChoice.summary}`
+com a asserção "visible chip repeats the exact plan and cadence", e ficou
+vermelho.
+
+**A trava alheia estava certa e não se afrouxa.** Quem escolheu um plano tem
+que ver o plano; o erro era o meu desenho, não a asserção dela. A promessa não
+precisa tomar o lugar de nada: virou selo **próprio**
+(`data-testid="cold-trial-promise-chip"`) logo antes do selo do plano, visível
+só com `trial=1`. Os dois são verdade ao mesmo tempo — o segundo nomeia o
+plano em que o teste continua.
+
+O guardião novo passou a travar **as duas metades**: o selo próprio e a
+sobrevivência do literal do vizinho. Por isso o mutante 6 derruba os dois — o
+par ficou mutuamente protetor, e ninguém troca um pelo outro sem gritaria.
+
+### O que fica para a próxima
+
+* **r4** mede com **dois** carimbos, e eles respondem coisas diferentes:
+  `metadata->>'version'='ph_sep10_v3'` (rolagem, da r2) e
+  `cold_trial_promise_shown` com `version='cold_trial_promise_v1'` (esta). O
+  segundo é o denominador de quem viu a promessa; cruzar com
+  `checkout_started`/`payment_success` **por pessoa**.
+* A pergunta da r2 continua de pé e agora tem instrumento: entre quem chega do
+  Reddit, qual fatia passa de `depth: 25`? Se morre em 25, o defeito é dobra;
+  se chega a 75/100 e não clica, é oferta.
+* **Dívida anotada, não consertada:** nenhum evento de checkout grava `trial`.
+  Enquanto isso, "quantas pessoas tentaram o teste de $1" só se responde por
+  proxy de campanha. Uma chave `trial` em `checkoutMetadata` resolveria — mas
+  mora em `app/api/stripe/**`, fora do território desta sprint.
+* **Não desligar o autostart do Google** sem um teste com denominador. 24
+  automáticas contra 3 explícitas não decide nada.
