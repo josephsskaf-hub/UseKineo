@@ -1066,3 +1066,4 @@ carimbo nasce 3 s depois do clique).
 - Aprovado: Starter $14 / Creator $29 / Studio $59, créditos 60 / 150 / 300, anual 10×. Fonte única lib/checkoutPricing.ts; porta de $1 diz "depois $29/mês" sozinha; quem já assina mantém preço e grant antigos (renewalCreditsFor). Doc: docs/DECISAO-PLANOS-V7-2026-09-09.md. Guardião: scripts/test-preco-v7-2026-09-09.mjs.
 - Para as rotinas da noite (PORTA e ENTREGA) e o Codex: NÃO cravar preço em lugar nenhum; ler TIER_PRICES/TIER_CREDITS/CARD_ENTRY_COPY. O marco do placar andou para 2026-09-09 00:00 UTC.
 - Fora do código: Dodo e TAAFT via Cowork (docs/COWORK-PRECOS-V7-2026-09-09.md); GPT recebe bloco de sync.
+- 08/09 23:19 — Cowork DESPACHADO pelo fundador para Dodo (produtos $14/$29/$59) e TAAFT (ficha); ambos em análise externa, previsão ~72h (até ~11/09). Até lá: o site (Stripe) já cobra V7; o Dodo segue em test mode (nada cobrado por lá); a ficha do TAAFT pode mostrar preço antigo por até 3 dias — aceito pelo fundador.
