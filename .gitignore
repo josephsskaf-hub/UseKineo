@@ -33,3 +33,6 @@ porta-v2-celular.html
 
 # KINEO-PH-2026-09-10 — masters e HTMLs intermediários do kit do Product Hunt
 .ph-build/
+
+# KINEO-RESTAURACAO-2026-09-09 — area de trabalho do gerador do anuncio do Reddit (perfil do Edge, partes de video)
+.reddit-build/
