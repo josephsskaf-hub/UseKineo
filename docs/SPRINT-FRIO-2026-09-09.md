@@ -43,7 +43,7 @@ Janela: 08/09 19:00 UTC (início da campanha) até 09/09 15:07 UTC.
 
 O degrau do cadastro, pessoa a pessoa (as 7 que clicaram):
 
-| segundos até clicar | método escolhido | completou? |
+| segundos até clicar | método escolhido | voltou logada? |
 |---|---|---|
 | 0 | google | não |
 | 0 | google | não |
@@ -53,11 +53,45 @@ O degrau do cadastro, pessoa a pessoa (as 7 que clicaram):
 | 42 | google | não |
 | 49 | google | não |
 
-**6 das 7 escolheram Google e 5 nunca voltaram.** A única pessoa que completou
-foi a única que apareceu com `email` no rastro. Na coorte também há
+**6 das 7 escolheram Google e 5 nunca voltaram.** Na coorte também há
 `checkout_oauth_autostart_suppressed` (1 pessoa, 2×) e
 `checkout_auth_fallback_presented` (1 pessoa, 2×) — sinal de que o caminho do
 Google tem tropeço próprio. **Isto é a pauta da r3**, não um palpite.
+
+#### ⚠️ Retificação dentro da própria r1 — e o critério que qualquer pista deve usar
+
+A primeira versão desta tabela media "completou" por `checkout_auth_completed`,
+e chegava a um número **falso e alarmante**: *23 pessoas escolheram Google em 7
+dias e ZERO completaram*. O número estava errado por dois motivos que se
+somam, e vale registrar os dois porque a próxima pista vai tropeçar neles:
+
+1. **`checkout_auth_completed` é evento legado — nenhum código atual o emite.**
+   `grep` em `app/ lib/ components/` só o encontra no painel do admin, que o
+   *conta*. Ele tem **1 ocorrência em 7 dias** na base inteira. Quem fizer o
+   numerador com ele mede zero por construção.
+2. **O evento vivo não casa com a chave por sessão.** Quem fecha o caminho do
+   Google é `auth_callback_completed`, emitido **no servidor**
+   (`app/auth/callback/route.ts:99`): 166 ocorrências em 7 dias, **166 com
+   `user_id` e apenas 6 com `session_id`**, nenhuma com `ip_hash`. Uma coorte
+   chaveada em `session_id`/`ip_hash` perde 160 dessas 166.
+
+**O critério correto** — e o usado na tabela acima — é *a sessão passou a
+produzir eventos com `user_id` não nulo*. Com ele, em 7 dias e em toda a base:
+
+| método | pessoas | voltaram logadas | chegaram ao checkout |
+|---|---|---|---|
+| google | 23 | **7 (30%)** | 7 |
+| email + google | 1 | 1 | 1 |
+
+Ou seja: o Google perde ~70% em toda a casa, não 100%. Na coorte fria do Reddit
+perdeu 5 de 6 — pior que a média, mas **6 pessoas não sustentam a afirmação de
+que o frio sofre mais**; a r3 precisa do número maior antes de concluir isso.
+
+**Falso alarme descartado no caminho:** o painel `/admin/funnel` *não* está
+quebrado. Ele já faz `Math.max(checkout_auth_completed,
+checkout_auth_callback_completed)`, e o segundo vem de `auth_callback_completed`
+filtrado por `is_checkout_destination` (`route.ts:773`). O plano B já existe
+lá. Nenhum pedido entre pistas é necessário.
 
 Distribuição por hora de chegada (BRT): espalhada, sem pico único — 08h=29,
 23h=23, 22h=19, 21h=19, 06h=16, 00h=15, 11h=11, 03h=9. Não é rajada de robô.
@@ -135,6 +169,15 @@ antes da primeira verificação e passa a vida em falso verde).
   `ph_scroll` tiver dados — sem eles, r2 decide no gosto. Se o deploy da r1
   ainda não tiver acumulado rolagem suficiente, r2 mede o que der e publica a
   mudança que a leitura em 375px sustentar sozinha.
-* **r3**: o degrau do Google. 6 de 7 escolheram Google, 5 não voltaram. Ver
-  `checkout_oauth_autostart_suppressed` e `checkout_auth_fallback_presented`.
+* **r3**: o degrau do Google, com o critério retificado acima (sessão passa a
+  ter `user_id`, nunca `checkout_auth_completed`). O alvo é o 30% da base
+  inteira, não os 6 do Reddit. Ver `checkout_oauth_autostart_suppressed` e
+  `checkout_auth_fallback_presented`.
 * **r4**: corte por `metadata->>'version' = 'ph_sep10_v2'`, nunca por relógio.
+
+### Deploy desta rotação
+
+`6bc63a90` → `dpl_3WVqsHaJ4RtjPCQ6hbqxHGgD6AHQ`, **confirmado no ar às 12:59
+BRT**: o id do deployment aparece no HTML de `https://www.usekineo.com/ph`
+(sonda com User-Agent de navegador identificável — `curl` pelado é lido como
+robô e cai em outro ramo).
