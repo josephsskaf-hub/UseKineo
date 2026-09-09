@@ -64,7 +64,7 @@ const FAQ: { q: string; a: string }[] = [
   { q: 'Is there an affordable faceless shorts AI that builds the video from just a topic?', a: 'Yes. Kineo generates the entire video from one topic — it writes the script, records the AI voiceover, matches footage to each line and adds captions. It’s made for faceless creators who start with nothing but an idea, so you never film anything.' },
   { q: 'Why is the cheapest AI YouTube Shorts generator not just a clip cutter?', a: 'Clip cutters like OpusClip or Submagic re-clip a long video you already filmed — useless if you’re faceless and starting from scratch. Kineo creates the video from an idea, so the low price gets you a finished Short, not chopped-up footage.' },
   { q: 'Do I have to use the most expensive AI engine?', a: `No. You pick the engine per video. For 60 seconds, Fast Mode uses ${FAST_CREDITS} credits with matched stock footage, AI Generated uses ${SEEDANCE_CREDITS} credits for Seedance scenes, and Cinematic uses ${KLING_CREDITS} credits for premium Kling scenes.` },
-  { q: 'Can I really make a Short for free first?', a: `Yes. ${ft(OFFER, 'A new account can create, download and share up to 3 watermarked Fast videos every 24 hours without a credit card.', OFFER.copy.sentence)} Paid plans unlock clean exports and premium AI engines.` },
+  { q: 'Can I try it before paying for a plan?', a: `Yes. ${ft(OFFER, 'A new account can create, download and share up to 3 watermarked Fast videos every 24 hours without a credit card.', OFFER.copy.sentence)} Paid plans unlock clean exports and premium AI engines.` },
 ]
 
 export default function CheapestAiShortsMakerPage() {

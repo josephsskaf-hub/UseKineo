@@ -271,7 +271,7 @@ export default function FacelessVideoGeneratorPage({ searchParams }: { searchPar
 
         <div style={{ marginTop: 44, textAlign: 'center', background: 'radial-gradient(circle at 50% 0%, rgba(41,151,255,0.14), #0c0c0e 70%)', border: '1px solid rgba(41,151,255,0.25)', borderRadius: 18, padding: '34px 22px' }}>
           <div style={{ fontSize: 'clamp(1.3rem, 4vw, 1.85rem)', fontWeight: 900 }}>Create the first faceless video now.</div>
-          <p style={{ color: '#86868b', margin: '8px 0 18px' }}>One topic, no camera, no source footage, and no card for the Fast test.</p>
+          <p style={{ color: '#86868b', margin: '8px 0 18px' }}>One topic, no camera, no source footage. Your first film starts at $1.</p>
           <OrganicCtaLink href={`#${FORM_ID}`} source={CAMPAIGN} placement="final" style={{ background: '#f5f5f7', color: '#000', fontWeight: 850, padding: '14px 30px', borderRadius: 980, textDecoration: 'none' }}>
             Generate my video
           </OrganicCtaLink>

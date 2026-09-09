@@ -237,7 +237,10 @@ const PLAN_INCLUDES: Record<CheckoutTier, string[]> = {
 
 function buildPlan(id: CheckoutTier): PlanFact {
   const plan = PLANS[id]
-  const intro = id === 'pro' ? null : INTRO_PRICES[id].usd
+  // KINEO-PRICING-V7-2026-09-09 — intro igual ao preço cheio NÃO é oferta de
+  // 1º mês: firstMonthUsd fica null e nenhuma superfície escreve "for the first month".
+  const introRaw = id === 'pro' ? null : INTRO_PRICES[id].usd
+  const intro = introRaw === null || introRaw === TIER_PRICES[id].usd ? null : introRaw
   return {
     id,
     name: plan.name,
@@ -666,7 +669,7 @@ export const PRODUCT = {
   userOwnsOutput: true,
   // fonte: lib/comparisons.ts:306.
   watermarkPolicy:
-    'Free tier output carries a Kineo watermark. Every paid plan exports a clean, watermark-free MP4.',
+    'The $1 trial and every paid plan export a clean, watermark-free MP4.',
   // fonte: lib/pricing.ts:96 e lib/comparisons.ts:311.
   creditsRollOver: false,
   // fonte: app/pricing/PricingClient.tsx:59.

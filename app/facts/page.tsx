@@ -138,7 +138,7 @@ const BUSINESS_PACK_LIST = listEn(
 
 const METADATA_DESCRIPTION =
   `Verified facts about Kineo, the AI YouTube Shorts generator: ${FREE_TIER_ALLOWANCE} with no ` +
-  `card, ${STARTER.name} from ${STARTER.firstMonthUsd} for the first month, one-time business packs, and current engine ` +
+  `card, ${STARTER.name} from ${STARTER.monthlyUsd}/month, and current engine ` +
   `details. Verified ${LAST_VERIFIED}.`
 
 export const metadata: Metadata = {

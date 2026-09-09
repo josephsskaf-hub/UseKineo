@@ -6,6 +6,7 @@
 // A ARMA DESTA PÁGINA É A PROVA: o vídeo embedado é um render REAL do Omni
 // Flash (id 36a04f7b, 25/08), e o ROTEIRO EXATO que o gerou está publicado ao
 // lado — "this exact text made this film". Nenhum demo reel fabricado.
+import { CARD_ENTRY_COPY, CARD_ENTRY_TRIAL_CREDITS } from '@/lib/entryPolicy'
 import type { Metadata } from 'next'
 import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 import {
@@ -124,9 +125,9 @@ export default function RobotVideoPage() {
           href="/free?utm_source=seo&utm_medium=robot_page&utm_campaign=universal"
           style={{ display: 'inline-block', background: '#2997ff', color: '#fff', fontWeight: 900, fontSize: 15, padding: '12px 28px', borderRadius: 12, textDecoration: 'none' }}
         >
-          Generate your first film free — no card
+          {CARD_ENTRY_COPY.ctaLong}
         </a>
-        <p style={{ color: '#86868b', fontSize: 12, marginTop: 10 }}>$1 trial — 80 credits, 7 days · robots, mysteries, horror, history — the same text box directs them all</p>
+        <p style={{ color: '#86868b', fontSize: 12, marginTop: 10 }}>$1 trial — {CARD_ENTRY_TRIAL_CREDITS} credits, 7 days · robots, mysteries, horror, history — the same text box directs them all</p>
       </div>
 
       <h2 style={{ fontSize: 22, fontWeight: 900, margin: '30px 0 10px' }}>How it works</h2>

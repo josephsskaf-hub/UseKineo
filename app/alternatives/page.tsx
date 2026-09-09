@@ -72,10 +72,10 @@ export default function AlternativesIndexPage() {
             placement="hero"
             style={{ display: 'inline-block', marginTop: 22, background: '#f5f5f7', color: '#000', fontWeight: 900, padding: '15px 32px', borderRadius: 980, textDecoration: 'none', fontSize: '1.05rem' }}
           >
-            Try Kineo free →
+            {CARD_ENTRY_COPY.ctaLong}
           </OrganicCtaLink>
           <p style={{ fontSize: '0.82rem', color: '#86868b', margin: '10px 0 0' }}>
-            {ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)} · no card · Starter <b style={{ color: '#2997ff' }}>{STARTER_MO}</b>
+            {ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)} · Starter <b style={{ color: '#2997ff' }}>{STARTER_MO}</b>
           </p>
           <CostCalculatorLink
             placement="alternatives_hero"
@@ -190,7 +190,7 @@ export default function AlternativesIndexPage() {
         {/* Final CTA */}
         <section style={{ marginTop: 48, textAlign: 'center', ...CARD, borderRadius: 18, padding: '28px 20px' }}>
           <h2 style={{ fontSize: '1.4rem', fontWeight: 900, margin: 0 }}>{ft(OFFER, 'Make a faceless Fast video free', OFFER.copy.ctaHeading)}</h2>
-          <p style={{ color: '#86868b', margin: '8px 0 18px', fontSize: '0.95rem' }}>One idea in, a ready-to-post watermarked video out. No editing, no card.</p>
+          <p style={{ color: '#86868b', margin: '8px 0 18px', fontSize: '0.95rem' }}>One idea in, a finished vertical film out. No camera, no editing.</p>
           <OrganicCtaLink
             href={signupUrl}
             source="push22_alternatives_hub"

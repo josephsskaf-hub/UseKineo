@@ -31,6 +31,7 @@
 // If these ever need to become true 3xx redirects, that belongs in
 // next.config.js, which is outside this agent's file surface.
 
+import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
 import type { Metadata } from 'next'
 import type { CSSProperties } from 'react'
 import Link from 'next/link'
@@ -153,7 +154,7 @@ export default function ComparisonPage({ params }: { params: { pair: string } })
   const b = TOOLS[pair.b]
   const url = `${BASE}/vs/${canonical}`
   const kineoIsInvolved = pair.a === 'kineo' || pair.b === 'kineo'
-  const kineoAction = pair.kineoAction ?? { href: START_FREE_URL, label: 'Make one free →' }
+  const kineoAction = pair.kineoAction ?? { href: START_FREE_URL, label: CARD_ENTRY_COPY.ctaLong }
 
   const faqJsonLd = {
     '@context': 'https://schema.org',

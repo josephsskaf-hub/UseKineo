@@ -105,7 +105,7 @@ export const ENGINES: Record<string, Engine> = {
     name: 'Kineo 1',
     model: 'Kineo’s own stock-footage + TTS pipeline',
     creditCost: FAST_COST,
-    tier: 'Free',
+    tier: 'Starter',
     h1: 'Kineo 1 — the free AI video generator that finishes the whole Short',
     intro:
       'Kineo 1 is our own engine: it writes a hook-first script, records the AI voiceover, matches real footage to every line and burns in captions, then hands you a ready-to-post 9:16 MP4 — usually in 3–7 minutes. It is the engine that runs without a card, and it is the one most of the videos on this page were made with.',
@@ -160,10 +160,10 @@ export const ENGINES: Record<string, Engine> = {
     name: 'Kling 2.5',
     model: 'fal-ai/kling-video/v2.5-turbo/pro/text-to-video',
     creditCost: KLING_COST,
-    tier: 'Creator',
+    tier: 'Studio',
     h1: 'Kling 2.5 AI video generator for vertical Shorts — camera motion that holds up',
     intro:
-      `Kling 2.5 Turbo Pro is the engine to reach for when the shot has to MOVE: a push-in through Roman ruins, a drone climb over a golden mountain, a 50-metre strike in a packed stadium. Kineo drives it from the script — you type the idea, Kineo writes the beats, prompts Kling scene by scene, voices and captions the result, and returns a finished 9:16 Short. A 60-second video costs ${KLING_COST} credits; the Creator monthly grant covers one.`,
+      `Kling 2.5 Turbo Pro is the engine to reach for when the shot has to MOVE: a push-in through Roman ruins, a drone climb over a golden mountain, a 50-metre strike in a packed stadium. Kineo drives it from the script — you type the idea, Kineo writes the beats, prompts Kling scene by scene, voices and captions the result, and returns a finished 9:16 Short. A 60-second video costs ${KLING_COST} credits; the Studio monthly grant covers ${videosPerMonth('pro', 'cinematic_kling')}.`,
     bestFor: 'Sports, action, travel and any topic where the camera itself is part of the storytelling.',
     tradeoff: `At ${KLING_COST} credits per 60 seconds, Kling 2.5 costs ${KLING_COST / SEEDANCE_COST}× a Seedance video. If the scene is static, Seedance gets you the same story for less.`,
     faq: [
@@ -190,7 +190,7 @@ export const ENGINES: Record<string, Engine> = {
     tier: 'Studio',
     h1: 'Veo 3.1 AI video generator — Google’s flagship, wired into a finished Short',
     intro:
-      `Veo 3.1 is Google’s flagship video model, and inside Kineo it is not a clip generator you then have to edit: you type one idea and get the whole vertical Short — script, AI voiceover, Veo-generated scenes and captions — assembled and ready to post. A 60-second video costs ${VEO_COST} credits; the Studio monthly grant covers one.`,
+      `Veo 3.1 is Google’s flagship video model, and inside Kineo it is not a clip generator you then have to edit: you type one idea and get the whole vertical Short — script, AI voiceover, Veo-generated scenes and captions — assembled and ready to post. A 60-second video costs ${VEO_COST} credits; the Studio monthly grant covers ${videosPerMonth('pro', 'cinematic_veo')}.`,
     bestFor: 'The hero video of a channel: the one render a week that has to look expensive. Prompt adherence and scene coherence are its strong suit.',
     tradeoff: `The most expensive engine after the ${KLING3_COST}-credit flagships (${VEO_COST} credits per 60 seconds). It is not the engine for posting daily — pair it with Kineo 1 for volume.`,
     faq: [
@@ -217,13 +217,13 @@ export const ENGINES: Record<string, Engine> = {
     tier: 'Studio',
     h1: 'Kling 3 AI video generator — film scenes with native voice and lip sync',
     intro:
-      `Kling 3 is the top of the range: multi-scene films where a character can speak on camera, in their own generated voice, with lip sync — a medieval historian holding a book, a reporter in golden hour on a Manhattan street, a presenter in a futuristic studio. Kineo routes each scene to the right Kling 3 endpoint and returns the finished vertical film. A 60-second video costs ${KLING3_COST} credits; the Studio monthly grant covers one.`,
+      `Kling 3 is the top of the range: multi-scene films where a character can speak on camera, in their own generated voice, with lip sync — a medieval historian holding a book, a reporter in golden hour on a Manhattan street, a presenter in a futuristic studio. Kineo routes each scene to the right Kling 3 endpoint and returns the finished vertical film. A 60-second video costs ${KLING3_COST} credits; the Studio monthly grant covers ${videosPerMonth('pro', 'cinematic_hollywood')}.`,
     bestFor: 'Talking-head storytelling without a camera, a face, or a studio. The renders people say “that does not even look like AI” about.',
     tradeoff: `The most expensive engine in the catalogue at ${KLING3_COST} credits per 60 seconds. One Kling 3 render costs what ${Math.floor(KLING3_COST / SEEDANCE_COST)} Seedance renders cost.`,
     faq: [
       {
         q: 'How much does a Kling 3 video cost on Kineo?',
-        a: `${KLING3_COST} credits per 60-second video. The Studio monthly grant covers one; the free trial grant does not.`,
+        a: `${KLING3_COST} credits per 60-second video. The Studio monthly grant covers ${videosPerMonth('pro', 'cinematic_hollywood')}; the $1 trial grant (80 credits) does not.`,
       },
       {
         q: 'Can Kling 3 make a character speak on camera?',
@@ -245,7 +245,7 @@ export const ENGINES: Record<string, Engine> = {
     name: 'MiniMax H3',
     model: 'minimax/h3 (text-to-video / image-to-video)',
     creditCost: H3_COST,
-    tier: 'Creator',
+    tier: 'Studio',
     h1: 'MiniMax H3 AI video generator — cinematic film that fits your plan',
     // #293 — KINEO-H3-FALA-NA-PAGINA-2026-08-23. Desde hoje o H3 renderiza
     // cenas de DIÁLOGO com lip sync alternando com narração (o mesmo desenho do

@@ -1,5 +1,6 @@
 'use client'
 
+import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
 import Link from 'next/link'
 import { useEffect } from 'react'
 import { trackEvent } from '@/lib/analytics'
@@ -34,7 +35,7 @@ export default function TrustActions() {
         onClick={() => record('signup')}
         style={{ color: '#04110c', background: '#34d399', borderRadius: 999, padding: '13px 20px', fontSize: 14, fontWeight: 900, textDecoration: 'none' }}
       >
-        Try Kineo free
+        {CARD_ENTRY_COPY.ctaShort}
       </Link>
       <Link
         href="/examples"

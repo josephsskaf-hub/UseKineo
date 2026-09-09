@@ -206,7 +206,7 @@ export default function OriginalityRecipeBuilder() {
           Create this original Short →
         </button>
         <p style={{ color: '#86868b', fontSize: 12, lineHeight: 1.5, margin: '11px 0 0' }}>
-          Your recipe stays attached through signup. The free Fast workflow requires no card. Original structure helps, but no tool can guarantee YouTube monetization.
+          Your recipe stays attached through signup. Every new account starts with the $1 trial (7 days of Creator, 80 credits). Original structure helps, but no tool can guarantee YouTube monetization.
         </p>
       </form>
     </section>
