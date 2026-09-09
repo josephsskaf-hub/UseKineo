@@ -27,6 +27,7 @@ import { writeServerEvent } from '@/lib/serverEvents'
 import { getViralTopicById } from '@/lib/viralTopics'
 import { escolherSementeDeRetorno, SEMENTE_TETO_VIDEOS } from '@/lib/returningSeed'
 import { arrivouDeEmailNosso, escolherPortaDeAuth } from '@/lib/lifecycle/emailReturnDoor'
+import { lerAvisoDeRecusa } from '@/lib/entrega/refusalNoticeServer'
 import GenerateClient from '../../generate/GenerateClient'
 
 // sprint-ui #11 (2026-08-30) — titulo de aba proprio. Sem isto, a aba
@@ -213,9 +214,24 @@ export default async function StudioCreatePage({ searchParams }: StudioCreatePag
     }
   }
 
+  // ═══ KINEO-RECUSA-QUE-NINGUEM-LEU-2026-09-09 ═══════════════════════════════
+  // A trava de narração recusa com um 422 exemplar (segundos de fala, palavras
+  // que faltam, duração que caberia, sem cobrar) — e esse 422 tem UM leitor no
+  // produto inteiro: o `GenerateClient` montado. No auto-start a pessoa já foi
+  // embora quando a resposta chega, e a recusa acontece para ninguém: 15 das 30
+  // pessoas medidas em 30 dias não souberam por NENHUM canal. Aqui, no
+  // servidor, a recusa que ela não leu volta a existir na tela que ela de fato
+  // reabre (14 das 31 da coorte, contra 2 de 31 no /api/next-action). Nada de
+  // e-mail, nada de crédito, nada de render. Ver lib/entrega/refusalNotice.ts.
+  const refusalNotice = await lerAvisoDeRecusa(user.id)
+
   return (
     <Suspense fallback={null}>
-      <GenerateClient initialViralPrompt={seedPrompt} initialUserId={user.id} />
+      <GenerateClient
+        initialViralPrompt={seedPrompt}
+        initialUserId={user.id}
+        refusalNotice={refusalNotice}
+      />
     </Suspense>
   )
 }

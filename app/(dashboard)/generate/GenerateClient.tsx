@@ -298,6 +298,7 @@ import {
   isTransientStatus,
   largestFittingDuration,
 } from '@/lib/expandPolicy'
+import type { RefusalNotice } from '@/lib/entrega/refusalNotice'
 import NicheOnboarding from '@/components/NicheOnboarding'
 import {
   ONBOARDING_GOAL_VARIANT,
@@ -1044,9 +1045,16 @@ function removeCreateIntentFromCurrentUrl(): void {
 export default function GenerateClient({
   initialViralPrompt = '',
   initialUserId,
+  refusalNotice = null,
 }: {
   initialViralPrompt?: string
   initialUserId: string
+  /**
+   * KINEO-RECUSA-QUE-NINGUEM-LEU-2026-09-09 — a última recusa determinística
+   * desta pessoa, quando ela NÃO chegou a ler a tela de falha. Vem decidida do
+   * servidor (lib/entrega/refusalNotice.ts); aqui só se desenha.
+   */
+  refusalNotice?: RefusalNotice | null
 }) {
   // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier via contexto (client).
   const OFFER = useFreeTierOffer()
@@ -12277,6 +12285,36 @@ export default function GenerateClient({
     } catch { /* telemetria nunca derruba a tela */ }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showStep2, analysis, lastSetupOffer?.label])
+  // ═══ KINEO-RECUSA-QUE-NINGUEM-LEU-2026-09-09 ═════════════════════════════
+  // `mostrarAvisoDeRecusa` é a ÚNICA condição: a impressão e o JSX leem esta
+  // mesma variável. Medir por uma cópia da regra foi o erro que a memória
+  // `superficie-medida-por-copia-da-regra` registra — a tela mostrava uma
+  // caixa e o evento nomeava outra.
+  const [avisoRecusaFechado, setAvisoRecusaFechado] = useState(false)
+  const [avisoRecusaDuracaoAplicada, setAvisoRecusaDuracaoAplicada] = useState<number | null>(null)
+  const avisoRecusaMostradoRef = useRef(false)
+  const mostrarAvisoDeRecusa = Boolean(refusalNotice) && phase === 'idle' && !avisoRecusaFechado
+  useEffect(() => {
+    if (!mostrarAvisoDeRecusa || !refusalNotice) return
+    if (avisoRecusaMostradoRef.current) return
+    avisoRecusaMostradoRef.current = true
+    try {
+      void trackEvent('refusal_notice_shown', {
+        reason: 'narration_too_short',
+        speech_seconds: refusalNotice.speechSeconds,
+        target_seconds: refusalNotice.targetSeconds,
+        missing_words: refusalNotice.missingWords,
+        suggested_duration: refusalNotice.suggestedDuration,
+        // Sem isto, "ninguém quis" e "não havia botão" teriam o mesmo placar —
+        // e são consertos opostos. (memória: `degrau-morto-dentro-da-superficie-viva`)
+        tem_botao: refusalNotice.suggestedDuration > 0,
+        nothing_charged: refusalNotice.nothingCharged,
+        minutes_since: refusalNotice.minutesSince,
+      })
+    } catch { /* telemetria nunca derruba a tela */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mostrarAvisoDeRecusa])
+
   // KINEO-SPRINT-V1V4-29 — ancora do botao real de gerar da fase `options`.
   // A barra fixa do rodape existe SOMENTE enquanto esta ancora esta fora de
   // vista; ver components/StickyGenerateBar.tsx para o numero que a motivou.
@@ -12773,6 +12811,85 @@ export default function GenerateClient({
                 We check with the server first. Your credits and finished videos are safe.
               </span>
             </div>
+          )}
+        </div>
+      )}
+
+      {/* ═══ KINEO-RECUSA-QUE-NINGUEM-LEU-2026-09-09 ═══════════════════════
+          A recusa determinística que a pessoa NUNCA leu, porque a aba já não
+          existia quando o 422 chegou. Só diz o que o código fez de fato: os
+          segundos de fala que ela escreveu, o alvo que pediu, e a duração do
+          seletor que aquela fala enche. A frase de crédito só aparece quando o
+          evento AFIRMA que nada foi cobrado — desconhecido não vira promessa. */}
+      {mostrarAvisoDeRecusa && refusalNotice && (
+        <div
+          className="gv-card rounded-xl px-4 py-4 mb-6"
+          style={{
+            background: 'rgba(245,158,11,.07)',
+            border: '1px solid rgba(245,158,11,.35)',
+          }}
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="font-bold text-sm" style={{ color: 'var(--text)' }}>
+                Your last video never started — here&apos;s why
+              </div>
+              <div className="text-xs mt-1" style={{ color: 'var(--muted2)' }}>
+                Your script was about {refusalNotice.speechSeconds}s of speech, and you asked for a{' '}
+                {refusalNotice.targetSeconds}s film. We stopped it instead of shipping a film that
+                goes silent halfway.
+                {refusalNotice.nothingCharged ? ' No credits were charged.' : ''}
+              </div>
+              <div className="text-xs mt-2" style={{ color: 'var(--muted2)' }}>
+                {refusalNotice.suggestedDuration > 0
+                  ? `Two ways out: keep the script and make it a ${refusalNotice.suggestedDuration}s film, or add about ${refusalNotice.missingWords} more words.`
+                  : `To fill ${refusalNotice.targetSeconds}s you need about ${refusalNotice.missingWords} more words — or paste a longer script and we'll pick the length that fits.`}
+              </div>
+              {avisoRecusaDuracaoAplicada !== null && (
+                <div className="text-xs mt-2 font-bold" style={{ color: '#22c55e' }}>
+                  ✓ Length set to {avisoRecusaDuracaoAplicada}s for your next film.
+                </div>
+              )}
+            </div>
+            <button
+              type="button"
+              aria-label="Dismiss"
+              onClick={() => {
+                setAvisoRecusaFechado(true)
+                try {
+                  void trackEvent('refusal_notice_dismissed', {
+                    reason: 'narration_too_short',
+                    aplicou_duracao: avisoRecusaDuracaoAplicada !== null,
+                  })
+                } catch { /* telemetria nunca derruba a tela */ }
+              }}
+              className="text-xs px-2 py-1 rounded-lg shrink-0"
+              style={{ color: 'var(--muted2)' }}
+            >
+              ✕
+            </button>
+          </div>
+          {refusalNotice.suggestedDuration > 0 && avisoRecusaDuracaoAplicada === null && (
+            <button
+              type="button"
+              onClick={() => {
+                const alvo = refusalNotice.suggestedDuration as Duration
+                setDuration(alvo)
+                setAvisoRecusaDuracaoAplicada(refusalNotice.suggestedDuration)
+                try {
+                  void trackEvent('refusal_notice_action_clicked', {
+                    reason: 'narration_too_short',
+                    applied_duration: refusalNotice.suggestedDuration,
+                    speech_seconds: refusalNotice.speechSeconds,
+                    previous_target: refusalNotice.targetSeconds,
+                  })
+                } catch { /* telemetria nunca derruba a tela */ }
+              }}
+              className="font-bold text-sm px-4 py-2 rounded-lg mt-3"
+              style={{ background: '#f59e0b', color: '#111' }}
+            >
+              Make it {refusalNotice.suggestedDuration}s
+            </button>
           )}
         </div>
       )}
