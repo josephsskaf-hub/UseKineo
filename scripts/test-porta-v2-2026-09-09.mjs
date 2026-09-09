@@ -189,7 +189,13 @@ check('a folha grava o rascunho antes de chamar checkout.launch', () => {
 check('a chave do rascunho é a mesma que o GenerateClient restaura', () => {
   const doorModule = loadDoor()
   assert.equal(doorModule.STUDIO_DRAFT_KEY, 'kineo_studio_draft_v1')
-  assert.ok(generateSrc.includes("STUDIO_DRAFT_KEY = 'kineo_studio_draft_v1'"), 'a chave do Studio mudou')
+  // REANCORADO 09/09 (r4): a chave deixou de ser um literal repetido em 4
+  // arquivos e passou a ter dono unico. A intencao — a folha e o Studio usarem
+  // A MESMA chave — ficou MAIS estrita: agora se prova que o Studio importa a
+  // constante do dono, em vez de conferir que ele redigitou o mesmo texto.
+  assert.ok(generateSrc.includes("from '@/lib/growth/cardEntryResumeDraft'"), 'o Studio nao importa mais a chave do dono')
+  assert.ok(generateSrc.includes('sessionStorage.getItem(CARD_ENTRY_DRAFT_KEY)'), 'o Studio nao le a chave compartilhada')
+  assert.ok(!generateSrc.includes("'kineo_studio_draft_v1'"), 'o Studio voltou a redigitar a chave')
 })
 check('a folha não duplica o resume=card_entry que já existe', () => {
   assert.ok(!doorBody.includes('resume=card_entry'), DOOR + ' recriou o caminho de volta')

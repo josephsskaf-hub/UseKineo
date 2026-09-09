@@ -220,6 +220,10 @@ const page = load('app/checkout/success/page.tsx', {
   '@/lib/viralTopics': {}, '@/lib/firstWinHandshake': {},
   '@/lib/growth/checkoutSuccessFlow': load('lib/growth/checkoutSuccessFlow.ts'),
   '@/lib/growth/checkoutSuccessEntitlement': load('lib/growth/checkoutSuccessEntitlement.ts'),
+  // r4 09/09: a chave do rascunho do Studio passou a ter dono unico, e a tela
+  // do sucesso a importa em vez de redigitar o literal. O modulo REAL entra no
+  // mapa (nao um duble): se ele quebrar, este contrato quebra junto.
+  '@/lib/growth/cardEntryResumeDraft': load('lib/growth/cardEntryResumeDraft.ts'),
   '@/lib/growth/verifiedCheckoutPurchase': policy,
   '@/lib/growth/observeCheckoutPurchase': { observeCheckoutPurchase: input => {
     observed.push(input); return () => { cleanupCalled = true }

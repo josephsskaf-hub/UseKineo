@@ -56,6 +56,7 @@ import { filterShotClips } from '@/lib/growth/cleanFilmTrialDoor'
 import { buildTrialAccessFact } from '@/lib/growth/trialAccessFacts'
 import { creditsPerReferenceVideo } from '@/lib/marketingPrice'
 import { engineLabelFor } from '@/lib/engineLabel'
+import { CARD_ENTRY_DRAFT_KEY } from '@/lib/growth/cardEntryResumeDraft'
 
 export const CARD_ENTRY_DOOR_VERSION = 'door_v2' as const
 
@@ -66,7 +67,11 @@ export const CARD_ENTRY_DOOR_CHECKOUT_PATH = CARD_ENTRY_CHECKOUT_PATH.replace(
 )
 
 /** O rascunho que o /checkout/success devolve com ?resume=card_entry. */
-export const STUDIO_DRAFT_KEY = 'kineo_studio_draft_v1'
+// KINEO-RESUME-1DOLAR-FIEL-2026-09-09 — a chave passou a ter dono unico
+// (lib/growth/cardEntryResumeDraft.ts). O nome antigo continua exportado porque
+// ha guardiao ancorado nele; o VALOR agora vem de um lugar so, entao a porta, o
+// Studio e o /checkout/success nao podem mais divergir.
+export const STUDIO_DRAFT_KEY = CARD_ENTRY_DRAFT_KEY
 
 /** A ideia da pessoa cabe na folha; o resto vira reticências. */
 export const DOOR_PROMPT_MAX_CHARS = 140
