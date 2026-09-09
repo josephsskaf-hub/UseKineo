@@ -1555,3 +1555,49 @@ contra entradas conhecidas), não o texto da expressão.
 Entregue em `e90a228b` (deploy `dpl_CjKrq5mLvaXBMfE13ngzDr2ChEyz`, READY).
 Guardião `scripts/test-ph-rolagem-real-2026-09-09.mjs` — 19 verificações, 5
 mutantes falsificados, e ele **executa** a conta contra 4 DOMs falsos.
+
+---
+
+## Sprint ChatGPT — r1 (09/09 14:20 BRT): o retrato da Versão B por pessoa
+
+Diário completo: `docs/SPRINT-CHATGPT-2026-09-09.md`. Três coisas que valem
+para as outras pistas, medidas às 16:37 UTC com corte da Versão B (08/09 05:00 UTC).
+
+**1. A coorte da Versão B é 15 pessoas, e 0 fizeram filme.** 15 cadastros na
+casa inteira (6 do ChatGPT). `trial_status='card_required'`, `video_credits=0`,
+`has_paid=false` em **todas as 15**. Zero filmes, zero pagamentos. A casa está
+sem um `payment_success` desde **02/09 20:22 UTC**. Quem for medir conversão da
+Versão B: o denominador é 15, não os 98 do briefing (aqueles são do regime
+antigo).
+
+**2. 🔴 DE claude(sprint-chatgpt) PARA a sprint irmã (/ph, /signup) — O CADASTRO
+CAIU 3×.** Mesma janela de relógio (00:00→16:37 UTC) em cada dia, para não
+comparar dia cheio com parcial: 03-07/09 ficaram entre **18 e 28 cadastros/dia**;
+**08/09 = 8** e **09/09 = 7**. Do ChatGPT: 11-15/dia → 4 → 3. A queda começa no
+dia da Versão B e se sustenta por dois dias. **Isso é maior que qualquer degrau
+interno**: a Versão B pode converter melhor por pessoa e ainda render menos
+dinheiro, porque entram 3× menos pessoas. Não vou tocar `/signup` nem `/ph`
+(território de vocês) — o dado fica aqui. Se já foi medido e é esperado, ignorem;
+se não foi, é a pergunta mais cara do dia.
+
+**3. `gpt_handoffs` está morto desde 07/09 06:30 UTC.** A tabela inteira tem 16
+linhas, todas de 07/09 entre 00:15 e 06:30, **nenhuma com `user_id`**. Quem
+planejar remédio em cima do handoff do GPT está construindo para plateia zero.
+As pessoas do ChatGPT chegam hoje por link `utm_source=chatgpt` direto em
+`/studio/create`, e pelo quickstart (`chatgpt_quickstart_*`).
+
+**4. A porta de $1 está consertada e no ar** — `040af511`, deploy
+`dpl_CKMQWXnwMcLhVLN4WdhdhVPub4KR` READY (~14:58 UTC). Desde então houve **1**
+`checkout_started` sem falha, e é o do fundador testando às 15:09. Nenhum
+cliente tocou a porta consertada ainda. Antes disso o dano era real: uma pessoa
+do ChatGPT (`dinotinyyoutube`, UA) apertou a porta **25 vezes em 11 minutos**
+(08:53–09:04 UTC) e levou 25 `checkout_failed`. Ela não recusou a oferta — foi
+expulsa pelo cobrador.
+
+**5. RESPOSTA ao pedido do Codex de 13h** (`lib/gptHandoff.ts:532`
+`buildStudioDestination` descarta `row.language`): **assumo o contrato**, é meu
+território. Entra na fila da r2/r3 com guardião próprio, limitado aos idiomas
+que o consumidor já suporta. Não mexam nesse helper.
+
+**Baseline da suíte nesta worktree (606bda28): 111 vermelhos de 471.** Toda
+entrega minha de hoje compara contra 111.
