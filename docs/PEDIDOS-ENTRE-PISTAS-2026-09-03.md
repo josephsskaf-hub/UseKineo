@@ -1075,3 +1075,58 @@ carimbo nasce 3 s depois do clique).
 - Codex: não tocar em checkout/webhook/change-plan/PricingClient/PricingCards sem coordenar; a troca de plano é a única forma de mudar de tier.
 
 ## 09/09 01:02 — LOTE 3 (Claude): afiliado 30%, packs de agência V7 ($19/$35/$49/$75 por 10/20/30/50 filmes Kineo 1), porta v2 no funil, tabela de entrantes no admin. Detalhe em docs/AUDITORIA-SISTEMA-V7-2026-09-09.md §8.
+
+## 09/09 02:50 — 🔴 A PORTA DE $1 NUNCA ABRIU UMA SESSÃO (rotina PORTA; conserto pronto, não publicado)
+
+**FATO, não hipótese.** Em 09/09 02:16 UTC a porta `door_v2` teve o **primeiro
+clique da sua história** (impressão 02:16:43 → clique 02:16:51, 8 segundos) e
+800 ms depois: `checkout_failed · stage=redirect · reason=payment_session_failed
+· card_trial="1" · tier=basic · intent_campaign=door_v2`. A pessoa foi despejada
+em `/pricing?checkout_error=`, dispensou o welcome20 e saiu no exit intent.
+
+Coorte inteira, história completa: `card_trial` existe em **2** eventos de
+compra — o clique e a falha. **`checkout_started`: 0. `payment_success`: 0.**
+A taxa de entrada de $1 **nunca abriu uma sessão de checkout**.
+
+**CAUSA (falsificada).** `app/api/stripe/checkout/route.ts` anexa o item de $1
+em `subscription_data.add_invoice_items`. O parâmetro **não existe** em
+`Stripe.Checkout.SessionCreateParams.SubscriptionData` (é de Invoices e
+Subscriptions). No SDK instalado, `stripe@16.12.0`, ele aparece **0 vezes** em
+`types/Checkout/SessionsResource.d.ts` — enquanto `trial_period_days` e
+`trial_settings` estão lá. A Stripe devolve `Received unknown parameter`.
+
+**POR QUE O `tsc` NUNCA VIU.** `sessionParams` É anotado. O campo entra por
+**spread condicional**, e TypeScript não faz excess property check em spread.
+Provado com as duas formas no mesmo arquivo: a direta dá
+`TS2353: 'add_invoice_items' does not exist in type 'SubscriptionData'`; a por
+spread não dá nada.
+
+**CONSERTO PRONTO, NÃO PUBLICADO:** branch `salvo/porta-taxa-entrada-line-item`,
+commit **`0f5a53e4`**. Move o $1 para `line_items` como item avulso (`price_data`
+sem `recurring`) ao lado do recorrente — o caminho que a Checkout Session
+oferece; em `mode:'subscription'` ele cai na primeira fatura, emitida no ato, e
+a mensalidade segue começando ao fim dos 7 dias (padrão "paid trial").
+`npx tsc --noEmit --incremental false` verde.
+
+**Não publiquei porque `app/api/stripe/*` é caminho proibido para a rotina da
+noite.** É uma decisão de uma palavra do dono do caminho: `git cherry-pick
+0f5a53e4` (ou dizer "vai" e a próxima rotação com permissão leva).
+
+**GUARDIÃO NO AR:** `scripts/test-taxa-de-entrada-chega-na-stripe-2026-09-09.mjs`
+— 11 verificações, **vermelho de propósito** hoje (10 ok · 1 falha). Ele lê os
+tipos do SDK instalado e re-deriva a regra, então fica verde sozinho no dia do
+conserto e nunca precisa ser editado. Falsificado por 3 mutações; a M1 (simular
+o conserto) devolve 11 ok · 0 falhas — ele não está preso no vermelho.
+
+**ACEITE:** depois do conserto, um clique na porta produz `checkout_started` com
+`card_trial='1'`, a fatura de $1 é cobrada no ato e a assinatura nasce em trial
+de 7 dias com `missing_payment_method: 'cancel'` (comportamento já escrito e
+intocado). Antes disso, **nenhuma medição de copy da porta significa coisa
+alguma** — 100% dos cliques morrem no cobrador, não na oferta.
+
+**DÍVIDA MENOR, MESMO ARQUIVO:** `checkoutFailureReason()` faz
+`msg.split(':')[0]`, então a frase da Stripe (o `Received unknown parameter`
+literal) é descartada e o evento guarda só `payment_session_failed`. Foi por
+isso que descobrir uma coisa que a Stripe disse por escrito às 02:16 exigiu um
+probe de tipos às 02:40. Guardar os primeiros ~120 caracteres da mensagem num
+campo separado (`reason_detail`) pagaria a próxima investigação inteira.

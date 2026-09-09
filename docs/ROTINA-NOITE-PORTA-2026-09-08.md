@@ -636,3 +636,147 @@ chave recebeu o bundle novo (memória `entrega-so-de-cliente-nao-tem-sonda`).
    em `PEDIDOS` com predicado e aceite sugerido. **Não é minha pista.**
 3. O pedido do Board para incluir `door_v2` em `lib/admin/versaoBFunnel.ts` foi
    recebido e devolvido: `lib/admin/*` é arquivo travado para esta rotina.
+
+---
+
+## r7 02:05 — A PORTA GANHOU. O COBRADOR NÃO ABRIU A PORTA.
+
+Esta rotação começou para afinar copy e terminou achando por que não havia
+nada a afinar.
+
+### O primeiro clique da história da porta — e o que veio 800 ms depois
+
+Às **02:16:43 UTC de 09/09** a `card_entry_door` (`version: door_v2`) teve a
+primeira impressão com pessoa real desde que subiu. Oito segundos depois,
+**02:16:51**, teve o **primeiro clique**.
+
+A porta ganhou uma disputa difícil. A mesma pessoa, 35 segundos antes, tinha
+visto o `trial_downgrade_modal` e o dispensado com `how: "stay_free"` —
+"intentional": true. Recusou a oferta de plano e, ainda assim, clicou no $1.
+
+E então:
+
+```
+02:16:51.534  checkout_cta_clicked   surface=card_entry_door  card_trial=true
+02:16:52.301  checkout_failed        stage=redirect  reason=payment_session_failed
+                                     tier=basic  card_trial="1"  intent_campaign=door_v2
+02:16:53.239  pricing_view           source=door_v2        ← despejada em /pricing
+02:16:55      welcome_offer_viewed  →  02:17:00 dismissed
+02:17:01      agency_volume_bridge_viewed
+02:17:03      exit_intent_shown                            ← e foi embora
+```
+
+Ela clicou para pagar um dólar, levou um erro, caiu no cardápio inteiro de
+preços e saiu. **Taxa de clique da porta: 1/1. Taxa de sessão de checkout
+aberta: 0/1.**
+
+Quem é: conta de 04/09 vinda do `chatgpt.com`, agência de automação (o
+primeiro filme foi um anúncio da "Ascend AI"), **2 filmes entregues, os dois
+baixados**, trial de 25cr gasto até 0. É exatamente a pessoa que a Versão B foi
+desenhada para converter — entregou, gostou, voltou, quis pagar.
+
+### A coorte inteira, história completa
+
+| evento com `card_trial` | linhas |
+|---|---|
+| `checkout_cta_clicked` | 1 |
+| `checkout_failed` | 1 |
+| **`checkout_started`** | **0** |
+| **`payment_success`** | **0** |
+
+**A taxa de entrada de $1 nunca abriu uma sessão de checkout. Nem uma vez,
+desde que foi ligada.** Não é uma amostra pequena de uma conversão ruim: é um
+caminho que nunca funcionou.
+
+### A causa — falsificada, não deduzida
+
+O evento não diz o porquê: `checkoutFailureReason()` corta a mensagem no
+primeiro `":"`, então "Payment session failed: <o que a Stripe disse>" vira
+`payment_session_failed` e a frase da Stripe é jogada fora. Tive de reconstruir.
+
+O bloco do trial pago anexa o item de $1 em
+`subscription_data.add_invoice_items`. Esse parâmetro **não existe** em
+`Stripe.Checkout.SessionCreateParams.SubscriptionData` — ele é de Invoices e de
+Subscriptions, não da criação de uma Checkout Session. Confirmado lendo os
+tipos do SDK instalado (`stripe@16.12.0`): `add_invoice_items` aparece **0
+vezes** em `types/Checkout/SessionsResource.d.ts`, enquanto `trial_period_days`
+e `trial_settings` estão lá. A Stripe responde `Received unknown parameter`.
+
+**Por que o `tsc` ficou verde 20 dias.** `sessionParams` É anotado como
+`Stripe.Checkout.SessionCreateParams`. Mas o item entra por **spread
+condicional**, e TypeScript não faz excess property check em spread. Provado
+com as duas formas lado a lado, no mesmo arquivo, no mesmo compilador:
+
+```
+forma direta ....... error TS2353: 'add_invoice_items' does not exist
+                     in type 'SubscriptionData'
+forma por spread ... nenhum erro
+```
+
+A anotação estava certa; o caminho por onde o campo entrava é que escapava
+dela. É o parente do `campo-validado-gravado-e-ecoado-nao-e-campo-honrado`:
+auditar a declaração não basta, tem de se auditar a construção.
+
+### O que ficou publicado (o que eu podia tocar)
+
+`scripts/test-taxa-de-entrada-chega-na-stripe-2026-09-09.mjs` — 11 verificações.
+Ele **não tem opinião gravada sobre a Stripe**: lê os tipos do SDK instalado e
+re-deriva a verdade toda vez. Se um dia a API passar a aceitar o parâmetro e o
+SDK for atualizado, ele fica verde sozinho. O que ele exige é só o contrato:
+*enquanto a porta anunciar uma taxa de entrada, o parâmetro que a carrega tem
+de existir no SDK que vai ser chamado.*
+
+**Ele nasce vermelho de propósito** (10 ok · 1 falha), porque o defeito é real
+e o conserto mora em `app/api/stripe/*` — caminho que esta rotina está proibida
+de tocar. Vermelho = o dólar ainda não é cobrável.
+
+### Falsificação por mutação — e uma que pegou o guardião, não o produto
+
+| mutação | esperado | resultado |
+|---|---|---|
+| **M1** `add_invoice_items:` → outra chave (simula o conserto) | central fica **verde** | **11 ok · 0 falhas** ✔ |
+| **M2** `CARD_TRIAL_ENTRY_FEE_MINOR` 100 → 0 | central fica verde, acende a da taxa | central verde, `a casa cobra uma taxa` **vermelha** ✔ |
+| **M3** `trial=1` → `trial=0` no `entryPolicy` | acende a trava do caminho | `o caminho da porta pede o trial` **vermelha** ✔ |
+
+O M1 é o que importa: prova que o guardião **não está preso no vermelho** — ele
+segue a condição real.
+
+E a primeira rodada do M1 **reprovou o meu próprio guardião**: eu tinha escrito
+`/add_invoice_items/` solto, e o **comentário** que explica a mecânica do trial
+pago também escreve o nome do parâmetro. Troquei a chave por outra e o guardião
+não mudou de cor — ele estaria vermelho para sempre, inclusive depois do
+conserto. Passou a exigir a **forma de chave** (`add_invoice_items\s*:`), que é
+a única forma que a Stripe chega a ver. Sem a mutação, eu teria publicado um
+guardião incapaz de ficar verde. (Memória `falsificar-mutacao-commitar-antes`,
+segunda metade: regex solto casa com o próprio comentário.)
+
+### O conserto está PRONTO e NÃO foi publicado
+
+Branch **`salvo/porta-taxa-entrada-line-item`**, commit **`0f5a53e4`**: o item
+de $1 sai de `subscription_data.add_invoice_items` e entra em `line_items` como
+item avulso (`price_data` sem `recurring`) ao lado do recorrente — o caminho que
+a Checkout Session realmente oferece; em `mode: 'subscription'` ele entra na
+primeira fatura, emitida no ato, e a mensalidade continua começando ao fim dos
+7 dias. `npx tsc --noEmit --incremental false` **verde**; o guardião novo passa
+de 10 ok/1 falha para **11 ok/0 falhas**.
+
+Não publiquei porque a regra da casa proíbe esta rotina de tocar
+`app/api/stripe/*`, e a trava de caminho vence o argumento de intenção mesmo
+quando a intenção é boa. Fica uma decisão de uma palavra para o dono do
+caminho. Registrado em `PEDIDOS` com a evidência inteira.
+
+### SHA e estado da r7
+
+Publicado: guardião + diário + pedido. O conserto do cobrador, não — de
+propósito, e dito com todas as letras em vez de "entregue".
+
+### O que ficou aberto
+
+1. **O dólar não é cobrável até `0f5a53e4` entrar.** Toda superfície da porta
+   está correta e leva a uma parede. Afinar copy antes disso é afinar o
+   letreiro de uma porta trancada.
+2. A pessoa de 02:16 continua na casa, com 0 créditos e 2 filmes entregues.
+   Ela quis pagar. Não é da minha pista mandar carta.
+3. `checkoutFailureReason()` corta a frase da Stripe no `":"`. Foi por isso que
+   esta noite precisou de um probe de tipos para descobrir algo que a Stripe já
+   tinha dito por escrito às 02:16.
