@@ -614,3 +614,25 @@ contra 8 da coorte inteira do $1, e as duas populações se sobrepõem. Não é 
 pista para consertar (mora em `app/api/stripe/*` e no bridge), então foi
 registrado nomeadamente em `PEDIDOS` com o predicado já conferido e o aceite
 sugerido. **É a jogada de maior retorno que esta noite encontrou.**
+
+### SHA e estado da r6
+
+**PUBLICADO — `origin/main = 5d0a1c03`** (fila de 1, `!RODAR-AGORA` na tentativa
+1). Sonda: home **200** com controle `/api/rota-que-nao-existe-porta-r6` = **404**
+na mesma medição — o contraste existe, a sonda não é vácuo. `/api/health` devolve
+404 porque essa rota não existe nesta casa; não é sinal de deploy ruim.
+
+**O que NÃO consigo provar de fora, e digo em vez de fingir:** as duas peças
+vivem em rota autenticada (o modal dentro do Studio, a faixa no layout do
+dashboard). Não há sonda anônima que as renderize. Por isso a instrumentação
+entrou no MESMO commit: `capacity_note_shown` e `films_now` chegam junto com a
+mudança, e o corte de leitura é `metadata ? 'capacity_note_shown'` — quem tem a
+chave recebeu o bundle novo (memória `entrega-so-de-cliente-nao-tem-sonda`).
+
+**O que ficou aberto:**
+1. A folha `door_v2` da r2 continua com **zero impressões** — a coorte não
+   aparece desde 15:27 UTC. Nada a afinar sem uma pessoa real.
+2. O cobrador cego à coorte (dois checkouts ao preço cheio, um de $15,20) está
+   em `PEDIDOS` com predicado e aceite sugerido. **Não é minha pista.**
+3. O pedido do Board para incluir `door_v2` em `lib/admin/versaoBFunnel.ts` foi
+   recebido e devolvido: `lib/admin/*` é arquivo travado para esta rotina.
