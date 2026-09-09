@@ -1869,6 +1869,14 @@ export async function POST(req: NextRequest) {
         const invoice = event.data.object as Stripe.Invoice & { billing_reason?: string; subscription?: string }
         const billingReason = invoice.billing_reason
         if (billingReason === 'subscription_create') break
+        // KINEO-TROCA-DE-PLANO-2026-09-09 — fatura de troca de plano (proration)
+        // NÃO é renovação: se caísse abaixo, o SET de créditos zeraria o saldo
+        // do mês pelo grant (e o valor rateado, menor que o preço, ainda
+        // acionaria o grant legado). A troca já cuidou dos créditos na rota.
+        if (billingReason === 'subscription_update') {
+          await supabase.from('events').insert({ name: 'subscription_update_invoice_paid', path: '/api/stripe/webhook', metadata: { invoice: invoice.id ?? null, amount_paid: invoice.amount_paid ?? 0, subscription: typeof invoice.subscription === 'string' ? invoice.subscription : null } })
+          break
+        }
 
         const subscriptionId = typeof invoice.subscription === 'string' ? invoice.subscription : null
         if (!subscriptionId) break

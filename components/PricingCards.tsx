@@ -12,6 +12,7 @@
 // It is rendered for signed-in users, so a 401 means the session expired and
 // the flow falls back to /login.
 
+import { PLAN_SWITCH_EMPTY, fetchPlanSwitchState, planSwitchConfirmText, planSwitchErrorText, planSwitchLabel, switchPlan, type PlanSwitchState, type SwitchableTier } from '@/lib/growth/planSwitch'
 import { useEffect, useRef, useState } from 'react'
 import { PLANS } from '@/lib/pricing'
 import {
@@ -148,6 +149,31 @@ export default function PricingCards({
   // Push #171 — show a clear "already subscribed" banner instead of
   // silently redirecting to /generate on duplicate purchase attempts.
   const [alreadySubscribed, setAlreadySubscribed] = useState(false)
+  // KINEO-TROCA-DE-PLANO-2026-09-09 — assinante troca de plano aqui, sem checkout.
+  const [planSwitch, setPlanSwitch] = useState<PlanSwitchState>(PLAN_SWITCH_EMPTY)
+  const [switching, setSwitching] = useState<SwitchableTier | null>(null)
+  const [switchNotice, setSwitchNotice] = useState<string | null>(null)
+  useEffect(() => {
+    let alive = true
+    void fetchPlanSwitchState().then((s) => { if (alive) setPlanSwitch(s) })
+    return () => { alive = false }
+  }, [])
+  async function handleSwitchPlan(tier: SwitchableTier) {
+    if (switching || planSwitch.tier === tier) return
+    const name = PLANS[tier].name
+    if (typeof window !== 'undefined' && !window.confirm(planSwitchConfirmText(planSwitch, name, priceFor(tier)))) return
+    setSwitching(tier)
+    setSwitchNotice(null)
+    void trackEvent('plan_switch_clicked', { from: planSwitch.tier, to: tier, status: planSwitch.status, surface: 'generate_step_1' })
+    const result = await switchPlan(tier)
+    setSwitching(null)
+    if (result.ok) {
+      setPlanSwitch({ subscribed: true, tier: result.tier, status: planSwitch.status })
+      setSwitchNotice(`Done — you are now on ${name}. Credits: ${result.credits}.`)
+    } else {
+      setSwitchNotice(planSwitchErrorText(result.error))
+    }
+  }
   // Push #077 — pricing card selected state. Card click selects (does NOT
   // trigger Stripe); CTA button click navigates to Stripe.
   // KINEO-SPRINT-OFFER-2026-07-14 — default selection moved Pro → Creator so
@@ -238,6 +264,7 @@ export default function PricingCards({
     void trackEvent('pricing_trial_1usd_clicked', { tier: 'basic', surface: 'app_cards' })
   }
   function handleBuy(tier: CheckoutTier) {
+    if (planSwitch.subscribed && (tier === 'starter' || tier === 'basic' || tier === 'pro')) { void handleSwitchPlan(tier); return }
     // KINEO-PRICING-V6-2026-08-19 — NÃO EXISTE MAIS 1º MÊS COM DESCONTO
     // (INTRO_PRICES == TIER_PRICES). O `&intro=1` continua sendo enviado de
     // propósito: o servidor calcula o amount_off e ele dá zero, então o
@@ -364,6 +391,9 @@ export default function PricingCards({
         </div>
       )}
 
+      {switchNotice && (
+        <div className="rounded-xl px-4 py-3 text-sm mb-4 mx-auto text-center" style={{ maxWidth: 720, background: 'rgba(41,151,255,.06)', border: '1px solid rgba(41,151,255,.25)', color: '#2997ff', fontWeight: 700 }} data-testid="plan-switch-notice">{switchNotice}</div>
+      )}
       {/* Push #171 — already subscribed info banner */}
       {alreadySubscribed && (
         <div
@@ -474,9 +504,9 @@ export default function PricingCards({
           onSelect={() => setSelectedPlan('starter')}
           cta={{
             label:
-              purchasing === 'starter'
+              purchasing === 'starter' || switching === 'starter'
                 ? 'Loading…'
-                : 'Continue with Starter',
+                : (planSwitchLabel(planSwitch, 'starter', PLANS.starter.name) ?? 'Continue with Starter'),
             onClick: () => handleBuy('starter'),
             loading: purchasing === 'starter',
           }}
@@ -506,13 +536,13 @@ export default function PricingCards({
                 // KINEO-TRIAL-CARTAO-2026-08-20 — a semana grátis é a oferta
                 // do Creator e precisa estar NO BOTÃO. É o único plano com
                 // trial, e é assim que ele vira o degrau óbvio da escada.
-                : selectedPlan === 'basic'
+                : (planSwitchLabel(planSwitch, 'basic', PLANS.basic.name) ?? (selectedPlan === 'basic'
                   ? 'Continue with Creator'
-                  : PLANS.basic.cta,
+                  : PLANS.basic.cta)),
             onClick: () => handleBuy('basic'),
             loading: purchasing === 'basic',
           }}
-          secondary={{ label: CARD_TRIAL_SECONDARY_LABEL, onClick: handleTrial, testId: 'creator-trial-1usd-app' }}
+          secondary={planSwitch.subscribed ? null : { label: CARD_TRIAL_SECONDARY_LABEL, onClick: handleTrial, testId: 'creator-trial-1usd-app' }}
         />
 
         {/* KINEO-PRICING-V6-2026-08-19 — 200 → 180 créditos ($29). É o único
@@ -532,9 +562,9 @@ export default function PricingCards({
             label:
               purchasing === 'pro'
                 ? 'Loading…'
-                : selectedPlan === 'pro'
+                : (planSwitchLabel(planSwitch, 'pro', PLANS.pro.name) ?? (selectedPlan === 'pro'
                   ? 'Continue with Studio'
-                  : PLANS.pro.cta,
+                  : PLANS.pro.cta)),
             onClick: () => handleBuy('pro'),
             loading: purchasing === 'pro',
           }}

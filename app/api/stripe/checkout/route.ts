@@ -1202,7 +1202,7 @@ async function buildAndRedirect(
       const paypalStatus = String(paypalSubscription?.status ?? '').toUpperCase()
       stalePayPalSubscription = paypalStatus === 'CANCELLED' || paypalStatus === 'EXPIRED'
       if (!stalePayPalSubscription) {
-        return redirectError('You already have a Kineo subscription. Manage that plan before starting another one.')
+        return redirectError('You already have a Kineo subscription. To change plans, use "Switch to" on the pricing page — no need to cancel.')
       }
     } catch (err) {
       console.error('[stripe/checkout] could not verify PayPal subscription; refusing duplicate checkout:', paypalSubscriptionId, err)
@@ -1330,7 +1330,7 @@ async function buildAndRedirect(
       console.error('[stripe/checkout] active subscription profile repair failed:', user.id, repairError.message)
     }
     console.warn('[stripe/checkout] non-terminal subscription found on Customer; duplicate checkout blocked:', user.id, existingCustomerSubscription.id, existingCustomerSubscription.status)
-    return redirectError('You already have a Kineo subscription. Manage that plan before starting another one.')
+    return redirectError('You already have a Kineo subscription. To change plans, use "Switch to" on the pricing page — no need to cancel.')
   }
 
   // Provider-less Pro may be an admin grant or a legacy payment. Only linked

@@ -42,9 +42,9 @@ checa('o botao principal do Creator ($15) continua la — o trial e a segunda op
 console.log('\n== cards do app (PricingCards) ==')
 const cards = readFileSync(join(RAIZ, 'components/PricingCards.tsx'), 'utf8')
 checa('PlanCard aceita secondary e renderiza abaixo do CTA', /secondary\?: \{ label: string; onClick: \(\) => void; testId\?: string \} \| null/.test(cards) && /\{cta && secondary \? \(/.test(cards))
-checa('o Creator carrega a secondary do trial pela mesma URL do /pricing', /handleTrial\(\) \{[\s\S]*?tier=basic&billing=monthly&trial=1&intent_campaign=trial_1usd_app/.test(cards) && /secondary=\{\{ label: CARD_TRIAL_SECONDARY_LABEL, onClick: handleTrial/.test(cards))
+checa('o Creator carrega a secondary do trial pela mesma URL do /pricing', /handleTrial\(\) \{[\s\S]*?tier=basic&billing=monthly&trial=1&intent_campaign=trial_1usd_app/.test(cards) && /secondary=\{planSwitch\.subscribed \? null : \{ label: CARD_TRIAL_SECONDARY_LABEL, onClick: handleTrial/.test(cards))
 checa('o CTA principal do Creator (handleBuy) continua', /onClick: \(\) => handleBuy\('basic'\),/.test(cards))
-checa('so o Creator tem secondary (Starter e Studio nao)', (cards.match(/secondary=\{\{/g) || []).length === 1)
+checa('so o Creator tem secondary (Starter e Studio nao)', (cards.match(/secondary=\{planSwitch\.subscribed \? null : \{/g) || []).length === 1 && !/secondary=\{\{/.test(cards))
 
 console.log(`\n  verificacoes: ${ok + falhas.length} · falhas: ${falhas.length}`)
 if (falhas.length) { console.log('\nFALHOU:'); falhas.forEach((f) => console.log(`  - ${f}`)); process.exit(1) }

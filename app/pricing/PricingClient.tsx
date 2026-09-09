@@ -9,6 +9,7 @@
 // device; the underlying Stripe discount is the open 50%-off-first-month
 // launch offer.
 
+import { PLAN_SWITCH_EMPTY, fetchPlanSwitchState, planSwitchConfirmText, planSwitchErrorText, planSwitchLabel, switchPlan, type PlanSwitchState, type SwitchableTier } from '@/lib/growth/planSwitch'
 import { S25_PUBLIC } from '@/lib/engineLaunch'
 import Link from 'next/link'
 import React, { useEffect, useRef, useState } from 'react'
@@ -317,6 +318,32 @@ export default function PricingClient() {
   // Push #171 — show a friendly "already subscribed" info banner instead of
   // silently redirecting to /generate when the API blocks a duplicate purchase.
   const [alreadySubscribed, setAlreadySubscribed] = useState(false)
+  // KINEO-TROCA-DE-PLANO-2026-09-09 — quem já assina troca de plano aqui mesmo,
+  // sem passar pelo checkout (que recusa uma segunda assinatura).
+  const [planSwitch, setPlanSwitch] = useState<PlanSwitchState>(PLAN_SWITCH_EMPTY)
+  const [switching, setSwitching] = useState<SwitchableTier | null>(null)
+  const [switchNotice, setSwitchNotice] = useState<string | null>(null)
+  useEffect(() => {
+    let alive = true
+    void fetchPlanSwitchState().then((s) => { if (alive) setPlanSwitch(s) })
+    return () => { alive = false }
+  }, [])
+  async function handleSwitchPlan(tier: SwitchableTier, planName: string, monthlyUsd: string) {
+    if (switching) return
+    if (planSwitch.tier === tier) return
+    if (typeof window !== 'undefined' && !window.confirm(planSwitchConfirmText(planSwitch, planName, monthlyUsd))) return
+    setSwitching(tier)
+    setSwitchNotice(null)
+    void trackEvent('plan_switch_clicked', { from: planSwitch.tier, to: tier, status: planSwitch.status, surface: 'pricing_page' })
+    const result = await switchPlan(tier)
+    setSwitching(null)
+    if (result.ok) {
+      setPlanSwitch({ subscribed: true, tier: result.tier, status: planSwitch.status })
+      setSwitchNotice(`Done — you are now on ${planName}. Credits: ${result.credits}.`)
+    } else {
+      setSwitchNotice(planSwitchErrorText(result.error))
+    }
+  }
   const [displayCurrency, setDisplayCurrency] = useState<DisplayCurrency | null>(null)
   // KINEO-REGIONAL-PRICING-2026-08-04 — região separada da moeda. Default
   // 'standard' (preço cheio) até o /api/geo responder: errar para cima é uma
@@ -535,6 +562,11 @@ export default function PricingClient() {
   // directly to the GET checkout endpoint which does a server-side 302
   // redirect to Stripe. No fetch(), no await, no gesture breakage.
   function handleBuy(tier: BuyableTier, placement: 'card' | 'mobile_sticky' = 'card') {
+    if (planSwitch.subscribed && (tier === 'starter' || tier === 'basic' || tier === 'pro')) {
+      const plan = buildPricing(resolvedCurrency, resolvedRegion).find((p) => p.tier === tier)
+      void handleSwitchPlan(tier, plan?.name ?? tier, plan?.price ?? '')
+      return
+    }
     // KINEO-AUTOPILOT-299-2026-07-26 — Autopilot has no annual SKU and no
     // intro month; the server enforces both, this just avoids sending params
     // that would be silently dropped.
@@ -904,7 +936,8 @@ export default function PricingClient() {
             // KINEO-2026-07-06 — cleaner pricing UI: same blue CTA on every card,
             // labeled with the plan name ("Choose Starter/Creator/Studio") so the
             // action is specific. The card displays; the button acts.
-            const ctaLabel = `Choose ${p.name}`
+            const switchLabel = isPaid ? planSwitchLabel(planSwitch, p.tier as SwitchableTier, p.name) : null
+            const ctaLabel = switching === p.tier ? 'Switching…' : (switchLabel ?? `Choose ${p.name}`)
             // KINEO-HOME-POLISH-R2-2026-07-27 — SO FORMA, nenhum numero ou palavra.
             // O plano recomendado usava exatamente o mesmo fundo (#161618) dos
             // outros dois: o unico sinal era a borda azul, que some assim que o
@@ -1436,6 +1469,11 @@ export default function PricingClient() {
 
         {/* Push #171 — "already subscribed" info banner. Shown instead of
             the old silent redirect so users understand their plan is active. */}
+        {switchNotice && (
+          <div className="mx-auto mt-4 max-w-2xl rounded-xl border border-[#2997ff]/30 bg-[#2997ff]/[0.07] px-5 py-3 text-center" data-testid="plan-switch-notice">
+            <p className="text-[13px] font-bold text-[#2997ff]">{switchNotice}</p>
+          </div>
+        )}
         {alreadySubscribed && (
           <div className="mx-auto mt-4 max-w-2xl rounded-xl border border-[#2997ff]/30 bg-[#2997ff]/[0.07] px-5 py-4 text-center">
             <p className="text-[13px] font-bold text-[#2997ff]">

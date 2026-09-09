@@ -60,7 +60,7 @@ check('a nota preserva o limite de URL/documento', neutralRecord.includes('does 
 check('a alegação falsa saiu da nota', !neutralRecord.includes('takes a topic sentence rather than a document'))
 check('o CTA aponta ao launcher que preserva roteiro', neutralRecord.includes("href: '/chatgpt-to-youtube-shorts#chatgpt-script-handoff'"))
 check('o CTA descreve a ação específica', neutralRecord.includes("label: 'Paste a short script →'"))
-check('o renderer mantém fallback para os outros 45 pares', comparisonPage.includes("pair.kineoAction ?? { href: START_FREE_URL, label: 'Make one free →' }"))
+check('o renderer mantém fallback para os outros 45 pares', comparisonPage.includes("pair.kineoAction ?? { href: START_FREE_URL, label: CARD_ENTRY_COPY.ctaLong }"))
 check('o renderer usa destino e rótulo definidos pelo par', comparisonPage.includes('href={kineoAction.href}') && comparisonPage.includes('{kineoAction.label}'))
 
 console.log('4 · mentiras antigas removidas só do registro alvo')

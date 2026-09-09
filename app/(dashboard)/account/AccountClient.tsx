@@ -490,6 +490,17 @@ function AccountInner({ email, isPro, hasPaid, createdAt, planTier, trialActive 
               </div>
               {tier !== 'free' ? (
                 <>
+                  {/* KINEO-TROCA-DE-PLANO-2026-09-09 — trocar de plano é no /pricing
+                      (rota /api/stripe/change-plan), sem cancelar; o portal da
+                      Stripe cuida de cartão, faturas e cancelamento. */}
+                  <a
+                    href="/pricing#plans"
+                    className="acc-row-btn block w-full rounded-xl py-3 text-sm font-bold text-center mb-2"
+                    style={{ background: 'rgba(41,151,255,.10)', border: '1px solid rgba(41,151,255,.35)', color: '#7cc0ff', textDecoration: 'none' }}
+                    data-testid="account-change-plan"
+                  >
+                    Change plan — Starter, Creator or Studio, without cancelling
+                  </a>
                   {/* Stripe customer portal — change card, see invoices,
                       upgrade/downgrade or cancel. The real control center. */}
                   <button
@@ -504,7 +515,7 @@ function AccountInner({ email, isPro, hasPaid, createdAt, planTier, trialActive 
                       opacity: portalLoading ? 0.7 : 1,
                     }}
                   >
-                    {portalLoading ? 'Opening…' : 'Manage subscription — payment method, invoices, cancel'}
+                    {portalLoading ? 'Opening…' : 'Manage billing — payment method, invoices, cancel'}
                   </button>
                   {portalError && (
                     <p className="text-xs mt-2" style={{ color: '#f87171' }} role="alert">{portalError}</p>
