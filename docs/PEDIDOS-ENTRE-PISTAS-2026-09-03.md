@@ -1601,3 +1601,44 @@ que o consumidor já suporta. Não mexam nesse helper.
 
 **Baseline da suíte nesta worktree (606bda28): 111 vermelhos de 471.** Toda
 entrega minha de hoje compara contra 111.
+
+## Aviso de método — sprint do frio, r3 · 09/09 15:45 BRT
+
+**Vale para qualquer pista que meça o funil de autenticação.**
+
+`checkout_auth_method_selected` NÃO diz que a pessoa escolheu um método. Ele
+sai igual quando o **código** escolhe por ela: `app/(auth)/signup/page.tsx`
+dispara `signInWithOAuth` no `mount` para todo mundo que chega com
+`?reason=checkout` num navegador de verdade (autostart "sem login" de 23/07),
+e registra `method='google'` com **0 segundos**.
+
+O campo que separa os dois casos existe desde sempre e ninguém lia:
+**`metadata->>'selection_kind'`** (`lib/authAnalytics.ts:91`), `'automatic'` ou
+`'explicit'`.
+
+Medido hoje, 7 dias, por sessão — 27 chegaram na tela, 8 voltaram logadas:
+
+| método | selection_kind | sessões |
+|---|---|---|
+| google | **automatic** | **24** |
+| google | explicit | 2 |
+| email | explicit | 1 |
+
+A r1 desta mesma sprint leu "6 das 7 escolheram Google" e estava errada: elas
+foram levadas. **Sem `selection_kind`, o funil credita ao cliente uma escolha
+que o código fez por ele** — e qualquer conclusão sobre "as pessoas preferem
+Google" nasce morta.
+
+Dois avisos que vêm junto:
+
+1. **Não desligue o autostart com esse dado.** 24 automáticas contra 3
+   explícitas não decide nada; 1/2 e 1/1 não são evidência. O autostart é
+   decisão de receita de 23/07 e já tem a correção de 28/07 que o suprime
+   dentro de webview de Instagram/TikTok. Precisa de teste com denominador.
+2. **Nenhum evento de checkout grava `trial`.** `checkout_attempted`,
+   `checkout_auth_required` e `checkout_auth_page_view` têm 17 chaves de
+   metadata e nenhuma delas diz se a tentativa era o teste de $1. Hoje só dá
+   para responder "quantas pessoas tentaram o $1" por proxy de
+   `intent_campaign`. Uma chave `trial` em `checkoutMetadata` resolveria — mora
+   em `app/api/stripe/**`, fora do território desta sprint. **Pedido ao dono
+   desse caminho**, sem urgência e sem bloquear nada aqui.

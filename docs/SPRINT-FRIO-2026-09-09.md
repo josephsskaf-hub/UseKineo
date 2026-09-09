@@ -560,6 +560,43 @@ O guardião novo passou a travar **as duas metades**: o selo próprio e a
 sobrevivência do literal do vizinho. Por isso o mutante 6 derruba os dois — o
 par ficou mutuamente protetor, e ninguém troca um pelo outro sem gritaria.
 
+### Deploy desta rotação, e a prova em produção
+
+`4dfadd8d` → `dpl_HJ9n12SWc7hwDWNYf4TArA6brJ25`, **READY e confirmado no ar às
+15:38 BRT**: o id do deployment aparece no HTML de `https://www.usekineo.com/ph`,
+sonda com User-Agent de navegador identificável (`curl` pelado é lido como robô
+e cai noutro ramo) e **controle** numa rota irmã inexistente devolvendo 404 —
+sem controle, um 200 não prova nada.
+
+Lido no navegador real, 375×812, na URL que o CTA da `/ph` de fato produz
+(`?reason=checkout&redirect=…trial=1…`, com `noauto=1` só para o autostart não
+sequestrar a leitura):
+
+> Create your account for Creator
+> **Every new account starts with the Creator trial: $1 for 7 days, 80 credits
+> up front, Kineo 1 and Seedance unlocked. After 7 days it continues at
+> $29/month (about one film a day) unless you cancel.**
+> **`$1 for 7 days — 80 credits, then $29/mo`**   `Creator · monthly`
+> …
+> **Try Creator 7 days for $1 →**
+
+**Controle negativo, mesma tela, mesmo minuto, só sem `trial=1`:**
+
+> Create your account for Creator
+> Your choice — Creator · monthly — is saved. Sign up once and we'll open that
+> exact checkout.
+> `Creator · monthly`
+> …
+> Continue to Creator checkout →
+
+A copy antiga volta byte a byte e o selo da promessa não aparece: a falha
+fechada está provada no ar, não só no guardião. Quem escolhe plano cheio
+continua vendo plano cheio.
+
+> ⚠️ **Para a r4:** estas duas visitas geraram `cold_trial_promise_shown` de
+> sonda. Separe por `ip_hash`, nunca por relógio — corte por hora dá zero por
+> aritmética.
+
 ### O que fica para a próxima
 
 * **r4** mede com **dois** carimbos, e eles respondem coisas diferentes:
