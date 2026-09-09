@@ -660,6 +660,30 @@ na suíte · 0 pagamentos.
 existir no banco, ninguém recebeu o bundle desta rotação e qualquer taxa é sobre
 plateia zero.
 
+### 8. Publicação confirmada (18:25 BRT / 21:25 UTC)
+
+`cb4f8537` → deploy `dpl_Fyv9MVhyii5fysgWdSU6RziwUSso`, **READY**, alias
+`www.usekineo.com` (confirmado servindo: o `dpl_` no HTML da home é esse).
+Reconferido **na ponta da fila**, não só na worktree: `tsc` verde e os 7
+guardiões do caminho de $1 verdes depois do rebase do `enfileirar.sh` (a fila
+tinha 1 commit alheio, `7cd98543`, docs).
+
+Estado da plateia no momento da publicação:
+
+| | |
+| --- | --- |
+| pagamentos na Versão B | **0** |
+| último pagamento da casa | **02/09 20:22:43 UTC** (7 dias) |
+| `card_entry_door_clicked` desde o conserto do cobrador (14:58 UTC) | **0** |
+| linhas com `engine_restored` em toda a história | **0** |
+| pessoas ativas na última hora | 1 |
+
+Os dois zeros do meio são o recado da rotação: **a oferta de $1 continua sem um
+único teste** — ninguém clicou na porta desde que o cobrador ficou de pé — e
+**ninguém recebeu ainda o bundle desta rotação**. Qualquer taxa calculada agora
+é sobre plateia zero. O corte da r6 é `metadata ? 'engine_restored'`, nunca o
+relógio.
+
 ### O que fica para a r5
 
 O contrato para o GPT. E ele agora tem um fato novo e vendável para dizer: quem
