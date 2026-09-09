@@ -29,7 +29,7 @@ console.log('\n== webhook ==')
 checa("isTrial reconhece o carimbo card_trial (a sessao fecha 'paid' com $1, nao 'no_payment_required')", /const isTrial = session\.payment_status === 'no_payment_required' \|\| session\.metadata\?\.card_trial === '1'/.test(wh))
 checa('trial de cartao concede CARD_TRIAL_GRANT_CREDITS (80), nao os 25 do trial gratis', /const isCardTrial = session\.metadata\?\.card_trial === '1'/.test(wh) && /isCardTrial \? CARD_TRIAL_GRANT_CREDITS : isTrial \? TRIAL_GRANT_CREDITS : firstMonthCredits/.test(wh))
 checa('CARD_TRIAL_GRANT_CREDITS = 80 exportado de checkoutPricing e importado no webhook', /export const CARD_TRIAL_GRANT_CREDITS = 80/.test(cp) && /CARD_TRIAL_GRANT_CREDITS,/.test(wh))
-checa('o dia 8 continua pelo caminho existente: invoice.payment_succeeded ignora subscription_create e concede TIER_CREDITS no cycle', /if \(billingReason === 'subscription_create'\) break/.test(wh) && /const renewalCredits = TIER_CREDITS\[renewalTier\]/.test(wh))
+checa('o dia 8 continua pelo caminho existente: invoice.payment_succeeded ignora subscription_create e concede o grant pela régua (renewalCreditsFor) no cycle', /if \(billingReason === 'subscription_create'\) break/.test(wh) && /const renewalCredits = renewalCreditsFor\(renewalTier, invoice\.amount_paid\)/.test(wh))
 
 console.log('\n== pricing ==')
 checa('o link existe e esta ligado', /const CARD_TRIAL_LINK_ENABLED = true/.test(pr))

@@ -12,7 +12,7 @@ import {
   AUTOPILOT_PILOT_PRICES,
   BULK_PACKS,
   PACK_CREDITS,
-  TIER_CREDITS,
+  TIER_CREDITS, renewalCreditsFor,
   CARD_TRIAL_GRANT_CREDITS,
   isAmbiguousOneTimeUsdAmount,
   isBulkPackId,
@@ -1899,7 +1899,7 @@ export async function POST(req: NextRequest) {
         // forever (it is the one-intro-per-customer marker), so reading it here
         // would permanently under-grant every renewal. The reduced intro grant
         // is applied only once, at checkout.session.completed.
-        const renewalCredits = TIER_CREDITS[renewalTier]
+        const renewalCredits = renewalCreditsFor(renewalTier, invoice.amount_paid)
         if (!renewalUserId) {
           entitlementPending = false
           break

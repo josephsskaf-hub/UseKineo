@@ -1061,3 +1061,8 @@ Primeiras cobranças vistas por essas cinco: **$12,00 · $23,20 · $23,20 · $23
 e converte zero.** Reforça o pedido acima: o conserto do cobrador cego à coorte
 cobre exatamente este caminho, que nenhuma superfície de cliente alcança (o
 carimbo nasce 3 s depois do clique).
+
+## 08/09 22:58 — PREÇOS V7 (Claude, ordem do fundador)
+- Aprovado: Starter $14 / Creator $29 / Studio $59, créditos 60 / 150 / 300, anual 10×. Fonte única lib/checkoutPricing.ts; porta de $1 diz "depois $29/mês" sozinha; quem já assina mantém preço e grant antigos (renewalCreditsFor). Doc: docs/DECISAO-PLANOS-V7-2026-09-09.md. Guardião: scripts/test-preco-v7-2026-09-09.mjs.
+- Para as rotinas da noite (PORTA e ENTREGA) e o Codex: NÃO cravar preço em lugar nenhum; ler TIER_PRICES/TIER_CREDITS/CARD_ENTRY_COPY. O marco do placar andou para 2026-09-09 00:00 UTC.
+- Fora do código: Dodo e TAAFT via Cowork (docs/COWORK-PRECOS-V7-2026-09-09.md); GPT recebe bloco de sync.

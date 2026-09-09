@@ -96,9 +96,9 @@ export type CheckoutCurrency = 'usd'
 // day", "every engine"); Starter e Creator só Kineo 1 + Seedance (lib/enginePlanGate.ts),
 // o que fecha a margem no piso da casa. Doc: docs/DECISAO-PLANOS-2026-09-08.md.
 export const TIER_PRICES: Record<CheckoutTier, Record<CheckoutCurrency, number>> = {
-  starter: { usd: 900 },
-  basic: { usd: 1900 },
-  pro: { usd: 2900 },
+  starter: { usd: 1400 },
+  basic: { usd: 2900 },
+  pro: { usd: 5900 },
 }
 
 // KINEO-AUTOPILOT-299-2026-07-26 — $299/mo done-for-you tier.
@@ -163,9 +163,9 @@ export function monthlyPriceMinor(
 // mensal (dois meses de graça). $70 / $150 / $290.
 export const ANNUAL_PRICES: Record<CheckoutTier, Record<CheckoutCurrency, number>> = {
   // KINEO-PLANOS-9-19-29-2026-09-08 — anual = 10 meses (2 grátis), padrão do mercado.
-  starter: { usd: 9000 },
-  basic: { usd: 19000 },
-  pro: { usd: 29000 },
+  starter: { usd: 14000 },
+  basic: { usd: 29000 },
+  pro: { usd: 59000 },
 }
 
 export const INTRO_PRICES: Record<CheckoutIntroTier, Record<CheckoutCurrency, number>> = {
@@ -179,8 +179,8 @@ export const INTRO_PRICES: Record<CheckoutIntroTier, Record<CheckoutCurrency, nu
   // KINEO-PRICING-V6-2026-08-19 — segue espelhando TIER_PRICES. Se algum dia
   // voltar a existir intro, é AQUI que ele nasce, e o hasIntroOffer() acende
   // a UI sozinho. Enquanto for igual, nenhuma tela promete desconto.
-  starter: { usd: 900 },
-  basic: { usd: 1900 },
+  starter: { usd: 1400 },
+  basic: { usd: 2900 },
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -409,8 +409,31 @@ export const TIER_CREDITS: Record<CheckoutPlanTier, number> = {
   // 150 = "1 film a day" (30 Kineo 1 + 2 Seedance); 180 = Studio como estava (piso de margem).
   starter: 60,
   basic: 150,
+  pro: 300,
+  autopilot: 400,
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// KINEO-PRICING-V7-2026-09-09 — $14 / $29 / $59 com 60 / 150 / 300 (fundador,
+// 08/09 20h: "aumentar todos os planos para ficarem compatíveis" com os pares,
+// mantendo MAIS filmes que eles). Quem assinou antes paga o preço antigo — a
+// Stripe cobra o que está na assinatura — e a renovação recebe o grant que
+// ESSE preço comprava, nunca o novo: Studio a $29 segue com 180, não 300.
+// A régua é o valor pago na fatura contra o preço vigente do plano.
+// ═══════════════════════════════════════════════════════════════════════════
+export const LEGACY_TIER_CREDITS_V6: Record<CheckoutPlanTier, number> = {
+  starter: 60,
+  basic: 150,
   pro: 180,
   autopilot: 400,
+}
+
+export function renewalCreditsFor(tier: CheckoutPlanTier, amountPaidMinor: number | null | undefined): number {
+  const current = tier === 'autopilot' ? AUTOPILOT_PRICES.usd : TIER_PRICES[tier].usd
+  if (typeof amountPaidMinor === 'number' && amountPaidMinor > 0 && amountPaidMinor < current) {
+    return LEGACY_TIER_CREDITS_V6[tier]
+  }
+  return TIER_CREDITS[tier]
 }
 
 // KINEO-PRICING-V3D-2026-07-26 — DEFECT (b). The intro coupon sells the FIRST
@@ -949,7 +972,7 @@ export const TOPUP_PRICES: Record<TopupId, Record<CheckoutCurrency, number>> = {
   //   · o que a pessoa paga HOJE para chegar a 300cr: 4× topup100 = $59.60.
   //     O pacote novo é 16% mais barato e não deixa troco.
   // Margem: líquido $48.15 contra $23.70 de dois Kling 3 → 51%.
-  topup300: { usd: 4990 },
+  topup300: { usd: 5990 },
 }
 
 /** USD list price of each top-up SKU, in cents. Derivado de TOPUP_PRICES. */

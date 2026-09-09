@@ -45,16 +45,16 @@ export const CARD_ENTRY_TRIAL_CREDITS = 80
 /**
  * Copy canônica da porta única. Os números vêm de lib/checkoutPricing
  * (CARD_TRIAL_ENTRY_FEE_MINOR=100, CARD_TRIAL_DAYS=7, CARD_TRIAL_GRANT_CREDITS=80,
- * TIER_PRICES.basic=1500); o guardião confere que estes literais batem com
+ * TIER_PRICES.basic=2900 desde 09/09 — V7); o guardião confere que estes literais batem com
  * aquelas constantes — moeda localizada fica com as superfícies que já
  * formatam por região (UpgradeModalTrialDoor, CardEntryBanner).
  */
 export const CARD_ENTRY_COPY = {
   ctaShort: 'Try 7 days for $1',
   ctaLong: 'Try Creator 7 days for $1 →',
-  chip: '$1 for 7 days — 80 credits, then $19/mo',
-  headline: 'Start for $1: 7 days of Creator with 80 credits, Kineo 1 and Seedance unlocked. Then $19/month, cancel anytime.',
+  chip: '$1 for 7 days — 80 credits, then $29/mo',
+  headline: 'Start for $1: 7 days of Creator with 80 credits, Kineo 1 and Seedance unlocked. Then $29/month, cancel anytime.',
   sentence:
-    'Every new account starts with the Creator trial: $1 for 7 days, 80 credits up front, Kineo 1 and Seedance unlocked. After 7 days it continues at $19/month (about one film a day) unless you cancel.',
+    'Every new account starts with the Creator trial: $1 for 7 days, 80 credits up front, Kineo 1 and Seedance unlocked. After 7 days it continues at $29/month (about one film a day) unless you cancel.',
   noFreeTier: 'There is no free tier: the $1 trial is the only way in.',
 } as const

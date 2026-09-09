@@ -53,10 +53,10 @@ for (const tier of tiers) {
   }
 }
 
-equal(catalog.PAYPAL_TIER_USD.starter.monthly, '9.00', 'Starter recovery link charges current $9 monthly price')
-equal(catalog.PAYPAL_TIER_USD.basic.monthly, '19.00', 'Creator recovery link charges current $19 monthly price')
-equal(catalog.PAYPAL_TIER_USD.pro.monthly, '29.00', 'Studio recovery link charges current $29 monthly price')
-equal(catalog.PAYPAL_PLAN_CREDITS, { starter: 60, basic: 150, pro: 180 }, 'PayPal grants current 40/90/180 ladder')
+equal(catalog.PAYPAL_TIER_USD.starter.monthly, '14.00', 'Starter recovery link charges current $14 monthly price (V7)')
+equal(catalog.PAYPAL_TIER_USD.basic.monthly, '29.00', 'Creator recovery link charges current $29 monthly price (V7)')
+equal(catalog.PAYPAL_TIER_USD.pro.monthly, '59.00', 'Studio recovery link charges current $59 monthly price (V7)')
+equal(catalog.PAYPAL_PLAN_CREDITS, { starter: 60, basic: 150, pro: 300 }, 'PayPal grants current 60/150/300 ladder (V7)')
 equal(catalog.PAYPAL_PACK.usd, (checkout.PACK_PRICE_MINOR.usd / 100).toFixed(2), 'PayPal First Pack price is canonical')
 equal(catalog.PAYPAL_PACK.credits, checkout.PACK_CREDITS.starter, 'PayPal First Pack grant is canonical')
 

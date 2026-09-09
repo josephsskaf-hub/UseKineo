@@ -66,8 +66,8 @@ const telemetryKeys = Object.keys(policy.mobileStickyTelemetry({ billing: 'annua
 equal(telemetryKeys, ['billing', 'placement', 'tier', 'version'], 'telemetry emits only categorical, non-identity keys')
 
 const checkoutPricing = read('lib/checkoutPricing.ts')
-ok(checkoutPricing.includes("starter: { usd: 9000 }"), 'Starter annual total remains canonical')
-ok(checkoutPricing.includes("basic: { usd: 19000 }"), 'Creator annual total remains canonical')
-ok(checkoutPricing.includes("pro: { usd: 29000 }"), 'Studio annual total remains canonical')
+ok(checkoutPricing.includes("starter: { usd: 14000 }"), 'Starter annual total remains canonical')
+ok(checkoutPricing.includes("basic: { usd: 29000 }"), 'Creator annual total remains canonical')
+ok(checkoutPricing.includes("pro: { usd: 59000 }"), 'Studio annual total remains canonical')
 
 console.log(`pricing mobile sticky billing truth: ${checks}/${checks} checks passed`)

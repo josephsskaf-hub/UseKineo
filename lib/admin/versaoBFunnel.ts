@@ -5,7 +5,10 @@
 export type EventRow = { name: string; user_id: string | null; created_at?: string | null; metadata?: Record<string, unknown> | null }
 export type FunilB = { signups: number; sawDoor: number; clickedDoor: number; checkout: number; paid1: number; autostart: number; converted: number; paywallHits: number }
 
-export const VERSAO_B_SINCE = '2026-09-08T05:00:00.000Z'
+// KINEO-PRICING-V7-2026-09-09 — o marco anda para o deploy dos preços novos: o
+// "depois $X/mês" da porta mudou, então a medição da porta recomeça aqui.
+// O dia 08/09 ($9/$19/$29) fica registrado em docs/PLACAR-VERSAO-B-2026-09.md.
+export const VERSAO_B_SINCE = '2026-09-09T00:00:00.000Z'
 
 /** Os nomes de evento que o funil lê — o cron e o painel pedem exatamente estes. */
 export const VERSAO_B_EVENT_NAMES = [

@@ -40,7 +40,7 @@ checa('bateram na porta: 1 pessoa (2 batidas)', f.paywallHits === 1)
 const soDia = F.funilVersaoB(rows, t0 - 1, ext, t0 + 60 * 60000)
 checa('janela [since, until) corta a conversão do dia 8', soDia.converted === 0 && soDia.paid1 === 1)
 checa('linha de diário na ordem do funil', /nasceram 2 → viram 2 → clicaram 1 → checkout 1 → pagaram \$1 1 → filme 1 → viraram \(dia 8\) 1 · bateram na porta 1/.test(F.funilVersaoBLinha('x', f)))
-checa('marco é 08/09 05:00 UTC', F.VERSAO_B_SINCE === '2026-09-08T05:00:00.000Z')
+checa('marco é 09/09 00:00 UTC (preços V7; o dia 08/09 ficou no diário)', F.VERSAO_B_SINCE === '2026-09-09T00:00:00.000Z')
 
 console.log('== dois leitores, uma função ==')
 const page = rd('app/admin/overview/page.tsx')

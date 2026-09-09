@@ -52,7 +52,7 @@ checa('$1 concede 80 (CARD_TRIAL_GRANT_CREDITS)', /const creditsToGrant = isCard
 checa('plano vira basic_trial e has_paid true', /const expectedPlan = isTrial \? `\$\{tier\}_trial` : tier/.test(wh) && /has_paid: true, \/\/ KINEO-PACK-NOWM/.test(wh))
 checa('trial_status card_required vira converted', /\.in\('trial_status', \['active', 'expired', CARD_ENTRY_TRIAL_STATUS\]\)/.test(wh))
 checa('payment_success marca card_trial', /card_trial: session\.metadata\?\.card_trial === '1',/.test(wh))
-checa('dia 8: fatura concede TIER_CREDITS e vira evento com trial_conversion', /const renewalCredits = TIER_CREDITS\[renewalTier\]/.test(wh) && /trial_conversion: previousPlanNormalized\.endsWith\('_trial'\),/.test(wh))
+checa('dia 8: fatura concede o grant pela régua (renewalCreditsFor) e vira evento com trial_conversion', /const renewalCredits = renewalCreditsFor\(renewalTier, invoice\.amount_paid\)/.test(wh) && /trial_conversion: previousPlanNormalized\.endsWith\('_trial'\),/.test(wh))
 
 console.log('== 5. a volta ==')
 checa('success só libera com has_paid true e plano pago (basic_trial incluso)', /if \(input\.hasPaid !== true\) return 'payment_pending'/.test(ent) && /SELF_SERVE_PAID_PLANS/.test(ent))

@@ -19,6 +19,7 @@
 // destrava. Esta página diz isso na cara, no chip do hero e no FAQ — nunca
 // "grátis" para um motor que o visitante não consegue rodar de graça. Toda copy
 // de free tier passa por ft(OFFER, …), como as outras ~45 frases do repositório.
+import { TIER_PRICES } from '@/lib/checkoutPricing'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -55,6 +56,8 @@ import {
   type EngineLandingParam,
 } from '@/lib/growth/engineLandingIntent'
 import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
+// KINEO-PRICING-V7-2026-09-09 — preço do Studio nas respostas vem da fonte única.
+const STUDIO_USD = `$${TIER_PRICES.pro.usd / 100}`
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -147,7 +150,7 @@ export const ENGINES: Record<string, Engine> = {
       },
       {
         q: 'Seedance vs Kling vs Veo — which should I pick?',
-        a: `Seedance is the lowest-cost generated video (${SEEDANCE_COST} credits per 60 seconds) and handles most faceless Shorts; Kling 2.5 at ${KLING_COST} credits is the house best-value pick for camera motion. Kling 2.5 is stronger on camera movement and physical motion. Veo 3.1 is Google’s flagship and the most expensive. Kling 2.5, Veo 3.1 and Kling 3 are Studio-plan engines ($29/month).`,
+        a: `Seedance is the lowest-cost generated video (${SEEDANCE_COST} credits per 60 seconds) and handles most faceless Shorts; Kling 2.5 at ${KLING_COST} credits is the house best-value pick for camera motion. Kling 2.5 is stronger on camera movement and physical motion. Veo 3.1 is Google’s flagship and the most expensive. Kling 2.5, Veo 3.1 and Kling 3 are Studio-plan engines (${STUDIO_USD}/month).`,
       },
     ],
   },
@@ -166,7 +169,7 @@ export const ENGINES: Record<string, Engine> = {
     faq: [
       {
         q: 'Is Kling 2.5 free on Kineo?',
-        a: `Kling 2.5 is a Studio engine ($29/month); Starter and Creator include Kineo 1 and Seedance 1.5. It costs ${KLING_COST} credits per 60-second video, and the 80 trial credits ${trialFilmsForEngine(KLING_COST) > 0 ? `cover ${trialFilmsForEngine(KLING_COST)}` : 'do not stretch to one — they cover a full Seedance film instead, which is the same pipeline on a cheaper engine'}. A Creator plan or a sufficient top-up covers Kling. Trial films come out watermarked; a plan unlocks the clean download.`,
+        a: `Kling 2.5 is a Studio engine (${STUDIO_USD}/month); Starter and Creator include Kineo 1 and Seedance 1.5. It costs ${KLING_COST} credits per 60-second video, and the 80 trial credits ${trialFilmsForEngine(KLING_COST) > 0 ? `cover ${trialFilmsForEngine(KLING_COST)}` : 'do not stretch to one — they cover a full Seedance film instead, which is the same pipeline on a cheaper engine'}. A Creator plan or a sufficient top-up covers Kling. Trial films come out watermarked; a plan unlocks the clean download.`,
       },
       {
         q: 'Which Kling model does Kineo use?',
@@ -193,7 +196,7 @@ export const ENGINES: Record<string, Engine> = {
     faq: [
       {
         q: 'Can I try Veo 3.1 for free?',
-        a: `Veo 3.1 is a Studio engine ($29/month) at ${VEO_COST} credits per 60-second video; the 80 trial credits do not cover one, so it takes the Studio plan or a sufficient top-up. What you can test at no cost is the pipeline itself: run the same topic through Kineo 1 or Seedance, see the script, voice and captions, then switch engines once you like the format.`,
+        a: `Veo 3.1 is a Studio engine (${STUDIO_USD}/month) at ${VEO_COST} credits per 60-second video; the 80 trial credits do not cover one, so it takes the Studio plan or a sufficient top-up. What you can test at no cost is the pipeline itself: run the same topic through Kineo 1 or Seedance, see the script, voice and captions, then switch engines once you like the format.`,
       },
       {
         q: 'What is different about Veo inside Kineo versus using Veo directly?',

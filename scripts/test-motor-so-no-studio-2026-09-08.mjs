@@ -31,10 +31,10 @@ checa('GRANDFATHER: conta antiga Starter continua com Kling 3', G.decideEngineGa
 checa('GRANDFATHER: conta antiga em trial continua com tudo', G.decideEngineGate({ engine: 'omni', plan: 'free', profileCreatedAt: velha }).allowed)
 checa('sem created_at falha FECHADA (conta nova)', G.decideEngineGate({ engine: 'h3', plan: 'basic', profileCreatedAt: null }).allowed === false)
 checa('created_at ilegível falha FECHADA', G.decideEngineGate({ engine: 'h3', plan: 'basic', profileCreatedAt: 'ontem' }).allowed === false)
-checa('mensagem cita Studio e $29', /Studio engine \(\$29\/mo/.test(G.engineGateMessage('hollywood')) && /Kling 3/.test(G.engineGateMessage('hollywood')))
+checa('mensagem cita Studio e $59 (V7)', /Studio engine \(\$59\/mo/.test(G.engineGateMessage('hollywood')) && /Kling 3/.test(G.engineGateMessage('hollywood')))
 checa('marco do gate é 08/09/2026', G.ENGINE_GATE_SINCE === '2026-09-08T07:00:00.000Z')
 const cp = rd('lib/checkoutPricing.ts')
-checa('o $29 da mensagem é o preço do Studio no código', /pro:\s*\{\s*usd:\s*2900\s*\}/.test(cp))
+checa('o $59 da mensagem é o preço do Studio no código (V7)', /pro:\s*\{\s*usd:\s*5900\s*\}/.test(cp) && /\(\$59\/mo, every engine\)/.test(rd('lib/enginePlanGate.ts')))
 
 console.log('== a rota obedece ==')
 const r = rd('app/api/generate-video-cinematic/route.ts')

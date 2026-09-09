@@ -398,9 +398,15 @@ synthetic voice. None of them alternate the two inside one finished Short.
   validated the same day: 72s, zero silent gaps, frame-audited.
 - 2026-08-24: /generate retired; the Studio (usekineo.com/studio) is the
   single creation surface. Every film is delivered as a 1080×1920 master.
-- 2026-09-08: no free tier any more — every account starts with the \$1 trial
-  (7 days of Creator, 80 credits). Plans rebuilt around cadence: Starter \$9
-  (3 films a week), Creator \$19 (1 film a day), Studio \$29 (every engine).
+- 2026-09-09: plans repriced to sit with the market while keeping more films
+  per plan than peers: Starter \$${TIER_PRICES.starter.usd / 100} (60 credits, about 12 Kineo 1 films),
+  Creator \$${TIER_PRICES.basic.usd / 100} (150 credits, about 6 Seedance or 30 Kineo 1 films),
+  Studio \$${TIER_PRICES.pro.usd / 100} (300 credits, about 12 Seedance, 8 MiniMax H3 or 2 Kling 3
+  films). The \$1 trial is unchanged (7 days of Creator, 80 credits, then the
+  Creator price). Existing subscribers keep the price they signed up at.
+- 2026-09-08 (prices superseded on 2026-09-09, see above): no free tier any more — every account starts with the \$1 trial
+  (7 days of Creator, 80 credits). Plans rebuilt around cadence: Starter
+  (3 films a week), Creator (1 film a day), Studio (every engine).
   Starter and Creator include Kineo 1 and Seedance 1.5; Kling 2.5, Veo 3.1,
   Kling 3, MiniMax H3, Omni Flash and Avatar are Studio engines.
 - 2026-08-23: talking characters with lip sync alternate with narration on

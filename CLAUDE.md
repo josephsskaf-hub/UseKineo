@@ -1,6 +1,13 @@
 # CLAUDE.md — Regras Permanentes para todas as sessões
 
 # ══════════════════════════════════════════════════════════════════════════
+# 🔴 09/09/2026 00:00 UTC — PREÇOS V7 (fundador 08/09 20h): Starter $14/60cr ·
+#   Creator $29/150cr · Studio $59/300cr · anual 10×. A porta de $1 diz
+#   "depois $29/mês" (literal espelhado em lib/entryPolicy, guardado por
+#   scripts/test-preco-v7-2026-09-09.mjs contra a fonte única). Quem já assinava
+#   paga o preço antigo e renova com o grant antigo (renewalCreditsFor).
+#   Doc: docs/DECISAO-PLANOS-V7-2026-09-09.md. Marco do placar = 09/09 00:00 UTC.
+#   ⚠ As linhas abaixo sobre $9/$19/$29 e $7/$15/$29 são HISTÓRIA.
 # 🔴 08/09/2026 01:20 — VERSÃO B (ordem do fundador): ACABOU O TRIAL GRÁTIS.
 #   Conta nova = 0 créditos + trial_status=card_required. Única entrada: $1 por
 #   7 dias no Creator (80cr), depois $15/mês. Sem Kineo 1 grátis. Starter $7 e

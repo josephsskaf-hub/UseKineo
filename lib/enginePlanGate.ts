@@ -91,5 +91,5 @@ export function engineDisplayName(engine: string): string {
 }
 
 export function engineGateMessage(engine: string): string {
-  return `${engineDisplayName(engine)} is a Studio engine ($29/mo, every engine). Starter and Creator include Kineo 1 and Seedance 1.5.`
+  return `${engineDisplayName(engine)} is a Studio engine ($59/mo, every engine). Starter and Creator include Kineo 1 and Seedance 1.5.`
 }

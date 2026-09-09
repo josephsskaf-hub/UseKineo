@@ -7,7 +7,7 @@ Este material é para o fundador colar no painel do TAAFT. Nada foi submetido, p
 ## 1. Correção factual antes de colar
 
 - **CONTRADIÇÃO:** o programa de 03/09 pediu “50 créditos grátis” e “6 engines” (`docs/PROGRAMA-CODEX-ASSINATURAS-2026-09-03.md:280-284`), mas o código atual concede **25 créditos** e apresenta **oito motores de vídeo** ao público (`lib/freeTierOffer.ts:144-150`; `lib/reverseTrial.ts:100-140`; `lib/engineLaunch.ts:20-24`). O texto abaixo segue o código, que prevalece.
-- **FATO CONFIRMADO:** os planos mensais vigentes começam em **$7 USD**; a fonte única declara $7 / $15 / $29 (`lib/checkoutPricing.ts:49-98`).
+- **FATO CONFIRMADO:** os planos mensais vigentes começam em **$14 USD** (desde 09/09/2026); a fonte única declara $14 / $29 / $59 (`lib/checkoutPricing.ts:49-98`).
 - **FATO CONFIRMADO:** o trial permite começar sem cartão, produz arquivo com marca d’água e o plano pago libera o MP4 limpo (`lib/freeTierOffer.ts:197-240`).
 - **QUESTÃO PENDENTE / DESCONHECIDO:** a ficha TAAFT bloqueou a leitura automatizada com HTTP 403 em 04/09/2026; portanto a redação que está no painel hoje não foi reconfirmada. A divergência antiga — `from $9.90/mo`, preços $11.90/$24.90/$37.90 e nenhum trial — foi observada em 08/08/2026 (`docs/TAAFT-RELANCAMENTO-2026-08-08.md`, §4).
 
@@ -23,7 +23,7 @@ Este material é para o fundador colar no painel do TAAFT. Nada foi submetido, p
 
 ### Short description
 
-`Kineo turns a topic or finished script into a vertical video with voice, captions, music and a downloadable MP4. Choose from eight video engines. Try it for $1 (7 days of Creator, 80 credits); plans from $9/month in USD.`
+`Kineo turns a topic or finished script into a vertical video with voice, captions, music and a downloadable MP4. Choose from eight video engines. Try it for $1 (7 days of Creator, 80 credits); plans from $14/month in USD.`
 
 ### Long description
 
@@ -31,7 +31,7 @@ Este material é para o fundador colar no painel do TAAFT. Nada foi submetido, p
 
 ### Pricing field
 
-`$1 trial (7 days) · plans from $9/month USD`
+`$1 trial (7 days) · plans from $14/month USD`
 
 ### Primary URL
 
@@ -46,7 +46,7 @@ Este material é para o fundador colar no painel do TAAFT. Nada foi submetido, p
 1. `Topic or finished script → voice, visuals, captions, music and vertical MP4.`
 2. `Eight video engines in one workspace, from Kineo 1 to cinematic AI and Avatar.`
 3. `$1 trial: 7 days of Creator with 80 credits (card required). No free tier.`
-4. `Starter $9 · Creator $19 · Studio $29 — Studio unlocks every engine.`
+4. `Starter $14 · Creator $29 · Studio $59 — Studio unlocks every engine.`
 5. `Credits are returned automatically when a render fails.`
 
 ## 3. As três capturas do listing

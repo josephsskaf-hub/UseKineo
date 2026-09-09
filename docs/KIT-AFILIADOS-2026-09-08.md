@@ -13,7 +13,7 @@ cliques na história, **0 atribuições, 0 comissões**. Dois motivos:
 ## O que o criador ganha (sem inventar nada)
 
 - **40% recorrente** sobre tudo que a pessoa pagar, pelo tempo que ficar.
-  $19/mês → $7,60/mês por assinante, todo mês.
+  $29/mês → $11,60/mês por assinante, todo mês.
 - Link próprio `usekineo.com/a/CODE`, cookie de 90 dias, painel em /affiliate.
 - O gancho para o público dele: **$1 por 7 dias** (80 créditos, Creator).
   É a menor entrada do nicho — nenhum concorrente faz.
@@ -44,7 +44,7 @@ I watched [video]. Your audience is exactly who Kineo was built for, so I'd
 rather pay you than an ad network:
 
   · 40% of everything they pay, every month, for as long as they stay
-  · a $1 door: 7 days of the Creator plan with 80 credits, then $19/mo —
+  · a $1 door: 7 days of the Creator plan with 80 credits, then $29/mo —
     nobody in this space has an entry that low
   · your own link and dashboard: usekineo.com/affiliate
 
