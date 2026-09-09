@@ -41,9 +41,21 @@ check(
   'cada marco só é enviado uma vez (Set + add antes do envio)',
   /marcosEnviados\.current\.has\(marco\)/.test(BEACON) && /marcosEnviados\.current\.add\(marco\)/.test(BEACON),
 )
+// KINEO-FRIO-ROLAGEM-2026-09-09 (r2) — esta verificação EXIGIA a fórmula errada.
+// Ela pedia literalmente `window.scrollY + window.innerHeight`, que nesta casa
+// devolve 100% para todo mundo: `html, body { height: 100% }`
+// (app/globals.css:121) faz o <body> ser o scroller, e aí a raiz tem
+// scrollHeight == clientHeight e a `window` nunca sai do zero. Um guardião que
+// cristaliza a fórmula quebrada impede o conserto em vez de proteger o sinal.
+// O que importa não é QUAL objeto é lido, é que a profundidade seja medida no
+// elemento que realmente rola — e que o evento diga qual foi.
 check(
-  'a profundidade conta a janela visível, não só o scrollY',
-  /window\.scrollY\s*\+\s*window\.innerHeight/.test(BEACON),
+  'a profundidade sai do elemento que realmente rola, não da janela presumida',
+  /function alvoDeRolagem\(\)/.test(BEACON) && /const alvo = alvoDeRolagem\(\)/.test(BEACON),
+)
+check(
+  'a profundidade conta a janela visível somada ao topo rolado',
+  /alvo\.topo\s*\+\s*alvo\.janela/.test(BEACON),
 )
 check(
   'página que cabe na tela é conferida sem esperar rolagem',

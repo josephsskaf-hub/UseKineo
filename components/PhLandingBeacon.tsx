@@ -27,14 +27,42 @@
 //   · o perfil do visitante no próprio `ph_landing_shown` (largura da janela,
 //     celular ou não, fuso e idioma do navegador). O Reddit é majoritariamente
 //     celular e a página nunca disse quantos eram.
-// `version: 'ph_sep10_v2'` é o CARIMBO DO BUNDLE: medir o efeito por relógio
-// inventa defeito, medir por campo novo separa quem recebeu o código novo.
+//
+// KINEO-FRIO-ROLAGEM-2026-09-09 (r2) — A INSTRUMENTAÇÃO DA r1 NASCEU CEGA, e
+// cega de um jeito PIOR do que não medir: ela respondia 100% para todo mundo.
+// Medido no navegador em produção, na /ph de 4.427px em viewport de 812px:
+//
+//     window.scrollY ................ 0    (mesmo com o conteúdo rolado a 1500px)
+//     documentElement.scrollHeight .. 812  (= clientHeight, não 4427)
+//     body.scrollHeight ............. 4427
+//     fórmula da r1 ................. 100%  ← errada
+//     fórmula correta ...............  52%
+//
+// A causa é `app/globals.css:121` — `html, body { height: 100% }`. Com altura
+// fixa no elemento raiz, QUEM ROLA É O <body>, e daí saem três defeitos que se
+// somam: (1) `documentElement.scrollHeight` iguala o viewport, então
+// `(scrollY + innerHeight) / scrollHeight` dá 1 no load e os quatro marcos
+// disparam de uma vez, sem ninguém rolar nada; (2) `window.scrollY` fica preso
+// em 0 para sempre; (3) evento de scroll de ELEMENTO não borbulha até a
+// `window`, então o listener da r1 nunca era chamado. O banco já mostrava o
+// sintoma: 4 `ph_scroll` (25, 50, 75 e 100) em 0,52 s da mesma pessoa.
+//
+// O conserto tem duas metades, e as duas são necessárias:
+//   · `alvoDeRolagem()` escolhe o elemento que REALMENTE rola em vez de
+//     presumir a janela, e o evento passa a dizer qual foi (`scroller`) — sem
+//     esse campo não há como distinguir, olhando o dado, rolagem de verdade de
+//     fórmula velha.
+//   · o listener vai para o `document` na FASE DE CAPTURA, único jeito de ouvir
+//     o scroll de um elemento que não borbulha.
+// `version` sobe para `ph_sep10_v3` porque a rolagem gravada sob `v2` é lixo
+// conhecido e não pode ser somada à boa; o perfil do visitante do `v2`
+// (viewport/is_mobile/tz/lang) continua válido — só a rolagem estava quebrada.
 import { useEffect, useRef } from 'react'
 import { trackEvent } from '@/lib/analytics'
 
 const CAMPAIGN_OK = /^[A-Za-z0-9._~-]{1,60}$/
 const MARCOS_ROLAGEM = [25, 50, 75, 100] as const
-const VERSAO = 'ph_sep10_v2'
+const VERSAO = 'ph_sep10_v3'
 
 // Largura de corte do celular: a mesma que a página usa para empilhar o herói
 // (`minmax(300px, 1fr)` em grade de duas colunas quebra abaixo de ~640px).
@@ -54,15 +82,33 @@ function perfilDoVisitante(): Record<string, unknown> {
   }
 }
 
+type AlvoDeRolagem = { topo: number; janela: number; total: number; fonte: 'window' | 'body' | 'nenhum' }
+
+// Qual elemento REALMENTE rola nesta página. Não presumir a janela: o layout da
+// casa põe `height: 100%` em `html, body` (app/globals.css:121), e com isso o
+// `<body>` vira o container de rolagem e a `window` nunca sai do zero. A ordem
+// é do caso normal para o caso da casa, e a folga de 1px evita que
+// arredondamento de zoom eleja um scroller que não rola de verdade.
+function alvoDeRolagem(): AlvoDeRolagem {
+  const raiz = document.documentElement
+  if (raiz && raiz.scrollHeight > raiz.clientHeight + 1) {
+    return { topo: window.scrollY, janela: window.innerHeight, total: raiz.scrollHeight, fonte: 'window' }
+  }
+  const corpo = document.body
+  if (corpo && corpo.scrollHeight > corpo.clientHeight + 1) {
+    return { topo: corpo.scrollTop, janela: corpo.clientHeight, total: corpo.scrollHeight, fonte: 'body' }
+  }
+  return { topo: 0, janela: raiz?.clientHeight ?? 0, total: raiz?.clientHeight ?? 0, fonte: 'nenhum' }
+}
+
 // Fração do documento já revelada. Página que cabe inteira na tela nasce em
 // 100%: quem não precisou rolar VIU tudo, e contar isso como "não rolou"
 // culparia a copy por um defeito que não existe.
 function profundidade(): number {
   try {
-    const altura = document.documentElement.scrollHeight
-    if (!altura) return 100
-    const visto = window.scrollY + window.innerHeight
-    return Math.max(0, Math.min(100, Math.round((visto / altura) * 100)))
+    const alvo = alvoDeRolagem()
+    if (alvo.fonte === 'nenhum' || !alvo.total) return 100
+    return Math.max(0, Math.min(100, Math.round(((alvo.topo + alvo.janela) / alvo.total) * 100)))
   } catch {
     return 0
   }
@@ -96,17 +142,18 @@ export default function PhLandingBeacon() {
 
     if (!impressao.current) {
       impressao.current = true
-      void trackEvent('ph_landing_shown', { version: VERSAO, ...utm, ...perfil })
+      void trackEvent('ph_landing_shown', { version: VERSAO, scroller: alvoDeRolagem().fonte, ...utm, ...perfil })
     }
 
     let agendado = false
     const conferirRolagem = () => {
       agendado = false
+      const alvo = alvoDeRolagem()
       const p = profundidade()
       for (const marco of MARCOS_ROLAGEM) {
         if (p >= marco && !marcosEnviados.current.has(marco)) {
           marcosEnviados.current.add(marco)
-          void trackEvent('ph_scroll', { version: VERSAO, depth: marco, seconds: segundos(), ...utm, ...perfil })
+          void trackEvent('ph_scroll', { version: VERSAO, depth: marco, seconds: segundos(), scroller: alvo.fonte, ...utm, ...perfil })
         }
       }
     }
@@ -135,6 +182,7 @@ export default function PhLandingBeacon() {
           position: testid.endsWith('-bottom') ? 'bottom' : 'top',
           seconds: segundos(),
           depth: profundidade(),
+          scroller: alvoDeRolagem().fonte,
           href_campaign: hrefCampaign,
           ...utm,
           ...perfil,
@@ -142,13 +190,16 @@ export default function PhLandingBeacon() {
       } catch { /* telemetria nunca atrapalha a navegação */ }
     }
 
-    window.addEventListener('scroll', aoRolar, { passive: true })
+    // Scroll de ELEMENTO não borbulha: com o <body> rolando, um listener na
+    // `window` nunca é chamado. Na fase de captura no `document` o evento passa
+    // por aqui seja quem for o scroller — janela ou body.
+    document.addEventListener('scroll', aoRolar, { passive: true, capture: true })
     window.addEventListener('resize', aoRolar, { passive: true })
     document.addEventListener('click', aoClicar, true)
     conferirRolagem() // página que já cabe na tela marca 100 sem rolagem nenhuma
 
     return () => {
-      window.removeEventListener('scroll', aoRolar)
+      document.removeEventListener('scroll', aoRolar, true)
       window.removeEventListener('resize', aoRolar)
       document.removeEventListener('click', aoClicar, true)
     }
