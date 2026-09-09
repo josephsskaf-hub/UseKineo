@@ -17,9 +17,9 @@ check(/CARD_ENTRY_ONLY\s*=\s*false/.test(read('lib/entryPolicy.ts')), 'restaura√
 check(/VIDEO_ENGINE_COUNT_WORD\s*=\s*S25_PUBLIC\s*\?\s*'Nine'\s*:\s*'Eight'/.test(engines), 'public engine count remains eight before S25 launch')
 
 for (const truth of [
-  '$1 trial',
-  '$9/month in USD',
-  'no free tier',
+  'free to start',
+  '$9.90/month',
+  '30 credits',
   'eight video engines',
   'credits are returned automatically',
 ]) {
