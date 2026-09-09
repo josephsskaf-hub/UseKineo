@@ -134,6 +134,17 @@ export type TrialDoorOfferInput = {
    * manchete não pode prometer "este filme limpo".
    */
   unlocksCurrentFilm: boolean
+  /**
+   * KINEO-PORTA-1DOLAR-FALA-EM-FILMES-2026-09-09 — quantos filmes de IA os
+   * `grantCredits` compram, JÁ DERIVADO pelo chamador com a mesma conta das
+   * linhas de plano (`videosForCredits(credits, 'cinematic_ai')`). Entra
+   * pronto pelo mesmo motivo que os rótulos de dinheiro entram prontos: este
+   * módulo é puro e não importa a tabela de custo de motor.
+   *
+   * Ausente/`null` = o chamador não sabe fazer a conta, e a porta continua
+   * byte a byte como era. NUNCA um número digitado à mão.
+   */
+  filmsNow?: number | null
 }
 
 export type TrialDoorOfferDecision = {
@@ -141,6 +152,14 @@ export type TrialDoorOfferDecision = {
   reason: 'ok' | 'already_paid' | 'price_unresolved'
   buttonLabel: string | null
   priceNote: string | null
+  /**
+   * O RESULTADO ANTES DA UNIDADE INTERNA — "3 AI films for $1" — ou `null`
+   * quando o chamador não passou `filmsNow`. Ver o bloco K17 de
+   * `planUnlockLine` (GenerateClient): a casa já decidiu que filme pronto
+   * vende e crédito não, e aplicou isso nas LINHAS DE PLANO. Esta porta
+   * continuava falando em crédito bem ao lado delas.
+   */
+  capacityNote: string | null
 }
 
 /**
@@ -153,13 +172,13 @@ export function decideTrialDoorOffer(input: TrialDoorOfferInput): TrialDoorOffer
   // cobrado a mensalidade cheia é uma mentira medível (memória
   // `vitrine-oferece-o-que-o-cobrador-recusa`).
   if (input.hasPaid) {
-    return { visible: false, reason: 'already_paid', buttonLabel: null, priceNote: null }
+    return { visible: false, reason: 'already_paid', buttonLabel: null, priceNote: null, capacityNote: null }
   }
 
   // Trava 2 — sem os dois rótulos não existe promessa auditável. Dinheiro nunca
   // é digitado à mão aqui: os rótulos chegam prontos de `formatCheckoutMoney`.
   if (!input.entryFeeLabel || !input.monthlyLabel) {
-    return { visible: false, reason: 'price_unresolved', buttonLabel: null, priceNote: null }
+    return { visible: false, reason: 'price_unresolved', buttonLabel: null, priceNote: null, capacityNote: null }
   }
 
   const buttonLabel = input.unlocksCurrentFilm
@@ -170,7 +189,24 @@ export function decideTrialDoorOffer(input: TrialDoorOfferInput): TrialDoorOffer
     `${input.entryFeeLabel} today · ${input.grantCredits} credits now · ` +
     `then ${input.monthlyLabel}/month from day ${input.trialDays + 1} · cancel anytime`
 
-  return { visible: true, reason: 'ok', buttonLabel, priceNote }
+  // KINEO-PORTA-1DOLAR-FALA-EM-FILMES-2026-09-09 — O QUE OS CRÉDITOS FAZEM,
+  // não quantos são. Medido em 08/09: a única pessoa da coorte da porta que
+  // clicou em comprar escolheu o Starter — 2 filmes/mês por $7 — tendo esta
+  // porta na MESMA tela oferecendo 3 filmes por $1. A linha do plano dizia
+  // "2 AI films / month"; a porta dizia "80 credits now". A porta perdeu a
+  // comparação que nunca fez.
+  //
+  // Fail-closed em três frentes, porque um número de vitrine errado aqui é
+  // uma promessa que o cobrador não honra: sem inteiro, sem número positivo,
+  // ou com mais filmes do que créditos, não existe nota nenhuma.
+  const films = input.filmsNow
+  const filmsUsable =
+    typeof films === 'number' && Number.isInteger(films) && films >= 1 && films <= input.grantCredits
+  const capacityNote = filmsUsable
+    ? `${films} AI film${films === 1 ? '' : 's'} for ${input.entryFeeLabel}`
+    : null
+
+  return { visible: true, reason: 'ok', buttonLabel, priceNote, capacityNote }
 }
 
 /**

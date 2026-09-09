@@ -23,6 +23,7 @@ import {
   type PriceRegion,
 } from '@/lib/checkoutPricing'
 import { decideTrialDoorOffer } from '@/lib/growth/cleanFilmTrialDoor'
+import { videosForCredits } from '@/lib/marketingPrice'
 import { CARD_ENTRY_CHECKOUT_PATH, CARD_ENTRY_COPY, CARD_ENTRY_ONLY, CARD_ENTRY_TRIAL_STATUS } from '@/lib/entryPolicy'
 
 export const CARD_ENTRY_BANNER_VERSION = 'card_entry_banner_v1' as const
@@ -72,6 +73,9 @@ export default function CardEntryBanner({
     grantCredits: CARD_TRIAL_GRANT_CREDITS,
     trialDays: CARD_TRIAL_DAYS,
     unlocksCurrentFilm: false,
+    // KINEO-PORTA-1DOLAR-FALA-EM-FILMES-2026-09-09 — a mesma conta das linhas
+    // de plano, sobre os créditos que o webhook concede no trial de cartão.
+    filmsNow: videosForCredits(CARD_TRIAL_GRANT_CREDITS, 'cinematic_ai'),
   })
 
   useEffect(() => {
@@ -83,8 +87,9 @@ export default function CardEntryBanner({
       door_reason: door.reason,
       price_region: region,
       entry_fee_minor: CARD_TRIAL_ENTRY_FEE_MINOR,
+      capacity_note_shown: door.capacityNote !== null,
     })
-  }, [visible, door.visible, door.reason, region])
+  }, [visible, door.visible, door.reason, door.capacityNote, region])
 
   if (!visible || !door.visible || !door.buttonLabel) return null
 
@@ -105,7 +110,16 @@ export default function CardEntryBanner({
       }}
     >
       <div style={{ minWidth: 240, flex: '1 1 320px' }}>
-        <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>{CARD_ENTRY_COPY.headline}</div>
+        {/* KINEO-PORTA-1DOLAR-FALA-EM-FILMES-2026-09-09 — o headline da política
+            é uma frase de 130 caracteres que abre pelo PREÇO e nunca diz
+            quantos filmes saem. Esta linha entrega o resultado primeiro; a
+            frase inteira continua logo abaixo, intocada. */}
+        {door.capacityNote ? (
+          <div data-card-entry-capacity={door.capacityNote} style={{ fontSize: 17, fontWeight: 900, color: '#fff', marginBottom: 2 }}>
+            {door.capacityNote}
+          </div>
+        ) : null}
+        <div style={{ fontSize: door.capacityNote ? 13 : 15, fontWeight: door.capacityNote ? 600 : 800, color: door.capacityNote ? 'rgba(255,255,255,.82)' : '#fff' }}>{CARD_ENTRY_COPY.headline}</div>
         {door.priceNote ? (
           <div style={{ marginTop: 4, fontSize: 12.5, color: 'rgba(255,255,255,.72)' }}>{door.priceNote}</div>
         ) : null}

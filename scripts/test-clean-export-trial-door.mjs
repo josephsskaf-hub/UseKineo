@@ -227,14 +227,14 @@ const mutants = [
   // passar com a mutacao nao escrita.
   {
     label: 'esquecer quem ja pagou (nucleo compartilhado)',
-    from: "  if (input.hasPaid) {\n    return { visible: false, reason: 'already_paid', buttonLabel: null, priceNote: null }\n  }",
-    to: '  if (false) {\n    return { visible: false, reason: \'already_paid\', buttonLabel: null, priceNote: null }\n  }',
+    from: "  if (input.hasPaid) {\n    return { visible: false, reason: 'already_paid', buttonLabel: null, priceNote: null, capacityNote: null }\n  }",
+    to: '  if (false) {\n    return { visible: false, reason: \'already_paid\', buttonLabel: null, priceNote: null, capacityNote: null }\n  }',
     breaks: (m) => m.decideCleanFilmTrialDoor({ ...BASE, hasPaid: true }).visible === true,
   },
   {
     label: 'chutar preco sem moeda resolvida (nucleo compartilhado)',
-    from: "  if (!input.entryFeeLabel || !input.monthlyLabel) {\n    return { visible: false, reason: 'price_unresolved', buttonLabel: null, priceNote: null }\n  }",
-    to: '  if (false) {\n    return { visible: false, reason: \'price_unresolved\', buttonLabel: null, priceNote: null }\n  }',
+    from: "  if (!input.entryFeeLabel || !input.monthlyLabel) {\n    return { visible: false, reason: 'price_unresolved', buttonLabel: null, priceNote: null, capacityNote: null }\n  }",
+    to: '  if (false) {\n    return { visible: false, reason: \'price_unresolved\', buttonLabel: null, priceNote: null, capacityNote: null }\n  }',
     breaks: (m) => m.decideCleanFilmTrialDoor({ ...BASE, entryFeeLabel: null }).visible === true,
   },
 ]

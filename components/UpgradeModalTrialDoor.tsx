@@ -37,6 +37,7 @@ import {
   type PriceRegion,
 } from '@/lib/checkoutPricing'
 import { decideTrialDoorOffer } from '@/lib/growth/cleanFilmTrialDoor'
+import { videosForCredits } from '@/lib/marketingPrice'
 
 export const UPGRADE_MODAL_TRIAL_DOOR_VERSION = 'trial_1usd_upgrade_modal' as const
 export const UPGRADE_MODAL_TRIAL_DOOR_HREF =
@@ -63,6 +64,13 @@ export default function UpgradeModalTrialDoor({
   reason,
 }: UpgradeModalTrialDoorProps) {
   const checkout = useCheckoutLaunch('generate_upgrade_modal_trial_door')
+  // KINEO-PORTA-1DOLAR-FALA-EM-FILMES-2026-09-09 — a MESMA conta que escreve
+  // "N AI films / month" nas linhas de plano logo abaixo (`videosForCredits`,
+  // lib/marketingPrice), sobre os créditos que o cobrador concede de fato no
+  // trial de cartão. Nenhum número novo entra na tela: é a conta que a casa já
+  // fazia, aplicada à oferta que não a fazia. Fica na peça, e não no pai, pelo
+  // mesmo motivo que na faixa: quem monta a caixa não precisa saber a conta.
+  const filmsNow = videosForCredits(CARD_TRIAL_GRANT_CREDITS, 'cinematic_ai')
   const impressionSentRef = useRef(false)
 
   const door = decideTrialDoorOffer({
@@ -74,6 +82,7 @@ export default function UpgradeModalTrialDoor({
     // O modal não tem um filme em foco para destravar: ele abre ANTES do
     // render, quando o saldo não cobre o pedido.
     unlocksCurrentFilm: false,
+    filmsNow,
   })
 
   // Uma impressão por abertura de modal, com o veredito junto: sem `visible` e
@@ -93,8 +102,13 @@ export default function UpgradeModalTrialDoor({
       price_region: region,
       entry_fee_minor: CARD_TRIAL_ENTRY_FEE_MINOR,
       modal_reason: reason,
+      // Sem estes dois no MESMO evento, "a porta em filmes converteu?" não tem
+      // denominador: impressão com nota e impressão sem nota viram a mesma
+      // linha (memória `evento-de-impressao-nao-prova-o-conteudo`).
+      films_now: typeof filmsNow === 'number' ? filmsNow : null,
+      capacity_note_shown: door.capacityNote !== null,
     })
-  }, [currency, door.reason, door.visible, notPaidProven, reason, region])
+  }, [currency, door.capacityNote, door.reason, door.visible, filmsNow, notPaidProven, reason, region])
 
   if (!door.visible || !door.buttonLabel) return null
 
@@ -121,7 +135,23 @@ export default function UpgradeModalTrialDoor({
       >
         CHEAPEST WAY IN
       </span>
-      <strong style={{ display: 'block', color: '#fff', fontSize: '0.95rem', lineHeight: 1.35, marginBottom: 3 }}>
+      {/* KINEO-PORTA-1DOLAR-FALA-EM-FILMES-2026-09-09 — A CAPACIDADE VEM ANTES
+          DO NOME DA OFERTA. As linhas de plano, 10px abaixo, abrem com a
+          contagem de filmes do mês; esta caixa abria pelo nome da oferta e
+          escondia o que ela entrega numa linha cinza de 0.78rem. Quem procura
+          o degrau mais barato compara o que CONSEGUE FAZER — e foi assim que a
+          única compradora da coorte, em 08/09, escolheu 2 filmes por sete
+          dólares tendo 3 filmes por um na mesma tela. A nota some sozinha
+          quando a conta não fecha. */}
+      {door.capacityNote ? (
+        <strong
+          data-trial-door-capacity={door.capacityNote}
+          style={{ display: 'block', color: '#fff', fontSize: '1.06rem', lineHeight: 1.3, marginBottom: 2 }}
+        >
+          {door.capacityNote}
+        </strong>
+      ) : null}
+      <strong style={{ display: 'block', color: door.capacityNote ? '#bcd9f7' : '#fff', fontSize: door.capacityNote ? '0.86rem' : '0.95rem', fontWeight: door.capacityNote ? 700 : 800, lineHeight: 1.35, marginBottom: 3 }}>
         {door.buttonLabel.replace(/\s*→\s*$/, '')}
       </strong>
       <span style={{ display: 'block', color: '#bcd9f7', fontSize: '0.78rem', lineHeight: 1.45, marginBottom: 10 }}>

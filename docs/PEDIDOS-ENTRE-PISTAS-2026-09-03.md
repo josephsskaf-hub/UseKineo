@@ -998,3 +998,66 @@ mesmo dia: **ancore por linha inteira, e rode o `tsc` antes de enfileirar.**
 **EVIDÊNCIA DE PRODUÇÃO / ENTREGUE:** oferta pós-filme 7a7b259c, READY 12h32 BRT; retorno do pagamento db1d00c023838a4597bebae290d4d83844999143, READY 19:26:18.756 BRT, deploy dpl_D436ivRUF5CYVH9cyDqg1kVtML6Q. Esta correção veio do pedido direto do fundador sobre pagamento; não amplia o escopo permanente da rotina. Prova GET/chunk e testes locais não são pagamento real validado. Typecheck e gates de 21h05 na base 81c9fff4 reaproveitados porque o código permaneceu igual; pacote final somente documental.
 
 **QUESTÕES PENDENTES:** aceite/correção do pedido door_v2 acima; reautenticação Stripe para distinguir abandono de recusas; validação interativa completa após compra real; decisão comercial A/B/C pelo fundador. Sem envio a clientes, gasto, render, alteração de preço ou escrita em banco. O SHA de publicação deste fechamento será confirmado ao Board após o único enfileiramento e BAT oficial, sem segundo deploy apenas de recibo.
+
+## 08/09 22:40 — Rotina PORTA: o cobrador é CEGO à coorte de $1 (achado de dinheiro, não consertado)
+
+**FATO MEDIDO, contas externas, `events` + `profiles`:** a coorte da versão B
+tem **8 pessoas** (`trial_status='card_required'`, 0 crédito, nenhuma pagou).
+**Duas chegaram ao checkout, e as duas ao PREÇO CHEIO** — nenhuma com
+`card_trial`:
+
+- `0da7e6b1` (11:18:26 UTC) — `tier: starter`, entrada `studio_create`,
+  `intent_campaign: push77_short_cost_calculator`;
+- `d95ea3a0` (19:31:22 UTC) — `tier: basic`, `checkout_entry_surface: cross_origin`,
+  **`public_promo_first_charge_minor: 1520`**.
+
+Ou seja: uma conta cuja política de entrada diz **$1 por 7 dias** foi levada a
+uma primeira cobrança de **$15,20**.
+
+**CAUSA, lida no código (não inferida):** `app/api/stripe/checkout/route.ts:1010`
+— `wantsTrial = CARD_TRIAL_ENABLED && searchParams.get('trial') === '1' && tier === TRIAL_TIER`.
+O cobrador **nunca consulta `trial_status`**. Quem chega por qualquer uma das
+~24 superfícies de compra sem o param paga cheio, mesmo sendo da coorte que a
+casa decidiu cobrar $1. No caso de `d95ea3a0` nem havia como acertar no cliente:
+ela cadastrou-se **já indo ao checkout** (`destination_path: /api/stripe/checkout`,
+`is_checkout_destination: true`, bridge de sessão) e o carimbo `card_entry_required`
+foi gravado 3 segundos DEPOIS do clique.
+
+**NÃO CONSERTEI, e a razão é uma trava, não uma dúvida:** a ordem desta rotina
+proíbe tocar em `app/api/stripe/*`, `lib/entryPolicy.ts` e `lib/checkoutPricing.ts`
+— que é onde o conserto mora. Registro aqui em vez de contornar por fora, porque
+qualquer remendo no cliente deixaria o caminho do bridge (o caso de $15,20)
+descoberto.
+
+**SUGESTÃO ao dono do checkout (uma linha, com o predicado já conferido):**
+tratar `trial_status === CARD_ENTRY_TRIAL_STATUS && !has_paid` como equivalente
+a `trial=1` quando `tier === TRIAL_TIER`, e registrar no `checkout_started` qual
+das duas fontes ligou o trial (`trial_source: 'param' | 'cohort'`) — sem isso, o
+conserto fica sem denominador. Cuidado nomeado: quem escolheu **outro** tier
+(`starter`/`pro`) não pode ter o produto trocado por baixo; a coorte só deve
+forçar o trial no tier que já é o do trial.
+
+**ACEITE SUGERIDO:** pessoa da coorte que chega com `tier=basic` sem param sai
+com `card_trial=1`; pessoa da coorte que escolhe `starter` continua em starter;
+pessoa fora da coorte não muda em nada; quem já pagou continua barrado
+(`card_trial_denied: 'has_paid'`).
+
+**PEDIDO DO BOARD SOBRE `door_v2` NO FUNIL (recebido, devolvido):** a inclusão de
+`card_entry_door_shown/clicked` em `lib/admin/versaoBFunnel.ts` **não é desta
+pista** — `lib/admin/*` está na lista de arquivos que a rotina não pode tocar.
+Confirmado o recebimento; fica com o dono do placar.
+
+**COMPLEMENTO MEDIDO (mesma rotina, 22:50) — o caminho vale mais do que a coorte
+de $1 sozinha.** 14 dias, contas externas, cadastros novos:
+
+| caminho | contas | chegaram ao checkout | pagaram |
+|---|---|---|---|
+| normal | 308 | 26 (8,4%) | 2 |
+| **nasceu indo direto ao checkout** | **6** | **5 (83%)** | **0** |
+
+Primeiras cobranças vistas por essas cinco: **$12,00 · $23,20 · $23,20 · $23,20
+· $15,20**; nenhuma com `card_trial`. Quatro das seis estão hoje `downgraded` ou
+`card_required` com 0 crédito. **É a maior intenção de compra que a casa produz
+e converte zero.** Reforça o pedido acima: o conserto do cobrador cego à coorte
+cobre exatamente este caminho, que nenhuma superfície de cliente alcança (o
+carimbo nasce 3 s depois do clique).

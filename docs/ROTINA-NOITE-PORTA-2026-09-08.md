@@ -399,3 +399,218 @@ UMA impressão real seria mexer no que não foi medido.
 
 Números pequenos: 8 pessoas. Não são taxa, são contagem. Servem para escolher
 onde olhar, não para provar efeito.
+
+---
+
+## r6 22:20 — A PORTA PERDEU A COMPARAÇÃO QUE NUNCA FEZ
+
+### O que medi antes de tocar em código
+
+A folha da r2 (`card_entry_door_*`) tem **zero impressões**. Não é defeito: a
+coorte não aparece desde **15:27 UTC** e o deploy dela saiu às 20:31 BRT. Dez
+horas sem uma única pessoa `card_required`. Afinar a folha agora seria mexer no
+que não foi medido — então fui procurar o que os dados JÁ tinham para dizer.
+
+Coorte inteira (8 pessoas, contas externas, história completa):
+
+| pessoa | nasceu (UTC) | faixa | caixa de dinheiro | checkout |
+|---|---|---|---|---|
+| atoyebiolakam2010 | 05:14 | 1× /studio | — | — |
+| samuelhabtub | 08:20 | 2× /studio | — | — |
+| huychnuant | 10:00 | 2× | 1 | — |
+| kaursimrannn20 | 10:33 | 1× | — | — |
+| **samu.mikkonen** | 11:17 | 2× | 3 | **1** |
+| ep5451873 | 12:04 | 4× | 1 | — |
+| ad0616916 | 14:35 | — | — | — |
+| **silverioortegaf301** | 19:31 | — | — | **1** |
+
+### O ACHADO: os dois checkouts da coorte foram ao PREÇO CHEIO
+
+Nenhum dos dois carrega `card_trial`. O cobrador não olha a coorte —
+`app/api/stripe/checkout/route.ts:1010` faz `wantsTrial` depender **só** do
+query param `trial=1`, e nada mais:
+
+- `samu.mikkonen` → `tier: starter`, entrada `studio_create`;
+- `silverioortegaf301` → `tier: basic`, `public_promo_first_charge_minor: **1520**`.
+
+Traduzindo a segunda linha: uma conta cuja política de entrada diz **$1 por 7
+dias** foi levada a uma primeira cobrança de **$15,20**. Ela cadastrou-se já
+indo para o checkout (`destination_path: /api/stripe/checkout`, bridge de
+sessão) — no instante do clique ela ainda não tinha conta, então nenhuma
+superfície podia saber que nasceria `card_required` três segundos depois.
+
+**O placar diz "0 cliques na porta". A verdade é pior e mais útil: as duas
+pessoas da coorte que clicaram em comprar clicaram FORA da porta, e as duas
+receberam o preço errado.** Intenção de compra existe; a porta de $1 não é o que
+a captura.
+
+### Por que a porta perdeu — e a resposta estava no próprio código da casa
+
+A jornada de `samu.mikkonen`, evento a evento (11:17:03 → 11:18:26 UTC):
+signup → autostart → `compose_refused` (`free_fast_limit`) →
+`free_limit_wall_shown` → `upgrade_modal_opened` (`reason: 'credits'`) →
+`upgrade_modal_trial_door_shown` → **`checkout_cta_clicked` com
+`selection: 'starter'`**.
+
+Ela viu a porta de $1 e escolheu pagar $7. Não por engano: as duas ofertas
+estavam a 10 pixels uma da outra e **falavam línguas diferentes**.
+
+| na tela | o que dizia |
+|---|---|
+| linhas de plano (`planUnlockLine`) | "**2 AI films** / month · 60 credits" |
+| porta de $1 (`decideTrialDoorOffer`) | "80 **credits** now" |
+
+O bloco **K17** do próprio `GenerateClient` já tinha decidido essa briga:
+*"o resultado antes da unidade interna… o crédito vira detalhe, não manchete"*.
+A casa aplicou isso nas linhas de plano e **esqueceu a porta**. Traduzida pela
+mesma função (`videosForCredits`, custo `cinematic_ai` = 25cr/60s):
+
+- **porta de $1 → 3 filmes por $1**
+- **Starter → 2 filmes/mês por $7**
+
+A porta entrega **50% mais filme por 1/7 do preço** — e a tela nunca disse isso.
+A pessoa que procurava o degrau mais barato escolheu o que parecia o mais
+barato, porque era o único que declarava o que entregava.
+
+### O que mudou (nenhum número novo entrou na tela)
+
+`capacityNote` nasce no núcleo compartilhado `decideTrialDoorOffer` a partir de
+um `filmsNow` que **o chamador deriva** — `videosForCredits(CARD_TRIAL_GRANT_CREDITS,
+'cinematic_ai')`, a mesma função das linhas de plano, sobre os créditos que o
+**webhook** concede de fato (`route.ts:1359`, `isCardTrial ? CARD_TRIAL_GRANT_CREDITS`).
+Nada é digitado à mão; se o custo do motor ou o grant mudarem, a frase muda
+sozinha.
+
+Duas superfícies ganharam a linha, e as duas mantêm tudo que já tinham:
+
+- **modal de dinheiro** (`UpgradeModalTrialDoor`) — 105 aberturas / 30d, das
+  quais **97 (92%)** com `reason` `credits`/`trial_*`. A capacidade vira
+  manchete; o nome da oferta e a nota de preço completa continuam abaixo.
+- **faixa** (`CardEntryBanner`) — a superfície de maior alcance da coorte
+  (**75%**, contra 38% da caixa de dinheiro). O `headline` da política, uma
+  frase de 130 caracteres que abre pelo preço, continua inteiro logo abaixo.
+
+Fail-closed em três frentes: número não inteiro, não positivo, ou **maior que os
+créditos concedidos** não vira promessa nenhuma — a porta continua exatamente
+como era. É a trava que impede a vitrine de prometer o que o cobrador não honra.
+
+### O que NÃO fiz, de propósito
+
+- **Não reescrevi o destino do clique de ninguém.** Mandar quem escolheu Starter
+  para o trial de Creator seria trocar o produto que a pessoa pediu.
+- **Não toquei em `app/api/stripe/*`** (trava da rotina). O conserto do cobrador
+  cego à coorte fica registrado abaixo como pendência nomeada, não executada.
+- **Não mexi em `lib/admin/*`** — inclusive o pedido do Board para incluir
+  `door_v2` no funil canônico (`PEDIDOS`, 08/09) cai nessa trava. Registrado e
+  devolvido: não é minha pista.
+
+### Guardião
+
+`scripts/test-porta-fala-em-filmes-2026-09-09.mjs` — **62 verificações**, com o
+núcleo puro compilado e **avaliado** (nunca importado com alias `@/`). Prova a
+regra, o fail-closed nos 9 casos suspeitos, que as duas telas **derivam** em vez
+de digitar (nenhum `$1`, `80 credits` ou `N AI films` literal nelas), que a copy
+antiga sobreviveu **byte a byte**, e que a impressão carrega `films_now` +
+`capacity_note_shown` — sem os dois, zero clique não distingue "ninguém quis" de
+"nunca apareceu".
+
+**3 mutantes falsificados**, cada um com a aplicação provada por leitura do
+texto inserido (nunca por md5 — CRLF): derrubar o teto `films <= grantCredits`;
+cravar `filmsNow={3}` no pai; e trocar `capacity_note_shown` por `true`.
+
+### A suíte inteira achou 5 regressões minhas — e uma delas mudou o desenho
+
+Baseline `5a3c051f` (árvore pristina): **110 vermelhos de 460**. A minha primeira
+versão: **115**. Cinco a mais, todas minhas, todas conferidas uma a uma:
+
+| guardião | o que acusou | veredito |
+|---|---|---|
+| `test-next-door-bar` (#47) | 3 linhas novas no `GenerateClient` tocando preço/upgrade | **trava certa — mudei o desenho** |
+| `test-porta-1dolar-no-upgrade-modal` | âncora de uma linha quebrada | consequência da mesma mudança |
+| `test-sistema-de-compra-2026-09-08` | idem | idem |
+| `test-grant-copy-single-source` (C1) | `"7 days for"` sem preço na mesma linha | **falso positivo do meu comentário** |
+| `test-clean-export-trial-door` | mutantes ancorados no `return` antigo | reancoragem |
+
+**A #47 estava certa e eu estava errado.** Ela reprova QUALQUER linha nova no
+`GenerateClient` que case com `price|upgrade|checkout|tier=`, para manter a
+pista do Codex intocada. Eu passava `filmsNow` por prop, e isso exigia editar a
+linha `<UpgradeModalTrialDoor …/>` — que contém "Upgrade" no próprio nome. Não
+havia como passar a prop sem acender a trava.
+
+O conserto não foi afrouxar nada: **a conta mudou de lugar**. Agora o modal
+calcula `videosForCredits(CARD_TRIAL_GRANT_CREDITS, 'cinematic_ai')` dentro de
+si mesmo — exatamente como a faixa já fazia. `GenerateClient.tsx` voltou a ter
+**zero linhas alteradas**, e o desenho ficou mais coerente do que estava: as
+duas superfícies fazem a mesma conta do mesmo jeito, e quem hospeda a caixa não
+precisa saber dela. Meu guardião passou a exigir isso (`o pai continua sem saber
+da conta`), então a prop não volta por descuido.
+
+O C1 também não era do produto: meu comentário quebrava a linha logo depois de
+`"Try Creator 7 days for` e a varredura leu um botão sem preço. Reescrevi o
+comentário — a trava, que nasceu de um `$1` apagado por retrovisor de grupo em
+`String.replace`, continua tão apertada quanto era.
+
+O `test-clean-export-trial-door` citava o `return` do núcleo literalmente, e eu
+somei `capacityNote` às três saídas. Reancorei as 4 ocorrências; o que a
+mutação exige (mutada, a porta tem de mentir) continua idêntico — o próprio
+cabeçalho daquele bloco já previa este caso.
+
+**Resultado: 64 verificações no guardião novo, e a suíte de volta ao número do
+baseline.**
+
+### Como ler esta entrega quando a coorte voltar (corte pelo CAMPO, nunca pelo relógio)
+
+O campo novo é o carimbo do deploy — quem recebeu o bundle novo emite
+`capacity_note_shown`; quem não recebeu não tem a chave. Corte por hora inventa
+defeito (memória `campo-novo-e-o-carimbo-do-deploy`).
+
+```sql
+-- pessoas distintas que VIRAM a porta em filmes, e o que fizeram depois
+select e.name,
+       count(*) as linhas,
+       count(distinct e.user_id) as pessoas,
+       count(*) filter (where (e.metadata->>'capacity_note_shown')::boolean) as com_nota,
+       min(e.metadata->>'films_now') as filmes_anunciados
+from events e
+left join profiles p on p.id = e.user_id
+where e.name in ('upgrade_modal_trial_door_shown','upgrade_modal_trial_door_clicked',
+                 'card_entry_banner_shown','card_entry_banner_clicked')
+  and e.metadata ? 'capacity_note_shown'
+  and coalesce(p.email,'') !~* '(josephsskaf|usekineo|kineo\.local)'
+group by 1 order by 1;
+```
+
+O par honesto é **impressão-com-nota → clique da MESMA superfície**, nunca
+impressão de uma contra clique de outra (memória
+`peca-escrita-para-muitos-vista-por-poucos`). E o denominador da coorte continua
+minúsculo: **8 pessoas em toda a história**. Isto é contagem, não taxa.
+
+### PRÓXIMA JOGADA — o degrau de maior intenção da casa converte 0%
+
+Puxando o fio de `d95ea3a0` (a conta que nasceu indo direto ao checkout), medi a
+coorte inteira desse caminho — 14 dias, contas externas, `auth_callback_completed`
+com `is_new_user` e `is_checkout_destination`:
+
+| caminho de cadastro | contas | chegaram ao checkout | pagaram |
+|---|---|---|---|
+| normal | 308 | 26 (**8,4%**) | **2** |
+| **já indo ao checkout** | **6** | **5 (83%)** | **0** |
+
+São pessoas que decidiram comprar **antes de ter conta**: dez vezes a taxa
+normal de chegada ao checkout, e **nenhum pagamento**. As primeiras cobranças
+que elas viram: **$12,00 · $23,20 · $23,20 · $23,20 · $15,20**. Nenhuma das
+cinco levava `card_trial`. Quatro das seis estão hoje `downgraded` ou
+`card_required`, com 0 crédito — ou seja, voltaram para dentro do produto sem
+nada na mão.
+
+A leitura: **a casa manda quem já decidiu comprar direto para a cobrança mais
+cara que existe, sem passar por porta barata nenhuma.** O bridge preserva o
+destino (`/api/stripe/checkout`) e o tier que a pessoa clicou lá fora, mas o
+carimbo de coorte é gravado 3 segundos DEPOIS — então nem o cliente nem o
+cobrador têm chance de aplicar a política de entrada.
+
+Isto vale mais que qualquer copy da porta: são 6 pessoas de intenção máxima
+contra 8 da coorte inteira do $1, e as duas populações se sobrepõem. Não é minha
+pista para consertar (mora em `app/api/stripe/*` e no bridge), então foi
+registrado nomeadamente em `PEDIDOS` com o predicado já conferido e o aceite
+sugerido. **É a jogada de maior retorno que esta noite encontrou.**
