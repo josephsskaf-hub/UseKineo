@@ -45,6 +45,7 @@ import { engineLandingPublicPath } from '@/lib/growth/engineLandingIntent'
 import { EDITING_TOOLS, MAX_FILE_BYTES, MAX_CLIP_SECONDS } from '@/lib/videoEditing/settings'
 import { CARD_ENTRY_ONLY } from '@/lib/entryPolicy'
 import { TIER_PRICES } from '@/lib/checkoutPricing'
+import { AFFILIATE_COMMISSION_PCT } from '@/lib/affiliateCommission'
 // KINEO-PRICING-V7-2026-09-09 — filmes por plano são CALCULADOS do custo real de
 // 60 s por motor (videosPerMonth), nunca digitados: '8 H3' saiu errado uma vez.
 import { videosPerMonth } from '@/lib/marketingPrice'
@@ -76,23 +77,10 @@ const BASE = PRODUCT.url
 // PUSH #100 — os três loops de aquisição abaixo existem em produção e não
 // estavam neste arquivo, então nenhum motor de resposta sabia citá-los.
 //
-// SOBRE OS DOIS NÚMEROS: a disciplina deste arquivo é "zero número digitado à
-// mão", e a forma correta seria importar as constantes. Não dá, e a razão é
-// estrutural, não preguiça:
-//   - 40% mora em app/api/affiliate/apply/route.ts:84 (`commission_rate: 0.4`),
-//     const inline num route handler;
-//   - 30 créditos moram em app/api/referral/route.ts:8
-//     (`REFERRAL_REWARD_CREDITS`), const de módulo NÃO exportada.
-// Os dois módulos são `force-dynamic` e importam o client Supabase baseado em
-// cookies. Importar qualquer um deles aqui arrastaria `cookies()` para dentro
-// de uma rota `force-static` e quebraria a prerenderização — trocar um número
-// correto por um build quebrado é um péssimo negócio.
-//
-// Então eles ficam aqui, conferidos contra a linha que EXECUTA o comportamento
-// (não contra material de marketing), no mesmo padrão que lib/kineoFacts.ts:187
-// já usa para `FREE_TIER.videosPer24h` pelo mesmo motivo (const local não
-// exportada em app/api/compose/route.ts). Se um dos dois mudar lá, muda aqui.
-const AFFILIATE_COMMISSION_PERCENT = 40 // fonte: app/api/affiliate/apply/route.ts:84 (0.4)
+// A comissão agora possui fonte pura em lib/affiliateCommission.ts, também
+// usada pelo cadastro. Importá-la não arrasta cookies, banco ou Stripe.
+// As constantes de indicação abaixo ainda são locais às rotas indicadas;
+// não importar handlers dinâmicos nesta resposta estática.
 const REFERRAL_REWARD_CREDITS = 30 // fonte: app/api/referral/route.ts:8, app/api/referral/qualify/route.ts:10
 const REFERRAL_MAX_REWARDED_FRIENDS = 20 // fonte: app/api/referral/qualify/route.ts:14 (MAX_REFERRALS_PER_USER)
 const AFFILIATE_FIRST_TOUCH_DAYS = 90 // fonte: app/a/[code]/route.ts:13 (COOKIE_MAX_AGE)
@@ -533,7 +521,7 @@ COPY of the person's own local file, which is never uploaded — not a generated
 
 ## Programs and free embeds
 
-- [Affiliate program](${BASE}/partners): ${AFFILIATE_COMMISSION_PERCENT}% commission on every eligible payment from a customer you refer, including renewals for as long as they stay subscribed. First-touch tracking lasts ${AFFILIATE_FIRST_TOUCH_DAYS} days. Open to anyone with an account — you get your link immediately.
+- [Affiliate program](${BASE}/partners): ${AFFILIATE_COMMISSION_PCT} commission on every eligible payment from a customer you refer, including renewals for as long as they stay subscribed. First-touch tracking lasts ${AFFILIATE_FIRST_TOUCH_DAYS} days. Open to anyone with an account — you get your link immediately.
 - [Referral program](${BASE}/referral): give ${REFERRAL_REWARD_CREDITS} credits, get ${REFERRAL_REWARD_CREDITS} credits. Both sides are credited once the invited person confirms their email and finishes their first video. A referrer is rewarded for up to ${REFERRAL_MAX_REWARDED_FRIENDS} friends; the invited person is always credited. Requires a Kineo account.
 - [Shorts Idea of the Day widget](${BASE}/widget): a free embeddable widget that shows a new AI-generated YouTube Shorts idea every day. One copy-paste iframe, no account and no cost, plus a "Made with Kineo" badge you can put on anything you built with Kineo. The widget itself is served at ${BASE}/widget/embed.
 
