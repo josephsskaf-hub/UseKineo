@@ -77,7 +77,7 @@ Use desktop em **1440 × 900**, zoom **100%**, sem barra de favoritos, notifica�
 ## 4. Ordem de colagem no painel
 
 1. Abra a ficha e escolha `AI Options → Claim AI` caso os controles do dono ainda estejam bloqueados.
-2. Substitua tagline, descrições e pricing pelo bloco acima; remova qualquer ocorrência de `Five engines`, `40 credits`, `50 credits`, `$1 trial`, `80 credits`, `$14`, `$29`, `$59`, `$11.90`, `$24.90` ou `$37.90`.
+2. Substitua tagline, descrições e pricing pelo bloco acima; remova qualquer ocorrência de `Five engines`, `40 credits`, `50 credits`, a oferta de um dolar (trial pago), `80 credits`, `$14`, `$29`, `$59`, `$11.90`, `$24.90` ou `$37.90`.
 3. Confirme que a URL final aponta para `www.usekineo.com` e preserva `utm_source=taaft`.
 4. Faça upload das três imagens na ordem 1 → 2 → 3.
 5. Visualize a ficha antes de salvar. Se o TAAFT cortar texto, use a short description sem resumir números por conta própria.
