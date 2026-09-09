@@ -784,3 +784,77 @@ quebrado**, e a coisa mais cara desta noite não é o filme que não saiu para 7
 pessoas: é a decisão de preço que o senhor está prestes a tomar com dados que
 não medem preço.
 
+
+---
+
+## ADENDO AO FECHAMENTO — r11 08:40→08:55 BRT (dados até 11:49 UTC)
+
+O fechamento foi escrito às 08:18 com os dados cortados às 10:33 UTC. A janela
+da rotina ia até 09:00. Esta é a última hora, medida — e ela **corrige um
+alarme do próprio fechamento**.
+
+### 1. O que estava publicado continua publicado
+
+`8feb2ea1` · `3f9337fa` · `08641311` — os três são ancestrais de `origin/main`.
+Fila `entrega-atual` vazia, worktree limpa. Nada meu ficou para trás.
+
+**O `0f5a53e4` (checkout, pista PORTA) AINDA NÃO ESTÁ NA MAIN.** É o item que o
+fechamento chamou de "atropela todo o resto" e ele continua de pé, sem colher.
+
+### 2. A última hora: 1 pessoa apertou, e não foi falha de entrega
+
+`mirajbkhan313@gmail.com`, 10:52 UTC: `analyze_idea_clicked` → estágio
+`analyzing` → estágio `options` → parou. **Nenhum despacho, nenhum erro.**
+`video_credits = 0`, plano free, com **um filme completo de 03/09** — ou seja,
+trial gasto, não trial órfão nem antifraude (memória
+`credito-zero-significa-tres-coisas`). É parede de crédito, não "apertou e não
+saiu". Zero falhas de entrega em toda a última hora.
+
+### 3. ⚠️ CORREÇÃO: `vendor_asset_expired` **não explodiu** — o detector ligou
+
+O fechamento escreveu *"96 eventos só em 08/09 (era 0 em 06 e 07/09) … é a
+memória `fallback-silencioso-vaza-no-caso-caro` cobrando em produção"*. Fui ler
+o `metadata` em vez da contagem, e a leitura estava errada:
+
+| o que o evento diz | valor |
+|---|---|
+| http | **404** em 100% da amostra |
+| host da url morta | `f002.backblazeb2.com/file/creatomate-…` — **Creatomate**, não fal |
+| `created_at` do filme | 12/05 → **06/08** |
+| filme mais novo atingido | **06/08/2026** — nada depois disso |
+
+E o denominador, que ninguém tinha tirado:
+
+| filmes `completed` da casa | 1687 |
+|---|---:|
+| já no **nosso** bucket (supabase) | **1553** |
+| ainda apontando para Creatomate/Backblaze | **128** |
+| desses 128, confirmados 404 | **96 (75%)**, de **29 pessoas** |
+| com url nula | 0 |
+
+**A sangria parou sozinha em 06/08**, quando o pipeline passou a persistir no
+nosso bucket. O que subiu em 08 e 09/09 foi a **varredura**, andando pela
+biblioteca velha e carimbando o que já estava morto há um mês. Contar o carimbo
+como dano novo é a memória `janela-movel-congelada` de novo: "0 em 06 e 07/09"
+não quer dizer que os filmes estavam vivos — quer dizer que ninguém olhava.
+
+O que isso muda na prática:
+· **não há conserto de código para fazer aqui** — nada quebra hoje, e os 32
+  Creatomate restantes são da mesma safra;
+· vira **item finito de decisão do fundador**: 96 filmes de 29 pessoas com link
+  morto. 404 da CDN do Creatomate não volta — o master não é recuperável;
+· e vira uma coorte com nome: 29 pessoas cuja biblioteca tem filme quebrado.
+  **Não enviei e-mail nem toquei em nada** (fora desta pista).
+
+### 4. O que a próxima rotação herda
+
+1. **Colher o `0f5a53e4`** — segue sendo a primeira coisa da casa.
+2. `vendor_asset_expired`: **não construir retentativa nem re-cópia**. É
+   histórico e 404. A pergunta que sobra é do fundador: avisar as 29 ou
+   regenerar por conta da casa.
+3. Retentativa de cena e socorro de aba morta: seguem **sem coorte** —
+   `accepted == planned` em 25 de 25, e nenhuma falha orgânica em 3h.
+
+Sem mudança de código nesta rotação: os dois candidatos que sobraram (cena e
+aba) têm coorte zero, e o terceiro (`vendor_asset_expired`) provou não ser
+defeito vivo. Escrever código para nenhum deles seria inventar trabalho.

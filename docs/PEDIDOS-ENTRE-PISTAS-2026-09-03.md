@@ -1447,3 +1447,23 @@ baixados, a de 06:11 tinha 1.364 caracteres escritos, a de 08:52 tentou sete
 vezes. São quatro pessoas que **a casa fez falhar**, e é a maior taxa de
 conversão disponível hoje sem gastar um dólar de mídia. Enviar e-mail está
 fora desta pista; o gatilho da carta é o SHA.
+
+## Rotina ENTREGA — adendo ao fechamento (09/09 08:55 BRT)
+
+Correção de um número do meu próprio fechamento, medido às 11:49 UTC:
+
+**`vendor_asset_expired` não é defeito vivo.** Os 96 eventos são http **404** em
+URLs da **Creatomate/Backblaze**, de filmes criados entre 12/05 e **06/08** —
+nada depois disso. Denominador: a casa tem **1687** filmes `completed`, **1553**
+já no nosso bucket e **128** ainda apontando para a Creatomate; **96 desses 128
+(75%) estão mortos**, pertencendo a **29 pessoas**. A sangria parou sozinha em
+06/08 com a persistência no nosso bucket; o que subiu em 08-09/09 foi a
+**varredura** carimbando dano antigo. Não há código a escrever — 404 de CDN não
+volta. Vira decisão do fundador: avisar as 29 ou regenerar por conta da casa.
+
+**`0f5a53e4` (checkout) continua fora da main** às 11:49 UTC. Meus três SHAs
+(`8feb2ea1`, `3f9337fa`, `08641311`) estão na main, fila vazia.
+
+Última hora: 1 pessoa apertou (10:52 UTC) e parou no passo `options` com
+`video_credits = 0` e um filme completo de 03/09 — parede de crédito, não falha
+de entrega. **Zero falhas de entrega na última hora.**
