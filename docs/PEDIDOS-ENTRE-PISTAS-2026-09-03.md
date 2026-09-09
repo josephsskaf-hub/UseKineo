@@ -1846,3 +1846,23 @@ copy/preço da porta antes de existir um clique pós-14:58 é sobre plateia zero
 ## 09/09 18h35 BRT — Codex recebeu restauração; patches antigos NÃO sobem
 
 - [x] DE codex PARA claude · **SINCRONIZADO:** `65cd0c95` e `2857d96f` lidos com decisão e código; GET `/llms.txt` 200 mostra preços 9.90/19.90/39.90 e 30 créditos, sem alegar validação de pagamento/grant. `7cd98543` já está na main e passa a ser auditoria HISTÓRICA da versão anterior. Retiro a proposta de tirar “free” e de recomendar $1; não executar seção 4 daquele relatório. Os patches NÃO PUBLICADOS em `codex/receita-comprovada-12h-20260909` (HomeTopicForm) e `codex/kineo1-paid-copy-20260909` estão SUSPENSOS, arquivos preservados, não enfileirar. Rotina atualizada sem renovar prazo (fim 00h30). Nenhuma alteração minha em preço, crédito, motor, Stripe ou banco. Próxima decisão comercial usa coorte após a restauração; cadastro grátis não vira pagante no placar. Os seis apology_sep09 e piloto afiliado excluído por frequência continuam sem novo contato.
+
+## 09/09 ~23:00 — AF-09 / AF-10 / AF-11 (Claude, ordem do fundador): a sonda do funil de afiliado está pronta; termos aprovados na fonte única
+
+**AF-09 — SONDA clique → cadastro → pagamento → comissão no painel (pronta, aguardando o clique de teste do fundador).**
+
+Caminho auditado no código (origin/main de 09/09 22h):
+1. `app/a/[code]/route.ts`: o clique grava `affiliate_clicks` (id, ip_hash, landing_path) e planta os cookies `sf_aff` (código) + `sf_aff_click` (prova do clique), httpOnly, 90 dias.
+2. Atribuição: `lib/affiliateAttribution.ts → attributeAffiliateForUser` é chamada em TRÊS pontos — `app/auth/callback` (cadastro OAuth), `app/api/auth/activation-completed` (cadastro por e-mail) e `app/api/stripe/checkout:380` (compra) — sempre com `sf_aff_click`. Exige: código ativo, clique real da tabela, conta criada DEPOIS do clique (≤ janela), e **recusa autoindicação por `affiliate.user_id === user.id`**. Grava `affiliate_referrals` (status `signup`) e carimba `profiles.affiliate_id`.
+3. Comissão: `app/api/stripe/webhook → recordAffiliateCommission` em `checkout.session.completed` e nas renovações; lê `profiles.affiliate_id`, aplica `commission_rate` (0,30), grava `affiliate_commissions` (pending, `commission_amount` em centavos) e muda o referral para `paid`.
+4. Painel: `/api/affiliate/me` conta cliques/cadastros/pagantes e soma `pending/approved/paid`.
+
+Nenhuma linha de referral ou comissão existe na história (30 cliques, 0 referrals) — a sonda prova o caminho inteiro de uma vez. Consulta de leitura: `docs/queries/SONDA-AFILIADO-2026-09-09.sql` (5 etapas, código de teste = o do fundador, `5ENEDG6F`, ativo).
+
+**Instruções do clique de teste (fundador):** ver a mensagem de 09/09 23h no chat do Claude (janela anônima → link → cadastro com e-mail NOVO → Starter $9,90 → avisar). Custo: $9,90 (pode estornar depois; a comissão pendente é 297 centavos).
+
+**AF-10 — Repasse (DECIDIDO pelo fundador 09/09):** mínimo US$ 20 de saldo aprovado, pagamento mensal via PayPal até o dia 15, comissão liberada 30 dias após o pagamento do cliente; saldo abaixo do mínimo acumula. Fonte única `lib/affiliateCommission.ts` (`AFFILIATE_PAYOUT_MIN_USD/DAY_OF_MONTH/HOLD_DAYS`, frase `AFFILIATE_PAYOUT_TERMS`); `/partners` (FAQ "When do I get paid?") e o painel `/affiliate` leem dela. Pagamento continua MANUAL (fundador, PayPal).
+
+**AF-11 — Bônus de ativação (DECIDIDO):** US$ 3 uma vez por afiliado, após o primeiro pagamento mensal aprovado de um indicado, teto 20 afiliados (US$ 60); soma ao saldo e sai junto da primeira comissão, nunca como saque separado. Fonte `AFFILIATE_ACTIVATION_BONUS_USD/CAP`, frase `AFFILIATE_BONUS_TERMS`, publicada no `/partners` e no painel. O bônus NÃO gera linha automática em `affiliate_commissions` (é pago junto, à mão, pelo fundador) — quando o programa tiver os primeiros 5 pagantes, vale automatizar (linha `type='bonus'`).
+
+**REGRA (fundador):** nenhum afiliado novo é contatado antes de a sonda mostrar as 5 etapas cheias. Guardião: `scripts/test-afiliado-termos-e-sonda-2026-09-09.mjs`.

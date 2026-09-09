@@ -29,7 +29,7 @@
 //                         SEPARATE gate from affiliate activation.
 // If the insert status is ever reverted to 'pending', the "live the moment you
 // apply" copy on this page becomes false again and must be reverted with it.
-import { AFFILIATE_COMMISSION_RATE } from '@/lib/affiliateCommission'
+import { AFFILIATE_BONUS_TERMS, AFFILIATE_COMMISSION_RATE, AFFILIATE_PAYOUT_TERMS } from '@/lib/affiliateCommission'
 import type { Metadata } from 'next'
 import { TIER_PRICES } from '@/lib/checkoutPricing'
 import Link from 'next/link'
@@ -103,7 +103,9 @@ export default function PartnersPage() {
     // momento do pagamento, quando o codigo e digitado.
     { q: 'What if I promote on TikTok, Reels or Shorts, where links do not work?', a: 'Every affiliate also gets a coupon code, shown next to your link in the affiliate dashboard. Say it out loud in the video — "use code KINEOXXXX" — and your viewer types it at checkout. They get 20% off their first month, you get credited, and no link or bio click is needed. Once someone redeems your code, their renewals keep counting for you for as long as they stay subscribed.' },
     { q: 'Which wins if someone clicks a link and also types a coupon?', a: 'The link. We honour first touch: whoever the visitor reached first owns the referral, and a coupon typed later does not move it. The customer still gets the discount.' },
-    { q: 'When do I get paid?', a: 'Every commission is recorded automatically the moment a referred customer pays, and lands in your dashboard as pending. Pending commissions are reviewed before they are approved for payout, which is how refunds and failed payments inside the window are filtered out. We contact you to arrange payment details once you have your first approved commission.' },
+    // KINEO-AFILIADO-TERMOS-2026-09-09 — os termos saem da fonte única, nunca digitados aqui.
+    { q: 'When do I get paid?', a: `Every commission is recorded automatically the moment a referred customer pays, and lands in your dashboard as pending. ${AFFILIATE_PAYOUT_TERMS} Add your PayPal e-mail in the affiliate dashboard so the payout can go out.` },
+    { q: 'Is there a bonus for my first customer?', a: AFFILIATE_BONUS_TERMS },
   ]
   const faqJsonLd = {
     '@context': 'https://schema.org', '@type': 'FAQPage',

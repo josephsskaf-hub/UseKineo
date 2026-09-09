@@ -19,6 +19,7 @@
 //    link to one person, right now, with one tap.
 
 import { useEffect, useRef, useState } from 'react'
+import { AFFILIATE_BONUS_TERMS, AFFILIATE_PAYOUT_TERMS } from '@/lib/affiliateCommission'
 import Link from 'next/link'
 import { trackEvent } from '@/lib/analytics'
 import {
@@ -815,6 +816,10 @@ export default function AffiliatePage() {
         <Kpi label="Approved $" value={dollars(earnings.approved)} accent={GREEN} />
         <Kpi label="Total earned" value={dollars(earnings.total)} accent={CYAN} />
       </div>
+      {/* KINEO-AFILIADO-TERMOS-2026-09-09 — os termos de repasse ao lado dos números, da fonte única. */}
+      <p data-testid="affiliate-payout-terms" className="text-xs mb-6" style={{ color: '#8d9aab', lineHeight: 1.5 }}>
+        {AFFILIATE_PAYOUT_TERMS} {AFFILIATE_BONUS_TERMS}
+      </p>
 
       {/* Recent commissions */}
       <section>
