@@ -1067,3 +1067,9 @@ carimbo nasce 3 s depois do clique).
 - Para as rotinas da noite (PORTA e ENTREGA) e o Codex: NÃO cravar preço em lugar nenhum; ler TIER_PRICES/TIER_CREDITS/CARD_ENTRY_COPY. O marco do placar andou para 2026-09-09 00:00 UTC.
 - Fora do código: Dodo e TAAFT via Cowork (docs/COWORK-PRECOS-V7-2026-09-09.md); GPT recebe bloco de sync.
 - 08/09 23:19 — Cowork DESPACHADO pelo fundador para Dodo (produtos $14/$29/$59) e TAAFT (ficha); ambos em análise externa, previsão ~72h (até ~11/09). Até lá: o site (Stripe) já cobra V7; o Dodo segue em test mode (nada cobrado por lá); a ficha do TAAFT pode mostrar preço antigo por até 3 dias — aceito pelo fundador.
+
+## 09/09 00:28 — AUDITORIA V7 (Claude): lotes 1 e 2 no ar
+- Lote 1 (812ba9fa): copy anterior ao V7 morta nas páginas públicas (free/no card/25 credits/first month/motor Free); Kling 2.5 e H3 rotulados Studio; filmes por grant calculados.
+- Lote 2 (c5679a1d): assinante troca de plano sem cancelar — `POST /api/stripe/change-plan`, "Switch to" no /pricing e nos cards do app, "Change plan" em /account; fatura de proration não é renovação. Guardião test-troca-de-plano (23). Sonda: rota responde `{subscribed:false}` para anônimo, controle 404 ok.
+- Doc completo: docs/AUDITORIA-SISTEMA-V7-2026-09-09.md. Decisões pendentes do fundador: packs de agência (matar/manter) e comissão de afiliado (só 1º pagamento).
+- Codex: não tocar em checkout/webhook/change-plan/PricingClient/PricingCards sem coordenar; a troca de plano é a única forma de mudar de tier.
