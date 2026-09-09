@@ -398,3 +398,170 @@ estrutural: `grep -l` pelos meus três arquivos devolve **dois** guardiões
 guardião varre `docs/` inteiro — então os dois anexos de diário não podem
 pintar nada de vermelho. Lista dos 113 salva em `/tmp/suite-red-r9.txt` para
 quem for atacar a cauda.
+
+## r10 09:05 — A PORTA CONTINUA FECHADA, E O NÚMERO É MAIOR DO QUE PARECIA
+
+Rotação de fechamento. Não havia peça nova a fazer: as quatro do plano estão
+publicadas e conferidas. O que havia era conferir se o único bloqueio do
+lançamento continuava de pé — e ele continua, com um tamanho que a rotação
+anterior não tinha medido.
+
+### 1. A porta continua fechada na main de hoje
+
+`origin/main` = `db6fbc8d` às 12:05 UTC. `app/api/stripe/checkout/route.ts:1545`
+ainda monta `add_invoice_items`. O conserto `0f5a53e4` **continua fora da main**
+— a rotina ENTREGA confirmou o mesmo às 11:49 UTC, por outro caminho.
+
+### 2. O dano medido é 31 falhas, não 4
+
+A rotação r9 contou pelo evento de tela (`checkout_error_shown`, 4 eventos). O
+evento do servidor conta outra história:
+
+| medida | valor |
+|---|---|
+| `checkout_failed` / `payment_session_failed` | **31 eventos · 5 pessoas** |
+| primeira / última | 09/09 **02:16** → 09/09 **10:25** UTC |
+| o mesmo evento nos **7 dias anteriores** | **1** (31/08) |
+| pagamentos de trial de $1 na história da porta | **0** |
+| último pagamento da casa, de qualquer tipo | **02/09 20:22** — 0 em 72 h |
+
+A leitura importa: `payment_session_failed` não é ruído de fundo. Ele **nasceu
+em 02:16 de hoje** e se repetiu 31 vezes em oito horas. Sete sessões de
+checkout foram abertas em 24 h e nenhuma virou dinheiro.
+
+Um cuidado que eu devo ao número: **a seca é mais velha que o defeito.** A casa
+não recebe um pagamento desde 02/09, e a porta só quebrou hoje. O defeito não
+causou a seca — ele garante que ela continue, e é a única parte que está ao
+alcance de um clique.
+
+### 3. Um zero fantasma no caminho (a lição da rotação)
+
+Minha primeira consulta perguntou por `metadata->>'error'` e devolveu **0
+eventos** — contradizendo r9. A chave real é `reason_detail`; `error` não
+existe nesse evento. Ancorei num número já conhecido antes de publicar e o zero
+se desfez. Um `0` de chave inexistente é indistinguível de um `0` de defeito
+consertado, e neste caso ele teria me feito escrever "a porta foi consertada".
+
+### 4. O conserto foi provado contra a main de HOJE
+
+`0f5a53e4` nasceu às 02:12, e a main andou desde então. Ninguém tinha conferido
+se ele ainda aplica. Confirmei numa worktree isolada sobre `db6fbc8d`:
+
+| prova | resultado |
+|---|---|
+| `git cherry-pick 0f5a53e4` | aplica **limpo** |
+| `npx tsc --noEmit --incremental false` | **verde** |
+| `test-taxa-de-entrada-chega-na-stripe` | **11 ok · 0 falhas** |
+| `test-ph-kit` | **66 · 0** — *"e a porta de $1 abrindo"* |
+
+### 5. A corrente DEPOIS da porta também foi auditada
+
+A porta nunca abriu, então nada além dela jamais executou em produção. Se ela
+abrir às 4 da manhã e o resto não funcionar, o lançamento converte e falha. Li
+o caminho inteiro:
+
+· o checkout carimba `metadata.card_trial = '1'` (linhas 1483 e 1571) — e o
+  conserto **não toca** nessas linhas;
+· o webhook lê exatamente esse carimbo (`route.ts:1358`) e concede
+  `CARD_TRIAL_GRANT_CREDITS`;
+· `CARD_TRIAL_GRANT_CREDITS = 80` = `CARD_ENTRY_TRIAL_CREDITS = 80`, que é o
+  número que a `/ph`, a galeria e os textos prometem.
+
+A corrente está **coerente**. Nunca foi exercitada, mas as três pontas
+concordam entre si.
+
+**Um falso alarme que eu descartei antes de escrever:** a taxa é montada como
+`100` unidades mínimas na moeda resolvida, o que seria R$1,00 (≈ $0,18) para um
+comprador brasileiro. Fui ler `resolveCheckoutCurrency` — ela devolve `'usd'`
+sempre, desde a V6. O $1 é $1. Não é dívida.
+
+### 6. O que esta rotação entregou: a decisão de uma palavra virou um clique
+
+`app/api/**` é caminho travado para esta rotina, e a trava vale mesmo quando eu
+concordo com o conserto. Continuo sem tocar nele: `git status` fecha esta
+rotação sem uma linha de `app/api/`.
+
+Mas a instrução que r9 deixou — `git cherry-pick 0f5a53e4` — tem uma armadilha
+que eu não posso deixar de pé para as 4 da manhã: **ela não diz onde rodar.**
+Rodada na pasta `C:\kineo`, cai na main LOCAL, que está suja e parada num
+commit reprovado (`727a869`). O comando certo no lugar errado é um estrago.
+
+Então empacotei a decisão dele:
+
+| arquivo | o que faz |
+|---|---|
+| `scripts\!ABRIR-A-PORTA-DE-1-DOLAR.bat` | um clique, ordena no topo da pasta |
+| `scripts/abrir-porta-de-1-dolar.sh` | a lógica, com as travas |
+
+O script **nunca toca a árvore principal**: worktree isolada sobre
+`origin/main`, cherry-pick, e só enfileira se `tsc` e os **dois** guardiões
+ficarem verdes. Qualquer vermelho para com a explicação na tela e não enfileira
+nada. Rodar duas vezes não faz mal: ele detecta a porta já aberta e sai
+dizendo "nada a fazer".
+
+Falsifiquei o que dava para falsificar sem executar a publicação:
+
+· **detector de idempotência nos dois sentidos** — na main de hoje diz
+  "fechada"; na worktree com o conserto diz "aberta". As duas menções residuais
+  a `add_invoice_items` no arquivo consertado são comentários, e não casam com
+  o padrão;
+· **`bash -n`** verde;
+· **o risco que já mordeu a casa**: a primeira versão fazia `rm -rf` na
+  worktree com a junção `node_modules` dentro — o jeito conhecido de apagar
+  `C:\kineo\node_modules`. O script agora desfaz a junção **antes**, confere se
+  ela saiu, e **para** se não conseguiu.
+
+Não rodei o bat. Executá-lo enfileiraria uma mudança em `app/api/**`, que é
+exatamente o que a trava me proíbe. Ele existe para o dono do caminho clicar.
+
+## FECHAMENTO 09/09 08:30 — A ORDEM DA QUINTA
+
+Substitui os fechamentos das 04:30 e das 07:33 **apenas na ordem e no passo 0**.
+Todo o resto continua valendo.
+
+### 0. ANTES DE TUDO — abrir a porta de $1 (eliminatório)
+
+**Clique em `scripts\!ABRIR-A-PORTA-DE-1-DOLAR.bat` e depois em `SUBIR-SITE.bat`.**
+
+Sem isto o lançamento não tem para onde mandar ninguém: o botão do Product
+Hunt, o da galeria, o da cartela do vídeo e o dos três posts são **o mesmo
+botão**, e hoje ele devolve erro em 100% dos cliques. Medido: 31 falhas, 5
+pessoas, 0 pagamentos.
+
+A prova de que valeu, 5 minutos depois de subir — esta consulta tem de parar de
+crescer:
+
+```sql
+select count(*) from events
+where name='checkout_failed'
+  and metadata->>'reason'='payment_session_failed'
+  and created_at > now() - interval '1 hour';
+```
+
+### 1 a 7 — a lista das 04:30, sem mudança
+
+Criar a conta hoje · ficha com o nome **`Kineo AI`** (nunca `Kineo` puro) ·
+agendar 10/09 00:01 PT · preencher `PH_LISTING_URL` quando a ficha existir ·
+**crédito na fal por Pix ainda hoje** · 07:00 BRT de quinta responder tudo ·
+nunca escrever "upvote", pedir **comentário**.
+
+### O que está pronto
+
+| peça | caminho |
+|---|---|
+| galeria, 6 imagens 1270x760 | `docs/ph/gallery-01..06.png` |
+| vídeo de 60 s (7,7 MB, 60,03 s) | `docs/ph/kineo-ph-60s.mp4` |
+| thumbnail | `docs/ph/kineo-ph-thumb.png` |
+| textos prontos para colar | `docs/ph/PH-TEXTOS-2026-09-10.md` |
+| página de pouso (conferida no celular e no desktop por r9) | `https://www.usekineo.com/ph` |
+| o clique que abre a porta | `scripts\!ABRIR-A-PORTA-DE-1-DOLAR.bat` |
+
+O kit está bom. Ele aponta para uma porta trancada, e agora a chave é um clique.
+
+### Verificação desta rotação
+
+`bash -n` verde · `test-ph-landing-2026-09-08` **15/0** · `test-ph-kit`
+**65 · 1** — o vermelho é a porta, **de propósito**, e some sozinho no minuto
+em que o bat rodar (provado: 66 · 0 com o conserto aplicado). Não rodei `tsc`
+como prova desta entrega porque ela não tem uma linha de TypeScript: os dois
+arquivos novos são `.sh` e `.bat`.

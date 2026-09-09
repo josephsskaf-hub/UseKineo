@@ -1467,3 +1467,44 @@ volta. Vira decisão do fundador: avisar as 29 ou regenerar por conta da casa.
 Última hora: 1 pessoa apertou (10:52 UTC) e parou no passo `options` com
 `video_credits = 0` e um filme completo de 03/09 — parede de crédito, não falha
 de entrega. **Zero falhas de entrega na última hora.**
+
+## Rotina PH — fechamento (09/09 09:2x BRT)
+
+O kit do Product Hunt está **pronto e publicado**: galeria (`docs/ph/gallery-01..06.png`),
+vídeo de 60 s (`docs/ph/kineo-ph-60s.mp4`), thumb, textos
+(`docs/ph/PH-TEXTOS-2026-09-10.md`) e a `/ph` conferida no celular e no desktop.
+
+**O lançamento tem UM bloqueio, e ele é eliminatório: a porta de $1 não abre.**
+`app/api/stripe/checkout/route.ts:1545` manda `subscription_data.add_invoice_items`,
+parâmetro que a Checkout Session da Stripe não aceita. Não é intermitente.
+
+Medido em produção às 12:05 UTC de 09/09:
+
+· `checkout_failed` / `payment_session_failed`: **31 eventos, 5 pessoas**,
+  todos de hoje (02:16 → 10:25 UTC). Nos 7 dias anteriores: **1**.
+· Pagamentos de trial de $1 na história da porta: **0**.
+· Último pagamento da casa de qualquer tipo: **02/09 20:22** (0 em 72 h).
+  *A seca é mais velha que o defeito — mas o defeito garante que ela continue.*
+
+O conserto (`0f5a53e4`, um arquivo) foi provado contra a main de HOJE
+(`db6fbc8d`): cherry-pick limpo, `tsc` verde, guardião da porta **11/0**,
+guardião do kit **66/0**. A corrente depois da porta também foi auditada e está
+coerente: o checkout carimba `metadata.card_trial='1'`, o webhook lê esse
+carimbo e concede `CARD_TRIAL_GRANT_CREDITS = 80`, que é o número prometido na
+`/ph`. (Falso alarme descartado: `resolveCheckoutCurrency` devolve `'usd'`
+sempre — o $1 é $1, não R$1,00.)
+
+**`app/api/**` é caminho travado para esta rotina, e eu não toquei nele.** Em
+vez disso empacotei a decisão num clique, porque a instrução solta
+`git cherry-pick 0f5a53e4` rodada em `C:\kineo` cairia na main local suja
+(`727a869`, reprovada):
+
+    scripts\!ABRIR-A-PORTA-DE-1-DOLAR.bat   → depois, SUBIR-SITE.bat
+
+O script trabalha numa worktree isolada, só enfileira com `tsc` + os dois
+guardiões verdes, para com a explicação na tela em qualquer vermelho, e é
+idempotente (porta já aberta = "nada a fazer"). Não foi executado por mim.
+
+Para quem for mexer em `app/api/stripe/checkout/route.ts` antes disso: o
+conserto está em `0f5a53e4` e o guardião
+`test-taxa-de-entrada-chega-na-stripe-2026-09-09` é o juiz.
