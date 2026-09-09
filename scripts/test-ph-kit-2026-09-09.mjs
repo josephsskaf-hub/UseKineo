@@ -155,10 +155,30 @@ checa('os geradores do kit estao versionados',
   ['scripts/ph-fatos.mjs', 'scripts/ph-galeria.mjs', 'scripts/ph-video.mjs', 'scripts/ph-quadros.sh',
     'scripts/ph-posters.sh'].every((p) => existsSync(join(RAIZ, p))))
 
+console.log('== a porta que o kit anuncia precisa abrir ==')
+// O kit inteiro (galeria, video, textos, /ph) tem UM botao: a porta de $1.
+// Enquanto ela devolver erro, "kit completo" e a mentira mais cara da semana —
+// o dia do Product Hunt manda centenas de pessoas para uma parede.
+//
+// A saude da porta NAO e redigitada aqui: quem define isso e o guardiao
+// test-taxa-de-entrada-chega-na-stripe, e este teste apenas HERDA o veredito
+// dele. Copiar o predicado criaria uma segunda regra que envelhece sozinha.
+const PORTA = 'scripts/test-taxa-de-entrada-chega-na-stripe-2026-09-09.mjs'
+checa('o guardiao da porta de $1 existe', existsSync(join(RAIZ, PORTA)))
+const portaAbre = (() => {
+  try {
+    execFileSync(process.execPath, [join(RAIZ, PORTA)], { cwd: RAIZ, stdio: 'pipe' })
+    return true
+  } catch {
+    return false
+  }
+})()
+checa('a porta de $1 que o kit anuncia e aceita pela Stripe (detalhe: node ' + PORTA + ')', portaAbre)
+
 console.log('')
 console.log(`  verificacoes: ${ok} · falhas: ${falhas.length}`)
 if (falhas.length) {
   for (const f of falhas) console.log('  FALHOU: ' + f)
   process.exit(1)
 }
-console.log('OK — kit do Product Hunt completo, com os precos e a contagem de motores da fonte unica')
+console.log('OK — kit do Product Hunt completo, com os precos e a contagem de motores da fonte unica, e a porta de $1 abrindo')

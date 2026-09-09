@@ -253,3 +253,148 @@ Três entregas publicadas na noite: `70821391` (galeria) · `5bdebc13` (vídeo) 
   Kineo: ele cobrou o crédito prometido duas vezes e mandou "Feeling
   forgotten" em 22/08. Conferir se o crédito saiu ANTES de pedir qualquer
   favor de lançamento.
+
+---
+
+## r9 07:33 — O KIT ESTÁ PRONTO E O BOTÃO DELE NÃO ABRE
+
+Esta rotação não produziu peça nova: as quatro do plano já estavam publicadas
+e verificadas (guardião 64/0, PNGs 1270x760, MP4 60,03 s / 7,7 MB). Fui
+conferir a `/ph` como manda o passo 4 e a página está **correta** — no celular
+(375) e no desktop: `noindex, follow`, zero vazamento horizontal
+(`scrollWidth - clientWidth = 0`, nenhum elemento passando da borda), CTA
+acima da dobra nos dois tamanhos. Não havia nada para consertar na página.
+
+O problema não é a página. É a porta atrás do botão.
+
+### O achado
+
+O CTA único do lançamento inteiro é:
+
+```
+/api/stripe/checkout?tier=basic&billing=monthly&trial=1&intent_campaign=ph_sep10
+```
+
+O `trial=1` cai no ramo `wantsTrial && !isAnnual` de
+`app/api/stripe/checkout/route.ts:1543`, que anexa a taxa de $1 por
+`subscription_data.add_invoice_items`. **A Checkout Session da Stripe não
+aceita esse campo.** A resposta é sempre a mesma frase, e a pessoa é jogada em
+`/pricing?checkout_error=`.
+
+Não é intermitente: é um parâmetro inválido num objeto montado sempre igual.
+**Todo** clique na porta de $1 bate nisso.
+
+### Verificado por três caminhos independentes
+
+| caminho | o que diz |
+|---|---|
+| **produção** (`checkout_error_shown`) | 4 erros hoje, 2 pessoas, os 4 com `Received unknown parameter: subscription_data[add_invoice_items]` — em **três** campanhas: `door_v2`, `trial_1usd`, `card_entry`. O último às **10:25 UTC**, ~8 min antes desta rotação. |
+| **placar da porta** | 13 cliques (4 pessoas) · 4 erros · **0 pagamentos de trial, desde sempre** |
+| **guardião na própria main** | `test-taxa-de-entrada-chega-na-stripe-2026-09-09` está **10 ok / 1 falha** — ele lê os tipos do SDK instalado e vê que `SubscriptionData` não declara `add_invoice_items` |
+
+Os planos normais ($14/$29/$59) **não** são afetados: o parâmetro só entra no
+ramo do trial. Quebrou exatamente a única oferta que o Product Hunt vai ver.
+
+### O que eu fiz (o que estava ao meu alcance)
+
+O guardião do kit imprimia `OK — kit do Product Hunt completo` enquanto o botão
+que ele valida levava a uma parede. Essa linha era a mentira mais cara da
+semana: quem a lê, lança.
+
+`scripts/test-ph-kit-2026-09-09.mjs` ganhou a seção **"a porta que o kit
+anuncia precisa abrir"**. Ela **não redigita** o predicado — herda o veredito
+do guardião da porta rodando-o como subprocesso, para não criar uma segunda
+regra que envelhece sozinha quando a primeira mudar.
+
+**Falsificado nos dois sentidos**, não só no vermelho:
+
+| estado | porta | kit |
+|---|---|---|
+| main como está | 10 ok / **1 falha** | 65 · **1 falha** |
+| com `0f5a53e4` aplicado (cherry-pick temporário, desfeito) | **11 ok / 0** | **66 · 0** — *"e a porta de $1 abrindo"* |
+
+Ou seja: o vermelho não está preso, e some no minuto em que o conserto entrar.
+
+### O que eu NÃO fiz, e por quê
+
+O conserto existe, está pronto, com tsc verde e guardião passando:
+
+```
+git cherry-pick 0f5a53e4     # toca só app/api/stripe/checkout/route.ts
+```
+
+`app/api/**` é **caminho travado** para esta rotina. A trava vale mesmo quando
+eu concordo com o conserto — foi ela que impediu quatro sessões de se
+atropelarem na mesma rota. Então o commit fica onde está e a decisão é de uma
+palavra do dono do caminho. Apliquei, medi, desfiz: `git status` fecha esta
+rotação com **um único arquivo modificado**, o guardião.
+
+Também **não** troquei o CTA da `/ph` para um plano que funciona. Seria
+abandonar a oferta de $1 em que a galeria, o vídeo, a cartela final e os
+textos inteiros estão construídos — mudança de oferta é decisão do fundador,
+não conserto de rotina.
+
+## FECHAMENTO 09/09 (r9) — SUBSTITUI A ORDEM DO FECHAMENTO DAS 04:30
+
+O fechamento das 04:30 continua valendo em tudo, **menos na ordem**: ele foi
+escrito sem saber que a porta de $1 não abre. A lista de quinta ganha um passo
+**zero**, e ele é eliminatório.
+
+### 0. ANTES DE QUALQUER COISA — destravar a porta de $1
+
+```
+git cherry-pick 0f5a53e4
+```
+
+Uma linha, um arquivo (`app/api/stripe/checkout/route.ts`), tsc verde,
+guardião de 10/1 para 11/0. **Sem isto o lançamento não tem para onde mandar
+ninguém**: o botão do PH, da galeria, do vídeo e dos três posts é o mesmo, e
+hoje ele devolve erro em 100% dos cliques. Como conferir que valeu:
+
+```
+node scripts/test-ph-kit-2026-09-09.mjs      # tem de terminar em "e a porta de $1 abrindo"
+```
+
+E, depois de publicado, a prova que não depende de teste — em produção, a
+tabela tem de parar de crescer:
+
+```sql
+select count(*) from events
+where name='checkout_error_shown'
+  and metadata->>'error_class'='unknown_parameter'
+  and created_at > now() - interval '1 hour';
+```
+
+### 1 a 7 — a lista das 04:30, sem mudança
+
+Criar a conta hoje · ficha com o nome **`Kineo AI`** (nunca `Kineo` puro) ·
+agendar 10/09 00:01 PT · mandar preencher `PH_LISTING_URL` quando a ficha
+existir · **crédito na fal por Pix ainda hoje** · 07:00 BRT de quinta responder
+tudo · nunca escrever "upvote", pedir *comentário*.
+
+### O que está pronto, e continua pronto
+
+| peça | caminho |
+|---|---|
+| galeria, 6 imagens 1270x760 | `docs/ph/gallery-01..06.png` |
+| vídeo de 60 s (7,7 MB, 60,03 s) | `docs/ph/kineo-ph-60s.mp4` |
+| thumbnail | `docs/ph/kineo-ph-thumb.png` |
+| textos, prontos para colar | `docs/ph/PH-TEXTOS-2026-09-10.md` |
+| página de pouso, conferida no celular e no desktop | `https://www.usekineo.com/ph` |
+
+O kit está bom. Ele só está apontando para uma porta trancada, e a chave está
+a um `cherry-pick` de distância.
+
+### Verificação desta rotação
+
+`tsc --noEmit --incremental false` verde · `test-ph-landing-2026-09-08` **15/0**
+· `test-preco-v7-2026-09-09` **31/0** · `test-ph-kit` **65 · 1** (o vermelho é
+a porta, de propósito).
+
+Suíte inteira: **355 verdes / 113 vermelhos** — cauda herdada, grande, e que
+não é desta rotação. A prova de que ela não é minha não é o número, é
+estrutural: `grep -l` pelos meus três arquivos devolve **dois** guardiões
+(`test-ph-kit` e `test-taxa-de-entrada`, os dois já citados), e **nenhum**
+guardião varre `docs/` inteiro — então os dois anexos de diário não podem
+pintar nada de vermelho. Lista dos 113 salva em `/tmp/suite-red-r9.txt` para
+quem for atacar a cauda.

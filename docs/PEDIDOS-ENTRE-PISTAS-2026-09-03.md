@@ -1318,3 +1318,39 @@ importam:
   lado, está consertado, seu roteiro está salvo"* — é a maior taxa de
   conversão disponível hoje, e não custa mídia. Enviar e-mail está fora da
   minha pista; a carta é da pista que manda e-mail, e o gatilho é o SHA.
+---
+
+## Rotina PH — fechamento (r9, 09/09 07:33)
+
+**O kit do Product Hunt está pronto e publicado. O botão dele não abre.**
+
+O lançamento é quinta 10/09 04:01 BRT e tem **um** CTA, repetido na galeria,
+no vídeo, nos três posts e na `/ph`:
+
+```
+/api/stripe/checkout?tier=basic&billing=monthly&trial=1&intent_campaign=ph_sep10
+```
+
+`trial=1` entra no ramo que anexa a taxa por
+`subscription_data.add_invoice_items` — campo que a Checkout Session da Stripe
+**não aceita**. Confirmado hoje em produção (4 `checkout_error_shown`, 2
+pessoas, três campanhas distintas, o último 10:25 UTC), no código
+(`app/api/stripe/checkout/route.ts:1543`, dentro de `wantsTrial && !isAnnual`)
+e pelo guardião `test-taxa-de-entrada-chega-na-stripe-2026-09-09`, que está
+**vermelho na main** lendo os tipos do SDK instalado. **0 pagamentos de trial
+desde sempre.** Planos normais não são afetados.
+
+**A chave já existe e não é minha para girar:** `git cherry-pick 0f5a53e4`
+(branch `salvo/porta-taxa-entrada-line-item`, um arquivo, tsc verde, guardião
+10/1 → 11/0). `app/api/**` é caminho travado para a rotina da noite.
+
+**O que esta rotação entregou:** `scripts/test-ph-kit-2026-09-09.mjs` deixou de
+imprimir *"kit do Product Hunt completo"* enquanto a porta está morta. Ele
+**herda** o veredito do guardião da porta (subprocesso, sem copiar o
+predicado). Falsificado nos dois sentidos: 65·1 na main, **66·0** com o
+conserto aplicado.
+
+**Para quem for medir a Versão B ou o dia do PH:** qualquer leitura de
+conversão da porta de $1 anterior a esse conserto mede **a parede, não a
+oferta**. O denominador é `card_entry_door_clicked` + `card_entry_banner_clicked`
+(13 cliques, 4 pessoas); o numerador foi zero por defeito, não por preço.
