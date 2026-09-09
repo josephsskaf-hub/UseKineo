@@ -67,9 +67,23 @@ const st = roda(rd('lib/cinematic/sceneStyle.ts'))
 }
 const cin = rd('app/api/generate-video-cinematic/route.ts')
 checa('rota cinemática: âncora decidida UMA vez por filme, ao lado do era-lock', /const styleAnchor = deriveStyleAnchor\(/.test(cin) && cin.indexOf('const styleAnchor = deriveStyleAnchor(') > cin.indexOf("if (eraSuffix) console.log('[cinematic] era-lock active"))
-checa('caminho clássico (Seedance/Kling 2.5/Veo): applyStyleAnchor + textSafetySuffix no prompt de cada cena', /applyStyleAnchor\(buildFacelessCinematicPrompt\(visualPrompt\), styleAnchor\) \+ eraSuffix \+ textSafetySuffix\(visualPrompt\)/.test(cin))
+checa('caminho clássico (Seedance/Kling 2.5/Veo): applyStyleAnchor + textSafetySuffix no prompt de cada cena (ramo não-história)', /: applyStyleAnchor\(buildFacelessCinematicPrompt\(visualPrompt\), styleAnchor\)\) \+ eraSuffix \+ textSafetySuffix\(visualPrompt\)/.test(cin))
 checa('caminho clássico: fecho repetido ganha variação antes de submeter', /const closer = closingSceneVariation\(visuals\)/.test(cin) && cin.indexOf('const closer = closingSceneVariation(visuals)') < cin.indexOf('const submitScene = async ('))
 checa('caminho hollywood (Kling 3/H3/Omni): textSafetySuffix antes de submeter', /scenePrompt = scenePrompt \+ textSafetySuffix\(scenePrompt\)\n\s+submittedPrompt = scenePrompt/.test(cin))
+
+console.log('== item 3b: modo história (medido no render 2141336f "Benny") ==')
+{
+  checa('deriveStoryCharacter: "Benny, the tiniest bunny" → personagem nomeado', st.deriveStoryCharacter('Benny, the tiniest bunny, finds a mysterious golden egg. One day the little bunny discovers the egg glows.') === 'Benny, the tiniest bunny')
+  checa('deriveStoryCharacter: "a happy little train" (sem nome) → o objeto humanizado', st.deriveStoryCharacter('Create a cute 3D animated nursery rhyme: a happy little train chugs through the savannah') === 'a happy little train')
+  checa('deriveStoryCharacter: documentário → null', st.deriveStoryCharacter('In 1953 a Cessna vanished over Nevada. Investigators never found the plane.') === null)
+  const an = st.deriveStyleAnchor('Create a cute, colourful 3D animated nursery rhyme about a happy little train')
+  const sp = st.buildStoryScenePrompt('Aerial drone shot of a vibrant cartoon train chugging through the sunlit savannah, photorealistic', an, 'a happy little train')
+  checa('buildStoryScenePrompt: look no INÍCIO, personagem fixo, sem "no people"/"empty scene", sem "photorealistic" da cena', sp.startsWith(an.lookPhrase + '. ') && /The same main character appears in this scene, consistent design: a happy little train/.test(sp) && !/no people|empty scene|no human faces/.test(sp) && !/photorealistic/.test(sp.slice(an.lookPhrase.length).replace(an.suffix, '')) && /never mix with live-action/.test(sp))
+  checa('rota: storyMode = look não fotorreal OU character_story OU ficção pelo engineFit; personagem extraído uma vez', /const storyMode = styleAnchor\.look !== 'photoreal' \|\| formatoVisual\.modo === 'character_story' \|\| classifyEngineFit\(prompt\)\.verdict === 'stock_cannot_tell'/.test(cin) && /const storyCharacter = storyMode \? deriveStoryCharacter\(prompt\) : null/.test(cin))
+  checa('rota: em história o prompt sai de buildStoryScenePrompt; fora dela, do faceless + âncora', /const cinematicBruto = \(storyMode\n\s+\? buildStoryScenePrompt\(visualPrompt, styleAnchor, storyCharacter\)\n\s+: applyStyleAnchor\(buildFacelessCinematicPrompt\(visualPrompt\), styleAnchor\)\) \+ eraSuffix \+ textSafetySuffix\(visualPrompt\)/.test(cin))
+  checa('rota: o contrato de cena não proíbe rosto/pessoa em história', /proibidosPorModo\(storyMode \? 'character_story' : formatoVisual\.modo\)/.test(cin))
+  checa('telemetria: o prompt FINAL por cena vai para cinematic_dispatch_result (clássico e hollywood)', /submitted_prompts: ctx\.submittedPrompts\.map/.test(cin) && /c\.submittedPrompts\[sceneIndex\] = cinematic\.slice\(0, 240\)/.test(cin) && (cin.match(/ctxDespacho\(\)\.submittedPrompts\[hs\.index\] = submittedPrompt\.slice\(0, 240\)/g) || []).length === 3)
+}
 
 console.log('== item 4: Kling 3 retenta a cena em erro transitório ==')
 checa('submitToFalWithOneRetry existe, retenta só transitório e nunca ambíguo', /function isTransientSubmitError\(e: unknown\): boolean/.test(cin) && /if \(e\.ambiguous\) return false/.test(cin) && /async function submitToFalWithOneRetry\(/.test(cin) && /setTimeout\(r, 2500\)/.test(cin))

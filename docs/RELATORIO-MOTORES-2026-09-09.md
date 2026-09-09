@@ -125,3 +125,25 @@ Ordem do fundador: "começa pelo número 2 e vai até o 6, arruma, deixa todos m
 1. /avatar → foto + roteiro de ~150 palavras → **dry-run** primeiro (só voz): deve responder com a duração real (≥ 12 s) e nenhum crédito.
 2. Mesmo roteiro, render real no **Presenter (70 cr)**: o placar deve mostrar `avatar_dispatch_received` → `avatar_provider_submitted` → `avatar_provider_settled done` → filme com a duração da narração (~60 s), com lip-sync.
 Se der 3 s de novo com 150 palavras, aí é defeito de pipeline e eu abro o compose.
+
+---
+
+# Rodada 1b — o que o teste do Cowork mostrou (09/09, ~20h) e o modo história
+
+Cowork rodou os testes na conta do fundador (renders 2141336f "Benny" e 219f1b22 "Safari Express", 25 cr cada, deploy 57415c5d).
+
+**O que o servidor gravou:** a caixa do Kineo 1 apareceu nas duas tentativas (`engine_fit_box_shown` 19:44 e 19:47) — o robô do Cowork não enxergou a folha fixa; a tela funcionou. Depois ele rodou os dois filmes direto no Seedance.
+
+**Safari (cantiga 3D):** 7 de 10 quadros em 3D animado (elefante, leão, zebra, suricato). Trem ao pôr do sol e paisagem com árvore saíram fotorreais. A trava de estilo pegou parcialmente: o look entrava no MEIO do prompt, atrás de "faceless cinematic b-roll … dramatic cinematic lighting", e cena sem personagem (paisagem, trem) escorregava para fotorreal.
+
+**Benny (história com personagem):** o pior caso. O prompt clássico é do documentário faceless — "empty scene, no people, no human faces" — e numa história de personagem rendeu homem, cachorro e criança no lugar do coelho; o coelho aparece em 2 de 10 quadros.
+
+**O que mudou agora (modo história, `lib/cinematic/sceneStyle.ts` + rota clássica):**
+- História = look não fotorreal, OU formato `character_story`, OU os mesmos sinais de ficção que fazem o Kineo 1 recusar. Nesse modo o prompt é outro: **o look vai no INÍCIO** ("stylized 3D animated film look…"), a cena, **o personagem principal repetido em toda cena** ("The same main character appears in this scene, consistent design: Benny, the tiniest bunny"), moldura 9:16, sem texto — e sem "no people / empty scene". Personagem extraído uma vez do roteiro (nomeado, "named X", ou "a happy little train").
+- O contrato de cena não proíbe rosto/pessoa em história.
+- **Telemetria nova:** `cinematic_dispatch_result.submitted_prompts` guarda o prompt EXATO por cena (240 caracteres) nos dois caminhos. Nunca mais "adivinhar o que foi ao fornecedor".
+- "No words on screen" do roteiro: o Seedance obedece (não escreve na imagem); as legendas karaokê são da casa e sempre entram — desligá-las é opção de produto, ainda não existe.
+
+Guardião: `test-motores-r2-r6` foi a 40 verificações (personagem, prompt de história, rota, telemetria).
+
+**Nota esperada do Seedance depois desta rodada:** 83% → **86%** (consistência e fidelidade em história). A prova real: repetir o Benny e o Safari no Seedance e ler `submitted_prompts` + quadros.

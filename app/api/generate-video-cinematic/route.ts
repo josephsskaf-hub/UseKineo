@@ -139,7 +139,8 @@ import {
   historicoDeParedes,
   mensagemComEspiral,
 } from '@/lib/refusalSpiral'
-import { applyStyleAnchor, closingSceneVariation, deriveStyleAnchor, textSafetySuffix } from '@/lib/cinematic/sceneStyle'
+import { applyStyleAnchor, buildStoryScenePrompt, closingSceneVariation, deriveStoryCharacter, deriveStyleAnchor, textSafetySuffix } from '@/lib/cinematic/sceneStyle'
+import { classifyEngineFit } from '@/lib/engineFit'
 import { FalQueueSubmitError, submitFalQueueOnce } from '@/lib/falQueue'
 import {
   acquireCinematicClaim,
@@ -274,6 +275,8 @@ interface DispatchContext {
   quality: string | null
   claimAction: string
   refundConfirmed: boolean | null
+  /** KINEO-STORY-MODE-2026-09-09 — o prompt EXATO submetido por cena (cortado em 240), para nunca mais adivinhar o que foi ao fornecedor. */
+  submittedPrompts: string[]
   /** Ja registrou? Impede evento duplicado se algum caminho chamar duas vezes. */
   registrado: boolean
 }
@@ -282,7 +285,7 @@ function novoContextoDeDespacho(): DispatchContext {
     balanceExhausted: false, outcomes: [], attempts: [], totalPosts: 0, planned: 0,
     userId: null, generationId: null, claimId: null, billingReference: null,
     engine: null, quality: null, claimAction: 'unknown', refundConfirmed: null,
-    registrado: false,
+    registrado: false, submittedPrompts: [],
   }
 }
 // AsyncLocalStorage e a ferramenta certa aqui: da localidade de requisicao
@@ -354,6 +357,7 @@ async function finalizarDespacho(ctx: DispatchContext, res: Response): Promise<v
         provider_spend_possible: providerSpendPossible(ctx.outcomes),
         balance_exhausted: ctx.balanceExhausted,
         scenes: ctx.outcomes.map(safeLogFields),
+        submitted_prompts: ctx.submittedPrompts.map((x) => (typeof x === 'string' ? x.slice(0, 240) : null)),
       },
     })
   } catch (e) {
@@ -3012,6 +3016,14 @@ async function manipularPost(req: NextRequest) {
       styleSuffix,
     )
     if (styleAnchor.look !== 'photoreal') console.log(`[cinematic] style-lock: ${styleAnchor.look}`)
+    // KINEO-STORY-MODE-2026-09-09 — medido no render 2141336f (Benny): o prompt do
+    // documentário faceless ("empty scene, no people") numa HISTÓRIA rendeu homem,
+    // cachorro e criança no lugar do coelho. História = look não fotorreal, OU o
+    // formato character_story, OU os mesmos sinais de ficção que o Kineo 1 usa
+    // para recusar. Personagem principal extraído UMA vez e repetido em toda cena.
+    const storyMode = styleAnchor.look !== 'photoreal' || formatoVisual.modo === 'character_story' || classifyEngineFit(prompt).verdict === 'stock_cannot_tell'
+    const storyCharacter = storyMode ? deriveStoryCharacter(prompt) : null
+    if (storyMode) console.log(`[cinematic] story-mode: look=${styleAnchor.look} character=${storyCharacter ?? '-'}`)
 
     // ── KINEO-HOLLYWOOD-2026-07-09 — HOLLYWOOD MODE 2.0 ─────────────────────
     // Dedicated path: GPT plans dialogue/cinematic/support scenes with ONE
@@ -4042,6 +4054,7 @@ async function manipularPost(req: NextRequest) {
                 hModels.push(HOST_PRESENTER_MODEL)
                 hEngines.push('host')
                 hSubmittedPrompts.push(submittedPrompt)
+                ctxDespacho().submittedPrompts[hs.index] = submittedPrompt.slice(0, 240)
                 break
               }
               throw e
@@ -4194,6 +4207,7 @@ async function manipularPost(req: NextRequest) {
               hModels.push(sceneModel)
               hEngines.push(sceneEngine)
               hSubmittedPrompts.push(submittedPrompt)
+              ctxDespacho().submittedPrompts[hs.index] = submittedPrompt.slice(0, 240)
               break
             }
             throw e
@@ -4204,6 +4218,7 @@ async function manipularPost(req: NextRequest) {
         hModels.push(sceneModel)
         hEngines.push(sceneEngine)
         hSubmittedPrompts.push(submittedPrompt)
+        ctxDespacho().submittedPrompts[hs.index] = submittedPrompt.slice(0, 240)
         await new Promise((r) => setTimeout(r, 450))
       }
 
@@ -4514,7 +4529,9 @@ async function manipularPost(req: NextRequest) {
       // KINEO-SCENE-STYLE-2026-09-09 — look travado + trava de consistência (o
       // styleSuffix explícito do cliente já vive dentro da âncora) + texto ilegível
       // de propósito quando a cena pede objeto com escrita.
-      const cinematicBruto = applyStyleAnchor(buildFacelessCinematicPrompt(visualPrompt), styleAnchor) + eraSuffix + textSafetySuffix(visualPrompt)
+      const cinematicBruto = (storyMode
+        ? buildStoryScenePrompt(visualPrompt, styleAnchor, storyCharacter)
+        : applyStyleAnchor(buildFacelessCinematicPrompt(visualPrompt), styleAnchor)) + eraSuffix + textSafetySuffix(visualPrompt)
       // ═══ CONTRATO CENA VERDADEIRA NO CAMINHO CLASSICO — 2026-08-27 ═══════
       //
       // MEDIDO EM PRODUCAO: `hollywoodPath = wantsHollywood || wantsH3 ||
@@ -4538,7 +4555,8 @@ async function manipularPost(req: NextRequest) {
           indice: sceneIndex + 1,
           falaFinal: scene.voiceover ?? '',
           promptFinal: cinematicBruto,
-          elementosProibidos: proibidosPorModo(formatoVisual.modo),
+          // KINEO-STORY-MODE-2026-09-09 — em história, o contrato não pode proibir rosto/pessoa.
+          elementosProibidos: proibidosPorModo(storyMode ? 'character_story' : formatoVisual.modo),
         })
         const r = aplicarContrato(contrato)
         if (severidadeDe(r.antes.veredicto) !== 'ok') {
@@ -4586,6 +4604,7 @@ async function manipularPost(req: NextRequest) {
       {
         const c = ctxDespacho()
         c.outcomes[sceneIndex] = despachoCena.outcome
+        c.submittedPrompts[sceneIndex] = cinematic.slice(0, 240)
         c.attempts[sceneIndex] = despachoCena.attempts
         c.totalPosts += despachoCena.posts
         if (despachoCena.outcome.reason_class === 'balance_quota') c.balanceExhausted = true

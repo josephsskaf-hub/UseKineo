@@ -108,3 +108,52 @@ export function closingSceneVariation(visuals: string[]): { index: number; suffi
   }
   return null
 }
+
+// ═══ MODO HISTÓRIA (09/09, medido no render 2141336f "Benny") ═══════════════
+// O prompt clássico é do documentário faceless: "empty scene, no people, no
+// human faces, environment-first". Numa HISTÓRIA com personagem isso vira
+// homem, cachorro e criança no lugar do coelho, e o coelho só aparece no fim.
+// Aqui o personagem principal é extraído UMA vez do roteiro e repetido em toda
+// cena, o look vai no INÍCIO do prompt (o modelo pesa o começo) e as cláusulas
+// de "cena vazia" não entram.
+
+const ANIMAL_RE = 'bunny|rabbit|bear|fox|mouse|dragon|robot|puppy|dog|kitten|cat|owl|turtle|train|car|elephant|lion|zebra|giraffe|penguin|duck|frog|monkey|tiger|wolf|deer|unicorn|dinosaur|whale|dolphin|bee|butterfly'
+const CHARACTER_RES: RegExp[] = [
+  // "Benny, the tiniest bunny"  ·  "Roland Pernicus, a rough old man"
+  new RegExp('\\b([A-Z][a-z]{2,}(?:\\s+[A-Z][a-z]+)?),\\s+(?:the|a|an)\\s+([a-z][a-z\\s-]{2,40}?\\b(?:' + ANIMAL_RE + '|boy|girl|man|woman|knight|princess|prince|wizard|witch|robot|astronaut|pirate|explorer|farmer|kid|child))\\b'),
+  // "a little bunny named Benny"
+  new RegExp('\\b(?:a|an|the)\\s+([a-z][a-z\\s-]{2,30}?\\b(?:' + ANIMAL_RE + '|boy|girl|knight|princess|prince|wizard|witch|robot|astronaut|pirate|explorer))\\s+(?:named|called)\\s+([A-Z][a-z]{2,})\\b'),
+  // sem nome: "a happy little train", "the brave fox"
+  new RegExp('\\b(?:a|an|the)\\s+((?:happy|little|tiny|brave|clever|lonely|curious|small|big|old|young|friendly|shy|colou?rful)\\s+(?:[a-z]+\\s+)?(?:' + ANIMAL_RE + '))\\b', 'i'),
+]
+
+/** O personagem principal, como frase curta em inglês, ou null. Determinístico. */
+export function deriveStoryCharacter(script: string): string | null {
+  const t = (script || '').replace(/\s+/g, ' ').slice(0, 4000)
+  const m0 = t.match(CHARACTER_RES[0])
+  if (m0) return `${m0[1]}, the ${m0[2].trim()}`
+  const m1 = t.match(CHARACTER_RES[1])
+  if (m1) return `${m1[2]}, a ${m1[1].trim()}`
+  const m2 = t.match(CHARACTER_RES[2])
+  if (m2) return `a ${m2[1].trim().toLowerCase()}`
+  return null
+}
+
+/**
+ * Prompt de cena para HISTÓRIA: look primeiro, cena, personagem fixo, moldura
+ * 9:16 e a trava de consistência. Sem "no people / empty scene".
+ */
+export function buildStoryScenePrompt(visual: string, anchor: StyleAnchor, character: string | null): string {
+  let v = (visual || '').replace(/\s+/g, ' ').trim()
+  // a descrição de cena não pode reintroduzir o look oposto
+  if (anchor.look !== 'photoreal') v = v.replace(/\b(photorealistic|photo-realistic|live[- ]action|realistic footage|documentary)\b/gi, '').replace(/\s{2,}/g, ' ').trim()
+  v = v.replace(/[\s,;:.]+$/, '')
+  if (v.length < 3) v = 'establishing shot of the story world'
+  const who = character ? ` The same main character appears in this scene, consistent design: ${character}.` : ''
+  return (
+    `${anchor.lookPhrase}. ${v}.${who} ` +
+    `9:16 vertical, subject framed in the upper two-thirds with the lower third clear for captions, ` +
+    `smooth camera motion, no readable text, no watermark, no logo` +
+    anchor.suffix
+  )
+}
