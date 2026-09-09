@@ -85,52 +85,68 @@ type Lang = 'en' | 'es' | 'hi'
 // tradução nunca carrega preço (lição: preço literal em texto envelhece e mente).
 const T: Record<Lang, {
   yourIdea: string
+  /** Rótulo quando o filme JÁ foi montado e está preso atrás da porta. */
+  yourIdeaShot: string
   promise: string
+  /** A promessa muda quando o trabalho já existe: não é "vamos fazer", é "está feito". */
+  promiseShot: string
   makeIt: string
   notNow: string
   opening: string
   cancel: string
   filmsFrom: (films: number, engine: string) => string
   creditsNow: (credits: number) => string
+  /** O fato que só existe quando a casa já gastou o trabalho: N clipes prontos. */
+  clipsReady: (clips: number) => string
   price: (fee: string, days: number, monthly: string) => string
 }> = {
   en: {
     yourIdea: 'Your film, waiting to be made',
+    yourIdeaShot: 'Your film is already shot',
     promise: 'Kineo directs it, narrates it and edits it for you.',
+    promiseShot: 'Kineo already wrote it and shot it. One step left: the final render.',
     makeIt: 'Make this film',
     notNow: 'Not now',
     opening: 'Opening checkout…',
     cancel: 'Cancel anytime.',
     filmsFrom: (films, engine) => 'Enough for ' + films + ' full ' + engine + ' film' + (films === 1 ? '' : 's'),
     creditsNow: (credits) => credits + ' credits the moment you pay',
+    clipsReady: (clips) => 'Script written and ' + clips + ' clip' + (clips === 1 ? '' : 's') + ' already shot for this film',
     price: (fee, days, monthly) => fee + ' for ' + days + ' days, then ' + monthly + '/month',
   },
   es: {
     yourIdea: 'Tu película, esperando a existir',
+    yourIdeaShot: 'Tu película ya está rodada',
     promise: 'Kineo la dirige, la narra y la edita por ti.',
+    promiseShot: 'Kineo ya la escribió y la rodó. Falta un paso: el render final.',
     makeIt: 'Crear esta película',
     notNow: 'Ahora no',
     opening: 'Abriendo el pago…',
     cancel: 'Cancela cuando quieras.',
     filmsFrom: (films, engine) => 'Alcanza para ' + films + ' película' + (films === 1 ? '' : 's') + ' completa' + (films === 1 ? '' : 's') + ' de ' + engine,
     creditsNow: (credits) => credits + ' créditos en el momento del pago',
+    clipsReady: (clips) => 'Guion escrito y ' + clips + ' clip' + (clips === 1 ? '' : 's') + ' ya rodado' + (clips === 1 ? '' : 's') + ' para esta película',
     price: (fee, days, monthly) => fee + ' por ' + days + ' días, luego ' + monthly + '/mes',
   },
   hi: {
     yourIdea: 'आपकी फ़िल्म, बनने का इंतज़ार कर रही है',
+    yourIdeaShot: 'आपकी फ़िल्म शूट हो चुकी है',
     promise: 'Kineo इसे निर्देशित करता है, आवाज़ देता है और एडिट करता है।',
+    promiseShot: 'Kineo ने इसे लिख और शूट कर लिया है। बस अंतिम रेंडर बाकी है।',
     makeIt: 'यह फ़िल्म बनाएँ',
     notNow: 'अभी नहीं',
     opening: 'चेकआउट खुल रहा है…',
     cancel: 'कभी भी रद्द करें।',
     filmsFrom: (films, engine) => films + ' पूरी ' + engine + ' फ़िल्मों के लिए पर्याप्त',
     creditsNow: (credits) => 'भुगतान करते ही ' + credits + ' क्रेडिट',
+    clipsReady: (clips) => 'स्क्रिप्ट लिखी जा चुकी है और इस फ़िल्म के लिए ' + clips + ' क्लिप शूट हो चुके हैं',
     price: (fee, days, monthly) => days + ' दिन के लिए ' + fee + ', फिर ' + monthly + '/माह',
   },
 }
 
 export default function CardEntryDoor({
   prompt,
+  readyClips,
   currency = 'usd',
   region = 'standard',
   path,
@@ -139,6 +155,19 @@ export default function CardEntryDoor({
 }: {
   /** A ideia que a pessoa escreveu neste instante. Vazia = a folha não cita nada. */
   prompt: string
+  /**
+   * KINEO-PORTA-FILME-JA-FEITO-2026-09-09 — os clipes que a casa JÁ rodou para
+   * ESTE filme, quando a recusa veio depois de `clips_ready`. Vazio/ausente =
+   * a folha continua byte a byte a de antes.
+   *
+   * POR QUE ISSO EXISTE: medido em produção hoje (diário SPRINT-CHATGPT), 3 de
+   * 3 pessoas da Versão B que chegaram até aqui tiveram roteiro escrito e
+   * clipes escolhidos ANTES do 402 — o trabalho está feito e preso atrás da
+   * porta. Dizer "your film, waiting to be made" para quem já tem 13 clipes
+   * rodados é falso por omissão, e a folha vendia uma promessa quando podia
+   * estar vendendo uma coisa que já existe.
+   */
+  readyClips?: readonly string[] | null
   currency?: CheckoutCurrency | null
   region?: PriceRegion
   /** Caminho da tela, para o placar saber de onde a folha subiu. */
@@ -154,6 +183,20 @@ export default function CardEntryDoor({
   const [mounted, setMounted] = useState(false)
 
   const idea = useMemo(() => trimIdeaForDoor(prompt ?? ''), [prompt])
+  // Só URL http(s) conta: blob/data de uma tentativa morta não é clipe rodado,
+  // e o número desta linha vira texto na cara da pessoa.
+  const shotClips = useMemo(
+    () => (readyClips ?? []).filter(
+      (u) => typeof u === 'string' && (u.startsWith('https://') || u.startsWith('http://')),
+    ),
+    [readyClips],
+  )
+  const filmIsShot = shotClips.length > 0
+  // O preview do clipe é enfeite: se a URL do fornecedor expirou ou o navegador
+  // recusou, a folha volta ao vídeo da casa. O TEXTO não depende disso — os
+  // clipes existem no servidor mesmo quando o <video> não os toca.
+  const [clipPreviewFailed, setClipPreviewFailed] = useState(false)
+  const showOwnClip = filmIsShot && !clipPreviewFailed
   const money: CheckoutCurrency = currency ?? 'usd'
   const feeLabel = formatCheckoutMoney(money, CARD_TRIAL_ENTRY_FEE_MINOR)
   const monthlyLabel = formatCheckoutMoney(money, getTierPrice('basic', money, region))
@@ -195,6 +238,11 @@ export default function CardEntryDoor({
       entry_fee_minor: CARD_TRIAL_ENTRY_FEE_MINOR,
       price_region: region,
       display_currency: money,
+      // KINEO-PORTA-FILME-JA-FEITO-2026-09-09 — sem este campo as duas folhas
+      // (promessa e filme-pronto) chegam idênticas ao banco e nenhuma medição
+      // posterior consegue separá-las.
+      ready_clips: shotClips.length,
+      film_already_shot: filmIsShot,
     })
     // Impressão é uma por montagem.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -206,6 +254,8 @@ export default function CardEntryDoor({
       path: herePath,
       prompt_len: promptLen,
       surface: 'generate',
+      ready_clips: shotClips.length,
+      film_already_shot: filmIsShot,
     })
     onDismiss()
   }
@@ -247,6 +297,8 @@ export default function CardEntryDoor({
       reason: reason ?? null,
       price_region: region,
       display_currency: money,
+      ready_clips: shotClips.length,
+      film_already_shot: filmIsShot,
     })
   }
 
@@ -289,8 +341,8 @@ export default function CardEntryDoor({
         {/* 1 — A IDEIA DELA. A folha fala do filme dela, não de planos. */}
         {idea ? (
           <>
-            <div style={{ fontSize: 12, letterSpacing: .4, textTransform: 'uppercase', color: 'rgba(255,255,255,.5)', fontWeight: 700 }}>
-              {t.yourIdea}
+            <div data-door-idea-label style={{ fontSize: 12, letterSpacing: .4, textTransform: 'uppercase', color: 'rgba(255,255,255,.5)', fontWeight: 700 }}>
+              {filmIsShot ? t.yourIdeaShot : t.yourIdea}
             </div>
             <blockquote
               data-door-idea
@@ -309,10 +361,15 @@ export default function CardEntryDoor({
           </>
         ) : null}
 
-        {/* 2 — O PRODUTO EM MOVIMENTO no segundo da decisão. */}
+        {/* 2 — O PRODUTO EM MOVIMENTO no segundo da decisão. Quando a casa já
+            rodou os clipes DESTE filme, quem aparece aqui é o primeiro deles —
+            a pessoa vê o próprio material, não uma demonstração. */}
         <video
-          src={ROBOT_VIDEO}
-          poster={ROBOT_POSTER}
+          key={showOwnClip ? shotClips[0] : ROBOT_VIDEO}
+          data-door-clip={showOwnClip ? 'own' : 'house'}
+          src={showOwnClip ? shotClips[0] : ROBOT_VIDEO}
+          poster={showOwnClip ? undefined : ROBOT_POSTER}
+          onError={() => { if (showOwnClip) setClipPreviewFailed(true) }}
           autoPlay
           loop
           muted
@@ -340,8 +397,8 @@ export default function CardEntryDoor({
             Trocado por uma promessa curta e traduzida, SEM preço. Nenhum fato
             se perdeu: taxa, dias, créditos e mensalidade continuam na tela,
             vindos de lib/checkoutPricing — e agora nas três línguas. */}
-        <h2 style={{ margin: '16px 0 0', fontSize: 18, lineHeight: 1.35, fontWeight: 800, color: '#fff' }}>
-          {t.promise}
+        <h2 data-door-promise style={{ margin: '16px 0 0', fontSize: 18, lineHeight: 1.35, fontWeight: 800, color: '#fff' }}>
+          {filmIsShot ? t.promiseShot : t.promise}
         </h2>
 
         {/* 4 — O PREÇO, montado em runtime a partir de lib/checkoutPricing. */}
@@ -351,6 +408,11 @@ export default function CardEntryDoor({
 
         {/* 5 — O QUE ELA GANHA, calculado dos fatos. */}
         <ul style={{ margin: '12px 0 0', padding: 0, listStyle: 'none', display: 'grid', gap: 6 }}>
+          {filmIsShot ? (
+            <li data-door-clips-ready style={{ fontSize: 13.5, color: '#8fd0ff', fontWeight: 700 }}>
+              {'✓ ' + t.clipsReady(shotClips.length)}
+            </li>
+          ) : null}
           <li style={{ fontSize: 13.5, color: 'rgba(255,255,255,.8)' }}>{'✓ ' + t.creditsNow(CARD_TRIAL_GRANT_CREDITS)}</li>
           {coverage ? (
             <li style={{ fontSize: 13.5, color: 'rgba(255,255,255,.8)' }}>

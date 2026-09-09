@@ -13158,6 +13158,12 @@ export default function GenerateClient({
       {showCardEntryDoor && (
         <CardEntryDoor
           prompt={prompt}
+          /* KINEO-PORTA-FILME-JA-FEITO-2026-09-09 — quando a recusa chega DEPOIS
+             de clips_ready, estes são os clipes que a casa já rodou para este
+             filme. A porta deixa de prometer "vamos fazer" e passa a dizer o
+             que é verdade: está feito, falta o render. Vazio nos outros casos,
+             e aí a folha é a de sempre. */
+          readyClips={clipUrls}
           currency={postVideoCurrency}
           region={postVideoRegion}
           reason={upgradeReason}

@@ -158,3 +158,90 @@ E medir o (E7): preço cravado na página do ChatGPT.
 
 **Números desta rotação:** 15 pessoas · 0 filmes · 0 pagamentos · 12 recusas com
 `limit:0` para 3 pessoas · 25 falhas de checkout numa pessoa só · baseline 111.
+
+---
+
+## r2 (15:30–17:00 BRT) — A PORTA PARA DE PROMETER O QUE JÁ ESTÁ FEITO
+
+### O defeito, na frase mais curta que dá
+
+A folha de $1 dizia **"Your film, waiting to be made"** para quem já tinha
+**13 clipes rodados e o roteiro escrito**.
+
+Não é copy fraca: é falso. Na Versão B a casa escreve o roteiro, busca os
+clipes, monta o material — e só então consulta a cota, que é `limit: 0`. Quando
+a porta abre, o trabalho **já existe** e está preso atrás dela. A folha vendia
+uma promessa quando podia estar vendendo uma coisa pronta.
+
+Isso explica o gesto que mais dói no retrato da r1: das 4 pessoas que viram a
+porta, **3 dispensaram** — a de hoje **em 3 segundos**. Uma folha que promete
+"vamos fazer seu filme" logo depois de uma barra de progresso que morreu lê-se
+como aviso de erro, não como oferta.
+
+### O que mudou
+
+`components/CardEntryDoor.tsx` ganhou a prop `readyClips`, e
+`GenerateClient.tsx` liga nela o estado `clipUrls` — os clipes que a casa
+acabou de rodar para **este** filme. Quando existem (e só então):
+
+| | antes | agora |
+| --- | --- | --- |
+| rótulo | "Your film, waiting to be made" | **"Your film is already shot"** |
+| promessa | "Kineo directs it, narrates it and edits it for you." | **"Kineo already wrote it and shot it. One step left: the final render."** |
+| primeiro benefício | *(não existia)* | **"Script written and 13 clips already shot for this film"** |
+| vídeo | robô da casa | **o primeiro clipe DELA** |
+
+Sem clipes, a folha continua byte a byte a de antes — o ramo antigo é o padrão,
+e o guardião prova isso renderizando os dois.
+
+Três cuidados que valem registrar:
+
+1. **O texto não depende do preview.** Se a URL do fornecedor expirar, o
+   `<video>` cai para o vídeo da casa (`onError` → `clipPreviewFailed`), mas a
+   frase continua verdadeira: os clipes existem no servidor mesmo quando o
+   navegador não os toca. Um enfeite quebrado não pode transformar um fato em
+   mentira nem deixar um quadro preto na tela da decisão.
+2. **Só URL `http(s)` conta.** `blob:` e `data:` de uma tentativa morta não são
+   clipe rodado — e esse número vira texto na cara da pessoa.
+3. **A folha não promete o filme PRONTO.** "Already shot" é verdade; "your film
+   is ready" seria mentira, porque o render final é justamente o que os 80
+   créditos vão pagar. O guardião trava essa fronteira.
+
+Nenhum número de preço foi digitado: taxa, dias, créditos e mensalidade
+continuam saindo de `lib/checkoutPricing`. O guardião irmão
+`test-porta-v2-2026-09-09.mjs` (38 verificações, inclusive a trava de preço nas
+três línguas) **continua verde** com a mudança.
+
+### Medição que isto habilita
+
+`card_entry_door_shown`, `_clicked` e `_dismissed` passam a carregar
+`ready_clips` (contagem) e `film_already_shot` (booleano). Sem esses dois campos
+as duas folhas chegariam idênticas ao banco e nenhuma leitura posterior
+conseguiria separá-las — o erro que a memória da casa chama de "superfície
+medida por cópia da regra". A partir do próximo deploy dá para comparar
+**dispensa** e **clique** nos dois ramos, com denominador por pessoa.
+
+### Prova
+
+- `npx tsc --noEmit --incremental false` **verde**.
+- Guardião novo `scripts/test-porta-filme-ja-feito-2026-09-09.mjs`:
+  **16 verificações**, incluindo render real da folha nos dois ramos, contagem
+  com singular/plural, URL inválida e as três línguas.
+- **Falsificado por 3 mutações reais**, cada uma com `git diff` provando que o
+  mutante aplicou:
+
+| mutante | o que ele simula | resultado |
+| --- | --- | --- |
+| M1 — apaga `readyClips={clipUrls}` do call site | alguém "limpa" a prop e a folha nunca sabe do filme | 16 → **1** verde, acusa "a porta é montada SEM readyClips" |
+| M2 — troca `filmIsShot ? A : B` por `A` | o rótulo afirma "já rodado" para todo mundo | 16 → **4** verdes, acusa "o rótulo não é guardado por filmIsShot" |
+| M3 — filtro aceita qualquer string | `blob:`/`data:` viram "clipe rodado" | 16 → **3** verdes, acusa o filtro |
+
+O M2 é o que importa: um mutante que remove a condição mantém **todas as
+strings presentes no arquivo**. Guardião que contasse texto ficaria verde.
+
+### O que fica
+
+A porta consertada só vale quando alguém a vir. Não há tráfego na coorte desde
+14:31 UTC, e o cobrador só ficou de pé às ~14:58 UTC — ou seja, **nenhum cliente
+viu ainda a porta funcionando, nem esta versão dela**. A r3/r4 mede com corte no
+campo novo (`film_already_shot`), nunca por relógio.
