@@ -18,6 +18,8 @@ import { pickLibraryClips, type LibraryClip } from '@/lib/stockLibrary'
 // import { ensureAccessibleUrl } from '@/lib/videoCache'
 import { parseUserScript } from '@/lib/scriptParser'
 import { writeServerEvent } from '@/lib/serverEvents'
+import { classifyEngineFit } from '@/lib/engineFit'
+import { creditCostForDuration } from '@/lib/credits/engineCost'
 // KINEO-ENTREGA-SERVIDOR-2026-09-09 — o MESMO saneador e o MESMO nome de
 // evento que a rota do cliente usa. Importar (em vez de copiar as regras) é o
 // que garante que servidor e cliente gravem exatamente o mesmo bilhete para a
@@ -314,6 +316,8 @@ export async function POST(req: NextRequest) {
       // #358 — instrumentation: client forwards whether the BrollPlan came back
       // degraded (GPT failed) so we can log/record the reason for VERBATIM.
       brollDegraded?: boolean
+      // KINEO-ENGINE-FIT-2026-09-09 — o cliente viu o aviso e escolheu manter o Kineo 1.
+      engineFitOverride?: boolean
     }
     try {
       body = await req.json()
@@ -353,6 +357,34 @@ export async function POST(req: NextRequest) {
         requested_duration: Number(body.duration) || null,
       },
     })
+
+    // ═══ KINEO-ENGINE-FIT-2026-09-09 — BANCO DE IMAGENS NÃO CONTA HISTÓRIA ═══
+    // Relatório dos motores (09/09): Kineo 1 = 72% dos filmes e a pior nota de
+    // fidelidade (35/100), sempre pelo mesmo motivo — ficção/infantil/personagem
+    // pedido a um motor de stock. Aqui o servidor devolve 409 com a sugestão
+    // (Seedance, custo real) e a tela oferece UMA escolha. Quem insiste manda
+    // `engineFitOverride: true` e passa. Nunca é um portão: é um aviso com botão.
+    const engineFit = classifyEngineFit(prompt)
+    if (engineFit.verdict === 'stock_cannot_tell' && body.engineFitOverride !== true) {
+      const requestedForFit = Number(body.duration) || 45
+      const suggestedCredits = creditCostForDuration('cinematic_ai', true, requestedForFit)
+      void writeServerEvent({
+        name: 'engine_fit_warned',
+        userId: user.id,
+        path: '/api/generate-video-fast',
+        metadata: { engine: 'fast', suggested: 'cinematic_ai', suggested_credits: suggestedCredits, signals: engineFit.signals, prompt_length: prompt.length },
+      })
+      return NextResponse.json(
+        {
+          error: engineFit.reason,
+          engine_fit: { verdict: engineFit.verdict, reason: engineFit.reason, suggested: 'cinematic_ai', suggestedLabel: 'Seedance 1.5', suggestedCredits, signals: engineFit.signals },
+        },
+        { status: 409 },
+      )
+    }
+    if (body.engineFitOverride === true && engineFit.verdict === 'stock_cannot_tell') {
+      void writeServerEvent({ name: 'engine_fit_overridden', userId: user.id, path: '/api/generate-video-fast', metadata: { engine: 'fast', signals: engineFit.signals } })
+    }
 
     const requestedDuration = Number(body.duration) || 45
     const duration: Duration = SUPPORTED_DURATIONS.includes(requestedDuration as Duration)

@@ -139,6 +139,7 @@ import {
   historicoDeParedes,
   mensagemComEspiral,
 } from '@/lib/refusalSpiral'
+import { applyStyleAnchor, closingSceneVariation, deriveStyleAnchor, textSafetySuffix } from '@/lib/cinematic/sceneStyle'
 import { FalQueueSubmitError, submitFalQueueOnce } from '@/lib/falQueue'
 import {
   acquireCinematicClaim,
@@ -865,6 +866,29 @@ function deterministicSeed(input: string): number {
 // mesmo motivo dos anteriores: todo call site posicional existente continua
 // idêntico e, sem ele, o payload sai com '9:16' — o literal que estava
 // chumbado em 10 ramos deste arquivo.
+// KINEO-KLING3-RETRY-2026-09-09 — erro transitório do fornecedor (capacidade,
+// 429, 5xx, timeout de rede) ganha UMA segunda chance. Ambíguo nunca: o job
+// pode existir e re-POSTar duplicaria a cobrança.
+function isTransientSubmitError(e: unknown): boolean {
+  if (e instanceof FalQueueSubmitError) {
+    if (e.ambiguous) return false
+    if (e.status === 429 || (typeof e.status === 'number' && e.status >= 500)) return true
+    return /timeout|timed out|ETIMEDOUT|ECONNRESET|capacity|overloaded|try again/i.test(e.message)
+  }
+  const msg = e instanceof Error ? e.message : String(e)
+  return /timeout|timed out|ETIMEDOUT|ECONNRESET|503|502|504|capacity|overloaded/i.test(msg)
+}
+async function submitToFalWithOneRetry(run: () => Promise<string | null>, label: string): Promise<string | null> {
+  try {
+    return await run()
+  } catch (e) {
+    if (!isTransientSubmitError(e)) throw e
+    console.warn(`[cinematic] ${label}: erro transitório do fornecedor, retentando em 2,5 s —`, (e as Error)?.message)
+    await new Promise((r) => setTimeout(r, 2500))
+    return await run()
+  }
+}
+
 async function submitToFal(prompt: string, model: string = SEEDANCE_MODEL, hd: boolean = true, hollywood: boolean = false, seconds?: number, imageUrl?: string, seed?: number, stylized?: boolean, aspect?: string | null): Promise<string | null> {
   try {
     const id = await submitFalQueueOnce(
@@ -2980,6 +3004,14 @@ async function manipularPost(req: NextRequest) {
       `${prompt} ${scenes.map((s) => `${s.voiceover ?? ''} ${s.aiPrompt ?? ''} ${s.description ?? ''}`).join(' ')}`,
     )
     if (eraSuffix) console.log('[cinematic] era-lock active for this render')
+    // KINEO-SCENE-STYLE-2026-09-09 — o LOOK do filme é decidido UMA vez (roteiro
+    // inteiro), nunca por cena. Foi assim que "cantiga 3D" virou trem de
+    // brinquedo na cena 1 e savana fotorreal nas outras.
+    const styleAnchor = deriveStyleAnchor(
+      `${prompt} ${scenes.map((s) => `${s.voiceover ?? ''} ${s.aiPrompt ?? ''} ${s.description ?? ''}`).join(' ')}`,
+      styleSuffix,
+    )
+    if (styleAnchor.look !== 'photoreal') console.log(`[cinematic] style-lock: ${styleAnchor.look}`)
 
     // ── KINEO-HOLLYWOOD-2026-07-09 — HOLLYWOOD MODE 2.0 ─────────────────────
     // Dedicated path: GPT plans dialogue/cinematic/support scenes with ONE
@@ -4136,9 +4168,19 @@ async function manipularPost(req: NextRequest) {
             // Gate quebrado nao pode derrubar render pago: segue com o bruto.
             console.warn('[contrato-cena] falhou, seguindo sem corrigir:', (e as Error)?.message)
           }
+          // KINEO-SCENE-STYLE-2026-09-09 — bilhete/jornal/tela: letras ilegíveis de
+          // propósito (o motor escrevia "Dan Copper"). Cena sem objeto de texto
+          // fica byte a byte igual.
+          scenePrompt = scenePrompt + textSafetySuffix(scenePrompt)
           submittedPrompt = scenePrompt
           try {
-            id = await submitToFal(scenePrompt, sceneModel, false, true, hs.seconds, sceneAnchor, undefined, plan.stylized)
+            // KINEO-KLING3-RETRY-2026-09-09 — 503/429/timeout numa cena matava o
+            // filme inteiro (too_few → estorno). Uma retentativa após 2,5 s, só em
+            // erro transitório e nunca em erro ambíguo (o job pode existir).
+            id = await submitToFalWithOneRetry(
+              () => submitToFal(scenePrompt, sceneModel, false, true, hs.seconds, sceneAnchor, undefined, plan.stylized),
+              `hollywood scene ${hs.index}`,
+            )
           } catch (e) {
             if (
               e instanceof FalQueueSubmitError && e.ambiguous &&
@@ -4437,6 +4479,18 @@ async function manipularPost(req: NextRequest) {
       | { kind: 'id'; id: string | null; model: string }
       | { kind: 'ambiguous'; error: FalQueueSubmitError }
       | { kind: 'fatal'; error: unknown }
+    // KINEO-SCENE-STYLE-2026-09-09 — fecho ≠ abertura. Visto no Seedance (avião
+    // de 1953 no primeiro e no último quadro) e no Kling 3. Determinístico:
+    // mesma entrada, mesma variação, para o retry ficar estável.
+    {
+      const visuals = scenes.map((s) => (s.aiPrompt || s.stockSearchQuery || s.description || ''))
+      const closer = closingSceneVariation(visuals)
+      if (closer) {
+        const alvo = scenes[closer.index] as { aiPrompt?: string; stockSearchQuery?: string; description: string }
+        alvo.aiPrompt = visuals[closer.index] + closer.suffix
+        console.log(`[cinematic] closing scene ${closer.index} repeated the opening — variation applied`)
+      }
+    }
     const submitScene = async (
       // `voiceover` entrou no tipo para o Contrato de Cena poder comparar a
       // FALA com a IMAGEM. Ele ja existia no objeto (scenes[] o carrega desde
@@ -4457,7 +4511,10 @@ async function manipularPost(req: NextRequest) {
       // buildFacelessCinematicPrompt then strips any person nouns + forces
       // environment-first b-roll, on-brand for this faceless channel.
       const visualPrompt = scene.aiPrompt || scene.stockSearchQuery || scene.description
-      const cinematicBruto = buildFacelessCinematicPrompt(visualPrompt) + eraSuffix + styleSuffix
+      // KINEO-SCENE-STYLE-2026-09-09 — look travado + trava de consistência (o
+      // styleSuffix explícito do cliente já vive dentro da âncora) + texto ilegível
+      // de propósito quando a cena pede objeto com escrita.
+      const cinematicBruto = applyStyleAnchor(buildFacelessCinematicPrompt(visualPrompt), styleAnchor) + eraSuffix + textSafetySuffix(visualPrompt)
       // ═══ CONTRATO CENA VERDADEIRA NO CAMINHO CLASSICO — 2026-08-27 ═══════
       //
       // MEDIDO EM PRODUCAO: `hollywoodPath = wantsHollywood || wantsH3 ||

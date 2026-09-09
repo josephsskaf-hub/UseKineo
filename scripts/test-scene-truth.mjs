@@ -252,7 +252,8 @@ const PROIBIDOS = VM.proibidosPorModo('documentary_faceless')
   checa('D1 rota chama aplicarContrato', /aplicarContrato\(contrato\)/.test(codigo))
 
   const iAplica = codigo.indexOf('aplicarContrato(contrato)')
-  const iPost = codigo.indexOf('await submitToFal(scenePrompt,')
+  // KINEO-KLING3-RETRY-2026-09-09 — a submissão hollywood passa por submitToFalWithOneRetry(() => submitToFal(scenePrompt, ...))
+  const iPost = codigo.search(/await submitToFal\(scenePrompt,|\(\) => submitToFal\(scenePrompt,/)
   checa('D1 aplicarContrato vem ANTES do submitToFal', iAplica > 0 && iPost > 0 && iAplica < iPost,
     `aplicar=${iAplica} post=${iPost}`)
 
@@ -386,7 +387,8 @@ const PROIBIDOS = VM.proibidosPorModo('documentary_faceless')
     /cinematic = r\.promptCorrigido/.test(codigo))
   // e o bruto virou variavel separada (prova de que nao ficou sobrescrito).
   checa('D4 classico separa bruto de corrigido',
-    /const cinematicBruto = buildFacelessCinematicPrompt/.test(codigo))
+    // KINEO-SCENE-STYLE-2026-09-09 — o bruto passa pela âncora de estilo antes do contrato; continua variável separada
+    /const cinematicBruto = (applyStyleAnchor\()?buildFacelessCinematicPrompt/.test(codigo))
 
   // ORDEM: o gate roda ANTES do POST pago no classico.
   const iGateClassico = codigo.indexOf('cinematic = r.promptCorrigido')

@@ -2366,6 +2366,18 @@ export default function GenerateClient({
   const videoHistoryAbortRef = useRef<AbortController | null>(null)
   // KINEO-AI-SCENE-VISIBLE-2026-08-03 — ver comentário no dispatch do Fast.
   const [hadAiScene, setHadAiScene] = useState(false)
+  // KINEO-ENGINE-FIT-2026-09-09 — o servidor do Kineo 1 devolve 409 quando o
+  // roteiro é ficção/infantil/personagem (banco de imagens não conta história).
+  // A tela vira isso numa escolha: trocar para o Seedance (custo real) ou manter.
+  const [engineFit, setEngineFit] = useState<{ reason: string; suggestedCredits: number; suggestedLabel: string } | null>(null)
+  const engineFitOverrideRef = useRef(false)
+  const engineFitSwitchRef = useRef(false)
+  useEffect(() => {
+    if (!engineFitSwitchRef.current || mode !== 'cinematic_ai' || aiEngine !== 'seedance') return
+    engineFitSwitchRef.current = false
+    void handleGenerate()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, aiEngine])
 // Push #095 — player resilience. When the B2/Creatomate CDN returns a 503
   // or hasn't propagated yet, the <video> element used to spin forever in
   // readyState 0. playerFailed flips true after the full retry budget is
@@ -9427,7 +9439,7 @@ export default function GenerateClient({
               headers: { 'Content-Type': 'application/json' },
               // KINEO-MULTIFORMATO-2026-09-02 — `aspect` só viaja quando não é
               // 9:16: link antigo e sessão sem escolha continuam idênticos.
-              body: JSON.stringify({ prompt: trimmed, duration, language, brollQueries, brollScenes, brollDegraded: plan?.degraded, ...(aspectRequested !== '9:16' ? { aspect: aspectRequested } : {}) }),
+              body: JSON.stringify({ prompt: trimmed, duration, language, brollQueries, brollScenes, brollDegraded: plan?.degraded, ...(aspectRequested !== '9:16' ? { aspect: aspectRequested } : {}), ...(engineFitOverrideRef.current ? { engineFitOverride: true } : {}) }),
               signal: dispatchTimeoutSignal(FAST_DISPATCH_TIMEOUT_MS),
             })
             data = await res.json().catch(() => { parseFailed = true; return null }) as Record<string, unknown> | null
@@ -9455,6 +9467,20 @@ export default function GenerateClient({
         if (res.status === 401) {
           trackGenerationFailure('generating', 'fast_unauthenticated', { httpStatus: 401 })
           redirectToLoginPreservingPrompt()
+          return
+        }
+        // KINEO-ENGINE-FIT-2026-09-09 — 409 com `engine_fit`: não é falha, é uma
+        // escolha. Volta para idle sem erro vermelho e mostra a caixa.
+        if (res.status === 409 && data && typeof data.engine_fit === 'object' && data.engine_fit !== null) {
+          const ef = data.engine_fit as { reason?: unknown; suggestedCredits?: unknown; suggestedLabel?: unknown }
+          setEngineFit({
+            reason: typeof ef.reason === 'string' ? ef.reason : 'Stock footage cannot act out a story.',
+            suggestedCredits: typeof ef.suggestedCredits === 'number' ? ef.suggestedCredits : 0,
+            suggestedLabel: typeof ef.suggestedLabel === 'string' ? ef.suggestedLabel : 'Seedance 1.5',
+          })
+          setError(null)
+          setPhase('idle')
+          void trackEvent('engine_fit_box_shown', { suggested_credits: typeof ef.suggestedCredits === 'number' ? ef.suggestedCredits : null })
           return
         }
         if (res.status === 402) {
@@ -12911,6 +12937,42 @@ export default function GenerateClient({
         </div>
       </div>
 
+      {/* KINEO-ENGINE-FIT-2026-09-09 — a escolha, não um portão. */}
+      {engineFit && phase !== 'failed' && (
+        <div className="gv-card rounded-xl px-4 py-3 text-sm mb-6" data-testid="engine-fit-box" style={{ background: 'rgba(41,151,255,.08)', border: '1px solid rgba(41,151,255,.35)', color: '#e5efff' }}>
+          <div style={{ fontWeight: 800, marginBottom: 4 }}>Kineo 1 uses real stock footage — it can’t act out this story.</div>
+          <div style={{ color: '#b8c7dd', marginBottom: 10 }}>{engineFit.reason} {engineFit.suggestedLabel} draws every scene from your script instead.</div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              data-testid="engine-fit-switch"
+              onClick={() => {
+                void trackEvent('engine_fit_switched', { to: 'cinematic_ai', credits: engineFit.suggestedCredits })
+                setEngineFit(null)
+                engineFitSwitchRef.current = true
+                setMode('cinematic_ai')
+                setAiEngine('seedance')
+              }}
+              style={{ background: '#2997ff', color: '#000', fontWeight: 800, borderRadius: 999, padding: '8px 14px', border: 0 }}
+            >
+              Switch to {engineFit.suggestedLabel} ({engineFit.suggestedCredits} credits)
+            </button>
+            <button
+              type="button"
+              data-testid="engine-fit-keep"
+              onClick={() => {
+                void trackEvent('engine_fit_kept', { engine: 'fast' })
+                setEngineFit(null)
+                engineFitOverrideRef.current = true
+                void handleGenerate()
+              }}
+              style={{ background: 'transparent', color: '#e5efff', fontWeight: 700, borderRadius: 999, padding: '8px 14px', border: '1px solid rgba(255,255,255,.25)' }}
+            >
+              Keep Kineo 1 anyway
+            </button>
+          </div>
+        </div>
+      )}
       {error && phase !== 'failed' && (
         <div
           className="gv-card rounded-xl px-4 py-3 text-sm mb-6"

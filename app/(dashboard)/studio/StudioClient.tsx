@@ -90,14 +90,17 @@ const ENGINES: {
   // 'Popular' saiu: ele nao era popular por escolha, era o PADRAO. Chamar de
   // popular o que ninguem escolheu e uma prova social inventada.
   { key: 'seedance', preview: '/previews/75728dfb-3b29-47fa-aea8-b806d549a2b9.mp4', icon: 'S', name: 'Seedance 1.5', desc: 'The workhorse AI video engine', res: '720p', credits: `${creditCostFor('cinematic_ai', true)} cr`, supportsRef: false },
-  { key: 'kling', preview: '/previews/c4e4fbab-0978-4daa-9fcf-119096370210.mp4', icon: 'K', name: 'Kling 2.5', tag: 'Best value', desc: 'Cinematic motion and camera work', res: '720p', credits: `${creditCostFor('cinematic_kling', true)} cr`, supportsRef: false },
-  { key: 'veo', preview: '/previews/9bbd5d98-33e5-423f-b9cb-82f7af6c67ba.mp4', icon: 'G', name: 'Veo 3.1', tag: 'Studio', desc: 'Google’s flagship cinematic engine', res: '720p', credits: `${creditCostFor('cinematic_veo', true)} cr`, supportsRef: false },
-  { key: 'hollywood', preview: '/previews/4b12925e-16e6-4b56-af5a-7047f9ae7a28.mp4', icon: 'K3', name: 'Kling 3', tag: 'Studio', desc: 'Film scenes, native voice & lip sync', res: '720p', credits: `${creditCostFor('cinematic_hollywood', true)} cr`, supportsRef: true },
+  // Sobe para logo depois do Seedance, com o selo honesto do que cabe no plano.
+  // e nenhum cliente o escolheu em 45 dias porque ele estava atrás de Kling/Veo/Kling 3.
+  // KINEO-MOTORES-R6-2026-09-09 — relatório dos motores: H3 tirou 85% e custa 45 cr,
   // KINEO-H3-2026-08-19 — MiniMax H3. Sem preview ainda (entra depois do
   // primeiro render de validação; vitrine com clipe de outro motor seria
   // quebrar o selo honesto). É o filme carro-chefe que CABE no plano: o
   // Creator (90cr) não fecha um Kling 3 de 150, e fecha DOIS H3 de 45.
-  { key: 'h3', icon: 'H3', name: 'MiniMax H3', desc: 'Cinematic film that fits your plan — 9-image consistency', res: '768p', credits: `${creditCostFor('cinematic_h3', true)} cr`, supportsRef: true },
+  { key: 'h3', icon: 'H3', name: 'MiniMax H3', tag: 'Fits your plan', desc: 'Cinematic film that fits your plan — 9-image consistency', res: '768p', credits: `${creditCostFor('cinematic_h3', true)} cr`, supportsRef: true },
+  { key: 'kling', preview: '/previews/c4e4fbab-0978-4daa-9fcf-119096370210.mp4', icon: 'K', name: 'Kling 2.5', tag: 'Best value', desc: 'Cinematic motion and camera work', res: '720p', credits: `${creditCostFor('cinematic_kling', true)} cr`, supportsRef: false },
+  { key: 'veo', preview: '/previews/9bbd5d98-33e5-423f-b9cb-82f7af6c67ba.mp4', icon: 'G', name: 'Veo 3.1', tag: 'Studio', desc: 'Google’s flagship cinematic engine', res: '720p', credits: `${creditCostFor('cinematic_veo', true)} cr`, supportsRef: false },
+  { key: 'hollywood', preview: '/previews/4b12925e-16e6-4b56-af5a-7047f9ae7a28.mp4', icon: 'K3', name: 'Kling 3', tag: 'Studio', desc: 'Film scenes, native voice & lip sync', res: '720p', credits: `${creditCostFor('cinematic_hollywood', true)} cr`, supportsRef: true },
   // KINEO-OMNI-2026-08-25 — o #1 do ranking cego de agosto (1245 Elo,
   // Artificial Analysis arena) entra no topo do catálogo. Selo honesto: a
   // claim '#1 ranked' tem fonte datada (docs/MOTOR-OMNI-FLASH-2026-08-25.md)
