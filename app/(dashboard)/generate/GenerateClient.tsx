@@ -2372,6 +2372,16 @@ export default function GenerateClient({
   const [engineFit, setEngineFit] = useState<{ reason: string; suggestedCredits: number; suggestedLabel: string } | null>(null)
   const engineFitOverrideRef = useRef(false)
   const engineFitSwitchRef = useRef(false)
+  // KINEO-ENGINE-FIT-UX-2026-09-09 — medido 19:20/19:24 BRT: o fundador viu a caixa
+  // (engine_fit_box_shown) e NÃO clicou em nenhum botão (0 switched/kept). A caixa
+  // nascia no topo da página enquanto ele estava no composer, embaixo: para ele o
+  // render "voltou para idle sem nada". Agora a caixa é uma folha FIXA no rodapé
+  // da janela (visível onde a pessoa estiver) e a página ainda rola até ela.
+  const engineFitBoxRef = useRef<HTMLDivElement | null>(null)
+  useEffect(() => {
+    if (!engineFit) return
+    try { engineFitBoxRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }) } catch { /* sem rolagem, a folha fixa já é visível */ }
+  }, [engineFit])
   useEffect(() => {
     if (!engineFitSwitchRef.current || mode !== 'cinematic_ai' || aiEngine !== 'seedance') return
     engineFitSwitchRef.current = false
@@ -12939,8 +12949,9 @@ export default function GenerateClient({
 
       {/* KINEO-ENGINE-FIT-2026-09-09 — a escolha, não um portão. */}
       {engineFit && phase !== 'failed' && (
-        <div className="gv-card rounded-xl px-4 py-3 text-sm mb-6" data-testid="engine-fit-box" style={{ background: 'rgba(41,151,255,.08)', border: '1px solid rgba(41,151,255,.35)', color: '#e5efff' }}>
-          <div style={{ fontWeight: 800, marginBottom: 4 }}>Kineo 1 uses real stock footage — it can’t act out this story.</div>
+        <div ref={engineFitBoxRef} role="dialog" aria-live="assertive" className="gv-card rounded-xl px-4 py-3 text-sm" data-testid="engine-fit-box" style={{ position: 'fixed', left: 16, right: 16, bottom: 16, margin: '0 auto', maxWidth: 560, zIndex: 80, background: '#0f1a2b', border: '1px solid rgba(41,151,255,.55)', boxShadow: '0 12px 40px rgba(0,0,0,.55)', color: '#e5efff' }}>
+          <button type="button" aria-label="Close" data-testid="engine-fit-close" onClick={() => { void trackEvent('engine_fit_dismissed', {}); setEngineFit(null) }} style={{ position: 'absolute', top: 6, right: 10, background: 'transparent', border: 0, color: '#8fa3bf', fontSize: 18, cursor: 'pointer' }}>×</button>
+          <div style={{ fontWeight: 800, marginBottom: 4, paddingRight: 24 }}>Kineo 1 uses real stock footage — it can’t act out this story.</div>
           <div style={{ color: '#b8c7dd', marginBottom: 10 }}>{engineFit.reason} {engineFit.suggestedLabel} draws every scene from your script instead.</div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button
