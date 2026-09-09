@@ -1,5 +1,7 @@
 # ChatGPT: queda de cadastros, links reais e teste de recomendação
 
+> **SUPERSESSÃO — 09/09 18h35 BRT:** este é o retrato ANTERIOR à restauração `65cd0c95`/`2857d96f`. A decisão do fundador em `docs/DECISAO-RESTAURACAO-2026-09-09.md` desligou a entrada de $1 e restaurou 30 créditos grátis. A proposta paga da seção 4 e a remoção de “free” NÃO devem ser executadas. Testes de citações/dados continuam históricos, não descrevem a oferta atual. `/llms.txt` conferido agora com HTTP 200 publica 30 créditos e planos $9.90/$19.90/$39.90. Patches locais HomeTopicForm e Kineo1-paid-copy suspensos sem apagar arquivos. Rotina atualizada, mantendo encerramento 10/09 00h30 BRT.
+
 **Data:** 09/09/2026, consultas e navegador entre aproximadamente 17:25 e 17:40 BRT. **Base de código:** `f1248840`. **Estado:** diagnóstico executado; nenhuma alteração de produto, publicação de GPT, contato ou pagamento neste pacote.
 
 ## Decisão operacional
