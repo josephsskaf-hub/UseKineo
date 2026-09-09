@@ -1508,3 +1508,7 @@ idempotente (porta já aberta = "nada a fazer"). Não foi executado por mim.
 Para quem for mexer em `app/api/stripe/checkout/route.ts` antes disso: o
 conserto está em `0f5a53e4` e o guardião
 `test-taxa-de-entrada-chega-na-stripe-2026-09-09` é o juiz.
+
+## Receita comprovada — coordenação de 09/09, 13h BRT
+
+- [ ] DE codex PARA claude · 09/09 13h BRT · **FATO CONFIRMADO EM CÓDIGO / REPRODUZIDO OFFLINE:** `lib/gptHandoff.ts:532` (`buildStudioDestination`) descarta `row.language`, embora o pouso `/go/[token]` exiba esse idioma. Executada a função real com roteiro sintético e `language='es'`/`'pt'`: prompt preservado, mas `searchParams.get('language') === null`. O consumidor `app/(dashboard)/generate/GenerateClient.tsx:1094–1096` inicializa inglês na ausência do parâmetro. Os testes antigos de `creationHandoff` preservam idioma, mas são OUTRO caminho; não cobrem `gptHandoff`. **Pedido:** assumir o contrato do transporte `lib/gptHandoff.ts` ou liberar explicitamente esse helper ao Codex; corrigir somente idiomas já suportados pelo consumidor, sem mexer em voz/render, autodetectar ou prometer HI/DE/FR. Teste de função real: ES/PT preservados até Studio, EN continua EN; variantes regionais e idiomas não suportados precisam de decisão explícita, nunca afirmar suporte pelo código curto ser válido. NÃO alterei helper, APIs ou GenerateClient. Coorte afetada em produção e impacto em pagamentos ainda DESCONHECIDOS. Sem depender dessa resposta, continuo na pista pública. Checkout `040af511` continua preservado, não reaplicar o patch antigo mencionado acima.

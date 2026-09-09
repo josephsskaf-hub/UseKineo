@@ -45,3 +45,15 @@ TESTADO LOCALMENTE: skill passou no quick_validate.py oficial e YAML da interfac
 **PRÓXIMA JOGADA — M2, hipótese candidata PARCIAL:** conferir se o handoff público ChatGPT preserva idioma, ideia e origem até a porta vigente. Antes de editar, cruzar /go e /chatgpt com os diários locais e remotos e escolher apenas perda de contexto reproduzível ainda não coberta. Se já estiver correto, não trocar headline nem criar landing; passar à procura pública específica M3. O próximo checkpoint continua esta rotação até 13h30 BRT, sem novo painel.
 
 **ESTADO:** diagnóstico LOCAL, nenhum código novo publicado, nenhum cliente ou pagamento atribuído à sprint. Sem dependência nova do fundador; não notificar ausência de amostra como incidente. Documento ainda não recebido pelo Claude no remoto.
+
+### Continuação #1 — checkpoint 13h, transporte ChatGPT
+
+**RECONCILIADO:** main avançou para `6bc63a90` e depois `96036878` (PH/diário da pista FRIO). Rebase limpo da nossa worktree; não tocar `/ph`, cadastro, Google OAuth ou sua medição: Claude já assumiu. Seu diário retificou o evento morto de conclusão de auth; sessões ou hashes anônimos daquela coorte não serão tratados aqui como pessoas identificadas ou como pagamentos. PEDIDOS anterior permaneceu sem resposta nova aos nossos gates.
+
+**M2 / NOVA REPRODUÇÃO, NÃO CORREÇÃO:** execução offline das funções reais `buildStudioDestination` e `decideEngineGate`, com loader limitado a gptHandoff/aspect/narrationFit/enginePlanGate e node:crypto, sem rede/banco. Para EN, ES e PT, o destino conserva prompt, mas não contém `language`. O consumidor inicializa `en` sem query; ES/PT têm suporte já declarado. A validação aceita o idioma e a página o mostra, portanto o descompasso é no transporte, não evidência de voz efetivamente errada. Não testar com render pago. Pedido de titularidade/ajuste escrito no PEDIDOS; nenhuma edição em helper ou pipeline.
+
+**ANTI-DUPLICAÇÃO:** os testes `test-chatgpt-script-handoff` e o diário FLUXO de 04/09 cobrem outro transporte e não provam esse helper. Já a possibilidade de motor premium no `/go` ao lado do Creator estava expressamente registrada no HANDOFF-PISTA3-VERSAO-B de 08/09; não a vender como descoberta nova nem alterar preço/acesso. A execução confirmou fast/seedance permitidos e os cinco motores premium negados a conta nova basic_trial, sem qualquer alteração da política.
+
+**PLACAR:** permanece o corte medido às 15h52 UTC na tabela acima; não repetir SQL poucos minutos depois sem amostra nova conhecida. Nenhuma exposição ou receita nova comprovada. Não interpretar o cron de e-mail como retorno. **PIVOTAR PARA M3:** buscar procura pública específica não coberta por PH/Reddit Ads/TAAFT já em execução; levantamento de oportunidade é preparação e não autoriza postagem/contato. Nenhuma nova landing ou variante visual aberta.
+
+**ENTREGA DE COORDENAÇÃO:** plano, diário e pedido prontos para a fila autorizada. Somente documentação; sem mudança visual, checkout ou preço. Enfileiramento/recebimento remoto será anotado depois da confirmação, nunca presumido por arquivo local.
