@@ -650,6 +650,24 @@ export default function SignupPage() {
                         : ft(OFFER, 'Create, watch, download and share up to 3 watermarked Fast videos every 24h, no card.', OFFER.copy.headline)}
                 </p>
 
+                {/* KINEO-SPRINT-FRIO-2026-09-09 r3 — selo proprio: a promessa
+                    que pagou o clique vem ANTES do selo do plano, sem apagar
+                    nenhum dos dois. Os dois sao verdade e nao se contradizem —
+                    o segundo nomeia o plano em que o teste continua. */}
+                {isCheckoutResume && trialPromise && !bulkCheckoutContext && (
+                  <div
+                    data-testid="cold-trial-promise-chip"
+                    className="inline-flex items-center rounded-full px-3 py-1.5 mb-2 text-xs font-black"
+                    style={{
+                      color: '#04121f',
+                      background: '#2997ff',
+                      border: '1px solid #2997ff',
+                    }}
+                  >
+                    {trialPromise.chip}
+                  </div>
+                )}
+
                 {isCheckoutResume && checkoutChoice && !bulkCheckoutContext && (
                   <div
                     className="inline-flex items-center rounded-full px-3 py-1.5 mb-5 text-xs font-black"
@@ -659,7 +677,7 @@ export default function SignupPage() {
                       border: '1px solid rgba(41,151,255,.3)',
                     }}
                   >
-                    {trialPromise?.chip ?? checkoutChoice.summary}
+                    {checkoutChoice.summary}
                   </div>
                 )}
 

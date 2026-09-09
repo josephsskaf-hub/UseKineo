@@ -132,8 +132,15 @@ check('signup importa readColdTrialPromise',
   /import\s*\{[\s\S]{0,160}readColdTrialPromise[\s\S]{0,160}\}\s*from\s*'@\/lib\/growth\/coldTrafficTrialPromise'/.test(SIGNUP))
 check('signup calcula trialPromise a partir do destino preservado',
   /const trialPromise = useMemo\([\s\S]{0,90}isCheckoutResume \? readColdTrialPromise\(activationRedirect\) : null/.test(SIGNUP))
-check('selo mostra a promessa antes do plano',
-  /\{trialPromise\?\.chip \?\? checkoutChoice\.summary\}/.test(SIGNUP))
+check('promessa tem selo proprio',
+  /data-testid="cold-trial-promise-chip"/.test(SIGNUP) && /\{trialPromise\.chip\}/.test(SIGNUP))
+check('selo da promessa so aparece com trial',
+  /isCheckoutResume && trialPromise && !bulkCheckoutContext/.test(SIGNUP))
+// A trava de test-checkout-signup-resolution exige este literal, e ela esta
+// certa: quem escolheu um plano continua vendo o plano. A promessa SOMA, nao
+// substitui — se alguem trocar o selo do plano por um ternario, os dois
+// guardioes tem que gritar.
+check('selo do plano segue intacto ao lado', /\{checkoutChoice\.summary\}/.test(SIGNUP))
 check('subtitulo mostra a promessa',
   /trialPromise\?\.sentence \?\? checkoutChoice\?\.continuity/.test(SIGNUP))
 check('botao mostra a promessa',
