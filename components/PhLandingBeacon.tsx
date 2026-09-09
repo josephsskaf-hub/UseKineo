@@ -62,7 +62,17 @@ import { trackEvent } from '@/lib/analytics'
 
 const CAMPAIGN_OK = /^[A-Za-z0-9._~-]{1,60}$/
 const MARCOS_ROLAGEM = [25, 50, 75, 100] as const
-const VERSAO = 'ph_sep10_v3'
+// KINEO-PH-DOBRA-2026-09-09 (sprint frio, r4) — `version` sobe para
+// `ph_sep10_v4` porque a DOBRA da /ph mudou de ordem neste mesmo commit
+// (manchete → filme → porta de $1 → prosa, em vez de prosa → porta → filme).
+// A FÓRMULA de profundidade é a mesma da v3, então v3 e v4 SÃO comparáveis
+// degrau a degrau — o que muda é a página que a pessoa estava lendo. A v4 é o
+// carimbo do bundle pelo qual a r5 corta a medição: corte por relógio inventa
+// defeito quando dois deploys entram na mesma hora.
+// Linha de base a bater (v3, 34 pessoas do Reddit, 97% em celular):
+//   rolaram além de 25% = 11/34 (32%) · passaram de 50% = 6/34 (18%) ·
+//   chegaram ao fim = 1/34 (3%) · clicaram o CTA = 0/34.
+const VERSAO = 'ph_sep10_v4'
 
 // Largura de corte do celular: a mesma que a página usa para empilhar o herói
 // (`minmax(300px, 1fr)` em grade de duas colunas quebra abaixo de ~640px).

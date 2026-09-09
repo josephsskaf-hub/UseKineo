@@ -90,17 +90,39 @@ export default function PhPage() {
           ) : null}
         </div>
 
-        <section style={{ marginTop: 40, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 28, alignItems: 'center' }}>
-          <div>
-            <h1 style={{ fontSize: 'clamp(2rem, 4.6vw, 3.4rem)', lineHeight: 1.05, fontWeight: 900, letterSpacing: '-.02em', margin: 0 }}>
-              Type an idea.<br />Get a cinematic short in 3 minutes.
-            </h1>
-            <p style={{ marginTop: 16, fontSize: 17, color: 'rgba(255,255,255,.78)', lineHeight: 1.5, maxWidth: 520 }}>
-              Kineo writes the script, directs every shot, narrates, scores and edits — {ENGINES} video engines behind one
-              button (Veo 3.1, Kling 3, Seedance, MiniMax H3, Omni Flash). Every clip on this page was made this way,
-              from one paragraph of text.
-            </p>
-            <div style={{ marginTop: 22, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+        {/* KINEO-PH-DOBRA-2026-09-09 (sprint frio, r4) — A ORDEM DA DOBRA MUDOU
+            PORQUE O DADO MANDOU, não por gosto. Medido no bundle `ph_sep10_v3`,
+            das 34 pessoas do Reddit que caíram aqui entre 13:15 e 15:37 BRT,
+            97% em celular: 23 (68%) NUNCA passaram de `depth: 25` e ZERO
+            clicaram o CTA (o instrumento de clique foi provado vivo às 17:07 —
+            uma sonda gravou `ph_cta_clicked` com `position: top`).
+            Duas terças partes morriam antes de rolar ~300px.
+
+            O que elas viam em 375px, com as posições reais do documento:
+              h1 em 97 · parágrafo de 7 linhas em 201 (175px de prosa densa) ·
+              botão de $1 em 376 · e o FILME só em 545, cortado.
+            Ou seja: a prova de que o produto existe vinha DEPOIS do pedido de
+            cartão, atrás de um parágrafo que nomeia cinco motores para quem
+            nunca ouviu falar de nenhum.
+
+            A ordem agora é: manchete → FILME → porta de $1 → letra miúda →
+            e só então a prosa dos motores. O parágrafo não foi cortado nem
+            reescrito (copy honesta continua valendo); ele saiu do caminho.
+            No desktop a grade continua com duas colunas — o filme passa para a
+            esquerda e a coluna de texto para a direita, arranjo normal de herói.
+
+            A `<h1>` sai de dentro da grade para poder ficar ACIMA das duas
+            colunas: sem isso não há como intercalar filme e texto quando a
+            grade colapsa em uma coluna só no celular. */}
+        <h1 style={{ fontSize: 'clamp(2rem, 4.6vw, 3.4rem)', lineHeight: 1.05, fontWeight: 900, letterSpacing: '-.02em', margin: '40px 0 0' }}>
+          Type an idea.<br />Get a cinematic short in 3 minutes.
+        </h1>
+        <section style={{ marginTop: 22, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 28, alignItems: 'center' }}>
+          <div data-testid="ph-hero-film" style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(255,255,255,.12)', aspectRatio: '500 / 280', background: '#0b0b0e' }}>
+            <video src={ROBOT} poster={ROBOT_POSTER} autoPlay muted loop playsInline preload="metadata" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          </div>
+          <div data-testid="ph-hero-copy">
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
               <a
                 href={CTA}
                 rel="nofollow"
@@ -114,9 +136,11 @@ export default function PhPage() {
               </span>
             </div>
             <p style={{ marginTop: 12, fontSize: 13, color: 'rgba(255,255,255,.5)' }}>{CARD_ENTRY_COPY.noFreeTier}</p>
-          </div>
-          <div style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(255,255,255,.12)', aspectRatio: '500 / 280', background: '#0b0b0e' }}>
-            <video src={ROBOT} poster={ROBOT_POSTER} autoPlay muted loop playsInline preload="metadata" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+            <p style={{ marginTop: 16, fontSize: 17, color: 'rgba(255,255,255,.78)', lineHeight: 1.5, maxWidth: 520 }}>
+              Kineo writes the script, directs every shot, narrates, scores and edits — {ENGINES} video engines behind one
+              button (Veo 3.1, Kling 3, Seedance, MiniMax H3, Omni Flash). Every clip on this page was made this way,
+              from one paragraph of text.
+            </p>
           </div>
         </section>
 
