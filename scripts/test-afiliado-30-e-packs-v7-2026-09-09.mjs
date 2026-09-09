@@ -59,6 +59,8 @@ const fun = rd('lib/admin/versaoBFunnel.ts')
 checa('funil lê card_entry_door_shown/clicked e intent door_v2', /'card_entry_door_shown',\s*\n\s*'card_entry_door_clicked',/.test(fun) && /case 'card_entry_door_shown': sets\.sawDoor/.test(fun) && /ic === 'door_v2'/.test(fun))
 const ov = rd('app/admin/overview/page.tsx')
 checa('admin: tabela "Quem entrou pela porta" por pessoa, com pagou $1 e "usou X de 80"', /Quem entrou pela porta/.test(ov) && /data-testid="entrante"/.test(ov) && /usou \$\{Math\.max\(0, CARD_ENTRY_TRIAL_CREDITS - e\.credits\)\} de \$\{CARD_ENTRY_TRIAL_CREDITS\}/.test(ov))
+checa('admin: UM lugar com quem pagou $1 e esta dentro dos 7 dias (No trial de $1 agora), lendo o plano *_trial do perfil', ov.includes('data-testid="trial-1-agora-n"') && ov.includes('No trial de $1 agora') && ov.includes(".filter((p) => isTrialPlan((p.plan ?? '').toLowerCase()))") && ov.includes('data-testid="trial-1-pessoa"'))
+checa('admin: dias restantes = 7 - dias desde o payment_success card_trial', ov.includes("Math.max(0, 7 - Math.floor((now - new Date(paidAt).getTime()) / DAY_MS))") && ov.includes("metaTrue(e.metadata ?? null, 'card_trial')"))
 checa('admin: entrantes nascem do evento card_entry_required desde o marco', /e\.name !== 'card_entry_required'\) continue/.test(ov) && /if \(t < marcoMs \|\| entrantesMap\.has\(e\.user_id\)\) continue/.test(ov))
 
 console.log(`\n  verificacoes: ${ok + falhas.length} · falhas: ${falhas.length}`)

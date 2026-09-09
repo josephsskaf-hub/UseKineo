@@ -79,6 +79,7 @@ function maskEmail(email: string): string {
 
 // ── data layer ──────────────────────────────────────────────────────────────
 
+type Trial1 = { id: string; email: string; paidAt: string | null; daysLeft: number | null; plan: string | null; credits: number | null; films: number }
 type Entrante = { id: string; email: string; bornAt: string | null; sawDoor: boolean; clicked: boolean; checkout: boolean; paid1At: string | null; plan: string | null; credits: number | null; films: number }
 
 type Metrics = {
@@ -98,6 +99,7 @@ type Metrics = {
   versaoB: { today: FunilB; d7: FunilB; since: string }
   // KINEO-ADMIN-ENTRANTES-2026-09-09 — quem entrou pela porta, por pessoa.
   entrantes: Entrante[]
+  trial1: Trial1[]
   // growth
   signupsToday: number
   signups7d: number
@@ -359,6 +361,25 @@ async function loadMetrics(): Promise<Metrics | null> {
     if (e.name === 'checkout_started' && (metaTrue(m, 'card_trial') || ic === 'card_entry' || ic === 'door_v2' || ic.startsWith('trial_1usd'))) row.checkout = true
     if (e.name === 'payment_success' && metaTrue(m, 'card_trial')) row.paid1At = e.created_at ?? row.paid1At
   }
+  // KINEO-ADMIN-TRIAL-1-AGORA-2026-09-09 — fundador: "um lugar só com a quantidade de
+  // pessoas que pagaram 1 dólar e estão dentro do trial de 7 dias". A verdade é o
+  // PERFIL: o webhook grava `${tier}_trial` no checkout do $1 e troca por `tier`
+  // no dia 8 (ou `free` se o cartão falhar). Quem tem plano *_trial AGORA = pagou
+  // $1 e está dentro dos 7 dias. O dia de pagamento vem do payment_success.
+  const paid1ByUser = new Map<string, string>()
+  for (const e of eventRows) {
+    if (e.name !== 'payment_success' || !e.user_id || !metaTrue(e.metadata ?? null, 'card_trial') || !e.created_at) continue
+    const prev = paid1ByUser.get(e.user_id)
+    if (!prev || prev < e.created_at) paid1ByUser.set(e.user_id, e.created_at)
+  }
+  const trial1: Trial1[] = external
+    .filter((p) => isTrialPlan((p.plan ?? '').toLowerCase()))
+    .map((p) => {
+      const paidAt = paid1ByUser.get(p.id) ?? null
+      const daysLeft = paidAt ? Math.max(0, 7 - Math.floor((now - new Date(paidAt).getTime()) / DAY_MS)) : null
+      return { id: p.id, email: maskEmail(p.email ?? ''), paidAt, daysLeft, plan: p.plan ?? null, credits: p.video_credits ?? null, films: filmsByUser.get(p.id) ?? 0 }
+    })
+    .sort((a, b) => (b.paidAt ?? '').localeCompare(a.paidAt ?? ''))
   const entrantes = [...entrantesMap.values()].sort((a, b) => (b.bornAt ?? '').localeCompare(a.bornAt ?? '')).slice(0, 40)
   return {
     internalCount,
@@ -374,6 +395,7 @@ async function loadMetrics(): Promise<Metrics | null> {
     oneTimePurchases,
     versaoB,
     entrantes,
+    trial1,
     signupsToday,
     signups7d,
     signupsPrev7d,
@@ -542,6 +564,31 @@ export default async function AdminOverviewPage() {
 
         {/* 🚪 Versão B — porta de $1 (KINEO-VERSAO-B-PAINEL-2026-09-08) */}
         <Section emoji="🚪" title="Versão B — porta de $1" right={<span style={{ fontSize: 11, color: 'var(--muted2)' }}>por pessoa · desde 08/09 05:00 UTC · hoje (UTC) e 7 dias</span>}>
+          {/* KINEO-ADMIN-TRIAL-1-AGORA-2026-09-09 — o número que o fundador pediu, num lugar só. */}
+          <div data-testid="trial-1-agora" style={{ marginBottom: 14, borderRadius: 14, border: '1px solid rgba(52,211,153,.45)', background: 'rgba(52,211,153,.08)', padding: '14px 16px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 16 }}>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', color: '#34d399' }}>No trial de $1 agora</div>
+              <div style={{ fontSize: 44, fontWeight: 900, lineHeight: 1, color: '#34d399' }} data-testid="trial-1-agora-n">{m.trial1.length}</div>
+              <div style={{ fontSize: 11, color: 'var(--muted2)', marginTop: 4 }}>pagaram $1 e estão dentro dos 7 dias · viram {fmtMoney(m.trialPotentialMrrUsd)}/mês no dia 8</div>
+            </div>
+            <div style={{ flex: 1, minWidth: 260 }}>
+              {m.trial1.length === 0 ? <div style={{ fontSize: 12, color: 'var(--muted2)' }}>Ninguém no trial de $1 neste momento.</div> : (
+                <div style={{ overflowX: 'auto' }}><table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                  <thead><tr style={{ color: 'var(--muted2)', textAlign: 'left' }}>{['Pessoa', 'Pagou $1', 'Dias restantes', 'Plano no dia 8', 'Usou dos 80', 'Filmes'].map((h) => <th key={h} style={{ padding: '3px 8px', fontWeight: 700 }}>{h}</th>)}</tr></thead>
+                  <tbody>{m.trial1.map((t) => (
+                    <tr key={t.id} data-testid="trial-1-pessoa" style={{ borderTop: '1px solid rgba(255,255,255,.06)' }}>
+                      <td style={{ padding: '3px 8px', fontFamily: 'ui-monospace, monospace' }}>{t.email}</td>
+                      <td style={{ padding: '3px 8px' }}>{t.paidAt ? timeAgo(t.paidAt) : '—'}</td>
+                      <td style={{ padding: '3px 8px', fontWeight: 800, color: t.daysLeft != null && t.daysLeft <= 1 ? '#fbbf24' : '#34d399' }}>{t.daysLeft != null ? `${t.daysLeft}d` : '—'}</td>
+                      <td style={{ padding: '3px 8px' }}>{(t.plan ?? '').replace('_trial', '') || '—'}</td>
+                      <td style={{ padding: '3px 8px' }}>{t.credits != null ? `${Math.max(0, CARD_ENTRY_TRIAL_CREDITS - t.credits)} de ${CARD_ENTRY_TRIAL_CREDITS}` : '—'}</td>
+                      <td style={{ padding: '3px 8px' }}>{t.films}</td>
+                    </tr>
+                  ))}</tbody>
+                </table></div>
+              )}
+            </div>
+          </div>
           {([['Hoje', m.versaoB.today], ['7 dias', m.versaoB.d7]] as Array<[string, FunilB]>).map(([label, f]) => (
             <div key={label} style={{ marginBottom: 10 }}>
               <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 6 }}>{label}</div>
