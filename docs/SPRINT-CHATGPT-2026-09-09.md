@@ -507,3 +507,161 @@ até o fim — `card_entry_door_clicked` → `checkout_attempted` → `checkout_
 → `checkout_failed`/`payment_success`, por pessoa, com corte no conserto do
 cobrador. Se os 4 morreram no cobrador, a oferta nunca foi testada e nenhuma
 folha nova muda nada.
+
+---
+
+## r4 (executada 17:37–18:05 BRT — janela planejada 19:30, adiantada) — O PRIMEIRO MINUTO PAGO ENTREGAVA OUTRO PRODUTO
+
+### 1. Os 4 cliques da r3, seguidos até o fim: 4 de 4 morreram no cobrador
+
+A r3 fechou com a jogada "parar de escrever copy de porta e seguir os 4 cliques".
+Feito, por pessoa, com corte no conserto do cobrador (09/09 14:58 UTC):
+
+| pessoa | origem | 1º clique (UTC) | cliques | desfecho |
+| --- | --- | --- | --- | --- |
+| ascendbusniess | chatgpt | 02:16:51 | 1 | `checkout_failed` `payment_session_failed` |
+| dinotinyyoutube | chatgpt | 08:56:56 | 2 | `checkout_failed` (dezenas) |
+| ch.aminpakistan1 | chatgpt | 10:25:03 | 1 | `checkout_failed` + `checkout_error_shown` |
+| mtsalvo3104 | chatgpt | 14:31:29 | 1 | `checkout_failed` + `checkout_error_shown` |
+
+**4 de 4 do ChatGPT. 4 de 4 ANTES das 14:58 UTC** — o último por 27 minutos.
+Nenhum cliente tocou a porta depois do conserto. **A oferta de $1 ainda não foi
+testada uma única vez**, e nenhuma leitura de copy da porta significa coisa
+alguma até que alguém clique nela consertada.
+
+Um detalhe que separa "oferta ruim" de "cano quebrado": no meio das dezenas de
+falhas de `dinotinyyoutube` existem **dois `checkout_started` que deram certo**
+(08:57:36 e 09:02:03), os dois precedidos de `basic_checkout_clicked` — nunca da
+porta. Ou seja, o mesmo cliente, no mesmo minuto, conseguia abrir sessão pelo
+caminho normal e não conseguia pela porta de $1. A falha era do trial, não do
+checkout — exatamente o que o `add_invoice_items` previa.
+
+### 2. Ninguém pagou, então o caminho pago foi lido linha a linha — e tinha 3 furos
+
+O servidor está certo, e isso ficou provado: o webhook grava `plan` como
+`<tier>_trial` (= `basic_trial`), `has_paid: true` e `+80` créditos
+(`CARD_TRIAL_GRANT_CREDITS`); `selfServeEntitlementState` tem `basic_trial` na
+lista de planos pagos; `/checkout/success` manda para
+`/studio/create?resume=card_entry` quando há rascunho; `/studio/create` monta o
+`GenerateClient`, onde o filme dispara sozinho. A cadeia existe inteira.
+
+O que estava quebrado é o que atravessa o Stripe: **o rascunho**.
+
+**(a) O rascunho não levava o motor.** Ele guardava `prompt`, `quality` e
+`duration`. Só que quem escolhe o motor são **`mode` e `aiEngine`** — as duas
+variáveis de que `selectedCost` deriva o preço — e nenhuma das duas era gravada.
+Na volta do Stripe o `mode` renascia no padrão de fábrica (`fast`).
+
+> Quem escolheu um motor cinematográfico, **pagou por ele** e voltou, recebia um
+> Kineo 1. Sem aviso, sem erro na tela, sem escolha. O primeiro minuto pago da
+> casa entregava outro produto.
+
+Tamanho medido, coorte da Versão B: das 9 pessoas que despacharam,
+**7 em `fast` e 2 em `cinematic`** — a troca silenciosa atingiria ~1 em cada 5.
+
+**(b) A validação do `quality` olhava a lista errada.** Era feita contra
+`QUALITY_OPTIONS`, lista **legada** de três entradas (`basic`/`basic_ai`/`pro`).
+Os dois valores que o produto usa hoje — `fast` e `cinematic_ai` — não estão
+nela. Resultado: o `quality` do rascunho era recusado em **100% dos casos vivos**.
+
+**(c) O disparo tinha régua própria.** Exigia `credits > 0`; o gerador exige
+`credits >= selectedCost`. Com os 80 créditos do $1 e um motor de 150, o efeito
+seria o pior desfecho possível: o evento `card_entry_resume_autostart`
+**afirmaria que o filme começou**, o rascunho seria **apagado**, e a pessoa
+levaria um modal de "sem créditos" logo depois de pagar — sem o próprio texto
+para tentar de novo. Note que (a) MASCARAVA (c): com `mode` sempre em `fast`,
+o custo nunca passava de 80. Consertar (a) sozinho ARMARIA (c).
+
+### 3. O que mudou (`8766de70` + `11ef4ef3`)
+
+`lib/growth/cardEntryResumeDraft.ts` (novo) passa a ser o dono da chave, do TTL
+e da leitura validada do rascunho. O `GenerateClient` grava `mode` e `aiEngine`
+junto, e na volta devolve os dois à tela — nulo nunca vira chute.
+
+E o disparo **pergunta ao mesmo caixa que o botão**: a guarda virou
+`outOfCredits()`, a função que `handleGenerateGuarded` já consulta. Não há cópia
+da regra, então as duas não podem divergir (memória
+`predicado-do-cobrador-nao-se-redigita`). Bloqueado por saldo, o rascunho
+**FICA** e o rastro é `card_entry_resume_blocked` — que não mente sobre ter
+começado.
+
+**A chave continua `_v1` de propósito.** Há gente com rascunho gravado pelo
+bundle que está no ar, possivelmente dentro do Stripe neste minuto; `_v2`
+orfanaria esse rascunho justamente na volta do pagamento. Os campos novos são
+aditivos.
+
+**Medição que isto habilita:** `card_entry_resume_restored` passa a carregar
+`mode`, `engine` e `engine_restored`; o autostart carrega `mode` e `engine`. Sem
+esses campos não há como separar "voltou com o motor certo" de "voltou no padrão
+de fábrica".
+
+### 4. Prova
+
+- `npx tsc --noEmit --incremental false` **verde**.
+- Guardião novo `scripts/test-resume-1dolar-fiel-2026-09-09.mjs`:
+  **23 verificações**, com o módulo **executado de verdade** (ida-e-volta dos 8
+  motores e dos 4 modos, rascunho velho, JSON quebrado, TTL) e a fiação amarrada
+  à variável que decide.
+- **4 mutantes falsificados**, cada um com `git diff` provando que aplicou:
+
+| mutante | o que simula | resultado |
+| --- | --- | --- |
+| M1 — `mode, engine: aiEngine` vira literais fixos | o rascunho volta a não levar o motor | 23 → **12**, acusa "a gravacao nao passa o aiEngine" |
+| M2 — `if (outOfCredits())` vira `if (false)` | volta a régua paralela | 23 → **16**, acusa "o disparo nao pergunta ao caixa" |
+| M3 — o ramo bloqueado volta a apagar o rascunho | quem pagou perde o texto | 23 → **19**, acusa "o ramo bloqueado apaga o texto de quem acabou de pagar" |
+| M4 — `DRAFT_QUALITIES` volta à lista legada | o defeito (b) | 23 → **4**, acusa "quality viva recusada: fast" |
+
+O M2 é o que importa: ele mantém **todas as strings do arquivo**. Guardião que
+contasse texto ficaria verde.
+
+### 5. Rodar a suíte inteira pagou de novo — 3 vermelhos, os 3 informação
+
+Baseline medida **no meu pai** (`f1248840`), não a da r1 (`606bda28`, 6 commits
+atrás): **111 de 476**. Com a primeira entrega: **114 de 477**. Os três novos:
+
+1. **`test-funil-volta-1-dolar-2026-09-08` estava REPROVANDO o conserto.** Ele
+   foi escrito em 08/09 como retrato byte a byte da primeira implementação e por
+   isso **afirmava literalmente os três defeitos**: chamava `quality` de "motor",
+   exigia `QUALITY_OPTIONS.some(...)` e exigia `credits <= 0`. Um guardião nesse
+   estado tranca o defeito em vez de proteger a intenção. Reancorado: as 20
+   intenções continuam todas lá, **três ficaram mais estritas**, e ele foi de
+   **20 para 27** verificações. O porquê está no cabeçalho dele.
+2. **`test-porta-v2-2026-09-09`** exigia que o Studio REDIGITASSE o literal da
+   chave. Agora prova algo melhor: o Studio importa a constante do dono e o
+   literal não pode reaparecer.
+3. **`test-verified-checkout-purchase` (Codex, 04/09)** tem mapa explícito de
+   imports e recusa qualquer import fora dele, de propósito. O módulo novo
+   entrou como **módulo real**, não dublê.
+
+Resultado final: **111 vermelhos na base e 111 com a entrega, conjuntos
+idênticos.**
+
+**Achado de brinde:** `components/CardEntryDoor.tsx` tinha a **quarta** cópia do
+literal da chave e grava um rascunho de emergência antes do Stripe. Ela grava só
+`if (!raw)`, então não atropelava o rascunho bom — mas era mais uma chave para
+envelhecer sozinha. Agora seu `STUDIO_DRAFT_KEY` é reexportação da constante do
+dono.
+
+### 6. Estado da plateia
+
+Sem pagamentos na casa desde **02/09 20:22 UTC** (7 dias). Sem nenhum cliente na
+porta consertada desde 14:58 UTC. `card_entry_resume_*` nunca rodou para ninguém
+— este conserto é para a **primeira pessoa que pagar**, que até aqui seria a
+cobaia dos três furos.
+
+**Números desta rotação:** 4 de 4 cliques mortos no cobrador, todos antes das
+14:58 · 2 de 9 despachos em motor cinematográfico (a coorte da troca silenciosa)
+· 23 verificações novas · 4 mutantes · 20 → 27 no guardião reancorado · 111 = 111
+na suíte · 0 pagamentos.
+
+### 7. Corte de medição para a r6
+
+`metadata ? 'engine_restored'` — **nunca o relógio**. Enquanto esse campo não
+existir no banco, ninguém recebeu o bundle desta rotação e qualquer taxa é sobre
+plateia zero.
+
+### O que fica para a r5
+
+O contrato para o GPT. E ele agora tem um fato novo e vendável para dizer: quem
+paga o $1 volta para o **próprio filme, com o próprio motor**, e dispara sozinho.
+Antes desta rotação essa frase seria mentira para 1 em cada 5 compradores.
