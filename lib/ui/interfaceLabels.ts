@@ -1,5 +1,18 @@
 /** Reviewed UI labels. Product names and user-created content are not translated. */
 export const INTERFACE_ES: Record<string, string> = {
+  // KINEO-ENTREGA-NOITE-R6-2026-09-09 — as frases do cartão de falha que
+  // pararam de chamar portão e resfriamento de "Generation failed".
+  'Generation failed': 'No se pudo generar el vídeo',
+  'You can retry safely.': 'Puedes volver a intentarlo sin riesgo.',
+  'This engine is not available on your account right now': 'Este motor no está disponible en tu cuenta ahora mismo',
+  'Retrying the same engine will stop at this same place. Pick another engine to keep going.': 'Reintentar con el mismo motor se detendrá en el mismo punto. Elige otro motor para continuar.',
+  'The engine is cooling down after two refunded attempts': 'El motor está en pausa tras dos intentos reembolsados',
+  'Starting another one right now stops at this same place. Give it a few minutes.': 'Empezar otro ahora mismo se detiene en el mismo punto. Espera unos minutos.',
+  'Starting another one right now stops at this same place. The button below unlocks by itself.': 'Empezar otro ahora mismo se detiene en el mismo punto. El botón de abajo se desbloquea solo.',
+  'We stopped waiting on this render instead of leaving you hanging': 'Detuvimos esta generación en vez de dejarte esperando',
+  'This one ran far longer than any video that finishes here. Starting again is worth it.': 'Esta tardó mucho más que cualquier vídeo que termina aquí. Merece la pena empezar de nuevo.',
+  'The video engine is busy — this is on our side, not your idea': 'El motor de vídeo está saturado: es cosa nuestra, no de tu idea',
+  'Nothing about your text is wrong. Trying again in a few minutes usually goes straight through.': 'Tu texto no tiene ningún problema. Volver a intentarlo en unos minutos suele funcionar a la primera.',
   'Sharing & creator options': 'Opciones para compartir y crear',
   'We couldn’t load your videos right now': 'No pudimos cargar tus vídeos ahora',
   'Your videos and credits are safe — this is a temporary read hiccup, not a lost library.': 'Tus vídeos y créditos están a salvo: es un fallo temporal de lectura, no una biblioteca perdida.',

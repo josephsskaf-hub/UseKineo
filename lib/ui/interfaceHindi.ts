@@ -2,6 +2,19 @@
  * Unknown copy explicitly falls back to English; country never selects this locale.
  */
 export const INTERFACE_HI: Record<string, string> = {
+  // KINEO-ENTREGA-NOITE-R6-2026-09-09 — as frases do cartão de falha que
+  // pararam de chamar portão e resfriamento de "Generation failed".
+  'Generation failed': 'वीडियो नहीं बन पाया',
+  'You can retry safely.': 'आप बेझिझक दोबारा कोशिश कर सकते हैं।',
+  'This engine is not available on your account right now': 'यह इंजन अभी आपके खाते में उपलब्ध नहीं है',
+  'Retrying the same engine will stop at this same place. Pick another engine to keep going.': 'इसी इंजन से दोबारा कोशिश करने पर यहीं रुकेगा। आगे बढ़ने के लिए दूसरा इंजन चुनें।',
+  'The engine is cooling down after two refunded attempts': 'दो रिफंड की गई कोशिशों के बाद इंजन थोड़ी देर के लिए रुका है',
+  'Starting another one right now stops at this same place. Give it a few minutes.': 'अभी दूसरा शुरू करने पर यहीं रुकेगा। कुछ मिनट रुकें।',
+  'Starting another one right now stops at this same place. The button below unlocks by itself.': 'अभी दूसरा शुरू करने पर यहीं रुकेगा। नीचे का बटन अपने आप खुल जाएगा।',
+  'We stopped waiting on this render instead of leaving you hanging': 'आपको इंतज़ार में छोड़ने के बजाय हमने यह रेंडर यहीं रोक दिया',
+  'This one ran far longer than any video that finishes here. Starting again is worth it.': 'यह यहाँ पूरे होने वाले किसी भी वीडियो से कहीं ज़्यादा समय ले रहा था। दोबारा शुरू करना सही रहेगा।',
+  'The video engine is busy — this is on our side, not your idea': 'वीडियो इंजन व्यस्त है — यह हमारी तरफ़ की बात है, आपके आइडिया की नहीं',
+  'Nothing about your text is wrong. Trying again in a few minutes usually goes straight through.': 'आपके टेक्स्ट में कोई गड़बड़ी नहीं है। कुछ मिनट बाद दोबारा कोशिश करने पर आमतौर पर सीधे बन जाता है।',
   Home: 'होम', Dashboard: 'डैशबोर्ड', 'Creator Hub': 'क्रिएटर हब', Studio: 'Studio',
   'Create Video': 'वीडियो बनाएँ', 'Create a video': 'वीडियो बनाएँ', 'Create new video': 'नया वीडियो बनाएँ',
   'Create a new video': 'नया वीडियो बनाएँ', 'Generate New Short': 'नया Short बनाएँ',

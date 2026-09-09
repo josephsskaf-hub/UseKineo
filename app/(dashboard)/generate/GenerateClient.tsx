@@ -299,6 +299,8 @@ import {
   largestFittingDuration,
 } from '@/lib/expandPolicy'
 import type { RefusalNotice } from '@/lib/entrega/refusalNotice'
+import { classificarEsperaDaGeracao } from '@/lib/entrega/generationWaitNotice'
+import { UiLabel } from '@/components/InterfaceLanguage'
 import NicheOnboarding from '@/components/NicheOnboarding'
 import {
   ONBOARDING_GOAL_VARIANT,
@@ -6710,13 +6712,49 @@ export default function GenerateClient({
     } catch { /* telemetria nunca derruba a tela */ }
   }
 
+  // KINEO-ENTREGA-NOITE-R6-2026-09-09 — o que o servidor respondeu na última
+  // falha, cru. Não é derivado do texto da tela: `reason` e `http` são os
+  // mesmos que vão para `generation_stage_error`, e `retryAfterMs` é o campo
+  // que o servidor já mandava e ninguém lia.
+  const [sinalDaFalha, setSinalDaFalha] = useState<
+    { reason: string; httpStatus: number | null; retryAfterMs: unknown; at: number } | null
+  >(null)
+
   function trackGenerationFailure(
     stage: Phase,
     reason: string,
-    extra?: { httpStatus?: number | null; detail?: string; message?: string; responded?: boolean; elapsedMs?: number },
+    extra?: {
+      httpStatus?: number | null
+      detail?: string
+      message?: string
+      responded?: boolean
+      elapsedMs?: number
+      // KINEO-ENTREGA-NOITE-R6-2026-09-09 — o `retry_after_ms` do CORPO da
+      // resposta. É opcional de propósito: quem não tem o número não passa
+      // nada, e `segundosDeEspera` trata ausência como "não sei", nunca zero.
+      retryAfterMs?: unknown
+    },
   ) {
     try {
       const httpStatusValue = typeof extra?.httpStatus === 'number' ? extra.httpStatus : null
+      // ═══ KINEO-ENTREGA-NOITE-R6-2026-09-09 ═════════════════════════════════
+      // Este é o ÚNICO ponto por onde toda saída de falha passa (é a razão de
+      // ele existir, ver PUSH #96 acima). Guardar aqui o que o servidor disse
+      // é o que permite o cartão parar de tratar portão, resfriamento e prazo
+      // estourado como "Generation failed · you can retry safely". Guardar no
+      // ponto de estrangulamento, e não em cada `catch`, é o que impede um
+      // ramo novo de nascer mudo — foi assim que 4 ramos nasceram sem `detail`
+      // em 31/08.
+      try {
+        setSinalDaFalha({
+          reason,
+          httpStatus: httpStatusValue,
+          retryAfterMs: extra?.retryAfterMs,
+          // O relógio da espera conta a partir de QUANDO o servidor recusou,
+          // não de quando a tela renderizou: re-render não devolve tempo.
+          at: Date.now(),
+        })
+      } catch { /* estado nunca derruba a tentativa */ }
       const detalhe = typeof extra?.detail === 'string' && extra.detail.trim().length > 0
         ? extra.detail.trim().slice(0, 180)
         : null
@@ -9174,6 +9212,11 @@ export default function GenerateClient({
           trackGenerationFailure('generating', 'cinematic_dispatch_not_ok', {
             httpStatus: res.status,
             detail: typeof data?.error === 'string' ? data.error : undefined,
+            // KINEO-ENTREGA-NOITE-R6-2026-09-09 — o servidor manda 15 minutos
+            // no 429 de resfriamento (`retry_after_ms`) desde sempre e este
+            // ramo jogava fora. Era o número exato que faltava para a tela
+            // parar de dizer "you can retry safely" dentro de uma tranca.
+            retryAfterMs: (data as Record<string, unknown> | null)?.retry_after_ms,
           })
           setPhase('failed'); return
         }
@@ -12452,6 +12495,82 @@ export default function GenerateClient({
   // outros dois ja oferecem a saida certa (completar o texto / esperar o
   // credito voltar) e nao devem ganhar um recado de repeticao por tabela.
   const failureWillRepeat = showGenericFailure && sameFailureCount >= 2 && failureIsDeterministic
+  // ═══ KINEO-ENTREGA-NOITE-R6-2026-09-09 — A ESPERA QUE A TELA ESCONDIA ══════
+  // O cartão genérico afirma duas coisas para TODO mundo que chega nele:
+  // "Generation failed" e "You can retry safely" — e o botão azul primário é
+  // "🔄 Retry". Para portão de plano, resfriamento de 429 e prazo estourado
+  // isso vai de impreciso a falso: no resfriamento o servidor tinha acabado de
+  // trancar por 15 minutos e mandado o número junto. Uma pessoa apertou onze
+  // vezes em doze minutos dentro dessa tranca (04/09).
+  // `classificarEsperaDaGeracao` devolve null para tudo que não sustenta uma
+  // afirmação nova — e null deixa o cartão idêntico ao de hoje.
+  const waitNotice = showGenericFailure
+    ? classificarEsperaDaGeracao({
+        message: error,
+        httpStatus: sinalDaFalha?.httpStatus ?? null,
+        retryAfterMs: sinalDaFalha?.retryAfterMs,
+        reason: sinalDaFalha?.reason ?? null,
+      })
+    : null
+  // Relógio só existe quando há segundos DO SERVIDOR para contar. Ele bate de
+  // segundo em segundo e some sozinho: o `if` de baixo desliga o intervalo
+  // assim que a espera acaba, então a tela não fica acordada à toa.
+  const [agoraDaEspera, setAgoraDaEspera] = useState(0)
+  const esperaTerminaEm =
+    waitNotice && waitNotice.waitSeconds !== null && sinalDaFalha
+      ? sinalDaFalha.at + waitNotice.waitSeconds * 1000
+      : null
+  useEffect(() => {
+    if (esperaTerminaEm === null) return
+    setAgoraDaEspera(Date.now())
+    const id = setInterval(() => setAgoraDaEspera(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [esperaTerminaEm])
+  // Segundos que ainda faltam. Nunca negativo, e nunca inventado: sem
+  // `esperaTerminaEm` isto é 0 e o botão se comporta como sempre se comportou.
+  const segundosRestantesDaEspera =
+    esperaTerminaEm === null
+      ? 0
+      : Math.max(0, Math.ceil((esperaTerminaEm - Math.max(agoraDaEspera, sinalDaFalha?.at ?? 0)) / 1000))
+  // A trava do botão. Vale SOMENTE no resfriamento com número do servidor: no
+  // portão o botão continua clicável (a pessoa pode ter trocado de motor no
+  // meio) e no fornecedor ocupado retentar é a resposta certa.
+  const retryTravadoPelaEspera =
+    waitNotice?.retryWorks === 'after_wait' && segundosRestantesDaEspera > 0
+  const relogioDaEspera = (() => {
+    const s = segundosRestantesDaEspera
+    if (s <= 0) return ''
+    const m = Math.floor(s / 60)
+    return `${m}:${String(s % 60).padStart(2, '0')}`
+  })()
+  // O carimbo desta entrega. Sai uma vez por aparição (a chave inclui a
+  // tentativa, igual ao `generation_failed_screen_shown`), e traz os DOIS
+  // números que decidem a leitura: se havia espera do servidor e se o botão
+  // ficou travado — para que "ninguém esperou" e "não havia relógio" nunca
+  // tenham o mesmo placar.
+  const avisoDeEsperaLogadoRef = useRef<string>('')
+  useEffect(() => {
+    if (!waitNotice) {
+      avisoDeEsperaLogadoRef.current = ''
+      return
+    }
+    const chave = `${waitNotice.kind}::${generationAttemptRef.current ?? ''}`
+    if (avisoDeEsperaLogadoRef.current === chave) return
+    avisoDeEsperaLogadoRef.current = chave
+    void trackEvent('generation_wait_notice_shown', {
+      reason: sinalDaFalha?.reason ?? null,
+      engine: falUsedRef.current ? falQualityRef.current : mode,
+      kind: waitNotice.kind,
+      retry_works: waitNotice.retryWorks,
+      wait_seconds: waitNotice.waitSeconds,
+      // `true` quando o servidor mandou o número; `false` quando a frase saiu
+      // sem relógio porque não havia número para mostrar.
+      has_server_wait: waitNotice.waitSeconds !== null,
+      server_said_refunded: waitNotice.serverSaidRefunded,
+      http_status: sinalDaFalha?.httpStatus ?? null,
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [waitNotice?.kind, waitNotice?.retryWorks, waitNotice?.waitSeconds])
   const showRender =
     phase === 'generating' ||
     phase === 'fal_polling' ||
@@ -15386,8 +15505,16 @@ export default function GenerateClient({
               className="gv-card rounded-2xl p-5 sm:p-6 mb-6"
               style={{ background: 'rgba(239,68,68,.06)', border: '1px solid rgba(239,68,68,.25)' }}
             >
+              {/* KINEO-ENTREGA-NOITE-R6-2026-09-09 — "Generation failed" é a
+                  verdade para uma falha, e mentira para um portão de plano ou
+                  para uma tranca de 15 minutos que a própria casa acabou de
+                  pôr. Quando o servidor disse o suficiente para nomear o
+                  estado, o título passa a nomeá-lo; quando não disse, o cartão
+                  fica exatamente como sempre foi. */}
               <div className="font-black text-base mb-2" style={{ color: '#fca5a5' }}>
-                Generation failed
+                {waitNotice
+                  ? <UiLabel>{waitNotice.headline}</UiLabel>
+                  : <UiLabel>Generation failed</UiLabel>}
               </div>
               {error && (
                 <div role="alert" className="text-sm mb-2" style={{ color: '#fca5a5' }}>
@@ -15398,7 +15525,14 @@ export default function GenerateClient({
                 {selectedCost > 0
                   ? `Your ${selectedCost} credit${selectedCost === 1 ? '' : 's'} ${selectedCost === 1 ? 'has' : 'have'} been returned to your balance.`
                   : 'No credits were charged for this attempt.'}
-                {' '}You can retry safely.
+                {' '}
+                {/* "You can retry safely" só continua verdadeira quando
+                    retentar pode mesmo mudar de resultado. Nos outros dois
+                    casos ela é substituída pela frase do estado real — nunca
+                    apagada em silêncio. */}
+                {waitNotice && waitNotice.retryWorks !== 'yes'
+                  ? <UiLabel>{waitNotice.detail}</UiLabel>
+                  : <UiLabel>You can retry safely.</UiLabel>}
               </div>
               {/* ═══ KINEO-FIX-IT-FOR-ME-2026-08-24 (pacote noturno 2, UI#1) ══
                   A trava anti-deepfake dizia "descreva uma pessoa fictícia" e
@@ -15439,6 +15573,12 @@ export default function GenerateClient({
                   setup will stop at the same place. Change the text or the length first.
                 </div>
               )}
+              {/* KINEO-ENTREGA-NOITE-R6-2026-09-09 — o botão para de convidar
+                  para o muro. No resfriamento ele fica travado com o relógio
+                  DO SERVIDOR (15 min, `retry_after_ms`) e destrava sozinho; no
+                  portão ele deixa de ser o gesto azul primário. Em todo o
+                  resto — inclusive quando não dá para classificar — ele é
+                  byte a byte o de antes. */}
               <button
                 onClick={() => {
                   void trackEvent('generation_retry_clicked', {
@@ -15446,17 +15586,22 @@ export default function GenerateClient({
                     repeat_count: sameFailureCount,
                     deterministic: failureIsDeterministic,
                     warned: failureWillRepeat,
+                    wait_kind: waitNotice?.kind ?? null,
+                    wait_remaining_s: segundosRestantesDaEspera,
                   })
                   handleGenerateGuarded()
                 }}
+                disabled={retryTravadoPelaEspera}
                 className="rounded-xl px-5 py-2.5 text-sm font-bold mt-2 mr-2"
                 style={
-                  failureWillRepeat
-                    ? { background: 'transparent', border: '1px solid rgba(255,255,255,.22)', color: 'var(--muted2)', cursor: 'pointer' }
-                    : { background: '#2997ff', border: 'none', cursor: 'pointer', color: '#fff' }
+                  retryTravadoPelaEspera
+                    ? { background: 'transparent', border: '1px solid rgba(255,255,255,.14)', color: 'var(--muted2)', cursor: 'not-allowed' }
+                    : failureWillRepeat || waitNotice?.retryWorks === 'no'
+                      ? { background: 'transparent', border: '1px solid rgba(255,255,255,.22)', color: 'var(--muted2)', cursor: 'pointer' }
+                      : { background: '#2997ff', border: 'none', cursor: 'pointer', color: '#fff' }
                 }
               >
-                🔄 Retry
+                {retryTravadoPelaEspera ? `🔒 Retry in ${relogioDaEspera}` : '🔄 Retry'}
               </button>
               {/* O formulario guarda o prompt: voltar nao apaga nada e e o
                   unico caminho que pode mudar o resultado. */}
