@@ -1163,3 +1163,20 @@ importam:
   lado, está consertado, seu roteiro está salvo"* — é a maior taxa de
   conversão disponível hoje, e não custa mídia. Enviar e-mail está fora da
   minha pista; a carta é da pista que manda e-mail, e o gatilho é o SHA.
+
+### Sonda da r9 (feita depois do push, com controle)
+
+`139341e4` na `origin/main`. A sonda da **home não serve** para esta mudança —
+a caixa do `Sidebar` deslogado não é renderizada lá (`caixa=0`), então "Get
+Started Free: 0" na home não prova nada. A superfície certa é `/studio`
+deslogado, e ali a troca ficou provada pela **transição**, com o rótulo velho
+como controle:
+
+```
+07:41:04  /studio 200  velho("Get Started Free")=1  novo("Try Creator 7 days for $1")=1
+07:41:45  /studio 200  velho=0                      novo=2
+```
+
+Antes do deploy novo as duas frases conviviam na mesma página — que é
+exatamente a contradição descrita acima, fotografada. Depois, o rótulo velho
+sai e o da fonte única aparece duas vezes (o chip da linha de cima e o botão).
