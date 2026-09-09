@@ -613,3 +613,363 @@ continua vendo plano cheio.
   mora em `app/api/stripe/**`, fora do território desta sprint.
 * **Não desligar o autostart do Google** sem um teste com denominador. 24
   automáticas contra 3 explícitas não decide nada.
+
+---
+
+## r4 — 17:04→17:35 BRT · MEDIR r2+r3, E TROCAR DE HIPÓTESE
+
+> Nota de relógio: a rotação abriu às 17:04, no horário nominal da r3 do plano,
+> e entrou na pauta da r4 porque o diário já registra a r3 inteira (fechada às
+> 15:19). Assinatura do commit: `Claude Opus 5 (1M context)` — quem executou.
+
+### O que mediu — os dois carimbos, e um deles não tinha plateia
+
+A r3 deixou duas perguntas com carimbo próprio. Elas responderam coisas muito
+diferentes.
+
+**Carimbo 1 — a promessa de $1 no cadastro (`cold_trial_promise_shown`):
+PLATEIA ZERO. Não mediu nada, e isso fica escrito.**
+
+| leitura | valor |
+|---|---|
+| eventos `cold_trial_promise_shown` na história inteira | **1** |
+| de quantas pessoas | **1 — a própria sonda** (`ip_hash` 653749b0, 15:21 BRT) |
+| pessoas em `checkout_auth_page_view` desde o deploy da r3 (15:38) | **0** |
+
+Uma pessoa completou cadastro às 15:41 (`email_signup_completed`), e nenhuma
+outra tocou o degrau. **A entrega da r3 continua certa e provada no ar com
+controle negativo, mas o valor dela hoje é zero e não se pode dizer que
+"moveu" coisa nenhuma.** Quem herdar este diário: não converta a prova de
+funcionamento em prova de efeito.
+
+**Carimbo 2 — a rolagem (`ph_sep10_v3`): esse tinha plateia, e responde a
+pergunta que a r2 deixou de pé.**
+
+Coorte: `utm_campaign = reddit_sep09`, por pessoa
+(`coalesce(session_id, ip_hash)`), entre 13:15 e 15:37 BRT.
+
+| degrau | pessoas | % |
+|---|---|---|
+| chegaram na `/ph` | **34** | 100% |
+| rolaram além de `depth: 25` | 11 | **32%** |
+| passaram de `depth: 50` | 6 | 18% |
+| chegaram ao fim (`depth: 100`) | 1 | 3% |
+| **clicaram o CTA** | **0** | **0%** |
+
+**23 pessoas (68%) nunca passaram de 25%** — nunca rolaram ~300px. E das 34,
+**33 (97%) estavam em celular** (larguras até 432px; idiomas en-US, en-GB,
+en-IN). Um único visitante de desktop.
+
+A r2 tinha posto a pergunta assim: "se morre em 25, o defeito é dobra; se
+chega a 75/100 e não clica, é oferta". **A resposta é: as duas coisas, com
+dois terços do peso na dobra.**
+
+#### Antes de acreditar no zero, falsifiquei o instrumento
+
+`ph_cta_clicked` tinha **0 linhas na história inteira**. Um evento que nunca
+disparou é indistinguível de um evento quebrado, e concluir "a oferta é ruim"
+a partir dele seria repetir o erro de contar oportunidade sem conferir quem
+emite o evento vizinho.
+
+Teste: `/ph` no navegador real, clique de verdade no CTA (com a navegação
+cancelada para não sair da página). Resultado no banco:
+
+| evento | version | position | depth | href_campaign | hora |
+|---|---|---|---|---|---|
+| `ph_cta_clicked` | `ph_sep10_v3` | **top** | 18 | `sonda_frio_r4` | **17:07 BRT** |
+
+**O instrumento está vivo. O zero é real.** Também ficou provado que o CTA
+propaga a campanha corretamente (`utm_campaign` → `intent_campaign` no href).
+
+#### Um susto que não era defeito nosso
+
+O tráfego da `/ph` **parou às 15:36:47** e ficou em zero por 87 minutos —
+exatamente um minuto antes do deploy da r3 ficar READY (15:38). Correlação
+suficiente para suspeitar de que a própria sprint tinha matado a página.
+
+Não era. Medido às 17:06 no navegador real: a `/ph` carrega, o beacon faz
+`POST /api/events` com resposta 200, e o evento aparece no banco. Os dois 401
+do console são `GET /api/stripe/checkout/resume`, esperados para quem está
+deslogado. **A página está viva; o silêncio é da entrega do anúncio, não do
+site.** Fica o registro para o fundador: das 12–29 chegadas por hora do dia
+inteiro, a campanha do Reddit passou a entregar zero a partir das 15:37.
+
+### O que mudou — a ordem da dobra, porque o dado mandou
+
+O que as 34 pessoas viam em 375px, com as posições reais do documento:
+
+| elemento | antes (px) |
+|---|---|
+| manchete | 97 |
+| **parágrafo de 7 linhas** | **201** (175px de prosa densa) |
+| **porta de $1** | **376** |
+| filme | 545, cortado |
+
+Entre a manchete e o pedido de cartão havia um parágrafo que nomeia **cinco
+motores** (Veo 3.1, Kling 3, Seedance, MiniMax H3, Omni Flash) para quem nunca
+ouviu falar de nenhum. **A prova de que o produto existe vinha depois do
+preço.**
+
+A ordem agora é: **manchete → FILME → porta de $1 → letra miúda → prosa**.
+Medido no ar, mesma viewport, depois do deploy:
+
+| elemento | antes | agora |
+|---|---|---|
+| manchete | 97 | 97 |
+| **filme** | 545 (depois do preço) | **208–391, inteiro e tocando** |
+| porta de $1 | 376 | 420 |
+| prosa dos motores | 201 | 576 |
+
+A prosa **não foi cortada nem reescrita** — copy honesta continua valendo; ela
+saiu do caminho. No desktop a grade segue em duas colunas (o filme passa para
+a esquerda, arranjo normal de herói). A `<h1>` saiu de dentro da grade porque
+sem isso não há como intercalar filme e texto quando ela colapsa em uma coluna
+no celular.
+
+`version` sobe para **`ph_sep10_v4`**. A fórmula de profundidade é a mesma da
+v3, então **v3 e v4 são comparáveis degrau a degrau** — o que muda é a página
+que a pessoa estava lendo. É o carimbo pelo qual a r5 corta a medição.
+
+### O que provou
+
+* `npx tsc --noEmit --incremental false` → **verde**.
+* Guardião novo `scripts/test-ph-dobra-2026-09-09.mjs`, **24 verificações**,
+  **falsificado por 10 mutantes reais**, cada um provado por grep do texto
+  inserido (nunca por md5 — CRLF mente):
+
+  | mutante | prova de que aplicou | guardião |
+  |---|---|---|
+  | prosa volta para antes da porta de $1 | `MUT-ORDEM-PROSA` | **vermelho** |
+  | filme volta para depois da coluna de texto | `MUT-FILME-DEPOIS` / `MUT-B` | **vermelho** |
+  | manchete volta para dentro da grade | `MUT-H1-DENTRO` | **vermelho** |
+  | CTA perde o testid que o beacon procura | `ph-botao-MUT-TESTID` | **vermelho** |
+  | `VERSAO` volta a `ph_sep10_v3` | `MUT-VERSAO` | **vermelho** |
+  | preço cravado à mão no herói | `MUT-PRECO-HEROI` | **vermelho** |
+  | prosa amputada | `MUT-PROSA-FORA` | **vermelho** |
+  | recorte do herói colapsa | `MUT-C` | **vermelho** |
+
+  O mutante do **testid** é o que mais importa: se o CTA perder o atributo, o
+  listener do beacon para de casar e a r5 mede **zero clique achando que é a
+  oferta** — exatamente o falso negativo que esta rotação teve de desmontar à
+  mão antes de poder confiar no número.
+
+* **Suíte inteira: 476 arquivos, 111 vermelhos contra os 111 do baseline da
+  r1 → 0 vermelhos novos.**
+
+### O vizinho que eu quebrei — e por que a trava dele estava certa (de novo)
+
+De passagem, troquei o `$1` digitado à mão da FAQ pelo helper da fonte única,
+achando que tirava um preço cravado. `test-ph-landing-2026-09-08` acendeu:
+*"FAQ diz que não há free tier e que o $1 é real"*.
+
+**Revertido.** Não era a alavanca desta rotação, era enfeite; e a trava alheia
+está certa: quem lê a pergunta "is the $1 real?" tem de ver o `$1`, não
+`$1.00`. O conserto foi no **meu** guardião — a checagem de preço passou a se
+limitar ao **herói**, que é o bloco que esta rotação governa. Guardião novo
+não afrouxa vizinho para caber.
+
+Fica a dívida anotada, sem conserto: o `$1` da FAQ é literal e ficaria mentindo
+se o preço de entrada mudasse. Quem for mexer nisso mexe **junto** com
+`test-ph-landing-2026-09-08`, nunca por cima dele.
+
+### Deploy desta rotação
+
+`42ac0826` → **`dpl_BZjsMWmjQU1pqYhX5xKbh7KdFgAz`**, servindo a `/ph` às
+**17:20:30 BRT** (o id aparece no HTML; sonda com User-Agent de navegador
+identificável e **controle** numa rota irmã inexistente devolvendo 404).
+Ordem conferida no HTML servido por deslocamento de bytes: manchete 8581 →
+filme 8928 → porta 9442 → prosa 10044.
+
+### O que fica para a próxima
+
+* **r5 corta por `metadata->>'version' = 'ph_sep10_v4'`**, nunca por relógio.
+  A linha de base a bater, com denominador, é a tabela acima:
+  **32% passam de 25 · 18% passam de 50 · 0 de 34 clicam.**
+* **Cuidado com o denominador:** enquanto a campanha do Reddit não voltar a
+  entregar, a v4 não terá plateia — e "não mexeu" com N=0 não é resultado, é
+  ausência de amostra. Medir e dizer o N antes de qualquer conclusão.
+* **A hipótese que sobra se a dobra não bastar** não é copy: é que pedir cartão
+  no primeiro contato com uma marca desconhecida é o degrau caro. Isso mora em
+  `lib/entryPolicy` e `app/api/stripe/**` — território do fundador, e esta
+  sprint não toca. Vira PEDIDO, não commit.
+* **Não desligar o autostart do Google** sem teste com denominador (r3).
+
+---
+
+## r4 — 17:04→17:35 BRT · MEDIR r2+r3, E TROCAR DE HIPÓTESE
+
+> Nota de relógio: a rotação abriu às 17:04, no horário nominal da r3 do plano,
+> e entrou na pauta da r4 porque o diário já registra a r3 inteira (fechada às
+> 15:19). Assinatura do commit: `Claude Opus 5 (1M context)` — quem executou.
+
+### O que mediu — os dois carimbos, e um deles não tinha plateia
+
+A r3 deixou duas perguntas com carimbo próprio. Elas responderam coisas muito
+diferentes.
+
+**Carimbo 1 — a promessa de $1 no cadastro (`cold_trial_promise_shown`):
+PLATEIA ZERO. Não mediu nada, e isso fica escrito.**
+
+| leitura | valor |
+|---|---|
+| eventos `cold_trial_promise_shown` na história inteira | **1** |
+| de quantas pessoas | **1 — a própria sonda** (`ip_hash` 653749b0, 15:21 BRT) |
+| pessoas em `checkout_auth_page_view` desde o deploy da r3 (15:38) | **0** |
+
+Uma pessoa completou cadastro às 15:41 (`email_signup_completed`), e nenhuma
+outra tocou o degrau. **A entrega da r3 continua certa e provada no ar com
+controle negativo, mas o valor dela hoje é zero e não se pode dizer que
+"moveu" coisa nenhuma.** Quem herdar este diário: não converta a prova de
+funcionamento em prova de efeito.
+
+**Carimbo 2 — a rolagem (`ph_sep10_v3`): esse tinha plateia, e responde a
+pergunta que a r2 deixou de pé.**
+
+Coorte: `utm_campaign = reddit_sep09`, por pessoa
+(`coalesce(session_id, ip_hash)`), entre 13:15 e 15:37 BRT.
+
+| degrau | pessoas | % |
+|---|---|---|
+| chegaram na `/ph` | **34** | 100% |
+| rolaram além de `depth: 25` | 11 | **32%** |
+| passaram de `depth: 50` | 6 | 18% |
+| chegaram ao fim (`depth: 100`) | 1 | 3% |
+| **clicaram o CTA** | **0** | **0%** |
+
+**23 pessoas (68%) nunca passaram de 25%** — nunca rolaram ~300px. E das 34,
+**33 (97%) estavam em celular** (larguras até 432px; idiomas en-US, en-GB,
+en-IN). Um único visitante de desktop.
+
+A r2 tinha posto a pergunta assim: "se morre em 25, o defeito é dobra; se
+chega a 75/100 e não clica, é oferta". **A resposta é: as duas coisas, com
+dois terços do peso na dobra.**
+
+#### Antes de acreditar no zero, falsifiquei o instrumento
+
+`ph_cta_clicked` tinha **0 linhas na história inteira**. Um evento que nunca
+disparou é indistinguível de um evento quebrado, e concluir "a oferta é ruim"
+a partir dele seria repetir o erro de contar oportunidade sem conferir quem
+emite o evento vizinho.
+
+Teste: `/ph` no navegador real, clique de verdade no CTA (com a navegação
+cancelada para não sair da página). Resultado no banco:
+
+| evento | version | position | depth | href_campaign | hora |
+|---|---|---|---|---|---|
+| `ph_cta_clicked` | `ph_sep10_v3` | **top** | 18 | `sonda_frio_r4` | **17:07 BRT** |
+
+**O instrumento está vivo. O zero é real.** Também ficou provado que o CTA
+propaga a campanha corretamente (`utm_campaign` → `intent_campaign` no href).
+
+#### Um susto que não era defeito nosso
+
+O tráfego da `/ph` **parou às 15:36:47** e ficou em zero por 87 minutos —
+exatamente um minuto antes do deploy da r3 ficar READY (15:38). Correlação
+suficiente para suspeitar de que a própria sprint tinha matado a página.
+
+Não era. Medido às 17:06 no navegador real: a `/ph` carrega, o beacon faz
+`POST /api/events` com resposta 200, e o evento aparece no banco. Os dois 401
+do console são `GET /api/stripe/checkout/resume`, esperados para quem está
+deslogado. **A página está viva; o silêncio é da entrega do anúncio, não do
+site.** Fica o registro para o fundador: das 12–29 chegadas por hora do dia
+inteiro, a campanha do Reddit passou a entregar zero a partir das 15:37.
+
+### O que mudou — a ordem da dobra, porque o dado mandou
+
+O que as 34 pessoas viam em 375px, com as posições reais do documento:
+
+| elemento | antes (px) |
+|---|---|
+| manchete | 97 |
+| **parágrafo de 7 linhas** | **201** (175px de prosa densa) |
+| **porta de $1** | **376** |
+| filme | 545, cortado |
+
+Entre a manchete e o pedido de cartão havia um parágrafo que nomeia **cinco
+motores** (Veo 3.1, Kling 3, Seedance, MiniMax H3, Omni Flash) para quem nunca
+ouviu falar de nenhum. **A prova de que o produto existe vinha depois do
+preço.**
+
+A ordem agora é: **manchete → FILME → porta de $1 → letra miúda → prosa**.
+Medido no ar, mesma viewport, depois do deploy:
+
+| elemento | antes | agora |
+|---|---|---|
+| manchete | 97 | 97 |
+| **filme** | 545 (depois do preço) | **208–391, inteiro e tocando** |
+| porta de $1 | 376 | 420 |
+| prosa dos motores | 201 | 576 |
+
+A prosa **não foi cortada nem reescrita** — copy honesta continua valendo; ela
+saiu do caminho. No desktop a grade segue em duas colunas (o filme passa para
+a esquerda, arranjo normal de herói). A `<h1>` saiu de dentro da grade porque
+sem isso não há como intercalar filme e texto quando ela colapsa em uma coluna
+no celular.
+
+`version` sobe para **`ph_sep10_v4`**. A fórmula de profundidade é a mesma da
+v3, então **v3 e v4 são comparáveis degrau a degrau** — o que muda é a página
+que a pessoa estava lendo. É o carimbo pelo qual a r5 corta a medição.
+
+### O que provou
+
+* `npx tsc --noEmit --incremental false` → **verde**.
+* Guardião novo `scripts/test-ph-dobra-2026-09-09.mjs`, **24 verificações**,
+  **falsificado por 10 mutantes reais**, cada um provado por grep do texto
+  inserido (nunca por md5 — CRLF mente):
+
+  | mutante | prova de que aplicou | guardião |
+  |---|---|---|
+  | prosa volta para antes da porta de $1 | `MUT-ORDEM-PROSA` | **vermelho** |
+  | filme volta para depois da coluna de texto | `MUT-FILME-DEPOIS` / `MUT-B` | **vermelho** |
+  | manchete volta para dentro da grade | `MUT-H1-DENTRO` | **vermelho** |
+  | CTA perde o testid que o beacon procura | `ph-botao-MUT-TESTID` | **vermelho** |
+  | `VERSAO` volta a `ph_sep10_v3` | `MUT-VERSAO` | **vermelho** |
+  | preço cravado à mão no herói | `MUT-PRECO-HEROI` | **vermelho** |
+  | prosa amputada | `MUT-PROSA-FORA` | **vermelho** |
+  | recorte do herói colapsa | `MUT-C` | **vermelho** |
+
+  O mutante do **testid** é o que mais importa: se o CTA perder o atributo, o
+  listener do beacon para de casar e a r5 mede **zero clique achando que é a
+  oferta** — exatamente o falso negativo que esta rotação teve de desmontar à
+  mão antes de poder confiar no número.
+
+* **Suíte inteira: 476 arquivos, 111 vermelhos contra os 111 do baseline da
+  r1 → 0 vermelhos novos.**
+
+### O vizinho que eu quebrei — e por que a trava dele estava certa (de novo)
+
+De passagem, troquei o `$1` digitado à mão da FAQ pelo helper da fonte única,
+achando que tirava um preço cravado. `test-ph-landing-2026-09-08` acendeu:
+*"FAQ diz que não há free tier e que o $1 é real"*.
+
+**Revertido.** Não era a alavanca desta rotação, era enfeite; e a trava alheia
+está certa: quem lê a pergunta "is the $1 real?" tem de ver o `$1`, não
+`$1.00`. O conserto foi no **meu** guardião — a checagem de preço passou a se
+limitar ao **herói**, que é o bloco que esta rotação governa. Guardião novo
+não afrouxa vizinho para caber.
+
+Fica a dívida anotada, sem conserto: o `$1` da FAQ é literal e ficaria mentindo
+se o preço de entrada mudasse. Quem for mexer nisso mexe **junto** com
+`test-ph-landing-2026-09-08`, nunca por cima dele.
+
+### Deploy desta rotação
+
+`42ac0826` → **`dpl_BZjsMWmjQU1pqYhX5xKbh7KdFgAz`**, servindo a `/ph` às
+**17:20:30 BRT** (o id aparece no HTML; sonda com User-Agent de navegador
+identificável e **controle** numa rota irmã inexistente devolvendo 404).
+Ordem conferida no HTML servido por deslocamento de bytes: manchete 8581 →
+filme 8928 → porta 9442 → prosa 10044.
+
+### O que fica para a próxima
+
+* **r5 corta por `metadata->>'version' = 'ph_sep10_v4'`**, nunca por relógio.
+  A linha de base a bater, com denominador, é a tabela acima:
+  **32% passam de 25 · 18% passam de 50 · 0 de 34 clicam.**
+* **Cuidado com o denominador:** enquanto a campanha do Reddit não voltar a
+  entregar, a v4 não terá plateia — e "não mexeu" com N=0 não é resultado, é
+  ausência de amostra. Medir e dizer o N antes de qualquer conclusão.
+* **A hipótese que sobra se a dobra não bastar** não é copy: é que pedir cartão
+  no primeiro contato com uma marca desconhecida é o degrau caro. Isso mora em
+  `lib/entryPolicy` e `app/api/stripe/**` — território do fundador, e esta
+  sprint não toca. Vira PEDIDO, não commit.
+* **Não desligar o autostart do Google** sem teste com denominador (r3).

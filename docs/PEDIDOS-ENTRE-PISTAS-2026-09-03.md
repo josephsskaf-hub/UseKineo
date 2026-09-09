@@ -1708,3 +1708,58 @@ motivo importa: o trabalho já rodado é hoje o melhor argumento de venda que a
 porta de $1 tem (r2 e r3 são construídas em cima dele). Mover a cota para antes
 mataria esse ativo e devolveria a faixa genérica que 3 de 4 pessoas dispensaram.
 Quem for mexer nisso, mexa nas duas pontas ao mesmo tempo.
+
+---
+
+## 09/09 17:35 BRT — sprint do tráfego frio, r4 — DOIS AVISOS E UM PEDIDO
+
+### AVISO 1 (vale para qualquer pista) — evento que nunca disparou não prova nada
+
+`ph_cta_clicked` tinha **0 linhas na história inteira**, e a leitura natural
+era "0 de 34 pessoas clicaram, logo a oferta é ruim". Antes de escrever isso
+eu abri o navegador e cliquei o CTA de verdade: o evento gravou na hora
+(`position: top`, `depth: 18`, `href_campaign` correto). O instrumento estava
+vivo e o zero era real — **mas eu não tinha como saber disso antes de testar**.
+
+A regra que fica: **"0 de N" só vira conclusão depois de provar que o emissor
+dispara.** Quando o numerador é zero na história inteira, o teste é exercer o
+gesto à mão, não conferir o código. Ler o listener não bastava — no caso dele o
+seletor estava certo e mesmo assim eu não podia afirmar que o evento saía.
+
+Custo do teste: dois minutos. Custo de errar: a rotação seguinte iria mexer na
+oferta (mudança cara, no território do fundador) por causa de um instrumento
+que ninguém tinha exercitado.
+
+### AVISO 2 (vale para quem publicar hoje) — a campanha do Reddit parou de entregar
+
+O tráfego da `/ph` foi de 12–29 pessoas/hora o dia inteiro e caiu para **zero
+às 15:36:47**, ficando assim por 87 minutos. Como isso aconteceu um minuto
+antes de um deploy nosso ficar READY, a suspeita óbvia era de que a entrega
+tinha quebrado a página.
+
+**Não quebrou.** Conferido às 17:06 no navegador real: `/ph` carrega, o beacon
+faz `POST /api/events` com 200, e o evento aparece no banco. O silêncio é da
+entrega do anúncio, não do site.
+
+Duas coisas para as outras pistas: (1) não gastem rotação investigando a `/ph`
+como se estivesse fora do ar; (2) **quem for medir efeito de qualquer coisa
+hoje precisa dizer o N** — com a campanha parada, "não mexeu" é ausência de
+amostra, não resultado.
+
+### PEDIDO ao dono de `lib/entryPolicy` / `app/api/stripe/**` (preço é do fundador)
+
+Medido hoje, coorte fria do Reddit, por pessoa: **34 chegaram, 11 rolaram além
+de 25%, 6 passaram de 50%, 1 leu a página inteira, 0 clicaram.** Ou seja:
+mesmo quem lê tudo não aperta o botão. A r4 atacou o lado que é meu (a ordem
+da dobra: o filme passou a vir antes do pedido de cartão) e a r5 vai medir.
+
+O que **não** é meu e fica registrado como hipótese, não como conserto: a
+única porta da `/ph` pede **cartão no primeiro contato** com uma marca que a
+pessoa nunca viu, e a página diz isso explicitamente ("there is no free tier").
+Se a mudança de dobra não mover o número, a variável que sobra é essa — e ela
+mora em `lib/entryPolicy` e `app/api/stripe/**`, que esta sprint está proibida
+de tocar, com preço público sendo decisão do fundador.
+
+Não estou pedindo mudança de preço. Estou pedindo que **quem tem o caminho
+saiba que o degrau seco medido hoje é o do cartão**, com esse denominador, e
+que o Product Hunt manda todo mundo para a mesma porta às 04:01 de amanhã.
