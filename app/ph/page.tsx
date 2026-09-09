@@ -15,6 +15,15 @@ import { FOUNDER_SHOWCASE } from '@/lib/publicExamples'
 import { engineDisplayName } from '@/lib/enginePlanGate'
 import { CARD_TRIAL_DAYS, CARD_TRIAL_GRANT_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
 import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
+// KINEO-PH-CONTAGEM-2026-09-09 — a contagem de motores É DERIVADA. Esta página
+// era o ÚNICO lugar do site que digitava "Nine" à mão, em três lugares (título
+// social, descrição social e o parágrafo do herói) enquanto
+// `VIDEO_ENGINE_COUNT_WORD` valia 'Eight' — o nono (Seedance 2.5) está em
+// canário, `S25_PUBLIC=false`, e não aparece para ninguém de fora. Pior: dois
+// desses três lugares são a METADATA, ou seja, o texto que o Product Hunt e o
+// X puxam como prévia do link. O site dizia oito e o cartão de compartilhamento
+// do lançamento dizia nove.
+import { VIDEO_ENGINE_COUNT_WORD } from '@/lib/engineLaunch'
 
 export const dynamic = 'force-static'
 
@@ -22,16 +31,29 @@ const BASE = 'https://www.usekineo.com'
 const CTA = '/api/stripe/checkout?tier=basic&billing=monthly&trial=1&intent_campaign=ph_sep10'
 const ROBOT = '/previews/36a04f7b-65f7-42d9-a2ab-198b5a7f115e.mp4'
 const ROBOT_POSTER = '/posters/hero-opening-sep07/36a04f7b-65f7-42d9-a2ab-198b5a7f115e.webp'
+const ENGINES = VIDEO_ENGINE_COUNT_WORD.toLowerCase()
+
+// KINEO-PH-FICHA-2026-09-09 — a ficha do Product Hunt AINDA NÃO EXISTE: o
+// fundador cria a conta e sobe o produto na quinta. Até lá, o selo "Live on
+// Product Hunt" apontava para `producthunt.com/products/kineo-ai`, que hoje é
+// 404 — e link plausível e errado é exatamente o erro que já custou duas
+// reviews pagas à casa em 19/08 e 24/08 (foram parar em
+// `producthunt.com/products/kineo`, que é de um concorrente homônimo).
+//
+// Enquanto esta constante for `null` o selo não é renderizado. No dia do
+// lançamento, com a ficha no ar, troque por ela — uma linha, e o selo volta.
+// Nunca preencha com uma URL que você não abriu.
+const PH_LISTING_URL: string | null = null
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE),
   title: 'Kineo on Product Hunt — type an idea, get a cinematic short in 3 minutes',
-  description: `Nine video engines behind one button. ${CARD_ENTRY_COPY.chip}.`,
+  description: `${VIDEO_ENGINE_COUNT_WORD} video engines behind one button. ${CARD_ENTRY_COPY.chip}.`,
   alternates: { canonical: `${BASE}/ph` },
   robots: { index: false, follow: true },
   openGraph: {
     title: 'Kineo — type an idea, get a cinematic short in 3 minutes',
-    description: `Nine engines behind one button. ${CARD_ENTRY_COPY.chip}.`,
+    description: `${VIDEO_ENGINE_COUNT_WORD} engines behind one button. ${CARD_ENTRY_COPY.chip}.`,
     url: `${BASE}/ph`,
     images: [{ url: `${BASE}${ROBOT_POSTER}`, width: 1400, height: 782 }],
   },
@@ -55,15 +77,17 @@ export default function PhPage() {
       <main style={{ maxWidth: 1080, margin: '0 auto', padding: '28px 20px 60px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
           <Link href="/" style={{ color: '#fff', textDecoration: 'none', fontWeight: 900, fontSize: 18 }}>Kineo</Link>
-          <a
-            href="https://www.producthunt.com/products/kineo-ai"
-            rel="noopener nofollow"
-            target="_blank"
-            data-testid="ph-badge"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, border: '1px solid rgba(255,255,255,.18)', borderRadius: 999, padding: '7px 14px', color: '#ff6154', fontWeight: 800, fontSize: 13, textDecoration: 'none' }}
-          >
-            <span aria-hidden>▲</span> Live on Product Hunt
-          </a>
+          {PH_LISTING_URL ? (
+            <a
+              href={PH_LISTING_URL}
+              rel="noopener nofollow"
+              target="_blank"
+              data-testid="ph-badge"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, border: '1px solid rgba(255,255,255,.18)', borderRadius: 999, padding: '7px 14px', color: '#ff6154', fontWeight: 800, fontSize: 13, textDecoration: 'none' }}
+            >
+              <span aria-hidden>▲</span> Live on Product Hunt
+            </a>
+          ) : null}
         </div>
 
         <section style={{ marginTop: 40, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 28, alignItems: 'center' }}>
@@ -72,7 +96,7 @@ export default function PhPage() {
               Type an idea.<br />Get a cinematic short in 3 minutes.
             </h1>
             <p style={{ marginTop: 16, fontSize: 17, color: 'rgba(255,255,255,.78)', lineHeight: 1.5, maxWidth: 520 }}>
-              Kineo writes the script, directs every shot, narrates, scores and edits — nine video engines behind one
+              Kineo writes the script, directs every shot, narrates, scores and edits — {ENGINES} video engines behind one
               button (Veo 3.1, Kling 3, Seedance, MiniMax H3, Omni Flash). Every clip on this page was made this way,
               from one paragraph of text.
             </p>
@@ -102,7 +126,14 @@ export default function PhPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 12 }}>
             {FOUNDER_SHOWCASE.slice(0, 12).map((v) => (
               <Link key={v.id} href="/examples" style={{ position: 'relative', display: 'block', aspectRatio: '9 / 16', borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(255,255,255,.1)', background: '#111' }}>
-                <img src={v.posterPath} alt={v.title} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                {/* KINEO-PH-MARCA-2026-09-09 — pôster CORTADO. Os arquivos de
+                    `public/posters/ex-<id>.webp` foram tirados dos masters antes
+                    do corte e trazem `usekineo.com/free` no topo; esta página
+                    diz "There is no free tier" no mesmo scroll e mostrava a
+                    marca do free tier em doze cards. `scripts/ph-posters.sh`
+                    gera as cópias sem a faixa; os originais ficam intactos
+                    porque são curadoria do fundador em outras telas. */}
+                <img src={`/posters/ph/${v.id}.webp`} alt={v.title} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                 <span style={{ position: 'absolute', top: 8, left: 8, fontSize: 9, fontWeight: 900, letterSpacing: '.08em', textTransform: 'uppercase', color: '#fff', background: 'rgba(0,0,0,.55)', border: '1px solid rgba(255,255,255,.22)', borderRadius: 999, padding: '3px 7px' }}>
                   {engineLabel(v.engine)}
                 </span>
