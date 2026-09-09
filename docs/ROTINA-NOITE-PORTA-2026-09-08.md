@@ -919,3 +919,35 @@ de rodar (nunca por hash — CRLF).
    responde com uma consulta:
    `select metadata->>'error_class', metadata->>'reason_detail' from events where name='checkout_error_shown'`.
    Antes desta rotação, respondia-se sondando tipos de SDK.
+
+### Adendo da r8 — a suíte inteira, e o que ela denunciou
+
+Rodei os **467** guardiões de `scripts/`. **48 vermelhos**, todos herdados.
+Provei que nenhum é meu do jeito certo: dos 48, **um único** lê o arquivo que
+eu mudei (`test-checkout-currency-truth`), e ele falha **exatamente igual** com
+a minha versão e com a do pai `a60865e1`:
+
+```
+MINHA versao:  exit=1 | AssertionError: the same visible answer still promises the free first video
+versao do PAI: exit=1 | AssertionError: the same visible answer still promises the free first video
+```
+
+**Mas o que ele está dizendo importa para esta pista.** A `/pricing` ainda
+promete "free first video" numa resposta do FAQ — enquanto a porta cobra $1 e
+`CARD_ENTRY_COPY.noFreeTier` afirma que não existe camada grátis.
+
+E não é um caso isolado: a rotina PH registrou, no `PEDIDOS`, que o `/studio`
+deslogado mostra **"🔥 Get Started Free →"** logo abaixo do card que anuncia a
+taxa de entrada. **Duas telas diferentes, o mesmo defeito**, achadas por duas
+rotinas que não conversaram.
+
+Isto é uma hipótese melhor para o clique baixo da porta do que qualquer ajuste
+de copy dentro dela: **ninguém paga $1 por aquilo que a página do lado oferece
+de graça.** A pessoa das 06:11, que escreveu 1.364 caracteres e dispensou a
+porta em 8 segundos, é exatamente quem teria visto a contradição.
+
+**Jogada da r9 (06:00):** varrer a promessa de grátis em TODA superfície
+pública — FAQ da `/pricing`, `/studio` deslogado, home — e medir quantas
+pessoas que viram a porta também viram uma promessa de grátis na mesma sessão.
+Corrigir a contradição é trabalho de copy fora da fonte de preço, portanto
+dentro desta pista; mudar preço, plano ou crédito continua fora.
