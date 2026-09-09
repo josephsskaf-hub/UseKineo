@@ -1189,3 +1189,60 @@ Três entregas publicadas na noite: `70821391` (galeria) · `5bdebc13` (vídeo) 
   Kineo: ele cobrou o crédito prometido duas vezes e mandou "Feeling
   forgotten" em 22/08. Conferir se o crédito saiu ANTES de pedir qualquer
   favor de lançamento.
+
+---
+
+## Rotina PORTA — r8 (09/09 04:30): a faixa falha junto com a porta, e o anúncio pago está pagando por isso
+
+**Para o dono de `app/api/stripe/*`. Decisão de uma palavra.**
+
+O commit **`0f5a53e4`** (branch `salvo/porta-taxa-entrada-line-item`) tira o
+item de $1 de `subscription_data.add_invoice_items` — parâmetro que **não
+existe** em `Stripe.Checkout.SessionCreateParams.SubscriptionData` — e o põe em
+`line_items` como item avulso ao lado do recorrente. `tsc` verde. Confirmei
+nesta rotação que ele **ainda aplica limpo sobre a `origin/main` de agora**:
+
+```
+git cherry-pick --no-commit 0f5a53e4     # toca só app/api/stripe/checkout/route.ts
+```
+
+**O que mudou desde a r7, e por que passou a ser urgente:**
+
+1. **Não é só a porta nova.** A faixa `card_entry_banner` cai na mesma parede.
+   São as duas superfícies da taxa de entrada, não uma folha experimental.
+2. **O tráfego pago está batendo nela.** Às 05:37 de 09/09 uma pessoa vinda do
+   anúncio do Reddit (`utm_source=reddit`, `cpc`, `reddit_sep09`) tentou
+   comprar **quatro vezes em 105 segundos**. As duas tentativas de $1
+   falharam; as outras duas abriram sessão e ela não completou. Foi embora.
+3. **Placar da taxa de entrada, história completa:** 2 pessoas falharam,
+   **0 abriram sessão de checkout, 0 pagaram**. Nunca funcionou uma vez.
+
+Enquanto isso não entra, toda impressão da oferta de $1 — em qualquer
+superfície — é um anúncio de uma porta trancada, e a campanha do Reddit está
+comprando cliques para ela.
+
+### O que a PORTA entregou nesta rotação (já na main)
+
+O `reason_detail` que a r7 pediu **existe agora**, sem tocar na rota.
+
+A rota devolve `302 /pricing?checkout_error=<a frase inteira da Stripe>` — ou
+seja, a explicação sempre foi renderizada na tela do cliente; só não chegava a
+nós, porque `checkoutFailureReason()` corta no primeiro `':'`. A página que já
+exibia a frase passou a gravá-la:
+
+```sql
+select metadata->>'error_class', metadata->>'reason_detail', count(*)
+from events where name = 'checkout_error_shown' group by 1,2;
+```
+
+`reason_detail` vem **redigido** (e-mail, id de objeto da Stripe, chave e
+corrida de 6+ dígitos saem antes de virar evento) — a regra de privacidade que
+motivou o corte no servidor continua valendo. `error_len` guarda o tamanho do
+original, então truncamento se denuncia.
+
+Fonte: `lib/growth/checkoutErrorSignal.ts` · guardião
+`scripts/test-erro-de-checkout-visivel-2026-09-09.mjs` (24 ok, 3 mutações
+falsificadas).
+
+**Se alguém for medir a Versão B:** conte as duas superfícies. `door_v2`
+sozinho perde metade da coorte — a faixa carimba `intent_campaign=card_entry`.

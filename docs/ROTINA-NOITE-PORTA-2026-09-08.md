@@ -780,3 +780,142 @@ propósito, e dito com todas as letras em vez de "entregue".
 3. `checkoutFailureReason()` corta a frase da Stripe no `":"`. Foi por isso que
    esta noite precisou de um probe de tipos para descobrir algo que a Stripe já
    tinha dito por escrito às 02:16.
+
+---
+
+## r8 04:05 — A STRIPE JÁ TINHA EXPLICADO A FALHA. PARA O CLIENTE, NÃO PARA NÓS.
+
+### O que mediu
+
+Duas pessoas novas desde a r7, e a segunda muda o tamanho do problema.
+
+**Placar da porta `door_v2`, história completa:**
+
+| | pessoas distintas |
+|---|---|
+| viram a porta | **2** |
+| clicaram | **1** |
+| dispensaram | **1** |
+| falharam na taxa de $1 | **2** |
+| abriram sessão de checkout | **0** |
+| pagaram o dólar | **0** |
+
+**A pessoa nova das 06:11** (`fe5505d5`): abriu a porta em `/studio/create`
+com **1.364 caracteres de roteiro escritos**, motivo `credits`, e **dispensou
+em 8 segundos**. Escreveu um roteiro inteiro, bateu no muro, olhou a oferta de
+$1 e saiu.
+
+**E a das 05:37** (`35ce4512`) é a que dói: veio do **anúncio pago do Reddit**
+(`utm_source=reddit`, `utm_medium=cpc`, `reddit_sep09`). Em **105 segundos**
+ela tentou comprar **quatro vezes**:
+
+```
+05:36:39  checkout_attempted  signup     reddit_sep09
+05:36:40  checkout_failed     card_trial="1"          ← o $1, quebrado
+05:36:54  checkout_started    pricing    welcome20    ← $23,20, sessão abriu
+05:37:21  checkout_cta_clicked  card_entry_banner  card_trial=true
+05:37:22  checkout_failed     card_trial="1"          ← o $1 de novo, quebrado
+05:37:40  checkout_started    starter10  $4,90        ← sessão abriu
+05:37:50  pricing_view                                ← e parou
+```
+
+Duas conclusões que só aparecem com essa linha do tempo:
+
+1. **A faixa (`card_entry_banner`) leva à mesma parede que a porta.** Não é um
+   defeito da folha nova: são as duas superfícies da taxa de entrada caindo no
+   mesmo `add_invoice_items`. A r7 mediu a porta; a faixa estava junto.
+2. **O tráfego pago está sendo despejado na parede.** A campanha de $50 do
+   Reddit mandou uma pessoa com intenção altíssima — quatro tentativas — e a
+   única oferta que ela escolheu duas vezes foi justamente a que não funciona.
+
+### O que estava debaixo do nariz
+
+A rota, quando falha, devolve:
+
+```
+302 /pricing?checkout_error=<A FRASE INTEIRA DA STRIPE>
+```
+
+**A explicação foi renderizada na tela das duas pessoas.** Elas leram. Nós
+não. A r7 gastou uma rotação sondando os tipos do SDK para redescobrir uma
+coisa que a Stripe já tinha dito por escrito, em inglês, para os dois clientes.
+
+O motivo é `checkoutFailureReason(msg)`, que corta no primeiro `':'` — e corta
+de propósito, para que o código de motivo nunca carregue id de cliente, e-mail
+ou dado de pagamento. A intenção está certa. O efeito colateral é que
+"Payment session failed: `<o que a Stripe disse>`" vira `payment_session_failed`
+e as **3 linhas de falha da noite são indistinguíveis entre si**.
+
+### O que mudou (publicado)
+
+O buraco fecha pelo lado do **cliente**, sem tocar em `app/api/stripe/*`.
+
+**`lib/growth/checkoutErrorSignal.ts`** (novo, puro, sem imports):
+- `classifyCheckoutError` olha a frase **inteira** e devolve uma classe
+  estável (`unknown_parameter`, `no_such_price`, `invalid_api_key`, …). É a
+  única diferença que importa em relação ao servidor: para ele, "Payment
+  session failed: A" e "…: B" são o mesmo código.
+- `redactCheckoutError` tira e-mail, id de objeto da Stripe, chave de API e
+  corrida de 6+ dígitos **antes** de virar evento — a regra de privacidade do
+  servidor não fica mais frouxa por estar do lado do cliente.
+- `error_len` guarda o tamanho do **original**, então truncamento se denuncia.
+
+**`app/pricing/PricingClient.tsx`** — a tela que já exibia a frase passa a
+gravá-la:
+- evento novo **`checkout_error_shown`** com `error_class`, `reason_detail`
+  (redigido), `error_len`, `intent_campaign` e `from_card_entry`. Uma linha
+  por sessão e por classe.
+- o ramo genérico do erro era **uma linha vermelha solta** com a frase crua e
+  nada mais. As duas pessoas caíram exatamente ali e foram embora. Agora é um
+  card que mantém a frase do provedor na tela (ela é a única informação
+  verdadeira sobre o que houve) e acrescenta o que faltava:
+  **"No payment was created and your card was not charged."**
+- e, para quem veio da taxa de entrada (`door_v2` ou `card_entry`), **"Your
+  script is still saved in the studio"** com botão **Back to my script** →
+  `/studio/create?resume=card_entry`, que restaura o rascunho e **não dispara
+  render** (o auto-disparo exige crédito confirmado). O clique é medido em
+  `checkout_error_recovery_clicked`.
+
+**`scripts/test-erro-de-checkout-visivel-2026-09-09.mjs`** — 24 verificações,
+**24 ok**. A biblioteca é pura, então o Node importa o `.ts` direto
+(type-stripping nativo) e as 16 primeiras verificações são **execução real**,
+não casamento de texto.
+
+### Falsificação por mutação
+
+| mutação | esperado | resultado |
+|---|---|---|
+| **M1** `classify` passa a olhar só o prefixo antes do `':'` (a cegueira do servidor) | a central fica vermelha | **3 vermelhas**, incluindo `A=unclassified B=unclassified` ✔ |
+| **M2** remove a regra de e-mail da redação | acende a de privacidade | `a redação remove e-mail` **vermelha**, mostrando `buyer@example.com` cru ✔ |
+| **M3** troca "No payment was created…" por "Something went wrong." | acende a da tela | `quem falhou lê que não foi cobrado` **vermelha** ✔ |
+
+O M1 é o que prova o guardião: ele não passa por texto presente, passa pela
+**diferença de comportamento** entre olhar a frase inteira e olhar o prefixo.
+Cada mutação foi confirmada como aplicada por `grep` do texto inserido antes
+de rodar (nunca por hash — CRLF).
+
+### Suíte
+
+`npx tsc --noEmit --incremental false` verde. Todos os guardiões pedidos verdes:
+`test-porta-v2`, `test-versao-b-entrada-1-dolar`, `test-sistema-de-compra`,
+`test-funil-volta-1-dolar`, `test-continue-now`, `test-placar-trial-1-dolar`,
+`test-preco-v7`, `test-troca-de-plano`.
+
+`test-taxa-de-entrada-chega-na-stripe` continua **vermelho de propósito**
+(10 ok · 1 falha) — o dólar segue não-cobrável enquanto `0f5a53e4` não entrar.
+
+### O que ficou
+
+1. **O conserto do cobrador continua parado**, e agora com preço medido: cada
+   hora que ele espera é tráfego pago do Reddit batendo numa parede. Branch
+   `salvo/porta-taxa-entrada-line-item`, commit **`0f5a53e4`** — verifiquei
+   nesta rotação que **ainda aplica limpo sobre a `origin/main` de agora**
+   (`git cherry-pick --no-commit 0f5a53e4` → só `app/api/stripe/checkout/route.ts`).
+   Não publiquei: `app/api/stripe/*` é caminho travado para esta rotina, e a
+   trava vence o argumento de intenção mesmo quando a intenção é boa.
+2. **A faixa `card_entry_banner` falha igual à porta.** Quem for medir a
+   Versão B tem de contar as duas superfícies, não só `door_v2`.
+3. A partir da próxima falha, a pergunta "por que o checkout quebrou?" se
+   responde com uma consulta:
+   `select metadata->>'error_class', metadata->>'reason_detail' from events where name='checkout_error_shown'`.
+   Antes desta rotação, respondia-se sondando tipos de SDK.

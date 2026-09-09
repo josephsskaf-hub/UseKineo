@@ -90,6 +90,12 @@ import {
   checkoutResumeUnavailableTelemetry,
   isCheckoutResumeUnavailable,
 } from '@/lib/growth/checkoutResumeUnavailable'
+import {
+  checkoutErrorSignalStorageKey,
+  checkoutErrorSignalTelemetry,
+  readCheckoutErrorSignal,
+  type CheckoutErrorSignal,
+} from '@/lib/growth/checkoutErrorSignal'
 import { CARD_TRIAL_SECONDARY_LABEL } from '@/lib/checkoutPricing'
 
 // PAYPAL-DISABLED-2026-07-06 — PayPal checkout is hidden on pricing until it's
@@ -355,6 +361,7 @@ export default function PricingClient() {
   const [pricingIntentCampaign, setPricingIntentCampaign] = useState<string | null>(null)
   const [checkoutSetupFailure, setCheckoutSetupFailure] = useState<CheckoutSetupFailureReturnContext | null>(null)
   const [checkoutResumeUnavailable, setCheckoutResumeUnavailable] = useState(false)
+  const [checkoutErrorSignal, setCheckoutErrorSignal] = useState<CheckoutErrorSignal | null>(null)
 
   // KINEO-SPRINT-OFFER-2026-07-14 — ROI slider state removed with the widget
   // (unverifiable "estimated views/month" promise — see note at the old block).
@@ -664,6 +671,38 @@ export default function PricingClient() {
     // URIError and replaced the checkout explanation with a page crash.
     if (err) setCheckoutError(err)
     if (params.get('already_subscribed') === '1') setAlreadySubscribed(true)
+
+    // KINEO-PORTA-ERRO-VISIVEL-2026-09-09 (rotina noite r8) — a frase que a
+    // Stripe escreveu ja esta na tela desta pessoa; o que faltava era ela
+    // chegar ate nos. O servidor corta tudo depois do primeiro ':' para nao
+    // vazar dado de pagamento no codigo de motivo, e com isso perde a
+    // explicacao. Aqui ela e classificada pela frase INTEIRA e gravada
+    // redigida — uma linha por sessao e por classe.
+    const errorSignal = readCheckoutErrorSignal(window.location.search)
+    setCheckoutErrorSignal(errorSignal)
+    if (errorSignal) {
+      const signalKey = checkoutErrorSignalStorageKey(errorSignal)
+      let signalTracked = false
+      try {
+        signalTracked = sessionStorage.getItem(signalKey) === '1'
+      } catch {
+        // Dedupe e opcional; a falha nao pode ficar sem registro por causa
+        // de um navegador que bloqueia storage.
+      }
+      if (!signalTracked) {
+        void trackEvent(
+          'checkout_error_shown',
+          checkoutErrorSignalTelemetry(errorSignal),
+        ).then((stored) => {
+          if (!stored) return
+          try {
+            sessionStorage.setItem(signalKey, '1')
+          } catch {
+            // O evento esta gravado; storage indisponivel nao muda nada.
+          }
+        })
+      }
+    }
 
     const setupFailure = readCheckoutSetupFailureFromSearch(window.location.search)
     setCheckoutSetupFailure(setupFailure)
@@ -1215,9 +1254,38 @@ export default function PricingClient() {
             </button>
           </div>
         ) : checkoutError ? (
-          <p role="alert" className="mx-auto mt-4 max-w-2xl text-center text-[13px] font-semibold text-[#f87171]">
-            {checkoutError}
-          </p>
+          /* KINEO-PORTA-ERRO-VISIVEL-2026-09-09 (rotina noite r8) — este ramo
+             era uma linha vermelha solta com a frase crua do provedor. Nas duas
+             falhas medidas na noite de 08→09/09 as duas pessoas cairam aqui,
+             leram um erro tecnico sem nenhuma indicacao de que nada tinha sido
+             cobrado, e foram embora. A frase continua na tela — ela e a unica
+             informacao verdadeira sobre o que houve — mas agora vem com o que
+             a pessoa precisa saber para nao desistir. */
+          <div
+            role="alert"
+            className="mx-auto mt-4 max-w-2xl rounded-2xl border border-[#f87171]/35 bg-[#f87171]/[0.08] px-5 py-4 text-center"
+          >
+            <p className="text-[13px] font-bold text-[#f87171]">{checkoutError}</p>
+            <p className="mt-1 text-[12px] font-medium text-[#a1a1a8]">
+              No payment was created and your card was not charged.
+            </p>
+            {checkoutErrorSignal?.from_card_entry ? (
+              <>
+                <p className="mt-1 text-[12px] font-medium text-[#a1a1a8]">
+                  Your script is still saved in the studio.
+                </p>
+                <a
+                  href="/studio/create?resume=card_entry"
+                  onClick={() => {
+                    void trackEvent('checkout_error_recovery_clicked', checkoutErrorSignalTelemetry(checkoutErrorSignal))
+                  }}
+                  className="mt-3 inline-flex min-h-11 items-center justify-center rounded-xl bg-[#f5f5f7] px-5 text-[13px] font-extrabold text-[#0b0b0c] transition hover:bg-white"
+                >
+                  Back to my script
+                </a>
+              </>
+            ) : null}
+          </div>
         ) : null}
 
         {/* KINEO-CEO-HOUR-2026-08-17 (#5) — o tradutor de creditos VISIVEL,
