@@ -1252,60 +1252,81 @@ sozinho perde metade da coorte — a faixa carimba `intent_campaign=card_entry`.
 
 ## Rotina PORTA — fechamento
 
-Escrito às 07:40, na última rotação da janela (a das 06:00 não disparou; o
-agendador foi recriado às 01:20 e perdeu duas). Não há leitura de banco nesta
-rotação — o MCP recusou as duas consultas —, então **todo número abaixo é o da
-r8, medido às 04:05**, e está marcado como tal. Nenhum número foi extrapolado.
+**Esta seção substitui o rascunho escrito às 07:40.** Aquele rascunho dizia,
+honestamente, que não tinha leitura de banco e que todo número era o da r8
+(04:05). Nesta rotação o MCP respondeu, e a leitura das 08:05 **muda o placar
+e confirma a tese**: entre 04:05 e 08:05 chegaram mais duas pessoas na porta,
+e a taxa de clique subiu de 1/1 para **3 de 4 pessoas**. O que continua zerado
+é o outro lado.
 
 ### O que está no ar (SHAs)
 
 | rotação | o que entregou | SHA |
 |---|---|---|
 | r1–r6 | a folha `CardEntryDoor` (`door_v2`), 3 línguas, celular, e a tela que parou de mandar a pessoa bater numa porta trancada | ff4c28c5 · 713f66b1 · b00c18c9 · 5d0a1c03 · 08641311 |
-| r7 | guardião que prova, contra os tipos do SDK instalado, que a taxa de entrada chega na Stripe — nasce **vermelho de propósito** | (diário + `test-taxa-de-entrada-chega-na-stripe`) |
-| r8 | `lib/growth/checkoutErrorSignal.ts` + `checkout_error_shown`: a frase da Stripe passa a ser gravada (redigida) em vez de virar `payment_session_failed`; e quem falha lê "your card was not charged" e volta ao rascunho | e69fed0f (diário) |
-| r9 | a caixa de cadastro deslogada para de prometer "Get Started Free" ao lado da porta de $1 | **este commit** |
+| r7 | guardião que prova, contra os tipos do SDK instalado, que a taxa de entrada chega na Stripe — nasce **vermelho de propósito** | cb039303 |
+| r8 | `lib/growth/checkoutErrorSignal.ts` + `checkout_error_shown`: a frase da Stripe passa a ser gravada (redigida); quem falha lê "your card was not charged" e volta ao rascunho | e69fed0f |
+| r9 | a caixa de cadastro deslogada para de prometer "Get Started Free" ao lado da porta de $1 | 139341e4 · sonda 113353d4 |
+| r10 (esta) | nenhum código: a janela fecha medindo. O diário passa a ter o número real | este commit |
 
-**Não está no ar, e é o que decide tudo:** `0f5a53e4` (branch
-`salvo/porta-taxa-entrada-line-item`). `app/api/stripe/*` é caminho travado
-para esta rotina.
+**Não está no ar, e é o que decide tudo:** `0f5a53e4`, na branch
+`salvo/porta-taxa-entrada-line-item` — conferido nesta rotação com
+`git merge-base --is-ancestor`: **não é ancestral da `origin/main`**.
+`app/api/stripe/*` é caminho travado para esta rotina, e a trava foi
+respeitada; o commit está pronto e segurado, esperando uma palavra.
 
-### Tabela por pessoa (medida na r8, 04:05 — sem leitura nova depois disso)
+### Tabela por pessoa — todas as 4, medida às 08:05 (corte `metadata->>'version'='door_v2'`)
 
-| pessoa | de onde veio | viu porta | clicou | checkout abriu | pagou | o que fez |
+| pessoa | chegou | viu porta | clicou | quanto demorou | checkout abriu | pagou |
 |---|---|---|---|---|---|---|
-| `…` (02:16) | chatgpt.com, conta de 04/09, 2 filmes entregues e baixados | **sim** (`door_v2`) | **sim**, 8s depois | **não** — `checkout_failed` em 800 ms | não | despejada em `/pricing`, viu 3 ofertas, saiu |
-| `35ce4512` (05:37) | **anúncio pago do Reddit** (`cpc`, `reddit_sep09`) | faixa `card_entry_banner` | **sim** | **não** nas duas tentativas de $1; sim nas duas de plano | não | 4 tentativas em 105s, foi embora |
-| `fe5505d5` (06:11) | `/studio/create`, **1.364 caracteres de roteiro escritos** | **sim** (`door_v2`) | não | — | não | dispensou em 8 segundos |
+| `da3d9795` | 02:16 UTC, conta de 04/09, 2 filmes entregues e baixados | **sim** | **sim** | 8 s | **não** (`checkout_failed`) | não |
+| `fe5505d5` | 06:11 UTC, `/studio/create`, 1.364 caracteres de roteiro escritos | **sim** | não (dispensou) | — | — | não |
+| `44d90dda` | **08:52 UTC — conta nascida na porta** (`auth_callback_completed` → `card_entry_required`) | **sim** | **sim** | 24 s | **não**, 7 vezes | não |
+| `bea677fa` | 10:24 UTC | **sim** | **sim** | 57 s | **não**, 2 vezes | não |
 
-**Placar da taxa de entrada, história completa (r8):** 2 pessoas viram a porta
-nova · 1 clicou · 2 falharam na taxa · **0 abriram sessão de checkout** ·
-**0 pagaram**. A faixa antiga (`card_entry_banner`) cai na **mesma** parede — é
-a mesma taxa de entrada, não uma folha experimental.
+Fora da folha, a faixa antiga (`card_entry_banner`) no mesmo dia: 4 pessoas
+viram, 2 clicaram. Cai na **mesma** parede — é a mesma taxa de entrada.
+
+### O número que fecha a noite
+
+**Taxa de entrada de $1, história inteira: 9 tentativas · 9 falhas · 0 sessões
+de checkout abertas · 0 pagamentos.** Não há uma exceção. E, no mesmo recorte,
+a casa está com **0 `payment_success` em 48 horas**.
+
+A pessoa `44d90dda` é o caso que não deixa dúvida. Criou a conta às 08:52 e,
+em **90 segundos**, apertou a oferta de $1 **sete vezes**, em três superfícies
+diferentes — `/studio`, `/studio/create` e `/dashboard`. Cada uma respondeu
+`checkout_failed / payment_session_failed` em menos de 500 ms e a despejou em
+`/pricing`. Ela voltou e tentou de novo, e de novo. É a maior intenção de
+compra registrada na casa esta semana, e a casa recusou o dinheiro sete vezes.
 
 ### Três frases do que aprendi
 
-1. **A porta não tem problema de copy; ela tem uma parede atrás.** A primeira
-   pessoa que a viu clicou em 8 segundos, depois de ter recusado uma oferta de
-   plano 35 segundos antes. A taxa de clique da folha nova é 1/1. O que é 0/2 é
-   o cobrador: `subscription_data.add_invoice_items` não existe na criação de
-   uma Checkout Session, e o `tsc` ficou verde 20 dias porque o campo entrava
-   por **spread condicional**, que não recebe excess property check.
-2. **A explicação estava na tela do cliente e não na nossa.** A rota devolve
-   `302 /pricing?checkout_error=<a frase inteira da Stripe>`: as duas pessoas
-   leram por escrito o que quebrou, enquanto nós tínhamos três linhas
-   `payment_session_failed` indistinguíveis — porque o código de motivo corta
-   no primeiro `':'`, e corta por uma boa razão (privacidade). Uma rotação
-   inteira foi gasta sondando tipos de SDK para redescobrir isso.
-3. **A casa vendia duas ofertas incompatíveis na mesma caixa.** O botão de
-   cadastro dizia "Get Started Free" logo abaixo da linha que anuncia $1 — e é
-   por aí que entra o tráfego pago do Reddit. Ninguém paga $1 pelo que a tela
-   anterior ofereceu de graça.
+1. **A porta ganhou e a pergunta da missão está respondida.** A meta era
+   "clicam / veem": deu **3 de 4**. Copy, ordem, tamanho e língua não são mais
+   hipóteses vivas — não há o que afinar numa folha que 75% das pessoas
+   apertam. Toda rotação gasta em texto a partir daqui é rotação gasta no lado
+   que já funciona.
+2. **A parede não é gradual, é total, e por isso é barata de consertar.** 9 de
+   9 não é uma taxa de conversão ruim: é um defeito determinístico
+   (`subscription_data.add_invoice_items` não existe na criação de uma Checkout
+   Session). O `tsc` ficou verde 20 dias porque o campo entrava por **spread
+   condicional**, que não recebe excess property check — objeto anotado não é
+   objeto validado.
+3. **A instrumentação da r8 provou-se no escuro.** `checkout_error_shown`
+   disparou para 2 pessoas reais nesta madrugada: a frase da Stripe agora é
+   nossa, e a pessoa lê "your card was not charged" em vez de sumir. Foi o que
+   permitiu contar 7 falhas de uma pessoa só em vez de três linhas
+   indistinguíveis.
 
 ### A próxima jogada
 
-**Publicar `0f5a53e4` e, no mesmo dia, escrever para as três.** As duas metades
-importam:
+**Publicar `0f5a53e4` é a jogada inteira — e ela vale mais hoje do que ontem,
+porque agora existe fila.** Quatro pessoas em 8 horas nasceram diante da porta
+com o dedo no botão; três apertaram. Enquanto o commit não sobe, cada
+impressão da oferta de $1 — porta, faixa e o botão de cadastro que a r9
+corrigiu — é um anúncio de porta trancada, e **a campanha do Reddit está
+comprando cliques para ela**.
 
 - Sem o conserto, cada impressão da oferta de $1 — porta, faixa, e agora o
   botão de cadastro que esta rotação corrigiu — é um anúncio de porta trancada,
@@ -1418,3 +1439,11 @@ eventos desde 08/09) e nenhum bug travou.
   07/09), 8 pessoas. Filme entregue cuja URL do fornecedor morreu depois.
 
 Diário completo: `docs/ROTINA-NOITE-ENTREGA-2026-09-08.md`.
+No mesmo dia do SHA, escrever para as quatro. Não é uma carta de marketing, é
+uma correção de erro nosso, e o texto já está pronto na cabeça: *"o pagamento
+quebrou do nosso lado, você não foi cobrado, está consertado, seu roteiro está
+salvo."* A coorte é minúscula e quentíssima — a de 02:16 tinha 2 filmes
+baixados, a de 06:11 tinha 1.364 caracteres escritos, a de 08:52 tentou sete
+vezes. São quatro pessoas que **a casa fez falhar**, e é a maior taxa de
+conversão disponível hoje sem gastar um dólar de mídia. Enviar e-mail está
+fora desta pista; o gatilho da carta é o SHA.
