@@ -35,7 +35,17 @@ const check = (c, m) => (c ? pass(m) : fail(m))
 console.log('\n[1] A peça importa a fonte única e não escreve dinheiro')
 const door = read(DOOR)
 check(door.startsWith("'use client'"), 'é componente de cliente')
-check(/import \{ decideTrialDoorOffer \} from '@\/lib\/growth\/cleanFilmTrialDoor'/.test(door), 'importa o núcleo compartilhado')
+// REANCORADO em 09/09 (sprint ChatGPT r3): a âncora exigia a lista de import
+// com UM símbolo só e ficou vermelha quando a peça passou a importar também
+// `countShotClips` do MESMO módulo. A intenção — "a regra vem do núcleo
+// compartilhado, não de uma cópia local" — não mudou, e a asserção não
+// afrouxou: ela continua exigindo `decideTrialDoorOffer` vindo de
+// `cleanFilmTrialDoor`, agora sem se importar com quem mais viaja na lista
+// (memória `assercao-alheia-vermelha-se-reancora`).
+check(
+  /import \{[^}]*\bdecideTrialDoorOffer\b[^}]*\} from '@\/lib\/growth\/cleanFilmTrialDoor'/.test(door),
+  'importa o núcleo compartilhado',
+)
 check(/formatCheckoutMoney\(currency, CARD_TRIAL_ENTRY_FEE_MINOR\)/.test(door), 'taxa de entrada derivada da constante')
 check(/getTierPrice\('basic', currency, region\)/.test(door), 'mensalidade derivada da tabela de preço')
 // A prosa do cabeçalho cita "$1" ao explicar a ordem do fundador; o que não
