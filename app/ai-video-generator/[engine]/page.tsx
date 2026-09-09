@@ -624,7 +624,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
         <section style={{ marginTop: 48, textAlign: 'center', ...CARD, borderRadius: 18, padding: '28px 20px' }}>
           <h2 style={{ fontSize: '1.4rem', fontWeight: 900, margin: 0 }}>Put your own topic through {e.name}</h2>
           <p style={{ color: '#86868b', margin: '8px 0 18px', fontSize: '0.95rem' }}>
-            One idea in, a ready-to-post vertical Short out. No editing timeline. $1 to start.
+            One idea in, a ready-to-post vertical Short out. No editing timeline. Free to start.
           </p>
           <OrganicCtaLink
             href={primaryCtaHref}

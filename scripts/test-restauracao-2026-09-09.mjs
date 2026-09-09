@@ -67,7 +67,7 @@ console.log('== 5. nenhuma página pública fala em $1 ==')
     const s = readFileSync(p, 'utf8').replace(/\r\n/g, '\n')
       .replace(/\{\/\*[\s\S]*?\*\/\}/g, '').replace(/\/\*[\s\S]*?\*\//g, '') // fora blocos de comentário (JSX e TS)
       .split('\n').filter((l) => !/^\s*(\/\/|\*)/.test(l) && !/CARD_ENTRY_ONLY \?|noCardRequired \?/.test(l)).map((l) => l.replace(/\s\/\/\s.*$/, '')).join('\n') // fora comentários de linha e ramos mortos da versão B
-    if (/\$1 trial|7 days for \$1|for \$1\b|\$1 for 7|80 credits|There is no free tier|\$1 trial required/.test(s)) ruins.push(p.replace(RAIZ, ''))
+    if (/\$1 trial|7 days for \$1|for \$1\b|\$1 for 7|\$1 to start|80 credits|There is no free tier|\$1 trial required/.test(s)) ruins.push(p.replace(RAIZ, ''))
   }
   checa('0 páginas/componentes vivos com "$1 trial", "7 days for $1", "80 credits": ' + (ruins.length ? ruins.join(', ') : 'nenhum'), ruins.length === 0)
 }

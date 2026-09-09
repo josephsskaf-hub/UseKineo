@@ -1613,7 +1613,7 @@ export default function KineoLanding({
                   varredura no repo inteiro (app/ components/ lib/) confirma que
                   era a UNICA ocorrencia crua: todas as outras ja passam por ft().
                   Com a flag OFF o texto volta byte a byte ao literal anterior. */}
-              <p style={{ marginTop: 16, fontSize: '13.5px', color: 'var(--muted2)' }}><span style={{ color: 'var(--blue)' }}>✓</span> $1 to start&nbsp;·&nbsp;<span style={{ color: 'var(--blue)' }}>✓</span> <UiLabel>{ft(OFFER, '3 free videos every 24h', OFFER.copy.chip)}</UiLabel>&nbsp;·&nbsp;<span style={{ color: 'var(--blue)' }}>✓</span><UiLabel> Cancel anytime</UiLabel></p>
+              <p style={{ marginTop: 16, fontSize: '13.5px', color: 'var(--muted2)' }}><span style={{ color: 'var(--blue)' }}>✓</span> Free to start&nbsp;·&nbsp;<span style={{ color: 'var(--blue)' }}>✓</span> <UiLabel>{ft(OFFER, '3 free videos every 24h', OFFER.copy.chip)}</UiLabel>&nbsp;·&nbsp;<span style={{ color: 'var(--blue)' }}>✓</span><UiLabel> Cancel anytime</UiLabel></p>
             </div>
           </div>
         </div>
