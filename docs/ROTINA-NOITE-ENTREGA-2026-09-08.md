@@ -236,3 +236,136 @@ Sem commit de código. Diário publicado.
 ### O QUE FICOU
 r4: ensinar `/api/next-action` o estado de recusa determinística (plateia
 medida: 18 de 30 voltam). r5: medir o `source:'server'` da r2.
+
+---
+
+## r5 02:30 — A RECUSA QUE NINGUÉM LEU VOLTA A EXISTIR NA TELA QUE ELA REABRE
+
+### O QUE MEDI — 1: o `source:'server'` da r2 (a pergunta que a r4 deixou)
+
+**Zero oportunidades, não zero sucessos.** `fast_compose_recoverable` tem 49
+eventos / 33 pessoas na história e **nenhum** com `metadata->>'source'`. O
+carimbo da r2 não apareceu porque, desde que `8feb2ea1` entrou em `origin/main`
+(08/09 21:01 BRT = 09/09 00:01 UTC), **não houve um único despacho**: em 5h30
+de produção, 3 pessoas chegaram ao /studio/create e nenhuma apertou Generate.
+
+A r2 continua sem prova de eficácia — e a razão é a madrugada, não o código.
+Não escrevi "não mexeu": não houve o que mexer.
+(memória: `zero-escritas-conte-as-oportunidades`)
+
+### O QUE MEDI — 2: qual causa merecia esta rotação
+
+Quebrei `generation_stage_error` por `reason` (7 dias), como manda a ordem:
+
+| reason | eventos | pessoas |
+|---|---:|---:|
+| **narration_too_short** | **21** | **12** |
+| cinematic_dispatch_not_ok | 12 | 1 |
+| cinematic_provider_queued | 10 | 2 |
+| compose_daily_free_limit (PORTÃO) | 7 | 4 |
+| cinematic_gate_trial_ended (PORTÃO) | 6 | 2 |
+
+**A dívida do CLAUDE.md "cena falhou → retentar a CENA" NÃO tem coorte viva.**
+Conferi os 25 `cinematic_dispatch_result` de 30 dias: `accepted == planned` em
+**todos**. O 503 da fal de 01/09 não voltou. Construir a retentativa de cena
+hoje seria código para zero ocorrências — anotado como dívida real, sem coorte.
+
+### A CAUSA QUE FECHEI
+
+A trava de narração recusa **muito bem**: 422 com segundos de fala, palavras
+que faltam, duração que caberia, espiral de reincidência, e desde 02/09 sem
+tocar em crédito. O defeito não é a recusa — **é que ela tem um leitor só.**
+`grep narrationTooShort` no produto inteiro devolve **uma** linha fora da rota:
+`GenerateClient.tsx:9108`. Esse leitor só existe enquanto a aba está montada;
+no auto-start a pessoa já foi embora quando a resposta chega (r3: 19% de tela
+vista no auto-start contra 59% no manual).
+
+### POR QUE NÃO FUI PARA O /api/next-action (a recomendação da r3)
+
+**Alcance medido, e ele reprova a jogada anterior.** Das 31 pessoas bloqueadas
+em 30 dias, quantas cada superfície alcança:
+
+| superfície | pessoas das 31 | eventos |
+|---|---:|---:|
+| **/studio/create (`generate_page_view`)** | **14** | 71 |
+| `generate_arrived_server` | 13 | 45 |
+| `/api/next-action` (`next_action_served`) | **2** | — |
+
+O next-action alcança **6%** da coorte; a tela de criar, **45%** — 7x mais.
+O aviso foi para onde a plateia está. (memória:
+`medir-alcance-da-superficie-antes-de-ligar`)
+
+⚠️ Correção de um número da r3: "18 de 30 voltam" foi medido com corte na hora
+do bloqueio e contava a própria cauda da tentativa (17 das 31 têm
+`generation_stage_error` como evento seguinte — é o servidor, não a pessoa).
+Com corte em +10min e só evento de navegador, o número que importa é o da
+tabela acima. (memória: `corte-que-pega-o-proprio-envio`)
+
+### O QUE MUDOU
+
+Três arquivos novos/tocados, nenhum deles no pipeline de qualidade:
+
+1. `lib/entrega/refusalNotice.ts` — a decisão **pura**. Três silêncios, cada um
+   por um motivo diferente: já leu a tela · já fez filme depois · bloqueio com
+   mais de 14 dias. Idade negativa (relógio torto, o incidente PGRST303) falha
+   **fechada**. `charged` é **tri-estado**: campo ausente não vira `false`, e a
+   frase "No credits were charged" só sai com o `false` provado.
+2. `lib/entrega/refusalNoticeServer.ts` — o leitor com service role (a tabela
+   `events` está fechada para `authenticated` desde 26/08). **Separado de
+   propósito**: se o cliente do service role morasse no arquivo puro, ele
+   entraria no bundle do navegador junto com a chave.
+3. `app/(dashboard)/studio/create/page.tsx` + `GenerateClient.tsx` — o aviso na
+   chegada, ao lado dos outros cards de verdade-do-servidor. Diz o que
+   aconteceu com os números reais, e oferece **um botão que faz algo visível**:
+   "Make it 35s" muda a duração de verdade (`setDuration`) e confirma na tela.
+   Sem botão quando nenhuma duração do seletor cabe — 0 é "não há botão
+   honesto", não "ofereça qualquer coisa".
+
+**Nada de e-mail, crédito, render, prompt de cena, contrato, régua de voz,
+planner, motor ou preço.** O 422 do servidor continua byte a byte o mesmo.
+
+### GUARDIÃO
+
+`scripts/test-entrega-noite-r5-2026-09-09.mjs` — **27 verificações, verdes.**
+Estilo `readFileSync`, CRLF normalizado, zero `import` com alias `@/`.
+`check(nome, condição)` em ordem fixa.
+
+Falsificado por **3 mutações, cada uma com a aplicação provada por `grep` do
+texto inserido** (mutação que não aplica devolve verde e se lê como guardião
+resistindo):
+
+| mutação | o que quebra | resultado |
+|---|---|---|
+| `if (fatos.sawScreenAfter)` → `if (false && …)` | o silêncio de quem já leu | ✓ pegou (nº 1) |
+| gate da impressão → cópia da regra (`!refusalNotice`) | medir caixa diferente da desenhada | ✓ pegou (nº 22) |
+| um `.gt('created_at', blockedAt)` → `'1970-01-01'` | contar tela/filme de antes do bloqueio | ✓ pegou (nº 18) |
+
+### SUÍTE
+
+`npx tsc --noEmit --incremental false` verde (com junção de `node_modules`).
+`test-variety-axis` · `test-versao-b-entrada-1-dolar-2026-09-08` ·
+`test-sistema-de-compra-2026-09-08` · `test-preco-v7-2026-09-09` — **verdes**.
+
+### SHA
+
+**`3f9337fa` em `origin/main`** (fila 1→0, bat oficial). Home 200.
+
+### COMO MEDIR (corte no campo novo, nunca no relógio)
+
+`refusal_notice_shown` é o carimbo desta entrega — e ele já nasce com
+`tem_botao`, para que "ninguém quis" e "não havia botão" nunca tenham o mesmo
+placar. As três perguntas da r6:
+1. `refusal_notice_shown` — quantas pessoas distintas (alvo: até 14 das 31).
+2. `refusal_notice_action_clicked` / `refusal_notice_shown` **onde
+   `tem_botao=true`** — o degrau que mede se o remédio é apertado.
+3. Dos que viram: quantos despacharam depois **e completaram**.
+
+### O QUE FICOU
+
+· Retentativa de cena: dívida real, **coorte zero** hoje — não construir sem um
+  503 orgânico aparecer em `cinematic_dispatch_result`.
+· A r2 segue sem denominador; a madrugada não despacha.
+· `vendor_asset_expired`: 36 eventos / 8 pessoas nesta madrugada, todos de
+  filmes de MAIO cuja URL do fornecedor deu 404. É a memória
+  `fallback-silencioso-vaza-no-caso-caro` cobrando — filme entregue que morre
+  depois. Fora da janela desta rotação; fica nomeado para o fechamento.
