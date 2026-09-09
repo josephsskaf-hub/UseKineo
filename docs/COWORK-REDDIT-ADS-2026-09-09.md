@@ -38,7 +38,7 @@ TAREFA: montar (sem lançar) uma campanha no Reddit Ads a partir do Chrome já l
 4. Anúncio (ad):
    - Formato: Video ad (upload). Arquivo: C:\kineo\docs\ads\kineo-reddit-sep09-16x9.mp4 (19 s, 1280x720, sem áudio). Se o uploader exigir miniatura, use C:\kineo\docs\ads\kineo-reddit-sep09-frames.png.
    - Headline (título do post): Type an idea. Get a narrated, edited cinematic Short in ~3 minutes.
-   - Texto/descrição (se houver campo): Kineo directs, narrates and edits the film for you — 8 engines, no camera, no editing. Try 7 days of Creator for $1.
+   - Texto/descrição (se houver campo): Kineo directs, narrates and edits the film for you — 8 engines, no camera, no editing. Free to start: 30 credits, every engine, no card.
    - Botão (CTA): Learn More (ou Try Now, se existir).
    - Destination URL: https://www.usekineo.com/ph?utm_source=reddit&utm_medium=cpc&utm_campaign=reddit_sep09
    - Display URL: usekineo.com
@@ -59,3 +59,7 @@ Proibido: criar conta, alterar método de pagamento, aceitar termos novos, mexer
 ## Depois do "reddit no ar" (fundador avisa)
 - Claude abre a linha `reddit` no placar: cadastros com `utm_source='reddit'` → `card_entry_banner_clicked` → `checkout_started` (`intent_campaign='reddit_sep09'`) → `payment_success` (`card_trial`).
 - Leitura em 24h e 48h nas rotinas das 22:10/09:10.
+
+## 09/09 ~18:50 — RESTAURAÇÃO: o anúncio para de falar em $1
+
+O trial de $1 morreu (docs/DECISAO-RESTAURACAO-2026-09-09.md). Criativos novos com a cartela final "Start free — 30 credits · every engine · no card": public/ads/kineo-reddit-sep09-4x5-v2.mp4 e kineo-reddit-sep09-16x9-v3.mp4 (cópias em C:kineodocsads). Os 15 s de filme são os mesmos; só os 4 s finais mudaram. Texto do anúncio: "Kineo directs, narrates and edits the film for you — 8 engines, no camera, no editing. Free to start: 30 credits, every engine, no card." Destino continua /ph (agora grátis). Gerador: scripts/reddit-cartela-free.mjs.
