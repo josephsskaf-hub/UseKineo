@@ -1,18 +1,24 @@
 {
   "classification": "EVIDÊNCIA OPERACIONAL",
-  "updatedAt": "2026-09-10T14:28:00-03:00",
+  "updatedAt": "2026-09-10T22:10:57.535Z",
   "threadTitle": "Kineo · Citações no ChatGPT",
   "worktree": "C:/kineo/.claude/worktrees/citacoes-01-2026-09-10",
   "branch": "codex/citacoes-01-2026-09-10",
   "liveCount": 5,
   "preparedAdditionalCount": 3,
   "targetUniquePages": 8,
-  "liveCommits": ["94b2be4e", "2e8f99ae"],
+  "liveCommits": [
+    "94b2be4e",
+    "2e8f99ae"
+  ],
   "preparedCodeCommit": "7f3f9622",
   "liveEvidence": "production-lote-01.json",
   "localEvidence": "local-verification.json",
-  "localHttpChecks": {"passed": 11, "total": 11},
-  "fullTypecheck": "Fails after Nextdev creates route types: preexisting ENGINES export in the unchanged dynamic engine page. See CITACOES-01; do not hide or modify generated types.",
+  "localHttpChecks": {
+    "passed": 11,
+    "total": 11
+  },
+  "fullTypecheck": "PASS: exit 0 on integrated tree 35dfe3c8 (main 7827f2e0), including preserved .next/types, 2026-09-10 19:09 BRT. Repeat after final integration if the base changes.",
   "livePaths": [
     "/ai-video-generator/free-script-to-faceless-video",
     "/ai-video-generator/free-faceless-tiktok-tools",
@@ -25,18 +31,60 @@
     "/ai-video-generator/horror-story-60-seconds",
     "/ai-video-generator/chatgpt-script-to-finished-short"
   ],
-  "transportStatus": "PRONTO PARA PUBLICAR; Board retained current BAT/enfileirar. No direct push/API replacement, broad lock cleanup or force of others' branches.",
+  "transportStatus": "Board transport hold remains. Typecheck blocker resolved locally on integrated main; two independent baseline guard failures documented. No BAT/enfileirar, direct push/API, broad lock cleanup or force of others branches.",
   "transportDependency": "C:/Users/josep/.codex/outputs/01a03e3e-5f63-7cf1-8b9f-6c6646b446b7/FILA-TRANSPORTE-DOCS-2026-09-10.md",
   "automationOwner": "Board",
   "existingAutomationId": "kineo-cita-es-no-chatgpt-7-dias",
   "rotation": "hourly until 2026-09-11T00:00:00-03:00; no renewal and no new automation",
   "measurementAt": "2026-09-10T20:00:00-03:00",
-  "baseline": {"realChatgptResponses": 20, "mentions": 4, "obsoleteOffers": 3, "measuredAt": "2026-09-10 13:49:50–14:00:11 BRT", "file": "chatgpt-20-perguntas.json"},
+  "baseline": {
+    "realChatgptResponses": 20,
+    "mentions": 4,
+    "obsoleteOffers": 3,
+    "measuredAt": "2026-09-10 13:49:50–14:00:11 BRT",
+    "file": "chatgpt-20-perguntas.json"
+  },
   "continuation": [
     "Preserve five live pages and three prepared pages; do not produce redundant Q9/Q10 pages beyond the eight-page mandate.",
-    "Use the single Board transport dependency; do not retry blocked cleanup or reexecute current transport.",
+    "Use the single Board transport dependency; do not retry blocked cleanup or reexecute current transport. Consider c633ed8b and integration35dfe3c8 plus following handoff commit when reviewing pending pages.",
     "After approved safe integration and deployment, verify prepared pages and discovery, then update published counts with dated evidence.",
     "At 20h repeat ten literal EN questions and ten PT translations in independent chats, plus only genuinely new unique questions. These eight pages add no new question to the baseline.",
     "Record response rank and commercial terms separately from web-search retrieval. Do not infer signup or revenue recovery."
-  ]
+  ],
+  "catalogFixCommit": "c633ed8b",
+  "integratedMainCommit": "7827f2e07f89b55e2a020b266a48ec98247e5bd4",
+  "integrationCommit": "35dfe3c8",
+  "catalogEvidence": "engine-catalog-verification.json",
+  "engineRoutesEvidence": "local-engine-routes-verification.json",
+  "catalogChecks": {
+    "passed": 24,
+    "total": 24,
+    "flagScenarios": 2
+  },
+  "engineRouteChecks": {
+    "passed": 8,
+    "total": 8
+  },
+  "guardResults": {
+    "llms": {
+      "exitCode": 0,
+      "checks": 91
+    },
+    "money": {
+      "exitCode": 0,
+      "checks": 322
+    },
+    "arena": {
+      "exitCode": 0,
+      "checks": 81
+    },
+    "aeo": {
+      "exitCode": 1,
+      "baselineFailure": "s25 included in actual engine list, absent from expected list"
+    },
+    "signup": {
+      "exitCode": 1,
+      "baselineFailure": "product destination is named before generic creation copy"
+    }
+  }
 }
