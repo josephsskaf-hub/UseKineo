@@ -1461,6 +1461,40 @@ async function buildAndRedirect(
     ? settlementAmountMinor(unitAmount, chargeCurrency)
     : planSettlementAmountMinor(tier, isAnnual ? 'annual' : 'monthly', chargeCurrency, unitAmount)
 
+  // ═══════════════════════════════════════════════════════════════════════
+  // KINEO-PAGAR-SETTLEMENT-NO-FUNIL-2026-09-10 — o funil precisa saber em que
+  // moeda a sessão NASCEU, não só qual preço a vitrine mostrou.
+  // ═══════════════════════════════════════════════════════════════════════
+  // MEDIDO EM 10/09: as 4 sessões criadas depois do deploy da moeda local não
+  // têm `settlement_currency` em `events` — 0 de 4. O campo existe apenas na
+  // metadata da SESSÃO da Stripe (linha ~1553), que o funil não lê.
+  //
+  // O dano é pior do que uma ausência, porque o nome `currency` já está
+  // ocupado e significa COISAS DIFERENTES em três eventos do mesmo funil:
+  //   · checkout_started        → `currency` = preço de LISTA (sempre 'usd')
+  //   · checkout_session_expired → `currency` = moeda REAL da Stripe
+  //   · payment_success          → `currency` = moeda REAL da Stripe
+  // Prova: a sessão cs_live_b1mHUNPE… (10/09 00:31) gravou
+  // `checkout_started.currency = 'usd'` e fechou em `payment_success.currency
+  // = 'brl'`, 4990. Quem cruzar os dois lê uma troca de moeda que nunca houve.
+  //
+  // Os caminhos de PACK já carimbam settlement_currency/charge_amount desde o
+  // deploy da moeda (skuContext). Só o caminho de ASSINATURA — o único que faz
+  // MRR — ficou cego. Esta é a metade que faltou.
+  //
+  // `checkout_attempted` NÃO recebe estes campos de propósito: ele é emitido
+  // na linha ~1093, antes de `resolveSettlementCurrency`, que depende de uma
+  // leitura de banco (priorBrazilianCardFailure). Carimbar lá exigiria mover a
+  // resolução para antes da autenticação — outra mudança, não instrumentação.
+  checkoutMetadata = {
+    ...checkoutMetadata,
+    settlement_currency: chargeCurrency,
+    settlement_reason: settlement.reason,
+    settlement_amount_minor: chargeAmount,
+    list_price_usd_minor: unitAmount,
+  }
+  failureContext = { ...checkoutMetadata }
+
   const autopilotPriceId = tier === 'autopilot' && chargeCurrency === 'usd' ? autopilotPriceIdOverride(currency) : null
   const lineItem: Stripe.Checkout.SessionCreateParams.LineItem = autopilotPriceId
     ? { price: autopilotPriceId, quantity: 1 }
