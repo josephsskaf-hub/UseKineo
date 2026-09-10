@@ -2020,3 +2020,48 @@ contra 109.
 
 **Limite:** 7 pessoas em 17 h. Os erros do classificador não dependem da coorte
 (reproduzem executando a lib), mas o efeito de qualquer conserto no funil, sim.
+
+## PAGAR r1 — o funil mentia sobre a moeda, e o gesto some antes do checkout (Claude, 10/09 14:45 BRT)
+
+Diário: `docs/SPRINT-PAGAR-2026-09-10.md`. SHA `2aaa5c3e`.
+
+**ACHADO QUE VALE PARA QUALQUER PISTA QUE LEIA MOEDA NO FUNIL:** o nome
+`currency` significa coisas DIFERENTES em três eventos do mesmo funil —
+em `checkout_started` é o preço de **LISTA** (sempre `usd`), em
+`checkout_session_expired` e `payment_success` é a moeda **REAL** da Stripe.
+Prova: a sessão `cs_live_b1mHUNPE…` (10/09 00:31) gravou
+`checkout_started.currency='usd'` e fechou em `payment_success.currency='brl'`,
+4990 — a mesma sessão, a mesma pessoa. **Não ler troca de moeda nesse par.**
+Desde `2aaa5c3e`, o caminho de assinatura carimba `settlement_currency` /
+`settlement_reason` / `settlement_amount_minor` / `list_price_usd_minor` no
+`checkout_started`, e a parede repete a liquidação nos dois ramos. Os caminhos
+de **pack** já faziam isso desde o deploy da moeda; só a assinatura — o único
+caminho que faz MRR — estava cega (0 de 4 sessões pós-deploy).
+Corte de medição: `metadata ? 'settlement_currency'`, **nunca o relógio**.
+`checkout_attempted` segue sem os campos de propósito (é emitido antes da
+resolução, que depende de leitura de banco).
+
+**RETRATO POR PESSOA, para ninguém remedir:** coorte da restauração
+(`trial_credits_granted` = 30, marco 09/09 23:08:40 UTC) = 9 pessoas, 2
+internas → **7 externas**. 7 nasceram → 6 fizeram filme → **1 viu /pricing → 0
+clicaram CTA → 0 abriram checkout → 0 pagaram**. Seis das sete viram alguma
+superfície de oferta (`welcome_offer_viewed` 3, `trial_post_video_offer_viewed`
+3, `upgrade_modal_opened` 1) — o degrau seco **não** é falta de oferta, é
+oferta vista sem gesto.
+
+**CORREÇÃO DE LEITURA (vale para o placar e para a pista de moeda):** todas as
+expirações de checkout com `ip_country=BR` de hoje são da conta
+`josephsskaf@gmail.com` (`e92d81bf…`, 22 aberturas e 39 expirações em 14 d) —
+é o **próprio fundador**, não cliente. **Desde a restauração, zero brasileiros
+externos chegaram ao checkout.** A rede de segurança BRL foi exercitada uma
+única vez, pelo teste da AF-09. A fila de checkout repetido (6 pessoas, 2
+aberturas cada, 0 pagamentos, 0 recusas) é **DE/UA/NG/KG/IN** — não BR.
+Quem for otimizar moeda: o trabalho está certo e está sem plateia.
+
+**Falso alarme descartado com denominador:** `checkout_started` parou às 01:05
+UTC e `pricing_view` seguiu às 16:29 — não é defeito, as views de hoje têm
+`user_id` nulo (deslogado).
+
+**Baseline da suíte** em `origin/main` d1aa0341: **484 guardiões, 109
+vermelhos herdados** (bate com o que a sprint FILME mediu). Depois de
+`2aaa5c3e`: 485 guardiões, 109 vermelhos, 0 novos.
