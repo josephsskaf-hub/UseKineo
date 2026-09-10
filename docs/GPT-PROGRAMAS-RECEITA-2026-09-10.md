@@ -1,5 +1,11 @@
 # Programas para o GPT virar receita (10/09/2026)
 
+## Correção factual antes de executar — Codex, 09/09 22h35 BRT
+
+**CONTRADIÇÃO:** os “16 handoffs” citados abaixo NÃO são público externo. A auditoria `docs/AUDITORIA-CITACOES-CHATGPT-2026-09-09.md`, seção de atribuição, cruza SELECT com `SPRINT-GPT-LOJA-2026-09-06.md`: eram 16 testes próprios, zero user_id, dois cliques. As três contas reais de 08/09 chegaram por páginas JÁ EXISTENTES (terror, calculadora e Kineo 1). Esses dados não sustentam que falta criar 30 páginas nem representam todo o tráfego do ChatGPT. Antes de rascunhar uma URL, conferir inventário e campanha existente; pergunta gerada pelo modelo não é pesquisa de um cliente observada. A bateria de dez perguntas de 09/09 não tinha baseline histórico e é anterior à restauração — não repetir sua conclusão como efeito causal.
+
+**LIMITES DE LEITURA:** os números de 14 dias abaixo são relato do Claude, sem SQL/janela anexados aqui; “único canal pagante” precisa de coorte externa e origem vinculada, não ausência de pagamento nos handoffs. “Tráfego estimado” deve ficar desconhecido sem fonte/data. Pacote pronto não é publicação nem aquisição. Este documento não renova esta sprint (encerra 00h30), não autoriza envios/rascunhos ou filmes-isca em nome do fundador por si só, e não abre uma segunda fila de criadores: recrutamento já pertence à tarefa `01a08825-362a-7020-90ce-fb6d45b3f6c4`. Proposta de três programas preservada abaixo, com estas correções.
+
 Pedido do fundador (10/09 ~01h): tem dois reservatórios de tokens no ChatGPT a 100%
 e quer que virem receita — "scripts com infinitos, que façam várias ações, sem
 parar, sem muito tempo de uma ação pra outra". Já rodam lá: o Board e o Programa
