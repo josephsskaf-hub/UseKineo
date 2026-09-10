@@ -8,6 +8,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createSupabaseAdmin } from '@supabase/supabase-js'
 import { stripe } from '@/lib/stripe'
+import { BRL_PER_USD_HOUSE } from '@/lib/settlementCurrency'
 
 export const dynamic = 'force-dynamic'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
@@ -241,14 +242,20 @@ export async function GET() {
 
     const rows = (commissions ?? []) as CommissionRow[]
 
+    // KINEO-MOEDA-LOCAL-2026-09-09 — desde 09/09 o indicado brasileiro paga em
+    // REAIS e a comissão nasce em BRL (primeira linha real: 1497 BRL). Somar
+    // centavos de BRL com centavos de USD num número só mentia por 5×. O painel
+    // fala em USD: BRL converte pelo câmbio da casa (a mesma tabela que cobra).
+    // 'void' (teste anulado) e 'clawed_back' ficam fora de tudo.
+    const toUsdMinor = (c: CommissionRow, amt: number) => (String(c.currency ?? 'usd').toLowerCase() === 'brl' ? Math.round(amt / BRL_PER_USD_HOUSE) : amt)
     const earnings = { pending: 0, approved: 0, paid: 0, total: 0 }
     for (const c of rows) {
-      const amt = c.commission_amount ?? 0
+      if (c.status === 'void' || c.status === 'clawed_back') continue
+      const amt = toUsdMinor(c, c.commission_amount ?? 0)
       if (c.status === 'pending') earnings.pending += amt
       else if (c.status === 'approved') earnings.approved += amt
       else if (c.status === 'paid') earnings.paid += amt
-      // total = everything not clawed back
-      if (c.status !== 'clawed_back') earnings.total += amt
+      earnings.total += amt
     }
 
     const recent = rows.slice(0, 20).map((c) => ({
