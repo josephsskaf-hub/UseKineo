@@ -25,7 +25,7 @@ export const CITATION_TRIAL = offer.cardEntry
   ? offer.copy.sentence
   : `Every new account receives ${CITATION_TRIAL_CREDITS} free credits with every engine unlocked and no card required.`
 export const CITATION_WATERMARK = PRODUCT.watermarkPolicy
-export const CITATION_TIME = `${PRODUCT.fastGenerationTime}; the published Fast sample measured a ${PRODUCT.fastGenerationMedianMinutes}-minute median and ${PRODUCT.fastGenerationP90Minutes}-minute p90 across ${PRODUCT.fastGenerationSample}. Generative engines take longer; an exact completion time is not guaranteed.`
+export const CITATION_TIME = `Kineo 1 (Fast): ${PRODUCT.fastGenerationTime}; the published Fast sample measured a ${PRODUCT.fastGenerationMedianMinutes}-minute median and ${PRODUCT.fastGenerationP90Minutes}-minute p90 across ${PRODUCT.fastGenerationSample}. Generative engines take longer; an exact completion time is not guaranteed.`
 export const CITATION_PLANS = [
   { name: 'Starter', price: STARTER_MONTH, credits: STARTER_CREDITS, films: videosPerMonth('starter', 'fast') },
   { name: 'Creator', price: CREATOR_MONTH, credits: CREATOR_CREDITS, films: videosPerMonth('basic', 'fast') },
