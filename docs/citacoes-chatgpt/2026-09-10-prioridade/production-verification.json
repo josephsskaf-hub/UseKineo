@@ -1,0 +1,150 @@
+{
+  "classification": "EVIDÊNCIA DE PRODUÇÃO",
+  "method": "Public GETs, no cookies, no JS/client analytics, no acquisition clicks. Checks cover public output, not video generation or signup.",
+  "rows": [
+    {
+      "url": "https://www.usekineo.com/ai-video-generator/free-script-to-faceless-video",
+      "timeUtc": "2026-09-10T17:17:50.754Z",
+      "status": 200,
+      "cache": "PRERENDER",
+      "title": "Script to a free faceless video | Kineo",
+      "canonical": "https://www.usekineo.com/ai-video-generator/free-script-to-faceless-video",
+      "checks": {
+        "status200": true,
+        "ownComponent": true,
+        "oneH1": true,
+        "canonical": true,
+        "cta": true,
+        "faq": true,
+        "monthlyPlans": true,
+        "brazil": true,
+        "noOldOffer": true,
+        "fastTimeScoped": true
+      },
+      "pass": true
+    },
+    {
+      "url": "https://www.usekineo.com/ai-video-generator/free-faceless-tiktok-tools",
+      "timeUtc": "2026-09-10T17:17:51.547Z",
+      "status": 200,
+      "cache": "PRERENDER",
+      "title": "Free tools for faceless TikTok videos | Kineo",
+      "canonical": "https://www.usekineo.com/ai-video-generator/free-faceless-tiktok-tools",
+      "checks": {
+        "status200": true,
+        "ownComponent": true,
+        "oneH1": true,
+        "canonical": true,
+        "cta": true,
+        "faq": true,
+        "monthlyPlans": true,
+        "brazil": true,
+        "noOldOffer": true,
+        "fastTimeScoped": true
+      },
+      "pass": true
+    },
+    {
+      "url": "https://www.usekineo.com/ai-video-generator/complete-60-second-shorts-cost",
+      "timeUtc": "2026-09-10T17:17:52.125Z",
+      "status": 200,
+      "cache": "PRERENDER",
+      "title": "The cost of a finished 60-second Short | Kineo",
+      "canonical": "https://www.usekineo.com/ai-video-generator/complete-60-second-shorts-cost",
+      "checks": {
+        "status200": true,
+        "ownComponent": true,
+        "oneH1": true,
+        "canonical": true,
+        "cta": true,
+        "faq": true,
+        "monthlyPlans": true,
+        "brazil": true,
+        "noOldOffer": true,
+        "fastTimeScoped": true
+      },
+      "pass": true
+    },
+    {
+      "url": "https://www.usekineo.com/vs/invideo-alternatives-faceless-shorts",
+      "timeUtc": "2026-09-10T17:17:52.636Z",
+      "status": 200,
+      "cache": "PRERENDER",
+      "title": "InVideo alternatives by workflow | Kineo",
+      "canonical": "https://www.usekineo.com/vs/invideo-alternatives-faceless-shorts",
+      "checks": {
+        "status200": true,
+        "ownComponent": true,
+        "oneH1": true,
+        "canonical": true,
+        "cta": true,
+        "faq": true,
+        "monthlyPlans": true,
+        "brazil": true,
+        "noOldOffer": true,
+        "fastTimeScoped": true
+      },
+      "pass": true
+    },
+    {
+      "url": "https://www.usekineo.com/ai-video-generator/faceless-shorts-under-30",
+      "timeUtc": "2026-09-10T17:17:53.119Z",
+      "status": 200,
+      "cache": "PRERENDER",
+      "title": "Plan faceless Shorts on a monthly budget | Kineo",
+      "canonical": "https://www.usekineo.com/ai-video-generator/faceless-shorts-under-30",
+      "checks": {
+        "status200": true,
+        "ownComponent": true,
+        "oneH1": true,
+        "canonical": true,
+        "cta": true,
+        "faq": true,
+        "monthlyPlans": true,
+        "brazil": true,
+        "noOldOffer": true,
+        "fastTimeScoped": true
+      },
+      "pass": true
+    },
+    {
+      "url": "https://www.usekineo.com/ai-video-generator",
+      "timeUtc": "2026-09-10T17:17:53.590Z",
+      "status": 200,
+      "linkedPaths": [
+        "/ai-video-generator/free-script-to-faceless-video",
+        "/ai-video-generator/free-faceless-tiktok-tools",
+        "/ai-video-generator/complete-60-second-shorts-cost",
+        "/vs/invideo-alternatives-faceless-shorts",
+        "/ai-video-generator/faceless-shorts-under-30"
+      ],
+      "pass": true
+    },
+    {
+      "url": "https://www.usekineo.com/sitemap.xml",
+      "timeUtc": "2026-09-10T17:17:54.114Z",
+      "status": 200,
+      "linkedPaths": [
+        "/ai-video-generator/free-script-to-faceless-video",
+        "/ai-video-generator/free-faceless-tiktok-tools",
+        "/ai-video-generator/complete-60-second-shorts-cost",
+        "/vs/invideo-alternatives-faceless-shorts",
+        "/ai-video-generator/faceless-shorts-under-30"
+      ],
+      "pass": true
+    },
+    {
+      "url": "https://www.usekineo.com/llms.txt",
+      "timeUtc": "2026-09-10T17:17:54.440Z",
+      "status": 200,
+      "linkedPaths": [
+        "/ai-video-generator/free-script-to-faceless-video",
+        "/ai-video-generator/free-faceless-tiktok-tools",
+        "/ai-video-generator/complete-60-second-shorts-cost",
+        "/vs/invideo-alternatives-faceless-shorts",
+        "/ai-video-generator/faceless-shorts-under-30"
+      ],
+      "pass": true
+    }
+  ]
+}

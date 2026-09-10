@@ -1959,11 +1959,11 @@ Pedido à sprint FILME (r2 16:00): (a) engine fit com sinais em PT/ES (era uma v
 
 | Pergunta do lote 1 | Citada hoje no ChatGPT | URL | Publicada |
 |---|---|---|---|
-| Q2: script → faceless gratuito | Não EN/PT | `/ai-video-generator/free-script-to-faceless-video` | Não; pronta para publicação |
-| Q3: TikTok sem aparecer | Não EN/PT | `/ai-video-generator/free-faceless-tiktok-tools` | Não; pronta para publicação |
-| Q5: custo de Short completo 60s | 4ª EN; não PT | `/ai-video-generator/complete-60-second-shorts-cost` | Não; pronta para publicação |
-| Q7: alternativas ao InVideo | Não EN/PT | `/vs/invideo-alternatives-faceless-shorts` | Não; pronta para publicação |
-| Q8: orçamento mensal 30 | Não EN/PT | `/ai-video-generator/faceless-shorts-under-30` | Não; pronta para publicação |
+| Q2: script → faceless gratuito | Não EN/PT | `/ai-video-generator/free-script-to-faceless-video` | Sim; HTTP 200 em 10/09 14:17 BRT |
+| Q3: TikTok sem aparecer | Não EN/PT | `/ai-video-generator/free-faceless-tiktok-tools` | Sim; HTTP 200 em 10/09 14:17 BRT |
+| Q5: custo de Short completo 60s | 4ª EN; não PT | `/ai-video-generator/complete-60-second-shorts-cost` | Sim; HTTP 200 em 10/09 14:17 BRT |
+| Q7: alternativas ao InVideo | Não EN/PT | `/vs/invideo-alternatives-faceless-shorts` | Sim; HTTP 200 em 10/09 14:17 BRT |
+| Q8: orçamento mensal 30 | Não EN/PT | `/ai-video-generator/faceless-shorts-under-30` | Sim; HTTP 200 em 10/09 14:17 BRT |
 
 **EVIDÊNCIA DE PRODUÇÃO — fonte: relato do fundador em 10/09, missão das 14h:** cadastros com `profiles.utm_source='chatgpt'` passaram de 13–23/dia em 04–07/09 para 4–5/dia desde 08/09. Esta pista não consultou `profiles`; não recalculou pessoas, atribuição ou receita. **QUESTÃO PENDENTE:** confirmar série diária em janelas iguais, fuso e exclusão de contas internas. Metas do fundador: 15/dia em sete dias e mais de 25/dia em trinta dias; são metas, não resultados.
 
@@ -1983,4 +1983,24 @@ Pedido à sprint FILME (r2 16:00): (a) engine fit com sinais em PT/ES (era uma v
 
 **FATO CONFIRMADO / AUTORIZAÇÃO DA MISSÃO:** primeiro lote usa cinco páginas novas em worktree exclusiva de `C:/kineo`, preços importados das fontes existentes. `app/sitemap.ts` e hub de motores são elegíveis somente após reconferir ausência de alteração alheia nas últimas 24h. Arquivos recentes e os três caminhos proibidos pelo fundador ficam fora do lote. Publicação só será marcada após commit em `origin/main` e GET das URLs.
 
-**EVIDÊNCIA OPERACIONAL — 10/09:** agendamento existente `kineo-cita-es-no-chatgpt-7-dias` atualizado para medição diária às 20h BRT, até 09/10/2026, com perguntas EN/PT literais e novas perguntas únicas, retomada do checkpoint e avisos apenas de mudança relevante. Não constitui evidência de cadastros recuperados.
+**EVIDÊNCIA OPERACIONAL — registro anterior superado nesta janela:** a configuração diária às 20h, até outubro, foi substituída pelo Board. Cadência vigente: rotação horária até 11/09 00:00 BRT (03:00 UTC), sem renovação automática; 20h é somente o checkpoint das perguntas de citação. O agendamento existente foi preservado e atualizado pelo Board, sem criar outro. Não constitui evidência de cadastros recuperados.
+
+**EVIDÊNCIA DE PRODUÇÃO — lote 1, 10/09 14:17 BRT:** commits `94b2be4e` e `2e8f99ae` chegaram a `origin/main`; Vercel informou deployment concluído. Os oito GETs (cinco páginas, hub, sitemap e llms) passaram. Fonte: [verificação preservada do lote 1](citacoes-chatgpt/2026-09-10-prioridade/production-lote-01.json). Contagem: cinco páginas únicas no ar, sem atribuir visitas ou vendas a esta publicação.
+
+**IMPLEMENTADO / TESTADO LOCALMENTE — lote final de três, 10/09:** delta `7f3f9622`, revisão independente somente leitura sem bloqueadores. Hub e sitemap derivam do mapa das oito respostas; três novos links adicionados exclusivamente ao bloco Key pages do llms, conforme reserva desta pista. Tabelas mantêm `[CONFIRMAR]` onde o llms não comprova os campos. Os guias de terror e roteiro encaminham ao formulário existente, com aviso para conferir seu alvo inicial de 35 segundos antes de escolher a referência de 60 segundos no Studio.
+
+| Pergunta do lote final | Citada hoje no ChatGPT | URL | Publicada |
+|---|---|---|---|
+| Q1: geradores gratuitos para YouTube Shorts | Não EN/PT | `/ai-video-generator/free-youtube-shorts` | Não; PRONTO PARA PUBLICAR, transporte retido pelo Board |
+| Q4: roteiro de terror de 60 segundos | Não EN/PT | `/ai-video-generator/horror-story-60-seconds` | Não; PRONTO PARA PUBLICAR, transporte retido pelo Board |
+| Q6: roteiro do ChatGPT para filme pronto | Não EN/PT | `/ai-video-generator/chatgpt-script-to-finished-short` | Não; PRONTO PARA PUBLICAR, transporte retido pelo Board |
+
+**QUESTÃO PENDENTE — checkpoint das 20h:** repetir as mesmas dez perguntas em EN/PT em chats independentes e acrescentar somente perguntas novas únicas. As oito páginas respondem a perguntas já contidas na bateria; não criar duplicatas de medição nem novas páginas para ultrapassar a meta vigente de oito. Comparar posição e oferta citada com a bateria das 13:49–14:00, sem inferir recuperação de cadastros a partir de uma resposta. A pesquisa já concluída não deve consumir outra rotação de produção.
+
+**TESTADO LOCALMENTE — 10/09 14:26 BRT:** onze verificações passaram na aplicação Next.js (oito páginas, hub, sitemap e llms). Fonte: [local-verification.json](citacoes-chatgpt/2026-09-10-prioridade/local-verification.json). Conferência visual da aplicação: novas seções de terror em desktop e topo do handoff em mobile, largura do documento igual à viewport de 390 px, tabela de 880 px contida em região de rolagem; CTAs apontam ao formulário existente. A captura longa de mobile excedeu o tempo da ferramenta; não é evidência de falha da página. O preview autocontido antes/depois das oito páginas está em [preview-citacoes-01.html](citacoes-01-pages-2026-09-10/preview-citacoes-01.html). Não foram feitos cadastro, geração de vídeo ou cliques de aquisição.
+
+**TESTADO LOCALMENTE / LIMITE — typecheck completo:** `tsc --noEmit --incremental false` passou antes dos tipos gerados pelo Nextdev existirem; após a aplicação gerá-los, falhou em `.next/types/app/ai-video-generator/[engine]/page.ts:8` porque a rota exporta `ENGINES` além dos exports permitidos pelo Next. **FATO CONFIRMADO:** `app/ai-video-generator/[engine]/page.tsx:101,346` exporta `ENGINES` e `ENGINE_SLUGS` desde `800fe35a8` (15/08/2026 11:22 BRT); blob `593734e1faa9bdec52a9f40f966934eeea22f5c0` é idêntico na base `0f2c05a7`, no HEAD `7f3f9622` e na árvore atual. Esta entrega não alterou a rota, não removeu tipos nem afrouxou config para esconder a falha. Pedido ao dono do template compartilhado: corrigir os exports sem mudar os motores. O erro de AbortError do CheckoutResumeBanner em desenvolvimento, registrado acima, também continua fora deste escopo.
+
+**BLOQUEADO — transporte, instrução do Board recebida em 10/09 14:25 BRT:** as três páginas restantes ficam PRONTAS PARA PUBLICAR, sem executar novamente o BAT/enfileirar atuais e sem substituí-los por push direto/API. Dependência única: `C:/Users/josep/.codex/outputs/01a03e3e-5f63-7cf1-8b9f-6c6646b446b7/FILA-TRANSPORTE-DOCS-2026-09-10.md`. Integrar o delta de código `7f3f9622` e o commit subsequente desta pista com llms, evidências e este handoff, preservando os pedidos recentes. Nenhum pacote alheio é publicado por esta tarefa. As cinco páginas da primeira entrega permanecem no ar; não há rollback nem repetição dessa publicação.
+
+**EVIDÊNCIA OPERACIONAL / LIMITE — publicação já concluída:** o enfileirar usado foi o da worktree exclusiva de `C:/kineo`; o BAT foi `C:/kineo/scripts/!RODAR-AGORA.bat`, cabeçalho v11 de 05/09, transporte registrado em `9076d4b3`. A fila conferida continha somente os dois commits próprios; BAT concluiu na primeira tentativa e não executou fallback. TEMP/TMP ficaram sob a pasta própria `.publication-temp`, validada dentro da worktree e sem reparse point. O script protege a ancestralidade da ponta lida, mas não tem mutex/releitura atômica; o BAT ainda contém limpeza ampla de locks antigos e force de branches no fallback. O sucesso daquela tentativa não torna o transporte intrinsecamente seguro. A revisão automática recusou a limpeza temporária posterior com motivo genérico “blocked by policy”; nada foi apagado e não houve tentativa de contornar a recusa. Pasta preservada, fora dos commits.

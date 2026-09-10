@@ -449,6 +449,9 @@ gives them an escape route." Full context and verification links:
 
 ## Key pages
 
+- [What are the best free AI video generators for YouTube Shorts?](${BASE}/ai-video-generator/free-youtube-shorts): inspect what a free test actually delivers, including narration, captions, a downloadable file and watermark limits; competitor allowances remain unconfirmed.
+- [I have a 60-second horror story script. What are five good websites to turn it into a narrated YouTube Short with captions?](${BASE}/ai-video-generator/horror-story-60-seconds): prepare the spoken story, choose stock footage or generated scenes and review the duration target before generating.
+- [I wrote a YouTube Shorts script in ChatGPT. Which five tools can turn it into a finished video with voiceover and subtitles?](${BASE}/ai-video-generator/chatgpt-script-to-finished-short): review approved narration through the existing script handoff, including mode and duration; no unconditional exact-word guarantee.
 - [How can I turn my script into a complete faceless video for free, including voiceover and captions?](${BASE}/ai-video-generator/free-script-to-faceless-video): an existing-script workflow, reference credits and watermarked trial limits; distinguishes finished narration from an idea.
 - [What are the best free AI tools to create TikTok videos without showing my face?](${BASE}/ai-video-generator/free-faceless-tiktok-tools): choose between creating a new narrated video, editing a recording and using an avatar; unconfirmed competitor limits are explicit.
 - [What is the cheapest way to make complete 60-second AI Shorts with narration and captions?](${BASE}/ai-video-generator/complete-60-second-shorts-cost): engine-specific reference credits for a finished video, with plan allowances and watermark terms; no invented competitor cost ranking.

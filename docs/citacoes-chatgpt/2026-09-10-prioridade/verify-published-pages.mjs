@@ -8,6 +8,9 @@ const paths = [
   '/ai-video-generator/complete-60-second-shorts-cost',
   '/vs/invideo-alternatives-faceless-shorts',
   '/ai-video-generator/faceless-shorts-under-30',
+  '/ai-video-generator/free-youtube-shorts',
+  '/ai-video-generator/horror-story-60-seconds',
+  '/ai-video-generator/chatgpt-script-to-finished-short',
 ];
 const decode = s => s.replace(/&amp;/g, '&').replace(/&#x27;/g, "'").replace(/&quot;/g, '"');
 const rows = [];

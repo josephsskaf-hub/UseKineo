@@ -4,7 +4,7 @@
   "rows": [
     {
       "url": "http://127.0.0.1:4318/ai-video-generator/free-script-to-faceless-video",
-      "timeUtc": "2026-09-10T17:13:24.323Z",
+      "timeUtc": "2026-09-10T17:26:11.361Z",
       "status": 200,
       "cache": null,
       "title": "Script to a free faceless video | Kineo",
@@ -25,7 +25,7 @@
     },
     {
       "url": "http://127.0.0.1:4318/ai-video-generator/free-faceless-tiktok-tools",
-      "timeUtc": "2026-09-10T17:13:24.706Z",
+      "timeUtc": "2026-09-10T17:26:12.186Z",
       "status": 200,
       "cache": null,
       "title": "Free tools for faceless TikTok videos | Kineo",
@@ -46,7 +46,7 @@
     },
     {
       "url": "http://127.0.0.1:4318/ai-video-generator/complete-60-second-shorts-cost",
-      "timeUtc": "2026-09-10T17:13:24.956Z",
+      "timeUtc": "2026-09-10T17:26:12.690Z",
       "status": 200,
       "cache": null,
       "title": "The cost of a finished 60-second Short | Kineo",
@@ -67,7 +67,7 @@
     },
     {
       "url": "http://127.0.0.1:4318/vs/invideo-alternatives-faceless-shorts",
-      "timeUtc": "2026-09-10T17:13:25.165Z",
+      "timeUtc": "2026-09-10T17:26:13.182Z",
       "status": 200,
       "cache": null,
       "title": "InVideo alternatives by workflow | Kineo",
@@ -88,7 +88,7 @@
     },
     {
       "url": "http://127.0.0.1:4318/ai-video-generator/faceless-shorts-under-30",
-      "timeUtc": "2026-09-10T17:13:25.390Z",
+      "timeUtc": "2026-09-10T17:26:13.307Z",
       "status": 200,
       "cache": null,
       "title": "Plan faceless Shorts on a monthly budget | Kineo",
@@ -108,41 +108,113 @@
       "pass": true
     },
     {
+      "url": "http://127.0.0.1:4318/ai-video-generator/free-youtube-shorts",
+      "timeUtc": "2026-09-10T17:26:13.762Z",
+      "status": 200,
+      "cache": null,
+      "title": "What a free YouTube Shorts test delivers | Kineo",
+      "canonical": "https://www.usekineo.com/ai-video-generator/free-youtube-shorts",
+      "checks": {
+        "status200": true,
+        "ownComponent": true,
+        "oneH1": true,
+        "canonical": true,
+        "cta": true,
+        "faq": true,
+        "monthlyPlans": true,
+        "brazil": true,
+        "noOldOffer": true,
+        "fastTimeScoped": true
+      },
+      "pass": true
+    },
+    {
+      "url": "http://127.0.0.1:4318/ai-video-generator/horror-story-60-seconds",
+      "timeUtc": "2026-09-10T17:26:14.175Z",
+      "status": 200,
+      "cache": null,
+      "title": "Turn a finished horror script into a Short | Kineo",
+      "canonical": "https://www.usekineo.com/ai-video-generator/horror-story-60-seconds",
+      "checks": {
+        "status200": true,
+        "ownComponent": true,
+        "oneH1": true,
+        "canonical": true,
+        "cta": true,
+        "faq": true,
+        "monthlyPlans": true,
+        "brazil": true,
+        "noOldOffer": true,
+        "fastTimeScoped": true
+      },
+      "pass": true
+    },
+    {
+      "url": "http://127.0.0.1:4318/ai-video-generator/chatgpt-script-to-finished-short",
+      "timeUtc": "2026-09-10T17:26:14.671Z",
+      "status": 200,
+      "cache": null,
+      "title": "Check a ChatGPT script before making the film | Kineo",
+      "canonical": "https://www.usekineo.com/ai-video-generator/chatgpt-script-to-finished-short",
+      "checks": {
+        "status200": true,
+        "ownComponent": true,
+        "oneH1": true,
+        "canonical": true,
+        "cta": true,
+        "faq": true,
+        "monthlyPlans": true,
+        "brazil": true,
+        "noOldOffer": true,
+        "fastTimeScoped": true
+      },
+      "pass": true
+    },
+    {
       "url": "http://127.0.0.1:4318/ai-video-generator",
-      "timeUtc": "2026-09-10T17:13:26.249Z",
+      "timeUtc": "2026-09-10T17:26:15.358Z",
       "status": 200,
       "linkedPaths": [
         "/ai-video-generator/free-script-to-faceless-video",
         "/ai-video-generator/free-faceless-tiktok-tools",
         "/ai-video-generator/complete-60-second-shorts-cost",
         "/vs/invideo-alternatives-faceless-shorts",
-        "/ai-video-generator/faceless-shorts-under-30"
+        "/ai-video-generator/faceless-shorts-under-30",
+        "/ai-video-generator/free-youtube-shorts",
+        "/ai-video-generator/horror-story-60-seconds",
+        "/ai-video-generator/chatgpt-script-to-finished-short"
       ],
       "pass": true
     },
     {
       "url": "http://127.0.0.1:4318/sitemap.xml",
-      "timeUtc": "2026-09-10T17:13:27.344Z",
+      "timeUtc": "2026-09-10T17:26:16.217Z",
       "status": 200,
       "linkedPaths": [
         "/ai-video-generator/free-script-to-faceless-video",
         "/ai-video-generator/free-faceless-tiktok-tools",
         "/ai-video-generator/complete-60-second-shorts-cost",
         "/vs/invideo-alternatives-faceless-shorts",
-        "/ai-video-generator/faceless-shorts-under-30"
+        "/ai-video-generator/faceless-shorts-under-30",
+        "/ai-video-generator/free-youtube-shorts",
+        "/ai-video-generator/horror-story-60-seconds",
+        "/ai-video-generator/chatgpt-script-to-finished-short"
       ],
       "pass": true
     },
     {
       "url": "http://127.0.0.1:4318/llms.txt",
-      "timeUtc": "2026-09-10T17:13:27.494Z",
+      "timeUtc": "2026-09-10T17:26:16.530Z",
       "status": 200,
       "linkedPaths": [
         "/ai-video-generator/free-script-to-faceless-video",
         "/ai-video-generator/free-faceless-tiktok-tools",
         "/ai-video-generator/complete-60-second-shorts-cost",
         "/vs/invideo-alternatives-faceless-shorts",
-        "/ai-video-generator/faceless-shorts-under-30"
+        "/ai-video-generator/faceless-shorts-under-30",
+        "/ai-video-generator/free-youtube-shorts",
+        "/ai-video-generator/horror-story-60-seconds",
+        "/ai-video-generator/chatgpt-script-to-finished-short"
       ],
       "pass": true
     }
