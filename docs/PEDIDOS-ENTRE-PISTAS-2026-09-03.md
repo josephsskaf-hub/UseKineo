@@ -1935,3 +1935,15 @@ Conclusão: o programa de afiliados fecha ponta a ponta. A partir de agora um af
 **Enviados pelo fundador (7 e-mails pessoais, causa lida no banco):** ep5451873 e samu.mikkonen (barrados pela porta de $1 já morta; 30cr intactos) · kaursimrannn20 (generation failed 2×; 30cr) · nunssupgoon e ivantrykolych (narração curta para a duração; 25cr) · adeolusola2013 e nikitaamiran (roteiro curto / fornecedor recusou 4×, e o trial venceu sem filme → **+30cr devolvidos a cada um**, admin_credits_granted). Todos com a oferta "responda com a ideia que eu faço o filme" → o Claude rende (dry-run antes, Seedance 60 s ≈ US$3) e manda o link. SLA: resposta em ≤48 h.
 
 **Reviews no TAAFT (aprovado "vai com C", 50 créditos):** o CTA de review dentro do site teve 1 clique em 115 pessoas/30 d (morto). Rascunhos pessoais para shilpadhruthi4, ch.aminpakistan1, omigbireolawale, zeechimzere (4 filmes cada, ativos em 05–08/09). **PROMESSA A CUMPRIR:** quem responder com a review no ar recebe 50 créditos no mesmo dia pelo botão do /admin/people (motivo: "review TAAFT 10/09"). Link único: https://theresanaiforthat.com/ai/kineo/ .
+
+## FILME-01 — Caso do dia para a sprint O PRIMEIRO FILME (Claude, 10/09 13:55 BRT)
+
+Pessoa real, vista ao vivo pelo fundador no /admin (ES · chatgpt · campanha seo_gerador_pt), cadastro 16:10 UTC com ideia pronta em PORTUGUÊS: história infantil da fazenda do Velho MacDonald ("vaca dançante", "porcos alegres"). Render 3cc7dd53-8d28-4a41-950e-0d66b7475c8c.
+
+O que aconteceu, evento a evento:
+1. Auto-start no Kineo 1 (activation_autostart_fast_v1), 35 s, prompt de 819 caracteres — **o engine fit NÃO disparou** (nenhum engine_fit_warned): lib/engineFit.ts só lê sinais em INGLÊS; história infantil em português/espanhol vai para stock footage. Defeito 1: classificador monoglota.
+2. 16:10:59 e 16:12:58: a pessoa RECARREGOU a página (generate_page_view) e clicou de novo em analisar (attempt 02f2bae6). O checkpoint fast_response existia (16:11:41), mas o cliente nunca submeteu o compose. Defeito 2: reload durante o fast_response não retoma o compose na hora.
+3. O filme só nasceu pelo cron finish-stranded-renders às 16:30 (19 min depois), completou 16:45 (35 min após o cadastro), e-mail video_ready enviado 16:45 — e a pessoa VOLTOU ao site às 16:46 (o e-mail trouxe de volta).
+4. Saldo 27 (30 − 3). next_action_served ofereceu Seedance (affordable 2). O momento de fechar plano é depois do 2º filme (Seedance), quando o saldo cai a 2.
+
+Pedido à sprint FILME (r2 16:00): (a) engine fit com sinais em PT/ES (era uma vez, fábula, história infantil, cantiga, desenho animado, vaca dançante/animal + adjetivo humano, personagem nomeado) e teste com este prompt real; (b) ao recarregar a página com checkpoint fast_response, submeter o compose imediatamente (sem esperar o cron) e mostrar "seu filme está sendo montado". Medir por pessoa com corte no carimbo do deploy.
