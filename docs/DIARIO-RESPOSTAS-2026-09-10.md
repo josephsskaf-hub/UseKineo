@@ -110,3 +110,98 @@ que a rotina não toque em código, é só reverter esta linha e a regra volta.
    Nenhuma review do TAAFT chegou — nenhum crédito a conceder.
 5. Conferir se aceita a correção do 40%→30% em hindi (`lib/ui/interfaceHindi.ts`)
    ou prefere revertê-la.
+
+## Varredura 08:05 BRT (11:05 UTC)
+
+**Delta em relação às 06:20: nada mexeu nos clientes. O que rendeu foi uma fila
+do Codex que a varredura anterior não tinha visto.**
+
+### DODO — segue parado no mesmo lugar
+Nenhum e-mail novo do Dodo em 3 dias. O último continua sendo o de 08/09 14:37
+UTC pedindo verificação — **ainda não lido**. Nada a acrescentar ao que a
+varredura das 06:20 já disse: o Cowork dos passos 2–5 continua bloqueado por
+desenho, e o checklist é compliance, só o fundador faz.
+
+### Respostas — zero novas, e a caixa está calma
+Busca nos 11 endereços em 1 dia: só a thread do Olawale, que o fundador já
+respondeu às 03:53. Varri também `in:inbox` das últimas 6 horas para pegar
+resposta vinda de outro endereço: o único e-mail que entrou desde 05:17 UTC foi
+marketing da Cloudflare. **Zero rascunhos criados — não havia o que responder.**
+
+| pessoa | tipo | rascunho |
+|---|---|---|
+| omigbireolawale@gmail.com | agradecimento, já respondido pelo fundador | não |
+| outros 10 | nenhuma resposta recebida | não |
+
+### Banco — os 11 seguem parados, e o `payment_success` da noite não é venda
+Consulta refeita com dois cortes (desde 02:30 UTC do e-mail e desde 09:20 UTC da
+varredura anterior): **0 eventos-chave, 0 filmes, 0 checkouts, 0 pagamentos**
+para os 11. Créditos e último evento idênticos à tabela das 06:20. São ~8,5h de
+janela; ninguém abriu o e-mail a ponto de voltar.
+
+**Conferi um susto antes de escrever:** havia um `payment_success` às 00:34 UTC.
+Não é cliente — é `josephsskaf+testeste1010@gmail.com`, conta de teste do próprio
+fundador (moeda `brl`, `card_trial=false`). Os dois `checkout_attempted` de 01:04
+são de `dodo-review@usekineo.com`, a conta feita para os revisores do Dodo.
+Nenhuma venda orgânica nas últimas 20h. Vale registrar de novo o padrão já
+conhecido: **3 dos checkouts do período vieram sem `user_id`** — a intenção de
+compra anônima continua sendo metade do funil e nenhum remédio alcança essa gente.
+
+### Motores — de pé, e o prazo do fal continua correndo
+14h de produção: **10 filmes completados, 0 `generation_stage_error`**, com
+entregas às 22h, 23h, 00h, 03h, 05h e duas às 09h UTC. O saldo do fal ainda está
+segurando. Mas os recibos do Orb mostram o desenho da coisa: **três recargas de
+US$ 20 pagas em 08/09** (03:24, 04:03 e 22:47) e então a **falha de 10/09 00:09**
+seguida da fatura recusada às 02:14. Não é um cartão que quebrou de repente — é
+um cartão que aguentou três recargas seguidas e travou na quarta, exatamente o
+comportamento de limite que o CLAUDE.md já registra. Continua sendo contagem
+regressiva, não susto.
+
+### Codex — nada novo desde 07:00, mas havia um pedido nominal de 00:39 sem resposta
+`git log --since="2026-09-10 07:00" origin/main` = vazio. A ponta é `c247bf85`,
+o commit da própria varredura das 06:20 (publicado com sucesso).
+
+O achado: o commit `2ea37a26` (00:39) abriu **AF-12 — revisão nominal dos
+primeiros dez**, um bloco "DE codex PARA claude" pedindo conferência de dez
+candidatos a afiliado antes de qualquer convite. A varredura das 06:20 procurou
+fila só na janela pós-07:00 e não o viu; ele estava esperando desde a madrugada.
+**Respondido nesta varredura.**
+
+**Conferência feita** — dez IDs em `profiles` (e-mail exato, `like` por domínio e
+por marca) e no Gmail do fundador (`in:anywhere`, que cobre enviados e o alias
+joseph@usekineo.com):
+
+| ID | status |
+|---|---|
+| P01, P02, P03, P05, P07, P09, P10 | `LIBERADO` |
+| P06 | `LIBERADO NO BANCO`, mas `HOLD_CONTACT_IDENTITY` mantido — **não enviar** |
+| P04, P08 | `IDENTIDADE INSUFICIENTE` — falta canal de contato, não é histórico |
+
+**0 `JÁ CLIENTE`, 0 `JÁ CONTATADO`, 0 `PROIBIDO`.** Nenhum dos dez tem linha no
+banco nem thread no Gmail. Os quatro proibidos (den.higgins, noelrss21,
+emiliomontinari, akajitin) rodaram na mesma consulta: nenhum é um dos dez, e os
+quatro são **pagantes** — o que explica a proibição melhor que a lista explica.
+Convidá-los seria pagar comissão a quem já paga assinatura.
+
+Detalhe nominal (com contatos e método) ficou em arquivo **privado**, fora do
+Git, como o próprio AF-12 exigiu:
+`C:/Users/josep/.codex/outputs/01a08825-362a-7020-90ce-fb6d45b3f6c4/REVISAO-CLAUDE-PRIMEIROS-DEZ-2026-09-10.md`.
+No repositório entrou só a conclusão por ID, em
+`docs/PEDIDOS-ENTRE-PISTAS-2026-09-03.md` (bloco "AF-12 RESPOSTA").
+
+**Nenhum convite foi enviado.** A liberação vale para conferência e convite um a
+um no piloto vigente — não é lista de disparo.
+
+### PARA AS 10H (fundador/Claude)
+1. **Abrir o e-mail do Dodo de 08/09 e completar o checklist de verificação** —
+   segue não lido, e é o único bloqueio dos passos 2–5 do Cowork. Só o fundador faz.
+2. **Recarregar o fal na mão (Pix)** — a recarga automática falhou em 10/09 00:09
+   e a fatura foi recusada às 02:14, depois de três recargas de US$ 20 terem
+   passado em 08/09. Zero erro de render em 14h, então há saldo; é prazo, não folga.
+3. **Não rodar o Cowork do Dodo hoje** esperando os 4 produtos — ele para no
+   passo 1 por desenho.
+4. **Nada a enviar a cliente:** ninguém respondeu, nenhum rascunho pendente,
+   nenhuma review do TAAFT no ar, nenhum crédito a conceder.
+5. **Afiliados destravados:** a tarefa do Codex pode trabalhar P01, P02, P03, P05,
+   P07, P09 e P10 (um a um). P06 fica retido por identidade; P04 e P08 precisam de
+   um canal de contato antes de qualquer coisa.
