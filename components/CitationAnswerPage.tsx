@@ -25,6 +25,7 @@ export default function CitationAnswerPage({ answer }: { answer: CitationAnswer 
   // new render, autoplay or background video download belongs on this page.
   const example = PUBLIC_EXAMPLES[0]
   const signupHref = citationSignupHref(answer)
+  const competitors = answer.comparisonCandidates ?? CITATION_COMPETITORS
   const faq = {
     '@context': 'https://schema.org', '@type': 'FAQPage',
     mainEntity: answer.faqs.map(({ question, answer: text }) => ({
@@ -60,23 +61,27 @@ export default function CitationAnswerPage({ answer }: { answer: CitationAnswer 
           </div>
           <p className="kc-note">Reference: {CITATION_REFERENCE_SECONDS} seconds per video. Counts are alternatives by plan, not combined allowances. Brazilian customers pay in reais at checkout.</p>
         </section>
+        {answer.checks?.map((check) => <section className="kc-section" key={check.heading}>
+          <h2>{check.heading}</h2>
+          <ol className="kc-steps">{check.items.map((item) => <li key={item}>{item}</li>)}</ol>
+        </section>)}
         <section className="kc-section" aria-labelledby="comparison-heading">
           <h2 id="comparison-heading">Compare the workflow and its limits</h2>
-          <p>The four other tools below serve different starting points. Their current price and export limits are not confirmed in this guide; [CONFIRMAR] means the field needs verification, not that the feature is absent.</p>
+          <p>Compare the starting point as well as the finished output. The four other tools' current price and export limits are not confirmed in this guide; [CONFIRMAR] means the field needs verification, not that the feature is absent.</p>
           <div className="kc-table-scroll" role="region" aria-label="Video tool comparison, scroll horizontally for all columns" tabIndex={0}>
             <table className="kc-table">
               <caption>Four competitors and Kineo · unknown limits are stated explicitly</caption>
               <thead><tr><th scope="col">Tool / workflow</th><th scope="col">Monthly entry price</th><th scope="col">Free trial</th><th scope="col">Engines</th><th scope="col">Maximum duration</th><th scope="col">Watermark</th></tr></thead>
               <tbody>
                 <tr><th scope="row">Kineo<small>Text to a finished narrated video</small></th><td>{CITATION_PLANS[0].price}</td><td>{CITATION_TRIAL}</td><td>Kineo 1 stock footage; Seedance 1.5 generated scenes; further engines available subject to sufficient credits</td><td><span className="kc-unknown">[CONFIRMAR]</span><br />Costs here use a {CITATION_REFERENCE_SECONDS}-second reference, not a maximum.</td><td>{CITATION_WATERMARK}</td></tr>
-                {CITATION_COMPETITORS.map((competitor) => <tr key={competitor.name}>
+                {competitors.map((competitor) => <tr key={competitor.name}>
                   <th scope="row"><a href={competitor.source} rel="noopener noreferrer">{competitor.name}</a><small>{competitor.kind}</small></th>
                   {['price', 'trial', 'engines', 'duration', 'watermark'].map((field) => <td key={field}><span className="kc-unknown">[CONFIRMAR]</span></td>)}
                 </tr>)}
               </tbody>
             </table>
           </div>
-          <p className="kc-source">Source: <Link href="/llms.txt">Kineo public fact sheet</Link>, reviewed {CITATION_REVIEW_DATE}. It names the competitor workflows and pricing-page links but does not publish the current values required by these columns. Follow each provider link before making a purchase decision.</p>
+          <p className="kc-source">Kineo source: <Link href="/llms.txt">the public fact sheet</Link>, reviewed {CITATION_REVIEW_DATE}. Provider links identify comparison candidates; their presence does not verify a feature or allowance. The current values marked [CONFIRMAR] still need verification at the provider before a purchase decision.</p>
         </section>
         <section className="kc-section" aria-labelledby="workflow-heading">
           <h2 id="workflow-heading">How Kineo does it</h2>

@@ -33,7 +33,7 @@ for (const ext of ['.ts', '.tsx']) Module._extensions[ext] = (module, filename) 
   }).outputText
   module._compile(code, filename)
 }
-const { CITATION_ANSWERS, CITATION_CTA } = require(path.join(root, 'lib/growth/citationAnswers.ts'))
+const { CITATION_ANSWERS, CITATION_CTA, CITATION_COMPETITORS, citationSignupHref } = require(path.join(root, 'lib/growth/citationAnswers.ts'))
 const Page = require(path.join(root, 'components/CitationAnswerPage.tsx')).default
 const Links = require(path.join(root, 'components/CitationAnswerLinks.tsx')).default
 const { PUBLIC_EXAMPLES } = require(path.join(root, 'lib/publicExamples.ts'))
@@ -47,18 +47,26 @@ const previews = Object.values(CITATION_ANSWERS).map((answer) => {
   if ((markup.match(/<details>/g) || []).length !== 5) throw new Error('FAQ count: ' + answer.id)
   if ((markup.match(/class="kc-cta"/g) || []).length !== 2) throw new Error('CTA count: ' + answer.id)
   if (!markup.includes(CITATION_CTA)) throw new Error('CTA mismatch: ' + answer.id)
+  if ((answer.comparisonCandidates ?? CITATION_COMPETITORS).length !== 4) throw new Error('Competitor count: ' + answer.id)
+  if (!fs.existsSync(path.join(root, 'app', answer.path, 'page.tsx'))) throw new Error('Missing static route: ' + answer.id)
+  if (answer.startHref) {
+    const destination = new URL(citationSignupHref(answer), 'https://www.usekineo.com')
+    if (destination.pathname !== '/chatgpt-to-youtube-shorts' || destination.hash !== '#chatgpt-script-handoff' || destination.searchParams.get('intent_campaign') !== `citacoes_01_${answer.id}`) throw new Error('Script handoff mismatch: ' + answer.id)
+  }
   if (markup.includes('utm_source=chatgpt') || markup.includes('USD worldwide')) throw new Error('Attribution/currency mismatch')
   const jsonLd = markup.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)
   const faq = JSON.parse(jsonLd[1])
   if (faq.mainEntity.length !== 5 || faq.mainEntity.some((item, i) => item.name !== answer.faqs[i].question || item.acceptedAnswer.text !== answer.faqs[i].answer)) throw new Error('FAQ schema mismatch')
   for (const link of answer.links) {
-    const pathname = link.href.split('#')[0]
+    const pathname = new URL(link.href, 'https://www.usekineo.com').pathname
     const file = path.join(root, 'app', pathname, 'page.tsx')
     const engineRoute = Object.values(ENGINE_LANDING_PUBLIC_PATHS).includes(pathname)
       && fs.existsSync(path.join(root, 'app/ai-video-generator/[engine]/page.tsx'))
     const competitorRoute = pathname === '/alternatives/invideo'
       && fs.readFileSync(path.join(root, 'app/alternatives/[competitor]/page.tsx'), 'utf8').includes('invideo')
-    if (!fs.existsSync(file) && !engineRoute && !competitorRoute) throw new Error('Missing internal page ' + pathname)
+    const nicheRoute = pathname === '/free-ai-shorts/horror'
+      && fs.readFileSync(path.join(root, 'app/free-ai-shorts/[niche]/page.tsx'), 'utf8').includes('horror:')
+    if (!fs.existsSync(file) && !engineRoute && !competitorRoute && !nicheRoute) throw new Error('Missing internal page ' + pathname)
   }
   return {
     name: answer.label, path: answer.path,
@@ -70,7 +78,7 @@ const previousNavigation = '<nav style="margin-top:44px;text-align:center;font-s
 const hubShell = (body) => document('<main style="padding:28px;max-width:980px;margin:auto;color:#f5f5f7"><div style="border:1px dashed #40516a;padding:24px;color:#aabbd0">Contexto: grade de motores existente, não alterada nesta entrega.</div>' + body + '</main>')
 previews.push({ name: 'Hub: bloco de descoberta', path: '/ai-video-generator', before: hubShell(previousNavigation), after: hubShell(renderToStaticMarkup(React.createElement(Links)) + previousNavigation) })
 const payload = JSON.stringify(previews).replace(/</g, '\\u003c')
-const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Citações 01 · comparação visual</title><style>body{margin:0;background:#e9edf2;color:#132033;font:15px Arial,sans-serif}header{padding:24px;background:#fff;border-bottom:1px solid #b8c6d5;position:sticky;top:0;z-index:2}h1{font-size:23px;margin:0 0 10px}p{margin:8px 0;line-height:1.4}label{font-weight:bold}select,button{font:inherit;padding:9px;margin:8px 8px 0 0}.pair{display:grid;grid-template-columns:1fr 1fr;gap:18px;padding:18px}.frame{overflow:auto;background:#d4dce6;padding:14px}.frame h2{font-size:15px;margin:0 0 14px}iframe{background:#07090d;border:0;width:1100px;height:1700px;display:block}body.mobile iframe{width:390px;height:1900px}body.mobile .pair{grid-template-columns:repeat(2, minmax(420px,1fr))}@media(max-width:700px){.pair{display:block}.frame{margin-bottom:16px}}</style></head><body><header><h1>[Citações] Cinco páginas novas · antes/depois</h1><p>HTML autocontido, gerado dos componentes React reais. A amostra visual é um poster público existente, embutido no arquivo. Links e clique de aquisição não foram exercitados por este preview.</p><label for="page">Página </label><select id="page"></select><button id="desktop">Desktop · 1100 px</button><button id="mobile">Mobile · 390 px</button><p id="path"></p></header><main class="pair"><section class="frame"><h2>ANTES · base 0f2c05a7</h2><iframe title="Antes" id="before"></iframe></section><section class="frame"><h2>DEPOIS · implementação proposta</h2><iframe title="Depois" id="after"></iframe></section></main><script>const pages=${payload};const select=document.getElementById('page');pages.forEach((p,i)=>{let o=document.createElement('option');o.value=i;o.textContent=p.name;select.append(o)});function draw(){const p=pages[Number(select.value)];document.getElementById('before').srcdoc=p.before;document.getElementById('after').srcdoc=p.after;document.getElementById('path').textContent=p.path}select.onchange=draw;document.getElementById('mobile').onclick=()=>document.body.classList.add('mobile');document.getElementById('desktop').onclick=()=>document.body.classList.remove('mobile');draw();</script></body></html>`
+const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Citações 01 · comparação visual</title><style>body{margin:0;background:#e9edf2;color:#132033;font:15px Arial,sans-serif}header{padding:24px;background:#fff;border-bottom:1px solid #b8c6d5;position:sticky;top:0;z-index:2}h1{font-size:23px;margin:0 0 10px}p{margin:8px 0;line-height:1.4}label{font-weight:bold}select,button{font:inherit;padding:9px;margin:8px 8px 0 0}.pair{display:grid;grid-template-columns:1fr 1fr;gap:18px;padding:18px}.frame{overflow:auto;background:#d4dce6;padding:14px}.frame h2{font-size:15px;margin:0 0 14px}iframe{background:#07090d;border:0;width:1100px;height:1700px;display:block}body.mobile iframe{width:390px;height:1900px}body.mobile .pair{grid-template-columns:repeat(2, minmax(420px,1fr))}@media(max-width:700px){.pair{display:block}.frame{margin-bottom:16px}}</style></head><body><header><h1>[Citações] Oito páginas novas · antes/depois cumulativo</h1><p>Comparação cumulativa dos dois lotes com a base original 0f2c05a7. HTML autocontido, gerado dos componentes React reais. A amostra visual é um poster público existente, embutido no arquivo. Links e clique de aquisição não foram exercitados por este preview.</p><label for="page">Página </label><select id="page"></select><button id="desktop">Desktop · 1100 px</button><button id="mobile">Mobile · 390 px</button><p id="path"></p></header><main class="pair"><section class="frame"><h2>ANTES · base 0f2c05a7</h2><iframe title="Antes" id="before"></iframe></section><section class="frame"><h2>DEPOIS · implementação proposta</h2><iframe title="Depois" id="after"></iframe></section></main><script>const pages=${payload};const select=document.getElementById('page');pages.forEach((p,i)=>{let o=document.createElement('option');o.value=i;o.textContent=p.name;select.append(o)});function draw(){const p=pages[Number(select.value)];document.getElementById('before').srcdoc=p.before;document.getElementById('after').srcdoc=p.after;document.getElementById('path').textContent=p.path}select.onchange=draw;document.getElementById('mobile').onclick=()=>document.body.classList.add('mobile');document.getElementById('desktop').onclick=()=>document.body.classList.remove('mobile');draw();</script></body></html>`
 const output = path.join(root, 'docs/citacoes-01-pages-2026-09-10/preview-citacoes-01.html')
 fs.writeFileSync(output, html)
 if (networkAttempts !== 0) throw new Error('Preview attempted network access')
