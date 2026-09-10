@@ -1,9 +1,18 @@
-.section {
+/* KINEO-KLP-RESET-2026-09-10 — TODA regra deste módulo tem especificidade (0,2,0)
+   (".section .x"). A landing (app/KineoLanding.tsx) injeta um <style> inline
+   DENTRO de <main class="klp"> com ".klp * { margin:0; padding:0 }" — mesma
+   especificidade de uma classe de módulo e declarado DEPOIS no documento, então
+   vencia: o bloco "Who is this first Short for?" saía sem padding, sem margem
+   (colado à esquerda) e com os cartões nus. Visto pelo fundador em 10/09 ao criar
+   a conta de teste do Dodo; reproduzido num harness com o CSS de produção.
+   Qualquer componente com CSS module montado dentro de .klp precisa da mesma
+   proteção. Não voltar para ".x" solto. */
+.section.section {
   padding: 0 20px 56px;
   background: #050506;
 }
 
-.shell {
+.section .shell {
   width: min(1120px, 100%);
   margin: 0 auto;
   padding: clamp(22px, 4vw, 34px);
@@ -15,7 +24,7 @@
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
 }
 
-.eyebrow {
+.section .eyebrow {
   margin: 0 0 9px;
   color: #7cc0ff;
   font-size: 0.72rem;
@@ -24,7 +33,7 @@
   text-transform: uppercase;
 }
 
-.heading {
+.section .heading {
   margin: 0;
   color: #f5f5f7;
   font-size: clamp(1.55rem, 3.6vw, 2.45rem);
@@ -32,7 +41,7 @@
   letter-spacing: -0.035em;
 }
 
-.intro {
+.section .intro {
   max-width: 720px;
   margin: 11px 0 22px;
   color: #a1a1a8;
@@ -40,17 +49,17 @@
   line-height: 1.55;
 }
 
-.goalGrid {
+.section .goalGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
 
-.goalItem {
+.section .goalItem {
   min-width: 0;
 }
 
-.goalButton {
+.section .goalButton {
   display: flex;
   width: 100%;
   min-height: 138px;
@@ -68,20 +77,20 @@
   transition: border-color 160ms ease, transform 160ms ease, background 160ms ease;
 }
 
-.goalButton:hover,
-.goalButton:focus-visible,
-.goalButtonActive {
+.section .goalButton:hover,
+.section .goalButton:focus-visible,
+.section .goalButtonActive {
   border-color: #2997ff;
   background: rgba(41, 151, 255, 0.1);
   transform: translateY(-2px);
   outline: none;
 }
 
-.goalButtonActive {
+.section .goalButtonActive {
   box-shadow: inset 0 0 0 1px rgba(41, 151, 255, 0.22);
 }
 
-.goalLabel {
+.section .goalLabel {
   display: block;
   color: #f5f5f7;
   font-size: 1rem;
@@ -89,14 +98,14 @@
   line-height: 1.25;
 }
 
-.goalDetail {
+.section .goalDetail {
   display: block;
   color: #a1a1a8;
   font-size: 0.84rem;
   line-height: 1.45;
 }
 
-.goalChoose {
+.section .goalChoose {
   display: block;
   margin-top: auto;
   color: #7cc0ff;
@@ -104,8 +113,8 @@
   font-weight: 850;
 }
 
-.brief,
-.emptyState {
+.section .brief,
+.section .emptyState {
   margin-top: 14px;
   border: 1px solid rgba(41, 151, 255, 0.42);
   border-radius: 18px;
@@ -114,7 +123,7 @@
     rgba(41, 151, 255, 0.07);
 }
 
-.brief {
+.section .brief {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
@@ -122,11 +131,11 @@
   padding: 22px;
 }
 
-.briefCopy {
+.section .briefCopy {
   min-width: 0;
 }
 
-.briefEyebrow {
+.section .briefEyebrow {
   display: block;
   margin-bottom: 7px;
   color: #b8dcff;
@@ -136,7 +145,7 @@
   text-transform: uppercase;
 }
 
-.briefTitle {
+.section .briefTitle {
   margin: 0;
   color: #fff;
   font-size: clamp(1.1rem, 2.3vw, 1.5rem);
@@ -144,7 +153,7 @@
   letter-spacing: -0.02em;
 }
 
-.briefHook {
+.section .briefHook {
   max-width: 720px;
   margin: 8px 0 0;
   color: #b8b8c0;
@@ -152,7 +161,7 @@
   line-height: 1.5;
 }
 
-.primaryAction {
+.section .primaryAction {
   display: inline-flex;
   min-height: 48px;
   align-items: center;
@@ -168,22 +177,22 @@
   transition: transform 160ms ease, background 160ms ease;
 }
 
-.primaryAction:hover,
-.primaryAction:focus-visible {
+.section .primaryAction:hover,
+.section .primaryAction:focus-visible {
   background: #fff;
   transform: translateY(-2px);
   outline: 2px solid #7cc0ff;
   outline-offset: 2px;
 }
 
-.emptyState {
+.section .emptyState {
   padding: 18px 20px;
   color: #96969f;
   font-size: 0.86rem;
   line-height: 1.45;
 }
 
-.safety {
+.section .safety {
   margin: 16px 0 0;
   color: #777780;
   font-size: 0.78rem;
@@ -191,29 +200,29 @@
 }
 
 @media (max-width: 700px) {
-  .section {
+  .section.section {
     padding: 0 16px 42px;
   }
 
-  .shell {
+  .section .shell {
     padding: 22px 18px;
     border-radius: 18px;
   }
 
-  .goalGrid {
+  .section .goalGrid {
     grid-template-columns: 1fr;
   }
 
-  .goalButton {
+  .section .goalButton {
     min-height: 0;
   }
 
-  .brief {
+  .section .brief {
     grid-template-columns: 1fr;
     gap: 16px;
   }
 
-  .primaryAction {
+  .section .primaryAction {
     width: 100%;
     white-space: normal;
     text-align: center;
@@ -221,16 +230,16 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .goalButton,
-  .primaryAction {
+  .section .goalButton,
+  .section .primaryAction {
     transition: none;
   }
 
-  .goalButton:hover,
-  .goalButton:focus-visible,
-  .goalButtonActive,
-  .primaryAction:hover,
-  .primaryAction:focus-visible {
+  .section .goalButton:hover,
+  .section .goalButton:focus-visible,
+  .section .goalButtonActive,
+  .section .primaryAction:hover,
+  .section .primaryAction:focus-visible {
     transform: none;
   }
 }
