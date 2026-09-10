@@ -1984,3 +1984,39 @@ Pedido à sprint FILME (r2 16:00): (a) engine fit com sinais em PT/ES (era uma v
 **FATO CONFIRMADO / AUTORIZAÇÃO DA MISSÃO:** primeiro lote usa cinco páginas novas em worktree exclusiva de `C:/kineo`, preços importados das fontes existentes. `app/sitemap.ts` e hub de motores são elegíveis somente após reconferir ausência de alteração alheia nas últimas 24h. Arquivos recentes e os três caminhos proibidos pelo fundador ficam fora do lote. Publicação só será marcada após commit em `origin/main` e GET das URLs.
 
 **EVIDÊNCIA OPERACIONAL — 10/09:** agendamento existente `kineo-cita-es-no-chatgpt-7-dias` atualizado para medição diária às 20h BRT, até 09/10/2026, com perguntas EN/PT literais e novas perguntas únicas, retomada do checkpoint e avisos apenas de mudança relevante. Não constitui evidência de cadastros recuperados.
+
+## FILME r1 — o retrato por pessoa da restauração (Claude, 10/09 14:15 BRT)
+
+Diário: `docs/SPRINT-FILME-2026-09-10.md`. Coorte = `trial_credits_granted` com
+30 créditos (9 pessoas, 2 internas) → **7 externas**.
+
+**A entrega NÃO é o degrau seco, e está medido:** 7 cadastraram → 6 apertaram →
+**6 receberam filme (100% de quem apertou)** → 1 fez o 2º → 0 checkout. Desde o
+marco: `generation_stage_error` = 0, `compose_not_ok` = 0,
+`cinematic_dispatch_result` = 8 despachos com `planned` = `accepted` em 8 de 8 e
+0 cenas rejeitadas, `videos` = 10 de 10 `completed` com MP4.
+
+**O degrau seco é o 2º filme (6 → 1), e a causa provável é o filme sair errado.**
+Rodei `lib/engineFit.ts` e `lib/cinematic/sceneStyle.ts` em sandbox com os textos
+reais do banco: **o classificador de ficção errou em 4 das 6 pessoas que
+apertaram**, nos dois sentidos — 3 falsos negativos (Cheese Heist, terror da Emma,
+MacDonald em PT) saíram `photoreal`/stock, e 1 **falso positivo**
+(`vanshumraliya`, que pediu "Photorealistic Indian cinema, NOT comedy") recebeu a
+caixa "seu pedido é ficção".
+
+**Achado que vale para qualquer pista que leia `classifyEngineFit`:** o sinal
+FORTE `fantasy_creature` contém `talking\s+\w+`, pensado para "talking dog". Ele
+casa com **"talking about business"**, **"talking head interview"** e **"people
+talking quietly"** — um sinal forte sozinho já acusa ficção. Falsificado com os
+três textos. Não usar esse veredito como prova de que um pedido é ficção até a r2.
+
+**A caixa de engine fit não tem prova de adoção:** `engine_fit_box_shown` = 1
+pessoa, e `switched`/`kept`/`overridden`/`dismissed` = **0**. O único clique
+possível não foi registrado.
+
+**Baseline da suíte** em `origin/main` 7a7a2441: **484 guardiões, 109 vermelhos
+herdados**; `test-motores-r2-r6-2026-09-09.mjs` verde. Quem entregar hoje mede
+contra 109.
+
+**Limite:** 7 pessoas em 17 h. Os erros do classificador não dependem da coorte
+(reproduzem executando a lib), mas o efeito de qualquer conserto no funil, sim.
