@@ -7,6 +7,7 @@ import { SCRIPT_VERTICAL_SLUGS } from '@/lib/scriptLibrary'
 import { CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED } from '@/lib/publicSurfacePolicy'
 // KINEO-ENGINE-SEO-2026-08-15 — cluster por MOTOR (hub + 5 páginas).
 import { ENGINE_SLUGS } from './ai-video-generator/[engine]/page'
+import { CITATION_ANSWER_LINKS, CITATION_REVIEW_DATE } from '@/lib/growth/citationAnswers'
 
 // #458 — SEO: sitemap so Google can discover and index every public page.
 // The site had none, so search engines were barely crawling it — free organic
@@ -294,5 +295,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...exampleEntries,
     ...vsEntries,
     ...scriptShelfEntries,
+    // CITACOES-01: new answer pages carry their own real publication-review
+    // date; adding them does not re-date the unrelated acquisition cluster.
+    ...CITATION_ANSWER_LINKS.map(({ path }) => ({
+      url: `${BASE}${path}`,
+      lastModified: CITATION_REVIEW_DATE,
+      changeFrequency: 'weekly' as const,
+      priority: 0.8,
+    })),
   ]
 }

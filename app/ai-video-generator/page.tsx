@@ -9,6 +9,7 @@ import Link from 'next/link'
 import Footer from '@/components/Footer'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import WallMedia from '@/components/WallMedia'
+import CitationAnswerLinks from '@/components/CitationAnswerLinks'
 import { getEngineRenders } from '@/lib/engineWall'
 import { ENGINES, ENGINE_SLUGS } from './[engine]/page'
 import { buildProductSurfaceSignupHref } from '@/lib/growth/productSurfaceIntent'
@@ -123,6 +124,8 @@ export default async function EngineHubPage() {
             )
           })}
         </section>
+
+        <CitationAnswerLinks />
 
         <nav style={{ marginTop: 44, textAlign: 'center', fontSize: '0.85rem', color: '#6e6e73', lineHeight: 2 }}>
           <Link href="/examples" style={{ color: '#86868b', textDecoration: 'none' }}>Real examples</Link>
