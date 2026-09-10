@@ -2006,3 +2006,85 @@ Pedido à sprint FILME (r2 16:00): (a) engine fit com sinais em PT/ES (era uma v
 **BLOQUEADO — transporte, instrução do Board recebida em 10/09 14:25 BRT:** as três páginas restantes ficam PRONTAS PARA PUBLICAR, sem executar novamente o BAT/enfileirar atuais e sem substituí-los por push direto/API. Dependência única: `C:/Users/josep/.codex/outputs/01a03e3e-5f63-7cf1-8b9f-6c6646b446b7/FILA-TRANSPORTE-DOCS-2026-09-10.md`. Integrar o delta de código `7f3f9622` e o commit subsequente desta pista com llms, evidências e este handoff, preservando os pedidos recentes. Nenhum pacote alheio é publicado por esta tarefa. As cinco páginas da primeira entrega permanecem no ar; não há rollback nem repetição dessa publicação.
 
 **EVIDÊNCIA OPERACIONAL / LIMITE — publicação já concluída:** o enfileirar usado foi o da worktree exclusiva de `C:/kineo`; o BAT foi `C:/kineo/scripts/!RODAR-AGORA.bat`, cabeçalho v11 de 05/09, transporte registrado em `9076d4b3`. A fila conferida continha somente os dois commits próprios; BAT concluiu na primeira tentativa e não executou fallback. TEMP/TMP ficaram sob a pasta própria `.publication-temp`, validada dentro da worktree e sem reparse point. O script protege a ancestralidade da ponta lida, mas não tem mutex/releitura atômica; o BAT ainda contém limpeza ampla de locks antigos e force de branches no fallback. O sucesso daquela tentativa não torna o transporte intrinsecamente seguro. A revisão automática recusou a limpeza temporária posterior com motivo genérico “blocked by policy”; nada foi apagado e não houve tentativa de contornar a recusa. Pasta preservada, fora dos commits.
+**EVIDÊNCIA OPERACIONAL — 10/09:** agendamento existente `kineo-cita-es-no-chatgpt-7-dias` atualizado para medição diária às 20h BRT, até 09/10/2026, com perguntas EN/PT literais e novas perguntas únicas, retomada do checkpoint e avisos apenas de mudança relevante. Não constitui evidência de cadastros recuperados.
+
+## FILME r1 — o retrato por pessoa da restauração (Claude, 10/09 14:15 BRT)
+
+Diário: `docs/SPRINT-FILME-2026-09-10.md`. Coorte = `trial_credits_granted` com
+30 créditos (9 pessoas, 2 internas) → **7 externas**.
+
+**A entrega NÃO é o degrau seco, e está medido:** 7 cadastraram → 6 apertaram →
+**6 receberam filme (100% de quem apertou)** → 1 fez o 2º → 0 checkout. Desde o
+marco: `generation_stage_error` = 0, `compose_not_ok` = 0,
+`cinematic_dispatch_result` = 8 despachos com `planned` = `accepted` em 8 de 8 e
+0 cenas rejeitadas, `videos` = 10 de 10 `completed` com MP4.
+
+**O degrau seco é o 2º filme (6 → 1), e a causa provável é o filme sair errado.**
+Rodei `lib/engineFit.ts` e `lib/cinematic/sceneStyle.ts` em sandbox com os textos
+reais do banco: **o classificador de ficção errou em 4 das 6 pessoas que
+apertaram**, nos dois sentidos — 3 falsos negativos (Cheese Heist, terror da Emma,
+MacDonald em PT) saíram `photoreal`/stock, e 1 **falso positivo**
+(`vanshumraliya`, que pediu "Photorealistic Indian cinema, NOT comedy") recebeu a
+caixa "seu pedido é ficção".
+
+**Achado que vale para qualquer pista que leia `classifyEngineFit`:** o sinal
+FORTE `fantasy_creature` contém `talking\s+\w+`, pensado para "talking dog". Ele
+casa com **"talking about business"**, **"talking head interview"** e **"people
+talking quietly"** — um sinal forte sozinho já acusa ficção. Falsificado com os
+três textos. Não usar esse veredito como prova de que um pedido é ficção até a r2.
+
+**A caixa de engine fit não tem prova de adoção:** `engine_fit_box_shown` = 1
+pessoa, e `switched`/`kept`/`overridden`/`dismissed` = **0**. O único clique
+possível não foi registrado.
+
+**Baseline da suíte** em `origin/main` 7a7a2441: **484 guardiões, 109 vermelhos
+herdados**; `test-motores-r2-r6-2026-09-09.mjs` verde. Quem entregar hoje mede
+contra 109.
+
+**Limite:** 7 pessoas em 17 h. Os erros do classificador não dependem da coorte
+(reproduzem executando a lib), mas o efeito de qualquer conserto no funil, sim.
+
+## PAGAR r1 — o funil mentia sobre a moeda, e o gesto some antes do checkout (Claude, 10/09 14:45 BRT)
+
+Diário: `docs/SPRINT-PAGAR-2026-09-10.md`. SHA `2aaa5c3e`.
+
+**ACHADO QUE VALE PARA QUALQUER PISTA QUE LEIA MOEDA NO FUNIL:** o nome
+`currency` significa coisas DIFERENTES em três eventos do mesmo funil —
+em `checkout_started` é o preço de **LISTA** (sempre `usd`), em
+`checkout_session_expired` e `payment_success` é a moeda **REAL** da Stripe.
+Prova: a sessão `cs_live_b1mHUNPE…` (10/09 00:31) gravou
+`checkout_started.currency='usd'` e fechou em `payment_success.currency='brl'`,
+4990 — a mesma sessão, a mesma pessoa. **Não ler troca de moeda nesse par.**
+Desde `2aaa5c3e`, o caminho de assinatura carimba `settlement_currency` /
+`settlement_reason` / `settlement_amount_minor` / `list_price_usd_minor` no
+`checkout_started`, e a parede repete a liquidação nos dois ramos. Os caminhos
+de **pack** já faziam isso desde o deploy da moeda; só a assinatura — o único
+caminho que faz MRR — estava cega (0 de 4 sessões pós-deploy).
+Corte de medição: `metadata ? 'settlement_currency'`, **nunca o relógio**.
+`checkout_attempted` segue sem os campos de propósito (é emitido antes da
+resolução, que depende de leitura de banco).
+
+**RETRATO POR PESSOA, para ninguém remedir:** coorte da restauração
+(`trial_credits_granted` = 30, marco 09/09 23:08:40 UTC) = 9 pessoas, 2
+internas → **7 externas**. 7 nasceram → 6 fizeram filme → **1 viu /pricing → 0
+clicaram CTA → 0 abriram checkout → 0 pagaram**. Seis das sete viram alguma
+superfície de oferta (`welcome_offer_viewed` 3, `trial_post_video_offer_viewed`
+3, `upgrade_modal_opened` 1) — o degrau seco **não** é falta de oferta, é
+oferta vista sem gesto.
+
+**CORREÇÃO DE LEITURA (vale para o placar e para a pista de moeda):** todas as
+expirações de checkout com `ip_country=BR` de hoje são da conta
+`josephsskaf@gmail.com` (`e92d81bf…`, 22 aberturas e 39 expirações em 14 d) —
+é o **próprio fundador**, não cliente. **Desde a restauração, zero brasileiros
+externos chegaram ao checkout.** A rede de segurança BRL foi exercitada uma
+única vez, pelo teste da AF-09. A fila de checkout repetido (6 pessoas, 2
+aberturas cada, 0 pagamentos, 0 recusas) é **DE/UA/NG/KG/IN** — não BR.
+Quem for otimizar moeda: o trabalho está certo e está sem plateia.
+
+**Falso alarme descartado com denominador:** `checkout_started` parou às 01:05
+UTC e `pricing_view` seguiu às 16:29 — não é defeito, as views de hoje têm
+`user_id` nulo (deslogado).
+
+**Baseline da suíte** em `origin/main` d1aa0341: **484 guardiões, 109
+vermelhos herdados** (bate com o que a sprint FILME mediu). Depois de
+`2aaa5c3e`: 485 guardiões, 109 vermelhos, 0 novos.

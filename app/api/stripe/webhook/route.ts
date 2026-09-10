@@ -1622,6 +1622,18 @@ export async function POST(req: NextRequest) {
               plan_fit_video_id: expiredSession.metadata?.plan_fit_video_id ?? null,
               intro: expiredSession.metadata?.intro === '1',
               currency: expiredSession.currency ?? null,
+              // KINEO-PAGAR-SETTLEMENT-NO-FUNIL-2026-09-10 — `currency` acima é
+              // a moeda REAL da Stripe, mas o MESMO nome em `checkout_started`
+              // é o preço de LISTA (sempre 'usd'). Repetir a verdade sob um
+              // nome que não colide deixa o par started→expired comparável sem
+              // ninguém precisar saber qual dos dois sentidos vale em cada
+              // evento. `settlement_reason` diz POR QUE a sessão nasceu nessa
+              // moeda (ip_country, language, prior_br_card_failure, forced,
+              // default) — sem ele, uma parede brasileira é indistinguível de
+              // uma parede americana que por acaso pagaria em real.
+              settlement_currency: expiredSession.metadata?.settlement_currency ?? null,
+              settlement_reason: expiredSession.metadata?.settlement_reason ?? null,
+              list_price_usd_minor: expiredSession.metadata?.list_price_usd_minor ?? null,
               amount_total: expiredSession.amount_total ?? null,
               checkout_mode: expiredSession.mode ?? null,
               // `payment_status` separa duas mortes MUITO diferentes:
@@ -1723,6 +1735,12 @@ export async function POST(req: NextRequest) {
                 plan_fit_monthly_videos: expiredSession.metadata?.plan_fit_monthly_videos ?? null,
                 plan_fit_planned_engine: expiredSession.metadata?.plan_fit_planned_engine ?? null,
                 currency: expiredSession.currency ?? null,
+                // KINEO-PAGAR-SETTLEMENT-NO-FUNIL-2026-09-10 — pela mesma razão
+                // que a moeda sobrevive ao ramo órfão: a moeda de LIQUIDAÇÃO é
+                // denominador de receita por país. Uma conta apagada é
+                // justamente o caso em que ninguém pode reconstruir depois.
+                settlement_currency: expiredSession.metadata?.settlement_currency ?? null,
+                settlement_reason: expiredSession.metadata?.settlement_reason ?? null,
                 amount_total: expiredSession.amount_total ?? null,
                 payment_status: expiredSession.payment_status ?? null,
                 // KINEO-PAIS-DA-PAREDE-2026-08-17 — mesma razão pela qual a
