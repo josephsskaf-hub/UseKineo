@@ -331,7 +331,7 @@ export const INTERFACE_HI: Record<string, string> = {
   'State of AI Shorts 2026': 'AI Shorts की स्थिति 2026', 'Live case study: our channel on Autopilot': 'लाइव केस स्टडी: Autopilot पर हमारा चैनल',
   'AI Shorts for agencies & client work': 'एजेंसी और क्लाइंट के काम के लिए AI Shorts',
   'Trust Center — privacy, payments & ownership': 'ट्रस्ट सेंटर — गोपनीयता, भुगतान और स्वामित्व',
-  'Affiliate program - 30% recurring': 'अफ़िलिएट प्रोग्राम - 40% आवर्ती',
+  'Affiliate program - 30% recurring': 'अफ़िलिएट प्रोग्राम - 30% आवर्ती',
   'Free AI Shorts by niche': 'विषय के अनुसार मुफ़्त AI Shorts', 'Free YouTube Shorts scripts': 'मुफ़्त YouTube Shorts स्क्रिप्ट',
   'Free script generator': 'मुफ़्त स्क्रिप्ट जनरेटर', 'Comment to Short script': 'कमेंट से Short स्क्रिप्ट',
   'Product video ad script': 'प्रोडक्ट वीडियो विज्ञापन स्क्रिप्ट', 'Business video content planner': 'व्यवसाय के वीडियो कंटेंट की योजना',
