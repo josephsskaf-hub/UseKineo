@@ -11,7 +11,7 @@ import OrganicCtaLink from '@/components/OrganicCtaLink'
 import WallMedia from '@/components/WallMedia'
 import CitationAnswerLinks from '@/components/CitationAnswerLinks'
 import { getEngineRenders } from '@/lib/engineWall'
-import { ENGINES, ENGINE_SLUGS } from './[engine]/page'
+import { ENGINES, ENGINE_SLUGS } from '@/lib/growth/enginePageCatalog'
 import { buildProductSurfaceSignupHref } from '@/lib/growth/productSurfaceIntent'
 import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
 

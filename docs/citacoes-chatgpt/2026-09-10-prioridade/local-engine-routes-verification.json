@@ -1,0 +1,70 @@
+{
+  "classification": "TESTADO LOCALMENTE",
+  "method": "Local GETs with fake backend credentials, no browser, signup, generation or production write; engine catalog extraction only.",
+  "rows": [
+    {
+      "slug": "kineo-1",
+      "status": 200,
+      "expectedStatus": 200,
+      "canonical": "https://www.usekineo.com/ai-video-generator/kineo-1",
+      "timeUtc": "2026-09-10T22:08:14.615Z",
+      "pass": true
+    },
+    {
+      "slug": "seedance",
+      "status": 200,
+      "expectedStatus": 200,
+      "canonical": "https://www.usekineo.com/ai-video-generator/seedance",
+      "timeUtc": "2026-09-10T22:08:14.672Z",
+      "pass": true
+    },
+    {
+      "slug": "kling",
+      "status": 200,
+      "expectedStatus": 200,
+      "canonical": "https://www.usekineo.com/ai-video-generator/kling",
+      "timeUtc": "2026-09-10T22:08:14.718Z",
+      "pass": true
+    },
+    {
+      "slug": "veo",
+      "status": 200,
+      "expectedStatus": 200,
+      "canonical": "https://www.usekineo.com/ai-video-generator/veo",
+      "timeUtc": "2026-09-10T22:08:14.793Z",
+      "pass": true
+    },
+    {
+      "slug": "kling-3",
+      "status": 200,
+      "expectedStatus": 200,
+      "canonical": "https://www.usekineo.com/ai-video-generator/kling-3",
+      "timeUtc": "2026-09-10T22:08:14.849Z",
+      "pass": true
+    },
+    {
+      "slug": "minimax-h3",
+      "status": 200,
+      "expectedStatus": 200,
+      "canonical": "https://www.usekineo.com/ai-video-generator/minimax-h3",
+      "timeUtc": "2026-09-10T22:08:14.909Z",
+      "pass": true
+    },
+    {
+      "slug": "gemini-omni-flash",
+      "status": 200,
+      "expectedStatus": 200,
+      "canonical": "https://www.usekineo.com/ai-video-generator/gemini-omni-flash",
+      "timeUtc": "2026-09-10T22:08:14.977Z",
+      "pass": true
+    },
+    {
+      "slug": "seedance-2-5",
+      "status": 404,
+      "expectedStatus": 404,
+      "canonical": "",
+      "timeUtc": "2026-09-10T22:08:15.228Z",
+      "pass": true
+    }
+  ]
+}

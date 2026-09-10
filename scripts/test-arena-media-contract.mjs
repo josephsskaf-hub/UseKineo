@@ -29,7 +29,7 @@ function executeTs(file) {
 
 const examples = executeTs('lib/publicExamples.ts')
 const page = read('app/arena/page.tsx')
-const enginePage = read('app/ai-video-generator/[engine]/page.tsx')
+const enginePage = read('app/ai-video-generator/[engine]/page.tsx') + '\n' + read('lib/growth/enginePageCatalog.ts')
 const facts = read('lib/kineoFacts.ts')
 const fighterIds = [...page.matchAll(/exampleId:\s*'([^']+)'/g)].map((match) => match[1])
 

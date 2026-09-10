@@ -1,0 +1,62 @@
+{
+  "classification": "TESTADO LOCALMENTE",
+  "timeUtc": "2026-09-10T22:07:13.936Z",
+  "baselineCommit": "b619128999e93b77e74287795c43a6f4aac699c4",
+  "method": "Compare original initializers and printed route functions, then evaluate old/new catalog with both feature-flag values in isolated contexts. No network or env-file access.",
+  "checks": [
+    "unchanged initializer: STUDIO_USD",
+    "unchanged initializer: OFFER",
+    "unchanged initializer: FAST_COST",
+    "unchanged initializer: SEEDANCE_COST",
+    "unchanged initializer: KLING_COST",
+    "unchanged initializer: VEO_COST",
+    "unchanged initializer: KLING3_COST",
+    "unchanged initializer: H3_COST",
+    "unchanged initializer: OMNI_COST",
+    "unchanged initializer: S25_COST",
+    "unchanged initializer: ENGINES",
+    "unchanged initializer: ENGINE_SLUGS",
+    "unchanged route function: engineCostLabel",
+    "unchanged route function: generateStaticParams",
+    "unchanged route function: generateMetadata",
+    "unchanged route function: EnginePage",
+    "unchanged route config: dynamic",
+    "unchanged route config: dynamicParams",
+    "only supported route exports",
+    "catalog consumer: app/ai-video-generator/[engine]/page.tsx",
+    "catalog consumer: app/ai-video-generator/page.tsx",
+    "catalog consumer: app/sitemap.ts",
+    "evaluated data and order unchanged: S25_PUBLIC=false",
+    "evaluated data and order unchanged: S25_PUBLIC=true"
+  ],
+  "scenarios": [
+    {
+      "flag": false,
+      "engineSlugs": [
+        "kineo-1",
+        "seedance",
+        "kling",
+        "veo",
+        "kling-3",
+        "minimax-h3",
+        "gemini-omni-flash"
+      ],
+      "sha256": "5ec1cf3cd0889c8fdf12860bb2ee73313b80270cc8efc5fcb778656515c57081"
+    },
+    {
+      "flag": true,
+      "engineSlugs": [
+        "kineo-1",
+        "seedance",
+        "kling",
+        "veo",
+        "kling-3",
+        "minimax-h3",
+        "gemini-omni-flash",
+        "seedance-2-5"
+      ],
+      "sha256": "5ca8000e6e5fb80e4468bdd670f6505b5d5f0e674604966400e34bcb31b60c54"
+    }
+  ],
+  "passed": true
+}

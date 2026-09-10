@@ -236,7 +236,7 @@ const requiredReferences = {
     "creditsPerReferenceVideo('cinematic_ai')",
     "planCreditSpendUsd('basic', ENHANCE_CREDITS)",
   ],
-  'app/ai-video-generator/[engine]/page.tsx': [
+  'lib/growth/enginePageCatalog.ts': [
     "creditsPerReferenceVideo('cinematic_h3')",
     "videosPerMonth('basic', 'cinematic_h3')",
     "videosPerMonth('pro', 'cinematic_h3')",
@@ -307,6 +307,7 @@ const publicFiles = [
   'app/ai-robot-video-generator/page.tsx',
   'app/omni-flash-vs-sora/page.tsx',
   'app/ai-video-generator/[engine]/page.tsx',
+  'lib/growth/enginePageCatalog.ts',
   'app/ai-video-generator/page.tsx',
   'app/ai-video-upscaler/page.tsx',
   'lib/kineoFacts.ts',

@@ -63,7 +63,7 @@ const api = read('app/api/facts/route.ts')
 ok(api.includes('getKineoFacts()'), 'JSON endpoint still serializes the canonical facts object')
 ok(facts.includes('engines: ENGINE_FACTS'), 'JSON payload still publishes the engine catalog')
 
-const enginePage = read('app/ai-video-generator/[engine]/page.tsx')
+const enginePage = read('lib/growth/enginePageCatalog.ts')
 for (const [engine, path] of Object.entries(expected)) {
   const slug = path.split('/').pop()
   const key = slug.includes('-') ? `'${slug}': {` : `${slug}: {`

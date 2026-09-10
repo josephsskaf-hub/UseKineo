@@ -6,7 +6,7 @@ import { CANONICAL_SLUGS } from '@/lib/comparisons'
 import { SCRIPT_VERTICAL_SLUGS } from '@/lib/scriptLibrary'
 import { CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED } from '@/lib/publicSurfacePolicy'
 // KINEO-ENGINE-SEO-2026-08-15 — cluster por MOTOR (hub + 5 páginas).
-import { ENGINE_SLUGS } from './ai-video-generator/[engine]/page'
+import { ENGINE_SLUGS } from '@/lib/growth/enginePageCatalog'
 import { CITATION_ANSWER_LINKS, CITATION_REVIEW_DATE } from '@/lib/growth/citationAnswers'
 
 // #458 — SEO: sitemap so Google can discover and index every public page.

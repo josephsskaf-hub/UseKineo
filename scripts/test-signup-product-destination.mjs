@@ -164,7 +164,7 @@ ok(helper.includes('ENGINE_LANDING_PARAMS'), 'preview recognizes the same engine
 ok(helper.includes('ENGINE_LANDING_LABELS'), 'preview names engines from the engine landing source')
 
 equal(engineIntent.ENGINE_LANDING_PARAMS.length, 7, 'all seven engine landing params execute')
-const enginePage = source('app/ai-video-generator/[engine]/page.tsx')
+const enginePage = source('lib/growth/enginePageCatalog.ts')
 for (const engine of engineIntent.ENGINE_LANDING_PARAMS) {
   const campaign = `test_${engine}`
   const signupHref = engineIntent.buildEngineLandingSignupHref({ engine, campaign })
