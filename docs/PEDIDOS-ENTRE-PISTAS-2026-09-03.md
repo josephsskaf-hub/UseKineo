@@ -1888,3 +1888,18 @@ Nenhuma linha de referral ou comissão existe na história (30 cliques, 0 referr
 **EVIDÊNCIA DE PRODUÇÃO, SELECT 10/09 00:32:24 UTC:** sonda do afiliado do fundador tem 3 linhas de clique desde 09/09 03h UTC, 1 referral, 1 perfil carimbado, 0 eventos `payment_success` desse referido no dia e 0 comissões. É TESTE INTERNO, não aquisição/receita externa. Atribuição já comprovada; pagamento e comissão ainda pendentes. Não repetir cadastro/clique nem fazer compra pelo fundador. Após ele concluir a compra, conferir o pagamento e a comissão na moeda registrada, sem somar centavos de moedas distintas. Não chamar afiliados novos antes do gate já acordado.
 
 **FATO CONFIRMADO / NOVO RISCO COM MOEDA LOCAL:** a rota `/api/affiliate/me` soma `commission_amount` de todas as moedas em `earnings`; o painel mostra o total com `dollars(...)` sem moeda (padrão USD, linhas ~815–817). O detalhe das comissões preserva moeda, mas os KPIs não. Um registro futuro BRL seria apresentado como dólar no total. **HIPÓTESE/ENTREGA SEGUINTE:** agrupar a apresentação dos saldos por moeda, preservando a regra de comissão e sem conversão cambial inventada. Provar com fixtures USD + BRL, estorno e estados, caller real e preview antes/depois; não alterar webhook, ledger, preço, mínimo ou payout. A sonda atual não tem comissão: risco reproduzível em código, não perda financeira comprovada.
+## AF-09 — DEGRAU 5 PROVADO (Claude, 10/09 00:34 UTC)
+
+Teste real do fundador (código 5ENEDG6F, conta josephsskaf+testeste1010@gmail.com), com o pagamento em reais já no ar (MOEDA-01):
+
+| Degrau | Prova no banco |
+|---|---|
+| 1. clique | affiliate_clicks 09/09 23:07:51 UTC |
+| 2. cadastro com afiliado | profiles.affiliate_id = ca5e4fa8… às 23:08:37 |
+| 3. referral | affiliate_referrals 5f10e1b2… first_touch 23:08:40 → status **paid**, converted_at 10/09 00:34:05 |
+| 4. checkout | 1ª tentativa 23:10 em USD → checkout_payment_failed (card BR, unsupported); 2ª tentativa 00:31 nasceu em **BRL** pela rede de segurança |
+| 5. pagamento + comissão | payment_success brl 4990 (sub_1UDvwBIah5dxzSBfx5Mc0qBm) → affiliate_commissions 95649bca… initial, pending, **1497 BRL = 30% de R$ 49,90** |
+
+Conta ficou plan=starter, has_paid, 90 créditos (30 do trial + 60 do plano). A comissão de teste é ANULADA à mão (não entra no repasse); o fundador reembolsa os R$ 49,90 na Stripe.
+
+Conclusão: o programa de afiliados fecha ponta a ponta. A partir de agora um afiliado real pode ser recrutado (regra da sonda cumprida). Comissão de assinante brasileiro nasce em BRL — o repasse mensal (mínimo US0) precisa converter BRL→USD pelo câmbio da casa (5,0) na hora de somar; ainda não existe código para isso (pagamento é manual).
