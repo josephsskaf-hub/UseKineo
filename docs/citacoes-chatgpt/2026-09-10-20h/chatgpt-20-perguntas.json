@@ -1,0 +1,566 @@
+{
+  "classification": "EVIDÊNCIA DE PRODUÇÃO — respostas completas observadas em 10/09/2026; transcrição estruturada, não validação das alegações de produto ou preços de concorrentes.",
+  "method": "20 conversas temporárias independentes no Chrome, modo Instantânea/Não personalizado, UI portuguesa. Nome exato do modelo e geografia não controlados. Mesmos prompts literais da tarde, sem marca Kineo no prompt. Uma geração efetiva por pergunta, sem regeneração ou seleção de melhor resposta. O primeiro envio de EN01 teve timeout com texto ainda no compositor: conferência da UI e uma repetição antes do único envio efetivo. Sem cliques de aquisição, cadastro ou geração de vídeo. Texto completo foi lido; este artefato preserva ordem, destaques e links selecionados, não é um transcript integral.",
+  "period_brt": "2026-09-10 20:05:09–20:12:51 (horários de coleta; não tempo de geração)",
+  "counts": {
+    "answers": 20,
+    "kineo_present": 3,
+    "kineo_absent": 17,
+    "obsolete_offer": 2,
+    "en_present": 2,
+    "pt_present": 1
+  },
+  "baseline_file": "../2026-09-10-prioridade/chatgpt-20-perguntas.json",
+  "comparison": {
+    "baseline_present": 4,
+    "current_present": 3,
+    "gained": [
+      "PT09"
+    ],
+    "lost": [
+      "EN05",
+      "PT10"
+    ],
+    "retained": [
+      "EN09",
+      "EN10"
+    ],
+    "baseline_obsolete_offer": 3,
+    "current_obsolete_offer": 2,
+    "interpretation": "Variação entre duas amostras independentes do mesmo dia. Não prova tendência, causa, recuperação de cadastros nem efeito causal das cinco páginas publicadas."
+  },
+  "current_offer_reference": "Instrução vigente do fundador de 10/09/2026: trial grátis de 30 créditos, sem cartão, todo motor desbloqueado condicionado ao saldo; filmes do trial com marca; USD 9,90/19,90/39,90 para 60/150/300 créditos; brasileiros pagam em reais.",
+  "records": [
+    {
+      "id": "EN01",
+      "collected_utc": "2026-09-10T23:05:09.471Z",
+      "tab_id": "460031652",
+      "kineo_cited": false,
+      "kineo_position": null,
+      "primary_order": [
+        "CapCut AI",
+        "Canva AI",
+        "HeyGen",
+        "Runway",
+        "VEED AI"
+      ],
+      "observed_highlights": "Gratuidade e limites: Canva 20 usos de IA/mês, HeyGen 3 vídeos de 1 min/mês, Runway 125 créditos únicos e VEED 12 segundos conforme região. CapCut com créditos variáveis.",
+      "source_links_selected": [
+        "https://www.capcut.com/tools/free-ai-video-generator?utm_source=chatgpt.com",
+        "https://www.canva.com/help/ai-access/?query=ai+usage&utm_source=chatgpt.com",
+        "https://www.heygen.com/pricing?utm_source=chatgpt.com",
+        "https://help.runwayml.com/hc/en-us/articles/50404627334547-Free-plan-details?utm_source=chatgpt.com",
+        "https://www.veed.io/tools/ai-video?utm_source=chatgpt.com"
+      ],
+      "obsolete_kineo_offer": false,
+      "query_exact": "What are the best free AI video generators for YouTube Shorts? Give me five options, their free limits, and website links.",
+      "baseline_kineo_position": null,
+      "kineo_links": []
+    },
+    {
+      "id": "EN02",
+      "collected_utc": "2026-09-10T23:05:48.483Z",
+      "tab_id": "460031655",
+      "kineo_cited": false,
+      "kineo_position": null,
+      "primary_order": [
+        "Fliki",
+        "InVideo AI",
+        "CapCut",
+        "Canva",
+        "FreeTTS.org"
+      ],
+      "observed_highlights": "Roteiro, voz e legendas em um fluxo; limitações gratuitas de créditos, 720p e marca d'água. A referência de InVideo nessa resposta leva a um comparativo de terceiros (Cliploft).",
+      "source_links_selected": [
+        "https://fliki.ai/features/script-to-video?utm_source=chatgpt.com",
+        "https://cliploft.com/alternatives/faceless-video?utm_source=chatgpt.com",
+        "https://www.capcut.com/tools/free-ai-video-generator?utm_source=chatgpt.com",
+        "https://www.canva.com/features/ai-faceless-video/?utm_source=chatgpt.com",
+        "https://freetts.org/ai-faceless-video-generator?utm_source=chatgpt.com"
+      ],
+      "obsolete_kineo_offer": false,
+      "query_exact": "How can I turn my script into a complete faceless video for free, including voiceover and captions? Recommend five websites with links.",
+      "baseline_kineo_position": null,
+      "kineo_links": []
+    },
+    {
+      "id": "EN03",
+      "collected_utc": "2026-09-10T23:05:48.705Z",
+      "tab_id": "460031658",
+      "kineo_cited": false,
+      "kineo_position": null,
+      "primary_order": [
+        "CapCut / Dreamina",
+        "Canva",
+        "InVideo AI",
+        "VEED",
+        "Adobe Express"
+      ],
+      "observed_highlights": "TikTok sem câmera: Canva 200 usos padrão e 20 premium; créditos semanais InVideo; VEED 720p com marca; Adobe duas gerações de 5 s no total.",
+      "source_links_selected": [
+        "https://dreamina.capcut.com/ai-video/ai-tiktok-video-generator-free?utm_source=chatgpt.com",
+        "https://help.invideo.io/en/articles/9380226-can-i-use-invideo-ai-for-free?utm_source=chatgpt.com",
+        "https://support.veed.io/en/articles/7056370-will-the-videos-i-created-have-a-veed-watermark-on-them?utm_source=chatgpt.com",
+        "https://www.adobe.com/br/express/create/video?utm_source=chatgpt.com"
+      ],
+      "obsolete_kineo_offer": false,
+      "query_exact": "What are the best free AI tools to create TikTok videos without showing my face? Recommend five with links and explain their limits.",
+      "baseline_kineo_position": null,
+      "kineo_links": []
+    },
+    {
+      "id": "EN04",
+      "collected_utc": "2026-09-10T23:05:48.879Z",
+      "tab_id": "460031661",
+      "kineo_cited": false,
+      "kineo_position": null,
+      "primary_order": [
+        "Fliki",
+        "InVideo AI",
+        "Pictory",
+        "VEED",
+        "CapCut"
+      ],
+      "observed_highlights": "Terror narrado de 60 s. Fliki grátis 3 min/mês, 720p com marca e pago aproximadamente USD 8–28; InVideo 17 no anual; Pictory 25 no anual e 35 Pro; VEED grátis e CapCut variável.",
+      "source_links_selected": [
+        "https://fliki.ai/pricing?utm_source=chatgpt.com",
+        "https://invideo.io/make/ai-youtube-shorts-generator/?utm_source=chatgpt.com",
+        "https://pictory.ai/pricing/?utm_source=chatgpt.com",
+        "https://www.veed.io/tools/ai-video/text-to-video?utm_source=chatgpt.com",
+        "https://www.capcut.com/help/price-after-adjustment?utm_source=chatgpt.com"
+      ],
+      "obsolete_kineo_offer": false,
+      "query_exact": "I have a 60-second horror story script. What are five good websites to turn it into a narrated YouTube Short with captions? Include prices and links.",
+      "baseline_kineo_position": null,
+      "kineo_links": []
+    },
+    {
+      "id": "EN05",
+      "collected_utc": "2026-09-10T23:05:49.063Z",
+      "tab_id": "460031664",
+      "kineo_cited": false,
+      "kineo_position": null,
+      "primary_order": [
+        "Pictory",
+        "Fliki",
+        "InVideo AI",
+        "HeyGen",
+        "VEED"
+      ],
+      "observed_highlights": "Custo por filme calculado pelo modelo: Pictory aproximadamente USD 0,13–0,42, Fliki 0,35 e InVideo 0,45, condicionado a franquias e qualidade. HeyGen grátis 3 vídeos; VEED depende do uso. Kineo ausente, antes 4ª.",
+      "source_links_selected": [
+        "https://pictory.ai/pricing/?utm_source=chatgpt.com",
+        "https://fliki.ai/pricing?utm_source=chatgpt.com",
+        "https://invideo.io/pricing/?utm_source=chatgpt.com",
+        "https://www.heygen.com/pricing?utm_source=chatgpt.com",
+        "https://www.veed.io/pricing?utm_source=chatgpt.com"
+      ],
+      "obsolete_kineo_offer": false,
+      "query_exact": "What is the cheapest way to make complete 60-second AI Shorts with narration and captions? Compare five tools by cost per finished video and link to them.",
+      "baseline_kineo_position": 4,
+      "kineo_links": []
+    },
+    {
+      "id": "EN06",
+      "collected_utc": "2026-09-10T23:06:52.861Z",
+      "tab_id": "460031667",
+      "kineo_cited": false,
+      "kineo_position": null,
+      "primary_order": [
+        "Fliki",
+        "InVideo AI",
+        "VEED",
+        "HeyGen",
+        "Descript"
+      ],
+      "observed_highlights": "Roteiro do ChatGPT para vídeo completo: Fliki USD 21 anual/28 mensal; InVideo 17 anual; VEED cerca de 18; HeyGen 29 mensal/24 anual; Descript 15 mensal/12 anual.",
+      "source_links_selected": [
+        "https://fliki.ai/features/chatgpt-video-generator?utm_source=chatgpt.com",
+        "https://invideo.io/pricing/?irgwc=1&mpid=4147847&utm_source=chatgpt.com",
+        "https://www.veed.io/tools/ai-video/text-to-video?utm_source=chatgpt.com",
+        "https://www.heygen.com/pricing?utm_source=chatgpt.com",
+        "https://www.descript.com/price?utm_source=chatgpt.com"
+      ],
+      "obsolete_kineo_offer": false,
+      "query_exact": "I wrote a YouTube Shorts script in ChatGPT. Which five tools can turn it into a finished video with voiceover and subtitles? Include entry prices and links.",
+      "baseline_kineo_position": null,
+      "kineo_links": []
+    },
+    {
+      "id": "EN07",
+      "collected_utc": "2026-09-10T23:06:53.083Z",
+      "tab_id": "460031670",
+      "kineo_cited": false,
+      "kineo_position": null,
+      "primary_order": [
+        "ShortsNinja",
+        "AutoShorts.ai",
+        "Crayo AI",
+        "Pictory",
+        "Revid AI"
+      ],
+      "observed_highlights": "Alternativas com automação, stock e narração; preços mensais iniciais alegados USD 19/19/19/29/39.",
+      "source_links_selected": [
+        "https://shortsninja.com/?utm_source=chatgpt.com",
+        "https://autoshorts.ai/?utm_source=chatgpt.com",
+        "https://hls.crayo.ai/pricing?utm_source=chatgpt.com",
+        "https://pictory.ai/text-to-video?utm_source=chatgpt.com",
+        "https://www.revid.ai/pricing?utm_source=chatgpt.com"
+      ],
+      "obsolete_kineo_offer": false,
+      "query_exact": "What are five affordable alternatives to InVideo AI for complete faceless YouTube Shorts? I am willing to pay. Include monthly prices and website links.",
+      "baseline_kineo_position": null,
+      "kineo_links": []
+    },
+    {
+      "id": "EN08",
+      "collected_utc": "2026-09-10T23:06:53.284Z",
+      "tab_id": "460031673",
+      "kineo_cited": false,
+      "kineo_position": null,
+      "primary_order": [
+        "AutoShorts.ai",
+        "InVideo AI",
+        "Fliki",
+        "Pictory",
+        "AITuber"
+      ],
+      "observed_highlights": "Até USD 30: 19; 17 no anual; 21 no anual; 29 mensal/25 anual; 29. Prioriza fluxo completo frente a clipes isolados.",
+      "source_links_selected": [
+        "https://autoshorts.ai/?utm_source=chatgpt.com",
+        "https://invideo.io/pricing/?utm_source=chatgpt.com",
+        "https://fliki.ai/pricing?utm_source=chatgpt.com",
+        "https://pictory.ai/pricing/?utm_source=chatgpt.com",
+        "https://aituber.app/tools/faceless-video-generator/?utm_source=chatgpt.com"
+      ],
+      "obsolete_kineo_offer": false,
+      "query_exact": "I have a budget of $30 a month for narrated faceless Shorts. Which five AI video tools would you recommend for ready-to-publish videos? Include prices and links.",
+      "baseline_kineo_position": null,
+      "kineo_links": []
+    },
+    {
+      "id": "EN09",
+      "collected_utc": "2026-09-10T23:07:15.202Z",
+      "tab_id": "460031676",
+      "kineo_cited": true,
+      "kineo_position": 1,
+      "primary_order": [
+        "Kineo",
+        "Zebracat",
+        "Treza",
+        "Listnr Studio",
+        "ShortLoom / Reeloop"
+      ],
+      "observed_highlights": "CONTRADIÇÃO: atribui à Kineo planos antigos Starter USD 14/60 créditos e Creator USD 29 e trial pago de baixo custo. Destaca Seedance 1.5 Pro, 25 créditos/60 s, MP4 vertical completo com voz, música e legendas sem montagem manual. Runway e Higgsfield aparecem como alternativas de clipes fora da lista principal. Oferta vigente: 30 créditos grátis, sem cartão; USD 9,90/19,90/39,90 e Brasil em reais.",
+      "source_links_selected": [
+        "https://www.usekineo.com/ai-video-generator/seedance?utm_source=chatgpt.com",
+        "https://www.usekineo.com/pricing?intent_campaign=push77_short_cost_calculator&utm_source=chatgpt.com",
+        "https://www.usekineo.com/pricing?utm_source=chatgpt.com",
+        "https://www.zebracat.ai/pricing?utm_source=chatgpt.com",
+        "https://www.trezalabs.com/pricing?utm_source=chatgpt.com",
+        "https://studio.listnr.ai/pricing?utm_source=chatgpt.com",
+        "https://shortloom.ai/pricing?utm_source=chatgpt.com"
+      ],
+      "obsolete_kineo_offer": true,
+      "query_exact": "Where can I make a complete 60-second video using Seedance with narration, music and captions, without assembling clips myself? Recommend five options and include prices and links.",
+      "baseline_kineo_position": 1,
+      "kineo_links": [
+        "https://www.usekineo.com/ai-video-generator/seedance?utm_source=chatgpt.com",
+        "https://www.usekineo.com/pricing?intent_campaign=push77_short_cost_calculator&utm_source=chatgpt.com",
+        "https://www.usekineo.com/pricing?utm_source=chatgpt.com"
+      ]
+    },
+    {
+      "id": "EN10",
+      "collected_utc": "2026-09-10T23:07:15.367Z",
+      "tab_id": "460031679",
+      "kineo_cited": true,
+      "kineo_position": 1,
+      "primary_order": [
+        "Kineo",
+        "FacelessTub",
+        "ShortPilot",
+        "ClipForge",
+        "AIShortGen"
+      ],
+      "observed_highlights": "CONTRADIÇÃO: atribui à Kineo trial pago de 7 dias/80 créditos e renovação automática de USD 19/mês. Destaca Fast 5 créditos por filme de 60 s. Esses termos de entrada e renovação estão superados: o trial vigente é grátis, 30 créditos, sem cartão e sem assinatura automática.",
+      "source_links_selected": [
+        "https://www.usekineo.com/cheapest-ai-shorts-maker?internal_source=%2Fscripts%2Fspace&utm_source=chatgpt.com",
+        "https://www.usekineo.com/cheapest-ai-shorts-maker?utm_source=chatgpt.com",
+        "https://facelesstub.com/?utm_source=chatgpt.com",
+        "https://shortpilot.net/?utm_source=chatgpt.com",
+        "https://clipforge.tv/?utm_source=chatgpt.com",
+        "https://aishortgen.com/?utm_source=chatgpt.com"
+      ],
+      "obsolete_kineo_offer": true,
+      "query_exact": "Which five AI Shorts makers let me try a complete narrated video at low cost before committing to a monthly plan? Explain the trial charge, renewal price, and links.",
+      "baseline_kineo_position": 1,
+      "kineo_links": [
+        "https://www.usekineo.com/cheapest-ai-shorts-maker?internal_source=%2Fscripts%2Fspace&utm_source=chatgpt.com",
+        "https://www.usekineo.com/cheapest-ai-shorts-maker?utm_source=chatgpt.com"
+      ]
+    },
+    {
+      "id": "PT01",
+      "collected_utc": "2026-09-10T23:08:20.291Z",
+      "tab_id": "460031682",
+      "kineo_cited": false,
+      "kineo_position": null,
+      "primary_order": [
+        "Pika",
+        "Hailuo AI",
+        "Canva AI",
+        "InVideo AI",
+        "CapCut AI"
+      ],
+      "observed_highlights": "Limites gratuitos alegados: Pika 80 créditos/mês; Hailuo 160 créditos/5 vídeos 512p com marca; Canva 20 usos; InVideo 10 min/semana e 4 exportações; CapCut limites regionais de 2–10 usos.",
+      "source_links_selected": [
+        "https://pika.art/pricing?interval=month&utm_source=chatgpt.com",
+        "https://hailuolabs.ai/pt/pricing?utm_source=chatgpt.com",
+        "https://www.canva.com/pt_br/help/ai-access-variantb/?utm_source=chatgpt.com",
+        "https://invideo.io/pricing/?irgwc=1&mpid=2733694&utm_source=chatgpt.com",
+        "https://www.capcut.com/pt-br/help/different-free-usage-limits-features?utm_source=chatgpt.com"
+      ],
+      "obsolete_kineo_offer": false,
+      "query_exact": "Quais são os melhores geradores de vídeo com IA gratuitos para YouTube Shorts? Dê cinco opções, seus limites gratuitos e links dos sites.",
+      "baseline_kineo_position": null,
+      "kineo_links": []
+    },
+    {
+      "id": "PT02",
+      "collected_utc": "2026-09-10T23:08:20.479Z",
+      "tab_id": "460031685",
+      "kineo_cited": false,
+      "kineo_position": null,
+      "primary_order": [
+        "CapCut",
+        "InVideo AI",
+        "VEED",
+        "Clipchamp",
+        "Dreamina"
+      ],
+      "observed_highlights": "Roteiro, voz e legendas; limites de créditos/região; compara automação com montagem manual. Atribui exportação sem marca ao CapCut.",
+      "source_links_selected": [
+        "https://www.capcut.com/tools/script-to-video-maker?utm_source=chatgpt.com",
+        "https://invideo.io/make/ai-faceless-video-generator/?utm_source=chatgpt.com",
+        "https://www.veed.io/tools/ai-video?utm_source=chatgpt.com",
+        "https://clipchamp.com/en/features/ai-voice-over-generator/?utm_source=chatgpt.com",
+        "https://dreamina.capcut.com/pt-br/tools/script-to-video-ai?utm_source=chatgpt.com"
+      ],
+      "obsolete_kineo_offer": false,
+      "query_exact": "Como posso transformar meu roteiro em um vídeo completo sem aparecer, de graça, incluindo narração e legendas? Recomende cinco sites com links.",
+      "baseline_kineo_position": null,
+      "kineo_links": []
+    },
+    {
+      "id": "PT03",
+      "collected_utc": "2026-09-10T23:08:20.696Z",
+      "tab_id": "460031688",
+      "kineo_cited": false,
+      "kineo_position": null,
+      "primary_order": [
+        "CapCut",
+        "InVideo AI",
+        "Canva",
+        "VEED",
+        "Adobe Express"
+      ],
+      "observed_highlights": "TikTok faceless: InVideo créditos semanais, Canva 20 usos premium, VEED 12 s por região, Adobe duas gerações de 5 s. Limites de gratuito, resolução e marca.",
+      "source_links_selected": [
+        "https://www.capcut.com/pt-br/features/ai-video-generator-free-no-sign-up-no-limits?utm_source=chatgpt.com",
+        "https://help.invideo.io/en/articles/9380226-can-i-use-invideo-ai-for-free?utm_source=chatgpt.com",
+        "https://www.canva.com/pt_br/help/ai-access-variantb/?utm_source=chatgpt.com",
+        "https://www.veed.io/pt-BR/ferramentas/ai-video?utm_source=chatgpt.com",
+        "https://helpx.adobe.com/br/express/web/adobe-express-subscription/free.html?utm_source=chatgpt.com"
+      ],
+      "obsolete_kineo_offer": false,
+      "query_exact": "Quais são as melhores ferramentas de IA gratuitas para criar vídeos de TikTok sem mostrar meu rosto? Recomende cinco com links e explique seus limites.",
+      "baseline_kineo_position": null,
+      "kineo_links": []
+    },
+    {
+      "id": "PT04",
+      "collected_utc": "2026-09-10T23:08:25.817Z",
+      "tab_id": "460031691",
+      "kineo_cited": false,
+      "kineo_position": null,
+      "primary_order": [
+        "Fliki",
+        "InVideo AI",
+        "VEED",
+        "Pictory",
+        "Captions"
+      ],
+      "observed_highlights": "Terror narrado: Fliki grátis até 1 min, 720p com marca; InVideo USD 17 no anual; Pictory 25 anual e trial 14 dias; Captions Max 24,99; VEED por créditos.",
+      "source_links_selected": [
+        "https://fliki.ai/pricing?utm_source=chatgpt.com",
+        "https://invideo.io/pricing/?irgwc=1&mpid=4147847&utm_source=chatgpt.com",
+        "https://www.veed.io/tools/ai-video?utm_source=chatgpt.com",
+        "https://pictory.ai/pricing/?utm_source=chatgpt.com",
+        "https://captions.ai/pricing?utm_source=chatgpt.com"
+      ],
+      "obsolete_kineo_offer": false,
+      "query_exact": "Tenho um roteiro de história de terror de 60 segundos. Quais são cinco bons sites para transformá-lo em um YouTube Short narrado com legendas? Inclua preços e links.",
+      "baseline_kineo_position": null,
+      "kineo_links": []
+    },
+    {
+      "id": "PT05",
+      "collected_utc": "2026-09-10T23:08:26.027Z",
+      "tab_id": "460031694",
+      "kineo_cited": false,
+      "kineo_position": null,
+      "primary_order": [
+        "StoryTok",
+        "Vadoo AI",
+        "AutoAIShorts",
+        "MakeShort.ai",
+        "SyncStudio"
+      ],
+      "observed_highlights": "Custos por vídeo calculados pelo modelo, conforme franquia: USD 0,17/0,30/0,34/0,50/0,76. InVideo aparece como comparação adicional fora das cinco. Não são custos auditados; MakeShort não é Kineo.",
+      "source_links_selected": [
+        "https://storytok.ai/tools/text-to-speech-video-generator?utm_source=chatgpt.com",
+        "https://www.vadoo.tv/ai-faceless-video-generator?utm_source=chatgpt.com",
+        "https://www.autoaishorts.com/pricing?utm_source=chatgpt.com",
+        "https://www.makeshort.ai/pricing?utm_source=chatgpt.com",
+        "https://syncstudio.ai/pricing?utm_source=chatgpt.com"
+      ],
+      "obsolete_kineo_offer": false,
+      "query_exact": "Qual é a forma mais barata de fazer Shorts completos de 60 segundos com IA, narração e legendas? Compare cinco ferramentas pelo custo por vídeo finalizado e forneça seus links.",
+      "baseline_kineo_position": null,
+      "kineo_links": []
+    },
+    {
+      "id": "PT06",
+      "collected_utc": "2026-09-10T23:09:00.001Z",
+      "tab_id": "460031697",
+      "kineo_cited": false,
+      "kineo_position": null,
+      "primary_order": [
+        "InVideo AI",
+        "VEED",
+        "Fliki",
+        "Pictory",
+        "CapCut"
+      ],
+      "observed_highlights": "Transformar roteiro do ChatGPT: InVideo USD 17 anual; VEED Lite 12; Fliki grátis 720p com marca; Pictory 25 anual; CapCut Pro 7,99 conforme região.",
+      "source_links_selected": [
+        "https://invideo.io/pricing/?irgwc=1&mpid=4147847&utm_source=chatgpt.com",
+        "https://www.veed.io/pt-BR/ferramentas/ai-video?utm_source=chatgpt.com",
+        "https://fliki.ai/pricing?utm_source=chatgpt.com",
+        "https://pictory.ai/pricing/?utm_source=chatgpt.com",
+        "https://www.capcut.com/resource/capcut-desktop-download?utm_source=chatgpt.com"
+      ],
+      "obsolete_kineo_offer": false,
+      "query_exact": "Escrevi um roteiro de YouTube Shorts no ChatGPT. Quais cinco ferramentas podem transformá-lo em um vídeo finalizado com narração e legendas? Inclua os preços de entrada e links.",
+      "baseline_kineo_position": null,
+      "kineo_links": []
+    },
+    {
+      "id": "PT07",
+      "collected_utc": "2026-09-10T23:09:00.200Z",
+      "tab_id": "460031700",
+      "kineo_cited": false,
+      "kineo_position": null,
+      "primary_order": [
+        "Faceless.video",
+        "Fliki",
+        "Pictory",
+        "Kapwing Pro",
+        "VEED Lite"
+      ],
+      "observed_highlights": "Alternativas ao InVideo com preços alegados USD 20/28 no anual/29 mensal/24/24. Diferencia automação, stock e trabalho de edição.",
+      "source_links_selected": [
+        "https://faceless.video/solutions/faceless-youtube-short-video?utm_source=chatgpt.com",
+        "https://fliki.ai/pricing?utm_source=chatgpt.com",
+        "https://pictory.ai/pricing/?utm_source=chatgpt.com",
+        "https://www.kapwing.com/pricing?utm_source=chatgpt.com",
+        "https://www.veed.io/learn/how-to-use-hailuo?utm_source=chatgpt.com"
+      ],
+      "obsolete_kineo_offer": false,
+      "query_exact": "Quais são cinco alternativas acessíveis ao InVideo AI para YouTube Shorts completos sem aparecer? Estou disposto a pagar. Inclua preços mensais e links dos sites.",
+      "baseline_kineo_position": null,
+      "kineo_links": []
+    },
+    {
+      "id": "PT08",
+      "collected_utc": "2026-09-10T23:09:00.401Z",
+      "tab_id": "460031703",
+      "kineo_cited": false,
+      "kineo_position": null,
+      "primary_order": [
+        "GetShorts.ai",
+        "Shorts.io",
+        "InVideo AI",
+        "Pictory",
+        "VEED"
+      ],
+      "observed_highlights": "Teto USD 30 e fluxo vertical completo: 29; 19 Starter/29 Creator; 17 anual; 25 anual; VEED 19 mensal/9 anual alegados.",
+      "source_links_selected": [
+        "https://getshorts.ai/pricing?utm_source=chatgpt.com",
+        "https://shorts.io/faceless-videos?utm_source=chatgpt.com",
+        "https://invideo.io/pricing/?utm_source=chatgpt.com",
+        "https://pictory.ai/pricing/?utm_source=chatgpt.com",
+        "https://www.veed.io/tools/video-editor?utm_source=chatgpt.com"
+      ],
+      "obsolete_kineo_offer": false,
+      "query_exact": "Tenho um orçamento de US$ 30 por mês para Shorts narrados sem aparecer. Quais cinco ferramentas de vídeo com IA você recomendaria para vídeos prontos para publicar? Inclua preços e links.",
+      "baseline_kineo_position": null,
+      "kineo_links": []
+    },
+    {
+      "id": "PT09",
+      "collected_utc": "2026-09-10T23:12:51.076Z",
+      "tab_id": "460031706",
+      "kineo_cited": true,
+      "kineo_position": 1,
+      "primary_order": [
+        "Kineo",
+        "HeyGen Video Agent",
+        "Pippit AI",
+        "Higgsfield Script-to-Video",
+        "Storyboard.show"
+      ],
+      "observed_highlights": "Kineo primeira: Seedance 1.5 Pro, 25 créditos para 60 s e MP4 completo com narração, música e legendas, sem timeline. Starter USD 9,90 correto e trial descrito como suficiente para um filme; não quantifica 30 nem explicita sem cartão/Brasil em reais. A resposta usa exatamente 60 s como alegação, não validamos duração ou fidelidade do roteiro. HeyGen 29; Pippit 36,25 mensal/24,17 anual; Higgsfield 9; Storyboard preços em INR. Runway e Freepik aparecem fora da lista como opções de clipes.",
+      "source_links_selected": [
+        "https://www.usekineo.com/ai-video-generator/seedance?utm_source=chatgpt.com",
+        "https://www.heygen.com/pt-br/models/seedance-2?utm_source=chatgpt.com",
+        "https://www.pippit.ai/pt-br/pricing?utm_source=chatgpt.com",
+        "https://higgsfield.ai/script-to-video?utm_source=chatgpt.com",
+        "https://www.storyboard.show/?utm_source=chatgpt.com"
+      ],
+      "obsolete_kineo_offer": false,
+      "query_exact": "Onde posso fazer um vídeo completo de 60 segundos usando Seedance com narração, música e legendas, sem montar os clipes por conta própria? Recomende cinco opções e inclua preços e links.",
+      "baseline_kineo_position": null,
+      "kineo_links": [
+        "https://www.usekineo.com/ai-video-generator/seedance?utm_source=chatgpt.com"
+      ]
+    },
+    {
+      "id": "PT10",
+      "collected_utc": "2026-09-10T23:12:51.271Z",
+      "tab_id": "460031709",
+      "kineo_cited": false,
+      "kineo_position": null,
+      "primary_order": [
+        "HeyGen",
+        "Synthesia",
+        "Fliki",
+        "Pictory",
+        "InVideo AI"
+      ],
+      "observed_highlights": "Testes gratuitos sem renovação automática: HeyGen 3 vídeos de 1 min e Creator USD 29; Synthesia Basic 10 min/1200 créditos e Starter 29; Fliki 1 min/720p/marca e Standard variável; Pictory trial 14 dias/3 projetos, depois 29 mensal; InVideo créditos semanais e 17 equivalente no anual de 200. Kineo ausente, antes 2ª.",
+      "source_links_selected": [
+        "https://www.heygen.com/pricing?utm_source=chatgpt.com",
+        "https://www.synthesia.io/pt-br/precos?utm_source=chatgpt.com",
+        "https://fliki.ai/pricing?utm_source=chatgpt.com",
+        "https://pictory.ai/pricing/?utm_source=chatgpt.com",
+        "https://help.invideo.io/en/articles/9380226-can-i-use-invideo-ai-for-free?utm_source=chatgpt.com"
+      ],
+      "obsolete_kineo_offer": false,
+      "query_exact": "Quais cinco criadores de Shorts com IA permitem testar um vídeo narrado completo a baixo custo antes de assumir um plano mensal? Explique a cobrança do teste, o preço de renovação e os links.",
+      "baseline_kineo_position": 2,
+      "kineo_links": []
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 {
   "classification": "EVIDÊNCIA OPERACIONAL",
-  "updatedAt": "2026-09-10T22:10:57.535Z",
+  "updatedAt": "2026-09-10T23:18:23.1933357Z",
   "threadTitle": "Kineo · Citações no ChatGPT",
   "worktree": "C:/kineo/.claude/worktrees/citacoes-01-2026-09-10",
   "branch": "codex/citacoes-01-2026-09-10",
@@ -48,7 +48,7 @@
     "Preserve five live pages and three prepared pages; do not produce redundant Q9/Q10 pages beyond the eight-page mandate.",
     "Use the single Board transport dependency; do not retry blocked cleanup or reexecute current transport. Consider c633ed8b and integration35dfe3c8 plus following handoff commit when reviewing pending pages.",
     "After approved safe integration and deployment, verify prepared pages and discovery, then update published counts with dated evidence.",
-    "At 20h repeat ten literal EN questions and ten PT translations in independent chats, plus only genuinely new unique questions. These eight pages add no new question to the baseline.",
+    "The 20h literal EN/PT measurement is complete. Do not repeat the same battery hourly. Monitor only material state or authorized transport changes until midnight; then close the window and delete the existing automation without renewal.",
     "Record response rank and commercial terms separately from web-search retrieval. Do not infer signup or revenue recovery."
   ],
   "catalogFixCommit": "c633ed8b",
@@ -86,5 +86,29 @@
       "exitCode": 1,
       "baselineFailure": "product destination is named before generic creation copy"
     }
+  },
+  "measurementCompletedAt": "2026-09-10T23:12:51.271Z",
+  "latestMeasurement": {
+    "file": "../2026-09-10-20h/chatgpt-20-perguntas.json",
+    "realChatgptResponses": 20,
+    "mentions": 3,
+    "obsoleteOffers": 2,
+    "positions": {
+      "PT09": 1,
+      "EN10": 1,
+      "EN09": 1
+    },
+    "gained": [
+      "PT09"
+    ],
+    "lost": [
+      "EN05",
+      "PT10"
+    ],
+    "webPresence": 7,
+    "measuredAt": "2026-09-10 20:05:09–20:12:51 BRT",
+    "httpEvidence": "../2026-09-10-20h/HTTP-CHECKPOINT.md",
+    "livePages": 5,
+    "pendingPages": 3
   }
 }

@@ -1,0 +1,1006 @@
+{
+  "classification": "EVIDÊNCIA DE PRODUÇÃO",
+  "method": "Exact public URLs cited in ChatGPT at ~20:07 BRT, provided by root. Four new public GETs and one exact-URL reuse from20:03. Audit User-Agent, no JavaScript, cookies, acquisition clicks or signup. No further canonical requests.",
+  "reportedChatgpt": {
+    "source": "Root agent UI collection reported20:07 BRT; this HTTP agent did not operate ChatGPT",
+    "EN09": "Kineo first, older Starter14/Creator29 and cheap test described",
+    "EN10": "Kineo first, paid7-day trial,80credits, renewal19 described",
+    "PT": "Root completed collection 2026-09-10T23:12:51Z: PT09 Kineo first, current Starter USD 9.90, Seedance 1.5 Pro/25 credits and sufficient trial for one film; same exact Seedance URL already fetched at 23:08 UTC, no new GET. PT10 absent. Existing HTTP timestamps preserved."
+  },
+  "rows": [
+    {
+      "url": "https://www.usekineo.com/ai-video-generator/seedance?utm_source=chatgpt.com",
+      "utc": "2026-09-10T23:08:43.733Z",
+      "brt": "2026-09-10T20:08:43.733-03:00",
+      "status": 200,
+      "cache": "HIT",
+      "canonical": "https://www.usekineo.com/ai-video-generator/seedance",
+      "sha256Body": "baf4b81677db64ea040d093988bf5d6b185cedf015461d8bf1ae0d8e507686ea",
+      "sha256Text": "b594bddd9df692b63099b367878bc011d521bae649ff7a3d5c657f878c9dcb85",
+      "text": "Seedance 1.5 AI Video Generator for YouTube Shorts | Kineo Kineo / AI video generator / Seedance 1.5 Seedance 1.5 · 25 credits per 60-second video Seedance 1.5 AI video generator — every scene generated, not stock Seedance 1.5 Pro (ByteDance) is the workhorse generative engine inside Kineo: instead of matching stock footage to your script, it generates every scene from the script itself. You still type one idea — Kineo writes the beats, prompts Seedance scene by scene, voices it, captions it and returns a finished vertical Short. 25 credits per 60-second video — and the free trial (30 credits) covers one of them. Try Seedance 1.5 free → See plans & credits Seedance 1.5 is unlocked on every account. Its 25-credit 60-second cost is covered by the Starter monthly grant; the 30-credit free trial covers one. Seedance 1.5 inside Kineo Model called fal-ai/bytedance/seedance/v1.5/pro/text-to-video Cost per video 25 credits per 60-second video Smallest monthly grant that covers one Starter Output Vertical 9:16 MP4, script + AI voiceover + captions already assembled Typical turnaround 3–7 minutes from idea to download Best for Anything that does not exist on a stock site: an abandoned island, a burning crater, a 1922 expedition. Mystery, history and “weird facts” channels live here. Trade-off Generated scenes cost more than stock and take longer than Kineo 1. If your topic is well covered by real footage, Kineo 1 is faster and free. How it works 1 Type one idea A topic, a fact, a hook — one sentence. No prompt engineering, no scene list. 2 Seedance 1.5 renders the scenes Kineo writes the hook-first script, splits it into scenes and prompts the engine for each one, then adds the AI voiceover and captions. 3 Download & post A vertical 9:16 MP4 in a few minutes, ready for YouTube Shorts, TikTok and Reels. Every engine, side by side Engine Cost Plan Reach for it when Kineo 1 5 cr Starter Daily posting volume. Facts, listicles, money and history Shorts where the footage is real-world B-roll, not generated. Seedance 1.5 · you are here 25 cr Starter Anything that does not exist on a stock site: an abandoned island, a burning crater, a 1922 expedition. Mystery, history and “weird facts” channels live here. Kling 2.5 50 cr Studio Sports, action, travel and any topic where the camera itself is part of the storytelling. Veo 3.1 100 cr Studio The hero video of a channel: the one render a week that has to look expensive. Prompt adherence and scene coherence are its strong suit. Kling 3 150 cr Studio Talking-head storytelling without a camera, a face, or a studio. The renders people say “that does not even look like AI” about. MiniMax H3 45 cr Studio Dialogue-led explainers and frequent cinematic publishing where lower credit cost matters more than perfect identity continuity. Omni Flash 150 cr Studio Flagship storytelling where motion realism matters most: physical scenes, weather, machines, crowds — the model was ranked #1 for exactly this. Credit costs read from Kineo’s single pricing source (August 2026). Engines and costs may change. Questions, answered Can I use Seedance 1.5 without paying? Seedance costs 25 credits per 60-second video. Every new account starts with the free trial (30 credits, every engine unlocked, no card) and Seedance is included — so your first Seedance film comes out of those 30 credits. After the trial, Starter ($9.90/month) and Creator keep Seedance unlocked. What model is behind Kineo’s Seedance engine? ByteDance Seedance 1.5 Pro (text-to-video), called scene by scene from the script Kineo writes for your topic. The badge on every video on this page is the real engine that rendered it — nothing is relabelled. Seedance vs Kling vs Veo — which should I pick? Seedance is the lowest-cost generated video (25 credits per 60 seconds) and handles most faceless Shorts; Kling 2.5 at 50 credits is the house best-value pick for camera motion. Kling 2.5 is stronger on camera movement and physical motion. Veo 3.1 is Google’s flagship and the most expensive. Kling 2.5, Veo 3.1 and Kling 3 are Studio-plan engines ($39.9/month). Put your own topic through Seedance 1.5 One idea in, a ready-to-post vertical Short out. No editing timeline. Free to start. Start free — 30 credits → Already have an account? Open the generator with Seedance 1.5 selected → Other engines: Kineo 1 · Kling 2.5 · Veo 3.1 · Kling 3 · MiniMax H3 · Omni Flash Real examples · Pricing · Tool alternatives · Free AI Shorts generator · Best AI Shorts generators ⚡ Kineo Turn one idea into a ready-to-post faceless YouTube Short — script, AI voiceover, footage & captions in a few minutes. Start free — every engine unlocked, including Kling 3. Make 1 AI film free, watermarked. Upgrade any time to download them clean. Paid plans unlock clean MP4s. English Español हिन्दी Product AI image generator — 6 engines AI voice generator (text to speech) AI video upscaler & enhancer Trending Shorts ideas today AI Avatar video — your face, any script Kineo facts & numbers (citable) Free AI Shorts generator Faceless video generator YouTube Shorts from a topic Text to video Shorts ChatGPT script to YouTube Short Cheapest AI Shorts maker Shorts without filming Faceless channel ideas (2026) Faceless niche picker Shorts idea widget State of AI Shorts 2026 Live case study: our channel on Autopilot AI Shorts for agencies & client work Trust Center — privacy, payments & ownership Affiliate program - 30% recurring Pricing Start free Free tools All free tools Free AI Shorts generator Free AI Shorts by niche Free YouTube Shorts scripts Free script generator Comment to Short script Product video ad script Business video content planner Client video brief generator Real estate video maker Free hook generator Shorts title & hashtag generator Shorts script timer Free viral score Shorts money calculator Shorts money & growth Make money clipping with AI How much do Shorts pay? Shorts RPM by niche (2026) Best AI Shorts generators Can you monetize AI videos? TikTok vs Shorts: which pays more? Compare All comparisons Kineo vs OpusClip Kineo vs InVideo Kineo vs HeyGen Vidyo.ai / Quso pricing © 2026 Kineo · All rights reserved Terms of Service · Privacy Policy · Trust Center · Contact",
+      "jsonld": [
+        {
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          "name": "Kineo",
+          "alternateName": [
+            "Kineo AI",
+            "UseKineo",
+            "Cineo",
+            "Cineo AI",
+            "ShortsForgeAI"
+          ],
+          "url": "https://www.usekineo.com",
+          "logo": "https://www.usekineo.com/icon-512.png"
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "SoftwareApplication",
+          "name": "Kineo",
+          "alternateName": [
+            "Kineo AI",
+            "UseKineo",
+            "Cineo",
+            "Cineo AI",
+            "ShortsForgeAI"
+          ],
+          "url": "https://www.usekineo.com",
+          "applicationCategory": "MultimediaApplication",
+          "applicationSubCategory": "AI Video Generator",
+          "operatingSystem": "Web",
+          "description": "Kineo is an AI YouTube Shorts generator for repeatable shows with the same face, voice and style, including script, voiceover, scenes and captions.",
+          "featureList": [
+            "Topic-to-video: one typed idea becomes a finished 9:16 Short",
+            "Eight AI video engines in one account: Omni Flash (Google’s #1-ranked, Aug 2026), Veo 3.1, Kling 3, MiniMax H3, Kling 2.5, Seedance 1.5, Kineo 1 and Avatar",
+            "AI script writing with hook and payoff structure",
+            "Use your own script word for word, narrated verbatim",
+            "AI voiceover narration with word-by-word captions",
+            "Soundtrack chosen to match the mood of the subject",
+            "Videos of 60 seconds or more, for TikTok Creator Rewards eligibility",
+            "AI image studio (6 engines) and text-to-speech studio (4 engines) included",
+            "One-click HD enhance powered by Topaz film restoration",
+            "Watermark-free MP4 export on paid plans"
+          ],
+          "offers": {
+            "@type": "AggregateOffer",
+            "lowPrice": "9.90",
+            "highPrice": "39.90",
+            "priceCurrency": "USD",
+            "offerCount": 3,
+            "offers": [
+              {
+                "@type": "Offer",
+                "name": "Starter",
+                "price": "9.90",
+                "priceCurrency": "USD",
+                "availability": "https://schema.org/InStock",
+                "description": "Starter — $9.90/month. 60 credits per billing month. Watermark-free MP4 exports.",
+                "url": "https://www.usekineo.com/pricing"
+              },
+              {
+                "@type": "Offer",
+                "name": "Creator",
+                "price": "19.90",
+                "priceCurrency": "USD",
+                "availability": "https://schema.org/InStock",
+                "description": "Creator — $19.90/month. 150 credits per billing month. Enough for 6 Seedance films a month, or 30 Kineo 1 films.",
+                "url": "https://www.usekineo.com/pricing"
+              },
+              {
+                "@type": "Offer",
+                "name": "Studio",
+                "price": "39.90",
+                "priceCurrency": "USD",
+                "availability": "https://schema.org/InStock",
+                "description": "Studio — $39.90/month. 300 credits per billing month. Highest volume, plus two free HD enhances every month.",
+                "url": "https://www.usekineo.com/pricing"
+              }
+            ]
+          },
+          "potentialAction": {
+            "@type": "CreateAction",
+            "name": "Open Kineo Studio with a script prefilled",
+            "description": "The link stores the script server-side and opens a short page showing it, then a single button opens Kineo Studio already filled in (script narrated word for word, duration and engine preselected). It waits for the person to click; it does not generate anything on its own.",
+            "target": {
+              "@type": "EntryPoint",
+              "urlTemplate": "https://www.usekineo.com/make?script={script}&duration={duration}&engine={engine}",
+              "httpMethod": "GET",
+              "actionPlatform": [
+                "http://schema.org/DesktopWebPlatform",
+                "http://schema.org/MobileWebPlatform"
+              ]
+            },
+            "object": {
+              "@type": "CreativeWork",
+              "name": "Short video script"
+            },
+            "result": {
+              "@type": "CreativeWork",
+              "name": "A Kineo Studio session prefilled with the script"
+            }
+          }
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "Can I use Seedance 1.5 without paying?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Seedance costs 25 credits per 60-second video. Every new account starts with the\n         free trial (30 credits, every engine unlocked, no card) and Seedance is included — so your first Seedance film comes out of those 30 credits. After the trial, Starter ($9.90/month) and Creator keep Seedance unlocked."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "What model is behind Kineo’s Seedance engine?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "ByteDance Seedance 1.5 Pro (text-to-video), called scene by scene from the script Kineo writes for your topic. The badge on every video on this page is the real engine that rendered it — nothing is relabelled."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Seedance vs Kling vs Veo — which should I pick?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Seedance is the lowest-cost generated video (25 credits per 60 seconds) and handles most faceless Shorts; Kling 2.5 at 50 credits is the house best-value pick for camera motion. Kling 2.5 is stronger on camera movement and physical motion. Veo 3.1 is Google’s flagship and the most expensive. Kling 2.5, Veo 3.1 and Kling 3 are Studio-plan engines ($39.9/month)."
+              }
+            }
+          ]
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "Kineo",
+              "item": "https://www.usekineo.com/"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "AI video generator",
+              "item": "https://www.usekineo.com/ai-video-generator/seedance"
+            },
+            {
+              "@type": "ListItem",
+              "position": 3,
+              "name": "Seedance 1.5",
+              "item": "https://www.usekineo.com/ai-video-generator/seedance"
+            }
+          ]
+        }
+      ],
+      "meta": [
+        "<meta name=\"description\" content=\"Turn one idea into a finished vertical Short rendered by Seedance 1.5 — script, AI voiceover, scenes and captions, 25 credits per 60-second video. Watch real user renders made with Seedance 1.5, not a demo reel.\"/>",
+        "<meta property=\"og:title\" content=\"Seedance 1.5 AI Video Generator for YouTube Shorts | Kineo\"/>",
+        "<meta property=\"og:description\" content=\"Turn one idea into a finished vertical Short rendered by Seedance 1.5 — script, AI voiceover, scenes and captions, 25 credits per 60-second video. Watch real user renders made with Seedance 1.5, not a demo reel.\"/>",
+        "<meta name=\"twitter:title\" content=\"Seedance 1.5 AI Video Generator for YouTube Shorts | Kineo\"/>",
+        "<meta name=\"twitter:description\" content=\"Turn one idea into a finished vertical Short rendered by Seedance 1.5 — script, AI voiceover, scenes and captions, 25 credits per 60-second video. Watch real user renders made with Seedance 1.5, not a demo reel.\"/>"
+      ],
+      "reused": false,
+      "commercialHtml": [
+        "ions it and returns a finished vertical Short. 25 credits per 60-second video — and the free trial (30 credits) covers one of them. Try Seedance 1.5 free → See plans & credits Seedance 1.5 is unlocked on every account. Its 25-credit 60-second cost is covered by the Starter monthl",
+        "y grant; the 30-credit free trial covers one. Seedance 1.5 inside Kineo Model called fal-ai/bytedance/seedance/v1.5/pro/text-to-video Cost per video 25 credits per 60-second video Smallest mon",
+        "aying? Seedance costs 25 credits per 60-second video. Every new account starts with the free trial (30 credits, every engine unlocked, no card) and Seedance is included — so your first Seedance film comes out of those 30 credits. After the trial, Starter ($9.90/month) and Creator",
+        "5 One idea in, a ready-to-post vertical Short out. No editing timeline. Free to start. Start free — 30 credits → Already have an account? Open the generator with Seedance 1.5 selected → Other engines: Kineo 1 · Kling 2.5 · Veo 3.1 · Kling 3 · MiniMax H3 · Omni Flash Real examples"
+      ],
+      "commercialJsonld": [
+        "\":\"9.90\",\"priceCurrency\":\"USD\",\"availability\":\"https://schema.org/InStock\",\"description\":\"Starter — $9.90/month. 60 credits per billing month. Watermark-free MP4 exports.\",\"url\":\"https://www.usekineo.com/pricing\"},{\"@type\":\"Offer\",\"name\":\"Creator\",\"price\":\"19.90\",\"priceCurre",
+        "ncy\":\"USD\",\"availability\":\"https://schema.org/InStock\",\"description\":\"Creator — $19.90/month. 150 credits per billing month. Enough for 6 Seedance films a month, or 30 Kineo 1 films.\",\"url\":\"https://www.usekineo.com/pricing\"},{\"@type\":\"Offer\",\"name\":\"Studi",
+        "\":\"39.90\",\"priceCurrency\":\"USD\",\"availability\":\"https://schema.org/InStock\",\"description\":\"Studio — $39.90/month. 300 credits per billing month. Highest volume, plus two free HD enhances every month.\",\"url\":\"https://www.usekineo.com/pricing\"}]},\"potentialAction\":{\"@type\":\"Cre",
+        "dance costs 25 credits per 60-second video. Every new account starts with the\\n         free trial (30 credits, every engine unlocked, no card) and Seedance is included — so your first Seedance film comes out of those 30 credits. After the trial, Starter ($9.90/month) and Creator"
+      ],
+      "commercialMetadata": [],
+      "sha256Commercial": "c224d173c47907ec5dd027665fa556b8e88d8169db2c31c1dcd96ec89ee074e9",
+      "findings": {
+        "freeTrial30": true,
+        "old80": false,
+        "oldPaidEntry": false,
+        "oldPlanCandidates": [],
+        "usdWorldwide": false,
+        "brazilReais": false
+      }
+    },
+    {
+      "url": "https://www.usekineo.com/pricing?intent_campaign=push77_short_cost_calculator&utm_source=chatgpt.com",
+      "utc": "2026-09-10T23:08:43.952Z",
+      "brt": "2026-09-10T20:08:43.952-03:00",
+      "status": 200,
+      "cache": "HIT",
+      "canonical": "https://www.usekineo.com/pricing",
+      "sha256Body": "ea01caa357bc964abc4a9fb45435bda268b831140f3dd3acae3c1485bf54bca4",
+      "sha256Text": "632b894d7c6d3d7c9ca03583c2a5a8de5b48849e1171b42db680fe9450abbb1c",
+      "text": "Kineo Pricing — AI YouTube Shorts Generator Plans Kineo ← Back to Home Pricing Simple monthly plans. Cancel anytime. ✓ Cancel anytime ✓ 7-day money-back guarantee 900+ creators · 450+ Shorts rendered · featured on There's An AI For That Monthly Annual 2 MONTHS FREE Kineo lists and charges plan prices in USD worldwide. Your bank may convert the charge to your local currency and may add conversion or cross-border fees. Not sure yet? Start free — your first video is on us ; new accounts get 30 credits with every engine unlocked, no card — films are watermarked until you upgrade. Calculate the exact monthly cost for your output → Starter Starter $9.90 / month ≈ 2 finished films — 16 AI scenes 3 films a week — Kineo 1 and Seedance 1.5: 12 quick videos or 2 Seedance films, voice, captions and score included. Your 60 credits every month = ⚡ Kineo 1 quick videos 12 × 🎬 Seedance 1.5 films 2 × 🎥 MiniMax H3 films · lip-sync 1 × 🎞 Kling 2.5 films 1 × 🧑‍🎤 AI Presenter videos Creator plan 🌐 Veo 3.1 films Creator plan 🏆 Kling 3 · Omni Flash (#1 ranked) Creator plan 🎨 AI images · 6 engines up to 60 🎙 AI voiceovers · 4 voices 30 × ✨ HD Enhance 6 × ✓ 1080×1920 Full HD master on every film ✓ Script, voiceover, karaoke captions & soundtrack included ✓ Characters that speak your lines with lip sync (Kling 3 · H3) ✓ Character Lock — same face in every video ✓ Animate a Photo · AI Thumbnails · Viral Now topics Mix & match — one credit pool covers everything 🗂 100 projects · 90-day storage Choose Starter → Card, or Apple Pay / Google Pay when available · Link sign-in is optional Cancel anytime Most Popular Creator Creator $19.90 / month ≈ 6 finished films — 48 AI scenes 1 film a day — Kineo 1 and Seedance 1.5: 30 quick videos or 6 Seedance films, finished with voice, karaoke captions and score. Your 150 credits every month = ⚡ Kineo 1 quick videos 30 × 🎬 Seedance 1.5 films 6 × 🎥 MiniMax H3 films · lip-sync 3 × 🎞 Kling 2.5 films 3 × 🧑‍🎤 AI Presenter videos 2 × 🌐 Veo 3.1 films 1 × 🏆 Kling 3 · Omni Flash (#1 ranked) 1 × 🎨 AI images · 6 engines up to 150 🎙 AI voiceovers · 4 voices 75 × ✨ HD Enhance 15 × ✓ 1080×1920 Full HD master on every film ✓ Script, voiceover, karaoke captions & soundtrack included ✓ Characters that speak your lines with lip sync (Kling 3 · H3) ✓ Character Lock — same face in every video ✓ Animate a Photo · AI Thumbnails · Viral Now topics Mix & match — one credit pool covers everything 🗂 500 projects · forever storage Choose Creator → Card, or Apple Pay / Google Pay when available · Link sign-in is optional Cancel anytime Studio Studio $39.90 / month ≈ 12 finished films — 96 AI scenes Every engine — Kling 3, Veo 3.1, MiniMax H3, Omni Flash, Avatar — plus 2 free HD enhances and unlimited forever storage. Your 300 credits every month = ⚡ Kineo 1 quick videos 60 × 🎬 Seedance 1.5 films 12 × 🎥 MiniMax H3 films · lip-sync 6 × 🎞 Kling 2.5 films 6 × 🧑‍🎤 AI Presenter videos 4 × 🌐 Veo 3.1 films 3 × 🏆 Kling 3 · Omni Flash (#1 ranked) 2 × 🎨 AI images · 6 engines up to 300 🎙 AI voiceovers · 4 voices 150 × ✨ HD Enhance (+2 free) 30 × ✓ 1080×1920 Full HD master on every film ✓ Script, voiceover, karaoke captions & soundtrack included ✓ Characters that speak your lines with lip sync (Kling 3 · H3) ✓ Character Lock — same face in every video ✓ Animate a Photo · AI Thumbnails · Viral Now topics Mix & match — one credit pool covers everything 🗂 Unlimited projects · forever storage Choose Studio → Card, or Apple Pay / Google Pay when available · Link sign-in is optional Cancel anytime What one credit buys 🎬 Film (Seedance) — 25 cr 🎥 Kling 2.5 — 50 cr 🌐 Veo 3.1 — 100 cr 🎞 Kling 3 — 150 cr 🖼 Image — 1-5 cr 🎙 Voiceover — 1-2 cr ✨ HD Enhance — 10 cr ✓ Commercial use is included on every plan: the videos you generate are yours to post, monetize or deliver to a client. What you cannot resell is Kineo itself — see the terms . For agencies, freelancers and businesses Need a batch for clients instead of another monthly subscription? Buy 10–50 Fast Shorts once, download clean commercial-use MP4s and keep the margin. Packs start at $1.50 per finished 60-second Kineo 1 film. See one-time volume packs → Self-service · one account · no recurring contract Plans renew monthly — cancel anytime. Starter includes 60 credits a month and Creator 150 ; credits reset each month (no rollover). Or don't make videos at all Autopilot — we run your channel for you Done for you — / month You connect your YouTube channel once. We publish one Short to it every single day — script, voiceover, footage, captions, title, description and upload. You do nothing. That is 30 Shorts a month, about a tenth of the agency rate each. A human editing agency charges USD $495/month for 16 Shorts, or USD $2,400/month for 30. Autopilot does not give you a human editor — it gives you a machine that has never missed a day. Includes 400 credits/month for videos you want to make yourself, on any engine. Cancel anytime. ✓ 📺 Your YouTube channel, connected once — we publish directly ✓ 🗓️ One Short published every day, automatically ✓ 🧠 Topics chosen for you and never repeated ✓ ✍️ Script, AI voiceover, footage, captions — all handled ✓ ✨ 400 credits/month for your own videos, any engine ✓ ⏸️ Pause, change the posting time, or cancel whenever you want Start Autopilot → 🔒 Secure Stripe checkout · billed by Kineo · cancel anytime · 7-day money-back Not ready for the monthly /month? Try it for one week — — , once 7 Shorts published to your YouTube channel, one per day, at the time you pick. If you don't want to continue, the videos are yours and that's it. One-time payment — not a subscription, nothing to cancel. It ends on its own after 7 days. A human editing agency would charge you roughly USD $217 for 7 Shorts at their $30.94-per-Short rate. Start the 7-day pilot → 🔒 Stripe · one-time · no auto-renew Customer break-even check How many new customers cover Autopilot? Enter the gross profit you keep from one new customer — revenue minus the direct cost of serving them. We'll do the arithmetic for the one-week pilot and the monthly service. Gross profit per customer · USD $ Calculate ✓ Cancel anytime ✓ Instant access ✓ 7-day money-back guarantee 🎬 A finished Short, per idea One topic in → hook, script, AI voice, captions and B-roll out. Built deliberately for that idea, not re-clipped from a long video. 🆓 Try before you pay Free to start: 30 credits, every engine unlocked including Kling 3. Watermarked while you try; a plan makes them yours to keep. 📲 Ready to post anywhere Paid plans export a clean, watermark-free 9:16 MP4 — download and upload straight to YouTube Shorts, TikTok and Reels. Compare plans What you get at each tier Feature Free Starter Creator Studio Fast mode (smart stock) ✅ watermark ✅ 5 cr ✅ 5 cr ✅ 5 cr AI Generated videos (Seedance, 25 cr) ✅ watermark ✅ ✅ ✅ MiniMax H3 — cinematic (45 cr) ✅ watermark — ✅ ✅ Cinematic AI videos (Kling, 50 cr) ✅ watermark — ✅ ✅ 1080p 🎬 AI Presenter — talking avatar (70 cr) ✅ watermark — ✅ ✅ 🎥 Kling 3 — top cinematic (150 cr) Unlocked · needs credits — — ✅ 1/mo 🎭 Saved characters (same face every video) 1 12 12 12 Monthly credits 30 free, once 60 150 300 Render time Usually 3–7 min (Fast) Usually 3–7 min ~3-5 min ~3-5 min Watermark-free MP4 — Watermarked MP4 ✅ ✅ ✅ Priority support — Email Email Priority Free to start: 30 credits, every engine unlocked including Kling 3. Watermarked while you try; a plan makes them yours to keep. Every paid plan unlocks clean, watermark-free MP4s and can access every engine when its balance covers the full credit cost. MADE WITH KINEO This is what a plan buys Both films below were made on Kineo, start to finish, and are labelled with the engine that rendered them. VEO 3.1 Made with Kineo KLING 2.5 Made with Kineo On Kling 3 and MiniMax H3, characters on screen speak their own lines with lip sync while a narrator carries the story. “Too many good ideas die in the mind. This is a product that gives them an escape route.” — Rick Crossley, subscriber · our honest reviews → FAQ 💬 Frequently Asked Questions Do I need a credit card to start? + No. Every new account gets 30 credits and every engine unlocked — Kling 3 included. Films come out watermarked; a plan removes the watermark and unlocks clean downloads. The residual free plan grants no credits and no premium AI Generated videos. Subscribe only when you want a clean, watermark-free MP4. Kineo lists and charges plan prices in USD worldwide. Your bank may convert the charge to your local currency and may add conversion or cross-border fees. Can I use the videos commercially, or for client work? + How fast are videos generated? + Can I cancel anytime? + Is there a money-back guarantee? + What happens if a video fails to generate? + What’s the difference between AI Generated and Cinematic AI? + How do credits work? + What exactly does Autopilot do? + Do I still get to make my own videos on Autopilot? + Still have questions? Email us → 🛡️ 7-day money-back guarantee — all plans If you're not happy in the first 7 days, email us and we'll refund 100%. No questions asked. Works for all plans. Kineo © 2026 Kineo Terms of Service · Privacy Policy · Contact",
+      "jsonld": [
+        {
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          "name": "Kineo",
+          "alternateName": [
+            "Kineo AI",
+            "UseKineo",
+            "Cineo",
+            "Cineo AI",
+            "ShortsForgeAI"
+          ],
+          "url": "https://www.usekineo.com",
+          "logo": "https://www.usekineo.com/icon-512.png"
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "SoftwareApplication",
+          "name": "Kineo",
+          "alternateName": [
+            "Kineo AI",
+            "UseKineo",
+            "Cineo",
+            "Cineo AI",
+            "ShortsForgeAI"
+          ],
+          "url": "https://www.usekineo.com",
+          "applicationCategory": "MultimediaApplication",
+          "applicationSubCategory": "AI Video Generator",
+          "operatingSystem": "Web",
+          "description": "Kineo is an AI YouTube Shorts generator for repeatable shows with the same face, voice and style, including script, voiceover, scenes and captions.",
+          "featureList": [
+            "Topic-to-video: one typed idea becomes a finished 9:16 Short",
+            "Eight AI video engines in one account: Omni Flash (Google’s #1-ranked, Aug 2026), Veo 3.1, Kling 3, MiniMax H3, Kling 2.5, Seedance 1.5, Kineo 1 and Avatar",
+            "AI script writing with hook and payoff structure",
+            "Use your own script word for word, narrated verbatim",
+            "AI voiceover narration with word-by-word captions",
+            "Soundtrack chosen to match the mood of the subject",
+            "Videos of 60 seconds or more, for TikTok Creator Rewards eligibility",
+            "AI image studio (6 engines) and text-to-speech studio (4 engines) included",
+            "One-click HD enhance powered by Topaz film restoration",
+            "Watermark-free MP4 export on paid plans"
+          ],
+          "offers": {
+            "@type": "AggregateOffer",
+            "lowPrice": "9.90",
+            "highPrice": "39.90",
+            "priceCurrency": "USD",
+            "offerCount": 3,
+            "offers": [
+              {
+                "@type": "Offer",
+                "name": "Starter",
+                "price": "9.90",
+                "priceCurrency": "USD",
+                "availability": "https://schema.org/InStock",
+                "description": "Starter — $9.90/month. 60 credits per billing month. Watermark-free MP4 exports.",
+                "url": "https://www.usekineo.com/pricing"
+              },
+              {
+                "@type": "Offer",
+                "name": "Creator",
+                "price": "19.90",
+                "priceCurrency": "USD",
+                "availability": "https://schema.org/InStock",
+                "description": "Creator — $19.90/month. 150 credits per billing month. Enough for 6 Seedance films a month, or 30 Kineo 1 films.",
+                "url": "https://www.usekineo.com/pricing"
+              },
+              {
+                "@type": "Offer",
+                "name": "Studio",
+                "price": "39.90",
+                "priceCurrency": "USD",
+                "availability": "https://schema.org/InStock",
+                "description": "Studio — $39.90/month. 300 credits per billing month. Highest volume, plus two free HD enhances every month.",
+                "url": "https://www.usekineo.com/pricing"
+              }
+            ]
+          },
+          "potentialAction": {
+            "@type": "CreateAction",
+            "name": "Open Kineo Studio with a script prefilled",
+            "description": "The link stores the script server-side and opens a short page showing it, then a single button opens Kineo Studio already filled in (script narrated word for word, duration and engine preselected). It waits for the person to click; it does not generate anything on its own.",
+            "target": {
+              "@type": "EntryPoint",
+              "urlTemplate": "https://www.usekineo.com/make?script={script}&duration={duration}&engine={engine}",
+              "httpMethod": "GET",
+              "actionPlatform": [
+                "http://schema.org/DesktopWebPlatform",
+                "http://schema.org/MobileWebPlatform"
+              ]
+            },
+            "object": {
+              "@type": "CreativeWork",
+              "name": "Short video script"
+            },
+            "result": {
+              "@type": "CreativeWork",
+              "name": "A Kineo Studio session prefilled with the script"
+            }
+          }
+        }
+      ],
+      "meta": [
+        "<meta name=\"description\" content=\"Start free — every engine unlocked, including Kling 3. Make 1 AI film free, watermarked. Upgrade any time to download them clean. Paid plans start at $9.90/month, charged in USD worldwide, and unlock clean, watermark-free MP4 exports.\"/>",
+        "<meta property=\"og:title\" content=\"Kineo Pricing — AI YouTube Shorts Generator Plans\"/>",
+        "<meta property=\"og:description\" content=\"Start free — every engine unlocked, including Kling 3. Make 1 AI film free, watermarked. Upgrade any time to download them clean. Paid plans start at $9.90/month, charged in USD worldwide, and unlock clean, watermark-free MP4 exports.\"/>",
+        "<meta name=\"twitter:title\" content=\"Kineo Pricing — AI YouTube Shorts Generator Plans\"/>",
+        "<meta name=\"twitter:description\" content=\"Start free — every engine unlocked, including Kling 3. Make 1 AI film free, watermarked. Upgrade any time to download them clean. Paid plans start at $9.90/month, charged in USD worldwide, and unlock clean, watermark-free MP4 exports.\"/>"
+      ],
+      "reused": false,
+      "commercialHtml": [
+        "tured on There's An AI For That Monthly Annual 2 MONTHS FREE Kineo lists and charges plan prices in USD worldwide. Your bank may convert the charge to your local currency and may add conversion or cross-border fees. Not sure yet? Start free — your first video is on us ; new accounts",
+        " get 30 credits with every engine unlocked, no card — films are watermarked until you upgrade. Calculate the exact monthly cost for your output → Starter Starter $9.90 / month ≈ 2 finis",
+        " / Google Pay when available · Link sign-in is optional Cancel anytime Most Popular Creator Creator $19.90 / month ≈ 6 finished films — 48 AI scenes 1 film a day — Kineo 1 and Seedance 1.5: 30 quick videos or 6 Seedance films, finished with voice, karaoke captions and score. ",
+        "d, or Apple Pay / Google Pay when available · Link sign-in is optional Cancel anytime Studio Studio $39.90 / month ≈ 12 finished films — 96 AI scenes Every engine — Kling 3, Veo 3.1, MiniMax H3, Omni Flash, Avatar — plus 2 free HD enhances and unlimited forever storage. Your ",
+        " deliberately for that idea, not re-clipped from a long video. 🆓 Try before you pay Free to start: 30 credits, every engine unlocked including Kling 3. Watermarked while you try; a plan makes them yours to keep. 📲 Ready to post anywhere Paid plans export a clean, watermark-free",
+        "n Watermark-free MP4 — Watermarked MP4 ✅ ✅ ✅ Priority support — Email Email Priority Free to start: 30 credits, every engine unlocked including Kling 3. Watermarked while you try; a plan makes them yours to keep. Every paid plan unlocks clean, watermark-free MP4s and can access e",
+        " → FAQ 💬 Frequently Asked Questions Do I need a credit card to start? + No. Every new account gets 30 credits and every engine unlocked — Kling 3 included. Films come out watermarked; a plan removes the watermark and unlocks clean downloads. The residual free plan grants no cred",
+        "s. Subscribe only when you want a clean, watermark-free MP4. Kineo lists and charges plan prices in USD worldwide. Your bank may convert the charge to your local currency and may add conversion or cross-border fees. Can I use the videos commercially, or for client work? + How fast a"
+      ],
+      "commercialJsonld": [
+        "\":\"9.90\",\"priceCurrency\":\"USD\",\"availability\":\"https://schema.org/InStock\",\"description\":\"Starter — $9.90/month. 60 credits per billing month. Watermark-free MP4 exports.\",\"url\":\"https://www.usekineo.com/pricing\"},{\"@type\":\"Offer\",\"name\":\"Creator\",\"price\":\"19.90\",\"priceCurre",
+        "ncy\":\"USD\",\"availability\":\"https://schema.org/InStock\",\"description\":\"Creator — $19.90/month. 150 credits per billing month. Enough for 6 Seedance films a month, or 30 Kineo 1 films.\",\"url\":\"https://www.usekineo.com/pricing\"},{\"@type\":\"Offer\",\"name\":\"Studi",
+        "\":\"39.90\",\"priceCurrency\":\"USD\",\"availability\":\"https://schema.org/InStock\",\"description\":\"Studio — $39.90/month. 300 credits per billing month. Highest volume, plus two free HD enhances every month.\",\"url\":\"https://www.usekineo.com/pricing\"}]},\"potentialAction\":{\"@type\":\"Cre"
+      ],
+      "commercialMetadata": [
+        "g 3. Make 1 AI film free, watermarked. Upgrade any time to download them clean. Paid plans start at $9.90/month, charged in USD worldwide, and unlock clean, watermark-free MP4 exports.\\\"/>\",\"<meta property=\\\"og:title\\\" content=\\\"Kineo Pricing — AI YouTube Shorts Generator Pl",
+        "g 3. Make 1 AI film free, watermarked. Upgrade any time to download them clean. Paid plans start at $9.90/month, charged in USD worldwide, and unlock clean, watermark-free MP4 exports.\\\"/>\",\"<meta name=\\\"twitter:title\\\" content=\\\"Kineo Pricing — AI YouTube Shorts Generator P",
+        "g 3. Make 1 AI film free, watermarked. Upgrade any time to download them clean. Paid plans start at $9.90/month, charged in USD worldwide, and unlock clean, watermark-free MP4 exports.\\\"/>\"]"
+      ],
+      "sha256Commercial": "11f04c991964d72ef97ba39557c05227200dda202877c42c064cd7528bf98ef3",
+      "findings": {
+        "freeTrial30": true,
+        "old80": false,
+        "oldPaidEntry": false,
+        "oldPlanCandidates": [],
+        "usdWorldwide": true,
+        "brazilReais": false
+      }
+    },
+    {
+      "url": "https://www.usekineo.com/pricing?utm_source=chatgpt.com",
+      "utc": "2026-09-10T23:08:44.008Z",
+      "brt": "2026-09-10T20:08:44.008-03:00",
+      "status": 200,
+      "cache": "HIT",
+      "canonical": "https://www.usekineo.com/pricing",
+      "sha256Body": "ea01caa357bc964abc4a9fb45435bda268b831140f3dd3acae3c1485bf54bca4",
+      "sha256Text": "632b894d7c6d3d7c9ca03583c2a5a8de5b48849e1171b42db680fe9450abbb1c",
+      "text": "Kineo Pricing — AI YouTube Shorts Generator Plans Kineo ← Back to Home Pricing Simple monthly plans. Cancel anytime. ✓ Cancel anytime ✓ 7-day money-back guarantee 900+ creators · 450+ Shorts rendered · featured on There's An AI For That Monthly Annual 2 MONTHS FREE Kineo lists and charges plan prices in USD worldwide. Your bank may convert the charge to your local currency and may add conversion or cross-border fees. Not sure yet? Start free — your first video is on us ; new accounts get 30 credits with every engine unlocked, no card — films are watermarked until you upgrade. Calculate the exact monthly cost for your output → Starter Starter $9.90 / month ≈ 2 finished films — 16 AI scenes 3 films a week — Kineo 1 and Seedance 1.5: 12 quick videos or 2 Seedance films, voice, captions and score included. Your 60 credits every month = ⚡ Kineo 1 quick videos 12 × 🎬 Seedance 1.5 films 2 × 🎥 MiniMax H3 films · lip-sync 1 × 🎞 Kling 2.5 films 1 × 🧑‍🎤 AI Presenter videos Creator plan 🌐 Veo 3.1 films Creator plan 🏆 Kling 3 · Omni Flash (#1 ranked) Creator plan 🎨 AI images · 6 engines up to 60 🎙 AI voiceovers · 4 voices 30 × ✨ HD Enhance 6 × ✓ 1080×1920 Full HD master on every film ✓ Script, voiceover, karaoke captions & soundtrack included ✓ Characters that speak your lines with lip sync (Kling 3 · H3) ✓ Character Lock — same face in every video ✓ Animate a Photo · AI Thumbnails · Viral Now topics Mix & match — one credit pool covers everything 🗂 100 projects · 90-day storage Choose Starter → Card, or Apple Pay / Google Pay when available · Link sign-in is optional Cancel anytime Most Popular Creator Creator $19.90 / month ≈ 6 finished films — 48 AI scenes 1 film a day — Kineo 1 and Seedance 1.5: 30 quick videos or 6 Seedance films, finished with voice, karaoke captions and score. Your 150 credits every month = ⚡ Kineo 1 quick videos 30 × 🎬 Seedance 1.5 films 6 × 🎥 MiniMax H3 films · lip-sync 3 × 🎞 Kling 2.5 films 3 × 🧑‍🎤 AI Presenter videos 2 × 🌐 Veo 3.1 films 1 × 🏆 Kling 3 · Omni Flash (#1 ranked) 1 × 🎨 AI images · 6 engines up to 150 🎙 AI voiceovers · 4 voices 75 × ✨ HD Enhance 15 × ✓ 1080×1920 Full HD master on every film ✓ Script, voiceover, karaoke captions & soundtrack included ✓ Characters that speak your lines with lip sync (Kling 3 · H3) ✓ Character Lock — same face in every video ✓ Animate a Photo · AI Thumbnails · Viral Now topics Mix & match — one credit pool covers everything 🗂 500 projects · forever storage Choose Creator → Card, or Apple Pay / Google Pay when available · Link sign-in is optional Cancel anytime Studio Studio $39.90 / month ≈ 12 finished films — 96 AI scenes Every engine — Kling 3, Veo 3.1, MiniMax H3, Omni Flash, Avatar — plus 2 free HD enhances and unlimited forever storage. Your 300 credits every month = ⚡ Kineo 1 quick videos 60 × 🎬 Seedance 1.5 films 12 × 🎥 MiniMax H3 films · lip-sync 6 × 🎞 Kling 2.5 films 6 × 🧑‍🎤 AI Presenter videos 4 × 🌐 Veo 3.1 films 3 × 🏆 Kling 3 · Omni Flash (#1 ranked) 2 × 🎨 AI images · 6 engines up to 300 🎙 AI voiceovers · 4 voices 150 × ✨ HD Enhance (+2 free) 30 × ✓ 1080×1920 Full HD master on every film ✓ Script, voiceover, karaoke captions & soundtrack included ✓ Characters that speak your lines with lip sync (Kling 3 · H3) ✓ Character Lock — same face in every video ✓ Animate a Photo · AI Thumbnails · Viral Now topics Mix & match — one credit pool covers everything 🗂 Unlimited projects · forever storage Choose Studio → Card, or Apple Pay / Google Pay when available · Link sign-in is optional Cancel anytime What one credit buys 🎬 Film (Seedance) — 25 cr 🎥 Kling 2.5 — 50 cr 🌐 Veo 3.1 — 100 cr 🎞 Kling 3 — 150 cr 🖼 Image — 1-5 cr 🎙 Voiceover — 1-2 cr ✨ HD Enhance — 10 cr ✓ Commercial use is included on every plan: the videos you generate are yours to post, monetize or deliver to a client. What you cannot resell is Kineo itself — see the terms . For agencies, freelancers and businesses Need a batch for clients instead of another monthly subscription? Buy 10–50 Fast Shorts once, download clean commercial-use MP4s and keep the margin. Packs start at $1.50 per finished 60-second Kineo 1 film. See one-time volume packs → Self-service · one account · no recurring contract Plans renew monthly — cancel anytime. Starter includes 60 credits a month and Creator 150 ; credits reset each month (no rollover). Or don't make videos at all Autopilot — we run your channel for you Done for you — / month You connect your YouTube channel once. We publish one Short to it every single day — script, voiceover, footage, captions, title, description and upload. You do nothing. That is 30 Shorts a month, about a tenth of the agency rate each. A human editing agency charges USD $495/month for 16 Shorts, or USD $2,400/month for 30. Autopilot does not give you a human editor — it gives you a machine that has never missed a day. Includes 400 credits/month for videos you want to make yourself, on any engine. Cancel anytime. ✓ 📺 Your YouTube channel, connected once — we publish directly ✓ 🗓️ One Short published every day, automatically ✓ 🧠 Topics chosen for you and never repeated ✓ ✍️ Script, AI voiceover, footage, captions — all handled ✓ ✨ 400 credits/month for your own videos, any engine ✓ ⏸️ Pause, change the posting time, or cancel whenever you want Start Autopilot → 🔒 Secure Stripe checkout · billed by Kineo · cancel anytime · 7-day money-back Not ready for the monthly /month? Try it for one week — — , once 7 Shorts published to your YouTube channel, one per day, at the time you pick. If you don't want to continue, the videos are yours and that's it. One-time payment — not a subscription, nothing to cancel. It ends on its own after 7 days. A human editing agency would charge you roughly USD $217 for 7 Shorts at their $30.94-per-Short rate. Start the 7-day pilot → 🔒 Stripe · one-time · no auto-renew Customer break-even check How many new customers cover Autopilot? Enter the gross profit you keep from one new customer — revenue minus the direct cost of serving them. We'll do the arithmetic for the one-week pilot and the monthly service. Gross profit per customer · USD $ Calculate ✓ Cancel anytime ✓ Instant access ✓ 7-day money-back guarantee 🎬 A finished Short, per idea One topic in → hook, script, AI voice, captions and B-roll out. Built deliberately for that idea, not re-clipped from a long video. 🆓 Try before you pay Free to start: 30 credits, every engine unlocked including Kling 3. Watermarked while you try; a plan makes them yours to keep. 📲 Ready to post anywhere Paid plans export a clean, watermark-free 9:16 MP4 — download and upload straight to YouTube Shorts, TikTok and Reels. Compare plans What you get at each tier Feature Free Starter Creator Studio Fast mode (smart stock) ✅ watermark ✅ 5 cr ✅ 5 cr ✅ 5 cr AI Generated videos (Seedance, 25 cr) ✅ watermark ✅ ✅ ✅ MiniMax H3 — cinematic (45 cr) ✅ watermark — ✅ ✅ Cinematic AI videos (Kling, 50 cr) ✅ watermark — ✅ ✅ 1080p 🎬 AI Presenter — talking avatar (70 cr) ✅ watermark — ✅ ✅ 🎥 Kling 3 — top cinematic (150 cr) Unlocked · needs credits — — ✅ 1/mo 🎭 Saved characters (same face every video) 1 12 12 12 Monthly credits 30 free, once 60 150 300 Render time Usually 3–7 min (Fast) Usually 3–7 min ~3-5 min ~3-5 min Watermark-free MP4 — Watermarked MP4 ✅ ✅ ✅ Priority support — Email Email Priority Free to start: 30 credits, every engine unlocked including Kling 3. Watermarked while you try; a plan makes them yours to keep. Every paid plan unlocks clean, watermark-free MP4s and can access every engine when its balance covers the full credit cost. MADE WITH KINEO This is what a plan buys Both films below were made on Kineo, start to finish, and are labelled with the engine that rendered them. VEO 3.1 Made with Kineo KLING 2.5 Made with Kineo On Kling 3 and MiniMax H3, characters on screen speak their own lines with lip sync while a narrator carries the story. “Too many good ideas die in the mind. This is a product that gives them an escape route.” — Rick Crossley, subscriber · our honest reviews → FAQ 💬 Frequently Asked Questions Do I need a credit card to start? + No. Every new account gets 30 credits and every engine unlocked — Kling 3 included. Films come out watermarked; a plan removes the watermark and unlocks clean downloads. The residual free plan grants no credits and no premium AI Generated videos. Subscribe only when you want a clean, watermark-free MP4. Kineo lists and charges plan prices in USD worldwide. Your bank may convert the charge to your local currency and may add conversion or cross-border fees. Can I use the videos commercially, or for client work? + How fast are videos generated? + Can I cancel anytime? + Is there a money-back guarantee? + What happens if a video fails to generate? + What’s the difference between AI Generated and Cinematic AI? + How do credits work? + What exactly does Autopilot do? + Do I still get to make my own videos on Autopilot? + Still have questions? Email us → 🛡️ 7-day money-back guarantee — all plans If you're not happy in the first 7 days, email us and we'll refund 100%. No questions asked. Works for all plans. Kineo © 2026 Kineo Terms of Service · Privacy Policy · Contact",
+      "jsonld": [
+        {
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          "name": "Kineo",
+          "alternateName": [
+            "Kineo AI",
+            "UseKineo",
+            "Cineo",
+            "Cineo AI",
+            "ShortsForgeAI"
+          ],
+          "url": "https://www.usekineo.com",
+          "logo": "https://www.usekineo.com/icon-512.png"
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "SoftwareApplication",
+          "name": "Kineo",
+          "alternateName": [
+            "Kineo AI",
+            "UseKineo",
+            "Cineo",
+            "Cineo AI",
+            "ShortsForgeAI"
+          ],
+          "url": "https://www.usekineo.com",
+          "applicationCategory": "MultimediaApplication",
+          "applicationSubCategory": "AI Video Generator",
+          "operatingSystem": "Web",
+          "description": "Kineo is an AI YouTube Shorts generator for repeatable shows with the same face, voice and style, including script, voiceover, scenes and captions.",
+          "featureList": [
+            "Topic-to-video: one typed idea becomes a finished 9:16 Short",
+            "Eight AI video engines in one account: Omni Flash (Google’s #1-ranked, Aug 2026), Veo 3.1, Kling 3, MiniMax H3, Kling 2.5, Seedance 1.5, Kineo 1 and Avatar",
+            "AI script writing with hook and payoff structure",
+            "Use your own script word for word, narrated verbatim",
+            "AI voiceover narration with word-by-word captions",
+            "Soundtrack chosen to match the mood of the subject",
+            "Videos of 60 seconds or more, for TikTok Creator Rewards eligibility",
+            "AI image studio (6 engines) and text-to-speech studio (4 engines) included",
+            "One-click HD enhance powered by Topaz film restoration",
+            "Watermark-free MP4 export on paid plans"
+          ],
+          "offers": {
+            "@type": "AggregateOffer",
+            "lowPrice": "9.90",
+            "highPrice": "39.90",
+            "priceCurrency": "USD",
+            "offerCount": 3,
+            "offers": [
+              {
+                "@type": "Offer",
+                "name": "Starter",
+                "price": "9.90",
+                "priceCurrency": "USD",
+                "availability": "https://schema.org/InStock",
+                "description": "Starter — $9.90/month. 60 credits per billing month. Watermark-free MP4 exports.",
+                "url": "https://www.usekineo.com/pricing"
+              },
+              {
+                "@type": "Offer",
+                "name": "Creator",
+                "price": "19.90",
+                "priceCurrency": "USD",
+                "availability": "https://schema.org/InStock",
+                "description": "Creator — $19.90/month. 150 credits per billing month. Enough for 6 Seedance films a month, or 30 Kineo 1 films.",
+                "url": "https://www.usekineo.com/pricing"
+              },
+              {
+                "@type": "Offer",
+                "name": "Studio",
+                "price": "39.90",
+                "priceCurrency": "USD",
+                "availability": "https://schema.org/InStock",
+                "description": "Studio — $39.90/month. 300 credits per billing month. Highest volume, plus two free HD enhances every month.",
+                "url": "https://www.usekineo.com/pricing"
+              }
+            ]
+          },
+          "potentialAction": {
+            "@type": "CreateAction",
+            "name": "Open Kineo Studio with a script prefilled",
+            "description": "The link stores the script server-side and opens a short page showing it, then a single button opens Kineo Studio already filled in (script narrated word for word, duration and engine preselected). It waits for the person to click; it does not generate anything on its own.",
+            "target": {
+              "@type": "EntryPoint",
+              "urlTemplate": "https://www.usekineo.com/make?script={script}&duration={duration}&engine={engine}",
+              "httpMethod": "GET",
+              "actionPlatform": [
+                "http://schema.org/DesktopWebPlatform",
+                "http://schema.org/MobileWebPlatform"
+              ]
+            },
+            "object": {
+              "@type": "CreativeWork",
+              "name": "Short video script"
+            },
+            "result": {
+              "@type": "CreativeWork",
+              "name": "A Kineo Studio session prefilled with the script"
+            }
+          }
+        }
+      ],
+      "meta": [
+        "<meta name=\"description\" content=\"Start free — every engine unlocked, including Kling 3. Make 1 AI film free, watermarked. Upgrade any time to download them clean. Paid plans start at $9.90/month, charged in USD worldwide, and unlock clean, watermark-free MP4 exports.\"/>",
+        "<meta property=\"og:title\" content=\"Kineo Pricing — AI YouTube Shorts Generator Plans\"/>",
+        "<meta property=\"og:description\" content=\"Start free — every engine unlocked, including Kling 3. Make 1 AI film free, watermarked. Upgrade any time to download them clean. Paid plans start at $9.90/month, charged in USD worldwide, and unlock clean, watermark-free MP4 exports.\"/>",
+        "<meta name=\"twitter:title\" content=\"Kineo Pricing — AI YouTube Shorts Generator Plans\"/>",
+        "<meta name=\"twitter:description\" content=\"Start free — every engine unlocked, including Kling 3. Make 1 AI film free, watermarked. Upgrade any time to download them clean. Paid plans start at $9.90/month, charged in USD worldwide, and unlock clean, watermark-free MP4 exports.\"/>"
+      ],
+      "reused": false,
+      "commercialHtml": [
+        "tured on There's An AI For That Monthly Annual 2 MONTHS FREE Kineo lists and charges plan prices in USD worldwide. Your bank may convert the charge to your local currency and may add conversion or cross-border fees. Not sure yet? Start free — your first video is on us ; new accounts",
+        " get 30 credits with every engine unlocked, no card — films are watermarked until you upgrade. Calculate the exact monthly cost for your output → Starter Starter $9.90 / month ≈ 2 finis",
+        " / Google Pay when available · Link sign-in is optional Cancel anytime Most Popular Creator Creator $19.90 / month ≈ 6 finished films — 48 AI scenes 1 film a day — Kineo 1 and Seedance 1.5: 30 quick videos or 6 Seedance films, finished with voice, karaoke captions and score. ",
+        "d, or Apple Pay / Google Pay when available · Link sign-in is optional Cancel anytime Studio Studio $39.90 / month ≈ 12 finished films — 96 AI scenes Every engine — Kling 3, Veo 3.1, MiniMax H3, Omni Flash, Avatar — plus 2 free HD enhances and unlimited forever storage. Your ",
+        " deliberately for that idea, not re-clipped from a long video. 🆓 Try before you pay Free to start: 30 credits, every engine unlocked including Kling 3. Watermarked while you try; a plan makes them yours to keep. 📲 Ready to post anywhere Paid plans export a clean, watermark-free",
+        "n Watermark-free MP4 — Watermarked MP4 ✅ ✅ ✅ Priority support — Email Email Priority Free to start: 30 credits, every engine unlocked including Kling 3. Watermarked while you try; a plan makes them yours to keep. Every paid plan unlocks clean, watermark-free MP4s and can access e",
+        " → FAQ 💬 Frequently Asked Questions Do I need a credit card to start? + No. Every new account gets 30 credits and every engine unlocked — Kling 3 included. Films come out watermarked; a plan removes the watermark and unlocks clean downloads. The residual free plan grants no cred",
+        "s. Subscribe only when you want a clean, watermark-free MP4. Kineo lists and charges plan prices in USD worldwide. Your bank may convert the charge to your local currency and may add conversion or cross-border fees. Can I use the videos commercially, or for client work? + How fast a"
+      ],
+      "commercialJsonld": [
+        "\":\"9.90\",\"priceCurrency\":\"USD\",\"availability\":\"https://schema.org/InStock\",\"description\":\"Starter — $9.90/month. 60 credits per billing month. Watermark-free MP4 exports.\",\"url\":\"https://www.usekineo.com/pricing\"},{\"@type\":\"Offer\",\"name\":\"Creator\",\"price\":\"19.90\",\"priceCurre",
+        "ncy\":\"USD\",\"availability\":\"https://schema.org/InStock\",\"description\":\"Creator — $19.90/month. 150 credits per billing month. Enough for 6 Seedance films a month, or 30 Kineo 1 films.\",\"url\":\"https://www.usekineo.com/pricing\"},{\"@type\":\"Offer\",\"name\":\"Studi",
+        "\":\"39.90\",\"priceCurrency\":\"USD\",\"availability\":\"https://schema.org/InStock\",\"description\":\"Studio — $39.90/month. 300 credits per billing month. Highest volume, plus two free HD enhances every month.\",\"url\":\"https://www.usekineo.com/pricing\"}]},\"potentialAction\":{\"@type\":\"Cre"
+      ],
+      "commercialMetadata": [
+        "g 3. Make 1 AI film free, watermarked. Upgrade any time to download them clean. Paid plans start at $9.90/month, charged in USD worldwide, and unlock clean, watermark-free MP4 exports.\\\"/>\",\"<meta property=\\\"og:title\\\" content=\\\"Kineo Pricing — AI YouTube Shorts Generator Pl",
+        "g 3. Make 1 AI film free, watermarked. Upgrade any time to download them clean. Paid plans start at $9.90/month, charged in USD worldwide, and unlock clean, watermark-free MP4 exports.\\\"/>\",\"<meta name=\\\"twitter:title\\\" content=\\\"Kineo Pricing — AI YouTube Shorts Generator P",
+        "g 3. Make 1 AI film free, watermarked. Upgrade any time to download them clean. Paid plans start at $9.90/month, charged in USD worldwide, and unlock clean, watermark-free MP4 exports.\\\"/>\"]"
+      ],
+      "sha256Commercial": "11f04c991964d72ef97ba39557c05227200dda202877c42c064cd7528bf98ef3",
+      "findings": {
+        "freeTrial30": true,
+        "old80": false,
+        "oldPaidEntry": false,
+        "oldPlanCandidates": [],
+        "usdWorldwide": true,
+        "brazilReais": false
+      }
+    },
+    {
+      "url": "https://www.usekineo.com/cheapest-ai-shorts-maker?internal_source=%2Fscripts%2Fspace&utm_source=chatgpt.com",
+      "path": "/cheapest-ai-shorts-maker",
+      "utc": "2026-09-10T23:03:52.119Z",
+      "brt": "2026-09-10T20:03:52.119-03:00",
+      "status": 200,
+      "cache": "HIT",
+      "location": null,
+      "canonical": "https://www.usekineo.com/cheapest-ai-shorts-maker",
+      "title": "Affordable AI Shorts Maker — Start With a Free Creator Trial | Kineo",
+      "h1": [
+        "The Cheapest AI Shorts Maker That Builds the Whole Video"
+      ],
+      "ownComponent": false,
+      "intendedPage": false,
+      "verifiedOwnLivePage": false,
+      "sha256Body": "d9566f837d4052e73934a4775880ced95ac7b79954885d42e760e47e992a2ee0",
+      "sha256ActiveText": "337250c09848c99e7f4a18348b1cd43d07277c6e5aede7d1f987b41e42f6f7ca",
+      "sha256RelevantClaims": "38dbce55f2d1b071a12923ea522f143483f750241feb210ffa70c7604c40f6d2",
+      "flags": {
+        "trial30": [
+          {
+            "match": "30 free credits",
+            "context": " and renewal price. No camera, no editing, no timeline. Start free — every engine unlocked → See pricing 30 free credits — every engine unlocked · USD prices matched to Checkout Free cost calculator What would your Shorts actually cost? Pick the exact engine, duration and mo"
+          },
+          {
+            "match": "30 credits",
+            "context": " Short is the credits, not a stack of separate tools. Try before you pay anything Every new account gets 30 credits and every engine unlocked — Kling 3 included. Films come out watermarked; a plan removes the watermark and unlocks clean downloads. Confirm the workflow f"
+          },
+          {
+            "match": "30 credits",
+            "context": "Kineo Fast Mode uses 5 credits, while AI Generated uses 25 and Cinematic uses 50. Every new account gets 30 credits and every engine unlocked — Kling 3 included. Films come out watermarked; a plan removes the watermark and unlocks clean downloads. Also, the calculator o"
+          },
+          {
+            "match": "30 credits",
+            "context": " 50 credits for premium Kling scenes. Can I try it before paying for a plan? Yes. Every new account gets 30 credits and every engine unlocked — Kling 3 included. Films come out watermarked; a plan removes the watermark and unlocks clean downloads. Paid plans unlock clea"
+          },
+          {
+            "match": "30 credits",
+            "context": "Kineo Fast Mode uses 5 credits, while AI Generated uses 25 and Cinematic uses 50. Every new account gets 30 credits and every engine unlocked — Kling 3 included. Films come out watermarked; a plan removes the watermark and unlocks clean downloads. Also, the calculator o"
+          },
+          {
+            "match": "30 credits",
+            "context": "try it before paying for a plan?\",\"acceptedAnswer\":{\"@type\":\"Answer\",\"text\":\"Yes. Every new account gets 30 credits and every engine unlocked — Kling 3 included. Films come out watermarked; a plan removes the watermark and unlocks clean downloads. Paid plans unlock clea"
+          }
+        ],
+        "monthlyPlans": [
+          {
+            "match": "$9.90",
+            "context": "price\":\"9.90\",\"priceCurrency\":\"USD\",\"availability\":\"https://schema.org/InStock\",\"description\":\"Starter — $9.90/month. 60 credits per billing month. Watermark-free MP4 exports.\",\"url\":\"https://www.usekineo.com/pricing\"},{\"@type\":\"Offer\",\"name\":\"Creator\",\"price\":\"19."
+          },
+          {
+            "match": "$19.90",
+            "context": "rice\":\"19.90\",\"priceCurrency\":\"USD\",\"availability\":\"https://schema.org/InStock\",\"description\":\"Creator — $19.90/month. 150 credits per billing month. Enough for 6 Seedance films a month, or 30 Kineo 1 films.\",\"url\":\"https://www.usekineo.com/pricing\"},{\"@type\":\"Offer"
+          },
+          {
+            "match": "$39.90",
+            "context": "price\":\"39.90\",\"priceCurrency\":\"USD\",\"availability\":\"https://schema.org/InStock\",\"description\":\"Studio — $39.90/month. 300 credits per billing month. Highest volume, plus two free HD enhances every month.\",\"url\":\"https://www.usekineo.com/pricing\"}]},\"potentialAction"
+          }
+        ],
+        "brazilReais": [],
+        "oldTrial80": [],
+        "studioOnly": [],
+        "usdWorldwide": [
+          {
+            "match": "prices. Kineo lists and charges plan prices in USD worldwide",
+            "context": "termark and unlocks clean downloads. Also, the calculator on this page uses the current USD subscription prices. Kineo lists and charges plan prices in USD worldwide. Your bank may convert the charge to your local currency and may add conversion or cross-border fees. How do I make AI YouTube Shorts cheap? Type a single"
+          },
+          {
+            "match": "prices. Kineo lists and charges plan prices in USD worldwide",
+            "context": "termark and unlocks clean downloads. Also, the calculator on this page uses the current USD subscription prices. Kineo lists and charges plan prices in USD worldwide. Your bank may convert the charge to your local currency and may add conversion or cross-border fees.\"}},{\"@type\":\"Question\",\"name\":\"How do I make AI YouT"
+          }
+        ]
+      },
+      "historyExcludedFromCurrentOffer": "",
+      "historyFlags": null,
+      "jsonld": [
+        {
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          "name": "Kineo",
+          "alternateName": [
+            "Kineo AI",
+            "UseKineo",
+            "Cineo",
+            "Cineo AI",
+            "ShortsForgeAI"
+          ],
+          "url": "https://www.usekineo.com",
+          "logo": "https://www.usekineo.com/icon-512.png"
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "SoftwareApplication",
+          "name": "Kineo",
+          "alternateName": [
+            "Kineo AI",
+            "UseKineo",
+            "Cineo",
+            "Cineo AI",
+            "ShortsForgeAI"
+          ],
+          "url": "https://www.usekineo.com",
+          "applicationCategory": "MultimediaApplication",
+          "applicationSubCategory": "AI Video Generator",
+          "operatingSystem": "Web",
+          "description": "Kineo is an AI YouTube Shorts generator for repeatable shows with the same face, voice and style, including script, voiceover, scenes and captions.",
+          "featureList": [
+            "Topic-to-video: one typed idea becomes a finished 9:16 Short",
+            "Eight AI video engines in one account: Omni Flash (Google’s #1-ranked, Aug 2026), Veo 3.1, Kling 3, MiniMax H3, Kling 2.5, Seedance 1.5, Kineo 1 and Avatar",
+            "AI script writing with hook and payoff structure",
+            "Use your own script word for word, narrated verbatim",
+            "AI voiceover narration with word-by-word captions",
+            "Soundtrack chosen to match the mood of the subject",
+            "Videos of 60 seconds or more, for TikTok Creator Rewards eligibility",
+            "AI image studio (6 engines) and text-to-speech studio (4 engines) included",
+            "One-click HD enhance powered by Topaz film restoration",
+            "Watermark-free MP4 export on paid plans"
+          ],
+          "offers": {
+            "@type": "AggregateOffer",
+            "lowPrice": "9.90",
+            "highPrice": "39.90",
+            "priceCurrency": "USD",
+            "offerCount": 3,
+            "offers": [
+              {
+                "@type": "Offer",
+                "name": "Starter",
+                "price": "9.90",
+                "priceCurrency": "USD",
+                "availability": "https://schema.org/InStock",
+                "description": "Starter — $9.90/month. 60 credits per billing month. Watermark-free MP4 exports.",
+                "url": "https://www.usekineo.com/pricing"
+              },
+              {
+                "@type": "Offer",
+                "name": "Creator",
+                "price": "19.90",
+                "priceCurrency": "USD",
+                "availability": "https://schema.org/InStock",
+                "description": "Creator — $19.90/month. 150 credits per billing month. Enough for 6 Seedance films a month, or 30 Kineo 1 films.",
+                "url": "https://www.usekineo.com/pricing"
+              },
+              {
+                "@type": "Offer",
+                "name": "Studio",
+                "price": "39.90",
+                "priceCurrency": "USD",
+                "availability": "https://schema.org/InStock",
+                "description": "Studio — $39.90/month. 300 credits per billing month. Highest volume, plus two free HD enhances every month.",
+                "url": "https://www.usekineo.com/pricing"
+              }
+            ]
+          },
+          "potentialAction": {
+            "@type": "CreateAction",
+            "name": "Open Kineo Studio with a script prefilled",
+            "description": "The link stores the script server-side and opens a short page showing it, then a single button opens Kineo Studio already filled in (script narrated word for word, duration and engine preselected). It waits for the person to click; it does not generate anything on its own.",
+            "target": {
+              "@type": "EntryPoint",
+              "urlTemplate": "https://www.usekineo.com/make?script={script}&duration={duration}&engine={engine}",
+              "httpMethod": "GET",
+              "actionPlatform": [
+                "http://schema.org/DesktopWebPlatform",
+                "http://schema.org/MobileWebPlatform"
+              ]
+            },
+            "object": {
+              "@type": "CreativeWork",
+              "name": "Short video script"
+            },
+            "result": {
+              "@type": "CreativeWork",
+              "name": "A Kineo Studio session prefilled with the script"
+            }
+          }
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "What is the cheapest AI shorts maker?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "The answer depends on visual engine and monthly volume. For a 60-second Short, Kineo Fast Mode uses 5 credits, while AI Generated uses 25 and Cinematic uses 50. Every new account gets 30 credits and every engine unlocked — Kling 3 included. Films come out watermarked; a plan removes the watermark and unlocks clean downloads. Also, the calculator on this page uses the current USD subscription prices. Kineo lists and charges plan prices in USD worldwide. Your bank may convert the charge to your local currency and may add conversion or cross-border fees."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "How do I make AI YouTube Shorts cheap?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Type a single idea, choose Fast Mode for the lowest-cost workflow, and download a finished 9:16 Short with script, AI voiceover, matched footage and captions, usually in 3–7 minutes. No camera and no editing app to pay for separately."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Is there an affordable faceless shorts AI that builds the video from just a topic?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes. Kineo generates the entire video from one topic — it writes the script, records the AI voiceover, matches footage to each line and adds captions. It’s made for faceless creators who start with nothing but an idea, so you never film anything."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Why is the cheapest AI YouTube Shorts generator not just a clip cutter?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Clip cutters like OpusClip or Submagic re-clip a long video you already filmed — useless if you’re faceless and starting from scratch. Kineo creates the video from an idea, so the low price gets you a finished Short, not chopped-up footage."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Do I have to use the most expensive AI engine?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "No. You pick the engine per video. For 60 seconds, Fast Mode uses 5 credits with matched stock footage, AI Generated uses 25 credits for Seedance scenes, and Cinematic uses 50 credits for premium Kling scenes."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Can I try it before paying for a plan?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes. Every new account gets 30 credits and every engine unlocked — Kling 3 included. Films come out watermarked; a plan removes the watermark and unlocks clean downloads. Paid plans unlock clean exports and premium AI engines."
+              }
+            }
+          ]
+        }
+      ],
+      "meta": [
+        "<meta name=\"description\" content=\"Calculate the USD cost per AI Short by visual engine and monthly volume. Then build a complete faceless video from one idea and test Fast Mode free.\"/>",
+        "<meta property=\"og:title\" content=\"Cheapest AI Shorts Maker — make AI YouTube Shorts cheap\"/>",
+        "<meta property=\"og:description\" content=\"Calculate your USD cost per Short, compare Fast, Seedance and Kling, then test a complete faceless video from one idea free.\"/>",
+        "<meta name=\"twitter:title\" content=\"Kineo — AI YouTube Shorts Generator (Official Site)\"/>",
+        "<meta name=\"twitter:description\" content=\"Launch a repeatable AI Shorts show with the same face, voice and style. Start free — every engine unlocked, including Kling 3. Make 1 AI film free, watermarked. Upgrade any time to download them clean.\"/>"
+      ],
+      "text": "Affordable AI Shorts Maker — Start With a Free Creator Trial | Kineo Cheapest AI Shorts Maker The Cheapest AI Shorts Maker That Builds the Whole Video Kineo is an affordable, faceless AI YouTube Shorts generator that turns a single idea into a finished Short — the hook and script, an AI voiceover, footage matched to every line, and captions. Start free — every engine unlocked, including Kling 3. Make 1 AI film free, watermarked. Upgrade any time to download them clean. The calculator below shows the USD first-month and renewal price. No camera, no editing, no timeline. Start free — every engine unlocked → See pricing 30 free credits — every engine unlocked · USD prices matched to Checkout Free cost calculator What would your Shorts actually cost? Pick the exact engine, duration and monthly output. This uses the same credit contract and plan grants as Checkout. 1. Visual engine Kineo 1 Matched stock footage + AI voiceover 5 credit s / 60 s video Seedance 1.5 Seedance 1.5 generated scenes 25 credit s / 60 s video MiniMax H3 MiniMax H3 with character consistency 45 credit s / 60 s video Kling 2.5 Kling 2.5 cinematic scenes 50 credit s / 60 s video Veo 3.1 Google Veo 3.1 cinematic scenes 100 credit s / 60 s video Kling 3 Kling 3 with native lip sync 150 credit s / 60 s video Omni Flash Omni Flash, top blind-arena score 150 credit s / 60 s video 2. Duration 35 s 60 s 90 s 3. Videos per month Credits required 60 12 × 60 s Kineo 1 video s · 5 credits each Lowest monthly plan that covers it Checking USD price… Estimate assumes every planned video uses the selected engine and duration. Credits refresh monthly and unused plan credits do not roll over. Checkout confirms currency and eligibility again. Test one Short free → Compare plans What should your first cost-tested Short be about? 0 / 1,000 characters Create this Short free → The island nobody is allowed to visit → The money habit that quietly keeps people broke → Why the Door to Hell is still burning → Your topic stays attached through signup. Fast Mode creates a complete watermarked test without a card. For agencies, freelancers and businesses Pricing a recurring content package for a client or your company? Buy 10–50 Fast Shorts once, download clean commercial-use MP4s and keep the margin. Packs start at $1.50 per finished 60-second Kineo 1 film. See one-time volume packs → Self-service · one account · no recurring contract Make AI YouTube Shorts cheap in 3 steps 1 Type one idea or topic No source footage, no long video to re-clip. One line is enough — \"the island too dangerous to visit\", \"how compound interest works\". 2 Pick the right-cost visual engine For a 60-second video, Fast Mode costs 5 credits. AI Generated uses 25 credits for original Seedance scenes, while Cinematic uses 50 credits for premium Kling scenes. 3 Download a ready-to-post Short A finished 9:16 video — script, AI voiceover, footage matched to each line and captions — usually in 3–7 minutes. No editor, no timeline. Why it’s the cheaper way to make Shorts You’re not buying a general-purpose AI video suite and using a fraction of it. Kineo does one thing — turn an idea into a faceless Short — and lets you pick the lowest-cost engine for the job. Built only for faceless Shorts It does one job — turn an idea into a short-form video — so you’re not paying for a bloated general-purpose video suite you’ll never fully use. Start at 5 credits with Fast Mode You choose the engine. For a 60-second video, Fast Mode uses matched stock footage for 5 credits. Original AI Generated scenes use 25 credits, while premium Cinematic scenes use 50. No camera, no editor, no extra subscriptions Script, AI voiceover, footage and captions are all generated in one pass — so the price of a Short is the credits, not a stack of separate tools. Try before you pay anything Every new account gets 30 credits and every engine unlocked — Kling 3 included. Films come out watermarked; a plan removes the watermark and unlocks clean downloads. Confirm the workflow fits before paying. An affordable faceless shorts AI — not a clip cutter Most “AI Shorts” tools (OpusClip, Submagic, Klap) take a long video you already filmed and chop it into clips. That’s useless if you’re faceless and starting from just an idea. Kineo works the other way around: it creates the entire video from a topic — so the low price gets you a finished Short, not chopped-up footage, and you never need source video, a camera, or an editing app. Want the full breakdown of that workflow? See making a YouTube Short from a topic . Pick the right engine — pay only when you scale up Every video lets you choose the engine. For 60 seconds, Fast Mode uses 5 credits, AI Generated uses 25 , and Cinematic uses 50 . Start with the stock-footage workflow when cost matters most, then use original Seedance or premium Kling scenes only when the creative needs them. Compare the full plans on the pricing page , or see how it stacks up against other tools under alternatives . Frequently asked questions What is the cheapest AI shorts maker? The answer depends on visual engine and monthly volume. For a 60-second Short, Kineo Fast Mode uses 5 credits, while AI Generated uses 25 and Cinematic uses 50. Every new account gets 30 credits and every engine unlocked — Kling 3 included. Films come out watermarked; a plan removes the watermark and unlocks clean downloads. Also, the calculator on this page uses the current USD subscription prices. Kineo lists and charges plan prices in USD worldwide. Your bank may convert the charge to your local currency and may add conversion or cross-border fees. How do I make AI YouTube Shorts cheap? Type a single idea, choose Fast Mode for the lowest-cost workflow, and download a finished 9:16 Short with script, AI voiceover, matched footage and captions, usually in 3–7 minutes. No camera and no editing app to pay for separately. Is there an affordable faceless shorts AI that builds the video from just a topic? Yes. Kineo generates the entire video from one topic — it writes the script, records the AI voiceover, matches footage to each line and adds captions. It’s made for faceless creators who start with nothing but an idea, so you never film anything. Why is the cheapest AI YouTube Shorts generator not just a clip cutter? Clip cutters like OpusClip or Submagic re-clip a long video you already filmed — useless if you’re faceless and starting from scratch. Kineo creates the video from an idea, so the low price gets you a finished Short, not chopped-up footage. Do I have to use the most expensive AI engine? No. You pick the engine per video. For 60 seconds, Fast Mode uses 5 credits with matched stock footage, AI Generated uses 25 credits for Seedance scenes, and Cinematic uses 50 credits for premium Kling scenes. Can I try it before paying for a plan? Yes. Every new account gets 30 credits and every engine unlocked — Kling 3 included. Films come out watermarked; a plan removes the watermark and unlocks clean downloads. Paid plans unlock clean exports and premium AI engines. Start free — every engine unlocked, including Kling 3. Make 1 AI film free, watermarked. Upgrade any time to download them clean. One idea in, a ready-to-post Short out. Free to start. Make my Fast video → ⚡ Kineo Turn one idea into a ready-to-post faceless YouTube Short — script, AI voiceover, footage & captions in a few minutes. Start free — every engine unlocked, including Kling 3. Make 1 AI film free, watermarked. Upgrade any time to download them clean. Paid plans unlock clean MP4s. English Español हिन्दी Product AI image generator — 6 engines AI voice generator (text to speech) AI video upscaler & enhancer Trending Shorts ideas today AI Avatar video — your face, any script Kineo facts & numbers (citable) Free AI Shorts generator Faceless video generator YouTube Shorts from a topic Text to video Shorts ChatGPT script to YouTube Short Cheapest AI Shorts maker Shorts without filming Faceless channel ideas (2026) Faceless niche picker Shorts idea widget State of AI Shorts 2026 Live case study: our channel on Autopilot AI Shorts for agencies & client work Trust Center — privacy, payments & ownership Affiliate program - 30% recurring Pricing Start free Free tools All free tools Free AI Shorts generator Free AI Shorts by niche Free YouTube Shorts scripts Free script generator Comment to Short script Product video ad script Business video content planner Client video brief generator Real estate video maker Free hook generator Shorts title & hashtag generator Shorts script timer Free viral score Shorts money calculator Shorts money & growth Make money clipping with AI How much do Shorts pay? Shorts RPM by niche (2026) Best AI Shorts generators Can you monetize AI videos? TikTok vs Shorts: which pays more? Compare All comparisons Kineo vs OpusClip Kineo vs InVideo Kineo vs HeyGen Vidyo.ai / Quso pricing © 2026 Kineo · All rights reserved Terms of Service · Privacy Policy · Trust Center · Contact",
+      "baseline": {
+        "source": "DIAGNOSTICO-CITACOES-01.md section9",
+        "utc": "2026-09-10T17:02:02Z",
+        "status": 200,
+        "trial30": true,
+        "usdWorldwide": true,
+        "sha256Body": "031694cd3e77d292f8f0ae7c08b0ddaf914659144b03261050239f4e5bdd42c8"
+      },
+      "reviewedSignals": {
+        "currentOfferEvaluated": true,
+        "trial30": true,
+        "currentMonthlyUsd": [
+          9.9,
+          19.9,
+          39.9
+        ],
+        "brazilReais": false,
+        "activeTrial80": false,
+        "studioExclusiveStyleCopy": false,
+        "usdWorldwide": true
+      },
+      "reviewedSignalsNote": "Studio engine/Studio-plan engines is a restrictive presentation in copy, not a test of server entitlement. Credits/month prices inside global structured data of a 404 do not make the requested page live. Numeric values shown may be a subset when the page only mentions Starter or Studio.",
+      "sha256ReviewedRelevant": "840bb271d5c909a086b9c683a7e19b61b1c85eb0096a1e0352e8b12ae8b30fad",
+      "reused": true,
+      "reusedFrom": "http-checkpoint.json",
+      "commercialHtml": [
+        "renewal price. No camera, no editing, no timeline. Start free — every engine unlocked → See pricing 30 free credits — every engine unlocked · USD prices matched to Checkout Free cost calculator What would your Shorts actually cost? Pick the exact engine, duration and monthly output. T",
+        "t is the credits, not a stack of separate tools. Try before you pay anything Every new account gets 30 credits and every engine unlocked — Kling 3 included. Films come out watermarked; a plan removes the watermark and unlocks clean downloads. Confirm the workflow fits before payi",
+        " Fast Mode uses 5 credits, while AI Generated uses 25 and Cinematic uses 50. Every new account gets 30 credits and every engine unlocked — Kling 3 included. Films come out watermarked; a plan removes the watermark and unlocks clean downloads. Also, the calculator on this page use",
+        "s the current USD subscription prices. Kineo lists and charges plan prices in USD worldwide. Your bank may convert the charge to your local currency and may add conversion or cross-border fees. How do I make AI YouTube Shorts cheap? Type a single idea, choose F",
+        "redits for premium Kling scenes. Can I try it before paying for a plan? Yes. Every new account gets 30 credits and every engine unlocked — Kling 3 included. Films come out watermarked; a plan removes the watermark and unlocks clean downloads. Paid plans unlock clean exports and p"
+      ],
+      "commercialJsonld": [
+        "\":\"9.90\",\"priceCurrency\":\"USD\",\"availability\":\"https://schema.org/InStock\",\"description\":\"Starter — $9.90/month. 60 credits per billing month. Watermark-free MP4 exports.\",\"url\":\"https://www.usekineo.com/pricing\"},{\"@type\":\"Offer\",\"name\":\"Creator\",\"price\":\"19.90\",\"priceCurre",
+        "ncy\":\"USD\",\"availability\":\"https://schema.org/InStock\",\"description\":\"Creator — $19.90/month. 150 credits per billing month. Enough for 6 Seedance films a month, or 30 Kineo 1 films.\",\"url\":\"https://www.usekineo.com/pricing\"},{\"@type\":\"Offer\",\"name\":\"Studi",
+        "\":\"39.90\",\"priceCurrency\":\"USD\",\"availability\":\"https://schema.org/InStock\",\"description\":\"Studio — $39.90/month. 300 credits per billing month. Highest volume, plus two free HD enhances every month.\",\"url\":\"https://www.usekineo.com/pricing\"}]},\"potentialAction\":{\"@type\":\"Cre",
+        " Fast Mode uses 5 credits, while AI Generated uses 25 and Cinematic uses 50. Every new account gets 30 credits and every engine unlocked — Kling 3 included. Films come out watermarked; a plan removes the watermark and unlocks clean downloads. Also, the calculator on this page use",
+        "s the current USD subscription prices. Kineo lists and charges plan prices in USD worldwide. Your bank may convert the charge to your local currency and may add conversion or cross-border fees.\"}},{\"@type\":\"Question\",\"name\":\"How do I make AI YouTube Shorts chea",
+        "t before paying for a plan?\",\"acceptedAnswer\":{\"@type\":\"Answer\",\"text\":\"Yes. Every new account gets 30 credits and every engine unlocked — Kling 3 included. Films come out watermarked; a plan removes the watermark and unlocks clean downloads. Paid plans unlock clean exports and p"
+      ],
+      "commercialMetadata": [],
+      "sha256Commercial": "8259f523d4380f316228f5e490612984ae34cd186e6f94c8410b3a8b34af7696",
+      "findings": {
+        "freeTrial30": true,
+        "old80": false,
+        "oldPaidEntry": false,
+        "oldPlanCandidates": [],
+        "usdWorldwide": true,
+        "brazilReais": false
+      }
+    },
+    {
+      "url": "https://www.usekineo.com/cheapest-ai-shorts-maker?utm_source=chatgpt.com",
+      "utc": "2026-09-10T23:08:44.085Z",
+      "brt": "2026-09-10T20:08:44.085-03:00",
+      "status": 200,
+      "cache": "HIT",
+      "canonical": "https://www.usekineo.com/cheapest-ai-shorts-maker",
+      "sha256Body": "d9566f837d4052e73934a4775880ced95ac7b79954885d42e760e47e992a2ee0",
+      "sha256Text": "337250c09848c99e7f4a18348b1cd43d07277c6e5aede7d1f987b41e42f6f7ca",
+      "text": "Affordable AI Shorts Maker — Start With a Free Creator Trial | Kineo Cheapest AI Shorts Maker The Cheapest AI Shorts Maker That Builds the Whole Video Kineo is an affordable, faceless AI YouTube Shorts generator that turns a single idea into a finished Short — the hook and script, an AI voiceover, footage matched to every line, and captions. Start free — every engine unlocked, including Kling 3. Make 1 AI film free, watermarked. Upgrade any time to download them clean. The calculator below shows the USD first-month and renewal price. No camera, no editing, no timeline. Start free — every engine unlocked → See pricing 30 free credits — every engine unlocked · USD prices matched to Checkout Free cost calculator What would your Shorts actually cost? Pick the exact engine, duration and monthly output. This uses the same credit contract and plan grants as Checkout. 1. Visual engine Kineo 1 Matched stock footage + AI voiceover 5 credit s / 60 s video Seedance 1.5 Seedance 1.5 generated scenes 25 credit s / 60 s video MiniMax H3 MiniMax H3 with character consistency 45 credit s / 60 s video Kling 2.5 Kling 2.5 cinematic scenes 50 credit s / 60 s video Veo 3.1 Google Veo 3.1 cinematic scenes 100 credit s / 60 s video Kling 3 Kling 3 with native lip sync 150 credit s / 60 s video Omni Flash Omni Flash, top blind-arena score 150 credit s / 60 s video 2. Duration 35 s 60 s 90 s 3. Videos per month Credits required 60 12 × 60 s Kineo 1 video s · 5 credits each Lowest monthly plan that covers it Checking USD price… Estimate assumes every planned video uses the selected engine and duration. Credits refresh monthly and unused plan credits do not roll over. Checkout confirms currency and eligibility again. Test one Short free → Compare plans What should your first cost-tested Short be about? 0 / 1,000 characters Create this Short free → The island nobody is allowed to visit → The money habit that quietly keeps people broke → Why the Door to Hell is still burning → Your topic stays attached through signup. Fast Mode creates a complete watermarked test without a card. For agencies, freelancers and businesses Pricing a recurring content package for a client or your company? Buy 10–50 Fast Shorts once, download clean commercial-use MP4s and keep the margin. Packs start at $1.50 per finished 60-second Kineo 1 film. See one-time volume packs → Self-service · one account · no recurring contract Make AI YouTube Shorts cheap in 3 steps 1 Type one idea or topic No source footage, no long video to re-clip. One line is enough — \"the island too dangerous to visit\", \"how compound interest works\". 2 Pick the right-cost visual engine For a 60-second video, Fast Mode costs 5 credits. AI Generated uses 25 credits for original Seedance scenes, while Cinematic uses 50 credits for premium Kling scenes. 3 Download a ready-to-post Short A finished 9:16 video — script, AI voiceover, footage matched to each line and captions — usually in 3–7 minutes. No editor, no timeline. Why it’s the cheaper way to make Shorts You’re not buying a general-purpose AI video suite and using a fraction of it. Kineo does one thing — turn an idea into a faceless Short — and lets you pick the lowest-cost engine for the job. Built only for faceless Shorts It does one job — turn an idea into a short-form video — so you’re not paying for a bloated general-purpose video suite you’ll never fully use. Start at 5 credits with Fast Mode You choose the engine. For a 60-second video, Fast Mode uses matched stock footage for 5 credits. Original AI Generated scenes use 25 credits, while premium Cinematic scenes use 50. No camera, no editor, no extra subscriptions Script, AI voiceover, footage and captions are all generated in one pass — so the price of a Short is the credits, not a stack of separate tools. Try before you pay anything Every new account gets 30 credits and every engine unlocked — Kling 3 included. Films come out watermarked; a plan removes the watermark and unlocks clean downloads. Confirm the workflow fits before paying. An affordable faceless shorts AI — not a clip cutter Most “AI Shorts” tools (OpusClip, Submagic, Klap) take a long video you already filmed and chop it into clips. That’s useless if you’re faceless and starting from just an idea. Kineo works the other way around: it creates the entire video from a topic — so the low price gets you a finished Short, not chopped-up footage, and you never need source video, a camera, or an editing app. Want the full breakdown of that workflow? See making a YouTube Short from a topic . Pick the right engine — pay only when you scale up Every video lets you choose the engine. For 60 seconds, Fast Mode uses 5 credits, AI Generated uses 25 , and Cinematic uses 50 . Start with the stock-footage workflow when cost matters most, then use original Seedance or premium Kling scenes only when the creative needs them. Compare the full plans on the pricing page , or see how it stacks up against other tools under alternatives . Frequently asked questions What is the cheapest AI shorts maker? The answer depends on visual engine and monthly volume. For a 60-second Short, Kineo Fast Mode uses 5 credits, while AI Generated uses 25 and Cinematic uses 50. Every new account gets 30 credits and every engine unlocked — Kling 3 included. Films come out watermarked; a plan removes the watermark and unlocks clean downloads. Also, the calculator on this page uses the current USD subscription prices. Kineo lists and charges plan prices in USD worldwide. Your bank may convert the charge to your local currency and may add conversion or cross-border fees. How do I make AI YouTube Shorts cheap? Type a single idea, choose Fast Mode for the lowest-cost workflow, and download a finished 9:16 Short with script, AI voiceover, matched footage and captions, usually in 3–7 minutes. No camera and no editing app to pay for separately. Is there an affordable faceless shorts AI that builds the video from just a topic? Yes. Kineo generates the entire video from one topic — it writes the script, records the AI voiceover, matches footage to each line and adds captions. It’s made for faceless creators who start with nothing but an idea, so you never film anything. Why is the cheapest AI YouTube Shorts generator not just a clip cutter? Clip cutters like OpusClip or Submagic re-clip a long video you already filmed — useless if you’re faceless and starting from scratch. Kineo creates the video from an idea, so the low price gets you a finished Short, not chopped-up footage. Do I have to use the most expensive AI engine? No. You pick the engine per video. For 60 seconds, Fast Mode uses 5 credits with matched stock footage, AI Generated uses 25 credits for Seedance scenes, and Cinematic uses 50 credits for premium Kling scenes. Can I try it before paying for a plan? Yes. Every new account gets 30 credits and every engine unlocked — Kling 3 included. Films come out watermarked; a plan removes the watermark and unlocks clean downloads. Paid plans unlock clean exports and premium AI engines. Start free — every engine unlocked, including Kling 3. Make 1 AI film free, watermarked. Upgrade any time to download them clean. One idea in, a ready-to-post Short out. Free to start. Make my Fast video → ⚡ Kineo Turn one idea into a ready-to-post faceless YouTube Short — script, AI voiceover, footage & captions in a few minutes. Start free — every engine unlocked, including Kling 3. Make 1 AI film free, watermarked. Upgrade any time to download them clean. Paid plans unlock clean MP4s. English Español हिन्दी Product AI image generator — 6 engines AI voice generator (text to speech) AI video upscaler & enhancer Trending Shorts ideas today AI Avatar video — your face, any script Kineo facts & numbers (citable) Free AI Shorts generator Faceless video generator YouTube Shorts from a topic Text to video Shorts ChatGPT script to YouTube Short Cheapest AI Shorts maker Shorts without filming Faceless channel ideas (2026) Faceless niche picker Shorts idea widget State of AI Shorts 2026 Live case study: our channel on Autopilot AI Shorts for agencies & client work Trust Center — privacy, payments & ownership Affiliate program - 30% recurring Pricing Start free Free tools All free tools Free AI Shorts generator Free AI Shorts by niche Free YouTube Shorts scripts Free script generator Comment to Short script Product video ad script Business video content planner Client video brief generator Real estate video maker Free hook generator Shorts title & hashtag generator Shorts script timer Free viral score Shorts money calculator Shorts money & growth Make money clipping with AI How much do Shorts pay? Shorts RPM by niche (2026) Best AI Shorts generators Can you monetize AI videos? TikTok vs Shorts: which pays more? Compare All comparisons Kineo vs OpusClip Kineo vs InVideo Kineo vs HeyGen Vidyo.ai / Quso pricing © 2026 Kineo · All rights reserved Terms of Service · Privacy Policy · Trust Center · Contact",
+      "jsonld": [
+        {
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          "name": "Kineo",
+          "alternateName": [
+            "Kineo AI",
+            "UseKineo",
+            "Cineo",
+            "Cineo AI",
+            "ShortsForgeAI"
+          ],
+          "url": "https://www.usekineo.com",
+          "logo": "https://www.usekineo.com/icon-512.png"
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "SoftwareApplication",
+          "name": "Kineo",
+          "alternateName": [
+            "Kineo AI",
+            "UseKineo",
+            "Cineo",
+            "Cineo AI",
+            "ShortsForgeAI"
+          ],
+          "url": "https://www.usekineo.com",
+          "applicationCategory": "MultimediaApplication",
+          "applicationSubCategory": "AI Video Generator",
+          "operatingSystem": "Web",
+          "description": "Kineo is an AI YouTube Shorts generator for repeatable shows with the same face, voice and style, including script, voiceover, scenes and captions.",
+          "featureList": [
+            "Topic-to-video: one typed idea becomes a finished 9:16 Short",
+            "Eight AI video engines in one account: Omni Flash (Google’s #1-ranked, Aug 2026), Veo 3.1, Kling 3, MiniMax H3, Kling 2.5, Seedance 1.5, Kineo 1 and Avatar",
+            "AI script writing with hook and payoff structure",
+            "Use your own script word for word, narrated verbatim",
+            "AI voiceover narration with word-by-word captions",
+            "Soundtrack chosen to match the mood of the subject",
+            "Videos of 60 seconds or more, for TikTok Creator Rewards eligibility",
+            "AI image studio (6 engines) and text-to-speech studio (4 engines) included",
+            "One-click HD enhance powered by Topaz film restoration",
+            "Watermark-free MP4 export on paid plans"
+          ],
+          "offers": {
+            "@type": "AggregateOffer",
+            "lowPrice": "9.90",
+            "highPrice": "39.90",
+            "priceCurrency": "USD",
+            "offerCount": 3,
+            "offers": [
+              {
+                "@type": "Offer",
+                "name": "Starter",
+                "price": "9.90",
+                "priceCurrency": "USD",
+                "availability": "https://schema.org/InStock",
+                "description": "Starter — $9.90/month. 60 credits per billing month. Watermark-free MP4 exports.",
+                "url": "https://www.usekineo.com/pricing"
+              },
+              {
+                "@type": "Offer",
+                "name": "Creator",
+                "price": "19.90",
+                "priceCurrency": "USD",
+                "availability": "https://schema.org/InStock",
+                "description": "Creator — $19.90/month. 150 credits per billing month. Enough for 6 Seedance films a month, or 30 Kineo 1 films.",
+                "url": "https://www.usekineo.com/pricing"
+              },
+              {
+                "@type": "Offer",
+                "name": "Studio",
+                "price": "39.90",
+                "priceCurrency": "USD",
+                "availability": "https://schema.org/InStock",
+                "description": "Studio — $39.90/month. 300 credits per billing month. Highest volume, plus two free HD enhances every month.",
+                "url": "https://www.usekineo.com/pricing"
+              }
+            ]
+          },
+          "potentialAction": {
+            "@type": "CreateAction",
+            "name": "Open Kineo Studio with a script prefilled",
+            "description": "The link stores the script server-side and opens a short page showing it, then a single button opens Kineo Studio already filled in (script narrated word for word, duration and engine preselected). It waits for the person to click; it does not generate anything on its own.",
+            "target": {
+              "@type": "EntryPoint",
+              "urlTemplate": "https://www.usekineo.com/make?script={script}&duration={duration}&engine={engine}",
+              "httpMethod": "GET",
+              "actionPlatform": [
+                "http://schema.org/DesktopWebPlatform",
+                "http://schema.org/MobileWebPlatform"
+              ]
+            },
+            "object": {
+              "@type": "CreativeWork",
+              "name": "Short video script"
+            },
+            "result": {
+              "@type": "CreativeWork",
+              "name": "A Kineo Studio session prefilled with the script"
+            }
+          }
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "What is the cheapest AI shorts maker?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "The answer depends on visual engine and monthly volume. For a 60-second Short, Kineo Fast Mode uses 5 credits, while AI Generated uses 25 and Cinematic uses 50. Every new account gets 30 credits and every engine unlocked — Kling 3 included. Films come out watermarked; a plan removes the watermark and unlocks clean downloads. Also, the calculator on this page uses the current USD subscription prices. Kineo lists and charges plan prices in USD worldwide. Your bank may convert the charge to your local currency and may add conversion or cross-border fees."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "How do I make AI YouTube Shorts cheap?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Type a single idea, choose Fast Mode for the lowest-cost workflow, and download a finished 9:16 Short with script, AI voiceover, matched footage and captions, usually in 3–7 minutes. No camera and no editing app to pay for separately."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Is there an affordable faceless shorts AI that builds the video from just a topic?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes. Kineo generates the entire video from one topic — it writes the script, records the AI voiceover, matches footage to each line and adds captions. It’s made for faceless creators who start with nothing but an idea, so you never film anything."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Why is the cheapest AI YouTube Shorts generator not just a clip cutter?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Clip cutters like OpusClip or Submagic re-clip a long video you already filmed — useless if you’re faceless and starting from scratch. Kineo creates the video from an idea, so the low price gets you a finished Short, not chopped-up footage."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Do I have to use the most expensive AI engine?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "No. You pick the engine per video. For 60 seconds, Fast Mode uses 5 credits with matched stock footage, AI Generated uses 25 credits for Seedance scenes, and Cinematic uses 50 credits for premium Kling scenes."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Can I try it before paying for a plan?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes. Every new account gets 30 credits and every engine unlocked — Kling 3 included. Films come out watermarked; a plan removes the watermark and unlocks clean downloads. Paid plans unlock clean exports and premium AI engines."
+              }
+            }
+          ]
+        }
+      ],
+      "meta": [
+        "<meta name=\"description\" content=\"Calculate the USD cost per AI Short by visual engine and monthly volume. Then build a complete faceless video from one idea and test Fast Mode free.\"/>",
+        "<meta property=\"og:title\" content=\"Cheapest AI Shorts Maker — make AI YouTube Shorts cheap\"/>",
+        "<meta property=\"og:description\" content=\"Calculate your USD cost per Short, compare Fast, Seedance and Kling, then test a complete faceless video from one idea free.\"/>",
+        "<meta name=\"twitter:title\" content=\"Kineo — AI YouTube Shorts Generator (Official Site)\"/>",
+        "<meta name=\"twitter:description\" content=\"Launch a repeatable AI Shorts show with the same face, voice and style. Start free — every engine unlocked, including Kling 3. Make 1 AI film free, watermarked. Upgrade any time to download them clean.\"/>"
+      ],
+      "reused": false,
+      "commercialHtml": [
+        "renewal price. No camera, no editing, no timeline. Start free — every engine unlocked → See pricing 30 free credits — every engine unlocked · USD prices matched to Checkout Free cost calculator What would your Shorts actually cost? Pick the exact engine, duration and monthly output. T",
+        "t is the credits, not a stack of separate tools. Try before you pay anything Every new account gets 30 credits and every engine unlocked — Kling 3 included. Films come out watermarked; a plan removes the watermark and unlocks clean downloads. Confirm the workflow fits before payi",
+        " Fast Mode uses 5 credits, while AI Generated uses 25 and Cinematic uses 50. Every new account gets 30 credits and every engine unlocked — Kling 3 included. Films come out watermarked; a plan removes the watermark and unlocks clean downloads. Also, the calculator on this page use",
+        "s the current USD subscription prices. Kineo lists and charges plan prices in USD worldwide. Your bank may convert the charge to your local currency and may add conversion or cross-border fees. How do I make AI YouTube Shorts cheap? Type a single idea, choose F",
+        "redits for premium Kling scenes. Can I try it before paying for a plan? Yes. Every new account gets 30 credits and every engine unlocked — Kling 3 included. Films come out watermarked; a plan removes the watermark and unlocks clean downloads. Paid plans unlock clean exports and p"
+      ],
+      "commercialJsonld": [
+        "\":\"9.90\",\"priceCurrency\":\"USD\",\"availability\":\"https://schema.org/InStock\",\"description\":\"Starter — $9.90/month. 60 credits per billing month. Watermark-free MP4 exports.\",\"url\":\"https://www.usekineo.com/pricing\"},{\"@type\":\"Offer\",\"name\":\"Creator\",\"price\":\"19.90\",\"priceCurre",
+        "ncy\":\"USD\",\"availability\":\"https://schema.org/InStock\",\"description\":\"Creator — $19.90/month. 150 credits per billing month. Enough for 6 Seedance films a month, or 30 Kineo 1 films.\",\"url\":\"https://www.usekineo.com/pricing\"},{\"@type\":\"Offer\",\"name\":\"Studi",
+        "\":\"39.90\",\"priceCurrency\":\"USD\",\"availability\":\"https://schema.org/InStock\",\"description\":\"Studio — $39.90/month. 300 credits per billing month. Highest volume, plus two free HD enhances every month.\",\"url\":\"https://www.usekineo.com/pricing\"}]},\"potentialAction\":{\"@type\":\"Cre",
+        " Fast Mode uses 5 credits, while AI Generated uses 25 and Cinematic uses 50. Every new account gets 30 credits and every engine unlocked — Kling 3 included. Films come out watermarked; a plan removes the watermark and unlocks clean downloads. Also, the calculator on this page use",
+        "s the current USD subscription prices. Kineo lists and charges plan prices in USD worldwide. Your bank may convert the charge to your local currency and may add conversion or cross-border fees.\"}},{\"@type\":\"Question\",\"name\":\"How do I make AI YouTube Shorts chea",
+        "t before paying for a plan?\",\"acceptedAnswer\":{\"@type\":\"Answer\",\"text\":\"Yes. Every new account gets 30 credits and every engine unlocked — Kling 3 included. Films come out watermarked; a plan removes the watermark and unlocks clean downloads. Paid plans unlock clean exports and p"
+      ],
+      "commercialMetadata": [],
+      "sha256Commercial": "8259f523d4380f316228f5e490612984ae34cd186e6f94c8410b3a8b34af7696",
+      "findings": {
+        "freeTrial30": true,
+        "old80": false,
+        "oldPaidEntry": false,
+        "oldPlanCandidates": [],
+        "usdWorldwide": true,
+        "brazilReais": false
+      }
+    }
+  ],
+  "scopeClarification": "Negative oldPaidEntry/old80 findings refer to the superseded main entry trial, not every paid product or seven-day wording. Pricing still includes a seven-day money-back guarantee and a separate paid seven-day Autopilot pilot without renewal."
+}
