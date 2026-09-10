@@ -64,7 +64,8 @@ ok(bulkStart > 0 && bulkEnd > bulkStart, 'bulk checkout block located')
 ok(bulkBlock.includes('cancel_url: buildAgencyCheckoutCancelUrl(appUrl, bulkId)'), 'Stripe cancellation uses the allowlisted return builder')
 ok(!bulkBlock.includes('cancel_url: `${appUrl}/pricing`'), 'bulk cancellation no longer leaks into generic pricing')
 ok(bulkBlock.includes("mode: 'payment'"), 'one-time payment mode is unchanged')
-ok(bulkBlock.includes('unit_amount: unitAmount'), 'canonical amount is unchanged')
+// KINEO-MOEDA-LOCAL-2026-09-09 — a linha da Stripe nasce na moeda do país (chargeAmount = unitAmount em USD).
+ok(bulkBlock.includes('unit_amount: chargeAmount') && bulkBlock.includes('const chargeAmount = settlementAmountMinor(unitAmount, chargeCurrency)'), 'canonical amount is unchanged')
 ok(bulkBlock.includes('pack: bulkId'), 'Stripe metadata still preserves the exact pack')
 ok(bulkBlock.includes("'bulk_checkout_started'"), 'named B2B checkout event is unchanged')
 

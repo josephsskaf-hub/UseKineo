@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { resolveCheckoutCurrency, resolvePriceRegion } from '@/lib/checkoutPricing'
 import { dodoMode, localMethodFor } from '@/lib/dodo'
+import { resolveSettlementCurrency } from '@/lib/settlementCurrency'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
 // Rota SO-GET no Next 14.2: sem POST no modulo, o store nasce com
 // revalidate=false, e `dynamic='force-dynamic'` NAO muda isso (so pula o proxy
@@ -57,12 +58,17 @@ export async function GET(req: NextRequest) {
   // não é interno ("not available yet"): mostrar o botão era oferecer o que o
   // cobrador recusa. `local_method_planned` diz o que VAI existir, para a copy
   // "cartão por enquanto — Pix/UPI em breve" sem prometer data.
+  // KINEO-MOEDA-LOCAL-2026-09-09 — em que moeda o checkout vai NASCER para este
+  // visitante (IP + idioma). Só exibição: a linha "Charged in BRL" embaixo do
+  // preço em dólar. O checkout re-resolve no servidor e ainda consulta a
+  // recusa anterior de cartão BR, que esta rota não olha.
+  const settlement = resolveSettlementCurrency({ ipCountry: country, acceptLanguage: req.headers.get('accept-language') })
   const planned = localMethodFor(country)
   const local_method = dodoMode() === 'live' ? planned : null
   const local_method_planned = planned
 
   return NextResponse.json(
-    { country, currency, region, local_method, local_method_planned, rail_live: local_method !== null },
+    { country, currency, region, local_method, local_method_planned, rail_live: local_method !== null, settlement_currency: settlement.currency },
     { headers: { 'Cache-Control': 'private, no-store, max-age=0' } },
   )
 }

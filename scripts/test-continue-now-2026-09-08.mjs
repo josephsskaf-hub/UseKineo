@@ -26,7 +26,7 @@ checa('números vêm da fonte única', /TIER_CREDITS\.basic/.test(r) && /TIER_PR
 checa('falha na cobrança devolve 402 e não muda nada', /return NextResponse\.json\(\{ error: 'charge_failed' \}, \{ status: 402 \}\)/.test(r))
 
 console.log('== o webhook que concede ==')
-checa('renovação por subscription_cycle concede o grant pela régua (renewalCreditsFor)', /const renewalCredits = renewalCreditsFor\(renewalTier, invoice\.amount_paid\)/.test(wh))
+checa('renovação por subscription_cycle concede o grant pela régua (renewalCreditsFor)', /const renewalCredits = renewalCreditsFor(Invoice)?\(renewalTier, invoice\.amount_paid(, invoice\.currency)?\)/.test(wh))
 checa('subscription_create é ignorado (o $1 já foi pago na sessão)', /if \(billingReason === 'subscription_create'\) break/.test(wh))
 
 console.log('== a faixa ==')

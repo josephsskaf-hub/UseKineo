@@ -57,6 +57,7 @@ import {
   type ExistingAffiliateCommission,
 } from '@/lib/affiliateLedger'
 import { CARD_ENTRY_TRIAL_STATUS } from '@/lib/entryPolicy'
+import { renewalCreditsForInvoice } from '@/lib/settlementCurrency'
 
 // KINEO-PILOT-99-2026-07-26 — fallback por valor para o piloto de $99, QUALIFICADO
 // POR MOEDA. Sem a moeda isto seria um bug de caixa: topup40 em INR custa 49900 e
@@ -1907,7 +1908,8 @@ export async function POST(req: NextRequest) {
         // forever (it is the one-intro-per-customer marker), so reading it here
         // would permanently under-grant every renewal. The reduced intro grant
         // is applied only once, at checkout.session.completed.
-        const renewalCredits = renewalCreditsFor(renewalTier, invoice.amount_paid)
+        // KINEO-MOEDA-LOCAL-2026-09-09 — fatura em reais é comparada com a tabela em reais.
+        const renewalCredits = renewalCreditsForInvoice(renewalTier, invoice.amount_paid, invoice.currency)
         if (!renewalUserId) {
           entitlementPending = false
           break

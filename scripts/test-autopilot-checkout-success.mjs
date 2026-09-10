@@ -105,7 +105,8 @@ equal(
 const route = read('app/api/stripe/checkout/route.ts')
 ok(route.includes("import { buildSubscriptionCheckoutSuccessUrl } from '@/lib/growth/checkoutSuccessFlow'"), 'real checkout imports the policy')
 ok(route.includes('success_url: buildSubscriptionCheckoutSuccessUrl({'), 'real subscription Session uses the policy')
-ok(route.includes('tier,\n      currency,\n      amount: unitAmount,'), 'real caller passes authoritative tier, currency and amount')
+// KINEO-MOEDA-LOCAL-2026-09-09 — a moeda/valor do success_url são os COBRADOS (chargeCurrency/chargeAmount).
+ok(route.includes('tier,\n      currency: chargeCurrency,\n      amount: chargeAmount,'), 'real caller passes authoritative tier, currency and amount')
 ok(route.includes("if (tier === 'autopilot')"), 'checkout still clamps Autopilot to monthly before Session creation')
 
 const page = read('app/checkout/success/page.tsx')

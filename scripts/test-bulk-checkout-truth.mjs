@@ -69,7 +69,8 @@ check(bulkStart > 0 && bulkEnd > bulkStart, 'live bulk checkout block is located
 check(bulkBlock.includes('description: bulkCheckoutDescription(pack)'), 'live Stripe line executes the shared truth helper')
 check((bulkBlock.match(/bulk_checkout_truth_version: BULK_CHECKOUT_TRUTH_VERSION/g) ?? []).length === 2, 'events and Stripe Session carry the same version')
 check(bulkBlock.includes("mode: 'payment'"), 'one-time payment mode is unchanged')
-check(bulkBlock.includes('unit_amount: unitAmount'), 'canonical price is unchanged')
+// KINEO-MOEDA-LOCAL-2026-09-09 — a linha da Stripe nasce na moeda do país (chargeAmount = unitAmount em USD).
+check(bulkBlock.includes('unit_amount: chargeAmount') && bulkBlock.includes('const chargeAmount = settlementAmountMinor(unitAmount, chargeCurrency)'), 'canonical price is unchanged')
 check(bulkBlock.includes('pack_credits: String(pack.credits)'), 'canonical grant is unchanged')
 check(bulkBlock.includes('contract_version: BULK_CHECKOUT_TRUTH_VERSION'), 'changed Stripe parameters rotate the bounded idempotency signature')
 check(!/ready-to-post vertical Shorts/i.test(bulkBlock), 'contradictory finished-delivery copy is absent from live bulk checkout')

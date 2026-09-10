@@ -27,6 +27,7 @@ import {
   type CheckoutPlanTier,
   type CheckoutTier,
 } from '@/lib/checkoutPricing'
+import { formatSettlementMoney, planSettlementAmountMinor } from '@/lib/settlementCurrency'
 import { useFreeTierOffer } from '@/components/FreeTierOfferProvider'
 import { swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 import { readAutopilotCheckoutReturn } from '@/lib/growth/autopilotCheckoutReturn'
@@ -167,7 +168,7 @@ function CheckoutCancelledContent() {
       : introEligible && introPrice
         ? `${introPrice} today`
         : `${monthlyPrice}/month`
-  const renewalCopy = cardTrial
+  const renewalCopyBase = cardTrial
     ? `${CARD_TRIAL_GRANT_CREDITS} credits. Then ${monthlyPrice}/month after ${CARD_TRIAL_DAYS} days unless you cancel. First purchase only; eligibility is checked at checkout.`
     : isAutopilotPilot
     ? `One-time payment. Nothing renews; the pilot ends after ${AUTOPILOT_PILOT_DAYS} days.`
@@ -180,6 +181,16 @@ function CheckoutCancelledContent() {
     : billing === 'annual' && annualPrice
       ? `Renews at ${annualPrice}/year. Your annual billing choice will be preserved.`
       : `Renews at ${monthlyPrice}/month in 30 days. Cancel anytime.`
+  // KINEO-MOEDA-LOCAL-2026-09-09 — a sessão que a pessoa acabou de fechar nasceu
+  // em reais (`settle=brl` no cancel_url). A tela de retorno diz o valor exato
+  // em R$, em vez de deixar a pessoa achar que o cartão vai ser cobrado em dólar.
+  const settleBrl = searchParams.get('settle') === 'brl' && tier !== 'autopilot' && !isAutopilotPilot
+  const settleBrlLabel = settleBrl
+    ? formatSettlementMoney('brl', planSettlementAmountMinor(tier as CheckoutTier, billing === 'annual' ? 'annual' : 'monthly', 'brl', 0))
+    : null
+  const renewalCopy = settleBrlLabel
+    ? `${renewalCopyBase} Your card is charged in Brazilian reais: ${settleBrlLabel}/${billing === 'annual' ? 'year' : 'month'}.`
+    : renewalCopyBase
 
   // ═══════════════════════════════════════════════════════════════════════
   // O DEGRAU MAIS BARATO QUE AINDA É UMA VENDA.

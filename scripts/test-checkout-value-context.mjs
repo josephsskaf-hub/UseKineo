@@ -116,7 +116,7 @@ check((route.match(/checkout_value_context: checkoutValueContext\.version/g) ?? 
 check(route.includes('checkout_value_variant: checkoutValueContext.variant'), 'variant is attributable')
 check(route.includes('line_items: sessionParams.line_items'), 'idempotency signature covers displayed product copy')
 check(route.includes('custom_text: sessionParams.custom_text'), 'idempotency signature covers submit copy')
-check(route.includes('version: 7'), 'subscription idempotency payload is versioned after session-window change')
+check(route.includes('version: 8'), 'subscription idempotency payload is versioned after session-window change') // v8: KINEO-MOEDA-LOCAL-2026-09-09
 check(route.includes('kineo-sub-v6:'), 'subscription idempotency namespace is advanced for the new expiry')
 const executableRoute = route.replace(/\/\/.*$/gm, '')
 check(!/\bpayment_method_types\s*:/.test(executableRoute), 'dynamic payment methods stay enabled')

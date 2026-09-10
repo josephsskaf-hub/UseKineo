@@ -43,7 +43,7 @@ checa('compose: recusa vem com outOfCredits: true', /outOfCredits: true,\n\s*\/\
 console.log('== 3. o caixa ==')
 checa('trial só com trial=1 no Creator mensal', /let wantsTrial = CARD_TRIAL_ENABLED && req\.nextUrl\.searchParams\.get\('trial'\) === '1' && tier === TRIAL_TIER/.test(co))
 checa('quem já pagou não ganha o $1 (cai no preço cheio, sem erro)', /if \(wantsTrial && \(profile as \{ has_paid\?: boolean \| null \} \| null\)\?\.has_paid === true\) \{\n\s*wantsTrial = false/.test(co))
-checa('$1 cobrado hoje (add_invoice_items) + 7 dias de trial', /trial_period_days: TRIAL_DAYS,/.test(co) && /unit_amount: TRIAL_ENTRY_FEE_CENTS,/.test(co) && /const TRIAL_ENTRY_FEE_CENTS = 100/.test(co))
+checa('$1 cobrado hoje (add_invoice_items) + 7 dias de trial', /trial_period_days: TRIAL_DAYS,/.test(co) && /unit_amount: (settlementAmountMinor\()?TRIAL_ENTRY_FEE_CENTS(, chargeCurrency\))?,/.test(co) && /const TRIAL_ENTRY_FEE_CENTS = 100/.test(co))
 checa('sem cartão no fim do trial → cancela (nunca cobra às cegas)', /missing_payment_method: 'cancel'/.test(co))
 checa('deslogado: checkout manda para /signup com redirect', /reason=checkout/.test(co))
 
@@ -52,7 +52,7 @@ checa('$1 concede 80 (CARD_TRIAL_GRANT_CREDITS)', /const creditsToGrant = isCard
 checa('plano vira basic_trial e has_paid true', /const expectedPlan = isTrial \? `\$\{tier\}_trial` : tier/.test(wh) && /has_paid: true, \/\/ KINEO-PACK-NOWM/.test(wh))
 checa('trial_status card_required vira converted', /\.in\('trial_status', \['active', 'expired', CARD_ENTRY_TRIAL_STATUS\]\)/.test(wh))
 checa('payment_success marca card_trial', /card_trial: session\.metadata\?\.card_trial === '1',/.test(wh))
-checa('dia 8: fatura concede o grant pela régua (renewalCreditsFor) e vira evento com trial_conversion', /const renewalCredits = renewalCreditsFor\(renewalTier, invoice\.amount_paid\)/.test(wh) && /trial_conversion: previousPlanNormalized\.endsWith\('_trial'\),/.test(wh))
+checa('dia 8: fatura concede o grant pela régua (renewalCreditsFor) e vira evento com trial_conversion', /const renewalCredits = renewalCreditsFor(Invoice)?\(renewalTier, invoice\.amount_paid(, invoice\.currency)?\)/.test(wh) && /trial_conversion: previousPlanNormalized\.endsWith\('_trial'\),/.test(wh))
 
 console.log('== 5. a volta ==')
 checa('success só libera com has_paid true e plano pago (basic_trial incluso)', /if \(input\.hasPaid !== true\) return 'payment_pending'/.test(ent) && /SELF_SERVE_PAID_PLANS/.test(ent))

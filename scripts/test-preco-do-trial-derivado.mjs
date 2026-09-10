@@ -57,7 +57,7 @@ ok(
   `a constante da tabela (${feeMinor}) e o valor que a Stripe cobra (${chargedMinor}) sao o MESMO numero`,
 )
 ok(
-  /unit_amount: TRIAL_ENTRY_FEE_CENTS/.test(checkout) && /add_invoice_items/.test(checkout),
+  /unit_amount: (settlementAmountMinor[(])?TRIAL_ENTRY_FEE_CENTS/.test(checkout) && /add_invoice_items/.test(checkout), // KINEO-MOEDA-LOCAL-2026-09-09: a taxa nasce na moeda da sessão
   'o item avulso do trial cobra exatamente essa constante (add_invoice_items/unit_amount)',
 )
 

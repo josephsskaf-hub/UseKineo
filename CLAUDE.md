@@ -14,6 +14,15 @@
 # · PREÇO E OFERTA CONGELADOS ATÉ 09/10/2026. Nada de $1, intro, pack novo,
 #   trial pago. Métrica única: pagantes novos por semana. Doc:
 #   docs/DECISAO-RESTAURACAO-2026-09-09.md.
+# · MOEDA LOCAL (09/09 noite, docs/DECISAO-MOEDA-LOCAL-2026-09-09.md): a conta
+#   Stripe é BRASILEIRA — cartão BR só paga em REAIS; desde 19/08 (USD no mundo
+#   todo) NENHUM brasileiro conseguia pagar. Modelo: dólar em todo card; a sessão
+#   nasce na moeda do país (lib/settlementCurrency.ts, decidido no servidor:
+#   ?currency= da casa → recusa anterior de cartão BR → IP BR → pt-BR → USD).
+#   Tabela fixa BRL R$ 49,90/99,90/199,90 (anual 10×), câmbio da casa 5,0 revisto
+#   dia 9 de cada mês. CheckoutCurrency segue 'usd' (exibição); NÃO reabrir
+#   multi-moeda nas telas. Pix não faz assinatura (só pagamento único).
+#   Guardião: scripts/test-moeda-local-2026-09-09.mjs.
 
 # ══════════════════════════════════════════════════════════════════════════
 # 🔴 09/09/2026 00:00 UTC — PREÇOS V7 (fundador 08/09 20h): Starter $14/60cr ·

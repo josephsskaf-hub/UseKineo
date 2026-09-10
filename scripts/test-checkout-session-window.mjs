@@ -49,7 +49,7 @@ check(!route.includes('checkoutWindow * 300 + 2 * 60 * 60'), 'legacy two-hour ki
 check(route.includes('checkout_session_window_hours'), 'window is attributable in live checkout')
 check(route.includes('checkout_session_window_version'), 'window version is attributable in live checkout')
 check(route.includes('expires_at: sessionParams.expires_at'), 'expiry participates in the idempotency signature')
-check(route.includes('version: 7'), 'idempotency payload changed with Stripe parameters')
+check(route.includes('version: 8'), 'idempotency payload changed with Stripe parameters') // v8: KINEO-MOEDA-LOCAL-2026-09-09
 check(route.includes('kineo-sub-v6:'), 'idempotency namespace changed with Stripe parameters')
 check(route.includes('checkout_session_window_hours: RECURRING_CHECKOUT_WINDOW_HOURS'), 'checkout_started records the assigned window')
 

@@ -57,8 +57,10 @@ console.log('== a régua da renovação, executada ==')
 
 console.log('== quem usa a régua ==')
 const wh = rd('app/api/stripe/webhook/route.ts')
-checa('webhook: renovação chama renewalCreditsFor(tier, invoice.amount_paid)', /const renewalCredits = renewalCreditsFor\(renewalTier, invoice\.amount_paid\)/.test(wh))
-checa('webhook: importa a função da fonte única', /renewalCreditsFor[^\n]*\} from '@\/lib\/checkoutPricing'|import \{[^}]*renewalCreditsFor[^}]*\} from '@\/lib\/checkoutPricing'/.test(wh))
+// KINEO-MOEDA-LOCAL-2026-09-09 — a fatura pode vir em reais; o webhook passa pela
+// régua com moeda (renewalCreditsForInvoice, que delega a renewalCreditsFor em USD).
+checa('webhook: renovação chama renewalCreditsForInvoice(tier, invoice.amount_paid, invoice.currency)', /const renewalCredits = renewalCreditsForInvoice\(renewalTier, invoice\.amount_paid, invoice\.currency\)/.test(wh))
+checa('webhook: importa a régua com moeda, que delega à fonte única', /import \{ renewalCreditsForInvoice \} from '@\/lib\/settlementCurrency'/.test(wh) && /if \(cur !== 'brl'\) return renewalCreditsFor\(tier, amountPaidMinor\)/.test(rd('lib/settlementCurrency.ts')))
 checa('webhook: nenhum TIER_CREDITS[renewalTier] cru sobrou', !/TIER_CREDITS\[renewalTier\]/.test(wh))
 
 console.log('== a porta fala o preço do Creator sem literal ==')

@@ -58,6 +58,7 @@ import {
   type CheckoutTier as PaidTier,
   type PriceRegion,
 } from '@/lib/checkoutPricing'
+import { planSettlementAmountMinor, settlementNote, type SettlementCurrency } from '@/lib/settlementCurrency'
 import { useFreeTierOffer } from '@/components/FreeTierOfferProvider'
 import { swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY, type FreeTierOffer } from '@/lib/freeTierOffer'
 import { CHECKOUT_PAYMENT_GUIDANCE_COMPACT } from '@/lib/growth/checkoutPaymentGuidance'
@@ -355,6 +356,8 @@ export default function PricingClient() {
   // 'standard' (preço cheio) até o /api/geo responder: errar para cima é uma
   // surpresa boa no checkout, errar para baixo é uma promessa quebrada.
   const [displayRegion, setDisplayRegion] = useState<PriceRegion>('standard')
+  // KINEO-MOEDA-LOCAL-2026-09-09 — moeda em que o checkout vai nascer (só exibição).
+  const [settlementCurrency, setSettlementCurrency] = useState<SettlementCurrency>('usd')
   const currencyTrackedRef = useRef(false)
   const mobileStickyRef = useRef<HTMLDivElement | null>(null)
   const [requestedTier, setRequestedTier] = useState<PricingTierHandoffTier | null>(null)
@@ -539,10 +542,11 @@ export default function PricingClient() {
     void fetch('/api/geo', { credentials: 'same-origin', cache: 'no-store' })
       .then(async (response) => {
         if (!response.ok) throw new Error('geo lookup failed')
-        return response.json() as Promise<{ country?: string; currency?: string; region?: string }>
+        return response.json() as Promise<{ country?: string; currency?: string; region?: string; settlement_currency?: string }>
       })
-      .then(({ country, currency, region }) => {
+      .then(({ country, currency, region, settlement_currency }) => {
         if (cancelled) return
+        setSettlementCurrency(settlement_currency === 'brl' ? 'brl' : 'usd')
         const safeCurrency: DisplayCurrency =
           'usd' // KINEO-USD-ONLY-2026-08-19
         const safeRegion = coercePriceRegion(region)
@@ -1044,6 +1048,22 @@ export default function PricingClient() {
                     ? `/ month · billed annually (${displayCurrency ? annualPrices[p.tier as PaidTier].total : '—'}/yr)`
                     : p.priceSub}
                 </div>
+                {/* KINEO-MOEDA-LOCAL-2026-09-09 — o preço fica em dólar para todo mundo;
+                    quem vai pagar em reais vê, e só ele, o valor exato da cobrança. */}
+                {settlementCurrency === 'brl' ? (
+                  <div className="mt-1 text-[11.5px] font-medium text-[#86868b]" data-testid="settlement-note">
+                    {settlementNote(
+                      planSettlementAmountMinor(
+                        p.tier as PaidTier,
+                        billing === 'annual' ? 'annual' : 'monthly',
+                        'brl',
+                        billing === 'annual' ? getAnnualPrice(p.tier as PaidTier, 'usd') : getTierPrice(p.tier as PaidTier, 'usd'),
+                      ),
+                      'brl',
+                      billing === 'annual' ? 'yr' : 'mo',
+                    )}
+                  </div>
+                ) : null}
                 {/* KINEO-INTRO-MONTH-2026-07-13 — badge do 1º mês com desconto
                     (monthly only). Starter $4.90 / Creator $9.90 na 1ª fatura;
                     o checkout aplica via ?intro=1 (handleBuy). */}

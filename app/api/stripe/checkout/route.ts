@@ -66,6 +66,7 @@ import {
 } from '@/lib/growth/bulkCheckoutTruth'
 import { buildAutopilotPilotCancelUrl } from '@/lib/growth/autopilotCheckoutReturn'
 import { buildSubscriptionCheckoutSuccessUrl } from '@/lib/growth/checkoutSuccessFlow'
+import { planSettlementAmountMinor, resolveSettlementCurrency, settlementAmountMinor } from '@/lib/settlementCurrency'
 import {
   attributeAffiliateForUser,
   normalizeAffiliateClickId,
@@ -500,6 +501,33 @@ async function recordBotSuspicion(req: NextRequest, selection: string): Promise<
     },
     browserSessionIdFrom(req),
   )
+}
+
+// ═══ KINEO-MOEDA-LOCAL-2026-09-09 — A REDE DE SEGURANÇA DA MOEDA ══════════
+// Cartão emitido no Brasil numa sessão em USD morre na Stripe com
+// "currency_not_supported" (conta brasileira). O evento checkout_payment_failed
+// guarda card_country e a moeda; se esta pessoa já bateu nessa parede, a
+// PRÓXIMA sessão nasce em BRL sem ela pedir nada. Leitura via service role
+// (a tabela events é fechada para o cliente); qualquer erro devolve false e
+// o caminho normal (IP/idioma) decide.
+async function priorBrazilianCardFailure(userId: string): Promise<boolean> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !key) return false
+  try {
+    const admin = createAdminClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
+    const { data } = await admin
+      .from('events')
+      .select('id')
+      .eq('name', 'checkout_payment_failed')
+      .eq('user_id', userId)
+      .eq('metadata->>card_country', 'BR')
+      .eq('metadata->>currency', 'usd')
+      .limit(1)
+    return Array.isArray(data) && data.length > 0
+  } catch {
+    return false
+  }
 }
 
 // KINEO-CHECKOUT-TRIAGE-2026-07-25 — one click = at most one Stripe session.
@@ -1414,12 +1442,31 @@ async function buildAndRedirect(
   // Price object id can be used, and only if the operator opts in by setting
   // STRIPE_PRICE_AUTOPILOT_USD. Absent that env var (the default), Autopilot
   // uses inline price_data exactly like every other SKU here.
-  const autopilotPriceId = tier === 'autopilot' ? autopilotPriceIdOverride(currency) : null
+  // ═══ KINEO-MOEDA-LOCAL-2026-09-09 — DÓLAR NA VITRINE, REAL NO CAIXA ═══════
+  // `currency`/`unitAmount` seguem sendo o preço de LISTA em USD (o que toda
+  // tela mostra). A moeda em que a sessão NASCE é decidida aqui, uma vez, no
+  // servidor: Brasil (IP, pt-BR, ou recusa anterior de cartão BR) paga em reais
+  // pela tabela fixa aprovada pelo fundador; o resto do mundo, em dólar. Os
+  // meios de pagamento seguem a moeda da sessão (a Stripe só mostra Pix/Boleto
+  // em BRL), então um americano nunca vê Pix. O link privado do pack de $5 é
+  // USD por construção (cupom em dólar).
+  const settlement = resolveSettlementCurrency({
+    ipCountry: country,
+    acceptLanguage: req.headers.get('accept-language'),
+    forced: privatePackPromo ? 'usd' : req.nextUrl.searchParams.get('currency'),
+    priorBrazilianCardFailure: await priorBrazilianCardFailure(user.id),
+  })
+  const chargeCurrency = settlement.currency
+  const chargeAmount = tier === 'autopilot'
+    ? settlementAmountMinor(unitAmount, chargeCurrency)
+    : planSettlementAmountMinor(tier, isAnnual ? 'annual' : 'monthly', chargeCurrency, unitAmount)
+
+  const autopilotPriceId = tier === 'autopilot' && chargeCurrency === 'usd' ? autopilotPriceIdOverride(currency) : null
   const lineItem: Stripe.Checkout.SessionCreateParams.LineItem = autopilotPriceId
     ? { price: autopilotPriceId, quantity: 1 }
     : {
         price_data: {
-          currency,
+          currency: chargeCurrency,
           product_data: {
             name: isAnnual ? `${plan.name} (Annual)` : plan.name,
             description: withCheckoutPaymentGuidance(
@@ -1431,7 +1478,7 @@ async function buildAndRedirect(
             // public Kineo-owned asset, never customer footage or a signed URL.
             images: [CHECKOUT_VISUAL_PROOF.imageUrl],
           },
-          unit_amount: unitAmount,
+          unit_amount: chargeAmount,
           recurring: { interval },
         },
         quantity: 1,
@@ -1452,9 +1499,9 @@ async function buildAndRedirect(
   // continua começando ao fim dos 7 dias. É o padrão "paid trial".
   const trialEntryFeeItem: Stripe.Checkout.SessionCreateParams.LineItem = {
     price_data: {
-      currency,
+      currency: chargeCurrency,
       product_data: { name: `Kineo — ${TRIAL_DAYS}-day trial access` },
-      unit_amount: TRIAL_ENTRY_FEE_CENTS,
+      unit_amount: settlementAmountMinor(TRIAL_ENTRY_FEE_CENTS, chargeCurrency),
     },
     quantity: 1,
   }
@@ -1486,8 +1533,8 @@ async function buildAndRedirect(
     success_url: buildSubscriptionCheckoutSuccessUrl({
       appUrl,
       tier,
-      currency,
-      amount: unitAmount,
+      currency: chargeCurrency,
+      amount: chargeAmount,
     }),
     // KINEO-OBJECTION-HANDLER-2026-08-04 — `region` passa a viajar no
     // cancel_url. A página de cancelamento mostra preço, e desde
@@ -1496,11 +1543,16 @@ async function buildAndRedirect(
     // Starter a R$24,90 aterrissa numa tela que promete R$49,90 e a única
     // superfície de recuperação que temos passa a trabalhar CONTRA a venda.
     // Preserve only the trial accepted by the server, including on cancellation.
-    cancel_url: `${appUrl}/checkout/cancelled?tier=${tier}&billing=${billing}&currency=${currency}&region=${region}${wantsTrial && !isAnnual ? '&trial=1' : ''}${intro ? '&intro=1' : ''}${requestedPromo ? `&promo=${encodeURIComponent(requestedPromo)}` : ''}${returnToWatermark ? '&return=wm' : ''}${intentCampaignParam}${planFitRetryParam}`,
+    cancel_url: `${appUrl}/checkout/cancelled?tier=${tier}&billing=${billing}&currency=${currency}&settle=${chargeCurrency}&region=${region}${wantsTrial && !isAnnual ? '&trial=1' : ''}${intro ? '&intro=1' : ''}${requestedPromo ? `&promo=${encodeURIComponent(requestedPromo)}` : ''}${returnToWatermark ? '&return=wm' : ''}${intentCampaignParam}${planFitRetryParam}`,
     metadata: {
       supabase_user_id: user.id,
       tier,
       billing,
+      // KINEO-MOEDA-LOCAL-2026-09-09 — em que moeda esta sessão nasceu, por quê,
+      // e qual era o preço de lista em dólar (auditoria de receita por país).
+      settlement_currency: chargeCurrency,
+      settlement_reason: settlement.reason,
+      list_price_usd_minor: String(unitAmount),
       // KINEO-TRIAL-1DOLAR-LIGADO-2026-09-07 — com o item de $1 a sessao fecha
       // como 'paid' (nao 'no_payment_required'); o webhook precisa deste
       // carimbo para conceder TRIAL_GRANT_CREDITS em vez do mes cheio.
@@ -1931,7 +1983,7 @@ async function buildAndRedirect(
     sessionParams.success_url = buildSubscriptionCheckoutSuccessUrl({
       appUrl,
       tier,
-      currency,
+      currency: chargeCurrency,
       amount: firstChargeAmount,
     })
     promisedPublicPromoVerified = true
@@ -2183,13 +2235,15 @@ async function buildAndRedirect(
     RECURRING_CHECKOUT_WINDOW_VERSION
   const checkoutIdempotencyKeyFor = (finalCustomerId: string): string => {
     const checkoutSignature = JSON.stringify({
-      version: 7,
+      version: 8,
       user_id: user.id,
       customer_id: finalCustomerId,
       tier,
       billing,
       currency,
       unit_amount: unitAmount,
+      settlement_currency: chargeCurrency,
+      charge_amount: chargeAmount,
       interval,
       intro_requested: intro,
       discount_applied: discountApplied,
@@ -2249,13 +2303,13 @@ async function buildAndRedirect(
       try {
         const priorCustomerId = typeof sessionParams.customer === 'string' ? sessionParams.customer : customerId
         const repairCustomerHash = createHash('sha256')
-          .update(`${user.id}:${currency}:${priorCustomerId}`)
+          .update(`${user.id}:${chargeCurrency}:${priorCustomerId}`)
           .digest('hex')
           .slice(0, 32)
         const newCustomer = await stripe.customers.create(
           {
             email: profile.email ?? user.email ?? '',
-            metadata: { supabase_user_id: user.id, currency_repair: currency },
+            metadata: { supabase_user_id: user.id, currency_repair: chargeCurrency },
           },
           { idempotencyKey: `kineo-customer-currency-v1:${repairCustomerHash}` },
         )
@@ -2362,6 +2416,18 @@ async function buildPackAndRedirect(req: NextRequest, isGet: boolean): Promise<N
   const unitAmount = PACK_PRICES[currency]
   skuContext.currency = currency
   skuContext.unit_amount = unitAmount
+  // KINEO-MOEDA-LOCAL-2026-09-09 — preço de lista em USD; a sessão nasce na
+  // moeda do país (Brasil = reais pela fórmula da casa, terminando em ,90).
+  // Pix aparece sozinho nas sessões em BRL de pagamento único (mode 'payment').
+  const settlement = resolveSettlementCurrency({
+    ipCountry: req.headers.get('x-vercel-ip-country') ?? 'US',
+    acceptLanguage: req.headers.get('accept-language'),
+    forced: req.nextUrl.searchParams.get('currency'),
+  })
+  const chargeCurrency = settlement.currency
+  const chargeAmount = settlementAmountMinor(unitAmount, chargeCurrency)
+  skuContext.settlement_currency = chargeCurrency
+  skuContext.charge_amount = chargeAmount
 
   const supabase = createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -2402,9 +2468,9 @@ async function buildPackAndRedirect(req: NextRequest, isGet: boolean): Promise<N
     line_items: [
       {
         price_data: {
-          currency,
+          currency: chargeCurrency,
           product_data: { name: STARTER_PACK.name, description: STARTER_PACK.description },
-          unit_amount: unitAmount,
+          unit_amount: chargeAmount,
         },
         quantity: 1,
       },
@@ -2428,8 +2494,8 @@ async function buildPackAndRedirect(req: NextRequest, isGet: boolean): Promise<N
   const packIdempotencyKey = oneTimeIdempotencyKey({
     sku: 'starter10',
     user_id: user.id,
-    currency,
-    unit_amount: unitAmount,
+    currency: chargeCurrency,
+    unit_amount: chargeAmount,
     success_url: sessionParams.success_url,
     customer: sessionParams.customer ?? null,
   })
@@ -2519,6 +2585,18 @@ async function buildStarter290AndRedirect(req: NextRequest, isGet: boolean): Pro
   const unitAmount = PACK290_PRICES[currency]
   skuContext.currency = currency
   skuContext.unit_amount = unitAmount
+  // KINEO-MOEDA-LOCAL-2026-09-09 — preço de lista em USD; a sessão nasce na
+  // moeda do país (Brasil = reais pela fórmula da casa, terminando em ,90).
+  // Pix aparece sozinho nas sessões em BRL de pagamento único (mode 'payment').
+  const settlement = resolveSettlementCurrency({
+    ipCountry: req.headers.get('x-vercel-ip-country') ?? 'US',
+    acceptLanguage: req.headers.get('accept-language'),
+    forced: req.nextUrl.searchParams.get('currency'),
+  })
+  const chargeCurrency = settlement.currency
+  const chargeAmount = settlementAmountMinor(unitAmount, chargeCurrency)
+  skuContext.settlement_currency = chargeCurrency
+  skuContext.charge_amount = chargeAmount
 
   const supabase = createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -2553,9 +2631,9 @@ async function buildStarter290AndRedirect(req: NextRequest, isGet: boolean): Pro
     line_items: [
       {
         price_data: {
-          currency,
+          currency: chargeCurrency,
           product_data: { name: STARTER290_PACK.name, description: STARTER290_PACK.description },
-          unit_amount: unitAmount,
+          unit_amount: chargeAmount,
         },
         quantity: 1,
       },
@@ -2576,8 +2654,8 @@ async function buildStarter290AndRedirect(req: NextRequest, isGet: boolean): Pro
   const offerIdempotencyKey = oneTimeIdempotencyKey({
     sku: 'starter290',
     user_id: user.id,
-    currency,
-    unit_amount: unitAmount,
+    currency: chargeCurrency,
+    unit_amount: chargeAmount,
     customer: sessionParams.customer ?? null,
   })
 
@@ -2658,6 +2736,18 @@ async function buildTopupAndRedirect(req: NextRequest, topupId: TopupId, isGet: 
   const unitAmount = topup.prices[currency]
   skuContext.currency = currency
   skuContext.unit_amount = unitAmount
+  // KINEO-MOEDA-LOCAL-2026-09-09 — preço de lista em USD; a sessão nasce na
+  // moeda do país (Brasil = reais pela fórmula da casa, terminando em ,90).
+  // Pix aparece sozinho nas sessões em BRL de pagamento único (mode 'payment').
+  const settlement = resolveSettlementCurrency({
+    ipCountry: req.headers.get('x-vercel-ip-country') ?? 'US',
+    acceptLanguage: req.headers.get('accept-language'),
+    forced: req.nextUrl.searchParams.get('currency'),
+  })
+  const chargeCurrency = settlement.currency
+  const chargeAmount = settlementAmountMinor(unitAmount, chargeCurrency)
+  skuContext.settlement_currency = chargeCurrency
+  skuContext.charge_amount = chargeAmount
 
   const supabase = createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -2698,9 +2788,9 @@ async function buildTopupAndRedirect(req: NextRequest, topupId: TopupId, isGet: 
     line_items: [
       {
         price_data: {
-          currency,
+          currency: chargeCurrency,
           product_data: { name: topup.name, description: topup.description },
-          unit_amount: unitAmount,
+          unit_amount: chargeAmount,
         },
         quantity: 1,
       },
@@ -2721,8 +2811,8 @@ async function buildTopupAndRedirect(req: NextRequest, topupId: TopupId, isGet: 
   const topupIdempotencyKey = oneTimeIdempotencyKey({
     sku: topupId,
     user_id: user.id,
-    currency,
-    unit_amount: unitAmount,
+    currency: chargeCurrency,
+    unit_amount: chargeAmount,
     customer: sessionParams.customer ?? null,
   })
 
@@ -2798,6 +2888,18 @@ async function buildAutopilotPilotAndRedirect(req: NextRequest, isGet: boolean):
   const unitAmount = AUTOPILOT_PILOT_PRICES[currency]
   skuContext.currency = currency
   skuContext.unit_amount = unitAmount
+  // KINEO-MOEDA-LOCAL-2026-09-09 — preço de lista em USD; a sessão nasce na
+  // moeda do país (Brasil = reais pela fórmula da casa, terminando em ,90).
+  // Pix aparece sozinho nas sessões em BRL de pagamento único (mode 'payment').
+  const settlement = resolveSettlementCurrency({
+    ipCountry: req.headers.get('x-vercel-ip-country') ?? 'US',
+    acceptLanguage: req.headers.get('accept-language'),
+    forced: req.nextUrl.searchParams.get('currency'),
+  })
+  const chargeCurrency = settlement.currency
+  const chargeAmount = settlementAmountMinor(unitAmount, chargeCurrency)
+  skuContext.settlement_currency = chargeCurrency
+  skuContext.charge_amount = chargeAmount
 
   const supabase = createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -2870,9 +2972,9 @@ async function buildAutopilotPilotAndRedirect(req: NextRequest, isGet: boolean):
         ? { price: pilotPriceId, quantity: 1 }
         : {
             price_data: {
-              currency,
+              currency: chargeCurrency,
               product_data: { name: AUTOPILOT_PILOT_PACK.name, description: AUTOPILOT_PILOT_PACK.description },
-              unit_amount: unitAmount,
+              unit_amount: chargeAmount,
             },
             quantity: 1,
           },
@@ -2905,8 +3007,8 @@ async function buildAutopilotPilotAndRedirect(req: NextRequest, isGet: boolean):
   const pilotIdempotencyKey = oneTimeIdempotencyKey({
     sku: 'autopilot_pilot',
     user_id: user.id,
-    currency,
-    unit_amount: unitAmount,
+    currency: chargeCurrency,
+    unit_amount: chargeAmount,
     price_id: pilotPriceId,
     resume_version: AUTOPILOT_PILOT_RESUME_VERSION,
     customer: sessionParams.customer ?? null,
@@ -3006,6 +3108,18 @@ async function buildBulkPackAndRedirect(
   const unitAmount = pack.usdMinor
   skuContext.currency = currency
   skuContext.unit_amount = unitAmount
+  // KINEO-MOEDA-LOCAL-2026-09-09 — preço de lista em USD; a sessão nasce na
+  // moeda do país (Brasil = reais pela fórmula da casa, terminando em ,90).
+  // Pix aparece sozinho nas sessões em BRL de pagamento único (mode 'payment').
+  const settlement = resolveSettlementCurrency({
+    ipCountry: req.headers.get('x-vercel-ip-country') ?? 'US',
+    acceptLanguage: req.headers.get('accept-language'),
+    forced: req.nextUrl.searchParams.get('currency'),
+  })
+  const chargeCurrency = settlement.currency
+  const chargeAmount = settlementAmountMinor(unitAmount, chargeCurrency)
+  skuContext.settlement_currency = chargeCurrency
+  skuContext.charge_amount = chargeAmount
 
   const supabase = createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -3033,12 +3147,12 @@ async function buildBulkPackAndRedirect(
     line_items: [
       {
         price_data: {
-          currency,
+          currency: chargeCurrency,
           product_data: {
             name: `Kineo — ${pack.videos} Shorts`,
             description: bulkCheckoutDescription(pack),
           },
-          unit_amount: unitAmount,
+          unit_amount: chargeAmount,
         },
         quantity: 1,
       },
@@ -3071,8 +3185,8 @@ async function buildBulkPackAndRedirect(
   const bulkIdempotencyKey = oneTimeIdempotencyKey({
     sku: bulkId,
     user_id: user.id,
-    currency,
-    unit_amount: unitAmount,
+    currency: chargeCurrency,
+    unit_amount: chargeAmount,
     contract_version: BULK_CHECKOUT_TRUTH_VERSION,
     customer: sessionParams.customer ?? null,
   })
