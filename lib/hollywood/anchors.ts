@@ -25,6 +25,7 @@
 // v2.4 text-to-video path — anchors can never kill a render.
 import { fal } from '@fal-ai/client'
 import { FalQueueSubmitError, submitFalQueueOnce } from '@/lib/falQueue'
+import { aspectSpec } from '@/lib/aspect'
 
 // KINEO-ANCHOR-DEV-2026-08-16 — schnell (tier rapido/barato) era a causa do
 // rosto artificial flagrado pelo fundador; dev custa centavos a mais e muda o
@@ -56,10 +57,11 @@ async function generateAnchorImage(
   // Optional shorter poll window for the latency-bounded per-scene still path
   // (the Hollywood anchors keep the original 35s window by default).
   pollWindowMs: number = 35_000,
+  aspect?: string | null,
 ): Promise<string | null> {
   const input: Record<string, unknown> = {
     prompt,
-    image_size: 'portrait_16_9', // 9:16 vertical
+    image_size: aspectSpec(aspect).fluxImageSize,
     num_images: 1,
     num_inference_steps: 4,
     enable_safety_checker: true,
@@ -199,7 +201,7 @@ export async function generateHollywoodAnchors(args: {
 // model, t2v), so the paid-once contract — which protects the scene's billable
 // CLIP submit in the route — is not at stake for this throwaway image.
 export async function generateCinematicSceneStill(args: {
-  /** This scene's own visual prompt (already faceless-sanitised + era-locked). */
+  /** This scene's own visual prompt, with the approved mode/style/era applied. */
   scenePrompt: string
   /** The run's shared style suffix (route styleSuffix / globalStyle) — glued to
    *  every scene's still so all stills share one color grade. */
@@ -208,6 +210,7 @@ export async function generateCinematicSceneStill(args: {
   seed: number
   /** Bounded poll window so the still phase never blows the route's 60s budget. */
   pollWindowMs?: number
+  aspect?: string | null
 }): Promise<string | null> {
   const key = process.env.FAL_KEY
   if (!key) return null
@@ -218,9 +221,9 @@ export async function generateCinematicSceneStill(args: {
     const style = (args.styleSuffix ?? '').replace(/\s+/g, ' ').replace(/^[,\s]+/, '').trim()
     const prompt =
       `${scene}${style ? `. Consistent look across all scenes: ${style}` : ''}. ` +
-      `vertical 9:16 portrait, photorealistic, cinematic establishing frame, ` +
+      `${aspectSpec(args.aspect).promptFraming}, cinematic frame, ` +
       `sharp focus, no text, no watermark, no logo`
-    return await generateAnchorImage(prompt, args.seed, args.pollWindowMs ?? 12_000)
+    return await generateAnchorImage(prompt, args.seed, args.pollWindowMs ?? 12_000, args.aspect)
   } catch (err) {
     console.warn(
       '[cinematic-anchor] scene still failed (falling back to t2v):',

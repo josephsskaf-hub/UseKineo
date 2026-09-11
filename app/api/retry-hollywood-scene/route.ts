@@ -1,218 +1,141 @@
-// KINEO-HOLLYWOOD-RETRY-2026-08-16 — re-submete UMA cena Hollywood que falhou
-// no fornecedor (fal). Parte do conserto "34s em vez de 60s" flagrado pelo
-// fundador: cenas dropadas em silêncio agora ganham UMA segunda chance antes
-// de o vídeo compor curto. Sem cobrança extra: a falha é do fornecedor, o
-// retry é cortesia da casa (o render já foi pago).
-// Chamado pelo GenerateClient quando o polling termina com cenas 'failed'.
+// One failed scene, under the SAME unique compose mutex as the final render.
+// Provider ambiguity retains ownership: no blind re-POST or automatic refund.
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
-import { fal } from '@fal-ai/client'
-import { looksExhausted, alertFalExhausted } from '@/lib/falAlert'
-import { retargetCinematicRequestId, validCinematicGenerationId } from '@/lib/cinematic/claim'
-
+import { FalQueueSubmitError, submitFalQueueOnce } from '@/lib/falQueue'
+import { loadVerifiedCinematicClaim, retargetCinematicRequestId, validCinematicGenerationId, type CinematicClaim } from '@/lib/cinematic/claim'
+import { acquireSceneRetryMutex, markSceneRetryHold, readVerifiedSceneRetryHold, releaseSceneRetryMutex } from '@/lib/cinematic/sceneRetry'
 import { HOLLYWOOD_MODELS, KLING3_I2V_MODEL, H3_MODELS, H3_I2V_MODEL, H3_RESOLUTION, OMNI_I2V_MODEL } from '@/lib/hollywood/router'
 import { openai } from '@/lib/openai'
 
-// ═══ KINEO-CENA-SUAVIZADA-2026-08-25 (decisão do fundador: "quando a pessoa
-// escreve palavras que não podem, nosso sistema precisa arrumar e entregar um
-// vídeo próximo ao que está escrito") ════════════════════════════════════════
-// O caso medido HOJE (15:34): duas cenas do filme dos robôs levaram 422
-// invalid_request da moderação do fal ("Could not generate a video with the
-// given inputs") e o retry re-enviou o MESMO prompt — mesma recusa, cena morta.
-// Agora a 2ª rodada de retry chega com sanitize:true e ESTA função reescreve o
-// prompt VISUAL numa versão que passa na moderação preservando o máximo:
-// mesmo sujeito, mesmo cenário, mesma câmera/cinematografia. A NARRAÇÃO do
-// cliente nunca passa por aqui — ela é TTS, palavras dele intactas (C1).
-// Falhou a reescrita? Devolve o original: o retry segue valendo como antes.
 async function softenPromptForModeration(prompt: string): Promise<string> {
   try {
     const r = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      temperature: 0.3,
-      max_tokens: 900,
+      model: 'gpt-4o-mini', temperature: 0.3, max_tokens: 900,
       messages: [
-        {
-          role: 'system',
-          content:
-            'A video-generation provider rejected the following SCENE PROMPT for content-policy reasons. Rewrite it so it passes moderation while staying AS CLOSE AS POSSIBLE to the original scene. Rules: keep the same subject, setting, era, mood, camera directions and cinematography lines VERBATIM where they are not the problem. Soften or replace only what typically trips moderation: graphic violence/injury (imply aftermath instead), weapons pointed at people (holstered/lowered), gore/blood (remove), destruction of people (make it property/landscape), real people/brands (make generic), anything sexual (remove). Never add new story elements. Output ONLY the rewritten prompt, no explanation.',
-        },
+        { role: 'system', content: 'A video-generation provider rejected the following SCENE PROMPT for content-policy reasons. Rewrite it so it passes moderation while staying AS CLOSE AS POSSIBLE to the original scene. Rules: keep the same subject, setting, era, mood, camera directions and cinematography lines VERBATIM where they are not the problem. Soften or replace only what typically trips moderation: graphic violence/injury (imply aftermath instead), weapons pointed at people (holstered/lowered), gore/blood (remove), destruction of people (make it property/landscape), real people/brands (make generic), anything sexual (remove). Never add new story elements. Output ONLY the rewritten prompt, no explanation.' },
         { role: 'user', content: prompt },
       ],
     })
     const out = (r.choices[0]?.message?.content ?? '').trim()
-    // Sanidade: reescrita vazia ou desproporcional = fica o original. O teto
-    // de 6000 espelha a validação de prompt da rota (nunca devolver algo que
-    // a própria rota rejeitaria na linha seguinte).
-    if (out.length >= 20 && out.length <= Math.min(prompt.length * 1.5, 6000)) return out
-    return prompt
-  } catch {
-    return prompt
+    return out.length >= 20 && out.length <= Math.min(prompt.length * 1.5, 6000) ? out : prompt
+  } catch { return prompt }
+}
+
+const H3_SET = new Set<string>([...Object.values(H3_MODELS), H3_I2V_MODEL])
+const ALLOWED = new Set<string>([...Object.values(HOLLYWOOD_MODELS), KLING3_I2V_MODEL, ...H3_SET, OMNI_I2V_MODEL])
+type Slot = { index: number; oldRequestId: string | null; model: string }
+
+function retryableSlot(claim: CinematicClaim, slot: Slot): boolean {
+  if (claim.status !== 'settled' || slot.index >= claim.falRequestIds.length ||
+    claim.falRequestIds[slot.index] !== slot.oldRequestId || claim.falModels[slot.index] !== slot.model ||
+    claim.authorizedCompletedUrls[slot.index] || !claim.authorizedCompletedUrls.some(Boolean)) return false
+  // The client aborts all-failed generations. At least one signed completed
+  // clip also excludes this retry from the all-failed refund path.
+  // An ambiguous submit can ALSO leave a null id. Only the signed explicit
+  // absence-of-uncertainty flag permits this slot; legacy absence is unknown.
+  if (slot.oldRequestId === null) return claim.response?.submission_uncertain === false
+  const failed = claim.response?.terminal_failed_jobs
+  return Array.isArray(failed) && failed.some(job => job && typeof job === 'object' &&
+    job.requestId === slot.oldRequestId && job.model === slot.model)
+}
+
+function signedScene(claim: CinematicClaim, slot: Slot) {
+  const response = claim.response
+  const prompt = Array.isArray(response?.scene_prompts) ? response.scene_prompts[slot.index] : null
+  const seconds = Array.isArray(response?.scene_seconds) ? response.scene_seconds[slot.index] : null
+  const anchor = Array.isArray(response?.scene_anchor_urls) ? response.scene_anchor_urls[slot.index] : null
+  if (typeof prompt !== 'string' || prompt.trim().length < 20 || prompt.length > 6000 ||
+    typeof seconds !== 'number' || !Number.isFinite(seconds) || seconds < 3 || seconds > 15) return null
+  const requiresAnchor = [KLING3_I2V_MODEL, H3_I2V_MODEL, OMNI_I2V_MODEL].includes(slot.model)
+  if (requiresAnchor && (typeof anchor !== 'string' || !anchor.startsWith('https://'))) return null
+  return { prompt: prompt.trim(), seconds: Math.round(seconds), anchor: requiresAnchor ? anchor as string : null }
+}
+
+function sceneInput(model: string, scene: NonNullable<ReturnType<typeof signedScene>>, prompt: string): Record<string, unknown> {
+  if (model === OMNI_I2V_MODEL) return { image_url: scene.anchor, prompt, aspect_ratio: '9:16', duration: Math.max(3, Math.min(10, scene.seconds)) }
+  // H3 does not expose a generate_audio switch. Match its actual schema;
+  // compose owns muting support audio when trusted narration is present.
+  if (H3_SET.has(model)) return { ...(scene.anchor ? { image_url: scene.anchor } : { aspect_ratio: '9:16' }),
+    prompt, duration: Math.max(5, Math.min(15, scene.seconds)), resolution: H3_RESOLUTION }
+  if (model === KLING3_I2V_MODEL) return { image_url: scene.anchor, prompt, duration: String(scene.seconds), generate_audio: true }
+  return {
+    prompt: prompt.startsWith('Vertical 9:16') ? prompt : `Vertical 9:16 composition, camera upright, horizon perfectly LEVEL and horizontal across the frame. ${prompt}`,
+    duration: String(scene.seconds), aspect_ratio: '9:16', generate_audio: true, cfg_scale: 0.6,
+    negative_prompt: 'cartoon, anime, illustration, 3d render, blur, distort, low quality, watermark, text, logo, caption, chinese text, foreign text, on-screen text, readable signs, subtitles, captions, phone screen with text, rotated frame, sideways composition, vertical horizon, tilted horizon, soft focus, out of focus',
   }
 }
 
-// Fonte única de modelos: o router do Hollywood.
-const KLING3_I2V = KLING3_I2V_MODEL
-const KLING3_T2V = HOLLYWOOD_MODELS.dialogue
-// KINEO-H3-RETRY-2026-08-20 (auditoria pós-estreia) — esta rota nasceu antes
-// do H3 e não o conhecia: um retry de cena H3 caía no fallback Kling — clipe
-// de OUTRO motor no meio do filme, e pior, com generate_audio:true, ou seja,
-// a VOZ FANTASMA que acabamos de matar voltava pela porta dos fundos do retry.
-const H3_SET = new Set<string>([H3_MODELS.dialogue, H3_MODELS.cinematic, H3_MODELS.support, H3_I2V_MODEL])
-// ⚠️ KINEO-OMNI-RETRY-2026-08-25 (auditoria de motores, mesmo buraco do H3 em
-// 20/08): esta rota não conhecia o Omni. Uma cena Omni que falhasse caía no
-// `anchorUrl ? KLING3_I2V` e voltava como CLIPE DE KLING 3 no meio de um filme
-// vendido como Omni Flash — selo desonesto (a regra nº1 da vitrine), custo
-// nosso maior ($0.168/s vs $0.13/s) e schema errado (duration string em vez de
-// inteiro 3-10). A família do pedido manda, sempre.
-const OMNI_SET = new Set<string>([OMNI_I2V_MODEL])
-const ALLOWED = new Set<string>([KLING3_I2V, HOLLYWOOD_MODELS.dialogue, HOLLYWOOD_MODELS.cinematic, HOLLYWOOD_MODELS.support, ...H3_SET, ...OMNI_SET])
-
 export async function POST(req: NextRequest) {
-  const supabase = createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await createClient().auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const falKey = process.env.FAL_KEY || process.env.FAL_API_KEY
-  if (!falKey) return NextResponse.json({ error: 'Provider not configured' }, { status: 500 })
-  fal.config({ credentials: falKey })
-
-  let body: { prompt?: string; anchorUrl?: string | null; seconds?: number; model?: string; generationId?: string; oldRequestId?: string | null; sceneIndex?: number; sanitize?: boolean }
+  let body: Record<string, unknown>
+  try { body = await req.json(); if (!body || typeof body !== 'object' || Array.isArray(body)) throw Error() }
+  catch { return NextResponse.json({ error: 'Invalid body' }, { status: 400 }) }
+  if (!validCinematicGenerationId(body.generationId) || !Number.isInteger(body.sceneIndex) || (body.sceneIndex as number) < 0 ||
+    typeof body.model !== 'string' || !ALLOWED.has(body.model) || !Object.prototype.hasOwnProperty.call(body, 'oldRequestId') ||
+    !(body.oldRequestId === null || (typeof body.oldRequestId === 'string' && body.oldRequestId.length > 0 && body.oldRequestId.length <= 512))) {
+    return NextResponse.json({ error: 'A signed generation and exact scene slot are required.', retryable: false }, { status: 400 })
+  }
+  const adminUrl = process.env.NEXT_PUBLIC_SUPABASE_URL, secret = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!adminUrl || !secret || !process.env.FAL_KEY) return NextResponse.json({ error: 'Retry unavailable', retryable: false }, { status: 503 })
+  const args = { db: createAdminClient(adminUrl, secret, { auth: { autoRefreshToken: false, persistSession: false } }),
+    secret, userId: user.id, generationId: body.generationId }
+  const slot: Slot = { index: body.sceneIndex as number, oldRequestId: body.oldRequestId as string | null, model: body.model }
+  const support = () => NextResponse.json({ error: 'Scene retry requires confirmation. Do not start another attempt.',
+    generationId: args.generationId, sceneRetryPending: true, supportPending: true, reason: 'scene_retry_unresolved',
+    retryable: false, refunded: false, refundConfirmed: false, claimReleased: false }, { status: 422 })
+  const refused = () => NextResponse.json({ error: 'This scene is not authorized for retry.', retryable: false }, { status: 409 })
+  const existingHold = await readVerifiedSceneRetryHold(args)
+  if (existingHold) {
+    const elapsed = Date.now() - Date.parse(existingHold.startedAt)
+    if (existingHold.phase !== 'submitting' || elapsed < 0 || elapsed >= 120_000) return support()
+    return NextResponse.json({ pending: true, generationId: args.generationId, retryable: false }, { status: 409 })
+  }
+  let loaded
+  try { loaded = await loadVerifiedCinematicClaim(args) }
+  catch { return NextResponse.json({ error: 'Generation verification unavailable', retryable: false }, { status: 503 }) }
+  if (!loaded.ok || !loaded.claim || !retryableSlot(loaded.claim, slot)) return refused()
+  const birth = loaded.claim, scene = signedScene(birth, slot)
+  if (!scene) return refused()
+  const acquired = await acquireSceneRetryMutex({ ...args, quality: birth.quality, cost: birth.creditCost,
+    sceneIndex: slot.index, oldRequestId: slot.oldRequestId, model: slot.model })
+  if (acquired.kind !== 'acquired') {
+    const hold = await readVerifiedSceneRetryHold(args)
+    if (hold && (hold.phase !== 'submitting' || Date.now() - Date.parse(hold.startedAt) >= 120_000)) return support()
+    return NextResponse.json({ error: 'Generation is already being processed or could not be locked.',
+      pending: true, generationId: args.generationId, retryable: false }, { status: acquired.kind === 'collision' ? 409 : 503 })
+  }
+  const mutex = acquired.mutex
+  let falPosted = false, accepted = false, acceptedRequestId: string | null = null
+  const revalidate = async () => {
+    const current = await loadVerifiedCinematicClaim(args)
+    return current.ok && current.claim && retryableSlot(current.claim, slot) &&
+      current.claim.quality === birth.quality && current.claim.creditCost === birth.creditCost &&
+      current.claim.fingerprint === birth.fingerprint && JSON.stringify(signedScene(current.claim, slot)) === JSON.stringify(scene)
+  }
   try {
-    body = await req.json()
-  } catch {
-    return NextResponse.json({ error: 'Invalid body' }, { status: 400 })
-  }
-
-  let prompt = String(body.prompt ?? '').trim()
-  // KINEO-CENA-SUAVIZADA-2026-08-25 — 2ª rodada de retry: o prompt original
-  // já falhou DUAS vezes no fornecedor; suaviza antes de re-submeter.
-  if (body.sanitize === true && prompt.length >= 20) {
-    const softened = await softenPromptForModeration(prompt)
-    if (softened !== prompt) {
-      console.log(`[retry-hollywood-scene] prompt suavizado p/ moderação (${prompt.length}→${softened.length} chars)`)
-      prompt = softened
+    // Close stale pre-lock reads before either paid service. Recheck after the
+    // optional rewrite too: it yields long enough for a birth to change.
+    if (!await revalidate()) return await releaseSceneRetryMutex(args, mutex) ? refused() : support()
+    const prompt = body.sanitize === true ? await softenPromptForModeration(scene.prompt) : scene.prompt
+    if (!await revalidate()) return await releaseSceneRetryMutex(args, mutex) ? refused() : support()
+    const requestId = await submitFalQueueOnce(slot.model, sceneInput(slot.model, scene, prompt), () => { falPosted = true })
+    accepted = true
+    acceptedRequestId = requestId
+    const retargeted = await retargetCinematicRequestId({ ...args, index: slot.index, oldRequestId: slot.oldRequestId, newRequestId: requestId, model: slot.model })
+    if (!retargeted.ok) { await markSceneRetryHold(args, mutex, 'retarget_failed', requestId); return support() }
+    if (!await releaseSceneRetryMutex(args, mutex)) { await markSceneRetryHold(args, mutex, 'release_unconfirmed', requestId); return support() }
+    return NextResponse.json({ requestId, model: slot.model })
+  } catch (error) {
+    // Generic exceptions after the POST, 408, 5xx, transport failures and a
+    // successful response without an id never prove that the paid job is absent.
+    const explicitRejection = !accepted && error instanceof FalQueueSubmitError && !error.ambiguous
+    if (!falPosted || explicitRejection) {
+      if (await releaseSceneRetryMutex(args, mutex)) return NextResponse.json({ error: 'Scene retry was not submitted.', retryable: false }, { status: 502 })
     }
-  }
-  // 4000→6000: o prompt agora é o SUBMETIDO completo (upright+era+mouth+spectacle+sharp), maior que o cru.
-  if (prompt.length < 20 || prompt.length > 6000) {
-    return NextResponse.json({ error: 'Invalid prompt' }, { status: 400 })
-  }
-  const anchorUrl = typeof body.anchorUrl === 'string' && body.anchorUrl.startsWith('https://') ? body.anchorUrl : null
-  const seconds = Math.max(3, Math.min(15, Math.round(Number(body.seconds) || 10)))
-  // KINEO-H3-RETRY-2026-08-20 — a FAMÍLIA do pedido manda: se o modelo que
-  // falhou era H3, o retry fica no H3 (i2v se tem âncora). O `anchorUrl ?
-  // KLING3_I2V` antigo sequestrava até âncora H3 pro Kling.
-  const requestedIsH3 = H3_SET.has(String(body.model))
-  // KINEO-OMNI-RETRY-2026-08-25 — o Omni só existe em i2v no fal; sem âncora
-  // não há retry honesto possível nesta família (cai no Kling do hollywood,
-  // que é o comportamento herdado — mas COM âncora, que é o caso real de todo
-  // clipe Omni, ele volta no próprio motor).
-  const requestedIsOmni = OMNI_SET.has(String(body.model))
-  const model = requestedIsOmni && anchorUrl
-    ? OMNI_I2V_MODEL
-    : requestedIsH3
-    ? (anchorUrl ? H3_I2V_MODEL : (ALLOWED.has(String(body.model)) ? String(body.model) : H3_MODELS.cinematic))
-    : anchorUrl ? KLING3_I2V : (ALLOWED.has(String(body.model)) ? String(body.model) : KLING3_T2V)
-
-  // Input idêntico ao buildFalInput dos branches correspondentes do route
-  // principal. H3: duration INTEIRO 5-15, resolution 768P, generate_audio
-  // SEMPRE false (o H3 ignora e manda áudio mesmo assim — o compose muta —
-  // mas o parâmetro fica pelo dia em que o modelo passar a respeitá-lo).
-  // KINEO-OMNI-RETRY-2026-08-25 — schema OFICIAL do Omni (fal, lido 25/08):
-  // image_url* + prompt* + aspect_ratio ('9:16' EXPLÍCITO — o default do
-  // fornecedor é 16:9 e sem isto o clipe re-tentado voltaria DEITADO no meio
-  // do filme vertical) + duration INTEIRO 3-10 (o teto do motor; string ou
-  // 12s = 422 na cara do cliente). Espelha buildFalInput do route principal.
-  const input: Record<string, unknown> = model === OMNI_I2V_MODEL
-    ? {
-        image_url: anchorUrl,
-        prompt,
-        aspect_ratio: '9:16',
-        duration: Math.max(3, Math.min(10, Math.round(seconds))),
-      }
-    : requestedIsH3
-    ? {
-        ...(anchorUrl ? { image_url: anchorUrl } : { aspect_ratio: '9:16' }),
-        prompt,
-        duration: Math.max(5, Math.min(15, seconds)),
-        resolution: H3_RESOLUTION,
-        generate_audio: false,
-      }
-    : anchorUrl
-    ? { image_url: anchorUrl, prompt, duration: String(seconds), generate_audio: true }
-    : {
-        // KINEO-KLING3-AUDIT-2026-08-20 — dois desvios do route principal:
-        // 1) duration era o snap velho 5|10 que o MOTORMAX matou (recriava
-        //    dead-air/fala cortada exatamente na cena re-tentada);
-        // 2) negative_prompt estava uma geração atrás (sem rotated frame/
-        //    tilted horizon/soft focus). Agora espelha o branch KLING3_MODEL.
-        prompt:
-          // cena t2v sem âncora precisa da ordem de composição vertical como
-          // PREFIXO (KINEO-UPRIGHT-B); o prompt guardado pode vir de um submit
-          // i2v (still travava o quadro) e não tê-la.
-          prompt.startsWith('Vertical 9:16') ? prompt : `Vertical 9:16 composition, camera upright, horizon perfectly LEVEL and horizontal across the frame. ${prompt}`,
-        duration: String(seconds),
-        aspect_ratio: '9:16',
-        generate_audio: true,
-        cfg_scale: 0.6,
-        negative_prompt:
-          'cartoon, anime, illustration, 3d render, blur, distort, low quality, watermark, text, logo, caption, chinese text, foreign text, on-screen text, readable signs, subtitles, captions, phone screen with text, rotated frame, sideways composition, vertical horizon, tilted horizon, soft focus, out of focus',
-      }
-
-  // KINEO-H3-AUDIT2-2026-08-20 — O RETRY MORRIA EM 404 DEPOIS DE FUNCIONAR.
-  // Esta rota devolvia um request id novo, mas o claim assinado continuava
-  // com o id VELHO — e o poller (cinematic-clip-status) exige que os ids do
-  // poll batam 1:1 com o claim. O poll seguinte ao retry respondia 404
-  // "Generation not found" e a geração inteira era dada como morta, mesmo com
-  // as cenas boas prontas. Agora o claim é RETARGETADO junto (mesmo dono,
-  // mesmo modelo no slot, slot sem URL autorizada). Sem generationId/
-  // oldRequestId (client antigo em cache) o comportamento é o legado.
-  const generationId = typeof body.generationId === 'string' && validCinematicGenerationId(body.generationId) ? body.generationId : null
-  const oldRequestId = typeof body.oldRequestId === 'string' && body.oldRequestId.length > 0 ? body.oldRequestId : null
-  const sceneIndex = Number.isInteger(body.sceneIndex) && (body.sceneIndex as number) >= 0 ? (body.sceneIndex as number) : null
-
-  try {
-    const { request_id } = await fal.queue.submit(model, { input })
-    if (!request_id) throw new Error('no request id')
-    if (generationId && sceneIndex !== null) {
-      const adminUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-      const secret = process.env.SUPABASE_SERVICE_ROLE_KEY
-      if (adminUrl && secret) {
-        const admin = createAdminClient(adminUrl, secret, { auth: { autoRefreshToken: false, persistSession: false } })
-        const retargeted = await retargetCinematicRequestId({
-          db: admin,
-          secret,
-          userId: user.id,
-          generationId,
-          index: sceneIndex,
-          oldRequestId,
-          newRequestId: request_id,
-          model,
-        })
-        if (!retargeted.ok) {
-          // Falhou o retarget = o poller vai rejeitar o id novo. Melhor avisar
-          // o client pra NÃO trocar o id (cena segue dropada, filme compõe com
-          // o que tem) do que entregar um id que mata a geração inteira em 404.
-          console.error(`[retry-hollywood-scene] claim retarget failed (${retargeted.error}) — retry discarded`)
-          return NextResponse.json({ error: 'Retry could not be authorized.' }, { status: 409 })
-        }
-        console.log(`[retry-hollywood-scene] claim retargeted idx=${sceneIndex} ${oldRequestId ? oldRequestId.slice(0, 8) : 'null'}→${request_id.slice(0, 8)}`)
-      }
-    }
-    console.log(`[retry-hollywood-scene] user=${user.id.slice(0, 8)} model=${model} resubmitted → ${request_id}`)
-    return NextResponse.json({ requestId: request_id, model })
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e)
-    console.error('[retry-hollywood-scene] submit failed:', msg)
-    // KINEO-FAILFAST-2026-08-17 — na noite do saldo estourado esta rota
-    // devolveu seis 502 "Forbidden" em silencio. Se a cara do erro e saldo,
-    // o fundador e alertado por email na hora (throttle de 30min na lib).
-    if (looksExhausted({ status: (e as { status?: number })?.status, message: msg })) {
-      await alertFalExhausted(`retry-hollywood-scene user=${user.id.slice(0, 8)} model=${model}`)
-    }
-    return NextResponse.json({ error: 'Retry submit failed' }, { status: 502 })
+    await markSceneRetryHold(args, mutex, accepted ? 'retarget_failed' : 'ambiguous', acceptedRequestId)
+    return support()
   }
 }

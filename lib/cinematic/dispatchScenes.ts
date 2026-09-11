@@ -34,6 +34,8 @@ import {
   type Disposition,
   type SceneOutcome,
 } from './sceneDisposition'
+import { deriveStyleAnchor } from './sceneStyle'
+import { buildClassicVisualPrompt, type VisualPromptPolicy } from './visualPromptPolicy'
 
 /** O erro que `lib/falQueue` lança. Duck-typed para o módulo não depender dele. */
 export interface ProviderSubmitError {
@@ -155,12 +157,12 @@ const SENSITIVE_VISUAL_TERMS = /\b(?:blood(?:y)?|gore|corpse|dead body|murder|ki
 
 /**
  * Fallback visual determinístico. Nunca recebe narração nem chama outro modelo:
- * reduz o contexto visual a uma dica curta e neutra, e remove termos que mais
- * frequentemente acionam moderação. O teto também elimina 400/422 por prompt
- * excessivo. É deliberadamente menos específico que o primeiro prompt.
+ * remove detalhes sensíveis, mas conserva sujeito, contexto e o contrato de
+ * estilo/formato. Nunca troca uma história por uma paisagem vazia genérica.
+ * O teto mantém esta segunda tentativa menor que um prompt arbitrário.
  */
-export function buildContextualSafeVisualPrompt(rawVisualContext: string): string {
-  const context = (rawVisualContext || '')
+function safeVisualText(raw: string, words: number, maxChars: number = 768): string {
+  return (raw || '')
     .normalize('NFKC')
     .replace(/https?:\/\/\S+|www\.\S+|\S+@\S+/gi, ' ')
     .replace(/[\u0000-\u001f\u007f]/g, ' ')
@@ -169,15 +171,25 @@ export function buildContextualSafeVisualPrompt(rawVisualContext: string): strin
     .replace(/\s+/g, ' ')
     .trim()
     .split(' ')
-    .slice(0, 24)
+    .slice(0, words)
     .join(' ')
+    .slice(0, maxChars)
+}
 
-  const subject = context || 'the story topic'
-  return (
-    `Family-safe neutral cinematic documentary b-roll representing ${subject}. ` +
-    'Show only an empty environment, ordinary objects, architecture, landscape, light and weather. ' +
-    'No people, faces, identities or readable text. Calm photorealistic establishing shot, smooth camera motion, 9:16 vertical.'
-  )
+export function buildContextualSafeVisualPrompt(rawVisualContext: string, policy?: VisualPromptPolicy): string {
+  const context = safeVisualText(rawVisualContext, 64)
+  if (!context) return '' // No visual context is not permission to invent a scene.
+  const resolved = policy ?? { mode: 'documentary_faceless', style: deriveStyleAnchor('') }
+  return 'Family-safe, non-graphic depiction of the described scene. ' + buildClassicVisualPrompt(context, {
+    ...resolved,
+    character: safeVisualText(resolved.character || '', 24, 160),
+    eraSuffix: safeVisualText(resolved.eraSuffix || '', 64, 512),
+    style: {
+      ...resolved.style,
+      lookPhrase: safeVisualText(resolved.style.lookPhrase, 24, 160),
+      suffix: ', ' + safeVisualText(resolved.style.suffix, 64, 384),
+    },
+  })
 }
 
 /**

@@ -94,6 +94,11 @@ export function decidirFormato(roteiro: string, tagFacelessPresente: boolean): D
   }
 
   // 2. Intencao EXPLICITA de apresentador.
+  // Recognize the explicit speaker request, not "avatarless" or "no avatar".
+  const avatarRequested = /\bavatar\b/u.test(r) && !/\b(?:no|without|sem|sin) (?:an? |um |un )?avatar\b/u.test(r)
+  if (avatarRequested) {
+    return { modo: 'presenter', motivo: 'o roteiro pede avatar explicitamente', apresentadorPedido: true }
+  }
   const pedido = PEDIDOS_DE_APRESENTADOR.find((p) => r.includes(normalizar(p)))
   if (pedido) {
     return {

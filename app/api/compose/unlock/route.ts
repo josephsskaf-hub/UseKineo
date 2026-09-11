@@ -15,7 +15,7 @@ import {
   type WhisperWord,
 } from '@/lib/compose'
 import { salvageScriptNarration, stripScriptMarkers } from '@/lib/scriptParser'
-import { getBackgroundMusicUrl } from '@/lib/pixabayMusic'
+import { selectMusicForScript } from '@/lib/musicScore'
 // KINEO-CREDIT-INTENT-2026-07-11 — record the engine + intended cost for the
 // clean re-render so /api/compose/status bills it from the server-side intent
 // (not the client ?quality param), exactly like /api/compose does.
@@ -548,7 +548,15 @@ export async function POST(req: NextRequest) {
 
     let musicUrl: string | null = null
     try {
-      musicUrl = await getBackgroundMusicUrl(voiceoverUrl)
+      // Same original narration/directives/mood as the first composition.
+      // Never buy another generated track merely to remove a watermark.
+      musicUrl = await selectMusicForScript({
+        script: voiceoverScript,
+        rawScript: `${rawVoiceover}\n${String(body.topic ?? '')}`,
+        vertical,
+        seed: voiceoverScript,
+        allowGeneration: false,
+      })
     } catch {
       musicUrl = null
     }

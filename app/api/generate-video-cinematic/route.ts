@@ -39,8 +39,9 @@ import {
   type AttemptRecord,
 } from '@/lib/cinematic/dispatchScenes'
 import { resolveVerbatimSegments } from '@/lib/cinematic/verbatimBeats'
+import { sceneNarrationsForPlan } from '@/lib/cinematic/speechContract'
 import { aplicarEixoVisual } from '@/lib/hollywood/varietyAxis'
-import { decidirFormato, permiteApresentador, TAG_FACELESS, proibidosPorModo } from '@/lib/cinematic/visualMode'
+import { decidirFormato, permiteApresentador, TAG_FACELESS, proibidosPorModo, type VisualMode } from '@/lib/cinematic/visualMode'
 // KINEO-MULTIFORMATO-2026-09-02 — enquadramento pedido (9:16 · 16:9 · 1:1 · 4:5).
 import { aspectSpec, normalizeAspect } from '@/lib/aspect'
 import { montarContrato, aplicarContrato, severidadeDe } from '@/lib/cinematic/sceneTruth'
@@ -65,6 +66,7 @@ import { SUPPORTED_DURATIONS, largestFittingDuration } from '@/lib/expandPolicy'
 // recusa seguia medindo contra o fantasma. `deveAterrissar` traz a regua para
 // o PISO do seletor. Nao libera video nenhum: so faz o numero dito ser verdade.
 import { deveResgatar, deveAterrissar } from '@/lib/durationGhost'
+import { fitCinematicPlanFloor } from '@/lib/cinematic/timelineContract'
 import { openai } from '@/lib/openai'
 // KINEO-HOLLYWOOD-2026-07-09 — Hollywood Mode 2.0: per-scene engine routing
 // with native audio. KINEO-HOLLYWOOD-22-2026-07-10: Kling3 dialogue+support /
@@ -139,7 +141,8 @@ import {
   historicoDeParedes,
   mensagemComEspiral,
 } from '@/lib/refusalSpiral'
-import { applyStyleAnchor, buildStoryScenePrompt, closingSceneVariation, deriveStoryCharacter, deriveStyleAnchor, textSafetySuffix } from '@/lib/cinematic/sceneStyle'
+import { closingSceneVariation, deriveStoryCharacter, deriveStyleAnchor, textSafetySuffix } from '@/lib/cinematic/sceneStyle'
+import { buildClassicVisualPrompt, classicVisualNegativePrompt, isStylizedLook, visualDescriptionDirection, type VisualPromptPolicy } from '@/lib/cinematic/visualPromptPolicy'
 import { classifyEngineFit } from '@/lib/engineFit'
 import { FalQueueSubmitError, submitFalQueueOnce } from '@/lib/falQueue'
 import {
@@ -443,6 +446,7 @@ function buildFalInput(
   // que já existe. Nossas cenas são GERADAS — o quadro certo é um campo de
   // string no payload. Ver o cabeçalho de lib/aspect.ts.
   aspect?: string | null,
+  visualMode: VisualMode = 'documentary_faceless',
 ): Record<string, unknown> {
   const frame = aspectSpec(aspect)
   // KINEO-HOLLYWOOD-30-2026-07-10 — HOLLYWOOD 3.0 anchored scenes. Kling O3
@@ -517,7 +521,8 @@ function buildFalInput(
       prompt,
       duration: Math.max(5, Math.min(15, Math.round(typeof seconds === 'number' && seconds > 0 ? seconds : 10))),
       resolution: H3_RESOLUTION,
-      generate_audio: false,
+      // H3 native audio has no generate_audio switch in its official schema.
+      // https://fal.ai/models/minimax/h3/image-to-video/api (2026-09-11)
     }
   }
   if (model === H3_MODELS.dialogue) {
@@ -526,7 +531,8 @@ function buildFalInput(
       duration: Math.max(5, Math.min(15, Math.round(typeof seconds === 'number' && seconds > 0 ? seconds : 10))),
       resolution: H3_RESOLUTION,
       aspect_ratio: frame.falAspectRatio, // KINEO-MULTIFORMATO-2026-09-02 — '9:16' sem `aspect`
-      generate_audio: false,
+      // https://fal.ai/models/minimax/h3/text-to-video/api (2026-09-11):
+      // no generate_audio/audio_url input. Verify native dialogue in compose.
     }
   }
   if (model === KLING3_I2V_MODEL) {
@@ -608,7 +614,7 @@ function buildFalInput(
       // bloqueio espurio de moderacao = menos cena dropada. Nossos prompts
       // sao b-roll documental — o filtro default e calibrado pra UGC livre.
       safety_tolerance: '5',
-      negative_prompt: 'human face, person, people, crowd, cartoon, anime, illustration, 3d render, blur, distort, low quality, watermark, text, logo, caption',
+      negative_prompt: classicVisualNegativePrompt(visualMode, stylized === true),
       // KINEO-SEED-2026-07-24 — shared per-generation seed for cross-clip coherence.
       ...(typeof seed === 'number' ? { seed } : {}),
     }
@@ -626,7 +632,7 @@ function buildFalInput(
       image_url: imageUrl,
       prompt,
       duration: '10',
-      negative_prompt: 'people, person, human, face, crowd, logo, caption, blur, distort, low quality, watermark, text',
+      negative_prompt: classicVisualNegativePrompt(visualMode, stylized === true),
       cfg_scale: 0.6,
       ...(typeof seed === 'number' ? { seed } : {}),
     }
@@ -636,7 +642,7 @@ function buildFalInput(
       prompt,
       duration: '10',
       aspect_ratio: frame.falAspectRatio, // KINEO-MULTIFORMATO-2026-09-02 — '9:16' sem `aspect`
-      negative_prompt: 'people, person, human, face, crowd, logo, caption, blur, distort, low quality, watermark, text',
+      negative_prompt: classicVisualNegativePrompt(visualMode, stylized === true),
       cfg_scale: 0.6,
       // KINEO-SEED-2026-07-24 — shared per-generation seed for cross-clip coherence.
       ...(typeof seed === 'number' ? { seed } : {}),
@@ -708,25 +714,12 @@ function buildFalInput(
   }
 }
 
-// #440 — AI Gen "random person" fix. The fal prompt used to be the raw stock
-// SEARCH query (e.g. "luxury penthouse interior", "businessman office"), which
-// is keyword soup for a text-to-video model. Seedance fills the empty scene by
-// inventing an unrelated human — the random "japanese man" that showed up in an
-// Elon Musk video. Seedance v1.5 pro has NO negative_prompt param (verified
-// against the fal schema), so the positive prompt is the only lever. We (1)
-// strip identity-bearing person nouns that make the model spawn a stranger and
-// (2) force faceless, environment-first b-roll — which is exactly this channel's
-// faceless brand. Hands/silhouettes/crowds-from-behind still render fine via the
-// environment framing; what we kill is the random foreground face.
-const PERSON_NOUN_RE =
-  /\b(?:(?:a|an|the)\s+)?(?:(?:random|generic|young|old|asian|white|black|european|american|middle[-\s]?aged)\s+)*(?:businessman|businesswoman|man|woman|men|women|person|persons|people|guy|guys|boy|boys|girl|girls|lady|ladies|gentleman|ceo|entrepreneur|trader|crowd|family|child|children|kid|kids|student|students)s?\b/gi
-
 // KINEO-ERA-LOCK-2026-07-09 (system-level, not GPT-dependent) — real failure:
 // a Battle of Waterloo (1815) video rendered TANKS on the field and a made-up
 // "Napoleon" face (frame-checked by Joseph, sent to a live Upwork client).
 // Prompt-side instructions in analyze-idea help but the model/GPT can ignore
 // words — so this is enforced IN CODE on every prompt before it reaches fal:
-//  (a) NAMED_FIGURE_RE: titled/famous historical names become a silhouetted
+//  (a) visualPromptPolicy: faceless titled/famous figures become a silhouetted
 //      figure seen from behind (AI can never match a real likeness anyway);
 //  (b) eraLockSuffix(): if the script mentions a pre-1940 year or era word,
 //      every scene prompt gets a hard period-accuracy tail (Seedance has no
@@ -735,10 +728,6 @@ const PERSON_NOUN_RE =
 // anulava o [A-Z] da heurística título+Nome e "the captain radioed" virava
 // pessoa real (bloqueou o render do fundador). Título+Nome agora é
 // case-sensitive; só a lista de nomes explícitos mantém o `i`.
-const NAMED_TITLE_RE =
-  /\b(?:[Ee]mperor|[Gg]eneral|[Mm]arshal|[Kk]ing|[Qq]ueen|[Tt]sar|[Cc]zar|[Pp]resident|[Cc]ommander|[Cc]olonel|[Aa]dmiral|[Cc]aptain|[Dd]uke|[Ll]ord|[Ss]ir|[Kk]aiser|[Pp]haraoh)\s+[A-Z][\w'-]+/g
-const NAMED_FIGURE_RE =
-  /\b(?:napoleon(?:\s+bonaparte)?|bonaparte|wellington|hitler|stalin|churchill|caesar|cleopatra|genghis\s+khan|alexander\s+the\s+great|abraham\s+lincoln|george\s+washington|joan\s+of\s+arc)\b/gi
 
 const ERA_YEAR_RE = /\b1[0-8][0-9]{2}\b|\b19[0-3][0-9]\b/ // years 1000–1939
 const ERA_WORD_RE =
@@ -757,36 +746,18 @@ function eraLockSuffix(context: string): string {
   )
 }
 
-function buildFacelessCinematicPrompt(raw: string): string {
-  let s = (raw || '').replace(/\s+/g, ' ').trim()
-  s = s
-    // Named historical figures → silhouette from behind (never a face).
-    .replace(NAMED_FIGURE_RE, 'a distant silhouetted figure seen from behind')
-    .replace(NAMED_TITLE_RE, 'a distant silhouetted figure seen from behind')
-    .replace(PERSON_NOUN_RE, ' ')
-    .replace(/\s{2,}/g, ' ')
-    .replace(/^[\s,.;:–-]+/, '')
-    .trim()
-  if (s.length < 3) s = 'cinematic establishing environment shot'
-  return (
-    `${s}, faceless cinematic b-roll, empty scene focused on the environment, ` +
-    `objects and scenery, no people, no human faces, documentary establishing shot, ` +
-    `photorealistic, ultra-detailed, dramatic cinematic lighting, smooth camera motion, ` +
-    `9:16 vertical, subject framed in the upper two-thirds with the lower third clear for captions, no text, no watermark, no logo`
-  )
-}
-
 // #441 — AI Gen quality. The verbatim path (default flow: auto-structured
 // script with [Pexels:] markers) had NO cinematic description — both the
 // description and the query were the raw stock-search keywords, which produce
 // flat, incoherent AI video (and invite the random-person bug). This turns each
 // scene's NARRATION into one real cinematic SHOT description for Seedance, so
 // the model gets a shot to direct instead of keyword soup. One gpt-4o-mini call
-// for all scenes; on any failure the caller falls back to the query (no
-// regression). Faceless by instruction AND re-enforced by buildFacelessCinematicPrompt.
+// for all scenes; on failure the caller uses the existing visual hint.
+// The same approved mode/style governs descriptions, stills and video prompts.
 async function generateCinematicDescriptions(
   scenes: { voiceover: string; stockSearchQuery?: string; description: string }[],
   topic: string,
+  visualPolicy: VisualPromptPolicy,
 ): Promise<string[]> {
   const list = scenes
     .map((s, i) => {
@@ -796,16 +767,17 @@ async function generateCinematicDescriptions(
     })
     .join('\n\n')
 
-  const system = `You are a cinematographer for a FACELESS documentary-style YouTube Shorts channel. For each scene's narration line, write ONE vivid cinematic SHOT description (12-24 words) to feed a text-to-video AI.
+  const system = `You are a cinematographer. For each scene's narration line, write ONE vivid cinematic SHOT description (12-24 words) to feed a text-to-video AI.
 
 RULES:
 - Anchor the shot on the LITERAL subject of that scene's narration (the exact place, object, event, number, or concept being said).
-- FACELESS only: show environment, landscapes, architecture, money, screens, objects, hands, or silhouettes/crowds seen from behind or far away. NEVER an identifiable person or face in the foreground. Never invent a random human to fill the scene.
+- Approved visual direction: ${visualDescriptionDirection(visualPolicy)} Never invent an unrelated person to fill the scene.
+- In scene 1, immediately show the literal subject/event of the opening narration, not a generic establishing landscape. Do not add events or claims absent from the scene.
 - Include a camera move (aerial, slow push-in, tracking, pan, or macro), plus lighting and mood.
 - VARY the camera move and framing across scenes — do not repeat the same shot type; rotate aerial / tracking / slow push-in / macro / wide / low-angle.
-- Keep ONE consistent look across all scenes: same dark cinematic mood, color palette and lighting, as if from the same film.
+- Keep the approved look, mood, color palette and lighting across all scenes, as if from the same film.
 - Frame the subject in the upper two-thirds; keep the lower third uncluttered for on-screen captions.
-- Vertical 9:16, cinematic, photorealistic. No on-screen text, captions, or logos.
+- ${aspectSpec(visualPolicy.aspect).promptFraming}. No on-screen text, captions, or logos.
 - Output ONLY valid JSON: { "descriptions": ["...", "..."] } with EXACTLY ${scenes.length} items, in scene order.`
 
   const userMsg = `Topic: ${topic.slice(0, 200)}\n\nScenes:\n${list}`
@@ -1225,6 +1197,10 @@ async function manipularPost(req: NextRequest) {
     debitConfirmed: boolean
   } | null = null
   let providerSubmissionMayExist = false
+  // Unlike providerSubmissionMayExist (also true for a known accepted ID),
+  // this records an unbound/unknown paid scene. A null slot alone is NOT
+  // evidence of rejection. Publish the distinction inside the signed response.
+  let cinematicSubmissionUncertain = false
   // ═══ sprint-assinaturas #14 (04/09) — O CLIQUE QUE MORRE COM A ABA ═══════
   // Medido em produção (14d, externos): 407 cliques em gerar, 25 deles (21
   // pessoas, 19 SEM UM FILME NA VIDA) não deixaram UM ÚNICO registro no
@@ -1268,7 +1244,7 @@ async function manipularPost(req: NextRequest) {
     // user's own clips.
     // KINEO-VERBATIM-SEM-MARCADOR-2026-08-24: `script_mode` ('verbatim'|'ai')
     // e `dry_run` (validador de $0, só contas do fundador) entram no contrato.
-    let body: { generationId?: string; prompt?: string; duration?: number; engine?: string; language?: string; vertical?: string; characterId?: string; script_mode?: string; dry_run?: boolean; brollScenes?: Array<{ sceneNumber?: number; brollPrompt?: string; shotType?: string; negativePrompt?: string; userFootageUrl?: string }>; globalStyle?: { mood?: string; lighting?: string; cameraStyle?: string } }
+    let body: { generationId?: string; prompt?: string; duration?: number; allow_shorter_duration?: boolean; engine?: string; language?: string; vertical?: string; characterId?: string; script_mode?: string; dry_run?: boolean; brollScenes?: Array<{ sceneNumber?: number; brollPrompt?: string; shotType?: string; negativePrompt?: string; userFootageUrl?: string }>; globalStyle?: { mood?: string; lighting?: string; cameraStyle?: string } }
     try {
       body = await req.json()
     } catch {
@@ -1440,7 +1416,10 @@ async function manipularPost(req: NextRequest) {
     // trava de hoje recusa com o 422 educativo, exatamente como antes.
     // Regra e constantes em lib/narrationFit.ts (`autofitDown`).
     const requestedDuration = duration
-    const degrau = verbatim && parsedScript.narration
+    // 11/09 founder decision supersedes the automatic descent described above.
+    // A normal request keeps its selected duration. Existing guided expansion /
+    // explicit shorter-duration buttons remain available before any debit.
+    const degrau = body.allow_shorter_duration === true && verbatim && parsedScript.narration
       ? autofitDown(parsedScript.narration, requestedDuration, {
           // O planner hollywood trava o alvo em `Math.max(30, …)` — descer
           // abaixo de 30 ali seria puxado de volta e a fala voltaria a faltar.
@@ -2519,6 +2498,7 @@ async function manipularPost(req: NextRequest) {
       requestIds: CinematicRequestId[],
       models: string[],
     ): Promise<NextResponse> => {
+      response = { ...response, submission_uncertain: cinematicSubmissionUncertain }
       cinematicSubmissionCache.set(cacheKey, {
         fingerprint: claimFingerprint,
         creditCost: cost,
@@ -2812,6 +2792,19 @@ async function manipularPost(req: NextRequest) {
     // #441 — aiPrompt = the cinematic SHOT description fed to Seedance (prefer
     // it over the raw stock query). Set from generateScenes prose (non-verbatim)
     // or generated from the narration below (verbatim).
+    // Resolve the user's visual intent BEFORE either existing planner call.
+    const styleAnchor = deriveStyleAnchor(
+      `${prompt} ${planScenes.map((s) => s.brollPrompt || '').join(' ')}`,
+      styleSuffix,
+    )
+    const storyMode = isStylizedLook(styleAnchor) || formatoVisual.modo === 'character_story' || classifyEngineFit(prompt).verdict === 'stock_cannot_tell'
+    const storyCharacter = storyMode ? deriveStoryCharacter(prompt) : null
+    const classicVisualMode: VisualMode = tagFacelessPresente ? 'documentary_faceless'
+      : formatoVisual.modo === 'presenter' ? 'presenter'
+        : storyMode ? 'character_story' : 'documentary_faceless'
+    const classicVisualPolicy: VisualPromptPolicy = {
+      mode: classicVisualMode, style: styleAnchor, character: storyCharacter, aspect: aspectRequested,
+    }
     let scenes: { description: string; voiceover: string; caption: string; stockSearchQuery?: string; aiPrompt?: string }[]
 
     if (verbatim) {
@@ -2831,7 +2824,7 @@ async function manipularPost(req: NextRequest) {
         stockSearchQuery: seg.pexelsQuery,
       }))
     } else {
-      const generated = await generateScenes(prompt.slice(0, 1200), clipCount)
+      const generated = await generateScenes(prompt.slice(0, 1200), clipCount, hollywoodPath ? undefined : classicVisualPolicy)
       scenes = generated.map((s) => ({
         description: s.description,
         voiceover: s.voiceover ?? '',
@@ -2902,7 +2895,7 @@ async function manipularPost(req: NextRequest) {
             }))
             via = 'unbracket'
           } else {
-            const generated = await generateScenes(prompt.slice(0, 1200), clipCount)
+            const generated = await generateScenes(prompt.slice(0, 1200), clipCount, hollywoodPath ? undefined : classicVisualPolicy)
           recuperadas = generated.map((s) => ({
             description: s.description,
             voiceover: s.voiceover ?? '',
@@ -2952,7 +2945,7 @@ async function manipularPost(req: NextRequest) {
     }
 
     // #441 — verbatim path has no cinematic description (description === stock
-    // query). Generate a real faceless shot description per scene from the
+    // query). Generate a shot description in the approved format from the
     // narration so Seedance gets a shot to direct, not keyword soup. Best-effort:
     // on failure each scene falls back to its stock query in submitAllScenes.
     // KINEO-HOLLYWOOD-2026-07-09 — skipped for hollywood: planHollywoodScenes
@@ -2960,7 +2953,7 @@ async function manipularPost(req: NextRequest) {
     // description pass would be wasted work.
     if (verbatim && planScenes.length === 0 && !hollywoodPath) {
       try {
-        const aiPrompts = await generateCinematicDescriptions(scenes, prompt)
+        const aiPrompts = await generateCinematicDescriptions(scenes, prompt, classicVisualPolicy)
         scenes = scenes.map((s, i) => ({
           ...s,
           aiPrompt: aiPrompts[i] && aiPrompts[i].length > 3 ? aiPrompts[i] : s.aiPrompt,
@@ -3008,21 +3001,7 @@ async function manipularPost(req: NextRequest) {
       `${prompt} ${scenes.map((s) => `${s.voiceover ?? ''} ${s.aiPrompt ?? ''} ${s.description ?? ''}`).join(' ')}`,
     )
     if (eraSuffix) console.log('[cinematic] era-lock active for this render')
-    // KINEO-SCENE-STYLE-2026-09-09 — o LOOK do filme é decidido UMA vez (roteiro
-    // inteiro), nunca por cena. Foi assim que "cantiga 3D" virou trem de
-    // brinquedo na cena 1 e savana fotorreal nas outras.
-    const styleAnchor = deriveStyleAnchor(
-      `${prompt} ${scenes.map((s) => `${s.voiceover ?? ''} ${s.aiPrompt ?? ''} ${s.description ?? ''}`).join(' ')}`,
-      styleSuffix,
-    )
     if (styleAnchor.look !== 'photoreal') console.log(`[cinematic] style-lock: ${styleAnchor.look}`)
-    // KINEO-STORY-MODE-2026-09-09 — medido no render 2141336f (Benny): o prompt do
-    // documentário faceless ("empty scene, no people") numa HISTÓRIA rendeu homem,
-    // cachorro e criança no lugar do coelho. História = look não fotorreal, OU o
-    // formato character_story, OU os mesmos sinais de ficção que o Kineo 1 usa
-    // para recusar. Personagem principal extraído UMA vez e repetido em toda cena.
-    const storyMode = styleAnchor.look !== 'photoreal' || formatoVisual.modo === 'character_story' || classifyEngineFit(prompt).verdict === 'stock_cannot_tell'
-    const storyCharacter = storyMode ? deriveStoryCharacter(prompt) : null
     if (storyMode) console.log(`[cinematic] story-mode: look=${styleAnchor.look} character=${storyCharacter ?? '-'}`)
 
     // ── KINEO-HOLLYWOOD-2026-07-09 — HOLLYWOOD MODE 2.0 ─────────────────────
@@ -3120,6 +3099,9 @@ async function manipularPost(req: NextRequest) {
               const falKey = process.env.FAL_KEY
               if (falKey) fal.config({ credentials: falKey })
               const freshIds: (string | null)[] = []
+              // Legacy salvage can reuse/retry slots without a durable terminal
+              // proof. Never let its missing IDs authorize a quality refund.
+              cinematicSubmissionUncertain = true
               let reused = 0
               let resubmitted = 0
               for (let i = 0; i < storedIds.length; i++) {
@@ -3617,68 +3599,10 @@ async function manipularPost(req: NextRequest) {
         }
       }
 
-      // C2 — DURAÇÃO É CONTRATO: nunca submeter plano < 95% do alvo. Se ainda
-      // faltar depois de replans+esticador+C1, cenas de apoio atmosféricas
-      // (ambiente da própria história, sem gente) completam a conta — b-roll
-      // custa centavos e rabo com trilha é melhor que vídeo curto que vale
-      // ZERO no TikTok Rewards.
-      {
-        type PlanScene = (typeof plan.scenes)[number]
-        const tally = () => plan.scenes.reduce((a, sc) => a + (sc.seconds || 0), 0)
-        let t = tally()
-        const floor95 = Math.round(hollywoodTarget * 0.95)
-        // ═══ KINEO-C2-SEM-MUDA-2026-08-24 — A ORDEM INVERTE, E O MUDO GANHA TETO ══
-        //
-        // O CASO (render do fundador, Cyclops, 24/08 21:25): o plano chegou
-        // aqui com 42s falados para um alvo de 60s, e ESTE bloco completou os
-        // 24s que faltavam com cenas atmosféricas SEM VOZ — "rabo com trilha é
-        // melhor que vídeo curto", dizia a justificativa. O fundador assistiu
-        // e deu o veredito que derruba a premissa: 24 segundos de filme mudo É
-        // o "apagão" que ele vem reprovando há semanas. Um suspiro atmosférico
-        // de 4-6s respira; 24s é o filme morrendo em câmera lenta.
-        //
-        // A ORDEM NOVA: (1º) ESTICAR cenas que TÊM fala — a imagem segue
-        // rodando sob narração, custo zero de silêncio; (2º) só depois, no
-        // máximo UM suspiro mudo de até 6s. Se ainda faltar, o filme sai mais
-        // curto — e o log grita, porque déficit grande aqui significa que o C1
-        // deixou texto para trás (a classe de bug que o verbatim-sem-marcador
-        // acabou de consertar), não que faltou atmosfera.
-        if (t < floor95) {
-          for (const sc of plan.scenes) {
-            if (t >= floor95) break
-            if (sc.type !== 'dialogue' && (sc.seconds || 0) < 12) {
-              const d = Math.min(12 - (sc.seconds || 0), floor95 - t)
-              sc.seconds = (sc.seconds || 0) + d
-              t += d
-            }
-          }
-        }
-        const MUTE_BREATHER_MAX_S = 6
-        if (t < floor95) {
-          const breather = Math.max(4, Math.min(MUTE_BREATHER_MAX_S, floor95 - t))
-          plan.scenes.push({
-            index: plan.scenes.length + 1,
-            type: 'support',
-            beat: 'PAYOFF',
-            seconds: breather,
-            prompt: `slow atmospheric closing shot of ${plan.environmentSheet}, no people, golden light fading, level horizon, stable slow dolly, ${plan.styleSheet}`,
-            voiceover: undefined,
-            needsNarration: false,
-            caption: '',
-          } as PlanScene)
-          t = tally()
-        }
-        if (t < floor95) {
-          // Chegou aqui = mesmo esticando tudo E com o suspiro, falta filme.
-          // Isso NUNCA deveria acontecer com a trava de narração (95% do alvo
-          // medido ANTES do débito) + verbatim íntegro. É alarme, não ajuste.
-          console.error(
-            `[contrato] C2 DÉFICIT MUDO: plano fecha em ${t}s de ${hollywoodTarget}s alvo mesmo após esticar+suspiro. ` +
-            `O C1 provavelmente deixou texto para trás — investigar ANTES do próximo render pago.`,
-          )
-        }
-        console.log(`[contrato] C2: plano final ${t}s de ${hollywoodTarget}s alvo (piso ${floor95}s, ${plan.scenes.length} cenas, mudo máx ${MUTE_BREATHER_MAX_S}s)`)
-      }
+      // 11/09: selected duration is a floor, not a 95% approximation.
+      // Allocate real footage only where existing narration sustains it.
+      // Do not append a mute PAYOFF, stretch past the model's cap, or pad a loop.
+      plan.scenes = fitCinematicPlanFloor(plan.scenes, duration, SCENE_CAP)
 
       // ═══ KINEO-DRY-RUN-2026-08-24 — O VALIDADOR DE $0 ══════════════════════
       //
@@ -3821,7 +3745,7 @@ async function manipularPost(req: NextRequest) {
             mute_seconds: muteSeconds,
             preflight_problems: preflightProblems,
             dispatch_preview: dispatchPreview,
-            verdict: muteSeconds <= 6 && totalSeconds >= Math.round(hollywoodTarget * 0.95) && preflightProblems.length === 0
+            verdict: muteSeconds <= 6 && totalSeconds >= duration && preflightProblems.length === 0
               ? 'PASS — todos os segundos têm história (mudo ≤6s), a duração fecha e o payload respeita o schema do fornecedor'
               : preflightProblems.length > 0
                 ? `FAIL — preflight: ${preflightProblems.join(' · ')}`
@@ -3837,6 +3761,19 @@ async function manipularPost(req: NextRequest) {
       // still, ~$0.10, synchronous — flux/schnell is fast). FAIL-OPEN: null →
       // every scene falls back to the v2.4 t2v engines below; the render
       // never dies because of anchors.
+      // All final cap/split passes have run. Never spend on video scenes for
+      // a plan already known to be shorter than the user's selected duration.
+      const finalPlannedSeconds = plan.scenes.reduce((sum, scene) => sum + scene.seconds, 0)
+      if (finalPlannedSeconds < duration) {
+        const refunded = await confirmCinematicRefund()
+        const released = refunded && await releaseBirthClaim('plan_duration_below_request')
+        return NextResponse.json({
+          error: 'The scene plan did not cover the duration you selected. No video scenes were submitted. Review or expand the script before generating again.',
+          qualityCheckFailed: true, reason: 'plan_duration_below_request',
+          generationId, refunded, refundConfirmed: refunded, claimReleased: released, retryable: false,
+          plannedSeconds: finalPlannedSeconds, requestedSeconds: duration,
+        }, { status: 422 })
+      }
       let anchors: HollywoodAnchors | null = null
       try {
         // Anchor generation is itself paid Fal work. From this point onward an
@@ -3910,28 +3847,10 @@ async function manipularPost(req: NextRequest) {
       // string compose receives back from the client, and BOTH routes resolve
       // the narrator persona from it (lib/hollywood/hostVoice) — that's what
       // guarantees the host lines and the b-roll narration share ONE voice.
-      // KINEO-H3-FIX-2026-08-19 — no Kling 3, cena de diálogo fala SOZINHA
-      // (áudio nativo) e por isso narração=null. O H3 entra MUDO por decisão
-      // (Contrato C1: a voz é a do usuário) — então no H3 TODA cena leva TTS,
-      // inclusive as de diálogo, usando a própria fala como narração. Sem isto
-      // o filme sairia com buracos de silêncio exatamente nas cenas-chave.
-      // #281 — KINEO-H3-DIALOGO-2026-08-23 (fundador: "quero que ela fale em
-      // alguns momentos, e em outros a narracao assuma"). O flatten de 19/08
-      // (dialogo virava cena narrada) MORREU: o proprio builder mediu que o H3
-      // devolve fala nativa alta e clara (pico -0.2dB) — o motor fala, so
-      // faltava dirigir. Agora o H3 usa o MESMO desenho do Kling 3: cena de
-      // dialogo fala sozinha (audio nativo, narracao null), o resto e narrado.
-      // C1 preservado: a dialogueLine vem do roteiro redistribuido em codigo.
-      // KINEO-OMNI-2026-08-25 — V1 do Omni roda TUDO narrado (inclusive a
-      // cena de dialogo, usando a propria fala como narracao): ate o render
-      // de validacao provar que o audio nativo dele fala alto e claro, filme
-      // 100% narrado > aposta em fala que nao veio (a mesma escada do H3:
-      // mudo primeiro, dialogo nativo religado depois via #281).
-      const hNarrations = wantsH3
-        ? plan.scenes.map((s) => (s.type === 'dialogue' ? null : (s.voiceover ?? null)))
-        : wantsOmni
-          ? plan.scenes.map((s) => (s.type === 'dialogue' ? (s.dialogueLine ?? s.voiceover ?? null) : (s.voiceover ?? null)))
-          : plan.scenes.map((s) => (s.needsNarration && s.voiceover ? s.voiceover : null))
+      // One speech source across Kling/H3/Omni: native dialogue or pinned
+      // narration. Compose verifies dialogue; it never covers missing speech
+      // with an external narrator. Provider audio capabilities are not a guarantee.
+      const hNarrations = sceneNarrationsForPlan(plan.scenes)
       const hVoiceoverScript =
         hNarrations.filter(Boolean).join(' ') ||
         plan.scenes.map((s) => s.dialogueLine ?? '').filter(Boolean).join(' ') ||
@@ -4041,6 +3960,7 @@ async function manipularPost(req: NextRequest) {
             )
           } catch (e) {
             if (e instanceof AvatarSubmitError && e.ambiguous) {
+              cinematicSubmissionUncertain = true
               // The presenter POST may have been accepted. Falling back to O3
               // would create a second paid job for the same scene. If earlier
               // scenes have durable IDs, publish those instead of stranding
@@ -4199,6 +4119,7 @@ async function manipularPost(req: NextRequest) {
               e instanceof FalQueueSubmitError && e.ambiguous &&
               hRequestIds.some((requestId) => requestId !== null)
             ) {
+              cinematicSubmissionUncertain = true
               providerSubmissionMayExist = true
               console.warn(
                 `[cinematic] hollywood scene ${hs.index} submit became ambiguous; preserving earlier accepted scenes`,
@@ -4411,6 +4332,39 @@ async function manipularPost(req: NextRequest) {
       acoes: string[]; motivo: string
     }> = []
 
+    // Prepare ONCE, before any paid still: the still and clip must depict the
+    // same corrected scene, including the opening/closing and approved look.
+    {
+      const visuals = scenes.map((s) => (s.aiPrompt || s.stockSearchQuery || s.description || ''))
+      const closer = closingSceneVariation(visuals)
+      if (closer) scenes[closer.index].aiPrompt = visuals[closer.index] + closer.suffix
+    }
+    const classicScenePrompts = scenes.map((scene, sceneIndex) => {
+      const visualPrompt = scene.aiPrompt || scene.stockSearchQuery || scene.description
+      const cinematicBruto = buildClassicVisualPrompt(visualPrompt, {
+        ...classicVisualPolicy, eraSuffix, opening: sceneIndex === 0,
+      })
+      try {
+        const contrato = montarContrato({
+          indice: sceneIndex + 1,
+          falaFinal: scene.voiceover ?? '',
+          promptFinal: cinematicBruto,
+          elementosProibidos: proibidosPorModo(classicVisualMode),
+        })
+        const r = aplicarContrato(contrato)
+        if (severidadeDe(r.antes.veredicto) !== 'ok') {
+          contratoRelatoClassico.push({
+            cena: sceneIndex + 1, antes: r.antes.veredicto, depois: r.depois.veredicto,
+            cobertura: r.antes.cobertura, acoes: r.acoes, motivo: r.antes.motivo,
+          })
+        }
+        return r.promptCorrigido
+      } catch (e) {
+        console.warn('[contrato-cena/classico] falhou, seguindo sem corrigir:', (e as Error)?.message)
+        return cinematicBruto
+      }
+    })
+
     // ── KINEO-CINEMATIC-ANCHOR-2026-07-24 — cross-scene consistency (CLASSIC) ─
     // Flag-gated (OFF by default → this whole block is skipped and the path
     // below is BYTE-IDENTICAL pure t2v). When ON, this applies ONLY to
@@ -4449,16 +4403,13 @@ async function manipularPost(req: NextRequest) {
         for (let i = start; i < Math.min(start + STILL_POOL, anchorCount); i++) batch.push(i)
         const results = await Promise.all(
           batch.map(async (idx) => {
-            const scene = scenes[idx]
-            const visual = scene.aiPrompt || scene.stockSearchQuery || scene.description
-            // Same faceless subject + era lock as the video prompt below; the
-            // shared style suffix + seed are what tie the stills together.
-            const scenePrompt = buildFacelessCinematicPrompt(visual) + eraSuffix
+            const scenePrompt = classicScenePrompts[idx]
             const url = await generateCinematicSceneStill({
               scenePrompt,
-              styleSuffix,
+              styleSuffix: '', // Already applied once in classicScenePrompts.
               seed: generationSeed,
               pollWindowMs: STILL_POLL_WINDOW_MS,
+              aspect: aspectRequested,
             })
             return { idx, url }
           }),
@@ -4494,18 +4445,6 @@ async function manipularPost(req: NextRequest) {
       | { kind: 'id'; id: string | null; model: string }
       | { kind: 'ambiguous'; error: FalQueueSubmitError }
       | { kind: 'fatal'; error: unknown }
-    // KINEO-SCENE-STYLE-2026-09-09 — fecho ≠ abertura. Visto no Seedance (avião
-    // de 1953 no primeiro e no último quadro) e no Kling 3. Determinístico:
-    // mesma entrada, mesma variação, para o retry ficar estável.
-    {
-      const visuals = scenes.map((s) => (s.aiPrompt || s.stockSearchQuery || s.description || ''))
-      const closer = closingSceneVariation(visuals)
-      if (closer) {
-        const alvo = scenes[closer.index] as { aiPrompt?: string; stockSearchQuery?: string; description: string }
-        alvo.aiPrompt = visuals[closer.index] + closer.suffix
-        console.log(`[cinematic] closing scene ${closer.index} repeated the opening — variation applied`)
-      }
-    }
     const submitScene = async (
       // `voiceover` entrou no tipo para o Contrato de Cena poder comparar a
       // FALA com a IMAGEM. Ele ja existia no objeto (scenes[] o carrega desde
@@ -4521,60 +4460,7 @@ async function manipularPost(req: NextRequest) {
       // flag ON). Undefined → pure t2v (byte-identical to before).
       imageUrl?: string,
     ): Promise<SceneSubmitResult> => {
-      // #440/#441 — feed the engine the cinematic SHOT description (aiPrompt),
-      // falling back to the stock query only if description generation failed.
-      // buildFacelessCinematicPrompt then strips any person nouns + forces
-      // environment-first b-roll, on-brand for this faceless channel.
-      const visualPrompt = scene.aiPrompt || scene.stockSearchQuery || scene.description
-      // KINEO-SCENE-STYLE-2026-09-09 — look travado + trava de consistência (o
-      // styleSuffix explícito do cliente já vive dentro da âncora) + texto ilegível
-      // de propósito quando a cena pede objeto com escrita.
-      const cinematicBruto = (storyMode
-        ? buildStoryScenePrompt(visualPrompt, styleAnchor, storyCharacter)
-        : applyStyleAnchor(buildFacelessCinematicPrompt(visualPrompt), styleAnchor)) + eraSuffix + textSafetySuffix(visualPrompt)
-      // ═══ CONTRATO CENA VERDADEIRA NO CAMINHO CLASSICO — 2026-08-27 ═══════
-      //
-      // MEDIDO EM PRODUCAO: `hollywoodPath = wantsHollywood || wantsH3 ||
-      // wantsOmni` (linha ~1142). O gate ligado hoje de manha roda DENTRO
-      // daquele laco, entao cobria 3 dos 8 motores. VEO, KLING 2.5, SEEDANCE e
-      // KINEO 1 passam por AQUI — e nas ultimas 2 semanas foram 349 das 350
-      // entregas. Ou seja: quase todo o produto rodava sem ninguem perguntar
-      // "a imagem mostra o que a frase diz?".
-      //
-      // Prova de que estava descoberto: o render 705368ff (Veo, 9/9 cenas
-      // aceitas) gravou `visual_mode` e `contrato_cena` NULOS no claim.
-      //
-      // MESMO COMPORTAMENTO DO OUTRO CAMINHO, de proposito: corrige o prompt,
-      // NUNCA bloqueia o render. O guard de narracao curta (#349/#350) ja
-      // ensinou o preco de um portao rigido — barrou cliente real em looping
-      // ate virar incidente. Falso negativo custa uma cena; falso positivo
-      // custa a pessoa inteira.
-      let cinematic = cinematicBruto
-      try {
-        const contrato = montarContrato({
-          indice: sceneIndex + 1,
-          falaFinal: scene.voiceover ?? '',
-          promptFinal: cinematicBruto,
-          // KINEO-STORY-MODE-2026-09-09 — em história, o contrato não pode proibir rosto/pessoa.
-          elementosProibidos: proibidosPorModo(storyMode ? 'character_story' : formatoVisual.modo),
-        })
-        const r = aplicarContrato(contrato)
-        if (severidadeDe(r.antes.veredicto) !== 'ok') {
-          console.log(`[contrato-cena/classico] cena ${sceneIndex + 1} ${r.antes.veredicto} (cobertura=${r.antes.cobertura}) — ${r.antes.motivo}${r.acoes.length ? ` | acoes: ${r.acoes.join('; ')}` : ''}`)
-          contratoRelatoClassico.push({
-            cena: sceneIndex + 1,
-            antes: r.antes.veredicto,
-            depois: r.depois.veredicto,
-            cobertura: r.antes.cobertura,
-            acoes: r.acoes,
-            motivo: r.antes.motivo,
-          })
-        }
-        cinematic = r.promptCorrigido
-      } catch (e) {
-        // Gate quebrado nao pode derrubar render pago: segue com o bruto.
-        console.warn('[contrato-cena/classico] falhou, seguindo sem corrigir:', (e as Error)?.message)
-      }
+      const cinematic = classicScenePrompts[sceneIndex]
       // ═══ KINEO-353A.1 — O RETRY CEGO MORREU AQUI ══════════════════════
       // Antes: `if (id === null) { sleep(800); submitToFal(...) }` — re-POST
       // de QUALQUER rejeicao explicita, inclusive 401/403/404/422. E o
@@ -4586,7 +4472,8 @@ async function manipularPost(req: NextRequest) {
         ? [model === KLING_MODEL ? KLING_I2V_MODEL : model, model]
         : [model]
       const safeVisualPrompt = buildContextualSafeVisualPrompt(
-        sanitizeRealPeople(scene.stockSearchQuery || scene.aiPrompt || scene.description),
+        sanitizeRealPeople(scene.aiPrompt || scene.stockSearchQuery || scene.description),
+        { ...classicVisualPolicy, character: sanitizeRealPeople(storyCharacter || ''), eraSuffix, opening: sceneIndex === 0 },
       )
       const despachoCena = await dispatchOneSceneWithSafeVisualRetry({
         sceneIndex,
@@ -4597,7 +4484,7 @@ async function manipularPost(req: NextRequest) {
           m,
           // KINEO-MULTIFORMATO-2026-09-02 — o caminho clássico (Seedance 1.5,
           // Kling 2.5, Veo) gera cada cena já no quadro pedido.
-          buildFalInput(m, promptForAttempt, hd, false, undefined, m === modelos[0] ? imageUrl : undefined, generationSeed, undefined, aspectRequested),
+          buildFalInput(m, promptForAttempt, hd, false, undefined, m === modelos[0] ? imageUrl : undefined, generationSeed, isStylizedLook(styleAnchor), aspectRequested, classicVisualMode),
           onPost,
         ),
       })
@@ -4662,6 +4549,7 @@ async function manipularPost(req: NextRequest) {
               ids[idx] = res.id
               models[idx] = res.model
             } else if (res.kind === 'ambiguous') {
+              cinematicSubmissionUncertain = true
               ambiguousErr = res.error
             }
           }
@@ -4691,6 +4579,7 @@ async function manipularPost(req: NextRequest) {
         const res = await submitScene(scenes[i], model, i, sceneStills[i] ?? undefined)
         if (res.kind === 'fatal') throw res.error
         if (res.kind === 'ambiguous') {
+          cinematicSubmissionUncertain = true
           if (ids.some((requestId) => requestId !== null)) {
             providerSubmissionMayExist = true
             console.warn('[cinematic] scene submit became ambiguous; preserving earlier accepted scenes')

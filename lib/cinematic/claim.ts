@@ -36,6 +36,7 @@ export type CinematicClaimStatus = 'pending' | 'done' | 'settled' | 'released'
 
 export type CinematicCompletedUrl = string | null
 export type CinematicRequestId = string | null
+export type CinematicTerminalFailure = { requestId: string; model: string }
 
 export interface CinematicClaimAuthority {
   claimId: string
@@ -245,6 +246,19 @@ function sameArray<T>(left: T[], right: T[]): boolean {
   return left.length === right.length && left.every((value, index) => value === right[index])
 }
 
+function terminalFailures(value: unknown): CinematicTerminalFailure[] | null {
+  if (value === undefined) return [] // Older signed claims have no failure proof.
+  if (!Array.isArray(value)) return null
+  const result: CinematicTerminalFailure[] = []
+  for (const item of value) {
+    if (!item || typeof item !== 'object' || Array.isArray(item) ||
+      !validRequestId(item.requestId) || !item.requestId || !validModel(item.model) ||
+      result.some(job => job.requestId === item.requestId && job.model === item.model)) return null
+    result.push({ requestId: item.requestId, model: item.model })
+  }
+  return result
+}
+
 function validResponseBinding(claim: CinematicClaim): boolean {
   if (!claim.response) return claim.responseHash === ''
   if (cinematicValueHash(claim.response) !== claim.responseHash) return false
@@ -262,7 +276,25 @@ function validResponseBinding(claim: CinematicClaim): boolean {
     if (!validModel(responseModel)) return false
     if (!claim.falModels.every((model) => model === responseModel)) return false
   }
+  const failed = terminalFailures(claim.response.terminal_failed_jobs)
+  if (!failed || failed.some(job => claim.falRequestIds.filter((id, i) =>
+    id === job.requestId && claim.falModels[i] === job.model).length !== 1)) return false
   return true
+}
+
+/** Call only with a verified signed claim. A missing URL is NOT failed: every
+ * accepted job needs its completed URL or durable, ID+model-bound failure proof.
+ * Null IDs are conclusive only when the signed submission explicitly excludes
+ * ambiguity. Legacy nulls may represent an accepted job whose receipt was lost. */
+export function cinematicJobsAreTerminal(claim: CinematicClaim): boolean {
+  if ((claim.status !== 'done' && claim.status !== 'settled') ||
+    !claim.falRequestIds.length || !claim.falRequestIds.some(Boolean) || !validResponseBinding(claim) ||
+    claim.falRequestIds.length !== claim.falModels.length ||
+    claim.falRequestIds.length !== claim.authorizedCompletedUrls.length) return false
+  const failed = terminalFailures(claim.response?.terminal_failed_jobs) ?? []
+  return claim.falRequestIds.every((id, i) => (id === null && claim.response?.submission_uncertain === false) ||
+    (Boolean(claim.authorizedCompletedUrls[i]) && validCompletedUrl(claim.authorizedCompletedUrls[i])) ||
+    failed.some(job => job.requestId === id && job.model === claim.falModels[i]))
 }
 
 /**
@@ -803,6 +835,12 @@ export async function retargetCinematicRequestId(args: {
     }
     respIds[index] = args.newRequestId
     response = { ...response, fal_request_ids: respIds }
+    // A replacement starts unresolved. Never transfer the old job's terminal
+    // evidence to its slot (or keep stale proofs that could later be reused).
+    if (response.terminal_failed_jobs !== undefined) {
+      response.terminal_failed_jobs = (terminalFailures(response.terminal_failed_jobs) ?? [])
+        .filter(job => job.requestId !== args.oldRequestId)
+    }
     responseHash = cinematicValueHash(response)
   }
   const next = withSignature(args.secret, { ...current, falRequestIds, response, responseHash })
@@ -844,6 +882,39 @@ export async function authorizeCinematicCompletedUrls(args: {
   }
   if (sameArray(urls, current.authorizedCompletedUrls)) return { ok: true, claim: current }
   const next = withSignature(args.secret, { ...current, authorizedCompletedUrls: urls })
+  return updateClaim({ db: args.db, secret: args.secret, previous: current, next })
+}
+
+/** Persist only failures already proven by the server's provider poller. This
+ * helper is NOT a client assertion endpoint and never polls, retries or refunds.
+ * The response hash/HMAC and existing authority CAS cover the exact job pairs. */
+export async function authorizeCinematicTerminalFailures(args: {
+  db: SupabaseClient
+  secret: string
+  userId: string
+  generationId: string
+  failed: CinematicTerminalFailure[]
+}): Promise<CinematicClaimMutation> {
+  const loaded = await loadVerifiedCinematicClaim(args)
+  if (!loaded.ok || !loaded.claim) return { ok: false, error: loaded.ok ? 'claim not found' : loaded.error }
+  const current = loaded.claim
+  if ((current.status !== 'done' && current.status !== 'settled') || !current.response) {
+    return { ok: false, error: `cannot authorize failures for ${current.status} claim`, conflict: true }
+  }
+  const incoming = terminalFailures(args.failed)
+  if (!incoming || incoming.some(job => current.falRequestIds.filter((id, i) =>
+    id === job.requestId && current.falModels[i] === job.model).length !== 1)) {
+    return { ok: false, error: 'terminal job is not uniquely authorized', conflict: true }
+  }
+  const failed = terminalFailures(current.response.terminal_failed_jobs) ?? []
+  for (const job of incoming) {
+    if (!failed.some(existing => existing.requestId === job.requestId && existing.model === job.model)) failed.push(job)
+  }
+  if (failed.length === (terminalFailures(current.response.terminal_failed_jobs) ?? []).length) {
+    return { ok: true, claim: current }
+  }
+  const response = { ...current.response, terminal_failed_jobs: failed }
+  const next = withSignature(args.secret, { ...current, response, responseHash: cinematicValueHash(response) })
   return updateClaim({ db: args.db, secret: args.secret, previous: current, next })
 }
 

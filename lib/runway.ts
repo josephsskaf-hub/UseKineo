@@ -1,5 +1,7 @@
 import { openai } from '@/lib/openai'
 import { detectVisualCategory } from '@/lib/visualAssetCategories'
+import { aspectSpec } from '@/lib/aspect'
+import { classicVisualNegativePrompt, isStylizedLook, visualDescriptionDirection, type VisualPromptPolicy } from '@/lib/cinematic/visualPromptPolicy'
 
 const RUNWAY_BASE = 'https://api.dev.runwayml.com/v1'
 const RUNWAY_VERSION = '2024-11-06'
@@ -244,20 +246,26 @@ export function shortCaptionFromVoiceover(text: string, maxWords = 8): string {
   return sliced.join(' ').replace(/[.!?,;:]+$/, '')
 }
 
-export async function generateScenes(prompt: string, count = 4): Promise<Scene[]> {
+export async function generateScenes(prompt: string, count = 4, visualPolicy?: VisualPromptPolicy): Promise<Scene[]> {
   const safeCount = Math.max(1, Math.min(9, Math.floor(count)))
+  const defaultNegative = visualPolicy
+    ? classicVisualNegativePrompt(visualPolicy.mode, isStylizedLook(visualPolicy.style))
+    : 'cartoon, animation, clipart, toy'
+  const defaultVisualIntent = visualPolicy ? visualDescriptionDirection(visualPolicy) : 'Documentary style, cinematic and grounded'
 
   // Push #211 — Creative Director Engine. gpt-4o with 9-field scene schema.
   // Push #212 — Added visualCategory field for verified whitelist selection.
-  const systemPrompt = `You are a Creative Director for premium faceless YouTube Shorts. You plan scenes that feel like mini-documentaries — stunning real footage, no filler visuals.
+  const systemPrompt = `${visualPolicy
+    ? 'You are a Creative Director for the approved visual format. Preserve its characters, setting and art style without unrelated filler visuals.'
+    : 'You are a Creative Director for premium faceless YouTube Shorts. You plan scenes that feel like mini-documentaries — stunning real footage, no filler visuals.'}
 
 Your job is to return a JSON array of scene objects. Each scene object must include EXACTLY these 9 fields:
-1. "description" — cinematic shot description (~15-25 words), visual + specific + subject + setting + lighting + camera motion + mood. 9:16 vertical framing.
+1. "description" — cinematic shot description (~15-25 words), visual + specific + subject + setting + lighting + camera motion + mood. ${visualPolicy ? aspectSpec(visualPolicy.aspect).promptFraming : '9:16 vertical framing'}.
 2. "searchKeywords" — 2-4 concrete nouns for Pexels stock search (legacy compat). NEVER abstract words.
 3. "stockSearchQuery" — optimized Pexels search phrase (5-10 words). PREPEND a shot type to every query: "aerial drone", "close-up macro", "wide establishing", "medium shot", "low angle", or "POV". Vary across scenes. Example: "aerial drone Falcon 9 rocket launch night", "close-up macro gold coins pile", "wide establishing Great Pyramid Giza desert". The shot type narrows the search to the right camera angle AND signals visual variety to the viewer.
 4. "negativeVisualPrompt" — comma-separated list of visual elements NOT to show for this topic. Be specific.
 5. "scenePurpose" — exactly one of: HOOK | ESCALATION | DISCOVERY | EXPLANATION | PAYOFF | FINAL_LINE
-6. "visualIntent" — documentary aesthetic directive in 1 sentence. How should the shot FEEL?
+6. "visualIntent" — ${visualPolicy ? 'approved visual style' : 'documentary aesthetic'} directive in 1 sentence. How should the shot FEEL?
 7. "visualCategory" — pick the SINGLE best matching category from this list:
    rocket_launch, booster_landing, mission_control, earth_orbit, spacecraft,
    pyramids, ancient_egypt, deep_ocean, underwater_science, underground_city,
@@ -399,12 +407,29 @@ Example PERFECT scene (pyramids topic):
   "caption": "Tallest building for 3,800 years"
 }`
 
+  // Cinematic caller only. The stock/real-footage examples above deliberately
+  // remain byte-identical for Fast and legacy callers without visualPolicy.
+  // Reusing them for anime/story supplied mutually exclusive visual commands.
+  const cinematicUserPrompt = visualPolicy ? `Plan ${safeCount} scenes for this idea:
+
+"${prompt}"
+
+APPROVED VISUAL CONTRACT:
+${visualDescriptionDirection(visualPolicy)}
+- Every description must depict its own narration's literal subject, action, place and era. Preserve the requested characters and context, not a generic stock landscape.
+- Keep the same approved art style and character design throughout. Do not add visual prohibitions against the requested people or animation.
+- negativeVisualPrompt excludes only elements incompatible with this approved scene. No blanket people/face prohibition for character or presenter scenes, and no cartoon/anime prohibition for an animated request.
+- Scene 1 is the HOOK: show its subject/event clearly in the first frame, without an unrelated establishing shot or slow fade. Do not invent a new event just to make an opening dramatic.
+- Build each stockSearchQuery from that scene's concrete visual nouns, not from a broader topic.
+- Follow HOOK, ESCALATION, DISCOVERY, EXPLANATION, PAYOFF and FINAL_LINE as appropriate. Vary camera distance and motion across scenes, while preserving subject continuity.
+- Return ONLY a valid JSON array of exactly ${safeCount} objects with all 9 fields from the system schema.` : ''
+
   const completion = await openai.chat.completions.create(
     {
       model: 'gpt-4o',
       messages: [
         { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
+        { role: 'user', content: visualPolicy ? cinematicUserPrompt : userPrompt },
       ],
       temperature: 0.4,
       max_tokens: 1800,
@@ -439,9 +464,9 @@ Example PERFECT scene (pyramids topic):
           description,
           searchKeywords: prompt.slice(0, 40),
           stockSearchQuery: prompt.slice(0, 60),
-          negativeVisualPrompt: 'cartoon, animation, clipart, toy',
+          negativeVisualPrompt: defaultNegative,
           scenePurpose: 'EXPLANATION',
-          visualIntent: 'Documentary style, cinematic and grounded',
+          visualIntent: defaultVisualIntent,
           visualCategory: autoCategory,
           voiceover,
           caption: shortCaptionFromVoiceover(voiceover),
@@ -472,9 +497,9 @@ Example PERFECT scene (pyramids topic):
             description,
             searchKeywords: searchKeywords || prompt.slice(0, 40),
             stockSearchQuery: sqFinal,
-            negativeVisualPrompt: negativeVisualPrompt || 'cartoon, animation, clipart, toy',
+            negativeVisualPrompt: visualPolicy ? defaultNegative : negativeVisualPrompt || defaultNegative,
             scenePurpose: scenePurpose || 'EXPLANATION',
-            visualIntent: visualIntent || 'Documentary style, cinematic and grounded',
+            visualIntent: visualIntent || defaultVisualIntent,
             visualCategory,
             voiceover,
             caption,
@@ -487,16 +512,18 @@ Example PERFECT scene (pyramids topic):
     .slice(0, safeCount)
 
   while (scenes.length < safeCount) {
-    const description = `Cinematic vertical 9:16 shot inspired by: ${prompt}`
+    const description = visualPolicy
+      ? `${aspectSpec(visualPolicy.aspect).promptFraming}, ${visualPolicy.style.lookPhrase}, shot of the described subject: ${prompt}`
+      : `Cinematic vertical 9:16 shot inspired by: ${prompt}`
     const voiceover = `Here is something most people do not know about ${prompt}.`
     const autoCategory = detectVisualCategory(prompt, voiceover) ?? 'general_documentary'
     scenes.push({
       description,
       searchKeywords: prompt.slice(0, 40),
       stockSearchQuery: prompt.slice(0, 60),
-      negativeVisualPrompt: 'cartoon, animation, clipart, toy',
+      negativeVisualPrompt: defaultNegative,
       scenePurpose: 'EXPLANATION',
-      visualIntent: 'Documentary style, cinematic and grounded',
+      visualIntent: defaultVisualIntent,
       visualCategory: autoCategory,
       voiceover,
       caption: shortCaptionFromVoiceover(voiceover),

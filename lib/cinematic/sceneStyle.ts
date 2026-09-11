@@ -57,8 +57,12 @@ const LOOK_RE: Array<[RegExp, StyleLook]> = [
 /** Decide UMA vez por filme, a partir do roteiro inteiro (nunca por cena). */
 export function deriveStyleAnchor(scriptAndVisuals: string, explicitStyleSuffix?: string): StyleAnchor {
   const t = (scriptAndVisuals || '').slice(0, 8000)
+  const explicit = explicitStyleSuffix || ''
   let look: StyleLook = 'photoreal'
-  for (const [re, l] of LOOK_RE) if (re.test(t)) { look = l; break }
+  // The client's explicit style must decide the look, not merely be appended
+  // after a contradictory photoreal lock chosen from a planner's description.
+  const matched = LOOK_RE.find(([re]) => re.test(explicit)) ?? LOOK_RE.find(([re]) => re.test(t))
+  if (matched) look = matched[1]
   const base = LOOKS[look]
   // Estilo explícito do cliente (globalStyle) manda: entra depois da trava.
   const extra = explicitStyleSuffix && explicitStyleSuffix.trim() ? explicitStyleSuffix.trim().replace(/^,\s*/, '') : ''

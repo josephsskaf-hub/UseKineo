@@ -7,6 +7,8 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { fal } from '@fal-ai/client'
 import {
   authorizeCinematicCompletedUrls,
+  authorizeCinematicTerminalFailures,
+  cinematicJobsAreTerminal,
   loadVerifiedCinematicClaim,
   releaseCinematicClaim,
   validCinematicGenerationId,
@@ -72,17 +74,52 @@ type ClipStatus = {
   url: string | null
 }
 
-async function checkFalClip(requestId: string, model: string): Promise<ClipStatus> {
+// Closed diagnostic fields only: provider bodies can contain prompts, signed
+// URLs and credentials. A message signal is evidence, NOT refund authority.
+function pollMessageSignal(error: unknown): string {
+  const body = (error as { body?: { detail?: unknown; message?: unknown; error?: unknown } } | null)?.body
+  const detail = [body?.detail, body?.message, body?.error]
+    .filter((value): value is string => typeof value === 'string')
+    .map(value => value.slice(0, 2000)).join(' ')
+  if (/\breason:\s*exhausted balance\b/i.test(detail)) return 'explicit_exhausted_balance'
+  if (/\buser is locked\b/i.test(detail)) return 'mentions_account_locked'
+  if (/\bconcurrency\b/i.test(detail)) return 'mentions_concurrency'
+  if (/\brequest\b.{0,80}\bnot found\b/i.test(detail)) return 'mentions_request_not_found'
+  return 'unclassified'
+}
+
+async function checkFalClip(requestId: string, model: string, generationId: string, sceneIndex: number): Promise<ClipStatus> {
   const falKey = process.env.FAL_KEY
   if (!falKey) return { id: requestId, status: 'processing', url: null }
 
+  let pollStage: 'status' | 'result' = 'status'
+  let queueIdMatches = false
+  let hasQueueError = false
   try {
     fal.config({ credentials: falKey })
     const st = await fal.queue.status(model, { requestId })
     const status = (st as { status?: string }).status
+    const finished = st as unknown as { request_id?: unknown; error?: unknown }
+    queueIdMatches = finished.request_id === requestId
     if (status === 'IN_QUEUE') return { id: requestId, status: 'pending', url: null }
     if (status === 'IN_PROGRESS') return { id: requestId, status: 'processing', url: null }
     if (status === 'COMPLETED') {
+      // Fal documents COMPLETED + error as a finished, FAILED job, not a
+      // pending result. SDK 1.10.1 preserves these JSON fields but omits them
+      // from its TypeScript type. Match the job ID before trusting that signal.
+      // https://fal.ai/docs/documentation/model-apis/inference/queue#check-status
+      hasQueueError = typeof finished.error === 'string' && finished.error.trim().length > 0
+      if (queueIdMatches && hasQueueError) {
+        console.warn('[cinematic-job-terminal]', {
+          generation_id: generationId,
+          scene_index: sceneIndex,
+          reason: 'completed_with_job_error',
+          message_signal: pollMessageSignal({ body: { error: finished.error } }),
+        })
+        return { id: requestId, status: 'failed', url: null }
+      }
+      if (!queueIdMatches) return { id: requestId, status: 'processing', url: null }
+      pollStage = 'result'
       const result = await fal.queue.result(model, { requestId })
       const data = ((result as { data?: unknown }).data ?? result) as {
         video?: { url?: string }
@@ -91,27 +128,32 @@ async function checkFalClip(requestId: string, model: string): Promise<ClipStatu
       const videoUrl = data?.video?.url ?? data?.output?.video?.url ?? null
       return videoUrl
         ? { id: requestId, status: 'done', url: videoUrl }
-        : { id: requestId, status: 'failed', url: null }
+        : { id: requestId, status: 'processing', url: null }
     }
-    if (status === 'FAILED') return { id: requestId, status: 'failed', url: null }
+    if (status === 'FAILED' && queueIdMatches) return { id: requestId, status: 'failed', url: null }
     return { id: requestId, status: 'processing', url: null }
   } catch (error) {
-    // KINEO-CINEMATIC-RELIABILITY-2026-08-05 — incident 05/08 03:08Z/03:17Z:
-    // when a fal job fails at the APPLICATION level (content filter, internal
-    // model error), fal's queue result/status call throws 422 "Unprocessable
-    // Entity" — permanently. This catch mapped EVERY throw to 'processing', so
-    // one failed clip kept the whole render stuck at "6/7 done" forever (never
-    // allDone → never composed, never refunded). Both the 03:08 seedance and
-    // 03:17 veo renders died exactly this way (422 on every poll for 6+ min in
-    // the Vercel logs). A 422/400 from fal is TERMINAL, not transient: mark the
-    // clip failed so the render closes — compose proceeds with the surviving
-    // clips (client keeps clips with status 'done'), or the all-failed branch
-    // below refunds automatically.
+    // RENDER-POLL-11: the old warning hid the exact failure of one accepted
+    // clip, making a lookup error indistinguishable from real progress.
+    // No provider request ID, message, body, URL or arbitrary Error.name logs.
+    const rawStatus = (error as { status?: unknown } | null)?.status
+    const diagnostic = {
+      generation_id: generationId,
+      scene_index: sceneIndex,
+      stage: pollStage,
+      queue_id_matches: queueIdMatches,
+      has_queue_error: hasQueueError,
+      provider_http_status: typeof rawStatus === 'number' && Number.isInteger(rawStatus) && rawStatus >= 100 && rawStatus <= 599 ? rawStatus : null,
+      message_signal: pollMessageSignal(error),
+    }
+    console.warn('[cinematic-poll-diagnostic]', diagnostic)
+    // An application-result rejection can close ONLY an identity-confirmed
+    // COMPLETED job. Status lookup 400/422, generic exception wording, and
+    // account/auth 403 are not evidence that the paid job has finished.
     const status = typeof (error as { status?: unknown })?.status === 'number'
       ? (error as { status: number }).status
       : null
-    const msg = error instanceof Error ? error.message : String(error)
-    if (status === 422 || status === 400 || /unprocessable entity/i.test(msg)) {
+    if (pollStage === 'result' && queueIdMatches && (status === 422 || status === 400)) {
       // Never log provider bodies: they can echo customer prompts, signed URLs
       // and paid-job identifiers. Closed fields are enough to operate.
       console.error(
@@ -192,12 +234,19 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Clip model could not be verified.' }, { status: 503 })
     }
 
+    const knownFailures = Array.isArray(claim.response?.terminal_failed_jobs) ? claim.response.terminal_failed_jobs : []
     const clips = await Promise.all(
       claim.falRequestIds.map((id, index) => {
         if (!id) return Promise.resolve({ id: null, status: 'failed' as const, url: null })
-        return checkFalClip(id, claim.falModels[index])
+        const knownUrl = claim.authorizedCompletedUrls[index]
+        if (knownUrl) return Promise.resolve({ id, status: 'done' as const, url: knownUrl })
+        if (knownFailures.some(job => job.requestId === id && job.model === claim.falModels[index])) {
+          return Promise.resolve({ id, status: 'failed' as const, url: null })
+        }
+        return checkFalClip(id, claim.falModels[index], generationId, index)
       }),
     )
+    let durableClaim = claim
     const completed = clips
       .filter((clip): clip is ClipStatus & { id: string; url: string } => clip.status === 'done' && !!clip.id && !!clip.url)
       .map((clip) => ({
@@ -217,9 +266,21 @@ export async function GET(req: NextRequest) {
         console.error('[cinematic-status] completed URL binding failed:', authorized.error)
         return NextResponse.json({ error: 'Completed clips could not be verified.' }, { status: 503 })
       }
+      durableClaim = authorized.claim
     }
 
-    const allDone = clips.every((clip) => clip.status === 'done' || clip.status === 'failed')
+    const failed = clips.filter((clip): clip is ClipStatus & { id: string } => clip.status === 'failed' && !!clip.id)
+      .map(clip => ({ requestId: clip.id, model: claim.falModels[claim.falRequestIds.findIndex(id => id === clip.id)] }))
+    if (failed.length > 0) {
+      const authorized = await authorizeCinematicTerminalFailures({ db: admin, secret, userId: user.id, generationId, failed })
+      if (!authorized.ok) {
+        console.error('[cinematic-status] terminal job binding failed')
+        return NextResponse.json({ error: 'Finished clips could not be verified.' }, { status: 503 })
+      }
+      durableClaim = authorized.claim
+    }
+    const allDone = sameArray(requestedIds, durableClaim.falRequestIds) && cinematicJobsAreTerminal(durableClaim) &&
+      clips.every((clip) => clip.status === 'done' || clip.status === 'failed')
     const failedCount = clips.filter((clip) => clip.status === 'failed').length
     if (allDone && failedCount === clips.length) {
       const billingReference = claim.resolutionReference

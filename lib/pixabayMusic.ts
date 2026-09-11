@@ -289,15 +289,10 @@ async function fetchTrackFromOpenverse(seed?: string): Promise<string | null> {
     if (hits.length === 0) return null
 
     const picked = hits[pickIndex(hits.length, seed, 'track')]
-    console.log(
-      `[music] Openverse selected: "${picked.title}" (${Math.round((picked.duration ?? 0) / 1000)}s, query "${query}")`,
-    )
+    console.log('[music] Openverse selected for legacy undirected caller')
     return picked.url ?? null
-  } catch (err) {
-    console.warn(
-      '[music] Openverse fetch failed — falling back to curated tracks:',
-      err instanceof Error ? err.message : String(err),
-    )
+  } catch {
+    console.warn('[music] Openverse fetch failed — falling back to curated tracks')
     return null
   }
 }
@@ -316,7 +311,9 @@ export async function getBackgroundMusicUrl(seed?: string, mood?: MusicMood): Pr
   // client. Random CC0 search = quality roulette; the 8 curated tracks below
   // are hand-vetted dark/cinematic and always on-brand. Re-enable the live
   // search only via env flag after adding a genre-consistency check.
-  if (process.env.MUSIC_OPENVERSE_ENABLED === '1') {
+  // Search metadata cannot certify emotion. Never let the optional legacy
+  // search override the explicit mood supplied by the composition contract.
+  if (!mood && process.env.MUSIC_OPENVERSE_ENABLED === '1') {
     const fromApi = await fetchTrackFromOpenverse(seed)
     if (fromApi) return fromApi
   }
@@ -325,7 +322,7 @@ export async function getBackgroundMusicUrl(seed?: string, mood?: MusicMood): Pr
   // (KINEO-MUSIC-MOOD-2026-08-17) + deterministic rotation dentro do balde.
   const pool = MOOD_TRACKS[mood ?? 'suspense'] ?? FALLBACK_TRACKS
   const fallback = pool[pickIndex(pool.length, seed, 'fallback')]
-  console.log(`[music] faixa curada (clima=${mood ?? 'suspense'}, ${pool.length} disponíveis): ${fallback}`)
+  console.log(`[music] curated mood=${mood ?? 'suspense'} candidates=${pool.length}`)
   return fallback
 
   // LAYER 3 (no music) is the caller's try/catch in /api/compose — it logs

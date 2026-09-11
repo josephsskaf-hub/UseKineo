@@ -20,16 +20,22 @@ chk('voz clonada NÃO migrou (voice_id de clone é atado ao modelo criador)', le
 console.log('\nB) MÚSICA — Lyria 3 Pro no slot de trilha existente')
 const ly = ler('lib/lyriaMusic.ts')
 chk('endpoint correto fal-ai/lyria3/pro', ly.includes("'https://queue.fal.run/fal-ai/lyria3/pro'"))
-chk('input só com prompt (schema: sem duração, sem seed; negative deprecado)', ly.includes('JSON.stringify({ prompt: lyriaPromptFor(mood) })'))
+// 11/09: direction is an internal argument, not a new provider field. The new
+// executable music-direction suite inspects the actual fetch JSON as well.
+chk('input só com prompt (schema: sem duração, sem seed; negative deprecado)', ly.includes('JSON.stringify({ prompt: lyriaPromptFor(mood, direction) })'))
 chk('lê a saída no campo certo (audio.url)', ly.includes('out.audio?.url'))
 chk('instrumental por contrato (narração é o trilho mestre — C1)', ly.includes('Instrumental only'))
 chk('prazo próprio: música nunca vira gargalo do compose', ly.includes('LYRIA_BUDGET_MS = 45_000'))
-chk('nunca lança: qualquer falha devolve null', ly.includes('return null') && ly.includes("catch (e) {"))
+// Error text was intentionally removed: provider messages may echo raw prompts.
+chk('nunca lança: qualquer falha devolve null', ly.includes('return null') && ly.includes('catch {'))
 
 const co = ler('app/api/compose/route.ts')
-chk('compose importa o Lyria', co.includes("from '@/lib/lyriaMusic'"))
-chk('caminho clássico: Lyria primeiro, Pixabay como rede', co.includes('musicUrl = await getLyriaMusicUrl(') && co.includes('if (!musicUrl) musicUrl = await getBackgroundMusicUrl('))
-chk('caminho hollywood: Lyria primeiro, Pixabay como rede', co.includes('hollywoodMusicUrl = await getLyriaMusicUrl(') && /if \(!hollywoodMusicUrl\) \{\s*\n\s*hollywoodMusicUrl = await getBackgroundMusicUrl\(/.test(co))
+// Same shared execution path now also serves unlock. Silence is the deliberate
+// fallback for grief/joy until catalog tracks have valence-specific audition.
+const score = ler('lib/musicScore.ts')
+chk('compose importa o seletor compartilhado ligado ao Lyria', co.includes("from '@/lib/musicScore'") && score.includes("from '@/lib/lyriaMusic'"))
+chk('caminho clássico: seletor com Lyria e rede compatível', co.includes('musicUrl = await selectMusicForScript(') && score.includes('await getLyriaMusicUrl(') && score.includes('direction.curatedFallback'))
+chk('caminho hollywood: usa o mesmo seletor', co.includes('hollywoodMusicUrl = await selectMusicForScript('))
 chk('o slot/mix do Creatomate não mudou (musicUrl continua o mesmo nome)', co.includes('musicUrl: hollywoodMusicUrl'))
 
 console.log('\nC) IMAGEM — Nano Banana Pro (verificação: já estava no ar)')

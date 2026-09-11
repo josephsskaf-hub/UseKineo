@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { randomUUID } from 'node:crypto'
 import { createClient } from '@/lib/supabase/server'
 import { retryOwnReadOnSkew } from '@/lib/jwtSkewFallback'
 import { createClient as createAdminClient, type SupabaseClient } from '@supabase/supabase-js'
@@ -46,9 +47,10 @@ import {
 import { ttsModelForTier } from '@/lib/narration/elevenlabs'
 import { salvageScriptNarration, stripScriptMarkers } from '@/lib/scriptParser'
 import { fetchUserPlan } from '@/lib/plan'
-import { getBackgroundMusicUrl, resolveMusicMood } from '@/lib/pixabayMusic'
-import { getLyriaMusicUrl } from '@/lib/lyriaMusic'
-import { selectPersonaForScript, detectNiche } from '@/lib/narration/niche-mapping'
+import { cinematicSceneSeconds, trimNarratedSupport, assertCinematicTimeline, CinematicTimelineError, signedSceneMetadata } from '@/lib/cinematic/timelineContract'
+import { rejectCinematicQuality, readVerifiedQualityRejection, type CinematicQualityReason } from '@/lib/cinematic/qualityRejection'
+import { selectMusicForScript } from '@/lib/musicScore'
+import { selectPersonaForScript } from '@/lib/narration/niche-mapping'
 // KINEO-CREDIT-INTENT-2026-07-11 — record the authoritative engine + intended
 // cost for every render, keyed by render_id, the moment it is created. This is
 // the trusted source /api/compose/status bills from (instead of the client's
@@ -63,7 +65,9 @@ import { alertCreatomateDown } from '@/lib/creatomateAlert'
 // cota é o único modo de falha do render que é 100% previsível.
 import { checkCreatomateQuota } from '@/lib/creatomateQuota'
 import { inspectActiveComposeCreditHolds } from '@/lib/credits/composeHold'
-import { loadVerifiedCinematicClaim, type CinematicClaim } from '@/lib/cinematic/claim'
+import { loadVerifiedCinematicClaim, cinematicJobsAreTerminal, type CinematicClaim } from '@/lib/cinematic/claim'
+import { readVerifiedSceneRetryHold } from '@/lib/cinematic/sceneRetry'
+import { collectSceneNarrations, verifyObservedSpeech } from '@/lib/cinematic/speechContract'
 // KINEO-COMPOSE-REJECT-NOREFUND-2026-08-10 — ver o cabeçalho do arquivo: numa
 // recusa TERMINAL do fornecedor nenhum render_id nasce, logo /api/compose/status
 // nunca é chamado e o estorno ao vivo de lá é inalcançável. Sem isto, o único
@@ -122,7 +126,7 @@ import {
 // narration blocks are synthesized with ONE pinned voice, resolved from the
 // full voiceover_script — the SAME resolution the cinematic route ran for the
 // host lines, so host speech and b-roll narration share a single narrator.
-// Fail-open: any failure falls back to the per-block generateTTS below.
+// Failure preserves the clips for recovery; it never selects a different voice.
 import { resolveHollywoodVoice, synthesizeHostSpeech, type HollywoodVoice } from '@/lib/hollywood/hostVoice'
 
 export const maxDuration = 300
@@ -413,8 +417,8 @@ interface ComposeBody {
   scene_narrations?: (string | null)[]
   scene_seconds?: number[]
   // KINEO-HOLLYWOOD-21-2026-07-10 (bug b) — the EXACT spoken line per dialogue
-  // scene (null for cinematic/support), parallel to clip_urls. Captions on
-  // dialogue scenes chunk THIS text so they match the actual speech.
+  // scene (null for cinematic/support), parallel to clip_urls. It is checked
+  // against the clip transcript; captions never substitute for missing audio.
   scene_dialogues?: (string | null)[]
   // KINEO-OWN-VOICE-2026-07-10 (Prioridade 3, cliente $200/mês) —
   // Level A: the user's OWN pre-recorded narration (our public storage URL).
@@ -422,7 +426,7 @@ interface ComposeBody {
   // of the real audio instead of the script text.
   user_voiceover_url?: string
   // Level B: narrate with the user's CLONED voice (profiles.voice_clone_id,
-  // created in Avatar Studio). Falls back to default TTS on any failure.
+  // created in Avatar Studio). An explicit voice cannot become a default voice.
   use_cloned_voice?: boolean
 }
 
@@ -736,6 +740,7 @@ export async function POST(req: NextRequest) {
       auth: { persistSession: false, autoRefreshToken: false },
     })
     let cinematicBirthClaim: CinematicClaim | null = null
+    let cinematicSceneMetadataInvalid = false
     let avatarBirthClaim: VerifiedAvatarBirthClaim | null = null
     const cinematicClaimLoad = await loadVerifiedCinematicClaim({
       db: composeAdmin,
@@ -751,6 +756,10 @@ export async function POST(req: NextRequest) {
       )
     }
     cinematicBirthClaim = cinematicClaimLoad.claim
+    const qualityFailureResponse = (facts: Record<string, unknown>, message?: string): NextResponse => NextResponse.json({
+      ...facts, qualityCheckFailed: true, generationId, retryable: false,
+      error: message ?? 'This generation did not pass the final quality check. No final video was submitted. Review the recovery details below.',
+    }, { status: 422 })
     const cinematicQualities = new Set<Quality>([
       'cinematic_ai', 'cinematic_kling', 'cinematic_veo',
       'cinematic_sora', 'cinematic_hollywood', 'cinematic_h3', 'cinematic_omni', 'cinematic_s25',
@@ -758,6 +767,13 @@ export async function POST(req: NextRequest) {
     const clientRequestedCinematic = cinematicQualities.has(quality)
     if (cinematicBirthClaim) {
       if (cinematicBirthClaim.status !== 'settled') {
+        if (cinematicBirthClaim.status === 'released') {
+          const resolved = await readVerifiedQualityRejection({ db: composeAdmin, secret: serviceRoleKey, userId: authenticatedUserId, generationId })
+          return qualityFailureResponse(resolved ? { ...resolved } : {
+            reason: 'generation_closed', refunded: false, refundConfirmed: false, claimReleased: true,
+            outcome: 'quality_rejection_support_pending',
+          }, 'This generation is closed. It will not be submitted again. Your script is kept; review the recovery details below.')
+        }
         return NextResponse.json(
           { error: 'Your AI scenes are still being finalized.', pending: true, retry_after_ms: 2500 },
           { status: 409 },
@@ -829,6 +845,20 @@ export async function POST(req: NextRequest) {
         )
       }
       quality = trustedQuality
+      // Server recovery and browser submission must use the same original scene
+      // indexes. A missing middle scene must not move its voice onto its neighbor.
+      if (cinematicBirthClaim.response) {
+        try {
+          const aligned = signedSceneMetadata(cinematicBirthClaim.response, cinematicBirthClaim.authorizedCompletedUrls, clipUrls,
+            ['cinematic_hollywood', 'cinematic_h3', 'cinematic_omni', 'cinematic_s25'].includes(trustedQuality))
+          Object.assign(body, aligned)
+        } catch {
+          // Defer rejection until this request owns the compose mutex. Never
+          // invent a 10-second scene from missing signed metadata or let a
+          // losing concurrent request unwind the winner's paid generation.
+          cinematicSceneMetadataInvalid = true
+        }
+      }
     } else if (clientRequestedCinematic) {
       return NextResponse.json(
         { error: 'These premium AI clips are missing their signed generation.' },
@@ -888,8 +918,11 @@ export async function POST(req: NextRequest) {
       }
     }
     const cinematicUpstreamDebited = cinematicBirthClaim?.status === 'settled'
+    let composeProviderAttempted = false
     const avatarUpstreamDebited = avatarBirthClaim !== null
     const claimId = composeClaimId(authenticatedUserId, generationId)
+    const submissionOwner = randomUUID()
+    let submissionAuthority = ''
     let ownsSubmissionClaim = false
     let submissionClaimIsCreditHold = false
 
@@ -950,6 +983,26 @@ export async function POST(req: NextRequest) {
         return unavailableClaimResponse()
       }
       if (!renderId) {
+        if (metadata.scene_retry) {
+          const hold = await readVerifiedSceneRetryHold({ db: composeAdmin, secret: serviceRoleKey, userId: authenticatedUserId, generationId })
+          if (hold) {
+            const elapsed = Date.now() - Date.parse(hold.startedAt)
+            if (hold.phase === 'submitting' && elapsed >= 0 && elapsed < 120_000) {
+              return NextResponse.json({ pending: true, retry_after_ms: 2500 }, { status: 409 })
+            }
+            return NextResponse.json({ ...hold, sceneRetryPending: true, supportPending: true,
+              error: 'A scene retry could not be confirmed. No final film was submitted. Contact support before trying this attempt again.',
+            }, { status: 422 })
+          }
+          return unavailableClaimResponse()
+        }
+        if (metadata.quality_rejection && typeof metadata.quality_rejection === 'object') {
+          const resolved = await readVerifiedQualityRejection({ db: composeAdmin, secret: serviceRoleKey, userId: authenticatedUserId, generationId })
+          return qualityFailureResponse(resolved ? { ...resolved } : {
+            reason: 'generation_quality_review', refunded: false, refundConfirmed: false, claimReleased: false,
+            outcome: 'quality_rejection_support_pending',
+          })
+        }
         // Recover a provider id that was durably linked in broll_metrics even
         // if the final claim metadata write was interrupted. This closes the
         // cold-instance replay gap without ever issuing another provider POST.
@@ -1029,6 +1082,16 @@ export async function POST(req: NextRequest) {
       return unavailableClaimResponse()
     }
 
+    // Existing signed recovery holds are read above before testing the scene
+    // batch. Partial URL authorization is not proof that paid jobs finished.
+    // Gate BEFORE acquiring a new mutex, ASR/TTS or any quality/refund action.
+    if (cinematicBirthClaim && !cinematicJobsAreTerminal(cinematicBirthClaim)) {
+      return NextResponse.json(
+        { error: 'Your AI scenes are still being finalized.', pending: true, retry_after_ms: 2500 },
+        { status: 409 },
+      )
+    }
+
     // Backward-compatible replay for Fast generations completed before this
     // distributed guard existed. This is not the lock; events remains the
     // authoritative safety boundary for every new submission.
@@ -1050,6 +1113,9 @@ export async function POST(req: NextRequest) {
     }
 
     async function claimGenerationSubmission(cost: number, creditHold = false): Promise<SubmissionClaimResult> {
+      submissionAuthority = signComposeClaim(serviceRoleKey, {
+        claimId, userId: authenticatedUserId, generationId, status: 'pending', quality, cost,
+      })
       const { error: claimError } = await composeAdmin.from('events').insert({
         id: claimId,
         user_id: authenticatedUserId,
@@ -1059,6 +1125,7 @@ export async function POST(req: NextRequest) {
         metadata: {
           generation_id: generationId,
           status: 'pending',
+          submission_owner: submissionOwner,
            quality,
            cost,
            credit_hold: creditHold,
@@ -1123,6 +1190,20 @@ export async function POST(req: NextRequest) {
       if (!claimError) {
         ownsSubmissionClaim = true
         submissionClaimIsCreditHold = creditHold
+        // A retry may have retargeted a paid scene between the first birth
+        // read and this INSERT. The mutex now excludes retries; validate the
+        // same signed snapshot again before ANY ASR/TTS/final-render work.
+        if (cinematicBirthClaim) {
+          const fresh = await loadVerifiedCinematicClaim({ db: composeAdmin, secret: serviceRoleKey, userId: authenticatedUserId, generationId })
+            .catch(() => ({ ok: false as const, error: 'post_lock_read_unavailable' }))
+          if (!fresh.ok || !fresh.claim || fresh.claim.status !== 'settled' ||
+              fresh.claim.authority !== cinematicBirthClaim.authority || !cinematicJobsAreTerminal(fresh.claim)) {
+            await releaseGenerationClaim()
+            return { kind: 'unavailable', response: NextResponse.json({
+              error: 'Your AI scene state changed. No final video was submitted.', pending: true, retry_after_ms: 2500,
+            }, { status: 409 }) }
+          }
+        }
         return { kind: 'acquired' }
       }
       if ((claimError as { code?: string }).code !== '23505') {
@@ -1143,14 +1224,21 @@ export async function POST(req: NextRequest) {
 
     async function releaseGenerationClaim(): Promise<void> {
       if (!ownsSubmissionClaim) return
-      const { error: releaseError } = await composeAdmin
+      const { data: released, error: releaseError } = await composeAdmin
         .from('events')
         .delete()
         .eq('id', claimId)
         .eq('user_id', authenticatedUserId)
         .eq('name', COMPOSE_CLAIM_EVENT)
-      if (releaseError) {
-        console.error('[compose] explicit-rejection claim release failed; keeping fail-closed:', releaseError.message)
+        .eq('path', COMPOSE_CLAIM_PATH)
+        .eq('session_id', generationId)
+        .eq('metadata->>status', 'pending')
+        .eq('metadata->>submission_owner', submissionOwner)
+        .eq('metadata->>authority', submissionAuthority)
+        .select('id')
+        .maybeSingle()
+      if (releaseError || released?.id !== claimId) {
+        console.error('[compose] explicit-rejection claim release unconfirmed; keeping fail-closed')
         return
       }
       ownsSubmissionClaim = false
@@ -1221,10 +1309,35 @@ export async function POST(req: NextRequest) {
     }
 
     async function rejectBeforeProviderSubmission(response: NextResponse): Promise<NextResponse> {
+      const detail = await response.clone().json().catch(() => null)
+      const qualityReasons: Record<string, CinematicQualityReason> = {
+        cinematic_timeline_too_short: 'cinematic_timeline_too_short',
+        scene_speech_exceeds_footage: 'scene_speech_exceeds_footage',
+        cinematic_scene_metadata_invalid: 'cinematic_scene_metadata_invalid',
+        cinematic_dialogue_unverified: 'native_dialogue_unverified',
+        cinematic_speech_missing: 'scene_narration_missing',
+        cinematic_voice_unavailable: 'scene_narration_failed',
+        cinematic_narration_unverified: 'scene_narration_failed',
+        requested_voice_unavailable: 'scene_narration_failed',
+      }
+      const reason = qualityReasons[String(detail?.reason ?? detail?.code ?? '')]
+      if (reason && cinematicUpstreamDebited) {
+        const facts = await rejectCinematicQuality({
+          db: composeAdmin, secret: serviceRoleKey, userId: authenticatedUserId, generationId,
+          ownsComposeClaim: ownsSubmissionClaim, composeProviderAttempted, reason,
+        })
+        // A retained terminal mutex stops stale concurrent requests that saw
+        // birth=settled before the refund. NEVER delete it, including success.
+        return qualityFailureResponse({ ...facts, code: detail?.code }, detail?.error)
+      }
       // Free Fast reserves its distributed claim before any paid TTS/render work
       // so parallel generation ids cannot all pass the daily limit. Explicit
       // local validation/provider-rejection failures release that reservation.
       await releaseGenerationClaim()
+      if (reason) return qualityFailureResponse({
+        reason, code: detail?.code, refunded: false, refundConfirmed: false,
+        claimReleased: !ownsSubmissionClaim, noDebit: !ownsSubmissionClaim,
+      }, detail?.error)
       return response
     }
 
@@ -1879,21 +1992,23 @@ export async function POST(req: NextRequest) {
     // (+0.5s tolerance), so residual silence can only ever be that scene's own
     // tail (<=2-3s), never 10 accumulated seconds. Whisper captions ride the
     // same per-scene mp3 (offset = scene start). Dialogue scenes are never
-    // narrated over; background music is off. Every step is best-effort — a
-    // failed narration TTS degrades THAT scene to native-audio-only, never a
-    // dead render.
-    // KINEO-H3-FIX-2026-08-19 — o H3 compoe pelo MESMO caminho hollywood
-    // (cenas paralelas com scene_engines/scene_narrations); a diferenca — tudo
-    // narrado, nada de fala nativa — ja chega resolvida da rota de geracao.
+    // narrated over. Speech failures stop before composition; silent scenes
+    // and captions copied from a requested line are not successful delivery.
     if (quality === 'cinematic_hollywood' || quality === 'cinematic_h3' || quality === 'cinematic_omni' || quality === 'cinematic_s25') {
+      if (cinematicSceneMetadataInvalid) {
+        return rejectBeforeProviderSubmission(NextResponse.json({
+          error: 'The saved scene timing or speech metadata is incomplete. We will not invent narration or a shorter film.',
+          qualityCheckFailed: true, reason: 'cinematic_scene_metadata_invalid',
+        }, { status: 422 }))
+      }
       const rawEngines = Array.isArray(body.scene_engines) ? body.scene_engines : []
       const rawNarrations = Array.isArray(body.scene_narrations) ? body.scene_narrations : []
       const rawSeconds = Array.isArray(body.scene_seconds) ? body.scene_seconds : []
       // KINEO-HOLLYWOOD-21-2026-07-10 (bug b) — real spoken line per scene.
       const rawDialogues = Array.isArray(body.scene_dialogues) ? body.scene_dialogues : []
 
-      // Defensive alignment: arrays are parallel to clip_urls; anything
-      // missing/misaligned degrades that scene to a silent-ish support scene.
+      // Arrays are parallel to clip_urls. Missing narration is rejected below,
+      // never silently downgraded to an unvoiced support scene.
       // KINEO-HOLLYWOOD-HOST-2026-07-13 — 'host' accepted (presenter-rendered
       // dialogue scene, speech baked in, seconds = measured audio length).
       const hollywoodClips: HollywoodClipInput[] = clipUrls.map((url, i) => {
@@ -1919,6 +2034,27 @@ export async function POST(req: NextRequest) {
           ...(dlg ? { dialogueLine: dlg } : {}),
         }
       })
+      const originalFootageSeconds = hollywoodClips.map(cinematicSceneSeconds)
+
+      // Verify already-generated speech before any additional narration work.
+      // KINEO-LIPSYNC-CAPTIONS-2026-08-17 — transcreve o AUDIO NATIVO das
+      // cenas de fala (Whisper direto no mp4 do clipe). A requested line is
+      // not evidence of speech: reject absent/different audio before rendering.
+      for (const [sceneIdx, c] of hollywoodClips.entries()) {
+        if ((c.engine === 'dialogue' || c.engine === 'host') && c.url) {
+          const words = await transcribeClipWithTimestamps(c.url).catch(() => [] as WhisperWord[])
+          const speech = verifyObservedSpeech(c.dialogueLine, words)
+          if (!speech.ok) {
+            console.warn('[compose] native speech verification failed', { scene_index: sceneIdx, reason: speech.reason })
+            return rejectBeforeProviderSubmission(NextResponse.json({
+              error: `Scene ${sceneIdx + 1}'s spoken audio could not be verified against the script. Your generated clips are preserved; no replacement voice was added.`,
+              code: 'cinematic_dialogue_unverified', recoverable: true,
+            }, { status: 422 }))
+          }
+          c.speechWords = words
+        }
+      }
+      console.log(`[compose] hollywood lipsync captions: ${hollywoodClips.filter((c) => c.speechWords).length} cena(s) de fala transcritas`)
 
       // Timeline offsets (pre-trim — only the LAST scene is ever trimmed by
       // the builder, which never moves earlier offsets).
@@ -1933,16 +2069,21 @@ export async function POST(req: NextRequest) {
       // 44-46s compostos. MOTORMAX: os motores aceitam duracao exata — o
       // compose agora HONRA os segundos do plano (so clamps de seguranca).
       // MUST mirror secondsFor in lib/compose.ts.
-      const secondsOf = (c: HollywoodClipInput): number =>
-        c.engine === 'host'
-          ? (Number.isFinite(c.seconds) && c.seconds > 0 ? Math.min(20, Math.max(2, c.seconds)) : 10)
-          : c.engine === 'dialogue'
-            ? (Number.isFinite(c.seconds) && c.seconds > 0 ? Math.min(15, Math.max(3, c.seconds)) : 10)
-            // KINEO-H3-SLOT-2026-08-20 — teto 8→15: no H3 a ex-cena de diálogo vira 'cinematic' com 10s reais; min(8) cortava narração no meio da palavra. Hollywood/Veo planeja cinematic=8s, então nada muda pra eles. MUST mirror.
-            : c.engine === 'cinematic'
-              ? (Number.isFinite(c.seconds) && c.seconds > 0 ? Math.min(15, Math.max(4, c.seconds)) : 8)
-              // KINEO-TAIL-GROW-2026-08-25 — 12→13: folga p/ a cena crescida cobrir a fala medida (freeze cobre o excedente). MUST mirror (secondsFor).
-              : (Number.isFinite(c.seconds) && c.seconds > 0 ? Math.min(13, Math.max(2, c.seconds)) : 10)
+      const secondsOf = cinematicSceneSeconds
+
+      // Do this before TTS, music, or another provider submission. Keep the
+      // existing paid clips; an undersized partial film is not a successful 60s film.
+      try {
+        assertCinematicTimeline(hollywoodClips, duration)
+      } catch (error) {
+        if (!(error instanceof CinematicTimelineError)) throw error
+        console.warn('[compose-quality]', { reason: error.message, planned_seconds: error.actualSeconds, requested_seconds: error.requestedSeconds, generation_id: generationId })
+        return rejectBeforeProviderSubmission(NextResponse.json({
+          error: `Your completed scenes cover ${Math.round(error.actualSeconds)}s, below the requested ${error.requestedSeconds}s. The existing clips have been kept; no final render was submitted. Contact support to recover this generation.`,
+          qualityCheckFailed: true, reason: 'cinematic_timeline_too_short', retryable: false,
+          generationId,
+        }, { status: 422 }))
+      }
 
       // KINEO-HOLLYWOOD-24-2026-07-10 — one pending TTS entry PER narrated
       // scene (no more contiguous-block grouping), placed at that scene's own
@@ -1954,16 +2095,15 @@ export async function POST(req: NextRequest) {
       // narracao medida (+0.6s de respiro), entao o rabo de silencio que o
       // fundador ouviu como "apagao" deixa de existir estruturalmente. Este
       // bloco so coleta o TEXTO por cena; tempos vem depois do ajuste.
-      const pendingScenes: Array<{ sceneIdx: number; text: string }> = []
-      hollywoodClips.forEach((c, i) => {
-        // KINEO-HOLLYWOOD-HOST-2026-07-13 — never narrate over 'host'
-        // scenes either: their clip audio IS the speech (our TTS).
-        const narr =
-          c.engine !== 'dialogue' && c.engine !== 'host' && typeof rawNarrations[i] === 'string'
-            ? (rawNarrations[i] as string).trim()
-            : ''
-        if (narr) pendingScenes.push({ sceneIdx: i, text: narr })
-      })
+      let pendingScenes: Array<{ sceneIdx: number; text: string }>
+      try {
+        pendingScenes = collectSceneNarrations(hollywoodClips, rawNarrations)
+      } catch {
+        return rejectBeforeProviderSubmission(NextResponse.json({
+          error: 'A scene is missing its narration. Your generated clips are preserved; the film was not submitted.',
+          code: 'cinematic_speech_missing', recoverable: true,
+        }, { status: 422 }))
+      }
 
       // KINEO-HOLLYWOOD-HOST-2026-07-13 — ONE NARRATOR VOICE. generateTTS
       // re-selects a persona per call by keyword-scanning the text it gets,
@@ -1973,8 +2113,7 @@ export async function POST(req: NextRequest) {
       // voiceoverScript (the identical string the route resolved from —
       // stripScriptMarkers is idempotent and runs on both sides), with the
       // same vertical/language, so host speech and narration share one voice.
-      // Fail-open: a null pin (or a pinned-synth failure per block) falls
-      // back to the exact pre-v3.5 generateTTS call.
+      // Never re-select a per-block persona if the pinned voice fails.
       let hollywoodPinnedVoice: HollywoodVoice | null = null
       if (pendingScenes.length > 0) {
         try {
@@ -1982,9 +2121,11 @@ export async function POST(req: NextRequest) {
           console.log(
             `[compose] hollywood pinned narration voice: persona=${hollywoodPinnedVoice.personaId} voice=${hollywoodPinnedVoice.voice}`,
           )
-        } catch (e) {
-          console.warn('[compose] hollywood voice pin failed — per-block persona fallback:', e instanceof Error ? e.message : String(e))
-          hollywoodPinnedVoice = null
+        } catch {
+          return rejectBeforeProviderSubmission(NextResponse.json({
+            error: 'The narration voice could not be prepared. Your generated clips are preserved; no replacement voice was added.',
+            code: 'cinematic_voice_unavailable', recoverable: true,
+          }, { status: 422 }))
         }
       }
 
@@ -1998,44 +2139,35 @@ export async function POST(req: NextRequest) {
       const measured: Array<{ sceneIdx: number; url: string; dur: number; text: string; words?: WhisperWord[] }> = []
       for (const pending of pendingScenes) {
         try {
-          // KINEO-HOLLYWOOD-HOST-2026-07-13 — pinned voice first (persona
-          // pace × user speed, same formula generateTTS applies internally);
-          // any failure degrades to the pre-v3.5 per-block generateTTS.
-          let buf: Buffer | null = null
-          if (hollywoodPinnedVoice) {
-            try {
-              buf = await synthesizeHostSpeech({
-                text: pending.text,
-                voice: hollywoodPinnedVoice.voice,
-                speed: hollywoodPinnedVoice.defaultSpeed * (explicitSpeed ?? 1.0),
-              })
-            } catch (pinErr) {
-              console.warn('[compose] hollywood pinned-voice TTS failed — generateTTS fallback:', pinErr instanceof Error ? pinErr.message : String(pinErr))
-              buf = null
-            }
-          }
-          if (!buf || buf.length === 0) {
-            buf = await generateTTS(pending.text, explicitSpeed ?? 1.0, vertical, narrationTier, language)
-          }
-          if (!buf || buf.length === 0) continue
+          if (!hollywoodPinnedVoice) throw new Error('Narration voice unavailable')
+          const buf = await synthesizeHostSpeech({
+            text: pending.text,
+            voice: hollywoodPinnedVoice.voice,
+            speed: hollywoodPinnedVoice.defaultSpeed * (explicitSpeed ?? 1.0),
+          })
+          if (!buf || buf.length === 0) throw new Error('Narration audio unavailable')
           const dur = estimateMp3DurationSeconds(buf)
-          if (!(dur > 0.3)) continue
-          const [words, url] = await Promise.all([
-            transcribeTTSWithTimestamps(buf).catch(() => [] as WhisperWord[]),
-            uploadVoiceoverToSupabase(user.id, buf),
-          ])
+          if (!(dur > 0.3)) throw new Error('Narration audio is empty')
+          // This exact buffer was synthesized from pending.text with the pinned
+          // voice. ASR is optional timing evidence, not authority to reject or
+          // rewrite trusted TTS (e.g. "22" versus "twenty-two"). If it cannot
+          // align, caption the canonical TTS text over this same measured audio.
+          const observed = await transcribeTTSWithTimestamps(buf).catch(() => [] as WhisperWord[])
+          const words = verifyObservedSpeech(pending.text, observed).ok ? observed : undefined
+          const url = await uploadVoiceoverToSupabase(user.id, buf)
           measured.push({
             sceneIdx: pending.sceneIdx,
             url,
             dur,
             text: pending.text,
-            words: Array.isArray(words) && words.length > 0 ? words : undefined,
+            words,
           })
-        } catch (blockErr) {
-          // Best-effort: THAT scene degrades to native ambient audio + caption
-          // (per-scene TTS means one failure no longer mutes neighbor scenes).
-          console.warn('[compose] hollywood scene narration failed — continuing without it:',
-            blockErr instanceof Error ? blockErr.message : String(blockErr))
+        } catch {
+          console.warn('[compose] narration verification failed', { scene_index: pending.sceneIdx })
+          return rejectBeforeProviderSubmission(NextResponse.json({
+            error: `Scene ${pending.sceneIdx + 1}'s narration could not be verified. Your generated clips are preserved; no replacement voice was added.`,
+            code: 'cinematic_narration_unverified', recoverable: true,
+          }, { status: 422 }))
         }
       }
       // Encolhe SUPPORT pro tamanho real da fala (piso 3s; nunca cresce alem
@@ -2054,8 +2186,7 @@ export async function POST(req: NextRequest) {
         // cama musical, o respiro pós-narração é música — não silêncio, não
         // voz fantasma. O clipe preenche os segundos que o plano prometeu.
         if (c && c.engine === 'support' && quality !== 'cinematic_h3') {
-          const fit = Math.max(3, Math.round((m.dur + 0.6) * 10) / 10)
-          if (fit < secondsOf(c)) c.seconds = fit
+          c.seconds = trimNarratedSupport(hollywoodClips, m.sceneIdx, m.dur, duration)
         }
         // KINEO-TAIL-GROW-2026-08-25 (parte 2, cenas do MEIO) — o endCap
         // (cena + 0.5s) guilhotina narração que estourar a cena em QUALQUER
@@ -2066,7 +2197,7 @@ export async function POST(req: NextRequest) {
         // cresce até a fala medida + 0.6s; o Creatomate segura o último
         // frame pelo excedente. Palavra engolida entre cenas morre aqui.
         if (c && (c.engine === 'support' || c.engine === 'cinematic')) {
-          const need = Math.round((m.dur + 0.6) * 10) / 10
+          const need = Math.min(originalFootageSeconds[m.sceneIdx], Math.round((m.dur + 0.6) * 10) / 10)
           if (need > secondsOf(c)) {
             console.log(`[compose] KINEO-TAIL-GROW meio: cena ${m.sceneIdx + 1} ${secondsOf(c)}s → ${need.toFixed(1)}s (fala medida ${m.dur.toFixed(1)}s)`)
             c.seconds = need
@@ -2091,7 +2222,7 @@ export async function POST(req: NextRequest) {
       // inteiro. Cena 'host'/'dialogue' no final não é tocada: a fala DELA já
       // é o clipe.
       {
-        const TIKTOK_FLOOR_S = 61
+        const TIKTOK_FLOOR_S = duration >= 60 && duration < 90 ? Math.max(61, duration) : duration
         const last = hollywoodClips[hollywoodClips.length - 1]
         const lastIdx = hollywoodClips.length - 1
         const lastMeasured = measured.find((m) => m.sceneIdx === lastIdx)
@@ -2112,7 +2243,7 @@ export async function POST(req: NextRequest) {
           // sob as palavras finais lê como fechamento de cinema, não defeito.
           if (tail < 0) {
             const grow = Math.round(-tail * 10) / 10
-            last.seconds = Math.round((secondsOf(last) + grow) * 10) / 10
+            last.seconds = Math.min(originalFootageSeconds[lastIdx], Math.round((secondsOf(last) + grow) * 10) / 10)
             console.log(`[compose] KINEO-TAIL-GROW: última cena cresceu ${grow.toFixed(1)}s para cobrir a fala medida (${lastMeasured.dur.toFixed(1)}s) — nenhuma palavra final guilhotinada`)
           }
           if (tail > 1) {
@@ -2128,6 +2259,15 @@ export async function POST(req: NextRequest) {
       }
 
       // Timeline FINAL (pos-ajuste) → offsets e endCaps das narracoes.
+      // A slot capped by its engine cannot swallow the last word or overlap
+      // another speaker. Do not submit a knowingly truncated narration.
+      const speechDoesNotFit = measured.some(m => m.dur > secondsOf(hollywoodClips[m.sceneIdx]) + 0.01)
+      if (speechDoesNotFit) {
+        return rejectBeforeProviderSubmission(NextResponse.json({
+          error: 'One narration is longer than its generated scene. Your clips are kept; no final render was submitted. Contact support to recover the complete narration.',
+          qualityCheckFailed: true, reason: 'scene_speech_exceeds_footage', retryable: false, generationId,
+        }, { status: 422 }))
+      }
       const narrationBlocks: HollywoodNarrationBlock[] = []
       {
         const starts: number[] = []
@@ -2142,7 +2282,7 @@ export async function POST(req: NextRequest) {
           const time = starts[m.sceneIdx]
           narrationBlocks.push({
             time,
-            endCap: Math.round((time + secondsOf(c) + 0.5) * 1000) / 1000,
+            endCap: Math.round((time + secondsOf(c)) * 1000) / 1000,
             url: m.url,
             audioDuration: m.dur,
             text: m.text,
@@ -2159,40 +2299,26 @@ export async function POST(req: NextRequest) {
       // as the other premium fal engines.
       const forced = FORCE_WATERMARK_EMAILS.has((user.email ?? '').toLowerCase())
 
-      // KINEO-LIPSYNC-CAPTIONS-2026-08-17 — transcreve o AUDIO NATIVO das
-      // cenas de fala (Whisper direto no mp4 do clipe) pra legenda seguir a
-      // boca do ator. Sequencial, 2-4 clipes tipicos, ~2s cada; best-effort.
-      for (const c of hollywoodClips) {
-        if ((c.engine === 'dialogue' || c.engine === 'host') && c.url) {
-          const words = await transcribeClipWithTimestamps(c.url)
-          if (words.length > 1) c.speechWords = words
-        }
-      }
-      console.log(`[compose] hollywood lipsync captions: ${hollywoodClips.filter((c) => c.speechWords).length} cena(s) de fala transcritas`)
 
-      // KINEO-HOLLYWOOD-SCORE-2026-08-17 — trilha por tema tambem no
-      // Hollywood (rodava sem musica; respiros viravam "apagao"). Mesmo
-      // detector de nicho do classico; seed = url do 1o clipe (deterministico
-      // por render). Best-effort: sem musica o filme sai igual ao de antes.
+      // Emotion before theme; same immutable narration and author directives
+      // as classic/unlock. No music failures may interrupt the delivered voice.
       let hollywoodMusicUrl: string | null = null
       try {
-        const hollyMood = resolveMusicMood(detectNiche(voiceoverScript, vertical))
-        // KINEO-MOTORES-D1-2026-09-01 — trilha GERADA (Lyria 3 Pro) primeiro;
-        // a prateleira Pixabay vira rede de segurança. Mesmo slot, mesmo mix.
-        // getLyriaMusicUrl nunca lança e tem prazo próprio; null = Pixabay.
-        hollywoodMusicUrl = await getLyriaMusicUrl(detectNiche(voiceoverScript, vertical), hollyMood)
-        if (!hollywoodMusicUrl) {
-          hollywoodMusicUrl = await getBackgroundMusicUrl(hollywoodClips[0]?.url ?? voiceoverScript, hollyMood)
-        }
-        if (hollywoodMusicUrl) console.log(`[compose] hollywood score: mood via detectNiche → ${hollywoodMusicUrl.slice(-40)}`)
-      } catch (e) {
-        console.warn('[compose] hollywood music fetch failed (sem trilha):', e instanceof Error ? e.message : String(e))
+        hollywoodMusicUrl = await selectMusicForScript({
+          script: voiceoverScript,
+          rawScript: `${rawVoiceover}\n${String(body.topic ?? '')}`,
+          vertical,
+          seed: voiceoverScript,
+        })
+      } catch {
+        console.warn('[compose] hollywood music unavailable; preserving narration')
       }
 
       let hollywoodSource: Record<string, unknown>
       try {
         hollywoodSource = buildHollywoodCreatomateSource({
           clips: hollywoodClips,
+          requestedDuration: duration,
           narrationBlocks,
           watermark: forced,
           endCard: forced,
@@ -2202,6 +2328,12 @@ export async function POST(req: NextRequest) {
         muteClipAudio: quality === 'cinematic_h3' || quality === 'cinematic_omni' || quality === 'cinematic_s25', // KINEO-S25: generate_audio ja vai false; o mute aqui e cinto E suspensorio // KINEO-OMNI-2026-08-25: V1 mudo+TTS ate o render de validacao provar o audio nativo
         })
       } catch (err) {
+        if (err instanceof CinematicTimelineError) {
+          return rejectBeforeProviderSubmission(NextResponse.json({
+            error: 'The scene timeline is shorter than the duration you selected. Your existing clips were kept; no final render was submitted. Contact support to recover this generation.',
+            qualityCheckFailed: true, reason: 'cinematic_timeline_too_short', retryable: false, generationId,
+          }, { status: 422 }))
+        }
         const msg = err instanceof Error ? err.message : String(err)
         console.error('[compose] hollywood source build failed:', msg)
         return rejectBeforeProviderSubmission(
@@ -2219,6 +2351,7 @@ export async function POST(req: NextRequest) {
       if (hollywoodClaim.kind !== 'acquired') return hollywoodClaim.response
       let hollywoodRenderId: string
       try {
+        composeProviderAttempted = true
         hollywoodRenderId = await submitCreatomateOnce(hollywoodSource, submissionKey)
       } catch (err) {
         const hollywoodMsg = err instanceof Error ? err.message : String(err)
@@ -2385,27 +2518,32 @@ export async function POST(req: NextRequest) {
       console.log(
         `[compose] voiceover generation started: user=${user.id.slice(0, 8)} script_words=${scaledScript.split(/\s+/).filter(Boolean).length} duration=${duration}s language=${language}`,
       )
-      // KINEO-OWN-VOICE — Level B: narrate with the user's cloned voice
-      // (profiles.voice_clone_id, MiniMax). ANY failure falls back to the
-      // default TTS so a render never dies because of the clone.
+      // Level B: the explicitly selected clone owns this narration. If it
+      // cannot be loaded/synthesized, preserve the clips instead of silently
+      // substituting a default persona or a cached default-voice recording.
       if (useClonedVoice) {
         try {
-          const { data: voiceProfile } = await supabase
+          const { data: voiceProfile, error: voiceProfileError } = await supabase
             .from('profiles')
             .select('voice_clone_id')
             .eq('id', user.id)
             .single()
+          if (voiceProfileError) throw new Error('Requested voice lookup failed')
           const voiceId = (voiceProfile?.voice_clone_id ?? '').toString().trim()
           if (voiceId) {
             const { synthesizeWithVoice } = await import('@/lib/avatar/voice')
             audioBuffer = await synthesizeWithVoice({ voiceId, text: scaledScript, language })
             clonedVoiceUsed = !!audioBuffer && audioBuffer.length > 0
-            if (clonedVoiceUsed) console.log(`[compose] cloned-voice narration: ${audioBuffer!.length} bytes voice=${voiceId.slice(0, 10)}`)
-          } else {
-            console.warn('[compose] use_cloned_voice=true but no voice_clone_id on profile — default TTS')
+            if (clonedVoiceUsed) console.log(`[compose] cloned-voice narration: ${audioBuffer!.length} bytes`)
           }
-        } catch (cloneErr) {
-          console.warn('[compose] cloned voice failed — falling back to default TTS:', cloneErr instanceof Error ? cloneErr.message : String(cloneErr))
+        } catch {
+          console.warn('[compose] explicitly selected cloned voice unavailable')
+        }
+        if (!clonedVoiceUsed) {
+          return rejectBeforeProviderSubmission(NextResponse.json({
+            error: 'Your selected voice could not be prepared. No replacement voice was added, and the film was not submitted.',
+            code: 'requested_voice_unavailable', qualityCheckFailed: true, recoverable: true,
+          }, { status: 422 }))
         }
       }
       // Kineo-AudioCache-2026 — before spending an OpenAI/ElevenLabs TTS call
@@ -2665,23 +2803,21 @@ export async function POST(req: NextRequest) {
       `[compose] caption source: re-segmented scaled script (${scaledScript.split(/\s+/).filter(Boolean).length} words); scene_captions fallback available=${haveSceneCaptions}`,
     )
 
-    // Push #293/#488 — fetch background music. Best-effort: never block the
-    // render. Seeded with the voiceover upload URL (unique per render) so the
-    // track is deterministic per render but rotates across renders.
-    // KINEO-MUSIC-MOOD-2026-08-17 — o nicho do script (a MESMA detecção que
-    // escolhe a persona de voz) agora escolhe o balde de trilha: mistério
-    // recebe suspense, dinheiro recebe phonk, história recebe orquestral.
-    // Fim da roleta cega ao tema flagrada pelo fundador no Farol de Flannan.
+    // Background score is best-effort and deterministic for the same narration.
+    // The generated MP3 is not persisted here: clean rebuild can preserve the
+    // direction/catalog choice, but cannot promise the original generated track.
+    // Resolve from the original narration, never a TTS-scaled rewrite: clean
+    // export receives the same input and must not silently choose another mood.
     let musicUrl: string | null = null
     try {
-      const musicMood = resolveMusicMood(detectNiche(scaledScript, vertical))
-      // KINEO-MOTORES-D1-2026-09-01 — Lyria 3 Pro primeiro (trilha feita PARA
-      // o tema, US$0,08/faixa); Pixabay continua como rede de segurança. O
-      // slot e o mix do Creatomate não mudam em nada.
-      musicUrl = await getLyriaMusicUrl(detectNiche(scaledScript, vertical), musicMood)
-      if (!musicUrl) musicUrl = await getBackgroundMusicUrl(voiceoverUrl, musicMood)
-    } catch (err) {
-      console.warn('[compose] music fetch failed, continuing WITHOUT background music:', err instanceof Error ? err.message : String(err))
+      musicUrl = await selectMusicForScript({
+        script: voiceoverScript,
+        rawScript: `${rawVoiceover}\n${String(body.topic ?? '')}`,
+        vertical,
+        seed: voiceoverScript,
+      })
+    } catch {
+      console.warn('[compose] music unavailable; preserving narration')
     }
 
     // KINEO-TRIAL-WATERMARK-2026-09-07 — a decisão de marca d'água mora AQUI,
@@ -2762,6 +2898,7 @@ export async function POST(req: NextRequest) {
     if (claim.kind !== 'acquired') return claim.response
     let renderId: string
     try {
+      composeProviderAttempted = true
       renderId = await submitCreatomateOnce(source, submissionKey)
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
