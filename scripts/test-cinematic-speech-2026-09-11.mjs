@@ -157,4 +157,54 @@ ok(!missingTtsAsr.reply.measured[0].words, 'Fallback is explicitly untimed canon
 const nativeOnly = await runActualComposeSpeech({ engines: ['dialogue'], narrations: ['Do not narrate over my avatar'], dialogues: ['Actor speaks'] })
 eq(nativeOnly.reply.status, 200, 'Native-only avatar uses existing clip audio')
 ok(!nativeOnly.calls.some(c => ['pin', 'tts', 'upload'].includes(c[0])), 'Native-only path does not request any substitute voice')
+
+// Native support audio is subordinate to the explicit per-scene narration.
+const supportClips = ['support', 'cinematic'].map((engine, i) => ({ engine, seconds: 8, url: `https://example.invalid/support-${i}.mp4`, caption: '' }))
+for (const narratedScene of [0, 1]) {
+  const narration = { time: narratedScene * 8, endCap: narratedScene * 8 + 8, audioDuration: 4, url: 'https://example.invalid/narrator.mp3', text: 'Approved narrator speaks.' }
+  const result = compose.buildHollywoodCreatomateSource({ clips: supportClips, narrationBlocks: [narration], muteClipAudio: false })
+  const clips = result.elements.filter(e => e.type === 'video')
+  eq(clips.map(c => c.volume), narratedScene === 0 ? ['0%', '55%'] : ['35%', '0%'], 'Only narrated support/cinematic scenes lose competing native audio')
+  eq(result.elements.filter(e => e.type === 'audio').map(e => e.source), [narration.url], 'The intended narration recording remains the sole speech source')
+}
+
+// The actual explicitly-cloned-voice route branch, including its scoped profile
+// lookup and its return, is executed with a simulated profile/provider only.
+const cloneNode = findNode(composeAst, n => ts.isIfStatement(n) && n.expression.getText(composeAst) === 'useClonedVoice' && n.thenStatement.getText(composeAst).includes('voice_clone_id'))
+async function runCloneBranch({ requested = true, failure } = {}) {
+  const calls = [], logs = []
+  const query = {
+    select(column) { calls.push(['select', column]); return this },
+    eq(column, value) { calls.push(['owner', column, value]); return this },
+    async single() { return { data: { voice_clone_id: failure === 'missing' ? null : 'selected-clone' }, error: failure === 'lookup' ? { message: 'SENTINEL_SECRET' } : null } },
+  }
+  const scope = {
+    useClonedVoice: requested, user: { id: 'verified-owner' }, scaledScript: 'Speak this exact line.', language: 'en',
+    supabase: { from(table) { calls.push(['table', table]); return query } },
+    require: name => {
+      assert.equal(name, '@/lib/avatar/voice')
+      return { synthesizeWithVoice: async args => { calls.push(['clone-synth', args]); if (failure === 'provider') throw Error('SENTINEL_SECRET'); return failure === 'empty' ? Buffer.alloc(0) : Buffer.from('selected-clone-audio') } }
+    },
+    console: { log: (...args) => logs.push(args), warn: (...args) => logs.push(args) },
+    NextResponse: { json: (body, init) => ({ status: init.status, body }) },
+    rejectBeforeProviderSubmission: async response => { calls.push(['reject-before-provider']); return response },
+  }
+  const runner = evaluate(`export async function run() { let audioBuffer = null; let clonedVoiceUsed = false; ${cloneNode.getText(composeAst)}; return { status: 200, clonedVoiceUsed, bytes: audioBuffer?.length ?? 0 }; }`, scope)
+  return { response: await runner.run(), calls, logs }
+}
+for (const failure of ['lookup', 'missing', 'provider', 'empty']) {
+  const result = await runCloneBranch({ failure })
+  eq(result.response.status, 422, 'An explicitly requested clone cannot fall through to default voice/cache')
+  eq(result.response.body.qualityCheckFailed, true, 'Voice failure is marked for root quality settlement/UX')
+  eq(result.response.body.code, 'requested_voice_unavailable', 'Voice ownership failure has a stable quality code')
+  ok(result.calls.some(c => c[0] === 'owner' && c[1] === 'id' && c[2] === 'verified-owner'), 'Existing profile lookup stays scoped to authenticated user')
+  ok(!JSON.stringify(result.logs).includes('SENTINEL_SECRET'), 'Clone provider/profile details stay out of logs')
+}
+const cloneSuccess = await runCloneBranch()
+eq(cloneSuccess.response.status, 200, 'A healthy selected clone still succeeds')
+eq(cloneSuccess.response.clonedVoiceUsed, true, 'Healthy clone skips subsequent default voice/cache paths')
+eq(cloneSuccess.calls.find(c => c[0] === 'clone-synth')[1], { voiceId: 'selected-clone', text: 'Speak this exact line.', language: 'en' }, 'Same selected identity and exact script reach synthesis')
+const notRequested = await runCloneBranch({ requested: false })
+eq(notRequested.response.status, 200, 'Default voice flow is untouched when clone was not requested')
+eq(notRequested.calls.length, 0, 'No clone/profile lookup when unrequested')
 console.log(`cinematic-speech: ${checks} passed; real production payload/compose branches/builder; no external calls`)

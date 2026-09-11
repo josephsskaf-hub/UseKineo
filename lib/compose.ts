@@ -2959,6 +2959,13 @@ export function buildHollywoodCreatomateSource({
     const speechBoundary = nativeSpeech(clip) || (!isLast && nativeSpeech(cleanClips[i + 1]))
     // Never extend speech into the next speaker, nor fade in over its first word.
     const overlap = speechBoundary ? 0 : HOLLYWOOD_CROSSFADE && !isLast ? fadeFor(cleanClips[i + 1]) : CLIP_GAP_OVERLAP
+    // A narrated scene has exactly one speech source. Do not mix model-invented
+    // voices under the approved narrator, regardless of the advanced family.
+    // Non-narrated ambience and dialogue/host speech keep their existing mix.
+    const hasNarration = narrationBlocks.some((block) =>
+      !!block.url && block.audioDuration > 0 && block.time < sceneStarts[i] + durations[i] &&
+      Math.min(block.time + block.audioDuration, block.endCap ?? Infinity) > sceneStarts[i],
+    )
     elements.push({
       type: 'video',
       track: 2,
@@ -2982,7 +2989,7 @@ export function buildHollywoodCreatomateSource({
       // o fundador reportou: boca mexendo sem voz. O mute continua valendo
       // para cinematic/support, onde a voz inventada do modelo briga com a
       // narração (o caso do "senhor de casaco" de 20/08).
-      volume: muteClipAudio && clip.engine !== 'host' && clip.engine !== 'dialogue' ? '0%' : (HOLLYWOOD_CLIP_VOLUME[clip.engine] ?? '35%'),
+      volume: (muteClipAudio || hasNarration) && clip.engine !== 'host' && clip.engine !== 'dialogue' ? '0%' : (HOLLYWOOD_CLIP_VOLUME[clip.engine] ?? '35%'),
       ...(HOLLYWOOD_CROSSFADE && i > 0 && !nativeSpeech(clip) && !nativeSpeech(cleanClips[i - 1])
         ? { enter_transition: { type: 'fade', duration: fadeFor(clip) } }
         : {}), // The hook and first word are visible from frame one, not faded from black.

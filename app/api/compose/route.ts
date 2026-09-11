@@ -423,7 +423,7 @@ interface ComposeBody {
   // of the real audio instead of the script text.
   user_voiceover_url?: string
   // Level B: narrate with the user's CLONED voice (profiles.voice_clone_id,
-  // created in Avatar Studio). Falls back to default TTS on any failure.
+  // created in Avatar Studio). An explicit voice cannot become a default voice.
   use_cloned_voice?: boolean
 }
 
@@ -2413,27 +2413,32 @@ export async function POST(req: NextRequest) {
       console.log(
         `[compose] voiceover generation started: user=${user.id.slice(0, 8)} script_words=${scaledScript.split(/\s+/).filter(Boolean).length} duration=${duration}s language=${language}`,
       )
-      // KINEO-OWN-VOICE — Level B: narrate with the user's cloned voice
-      // (profiles.voice_clone_id, MiniMax). ANY failure falls back to the
-      // default TTS so a render never dies because of the clone.
+      // Level B: the explicitly selected clone owns this narration. If it
+      // cannot be loaded/synthesized, preserve the clips instead of silently
+      // substituting a default persona or a cached default-voice recording.
       if (useClonedVoice) {
         try {
-          const { data: voiceProfile } = await supabase
+          const { data: voiceProfile, error: voiceProfileError } = await supabase
             .from('profiles')
             .select('voice_clone_id')
             .eq('id', user.id)
             .single()
+          if (voiceProfileError) throw new Error('Requested voice lookup failed')
           const voiceId = (voiceProfile?.voice_clone_id ?? '').toString().trim()
           if (voiceId) {
             const { synthesizeWithVoice } = await import('@/lib/avatar/voice')
             audioBuffer = await synthesizeWithVoice({ voiceId, text: scaledScript, language })
             clonedVoiceUsed = !!audioBuffer && audioBuffer.length > 0
-            if (clonedVoiceUsed) console.log(`[compose] cloned-voice narration: ${audioBuffer!.length} bytes voice=${voiceId.slice(0, 10)}`)
-          } else {
-            console.warn('[compose] use_cloned_voice=true but no voice_clone_id on profile — default TTS')
+            if (clonedVoiceUsed) console.log(`[compose] cloned-voice narration: ${audioBuffer!.length} bytes`)
           }
-        } catch (cloneErr) {
-          console.warn('[compose] cloned voice failed — falling back to default TTS:', cloneErr instanceof Error ? cloneErr.message : String(cloneErr))
+        } catch {
+          console.warn('[compose] explicitly selected cloned voice unavailable')
+        }
+        if (!clonedVoiceUsed) {
+          return rejectBeforeProviderSubmission(NextResponse.json({
+            error: 'Your selected voice could not be prepared. No replacement voice was added, and the film was not submitted.',
+            code: 'requested_voice_unavailable', qualityCheckFailed: true, recoverable: true,
+          }, { status: 422 }))
         }
       }
       // Kineo-AudioCache-2026 — before spending an OpenAI/ElevenLabs TTS call
