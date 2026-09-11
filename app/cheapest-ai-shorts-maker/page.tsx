@@ -148,7 +148,7 @@ export default function CheapestAiShortsMakerPage() {
 
         <h2 style={h2}>Pick the right engine — pay only when you scale up</h2>
         <p style={p}>
-          Every video lets you choose the engine. <strong style={{ color: '#f5f5f7' }}>For 60 seconds, Fast Mode uses {FAST_CREDITS} credits, AI Generated uses {SEEDANCE_CREDITS}, and Cinematic uses {KLING_CREDITS}</strong>. Start with the stock-footage workflow when cost matters most, then use original Seedance or premium Kling scenes only when the creative needs them. Compare the full plans on the <Link href="/pricing" style={{ color: '#2997ff' }}>pricing page</Link>, or see how it stacks up against other tools under <Link href="/alternatives" style={{ color: '#2997ff' }}>alternatives</Link>.
+          Every video lets you choose the engine. <strong style={{ color: '#f5f5f7' }}>For 60 seconds, Fast Mode uses {FAST_CREDITS} credits, AI Generated uses {SEEDANCE_CREDITS}, and Cinematic uses {KLING_CREDITS}</strong>. Start with the stock-footage workflow when cost matters most, then use original Seedance or premium Kling scenes only when the creative needs them. Compare the full plans on the <Link href="/pricing" style={{ color: '#2997ff' }}>pricing page</Link>, or see how it stacks up against other tools under <Link href="/alternatives" style={{ color: '#2997ff' }}>alternatives</Link>. For a worked example, read the <Link href="/ai-video-generator/complete-60-second-shorts-cost" style={{ color: '#2997ff' }}>complete Short cost guide</Link>; for workflow differences, use the <Link href="/vs/invideo-alternatives-faceless-shorts" style={{ color: '#2997ff' }}>faceless video tool comparison</Link>.
         </p>
 
         <h2 style={h2}>Frequently asked questions</h2>

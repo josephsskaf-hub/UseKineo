@@ -244,6 +244,12 @@ export default async function EnginePage({ params }: { params: { engine: string 
           </div>
         </section>
 
+        {params.engine === 'seedance' ? (
+          <p style={{ fontSize: '0.9rem', color: '#86868b', lineHeight: 1.65, margin: '18px 0 0' }}>
+            Compare credit use in the <Link href="/ai-video-generator/complete-60-second-shorts-cost" style={{ color: '#2997ff' }}>complete 60-second Short cost guide</Link>, then review the <Link href="/vs/invideo-alternatives-faceless-shorts" style={{ color: '#2997ff' }}>faceless video tool comparison</Link> to choose a workflow.
+          </p>
+        ) : null}
+
         {params.engine === 'kineo-1' ? (
           <AgencyVolumeBridge entry="kineo1_engine" />
         ) : null}

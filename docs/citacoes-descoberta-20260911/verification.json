@@ -1,0 +1,29 @@
+{
+  "classification": "TESTADO LOCALMENTE",
+  "timeUtc": "2026-09-11T14:48:30.020Z",
+  "baseline": "679b789c3381c914392a8c56ed150226a6af341e",
+  "method": "Source minimality, actual JSX render, real helper costs and exact existing route destinations; no route, media or external calls.",
+  "checks": [
+    "only Seedance conditional and calculator paragraph changed",
+    "both exact destinations exist and their sources remain unchanged",
+    "new engine paragraph renders only for Seedance",
+    "four normal links use exact guide URLs without campaigns or events",
+    "calculator keeps existing paragraph, links and real credit values"
+  ],
+  "targets": [
+    "/ai-video-generator/complete-60-second-shorts-cost",
+    "/vs/invideo-alternatives-faceless-shorts"
+  ],
+  "engineSlugsChecked": [
+    "kineo-1",
+    "seedance",
+    "kling",
+    "veo",
+    "kling-3",
+    "minimax-h3",
+    "gemini-omni-flash"
+  ],
+  "networkAttempts": 0,
+  "generatedVideos": 0,
+  "passed": true
+}
