@@ -66,6 +66,39 @@ export const PEDIDOS_DE_APRESENTADOR = [
 export const TAG_FACELESS = /\[faceless\]/i
 
 /**
+ * KINEO-PRIMEIRA-PESSOA-2026-09-11 — QUEM CONTA A PROPRIA HISTORIA E O PERSONAGEM.
+ *
+ * O canario do fundador (Tomas, o faroleiro: "My name is Tomas, and I was the
+ * last lighthouse keeper") caiu em documentary_faceless: o planner gerou 8
+ * cenas de apoio, o Kling desenhou o homem falando na cena 1 e a NARRADORA
+ * disse outra coisa por cima — o pior desfecho possivel (dublagem de terror).
+ *
+ * Roteiro escrito na primeira pessoa e a pessoa falando. Nesse caso o modo
+ * e `presenter`: o personagem fala na lente com a NOSSA voz (TTS + lipsync,
+ * genero pela ficha — lib/hollywood/characterVoice). Sinais lexicais, sem
+ * GPT. Terceira pessoa ("his story") continua character_story: pessoa muda.
+ */
+export const SINAIS_DE_PRIMEIRA_PESSOA = [
+  'my name is', 'i was the', 'i am the', "i'm the", 'i was born', 'when i was', 'i remember', 'i never', 'i still',
+  'me chamo', 'meu nome e', 'eu era', 'eu sou', 'eu nasci', 'quando eu', 'eu lembro', 'eu nunca', 'eu ainda',
+  'mi nombre es', 'me llamo', 'yo era', 'yo soy', 'yo naci', 'cuando yo', 'yo recuerdo', 'yo nunca',
+]
+
+/** Pronomes de primeira pessoa contados no inicio do roteiro (EN/PT/ES). */
+const PRONOMES_PRIMEIRA_PESSOA = /\b(i|i'm|i've|i'd|my|me|myself|eu|meu|minha|meus|minhas|yo|mi|mis)\b/g
+
+/** Verdadeiro quando o roteiro e narrado por quem viveu a historia. Puro e deterministico. */
+export function contadoNaPrimeiraPessoa(roteiro: string): boolean {
+  const r = normalizar(roteiro)
+  const inicio = r.slice(0, 700)
+  const sinais = SINAIS_DE_PRIMEIRA_PESSOA.filter((s) => inicio.includes(normalizar(s))).length
+  const pronomes = (inicio.match(PRONOMES_PRIMEIRA_PESSOA) || []).length
+  // Um sinal forte no inicio + pronomes suficientes. "I think you'll love this
+  // fact" num documentario tem 1 pronome e nenhum sinal: fica documentario.
+  return sinais >= 1 && pronomes >= 3
+}
+
+/**
  * SINAIS DE HISTORIA COM PERSONAGEM. Aqui pessoas podem aparecer — mas
  * mudas, nunca falando para a lente.
  */
@@ -108,6 +141,17 @@ export function decidirFormato(roteiro: string, tagFacelessPresente: boolean): D
     }
   }
 
+  // 2b. KINEO-PRIMEIRA-PESSOA-2026-09-11 — o roteiro e contado por quem viveu:
+  // o personagem fala na lente (com a nossa voz nos labios), nao um narrador
+  // por cima de um rosto mudo.
+  if (contadoNaPrimeiraPessoa(r)) {
+    return {
+      modo: 'presenter',
+      motivo: 'o roteiro e contado na primeira pessoa: quem fala e o personagem',
+      apresentadorPedido: true,
+    }
+  }
+
   // 3. Historia com personagem — pessoas sim, falando para a lente nao.
   const personagem = SINAIS_DE_PERSONAGEM.find((s) => r.includes(normalizar(s)))
   if (personagem) {
@@ -137,6 +181,9 @@ export function proibidosPorModo(modo: VisualMode): string[] {
   const base = [
     'looking directly into the camera', 'speaks', 'exclaims',
     'talking head', 'host', 'presenter', 'anchor',
+    // KINEO-PRIMEIRA-PESSOA-2026-09-11 — "He begins speaking about his past"
+    // passou pelo contrato e o Kling desenhou a boca mexendo sob a narradora.
+    'begins speaking', 'speaking about', 'speaking to', 'talking about', 'tells the story', 'says', 'narrates',
   ]
   // Em documentario faceless, rosto humano em primeiro plano tambem sai.
   return modo === 'documentary_faceless'
