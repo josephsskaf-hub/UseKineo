@@ -5,7 +5,7 @@ import type { VideoQualityFailure } from '@/lib/cinematic/qualityFailureUi'
 
 const COPY = {
   en: {
-    title: 'This video did not pass its quality check',
+    title: 'This video needs a review',
     detail: 'We stopped before submitting the final film. We will not retry this attempt automatically.',
     refunded: 'Your credits were returned and this attempt was released. You can edit your idea before starting a new attempt.',
     noDebit: 'No credits were charged for this attempt. You can edit your idea before starting a new attempt.',
@@ -13,7 +13,7 @@ const COPY = {
     reference: 'Attempt reference', edit: 'Edit my idea', support: 'Contact support', history: 'Open video history',
   },
   es: {
-    title: 'Este video no superó el control de calidad',
+    title: 'Este video necesita una revisión',
     detail: 'Detuvimos el proceso antes de enviar la película final. No repetiremos este intento automáticamente.',
     refunded: 'Tus créditos fueron devueltos y este intento quedó liberado. Puedes editar tu idea antes de iniciar un nuevo intento.',
     noDebit: 'No se cobraron créditos por este intento. Puedes editar tu idea antes de iniciar un nuevo intento.',
@@ -21,7 +21,7 @@ const COPY = {
     reference: 'Referencia del intento', edit: 'Editar mi idea', support: 'Contactar con soporte', history: 'Abrir historial de videos',
   },
   hi: {
-    title: 'यह वीडियो गुणवत्ता जाँच में पास नहीं हुआ',
+    title: 'इस वीडियो की समीक्षा ज़रूरी है',
     detail: 'अंतिम फ़िल्म भेजने से पहले प्रक्रिया रोक दी गई। हम इस प्रयास को अपने आप दोबारा शुरू नहीं करेंगे।',
     refunded: 'आपके क्रेडिट वापस कर दिए गए हैं और यह प्रयास बंद हो गया है। नया प्रयास शुरू करने से पहले आप अपना विचार संपादित कर सकते हैं।',
     noDebit: 'इस प्रयास के लिए कोई क्रेडिट नहीं लिया गया। नया प्रयास शुरू करने से पहले आप अपना विचार संपादित कर सकते हैं।',

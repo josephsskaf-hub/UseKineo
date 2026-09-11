@@ -35,6 +35,16 @@
 
 ## Entrega e coordenação
 
+### Integração final — 11/09, 14:07 UTC
+
+**TESTADO LOCALMENTE:** 16 baterias críticas verdes e `npx tsc --noEmit --incremental false` código 0. Duração 44; fala 125; música 112; visual 326; rejeição financeira 219; integração de rota 303; UI 65; active 61; prova terminal 197; polling 185; retry com mutex 258. Regressões: sharing 70, five-improvements 640, locale-readiness 2091, home-curation 178, showcase-premium 287. Números são asserções, não clientes, renders ou percentual de cobertura. Aviso SSR pré-existente de `fetchPriority` na vitrine não foi ocultado.
+
+**FATO CONFIRMADO — `app/api/compose/route.ts`, `lib/cinematic/sceneRetry.ts` e teste de integração:** recuperação de cena e montagem usam a mesma exclusão por geração. A montagem relê a autoridade assinada DEPOIS de conquistar a trava: se houve retarget, falha de leitura, encerramento ou job ainda ativo, não compra áudio/render sobre o snapshot antigo. Liberação exige nonce único, autoridade, dono e estado pendente; retorno confirma a linha removida. Replay de retry incerto mostra suporte, sem crédito devolvido inventado nem reenvio pago.
+
+**DECLARAÇÃO DE TESTE:** o fixture de slot nulo carregava prova terminal de um ID ausente; a integração corretamente recusou com 409. Corrigido apenas o fixture para não inventar prova órfã (revisão do agente em `e85e856e`, incorporada manualmente ao teste em edição). A política de assinatura não foi afrouxada. Cenários executam o ramo real de aquisição/replay e falha da releitura; comparação de posição no código é apenas suplementar.
+
+**QUESTÃO PENDENTE:** publicação/CI/deploy abaixo ainda devem ser confirmados; os testes não certificam o audiovisual nem desbloqueiam a conta Fal.
+
 **PROCEDIMENTO:** testes offline + typecheck bruto; diff revisado; commit explícito; `bash scripts/enfileirar.sh`; BAT com SHA candidato e SHA da main revisada; confirmar GitHub/Guardião/Vercel. Sem force, reset, migration, crédito manual, preço ou conta Fal.
 
 **PRÓXIMO PASSO:** após publicação segura, canário audiovisual autorizado e mensurável; acompanhar suporte sem reenviar cenas antigas. Claude deve ler este documento e o pedido de reserva antes de editar os mesmos caminhos.

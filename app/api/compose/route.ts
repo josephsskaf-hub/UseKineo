@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { randomUUID } from 'node:crypto'
 import { createClient } from '@/lib/supabase/server'
 import { retryOwnReadOnSkew } from '@/lib/jwtSkewFallback'
 import { createClient as createAdminClient, type SupabaseClient } from '@supabase/supabase-js'
@@ -65,6 +66,7 @@ import { alertCreatomateDown } from '@/lib/creatomateAlert'
 import { checkCreatomateQuota } from '@/lib/creatomateQuota'
 import { inspectActiveComposeCreditHolds } from '@/lib/credits/composeHold'
 import { loadVerifiedCinematicClaim, cinematicJobsAreTerminal, type CinematicClaim } from '@/lib/cinematic/claim'
+import { readVerifiedSceneRetryHold } from '@/lib/cinematic/sceneRetry'
 import { collectSceneNarrations, verifyObservedSpeech } from '@/lib/cinematic/speechContract'
 // KINEO-COMPOSE-REJECT-NOREFUND-2026-08-10 — ver o cabeçalho do arquivo: numa
 // recusa TERMINAL do fornecedor nenhum render_id nasce, logo /api/compose/status
@@ -843,16 +845,6 @@ export async function POST(req: NextRequest) {
         )
       }
       quality = trustedQuality
-      // Partial URL authorization is not proof that the remaining paid jobs
-      // finished. Gate BEFORE the mutex, ASR/TTS and every quality/refund path.
-      // Only signed server observations can prove a missing slot failed; a
-      // client allDone flag or a provider lookup error has no such authority.
-      if (!cinematicJobsAreTerminal(cinematicBirthClaim)) {
-        return NextResponse.json(
-          { error: 'Your AI scenes are still being finalized.', pending: true, retry_after_ms: 2500 },
-          { status: 409 },
-        )
-      }
       // Server recovery and browser submission must use the same original scene
       // indexes. A missing middle scene must not move its voice onto its neighbor.
       if (cinematicBirthClaim.response) {
@@ -929,6 +921,8 @@ export async function POST(req: NextRequest) {
     let composeProviderAttempted = false
     const avatarUpstreamDebited = avatarBirthClaim !== null
     const claimId = composeClaimId(authenticatedUserId, generationId)
+    const submissionOwner = randomUUID()
+    let submissionAuthority = ''
     let ownsSubmissionClaim = false
     let submissionClaimIsCreditHold = false
 
@@ -989,6 +983,19 @@ export async function POST(req: NextRequest) {
         return unavailableClaimResponse()
       }
       if (!renderId) {
+        if (metadata.scene_retry) {
+          const hold = await readVerifiedSceneRetryHold({ db: composeAdmin, secret: serviceRoleKey, userId: authenticatedUserId, generationId })
+          if (hold) {
+            const elapsed = Date.now() - Date.parse(hold.startedAt)
+            if (hold.phase === 'submitting' && elapsed >= 0 && elapsed < 120_000) {
+              return NextResponse.json({ pending: true, retry_after_ms: 2500 }, { status: 409 })
+            }
+            return NextResponse.json({ ...hold, sceneRetryPending: true, supportPending: true,
+              error: 'A scene retry could not be confirmed. No final film was submitted. Contact support before trying this attempt again.',
+            }, { status: 422 })
+          }
+          return unavailableClaimResponse()
+        }
         if (metadata.quality_rejection && typeof metadata.quality_rejection === 'object') {
           const resolved = await readVerifiedQualityRejection({ db: composeAdmin, secret: serviceRoleKey, userId: authenticatedUserId, generationId })
           return qualityFailureResponse(resolved ? { ...resolved } : {
@@ -1075,6 +1082,16 @@ export async function POST(req: NextRequest) {
       return unavailableClaimResponse()
     }
 
+    // Existing signed recovery holds are read above before testing the scene
+    // batch. Partial URL authorization is not proof that paid jobs finished.
+    // Gate BEFORE acquiring a new mutex, ASR/TTS or any quality/refund action.
+    if (cinematicBirthClaim && !cinematicJobsAreTerminal(cinematicBirthClaim)) {
+      return NextResponse.json(
+        { error: 'Your AI scenes are still being finalized.', pending: true, retry_after_ms: 2500 },
+        { status: 409 },
+      )
+    }
+
     // Backward-compatible replay for Fast generations completed before this
     // distributed guard existed. This is not the lock; events remains the
     // authoritative safety boundary for every new submission.
@@ -1096,6 +1113,9 @@ export async function POST(req: NextRequest) {
     }
 
     async function claimGenerationSubmission(cost: number, creditHold = false): Promise<SubmissionClaimResult> {
+      submissionAuthority = signComposeClaim(serviceRoleKey, {
+        claimId, userId: authenticatedUserId, generationId, status: 'pending', quality, cost,
+      })
       const { error: claimError } = await composeAdmin.from('events').insert({
         id: claimId,
         user_id: authenticatedUserId,
@@ -1105,6 +1125,7 @@ export async function POST(req: NextRequest) {
         metadata: {
           generation_id: generationId,
           status: 'pending',
+          submission_owner: submissionOwner,
            quality,
            cost,
            credit_hold: creditHold,
@@ -1169,6 +1190,20 @@ export async function POST(req: NextRequest) {
       if (!claimError) {
         ownsSubmissionClaim = true
         submissionClaimIsCreditHold = creditHold
+        // A retry may have retargeted a paid scene between the first birth
+        // read and this INSERT. The mutex now excludes retries; validate the
+        // same signed snapshot again before ANY ASR/TTS/final-render work.
+        if (cinematicBirthClaim) {
+          const fresh = await loadVerifiedCinematicClaim({ db: composeAdmin, secret: serviceRoleKey, userId: authenticatedUserId, generationId })
+            .catch(() => ({ ok: false as const, error: 'post_lock_read_unavailable' }))
+          if (!fresh.ok || !fresh.claim || fresh.claim.status !== 'settled' ||
+              fresh.claim.authority !== cinematicBirthClaim.authority || !cinematicJobsAreTerminal(fresh.claim)) {
+            await releaseGenerationClaim()
+            return { kind: 'unavailable', response: NextResponse.json({
+              error: 'Your AI scene state changed. No final video was submitted.', pending: true, retry_after_ms: 2500,
+            }, { status: 409 }) }
+          }
+        }
         return { kind: 'acquired' }
       }
       if ((claimError as { code?: string }).code !== '23505') {
@@ -1189,14 +1224,21 @@ export async function POST(req: NextRequest) {
 
     async function releaseGenerationClaim(): Promise<void> {
       if (!ownsSubmissionClaim) return
-      const { error: releaseError } = await composeAdmin
+      const { data: released, error: releaseError } = await composeAdmin
         .from('events')
         .delete()
         .eq('id', claimId)
         .eq('user_id', authenticatedUserId)
         .eq('name', COMPOSE_CLAIM_EVENT)
-      if (releaseError) {
-        console.error('[compose] explicit-rejection claim release failed; keeping fail-closed:', releaseError.message)
+        .eq('path', COMPOSE_CLAIM_PATH)
+        .eq('session_id', generationId)
+        .eq('metadata->>status', 'pending')
+        .eq('metadata->>submission_owner', submissionOwner)
+        .eq('metadata->>authority', submissionAuthority)
+        .select('id')
+        .maybeSingle()
+      if (releaseError || released?.id !== claimId) {
+        console.error('[compose] explicit-rejection claim release unconfirmed; keeping fail-closed')
         return
       }
       ownsSubmissionClaim = false

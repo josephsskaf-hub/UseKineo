@@ -49,7 +49,7 @@ for(const verified of [null,{refunded:true,refundConfirmed:true,claimReleased:tr
 
 // An early caller must not turn partial URL authorization into a quality
 // failure/refund while an accepted Fal job remains in flight.
-const terminalGuard=find(n=>ts.isIfStatement(n)&&n.expression.getText(ast)==='!cinematicJobsAreTerminal(cinematicBirthClaim)')
+const terminalGuard=find(n=>ts.isIfStatement(n)&&n.expression.getText(ast)==='cinematicBirthClaim && !cinematicJobsAreTerminal(cinematicBirthClaim)')
 for(const terminal of [true,false]){
   let passed=0
   const module=evaluate(`export async function run(){${terminalGuard.getText(ast)} reachedPaidWork();return null}`,{NextResponse:next,cinematicBirthClaim:{},cinematicJobsAreTerminal:()=>terminal,reachedPaidWork:()=>passed++})
@@ -59,6 +59,59 @@ for(const terminal of [true,false]){
 }
 // Code ordering is a supplement to executing the guard, not its substitute.
 eq(terminalGuard.pos<src.indexOf('async function rejectBeforeProviderSubmission'),true)
+
+// Execute the actual retry-hold branch used by compose replays. A paid retry
+// may be recent, unresolved or tampered; none authorizes a second submission.
+const retryReplay=find(n=>ts.isIfStatement(n)&&n.expression.getText(ast)==='metadata.scene_retry')
+for(const phase of ['submitting','ambiguous','retarget_failed','release_unconfirmed']){
+  for(const age of [30_000,180_000]){
+    let fallthrough=0
+    const hold={generationId:'fixture-generation',phase,startedAt:new Date(Date.now()-age).toISOString(),refunded:false,refundConfirmed:false,claimReleased:false,retryable:false}
+    const module=evaluate(`export async function run(){${retryReplay.getText(ast)} fallThrough();return null}`,{
+      NextResponse:next,metadata:{scene_retry:{}},composeAdmin:{},serviceRoleKey:'FIXTURE_ONLY',authenticatedUserId:'fixture',generationId:'fixture-generation',
+      readVerifiedSceneRetryHold:async()=>hold,unavailableClaimResponse:()=>json({error:'Unavailable'},{status:503}),fallThrough:()=>fallthrough++,
+    })
+    const response=await module.run(),body=await response.json()
+    const pending=phase==='submitting'&&age<120_000
+    eq(response.status,pending?409:422);eq(fallthrough,0)
+    eq(body.pending===true,pending);eq(body.sceneRetryPending===true,!pending)
+    eq(body.refunded===true,false);eq(body.retryable===true,false)
+    if(!pending){eq(body.supportPending,true);eq(body.claimReleased,false)}
+  }
+}
+const invalidRetry=evaluate(`export async function run(){${retryReplay.getText(ast)} throw Error('Unsafe retry fallthrough')}`,{
+  NextResponse:next,metadata:{scene_retry:{}},composeAdmin:{},serviceRoleKey:'FIXTURE_ONLY',authenticatedUserId:'fixture',generationId:'fixture-generation',
+  readVerifiedSceneRetryHold:async()=>null,unavailableClaimResponse:()=>json({error:'Unavailable'},{status:503}),
+})
+eq((await invalidRetry.run()).status,503)
+eq(retryReplay.pos<terminalGuard.pos,true)
+
+// Interleaving: compose's preflight saw old terminal scenes; retry completes
+// a retarget and releases its mutex before compose's INSERT wins. Re-read the
+// signed birth under the acquired lock, never buy speech/render from old URLs.
+const acquireDecl=find(n=>ts.isFunctionDeclaration(n)&&n.name?.text==='claimGenerationSubmission').getText(ast)
+const releaseDecl=find(n=>ts.isFunctionDeclaration(n)&&n.name?.text==='releaseGenerationClaim').getText(ast)
+for(const state of ['same','retargeted','in_flight','released','read_failed','read_threw','missing']){
+  const order=[],filters=[]
+  let saved=null
+  const fresh=state==='read_failed'?{ok:false}: {ok:true,claim:state==='missing'?null:{authority:state==='retargeted'?'new-signature':'old-signature',status:state==='released'?'released':'settled'}}
+  const db={from(){return {insert:async row=>{saved=row;order.push('insert');return {error:null}},delete(){order.push('delete');return {eq(k,v){filters.push([k,v]);return this},select(){return this},async maybeSingle(){return {data:{id:'fixture-claim'},error:null}}}}}}}
+  const module=evaluate(`let ownsSubmissionClaim=false,submissionClaimIsCreditHold=false,submissionAuthority='';export ${releaseDecl};export ${acquireDecl}`,{
+    composeAdmin:db,claimId:'fixture-claim',authenticatedUserId:'fixture',generationId:'fixture-generation',serviceRoleKey:'FIXTURE_ONLY',
+    quality:'cinematic_h3',duration:60,body:{},voiceoverScript:'',episodeNarrationForMemory:()=>'',submissionOwner:'unique-owner',
+    COMPOSE_CLAIM_EVENT:'compose_submission_claim',COMPOSE_CLAIM_PATH:'/api/compose',signComposeClaim:()=> 'compose-signature',NextResponse:next,console:{error(){}},
+    cinematicBirthClaim:{authority:'old-signature'},loadVerifiedCinematicClaim:async()=>{order.push('read');if(state==='read_threw')throw Error('Fixture read failure');return fresh},cinematicJobsAreTerminal:()=>state!=='in_flight',
+  })
+  const result=await module.claimGenerationSubmission(45,false)
+  eq(result.kind,state==='same'?'acquired':'unavailable')
+  eq(order,state==='same'?['insert','read']:['insert','read','delete'])
+  eq(saved.metadata.submission_owner,'unique-owner')
+  if(state!=='same'){
+    eq(result.response.status,409)
+    eq(filters.some(([k,v])=>k==='metadata->>submission_owner'&&v==='unique-owner'),true)
+    eq(filters.some(([k,v])=>k==='metadata->>authority'&&v==='compose-signature'),true)
+  }
+}
 
 // Execute the real duration-adjustment statements, not a copied trim function:
 // narration must not invent extra footage via support loop or final-frame hold.

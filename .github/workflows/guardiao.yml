@@ -54,6 +54,8 @@ jobs:
         run: node scripts/test-cinematic-terminal-proof-2026-09-11.mjs
       - name: Polling — bloqueio de conta não significa job encerrado
         run: node scripts/test-cinematic-poll-diagnostic-2026-09-11.mjs
+      - name: Recuperação de cena — mutex anterior ao POST pago
+        run: node scripts/test-scene-retry-mutex-2026-09-11.mjs
   legacy:
     name: Diagnóstico legado — manual, não certifica entrega
     if: github.event_name == 'workflow_dispatch'

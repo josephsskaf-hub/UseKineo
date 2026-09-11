@@ -16,14 +16,15 @@ const safeGenerationId = (value: unknown): string =>
 export function parseVideoQualityFailure(value: unknown, expectedGenerationId?: string): VideoQualityFailure | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null
   const data = value as Record<string, unknown>
-  if (data.qualityCheckFailed !== true) return null
+  if (data.qualityCheckFailed !== true && data.sceneRetryPending !== true) return null
   const expected = safeGenerationId(expectedGenerationId)
   const received = safeGenerationId(data.generationId)
   const identityMatches = !!received && (!expected || expected === received)
-  const refunded = identityMatches && data.refunded === true
-  const refundConfirmed = identityMatches && data.refundConfirmed === true
-  const claimReleased = identityMatches && data.claimReleased === true
-  const noDebit = identityMatches && data.noDebit === true
+  const financialResult = identityMatches && data.sceneRetryPending !== true
+  const refunded = financialResult && data.refunded === true
+  const refundConfirmed = financialResult && data.refundConfirmed === true
+  const claimReleased = financialResult && data.claimReleased === true
+  const noDebit = financialResult && data.noDebit === true
   return {
     generationId: expected || received,
     reason: typeof data.reason === 'string' && /^[a-z0-9_:-]{1,80}$/i.test(data.reason) ? data.reason : 'quality_check_failed',

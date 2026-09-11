@@ -116,7 +116,9 @@ function fixture(options = {}) {
     generationId, quality, fal_request_ids: [options.nullId ? null : 'old-request-id', 'ready-request-id'], fal_models: [model, model],
     scene_prompts: ['The exact signed scene prompt with sufficient description.', 'Already completed signed scene prompt.'],
     scene_seconds: [8, 10], scene_anchor_urls: [options.noAnchor ? null : 'https://fixture.invalid/anchor.png', null],
-    terminal_failed_jobs: options.notTerminal ? [] : [{ requestId: 'old-request-id', model }],
+    // A null slot cannot carry terminal proof for a provider ID it never had.
+    // Integrated HMAC binding correctly rejects such an orphan proof.
+    terminal_failed_jobs: options.notTerminal || options.nullId ? [] : [{ requestId: 'old-request-id', model }],
     ...(options.unknownNull ? {} : { submission_uncertain: options.uncertainNull ?? false }),
   }
   birth = { id: birthId, name: claims.CINEMATIC_CLAIM_EVENT, path: claims.CINEMATIC_CLAIM_PATH, user_id: userId,
@@ -186,6 +188,7 @@ async function attemptCompose(f) {
     exports, composeAdmin: f.db, authenticatedUserId: f.userId, generationId: f.generationId, claimId: f.compose.composeClaimId(f.userId, f.generationId),
     ...f.compose, serviceRoleKey: f.secret, quality: 'cinematic_h3', duration: 60, body: {}, voiceoverScript: '', episodeNarrationForMemory: () => '',
     ownsSubmissionClaim: false, submissionClaimIsCreditHold: false, console: { error() {} }, unavailableClaimResponse: blocked,
+    submissionOwner: 'compose-fixture-owner', submissionAuthority: '', cinematicBirthClaim: null,
     responseForClaimRow: async row => { ok(row.metadata.scene_retry, 'Actual compose sees retry-owned row'); return { pending: true } },
   })
   const result = await exports.claimGenerationSubmission(45, false)
