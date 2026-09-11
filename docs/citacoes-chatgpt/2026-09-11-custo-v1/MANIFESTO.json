@@ -1,0 +1,31 @@
+{
+  "classification": "FATO CONFIRMADO",
+  "recordedAtUtc": "2026-09-11T03:02:51.7524642Z",
+  "reviewedPublishedBase": "f31501b6f68349f7a90d98d40d08521e8fd8f591",
+  "integratedCodeHead": "b3d5efc703876024156ed9eed17948510228c6f7",
+  "validatedCodeCommit": "67cc53b45da0e813312af10212972f4325d7223e",
+  "applicationAndCriticalTestsUnchangedByBaseMerge": true,
+  "functionalFiles": [
+    {
+      "blob": "484984cd6639621c4ae04f8de90ad7968eaf1035",
+      "path": "app/ai-video-generator/complete-60-second-shorts-cost/page.tsx"
+    },
+    {
+      "blob": "4308fb6fc522f9d43cbb61d0beed39dd40bca029",
+      "path": "components/CitationAnswerPage.tsx"
+    },
+    {
+      "blob": "3c9e964f0a91c91c5e8eca1af161ba4cdbbc611d",
+      "path": "components/CitationCostDecision.tsx"
+    },
+    {
+      "blob": "8aeed25eafe1c3ab5b1f4ef050f3b954ba92c6b1",
+      "path": "lib/ui/citationCostDecisionStyles.ts"
+    }
+  ],
+  "protectedChanged": 0,
+  "preview": "../../citacoes-cost-v1-20260911/preview.html",
+  "previewSha256": "0728f90a7539ad79b2f1073f1386e67b4f35875e975a6314988ee0303fbb255c",
+  "publicationStatus": "LOCAL_ONLY",
+  "queueWritten": false
+}

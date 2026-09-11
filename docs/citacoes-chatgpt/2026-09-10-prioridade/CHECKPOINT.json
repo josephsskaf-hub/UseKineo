@@ -1,18 +1,19 @@
 {
   "classification": "EVIDÊNCIA OPERACIONAL",
-  "updatedAt": "2026-09-11T02:59:56.4422832Z",
+  "updatedAt": "2026-09-11T03:05:33.0160342Z",
   "threadTitle": "Kineo · Citações no ChatGPT",
   "worktree": "C:/kineo/.claude/worktrees/citacoes-01-2026-09-10",
   "branch": "codex/citacoes-01-2026-09-10",
-  "liveCount": 5,
-  "preparedAdditionalCount": 3,
+  "liveCount": 8,
+  "preparedAdditionalCount": 0,
   "targetUniquePages": 8,
   "liveCommits": [
     "94b2be4e",
-    "2e8f99ae"
+    "2e8f99ae",
+    "f31501b6f68349f7a90d98d40d08521e8fd8f591"
   ],
   "preparedCodeCommit": "7f3f9622",
-  "liveEvidence": "production-lote-01.json",
+  "liveEvidence": "../2026-09-11-custo-v1/PRODUCAO-8-PAGINAS.json",
   "localEvidence": "local-verification.json",
   "localHttpChecks": {
     "passed": 11,
@@ -24,14 +25,13 @@
     "/ai-video-generator/free-faceless-tiktok-tools",
     "/ai-video-generator/complete-60-second-shorts-cost",
     "/vs/invideo-alternatives-faceless-shorts",
-    "/ai-video-generator/faceless-shorts-under-30"
-  ],
-  "preparedPaths": [
+    "/ai-video-generator/faceless-shorts-under-30",
     "/ai-video-generator/free-youtube-shorts",
     "/ai-video-generator/horror-story-60-seconds",
     "/ai-video-generator/chatgpt-script-to-finished-short"
   ],
-  "transportStatus": "Board sole executor reserved f31501b6f68349f7a90d98d40d08521e8fd8f591 on reviewed main 7827f2e0, at C:/kineo-wt/board-integracao-20260911. Publication result and deployment pending independent verification. V1 excluded. No Citações queue write.",
+  "preparedPaths": [],
+  "transportStatus": "Board publication f31501b6 confirmed by git fetch; independent 11 GETs at 2026-09-11 00:03 BRT validate eight pages and all eight links in three discovery surfaces. Board released exclusive reservation. Cost V1 remains local and will use reviewed transport in a clean dedicated worktree.",
   "transportDependency": "C:/Users/josep/.codex/outputs/01a03e3e-5f63-7cf1-8b9f-6c6646b446b7/FILA-TRANSPORTE-DOCS-2026-09-10.md",
   "automationOwner": "Board",
   "existingAutomationId": "kineo-cita-es-no-chatgpt-7-dias",
@@ -142,7 +142,7 @@
     "transportOfflineScenarios": 13,
     "transportActualExecution": false,
     "proposedExecutor": "Board",
-    "nextStep": "Await Board final Git/deployment result; independently confirm ancestry and production HTTP. Board alone owns entrega-atual. Cost V1 remains a separate later delta."
+    "nextStep": "COMPLETED: three pages/catalog published and independently verified. No additional page required; proceed with existing buyer-intent V1."
   },
   "costDecisionV1": {
     "status": "PREPARED_AND_TESTED_LOCAL_ONLY",
@@ -163,6 +163,8 @@
     "productionExposureAt": null,
     "sixHourReviewAt": null,
     "paymentRevenue": "DESCONHECIDO",
-    "transport": "Separate delta after Board frozen package; no queue mutation"
+    "transport": "Ready to reserve clean C:/kineo/.claude/worktrees/citacoes-cost-publicacao-20260911; exact candidate/base required; no queue mutation yet.",
+    "integratedPublishedBase": "f31501b6f68349f7a90d98d40d08521e8fd8f591",
+    "boardClosureCherryPick": "e0d45b43 (source 416ba109)"
   }
 }

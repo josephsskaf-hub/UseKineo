@@ -1,0 +1,612 @@
+{
+  "classification": "EVIDÊNCIA DE PRODUÇÃO",
+  "method": {
+    "kind": "Public HTTPS GET only",
+    "user_agent": "Kineo-Citations-Audit/2026-09-11 (public HTTP verification; no JavaScript)",
+    "cookies": false,
+    "credentials": false,
+    "javascript": false,
+    "clicks": 0,
+    "redirects_followed": 0,
+    "retries": 0,
+    "requests": 11,
+    "body_hash": "SHA-256 of response bytes with Accept-Encoding: identity",
+    "old_offer_detection": "Context candidates across rendered HTML text, metadata and JSON-LD; text routes retain historical sections. Candidates are not automatic assertions of a current offer.",
+    "git_reference_reported_by_parent": "f31501b6; not independently tied to deployment by this HTTP audit"
+  },
+  "startedUtc": "2026-09-11T03:03:07.809Z",
+  "completedUtc": "2026-09-11T03:03:08.43Z",
+  "rawPrivateEvidence": "C:/Users/josep/.codex/outputs/01a088dd-908c-7c42-9bac-3e886e72a785/production-20260911.json",
+  "rawEvidenceSha256": "ea81b4477f407e8aaf55dd08138f6c398568243c385f0a86e4e457a19816120f",
+  "records": [
+    {
+      "url": "https://www.usekineo.com/ai-video-generator/free-script-to-faceless-video",
+      "path": "/ai-video-generator/free-script-to-faceless-video",
+      "started_utc": "2026-09-11T03:03:07.813Z",
+      "completed_utc": "2026-09-11T03:03:07.948Z",
+      "status": 200,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "location": null,
+        "x-vercel-cache": "HIT",
+        "x-vercel-id": "gru1::6hbx2-1789095753721-bea1d3b31365",
+        "etag": "\"0269b0f052a998967d6dd9a52861aae8\"",
+        "age": "129",
+        "date": "Fri, 11 Sep 2026 03:02:33 GMT"
+      },
+      "bytes": 73864,
+      "body_sha256": "c74aff307d6827fe11995d706709239cdcb9009058e6b1e8035c61ea77554a1e",
+      "canonical": [
+        "https://www.usekineo.com/ai-video-generator/free-script-to-faceless-video"
+      ],
+      "h1": [
+        "How can I turn my script into a complete faceless video for free, including voiceover and captions?"
+      ],
+      "citation_markers": [
+        "citacoes_01_20260910"
+      ],
+      "cost_decision_markers": [],
+      "trial_ctas": [
+        {
+          "href": "/signup?redirect=%2Fstudio%3Fengine%3Dfast%26intent_campaign%3Dcitacoes_01_script&intent_campaign=citacoes_01_script",
+          "text": "Start free — 30 credits, no card"
+        },
+        {
+          "href": "/signup?redirect=%2Fstudio%3Fengine%3Dfast%26intent_campaign%3Dcitacoes_01_script&intent_campaign=citacoes_01_script",
+          "text": "Start free — 30 credits, no card"
+        }
+      ],
+      "checks": {
+        "status200": true,
+        "canonical_exact": true,
+        "h1_one_nonempty": true,
+        "citation_marker_exact": true,
+        "trial_cta_30_no_card": true,
+        "v1_cost_marker_absent": true
+      },
+      "discovery": null
+    },
+    {
+      "url": "https://www.usekineo.com/ai-video-generator/free-faceless-tiktok-tools",
+      "path": "/ai-video-generator/free-faceless-tiktok-tools",
+      "started_utc": "2026-09-11T03:03:07.954Z",
+      "completed_utc": "2026-09-11T03:03:07.999Z",
+      "status": 200,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "location": null,
+        "x-vercel-cache": "HIT",
+        "x-vercel-id": "gru1::6thh6-1789095753812-2bd4b0b5b722",
+        "etag": "\"8f8d03c573aca017d5f216d377b6b04e\"",
+        "age": "128",
+        "date": "Fri, 11 Sep 2026 03:02:33 GMT"
+      },
+      "bytes": 73376,
+      "body_sha256": "14b864bc8b91983fdf50e371770eb9ab2d53a12821c767e11699e4757a910769",
+      "canonical": [
+        "https://www.usekineo.com/ai-video-generator/free-faceless-tiktok-tools"
+      ],
+      "h1": [
+        "What are the best free AI tools to create TikTok videos without showing my face?"
+      ],
+      "citation_markers": [
+        "citacoes_01_20260910"
+      ],
+      "cost_decision_markers": [],
+      "trial_ctas": [
+        {
+          "href": "/signup?redirect=%2Fstudio%3Fengine%3Dfast%26intent_campaign%3Dcitacoes_01_tiktok&intent_campaign=citacoes_01_tiktok",
+          "text": "Start free — 30 credits, no card"
+        },
+        {
+          "href": "/signup?redirect=%2Fstudio%3Fengine%3Dfast%26intent_campaign%3Dcitacoes_01_tiktok&intent_campaign=citacoes_01_tiktok",
+          "text": "Start free — 30 credits, no card"
+        }
+      ],
+      "checks": {
+        "status200": true,
+        "canonical_exact": true,
+        "h1_one_nonempty": true,
+        "citation_marker_exact": true,
+        "trial_cta_30_no_card": true,
+        "v1_cost_marker_absent": true
+      },
+      "discovery": null
+    },
+    {
+      "url": "https://www.usekineo.com/ai-video-generator/complete-60-second-shorts-cost",
+      "path": "/ai-video-generator/complete-60-second-shorts-cost",
+      "started_utc": "2026-09-11T03:03:08Z",
+      "completed_utc": "2026-09-11T03:03:08.052Z",
+      "status": 200,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "location": null,
+        "x-vercel-cache": "HIT",
+        "x-vercel-id": "gru1::5zb9n-1789095753857-c9892df88804",
+        "etag": "\"afbd30d6b1346dd8df42bc43aad6585d\"",
+        "age": "128",
+        "date": "Fri, 11 Sep 2026 03:02:33 GMT"
+      },
+      "bytes": 73643,
+      "body_sha256": "ac6f6ad1175754d3a29dc74f03cd00787a3a00cec3cb4a35172a99597cff70da",
+      "canonical": [
+        "https://www.usekineo.com/ai-video-generator/complete-60-second-shorts-cost"
+      ],
+      "h1": [
+        "What is the cheapest way to make complete 60-second AI Shorts with narration and captions?"
+      ],
+      "citation_markers": [
+        "citacoes_01_20260910"
+      ],
+      "cost_decision_markers": [],
+      "trial_ctas": [
+        {
+          "href": "/signup?redirect=%2Fstudio%3Fengine%3Dfast%26intent_campaign%3Dcitacoes_01_cost&intent_campaign=citacoes_01_cost",
+          "text": "Start free — 30 credits, no card"
+        },
+        {
+          "href": "/signup?redirect=%2Fstudio%3Fengine%3Dfast%26intent_campaign%3Dcitacoes_01_cost&intent_campaign=citacoes_01_cost",
+          "text": "Start free — 30 credits, no card"
+        }
+      ],
+      "checks": {
+        "status200": true,
+        "canonical_exact": true,
+        "h1_one_nonempty": true,
+        "citation_marker_exact": true,
+        "trial_cta_30_no_card": true,
+        "v1_cost_marker_absent": true
+      },
+      "discovery": null
+    },
+    {
+      "url": "https://www.usekineo.com/vs/invideo-alternatives-faceless-shorts",
+      "path": "/vs/invideo-alternatives-faceless-shorts",
+      "started_utc": "2026-09-11T03:03:08.054Z",
+      "completed_utc": "2026-09-11T03:03:08.101Z",
+      "status": 200,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "location": null,
+        "x-vercel-cache": "HIT",
+        "x-vercel-id": "gru1::w57vd-1789095753910-8a81bd1a3fdc",
+        "etag": "\"35b7942e900ef7a3bc9aec825c8d35bf\"",
+        "age": "127",
+        "date": "Fri, 11 Sep 2026 03:02:33 GMT"
+      },
+      "bytes": 74177,
+      "body_sha256": "b826f9cadcf87fa2c2e3bc08a28900bafe0590f4a229eca9c945602994577901",
+      "canonical": [
+        "https://www.usekineo.com/vs/invideo-alternatives-faceless-shorts"
+      ],
+      "h1": [
+        "What are five affordable alternatives to InVideo AI for complete faceless YouTube Shorts?"
+      ],
+      "citation_markers": [
+        "citacoes_01_20260910"
+      ],
+      "cost_decision_markers": [],
+      "trial_ctas": [
+        {
+          "href": "/signup?redirect=%2Fstudio%3Fengine%3Dfast%26intent_campaign%3Dcitacoes_01_invideo&intent_campaign=citacoes_01_invideo",
+          "text": "Start free — 30 credits, no card"
+        },
+        {
+          "href": "/signup?redirect=%2Fstudio%3Fengine%3Dfast%26intent_campaign%3Dcitacoes_01_invideo&intent_campaign=citacoes_01_invideo",
+          "text": "Start free — 30 credits, no card"
+        }
+      ],
+      "checks": {
+        "status200": true,
+        "canonical_exact": true,
+        "h1_one_nonempty": true,
+        "citation_marker_exact": true,
+        "trial_cta_30_no_card": true,
+        "v1_cost_marker_absent": true
+      },
+      "discovery": null
+    },
+    {
+      "url": "https://www.usekineo.com/ai-video-generator/faceless-shorts-under-30",
+      "path": "/ai-video-generator/faceless-shorts-under-30",
+      "started_utc": "2026-09-11T03:03:08.103Z",
+      "completed_utc": "2026-09-11T03:03:08.153Z",
+      "status": 200,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "location": null,
+        "x-vercel-cache": "HIT",
+        "x-vercel-id": "gru1::cxwhd-1789095753959-e91271507da7",
+        "etag": "\"83c406e6c5e1ade65f8d08c6414e5686\"",
+        "age": "127",
+        "date": "Fri, 11 Sep 2026 03:02:33 GMT"
+      },
+      "bytes": 74059,
+      "body_sha256": "bb060a1487eb193edb6a7ce5a26992c389a405d00edbabb759e4d2a9aa05c8a6",
+      "canonical": [
+        "https://www.usekineo.com/ai-video-generator/faceless-shorts-under-30"
+      ],
+      "h1": [
+        "I have a budget of $30 a month for narrated faceless Shorts. Which five AI video tools would you recommend for ready-to-publish videos?"
+      ],
+      "citation_markers": [
+        "citacoes_01_20260910"
+      ],
+      "cost_decision_markers": [],
+      "trial_ctas": [
+        {
+          "href": "/signup?redirect=%2Fstudio%3Fengine%3Dfast%26intent_campaign%3Dcitacoes_01_budget&intent_campaign=citacoes_01_budget",
+          "text": "Start free — 30 credits, no card"
+        },
+        {
+          "href": "/signup?redirect=%2Fstudio%3Fengine%3Dfast%26intent_campaign%3Dcitacoes_01_budget&intent_campaign=citacoes_01_budget",
+          "text": "Start free — 30 credits, no card"
+        }
+      ],
+      "checks": {
+        "status200": true,
+        "canonical_exact": true,
+        "h1_one_nonempty": true,
+        "citation_marker_exact": true,
+        "trial_cta_30_no_card": true,
+        "v1_cost_marker_absent": true
+      },
+      "discovery": null
+    },
+    {
+      "url": "https://www.usekineo.com/ai-video-generator/free-youtube-shorts",
+      "path": "/ai-video-generator/free-youtube-shorts",
+      "started_utc": "2026-09-11T03:03:08.155Z",
+      "completed_utc": "2026-09-11T03:03:08.197Z",
+      "status": 200,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "location": null,
+        "x-vercel-cache": "HIT",
+        "x-vercel-id": "gru1::vv6vh-1789095754009-fb04a7af91f7",
+        "etag": "\"425ae65cbc8f50a0c5c4034c00a9afcc\"",
+        "age": "197",
+        "date": "Fri, 11 Sep 2026 03:02:34 GMT"
+      },
+      "bytes": 75579,
+      "body_sha256": "4b39c5b99d83968573a9cdb3631b13dd934836c197ab2caec5e66beec16b53f2",
+      "canonical": [
+        "https://www.usekineo.com/ai-video-generator/free-youtube-shorts"
+      ],
+      "h1": [
+        "What are the best free AI video generators for YouTube Shorts?"
+      ],
+      "citation_markers": [
+        "citacoes_01_20260910"
+      ],
+      "cost_decision_markers": [],
+      "trial_ctas": [
+        {
+          "href": "/signup?redirect=%2Fstudio%3Fengine%3Dfast%26intent_campaign%3Dcitacoes_01_youtube&intent_campaign=citacoes_01_youtube",
+          "text": "Start free — 30 credits, no card"
+        },
+        {
+          "href": "/signup?redirect=%2Fstudio%3Fengine%3Dfast%26intent_campaign%3Dcitacoes_01_youtube&intent_campaign=citacoes_01_youtube",
+          "text": "Start free — 30 credits, no card"
+        }
+      ],
+      "checks": {
+        "status200": true,
+        "canonical_exact": true,
+        "h1_one_nonempty": true,
+        "citation_marker_exact": true,
+        "trial_cta_30_no_card": true,
+        "v1_cost_marker_absent": true
+      },
+      "discovery": null
+    },
+    {
+      "url": "https://www.usekineo.com/ai-video-generator/horror-story-60-seconds",
+      "path": "/ai-video-generator/horror-story-60-seconds",
+      "started_utc": "2026-09-11T03:03:08.199Z",
+      "completed_utc": "2026-09-11T03:03:08.239Z",
+      "status": 200,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "location": null,
+        "x-vercel-cache": "HIT",
+        "x-vercel-id": "gru1::vv6vh-1789095754054-9d1b522638a5",
+        "etag": "\"b8b719b05c49e1ecd046a84eb31cdd57\"",
+        "age": "196",
+        "date": "Fri, 11 Sep 2026 03:02:34 GMT"
+      },
+      "bytes": 77266,
+      "body_sha256": "7dce10433a6ae52bedf9f79ac7af0976922fc4ca2ff80c455cc6c5f758bc07ca",
+      "canonical": [
+        "https://www.usekineo.com/ai-video-generator/horror-story-60-seconds"
+      ],
+      "h1": [
+        "I have a 60-second horror story script. What are five good websites to turn it into a narrated YouTube Short with captions?"
+      ],
+      "citation_markers": [
+        "citacoes_01_20260910"
+      ],
+      "cost_decision_markers": [],
+      "trial_ctas": [
+        {
+          "href": "/chatgpt-to-youtube-shorts?intent_campaign=citacoes_01_horror#chatgpt-script-handoff",
+          "text": "Start free — 30 credits, no card"
+        },
+        {
+          "href": "/chatgpt-to-youtube-shorts?intent_campaign=citacoes_01_horror#chatgpt-script-handoff",
+          "text": "Start free — 30 credits, no card"
+        }
+      ],
+      "checks": {
+        "status200": true,
+        "canonical_exact": true,
+        "h1_one_nonempty": true,
+        "citation_marker_exact": true,
+        "trial_cta_30_no_card": true,
+        "v1_cost_marker_absent": true
+      },
+      "discovery": null
+    },
+    {
+      "url": "https://www.usekineo.com/ai-video-generator/chatgpt-script-to-finished-short",
+      "path": "/ai-video-generator/chatgpt-script-to-finished-short",
+      "started_utc": "2026-09-11T03:03:08.241Z",
+      "completed_utc": "2026-09-11T03:03:08.283Z",
+      "status": 200,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "location": null,
+        "x-vercel-cache": "HIT",
+        "x-vercel-id": "gru1::cfp67-1789095754096-a32b51abaa52",
+        "etag": "\"5d0b4b0344099fb7f0c50ec063eb6d5a\"",
+        "age": "195",
+        "date": "Fri, 11 Sep 2026 03:02:34 GMT"
+      },
+      "bytes": 77357,
+      "body_sha256": "af1788850913247d501730ea602d0c99d9a1d4bc0e1d4b3a8368bcdd3445430e",
+      "canonical": [
+        "https://www.usekineo.com/ai-video-generator/chatgpt-script-to-finished-short"
+      ],
+      "h1": [
+        "I wrote a YouTube Shorts script in ChatGPT. Which five tools can turn it into a finished video with voiceover and subtitles?"
+      ],
+      "citation_markers": [
+        "citacoes_01_20260910"
+      ],
+      "cost_decision_markers": [],
+      "trial_ctas": [
+        {
+          "href": "/chatgpt-to-youtube-shorts?intent_campaign=citacoes_01_handoff#chatgpt-script-handoff",
+          "text": "Start free — 30 credits, no card"
+        },
+        {
+          "href": "/chatgpt-to-youtube-shorts?intent_campaign=citacoes_01_handoff#chatgpt-script-handoff",
+          "text": "Start free — 30 credits, no card"
+        }
+      ],
+      "checks": {
+        "status200": true,
+        "canonical_exact": true,
+        "h1_one_nonempty": true,
+        "citation_marker_exact": true,
+        "trial_cta_30_no_card": true,
+        "v1_cost_marker_absent": true
+      },
+      "discovery": null
+    },
+    {
+      "url": "https://www.usekineo.com/ai-video-generator",
+      "path": "/ai-video-generator",
+      "started_utc": "2026-09-11T03:03:08.285Z",
+      "completed_utc": "2026-09-11T03:03:08.332Z",
+      "status": 200,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "location": null,
+        "x-vercel-cache": "HIT",
+        "x-vercel-id": "gru1::cfp67-1789095754141-2fb7597f6737",
+        "etag": "\"5411d745b1933924fd528478ef8e51cf\"",
+        "age": "191",
+        "date": "Fri, 11 Sep 2026 03:02:34 GMT"
+      },
+      "bytes": 98320,
+      "body_sha256": "150dc4faba28f22aeaf400089e6e5aabb0e901390b02eba53d3b71580a928352",
+      "canonical": [
+        "https://www.usekineo.com/ai-video-generator"
+      ],
+      "h1": [
+        "Every AI video engine, finishing the whole Short for you"
+      ],
+      "citation_markers": [],
+      "cost_decision_markers": [],
+      "trial_ctas": [
+        {
+          "href": "/signup?utm_source=seo&utm_medium=organic&utm_campaign=seo_engine_hub&intent_campaign=seo_engine_hub&redirect=%2Fstudio%3Fengine%3Dfast%26intent_campaign%3Dseo_engine_hub",
+          "text": "Start free — 30 credits →"
+        },
+        {
+          "href": "/signup",
+          "text": "Start free"
+        }
+      ],
+      "checks": null,
+      "discovery": [
+        {
+          "path": "/ai-video-generator/free-script-to-faceless-video",
+          "present": true
+        },
+        {
+          "path": "/ai-video-generator/free-faceless-tiktok-tools",
+          "present": true
+        },
+        {
+          "path": "/ai-video-generator/complete-60-second-shorts-cost",
+          "present": true
+        },
+        {
+          "path": "/vs/invideo-alternatives-faceless-shorts",
+          "present": true
+        },
+        {
+          "path": "/ai-video-generator/faceless-shorts-under-30",
+          "present": true
+        },
+        {
+          "path": "/ai-video-generator/free-youtube-shorts",
+          "present": true
+        },
+        {
+          "path": "/ai-video-generator/horror-story-60-seconds",
+          "present": true
+        },
+        {
+          "path": "/ai-video-generator/chatgpt-script-to-finished-short",
+          "present": true
+        }
+      ]
+    },
+    {
+      "url": "https://www.usekineo.com/llms.txt",
+      "path": "/llms.txt",
+      "started_utc": "2026-09-11T03:03:08.335Z",
+      "completed_utc": "2026-09-11T03:03:08.376Z",
+      "status": 200,
+      "headers": {
+        "content-type": "text/plain; charset=utf-8",
+        "location": null,
+        "x-vercel-cache": "HIT",
+        "x-vercel-id": "gru1::wvvbw-1789095754190-3c68fa53fbef",
+        "etag": "\"0aacb9f062137cf6f169ba6f7e7fcaf8\"",
+        "age": "190",
+        "date": "Fri, 11 Sep 2026 03:02:34 GMT"
+      },
+      "bytes": 50951,
+      "body_sha256": "ba9db9a0ca3ca40e5ace1b0c5e3ee9c3a6918b54a51880affaa576d69c852f42",
+      "canonical": [],
+      "h1": [],
+      "citation_markers": [],
+      "cost_decision_markers": [],
+      "trial_ctas": [],
+      "checks": null,
+      "discovery": [
+        {
+          "path": "/ai-video-generator/free-script-to-faceless-video",
+          "present": true
+        },
+        {
+          "path": "/ai-video-generator/free-faceless-tiktok-tools",
+          "present": true
+        },
+        {
+          "path": "/ai-video-generator/complete-60-second-shorts-cost",
+          "present": true
+        },
+        {
+          "path": "/vs/invideo-alternatives-faceless-shorts",
+          "present": true
+        },
+        {
+          "path": "/ai-video-generator/faceless-shorts-under-30",
+          "present": true
+        },
+        {
+          "path": "/ai-video-generator/free-youtube-shorts",
+          "present": true
+        },
+        {
+          "path": "/ai-video-generator/horror-story-60-seconds",
+          "present": true
+        },
+        {
+          "path": "/ai-video-generator/chatgpt-script-to-finished-short",
+          "present": true
+        }
+      ]
+    },
+    {
+      "url": "https://www.usekineo.com/sitemap.xml",
+      "path": "/sitemap.xml",
+      "started_utc": "2026-09-11T03:03:08.378Z",
+      "completed_utc": "2026-09-11T03:03:08.429Z",
+      "status": 200,
+      "headers": {
+        "content-type": "application/xml",
+        "location": null,
+        "x-vercel-cache": "HIT",
+        "x-vercel-id": "gru1::wvvbw-1789095754235-0f8e138e7418",
+        "etag": "\"e082258db1d7c016d688581b5951e874\"",
+        "age": "191",
+        "date": "Fri, 11 Sep 2026 03:02:34 GMT"
+      },
+      "bytes": 34020,
+      "body_sha256": "acec650087806cd433d4087e362dec5dc9df0690c3af75d18642787106dcf6ce",
+      "canonical": [],
+      "h1": [],
+      "citation_markers": [],
+      "cost_decision_markers": [],
+      "trial_ctas": [],
+      "checks": null,
+      "discovery": [
+        {
+          "path": "/ai-video-generator/free-script-to-faceless-video",
+          "present": true
+        },
+        {
+          "path": "/ai-video-generator/free-faceless-tiktok-tools",
+          "present": true
+        },
+        {
+          "path": "/ai-video-generator/complete-60-second-shorts-cost",
+          "present": true
+        },
+        {
+          "path": "/vs/invideo-alternatives-faceless-shorts",
+          "present": true
+        },
+        {
+          "path": "/ai-video-generator/faceless-shorts-under-30",
+          "present": true
+        },
+        {
+          "path": "/ai-video-generator/free-youtube-shorts",
+          "present": true
+        },
+        {
+          "path": "/ai-video-generator/horror-story-60-seconds",
+          "present": true
+        },
+        {
+          "path": "/ai-video-generator/chatgpt-script-to-finished-short",
+          "present": true
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "page_checks_all_pass": true,
+    "discovery_checks_all_pass": true,
+    "failed_requests": []
+  },
+  "contextReview": {
+    "reviewed_utc": "2026-09-11T03:04:01.325Z",
+    "eight_pages_current_offer_findings": "No old-offer candidate detected in the visible HTML, metadata or JSON-LD of the eight pages. Their Start free CTAs explicitly contain 30 credits and no card.",
+    "llms_history": "Retired trial and pricing candidates occur in history explicitly marked superseded or retired; this does not establish an active offer. One Studio-only candidate was a false positive about sibling product studios.",
+    "llms_currency_contradiction": {
+      "classification": "CONTRADIÇÃO",
+      "current_section_quote": "- Checkout currency: USD.",
+      "guide_listing_quote": "Brazilian customers pay in reais.",
+      "context": "Both phrases remain in this same fetched llms.txt. Payment behavior was not tested."
+    },
+    "scope": "Public HTTP evidence only. No citation ranking, signup, payment, JS hydration, or deployment-to-git linkage is inferred."
+  },
+  "gitFetchConfirmed": "f31501b6f68349f7a90d98d40d08521e8fd8f591",
+  "boardReportedDeployment": {
+    "id": "dpl_5XQu7pUoiVHfKN3CDb7HPayGpoSx",
+    "source": "Board thread 01a03e3e-5f63-7cf1-8b9f-6c6646b446b7; no independent credentialed Vercel query",
+    "ciRun": "34556487758",
+    "alias": "www.usekineo.com",
+    "state": "READY",
+    "ci": "SUCCESS"
+  }
+}
