@@ -1,0 +1,3 @@
+# Only the reviewed transport scripts: bash must stay LF on Windows checkout.
+enfileirar.sh text eol=lf
+publish-reviewed-queue.sh text eol=lf
