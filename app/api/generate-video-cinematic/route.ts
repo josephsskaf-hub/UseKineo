@@ -67,7 +67,7 @@ import { SUPPORTED_DURATIONS, largestFittingDuration } from '@/lib/expandPolicy'
 // recusa seguia medindo contra o fantasma. `deveAterrissar` traz a regua para
 // o PISO do seletor. Nao libera video nenhum: so faz o numero dito ser verdade.
 import { deveResgatar, deveAterrissar } from '@/lib/durationGhost'
-import { fitCinematicPlanFloor } from '@/lib/cinematic/timelineContract'
+import { fitCinematicPlanFloor, planSilenceReport, SILENCE_SCENE_MAX_SECONDS, SILENCE_TOTAL_MAX_SECONDS } from '@/lib/cinematic/timelineContract'
 import { openai } from '@/lib/openai'
 // KINEO-HOLLYWOOD-2026-07-09 — Hollywood Mode 2.0: per-scene engine routing
 // with native audio. KINEO-HOLLYWOOD-22-2026-07-10: Kling3 dialogue+support /
@@ -3479,7 +3479,10 @@ async function manipularPost(req: NextRequest) {
             let w = 0
             while (si < sentences.length) {
               const nw = wordsIn(sentences[si])
-              if (chunk.length > 0 && (w + nw > capWords(sc) || w >= share)) break
+              // KINEO-SILENCIO-NA-CENA-2026-09-11 — frase curta ("I didn't.") nunca
+              // abre cena própria: cabe no bloco atual mesmo passando da cota.
+              // Era a origem dos 4 s para 2 palavras no canário do faroleiro.
+              if (chunk.length > 0 && (w + nw > capWords(sc) || (w >= share && nw >= 5))) break
               chunk.push(sentences[si])
               w += nw
               si++
@@ -3708,6 +3711,8 @@ async function manipularPost(req: NextRequest) {
           const spokenSeconds = planReport.reduce((a, r) => a + (r.words > 0 ? (r.seconds ?? 0) : 0), 0)
           const totalSeconds = planReport.reduce((a, r) => a + (r.seconds ?? 0), 0)
           const muteSeconds = totalSeconds - spokenSeconds
+          // KINEO-SILENCIO-NA-CENA-2026-09-11 — a mesma régua do render pago, a $0.
+          const silence = planSilenceReport(plan.scenes, 2.3)
           // ═══ KINEO-DRYRUN-PREFLIGHT-2026-08-25 — O CONTRATO DO FORNECEDOR ═══
           // O 422 do primeiro render Omni (image_url faltando, 8/8 cenas)
           // passou LIMPO pelo dry-run porque ele parava no plano e nunca
@@ -3753,13 +3758,20 @@ async function manipularPost(req: NextRequest) {
             total_seconds: totalSeconds,
             spoken_seconds: spokenSeconds,
             mute_seconds: muteSeconds,
+            silence_inside_scenes_seconds: silence.total,
+            silence_worst_scene: silence.worstScene,
+            silence_worst_seconds: silence.worst,
+            silence_per_scene: silence.perScene,
+            silence_words_to_add: silence.wordsToAdd,
             preflight_problems: preflightProblems,
             dispatch_preview: dispatchPreview,
-            verdict: muteSeconds <= 6 && totalSeconds >= duration && preflightProblems.length === 0
-              ? 'PASS — todos os segundos têm história (mudo ≤6s), a duração fecha e o payload respeita o schema do fornecedor'
+            verdict: muteSeconds <= 6 && totalSeconds >= duration && preflightProblems.length === 0 && silence.ok
+              ? 'PASS — todos os segundos têm história (mudo ≤6s, silêncio dentro da cena ≤1,5s/≤8s), a duração fecha e o payload respeita o schema do fornecedor'
               : preflightProblems.length > 0
                 ? `FAIL — preflight: ${preflightProblems.join(' · ')}`
-                : `FAIL — ${muteSeconds}s mudos ou duração ${totalSeconds}s abaixo do piso`,
+                : !silence.ok
+                  ? `FAIL — cena ${silence.worstScene} fica ${silence.worst}s sem fala (${silence.total}s no total); faltam ~${silence.wordsToAdd} palavras`
+                  : `FAIL — ${muteSeconds}s mudos ou duração ${totalSeconds}s abaixo do piso`,
             scenes: planReport,
             note: 'Nada foi enviado ao fal e os créditos foram estornados. Custo real: só o GPT do planner.',
           })
@@ -3783,6 +3795,25 @@ async function manipularPost(req: NextRequest) {
           generationId, refunded, refundConfirmed: refunded, claimReleased: released, retryable: false,
           plannedSeconds: finalPlannedSeconds, requestedSeconds: duration,
         }, { status: 422 })
+      }
+      // ═══ KINEO-SILENCIO-NA-CENA-2026-09-11 — aprovado pelo fundador ═══════
+      // Cena de 4 s com 2 palavras passava como "com história" e saía 3 s muda.
+      // Régua: silêncio por cena = segundos − palavras ÷ 2,3; reprova acima de
+      // 1,5 s numa cena ou 8 s no total. Estorna e diz quantas palavras faltam.
+      {
+        const silence = planSilenceReport(plan.scenes, 2.3)
+        if (!silence.ok) {
+          const refunded = await confirmCinematicRefund()
+          const released = refunded && await releaseBirthClaim('plan_silence_inside_scenes')
+          await writeServerEvent({ name: 'plan_silence_rejected', userId: user.id, path: '/api/generate-video-cinematic', metadata: { generation_id: generationId, family, total_silence: silence.total, worst_scene: silence.worstScene, worst_seconds: silence.worst, per_scene: silence.perScene, words_to_add: silence.wordsToAdd } })
+          return NextResponse.json({
+            error: `Scene ${silence.worstScene} would sit ${silence.worst.toFixed(1)} seconds with no narration (${silence.total.toFixed(1)} s of silence across the film). Kineo will not pad your story with dead air. Add about ${silence.wordsToAdd} more words, or choose a shorter length. No video scenes were submitted and your credits are back.`,
+            qualityCheckFailed: true, reason: 'plan_silence_inside_scenes',
+            generationId, refunded, refundConfirmed: refunded, claimReleased: released, retryable: false,
+            silenceSeconds: silence.total, worstScene: silence.worstScene, worstSceneSilence: silence.worst, wordsToAdd: silence.wordsToAdd,
+            sceneMax: SILENCE_SCENE_MAX_SECONDS, totalMax: SILENCE_TOTAL_MAX_SECONDS,
+          }, { status: 422 })
+        }
       }
       let anchors: HollywoodAnchors | null = null
       try {

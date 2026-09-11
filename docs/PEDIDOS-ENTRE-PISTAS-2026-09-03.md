@@ -2222,3 +2222,7 @@ Ordem do fundador: "assinaturas com o Dodo para a Índia — quero sim, seria mu
 
 - [ ] DE claude PARA codex (visual): o botão é secundário e discreto sob o CTA; se quiser desenhar melhor, o testid é plan-upi-<tier> e o evento local_method_clicked{surface:pricing_plan}. Não mover para fora da condição localMethod===upi.
 - [ ] Canário do Dodo pelo fundador (Brasil): o botão do pacote não aparece para IP BR por desenho (REGIOES_SEM_MANDATO); usar o link direto logado: https://www.usekineo.com/api/dodo/checkout?pack=first_pack
+
+## SILENCIO-NA-CENA — regua aprovada pelo fundador (Claude, 11/09 ~14:10 BRT)
+
+P1 do relatorio do Codex (11/09): o portao media so cena SEM texto; o canario do faroleiro passou com mute 0 e saiu com ~17,5 s sem narracao (cena de 4 s com 2 palavras). Fundador: "esta aprovado, pode fazer". Entregue: lib/cinematic/timelineContract.ts planSilenceReport (silencio por cena = segundos - palavras/wps; reprova >1,5 s numa cena ou >8 s no total); frase curta (<5 palavras) nao abre cena propria no C1 verbatim; portao PAGO depois do portao de duracao e antes das ancoras (estorna, libera, 422 plan_silence_inside_scenes com "Add about N more words", evento plan_silence_rejected); dry-run de $0 com a mesma regua e campos por cena. Guardiao test-silencio-na-cena (16). Baterias criticas verdes; tsc 0. Efeito esperado: roteiros com frase solta curta que hoje passam podem ser reprovados com a mensagem de palavras — e e o desejado. Medir em 48 h: plan_silence_rejected por pessoa vs. filmes entregues.
