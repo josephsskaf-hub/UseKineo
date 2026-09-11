@@ -306,3 +306,93 @@ Isto é garantia:
   (sem chave fal), Seedance provider_abandoned_refunded (12 pessoas/15 d, sem
   chave fal para saber se as cenas estavam prontas), canário pago Kling 3 em
   1ª pessoa (fundador).
+
+---
+
+## Rotação 4 — 18:30 BRT (21:30 UTC) · branch codex/vigia-motores-1831 · base aad34de2
+
+### Filmes de contas externas desde 20:30 UTC (17:30 BRT)
+
+**Nenhum render novo.** `videos` depois de 20:30 UTC: 0 linhas de qualquer
+conta. Eventos de render na janela (`generation_dispatch_received`,
+`cinematic_*`, `compose_*`, `generation_stage_error`, `plan_silence_rejected`,
+`shot_spec_detected`, `clip_*`, avatar, Kineo 1): **0**. O que houve foi só
+porta de entrada: 18 sessões de landing, 1 pessoa do ChatGPT em
+/text-to-video-shorts escreveu um tema de 118 caracteres (`organic_topic_
+submitted` 21:00 UTC), foi mandada ao /signup, voltou à home deslogada e
+clicou "free" no exit-intent — nunca se cadastrou, nunca despachou. Fora do
+território (funil de cadastro); anotado, não tocado. Contas internas: nenhum
+render pago, nenhum dry-run. Kling 3/H3/Omni/S25: **0 renders de qualquer
+conta desde 11:34** — voz na boca e primeira pessoa seguem sem prova.
+
+Deploy da rotação 3 confirmado: aad34de2 = dpl_5BJofWYDPUqzKrPDDTQHVYWYxzmG
+READY em produção (20:43 UTC). Nenhum outro autor publicou desde então.
+
+### Delta dos motores (rotação 4) — duas pendências herdadas medidas no banco
+
+**1. Seedance `provider_abandoned_refunded` "12 pessoas em 15 dias": ERA
+REGIME VELHO, ESTÁ FECHADO.** A rotação 1 somou 15 dias sem olhar o
+calendário do cron de resgate. Separando pelo relógio dos consertos do
+finish-stranded-renders (sprint-assinaturas #1/#7/#14/#17, 01-02/09):
+
+| período | claims Seedance externos abandonados | o que o cron fez |
+|---|---|---|
+| 28/08 → 01/09 23:12 UTC (antes do #1) | 8 (8 pessoas) — TODOS com N/N cenas COMPLETED e autorizadas no claim assinado | nada gravado: o cron não escrevia desfecho (o `stranded_outcome` nasceu no #1) |
+| 02/09 02:53 → 11:41 UTC (janela do cache da Vercel, #17) | 3 (3 pessoas): e7f9f000 compôs na 3ª tentativa e ainda assim foi estornado; 1750d0ca e c3f568fa `no_authorized_urls` ×7 e ×6 com o claim cheio | o bug do data cache, consertado no c0ed1989 |
+| **02/09 14:00 UTC → agora (9 dias)** | **0** | 88 claims Seedance externos settled+debitados, **88/88 compostos** (30 pelo cron = 34%, 58 pela própria aba); 1 Kling 2.5 composto pelo cron |
+
+Ou seja: desde o conserto, a rede pega 100% dos Seedance de conta externa
+que a pessoa abandona; um terço dos filmes Seedance da casa só existe porque
+o cron montou. A pendência "medir quantas tinham todas as cenas prontas"
+morre aqui: as 8 antigas tinham (N/N URLs autorizadas), e o cron da época
+não escrevia nada. Não há defeito vivo no Seedance.
+
+**2. H3 de walidbasempayments (09365f4a, 09:22 UTC): a causa deixa de ser
+"desconhecida".** O claim assinado tem `fal_request_ids` 6/6 e
+`authorized_completed_urls` **4 de 6** — 4 cenas ficaram COMPLETED e foram
+autorizadas pela aba enquanto a pessoa esperou (51 min); 2 nunca chegaram
+lá. O cron olhou o claim em ≥7 rodadas (settled de 09:23 a 11:30) e não
+deixou UM evento: em `collectFinishedClips` (finish-stranded-renders
+:151-171) cena IN_QUEUE/IN_PROGRESS ou `result()` que lança qualquer coisa
+≠ 422/400 vira `stillRunning` → `pending:4/6`, e `pending` NÃO está no
+SILENT_TERMINAL (:1277) → silêncio. Dois caminhos possíveis para as 2 cenas,
+os dois mudos: (a) presas na fila do H3 por >2 h (o motor está há 15 dias
+sem entrega); (b) COMPLETED com `error` no status — o que o Codex provou no
+RENDER-POLL-11/2 para o poller da aba ("outra retorna status COMPLETED e
+resultado HTTP 403") e deixou como PENDENTE para o cron irmão. Em qualquer
+dos dois, 4/6 = 67% ≥ piso de 60%: o cron teria montado um filme de 4
+cenas se soubesse que as outras 2 estavam mortas. O estorno de 27cr veio
+às 11:30 e a pessoa (trial de 30cr) foi embora sem filme. Território do
+cron não é desta vigília → PEDIDO ao Codex (dono do poller) abaixo.
+
+**3. Hollywood sem drift de cenário no único filme com prompts.** Kling 3
+6462ea66 (fundador, 11:53 BRT, 8/8): "Ilha das Cabras" no prompt da âncora
+está na fala ("the last lighthouse keeper on Ilha das Cabras") → legítimo;
+nenhum lugar/década inventado nas 8 cenas. CENARIO-HOLLYWOOD-11 continua
+com 1 filme / 0 drift — sem razão para plugar o filtro lá ainda. Confirmado
+de passagem: `visual_mode: documentary_faceless` e 8/8 cenas `support` para
+um roteiro em 1ª pessoa ("My name is Tomás") — o retrato exato do que o
+d4d89499 (11:57) corrige; o filme rodou no deploy anterior.
+
+**4. Portões novos, 7 h de produção:** desde 14:00 UTC, 12 despachos de 5
+pessoas; `plan_silence_rejected` 0, `shot_spec_detected` 0,
+`narration_guard_blocked` 2 (2 pessoas, 14:00 e 14:41, a segunda é o
+fundador). Nenhum portão novo barrou cliente externo.
+
+### O que mudou (rotação 4)
+
+Só diário e pedidos — nenhum filme novo para medir, e o único defeito
+encontrado (poller do cron cego a cena morta) mora fora do território.
+tsc 0 · baterias verdes (lista no fechamento). Base aad34de2 intacta.
+
+### O que fica
+
+- Os 2 request_ids mortos do H3 (claim 928eebd1) continuam sem leitura na
+  fal — sem chave nesta máquina. Quem tiver: se COMPLETED+error, é o caso
+  (b) e o pedido ao Codex fecha os dois pollers; se IN_QUEUE 2 h depois, é
+  o H3 na fal e o caso é de fornecedor.
+- Continuam: retry de cena com '9:16' cravado (Codex), canário pago Kling 3
+  em 1ª pessoa (fundador), `setting_scrubbed` sem denominador (0 filmes
+  clássicos desde o deploy 20:43 UTC).
+- Próxima rotação (19:30) é o FECHAMENTO: tabela motor × filmes/nota/defeito/
+  conserto, "o que falta encaixar" por motor, "para o fundador" em ≤5 linhas.
