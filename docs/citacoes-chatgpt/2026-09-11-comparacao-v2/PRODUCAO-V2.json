@@ -1,9 +1,9 @@
 {
   "classification": "EVIDENCIA DE PRODUCAO",
   "publishedCommit": "d4a34ba12756d56ee9ed1628eca919071ddc5630",
-  "firstPositiveObservationAt": "2026-11-09T04:27:54-03:00",
+  "firstPositiveObservationAt": "2026-09-11T01:27:54.8791873-03:00",
   "timestampMeaning": "First positive public HTTP observation, not exact rollout time",
-  "sixHourReviewAfter": "2026-11-09T10:27:54-03:00",
+  "sixHourReviewAfter": "2026-09-11T07:27:54.8791873-03:00",
   "publicGetRequests": 3,
   "comparison": {
     "url": "https://www.usekineo.com/vs/invideo-alternatives-faceless-shorts",

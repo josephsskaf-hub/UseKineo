@@ -1,6 +1,6 @@
 {
   "classification": "EVIDÊNCIA OPERACIONAL",
-  "updatedAt": "2026-09-11T04:30:02.7525779Z",
+  "updatedAt": "2026-09-11T04:38:09.2645228Z",
   "threadTitle": "Kineo · Citações no ChatGPT",
   "worktree": "C:/kineo/.claude/worktrees/citacoes-01-2026-09-10",
   "branch": "codex/citacoes-01-2026-09-10",
@@ -191,8 +191,8 @@
     "unchangedOtherPages": 7,
     "criticalPassed": 5,
     "fullTypecheckExit": 0,
-    "productionExposureAt": "2026-11-09T04:27:54-03:00",
-    "sixHourReviewAt": "2026-11-09T10:27:54-03:00",
+    "productionExposureAt": "2026-09-11T01:27:54.8791873-03:00",
+    "sixHourReviewAt": "2026-09-11T07:27:54.8791873-03:00",
     "paymentRevenue": "DESCONHECIDO",
     "activeVariantsAfterPublication": 2,
     "publishedCommit": "d4a34ba12756d56ee9ed1628eca919071ddc5630",

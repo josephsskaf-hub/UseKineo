@@ -13,3 +13,5 @@
 **QUESTÃO PENDENTE:** não há evidência nova de pessoas externas, pagamentos canônicos ou receita atribuída. São duas variantes comerciais ativas, limite aprovado: preservar as amostras e não criar uma terceira. A próxima bateria comparável de perguntas reais no ChatGPT permanece em 11/09 às 20h BRT. O prazo renovado termina às 23h30; esta entrega não renova a automação.
 
 **EVIDÊNCIA OPERACIONAL LOCAL:** este fechamento posterior ao SHA publicado deve acompanhar a próxima entrega substantiva autorizada; não justifica push só de relatório.
+
+**CONTRADIÇÃO CORRIGIDA — 11/09 01h38 BRT:** os dois JSONs locais haviam derivado os horários da V2 como 09/11, devido à reconversão cultural de um objeto `DateTime` para texto. O HTTP bruto continuava correto (`2026-09-11T04:27:54.8791873Z`), assim como os horários escritos neste relatório e enviados ao Board. O checkpoint e `PRODUCAO-V2.json` agora usam a string ISO original com cultura invariável: observação em `2026-09-11T01:27:54.8791873-03:00` e revisão em `2026-09-11T07:27:54.8791873-03:00`, intervalo conferido de seis horas. Essa correção local não muda a página publicada nem a janela V1.
