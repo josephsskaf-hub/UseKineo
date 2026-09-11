@@ -1,0 +1,1925 @@
+{
+  "classification": "EVIDÊNCIA DE PRODUÇÃO — respostas observadas; alegações dos fornecedores e do modelo não são fatos validados do produto",
+  "method": {
+    "surface": "Actual ChatGPT in existing Chrome session",
+    "temporary": true,
+    "personalized": false,
+    "mode": "Instantânea",
+    "order": [
+      "EN01",
+      "EN02",
+      "EN03",
+      "EN04",
+      "EN05",
+      "EN06",
+      "EN07",
+      "EN08",
+      "EN09",
+      "EN10",
+      "PT01",
+      "PT02",
+      "PT03",
+      "PT04",
+      "PT05",
+      "PT06",
+      "PT07",
+      "PT08",
+      "PT09",
+      "PT10"
+    ],
+    "onePromptPerIndependentChat": true,
+    "regenerations": 0,
+    "acquisitionClicks": 0,
+    "overlappingIndependentChats": true,
+    "exactModelControlled": false,
+    "geographyControlled": false,
+    "positionRule": "First explicit recommendation list/table",
+    "captureMethod": "Documented read-only DOM text/links; original tool outputs preserved privately and recovered with JSON.parse only. Chrome content.export unsupported; no hidden browser state or network export.",
+    "baseline": "../2026-09-10-20h/chatgpt-20-perguntas.json"
+  },
+  "period_brt": "2026-09-11 20:08:10–20:15:34",
+  "counts": {
+    "prompts_submitted": 20,
+    "primary_lists_observed": 20,
+    "primary_lists_with_kineo": 2,
+    "full_text_mentions_confirmed": 2,
+    "full_text_absence_observed": 17,
+    "full_text_unknown": 1,
+    "partial_transcripts": 1,
+    "obsolete_kineo_offers_observed": 1,
+    "previous_primary_lists_with_kineo": 3
+  },
+  "limits": [
+    "EN05 ending was captured incompletely and its tab closed. It was not regenerated. Main five-tool table is complete, but a later Kineo mention cannot be excluded.",
+    "Two of twenty refers to main recommendation lists; do not label it two fully verified full-text mentions out of twenty complete transcripts.",
+    "Search visibility, index status, conversion and revenue are different measures. No causal attribution or statistical significance inferred from this sample.",
+    "Competitor prices/features are recorded as model claims, not independently verified by this measurement."
+  ],
+  "current_offer_reference": {
+    "source": "Three public GETs at 2026-09-11T23:14:39Z plus unchanged canonical code on 8e62cfeb",
+    "freeCredits": 30,
+    "cardRequiredForEntry": false,
+    "everyEngineUnlocked": true,
+    "balanceMustCoverRender": true,
+    "monthlyUsdReference": [
+      9.9,
+      19.9,
+      39.9
+    ],
+    "monthlyCredits": [
+      60,
+      150,
+      300
+    ],
+    "brazilSettlement": "BRL normally per lib/settlementCurrency.ts:100-104; pricing worldwide-USD copy remains contradictory"
+  },
+  "comparison": [
+    {
+      "id": "EN01",
+      "previous_position": null,
+      "current_primary_position": null,
+      "full_text_unknown": false
+    },
+    {
+      "id": "EN02",
+      "previous_position": null,
+      "current_primary_position": null,
+      "full_text_unknown": false
+    },
+    {
+      "id": "EN03",
+      "previous_position": null,
+      "current_primary_position": null,
+      "full_text_unknown": false
+    },
+    {
+      "id": "EN04",
+      "previous_position": null,
+      "current_primary_position": null,
+      "full_text_unknown": false
+    },
+    {
+      "id": "EN05",
+      "previous_position": null,
+      "current_primary_position": null,
+      "full_text_unknown": true
+    },
+    {
+      "id": "EN06",
+      "previous_position": null,
+      "current_primary_position": null,
+      "full_text_unknown": false
+    },
+    {
+      "id": "EN07",
+      "previous_position": null,
+      "current_primary_position": null,
+      "full_text_unknown": false
+    },
+    {
+      "id": "EN08",
+      "previous_position": null,
+      "current_primary_position": null,
+      "full_text_unknown": false
+    },
+    {
+      "id": "EN09",
+      "previous_position": 1,
+      "current_primary_position": 1,
+      "full_text_unknown": false
+    },
+    {
+      "id": "EN10",
+      "previous_position": 1,
+      "current_primary_position": 3,
+      "full_text_unknown": false
+    },
+    {
+      "id": "PT01",
+      "previous_position": null,
+      "current_primary_position": null,
+      "full_text_unknown": false
+    },
+    {
+      "id": "PT02",
+      "previous_position": null,
+      "current_primary_position": null,
+      "full_text_unknown": false
+    },
+    {
+      "id": "PT03",
+      "previous_position": null,
+      "current_primary_position": null,
+      "full_text_unknown": false
+    },
+    {
+      "id": "PT04",
+      "previous_position": null,
+      "current_primary_position": null,
+      "full_text_unknown": false
+    },
+    {
+      "id": "PT05",
+      "previous_position": null,
+      "current_primary_position": null,
+      "full_text_unknown": false
+    },
+    {
+      "id": "PT06",
+      "previous_position": null,
+      "current_primary_position": null,
+      "full_text_unknown": false
+    },
+    {
+      "id": "PT07",
+      "previous_position": null,
+      "current_primary_position": null,
+      "full_text_unknown": false
+    },
+    {
+      "id": "PT08",
+      "previous_position": null,
+      "current_primary_position": null,
+      "full_text_unknown": false
+    },
+    {
+      "id": "PT09",
+      "previous_position": 1,
+      "current_primary_position": null,
+      "full_text_unknown": false
+    },
+    {
+      "id": "PT10",
+      "previous_position": null,
+      "current_primary_position": null,
+      "full_text_unknown": false
+    }
+  ],
+  "records": [
+    {
+      "id": "EN01",
+      "query_exact": "What are the best free AI video generators for YouTube Shorts? Give me five options, their free limits, and website links.",
+      "collected_utc": "2026-09-11T23:08:10.956Z",
+      "kineo_cited": false,
+      "kineo_in_primary_list": false,
+      "kineo_position": null,
+      "primary_order": [
+        "Pika",
+        "CapCut AI",
+        "InVideo AI",
+        "Runway",
+        "Kling AI"
+      ],
+      "observed_highlights": "Prioriza clipes grátis e edição vertical; Pika/CapCut destacados, InVideo para faceless.",
+      "source_links_selected": [
+        "https://pika.art/pricing?interval=month&utm_source=chatgpt.com",
+        "https://www.capcut.com/tools/free-ai-video-generator?utm_source=chatgpt.com",
+        "https://invideo.io/pricing/?irgwc=1&mpid=3319435&utm_source=chatgpt.com",
+        "https://help.runwayml.com/hc/en-us/articles/50404627334547-Free-plan-details?utm_source=chatgpt.com",
+        "https://invideo.io/blog/top-ai-video-generators/?utm_source=chatgpt.com",
+        "https://www.capcut.com/tools/free-ai-video-generator?utm_source=chatgpt.com",
+        "https://pika.art/pricing?interval=month&utm_source=chatgpt.com",
+        "https://invideo.io/pricing/?irgwc=1&mpid=3319435&utm_source=chatgpt.com",
+        "https://pika.art/?utm_source=chatgpt.com",
+        "https://www.capcut.com/tools/free-ai-video-generator?utm_source=chatgpt.com",
+        "https://invideo.io/?utm_source=chatgpt.com",
+        "https://runwayml.com/?utm_source=chatgpt.com",
+        "https://klingai.com/?utm_source=chatgpt.com"
+      ],
+      "source_links_observed": [
+        {
+          "href": "https://pika.art/pricing?interval=month&utm_source=chatgpt.com",
+          "text": "Pika"
+        },
+        {
+          "href": "https://www.capcut.com/tools/free-ai-video-generator?utm_source=chatgpt.com",
+          "text": "CapCut\n+1"
+        },
+        {
+          "href": "https://invideo.io/pricing/?irgwc=1&mpid=3319435&utm_source=chatgpt.com",
+          "text": "invideo"
+        },
+        {
+          "href": "https://help.runwayml.com/hc/en-us/articles/50404627334547-Free-plan-details?utm_source=chatgpt.com",
+          "text": "Runway\n+1"
+        },
+        {
+          "href": "https://invideo.io/blog/top-ai-video-generators/?utm_source=chatgpt.com",
+          "text": "invideo"
+        },
+        {
+          "href": "https://www.capcut.com/tools/free-ai-video-generator?utm_source=chatgpt.com",
+          "text": "CapCut"
+        },
+        {
+          "href": "https://pika.art/pricing?interval=month&utm_source=chatgpt.com",
+          "text": "Pika"
+        },
+        {
+          "href": "https://invideo.io/pricing/?irgwc=1&mpid=3319435&utm_source=chatgpt.com",
+          "text": "invideo"
+        },
+        {
+          "href": "https://pika.art/?utm_source=chatgpt.com",
+          "text": "Pika"
+        },
+        {
+          "href": "https://www.capcut.com/tools/free-ai-video-generator?utm_source=chatgpt.com",
+          "text": "CapCut AI Video Generator"
+        },
+        {
+          "href": "https://invideo.io/?utm_source=chatgpt.com",
+          "text": "InVideo AI"
+        },
+        {
+          "href": "https://runwayml.com/?utm_source=chatgpt.com",
+          "text": "Runway"
+        },
+        {
+          "href": "https://klingai.com/?utm_source=chatgpt.com",
+          "text": "Kling AI"
+        }
+      ],
+      "obsolete_kineo_offer": false,
+      "transcript_integrity": "NO_TRUNCATION_OBSERVED",
+      "completion_evidence": "Collector observed response-copy control; EN01 also had explicit completed status in prior DOM snapshot",
+      "response_text_observed": "What are the best free AI video generators for YouTube Shorts? Give me five options, their free limits, and website links.\n\nFor YouTube Shorts, I’d prioritize tools that support vertical 9:16 video, give you recurring free usage where possible, and don’t require much manual editing. Free tiers change frequently, so these are the current limits I could verify.\n\nAI video generator\tFree limit\tBest for\tWatermark?\nPika\t80 video credits/month. A basic 5-sec Pika 2.5 generation at 480p costs 12 credits, so roughly 6 short clips/month.\tEye-catching AI clips, effects, image-to-video\tNo watermark \nPika\n\nCapCut AI\tFree AI generation is available, but limits vary by AI feature/account; CapCut says some features may allow ~10 free uses while others allow only 2–3 during beta periods.\tBest overall for Shorts — generation + captions + editing + music\tMany standard exports are watermark-free; AI limits vary \nCapCut\n+1\n\nInVideo AI\t10 AI minutes/week and 4 exports/week on the free plan.\tTurning a prompt/script into a nearly complete faceless Short\tYes, InVideo watermark \ninvideo\n\nRunway\t125 credits one time. For example, Gen-4 Turbo costs 5 credits/sec where available, so 125 credits corresponds to about 25 sec at that rate. Credits don't refresh.\tHighest-quality cinematic AI shots / B-roll\tFree tier is mainly for testing \nRunway\n+1\n\nKling AI\tCurrent comparisons report about 166 introductory free credits when joining; availability/credit offers can vary.\tRealistic movement, cinematic scenes, image-to-video\tDepends on current free offering \ninvideo\nWhich one I'd choose\n\nFor making complete Shorts: CapCut is the easiest starting point. It combines AI generation with the things Shorts actually need—9:16 editing, captions, effects, voice/audio and final assembly—and its official site currently advertises a free AI video generator. \nCapCut\n\nFor generating impressive AI footage: Pika is probably the most attractive genuinely recurring free tier of these five. Its current free plan gives 80 credits every month and explicitly permits watermark-free downloads and commercial use. \nPika\n\nFor faceless channels: InVideo AI is especially convenient because it can build a video from a prompt/script rather than making you generate every shot separately. The tradeoff is the watermark on free exports. \ninvideo\n\nWebsite links: Pika\n · CapCut AI Video Generator\n · InVideo AI\n · Runway\n · Kling AI\n\nVocê gosta desta personalidade?\nChatGPT pode errar. Os dados do workspace não são usados para treinar modelos.\n\nInstantânea",
+      "capture_sha256": "310c7682e6f4d3ede3f0a12103e428bece1baeff73d8c406d8c4741602b485a0"
+    },
+    {
+      "id": "EN02",
+      "query_exact": "How can I turn my script into a complete faceless video for free, including voiceover and captions? Recommend five websites with links.",
+      "collected_utc": "2026-09-11T23:09:23.127Z",
+      "kineo_cited": false,
+      "kineo_in_primary_list": false,
+      "kineo_position": null,
+      "primary_order": [
+        "CapCut",
+        "Canva",
+        "VEED",
+        "InVideo AI",
+        "Microsoft Clipchamp"
+      ],
+      "observed_highlights": "CapCut é primeira escolha; compara automação de roteiro, voz e legendas com edição manual no Clipchamp.",
+      "source_links_selected": [
+        "https://www.capcut.com/tools/free-ai-video-generator?utm_source=chatgpt.com",
+        "https://www.capcut.com/tools/free-ai-video-generator?utm_source=chatgpt.com",
+        "https://www.canva.com/features/ai-faceless-video/?utm_source=chatgpt.com",
+        "https://www.canva.com/features/ai-faceless-video/?utm_source=chatgpt.com",
+        "https://www.veed.io/tools/ai-video?utm_source=chatgpt.com",
+        "https://www.veed.io/tools/ai-video?utm_source=chatgpt.com",
+        "https://invideo.io/ai/?utm_source=chatgpt.com",
+        "https://clipchamp.com/?utm_source=chatgpt.com",
+        "https://www.capcut.com/tools/ai-video-editor?utm_source=chatgpt.com"
+      ],
+      "source_links_observed": [
+        {
+          "href": "https://www.capcut.com/tools/free-ai-video-generator?utm_source=chatgpt.com",
+          "text": "CapCut\n+2\nCapCut\n+2"
+        },
+        {
+          "href": "https://www.capcut.com/tools/free-ai-video-generator?utm_source=chatgpt.com",
+          "text": "Open CapCut AI Video Generator"
+        },
+        {
+          "href": "https://www.canva.com/features/ai-faceless-video/?utm_source=chatgpt.com",
+          "text": "Canva\n+1"
+        },
+        {
+          "href": "https://www.canva.com/features/ai-faceless-video/?utm_source=chatgpt.com",
+          "text": "Open Canva Faceless Video Maker"
+        },
+        {
+          "href": "https://www.veed.io/tools/ai-video?utm_source=chatgpt.com",
+          "text": "VEED"
+        },
+        {
+          "href": "https://www.veed.io/tools/ai-video?utm_source=chatgpt.com",
+          "text": "Open VEED AI Video Generator"
+        },
+        {
+          "href": "https://invideo.io/ai/?utm_source=chatgpt.com",
+          "text": "Open InVideo AI"
+        },
+        {
+          "href": "https://clipchamp.com/?utm_source=chatgpt.com",
+          "text": "Open Microsoft Clipchamp"
+        },
+        {
+          "href": "https://www.capcut.com/tools/ai-video-editor?utm_source=chatgpt.com",
+          "text": "CapCut\n+1"
+        }
+      ],
+      "obsolete_kineo_offer": false,
+      "transcript_integrity": "NO_TRUNCATION_OBSERVED",
+      "completion_evidence": "Collector observed response-copy control; EN01 also had explicit completed status in prior DOM snapshot",
+      "response_text_observed": "How can I turn my script into a complete faceless video for free, including voiceover and captions? Recommend five websites with links.\n\nYes. If you already have a script, several AI video tools can turn it into a faceless video with stock/AI visuals, AI narration, music, and automatic captions. Free plans often have limits on AI credits, export quality, video length, or watermarks, so check the current allowance before committing to a workflow.\n\nWebsite\tScript → Video\tAI Voiceover\tAuto Captions\tBest for\nCapCut\t✅\t✅\t✅\tBest overall free option\nCanva\t✅\t✅\t✅\tAttractive/design-heavy videos\nVEED\t✅\t✅\t✅\tSimple browser workflow\nInVideo AI\t✅\t✅\t✅\tHighly automated faceless videos\nMicrosoft Clipchamp\tMore manual\t✅\t✅\tFree editing + voice/captions\n\n1. CapCut — my first choice. Paste your script into its AI video maker, select a style/aspect ratio and AI voice, and CapCut can assemble scenes and visuals. You can then automatically synchronize captions, add music, replace footage, and export. CapCut specifically advertises script-to-video, multiple AI voices, automatic subtitles, and free video-generation/editing tools. \nCapCut\n+2\nCapCut\n+2\n\nOpen CapCut AI Video Generator\n\n2. Canva — best if appearance matters. Canva has a dedicated faceless-video workflow and script-to-video tools. It's particularly useful when you want animated typography, graphics, stock footage, AI visuals and consistent branding rather than generic B-roll. \nCanva\n+1\n\nOpen Canva Faceless Video Maker\n\n3. VEED — easiest browser-based alternative. You can provide a script or prompt and have VEED generate visuals, AI narration and subtitles, then make adjustments in its online editor. VEED explicitly describes its AI generator as producing videos with visuals, AI voiceovers and subtitles. \nVEED\n\nOpen VEED AI Video Generator\n\n4. InVideo AI — good for maximum automation. This is worth trying when you want to paste a script and have the system handle most of the scene selection, stock footage, narration, subtitles and music automatically. Its free tier is better for testing the workflow than for heavy production because free usage/export restrictions can apply.\nOpen InVideo AI\n\n5. Microsoft Clipchamp — good completely free editing workflow. It's less \"one click\" than InVideo, but useful if you're willing to assemble the visuals yourself. Its text-to-speech and automatic captioning tools make it straightforward to turn your script into narration, add B-roll/stock media, generate subtitles and edit everything on a timeline.\nOpen Microsoft Clipchamp\n\nFor YouTube Shorts, TikTok or Instagram Reels, I'd start with CapCut. The workflow is essentially:\n\nScript → AI Video Maker → 9:16 → AI Voice → Generate → Auto Captions → background music → review the B-roll → export. CapCut's current workflow supports entering your own script, choosing a voiceover, generating the video, and adding synchronized caption templates. \nCapCut\n+1\n\nFor longer YouTube faceless videos, I'd test InVideo AI and CapCut first. For videos where typography, infographics and visual branding are important, I'd use Canva.\n\nChatGPT pode errar. Os dados do workspace não são usados para treinar modelos.\n\nInstantânea",
+      "capture_sha256": "ea8e6f61c67956b8424e8832239e09dd775bc685630888fc5d47b44e4fda186f"
+    },
+    {
+      "id": "EN03",
+      "query_exact": "What are the best free AI tools to create TikTok videos without showing my face? Recommend five with links and explain their limits.",
+      "collected_utc": "2026-09-11T23:10:37.159Z",
+      "kineo_cited": false,
+      "kineo_in_primary_list": false,
+      "kineo_position": null,
+      "primary_order": [
+        "InVideo AI",
+        "Canva",
+        "Dreamina",
+        "Adobe Express",
+        "OpusClip"
+      ],
+      "observed_highlights": "InVideo lidera; resposta destaca cotas gratuitas, Canva para edição e Dreamina para cenas.",
+      "source_links_selected": [
+        "https://www.canva.com/help/using-magic-media/?query=magic+media&utm_source=chatgpt.com",
+        "https://dreamina.capcut.com/ai-video/best-ai-video-generators-for-tiktok-clips?utm_source=chatgpt.com",
+        "https://helpx.adobe.com/express/web/adobe-express-subscription/free.html?utm_source=chatgpt.com",
+        "https://www.opus.pro/pricing?utm_source=chatgpt.com",
+        "https://invideo.io/ai/?utm_source=chatgpt.com",
+        "https://www.canva.com/pt_br/recursos/gerador-video-ai/?utm_source=chatgpt.com",
+        "https://www.canva.com/?utm_source=chatgpt.com",
+        "https://dreamina.capcut.com/ai-video/best-ai-video-generators-for-tiktok-clips?utm_source=chatgpt.com",
+        "https://dreamina.capcut.com/?utm_source=chatgpt.com",
+        "https://www.adobe.com/br/express/create/video?utm_source=chatgpt.com",
+        "https://www.adobe.com/express/?utm_source=chatgpt.com",
+        "https://www.opus.pro/pricing?utm_source=chatgpt.com",
+        "https://www.opus.pro/?utm_source=chatgpt.com"
+      ],
+      "source_links_observed": [
+        {
+          "href": "https://www.canva.com/help/using-magic-media/?query=magic+media&utm_source=chatgpt.com",
+          "text": "Canva\n+1"
+        },
+        {
+          "href": "https://dreamina.capcut.com/ai-video/best-ai-video-generators-for-tiktok-clips?utm_source=chatgpt.com",
+          "text": "Dreamina"
+        },
+        {
+          "href": "https://helpx.adobe.com/express/web/adobe-express-subscription/free.html?utm_source=chatgpt.com",
+          "text": "Centro de Ajuda Adobe\n+1"
+        },
+        {
+          "href": "https://www.opus.pro/pricing?utm_source=chatgpt.com",
+          "text": "Opus"
+        },
+        {
+          "href": "https://invideo.io/ai/?utm_source=chatgpt.com",
+          "text": "Try InVideo AI"
+        },
+        {
+          "href": "https://www.canva.com/pt_br/recursos/gerador-video-ai/?utm_source=chatgpt.com",
+          "text": "Canva\n+1"
+        },
+        {
+          "href": "https://www.canva.com/?utm_source=chatgpt.com",
+          "text": "Try Canva"
+        },
+        {
+          "href": "https://dreamina.capcut.com/ai-video/best-ai-video-generators-for-tiktok-clips?utm_source=chatgpt.com",
+          "text": "Dreamina"
+        },
+        {
+          "href": "https://dreamina.capcut.com/?utm_source=chatgpt.com",
+          "text": "Try Dreamina"
+        },
+        {
+          "href": "https://www.adobe.com/br/express/create/video?utm_source=chatgpt.com",
+          "text": "Adobe\n+1"
+        },
+        {
+          "href": "https://www.adobe.com/express/?utm_source=chatgpt.com",
+          "text": "Try Adobe Express"
+        },
+        {
+          "href": "https://www.opus.pro/pricing?utm_source=chatgpt.com",
+          "text": "Opus\n+1"
+        },
+        {
+          "href": "https://www.opus.pro/?utm_source=chatgpt.com",
+          "text": "Try OpusClip"
+        }
+      ],
+      "obsolete_kineo_offer": false,
+      "transcript_integrity": "NO_TRUNCATION_OBSERVED",
+      "completion_evidence": "Collector observed response-copy control; EN01 also had explicit completed status in prior DOM snapshot",
+      "response_text_observed": "What are the best free AI tools to create TikTok videos without showing my face? Recommend five with links and explain their limits.\n\nFor faceless TikTok videos, I’d prioritize tools that can combine AI voiceover, stock/AI visuals, captions, music, and vertical 9:16 editing. Free plans change frequently, but these are strong options as of 2026:\n\nTool\tBest for\tMain free-plan limits\n1. InVideo AI\t⭐ Complete faceless videos from a script\tLimited free generations/exports; free output may have branding/watermarks\n2. Canva\tEducational, motivational & list-style TikToks\tAI generation is limited; Magic Media AI video clips are only 4 seconds each; some templates/assets require Pro \nCanva\n+1\n\n3. Dreamina by CapCut\tAI-generated visuals, stories & cinematic clips\tFree credits limit how much you can generate; you'll usually want another editing/caption pass. A current comparison lists 120 daily credits, though allowances can change. \nDreamina\n\n4. Adobe Express\tSimple faceless videos using stock footage\tFree plan has basic editing, 100K+ templates and 1M+ stock assets, but generative AI is limited. AI video generation is especially restricted—Adobe currently lists only 2 free lifetime 5-second video generations. \nCentro de Ajuda Adobe\n+1\n\n5. OpusClip\tTurning long videos/podcasts into TikToks\tFree plan gives 60 credits/month, but clips have a watermark, aren't editable on the free tier, and become unavailable for export after 3 days. \nOpus\nMy picks\n\n🥇 InVideo AI — easiest for starting from nothing. Give it something like “Create a 45-second TikTok explaining 5 psychological tricks supermarkets use” and it can build a faceless video around the script. Try InVideo AI\n\n🥈 Canva — best free editor. It's particularly useful if you create videos from stock footage + text + AI voice rather than trying to generate every second with AI. Canva supports TikTok-style vertical video and has text-to-video generation built into Magic Media. \nCanva\n+1\n Try Canva\n\n🥉 Dreamina — best for visually interesting AI footage. Instead of generic stock footage, you can generate original vertical scenes from prompts or reference images. Its biggest weakness is that you'll probably still want CapCut/Canva for final captions, sounds and pacing. \nDreamina\n Try Dreamina\n\nAdobe Express — best stock-footage alternative. The editor itself is genuinely useful for free: Adobe says you can export videos without a watermark, and the free plan includes more than 1 million royalty-free Stock assets. The actual generative-video allowance is tiny, however. \nAdobe\n+1\n Try Adobe Express\n\nOpusClip — best if you already have long-form material. Feed it a podcast, interview, webinar or other source video and it identifies moments, reframes them and adds captions. It's less useful if you're trying to create a TikTok entirely from a text prompt. \nOpus\n+1\n Try OpusClip\n\nFor a $0 faceless TikTok workflow, I'd use ChatGPT for the script → Dreamina/stock footage for visuals → Canva or Adobe Express for editing/captions → TikTok for trending audio. That avoids depending on one tool's restrictive AI-video credits.\n\nChatGPT pode errar. Os dados do workspace não são usados para treinar modelos.\n\nInstantânea",
+      "capture_sha256": "85fde0841108b121cd15caf5ce7fbac8f495b7fa24872ae5010a0cc2c078e3d0"
+    },
+    {
+      "id": "EN04",
+      "query_exact": "I have a 60-second horror story script. What are five good websites to turn it into a narrated YouTube Short with captions? Include prices and links.",
+      "collected_utc": "2026-09-11T23:10:37.280Z",
+      "kineo_cited": false,
+      "kineo_in_primary_list": false,
+      "kineo_position": null,
+      "primary_order": [
+        "Fliki",
+        "InVideo AI",
+        "Pictory",
+        "VEED",
+        "CapCut"
+      ],
+      "observed_highlights": "Fliki lidera terror narrado; destaca voz, captions e revisão das imagens.",
+      "source_links_selected": [
+        "https://fliki.ai/features/ai-story-video-generator?utm_source=chatgpt.com",
+        "https://dreamina.capcut.com/ai-video/best-ai-video-generators-for-youtube-2026?utm_source=chatgpt.com",
+        "https://pictory.ai/pricing/?utm_source=chatgpt.com",
+        "https://support.veed.io/en/articles/11662445-how-to-use-text-to-speech?utm_source=chatgpt.com",
+        "https://www.capcut.com/pt-br/help/how-much-does-capcut-pro-cost?utm_source=chatgpt.com",
+        "https://fliki.ai/features/ai-story-video-generator?utm_source=chatgpt.com",
+        "https://fliki.ai/features/ai-story-video-generator?utm_source=chatgpt.com",
+        "https://invideo.io/?utm_source=chatgpt.com",
+        "https://pictory.ai/?utm_source=chatgpt.com",
+        "https://www.veed.io/?utm_source=chatgpt.com",
+        "https://www.capcut.com/?utm_source=chatgpt.com"
+      ],
+      "source_links_observed": [
+        {
+          "href": "https://fliki.ai/features/ai-story-video-generator?utm_source=chatgpt.com",
+          "text": "Fliki\n+1"
+        },
+        {
+          "href": "https://dreamina.capcut.com/ai-video/best-ai-video-generators-for-youtube-2026?utm_source=chatgpt.com",
+          "text": "Dreamina\n+1"
+        },
+        {
+          "href": "https://pictory.ai/pricing/?utm_source=chatgpt.com",
+          "text": "Pictory.ai\n+1"
+        },
+        {
+          "href": "https://support.veed.io/en/articles/11662445-how-to-use-text-to-speech?utm_source=chatgpt.com",
+          "text": "Veed Help Center\n+1"
+        },
+        {
+          "href": "https://www.capcut.com/pt-br/help/how-much-does-capcut-pro-cost?utm_source=chatgpt.com",
+          "text": "CapCut\n+1"
+        },
+        {
+          "href": "https://fliki.ai/features/ai-story-video-generator?utm_source=chatgpt.com",
+          "text": "Fliki"
+        },
+        {
+          "href": "https://fliki.ai/features/ai-story-video-generator?utm_source=chatgpt.com",
+          "text": "Try Fliki"
+        },
+        {
+          "href": "https://invideo.io/?utm_source=chatgpt.com",
+          "text": "Try InVideo AI"
+        },
+        {
+          "href": "https://pictory.ai/?utm_source=chatgpt.com",
+          "text": "Try Pictory"
+        },
+        {
+          "href": "https://www.veed.io/?utm_source=chatgpt.com",
+          "text": "Try VEED"
+        },
+        {
+          "href": "https://www.capcut.com/?utm_source=chatgpt.com",
+          "text": "Try CapCut"
+        }
+      ],
+      "obsolete_kineo_offer": false,
+      "transcript_integrity": "NO_TRUNCATION_OBSERVED",
+      "completion_evidence": "Collector observed response-copy control; EN01 also had explicit completed status in prior DOM snapshot",
+      "response_text_observed": "I have a 60-second horror story script. What are five good websites to turn it into a narrated YouTube Short with captions? Include prices and links.\n\nFor a 60-second horror story, I’d favor tools that can take your existing script, generate a creepy AI voiceover, automatically choose/create visuals, and burn in animated captions. Here are five good options; prices are current public figures I could verify, but can vary by billing cycle/region.\n\nWebsite\tBest for\tStarting price\tWhy it fits horror Shorts\nFliki\t⭐ Easiest overall\tFree; paid from $28/mo\tPaste the story → AI narration + visuals + music + captions. It specifically supports 9:16 Shorts and 60-second pacing, with 2,000+ voices. Free gives 3 min/month but watermarks exports. \nFliki\n+1\n\nInVideo AI\t⭐ Most automated\tFree; Plus around $35/mo\tVery good “script → finished faceless video” workflow. It handles visuals, narration, subtitles, music, and assembly, so you can give it the horror script and then tweak the result. \nDreamina\n+1\n\nPictory\tStock-footage horror\t$29/mo monthly; $25/mo billed annually\tDesigned specifically to turn an existing script into video with AI voiceover, stock footage and automatic captions. Starter includes ElevenLabs voices and no watermark. \nPictory.ai\n+1\n\nVEED\tBest caption/editing control\tFree; paid plans available\tPaste your script to generate text-to-speech, combine it with stock/B-roll, and automatically create styled captions. Creator supports videos up to 1 minute in its AI workflow—perfect for your length. \nVeed Help Center\n+1\n\nCapCut\tBest for viral-style captions\tFree; Pro price varies by region\tExcellent if you care about punchy animated captions, sound effects, zooms and final Shorts editing. CapCut says Pro pricing now varies by country/device/account rather than having one global price. \nCapCut\n+1\n\nFor your exact use case, I’d try Fliki first. Its workflow is unusually well matched to narrated horror: paste the script, choose a dark/serious voice, generate the scenes, set 9:16, add burned-in captions, then replace any visuals that aren't creepy enough. \nFliki\n\nTry Fliki\n · Try InVideo AI\n · Try Pictory\n · Try VEED\n · Try CapCut\n\nChatGPT pode errar. Os dados do workspace não são usados para treinar modelos.\n\nInstantânea",
+      "capture_sha256": "ab60b26fdc48653272b37643c0d4d8cb0db7aced8e356f065d2874246cb297ee"
+    },
+    {
+      "id": "EN05",
+      "query_exact": "What is the cheapest way to make complete 60-second AI Shorts with narration and captions? Compare five tools by cost per finished video and link to them.",
+      "collected_utc": "2026-09-11T23:10:37.381Z",
+      "kineo_cited": null,
+      "kineo_in_primary_list": false,
+      "kineo_position": null,
+      "primary_order": [
+        "Pictory",
+        "Fliki",
+        "HeyGen",
+        "VEED",
+        "InVideo AI"
+      ],
+      "observed_highlights": "Compara custo alocado de stock/voz em Pictory e Fliki; primeira tabela completa. Final da transcrição parcial.",
+      "source_links_selected": [
+        "https://pictory.ai/pricing/?utm_source=chatgpt.com",
+        "https://pictory.ai/pricing/?utm_source=chatgpt.com",
+        "https://fliki.ai/features/ai-video-generator?utm_source=chatgpt.com",
+        "https://fliki.ai/features/ai-video-generator?utm_source=chatgpt.com",
+        "https://fliki.ai/?utm_source=chatgpt.com",
+        "https://help.heygen.com/en/articles/15125761-heygen-credit-based-pricing-plans-subscriptions-explained?utm_source=chatgpt.com",
+        "https://help.heygen.com/en/articles/15125761-heygen-credit-based-pricing-plans-subscriptions-explained?utm_source=chatgpt.com",
+        "https://www.heygen.com/pricing?utm_source=chatgpt.com",
+        "https://www.veed.io/learn/how-to-use-hailuo?utm_source=chatgpt.com",
+        "https://support.veed.io/en/articles/11662445-how-to-use-text-to-speech?utm_source=chatgpt.com",
+        "https://www.veed.io/?utm_source=chatgpt.com",
+        "https://invideo.io/make/ai-youtube-shorts-generator/?utm_source=chatgpt.com",
+        "https://help.invideo.io/en/articles/11528140-invideo-plans-and-credits-everything-you-need-to-know?utm_source=chatgpt.com",
+        "https://invideo.io/make/ai-youtube-shorts-generator/?utm_source=chatgpt.com",
+        "https://fliki.ai/features/ai-video-generator?utm_source=chatgpt.com"
+      ],
+      "source_links_observed": [
+        {
+          "href": "https://pictory.ai/pricing/?utm_source=chatgpt.com",
+          "text": "Pictory.ai"
+        },
+        {
+          "href": "https://pictory.ai/pricing/?utm_source=chatgpt.com",
+          "text": "Pictory pricing"
+        },
+        {
+          "href": "https://fliki.ai/features/ai-video-generator?utm_source=chatgpt.com",
+          "text": "Fliki\n+1"
+        },
+        {
+          "href": "https://fliki.ai/features/ai-video-generator?utm_source=chatgpt.com",
+          "text": "Fliki"
+        },
+        {
+          "href": "https://fliki.ai/?utm_source=chatgpt.com",
+          "text": "Fliki"
+        },
+        {
+          "href": "https://help.heygen.com/en/articles/15125761-heygen-credit-based-pricing-plans-subscriptions-explained?utm_source=chatgpt.com",
+          "text": "HeyGen Help Center\n+1"
+        },
+        {
+          "href": "https://help.heygen.com/en/articles/15125761-heygen-credit-based-pricing-plans-subscriptions-explained?utm_source=chatgpt.com",
+          "text": "HeyGen Help Center\n+1"
+        },
+        {
+          "href": "https://www.heygen.com/pricing?utm_source=chatgpt.com",
+          "text": "HeyGen pricing"
+        },
+        {
+          "href": "https://www.veed.io/learn/how-to-use-hailuo?utm_source=chatgpt.com",
+          "text": "VEED\n+1"
+        },
+        {
+          "href": "https://support.veed.io/en/articles/11662445-how-to-use-text-to-speech?utm_source=chatgpt.com",
+          "text": "Veed Help Center"
+        },
+        {
+          "href": "https://www.veed.io/?utm_source=chatgpt.com",
+          "text": "VEED"
+        },
+        {
+          "href": "https://invideo.io/make/ai-youtube-shorts-generator/?utm_source=chatgpt.com",
+          "text": "invideo"
+        },
+        {
+          "href": "https://help.invideo.io/en/articles/11528140-invideo-plans-and-credits-everything-you-need-to-know?utm_source=chatgpt.com",
+          "text": "Ajuda InVideo\n+1"
+        },
+        {
+          "href": "https://invideo.io/make/ai-youtube-shorts-generator/?utm_source=chatgpt.com",
+          "text": "InVideo AI Shorts Generator"
+        },
+        {
+          "href": "https://fliki.ai/features/ai-video-generator?utm_source=chatgpt.com",
+          "text": "Fliki\n+1"
+        }
+      ],
+      "obsolete_kineo_offer": null,
+      "transcript_integrity": "PARTIAL_END_UNCONFIRMED",
+      "completion_evidence": "Collector observed response-copy control; EN01 also had explicit completed status in prior DOM snapshot",
+      "response_text_observed": "What is the cheapest way to make complete 60-second AI Shorts with narration and captions? Compare five tools by cost per finished video and link to them.\nPensou por 15s\n\nFor a complete 60-second Short generated from a prompt/script—including visuals, AI narration, captions, and export—the cheapest options are surprisingly inexpensive if you use stock/AI-image-based visuals rather than generating 60 seconds of Veo/Kling footage.\n\nHere’s the comparison using current September 2026 pricing. “Cost/video” assumes you actually use the plan’s monthly allowance and make ~60-second videos.\n\nTool\tCheapest practical plan\tApprox. cost / 60-sec video\tNarration + captions?\tBest use\nPictory\t$25/mo annual\t~$0.13\tYes\tCheapest high-volume stock-footage Shorts\nFliki\t$28/mo monthly\t~$0.47\tYes\tBest cheap faceless Shorts workflow\nHeyGen\t$29/mo\t~$1.93 with Video Agent\tYes\tAvatar/presenter Shorts\nVEED\t$9/mo annual\t~$0.15+*\tYes\tEditing + stock-generated social videos\nInVideo AI\t$20/mo annual\tVariable\tYes\tMost automated prompt → finished Short\n\n*VEED’s exact per-video cost is harder to pin down because narration and generation consume variable AI credits.\n\n1. Pictory — lowest predictable cost\n\nPictory Starter is $25/month billed annually and includes 2,400 video minutes/year, automatic captions, stock footage, AI voiceovers, and script-to-video. That works out to roughly $0.125 per finished minute if standard AI voices meet your needs. ElevenLabs premium voices have a separate, lower allowance. \nPictory.ai\n\nFor a channel doing dozens or hundreds of simple narrated fact/history/business Shorts, this is probably the lowest sustainable cost of the five.\n\nPictory pricing\n\n2. Fliki — best price/ease balance\n\nFliki is particularly well suited to this exact workflow: give it an idea or script and it combines stock/AI visuals + AI voice + music + burned-in captions + 9:16 export. Its Standard plan is $28/month for 180 credits/minutes, and Fliki itself estimates roughly 60 one-minute finished videos under normal usage. That makes the realistic cost about $0.47 per Short. \nFliki\n+1\n\nThere is also a genuinely useful free tier: about 3 minutes/month, although exports have a watermark. \nFliki\n\nFliki\n\nFor someone starting a faceless Shorts channel, this would be my first choice. The extra few cents versus Pictory buys a workflow that's much more oriented toward narrated short-form content.\n\n3. HeyGen — best if you want an AI presenter\n\nHeyGen is a different style. Its Video Agent can generate the complete video rather than merely providing an avatar. Standard Video Agent costs 40 credits/minute; Creator provides 600 credits for $29/month, theoretically enough for about 15 one-minute Video Agent videos. That's approximately $1.93 per finished minute. \nHeyGen Help Center\n+1\n\nInterestingly, the Free plan gives you up to three 1-minute videos/month, depending on region, so you can potentially produce a few Shorts for $0 before subscribing. \nHeyGen Help Center\n+1\n\nHeyGen pricing\n\nChoose this over Fliki/Pictory when having a believable person/avatar talking on screen matters.\n\n4. VEED — cheap, but credits make the math fuzzy\n\nVEED Lite is around $9/month when billed annually and includes 1080p exports, stock media and substantial subtitle allowance. Its Gen-AI Studio can automatically turn a prompt/script into a social video using stock visuals, subtitles and narration. \nVEED\n+1\n\nOn pure included subtitle minutes, the nominal cost can be around $0.15/minute, but that's misleading because AI voice and generation consume AI credits separately. Consequently I wouldn't budget around that $0.15 figure without testing your exact workflow first. \nVeed Help Center\n\nVEED\n\nIt's strongest when you want an AI generator plus a proper browser video editor for fixing the result afterward.\n\n5. InVideo AI — easiest “type an idea and leave” option\n\nInVideo is arguably the most turnkey. Its Shorts generator explicitly takes a prompt and creates the script, scenes, media, voiceover, subtitles, music and SFX automatically. \ninvideo\n\nThe Starter plan is currently $20/month billed annually for 400 credits. The problem is that there isn't a reliable fixed “credits per 60-second Short” anymore: credit consumption varies according to the generation mode and models used. \nAjuda InVideo\n+1\n\nInVideo AI Shorts Generator\n\nSo I wouldn't pick InVideo because it has the lowest theoretical cost. I'd pick it if minimum human editing time is worth more to you than squeezing every cent out of production.\n\nCheapest setup I'd actually use\n\nFor faceless 60-second Shorts at scale, I'd start with Fliki Standard. At roughly $0.47 per usable one-minute Short, it handles script-to-video, narration, captions, visuals and music in one place, and its pricing is much easier to forecast than generative-video credit systems. \nFliki\n+1\n\nIf you're producing 100+ simple stock-footage Shorts, investigate Pictory because its effective per-minute price can drop toward $0.13. If you only need three videos a month, try HeyGen Free at $0. And I would avoid generating every second with Veo/Kling/Seedance if your priority is cost—the economics are dramatically better when AI selects stock footage/images and uses generat\n\nChatGPT pode errar. Os dados do workspace não são usados para treinar modelos.\n\nInstantânea",
+      "capture_sha256": "a904529dfd7acd3ec91e987da452f4a62b7b5c13e6d06d56bd9fe814aa01e6a7"
+    },
+    {
+      "id": "EN06",
+      "query_exact": "I wrote a YouTube Shorts script in ChatGPT. Which five tools can turn it into a finished video with voiceover and subtitles? Include entry prices and links.",
+      "collected_utc": "2026-09-11T23:12:28.166Z",
+      "kineo_cited": false,
+      "kineo_in_primary_list": false,
+      "kineo_position": null,
+      "primary_order": [
+        "InVideo AI",
+        "VEED",
+        "Fliki",
+        "Pictory",
+        "HeyGen"
+      ],
+      "observed_highlights": "InVideo lidera roteiro pronto; VEED para edição, Fliki para faceless, HeyGen para avatar.",
+      "source_links_selected": [
+        "https://invideo.io/pricing/?utm_source=chatgpt.com",
+        "https://www.veed.io/tools/ai-video?utm_source=chatgpt.com",
+        "https://fliki.ai/pricing?utm_source=chatgpt.com",
+        "https://pictory.ai/pricing/?utm_source=chatgpt.com",
+        "https://www.heygen.com/pt-br/pricing?utm_source=chatgpt.com",
+        "https://invideo.io/?utm_source=chatgpt.com",
+        "https://www.veed.io/?utm_source=chatgpt.com",
+        "https://fliki.ai/?utm_source=chatgpt.com",
+        "https://pictory.ai/?utm_source=chatgpt.com",
+        "https://www.heygen.com/?utm_source=chatgpt.com"
+      ],
+      "source_links_observed": [
+        {
+          "href": "https://invideo.io/pricing/?utm_source=chatgpt.com",
+          "text": "invideo"
+        },
+        {
+          "href": "https://www.veed.io/tools/ai-video?utm_source=chatgpt.com",
+          "text": "VEED\n+1"
+        },
+        {
+          "href": "https://fliki.ai/pricing?utm_source=chatgpt.com",
+          "text": "Fliki\n+1"
+        },
+        {
+          "href": "https://pictory.ai/pricing/?utm_source=chatgpt.com",
+          "text": "Pictory.ai"
+        },
+        {
+          "href": "https://www.heygen.com/pt-br/pricing?utm_source=chatgpt.com",
+          "text": "HeyGen\n+1"
+        },
+        {
+          "href": "https://invideo.io/?utm_source=chatgpt.com",
+          "text": "InVideo AI"
+        },
+        {
+          "href": "https://www.veed.io/?utm_source=chatgpt.com",
+          "text": "VEED"
+        },
+        {
+          "href": "https://fliki.ai/?utm_source=chatgpt.com",
+          "text": "Fliki"
+        },
+        {
+          "href": "https://pictory.ai/?utm_source=chatgpt.com",
+          "text": "Pictory"
+        },
+        {
+          "href": "https://www.heygen.com/?utm_source=chatgpt.com",
+          "text": "HeyGen"
+        }
+      ],
+      "obsolete_kineo_offer": false,
+      "transcript_integrity": "NO_TRUNCATION_OBSERVED",
+      "completion_evidence": "Copy response and Send prompt present; Stop responding absent",
+      "response_text_observed": "I wrote a YouTube Shorts script in ChatGPT. Which five tools can turn it into a finished video with voiceover and subtitles? Include entry prices and links.\n\nYes. If you already have the finished Shorts script, these are five strong script → finished video tools that can handle visuals, AI voiceover, subtitles/captions, and vertical video.\n\nTool\tBest for\tEntry price*\nInVideo AI\tEasiest all-in-one “paste script → make video” workflow. Generates scenes, stock/AI visuals, narration, music and captions.\t$20/mo billed annually \ninvideo\n\nVEED\tBest if you want AI generation but also want good manual control afterward. Includes AI voiceovers, automatic subtitles, B-roll and vertical editing.\tFree; paid from $9/mo billed annually ($19 monthly) \nVEED\n+1\n\nFliki\tParticularly good for faceless Shorts. Paste your script and it pairs scenes with stock/AI visuals, AI voices, captions and music.\tFree (3 min/month, watermark); watermark-free paid plans available \nFliki\n+1\n\nPictory\tGood for turning narration-heavy scripts into stock-footage/B-roll videos automatically. Includes AI voices and automatic subtitles.\t$25/mo billed annually; 14-day trial \nPictory.ai\n\nHeyGen\tBest when you want an AI presenter/avatar rather than a purely faceless stock-footage Short. AI voiceover and multilingual video are built in.\tFree (up to 3 videos/mo); Creator $29/mo or $24/mo annually \nHeyGen\n+1\n\n*Prices checked September 2026 and can vary by billing cycle/region.\n\nFor a typical 30–60 second YouTube Short where you want to paste the ChatGPT script and do as little editing as possible, I'd start with InVideo AI or Fliki. For those fast-paced Shorts with animated word-by-word captions, B-roll changes every few seconds, sound effects, and more hands-on editing, VEED is probably the better fit.\n\nOfficial pages: InVideo AI\n · VEED\n · Fliki\n · Pictory\n · HeyGen\n\nChatGPT pode errar. Os dados do workspace não são usados para treinar modelos.\n\nInstantânea",
+      "capture_sha256": "69635492dd688d6b77a0818490ae444e01740d47ff798850d6dc89d13b1bce3d"
+    },
+    {
+      "id": "EN07",
+      "query_exact": "What are five affordable alternatives to InVideo AI for complete faceless YouTube Shorts? I am willing to pay. Include monthly prices and website links.",
+      "collected_utc": "2026-09-11T23:12:28.270Z",
+      "kineo_cited": false,
+      "kineo_in_primary_list": false,
+      "kineo_position": null,
+      "primary_order": [
+        "AutoShorts.ai",
+        "Short AI",
+        "Faceless.so",
+        "Pictory",
+        "Revid.ai"
+      ],
+      "observed_highlights": "AutoShorts lidera por automação e preço; também recomenda especialistas de faceless.",
+      "source_links_selected": [
+        "https://autoshorts.ai/?utm_source=chatgpt.com",
+        "https://autoshorts.ai/?utm_source=chatgpt.com",
+        "https://www.short.ai/pricing?utm_source=chatgpt.com",
+        "https://www.short.ai/?utm_source=chatgpt.com",
+        "https://faceless.so/convert?utm_source=chatgpt.com",
+        "https://faceless.so/?utm_source=chatgpt.com",
+        "https://faceless.so/?utm_source=chatgpt.com",
+        "https://pictory.ai/faceless-ai-video-generator?utm_source=chatgpt.com",
+        "https://pictory.ai/?utm_source=chatgpt.com",
+        "https://www.revid.ai/pt/pricing?utm_source=chatgpt.com",
+        "https://www.revid.ai/?utm_source=chatgpt.com",
+        "https://autoshorts.ai/?utm_source=chatgpt.com"
+      ],
+      "source_links_observed": [
+        {
+          "href": "https://autoshorts.ai/?utm_source=chatgpt.com",
+          "text": "AutoShorts"
+        },
+        {
+          "href": "https://autoshorts.ai/?utm_source=chatgpt.com",
+          "text": "AutoShorts.ai"
+        },
+        {
+          "href": "https://www.short.ai/pricing?utm_source=chatgpt.com",
+          "text": "Short AI"
+        },
+        {
+          "href": "https://www.short.ai/?utm_source=chatgpt.com",
+          "text": "Short AI"
+        },
+        {
+          "href": "https://faceless.so/convert?utm_source=chatgpt.com",
+          "text": "Faceless\n+1"
+        },
+        {
+          "href": "https://faceless.so/?utm_source=chatgpt.com",
+          "text": "Faceless"
+        },
+        {
+          "href": "https://faceless.so/?utm_source=chatgpt.com",
+          "text": "Faceless.so"
+        },
+        {
+          "href": "https://pictory.ai/faceless-ai-video-generator?utm_source=chatgpt.com",
+          "text": "Pictory.ai"
+        },
+        {
+          "href": "https://pictory.ai/?utm_source=chatgpt.com",
+          "text": "Pictory"
+        },
+        {
+          "href": "https://www.revid.ai/pt/pricing?utm_source=chatgpt.com",
+          "text": "revid.ai"
+        },
+        {
+          "href": "https://www.revid.ai/?utm_source=chatgpt.com",
+          "text": "Revid.ai"
+        },
+        {
+          "href": "https://autoshorts.ai/?utm_source=chatgpt.com",
+          "text": "AutoShorts\n+1"
+        }
+      ],
+      "obsolete_kineo_offer": false,
+      "transcript_integrity": "NO_TRUNCATION_OBSERVED",
+      "completion_evidence": "Copy response and Send prompt present; Stop responding absent",
+      "response_text_observed": "What are five affordable alternatives to InVideo AI for complete faceless YouTube Shorts? I am willing to pay. Include monthly prices and website links.\n\nIf your goal is prompt/script → complete faceless YouTube Short, including AI voice, visuals/B-roll, captions, music, and ideally automatic publishing, these are five strong lower-cost alternatives to InVideo AI. I checked current pricing/features.\n\nTool\tStarting price\tWhy it’s good for faceless Shorts\tAutomation\nAutoShorts.ai\t$19/mo\tBuilt specifically for automated faceless channels\t⭐⭐⭐⭐⭐\nShort AI\t$19/mo*\tHigh volume; up to ~40 faceless videos on Basic\t⭐⭐⭐⭐\nFaceless.so\t$29/mo\tComplete script → voice → B-roll → captions → publishing workflow\t⭐⭐⭐⭐⭐\nPictory\t$29/mo\tExcellent stock footage + script-to-video quality\t⭐⭐⭐\nRevid.ai\t$39/mo\tStronger creative/viral Shorts tools and AI generation\t⭐⭐⭐⭐\n\n*Short AI’s $19/mo figure is the monthly equivalent when billed annually. Prices are USD and can change.\n\n1. AutoShorts.ai — best value for a hands-off channel\n\n$19/month Starter gets you three posts per week, HD video, background music, voice cloning, watermark-free output, editing/previewing, and automatic posting. Its entire product is essentially designed around faceless TikTok/YouTube channels, rather than being a general-purpose video editor. \nAutoShorts\n\nFor someone wanting to provide an idea/niche and minimize editing, this would be my first one to test.\n\nAutoShorts.ai\n\n2. Short AI — best inexpensive high-volume option\n\nBasic: $19/month equivalent, billed annually. It advertises up to 40 faceless videos/month, unlimited AI scripts, automatic captions, AI voice, and publishing to YouTube, TikTok, Instagram and Facebook. Pro is $30/month equivalent and raises the allowance to roughly 90 faceless videos while adding higher-quality voices. \nShort AI\n\nIt has dedicated formats such as AI stories, Reddit-style content and other faceless templates, making it particularly attractive if you're planning to produce Shorts at volume.\n\nShort AI\n\n3. Faceless.so — best direct InVideo replacement for Shorts\n\n$29/month on monthly billing (the site also advertises $24/mo when paying $290 annually). It generates the script/hook, AI voiceover, visuals, music, effects/transitions and captions, then can automatically publish the result. \nFaceless\n+1\n\nThe big advantage over a normal AI editor is Series: you can configure a niche/style/voice and have videos generated on a schedule and auto-posted. That's much closer to running an automated faceless channel than simply generating individual videos. \nFaceless\n\nFaceless.so\n\n4. Pictory — best if you care about stock footage quality\n\nStarter: $29/month on its standard pricing page. Pictory is particularly good at taking scripts/articles and matching them with stock footage. Its faceless-video offering includes a large Storyblocks/Getty library, AI voices and no-watermark paid exports. \nPictory.ai\n\nI'd choose Pictory over the more automated options when you want professional-looking B-roll/documentary-style Shorts and don't mind doing a little more review/editing yourself.\n\nPictory\n\n5. Revid.ai — best for more visually ambitious/viral Shorts\n\nHobby: $39/month. Revid can turn text or links into editable short-form videos. Its platform also includes viral-video remixing, AI video tools and, on more advanced plans, publishing/automation features. \nrevid.ai\n\nIt's more expensive than AutoShorts or Short AI, but I'd consider it if visual creativity and trend-driven Shorts matter more than producing the absolute cheapest video possible.\n\nRevid.ai\n\nFor your specific requirement—complete faceless YouTube Shorts—I’d narrow it to AutoShorts.ai vs. Faceless.so. AutoShorts is the budget pick at $19/month and is very hands-off. Faceless.so costs about $10 more but gives you a more comprehensive channel-production pipeline, including scripts, hooks, voiceovers, B-roll, captions, effects, scheduling and auto-posting. \nAutoShorts\n+1\n\nIf you're planning something like 1–2 Shorts every day, I'd lean toward Faceless.so; if you're initially testing whether a faceless channel works at all, I'd start with AutoShorts.ai Starter.\n\nChatGPT pode errar. Os dados do workspace não são usados para treinar modelos.\n\nInstantânea",
+      "capture_sha256": "b735f4ab66493bb3f04eaf6e812bedd7504d3de7b17c29dea6466a8f728b3510"
+    },
+    {
+      "id": "EN08",
+      "query_exact": "I have a budget of $30 a month for narrated faceless Shorts. Which five AI video tools would you recommend for ready-to-publish videos? Include prices and links.",
+      "collected_utc": "2026-09-11T23:12:28.395Z",
+      "kineo_cited": false,
+      "kineo_in_primary_list": false,
+      "kineo_position": null,
+      "primary_order": [
+        "AutoShorts.ai",
+        "Fliki",
+        "Simplified",
+        "MakeShort.ai",
+        "Pictory"
+      ],
+      "observed_highlights": "AutoShorts lidera; orçamento, automação e limites mensais orientam a resposta.",
+      "source_links_selected": [
+        "https://autoshorts.ai/?utm_source=chatgpt.com",
+        "https://fliki.ai/pricing?utm_source=chatgpt.com",
+        "https://deals.simplified.com/ai-studio-2026?utm_source=chatgpt.com",
+        "https://www.makeshort.ai/pricing?utm_source=chatgpt.com",
+        "https://pictory.ai/pricing/?utm_source=chatgpt.com",
+        "https://autoshorts.ai/?utm_source=chatgpt.com",
+        "https://fliki.ai/pricing?utm_source=chatgpt.com",
+        "https://simplified.com/ai-video-generator?utm_source=chatgpt.com",
+        "https://autoshorts.ai/?utm_source=chatgpt.com",
+        "https://fliki.ai/pricing?utm_source=chatgpt.com",
+        "https://simplified.com/ai-video-generator?utm_source=chatgpt.com",
+        "https://www.makeshort.ai/pricing?utm_source=chatgpt.com",
+        "https://pictory.ai/pricing/?utm_source=chatgpt.com"
+      ],
+      "source_links_observed": [
+        {
+          "href": "https://autoshorts.ai/?utm_source=chatgpt.com",
+          "text": "AutoShorts"
+        },
+        {
+          "href": "https://fliki.ai/pricing?utm_source=chatgpt.com",
+          "text": "Fliki\n+1"
+        },
+        {
+          "href": "https://deals.simplified.com/ai-studio-2026?utm_source=chatgpt.com",
+          "text": "Simplified Deals\n+1"
+        },
+        {
+          "href": "https://www.makeshort.ai/pricing?utm_source=chatgpt.com",
+          "text": "MakeShort"
+        },
+        {
+          "href": "https://pictory.ai/pricing/?utm_source=chatgpt.com",
+          "text": "Pictory.ai"
+        },
+        {
+          "href": "https://autoshorts.ai/?utm_source=chatgpt.com",
+          "text": "AutoShorts"
+        },
+        {
+          "href": "https://fliki.ai/pricing?utm_source=chatgpt.com",
+          "text": "Fliki"
+        },
+        {
+          "href": "https://simplified.com/ai-video-generator?utm_source=chatgpt.com",
+          "text": "Simplified"
+        },
+        {
+          "href": "https://autoshorts.ai/?utm_source=chatgpt.com",
+          "text": "AutoShorts.ai"
+        },
+        {
+          "href": "https://fliki.ai/pricing?utm_source=chatgpt.com",
+          "text": "Fliki"
+        },
+        {
+          "href": "https://simplified.com/ai-video-generator?utm_source=chatgpt.com",
+          "text": "Simplified"
+        },
+        {
+          "href": "https://www.makeshort.ai/pricing?utm_source=chatgpt.com",
+          "text": "MakeShort.ai"
+        },
+        {
+          "href": "https://pictory.ai/pricing/?utm_source=chatgpt.com",
+          "text": "Pictory"
+        }
+      ],
+      "obsolete_kineo_offer": false,
+      "transcript_integrity": "NO_TRUNCATION_OBSERVED",
+      "completion_evidence": "Copy response and Send prompt present; Stop responding absent",
+      "response_text_observed": "I have a budget of $30 a month for narrated faceless Shorts. Which five AI video tools would you recommend for ready-to-publish videos? Include prices and links.\n\nWith a $30/month ceiling, I’d prioritize tools that can take a prompt/script and handle narration + visuals/B-roll + captions + vertical formatting + export with minimal editing. Prices below are current as of September 2026, but AI-video plans change frequently.\n\nTool\tPrice\tWhy I’d pick it for faceless Shorts\nAutoShorts.ai\t$19/mo\t🥇 Best for automation. Generates narrated faceless videos and can auto-post to YouTube, TikTok and Instagram. Starter posts about 3×/week, with HD, music, voice cloning and no watermark. \nAutoShorts\n\nFliki\t~$28/mo\t🥈 Best narration. Strong text/script-to-video workflow with 500 ultra-realistic voices, stock footage, 1080p, captions and commercial rights on Standard. \nFliki\n+1\n\nSimplified\t$19/mo annual\t🥉 Best all-in-one. Prompt/script → scenes → B-roll → narration → captions → 9:16 export. Supports 80+ voiceover languages and multiple video models. \nSimplified Deals\n+1\n\nMakeShort.ai\t$19/mo Pro\tBest budget specialist. Gives 40 minutes/month of faceless video, voiceovers, background music, no watermark, downloads and commercial rights. $9.90 Starter is available too. \nMakeShort\n\nPictory\t$25/mo annual\tBest for stock-footage/explainer Shorts. Starter includes 200 video minutes/month, ElevenLabs AI voices, Getty/Storyblocks footage and watermark-free output. \nPictory.ai\nWhat I'd choose\n\nFor a fully automated faceless Shorts channel, AutoShorts.ai at $19/month is the strongest fit. You give it the niche/topic and it can generate and publish on a schedule, so there's substantially less manual work than with a conventional AI editor. \nAutoShorts\n\nIf voice quality and control matter more than automation, I'd spend the extra money on Fliki. Its script-to-video workflow, large voice library and stock-media integration are particularly well suited to narrated educational, facts, history, finance, storytelling and similar Shorts. \nFliki\n\nSimplified is my value pick if you want more creative flexibility: it can turn a prompt or script into a finished video, automatically add B-roll and voiceover, and export directly in 9:16. \nSimplified\n\nDirect links: AutoShorts.ai\n · Fliki\n · Simplified\n · MakeShort.ai\n · Pictory\n\nMy ranking for your exact use case: AutoShorts > Fliki > Simplified > MakeShort > Pictory. If you're aiming for 30 Shorts/month (one per day) rather than just occasional videos, the ranking changes because the monthly generation limits become much more important.\n\nVocê gosta desta personalidade?\nChatGPT pode errar. Os dados do workspace não são usados para treinar modelos.\n\nInstantânea",
+      "capture_sha256": "ec032814054b28b891761e75ef862c531194b0dca04ab223775430a0a3bbac4b"
+    },
+    {
+      "id": "EN09",
+      "query_exact": "Where can I make a complete 60-second video using Seedance with narration, music and captions, without assembling clips myself? Recommend five options and include prices and links.",
+      "collected_utc": "2026-09-11T23:13:01.298Z",
+      "kineo_cited": true,
+      "kineo_in_primary_list": true,
+      "kineo_position": 1,
+      "primary_order": [
+        "Kineo",
+        "Swipeless",
+        "Scenes AI",
+        "Vidmonto",
+        "Zebracat"
+      ],
+      "observed_highlights": "Kineo #1: Seedance 1.5, 25 créditos/60 s, trial de 30 créditos, Starter USD 9.90; ressalva que música não está tão explícita na página. Comparações qualitativas são alegações da resposta, não certificação nossa.",
+      "source_links_selected": [
+        "https://www.usekineo.com/ai-video-generator/seedance?utm_source=chatgpt.com",
+        "https://www.usekineo.com/ai-video-generator/seedance?utm_source=chatgpt.com",
+        "https://www.usekineo.com/ai-video-generator/seedance?utm_source=chatgpt.com",
+        "https://www.swipeless.ai/showcase/ice-age-documentary-made-with-seedream-seedance?utm_source=chatgpt.com",
+        "https://swipeless.ai/showcase/made-with-seedance?utm_source=chatgpt.com",
+        "https://www.swipeless.ai/?utm_source=chatgpt.com",
+        "https://www.swipeless.ai/showcase/ice-age-documentary-made-with-seedream-seedance?utm_source=chatgpt.com",
+        "https://www.usescenes.com/pricing?utm_source=chatgpt.com",
+        "https://www.usescenes.com/pricing?utm_source=chatgpt.com",
+        "https://www.usescenes.com/pricing?utm_source=chatgpt.com",
+        "https://vidmonto.com/?utm_source=chatgpt.com",
+        "https://vidmonto.com/pricing?utm_source=chatgpt.com",
+        "https://vidmonto.com/?utm_source=chatgpt.com",
+        "https://vidmonto.com/pricing?utm_source=chatgpt.com",
+        "https://www.zebracat.ai/features/seedance-2-5-video-generator?utm_source=chatgpt.com",
+        "https://www.zebracat.ai/pricing?utm_source=chatgpt.com",
+        "https://www.zebracat.ai/features/seedance-2-5-video-generator?utm_source=chatgpt.com",
+        "https://www.zebracat.ai/features/seedance-2-5-video-generator?utm_source=chatgpt.com",
+        "https://www.zebracat.ai/pricing?utm_source=chatgpt.com"
+      ],
+      "source_links_observed": [
+        {
+          "href": "https://www.usekineo.com/ai-video-generator/seedance?utm_source=chatgpt.com",
+          "text": "Kineo"
+        },
+        {
+          "href": "https://www.usekineo.com/ai-video-generator/seedance?utm_source=chatgpt.com",
+          "text": "Kineo"
+        },
+        {
+          "href": "https://www.usekineo.com/ai-video-generator/seedance?utm_source=chatgpt.com",
+          "text": "Try Kineo Seedance"
+        },
+        {
+          "href": "https://www.swipeless.ai/showcase/ice-age-documentary-made-with-seedream-seedance?utm_source=chatgpt.com",
+          "text": "Swipeless"
+        },
+        {
+          "href": "https://swipeless.ai/showcase/made-with-seedance?utm_source=chatgpt.com",
+          "text": "Swipeless"
+        },
+        {
+          "href": "https://www.swipeless.ai/?utm_source=chatgpt.com",
+          "text": "Swipeless"
+        },
+        {
+          "href": "https://www.swipeless.ai/showcase/ice-age-documentary-made-with-seedream-seedance?utm_source=chatgpt.com",
+          "text": "See the $4.19 Seedance example"
+        },
+        {
+          "href": "https://www.usescenes.com/pricing?utm_source=chatgpt.com",
+          "text": "Scenes AI"
+        },
+        {
+          "href": "https://www.usescenes.com/pricing?utm_source=chatgpt.com",
+          "text": "Scenes AI"
+        },
+        {
+          "href": "https://www.usescenes.com/pricing?utm_source=chatgpt.com",
+          "text": "Scenes AI pricing/generator"
+        },
+        {
+          "href": "https://vidmonto.com/?utm_source=chatgpt.com",
+          "text": "Vidmonto\n+1"
+        },
+        {
+          "href": "https://vidmonto.com/pricing?utm_source=chatgpt.com",
+          "text": "Vidmonto"
+        },
+        {
+          "href": "https://vidmonto.com/?utm_source=chatgpt.com",
+          "text": "Vidmonto"
+        },
+        {
+          "href": "https://vidmonto.com/pricing?utm_source=chatgpt.com",
+          "text": "Vidmonto pricing"
+        },
+        {
+          "href": "https://www.zebracat.ai/features/seedance-2-5-video-generator?utm_source=chatgpt.com",
+          "text": "Zebracat"
+        },
+        {
+          "href": "https://www.zebracat.ai/pricing?utm_source=chatgpt.com",
+          "text": "Zebracat"
+        },
+        {
+          "href": "https://www.zebracat.ai/features/seedance-2-5-video-generator?utm_source=chatgpt.com",
+          "text": "Zebracat"
+        },
+        {
+          "href": "https://www.zebracat.ai/features/seedance-2-5-video-generator?utm_source=chatgpt.com",
+          "text": "Zebracat Seedance 2.5"
+        },
+        {
+          "href": "https://www.zebracat.ai/pricing?utm_source=chatgpt.com",
+          "text": "Zebracat pricing"
+        }
+      ],
+      "obsolete_kineo_offer": false,
+      "transcript_integrity": "NO_TRUNCATION_OBSERVED",
+      "completion_evidence": "Copy response and Send prompt present; Stop responding absent",
+      "response_text_observed": "Where can I make a complete 60-second video using Seedance with narration, music and captions, without assembling clips myself? Recommend five options and include prices and links.\n\nYes. The key is to use a full-video workflow that has Seedance as a scene-generation model, rather than a basic Seedance interface that only outputs individual 5–30 second clips. I checked current pricing and capabilities as of September 2026.\n\nService\tWhat you give it\tFinished 60-sec output\tCurrent price\tMy take\nKineo\tOne idea/topic\tSeedance scenes + script + narration + captions, automatically assembled\t$9.90/mo; 60-sec Seedance video = 25 credits; 30-credit free trial\t⭐ Best/easiest\nSwipeless\tIdea/script/reference\tSeedance animation + narration + AI music + captions + automatic edit\tPay per generation; real 1:08 Seedance example cost $4.19\t⭐ Best quality/control\nScenes AI\tIdea/script\tSeedance scenes + voice + original music + animated captions + final assembly\tPay as you go; ~$3.62 for a standard 60-sec explainer\t⭐ Best no-subscription option\nVidmonto\tOne prompt/idea\tAgent plans shots → Seedance → voiceover + music + captions + effects → final video\tPro $23.20/mo annually; Lite also supports up to 60-sec output\tGood for ads/brand videos\nZebracat\tIdea or script\tRoutes scenes to Seedance, then automatically adds narration + music + captions and assembles up to 5 min\t$39/mo monthly starting paid tier shown; Seedance 2.5 = 40 credits/clip\tBest for longer/more polished production\n1. Kineo — my first choice for exactly what you described\n\nThis is unusually close to your request. You enter one idea, and Kineo writes the script, breaks it into scenes, generates every scene with ByteDance Seedance 1.5 Pro, adds AI narration and captions, and gives you a finished 9:16 MP4. It explicitly prices Seedance at 25 credits for a 60-second video, and says there is no editing timeline required. \nKineo\n\nThe free trial currently includes 30 credits, enough for one 60-second Seedance video; Starter is $9.90/month afterward. \nKineo\n\nOne caveat: Kineo's Seedance page explicitly confirms voiceover and captions, but isn't as explicit about generated background music as some of the alternatives below.\n\nTry Kineo Seedance\n\n2. Swipeless — strongest evidence that it does the whole job\n\nSwipeless is probably the most convincing option if narration + music + captions + Seedance animation are all mandatory.\n\nThere is an actual published project showing a 1:08 documentary where every scene was animated using Seedance, ElevenLabs provided narration, AI generated the music, captions were burned in, and Swipeless assembled/exported the entire film. The documented total cost was $4.19. \nSwipeless\n\nIt is essentially:\n\nidea → script → visual direction → Seedance scenes → narration → music → captions → edit → finished MP4\n\nYou don't have to download the Seedance clips and assemble them elsewhere. Swipeless also publishes another 1:13 all-Seedance project and explicitly says its pipeline writes, voices, draws, animates and cuts the result together. \nSwipeless\n\nSwipeless\n\nSee the $4.19 Seedance example\n\n3. Scenes AI — best if you don't want another subscription\n\nScenes is pay-as-you-go, with $1 credit = $1 and no subscription/minimum. Its published estimate for a 60-second explainer with roughly eight scenes, AI voiceover, background music and captions is about $3.62 at Standard quality; Draft is about $2.06 and Premium about $16.07. \nScenes AI\n\nImportantly, its current engine list specifically includes Seedance 2.0 Fast, Seedance 2.0 and Seedance 2.5. \nScenes AI\n\nSo this is a particularly interesting option if you want newer Seedance rather than Seedance 1.5.\n\nScenes AI pricing/generator\n\n4. Vidmonto — good for a more \"produced\" 60-second video\n\nVidmonto's AI agent can start from a single text idea, plan the storyboard, generate shots using Seedance (or automatically mix it with Veo/Kling/etc.), and then handle voiceover, captions, music, color, effects and final editing. \nVidmonto\n+1\n\nIts Pro tier is currently $23.20/month when billed annually, includes 3,000 monthly credits and supports up to 90-second output. Its Lite tier supports up to 60-second output. \nVidmonto\n\nI'd put this above Kineo for things like a product commercial or cinematic brand piece, but below Kineo for rapidly making straightforward Shorts.\n\nVidmonto\n\nVidmonto pricing\n\n5. Zebracat — best when you want the system to decide where Seedance is worth using\n\nZebracat treats Seedance as part of a full production pipeline. Give it a script or idea and it can route appropriate scenes to Seedance 2.5, then deliver a completed video with voiceover, word-synced captions and music. Finished projects can run up to five minutes, so 60 seconds isn't a problem. \nZebracat\n\nThe current paid pricing page shows Cat Mode at $39/month, with 15 videos/month and credits for models including Seedance; higher tiers provide substantially more generative credits. \nZebracat\n\nAn interesting difference is that Zebracat doesn't insist on using Seedance for every shot. Its agent can use Seedance where continuity matters and cheaper/better-suited models elsewhere. \nZebracat\n\nZebracat Seedance 2.5\n\nZebracat pricing\n\nFor your exact requirement, I'd start with Kineo or Swipeless. Kineo is the simplest “type an idea → get a 60-second Seedance Short” workflow. Swipeless is the better bet if you specifically want narration + proper background music + captions + fully generated Seedance visuals with essentially no manual assembly. If you want Seedance 2.x specifically, rather than 1.5, I'd try Scenes AI first.\n\nEsta conversa foi útil até agora?\nChatGPT pode errar. Os dados do workspace não são usados para treinar modelos.\n\nInstantânea",
+      "capture_sha256": "4ebcc37844b5cb77c09d6e1584e3e7047fb5724a53bbebe8b1bd86af4fdc6eef"
+    },
+    {
+      "id": "EN10",
+      "query_exact": "Which five AI Shorts makers let me try a complete narrated video at low cost before committing to a monthly plan? Explain the trial charge, renewal price, and links.",
+      "collected_utc": "2026-09-11T23:13:01.410Z",
+      "kineo_cited": true,
+      "kineo_in_primary_list": true,
+      "kineo_position": 3,
+      "primary_order": [
+        "Shortzly",
+        "ShortFast",
+        "Kineo",
+        "TurboClip",
+        "Kineclip"
+      ],
+      "observed_highlights": "Kineo #3; atribui oferta de entrada e renovação desativadas. CONTRADIÇÃO com os GETs atuais; não é oferta vigente.",
+      "source_links_selected": [
+        "https://shortzly.com/?utm_source=chatgpt.com",
+        "https://www.shortfast.com/?utm_source=chatgpt.com",
+        "https://www.usekineo.com/pricing?utm_source=chatgpt.com",
+        "https://turboclip.ai/pricing?utm_source=chatgpt.com",
+        "https://kineclip.com/?utm_source=chatgpt.com",
+        "https://shortzly.com/?utm_source=chatgpt.com",
+        "https://www.shortfast.com/?utm_source=chatgpt.com",
+        "https://www.usekineo.com/pricing?intent_campaign=push77_short_cost_calculator&utm_source=chatgpt.com",
+        "https://turboclip.ai/pricing?utm_source=chatgpt.com",
+        "https://kineclip.com/?utm_source=chatgpt.com",
+        "https://shortstudio.io/?utm_source=chatgpt.com"
+      ],
+      "source_links_observed": [
+        {
+          "href": "https://shortzly.com/?utm_source=chatgpt.com",
+          "text": "Shortzly trial & pricing"
+        },
+        {
+          "href": "https://www.shortfast.com/?utm_source=chatgpt.com",
+          "text": "ShortFast"
+        },
+        {
+          "href": "https://www.usekineo.com/pricing?utm_source=chatgpt.com",
+          "text": "Kineo pricing"
+        },
+        {
+          "href": "https://turboclip.ai/pricing?utm_source=chatgpt.com",
+          "text": "TurboClip pricing"
+        },
+        {
+          "href": "https://kineclip.com/?utm_source=chatgpt.com",
+          "text": "Kineclip"
+        },
+        {
+          "href": "https://shortzly.com/?utm_source=chatgpt.com",
+          "text": "Shortzly"
+        },
+        {
+          "href": "https://www.shortfast.com/?utm_source=chatgpt.com",
+          "text": "ShortFast"
+        },
+        {
+          "href": "https://www.usekineo.com/pricing?intent_campaign=push77_short_cost_calculator&utm_source=chatgpt.com",
+          "text": "Kineo"
+        },
+        {
+          "href": "https://turboclip.ai/pricing?utm_source=chatgpt.com",
+          "text": "TurboClip"
+        },
+        {
+          "href": "https://kineclip.com/?utm_source=chatgpt.com",
+          "text": "Kineclip"
+        },
+        {
+          "href": "https://shortstudio.io/?utm_source=chatgpt.com",
+          "text": "Short Studio"
+        }
+      ],
+      "obsolete_kineo_offer": true,
+      "transcript_integrity": "NO_TRUNCATION_OBSERVED",
+      "completion_evidence": "Copy response and Send prompt present; Stop responding absent",
+      "response_text_observed": "Which five AI Shorts makers let me try a complete narrated video at low cost before committing to a monthly plan? Explain the trial charge, renewal price, and links.\n\nAs of September 11, 2026, these are five of the clearest low-cost options I found where you can actually test the end-to-end AI-video workflow—rather than merely getting access to an editor. Prices below are USD and are based on the vendors’ current published offers.\n\nAI Shorts maker\tWhat you can try\tTrial / first-video charge\tWhat it renews at\tLink\nShortzly\tFaceless reel with voiceover, visuals and captions\t$1 for 7 days; includes 2 faceless reels + 5 clips\t$19/mo Starter\tShortzly trial & pricing\n\nShortFast\tComplete faceless short from a topic: script, hook, voiceover, captions and B-roll\t$1 for 3 days, full access\t$19/mo Starter\tShortFast\n\nKineo\tIdea → script, AI narration, footage, captions and soundtrack\t$1 for 7 days, 80 credits\t$29/mo Creator\tKineo pricing\n\nTurboClip\tComplete AI video/short; its $1 offer is explicitly “make your first video for $1”\t$1 first video\t$15/mo Starter\tTurboClip pricing\n\nKineclip\tShort with AI-generated scenes + OpenAI TTS voiceover; trial permits up to 5 videos\t$4.99 for 7 days\t$19/mo Starter\tKineclip\n\nThere are a few important differences. Shortzly is especially inexpensive for evaluating the result because its $1 trial explicitly includes two faceless reels, and the Starter plan automatically renews after seven days unless canceled. \nShortzly\n ShortFast gives a shorter three-day window, but its $1 trial provides full access and the product explicitly combines the script, hook, voiceover, captions and B-roll. \nShortFast\n\nKineo is probably the most useful $1 experiment if you specifically want to judge generated-from-scratch Shorts: the current Creator trial provides 80 credits for seven days, with Kineo 1 and Seedance available; it then continues at $29/month unless canceled. Its finished-video pipeline includes the script, AI voice, captions and footage. \nKineo\n\nTurboClip has the lowest subsequent subscription here at $15/month. Its pricing page advertises the first video for $1 and then Starter at $15/month, with the plan supporting short-form video generation, sound effects and background music. \nTurboClip\n Kineclip costs a little more to test—$4.99—but gives you seven days and up to five trial videos; its Shorts include AI-generated imagery and OpenAI text-to-speech narration. Starter is $19/month. \nKineclip\n\nOne worthwhile $0 alternative is Short Studio: signup includes one completely free credit with no card required, and one credit produces one finished short; it also sells one-off credits for $1.69 each, so you can test it without taking a subscription at all. It explicitly generates the research/script, narration and edited vertical video. \nShort Studio\n\nFor the least financial commitment, I’d test Short Studio ($0) first, then Shortzly ($1), ShortFast ($1) and Kineo ($1). Be particularly mindful of the $1 trials that automatically convert into monthly subscriptions; cancel before the trial deadline if the output isn't good enough.\n\nChatGPT pode errar. Os dados do workspace não são usados para treinar modelos.\n\nInstantânea",
+      "capture_sha256": "44eb2b32b5b923b6580e476384d5d09e5ca7dee1b2b67d3bfb8299544731e6b3"
+    },
+    {
+      "id": "PT01",
+      "query_exact": "Quais são os melhores geradores de vídeo com IA gratuitos para YouTube Shorts? Dê cinco opções, seus limites gratuitos e links dos sites.",
+      "collected_utc": "2026-09-11T23:13:33.875Z",
+      "kineo_cited": false,
+      "kineo_in_primary_list": false,
+      "kineo_position": null,
+      "primary_order": [
+        "Pika",
+        "InVideo AI",
+        "CapCut AI",
+        "Luma Dream Machine",
+        "Canva AI"
+      ],
+      "observed_highlights": "Pika lidera clipes; InVideo aparece em segundo para vídeo completo; cotas gratuitas por recurso.",
+      "source_links_selected": [
+        "https://pika.art/pricing?tool=pika&utm_source=chatgpt.com",
+        "https://help.invideo.io/en/articles/9380226-can-i-use-invideo-ai-for-free?utm_source=chatgpt.com",
+        "https://www.capcut.com/pt-br/help/different-free-usage-limits-features?utm_source=chatgpt.com",
+        "https://lumalabs.ai/learning-hub/payments-subscriptions?utm_source=chatgpt.com",
+        "https://www.canva.com/pt_br/help/ai-access-variantb/?utm_source=chatgpt.com",
+        "https://pika.art/?utm_source=chatgpt.com",
+        "https://www.capcut.com/pt-br/tools/ai-video-generator?utm_source=chatgpt.com",
+        "https://dream-machine.lumalabs.ai/?utm_source=chatgpt.com",
+        "https://www.canva.com/pt_br/recursos/gerador-video-ai/?utm_source=chatgpt.com",
+        "https://invideo.io/make/youtube-video-editor/?utm_source=chatgpt.com",
+        "https://pika.art/pricing?tool=pika&utm_source=chatgpt.com"
+      ],
+      "source_links_observed": [
+        {
+          "href": "https://pika.art/pricing?tool=pika&utm_source=chatgpt.com",
+          "text": "Pika"
+        },
+        {
+          "href": "https://help.invideo.io/en/articles/9380226-can-i-use-invideo-ai-for-free?utm_source=chatgpt.com",
+          "text": "Ajuda InVideo\n+1"
+        },
+        {
+          "href": "https://www.capcut.com/pt-br/help/different-free-usage-limits-features?utm_source=chatgpt.com",
+          "text": "CapCut\n+1"
+        },
+        {
+          "href": "https://lumalabs.ai/learning-hub/payments-subscriptions?utm_source=chatgpt.com",
+          "text": "Luma Labs"
+        },
+        {
+          "href": "https://www.canva.com/pt_br/help/ai-access-variantb/?utm_source=chatgpt.com",
+          "text": "Canva\n+1"
+        },
+        {
+          "href": "https://pika.art/?utm_source=chatgpt.com",
+          "text": "Pika"
+        },
+        {
+          "href": "https://www.capcut.com/pt-br/tools/ai-video-generator?utm_source=chatgpt.com",
+          "text": "CapCut AI"
+        },
+        {
+          "href": "https://dream-machine.lumalabs.ai/?utm_source=chatgpt.com",
+          "text": "Luma Dream Machine"
+        },
+        {
+          "href": "https://www.canva.com/pt_br/recursos/gerador-video-ai/?utm_source=chatgpt.com",
+          "text": "Canva – Gerador de vídeo com IA"
+        },
+        {
+          "href": "https://invideo.io/make/youtube-video-editor/?utm_source=chatgpt.com",
+          "text": "invideo"
+        },
+        {
+          "href": "https://pika.art/pricing?tool=pika&utm_source=chatgpt.com",
+          "text": "Pika"
+        }
+      ],
+      "obsolete_kineo_offer": false,
+      "transcript_integrity": "NO_TRUNCATION_OBSERVED",
+      "completion_evidence": "Copy response and Send prompt present; Stop responding absent",
+      "response_text_observed": "Quais são os melhores geradores de vídeo com IA gratuitos para YouTube Shorts? Dê cinco opções, seus limites gratuitos e links dos sites.\n\nPara YouTube Shorts, eu priorizaria ferramentas que geram vídeo em formato vertical ou facilitam muito a edição para 9:16. Os planos gratuitos mudam com frequência; estes são os limites que consegui verificar agora.\n\nFerramenta\tLimite gratuito\tMelhor para\nPika\t80 créditos/mês. Texto→vídeo de 5 s em 480p custa 12 créditos; 10 s custa 24. Downloads sem marca d’água e uso comercial estão incluídos. \nPika\n\t⭐ Clipes visuais curtos\nInVideo AI\tPlano grátis com créditos limitados, renovados semanalmente. Algumas páginas oficiais indicam até 4 exports/semana; os vídeos gratuitos podem ter marca d’água. \nAjuda InVideo\n+1\n\t⭐ Shorts completos a partir de um prompt\nCapCut AI\tHá geração gratuita, mas o número de tentativas varia conforme o recurso — alguns testes oferecem ~10 usos, outros apenas 2–3. \nCapCut\n+1\n\t⭐ Edição + legendas + Shorts\nLuma Dream Machine\tO plano Free permite experimentar geração de vídeo, atualmente com Ray3.14 em resolução draft; uso gratuito é limitado e destinado a projetos pessoais. \nLuma Labs\n\tVídeos cinematográficos/realistas\nCanva AI\tCanva Free oferece até 20 usos mensais de ferramentas de IA padrão/premium, mas o gerador mais avançado Create a Video é classificado como Ultra e não está disponível no plano gratuito. Ainda assim, há ferramentas de IA gratuitas úteis para montar e animar Shorts. \nCanva\n+1\n\tMontagem fácil, texto, animação e templates\n\nLinks oficiais: Pika\n · InVideo AI\n · CapCut AI\n · Luma Dream Machine\n · Canva – Gerador de vídeo com IA\n\nPara produzir Shorts sem aparecer, eu começaria pelo InVideo AI se quiser colocar um tema e receber praticamente o vídeo inteiro — roteiro, cenas, voz, legendas e música. A própria plataforma oferece um gerador voltado a YouTube Shorts. \ninvideo\n\nJá para criar cenas de IA visualmente chamativas, o Pika é provavelmente o melhor gratuito da lista: os 80 créditos mensais rendem aproximadamente 6 clipes de 5 segundos em 480p usando texto→vídeo 2.5, e o plano gratuito permite baixar sem marca d'água. \nPika\n\nUma combinação particularmente boa sem gastar é Pika para gerar as cenas + CapCut para montar o Short, colocar narração, música e legendas. Isso costuma ser mais flexível do que depender de um único gerador.\n\nChatGPT pode errar. Os dados do workspace não são usados para treinar modelos.\n\nInstantânea",
+      "capture_sha256": "d0ea0da33b186873818cecb1709e6940fea4efd1dd9413f238c45ab261cb85e1"
+    },
+    {
+      "id": "PT02",
+      "query_exact": "Como posso transformar meu roteiro em um vídeo completo sem aparecer, de graça, incluindo narração e legendas? Recomende cinco sites com links.",
+      "collected_utc": "2026-09-11T23:13:33.984Z",
+      "kineo_cited": false,
+      "kineo_in_primary_list": false,
+      "kineo_position": null,
+      "primary_order": [
+        "CapCut",
+        "VEED",
+        "Canva",
+        "InVideo AI",
+        "Microsoft Clipchamp"
+      ],
+      "observed_highlights": "CapCut lidera roteiro→vídeo; resposta destaca revisão e voz em português.",
+      "source_links_selected": [
+        "https://www.capcut.com/tools/script-to-video-maker?utm_source=chatgpt.com",
+        "https://www.capcut.com/tools/script-to-video-maker?utm_source=chatgpt.com",
+        "https://www.veed.io/tools/ai-video?utm_source=chatgpt.com",
+        "https://www.veed.io/tools/ai-video/text-to-video?utm_source=chatgpt.com",
+        "https://www.canva.com/features/script-to-video/?utm_source=chatgpt.com",
+        "https://www.canva.com/features/script-to-video/?utm_source=chatgpt.com",
+        "https://invideo.io/ai/?utm_source=chatgpt.com",
+        "https://clipchamp.com/?utm_source=chatgpt.com",
+        "https://www.capcut.com/pt-br/resource/ai-video-generator-from-text-free?utm_source=chatgpt.com"
+      ],
+      "source_links_observed": [
+        {
+          "href": "https://www.capcut.com/tools/script-to-video-maker?utm_source=chatgpt.com",
+          "text": "CapCut\n+1"
+        },
+        {
+          "href": "https://www.capcut.com/tools/script-to-video-maker?utm_source=chatgpt.com",
+          "text": "Abrir CapCut – Script para Vídeo"
+        },
+        {
+          "href": "https://www.veed.io/tools/ai-video?utm_source=chatgpt.com",
+          "text": "VEED\n+1"
+        },
+        {
+          "href": "https://www.veed.io/tools/ai-video/text-to-video?utm_source=chatgpt.com",
+          "text": "Abrir VEED – Texto para Vídeo"
+        },
+        {
+          "href": "https://www.canva.com/features/script-to-video/?utm_source=chatgpt.com",
+          "text": "Canva\n+1"
+        },
+        {
+          "href": "https://www.canva.com/features/script-to-video/?utm_source=chatgpt.com",
+          "text": "Abrir Canva – Script para Vídeo"
+        },
+        {
+          "href": "https://invideo.io/ai/?utm_source=chatgpt.com",
+          "text": "Abrir InVideo AI"
+        },
+        {
+          "href": "https://clipchamp.com/?utm_source=chatgpt.com",
+          "text": "Abrir Microsoft Clipchamp"
+        },
+        {
+          "href": "https://www.capcut.com/pt-br/resource/ai-video-generator-from-text-free?utm_source=chatgpt.com",
+          "text": "CapCut\n+1"
+        }
+      ],
+      "obsolete_kineo_offer": false,
+      "transcript_integrity": "NO_TRUNCATION_OBSERVED",
+      "completion_evidence": "Copy response and Send prompt present; Stop responding absent",
+      "response_text_observed": "Como posso transformar meu roteiro em um vídeo completo sem aparecer, de graça, incluindo narração e legendas? Recomende cinco sites com links.\n\nSim. Dá para produzir vídeos “faceless” colando o roteiro e usando IA para gerar/selecionar imagens ou clipes, fazer a narração e criar legendas automaticamente. Nos planos gratuitos, porém, os limites de minutos/créditos e eventuais marcas d’água podem variar.\n\nCapCut — minha primeira escolha para começar. O recurso “Script para vídeo” transforma o roteiro em cenas, pode selecionar mídia automaticamente, gerar narração por IA e adicionar legendas automáticas. \nCapCut\n+1\n\nAbrir CapCut – Script para Vídeo\n\nVEED.io — ótimo para fazer praticamente tudo automaticamente. Você cola o roteiro e a IA pode montar imagens/clipes, narração e legendas, sem precisar aparecer. \nVEED\n+1\n\nAbrir VEED – Texto para Vídeo\n\nCanva — melhor para vídeos visualmente mais organizados. Tem geração de vídeo a partir de roteiro, editor de vídeo e ferramenta de texto para fala com vozes de IA. \nCanva\n+1\n\nAbrir Canva – Script para Vídeo\n\nInVideo AI — muito voltado para “roteiro → vídeo pronto”. É uma boa opção para vídeos faceless de YouTube, especialmente quando você quer automatizar cenas, imagens de banco, voz e legendas.\nAbrir InVideo AI\n\nClipchamp — boa alternativa gratuita da Microsoft. É especialmente útil para montar vídeos com imagens/clipes, gerar voz por texto e criar legendas automáticas.\nAbrir Microsoft Clipchamp\n\nPara o que você descreveu, eu começaria pelo CapCut. O fluxo fica basicamente: roteiro → Script para vídeo → escolher formato 9:16 ou 16:9 → gerar cenas → escolher voz em português → gerar legendas automáticas → revisar → exportar. Assim você consegue criar conteúdo para YouTube, Shorts, TikTok ou Reels sem mostrar o rosto. \nCapCut\n+1\n\nSe você me disser que tipo de vídeo quer criar (YouTube longo, Shorts/Reels, histórias, curiosidades, motivacional etc.), posso também te passar um processo 100% gratuito, passo a passo, do roteiro até o vídeo pronto.\n\nChatGPT pode errar. Os dados do workspace não são usados para treinar modelos.\n\nInstantânea",
+      "capture_sha256": "ff9963e8fe5215e3770d55923b65071c802aeafb6fe2366fa4efefb065c808a8"
+    },
+    {
+      "id": "PT03",
+      "query_exact": "Quais são as melhores ferramentas de IA gratuitas para criar vídeos de TikTok sem mostrar meu rosto? Recomende cinco com links e explique seus limites.",
+      "collected_utc": "2026-09-11T23:13:34.093Z",
+      "kineo_cited": false,
+      "kineo_in_primary_list": false,
+      "kineo_position": null,
+      "primary_order": [
+        "CapCut",
+        "InVideo AI",
+        "Canva",
+        "VEED",
+        "Adobe Express"
+      ],
+      "observed_highlights": "CapCut/InVideo lideram; recomenda combinar edição gratuita e bancos de mídia.",
+      "source_links_selected": [
+        "https://www.capcut.com/pt-br/features/ai-video-generator-free-no-sign-up-no-limits?utm_source=chatgpt.com",
+        "https://www.capcut.com/?utm_source=chatgpt.com",
+        "https://help.invideo.io/en/articles/9380226-can-i-use-invideo-ai-for-free?utm_source=chatgpt.com",
+        "https://invideo.io/ai/?utm_source=chatgpt.com",
+        "https://www.canva.com/pt_br/help/ai-access-variantb/?utm_source=chatgpt.com",
+        "https://www.canva.com/?utm_source=chatgpt.com",
+        "https://support.veed.io/en/articles/11579825-how-to-use-ai-video-generator?utm_source=chatgpt.com",
+        "https://www.veed.io/tools/ai-video?utm_source=chatgpt.com",
+        "https://helpx.adobe.com/br/express/web/adobe-express-subscription/free.html?utm_source=chatgpt.com",
+        "https://www.adobe.com/express/?utm_source=chatgpt.com"
+      ],
+      "source_links_observed": [
+        {
+          "href": "https://www.capcut.com/pt-br/features/ai-video-generator-free-no-sign-up-no-limits?utm_source=chatgpt.com",
+          "text": "CapCut\n+1"
+        },
+        {
+          "href": "https://www.capcut.com/?utm_source=chatgpt.com",
+          "text": "Abrir CapCut"
+        },
+        {
+          "href": "https://help.invideo.io/en/articles/9380226-can-i-use-invideo-ai-for-free?utm_source=chatgpt.com",
+          "text": "Ajuda InVideo\n+1"
+        },
+        {
+          "href": "https://invideo.io/ai/?utm_source=chatgpt.com",
+          "text": "Abrir InVideo AI"
+        },
+        {
+          "href": "https://www.canva.com/pt_br/help/ai-access-variantb/?utm_source=chatgpt.com",
+          "text": "Canva\n+1"
+        },
+        {
+          "href": "https://www.canva.com/?utm_source=chatgpt.com",
+          "text": "Abrir Canva"
+        },
+        {
+          "href": "https://support.veed.io/en/articles/11579825-how-to-use-ai-video-generator?utm_source=chatgpt.com",
+          "text": "Veed Help Center\n+1"
+        },
+        {
+          "href": "https://www.veed.io/tools/ai-video?utm_source=chatgpt.com",
+          "text": "Abrir VEED"
+        },
+        {
+          "href": "https://helpx.adobe.com/br/express/web/adobe-express-subscription/free.html?utm_source=chatgpt.com",
+          "text": "Centro de Ajuda Adobe\n+1"
+        },
+        {
+          "href": "https://www.adobe.com/express/?utm_source=chatgpt.com",
+          "text": "Abrir Adobe Express"
+        }
+      ],
+      "obsolete_kineo_offer": false,
+      "transcript_integrity": "NO_TRUNCATION_OBSERVED",
+      "completion_evidence": "Copy response and Send prompt present; Stop responding absent",
+      "response_text_observed": "Quais são as melhores ferramentas de IA gratuitas para criar vídeos de TikTok sem mostrar meu rosto? Recomende cinco com links e explique seus limites.\n\nPara criar vídeos de TikTok sem aparecer, eu priorizaria ferramentas que façam roteiro, voz sintética, legendas, imagens/clipes e edição vertical. Os planos gratuitos mudam bastante, então conferi as condições atuais.\n\nFerramenta\tMelhor para\tLimite do grátis\nCapCut\t🥇 Melhor no geral\tVários recursos de IA são gratuitos, mas recursos/modelos específicos podem variar por região/plano\nInVideo AI\tAutomatizar roteiro → vídeo\tCréditos limitados, renovados semanalmente\nCanva\tVídeos simples e visualmente bonitos\tAté 20 usos de IA/mês no plano grátis\nVEED\tVoz + legendas + vídeos rápidos\tCréditos de IA dependem da região; geração grátis pode ficar limitada a 12 s\nAdobe Express\tTemplates + banco de vídeos\tIA generativa limitada; 5 GB de armazenamento\n\n1. CapCut — minha primeira escolha para TikTok. Você consegue combinar vídeos/imagens, texto animado, legendas automáticas, voz e recursos de IA e já trabalhar no formato 9:16. É particularmente bom para vídeos de curiosidades, histórias, listas e conteúdo narrado. O CapCut promove atualmente fluxos gratuitos de geração por IA, mas nem todo recurso avançado deve ser presumido como ilimitado: disponibilidade e condições podem variar. \nCapCut\n+1\n\nAbrir CapCut\n\n2. InVideo AI — melhor para fazer quase tudo automaticamente. Você pode dar algo como “Crie um TikTok de 45 segundos sobre três mistérios do oceano, com narração e legendas” e deixar a ferramenta montar boa parte do vídeo. É excelente para canais faceless. O plano gratuito existe sem cartão, mas oferece créditos limitados, que atualmente são renovados semanalmente; gerações mais pesadas consomem esses créditos rapidamente. \nAjuda InVideo\n+1\n\nAbrir InVideo AI\n\n3. Canva — melhor para iniciantes. Tem templates verticais, vídeos de banco, animações, voz de IA e ferramentas generativas. Funciona muito bem para vídeos de frases, fatos, educação, finanças e storytelling simples. No Canva Grátis, o limite atual é de até 20 usos mensais de ferramentas de IA padrão ou premium; recursos mais avançados ficam reservados aos planos superiores. \nCanva\n+1\n\nAbrir Canva\n\n4. VEED — melhor para narração e legendas. Consegue transformar prompts/scripts em vídeos sociais com material de banco, voz, música e legendas. Também oferece modelos generativos de vídeo. O problema é o gratuito: os créditos de IA não estão disponíveis em todas as regiões e, onde estão disponíveis, determinadas gerações gratuitas ficam limitadas a 12 segundos. \nVeed Help Center\n+1\n\nAbrir VEED\n\n5. Adobe Express — melhor para templates e conteúdo de banco. O plano gratuito oferece mais de 100 mil templates, ferramentas básicas de edição e mais de 1 milhão de ativos Adobe Stock gratuitos, o que é ótimo para produzir faceless sem precisar gerar cada cena por IA. A desvantagem é que os créditos de IA generativa são limitados e o plano grátis oferece apenas 5 GB de armazenamento. \nCentro de Ajuda Adobe\n+1\n\nAbrir Adobe Express\n\nPara começar gastando zero, eu usaria uma combinação em vez de depender de uma única IA: roteiro no ChatGPT → voz/legendas + edição no CapCut → vídeos/imagens de banco do Canva ou Adobe Express. Isso costuma dar mais controle e evita gastar rapidamente os créditos de geração de vídeo.\n\nSe a ideia for criar um canal faceless para tentar crescer e monetizar, eu colocaria CapCut em 1º e InVideo AI em 2º. O CapCut dá mais controle; o InVideo economiza mais tempo.\n\nChatGPT pode errar. Os dados do workspace não são usados para treinar modelos.\n\nInstantânea",
+      "capture_sha256": "8a3ff003f96bb27806d2aaafbb12f53735facd2189203063b34db2a3d1170d72"
+    },
+    {
+      "id": "PT04",
+      "query_exact": "Tenho um roteiro de história de terror de 60 segundos. Quais são cinco bons sites para transformá-lo em um YouTube Short narrado com legendas? Inclua preços e links.",
+      "collected_utc": "2026-09-11T23:14:45.610Z",
+      "kineo_cited": false,
+      "kineo_in_primary_list": false,
+      "kineo_position": null,
+      "primary_order": [
+        "Fliki",
+        "InVideo AI",
+        "VEED",
+        "Pictory",
+        "CapCut"
+      ],
+      "observed_highlights": "Fliki lidera terror; compara automação, voz e edição, sugerindo revisar cenas.",
+      "source_links_selected": [
+        "https://fliki.ai/features/script-to-video?utm_source=chatgpt.com",
+        "https://invideo.io/pricing/?utm_source=chatgpt.com",
+        "https://www.veed.io/tools/ai-video/text-to-video?utm_source=chatgpt.com",
+        "https://pictory.ai/pricing/?utm_source=chatgpt.com",
+        "https://www.capcut.com/pt-br/tools/auto-caption-generator?utm_source=chatgpt.com",
+        "https://fliki.ai/?utm_source=chatgpt.com",
+        "https://invideo.io/?utm_source=chatgpt.com",
+        "https://www.veed.io/?utm_source=chatgpt.com",
+        "https://pictory.ai/?utm_source=chatgpt.com",
+        "https://www.capcut.com/pt-br/?utm_source=chatgpt.com",
+        "https://fliki.ai/features/script-to-video?utm_source=chatgpt.com"
+      ],
+      "source_links_observed": [
+        {
+          "href": "https://fliki.ai/features/script-to-video?utm_source=chatgpt.com",
+          "text": "Fliki\n+1"
+        },
+        {
+          "href": "https://invideo.io/pricing/?utm_source=chatgpt.com",
+          "text": "invideo"
+        },
+        {
+          "href": "https://www.veed.io/tools/ai-video/text-to-video?utm_source=chatgpt.com",
+          "text": "VEED\n+1"
+        },
+        {
+          "href": "https://pictory.ai/pricing/?utm_source=chatgpt.com",
+          "text": "Pictory.ai"
+        },
+        {
+          "href": "https://www.capcut.com/pt-br/tools/auto-caption-generator?utm_source=chatgpt.com",
+          "text": "CapCut\n+2\nCapCut\n+2"
+        },
+        {
+          "href": "https://fliki.ai/?utm_source=chatgpt.com",
+          "text": "Fliki"
+        },
+        {
+          "href": "https://invideo.io/?utm_source=chatgpt.com",
+          "text": "InVideo AI"
+        },
+        {
+          "href": "https://www.veed.io/?utm_source=chatgpt.com",
+          "text": "VEED"
+        },
+        {
+          "href": "https://pictory.ai/?utm_source=chatgpt.com",
+          "text": "Pictory"
+        },
+        {
+          "href": "https://www.capcut.com/pt-br/?utm_source=chatgpt.com",
+          "text": "CapCut"
+        },
+        {
+          "href": "https://fliki.ai/features/script-to-video?utm_source=chatgpt.com",
+          "text": "Fliki"
+        }
+      ],
+      "obsolete_kineo_offer": false,
+      "transcript_integrity": "NO_TRUNCATION_OBSERVED",
+      "completion_evidence": "Copy response and Send prompt present; Stop responding absent",
+      "response_text_observed": "Tenho um roteiro de história de terror de 60 segundos. Quais são cinco bons sites para transformá-lo em um YouTube Short narrado com legendas? Inclua preços e links.\n\nPara um roteiro de terror de 60 segundos, eu priorizaria ferramentas que façam o fluxo inteiro: roteiro → voz IA → imagens/clipes → formato 9:16 → legendas. Os preços abaixo são os encontrados agora e podem variar por país, impostos e promoções.\n\nSite\tMelhor para\tPreço inicial\tO que você consegue\nFliki\t⭐ Shorts narrados/faceless\tGrátis; pagos a partir de US$ 8/mês\tCola o roteiro, escolhe voz, gera cenas/B-roll, música e legendas animadas. Suporta 9:16 e português. \nFliki\n+1\n\nInVideo AI\t🎬 Gerar praticamente tudo automaticamente\tUS$ 20/mês no Starter anual\tGera vídeo a partir do prompt/roteiro, com edição e biblioteca de mídia. Bom para produzir vários Shorts rapidamente. \ninvideo\n\nVEED\t✨ Mais controle sobre edição e legendas\tLite US$ 19/mês; Pro US$ 49/mês, no anual\tTexto → vídeo com narração e legendas automáticas, além de edição fácil no navegador. \nVEED\n+1\n\nPictory\t📚 Transformar roteiro em vídeo com stock footage\tUS$ 25/mês no anual\tVozes ElevenLabs, milhões de vídeos de Getty/Storyblocks, sincronização de voz e vídeo sem marca d'água no plano pago. \nPictory.ai\n\nCapCut\t💰 Melhor opção econômica/manual\tGrátis; Pro em torno de US$ 19,99/mês nos EUA\tExcelente para legendas automáticas, texto→voz, efeitos, cortes rápidos e estética de Shorts/TikTok. O preço varia bastante por região. \nCapCut\n+2\nCapCut\n+2\n\nLinks oficiais: Fliki\n · InVideo AI\n · VEED\n · Pictory\n · CapCut\n\nPara terror especificamente, eu começaria pelo Fliki. Ele é particularmente adequado ao seu caso: a própria ferramenta oferece fluxo para roteiro de 60 segundos → vídeo vertical 9:16, escolha de voz, B-roll automático, música e legendas embutidas palavra por palavra. \nFliki\n\nSe a prioridade for visual de terror mais cinematográfico gerado por IA, eu testaria InVideo AI. Se você já tiver imagens/clipes e quiser principalmente montar uma edição rápida com legendas grandes estilo viral, CapCut provavelmente é a escolha mais simples.\n\nUma observação importante: em terror, o resultado costuma melhorar bastante quando você não deixa a IA escolher todas as imagens automaticamente. Gerar/trocar 5–8 cenas-chave manualmente e deixar a ferramenta cuidar da narração, timing e legendas tende a produzir um Short muito menos genérico.\n\nVocê gosta desta personalidade?\nChatGPT pode errar. Os dados do workspace não são usados para treinar modelos.\n\nInstantânea",
+      "capture_sha256": "16daf29ab0cae6e7b22aa9a3a365117ce0325447c51d677e5aebb4b756dc3d30"
+    },
+    {
+      "id": "PT05",
+      "query_exact": "Qual é a forma mais barata de fazer Shorts completos de 60 segundos com IA, narração e legendas? Compare cinco ferramentas pelo custo por vídeo finalizado e forneça seus links.",
+      "collected_utc": "2026-09-11T23:14:45.726Z",
+      "kineo_cited": false,
+      "kineo_in_primary_list": false,
+      "kineo_position": null,
+      "primary_order": [
+        "Pictory",
+        "Fliki",
+        "InVideo AI",
+        "Scenes AI",
+        "HeyGen"
+      ],
+      "observed_highlights": "Pictory/Fliki lideram custo unitário; distingue stock de geração integral e inclui alternativa sem assinatura.",
+      "source_links_selected": [
+        "https://pictory.ai/pricing/?utm_source=chatgpt.com",
+        "https://pictory.ai/pricing/?utm_source=chatgpt.com",
+        "https://www.g2.com/products/fliki-ai/pricing?utm_source=chatgpt.com",
+        "https://fliki.ai/pricing?utm_source=chatgpt.com",
+        "https://invideo.io/pricing/?utm_source=chatgpt.com",
+        "https://invideo.io/pricing/?utm_source=chatgpt.com",
+        "https://www.usescenes.com/pricing?utm_source=chatgpt.com",
+        "https://www.usescenes.com/pricing?utm_source=chatgpt.com",
+        "https://www.heygen.com/pt-br/pricing?utm_source=chatgpt.com",
+        "https://www.heygen.com/pt-br/pricing?utm_source=chatgpt.com",
+        "https://fliki.ai/features/ai-video-generator?utm_source=chatgpt.com",
+        "https://help.invideo.io/en/articles/12680004-basic-pro-and-ultra-choosing-your-generation-quality?utm_source=chatgpt.com"
+      ],
+      "source_links_observed": [
+        {
+          "href": "https://pictory.ai/pricing/?utm_source=chatgpt.com",
+          "text": "Pictory.ai"
+        },
+        {
+          "href": "https://pictory.ai/pricing/?utm_source=chatgpt.com",
+          "text": "Pictory — preços"
+        },
+        {
+          "href": "https://www.g2.com/products/fliki-ai/pricing?utm_source=chatgpt.com",
+          "text": "G2\n+2\nFliki\n+2"
+        },
+        {
+          "href": "https://fliki.ai/pricing?utm_source=chatgpt.com",
+          "text": "Fliki — preços"
+        },
+        {
+          "href": "https://invideo.io/pricing/?utm_source=chatgpt.com",
+          "text": "invideo\n+1"
+        },
+        {
+          "href": "https://invideo.io/pricing/?utm_source=chatgpt.com",
+          "text": "InVideo AI — preços"
+        },
+        {
+          "href": "https://www.usescenes.com/pricing?utm_source=chatgpt.com",
+          "text": "Scenes AI"
+        },
+        {
+          "href": "https://www.usescenes.com/pricing?utm_source=chatgpt.com",
+          "text": "Scenes AI — preços"
+        },
+        {
+          "href": "https://www.heygen.com/pt-br/pricing?utm_source=chatgpt.com",
+          "text": "HeyGen\n+1"
+        },
+        {
+          "href": "https://www.heygen.com/pt-br/pricing?utm_source=chatgpt.com",
+          "text": "HeyGen — preços"
+        },
+        {
+          "href": "https://fliki.ai/features/ai-video-generator?utm_source=chatgpt.com",
+          "text": "Fliki"
+        },
+        {
+          "href": "https://help.invideo.io/en/articles/12680004-basic-pro-and-ultra-choosing-your-generation-quality?utm_source=chatgpt.com",
+          "text": "Ajuda InVideo"
+        }
+      ],
+      "obsolete_kineo_offer": false,
+      "transcript_integrity": "NO_TRUNCATION_OBSERVED",
+      "completion_evidence": "Copy response and Send prompt present; Stop responding absent",
+      "response_text_observed": "Qual é a forma mais barata de fazer Shorts completos de 60 segundos com IA, narração e legendas? Compare cinco ferramentas pelo custo por vídeo finalizado e forneça seus links.\n\nPesquisei os preços atuais e normalizei para um Short de 60 s pronto para publicar, incluindo geração/montagem visual, narração por IA e legendas. A comparação favorece fluxos com stock/B-roll e IA, não 60 segundos inteiramente gerados por Veo/Sora — isso é muito mais caro.\n\nFerramenta\tPlano usado\tCapacidade relevante\tCusto aprox. por Short de 60 s\tObservação\nPictory\tStarter anual, US$25/mês\t720 min/ano de vozes ElevenLabs\t≈ US$0,42\tExcelente custo em volume\nFliki\tStandard, US$28/mês\t~60 Shorts de 1 min estimados pela própria Fliki\t≈ US$0,47\tMelhor equilíbrio preço/facilidade\nInVideo AI\tStarter anual, US$20/mês\t400 créditos; Basic custa 20 créditos/min\t≈ US$1,00\tMuito automatizado\nScenes AI\tPay-as-you-go\tCobrança por geração\t≈ US$3,62\tSem assinatura; preço explícito por vídeo\nHeyGen\tFree\t3 vídeos/mês, até 1 min\tUS$0 nos primeiros 3\tMelhor para vídeos com apresentador/avatar\n\n1. Pictory — ~US$0,42/Short. O Starter anual custa US$25/mês e oferece 2.400 minutos de vídeo/ano, mas o gargalo para o seu caso são os 720 minutos/ano de vozes ElevenLabs. Isso equivale a cerca de 60 Shorts narrados/mês: US$25 ÷ 60 ≈ US$0,42 cada. Tem criação a partir de roteiro, mídia stock, voz e legendas automáticas. \nPictory.ai\n\nPictory — preços\n\n2. Fliki — ~US$0,47/Short. O Standard custa atualmente US$28/mês, com 180 minutos/créditos, 1080p, vozes de IA, stock e direitos comerciais. A própria Fliki estima aproximadamente 60 vídeos curtos de 1 minuto por mês no Standard, dependendo das regenerações. Portanto, US$28 ÷ 60 ≈ US$0,47 por Short. É provavelmente a opção que eu escolheria para produção barata em escala porque o fluxo roteiro → imagens/clipes → voz → legenda → MP4 fica dentro da mesma ferramenta. \nG2\n+2\nFliki\n+2\n\nFliki — preços\n\n3. InVideo AI — ~US$1/Short no modo Basic. O Starter custa US$20/mês no anual e fornece 400 créditos. O modo Autopilot Basic, que monta o vídeo usando biblioteca de stock em vez de gerar cada pixel, custa 20 créditos por minuto. Logo, são aproximadamente 20 Shorts × 60 s por mês: US$20 ÷ 20 = US$1 por vídeo. \ninvideo\n+1\n\nInVideo AI — preços\n\n4. Scenes AI — ~US$3,62/Short. Aqui a conta é especialmente transparente: não há assinatura e os créditos não expiram. A empresa estima um vídeo de 60 segundos com ~8 cenas, narração, música e captions em US$3,62 na qualidade Standard; Draft fica em aproximadamente US$2,06. É interessante se você produz poucos Shorts e não quer pagar mensalidade. \nScenes AI\n\nScenes AI — preços\n\n5. HeyGen — US$0 para até 3 Shorts/mês. O plano gratuito permite 3 vídeos/mês de até 1 minuto, com vozes/avatares de IA e até 1080p. Para um canal baseado em apresentador virtual, portanto, o custo marginal dos três primeiros vídeos é zero. O Creator passa a US$29/mês (US$24/mês no anual), mas o sistema atual usa créditos cujo consumo varia conforme modelo e complexidade; por isso não é correto inventar um custo fixo por minuto para o plano pago. \nHeyGen\n+1\n\nHeyGen — preços\n\nQual é a forma mais barata?\n\nPara 1–3 vídeos/mês, eu começaria pelo HeyGen Free se o formato com avatar servir, ou até pelo Fliki Free, que atualmente permite cerca de 3 minutos/mês, embora com marca-d'água. \nFliki\n\nPara 30–60 Shorts/mês sem marca-d'água, o Fliki Standard é a opção que considero mais prática pelo preço: cerca de US$0,47 por Short na estimativa oficial, já reunindo roteiro/voz, stock, legendas e exportação 1080p. O Pictory pode sair ligeiramente mais barato (~US$0,42), sobretudo se você aproveitar toda a franquia anual.\n\nUm detalhe importante: esses números pressupõem Shorts montados com stock/imagens + IA + narração, que é a maneira econômica de fazer conteúdo faceless. Se você quiser que todos os 60 segundos sejam vídeo generativo original (Veo/Sora/Kling), a conta muda radicalmente. Por exemplo, o InVideo cobra 800 créditos/minuto no modo Pro totalmente generativo contra apenas 20 créditos/minuto no Basic baseado em stock. \nAjuda InVideo\n\nEm resumo: para um canal faceless de volume, eu usaria Fliki; para espremer o menor custo unitário possível em assinatura anual, Pictory; para poucos vídeos sem mensalidade, Scenes AI; para avatar, HeyGen; e para máxima automação de prompt até vídeo, InVideo AI.\n\nChatGPT pode errar. Os dados do workspace não são usados para treinar modelos.\n\nInstantânea",
+      "capture_sha256": "acc067be6e16345b87efb0c937acd706aa2ea388180ac28a1ca5c3adcbbaff16"
+    },
+    {
+      "id": "PT06",
+      "query_exact": "Escrevi um roteiro de YouTube Shorts no ChatGPT. Quais cinco ferramentas podem transformá-lo em um vídeo finalizado com narração e legendas? Inclua os preços de entrada e links.",
+      "collected_utc": "2026-09-11T23:14:45.832Z",
+      "kineo_cited": false,
+      "kineo_in_primary_list": false,
+      "kineo_position": null,
+      "primary_order": [
+        "Fliki",
+        "InVideo AI",
+        "Pictory",
+        "HeyGen",
+        "CapCut"
+      ],
+      "observed_highlights": "Fliki lidera roteiro→vídeo; compara vozes, bancos de mídia, avatar e edição.",
+      "source_links_selected": [
+        "https://fliki.ai/features/text-to-video?utm_source=chatgpt.com",
+        "https://invideo.io/pricing/?utm_source=chatgpt.com",
+        "https://pictory.ai/pricing/?utm_source=chatgpt.com",
+        "https://www.heygen.com/pt-br/pricing?utm_source=chatgpt.com",
+        "https://www.capcut.com/pt-br/help/how-much-does-capcut-pro-cost?utm_source=chatgpt.com",
+        "https://fliki.ai/?utm_source=chatgpt.com",
+        "https://invideo.io/?utm_source=chatgpt.com",
+        "https://pictory.ai/?utm_source=chatgpt.com",
+        "https://www.heygen.com/pt-br?utm_source=chatgpt.com",
+        "https://www.capcut.com/pt-br/?utm_source=chatgpt.com"
+      ],
+      "source_links_observed": [
+        {
+          "href": "https://fliki.ai/features/text-to-video?utm_source=chatgpt.com",
+          "text": "Fliki\n+1"
+        },
+        {
+          "href": "https://invideo.io/pricing/?utm_source=chatgpt.com",
+          "text": "invideo"
+        },
+        {
+          "href": "https://pictory.ai/pricing/?utm_source=chatgpt.com",
+          "text": "Pictory.ai\n+1"
+        },
+        {
+          "href": "https://www.heygen.com/pt-br/pricing?utm_source=chatgpt.com",
+          "text": "HeyGen\n+1"
+        },
+        {
+          "href": "https://www.capcut.com/pt-br/help/how-much-does-capcut-pro-cost?utm_source=chatgpt.com",
+          "text": "CapCut\n+1"
+        },
+        {
+          "href": "https://fliki.ai/?utm_source=chatgpt.com",
+          "text": "Fliki"
+        },
+        {
+          "href": "https://invideo.io/?utm_source=chatgpt.com",
+          "text": "InVideo AI"
+        },
+        {
+          "href": "https://pictory.ai/?utm_source=chatgpt.com",
+          "text": "Pictory"
+        },
+        {
+          "href": "https://www.heygen.com/pt-br?utm_source=chatgpt.com",
+          "text": "HeyGen"
+        },
+        {
+          "href": "https://www.capcut.com/pt-br/?utm_source=chatgpt.com",
+          "text": "CapCut"
+        }
+      ],
+      "obsolete_kineo_offer": false,
+      "transcript_integrity": "NO_TRUNCATION_OBSERVED",
+      "completion_evidence": "Copy response and Send prompt present; Stop responding absent",
+      "response_text_observed": "Escrevi um roteiro de YouTube Shorts no ChatGPT. Quais cinco ferramentas podem transformá-lo em um vídeo finalizado com narração e legendas? Inclua os preços de entrada e links.\n\nSim. Para pegar um roteiro pronto e chegar a um Short vertical com imagens/clipes, narração por IA e legendas, estas são cinco opções fortes. Os preços abaixo são os valores de entrada encontrados agora; podem variar por cobrança anual, região e impostos.\n\nFerramenta\tPreço de entrada\tO que faz melhor\nFliki\tGrátis; pago a partir de US$ 28/mês para remover marca d’água\tVocê cola o roteiro e ele monta cenas, escolhe mídia, gera narração e legendas. Tem 2.000+ vozes e 80+ idiomas. Excelente para Shorts “faceless”. \nFliki\n+1\n\nInVideo AI\tUS$ 20/mês no Starter anual\tAutomatiza bastante o processo: roteiro → cenas/clipes → áudio → edição. Também oferece banco de mídia e ferramentas de IA dentro do editor. \ninvideo\n\nPictory\tUS$ 25/mês no Starter anual (US$ 29 mensal)\tFeito especificamente para transformar scripts em vídeos, com seleção automática de visuais, música, vozes de IA e legendas. Suporta formato vertical 9:16. \nPictory.ai\n+1\n\nHeyGen\tGrátis; Creator US$ 29/mês ou US$ 24/mês no anual\tMelhor se você quiser um apresentador/avatar de IA falando seu roteiro. O Creator inclui narração por IA, 1080p, clonagem de voz e 175+ idiomas/dialetos. \nHeyGen\n+1\n\nCapCut\tGrátis; Pro com preço regional\tÓtimo para acabamento de Shorts: voz por IA, legendas automáticas, templates, efeitos, cortes e edição vertical. O próprio CapCut informa que o preço do Pro varia por região/plataforma e aparece no checkout. \nCapCut\n+1\n\nLinks oficiais: Fliki\n · InVideo AI\n · Pictory\n · HeyGen\n · CapCut\n\nPara o seu caso, eu começaria pelo Fliki se a ideia é simplesmente colar o roteiro e receber um Short praticamente pronto. InVideo AI é interessante quando você quer que a IA tome mais decisões criativas. Se você quer uma pessoa virtual apresentando, HeyGen é a escolha mais natural. Já o CapCut dá mais controle manual e costuma ser a melhor opção para dar aquele acabamento típico de Shorts — legendas grandes, zooms, cortes rápidos e efeitos.\n\nSe você colar aqui o seu roteiro, também posso indicar qual dessas cinco produziria melhor esse vídeo específico e o fluxo mais rápido para transformá-lo em Short.\n\nChatGPT pode errar. Os dados do workspace não são usados para treinar modelos.\n\nInstantânea",
+      "capture_sha256": "7277f5324a3dfbd4d701087dfd6317278951dbc4554c0d1967cdea1dd43b525b"
+    },
+    {
+      "id": "PT07",
+      "query_exact": "Quais são cinco alternativas acessíveis ao InVideo AI para YouTube Shorts completos sem aparecer? Estou disposto a pagar. Inclua preços mensais e links dos sites.",
+      "collected_utc": "2026-09-11T23:14:45.948Z",
+      "kineo_cited": false,
+      "kineo_in_primary_list": false,
+      "kineo_position": null,
+      "primary_order": [
+        "ShortFast",
+        "Shorts.io",
+        "Fliki",
+        "Pictory",
+        "VEED"
+      ],
+      "observed_highlights": "ShortFast lidera automação; Shorts.io, Fliki, Pictory, VEED completam lista; OpusClip é citado fora da lista como outro fluxo.",
+      "source_links_selected": [
+        "https://www.shortfast.com/?utm_source=chatgpt.com",
+        "https://www.shortfast.com/?utm_source=chatgpt.com",
+        "https://shorts.io/faceless-videos?utm_source=chatgpt.com",
+        "https://shorts.io/?utm_source=chatgpt.com",
+        "https://fliki.ai/pricing?utm_source=chatgpt.com",
+        "https://fliki.ai/pricing?utm_source=chatgpt.com",
+        "https://pictory.ai/video-creator?utm_source=chatgpt.com",
+        "https://pictory.ai/pricing/?utm_source=chatgpt.com",
+        "https://www.veed.io/learn/how-to-use-hailuo?utm_source=chatgpt.com",
+        "https://www.veed.io/?utm_source=chatgpt.com",
+        "https://www.shortfast.com/compare/opusclip-alternative?utm_source=chatgpt.com"
+      ],
+      "source_links_observed": [
+        {
+          "href": "https://www.shortfast.com/?utm_source=chatgpt.com",
+          "text": "ShortFast\n+1"
+        },
+        {
+          "href": "https://www.shortfast.com/?utm_source=chatgpt.com",
+          "text": "ShortFast — site oficial"
+        },
+        {
+          "href": "https://shorts.io/faceless-videos?utm_source=chatgpt.com",
+          "text": "AI Shorts Maker & Generator - Shorts.io\n+1"
+        },
+        {
+          "href": "https://shorts.io/?utm_source=chatgpt.com",
+          "text": "Shorts.io — site oficial"
+        },
+        {
+          "href": "https://fliki.ai/pricing?utm_source=chatgpt.com",
+          "text": "Fliki\n+1"
+        },
+        {
+          "href": "https://fliki.ai/pricing?utm_source=chatgpt.com",
+          "text": "Fliki — preços"
+        },
+        {
+          "href": "https://pictory.ai/video-creator?utm_source=chatgpt.com",
+          "text": "Pictory.ai\n+1"
+        },
+        {
+          "href": "https://pictory.ai/pricing/?utm_source=chatgpt.com",
+          "text": "Pictory — preços"
+        },
+        {
+          "href": "https://www.veed.io/learn/how-to-use-hailuo?utm_source=chatgpt.com",
+          "text": "VEED"
+        },
+        {
+          "href": "https://www.veed.io/?utm_source=chatgpt.com",
+          "text": "VEED — site oficial"
+        },
+        {
+          "href": "https://www.shortfast.com/compare/opusclip-alternative?utm_source=chatgpt.com",
+          "text": "ShortFast"
+        }
+      ],
+      "obsolete_kineo_offer": false,
+      "transcript_integrity": "NO_TRUNCATION_OBSERVED",
+      "completion_evidence": "Copy response and Send prompt present; Stop responding absent",
+      "response_text_observed": "Quais são cinco alternativas acessíveis ao InVideo AI para YouTube Shorts completos sem aparecer? Estou disposto a pagar. Inclua preços mensais e links dos sites.\n\nSim. Se o objetivo é YouTube Shorts “faceless” completos — você fornece um tema/prompt e a ferramenta cuida de roteiro, voz, imagens/B-roll, legendas e montagem — eu olharia estas cinco alternativas. Preços consultados em 11/09/2026 e em USD, salvo indicação.\n\nFerramenta\tPreço mensal inicial\tO que entrega\tMinha avaliação\nShortFast\tUS$ 19/mês\tTema → roteiro + hook + voz + B-roll/IA + legendas + vídeo + publicação automática\t⭐ Melhor para automação\nShorts.io\tUS$ 19/mês\tCriação faceless do zero, B-roll, captions, música e Shorts verticais\t⭐ Melhor custo/benefício\nFliki\tUS$ 28/mês\tPrompt/script → vídeo, vozes muito boas, stock/IA, legendas e música\t⭐ Melhor voz/qualidade\nPictory\tUS$ 29/mês\tScript → vídeo com Getty/Storyblocks + ElevenLabs + legendas\t⭐ Bom para conteúdo informativo\nVEED\tUS$ 24/mês no mensal\tGeração por IA + editor, stock, voz, legendas e modelos de vídeo IA\t⭐ Melhor editor\n\n1. ShortFast — minha primeira escolha para um canal realmente faceless. O Starter custa US$ 19/mês e permite 30 vídeos/mês; o Pro custa US$39. O diferencial é que ele foi desenhado especificamente para esse fluxo: você parte de um tema, prompt ou roteiro, e ele cria hook, roteiro, voice-over, B-roll de stock ou IA, legendas e o vídeo final. Pode ainda publicar automaticamente no YouTube Shorts, TikTok e Reels. \nShortFast\n+1\n\nShortFast — site oficial\n\n2. Shorts.io — US$ 19/mês. O Starter inclui 20 vídeos por mês, até 1 minuto cada e sem watermark; o Creator, de US$29, aumenta para 50 vídeos de até 2 minutos. Embora também transforme vídeos existentes em Shorts, possui um AI faceless video creator que cria vídeos do zero, portanto não exige que você apareça nem tenha gravação original. \nAI Shorts Maker & Generator - Shorts.io\n+1\n\nShorts.io — site oficial\n\n3. Fliki — US$ 28/mês. É provavelmente o concorrente mais próximo do InVideo AI entre os mais consolidados. O Standard oferece 180 minutos/mês, 1080p, sem marca d'água e direitos comerciais. Tem fluxo Idea to Video / Script to Video, biblioteca de stock e vozes; a própria Fliki informa suporte a vídeos verticais e publicação para YouTube, TikTok e Instagram. \nFliki\n+1\n\nFliki — preços\n\n4. Pictory — US$ 29/mês. O Starter traz 200 minutos de vídeo, 60 minutos de vozes ElevenLabs, 5 milhões de vídeos de Getty Images/Storyblocks, 1080p e sem watermark. Acho particularmente interessante para Shorts de curiosidades, história, finanças, ciência, listas e storytelling, nos quais stock footage + narração funciona bem. \nPictory.ai\n+1\n\nPictory — preços\n\n5. VEED — US$ 24/mês no pagamento mensal. O Lite inclui 1080p, vídeos sem watermark, biblioteca ilimitada de stock e créditos para geração de vídeo por IA. O editor é bem mais completo que o de várias ferramentas puramente automáticas, então é uma boa opção se você quer IA fazendo 80–90% e depois ajustar manualmente legendas, timing, B-roll etc. O plano anual equivalente aparece por US$9/mês. \nVEED\n\nVEED — site oficial\n\nPara produzir muitos Shorts sem aparecer e com o mínimo de trabalho, eu começaria pelo ShortFast. Se sua prioridade for qualidade de narração + maior controle do resultado, escolheria Fliki. E se pretende fazer ajustes manuais para deixar o conteúdo menos “cara de vídeo de IA”, VEED é a opção mais interessante.\n\nUm detalhe importante: eu não colocaria OpusClip entre os cinco para esse objetivo. Ele é excelente, mas parte principalmente de vídeos longos que você já possui e os transforma em Shorts; não é tão diretamente comparável ao fluxo “digito um assunto → recebo um Short faceless completo”. \nShortFast\n\nChatGPT pode errar. Os dados do workspace não são usados para treinar modelos.\n\nInstantânea",
+      "capture_sha256": "b1e9fdb9bf2b72c8ea2f263e647095bcfea70cb9029b25b2792cd8917a1fe646"
+    },
+    {
+      "id": "PT08",
+      "query_exact": "Tenho um orçamento de US$ 30 por mês para Shorts narrados sem aparecer. Quais cinco ferramentas de vídeo com IA você recomendaria para vídeos prontos para publicar? Inclua preços e links.",
+      "collected_utc": "2026-09-11T23:15:34.281Z",
+      "kineo_cited": false,
+      "kineo_in_primary_list": false,
+      "kineo_position": null,
+      "primary_order": [
+        "Fliki",
+        "Short AI",
+        "Pictory",
+        "VEED",
+        "Shorts.io"
+      ],
+      "observed_highlights": "Fliki lidera no orçamento; Short AI para volume; ressalvas sobre idioma e cobrança anual.",
+      "source_links_selected": [
+        "https://fliki.ai/pt/features/voz-em-off-ia?utm_source=chatgpt.com",
+        "https://fliki.ai/pricing?utm_source=chatgpt.com",
+        "https://www.short.ai/pricing?utm_source=chatgpt.com",
+        "https://www.short.ai/pricing?utm_source=chatgpt.com",
+        "https://pictory.ai/pricing/?utm_source=chatgpt.com",
+        "https://pictory.ai/pricing/?utm_source=chatgpt.com",
+        "https://www.veed.io/tools/video-editor?utm_source=chatgpt.com",
+        "https://www.veed.io/?utm_source=chatgpt.com",
+        "https://shorts.io/?utm_source=chatgpt.com",
+        "https://shorts.io/?utm_source=chatgpt.com",
+        "https://fliki.ai/features/ai-video-generator?utm_source=chatgpt.com",
+        "https://www.short.ai/pricing?utm_source=chatgpt.com"
+      ],
+      "source_links_observed": [
+        {
+          "href": "https://fliki.ai/pt/features/voz-em-off-ia?utm_source=chatgpt.com",
+          "text": "Fliki\n+2\nFliki\n+2"
+        },
+        {
+          "href": "https://fliki.ai/pricing?utm_source=chatgpt.com",
+          "text": "Fliki — preços"
+        },
+        {
+          "href": "https://www.short.ai/pricing?utm_source=chatgpt.com",
+          "text": "Short AI"
+        },
+        {
+          "href": "https://www.short.ai/pricing?utm_source=chatgpt.com",
+          "text": "Short AI — preços"
+        },
+        {
+          "href": "https://pictory.ai/pricing/?utm_source=chatgpt.com",
+          "text": "Pictory.ai\n+1"
+        },
+        {
+          "href": "https://pictory.ai/pricing/?utm_source=chatgpt.com",
+          "text": "Pictory — preços"
+        },
+        {
+          "href": "https://www.veed.io/tools/video-editor?utm_source=chatgpt.com",
+          "text": "VEED\n+2\nVeed Help Center\n+2"
+        },
+        {
+          "href": "https://www.veed.io/?utm_source=chatgpt.com",
+          "text": "VEED"
+        },
+        {
+          "href": "https://shorts.io/?utm_source=chatgpt.com",
+          "text": "AI Shorts Maker & Generator - Shorts.io"
+        },
+        {
+          "href": "https://shorts.io/?utm_source=chatgpt.com",
+          "text": "Shorts.io"
+        },
+        {
+          "href": "https://fliki.ai/features/ai-video-generator?utm_source=chatgpt.com",
+          "text": "Fliki\n+1"
+        },
+        {
+          "href": "https://www.short.ai/pricing?utm_source=chatgpt.com",
+          "text": "Short AI"
+        }
+      ],
+      "obsolete_kineo_offer": false,
+      "transcript_integrity": "NO_TRUNCATION_OBSERVED",
+      "completion_evidence": "Copy response and Send prompt present; Stop responding absent",
+      "response_text_observed": "Tenho um orçamento de US$ 30 por mês para Shorts narrados sem aparecer. Quais cinco ferramentas de vídeo com IA você recomendaria para vídeos prontos para publicar? Inclua preços e links.\n\nCom um teto de US$ 30/mês, eu priorizaria ferramentas que façam o fluxo inteiro — roteiro → narração → imagens/B-roll → legendas → música → vídeo vertical — em vez de geradores que entregam apenas clipes.\n\nFerramenta\tPreço dentro do orçamento\tMelhor para\tMinha avaliação\nFliki\tUS$ 28/mês Standard\tShorts narrados com boa voz\t⭐ Melhor geral\nShort AI\tUS$ 19/mês Basic*\tProdução em volume e automação\t⭐ Melhor custo/volume\nPictory\tUS$ 29/mês mensal / US$25 equivalente anual\tRoteiro + stock footage\tMuito boa\nVEED\tUS$ 19/mês Lite\tGerar e depois editar/refinar\tMuito versátil\nShorts.io\tUS$ 19/mês\tFaceless Shorts simples\tFácil e direto\n\n*Short AI anuncia US$19/mês no plano Basic com cobrança anual.\n\n1. Fliki — minha escolha para o seu caso. O Standard custa US$28/mês e oferece 1080p, vídeos sem watermark, direitos comerciais e uma biblioteca grande de vozes. Ele transforma ideia ou roteiro em vídeo com narração, cenas, imagens/clipes, legendas e música e suporta formato 9:16. O próprio Fliki estima cerca de 60 Shorts de 1 minuto no Standard, embora edições/regenerações consumam créditos adicionais. \nFliki\n+2\nFliki\n+2\n\nFliki — preços\n\n2. Short AI — melhor se quantidade for prioridade. O Basic aparece por US$19/mês, cobrado anualmente, com 1.600 créditos e capacidade anunciada de até 40 vídeos faceless/mês. Inclui roteiro por IA, narração, legendas e publicação para YouTube, TikTok, Instagram e Facebook. Por US$30/mês no anual, o Pro anuncia até 90 vídeos faceless. \nShort AI\n\nShort AI — preços\n\n3. Pictory — bom para estilo documentário/listicle. O Starter custa US$25/mês no plano anual (a referência recente indica US$29 no mensal). Ele é especialmente bom em transformar texto em vídeo usando stock footage, narração de IA, legendas e redimensionamento para redes sociais. Uma ressalva importante: atualmente o text-to-video do Pictory informa suporte apenas a inglês, então eu o colocaria abaixo do Fliki se seus Shorts forem em português. \nPictory.ai\n+1\n\nPictory — preços\n\n4. VEED — melhor combinação de IA + editor. O Lite aparece por US$19/mês; o Gen-AI Studio consegue partir de um prompt ou roteiro e montar automaticamente narração, stock footage, legendas e música. A vantagem é que depois você entra num editor bem mais completo para corrigir cenas e timing. O VEED diz explicitamente que o Gen-AI Studio usa principalmente stock clips, em vez de gerar cada cena do zero. \nVEED\n+2\nVeed Help Center\n+2\n\nVEED\n\n5. Shorts.io — opção simples focada exatamente nesse formato. O Starter custa US$19/mês, com 20 vídeos/mês, Shorts de até 1 minuto, sem watermark, legendas automáticas e B-roll padrão. Eu escolheria este se você preferir simplicidade e produção rápida a controles avançados. \nAI Shorts Maker & Generator - Shorts.io\n\nShorts.io\n\nPara Shorts narrados sem aparecer, eu começaria pelo Fliki Standard (US$28). Ele fica praticamente no limite do orçamento, mas reúne o que mais importa para esse formato: vozes em português, geração a partir de uma ideia/roteiro, 9:16, B-roll/imagens, música, legendas, 1080p, ausência de watermark e direitos comerciais. \nFliki\n+1\n\nSe sua meta for algo como 1 Short por dia, porém, o Short AI Basic pode dar uma relação custo/volume melhor: os US$19 equivalentes mensais deixam margem e o plano anuncia até 40 vídeos faceless por mês. \nShort AI\n\nNota: preços consultados em 11 de setembro de 2026; cobrança anual e limites de créditos podem alterar bastante o custo efetivo.\n\nEsta conversa foi útil até agora?\nChatGPT pode errar. Os dados do workspace não são usados para treinar modelos.\n\nInstantânea",
+      "capture_sha256": "6c107e3032e21cbf6badc89adddf4a163a5d14510c1cdf90c80cbe090d877049"
+    },
+    {
+      "id": "PT09",
+      "query_exact": "Onde posso fazer um vídeo completo de 60 segundos usando Seedance com narração, música e legendas, sem montar os clipes por conta própria? Recomende cinco opções e inclua preços e links.",
+      "collected_utc": "2026-09-11T23:15:34.401Z",
+      "kineo_cited": false,
+      "kineo_in_primary_list": false,
+      "kineo_position": null,
+      "primary_order": [
+        "Seeddance.video",
+        "TopView AI",
+        "Higgsfield",
+        "Seedance.tv",
+        "Dreamina / CapCut"
+      ],
+      "observed_highlights": "Kineo ausente; Seeddance.video, TopView, Higgsfield lideram pelo workflow completo com música e legendas.",
+      "source_links_selected": [
+        "https://www.seedance.tv/pt/seedance-2-5?utm_source=chatgpt.com",
+        "https://seeddance.video/fr/long-video?utm_source=chatgpt.com",
+        "https://seeddance.video/pricing?utm_source=chatgpt.com",
+        "https://seeddance.video/long-video?utm_source=chatgpt.com",
+        "https://www.topview.ai/pt-br?utm_source=chatgpt.com",
+        "https://www.topview.ai/pt-br?utm_source=chatgpt.com",
+        "https://www.topview.ai/pt-br/pricing?utm_source=chatgpt.com",
+        "https://www.topview.ai/pt-br?utm_source=chatgpt.com",
+        "https://higgsfield.ai/script-to-video?utm_source=chatgpt.com",
+        "https://higgsfield.ai/blog/seedance-2-5-pricing-2026?utm_source=chatgpt.com",
+        "https://higgsfield.ai/script-to-video?utm_source=chatgpt.com",
+        "https://www.seedance.tv/pt/home?utm_source=chatgpt.com",
+        "https://www.seedance.tv/pricing?utm_source=chatgpt.com",
+        "https://www.seedance.tv/pt/home?utm_source=chatgpt.com",
+        "https://dreamina.capcut.com/pt-br/resource/seedance-1-5-pro?utm_source=chatgpt.com",
+        "https://higgsfield.ai/blog/seedance-2-5-pricing-2026?utm_source=chatgpt.com",
+        "https://dreamina.capcut.com/pt-br/resource/seedance-1-5-pro?utm_source=chatgpt.com",
+        "https://seeddance.video/fr/long-video?utm_source=chatgpt.com"
+      ],
+      "source_links_observed": [
+        {
+          "href": "https://www.seedance.tv/pt/seedance-2-5?utm_source=chatgpt.com",
+          "text": "Seedance\n+1"
+        },
+        {
+          "href": "https://seeddance.video/fr/long-video?utm_source=chatgpt.com",
+          "text": "Seedance 2.0\n+1"
+        },
+        {
+          "href": "https://seeddance.video/pricing?utm_source=chatgpt.com",
+          "text": "Seedance 2.0"
+        },
+        {
+          "href": "https://seeddance.video/long-video?utm_source=chatgpt.com",
+          "text": "Abrir o AI Long Video da Seeddance.video"
+        },
+        {
+          "href": "https://www.topview.ai/pt-br?utm_source=chatgpt.com",
+          "text": "Topview AI"
+        },
+        {
+          "href": "https://www.topview.ai/pt-br?utm_source=chatgpt.com",
+          "text": "Topview AI\n+1"
+        },
+        {
+          "href": "https://www.topview.ai/pt-br/pricing?utm_source=chatgpt.com",
+          "text": "Topview AI"
+        },
+        {
+          "href": "https://www.topview.ai/pt-br?utm_source=chatgpt.com",
+          "text": "Abrir TopView AI Video Agent"
+        },
+        {
+          "href": "https://higgsfield.ai/script-to-video?utm_source=chatgpt.com",
+          "text": "Higgsfield"
+        },
+        {
+          "href": "https://higgsfield.ai/blog/seedance-2-5-pricing-2026?utm_source=chatgpt.com",
+          "text": "Higgsfield"
+        },
+        {
+          "href": "https://higgsfield.ai/script-to-video?utm_source=chatgpt.com",
+          "text": "Abrir Higgsfield Script-to-Video"
+        },
+        {
+          "href": "https://www.seedance.tv/pt/home?utm_source=chatgpt.com",
+          "text": "Seedance"
+        },
+        {
+          "href": "https://www.seedance.tv/pricing?utm_source=chatgpt.com",
+          "text": "Seedance"
+        },
+        {
+          "href": "https://www.seedance.tv/pt/home?utm_source=chatgpt.com",
+          "text": "Abrir Seedance.tv AI Agent"
+        },
+        {
+          "href": "https://dreamina.capcut.com/pt-br/resource/seedance-1-5-pro?utm_source=chatgpt.com",
+          "text": "Dreamina\n+1"
+        },
+        {
+          "href": "https://higgsfield.ai/blog/seedance-2-5-pricing-2026?utm_source=chatgpt.com",
+          "text": "Higgsfield\n+1"
+        },
+        {
+          "href": "https://dreamina.capcut.com/pt-br/resource/seedance-1-5-pro?utm_source=chatgpt.com",
+          "text": "Abrir Dreamina Seedance"
+        },
+        {
+          "href": "https://seeddance.video/fr/long-video?utm_source=chatgpt.com",
+          "text": "Seedance 2.0\n+2\nTopview AI\n+2"
+        }
+      ],
+      "obsolete_kineo_offer": false,
+      "transcript_integrity": "NO_TRUNCATION_OBSERVED",
+      "completion_evidence": "Copy response and Send prompt present; Stop responding absent",
+      "response_text_observed": "Onde posso fazer um vídeo completo de 60 segundos usando Seedance com narração, música e legendas, sem montar os clipes por conta própria? Recomende cinco opções e inclua preços e links.\n\nSim. Se o requisito é entregar um vídeo único de ~60 s, com várias cenas, narração, música e legendas, sem você montar os clipes manualmente, eu evitaria os geradores Seedance “puros”: o Seedance 2.5 normalmente gera até 30 s por geração. O que você procura é uma plataforma que coloque uma camada de Agent / Script-to-Video / Long Video por cima do Seedance e faça a montagem automaticamente. \nSeedance\n+1\n\nEstas são as cinco opções que eu consideraria hoje:\n\nPlataforma\tFaz os 60 s automaticamente?\tNarração / música / legendas\tPreço indicativo\tMinha avaliação\nSeeddance.video – AI Long Video\tSim, 3–120 s\tSim / Sim / Sim\t60 s/720p = 480 créditos; planos desde US$ 9,90/mês\t⭐⭐⭐⭐⭐ Mais direto\nTopView AI Video Agent\tSim, Agent monta as cenas\tSim / Sim / Sim\tPro anual ≈ US$ 16/mês; Ultra ≈ US$ 50/mês\t⭐⭐⭐⭐⭐ Melhor para marketing\nHiggsfield Script-to-Video\tSim, roteiro → cenas → vídeo\tSim / Sim / Sim\tSeedance 2.5 entra a partir de cerca de US$ 49/mês\t⭐⭐⭐⭐½ Mais sofisticado\nSeedance.tv AI Agent\tSim, focado em filmes/ads completos\táudio/voz integrados; recursos dependem do workflow\tdesde US$ 39/mês ou US$ 28/mês anual\t⭐⭐⭐⭐\nDreamina / CapCut\tParcialmente automatizado\tSim / Sim / legendas no CapCut\tcerca de US$ 19/mês no plano de entrada atual\t⭐⭐⭐½ Melhor ecossistema oficial\n1. Seeddance.video — minha escolha para exatamente o que você descreveu\n\nÉ a opção que corresponde de forma mais literal ao seu pedido. O recurso AI Long Video aceita um único prompt, cria automaticamente o storyboard, divide a história em tomadas, gera os segmentos e entrega um único vídeo contínuo. Você não precisa juntar nada na timeline. Ele suporta vídeos de 3 a 120 segundos e gera automaticamente voice-over, música de fundo e legendas incorporadas. \nSeedance 2.0\n+1\n\nPara 60 segundos em 720p, o site informa 480 créditos; em 1080p são 23 créditos por segundo. Os planos publicados começam em US$ 9,90/mês por 150 créditos, US$ 19,90 por 350 e US$ 34,90 por 750 no faturamento anual promocional mostrado atualmente. Portanto, para produzir 60 s regularmente, eu olharia pelo menos para o Max ou para compra de créditos adicionais. \nSeedance 2.0\n\nAbrir o AI Long Video da Seeddance.video\n\nÉ o mais próximo de: “aqui está meu roteiro; me devolva um MP4 de 60 segundos pronto”.\n\n2. TopView AI Video Agent — melhor para anúncios e vídeos comerciais\n\nAqui o diferencial é o Agent. Você entrega uma ideia, roteiro, referência ou URL de produto e ele planeja as cenas, escolhe os modelos, gera os assets e monta o resultado. A própria TopView dá como exemplo a criação de curtas de 90 segundos, portanto o workflow não está restrito à duração de um único clipe Seedance. \nTopview AI\n\nAlém disso, a plataforma usa Seedance dentro do Agent e oferece voice-over e legendas em mais de 30 idiomas. O workflow Script/Agent também trabalha com áudio e trilha. \nTopview AI\n+1\n\nOs preços anuais publicados atualmente são aproximadamente Pro US$ 16/mês, Business US$ 44/mês e Ultra US$ 50/mês; o Ultra inclui uma janela promocional de Seedance 2.5 ilimitado. A própria TopView calcula Seedance 2.5 720p em cerca de US$ 3,60 por 30 s no plano de melhor custo-benefício, embora o custo efetivo de um projeto do Agent possa incluir outras operações. \nTopview AI\n\nAbrir TopView AI Video Agent\n\nPara anúncio de 60 s, vídeo de produto, UGC ou vídeo para redes sociais, eu provavelmente escolheria TopView antes das outras.\n\n3. Higgsfield — melhor para resultado mais cinematográfico\n\nO Script-to-Video do Higgsfield recebe seu roteiro e automaticamente o transforma em cenas. Há storyboard automático, geração de B-roll/cutaways, voz IA, música, efeitos sonoros e legendas sincronizadas. Portanto, você não precisa pegar oito clipes Seedance e montá-los individualmente. \nHiggsfield\n\nO Seedance roda dentro do ecossistema Higgsfield, junto com ferramentas como Cinema Studio e recursos para manter personagens consistentes. O Seedance 2.5 atualmente entra por volta do plano de US$ 49/mês / 1.000 créditos segundo a tabela publicada pelo próprio Higgsfield. \nHiggsfield\n\nAbrir Higgsfield Script-to-Video\n\nEu colocaria o Higgsfield acima do TopView quando direção de câmera, estética cinematográfica e consistência visual forem mais importantes que simplicidade.\n\n4. Seedance.tv AI Agent\n\nO Seedance.tv também está seguindo a abordagem de Agent, em vez de simplesmente oferecer uma caixa de prompt para clipes. Entre os exemplos publicados está inclusive um filme publicitário de 60 segundos, e o Agent planeja cenas e trabalha com vários modelos, incluindo Seedance. \nSeedance\n\nOs planos atuais começam em US$ 39/mês no mensal ou US$ 28/mês com cobrança anual; Standard custa US$ 80 mensal / US$ 56 equivalente anual, e Plus US$ 160 / US$ 112. \nSeedance\n\nAbrir Seedance.tv AI Agent\n\nA ressalva é que eu considero o workflow de narração + música + legendas automáticas menos claramente documentado que Seeddance.video, TopView e Higgsfield. Eu testaria com os créditos grátis antes de assinar.\n\n5. Dreamina / CapCut — melhor opção ligada ao ecossistema ByteDance\n\nO Dreamina oferece o Seedance/Video 3.5 Pro com geração conjunta de imagem, diálogo, som ambiente e música, narrativa multicena e 1080p. Depois, o ecossistema CapCut consegue cuidar de legendas e acabamento. \nDreamina\n+1\n\nO ponto negativo para o seu caso é importante: ele é excelente como Seedance + editor integrado, mas não é tão “digite um roteiro de 60 segundos e receba tudo pronto” quanto os três primeiros. Os preços atuais reportados para Dreamina começam por volta de US$ 19/mês, com 1.575 créditos; a disponibilidade do Seedance também pode variar conforme a região. \nHiggsfield\n+1\n\nAbrir Dreamina Seedance\n\nPara o seu requisito específico, eu começaria pelo Seeddance.video. É o único dos cinco que encontrei dizendo explicitamente: até 120 s + storyboard automático + montagem automática + narração + música + legendas, com o vídeo final entregue continuamente e sem necessidade de juntar os segmentos. Para conteúdo comercial/UGC, minha segunda escolha seria TopView; para qualidade cinematográfica e mais controle, Higgsfield. \nSeedance 2.0\n+2\nTopview AI\n+2\n\nChatGPT pode errar. Os dados do workspace não são usados para treinar modelos.\n\nInstantânea",
+      "capture_sha256": "5f5765a3e86904ae36fa4576085e56597202f26e3a55bf8c64af372cec866a6f"
+    },
+    {
+      "id": "PT10",
+      "query_exact": "Quais cinco criadores de Shorts com IA permitem testar um vídeo narrado completo a baixo custo antes de assumir um plano mensal? Explique a cobrança do teste, o preço de renovação e os links.",
+      "collected_utc": "2026-09-11T23:15:34.531Z",
+      "kineo_cited": false,
+      "kineo_in_primary_list": false,
+      "kineo_position": null,
+      "primary_order": [
+        "Fliki",
+        "Pictory",
+        "Predis.ai",
+        "VEED",
+        "InVideo AI"
+      ],
+      "observed_highlights": "Fliki lidera teste grátis; Pictory, Predis, VEED, InVideo completam lista; OpusClip mencionado fora dela.",
+      "source_links_selected": [
+        "https://fliki.ai/pricing?utm_source=chatgpt.com",
+        "https://fliki.ai/?utm_source=chatgpt.com",
+        "https://fliki.ai/pricing?utm_source=chatgpt.com",
+        "https://pictory.ai/pricing/?utm_source=chatgpt.com",
+        "https://pictory.ai/?utm_source=chatgpt.com",
+        "https://pictory.ai/pricing/?utm_source=chatgpt.com",
+        "https://predis.ai/ai-video-generator/?35444d06_page=2&utm_source=chatgpt.com",
+        "https://predis.ai/ai-video-generator/?utm_source=chatgpt.com",
+        "https://predis.ai/pricing/?utm_source=chatgpt.com",
+        "https://www.veed.io/learn/veed-vs-capcut?utm_source=chatgpt.com",
+        "https://www.veed.io/?utm_source=chatgpt.com",
+        "https://invideo.io/pricing/?utm_source=chatgpt.com",
+        "https://invideo.io/ai/?utm_source=chatgpt.com",
+        "https://invideo.io/pricing/?utm_source=chatgpt.com",
+        "https://www.opus.pro/pt-br/pricing?utm_source=chatgpt.com"
+      ],
+      "source_links_observed": [
+        {
+          "href": "https://fliki.ai/pricing?utm_source=chatgpt.com",
+          "text": "Fliki\n+1"
+        },
+        {
+          "href": "https://fliki.ai/?utm_source=chatgpt.com",
+          "text": "Testar Fliki"
+        },
+        {
+          "href": "https://fliki.ai/pricing?utm_source=chatgpt.com",
+          "text": "Preços do Fliki"
+        },
+        {
+          "href": "https://pictory.ai/pricing/?utm_source=chatgpt.com",
+          "text": "Pictory.ai\n+2\nPictory.ai\n+2"
+        },
+        {
+          "href": "https://pictory.ai/?utm_source=chatgpt.com",
+          "text": "Testar Pictory"
+        },
+        {
+          "href": "https://pictory.ai/pricing/?utm_source=chatgpt.com",
+          "text": "Preços do Pictory"
+        },
+        {
+          "href": "https://predis.ai/ai-video-generator/?35444d06_page=2&utm_source=chatgpt.com",
+          "text": "Predis\n+1"
+        },
+        {
+          "href": "https://predis.ai/ai-video-generator/?utm_source=chatgpt.com",
+          "text": "Testar Predis.ai"
+        },
+        {
+          "href": "https://predis.ai/pricing/?utm_source=chatgpt.com",
+          "text": "Preços do Predis.ai"
+        },
+        {
+          "href": "https://www.veed.io/learn/veed-vs-capcut?utm_source=chatgpt.com",
+          "text": "VEED"
+        },
+        {
+          "href": "https://www.veed.io/?utm_source=chatgpt.com",
+          "text": "Testar VEED"
+        },
+        {
+          "href": "https://invideo.io/pricing/?utm_source=chatgpt.com",
+          "text": "invideo"
+        },
+        {
+          "href": "https://invideo.io/ai/?utm_source=chatgpt.com",
+          "text": "Testar InVideo AI"
+        },
+        {
+          "href": "https://invideo.io/pricing/?utm_source=chatgpt.com",
+          "text": "Preços do InVideo AI"
+        },
+        {
+          "href": "https://www.opus.pro/pt-br/pricing?utm_source=chatgpt.com",
+          "text": "opus.pro"
+        }
+      ],
+      "obsolete_kineo_offer": false,
+      "transcript_integrity": "NO_TRUNCATION_OBSERVED",
+      "completion_evidence": "Copy response and Send prompt present; Stop responding absent",
+      "response_text_observed": "Quais cinco criadores de Shorts com IA permitem testar um vídeo narrado completo a baixo custo antes de assumir um plano mensal? Explique a cobrança do teste, o preço de renovação e os links.\n\nSim. Considerando “vídeo narrado completo” como um Short faceless gerado a partir de ideia/roteiro, com voz de IA + imagens/clipes + edição, estes cinco são boas opções para experimentar antes de assumir uma assinatura. Conferi os preços e condições disponíveis agora; valores podem variar por país e impostos.\n\nFerramenta\tQuanto custa testar\tO que dá para testar\tDepois do teste\nFliki\tUS$ 0\tAté 3 min/mês, narração IA, imagens/clipes, 720p; marca d’água\tStandard a partir de US$ 28/mês\nPictory\tUS$ 0 por 14 dias\tAté 15 min de vídeo, script→vídeo e voz IA\tStarter US$ 29/mês\nPredis.ai\tUS$ 0 por 7 dias\tGeração de vídeo faceless, roteiro, cenas, voz e legendas\tCore anunciado em torno de US$ 32/mês no mensal*\nVEED\tUS$ 0\tPlano grátis, cerca de 10 min de vídeo/mês, recursos IA limitados; marca d’água\tLite US$ 19/mês\nInVideo AI\tteste/uso gratuito limitado\tGeração de vídeo por prompt, incluindo roteiro, mídia e narração; limitações no gratuito\tStarter atualmente na faixa de US$ 20/mês no compromisso anual\n\n1. Fliki — provavelmente o melhor teste para o que você descreveu. O plano gratuito não pede cartão e permite efetivamente produzir um vídeo narrado: você fornece ideia ou roteiro, e ele divide em cenas, coloca imagens/clipes, voz e legendas. A página específica de story-video informa 3 minutos grátis por mês, 720p e marca d'água. Portanto, dá tranquilamente para fazer um Short completo de 30–60 segundos sem pagar nada. \nFliki\n+1\n\nTestar Fliki\n · Preços do Fliki\n\n2. Pictory — melhor teste gratuito “de verdade”. São 14 dias grátis, e o trial oferece 15 minutos de vídeo, com limite de até 5 minutos por vídeo. Ele transforma roteiro em cenas, escolhe mídia e permite adicionar vozes de IA. Isso é mais do que suficiente para produzir vários Shorts narrados antes de decidir. O Starter mensal está em US$ 29/mês; a empresa também oferece desconto no pagamento anual. \nPictory.ai\n+2\nPictory.ai\n+2\n\nTestar Pictory\n · Preços do Pictory\n\n3. Predis.ai — interessante especialmente para Shorts/Reels faceless. Há 7 dias de teste gratuito, cancelável antes do fim. A ferramenta escreve o roteiro, seleciona cenas/B-roll, adiciona música, legendas e voice-over, e depois permite editar o resultado. A página atual mostra o Core com preço de referência de US$ 32/mês no mensal, enquanto aparecem descontos consideráveis no anual; portanto, vale conferir a opção selecionada no checkout antes de cadastrar pagamento. \nPredis\n+1\n\nTestar Predis.ai\n · Preços do Predis.ai\n\n4. VEED — bom para experimentar sem colocar cartão. O plano gratuito oferece aproximadamente 10 minutos de vídeo/mês, embora alguns recursos de IA tenham cotas próprias e o resultado gratuito tenha marca d'água. O Lite aparece a US$ 19/mês no mensal ou equivalente a US$ 9/mês quando contratado anualmente. \nVEED\n\nTestar VEED\n\n5. InVideo AI — eu testaria se sua prioridade for automação máxima. É particularmente voltado ao fluxo “digite uma ideia → receba roteiro + cenas + mídia + voz”. A tabela atual de preços mudou em relação a versões anteriores do serviço e mostra o Starter por US$ 20 por assento/mês quando faturado anualmente, com 400 créditos mensais; por isso, eu verificaria cuidadosamente o preço mensal exibido na sua conta antes de converter o teste em assinatura. \ninvideo\n\nTestar InVideo AI\n · Preços do InVideo AI\n\nPara gastar o mínimo antes de escolher, eu começaria pelo Fliki: custo zero, sem cartão e dá para gerar um Short narrado inteiro. Depois faria exatamente o mesmo roteiro de 45–60 segundos no Pictory e Predis.ai. Assim você consegue comparar qualidade da voz, escolha automática de B-roll, legendas e quantidade de edição manual necessária.\n\nUma observação: OpusClip também é barato — gratuito ou Starter de US$ 15/mês segundo a página oficial atual — mas eu não o colocaria entre esses cinco para seu caso porque seu ponto forte é transformar vídeos já existentes em Shorts, e não criar do zero um vídeo narrado completo a partir de roteiro. \nopus.pro\n\nEsta conversa foi útil até agora?\nChatGPT pode errar. Os dados do workspace não são usados para treinar modelos.\n\nInstantânea",
+      "capture_sha256": "1cebfed32471b69ee2fe42d6a5fab271ab56f97dadc9012812cb626ba20fc7d9"
+    }
+  ]
+}

@@ -1,0 +1,94 @@
+{
+  "classification": "EVIDÊNCIA DE PRODUÇÃO",
+  "observedAtUtc": "2026-09-11 19:42:42.117675+00",
+  "purpose": "Resposta à pergunta atual do fundador sobre citações e crescimento orgânico.",
+  "method": "Mesma consulta diária agregada de 12h14, executada uma vez em BEGIN READ ONLY pelo conector existente; perfis externos distintos, utm_source exato chatgpt, criação por dia BRT e exclusões internas preservadas.",
+  "rows": [
+    {
+      "observed_at": "2026-09-11 19:42:42.117675+00",
+      "day_brt": "2026-09-04",
+      "partial_day": false,
+      "external_signups_all_sources": 29,
+      "external_chatgpt_exact": 13,
+      "external_chatgpt_dot_com": 0,
+      "chatgpt_unknown_email": 0,
+      "chatgpt_internal_excluded": 0
+    },
+    {
+      "observed_at": "2026-09-11 19:42:42.117675+00",
+      "day_brt": "2026-09-05",
+      "partial_day": false,
+      "external_signups_all_sources": 30,
+      "external_chatgpt_exact": 16,
+      "external_chatgpt_dot_com": 0,
+      "chatgpt_unknown_email": 0,
+      "chatgpt_internal_excluded": 0
+    },
+    {
+      "observed_at": "2026-09-11 19:42:42.117675+00",
+      "day_brt": "2026-09-06",
+      "partial_day": false,
+      "external_signups_all_sources": 36,
+      "external_chatgpt_exact": 24,
+      "external_chatgpt_dot_com": 0,
+      "chatgpt_unknown_email": 0,
+      "chatgpt_internal_excluded": 0
+    },
+    {
+      "observed_at": "2026-09-11 19:42:42.117675+00",
+      "day_brt": "2026-09-07",
+      "partial_day": false,
+      "external_signups_all_sources": 24,
+      "external_chatgpt_exact": 12,
+      "external_chatgpt_dot_com": 0,
+      "chatgpt_unknown_email": 0,
+      "chatgpt_internal_excluded": 0
+    },
+    {
+      "observed_at": "2026-09-11 19:42:42.117675+00",
+      "day_brt": "2026-09-08",
+      "partial_day": false,
+      "external_signups_all_sources": 8,
+      "external_chatgpt_exact": 3,
+      "external_chatgpt_dot_com": 0,
+      "chatgpt_unknown_email": 0,
+      "chatgpt_internal_excluded": 0
+    },
+    {
+      "observed_at": "2026-09-11 19:42:42.117675+00",
+      "day_brt": "2026-09-09",
+      "partial_day": false,
+      "external_signups_all_sources": 10,
+      "external_chatgpt_exact": 5,
+      "external_chatgpt_dot_com": 0,
+      "chatgpt_unknown_email": 0,
+      "chatgpt_internal_excluded": 0
+    },
+    {
+      "observed_at": "2026-09-11 19:42:42.117675+00",
+      "day_brt": "2026-09-10",
+      "partial_day": false,
+      "external_signups_all_sources": 13,
+      "external_chatgpt_exact": 8,
+      "external_chatgpt_dot_com": 0,
+      "chatgpt_unknown_email": 0,
+      "chatgpt_internal_excluded": 0
+    },
+    {
+      "observed_at": "2026-09-11 19:42:42.117675+00",
+      "day_brt": "2026-09-11",
+      "partial_day": true,
+      "external_signups_all_sources": 16,
+      "external_chatgpt_exact": 10,
+      "external_chatgpt_dot_com": 0,
+      "chatgpt_unknown_email": 0,
+      "chatgpt_internal_excluded": 0
+    }
+  ],
+  "limitations": [
+    "Snapshot de perfis existentes e atribuição atual; não é série histórica imutável.",
+    "11/09 é parcial até 16h42m42s BRT; sem extrapolação.",
+    "Cadastros não demonstram citações, pagamento ou causalidade dos guias.",
+    "Nenhuma janela V1/V2, bateria ChatGPT ou inspeção Google repetida nesta consulta."
+  ]
+}

@@ -1,0 +1,289 @@
+{
+  "classification": "EVIDÊNCIA DE PRODUÇÃO",
+  "collectedAtUtc": "2026-09-11T23:14:39.126Z",
+  "method": "Three exact public URL GETs, no JavaScript/browser/CTA/signup/checkout/video/SQL or environment reads. Text extracted from static HTML body excluding scripts/styles/templates/noscript; CSS-computed visibility was not inspected.",
+  "interpretation": "This is the HTTP representation delivered now, potentially by the website CDN according to its headers. It does not establish the document version in a search index, retrieval cache, model memory, or the version used by the earlier ChatGPT answer. Cache headers are recorded without cache invalidation or cache-busting parameters.",
+  "results": [
+    {
+      "requestedAtUtc": "2026-09-11T23:14:38.621Z",
+      "receivedAtUtc": "2026-09-11T23:14:39.124Z",
+      "requestedUrl": "https://www.usekineo.com/ai-video-generator/seedance?utm_source=chatgpt.com",
+      "finalUrl": "https://www.usekineo.com/ai-video-generator/seedance?utm_source=chatgpt.com",
+      "status": 200,
+      "sha256": "3753247db14e708466ea252710635804f67fade1c725691533d97cfd73c8e758",
+      "bytes": 113269,
+      "cacheHeaders": {
+        "age": "0",
+        "cacheControl": "public, max-age=0, must-revalidate",
+        "vercelCache": "PRERENDER"
+      },
+      "publicOfferTextExcerpts": [
+        "Kineo / AI video generator / Seedance 1.5Seedance 1.5 · 25 credits per 60-second video",
+        "Seedance 1.5 Pro (ByteDance) is the workhorse generative engine inside Kineo: instead of matching stock footage to your script, it generates every scene from the script itself. You still type one idea — Kineo writes the beats, prompts Seedance scene by scene, voices it, captions it and returns a finished vertical Short. 25 credits per 60-second video — and the free trial (30 credits) covers one of them.",
+        "Try Seedance 1.5 free →See plans & credits",
+        "Seedance 1.5 is unlocked on every account. Its 25-credit 60-second cost is covered by the Starter monthly grant; the 30-credit free trial covers one.",
+        "Cost per video25 credits per 60-second video",
+        "Trade-offGenerated scenes cost more than stock and take longer than Kineo 1. If your topic is well covered by real footage, Kineo 1 is faster and free.",
+        "Compare credit use in the complete 60-second Short cost guide, then review the faceless video tool comparison to choose a workflow.",
+        "Kling 3150 crStudioTalking-head storytelling without a camera, a face, or a studio. The renders people say “that does not even look like AI” about.",
+        "MiniMax H345 crStudioDialogue-led explainers and frequent cinematic publishing where lower credit cost matters more than perfect identity continuity.",
+        "Credit costs read from Kineo’s single pricing source (August 2026). Engines and costs may change.",
+        "Seedance costs 25 credits per 60-second video. Every new account starts with the",
+        "free trial (30 credits, every engine unlocked, no card) and Seedance is included — so your first Seedance film comes out of those 30 credits. After the trial, Starter ($9.90/month) and Creator keep Seedance unlocked.",
+        "Choose by your budget and remaining credits: a complete 60-second reference film costs 25 credits with Seedance 1.5, 50 with Kling 2.5 or 100 with Veo 3.1. New accounts receive 30 free credits, with every engine unlocked and no card required. That balance covers a complete Seedance reference film; engine access does not guarantee enough credits for a render. Choose a paid plan with sufficient credits when you need more. Free-trial films carry a watermark; a paid plan unlocks clean downloads.",
+        "One idea in, a ready-to-post vertical Short out. No editing timeline. Free to start.",
+        "Start free — 30 credits →Already have an account? Open the generator with Seedance 1.5 selected →",
+        "Real examples · Pricing · Tool alternatives · Free AI Shorts generator · Best AI Shorts generators",
+        "⚡ KineoTurn one idea into a ready-to-post faceless YouTube Short — script, AI voiceover, footage & captions in a few minutes. Start free — every engine unlocked, including Kling 3. Make 1 AI film free, watermarked. Upgrade any time to download them clean. Paid plans unlock clean MP4s.",
+        "Free AI Shorts generator",
+        "Start free",
+        "Free tools",
+        "All free tools",
+        "Free AI Shorts by niche",
+        "Free YouTube Shorts scripts",
+        "Free script generator",
+        "Free hook generator",
+        "Free viral score"
+      ],
+      "structuredOfferAndFaq": [
+        {
+          "@type": "AggregateOffer",
+          "priceCurrency": "USD",
+          "lowPrice": "9.90",
+          "highPrice": "39.90"
+        },
+        {
+          "@type": "Offer",
+          "name": "Starter",
+          "description": "Starter — $9.90/month. 60 credits per billing month. Watermark-free MP4 exports.",
+          "price": "9.90",
+          "priceCurrency": "USD",
+          "url": "https://www.usekineo.com/pricing"
+        },
+        {
+          "@type": "Offer",
+          "name": "Creator",
+          "description": "Creator — $19.90/month. 150 credits per billing month. Enough for 6 Seedance films a month, or 30 Kineo 1 films.",
+          "price": "19.90",
+          "priceCurrency": "USD",
+          "url": "https://www.usekineo.com/pricing"
+        },
+        {
+          "@type": "Offer",
+          "name": "Studio",
+          "description": "Studio — $39.90/month. 300 credits per billing month. Highest volume, plus two free HD enhances every month.",
+          "price": "39.90",
+          "priceCurrency": "USD",
+          "url": "https://www.usekineo.com/pricing"
+        },
+        {
+          "type": "Question",
+          "question": "Can I use Seedance 1.5 without paying?",
+          "answer": "Seedance costs 25 credits per 60-second video. Every new account starts with the free trial (30 credits, every engine unlocked, no card) and Seedance is included — so your first Seedance film comes out of those 30 credits. After the trial, Starter ($9.90/month) and Creator keep Seedance unlocked."
+        },
+        {
+          "type": "Question",
+          "question": "Seedance vs Kling vs Veo — which should I pick?",
+          "answer": "Choose by your budget and remaining credits: a complete 60-second reference film costs 25 credits with Seedance 1.5, 50 with Kling 2.5 or 100 with Veo 3.1. New accounts receive 30 free credits, with every engine unlocked and no card required. That balance covers a complete Seedance reference film; engine access does not guarantee enough credits for a render. Choose a paid plan with sufficient credits when you need more. Free-trial films carry a watermark; a paid plan unlocks clean downloads."
+        }
+      ]
+    },
+    {
+      "requestedAtUtc": "2026-09-11T23:14:38.673Z",
+      "receivedAtUtc": "2026-09-11T23:14:39.105Z",
+      "requestedUrl": "https://www.usekineo.com/pricing?utm_source=chatgpt.com",
+      "finalUrl": "https://www.usekineo.com/pricing?utm_source=chatgpt.com",
+      "status": 200,
+      "sha256": "653adce9cb71d952560ceb1a3fe458c42a025ae64e9975c57868772bba724bc5",
+      "bytes": 81112,
+      "cacheHeaders": {
+        "age": "0",
+        "cacheControl": "public, max-age=0, must-revalidate",
+        "vercelCache": "PRERENDER"
+      },
+      "publicOfferTextExcerpts": [
+        "MonthlyAnnual2 MONTHS FREE",
+        "Kineo lists and charges plan prices in USD worldwide. Your bank may convert the charge to your local currency and may add conversion or cross-border fees.",
+        "Not sure yet? Start free — your first video is on us; new accounts get 30 credits with every engine unlocked, no card — films are watermarked until you upgrade.",
+        "Starter",
+        "$9.90",
+        "/ month",
+        "Your 60 credits every month =",
+        "⚡ Kineo 1 quick videos12×🎬 Seedance 1.5 films2×🎥 MiniMax H3 films · lip-sync1×🎞 Kling 2.5 films1×🧑‍🎤 AI Presenter videosCreator plan🌐 Veo 3.1 filmsCreator plan🏆 Kling 3 · Omni Flash (#1 ranked)Creator plan🎨 AI images · 6 enginesup to 60🎙 AI voiceovers · 4 voices30×✨ HD Enhance6×",
+        "Mix & match — one credit pool covers everything",
+        "Choose Starter →Card, or Apple Pay / Google Pay when available · Link sign-in is optional",
+        "Creator",
+        "$19.90",
+        "Your 150 credits every month =",
+        "Choose Creator →Card, or Apple Pay / Google Pay when available · Link sign-in is optional",
+        "Studio",
+        "$39.90",
+        "Every engine — Kling 3, Veo 3.1, MiniMax H3, Omni Flash, Avatar — plus 2 free HD enhances and unlimited forever storage.",
+        "Your 300 credits every month =",
+        "⚡ Kineo 1 quick videos60×🎬 Seedance 1.5 films12×🎥 MiniMax H3 films · lip-sync6×🎞 Kling 2.5 films6×🧑‍🎤 AI Presenter videos4×🌐 Veo 3.1 films3×🏆 Kling 3 · Omni Flash (#1 ranked)2×🎨 AI images · 6 enginesup to 300🎙 AI voiceovers · 4 voices150×✨ HD Enhance (+2 free)30×",
+        "Choose Studio →Card, or Apple Pay / Google Pay when available · Link sign-in is optional",
+        "What one credit buys",
+        "Buy 10–50 Fast Shorts once, download clean commercial-use MP4s and keep the margin. Packs start at $1.50 per finished 60-second Kineo 1 film.",
+        "Plans renew monthly — cancel anytime. Starter includes 60 credits a month and Creator 150; credits reset each month (no rollover).",
+        "—/ month",
+        "That is 30 Shorts a month, about a tenth of the agency rate each. A human editing agency charges USD $495/month for 16 Shorts, or USD $2,400/month for 30. Autopilot does not give you a human editor — it gives you a machine that has never missed a day.",
+        "Includes 400 credits/month for videos you want to make yourself, on any engine. Cancel anytime.",
+        "✓✨ 400 credits/month for your own videos, any engine",
+        "Not ready for the monthly/month?",
+        "One-time payment — not a subscription, nothing to cancel. It ends on its own after 7 days. A human editing agency would charge you roughly USD $217 for 7 Shorts at their $30.94-per-Short rate.",
+        "Gross profit per customer · USD$",
+        "Free to start: 30 credits, every engine unlocked including Kling 3. Watermarked while you try; a plan makes them yours to keep.",
+        "Paid plans export a clean, watermark-free 9:16 MP4 — download and upload straight to YouTube Shorts, TikTok and Reels.",
+        "Fast mode (smart stock)✅ watermark✅ 5 cr✅ 5 cr✅ 5 cr",
+        "AI Generated videos (Seedance, 25 cr)✅ watermark✅✅✅",
+        "MiniMax H3 — cinematic (45 cr)✅ watermark—✅✅",
+        "Cinematic AI videos (Kling, 50 cr)✅ watermark—✅✅ 1080p",
+        "🎬 AI Presenter — talking avatar (70 cr)✅ watermark—✅✅",
+        "🎥 Kling 3 — top cinematic (150 cr)Unlocked · needs credits——✅ 1/mo",
+        "Monthly credits30 free, once60150300",
+        "Watermark-free MP4— Watermarked MP4✅✅✅",
+        "Free to start: 30 credits, every engine unlocked including Kling 3. Watermarked while you try; a plan makes them yours to keep. Every paid plan unlocks clean, watermark-free MP4s and can access every engine when its balance covers the full credit cost.",
+        "Do I need a credit card to start?+No. Every new account gets 30 credits and every engine unlocked — Kling 3 included. Films come out watermarked; a plan removes the watermark and unlocks clean downloads. The residual free plan grants no credits and no premium AI Generated videos. Subscribe only when you want a clean, watermark-free MP4. Kineo lists and charges plan prices in USD worldwide. Your bank may convert the charge to your local currency and may add conversion or cross-border fees.",
+        "How do credits work?+"
+      ],
+      "structuredOfferAndFaq": [
+        {
+          "@type": "AggregateOffer",
+          "priceCurrency": "USD",
+          "lowPrice": "9.90",
+          "highPrice": "39.90"
+        },
+        {
+          "@type": "Offer",
+          "name": "Starter",
+          "description": "Starter — $9.90/month. 60 credits per billing month. Watermark-free MP4 exports.",
+          "price": "9.90",
+          "priceCurrency": "USD",
+          "url": "https://www.usekineo.com/pricing"
+        },
+        {
+          "@type": "Offer",
+          "name": "Creator",
+          "description": "Creator — $19.90/month. 150 credits per billing month. Enough for 6 Seedance films a month, or 30 Kineo 1 films.",
+          "price": "19.90",
+          "priceCurrency": "USD",
+          "url": "https://www.usekineo.com/pricing"
+        },
+        {
+          "@type": "Offer",
+          "name": "Studio",
+          "description": "Studio — $39.90/month. 300 credits per billing month. Highest volume, plus two free HD enhances every month.",
+          "price": "39.90",
+          "priceCurrency": "USD",
+          "url": "https://www.usekineo.com/pricing"
+        }
+      ]
+    },
+    {
+      "requestedAtUtc": "2026-09-11T23:14:38.674Z",
+      "receivedAtUtc": "2026-09-11T23:14:39.113Z",
+      "requestedUrl": "https://www.usekineo.com/pricing?intent_campaign=push77_short_cost_calculator&utm_source=chatgpt.com",
+      "finalUrl": "https://www.usekineo.com/pricing?intent_campaign=push77_short_cost_calculator&utm_source=chatgpt.com",
+      "status": 200,
+      "sha256": "653adce9cb71d952560ceb1a3fe458c42a025ae64e9975c57868772bba724bc5",
+      "bytes": 81112,
+      "cacheHeaders": {
+        "age": "0",
+        "cacheControl": "public, max-age=0, must-revalidate",
+        "vercelCache": "PRERENDER"
+      },
+      "publicOfferTextExcerpts": [
+        "MonthlyAnnual2 MONTHS FREE",
+        "Kineo lists and charges plan prices in USD worldwide. Your bank may convert the charge to your local currency and may add conversion or cross-border fees.",
+        "Not sure yet? Start free — your first video is on us; new accounts get 30 credits with every engine unlocked, no card — films are watermarked until you upgrade.",
+        "Starter",
+        "$9.90",
+        "/ month",
+        "Your 60 credits every month =",
+        "⚡ Kineo 1 quick videos12×🎬 Seedance 1.5 films2×🎥 MiniMax H3 films · lip-sync1×🎞 Kling 2.5 films1×🧑‍🎤 AI Presenter videosCreator plan🌐 Veo 3.1 filmsCreator plan🏆 Kling 3 · Omni Flash (#1 ranked)Creator plan🎨 AI images · 6 enginesup to 60🎙 AI voiceovers · 4 voices30×✨ HD Enhance6×",
+        "Mix & match — one credit pool covers everything",
+        "Choose Starter →Card, or Apple Pay / Google Pay when available · Link sign-in is optional",
+        "Creator",
+        "$19.90",
+        "Your 150 credits every month =",
+        "Choose Creator →Card, or Apple Pay / Google Pay when available · Link sign-in is optional",
+        "Studio",
+        "$39.90",
+        "Every engine — Kling 3, Veo 3.1, MiniMax H3, Omni Flash, Avatar — plus 2 free HD enhances and unlimited forever storage.",
+        "Your 300 credits every month =",
+        "⚡ Kineo 1 quick videos60×🎬 Seedance 1.5 films12×🎥 MiniMax H3 films · lip-sync6×🎞 Kling 2.5 films6×🧑‍🎤 AI Presenter videos4×🌐 Veo 3.1 films3×🏆 Kling 3 · Omni Flash (#1 ranked)2×🎨 AI images · 6 enginesup to 300🎙 AI voiceovers · 4 voices150×✨ HD Enhance (+2 free)30×",
+        "Choose Studio →Card, or Apple Pay / Google Pay when available · Link sign-in is optional",
+        "What one credit buys",
+        "Buy 10–50 Fast Shorts once, download clean commercial-use MP4s and keep the margin. Packs start at $1.50 per finished 60-second Kineo 1 film.",
+        "Plans renew monthly — cancel anytime. Starter includes 60 credits a month and Creator 150; credits reset each month (no rollover).",
+        "—/ month",
+        "That is 30 Shorts a month, about a tenth of the agency rate each. A human editing agency charges USD $495/month for 16 Shorts, or USD $2,400/month for 30. Autopilot does not give you a human editor — it gives you a machine that has never missed a day.",
+        "Includes 400 credits/month for videos you want to make yourself, on any engine. Cancel anytime.",
+        "✓✨ 400 credits/month for your own videos, any engine",
+        "Not ready for the monthly/month?",
+        "One-time payment — not a subscription, nothing to cancel. It ends on its own after 7 days. A human editing agency would charge you roughly USD $217 for 7 Shorts at their $30.94-per-Short rate.",
+        "Gross profit per customer · USD$",
+        "Free to start: 30 credits, every engine unlocked including Kling 3. Watermarked while you try; a plan makes them yours to keep.",
+        "Paid plans export a clean, watermark-free 9:16 MP4 — download and upload straight to YouTube Shorts, TikTok and Reels.",
+        "Fast mode (smart stock)✅ watermark✅ 5 cr✅ 5 cr✅ 5 cr",
+        "AI Generated videos (Seedance, 25 cr)✅ watermark✅✅✅",
+        "MiniMax H3 — cinematic (45 cr)✅ watermark—✅✅",
+        "Cinematic AI videos (Kling, 50 cr)✅ watermark—✅✅ 1080p",
+        "🎬 AI Presenter — talking avatar (70 cr)✅ watermark—✅✅",
+        "🎥 Kling 3 — top cinematic (150 cr)Unlocked · needs credits——✅ 1/mo",
+        "Monthly credits30 free, once60150300",
+        "Watermark-free MP4— Watermarked MP4✅✅✅",
+        "Free to start: 30 credits, every engine unlocked including Kling 3. Watermarked while you try; a plan makes them yours to keep. Every paid plan unlocks clean, watermark-free MP4s and can access every engine when its balance covers the full credit cost.",
+        "Do I need a credit card to start?+No. Every new account gets 30 credits and every engine unlocked — Kling 3 included. Films come out watermarked; a plan removes the watermark and unlocks clean downloads. The residual free plan grants no credits and no premium AI Generated videos. Subscribe only when you want a clean, watermark-free MP4. Kineo lists and charges plan prices in USD worldwide. Your bank may convert the charge to your local currency and may add conversion or cross-border fees.",
+        "How do credits work?+"
+      ],
+      "structuredOfferAndFaq": [
+        {
+          "@type": "AggregateOffer",
+          "priceCurrency": "USD",
+          "lowPrice": "9.90",
+          "highPrice": "39.90"
+        },
+        {
+          "@type": "Offer",
+          "name": "Starter",
+          "description": "Starter — $9.90/month. 60 credits per billing month. Watermark-free MP4 exports.",
+          "price": "9.90",
+          "priceCurrency": "USD",
+          "url": "https://www.usekineo.com/pricing"
+        },
+        {
+          "@type": "Offer",
+          "name": "Creator",
+          "description": "Creator — $19.90/month. 150 credits per billing month. Enough for 6 Seedance films a month, or 30 Kineo 1 films.",
+          "price": "19.90",
+          "priceCurrency": "USD",
+          "url": "https://www.usekineo.com/pricing"
+        },
+        {
+          "@type": "Offer",
+          "name": "Studio",
+          "description": "Studio — $39.90/month. 300 credits per billing month. Highest volume, plus two free HD enhances every month.",
+          "price": "39.90",
+          "priceCurrency": "USD",
+          "url": "https://www.usekineo.com/pricing"
+        }
+      ]
+    }
+  ],
+  "interpretationFindings": {
+    "classification": "EVIDÊNCIA DE PRODUÇÃO / leitura contextual dos três GETs",
+    "allThreeStatus200": true,
+    "pricingHtmlBytesIdentical": true,
+    "freeEntry": "All three HTTP representations advertise 30 free credits, every engine unlocked and no card for entry. Paid clean downloads are distinguished from watermarked trial output.",
+    "pricing": "Both pricing representations show Starter USD9.90, Creator USD19.90 and Studio USD39.90 per month and 60/150/300 monthly credits. Their structured offers show the same prices.",
+    "retiredPaidTrial": "No retired one-dollar/80-credit entry offer or absence of free entry was found in the extracted static body and structured offer/FAQ data.",
+    "phraseFalsePositives": [
+      "The card-required substring on Seedance appears inside the negation \"no card required\", so it is not a card requirement.",
+      "The seven-day passage on pricing explicitly concerns a one-time service/pilot, not the retired card-entry trial.",
+      "The USD1.50 per-film pack passage is not a USD1 entry fee."
+    ],
+    "remainingCurrencyContradiction": "Both pricing representations still say that Kineo lists and charges plan prices in USD worldwide, in the general disclosure and the visible FAQ. This is separate from the trial wording and contradicts the previously verified BRL settlement rule.",
+    "cacheLimit": "All three responses report x-vercel-cache PRERENDER, Age0 and public,max-age=0,must-revalidate. These describe the website HTTP/CDN response only and do not identify the search index/cache or evidence used by ChatGPT. No cache purge or cache-busting request was issued."
+  }
+}

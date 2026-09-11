@@ -1,0 +1,119 @@
+{
+  "classification": "EVIDÊNCIA DE PRODUÇÃO",
+  "source": "Google Search Console URL Inspection UI, existing property sc-domain:usekineo.com, Chrome connected session",
+  "observer": "Citações",
+  "inspectedFromUtc": "2026-09-11T19:08:11.042Z",
+  "lastConfirmationCapturedAtUtc": "2026-09-11T19:19:47.514Z",
+  "timestampMeaning": "Local observation/capture times, not exact Google processing/enqueue times",
+  "before": {
+    "inspected": 8,
+    "notIndexed": 8,
+    "discoveredNotIndexed": 5,
+    "unknownToGoogle": 3
+  },
+  "actions": {
+    "indexRequestsAccepted": 8,
+    "repeatedRequests": 0,
+    "newPages": 0,
+    "newVariants": 0,
+    "accountCreation": 0
+  },
+  "rows": [
+    {
+      "url": "https://www.usekineo.com/ai-video-generator/complete-60-second-shorts-cost",
+      "inspectedAtUtc": "2026-09-11T19:08:11.042Z",
+      "initialGoogleIndexStatus": "DETECTADA_NAO_INDEXADA",
+      "sitemapRecognizedByGsc": true,
+      "lastCrawlAvailable": false,
+      "indexRequest": "ACCEPTED",
+      "confirmationCapturedAtUtc": "2026-09-11T19:09:25.241Z",
+      "confirmation": "Google Search Console displayed Indexação solicitada and confirmed addition to its priority crawl queue.",
+      "indexedAfterRequest": null
+    },
+    {
+      "url": "https://www.usekineo.com/vs/invideo-alternatives-faceless-shorts",
+      "inspectedAtUtc": "2026-09-11T19:09:52.560Z",
+      "initialGoogleIndexStatus": "DETECTADA_NAO_INDEXADA",
+      "sitemapRecognizedByGsc": true,
+      "lastCrawlAvailable": false,
+      "indexRequest": "ACCEPTED",
+      "confirmationCapturedAtUtc": "2026-09-11T19:10:50.672Z",
+      "confirmation": "Google Search Console displayed Indexação solicitada and confirmed addition to its priority crawl queue.",
+      "indexedAfterRequest": null
+    },
+    {
+      "url": "https://www.usekineo.com/ai-video-generator/free-script-to-faceless-video",
+      "inspectedAtUtc": "2026-09-11T19:11:23.299Z",
+      "initialGoogleIndexStatus": "URL_DESCONHECIDA_PELO_GOOGLE",
+      "sitemapRecognizedByGsc": false,
+      "lastCrawlAvailable": false,
+      "indexRequest": "ACCEPTED",
+      "confirmationCapturedAtUtc": "2026-09-11T19:12:29.438Z",
+      "confirmation": "Google Search Console displayed Indexação solicitada and confirmed addition to its priority crawl queue.",
+      "indexedAfterRequest": null
+    },
+    {
+      "url": "https://www.usekineo.com/ai-video-generator/free-faceless-tiktok-tools",
+      "inspectedAtUtc": "2026-09-11T19:12:48.031Z",
+      "initialGoogleIndexStatus": "DETECTADA_NAO_INDEXADA",
+      "sitemapRecognizedByGsc": true,
+      "lastCrawlAvailable": false,
+      "indexRequest": "ACCEPTED",
+      "confirmationCapturedAtUtc": "2026-09-11T19:13:33.882Z",
+      "confirmation": "Google Search Console displayed Indexação solicitada and confirmed addition to its priority crawl queue.",
+      "indexedAfterRequest": null
+    },
+    {
+      "url": "https://www.usekineo.com/ai-video-generator/faceless-shorts-under-30",
+      "inspectedAtUtc": "2026-09-11T19:13:47.576Z",
+      "initialGoogleIndexStatus": "DETECTADA_NAO_INDEXADA",
+      "sitemapRecognizedByGsc": true,
+      "lastCrawlAvailable": false,
+      "indexRequest": "ACCEPTED",
+      "confirmationCapturedAtUtc": "2026-09-11T19:15:10.064Z",
+      "confirmation": "Google Search Console displayed Indexação solicitada and confirmed addition to its priority crawl queue.",
+      "indexedAfterRequest": null
+    },
+    {
+      "url": "https://www.usekineo.com/ai-video-generator/free-youtube-shorts",
+      "inspectedAtUtc": "2026-09-11T19:15:23.671Z",
+      "initialGoogleIndexStatus": "URL_DESCONHECIDA_PELO_GOOGLE",
+      "sitemapRecognizedByGsc": false,
+      "lastCrawlAvailable": false,
+      "indexRequest": "ACCEPTED",
+      "confirmationCapturedAtUtc": "2026-09-11T19:17:01.502Z",
+      "confirmation": "Google Search Console displayed Indexação solicitada and confirmed addition to its priority crawl queue.",
+      "indexedAfterRequest": null
+    },
+    {
+      "url": "https://www.usekineo.com/ai-video-generator/horror-story-60-seconds",
+      "inspectedAtUtc": "2026-09-11T19:17:15.734Z",
+      "initialGoogleIndexStatus": "DETECTADA_NAO_INDEXADA",
+      "sitemapRecognizedByGsc": true,
+      "lastCrawlAvailable": false,
+      "indexRequest": "ACCEPTED",
+      "confirmationCapturedAtUtc": "2026-09-11T19:18:22.339Z",
+      "confirmation": "Google Search Console displayed Indexação solicitada and confirmed addition to its priority crawl queue.",
+      "indexedAfterRequest": null
+    },
+    {
+      "url": "https://www.usekineo.com/ai-video-generator/chatgpt-script-to-finished-short",
+      "inspectedAtUtc": "2026-09-11T19:18:39.963Z",
+      "initialGoogleIndexStatus": "URL_DESCONHECIDA_PELO_GOOGLE",
+      "sitemapRecognizedByGsc": false,
+      "lastCrawlAvailable": false,
+      "indexRequest": "ACCEPTED",
+      "confirmationCapturedAtUtc": "2026-09-11T19:19:47.514Z",
+      "confirmation": "Google Search Console displayed Indexação solicitada and confirmed addition to its priority crawl queue.",
+      "indexedAfterRequest": null
+    }
+  ],
+  "limits": [
+    "An accepted request is not confirmation of indexing, organic ranking, ChatGPT citation or revenue.",
+    "Search Console not associating a sitemap with three URLs does not prove the current production sitemap omits them.",
+    "No indexed-after request status measured; do not re-request accepted URLs.",
+    "No customer identifiers, account details, tokens or verification data copied into this record."
+  ],
+  "nextReviewAtBrt": "2026-09-11T23:00:00-03:00",
+  "nextAction": "Read indexing status once during final review if access remains available. No repeated submissions; preserve V1/V2 and the separate actual ChatGPT battery at20h BRT."
+}

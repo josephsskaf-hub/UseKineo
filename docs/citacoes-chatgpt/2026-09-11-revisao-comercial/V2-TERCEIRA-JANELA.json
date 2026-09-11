@@ -1,0 +1,43 @@
+{
+  "classification": "EVIDÊNCIA DE PRODUÇÃO",
+  "status": "CONSULTADO_READ_ONLY",
+  "reviewedMain": "4496499b9c061374171aec9b064177d719017437",
+  "source": "Existing Supabase connector; one aggregate query, READ ONLY transaction, 15s timeout",
+  "querySha256": "fbe288fde64dafc8f40357560d45859f05b4b69072308dce73ea028e44fff802",
+  "queryMethod": "Identical to V2 second window except label and interval. Canonical internal exclusions; authenticated distinct IDs, anonymous sessions and bot/internal rows separated. No sums of people across event names.",
+  "requestedStartsAt": "2026-09-11T13:27:54.8791873-03:00",
+  "requestedEndsAtExclusive": "2026-09-11T19:27:54.8791873-03:00",
+  "postgresPrecision": "Postgres returns microseconds; original seven-digit exposure timestamp retained in requested interval.",
+  "rows": [
+    {
+      "observed_at": "2026-09-11 22:35:35.487512+00",
+      "label": "V2_12_18h",
+      "campaign": "citacoes_comparison_decision_v2",
+      "starts_at": "2026-09-11 16:27:54.879187+00",
+      "ends_at": "2026-09-11 22:27:54.879187+00",
+      "name": null,
+      "matching_event_rows": 0,
+      "authenticated_external_people": 0,
+      "anonymous_sessions_not_people": 0,
+      "anonymous_event_rows": 0,
+      "internal_people_excluded": 0,
+      "unresolved_people": 0,
+      "server_marked_bot_rows": 0,
+      "test_payment_rows": 0,
+      "external_paid_live_session_ids": 0
+    }
+  ],
+  "decision": "PRESERVE_TWO_VARIANTS_INCONCLUSIVE_NO_ATTRIBUTED_SAMPLE",
+  "actualRevenue": null,
+  "limits": [
+    "Zero matched campaign events does not establish zero traffic, signups, sales or revenue.",
+    "Dodo/UPI campaign attribution remains pending CITACOES-02; no automatic fallback.",
+    "Stripe live session count is diagnostic, not independently validated revenue or first subscription/renewal/refund classification.",
+    "Latest roundup discovery links observed17:33:28.789BRT within window; not six hours of exposure and no reset to original variant clocks."
+  ],
+  "nextV2FullWindowEnd": "2026-09-12T01:27:54.8791873-03:00",
+  "nextRealChatgptMeasurement": "2026-09-11T20:00:00-03:00",
+  "mandateEnd": "2026-09-11T23:30:00-03:00",
+  "nextCommercialInstruction": "Next complete six-hour windows for both variants fall after mandate end. Any final review must be explicitly partial within mandate; no renewal.",
+  "noPersonalDataReturned": true
+}
