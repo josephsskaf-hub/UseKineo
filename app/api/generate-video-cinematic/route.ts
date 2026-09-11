@@ -1303,6 +1303,9 @@ async function manipularPost(req: NextRequest) {
         generation_id: generationId,
         prompt_length: prompt.length,
         requested_duration: Number((body as { duration?: unknown }).duration) || null,
+        // KINEO-VIGIA-FORMATO-2026-09-11 — o quadro pedido nunca era gravado em
+        // evento nenhum; sem isto 'formato respeitado' nao se mede no banco.
+        requested_aspect: normalizeAspect((body as { aspect?: unknown }).aspect),
       },
     })
 
@@ -3153,6 +3156,7 @@ async function manipularPost(req: NextRequest) {
                   fal_models: storedModels,
                   fal_model: storedModels[0] ?? HOLLYWOOD_MODELS.dialogue,
                 }
+                { const c = ctxDespacho(); c.claimAction = 'published' } // KINEO-VIGIA-LEDGER-2026-09-11
                 return publishCinematicResponse(patched, freshIds, storedModels)
               }
               console.warn('[cinematic] SALVAGE inviável (cenas insuficientes) — replanejando do zero')
@@ -3948,6 +3952,12 @@ async function manipularPost(req: NextRequest) {
       // scene only. `hEngines` is the per-scene RENDER engine sent to compose
       // ('host' | 'dialogue' | 'cinematic' | 'support').
       const hRequestIds: (string | null)[] = []
+      // KINEO-VIGIA-LEDGER-2026-09-11 — disposição REAL de cada cena, paralela a
+      // hRequestIds. O caminho hollywood nunca alimentava ctx.outcomes: 5 de 5
+      // cinematic_dispatch_result da família em 7 dias (inclusive filmes de 150cr
+      // ENTREGUES) saíam attempted=0 / not_attempted=N / invariant_ok=false /
+      // claim_action=unknown — o placar dizia 'nada foi ao fornecedor'.
+      const hDispositions: Array<'accepted' | 'explicit_reject' | 'ambiguous'> = []
       const hModels: string[] = []
       const hEngines: string[] = []
       // KINEO-KLING3-AUDIT-2026-08-20 — scene_prompts devolvia o prompt CRU
@@ -4022,6 +4032,7 @@ async function manipularPost(req: NextRequest) {
                   `[cinematic] hollywood presenter scene ${hs.index} submit became ambiguous; preserving earlier accepted scenes`,
                 )
                 hRequestIds.push(null)
+                hDispositions.push('ambiguous')
                 hModels.push(HOST_PRESENTER_MODEL)
                 hEngines.push('host')
                 hSubmittedPrompts.push(submittedPrompt)
@@ -4188,6 +4199,7 @@ async function manipularPost(req: NextRequest) {
                 `[cinematic] hollywood scene ${hs.index} submit became ambiguous; preserving earlier accepted scenes`,
               )
               hRequestIds.push(null)
+              hDispositions.push('ambiguous')
               hModels.push(sceneModel)
               hEngines.push(sceneEngine)
               hSubmittedPrompts.push(submittedPrompt)
@@ -4199,6 +4211,7 @@ async function manipularPost(req: NextRequest) {
         }
         if (id) providerSubmissionMayExist = true
         hRequestIds.push(id)
+        hDispositions.push(id ? 'accepted' : 'explicit_reject')
         hModels.push(sceneModel)
         hEngines.push(sceneEngine)
         hSubmittedPrompts.push(submittedPrompt)
@@ -4216,6 +4229,29 @@ async function manipularPost(req: NextRequest) {
         hSubmittedPrompts.push(unsubmitted.prompt + eraSuffix)
       }
 
+      // KINEO-VIGIA-LEDGER-2026-09-11 — o finalizador único (finalizarDespacho) lê
+      // ctx.outcomes/attempts; cena nunca tentada fica de fora e vira not_attempted.
+      // Recusa aqui chega sem classe (submitToFal só devolve null), então vai
+      // como 'unknown'/'never' — honesto, e nunca autoriza re-POST.
+      {
+        const c = ctxDespacho()
+        for (let i = 0; i < plan.scenes.length; i++) {
+          const disp = hDispositions[i]
+          if (!disp) continue
+          const model = hModels[i] ?? String(claimQuality)
+          c.outcomes[i] = {
+            scene_index: i,
+            model,
+            disposition: disp,
+            reason_class: disp === 'accepted' ? 'ok' : disp === 'ambiguous' ? 'transport_timeout_5xx' : 'unknown',
+            retry_safety: 'never',
+            provider_http_status: disp === 'accepted' ? 200 : null,
+            attempt_count: 1,
+          }
+          c.attempts[i] = [{ model, status: disp === 'accepted' ? 200 : null, ambiguous: disp === 'ambiguous', accepted: disp === 'accepted' }]
+          c.totalPosts += 1
+        }
+      }
       const hValid = hRequestIds.filter((id): id is string => id !== null)
       // KINEO-FAILFAST-2026-08-17 — o render do fundador saiu com 10s de um
       // alvo de 60s e COBROU 150cr: o saldo do fal estourou NO MEIO da fila
@@ -4299,6 +4335,7 @@ async function manipularPost(req: NextRequest) {
         // descido). O botão apertado viaja ao lado para cliente e compose
         // saberem que a diferença foi decisão do servidor, não erro.
         requested_duration: requestedDuration,
+        aspect: aspectRequested, // KINEO-VIGIA-FORMATO-2026-09-11 — quadro pedido, auditável no claim
         autofit_down: degrau?.applied === true,
         scenes: plan.scenes.map((s) => s.prompt),
         scene_captions: plan.scenes.map((s) => s.caption),
@@ -4386,6 +4423,9 @@ async function manipularPost(req: NextRequest) {
           console.warn('[cinematic] salvage persist falhou:', e instanceof Error ? e.message : String(e))
         }
       }
+      // KINEO-VIGIA-LEDGER-2026-09-11 — igual ao caminho clássico: o desfecho
+      // financeiro alcançado vai ao contexto; quem grava é o finalizador.
+      { const c = ctxDespacho(); c.claimAction = 'published' }
       return publishCinematicResponse(response, hRequestIds, hModels)
     }
     // ── end KINEO-HOLLYWOOD-2026-07-09 ──────────────────────────────────────
@@ -4826,6 +4866,7 @@ async function manipularPost(req: NextRequest) {
       duration,
       // KINEO-DEGRAU-2026-09-03 — idem ao caminho hollywood: efetiva + pedida.
       requested_duration: requestedDuration,
+      aspect: aspectRequested, // KINEO-VIGIA-FORMATO-2026-09-11
       autofit_down: degrau?.applied === true,
       scenes: scenes.map((s) => s.description),
       scene_captions: scenes.map((s) => s.caption),
