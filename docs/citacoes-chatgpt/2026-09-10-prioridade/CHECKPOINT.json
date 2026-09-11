@@ -1,8 +1,14 @@
 {
   "classification": "EVIDÊNCIA OPERACIONAL",
-  "updatedAt": "2026-09-11T14:19:50Z",
+  "updatedAt": "2026-09-11T14:26:26Z",
   "engineFaqCorrection": {
-    "status": "IMPLEMENTADO_TESTADO_LOCALMENTE_PUBLICACAO_PENDENTE",
+    "status": "VALIDADO_EM_PRODUCAO",
+    "publishedCommit": "9bf0525e799e311191aa076593daed6b7b4aff86",
+    "productionEvidence": "../2026-09-11-organico/PRODUCAO.json",
+    "ciRun": "34609662686",
+    "deploymentId": "dpl_aavNVDpDfarZQBB7nRwCn4mgGHqG",
+    "deploymentStatus": "READY_PRODUCTION_ALIAS_CONFIRMED",
+    "firstPositiveHttpAt": "2026-09-11T11:25:24-03:00",
     "codeCommit": "605ea667",
     "paths": ["/ai-video-generator/seedance", "/ai-video-generator/kling", "/ai-video-generator/veo"],
     "evidence": "../2026-09-11-organico/ESTADO.md",
@@ -55,6 +61,8 @@
     "file": "chatgpt-20-perguntas.json"
   },
   "continuation": [
+    "2026-09-11 FAQ factual repair completed on 9bf0525e: three public answers and JSON-LD verified; exact-SHA CI SUCCESS and Vercel READY/alias. Root transport reservation released; do not republish. Local final closure travels with next substantive delivery.",
+    "Board relayed founder commercial proactivity mandate on 2026-09-11 around 11:24 BRT: act on eligible individual commercial opportunities only after verified identity/history/suppression/ownership; no new spend, terms, manual database or paid render. Citation next work: minimum-grant labels and contextual discovery from cited Seedance/calculator to existing cost/comparison guides; preserve V1/V2, no generic ninth page, no duplicate signup tracking.",
     "Eight pages remain published. Both commercial variants are live by HTTP: cost V1 and comparison V2. Preserve both samples; no third variant or ninth page.",
     "Transport is unlocked through reviewed scripts only. Coordinate one owner and reserve immutable candidate/base before queue writes; use a clean own worktree, mandatory preflight, no force/reset/rebase/cleanup or blind retry.",
     "Local closing documentation after published d4a34ba1 is to travel with the next substantive authorized delivery, not a report-only push. Preserve prior V1 snapshot and Board closure.",
@@ -243,7 +251,7 @@
     }
   },
   "commercialVariantCount": 2,
-  "lastReviewedMain": "7996e92f15fd6a602260ecd9126f9b8acde267f3",
+  "lastReviewedMain": "9bf0525e799e311191aa076593daed6b7b4aff86",
   "commercialDataDependency": {
     "status": "NO_VALIDATED_AGGREGATE_AVAILABLE",
     "owner": "Board",
