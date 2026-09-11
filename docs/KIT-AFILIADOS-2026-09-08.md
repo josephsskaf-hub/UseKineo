@@ -6,7 +6,9 @@
 
 **EVIDÊNCIA DE PRODUÇÃO — Claude, 10/09/2026, PEDIDOS no commit `68fcc787`:** o teste interno registrou comissão de R$14,97 sobre R$49,90 e foi anulado (`void`). Prova do funil, sem aquisição externa ou comissão paga. **SUGESTÃO — operação:** preservar conferência nominal, supressões, histórico dos convites e aceite antes de entregar materiais; não oferecer render personalizado gratuito sem aprovação de custo.
 
-**FATO CONFIRMADO / IMPLEMENTADO — correção de escopo em 11/09/2026, SHA `cbf30005`:** a marca d'água descrita neste kit se refere aos Shorts narrados gratuitos (`app/api/compose/route.ts:1785`, `:1837`, `:1844`, `:2876`). O novo modo clipe segue uma entrega separada, sem a etapa de composição narrada (`app/api/clip-status/route.ts:82`, `:104`); por isso, a redação abaixo deixa de generalizar todos os vídeos gratuitos. Esta leitura de código não comprova render ou deploy do clipe. Seu preço e sua comunicação comercial continuam pendentes; esta correção não anuncia um novo benefício nem altera os termos.
+**FATO CONFIRMADO / IMPLEMENTADO — correção de escopo em 11/09/2026, SHA `cbf30005`:** a marca d'água descrita neste kit se refere aos Shorts narrados gratuitos (`app/api/compose/route.ts:1785`, `:1837`, `:1844`, `:2876`). O novo modo clipe segue uma entrega separada, sem a etapa de composição narrada (`app/api/clip-status/route.ts:82`, `:104`); por isso, a redação abaixo deixa de generalizar todos os vídeos gratuitos. Esta leitura de código não comprova render ou deploy do clipe. Esta correção não anuncia um novo benefício nem altera os termos.
+
+**QUESTÃO PENDENTE — decisão, não ausência de implementação:** no registro TRES-MODOS de `docs/PEDIDOS-ENTRE-PISTAS-2026-09-03.md` da fonte `cbf30005`, a aprovação final de preço e marca d'água do clipe consta como pendente do fundador. Isso não significa ausência de cobrança implementada. Este kit não anuncia condições comerciais para clipes.
 
 ## Partner offer — proposed English copy
 
