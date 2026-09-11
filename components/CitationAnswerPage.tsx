@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import type { ReactNode } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
@@ -20,12 +21,17 @@ export function citationAnswerMetadata(answer: CitationAnswer): Metadata {
   }
 }
 
-export default function CitationAnswerPage({ answer }: { answer: CitationAnswer }) {
+export default function CitationAnswerPage({ answer, heroSecondaryAction, planComparison }: {
+  answer: CitationAnswer
+  heroSecondaryAction?: ReactNode
+  planComparison?: ReactNode
+}) {
   // Only an existing, founder-owned allowlisted example. No customer query,
   // new render, autoplay or background video download belongs on this page.
   const example = PUBLIC_EXAMPLES[0]
   const signupHref = citationSignupHref(answer)
   const competitors = answer.comparisonCandidates ?? CITATION_COMPETITORS
+  const trialCta = <OrganicCtaLink className="kc-cta" href={signupHref} source={`citacoes_01_${answer.id}`} placement="hero">{CITATION_CTA}</OrganicCtaLink>
   const faq = {
     '@context': 'https://schema.org', '@type': 'FAQPage',
     mainEntity: answer.faqs.map(({ question, answer: text }) => ({
@@ -45,21 +51,21 @@ export default function CitationAnswerPage({ answer }: { answer: CitationAnswer 
           <div className="kc-eyebrow">A practical video guide · Reviewed {CITATION_REVIEW_DATE}</div>
           <h1>{answer.question}</h1>
           <div className="kc-direct">{answer.answer.map((sentence) => <p key={sentence}>{sentence}</p>)}</div>
-          <OrganicCtaLink className="kc-cta" href={signupHref} source={`citacoes_01_${answer.id}`} placement="hero">{CITATION_CTA}</OrganicCtaLink>
+          {heroSecondaryAction ? <div className="kccd-actions">{trialCta}{heroSecondaryAction}</div> : trialCta}
           <p className="kc-note">Trial videos are watermarked. A paid plan unlocks clean downloads.</p>
         </header>
         <hr className="kc-divider" />
         <section className="kc-section" aria-labelledby="decision-heading">
           <h2 id="decision-heading">{answer.decisionTitle}</h2>
           <p>{answer.decision}</p>
-          <div className="kc-plans">
+          {planComparison ?? <><div className="kc-plans">
             {CITATION_PLANS.map((plan) => <div className="kc-plan" key={plan.name}>
               <h3>{plan.name}</h3><strong>{plan.price}</strong>
               <p>{plan.credits} credits per billing month</p>
               <small>{plan.films} Kineo 1 reference videos if all credits go to that engine</small>
             </div>)}
           </div>
-          <p className="kc-note">Reference: {CITATION_REFERENCE_SECONDS} seconds per video. Counts are alternatives by plan, not combined allowances. Brazilian customers pay in reais at checkout.</p>
+          <p className="kc-note">Reference: {CITATION_REFERENCE_SECONDS} seconds per video. Counts are alternatives by plan, not combined allowances. Brazilian customers pay in reais at checkout.</p></>}
         </section>
         {answer.checks?.map((check) => <section className="kc-section" key={check.heading}>
           <h2>{check.heading}</h2>

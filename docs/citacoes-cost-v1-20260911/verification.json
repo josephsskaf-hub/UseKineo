@@ -1,0 +1,80 @@
+{
+  "classification": "TESTADO LOCALMENTE",
+  "timeUtc": "2026-09-11T02:50:34.136Z",
+  "baseline": "45a6cac9d7a375b082a798afaa5e2f33d0a30c2d",
+  "method": "Actual TSX components rendered offline; seven defaults compared byte-for-byte, independent whole-film fixtures, unchanged trial/FAQ/example and real OrganicCtaLink with analytics stub.",
+  "checks": [
+    "answer map is unchanged from the approved eight-page baseline",
+    "unchanged HTML: /ai-video-generator/free-script-to-faceless-video",
+    "unchanged HTML: /ai-video-generator/free-faceless-tiktok-tools",
+    "unchanged HTML: /vs/invideo-alternatives-faceless-shorts",
+    "unchanged HTML: /ai-video-generator/faceless-shorts-under-30",
+    "unchanged HTML: /ai-video-generator/free-youtube-shorts",
+    "unchanged HTML: /ai-video-generator/horror-story-60-seconds",
+    "unchanged HTML: /ai-video-generator/chatgpt-script-to-finished-short",
+    "exactly seven other pages retain their HTML",
+    "cost page metadata and canonical remain unchanged",
+    "both free CTAs retain their exact markup and destination",
+    "one plan comparison replaces the old three plan cards",
+    "whole-film allocation and remaining balance: fast",
+    "whole-film allocation and remaining balance: cinematic_ai",
+    "fee allocation, non-rollover, regeneration and currency limits are visible",
+    "FAQ and four unverified competitors remain intact",
+    "the existing allowlisted example is unchanged and no video is generated",
+    "Compare plans sits in the hero with the real campaign and no invented source",
+    "existing OrganicCtaLink emits the intended event under an offline stub",
+    "verification made no network attempt"
+  ],
+  "fixtures": [
+    {
+      "quality": "fast",
+      "credits": 5,
+      "films": 12,
+      "remainder": 0,
+      "allocated": "≈ $0.83"
+    },
+    {
+      "quality": "cinematic_ai",
+      "credits": 25,
+      "films": 2,
+      "remainder": 10,
+      "allocated": "≈ $4.95"
+    }
+  ],
+  "unchangedPages": [
+    {
+      "path": "/ai-video-generator/free-script-to-faceless-video",
+      "sha256": "f2f496c309f42cf51c466d8f48092acb02b78b3207352b661045b23255d0f072"
+    },
+    {
+      "path": "/ai-video-generator/free-faceless-tiktok-tools",
+      "sha256": "2d843d9fb4cac3ecd6676359cb70c4cdc99a9cf409d356d1e6b141b060ac430e"
+    },
+    {
+      "path": "/vs/invideo-alternatives-faceless-shorts",
+      "sha256": "1644b7aedf768d52d3fbbf1f2574beace27cede7eac6ebfd3f9834579f43dfb9"
+    },
+    {
+      "path": "/ai-video-generator/faceless-shorts-under-30",
+      "sha256": "2a85995c8f6ea3cc5df92013edb68565808e6fa4b36ec63dc0dbadb4bd03f3c6"
+    },
+    {
+      "path": "/ai-video-generator/free-youtube-shorts",
+      "sha256": "22c1d7b270c014daa57efcef3e67dcd44acbb00283f2225f84967452c9091763"
+    },
+    {
+      "path": "/ai-video-generator/horror-story-60-seconds",
+      "sha256": "432fe6ac1e6b935790d6d585cef8d3c7d9801b5fbd3b69a40066f31b6ff6a70a"
+    },
+    {
+      "path": "/ai-video-generator/chatgpt-script-to-finished-short",
+      "sha256": "26ddfb274763187164eee6ec9c5744ccc5e0ede433a3a4a48d4d5c680bc5129c"
+    }
+  ],
+  "networkAttempts": 0,
+  "externalClicks": 0,
+  "generatedVideos": 0,
+  "beforeSha256": "539b8c926fcf4672a0f6d0df4d4e0a6c7c2f5e060e076fd6bd75e957d7cdadd1",
+  "afterSha256": "8ea83eb781e9c4ea747de81daecab3fd1d9e0e42ea10caa0ba54c5d0f997bf5a",
+  "passed": true
+}
