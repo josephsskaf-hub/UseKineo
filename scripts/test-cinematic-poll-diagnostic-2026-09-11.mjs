@@ -24,7 +24,8 @@ async function run({ stage = 'status', status = 403, detail = 'Forbidden', recov
   bad.name = 'SENTINEL_NAME'
   const exports = {}
   const claim = { status: 'settled', falRequestIds: allFailed ? [ids[6]] : ids,
-    falModels: allFailed ? [model] : ids.map(() => model), resolutionReference: 'billing-existing' }
+    falModels: allFailed ? [model] : ids.map(() => model), resolutionReference: 'billing-existing',
+    authorizedCompletedUrls: (allFailed ? [ids[6]] : ids).map(() => null), response: {} }
   const imports = {
     'next/server': { NextResponse: { json: (body, init = {}) => ({ body, status: init.status ?? 200 }) } },
     '@/lib/supabase/server': { createClient: () => ({ auth: { getUser: async () => ({ data: { user: { id: 'owner' } } }) } }) },
@@ -49,7 +50,14 @@ async function run({ stage = 'status', status = 403, detail = 'Forbidden', recov
     '@/lib/cinematic/claim': {
       validCinematicGenerationId: value => value === generationId,
       loadVerifiedCinematicClaim: async () => ({ ok: true, claim }),
-      authorizeCinematicCompletedUrls: async ({ completed }) => { bound.push(...completed); return { ok: true } },
+      authorizeCinematicCompletedUrls: async ({ completed }) => {
+        bound.push(...completed)
+        for (const clip of completed) claim.authorizedCompletedUrls[claim.falRequestIds.indexOf(clip.requestId)] = clip.url
+        return { ok: true, claim }
+      },
+      authorizeCinematicTerminalFailures: async ({ failed }) => { claim.response.terminal_failed_jobs = failed; return { ok: true, claim } },
+      cinematicJobsAreTerminal: value => value.falRequestIds.every((id, index) => !id || value.authorizedCompletedUrls[index] ||
+        (value.response.terminal_failed_jobs ?? []).some(job => job.requestId === id && job.model === value.falModels[index])),
       releaseCinematicClaim: async () => { releases++; return { ok: true } },
     },
     '@/lib/credits/refund': { refundRenderCredits: async () => { refunds++; return 25 } },
@@ -86,7 +94,7 @@ for (const stage of ['status', 'result']) {
 for (const stage of ['status', 'result']) {
   for (const status of [400, 422]) {
     const r = await run({ stage, status })
-    eq(r.reply.body.allDone, true, 'Existing terminal failure behavior preserved')
+    eq(r.reply.body.allDone, stage === 'result', 'Only matching COMPLETED result rejects are terminal, never status lookups')
     eq(r.reply.body.done, 2, 'Existing survivors preserved')
     eq(r.refunds, 0, 'Partial completed generation is not refunded')
   }
@@ -106,7 +114,7 @@ const recovered = await run({ recovery: true })
 eq(recovered.reply.body.allDone, true, 'Same accepted IDs can recover without re-submit')
 eq(recovered.reply.body.done, 3, 'Third scene delivered')
 eq(recovered.logs.length, 0, 'Healthy polling remains quiet')
-const terminal = await run({ allFailed: true, status: 422 })
+const terminal = await run({ allFailed: true, stage: 'result', status: 422 })
 eq(terminal.reply.status, 502, 'All-failed existing contract preserved')
 eq([terminal.refunds, terminal.releases], [1, 1], 'Existing refund path called once')
 for (const queueError of ['Stored job error', 'SENTINEL_PROMPT https://signed.invalid/?token=SENTINEL_KEY private-provider-id']) {
