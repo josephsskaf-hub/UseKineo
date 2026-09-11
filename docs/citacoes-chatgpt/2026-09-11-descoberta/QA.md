@@ -12,4 +12,12 @@
 
 **LIMITE / MEDIÇÃO:** visitas locais e GETs desta pista não são pessoas externas. Sem novos eventos nem campanhas para estes links; medir pelos destinos e pagamentos canônicos disponíveis, sem atribuição causal garantida ao elo de origem. Preservar janela anterior V1/V2 e anotar início da distribuição após contraprova pública. Nenhuma consulta de banco ou envio comercial nesta entrega; próxima bateria real do ChatGPT às 20h BRT.
 
-**EVIDÊNCIA OPERACIONAL:** publicação pendente nesta versão; exige novo candidato/base, preflight e reserva de transporte. A entrega anterior de grant está publicada, verificada e com reserva encerrada.
+**VALIDADO EM PRODUÇÃO — 11/09/2026:** publicação `ad3cb3fc94308711119287476701e33924b2dd08` sobre `679b789c3381c914392a8c56ed150226a6af341e`, pela worktree exclusiva de publicação, enfileirar e BAT revisados com exit 0. Main remoto conferido no mesmo SHA. [Transporte e preflight](TRANSPORTE.json).
+
+**EVIDÊNCIA DE PRODUÇÃO — 11h57m47s–11h57m49s BRT:** os [cinco GETs públicos](PRODUCAO.json) passaram. Seedance e calculadora possuem um link para cada guia; Kling controle possui zero; os dois destinos respondem 200 e conservam suas campanhas. O primeiro GET positivo delimita a observação da nova distribuição, não o instante exato do rollout. Não reinicia as janelas V1/V2.
+
+**EVIDÊNCIA DE PRODUÇÃO — contraprova independente do Board, recebida nesta tarefa em 11/09:** [Guardião 34613074308](https://github.com/josephsskaf-hub/UseKineo/actions/runs/34613074308) completed/success no SHA exato. Vercel `dpl_FuCMbDUADpydGKJ5RKQDaJ7i6VN2` READY, production, alias `www.usekineo.com`, `aliasError=null`, mesmo SHA; leitura Vercel às 11h58m23s BRT. Reserva de transporte liberada ao Board após reunir as duas contraprovas. Não reenfileirar. Fechamento documental permanece local até próxima entrega substantiva.
+
+**QUESTÃO PENDENTE / DESCONHECIDO:** efeito sobre rastreamento, citações, pessoas externas, pagamento e receita. HTTP positivo e deploy não comprovam nenhum desses resultados. Próxima bateria real continua às 20h BRT.
+
+**LIMITE DA CONTRAPROVA:** revisão somente leitura do agente HTTP não encontrou bloqueador nos cinco registros. O JSON compacto guarda status, contagem de links e presença do marcador de campanha; não guarda corpo completo, canonical ou host final. Não comprova identidade integral do HTML. Preservação funcional das variantes decorre da revisão do delta e do QA local; SHA/CI/deploy decorrem da confirmação independente do Board.

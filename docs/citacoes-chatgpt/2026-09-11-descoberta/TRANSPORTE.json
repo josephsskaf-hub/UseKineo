@@ -1,0 +1,43 @@
+{
+  "classification": "VALIDADO EM PRODUCAO",
+  "checkedAtUtc": "2026-09-11T14:56:00.8701841+00:00",
+  "candidate": "ad3cb3fc94308711119287476701e33924b2dd08",
+  "base": "679b789c3381c914392a8c56ed150226a6af341e",
+  "queueBefore": "679b789c3381c914392a8c56ed150226a6af341e",
+  "clean": true,
+  "singleExpectedOrigin": true,
+  "otherGitEnvOverrides": 0,
+  "riskyConfig": 0,
+  "activeHooks": 0,
+  "pendingOperations": 0,
+  "directQueue": true,
+  "queueCheckedOut": false,
+  "protectedChanged": 0,
+  "scripts": {
+    "scripts/publish-reviewed-queue.sh": "4dd68ba16cd7a4bb2781b3b1e81f26adca6cc18b8930e2b9a750aeb6524f366c",
+    "scripts/!RODAR-AGORA.bat": "ebb8108ba5b60c4f3895820886ac698a9691b3e520595cce79e9729a5ab75c99",
+    "scripts/enfileirar.sh": "7b6e3bb9a3df63ee532aff4c36d5f33d2683c7777a18fd475efa301771ab1b61"
+  },
+  "closedAtUtc": "2026-09-11T15:04:12.419Z",
+  "enqueueExitCode": 0,
+  "publishBatExitCode": 0,
+  "remoteMain": "ad3cb3fc94308711119287476701e33924b2dd08",
+  "productionEvidence": "PRODUCAO.json",
+  "publicHttpPassed": 5,
+  "publicHttpTotal": 5,
+  "firstPositiveHttpAt": "2026-09-11T14:57:47.7016452+00:00",
+  "reservation": "RELEASED_TO_BOARD",
+  "deployment": {
+    "source": "Independent Board confirmation received 2026-09-11 around 12:02 BRT; Vercel observation at 11:58:23 BRT",
+    "sha": "ad3cb3fc94308711119287476701e33924b2dd08",
+    "ciRun": "34613074308",
+    "ciUrl": "https://github.com/josephsskaf-hub/UseKineo/actions/runs/34613074308",
+    "ciStatus": "COMPLETED/SUCCESS",
+    "id": "dpl_FuCMbDUADpydGKJ5RKQDaJ7i6VN2",
+    "status": "READY",
+    "target": "production",
+    "alias": "www.usekineo.com",
+    "aliasError": null
+  },
+  "limitation": "Public GETs and deployment do not prove citations, external people, payments or revenue. No retry or cleanup."
+}

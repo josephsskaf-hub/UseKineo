@@ -1,16 +1,28 @@
 {
   "classification": "EVIDÊNCIA OPERACIONAL",
-  "updatedAt": "2026-09-11T14:53:40Z",
+  "updatedAt": "2026-09-11T15:04:12.419Z",
   "contextualDiscoveryLinks": {
-    "status": "IMPLEMENTADO_TESTADO_LOCALMENTE_PUBLICACAO_PENDENTE",
+    "status": "VALIDADO_EM_PRODUCAO",
     "codeCommit": "e8632940c2bcba7925493764c64d01e801e63d63",
     "sourceCommit": "14ec765153d2fba11e759e3d0e8024d1710fa79a",
-    "sources": ["/ai-video-generator/seedance", "/cheapest-ai-shorts-maker"],
-    "targets": ["/ai-video-generator/complete-60-second-shorts-cost", "/vs/invideo-alternatives-faceless-shorts"],
+    "sources": [
+      "/ai-video-generator/seedance",
+      "/cheapest-ai-shorts-maker"
+    ],
+    "targets": [
+      "/ai-video-generator/complete-60-second-shorts-cost",
+      "/vs/invideo-alternatives-faceless-shorts"
+    ],
     "linkCount": 4,
     "evidence": "../2026-09-11-descoberta/QA.md",
     "scope": "Distribution through contextual links only; V1/V2 and campaigns unchanged, no new page or third variant.",
-    "nextStep": "Reserve immutable candidate/base, publish through reviewed scripts and confirm exact-SHA deployment plus public links."
+    "nextStep": "COMPLETED. Reservation released; do not republish. Preserve V1/V2 samples and their original exposure windows; measure actual ChatGPT responses at 20h BRT.",
+    "publishedCommit": "ad3cb3fc94308711119287476701e33924b2dd08",
+    "ciRun": "34613074308",
+    "deploymentId": "dpl_FuCMbDUADpydGKJ5RKQDaJ7i6VN2",
+    "deploymentStatus": "READY_PRODUCTION_ALIAS_CONFIRMED",
+    "productionEvidence": "../2026-09-11-descoberta/PRODUCAO.json",
+    "firstPositiveHttpAt": "2026-09-11T14:57:47.7016452+00:00"
   },
   "engineMinimumGrantCorrection": {
     "status": "VALIDADO_EM_PRODUCAO",
@@ -24,7 +36,7 @@
     "reviewedBase": "6b3384afd607c9e47b920422a219720da5fef88e",
     "scope": "Only Kling tier Starter and Veo tier Creator. Shared consumers update two hero notes, two fact rows, seven comparison tables and two hub cards. No third variant.",
     "evidence": "../2026-09-11-grant/QA.md",
-    "nextStep": "COMPLETED. Reservation released; do not repeat. Contextual discovery links are being implemented in a separate own worktree."
+    "nextStep": "COMPLETED. Reservation released; contextual links also completed separately in ad3cb3fc. Do not repeat either repair."
   },
   "engineFaqCorrection": {
     "status": "VALIDADO_EM_PRODUCAO",
@@ -35,10 +47,14 @@
     "deploymentStatus": "READY_PRODUCTION_ALIAS_CONFIRMED",
     "firstPositiveHttpAt": "2026-09-11T11:25:24-03:00",
     "codeCommit": "605ea667",
-    "paths": ["/ai-video-generator/seedance", "/ai-video-generator/kling", "/ai-video-generator/veo"],
+    "paths": [
+      "/ai-video-generator/seedance",
+      "/ai-video-generator/kling",
+      "/ai-video-generator/veo"
+    ],
     "evidence": "../2026-09-11-organico/ESTADO.md",
     "purpose": "Correct three stale FAQ answers only; not a third commercial variant. Preserve eight pages and V1/V2.",
-    "remainingIssues": "Kling/Veo minimum-grant labels corrected separately in 679b789c. Shared currency and other historical catalog labels remain separate; contextual discovery links now authorized/in progress without changing V1/V2."
+    "remainingIssues": "FAQ repair, minimum-grant labels and contextual discovery links completed. Other historical catalog/currency issues require separate verified scope. Preserve V1/V2."
   },
   "threadTitle": "Kineo · Citações no ChatGPT",
   "worktree": "C:/kineo/.claude/worktrees/citacoes-01-2026-09-10",
@@ -72,7 +88,7 @@
     "/ai-video-generator/chatgpt-script-to-finished-short"
   ],
   "preparedPaths": [],
-  "transportStatus": "COMPLETED: reviewed queue and BAT published immutable d4a34ba1 over 2f2a1e05. Board exact-SHA CI SUCCESS/Vercel READY, independent public V2 and V1-control HTTP passed. Exclusive queue reservation released; do not re-enqueue.",
+  "transportStatus": "COMPLETED: reviewed queue and BAT published immutable ad3cb3fc over 679b789c. Board exact-SHA CI SUCCESS/Vercel READY/alias, five independent public GETs passed. Exclusive queue reservation released; do not re-enqueue. Final documentary closure remains local until next substantive delivery.",
   "transportDependency": "C:/Users/josep/.codex/outputs/01a03e3e-5f63-7cf1-8b9f-6c6646b446b7/FILA-TRANSPORTE-DOCS-2026-09-10.md",
   "automationOwner": "Board",
   "existingAutomationId": "kineo-cita-es-no-chatgpt-7-dias",
@@ -86,15 +102,14 @@
     "file": "chatgpt-20-perguntas.json"
   },
   "continuation": [
-    "2026-09-11 FAQ factual repair completed on 9bf0525e: three public answers and JSON-LD verified; exact-SHA CI SUCCESS and Vercel READY/alias. Root transport reservation released; do not republish. Local final closure travels with next substantive delivery.",
-    "Board relayed founder commercial proactivity mandate on 2026-09-11 around 11:24 BRT: act on eligible individual commercial opportunities only after verified identity/history/suppression/ownership; no new spend, terms, manual database or paid render. Citation next work: minimum-grant labels and contextual discovery from cited Seedance/calculator to existing cost/comparison guides; preserve V1/V2, no generic ninth page, no duplicate signup tracking.",
+    "2026-09-11 morning completed: three FAQ answers on 9bf0525e, two minimum-grant labels on 679b789c and four contextual links on ad3cb3fc. Exact-SHA CI/Vercel and public checks passed. All transport reservations released. Do not repeat these deliveries or publish only closure documents.",
     "Eight pages remain published. Both commercial variants are live by HTTP: cost V1 and comparison V2. Preserve both samples; no third variant or ninth page.",
     "Transport is unlocked through reviewed scripts only. Coordinate one owner and reserve immutable candidate/base before queue writes; use a clean own worktree, mandatory preflight, no force/reset/rebase/cleanup or blind retry.",
-    "Local closing documentation after published d4a34ba1 is to travel with the next substantive authorized delivery, not a report-only push. Preserve prior V1 snapshot and Board closure.",
     "Renewal supersedes the old midnight stop. Existing automation runs every 30 minutes until 2026-09-11 23:30 BRT; close only in its final 30 minutes and remove only this automation.",
     "Next comparable ChatGPT measurement is 2026-09-11 20h BRT; no repeated 20-chat battery hourly.",
     "First six-hour commercial reviews were actually recorded on 2026-09-11 at 10:43 BRT, not backfilled. Both are inconclusive: Board has no validated canonical aggregates to supply. Campaign-to-paid-event linkage is implemented; ingestion and amounts remain UNKNOWN. Preserve both samples.",
-    "Two active variants, maximum reached. Next six-hour windows end at 12:14:22 BRT V1 and 13:27:54 BRT V2. Do not repeat the data request or notify the unchanged limitation without new evidence/access. No third variant or ninth page. ChatGPT measurement remains 20h; mandate ends 23:30 BRT."
+    "Two active variants, maximum reached. Next six-hour windows end at 12:14:22 BRT V1 and 13:27:54 BRT V2. Do not repeat the data request or notify the unchanged limitation without new evidence/access. No third variant or ninth page. ChatGPT measurement remains 20h; mandate ends 23:30 BRT.",
+    "Founder mandate relayed on 2026-09-11 authorizes necessary read-only commercial history, suppressions and result queries through existing connectors. Earlier 10:43 lack of aggregate is historical, not a permanent access prohibition. Verify connector/project and canonical people/payment method before querying; no manual database writes, paid render, duplicate signup tracing or third variant."
   ],
   "catalogFixCommit": "c633ed8b",
   "integratedMainCommit": "7827f2e07f89b55e2a020b266a48ec98247e5bd4",
@@ -276,7 +291,7 @@
     }
   },
   "commercialVariantCount": 2,
-  "lastReviewedMain": "679b789c3381c914392a8c56ed150226a6af341e",
+  "lastReviewedMain": "ad3cb3fc94308711119287476701e33924b2dd08",
   "commercialDataDependency": {
     "status": "NO_VALIDATED_AGGREGATE_AVAILABLE",
     "owner": "Board",
@@ -284,6 +299,9 @@
     "source": "Board thread 01a03e3e-5f63-7cf1-8b9f-6c6646b446b7, response received in this turn and recorded 2026-09-11 10:43 BRT: no validated canonical aggregates available; preserve variants, no new database/send authorization.",
     "repeatOnlyWhen": "Canonical aggregate availability/access or a material state change",
     "doNotInferZero": true,
-    "doNotRequestNewDatabaseAuthorization": true
+    "doNotRequestNewDatabaseAuthorization": true,
+    "currentAuthorization": "Necessary read-only commercial result queries through existing connectors authorized by renewed founder mandate relayed 2026-09-11. No query performed in the grant/link delivery.",
+    "historicalSourceMeaning": "10:43 response records availability at that time only; later mandate supersedes any blanket no-new-read-access interpretation.",
+    "nextAction": "At due commercial windows, inspect available canonical read-only evidence with verified project and existing attribution method; preserve UNKNOWN until results are actually obtained."
   }
 }
