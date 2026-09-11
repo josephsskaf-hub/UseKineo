@@ -358,6 +358,12 @@ export default function PricingClient() {
   const [displayRegion, setDisplayRegion] = useState<PriceRegion>('standard')
   // KINEO-MOEDA-LOCAL-2026-09-09 — moeda em que o checkout vai nascer (só exibição).
   const [settlementCurrency, setSettlementCurrency] = useState<SettlementCurrency>('usd')
+  // KINEO-UPI-PLANOS-2026-09-11 — ordem do fundador (11/09): assinatura pela
+  // Índia via Dodo (UPI/RuPay), não só o pacote avulso. O /api/geo só devolve
+  // `local_method` quando o trilho está AO VIVO e o IP é de país com método
+  // local (lib/dodo localMethodFor); o botão nasce fechado e só acende com o
+  // valor real. Brasil não entra aqui: brasileiro assina em reais pela Stripe.
+  const [localMethod, setLocalMethod] = useState<'upi' | null>(null)
   const currencyTrackedRef = useRef(false)
   const mobileStickyRef = useRef<HTMLDivElement | null>(null)
   const [requestedTier, setRequestedTier] = useState<PricingTierHandoffTier | null>(null)
@@ -542,11 +548,12 @@ export default function PricingClient() {
     void fetch('/api/geo', { credentials: 'same-origin', cache: 'no-store' })
       .then(async (response) => {
         if (!response.ok) throw new Error('geo lookup failed')
-        return response.json() as Promise<{ country?: string; currency?: string; region?: string; settlement_currency?: string }>
+        return response.json() as Promise<{ country?: string; currency?: string; region?: string; settlement_currency?: string; local_method?: string | null }>
       })
-      .then(({ country, currency, region, settlement_currency }) => {
+      .then(({ country, currency, region, settlement_currency, local_method }) => {
         if (cancelled) return
         setSettlementCurrency(settlement_currency === 'brl' ? 'brl' : 'usd')
+        setLocalMethod(local_method === 'upi' ? 'upi' : null)
         const safeCurrency: DisplayCurrency =
           'usd' // KINEO-USD-ONLY-2026-08-19
         const safeRegion = coercePriceRegion(region)
@@ -1198,6 +1205,24 @@ export default function PricingClient() {
                 >
                   {purchasing === p.tier ? 'Opening secure checkout…' : signedIn === false ? 'Sign up & continue →' : `${ctaLabel} →`}
                 </button>
+                {/* KINEO-UPI-PLANOS-2026-09-11 — assinatura mensal pela Índia via Dodo
+                    (UPI / RuPay). Mesmo plano, mesmo preço em USD, mesmos créditos;
+                    só o trilho muda. O servidor (/api/dodo/checkout) re-resolve país,
+                    chave e produto e responde 503 se algo faltar. Só mensal: o Dodo
+                    live tem os 3 produtos mensais; anual segue na Stripe. */}
+                {localMethod === 'upi' && billing === 'monthly' && !planSwitch.subscribed && (
+                  <a
+                    href={`/api/dodo/checkout?tier=${p.tier}&utm_source=pricing_plan&utm_medium=local_method&utm_campaign=upi`}
+                    data-testid={`plan-upi-${p.tier}`}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      void trackEvent('local_method_clicked', { surface: 'pricing_plan', method: 'upi', tier: p.tier, billing: 'monthly' })
+                    }}
+                    className="mt-2 block w-full rounded-xl border border-[#2997ff]/40 bg-[#2997ff]/[0.08] px-4 py-2.5 text-center text-[13px] font-bold text-[#7cc0ff] hover:bg-[#2997ff]/[0.14]"
+                  >
+                    Pay monthly with UPI / RuPay →
+                  </a>
+                )}
                 {/* PAYPAL-2026-07-06 — alternate rail for international buyers
                     (US audit 06/07: USD abandoners want a no-card option).
                     Same GET-redirect pattern as handleBuy, zero Stripe changes.
