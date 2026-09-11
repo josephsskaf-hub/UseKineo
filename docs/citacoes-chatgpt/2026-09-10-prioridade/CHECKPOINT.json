@@ -1,6 +1,6 @@
 {
   "classification": "EVIDÊNCIA OPERACIONAL",
-  "updatedAt": "2026-09-11T04:38:09.2645228Z",
+  "updatedAt": "2026-09-11T13:44:13.3649718Z",
   "threadTitle": "Kineo · Citações no ChatGPT",
   "worktree": "C:/kineo/.claude/worktrees/citacoes-01-2026-09-10",
   "branch": "codex/citacoes-01-2026-09-10",
@@ -52,8 +52,8 @@
     "Local closing documentation after published d4a34ba1 is to travel with the next substantive authorized delivery, not a report-only push. Preserve prior V1 snapshot and Board closure.",
     "Renewal supersedes the old midnight stop. Existing automation runs every 30 minutes until 2026-09-11 23:30 BRT; close only in its final 30 minutes and remove only this automation.",
     "Next comparable ChatGPT measurement is 2026-09-11 20h BRT; no repeated 20-chat battery hourly.",
-    "V1 first positive public observation is 2026-09-11 00:14:22 BRT. First six-hour commercial review is due after 06:14:22 BRT, on the next scheduled heartbeat if necessary. Count external people and canonical payments, keep unlinked anonymous data separate, missing access is UNKNOWN.",
-    "Two reversible commercial variants are active, the approved maximum. V1 review after 06:14:22 BRT and V2 after 07:27:54 BRT, at the next scheduled heartbeat if necessary. Keep canonical people/payment UNKNOWN without evidence."
+    "First six-hour commercial reviews were actually recorded on 2026-09-11 at 10:43 BRT, not backfilled. Both are inconclusive: Board has no validated canonical aggregates to supply. Campaign-to-paid-event linkage is implemented; ingestion and amounts remain UNKNOWN. Preserve both samples.",
+    "Two active variants, maximum reached. Next six-hour windows end at 12:14:22 BRT V1 and 13:27:54 BRT V2. Do not repeat the data request or notify the unchanged limitation without new evidence/access. No third variant or ninth page. ChatGPT measurement remains 20h; mandate ends 23:30 BRT."
   ],
   "catalogFixCommit": "c633ed8b",
   "integratedMainCommit": "7827f2e07f89b55e2a020b266a48ec98247e5bd4",
@@ -177,6 +177,19 @@
       "ciRun": "34557273379",
       "ci": "SUCCESS",
       "status": "READY"
+    },
+    "firstCommercialReview": {
+      "recordedAtUtc": "2026-09-11T13:44:13.3550600+00:00",
+      "windowStart": "2026-09-11T00:14:22.326-03:00",
+      "windowEndExclusive": "2026-09-11T06:14:22.326-03:00",
+      "status": "INCONCLUSIVA_SEM_AGREGADO_CANONICO",
+      "externalPeople": null,
+      "payments": null,
+      "revenue": null,
+      "source": "Board thread 01a03e3e-5f63-7cf1-8b9f-6c6646b446b7, response received in this turn and recorded 2026-09-11 10:43 BRT: no validated canonical aggregates available; preserve variants, no new database/send authorization.",
+      "decision": "PRESERVE",
+      "nextWindowEnd": "2026-09-11T12:14:22.326-03:00",
+      "evidence": "../2026-09-11-revisao-comercial/METODO.md"
     }
   },
   "comparisonDecisionV2": {
@@ -206,7 +219,30 @@
       "deploymentId": "dpl_7fgaVCzHW9SszRjc4SjBv889xTzB",
       "deploymentStatus": "READY",
       "target": "production"
+    },
+    "firstCommercialReview": {
+      "recordedAtUtc": "2026-09-11T13:44:13.3550600+00:00",
+      "windowStart": "2026-09-11T01:27:54.8791873-03:00",
+      "windowEndExclusive": "2026-09-11T07:27:54.8791873-03:00",
+      "status": "INCONCLUSIVA_SEM_AGREGADO_CANONICO",
+      "externalPeople": null,
+      "payments": null,
+      "revenue": null,
+      "source": "Board thread 01a03e3e-5f63-7cf1-8b9f-6c6646b446b7, response received in this turn and recorded 2026-09-11 10:43 BRT: no validated canonical aggregates available; preserve variants, no new database/send authorization.",
+      "decision": "PRESERVE",
+      "nextWindowEnd": "2026-09-11T13:27:54.8791873-03:00",
+      "evidence": "../2026-09-11-revisao-comercial/METODO.md"
     }
   },
-  "commercialVariantCount": 2
+  "commercialVariantCount": 2,
+  "lastReviewedMain": "f6e4e3e69b4d87e94789575dfdd155074019d3b7",
+  "commercialDataDependency": {
+    "status": "NO_VALIDATED_AGGREGATE_AVAILABLE",
+    "owner": "Board",
+    "requestedAt": "2026-09-11 10:38 BRT",
+    "source": "Board thread 01a03e3e-5f63-7cf1-8b9f-6c6646b446b7, response received in this turn and recorded 2026-09-11 10:43 BRT: no validated canonical aggregates available; preserve variants, no new database/send authorization.",
+    "repeatOnlyWhen": "Canonical aggregate availability/access or a material state change",
+    "doNotInferZero": true,
+    "doNotRequestNewDatabaseAuthorization": true
+  }
 }

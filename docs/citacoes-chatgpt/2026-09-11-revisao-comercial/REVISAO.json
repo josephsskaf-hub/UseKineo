@@ -1,0 +1,35 @@
+{
+  "classification": "REVISAO COMERCIAL INCONCLUSIVA",
+  "recordedAtUtc": "2026-09-11T13:44:13.3550600+00:00",
+  "V1": {
+    "recordedAtUtc": "2026-09-11T13:44:13.3550600+00:00",
+    "windowStart": "2026-09-11T00:14:22.326-03:00",
+    "windowEndExclusive": "2026-09-11T06:14:22.326-03:00",
+    "status": "INCONCLUSIVA_SEM_AGREGADO_CANONICO",
+    "externalPeople": null,
+    "payments": null,
+    "revenue": null,
+    "source": "Board thread 01a03e3e-5f63-7cf1-8b9f-6c6646b446b7, response received in this turn and recorded 2026-09-11 10:43 BRT: no validated canonical aggregates available; preserve variants, no new database/send authorization.",
+    "decision": "PRESERVE",
+    "nextWindowEnd": "2026-09-11T12:14:22.326-03:00",
+    "evidence": "../2026-09-11-revisao-comercial/METODO.md"
+  },
+  "V2": {
+    "recordedAtUtc": "2026-09-11T13:44:13.3550600+00:00",
+    "windowStart": "2026-09-11T01:27:54.8791873-03:00",
+    "windowEndExclusive": "2026-09-11T07:27:54.8791873-03:00",
+    "status": "INCONCLUSIVA_SEM_AGREGADO_CANONICO",
+    "externalPeople": null,
+    "payments": null,
+    "revenue": null,
+    "source": "Board thread 01a03e3e-5f63-7cf1-8b9f-6c6646b446b7, response received in this turn and recorded 2026-09-11 10:43 BRT: no validated canonical aggregates available; preserve variants, no new database/send authorization.",
+    "decision": "PRESERVE",
+    "nextWindowEnd": "2026-09-11T13:27:54.8791873-03:00",
+    "evidence": "../2026-09-11-revisao-comercial/METODO.md"
+  },
+  "newSqlQueries": 0,
+  "publicHttpRequests": 2,
+  "canonicalPaymentLink": "IMPLEMENTED, NOT QUERIED",
+  "newCitationMeasurements": 0,
+  "newCommercialVariants": 0
+}

@@ -1,0 +1,34 @@
+{
+  "classification": "EVIDENCIA DE PRODUCAO",
+  "purpose": "Public content control at the actual delayed first commercial review",
+  "gitMain": "f6e4e3e69b4d87e94789575dfdd155074019d3b7",
+  "requests": 2,
+  "userAgent": "Kineo-Citacoes-ReadOnly-Verification/1.0",
+  "records": [
+    {
+      "url": "https://www.usekineo.com/ai-video-generator/complete-60-second-shorts-cost",
+      "checkedAtUtc": "2026-09-11T13:39:45.3127780Z",
+      "status": 200,
+      "canonical": true,
+      "campaign": "citacoes_cost_decision_v1",
+      "campaignPresent": true,
+      "planActionPresent": true,
+      "trial30NoCard": true,
+      "sha256": "b635875148cadbeeae3aee8561a71fe4ca8706d53e13bb040621921bb241715e",
+      "acquisitionClicks": 0
+    },
+    {
+      "url": "https://www.usekineo.com/vs/invideo-alternatives-faceless-shorts",
+      "checkedAtUtc": "2026-09-11T13:39:45.8961228Z",
+      "status": 200,
+      "canonical": true,
+      "campaign": "citacoes_comparison_decision_v2",
+      "campaignPresent": true,
+      "planActionPresent": true,
+      "trial30NoCard": true,
+      "sha256": "86226867a70c9d0998f2eacf716b6210040e4d49c6d9e41db1cc9512925cff7b",
+      "acquisitionClicks": 0
+    }
+  ],
+  "limitation": "HTTP response is not an external person, analytics event or payment. No JavaScript, signup, rendering or purchase was executed."
+}
