@@ -38,6 +38,11 @@ import {
 // sides asking a human to keep them in sync. It is now derived from
 // PEOPLE_LIFESTYLE_WORDS in one place.
 import { PEOPLE_LIFESTYLE_RE } from '@/lib/broll/aesthetic-packs'
+// KINEO-VIGIA-PALAVRAS-POR-CENA-2026-09-11 — a MESMA régua que o /api/compose
+// usa para escalar a narração (3,1 pal/s × duração). Fonte única: se o roteiro
+// já nasce nessa conta, o escalador fica dentro da tolerância (±15%) e NÃO
+// reescreve o texto para o qual o footage foi escolhido.
+import { targetWordCount } from '@/lib/compose'
 
 // HOTFIX (02/07) — Fast Mode v2 blew the default 60s budget on 60s scripts
 // (6-9 scenes × multi-pool Pixabay sourcing → Vercel 504 "Task timed out").
@@ -87,6 +92,19 @@ function clipCountForDuration(d: Duration): number {
   // Stock clips are usually >10s, but we still ask for N distinct clips so
   // Creatomate has variety. We cap at 9 to support 90s videos.
   return Math.max(2, Math.min(9, Math.ceil(d / 10)))
+}
+
+// KINEO-VIGIA-PALAVRAS-POR-CENA-2026-09-11 — faixa de palavras faladas por
+// cena para a duração pedida: o total é o MESMO alvo do escalador do compose
+// (targetWordCount = 3,1 pal/s × s), dividido pelas cenas, com ±10% de folga
+// (dentro dos ±15% em que o escalador não reescreve). 90 s / 9 cenas → 27-35;
+// 60 s / 6 → 27-35; 35 s / 4 → 24-30; 45 s / 5 → 25-31.
+function wordsPerSceneFor(durationSeconds: number, sceneCount: number): readonly [number, number] {
+  const scenes = Math.max(1, Math.floor(sceneCount))
+  const total = targetWordCount(durationSeconds)
+  const lo = Math.max(6, Math.floor((total * 0.9) / scenes))
+  const hi = Math.max(lo, Math.ceil((total * 1.1) / scenes))
+  return [lo, hi] as const
 }
 
 // Push #350 — People/lifestyle keyword detector for FALLBACK-B stock filter.
@@ -555,7 +573,16 @@ export async function POST(req: NextRequest) {
       )
     } else {
       try {
-        scenes = await generateScenes(prompt.slice(0, 1200), clipCount)
+        // KINEO-VIGIA-PALAVRAS-POR-CENA-2026-09-11 — o escritor de cenas nunca
+        // soube a duração: pedia 10-22 palavras por cena e um filme de 90 s
+        // nascia com ~100 palavras (37 s de fala). O compose então REESCREVIA o
+        // corpo para 279 palavras sob os 17 clipes escolhidos para as 114
+        // originais (render 59e1c0ce, 11/09). Agora cada cena nasce com a
+        // fatia de palavras que a duração pede — a mesma régua do escalador,
+        // que passa a ser no-op (±15%) e o footage volta a casar com a fala.
+        scenes = await generateScenes(prompt.slice(0, 1200), clipCount, undefined, {
+          wordsPerScene: wordsPerSceneFor(duration, clipCount),
+        })
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
         console.error('[generate-fast] scene generation failed:', msg)

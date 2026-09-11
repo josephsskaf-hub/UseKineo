@@ -396,3 +396,188 @@ tsc 0 · baterias verdes (lista no fechamento). Base aad34de2 intacta.
   clássicos desde o deploy 20:43 UTC).
 - Próxima rotação (19:30) é o FECHAMENTO: tabela motor × filmes/nota/defeito/
   conserto, "o que falta encaixar" por motor, "para o fundador" em ≤5 linhas.
+
+---
+
+## Rotação 5 — 19:30 BRT (22:30 UTC) · FECHAMENTO · branch codex/vigia-motores-1931 · base 4496499b
+
+### Filmes de contas externas desde 21:30 UTC (18:30 BRT)
+
+| id | motor | pessoa | pedido | saiu | fal | cadastro→filme | nota |
+|---|---|---|---|---|---|---|---|
+| 59e1c0ce | Kineo 1 (fast) | conta nova (gmail), trial 30cr, escreveu em ESPANHOL | 90 s · 9:16 · idioma "en" (padrão) · tema livre pela home (?autoanalyze) | 89 s · completed · URL ok · 8cr | Pixabay 17 clipes (não passa pela fal) | 14 min | **8,1** (régua) — para a pessoa, provavelmente 3 |
+
+**59e1c0ce ("un hombre que busca ser feliz…")** — a pessoa escreveu uma
+HISTÓRIA pessoal em espanhol (487 caracteres) na home e apertou o botão.
+(a) 10 · (b) 89 ≥ 90? **9** — 1 s abaixo: o filme clássico tem o tamanho do
+áudio e só o pedido de 60 s tem piso (TIKTOK-61); 90 s não tem piso nenhum ·
+(c) 9 — Kineo 1 é 9:16 fixo (lib/fastAiHook.ts), sem `requested_aspect` no
+dispatch do fast (o conserto da rotação 1 foi só no cinematic) · (d) **5** —
+TTS clássica em INGLÊS para uma história em espanhol (o seletor de idioma
+ficou no padrão "en"; ninguém detectou o idioma do texto), e o texto FALADO
+não é o texto planejado (ver o achado abaixo) · (e) 9 — 89 s de fala em 89 s
+de filme, mas só porque o compose reescreveu a narração (abaixo) · (f) **4**
+— a pessoa contou uma história de ficção/crescimento pessoal e recebeu um
+listicle de "micro-conhecimento" ("Studies show…", "over 60% of people
+struggle…" — estatísticas inventadas para uma história que não pediu
+estatística); e os 17 clipes foram escolhidos para 114 palavras que não são
+as 279 que tocam · (g) 10 · (h) 10. Ponderado (20+9+9+10+9+4+10+10)/10 =
+**8,1**. A régua aprova a entrega; o espectador recebe um filme em outra
+língua sobre outra coisa.
+
+Contas internas no intervalo: nenhum render pago, nenhum dry-run. Nenhuma
+falha (`generation_stage_error` 0), `plan_silence_rejected` 0,
+`shot_spec_detected` 0, clipe 0, avatar 0. Kling 3/H3/Omni/S25: **0 renders
+de qualquer conta desde 11:34** — voz na boca e primeira pessoa fecham o dia
+SEM PROVA em produção.
+
+### O ACHADO DO FECHAMENTO — o Kineo 1 escreve a narração DUAS vezes
+
+Seguindo o 59e1c0ce ponta a ponta no código (não em hipótese):
+
+1. Home → `/studio/create?autoanalyze=1&prompt=…` → `handleAnalyze(sp,
+   { fromTopic: true, skipPreview: true })` (GenerateClient:8539) →
+   `needsStructuring = false` → o escritor `/api/generate-script` (o único
+   com piso de palavras: ≥132 para 60 s, ≥197 para 90 s, com retry) é
+   PULADO. O evento `script_preflight_overridden` já avisava: `speech_seconds
+   37, target 90, refusal_predicted true, reason coverage_below_floor`.
+2. `/api/generate-video-fast` recebe o texto CRU (prompt_length 487) e chama
+   `generateScenes(prompt, clipCount)` (lib/runway.ts) — que pede
+   **"one narration line (10-22 words)"** por cena, sem saber a duração.
+   90 s → 9 cenas × ~13 = **114 palavras = 37 s de fala** (3,1 pal/s).
+   60 s → 6 cenas × ~14 = ~85 palavras = 27 s. É a ARITMÉTICA do que o banco
+   mostra em 14 dias de Kineo 1 externo (compose_submission_claim.narration):
+   60 s = 56 filmes / 41 pessoas, mediana ~118 palavras, **29 abaixo do
+   piso de 95%**; 90 s = 9 filmes / 9 pessoas, mediana ~100, **6 abaixo**.
+3. `/api/compose` (Step 1, `scaleVoiceoverScript(voiceover,
+   targetWordCount(duration))` = 3,1 × s) vê 114 fora dos ±15% de 279 e
+   manda o gpt-4o-mini **REESCREVER O CORPO** da narração (só o hook fica).
+   O filme sai com 89 s de fala — por isso o 59e1c0ce tem 89 s e não 37 —
+   mas os 17 clipes (Pixabay, escolhidos frase a frase pelo BrollPlan) foram
+   escolhidos para as 114 palavras originais. O texto escalado NÃO é gravado
+   em lugar nenhum (só no log e no cache de áudio); o claim guarda o texto
+   pré-escala. Prova de que a escala roda: sem ela, 37 s de áudio dariam um
+   filme de 37 s (o piso TIKTOK-61 só cobre pedido de 60 s).
+4. **Consequência maior (fora do território, registrada):** o mesmo Step 1
+   roda para TODO filme clássico sem diretiva `speed:` — inclusive "Use my
+   script as is" no Seedance/Kling 2.5/Veo/Kineo 1. O c636e7a0 (rotação 2,
+   "as is", 143 palavras para 60 s) ficou abaixo dos 158 (85% de 186) → o
+   corpo do conto em PT-BR foi reescrito pelo gpt-4o-mini no compose. "As
+   is" no caminho clássico é verdade só dentro de ±15% de 3,1 pal/s × s. O
+   portão de narração do cinematic mede a 2,3 pal/s (≥95%) e o escalador a
+   3,1 — duas réguas na mesma porta; roteiros entre 2,2 e 2,6 pal/s passam
+   no portão e são reescritos no compose. PEDIDO abaixo (compose é
+   território, mas o conserto exige o `verbatim` do claim/cliente e o
+   compose/route.ts e lib/compose.ts mudaram hoje — não cabe no fechamento).
+
+### O que mudou (rotação 5) — KINEO-VIGIA-PALAVRAS-POR-CENA
+
+- `lib/runway.ts`: `generateScenes(prompt, count, visualPolicy,
+  writerOptions?: { wordsPerScene })`. O campo 8 do schema vira
+  `one narration line (${voiceoverRule})`: sem opção = literal antigo
+  "10-22 words" (o golden hash do test-visual-contract do Codex continua
+  batendo byte a byte); com faixa = "27-35 words — this line alone must fill
+  its ~10-second scene when spoken; two sentences are fine". A regra vive
+  DENTRO da função porque o guardião do Codex executa `generateScenes`
+  fatiada por nome.
+- `app/api/generate-video-fast/route.ts`: `wordsPerSceneFor(duration,
+  clipCount)` = `targetWordCount(duration)` (importado de lib/compose — a
+  MESMA régua do escalador, 3,1 pal/s) × 0,9..1,1 ÷ cenas: 90 s/9 → 27-35 ·
+  60 s/6 → 27-35 · 35 s/4 → 24-30 · 45 s/5 → 25-31. Passado só no ramo
+  não-verbatim. Efeito: o roteiro nasce dentro dos ±15% → o escalador do
+  compose vira no-op → o footage volta a casar com a fala. Não mexe em
+  verbatim, preço, crédito, tela, nem no cinematic (que chama generateScenes
+  sem a opção e continua igual — anotado abaixo).
+- Guardião `scripts/test-vigia-palavras-por-cena-2026-09-11.mjs` (26 checks):
+  EXECUTA `generateScenes` com openai falso (técnica do guardião do Codex) e
+  lê a linha do campo 8 que o modelo receberia (sem faixa / com faixa /
+  piso); executa `wordsPerSceneFor` com o `targetWordCount` real de
+  lib/compose e prova que cada faixa cobre a régua da casa E fica dentro dos
+  ±15% do escalador; prova o defeito (114 < 85% de 279) e o conserto (9 × 27
+  ≥ 237). Falsificado por 10 mutantes, todos mortos com `git diff --stat`
+  provando que aplicaram: padrão 10-25 · campo 8 literal · chamador sem
+  faixa · régua 2,3 · piso 0,6 · export na rota · (após o inline) padrão ·
+  literal · piso some · faixa ignorada.
+- tsc 0 · 16 baterias do CI (inclusive test-visual-contract, que ficou
+  vermelho na 1ª versão com helper externo e voltou a verde com a regra
+  inline) + scene-truth + motores-r2-r6 + voz-na-boca + primeira-pessoa +
+  silencio-na-cena + vigia-ledger + vigia-descritor + vigia-cenario +
+  tres-modos-clipe + vigia-palavras = 26/26 verdes.
+
+---
+
+## FECHAMENTO — 11/09/2026 19:30 BRT
+
+### Motor × o dia
+
+| motor | filmes lidos (externos) | nota média | defeito principal (evidência) | consertado |
+|---|---|---|---|---|
+| Kineo 1 (fast) | 1 (59e1c0ce, 90 s) | 8,1 | narração nasce curta (10-22 pal/cena) e o compose a reescreve sob footage escolhido para outro texto; 29/56 filmes de 60 s e 6/9 de 90 s abaixo do piso em 14 d | **SIM** — palavras por cena da duração (lib/runway.ts + generate-video-fast), SHA desta rotação |
+| Seedance 1.5 (cinematic_ai) | 3 (597f8237 9,0 · 802f024e 7,1 · c636e7a0 8,7) | 8,3 | camada visual inventa lugar/época fora do roteiro (Amityville, Winchester, 1910, Nokia) — 7 de 15 cenas nos 3 filmes | **SIM** — regra no descritor + segunda chamada (r2, SHA da r2) e filtro determinístico `scrubInventedSetting` + `setting_scrubbed` (r3, d8d1cff5/aad34de2); `setting_scrubbed` ainda sem denominador (0 filmes clássicos desde 20:43 UTC) |
+| Kling 2.5 (cinematic_kling) | 0 (último externo 09:30 UTC, antes da janela) | — | nenhum na janela | — |
+| Veo 3.1 (cinematic_veo) | 0 (último 08/09) | — | sem uso externo em 7 d | — |
+| Kling 3 (cinematic_hollywood) | 0 externos (fundador 11:53, deploy anterior ao d4d89499: 60 s, 8/8, nota-retrato 8) | — | livro-razão zerado em 5/5 dispatch_result da família (attempted=0, claim_action=unknown) | **SIM** — hDispositions/outcomes/claimAction (r1); voz na boca + presenter **SEM PROVA** (0 renders desde 11:34) |
+| MiniMax H3 (cinematic_h3) | 0 (1 falha externa 09:22 UTC, walid, 6 cenas, 4/6 prontas, 51 min, estorno 27cr) | — | cron finish-stranded-renders trata cena COMPLETED+error como "rodando" → filme de 4/6 (67% ≥ piso 60%) nunca montado; 15 dias sem entrega | **NÃO** — arquivo do cron fora do território → PEDIDO H3-WALID-11/2 ao Codex |
+| Omni Flash (cinematic_omni) | 0 (fundador 03:42 UTC, 40 s) | — | idem livro-razão (r1); cap 10 s/cena | ledger SIM (r1) |
+| Seedance 2.5 (s25) | 0 (S25_PUBLIC=false; nunca entregou) | — | vermelho herdado test-motores-d1 (aspect) | — |
+| Avatar | 0 (último 15/07) | — | invisível nos seletores (auditoria 28/08 item 2) | NÃO (fora do escopo) |
+
+Notas do dia (4 filmes externos, 4 pessoas): 9,0 · 7,1 · 8,7 · 8,1 → média
+**8,2 pela régua**. Pelo espectador: 2 dos 4 são inassistíveis ou em outra
+língua (802f024e ficha JSON lida em voz alta; 59e1c0ce inglês para quem
+escreveu em espanhol). Entrega e fal foram 4/4 perfeitos; o problema do dia
+foi SEMPRE o que a voz diz e o que a imagem mostra, nunca a máquina.
+
+### O QUE AINDA FALTA ENCAIXAR — por motor, com evidência
+
+- **Todos os clássicos (Kineo 1, Seedance, Kling 2.5, Veo)**: "Use my
+  script as is" sem `speed:` passa pelo `scaleVoiceoverScript` do compose
+  (Step 1) e tem o CORPO reescrito quando fica fora de ±15% de 3,1 pal/s ×
+  s (c636e7a0: 143 pal/60 s → reescrito). Duas réguas na mesma porta
+  (portão 2,3 vs escalador 3,1). Conserto: compose pula a escala quando o
+  claim/cliente diz `verbatim` (o cinematic já grava `verbatim` no claim;
+  o fast devolve `verbatim` mas o cliente só manda `speed`). Não feito
+  hoje: guardião do escalador é do Codex (02:42) e o fechamento não cabia.
+- **Kineo 1**: (1) o caminho `?autoanalyze=1` da home pula o escritor com
+  piso (generate-script) — hoje mitigado pela faixa por cena; a raiz
+  (GenerateClient:8539 sem `structureFirst`) é tela (Codex). (2) Idioma:
+  história em espanhol → narração em inglês por padrão; não há detecção de
+  idioma do texto (a pessoa teria de achar o seletor). (3) 90 s não tem
+  piso de duração (89 s saiu); o TIKTOK-61 só cobre 60 s. (4) Ficção/
+  história pessoal vira "listicle com estatísticas inventadas" — o
+  engineFit (09/09) avisa ficção→Seedance, mas o 59e1c0ce não recebeu
+  `engine_fit_warned` (texto em espanhol não casa com o léxico em inglês).
+  (5) `requested_aspect` não é gravado no dispatch do fast (só cinematic).
+- **Seedance (clássico)**: `generateScenes` do cinematic também chama sem
+  `wordsPerScene` (route.ts:2863/2934) — o mesmo "10-22 palavras" → mesmo
+  escalador reescrevendo sob clipes PAGOS da fal. Não plugado hoje de
+  propósito: o clássico tem portão de narração + KINEO-DEGRAU e o filtro
+  de cenário novo; medir 1 filme AI-escrito de 60 s antes de mexer.
+  `setting_scrubbed`: 0 filmes desde o deploy → sem denominador.
+- **Kling 3 / H3 / Omni**: voz na boca (6b3384af) e primeira pessoa
+  (d4d89499) continuam sem UM render pago desde 11:34. O único canário do
+  dia rodou no deploy anterior e mostrou exatamente o que o d4d89499
+  corrige (8/8 support + documentary_faceless para "My name is Tomás").
+  Cenário inventado no planner hollywood: 1 filme / 0 drift — não plugar
+  o filtro sem prova.
+- **H3**: 2 request_ids do claim 928eebd1 sem leitura na fal (sem chave
+  nesta máquina); cron cego a cena morta (pedido H3-WALID-11/2).
+- **Retry de cena** crava `aspect_ratio: '9:16'` (Omni, H3 t2v, Kling 2.5
+  t2v) — dano latente (100% dos filmes são 9:16 hoje), pedido RETRY-ASPECT-11.
+
+### PARA O FUNDADOR (≤5 linhas)
+
+1. Hoje 4 pessoas fizeram filme: 4/4 entregues, fal 100%, média 8,2 — mas 2
+   dos 4 saíram com a VOZ errada (ficha lida em voz alta; inglês para quem
+   escreveu em espanhol). O problema não é a máquina, é o que ela diz.
+2. Kineo 1 escrevia a narração 2× (curta no escritor, reescrita no compose
+   sob clipes de outro texto) — consertado nesta rotação; o próximo Kineo 1
+   de 60/90 s já nasce com a fala do tamanho certo. 29 de 56 filmes de 60 s
+   dos últimos 14 dias tinham esse defeito.
+3. "Use my script as is" no Seedance/Kineo 1 NÃO é literal quando o texto
+   fica >15% fora de 3,1 pal/s × s: o compose reescreve o corpo. Decisão
+   sua: (a) pular a escala em verbatim (filme pode sair curto) ou (b) manter.
+4. Kling 3/H3/Omni: voz na boca e 1ª pessoa fecham o dia SEM prova — nenhum
+   render pago desde 11:34. O canário de 150cr continua sendo a única prova.
+5. H3 está há 15 dias sem entregar; o cron não monta filme de 4/6 cenas
+   porque não sabe que 2 morreram (pedido ao Codex).

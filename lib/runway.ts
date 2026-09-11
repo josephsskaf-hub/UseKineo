@@ -246,8 +246,33 @@ export function shortCaptionFromVoiceover(text: string, maxWords = 8): string {
   return sliced.join(' ').replace(/[.!?,;:]+$/, '')
 }
 
-export async function generateScenes(prompt: string, count = 4, visualPolicy?: VisualPromptPolicy): Promise<Scene[]> {
+// ═══ KINEO-VIGIA-PALAVRAS-POR-CENA-2026-09-11 ═══════════════════════════════
+// O escritor de cenas pedia "one narration line (10-22 words)" por cena, sem
+// saber a duração do filme. Medido em 14 dias de Kineo 1 externo: 60 s saía
+// com ~85-120 palavras (6 cenas × ~14) e 90 s com ~100 (9 × ~13) — 37 s de
+// fala para um filme de 89 s (render 59e1c0ce, 11/09 21:44 UTC). Quem
+// "enchia" o filme era o escalador do /api/compose (scaleVoiceoverScript →
+// 3,1 pal/s × duração), REESCREVENDO o corpo da narração com gpt-4o-mini
+// DEPOIS de o footage ter sido escolhido para as frases originais. Resultado:
+// 17 clipes escolhidos para 114 palavras tocando sob 279 palavras que ninguém
+// planejou. O chamador que sabe a duração passa a dizer quantas palavras cada
+// cena precisa; sem `wordsPerScene`, o texto do prompt é BYTE-IDÊNTICO ao de
+// antes (os outros chamadores não mudam de comportamento).
+export interface SceneWriterOptions {
+  /** Faixa [min, max] de palavras faladas por cena. Ausente = "10-22". */
+  wordsPerScene?: readonly [number, number]
+}
+
+export async function generateScenes(prompt: string, count = 4, visualPolicy?: VisualPromptPolicy, writerOptions?: SceneWriterOptions): Promise<Scene[]> {
   const safeCount = Math.max(1, Math.min(9, Math.floor(count)))
+  // A regra vive DENTRO da função de propósito: o guardião do Codex
+  // (test-visual-contract) executa generateScenes isolada por nome e não
+  // conhece helpers irmãos. Sem faixa, o texto é o literal antigo.
+  const wps = writerOptions?.wordsPerScene
+  const wpsLo = wps ? Math.max(6, Math.floor(wps[0])) : 0
+  const voiceoverRule = wps
+    ? `${wpsLo}-${Math.max(wpsLo, Math.ceil(wps[1]))} words — this line alone must fill its ~10-second scene when spoken; two sentences are fine`
+    : '10-22 words'
   const defaultNegative = visualPolicy
     ? classicVisualNegativePrompt(visualPolicy.mode, isStylizedLook(visualPolicy.style))
     : 'cartoon, animation, clipart, toy'
@@ -276,7 +301,7 @@ Your job is to return a JSON array of scene objects. Each scene object must incl
    health_body, crime_mystery, animal_wildlife,
    general_science, general_documentary
    Pick the most specific category that matches the scene content.
-8. "voiceover" — one narration line (10-22 words). MUST include at least one SPECIFIC number, name, date, dollar amount, or comparison — no vague claims. Exact TTS text. No filler like "imagine…", "what if…", or "most people don't know…".
+8. "voiceover" — one narration line (${voiceoverRule}). MUST include at least one SPECIFIC number, name, date, dollar amount, or comparison — no vague claims. Exact TTS text. No filler like "imagine…", "what if…", or "most people don't know…".
 9. "caption" — ≤8-word on-screen caption paraphrasing the voiceover. Punchy fragment. No period.
 
 You always respond with a valid JSON array ONLY — no markdown, no code fences, no commentary.`
