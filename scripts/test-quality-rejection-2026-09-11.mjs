@@ -98,8 +98,9 @@ function runtime(options = {}) {
         if (options.failRead === category && !update) return { data: null, error: { message: 'RAW_SECRET_BODY' } }
         if (update && category === 'birth' && options.releaseFail) return { data: null, error: { message: 'RAW_SECRET_BODY' } }
         if (update && category === 'birth' && options.releaseConflict) return { data: null, error: null }
-        if (update && category === 'compose' && options.markerFail) return { data: null, error: { message: 'RAW_SECRET_BODY' } }
-        if (update && category === 'compose' && options.markerConflict) return { data: null, error: null }
+        if (update && category === 'compose' && options.intentFail) return { data: null, error: { message: 'RAW_SECRET_BODY' } }
+        if (update && category === 'compose' && update.metadata?.quality_rejection?.phase === 'resolved' && options.markerFail) return { data: null, error: { message: 'RAW_SECRET_BODY' } }
+        if (update && category === 'compose' && update.metadata?.quality_rejection?.phase === 'resolved' && options.markerConflict) return { data: null, error: null }
         if (row && update) Object.assign(row, clone(update))
         return { data: row ? clone(row) : null, error: null }
       },
@@ -122,7 +123,7 @@ eq(happy.state.mutex.metadata.quality_rejection.reason, happy.input.reason, 'Qua
 eq(happy.state.birth.metadata.resolution_reason, 'provider_failed_refunded', 'Existing allowed financial release vocabulary')
 eq(happy.state.creditsReturned, 45, 'Only authoritative debit refunded')
 const ops = happy.state.operations
-ok(ops.indexOf('refund') < ops.indexOf('write:birth') && ops.indexOf('write:birth') < ops.indexOf('write:compose'), 'Refund before signed release before terminal annotation')
+ok(ops.indexOf('write:compose') < ops.indexOf('refund') && ops.indexOf('refund') < ops.indexOf('write:birth') && ops.indexOf('write:birth') < ops.lastIndexOf('write:compose'), 'Signed intent before refund before signed release before terminal annotation')
 const replay = await happy.helper.readVerifiedQualityRejection(happy.input)
 eq(replay?.outcome, 'quality_rejected_refunded', 'Read-only replay re-verifies ledger and released birth')
 eq(happy.state.refundCalls, 1, 'Replay has zero refund calls')
@@ -170,6 +171,10 @@ for (const refund of ['fail', 'throw', 'amount_only']) {
   eq(r.state.mutex.metadata.status, 'pending', refund + ': mutex retained')
   eq(result.retryable, false, refund + ': no retry invitation')
   ok(!JSON.stringify(result).includes('RAW_SECRET_BODY'), refund + ': safe error class')
+  const replay = await r.helper.readVerifiedQualityRejection(r.input)
+  eq(replay?.outcome, 'quality_rejection_support_pending', refund + ': reload is terminal support, not pending render')
+  eq(replay?.refundConfirmed, false, refund + ': intent never substitutes financial proof')
+  eq(replay?.retryable, false, refund + ': reload never auto-submits the rejected attempt')
 }
 const lost = runtime({ refund: 'lost_response' })
 eq((await lost.helper.rejectCinematicQuality(lost.input)).outcome, 'quality_rejected_refunded', 'Lost RPC response reconciles by authoritative ledger')
@@ -180,7 +185,20 @@ for (const option of ['releaseFail', 'releaseConflict', 'markerFail', 'markerCon
   eq(result.claimReleased, option.startsWith('marker'), option + ': release truth not inferred')
   eq(r.state.events.length, 2, option + ': never delete mutex or birth')
   eq(result.retryable, false, option + ': no duplicate final render attempt')
+  const replay = await r.helper.readVerifiedQualityRejection(r.input)
+  eq(replay?.outcome, option.startsWith('marker') ? 'quality_rejected_refunded' : 'quality_rejection_support_pending', option + ': persisted intent reconciles actual ledger/release on reload')
+  eq(replay?.refundConfirmed, true, option + ': reload preserves confirmed ledger fact')
 }
+const failedIntent = runtime({ intentFail: true })
+eq((await failedIntent.helper.rejectCinematicQuality(failedIntent.input)).supportReason, 'rejection_intent_unconfirmed', 'Intent must be durable before money')
+eq(failedIntent.state.refundCalls, 0, 'Failed intent persistence performs no refund')
+eq(await failedIntent.helper.readVerifiedQualityRejection(failedIntent.input), null, 'Ordinary pending mutex not mislabeled quality rejection')
+const forgedFacts = runtime({ refund: 'fail' })
+await forgedFacts.helper.rejectCinematicQuality(forgedFacts.input)
+Object.assign(forgedFacts.state.mutex.metadata.quality_rejection, { phase: 'resolved', refund_confirmed: true, birth_released: true })
+eq((await forgedFacts.helper.readVerifiedQualityRejection(forgedFacts.input))?.refundConfirmed, false, 'Mutable confirmed flags cannot invent a ledger refund')
+forgedFacts.state.mutex.metadata.quality_rejection.intent_authority = 'b'.repeat(64)
+eq(await forgedFacts.helper.readVerifiedQualityRejection(forgedFacts.input), null, 'Forged quality intent cannot stop an unrelated render')
 const before = runtime({ changeBeforeRefund: true })
 eq((await before.helper.rejectCinematicQuality(before.input)).supportReason, 'compose_changed_before_refund', 'Changed mutex rechecked before refund')
 eq(before.state.refundCalls, 0, 'Concurrent possible final render stops money mutation')
@@ -197,7 +215,11 @@ for (const tamper of ['marker', 'signature', 'birth', 'ledger', 'render']) {
   if (tamper === 'birth') r.state.birth.metadata.status = 'settled'
   if (tamper === 'ledger') r.state.debit.refunded_at = null
   if (tamper === 'render') r.state.mutex.metadata.render_id = 'final-render'
-  eq(await r.helper.readVerifiedQualityRejection(r.input), null, tamper + ': JSON alone cannot prove financial resolution')
+  const replay = await r.helper.readVerifiedQualityRejection(r.input)
+  if (tamper === 'birth' || tamper === 'ledger') {
+    eq(replay?.outcome, 'quality_rejection_support_pending', tamper + ': valid intent survives missing financial proof')
+    eq(replay?.refundConfirmed, false, tamper + ': JSON alone cannot prove financial resolution')
+  } else eq(replay, null, tamper + ': altered intent or mutex never becomes authoritative')
 }
 for (const reason of ['scene_speech_exceeds_footage', 'cinematic_scene_metadata_invalid', 'cinematic_timeline_too_long', 'native_dialogue_unverified', 'scene_narration_missing', 'scene_narration_failed']) {
   const r = runtime(); const result = await r.helper.rejectCinematicQuality({ ...r.input, reason })

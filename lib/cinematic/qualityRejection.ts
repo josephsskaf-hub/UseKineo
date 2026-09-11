@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { createHmac, timingSafeEqual } from 'node:crypto'
 import { COMPOSE_CLAIM_EVENT, COMPOSE_CLAIM_PATH, composeClaimId, verifyComposeClaim } from '@/lib/composeClaim'
 import { cinematicClaimId, loadVerifiedCinematicClaim, releaseCinematicClaim } from '@/lib/cinematic/claim'
 import { refundRenderCredits } from '@/lib/credits/refund'
@@ -50,6 +51,29 @@ type Identity = Pick<Input, 'db' | 'secret' | 'userId' | 'generationId'>
 const record = (value: unknown): Record<string, unknown> | null =>
   value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : null
 
+function intentSignature(args: Identity, mutex: OwnedRow, reason: string): string {
+  return createHmac('sha256', args.secret).update(JSON.stringify([
+    'kineo-quality-rejection-v1', mutex.id, mutex.authority, args.userId, args.generationId, reason, false,
+  ])).digest('hex')
+}
+function verifiedIntent(args: Identity, mutex: OwnedRow): Record<string, unknown> | null {
+  const marker = record(mutex.metadata.quality_rejection)
+  if (!marker || marker.version !== 1 || typeof marker.reason !== 'string' || !REASONS.has(marker.reason) ||
+    marker.final_provider_attempted !== false || !['resolving', 'resolved'].includes(String(marker.phase)) ||
+    typeof marker.intent_authority !== 'string' || !/^[a-f0-9]{64}$/.test(marker.intent_authority)) return null
+  try {
+    return timingSafeEqual(Buffer.from(marker.intent_authority, 'hex'), Buffer.from(intentSignature(args, mutex, marker.reason), 'hex')) ? marker : null
+  } catch { return null }
+}
+async function markIntent(args: Identity, mutex: OwnedRow, marker: Record<string, unknown>): Promise<boolean> {
+  const { data, error } = await args.db.from('events').update({ metadata: { ...mutex.metadata, quality_rejection: marker } })
+    .eq('id', mutex.id).eq('user_id', args.userId).eq('name', COMPOSE_CLAIM_EVENT)
+    .eq('metadata->>generation_id', args.generationId).eq('metadata->>status', 'pending')
+    .eq('metadata->>authority', mutex.authority).is('metadata->>render_id', null)
+    .select('id').maybeSingle()
+  return !error && data?.id === mutex.id
+}
+
 async function loadOwnedPending(args: Identity): Promise<OwnedRow | null> {
   const id = composeClaimId(args.userId, args.generationId)
   const { data, error } = await args.db.from('events')
@@ -74,33 +98,41 @@ async function loadOwnedPending(args: Identity): Promise<OwnedRow | null> {
  * HMAC and exact refunded ledger row again before returning financial copy. */
 export async function readVerifiedQualityRejection(args: Identity): Promise<CinematicQualityRejection | null> {
   if (!args.secret || !args.userId || !/^[A-Za-z0-9_-]{8,100}$/.test(args.generationId)) return null
+  let intent: CinematicQualityRejection | null = null
   try {
     const mutex = await loadOwnedPending(args)
-    const marker = record(mutex?.metadata.quality_rejection)
-    if (!mutex || !marker || marker.version !== 1 || typeof marker.reason !== 'string' || !REASONS.has(marker.reason) ||
-      marker.refund_confirmed !== true || marker.birth_released !== true || marker.final_provider_attempted !== false) return null
+    const marker = mutex ? verifiedIntent(args, mutex) : null
+    if (!mutex || !marker) return null
+    intent = {
+      outcome: 'quality_rejection_support_pending', reason: marker.reason as CinematicQualityReason,
+      refunded: false, refundConfirmed: false, claimReleased: false, composeClaimRetained: true,
+      retryable: false, supportReason: 'birth_unverified',
+    }
     const birth = await loadVerifiedCinematicClaim(args)
     const billingReference = `cinematic-${cinematicClaimId(args.userId, args.generationId)}`
-    if (!birth.ok || !birth.claim || birth.claim.status !== 'released' || birth.claim.resolutionReason !== RELEASE_REASON ||
+    if (!birth.ok || !birth.claim ||
       birth.claim.resolutionReference !== billingReference || birth.claim.quality !== mutex.metadata.quality ||
-      birth.claim.creditCost !== mutex.metadata.cost) return null
+      birth.claim.creditCost !== mutex.metadata.cost ||
+      (birth.claim.status !== 'settled' && !(birth.claim.status === 'released' && birth.claim.resolutionReason === RELEASE_REASON))) return intent
+    intent.supportReason = 'refund_unconfirmed'
     const { data, error } = await args.db.from('credit_debits').select('render_id,user_id,kind,amount,refunded_at')
       .eq('render_id', billingReference).eq('user_id', args.userId).eq('kind', 'video').maybeSingle()
     if (error || !data || data.render_id !== billingReference || data.user_id !== args.userId || data.kind !== 'video' ||
-      data.amount !== birth.claim.creditCost || typeof data.refunded_at !== 'string' || !Number.isFinite(Date.parse(data.refunded_at))) return null
-    return {
-      outcome: 'quality_rejected_refunded', reason: marker.reason as CinematicQualityReason,
-      refunded: true, refundConfirmed: true, claimReleased: true, composeClaimRetained: true,
-      retryable: false, supportReason: null,
-    }
-  } catch { return null }
+      data.amount !== birth.claim.creditCost || typeof data.refunded_at !== 'string' || !Number.isFinite(Date.parse(data.refunded_at))) return intent
+    intent.refunded = intent.refundConfirmed = true
+    if (birth.claim.status !== 'released') { intent.supportReason = 'birth_release_unconfirmed'; return intent }
+    intent.claimReleased = true
+    intent.outcome = 'quality_rejected_refunded'
+    intent.supportReason = null
+    return intent
+  } catch { return intent }
 }
 
 /**
  * Terminal quality rejection BEFORE final-provider submission, with an already
  * acquired compose mutex. This is not a general refund or orphan recovery API.
  *
- * Ordering: owned pending mutex -> verified birth/ledger -> idempotent refund ->
+ * Ordering: owned pending mutex -> verified birth/ledger -> signed intent -> idempotent refund ->
  * ledger confirmation -> verified birth release -> terminal mutex annotation.
  * Keep the mutex EVEN ON SUCCESS: another invocation may have read the old
  * settled birth before our refund and acquire a deleted mutex afterwards. A
@@ -159,6 +191,14 @@ export async function rejectCinematicQuality(args: Input): Promise<CinematicQual
       mutexRetained = !!beforeRefund
       return result('compose_changed_before_refund')
     }
+    const intent = {
+      version: 1, phase: 'resolving', reason: args.reason, final_provider_attempted: false,
+      intent_authority: intentSignature(args, beforeRefund, args.reason),
+      recorded_at: new Date().toISOString(),
+    }
+    // Durable BEFORE money. Reload can distinguish a quality rejection waiting
+    // for financial reconciliation from an ordinary in-flight compose claim.
+    if (!await markIntent(args, beforeRefund, intent)) return result('rejection_intent_unconfirmed')
     if (!debit.data.refunded_at) {
       // refundRenderCredits returns zero for BOTH a prior refund and a failure.
       // Its amount alone therefore cannot authorize claim release or UI copy.
@@ -186,19 +226,10 @@ export async function rejectCinematicQuality(args: Input): Promise<CinematicQual
 
     // Reuse the existing allowed financial release reason; distinguish quality
     // in the compose tombstone rather than inventing a reason older readers reject.
-    const { data: marked, error: markError } = await args.db.from('events').update({
-      metadata: {
-        ...stillOwned.metadata,
-        quality_rejection: {
-          version: 1, reason: args.reason, refund_confirmed: true, birth_released: true,
-          final_provider_attempted: false, resolved_at: new Date().toISOString(),
-        },
-      },
-    }).eq('id', owned.id).eq('user_id', args.userId).eq('name', COMPOSE_CLAIM_EVENT)
-      .eq('metadata->>generation_id', args.generationId).eq('metadata->>status', 'pending')
-      .eq('metadata->>authority', owned.authority).is('metadata->>render_id', null)
-      .select('id').maybeSingle()
-    if (markError || marked?.id !== owned.id) return result('terminal_marker_unconfirmed')
+    if (!await markIntent(args, stillOwned, {
+      ...intent, phase: 'resolved', refund_confirmed: true, birth_released: true,
+      resolved_at: new Date().toISOString(),
+    })) return result('terminal_marker_unconfirmed')
     return result(null)
   } catch {
     return result('rejection_resolution_unavailable')
