@@ -1,0 +1,186 @@
+{
+  "classification": "TESTADO LOCALMENTE",
+  "recordedAtUtc": "2026-09-11T20:14:19.131Z",
+  "mode": "local",
+  "checks": {
+    "all200": true,
+    "sameOrigin": true,
+    "bothCurrencyCorrect": true,
+    "roundupTwoLinks": true,
+    "ptNoAddedLinks": true,
+    "faqCounts": true,
+    "controlsPreserved": true
+  },
+  "passed": true,
+  "results": [
+    {
+      "path": "/best-ai-shorts-generators",
+      "requestedAt": "2026-09-11T20:14:12.413Z",
+      "receivedAt": "2026-09-11T20:14:19.129Z",
+      "status": 200,
+      "finalUrl": "http://127.0.0.1:4347/best-ai-shorts-generators",
+      "sha256": "cf88cb6ec32fbd94c224fae8c1591b0b3a30e17a400d4fbe54bcd143a8994884",
+      "bytes": 133691,
+      "faq": [
+        {
+          "question": "What are the best AI tools for YouTube Shorts in 2026?",
+          "answer": "It depends on your starting point. If you have no footage and want a finished faceless Short from just a topic, Kineo is the strongest pick — it writes the script, adds an AI voiceover, matches visuals and burns in captions, usually in about 3–7 minutes. If you already record long videos and only want them clipped, a re-clipper like OpusClip is the better fit. If you need a talking presenter on screen, HeyGen is built for that."
+        },
+        {
+          "question": "What is the difference between a from-scratch generator and a re-clipper?",
+          "answer": "A from-scratch generator (like Kineo) creates a brand-new Short from an idea — you supply no video. A re-clipper (like OpusClip or Vizard) needs an existing long video and cuts the best moments out of it into short clips. If you have no source footage, a re-clipper cannot help you; if you already film long videos, a re-clipper saves you editing time."
+        },
+        {
+          "question": "Which AI Shorts tools include the script, voiceover and captions?",
+          "answer": "Kineo includes all of it from one idea — script, AI voiceover, matched visuals and captions. Caption-only tools like Submagic add captions to a video you already made. Avatar tools like HeyGen give you a talking presenter but not the full footage-driven Short around it. Always check whether a tool writes the script for you or expects you to bring one."
+        },
+        {
+          "question": "Are there free AI Shorts generators?",
+          "answer": "Most tools here have a limited free plan or trial, usually with a watermark or a monthly cap. Every new account gets 30 credits and every engine unlocked — Kling 3 included. Films come out watermarked; a plan removes the watermark and unlocks clean downloads. Paid plans remove the watermark and add credits — Kineo Starter is $9.90/month as a USD reference price. Customers in Brazil normally pay in BRL (reais); check the checkout for the amount."
+        },
+        {
+          "question": "How should I choose an AI Shorts generator?",
+          "answer": "Answer four questions: (1) Do you have source footage, or are you starting from an idea? (2) Do you need the script and voiceover written for you, or will you bring your own? (3) Do you want a face/presenter, or fully faceless? (4) What is your budget and do you need a free tier to test first? Match those answers to a tool built for that exact job rather than the most feature-packed one."
+        }
+      ],
+      "guideLinks": [
+        {
+          "target": "/ai-video-generator/complete-60-second-shorts-cost",
+          "count": 1
+        },
+        {
+          "target": "/vs/invideo-alternatives-faceless-shorts",
+          "count": 1
+        }
+      ],
+      "currencyCorrect": true,
+      "oldGlobalClaim": false,
+      "campaign": null
+    },
+    {
+      "path": "/gerador-de-shorts-gratis",
+      "requestedAt": "2026-09-11T20:14:12.431Z",
+      "receivedAt": "2026-09-11T20:14:19.126Z",
+      "status": 200,
+      "finalUrl": "http://127.0.0.1:4347/gerador-de-shorts-gratis",
+      "sha256": "4fed598f1b0d613ab16528f815c53c8409ea7584c48fe46374a89719976173d4",
+      "bytes": 78155,
+      "faq": [
+        {
+          "question": "O vídeo sai em português?",
+          "answer": "Sim. Roteiro, narração com voz neural e legendas saem em português do Brasil — é só escolher o idioma, que já vai selecionado a partir desta página."
+        },
+        {
+          "question": "É grátis mesmo? Precisa de cartão?",
+          "answer": "Você cria, assiste, baixa e posta vídeos Fast com marca d’água sem cartão nenhum. Planos pagos liberam o MP4 limpo, a partir de US$ 9.90 por mês como preço de referência em USD. Para clientes no Brasil, a cobrança normalmente é em reais; confira o valor no checkout."
+        },
+        {
+          "question": "Preciso aparecer ou saber editar?",
+          "answer": "Não. É o formato faceless: a IA escreve, narra, escolhe as cenas e adiciona as legendas. Você digita o tema e baixa o vídeo pronto, normalmente em 3 a 7 minutos."
+        }
+      ],
+      "guideLinks": [
+        {
+          "target": "/ai-video-generator/complete-60-second-shorts-cost",
+          "count": 0
+        },
+        {
+          "target": "/vs/invideo-alternatives-faceless-shorts",
+          "count": 0
+        }
+      ],
+      "currencyCorrect": true,
+      "oldGlobalClaim": false,
+      "campaign": null
+    },
+    {
+      "path": "/ai-video-generator/complete-60-second-shorts-cost",
+      "requestedAt": "2026-09-11T20:14:12.431Z",
+      "receivedAt": "2026-09-11T20:14:19.130Z",
+      "status": 200,
+      "finalUrl": "http://127.0.0.1:4347/ai-video-generator/complete-60-second-shorts-cost",
+      "sha256": "bf2ec4cdb4de5714f6f94674bfcaa0edd1ceaefa0171548b4c0db86b6526238d",
+      "bytes": 76083,
+      "faq": [
+        {
+          "question": "Do I need a card to try Kineo?",
+          "answer": "Every new account receives 30 free credits with every engine unlocked and no card required. Engine access does not mean the balance covers a full video on every engine: the 60-second reference costs 5 credits with Kineo 1 or 25 with Seedance 1.5."
+        },
+        {
+          "question": "Does the free video have a watermark?",
+          "answer": "Every paid plan exports a clean, watermark-free MP4; free-trial films carry a small Kineo watermark. Watch the result before deciding whether to buy a plan."
+        },
+        {
+          "question": "How many 60-second Kineo 1 videos fit in Starter?",
+          "answer": "12 fit when all 60 monthly credits are spent on Kineo 1 videos at 5 credits each. This is a credit calculation, not a promise that every subscription will be fully used."
+        },
+        {
+          "question": "Is stock footage the same as AI-generated footage?",
+          "answer": "No. Kineo 1 matches existing stock footage to narration. Seedance 1.5 generates scenes from text. Both feed the assembled-video workflow, with different credit costs."
+        },
+        {
+          "question": "How do plans and billing work?",
+          "answer": "Starter is $9.90/month for 60 credits, Creator is $19.90/month for 150, and Studio is $39.90/month for 300. These are monthly subscriptions; credits refresh monthly and do not roll over. Brazilian customers pay in reais at checkout."
+        }
+      ],
+      "guideLinks": [
+        {
+          "target": "/ai-video-generator/complete-60-second-shorts-cost",
+          "count": 0
+        },
+        {
+          "target": "/vs/invideo-alternatives-faceless-shorts",
+          "count": 0
+        }
+      ],
+      "currencyCorrect": null,
+      "oldGlobalClaim": null,
+      "campaign": "citacoes_cost_decision_v1"
+    },
+    {
+      "path": "/vs/invideo-alternatives-faceless-shorts",
+      "requestedAt": "2026-09-11T20:14:12.431Z",
+      "receivedAt": "2026-09-11T20:14:19.131Z",
+      "status": 200,
+      "finalUrl": "http://127.0.0.1:4347/vs/invideo-alternatives-faceless-shorts",
+      "sha256": "2b162d1a0f65a73c470b335b7461c4f902691f55331449148f916aad0ad2cc3a",
+      "bytes": 89309,
+      "faq": [
+        {
+          "question": "Do I need a card to try Kineo?",
+          "answer": "Every new account receives 30 free credits with every engine unlocked and no card required. Engine access does not mean the balance covers a full video on every engine: the 60-second reference costs 5 credits with Kineo 1 or 25 with Seedance 1.5."
+        },
+        {
+          "question": "Does the free video have a watermark?",
+          "answer": "Every paid plan exports a clean, watermark-free MP4; free-trial films carry a small Kineo watermark. Watch the result before deciding whether to buy a plan."
+        },
+        {
+          "question": "Can Kineo import my InVideo project?",
+          "answer": "[CONFIRMAR] The public fact sheet does not establish an InVideo project importer. The supported starting points described here are a text idea or a pasted script."
+        },
+        {
+          "question": "Are all four competitors direct substitutes for Kineo?",
+          "answer": "No. Pictory supports script/URL-to-video with stock footage; Descript is a text-based editor, HeyGen offers avatar presentations and OpusClip extracts clips from an existing recording. The dated sources in the table distinguish their allowances and unresolved limits."
+        },
+        {
+          "question": "How do plans and billing work?",
+          "answer": "Starter is $9.90/month for 60 credits, Creator is $19.90/month for 150, and Studio is $39.90/month for 300. These are monthly subscriptions; credits refresh monthly and do not roll over. Brazilian customers pay in reais at checkout."
+        }
+      ],
+      "guideLinks": [
+        {
+          "target": "/ai-video-generator/complete-60-second-shorts-cost",
+          "count": 0
+        },
+        {
+          "target": "/vs/invideo-alternatives-faceless-shorts",
+          "count": 0
+        }
+      ],
+      "currencyCorrect": null,
+      "oldGlobalClaim": null,
+      "campaign": "citacoes_comparison_decision_v2"
+    }
+  ],
+  "limitation": "GET and static JSON-LD/link checks; actual visual and visible-FAQ checks recorded separately. No signup, checkout, paid render, payment or acquisition claim."
+}

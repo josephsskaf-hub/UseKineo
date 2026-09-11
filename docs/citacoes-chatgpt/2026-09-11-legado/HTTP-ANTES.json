@@ -1,0 +1,106 @@
+{
+  "classification": "EVIDÊNCIA DE PRODUÇÃO",
+  "collectedAt": "2026-09-11T20:09:14.360Z",
+  "scope": "Two public GETs only. Static body text with script/style/template/noscript removed, plus FAQ JSON-LD. No browser, CTA, SQL, account, render or environment access. CSS-computed visibility was not inspected.",
+  "requestedGetCount": 2,
+  "results": [
+    {
+      "classification": "EVIDÊNCIA DE PRODUÇÃO",
+      "requestedAt": "2026-09-11T20:09:13.800Z",
+      "receivedAt": "2026-09-11T20:09:14.354Z",
+      "requestedUrl": "https://www.usekineo.com/best-ai-shorts-generators",
+      "finalUrl": "https://www.usekineo.com/best-ai-shorts-generators",
+      "status": 200,
+      "redirected": false,
+      "contentType": "text/html; charset=utf-8",
+      "sha256": "9e9925ec2156a38eb9b837462cdfdb80aa100523d0d09a9d5eaecf050e5a8d48",
+      "bytes": 140603,
+      "visibleTextExcerpts": [
+        "Most tools have a limited free plan or watermarked trial so you can test output before paying. Check what the plan really costs every month — an advertised first-month price is not the price you will pay — whether credits roll over, and whether the free tier is enough to validate a niche.",
+        "KineoFrom-scratch faceless Short generatorYes30 free credits — every engine unlocked, no card$9.90/mo",
+        "SendShortLong-video re-clipper + faceless toolsYes, plus re-clippingFree entry flow, no cardPaid plans",
+        "Many tools here assume you already have something — a long video to clip, a script to narrate, a clip to caption, or an avatar to render. Kineo starts from nothing but a topic and hands you a finished, ready-to-post 9:16 Short: hook-first script, AI voiceover, matched visuals and captions, usually in about 3–7 minutes. Test it free — every new account gets 30 free credits with every engine unlocked, no card — films come out watermarked until you upgrade.",
+        "Nothing but a topic goes in. Your topic stays attached through signup. Free to start: 30 credits, no card.",
+        "Most tools here have a limited free plan or trial, usually with a watermark or a monthly cap. Every new account gets 30 credits and every engine unlocked — Kling 3 included. Films come out watermarked; a plan removes the watermark and unlocks clean downloads. Paid plans remove the watermark and add credits — Kineo Starter is $9.90/month, charged in USD worldwide.",
+        "Free AI Shorts generator — make your first faceless Short now, no card."
+      ],
+      "faqJsonLd": [
+        {
+          "question": "Are there free AI Shorts generators?",
+          "answer": "Most tools here have a limited free plan or trial, usually with a watermark or a monthly cap. Every new account gets 30 credits and every engine unlocked — Kling 3 included. Films come out watermarked; a plan removes the watermark and unlocks clean downloads. Paid plans remove the watermark and add credits — Kineo Starter is $9.90/month, charged in USD worldwide."
+        }
+      ],
+      "jsonLdParseErrors": [],
+      "requestedPhrases": [
+        {
+          "phrase": "charged in USD worldwide",
+          "presentInBodyText": true,
+          "presentInFaqJsonLd": true
+        },
+        {
+          "phrase": "o mesmo preço no mundo todo",
+          "presentInBodyText": false,
+          "presentInFaqJsonLd": false
+        }
+      ],
+      "linksToExistingGuides": [
+        {
+          "target": "/ai-video-generator/complete-60-second-shorts-cost",
+          "occurrences": []
+        },
+        {
+          "target": "/vs/invideo-alternatives-faceless-shorts",
+          "occurrences": []
+        }
+      ]
+    },
+    {
+      "classification": "EVIDÊNCIA DE PRODUÇÃO",
+      "requestedAt": "2026-09-11T20:09:13.850Z",
+      "receivedAt": "2026-09-11T20:09:14.359Z",
+      "requestedUrl": "https://www.usekineo.com/gerador-de-shorts-gratis",
+      "finalUrl": "https://www.usekineo.com/gerador-de-shorts-gratis",
+      "status": 200,
+      "redirected": false,
+      "contentType": "text/html; charset=utf-8",
+      "sha256": "e77ae3a02f4987d1f7557d8b4f2947c1fe4bf7546de68a1431a3a6bc6db49376",
+      "bytes": 89985,
+      "visibleTextExcerpts": [
+        "Digite uma ideia e o Kineo gera o Short vertical completo: roteiro, narração em português, cenas e legendas — pronto para postar no YouTube Shorts, TikTok ou Reels. Sem cartão.",
+        "Sua ideia atravessa o cadastro — o primeiro vídeo Fast começa sem cartão.",
+        "Você cria, assiste, baixa e posta vídeos Fast com marca d’água sem cartão nenhum. Planos pagos liberam o MP4 limpo, a partir de US$ 9.90 por mês, o mesmo preço no mundo todo.",
+        "⚡ KineoTurn one idea into a ready-to-post faceless YouTube Short — script, AI voiceover, footage & captions in a few minutes. Start free — every engine unlocked, including Kling 3. Make 1 AI film free, watermarked. Upgrade any time to download them clean. Paid plans unlock clean MP4s.",
+        "Start free"
+      ],
+      "faqJsonLd": [
+        {
+          "question": "É grátis mesmo? Precisa de cartão?",
+          "answer": "Você cria, assiste, baixa e posta vídeos Fast com marca d’água sem cartão nenhum. Planos pagos liberam o MP4 limpo, a partir de US$ 9.90 por mês, o mesmo preço no mundo todo."
+        }
+      ],
+      "jsonLdParseErrors": [],
+      "requestedPhrases": [
+        {
+          "phrase": "charged in USD worldwide",
+          "presentInBodyText": false,
+          "presentInFaqJsonLd": false
+        },
+        {
+          "phrase": "o mesmo preço no mundo todo",
+          "presentInBodyText": true,
+          "presentInFaqJsonLd": true
+        }
+      ],
+      "linksToExistingGuides": [
+        {
+          "target": "/ai-video-generator/complete-60-second-shorts-cost",
+          "occurrences": []
+        },
+        {
+          "target": "/vs/invideo-alternatives-faceless-shorts",
+          "occurrences": []
+        }
+      ]
+    }
+  ]
+}
