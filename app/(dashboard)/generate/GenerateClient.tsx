@@ -307,6 +307,8 @@ import {
 import type { RefusalNotice } from '@/lib/entrega/refusalNotice'
 import { classificarEsperaDaGeracao } from '@/lib/entrega/generationWaitNotice'
 import { UiLabel } from '@/components/InterfaceLanguage'
+import VideoQualityFailurePanel from '@/components/VideoQualityFailurePanel'
+import { parseVideoQualityFailure, qualityFailureOwnsSnapshot, type VideoQualityFailure } from '@/lib/cinematic/qualityFailureUi'
 import NicheOnboarding from '@/components/NicheOnboarding'
 import {
   ONBOARDING_GOAL_VARIANT,
@@ -1833,6 +1835,46 @@ export default function GenerateClient({
   // the language promised by localized acquisition pages through auth.
   const [language, setLanguage] = useState<'en' | 'pt' | 'es'>(initialLanguage)
   const [generationId, setGenerationId] = useState<string | null>(null)
+  const [qualityFailure, setQualityFailure] = useState<VideoQualityFailure | null>(null)
+  const qualityFailureRef = useRef<VideoQualityFailure | null>(null)
+  const acceptQualityFailure = useCallback((data: unknown, expectedGenerationId: string): boolean => {
+    const failure = parseVideoQualityFailure(data, expectedGenerationId)
+    if (!failure) return false
+    qualityFailureRef.current = failure
+    setQualityFailure(failure)
+    setError(null)
+    setScriptTooShort(null)
+    setCreditsHeld(null)
+    generationInFlightRef.current = false
+    composeStartedRef.current = false
+    resumedRenderRef.current = false
+    setRenderId(null)
+    setServerActiveRender(null)
+    if (failure.canEdit) {
+      try {
+        const key = activeRenderStorageKey(currentUserIdRef.current)
+        const raw = localStorage.getItem(key)
+        if (raw && qualityFailureOwnsSnapshot(failure, JSON.parse(raw))) localStorage.removeItem(key)
+      } catch { /* preserve uncertain or unreadable snapshots */ }
+      serverActiveRenderRef.current = null
+    }
+    setPhase('failed')
+    return true
+  }, [])
+  const editAfterQualityFailure = useCallback(() => {
+    if (!qualityFailureRef.current?.canEdit) return
+    qualityFailureRef.current = null
+    setQualityFailure(null)
+    setError(null)
+    setGenerationId(null)
+    generationAttemptRef.current = null
+    generationInFlightRef.current = false
+    composeStartedRef.current = false
+    setRenderId(null)
+    setClipUrls([])
+    // Preserve prompt, selected duration and mode; editing does not dispatch.
+    setPhase('idle')
+  }, [])
   const [clipUrls, setClipUrls] = useState<string[]>([])
   // Push #235 — when the user pastes a script with explicit [Pexels:] markers,
   // generate-video-fast returns the verbatim narration, captions, and a parsed
@@ -2719,6 +2761,9 @@ export default function GenerateClient({
 
   useEffect(() => {
     if (phase !== 'done' && phase !== 'failed') return
+    // A quality rejection has its own generation-scoped settlement cleanup.
+    // Uncertain credit/claim state must retain the exact resumable snapshot.
+    if (qualityFailureRef.current) return
     resumedRenderRef.current = false
     try { localStorage.removeItem(activeRenderStorageKey(currentUserIdRef.current)) } catch { /* ignore */ }
     // KINEO-RESUME-RENDER-2026-08-04 — this render just settled in THIS tab;
@@ -2955,6 +3000,7 @@ export default function GenerateClient({
               continue
             }
             if (cancelled) return
+            if (!res.ok && acceptQualityFailure(data, payloadGenerationId)) return
             if (res.status === 401) {
               canResolve = false
               redirectToLoginPreservingPrompt()
@@ -6050,6 +6096,7 @@ export default function GenerateClient({
             continue
           }
 
+          if (!res.ok && acceptQualityFailure(data, composeGenerationId)) return
           if ((res.status === 409 || res.status === 503) && data?.pending === true) {
             reconnectAttempt += 1
             const retryAfter = typeof data.retry_after_ms === 'number'
@@ -8718,6 +8765,9 @@ export default function GenerateClient({
   }
 
   async function handleGenerate() {
+    // A terminal quality response never authorizes a blind paid retry. The
+    // explicit edit action clears a safely settled state; pending stays blocked.
+    if (qualityFailureRef.current) return
     // KINEO-GATE-STALE-SNAPSHOT-2026-08-07 — this used to read the ref
     // synchronously while handleAnalyze awaited waitForActiveRenderRestore().
     // The asymmetry was not intentional and it cost real clicks twice: a click
@@ -10655,6 +10705,7 @@ export default function GenerateClient({
   }
 
   function handleGenerateGuarded() {
+    if (qualityFailureRef.current) return
     if (outOfCredits()) {
       openOutOfCreditsModal()
       return
@@ -12498,7 +12549,7 @@ export default function GenerateClient({
     failureCause === 'daily_free_limit' ||
     failureCause === 'real_person_guard' ||
     failureCause === 'plan_or_credits'
-  const showGenericFailure = phase === 'failed' && !scriptTooShort && !creditsHeld
+  const showGenericFailure = phase === 'failed' && !qualityFailure && !scriptTooShort && !creditsHeld
   // ═══ KINEO-SPRINT-V1V4-40 — O MEDIDOR DA #38 ERA CEGO NA CAUSA Nº 1 ═════
   // Medido em 01/09: 129 `generation_stage_error` de 33 pessoas externas em
   // 7 dias e `generation_failed_screen_shown` com ZERO eventos em TODA a
@@ -12517,7 +12568,7 @@ export default function GenerateClient({
   // aparencia, nada e escondido, nenhum caminho novo: so para de mentir por
   // omissao no dado que decide a proxima rodada.
   const failureScreenKind: 'generic' | 'narration_short' | 'credits_held' | null =
-    phase !== 'failed' ? null : scriptTooShort ? 'narration_short' : creditsHeld ? 'credits_held' : 'generic'
+    phase !== 'failed' || qualityFailure ? null : scriptTooShort ? 'narration_short' : creditsHeld ? 'credits_held' : 'generic'
   const failureScreenCause =
     failureScreenKind === 'narration_short'
       ? 'narration_short'
@@ -15629,6 +15680,8 @@ export default function GenerateClient({
               </div>
             </section>
           )}
+
+          {phase === 'failed' && qualityFailure ? <VideoQualityFailurePanel failure={qualityFailure} onEdit={editAfterQualityFailure} /> : null}
 
           {showGenericFailure && (
             <section
