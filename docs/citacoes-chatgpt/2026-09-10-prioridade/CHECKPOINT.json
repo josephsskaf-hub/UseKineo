@@ -1,6 +1,6 @@
 {
   "classification": "EVIDÊNCIA OPERACIONAL",
-  "updatedAt": "2026-09-10T23:18:23.1933357Z",
+  "updatedAt": "2026-09-11T02:37:06.4666602Z",
   "threadTitle": "Kineo · Citações no ChatGPT",
   "worktree": "C:/kineo/.claude/worktrees/citacoes-01-2026-09-10",
   "branch": "codex/citacoes-01-2026-09-10",
@@ -18,7 +18,7 @@
     "passed": 11,
     "total": 11
   },
-  "fullTypecheck": "PASS: exit 0 on integrated tree 35dfe3c8 (main 7827f2e0), including preserved .next/types, 2026-09-10 19:09 BRT. Repeat after final integration if the base changes.",
+  "fullTypecheck": "PASS: exit 0 on reviewed input HEAD 7c9445f4, main 7827f2e0, including preserved .next/types, observed 2026-09-10 23:28 BRT. Repeat relevant gates when final integration changes base/code.",
   "livePaths": [
     "/ai-video-generator/free-script-to-faceless-video",
     "/ai-video-generator/free-faceless-tiktok-tools",
@@ -31,11 +31,11 @@
     "/ai-video-generator/horror-story-60-seconds",
     "/ai-video-generator/chatgpt-script-to-finished-short"
   ],
-  "transportStatus": "Board transport hold remains. Typecheck blocker resolved locally on integrated main; two independent baseline guard failures documented. No BAT/enfileirar, direct push/API, broad lock cleanup or force of others branches.",
+  "transportStatus": "Safe candidate reviewed: conditional technical GO, not published. Board proposed as sole executor; must reserve final root/branch/SHA and repeat preflight before queue writes. Legacy unsafe transport remains forbidden.",
   "transportDependency": "C:/Users/josep/.codex/outputs/01a03e3e-5f63-7cf1-8b9f-6c6646b446b7/FILA-TRANSPORTE-DOCS-2026-09-10.md",
   "automationOwner": "Board",
   "existingAutomationId": "kineo-cita-es-no-chatgpt-7-dias",
-  "rotation": "hourly until 2026-09-11T00:00:00-03:00; no renewal and no new automation",
+  "rotation": "Every 30 minutes in the existing Board-managed automation through 2026-09-11T23:30:00-03:00. This explicitly supersedes the old midnight stop. No renewal beyond the new deadline.",
   "measurementAt": "2026-09-10T20:00:00-03:00",
   "baseline": {
     "realChatgptResponses": 20,
@@ -45,11 +45,13 @@
     "file": "chatgpt-20-perguntas.json"
   },
   "continuation": [
-    "Preserve five live pages and three prepared pages; do not produce redundant Q9/Q10 pages beyond the eight-page mandate.",
-    "Use the single Board transport dependency; do not retry blocked cleanup or reexecute current transport. Consider c633ed8b and integration35dfe3c8 plus following handoff commit when reviewing pending pages.",
-    "After approved safe integration and deployment, verify prepared pages and discovery, then update published counts with dated evidence.",
-    "The 20h literal EN/PT measurement is complete. Do not repeat the same battery hourly. Monitor only material state or authorized transport changes until midnight; then close the window and delete the existing automation without renewal.",
-    "Record response rank and commercial terms separately from web-search retrieval. Do not infer signup or revenue recovery."
+    "Prepare the integrated three-page/catalog package; reuse unchanged existing validation, review current main and critical gates. No ninth page while three remain unpublished.",
+    "Board alone owns transport unlock. Inspect its candidate diff and offline tests before real use; never execute unsafe BAT, branch -f, force, lock cleanup, reset/rebase or direct push/API.",
+    "After authorized safe integration/deploy, verify remote ancestry, deployment and HTTP before increasing published counts.",
+    "Renewal supersedes the old midnight stop. Existing automation runs every 30 minutes until 2026-09-11 23:30 BRT; close only in its final 30 minutes and remove only this automation.",
+    "Next comparable ChatGPT measurement is 2026-09-11 20h BRT; no repeated 20-chat battery hourly.",
+    "Then prioritize existing buyer-intent content and explicit free/pricing CTA; at most two reversible variants with cohort, obstacle, metric and stop rule. No home/approved video/Claude path changes.",
+    "Every six hours review closest observed step to external payment using canonical available evidence. Missing acquisition/payment access is unknown, never zero."
   ],
   "catalogFixCommit": "c633ed8b",
   "integratedMainCommit": "7827f2e07f89b55e2a020b266a48ec98247e5bd4",
@@ -110,5 +112,36 @@
     "httpEvidence": "../2026-09-10-20h/HTTP-CHECKPOINT.md",
     "livePages": 5,
     "pendingPages": 3
+  },
+  "renewedMandate": {
+    "source": "Founder explicit renewal relayed by Board thread 01a03e3e-5f63-7cf1-8b9f-6c6646b446b7",
+    "receivedBrt": "2026-09-10 23:17",
+    "startsAt": "2026-09-10T23:30:00-03:00",
+    "endsAt": "2026-09-11T23:30:00-03:00",
+    "closingWindowStartsAt": "2026-09-11T23:00:00-03:00",
+    "cadenceMinutes": 30,
+    "automationAlreadyUpdatedBy": "Board",
+    "doNotDeleteAtOldMidnight": true,
+    "firstDelivery": "Reviewed integrated three-page and catalog package with typecheck, gates, preview, manifest and exact safe-transport handoff",
+    "nextMeasurementAt": "2026-09-11T20:00:00-03:00",
+    "revenueStatus": "DESCONHECIDO: no canonical payment data queried",
+    "transportOwner": "Board only",
+    "transportCandidate": "C:/kineo-wt/transport-safe-20260911",
+    "forbiddenNinthPageUntilPendingPublished": true
+  },
+  "integratedPackage": {
+    "preparedAtUtc": "2026-09-11T02:37:06.4666602Z",
+    "directory": "../2026-09-11-pacote-integrado",
+    "reviewedInputHead": "7c9445f4ba248b1cbe779a708afadea4b248dd8e",
+    "base": "7827f2e07f89b55e2a020b266a48ec98247e5bd4",
+    "functionalFiles": 15,
+    "protectedChanged": 0,
+    "criticalContractsPassed": 5,
+    "criticalContracts": "GATES-CRITICOS.json",
+    "transportReview": "GO_CONDICIONADO",
+    "transportOfflineScenarios": 13,
+    "transportActualExecution": false,
+    "proposedExecutor": "Board",
+    "nextStep": "Board reserves final integration root/branch/SHA, integrates three-page/catalog package + safe transport + canonical kit + reviewed nominal requests, reruns final gates and publishes via two explicit SHAs. Citações verifies production afterward."
   }
 }

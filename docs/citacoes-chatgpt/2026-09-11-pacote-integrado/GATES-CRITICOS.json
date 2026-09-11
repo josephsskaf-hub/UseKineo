@@ -1,0 +1,37 @@
+[
+  {
+    "gate": "test-sharing-safety.mjs",
+    "startedAtUtc": "2026-09-11T02:31:03.3760221Z",
+    "finishedAtUtc": "2026-09-11T02:31:04.2550071Z",
+    "exitCode": 0,
+    "log": "test-sharing-safety.mjs.txt"
+  },
+  {
+    "gate": "test-five-improvements.mjs",
+    "startedAtUtc": "2026-09-11T02:31:04.2656944Z",
+    "finishedAtUtc": "2026-09-11T02:31:06.3745783Z",
+    "exitCode": 0,
+    "log": "test-five-improvements.mjs.txt"
+  },
+  {
+    "gate": "test-locale-readiness.mjs",
+    "startedAtUtc": "2026-09-11T02:31:06.3759215Z",
+    "finishedAtUtc": "2026-09-11T02:31:20.4293284Z",
+    "exitCode": 0,
+    "log": "test-locale-readiness.mjs.txt"
+  },
+  {
+    "gate": "test-home-curation.mjs",
+    "startedAtUtc": "2026-09-11T02:31:20.4304142Z",
+    "finishedAtUtc": "2026-09-11T02:31:20.9665363Z",
+    "exitCode": 0,
+    "log": "test-home-curation.mjs.txt"
+  },
+  {
+    "gate": "test-showcase-premium.mjs",
+    "startedAtUtc": "2026-09-11T02:31:20.9670707Z",
+    "finishedAtUtc": "2026-09-11T02:31:22.0498839Z",
+    "exitCode": 0,
+    "log": "test-showcase-premium.mjs.txt"
+  }
+]

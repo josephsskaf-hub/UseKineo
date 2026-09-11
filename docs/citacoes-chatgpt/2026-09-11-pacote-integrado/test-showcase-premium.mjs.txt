@@ -1,0 +1,7 @@
+Warning: React does not recognize the `fetchPriority` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `fetchpriority` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+    at img
+    at span
+    at a
+    at default (file:///C:/kineo/.claude/worktrees/citacoes-01-2026-09-10/scripts/test-showcase-premium.mjs:22:68)
+    at EngineCycleCard (components/EngineCycleCard.tsx:52:28)
+Showcase premium: 287 checks passed. Offline helpers + actual React SSR; browser is a separate gate.

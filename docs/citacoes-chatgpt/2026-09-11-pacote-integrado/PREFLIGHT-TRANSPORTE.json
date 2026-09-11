@@ -1,0 +1,83 @@
+{
+  "classification": "EVIDÊNCIA OPERACIONAL — preflight somente leitura, valores sensíveis não impressos",
+  "expectedOrigin": "https://github.com/josephsskaf-hub/UseKineo.git",
+  "roots": [
+    {
+      "root": "C:/kineo/.claude/worktrees/citacoes-01-2026-09-10",
+      "recordedAtUtc": "2026-09-11T02:33:13.231Z",
+      "branch": "codex/citacoes-01-2026-09-10",
+      "fetchOriginMatchesExpected": true,
+      "pushOriginMatchesExpected": true,
+      "fetchUrlCount": 1,
+      "pushUrlCount": 1,
+      "queueBefore": "7827f2e07f89b55e2a020b266a48ec98247e5bd4",
+      "queueIsSymbolic": false,
+      "gitEnvironmentOverridesPresent": [],
+      "configFlags": {
+        "remote.origin.mirror": {
+          "configured": false,
+          "valueNotPrinted": true
+        },
+        "remote.origin.receivepack": {
+          "configured": false,
+          "valueNotPrinted": true
+        },
+        "core.sshCommand": {
+          "configured": false,
+          "valueNotPrinted": true
+        },
+        "push.followTags": {
+          "configured": false,
+          "valueNotPrinted": true
+        },
+        "core.hooksPath": {
+          "configured": false,
+          "valueNotPrinted": true
+        }
+      },
+      "activeHookFiles": [],
+      "queueCheckedOut": false,
+      "trackedStatus": "M docs/citacoes-chatgpt/2026-09-10-prioridade/CHECKPOINT.json",
+      "untrackedFileCount": 5
+    },
+    {
+      "root": "C:/kineo-wt/transport-safe-20260911",
+      "recordedAtUtc": "2026-09-11T02:33:14.355Z",
+      "branch": "codex/transport-safe-20260911",
+      "fetchOriginMatchesExpected": true,
+      "pushOriginMatchesExpected": true,
+      "fetchUrlCount": 1,
+      "pushUrlCount": 1,
+      "queueBefore": "7827f2e07f89b55e2a020b266a48ec98247e5bd4",
+      "queueIsSymbolic": false,
+      "gitEnvironmentOverridesPresent": [],
+      "configFlags": {
+        "remote.origin.mirror": {
+          "configured": false,
+          "valueNotPrinted": true
+        },
+        "remote.origin.receivepack": {
+          "configured": false,
+          "valueNotPrinted": true
+        },
+        "core.sshCommand": {
+          "configured": false,
+          "valueNotPrinted": true
+        },
+        "push.followTags": {
+          "configured": false,
+          "valueNotPrinted": true
+        },
+        "core.hooksPath": {
+          "configured": false,
+          "valueNotPrinted": true
+        }
+      },
+      "activeHookFiles": [],
+      "queueCheckedOut": false,
+      "trackedStatus": "M scripts/!RODAR-AGORA.bat\n M scripts/enfileirar.sh",
+      "untrackedFileCount": 4
+    }
+  ],
+  "scope": "Snapshot only. Repeat against the final clean integration worktree and environment immediately before publication. These scripts do not enforce every precondition."
+}

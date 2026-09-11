@@ -1,0 +1,291 @@
+{
+  "classification": "IMPLEMENTADO / TESTADO LOCALMENTE; não enfileirado ou publicado",
+  "generatedAtUtc": "2026-09-11T02:30:36.864Z",
+  "mandate": {
+    "source": "Founder renewal relayed by Board, 2026-09-10 23:17 BRT",
+    "startBrt": "2026-09-10T23:30:00-03:00",
+    "endBrt": "2026-09-11T23:30:00-03:00",
+    "cadenceMinutes": 30,
+    "nextMeasurementBrt": "2026-09-11T20:00:00-03:00",
+    "supersedesOldMidnight": true
+  },
+  "repository": {
+    "clone": "C:/kineo",
+    "worktree": "C:/kineo/.claude/worktrees/citacoes-01-2026-09-10",
+    "remote": "https://github.com/josephsskaf-hub/UseKineo.git",
+    "branch": "codex/citacoes-01-2026-09-10",
+    "reviewedBase": "7827f2e07f89b55e2a020b266a48ec98247e5bd4",
+    "reviewedInputHead": "7c9445f4ba248b1cbe779a708afadea4b248dd8e",
+    "reviewedTree": "f38c5050ca29c6e1344ea8ff64d6ddfc382b77c1",
+    "baseIsAncestor": true
+  },
+  "codeCommits": [
+    "7f3f96220c26eeaec537900bedd1eb524b6fdd9c",
+    "b619128999e93b77e74287795c43a6f4aac699c4",
+    "c633ed8bc35e6f697b85ee745cd3fca8a3270f5e"
+  ],
+  "integration": {
+    "merge": "35dfe3c8031f44be20733c34f7c2aeee868db78d",
+    "parents": [
+      "c633ed8bc35e6f697b85ee745cd3fca8a3270f5e",
+      "7827f2e07f89b55e2a020b266a48ec98247e5bd4"
+    ],
+    "doNotCherryPickMergeAsOrdinaryCommit": true,
+    "codeUnchangedSince19hValidation": true,
+    "documentationFollowingMerge": [
+      "ecd55fe374db31f012541946402fbb9d76230788",
+      "7c9445f4ba248b1cbe779a708afadea4b248dd8e"
+    ],
+    "handoffCommit": "O commit que contém este manifesto adiciona apenas handoff/evidências/checkpoint; não muda os blobs funcionais revisados."
+  },
+  "functionalFiles": [
+    {
+      "file": "app/ai-video-generator/[engine]/page.tsx",
+      "baseBlob": "593734e1faa9bdec52a9f40f966934eeea22f5c0",
+      "reviewedBlob": "c74ddd287e54ecbcda149519071c628ccbe6dfb1"
+    },
+    {
+      "file": "app/ai-video-generator/chatgpt-script-to-finished-short/page.tsx",
+      "baseBlob": null,
+      "reviewedBlob": "526044ac324d45bf7e851098682828d8f5eed33f"
+    },
+    {
+      "file": "app/ai-video-generator/free-youtube-shorts/page.tsx",
+      "baseBlob": null,
+      "reviewedBlob": "4dd5dd50f50da5cafac84758e1404cb419ce6ebd"
+    },
+    {
+      "file": "app/ai-video-generator/horror-story-60-seconds/page.tsx",
+      "baseBlob": null,
+      "reviewedBlob": "d0c6465c58df6d2daa5cdab0f155b9884761a3d8"
+    },
+    {
+      "file": "app/ai-video-generator/page.tsx",
+      "baseBlob": "75613a5c9589613d0307f6ec96eff9f17d4b261c",
+      "reviewedBlob": "bb151fbf54748a3a7c71d55a1e3883e4987aab64"
+    },
+    {
+      "file": "app/llms.txt/route.ts",
+      "baseBlob": "6370a32682abfeecb5a43ea93374b0cc0739a8e3",
+      "reviewedBlob": "b8e45ad0b037b72a002e731567574225be09da99"
+    },
+    {
+      "file": "app/sitemap.ts",
+      "baseBlob": "811c942d59d1aee4a7c855bedeeb7c6a129b2b78",
+      "reviewedBlob": "eaffeb1e07f45e42c2986542dfdf8049f9f54569"
+    },
+    {
+      "file": "components/CitationAnswerPage.tsx",
+      "baseBlob": "4a2314336daf69ef24a2e734caeb104213c97af2",
+      "reviewedBlob": "e797d2a2762a63ae5b7e302697aa80bdc22ccbea"
+    },
+    {
+      "file": "lib/growth/citationAnswers.ts",
+      "baseBlob": "6e8c17f35c2310ccca05700a01a084bbac1ced9b",
+      "reviewedBlob": "0b6d48dab7ef6c44906e02256c73ff9d2395314d"
+    },
+    {
+      "file": "lib/growth/enginePageCatalog.ts",
+      "baseBlob": null,
+      "reviewedBlob": "c9a26cf02493dfc22d40f776697bc9ac24e95278"
+    },
+    {
+      "file": "scripts/test-aeo-engine-destinations.mjs",
+      "baseBlob": "b6a4d01517e755fb5381f95f82a007e1a57c2656",
+      "reviewedBlob": "f9a9f33424852d7bb95ad23a99ab6599938fc857"
+    },
+    {
+      "file": "scripts/test-arena-media-contract.mjs",
+      "baseBlob": "6a24340c782e91cc8fb53db5cae9b58f9fd5c22f",
+      "reviewedBlob": "e10cf817f3ef8dc48fcf90d81087adedcea10757"
+    },
+    {
+      "file": "scripts/test-llms-paginas-citadas.mjs",
+      "baseBlob": "7332e082c3a0e8996686229f6d56e38604f9b5b4",
+      "reviewedBlob": "b0d7ef894cb87df2204648032a024475dcf788de"
+    },
+    {
+      "file": "scripts/test-money-truth-contract.mjs",
+      "baseBlob": "8c3cc80b378869764ae57efd983663a78f8843b5",
+      "reviewedBlob": "2bf2dc75478ed5b5076519ac68cf1d7067af1b85"
+    },
+    {
+      "file": "scripts/test-signup-product-destination.mjs",
+      "baseBlob": "b26d86d83e53857a4230efeb4361087307041b4f",
+      "reviewedBlob": "12625b67778247e82ca5953245ccc330758a4f10"
+    }
+  ],
+  "protectedPaths": [
+    "app/api/stripe",
+    "lib/checkoutPricing.ts",
+    "lib/entryPolicy.ts",
+    "lib/affiliateCommission.ts",
+    "lib/settlementCurrency.ts"
+  ],
+  "changedProtectedPaths": [],
+  "pendingPages": [
+    "/ai-video-generator/free-youtube-shorts",
+    "/ai-video-generator/horror-story-60-seconds",
+    "/ai-video-generator/chatgpt-script-to-finished-short"
+  ],
+  "counts": {
+    "producedUnique": 8,
+    "alreadyPublished": 5,
+    "pendingPrepared": 3,
+    "newPagesThisHandoff": 0
+  },
+  "artifacts": [
+    {
+      "file": "docs/citacoes-01-pages-2026-09-10/preview-citacoes-01.html",
+      "bytes": 426644,
+      "sha256": "5d8e35b9fe0b866710ec37977cbc0a33cbad6c5970c3b1a214257c96da09c0ff",
+      "blob": "f16819ce1deebe535f66a77df2796b3d5eabd517"
+    },
+    {
+      "file": "docs/citacoes-chatgpt/2026-09-10-prioridade/engine-catalog-verification.json",
+      "bytes": 2075,
+      "sha256": "d4f9488d419689e4a75fcef0984d8319e3f13c281b54924902f875debe5ff639",
+      "blob": "0650b21fa78775781c95d15cfc7ceca25eab0356"
+    },
+    {
+      "file": "docs/citacoes-chatgpt/2026-09-10-prioridade/local-engine-routes-verification.json",
+      "bytes": 1980,
+      "sha256": "0833f75fb66b86ca6a7bdc4f26d21dc211be81bca71a07fa12df7844aa8e087e",
+      "blob": "12b0273fc694e1e7560c3bd2f9acd8774832233b"
+    },
+    {
+      "file": "docs/citacoes-chatgpt/2026-09-10-prioridade/local-verification.json",
+      "bytes": 7317,
+      "sha256": "400b5f46c6dc7bf52d33e4b6b32b5ad7d28a7f4e8c4500b71d97c25a4cd5540a",
+      "blob": "f1f650e6b33f5c81a0d5a514e67b396a0b048d89"
+    },
+    {
+      "file": "docs/citacoes-chatgpt/2026-09-10-20h/HTTP-CHECKPOINT.md",
+      "bytes": 9091,
+      "sha256": "72a77fd0c41e5e78ea3018c717b50e3a09f7cc5cead8a1b9a160effe380c9e81",
+      "blob": "08199c6f5a77e69616860e9a5625b3d3d1cc6c1c"
+    },
+    {
+      "file": "docs/citacoes-chatgpt/2026-09-10-20h/chatgpt-20-perguntas.json",
+      "bytes": 27634,
+      "sha256": "47de6fa5d07bd45ecd97e3be50b87ddb59d7724e65c34586c849074cbdf6a94a",
+      "blob": "09b25e0e66d5f66fb735e1a30b2b4d5973e522b3"
+    }
+  ],
+  "validation": {
+    "typecheck": {
+      "command": "node C:/kineo/node_modules/typescript/bin/tsc --noEmit --incremental false",
+      "exitCode": 0,
+      "observedBrt": "2026-09-10 23:28",
+      "nextGeneratedTypesPreserved": true,
+      "generatedRouteTypeBytes": 3577,
+      "claim": "Gate executed on reviewedInputHead; only checkpoint documentation was dirty."
+    },
+    "reusedEvidence": {
+      "catalogChecks": 24,
+      "flagScenarios": 2,
+      "engineRoutes": 8,
+      "publicRoutesAndDiscovery": 11,
+      "whyReused": "Functional blobs are unchanged since prior integrated validation; no new visual/HTTP audit required before transport changes base."
+    },
+    "independentReview": {
+      "dateBrt": "2026-09-10 23:29",
+      "result": "No concrete blockers in pending code. Protected-path delta empty; catalog, consumers and guard path updates unchanged; eight answer entries and three new llms links."
+    },
+    "existingGuards": {
+      "llms": {
+        "checks": 91,
+        "exitCode": 0
+      },
+      "money": {
+        "checks": 322,
+        "exitCode": 0
+      },
+      "arena": {
+        "checks": 81,
+        "exitCode": 0
+      },
+      "aeo": {
+        "exitCode": 1,
+        "inheritedFailure": "S25 present in engine list, absent in expected list; same baseline before delta"
+      },
+      "signup": {
+        "exitCode": 1,
+        "inheritedFailure": "Destination named before generic creation copy; same baseline before delta"
+      }
+    },
+    "criticalContracts": [
+      {
+        "gate": "test-sharing-safety.mjs",
+        "startedAtUtc": "2026-09-11T02:31:03.3760221Z",
+        "finishedAtUtc": "2026-09-11T02:31:04.2550071Z",
+        "exitCode": 0,
+        "log": "test-sharing-safety.mjs.txt"
+      },
+      {
+        "gate": "test-five-improvements.mjs",
+        "startedAtUtc": "2026-09-11T02:31:04.2656944Z",
+        "finishedAtUtc": "2026-09-11T02:31:06.3745783Z",
+        "exitCode": 0,
+        "log": "test-five-improvements.mjs.txt"
+      },
+      {
+        "gate": "test-locale-readiness.mjs",
+        "startedAtUtc": "2026-09-11T02:31:06.3759215Z",
+        "finishedAtUtc": "2026-09-11T02:31:20.4293284Z",
+        "exitCode": 0,
+        "log": "test-locale-readiness.mjs.txt"
+      },
+      {
+        "gate": "test-home-curation.mjs",
+        "startedAtUtc": "2026-09-11T02:31:20.4304142Z",
+        "finishedAtUtc": "2026-09-11T02:31:20.9665363Z",
+        "exitCode": 0,
+        "log": "test-home-curation.mjs.txt"
+      },
+      {
+        "gate": "test-showcase-premium.mjs",
+        "startedAtUtc": "2026-09-11T02:31:20.9670707Z",
+        "finishedAtUtc": "2026-09-11T02:31:22.0498839Z",
+        "exitCode": 0,
+        "log": "test-showcase-premium.mjs.txt"
+      }
+    ],
+    "criticalContractsCounts": {
+      "sharing": 70,
+      "fiveImprovements": 640,
+      "locale": 2091,
+      "home": 178,
+      "showcase": 287
+    }
+  },
+  "transport": {
+    "owner": "Board only",
+    "candidateWorktree": "C:/kineo-wt/transport-safe-20260911",
+    "status": "Candidate under review; no execution or publication authorized by this manifest.",
+    "dependency": "C:/Users/josep/.codex/outputs/01a03e3e-5f63-7cf1-8b9f-6c6646b446b7/FILA-TRANSPORTE-DOCS-2026-09-10.md",
+    "exclude": [
+      ".publication-temp/",
+      "Main dirty worktree and other authors work",
+      "Already-published first five pages as a new delivery"
+    ],
+    "noUnsafeFallback": true,
+    "review": "GO condicionado ao preflight: REVIEW-TRANSPORTE.md",
+    "preflightFile": "PREFLIGHT-TRANSPORTE.json",
+    "proposedSingleExecutor": "Board; candidate SHA final must be explicitly reserved before queue writes",
+    "additionalPackageCommits": {
+      "affiliateKit": [
+        "cc9e332f09f3f1b93537515f90d7b6b3ce8d0c42",
+        "8ff80e65b62a287152d97990f65a6e160fbd1cb6"
+      ],
+      "source": "Board update during review: v6 child follows v5; integrate both in order. Nominal review remains with owner."
+    }
+  },
+  "commercialOutcome": {
+    "externalBuyers": "DESCONHECIDO",
+    "confirmedRevenue": "DESCONHECIDO",
+    "signupOrCheckoutTesting": false,
+    "newRenders": false,
+    "noAttributionClaim": true
+  }
+}
