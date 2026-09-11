@@ -1,6 +1,6 @@
 {
   "classification": "EVIDÊNCIA OPERACIONAL",
-  "updatedAt": "2026-09-11T15:04:12.419Z",
+  "updatedAt": "2026-09-11T15:19:46.453Z",
   "contextualDiscoveryLinks": {
     "status": "VALIDADO_EM_PRODUCAO",
     "codeCommit": "e8632940c2bcba7925493764c64d01e801e63d63",
@@ -102,13 +102,12 @@
     "file": "chatgpt-20-perguntas.json"
   },
   "continuation": [
+    "Commercial connector now verified and queried read-only at 12:14-12:15 BRT: daily ChatGPT signup snapshot available; V1 first/second six-hour windows and V2 first window have zero campaign-matched events, so preserve both variants as inconclusive. Next V2 window ends13:27:54; V1 ends18:14:22. Do not repeat earlier no-access/no-aggregate claims.",
     "2026-09-11 morning completed: three FAQ answers on 9bf0525e, two minimum-grant labels on 679b789c and four contextual links on ad3cb3fc. Exact-SHA CI/Vercel and public checks passed. All transport reservations released. Do not repeat these deliveries or publish only closure documents.",
     "Eight pages remain published. Both commercial variants are live by HTTP: cost V1 and comparison V2. Preserve both samples; no third variant or ninth page.",
     "Transport is unlocked through reviewed scripts only. Coordinate one owner and reserve immutable candidate/base before queue writes; use a clean own worktree, mandatory preflight, no force/reset/rebase/cleanup or blind retry.",
     "Renewal supersedes the old midnight stop. Existing automation runs every 30 minutes until 2026-09-11 23:30 BRT; close only in its final 30 minutes and remove only this automation.",
     "Next comparable ChatGPT measurement is 2026-09-11 20h BRT; no repeated 20-chat battery hourly.",
-    "First six-hour commercial reviews were actually recorded on 2026-09-11 at 10:43 BRT, not backfilled. Both are inconclusive: Board has no validated canonical aggregates to supply. Campaign-to-paid-event linkage is implemented; ingestion and amounts remain UNKNOWN. Preserve both samples.",
-    "Two active variants, maximum reached. Next six-hour windows end at 12:14:22 BRT V1 and 13:27:54 BRT V2. Do not repeat the data request or notify the unchanged limitation without new evidence/access. No third variant or ninth page. ChatGPT measurement remains 20h; mandate ends 23:30 BRT.",
     "Founder mandate relayed on 2026-09-11 authorizes necessary read-only commercial history, suppressions and result queries through existing connectors. Earlier 10:43 lack of aggregate is historical, not a permanent access prohibition. Verify connector/project and canonical people/payment method before querying; no manual database writes, paid render, duplicate signup tracing or third variant."
   ],
   "catalogFixCommit": "c633ed8b",
@@ -293,15 +292,88 @@
   "commercialVariantCount": 2,
   "lastReviewedMain": "ad3cb3fc94308711119287476701e33924b2dd08",
   "commercialDataDependency": {
-    "status": "NO_VALIDATED_AGGREGATE_AVAILABLE",
-    "owner": "Board",
-    "requestedAt": "2026-09-11 10:38 BRT",
-    "source": "Board thread 01a03e3e-5f63-7cf1-8b9f-6c6646b446b7, response received in this turn and recorded 2026-09-11 10:43 BRT: no validated canonical aggregates available; preserve variants, no new database/send authorization.",
-    "repeatOnlyWhen": "Canonical aggregate availability/access or a material state change",
-    "doNotInferZero": true,
-    "doNotRequestNewDatabaseAuthorization": true,
-    "currentAuthorization": "Necessary read-only commercial result queries through existing connectors authorized by renewed founder mandate relayed 2026-09-11. No query performed in the grant/link delivery.",
-    "historicalSourceMeaning": "10:43 response records availability at that time only; later mandate supersedes any blanket no-new-read-access interpretation.",
-    "nextAction": "At due commercial windows, inspect available canonical read-only evidence with verified project and existing attribution method; preserve UNKNOWN until results are actually obtained."
+    "status": "AVAILABLE_QUERIED_READ_ONLY_NO_CAMPAIGN_SAMPLE",
+    "owner": "Citações for these bounded aggregates; Board informed",
+    "source": "Existing connector read-only production queries on 2026-09-11 12:14-12:15 BRT",
+    "evidence": "../2026-09-11-revisao-comercial/MEDICAO-1215.json",
+    "earlierUnavailableResponse": "Historical 10:43 response preserved in firstCommercialReview; superseded for data availability by this actual read.",
+    "doNotInferZeroRevenue": true,
+    "nextAction": "Review the next closed six-hour window; do not repeat the same aggregate or rebuild tracking."
+  },
+  "latestDailyAcquisition": {
+    "source": "../2026-09-11-revisao-comercial/MEDICAO-1215.json",
+    "observedAtUtc": "2026-09-11 15:14:24.805867+00",
+    "method": "Distinct surviving profile IDs, exact utm_source='chatgpt', created_at grouped in America/Sao_Paulo; nonempty email and internal exclusions from lib/internalAccounts.ts:15-39. Current attribution snapshot, not historical immutable snapshot.",
+    "days": [
+      {
+        "dateBrt": "2026-09-04",
+        "externalChatgptProfiles": 13,
+        "partial": false
+      },
+      {
+        "dateBrt": "2026-09-05",
+        "externalChatgptProfiles": 16,
+        "partial": false
+      },
+      {
+        "dateBrt": "2026-09-06",
+        "externalChatgptProfiles": 24,
+        "partial": false
+      },
+      {
+        "dateBrt": "2026-09-07",
+        "externalChatgptProfiles": 12,
+        "partial": false
+      },
+      {
+        "dateBrt": "2026-09-08",
+        "externalChatgptProfiles": 3,
+        "partial": false
+      },
+      {
+        "dateBrt": "2026-09-09",
+        "externalChatgptProfiles": 5,
+        "partial": false
+      },
+      {
+        "dateBrt": "2026-09-10",
+        "externalChatgptProfiles": 8,
+        "partial": false
+      },
+      {
+        "dateBrt": "2026-09-11",
+        "externalChatgptProfiles": 7,
+        "partial": true
+      }
+    ],
+    "limitation": "Current surviving profiles and current attribution. No extrapolation or causal credit for recent deliveries."
+  },
+  "latestCommercialMeasurement": {
+    "recordedAtUtc": "2026-09-11 15:15:02.626919+00",
+    "evidence": "../2026-09-11-revisao-comercial/ESTADO-1215.md",
+    "windows": [
+      {
+        "label": "V1_0_6h",
+        "start": "2026-09-11 03:14:22.326+00",
+        "endExclusive": "2026-09-11 09:14:22.326+00",
+        "matchingEventRows": 0
+      },
+      {
+        "label": "V1_6_12h",
+        "start": "2026-09-11 09:14:22.326+00",
+        "endExclusive": "2026-09-11 15:14:22.326+00",
+        "matchingEventRows": 0
+      },
+      {
+        "label": "V2_0_6h",
+        "start": "2026-09-11 04:27:54.879187+00",
+        "endExclusive": "2026-09-11 10:27:54.879187+00",
+        "matchingEventRows": 0
+      }
+    ],
+    "decision": "PRESERVE_TWO_VARIANTS_INCONCLUSIVE_NO_ATTRIBUTED_SAMPLE",
+    "nextV2WindowEnd": "2026-09-11T13:27:54.8791873-03:00",
+    "nextV1WindowEnd": "2026-09-11T18:14:22.326-03:00",
+    "actualRevenue": null
   }
 }

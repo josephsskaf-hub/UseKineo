@@ -1,0 +1,181 @@
+{
+  "classification": "EVIDÊNCIA DE PRODUÇÃO / LEITURA SOMENTE",
+  "projectVerification": {
+    "source": "https://www.usekineo.com/pricing and public same-origin JavaScript bundles",
+    "checkedAtUtc": "2026-09-11T15:14:14.276Z",
+    "projectRef": "cqqukkvjjrguayiyjvhh",
+    "matchingExistingConnector": true,
+    "secretsRead": false
+  },
+  "method": {
+    "daily": "Distinct surviving profile IDs, exact utm_source='chatgpt', created_at grouped in America/Sao_Paulo; nonempty email and internal exclusions from lib/internalAccounts.ts:15-39. Current attribution snapshot, not historical immutable snapshot.",
+    "campaigns": "Exact metadata.source OR metadata.intent_campaign. Half-open original exposure windows. Authenticated external profile IDs separate from anonymous sessions. No matching rows in the three closed windows.",
+    "payment": "No campaign-matched canonical payment_success observed; this is not proof of zero business revenue or complete attribution. No live/test/payment/refund transaction queried individually because no campaign candidates existed.",
+    "ingestionControl": "Raw global event rows solely establish some ingestion for the relevant names. Includes possible internal/test traffic; not people, conversion or revenue.",
+    "rounding": "Original V2 timestamp retains seven fractional digits in checkpoint; PostgreSQL timestamptz resolves the boundary at .879187 seconds (microseconds).",
+    "writes": 0,
+    "sqlExecutions": 4,
+    "sqlBreakdown": "1 schema query + 3 bounded aggregate queries",
+    "newCitationMeasurement": false
+  },
+  "daily": [
+    {
+      "observed_at": "2026-09-11 15:14:24.805867+00",
+      "day_brt": "2026-09-04",
+      "partial_day": false,
+      "external_signups_all_sources": 29,
+      "external_chatgpt_exact": 13,
+      "external_chatgpt_dot_com": 0,
+      "chatgpt_unknown_email": 0,
+      "chatgpt_internal_excluded": 0
+    },
+    {
+      "observed_at": "2026-09-11 15:14:24.805867+00",
+      "day_brt": "2026-09-05",
+      "partial_day": false,
+      "external_signups_all_sources": 30,
+      "external_chatgpt_exact": 16,
+      "external_chatgpt_dot_com": 0,
+      "chatgpt_unknown_email": 0,
+      "chatgpt_internal_excluded": 0
+    },
+    {
+      "observed_at": "2026-09-11 15:14:24.805867+00",
+      "day_brt": "2026-09-06",
+      "partial_day": false,
+      "external_signups_all_sources": 36,
+      "external_chatgpt_exact": 24,
+      "external_chatgpt_dot_com": 0,
+      "chatgpt_unknown_email": 0,
+      "chatgpt_internal_excluded": 0
+    },
+    {
+      "observed_at": "2026-09-11 15:14:24.805867+00",
+      "day_brt": "2026-09-07",
+      "partial_day": false,
+      "external_signups_all_sources": 24,
+      "external_chatgpt_exact": 12,
+      "external_chatgpt_dot_com": 0,
+      "chatgpt_unknown_email": 0,
+      "chatgpt_internal_excluded": 0
+    },
+    {
+      "observed_at": "2026-09-11 15:14:24.805867+00",
+      "day_brt": "2026-09-08",
+      "partial_day": false,
+      "external_signups_all_sources": 8,
+      "external_chatgpt_exact": 3,
+      "external_chatgpt_dot_com": 0,
+      "chatgpt_unknown_email": 0,
+      "chatgpt_internal_excluded": 0
+    },
+    {
+      "observed_at": "2026-09-11 15:14:24.805867+00",
+      "day_brt": "2026-09-09",
+      "partial_day": false,
+      "external_signups_all_sources": 10,
+      "external_chatgpt_exact": 5,
+      "external_chatgpt_dot_com": 0,
+      "chatgpt_unknown_email": 0,
+      "chatgpt_internal_excluded": 0
+    },
+    {
+      "observed_at": "2026-09-11 15:14:24.805867+00",
+      "day_brt": "2026-09-10",
+      "partial_day": false,
+      "external_signups_all_sources": 13,
+      "external_chatgpt_exact": 8,
+      "external_chatgpt_dot_com": 0,
+      "chatgpt_unknown_email": 0,
+      "chatgpt_internal_excluded": 0
+    },
+    {
+      "observed_at": "2026-09-11 15:14:24.805867+00",
+      "day_brt": "2026-09-11",
+      "partial_day": true,
+      "external_signups_all_sources": 12,
+      "external_chatgpt_exact": 7,
+      "external_chatgpt_dot_com": 0,
+      "chatgpt_unknown_email": 0,
+      "chatgpt_internal_excluded": 0
+    }
+  ],
+  "campaigns": [
+    {
+      "observed_at": "2026-09-11 15:15:02.626919+00",
+      "label": "V1_0_6h",
+      "campaign": "citacoes_cost_decision_v1",
+      "starts_at": "2026-09-11 03:14:22.326+00",
+      "ends_at": "2026-09-11 09:14:22.326+00",
+      "name": null,
+      "matching_event_rows": 0,
+      "authenticated_external_people": 0,
+      "anonymous_sessions_not_people": 0,
+      "anonymous_event_rows": 0,
+      "internal_people_excluded": 0,
+      "unresolved_people": 0,
+      "test_payment_rows": 0,
+      "external_paid_live_session_ids": 0
+    },
+    {
+      "observed_at": "2026-09-11 15:15:02.626919+00",
+      "label": "V1_6_12h",
+      "campaign": "citacoes_cost_decision_v1",
+      "starts_at": "2026-09-11 09:14:22.326+00",
+      "ends_at": "2026-09-11 15:14:22.326+00",
+      "name": null,
+      "matching_event_rows": 0,
+      "authenticated_external_people": 0,
+      "anonymous_sessions_not_people": 0,
+      "anonymous_event_rows": 0,
+      "internal_people_excluded": 0,
+      "unresolved_people": 0,
+      "test_payment_rows": 0,
+      "external_paid_live_session_ids": 0
+    },
+    {
+      "observed_at": "2026-09-11 15:15:02.626919+00",
+      "label": "V2_0_6h",
+      "campaign": "citacoes_comparison_decision_v2",
+      "starts_at": "2026-09-11 04:27:54.879187+00",
+      "ends_at": "2026-09-11 10:27:54.879187+00",
+      "name": null,
+      "matching_event_rows": 0,
+      "authenticated_external_people": 0,
+      "anonymous_sessions_not_people": 0,
+      "anonymous_event_rows": 0,
+      "internal_people_excluded": 0,
+      "unresolved_people": 0,
+      "test_payment_rows": 0,
+      "external_paid_live_session_ids": 0
+    }
+  ],
+  "ingestion": [
+    {
+      "observed_at": "2026-09-11 15:15:39.373053+00",
+      "name": "checkout_started",
+      "event_rows_not_people": 2,
+      "latest_event_at": "2026-09-11 09:15:09.194784+00"
+    },
+    {
+      "observed_at": "2026-09-11 15:15:39.373053+00",
+      "name": "organic_cta_clicked",
+      "event_rows_not_people": 14,
+      "latest_event_at": "2026-09-11 14:13:19.703393+00"
+    },
+    {
+      "observed_at": "2026-09-11 15:15:39.373053+00",
+      "name": "pricing_view",
+      "event_rows_not_people": 13,
+      "latest_event_at": "2026-09-11 12:47:31.43413+00"
+    }
+  ],
+  "decision": {
+    "variants": "PRESERVE_TWO_EXISTING_VARIANTS",
+    "commercialResult": "INCONCLUSIVE_NO_CAMPAIGN_SAMPLE",
+    "dailyResult": "8 attributed surviving external profiles on Sep10; 7 on Sep11 partial at12:14:24BRT. No extrapolation or causal attribution.",
+    "nextV2WindowEnd": "2026-09-11T13:27:54.8791873-03:00",
+    "nextV1WindowEnd": "2026-09-11T18:14:22.326-03:00",
+    "nextActualChatgptMeasurement": "2026-09-11T20:00:00-03:00"
+  }
+}
