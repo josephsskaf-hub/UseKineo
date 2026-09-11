@@ -1,0 +1,14 @@
+# [Citações] Fontes da comparação V2
+
+**EVIDÊNCIA DE FONTES PRIMÁRIAS PÚBLICAS — consultadas em 11/09/2026, 01h07–01h13 BRT:** preços e limites foram lidos nas páginas oficiais, sem cadastro, checkout, exportação ou teste do produto. O snapshot de células no código liga cada campo às fontes. A data de consulta não é data de publicação da fonte nem garantia de permanência dos termos.
+
+| Produto | Fontes principais | Limite da conclusão |
+|---|---|---|
+| Pictory | [Preços](https://pictory.ai/pricing/), [marca d'água](https://kb.pictory.ai/en/articles/8468876-how-to-remove-the-pictory-watermark-and-branding-from-my-video), [AI Studio](https://kb.pictory.ai/en/articles/12507673-ai-studio-overview) | Duração de roteiro/URL não é máximo universal de exportação. Lista geral de modelos não prova acesso no Starter. |
+| Descript | [Preços](https://www.descript.com/pricing), [export local](https://help.descript.com/export-and-share/video-gif), [export por link](https://help.descript.com/export-and-share/share-page), [modelos](https://help.descript.com/generative-media/models) | Preço mensal e anual são distintos. Máximo por web link não prova o máximo do MP4 local; modelos dependem do plano. |
+| HeyGen | [Preços](https://www.heygen.com/pricing), [duração do Creator](https://www.heygen.com/blog/heygen-creator-plan-maximum-video-length), [remoção da marca](https://help.heygen.com/en/articles/11057301-how-to-remove-the-heygen-watermark) | Teto por vídeo não elimina limites próprios de cada recurso. |
+| OpusClip | [Preços](https://www.opus.pro/pricing), [planos e créditos](https://help.opus.pro/docs/article/plans-and-credits), [seleção de duração](https://help.opus.pro/docs/article/select-clip-length), [manual de prompts](https://help.opus.pro/docs/article/clip-anything-prompt-manual) | Créditos de processamento e presets de clipes não são quantidade de filmes prontos nem máximo global de exportação. |
+
+**CONTRADIÇÕES preservadas na página:** o [signup Pictory](https://app.pictory.ai/signup?nav=mega) e sua [verificação de cartão](https://app.pictory.ai/cards/) têm textos diferentes, sem esclarecer todos os fluxos; o [editor Descript](https://www.descript.com/tools/video-editor) diverge do pricing/help sobre marca no Free; o [guia HeyGen sobre export sem marca](https://www.heygen.com/tool/free-ai-video-generator-no-watermark) contradiz sua própria FAQ. Para esses campos gratuitos, usar `[CONFIRMAR]` e apontar a divergência. Isso não significa que o concorrente não ofereça o recurso.
+
+**QUESTÃO PENDENTE:** nenhum produto de concorrente foi validado dentro de conta. Nenhum dado comprova equivalência integral entre uma ferramenta de recorte, um editor, uma plataforma de avatar e a montagem de um filme a partir de texto. A tabela não declara vitória universal, economia garantida ou conversão comercial observada.
