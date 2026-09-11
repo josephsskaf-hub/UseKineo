@@ -1,0 +1,21 @@
+[
+  {
+    "path": "/ai-video-generator/kling",
+    "status": 200,
+    "checkedAtUtc": "2026-09-11T14:03:26.2696903Z",
+    "snippets": [
+      "redit 60-second cost is covered by the Studio monthly grant; the 30-credit free trial does not cover one.    Kling 2.5  inside Kineo      Model called  fal-ai/kling-video/v2.5-turbo/pro/text-to-video    Cost per vid",
+      "e Kineo 1 and Seedance 1.5. It costs 50 credits per 60-second video, and the 80 trial credits do not stretch to one — they cover a full Seedance film instead, which is the same pipeline on a cheaper engine. A Creato",
+      "r plan or a sufficient top-up covers Kling. Trial films come out watermarked; a plan unlocks the clean download.    Which Kling model does Kineo use?  Kling 2.5 Turbo Pro (text-to"
+    ]
+  },
+  {
+    "path": "/ai-video-generator/veo",
+    "status": 200,
+    "checkedAtUtc": "2026-09-11T14:03:26.5681412Z",
+    "snippets": [
+      "redit 60-second cost is covered by the Studio monthly grant; the 30-credit free trial does not cover one.    Veo 3.1  inside Kineo      Model called  fal-ai/veo3.1/fast    Cost per video  100 credits per 60-second v",
+      "3.1 is a Studio engine ($39.9/month) at 100 credits per 60-second video; the 80 trial credits do not cover one, so it takes the Studio plan or a sufficient top-up. What you can test at no cost is the pipeline itself"
+    ]
+  }
+]

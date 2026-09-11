@@ -1,6 +1,14 @@
 {
   "classification": "EVIDÊNCIA OPERACIONAL",
-  "updatedAt": "2026-09-11T13:44:13.3649718Z",
+  "updatedAt": "2026-09-11T14:19:50Z",
+  "engineFaqCorrection": {
+    "status": "IMPLEMENTADO_TESTADO_LOCALMENTE_PUBLICACAO_PENDENTE",
+    "codeCommit": "605ea667",
+    "paths": ["/ai-video-generator/seedance", "/ai-video-generator/kling", "/ai-video-generator/veo"],
+    "evidence": "../2026-09-11-organico/ESTADO.md",
+    "purpose": "Correct three stale FAQ answers only; not a third commercial variant. Preserve eight pages and V1/V2.",
+    "remainingIssues": "Minimum-grant tier labels and shared currency contradictions remain separate requests; contextual links proposed after comparable measurement."
+  },
   "threadTitle": "Kineo · Citações no ChatGPT",
   "worktree": "C:/kineo/.claude/worktrees/citacoes-01-2026-09-10",
   "branch": "codex/citacoes-01-2026-09-10",
@@ -235,7 +243,7 @@
     }
   },
   "commercialVariantCount": 2,
-  "lastReviewedMain": "f6e4e3e69b4d87e94789575dfdd155074019d3b7",
+  "lastReviewedMain": "7996e92f15fd6a602260ecd9126f9b8acde267f3",
   "commercialDataDependency": {
     "status": "NO_VALIDATED_AGGREGATE_AVAILABLE",
     "owner": "Board",

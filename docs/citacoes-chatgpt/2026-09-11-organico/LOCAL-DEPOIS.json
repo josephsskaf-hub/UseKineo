@@ -1,0 +1,29 @@
+[
+  {
+    "slug": "seedance",
+    "checkedAtUtc": "2026-09-11T14:17:06.9742823+00:00",
+    "status": 200,
+    "answer": "Choose by your budget and remaining credits: a complete 60-second reference film costs 25 credits with Seedance 1.5, 50 with Kling 2.5 or 100 with Veo 3.1. New accounts receive 30 free credits, with every engine unlocked and no card required. That balance covers a complete Seedance reference film; engine access does not guarantee enough credits for a render. Choose a paid plan with sufficient credits when you need more. Free-trial films carry a watermark; a paid plan unlocks clean downloads.",
+    "matchesVisibleHtml": true,
+    "otherFaqsUnchanged": true,
+    "passed": true
+  },
+  {
+    "slug": "kling",
+    "checkedAtUtc": "2026-09-11T14:17:07.0518525+00:00",
+    "status": 200,
+    "answer": "New accounts receive 30 free credits, with every engine unlocked and no card required. A complete 60-second Kling 2.5 reference film costs 50 credits, so the trial balance does not cover one complete reference film. Engine access and sufficient balance are separate requirements: choose a paid plan with enough credits for the render. Free-trial films carry a watermark; a paid plan unlocks clean downloads.",
+    "matchesVisibleHtml": true,
+    "otherFaqsUnchanged": true,
+    "passed": true
+  },
+  {
+    "slug": "veo",
+    "checkedAtUtc": "2026-09-11T14:17:07.1300581+00:00",
+    "status": 200,
+    "answer": "New accounts receive 30 free credits, with every engine unlocked and no card required. A complete 60-second Veo 3.1 reference film costs 100 credits, so the trial balance does not cover one complete reference film. Engine access and sufficient balance are separate requirements: choose a paid plan with enough credits for the render. Free-trial films carry a watermark; a paid plan unlocks clean downloads.",
+    "matchesVisibleHtml": true,
+    "otherFaqsUnchanged": true,
+    "passed": true
+  }
+]

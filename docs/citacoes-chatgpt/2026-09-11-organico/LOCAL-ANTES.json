@@ -1,0 +1,107 @@
+[
+  {
+    "slug": "seedance",
+    "checkedAtUtc": "2026-09-11T14:14:15.6886296+00:00",
+    "status": 200,
+    "faq": {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Can I use Seedance 1.5 without paying?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Seedance costs 25 credits per 60-second video. Every new account starts with the\n         free trial (30 credits, every engine unlocked, no card) and Seedance is included — so your first Seedance film comes out of those 30 credits. After the trial, Starter ($9.90/month) and Creator keep Seedance unlocked."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What model is behind Kineo’s Seedance engine?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "ByteDance Seedance 1.5 Pro (text-to-video), called scene by scene from the script Kineo writes for your topic. The badge on every video on this page is the real engine that rendered it — nothing is relabelled."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Seedance vs Kling vs Veo — which should I pick?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Seedance is the lowest-cost generated video (25 credits per 60 seconds) and handles most faceless Shorts; Kling 2.5 at 50 credits is the house best-value pick for camera motion. Kling 2.5 is stronger on camera movement and physical motion. Veo 3.1 is Google’s flagship and the most expensive. Kling 2.5, Veo 3.1 and Kling 3 are Studio-plan engines ($39.9/month)."
+          }
+        }
+      ]
+    }
+  },
+  {
+    "slug": "kling",
+    "checkedAtUtc": "2026-09-11T14:14:15.8393904+00:00",
+    "status": 200,
+    "faq": {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Is Kling 2.5 free on Kineo?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Kling 2.5 is a Studio engine ($39.9/month); Starter and Creator include Kineo 1 and Seedance 1.5. It costs 50 credits per 60-second video, and the 80 trial credits do not stretch to one — they cover a full Seedance film instead, which is the same pipeline on a cheaper engine. A Creator plan or a sufficient top-up covers Kling. Trial films come out watermarked; a plan unlocks the clean download."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Which Kling model does Kineo use?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Kling 2.5 Turbo Pro (text-to-video), plus the matching image-to-video endpoint of the same family when a scene is anchored to a reference frame."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Do I have to write prompts for each scene?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. You type one idea. Kineo writes the script with a hook-first structure, breaks it into scenes and writes each scene prompt for Kling itself. You can edit the script before it renders."
+          }
+        }
+      ]
+    }
+  },
+  {
+    "slug": "veo",
+    "checkedAtUtc": "2026-09-11T14:14:15.9648267+00:00",
+    "status": 200,
+    "faq": {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Can I try Veo 3.1 for free?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Veo 3.1 is a Studio engine ($39.9/month) at 100 credits per 60-second video; the 80 trial credits do not cover one, so it takes the Studio plan or a sufficient top-up. What you can test at no cost is the pipeline itself: run the same topic through Kineo 1 or Seedance, see the script, voice and captions, then switch engines once you like the format."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What is different about Veo inside Kineo versus using Veo directly?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Veo returns silent scenes. Kineo writes the script, splits it into scenes, prompts Veo for each one, records the voiceover, syncs captions and assembles the 9:16 export. You get a publishable Short instead of raw clips."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Veo 3.1 or Kling 3?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Veo 3.1 (100 credits) is the stronger general-purpose flagship. Kling 3 (150 credits) is the one to use when a scene needs a person speaking on camera with native voice and lip sync."
+          }
+        }
+      ]
+    }
+  }
+]

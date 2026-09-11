@@ -1,0 +1,62 @@
+{
+  "classification": "TESTADO LOCALMENTE",
+  "code": "605ea667",
+  "base": "7996e92f15fd6a602260ecd9126f9b8acde267f3",
+  "gates": [
+    {
+      "name": "test-sharing-safety.mjs",
+      "status": "fulfilled",
+      "value": {
+        "chunk_id": "3d8048",
+        "wall_time_seconds": 0.0000047,
+        "exit_code": 0,
+        "original_token_count": 18,
+        "output": "Sharing safety: 70 checks passed; no network, live data or credentials.\n"
+      }
+    },
+    {
+      "name": "test-five-improvements.mjs",
+      "status": "fulfilled",
+      "value": {
+        "chunk_id": "435842",
+        "wall_time_seconds": 1.1330831,
+        "exit_code": 0,
+        "original_token_count": 13,
+        "output": "Five improvements: 640 checks passed; offline only.\n"
+      }
+    },
+    {
+      "name": "test-locale-readiness.mjs",
+      "status": "fulfilled",
+      "value": {
+        "chunk_id": "cda075",
+        "wall_time_seconds": 6.9701372,
+        "exit_code": 0,
+        "original_token_count": 23,
+        "output": "Locale readiness: 2091 checks passed. Offline contracts, not paid end-to-end certification.\n"
+      }
+    },
+    {
+      "name": "test-home-curation.mjs",
+      "status": "fulfilled",
+      "value": {
+        "chunk_id": "da4cf8",
+        "wall_time_seconds": 0.4721711,
+        "exit_code": 0,
+        "original_token_count": 17,
+        "output": "Home curation: 178 checks passed; no database or provider calls.\n"
+      }
+    },
+    {
+      "name": "test-showcase-premium.mjs",
+      "status": "fulfilled",
+      "value": {
+        "chunk_id": "3df5a3",
+        "wall_time_seconds": 1.0887689,
+        "exit_code": 0,
+        "original_token_count": 149,
+        "output": "Warning: truncated output (original token count: 149)\nTotal output lines: 7\n\nWarning: React does not recognize the `fetchPriority` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it a…69 tokens truncated… at EngineCycleCard (components/EngineCycleCard.tsx:52:28)\nShowcase premium: 287 checks passed. Offline helpers + actual React SSR; browser is a separate gate.\n"
+      }
+    }
+  ]
+}
