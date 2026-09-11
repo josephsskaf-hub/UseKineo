@@ -1,0 +1,39 @@
+{
+  "classification": "PREFLIGHT PASS / VALIDADO EM PRODUCAO",
+  "enqueueExit": 0,
+  "publishBatExit": 0,
+  "publicGitCommit": "679b789c3381c914392a8c56ed150226a6af341e",
+  "publicHttpEvidence": "PRODUCAO.json",
+  "reservation": "RELEASED_AFTER_EXACT_SHA_CI_DEPLOY_AND_PUBLIC_HTTP",
+  "deployment": {
+    "source": "Board independent read-only confirmation 2026-09-11 11:47:57 BRT",
+    "sha": "679b789c3381c914392a8c56ed150226a6af341e",
+    "ciRun": "34611836166",
+    "ciStatus": "COMPLETED_SUCCESS",
+    "ciUrl": "https://github.com/josephsskaf-hub/UseKineo/actions/runs/34611836166",
+    "id": "dpl_8kYDpWxPm6NQMLJTQPt9u1rNAMd2",
+    "status": "READY",
+    "target": "production",
+    "alias": "www.usekineo.com",
+    "aliasError": null
+  },
+  "transportLimit": "Immutable SHA normal fast-forward push; no absolute server CAS, force, retry or automatic reconciliation.",
+  "checkedAtUtc": "2026-09-11T14:43:45.2785850+00:00",
+  "candidate": "679b789c3381c914392a8c56ed150226a6af341e",
+  "base": "6b3384afd607c9e47b920422a219720da5fef88e",
+  "queueBefore": "6b3384afd607c9e47b920422a219720da5fef88e",
+  "clean": true,
+  "singleExpectedOrigin": true,
+  "otherGitEnvOverrides": 0,
+  "riskyConfig": 0,
+  "activeHooks": 0,
+  "pendingOperations": 0,
+  "directQueue": true,
+  "queueCheckedOut": false,
+  "protectedChanged": 0,
+  "scripts": {
+    "scripts/enfileirar.sh": "7b6e3bb9a3df63ee532aff4c36d5f33d2683c7777a18fd475efa301771ab1b61",
+    "scripts/!RODAR-AGORA.bat": "ebb8108ba5b60c4f3895820886ac698a9691b3e520595cce79e9729a5ab75c99",
+    "scripts/publish-reviewed-queue.sh": "4dd68ba16cd7a4bb2781b3b1e81f26adca6cc18b8930e2b9a750aeb6524f366c"
+  }
+}

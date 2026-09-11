@@ -1,14 +1,19 @@
 {
   "classification": "EVIDÊNCIA OPERACIONAL",
-  "updatedAt": "2026-09-11T14:40:56Z",
+  "updatedAt": "2026-09-11T14:47:57Z",
   "engineMinimumGrantCorrection": {
-    "status": "IMPLEMENTADO_TESTADO_LOCALMENTE_PUBLICACAO_PENDENTE",
+    "status": "VALIDADO_EM_PRODUCAO",
+    "publishedCommit": "679b789c3381c914392a8c56ed150226a6af341e",
+    "productionEvidence": "../2026-09-11-grant/PRODUCAO.json",
+    "ciRun": "34611836166",
+    "deploymentId": "dpl_8kYDpWxPm6NQMLJTQPt9u1rNAMd2",
+    "firstPositiveHttpAt": "2026-09-11T11:46:35-03:00",
     "codeCommit": "d746b7f1",
     "sourceCommit": "72fe46fa52e289c439b0a2d43e46f93214e3bc39",
     "reviewedBase": "6b3384afd607c9e47b920422a219720da5fef88e",
     "scope": "Only Kling tier Starter and Veo tier Creator. Shared consumers update two hero notes, two fact rows, seven comparison tables and two hub cards. No third variant.",
     "evidence": "../2026-09-11-grant/QA.md",
-    "nextStep": "Reserve immutable candidate/base and run reviewed transport; verify exact-SHA deployment and public grant labels."
+    "nextStep": "COMPLETED. Reservation released; do not repeat. Contextual discovery links are being implemented in a separate own worktree."
   },
   "engineFaqCorrection": {
     "status": "VALIDADO_EM_PRODUCAO",
@@ -22,7 +27,7 @@
     "paths": ["/ai-video-generator/seedance", "/ai-video-generator/kling", "/ai-video-generator/veo"],
     "evidence": "../2026-09-11-organico/ESTADO.md",
     "purpose": "Correct three stale FAQ answers only; not a third commercial variant. Preserve eight pages and V1/V2.",
-    "remainingIssues": "Minimum-grant tier labels and shared currency contradictions remain separate requests; contextual links proposed after comparable measurement."
+    "remainingIssues": "Kling/Veo minimum-grant labels corrected separately in 679b789c. Shared currency and other historical catalog labels remain separate; contextual discovery links now authorized/in progress without changing V1/V2."
   },
   "threadTitle": "Kineo · Citações no ChatGPT",
   "worktree": "C:/kineo/.claude/worktrees/citacoes-01-2026-09-10",
@@ -260,7 +265,7 @@
     }
   },
   "commercialVariantCount": 2,
-  "lastReviewedMain": "6b3384afd607c9e47b920422a219720da5fef88e",
+  "lastReviewedMain": "679b789c3381c914392a8c56ed150226a6af341e",
   "commercialDataDependency": {
     "status": "NO_VALIDATED_AGGREGATE_AVAILABLE",
     "owner": "Board",
