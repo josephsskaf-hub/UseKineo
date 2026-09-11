@@ -1,6 +1,17 @@
 {
   "classification": "EVIDÊNCIA OPERACIONAL",
-  "updatedAt": "2026-09-11T14:47:57Z",
+  "updatedAt": "2026-09-11T14:53:40Z",
+  "contextualDiscoveryLinks": {
+    "status": "IMPLEMENTADO_TESTADO_LOCALMENTE_PUBLICACAO_PENDENTE",
+    "codeCommit": "e8632940c2bcba7925493764c64d01e801e63d63",
+    "sourceCommit": "14ec765153d2fba11e759e3d0e8024d1710fa79a",
+    "sources": ["/ai-video-generator/seedance", "/cheapest-ai-shorts-maker"],
+    "targets": ["/ai-video-generator/complete-60-second-shorts-cost", "/vs/invideo-alternatives-faceless-shorts"],
+    "linkCount": 4,
+    "evidence": "../2026-09-11-descoberta/QA.md",
+    "scope": "Distribution through contextual links only; V1/V2 and campaigns unchanged, no new page or third variant.",
+    "nextStep": "Reserve immutable candidate/base, publish through reviewed scripts and confirm exact-SHA deployment plus public links."
+  },
   "engineMinimumGrantCorrection": {
     "status": "VALIDADO_EM_PRODUCAO",
     "publishedCommit": "679b789c3381c914392a8c56ed150226a6af341e",

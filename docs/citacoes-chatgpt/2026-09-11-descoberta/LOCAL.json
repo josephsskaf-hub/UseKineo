@@ -1,0 +1,43 @@
+[
+  {
+    "path": "/ai-video-generator/seedance",
+    "checkedAtUtc": "2026-09-11T14:51:53.8645969+00:00",
+    "status": 200,
+    "expectedLinksPerGuide": 1,
+    "costGuideLinks": 1,
+    "comparisonGuideLinks": 1,
+    "passed": true
+  },
+  {
+    "path": "/cheapest-ai-shorts-maker",
+    "checkedAtUtc": "2026-09-11T14:51:54.0901209+00:00",
+    "status": 200,
+    "expectedLinksPerGuide": 1,
+    "costGuideLinks": 1,
+    "comparisonGuideLinks": 1,
+    "passed": true
+  },
+  {
+    "path": "/ai-video-generator/kling",
+    "checkedAtUtc": "2026-09-11T14:51:54.1984493+00:00",
+    "status": 200,
+    "expectedLinksPerGuide": 0,
+    "costGuideLinks": 0,
+    "comparisonGuideLinks": 0,
+    "passed": true
+  },
+  {
+    "path": "/ai-video-generator/complete-60-second-shorts-cost",
+    "checkedAtUtc": "2026-09-11T14:51:54.7662840+00:00",
+    "status": 200,
+    "campaignPresent": true,
+    "passed": true
+  },
+  {
+    "path": "/vs/invideo-alternatives-faceless-shorts",
+    "checkedAtUtc": "2026-09-11T14:51:55.4451697+00:00",
+    "status": 200,
+    "campaignPresent": true,
+    "passed": true
+  }
+]
