@@ -75,9 +75,12 @@ type ClipStatus = {
 // Closed diagnostic fields only: provider bodies can contain prompts, signed
 // URLs and credentials. A message signal is evidence, NOT refund authority.
 function pollMessageSignal(error: unknown): string {
-  const body = (error as { body?: { detail?: unknown } } | null)?.body
-  const detail = typeof body?.detail === 'string' ? body.detail.slice(0, 2000) : ''
+  const body = (error as { body?: { detail?: unknown; message?: unknown; error?: unknown } } | null)?.body
+  const detail = [body?.detail, body?.message, body?.error]
+    .filter((value): value is string => typeof value === 'string')
+    .map(value => value.slice(0, 2000)).join(' ')
   if (/\breason:\s*exhausted balance\b/i.test(detail)) return 'explicit_exhausted_balance'
+  if (/\buser is locked\b/i.test(detail)) return 'mentions_account_locked'
   if (/\bconcurrency\b/i.test(detail)) return 'mentions_concurrency'
   if (/\brequest\b.{0,80}\bnot found\b/i.test(detail)) return 'mentions_request_not_found'
   return 'unclassified'
@@ -88,6 +91,8 @@ async function checkFalClip(requestId: string, model: string, generationId: stri
   if (!falKey) return { id: requestId, status: 'processing', url: null }
 
   let pollStage: 'status' | 'result' = 'status'
+  let queueIdMatches = false
+  let hasQueueError = false
   try {
     fal.config({ credentials: falKey })
     const st = await fal.queue.status(model, { requestId })
@@ -95,6 +100,22 @@ async function checkFalClip(requestId: string, model: string, generationId: stri
     if (status === 'IN_QUEUE') return { id: requestId, status: 'pending', url: null }
     if (status === 'IN_PROGRESS') return { id: requestId, status: 'processing', url: null }
     if (status === 'COMPLETED') {
+      // Fal documents COMPLETED + error as a finished, FAILED job, not a
+      // pending result. SDK 1.10.1 preserves these JSON fields but omits them
+      // from its TypeScript type. Match the job ID before trusting that signal.
+      // https://fal.ai/docs/documentation/model-apis/inference/queue#check-status
+      const finished = st as unknown as { request_id?: unknown; error?: unknown }
+      queueIdMatches = finished.request_id === requestId
+      hasQueueError = typeof finished.error === 'string' && finished.error.trim().length > 0
+      if (queueIdMatches && hasQueueError) {
+        console.warn('[cinematic-job-terminal]', {
+          generation_id: generationId,
+          scene_index: sceneIndex,
+          reason: 'completed_with_job_error',
+          message_signal: pollMessageSignal({ body: { error: finished.error } }),
+        })
+        return { id: requestId, status: 'failed', url: null }
+      }
       pollStage = 'result'
       const result = await fal.queue.result(model, { requestId })
       const data = ((result as { data?: unknown }).data ?? result) as {
@@ -117,6 +138,8 @@ async function checkFalClip(requestId: string, model: string, generationId: stri
       generation_id: generationId,
       scene_index: sceneIndex,
       stage: pollStage,
+      queue_id_matches: queueIdMatches,
+      has_queue_error: hasQueueError,
       provider_http_status: typeof rawStatus === 'number' && Number.isInteger(rawStatus) && rawStatus >= 100 && rawStatus <= 599 ? rawStatus : null,
       message_signal: pollMessageSignal(error),
     }
