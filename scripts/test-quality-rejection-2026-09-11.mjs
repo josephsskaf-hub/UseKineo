@@ -16,7 +16,7 @@ const clone = value => JSON.parse(JSON.stringify(value))
 const forbidden = () => { throw Error('Network/provider/real DB forbidden') }
 
 function runtime(options = {}) {
-  const state = { options, events: [], debit: null, legacy: null, operations: [], refundCalls: 0, creditsReturned: 0, composeReads: 0 }
+  const state = { options, events: [], debit: null, legacy: null, operations: [], refundCalls: 0, creditsReturned: 0, composeReads: 0, birthReads: 0 }
   const cache = new Map()
   function load(relative) {
     const file = path.resolve(root, relative)
@@ -74,6 +74,16 @@ function runtime(options = {}) {
   }
   state.events.push(state.birth, state.mutex)
   state.debit = { render_id: state.billing, user_id: userId, kind: 'video', amount: cost, refunded_at: null }
+  function resignBirth() {
+    const m = state.birth.metadata
+    m.response_hash = claims.cinematicValueHash(m.response)
+    m.authority = claims.signCinematicClaim(secret, {
+      claimId: state.birth.id, userId, generationId, status: m.status, fingerprint: m.fingerprint, creditCost: m.credit_cost,
+      quality: m.quality, engine: m.engine, falRequestIds: m.fal_request_ids, falModels: m.fal_models,
+      authorizedCompletedUrls: m.authorized_completed_urls, responseHash: m.response_hash,
+      resolutionReason: m.resolution_reason, resolutionReference: m.resolution_reference,
+    })
+  }
   const db = { from(table) {
     let update, filters = []
     const field = (row, column) => column.includes('->>') ? row[column.split('->>')[0]]?.[column.split('->>')[1]] : row[column]
@@ -90,6 +100,15 @@ function runtime(options = {}) {
         const row = matches[0]
         const category = table === 'credit_debits' ? 'debit' : table === 'broll_metrics' ? 'legacy' : row === state.birth ? 'birth' : 'compose'
         state.operations.push((update ? 'write:' : 'read:') + category)
+        if (category === 'birth' && !update) {
+          state.birthReads++
+          if (options.retargetAt === state.birthReads) {
+            state.birth.metadata.fal_request_ids[0] = 'new-request-in-progress'
+            state.birth.metadata.response.fal_request_ids[0] = 'new-request-in-progress'
+            state.birth.metadata.authorized_completed_urls[0] = null
+            resignBirth()
+          }
+        }
         if (category === 'compose' && !update) {
           state.composeReads++
           if (options.changeBeforeRefund && state.composeReads === 2) state.mutex.metadata.render_id = 'existing-final-render'
@@ -109,7 +128,7 @@ function runtime(options = {}) {
   } }
   const input = { db, secret, userId, generationId, ownsComposeClaim: true, composeProviderAttempted: false, reason: 'cinematic_timeline_too_short' }
   const helper = load('lib/cinematic/qualityRejection.ts')
-  return { state, input, helper, claims, compose }
+  return { state, input, helper, claims, compose, resignBirth }
 }
 
 const happy = runtime()
@@ -226,6 +245,46 @@ for (const reason of ['scene_speech_exceeds_footage', 'cinematic_scene_metadata_
   eq(result.outcome, 'quality_rejected_refunded', reason + ': exact reason supported')
   eq((await r.helper.readVerifiedQualityRejection(r.input))?.reason, reason, reason + ': verified terminal replay')
 }
+// Malformed proof is rejected by the real claim verifier before the terminal
+// predicate; missing proof is a valid, nonterminal claim. Keep that distinction.
+for (const [label, failedJobs, terminal, expectedReason] of [
+  ['partial results without terminal evidence', undefined, false, 'provider_jobs_not_terminal'],
+  ['terminal failure of a different request', [{ requestId: 'unrelated', model: 'fal-ai/fixture' }], false, 'birth_unverified'],
+  ['terminal failure of a different model', [{ requestId: 'request-second', model: 'fal-ai/other' }], false, 'birth_unverified'],
+  ['signed matching terminal failure', [{ requestId: 'request-second', model: 'fal-ai/fixture' }], true, null],
+]) {
+  const r = runtime(), m = r.state.birth.metadata
+  m.fal_request_ids.push('request-second'); m.fal_models.push('fal-ai/fixture'); m.authorized_completed_urls.push(null)
+  m.response.fal_request_ids = [...m.fal_request_ids]; m.response.fal_models = [...m.fal_models]
+  if (failedJobs) m.response.terminal_failed_jobs = failedJobs
+  r.resignBirth()
+  const result = await r.helper.rejectCinematicQuality(r.input)
+  eq(result.refundConfirmed, terminal, label + ': refund only after all accepted jobs terminate')
+  eq(r.state.refundCalls, terminal ? 1 : 0, label + ': pending provider work never refunded')
+  if (!terminal) eq(result.supportReason, expectedReason, label + ': explicit fail-closed class')
+}
+for (const [retargetAt, reason] of [[2, 'birth_changed_before_intent'], [3, 'birth_changed_before_refund']]) {
+  const r = runtime({ retargetAt })
+  const result = await r.helper.rejectCinematicQuality(r.input)
+  eq(result.supportReason, reason, 'Fresh signed birth checked at awaited boundary ' + retargetAt)
+  eq(r.state.refundCalls, 0, 'Retarget before refund stops money mutation at boundary ' + retargetAt)
+  eq(r.state.birth.metadata.status, 'settled', 'Live new request retains its birth claim at boundary ' + retargetAt)
+}
+for (const uncertainty of [undefined, true, false]) {
+  const r = runtime(), m = r.state.birth.metadata
+  m.fal_request_ids.push(null); m.fal_models.push('fal-ai/fixture'); m.authorized_completed_urls.push(null)
+  m.response.fal_request_ids = [...m.fal_request_ids]; m.response.fal_models = [...m.fal_models]
+  if (uncertainty !== undefined) m.response.submission_uncertain = uncertainty
+  r.resignBirth()
+  const result = await r.helper.rejectCinematicQuality(r.input)
+  eq(result.refundConfirmed, uncertainty === false, 'Null request slot requires explicit signed absence of submission uncertainty')
+  eq(r.state.refundCalls, uncertainty === false ? 1 : 0, 'Missing request ID is not evidence of rejected/no provider job')
+}
+const retargetAfterRefund = runtime({ retargetAt: 4 })
+const late = await retargetAfterRefund.helper.rejectCinematicQuality(retargetAfterRefund.input)
+eq(late.supportReason, 'birth_changed_after_refund', 'Late birth mutation cannot be blindly released')
+eq(late.refundConfirmed, true, 'Already confirmed ledger outcome remains explicit after late conflict')
+eq(late.claimReleased, false, 'New pending request is not marked released')
 // Defensive duplicate invocation: real release uses a compare-and-swap and the
 // refund boundary models the existing atomic/idempotent RPC, not two balances.
 const concurrent = runtime()
