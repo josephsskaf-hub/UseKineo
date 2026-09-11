@@ -2787,6 +2787,19 @@ async function manipularPost(req: NextRequest) {
     // #441 — aiPrompt = the cinematic SHOT description fed to Seedance (prefer
     // it over the raw stock query). Set from generateScenes prose (non-verbatim)
     // or generated from the narration below (verbatim).
+    // Resolve the user's visual intent BEFORE either existing planner call.
+    const styleAnchor = deriveStyleAnchor(
+      `${prompt} ${planScenes.map((s) => s.brollPrompt || '').join(' ')}`,
+      styleSuffix,
+    )
+    const storyMode = isStylizedLook(styleAnchor) || formatoVisual.modo === 'character_story' || classifyEngineFit(prompt).verdict === 'stock_cannot_tell'
+    const storyCharacter = storyMode ? deriveStoryCharacter(prompt) : null
+    const classicVisualMode: VisualMode = tagFacelessPresente ? 'documentary_faceless'
+      : formatoVisual.modo === 'presenter' ? 'presenter'
+        : storyMode ? 'character_story' : 'documentary_faceless'
+    const classicVisualPolicy: VisualPromptPolicy = {
+      mode: classicVisualMode, style: styleAnchor, character: storyCharacter, aspect: aspectRequested,
+    }
     let scenes: { description: string; voiceover: string; caption: string; stockSearchQuery?: string; aiPrompt?: string }[]
 
     if (verbatim) {
@@ -2806,7 +2819,7 @@ async function manipularPost(req: NextRequest) {
         stockSearchQuery: seg.pexelsQuery,
       }))
     } else {
-      const generated = await generateScenes(prompt.slice(0, 1200), clipCount)
+      const generated = await generateScenes(prompt.slice(0, 1200), clipCount, hollywoodPath ? undefined : classicVisualPolicy)
       scenes = generated.map((s) => ({
         description: s.description,
         voiceover: s.voiceover ?? '',
@@ -2877,7 +2890,7 @@ async function manipularPost(req: NextRequest) {
             }))
             via = 'unbracket'
           } else {
-            const generated = await generateScenes(prompt.slice(0, 1200), clipCount)
+            const generated = await generateScenes(prompt.slice(0, 1200), clipCount, hollywoodPath ? undefined : classicVisualPolicy)
           recuperadas = generated.map((s) => ({
             description: s.description,
             voiceover: s.voiceover ?? '',
@@ -2924,21 +2937,6 @@ async function manipularPost(req: NextRequest) {
     // L2B - prefer the smart BrollPlan per-scene cinematic prompt when provided
     if (planScenes.length > 0) {
       scenes = scenes.map((s, i) => { const bp = planScenes[i]?.brollPrompt; return bp && bp.trim().length > 20 ? { ...s, aiPrompt: bp.trim() } : s })
-    }
-
-    // Decide before descriptions/stills: those are inputs to video generation,
-    // not a separate faceless/photoreal product. Explicit presenter intent wins.
-    const styleAnchor = deriveStyleAnchor(
-      `${prompt} ${scenes.map((s) => `${s.voiceover ?? ''} ${s.aiPrompt ?? ''} ${s.description ?? ''}`).join(' ')}`,
-      styleSuffix,
-    )
-    const storyMode = isStylizedLook(styleAnchor) || formatoVisual.modo === 'character_story' || classifyEngineFit(prompt).verdict === 'stock_cannot_tell'
-    const storyCharacter = storyMode ? deriveStoryCharacter(prompt) : null
-    const classicVisualMode: VisualMode = tagFacelessPresente ? 'documentary_faceless'
-      : formatoVisual.modo === 'presenter' ? 'presenter'
-        : storyMode ? 'character_story' : 'documentary_faceless'
-    const classicVisualPolicy: VisualPromptPolicy = {
-      mode: classicVisualMode, style: styleAnchor, character: storyCharacter, aspect: aspectRequested,
     }
 
     // #441 — verbatim path has no cinematic description (description === stock

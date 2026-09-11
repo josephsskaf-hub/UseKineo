@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { createHmac } from 'node:crypto'
+import { createHash, createHmac } from 'node:crypto'
 import vm from 'node:vm'
 import ts from 'typescript'
 
@@ -76,7 +76,7 @@ for (const test of [
   const tag = /\[faceless\]/i.test(test.prompt)
   const resolved = execute(policyCaller + '\nexports.policy = classicVisualPolicy;', {
     ...style, ...policy, ...load('lib/engineFit.ts'), prompt: test.prompt,
-    scenes: [{ description: 'Kyoto railway', voiceover: '' }], styleSuffix: test.explicit || '',
+    planScenes: [{ brollPrompt: 'Kyoto railway' }], styleSuffix: test.explicit || '',
     formatoVisual: visualMode.decidirFormato(test.prompt, tag), tagFacelessPresente: tag, aspectRequested: '16:9',
   }).policy
   check(resolved.mode === test.expectedMode && resolved.style.look === test.expectedLook && resolved.aspect === '16:9', 'Actual resolution honors explicit mode/style and framing')
@@ -220,4 +220,69 @@ const instructions = openaiCalls[0].messages[0].content
 check(openaiCalls.length === 1, 'Description pass remains one existing call, not additional generation')
 check(instructions.includes('anime') && instructions.includes('16:9') && instructions.includes('scene 1'), 'Actual description payload carries style/frame/opening')
 check(!/FACELESS only|Vertical 9:16|same dark cinematic mood/.test(instructions), 'Descriptions do not reintroduce the old forced format')
+
+// Optional initial-planner contract. Goldens were captured from the unchanged
+// legacy generateScenes at c5ed4776 on 2026-09-11; hash covers actual request,
+// request options AND returned scene fields. No git/network needed to rerun.
+const runway = parse('lib/runway.ts')
+const legacyFixtures = [
+  { count: 4, response: [{ description: 'Mira at Kyoto station', voiceover: 'Mira finds a parcel.', caption: 'Mira finds a parcel', negativeVisualPrompt: 'rain', visualIntent: 'Warm light', visualCategory: 'general_documentary', scenePurpose: 'HOOK', stockSearchQuery: 'Kyoto station parcel', searchKeywords: 'Kyoto parcel' }], hash: '3f9fd4dd0d01a42050bfaee5b361e38878f1fe2e94d1aab267aeb96ee387d90a' },
+  { count: 4, response: ['Mira at Kyoto station'], hash: '9dd2acf374554eb9661dcb4cef631718de5b51187743740e0134afc5f9939014' },
+  { count: 0, response: [], hash: '4beee5ca0c63d0b944a8c3443923602534f1f226ce5358407c62b3546cf66362' },
+  { count: 100, response: [{ description: 'Mira at Kyoto station', voiceover: 'Mira finds a parcel.' }], hash: '3c79fbde6f9e9f68443f49e133d7553db9e9bfcaf2627a8c0814241ad647609a' },
+]
+async function planner(fixture, contract) {
+  let request, calls = 0
+  const api = execute(functionSource(runway, 'shortCaptionFromVoiceover') + '\n' + functionSource(runway, 'generateScenes'), {
+    ...aspect, ...policy, detectVisualCategory: () => undefined,
+    openai: { chat: { completions: { create: async (input, options) => {
+      calls++; request = { input, options }
+      return { choices: [{ message: { content: fixture.raw ?? JSON.stringify(fixture.response) } }] }
+    } } } },
+  })
+  const result = await api.generateScenes('Mira, a young woman, enters Kyoto in 1930.', fixture.count, contract)
+  return { request, result, calls }
+}
+for (const fixture of legacyFixtures) {
+  const { request, result, calls } = await planner(fixture)
+  const digest = createHash('sha256').update(JSON.stringify({ request, result })).digest('hex')
+  check(digest === fixture.hash, 'No-option legacy provider payload and scene output remain byte-identical')
+  check(calls === 1, 'Legacy planner call count unchanged')
+}
+for (const mode of ['documentary_faceless', 'character_story', 'presenter']) {
+  const contract = { mode, style: style.deriveStyleAnchor('anime'), aspect: '16:9' }
+  const r = await planner(legacyFixtures[2], contract)
+  const text = r.request.input.messages.map(m => m.content).join('\n')
+  check(r.calls === 1 && r.request.input.model === 'gpt-4o' && r.request.input.max_tokens === 1800, 'New visual contract uses the same existing model/call budget')
+  check(text.includes('anime') && text.includes('16:9') && text.includes('Scene 1 is the HOOK'), 'Initial planner receives approved style/orientation/opening')
+  check(!/premium faceless|stunning real footage|Example PERFECT|negativeVisualPrompt MUST include/.test(text), 'Classic planner receives no opposing stock documentary examples')
+  check(!/cartoon|anime|animation/.test(r.result[0].negativeVisualPrompt), 'Planner parse/padding fallback preserves animated style')
+  check(r.result[0].description.includes('16:9') && r.result[0].description.includes('Mira'), 'Empty-result visual fallback preserves framing and subject')
+}
+for (const [raw, expected] of [['', 'OpenAI returned no scenes.'], ['invalid', 'Failed to parse scenes JSON from OpenAI.'], ['{}', 'Scenes response was not an array.']]) {
+  for (const contract of [undefined, { mode: 'character_story', style: style.deriveStyleAnchor('anime'), aspect: '16:9' }]) {
+    let message = ''
+    try { await planner({ count: 4, raw }, contract) } catch (e) { message = e.message }
+    check(message === expected, 'Planner malformed/empty response behavior is unchanged')
+  }
+}
+const initialPlannerCalls = []
+function collectPlannerCalls(node) {
+  if (ts.isCallExpression(node) && node.expression.getText(route) === 'generateScenes') initialPlannerCalls.push(node)
+  ts.forEachChild(node, collectPlannerCalls)
+}
+collectPlannerCalls(route)
+check(initialPlannerCalls.length === 2, 'Both cinematic initial-planner callsites are covered')
+for (const node of initialPlannerCalls) {
+  for (const hollywoodPath of [false, true]) {
+    let args
+    const contract = { mode: 'character_story', style: style.deriveStyleAnchor('anime'), aspect: '16:9' }
+    const caller = execute(`exports.run = async () => ${node.getText(route)};`, {
+      prompt: 'Mira in Kyoto', clipCount: 4, hollywoodPath, classicVisualPolicy: contract,
+      generateScenes: async (...values) => { args = values; return [] },
+    })
+    await caller.run()
+    check(args[2] === (hollywoodPath ? undefined : contract), 'Actual initial/fallback caller supplies policy only to classic generation')
+  }
+}
 console.log(`${checks} executable visual-contract checks passed; ${runs.length} actual classic-caller simulations; network disabled.`)
