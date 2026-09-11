@@ -1,0 +1,25 @@
+{
+  "classification": "TESTADO LOCALMENTE",
+  "mobileAndDomObservedAtUtc": "2026-09-11T02:49:00Z/2026-09-11T02:50:58Z",
+  "desktopObservation": "Same active turn, before the mobile observation; exact screenshot timestamp not recorded",
+  "baseCodeCommit": "45a6cac9d7a375b082a798afaa5e2f33d0a30c2d",
+  "surface": "Actual Next development route, Codex in-app browser, localhost:4318, dummy backend credentials only",
+  "path": "/ai-video-generator/complete-60-second-shorts-cost",
+  "screenshotsShownInThread": ["desktop 1100x1000", "mobile 390x1000"],
+  "mobileViewportWidth": 390,
+  "mobileDocumentWidth": 390,
+  "title": "The cost of a finished 60-second Short | Kineo",
+  "canonical": "https://www.usekineo.com/ai-video-generator/complete-60-second-shorts-cost",
+  "heroLinks": [
+    {
+      "text": "Start free — 30 credits, no card",
+      "href": "/signup?redirect=%2Fstudio%3Fengine%3Dfast%26intent_campaign%3Dcitacoes_01_cost&intent_campaign=citacoes_01_cost"
+    }
+  ],
+  "pricingLinks": [
+    { "text": "Review monthly subscriptions →", "href": "/pricing" },
+    { "text": "Pricing", "href": "/pricing" }
+  ],
+  "acquisitionClicks": false,
+  "signupRenderPaymentTest": false
+}

@@ -1,0 +1,1 @@
+Locale readiness: 2091 checks passed. Offline contracts, not paid end-to-end certification.

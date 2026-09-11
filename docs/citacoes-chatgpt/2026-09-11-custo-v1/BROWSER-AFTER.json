@@ -1,0 +1,25 @@
+{
+  "classification": "TESTADO LOCALMENTE",
+  "observedAtUtc": "2026-09-11T02:56:00Z/2026-09-11T02:58:00Z",
+  "codeCommit": "67cc53b4",
+  "surface": "Actual Next development route, Codex in-app browser, localhost:4318, dummy backend credentials only",
+  "path": "/ai-video-generator/complete-60-second-shorts-cost",
+  "desktop": {"viewportWidth":1100,"viewportHeight":1000,"documentWidth":1096},
+  "mobile": {"viewportWidth":390,"viewportHeight":1000,"documentWidth":390,"cardWidth":350},
+  "canonical": "https://www.usekineo.com/ai-video-generator/complete-60-second-shorts-cost",
+  "heroLinks": [
+    {"text":"Start free — 30 credits, no card","href":"/signup?redirect=%2Fstudio%3Fengine%3Dfast%26intent_campaign%3Dcitacoes_01_cost&intent_campaign=citacoes_01_cost"},
+    {"text":"Compare plans","href":"/pricing?intent_campaign=citacoes_cost_decision_v1"}
+  ],
+  "mobileButtonHeight":49.59375,
+  "mobileButtonWidth":350,
+  "visibleScenarios": [
+    {"engine":"Kineo 1","credits":5,"completeFilms":12,"remainingCredits":0,"monthlyFeeAllocatedPerFilmUsd":"≈ $0.83"},
+    {"engine":"Seedance 1.5","credits":25,"completeFilms":2,"remainingCredits":10,"monthlyFeeAllocatedPerFilmUsd":"≈ $4.95"}
+  ],
+  "browserWarningErrorLogs":[],
+  "screenshotsShownInThread":["desktop hero and decision heading","desktop cost cards and limitations","mobile hero","mobile complete cost cards"],
+  "acquisitionClicks":false,
+  "productionEventIngestionVerified":false,
+  "signupRenderPaymentTest":false
+}

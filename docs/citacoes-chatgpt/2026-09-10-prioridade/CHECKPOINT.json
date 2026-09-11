@@ -1,6 +1,6 @@
 {
   "classification": "EVIDÊNCIA OPERACIONAL",
-  "updatedAt": "2026-09-11T02:37:06.4666602Z",
+  "updatedAt": "2026-09-11T02:59:56.4422832Z",
   "threadTitle": "Kineo · Citações no ChatGPT",
   "worktree": "C:/kineo/.claude/worktrees/citacoes-01-2026-09-10",
   "branch": "codex/citacoes-01-2026-09-10",
@@ -31,7 +31,7 @@
     "/ai-video-generator/horror-story-60-seconds",
     "/ai-video-generator/chatgpt-script-to-finished-short"
   ],
-  "transportStatus": "Safe candidate reviewed: conditional technical GO, not published. Board proposed as sole executor; must reserve final root/branch/SHA and repeat preflight before queue writes. Legacy unsafe transport remains forbidden.",
+  "transportStatus": "Board sole executor reserved f31501b6f68349f7a90d98d40d08521e8fd8f591 on reviewed main 7827f2e0, at C:/kineo-wt/board-integracao-20260911. Publication result and deployment pending independent verification. V1 excluded. No Citações queue write.",
   "transportDependency": "C:/Users/josep/.codex/outputs/01a03e3e-5f63-7cf1-8b9f-6c6646b446b7/FILA-TRANSPORTE-DOCS-2026-09-10.md",
   "automationOwner": "Board",
   "existingAutomationId": "kineo-cita-es-no-chatgpt-7-dias",
@@ -142,6 +142,27 @@
     "transportOfflineScenarios": 13,
     "transportActualExecution": false,
     "proposedExecutor": "Board",
-    "nextStep": "Board reserves final integration root/branch/SHA, integrates three-page/catalog package + safe transport + canonical kit + reviewed nominal requests, reruns final gates and publishes via two explicit SHAs. Citações verifies production afterward."
+    "nextStep": "Await Board final Git/deployment result; independently confirm ancestry and production HTTP. Board alone owns entrega-atual. Cost V1 remains a separate later delta."
+  },
+  "costDecisionV1": {
+    "status": "PREPARED_AND_TESTED_LOCAL_ONLY",
+    "path": "/ai-video-generator/complete-60-second-shorts-cost",
+    "codeCommit": "67cc53b45da0e813312af10212972f4325d7223e",
+    "sourceCommit": "85bfae3d738cadaa52dda5465060e6a261be5b18",
+    "basePackage": "45a6cac9d7a375b082a798afaa5e2f33d0a30c2d",
+    "contractCommit": "7e5601cf",
+    "campaign": "citacoes_cost_decision_v1",
+    "activeVariants": 1,
+    "evidenceDirectory": "../2026-09-11-custo-v1",
+    "previewDirectory": "../../citacoes-cost-v1-20260911",
+    "criticalPassed": 5,
+    "specificChecks": 20,
+    "unchangedOtherPages": 7,
+    "fullTypecheckExit": 0,
+    "actualBrowserDesktopMobile": "PASS; no acquisition clicks; no overflow; empty warning/error log queries",
+    "productionExposureAt": null,
+    "sixHourReviewAt": null,
+    "paymentRevenue": "DESCONHECIDO",
+    "transport": "Separate delta after Board frozen package; no queue mutation"
   }
 }

@@ -1,0 +1,66 @@
+{
+  "classification": "TESTADO LOCALMENTE",
+  "recordedAtUtc": "2026-09-11T02:59:56.4422832Z",
+  "codeCommit": "67cc53b45da0e813312af10212972f4325d7223e",
+  "criticalContracts": [
+    {
+      "sha256": "56cb25ca28c1a05d889fb06f5d0358e9abfaf119e2cc359bbf2621ee12d3358e",
+      "checks": 70,
+      "logLastWriteUtc": "2026-09-11T02:56:12.3032577Z",
+      "name": "sharing-safety",
+      "log": "test-sharing-safety.mjs.txt",
+      "exitCode": 0
+    },
+    {
+      "sha256": "13db487beb2456194e2ff71d2a6cf56ce6e4d11baf1ab77e6aec4351bbf9f4f3",
+      "checks": 640,
+      "logLastWriteUtc": "2026-09-11T02:56:14.4298076Z",
+      "name": "five-improvements",
+      "log": "test-five-improvements.mjs.txt",
+      "exitCode": 0
+    },
+    {
+      "sha256": "31bfe114daf31f9dcf2fdb534f9a6a5f10c75391498a738e0f31c8dcd700649b",
+      "checks": 2091,
+      "logLastWriteUtc": "2026-09-11T02:56:28.7779774Z",
+      "name": "locale-readiness",
+      "log": "test-locale-readiness.mjs.txt",
+      "exitCode": 0
+    },
+    {
+      "sha256": "ed2198dc1266ea6aa19e7d197b2ec3251f738d47cdc8ad1831cf39ec6fe20be4",
+      "checks": 178,
+      "logLastWriteUtc": "2026-09-11T02:56:13.2056841Z",
+      "name": "home-curation",
+      "log": "test-home-curation.mjs.txt",
+      "exitCode": 0
+    },
+    {
+      "sha256": "711019ed93261be48b00b5d17272e2755dc5df5c6b47dd26d21f68f7a0962b34",
+      "checks": 287,
+      "logLastWriteUtc": "2026-09-11T02:56:14.7562115Z",
+      "name": "showcase-premium",
+      "log": "test-showcase-premium.mjs.txt",
+      "exitCode": 0
+    }
+  ],
+  "typecheck": {
+    "engineContractBytes": 3577,
+    "exitCode": 0,
+    "log": "typecheck.txt",
+    "incremental": false,
+    "generatedTypes": [
+      "layout",
+      "ai-video-generator/complete-60-second-shorts-cost",
+      "ai-video-generator/[engine]"
+    ]
+  },
+  "specificChecks": {
+    "source": "../../citacoes-cost-v1-20260911/verification.json",
+    "passed": 20,
+    "otherPagesHtmlIdentical": 7
+  },
+  "protectedFilesChanged": 0,
+  "warning": "showcase-premium: React fetchPriority warning in test Image adapter",
+  "completeSuiteClaim": false
+}

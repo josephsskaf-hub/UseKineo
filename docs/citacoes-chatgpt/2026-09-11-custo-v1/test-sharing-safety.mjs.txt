@@ -1,0 +1,1 @@
+Sharing safety: 70 checks passed; no network, live data or credentials.

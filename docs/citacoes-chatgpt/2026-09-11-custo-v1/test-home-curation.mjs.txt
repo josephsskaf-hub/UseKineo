@@ -1,0 +1,1 @@
+Home curation: 178 checks passed; no database or provider calls.
