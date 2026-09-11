@@ -65,6 +65,7 @@ import { alertCreatomateDown } from '@/lib/creatomateAlert'
 import { checkCreatomateQuota } from '@/lib/creatomateQuota'
 import { inspectActiveComposeCreditHolds } from '@/lib/credits/composeHold'
 import { loadVerifiedCinematicClaim, type CinematicClaim } from '@/lib/cinematic/claim'
+import { collectSceneNarrations, verifyObservedSpeech } from '@/lib/cinematic/speechContract'
 // KINEO-COMPOSE-REJECT-NOREFUND-2026-08-10 — ver o cabeçalho do arquivo: numa
 // recusa TERMINAL do fornecedor nenhum render_id nasce, logo /api/compose/status
 // nunca é chamado e o estorno ao vivo de lá é inalcançável. Sem isto, o único
@@ -123,7 +124,7 @@ import {
 // narration blocks are synthesized with ONE pinned voice, resolved from the
 // full voiceover_script — the SAME resolution the cinematic route ran for the
 // host lines, so host speech and b-roll narration share a single narrator.
-// Fail-open: any failure falls back to the per-block generateTTS below.
+// Failure preserves the clips for recovery; it never selects a different voice.
 import { resolveHollywoodVoice, synthesizeHostSpeech, type HollywoodVoice } from '@/lib/hollywood/hostVoice'
 
 export const maxDuration = 300
@@ -414,8 +415,8 @@ interface ComposeBody {
   scene_narrations?: (string | null)[]
   scene_seconds?: number[]
   // KINEO-HOLLYWOOD-21-2026-07-10 (bug b) — the EXACT spoken line per dialogue
-  // scene (null for cinematic/support), parallel to clip_urls. Captions on
-  // dialogue scenes chunk THIS text so they match the actual speech.
+  // scene (null for cinematic/support), parallel to clip_urls. It is checked
+  // against the clip transcript; captions never substitute for missing audio.
   scene_dialogues?: (string | null)[]
   // KINEO-OWN-VOICE-2026-07-10 (Prioridade 3, cliente $200/mês) —
   // Level A: the user's OWN pre-recorded narration (our public storage URL).
@@ -1895,12 +1896,8 @@ export async function POST(req: NextRequest) {
     // (+0.5s tolerance), so residual silence can only ever be that scene's own
     // tail (<=2-3s), never 10 accumulated seconds. Whisper captions ride the
     // same per-scene mp3 (offset = scene start). Dialogue scenes are never
-    // narrated over; background music is off. Every step is best-effort — a
-    // failed narration TTS degrades THAT scene to native-audio-only, never a
-    // dead render.
-    // KINEO-H3-FIX-2026-08-19 — o H3 compoe pelo MESMO caminho hollywood
-    // (cenas paralelas com scene_engines/scene_narrations); a diferenca — tudo
-    // narrado, nada de fala nativa — ja chega resolvida da rota de geracao.
+    // narrated over. Speech failures stop before composition; silent scenes
+    // and captions copied from a requested line are not successful delivery.
     if (quality === 'cinematic_hollywood' || quality === 'cinematic_h3' || quality === 'cinematic_omni' || quality === 'cinematic_s25') {
       const rawEngines = Array.isArray(body.scene_engines) ? body.scene_engines : []
       const rawNarrations = Array.isArray(body.scene_narrations) ? body.scene_narrations : []
@@ -1908,8 +1905,8 @@ export async function POST(req: NextRequest) {
       // KINEO-HOLLYWOOD-21-2026-07-10 (bug b) — real spoken line per scene.
       const rawDialogues = Array.isArray(body.scene_dialogues) ? body.scene_dialogues : []
 
-      // Defensive alignment: arrays are parallel to clip_urls; anything
-      // missing/misaligned degrades that scene to a silent-ish support scene.
+      // Arrays are parallel to clip_urls. Missing narration is rejected below,
+      // never silently downgraded to an unvoiced support scene.
       // KINEO-HOLLYWOOD-HOST-2026-07-13 — 'host' accepted (presenter-rendered
       // dialogue scene, speech baked in, seconds = measured audio length).
       const hollywoodClips: HollywoodClipInput[] = clipUrls.map((url, i) => {
@@ -1935,6 +1932,26 @@ export async function POST(req: NextRequest) {
           ...(dlg ? { dialogueLine: dlg } : {}),
         }
       })
+
+      // Verify already-generated speech before any additional narration work.
+      // KINEO-LIPSYNC-CAPTIONS-2026-08-17 — transcreve o AUDIO NATIVO das
+      // cenas de fala (Whisper direto no mp4 do clipe). A requested line is
+      // not evidence of speech: reject absent/different audio before rendering.
+      for (const [sceneIdx, c] of hollywoodClips.entries()) {
+        if ((c.engine === 'dialogue' || c.engine === 'host') && c.url) {
+          const words = await transcribeClipWithTimestamps(c.url).catch(() => [] as WhisperWord[])
+          const speech = verifyObservedSpeech(c.dialogueLine, words)
+          if (!speech.ok) {
+            console.warn('[compose] native speech verification failed', { scene_index: sceneIdx, reason: speech.reason })
+            return rejectBeforeProviderSubmission(NextResponse.json({
+              error: `Scene ${sceneIdx + 1}'s spoken audio could not be verified against the script. Your generated clips are preserved; no replacement voice was added.`,
+              code: 'cinematic_dialogue_unverified', recoverable: true,
+            }, { status: 422 }))
+          }
+          c.speechWords = words
+        }
+      }
+      console.log(`[compose] hollywood lipsync captions: ${hollywoodClips.filter((c) => c.speechWords).length} cena(s) de fala transcritas`)
 
       // Timeline offsets (pre-trim — only the LAST scene is ever trimmed by
       // the builder, which never moves earlier offsets).
@@ -1975,16 +1992,15 @@ export async function POST(req: NextRequest) {
       // narracao medida (+0.6s de respiro), entao o rabo de silencio que o
       // fundador ouviu como "apagao" deixa de existir estruturalmente. Este
       // bloco so coleta o TEXTO por cena; tempos vem depois do ajuste.
-      const pendingScenes: Array<{ sceneIdx: number; text: string }> = []
-      hollywoodClips.forEach((c, i) => {
-        // KINEO-HOLLYWOOD-HOST-2026-07-13 — never narrate over 'host'
-        // scenes either: their clip audio IS the speech (our TTS).
-        const narr =
-          c.engine !== 'dialogue' && c.engine !== 'host' && typeof rawNarrations[i] === 'string'
-            ? (rawNarrations[i] as string).trim()
-            : ''
-        if (narr) pendingScenes.push({ sceneIdx: i, text: narr })
-      })
+      let pendingScenes: Array<{ sceneIdx: number; text: string }>
+      try {
+        pendingScenes = collectSceneNarrations(hollywoodClips, rawNarrations)
+      } catch {
+        return rejectBeforeProviderSubmission(NextResponse.json({
+          error: 'A scene is missing its narration. Your generated clips are preserved; the film was not submitted.',
+          code: 'cinematic_speech_missing', recoverable: true,
+        }, { status: 422 }))
+      }
 
       // KINEO-HOLLYWOOD-HOST-2026-07-13 — ONE NARRATOR VOICE. generateTTS
       // re-selects a persona per call by keyword-scanning the text it gets,
@@ -1994,8 +2010,7 @@ export async function POST(req: NextRequest) {
       // voiceoverScript (the identical string the route resolved from —
       // stripScriptMarkers is idempotent and runs on both sides), with the
       // same vertical/language, so host speech and narration share one voice.
-      // Fail-open: a null pin (or a pinned-synth failure per block) falls
-      // back to the exact pre-v3.5 generateTTS call.
+      // Never re-select a per-block persona if the pinned voice fails.
       let hollywoodPinnedVoice: HollywoodVoice | null = null
       if (pendingScenes.length > 0) {
         try {
@@ -2003,9 +2018,11 @@ export async function POST(req: NextRequest) {
           console.log(
             `[compose] hollywood pinned narration voice: persona=${hollywoodPinnedVoice.personaId} voice=${hollywoodPinnedVoice.voice}`,
           )
-        } catch (e) {
-          console.warn('[compose] hollywood voice pin failed — per-block persona fallback:', e instanceof Error ? e.message : String(e))
-          hollywoodPinnedVoice = null
+        } catch {
+          return rejectBeforeProviderSubmission(NextResponse.json({
+            error: 'The narration voice could not be prepared. Your generated clips are preserved; no replacement voice was added.',
+            code: 'cinematic_voice_unavailable', recoverable: true,
+          }, { status: 422 }))
         }
       }
 
@@ -2019,44 +2036,35 @@ export async function POST(req: NextRequest) {
       const measured: Array<{ sceneIdx: number; url: string; dur: number; text: string; words?: WhisperWord[] }> = []
       for (const pending of pendingScenes) {
         try {
-          // KINEO-HOLLYWOOD-HOST-2026-07-13 — pinned voice first (persona
-          // pace × user speed, same formula generateTTS applies internally);
-          // any failure degrades to the pre-v3.5 per-block generateTTS.
-          let buf: Buffer | null = null
-          if (hollywoodPinnedVoice) {
-            try {
-              buf = await synthesizeHostSpeech({
-                text: pending.text,
-                voice: hollywoodPinnedVoice.voice,
-                speed: hollywoodPinnedVoice.defaultSpeed * (explicitSpeed ?? 1.0),
-              })
-            } catch (pinErr) {
-              console.warn('[compose] hollywood pinned-voice TTS failed — generateTTS fallback:', pinErr instanceof Error ? pinErr.message : String(pinErr))
-              buf = null
-            }
-          }
-          if (!buf || buf.length === 0) {
-            buf = await generateTTS(pending.text, explicitSpeed ?? 1.0, vertical, narrationTier, language)
-          }
-          if (!buf || buf.length === 0) continue
+          if (!hollywoodPinnedVoice) throw new Error('Narration voice unavailable')
+          const buf = await synthesizeHostSpeech({
+            text: pending.text,
+            voice: hollywoodPinnedVoice.voice,
+            speed: hollywoodPinnedVoice.defaultSpeed * (explicitSpeed ?? 1.0),
+          })
+          if (!buf || buf.length === 0) throw new Error('Narration audio unavailable')
           const dur = estimateMp3DurationSeconds(buf)
-          if (!(dur > 0.3)) continue
-          const [words, url] = await Promise.all([
-            transcribeTTSWithTimestamps(buf).catch(() => [] as WhisperWord[]),
-            uploadVoiceoverToSupabase(user.id, buf),
-          ])
+          if (!(dur > 0.3)) throw new Error('Narration audio is empty')
+          // This exact buffer was synthesized from pending.text with the pinned
+          // voice. ASR is optional timing evidence, not authority to reject or
+          // rewrite trusted TTS (e.g. "22" versus "twenty-two"). If it cannot
+          // align, caption the canonical TTS text over this same measured audio.
+          const observed = await transcribeTTSWithTimestamps(buf).catch(() => [] as WhisperWord[])
+          const words = verifyObservedSpeech(pending.text, observed).ok ? observed : undefined
+          const url = await uploadVoiceoverToSupabase(user.id, buf)
           measured.push({
             sceneIdx: pending.sceneIdx,
             url,
             dur,
             text: pending.text,
-            words: Array.isArray(words) && words.length > 0 ? words : undefined,
+            words,
           })
-        } catch (blockErr) {
-          // Best-effort: THAT scene degrades to native ambient audio + caption
-          // (per-scene TTS means one failure no longer mutes neighbor scenes).
-          console.warn('[compose] hollywood scene narration failed — continuing without it:',
-            blockErr instanceof Error ? blockErr.message : String(blockErr))
+        } catch {
+          console.warn('[compose] narration verification failed', { scene_index: pending.sceneIdx })
+          return rejectBeforeProviderSubmission(NextResponse.json({
+            error: `Scene ${pending.sceneIdx + 1}'s narration could not be verified. Your generated clips are preserved; no replacement voice was added.`,
+            code: 'cinematic_narration_unverified', recoverable: true,
+          }, { status: 422 }))
         }
       }
       // Encolhe SUPPORT pro tamanho real da fala (piso 3s; nunca cresce alem
@@ -2188,16 +2196,6 @@ export async function POST(req: NextRequest) {
       // as the other premium fal engines.
       const forced = FORCE_WATERMARK_EMAILS.has((user.email ?? '').toLowerCase())
 
-      // KINEO-LIPSYNC-CAPTIONS-2026-08-17 — transcreve o AUDIO NATIVO das
-      // cenas de fala (Whisper direto no mp4 do clipe) pra legenda seguir a
-      // boca do ator. Sequencial, 2-4 clipes tipicos, ~2s cada; best-effort.
-      for (const c of hollywoodClips) {
-        if ((c.engine === 'dialogue' || c.engine === 'host') && c.url) {
-          const words = await transcribeClipWithTimestamps(c.url)
-          if (words.length > 1) c.speechWords = words
-        }
-      }
-      console.log(`[compose] hollywood lipsync captions: ${hollywoodClips.filter((c) => c.speechWords).length} cena(s) de fala transcritas`)
 
       // KINEO-HOLLYWOOD-SCORE-2026-08-17 — trilha por tema tambem no
       // Hollywood (rodava sem musica; respiros viravam "apagao"). Mesmo

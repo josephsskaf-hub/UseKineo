@@ -39,6 +39,7 @@ import {
   type AttemptRecord,
 } from '@/lib/cinematic/dispatchScenes'
 import { resolveVerbatimSegments } from '@/lib/cinematic/verbatimBeats'
+import { sceneNarrationsForPlan } from '@/lib/cinematic/speechContract'
 import { aplicarEixoVisual } from '@/lib/hollywood/varietyAxis'
 import { decidirFormato, permiteApresentador, TAG_FACELESS, proibidosPorModo } from '@/lib/cinematic/visualMode'
 // KINEO-MULTIFORMATO-2026-09-02 — enquadramento pedido (9:16 · 16:9 · 1:1 · 4:5).
@@ -518,7 +519,8 @@ function buildFalInput(
       prompt,
       duration: Math.max(5, Math.min(15, Math.round(typeof seconds === 'number' && seconds > 0 ? seconds : 10))),
       resolution: H3_RESOLUTION,
-      generate_audio: false,
+      // H3 native audio has no generate_audio switch in its official schema.
+      // https://fal.ai/models/minimax/h3/image-to-video/api (2026-09-11)
     }
   }
   if (model === H3_MODELS.dialogue) {
@@ -527,7 +529,8 @@ function buildFalInput(
       duration: Math.max(5, Math.min(15, Math.round(typeof seconds === 'number' && seconds > 0 ? seconds : 10))),
       resolution: H3_RESOLUTION,
       aspect_ratio: frame.falAspectRatio, // KINEO-MULTIFORMATO-2026-09-02 — '9:16' sem `aspect`
-      generate_audio: false,
+      // https://fal.ai/models/minimax/h3/text-to-video/api (2026-09-11):
+      // no generate_audio/audio_url input. Verify native dialogue in compose.
     }
   }
   if (model === KLING3_I2V_MODEL) {
@@ -3867,28 +3870,10 @@ async function manipularPost(req: NextRequest) {
       // string compose receives back from the client, and BOTH routes resolve
       // the narrator persona from it (lib/hollywood/hostVoice) — that's what
       // guarantees the host lines and the b-roll narration share ONE voice.
-      // KINEO-H3-FIX-2026-08-19 — no Kling 3, cena de diálogo fala SOZINHA
-      // (áudio nativo) e por isso narração=null. O H3 entra MUDO por decisão
-      // (Contrato C1: a voz é a do usuário) — então no H3 TODA cena leva TTS,
-      // inclusive as de diálogo, usando a própria fala como narração. Sem isto
-      // o filme sairia com buracos de silêncio exatamente nas cenas-chave.
-      // #281 — KINEO-H3-DIALOGO-2026-08-23 (fundador: "quero que ela fale em
-      // alguns momentos, e em outros a narracao assuma"). O flatten de 19/08
-      // (dialogo virava cena narrada) MORREU: o proprio builder mediu que o H3
-      // devolve fala nativa alta e clara (pico -0.2dB) — o motor fala, so
-      // faltava dirigir. Agora o H3 usa o MESMO desenho do Kling 3: cena de
-      // dialogo fala sozinha (audio nativo, narracao null), o resto e narrado.
-      // C1 preservado: a dialogueLine vem do roteiro redistribuido em codigo.
-      // KINEO-OMNI-2026-08-25 — V1 do Omni roda TUDO narrado (inclusive a
-      // cena de dialogo, usando a propria fala como narracao): ate o render
-      // de validacao provar que o audio nativo dele fala alto e claro, filme
-      // 100% narrado > aposta em fala que nao veio (a mesma escada do H3:
-      // mudo primeiro, dialogo nativo religado depois via #281).
-      const hNarrations = wantsH3
-        ? plan.scenes.map((s) => (s.type === 'dialogue' ? null : (s.voiceover ?? null)))
-        : wantsOmni
-          ? plan.scenes.map((s) => (s.type === 'dialogue' ? (s.dialogueLine ?? s.voiceover ?? null) : (s.voiceover ?? null)))
-          : plan.scenes.map((s) => (s.needsNarration && s.voiceover ? s.voiceover : null))
+      // One speech source across Kling/H3/Omni: native dialogue or pinned
+      // narration. Compose verifies dialogue; it never covers missing speech
+      // with an external narrator. Provider audio capabilities are not a guarantee.
+      const hNarrations = sceneNarrationsForPlan(plan.scenes)
       const hVoiceoverScript =
         hNarrations.filter(Boolean).join(' ') ||
         plan.scenes.map((s) => s.dialogueLine ?? '').filter(Boolean).join(' ') ||

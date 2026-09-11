@@ -16,6 +16,7 @@ import { renderOutputSpec, renderOutputSpecFor } from '@/lib/renderProfile'
 // KINEO-MULTIFORMATO-2026-09-02 — geometria + layout por enquadramento.
 import { aspectSpec, type AspectSpec } from '@/lib/aspect'
 import { cinematicSceneSeconds, assertCinematicTimeline } from '@/lib/cinematic/timelineContract'
+import { verifyObservedSpeech } from '@/lib/cinematic/speechContract'
 // KINEO-CREDIT-STUCK-2026-08-08 — política única de 429 (fal + Creatomate).
 import { CREATOMATE_SUBMIT_RATE_LIMIT, rateLimitWaitMs, sleep } from '@/lib/rateLimit'
 import { selectPersonaForScript, describeVoiceSelection } from '@/lib/narration/niche-mapping'
@@ -910,7 +911,8 @@ const CAPTION_SYNC_OFFSET = 0.15 // seconds, added to each caption start
 // de fala com audio nativo: o fundador viu a legenda descolar da boca do ator
 // no final do video — a distribuicao uniforme nao ouve o ritmo real da fala.
 // Whisper aceita mp4 direto; clipes de 5-10s tem 2-6MB (limite da API: 25MB).
-// Fail-open: qualquer falha retorna [] e a legenda cai no comportamento antigo.
+// Any failure returns []; the caller must not misrepresent requested text as
+// observed speech. Advanced composition preserves the clips and fails its gate.
 // ⚠️ KINEO-LEGENDA-MUDA-2026-08-22 — CADA RECUSA AQUI PASSA A DIZER O PORQÊ.
 // Auditoria de 22/08: o Kling 3 saiu com ZERO legenda em 6 de 6 frames, e o
 // mecanismo de legenda das cenas de fala existe e está completo desde 17/08.
@@ -944,7 +946,7 @@ export async function transcribeClipWithTimestamps(clipUrl: string): Promise<Whi
       // ESTE é o degrau que eu suspeito ser o culpado do Kling 3. Se aparecer
       // nos logs, a solução definitiva é mandar só o ÁUDIO ao Whisper em vez
       // do vídeo — o teto de 25 MB é da OpenAI e não sobe.
-      console.warn(`[compose] clip whisper: clipe ACIMA do teto do Whisper (${mb}MB > 24MB) — legenda desta cena vai pelo fallback de texto`)
+      console.warn(`[compose] clip whisper: clipe ACIMA do teto do Whisper (${mb}MB > 24MB) — fala nao verificada`)
       return []
     }
     const { openai } = await import('@/lib/openai')
@@ -959,7 +961,7 @@ export async function transcribeClipWithTimestamps(clipUrl: string): Promise<Whi
     const words: WhisperWord[] = Array.isArray(transcription?.words) ? transcription.words : []
     return words.filter((w) => typeof w?.word === 'string' && Number.isFinite(w?.start) && Number.isFinite(w?.end))
   } catch (e) {
-    console.warn('[compose] clip whisper failed (legenda uniforme):', e instanceof Error ? e.message : String(e))
+    console.warn('[compose] clip whisper failed (speech unverified)')
     return []
   }
 }
@@ -2753,13 +2755,13 @@ export interface HollywoodClipInput {
   seconds: number
   caption: string
   // KINEO-HOLLYWOOD-21-2026-07-10 (bug b) — the EXACT spoken line of a
-  // dialogue scene (undefined for cinematic/support). Captions chunk THIS
-  // text so the on-screen words match what the person actually says.
+  // dialogue scene (undefined for cinematic/support). It is the expected
+  // script, not proof of speech; speechWords must independently match it.
   dialogueLine?: string
   // KINEO-LIPSYNC-CAPTIONS-2026-08-17 — palavras REAIS do audio nativo do
   // clipe (Whisper sobre o proprio mp4, offsets relativos ao inicio da
-  // cena). Presente → as legendas da cena de fala sincronizam com a boca do
-  // ator (karaoke incluso); ausente → distribuicao uniforme de antes.
+  // cena). Matching words supply karaoke timings. Missing/different words
+  // fail the speech gate; there is no requested-dialogue caption fallback.
   speechWords?: WhisperWord[]
 }
 
@@ -2945,8 +2947,8 @@ export function buildHollywoodCreatomateSource({
   // trim_start intentionally 0: trimming a dialogue clip's head would eat the
   // first spoken word. loop:true fills the slot if an engine returned a clip
   // slightly shorter than planned (robustness, zero dead frames).
-  // KINEO-HOLLYWOOD-HOST-2026-07-13 — EXCEPT 'host' clips: their audio is the
-  // baked-in speech, so looping would REPLAY the first words. loop:false — if
+  // Native dialogue AND host clips contain speech: looping would replay the
+  // opening words. Both use loop:false — if
   // the presenter clip runs a hair short of its slot, the dark track-1
   // background covers the sub-second gap (invisible next to repeated speech).
   cleanClips.forEach((clip, i) => {
@@ -2968,7 +2970,7 @@ export function buildHollywoodCreatomateSource({
       // track-1 base as a margin around the footage. See the note on the
       // Fast clip element in buildCreatomateSource.
       fit: 'cover',
-      loop: clip.engine !== 'host',
+      loop: clip.engine !== 'host' && clip.engine !== 'dialogue',
       x: '50%', y: '50%', width: '100%', height: '100%',
       // KINEO-H3-AUDIT2-2026-08-20 — cena 'host' NUNCA entra no mute do H3:
       // o áudio dela é o NOSSO TTS (apresentador), não voz inventada do
@@ -3135,71 +3137,29 @@ export function buildHollywoodCreatomateSource({
     }
   }
 
-  // Track 5 — captions on DIALOGUE scenes (the person's own voice carries the
-  // audio). KINEO-HOLLYWOOD-21-2026-07-10 (bug b): the caption is the REAL
-  // spoken line, in ~3-word chunks distributed uniformly across the scene
-  // window [start + 0.3s, end - 0.4s] — same visual style as the whisper
-  // captions (buildCaptionElements). Fallback when the line is unavailable:
-  // the old static scene caption (previous behavior).
-  // KINEO-HOLLYWOOD-HOST-2026-07-13 — 'host' scenes caption identically: the
-  // clip speaks its dialogueLine (our TTS), so the same chunking applies and,
-  // because host slots equal the real audio length, the uniform spread tracks
-  // the speech even more closely than on native-audio dialogue scenes.
+  // Track 5 — dialogue/host captions come only from observed, matching speech.
+  // A requested dialogueLine or a scene label must never impersonate audio.
   cleanClips.forEach((clip, i) => {
     if (clip.engine !== 'dialogue' && clip.engine !== 'host') return
     const t = sceneStarts[i]
-    if (t >= captionWindowEnd) return
+    const speech = verifyObservedSpeech(clip.dialogueLine, clip.speechWords)
+    if (!speech.ok) throw new Error(`Scene ${i + 1} has unverified dialogue (${speech.reason}).`)
+    if (t >= captionWindowEnd) throw new Error(`Scene ${i + 1}'s dialogue is outside the caption timeline.`)
 
-    // KINEO-LIPSYNC-CAPTIONS-2026-08-17 — com as palavras REAIS do clipe
-    // (Whisper no mp4), a legenda segue a boca do ator, chunk a chunk, com
-    // karaoke — mesmo pipeline das narracoes. Fail-open pro caminho uniforme.
-    if (Array.isArray(clip.speechWords) && clip.speechWords.length > 1) {
-      const caps = buildCaptionsFromWhisperWords(clip.speechWords, secondsFor(clip), 0, CAPTION_WORDS_PER_CHUNK)
-      let emitted = 0
-      for (const cap of caps) {
-        const st = round3(t + cap.time)
-        if (st >= captionWindowEnd) continue
-        const d = round3(Math.max(0.1, Math.min(cap.duration, captionWindowEnd - st)))
-        elements.push(...buildCaptionElements({
-          text: cap.text, time: st, duration: d, highlight: cap.highlight,
-          emphasize: FAST_EMPHASIS_RE.test(cap.text),
-          karaokeWords: cap.words.map((w) => ({ word: w.word, start: round3(w.start + t), end: round3(w.end + t) })),
-        }))
-        emitted++
-      }
-      if (emitted > 0) return
-      // transcricao vazia/inutil → segue pro caminho uniforme abaixo
+    const caps = buildCaptionsFromWhisperWords(clip.speechWords!, secondsFor(clip), 0, CAPTION_WORDS_PER_CHUNK)
+    let emitted = 0
+    for (const cap of caps) {
+      const st = round3(t + cap.time)
+      if (st >= captionWindowEnd) continue
+      const d = round3(Math.max(0.1, Math.min(cap.duration, captionWindowEnd - st)))
+      elements.push(...buildCaptionElements({
+        text: cap.text, time: st, duration: d, highlight: cap.highlight,
+        emphasize: FAST_EMPHASIS_RE.test(cap.text),
+        karaokeWords: cap.words.map((w) => ({ word: w.word, start: round3(w.start + t), end: round3(w.end + t) })),
+      }))
+      emitted++
     }
-    const line = (clip.dialogueLine ?? '').trim()
-    if (line) {
-      const winStart = round3(t + 0.3)
-      const winEnd = round3(Math.min(t + durations[i] - 0.4, captionWindowEnd))
-      const window = winEnd - winStart
-      const segments = buildCaptionSegments(line, /* KINEO-SPRINT-12H-2026-07-29: was a hardcoded 3. Hollywood is the most expensive tier and was the last place still slicing captions three-at-a-time, i.e. the only path still able to burn `IT IT'S CALLED` on screen. Track the same knob every other tier uses. */ CAPTION_WORDS_PER_CHUNK)
-      if (window > 0.5 && segments.length > 0) {
-        const slot = window / segments.length
-        segments.forEach((seg, k) => {
-          const st = round3(winStart + k * slot)
-          if (st >= captionWindowEnd) return
-          const d = round3(Math.max(0.1, Math.min(slot, captionWindowEnd - st)))
-          // PUSH #93 (FIX 3) — emphasis applies on every tier, hollywood included.
-          elements.push(...buildCaptionElements({
-            text: seg.text, time: st, duration: d, highlight: seg.highlight,
-            emphasize: FAST_EMPHASIS_RE.test(seg.text),
-          }))
-        })
-        return
-      }
-    }
-
-    const text = (clip.caption ?? '').trim()
-    if (!text) return
-    const d = round3(Math.max(0.5, Math.min(durations[i] - 0.2, captionWindowEnd - t)))
-    // PUSH #93 (FIX 3) — emphasis applies on every tier, hollywood included.
-    elements.push(...buildCaptionElements({
-      text, time: round3(t), duration: d, highlight: null,
-      emphasize: FAST_EMPHASIS_RE.test(text),
-    }))
+    if (!emitted) throw new Error(`Scene ${i + 1} has no usable spoken-word captions.`)
   })
 
   // Tracks 6, 7 and 10 — DELETED, identical to the standard builder
