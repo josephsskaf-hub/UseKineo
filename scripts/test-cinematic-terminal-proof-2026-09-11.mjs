@@ -210,6 +210,29 @@ eq([badUrl.refunds, badUrl.releases], [0, 0], 'Malformed result never refunds')
 const allGood = await poll({ status: 'COMPLETED' })
 eq(allGood.reply.body.allDone, true, 'All valid completed results unlock composition')
 eq(isTerminal(await verified(allGood.state)), true, 'All completed URL bindings suffice without failure marker')
+const readyBeforeReplay = clone(allGood.state.row)
+const readyWrites = allGood.state.writes
+for (const errorStage of ['status', 'result']) {
+  const readyAgain = await poll({ state: allGood.state, status: 'COMPLETED', errorStage, http: 403 })
+  eq(readyAgain.reply.status, 200, 'Ready signed generation remains available after provider access fails')
+  eq(readyAgain.reply.body.clips.slice(0, 2), [
+    { id: 'job-a', status: 'done', url: 'https://video.invalid/job-a.mp4' },
+    { id: 'job-b', status: 'done', url: 'https://video.invalid/job-b.mp4' },
+  ], 'Exact signed URLs stay ready instead of accepting later provider dispositions')
+  eq(readyAgain.reply.body.allDone, true, 'All-ready state is monotonic across GETs')
+  eq(readyAgain.calls, [], 'No status/result lookup occurs for already authorized URLs')
+  eq([readyAgain.refunds, readyAgain.releases, allGood.state.writes], [0, 0, readyWrites], 'Ready replay does not write/refund/release')
+  eq(allGood.state.row, readyBeforeReplay, 'GET preserves signed ready claim byte for byte')
+}
+const replaceReady = await claimLib.authorizeCinematicCompletedUrls({ ...identity, db: allGood.state.db,
+  completed: [{ requestId: 'job-b', model, url: 'https://video.invalid/replacement.mp4' }] })
+eq(replaceReady.ok, false, 'Real authorization rejects replacing a signed completed URL')
+eq(allGood.state.row, readyBeforeReplay, 'Rejected URL replacement does not mutate claim')
+const readyAndPending = database(fixture({ urls: ['https://video.invalid/original-a.mp4', null, null] }))
+const partialAgain = await poll({ state: readyAndPending, errorStage: 'status', http: 403 })
+eq(partialAgain.reply.body.clips[0], { id: 'job-a', status: 'done', url: 'https://video.invalid/original-a.mp4' }, 'Ready scene stays ready while sibling is ambiguous')
+eq(partialAgain.calls, [['status', 'job-b']], 'Only unresolved sibling is polled')
+eq(partialAgain.reply.body.allDone, false, 'Caching a ready scene cannot terminate its unresolved sibling')
 const failedPersistence = database(fixture({ urls: ['https://video.invalid/a.mp4', null, null] }))
 failedPersistence.failWrite = true
 const failedPoll = await poll({ state: failedPersistence, status: 'FAILED' })
@@ -219,6 +242,17 @@ const allFailed = await poll({ state: database(fixture({ requestIds: ['job-b'] }
 eq(allFailed.reply.status, 502, 'All-failed existing response remains terminal')
 eq([allFailed.refunds, allFailed.releases], [1, 1], 'Refund follows persisted terminal proof')
 eq(allFailed.state.row.metadata.status, 'released', 'Real release HMAC closes fully failed generation')
+const releasedBeforeReplay = clone(allFailed.state.row)
+const releasedWrites = allFailed.state.writes
+const releasedAgain = await poll({ state: allFailed.state, status: 'COMPLETED' })
+eq(releasedAgain.reply.status, 404, 'Released generation is closed even if provider would now return success')
+eq(releasedAgain.calls, [], 'Released claim never starts provider polling again')
+eq([releasedAgain.refunds, releasedAgain.releases, allFailed.state.writes], [0, 0, releasedWrites], 'Released GET has no repeated money or state mutation')
+eq(allFailed.state.row, releasedBeforeReplay, 'Released signed claim is immutable on GET replay')
+const lateReady = await claimLib.authorizeCinematicCompletedUrls({ ...identity, db: allFailed.state.db,
+  completed: [{ requestId: 'job-b', model, url: 'https://video.invalid/late-ready.mp4' }] })
+eq(lateReady.ok, false, 'Real authorization cannot reopen a released claim with a late URL')
+eq(allFailed.state.row, releasedBeforeReplay, 'Late ready event preserves released tombstone')
 const allFailedStorage = database(fixture({ requestIds: ['job-b'] }))
 allFailedStorage.failWrite = true
 const unconfirmed = await poll({ state: allFailedStorage, status: 'FAILED' })
