@@ -98,5 +98,6 @@ eq(fs.readFileSync('next.config.js','utf8').replace(/\r\n/g,'\n'),execFileSync('
 const file='app/(dashboard)/studio/StudioClient.tsx'
 const old=execFileSync('git',['show','5b155dc5:'+file],{encoding:'utf8'})
 function behavior(code){const sf=ts.createSourceFile(file,code,99,true,4),out=[];function visit(n){if(ts.isJsxAttribute(n)&&['onClick','onChange','disabled','value','checked','src'].includes(n.name.getText(sf)))out.push(n.getText(sf).replace(/\r\n/g,'\n'));ts.forEachChild(n,visit)}visit(sf);return out}
-eq(behavior(fs.readFileSync(file,'utf8')),behavior(old),'Studio handlers and request-bound fields unchanged')
+// KINEO-TRES-MODOS-2026-09-11 — o modo clipe (ordem do fundador) ACRESCENTA handlers ao Studio; a trava passa a exigir que todo handler da base continue presente e inalterado (remoção/mudança segue reprovando).
+{const now=behavior(fs.readFileSync(file,'utf8')),base=behavior(old);const missing=base.filter(h=>!now.includes(h));eq(missing,[],'Studio handlers and request-bound fields of the base are preserved')}
 console.log(`Five improvements: ${checks} checks passed; offline only.`)

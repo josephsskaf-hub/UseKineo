@@ -40,6 +40,7 @@ import {
 } from '@/lib/cinematic/dispatchScenes'
 import { resolveVerbatimSegments } from '@/lib/cinematic/verbatimBeats'
 import { resolveCharacterVoice } from '@/lib/hollywood/characterVoice'
+import { detectShotSpec } from '@/lib/cinematic/shotSpec'
 import { sceneNarrationsForPlan } from '@/lib/cinematic/speechContract'
 import { aplicarEixoVisual } from '@/lib/hollywood/varietyAxis'
 import { decidirFormato, permiteApresentador, TAG_FACELESS, proibidosPorModo, type VisualMode } from '@/lib/cinematic/visualMode'
@@ -1278,6 +1279,21 @@ async function manipularPost(req: NextRequest) {
     }
     if (prompt.length > 12000) {
       return NextResponse.json({ error: 'Prompt is too long.' }, { status: 400 })
+    }
+    // ═══ KINEO-TRES-MODOS-2026-09-11 — PLANO COLADO NÃO VIRA NARRAÇÃO ══════
+    // Render 802f024e (11/09): a pessoa colou um plano JSON (clip/duration/
+    // action/camera/vfx) e a narradora LEU O JSON em voz alta. Um prompt de
+    // plano só entra pelo modo clipe (/api/generate-clip). Aqui: 422 antes de
+    // qualquer débito, com a saída certa na mensagem.
+    {
+      const shot = detectShotSpec(prompt)
+      if (shot.isShotSpec) {
+        await writeServerEvent({ name: 'shot_spec_detected', userId: user.id, path: '/api/generate-video-cinematic', metadata: { reason: shot.reason, keys: shot.keys, seconds: shot.seconds, prompt_length: prompt.length } })
+        return NextResponse.json({
+          error: `This looks like a shot plan (${shot.keys.slice(0, 4).join(', ')}), not a story to narrate. Kineo would read it out loud over the footage. Use "Just this clip (no narration)" in Studio to render exactly this shot (${shot.seconds} s), or write the story you want narrated.`,
+          reason: 'shot_spec_detected', clip_seconds: shot.seconds, clip_prompt: shot.prompt.slice(0, 600), retryable: false,
+        }, { status: 422 })
+      }
     }
     const generationId = typeof body.generationId === 'string' ? body.generationId.trim() : ''
     if (!validCinematicGenerationId(generationId)) {

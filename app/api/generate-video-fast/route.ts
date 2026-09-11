@@ -19,6 +19,7 @@ import { pickLibraryClips, type LibraryClip } from '@/lib/stockLibrary'
 import { parseUserScript } from '@/lib/scriptParser'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { classifyEngineFit } from '@/lib/engineFit'
+import { detectShotSpec } from '@/lib/cinematic/shotSpec'
 import { creditCostForDuration } from '@/lib/credits/engineCost'
 // KINEO-ENTREGA-SERVIDOR-2026-09-09 — o MESMO saneador e o MESMO nome de
 // evento que a rota do cliente usa. Importar (em vez de copiar as regras) é o
@@ -365,6 +366,21 @@ export async function POST(req: NextRequest) {
     // (Seedance, custo real) e a tela oferece UMA escolha. Quem insiste manda
     // `engineFitOverride: true` e passa. Nunca é um portão: é um aviso com botão.
     const engineFit = classifyEngineFit(prompt)
+    // ═══ KINEO-TRES-MODOS-2026-09-11 — PLANO COLADO NÃO VIRA NARRAÇÃO ══════
+    // Render 802f024e (11/09): a pessoa colou um plano JSON (clip/duration/
+    // action/camera/vfx) e a narradora LEU O JSON em voz alta. Um prompt de
+    // plano só entra pelo modo clipe (/api/generate-clip). Aqui: 422 antes de
+    // qualquer débito, com a saída certa na mensagem.
+    {
+      const shot = detectShotSpec(prompt)
+      if (shot.isShotSpec) {
+        await writeServerEvent({ name: 'shot_spec_detected', userId: user.id, path: '/api/generate-video-fast', metadata: { reason: shot.reason, keys: shot.keys, seconds: shot.seconds, prompt_length: prompt.length } })
+        return NextResponse.json({
+          error: `This looks like a shot plan (${shot.keys.slice(0, 4).join(', ')}), not a story to narrate. Kineo would read it out loud over the footage. Use "Just this clip (no narration)" in Studio to render exactly this shot (${shot.seconds} s), or write the story you want narrated.`,
+          reason: 'shot_spec_detected', clip_seconds: shot.seconds, clip_prompt: shot.prompt.slice(0, 600), retryable: false,
+        }, { status: 422 })
+      }
+    }
     if (engineFit.verdict === 'stock_cannot_tell' && body.engineFitOverride !== true) {
       const requestedForFit = Number(body.duration) || 45
       const suggestedCredits = creditCostForDuration('cinematic_ai', true, requestedForFit)

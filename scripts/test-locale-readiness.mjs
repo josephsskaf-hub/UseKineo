@@ -26,7 +26,8 @@ const author='My original story — Español हिन्दी <not markup> & 2
 const fixtureVideo={id:'demo-video',topic:author,title:author,video_url:'/fixture.mp4',status:'completed',credits_used:4,created_at:'2026-09-07T00:00:00Z'}
 for(const file of ['app/(dashboard)/history/HistoryClient.tsx','app/(dashboard)/studio/StudioClient.tsx','app/(dashboard)/library/LibraryClient.tsx','app/tools/editor/VideoEditor.tsx']) {
  const handlers=before=>{const a=ts.createSourceFile(file,source(file,before,'6f6eca73'),99,true,4),out=[];function walk(n){if(ts.isJsxAttribute(n)&&['onClick','onChange','disabled','value','checked','src','poster'].includes(n.name.getText(a)))out.push(n.getText(a).replace(/\r\n/g,'\n'));ts.forEachChild(n,walk)}walk(a);return out.sort()}
- eq(handlers(false),handlers(true),'existing handlers, media, settings and submit gates preserved '+file)
+ // KINEO-TRES-MODOS-2026-09-11 — acréscimo aprovado no Studio (modo clipe): a trava exige que todo handler da base continue presente; remoção/mudança segue reprovando.
+ {const now=handlers(false),base=handlers(true);eq(base.filter(h=>!now.includes(h)),[],'existing handlers, media, settings and submit gates preserved '+file)}
 }
 for(const [file,fixture,props] of [
  ['app/KineoLanding.tsx',{},{}], ['app/tools/page.tsx',{},{}],

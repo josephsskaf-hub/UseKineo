@@ -205,7 +205,14 @@ export default function StudioClient() {
   // jeito que ela esta ou AI ajudar a escrever'): mesmo par de modos do
   // fluxo classico — 'ai' estrutura o texto, 'verbatim' narra palavra por
   // palavra (scripts prontos, como os do canal do fundador).
-  const [scriptMode, setScriptMode] = useState<'ai' | 'verbatim'>('ai')
+  // KINEO-TRES-MODOS-2026-09-11 (fundador): terceiro modo 'clip' — "só cria as
+  // imagens do que eu descrevi": UM clipe de 4–12 s no Seedance, sem narrador,
+  // sem legenda, pelo /api/generate-clip. O caso que motivou: um plano JSON
+  // (Luffy vs. Akainu, 10 s) virou 49 s com a narradora lendo o JSON.
+  const [scriptMode, setScriptMode] = useState<'ai' | 'verbatim' | 'clip'>('ai')
+  const [clipSeconds, setClipSeconds] = useState<number>(10)
+  const [clipState, setClipState] = useState<{ phase: 'idle' | 'submitting' | 'rendering' | 'done' | 'failed'; renderId?: string; url?: string; error?: string; startedAt?: number }>({ phase: 'idle' })
+  const clipPollRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [chatGptQuickstart, setChatGptQuickstart] = useState<ChatGptQuickstartChoice | null>(null)
   const promptRef = useRef<HTMLTextAreaElement | null>(null)
   const quickstartReadyTrackedRef = useRef(false)
@@ -385,7 +392,40 @@ export default function StudioClient() {
     })
   }
 
+  // KINEO-TRES-MODOS-2026-09-11 — fluxo do clipe: submit → poll a cada 5 s
+  // (até 8 min) → mostra o mp4. Nada de analyze-idea, nada de compose.
+  const pollClip = (renderId: string, startedAt: number) => {
+    if (clipPollRef.current) clearTimeout(clipPollRef.current)
+    clipPollRef.current = setTimeout(async () => {
+      try {
+        const r = await fetch(`/api/clip-status?render_id=${encodeURIComponent(renderId)}`, { cache: 'no-store' })
+        const j = await r.json() as { status?: string; video_url?: string | null; error?: string }
+        if (j.status === 'done' && j.video_url) { setClipState({ phase: 'done', renderId, url: j.video_url }); void trackEvent('clip_delivered_seen', { render_id: renderId, ms: Date.now() - startedAt }); return }
+        if (j.status === 'failed') { setClipState({ phase: 'failed', renderId, error: j.error || 'The clip could not be rendered. Your credits are back.' }); return }
+      } catch {}
+      if (Date.now() - startedAt > 8 * 60_000) { setClipState({ phase: 'failed', renderId, error: 'The clip is taking longer than usual. It will appear in My Videos when ready.' }); return }
+      pollClip(renderId, startedAt)
+    }, 5000)
+  }
+  const generateClip = async () => {
+    if (!prompt.trim() || clipState.phase === 'submitting' || clipState.phase === 'rendering') return
+    const startedAt = Date.now()
+    setClipState({ phase: 'submitting', startedAt })
+    void trackEvent('clip_generate_clicked', { seconds: clipSeconds, aspect, chars: prompt.trim().length })
+    try {
+      const r = await fetch('/api/generate-clip', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ prompt: prompt.trim(), seconds: clipSeconds, aspect }) })
+      const j = await r.json() as { render_id?: string; error?: string; insufficient?: boolean }
+      if (!r.ok || !j.render_id) { setClipState({ phase: 'failed', error: j.error || 'Could not start the clip.' }); return }
+      setClipState({ phase: 'rendering', renderId: j.render_id, startedAt })
+      pollClip(j.render_id, startedAt)
+    } catch {
+      setClipState({ phase: 'failed', error: 'Network error. Nothing was charged.' })
+    }
+  }
+  useEffect(() => () => { if (clipPollRef.current) clearTimeout(clipPollRef.current) }, [])
+
   const generate = () => {
+    if (scriptMode === 'clip') { void generateClip(); return }
     // Nunca navegar com um texto que o /studio/create vai recusar sem rede:
     // a pessoa veria o erro numa caixa que nao deixa editar o excedente.
     if (limit.over) return
@@ -505,7 +545,16 @@ export default function StudioClient() {
             <div className="row" style={{ marginTop: 10 }}>
               <button type="button" className={`pill${scriptMode === 'ai' ? ' on' : ''}`} onClick={() => setScriptMode('ai')}><UiLabel>✨ Let AI structure it</UiLabel></button>
               <button type="button" className={`pill${scriptMode === 'verbatim' ? ' on' : ''}`} onClick={() => setScriptMode('verbatim')}><UiLabel>📝 Use my script as is</UiLabel></button>
+              <button type="button" data-testid="script-mode-clip" className={`pill${scriptMode === 'clip' ? ' on' : ''}`} onClick={() => setScriptMode('clip')}><UiLabel>🎬 Just this clip (no narration)</UiLabel></button>
             </div>
+            {scriptMode === 'clip' && (
+              <div className="row" style={{ marginTop: 8, alignItems: 'center', gap: 8 }} data-testid="clip-mode-panel">
+                <span className="val" style={{ fontSize: '0.8rem', opacity: 0.85 }}><UiLabel>Describe one shot (action, camera, style). Kineo renders exactly that on Seedance 1.5 — no voice, no captions.</UiLabel></span>
+                {[5, 8, 10, 12].map((s) => (
+                  <button key={s} type="button" className={`pill${clipSeconds === s ? ' on' : ''}`} style={{ fontSize: 11.5 }} onClick={() => setClipSeconds(s)}>{s}s</button>
+                ))}
+              </div>
+            )}
             <div className="cnt" style={limit.over ? { color: '#fb923c', opacity: 1 } : undefined}>
               {prompt.trim()
                 ? `${prompt.trim().split(/\s+/).length} ${t('words', 'palabras')}${scriptMode === 'verbatim' ? (t(' · narrated word for word', ' · narradas palabra por palabra')) : ''} · ${formatLimitCounter(limit)}`
@@ -746,6 +795,19 @@ export default function StudioClient() {
                 </UiLabel></b>
               </div>
             )}
+            {scriptMode === 'clip' && clipState.phase !== 'idle' && (
+              <div className="gnote" data-testid="clip-result" style={{ marginBottom: 10 }}>
+                {clipState.phase === 'submitting' && <UiLabel>Sending your shot to Seedance…</UiLabel>}
+                {clipState.phase === 'rendering' && <UiLabel>Rendering your clip — usually 1 to 3 minutes. You can keep this tab open.</UiLabel>}
+                {clipState.phase === 'failed' && <span style={{ color: '#fb923c' }}>{clipState.error}</span>}
+                {clipState.phase === 'done' && clipState.url && (
+                  <div>
+                    <video src={clipState.url} controls playsInline style={{ width: '100%', maxWidth: 360, borderRadius: 12, display: 'block', marginBottom: 8 }} />
+                    <a href={clipState.url} download className="pill on" style={{ fontSize: 12 }}><UiLabel>Download MP4</UiLabel></a>
+                  </div>
+                )}
+              </div>
+            )}
             <button type="button" onClick={generate} disabled={!prompt.trim() || limit.over} className={`go ${prompt.trim() && !limit.over ? 'ok' : 'no'}`}>
               {/* KINEO-PRECO-VISIVEL-2026-09-02 — o custo entra NO BOTÃO, o
                   padrão da Higgsfield ("the exact cost is shown on the Generate
@@ -754,6 +816,8 @@ export default function StudioClient() {
                   rodapé cinza acima — que ninguém lê depois de escolher. */}
               <UiLabel>{!prompt.trim()
                 ? 'Type your idea first'
+                : scriptMode === 'clip'
+                  ? (clipState.phase === 'rendering' || clipState.phase === 'submitting' ? 'Rendering clip…' : `Render clip · 5 cr →`)
                 : limit.over
                   ? `Trim ${limit.excess.toLocaleString('en-US')} characters to continue`
                   : balance !== null && cost > balance
