@@ -127,7 +127,7 @@ import {
 // full voiceover_script — the SAME resolution the cinematic route ran for the
 // host lines, so host speech and b-roll narration share a single narrator.
 // Failure preserves the clips for recovery; it never selects a different voice.
-import { resolveHollywoodVoice, synthesizeHostSpeech, type HollywoodVoice } from '@/lib/hollywood/hostVoice'
+import { hollywoodVoiceFromClaim, resolveHollywoodVoice, synthesizeHostSpeech, type HollywoodVoice } from '@/lib/hollywood/hostVoice'
 
 export const maxDuration = 300
 
@@ -2117,7 +2117,12 @@ export async function POST(req: NextRequest) {
       let hollywoodPinnedVoice: HollywoodVoice | null = null
       if (pendingScenes.length > 0) {
         try {
-          hollywoodPinnedVoice = resolveHollywoodVoice(voiceoverScript, language, vertical)
+          // KINEO-VOZ-NA-BOCA-2026-09-11 — a rota gravou a voz escolhida pela ficha
+          // do personagem em host_voice (claim assinado). Usar a mesma aqui é o que
+          // garante que narrador e personagem têm UMA voz. Claim antigo (sem o
+          // campo) cai na resolução por roteiro, como antes.
+          hollywoodPinnedVoice = hollywoodVoiceFromClaim(cinematicBirthClaim?.response?.host_voice)
+            ?? resolveHollywoodVoice(voiceoverScript, language, vertical)
           console.log(
             `[compose] hollywood pinned narration voice: persona=${hollywoodPinnedVoice.personaId} voice=${hollywoodPinnedVoice.voice}`,
           )

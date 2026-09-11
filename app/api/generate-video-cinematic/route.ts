@@ -3863,7 +3863,8 @@ async function manipularPost(req: NextRequest) {
       let hostVoice: HollywoodVoice | null = null
       if (anchors) {
         try {
-          hostVoice = resolveHollywoodVoice(hVoiceoverScript, hollywoodLanguage, hollywoodVertical)
+          // KINEO-VOZ-NA-BOCA-2026-09-11 — a ficha do personagem decide o gênero da voz.
+          hostVoice = resolveHollywoodVoice(hVoiceoverScript, hollywoodLanguage, hollywoodVertical, plan.characterSheet)
           console.log(
             `[cinematic] hollywood host voice pinned: persona=${hostVoice.personaId} voice=${hostVoice.voice} speed=${hostVoice.defaultSpeed}`,
           )
@@ -3873,6 +3874,14 @@ async function manipularPost(req: NextRequest) {
         }
       }
       const hostPerformancePrompt = buildHostPerformancePrompt(plan.characterSheet, plan.styleSheet)
+      // ═══ KINEO-VOZ-NA-BOCA-2026-09-11 — LIGADO POR PADRÃO ═══════════════════
+      // Ordem do fundador (11/09): "a gente vai colocar a voz na boca do avatar".
+      // Toda cena de diálogo com retrato-âncora sai com a NOSSA voz (TTS, gênero
+      // pela ficha) sincronizada nos lábios pelo Kling AI Avatar v2 — a mesma voz
+      // que narra o resto do filme. O motor deixa de inventar voz por cena (Kling
+      // 3) e a cena deixa de sair muda (Omni/H3). KINEO_HOLLYWOOD_HOST_TTS=off é
+      // o interruptor de emergência; qualquer outro valor (inclusive ausente) = ligado.
+      const hostTtsEnabled = process.env.KINEO_HOLLYWOOD_HOST_TTS !== 'off'
       // Verbatim scripts may carry an explicit `speed:` directive — apply it
       // to the host lines exactly like compose applies it to the narration
       // (persona pace × user speed, clamped inside synthesizeHostSpeech).
@@ -3922,7 +3931,8 @@ async function manipularPost(req: NextRequest) {
         let id: string | null = null
         let submittedPrompt: string = hs.prompt + eraSuffix // sobrescrito com o prompt completo no caminho t2v/i2v
 
-        // KINEO-HOLLYWOOD-VOICEFIX-2026-08-16 — DESLIGADO por padrao (flag).
+        // KINEO-HOLLYWOOD-VOICEFIX-2026-08-16 — ficou DESLIGADO de 16/08 a 11/09 (flag).
+        // KINEO-VOZ-NA-BOCA-2026-09-11 — religado por padrão; o gênero agora vem da ficha.
         // O host path fazia TTS (persona por hash do script, gênero aleatorio)
         // por cima do ROSTO do personagem via Avatar: cai numa voz feminina e
         // o homem da ancora "fala" com voz de mulher (bug flagrado pelo
@@ -3931,7 +3941,7 @@ async function manipularPost(req: NextRequest) {
         // caminho O3 NATIVO: o personagem fala com a PROPRIA voz, labios e voz
         // sempre do mesmo dono. Narracao TTS segue apenas nas cenas sem gente
         // (estilo documentario: narrador + personagem sao pessoas diferentes).
-        if (process.env.KINEO_HOLLYWOOD_HOST_TTS === 'on' && anchors && hostVoice && hs.type === 'dialogue' && hs.dialogueLine && hs.dialogueLine.trim()) {
+        if (hostTtsEnabled && anchors && hostVoice && hs.type === 'dialogue' && hs.dialogueLine && hs.dialogueLine.trim()) {
           try {
             const speechBuf = await synthesizeHostSpeech({
               text: hs.dialogueLine,
@@ -4286,6 +4296,10 @@ async function manipularPost(req: NextRequest) {
         // o H3 volta a mandar a fala exata da cena (compose a usa para a
         // legenda lipsync via Whisper, igual Kling 3).
         scene_dialogues: plan.scenes.map((s) => (s.type === 'dialogue' && s.dialogueLine ? s.dialogueLine : null)),
+        // KINEO-VOZ-NA-BOCA-2026-09-11 — a voz pinada viaja no claim assinado: o
+        // compose narra o b-roll com EXATAMENTE a voz que falou na boca do
+        // personagem, sem re-resolver por palavras-chave (que ignoram a ficha).
+        host_voice: hostVoice ? { persona_id: hostVoice.personaId, voice: hostVoice.voice, speed: hostVoice.defaultSpeed } : null,
         cost_estimate_usd: plan.estimatedCostUsd,
         // ⚠️ KINEO-H3-FIX-2026-08-19 — ESTA LINHA ERA `quality: 'cinematic_hollywood'`
         // CRAVADO, e foi o bug que travou o primeiro render H3 da história (o do

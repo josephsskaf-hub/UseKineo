@@ -119,6 +119,9 @@ async function runActualComposeSpeech({ engines = ['dialogue', 'support'], narra
     NextResponse: { json: (body, init) => ({ status: init.status, body }) },
     rejectBeforeProviderSubmission: async reply => { calls.push(['release-compose-claim']); return reply },
     resolveHollywoodVoice: () => { calls.push(['pin']); if (failure === 'pin') throw Error('SENTINEL_SECRET'); return { voice: 'approved-voice', defaultSpeed: 1, personaId: 'approved' } },
+    // KINEO-VOZ-NA-BOCA-2026-09-11 — o compose prefere a voz gravada no claim; sem claim, cai no pin por roteiro (o caminho que este teste exercita).
+    hollywoodVoiceFromClaim: (v) => (v && typeof v === 'object' && v.voice ? { voice: v.voice, defaultSpeed: v.speed ?? 1, personaId: v.persona_id ?? 'claim' } : null),
+    cinematicBirthClaim: null,
     synthesizeHostSpeech: async args => { calls.push(['tts', args]); if (failure === 'synth') throw Error('SENTINEL_SECRET'); return failure === 'empty' ? Buffer.alloc(0) : Buffer.from('test-audio') },
     generateTTS: () => { throw Error('Forbidden alternate narrator') },
     estimateMp3DurationSeconds: () => failure === 'duration' ? 0 : 4,
