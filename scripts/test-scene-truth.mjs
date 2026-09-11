@@ -384,15 +384,15 @@ const PROIBIDOS = VM.proibidosPorModo('documentary_faceless')
 
   // O prompt submetido no classico e o CORRIGIDO.
   checa('D4 classico submete o prompt corrigido',
-    /cinematic = r\.promptCorrigido/.test(codigo))
+    /const classicScenePrompts = scenes\.map/.test(codigo) && /return r\.promptCorrigido/.test(codigo) && /const cinematic = classicScenePrompts\[sceneIndex\]/.test(codigo))
   // e o bruto virou variavel separada (prova de que nao ficou sobrescrito).
   checa('D4 classico separa bruto de corrigido',
     // KINEO-SCENE-STYLE-2026-09-09 — o bruto passa pela âncora de estilo antes do contrato; continua variável separada
     // KINEO-STORY-MODE-2026-09-09 — em historia o bruto sai de buildStoryScenePrompt (ternario); fora dela, do faceless + ancora
-    /const cinematicBruto = \((storyMode|applyStyleAnchor\()/.test(codigo) && /buildFacelessCinematicPrompt\(visualPrompt\), styleAnchor\)\) \+ eraSuffix/.test(codigo))
+    /const cinematicBruto = buildClassicVisualPrompt\(visualPrompt,/.test(codigo) && /promptFinal: cinematicBruto/.test(codigo))
 
   // ORDEM: o gate roda ANTES do POST pago no classico.
-  const iGateClassico = codigo.indexOf('cinematic = r.promptCorrigido')
+  const iGateClassico = codigo.indexOf('return r.promptCorrigido')
   const iPostClassico = codigo.indexOf('dispatchOneSceneWithSafeVisualRetry({')
   checa('D4 no classico o gate vem ANTES do despacho',
     iGateClassico > 0 && iPostClassico > 0 && iGateClassico < iPostClassico,

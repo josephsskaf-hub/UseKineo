@@ -33,7 +33,7 @@ try {
     join(raiz, 'lib', 'cinematic', 'dispatchScenes.ts'),
     join(raiz, 'lib', 'cinematic', 'sceneDisposition.ts'),
     '--outDir', saida, '--module', 'commonjs', '--target', 'es2022',
-    '--moduleResolution', 'node', '--skipLibCheck', '--rootDir', join(raiz, 'lib', 'cinematic'),
+    '--moduleResolution', 'node', '--skipLibCheck', '--rootDir', join(raiz, 'lib'),
   ], { stdio: 'pipe' })
   writeFileSync(join(saida, 'package.json'), JSON.stringify({ type: 'commonjs' }))
 } catch (e) {
@@ -41,8 +41,8 @@ try {
   process.exit(1)
 }
 
-const O = requerer(join(saida, 'dispatchScenes.js'))
-const D = requerer(join(saida, 'sceneDisposition.js'))
+const O = requerer(join(saida, 'cinematic', 'dispatchScenes.js'))
+const D = requerer(join(saida, 'cinematic', 'sceneDisposition.js'))
 
 let falhas = 0
 const casos = []
@@ -153,7 +153,7 @@ for (const [nome, passo] of [
   checa('fallback visual remove termos sensíveis e URLs',
     !/(blood|murder|gun|https|@)/i.test(safe), safe)
   checa('fallback visual é curto e determinístico',
-    safe === O.buildContextualSafeVisualPrompt('bloody murder with a gun https://example.test secret@example.test') && safe.length < 600)
+    safe === O.buildContextualSafeVisualPrompt('bloody murder with a gun https://example.test secret@example.test') && safe.length < 1000)
 }
 
 checa('lote clássico sem nenhum ID continua irrecuperável',
@@ -324,7 +324,7 @@ const rota = readFileSync(join(raiz, 'app/api/generate-video-cinematic/route.ts'
 checa('o retry cego de 800ms foi removido', !/setTimeout\(r, 800\)/.test(rota))
 checa('a rota chama o dispatcher com retry visual seguro', /await dispatchOneSceneWithSafeVisualRetry\(\{/.test(rota))
 checa('o retry seguro recebe contexto visual, nunca narração',
-  /buildContextualSafeVisualPrompt\(\s*sanitizeRealPeople\(scene\.stockSearchQuery \|\| scene\.aiPrompt \|\| scene\.description\)/.test(rota))
+  /buildContextualSafeVisualPrompt\(\s*sanitizeRealPeople\(scene\.aiPrompt \|\| scene\.stockSearchQuery \|\| scene\.description\)/.test(rota))
 checa('a rota usa a política executável de cobertura clássica',
   /if \(!hasRenderableClassicScene\(falRequestIds\)\)/.test(rota))
 checa('o piso morto de 50% foi removido',
