@@ -21,10 +21,12 @@ export function citationAnswerMetadata(answer: CitationAnswer): Metadata {
   }
 }
 
-export default function CitationAnswerPage({ answer, heroSecondaryAction, planComparison }: {
+export default function CitationAnswerPage({ answer, heroSecondaryAction, planComparison, comparisonSection, reviewDate = CITATION_REVIEW_DATE }: {
   answer: CitationAnswer
   heroSecondaryAction?: ReactNode
   planComparison?: ReactNode
+  comparisonSection?: ReactNode
+  reviewDate?: string
 }) {
   // Only an existing, founder-owned allowlisted example. No customer query,
   // new render, autoplay or background video download belongs on this page.
@@ -48,7 +50,7 @@ export default function CitationAnswerPage({ answer, heroSecondaryAction, planCo
           <Link href="/ai-video-generator">Engines & video guides</Link>
         </nav>
         <header className="kc-hero">
-          <div className="kc-eyebrow">A practical video guide · Reviewed {CITATION_REVIEW_DATE}</div>
+          <div className="kc-eyebrow">A practical video guide · Reviewed {reviewDate}</div>
           <h1>{answer.question}</h1>
           <div className="kc-direct">{answer.answer.map((sentence) => <p key={sentence}>{sentence}</p>)}</div>
           {heroSecondaryAction ? <div className="kccd-actions">{trialCta}{heroSecondaryAction}</div> : trialCta}
@@ -71,7 +73,7 @@ export default function CitationAnswerPage({ answer, heroSecondaryAction, planCo
           <h2>{check.heading}</h2>
           <ol className="kc-steps">{check.items.map((item) => <li key={item}>{item}</li>)}</ol>
         </section>)}
-        <section className="kc-section" aria-labelledby="comparison-heading">
+        {comparisonSection ?? <section className="kc-section" aria-labelledby="comparison-heading">
           <h2 id="comparison-heading">Compare the workflow and its limits</h2>
           <p>Compare the starting point as well as the finished output. The four other tools' current price and export limits are not confirmed in this guide; [CONFIRMAR] means the field needs verification, not that the feature is absent.</p>
           <div className="kc-table-scroll" role="region" aria-label="Video tool comparison, scroll horizontally for all columns" tabIndex={0}>
@@ -88,7 +90,7 @@ export default function CitationAnswerPage({ answer, heroSecondaryAction, planCo
             </table>
           </div>
           <p className="kc-source">Kineo source: <Link href="/llms.txt">the public fact sheet</Link>, reviewed {CITATION_REVIEW_DATE}. Provider links identify comparison candidates; their presence does not verify a feature or allowance. The current values marked [CONFIRMAR] still need verification at the provider before a purchase decision.</p>
-        </section>
+        </section>}
         <section className="kc-section" aria-labelledby="workflow-heading">
           <h2 id="workflow-heading">How Kineo does it</h2>
           <div className="kc-workflow">

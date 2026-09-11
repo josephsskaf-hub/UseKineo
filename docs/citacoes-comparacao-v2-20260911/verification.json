@@ -1,0 +1,441 @@
+{
+  "classification": "TESTADO LOCALMENTE",
+  "timeUtc": "2026-09-11T04:18:27.981Z",
+  "baseline": "984a1a15a0bdd373decbb325d4f57e3c9e0a6057",
+  "method": "Actual route components rendered offline, including the V1 cost route; seven HTML byte comparisons; primary-source fixture checks and existing CTA handler with analytics stub.",
+  "checks": [
+    "global answer map is unchanged",
+    "unchanged route source: /ai-video-generator/free-script-to-faceless-video",
+    "unchanged actual route HTML: /ai-video-generator/free-script-to-faceless-video",
+    "unchanged route source: /ai-video-generator/free-faceless-tiktok-tools",
+    "unchanged actual route HTML: /ai-video-generator/free-faceless-tiktok-tools",
+    "unchanged route source: /ai-video-generator/complete-60-second-shorts-cost",
+    "unchanged actual route HTML: /ai-video-generator/complete-60-second-shorts-cost",
+    "cost V1 still has both decision and campaign",
+    "unchanged route source: /ai-video-generator/faceless-shorts-under-30",
+    "unchanged actual route HTML: /ai-video-generator/faceless-shorts-under-30",
+    "unchanged route source: /ai-video-generator/free-youtube-shorts",
+    "unchanged actual route HTML: /ai-video-generator/free-youtube-shorts",
+    "unchanged route source: /ai-video-generator/horror-story-60-seconds",
+    "unchanged actual route HTML: /ai-video-generator/horror-story-60-seconds",
+    "unchanged route source: /ai-video-generator/chatgpt-script-to-finished-short",
+    "unchanged actual route HTML: /ai-video-generator/chatgpt-script-to-finished-short",
+    "seven other routes preserved",
+    "canonical, title and literal question unchanged; accurate local description",
+    "two trial CTAs and destinations unchanged",
+    "allowlisted example and no generated video",
+    "five FAQs retain four unchanged answers and visible JSON-LD parity",
+    "one comparison with five providers and six columns",
+    "every Pictory field has dated primary sources",
+    "every Descript field has dated primary sources",
+    "every HeyGen field has dated primary sources",
+    "every OpusClip field has dated primary sources",
+    "monthly price fixture: Pictory",
+    "monthly price fixture: Descript",
+    "monthly price fixture: HeyGen",
+    "monthly price fixture: OpusClip",
+    "Pictory trial, scoped cap and conflicting card condition",
+    "Descript seat price, media allowance and separate export scope",
+    "HeyGen allowances, scoped Creator engine and unresolved Free watermark",
+    "Opus resources, export window and presets never become a global cap",
+    "uncertainty is visible on the specific disputed or unverified part",
+    "Kineo offer and unknown maximum remain explicit",
+    "comparison CTA follows the table without forged acquisition source",
+    "existing CTA handler emits intended campaign under analytics stub",
+    "network stayed blocked"
+  ],
+  "unchangedPages": [
+    {
+      "path": "/ai-video-generator/free-script-to-faceless-video",
+      "sha256": "f2f496c309f42cf51c466d8f48092acb02b78b3207352b661045b23255d0f072"
+    },
+    {
+      "path": "/ai-video-generator/free-faceless-tiktok-tools",
+      "sha256": "2d843d9fb4cac3ecd6676359cb70c4cdc99a9cf409d356d1e6b141b060ac430e"
+    },
+    {
+      "path": "/ai-video-generator/complete-60-second-shorts-cost",
+      "sha256": "8ea83eb781e9c4ea747de81daecab3fd1d9e0e42ea10caa0ba54c5d0f997bf5a"
+    },
+    {
+      "path": "/ai-video-generator/faceless-shorts-under-30",
+      "sha256": "2a85995c8f6ea3cc5df92013edb68565808e6fa4b36ec63dc0dbadb4bd03f3c6"
+    },
+    {
+      "path": "/ai-video-generator/free-youtube-shorts",
+      "sha256": "22c1d7b270c014daa57efcef3e67dcd44acbb00283f2225f84967452c9091763"
+    },
+    {
+      "path": "/ai-video-generator/horror-story-60-seconds",
+      "sha256": "432fe6ac1e6b935790d6d585cef8d3c7d9801b5fbd3b69a40066f31b6ff6a70a"
+    },
+    {
+      "path": "/ai-video-generator/chatgpt-script-to-finished-short",
+      "sha256": "26ddfb274763187164eee6ec9c5744ccc5e0ede433a3a4a48d4d5c680bc5129c"
+    }
+  ],
+  "expectedPrices": [
+    [
+      "Pictory",
+      29,
+      "Starter",
+      "https://pictory.ai/pricing/"
+    ],
+    [
+      "Descript",
+      24,
+      "Hobbyist",
+      "https://www.descript.com/pricing"
+    ],
+    [
+      "HeyGen",
+      29,
+      "Creator",
+      "https://www.heygen.com/pricing"
+    ],
+    [
+      "OpusClip",
+      15,
+      "Starter",
+      "https://www.opus.pro/pricing"
+    ]
+  ],
+  "sourceCoverage": [
+    {
+      "name": "Pictory",
+      "fields": {
+        "workflow": {
+          "status": "verified",
+          "sources": [
+            {
+              "label": "Pricing",
+              "url": "https://pictory.ai/pricing/",
+              "checkedOn": "2026-09-11"
+            }
+          ]
+        },
+        "price": {
+          "status": "verified",
+          "sources": [
+            {
+              "label": "Pricing",
+              "url": "https://pictory.ai/pricing/",
+              "checkedOn": "2026-09-11"
+            }
+          ]
+        },
+        "trial": {
+          "status": "conflict",
+          "sources": [
+            {
+              "label": "Pricing",
+              "url": "https://pictory.ai/pricing/",
+              "checkedOn": "2026-09-11"
+            },
+            {
+              "label": "Signup",
+              "url": "https://app.pictory.ai/signup?nav=mega",
+              "checkedOn": "2026-09-11"
+            },
+            {
+              "label": "Verification",
+              "url": "https://app.pictory.ai/cards/",
+              "checkedOn": "2026-09-11"
+            }
+          ]
+        },
+        "engines": {
+          "status": "unknown",
+          "sources": [
+            {
+              "label": "Pricing",
+              "url": "https://pictory.ai/pricing/",
+              "checkedOn": "2026-09-11"
+            },
+            {
+              "label": "AI Studio",
+              "url": "https://kb.pictory.ai/en/articles/12507673-ai-studio-overview",
+              "checkedOn": "2026-09-11"
+            }
+          ]
+        },
+        "duration": {
+          "status": "unknown",
+          "sources": [
+            {
+              "label": "Pricing",
+              "url": "https://pictory.ai/pricing/",
+              "checkedOn": "2026-09-11"
+            }
+          ]
+        },
+        "watermark": {
+          "status": "verified",
+          "sources": [
+            {
+              "label": "Watermark help",
+              "url": "https://kb.pictory.ai/en/articles/8468876-how-to-remove-the-pictory-watermark-and-branding-from-my-video",
+              "checkedOn": "2026-09-11"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Descript",
+      "fields": {
+        "workflow": {
+          "status": "verified",
+          "sources": [
+            {
+              "label": "Pricing",
+              "url": "https://www.descript.com/pricing",
+              "checkedOn": "2026-09-11"
+            }
+          ]
+        },
+        "price": {
+          "status": "verified",
+          "sources": [
+            {
+              "label": "Pricing",
+              "url": "https://www.descript.com/pricing",
+              "checkedOn": "2026-09-11"
+            }
+          ]
+        },
+        "trial": {
+          "status": "verified",
+          "sources": [
+            {
+              "label": "Pricing",
+              "url": "https://www.descript.com/pricing",
+              "checkedOn": "2026-09-11"
+            }
+          ]
+        },
+        "engines": {
+          "status": "unknown",
+          "sources": [
+            {
+              "label": "Pricing",
+              "url": "https://www.descript.com/pricing",
+              "checkedOn": "2026-09-11"
+            },
+            {
+              "label": "Model access",
+              "url": "https://help.descript.com/generative-media/models",
+              "checkedOn": "2026-09-11"
+            }
+          ]
+        },
+        "duration": {
+          "status": "unknown",
+          "sources": [
+            {
+              "label": "Pricing",
+              "url": "https://www.descript.com/pricing",
+              "checkedOn": "2026-09-11"
+            },
+            {
+              "label": "Web-link help",
+              "url": "https://help.descript.com/export-and-share/share-page",
+              "checkedOn": "2026-09-11"
+            },
+            {
+              "label": "Export help",
+              "url": "https://help.descript.com/export-and-share/video-gif",
+              "checkedOn": "2026-09-11"
+            }
+          ]
+        },
+        "watermark": {
+          "status": "conflict",
+          "sources": [
+            {
+              "label": "Pricing",
+              "url": "https://www.descript.com/pricing",
+              "checkedOn": "2026-09-11"
+            },
+            {
+              "label": "Export help",
+              "url": "https://help.descript.com/export-and-share/video-gif",
+              "checkedOn": "2026-09-11"
+            },
+            {
+              "label": "Editor page",
+              "url": "https://www.descript.com/tools/video-editor",
+              "checkedOn": "2026-09-11"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "HeyGen",
+      "fields": {
+        "workflow": {
+          "status": "verified",
+          "sources": [
+            {
+              "label": "Pricing",
+              "url": "https://www.heygen.com/pricing",
+              "checkedOn": "2026-09-11"
+            }
+          ]
+        },
+        "price": {
+          "status": "verified",
+          "sources": [
+            {
+              "label": "Pricing",
+              "url": "https://www.heygen.com/pricing",
+              "checkedOn": "2026-09-11"
+            }
+          ]
+        },
+        "trial": {
+          "status": "verified",
+          "sources": [
+            {
+              "label": "Pricing",
+              "url": "https://www.heygen.com/pricing",
+              "checkedOn": "2026-09-11"
+            }
+          ]
+        },
+        "engines": {
+          "status": "verified",
+          "sources": [
+            {
+              "label": "Pricing",
+              "url": "https://www.heygen.com/pricing",
+              "checkedOn": "2026-09-11"
+            }
+          ]
+        },
+        "duration": {
+          "status": "verified",
+          "sources": [
+            {
+              "label": "Pricing",
+              "url": "https://www.heygen.com/pricing",
+              "checkedOn": "2026-09-11"
+            },
+            {
+              "label": "Duration guide",
+              "url": "https://www.heygen.com/blog/heygen-creator-plan-maximum-video-length",
+              "checkedOn": "2026-09-11"
+            }
+          ]
+        },
+        "watermark": {
+          "status": "conflict",
+          "sources": [
+            {
+              "label": "Pricing",
+              "url": "https://www.heygen.com/pricing",
+              "checkedOn": "2026-09-11"
+            },
+            {
+              "label": "Watermark help",
+              "url": "https://help.heygen.com/en/articles/11057301-how-to-remove-the-heygen-watermark",
+              "checkedOn": "2026-09-11"
+            },
+            {
+              "label": "Tool page",
+              "url": "https://www.heygen.com/tool/free-ai-video-generator-no-watermark",
+              "checkedOn": "2026-09-11"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "OpusClip",
+      "fields": {
+        "workflow": {
+          "status": "verified",
+          "sources": [
+            {
+              "label": "Clipping guide",
+              "url": "https://help.opus.pro/docs/article/clip-anything-prompt-manual",
+              "checkedOn": "2026-09-11"
+            }
+          ]
+        },
+        "price": {
+          "status": "verified",
+          "sources": [
+            {
+              "label": "Pricing",
+              "url": "https://www.opus.pro/pricing",
+              "checkedOn": "2026-09-11"
+            }
+          ]
+        },
+        "trial": {
+          "status": "verified",
+          "sources": [
+            {
+              "label": "Pricing",
+              "url": "https://www.opus.pro/pricing",
+              "checkedOn": "2026-09-11"
+            },
+            {
+              "label": "Credit help",
+              "url": "https://help.opus.pro/docs/article/plans-and-credits",
+              "checkedOn": "2026-09-11"
+            }
+          ]
+        },
+        "engines": {
+          "status": "unknown",
+          "sources": [
+            {
+              "label": "Pricing",
+              "url": "https://www.opus.pro/pricing",
+              "checkedOn": "2026-09-11"
+            },
+            {
+              "label": "Clipping guide",
+              "url": "https://help.opus.pro/docs/article/clip-anything-prompt-manual",
+              "checkedOn": "2026-09-11"
+            }
+          ]
+        },
+        "duration": {
+          "status": "unknown",
+          "sources": [
+            {
+              "label": "Pricing",
+              "url": "https://www.opus.pro/pricing",
+              "checkedOn": "2026-09-11"
+            },
+            {
+              "label": "Clip presets",
+              "url": "https://help.opus.pro/docs/article/select-clip-length",
+              "checkedOn": "2026-09-11"
+            }
+          ]
+        },
+        "watermark": {
+          "status": "verified",
+          "sources": [
+            {
+              "label": "Pricing",
+              "url": "https://www.opus.pro/pricing",
+              "checkedOn": "2026-09-11"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "networkAttempts": 0,
+  "externalClicks": 0,
+  "generatedVideos": 0,
+  "beforeSha256": "1644b7aedf768d52d3fbbf1f2574beace27cede7eac6ebfd3f9834579f43dfb9",
+  "afterSha256": "8fc3951e57c16868bd641dcbd3d0377b02588f5b50d365acea13717bd26b2ca5",
+  "passed": true
+}
