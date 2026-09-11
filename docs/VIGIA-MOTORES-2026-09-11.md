@@ -214,3 +214,95 @@ guarda NÃO cobre (ambos os filmes passaram por eles):
   fundador 02/09: "não aperte a régua").
 - Motores caros: 0 renders desde 11:34. O canário pago Kling 3 em 1ª pessoa
   continua sendo a única prova possível de voz na boca — pendência do fundador.
+
+---
+
+## Rotação 3 — 17:30 BRT (20:30 UTC) · branch codex/vigia-motores-1730 · base 2d5c5e44
+
+### Filmes de contas externas desde 19:30 UTC (16:30 BRT)
+
+**Nenhum render novo.** A única linha em `videos` depois de 19:30 UTC é o
+c636e7a0 (created_at 19:38, despacho 19:33) — já lido e avaliado na rotação 2
+(nota 8,7). Eventos de render entre 19:38 e 20:30 UTC: zero
+(`generation_dispatch_received`, `cinematic_*`, `compose_*`,
+`generation_stage_error`, `plan_silence_rejected`, `shot_spec_detected`,
+avatar, clipe, Kineo 1 — todos 0). Uma pessoa externa chegou ao /generate
+às 20:01 UTC (`generate_arrived_server` + `generate_page_view`) e não
+despachou nada até o fechamento desta leitura. Contas internas: nenhum render
+pago, nenhum dry-run. Kling 3/H3/Omni/S25: **0 renders de qualquer conta desde
+11:34** — voz na boca e primeira pessoa continuam sem prova em produção.
+
+### Delta dos motores (rotação 3)
+
+Sem mudança no retrato da rotação 1 além do que a rotação 2 já registrou:
+nenhuma falha nova de nenhum motor na janela; nenhum motor caro exercitado.
+Pendências de medição herdadas continuam sem denominador (0 filmes novos):
+descritor obedecendo a regra de lugar/época (prompt), `setting_scrubbed`
+(código, entra nesta rotação).
+
+### O que mudou (rotação 3) — a metade determinística do VISUAL-DRIFT-11
+
+Sem filme para medir, a rotação fechou em código o buraco que os dois filmes
+da tarde mostraram. A regra nova no prompt do descritor (16:30) é pedido; o
+modelo pode ignorar palavras — os 8 prompts reais de hoje provam que ignora.
+Isto é garantia:
+
+- `lib/cinematic/visualPromptPolicy.ts` (KINEO-VIGIA-CENARIO):
+  `scrubInventedSetting(visual, historia)` — puro, sem chamada de modelo.
+  Remove da descrição visual (1) sequência de palavras Capitalizadas fora do
+  início de frase cujas palavras não estão na história (nome próprio de
+  lugar/casa/cidade/marca), com número colado junto ("Nokia 3310", "Model
+  500"); (2) ano 1000-2099 e década ("1960s", "'70s") ausentes da história;
+  (3) adjetivo de época (victorian, vintage, medieval, retro, antique…)
+  ausente da história. A história = tema + fala (`voiceover`), nunca
+  aiPrompt/description. O que a história cita fica: Luffy/Akainu, Daniel's,
+  Napoleon/Alps/1805, Eiffel Tower, "medieval". Limpa preposição/artigo
+  pendurados ("door from the , as" → "door, as"; "through Times Square at
+  night" → "at night"). Devolve `{ text, removed }`.
+- `app/api/generate-video-cinematic/route.ts`: no caminho clássico, depois
+  do fim do hollywoodPath e ANTES de `contratoRelatoClassico` / "Prepare
+  ONCE" (= antes de qualquer still ou clipe pago), as três fontes de visual
+  (aiPrompt do descritor, stockSearchQuery, description) passam pelo filtro e
+  o texto filtrado SUBSTITUI o original em `scenes`. O que foi removido vai
+  ao contexto de despacho (`cenarioRemovido`) e sai em
+  `cinematic_dispatch_result.setting_scrubbed` (por cena: "cena 3: Nokia |
+  3310 | vintage") — medível na próxima rotação. Warn no log
+  `[cinematic] cenario-scrub:`. Narração intocada. Hollywood não passa (tem
+  planner próprio; fica anotado).
+- Posição escolhida de propósito: o guardião do Codex
+  `test-visual-contract-2026-09-11` fatia a rota a partir de
+  `const contratoRelatoClassico` e executa o pedaço com globais próprios —
+  o bloco novo dentro da fatia quebrava com "prompt is not defined". Movido
+  para antes da fatia; guardião do Codex intocado e verde (326).
+- Guardião `scripts/test-vigia-cenario-inventado-2026-09-11.mjs` (31
+  checks): transpila e EXECUTA `scrubInventedSetting` com os 8 prompts REAIS
+  que subiram hoje (7 do c636e7a0, 1 do 597f8237) contra as duas histórias
+  reais; prova o que fica; prova posição do bloco, as 3 fontes, a
+  substituição, a narração intocada e o campo no evento. Falsificado por 7
+  mutantes, todos mortos com `git diff --stat` provando que aplicaram e
+  `git checkout` restaurando: nome sempre conhecido (7 falhas) · ano nunca
+  removido (5) · adjetivo nunca removido (3) · número colado fica (2) ·
+  história lê aiPrompt (1) · filtra sem substituir (1) · evento sem
+  setting_scrubbed (1).
+- tsc 0 · 16 baterias do CI + scene-truth + motores-r2-r6 + voz-na-boca +
+  primeira-pessoa + silencio-na-cena + vigia-ledger + vigia-descritor +
+  tres-modos-clipe + vigia-cenario = 25/25 verdes. Vermelhos herdados
+  conhecidos (test-motores-d1, test-multiformato) não fazem parte da lista.
+
+### O que fica
+
+- Medir na rotação 4: `setting_scrubbed` dos próximos `cinematic_dispatch_result`
+  clássicos — quantos filmes tiveram remoção, o quê, e se os
+  `submitted_prompts` saíram sem nome próprio/década ausente do `topic`.
+  Também conferir se algum nome LEGÍTIMO foi removido (falso positivo:
+  palavra Capitalizada que a história cita com outra grafia).
+- Custo conhecido do filtro: perde "fog rolling in" → "fog rolling" (preposição
+  final removida na limpeza) só quando houve remoção na mesma descrição.
+  Aceito: só dispara em descrição que já inventou lugar/época.
+- Hollywood (Kling 3/H3/Omni) não passa pelo filtro — o planner escreve os
+  prompts com personagem e cenário próprios; sem filme desde 11:34 para saber
+  se o mesmo drift existe lá.
+- Continuam: retry de cena com '9:16' cravado (Codex), H3 de walidbasempayments
+  (sem chave fal), Seedance provider_abandoned_refunded (12 pessoas/15 d, sem
+  chave fal para saber se as cenas estavam prontas), canário pago Kling 3 em
+  1ª pessoa (fundador).

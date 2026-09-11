@@ -4470,15 +4470,6 @@ async function manipularPost(req: NextRequest) {
     }
     // ── end KINEO-HOLLYWOOD-2026-07-09 ──────────────────────────────────────
 
-    // Veredito do Contrato de Cena no caminho CLASSICO, cena a cena. So as
-    // que NAO passaram limpas. Vazio = todas passaram. Sem isto o gate
-    // corrigiria no escuro e a auditoria nao teria como saber se ajudou ou
-    // estragou — o defeito que o #353A cometeu ao instrumentar sem ligar.
-    const contratoRelatoClassico: Array<{
-      cena: number; antes: string; depois: string; cobertura: string
-      acoes: string[]; motivo: string
-    }> = []
-
     // KINEO-VIGIA-CENARIO-2026-09-11 — antes de qualquer still ou clipe pago,
     // as TRÊS fontes de visual (descritor, GPT das cenas, plano de b-roll)
     // passam pelo filtro determinístico: nome próprio, ano/década e adjetivo
@@ -4505,6 +4496,15 @@ async function manipularPost(req: NextRequest) {
       if (cenarioRemovido.length) console.warn(`[cinematic] cenario-scrub: lugar/epoca fora da historia removidos — ${cenarioRemovido.join(' · ')}`)
       ctxDespacho().cenarioRemovido = cenarioRemovido
     }
+    // Veredito do Contrato de Cena no caminho CLASSICO, cena a cena. So as
+    // que NAO passaram limpas. Vazio = todas passaram. Sem isto o gate
+    // corrigiria no escuro e a auditoria nao teria como saber se ajudou ou
+    // estragou — o defeito que o #353A cometeu ao instrumentar sem ligar.
+    const contratoRelatoClassico: Array<{
+      cena: number; antes: string; depois: string; cobertura: string
+      acoes: string[]; motivo: string
+    }> = []
+
     // Prepare ONCE, before any paid still: the still and clip must depict the
     // same corrected scene, including the opening/closing and approved look.
     {
