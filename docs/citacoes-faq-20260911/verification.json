@@ -1,0 +1,58 @@
+{
+  "classification": "TESTADO LOCALMENTE",
+  "timeUtc": "2026-09-11T14:15:33.957Z",
+  "baseline": "f6e4e3e69b4d87e94789575dfdd155074019d3b7",
+  "method": "Evaluate catalog against baseline with both public-engine flags; compare all fields except exactly three answers; render actual FAQ JSX extracted from unchanged route without importing media loaders.",
+  "checks": [
+    "only the three answers changed: S25_PUBLIC=false",
+    "only the three answers changed: S25_PUBLIC=true",
+    "current independent credit fixtures and whole-film coverage",
+    "present-day entry is free and current account gate allows all three engines",
+    "Kling and Veo explain insufficient balance independently of access",
+    "Seedance comparison replaces subjective ranking with budget and cost",
+    "all three repaired answers state the current watermark terms without old restrictions",
+    "route and finance/access sources are byte-identical to baseline",
+    "actual FAQ JSX renders the changed answer: kling",
+    "actual FAQ JSX renders the changed answer: veo",
+    "actual FAQ JSX renders the changed answer: seedance",
+    "no network, media loader or video generation was executed"
+  ],
+  "scenarios": [
+    {
+      "flag": false,
+      "engineCount": 7,
+      "unchangedScopeSha256": "f67e95377e2e25225920bed93cea11a24fcf05cc197a8118dc9474712e646dab"
+    },
+    {
+      "flag": true,
+      "engineCount": 8,
+      "unchangedScopeSha256": "cf9232e729ea2d5368d4a7a85ef596f6e67329c267fb8faea3d66a568de76d3e"
+    }
+  ],
+  "changedAnswers": [
+    {
+      "slug": "kling",
+      "index": 0,
+      "question": "Is Kling 2.5 free on Kineo?",
+      "beforeSha256": "d7997710a97f2e7fb2bf1316efbf69eb39f9718320cc8ba3dbc271eb9efc5da5",
+      "afterSha256": "b9180380ed163823bb164c9ab4ce7bce031a97f22cea979ce0ef04ee519e12a0"
+    },
+    {
+      "slug": "veo",
+      "index": 0,
+      "question": "Can I try Veo 3.1 for free?",
+      "beforeSha256": "d2e4f0ac589eb555f7fc62e38f7c451e95fafa8825d4e26c0c1040571594651f",
+      "afterSha256": "b90df4d14167948dba1cf5bb0adddd095fbdeaa0c4df4a341b55a02285c75271"
+    },
+    {
+      "slug": "seedance",
+      "index": 2,
+      "question": "Seedance vs Kling vs Veo — which should I pick?",
+      "beforeSha256": "d0bc29d2bc914b9c2a7e5f30321e18e2d2b57834bdf6b6495885ada7baace023",
+      "afterSha256": "94a40fa7bdb9205064c1921125330b517047d50bce29099af14caa494e2440c4"
+    }
+  ],
+  "networkAttempts": 0,
+  "generatedVideos": 0,
+  "passed": true
+}

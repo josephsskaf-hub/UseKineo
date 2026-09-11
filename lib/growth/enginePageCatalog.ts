@@ -1,12 +1,9 @@
 // Shared data for the engine page, hub and sitemap. Route modules export only Next-supported names.
 // Mechanical extraction for CITACOES-01; existing content and feature gates are preserved.
-import { TIER_PRICES } from '@/lib/checkoutPricing'
 import { S25_PUBLIC } from '@/lib/engineLaunch'
-import { getFreeTierOffer, swapFreeTierCopy as ft, trialFilmsForEngine } from '@/lib/freeTierOffer'
-import { STARTER_MONTH, creditsPerReferenceVideo, videosPerMonth } from '@/lib/marketingPrice'
+import { getFreeTierOffer, swapFreeTierCopy as ft, trialFilmsForEngine, TRIAL_CREDITS_SHOWN } from '@/lib/freeTierOffer'
+import { STARTER_MONTH, MARKETING_REFERENCE_SECONDS, creditsPerReferenceVideo, videosPerMonth } from '@/lib/marketingPrice'
 import type { EngineLandingParam } from '@/lib/growth/engineLandingIntent'
-// KINEO-PRICING-V7-2026-09-09 — preço do Studio nas respostas vem da fonte única.
-const STUDIO_USD = `$${TIER_PRICES.pro.usd / 100}`
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -96,7 +93,7 @@ export const ENGINES: Record<string, Engine> = {
       },
       {
         q: 'Seedance vs Kling vs Veo — which should I pick?',
-        a: `Seedance is the lowest-cost generated video (${SEEDANCE_COST} credits per 60 seconds) and handles most faceless Shorts; Kling 2.5 at ${KLING_COST} credits is the house best-value pick for camera motion. Kling 2.5 is stronger on camera movement and physical motion. Veo 3.1 is Google’s flagship and the most expensive. Kling 2.5, Veo 3.1 and Kling 3 are Studio-plan engines (${STUDIO_USD}/month).`,
+        a: `Choose by your budget and remaining credits: a complete ${MARKETING_REFERENCE_SECONDS}-second reference film costs ${SEEDANCE_COST} credits with Seedance 1.5, ${KLING_COST} with Kling 2.5 or ${VEO_COST} with Veo 3.1. New accounts receive ${TRIAL_CREDITS_SHOWN} free credits, with every engine unlocked and no card required. That balance ${trialFilmsForEngine(SEEDANCE_COST) > 0 ? 'covers a complete Seedance reference film' : 'does not cover a complete Seedance reference film'}; engine access does not guarantee enough credits for a render. Choose a paid plan with sufficient credits when you need more. Free-trial films carry a watermark; a paid plan unlocks clean downloads.`,
       },
     ],
   },
@@ -115,7 +112,7 @@ export const ENGINES: Record<string, Engine> = {
     faq: [
       {
         q: 'Is Kling 2.5 free on Kineo?',
-        a: `Kling 2.5 is a Studio engine (${STUDIO_USD}/month); Starter and Creator include Kineo 1 and Seedance 1.5. It costs ${KLING_COST} credits per 60-second video, and the 80 trial credits ${trialFilmsForEngine(KLING_COST) > 0 ? `cover ${trialFilmsForEngine(KLING_COST)}` : 'do not stretch to one — they cover a full Seedance film instead, which is the same pipeline on a cheaper engine'}. A Creator plan or a sufficient top-up covers Kling. Trial films come out watermarked; a plan unlocks the clean download.`,
+        a: `New accounts receive ${TRIAL_CREDITS_SHOWN} free credits, with every engine unlocked and no card required. A complete ${MARKETING_REFERENCE_SECONDS}-second Kling 2.5 reference film costs ${KLING_COST} credits, so the trial balance ${trialFilmsForEngine(KLING_COST) > 0 ? 'covers one complete reference film' : 'does not cover one complete reference film'}. Engine access and sufficient balance are separate requirements: choose a paid plan with enough credits for the render. Free-trial films carry a watermark; a paid plan unlocks clean downloads.`,
       },
       {
         q: 'Which Kling model does Kineo use?',
@@ -142,7 +139,7 @@ export const ENGINES: Record<string, Engine> = {
     faq: [
       {
         q: 'Can I try Veo 3.1 for free?',
-        a: `Veo 3.1 is a Studio engine (${STUDIO_USD}/month) at ${VEO_COST} credits per 60-second video; the 80 trial credits do not cover one, so it takes the Studio plan or a sufficient top-up. What you can test at no cost is the pipeline itself: run the same topic through Kineo 1 or Seedance, see the script, voice and captions, then switch engines once you like the format.`,
+        a: `New accounts receive ${TRIAL_CREDITS_SHOWN} free credits, with every engine unlocked and no card required. A complete ${MARKETING_REFERENCE_SECONDS}-second Veo 3.1 reference film costs ${VEO_COST} credits, so the trial balance ${trialFilmsForEngine(VEO_COST) > 0 ? 'covers one complete reference film' : 'does not cover one complete reference film'}. Engine access and sufficient balance are separate requirements: choose a paid plan with enough credits for the render. Free-trial films carry a watermark; a paid plan unlocks clean downloads.`,
       },
       {
         q: 'What is different about Veo inside Kineo versus using Veo directly?',
