@@ -44,3 +44,13 @@ Se fila/main mudar, houver conflito ou gate falhar: não publicar, não ignorar 
 **EVIDÊNCIA OPERACIONAL:** fundador renovou as quatro tarefas por 24h, de 10/09 23h30 até 11/09 23h30 BRT, sem renovação automática. Retomadas de 30 minutos, escalonadas; últimos 30 minutos reservados ao fechamento. Citações continua em custo-V1 separado; Diretórios em submissões gratuitas elegíveis; Afiliados em ativação e respostas do piloto; Parcerias em revisão nominal dos pacotes existentes.
 
 **QUESTÃO PENDENTE:** nenhuma receita atribuível comprovada por este pacote. Publicar pedidos não é obter ACK do Claude, preparar mensagem não é enviar e recibo editorial não é página no ar. Próximo marco: deploy das três páginas e revisão nominal explícita, preservando preço e permissões atuais.
+
+## Fechamento da integração — 11/09/2026 03:01 UTC
+
+**VALIDADO EM PRODUÇÃO:** o pacote funcional foi publicado em `f31501b6f68349f7a90d98d40d08521e8fd8f591` por enfileirar e BAT revisados, com main-base `7827f2e0`; Vercel `dpl_5XQu7pUoiVHfKN3CDb7HPayGpoSx` READY, alias `www.usekineo.com`, sem aliasError. Guardião GitHub [run34556487758](https://github.com/josephsskaf-hub/UseKineo/actions/runs/34556487758) concluído SUCCESS.
+
+**EVIDÊNCIA DE PRODUÇÃO — 02:59:51 a 03:01:00 UTC:** oito páginas do lote respondem200; três novas têm H1, canonical e CTAs próprios; os oito links constam no hub, sitemap e llms. Sete páginas de motores respondem200 e S25 desligado404 esperado. O destino comum `/chatgpt-to-youtube-shorts` responde200 com âncora `chatgpt-script-handoff`. Fonte privada completa: `C:/Users/josep/.codex/outputs/01a03e3e-5f63-7cf1-8b9f-6c6646b446b7/HTTP-INTEGRACAO-2026-09-11.json`; conferência adicional dos cinco anteriores e destino registrada no comprovante vizinho. GET/SSR não certifica hidratação, clique, compra ou render; limites de browser acima permanecem.
+
+**ENTREGUE:** três páginas adicionais, total oito no ar; kit v6 e pedidos por ID publicados. Nenhuma receita atribuível nova demonstrada. Os arquivos sujos da árvore principal e os dois arquivos de terceiros conferidos mantiveram os mesmos SHA256 antes/depois. Não houve force, remoção, reset, uso de credencial de produção em testes, envio externo, render ou pagamento.
+
+**COORDENAÇÃO:** reserva de fila encerrada após confirmação de Git/deploy/HTTP. Citações recebeu contraprova; Afiliados e Parcerias receberam aviso de pedidos no Git, sem presumir leitura do Claude. A renovação continua até 11/09 23h30BRT. Este fechamento documental deve acompanhar a próxima entrega da fila; não recontar a publicação de documentação como nova página ou venda.
