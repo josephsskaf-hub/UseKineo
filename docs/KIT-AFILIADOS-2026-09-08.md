@@ -1,4 +1,4 @@
-# Kineo Affiliate Kit v5 — 30% on eligible purchases, paid in USD
+# Kineo Affiliate Kit v6 — 30% on eligible purchases, paid in USD
 
 **SUGESTÃO / PRONTO PARA PUBLICAÇÃO — revisão 10/09/2026:** atualização do kit existente de 08/09, incorporando a copy e os CTAs da versão local 4. Material escrito; distribuição e uso por parceiro são estados separados. Este arquivo não comprova página publicada, aceite ou venda.
 
@@ -136,3 +136,62 @@ For post-level reporting, keep a simple record of the post URL, publication date
 **FATO CONFIRMADO / IMPLEMENTADO — SHA `7a7a2441`, leitura 10/09/2026:** no caminho Stripe conferido, o webhook exige afiliado ativo (:585), lê a atribuição de `profiles.affiliate_id` (:493) e retorna sem comissão se não resolver o vínculo (:572). O reparo pelo referral canônico existe em `lib/affiliateAttribution.ts:77-99`; a chamada preventiva encontrada no checkout é do caminho de assinatura (`app/api/stripe/checkout/route.ts:2201`). O registro de comissão avulsa em `lib/affiliateLedger.ts:135-141` não transforma automaticamente o referral em assinante pago.
 
 **QUESTÃO PENDENTE — estudo já encaminhado ao Board em 10/09/2026:** antes de anunciar cobertura de toda recarga dos futuros pacotes, validar recompra sem cookie, reparo do vínculo, deduplicação da cobrança e métricas de comprador avulso. A condição vigente do bônus continua primeiro pagamento mensal aprovado; este kit não a estende a pacotes. O pedido e a nota de impacto existentes permanecem com Board/Claude; nenhuma alteração de ledger, checkout ou termos financeiros nesta entrega.
+
+## Ativação em português — do aceite à publicação verificável
+
+**SUGESTÃO / PREPARADO LOCALMENTE — 11/09/2026 UTC:** extensão do mesmo kit para o piloto em português. A lacuna atendida é uma orientação pronta de gravação e publicação após interesse humano. Os termos, legendas e roteiros anteriores foram preservados. Não há parceiro ativado, vídeo gravado, envio ou publicação comprovados por esta seção.
+
+### Uma próxima ação após o aceite
+
+**SUGESTÃO — mensagem individual para adaptar somente após interesse confirmado, histórico e canal conferidos:**
+
+```text
+Obrigado por topar avaliar a Kineo. Para preparar sua primeira publicação, comece pelo seu link: na sua própria conta, abra a área de afiliados, selecione o destino da campanha e use “Copy link” para copiar o link exibido no painel. Se ainda aparecer uma solicitação de adesão, esse passo é seu; não precisamos da sua senha nem de dados de pagamento por mensagem.
+
+Envie seu link de afiliado e o endereço do perfil onde pretende divulgar. O roteiro abaixo permite apresentar o fluxo sem pedir um render novo. Se você já tiver um vídeo seu feito na Kineo e integralmente revisado, pode acrescentá-lo como exemplo real; se não tiver, apresente apenas a interface, sem anunciar um resultado que ainda não existe.
+
+Antes de publicar, configure o link clicável do perfil com o rótulo “Kineo — link de afiliado”. Depois, nos envie a URL da publicação para conferirmos o caminho do espectador. Não é necessário fazer uma compra de teste.
+```
+
+**SUGESTÃO — divisão de trabalho:** o parceiro acessa sua própria conta, decide aderir e fornece o link real. O gerente confere offline o host, código e destino e registra a origem do link; formato correto não comprova afiliado ativo. Não inventar código nem usar `YOURCODE` em publicação. Esta instrução não autoriza o gerente a abrir `/affiliate`, `/api/affiliate/me` ou `/a/CODE`, criar conta, cupom ou clique de teste. Um problema de adesão ou atribuição segue para Board/Claude com a evidência existente.
+
+**FATO CONFIRMADO / IMPLEMENTADO — conferência de código em 11/09/2026, `origin/main 7827f2e0`:** o painel carrega `/api/affiliate/me` em `app/(dashboard)/affiliate/page.tsx:154`; esse GET chama `mintCouponIfMissing` em `app/api/affiliate/me/route.ts:212`, com possibilidade de criar cupom e atualizar o registro (:137). A adesão pode criar a linha ativa em `app/api/affiliate/apply/route.ts:103`. No painel, o destino está em `app/(dashboard)/affiliate/page.tsx:538`, o campo do link em :588 e o botão “Copy link” em :615. `lib/affiliateDestinations.ts:123` valida a forma do código e monta o link; a rota `app/a/[code]/route.ts:60,112` consulta o afiliado e pode registrar clique/cookie. Esta leitura não executou nenhuma dessas rotas e não comprova o estado de um parceiro.
+
+### Roteiro de apresentação — sem duração prometida ou render novo
+
+**SUGESTÃO — condição de uso:** interesse em avaliar não equivale a adesão efetiva. Antes de dizer “Sou afiliado” ou publicar o link, obter do parceiro a confirmação documentada de adesão concluída e do link exibido em sua conta ativa, preservando a fonte e a data no registro privado. Link recebido ou validação de formato, isoladamente, não bastam. Se o estado continuar desconhecido, manter roteiro e legenda como rascunho; não publicar essa declaração nem o link. Confirmação fornecida pelo parceiro não deve ser registrada como consulta independente ao banco.
+
+**SUGESTÃO — gravação pelo parceiro, após aceite:** usar sua própria interface já disponível e ocultar e-mail, saldos, dados pessoais e projetos de terceiros. Mostrar só controles realmente presentes. Não acionar geração, análise paga ou exportação para cumprir este roteiro. Se a tela necessária não estiver disponível, omitir o trecho e registrar a lacuna; uma montagem não substitui uma demonstração real.
+
+| Passo | Imagem a gravar | Fala para adaptar |
+|---|---|---|
+| Abertura | Tela real da Kineo, com identificação “Apresentação do fluxo” | “Sou afiliado da Kineo e posso receber comissão em compras elegíveis pelo meu link. Vou mostrar as etapas para preparar um Short narrado.” |
+| Tema | Campo de tema ou roteiro já visível; exemplo próprio, sem enviar geração | “Comece por um assunto específico. Em histórias e curiosidades, confira as fontes antes de usar o roteiro.” |
+| Escolhas | Opções de motor, voz e legendas que estejam disponíveis na tela | “Revise o roteiro e as escolhas de narração e cenas. O consumo de créditos depende das configurações.” |
+| Resultado opcional | Somente vídeo próprio já concluído e integralmente revisado, identificado como tal | “Este é o meu exemplo já concluído. Confira também as cenas, o áudio e as legendas antes de publicar.” Se não houver esse arquivo, retirar o passo inteiro. |
+| Encerramento | Perfil do canal com o rótulo clicável configurado | “A Kineo começa grátis com 30 créditos, sem cartão. Os vídeos gratuitos levam marca d'água. Abra meu perfil e toque em Kineo — link de afiliado.” |
+
+**SUGESTÃO — legenda para essa apresentação:**
+
+```text
+Uma apresentação das etapas para preparar um Short narrado: tema, roteiro, narração, cenas e revisão. A Kineo começa grátis com 30 créditos, sem cartão; vídeos gratuitos levam marca d'água. Abra meu perfil e toque em “Kineo — link de afiliado”. Sou afiliado e posso receber comissão em compras elegíveis pelo meu link.
+```
+
+**SUGESTÃO — conferência antes de usar:** ensaiar a fala e ajustar a duração à gravação real; manter o disclosure. Não apresentar este roteiro como filme produzido na Kineo. Os exemplos Mary Celeste e Maracaibo continuam retidos pelas revisões anteriores; esta seção não os libera nem oferece filme personalizado grátis. A instrução de perfil é para Shorts; outros formatos seguem a verificação de posicionamento de link já descrita neste kit.
+
+### Comprovante de publicação — preencher no registro privado do parceiro
+
+**SUGESTÃO — operação:** registrar os itens abaixo no histórico privado existente, sem criar outra lista de prospecção ou um contador financeiro. Não preencher campos desconhecidos por inferência.
+
+| Etapa | Evidência mínima a guardar | O que ainda não comprova |
+|---|---|---|
+| Aceite | ID/data da resposta humana e escopo aceito | Adesão concluída ou publicação |
+| Link recebido | URL exata fornecida pelo parceiro, canal de origem e data | Código ativo, atribuição ou visita externa |
+| Material aprovado | Versão do kit, gravação/arquivo real e revisão integral de imagem, áudio, legendas e fatos | Publicação |
+| Publicação | URL pública, data/fuso, perfil e rótulo do link clicável | Exposição, clique ou venda |
+| Caminho do espectador | Conferência manual pelo parceiro no celular, data e destino observado; marcar esse clique como QA interno | Cadastro ou pagamento; redirecionamento sozinho não prova atribuição |
+| Resultado comercial | Leitura autorizada da fonte canônica, janela e pessoa externa deduplicada; pagamento confirmado no servidor e tipo de cobrança | Receita atribuída quando faltar vínculo ou evidência financeira |
+
+**FATO CONFIRMADO / IMPLEMENTADO — limites de leitura, `origin/main 7827f2e0`, 11/09/2026:** os cartões “Link visits”, “Signups” e “Paid customers” aparecem em `app/(dashboard)/affiliate/page.tsx:812`; a consulta em `app/api/affiliate/me/route.ts:219` acumula registros por afiliado, sem recorte por post/período. O painel não fornece, por si, prova de comprador externo desta campanha ou contagem de pessoas únicas. Usar snapshots datados fornecidos pelo parceiro apenas como sinal operacional; não atribuir diferença entre totais a uma publicação isolada. A atribuição em `lib/affiliateAttribution.ts:42,118` exige vínculo elegível e não torna retroativa uma aquisição de conta já existente. Sem verificação autorizada do evento financeiro e do vínculo, compradores atribuídos permanecem **DESCONHECIDOS**.
+
+**SUGESTÃO — próxima decisão:** se houver aceite sem publicação, resolver o primeiro campo faltante com a pessoa. Se houver publicação sem atividade, conferir posicionamento e caminho antes de julgar o público. Não adiantar D3/D10, ampliar o piloto nem enviar um segundo convite para ocupar a cadência. **QUESTÃO PENDENTE / DESCONHECIDO:** a preparação não estabelece resposta, publicação, cadastro ou comprador real; só atualizar esses estados quando a evidência chegar.
