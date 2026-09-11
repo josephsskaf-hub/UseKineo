@@ -1197,6 +1197,10 @@ async function manipularPost(req: NextRequest) {
     debitConfirmed: boolean
   } | null = null
   let providerSubmissionMayExist = false
+  // Unlike providerSubmissionMayExist (also true for a known accepted ID),
+  // this records an unbound/unknown paid scene. A null slot alone is NOT
+  // evidence of rejection. Publish the distinction inside the signed response.
+  let cinematicSubmissionUncertain = false
   // ═══ sprint-assinaturas #14 (04/09) — O CLIQUE QUE MORRE COM A ABA ═══════
   // Medido em produção (14d, externos): 407 cliques em gerar, 25 deles (21
   // pessoas, 19 SEM UM FILME NA VIDA) não deixaram UM ÚNICO registro no
@@ -2494,6 +2498,7 @@ async function manipularPost(req: NextRequest) {
       requestIds: CinematicRequestId[],
       models: string[],
     ): Promise<NextResponse> => {
+      response = { ...response, submission_uncertain: cinematicSubmissionUncertain }
       cinematicSubmissionCache.set(cacheKey, {
         fingerprint: claimFingerprint,
         creditCost: cost,
@@ -3094,6 +3099,9 @@ async function manipularPost(req: NextRequest) {
               const falKey = process.env.FAL_KEY
               if (falKey) fal.config({ credentials: falKey })
               const freshIds: (string | null)[] = []
+              // Legacy salvage can reuse/retry slots without a durable terminal
+              // proof. Never let its missing IDs authorize a quality refund.
+              cinematicSubmissionUncertain = true
               let reused = 0
               let resubmitted = 0
               for (let i = 0; i < storedIds.length; i++) {
@@ -3757,10 +3765,12 @@ async function manipularPost(req: NextRequest) {
       // a plan already known to be shorter than the user's selected duration.
       const finalPlannedSeconds = plan.scenes.reduce((sum, scene) => sum + scene.seconds, 0)
       if (finalPlannedSeconds < duration) {
-        await releaseBirthClaim('plan_duration_below_request')
+        const refunded = await confirmCinematicRefund()
+        const released = refunded && await releaseBirthClaim('plan_duration_below_request')
         return NextResponse.json({
           error: 'The scene plan did not cover the duration you selected. No video scenes were submitted. Review or expand the script before generating again.',
           qualityCheckFailed: true, reason: 'plan_duration_below_request',
+          generationId, refunded, refundConfirmed: refunded, claimReleased: released, retryable: false,
           plannedSeconds: finalPlannedSeconds, requestedSeconds: duration,
         }, { status: 422 })
       }
@@ -3950,6 +3960,7 @@ async function manipularPost(req: NextRequest) {
             )
           } catch (e) {
             if (e instanceof AvatarSubmitError && e.ambiguous) {
+              cinematicSubmissionUncertain = true
               // The presenter POST may have been accepted. Falling back to O3
               // would create a second paid job for the same scene. If earlier
               // scenes have durable IDs, publish those instead of stranding
@@ -4108,6 +4119,7 @@ async function manipularPost(req: NextRequest) {
               e instanceof FalQueueSubmitError && e.ambiguous &&
               hRequestIds.some((requestId) => requestId !== null)
             ) {
+              cinematicSubmissionUncertain = true
               providerSubmissionMayExist = true
               console.warn(
                 `[cinematic] hollywood scene ${hs.index} submit became ambiguous; preserving earlier accepted scenes`,
@@ -4537,6 +4549,7 @@ async function manipularPost(req: NextRequest) {
               ids[idx] = res.id
               models[idx] = res.model
             } else if (res.kind === 'ambiguous') {
+              cinematicSubmissionUncertain = true
               ambiguousErr = res.error
             }
           }
@@ -4566,6 +4579,7 @@ async function manipularPost(req: NextRequest) {
         const res = await submitScene(scenes[i], model, i, sceneStills[i] ?? undefined)
         if (res.kind === 'fatal') throw res.error
         if (res.kind === 'ambiguous') {
+          cinematicSubmissionUncertain = true
           if (ids.some((requestId) => requestId !== null)) {
             providerSubmissionMayExist = true
             console.warn('[cinematic] scene submit became ambiguous; preserving earlier accepted scenes')

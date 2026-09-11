@@ -2,6 +2,8 @@
 
 Data: 11/09/2026, madrugada BRT. Base de código: `438336def78d6cd21dfff52fe008d93b0cac3fad`.
 
+**ATUALIZAÇÃO 11/09, manhã BRT:** este documento preserva o diagnóstico anterior à autorização. O fundador autorizou implementar; suporte Fal foi contatado. Estado da implementação, testes e limites em `docs/ENTREGA-QUALIDADE-RENDER-2026-09-11.md`. As notas de "proposta" e "nenhuma mensagem enviada" abaixo são históricas, não o estado mais recente.
+
 ## 1. Resultado que queremos
 
 **SUGESTÃO:** o motor decide a aparência, não muda a história. O cliente escolhe narrador ou avatar, aprova o texto e recebe imagens coerentes, a mesma fala nas legendas, música adequada à emoção e a duração combinada. Modelo mais caro não pode significar montagem menos confiável.

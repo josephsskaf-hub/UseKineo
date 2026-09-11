@@ -14,6 +14,7 @@ const load = createOfflineLoader()
 const speech = load('@/lib/cinematic/speechContract')
 const visual = load('@/lib/cinematic/visualMode')
 const compose = load('@/lib/compose')
+const timeline = load('@/lib/cinematic/timelineContract')
 const words = text => text.split(/\s+/).filter(Boolean).map((word, i) => ({ word, start: 0.2 + i * 0.4, end: 0.5 + i * 0.4 }))
 
 for (const text of ['An avatar tells this story.', 'O avatar fala exatamente este texto.', 'Un avatar cuenta la historia.', 'Avatar: यह मेरी कहानी है।']) {
@@ -111,6 +112,9 @@ async function runActualComposeSpeech({ engines = ['dialogue', 'support'], narra
     body: { scene_engines: engines, scene_narrations: narrations, scene_seconds: engines.map(() => 8), scene_dialogues: dialogues },
     clipUrls: engines.map((_, i) => `https://example.invalid/scene-${i}.mp4`),
     ...speech,
+    // The duration workstream now uses the same real timeline policy. This
+    // fixture asks for16s of actual2x8s footage, not an implicit missing target.
+    ...timeline, duration: engines.length * 8, cinematicSceneMetadataInvalid: false,
     user: { id: 'test-user' }, voiceoverScript: 'Actor speaks Narrator explains', language: 'en', vertical: 'history', explicitSpeed: 1,
     NextResponse: { json: (body, init) => ({ status: init.status, body }) },
     rejectBeforeProviderSubmission: async reply => { calls.push(['release-compose-claim']); return reply },

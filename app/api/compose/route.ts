@@ -47,6 +47,7 @@ import { ttsModelForTier } from '@/lib/narration/elevenlabs'
 import { salvageScriptNarration, stripScriptMarkers } from '@/lib/scriptParser'
 import { fetchUserPlan } from '@/lib/plan'
 import { cinematicSceneSeconds, trimNarratedSupport, assertCinematicTimeline, CinematicTimelineError, signedSceneMetadata } from '@/lib/cinematic/timelineContract'
+import { rejectCinematicQuality, readVerifiedQualityRejection, type CinematicQualityReason } from '@/lib/cinematic/qualityRejection'
 import { selectMusicForScript } from '@/lib/musicScore'
 import { selectPersonaForScript } from '@/lib/narration/niche-mapping'
 // KINEO-CREDIT-INTENT-2026-07-11 — record the authoritative engine + intended
@@ -63,7 +64,7 @@ import { alertCreatomateDown } from '@/lib/creatomateAlert'
 // cota é o único modo de falha do render que é 100% previsível.
 import { checkCreatomateQuota } from '@/lib/creatomateQuota'
 import { inspectActiveComposeCreditHolds } from '@/lib/credits/composeHold'
-import { loadVerifiedCinematicClaim, type CinematicClaim } from '@/lib/cinematic/claim'
+import { loadVerifiedCinematicClaim, cinematicJobsAreTerminal, type CinematicClaim } from '@/lib/cinematic/claim'
 import { collectSceneNarrations, verifyObservedSpeech } from '@/lib/cinematic/speechContract'
 // KINEO-COMPOSE-REJECT-NOREFUND-2026-08-10 — ver o cabeçalho do arquivo: numa
 // recusa TERMINAL do fornecedor nenhum render_id nasce, logo /api/compose/status
@@ -753,6 +754,10 @@ export async function POST(req: NextRequest) {
       )
     }
     cinematicBirthClaim = cinematicClaimLoad.claim
+    const qualityFailureResponse = (facts: Record<string, unknown>, message?: string): NextResponse => NextResponse.json({
+      ...facts, qualityCheckFailed: true, generationId, retryable: false,
+      error: message ?? 'This generation did not pass the final quality check. No final video was submitted. Review the recovery details below.',
+    }, { status: 422 })
     const cinematicQualities = new Set<Quality>([
       'cinematic_ai', 'cinematic_kling', 'cinematic_veo',
       'cinematic_sora', 'cinematic_hollywood', 'cinematic_h3', 'cinematic_omni', 'cinematic_s25',
@@ -760,6 +765,13 @@ export async function POST(req: NextRequest) {
     const clientRequestedCinematic = cinematicQualities.has(quality)
     if (cinematicBirthClaim) {
       if (cinematicBirthClaim.status !== 'settled') {
+        if (cinematicBirthClaim.status === 'released') {
+          const resolved = await readVerifiedQualityRejection({ db: composeAdmin, secret: serviceRoleKey, userId: authenticatedUserId, generationId })
+          return qualityFailureResponse(resolved ? { ...resolved } : {
+            reason: 'generation_closed', refunded: false, refundConfirmed: false, claimReleased: true,
+            outcome: 'quality_rejection_support_pending',
+          }, 'This generation is closed. It will not be submitted again. Your script is kept; review the recovery details below.')
+        }
         return NextResponse.json(
           { error: 'Your AI scenes are still being finalized.', pending: true, retry_after_ms: 2500 },
           { status: 409 },
@@ -831,12 +843,22 @@ export async function POST(req: NextRequest) {
         )
       }
       quality = trustedQuality
+      // Partial URL authorization is not proof that the remaining paid jobs
+      // finished. Gate BEFORE the mutex, ASR/TTS and every quality/refund path.
+      // Only signed server observations can prove a missing slot failed; a
+      // client allDone flag or a provider lookup error has no such authority.
+      if (!cinematicJobsAreTerminal(cinematicBirthClaim)) {
+        return NextResponse.json(
+          { error: 'Your AI scenes are still being finalized.', pending: true, retry_after_ms: 2500 },
+          { status: 409 },
+        )
+      }
       // Server recovery and browser submission must use the same original scene
       // indexes. A missing middle scene must not move its voice onto its neighbor.
       if (cinematicBirthClaim.response) {
         try {
           const aligned = signedSceneMetadata(cinematicBirthClaim.response, cinematicBirthClaim.authorizedCompletedUrls, clipUrls,
-            ['cinematic_hollywood', 'cinematic_h3', 'cinematic_omni'].includes(trustedQuality))
+            ['cinematic_hollywood', 'cinematic_h3', 'cinematic_omni', 'cinematic_s25'].includes(trustedQuality))
           Object.assign(body, aligned)
         } catch {
           // Defer rejection until this request owns the compose mutex. Never
@@ -904,6 +926,7 @@ export async function POST(req: NextRequest) {
       }
     }
     const cinematicUpstreamDebited = cinematicBirthClaim?.status === 'settled'
+    let composeProviderAttempted = false
     const avatarUpstreamDebited = avatarBirthClaim !== null
     const claimId = composeClaimId(authenticatedUserId, generationId)
     let ownsSubmissionClaim = false
@@ -966,6 +989,13 @@ export async function POST(req: NextRequest) {
         return unavailableClaimResponse()
       }
       if (!renderId) {
+        if (metadata.quality_rejection && typeof metadata.quality_rejection === 'object') {
+          const resolved = await readVerifiedQualityRejection({ db: composeAdmin, secret: serviceRoleKey, userId: authenticatedUserId, generationId })
+          return qualityFailureResponse(resolved ? { ...resolved } : {
+            reason: 'generation_quality_review', refunded: false, refundConfirmed: false, claimReleased: false,
+            outcome: 'quality_rejection_support_pending',
+          })
+        }
         // Recover a provider id that was durably linked in broll_metrics even
         // if the final claim metadata write was interrupted. This closes the
         // cold-instance replay gap without ever issuing another provider POST.
@@ -1237,10 +1267,35 @@ export async function POST(req: NextRequest) {
     }
 
     async function rejectBeforeProviderSubmission(response: NextResponse): Promise<NextResponse> {
+      const detail = await response.clone().json().catch(() => null)
+      const qualityReasons: Record<string, CinematicQualityReason> = {
+        cinematic_timeline_too_short: 'cinematic_timeline_too_short',
+        scene_speech_exceeds_footage: 'scene_speech_exceeds_footage',
+        cinematic_scene_metadata_invalid: 'cinematic_scene_metadata_invalid',
+        cinematic_dialogue_unverified: 'native_dialogue_unverified',
+        cinematic_speech_missing: 'scene_narration_missing',
+        cinematic_voice_unavailable: 'scene_narration_failed',
+        cinematic_narration_unverified: 'scene_narration_failed',
+        requested_voice_unavailable: 'scene_narration_failed',
+      }
+      const reason = qualityReasons[String(detail?.reason ?? detail?.code ?? '')]
+      if (reason && cinematicUpstreamDebited) {
+        const facts = await rejectCinematicQuality({
+          db: composeAdmin, secret: serviceRoleKey, userId: authenticatedUserId, generationId,
+          ownsComposeClaim: ownsSubmissionClaim, composeProviderAttempted, reason,
+        })
+        // A retained terminal mutex stops stale concurrent requests that saw
+        // birth=settled before the refund. NEVER delete it, including success.
+        return qualityFailureResponse({ ...facts, code: detail?.code }, detail?.error)
+      }
       // Free Fast reserves its distributed claim before any paid TTS/render work
       // so parallel generation ids cannot all pass the daily limit. Explicit
       // local validation/provider-rejection failures release that reservation.
       await releaseGenerationClaim()
+      if (reason) return qualityFailureResponse({
+        reason, code: detail?.code, refunded: false, refundConfirmed: false,
+        claimReleased: !ownsSubmissionClaim, noDebit: !ownsSubmissionClaim,
+      }, detail?.error)
       return response
     }
 
@@ -1898,6 +1953,12 @@ export async function POST(req: NextRequest) {
     // narrated over. Speech failures stop before composition; silent scenes
     // and captions copied from a requested line are not successful delivery.
     if (quality === 'cinematic_hollywood' || quality === 'cinematic_h3' || quality === 'cinematic_omni' || quality === 'cinematic_s25') {
+      if (cinematicSceneMetadataInvalid) {
+        return rejectBeforeProviderSubmission(NextResponse.json({
+          error: 'The saved scene timing or speech metadata is incomplete. We will not invent narration or a shorter film.',
+          qualityCheckFailed: true, reason: 'cinematic_scene_metadata_invalid',
+        }, { status: 422 }))
+      }
       const rawEngines = Array.isArray(body.scene_engines) ? body.scene_engines : []
       const rawNarrations = Array.isArray(body.scene_narrations) ? body.scene_narrations : []
       const rawSeconds = Array.isArray(body.scene_seconds) ? body.scene_seconds : []
@@ -1931,6 +1992,7 @@ export async function POST(req: NextRequest) {
           ...(dlg ? { dialogueLine: dlg } : {}),
         }
       })
+      const originalFootageSeconds = hollywoodClips.map(cinematicSceneSeconds)
 
       // Verify already-generated speech before any additional narration work.
       // KINEO-LIPSYNC-CAPTIONS-2026-08-17 — transcreve o AUDIO NATIVO das
@@ -2093,7 +2155,7 @@ export async function POST(req: NextRequest) {
         // cresce até a fala medida + 0.6s; o Creatomate segura o último
         // frame pelo excedente. Palavra engolida entre cenas morre aqui.
         if (c && (c.engine === 'support' || c.engine === 'cinematic')) {
-          const need = Math.round((m.dur + 0.6) * 10) / 10
+          const need = Math.min(originalFootageSeconds[m.sceneIdx], Math.round((m.dur + 0.6) * 10) / 10)
           if (need > secondsOf(c)) {
             console.log(`[compose] KINEO-TAIL-GROW meio: cena ${m.sceneIdx + 1} ${secondsOf(c)}s → ${need.toFixed(1)}s (fala medida ${m.dur.toFixed(1)}s)`)
             c.seconds = need
@@ -2139,7 +2201,7 @@ export async function POST(req: NextRequest) {
           // sob as palavras finais lê como fechamento de cinema, não defeito.
           if (tail < 0) {
             const grow = Math.round(-tail * 10) / 10
-            last.seconds = Math.round((secondsOf(last) + grow) * 10) / 10
+            last.seconds = Math.min(originalFootageSeconds[lastIdx], Math.round((secondsOf(last) + grow) * 10) / 10)
             console.log(`[compose] KINEO-TAIL-GROW: última cena cresceu ${grow.toFixed(1)}s para cobrir a fala medida (${lastMeasured.dur.toFixed(1)}s) — nenhuma palavra final guilhotinada`)
           }
           if (tail > 1) {
@@ -2247,6 +2309,7 @@ export async function POST(req: NextRequest) {
       if (hollywoodClaim.kind !== 'acquired') return hollywoodClaim.response
       let hollywoodRenderId: string
       try {
+        composeProviderAttempted = true
         hollywoodRenderId = await submitCreatomateOnce(hollywoodSource, submissionKey)
       } catch (err) {
         const hollywoodMsg = err instanceof Error ? err.message : String(err)
@@ -2793,6 +2856,7 @@ export async function POST(req: NextRequest) {
     if (claim.kind !== 'acquired') return claim.response
     let renderId: string
     try {
+      composeProviderAttempted = true
       renderId = await submitCreatomateOnce(source, submissionKey)
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)

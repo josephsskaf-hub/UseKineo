@@ -1857,6 +1857,7 @@ export default function GenerateClient({
         if (raw && qualityFailureOwnsSnapshot(failure, JSON.parse(raw))) localStorage.removeItem(key)
       } catch { /* preserve uncertain or unreadable snapshots */ }
       serverActiveRenderRef.current = null
+      try { window.dispatchEvent(new Event('creditsChanged')) } catch { /* read-only balance refresh is best effort */ }
     }
     setPhase('failed')
     return true
@@ -9135,6 +9136,7 @@ export default function GenerateClient({
         // `failed`; it carries no HTTP status and no machine-readable reason,
         // and the 401 branch below leaves the page entirely without ever
         // transitioning. Name each dispatch outcome explicitly.
+        if (!res.ok && acceptQualityFailure(data, cinematicGenerationId)) return
         if (res.status === 401) {
           trackGenerationFailure('generating', 'cinematic_unauthenticated', { httpStatus: 401 })
           redirectToLoginPreservingPrompt(); return

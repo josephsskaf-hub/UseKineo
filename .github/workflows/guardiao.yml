@@ -34,6 +34,26 @@ jobs:
         run: node scripts/test-home-curation.mjs
       - name: Vitrine premium — filtros, movimento, posters e SSR em três idiomas
         run: node scripts/test-showcase-premium.mjs
+      - name: Duração cinematográfica — roteiro, cenas e composição
+        run: node scripts/test-cinematic-timeline-2026-09-11.mjs
+      - name: Uma fonte de fala — narração, áudio nativo e legendas
+        run: node scripts/test-cinematic-speech-2026-09-11.mjs
+      - name: Música coerente com a emoção e fallback sem contraste
+        run: node scripts/test-music-direction-2026-09-11.mjs
+      - name: Coerência visual e abertura no caminho executado
+        run: node scripts/test-visual-contract-2026-09-11.mjs
+      - name: Rejeição de qualidade — HMAC, ledger e concorrência
+        run: node scripts/test-quality-rejection-2026-09-11.mjs
+      - name: Integração real das saídas e limites da composição
+        run: node scripts/test-quality-route-integration-2026-09-11.mjs
+      - name: Saída de qualidade em três idiomas — sem retry cego
+        run: node scripts/test-quality-failure-ui-2026-09-11.mjs
+      - name: Geração encerrada não reaparece como render ativo
+        run: node scripts/test-active-quality-rejection-2026-09-11.mjs
+      - name: Jobs pagos — prova terminal assinada antes de finalizar
+        run: node scripts/test-cinematic-terminal-proof-2026-09-11.mjs
+      - name: Polling — bloqueio de conta não significa job encerrado
+        run: node scripts/test-cinematic-poll-diagnostic-2026-09-11.mjs
   legacy:
     name: Diagnóstico legado — manual, não certifica entrega
     if: github.event_name == 'workflow_dispatch'

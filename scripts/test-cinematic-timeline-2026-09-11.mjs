@@ -34,7 +34,10 @@ function load(file) {
 }
 const policy=load('lib/cinematic/timelineContract.ts')
 const builder=load('lib/compose.ts').buildHollywoodCreatomateSource
-const scene=(seconds,engine='support')=>({url:'https://fixture.invalid/scene.mp4',seconds,engine,caption:''})
+// Native fixtures include observed audio, so this suite isolates timeline
+// arithmetic without bypassing the integrated speech contract.
+const scene=(seconds,engine='support')=>({url:'https://fixture.invalid/scene.mp4',seconds,engine,caption:'',
+  ...(['host','dialogue'].includes(engine)?{dialogueLine:'Hello',speechWords:[{word:'Hello',start:0.1,end:0.5}]}:{})})
 for (const target of [35,60,90]) {
   const scenes=Array.from({length:Math.ceil(target/10)},(_,i)=>scene(Math.min(10,target-i*10)))
   const snapshot=JSON.stringify(scenes)

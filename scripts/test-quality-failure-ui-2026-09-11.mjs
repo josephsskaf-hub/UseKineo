@@ -109,7 +109,8 @@ for (const name of ['handleGenerate', 'handleGenerateGuarded']) {
   checks++
 }
 const consumes = nodes.filter(n => ts.isCallExpression(n) && n.expression.getText(ast) === 'acceptQualityFailure')
-eq(consumes.map(n => n.arguments[1].getText(ast)).sort(), ['composeGenerationId', 'payloadGenerationId'], 'Both real compose dispatch and reload/replay consume terminal quality response')
+// The planner's new duration floor uses the same financial/UX contract.
+eq(consumes.map(n => n.arguments[1].getText(ast)).sort(), ['cinematicGenerationId', 'composeGenerationId', 'payloadGenerationId'], 'Planning, compose dispatch and reload/replay consume terminal quality response')
 for (const node of consumes) {
   ok(ts.isBinaryExpression(node.parent) && node.parent.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken, 'Consumer is guarded by non-OK response')
   const statement = node.parent.parent
