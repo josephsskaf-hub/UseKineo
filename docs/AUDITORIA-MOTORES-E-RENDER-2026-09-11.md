@@ -10,11 +10,11 @@ Data: 11/09/2026, madrugada BRT. Base de código: `438336def78d6cd21dfff52fe008d
 
 ## 2. Incidente dos 25% — não está encerrado
 
-**EVIDÊNCIA DE PRODUÇÃO, 11/09 01h49–02h05 BRT:** a tentativa mais recente tem sete posições de cena, duas submissões aceitas, cinco recusadas e uma URL concluída. O evento `cinematic_dispatch_result` classifica as cinco recusas como `balance_quota`; essa classificação ampla não prova falta de saldo.
+**EVIDÊNCIA DE PRODUÇÃO, 11/09/2026, madrugada BRT:** a tentativa iniciada às 01h49 tem sete posições de cena, duas submissões aceitas, cinco recusadas e uma URL concluída nas consultas desta auditoria. O evento `cinematic_dispatch_result` classifica as cinco recusas como `balance_quota`; essa classificação ampla não prova falta de saldo.
 
 **EVIDÊNCIA DE PRODUÇÃO, runtime Vercel 01h59–02h01 BRT:** a outra cena aceita retorna status `COMPLETED` com ID correto, mas a busca do resultado retorna HTTP403. Sinal sanitizado da resposta: `mentions_account_locked` (a mensagem contém “User is locked”). `has_queue_error=false`. A Kineo continua esperando por não ter prova de falha definitiva desse job.
 
-**EVIDÊNCIA DE PRODUÇÃO, Chrome 02h02 BRT:** painel Fal mostra US$16,03 e informa que o saldo pode atrasar até uma hora. A recarga foi feita pelo fundador, não pelo Codex. A diferença entre painel e recusa exige verificação da Fal; não recomendar outra recarga como solução provada.
+**EVIDÊNCIA DE PRODUÇÃO, Chrome 11/09/2026, madrugada BRT:** painel Fal mostra US$16,03 e informa que o saldo pode atrasar até uma hora. A recarga foi feita pelo fundador, não pelo Codex. A diferença entre painel e recusa exige verificação da Fal; não recomendar outra recarga como solução provada.
 
 **FATO CONFIRMADO:** o catch antigo escondia etapa/HTTP e tratava qualquer 403/404/5xx como `processing`. Arquivo `app/api/cinematic-clip-status/route.ts`.
 
@@ -82,9 +82,9 @@ Todas as linhas abaixo são **FATO CONFIRMADO EM CÓDIGO**, não certificação 
 
 **FATO CONFIRMADO:** `autofitDown` pode reduzir 60→45 antes do planner (`app/api/generate-video-cinematic/route.ts:1442`, `:1451`). Teste puro com 110 palavras reproduziu effectiveSeconds=45. O builder avançado soma cenas sem impor um piso ligado ao pedido (`lib/compose.ts:2852`, `:2891`); o comum tem proteção diferente (`lib/compose.ts:1858`).
 
-**EVIDÊNCIA DE PRODUÇÃO, 11/09 02h06 BRT:** nas cinco tentativas recentes consultadas do fundador (quatro Seedance e uma Omni), os claims guardam requested_duration=60, duration=60, autofit_down=false. Portanto **não atribuir os 45 segundos relatados ao autofitDown nesses filmes**. A montagem, as cenas sobreviventes e a duração do arquivo precisam ser reconciliadas.
+**EVIDÊNCIA DE PRODUÇÃO, 11/09/2026, madrugada BRT:** nas cinco tentativas recentes consultadas do fundador (quatro Seedance e uma Omni), os claims guardam requested_duration=60, duration=60, autofit_down=false. Portanto **não atribuir os 45 segundos relatados ao autofitDown nesses filmes**. A montagem, as cenas sobreviventes e a duração do arquivo precisam ser reconciliadas.
 
-**EVIDÊNCIA DE PRODUÇÃO, 11/09 02h09 BRT:** em `public.videos`, os dois filmes concluídos recentes do fundador registram `duration=62` (Seedance, ID prefixo 3c65ea4b) e `duration=40` (Omni, prefixo 8df84efb), ambos `completed`; `duration_seconds` é nulo. O claim do Omni ainda dizia 60 e autofit_down=false. A discrepância está comprovada no registro final e merece correção própria; não é só percepção do usuário nem prova de que autofitDown causou este caso. Medir o MP4 continua sendo uma verificação posterior separada.
+**EVIDÊNCIA DE PRODUÇÃO, 11/09/2026, madrugada BRT:** em `public.videos`, os dois filmes concluídos recentes do fundador registram `duration=62` (Seedance, ID prefixo 3c65ea4b) e `duration=40` (Omni, prefixo 8df84efb), ambos `completed`; `duration_seconds` é nulo. O claim do Omni ainda dizia 60 e autofit_down=false. A discrepância está comprovada no registro final e merece correção própria; não é só percepção do usuário nem prova de que autofitDown causou este caso. Medir o MP4 continua sendo uma verificação posterior separada.
 
 **SUGESTÃO:** guardar pedido, plano, áudio e duração final separadamente. Quando 60s for o mínimo aprovado, 45s reprova; não tapar com repetição de uma cena ou silêncio. Texto curto deve ser expandido com autorização ou ajustado explicitamente pelo cliente. Preservar palavras e payoff na montagem.
 
