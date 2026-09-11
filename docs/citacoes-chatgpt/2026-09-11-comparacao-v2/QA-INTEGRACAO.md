@@ -1,6 +1,6 @@
 # [Citações] QA da comparação V2
 
-**TESTADO LOCALMENTE — 11/09/2026 01h19–01h23 BRT:** a raiz integrou `5383fbf6` como `6554ae9c`. A página Next real foi vista antes e depois em desktop de 1100 px e mobile de 390 px, com imagens nesta tarefa. Resposta, fontes, tabela, CTA e FAQ foram conferidos. O [preview autocontido](../../citacoes-comparacao-v2-20260911/preview.html) reúne as seções alteradas antes/depois nos dois tamanhos; sua abertura no painel foi solicitada e ficou enfileirada.
+**TESTADO LOCALMENTE — 11/09/2026 01h19–01h25 BRT:** a raiz integrou `5383fbf6` como `6554ae9c`. A página Next real foi vista antes e depois em desktop de 1100 px e mobile de 390 px, com imagens nesta tarefa. Resposta, fontes, tabela, CTA e FAQ foram conferidos. O [preview autocontido](../../citacoes-comparacao-v2-20260911/preview.html) reúne as seções alteradas antes/depois nos dois tamanhos; sua abertura no painel foi solicitada e ficou enfileirada.
 
 **TESTADO LOCALMENTE:** os [gates](GATES.json) registram os cinco contratos críticos e typecheck completo com saída 0. O tipo Next da rota InVideo foi gerado (3613 bytes), assim como o de `[engine]` (3577 bytes), antes da conclusão do typecheck. As 39 verificações específicas do agente incluem HTML idêntico das outras sete rotas reais, inclusive a V1 de custo. O aviso `fetchPriority` pertence ao adaptador de imagem do teste offline já existente; não é prova de execução limpa de toda a suíte histórica.
 
@@ -10,4 +10,4 @@
 
 **FATO CONFIRMADO:** o delta funcional está limitado a quatro arquivos: `app/vs/invideo-alternatives-faceless-shorts/page.tsx:8`, `components/CitationAnswerPage.tsx:24`, `components/CitationComparisonDecision.tsx:9` e `lib/growth/citationComparisonSnapshot.ts:1`. A revisão independente deu GO restrito para código e correspondência das fontes, sem novo acesso HTTP aos fornecedores. A consulta remota posterior permaneceu em `2f2a1e05`; as alterações recentes desses arquivos pertencem à própria pista.
 
-**QUESTÃO PENDENTE:** publicação, CI e deploy do SHA final ainda precisam de evidência. Receita, pessoas externas e recebimento dos eventos seguem desconhecidos. A primeira observação positiva pública definirá a revisão comercial seis horas depois; a V1 conserva o horário anterior.
+**EVIDÊNCIA DE PRODUÇÃO — fechamento registrado 11/09 01h30 BRT:** publicação, CI e deploy foram concluídos para `d4a34ba1`; ver [publicação](PUBLICACAO.md) e [HTTP](PRODUCAO-V2.json). Receita, pessoas externas e recebimento dos eventos seguem desconhecidos. A primeira observação positiva pública define a revisão comercial seis horas depois; a V1 conserva o horário anterior.

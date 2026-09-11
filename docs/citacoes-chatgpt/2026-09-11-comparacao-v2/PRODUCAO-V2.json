@@ -1,0 +1,94 @@
+{
+  "classification": "EVIDENCIA DE PRODUCAO",
+  "publishedCommit": "d4a34ba12756d56ee9ed1628eca919071ddc5630",
+  "firstPositiveObservationAt": "2026-11-09T04:27:54-03:00",
+  "timestampMeaning": "First positive public HTTP observation, not exact rollout time",
+  "sixHourReviewAfter": "2026-11-09T10:27:54-03:00",
+  "publicGetRequests": 3,
+  "comparison": {
+    "url": "https://www.usekineo.com/vs/invideo-alternatives-faceless-shorts",
+    "checkedAtUtc": "2026-09-11T04:27:54.8791873Z",
+    "status": 200,
+    "canonical": true,
+    "markers": [
+      {
+        "present": true,
+        "text": "citacoes_comparison_decision_v2"
+      },
+      {
+        "present": true,
+        "text": "Compare Kineo plans"
+      },
+      {
+        "present": true,
+        "text": "Starter: USD 29/month"
+      },
+      {
+        "present": true,
+        "text": "Hobbyist: USD 24/person/month"
+      },
+      {
+        "present": true,
+        "text": "Creator: USD 29/month"
+      },
+      {
+        "present": true,
+        "text": "Starter: USD 15/month"
+      },
+      {
+        "present": true,
+        "text": "[CONFIRMAR]"
+      }
+    ],
+    "hasTrial30NoCard": true,
+    "htmlSha256": "7aef55d2f347fbdd28480c410acecea256a47ab31897fc817eb14352a276fe45"
+  },
+  "costV1Control": {
+    "url": "https://www.usekineo.com/ai-video-generator/complete-60-second-shorts-cost",
+    "checkedAtUtc": "2026-09-11T04:28:35.3690077Z",
+    "status": 200,
+    "canonical": true,
+    "costCampaign": true,
+    "comparePlans": true,
+    "seedanceRemaining10": true,
+    "trial30NoCard": true,
+    "instrumentationCorrection": "Initial probe searched literal 10 credits left, which is not the existing source markup. Corrected check reads the Seedance article dt/dd: Credits left in this example / 10. This was a probe error, not a product regression.",
+    "htmlSha256": "2b0b1b47dc309a0cb035c77592a0577ec954b29aeed927057f319be69ae33d0f"
+  },
+  "initialControlProbe": {
+    "url": "https://www.usekineo.com/ai-video-generator/complete-60-second-shorts-cost",
+    "checkedAtUtc": "2026-09-11T04:27:55.2751164Z",
+    "status": 200,
+    "canonical": true,
+    "markers": [
+      {
+        "present": true,
+        "text": "citacoes_cost_decision_v1"
+      },
+      {
+        "present": true,
+        "text": "Compare plans"
+      },
+      {
+        "present": false,
+        "text": "10 credits left"
+      }
+    ],
+    "hasTrial30NoCard": true,
+    "htmlSha256": "2b0b1b47dc309a0cb035c77592a0577ec954b29aeed927057f319be69ae33d0f"
+  },
+  "ci": "COMPLETED/SUCCESS exact SHA d4a34ba1, run 34562128068",
+  "deployment": {
+    "source": "Board independent exact-SHA read received in this turn; recorded 2026-09-11 01:30 BRT",
+    "sha": "d4a34ba12756d56ee9ed1628eca919071ddc5630",
+    "ciRun": "34562128068",
+    "ciUrl": "https://github.com/josephsskaf-hub/UseKineo/actions/runs/34562128068",
+    "ciStatus": "COMPLETED/SUCCESS",
+    "deploymentId": "dpl_7fgaVCzHW9SszRjc4SjBv889xTzB",
+    "deploymentStatus": "READY",
+    "target": "production"
+  },
+  "canonicalExternalPeople": "DESCONHECIDO",
+  "canonicalPayments": "DESCONHECIDO",
+  "commercialEffect": "DESCONHECIDO"
+}

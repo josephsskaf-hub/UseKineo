@@ -1,0 +1,38 @@
+{
+  "classification": "PREFLIGHT PASS",
+  "checkedAtUtc": "2026-09-11T04:25:24.9295386Z",
+  "candidate": "d4a34ba12756d56ee9ed1628eca919071ddc5630",
+  "base": "2f2a1e05711108d4af0b340f37bbf4166a0b0b57",
+  "queueBefore": "2f2a1e05711108d4af0b340f37bbf4166a0b0b57",
+  "clean": true,
+  "singleExpectedOrigin": true,
+  "gitPager": "cat benign",
+  "otherGitEnvOverrides": 0,
+  "riskyConfig": 0,
+  "activeHooks": 0,
+  "pendingOperations": 0,
+  "directQueue": true,
+  "queueCheckedOut": false,
+  "protectedChanged": 0,
+  "scripts": {
+    "scripts/enfileirar.sh": "7b6e3bb9a3df63ee532aff4c36d5f33d2683c7777a18fd475efa301771ab1b61",
+    "scripts/publish-reviewed-queue.sh": "4dd68ba16cd7a4bb2781b3b1e81f26adca6cc18b8930e2b9a750aeb6524f366c",
+    "scripts/!RODAR-AGORA.bat": "ebb8108ba5b60c4f3895820886ac698a9691b3e520595cce79e9729a5ab75c99"
+  },
+  "enqueueExit": 0,
+  "publishBatExit": 0,
+  "publicGitCommit": "d4a34ba12756d56ee9ed1628eca919071ddc5630",
+  "confirmedGitAtUtc": "2026-09-11T04:26:32.0657361Z",
+  "deploy": {
+    "source": "Board independent exact-SHA read received in this turn; recorded 2026-09-11 01:30 BRT",
+    "sha": "d4a34ba12756d56ee9ed1628eca919071ddc5630",
+    "ciRun": "34562128068",
+    "ciUrl": "https://github.com/josephsskaf-hub/UseKineo/actions/runs/34562128068",
+    "ciStatus": "COMPLETED/SUCCESS",
+    "deploymentId": "dpl_7fgaVCzHW9SszRjc4SjBv889xTzB",
+    "deploymentStatus": "READY",
+    "target": "production"
+  },
+  "preflightLimit": "Normal fast-forward push; not an absolute server compare-and-swap. No retry, force or reconciliation was used.",
+  "reservation": "RELEASED after exact-SHA CI/deploy and independent public HTTP; no repeat publication"
+}

@@ -1,6 +1,6 @@
 {
   "classification": "EVIDÊNCIA OPERACIONAL",
-  "updatedAt": "2026-09-11T04:23:06.6833042Z",
+  "updatedAt": "2026-09-11T04:30:02.7525779Z",
   "threadTitle": "Kineo · Citações no ChatGPT",
   "worktree": "C:/kineo/.claude/worktrees/citacoes-01-2026-09-10",
   "branch": "codex/citacoes-01-2026-09-10",
@@ -11,7 +11,8 @@
     "94b2be4e",
     "2e8f99ae",
     "f31501b6f68349f7a90d98d40d08521e8fd8f591",
-    "2f2a1e05711108d4af0b340f37bbf4166a0b0b57"
+    "2f2a1e05711108d4af0b340f37bbf4166a0b0b57",
+    "d4a34ba12756d56ee9ed1628eca919071ddc5630"
   ],
   "preparedCodeCommit": "7f3f9622",
   "liveEvidence": "../2026-09-11-custo-v1/PRODUCAO-8-PAGINAS.json",
@@ -20,7 +21,7 @@
     "passed": 11,
     "total": 11
   },
-  "fullTypecheck": "PASS exit 0 on code 67cc53b4 with regenerated .next/types for layout, cost route and dynamic [engine]. Application/workflow/five critical contracts unchanged on published 2f2a1e05 after integrating main f31501b6. GitHub Guardiao 34557273379 also SUCCESS on exact published SHA.",
+  "fullTypecheck": "PASS exit 0 on code 6554ae9c with regenerated .next/types including InVideo route (3613 bytes), dynamic [engine] (3577 bytes) and layout. Five critical contracts passed. GitHub Guardiao run 34562128068 COMPLETED/SUCCESS on exact published d4a34ba1.",
   "livePaths": [
     "/ai-video-generator/free-script-to-faceless-video",
     "/ai-video-generator/free-faceless-tiktok-tools",
@@ -32,7 +33,7 @@
     "/ai-video-generator/chatgpt-script-to-finished-short"
   ],
   "preparedPaths": [],
-  "transportStatus": "V2 local gates passed; final immutable candidate reservation and safe transport are pending. Main last fetched at 2f2a1e05.",
+  "transportStatus": "COMPLETED: reviewed queue and BAT published immutable d4a34ba1 over 2f2a1e05. Board exact-SHA CI SUCCESS/Vercel READY, independent public V2 and V1-control HTTP passed. Exclusive queue reservation released; do not re-enqueue.",
   "transportDependency": "C:/Users/josep/.codex/outputs/01a03e3e-5f63-7cf1-8b9f-6c6646b446b7/FILA-TRANSPORTE-DOCS-2026-09-10.md",
   "automationOwner": "Board",
   "existingAutomationId": "kineo-cita-es-no-chatgpt-7-dias",
@@ -46,13 +47,13 @@
     "file": "chatgpt-20-perguntas.json"
   },
   "continuation": [
-    "Eight pages are published and discovered; cost V1 is live. Preserve V1 until canonical evidence supports a change or its stop rule applies. No quota-driven ninth page.",
+    "Eight pages remain published. Both commercial variants are live by HTTP: cost V1 and comparison V2. Preserve both samples; no third variant or ninth page.",
     "Transport is unlocked through reviewed scripts only. Coordinate one owner and reserve immutable candidate/base before queue writes; use a clean own worktree, mandatory preflight, no force/reset/rebase/cleanup or blind retry.",
-    "Local closing documentation after published 2f2a1e05 is to travel with the next substantive authorized delivery, not a report-only push. Preserve the earlier snapshot and Board closure.",
+    "Local closing documentation after published d4a34ba1 is to travel with the next substantive authorized delivery, not a report-only push. Preserve prior V1 snapshot and Board closure.",
     "Renewal supersedes the old midnight stop. Existing automation runs every 30 minutes until 2026-09-11 23:30 BRT; close only in its final 30 minutes and remove only this automation.",
     "Next comparable ChatGPT measurement is 2026-09-11 20h BRT; no repeated 20-chat battery hourly.",
     "V1 first positive public observation is 2026-09-11 00:14:22 BRT. First six-hour commercial review is due after 06:14:22 BRT, on the next scheduled heartbeat if necessary. Count external people and canonical payments, keep unlinked anonymous data separate, missing access is UNKNOWN.",
-    "At most two reversible commercial variants. V1 is live and preserved; V2 comparison is prepared and reviewed. Do not create a third variant or ninth page. Keep canonical people/payment UNKNOWN without evidence."
+    "Two reversible commercial variants are active, the approved maximum. V1 review after 06:14:22 BRT and V2 after 07:27:54 BRT, at the next scheduled heartbeat if necessary. Keep canonical people/payment UNKNOWN without evidence."
   ],
   "catalogFixCommit": "c633ed8b",
   "integratedMainCommit": "7827f2e07f89b55e2a020b266a48ec98247e5bd4",
@@ -179,7 +180,7 @@
     }
   },
   "comparisonDecisionV2": {
-    "status": "TESTADO_LOCALMENTE",
+    "status": "VALIDADO_EM_PRODUCAO",
     "path": "/vs/invideo-alternatives-faceless-shorts",
     "codeCommit": "6554ae9c21f059851c32bb6dd63610cdf21c3919",
     "contractCommit": "984a1a15a0bdd373decbb325d4f57e3c9e0a6057",
@@ -190,9 +191,22 @@
     "unchangedOtherPages": 7,
     "criticalPassed": 5,
     "fullTypecheckExit": 0,
-    "productionExposureAt": null,
-    "sixHourReviewAt": null,
+    "productionExposureAt": "2026-11-09T04:27:54-03:00",
+    "sixHourReviewAt": "2026-11-09T10:27:54-03:00",
     "paymentRevenue": "DESCONHECIDO",
-    "activeVariantsAfterPublication": 2
-  }
+    "activeVariantsAfterPublication": 2,
+    "publishedCommit": "d4a34ba12756d56ee9ed1628eca919071ddc5630",
+    "productionEvidence": "../2026-09-11-comparacao-v2/PRODUCAO-V2.json",
+    "deployment": {
+      "source": "Board independent exact-SHA read received in this turn; recorded 2026-09-11 01:30 BRT",
+      "sha": "d4a34ba12756d56ee9ed1628eca919071ddc5630",
+      "ciRun": "34562128068",
+      "ciUrl": "https://github.com/josephsskaf-hub/UseKineo/actions/runs/34562128068",
+      "ciStatus": "COMPLETED/SUCCESS",
+      "deploymentId": "dpl_7fgaVCzHW9SszRjc4SjBv889xTzB",
+      "deploymentStatus": "READY",
+      "target": "production"
+    }
+  },
+  "commercialVariantCount": 2
 }

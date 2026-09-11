@@ -1,0 +1,15 @@
+# [Citações] V2 publicada e verificada
+
+**EVIDÊNCIA DE PRODUÇÃO — 11/09/2026, fechamento às 01h30 BRT:** a [comparação existente](https://www.usekineo.com/vs/invideo-alternatives-faceless-shorts) está publicada em `d4a34ba12756d56ee9ed1628eca919071ddc5630`. O Board confirmou independentemente o [Guardião 34562128068](https://github.com/josephsskaf-hub/UseKineo/actions/runs/34562128068) com `COMPLETED/SUCCESS` e o deploy Vercel `dpl_7fgaVCzHW9SszRjc4SjBv889xTzB` em `READY`, destino produção e SHA correspondente. Não houve novo push após a confirmação.
+
+**EVIDÊNCIA DE PRODUÇÃO — HTTP independente:** primeira observação positiva em **11/09 01:27:54.879 BRT**: resposta 200, canonical correto, campanha e CTA V2, quatro preços mensais presentes, trial Kineo de trinta créditos sem cartão e lacunas explícitas. O horário observado não é o instante exato de rollout. A revisão comercial fica para depois de **07:27:54.879 BRT**, na retomada agendada seguinte se necessário. [Respostas compactas e hashes](PRODUCAO-V2.json).
+
+**EVIDÊNCIA DE PRODUÇÃO:** o controle da V1 respondeu 200 e conservou campanha, CTA, trial e saldo de dez créditos no exemplo Seedance. Foram três GETs no total: comparação, controle inicial e controle corrigido. O primeiro teste procurou a frase literal `10 credits left`, ausente no markup existente; o teste corrigido conferiu o par `Credits left in this example` / `10` dentro do artigo Seedance. O HTML teve o mesmo hash nos dois controles: erro do probe, sem regressão do produto. A janela V1 continua após 06:14:22.326 BRT.
+
+**EVIDÊNCIA OPERACIONAL:** execução exclusiva na worktree limpa `C:/kineo/.claude/worktrees/citacoes-comparacao-publicacao-20260911`, base `2f2a1e05`. Preflight, `bash scripts/enfileirar.sh` e BAT com candidato/base completos passaram; ambos os scripts saíram 0. Hashes do transporte revisado, fila direta fora de worktree, árvore limpa, remoto único correto e ausência de desvios de Git foram conferidos. Não houve força, limpeza, rebase, retry ou alteração financeira. O transporte usa push fast-forward normal, não CAS absoluto no servidor. [Registro](TRANSPORTE.json). Reserva liberada após os gates e HTTP.
+
+**FATO CONFIRMADO / ESCOPO:** quatro arquivos funcionais foram publicados, com preços Kineo vindo dos helpers existentes. Os sete HTMLs reais de controle permaneceram idênticos, inclusive V1; 39 checks específicos, cinco contratos críticos e typecheck passaram. [QA](QA-INTEGRACAO.md), [fontes](FONTES.md) e [antes/depois desktop/mobile](../../citacoes-comparacao-v2-20260911/preview.html). O servidor local foi encerrado e o viewport restaurado.
+
+**QUESTÃO PENDENTE:** não há evidência nova de pessoas externas, pagamentos canônicos ou receita atribuída. São duas variantes comerciais ativas, limite aprovado: preservar as amostras e não criar uma terceira. A próxima bateria comparável de perguntas reais no ChatGPT permanece em 11/09 às 20h BRT. O prazo renovado termina às 23h30; esta entrega não renova a automação.
+
+**EVIDÊNCIA OPERACIONAL LOCAL:** este fechamento posterior ao SHA publicado deve acompanhar a próxima entrega substantiva autorizada; não justifica push só de relatório.
