@@ -401,7 +401,8 @@ const PROIBIDOS = VM.proibidosPorModo('documentary_faceless')
   // Auditavel: os DOIS caminhos gravam o veredito no claim.
   checa('D4 hollywood grava contrato_cena no claim', /contrato_cena: contratoRelato,/.test(codigo))
   checa('D4 classico grava contrato_cena no claim', /contrato_cena: contratoRelatoClassico,/.test(codigo))
-  checa('D4 os dois gravam visual_mode', (codigo.match(/visual_mode: formatoVisual\.modo/g) ?? []).length === 2)
+  // KINEO-PRIMEIRA-PESSOA-2026-09-11 — o dry-run de $0 tambem grava visual_mode (3 ocorrencias: dry-run, hollywood, classico).
+  checa('D4 os dois caminhos pagos (e o dry-run) gravam visual_mode', (codigo.match(/visual_mode: formatoVisual\.modo/g) ?? []).length === 3)
 
   // NUNCA bloqueia: os dois tem try/catch que segue com o prompt bruto.
   checa('D4 os dois caminhos seguem em caso de falha do gate',

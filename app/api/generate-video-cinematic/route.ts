@@ -39,6 +39,7 @@ import {
   type AttemptRecord,
 } from '@/lib/cinematic/dispatchScenes'
 import { resolveVerbatimSegments } from '@/lib/cinematic/verbatimBeats'
+import { resolveCharacterVoice } from '@/lib/hollywood/characterVoice'
 import { sceneNarrationsForPlan } from '@/lib/cinematic/speechContract'
 import { aplicarEixoVisual } from '@/lib/hollywood/varietyAxis'
 import { decidirFormato, permiteApresentador, TAG_FACELESS, proibidosPorModo, type VisualMode } from '@/lib/cinematic/visualMode'
@@ -3734,6 +3735,15 @@ async function manipularPost(req: NextRequest) {
             // é o que permite validar 5 gêneros opostos a $0 (o teste do
             // 'sistema perfeito pra qualquer assunto' que o fundador pediu).
             direction: { genre: plan.genre, hostFits: plan.hostFits, stylized: plan.stylized },
+            // KINEO-PRIMEIRA-PESSOA-2026-09-11 — o dry-run de $0 passa a dizer o que
+            // o render pago faria com a PESSOA: modo visual (quem fala), a ficha
+            // do personagem e a voz que sairia da boca dele. Foi o que faltou
+            // para o canario do faroleiro custar $0 em vez de 150 creditos.
+            visual_mode: formatoVisual.modo,
+            visual_mode_reason: formatoVisual.motivo,
+            character_sheet: plan.characterSheet ?? null,
+            character_voice: resolveCharacterVoice(plan.characterSheet ?? ''),
+            dialogue_scenes: plan.scenes.filter((sc) => sc.type === 'dialogue').length,
             target_seconds: hollywoodTarget,
             // KINEO-DEGRAU-2026-09-03 — o plano de $0 reporta a duração que o
             // render pago realmente usaria (já descida) e de onde ela veio.
@@ -4055,9 +4065,21 @@ async function manipularPost(req: NextRequest) {
           // falando, e aviso no FIM do prompt pesa pouco — a MESMA licao do
           // UPRIGHT-B (tokens iniciais mandam mais). Na familia h3, onde NAO
           // existe fala nativa (tudo e narrado), a proibicao vira PREFIXO.
-          const mouthPrefix = family === 'h3' && hs.type !== 'dialogue'
+          // KINEO-PRIMEIRA-PESSOA-2026-09-11 — o canario do faroleiro (Kling 3,
+          // 11/09) saiu COM o sufixo e o homem falou na cena 1 sob a narradora.
+          // A licao do H3 vale para toda familia: o aviso no fim pesa pouco. O
+          // prefixo agora e universal em cena nao-dialogo, e os verbos de fala
+          // que o planner deixou no prompt ("begins speaking about his past")
+          // sao trocados por silencio ANTES de o motor ler.
+          const mouthPrefix = hs.type !== 'dialogue'
             ? 'No one talks on camera. Every visible person is silent, mouth closed, no lip movement, not speaking. '
             : ''
+          if (hs.type !== 'dialogue') {
+            hs.prompt = hs.prompt
+              .replace(/\b(?:he|she|they|the (?:man|woman|person|old man|old woman|boy|girl))?\s*(?:begins?|starts?|continues?)\s+(?:speaking|talking|telling|narrating|explaining)\s+(?:about|of|to)\s+[^,.;]+/gi, 'silent, mouth closed, lost in thought')
+              .replace(/\b(?:speaking|talking)\s+(?:about|to|of)\s+[^,.;]+/gi, 'silent, mouth closed')
+              .replace(/\b(?:he|she)\s+(?:says|tells|narrates|explains|recounts)\s+[^,.;]+/gi, 'silent, mouth closed')
+          }
           // KINEO-SPECTACLE-2026-08-17 (fundador: "nao estava muito nitida,
           // sem efeitos") — DNA de nitidez/escala em todo b-roll, em CODIGO
           // (nao dependemos do planner escrever bonito).
