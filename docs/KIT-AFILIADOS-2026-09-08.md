@@ -6,11 +6,13 @@
 
 **EVIDÊNCIA DE PRODUÇÃO — Claude, 10/09/2026, PEDIDOS no commit `68fcc787`:** o teste interno registrou comissão de R$14,97 sobre R$49,90 e foi anulado (`void`). Prova do funil, sem aquisição externa ou comissão paga. **SUGESTÃO — operação:** preservar conferência nominal, supressões, histórico dos convites e aceite antes de entregar materiais; não oferecer render personalizado gratuito sem aprovação de custo.
 
+**FATO CONFIRMADO / IMPLEMENTADO — correção de escopo em 11/09/2026, SHA `cbf30005`:** a marca d'água descrita neste kit se refere aos Shorts narrados gratuitos (`app/api/compose/route.ts:1785`, `:1837`, `:1844`, `:2876`). O novo modo clipe segue uma entrega separada, sem a etapa de composição narrada (`app/api/clip-status/route.ts:82`, `:104`); por isso, a redação abaixo deixa de generalizar todos os vídeos gratuitos. Esta leitura de código não comprova render ou deploy do clipe. Seu preço e sua comunicação comercial continuam pendentes; esta correção não anuncia um novo benefício nem altera os termos.
+
 ## Partner offer — proposed English copy
 
 Earn **30% on every eligible purchase validly attributed to you, paid in USD**. Eligible subscription payments can earn recurring commissions while your referred customer keeps paying. You get your own affiliate link and a dashboard for attributed activity and commissions. The attribution window is **90 days**, using the first eligible affiliate touch. A future purchase or top-up must qualify and retain valid attribution; commission on every future recharge is not guaranteed.
 
-Your audience can **start free with 30 credits, every engine unlocked and no card required**. Free videos are watermarked. Paid plans start at **US$9.90/month** and remove the watermark from paid exports. Credit use depends on the engine and video settings; 30 credits do not mean unlimited videos or 30 videos.
+Your audience can **start free with 30 credits, every engine unlocked and no card required**. Free narrated Shorts have a watermark. Paid plans start at **US$9.90/month** and remove the watermark from paid exports. Credit use depends on the engine and video settings; 30 credits do not mean unlimited videos or 30 videos.
 
 Current monthly plans:
 
@@ -37,7 +39,7 @@ There is a **one-time US$3 activation bonus per affiliate** after the first appr
 - “Free to start, 30 credits, no card required.”
 - “Create a faceless Short with AI narration, visuals and captions.”
 - “Choose your engine and review the result before publishing.”
-- “Free exports are watermarked; paid exports remove the watermark.”
+- “Free narrated Shorts have a watermark; paid exports remove the watermark.”
 - “I earn a commission on eligible purchases through my affiliate link.”
 
 ## What you must not say
@@ -76,11 +78,11 @@ For post-level reporting, keep a simple record of the post URL, publication date
 
 **Placement note:** these versions are for YouTube Shorts after the “Kineo — affiliate link” profile link is configured. For a long-form video with a working external description link, replace the profile instruction with “Use my affiliate link in this video's description” and include the real URL there. Keep the disclosure.
 
-1. **Workflow:** One topic, AI narration, visuals and captions. Try Kineo free with 30 credits and no card required. Open my channel profile and tap “Kineo — affiliate link”. Free exports are watermarked. I earn a commission on eligible purchases.
-2. **History:** Turn a history topic into a faceless Short, then check the facts and scenes before publishing. Kineo starts free with 30 credits, no card required. Open my channel profile and tap “Kineo — affiliate link”. Free exports are watermarked. I earn a commission on eligible purchases through this link.
-3. **Facts:** A facts Short still needs fact-checking. Kineo helps with the script, narration, visuals and captions; you review the result. Start free with 30 credits: open my channel profile and tap “Kineo — affiliate link”. No card required; free exports are watermarked. I may earn a commission on eligible purchases.
-4. **Mystery:** Build suspense with a script, narration and changing visuals. This is a Kineo workflow example, not a promise of views. Try 30 free starting credits, no card required: open my channel profile and tap “Kineo — affiliate link”. Free exports are watermarked. I earn a commission on eligible purchases.
-5. **Finance:** Explain one financial concept in a short video, check the claims and add your own editorial judgment. Try the Kineo workflow free with 30 credits and no card: open my channel profile and tap “Kineo — affiliate link”. Free exports are watermarked. I may earn a commission on eligible purchases.
+1. **Workflow:** One topic, AI narration, visuals and captions. Try Kineo free with 30 credits and no card required. Open my channel profile and tap “Kineo — affiliate link”. Free narrated Shorts have a watermark. I earn a commission on eligible purchases.
+2. **History:** Turn a history topic into a faceless Short, then check the facts and scenes before publishing. Kineo starts free with 30 credits, no card required. Open my channel profile and tap “Kineo — affiliate link”. Free narrated Shorts have a watermark. I earn a commission on eligible purchases through this link.
+3. **Facts:** A facts Short still needs fact-checking. Kineo helps with the script, narration, visuals and captions; you review the result. Start free with 30 credits: open my channel profile and tap “Kineo — affiliate link”. No card required; free narrated Shorts have a watermark. I may earn a commission on eligible purchases.
+4. **Mystery:** Build suspense with a script, narration and changing visuals. This is a Kineo workflow example, not a promise of views. Try 30 free starting credits, no card required: open my channel profile and tap “Kineo — affiliate link”. Free narrated Shorts have a watermark. I earn a commission on eligible purchases.
+5. **Finance:** Explain one financial concept in a short video, check the claims and add your own editorial judgment. Try the Kineo workflow free with 30 credits and no card: open my channel profile and tap “Kineo — affiliate link”. Free narrated Shorts have a watermark. I may earn a commission on eligible purchases.
 
 ## Three demo scripts — SUGESTÃO, target format 30 seconds each
 
@@ -93,7 +95,7 @@ For post-level reporting, keep a simple record of the post URL, publication date
 | Opening | Finished example, labelled “Kineo example” | “Affiliate demo: here is one way to build a history Short with Kineo.” |
 | Workflow | Enter topic; review script; select engine | “Start with one topic, check the facts, then choose the engine and voice.” |
 | Result | Play the actual output with captions | “Review the scenes, narration and captions before posting.” |
-| Close | Show the configured Kineo link on the channel profile | “Start free with 30 credits, no card. Free exports are watermarked. Tap Kineo on my channel profile. I earn a commission on eligible purchases.” |
+| Close | Show the configured Kineo link on the channel profile | “Start free with 30 credits, no card. Free narrated Shorts have a watermark. Tap Kineo on my channel profile. I earn a commission on eligible purchases.” |
 
 ### 2. A mystery Short
 
@@ -102,7 +104,7 @@ For post-level reporting, keep a simple record of the post URL, publication date
 | Opening | Hook from a real recorded demo | “Affiliate demo: a mystery Short needs a clear question, not just dramatic images.” |
 | Workflow | Show the question and script edits | “In Kineo, I start with the topic, review the script and choose the narration and visuals.” |
 | Result | Show generated scenes and corrections | “Check each scene against the story before publishing.” |
-| Close | Show the configured Kineo link on the channel profile | “Try 30 free credits, no card. Free exports are watermarked. Tap Kineo on my channel profile. I earn a commission on eligible purchases.” |
+| Close | Show the configured Kineo link on the channel profile | “Try 30 free credits, no card. Free narrated Shorts have a watermark. Tap Kineo on my channel profile. I earn a commission on eligible purchases.” |
 
 ### 3. A facts Short
 
@@ -111,7 +113,7 @@ For post-level reporting, keep a simple record of the post URL, publication date
 | Opening | A factual question and its source | “Affiliate demo: turn one verified fact into a Short without filming yourself.” |
 | Workflow | Show real script, engine and voice choices | “Kineo brings the script, AI narration, visuals and captions into one workflow.” |
 | Result | Actual output, including any visible limitations | “Check the facts and the finished video yourself.” |
-| Close | Show the configured Kineo link on the channel profile | “Start free with 30 credits, no card. Free exports are watermarked. Tap Kineo on my channel profile. I earn a commission on eligible purchases.” |
+| Close | Show the configured Kineo link on the channel profile | “Start free with 30 credits, no card. Free narrated Shorts have a watermark. Tap Kineo on my channel profile. I earn a commission on eligible purchases.” |
 
 ## Asset handoff
 
@@ -169,12 +171,12 @@ Antes de publicar, configure o link clicável do perfil com o rótulo “Kineo �
 | Tema | Campo de tema ou roteiro já visível; exemplo próprio, sem enviar geração | “Comece por um assunto específico. Em histórias e curiosidades, confira as fontes antes de usar o roteiro.” |
 | Escolhas | Opções de motor, voz e legendas que estejam disponíveis na tela | “Revise o roteiro e as escolhas de narração e cenas. O consumo de créditos depende das configurações.” |
 | Resultado opcional | Somente vídeo próprio já concluído e integralmente revisado, identificado como tal | “Este é o meu exemplo já concluído. Confira também as cenas, o áudio e as legendas antes de publicar.” Se não houver esse arquivo, retirar o passo inteiro. |
-| Encerramento | Perfil do canal com o rótulo clicável configurado | “A Kineo começa grátis com 30 créditos, sem cartão. Os vídeos gratuitos levam marca d'água. Abra meu perfil e toque em Kineo — link de afiliado.” |
+| Encerramento | Perfil do canal com o rótulo clicável configurado | “A Kineo começa grátis com 30 créditos, sem cartão. Os Shorts narrados gratuitos levam marca d'água. Abra meu perfil e toque em Kineo — link de afiliado.” |
 
 **SUGESTÃO — legenda para essa apresentação:**
 
 ```text
-Uma apresentação das etapas para preparar um Short narrado: tema, roteiro, narração, cenas e revisão. A Kineo começa grátis com 30 créditos, sem cartão; vídeos gratuitos levam marca d'água. Abra meu perfil e toque em “Kineo — link de afiliado”. Sou afiliado e posso receber comissão em compras elegíveis pelo meu link.
+Uma apresentação das etapas para preparar um Short narrado: tema, roteiro, narração, cenas e revisão. A Kineo começa grátis com 30 créditos, sem cartão; Shorts narrados gratuitos levam marca d'água. Abra meu perfil e toque em “Kineo — link de afiliado”. Sou afiliado e posso receber comissão em compras elegíveis pelo meu link.
 ```
 
 **SUGESTÃO — conferência antes de usar:** ensaiar a fala e ajustar a duração à gravação real; manter o disclosure. Não apresentar este roteiro como filme produzido na Kineo. Os exemplos Mary Celeste e Maracaibo continuam retidos pelas revisões anteriores; esta seção não os libera nem oferece filme personalizado grátis. A instrução de perfil é para Shorts; outros formatos seguem a verificação de posicionamento de link já descrita neste kit.
