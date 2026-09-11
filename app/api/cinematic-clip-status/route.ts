@@ -72,10 +72,22 @@ type ClipStatus = {
   url: string | null
 }
 
-async function checkFalClip(requestId: string, model: string): Promise<ClipStatus> {
+// Closed diagnostic fields only: provider bodies can contain prompts, signed
+// URLs and credentials. A message signal is evidence, NOT refund authority.
+function pollMessageSignal(error: unknown): string {
+  const body = (error as { body?: { detail?: unknown } } | null)?.body
+  const detail = typeof body?.detail === 'string' ? body.detail.slice(0, 2000) : ''
+  if (/\breason:\s*exhausted balance\b/i.test(detail)) return 'explicit_exhausted_balance'
+  if (/\bconcurrency\b/i.test(detail)) return 'mentions_concurrency'
+  if (/\brequest\b.{0,80}\bnot found\b/i.test(detail)) return 'mentions_request_not_found'
+  return 'unclassified'
+}
+
+async function checkFalClip(requestId: string, model: string, generationId: string, sceneIndex: number): Promise<ClipStatus> {
   const falKey = process.env.FAL_KEY
   if (!falKey) return { id: requestId, status: 'processing', url: null }
 
+  let pollStage: 'status' | 'result' = 'status'
   try {
     fal.config({ credentials: falKey })
     const st = await fal.queue.status(model, { requestId })
@@ -83,6 +95,7 @@ async function checkFalClip(requestId: string, model: string): Promise<ClipStatu
     if (status === 'IN_QUEUE') return { id: requestId, status: 'pending', url: null }
     if (status === 'IN_PROGRESS') return { id: requestId, status: 'processing', url: null }
     if (status === 'COMPLETED') {
+      pollStage = 'result'
       const result = await fal.queue.result(model, { requestId })
       const data = ((result as { data?: unknown }).data ?? result) as {
         video?: { url?: string }
@@ -96,6 +109,18 @@ async function checkFalClip(requestId: string, model: string): Promise<ClipStatu
     if (status === 'FAILED') return { id: requestId, status: 'failed', url: null }
     return { id: requestId, status: 'processing', url: null }
   } catch (error) {
+    // RENDER-POLL-11: the old warning hid the exact failure of one accepted
+    // clip, making a lookup error indistinguishable from real progress.
+    // No provider request ID, message, body, URL or arbitrary Error.name logs.
+    const rawStatus = (error as { status?: unknown } | null)?.status
+    const diagnostic = {
+      generation_id: generationId,
+      scene_index: sceneIndex,
+      stage: pollStage,
+      provider_http_status: typeof rawStatus === 'number' && Number.isInteger(rawStatus) && rawStatus >= 100 && rawStatus <= 599 ? rawStatus : null,
+      message_signal: pollMessageSignal(error),
+    }
+    console.warn('[cinematic-poll-diagnostic]', diagnostic)
     // KINEO-CINEMATIC-RELIABILITY-2026-08-05 — incident 05/08 03:08Z/03:17Z:
     // when a fal job fails at the APPLICATION level (content filter, internal
     // model error), fal's queue result/status call throws 422 "Unprocessable
@@ -195,7 +220,7 @@ export async function GET(req: NextRequest) {
     const clips = await Promise.all(
       claim.falRequestIds.map((id, index) => {
         if (!id) return Promise.resolve({ id: null, status: 'failed' as const, url: null })
-        return checkFalClip(id, claim.falModels[index])
+        return checkFalClip(id, claim.falModels[index], generationId, index)
       }),
     )
     const completed = clips
