@@ -775,6 +775,7 @@ RULES:
 - Anchor the shot on the LITERAL subject of that scene's narration (the exact place, object, event, number, or concept being said).
 - Approved visual direction: ${visualDescriptionDirection(visualPolicy)} Never invent an unrelated person to fill the scene.
 - In scene 1, immediately show the literal subject/event of the opening narration, not a generic establishing landscape. Do not add events or claims absent from the scene.
+- NEVER add a real-world landmark, named house, city, decade, year, brand or model that the narration or topic does not mention (no "Winchester Mystery House", "Amityville", "1910 farmhouse", "Nokia 3310" unless the narration says so). If the narration gives no era, the setting is PRESENT-DAY with present-day objects (a phone that receives a text message is a smartphone, never a rotary phone). Keep one consistent setting across scenes unless the narration moves.
 - Include a camera move (aerial, slow push-in, tracking, pan, or macro), plus lighting and mood.
 - VARY the camera move and framing across scenes — do not repeat the same shot type; rotate aerial / tracking / slow push-in / macro / wide / low-angle.
 - Keep the approved look, mood, color palette and lighting across all scenes, as if from the same film.
@@ -784,28 +785,40 @@ RULES:
 
   const userMsg = `Topic: ${topic.slice(0, 200)}\n\nScenes:\n${list}`
 
-  const completion = await openai.chat.completions.create(
-    {
-      model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: system },
-        { role: 'user', content: userMsg },
-      ],
-      temperature: 0.6,
-      max_tokens: 1000,
-      response_format: { type: 'json_object' },
-    },
-    // KINEO-DESC-RETRY-2026-07-24 — one retry so a single transient failure
-    // (429/5xx/timeout) doesn't collapse the verbatim path to raw keyword-soup
-    // queries. The caller's try/catch keeps the keyword fallback as last resort.
-    { timeout: 15000, maxRetries: 1 },
-  )
+  // KINEO-VIGIA-DESCRICAO-2026-09-11 — render 802f024e: o modelo devolveu 2
+  // descrições para 5 cenas e as cenas 3-5 subiram para a fal com o pedaço
+  // CRU da narração como prompt visual. Contagem errada é violação do
+  // contrato ("EXACTLY N items"), não falha de transporte: uma segunda
+  // chamada, cobrando a contagem, antes de o chamador cair no texto cru.
+  let best: string[] = []
+  for (let tentativa = 0; tentativa < 2; tentativa++) {
+    const completion = await openai.chat.completions.create(
+      {
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: tentativa === 0 ? userMsg : `${userMsg}\n\nYour previous answer had ${best.length} descriptions. Return EXACTLY ${scenes.length} descriptions, one per scene, in order.` },
+        ],
+        temperature: 0.6,
+        max_tokens: 1000,
+        response_format: { type: 'json_object' },
+      },
+      // KINEO-DESC-RETRY-2026-07-24 — one retry so a single transient failure
+      // (429/5xx/timeout) doesn't collapse the verbatim path to raw keyword-soup
+      // queries. The caller's try/catch keeps the keyword fallback as last resort.
+      { timeout: 15000, maxRetries: 1 },
+    )
 
-  const raw = completion.choices[0]?.message?.content?.trim() ?? ''
-  if (!raw) return []
-  const data = JSON.parse(raw) as { descriptions?: unknown }
-  const arr = Array.isArray(data.descriptions) ? data.descriptions : []
-  return arr.map((d) => (typeof d === 'string' ? d.trim() : ''))
+    const raw = completion.choices[0]?.message?.content?.trim() ?? ''
+    if (!raw) continue
+    const data = JSON.parse(raw) as { descriptions?: unknown }
+    const arr = Array.isArray(data.descriptions) ? data.descriptions : []
+    const got = arr.map((d) => (typeof d === 'string' ? d.trim() : ''))
+    if (got.filter(Boolean).length > best.filter(Boolean).length) best = got
+    if (best.filter(Boolean).length >= scenes.length) break
+    console.warn(`[cinematic] #441 descritor devolveu ${best.filter(Boolean).length}/${scenes.length} cenas (tentativa ${tentativa + 1})`)
+  }
+  return best
 }
 
 // #369 — clip count = ceil(duration/9), capped 2..6. One ~9-10s clip per
@@ -3017,8 +3030,16 @@ async function manipularPost(req: NextRequest) {
     // KINEO-ERA-LOCK-2026-07-09 — era detected ONCE from the full narration +
     // topic, then appended to EVERY scene prompt below (code-enforced; survives
     // any GPT slip in the per-scene visual prompts).
+    // KINEO-VIGIA-ERA-2026-09-11 — a era vem SÓ das palavras da história
+    // (tema + fala), nunca da camada visual escrita pelo GPT. Render c636e7a0
+    // (Seedance, 11/09 19:33 UTC, conto de terror em PT-BR com telefone que
+    // recebe MENSAGEM): o descritor inventou "1910 New England farmhouse" numa
+    // cena, o `1910` casou com ERA_YEAR_RE e as 7 cenas subiram com "period
+    // piece set strictly in the year 1910, no modern objects" — para uma
+    // história de hoje. O deslize do GPT que a trava devia sobreviver era
+    // justamente o que a estava disparando.
     const eraSuffix = eraLockSuffix(
-      `${prompt} ${scenes.map((s) => `${s.voiceover ?? ''} ${s.aiPrompt ?? ''} ${s.description ?? ''}`).join(' ')}`,
+      `${prompt} ${scenes.map((s) => s.voiceover ?? '').join(' ')}`,
     )
     if (eraSuffix) console.log('[cinematic] era-lock active for this render')
     if (styleAnchor.look !== 'photoreal') console.log(`[cinematic] style-lock: ${styleAnchor.look}`)

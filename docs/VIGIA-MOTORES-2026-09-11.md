@@ -117,3 +117,100 @@ Fatos medidos que mudam a leitura:
 - Seedance: 12 pessoas em 15 dias fecham a aba e o stranded finisher não fecha o
   filme (`provider_abandoned_refunded`). Medir na próxima rotação quantas dessas
   tinham TODAS as cenas prontas na fal.
+
+---
+
+## Rotação 2 — 16:30 BRT (19:30 UTC) · branch codex/vigia-motores-1630 · base cbf30005
+
+### Filmes de contas externas desde 18:30 UTC (15:30 BRT)
+
+| id | motor | pessoa | pedido | saiu | fal | cadastro→filme | nota |
+|---|---|---|---|---|---|---|---|
+| 802f024e | Seedance 1.5 (cinematic_ai) | conta nova via ChatGPT (DZ), trial 30cr | 35 s · 9:16 · "as is" | 49 s · completed · URL ok · 15cr | 5/5 aceitas · 5 POSTs · 200×5 · deploy a82071b6 | 10 min | **7,1** (régua) — para o espectador, 2 |
+| c636e7a0 | Seedance 1.5 (cinematic_ai) | conta nova (gmail), trial 30cr | 60 s · 9:16 · "as is" | 62 s · completed · URL ok · 25cr | 7/7 aceitas · 7 POSTs · 200×7 · deploy a82071b6 | 6 min | **8,7** |
+
+**802f024e ("Luffy vs Akainu")** — a pessoa colou uma FICHA DE PROMPT estilo
+Sora/Veo (`{"clip":"07","duration":"10 seconds","action":…,"camera":…,"vfx":…,
+"negative_prompt":…}`, 105 palavras) e apertou "Use my script as is". (a) 10 ·
+(b) 49 ≥ 35 → 10 (pediu 10 s na ficha; `pasted_directives_detected`
+asked_seconds=10, applied=35) · (c) requested_aspect 9:16 = "9:16 vertical" nos
+prompts → 10 — **primeiro filme com o formato MEDÍVEL no banco** (conserto da
+rotação 1 em produção: dispatch traz `requested_aspect`, claim traz `aspect`) ·
+(d) **1** — a TTS leu a ficha em voz alta: "clip 07 duration 10 seconds action
+Luffy rapidly dodges… camera High-speed FPV drone… negative prompt no clones no
+random movement no teleportation no extra limbs" (compose_submission_claim.
+narration = o JSON) · (e) 105 pal ÷ 3,1 = 34 s de voz em 49 s → 6 · (f) **3** —
+visual_mode documentary_faceless com negative "cartoon, anime" para um pedido de
+One Piece; o descritor devolveu 2 descrições para 5 cenas e as cenas 3-5 subiram
+para a fal com o pedaço CRU da ficha como prompt ("…negative prompt no clones…,
+faceless cinematic b-roll") · (g) 10 · (h) 10. Ponderado (20+10+10+2+6+3+10+10)/10
+= 7,1. A régua mascara: entrega e fal perfeitas, mas o filme é inassistível.
+Livro-razão da rotação 1 em produção no clássico: attempted=5, invariant_ok
+true, claim_action published, deploy_sha gravado.
+
+**c636e7a0 ("Lucas, 3h17")** — conto de terror em PT-BR, prosa limpa, 143
+palavras, telefone que recebe MENSAGEM, apartamento, olho mágico. (a) 10 · (b)
+62 ≥ 60 → 10 · (c) 9:16 = 9:16 → 10 · (d) 9 (TTS clássica, narração fiel, sem
+verbo de fala nos prompts) · (e) 143 ÷ 3,1 = 46 s de voz em 62 s → 6 · (f) **3**
+— 5 das 7 descrições inventaram época e lugar que a história não diz: "vintage
+rotary phone 1960s", "1970s Bakelite phone… abandoned Victorian home", "Nokia
+3310… abandoned cabin", "Winchester Mystery House in San Jose, California",
+"1910 New England farmhouse", "1970s motel". Um telefone que recebe mensagem é
+um smartphone; a história é de hoje. E pior, POR CÓDIGO: `eraLockSuffix` lia
+`aiPrompt`/`description`, o "1910" inventado casou com ERA_YEAR_RE e as 7 cenas
+subiram com "period piece set strictly in the year 1910, absolutely no modern
+objects" — contradizendo a própria cena do Nokia · (g) 10 · (h) 10. Ponderado
+(20+10+10+18+6+3+10+10)/10 = 8,7.
+
+Contas internas no intervalo: nenhum render pago. **0 renders de Kling 3/H3/
+Omni/S25 de qualquer conta desde a rotação 1** — voz na boca e primeira pessoa
+seguem SEM PROVA em produção. Nenhuma falha (`generation_stage_error`) e nenhum
+`plan_silence_rejected` na janela. Kineo 1 e Avatar: 0 renders na janela.
+
+### O que mudou (rotação 2)
+
+Enquanto esta rotação media, **outra sessão (fundador, 16:27, cbf30005) já
+tinha decidido o destino da ficha colada**: três modos no Studio, modo clipe
+(um clipe de 4-12 s no Seedance sem narrador, 5cr) e guarda `shot_spec_detected`
+422 ANTES do débito em generate-video-cinematic e generate-video-fast. A
+conversão que esta rotação tinha pronta (ficha → direção visual em prosa +
+"Let AI structure") foi DESCARTADA antes de enfileirar — a decisão do fundador
+é que ficha vira clipe, não filme narrado. Ficaram os três consertos que a
+guarda NÃO cobre (ambos os filmes passaram por eles):
+
+- `app/api/generate-video-cinematic/route.ts` (KINEO-VIGIA-DESCRICAO): o
+  descritor visual faz uma SEGUNDA chamada cobrando "EXACTLY N descriptions"
+  quando devolve menos cenas do que o pedido, guardando a melhor resposta, antes
+  de o chamador cair no texto cru (foi o caso das cenas 3-5 do 802f024e).
+- idem (regra do descritor): "NEVER add a real-world landmark, named house,
+  city, decade, year, brand or model that the narration or topic does not
+  mention… If the narration gives no era, the setting is PRESENT-DAY… Keep one
+  consistent setting across scenes". Cobre o Amityville da rotação 1 (mesmo
+  descritor, mesma família) e o Winchester/1910/Nokia desta.
+- idem (KINEO-VIGIA-ERA): `eraLockSuffix` lê SÓ tema + fala (`voiceover`),
+  nunca `aiPrompt`/`description` — a era vem das palavras da história, não da
+  camada visual que o GPT inventa. História que diz a época ("In 1805,
+  Napoleon…") continua trancando.
+- Guardião `scripts/test-vigia-descritor-e-era-2026-09-11.mjs` (16 checks; 3
+  executam `eraLockSuffix` de verdade com a fala real do c636e7a0 e a descrição
+  inventada). Falsificado por 6 mutantes, todos mortos com `git diff` provando
+  que aplicaram: era volta a ler aiPrompt · regra de lugar real some · sem
+  presente por padrão · descritor sem segunda chamada · guarda a última em vez
+  da melhor · segunda chamada sem cobrar N.
+- tsc 0 · 16 baterias do CI + scene-truth + motores-r2-r6 + voz-na-boca +
+  primeira-pessoa + silencio-na-cena + vigia-ledger + tres-modos-clipe verdes.
+
+### O que fica
+
+- A regra nova do descritor é PROMPT, não código: só o próximo filme prova se o
+  modelo obedece. Medir na rotação 3: `submitted_prompts` sem nome próprio de
+  lugar/década ausente do `topic`.
+- O VISUAL-DRIFT-11 (pedido ao Codex na rotação 1) agora tem a metade do
+  descritor consertada aqui; a metade de `visualPromptPolicy.ts` (filtro
+  determinístico de nome próprio fora do roteiro) continua com eles.
+- Régua (e): dois filmes de "as is" com 25-30% do tempo sem voz (34/49 s,
+  46/62 s). A régua de silêncio nova (baecab96) só cobre o caminho hollywood; o
+  clássico continua sem portão de palavras — anotado, não mexido (decisão do
+  fundador 02/09: "não aperte a régua").
+- Motores caros: 0 renders desde 11:34. O canário pago Kling 3 em 1ª pessoa
+  continua sendo a única prova possível de voz na boca — pendência do fundador.

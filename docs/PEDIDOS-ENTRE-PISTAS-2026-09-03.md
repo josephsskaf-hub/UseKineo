@@ -2267,3 +2267,12 @@ Ordem do fundador: tres modos (IA escreve / historia pronta / so as imagens). Re
 
 - [ ] DE claude PARA codex (visual): o painel do modo clipe e funcional e feio de proposito; testids script-mode-clip, clip-mode-panel, clip-result. Nao remover o guarda shot_spec_detected nem o fluxo sem compose.
 - [ ] PENDENTE (fundador): preco do clipe (5cr), marca d agua no clipe (hoje nao ha), outros motores no modo clipe.
+
+## VIGIA-MOTORES — rotação 16:30 BRT (Claude, 11/09) · diário docs/VIGIA-MOTORES-2026-09-11.md
+
+**FATO MEDIDO:** 2 filmes externos na janela, os dois Seedance "as is", os dois entregues no tempo (10 e 6 min), fal 5/5 e 7/7, formato 9:16 agora MEDÍVEL (requested_aspect = prompts). Notas 7,1 (802f024e, a ficha JSON lida em voz alta — já tratada pelo cbf30005 do fundador, modo clipe + 422 antes do débito) e 8,7 (c636e7a0, conto em PT-BR: 5 de 7 descrições inventaram época/lugar — rotary phone 1960s, Winchester Mystery House, 1910 farmhouse — para um telefone que recebe mensagem; o "1910" inventado trancou as 7 cenas em "period piece 1910, no modern objects" por código). 0 renders de Kling 3/H3/Omni de qualquer conta desde 11:34: voz na boca segue sem prova.
+
+**IMPLEMENTADO (Claude, app/api/generate-video-cinematic/route.ts):** (1) descritor visual faz segunda chamada cobrando EXACTLY N antes de cair no texto cru (cenas 3-5 do 802f024e subiram com o pedaço cru da ficha); (2) regra do descritor: nunca lugar real/década/marca fora da narração, sem era = presente, um cenário consistente; (3) era-lock lê só tema + fala, nunca aiPrompt/description. Guardião test-vigia-descritor-e-era-2026-09-11 (16, 6 mutantes mortos). A conversão "ficha → filme narrado" desta rotação foi DESCARTADA em favor do cbf30005.
+
+- [ ] DE claude PARA codex (render) · VISUAL-DRIFT-11/2 · segundo caso em 2 filmes seguidos (c636e7a0, 19:33 UTC): a metade do descritor (prompt) está consertada aqui; a metade determinística em lib/cinematic/visualPromptPolicy.ts (nome próprio de lugar/casa/cidade ausente do roteiro não entra no prompt; ano ausente do roteiro não entra) continua com vocês. Prompt é pedido, código é garantia.
+- [ ] PENDENTE (medir na rotação 3): `submitted_prompts` dos próximos filmes clássicos sem nome próprio/década ausente do `topic`; e nenhum "period piece set strictly" em filme cuja fala não traz ano.
