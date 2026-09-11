@@ -1,0 +1,75 @@
+{
+  "classification": "TESTADO LOCALMENTE",
+  "timeUtc": "2026-09-11T14:34:51.984Z",
+  "baseline": "9bf0525e799e311191aa076593daed6b7b4aff86",
+  "method": "Exact two-value source delta, smallest sufficient monthly grant from real helpers, evaluated catalog equality, and actual consumer JSX for all affected surfaces without route/media execution.",
+  "checks": [
+    "source delta is exactly two tier values",
+    "first sufficient monthly grant comes from current helpers",
+    "all other catalog fields and slugs remain identical",
+    "route/hub and protected sources remain byte-identical",
+    "all six surface contexts render the changed grant",
+    "tier change leaves free-CTA eligibility unchanged and network blocked"
+  ],
+  "grants": [
+    {
+      "label": "Starter",
+      "credits": 60
+    },
+    {
+      "label": "Creator",
+      "credits": 150
+    },
+    {
+      "label": "Studio",
+      "credits": 300
+    }
+  ],
+  "costs": [
+    {
+      "slug": "kling",
+      "credits": 50,
+      "minimumPlan": "Starter"
+    },
+    {
+      "slug": "veo",
+      "credits": 100,
+      "minimumPlan": "Creator"
+    }
+  ],
+  "surfaces": [
+    {
+      "label": "kling · nota no hero",
+      "beforeSha256": "7f223cc38acdbae214cad9962275d6d0b107b909d8403acb82c9dd4050eabbf7",
+      "afterSha256": "32c63f1be000f7384df70ec65cbab7a59263aa2e7bc68418f53b571589236a10"
+    },
+    {
+      "label": "kling · ficha técnica",
+      "beforeSha256": "b77803a67f80f344f550b9cda4971666da8153a71f0914930fa41ab8de9d392c",
+      "afterSha256": "2d95518e4a5b4fc71eaa48c8de8c3785b07a35ea9f53ddcaa5f73c10ba89288e"
+    },
+    {
+      "label": "veo · nota no hero",
+      "beforeSha256": "79913cf3e94ddea1aece3e994569daf19b7a3bf8b9a080d30167643c3bd4384d",
+      "afterSha256": "1878e3f51815ab2b0bce7b9401b83ffc8bd2a1e22222944e81df3c3886651e70"
+    },
+    {
+      "label": "veo · ficha técnica",
+      "beforeSha256": "2432f0adfa70874aa8ef4c2b8675de1285861c8d84dbf7b78db2d4e1f47a8cef",
+      "afterSha256": "8eaf66b706c3d0eb06828a0ba377dd41d0725fcbe44f762b13d2857221e25de1"
+    },
+    {
+      "label": "Duas linhas do comparativo · também exibidas nos demais motores",
+      "beforeSha256": "46382cb1a75726b73ef821c4a431e16e687f62fb0c2167432ea295203fdbcb05",
+      "afterSha256": "cf0d6eb6b449d7ccb3e9bbcb2de3b8d0bca897eb6d4c5b7ff4d23eff212a671e"
+    },
+    {
+      "label": "Dois cards do hub · sem mídia carregada",
+      "beforeSha256": "67a9e61bbbbaa80b3fd5454ce1d15dfe73408f7c1a09ad1a4f5795f20512f47a",
+      "afterSha256": "78065f639aed8daa9fde846723003566ea01a01a28dadb90db205248c3fc4bd2"
+    }
+  ],
+  "networkAttempts": 0,
+  "generatedVideos": 0,
+  "passed": true
+}

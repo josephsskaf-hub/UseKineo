@@ -103,7 +103,7 @@ export const ENGINES: Record<string, Engine> = {
     name: 'Kling 2.5',
     model: 'fal-ai/kling-video/v2.5-turbo/pro/text-to-video',
     creditCost: KLING_COST,
-    tier: 'Studio',
+    tier: 'Starter',
     h1: 'Kling 2.5 AI video generator for vertical Shorts — camera motion that holds up',
     intro:
       `Kling 2.5 Turbo Pro is the engine to reach for when the shot has to MOVE: a push-in through Roman ruins, a drone climb over a golden mountain, a 50-metre strike in a packed stadium. Kineo drives it from the script — you type the idea, Kineo writes the beats, prompts Kling scene by scene, voices and captions the result, and returns a finished 9:16 Short. A 60-second video costs ${KLING_COST} credits; the Studio monthly grant covers ${videosPerMonth('pro', 'cinematic_kling')}.`,
@@ -130,7 +130,7 @@ export const ENGINES: Record<string, Engine> = {
     name: 'Veo 3.1',
     model: 'fal-ai/veo3.1/fast',
     creditCost: VEO_COST,
-    tier: 'Studio',
+    tier: 'Creator',
     h1: 'Veo 3.1 AI video generator — Google’s flagship, wired into a finished Short',
     intro:
       `Veo 3.1 is Google’s flagship video model, and inside Kineo it is not a clip generator you then have to edit: you type one idea and get the whole vertical Short — script, AI voiceover, Veo-generated scenes and captions — assembled and ready to post. A 60-second video costs ${VEO_COST} credits; the Studio monthly grant covers ${videosPerMonth('pro', 'cinematic_veo')}.`,
