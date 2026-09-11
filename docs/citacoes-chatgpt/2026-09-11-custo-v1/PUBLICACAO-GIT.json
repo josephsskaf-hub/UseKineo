@@ -1,0 +1,50 @@
+{
+  "classification": "EVIDÊNCIA OPERACIONAL",
+  "recordedAtUtc": "2026-09-11 03:09:28 UTC",
+  "candidate": "2f2a1e05711108d4af0b340f37bbf4166a0b0b57",
+  "reviewedMain": "f31501b6f68349f7a90d98d40d08521e8fd8f591",
+  "preflight": {
+    "classification": "TESTADO LOCALMENTE",
+    "utc": "2026-09-11T03:08:03.0630574Z",
+    "root": "C:/kineo/.claude/worktrees/citacoes-cost-publicacao-20260911",
+    "candidate": "2f2a1e05711108d4af0b340f37bbf4166a0b0b57",
+    "reviewedMain": "f31501b6f68349f7a90d98d40d08521e8fd8f591",
+    "queueBefore": "f31501b6f68349f7a90d98d40d08521e8fd8f591",
+    "queueDirect": true,
+    "queueCheckedOut": false,
+    "worktreeClean": true,
+    "singleOrigin": "https://github.com/josephsskaf-hub/UseKineo.git",
+    "gitOverrides": [],
+    "benignPager": "GIT_PAGER=cat",
+    "riskyConfigKeys": [],
+    "activeHooks": [],
+    "transportHashes": {
+      "scripts/enfileirar.sh": "7b6e3bb9a3df63ee532aff4c36d5f33d2683c7777a18fd475efa301771ab1b61",
+      "scripts/publish-reviewed-queue.sh": "4dd68ba16cd7a4bb2781b3b1e81f26adca6cc18b8930e2b9a750aeb6524f366c",
+      "scripts/!RODAR-AGORA.bat": "ebb8108ba5b60c4f3895820886ac698a9691b3e520595cce79e9729a5ab75c99"
+    },
+    "pass": true
+  },
+  "enqueue": {
+    "exitCode": 0,
+    "output": "ENFILEIRADO: 2f2a1e05711108d4af0b340f37bbf4166a0b0b57 (base remota conferida: f31501b6f68349f7a90d98d40d08521e8fd8f591)\n"
+  },
+  "publish": {
+    "exitCode": 0,
+    "output": "To https://github.com/josephsskaf-hub/UseKineo.git\n   f31501b6..2f2a1e05  2f2a1e05711108d4af0b340f37bbf4166a0b0b57 -> main\nPUBLICADO NO GIT: 2f2a1e05711108d4af0b340f37bbf4166a0b0b57. Validacao de deploy pendente.\n"
+  },
+  "independentFetchConfirmed": true,
+  "queueAfter": "2f2a1e05711108d4af0b340f37bbf4166a0b0b57",
+  "cleanPublicationWorktree": true,
+  "deployment": "READY: dpl_5JUQHsUsvSY1bgJhEZWMuUjivffu, production, aliases www.usekineo.com and usekineo.com, aliasError null; Board exact-SHA check at 2026-09-11 00:11:08 BRT",
+  "httpExposure": "VALIDATED: PRODUCAO-V1.json; first positive observation 2026-09-11T00:14:22.326-03:00, not exact rollout time",
+  "noForceResetRebaseCleanup": true,
+  "preflightNote": "The first strict environment check stopped before any ref write because GIT_PAGER was present. Its value was confirmed to be cat; only that benign pager was exempted in the complete successful preflight.",
+  "ci": {
+    "conclusion": "success",
+    "source": "Board exact-SHA check",
+    "status": "completed",
+    "runId": "34557273379",
+    "url": "https://github.com/josephsskaf-hub/UseKineo/actions/runs/34557273379"
+  }
+}

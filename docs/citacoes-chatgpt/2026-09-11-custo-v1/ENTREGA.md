@@ -1,4 +1,6 @@
-# [Citações] V1 de custo — pronta localmente para integração posterior
+# [Citações] V1 de custo — publicação e validação
+
+**VALIDADO EM PRODUÇÃO — atualização final, 11/09/2026:** V1 publicada em `2f2a1e05711108d4af0b340f37bbf4166a0b0b57` pelo transporte revisado. Vercel READY e CI SUCCESS vinculados ao SHA, conforme Board. [Contraprova independente](PRODUCAO-V1.json) positiva às **00:14:22 BRT**: conteúdo e CTA corretos, controle sem V1. Primeira revisão comercial após **06:14:22 BRT**; pessoas, pagamentos e receita desconhecidos. [Registro de transporte](PUBLICACAO-GIT.json). Os registros abaixo descrevem a preparação anterior e ficam preservados como histórico.
 
 **IMPLEMENTADO / TESTADO LOCALMENTE — 10/09/2026 23h58 BRT:** o guia existente de custo apresenta a alocação do Starter por filme inteiro de referência, separa Kineo 1 de Seedance e oferece `Compare plans` no topo. A hipótese é facilitar a escolha de assinatura por uma pessoa que já quer comparar planos. Não há exposição ou resultado comercial medido.
 

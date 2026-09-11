@@ -1,0 +1,163 @@
+{
+  "method": {
+    "kind": "Exactly two public HTTPS GETs, no redirects or retries",
+    "cookies": false,
+    "credentials": false,
+    "javascript": false,
+    "clicks": 0,
+    "requests": 2,
+    "hash": "SHA-256 of response bytes; Accept-Encoding: identity",
+    "baseline_http_file": "production-20260911.json",
+    "reported_by_parent_only": {
+      "git_sha": "2f2a1e05711108d4af0b340f37bbf4166a0b0b57",
+      "deployment": "dpl_5JUQHsUsvSY1bgJhEZWMuUjivffu",
+      "deployment_status": "READY",
+      "ci_run": "34557273379",
+      "ci_status": "success"
+    },
+    "extraction_note": "The text extractor replaces HTML tags/comments with whitespace. The 60-second reference check therefore accepts whitespace around its hyphen; initial strict substring check was a parser false negative. This correction uses the recorded excerpt, with no additional request."
+  },
+  "completed_utc": "2026-09-11T03:14:22.853Z",
+  "first_positive_v1_observation_utc": "2026-09-11T03:14:22.326Z",
+  "first_positive_v1_observation_brt": "2026-09-11T00:14:22.326-03:00",
+  "scope": "Observation timestamp is not rollout time. No signup, revenue, actual analytics delivery or JavaScript behavior inferred.",
+  "all_checks_pass": true,
+  "records": [
+    {
+      "url": "https://www.usekineo.com/ai-video-generator/complete-60-second-shorts-cost",
+      "status": 200,
+      "started_utc": "2026-09-11T03:14:21.456Z",
+      "completed_utc": "2026-09-11T03:14:22.326Z",
+      "completed_brt": "2026-09-11T00:14:22.326-03:00",
+      "body_sha256": "9ca2bc08d12a7e6bbef3b294334d52eda1085e87a5aa2eb1dd1e6a88d0f815a7",
+      "bytes": 82238,
+      "location": null,
+      "cache": "PRERENDER",
+      "path": "/ai-video-generator/complete-60-second-shorts-cost",
+      "canonical": [
+        "https://www.usekineo.com/ai-video-generator/complete-60-second-shorts-cost"
+      ],
+      "h1": [
+        "What is the cheapest way to make complete 60-second AI Shorts with narration and captions?"
+      ],
+      "cost_markers": [
+        "citacoes_cost_decision_v1"
+      ],
+      "checks": {
+        "status200": true,
+        "canonical_exact": true,
+        "h1_unchanged": true,
+        "citation_marker_exact": true,
+        "v1_marker_exact": true,
+        "compare_plans_exact": true,
+        "two_trial_ctas_30_no_card": true,
+        "trial_ctas_unchanged": true,
+        "two_scenarios": true,
+        "monthly9_90_balance60": true,
+        "reference60": true,
+        "not_pay_per_render": true,
+        "whole_fee": true,
+        "alternative_counts": true,
+        "no_rollover": true,
+        "regeneration_limit": true,
+        "brazil_reais": true,
+        "faq_five_unchanged": true,
+        "existing_example_preserved": true
+      },
+      "plan_excerpt": "Starter · $9.90/month 60 credits per billing month",
+      "scenarios": [
+        {
+          "quality": "fast",
+          "excerpt": "Kineo 1 Matched stock footage ≈ $0.83 USD allocated per complete film Credits per reference film 5 Complete films per billing month 12 Credits left in this example 0 $9.90/month ÷ 12 complete films",
+          "quantities": [
+            "5",
+            "12",
+            "0"
+          ],
+          "checks": {
+            "name": true,
+            "credits": true,
+            "films": true,
+            "remainder": true,
+            "allocated_usd": true
+          }
+        },
+        {
+          "quality": "cinematic_ai",
+          "excerpt": "Seedance 1.5 AI-generated scenes ≈ $4.95 USD allocated per complete film Credits per reference film 25 Complete films per billing month 2 Credits left in this example 10 $9.90/month ÷ 2 complete films",
+          "quantities": [
+            "25",
+            "2",
+            "10"
+          ],
+          "checks": {
+            "name": true,
+            "credits": true,
+            "films": true,
+            "remainder": true,
+            "allocated_usd": true
+          }
+        }
+      ],
+      "limits": [
+        "Each 60 -second reference film includes narration, visuals, captions and a finished MP4.",
+        "A share of the monthly fee, not a separate price charged per render. Each example assigns the entire monthly fee to the complete films that fit in that engine. Choose either example; the two film counts are not combined.",
+        "Any remaining credits can go toward other work, but do not cover another complete film in that example. Regenerations, other engines or different durations change how many films your balance covers. Unused monthly credits do not roll over.",
+        "Figures use the USD Starter price. Brazilian customers pay in reais."
+      ],
+      "compare_plans": [
+        {
+          "href": "/pricing?intent_campaign=citacoes_cost_decision_v1",
+          "text": "Compare plans"
+        }
+      ],
+      "trial_ctas": [
+        {
+          "href": "/signup?redirect=%2Fstudio%3Fengine%3Dfast%26intent_campaign%3Dcitacoes_01_cost&intent_campaign=citacoes_01_cost",
+          "text": "Start free — 30 credits, no card"
+        },
+        {
+          "href": "/signup?redirect=%2Fstudio%3Fengine%3Dfast%26intent_campaign%3Dcitacoes_01_cost&intent_campaign=citacoes_01_cost",
+          "text": "Start free — 30 credits, no card"
+        }
+      ],
+      "faq": {
+        "count": 5,
+        "sha256": "9a0c5ba9722ce1557e9e871fd4992423f6a743366ac4fe1506cb6807e0d95d63"
+      },
+      "example": {
+        "href": "/examples/turkmenistan-door-to-hell",
+        "caption": "See an existing public example Turkmenistan: Door to Hell : a 5 -second preview from a 60 -second Short. This is an existing sample, not a render made for this guide."
+      }
+    },
+    {
+      "url": "https://www.usekineo.com/ai-video-generator/free-youtube-shorts",
+      "status": 200,
+      "started_utc": "2026-09-11T03:14:22.338Z",
+      "completed_utc": "2026-09-11T03:14:22.852Z",
+      "completed_brt": "2026-09-11T00:14:22.852-03:00",
+      "body_sha256": "4396d05ae7d382ecdc73806f3f31108182d606cf3d215376f1e995a4901794ad",
+      "bytes": 75581,
+      "location": null,
+      "cache": "PRERENDER",
+      "path": "/ai-video-generator/free-youtube-shorts",
+      "canonical": [
+        "https://www.usekineo.com/ai-video-generator/free-youtube-shorts"
+      ],
+      "h1": [
+        "What are the best free AI video generators for YouTube Shorts?"
+      ],
+      "cost_markers": [],
+      "checks": {
+        "status200": true,
+        "canonical_exact": true,
+        "h1_unchanged": true,
+        "citation_marker_exact": true,
+        "v1_marker_absent": true,
+        "trial_ctas_unchanged": true,
+        "faq_unchanged": true
+      }
+    }
+  ],
+  "context_reviewed_utc": "2026-09-11T03:14:54.923Z"
+}

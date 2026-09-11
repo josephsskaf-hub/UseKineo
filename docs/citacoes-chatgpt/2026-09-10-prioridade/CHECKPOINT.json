@@ -1,6 +1,6 @@
 {
   "classification": "EVIDÊNCIA OPERACIONAL",
-  "updatedAt": "2026-09-11T03:05:33.0160342Z",
+  "updatedAt": "2026-09-11T03:16:41.3346194Z",
   "threadTitle": "Kineo · Citações no ChatGPT",
   "worktree": "C:/kineo/.claude/worktrees/citacoes-01-2026-09-10",
   "branch": "codex/citacoes-01-2026-09-10",
@@ -10,7 +10,8 @@
   "liveCommits": [
     "94b2be4e",
     "2e8f99ae",
-    "f31501b6f68349f7a90d98d40d08521e8fd8f591"
+    "f31501b6f68349f7a90d98d40d08521e8fd8f591",
+    "2f2a1e05711108d4af0b340f37bbf4166a0b0b57"
   ],
   "preparedCodeCommit": "7f3f9622",
   "liveEvidence": "../2026-09-11-custo-v1/PRODUCAO-8-PAGINAS.json",
@@ -19,7 +20,7 @@
     "passed": 11,
     "total": 11
   },
-  "fullTypecheck": "PASS: exit 0 on reviewed input HEAD 7c9445f4, main 7827f2e0, including preserved .next/types, observed 2026-09-10 23:28 BRT. Repeat relevant gates when final integration changes base/code.",
+  "fullTypecheck": "PASS exit 0 on code 67cc53b4 with regenerated .next/types for layout, cost route and dynamic [engine]. Application/workflow/five critical contracts unchanged on published 2f2a1e05 after integrating main f31501b6. GitHub Guardiao 34557273379 also SUCCESS on exact published SHA.",
   "livePaths": [
     "/ai-video-generator/free-script-to-faceless-video",
     "/ai-video-generator/free-faceless-tiktok-tools",
@@ -31,7 +32,7 @@
     "/ai-video-generator/chatgpt-script-to-finished-short"
   ],
   "preparedPaths": [],
-  "transportStatus": "Board publication f31501b6 confirmed by git fetch; independent 11 GETs at 2026-09-11 00:03 BRT validate eight pages and all eight links in three discovery surfaces. Board released exclusive reservation. Cost V1 remains local and will use reviewed transport in a clean dedicated worktree.",
+  "transportStatus": "SUCCESS: reviewed queue/BAT published immutable 2f2a1e05711108d4af0b340f37bbf4166a0b0b57 over f31501b6. Vercel READY and CI SUCCESS reported by Board for exact SHA; independent V1 HTTP passed at 2026-09-11 00:14:22 BRT. Reservation may be released; no additional push planned.",
   "transportDependency": "C:/Users/josep/.codex/outputs/01a03e3e-5f63-7cf1-8b9f-6c6646b446b7/FILA-TRANSPORTE-DOCS-2026-09-10.md",
   "automationOwner": "Board",
   "existingAutomationId": "kineo-cita-es-no-chatgpt-7-dias",
@@ -45,13 +46,13 @@
     "file": "chatgpt-20-perguntas.json"
   },
   "continuation": [
-    "Prepare the integrated three-page/catalog package; reuse unchanged existing validation, review current main and critical gates. No ninth page while three remain unpublished.",
-    "Board alone owns transport unlock. Inspect its candidate diff and offline tests before real use; never execute unsafe BAT, branch -f, force, lock cleanup, reset/rebase or direct push/API.",
-    "After authorized safe integration/deploy, verify remote ancestry, deployment and HTTP before increasing published counts.",
+    "Eight pages are published and discovered; cost V1 is live. Preserve V1 until canonical evidence supports a change or its stop rule applies. No quota-driven ninth page.",
+    "Transport is unlocked through reviewed scripts only. Coordinate one owner and reserve immutable candidate/base before queue writes; use a clean own worktree, mandatory preflight, no force/reset/rebase/cleanup or blind retry.",
+    "Local closing documentation after published 2f2a1e05 is to travel with the next substantive authorized delivery, not a report-only push. Preserve the earlier snapshot and Board closure.",
     "Renewal supersedes the old midnight stop. Existing automation runs every 30 minutes until 2026-09-11 23:30 BRT; close only in its final 30 minutes and remove only this automation.",
     "Next comparable ChatGPT measurement is 2026-09-11 20h BRT; no repeated 20-chat battery hourly.",
-    "Then prioritize existing buyer-intent content and explicit free/pricing CTA; at most two reversible variants with cohort, obstacle, metric and stop rule. No home/approved video/Claude path changes.",
-    "Every six hours review closest observed step to external payment using canonical available evidence. Missing acquisition/payment access is unknown, never zero."
+    "V1 first positive public observation is 2026-09-11 00:14:22 BRT. First six-hour commercial review is due after 06:14:22 BRT, on the next scheduled heartbeat if necessary. Count external people and canonical payments, keep unlinked anonymous data separate, missing access is UNKNOWN.",
+    "At most two reversible commercial variants. Current active count is one. Prioritize existing buyer-intent content, honest costs and explicit free/pricing choice. No home/approved video/Claude path changes."
   ],
   "catalogFixCommit": "c633ed8b",
   "integratedMainCommit": "7827f2e07f89b55e2a020b266a48ec98247e5bd4",
@@ -145,7 +146,7 @@
     "nextStep": "COMPLETED: three pages/catalog published and independently verified. No additional page required; proceed with existing buyer-intent V1."
   },
   "costDecisionV1": {
-    "status": "PREPARED_AND_TESTED_LOCAL_ONLY",
+    "status": "VALIDADO_EM_PRODUCAO",
     "path": "/ai-video-generator/complete-60-second-shorts-cost",
     "codeCommit": "67cc53b45da0e813312af10212972f4325d7223e",
     "sourceCommit": "85bfae3d738cadaa52dda5465060e6a261be5b18",
@@ -160,11 +161,21 @@
     "unchangedOtherPages": 7,
     "fullTypecheckExit": 0,
     "actualBrowserDesktopMobile": "PASS; no acquisition clicks; no overflow; empty warning/error log queries",
-    "productionExposureAt": null,
-    "sixHourReviewAt": null,
+    "productionExposureAt": "2026-09-11T00:14:22.3260000-03:00",
+    "sixHourReviewAt": "2026-09-11T06:14:22.3260000-03:00",
     "paymentRevenue": "DESCONHECIDO",
-    "transport": "Ready to reserve clean C:/kineo/.claude/worktrees/citacoes-cost-publicacao-20260911; exact candidate/base required; no queue mutation yet.",
+    "transport": "Completed in clean C:/kineo/.claude/worktrees/citacoes-cost-publicacao-20260911; enqueue and reviewed BAT exit 0; no cleanup/force/retry. Release exclusive queue reservation after final confirmation.",
     "integratedPublishedBase": "f31501b6f68349f7a90d98d40d08521e8fd8f591",
-    "boardClosureCherryPick": "e0d45b43 (source 416ba109)"
+    "boardClosureCherryPick": "e0d45b43 (source 416ba109)",
+    "publishedCommit": "2f2a1e05711108d4af0b340f37bbf4166a0b0b57",
+    "exposureTimestampMeaning": "First positive HTTP observation, not exact rollout time",
+    "productionEvidence": "../2026-09-11-custo-v1/PRODUCAO-V1.json",
+    "deployment": {
+      "source": "Board exact-SHA read-only check 2026-09-11 00:11:08 BRT",
+      "id": "dpl_5JUQHsUsvSY1bgJhEZWMuUjivffu",
+      "ciRun": "34557273379",
+      "ci": "SUCCESS",
+      "status": "READY"
+    }
   }
 }
