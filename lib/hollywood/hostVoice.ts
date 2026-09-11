@@ -29,6 +29,7 @@ import { selectPersonaForScript } from '@/lib/narration/niche-mapping'
 import type { OpenAIVoice } from '@/lib/narration/personas'
 import { stripScriptMarkers } from '@/lib/scriptParser'
 import { PRESENTER_PERFORMANCE_PROMPT } from '@/lib/avatar/veed'
+import { isCharacterVoiceName, resolveCharacterVoice } from '@/lib/hollywood/characterVoice'
 
 export type HollywoodVoice = {
   personaId: string
@@ -50,12 +51,30 @@ export function resolveHollywoodVoice(
   script: string,
   language: 'en' | 'pt' | 'es' = 'en',
   vertical?: string,
+  characterSheet?: string | null,
 ): HollywoodVoice {
   const cleaned = stripScriptMarkers(String(script ?? ''))
   // Hollywood is the premium engine — always resolve at the cinematic tier,
   // exactly like compose's narrationTier for quality === 'cinematic_hollywood'.
   const persona = selectPersonaForScript(cleaned, vertical, 'cinematic', language)
+  // KINEO-VOZ-NA-BOCA-2026-09-11 — quando o planner descreveu o personagem, a
+  // ficha manda: homem fala com voz de homem, mulher com voz de mulher. Foi o
+  // defeito que desligou o lipsync em 16/08 (voz feminina num homem). Ficha
+  // sem gênero → persona de sempre. O compose recebe a MESMA escolha pelo
+  // claim (host_voice), então nunca re-resolve por conta própria.
+  const fromSheet = characterSheet ? resolveCharacterVoice(characterSheet) : null
+  if (fromSheet) return { personaId: fromSheet.personaId, voice: fromSheet.voice, defaultSpeed: fromSheet.speed }
   return { personaId: persona.id, voice: persona.voice, defaultSpeed: persona.defaultSpeed }
+}
+
+/** Voz pinada que viajou no claim assinado da rota cinematográfica; null se ausente ou inválida. */
+export function hollywoodVoiceFromClaim(value: unknown): HollywoodVoice | null {
+  if (!value || typeof value !== 'object') return null
+  const v = value as Record<string, unknown>
+  if (!isCharacterVoiceName(v.voice)) return null
+  const speed = typeof v.speed === 'number' && Number.isFinite(v.speed) && v.speed > 0 ? v.speed : 1.0
+  const personaId = typeof v.persona_id === 'string' && v.persona_id.trim() ? v.persona_id.trim().slice(0, 64) : 'claim'
+  return { personaId, voice: v.voice, defaultSpeed: Math.max(0.7, Math.min(1.3, speed)) }
 }
 
 /**
