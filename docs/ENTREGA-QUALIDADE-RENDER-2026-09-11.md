@@ -4,7 +4,7 @@
 
 **DECISÃO INFORMADA PELO FUNDADOR:** implementar a auditoria de motores (duração, voz, legendas, música e abertura). Créditos de execução renovados em 11/09. Não houve autorização inferida para trocar preços, mudar conta Fal ou disparar lote pago de teste.
 
-**IMPLEMENTADO / TESTADO LOCALMENTE — publicação ainda pendente nesta versão do registro.** Worktree `C:/kineo-wt/render-poll-recovery-20260911`, branch `codex/render-poll-recovery-20260911`, base `f6e4e3e69b4d87e94789575dfdd155074019d3b7`. Árvore principal suja intocada. SHA final, CI e deploy serão registrados após confirmação.
+**IMPLEMENTADO / TESTADO LOCALMENTE / PUBLICADO — infraestrutura validada em 11/09 às 14:10 UTC (11:10 BRT).** Código `d26de286d73e361853e13b5df438224fa0f1a9e0`, Vercel READY e Guardião success; detalhe abaixo. Worktree `C:/kineo-wt/render-poll-recovery-20260911`, branch `codex/render-poll-recovery-20260911`, base `f6e4e3e69b4d87e94789575dfdd155074019d3b7`. Árvore principal suja intocada. Validação audiovisual continua pendente.
 
 ## Alterações implementadas
 
@@ -25,7 +25,7 @@
 
 ## Verificação e limites
 
-**TESTADO LOCALMENTE:** módulos reais, trechos executados das rotas, HMAC/CAS, ledger simulado e contagem de chamadas. Baterias de duração, fala, música, visual, rejeição financeira, integração, UI, active, prova terminal, diagnóstico, além dos contratos críticos já existentes. Rede, fornecedor e refund reais proibidos nas baterias. Contagens finais e CI serão anexados após integração final.
+**TESTADO LOCALMENTE:** módulos reais, trechos executados das rotas, HMAC/CAS, ledger simulado e contagem de chamadas. Baterias de duração, fala, música, visual, rejeição financeira, integração, UI, active, prova terminal, diagnóstico, além dos contratos críticos já existentes. Rede, fornecedor e refund reais proibidos nas baterias. Contagens e CI registrados abaixo.
 
 **QUESTÃO PENDENTE — audiovisual:** nenhum novo render pago de canário. Ainda é necessário assistir ao filme completo e medir o MP4, voz, lábios, legenda, música e payoff. ASR não certifica identidade de rosto nem movimento labial; nomes e números podem gerar falso negativo. Transcrição atual de MP4 tem limite de tamanho; não foi criada infraestrutura de extração/compressão de áudio. Clone/upload no compositor avançado não foi refeito integralmente. Não declarar todos os motores perfeitos.
 
@@ -43,7 +43,15 @@
 
 **DECLARAÇÃO DE TESTE:** o fixture de slot nulo carregava prova terminal de um ID ausente; a integração corretamente recusou com 409. Corrigido apenas o fixture para não inventar prova órfã (revisão do agente em `e85e856e`, incorporada manualmente ao teste em edição). A política de assinatura não foi afrouxada. Cenários executam o ramo real de aquisição/replay e falha da releitura; comparação de posição no código é apenas suplementar.
 
-**QUESTÃO PENDENTE:** publicação/CI/deploy abaixo ainda devem ser confirmados; os testes não certificam o audiovisual nem desbloqueiam a conta Fal.
+**LIMITE:** os testes não certificam o audiovisual nem desbloqueiam a conta Fal.
+
+### Confirmação de publicação — 11/09, 14:10 UTC
+
+**EVIDÊNCIA DE PRODUÇÃO:** batch seguro publicou exatamente `d26de286d73e361853e13b5df438224fa0f1a9e0` sobre a base revisada. Vercel `dpl_EuRe6TXXh1T9127FA7ChYUehw637` READY, produção, SHA correspondente e alias `www.usekineo.com`; sem erro de alias. [Guardião 34608234129](https://github.com/josephsskaf-hub/UseKineo/actions/runs/34608234129) completed/success, incluindo typecheck e 16 baterias críticas. Diagnóstico legado manual skipped, não contado como teste aprovado.
+
+**EVIDÊNCIA DE PRODUÇÃO:** smoke público após READY: `/` HTTP200; GET `/api/compose/active` sem sessão HTTP401 com mensagem de login, como esperado. Consulta de logs error/fatal deste deployment desde 14:08:33 UTC, realizada às 14:10 UTC, sem linhas retornadas. Janela curta e sem novo render pago: isso não prova ausência global de erro nem resultado final de cliente.
+
+**HANDOFF:** artefato de código publicado e aprovado pelos gates locais/CI. Fal ainda sem confirmação de desbloqueio; nenhuma tentativa antiga reenviada. Próxima prova é canário audiovisual autorizado (MP4 medido, voz/lábios/legenda/música e duração), não mais um teste por regex. Este fechamento documental não muda o código de produção.
 
 **PROCEDIMENTO:** testes offline + typecheck bruto; diff revisado; commit explícito; `bash scripts/enfileirar.sh`; BAT com SHA candidato e SHA da main revisada; confirmar GitHub/Guardião/Vercel. Sem force, reset, migration, crédito manual, preço ou conta Fal.
 
