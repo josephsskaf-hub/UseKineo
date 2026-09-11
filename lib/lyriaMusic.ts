@@ -22,6 +22,7 @@
 // trilho mestre (C1) e vocal competindo com voz é defeito, não feature.
 
 import { resolveMusicMood, type MusicMood } from '@/lib/pixabayMusic'
+import { musicEmotionPrompt, type MusicDirection } from '@/lib/musicDirection'
 
 const LYRIA_ENDPOINT = 'https://queue.fal.run/fal-ai/lyria3/pro'
 
@@ -48,8 +49,9 @@ const MOOD_PROMPTS: Record<MusicMood, string> = {
     'Organic ambient documentary underscore, airy pads, light acoustic textures, subtle hand percussion, spacious and awe-filled, 80 BPM',
 }
 
-function lyriaPromptFor(mood: MusicMood): string {
-  return `${MOOD_PROMPTS[mood]}. Instrumental only — absolutely no vocals, no singing, no spoken words. Background music bed for a narrated short documentary video, consistent energy, no abrupt stops.`
+function lyriaPromptFor(mood: MusicMood, direction?: MusicDirection): string {
+  const emotionalDirection = direction ? musicEmotionPrompt(direction) : ''
+  return `${emotionalDirection || MOOD_PROMPTS[mood]}. Instrumental only — absolutely no vocals, no singing, no spoken words. Quiet background music beneath narration, no competing lead melody, consistent restrained energy, no abrupt stops.`
 }
 
 /**
@@ -59,8 +61,10 @@ function lyriaPromptFor(mood: MusicMood): string {
 export async function getLyriaMusicUrl(
   niche: string | null | undefined,
   moodOverride?: MusicMood,
+  direction?: MusicDirection,
 ): Promise<string | null> {
   try {
+    if (direction?.enabled === false) return null
     const falKey = process.env.FAL_KEY || process.env.FAL_API_KEY
     if (!falKey) return null
 
@@ -70,7 +74,7 @@ export async function getLyriaMusicUrl(
     const submit = await fetchComPrazo(LYRIA_ENDPOINT, {
       method: 'POST',
       headers: { Authorization: `Key ${falKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt: lyriaPromptFor(mood) }),
+      body: JSON.stringify({ prompt: lyriaPromptFor(mood, direction) }),
     }, 10_000)
     if (!submit.ok) {
       console.warn(`[lyria] submit http ${submit.status} — caindo no Pixabay`)
@@ -100,8 +104,9 @@ export async function getLyriaMusicUrl(
     }
     console.warn(`[lyria] estourou o prazo de ${LYRIA_BUDGET_MS}ms — caindo no Pixabay (o job fica na fila da fal, sem cobrança extra nossa)`)
     return null
-  } catch (e) {
-    console.warn('[lyria] non-fatal:', e instanceof Error ? e.message : String(e))
+  } catch {
+    // Provider/network error strings can echo user prompts or signed asset URLs.
+    console.warn('[lyria] non-fatal; using compatible fallback')
     return null
   }
 }

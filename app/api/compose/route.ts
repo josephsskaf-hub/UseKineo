@@ -46,10 +46,9 @@ import {
 import { ttsModelForTier } from '@/lib/narration/elevenlabs'
 import { salvageScriptNarration, stripScriptMarkers } from '@/lib/scriptParser'
 import { fetchUserPlan } from '@/lib/plan'
-import { getBackgroundMusicUrl, resolveMusicMood } from '@/lib/pixabayMusic'
-import { getLyriaMusicUrl } from '@/lib/lyriaMusic'
 import { cinematicSceneSeconds, trimNarratedSupport, assertCinematicTimeline, CinematicTimelineError, signedSceneMetadata } from '@/lib/cinematic/timelineContract'
-import { selectPersonaForScript, detectNiche } from '@/lib/narration/niche-mapping'
+import { selectMusicForScript } from '@/lib/musicScore'
+import { selectPersonaForScript } from '@/lib/narration/niche-mapping'
 // KINEO-CREDIT-INTENT-2026-07-11 — record the authoritative engine + intended
 // cost for every render, keyed by render_id, the moment it is created. This is
 // the trusted source /api/compose/status bills from (instead of the client's
@@ -2197,23 +2196,18 @@ export async function POST(req: NextRequest) {
       const forced = FORCE_WATERMARK_EMAILS.has((user.email ?? '').toLowerCase())
 
 
-      // KINEO-HOLLYWOOD-SCORE-2026-08-17 — trilha por tema tambem no
-      // Hollywood (rodava sem musica; respiros viravam "apagao"). Mesmo
-      // detector de nicho do classico; seed = url do 1o clipe (deterministico
-      // por render). Best-effort: sem musica o filme sai igual ao de antes.
+      // Emotion before theme; same immutable narration and author directives
+      // as classic/unlock. No music failures may interrupt the delivered voice.
       let hollywoodMusicUrl: string | null = null
       try {
-        const hollyMood = resolveMusicMood(detectNiche(voiceoverScript, vertical))
-        // KINEO-MOTORES-D1-2026-09-01 — trilha GERADA (Lyria 3 Pro) primeiro;
-        // a prateleira Pixabay vira rede de segurança. Mesmo slot, mesmo mix.
-        // getLyriaMusicUrl nunca lança e tem prazo próprio; null = Pixabay.
-        hollywoodMusicUrl = await getLyriaMusicUrl(detectNiche(voiceoverScript, vertical), hollyMood)
-        if (!hollywoodMusicUrl) {
-          hollywoodMusicUrl = await getBackgroundMusicUrl(hollywoodClips[0]?.url ?? voiceoverScript, hollyMood)
-        }
-        if (hollywoodMusicUrl) console.log(`[compose] hollywood score: mood via detectNiche → ${hollywoodMusicUrl.slice(-40)}`)
-      } catch (e) {
-        console.warn('[compose] hollywood music fetch failed (sem trilha):', e instanceof Error ? e.message : String(e))
+        hollywoodMusicUrl = await selectMusicForScript({
+          script: voiceoverScript,
+          rawScript: `${rawVoiceover}\n${String(body.topic ?? '')}`,
+          vertical,
+          seed: voiceoverScript,
+        })
+      } catch {
+        console.warn('[compose] hollywood music unavailable; preserving narration')
       }
 
       let hollywoodSource: Record<string, unknown>
@@ -2699,23 +2693,21 @@ export async function POST(req: NextRequest) {
       `[compose] caption source: re-segmented scaled script (${scaledScript.split(/\s+/).filter(Boolean).length} words); scene_captions fallback available=${haveSceneCaptions}`,
     )
 
-    // Push #293/#488 — fetch background music. Best-effort: never block the
-    // render. Seeded with the voiceover upload URL (unique per render) so the
-    // track is deterministic per render but rotates across renders.
-    // KINEO-MUSIC-MOOD-2026-08-17 — o nicho do script (a MESMA detecção que
-    // escolhe a persona de voz) agora escolhe o balde de trilha: mistério
-    // recebe suspense, dinheiro recebe phonk, história recebe orquestral.
-    // Fim da roleta cega ao tema flagrada pelo fundador no Farol de Flannan.
+    // Background score is best-effort and deterministic for the same narration.
+    // The generated MP3 is not persisted here: clean rebuild can preserve the
+    // direction/catalog choice, but cannot promise the original generated track.
+    // Resolve from the original narration, never a TTS-scaled rewrite: clean
+    // export receives the same input and must not silently choose another mood.
     let musicUrl: string | null = null
     try {
-      const musicMood = resolveMusicMood(detectNiche(scaledScript, vertical))
-      // KINEO-MOTORES-D1-2026-09-01 — Lyria 3 Pro primeiro (trilha feita PARA
-      // o tema, US$0,08/faixa); Pixabay continua como rede de segurança. O
-      // slot e o mix do Creatomate não mudam em nada.
-      musicUrl = await getLyriaMusicUrl(detectNiche(scaledScript, vertical), musicMood)
-      if (!musicUrl) musicUrl = await getBackgroundMusicUrl(voiceoverUrl, musicMood)
-    } catch (err) {
-      console.warn('[compose] music fetch failed, continuing WITHOUT background music:', err instanceof Error ? err.message : String(err))
+      musicUrl = await selectMusicForScript({
+        script: voiceoverScript,
+        rawScript: `${rawVoiceover}\n${String(body.topic ?? '')}`,
+        vertical,
+        seed: voiceoverScript,
+      })
+    } catch {
+      console.warn('[compose] music unavailable; preserving narration')
     }
 
     // KINEO-TRIAL-WATERMARK-2026-09-07 — a decisão de marca d'água mora AQUI,
