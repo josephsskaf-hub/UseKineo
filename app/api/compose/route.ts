@@ -48,6 +48,7 @@ import { salvageScriptNarration, stripScriptMarkers } from '@/lib/scriptParser'
 import { fetchUserPlan } from '@/lib/plan'
 import { getBackgroundMusicUrl, resolveMusicMood } from '@/lib/pixabayMusic'
 import { getLyriaMusicUrl } from '@/lib/lyriaMusic'
+import { cinematicSceneSeconds, trimNarratedSupport, assertCinematicTimeline, CinematicTimelineError, signedSceneMetadata } from '@/lib/cinematic/timelineContract'
 import { selectPersonaForScript, detectNiche } from '@/lib/narration/niche-mapping'
 // KINEO-CREDIT-INTENT-2026-07-11 — record the authoritative engine + intended
 // cost for every render, keyed by render_id, the moment it is created. This is
@@ -736,6 +737,7 @@ export async function POST(req: NextRequest) {
       auth: { persistSession: false, autoRefreshToken: false },
     })
     let cinematicBirthClaim: CinematicClaim | null = null
+    let cinematicSceneMetadataInvalid = false
     let avatarBirthClaim: VerifiedAvatarBirthClaim | null = null
     const cinematicClaimLoad = await loadVerifiedCinematicClaim({
       db: composeAdmin,
@@ -829,6 +831,20 @@ export async function POST(req: NextRequest) {
         )
       }
       quality = trustedQuality
+      // Server recovery and browser submission must use the same original scene
+      // indexes. A missing middle scene must not move its voice onto its neighbor.
+      if (cinematicBirthClaim.response) {
+        try {
+          const aligned = signedSceneMetadata(cinematicBirthClaim.response, cinematicBirthClaim.authorizedCompletedUrls, clipUrls,
+            ['cinematic_hollywood', 'cinematic_h3', 'cinematic_omni'].includes(trustedQuality))
+          Object.assign(body, aligned)
+        } catch {
+          // Defer rejection until this request owns the compose mutex. Never
+          // invent a 10-second scene from missing signed metadata or let a
+          // losing concurrent request unwind the winner's paid generation.
+          cinematicSceneMetadataInvalid = true
+        }
+      }
     } else if (clientRequestedCinematic) {
       return NextResponse.json(
         { error: 'These premium AI clips are missing their signed generation.' },
@@ -1933,16 +1949,21 @@ export async function POST(req: NextRequest) {
       // 44-46s compostos. MOTORMAX: os motores aceitam duracao exata — o
       // compose agora HONRA os segundos do plano (so clamps de seguranca).
       // MUST mirror secondsFor in lib/compose.ts.
-      const secondsOf = (c: HollywoodClipInput): number =>
-        c.engine === 'host'
-          ? (Number.isFinite(c.seconds) && c.seconds > 0 ? Math.min(20, Math.max(2, c.seconds)) : 10)
-          : c.engine === 'dialogue'
-            ? (Number.isFinite(c.seconds) && c.seconds > 0 ? Math.min(15, Math.max(3, c.seconds)) : 10)
-            // KINEO-H3-SLOT-2026-08-20 — teto 8→15: no H3 a ex-cena de diálogo vira 'cinematic' com 10s reais; min(8) cortava narração no meio da palavra. Hollywood/Veo planeja cinematic=8s, então nada muda pra eles. MUST mirror.
-            : c.engine === 'cinematic'
-              ? (Number.isFinite(c.seconds) && c.seconds > 0 ? Math.min(15, Math.max(4, c.seconds)) : 8)
-              // KINEO-TAIL-GROW-2026-08-25 — 12→13: folga p/ a cena crescida cobrir a fala medida (freeze cobre o excedente). MUST mirror (secondsFor).
-              : (Number.isFinite(c.seconds) && c.seconds > 0 ? Math.min(13, Math.max(2, c.seconds)) : 10)
+      const secondsOf = cinematicSceneSeconds
+
+      // Do this before TTS, music, or another provider submission. Keep the
+      // existing paid clips; an undersized partial film is not a successful 60s film.
+      try {
+        assertCinematicTimeline(hollywoodClips, duration)
+      } catch (error) {
+        if (!(error instanceof CinematicTimelineError)) throw error
+        console.warn('[compose-quality]', { reason: error.message, planned_seconds: error.actualSeconds, requested_seconds: error.requestedSeconds, generation_id: generationId })
+        return rejectBeforeProviderSubmission(NextResponse.json({
+          error: `Your completed scenes cover ${Math.round(error.actualSeconds)}s, below the requested ${error.requestedSeconds}s. The existing clips have been kept; no final render was submitted. Contact support to recover this generation.`,
+          qualityCheckFailed: true, reason: 'cinematic_timeline_too_short', retryable: false,
+          generationId,
+        }, { status: 422 }))
+      }
 
       // KINEO-HOLLYWOOD-24-2026-07-10 — one pending TTS entry PER narrated
       // scene (no more contiguous-block grouping), placed at that scene's own
@@ -2054,8 +2075,7 @@ export async function POST(req: NextRequest) {
         // cama musical, o respiro pós-narração é música — não silêncio, não
         // voz fantasma. O clipe preenche os segundos que o plano prometeu.
         if (c && c.engine === 'support' && quality !== 'cinematic_h3') {
-          const fit = Math.max(3, Math.round((m.dur + 0.6) * 10) / 10)
-          if (fit < secondsOf(c)) c.seconds = fit
+          c.seconds = trimNarratedSupport(hollywoodClips, m.sceneIdx, m.dur, duration)
         }
         // KINEO-TAIL-GROW-2026-08-25 (parte 2, cenas do MEIO) — o endCap
         // (cena + 0.5s) guilhotina narração que estourar a cena em QUALQUER
@@ -2091,7 +2111,7 @@ export async function POST(req: NextRequest) {
       // inteiro. Cena 'host'/'dialogue' no final não é tocada: a fala DELA já
       // é o clipe.
       {
-        const TIKTOK_FLOOR_S = 61
+        const TIKTOK_FLOOR_S = duration >= 60 && duration < 90 ? Math.max(61, duration) : duration
         const last = hollywoodClips[hollywoodClips.length - 1]
         const lastIdx = hollywoodClips.length - 1
         const lastMeasured = measured.find((m) => m.sceneIdx === lastIdx)
@@ -2128,6 +2148,15 @@ export async function POST(req: NextRequest) {
       }
 
       // Timeline FINAL (pos-ajuste) → offsets e endCaps das narracoes.
+      // A slot capped by its engine cannot swallow the last word or overlap
+      // another speaker. Do not submit a knowingly truncated narration.
+      const speechDoesNotFit = measured.some(m => m.dur > secondsOf(hollywoodClips[m.sceneIdx]) + 0.01)
+      if (speechDoesNotFit) {
+        return rejectBeforeProviderSubmission(NextResponse.json({
+          error: 'One narration is longer than its generated scene. Your clips are kept; no final render was submitted. Contact support to recover the complete narration.',
+          qualityCheckFailed: true, reason: 'scene_speech_exceeds_footage', retryable: false, generationId,
+        }, { status: 422 }))
+      }
       const narrationBlocks: HollywoodNarrationBlock[] = []
       {
         const starts: number[] = []
@@ -2142,7 +2171,7 @@ export async function POST(req: NextRequest) {
           const time = starts[m.sceneIdx]
           narrationBlocks.push({
             time,
-            endCap: Math.round((time + secondsOf(c) + 0.5) * 1000) / 1000,
+            endCap: Math.round((time + secondsOf(c)) * 1000) / 1000,
             url: m.url,
             audioDuration: m.dur,
             text: m.text,
@@ -2193,6 +2222,7 @@ export async function POST(req: NextRequest) {
       try {
         hollywoodSource = buildHollywoodCreatomateSource({
           clips: hollywoodClips,
+          requestedDuration: duration,
           narrationBlocks,
           watermark: forced,
           endCard: forced,
@@ -2202,6 +2232,12 @@ export async function POST(req: NextRequest) {
         muteClipAudio: quality === 'cinematic_h3' || quality === 'cinematic_omni' || quality === 'cinematic_s25', // KINEO-S25: generate_audio ja vai false; o mute aqui e cinto E suspensorio // KINEO-OMNI-2026-08-25: V1 mudo+TTS ate o render de validacao provar o audio nativo
         })
       } catch (err) {
+        if (err instanceof CinematicTimelineError) {
+          return rejectBeforeProviderSubmission(NextResponse.json({
+            error: 'The scene timeline is shorter than the duration you selected. Your existing clips were kept; no final render was submitted. Contact support to recover this generation.',
+            qualityCheckFailed: true, reason: 'cinematic_timeline_too_short', retryable: false, generationId,
+          }, { status: 422 }))
+        }
         const msg = err instanceof Error ? err.message : String(err)
         console.error('[compose] hollywood source build failed:', msg)
         return rejectBeforeProviderSubmission(

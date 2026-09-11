@@ -15,6 +15,7 @@ import { stripScriptMarkers } from '@/lib/scriptParser'
 import { renderOutputSpec, renderOutputSpecFor } from '@/lib/renderProfile'
 // KINEO-MULTIFORMATO-2026-09-02 — geometria + layout por enquadramento.
 import { aspectSpec, type AspectSpec } from '@/lib/aspect'
+import { cinematicSceneSeconds, assertCinematicTimeline } from '@/lib/cinematic/timelineContract'
 // KINEO-CREDIT-STUCK-2026-08-08 — política única de 429 (fal + Creatomate).
 import { CREATOMATE_SUBMIT_RATE_LIMIT, rateLimitWaitMs, sleep } from '@/lib/rateLimit'
 import { selectPersonaForScript, describeVoiceSelection } from '@/lib/narration/niche-mapping'
@@ -2792,6 +2793,7 @@ const HOLLYWOOD_CLIP_VOLUME: Record<HollywoodClipInput['engine'], string> = {
 
 export function buildHollywoodCreatomateSource({
   clips,
+  requestedDuration,
   narrationBlocks,
   watermark = false,
   musicUrl = null,
@@ -2799,6 +2801,8 @@ export function buildHollywoodCreatomateSource({
   aspect, // KINEO-MULTIFORMATO-2026-09-02 — ausente = '9:16'
 }: {
   clips: HollywoodClipInput[]
+  /** Approved duration, never padded with a loop or silence to meet the floor. */
+  requestedDuration?: number
   narrationBlocks: HollywoodNarrationBlock[]
   watermark?: boolean
   endCard?: boolean
@@ -2838,16 +2842,8 @@ export function buildHollywoodCreatomateSource({
   // KINEO-CONTRATO-C2-2026-08-18 — honra os segundos exatos do plano (MOTORMAX;
   // o molde 5|10/8-fixo/teto-10 encolhia 51s planejados para 44-46s compostos).
   // MUST mirror secondsOf in app/api/compose/route.ts.
-  const secondsFor = (c: HollywoodClipInput): number =>
-    c.engine === 'host'
-      ? (Number.isFinite(c.seconds) && c.seconds > 0 ? Math.min(20, Math.max(2, c.seconds)) : 10)
-      : c.engine === 'dialogue'
-        ? (Number.isFinite(c.seconds) && c.seconds > 0 ? Math.min(15, Math.max(3, c.seconds)) : 10)
-        // KINEO-H3-SLOT-2026-08-20 — teto 8→15: no H3 a ex-cena de diálogo vira 'cinematic' com 10s reais; min(8) cortava narração no meio da palavra. Hollywood/Veo planeja cinematic=8s, então nada muda pra eles. MUST mirror.
-        : c.engine === 'cinematic'
-          ? (Number.isFinite(c.seconds) && c.seconds > 0 ? Math.min(15, Math.max(4, c.seconds)) : 8)
-          // KINEO-TAIL-GROW-2026-08-25 — 12→13, espelho do secondsOf do route. MUST mirror.
-          : (Number.isFinite(c.seconds) && c.seconds > 0 ? Math.min(13, Math.max(2, c.seconds)) : 10)
+  const secondsFor = cinematicSceneSeconds
+  assertCinematicTimeline(cleanClips, requestedDuration ?? 0)
 
   const durations = cleanClips.map(secondsFor)
   let total = durations.reduce((s, d) => s + d, 0)
@@ -2888,7 +2884,9 @@ export function buildHollywoodCreatomateSource({
     total = round3(total - trim)
     if (trim < overflow) break // last scene can't absorb more — accept slight overflow
   }
-  const totalDuration = clamp(round3(total), 8, 90)
+  // The approved duration is a floor. Do not cut the payoff at an unrelated
+  // 90-second ceiling when measured speech runs slightly past the target.
+  const totalDuration = Math.max(8, round3(total))
 
   // Scene start offsets (cumulative).
   const sceneStarts: number[] = []
@@ -2955,7 +2953,10 @@ export function buildHollywoodCreatomateSource({
     const isLast = i === cleanClips.length - 1
     // Non-last clips run long enough to sit under the next clip's fade-in;
     // the last clip keeps the classic micro-overlap (nothing follows it).
-    const overlap = HOLLYWOOD_CROSSFADE && !isLast ? fadeFor(cleanClips[i + 1]) : CLIP_GAP_OVERLAP
+    const nativeSpeech = (c: HollywoodClipInput | undefined) => c?.engine === 'dialogue' || c?.engine === 'host'
+    const speechBoundary = nativeSpeech(clip) || (!isLast && nativeSpeech(cleanClips[i + 1]))
+    // Never extend speech into the next speaker, nor fade in over its first word.
+    const overlap = speechBoundary ? 0 : HOLLYWOOD_CROSSFADE && !isLast ? fadeFor(cleanClips[i + 1]) : CLIP_GAP_OVERLAP
     elements.push({
       type: 'video',
       track: 2,
@@ -2980,11 +2981,9 @@ export function buildHollywoodCreatomateSource({
       // para cinematic/support, onde a voz inventada do modelo briga com a
       // narração (o caso do "senhor de casaco" de 20/08).
       volume: muteClipAudio && clip.engine !== 'host' && clip.engine !== 'dialogue' ? '0%' : (HOLLYWOOD_CLIP_VOLUME[clip.engine] ?? '35%'),
-      ...(HOLLYWOOD_CROSSFADE && i > 0
+      ...(HOLLYWOOD_CROSSFADE && i > 0 && !nativeSpeech(clip) && !nativeSpeech(cleanClips[i - 1])
         ? { enter_transition: { type: 'fade', duration: fadeFor(clip) } }
-        : HOLLYWOOD_CROSSFADE && (clip.engine === 'dialogue' || clip.engine === 'host')
-          ? { enter_transition: { type: 'fade', duration: 0.5 } } // abertura do filme: fade do preto
-          : {}),
+        : {}), // The hook and first word are visible from frame one, not faded from black.
     })
   })
 

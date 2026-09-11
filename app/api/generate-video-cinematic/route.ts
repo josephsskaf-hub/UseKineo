@@ -65,6 +65,7 @@ import { SUPPORTED_DURATIONS, largestFittingDuration } from '@/lib/expandPolicy'
 // recusa seguia medindo contra o fantasma. `deveAterrissar` traz a regua para
 // o PISO do seletor. Nao libera video nenhum: so faz o numero dito ser verdade.
 import { deveResgatar, deveAterrissar } from '@/lib/durationGhost'
+import { fitCinematicPlanFloor } from '@/lib/cinematic/timelineContract'
 import { openai } from '@/lib/openai'
 // KINEO-HOLLYWOOD-2026-07-09 — Hollywood Mode 2.0: per-scene engine routing
 // with native audio. KINEO-HOLLYWOOD-22-2026-07-10: Kling3 dialogue+support /
@@ -1268,7 +1269,7 @@ async function manipularPost(req: NextRequest) {
     // user's own clips.
     // KINEO-VERBATIM-SEM-MARCADOR-2026-08-24: `script_mode` ('verbatim'|'ai')
     // e `dry_run` (validador de $0, só contas do fundador) entram no contrato.
-    let body: { generationId?: string; prompt?: string; duration?: number; engine?: string; language?: string; vertical?: string; characterId?: string; script_mode?: string; dry_run?: boolean; brollScenes?: Array<{ sceneNumber?: number; brollPrompt?: string; shotType?: string; negativePrompt?: string; userFootageUrl?: string }>; globalStyle?: { mood?: string; lighting?: string; cameraStyle?: string } }
+    let body: { generationId?: string; prompt?: string; duration?: number; allow_shorter_duration?: boolean; engine?: string; language?: string; vertical?: string; characterId?: string; script_mode?: string; dry_run?: boolean; brollScenes?: Array<{ sceneNumber?: number; brollPrompt?: string; shotType?: string; negativePrompt?: string; userFootageUrl?: string }>; globalStyle?: { mood?: string; lighting?: string; cameraStyle?: string } }
     try {
       body = await req.json()
     } catch {
@@ -1440,7 +1441,10 @@ async function manipularPost(req: NextRequest) {
     // trava de hoje recusa com o 422 educativo, exatamente como antes.
     // Regra e constantes em lib/narrationFit.ts (`autofitDown`).
     const requestedDuration = duration
-    const degrau = verbatim && parsedScript.narration
+    // 11/09 founder decision supersedes the automatic descent described above.
+    // A normal request keeps its selected duration. Existing guided expansion /
+    // explicit shorter-duration buttons remain available before any debit.
+    const degrau = body.allow_shorter_duration === true && verbatim && parsedScript.narration
       ? autofitDown(parsedScript.narration, requestedDuration, {
           // O planner hollywood trava o alvo em `Math.max(30, …)` — descer
           // abaixo de 30 ali seria puxado de volta e a fala voltaria a faltar.
@@ -3617,68 +3621,10 @@ async function manipularPost(req: NextRequest) {
         }
       }
 
-      // C2 — DURAÇÃO É CONTRATO: nunca submeter plano < 95% do alvo. Se ainda
-      // faltar depois de replans+esticador+C1, cenas de apoio atmosféricas
-      // (ambiente da própria história, sem gente) completam a conta — b-roll
-      // custa centavos e rabo com trilha é melhor que vídeo curto que vale
-      // ZERO no TikTok Rewards.
-      {
-        type PlanScene = (typeof plan.scenes)[number]
-        const tally = () => plan.scenes.reduce((a, sc) => a + (sc.seconds || 0), 0)
-        let t = tally()
-        const floor95 = Math.round(hollywoodTarget * 0.95)
-        // ═══ KINEO-C2-SEM-MUDA-2026-08-24 — A ORDEM INVERTE, E O MUDO GANHA TETO ══
-        //
-        // O CASO (render do fundador, Cyclops, 24/08 21:25): o plano chegou
-        // aqui com 42s falados para um alvo de 60s, e ESTE bloco completou os
-        // 24s que faltavam com cenas atmosféricas SEM VOZ — "rabo com trilha é
-        // melhor que vídeo curto", dizia a justificativa. O fundador assistiu
-        // e deu o veredito que derruba a premissa: 24 segundos de filme mudo É
-        // o "apagão" que ele vem reprovando há semanas. Um suspiro atmosférico
-        // de 4-6s respira; 24s é o filme morrendo em câmera lenta.
-        //
-        // A ORDEM NOVA: (1º) ESTICAR cenas que TÊM fala — a imagem segue
-        // rodando sob narração, custo zero de silêncio; (2º) só depois, no
-        // máximo UM suspiro mudo de até 6s. Se ainda faltar, o filme sai mais
-        // curto — e o log grita, porque déficit grande aqui significa que o C1
-        // deixou texto para trás (a classe de bug que o verbatim-sem-marcador
-        // acabou de consertar), não que faltou atmosfera.
-        if (t < floor95) {
-          for (const sc of plan.scenes) {
-            if (t >= floor95) break
-            if (sc.type !== 'dialogue' && (sc.seconds || 0) < 12) {
-              const d = Math.min(12 - (sc.seconds || 0), floor95 - t)
-              sc.seconds = (sc.seconds || 0) + d
-              t += d
-            }
-          }
-        }
-        const MUTE_BREATHER_MAX_S = 6
-        if (t < floor95) {
-          const breather = Math.max(4, Math.min(MUTE_BREATHER_MAX_S, floor95 - t))
-          plan.scenes.push({
-            index: plan.scenes.length + 1,
-            type: 'support',
-            beat: 'PAYOFF',
-            seconds: breather,
-            prompt: `slow atmospheric closing shot of ${plan.environmentSheet}, no people, golden light fading, level horizon, stable slow dolly, ${plan.styleSheet}`,
-            voiceover: undefined,
-            needsNarration: false,
-            caption: '',
-          } as PlanScene)
-          t = tally()
-        }
-        if (t < floor95) {
-          // Chegou aqui = mesmo esticando tudo E com o suspiro, falta filme.
-          // Isso NUNCA deveria acontecer com a trava de narração (95% do alvo
-          // medido ANTES do débito) + verbatim íntegro. É alarme, não ajuste.
-          console.error(
-            `[contrato] C2 DÉFICIT MUDO: plano fecha em ${t}s de ${hollywoodTarget}s alvo mesmo após esticar+suspiro. ` +
-            `O C1 provavelmente deixou texto para trás — investigar ANTES do próximo render pago.`,
-          )
-        }
-        console.log(`[contrato] C2: plano final ${t}s de ${hollywoodTarget}s alvo (piso ${floor95}s, ${plan.scenes.length} cenas, mudo máx ${MUTE_BREATHER_MAX_S}s)`)
-      }
+      // 11/09: selected duration is a floor, not a 95% approximation.
+      // Allocate real footage only where existing narration sustains it.
+      // Do not append a mute PAYOFF, stretch past the model's cap, or pad a loop.
+      plan.scenes = fitCinematicPlanFloor(plan.scenes, duration, SCENE_CAP)
 
       // ═══ KINEO-DRY-RUN-2026-08-24 — O VALIDADOR DE $0 ══════════════════════
       //
@@ -3821,7 +3767,7 @@ async function manipularPost(req: NextRequest) {
             mute_seconds: muteSeconds,
             preflight_problems: preflightProblems,
             dispatch_preview: dispatchPreview,
-            verdict: muteSeconds <= 6 && totalSeconds >= Math.round(hollywoodTarget * 0.95) && preflightProblems.length === 0
+            verdict: muteSeconds <= 6 && totalSeconds >= duration && preflightProblems.length === 0
               ? 'PASS — todos os segundos têm história (mudo ≤6s), a duração fecha e o payload respeita o schema do fornecedor'
               : preflightProblems.length > 0
                 ? `FAIL — preflight: ${preflightProblems.join(' · ')}`
@@ -3837,6 +3783,17 @@ async function manipularPost(req: NextRequest) {
       // still, ~$0.10, synchronous — flux/schnell is fast). FAIL-OPEN: null →
       // every scene falls back to the v2.4 t2v engines below; the render
       // never dies because of anchors.
+      // All final cap/split passes have run. Never spend on video scenes for
+      // a plan already known to be shorter than the user's selected duration.
+      const finalPlannedSeconds = plan.scenes.reduce((sum, scene) => sum + scene.seconds, 0)
+      if (finalPlannedSeconds < duration) {
+        await releaseBirthClaim('plan_duration_below_request')
+        return NextResponse.json({
+          error: 'The scene plan did not cover the duration you selected. No video scenes were submitted. Review or expand the script before generating again.',
+          qualityCheckFailed: true, reason: 'plan_duration_below_request',
+          plannedSeconds: finalPlannedSeconds, requestedSeconds: duration,
+        }, { status: 422 })
+      }
       let anchors: HollywoodAnchors | null = null
       try {
         // Anchor generation is itself paid Fal work. From this point onward an
