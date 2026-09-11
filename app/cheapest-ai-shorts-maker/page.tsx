@@ -15,7 +15,7 @@ import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorFo
 import ShortCostCalculator from './ShortCostCalculator'
 import AgencyVolumeBridge from '@/components/AgencyVolumeBridge'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
-import { CHECKOUT_CURRENCY_DISCLOSURE, creditsPerReferenceVideo } from '@/lib/marketingPrice'
+import { creditsPerReferenceVideo } from '@/lib/marketingPrice'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -59,12 +59,12 @@ const WHY_CHEAPER: { t: string; d: string }[] = [
 ]
 
 const FAQ: { q: string; a: string }[] = [
-  { q: 'What is the cheapest AI shorts maker?', a: `The answer depends on visual engine and monthly volume. For a 60-second Short, Kineo Fast Mode uses ${FAST_CREDITS} credits, while AI Generated uses ${SEEDANCE_CREDITS} and Cinematic uses ${KLING_CREDITS}. ${ft(OFFER, 'A new account can test up to 3 watermarked Fast videos every 24 hours without a card;', OFFER.copy.sentence + ' Also,')} the calculator on this page uses the current USD subscription prices. ${CHECKOUT_CURRENCY_DISCLOSURE}` },
+  { q: 'What is the cheapest AI shorts maker?', a: `The answer depends on visual engine and monthly volume. For a 60-second Short, Kineo Fast Mode uses ${FAST_CREDITS} credits, while AI Generated uses ${SEEDANCE_CREDITS} and Cinematic uses ${KLING_CREDITS}. ${ft(OFFER, 'A new account can test up to 3 watermarked Fast videos every 24 hours without a card;', OFFER.copy.sentence + ' Also,')} the calculator on this page uses the current USD subscription prices. Prices shown here are in USD. Customers in Brazil pay in BRL (reais); check checkout for the amount in reais.` },
   { q: 'How do I make AI YouTube Shorts cheap?', a: 'Type a single idea, choose Fast Mode for the lowest-cost workflow, and download a finished 9:16 Short with script, AI voiceover, matched footage and captions, usually in 3–7 minutes. No camera and no editing app to pay for separately.' },
   { q: 'Is there an affordable faceless shorts AI that builds the video from just a topic?', a: 'Yes. Kineo generates the entire video from one topic — it writes the script, records the AI voiceover, matches footage to each line and adds captions. It’s made for faceless creators who start with nothing but an idea, so you never film anything.' },
   { q: 'Why is the cheapest AI YouTube Shorts generator not just a clip cutter?', a: 'Clip cutters like OpusClip or Submagic re-clip a long video you already filmed — useless if you’re faceless and starting from scratch. Kineo creates the video from an idea, so the low price gets you a finished Short, not chopped-up footage.' },
   { q: 'Do I have to use the most expensive AI engine?', a: `No. You pick the engine per video. For 60 seconds, Fast Mode uses ${FAST_CREDITS} credits with matched stock footage, AI Generated uses ${SEEDANCE_CREDITS} credits for Seedance scenes, and Cinematic uses ${KLING_CREDITS} credits for premium Kling scenes.` },
-  { q: 'Can I try it before paying for a plan?', a: `Yes. ${ft(OFFER, 'A new account can create, download and share up to 3 watermarked Fast videos every 24 hours without a credit card.', OFFER.copy.sentence)} Paid plans unlock clean exports and premium AI engines.` },
+  { q: 'Can I try it before paying for a plan?', a: `Yes. ${ft(OFFER, 'A new account can create, download and share up to 3 watermarked Fast videos every 24 hours without a credit card.', OFFER.copy.sentence)} Paid plans unlock clean exports.` },
 ]
 
 export default function CheapestAiShortsMakerPage() {
@@ -94,7 +94,7 @@ export default function CheapestAiShortsMakerPage() {
           <Link href="/pricing" style={{ border: '1px solid #48484a', color: '#f5f5f7', fontWeight: 700, padding: '14px 22px', borderRadius: 980, textDecoration: 'none' }}>See pricing</Link>
         </div>
         <p style={{ fontSize: 13, color: '#2997ff', fontWeight: 700, margin: '12px 0 0' }}>
-          {ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)} · USD prices matched to Checkout
+          {ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)} · USD reference prices · Brazil pays in BRL
         </p>
 
         <ShortCostCalculator />

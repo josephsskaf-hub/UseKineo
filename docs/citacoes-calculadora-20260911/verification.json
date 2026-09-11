@@ -1,0 +1,42 @@
+{
+  "classification": "TESTADO LOCALMENTE",
+  "timeUtc": "2026-09-11T15:42:38.164Z",
+  "baseline": "fac4ec98573fd5a106d6861dffded8e53b5e733a",
+  "source": "app/cheapest-ai-shorts-maker/page.tsx",
+  "sourceOnlyExpectedFourReplacements": true,
+  "unchangedMiddleFaqAnswers": true,
+  "flags": [
+    {
+      "flag": false,
+      "state": "before",
+      "faqCount": 6,
+      "htmlJsonLdAgree": true
+    },
+    {
+      "flag": false,
+      "state": "after",
+      "faqCount": 6,
+      "htmlJsonLdAgree": true
+    },
+    {
+      "flag": true,
+      "state": "before",
+      "faqCount": 6,
+      "htmlJsonLdAgree": true
+    },
+    {
+      "flag": true,
+      "state": "after",
+      "faqCount": 6,
+      "htmlJsonLdAgree": true
+    }
+  ],
+  "sections": 3,
+  "viewports": [
+    1100,
+    390
+  ],
+  "networkAttempts": 0,
+  "method": "One-time structural verification and static SSR of real page body with unrelated child components omitted. Pure offer/credit helpers evaluated from actual source. Root will verify full Next route and browser.",
+  "passed": true
+}
