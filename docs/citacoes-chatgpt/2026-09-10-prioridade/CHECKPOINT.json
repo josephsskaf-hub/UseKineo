@@ -1,6 +1,6 @@
 {
   "classification": "EVIDÊNCIA OPERACIONAL",
-  "updatedAt": "2026-09-11T15:19:46.453Z",
+  "updatedAt": "2026-09-11T15:49:12.769Z",
   "contextualDiscoveryLinks": {
     "status": "VALIDADO_EM_PRODUCAO",
     "codeCommit": "e8632940c2bcba7925493764c64d01e801e63d63",
@@ -102,6 +102,7 @@
     "file": "chatgpt-20-perguntas.json"
   },
   "continuation": [
+    "Calculator factual correction is prepared separately in ec358289: only three phrases and one import. Complete safe publication and contraproof. Do not alter global currency helper/home/catalog or V1/V2.",
     "Commercial connector now verified and queried read-only at 12:14-12:15 BRT: daily ChatGPT signup snapshot available; V1 first/second six-hour windows and V2 first window have zero campaign-matched events, so preserve both variants as inconclusive. Next V2 window ends13:27:54; V1 ends18:14:22. Do not repeat earlier no-access/no-aggregate claims.",
     "2026-09-11 morning completed: three FAQ answers on 9bf0525e, two minimum-grant labels on 679b789c and four contextual links on ad3cb3fc. Exact-SHA CI/Vercel and public checks passed. All transport reservations released. Do not repeat these deliveries or publish only closure documents.",
     "Eight pages remain published. Both commercial variants are live by HTTP: cost V1 and comparison V2. Preserve both samples; no third variant or ninth page.",
@@ -290,7 +291,7 @@
     }
   },
   "commercialVariantCount": 2,
-  "lastReviewedMain": "ad3cb3fc94308711119287476701e33924b2dd08",
+  "lastReviewedMain": "fac4ec98573fd5a106d6861dffded8e53b5e733a",
   "commercialDataDependency": {
     "status": "AVAILABLE_QUERIED_READ_ONLY_NO_CAMPAIGN_SAMPLE",
     "owner": "Citações for these bounded aggregates; Board informed",
@@ -375,5 +376,20 @@
     "nextV2WindowEnd": "2026-09-11T13:27:54.8791873-03:00",
     "nextV1WindowEnd": "2026-09-11T18:14:22.326-03:00",
     "actualRevenue": null
+  },
+  "calculatorFactualCorrection": {
+    "status": "IMPLEMENTADO_TESTADO_LOCALMENTE_PUBLICACAO_PENDENTE",
+    "codeCommit": "ec358289",
+    "sourceCommit": "1478114456efbefe9d521f2669aa35f302baae0a",
+    "base": "fac4ec98573fd5a106d6861dffded8e53b5e733a",
+    "path": "/cheapest-ai-shorts-maker",
+    "functionalFile": "app/cheapest-ai-shorts-maker/page.tsx",
+    "scope": "Only currency FAQ, trial FAQ ending and reference-currency chip; removed unused disclosure import. No global helper, prices, calculator logic, CTAs, campaigns, V1/V2 or third variant.",
+    "qa": "../2026-09-11-calculadora/QA.md",
+    "httpBefore": "../2026-09-11-calculadora/HTTP-ANTES.json",
+    "localHttp": "../2026-09-11-calculadora/LOCAL.json",
+    "typecheckExitCode": 0,
+    "generatedRouteTypeBytes": 3562,
+    "nextStep": "Reserve immutable candidate/base, publish with reviewed queue/BAT, confirm exact-SHA CI/Vercel and public surface."
   }
 }

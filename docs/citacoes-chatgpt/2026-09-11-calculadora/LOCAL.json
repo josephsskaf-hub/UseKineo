@@ -1,0 +1,32 @@
+[
+  {
+    "path": "/cheapest-ai-shorts-maker",
+    "checkedAtUtc": "2026-09-11T15:45:04.796Z",
+    "status": 200,
+    "faqCurrency": "The answer depends on visual engine and monthly volume. For a 60-second Short, Kineo Fast Mode uses 5 credits, while AI Generated uses 25 and Cinematic uses 50. Every new account gets 30 credits and every engine unlocked — Kling 3 included. Films come out watermarked; a plan removes the watermark and unlocks clean downloads. Also, the calculator on this page uses the current USD subscription prices. Prices shown here are in USD. Customers in Brazil pay in BRL (reais); check checkout for the amount in reais.",
+    "faqTrial": "Yes. Every new account gets 30 credits and every engine unlocked — Kling 3 included. Films come out watermarked; a plan removes the watermark and unlocks clean downloads. Paid plans unlock clean exports.",
+    "faqCount": 6,
+    "newChip": true,
+    "oldWorldPhrase": false,
+    "oldPremiumPhrase": false,
+    "costLinks": 1,
+    "comparisonLinks": 1,
+    "passed": true
+  },
+  {
+    "path": "/ai-video-generator/complete-60-second-shorts-cost",
+    "checkedAtUtc": "2026-09-11T15:45:05.400Z",
+    "status": 200,
+    "campaign": "citacoes_cost_decision_v1",
+    "hasCampaign": true,
+    "passed": true
+  },
+  {
+    "path": "/vs/invideo-alternatives-faceless-shorts",
+    "checkedAtUtc": "2026-09-11T15:45:05.984Z",
+    "status": 200,
+    "campaign": "citacoes_comparison_decision_v2",
+    "hasCampaign": true,
+    "passed": true
+  }
+]

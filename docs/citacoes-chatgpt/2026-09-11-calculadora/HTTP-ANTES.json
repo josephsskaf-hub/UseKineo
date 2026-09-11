@@ -1,0 +1,26 @@
+{
+  "classification": "EVIDENCIA DE PRODUCAO ANTES",
+  "observedAtUtc": "2026-09-11T15:40:07.764Z",
+  "url": "https://www.usekineo.com/cheapest-ai-shorts-maker",
+  "status": 200,
+  "faqCurrency": {
+    "@type": "Question",
+    "name": "What is the cheapest AI shorts maker?",
+    "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "The answer depends on visual engine and monthly volume. For a 60-second Short, Kineo Fast Mode uses 5 credits, while AI Generated uses 25 and Cinematic uses 50. Every new account gets 30 credits and every engine unlocked — Kling 3 included. Films come out watermarked; a plan removes the watermark and unlocks clean downloads. Also, the calculator on this page uses the current USD subscription prices. Kineo lists and charges plan prices in USD worldwide. Your bank may convert the charge to your local currency and may add conversion or cross-border fees."
+    }
+  },
+  "faqTrial": {
+    "@type": "Question",
+    "name": "Can I try it before paying for a plan?",
+    "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Yes. Every new account gets 30 credits and every engine unlocked — Kling 3 included. Films come out watermarked; a plan removes the watermark and unlocks clean downloads. Paid plans unlock clean exports and premium AI engines."
+    }
+  },
+  "oldUsdChip": true,
+  "wrongWorldwide": true,
+  "wrongPremiumExclusivity": true,
+  "limitation": "Read-only HTTP snapshot; no acquisition events or checkout."
+}
