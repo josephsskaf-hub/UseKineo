@@ -49,7 +49,7 @@ const FAQ = [
   },
   {
     q: 'É grátis mesmo? Precisa de cartão?',
-    a: 'Você cria, assiste, baixa e posta vídeos Fast com marca d’água sem cartão nenhum. Planos pagos liberam o MP4 limpo, a partir de US$ ' + STARTER_USD_AMOUNT + ' por mês, o mesmo preço no mundo todo.',
+    a: 'Você cria, assiste, baixa e posta vídeos Fast com marca d’água sem cartão nenhum. Planos pagos liberam o MP4 limpo, a partir de US$ ' + STARTER_USD_AMOUNT + ' por mês como preço de referência em USD. Para clientes no Brasil, a cobrança normalmente é em reais; confira o valor no checkout.',
   },
   {
     q: 'Preciso aparecer ou saber editar?',

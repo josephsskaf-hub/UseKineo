@@ -232,7 +232,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: 'Are there free AI Shorts generators?',
-    a: `Most tools here have a limited free plan or trial, usually with a watermark or a monthly cap. ${ft(OFFER, 'Kineo lets a new account create, download and share up to 3 watermarked Fast videos every 24 hours with no credit card.', OFFER.copy.sentence)} Paid plans remove the watermark and add credits — Kineo Starter is ${STARTER_MONTH}, charged in USD worldwide.`,
+    a: `Most tools here have a limited free plan or trial, usually with a watermark or a monthly cap. ${ft(OFFER, 'Kineo lets a new account create, download and share up to 3 watermarked Fast videos every 24 hours with no credit card.', OFFER.copy.sentence)} Paid plans remove the watermark and add credits — Kineo Starter is ${STARTER_MONTH} as a USD reference price. Customers in Brazil normally pay in BRL (reais); check the checkout for the amount.`,
   },
   {
     q: 'How should I choose an AI Shorts generator?',
@@ -640,6 +640,16 @@ export default function BestAiShortsGeneratorsPage() {
           Keep reading
         </h2>
         <ul style={{ color: MUTED, lineHeight: 1.9, fontSize: '0.95rem', paddingLeft: 20, margin: '0 0 40px' }}>
+          <li>
+            <a href="/ai-video-generator/complete-60-second-shorts-cost" style={{ color: ACCENT, textDecoration: 'none' }}>
+              Cost of a complete 60-second Short
+            </a>
+          </li>
+          <li>
+            <a href="/vs/invideo-alternatives-faceless-shorts" style={{ color: ACCENT, textDecoration: 'none' }}>
+              Compare InVideo alternatives for complete faceless Shorts
+            </a>
+          </li>
           <li>
             <a href="/alternatives" style={{ color: ACCENT, textDecoration: 'none' }}>
               All AI tool comparisons
