@@ -1,6 +1,6 @@
 {
   "classification": "EVIDÊNCIA OPERACIONAL",
-  "updatedAt": "2026-09-11T03:16:41.3346194Z",
+  "updatedAt": "2026-09-11T04:23:06.6833042Z",
   "threadTitle": "Kineo · Citações no ChatGPT",
   "worktree": "C:/kineo/.claude/worktrees/citacoes-01-2026-09-10",
   "branch": "codex/citacoes-01-2026-09-10",
@@ -32,7 +32,7 @@
     "/ai-video-generator/chatgpt-script-to-finished-short"
   ],
   "preparedPaths": [],
-  "transportStatus": "SUCCESS: reviewed queue/BAT published immutable 2f2a1e05711108d4af0b340f37bbf4166a0b0b57 over f31501b6. Vercel READY and CI SUCCESS reported by Board for exact SHA; independent V1 HTTP passed at 2026-09-11 00:14:22 BRT. Reservation may be released; no additional push planned.",
+  "transportStatus": "V2 local gates passed; final immutable candidate reservation and safe transport are pending. Main last fetched at 2f2a1e05.",
   "transportDependency": "C:/Users/josep/.codex/outputs/01a03e3e-5f63-7cf1-8b9f-6c6646b446b7/FILA-TRANSPORTE-DOCS-2026-09-10.md",
   "automationOwner": "Board",
   "existingAutomationId": "kineo-cita-es-no-chatgpt-7-dias",
@@ -52,7 +52,7 @@
     "Renewal supersedes the old midnight stop. Existing automation runs every 30 minutes until 2026-09-11 23:30 BRT; close only in its final 30 minutes and remove only this automation.",
     "Next comparable ChatGPT measurement is 2026-09-11 20h BRT; no repeated 20-chat battery hourly.",
     "V1 first positive public observation is 2026-09-11 00:14:22 BRT. First six-hour commercial review is due after 06:14:22 BRT, on the next scheduled heartbeat if necessary. Count external people and canonical payments, keep unlinked anonymous data separate, missing access is UNKNOWN.",
-    "At most two reversible commercial variants. Current active count is one. Prioritize existing buyer-intent content, honest costs and explicit free/pricing choice. No home/approved video/Claude path changes."
+    "At most two reversible commercial variants. V1 is live and preserved; V2 comparison is prepared and reviewed. Do not create a third variant or ninth page. Keep canonical people/payment UNKNOWN without evidence."
   ],
   "catalogFixCommit": "c633ed8b",
   "integratedMainCommit": "7827f2e07f89b55e2a020b266a48ec98247e5bd4",
@@ -161,8 +161,8 @@
     "unchangedOtherPages": 7,
     "fullTypecheckExit": 0,
     "actualBrowserDesktopMobile": "PASS; no acquisition clicks; no overflow; empty warning/error log queries",
-    "productionExposureAt": "2026-09-11T00:14:22.3260000-03:00",
-    "sixHourReviewAt": "2026-09-11T06:14:22.3260000-03:00",
+    "productionExposureAt": "2026-09-11T00:14:22.326-03:00",
+    "sixHourReviewAt": "2026-09-11T06:14:22.326-03:00",
     "paymentRevenue": "DESCONHECIDO",
     "transport": "Completed in clean C:/kineo/.claude/worktrees/citacoes-cost-publicacao-20260911; enqueue and reviewed BAT exit 0; no cleanup/force/retry. Release exclusive queue reservation after final confirmation.",
     "integratedPublishedBase": "f31501b6f68349f7a90d98d40d08521e8fd8f591",
@@ -177,5 +177,22 @@
       "ci": "SUCCESS",
       "status": "READY"
     }
+  },
+  "comparisonDecisionV2": {
+    "status": "TESTADO_LOCALMENTE",
+    "path": "/vs/invideo-alternatives-faceless-shorts",
+    "codeCommit": "6554ae9c21f059851c32bb6dd63610cdf21c3919",
+    "contractCommit": "984a1a15a0bdd373decbb325d4f57e3c9e0a6057",
+    "campaign": "citacoes_comparison_decision_v2",
+    "evidenceDirectory": "../2026-09-11-comparacao-v2",
+    "previewDirectory": "../../citacoes-comparacao-v2-20260911",
+    "specificChecks": 39,
+    "unchangedOtherPages": 7,
+    "criticalPassed": 5,
+    "fullTypecheckExit": 0,
+    "productionExposureAt": null,
+    "sixHourReviewAt": null,
+    "paymentRevenue": "DESCONHECIDO",
+    "activeVariantsAfterPublication": 2
   }
 }

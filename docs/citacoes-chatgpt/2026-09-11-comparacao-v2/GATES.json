@@ -1,0 +1,62 @@
+{
+  "classification": "TESTADO LOCALMENTE",
+  "checkedAtUtc": "2026-09-11T04:23:06.5774114Z",
+  "codeCommit": "6554ae9c21f059851c32bb6dd63610cdf21c3919",
+  "sourceCommit": "5383fbf6e9e0a4ab3f1e0c94a5db1658f63da5ce",
+  "base": "2f2a1e05711108d4af0b340f37bbf4166a0b0b57",
+  "specificChecks": 39,
+  "actualOtherRouteHtmlUnchanged": 7,
+  "critical": [
+    {
+      "script": "test-sharing-safety.mjs",
+      "exit": 0,
+      "checks": 70
+    },
+    {
+      "script": "test-five-improvements.mjs",
+      "exit": 0,
+      "checks": 640
+    },
+    {
+      "script": "test-locale-readiness.mjs",
+      "exit": 0,
+      "checks": 2091
+    },
+    {
+      "script": "test-home-curation.mjs",
+      "exit": 0,
+      "checks": 178
+    },
+    {
+      "script": "test-showcase-premium.mjs",
+      "exit": 0,
+      "checks": 287
+    }
+  ],
+  "typecheck": {
+    "generatedComparisonTypeBytes": 3613,
+    "command": "tsc --noEmit --incremental false",
+    "exit": 0,
+    "generatedEngineTypeBytes": 3577
+  },
+  "knownWarning": "fetchPriority in offline test Image adapter; contract passed",
+  "independentReview": "GO restrito: codigo e fontes revisados por citacoes01_http; sem novos requests ou testes de conta",
+  "browser": {
+    "mobile": 390,
+    "mobileTableContent": 880,
+    "acquisitionClicks": 0,
+    "mobilePlansCtaWidth": 350,
+    "mobileTableViewport": 348,
+    "warningErrorQuery": [],
+    "desktop": 1100,
+    "keyboardHorizontalScroll": 40,
+    "mobileBodyWidth": 386,
+    "mobilePageWidth": 390
+  },
+  "notProven": [
+    "account-level competitor behavior",
+    "production analytics receipt",
+    "canonical external people or payment",
+    "revenue effect"
+  ]
+}

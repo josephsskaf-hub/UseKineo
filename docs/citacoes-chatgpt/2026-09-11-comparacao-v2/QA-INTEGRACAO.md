@@ -1,0 +1,13 @@
+# [Citações] QA da comparação V2
+
+**TESTADO LOCALMENTE — 11/09/2026 01h19–01h23 BRT:** a raiz integrou `5383fbf6` como `6554ae9c`. A página Next real foi vista antes e depois em desktop de 1100 px e mobile de 390 px, com imagens nesta tarefa. Resposta, fontes, tabela, CTA e FAQ foram conferidos. O [preview autocontido](../../citacoes-comparacao-v2-20260911/preview.html) reúne as seções alteradas antes/depois nos dois tamanhos; sua abertura no painel foi solicitada e ficou enfileirada.
+
+**TESTADO LOCALMENTE:** os [gates](GATES.json) registram os cinco contratos críticos e typecheck completo com saída 0. O tipo Next da rota InVideo foi gerado (3613 bytes), assim como o de `[engine]` (3577 bytes), antes da conclusão do typecheck. As 39 verificações específicas do agente incluem HTML idêntico das outras sete rotas reais, inclusive a V1 de custo. O aviso `fetchPriority` pertence ao adaptador de imagem do teste offline já existente; não é prova de execução limpa de toda a suíte histórica.
+
+**TESTADO LOCALMENTE:** a página mobile mede 390 px; a tabela tem área própria de 348 px para conteúdo de 880 px e responde à seta direita (deslocamento observado de 40 px). O CTA mede 350 px e aponta para `/pricing?intent_campaign=citacoes_comparison_decision_v2`. Canonical, duas chamadas grátis e amostra existente foram preservados. A quarta FAQ abre e distingue os quatro fluxos. A consulta ao console retornou lista vazia de avisos/erros naquele momento.
+
+**EVIDÊNCIA OPERACIONAL LOCAL:** nenhum CTA de aquisição foi clicado. O layout iniciou sozinho `GET /api/stripe/checkout/resume` (503) e `POST /api/events` (200), contra servidor local com backend fictício em `127.0.0.1:9`; isso não comprova evento recebido em produção. Nenhum cadastro, render, pagamento, credencial real ou arquivo `.env.local` foi usado. A FAQ e a rolagem são as únicas interações além da navegação local.
+
+**FATO CONFIRMADO:** o delta funcional está limitado a quatro arquivos: `app/vs/invideo-alternatives-faceless-shorts/page.tsx:8`, `components/CitationAnswerPage.tsx:24`, `components/CitationComparisonDecision.tsx:9` e `lib/growth/citationComparisonSnapshot.ts:1`. A revisão independente deu GO restrito para código e correspondência das fontes, sem novo acesso HTTP aos fornecedores. A consulta remota posterior permaneceu em `2f2a1e05`; as alterações recentes desses arquivos pertencem à própria pista.
+
+**QUESTÃO PENDENTE:** publicação, CI e deploy do SHA final ainda precisam de evidência. Receita, pessoas externas e recebimento dos eventos seguem desconhecidos. A primeira observação positiva pública definirá a revisão comercial seis horas depois; a V1 conserva o horário anterior.
