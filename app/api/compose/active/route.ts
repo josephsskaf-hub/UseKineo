@@ -3,6 +3,7 @@ import { createClient as createServerSupabase } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { COMPOSE_CLAIM_EVENT, COMPOSE_CLAIM_PATH } from '@/lib/composeClaim'
 import { CINEMATIC_CLAIM_EVENT, CINEMATIC_CLAIM_PATH } from '@/lib/cinematic/claim'
+import { readVerifiedQualityRejection } from '@/lib/cinematic/qualityRejection'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // KINEO-RESUME-RENDER-2026-08-04 — READ-ONLY probe: "what is the truth about
@@ -236,10 +237,29 @@ export async function GET() {
     // A live claim that is NEWER than the last completed video wins: the user
     // started another render after that video landed.
     if (activeClaim && Number.isFinite(activeClaimAt) && (!recentVideo || activeClaimAt > recentVideoAt)) {
-      if (diedAfter(activeClaimAt)) return deadRenderResponse(activeClaim.created_at)
       const metadata = activeClaim.metadata && typeof activeClaim.metadata === 'object'
         ? activeClaim.metadata as Record<string, unknown>
         : {}
+      // A retained pending mutex can be a terminal quality tombstone, not a
+      // provider job. The JSON marker is only a hint: re-verify the owned mutex
+      // and signed intent, and independently confirm any financial claims.
+      if (metadata.quality_rejection && typeof activeClaim.session_id === 'string') {
+        const rejection = await readVerifiedQualityRejection({
+          db: admin, secret: serviceKey, userId: user.id, generationId: activeClaim.session_id,
+        })
+        if (rejection) {
+          return NextResponse.json({
+            state: 'failed', render_id: null, resumable: false,
+            started_at: activeClaim.created_at, failed_at: null,
+            qualityCheckFailed: true, generationId: activeClaim.session_id,
+            reason: rejection.reason, refunded: rejection.refunded,
+            refundConfirmed: rejection.refundConfirmed, claimReleased: rejection.claimReleased,
+            retryable: false,
+            message: 'This video did not pass its quality check. It will not restart automatically.',
+          })
+        }
+      }
+      if (diedAfter(activeClaimAt)) return deadRenderResponse(activeClaim.created_at)
       const renderId = typeof metadata.render_id === 'string' ? metadata.render_id.trim() : ''
       const rawDuration = Number(metadata.duration)
       // KINEO-PILULA-FANTASMA-2026-09-03 (#9) — este ramo dizia
