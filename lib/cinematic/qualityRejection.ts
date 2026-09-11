@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { COMPOSE_CLAIM_EVENT, COMPOSE_CLAIM_PATH, composeClaimId, verifyComposeClaim } from '@/lib/composeClaim'
-import { cinematicClaimId, cinematicJobsAreTerminal, loadVerifiedCinematicClaim, releaseCinematicClaim } from '@/lib/cinematic/claim'
+import { cinematicClaimId, cinematicJobsAreTerminal, loadVerifiedCinematicClaim, releaseCinematicClaim, type CinematicClaim } from '@/lib/cinematic/claim'
 import { refundRenderCredits } from '@/lib/credits/refund'
 
 export type CinematicQualityReason =
@@ -19,6 +19,11 @@ const REASONS: ReadonlySet<string> = new Set([
   'native_dialogue_unverified', 'scene_narration_missing', 'scene_narration_failed',
 ])
 const RELEASE_REASON = 'provider_failed_refunded'
+
+// Completed known jobs do not exclude an earlier orphan POST in legacy salvage.
+// This stricter check is refund-only: a legitimate full film can still compose.
+const qualityRefundJobsAreTerminal = (claim: CinematicClaim): boolean =>
+  claim.response?.submission_uncertain !== true && cinematicJobsAreTerminal(claim)
 
 export interface CinematicQualityRejection {
   outcome: 'quality_rejected_refunded' | 'quality_rejection_support_pending'
@@ -175,7 +180,7 @@ export async function rejectCinematicQuality(args: Input): Promise<CinematicQual
     // A URL subset is not a finished generation. Every accepted Fal request
     // must have its signed completed URL or a signed terminal-failure record.
     // Pending/unknown provider jobs are never refunded by this quality path.
-    if (!cinematicJobsAreTerminal(claim)) return result('provider_jobs_not_terminal')
+    if (!qualityRefundJobsAreTerminal(claim)) return result('provider_jobs_not_terminal')
     // This caller's unique mutex excludes new submissions. The legacy replay
     // path is also checked explicitly; a past render is never refunded here.
     const legacy = await args.db.from('broll_metrics').select('render_id')
@@ -197,7 +202,7 @@ export async function rejectCinematicQuality(args: Input): Promise<CinematicQual
     }
     const freshBirth = await loadVerifiedCinematicClaim(args)
     if (!freshBirth.ok || !freshBirth.claim || freshBirth.claim.authority !== claim.authority ||
-      !cinematicJobsAreTerminal(freshBirth.claim)) return result('birth_changed_before_intent')
+      !qualityRefundJobsAreTerminal(freshBirth.claim)) return result('birth_changed_before_intent')
     const intent = {
       version: 1, phase: 'resolving', reason: args.reason, final_provider_attempted: false,
       intent_authority: intentSignature(args, beforeRefund, args.reason),
@@ -210,7 +215,7 @@ export async function rejectCinematicQuality(args: Input): Promise<CinematicQual
     // invalidates the previous signed terminal snapshot; stop before the RPC.
     const refundBirth = await loadVerifiedCinematicClaim(args)
     if (!refundBirth.ok || !refundBirth.claim || refundBirth.claim.authority !== freshBirth.claim.authority ||
-      !cinematicJobsAreTerminal(refundBirth.claim)) return result('birth_changed_before_refund')
+      !qualityRefundJobsAreTerminal(refundBirth.claim)) return result('birth_changed_before_refund')
     if (!debit.data.refunded_at) {
       // refundRenderCredits returns zero for BOTH a prior refund and a failure.
       // Its amount alone therefore cannot authorize claim release or UI copy.
@@ -229,7 +234,7 @@ export async function rejectCinematicQuality(args: Input): Promise<CinematicQual
     }
     const releaseBirth = await loadVerifiedCinematicClaim(args)
     if (!releaseBirth.ok || !releaseBirth.claim || releaseBirth.claim.authority !== refundBirth.claim.authority ||
-      !cinematicJobsAreTerminal(releaseBirth.claim)) return result('birth_changed_after_refund')
+      !qualityRefundJobsAreTerminal(releaseBirth.claim)) return result('birth_changed_after_refund')
     const close = await releaseCinematicClaim({
       ...args, reason: RELEASE_REASON, reference: billingReference,
     })

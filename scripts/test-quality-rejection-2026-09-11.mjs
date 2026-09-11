@@ -280,6 +280,17 @@ for (const uncertainty of [undefined, true, false]) {
   eq(result.refundConfirmed, uncertainty === false, 'Null request slot requires explicit signed absence of submission uncertainty')
   eq(r.state.refundCalls, uncertainty === false ? 1 : 0, 'Missing request ID is not evidence of rejected/no provider job')
 }
+const orphanPost = runtime()
+orphanPost.state.birth.metadata.response.submission_uncertain = true
+orphanPost.resignBirth()
+const verifiedOrphan = await orphanPost.claims.loadVerifiedCinematicClaim(orphanPost.input)
+ok(verifiedOrphan.ok && verifiedOrphan.claim, 'Orphan submission fixture has a valid signed claim')
+eq(orphanPost.claims.cinematicJobsAreTerminal(verifiedOrphan.claim), true, 'Known completed clips can still permit legitimate full composition')
+const orphanResolution = await orphanPost.helper.rejectCinematicQuality(orphanPost.input)
+eq(orphanResolution.refundConfirmed, false, 'All known URLs ready does not clear signed uncertainty about an orphan POST')
+eq(orphanPost.state.refundCalls, 0, 'Known submission ambiguity blocks automatic refund even with all known URLs ready')
+eq(orphanPost.state.birth.metadata.status, 'settled', 'Ambiguous salvage keeps authoritative debit claim intact')
+eq(orphanResolution.retryable, false, 'Unknown paid submission never invites automatic retry')
 const retargetAfterRefund = runtime({ retargetAt: 4 })
 const late = await retargetAfterRefund.helper.rejectCinematicQuality(retargetAfterRefund.input)
 eq(late.supportReason, 'birth_changed_after_refund', 'Late birth mutation cannot be blindly released')
