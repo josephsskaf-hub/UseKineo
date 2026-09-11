@@ -1,0 +1,29 @@
+{
+  "classification": "TESTADO LOCALMENTE",
+  "checkedAtUtc": "2026-09-11T14:41:15.118Z",
+  "source": "Real decideEngineGate executed offline with synthetic inputs; not production account validation",
+  "results": [
+    {
+      "engine": "kling",
+      "plan": "starter",
+      "syntheticProfileCreatedAt": "2026-09-11T00:00:00Z",
+      "allowed": true,
+      "reason": "grandfathered"
+    },
+    {
+      "engine": "veo",
+      "plan": "basic",
+      "syntheticProfileCreatedAt": "2026-09-11T00:00:00Z",
+      "allowed": true,
+      "reason": "grandfathered"
+    },
+    {
+      "engine": "veo",
+      "plan": "free",
+      "syntheticProfileCreatedAt": null,
+      "allowed": false,
+      "reason": "studio_required"
+    }
+  ],
+  "networkAttempts": 0
+}

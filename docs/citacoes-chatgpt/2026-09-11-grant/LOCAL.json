@@ -1,0 +1,39 @@
+[
+  {
+    "path": "/ai-video-generator/kling",
+    "checkedAtUtc": "2026-09-11T14:38:46.8612451+00:00",
+    "status": 200,
+    "ownMinimumPlan": "Starter",
+    "ownPlanCorrect": true,
+    "sharedComparisonCorrect": true,
+    "correctedFaqPreserved": true,
+    "passed": true
+  },
+  {
+    "path": "/ai-video-generator/veo",
+    "checkedAtUtc": "2026-09-11T14:38:46.9293392+00:00",
+    "status": 200,
+    "ownMinimumPlan": "Creator",
+    "ownPlanCorrect": true,
+    "sharedComparisonCorrect": true,
+    "correctedFaqPreserved": true,
+    "passed": true
+  },
+  {
+    "path": "/ai-video-generator/seedance",
+    "checkedAtUtc": "2026-09-11T14:38:47.0168167+00:00",
+    "status": 200,
+    "ownMinimumPlan": "Starter",
+    "ownPlanCorrect": true,
+    "sharedComparisonCorrect": true,
+    "correctedFaqPreserved": true,
+    "passed": true
+  },
+  {
+    "path": "/ai-video-generator",
+    "checkedAtUtc": "2026-09-11T14:38:47.0982449+00:00",
+    "status": 200,
+    "hubLabelsCorrect": true,
+    "passed": true
+  }
+]

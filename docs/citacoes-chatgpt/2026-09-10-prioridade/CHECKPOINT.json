@@ -1,6 +1,15 @@
 {
   "classification": "EVIDÊNCIA OPERACIONAL",
-  "updatedAt": "2026-09-11T14:26:26Z",
+  "updatedAt": "2026-09-11T14:40:56Z",
+  "engineMinimumGrantCorrection": {
+    "status": "IMPLEMENTADO_TESTADO_LOCALMENTE_PUBLICACAO_PENDENTE",
+    "codeCommit": "d746b7f1",
+    "sourceCommit": "72fe46fa52e289c439b0a2d43e46f93214e3bc39",
+    "reviewedBase": "6b3384afd607c9e47b920422a219720da5fef88e",
+    "scope": "Only Kling tier Starter and Veo tier Creator. Shared consumers update two hero notes, two fact rows, seven comparison tables and two hub cards. No third variant.",
+    "evidence": "../2026-09-11-grant/QA.md",
+    "nextStep": "Reserve immutable candidate/base and run reviewed transport; verify exact-SHA deployment and public grant labels."
+  },
   "engineFaqCorrection": {
     "status": "VALIDADO_EM_PRODUCAO",
     "publishedCommit": "9bf0525e799e311191aa076593daed6b7b4aff86",
@@ -251,7 +260,7 @@
     }
   },
   "commercialVariantCount": 2,
-  "lastReviewedMain": "9bf0525e799e311191aa076593daed6b7b4aff86",
+  "lastReviewedMain": "6b3384afd607c9e47b920422a219720da5fef88e",
   "commercialDataDependency": {
     "status": "NO_VALIDATED_AGGREGATE_AVAILABLE",
     "owner": "Board",
