@@ -144,7 +144,7 @@ import {
   mensagemComEspiral,
 } from '@/lib/refusalSpiral'
 import { closingSceneVariation, deriveStoryCharacter, deriveStyleAnchor, textSafetySuffix } from '@/lib/cinematic/sceneStyle'
-import { buildClassicVisualPrompt, classicVisualNegativePrompt, isStylizedLook, visualDescriptionDirection, type VisualPromptPolicy } from '@/lib/cinematic/visualPromptPolicy'
+import { buildClassicVisualPrompt, classicVisualNegativePrompt, isStylizedLook, scrubInventedSetting, visualDescriptionDirection, type VisualPromptPolicy } from '@/lib/cinematic/visualPromptPolicy'
 import { classifyEngineFit } from '@/lib/engineFit'
 import { FalQueueSubmitError, submitFalQueueOnce } from '@/lib/falQueue'
 import {
@@ -282,6 +282,8 @@ interface DispatchContext {
   refundConfirmed: boolean | null
   /** KINEO-STORY-MODE-2026-09-09 — o prompt EXATO submetido por cena (cortado em 240), para nunca mais adivinhar o que foi ao fornecedor. */
   submittedPrompts: string[]
+  /** KINEO-VIGIA-CENARIO-2026-09-11 — lugar/época fora da história removidos por cena (vazio = nada inventado). */
+  cenarioRemovido: string[]
   /** Ja registrou? Impede evento duplicado se algum caminho chamar duas vezes. */
   registrado: boolean
 }
@@ -290,7 +292,7 @@ function novoContextoDeDespacho(): DispatchContext {
     balanceExhausted: false, outcomes: [], attempts: [], totalPosts: 0, planned: 0,
     userId: null, generationId: null, claimId: null, billingReference: null,
     engine: null, quality: null, claimAction: 'unknown', refundConfirmed: null,
-    registrado: false, submittedPrompts: [],
+    registrado: false, submittedPrompts: [], cenarioRemovido: [],
   }
 }
 // AsyncLocalStorage e a ferramenta certa aqui: da localidade de requisicao
@@ -363,6 +365,7 @@ async function finalizarDespacho(ctx: DispatchContext, res: Response): Promise<v
         balance_exhausted: ctx.balanceExhausted,
         scenes: ctx.outcomes.map(safeLogFields),
         submitted_prompts: ctx.submittedPrompts.map((x) => (typeof x === 'string' ? x.slice(0, 240) : null)),
+        setting_scrubbed: ctx.cenarioRemovido.map((x) => x.slice(0, 160)),
       },
     })
   } catch (e) {
@@ -4476,6 +4479,32 @@ async function manipularPost(req: NextRequest) {
       acoes: string[]; motivo: string
     }> = []
 
+    // KINEO-VIGIA-CENARIO-2026-09-11 — antes de qualquer still ou clipe pago,
+    // as TRÊS fontes de visual (descritor, GPT das cenas, plano de b-roll)
+    // passam pelo filtro determinístico: nome próprio, ano/década e adjetivo
+    // de época ausentes das palavras da história (tema + fala) não sobem.
+    // Renders 597f8237 ("Amityville House") e c636e7a0 ("Winchester Mystery
+    // House", "1910 New England farmhouse", "Nokia 3310") — a regra no prompt
+    // do descritor é pedido; isto é garantia. A narração nunca é tocada.
+    {
+      const historia = `${prompt} ${scenes.map((s) => s.voiceover ?? '').join(' ')}`
+      const cenarioRemovido: string[] = []
+      scenes = scenes.map((s, i) => {
+        const aiPrompt = s.aiPrompt ? scrubInventedSetting(s.aiPrompt, historia) : null
+        const stockSearchQuery = s.stockSearchQuery ? scrubInventedSetting(s.stockSearchQuery, historia) : null
+        const description = s.description ? scrubInventedSetting(s.description, historia) : null
+        const removidos = [...new Set([...(aiPrompt?.removed ?? []), ...(stockSearchQuery?.removed ?? []), ...(description?.removed ?? [])])]
+        if (removidos.length) cenarioRemovido.push(`cena ${i + 1}: ${removidos.join(' | ')}`)
+        return {
+          ...s,
+          ...(aiPrompt ? { aiPrompt: aiPrompt.text } : {}),
+          ...(stockSearchQuery ? { stockSearchQuery: stockSearchQuery.text } : {}),
+          ...(description ? { description: description.text } : {}),
+        }
+      })
+      if (cenarioRemovido.length) console.warn(`[cinematic] cenario-scrub: lugar/epoca fora da historia removidos — ${cenarioRemovido.join(' · ')}`)
+      ctxDespacho().cenarioRemovido = cenarioRemovido
+    }
     // Prepare ONCE, before any paid still: the still and clip must depict the
     // same corrected scene, including the opening/closing and approved look.
     {
