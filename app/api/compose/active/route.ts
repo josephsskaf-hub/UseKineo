@@ -4,6 +4,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { COMPOSE_CLAIM_EVENT, COMPOSE_CLAIM_PATH } from '@/lib/composeClaim'
 import { CINEMATIC_CLAIM_EVENT, CINEMATIC_CLAIM_PATH } from '@/lib/cinematic/claim'
 import { readVerifiedQualityRejection } from '@/lib/cinematic/qualityRejection'
+import { readVerifiedSceneRetryHold } from '@/lib/cinematic/sceneRetry'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // KINEO-RESUME-RENDER-2026-08-04 — READ-ONLY probe: "what is the truth about
@@ -256,6 +257,21 @@ export async function GET() {
             refundConfirmed: rejection.refundConfirmed, claimReleased: rejection.claimReleased,
             retryable: false,
             message: 'This video did not pass its quality check. It will not restart automatically.',
+          })
+        }
+      }
+      if (metadata.scene_retry && typeof activeClaim.session_id === 'string') {
+        const retry = await readVerifiedSceneRetryHold({
+          db: admin, secret: serviceKey, userId: user.id, generationId: activeClaim.session_id,
+        })
+        if (retry) {
+          const elapsed = Date.now() - Date.parse(retry.startedAt)
+          const submitting = retry.phase === 'submitting' && elapsed >= 0 && elapsed < 120_000
+          return NextResponse.json({
+            ...retry, state: submitting ? 'rendering' : 'failed', render_id: null, resumable: false,
+            started_at: retry.startedAt, failed_at: null, stage: 'ai_scenes',
+            sceneRetryPending: true, supportPending: !submitting,
+            message: submitting ? 'A scene retry is being submitted.' : 'A scene retry needs confirmation before another attempt.',
           })
         }
       }
