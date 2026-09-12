@@ -42,6 +42,8 @@ import { resolveVerbatimSegments } from '@/lib/cinematic/verbatimBeats'
 import { resolveCharacterVoice } from '@/lib/hollywood/characterVoice'
 import { detectShotSpec } from '@/lib/cinematic/shotSpec'
 import { classicDryRunReport, isDryRunAccount } from '@/lib/cinematic/classicDryRun'
+import { wordsPerSceneFor } from '@/lib/cinematic/sceneWords'
+import { resolveNarrationLanguage } from '@/lib/textLanguage'
 import { sceneNarrationsForPlan } from '@/lib/cinematic/speechContract'
 import { aplicarEixoVisual } from '@/lib/hollywood/varietyAxis'
 import { decidirFormato, permiteApresentador, TAG_FACELESS, proibidosPorModo, type VisualMode } from '@/lib/cinematic/visualMode'
@@ -1408,6 +1410,12 @@ async function manipularPost(req: NextRequest) {
     // KINEO-S25-2026-09-01 — Seedance 2.5: familia nova na MESMA estrada
     // (planner, verbatim, piso 95%, variedade e contrato de cena de graca).
     const wantsS25 = body.engine === 's25'
+    // ═══ KINEO-IDIOMA-DO-TEXTO-2026-09-12 — a voz fala a língua do texto (ver
+    // generate-video-fast). Escolha explícita vence; "en" cede ao texto claro.
+    const narrationLanguage = resolveNarrationLanguage(body.language, prompt)
+    if (narrationLanguage.switched) {
+      await writeServerEvent({ name: 'narration_language_autodetected', userId: user.id, path: '/api/generate-video-cinematic', metadata: { requested: body.language ?? null, detected: narrationLanguage.detected, confidence: narrationLanguage.confidence, engine: body.engine ?? 'seedance' } })
+    }
     const hollywoodPath = wantsHollywood || wantsH3 || wantsOmni || wantsS25
     const family: CinematicFamily = wantsH3 ? 'h3' : wantsOmni ? 'omni' : wantsS25 ? 's25' : 'hollywood'
 
@@ -2825,6 +2833,13 @@ async function manipularPost(req: NextRequest) {
       }
     }
 
+    // ═══ KINEO-ESCRITOR-CLASSICO-SABE-A-DURACAO-2026-09-12 — o pente fino de $0
+    // (12/09) mostrou o Seedance em modo IA nascendo com 74 palavras para 60 s
+    // (24 s de fala): o mesmo "10-22 palavras por cena" que o vigia consertou no
+    // Kineo 1 às 19:30 de 11/09. O compose reescrevia o corpo sob clipes PAGOS
+    // da fal escolhidos para outro texto. Mesma régua (targetWordCount, 3,1
+    // pal/s) e a língua do texto; só no caminho clássico (o hollywood tem o seu).
+    const classicWriterOptions = { wordsPerScene: wordsPerSceneFor(duration, clipCount), language: narrationLanguage.language }
     // Build scenes
     // #441 — aiPrompt = the cinematic SHOT description fed to Seedance (prefer
     // it over the raw stock query). Set from generateScenes prose (non-verbatim)
@@ -2861,7 +2876,7 @@ async function manipularPost(req: NextRequest) {
         stockSearchQuery: seg.pexelsQuery,
       }))
     } else {
-      const generated = await generateScenes(prompt.slice(0, 1200), clipCount, hollywoodPath ? undefined : classicVisualPolicy)
+      const generated = await generateScenes(prompt.slice(0, 1200), clipCount, hollywoodPath ? undefined : classicVisualPolicy, hollywoodPath ? undefined : classicWriterOptions)
       scenes = generated.map((s) => ({
         description: s.description,
         voiceover: s.voiceover ?? '',
@@ -2932,7 +2947,7 @@ async function manipularPost(req: NextRequest) {
             }))
             via = 'unbracket'
           } else {
-            const generated = await generateScenes(prompt.slice(0, 1200), clipCount, hollywoodPath ? undefined : classicVisualPolicy)
+            const generated = await generateScenes(prompt.slice(0, 1200), clipCount, hollywoodPath ? undefined : classicVisualPolicy, hollywoodPath ? undefined : classicWriterOptions)
           recuperadas = generated.map((s) => ({
             description: s.description,
             voiceover: s.voiceover ?? '',
@@ -3073,8 +3088,7 @@ async function manipularPost(req: NextRequest) {
       // KINEO-HOLLYWOOD-HOST-2026-07-13 — language/vertical hoisted (the host
       // voice resolution below needs both; the same `vertical` reaches
       // /api/compose from the client, so both routes pin the same persona).
-      const hollywoodLanguage: 'en' | 'pt' | 'es' =
-        body.language === 'pt' ? 'pt' : body.language === 'es' ? 'es' : 'en'
+      const hollywoodLanguage: 'en' | 'pt' | 'es' = narrationLanguage.language // KINEO-IDIOMA-DO-TEXTO
       const hollywoodVertical =
         typeof body.vertical === 'string' && body.vertical.trim() ? body.vertical.trim().toLowerCase() : undefined
 

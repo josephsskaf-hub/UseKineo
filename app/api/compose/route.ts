@@ -2463,14 +2463,21 @@ export async function POST(req: NextRequest) {
     // spoken at their chosen speed.
     // feature/ai-avatar — avatar mode also skips scaling: the script passed in
     // is EXACTLY what the already-rendered mp3 narrates (captions derive from it).
+    // ═══ KINEO-VERBATIM-NAO-REESCREVE-2026-09-12 — decisão do fundador (12/09):
+    // "Use my script as is" é literal. O vigia de 11/09 mediu que o corpo do
+    // texto do cliente era REESCRITO aqui quando ficava fora de ±15% de 3,1
+    // pal/s × s (c636e7a0: conto em PT-BR, 143 palavras para 60 s); o pente
+    // fino de $0 de 12/09 reproduziu com o mesmo roteiro nos 4 clássicos. O
+    // caminho cinematic grava `verbatim` na resposta assinada do claim — é
+    // ela que manda, não o `speed` opcional que o cliente encaminha.
+    const claimVerbatim = cinematicBirthClaim?.response?.verbatim === true
     let scaledScript: string
-    if (avatarMode || hasUserVoice) {
-      scaledScript = voiceoverScript
+    if (avatarMode || hasUserVoice) {      scaledScript = voiceoverScript
       console.log(`[compose] ${avatarMode ? 'avatar mode' : 'user voiceover'} — narration audio already exists, skipping scaling`)
-    } else if (explicitSpeed != null) {
+    } else if (explicitSpeed != null || claimVerbatim) {
       scaledScript = voiceoverScript
       console.log(
-        `[compose] verbatim narration (speed=${explicitSpeed}) — skipping word-count scaling`,
+        `[compose] verbatim narration (speed=${explicitSpeed ?? 'default'}, claim_verbatim=${claimVerbatim}) — skipping word-count scaling`,
       )
     } else {
       try {
@@ -2668,6 +2675,7 @@ export async function POST(req: NextRequest) {
       !clonedVoiceUsed && // never replace the cloned voice with the default one
       !scriptWellSized && // word count already predicts an on-target length → don't re-synth
       explicitSpeed == null &&
+      !claimVerbatim && // KINEO-VERBATIM-NAO-REESCREVE — texto literal também não muda de ritmo
       realAudioDuration > 4 &&
       Math.abs(realAudioDuration - duration) > DURATION_TOLERANCE_SECONDS
     ) {

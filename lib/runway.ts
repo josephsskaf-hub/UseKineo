@@ -1,4 +1,5 @@
 import { openai } from '@/lib/openai'
+import { LANGUAGE_NAMES, type NarrationLanguage } from '@/lib/textLanguage'
 import { detectVisualCategory } from '@/lib/visualAssetCategories'
 import { aspectSpec } from '@/lib/aspect'
 import { classicVisualNegativePrompt, isStylizedLook, visualDescriptionDirection, type VisualPromptPolicy } from '@/lib/cinematic/visualPromptPolicy'
@@ -261,6 +262,8 @@ export function shortCaptionFromVoiceover(text: string, maxWords = 8): string {
 export interface SceneWriterOptions {
   /** Faixa [min, max] de palavras faladas por cena. Ausente = "10-22". */
   wordsPerScene?: readonly [number, number]
+  /** KINEO-IDIOMA-DO-TEXTO-2026-09-12 — língua da narração. Ausente/'en' = texto do prompt inalterado. */
+  language?: NarrationLanguage
 }
 
 export async function generateScenes(prompt: string, count = 4, visualPolicy?: VisualPromptPolicy, writerOptions?: SceneWriterOptions): Promise<Scene[]> {
@@ -273,6 +276,9 @@ export async function generateScenes(prompt: string, count = 4, visualPolicy?: V
   const voiceoverRule = wps
     ? `${wpsLo}-${Math.max(wpsLo, Math.ceil(wps[1]))} words — this line alone must fill its ~10-second scene when spoken; two sentences are fine`
     : '10-22 words'
+  // KINEO-IDIOMA-DO-TEXTO-2026-09-12 — só entra no texto quando a língua não é
+  // inglês (sem opção o prompt continua byte-idêntico: golden hash do Codex).
+  const languageRule = writerOptions?.language && writerOptions.language !== 'en' ? ` Write this narration line in ${LANGUAGE_NAMES[writerOptions.language]}.` : ''
   const defaultNegative = visualPolicy
     ? classicVisualNegativePrompt(visualPolicy.mode, isStylizedLook(visualPolicy.style))
     : 'cartoon, animation, clipart, toy'
@@ -301,7 +307,7 @@ Your job is to return a JSON array of scene objects. Each scene object must incl
    health_body, crime_mystery, animal_wildlife,
    general_science, general_documentary
    Pick the most specific category that matches the scene content.
-8. "voiceover" — one narration line (${voiceoverRule}). MUST include at least one SPECIFIC number, name, date, dollar amount, or comparison — no vague claims. Exact TTS text. No filler like "imagine…", "what if…", or "most people don't know…".
+8. "voiceover" — one narration line (${voiceoverRule}). MUST include at least one SPECIFIC number, name, date, dollar amount, or comparison — no vague claims. Exact TTS text. No filler like "imagine…", "what if…", or "most people don't know…".${languageRule}
 9. "caption" — ≤8-word on-screen caption paraphrasing the voiceover. Punchy fragment. No period.
 
 You always respond with a valid JSON array ONLY — no markdown, no code fences, no commentary.`
@@ -554,7 +560,54 @@ ${visualDescriptionDirection(visualPolicy)}
       caption: shortCaptionFromVoiceover(voiceover),
     })
   }
+  // ═══ KINEO-ESCRITOR-ENTREGA-A-FAIXA-2026-09-12 — o pente fino de $0 pediu
+  // 27-35 palavras por cena e o gpt-4o entregou 15-20 (105 palavras para 60 s
+  // = 34 s de fala): o modelo lê a faixa como sugestão. Abaixo de 85% do piso,
+  // uma segunda passada reescreve SÓ as cenas curtas para o tamanho pedido,
+  // mantendo fatos, nomes e língua. Fail-open. Sem `wordsPerScene`, nada muda.
+  if (wps) {
+    try {
+      return await expandShortVoiceovers(scenes, wpsLo, Math.max(wpsLo, Math.ceil(wps[1])), writerOptions?.language)
+    } catch (e) {
+      console.warn('[scene] voiceover expansion skipped:', e instanceof Error ? e.message : String(e))
+    }
+  }
   return scenes
+}
+
+/** Reescreve as falas abaixo de `lo` palavras para a faixa [lo, hi]; devolve as cenas como vieram se a soma já cobre 85% do piso ou se a resposta não bate. */
+export async function expandShortVoiceovers(scenes: Scene[], lo: number, hi: number, language?: NarrationLanguage): Promise<Scene[]> {
+  const wordsOf = (t: string) => (t ?? '').trim().split(/\s+/).filter(Boolean).length
+  const total = scenes.reduce((a, s) => a + wordsOf(s.voiceover), 0)
+  if (scenes.length === 0 || total >= Math.ceil(scenes.length * lo * 0.85)) return scenes
+  const short = scenes.map((s, i) => ({ i, words: wordsOf(s.voiceover) })).filter((x) => x.words < lo)
+  if (short.length === 0) return scenes
+  const langName = LANGUAGE_NAMES[language ?? 'en']
+  const completion = await openai.chat.completions.create(
+    {
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: `You expand narration lines of a short documentary video. Rewrite each line so it has between ${lo} and ${hi} words when spoken aloud, in ${langName}. Keep every fact, name, number and the exact meaning; add concrete, specific detail — never filler like "imagine", "what if" or "most people don't know". Return ONLY a JSON array of strings, same order and same length as the input.` },
+        { role: 'user', content: JSON.stringify(short.map((x) => scenes[x.i].voiceover)) },
+      ],
+      temperature: 0.4,
+      max_tokens: 1400,
+    },
+    { timeout: 25000 },
+  )
+  const raw = completion.choices[0]?.message?.content?.trim() ?? ''
+  const m = raw.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').match(/\[[\s\S]*\]/)
+  if (!m) return scenes
+  const arr: unknown = JSON.parse(m[0])
+  if (!Array.isArray(arr) || arr.length !== short.length) return scenes
+  const out = scenes.map((s) => ({ ...s }))
+  let replaced = 0
+  short.forEach((x, k) => {
+    const v = typeof arr[k] === 'string' ? (arr[k] as string).trim() : ''
+    if (v && wordsOf(v) > x.words) { out[x.i].voiceover = v; out[x.i].caption = shortCaptionFromVoiceover(v); replaced++ }
+  })
+  console.log(`[scene] voiceover expansion: ${replaced}/${short.length} short scenes rewritten to ${lo}-${hi} words (was ${total} words total)`)
+  return out
 }
 
 /**

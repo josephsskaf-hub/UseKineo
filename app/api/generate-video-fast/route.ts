@@ -21,6 +21,7 @@ import { writeServerEvent } from '@/lib/serverEvents'
 import { classifyEngineFit } from '@/lib/engineFit'
 import { detectShotSpec } from '@/lib/cinematic/shotSpec'
 import { classicDryRunReport, isDryRunAccount } from '@/lib/cinematic/classicDryRun'
+import { resolveNarrationLanguage } from '@/lib/textLanguage'
 import { creditCostForDuration } from '@/lib/credits/engineCost'
 // KINEO-ENTREGA-SERVIDOR-2026-09-09 — o MESMO saneador e o MESMO nome de
 // evento que a rota do cliente usa. Importar (em vez de copiar as regras) é o
@@ -533,6 +534,14 @@ export async function POST(req: NextRequest) {
     // the user already chose the perfect clip and wrote the exact narration.
     const parsedScript = parseUserScript(prompt)
     const verbatim = parsedScript.hasMarkers && parsedScript.segments.length > 0
+    // ═══ KINEO-IDIOMA-DO-TEXTO-2026-09-12 — a voz fala a língua do texto. Render
+    // 59e1c0ce (11/09): história em ESPANHOL escrita na home, seletor no padrão
+    // "en", escritor de cenas em inglês. Escolha explícita (pt/es) vence; o
+    // padrão "en" cede ao idioma claro do texto. Evento para medir a troca.
+    const narrationLanguage = resolveNarrationLanguage(body.language, prompt)
+    if (narrationLanguage.switched) {
+      void writeServerEvent({ name: 'narration_language_autodetected', userId: user.id, path: '/api/generate-video-fast', metadata: { requested: body.language ?? null, detected: narrationLanguage.detected, confidence: narrationLanguage.confidence, verbatim } })
+    }
 
     // #358 — instrumentation: record WHY this generation uses VERBATIM (and
     // whether the upstream BrollPlan was degraded). degradedReason is persisted
@@ -585,6 +594,7 @@ export async function POST(req: NextRequest) {
         // que passa a ser no-op (±15%) e o footage volta a casar com a fala.
         scenes = await generateScenes(prompt.slice(0, 1200), clipCount, undefined, {
           wordsPerScene: wordsPerSceneFor(duration, clipCount),
+          language: narrationLanguage.language,
         })
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
@@ -1274,7 +1284,7 @@ export async function POST(req: NextRequest) {
       voiceover_script: voiceoverScript,
       scene_captions: sceneCaptions,
       topic: prompt,
-      language: body.language,
+      language: narrationLanguage.language,
       ...(parsedScript.speed != null ? { speed: parsedScript.speed } : {}),
     })
     if (recoveryPayload) {
@@ -1308,7 +1318,10 @@ export async function POST(req: NextRequest) {
       // so it forwards this narration (not the analyze-idea brief) and the
       // requested TTS speed to /api/compose.
       verbatim,
-      speed: parsedScript.speed,
+      // KINEO-VERBATIM-NAO-REESCREVE-2026-09-12 — "as is" sem `speed:` viajava sem
+      // speed e o compose reescrevia o corpo do texto do cliente. Verbatim agora
+      // sempre leva um speed (1,0 por padrão) e o compose pula o escalador.
+      speed: verbatim ? (parsedScript.speed ?? 1) : parsedScript.speed,
       // KINEO-AI-SCENE-VISIBLE-2026-08-03 — POR QUE ISTO EXISTE.
       // Todo PRIMEIRO vídeo de usuário free já recebe uma cena de abertura
       // GERADA POR IA (Seedance 1.5 Pro, ~$0.22 de provider) — e medimos em

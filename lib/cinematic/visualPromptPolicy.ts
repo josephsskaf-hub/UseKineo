@@ -63,7 +63,12 @@ export function visualDescriptionDirection(policy: VisualPromptPolicy): string {
 const SETTING_ALLOW = new Set(['earth', 'moon', 'sun', 'god', 'internet', 'christmas', 'halloween', 'wifi', 'tv', 'led', 'gps', 'dna'])
 // Sequência de palavras Capitalizadas (com 's / -era colados), com número
 // opcional colado no fim ("Nokia 3310", "Model 500").
-const SETTING_PROPER_RUN_RE = /\b[A-Z][a-z]{2,}(?:['’]s)?(?:-[a-z]+)?(?: [A-Z][a-z]{2,}(?:['’]s)?(?:-[a-z]+)?)*(?: \d{2,4}\b)?/g
+// KINEO-NOME-ACENTUADO-2026-09-12 — o pente fino de $0 (12/09) mostrou o
+// prompt de cena chamando o Tomás de "ás": `[A-Z][a-z]` e `\b` são ASCII, então
+// "Tomás" era lido como "Tom"+"ás", "tom" não estava nas palavras da história
+// ("tomás" está) e o nome saía cortado. Classes Unicode (\p{Lu}/\p{Ll}) e
+// fronteiras por lookaround: nome acentuado é UMA palavra.
+const SETTING_PROPER_RUN_RE = /(?<![\p{L}\p{N}])\p{Lu}\p{Ll}{2,}(?:['’]s)?(?:-\p{Ll}+)?(?: \p{Lu}\p{Ll}{2,}(?:['’]s)?(?:-\p{Ll}+)?)*(?: \d{2,4}(?![\p{L}\p{N}]))?/gu
 const SETTING_YEAR_RE = /(?:\b(?:1[0-9]{3}|20[0-9]{2})s?\b|(?:^|\s)['’]?[1-9]0s\b)/g
 const SETTING_ERA_ADJ_RE = /\b(victorian|edwardian|georgian|medieval|ancient|renaissance|colonial|napoleonic|vintage|retro|antique|old[- ]fashioned)(?:-era)?\b/gi
 

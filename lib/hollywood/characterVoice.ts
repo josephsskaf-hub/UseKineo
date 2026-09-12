@@ -32,7 +32,7 @@ export interface CharacterVoiceChoice {
 const MALE_RE = /\b(man|men|male|boy|boys|gentleman|guy|father|dad|grandfather|grandpa|husband|son|brother|uncle|king|prince|monk|priest|he|him|his|himself|mr\.?|sir|bearded|beard|mustache|moustache)\b/i
 const FEMALE_RE = /\b(woman|women|female|girl|girls|lady|mother|mom|grandmother|grandma|wife|daughter|sister|aunt|queen|princess|nun|she|her|hers|herself|mrs\.?|ms\.?|miss)\b/i
 const CHILD_RE = /\b(child|kid|toddler|little (?:boy|girl)|young (?:boy|girl)|schoolboy|schoolgirl|teen(?:ager)?|teenage)\b/i
-const ELDERLY_RE = /\b(elderly|old man|old woman|grandfather|grandmother|grandpa|grandma|senior|aged|in (?:his|her) (?:60s|70s|80s|90s|sixties|seventies|eighties|nineties)|white[- ]haired|gray[- ]haired|grey[- ]haired|wrinkl\w+)\b/i
+const ELDERLY_RE = /\b(elderly|old man|old woman|grandfather|grandmother|grandpa|grandma|senior|aged|in (?:his|her) (?:early |mid |mid-|late )?(?:60s|70s|80s|90s|sixties|seventies|eighties|nineties)|white[- ]haired|gray[- ]haired|grey[- ]haired|wrinkl\w+)\b/i
 const YOUNG_RE = /\b(young|youthful|in (?:his|her) (?:20s|twenties)|teen(?:ager)?|student)\b/i
 const AGE_NUMBER_RE = /\b(\d{1,2})[- ](?:year|yr)s?[- ]old\b/i
 

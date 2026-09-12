@@ -129,16 +129,33 @@ type ClipResult = { requestId: string; model: string; url: string }
  * (piso do FAILFAST: menos que isso é filme mutilado, melhor estornar).
  */
 type ClipCollect =
-  | { state: 'ready'; clips: ClipResult[] }
-  | { state: 'pending'; done: number; total: number }
-  | { state: 'too_few'; done: number; total: number }
+  | { state: 'ready'; clips: ClipResult[]; dead: number }
+  | { state: 'pending'; done: number; total: number; dead: number }
+  | { state: 'too_few'; done: number; total: number; dead: number }
+
+// ═══ KINEO-CENA-MORTA-2026-09-12 — O CRON PASSA A ENXERGAR CENA MORTA ═══
+// H3 de 11/09 09:22 UTC (claim 928eebd1, trial de 30cr): 6 cenas, 4 COMPLETED
+// e autorizadas pela aba, 2 nunca. O cron olhou o claim ≥7 vezes em 2 h e não
+// gravou nada: `result()` que lançava qualquer coisa ≠ 422/400 virava
+// `stillRunning` → 'pending:4/6' para sempre, até o estorno. Uma cena cujo
+// STATUS já é COMPLETED é terminal por definição: se o resultado não vem
+// (403, 500, sem URL), ela está MORTA e o filme de 4/6 (67% ≥ piso 60%) tem
+// de sair. E cena que ainda diz IN_QUEUE quando o claim já tem mais de
+// STALE_SCENE_MINUTES também é morta — nenhum motor da casa leva 2 h numa
+// cena; o que resta na fila do fornecedor não vai chegar.
+const STALE_SCENE_MINUTES = 120
+/** 'pending' com claim mais velho que isto deixa `stranded_outcome` (antes: mudo até o estorno). */
+const PENDING_STALE_MINUTES = 45
 
 async function collectFinishedClips(
   requestIds: Array<string | null>,
   models: string[],
+  claimAgeMinutes = 0,
 ): Promise<ClipCollect> {
+  const staleClaim = claimAgeMinutes >= STALE_SCENE_MINUTES
+  let dead = 0
   const falKey = process.env.FAL_KEY
-  if (!falKey) return { state: 'pending', done: 0, total: requestIds.length }
+  if (!falKey) return { state: 'pending', done: 0, total: requestIds.length, dead }
   fal.config({ credentials: falKey })
   const out: ClipResult[] = []
   let stillRunning = 0
@@ -151,28 +168,44 @@ async function collectFinishedClips(
     try {
       const st = await fal.queue.status(model, { requestId: id })
       const status = (st as { status?: string }).status
-      if (status === 'IN_QUEUE' || status === 'IN_PROGRESS') { stillRunning++; continue }
-      if (status !== 'COMPLETED') continue // FAILED → pula, como o cliente faz
-      const res = await fal.queue.result(model, { requestId: id })
-      const data = ((res as { data?: unknown }).data ?? res) as {
-        video?: { url?: string }
-        output?: { video?: { url?: string } }
+      if (status === 'IN_QUEUE' || status === 'IN_PROGRESS') {
+        // KINEO-CENA-MORTA — claim com 2 h+ e cena ainda na fila: morta.
+        if (staleClaim) { dead++; continue }
+        stillRunning++
+        continue
       }
-      const url = data?.video?.url ?? data?.output?.video?.url ?? null
-      if (url) out.push({ requestId: id, model, url })
+      if (status !== 'COMPLETED') { dead++; continue } // FAILED → pula, como o cliente faz
+      // KINEO-CENA-MORTA — daqui em diante o status é terminal: qualquer
+      // falha do result() (403, 500, sem URL) é cena morta, nunca "rodando".
+      try {
+        const res = await fal.queue.result(model, { requestId: id })
+        const data = ((res as { data?: unknown }).data ?? res) as {
+          video?: { url?: string }
+          output?: { video?: { url?: string } }
+        }
+        const url = data?.video?.url ?? data?.output?.video?.url ?? null
+        if (url) out.push({ requestId: id, model, url })
+        else dead++
+      } catch (e) {
+        const httpStatus = typeof (e as { status?: unknown })?.status === 'number' ? (e as { status: number }).status : null
+        console.warn(`[stranded] scene ${i + 1} COMPLETED but result() failed (http=${httpStatus ?? 'none'}) — counted as dead`)
+        dead++
+      }
     } catch (e) {
-      // 422/400 = clipe morto no provedor → pula. Erro de transporte também
-      // cai aqui; a próxima rodada re-checa (o clipe fica de fora só se
-      // continuar inacessível, e o piso de 60% protege o filme).
+      // Falha do PRÓPRIO status(): 422/400 = clipe morto no provedor → pula.
+      // Erro de transporte cai aqui; a próxima rodada re-checa (o clipe fica
+      // de fora só se continuar inacessível, e o piso de 60% protege o filme).
       const status = typeof (e as { status?: unknown })?.status === 'number' ? (e as { status: number }).status : null
-      if (status !== 422 && status !== 400) stillRunning++
+      if (status === 422 || status === 400) { dead++; continue }
+      if (staleClaim) { dead++; continue }
+      stillRunning++
     }
   }
-  if (stillRunning > 0) return { state: 'pending', done: out.length, total: submitted }
+  if (stillRunning > 0) return { state: 'pending', done: out.length, total: submitted, dead }
   if (out.length === 0 || out.length < Math.ceil(submitted * 0.6)) {
-    return { state: 'too_few', done: out.length, total: submitted }
+    return { state: 'too_few', done: out.length, total: submitted, dead }
   }
-  return { state: 'ready', clips: out }
+  return { state: 'ready', clips: out, dead }
 }
 
 function serviceHeaders(userId: string): Record<string, string> {
@@ -689,9 +722,16 @@ export async function GET(req: NextRequest) {
     const models = Array.isArray(md.fal_models) ? (md.fal_models as string[]) : []
     if (requestIds.length === 0) { results.push({ generation: gen8, outcome: 'no_request_ids' }); continue }
 
-    const collected = await collectFinishedClips(requestIds, models)
-    if (collected.state !== 'ready') {
-      // KINEO-STRANDED-DIAG-2026-08-19 — antes esta saída era MUDA: o render
+    // KINEO-CENA-MORTA-2026-09-12 — a idade do claim viaja para o coletor
+    // (cena na fila com 2 h+ é morta) e 'pending' velho vira rastro no banco.
+    const claimAgeMin = typeof claim.created_at === 'string' ? Math.max(0, (Date.now() - new Date(claim.created_at).getTime()) / 60_000) : 0
+    const collected = await collectFinishedClips(requestIds, models, claimAgeMin)
+    if (collected.dead > 0) console.log(`[stranded] gen=${gen8} dead_scenes=${collected.dead} age=${Math.round(claimAgeMin)}min`)
+    if (collected.state === 'pending' && claimAgeMin >= PENDING_STALE_MINUTES) {
+      results.push({ generation: gen8, outcome: `pending_stale:${collected.done}/${collected.total}`, error: `age=${Math.round(claimAgeMin)}min dead=${collected.dead}` })
+      continue
+    }
+    if (collected.state !== 'ready') {      // KINEO-STRANDED-DIAG-2026-08-19 — antes esta saída era MUDA: o render
       // do fundador ficou 1h sem um único evento e eu fiquei cego. Agora todo
       // pulo deixa rastro no log com a contagem real de cenas.
       console.log(`[stranded] gen=${gen8} skip=${collected.state} clips=${collected.done}/${collected.total}`)
@@ -1274,7 +1314,7 @@ export async function GET(req: NextRequest) {
   // TODO desfecho vai pro log (uma linha por rodada) e os desfechos terminais
   // silenciosos viram evento `stranded_outcome` no banco, para a próxima rodada
   // ler a causa em SQL em vez de adivinhar. Não muda nenhuma decisão do cron.
-  const SILENT_TERMINAL = /^(ready_dedupe_lookup_failed|rescue_dedupe_lookup_failed|fast_dedupe_lookup_failed|authorize_failed|reload_failed|no_authorized_urls|compose_error_|compose_threw|compose_gave_up|composed_render_id_unknown|ready_email_failed|rescue_email_failed|too_few)/
+  const SILENT_TERMINAL = /^(ready_dedupe_lookup_failed|rescue_dedupe_lookup_failed|fast_dedupe_lookup_failed|authorize_failed|reload_failed|no_authorized_urls|compose_error_|compose_threw|compose_gave_up|composed_render_id_unknown|ready_email_failed|rescue_email_failed|too_few|pending_stale)/
   const outcomeLine = results.map((r) => `${r.generation}:${r.outcome}`).join(' ')
   console.log(`[stranded] outcomes ${outcomeLine || '(none)'}`)
   try {
