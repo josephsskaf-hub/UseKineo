@@ -56,6 +56,8 @@ export function classicDryRunReport(input: {
   secondsPerClip: number
   verbatim: boolean
   wordsPerSecond?: number
+  /** Kineo 1: o footage (Pixabay) é cortado à medida da fala — não há teto de clipe. */
+  elasticFootage?: boolean
 }): ClassicDryRunReport {
   const wps = input.wordsPerSecond && input.wordsPerSecond > 0 ? input.wordsPerSecond : CLASSIC_WORDS_PER_SECOND
   const target = Math.max(0, Number(input.targetSeconds) || 0)
@@ -89,7 +91,7 @@ export function classicDryRunReport(input: {
         (input.verbatim ? ' — e este roteiro é "Use my script as is"' : ''),
     )
   }
-  if (scenes.length > 0 && footageSeconds < speechSeconds) {
+  if (!input.elasticFootage && scenes.length > 0 && footageSeconds < speechSeconds) {
     problems.push(`footage de ${footageSeconds}s para ${speechSeconds}s de fala: o compose repetiria cena para fechar o tempo`)
   }
   const mute = scenes.filter((s) => s.words === 0).map((s) => s.scene)

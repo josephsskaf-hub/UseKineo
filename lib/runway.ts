@@ -578,35 +578,42 @@ ${visualDescriptionDirection(visualPolicy)}
 /** Reescreve as falas abaixo de `lo` palavras para a faixa [lo, hi]; devolve as cenas como vieram se a soma já cobre 85% do piso ou se a resposta não bate. */
 export async function expandShortVoiceovers(scenes: Scene[], lo: number, hi: number, language?: NarrationLanguage): Promise<Scene[]> {
   const wordsOf = (t: string) => (t ?? '').trim().split(/\s+/).filter(Boolean).length
-  const total = scenes.reduce((a, s) => a + wordsOf(s.voiceover), 0)
-  if (scenes.length === 0 || total >= Math.ceil(scenes.length * lo * 0.85)) return scenes
-  const short = scenes.map((s, i) => ({ i, words: wordsOf(s.voiceover) })).filter((x) => x.words < lo)
-  if (short.length === 0) return scenes
+  const total0 = scenes.reduce((a, s) => a + wordsOf(s.voiceover), 0)
+  if (scenes.length === 0 || total0 >= Math.ceil(scenes.length * lo * 0.85)) return scenes
   const langName = LANGUAGE_NAMES[language ?? 'en']
-  const completion = await openai.chat.completions.create(
-    {
-      model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: `You expand narration lines of a short documentary video. Rewrite each line so it has between ${lo} and ${hi} words when spoken aloud, in ${langName}. Keep every fact, name, number and the exact meaning; add concrete, specific detail — never filler like "imagine", "what if" or "most people don't know". Return ONLY a JSON array of strings, same order and same length as the input.` },
-        { role: 'user', content: JSON.stringify(short.map((x) => scenes[x.i].voiceover)) },
-      ],
-      temperature: 0.4,
-      max_tokens: 1400,
-    },
-    { timeout: 25000 },
-  )
-  const raw = completion.choices[0]?.message?.content?.trim() ?? ''
-  const m = raw.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').match(/\[[\s\S]*\]/)
-  if (!m) return scenes
-  const arr: unknown = JSON.parse(m[0])
-  if (!Array.isArray(arr) || arr.length !== short.length) return scenes
+  const mid = Math.round((lo + hi) / 2)
   const out = scenes.map((s) => ({ ...s }))
   let replaced = 0
-  short.forEach((x, k) => {
-    const v = typeof arr[k] === 'string' ? (arr[k] as string).trim() : ''
-    if (v && wordsOf(v) > x.words) { out[x.i].voiceover = v; out[x.i].caption = shortCaptionFromVoiceover(v); replaced++ }
-  })
-  console.log(`[scene] voiceover expansion: ${replaced}/${short.length} short scenes rewritten to ${lo}-${hi} words (was ${total} words total)`)
+  // Até 2 rodadas: o gpt-4o-mini também lê a faixa como sugestão (pente fino
+  // de 12/09: pediu 23-30 e devolveu 19-24). A 2ª rodada só recebe o que
+  // ainda ficou curto; cada rodada só substitui se a fala CRESCEU.
+  for (let round = 0; round < 2; round++) {
+    const short = out.map((s, i) => ({ i, words: wordsOf(s.voiceover) })).filter((x) => x.words < lo)
+    if (short.length === 0) break
+    const completion = await openai.chat.completions.create(
+      {
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: `You expand narration lines of a short documentary video. Rewrite each line so it has AT LEAST ${lo} and at most ${hi} words when spoken aloud — aim for ${mid} words; count the words before answering. Write in ${langName}. Keep every fact, name, number and the exact meaning; add concrete, specific detail — never filler like "imagine", "what if" or "most people don't know". Return ONLY a JSON array of strings, same order and same length as the input.` },
+          { role: 'user', content: JSON.stringify(short.map((x) => out[x.i].voiceover)) },
+        ],
+        temperature: 0.4,
+        max_tokens: 1400,
+      },
+      { timeout: 25000 },
+    )
+    const raw = completion.choices[0]?.message?.content?.trim() ?? ''
+    const m = raw.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').match(/\[[\s\S]*\]/)
+    if (!m) break
+    const arr: unknown = JSON.parse(m[0])
+    if (!Array.isArray(arr) || arr.length !== short.length) break
+    short.forEach((x, k) => {
+      const v = typeof arr[k] === 'string' ? (arr[k] as string).trim() : ''
+      if (v && wordsOf(v) > x.words) { out[x.i].voiceover = v; out[x.i].caption = shortCaptionFromVoiceover(v); replaced++ }
+    })
+  }
+  const total1 = out.reduce((a, s) => a + wordsOf(s.voiceover), 0)
+  console.log(`[scene] voiceover expansion: ${replaced} rewrites, ${total0} → ${total1} words (range ${lo}-${hi} per scene)`)
   return out
 }
 

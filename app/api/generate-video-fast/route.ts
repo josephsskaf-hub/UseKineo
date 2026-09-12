@@ -677,6 +677,7 @@ export async function POST(req: NextRequest) {
         targetSeconds: duration,
         secondsPerClip: duration / Math.max(1, clipCount),
         verbatim,
+        elasticFootage: true, // Pixabay é cortado à medida da fala; não há teto de clipe
       })
       return NextResponse.json({ dry_run: true, family: 'fast', engine: 'fast', verbatim, refunded: true, words_per_scene: verbatim ? null : wordsPerSceneFor(duration, clipCount), ...fastReport })
     }
