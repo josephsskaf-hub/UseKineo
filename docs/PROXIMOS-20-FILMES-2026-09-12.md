@@ -5,9 +5,9 @@ Pergunta que este diário responde: "o que a pessoa escreveu, o que clicou, em q
 Marco: `videos.created_at > '2026-09-12 02:50:00+00'` (23:50 BRT de 11/09). Contas internas excluídas. Banco só leitura, zero render, zero e-mail.
 
 ## PLACAR
-Filmes lidos: 3/20 · média das notas 8,0 · coerentes 2 / parciais 1 / não 0 · apertou-e-não-saiu: 2 (1 clipe Seedance de 5cr sem entrega nem estorno; 5 cliques anônimos "unauthenticated" entre 00:12-00:22 BRT, sem ip_hash — provável sonda/robô, não pessoa)
+Filmes lidos: 3/20 · média das notas 8,0 · coerentes 2 / parciais 1 / não 0 · apertou-e-não-saiu: 2 (1 clipe Seedance de 5cr sem entrega — 5cr ESTORNADOS às 03:30 BRT por varredura automática, sem evento; 5 cliques anônimos "unauthenticated" entre 00:12-00:22 BRT, sem ip_hash — provável sonda/robô, não pessoa)
 
-Rotações: 01:46 BRT (12/09) — 3 filmes novos. · 03:47 BRT — nenhum filme novo (checado 03:46 BRT: 0 filmes, 0 erros de despacho, clipe de nik*** segue sem desfecho). · 05:47 BRT — nenhum filme novo (checado 05:46 BRT: 0 filmes, 0 despachos, 0 erros desde 03:40; clipe de nik*** segue sem clip_completed/clip_failed/estorno).
+Rotações: 01:46 BRT (12/09) — 3 filmes novos. · 03:47 BRT — nenhum filme novo (checado 03:46 BRT: 0 filmes, 0 erros de despacho, clipe de nik*** segue sem desfecho). · 05:47 BRT — nenhum filme novo (checado 05:46 BRT: 0 filmes, 0 despachos, 0 erros desde 03:40; clipe de nik*** segue sem clip_completed/clip_failed/estorno). · 07:47 BRT — nenhum filme novo (checado 07:46 BRT: 0 filmes, 0 despachos, 0 erros desde 05:40; novidade: os 5cr do clipe de nik*** foram estornados às 03:30 BRT — `credit_debits.refunded_at` preenchido, nenhum evento registrou quem estornou; a pessoa continua sem o clipe, mas sem prejuízo).
 
 ---
 
@@ -41,5 +41,5 @@ Rotações: 01:46 BRT (12/09) — 3 filmes novos. · 03:47 BRT — nenhum filme 
 ---
 
 ## APERTOU E NÃO SAIU (desde o marco)
-- nik***@gmail.com · 00:42 BRT · "Just this clip" Seedance 1.5, 8 s, 9:16, prompt hindi de 37 chars · `clip_submitted` com request_id da fal, 5cr debitados (`credit_debits` kind=video, refunded_at null), NENHUM `clip_completed`/`clip_failed`, nenhuma linha em `videos`. Causa exata: desconhecida — o clipe não grava desfecho no servidor (só o cliente faz poll). Pessoa foi para o Kineo 1 53 s depois.
+- nik***@gmail.com · 00:42 BRT · "Just this clip" Seedance 1.5, 8 s, 9:16, prompt hindi de 37 chars · `clip_submitted` com request_id da fal, 5cr debitados (`credit_debits` kind=video, refunded_at null), NENHUM `clip_completed`/`clip_failed`, nenhuma linha em `videos`. ATUALIZAÇÃO 07:47 BRT: 5cr estornados às 03:30 BRT (varredura automática, sem evento). Causa exata: desconhecida — o clipe não grava desfecho no servidor (só o cliente faz poll). Pessoa foi para o Kineo 1 53 s depois.
 - anônimo · 00:12–00:22 BRT · 5× `generation_stage_error` reason=`unauthenticated`, stage=generating, sem user_id e sem ip_hash. Não é cliente logado; provável robô/sonda. Sem crédito envolvido.
