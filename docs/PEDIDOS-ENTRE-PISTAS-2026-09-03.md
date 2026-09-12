@@ -2338,3 +2338,9 @@ Ordem do fundador: tres modos (IA escreve / historia pronta / so as imagens). Re
 - [ ] PENDENTE (Codex, já pedido): H3-WALID-11/2 (cron cego a cena morta) · RETRY-ASPECT-11 (retry crava '9:16') · CENARIO-HOLLYWOOD-11 (sem filme que prove drift).
 - [x] Seedance provider_abandoned_refunded — fechado por medição na r4 (0 em 9 dias, 88/88 compostos).
 - [x] VISUAL-DRIFT-11 / 11-2 — fechados na r2/r3 (descritor + filtro determinístico); `setting_scrubbed` segue sem denominador (0 filmes clássicos desde o deploy 20:43 UTC).
+
+## DRYRUN-CLASSICO — validador de $0 nos clássicos e no Kineo 1 (Claude, 12/09 ~00:30 BRT)
+
+Ordem do fundador (12/09): pente fino em todos os motores por dry-run. Até 11/09 dry_run so parava Kling 3/H3/Omni; Seedance/Kling 2.5/Veo seguiam para o POST pago e o Kineo 1 nem lia o flag. Agora: lib/cinematic/classicDryRun.ts (puro: regua classica 3,1 pal/s, risco de reescrita do compose ±15%, piso 95%, footage x fala), gancho no generate-video-cinematic depois do contrato de cena e ANTES das stills FLUX (estorna pelo releaseBirthClaim), gancho no generate-video-fast antes do hook pago da IA. Resposta: verdict, problems, scenes[] (seconds/words/speech/prompt), rescale_drift, visual_mode, contrato_cena. Guardiao test-dryrun-classico (18). Dry-runs de 12/09 00:10: Kling 3/H3/Omni PASS (presenter, onyx, 2 dialogos, mudo 0); Omni le "late 60s" como adult (velocidade 1,0 em vez de 0,94) — ficha diz idoso.
+
+- [ ] DE claude PARA codex: nada de tela; o dry-run continua so por console/curl do fundador.

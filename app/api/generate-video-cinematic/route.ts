@@ -41,6 +41,7 @@ import {
 import { resolveVerbatimSegments } from '@/lib/cinematic/verbatimBeats'
 import { resolveCharacterVoice } from '@/lib/hollywood/characterVoice'
 import { detectShotSpec } from '@/lib/cinematic/shotSpec'
+import { classicDryRunReport, isDryRunAccount } from '@/lib/cinematic/classicDryRun'
 import { sceneNarrationsForPlan } from '@/lib/cinematic/speechContract'
 import { aplicarEixoVisual } from '@/lib/hollywood/varietyAxis'
 import { decidirFormato, permiteApresentador, TAG_FACELESS, proibidosPorModo, type VisualMode } from '@/lib/cinematic/visualMode'
@@ -4537,6 +4538,37 @@ async function manipularPost(req: NextRequest) {
         return cinematicBruto
       }
     })
+
+    // ═══ KINEO-DRYRUN-CLASSICO-2026-09-12 — O VALIDADOR DE $0 COBRE OS CLÁSSICOS ═══
+    // Até 11/09 `dry_run: true` só parava a família Kling 3/H3/Omni (bloco
+    // hollywood acima). Aqui, no caminho clássico (Seedance 1.5, Kling 2.5,
+    // Veo), o flag entrava no evento e o pedido seguia para o POST pago: não
+    // havia como testar um roteiro nesses motores sem gastar. Este é o
+    // ÚLTIMO ponto antes de qualquer gasto no fornecedor (as stills FLUX do
+    // Kling vêm logo abaixo; os POSTs de cena, depois). O débito antecipado
+    // já foi feito → releaseBirthClaim estorna pelo mesmo caminho do FAILFAST.
+    // O relatório traz a régua clássica (3,1 pal/s) e o risco que o vigia
+    // mediu em 11/09: o compose reescreve o corpo fora de ±15%.
+    if (body.dry_run === true && isDryRunAccount(user.email)) {
+      const classicReport = classicDryRunReport({
+        scenes: scenes.map((s, i) => ({ voiceover: s.voiceover, prompt: classicScenePrompts[i] })),
+        targetSeconds: duration,
+        secondsPerClip: (wantsVeo || wantsSora) ? 8 : 10,
+        verbatim,
+      })
+      const refunded = await releaseBirthClaim('dry_run_no_charge')
+      return NextResponse.json({
+        dry_run: true,
+        family: 'classic',
+        engine: wantsKling ? 'kling' : wantsVeo ? 'veo' : wantsSora ? 'sora' : 'seedance',
+        verbatim,
+        refunded,
+        visual_mode: classicVisualMode,
+        visual_mode_reason: formatoVisual.motivo,
+        contrato_cena: contratoRelatoClassico,
+        ...classicReport,
+      })
+    }
 
     // ── KINEO-CINEMATIC-ANCHOR-2026-07-24 — cross-scene consistency (CLASSIC) ─
     // Flag-gated (OFF by default → this whole block is skipped and the path

@@ -20,6 +20,7 @@ import { parseUserScript } from '@/lib/scriptParser'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { classifyEngineFit } from '@/lib/engineFit'
 import { detectShotSpec } from '@/lib/cinematic/shotSpec'
+import { classicDryRunReport, isDryRunAccount } from '@/lib/cinematic/classicDryRun'
 import { creditCostForDuration } from '@/lib/credits/engineCost'
 // KINEO-ENTREGA-SERVIDOR-2026-09-09 — o MESMO saneador e o MESMO nome de
 // evento que a rota do cliente usa. Importar (em vez de copiar as regras) é o
@@ -337,6 +338,8 @@ export async function POST(req: NextRequest) {
       brollDegraded?: boolean
       // KINEO-ENGINE-FIT-2026-09-09 — o cliente viu o aviso e escolheu manter o Kineo 1.
       engineFitOverride?: boolean
+      // KINEO-DRYRUN-CLASSICO-2026-09-12 — validador de $0 (só contas do fundador).
+      dry_run?: boolean
     }
     try {
       body = await req.json()
@@ -652,6 +655,20 @@ export async function POST(req: NextRequest) {
           { status: 500 }
         )
       }
+    }
+
+    // ═══ KINEO-DRYRUN-CLASSICO-2026-09-12 — VALIDADOR DE $0 DO KINEO 1 ═══
+    // Devolve as cenas planejadas e a narração ANTES do hook pago da IA
+    // (Seedance 5 s), do Pixabay e do compose. O Kineo 1 só cobra na entrega
+    // (compose/status), então aqui não há nada a estornar.
+    if (body.dry_run === true && isDryRunAccount(user.email)) {
+      const fastReport = classicDryRunReport({
+        scenes: scenes.map((s) => ({ voiceover: s.voiceover, prompt: s.description })),
+        targetSeconds: duration,
+        secondsPerClip: duration / Math.max(1, clipCount),
+        verbatim,
+      })
+      return NextResponse.json({ dry_run: true, family: 'fast', engine: 'fast', verbatim, refunded: true, words_per_scene: verbatim ? null : wordsPerSceneFor(duration, clipCount), ...fastReport })
     }
 
     // KINEO-AI-HOOK — FIRST-VIDEO cinematic opener.
