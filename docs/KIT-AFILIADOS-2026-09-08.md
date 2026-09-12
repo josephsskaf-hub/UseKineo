@@ -154,6 +154,8 @@ Obrigado por topar avaliar a Kineo. Para preparar sua primeira publicação, com
 
 Envie seu link de afiliado e o endereço do perfil onde pretende divulgar. O roteiro abaixo permite apresentar o fluxo sem pedir um render novo. Se você já tiver um vídeo seu feito na Kineo e integralmente revisado, pode acrescentá-lo como exemplo real; se não tiver, apresente apenas a interface, sem anunciar um resultado que ainda não existe.
 
+Se usar um roteiro pronto, mantenha nesse texto apenas as falas que deseja ouvir, deixando de fora instruções de estilo e produção. Se apresentar um vídeo seu já concluído, confira se a voz lê somente essas falas e se o idioma da narração e das legendas corresponde ao que você pretende apresentar.
+
 Antes de publicar, configure o link clicável do perfil com o rótulo “Kineo — link de afiliado”. Depois, nos envie a URL da publicação para conferirmos o caminho do espectador. Não é necessário fazer uma compra de teste.
 ```
 
