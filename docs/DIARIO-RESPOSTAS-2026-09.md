@@ -101,3 +101,42 @@ rebaixamento de trial):
    https://theresanaiforthat.com/ai/kineo/ por reviews novas de amin/olawale/
    zeechimzere/shilpa (esta rotina não usa navegador); só conceder 50cr pelo
    botão do /admin/people com a review no ar.
+
+## Varredura 12/09 08:03 BRT
+
+**Sem novidades desde a varredura das 06:03.** Nenhum e-mail novo (Gmail
+`newer_than:1d` para os 11 endereços + Dodo + fal/Orb devolve só os 4 avisos da
+fal/Orb de 11/09 já registrados acima: failed #00107 11:41 BRT → invoice #00108
+$10 vence 24/09 → Payment Confirmation fal 11:42 → paid #00109 $50 13:30 BRT).
+Nenhum e-mail do Dodo. Nenhum rascunho criado.
+
+### Banco (eventos desde 10/09 02:30 UTC, por pessoa)
+- Nenhum dos 11 fez filme, tentou render, abriu checkout ou pagou. Zero
+  `video_generation_completed` / `generation_stage_error` / `checkout_started`
+  / `payment_success`; zero linha nova em `videos`.
+- Só eventos de servidor (cartas automáticas): samu (trial_lifecycle 10/09 +
+  checkout_recovery_emailed_v1 11/09 14:30 BRT), ivan (trial_lifecycle 11/09),
+  shilpa/amin/olawale/zeechimzere (trial_downgraded + trial_lifecycle 10-11/09),
+  zeechimzere também checkout_recovery_emailed_v1 10/09.
+- Único gesto humano: ch.aminpakistan1 abriu a landing em 10/09 11:10 BRT
+  (`landing_session_started` com session_id) — 8h depois do pedido de review —
+  e não fez mais nada; hoje está com 0cr e trial rebaixado.
+- Saldos: ep/samu/kaur/nikita/adeolusola 30cr · ivan/nuns 25cr · shilpa 9cr ·
+  amin/olawale/zeechimzere 0cr. has_paid=false nos 11.
+
+### Codex (12h)
+- Único commit depois das 06:03: 82f1960c "proximos 20 filmes: rotacao 0747 BRT"
+  (só docs/PROXIMOS-20-FILMES-2026-09-12.md, 3 linhas) — atualização do caso
+  nik***: os 5cr do clipe Seedance sem desfecho foram estornados às 03:30 BRT
+  pela varredura automática; causa segue desconhecida (clipe não grava desfecho
+  no servidor). Sem bloco FILA DO FUNDADOR / PARA O CLAUDE novo; sem nome ou
+  e-mail de parceiro/afiliado a conferir. Proibidos seguem: den.higgins,
+  noelrss21, emiliomontinari, akajitin.
+
+### PARA AS 10H (fundador/Claude)
+1. (fundador) Continua aberto da varredura anterior: conferir no painel Orb/fal
+   se #00107 (failed) e #00108 ($10, vence 24/09) estão quitadas — o e-mail só
+   prova o $50 da #00109.
+2. (Claude) Nada de cliente para responder; 48h sem retorno dos 11. Não reenviar.
+3. (Claude, com navegador) Checar https://theresanaiforthat.com/ai/kineo/ por
+   review nova antes de qualquer crédito — amin foi o único que abriu o site.
