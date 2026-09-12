@@ -7,7 +7,7 @@ Marco: `videos.created_at > '2026-09-12 02:50:00+00'` (23:50 BRT de 11/09). Cont
 ## PLACAR
 Filmes lidos: 3/20 · média das notas 8,0 · coerentes 2 / parciais 1 / não 0 · apertou-e-não-saiu: 2 (1 clipe Seedance de 5cr sem entrega nem estorno; 5 cliques anônimos "unauthenticated" entre 00:12-00:22 BRT, sem ip_hash — provável sonda/robô, não pessoa)
 
-Rotações: 01:46 BRT (12/09) — 3 filmes novos.
+Rotações: 01:46 BRT (12/09) — 3 filmes novos. · 03:47 BRT — nenhum filme novo (checado 03:46 BRT: 0 filmes, 0 erros de despacho, clipe de nik*** segue sem desfecho).
 
 ---
 
