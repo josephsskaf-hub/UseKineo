@@ -85,4 +85,4 @@ leva toca os dois de propósito, por ordem explícita do fundador de 11-12/09
 | Kineo 1, texto em espanhol, seletor "en", 35 s | narração em inglês | **narração em espanhol**, 116 palavras, PASS |
 | Seedance/Kling 2.5/Veo, "as is" 138 palavras, 60 s | compose reescreveria | texto literal (sai ~45 s; o dry-run avisa) |
 
-Evento  gravado na prova. Nenhum render pago.
+Evento narration_language_autodetected gravado na prova. Nenhum render pago.
