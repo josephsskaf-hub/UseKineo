@@ -315,7 +315,7 @@ function unwrapLabelHead(line: string): string {
 /** Rótulo de produção: a linha descreve imagem, som, texto na tela, ficha
  *  técnica ou instrução — nunca a fala. Casa também "Title/Hook:". */
 const STAGE_LABEL_LINE =
-  /^(visuals?|visual style|imagem|imagen|camera|c[âa]mera|c[áa]mara|action|acci[óo]n|a[çc][ãa]o|movement|body movement|posture|motion|expression|gesture|shot|angle|lighting|luz|on-?screen(?:\s+text)?|onscreen|text on screen|texto (?:en pantalla|em tela|na tela)|screen|tela|caption|captions|subtitle|subtitles|legend|legenda|sfx|vfx|sound|audio|music|m[úu]sica|bgm|b-?roll|footage|(?:\w+\s+)?prompt|title|t[íi]tulo|theme|tema|length|duration|duraci[óo]n|dura[çc][ãa]o|genre|g[ée]nero|target(?:\s+(?:length|duration|audience|age|group|platform|market|viewer|viewers|format))?|audience|p[úu]blico|style|estilo|tone|tom|mood|character|characters|personagens|personajes|cast|transition|cut|note|notes|nota|notas|hashtags|disclaimer|end suspense|setting|location|props|wardrobe|overlay|logo|graphics?|effects?|voice style|pacing|ritmo|aspect|platform|format|formato|resolution|orientation|output|deliverable)(\s*[\/|]\s*[\w\s]{1,20})?\s*[:：]/i
+  /^(konu|g[öo]rsel(?:ler)?|kamera|m[üu]zik|altyaz[ıi](?:lar)?|s[üu]re|ses|efekt(?:ler)?|stil|objetivo|goal|regras?|rules?|instru[çc][õo]es|instructions|cen[áa]rio|escenario|ambiente|design|visual description|descri[çc][ãa]o visual|main character|personagem principal|vozes|voices|voice|visuals?|visual style|imagem|imagen|camera|c[âa]mera|c[áa]mara|action|acci[óo]n|a[çc][ãa]o|movement|body movement|posture|motion|expression|gesture|shot|angle|lighting|luz|on-?screen(?:\s+text)?|onscreen|text on screen|texto (?:en pantalla|em tela|na tela)|screen|tela|caption|captions|subtitle|subtitles|legend|legenda|sfx|vfx|sound|audio|music|m[úu]sica|bgm|b-?roll|footage|(?:\w+\s+)?prompt|title|t[íi]tulo|theme|tema|length|duration|duraci[óo]n|dura[çc][ãa]o|genre|g[ée]nero|target(?:\s+(?:length|duration|audience|age|group|platform|market|viewer|viewers|format))?|audience|p[úu]blico|style|estilo|tone|tom|mood|character|characters|personagens|personajes|cast|transition|cut|note|notes|nota|notas|hashtags|disclaimer|end suspense|setting|location|props|wardrobe|overlay|logo|graphics?|effects?|voice style|pacing|ritmo|aspect|platform|format|formato|resolution|orientation|output|deliverable)(\s*[\/|]\s*[\w\s]{1,20})?\s*[:：]/i
 
 /** Linha que é só marcação de tempo, com ou sem título colado
  *  ("0:00–0:04", "0–8 sec", "8–18 sec — THE PROBLEM", "(0-5 s)"). */
@@ -328,7 +328,7 @@ const SCENE_HEADER_LINE =
 
 /** Rótulo de FALA: a pessoa marcou explicitamente o que é para narrar. */
 const SPEECH_LABEL_LINE =
-  /^(voice\s?-?\s?over|voiceover|vo|narration|narrator|narrador|narradora|narra[çc][ãa]o|narraci[óo]n|dialogue|di[áa]logo|dialogo|fala|falas|speech|spoken(?:\s+text)?|line|lines|voz)\s*(?:\([^)]{0,60}\))?\s*[:：]/i
+  /^(voice\s?-?\s?over|voiceover|vo|narration|narrator|narrador|narradora|narra[çc][ãa]o|narraci[óo]n|dialogue|di[áa]logo|dialogo|fala|falas|speech|spoken(?:\s+text)?|line|lines|voz|voz em off|locu[çc][ãa]o|locutor|locutora|texto falado|seslendirme|anlat[ıi]m|anlat[ıi]c[ıi])\s*(?:\([^)]{0,60}\))?\s*[:：]/i
 
 /** Preâmbulo de assistente: só vale nas primeiras linhas e exige verbo de
  *  entrega + substantivo de entregável, para nunca comer narração real. */
@@ -341,6 +341,72 @@ const ASSISTANT_PREAMBLE_LINE =
  *  entregável — assim "The tomb contains gold" continua sendo narração. */
 const DELIVERABLE_INDEX_LINE =
   /^(each|every|this|these|the)\b[^\n]{0,60}\b(includes?|contains?|consists of|comes with|is designed for|are designed for)\b[^\n]{0,200}\b(hook|hooks|scene|scenes|script|scripts|roteiro|lyrics|timing|hashtag|hashtags|title|titles|prompt|prompts|concept|concepts|direction|breakdown|caption|captions|voiceover|narration)\b/i
+
+// ═══ KINEO-BRIEF-NAO-E-FALA-2026-09-12 ═══════════════════════════════════
+// Dois filmes de 12/09 leram INSTRUÇÃO em voz alta: 8738c753 (turco — a voz
+// narrou "prepare um Short de 30 s…" e a moldura, em vez da fala entre aspas
+// sob "Seslendirme:") e 9bac0a81 (a voz leu a FICHA "Lumi: pequena criatura
+// azul… Voz infantil feminina"). Três regras novas, todas com a trava de
+// segurança do cleanNarration (se comerem tudo, volta o parser antigo):
+//   · linha de INSTRUÇÃO ao modelo (verbo imperativo + entregável) sai;
+//   · linha de FICHA DE PERSONAGEM ("Nome: descrição com voz/olhos/design") sai;
+//   · UM rótulo de fala seguido de fala ENTRE ASPAS (≥12 palavras), num texto
+//     que também tem instrução ou rótulo de produção, devolve só a fala entre
+//     aspas (a regra 5 continua exigindo dois rótulos — contrato de 03/09).
+const INSTRUCTION_VERB =
+  /^(crie|criar|fa[çc]a|fazer|gere|gerar|prepare|preparar|monte|montar|escreva|escrever|produza|produzir|quero|preciso|gostaria|create|make|generate|write|produce|prepare|build|give me|i want|i need|i'd like|please|crea|genera|prepara|escribe|produce|quiero|necesito|haz|hazla|haz[ıi]rla|olu[şs]tur|yap|yaz|üret)\b/i
+const DELIVERABLE_NOUN =
+  /\b(v[íi]deos?|videos?|shorts?|reels?|clips?|clipes?|anima[çc][ãa]o|animation|animasyon|cenas?|scenes?|sahne|hist[óo]ria|historinha|story|cuento|roteiro|script|senaryo|narra[çc][ãa]o|narration|seslendirme|voz|voice|ses|legendas?|subtitles?|altyaz[ıi]|personagens?|characters?|karakter|formato|format|estilo|style|tom|tone|dura[çc][ãa]o|duration|segundos?|seconds?|saniye|stil|g[öo]rsel)\b/i
+// Turco põe o verbo no FIM ("…YouTube Shorts hazırla.", "…görsel stil kullan.")
+// e o rótulo pode vir no meio da linha ("… hazırla. Konu: …").
+const INSTRUCTION_VERB_ANYWHERE = /\b(haz[ıi]rla(?:y[ıi]n)?|olu[şs]tur(?:un)?|üret(?:in)?|kullan(?:[ıi]n)?|olsun|yap[ıi]n|yaz[ıi]n|ekle(?:yin)?)\b/i
+const MIDLINE_STAGE_LABEL = /(?:^|[.!?]\s+)(konu|tema|stil|g[öo]rsel|kamera|m[üu]zik|altyaz[ıi](?:lar)?|s[üu]re|format|formato|estilo|style|visual|camera|music|m[úu]sica)\s*[:：]/i
+export function isInstructionLine(line: string): boolean {
+  const u = unwrapLabelHead(line)
+  if (!u || u.length > 400) return false
+  if (MIDLINE_STAGE_LABEL.test(u)) return true
+  return DELIVERABLE_NOUN.test(u) && (INSTRUCTION_VERB.test(u) || INSTRUCTION_VERB_ANYWHERE.test(u))
+}
+const SHEET_VOCAB =
+  /\b(voz|voice|vozes|voices|design|criatura|creature|olhos|eyes|anteninhas|antenas|antennae|orelhas|ears|mochila|backpack|roupa|roupas|wearing|outfit|cabelo|hair|express[ãa]o|expression|personalidade|personality|cor|cores|color|colour|anos de idade|years old|altura|tall|sotaque|accent|timbre|ton de voz|tone of voice|aparência|appearance|traços|features)\b/i
+const SHEET_NAME_HEAD = /^\p{Lu}[\p{L}'’-]{1,24}(?:\s\p{Lu}[\p{L}'’-]{1,24})?\s*[:：]\s*(.{12,})$/u
+export function isCharacterSheetLine(line: string): boolean {
+  const u = unwrapLabelHead(line)
+  if (!u) return false
+  if (SPEECH_LABEL_LINE.test(u) || STAGE_LABEL_LINE.test(u)) return false
+  const m = u.match(SHEET_NAME_HEAD)
+  if (!m) return false
+  const body = m[1]
+  // fala de personagem tem aspas ou é curta; ficha é descrição com vocabulário de ficha
+  if (/^["“'‘]/.test(body)) return false
+  return SHEET_VOCAB.test(body)
+}
+/** Texto que é um BRIEFING (ficha + instruções) e não uma narração: ≥2 linhas de ficha/instrução e nenhum rótulo de fala. */
+export function looksLikeBrief(raw: string): boolean {
+  const lines = (raw ?? '').toString().split(/\r?\n/).map((l) => unwrapLabelHead(l)).filter(Boolean)
+  if (lines.some((u) => SPEECH_LABEL_LINE.test(u))) return false
+  let sinais = 0
+  for (const u of lines) if (isInstructionLine(u) || isCharacterSheetLine(u) || STAGE_LABEL_LINE.test(u)) sinais++
+  return sinais >= 2
+}
+
+/** Caso 8738c753 (turco, 12/09): "Seslendirme:" + fala entre aspas + moldura de
+ *  produção. Devolve a fala entre aspas quando há exatamente UM rótulo de fala,
+ *  a fala vem entre aspas (≥12 palavras) e o texto tem instrução/produção. */
+export function quotedSpeechUnderLabel(raw: string): string | null {
+  const text = (raw ?? '').toString()
+  const lines = text.split(/\r?\n/)
+  const rotulos = lines.filter((l) => { const u = unwrapLabelHead(l); return Boolean(u) && SPEECH_LABEL_LINE.test(u) }).length
+  if (rotulos !== 1) return null
+  const moldura = lines.some((l) => isStageDirectionLine(l) || isInstructionLine(l))
+  if (!moldura) return null
+  const idx = lines.findIndex((l) => { const u = unwrapLabelHead(l); return Boolean(u) && SPEECH_LABEL_LINE.test(u) })
+  const depois = [unwrapLabelHead(lines[idx]).replace(SPEECH_LABEL_LINE, ''), ...lines.slice(idx + 1)].join('\n').trim()
+  const m = depois.match(/^["“„«]([\s\S]{20,}?)["”«»]/)
+  if (!m) return null
+  const fala = m[1].replace(/\s+/g, ' ').trim()
+  return fala.split(' ').filter(Boolean).length >= 12 ? fala : null
+}
 
 /** Uma das três classes que nunca são fala, já desembrulhada. */
 function isStageDirectionLine(line: string): boolean {
@@ -406,7 +472,7 @@ function cleanNarration(raw: string, lenient = false, roteiroDeCinema = true): s
   // KINEO-ROTEIRO-DE-CINEMA-2026-09-03: regra 5 primeiro (fala rotulada manda
   // em tudo); sem rotulo de fala, so o preambulo do assistente sai do topo.
   const base = roteiroDeCinema
-    ? (screenplaySpeechOnly(raw) ?? stripAssistantPreamble(raw))
+    ? (screenplaySpeechOnly(raw) ?? quotedSpeechUnderLabel(raw) ?? stripAssistantPreamble(raw))
     : raw
   const kept: string[] = []
   let inMetadataSection = false
@@ -424,6 +490,8 @@ function cleanNarration(raw: string, lenient = false, roteiroDeCinema = true): s
     // nunca sao fala - nem no modo tolerante, onde salvar palavras jamais
     // pode virar o narrador lendo "Visual dois pontos".
     if (roteiroDeCinema && isStageDirectionLine(line)) continue
+    // KINEO-BRIEF-NAO-E-FALA-2026-09-12 — instrução ao modelo e ficha de personagem nunca são fala.
+    if (roteiroDeCinema && (isInstructionLine(line) || isCharacterSheetLine(line))) continue
     if (lenient ? isNeverSpeechLine(line) : isDroppableLine(line)) continue
     // Inline stage prefix ("HOOK: ...") — strip the label, keep the speech.
     const stripped = (lenient ? unwrapLineDecoration(line) : line).replace(INLINE_STAGE_PREFIX, '')

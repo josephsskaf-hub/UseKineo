@@ -44,6 +44,8 @@ import { detectShotSpec } from '@/lib/cinematic/shotSpec'
 import { classicDryRunReport, isDryRunAccount } from '@/lib/cinematic/classicDryRun'
 import { wordsPerSceneFor } from '@/lib/cinematic/sceneWords'
 import { resolveNarrationLanguage } from '@/lib/textLanguage'
+import { stripIdeaPrefix } from '@/lib/cinematic/promptIntake'
+import { looksLikeBrief } from '@/lib/scriptParser'
 import { sceneNarrationsForPlan } from '@/lib/cinematic/speechContract'
 import { aplicarEixoVisual } from '@/lib/hollywood/varietyAxis'
 import { decidirFormato, permiteApresentador, TAG_FACELESS, proibidosPorModo, type VisualMode } from '@/lib/cinematic/visualMode'
@@ -1277,7 +1279,10 @@ async function manipularPost(req: NextRequest) {
     // aqui, antes de tudo (verbatim, fingerprint, narração) — nunca é falada.
     const promptRaw = (body.prompt ?? '').trim()
     const tagFacelessPresente = TAG_FACELESS.test(promptRaw)
-    const prompt = promptRaw.replace(/\[faceless\]/gi, '').trim()
+    // KINEO-IDEIA-COLADA-2026-09-12 — ideia de 1 clique colada na frente do texto da pessoa não é o tema.
+    const intake = stripIdeaPrefix(promptRaw.replace(/\[faceless\]/gi, '').trim())
+    if (intake.strippedIdea) await writeServerEvent({ name: 'idea_prefix_stripped', userId: user.id, path: '/api/generate-video-cinematic', metadata: { idea: intake.strippedIdea.slice(0, 80), rest_chars: intake.text.length } })
+    const prompt = intake.text
     // ═══ DIRETOR DE FORMATO — 2026-08-27 ═════════════════════════════════
     // ANTES: `facelessRequested` so era true com a tag `[faceless]` escrita a
     // mao. Nenhum cliente conhece essa tag, entao o padrao de fabrica era
@@ -1438,7 +1443,13 @@ async function manipularPost(req: NextRequest) {
     // formato da casa OU botão apertado. `script_mode` chega do client (que
     // sempre soube — só não contava).
     const userSaysVerbatim = ((body.script_mode ?? '') as string).toLowerCase() === 'verbatim'
-    const verbatim = (parsedScript.hasMarkers && parsedScript.segments.length > 0) || userSaysVerbatim
+    // KINEO-BRIEF-NAO-E-FALA-2026-09-12 — um BRIEFING (ficha de personagem +
+    // instruções, sem rótulo de fala) nunca é narrado palavra por palavra, mesmo
+    // que o cliente diga verbatim (9bac0a81: a voz leu "Voz infantil feminina,
+    // doce…" como fala, 25cr). Vira modo IA: o escritor recebe o brief inteiro.
+    const briefDetected = userSaysVerbatim && !parsedScript.hasMarkers && looksLikeBrief(prompt)
+    if (briefDetected) await writeServerEvent({ name: 'brief_detected_ai_mode', userId: user.id, path: '/api/generate-video-cinematic', metadata: { prompt_length: prompt.length, engine: body.engine ?? 'seedance' } })
+    const verbatim = (parsedScript.hasMarkers && parsedScript.segments.length > 0) || (userSaysVerbatim && !briefDetected)
 
     // ═══ KINEO-DEGRAU-2026-09-03 — O GATE VIRA DEGRAU, E DESCE ANTES DO CUSTO ═══
     // Medido em 03/09: a trava de narração (mais abaixo) recusou 34 renders de

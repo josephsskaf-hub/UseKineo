@@ -24,6 +24,9 @@ export type EngineFitVerdict =
 // Sinal FORTE — basta um.
 const STRONG: Array<[RegExp, string]> = [
   [/\bonce upon a time\b/i, 'once_upon'],
+  // KINEO-FICCAO-PT-ES-2026-09-12 — 4 filmes de 12/09 (Lumi e Pipo, historinha infantil em PT) passaram sem aviso: o léxico era só inglês.
+  [/\b(era uma vez|havia uma vez|[ée]rase una vez|hab[íi]a una vez)\b/i, 'once_upon_ptes'],
+  [/\b(desenho animado|desenhos animados|dibujos animados|historinha|hist[óo]ria infantil|v[íi]deo infantil|cuento infantil|para crian[çc]as|para ni[ñn]os|infantil educativ[oa])\b/i, 'kids_content_ptes'],
   [/\b(bedtime|fairy)\s*tale|\bfairytale\b|\bnursery rhyme\b|\bbedtime story\b/i, 'fairy_tale'],
   [/\b(3d|3-d)\s*(animated|animation|cartoon)\b|\bcartoon\b|\banimated\s+(short|film|story|video|nursery|rhyme)\b|\banime\b|\bpixar\b|\bdisney[- ]style\b/i, 'animation_requested'],
   [/\b(for|to)\s+(kids|children|toddlers|preschoolers)\b|\bkids'?\s+(story|song|video|cartoon)\b|\bchildren'?s\s+(story|book|song)\b/i, 'kids_content'],
@@ -32,6 +35,9 @@ const STRONG: Array<[RegExp, string]> = [
 
 // Sinal MÉDIO — precisa de dois.
 const MEDIUM: Array<[RegExp, string]> = [
+  // KINEO-FICCAO-PT-ES-2026-09-12
+  [/\b(personagens?|personajes?|criaturas?|amigos muito curiosos|dois amigos|dos amigos)\b/i, 'character_ptes'],
+  [/\b(disse|sussurrou|gritou|perguntou|respondeu|dijo|susurr[óo]|grit[óo]|pregunt[óo]|respondi[óo])\b/i, 'dialogue_verb_ptes'],
   // nome próprio de personagem + verbo de enredo ("Benny finds", "Roland walks")
   [/\b[A-Z][a-z]{2,}(?:,\s+the\s+[a-z\s-]{3,30})?\s+(finds|found|discovers|meets|met|decides|decided|wakes|woke|runs|ran|whispers|whispered|opens|opened|stares|stared|smiles|smiled)\b/, 'named_character_action'],
   // diálogo com aspas

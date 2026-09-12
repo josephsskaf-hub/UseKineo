@@ -32,6 +32,7 @@ import {
   TRIAL_FIRST_DELIVERY_VERSION,
 } from '@/lib/growth/trialBalanceBridge'
 import { trackEvent } from '@/lib/analytics'
+import { SURPRISE_IDEAS } from '@/lib/surpriseIdeas'
 import { analyzePromptMaxChars } from '@/lib/analyzeLimits'
 import { formatLimitCounter, promptLimitState, trimPromptToLimit } from '@/lib/studioPromptLimit'
 import { buildStudioSeriesReviewHref, carryStudioSeriesReview, isStudioSeriesReview } from '@/lib/navigation/studioSeriesReview'
@@ -120,18 +121,6 @@ const ENGINES: {
 // os formatos que abrem público novo (YouTube longo, feed, anúncio).
 const ASPECT_PILLS = allAspectSpecs().map((s) => ({ value: s.aspect, label: s.label, where: s.where }))
 
-const SURPRISE_IDEAS = [
-  'The lake in Venezuela where lightning strikes 28 times a minute — and never stops',
-  'The wave in Alaska that was taller than the Empire State Building',
-  'A diver knocks on a submarine window 100 meters down — true story',
-  'The town that has been on fire underground since 1962',
-  'Why airplane windows are round — the crashes that taught us',
-  'The man who survived two atomic bombs in three days',
-  'The door in the ocean floor scientists refuse to open',
-  'How Rolex watches are made — inside the most secretive factory on Earth',
-  'The island where landing is illegal — and what lives there',
-  'The 1939 photo that should not exist — a smartphone in the crowd',
-]
 
 const CAMERA_PRESETS: { key: string; label: string; emoji: string; prompt: string }[] = [
   { key: 'dolly', label: 'Slow Dolly-In', emoji: '🎥', prompt: 'slow cinematic dolly-in toward the subject' },

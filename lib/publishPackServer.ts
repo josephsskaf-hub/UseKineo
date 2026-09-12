@@ -32,6 +32,38 @@ export type FilmeDoPacote = {
   id?: unknown
   title?: unknown
   topic?: unknown
+  render_id?: unknown
+}
+
+// ═══ KINEO-PACOTE-DA-NARRACAO-2026-09-12 ═══════════════════════════════════
+// Ficha 10 do diário dos 20 filmes: o e-mail de "filme pronto" prometia
+// "Aprendendo a Contar em Inglês com Lumi e Pipo!" e a voz do filme falava da
+// Ilha Sentinel — o pacote era escrito a partir do `topic` (o que a pessoa
+// digitou), não do que a voz DIZ. A narração que tocou mora no
+// compose_submission_claim (metadata.narration, chaveado por render_id).
+// O pacote passa a nascer da narração; o topic continua como reserva.
+async function narracaoDoFilme(admin: Admin, userId: string, filme: FilmeDoPacote): Promise<string> {
+  try {
+    let renderId = typeof filme.render_id === 'string' && filme.render_id ? filme.render_id : ''
+    if (!renderId && typeof filme.id === 'string') {
+      const { data } = await admin.from('videos').select('render_id').eq('id', filme.id).maybeSingle()
+      renderId = typeof data?.render_id === 'string' ? data.render_id : ''
+    }
+    if (!renderId) return ''
+    const { data: claims } = await admin
+      .from('events')
+      .select('metadata, created_at')
+      .eq('name', 'compose_submission_claim')
+      .eq('user_id', userId)
+      .eq('metadata->>render_id', renderId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+    const md = (claims?.[0]?.metadata ?? {}) as Record<string, unknown>
+    const n = typeof md.narration === 'string' ? md.narration.trim() : ''
+    return n.length >= 40 ? n : ''
+  } catch {
+    return ''
+  }
 }
 
 export async function pacoteGravado(
@@ -122,9 +154,11 @@ export async function garantirPacote(
 
   // `videos.script` esta vazio em 774 de 774 filmes de 30 dias (achado do #14):
   // o conteudo real mora em `topic`.
+  // KINEO-PACOTE-DA-NARRACAO-2026-09-12 — o que a voz DIZ manda; o topic é reserva.
+  const narracao = await narracaoDoFilme(admin, userId, filme)
   const tema = [
-    typeof filme.title === 'string' ? filme.title.trim() : '',
-    typeof filme.topic === 'string' ? filme.topic.trim() : '',
+    typeof filme.title === 'string' && !narracao ? filme.title.trim() : '',
+    narracao || (typeof filme.topic === 'string' ? filme.topic.trim() : ''),
   ]
     .filter(Boolean)
     .join('\n')

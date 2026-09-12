@@ -112,8 +112,11 @@ export async function persistRenderAssets(args: {
   renderId: string
   videoUrl: string
   snapshotUrl: string | null
+  /** KINEO-LINK-DO-FORNECEDOR-2026-09-12 — o cron pode esperar mais que a rota (25 s) pelo download. */
+  downloadTimeoutMs?: number
 }): Promise<{ videoUrl: string; thumbnailUrl: string | null }> {
   const { userId, renderId, videoUrl, snapshotUrl } = args
+  const videoTimeoutMs = typeof args.downloadTimeoutMs === 'number' && args.downloadTimeoutMs > 0 ? args.downloadTimeoutMs : 25_000
 
   const supabase = getServiceClient()
   if (!supabase) return { videoUrl, thumbnailUrl: snapshotUrl }
@@ -129,7 +132,7 @@ export async function persistRenderAssets(args: {
       path: videoPath,
       sourceUrl: videoUrl,
       contentType: 'video/mp4',
-      downloadTimeoutMs: 25_000,
+      downloadTimeoutMs: videoTimeoutMs,
     }),
     snapshotUrl
       ? migrateAsset({

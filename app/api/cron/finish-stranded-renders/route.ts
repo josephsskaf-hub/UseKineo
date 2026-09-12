@@ -36,6 +36,9 @@ import { composerUrl } from '@/lib/lifecycle/composerUrl'
 import { POST as composePost } from '@/app/api/compose/route'
 import { GET as composeStatusGet } from '@/app/api/compose/status/[renderId]/route'
 import { RECOVERABLE_EVENT, sanitizeFastComposePayload } from '@/app/api/render-recovery/route'
+import { refundRenderCredits } from '@/lib/credits/refund'
+import { persistRenderAssets } from '@/lib/renderAssets'
+import { CLIP_CREDITS } from '@/lib/cinematic/shotSpec'
 
 export const dynamic = 'force-dynamic'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
@@ -1314,7 +1317,118 @@ export async function GET(req: NextRequest) {
   // TODO desfecho vai pro log (uma linha por rodada) e os desfechos terminais
   // silenciosos viram evento `stranded_outcome` no banco, para a próxima rodada
   // ler a causa em SQL em vez de adivinhar. Não muda nenhuma decisão do cron.
-  const SILENT_TERMINAL = /^(ready_dedupe_lookup_failed|rescue_dedupe_lookup_failed|fast_dedupe_lookup_failed|authorize_failed|reload_failed|no_authorized_urls|compose_error_|compose_threw|compose_gave_up|composed_render_id_unknown|ready_email_failed|rescue_email_failed|too_few|pending_stale)/
+  // ═══ FASE C — CLIPES SEM DESFECHO (KINEO-CLIPE-ORFAO-2026-09-12) ═══════════
+  // Os DOIS primeiros clipes reais do modo clipe (nik*** 00:42 e cem*** 09:44 de
+  // 12/09) morreram do mesmo jeito: `clip_submitted` com request_id, 5cr
+  // debitados, a pessoa saiu da tela em <3 min e NINGUÉM mais olhou a fal — o
+  // /api/clip-status só roda enquanto a aba faz poll. O clipe ficou pronto
+  // para ninguém e a varredura estornou horas depois. Este é o finisher do
+  // servidor: mesma regra do clip-status (persistir no bucket ANTES de
+  // declarar entregue, linha em videos, clip_completed; falha → estorno +
+  // clip_failed). Fila com 30 min+ = morta (nenhum clipe de 12 s leva isso).
+  let clipsFinished = 0
+  try {
+    const clipKey = process.env.FAL_KEY
+    const { data: clipRows } = await admin
+      .from('events')
+      .select('user_id, session_id, created_at, metadata')
+      .eq('name', 'clip_submitted')
+      .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+      .lte('created_at', new Date(Date.now() - 3 * 60 * 1000).toISOString())
+      .order('created_at', { ascending: false })
+      .limit(50)
+    if (clipKey && (clipRows ?? []).length > 0) {
+      fal.config({ credentials: clipKey })
+      for (const row of clipRows ?? []) {
+        const renderId = typeof row.session_id === 'string' ? row.session_id : ''
+        const userId = typeof row.user_id === 'string' ? row.user_id : ''
+        const md = (row.metadata ?? {}) as Record<string, unknown>
+        const requestId = typeof md.request_id === 'string' ? md.request_id : ''
+        const model = typeof md.model === 'string' ? md.model : ''
+        const gen8 = renderId.slice(5, 13)
+        if (!renderId.startsWith('clip-') || !userId || !requestId || !model) continue
+        const { data: done } = await admin.from('videos').select('id').eq('render_id', renderId).limit(1)
+        if ((done ?? []).length > 0) continue
+        const { data: closed } = await admin.from('events').select('id').in('name', ['clip_completed', 'clip_failed']).eq('session_id', renderId).limit(1)
+        if ((closed ?? []).length > 0) continue
+        const ageMin = (Date.now() - new Date(row.created_at as string).getTime()) / 60_000
+        let st: { status?: string; request_id?: unknown; error?: unknown }
+        try { st = (await fal.queue.status(model, { requestId })) as typeof st } catch (e) {
+          results.push({ generation: gen8, outcome: 'clip_status_unreachable', error: e instanceof Error ? e.message.slice(0, 80) : String(e) })
+          continue
+        }
+        const failClip = async (why: string) => {
+          const refunded = await refundRenderCredits(renderId)
+          await admin.from('events').insert({ name: 'clip_failed', user_id: userId, path: '/api/cron/finish-stranded-renders', session_id: renderId, metadata: { render_id: renderId, request_id: requestId, refunded, why, age_min: Math.round(ageMin), provider_status: st.status ?? null } })
+          results.push({ generation: gen8, outcome: `clip_failed:${why}` })
+        }
+        if (st.status === 'IN_QUEUE' || st.status === 'IN_PROGRESS') {
+          if (ageMin >= 30) await failClip('stale_in_queue')
+          else results.push({ generation: gen8, outcome: `clip_pending:${Math.round(ageMin)}min` })
+          continue
+        }
+        const jobError = typeof st.error === 'string' && st.error.trim().length > 0
+        if (st.status !== 'COMPLETED' || jobError) { await failClip(st.status === 'COMPLETED' ? 'completed_with_error' : `provider_${String(st.status ?? 'unknown').toLowerCase()}`); continue }
+        let providerUrl: string | null = null
+        try {
+          const result = await fal.queue.result(model, { requestId })
+          const data = ((result as { data?: unknown }).data ?? result) as { video?: { url?: string }; output?: { video?: { url?: string } } }
+          providerUrl = data?.video?.url ?? data?.output?.video?.url ?? null
+        } catch { /* cai no failClip abaixo */ }
+        if (!providerUrl) { await failClip('completed_without_result'); continue }
+        const persisted = await persistRenderAssets({ userId, renderId, videoUrl: providerUrl, snapshotUrl: null, downloadTimeoutMs: 45_000 })
+        const seconds = typeof md.seconds === 'number' ? md.seconds : 10
+        const topic = typeof md.topic === 'string' ? md.topic : ''
+        const { error: insErr } = await admin.from('videos').insert({
+          user_id: userId, render_id: renderId, status: 'completed', quality_mode: 'clip', duration: seconds, credits_used: CLIP_CREDITS,
+          topic, title: topic.slice(0, 80), video_url: persisted.videoUrl, final_video_url: persisted.videoUrl,
+          platform: md.aspect === '16:9' ? 'YouTube' : 'YouTube Shorts',
+        })
+        if (insErr && !/duplicate|unique/i.test(insErr.message)) { results.push({ generation: gen8, outcome: 'clip_videos_insert_failed', error: insErr.message.slice(0, 80) }); continue }
+        await admin.from('events').insert({ name: 'clip_completed', user_id: userId, path: '/api/cron/finish-stranded-renders', session_id: renderId, metadata: { render_id: renderId, request_id: requestId, video_url: persisted.videoUrl, seconds, credits: CLIP_CREDITS, finished_by: 'cron', age_min: Math.round(ageMin) } })
+        clipsFinished++
+        results.push({ generation: gen8, outcome: 'clip_completed_by_cron' })
+      }
+    }
+  } catch (e) {
+    console.error('[stranded] clip phase failed:', e instanceof Error ? e.message : String(e))
+  }
+
+  // ═══ FASE D — FILME ENTREGUE COM LINK DO FORNECEDOR (KINEO-LINK-DO-FORNECEDOR-2026-09-12) ═
+  // Ficha 7 do diário dos 20 filmes: o download para o nosso bucket estourou os
+  // 25 s da rota e o filme foi entregue com a URL do Creatomate/Backblaze
+  // (`render_asset_left_on_vendor`) — link que morre em ~30 dias. Aqui, com
+  // 45 s de prazo, o mp4 é copiado e a linha em videos passa a apontar para casa.
+  let repersisted = 0
+  try {
+    const { data: vendorRows } = await admin
+      .from('videos')
+      .select('id, user_id, render_id, video_url, final_video_url, created_at')
+      .eq('status', 'completed')
+      .gte('created_at', new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString())
+      .or('video_url.ilike.%backblazeb2.com%,video_url.ilike.%creatomate%,final_video_url.ilike.%backblazeb2.com%,final_video_url.ilike.%creatomate%')
+      .order('created_at', { ascending: false })
+      .limit(4)
+    for (const v of vendorRows ?? []) {
+      const userId = typeof v.user_id === 'string' ? v.user_id : ''
+      const vendorUrl = [v.final_video_url, v.video_url].find((u) => typeof u === 'string' && /backblazeb2\.com|creatomate/i.test(u)) as string | undefined
+      const renderId = typeof v.render_id === 'string' && v.render_id ? v.render_id : (typeof v.id === 'string' ? v.id : '')
+      if (!userId || !vendorUrl || !renderId) continue
+      const gen8 = String(v.id).slice(0, 8)
+      const persisted = await persistRenderAssets({ userId, renderId, videoUrl: vendorUrl, snapshotUrl: null, downloadTimeoutMs: 45_000 })
+      if (persisted.videoUrl === vendorUrl) { results.push({ generation: gen8, outcome: 'vendor_url_still_unreachable' }); continue }
+      const { error: upErr } = await admin.from('videos').update({ video_url: persisted.videoUrl, final_video_url: persisted.videoUrl }).eq('id', v.id)
+      if (upErr) { results.push({ generation: gen8, outcome: 'vendor_url_update_failed', error: upErr.message.slice(0, 80) }); continue }
+      await admin.from('events').insert({ name: 'render_asset_repersisted', user_id: userId, path: '/api/cron/finish-stranded-renders', session_id: String(v.id), metadata: { render_id: renderId, from: vendorUrl.slice(0, 120), to: persisted.videoUrl.slice(0, 160) } })
+      repersisted++
+      results.push({ generation: gen8, outcome: 'vendor_url_repersisted' })
+    }
+  } catch (e) {
+    console.error('[stranded] vendor-url phase failed:', e instanceof Error ? e.message : String(e))
+  }
+  console.log(`[stranded] clips_finished=${clipsFinished} vendor_repersisted=${repersisted}`)
+
+  const SILENT_TERMINAL = /^(ready_dedupe_lookup_failed|rescue_dedupe_lookup_failed|fast_dedupe_lookup_failed|authorize_failed|reload_failed|no_authorized_urls|compose_error_|compose_threw|compose_gave_up|composed_render_id_unknown|ready_email_failed|rescue_email_failed|too_few|pending_stale|clip_failed:|clip_completed_by_cron|clip_status_unreachable|clip_videos_insert_failed|vendor_url_repersisted|vendor_url_still_unreachable|vendor_url_update_failed)/
   const outcomeLine = results.map((r) => `${r.generation}:${r.outcome}`).join(' ')
   console.log(`[stranded] outcomes ${outcomeLine || '(none)'}`)
   try {

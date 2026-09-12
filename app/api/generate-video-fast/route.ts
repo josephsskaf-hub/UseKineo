@@ -22,6 +22,7 @@ import { classifyEngineFit } from '@/lib/engineFit'
 import { detectShotSpec } from '@/lib/cinematic/shotSpec'
 import { classicDryRunReport, isDryRunAccount } from '@/lib/cinematic/classicDryRun'
 import { resolveNarrationLanguage } from '@/lib/textLanguage'
+import { stripIdeaPrefix } from '@/lib/cinematic/promptIntake'
 import { creditCostForDuration } from '@/lib/credits/engineCost'
 // KINEO-ENTREGA-SERVIDOR-2026-09-09 — o MESMO saneador e o MESMO nome de
 // evento que a rota do cliente usa. Importar (em vez de copiar as regras) é o
@@ -349,7 +350,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 })
     }
 
-    const prompt = (body.prompt ?? '').trim()
+    // KINEO-IDEIA-COLADA-2026-09-12 — ideia de 1 clique colada na frente do texto
+    // da pessoa não é o tema (fichas 7/9/10 do diário dos 20 filmes).
+    const intake = stripIdeaPrefix((body.prompt ?? '').trim())
+    if (intake.strippedIdea) void writeServerEvent({ name: 'idea_prefix_stripped', userId: user.id, path: '/api/generate-video-fast', metadata: { idea: intake.strippedIdea.slice(0, 80), rest_chars: intake.text.length } })
+    const prompt = intake.text
     if (!prompt) {
       recordFastFailure('generating', 'prompt_missing', 400, user.id)
       return NextResponse.json({ error: 'Prompt is required.' }, { status: 400 })

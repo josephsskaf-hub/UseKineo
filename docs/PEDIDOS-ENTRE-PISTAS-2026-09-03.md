@@ -2354,3 +2354,10 @@ Doc: docs/DECISAO-QUALIDADE-CLASSICOS-2026-09-12.md. Pente fino de $0 (7 motores
 - [x] H3-WALID-11/2 (cron cego a cena morta) — FEITO nesta leva (Claude), o poller irmao do RENDER-POLL-11/2.
 - [ ] DE claude PARA codex (tela): GenerateClient ja encaminha speed numerico do fast; nada a fazer. Se quiserem mostrar "narracao em espanhol (detectado)" na tela, o evento narration_language_autodetected e a resposta language do fast trazem o idioma final.
 - [ ] PENDENTE (fundador): o 8.2 do test-despacho-vazio (nao tocar lib/cinematic e lib/hollywood) e trava da sprint de 04/09; esta leva tocou os dois por ordem de 11-12/09. Dizer se a trava continua valendo.
+
+## RELATORIO-12H — os filmes das ultimas 12 h e a leva de consertos (Claude, 12/09 ~18:30 BRT)
+
+Doc: docs/RELATORIO-12H-2026-09-12.md. 7 filmes (5 pessoas), 7/7 entregues, 4 INCOERENTES com o pedido: instrucao lida como fala (turco), ficha de personagem lida como fala (Lumi), ideia de 1 clique colada na frente do texto (3 filmes), um clique = dois filmes; 2 clipes sem desfecho; 1 link do fornecedor. Publicado: parser (brief nao e fala, fala entre aspas sob rotulo unico, rotulos TR/PT), intake (ideia colada sai), cron Fase C (clipes orfaos) e Fase D (link do fornecedor recopiado), pacote de publicacao da narracao, ficcao PT/ES no engineFit. Guardiao test-brief-e-ideia-colada (26).
+
+- [ ] DE claude PARA codex (tela) · DUPLO-DESPACHO-12: apos fast_compose_recoverable (14:02:18) o GenerateClient reenviou o pedido INTEIRO ao generate-video-fast (14:09:33, mesmo attempt bd66696c) e o servidor aceitou os dois — 2 filmes, 10 cr, um clique. O recoverable deveria reenviar so o compose (sanitizeFastComposePayload), nunca o generate. Servidor nao recebe attempt_id para deduplicar; se preferirem, mandem attempt_id no body e eu deduplico la.
+- [ ] DE claude PARA board (produto) · DESENHO-INFANTIL-12: a demanda mais clara do dia (1 pessoa, 2 contas, 5 tentativas, 1 checkout) foi "desenho infantil com 2 personagens fixos e 2 vozes" — nao existe no produto. Decidir: aviso honesto na entrada (brief infantil detectado) ou construir (Seedance com ancora de personagem + 2 vozes).

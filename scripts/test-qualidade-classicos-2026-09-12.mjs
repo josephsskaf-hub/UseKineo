@@ -98,7 +98,7 @@ const cron = rd('app/api/cron/finish-stranded-renders/route.ts')
   }
   await run()
 }
-checa('chamador passa a idade do claim e pending velho vira rastro', /collectFinishedClips\(requestIds, models, claimAgeMin\)/.test(cron) && /outcome: `pending_stale:\$\{collected\.done\}\/\$\{collected\.total\}`/.test(cron) && /SILENT_TERMINAL = \/\^\([^/\n]*\|pending_stale\)\//.test(cron) && /const PENDING_STALE_MINUTES = 45/.test(cron))
+checa('chamador passa a idade do claim e pending velho vira rastro', /collectFinishedClips\(requestIds, models, claimAgeMin\)/.test(cron) && /outcome: `pending_stale:\$\{collected\.done\}\/\$\{collected\.total\}`/.test(cron) && /SILENT_TERMINAL = \/\^\([^\n]*\|pending_stale[|)]/.test(cron) && /const PENDING_STALE_MINUTES = 45/.test(cron))
 
 console.log('== "Tomás" não vira "ás" (filtro de cenário com Unicode) ==')
 const vpp = rd('lib/cinematic/visualPromptPolicy.ts')
