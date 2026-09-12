@@ -28,6 +28,34 @@ const MAX_ANCHOR = 90
 const MIN_ANCHOR = 8
 
 // Comecos que denunciam INSTRUCAO ao modelo, nao gancho de video.
+// ═══ MIRROR: looksLikeBriefLite — lib/momentumTopic.ts ≡ lib/growth/instructionPasteNotice.ts ═══
+// KINEO-BRIEF-NAO-E-FALA-2026-09-12 — cópia leve de looksLikeBrief (lib/scriptParser.ts)
+// para arquivos que precisam ficar sem import (os guardiões os carregam crus).
+// Mexeu num, mexe no outro: o guardião compara os dois blocos byte a byte.
+const BRIEF_SHEET_HEAD = /^\p{Lu}[\p{L}'’-]{1,24}(?:\s\p{Lu}[\p{L}'’-]{1,24})?\s*[:：]\s*([^"“'‘].{11,})$/u
+const BRIEF_SHEET_VOCAB = /\b(voz|voice|vozes|voices|design|criatura|creature|olhos|eyes|anteninhas|antenas|antennae|orelhas|ears|mochila|backpack|roupa|roupas|wearing|outfit|cabelo|hair|express[ãa]o|expression|personalidade|personality|cor|cores|color|colour|anos de idade|years old|altura|tall|sotaque|accent|timbre|tone of voice|apar[êe]ncia|appearance|tra[çc]os|features)\b/i
+const BRIEF_SPEECH_LABEL = /^(voice\s?-?\s?over|voiceover|vo|narration|narrator|narrador|narradora|narra[çc][ãa]o|narraci[óo]n|dialogue|di[áa]logo|dialogo|fala|falas|speech|spoken(?:\s+text)?|line|lines|voz|voz em off|locu[çc][ãa]o|locutor|locutora|texto falado|seslendirme)\s*(?:\([^)]{0,60}\))?\s*[:：]/i
+const BRIEF_INSTRUCTION_VERB = /^(crie|criar|fa[çc]a|fazer|gere|gerar|prepare|preparar|monte|montar|escreva|escrever|produza|produzir|quero|preciso|gostaria|create|make|generate|write|produce|prepare|build|give me|i want|i need|i'd like|please|crea|genera|prepara|escribe|produce|quiero|necesito|haz|hazla|haz[ıi]rla|olu[şs]tur|yap|yaz|üret)\b/i
+const BRIEF_INSTRUCTION_VERB_ANYWHERE = /\b(haz[ıi]rla(?:y[ıi]n)?|olu[şs]tur(?:un)?|üret(?:in)?|kullan(?:[ıi]n)?|olsun|yap[ıi]n|yaz[ıi]n|ekle(?:yin)?)\b/i
+const BRIEF_DELIVERABLE = /\b(v[íi]deos?|videos?|shorts?|reels?|clips?|clipes?|anima[çc][ãa]o|animation|animasyon|cenas?|scenes?|sahne|hist[óo]ria|historinha|story|cuento|roteiro|script|senaryo|narra[çc][ãa]o|narration|seslendirme|voz|voice|ses|legendas?|subtitles?|altyaz[ıi]|personagens?|characters?|karakter|formato|format|estilo|style|tom|tone|dura[çc][ãa]o|duration|segundos?|seconds?|saniye|stil|g[öo]rsel)\b/i
+const BRIEF_STAGE_LABEL = /^(konu|g[öo]rsel(?:ler)?|kamera|m[üu]zik|altyaz[ıi](?:lar)?|objetivo|goal|regras?|rules?|instru[çc][õo]es|instructions|cen[áa]rio|escenario|ambiente|design|main character|personagem principal|vozes|voices|voice|visuals?|visual style|imagem|camera|c[âa]mera|lighting|music|m[úu]sica|style|estilo|tone|tom|character|characters|personagens|personajes|setting|format|formato|title|t[íi]tulo|theme|tema|duration|dura[çc][ãa]o)\s*[:：]/i
+function briefUnwrap(line: string): string { return (line ?? '').replace(/^[\s>*_`~#•·\-–—]+/, '').trim() }
+export function looksLikeBriefLite(raw: string | null | undefined): boolean {
+  if (typeof raw !== 'string') return false
+  const lines = raw.split(/\r?\n/).map(briefUnwrap).filter(Boolean)
+  if (lines.some((u) => BRIEF_SPEECH_LABEL.test(u))) return false
+  let ficha = 0, instrucao = 0, producao = 0
+  for (const u of lines) {
+    const m = !BRIEF_STAGE_LABEL.test(u) ? u.match(BRIEF_SHEET_HEAD) : null
+    if (m && BRIEF_SHEET_VOCAB.test(m[1])) { ficha++; continue }
+    if (u.length <= 400 && BRIEF_DELIVERABLE.test(u) && (BRIEF_INSTRUCTION_VERB.test(u) || BRIEF_INSTRUCTION_VERB_ANYWHERE.test(u))) { instrucao++; continue }
+    if (BRIEF_STAGE_LABEL.test(u)) producao++
+  }
+  if (ficha >= 1 && ficha + instrucao + producao >= 2) return true
+  return instrucao >= 2
+}
+// ═══ END MIRROR ═══
+
 const INSTRUCTION_START =
   /^(create|make|generate|write|produce|give me|i want|i need|please|absolutely|sure|certainly|of course|below is|okay|ok\b)/i
 // Rotulo em caixa alta seguido de dois pontos: "STYLE:", "MAIN CHARACTER:", "THEME:".
@@ -58,6 +86,9 @@ export function looksLikeInstruction(raw: string | null | undefined): boolean {
   // reconheceu o proprio formato. Lista branca, ANTES de qualquer outro sinal:
   // quem esta em marcadores da casa e roteiro. Ver lib/nextEpisodeMarkers.ts.
   if (pareceRoteiroDaCasa(text)) return false
+  // KINEO-BRIEF-NAO-E-FALA-2026-09-12 — ficha de personagem + instruções (9bac0a81,
+  // Lumi e Pipo) é BRIEFING, não roteiro: sem auto-start, com o aviso na tela.
+  if (looksLikeBriefLite(text)) return true
   if (INSTRUCTION_START.test(first)) return true
   if (LABEL_LINE.test(first)) return true
   if (MARKDOWN.test(first)) return true

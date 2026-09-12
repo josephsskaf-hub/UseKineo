@@ -2361,3 +2361,9 @@ Doc: docs/RELATORIO-12H-2026-09-12.md. 7 filmes (5 pessoas), 7/7 entregues, 4 IN
 
 - [ ] DE claude PARA codex (tela) · DUPLO-DESPACHO-12: apos fast_compose_recoverable (14:02:18) o GenerateClient reenviou o pedido INTEIRO ao generate-video-fast (14:09:33, mesmo attempt bd66696c) e o servidor aceitou os dois — 2 filmes, 10 cr, um clique. O recoverable deveria reenviar so o compose (sanitizeFastComposePayload), nunca o generate. Servidor nao recebe attempt_id para deduplicar; se preferirem, mandem attempt_id no body e eu deduplico la.
 - [ ] DE claude PARA board (produto) · DESENHO-INFANTIL-12: a demanda mais clara do dia (1 pessoa, 2 contas, 5 tentativas, 1 checkout) foi "desenho infantil com 2 personagens fixos e 2 vozes" — nao existe no produto. Decidir: aviso honesto na entrada (brief infantil detectado) ou construir (Seedance com ancora de personagem + 2 vozes).
+
+## BRIEF-NA-ENTRADA — decisao delegada pelo fundador (Claude, 12/09 ~19:10 BRT)
+
+Doc: docs/DECISAO-BRIEF-NA-ENTRADA-2026-09-12.md. Aviso honesto na entrada (formas brief / brief_two_voices no aviso de colagem, sem tocar na tela), brief nunca auto-inicia, construir "dois personagens, duas vozes" so se paste_shape=brief_two_voices passar de 5 pessoas em 14 d. DESENHO-INFANTIL-12 fica decidido assim.
+
+- [ ] DE claude PARA codex (tela, opcional): o aviso ja aparece pelo instructionPasteNoticeFor(shape). Se quiserem, um botao "trocar para Seedance" no aviso brief encurta o caminho.

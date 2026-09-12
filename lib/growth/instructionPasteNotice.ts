@@ -43,8 +43,53 @@
 
 export const INSTRUCTION_PASTE_NOTICE_VERSION = 'instruction_paste_notice_v2'
 
-/** As duas formas de colagem que `looksLikeInstruction` pega. */
-export type InstructionPasteShape = 'command_to_chatbot' | 'labeled_script'
+/** As formas de colagem que `looksLikeInstruction` pega. */
+export type InstructionPasteShape = 'command_to_chatbot' | 'labeled_script' | 'brief' | 'brief_two_voices'
+
+// ═══ KINEO-BRIEF-NAO-E-FALA-2026-09-12 — a terceira forma: o BRIEFING ═══════
+// 12/09, onu***/edu*** (mesma pessoa, 2 contas, 5 tentativas, 1 checkout):
+// colou uma ficha de personagens ("Lumi: pequena criatura… Voz infantil
+// feminina") + instruções ("Manter o mesmo design", "Crie um vídeo infantil")
+// e apertou Generate. A voz leu a ficha por 62 s (25 dos 30cr). O produto
+// não tem duas vozes nem personagem de design fixo fora do Seedance — e não
+// dizia isso. Decisão do fundador (17:40, "faz o que você acha melhor"):
+// aviso honesto na entrada, sem bloquear, sem trocar o modo da pessoa.
+// O parser já trata brief como modo IA; aqui é só a copy do que vai acontecer.
+// ═══ MIRROR: looksLikeBriefLite — lib/momentumTopic.ts ≡ lib/growth/instructionPasteNotice.ts ═══
+// KINEO-BRIEF-NAO-E-FALA-2026-09-12 — cópia leve de looksLikeBrief (lib/scriptParser.ts)
+// para arquivos que precisam ficar sem import (os guardiões os carregam crus).
+// Mexeu num, mexe no outro: o guardião compara os dois blocos byte a byte.
+const BRIEF_SHEET_HEAD = /^\p{Lu}[\p{L}'’-]{1,24}(?:\s\p{Lu}[\p{L}'’-]{1,24})?\s*[:：]\s*([^"“'‘].{11,})$/u
+const BRIEF_SHEET_VOCAB = /\b(voz|voice|vozes|voices|design|criatura|creature|olhos|eyes|anteninhas|antenas|antennae|orelhas|ears|mochila|backpack|roupa|roupas|wearing|outfit|cabelo|hair|express[ãa]o|expression|personalidade|personality|cor|cores|color|colour|anos de idade|years old|altura|tall|sotaque|accent|timbre|tone of voice|apar[êe]ncia|appearance|tra[çc]os|features)\b/i
+const BRIEF_SPEECH_LABEL = /^(voice\s?-?\s?over|voiceover|vo|narration|narrator|narrador|narradora|narra[çc][ãa]o|narraci[óo]n|dialogue|di[áa]logo|dialogo|fala|falas|speech|spoken(?:\s+text)?|line|lines|voz|voz em off|locu[çc][ãa]o|locutor|locutora|texto falado|seslendirme)\s*(?:\([^)]{0,60}\))?\s*[:：]/i
+const BRIEF_INSTRUCTION_VERB = /^(crie|criar|fa[çc]a|fazer|gere|gerar|prepare|preparar|monte|montar|escreva|escrever|produza|produzir|quero|preciso|gostaria|create|make|generate|write|produce|prepare|build|give me|i want|i need|i'd like|please|crea|genera|prepara|escribe|produce|quiero|necesito|haz|hazla|haz[ıi]rla|olu[şs]tur|yap|yaz|üret)\b/i
+const BRIEF_INSTRUCTION_VERB_ANYWHERE = /\b(haz[ıi]rla(?:y[ıi]n)?|olu[şs]tur(?:un)?|üret(?:in)?|kullan(?:[ıi]n)?|olsun|yap[ıi]n|yaz[ıi]n|ekle(?:yin)?)\b/i
+const BRIEF_DELIVERABLE = /\b(v[íi]deos?|videos?|shorts?|reels?|clips?|clipes?|anima[çc][ãa]o|animation|animasyon|cenas?|scenes?|sahne|hist[óo]ria|historinha|story|cuento|roteiro|script|senaryo|narra[çc][ãa]o|narration|seslendirme|voz|voice|ses|legendas?|subtitles?|altyaz[ıi]|personagens?|characters?|karakter|formato|format|estilo|style|tom|tone|dura[çc][ãa]o|duration|segundos?|seconds?|saniye|stil|g[öo]rsel)\b/i
+const BRIEF_STAGE_LABEL = /^(konu|g[öo]rsel(?:ler)?|kamera|m[üu]zik|altyaz[ıi](?:lar)?|objetivo|goal|regras?|rules?|instru[çc][õo]es|instructions|cen[áa]rio|escenario|ambiente|design|main character|personagem principal|vozes|voices|voice|visuals?|visual style|imagem|camera|c[âa]mera|lighting|music|m[úu]sica|style|estilo|tone|tom|character|characters|personagens|personajes|setting|format|formato|title|t[íi]tulo|theme|tema|duration|dura[çc][ãa]o)\s*[:：]/i
+function briefUnwrap(line: string): string { return (line ?? '').replace(/^[\s>*_`~#•·\-–—]+/, '').trim() }
+export function looksLikeBriefLite(raw: string | null | undefined): boolean {
+  if (typeof raw !== 'string') return false
+  const lines = raw.split(/\r?\n/).map(briefUnwrap).filter(Boolean)
+  if (lines.some((u) => BRIEF_SPEECH_LABEL.test(u))) return false
+  let ficha = 0, instrucao = 0, producao = 0
+  for (const u of lines) {
+    const m = !BRIEF_STAGE_LABEL.test(u) ? u.match(BRIEF_SHEET_HEAD) : null
+    if (m && BRIEF_SHEET_VOCAB.test(m[1])) { ficha++; continue }
+    if (u.length <= 400 && BRIEF_DELIVERABLE.test(u) && (BRIEF_INSTRUCTION_VERB.test(u) || BRIEF_INSTRUCTION_VERB_ANYWHERE.test(u))) { instrucao++; continue }
+    if (BRIEF_STAGE_LABEL.test(u)) producao++
+  }
+  if (ficha >= 1 && ficha + instrucao + producao >= 2) return true
+  return instrucao >= 2
+}
+// ═══ END MIRROR ═══
+
+const TWO_VOICES_RE = /\b(duas vozes|two voices|dos voces|zwei stimmen|iki ses)\b/i
+const VOICE_SPEC_RE = /\b(voz|voice|voces|vozes|voices|ses)\b[^\n]{0,40}\b(feminin[ao]|masculin[ao]|female|male|infantil|cartunesc[ao]|cartoon|child|kid)/gi
+function briefWantsTwoVoices(raw: string): boolean {
+  if (TWO_VOICES_RE.test(raw)) return true
+  const specs = raw.match(VOICE_SPEC_RE) ?? []
+  return specs.length >= 2
+}
 
 // Verbo de ORDEM na primeira linha: quem escreve assim esta falando COM o
 // modelo, nao entregando o que o modelo escreveu. Subconjunto deliberado do
@@ -62,6 +107,7 @@ const COMMAND_START =
  */
 export function classifyInstructionPaste(raw: string | null | undefined): InstructionPasteShape {
   if (typeof raw !== 'string') return 'labeled_script'
+  if (looksLikeBriefLite(raw)) return briefWantsTwoVoices(raw) ? 'brief_two_voices' : 'brief'
   const first = raw.split(/\r?\n/).map((line) => line.trim()).find(Boolean) ?? ''
   return COMMAND_START.test(first) ? 'command_to_chatbot' : 'labeled_script'
 }
@@ -94,6 +140,16 @@ const NOTICES: Record<InstructionPasteShape, { title: string; body: string; ctaH
     ctaLabel: 'Want ChatGPT, Claude or Gemini to write the full script? Get the prompt that works →',
   },
   // A pessoa colou a RESPOSTA, com rotulos de producao. Copy de 02/09, intacta.
+  // A pessoa colou um BRIEFING (ficha + instruções). Dizer o que a Kineo faz
+  // com ele e o que ela NÃO faz — antes de gastar crédito.
+  brief: {
+    title: 'This reads as a brief, not a script',
+    body: 'Character sheets and instructions are treated as a brief: Kineo writes the story from it and narrates it with one voice. Characters with a fixed look are only possible on Seedance 1.5 — pick it before you generate. Want the exact words spoken? Paste the narration itself.',
+  },
+  brief_two_voices: {
+    title: 'One narrator voice only — for now',
+    body: 'This brief asks for two character voices. Kineo narrates with a single voice today (the narrator tells the dialogue), and characters with a fixed look are only possible on Seedance 1.5. If that works for you, pick Seedance and generate; otherwise paste just the narration you want spoken.',
+  },
   labeled_script: {
     title: 'Your ChatGPT script is still here',
     body: 'Kineo will narrate the spoken lines and keep recognized Visual, Camera and timing labels out of the voiceover. Review it, then press Generate when you\'re ready.',

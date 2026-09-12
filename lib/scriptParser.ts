@@ -385,9 +385,19 @@ export function isCharacterSheetLine(line: string): boolean {
 export function looksLikeBrief(raw: string): boolean {
   const lines = (raw ?? '').toString().split(/\r?\n/).map((l) => unwrapLabelHead(l)).filter(Boolean)
   if (lines.some((u) => SPEECH_LABEL_LINE.test(u))) return false
-  let sinais = 0
-  for (const u of lines) if (isInstructionLine(u) || isCharacterSheetLine(u) || STAGE_LABEL_LINE.test(u)) sinais++
-  return sinais >= 2
+  let ficha = 0
+  let instrucao = 0
+  let producao = 0
+  for (const u of lines) {
+    if (isCharacterSheetLine(u)) ficha++
+    else if (isInstructionLine(u)) instrucao++
+    else if (STAGE_LABEL_LINE.test(u)) producao++
+  }
+  // Resposta de chatbot com rótulos de produção (STYLE:, Visual:) NÃO é brief —
+  // é o ramo `labeled_script` de 02/09. Brief exige ficha de personagem ou
+  // duas instruções ao modelo.
+  if (ficha >= 1 && ficha + instrucao + producao >= 2) return true
+  return instrucao >= 2
 }
 
 /** Caso 8738c753 (turco, 12/09): "Seslendirme:" + fala entre aspas + moldura de
