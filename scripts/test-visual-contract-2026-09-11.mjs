@@ -108,6 +108,7 @@ async function run({ look = 'photoreal', mode = 'character_story', frame = '16:9
     },
   })
   const globals = { ...aspect, ...policy, ...truth, ...visualMode, ...dispatch, ...providerConstants, ...routeHelpers, ...style,
+    body: { dry_run: false },
     scenes, classicVisualPolicy: { mode, style: anchor, character: mode === 'documentary_faceless' ? null : 'Mira, a young woman', aspect: frame },
     classicVisualMode: mode, storyCharacter: mode === 'documentary_faceless' ? null : 'Mira, a young woman', styleAnchor: anchor,
     eraSuffix: ', period piece set strictly in the year 1930, no modern objects', aspectRequested: frame,
@@ -277,12 +278,15 @@ for (const node of initialPlannerCalls) {
   for (const hollywoodPath of [false, true]) {
     let args
     const contract = { mode: 'character_story', style: style.deriveStyleAnchor('anime'), aspect: '16:9' }
+    const writerOptions = Object.freeze({ language: 'en', wordsPerScene: Object.freeze([24, 30]) })
     const caller = execute(`exports.run = async () => ${node.getText(route)};`, {
       prompt: 'Mira in Kyoto', clipCount: 4, hollywoodPath, classicVisualPolicy: contract,
+      classicWriterOptions: writerOptions,
       generateScenes: async (...values) => { args = values; return [] },
     })
     await caller.run()
     check(args[2] === (hollywoodPath ? undefined : contract), 'Actual initial/fallback caller supplies policy only to classic generation')
+    check(args[3] === (hollywoodPath ? undefined : writerOptions), 'Actual initial/fallback caller supplies writer options only to classic generation')
   }
 }
 console.log(`${checks} executable visual-contract checks passed; ${runs.length} actual classic-caller simulations; network disabled.`)
