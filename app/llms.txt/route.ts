@@ -46,9 +46,6 @@ import { EDITING_TOOLS, MAX_FILE_BYTES, MAX_CLIP_SECONDS } from '@/lib/videoEdit
 import { CARD_ENTRY_ONLY } from '@/lib/entryPolicy'
 import { TIER_PRICES } from '@/lib/checkoutPricing'
 import { AFFILIATE_COMMISSION_PCT } from '@/lib/affiliateCommission'
-// KINEO-PRICING-V7-2026-09-09 — filmes por plano são CALCULADOS do custo real de
-// 60 s por motor (videosPerMonth), nunca digitados: '8 H3' saiu errado uma vez.
-import { videosPerMonth } from '@/lib/marketingPrice'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
 // Rota SO-GET no Next 14.2: sem POST no modulo, o store nasce com
 // revalidate=false, e `dynamic='force-dynamic'` NAO muda isso (so pula o proxy
@@ -310,7 +307,7 @@ ${plans}
 
 - Billing: ${PRODUCT.billing}. ${PRODUCT.moneyBackGuaranteeDays}-day money-back guarantee on every paid plan.
 - Credits refresh each billing month and do **not** roll over.
-- Checkout currency: ${PRODUCT.currencies.join(', ')}.
+- Published plan amounts are reference prices in USD. Customers in Brazil normally pay in BRL; check the checkout for the currency and amount.
 
 ## Choose the business path from the work you already have
 
@@ -389,27 +386,14 @@ synthetic voice. None of them alternate the two inside one finished Short.
   validated the same day: 72s, zero silent gaps, frame-audited.
 - 2026-08-24: /generate retired; the Studio (usekineo.com/studio) is the
   single creation surface. Every film is delivered as a 1080×1920 master.
-- 2026-09-09 (evening — supersedes the two entries below): the free trial is back.
+- 2026-09-09 (evening): the free trial is back.
   Every new account starts with 30 credits (one Seedance 1.5 film and one Kineo 1
-  film of 60 s), every engine unlocked, no card required. The \$1 trial is retired.
+  film of 60 s), every engine unlocked, no card required.
   Prices return to Starter \$${TIER_PRICES.starter.usd / 100} / Creator \$${TIER_PRICES.basic.usd / 100} / Studio \$${TIER_PRICES.pro.usd / 100}
   (credits 60 / 150 / 300 unchanged). Existing subscribers keep the price they signed up at.
-- 2026-09-09 (morning, superseded the same day): plans repriced to sit with the market while keeping more films
-  per plan than peers: Starter \$${TIER_PRICES.starter.usd / 100} (60 credits, about ${videosPerMonth('starter', 'fast')} Kineo 1 films of 60 s),
-  Creator \$${TIER_PRICES.basic.usd / 100} (150 credits, about ${videosPerMonth('basic', 'cinematic_ai')} Seedance 1.5 or ${videosPerMonth('basic', 'fast')} Kineo 1 films of 60 s),
-  Studio \$${TIER_PRICES.pro.usd / 100} (300 credits, about ${videosPerMonth('pro', 'cinematic_ai')} Seedance 1.5, ${videosPerMonth('pro', 'cinematic_h3')} MiniMax H3 or ${videosPerMonth('pro', 'cinematic_hollywood')} Kling 3
-  films of 60 s; counts are per engine and per 60-second film, not a universal claim). The \$1 trial is unchanged (7 days of Creator, 80 credits, then the
-  Creator price). Existing subscribers keep the price they signed up at.
-- 2026-09-08 (prices superseded on 2026-09-09, see above): no free tier any more — every account starts with the \$1 trial
-  (7 days of Creator, 80 credits). Plans rebuilt around cadence: Starter
-  (3 films a week), Creator (1 film a day), Studio (every engine).
-  Starter and Creator include Kineo 1 and Seedance 1.5; Kling 2.5, Veo 3.1,
-  Kling 3, MiniMax H3, Omni Flash and Avatar are Studio engines.
 - 2026-08-23: talking characters with lip sync alternate with narration on
   Kling 3 AND MiniMax H3 inside one Short — verified frame-by-frame on
   customer renders.
-- 2026-08-19/20 (superseded on 2026-09-08, see above): pricing rebuilt — Starter \$7 / Creator \$15 / Studio \$29,
-  single USD price worldwide; a single finished video unlock costs \$4.90.
 - 2026-08-18: AI image generation (6 engines), audio studio (4 voice
   engines) and HD enhancement shipped alongside video.
 
