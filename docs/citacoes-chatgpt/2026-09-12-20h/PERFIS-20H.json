@@ -1,0 +1,118 @@
+{
+  "classification": "EVIDÊNCIA DE PRODUÇÃO — leitura diária de perfis executada uma vez, com corte fixo",
+  "observedAtDatabase": "2026-09-12 23:07:42.938294+00",
+  "dispatchPreparationLocalUtc": "2026-09-12T23:08:01.964Z",
+  "cohortEndExclusiveUtc": "2026-09-12T23:00:00Z",
+  "querySha256": "4a99e6da7c2ba38d8805d2b2389301fe39ecd9a9b48ebbd47c97b3bfad5a248c",
+  "rows": [
+    {
+      "observed_at": "2026-09-12 23:07:42.938294+00",
+      "cohort_ends_at": "2026-09-12 23:00:00+00",
+      "day_brt": "2026-09-04",
+      "partial_day": false,
+      "external_signups_all_sources": 29,
+      "external_chatgpt_exact": 13,
+      "external_chatgpt_dot_com": 0,
+      "chatgpt_unknown_email": 0,
+      "chatgpt_internal_excluded": 0
+    },
+    {
+      "observed_at": "2026-09-12 23:07:42.938294+00",
+      "cohort_ends_at": "2026-09-12 23:00:00+00",
+      "day_brt": "2026-09-05",
+      "partial_day": false,
+      "external_signups_all_sources": 30,
+      "external_chatgpt_exact": 16,
+      "external_chatgpt_dot_com": 0,
+      "chatgpt_unknown_email": 0,
+      "chatgpt_internal_excluded": 0
+    },
+    {
+      "observed_at": "2026-09-12 23:07:42.938294+00",
+      "cohort_ends_at": "2026-09-12 23:00:00+00",
+      "day_brt": "2026-09-06",
+      "partial_day": false,
+      "external_signups_all_sources": 36,
+      "external_chatgpt_exact": 24,
+      "external_chatgpt_dot_com": 0,
+      "chatgpt_unknown_email": 0,
+      "chatgpt_internal_excluded": 0
+    },
+    {
+      "observed_at": "2026-09-12 23:07:42.938294+00",
+      "cohort_ends_at": "2026-09-12 23:00:00+00",
+      "day_brt": "2026-09-07",
+      "partial_day": false,
+      "external_signups_all_sources": 24,
+      "external_chatgpt_exact": 12,
+      "external_chatgpt_dot_com": 0,
+      "chatgpt_unknown_email": 0,
+      "chatgpt_internal_excluded": 0
+    },
+    {
+      "observed_at": "2026-09-12 23:07:42.938294+00",
+      "cohort_ends_at": "2026-09-12 23:00:00+00",
+      "day_brt": "2026-09-08",
+      "partial_day": false,
+      "external_signups_all_sources": 8,
+      "external_chatgpt_exact": 3,
+      "external_chatgpt_dot_com": 0,
+      "chatgpt_unknown_email": 0,
+      "chatgpt_internal_excluded": 0
+    },
+    {
+      "observed_at": "2026-09-12 23:07:42.938294+00",
+      "cohort_ends_at": "2026-09-12 23:00:00+00",
+      "day_brt": "2026-09-09",
+      "partial_day": false,
+      "external_signups_all_sources": 10,
+      "external_chatgpt_exact": 5,
+      "external_chatgpt_dot_com": 0,
+      "chatgpt_unknown_email": 0,
+      "chatgpt_internal_excluded": 0
+    },
+    {
+      "observed_at": "2026-09-12 23:07:42.938294+00",
+      "cohort_ends_at": "2026-09-12 23:00:00+00",
+      "day_brt": "2026-09-10",
+      "partial_day": false,
+      "external_signups_all_sources": 13,
+      "external_chatgpt_exact": 8,
+      "external_chatgpt_dot_com": 0,
+      "chatgpt_unknown_email": 0,
+      "chatgpt_internal_excluded": 0
+    },
+    {
+      "observed_at": "2026-09-12 23:07:42.938294+00",
+      "cohort_ends_at": "2026-09-12 23:00:00+00",
+      "day_brt": "2026-09-11",
+      "partial_day": false,
+      "external_signups_all_sources": 20,
+      "external_chatgpt_exact": 11,
+      "external_chatgpt_dot_com": 0,
+      "chatgpt_unknown_email": 0,
+      "chatgpt_internal_excluded": 0
+    },
+    {
+      "observed_at": "2026-09-12 23:07:42.938294+00",
+      "cohort_ends_at": "2026-09-12 23:00:00+00",
+      "day_brt": "2026-09-12",
+      "partial_day": true,
+      "external_signups_all_sources": 14,
+      "external_chatgpt_exact": 5,
+      "external_chatgpt_dot_com": 0,
+      "chatgpt_unknown_email": 0,
+      "chatgpt_internal_excluded": 0
+    }
+  ],
+  "limits": [
+    "Perfis sobreviventes com utm_source atual; exclusões e alterações posteriores podem mudar dias antigos. Não é histórico imutável de cadastros.",
+    "Contas internas e e-mail desconhecido são excluídos dos agregados externos; perfis externos não comprovam humanidade.",
+    "external_chatgpt_exact exige igualdade literal chatgpt; external_chatgpt_dot_com é diagnóstico separado por lower(utm_source)=chatgpt.com. Não agregar as duas origens.",
+    "external_signups_all_sources já contém perfis da origem ChatGPT; não somar total e subconjunto.",
+    "Dia12 é parcial até20h BRT; não comparar como dia completo, projetar fechamento ou atribuir mudança às páginas/citações.",
+    "Esta medição não inclui as outras transações do arquivo histórico, eventos V1/V2 ou o caso individual do clipe.",
+    "Bruto preserva o snapshot da tentativa anterior ao despacho. Ledger encerrado registra o estado final e proíbe repetição."
+  ],
+  "canonicalRevenue": null
+}
