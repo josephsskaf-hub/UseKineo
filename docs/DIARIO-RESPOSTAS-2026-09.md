@@ -140,3 +140,58 @@ Nenhum e-mail do Dodo. Nenhum rascunho criado.
 2. (Claude) Nada de cliente para responder; 48h sem retorno dos 11. Não reenviar.
 3. (Claude, com navegador) Checar https://theresanaiforthat.com/ai/kineo/ por
    review nova antes de qualquer crédito — amin foi o único que abriu o site.
+
+## Varredura 13/09 06:01 BRT
+
+**Sem novidades.** Gmail `newer_than:1d` para os 11 endereços + Dodo + fal/Orb
+devolve ZERO threads (a mesma busca em `newer_than:3d` devolve só os 8 avisos
+fal/Orb de 11/09 já registrados nas varreduras de 12/09 — failed #00105/#00107,
+invoices #00106 $30 e #00108 $10 vencendo 24/09, paid #00109 $50). Nenhum
+e-mail do Dodo. Nenhuma resposta dos 11 (72h depois do envio). Nenhum rascunho
+criado.
+
+### Banco (eventos desde 10/09 02:30 UTC, por pessoa)
+- Nenhum dos 11 fez filme, tentou render, abriu checkout ou pagou: zero
+  `video_generation_completed` / `generation_stage_error` / `checkout_started`
+  / `payment_success`; zero linha em `videos` com status completed.
+- Desde a varredura das 08:03 de 12/09 só entraram eventos de servidor (cartas
+  automáticas, sem session_id): zeechimzere e amin `second_try_1usd_sent`
+  (12/09 10:12 e 15:12 BRT), nuns/shilpa/nikita `trial_lifecycle_email_sent`,
+  shilpa `trial_downgraded` (12/09 15:55 BRT). Nenhum gesto humano novo — o
+  único continua sendo a visita de amin à landing em 10/09.
+- Saldos: ep/samu/kaur/nikita/adeolusola 30cr · ivan/nuns 25cr ·
+  shilpa/amin/olawale/zeechimzere 0cr. has_paid=false nos 11.
+- ⚠ O PLACAR-RESTAURACAO (f30e935b) diz "e-mails de 10/09: voltaram 8 de 11 →
+  filme 0". Pela leitura desta varredura, os 8 "voltaram" são eventos de
+  servidor (cartas nossas), não navegação: só 1 dos 11 (amin) teve evento com
+  session_id desde o envio. Retorno humano real = 1 de 11, não 8.
+
+### Codex (12h: 8 commits, todos "Kineo CEO")
+- 1fbf8ec3 / 9d467adc / c8f7cfba / 2834ed60 / dc2da934 / 9c47d6d3 — rotações
+  do PROXIMOS-20-FILMES (19:47 → 05:47 BRT). Chegou a 14/20 filmes lidos,
+  média 4,9, coerentes 4 / parciais 3 / não 7. Dois casos novos: #13 dan***
+  (Kineo 1, 12/09 20:10 BRT) — escreveu história em português, o chip
+  "🕵️ Mystery" do /studio colou prefixo em inglês E trocou o modo para "Let AI
+  structure"; saiu outra história, em inglês, nota 3, NÃO coerente; e #14
+  vid*** (Kineo 1, 22:30 BRT, veio do ChatGPT/Google, cadastro 9 min antes),
+  David e Golias. apertou-e-não-saiu: 4 fechados, 2 em andamento (abu*** com
+  5 cliques no Kineo 1 sem filme entre 12/09 11:59 e 13/09 03:04 BRT).
+- f30e935b placar restauração 12/09 noite: dia parcial 16 nasceram → 8 filme →
+  2 checkout → 0 pagaram; desde 09/09: 47 → 33 → 6 → 0 pagos, 2 recusas de
+  cartão (1 BR); reddit 233 visitas → 0 cadastros; taaft 1 cadastro → 0 filme.
+- 9e495e93 citações ChatGPT 20h (docs/citacoes-chatgpt/2026-09-12-20h/).
+- Sem bloco "FILA DO FUNDADOR" / "PARA O CLAUDE" em nenhum dos 3 docs tocados.
+  Sem nome ou e-mail de parceiro/afiliado a conferir. Proibidos seguem:
+  den.higgins, noelrss21, emiliomontinari, akajitin.
+
+### PARA AS 10H (fundador/Claude)
+1. (fundador) Continua aberto: conferir no painel Orb/fal se #00107 (failed) e
+   #00108 ($10, vence 24/09) estão quitadas — o e-mail só prova o $50 da #00109.
+2. (Claude) Nada de cliente para responder; 72h sem retorno humano dos 11.
+   Não reenviar. Corrigir a linha "voltaram 8 de 11" do placar para contar só
+   evento com session_id (memória retorno-pos-email-conta-email-nosso).
+3. (Claude) Caso #13 do PROXIMOS-20: o chip de gênero do /studio troca o modo
+   e o idioma pelas costas do cliente — candidato a conserto visível de hoje
+   (chip não deve mudar "Use my script as is" nem forçar inglês em texto pt).
+4. (Claude, com navegador) Checar https://theresanaiforthat.com/ai/kineo/ por
+   review nova antes de qualquer crédito — nenhum dos 4 pediu ainda.
