@@ -195,3 +195,47 @@ criado.
    (chip não deve mudar "Use my script as is" nem forçar inglês em texto pt).
 4. (Claude, com navegador) Checar https://theresanaiforthat.com/ai/kineo/ por
    review nova antes de qualquer crédito — nenhum dos 4 pediu ainda.
+
+## Varredura 13/09 08:03 BRT
+
+**Sem novidades de cliente às 08:03 BRT.** Nenhum e-mail recebido em 24h dos 11
+endereços, do Dodo Payments, da fal.ai, da withorb ou do support@fal.ai
+(search_threads `newer_than:1d` devolveu vazio). Nenhum rascunho criado.
+DODO/FAL: nada novo (a recarga Pix de 11/09 continua sendo o último sinal).
+
+### Respostas (11 pessoas)
+- Nenhuma mensagem nova → 0 rascunhos. 78h sem retorno humano aos e-mails de 10/09.
+
+### Banco (desde 10/09 02:30 UTC, para os 11)
+- Todos: 0 `video_generation_completed`, 0 `generation_stage_error`, 0 `checkout_started`,
+  0 `payment_success`, 0 vídeos completed. has_paid=false nos 11 → **"nada" para os 11**.
+- Últimos eventos são só cartas nossas (servidor, sem session_id): zeechimzere e
+  amin `second_try_1usd_sent` (12/09 10:12/15:12 BRT), nuns/shilpa/nikita
+  `trial_lifecycle_email_sent`, shilpa `trial_downgraded` (12/09 15:55 BRT).
+  Nada novo desde a varredura das 06:01 — nenhum evento de nenhum dos 11 em 13/09.
+
+### Codex (12h: 9 commits, todos "Kineo CEO")
+- Único commit novo desde a varredura das 06:01: d95b9407 "proximos 20 filmes: rotacao
+  0747 BRT (13/09)" — PROXIMOS-20 chegou a 16/20 filmes lidos, média 5,3, coerentes 6 /
+  parciais 3 / não 7. Novidade: jum***@gmail.com, 1ª pessoa do dia 13 com filme, veio
+  ORGÂNICA do alternativeto.net (sem ChatGPT), 2 filmes Kineo 1 60s em 11 min (fichas 15-16,
+  nota 8 na 15), baixou os dois com marca-d'água, saldo 20cr, sem checkout até 07:46 BRT.
+  Ficha 16: roteiro colado no formato ChatGPT — voz leu só as falas, mas o título da
+  biblioteca ficou "****". Estorno de 5cr do clipe de nik*** às 03:30 BRT sem evento de autor.
+- Os demais 8 commits (9d467adc…a713cad4) já constam na varredura das 06:01.
+- Sem bloco "FILA DO FUNDADOR" / "PARA O CLAUDE" no doc tocado. Sem nome/e-mail de
+  parceiro ou afiliado a conferir. Proibidos seguem: den.higgins, noelrss21,
+  emiliomontinari, akajitin.
+
+### PARA AS 10H (fundador/Claude)
+1. (fundador) Segue aberto: conferir no painel Orb/fal se #00107 (failed) e #00108
+   ($10, vence 24/09) estão quitadas — o e-mail só prova o $50 da #00109.
+2. (Claude) Nada de cliente para responder; não reenviar aos 11. Os itens das 06:01
+   (corrigir "voltaram 8 de 11" no placar; chip de gênero do /studio trocando modo e
+   idioma) continuam válidos e sem dono.
+3. (Claude) jum*** é o caso quente do dia: orgânica, 2 filmes, baixou os dois, 20cr e sem
+   checkout — candidata natural ao e-mail de "versão limpa sem marca-d'água" hoje, não
+   ao trial_lifecycle genérico. Título "****" da ficha 16 = bug de extração de título
+   em roteiro colado do ChatGPT (candidato a conserto pequeno).
+4. (Claude, com navegador) Checar https://theresanaiforthat.com/ai/kineo/ por review
+   nova antes de qualquer crédito — nenhum dos 4 pediu ainda.
