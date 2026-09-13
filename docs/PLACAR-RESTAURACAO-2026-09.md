@@ -24,3 +24,10 @@ Brasileiros pagam em reais desde 09/09 ~23:30 UTC.
 - taaft (janela): cadastros 1 → filme 1 → checkout 0 → pagaram 0
 - e-mails de 10/09: voltaram 6 de 11 → filme 0 → pagaram 0
 - degrau que mais seca desde a restauração: 29 fizeram filme e 5 chegaram ao checkout.
+- 2026-09-12 (hoje, parcial 22h): nasceram 16 → fizeram filme 8 → checkout 2 → pagaram 0 (usd 0 · brl 0) · falharam no render 1 · recusas de cartão 0 (BR 0) · trocas de plano 0
+- desde a restauração (09/09 noite): nasceram 47 → fizeram filme 33 → checkout 6 → pagaram 0 (usd 0 · brl 0) · falharam no render 2 · recusas de cartão 2 (BR 1) · trocas de plano 0
+- afiliados (janela | desde 09/09): cliques 0|5 → cadastros 0|1 → pagos 0|1 → comissões 0
+- reddit (janela): visitas 233 → cadastros 0 → pagaram 0
+- taaft (janela): cadastros 1 → filme 0 → checkout 0 → pagaram 0
+- e-mails de 10/09: voltaram 8 de 11 → filme 0 → pagaram 0
+- degrau que mais seca desde a restauração: 33 fizeram filme e 6 chegaram ao checkout.
