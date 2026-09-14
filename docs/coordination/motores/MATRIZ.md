@@ -11,9 +11,9 @@ QUESTÃO PENDENTE: não importar aprovações genéricas de dry-run como valida�
 | Kling 2.5 | GO do guardião b681b0d8 (14/09, CLASSICOS-R4): Board 365 verificações/42 simulações e tsc; três entradas a 60s encadeadas por fatias reais até primeiro payload, mais i2v | Não executada | Manter limites: demais cenas não despachadas; políticas injetadas; sem HTTP completo/filme |
 | Veo 3.1 | GO do guardião 1d34e5b2: três entradas a 60s até primeiro payload, campos próprios; 429 verificações compartilhadas, não exclusivas deste motor | Não executada | Reconciliar footage/timeline sem chamar 3,1 pal/s de duração real; LEGENDAS-R1; custo 90s/5b2dc929 segurado |
 | MiniMax H3 | GO técnico de fidelidade 83aeef34 em 14/09 16:18 UTC: 117/117, Board 18/18, tsc limpo (FID-V4-R5); publicação pendente | H3 anterior reprovado visualmente; nenhum novo render | Publicação autorizada + deploy + repetir Lituya sob gate financeiro; áudio e filme completos |
-| Kling 3 | Pendente | Não executada | Reconciliar fala nativa e cenas |
-| Omni Flash | Pendente | Não executada | Reconciliar duração e prompts |
-| Seedance 2.5 | Pendente; acesso interno | Não executada | Verificar somente modos disponibilizados internamente |
+| Kling 3 | Parcial MOTORES-ESPECIFICOS-R2: router/payload reais executados em cb5f746b; 213 checks compartilhados e tsc; não entrada completa | Não executada | Mapa precisa distinguir host TTS do fallback nativo; não repetir payload aprovado |
+| Omni Flash | Parcial MOTORES-ESPECIFICOS-R2: router/payload, caps 10/10 e apara-folga reais executados; sem filme | Não executada | Mapa de áudio host/nativo/apoio; duração entregue desconhecida |
+| Seedance 2.5 | CORRIGIR cb5f746b: native payload sem áudio confirmado, mas forçar faceless remove host saudável; somente interno | Não executada | Preservar apresentador e proteger fallback silencioso; critérios finitos em MOTORES-ESPECIFICOS-R2 |
 
 Para cada célula de aprovação registrar: roteiro preservado; ação/escala/personagens; pedido/plano/arquivo; narração; legenda; música; confiabilidade; testes/SHA. Usar NÃO VALIDADO onde faltar escuta, filme ou evidência. Testes herdados podem ser aproveitados se reconciliados contra o SHA; não repeti-los para ocupar tempo.
 
