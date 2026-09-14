@@ -690,17 +690,3 @@ export function parseUserScript(raw: string): ParsedScript {
 
   return { hasMarkers, segments, narration, speed }
 }
-
-// KINEO-TETO-SEM-CORTE-2026-09-14 — o Kineo 1 aceitava só 12 blocos [Pexels]
-// e JOGAVA FORA o resto (`segments.slice(0, 12)`): um roteiro de 90 s com 21
-// marcadores perdia 71 palavras do autor em silêncio (dry-run de 14/09).
-// Acima do teto, os blocos excedentes se fundem no último — a imagem do
-// último bloco fica, a fala do autor fica inteira.
-export function capSegmentsKeepingWords<T extends { voiceover: string }>(segments: readonly T[], max: number): T[] {
-  if (!Array.isArray(segments) || segments.length <= max || max < 1) return [...segments]
-  const kept = segments.slice(0, max).map((s) => ({ ...s }))
-  const resto = segments.slice(max).map((s) => (s.voiceover ?? '').trim()).filter(Boolean).join(' ')
-  const ultimo = kept[kept.length - 1]
-  ultimo.voiceover = `${(ultimo.voiceover ?? '').trim()} ${resto}`.trim()
-  return kept
-}

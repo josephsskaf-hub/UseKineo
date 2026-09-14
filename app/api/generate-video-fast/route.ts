@@ -16,7 +16,7 @@ import { buildHookPrompt, submitAiHook, awaitAiHook, persistHookClip, type AiHoo
 import { pickLibraryClips, type LibraryClip } from '@/lib/stockLibrary'
 // Push #351 — ensureAccessibleUrl removed (was only used for Pexels CDN proxying; Pexels now OFF).
 // import { ensureAccessibleUrl } from '@/lib/videoCache'
-import { parseUserScript, capSegmentsKeepingWords } from '@/lib/scriptParser'
+import { parseUserScript } from '@/lib/scriptParser'
 import { narrationTooShortMessage } from '@/lib/narrationFit'
 import { largestFittingDuration } from '@/lib/expandPolicy'
 import { speechRateFor, narrationFitAt } from '@/lib/speechRate'
@@ -579,8 +579,8 @@ export async function POST(req: NextRequest) {
     //     from 400 → 1200 chars so longer briefs keep their topic fidelity.
     let scenes: Scene[]
     if (verbatim) {
-      // KINEO-TETO-SEM-CORTE-2026-09-14 — acima de 12 blocos, o excedente se funde no 12º: nenhuma palavra do autor some.
-      scenes = capSegmentsKeepingWords(parsedScript.segments, 12).map((seg) => ({
+      // KINEO-TETO-EXPLICITO-2026-09-14 — acima de 12 blocos a rota RECUSA antes do gasto (portão abaixo); aqui nunca chega roteiro maior.
+      scenes = parsedScript.segments.map((seg) => ({
         description: seg.pexelsQuery,
         searchKeywords: seg.pexelsQuery,
         stockSearchQuery: seg.pexelsQuery,
@@ -622,7 +622,9 @@ export async function POST(req: NextRequest) {
             const porCena = Math.ceil(alvoTotal / scenes.length)
             const curtas = scenes.map((s, i) => ({ i, s })).filter(({ s }) => wordsOf(s.voiceover) < porCena)
             const novas = await expandVoiceoversToTargets(curtas.map(({ s }) => ({ text: s.voiceover ?? '', targetWords: porCena + 2, maxWords: porCena + 8 })), narrationLanguage.language, prompt.slice(0, 300))
-            curtas.forEach(({ s }, k) => { if (novas[k] && novas[k] !== s.voiceover) s.voiceover = novas[k] })
+            // Board 14/09: a legenda deriva da fala e acompanha; a consulta visual e a
+            // descrição da cena ficam — a reescrita preserva fatos, nomes e números.
+            curtas.forEach(({ s }, k) => { if (novas[k] && novas[k] !== s.voiceover) { s.voiceover = novas[k]; s.caption = shortCaptionFromVoiceover(novas[k]) } })
             const depois = scenes.reduce((a, s) => a + wordsOf(s.voiceover), 0)
             console.log(`[generate-fast] KINEO-TERCEIRA-PASSADA: ${total} → ${depois} palavras (alvo ${alvoTotal}, ${curtas.length} cena(s))`)
           }
@@ -709,8 +711,28 @@ export async function POST(req: NextRequest) {
     // silêncio — antes do gasto, oferecer expansão ou uma duração menor.
     // Board 14/09: o portão roda ANTES do dry-run, para o dry-run exercitar
     // exatamente esta decisão (o relatório carrega `gate`).
-    let portao: { blocked: boolean; reason: 'narration_too_short' | null; speech_seconds: number; target_seconds: number; missing_words: number; shorter_duration: number | null; words_per_second: number; basis: 'estimate'; autofit_applied: boolean } | null = null
+    // ═══ KINEO-DRY-RUN-AUTORIZADO-2026-09-14 (Board): o portão conferia só
+    // `body.dry_run`; uma conta externa mandando dry_run:true pulava a recusa e
+    // chegava à seção paga. A autorização (conta do fundador) vem ANTES de
+    // qualquer decisão que dependa de "é ensaio". Pedido de dry-run não
+    // autorizado é tratado como pedido real: recusa quando deve recusar.
+    const dryRunAutorizado = body.dry_run === true && isDryRunAccount(user.email)
+    let portao: { blocked: boolean; reason: 'narration_too_short' | 'too_many_clips' | null; speech_seconds: number; target_seconds: number; missing_words: number; shorter_duration: number | null; words_per_second: number; basis: 'estimate'; autofit_applied: boolean } | null = null
     if (verbatim) {
+      // KINEO-TETO-EXPLICITO-2026-09-14 (Board): o Kineo 1 monta até 12 clipes. Um
+      // roteiro com mais blocos [Pexels] NÃO é fundido em silêncio (isso jogava
+      // fora a direção visual dos blocos 13+): a pessoa decide antes do gasto.
+      const MAX_CLIP_BLOCKS = 12
+      if (parsedScript.segments.length > MAX_CLIP_BLOCKS) {
+        portao = { blocked: true, reason: 'too_many_clips', speech_seconds: 0, target_seconds: duration, missing_words: 0, shorter_duration: null, words_per_second: 0, basis: 'estimate', autofit_applied: false }
+        if (!dryRunAutorizado) {
+          void writeServerEvent({ name: 'narration_guard_blocked', userId: user.id, path: '/api/generate-video-fast', metadata: { engine: 'fast', reason: 'too_many_clips', clips: parsedScript.segments.length, max_clips: MAX_CLIP_BLOCKS, charged: false } })
+          return NextResponse.json({
+            error: `Your script has ${parsedScript.segments.length} clip blocks, and Kineo 1 films use up to ${MAX_CLIP_BLOCKS}. Merge a few [Pexels: …] blocks (each block becomes one clip) or move the extra lines into a neighboring block, then generate again. Nothing was charged.`,
+            reason: 'too_many_clips', clips: parsedScript.segments.length, max_clips: MAX_CLIP_BLOCKS, retryable: false,
+          }, { status: 422 })
+        }
+      }
       const falaDoAutor = parsedScript.segments.map((seg) => seg.voiceover ?? '').join(' ')
       const narrationRate = speechRateFor({ family: 'classic', speed: parsedScript.speed, language: narrationLanguage.language })
       let fit = narrationFitAt(falaDoAutor, duration, narrationRate)
@@ -722,11 +744,11 @@ export async function POST(req: NextRequest) {
           duration = menor as Duration
           fit = narrationFitAt(falaDoAutor, duration, narrationRate)
           autofitApplied = true
-          if (body.dry_run !== true) void writeServerEvent({ name: 'narration_autofit_down', userId: user.id, path: '/api/generate-video-fast', metadata: { engine: 'fast', requested_seconds: pedida, effective_seconds: duration, speech_seconds: Math.round(fit.speech * 10) / 10, words_per_second: narrationRate.wordsPerSecond, basis: narrationRate.basis } })
+          if (!dryRunAutorizado) void writeServerEvent({ name: 'narration_autofit_down', userId: user.id, path: '/api/generate-video-fast', metadata: { engine: 'fast', requested_seconds: pedida, effective_seconds: duration, speech_seconds: Math.round(fit.speech * 10) / 10, words_per_second: narrationRate.wordsPerSecond, basis: narrationRate.basis } })
         }
       }
-      portao = { blocked: !fit.ok, reason: fit.ok ? null : 'narration_too_short', speech_seconds: Math.round(fit.speech * 10) / 10, target_seconds: duration, missing_words: fit.missingWords, shorter_duration: largestFittingDuration(fit.speech), words_per_second: narrationRate.wordsPerSecond, basis: narrationRate.basis, autofit_applied: autofitApplied }
-      if (!fit.ok && body.dry_run !== true) {
+      if (!portao?.blocked) portao = { blocked: !fit.ok, reason: fit.ok ? null : 'narration_too_short', speech_seconds: Math.round(fit.speech * 10) / 10, target_seconds: duration, missing_words: fit.missingWords, shorter_duration: largestFittingDuration(fit.speech), words_per_second: narrationRate.wordsPerSecond, basis: narrationRate.basis, autofit_applied: autofitApplied }
+      if (!fit.ok && !dryRunAutorizado) {
         void writeServerEvent({ name: 'narration_guard_blocked', userId: user.id, path: '/api/generate-video-fast', metadata: { engine: 'fast', reason: 'narration_too_short', requested_seconds: duration, speech_seconds: Math.round(fit.speech * 10) / 10, coverage: Math.round(fit.coverage * 100) / 100, words_per_second: narrationRate.wordsPerSecond, basis: narrationRate.basis, charged: false } })
         return NextResponse.json({
           error: narrationTooShortMessage(fit, SUPPORTED_DURATIONS),
@@ -743,7 +765,7 @@ export async function POST(req: NextRequest) {
     // Devolve as cenas planejadas e a narração ANTES do hook pago da IA
     // (Seedance 5 s), do Pixabay e do compose. O Kineo 1 só cobra na entrega
     // (compose/status), então aqui não há nada a estornar.
-    if (body.dry_run === true && isDryRunAccount(user.email)) {
+    if (dryRunAutorizado) {
       const fastReport = classicDryRunReport({
         scenes: scenes.map((s) => ({ voiceover: s.voiceover, prompt: s.description })),
         targetSeconds: duration,

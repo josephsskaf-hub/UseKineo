@@ -11,6 +11,7 @@ import {
   narrationFit, autofitDown, WORDS_PER_SECOND, MIN_COVERAGE, MIN_AUTOFIT_DOWN_COVERAGE,
   AUTOFIT_DOWN_FLOOR_SECONDS, AUTOFIT_DOWN_STEP_SECONDS, type NarrationFit, type AutofitDown,
 } from '@/lib/narrationFit'
+import { parseSpeed } from '@/lib/scriptParser'
 
 export type SpeechFamily = 'classic' | 'hollywood'
 export const SPEECH_RATE_BASE: Record<SpeechFamily, number> = { classic: 3.1, hollywood: 2.3 }
@@ -68,4 +69,9 @@ export function autofitDownAt(script: string, requestedSeconds: number, rate: Sp
 /** Segundos de fala de um texto na régua da configuração (estimativa). */
 export function speechSecondsAt(script: string, rate: SpeechRate): number {
   return narrationFitAt(script, 0, rate).speech
+}
+
+/** A configuração real de UMA geração: família do motor escolhido + velocidade escrita no roteiro (`speed: 1.2`). Tela, análise, expansão, dry-run e servidor medem com ISTO. */
+export function speechRateForScript(quality: unknown, script: string, language?: string | null): SpeechRate {
+  return speechRateFor({ family: speechFamilyForQuality(quality), speed: parseSpeed(script ?? ''), language })
 }

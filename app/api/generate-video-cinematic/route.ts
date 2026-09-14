@@ -1499,12 +1499,6 @@ async function manipularPost(req: NextRequest) {
     // script, not the button), so footage always covers the narration.
     // (KINEO-DEGRAU: lê a duração já descida — o clip count segue o filme real.)
     let clipCount = clipCountForDuration(duration)
-    // ═══ KINEO-VEO-90-2026-09-14 — dry-run de 14/09: Veo a 90 s = 9 clipes × 8 s =
-    // 72 s de footage para 88,7 s de fala; o compose REPETIRIA cena (o mesmo
-    // roteiro passa no Seedance/Kling 2.5, 9 × 10 s). O motor de 8 s precisa de
-    // mais clipes: teto 12 (= 96 s). ⚠ Custo: +3 clipes de Veo por filme de 90 s
-    // — decisão do fundador antes de publicar (o preço de 100 cr é fixo).
-    if ((wantsVeo || wantsSora) && duration > 64) clipCount = Math.max(clipCount, Math.min(12, Math.ceil(duration / 8) + 1))
     // ═══ KINEO-OMNI-TETO10-2026-08-25 — LIÇÃO DO PRIMEIRO RENDER (422 em 8/8) ═══
     // Schema oficial fal do google/gemini-omni-flash/image-to-video: duration é
     // INTEIRO 3-10 (não 15 como Kling 3, não 12 como o teto da casa). Cena
@@ -3148,7 +3142,7 @@ async function manipularPost(req: NextRequest) {
       // total, estornados à mão via grant-credits). Dry-run é bancada de
       // estudo: SEMPRE plano fresco, NUNCA toca submissão guardada, NUNCA
       // despacha — por isso ele pula o salvage inteiro.
-      if (salvageDb && body.dry_run !== true) {
+      if (salvageDb && !(body.dry_run === true && isDryRunAccount(user.email))) { // KINEO-DRY-RUN-AUTORIZADO-2026-09-14: só o ensaio AUTORIZADO pula o salvage
         try {
           const { data: sv } = await salvageDb
             .from('hollywood_resume')

@@ -52,7 +52,8 @@ checa('o gancho está fora do bloco hollywood (depois do seu fecho)', cin.indexO
 
 console.log('== a rota fast (Kineo 1) ==')
 const fast = rd('app/api/generate-video-fast/route.ts')
-const fHook = fast.indexOf("if (body.dry_run === true && isDryRunAccount(user.email)) {")
+// 14/09 (Board): a autorizacao do ensaio e conferida ANTES do portao, numa constante — o gancho passa a testar a constante, que precisa ser exatamente body.dry_run === true && isDryRunAccount(user.email)
+const fHook = fast.includes("const dryRunAutorizado = body.dry_run === true && isDryRunAccount(user.email)") ? fast.indexOf("    if (dryRunAutorizado) {") : fast.indexOf("if (body.dry_run === true && isDryRunAccount(user.email)) {")
 const fAiHook = fast.indexOf('let aiHookHandle: AiHookHandle | null = null')
 const fScenes = fast.indexOf('scenes = await generateScenes(prompt.slice(0, 1200), clipCount')
 checa('dry_run entra no contrato do body', /dry_run\?: boolean\n\s+\}\n\s+try \{\n\s+body = await req\.json\(\)/.test(fast))

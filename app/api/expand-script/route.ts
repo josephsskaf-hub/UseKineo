@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { openai, OPENAI_SCRIPT_TIMEOUT_MS } from '@/lib/openai'
 import { MIN_COVERAGE } from '@/lib/narrationFit'
-import { speechRateFor, speechFamilyForQuality, narrationFitAt, speechSecondsAt } from '@/lib/speechRate'
+import { speechRateForScript, narrationFitAt, speechSecondsAt } from '@/lib/speechRate'
 // KINEO-P0A-MESMA-REGUA-2026-08-26 — o MESMO extrator de fala que o guard usa
 // (app/api/generate-video-cinematic: `parseUserScript(prompt).narration`).
 // Importar daqui é o que garante que as duas pontas nunca mais divirjam.
@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
     // palavras e o portão clássico (3,1) pedia 177: expandir → curto de novo →
     // loop. As três funções abaixo têm os nomes de sempre de propósito: as
     // fórmulas desta rota não mudam, só a régua que entra nelas.
-    const regua = speechRateFor({ family: speechFamilyForQuality(body.engine) })
+    const regua = speechRateForScript(body.engine, original) // família do motor + velocidade escrita no roteiro
     const WORDS_PER_SECOND = regua.wordsPerSecond
     const narrationFit = (texto: string, alvo: number) => narrationFitAt(texto, alvo, regua)
     const speechSeconds = (texto: string) => speechSecondsAt(texto, regua)

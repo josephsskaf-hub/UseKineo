@@ -276,8 +276,8 @@ import useWaitAbandon from '@/components/video/useWaitAbandon'
 // para recusar. A tela precisa dela para encaixar a sugestao de duracao nas
 // opcoes reais do seletor (35|45|60|90), em vez de oferecer um valor que o
 // produto nao tem.
-import { MIN_COVERAGE, autofitDown, speechSeconds } from '@/lib/narrationFit'
-import { speechRateFor, speechFamilyForQuality, autofitDownAt } from '@/lib/speechRate'
+import { MIN_COVERAGE, autofitDown } from '@/lib/narrationFit'
+import { speechRateForScript, speechSecondsAt, autofitDownAt } from '@/lib/speechRate'
 // KINEO-PREFLIGHT-QUE-NAO-ACUSA-2026-09-08 — o preflight desta tela precisa
 // medir a MESMA narração que o servidor mede. Ler o texto cru conta bullets e
 // `Voice:` como fala e infla o número: era metade da razão de ele prever uma
@@ -7706,7 +7706,7 @@ export default function GenerateClient({
     {
       const baseChecagem = expandBaseRef.current
       if (scriptMode === 'verbatim' && baseChecagem) {
-        const falaSeg = speechSeconds(baseChecagem)
+        const falaSeg = speechSecondsAt(baseChecagem, speechRateForScript(quality, baseChecagem)) // KINEO-REGUA-UNICA: motor + velocidade
         const cobre = falaSeg >= duration * MIN_COVERAGE
         // KINEO-CONTRATO-DURACAO-2026-09-02 — o espelho do bloqueio acima, para
         // roteiro LONGO: "Use my script as is" com ~80s de fala e 60s no botao
@@ -7763,7 +7763,7 @@ export default function GenerateClient({
           // construir remédio para uma parede que não existe.
           const falaServidor = parseUserScript(baseChecagem).narration || baseChecagem
           // KINEO-REGUA-UNICA-2026-09-14 — a mesma função do servidor, na régua da família do motor escolhido
-          const degrau = autofitDownAt(falaServidor, duration, speechRateFor({ family: speechFamilyForQuality(quality) }))
+          const degrau = autofitDownAt(falaServidor, duration, speechRateForScript(quality, falaServidor))
           void trackEvent('script_preflight_overridden', {
             speech_seconds: Math.round(falaSeg),
             target_seconds: duration,
@@ -13964,17 +13964,18 @@ export default function GenerateClient({
               recusa DEPOIS de escrever; este contador guia DURANTE. Mesma
               medicina do custo por duração: informação antes do gasto.
 
-              Deriva de speechSeconds() — a MESMA função que o servidor usa
+              Deriva de speechSecondsAt() com a régua do motor escolhido — a MESMA régua que o servidor usa
               para recusar. Se a régua mudar lá, o contador acompanha; dois
               números divergindo nesta tela seria o defeito clássico da casa.
               Só aparece com 8+ palavras: contador em cima de campo vazio é
               ruído, não guia. */}
           {(() => {
-            const fala = speechSeconds(prompt)
+            const reguaTela = speechRateForScript(quality, prompt) // KINEO-REGUA-UNICA: o contador mede como o servidor
+            const fala = speechSecondsAt(prompt, reguaTela)
             const palavras = prompt.trim() ? prompt.trim().replace(/\[[^\]]*\]/g, ' ').split(/\s+/).filter(Boolean).length : 0
             if (palavras < 8) return null
             const cobre = fala >= duration * MIN_COVERAGE
-            const faltam = cobre ? 0 : Math.ceil((duration * MIN_COVERAGE - fala) * 2.3)
+            const faltam = cobre ? 0 : Math.ceil((duration * MIN_COVERAGE - fala) * reguaTela.wordsPerSecond)
             return (
               <p className="text-xs mt-1.5" style={{ color: cobre ? '#4ade80' : '#5cb3ff', fontWeight: 700, maxWidth: 830 }}>
                 {palavras} words ≈ {Math.round(fala)}s of narration{' '}

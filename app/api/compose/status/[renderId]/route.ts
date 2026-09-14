@@ -922,35 +922,6 @@ export async function GET(
           console.warn('[history] asset migration threw — keeping Creatomate URLs:',
             e instanceof Error ? e.message : String(e))
         }
-        // ═══ KINEO-ENTREGA-MEDIDA-2026-09-14 — o placar por motor nasce aqui ═══
-        // Direção do fundador: pedido, planejado, MEDIDO do arquivo (e o método),
-        // motor e modo de entrada, idioma/voz/velocidade, legendas e trilha
-        // configuradas, resultado. Ausência de medição fica `null` + 'unknown',
-        // nunca preenchida com a duração pedida. Legenda configurada não prova
-        // sincronização; trilha escolhida não prova adequação — são configuração.
-        try {
-          const { data: claimRow } = await supabase
-            .from('events').select('metadata').eq('name', COMPOSE_CLAIM_EVENT).eq('metadata->>render_id', renderId)
-            .order('created_at', { ascending: false }).limit(1).maybeSingle()
-          const cm = ((claimRow as { metadata?: Record<string, unknown> } | null)?.metadata ?? {}) as Record<string, unknown>
-          const requested = Number(cm.duration)
-          const narrationWords = typeof cm.narration === 'string' ? cm.narration.trim().split(/\s+/).filter(Boolean).length : null
-          void writeServerEvent({ name: 'render_delivered_measured', userId: user.id, path: '/api/compose/status', metadata: {
-            render_id: renderId,
-            engine: quality,
-            input_mode: null, // o claim não guarda verbatim/ia — desconhecido, não inventado
-            requested_seconds: Number.isFinite(requested) && requested > 0 ? requested : null,
-            planned_seconds: duration,
-            measured_seconds: measuredDelivery.measuredSeconds,
-            measure_method: measuredDelivery.measureMethod,
-            narration_words: narrationWords,
-            language: null, voice: null, speed: null, // não chegam a esta rota hoje — desconhecidos
-            captions_configured: null, music_configured: null, // idem
-            result: 'completed', failure_reason: null,
-          } })
-        } catch (e) {
-          console.warn('[entrega-medida] evento não gravado:', e instanceof Error ? e.message : String(e))
-        }
 
         // Push #355 — record render_time_ms in broll_metrics.
         // Best-effort: never blocks the video response.
@@ -1073,6 +1044,40 @@ export async function GET(
           })
           if (result.id) persistedVideoId = result.id
           console.log('[history] persist result:', JSON.stringify(result))
+          // ═══ KINEO-ENTREGA-MEDIDA-2026-09-14 — o placar por motor nasce aqui ═══
+          // Direção do fundador: pedido, planejado, MEDIDO do arquivo (e o método),
+          // motor, resultado. Ausência de medição fica `null` + 'unknown', nunca a
+          // duração pedida. Board: UMA emissão por filme — o ancoradouro é a linha
+          // de `videos` (índice único por render_id): só emite quando ELA nasceu
+          // agora (`ok && !duplicate`). Polling repetido ou concorrente recebe
+          // `duplicate` do banco e não emite. Idioma/voz/velocidade/legenda/trilha
+          // não chegam a esta rota: desconhecidos, não inventados.
+          if (result.ok && !result.duplicate) {
+            try {
+              const { data: claimRow } = await supabase
+                .from('events').select('metadata').eq('name', COMPOSE_CLAIM_EVENT).eq('metadata->>render_id', renderId)
+                .order('created_at', { ascending: false }).limit(1).maybeSingle()
+              const cm = ((claimRow as { metadata?: Record<string, unknown> } | null)?.metadata ?? {}) as Record<string, unknown>
+              const requested = Number(cm.duration)
+              const narrationWords = typeof cm.narration === 'string' ? cm.narration.trim().split(/\s+/).filter(Boolean).length : null
+              void writeServerEvent({ name: 'render_delivered_measured', userId: user.id, path: '/api/compose/status', metadata: {
+                render_id: renderId, video_id: result.id ?? null,
+                engine: quality,
+                input_mode: null,
+                requested_seconds: Number.isFinite(requested) && requested > 0 ? requested : null,
+                planned_seconds: duration,
+                measured_seconds: measuredDelivery.measuredSeconds,
+                measure_method: measuredDelivery.measureMethod,
+                narration_words: narrationWords,
+                language: null, voice: null, speed: null,
+                captions_configured: null, music_configured: null,
+                result: 'completed', failure_reason: null,
+              } })
+            } catch (e) {
+              console.warn('[entrega-medida] evento não gravado:', e instanceof Error ? e.message : String(e))
+            }
+          }
+          // ═══ FIM KINEO-ENTREGA-MEDIDA ═══
         } catch (e) {
           // persistCompletedVideo is meant to never throw, but if it
           // somehow does we still want to know about it without
