@@ -13,9 +13,13 @@ QUESTÃO PENDENTE: não importar aprovações genéricas de dry-run como valida�
 | MiniMax H3 | GO técnico de fidelidade 83aeef34 em 14/09 16:18 UTC: 117/117, Board 18/18, tsc limpo (FID-V4-R5); publicação pendente | H3 anterior reprovado visualmente; nenhum novo render | Publicação autorizada + deploy + repetir Lituya sob gate financeiro; áudio e filme completos |
 | Kling 3 | Parcial MOTORES-ESPECIFICOS-R2: router/payload reais executados em cb5f746b; 213 checks compartilhados e tsc; não entrada completa | Não executada | Mapa precisa distinguir host TTS do fallback nativo; não repetir payload aprovado |
 | Omni Flash | Parcial MOTORES-ESPECIFICOS-R2: router/payload, caps 10/10 e apara-folga reais executados; sem filme | Não executada | Mapa de áudio host/nativo/apoio; duração entregue desconhecida |
-| Seedance 2.5 | R8: 3e1b4f42 com 126/126 + tsc; servidor/ledger já fechados em 5d8d695b (288). Consumidor antigo já bloqueava Retry: conclusão contrária do R6 RETIRADA com reprodução corrigida. Saída/diagnóstico e guarda local novos testados | Não executada | SOMENTE copy: indisponibilidade nesta tentativa, não incapacidade universal de apresentar com voz. Visual no Chrome bloqueado pela ferramenta, SSR não prova aparência. Depois integrar pacotes aprovados; somente interno |
+| Seedance 2.5 | R10: GO técnico restrito a 8b973fc0, 141/141 + tsc; copy corrigida, servidor/ledger e consumidor fechados nos critérios acordados. Errata R6 preservada: Retry genérico já era bloqueado antes | Não executada | INTEGRACAO-R1 dos cinco pacotes; visual do painel pendente (SSR não prova aparência). Manter limites de mocks/memória local; somente interno |
 
 Para cada célula de aprovação registrar: roteiro preservado; ação/escala/personagens; pedido/plano/arquivo; narração; legenda; música; confiabilidade; testes/SHA. Usar NÃO VALIDADO onde faltar escuta, filme ou evidência. Testes herdados podem ser aproveitados se reconciliados contra o SHA; não repeti-los para ocupar tempo.
+
+## Próxima etapa comum — INTEGRACAO-R1 (14/09, R10)
+
+TESTADO LOCALMENTE / GO_TECNICO por pacote, ainda não integrado/publicado: fidelidade 83aeef34; guardião clássico 1d34e5b2; legendas a45237b7; música 82814b12; específicos 8b973fc0. As referências históricas a LEGENDAS-R1/MUSICA-R1 nas células acima foram atendidas pelos eixos compartilhados abaixo; não refazê-las. Próxima evidência para TODOS é o SHA integrado e a bateria pertinente, preservando os limites de cobertura por motor. Merge-tree limpo relatado pelo executor não substitui teste integrado. Nenhum dos oito ganhou validação audiovisual neste piloto. Veo 90s/custo continua fora.
 
 ## Base compartilhada — legendas (14/09, LEGENDAS-R2)
 
