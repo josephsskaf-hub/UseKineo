@@ -4058,6 +4058,75 @@ async function manipularPost(req: NextRequest) {
           }, { status: 422 })
         }
       }
+      // ═══ KINEO-VOZ-NA-BOCA-2026-09-11 — LIGADO POR PADRÃO ═══════════════════
+      // Ordem do fundador (11/09): "a gente vai colocar a voz na boca do avatar".
+      // Toda cena de diálogo com retrato-âncora sai com a NOSSA voz (TTS, gênero
+      // pela ficha) sincronizada nos lábios pelo Kling AI Avatar v2 — a mesma voz
+      // que narra o resto do filme. O motor deixa de inventar voz por cena (Kling
+      // 3) e a cena deixa de sair muda (Omni/H3). KINEO_HOLLYWOOD_HOST_TTS=off é
+      // o interruptor de emergência; qualquer outro valor (inclusive ausente) = ligado.
+      // KINEO-S25-FALA-SEM-VOZ-2026-09-14 — o interruptor é lido ANTES das âncoras
+      // porque o S25 precisa dele para decidir se pode gastar (abaixo).
+      const hostTtsEnabled = process.env.KINEO_HOLLYWOOD_HOST_TTS !== 'off'
+      // ═══ KINEO-S25-FALA-SEM-VOZ-2026-09-14 (Board, MOTORES-ESPECIFICOS-R2) ═══
+      // O Seedance 2.5 vai ao fal com generate_audio:false (contrato C1). Nesta
+      // família uma cena de diálogo SÓ tem voz pelo caminho HOST (TTS na voz
+      // pinada + Avatar lip-sync); o fallback nativo entrega um clipe MUDO que o
+      // compose recusa (cinematic_dialogue_unverified) DEPOIS de a fal ter cobrado.
+      // A primeira tentativa (cb5f746b) forçava faceless em todo pedido S25 — e
+      // apagava o caminho saudável do host, trocando em silêncio um apresentador
+      // pedido por narração sem rosto. Agora o pedido fica INTACTO: se o host não
+      // pode rodar, a incompatibilidade é conhecida antes do POST de cena — a rota
+      // para aqui, com o motivo, e devolve pelo padrão dos outros portões do plano
+      // (confirmCinematicRefund + releaseBirthClaim). Estorno só é afirmado ao
+      // cliente quando confirmado; o custo de âncora já gasto é nosso, como no piso
+      // de 90 %. Cena de apoio/documentário do S25 não passa por aqui.
+      const s25DialogueScenes = family === 's25' ? plan.scenes.filter((s) => s.type === 'dialogue').length : 0
+      // KINEO-S25-FALA-SEM-VOZ-R5-2026-09-14 (Board, MOTORES-ESPECIFICOS-R4 §2) —
+      // o mesmo portão serve à terceira porta, DEPOIS de cenas já aceitas: a
+      // parte `partial` traz o que já foi ao fornecedor (IDs aceitos, POSTs,
+      // tentativa real do host por cena retida). Sem ela = portas 1/2 (0 POST).
+      type S25PartialOutcome = {
+        heldScenes: number[]
+        hostAttempts: Array<{ scene_index: number; host_model: string | null; host_post: boolean | 'unknown'; host_status: number | null }>
+        acceptedScenes: Array<{ scene_index: number; request_id: string; model: string | null }>
+        scenePosts: number
+        stoppedAfterScene: number
+      }
+      const rejectS25DialogueWithoutHost = async (motivo: string, anchorsGenerated: boolean, partial?: S25PartialOutcome): Promise<NextResponse> => {
+        const refunded = await confirmCinematicRefund()
+        const released = refunded && await releaseBirthClaim('s25_dialogue_without_host')
+        // O desfecho financeiro vai ao contexto: o finalizador único grava
+        // claim_action/refund_confirmed em vez de 'unknown' (contabilidade real).
+        { const c = ctxDespacho(); c.claimAction = released ? 'released' : 'release_failed'; c.refundConfirmed = refunded; c.planned = plan.scenes.length }
+        const scenePosts = partial?.scenePosts ?? 0
+        const accepted = partial?.acceptedScenes ?? []
+        console.warn(`[cinematic] s25 dialogue without host path (${motivo}): ${s25DialogueScenes} dialogue scene(s), ${scenePosts} scene POST(s), ${accepted.length} accepted scene(s) set aside, held=[${(partial?.heldScenes ?? []).join(',')}], anchors=${anchorsGenerated ? 'spent' : 'not_generated'}, refunded=${refunded}, released=${released}`)
+        await writeServerEvent({ name: 's25_dialogue_without_host', userId: user.id, path: '/api/generate-video-cinematic', metadata: {
+          generation_id: generationId, family, motivo, dialogue_scenes: s25DialogueScenes, planned_scenes: plan.scenes.length, visual_mode_requested: formatoVisual.modo,
+          anchors_generated: anchorsGenerated, scene_posts: scenePosts, refunded, claim_released: released,
+          // §1/§2 — o que já existia quando a impossibilidade ficou conhecida: a
+          // tentativa REAL do host (POST comprovado / antes do POST / desconhecido),
+          // as cenas aceitas (custo nosso, IDs preservados) e o fallback nativo
+          // das retidas, que teve ZERO POST por decisão nossa.
+          held_scenes: partial?.heldScenes ?? [], host_attempts: partial?.hostAttempts ?? [],
+          accepted_scenes: accepted.length, accepted_request_ids: accepted.map((a) => a.request_id),
+          native_posts_for_held: 0, stopped_after_scene: partial?.stoppedAfterScene ?? 0,
+        } })
+        const submittedPart = accepted.length > 0
+          ? `${accepted.length} scene${accepted.length === 1 ? '' : 's'} had already started and ${accepted.length === 1 ? 'was' : 'were'} set aside`
+          : 'No video scene was started'
+        return NextResponse.json({
+          error: `Seedance 2.5 cannot voice an on-camera presenter for this film (${motivo}). ${submittedPart}${released ? ' and your credits are back' : ''}. Choose Kling 3, MiniMax H3 or Omni Flash for a presenter, or ask for a narrated film without a presenter on Seedance 2.5.`,
+          qualityCheckFailed: true, reason: 's25_dialogue_without_host', motivo,
+          generationId, refunded, refundConfirmed: refunded, claimReleased: released, retryable: false,
+          dialogueScenes: s25DialogueScenes, visualMode: formatoVisual.modo,
+          heldScenes: partial?.heldScenes ?? [], acceptedScenes: accepted, scenePosts,
+        }, { status: 422 })
+      }
+      if (s25DialogueScenes > 0 && !hostTtsEnabled) {
+        return rejectS25DialogueWithoutHost('presenter voice path is switched off', false)
+      }
       let anchors: HollywoodAnchors | null = null
       try {
         // Anchor generation is itself paid Fal work. From this point onward an
@@ -4157,15 +4226,16 @@ async function manipularPost(req: NextRequest) {
           hostVoice = null
         }
       }
+      // KINEO-S25-FALA-SEM-VOZ-2026-09-14 — segunda porta: com o interruptor
+      // ligado, o host ainda depende das âncoras (retrato) e da voz pinada. Sem
+      // uma delas a cena de diálogo do S25 só teria o POST nativo mudo. Para
+      // aqui, antes do primeiro POST de cena (âncoras já gastas: custo nosso).
+      if (s25DialogueScenes > 0 && (!anchors || !hostVoice)) {
+        return rejectS25DialogueWithoutHost(!anchors ? 'the portrait anchor could not be generated' : 'no presenter voice could be pinned', Boolean(anchors))
+      }
       const hostPerformancePrompt = buildHostPerformancePrompt(plan.characterSheet, plan.styleSheet)
-      // ═══ KINEO-VOZ-NA-BOCA-2026-09-11 — LIGADO POR PADRÃO ═══════════════════
-      // Ordem do fundador (11/09): "a gente vai colocar a voz na boca do avatar".
-      // Toda cena de diálogo com retrato-âncora sai com a NOSSA voz (TTS, gênero
-      // pela ficha) sincronizada nos lábios pelo Kling AI Avatar v2 — a mesma voz
-      // que narra o resto do filme. O motor deixa de inventar voz por cena (Kling
-      // 3) e a cena deixa de sair muda (Omni/H3). KINEO_HOLLYWOOD_HOST_TTS=off é
-      // o interruptor de emergência; qualquer outro valor (inclusive ausente) = ligado.
-      const hostTtsEnabled = process.env.KINEO_HOLLYWOOD_HOST_TTS !== 'off'
+      // KINEO-VOZ-NA-BOCA-2026-09-11 — `hostTtsEnabled` (ligado por padrão) é
+      // declarado acima das âncoras; a explicação vive lá.
       // Verbatim scripts may carry an explicit `speed:` directive — apply it
       // to the host lines exactly like compose applies it to the narration
       // (persona pace × user speed, clamped inside synthesizeHostSpeech).
@@ -4197,6 +4267,20 @@ async function manipularPost(req: NextRequest) {
       // ENTREGUES) saíam attempted=0 / not_attempted=N / invariant_ok=false /
       // claim_action=unknown — o placar dizia 'nada foi ao fornecedor'.
       const hDispositions: Array<'accepted' | 'explicit_reject' | 'ambiguous'> = []
+      // KINEO-S25-FALA-SEM-VOZ-2026-09-14 — cenas retidas por decisão NOSSA (nunca
+      // chegaram ao fal): índice do plano → no ledger viram local_policy_gate com
+      // zero tentativas, e não somam em totalPosts.
+      const hHeldByPolicy = new Set<number>()
+      // KINEO-S25-FALA-SEM-VOZ-R5-2026-09-14 (Board, MOTORES-ESPECIFICOS-R4 §1) —
+      // a tentativa REAL do host numa cena retida não pode sumir do ledger. Por
+      // cena retida: modelo do host, status devolvido e se o POST ocorreu —
+      // true = rejeição explícita COM status (o adaptador só a lança depois do
+      // fetch); false = falhou ANTES do POST (TTS, upload, ou chave ausente:
+      // AvatarSubmitError com status null nasce antes do fetch); 'unknown' =
+      // erro fora do contrato do adaptador na etapa de submit — não dá para
+      // provar, e o ledger declara isso em vez de afirmar zero.
+      type HostAttempt = { model: string; status: number | null; posted: boolean | 'unknown'; message: string }
+      const hHostAttempts = new Map<number, HostAttempt>()
       const hModels: string[] = []
       const hEngines: string[] = []
       // KINEO-KLING3-AUDIT-2026-08-20 — scene_prompts devolvia o prompt CRU
@@ -4234,6 +4318,9 @@ async function manipularPost(req: NextRequest) {
         // sempre do mesmo dono. Narracao TTS segue apenas nas cenas sem gente
         // (estilo documentario: narrador + personagem sao pessoas diferentes).
         if (hostTtsEnabled && anchors && hostVoice && hs.type === 'dialogue' && hs.dialogueLine && hs.dialogueLine.trim()) {
+          // R5 §1 — em que etapa o host estava quando falhou: só 'submit' pode
+          // ter feito um POST.
+          let hostStage: 'tts' | 'upload' | 'submit' = 'tts'
           try {
             const speechBuf = await synthesizeHostSpeech({
               text: hs.dialogueLine,
@@ -4242,7 +4329,9 @@ async function manipularPost(req: NextRequest) {
             })
             const audioDur = estimateMp3DurationSeconds(speechBuf)
             if (!(audioDur > 0.5)) throw new Error(`host TTS unmeasurable/too short (${audioDur.toFixed(2)}s)`)
+            hostStage = 'upload'
             const audioUrl = await uploadVoiceoverToSupabase(user.id, speechBuf)
+            hostStage = 'submit'
             const reqId = await submitAvatarJob({
               imageUrl: anchors.portraitUrl,
               audioUrl,
@@ -4283,16 +4372,48 @@ async function manipularPost(req: NextRequest) {
               throw e
             }
             console.warn(
-              `[cinematic] hollywood host scene ${hs.index} failed — falling back to O3 native audio:`,
+              `[cinematic] hollywood host scene ${hs.index} failed — ${family === 's25' ? 'S25 has no native voice: scene held back, no silent POST' : 'falling back to O3 native audio'}:`,
               e instanceof Error ? e.message : String(e),
             )
             id = null
             sceneModel = cinematicSceneModel(family, hs.type, Boolean(anchors))
             sceneEngine = hs.type
+            if (family === 's25') {
+              // R5 §1 — a cena vai ser retida (abaixo); o que o host fez fica
+              // registrado antes de o modelo nativo (nunca chamado) ocupar o lugar.
+              const posted: boolean | 'unknown' = hostStage !== 'submit' ? false
+                : e instanceof AvatarSubmitError ? e.status !== null
+                  : 'unknown'
+              hHostAttempts.set(idx, {
+                model: HOST_PRESENTER_MODEL,
+                status: e instanceof AvatarSubmitError ? e.status : null,
+                posted,
+                message: e instanceof Error ? e.message : String(e),
+              })
+            }
           }
         }
 
-        if (!id) {
+        // KINEO-S25-FALA-SEM-VOZ-2026-09-14 — terceira porta, dentro do laço: a
+        // falha EXPLÍCITA do host (TTS/upload/submit, não ambígua) numa cena de
+        // diálogo do S25 não pode cair no POST nativo (generate_audio:false → clipe
+        // mudo → compose recusa depois do gasto). A cena fica RETIDA: recusa NOSSA
+        // (explicit_reject + local_policy_gate), zero chamada ao fal, cenas já
+        // aceitas preservadas, e o piso de 90 % decide o filme como em qualquer
+        // recusa explícita. Nenhum re-POST. A falha AMBÍGUA segue o ramo acima
+        // (break + IDs anteriores), intocado. Famílias com voz nativa continuam
+        // caindo no fallback nativo.
+        const s25DialogueHeld = !id && family === 's25' && hs.type === 'dialogue'
+        if (s25DialogueHeld) {
+          hHeldByPolicy.add(idx)
+          // R5 §1 — o modelo gravado para a cena retida é o que foi de fato
+          // tentado (o host), nunca o nativo que ficou proibido.
+          const hostAttempt = hHostAttempts.get(idx)
+          if (hostAttempt) sceneModel = hostAttempt.model
+          console.warn(`[cinematic] s25 dialogue scene ${hs.index} held back — host path ${hostAttempt ? `failed at ${hostAttempt.posted === true ? `provider (HTTP ${hostAttempt.status})` : hostAttempt.posted === false ? 'our side before any POST' : 'an unproven stage'}` : 'unavailable'}, native clip would be silent (not posted)`)
+        }
+
+        if (!id && !s25DialogueHeld) {
           // v3.0 path — byte-identical to before v3.5 (and the per-scene
           // fallback when the host path above failed).
           // KINEO-SPECTACLE-2026-08-17 (fundador: "a mesma cena do mar se
@@ -4469,6 +4590,15 @@ async function manipularPost(req: NextRequest) {
         hEngines.push(sceneEngine)
         hSubmittedPrompts.push(submittedPrompt)
         ctxDespacho().submittedPrompts[hs.index] = submittedPrompt.slice(0, 240)
+        // KINEO-S25-FALA-SEM-VOZ-R5-2026-09-14 (Board, R4 §2) — uma fala
+        // obrigatória retida já condena o filme: nenhuma cena seguinte pode
+        // completá-lo. Parar aqui evita POSTs pagos que só virariam custo nosso.
+        // As cenas já aceitas ficam (IDs preservados); o desfecho é decidido
+        // depois do ledger, antes do piso de 90 %.
+        if (s25DialogueHeld) {
+          console.warn(`[cinematic] s25 dialogue scene ${hs.index} held — stopping submission after ${hRequestIds.length}/${plan.scenes.length} scene(s); the film cannot be completed`)
+          break
+        }
         await new Promise((r) => setTimeout(r, 450))
       }
 
@@ -4492,18 +4622,81 @@ async function manipularPost(req: NextRequest) {
           const disp = hDispositions[i]
           if (!disp) continue
           const model = hModels[i] ?? String(claimQuality)
+          // KINEO-S25-FALA-SEM-VOZ-2026-09-14 — cena retida por política: recusa
+          // nossa, sem POST. O ledger não pode inventar uma tentativa ao fornecedor.
+          const held = hHeldByPolicy.has(i)
+          // KINEO-S25-FALA-SEM-VOZ-R5-2026-09-14 (Board, R4 §1) — o ec650782
+          // gravava toda cena retida como 0 tentativas, apagando o POST REAL do
+          // host quando ele existiu (HTTP 400 do fornecedor) e trocando o modelo
+          // pelo nativo que nunca foi chamado. Agora: POST comprovado = UMA
+          // tentativa do host, com status e classe reais; falha antes do POST =
+          // zero tentativas (como TTS/upload sempre foram); não comprovável =
+          // 'unknown' declarado. O fallback nativo bloqueado nunca vira tentativa.
+          const hostAttempt = held ? hHostAttempts.get(i) : undefined
+          if (hostAttempt && hostAttempt.posted !== false) {
+            const classe = hostAttempt.posted === true
+              ? classifyProviderFailure({ status: hostAttempt.status, ambiguous: false, message: hostAttempt.message }).reason_class
+              : 'unknown'
+            c.outcomes[i] = {
+              scene_index: i,
+              model: hostAttempt.model,
+              disposition: disp,
+              reason_class: classe,
+              retry_safety: 'never',
+              provider_http_status: hostAttempt.status,
+              attempt_count: 1,
+            }
+            c.attempts[i] = [{ model: hostAttempt.model, status: hostAttempt.status, ambiguous: false, accepted: false }]
+            c.totalPosts += 1
+            continue
+          }
           c.outcomes[i] = {
             scene_index: i,
             model,
             disposition: disp,
-            reason_class: disp === 'accepted' ? 'ok' : disp === 'ambiguous' ? 'transport_timeout_5xx' : 'unknown',
+            reason_class: disp === 'accepted' ? 'ok' : disp === 'ambiguous' ? 'transport_timeout_5xx' : held ? 'local_policy_gate' : 'unknown',
             retry_safety: 'never',
             provider_http_status: disp === 'accepted' ? 200 : null,
-            attempt_count: 1,
+            attempt_count: held ? 0 : 1,
           }
-          c.attempts[i] = [{ model, status: disp === 'accepted' ? 200 : null, ambiguous: disp === 'ambiguous', accepted: disp === 'accepted' }]
-          c.totalPosts += 1
+          c.attempts[i] = held ? [] : [{ model, status: disp === 'accepted' ? 200 : null, ambiguous: disp === 'ambiguous', accepted: disp === 'accepted' }]
+          if (!held) c.totalPosts += 1
         }
+      }
+      // ═══ KINEO-S25-FALA-SEM-VOZ-R5-2026-09-14 (Board, MOTORES-ESPECIFICOS-R4 §2) ═══
+      // Cena de diálogo RETIDA = fala obrigatória que nenhuma cena entregue
+      // contém. O piso de 90 % abaixo mede SEGUNDOS, não fala: com apoios
+      // suficientes ele aprovava, o compose alinhava só as URLs concluídas
+      // (signedSceneMetadata não repõe estoque) e o filme saía SEM a fala pedida
+      // — sucesso normal para um filme incompleto, ou cinematic_timeline_too_short
+      // só na composição. Aqui o desfecho é explícito e vem ANTES do piso, pelo
+      // mesmo portão das portas 1/2: IDs aceitos preservados no ledger, no evento
+      // e na resposta (custo deles é nosso, como no piso); estorno confirmado
+      // ANTES de liberar o claim (sem confirmação nada é prometido e o claim não
+      // se abre); retryable:false; nenhuma re-geração automática; e o snapshot
+      // de retomada (hollywood_resume) NÃO é gravado — a retomada re-submeteria
+      // o slot nulo pelo modelo nativo mudo.
+      if (hHeldByPolicy.size > 0) {
+        const heldScenes = [...hHeldByPolicy].sort((a, b) => a - b)
+        const acceptedScenes = hRequestIds.flatMap((id, i) => (id ? [{ scene_index: i, request_id: id, model: hModels[i] ?? null }] : []))
+        const hostAttempts = heldScenes.map((i) => {
+          const a = hHostAttempts.get(i)
+          return { scene_index: i, host_model: a?.model ?? null, host_post: a ? a.posted : false, host_status: a?.status ?? null }
+        })
+        const firstHeld = hHostAttempts.get(heldScenes[0])
+        const motivo = firstHeld
+          ? firstHeld.posted === true
+            ? `the presenter voice provider rejected the scene (HTTP ${firstHeld.status})`
+            : firstHeld.posted === false
+              ? 'the presenter voice could not be produced'
+              : 'the presenter voice path failed at an unproven stage'
+          : 'the dialogue scene had no line to voice'
+        return rejectS25DialogueWithoutHost(motivo, Boolean(anchors), {
+          heldScenes, hostAttempts, acceptedScenes,
+          // hRequestIds já foi completado com null até o fim do plano; o que
+          // conta cenas de fato processadas é hDispositions.
+          scenePosts: ctxDespacho().totalPosts, stoppedAfterScene: hDispositions.length,
+        })
       }
       const hValid = hRequestIds.filter((id): id is string => id !== null)
       // KINEO-FAILFAST-2026-08-17 — o render do fundador saiu com 10s de um
