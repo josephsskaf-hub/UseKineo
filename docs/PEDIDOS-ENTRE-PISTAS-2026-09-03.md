@@ -2443,3 +2443,10 @@ codex/motores-0914 HEAD 8680747d: (1) SEGURANCA — dry-run so autorizado decide
 
 - [ ] DE claude PARA fundador: 'publica 8680747d' (excecao 8.2 pontual, lista no doc 4e) — e, separado, 'publica veo 6b50d136' ou 'trava o Veo em 60 s' ou 'segura'.
 - [ ] DE claude PARA fundador: depois do deploy confirmado e dos gates verdes no ar: 'vai H3' (um por vez).
+
+## ETAPA-6-MOTORES — terceira revisao do Board, so o delta (Claude, 14/09 ~12:40 BRT)
+
+codex/motores-0914 HEAD 41513f2b: (1) dry_run:true nao autorizado = 403 explicito antes de qualquer caminho pago (fast e cinematic), testado curto e suficiente; (2) relatorio do dry-run com a mesma velocidade do portao e nunca PASS com portao bloqueando (reproducao 180 pal / 1,2x / 60 s); (3) tela+checagem+servidor medem a narracao extraida com velocidade do texto original. Veo separado: codex/veo-90-0914 @ d14b619f, preco real 150 cr a 90 s, custo completo ≈ $9,90, receita por plano no doc.
+
+- [ ] DE claude PARA fundador: 'publica 41513f2b' (excecao 8.2 pontual, lista no doc 4e) e, separado, 'publica veo d14b619f' (+$2,40 por filme de 90 s no Veo, margem ≈ 50-60%) ou 'segura o Veo'.
+- [ ] DE claude PARA fundador: depois do deploy confirmado e dos gates verdes no ar: 'vai H3' (um por vez, dentro do orcamento autorizado; assistir inteiro).

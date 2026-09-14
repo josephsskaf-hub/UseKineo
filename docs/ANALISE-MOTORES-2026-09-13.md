@@ -216,6 +216,20 @@ Modelo realmente usado: `fal-ai/veo3.1/fast`, $0,10/s (docs/PRECOS-MOTORES-V4.md
 
 Nenhum render pago nesta etapa. A autorização condicional já existe: depois da publicação com os gates verdes e do deploy confirmado, um motor por vez, começando pelo H3, assistindo inteiro (duração, fidelidade ao texto, cenas, fala, legendas, música). Avatar por último.
 
+## 4g. Etapa 6 (14/09 12:00 → 12:40) — terceira revisão do Board: só o delta
+
+Branch codex/motores-0914 — HEAD **41513f2b** (um commit sobre 8680747d). Typecheck 0 erros. Guardião da leva: 70 verificações. Suíte por nome: docs/SUITE-MOTORES-2026-09-14.md (atualizada nesta etapa; o único vermelho novo continua sendo a trava 8.2).
+
+| Ajuste | O que mudou | Regressão executada |
+|---|---|---|
+| 1 Dry-run não autorizado | `dry_run:true` de conta não autorizada é REJEITADO explicitamente (403 `dry_run_not_authorized`, evento próprio) antes de qualquer caminho pago, no Kineo 1 e no cinematic (antes da reserva de crédito). Nunca vira geração real em silêncio | externo × dry_run=true com roteiro CURTO → 403; com roteiro SUFICIENTE → 403; interno × dry_run=true → relatório 200; interno/externo × dry_run=false → portão normal |
+| 2 Relatório = portão | o relatório do dry-run do Kineo 1 recebe a MESMA velocidade efetiva do portão (família × velocidade do roteiro) e nunca diz PASS quando o portão bloqueia — por roteiro curto ou por excesso de blocos | reprodução do Board: 180 palavras, 1,2×, 60 s → `gate.blocked`, veredito "FAIL — portão: 48s de fala a 3,72 pal/s…" com o mock do relatório dizendo PASS; 21 blocos → FAIL por excesso; o relatório recebeu 3,72 |
+| 3 Mesma narração | tela, checagem local e servidor medem a narração EXTRAÍDA (`speechSecondsOfScript`): velocidade lida do texto ORIGINAL, diretivas (`speed:`, `Visual:`, rótulos) fora da contagem; a velocidade nunca é recuperada depois de remover as diretivas | 60 palavras + diretivas a 1,2× → conta 60, 3,72 pal/s, 16,1 s; sem diretiva → 1×, 19,4 s |
+
+### Veo, orçamento corrigido (branch codex/veo-90-0914 @ d14b619f, só Veo)
+
+Preço real do filme: `creditCostForDuration('cinematic_veo', pago, 90)` = 100 × 90/60 = **150 cr** (não 100), lido da função da casa no guardião. Custo completo por filme de 90 s: 12 clipes × $0,80 (fal-ai/veo3.1/fast, $0,10/s) = $9,60 + TTS/compose ≈ $0,30 → **≈ $9,90**. Receita por 150 cr: Starter $24,75 · Creator $19,90 · Studio $19,95 (trial $0). Margem nos planos pagos ≈ 50-60% (com 9 clipes era ≈ 63-71%, mas o filme saía com 72 s de imagem para 89 s de fala). Decisão pedida: aceitar +$2,40 por filme de 90 s no Veo.
+
 ## 5. O que falta
 
 1. Publicar a branch codex/motores-0914 (7da4eef0) com a exceção aprovada; confirmar SHA e deploy; re-rodar os dry-runs de 60/90 do Kineo 1 e do Veo no ar.

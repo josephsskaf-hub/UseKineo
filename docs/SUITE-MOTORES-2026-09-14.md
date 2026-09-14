@@ -1,0 +1,125 @@
+# Suíte de guardiões — branch codex/motores-0914 @ 41513f2b vs base origin/main @ bcff1868 (14/09/2026 12:40)
+
+Verdes: 397 · Vermelhos: 118 (base: 396 / 117). Comparação por NOME; causa = primeira linha de falha capturada.
+
+## Vermelhos que eram verdes na base
+- scripts/test-despacho-vazio-2026-09-04.mjs —   ✗ 8.2 nao toca lib/compose
+
+## Vermelhos herdados (iguais na base), com a causa
+- scripts/test-activation-recovery-claim-settle.mjs — sem linha de falha capturada (morre no import: guardiões com alias @/ não rodam)
+- scripts/test-activation-recovery-server-truth.mjs — sem linha de falha capturada (morre no import: guardiões com alias @/ não rodam)
+- scripts/test-aeo-business-offer.mjs — AssertionError [ERR_ASSERTION]: llms text no longer rebuilds the business offer separately
+- scripts/test-aeo-engine-destinations.mjs — AssertionError [ERR_ASSERTION]: every live engine has one public destination
+- scripts/test-affiliate-activation.mjs — AssertionError [ERR_ASSERTION]: one-video recovery impression is measured separately
+- scripts/test-affiliate-destinations.mjs — AssertionError [ERR_ASSERTION]: /affiliate fails closed
+- scripts/test-afiliado-30-e-packs-v7-2026-09-09.mjs —   ✗ kit de afiliados: 30% e $8,70 por Creator
+- scripts/test-afiliado-ref-2026-09-08.mjs —   ✗ kit dos criadores existe e usa /a/CODE
+- scripts/test-ai-shorts-series.mjs — sem linha de falha capturada (morre no import: guardiões com alias @/ não rodam)
+- scripts/test-alvo-fantasma-2026-08-31.mjs — SyntaxError: Unexpected token 'export'
+- scripts/test-another-short-shelf.mjs — sem linha de falha capturada (morre no import: guardiões com alias @/ não rodam)
+- scripts/test-aparar-expansao-2026-09-02.mjs —   ✗ depois de aparar exige: teto ok + alvo ok + autor preservado + marcadores intactos
+- scripts/test-archive-studio-review.mjs — AssertionError [ERR_ASSERTION]: app/(dashboard)/history/HistoryClient.tsx changed more than navigation
+- scripts/test-autopilot-case-study-path.mjs — Error: primary action must name the existing offer
+- scripts/test-autopilot-pilot-resume.mjs — AssertionError [ERR_ASSERTION]: Pilot creation stores only a public boolean client hint
+- scripts/test-b2c-subscription-truth-report.mjs — AssertionError [ERR_ASSERTION]: human-visible post-delivery banner CTA counts one person
+- scripts/test-carta-episodio-gatilho-2026-09-06.mjs —   ✗ a rota usa o helper unico de destino
+- scripts/test-causa-sempre-2026-08-31.mjs —   ✗ A4 a síntese usa o prefixo no_detail:
+- scripts/test-checkout-currency-truth.mjs — AssertionError [ERR_ASSERTION]: app/cheapest-ai-shorts-maker/page.tsx imports and renders the canonical disclosure
+- scripts/test-checkout-hot-nudge.mjs —    ✗ a saída barata é o trial de $1 já público, não preço novo
+- scripts/test-client-short-brief.mjs — AssertionError [ERR_ASSERTION]: brief carries into the existing generator
+- scripts/test-clique-perdido.mjs — sem linha de falha capturada (morre no import: guardiões com alias @/ não rodam)
+- scripts/test-coerencia-historia-2026-09-02.mjs — sem linha de falha capturada (morre no import: guardiões com alias @/ não rodam)
+- scripts/test-consentimento-superficie.mjs — sem linha de falha capturada (morre no import: guardiões com alias @/ não rodam)
+- scripts/test-convite-na-hora-certa-2026-08-31.mjs —   ✗ importa ouvirVideoEntregue
+- scripts/test-credits-held-waitroom.mjs — sem linha de falha capturada (morre no import: guardiões com alias @/ não rodam)
+- scripts/test-cta-composer-2026-09-06.mjs —   ✗ send-next-episode-wall: usa o helper
+- scripts/test-data-cache-no-store.mjs — sem linha de falha capturada (morre no import: guardiões com alias @/ não rodam)
+- scripts/test-done-footer-2026-08-31.mjs — sem linha de falha capturada (morre no import: guardiões com alias @/ não rodam)
+- scripts/test-dunning-grace.mjs — sem linha de falha capturada (morre no import: guardiões com alias @/ não rodam)
+- scripts/test-engine-landing-intent.mjs — AssertionError [ERR_ASSERTION]: all seven live engine params are allowlisted
+- scripts/test-enterprise-alternative-business-path.mjs — AssertionError [ERR_ASSERTION]: hero creator CTA is unchanged and unique
+- scripts/test-episodio2-ending-2026-09-01.mjs —  ✗ B7 exatamente tres chamadas do helper
+- scripts/test-espiral-recusa-2026-09-01.mjs — SyntaxError: Unexpected token 'export'
+- scripts/test-example-remix.mjs — AssertionError [ERR_ASSERTION]: the form states the existing trial condition honestly
+- scripts/test-failure-cause-38.mjs — sem linha de falha capturada (morre no import: guardiões com alias @/ não rodam)
+- scripts/test-failure-recovery-honest.mjs —   ✗ utm_campaign separado (failure_recovery_script) para medir a parte
+- scripts/test-failure-recovery-latest-wins.mjs — SyntaxError: Unexpected identifier 'Falha'
+- scripts/test-failure-screen-40.mjs —   ✗ failureScreenKind e null fora de failed
+- scripts/test-fila-global-pilula-2026-08-31.mjs —   ✗ B1 a pílula empurra para /generate com prompt+autoanalyze
+- scripts/test-first-film-free-offer.mjs — sem linha de falha capturada (morre no import: guardiões com alias @/ não rodam)
+- scripts/test-free-limit-wall.mjs — sem linha de falha capturada (morre no import: guardiões com alias @/ não rodam)
+- scripts/test-go-auto-forward.mjs — sem linha de falha capturada (morre no import: guardiões com alias @/ não rodam)
+- scripts/test-google-ads-signup-conversion-truth.mjs — AssertionError [ERR_ASSERTION]: paid conversion keeps the actual checkout currency
+- scripts/test-gpt-handoff.mjs —   ok  (B8) insert falhou → 503 legível (sem linha não há link)
+- scripts/test-growth-candidate-2026-09-01.mjs —   ✗ growth_limit devolve candidateFits
+- scripts/test-growth-roundup-search-intent.mjs — AssertionError [ERR_ASSERTION]: roundup freshness date is current
+- scripts/test-growth-space-intent.mjs — AssertionError [ERR_ASSERTION]: exact script constant is extractable
+- scripts/test-guardiao-2026-08-28.mjs —   ✗ live: a coluna soma as 4 fontes (videos, images, audios, animate)
+- scripts/test-guardiao-yaml-2026-09-03.mjs — sem linha de falha capturada (morre no import: guardiões com alias @/ não rodam)
+- scripts/test-home-curation-restore.mjs — Error: unmocked import @/lib/homeVideoCuration
+- scripts/test-hora-da-volta-2026-08-31.mjs — sem linha de falha capturada (morre no import: guardiões com alias @/ não rodam)
+- scripts/test-last-setup-memory.mjs — sem linha de falha capturada (morre no import: guardiões com alias @/ não rodam)
+- scripts/test-leva-confiabilidade-2026-08-28.mjs —   ✗ relinked aparece na resposta do cron
+- scripts/test-limit-purchase-fit.mjs — Error: Command failed: C:Program Filesnodejsnode.exe C:kineo-wtrestauranode_modulestypescriptbintsc C:UsersjosepAppDataLocalTe
+- scripts/test-local-business-ad-brief.mjs — AssertionError [ERR_ASSERTION]: approved draft reaches the editor, not checkout or render
+- scripts/test-local-business-tool-discovery.mjs — AssertionError [ERR_ASSERTION]: hub names the exact B2B job
+- scripts/test-manrope-system.mjs — AssertionError [ERR_ASSERTION]: app/(auth)/signup/page.tsx: only font-family changes; all behavior/copy unchanged
+- scripts/test-marcador-da-casa.mjs — sem linha de falha capturada (morre no import: guardiões com alias @/ não rodam)
+- scripts/test-momentum-motor-gratis.mjs — Error: lib/freeTierOffer.ts: import inesperado ./entryPolicy
+- scripts/test-motores-d1-2026-09-01.mjs —   ✗ armadilha 2: aspect_ratio 9:16 explicito no t2v (default 'auto' deita o filme)
+- scripts/test-multiformato-2026-09-02.mjs — sem linha de falha capturada (morre no import: guardiões com alias @/ não rodam)
+- scripts/test-narracao-degrau.mjs — sem linha de falha capturada (morre no import: guardiões com alias @/ não rodam)
+- scripts/test-next-episode-visibility.mjs — sem linha de falha capturada (morre no import: guardiões com alias @/ não rodam)
+- scripts/test-next-episode-wall-2026-09-06.mjs —   ✗ sem confirm devolve DRY_RUN e SAI
+- scripts/test-next-idea-wait-45.mjs —   ✗ diff nao vazio
+- scripts/test-next-shorts-affordance-2026-08-31.mjs —   ✗ A1: card sem rotulo de acao
+- scripts/test-pacote-no-email-de-entrega.mjs —   ✗ 22. o carimbo do e-mail registra se o pacote viajou (denominador)
+- scripts/test-painel-verdade.mjs —   ✗ is_paid usa isPaidPlan() de _shared/mrr
+- scripts/test-paypal-canonical-catalog.mjs — AssertionError [ERR_ASSERTION]: Starter recovery link charges current $14 monthly price (V7)
+- scripts/test-paypal-idempotencia.mjs —   ✗ erro DESCONHECIDO lança em vez de devolver `true`
+- scripts/test-plan-film-language.mjs — AssertionError [ERR_ASSERTION]: current Starter grant buys eight paid Kineo 1 films
+- scripts/test-ponte-com-preco-2026-09-07.mjs — sem linha de falha capturada (morre no import: guardiões com alias @/ não rodam)
+- scripts/test-porta-email-2026-09-06.mjs — sem linha de falha capturada (morre no import: guardiões com alias @/ não rodam)
+- scripts/test-porta-episodio2-2026-09-04.mjs —    ✗ 6.0c o import pre-existente da regua de narracao ficou byte a byte o de antes
+- scripts/test-preco-para-saldo-cheio-2026-09-07.mjs — sem linha de falha capturada (morre no import: guardiões com alias @/ não rodam)
+- scripts/test-preco-visivel-2026-09-02.mjs — sem linha de falha capturada (morre no import: guardiões com alias @/ não rodam)
+- scripts/test-private-file-share.mjs — Error: unmocked import @/lib/postVideoSignal
+- scripts/test-product-surface-intent.mjs — AssertionError [ERR_ASSERTION]: FAQ states the trial-to-engine gap
+- scripts/test-public-video-privacy.mjs — AssertionError [ERR_ASSERTION]: engine showcase must match the founder-confirmed static allowlist
+- scripts/test-publicador-refspec-2026-09-05.mjs — sem linha de falha capturada (morre no import: guardiões com alias @/ não rodam)
+- scripts/test-publish-kit-business-path.mjs — AssertionError [ERR_ASSERTION]: test acknowledges global attribution is merged with experiment metadata
+- scripts/test-recusa-analyze-copy-2026-09-01.mjs — SyntaxError: Unexpected identifier 'AnalyzeRefusalCode'
+- scripts/test-recusa-nao-e-tente-de-novo-2026-08-31.mjs —   ✗ B2 route compara contra a constante
+- scripts/test-render-morto.mjs — sem linha de falha capturada (morre no import: guardiões com alias @/ não rodam)
+- scripts/test-resgate-402-2026-09-01.mjs —   ✗ A9 `needed` e `balance` continuam no payload
+- scripts/test-resgate-filme-do-fornecedor-2026-09-08.mjs —   ✗ F7 o caminho vivo mantém orçamento de download bounded
+- scripts/test-returning-seed-2026-09-01.mjs — SyntaxError: Cannot use import statement outside a module
+- scripts/test-rodape-saldo-desconhecido-2026-09-05.mjs — sem linha de falha capturada (morre no import: guardiões com alias @/ não rodam)
+- scripts/test-roteiro-perdido-2026-08-31.mjs — SyntaxError: Unexpected token 'export'
+- scripts/test-runway.mjs — sem linha de falha capturada (morre no import: guardiões com alias @/ não rodam)
+- scripts/test-scene-disposition.mjs —   ✗ FAILFAST clássico só libera a claim quando nenhum ID é renderizável
+- scripts/test-script-preflight.mjs —   ✗ fala ainda é medida no modo verbatim
+- scripts/test-season-strip.mjs — sem linha de falha capturada (morre no import: guardiões com alias @/ não rodam)
+- scripts/test-segunda-tentativa-1usd.mjs — Error: app/api/admin/send-second-try-1usd/route.ts: unexpected import ../_shared/mrr
+- scripts/test-sem-porteiro-2026-09-02.mjs — sem linha de falha capturada (morre no import: guardiões com alias @/ não rodam)
+- scripts/test-serie-memoria-2026-09-04.mjs — Error: app/api/next-episode/route.ts: import inesperado @supabase/supabase-js
+- scripts/test-signup-product-destination.mjs — AssertionError [ERR_ASSERTION]: product destination is named before generic creation copy
+- scripts/test-sistema-de-compra-2026-09-08.mjs —   ✗ handleGenerateGuarded abre o modal quando outOfCredits()
+- scripts/test-state-study-starter-position.mjs — Error: FAIL: free-workflow contract preserved
+- scripts/test-stranded-email-dedupe.mjs — sem linha de falha capturada (morre no import: guardiões com alias @/ não rodam)
+- scripts/test-stranded-extra-attempt-4xx.mjs — sem linha de falha capturada (morre no import: guardiões com alias @/ não rodam)
+- scripts/test-studio-hierarchy-runtime.mjs — TypeError: Cannot read properties of null (reading 'useContext')
+- scripts/test-studio-prompt-limit.mjs — AssertionError [ERR_ASSERTION]: teto medido no finalPrompt (com o sufixo da camera)
+- scripts/test-studio-tile-episode2-2026-08-31.mjs — Error: ENOENT: no such file or directory, open 'C:C:kineo-wtrestauralibseriesContinuation.ts'
+- scripts/test-subscriber-idle.mjs — sem linha de falha capturada (morre no import: guardiões com alias @/ não rodam)
+- scripts/test-temporada.mjs —   ✗ 32. `affordable` e derivado do custo e do saldo, nunca digitado
+- scripts/test-teto-no-prompt.mjs — sem linha de falha capturada (morre no import: guardiões com alias @/ não rodam)
+- scripts/test-text-to-video-intent-router.mjs — AssertionError [ERR_ASSERTION]: idea: duration survives signup
+- scripts/test-troca-de-plano-2026-09-09.mjs —   ✗ fatura de proration (subscription_update) sai ANTES do grant de renovação
+- scripts/test-ux-complete.mjs — AssertionError [ERR_ASSERTION]: library/LibraryClient setup, requests, credit handling unchanged
+- scripts/test-ux-mobile-navigation.mjs — Error: Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) but got: undefine
+- scripts/test-video-ready-nudge.mjs — ReferenceError: packEmailText is not defined
+- scripts/test-video-share-consent.mjs —   ✗ a rota verifica o token
+- scripts/test-viralnow-search-intent.mjs — ✗ preserves the no-card promise
+- scripts/test-vitrine-em-alta-2026-08-31.mjs —   ✗ A5 o componente chama /api/viral-now
+- scripts/test-workspace-spanish.mjs — AssertionError [ERR_ASSERTION]: app/(dashboard)/studio/StudioClient.tsx changed only approved presentation
