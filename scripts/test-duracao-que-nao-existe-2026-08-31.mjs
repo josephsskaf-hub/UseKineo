@@ -134,8 +134,13 @@ const importaDeNarrationFit = (nome) => {
   if (abre < 0) return false
   return fonteClient.slice(abre + 1, fim).split(',').map((t) => t.trim()).includes(nome)
 }
-checa('narrationFit continua sendo a régua do contador vivo da tela',
-  importaDeNarrationFit('MIN_COVERAGE') && importaDeNarrationFit('speechSeconds'))
+// 14/09 (Board, régua única): o contador passou a medir por speechSecondsAt (lib/speechRate),
+// que é narrationFit envolvida na régua da família do motor + velocidade do roteiro. A CONDIÇÃO
+// ("a régua do contador É a narrationFit") continua — agora provada pela delegação, não pelo import.
+const envelopeDelegaANarrationFit = /const base = narrationFit\(script, targetSeconds\)/.test(ler('lib/speechRate.ts')) && /export function speechSecondsAt\(script: string, rate: SpeechRate\): number \{\n\s+return narrationFitAt\(script, 0, rate\)\.speech/.test(ler('lib/speechRate.ts').replace(/\r\n/g, '\n'))
+const contadorUsaEnvelope = /import\s*\{[^}]*\bspeechSecondsAt\b[^}]*\}\s*from\s*'@\/lib\/speechRate'/.test(fonteClient) && fonteClient.includes('const fala = speechSecondsAt(prompt, reguaTela)')
+checa('narrationFit continua sendo a régua do contador vivo da tela (direto, ou via speechSecondsAt que delega a ela)',
+  importaDeNarrationFit('MIN_COVERAGE') && (importaDeNarrationFit('speechSeconds') || (contadorUsaEnvelope && envelopeDelegaANarrationFit)))
 
 console.log('\nF) Fronteira com o Codex e armadilhas conhecidas')
 checa('nada de preço/crédito/plano nesta mudança',
