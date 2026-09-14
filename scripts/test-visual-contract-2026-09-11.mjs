@@ -94,7 +94,11 @@ async function run({ look = 'photoreal', mode = 'character_story', frame = '16:9
   narration = 'Mira opens a red parcel at the Kyoto train station in 1930.',
   // CLASSICOS-R2 (14/09): scenes planned by the actual entry chain (below) may
   // replace the fixture pair; every existing call leaves this undefined.
-  scenesOverride } = {}) {
+  scenesOverride,
+  // CLASSICOS-R5 (14/09): the entry chain derives the era with the actual
+  // eraLockSuffix instead of the Kyoto-1930 fixture; every existing call
+  // leaves this undefined and keeps the fixture string.
+  eraSuffix = ', period piece set strictly in the year 1930, no modern objects' } = {}) {
   const scene = scenesOverride ? scenesOverride[0] : { description: visual, aiPrompt: visual, stockSearchQuery: 'generic landscape', voiceover: narration }
   const scenes = scenesOverride ?? [scene, { ...scene, aiPrompt: 'Mira carries the parcel across the same Kyoto station' }]
   const anchor = style.deriveStyleAnchor(look === 'anime' ? 'anime' : look === 'animated3d' ? '3D animated film' : look === 'noir' ? 'film noir' : '')
@@ -114,7 +118,7 @@ async function run({ look = 'photoreal', mode = 'character_story', frame = '16:9
     body: { dry_run: false },
     scenes, classicVisualPolicy: { mode, style: anchor, character: mode === 'documentary_faceless' ? null : 'Mira, a young woman', aspect: frame },
     classicVisualMode: mode, storyCharacter: mode === 'documentary_faceless' ? null : 'Mira, a young woman', styleAnchor: anchor,
-    eraSuffix: ', period piece set strictly in the year 1930, no modern objects', aspectRequested: frame,
+    eraSuffix, aspectRequested: frame,
     wantsKling: anchored, CINEMATIC_ANCHOR_ENABLED: anchored, generationId: 'offline-generation', generationSeed: 17,
     hd: false, KLING_CREDIT_COST: 50, ANCHORS_USD: anchors.ANCHORS_USD, providerSubmissionMayExist: false,
     generateCinematicSceneStill: anchors.generateCinematicSceneStill, FalQueueSubmitError: FakeSubmitError,
@@ -332,18 +336,30 @@ const LITUYA_BRIEF = [
 ].join('\n')
 check(LITUYA_SCRIPT.split(/\s+/).length >= 175 && LITUYA_SCRIPT.split(/\s+/).length <= 195, 'Author script sits in the classic 60 s word band (175-195)')
 
-async function entryToPayload({ prompt, scriptMode, anchored = false }) {
+// CLASSICOS-R5 (14/09) — the engine is now a parameter. The model id comes
+// from the route's own `usedModel` line (wantsKling/wantsVeo/wantsSora → slug)
+// and the era from the route's own `eraSuffix` line + eraLockSuffix, both
+// executed, so the Lituya cases never inherit the Kyoto-1930 fixture era.
+const usedModelLine = variable(route, 'usedModel').parent.parent.getText(route)
+const eraSuffixLine = variable(route, 'eraSuffix').parent.parent.getText(route)
+const eraApi = execute([varSource(route, 'ERA_YEAR_RE'), varSource(route, 'ERA_WORD_RE'), functionSource(route, 'eraLockSuffix'),
+  'exports.eraLockSuffix = eraLockSuffix;'].join('\n'))
+check(usedModelLine.includes('wantsVeo ? VEO_MODEL') && eraSuffixLine.includes('eraLockSuffix(') && eraSuffixLine.includes('s.voiceover'), 'Actual usedModel / eraSuffix lines located by AST')
+const ENGINE_FLAGS = engine => ({ wantsKling: engine === 'kling', wantsVeo: engine === 'veo', wantsSora: engine === 'sora' })
+const modelForEngine = engine => execute(`${usedModelLine}\nexports.usedModel = usedModel;`, { ...ENGINE_FLAGS(engine), ...routeHelpers }).usedModel
+
+async function entryToPayload({ prompt, scriptMode, anchored = false, engine = 'kling' }) {
   const events = [], plannerCalls = []
   let resolveCalls = 0
   const decision = execute(`exports.run = async () => { ${decisionBlock}\n return { parsedScript, verbatim, briefDetected, userSaysVerbatim }; }`, {
-    ...scriptParser, prompt, body: { script_mode: scriptMode, engine: 'kling' }, hollywoodPath: false,
+    ...scriptParser, prompt, body: { script_mode: scriptMode, engine }, hollywoodPath: false,
     narrationLanguage: { language: 'en' }, user: { id: 'offline-user' },
     speechRateFor: () => 3.1, writeServerEvent: async e => { events.push(e) },
   })
   const d = await decision.run()
   const duration = 60
   const sizing = execute(`exports.run = () => { let clipCount = clipCountForDuration(duration);\n ${resizeBlock}\n return clipCount; }`, {
-    clipCountForDuration, duration, verbatim: d.verbatim, parsedScript: d.parsedScript, wantsVeo: false, wantsSora: false, console: { log() {} },
+    clipCountForDuration, duration, verbatim: d.verbatim, parsedScript: d.parsedScript, ...ENGINE_FLAGS(engine), console: { log() {} },
   })
   const clipCount = sizing.run()
   const anchor = style.deriveStyleAnchor('')
@@ -366,8 +382,10 @@ async function entryToPayload({ prompt, scriptMode, anchored = false }) {
     generateScenes: plannerApi.generateScenes, shortCaptionFromVoiceover: plannerApi.shortCaptionFromVoiceover,
   })
   const scenes = await constructed.run()
-  const r = await run({ model: routeHelpers.KLING_MODEL, mode: 'documentary_faceless', frame: '9:16', anchored, scenesOverride: scenes })
-  return { ...d, clipCount, scenes, plannerCalls, resolveCalls, events, r }
+  const model = modelForEngine(engine)
+  const eraSuffix = execute(`${eraSuffixLine}\nexports.eraSuffix = eraSuffix;`, { ...eraApi, prompt, scenes }).eraSuffix
+  const r = await run({ model, mode: 'documentary_faceless', frame: '9:16', anchored, scenesOverride: scenes, eraSuffix })
+  return { ...d, clipCount, scenes, plannerCalls, resolveCalls, events, model, eraSuffix, r }
 }
 function checkKlingPayload(call, label) {
   const i = call.input
@@ -416,5 +434,78 @@ check(MAX_ANCHORED === 6 && anchoredIdea.scenes.length === 7 && anchoredIdea.r.s
 check(anchoredIdea.r.calls.length === 1 && anchoredIdea.r.calls[0].model === routeHelpers.KLING_I2V_MODEL, 'Anchored idea: scene 1 reaches Kling 2.5 i2v with its still')
 check(anchoredIdea.r.calls[0].input.image_url && anchoredIdea.r.calls[0].input.duration === '10' && !('aspect_ratio' in anchoredIdea.r.calls[0].input), 'Anchored idea: i2v payload follows the still (no aspect param), duration 10')
 check(/Lituya/.test(anchoredIdea.r.stills[0].input.prompt) && anchoredIdea.r.stills[0].input.image_size === aspect.aspectSpec('9:16').fluxImageSize, 'Anchored idea: still prompt keeps the subject and 9:16 dimensions')
+
+// ═══ CLASSICOS-R5 (14/09) — Seedance 1.5 and Veo 3.1 · 60 s · ideia / roteiro / brief → payload ═══
+// Same chain as the Kling block above, parameterized by `engine` (the key the
+// Studio client sends: 'seedance' | 'veo'). Nothing is reused from the Kling
+// expectations: clip counts, model ids and payload fields come from the actual
+// route constants for each engine. Declared limits (not hidden): only scene 1
+// is POSTed; visual policy/writer options are injected; the era comes from the
+// actual eraLockSuffix (window 1000–1939 + era words) — Lituya 1958 is OUTSIDE
+// that window, so the product sends NO period lock for it. That is the
+// product's behavior, recorded here, not corrected. Veo 5b2dc929 (90 s) is
+// not touched: this block only exercises the existing 60 s path.
+const WORDS = LITUYA_SCRIPT.split(/\s+/).length
+check(eraApi.eraLockSuffix(LITUYA_IDEA) === '' && eraApi.eraLockSuffix(LITUYA_SCRIPT) === '' && eraApi.eraLockSuffix('Rome in 1912') !== '', 'Era lock: the actual eraLockSuffix is silent for 1958 and active for 1912 (window 1000–1939)')
+function checkSeedancePayload(call, label) {
+  const i = call.input
+  check(call.model === routeHelpers.SEEDANCE_MODEL && call.model === 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video', `${label}: payload targets the actual Seedance 1.5 Pro t2v model id`)
+  check(i.duration === '10' && i.aspect_ratio === '9:16' && i.resolution === '720p' && i.generate_audio === false && i.seed === 17, `${label}: Seedance payload carries duration '10' / 9:16 / 720p / audio off / seed as the builder defines`)
+  check(!('negative_prompt' in i) && !('image_url' in i) && !('cfg_scale' in i) && !('safety_tolerance' in i), `${label}: Seedance payload has no negative prompt (schema has none), no image, no Kling/Veo-only fields`)
+  check(/Lituya/.test(i.prompt) && /9:16|vertical/i.test(i.prompt) && i.prompt.length <= 7000, `${label}: prompt keeps the subject and orientation within the provider limit`)
+  check(!/1930|period piece/.test(i.prompt), `${label}: no fixture era leaks into the prompt (1958 is outside the era-lock window)`)
+}
+function checkVeoPayload(call, label) {
+  const i = call.input
+  check(call.model === routeHelpers.VEO_MODEL && call.model === 'fal-ai/veo3.1/fast', `${label}: payload targets the actual Veo 3.1 Fast model id`)
+  check(i.duration === '8s' && i.aspect_ratio === '9:16' && i.resolution === '1080p' && i.generate_audio === false && i.safety_tolerance === '5' && i.seed === 17, `${label}: Veo payload carries duration '8s' / 9:16 / 1080p / audio off / safety 5 / seed as the builder defines`)
+  check(typeof i.negative_prompt === 'string' && i.negative_prompt.length > 0 && !('image_url' in i) && !('cfg_scale' in i), `${label}: Veo payload has the classic negative prompt, no image, no Kling-only cfg`)
+  check(/Lituya/.test(i.prompt) && /9:16|vertical/i.test(i.prompt) && i.prompt.length <= 7000, `${label}: prompt keeps the subject and orientation within the provider limit`)
+  check(!/1930|period piece/.test(i.prompt), `${label}: no fixture era leaks into the prompt (1958 is outside the era-lock window)`)
+}
+const ENGINES = {
+  seedance: { model: routeHelpers.SEEDANCE_MODEL, secondsPerClip: 10, checkPayload: checkSeedancePayload },
+  veo: { model: routeHelpers.VEO_MODEL, secondsPerClip: 8, checkPayload: checkVeoPayload },
+}
+check(modelForEngine('seedance') === routeHelpers.SEEDANCE_MODEL && modelForEngine('veo') === routeHelpers.VEO_MODEL && modelForEngine('kling') === routeHelpers.KLING_MODEL && modelForEngine('sora') === routeHelpers.SORA_MODEL, 'Actual usedModel line maps every classic engine key to its own slug')
+check(new Set([routeHelpers.SEEDANCE_MODEL, routeHelpers.VEO_MODEL, routeHelpers.KLING_MODEL]).size === 3, 'The three classic slugs are distinct')
+const perEngine = {}
+for (const [engine, spec] of Object.entries(ENGINES)) {
+  const E = engine === 'seedance' ? 'Seedance' : 'Veo'
+  // 1) IDEIA
+  const idea = await entryToPayload({ prompt: LITUYA_IDEA, scriptMode: 'ai', engine })
+  check(idea.model === spec.model && idea.verbatim === false && idea.briefDetected === false, `${E} idea: engine identified by the actual usedModel line; decision block routes to the AI planner`)
+  check(idea.clipCount === clipCountForDuration(60) && idea.scenes.length === 7 && idea.plannerCalls.length === 1 && idea.resolveCalls === 0, `${E} idea: 60 s → 7 planned scenes, one planner call, no verbatim split`)
+  check(/Lituya Bay megatsunami/.test(idea.plannerCalls[0].messages.map(m => m.content).join('\n')), `${E} idea: the author idea reaches the actual planner request`)
+  check(idea.eraSuffix === '' && idea.r.calls.length === 1 && idea.r.stills.length === 0, `${E} idea: no era lock for 1958, exactly one provider POST for scene 1, no still (anchors are Kling-only)`)
+  spec.checkPayload(idea.r.calls[0], `${E} idea`)
+  // 2) ROTEIRO PRÓPRIO
+  const script = await entryToPayload({ prompt: LITUYA_SCRIPT, scriptMode: 'verbatim', engine })
+  const needed = Math.ceil(WORDS / 2.5 / spec.secondsPerClip)
+  const expectedClips = Math.max(clipCountForDuration(60), Math.min(9, needed))
+  check(script.model === spec.model && script.verbatim === true && script.briefDetected === false, `${E} script: clean prose + "as is" is verbatim on this engine`)
+  check(script.clipCount === expectedClips && script.scenes.length === script.clipCount, `${E} script: ${WORDS} words at 2.5 w/s over ${spec.secondsPerClip} s clips need ${needed} → route sizes ${expectedClips} (cap 9); scenes follow the count`)
+  check(script.plannerCalls.length === 0 && script.resolveCalls === 1, `${E} script: no planner call; the verbatim splitter runs once`)
+  check(norm(script.scenes.map(s => s.voiceover).join(' ')) === norm(LITUYA_SCRIPT), `${E} script: scene voiceovers concatenate back to the author text word for word`)
+  check(script.scenes.every(s => s.voiceover.length > 0 && !s.aiPrompt), `${E} script: every scene carries author words; no AI prose replaces them`)
+  check(script.r.calls.length === 1 && !/^["“]/.test(script.r.calls[0].input.prompt), `${E} script: one POST for scene 1; the visual prompt is not a quotation`)
+  spec.checkPayload(script.r.calls[0], `${E} script`)
+  // 3) BRIEF
+  const brief = await entryToPayload({ prompt: LITUYA_BRIEF, scriptMode: 'verbatim', engine })
+  check(brief.model === spec.model && brief.userSaysVerbatim === true && brief.briefDetected === true && brief.verbatim === false, `${E} brief: "as is" + character sheet is demoted to AI mode on this engine`)
+  check(brief.events.length === 1 && brief.events[0].name === 'brief_detected_ai_mode' && brief.events[0].metadata.engine === engine, `${E} brief: the demotion event names the engine key '${engine}'`)
+  check(brief.plannerCalls.length === 1 && brief.resolveCalls === 0 && brief.scenes.length === 7 && /yellow raincoat/.test(brief.plannerCalls[0].messages.map(m => m.content).join('\n')), `${E} brief: planner runs once on the whole brief; the sheet is never split into narration`)
+  check(brief.scenes.every(s => !/Voice: calm|Captain Ulrich:/.test(s.voiceover)) && brief.r.calls.length === 1, `${E} brief: no sheet line is narrated; one POST for scene 1`)
+  spec.checkPayload(brief.r.calls[0], `${E} brief`)
+  perEngine[engine] = { idea, script, brief }
+}
+// SECONDS_PER_CLIP is engine-dependent in the actual re-size block: Veo (8 s)
+// needs more clips than Seedance (10 s) for the same 186-word script. Declared
+// finding: Veo's need (10) exceeds the route cap (9) → 9 × 8 s = 72 s of
+// footage against the route's own 74.4 s conservative estimate. At the classic
+// 3.1 w/s the narration is ~60 s, so the cap is harmless in practice; recorded,
+// not changed (no product edit in this delta).
+check(perEngine.veo.script.clipCount === 9 && perEngine.seedance.script.clipCount === 8 && perEngine.veo.script.clipCount > perEngine.seedance.script.clipCount, 'Verbatim re-size: Veo 8 s clips → 9 (cap), Seedance 10 s clips → 8; the engine changes SECONDS_PER_CLIP')
+check(perEngine.veo.script.r.calls[0].input.prompt !== perEngine.seedance.script.r.calls[0].input.prompt || perEngine.veo.script.r.calls[0].model !== perEngine.seedance.script.r.calls[0].model, 'The same author script reaches two different provider targets')
 
 console.log(`${checks} executable visual-contract checks passed; ${runs.length} actual classic-caller simulations; network disabled.`)
