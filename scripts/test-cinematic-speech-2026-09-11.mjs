@@ -359,12 +359,135 @@ eq(notRequested.calls.length, 0, 'No clone/profile lookup when unrequested')
   const s25Film = await runActualComposeSpeech({ nativeWords: [] })
   eq([s25Film.reply.status, s25Film.reply.body.code], [422, 'cinematic_dialogue_unverified'], 'S25: a silent dialogue clip can never compose — the film dies after the provider was paid')
   ok(!s25Film.calls.some(c => c[0] === 'tts'), 'S25: and no TTS rescues it (dialogue has no narration text)')
-  // CONTROLE (produto): um pedido com apresentador no S25 tem de nascer faceless — a rota real decide `facelessRequested`.
+  // ═══ KINEO-S25-FALA-SEM-VOZ-2026-09-14 (Board, MOTORES-ESPECIFICOS-R2) ═══
+  // O contrato certo: o PEDIDO é preservado (apresentador pedido continua
+  // apresentador em toda família) e o fallback nativo INVÁLIDO do S25 é
+  // protegido — pelo caminho REAL do host (if extraído por AST, TTS/upload/
+  // submit mockados, rede proibida), pela condição REAL do `if` nativo, pelos
+  // portões pré-gasto reais e pelo ledger real. Vermelho em cb5f746b (apagava o
+  // host) e em d6f61835 (diálogo S25 sem host ia ao POST nativo mudo).
   const facelessDecl = capDecl('facelessRequested')
   const visualMode = load('@/lib/cinematic/visualMode')
   const decide = (engine, modo) => vm.runInNewContext(facelessDecl, { permiteApresentador: visualMode.permiteApresentador, formatoVisual: { modo }, body: { engine } })
-  eq([decide('hollywood', 'presenter'), decide('h3', 'presenter'), decide('omni', 'presenter'), decide('hollywood', 'documentary_faceless')], [false, false, false, true], 'Families with native speech keep the requested presenter; documentary stays faceless')
-  eq(decide('s25', 'presenter'), true, 'S25 (native audio OFF by contract) never plans a speaking presenter: the request is born faceless')
+  eq([decide('hollywood', 'presenter'), decide('h3', 'presenter'), decide('omni', 'presenter'), decide('s25', 'presenter')], [false, false, false, false], 'A requested presenter is preserved in EVERY family — S25 included (no silent format conversion)')
+  eq([decide('s25', 'documentary_faceless'), decide('hollywood', 'documentary_faceless')], [true, true], 'Documentary stays faceless by content, not by engine')
+
+  // Caminho REAL do laço: host `if` + retenção + condição do `if` nativo (corpo trocado por um espião).
+  const hostIf = findNode(generationAst, n => ts.isIfStatement(n) && n.expression.getText(generationAst).startsWith('hostTtsEnabled && anchors && hostVoice'))
+  const loopBlock = hostIf.parent
+  const stmts = loopBlock.statements
+  const hostIdx = stmts.indexOf(hostIf)
+  const nativeIf = stmts.slice(hostIdx + 1).find(s => ts.isIfStatement(s) && s.expression.getText(generationAst).startsWith('!id'))
+  ok(nativeIf, 'the native-payload if follows the host if inside the real submit loop')
+  const between = stmts.slice(hostIdx + 1, stmts.indexOf(nativeIf)).map(s => s.getText(generationAst)).join('\n')
+  const loopCode = `export const run = (async () => { let id = null, sceneModel = 'planned-model', sceneEngine = hs.type; const idx = 0; const hHeldByPolicy = new Set()
+    for (const once of [0]) { ${hostIf.getText(generationAst)}\n${between}\nif (${nativeIf.expression.getText(generationAst)}) { calls.push(['native-post', family, hs.type]) } }
+    return { id, sceneModel, sceneEngine, held: hHeldByPolicy.has(0), dispositions: hDispositions.slice(), requestIds: hRequestIds.slice() } })`
+  class AvatarSubmitError extends Error { constructor(msg, ambiguous) { super(msg); this.ambiguous = ambiguous } }
+  const hostScope = ({ family, type = 'dialogue', hostOn = true, anchors = { portraitUrl: 'https://offline.invalid/portrait.png' }, voice = { voice: 'approved', defaultSpeed: 1 }, submit = async () => 'offline-host-id', earlierIds = [] }) => {
+    const calls = []
+    const hRequestIds = earlierIds.slice(), hDispositions = earlierIds.map(() => 'accepted'), hModels = [], hEngines = [], hSubmittedPrompts = []
+    const scope = {
+      family, hostTtsEnabled: hostOn, anchors, hostVoice: voice, calls, hRequestIds, hDispositions, hModels, hEngines, hSubmittedPrompts,
+      hs: { index: 1, type, dialogueLine: type === 'dialogue' ? 'I am the presenter. This is my story.' : '', seconds: 8, prompt: 'x' },
+      hostUserSpeed: 1, hostPerformancePrompt: 'approved performance', user: { id: 'internal-fixture' }, submittedPrompt: 'x',
+      synthesizeHostSpeech: async a => { calls.push(['tts', a.text]); return Buffer.from('offline') },
+      estimateMp3DurationSeconds: () => 8, uploadVoiceoverToSupabase: async () => { calls.push(['upload']); return 'https://offline.invalid/voice.mp3' },
+      submitAvatarJob: async a => { calls.push(['host-submit', a.engine]); return submit() },
+      HOST_PRESENTER_MODEL: 'offline-host-model', AvatarSubmitError, cinematicSubmissionUncertain: false, providerSubmissionMayExist: false,
+      cinematicSceneModel: (fam, t, anchored) => `${fam}/${t}/${anchored ? 'i2v' : 't2v'}`, ctxDespacho: () => ({ submittedPrompts: {} }),
+      console: { log() {}, warn() {} }, fetch() { throw Error('network forbidden') }, Buffer, Math,
+    }
+    return { scope, calls }
+  }
+  const runLoop = async (opts) => { const { scope, calls } = hostScope(opts); const r = await evaluate(loopCode, scope).run(); return { ...r, calls } }
+  const healthy = await runLoop({ family: 's25' })
+  eq([healthy.id, healthy.sceneEngine, healthy.sceneModel, healthy.held], ['offline-host-id', 'host', 'offline-host-model', false], 'S25 healthy host: the presenter keeps its voice (TTS + lip-sync), sceneEngine=host')
+  eq(healthy.calls, [['tts', 'I am the presenter. This is my story.'], ['upload'], ['host-submit', 'presenter']], 'S25 healthy host: exactly one TTS, one upload, one presenter submit — and NO native post')
+  const explicitFail = await runLoop({ family: 's25', submit: async () => null })
+  eq([explicitFail.id, explicitFail.sceneEngine, explicitFail.held], [null, 'dialogue', true], 'S25 explicit host failure: the dialogue scene is HELD (local policy), not converted')
+  ok(!explicitFail.calls.some(c => c[0] === 'native-post'), 'S25 explicit host failure: the silent native POST never happens')
+  const hostOff = await runLoop({ family: 's25', hostOn: false })
+  eq([hostOff.held, hostOff.calls], [true, []], 'S25 with host switched off: no TTS, no native post — held')
+  const noAnchor = await runLoop({ family: 's25', anchors: null })
+  eq([noAnchor.held, noAnchor.calls], [true, []], 'S25 without portrait anchor: held, nothing posted')
+  const noVoice = await runLoop({ family: 's25', voice: null })
+  eq([noVoice.held, noVoice.calls], [true, []], 'S25 without pinned voice: held, nothing posted')
+  const s25Support = await runLoop({ family: 's25', type: 'support' })
+  eq([s25Support.held, s25Support.calls], [false, [['native-post', 's25', 'support']]], 'S25 support/documentary scene stays eligible for the native path')
+  for (const fam of ['hollywood', 'h3', 'omni']) {
+    const nat = await runLoop({ family: fam, submit: async () => null })
+    eq([nat.held, nat.id, nat.sceneEngine, nat.calls.at(-1)], [false, null, 'dialogue', ['native-post', fam, 'dialogue']], `${fam}: explicit host failure still falls back to the native-audio path (unchanged)`)
+    const hz = await runLoop({ family: fam })
+    eq([hz.sceneEngine, hz.calls.some(c => c[0] === 'native-post')], ['host', false], `${fam}: healthy host unchanged`)
+  }
+  const ambiguous = await runLoop({ family: 's25', submit: async () => { throw new AvatarSubmitError('presenter POST timed out', true) }, earlierIds: ['earlier-accepted-id'] })
+  eq([ambiguous.id, ambiguous.held, ambiguous.dispositions, ambiguous.requestIds, ambiguous.calls.some(c => c[0] === 'native-post')], [null, false, ['accepted', 'ambiguous'], ['earlier-accepted-id', null], false], 'S25 ambiguous host failure: existing protection intact — no second job, earlier IDs preserved, not re-labelled as policy hold')
+  await assert.rejects(runLoop({ family: 's25', submit: async () => { throw new AvatarSubmitError('presenter POST timed out', true) } }), /timed out/, 'S25 ambiguous failure with no earlier IDs still propagates (claim stays pending)'); checks++
+
+  // Portões PRÉ-GASTO reais (antes das âncoras / antes do laço): extraídos e executados com estorno mockado.
+  const pre = findNode(generationAst, n => ts.isVariableStatement(n) && n.declarationList.declarations[0].name.getText(generationAst) === 's25DialogueScenes')
+  const rejectFn = findNode(generationAst, n => ts.isVariableStatement(n) && n.declarationList.declarations[0].name.getText(generationAst) === 'rejectS25DialogueWithoutHost')
+  const gates = []
+  { const visit = n => { if (ts.isIfStatement(n) && n.expression.getText(generationAst).startsWith('s25DialogueScenes > 0')) gates.push(n); ts.forEachChild(n, visit) }; visit(generationAst) }
+  eq(gates.length, 2, 'two pre-spend gates exist: before the anchors (switch off) and before the loop (anchor/voice missing)')
+  const gateCode = `export const run = (async () => { ${pre.getText(generationAst)}\n${rejectFn.getText(generationAst)}\n${gates[0].getText(generationAst)}\nanchorsSpent()\n${gates[1].getText(generationAst)}\nreturn null })`
+  const runGates = async ({ family, scenes, hostOn = true, anchors = {}, hostVoice = {}, refunded = true, released = true }) => {
+    const calls = []
+    const scope = { family, plan: { scenes }, hostTtsEnabled: hostOn, anchors, hostVoice, user: { id: 'u' }, generationId: 'g', formatoVisual: { modo: 'presenter' },
+      confirmCinematicRefund: async () => { calls.push(['refund']); return refunded }, releaseBirthClaim: async (reason) => { calls.push(['release', reason]); return released },
+      writeServerEvent: async (e) => { calls.push(['event', e.name, e.metadata.anchors_generated, e.metadata.scene_posts]) }, anchorsSpent: () => calls.push(['anchors']),
+      NextResponse: { json: (body, init) => ({ status: init?.status ?? 200, body }) }, console: { warn() {}, log() {} }, Boolean, fetch() { throw Error('network forbidden') } }
+    const res = await evaluate(gateCode, scope).run()
+    return { res, calls }
+  }
+  const dlg = [{ type: 'dialogue', dialogueLine: 'Hi', seconds: 8 }, { type: 'support', voiceover: 'v', seconds: 8 }]
+  const off = await runGates({ family: 's25', scenes: dlg, hostOn: false })
+  eq([off.res.status, off.res.body.reason, off.res.body.retryable, off.calls], [422, 's25_dialogue_without_host', false, [['refund'], ['release', 's25_dialogue_without_host'], ['event', 's25_dialogue_without_host', false, 0]]], 'S25 presenter with the host switch off: stops BEFORE the anchors — no anchor spend, no scene post, refund confirmed then claim released, event written')
+  ok(off.res.body.error.includes('credits are back') && off.res.body.error.includes('No video scenes were submitted'), 'refund is only claimed to the customer when confirmed')
+  const offUnconfirmed = await runGates({ family: 's25', scenes: dlg, hostOn: false, refunded: false })
+  eq([offUnconfirmed.res.status, offUnconfirmed.res.body.refunded, offUnconfirmed.res.body.claimReleased, offUnconfirmed.calls.some(c => c[0] === 'release')], [422, false, false, false], 'unconfirmed refund: the claim is NOT released and nothing is promised')
+  ok(!offUnconfirmed.res.body.error.includes('credits are back'), 'unconfirmed refund: the message does not say the credits are back')
+  const noAnch = await runGates({ family: 's25', scenes: dlg, anchors: null })
+  eq([noAnch.res.status, noAnch.res.body.motivo, noAnch.calls[0], noAnch.calls.at(-1)], [422, 'the portrait anchor could not be generated', ['anchors'], ['event', 's25_dialogue_without_host', false, 0]], 'S25 presenter without anchors: stops before the loop (anchor attempt already made, no scene post)')
+  const noVoicePre = await runGates({ family: 's25', scenes: dlg, hostVoice: null })
+  eq([noVoicePre.res.status, noVoicePre.res.body.motivo, noVoicePre.calls.at(-1)], [422, 'no presenter voice could be pinned', ['event', 's25_dialogue_without_host', true, 0]], 'S25 presenter without a pinned voice: stops before the loop; anchors recorded as spent (our cost, not hidden)')
+  const s25Doc = await runGates({ family: 's25', scenes: [{ type: 'support', voiceover: 'v', seconds: 8 }], hostOn: false, anchors: null, hostVoice: null })
+  eq([s25Doc.res, s25Doc.calls], [null, [['anchors']]], 'S25 narrated film (no dialogue scene): no gate fires, generation proceeds')
+  for (const fam of ['hollywood', 'h3', 'omni']) {
+    const other = await runGates({ family: fam, scenes: dlg, hostOn: false, anchors: null, hostVoice: null })
+    eq([other.res, other.calls], [null, [['anchors']]], `${fam}: presenter without host is NOT gated (native speech exists) — unchanged`)
+  }
+
+  // Ledger REAL (ctx.outcomes): cena retida = recusa nossa, sem tentativa ao fornecedor.
+  const ledger = findNode(generationAst, n => ts.isBlock(n) && n.statements.length === 2 && n.getText(generationAst).includes('c.outcomes[i] = {') && n.getText(generationAst).includes('hDispositions[i]'))
+  const runLedger = (dispositions, heldIdx) => {
+    const c = { outcomes: [], attempts: [], totalPosts: 0 }
+    vm.runInNewContext(ts.transpileModule(ledger.getText(generationAst), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText, { ctxDespacho: () => c, plan: { scenes: dispositions.map(() => ({})) }, hDispositions: dispositions, hModels: dispositions.map(() => 'm'), hHeldByPolicy: new Set(heldIdx), claimQuality: 'q' })
+    return c
+  }
+  const led = runLedger(['accepted', 'explicit_reject', 'accepted'], [1])
+  eq([led.outcomes[1].reason_class, led.outcomes[1].attempt_count, led.attempts[1], led.totalPosts], ['local_policy_gate', 0, [], 2], 'held S25 scene: local_policy_gate, zero attempts, not counted as a provider POST')
+  eq([led.outcomes[0].reason_class, led.outcomes[0].attempt_count, led.attempts[0].length], ['ok', 1, 1], 'accepted scenes keep their ledger entry')
+  const ledReject = runLedger(['explicit_reject'], [])
+  eq([ledReject.outcomes[0].reason_class, ledReject.totalPosts], ['unknown', 1], 'a provider explicit reject is still one counted POST with class unknown (unchanged)')
+  const disposition = load('@/lib/cinematic/sceneDisposition')
+  const dispatch = load('@/lib/cinematic/dispatchScenes')
+  eq(dispatch.invarianteFecha(disposition.summarize(led.outcomes, 3)), true, 'the dispatch invariant still closes with a held scene (rejected by us, never a phantom)')
+
+  // MAPA DE ÁUDIO por motor, pelo código real: host (TTS + lip-sync) / fallback nativo / apoio narrado.
+  const audioMap = {}
+  for (const fam of ['hollywood', 'h3', 'omni', 's25']) {
+    const nativeModel = router.cinematicSceneModel(fam, 'dialogue', true)
+    const payload = realInput(nativeModel, 'x', true, true, 8, anchor)
+    audioMap[fam] = { host_dialogue: (await runLoop({ family: fam })).sceneEngine, native_dialogue_allowed: !(await runLoop({ family: fam, submit: async () => null })).held, native_generate_audio: payload.generate_audio ?? 'absent', support_narrated: speech.sceneNarrationsForPlan([{ type: 'support', voiceover: 'Narrator', needsNarration: true }])[0] === 'Narrator' }
+  }
+  eq(audioMap, {
+    hollywood: { host_dialogue: 'host', native_dialogue_allowed: true, native_generate_audio: true, support_narrated: true },
+    h3: { host_dialogue: 'host', native_dialogue_allowed: true, native_generate_audio: 'absent', support_narrated: true },
+    omni: { host_dialogue: 'host', native_dialogue_allowed: true, native_generate_audio: 'absent', support_narrated: true },
+    s25: { host_dialogue: 'host', native_dialogue_allowed: false, native_generate_audio: false, support_narrated: true },
+  }, 'audio map: dialogue speaks via host TTS+lip-sync in every family; native fallback carries speech in Kling 3 (switch on) and by model behaviour in H3/Omni (verified by ASR at compose); S25 has no native voice and its native fallback is closed; support is narrated everywhere')
 }
 
 console.log(`cinematic-speech: ${checks} passed; real production payload/compose branches/builder; no external calls`)
