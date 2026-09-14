@@ -13,7 +13,7 @@ QUESTÃO PENDENTE: não importar aprovações genéricas de dry-run como valida�
 | MiniMax H3 | GO técnico de fidelidade 83aeef34 em 14/09 16:18 UTC: 117/117, Board 18/18, tsc limpo (FID-V4-R5); publicação pendente | H3 anterior reprovado visualmente; nenhum novo render | Publicação autorizada + deploy + repetir Lituya sob gate financeiro; áudio e filme completos |
 | Kling 3 | Parcial MOTORES-ESPECIFICOS-R2: router/payload reais executados em cb5f746b; 213 checks compartilhados e tsc; não entrada completa | Não executada | Mapa precisa distinguir host TTS do fallback nativo; não repetir payload aprovado |
 | Omni Flash | Parcial MOTORES-ESPECIFICOS-R2: router/payload, caps 10/10 e apara-folga reais executados; sem filme | Não executada | Mapa de áudio host/nativo/apoio; duração entregue desconhecida |
-| Seedance 2.5 | CORRIGIR cb5f746b: native payload sem áudio confirmado, mas forçar faceless remove host saudável; somente interno | Não executada | Preservar apresentador e proteger fallback silencioso; critérios finitos em MOTORES-ESPECIFICOS-R2 |
+| Seedance 2.5 | CORRIGIR ec650782: 246/246 + tsc; pedido/host preservados e fallback silencioso retido, mas ledger apaga POST host e piso permite omitir fala | Não executada | Dois desfechos reproduzidos em MOTORES-ESPECIFICOS-R4: tentativa real e recuperação sem diálogo perdido; somente interno |
 
 Para cada célula de aprovação registrar: roteiro preservado; ação/escala/personagens; pedido/plano/arquivo; narração; legenda; música; confiabilidade; testes/SHA. Usar NÃO VALIDADO onde faltar escuta, filme ou evidência. Testes herdados podem ser aproveitados se reconciliados contra o SHA; não repeti-los para ocupar tempo.
 

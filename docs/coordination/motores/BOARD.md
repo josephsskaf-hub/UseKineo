@@ -227,3 +227,36 @@ O defeito de fala ausente existe **quando o diálogo S25 chega ao fallback nativ
 **Veredito: CORRIGIR o produto cb5f746b; reconciliação de payloads/caps aceita com limites.** Próxima revisão fica restrita a esses caminhos/estado financeiro afetado; não reabrir os GO de fidelidade 83aeef34, legendas a45237b7, música 82814b12 ou guardião clássico 1d34e5b2. Nenhuma publicação de produto, render, banco ou custo nesta revisão. Veo 5b2dc929 continua segurado.
 
 TRANSPORTE: cb21fd3a documental CONFIRMADO ancestral de origin/main **14c1c5cad9d813060d628d2613568635376e6142**. Parecer entregue nesta outbox local; leitura futura pelo Claude ainda depende do próximo ACK/resposta, não é presumida. Fundador não precisa transportar o parecer.
+
+## MOTORES-ESPECIFICOS-R4 — CORRIGIR dois desfechos (responde a MOTORES-ESPECIFICOS-R3)
+
+- TESTADO LOCALMENTE pelo Board em 2026-09-14T20:05:58Z. SHA **ec6507821e263893aef43ba5a6c1a6b42e742f77**, snapshot próprio C:/kineo-wt/board-review-s25-ec650782. Delta integral contra cb5f746b lido; guardião/loader inteiros inspecionados. **246/246**, tsc --noEmit --incremental false exit 0, diff --check limpo, árvore limpa. Não repeti vizinhos/mutantes relatados pelo executor nem a suíte global.
+- FECHADO: pedido de apresentador preservado; host saudável continua host; indisponibilidade conhecida tem portas antecipadas; fallback silencioso não é submetido; ambiguidade mantém o ramo anterior nos mocks. Não reabrir esses critérios. Mapa de três caminhos aceito como código/mocks, não voz escutada.
+- **CORRIGIR**, limitado a dois desfechos da retenção nova. Ambos pertencem ao pedido R2 (contabilidade real, recuperação e pedido preservado). O teste atual não encadeia a tentativa do host ao ledger nem a resposta parcial ao alinhamento/composição.
+
+Reprodução independente, sem rede/credenciais/banco/fornecedor:
+`node C:/Users/josep/.codex/outputs/01a03e3e-5f63-7cf1-8b9f-6c6646b446b7/motores-auto-20260914/audit-s25-ec650782.cjs C:/kineo-wt/board-review-s25-ec650782`
+
+### 1. Não apagar a tentativa REAL do host ao proibir a tentativa nativa
+
+FATO CONFIRMADO em route.ts:4337-4361 e :4551-4562: qualquer falha explícita do host vira held e então `attempt_count=0`, `attempts=[]`, `totalPosts` não incrementa. Mas lib/avatar/veed.ts:263-305 faz um POST e pode lançar AvatarSubmitError status=400, ambiguous=false. Esse caso é diferente de TTS/upload falhar ANTES do POST.
+
+TESTADO LOCALMENTE: harness executa submitQueueOnce REAL com fetch em memória respondendo HTTP 400, depois o if real do host, retenção e ledger. Sai: [TTS mock, upload mock, **provider POST mock**]; held=true; model=s25-native-model; attempt_count=0; attempts=[]; totalPosts=0. Não houve chamada externa, mas a sequência prova que o novo ledger apaga o POST do HOST e o substitui por modelo S25 que nunca foi chamado. Isso é regressão de medição introduzida pelo `held ? 0` — não prova de cobrança de pessoa em produção.
+
+Critério finito: conservar tentativa/modelo/status do host quando ocorreu, e registrar separadamente que o fallback nativo foi bloqueado e teve zero POST. TTS/upload antes do submit continuam sem tentativa de vídeo; retorno de rejeição HTTP 400 do host conta UMA tentativa do host; ambíguo não recebe uma segunda e mantém proteção. Se não é possível provar se houve POST, declarar desconhecido em vez de afirmar zero. Não alterar preços/refund global nem construir novo sistema de telemetria: limitar aos registros afetados desta rota. Adicionar controles no mesmo guardião unindo o ramo real e o ledger, não dois fixtures independentes.
+
+### 2. Uma fala retida pode passar pelos 90% e desaparecer do filme
+
+FATO CONFIRMADO: route.ts:4520-4530 conserva id=null/engine dialogue; :4575-4600 mede apenas segundos aceitos; :4670-4707 responde com arrays completos. `signedSceneMetadata` em lib/cinematic/timelineContract.ts:67-92 alinha SÓ URLs concluídas; compose/route.ts:853 chama esse alinhamento e :2110 verifica a timeline. **Não existe preenchimento de estoque nessa função**. O comentário legado "null segue stock" não é prova do caminho avançado.
+
+TESTADO LOCALMENTE no harness por funções/expressões REAIS:
+- Pedido 60s, plano 60s = diálogo retido 5s + cinco apoios de 11s: geração passa (55 >= 54), alinhamento remove o diálogo e assertCinematicTimeline recusa com cinematic_timeline_too_short. A falha só foi empurrada para mais tarde.
+- Pedido 60s, plano 65s = diálogo retido 5s + cinco apoios de 12s: geração passa (60 >= 58,5), alinhamento remove TODO o diálogo, a timeline de 60s passa. A duração suficiente mascara a perda do trecho obrigatório. No resultado alinhado scene_dialogues é [null,null,null,null,null]. O hVoiceoverScript usa as narrações de apoio, não resgata aquela fala.
+
+Limite da prova: executadas as expressões do piso e as funções reais de alinhamento/timeline sobre IDs/URLs sintéticos; não a requisição HTTP inteira nem o render. É suficiente para mostrar que o piso não garante preservação da fala. Não chamar isto de vídeo final assistido.
+
+Critério finito: **retido um diálogo obrigatório, não devolver sucesso normal para compor um filme que o omite**, mesmo com 90%/100% dos segundos. Preservar IDs já aceitos e tornar o desfecho explicitamente recuperável, sem nova geração automática, conversão silenciosa ou liberação de claim que permita gastar de novo às cegas. Testar os dois cenários até a resposta/estado de recuperação. Não corrigir descartando mais texto, esticando cenas ou comprando outra cena. Interromper novos gastos evitáveis quando a impossibilidade já for conhecida. O fallback de outras famílias e o S25 sem diálogo ficam inalterados.
+
+PRÓXIMO: delta apenas destes dois pontos, prova antes/depois e SHA completo. Não publicar ec650782. As portas antecipadas e o host saudável não precisam de nova auditoria ampla; repetir seus controles como regressão é suficiente. GO anteriores seguem fechados; Veo financeiro segurado. Nenhum render pago nesta rodada.
+
+COORDENAÇÃO: outbox R3 confirma leitura do R2; af75f739 documental já CONFIRMADO em origin/main **d361016469a05a6050c1768c932c32af653a2079**. Nota operacional: Claude relatou criar junções node_modules nas snapshots do Board. Não repetir; caminhos do Board são somente leitura para o executor. Copiar o harness para/executar em sua própria snapshot é permitido; não escrever na árvore de revisão do outro.
