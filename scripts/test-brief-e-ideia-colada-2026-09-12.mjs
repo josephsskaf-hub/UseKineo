@@ -99,6 +99,17 @@ checa('as copies novas dizem a verdade: uma voz, Seedance para personagem fixo',
 const mtHead = mt.slice(0, mt.indexOf('export function pickMomentumTopic'))
 checa('looksLikeInstruction consulta o lite (brief não auto-inicia e mostra o aviso)', /if \(looksLikeBriefLite\(text\)\) return true/.test(mtHead))
 
+console.log('== KINEO-ROTULO-INLINE-2026-09-14: rótulo de fala e de produção com o texto na mesma linha ==')
+{
+  const briefInline = 'TITLE: The Wave That Erased a Forest\nVIDEO SETTINGS: 9:16, 60 seconds, cinematic, dark tones.\nUse the following voiceover: On July 9, 1958, a landslide fell into Lituya Bay, Alaska, and raised the tallest wave ever recorded, 524 meters high. A fisherman rode it out with his son.\nEDITING: fast cuts on the wave, slow push-in on the trimline, captions on.'
+  const n = P.parseUserScript(briefInline).narration
+  checa('rótulo de fala inline: o rótulo sai, a fala fica', n.startsWith('On July 9, 1958, a landslide fell into Lituya Bay'))
+  checa('EDITING: com o texto na mesma linha nunca vira fala', !/fast cuts|push-in|captions on|EDITING/i.test(n))
+  checa('TITLE:/VIDEO SETTINGS: inline continuam fora', !/Erased a Forest|9:16|dark tones/.test(n))
+  checa('a fala inteira sobrevive (nenhuma palavra do autor perdida)', n.includes('524 meters high') && n.endsWith('rode it out with his son.'))
+  const proprio = P.parseUserScript('Voiceover:\nOn July 9, 1958, a landslide fell into the bay.\nEDITING:\n- fast cuts on the wave').narration
+  checa('rótulo em linha própria segue igual (não regrediu)', proprio === 'On July 9, 1958, a landslide fell into the bay.')
+}
 console.log(`\n${ok} ok · ${falhas.length} falhas`)
 for (const f of falhas) console.log('  ✗', f)
 process.exit(falhas.length ? 1 : 0)

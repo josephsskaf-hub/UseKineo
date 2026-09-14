@@ -344,7 +344,7 @@ function unwrapLabelHead(line: string): string {
 /** Rótulo de produção: a linha descreve imagem, som, texto na tela, ficha
  *  técnica ou instrução — nunca a fala. Casa também "Title/Hook:". */
 const STAGE_LABEL_LINE =
-  /^(konu|g[öo]rsel(?:ler)?|kamera|m[üu]zik|altyaz[ıi](?:lar)?|s[üu]re|ses|efekt(?:ler)?|stil|objetivo|goal|regras?|rules?|instru[çc][õo]es|instructions|cen[áa]rio|escenario|ambiente|design|visual description|descri[çc][ãa]o visual|main character|personagem principal|vozes|voices|voice|visuals?|visual style|imagem|imagen|camera|c[âa]mera|c[áa]mara|action|acci[óo]n|a[çc][ãa]o|movement|body movement|posture|motion|expression|gesture|shot|angle|lighting|luz|on-?screen(?:\s+text)?|onscreen|text on screen|texto (?:en pantalla|em tela|na tela)|screen|tela|caption|captions|subtitle|subtitles|legend|legenda|sfx|vfx|sound|audio|music|m[úu]sica|bgm|b-?roll|footage|(?:\w+\s+)?prompt|title|t[íi]tulo|theme|tema|length|duration|duraci[óo]n|dura[çc][ãa]o|genre|g[ée]nero|target(?:\s+(?:length|duration|audience|age|group|platform|market|viewer|viewers|format))?|audience|p[úu]blico|style|estilo|tone|tom|mood|character|characters|personagens|personajes|cast|transition|cut|note|notes|nota|notas|hashtags|disclaimer|end suspense|setting|location|props|wardrobe|overlay|logo|graphics?|effects?|voice style|pacing|ritmo|aspect|platform|format|formato|resolution|orientation|output|deliverable)(\s*[\/|]\s*[\w\s]{1,20})?\s*[:：]/i
+  /^(konu|g[öo]rsel(?:ler)?|kamera|m[üu]zik|altyaz[ıi](?:lar)?|s[üu]re|ses|efekt(?:ler)?|stil|objetivo|goal|regras?|rules?|instru[çc][õo]es|instructions|cen[áa]rio|escenario|ambiente|design|visual description|descri[çc][ãa]o visual|main character|personagem principal|vozes|voices|voice|visuals?|visual style|imagem|imagen|camera|c[âa]mera|c[áa]mara|action|acci[óo]n|a[çc][ãa]o|movement|body movement|posture|motion|expression|gesture|shot|angle|lighting|luz|on-?screen(?:\s+text)?|onscreen|text on screen|texto (?:en pantalla|em tela|na tela)|screen|tela|caption|captions|subtitle|subtitles|legend|legenda|sfx|vfx|sound|audio|music|m[úu]sica|bgm|b-?roll|footage|(?:\w+\s+)?prompt|title|t[íi]tulo|theme|tema|length|duration|duraci[óo]n|dura[çc][ãa]o|genre|g[ée]nero|target(?:\s+(?:length|duration|audience|age|group|platform|market|viewer|viewers|format))?|audience|p[úu]blico|style|estilo|tone|tom|mood|character|characters|personagens|personajes|cast|transition|cut|note|notes|nota|notas|hashtags|disclaimer|end suspense|setting|location|props|wardrobe|overlay|logo|graphics?|effects?|voice style|pacing|ritmo|aspect|platform|format|formato|resolution|orientation|output|deliverable|editing|edits?|edi[çc][ãa]o|edici[óo]n|montagem|montaje|post[- ]?production|p[óo]s[- ]?produ[çc][ãa]o|transitions|cuts|thumbnail|description|descri[çc][ãa]o|descripci[óo]n|call to action|sound design|colou?r(?:\s+grad(?:e|ing))?|text overlays?|overlays|end (?:screen|card))(\s*[\/|]\s*[\w\s]{1,20})?\s*[:：]/i
 
 /** Linha que é só marcação de tempo, com ou sem título colado
  *  ("0:00–0:04", "0–8 sec", "8–18 sec — THE PROBLEM", "(0-5 s)"). */
@@ -550,15 +550,19 @@ function cleanNarration(raw: string, lenient = false, roteiroDeCinema = true): s
     if (inMetadataSection) continue
     // rótulo de fala sem nada depois ("Use the following voiceover:") é só a placa — não se lê.
     if (rotuloDeFala && !cabecaFala.replace(SPEECH_LABEL_LINE, '').trim()) continue
+    // KINEO-ROTULO-INLINE-2026-09-14 — "Use the following voiceover: On July 9…"
+    // com a fala na MESMA linha: o narrador do Seedance 2.5 leu o rótulo no
+    // dry-run de 14/09. O rótulo sai; a fala fica.
+    const linha = rotuloDeFala ? line.replace(/^[\s\-—–*#>•]+/, '').replace(SPEECH_LABEL_LINE, '').trim() : line
     // Regras 1-3: rotulo de producao, marcacao de tempo e cabecalho de cena
     // nunca sao fala - nem no modo tolerante, onde salvar palavras jamais
     // pode virar o narrador lendo "Visual dois pontos".
-    if (roteiroDeCinema && isStageDirectionLine(line)) continue
+    if (roteiroDeCinema && isStageDirectionLine(linha)) continue
     // KINEO-BRIEF-NAO-E-FALA-2026-09-12 — instrução ao modelo e ficha de personagem nunca são fala.
-    if (roteiroDeCinema && (isInstructionLine(line) || isCharacterSheetLine(line))) continue
-    if (lenient ? isNeverSpeechLine(line) : isDroppableLine(line)) continue
+    if (roteiroDeCinema && (isInstructionLine(linha) || isCharacterSheetLine(linha))) continue
+    if (lenient ? isNeverSpeechLine(linha) : isDroppableLine(linha)) continue
     // Inline stage prefix ("HOOK: ...") — strip the label, keep the speech.
-    const stripped = (lenient ? unwrapLineDecoration(line) : line).replace(INLINE_STAGE_PREFIX, '')
+    const stripped = (lenient ? unwrapLineDecoration(linha) : linha).replace(INLINE_STAGE_PREFIX, '')
     if (!stripped.trim()) continue
     if (lenient && BARE_STAGE_LINE.test(stripped.trim())) continue
     kept.push(stripped)
