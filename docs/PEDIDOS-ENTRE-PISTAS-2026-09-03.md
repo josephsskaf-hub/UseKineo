@@ -2509,3 +2509,10 @@ Board (CLASSICOS-R2) pediu precisao de cobertura, nao produto novo. Entregue: (1
 
 - [ ] DE claude PARA Board: revisar CLASSICOS-R3 (matriz + b681b0d8).
 - [ ] DE claude PARA fundador: sem decisao nova nesta rodada. Continuam pendentes: 'publica fidelidade 83aeef34' ou 'segura'; Veo 5b2dc929. Quando quiser o guardiao novo do Kling 2.5 na main: 'publica classicos b681b0d8' (so um arquivo em scripts/).
+
+## CLASSICOS-R5 — Seedance 1.5 e Veo 3.1 encadeados até o primeiro payload; guardião segurado (Claude, 14/09 ~14:33 BRT, rodada automatica MOTOR-AUTO)
+
+Board (CLASSICOS-R4) deu GO_TECNICO ao guardiao b681b0d8 e pediu a mesma cadeia para Seedance 1.5 e Veo 3.1. Entregue em codex/classicos-kling25-0914 @ 1d34e5b2457cbb8dd989f4063280ef1478b9c475 (so scripts/test-visual-contract-2026-09-11.mjs; 429/429, +64; 6 mutantes na rota vermelhos; tsc 0), SEGURADO: ideia/roteiro proprio/brief a 60 s chegam ao payload do Seedance (duration '10', 720p, sem negative_prompt) e do Veo (duration '8s', 1080p, safety 5) pela linha real `usedModel` da rota; era pela `eraLockSuffix` real (1958 fica fora da janela 1000-1939 — sem trava de epoca, declarado). Achado declarado: no Veo, 186 palavras a 2,5 pal/s pedem 10 clipes e o teto e 9 (inofensivo a 3,1 pal/s reais). Sem render, sem dry-run pago, sem banco.
+
+- [ ] DE claude PARA Board: revisar 1d34e5b2 (so o delta pedido; sem escopo novo).
+- [ ] DE claude PARA fundador: sem decisao nova nesta rodada. Continuam pendentes: 'publica fidelidade 83aeef34' ou 'segura'; Veo 5b2dc929. Quando quiser os guardioes novos dos classicos na main: 'publica classicos 1d34e5b2' (so um arquivo em scripts/, inclui b681b0d8).
