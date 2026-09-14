@@ -138,7 +138,7 @@ const importaDeNarrationFit = (nome) => {
 // que é narrationFit envolvida na régua da família do motor + velocidade do roteiro. A CONDIÇÃO
 // ("a régua do contador É a narrationFit") continua — agora provada pela delegação, não pelo import.
 const envelopeDelegaANarrationFit = /const base = narrationFit\(script, targetSeconds\)/.test(ler('lib/speechRate.ts')) && /export function speechSecondsAt\(script: string, rate: SpeechRate\): number \{\n\s+return narrationFitAt\(script, 0, rate\)\.speech/.test(ler('lib/speechRate.ts').replace(/\r\n/g, '\n'))
-const contadorUsaEnvelope = /import\s*\{[^}]*\bspeechSecondsAt\b[^}]*\}\s*from\s*'@\/lib\/speechRate'/.test(fonteClient) && fonteClient.includes('const fala = speechSecondsAt(prompt, reguaTela)')
+const contadorUsaEnvelope = /import\s*\{[^}]*\bspeechSecondsOfScript\b[^}]*\}\s*from\s*'@\/lib\/speechRate'/.test(fonteClient) && fonteClient.includes('const medidaTela = speechSecondsOfScript(quality, prompt)') && /return \{ seconds: speechSecondsAt\(narration, rate\), rate, narration \}/.test(ler('lib/speechRate.ts'))
 checa('narrationFit continua sendo a régua do contador vivo da tela (direto, ou via speechSecondsAt que delega a ela)',
   importaDeNarrationFit('MIN_COVERAGE') && (importaDeNarrationFit('speechSeconds') || (contadorUsaEnvelope && envelopeDelegaANarrationFit)))
 

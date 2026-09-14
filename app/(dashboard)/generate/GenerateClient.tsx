@@ -277,7 +277,7 @@ import useWaitAbandon from '@/components/video/useWaitAbandon'
 // opcoes reais do seletor (35|45|60|90), em vez de oferecer um valor que o
 // produto nao tem.
 import { MIN_COVERAGE, autofitDown } from '@/lib/narrationFit'
-import { speechRateForScript, speechSecondsAt, autofitDownAt } from '@/lib/speechRate'
+import { speechRateForScript, speechSecondsOfScript, autofitDownAt } from '@/lib/speechRate'
 // KINEO-PREFLIGHT-QUE-NAO-ACUSA-2026-09-08 — o preflight desta tela precisa
 // medir a MESMA narração que o servidor mede. Ler o texto cru conta bullets e
 // `Voice:` como fala e infla o número: era metade da razão de ele prever uma
@@ -7706,7 +7706,7 @@ export default function GenerateClient({
     {
       const baseChecagem = expandBaseRef.current
       if (scriptMode === 'verbatim' && baseChecagem) {
-        const falaSeg = speechSecondsAt(baseChecagem, speechRateForScript(quality, baseChecagem)) // KINEO-REGUA-UNICA: motor + velocidade
+        const falaSeg = speechSecondsOfScript(quality, baseChecagem).seconds // KINEO-REGUA-UNICA: narração extraída, motor + velocidade do texto original
         const cobre = falaSeg >= duration * MIN_COVERAGE
         // KINEO-CONTRATO-DURACAO-2026-09-02 — o espelho do bloqueio acima, para
         // roteiro LONGO: "Use my script as is" com ~80s de fala e 60s no botao
@@ -13970,8 +13970,9 @@ export default function GenerateClient({
               Só aparece com 8+ palavras: contador em cima de campo vazio é
               ruído, não guia. */}
           {(() => {
-            const reguaTela = speechRateForScript(quality, prompt) // KINEO-REGUA-UNICA: o contador mede como o servidor
-            const fala = speechSecondsAt(prompt, reguaTela)
+            const medidaTela = speechSecondsOfScript(quality, prompt) // KINEO-REGUA-UNICA: o contador mede a narração EXTRAÍDA, como o servidor
+            const reguaTela = medidaTela.rate
+            const fala = medidaTela.seconds
             const palavras = prompt.trim() ? prompt.trim().replace(/\[[^\]]*\]/g, ' ').split(/\s+/).filter(Boolean).length : 0
             if (palavras < 8) return null
             const cobre = fala >= duration * MIN_COVERAGE

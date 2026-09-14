@@ -1400,6 +1400,12 @@ async function manipularPost(req: NextRequest) {
     const styleSuffix = gStyle && (gStyle.mood || gStyle.lighting || gStyle.cameraStyle) ? `, ${[gStyle.mood, gStyle.lighting, gStyle.cameraStyle].filter(Boolean).join(', ')}, consistent color grade across all scenes` : ''
     // Push #402 — explicit engine choice from the UI. 'kling' = Cinematic AI
     // (50 cr); anything else = AI Generated (Seedance, 20 cr).
+    // Board 14/09 (ajuste 1): dry_run:true de conta NÃO autorizada é rejeitado aqui,
+    // antes de qualquer reserva de crédito — nunca vira geração real em silêncio.
+    if (body.dry_run === true && !isDryRunAccount(user.email)) {
+      void writeServerEvent({ name: 'dry_run_not_authorized', userId: user.id, path: '/api/generate-video-cinematic', metadata: { engine: body.engine ?? 'seedance', charged: false } })
+      return NextResponse.json({ error: 'Dry-run is only available to internal accounts. Send the request without dry_run to generate a video.', reason: 'dry_run_not_authorized', retryable: false }, { status: 403 })
+    }
     const wantsKling = body.engine === 'kling'
     const wantsVeo = body.engine === 'veo'
     const wantsSora = body.engine === 'sora'

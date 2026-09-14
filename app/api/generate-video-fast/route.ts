@@ -717,6 +717,16 @@ export async function POST(req: NextRequest) {
     // qualquer decisão que dependa de "é ensaio". Pedido de dry-run não
     // autorizado é tratado como pedido real: recusa quando deve recusar.
     const dryRunAutorizado = body.dry_run === true && isDryRunAccount(user.email)
+    // Board 14/09 (ajuste 1): dry_run:true de conta NÃO autorizada é rejeitado
+    // explicitamente — nunca vira geração real em silêncio, com roteiro curto ou
+    // suficiente. Nada foi cobrado; nenhum caminho pago abaixo é alcançado.
+    if (body.dry_run === true && !dryRunAutorizado) {
+      void writeServerEvent({ name: 'dry_run_not_authorized', userId: user.id, path: '/api/generate-video-fast', metadata: { engine: 'fast', charged: false } })
+      return NextResponse.json({ error: 'Dry-run is only available to internal accounts. Send the request without dry_run to generate a video.', reason: 'dry_run_not_authorized', retryable: false }, { status: 403 })
+    }
+    // Board 14/09 (ajuste 2): UMA régua para o portão e para o relatório do dry-run
+    // (família clássica × velocidade lida do roteiro).
+    const narrationRate = speechRateFor({ family: 'classic', speed: parsedScript.speed, language: narrationLanguage.language })
     let portao: { blocked: boolean; reason: 'narration_too_short' | 'too_many_clips' | null; speech_seconds: number; target_seconds: number; missing_words: number; shorter_duration: number | null; words_per_second: number; basis: 'estimate'; autofit_applied: boolean } | null = null
     if (verbatim) {
       // KINEO-TETO-EXPLICITO-2026-09-14 (Board): o Kineo 1 monta até 12 clipes. Um
@@ -734,7 +744,6 @@ export async function POST(req: NextRequest) {
         }
       }
       const falaDoAutor = parsedScript.segments.map((seg) => seg.voiceover ?? '').join(' ')
-      const narrationRate = speechRateFor({ family: 'classic', speed: parsedScript.speed, language: narrationLanguage.language })
       let fit = narrationFitAt(falaDoAutor, duration, narrationRate)
       let autofitApplied = false
       if (!fit.ok && body.allow_shorter_duration === true) {
@@ -772,8 +781,17 @@ export async function POST(req: NextRequest) {
         secondsPerClip: duration / Math.max(1, clipCount),
         verbatim,
         elasticFootage: true, // Pixabay é cortado à medida da fala; não há teto de clipe
+        wordsPerSecond: narrationRate.wordsPerSecond, // Board 14/09: a mesma velocidade efetiva do portão
       })
-      return NextResponse.json({ dry_run: true, family: 'fast', engine: 'fast', gate: portao, verbatim, refunded: true, words_per_scene: verbatim ? null : wordsPerSceneFor(duration, clipCount), ...fastReport })
+      // Board 14/09 (ajuste 2): o resultado global NUNCA diz PASS quando o portão
+      // bloqueia (roteiro curto ou excesso de blocos): o portão manda no veredito.
+      const portaoBloqueia = portao?.blocked === true
+      const vereditoDoPortao = portaoBloqueia
+        ? (portao?.reason === 'too_many_clips'
+          ? `FAIL — portão: ${parsedScript.segments.length} blocos [Pexels], o Kineo 1 monta até 12 — o render real seria recusado antes do gasto`
+          : `FAIL — portão: ${portao?.speech_seconds ?? 0}s de fala a ${portao?.words_per_second ?? narrationRate.wordsPerSecond} pal/s para ${duration}s — o render real seria recusado antes do gasto`)
+        : null
+      return NextResponse.json({ dry_run: true, family: 'fast', engine: 'fast', gate: portao, verbatim, refunded: true, words_per_scene: verbatim ? null : wordsPerSceneFor(duration, clipCount), ...fastReport, ...(vereditoDoPortao ? { verdict: vereditoDoPortao, pass: false, problems: [vereditoDoPortao, ...(fastReport.problems ?? [])] } : {}) })
     }
 
     // KINEO-AI-HOOK — FIRST-VIDEO cinematic opener.

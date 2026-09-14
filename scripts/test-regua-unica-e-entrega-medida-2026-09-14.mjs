@@ -24,7 +24,7 @@ checa('basis é sempre estimate (nunca áudio medido)', SR.speechRateFor({ famil
 console.log('== 2) lib/speechRate envolve lib/narrationFit (trava 8.2: intocado) — mesma aritmética ==')
 const NF = roda(rd('lib/narrationFit.ts'))
 const SPX = roda(rd('lib/scriptParser.ts'))
-const SRX = roda(rd('lib/speechRate.ts').replace(/import \{[\s\S]*?\} from '@\/lib\/narrationFit'/, '').replace(/import \{ parseSpeed \} from '@\/lib\/scriptParser'/, ''), { parseSpeed: SPX.parseSpeed, narrationFit: NF.narrationFit, autofitDown: NF.autofitDown, WORDS_PER_SECOND: NF.WORDS_PER_SECOND, MIN_COVERAGE: NF.MIN_COVERAGE, MIN_AUTOFIT_DOWN_COVERAGE: NF.MIN_AUTOFIT_DOWN_COVERAGE, AUTOFIT_DOWN_FLOOR_SECONDS: NF.AUTOFIT_DOWN_FLOOR_SECONDS, AUTOFIT_DOWN_STEP_SECONDS: NF.AUTOFIT_DOWN_STEP_SECONDS })
+const SRX = roda(rd('lib/speechRate.ts').replace(/import \{[\s\S]*?\} from '@\/lib\/narrationFit'/, '').replace(/import \{ parseSpeed, parseUserScript \} from '@\/lib\/scriptParser'/, ''), { parseSpeed: SPX.parseSpeed, parseUserScript: SPX.parseUserScript, narrationFit: NF.narrationFit, autofitDown: NF.autofitDown, WORDS_PER_SECOND: NF.WORDS_PER_SECOND, MIN_COVERAGE: NF.MIN_COVERAGE, MIN_AUTOFIT_DOWN_COVERAGE: NF.MIN_AUTOFIT_DOWN_COVERAGE, AUTOFIT_DOWN_FLOOR_SECONDS: NF.AUTOFIT_DOWN_FLOOR_SECONDS, AUTOFIT_DOWN_STEP_SECONDS: NF.AUTOFIT_DOWN_STEP_SECONDS })
 const H = SRX.speechRateFor({ family: 'hollywood' })
 const C = SRX.speechRateFor({ family: 'classic' })
 const brief66 = Array(66).fill('word').join(' ')
@@ -51,7 +51,7 @@ const iDry = rf.indexOf('    if (dryRunAutorizado) {\n      const fastReport = c
 const iAiHook = rf.indexOf('// KINEO-AI-HOOK — FIRST-VIDEO cinematic opener.')
 checa('o portão fica ANTES do dry-run (o dry-run exercita a decisão) e antes do hook pago da IA; a autorização do ensaio é conferida antes de tudo', iGate > 0 && iDry > iGate && iAiHook > iDry && rf.indexOf('const dryRunAutorizado = body.dry_run === true && isDryRunAccount(user.email)') < iGate + 1600 && rf.indexOf('const dryRunAutorizado = body.dry_run === true && isDryRunAccount(user.email)') > 0 && rf.includes("gate: portao,") && rf.includes("if (!fit.ok && !dryRunAutorizado) {"))
 checa('só o roteiro próprio (verbatim) passa pelo portão; a IA escreve do tamanho certo', /if \(verbatim\) \{\n\s+\/\/ KINEO-TETO-EXPLICITO-2026-09-14[\s\S]{0,1400}const falaDoAutor = parsedScript\.segments\.map/.test(rf))
-checa('régua clássica com a velocidade do roteiro', rf.includes("speechRateFor({ family: 'classic', speed: parsedScript.speed, language: narrationLanguage.language })"))
+checa('régua clássica com a velocidade do roteiro, UMA para o portão e para o relatório', rf.includes("const narrationRate = speechRateFor({ family: 'classic', speed: parsedScript.speed, language: narrationLanguage.language })") && rf.includes('wordsPerSecond: narrationRate.wordsPerSecond, // Board 14/09'))
 checa('duração menor só com allow_shorter_duration, escolhida da lista do seletor', /if \(!fit\.ok && body\.allow_shorter_duration === true\) \{\n\s+const menor = largestFittingDuration\(fit\.speech\)/.test(rf) && rf.includes("name: 'narration_autofit_down'"))
 checa('recusa 422 com a mensagem acionável, motivo, segundos e a duração menor que cabe — nada cobrado', rf.includes("error: narrationTooShortMessage(fit, SUPPORTED_DURATIONS),") && rf.includes("reason: 'narration_too_short',") && rf.includes("shorter_duration: largestFittingDuration(fit.speech),") && rf.includes("name: 'narration_guard_blocked', userId: user.id, path: '/api/generate-video-fast'"))
 checa('duration virou let (o degrau precisa descer)', rf.includes('let duration: Duration = SUPPORTED_DURATIONS.includes(requestedDuration as Duration)'))
@@ -84,7 +84,7 @@ const base = (extra) => ({ verbatim: true, parsedScript: { segments: segs(5), sp
 {
   // ── segurança: interno/externo × true/false ──
   const casos = [
-    ['externo dry_run=true', { body: { dry_run: true }, isDryRunAccount: () => false }, 422],
+    ['externo dry_run=true', { body: { dry_run: true }, isDryRunAccount: () => false }, 403],
     ['externo dry_run=false', { body: { dry_run: false }, isDryRunAccount: () => false }, 422],
     ['interno dry_run=false', { body: { dry_run: false }, isDryRunAccount: () => true }, 422],
     ['interno dry_run=true', { body: { dry_run: true }, isDryRunAccount: () => true }, 'ensaio'],
@@ -92,6 +92,7 @@ const base = (extra) => ({ verbatim: true, parsedScript: { segments: segs(5), sp
   for (const [nome, extra, esperado] of casos) {
     eventos.length = 0
     const r = await rodaGate(base(extra))
+    if (esperado === 403) { checa(`${nome}: rejeitado EXPLICITAMENTE (403 dry_run_not_authorized, evento próprio) — nunca vira geração real, com roteiro curto ou suficiente`, r.status === 403 && r.body.reason === 'dry_run_not_authorized' && eventos.join(',') === 'dry_run_not_authorized'); continue }
     if (esperado === 422) checa(`${nome}: roteiro curto é RECUSADO (422) e grava narration_guard_blocked — nunca chega à seção paga`, r.status === 422 && r.body.reason === 'narration_too_short' && eventos.join(',') === 'narration_guard_blocked')
     else checa(`${nome}: ensaio autorizado — mesma decisão no relatório (gate.blocked), sem 422 e sem evento`, r.status === undefined && r.portao?.blocked === true && eventos.length === 0)
   }
@@ -121,7 +122,7 @@ const base = (extra) => ({ verbatim: true, parsedScript: { segments: segs(5), sp
   const ex = rd('app/api/expand-script/route.ts')
   checa('expand-script mede na configuração real (motor + velocidade do roteiro), fórmulas intactas', ex.includes('const regua = speechRateForScript(body.engine, original)') && ex.includes('const WORDS_PER_SECOND = regua.wordsPerSecond') && ex.includes('Math.min(palavrasTeto, Math.ceil(target * WORDS_PER_SECOND) + 8)'))
   const gc = rd('app/(dashboard)/generate/GenerateClient.tsx')
-  checa('a tela: contador, checagem local e preflight medem com speechRateForScript(quality, texto) — nenhum speechSeconds() antigo sobrou', gc.includes('speechSecondsAt(baseChecagem, speechRateForScript(quality, baseChecagem))') && gc.includes('const fala = speechSecondsAt(prompt, reguaTela)') && gc.includes('* reguaTela.wordsPerSecond)') && gc.includes('autofitDownAt(falaServidor, duration, speechRateForScript(quality, falaServidor))') && !/\bspeechSeconds\(/.test(gc))
+  checa('a tela: contador e checagem local medem a narração EXTRAÍDA (speechSecondsOfScript), preflight na mesma régua — nenhum speechSeconds() antigo sobrou', gc.includes('speechSecondsOfScript(quality, baseChecagem).seconds') && gc.includes('const medidaTela = speechSecondsOfScript(quality, prompt)') && gc.includes('* reguaTela.wordsPerSecond)') && gc.includes('autofitDownAt(falaServidor, duration, speechRateForScript(quality, falaServidor))') && !/\bspeechSeconds\(/.test(gc))
   checa('a tela trata a recusa do Kineo 1 na mesma caixa da cinematic, antes do erro genérico', gc.indexOf("if (res.status === 422 && data?.reason === 'narration_too_short') {") > 0 && gc.indexOf("if (res.status === 422 && data?.reason === 'narration_too_short') {") < gc.indexOf("console.error('[generate] fast-mode error:'") && gc.includes('engine: quality,'))
   checa('rota cinematic: o salvage só é pulado por ensaio AUTORIZADO', rc.includes('if (salvageDb && !(body.dry_run === true && isDryRunAccount(user.email))) {'))
 }
@@ -181,6 +182,40 @@ console.log('== 7) evento de entrega: executado no caminho real — uma emissão
   checa('cache (sem download) fica unknown: persistRenderAssets só mede quando baixa (onBytes)', ra.includes('let measuredSeconds: number | null = null') && ra.includes('onBytes: (buf) => { measuredSeconds = probeMp4DurationSeconds(buf) },') && !/measuredSeconds = videoTimeoutMs|measuredSeconds = duration/.test(ra))
 }
 
+console.log('== 9) terceira revisão do Board: dry-run não autorizado é rejeitado; relatório nunca PASS com portão bloqueando; narração extraída ==')
+{
+  // 1) rejeição explícita — curto E suficiente — executada no trecho real (do dryRunAutorizado até antes do hook pago)
+  const ini = rf.indexOf('    const dryRunAutorizado = body.dry_run === true && isDryRunAccount(user.email)')
+  const fim = rf.indexOf('    // KINEO-AI-HOOK — FIRST-VIDEO cinematic opener.')
+  const trecho = rf.slice(ini, fim)
+  const ev = []
+  const run = (globals) => { const js = ts.transpileModule('export async function run() {' + trecho + '\n return { duration, portao, status: undefined } }', { compilerOptions: { module: 1, target: 9 } }).outputText; const exp = {}; vm.runInNewContext(js, { exports: exp, console: { log: () => {}, warn: () => {} }, ...globals }); return exp.run() }
+  const segs = (n, w = 10) => Array(n).fill(null).map((_, i) => ({ pexelsQuery: 'q' + i, voiceover: Array(w).fill('w').join(' ') }))
+  const g = (extra) => ({ body: {}, user: { id: 'u', email: 'x@y.z' }, isDryRunAccount: () => false, verbatim: true, parsedScript: { segments: segs(12), speed: null }, narrationLanguage: { language: 'en' }, speechRateFor: SRX.speechRateFor, narrationFitAt: SRX.narrationFitAt, largestFittingDuration: (s) => [90, 60, 35].find((d) => s >= d * 0.95) ?? null, SUPPORTED_DURATIONS: [35, 60, 90], narrationTooShortMessage: () => 'short', writeServerEvent: (e) => { ev.push(e.name); return Promise.resolve(true) }, NextResponse: { json: (b, i) => ({ status: i?.status ?? 200, body: b }) }, duration: 35, scenes: [{ voiceover: 'a', description: 'd' }], clipCount: 4, classicDryRunReport: () => ({ verdict: 'PASS — tudo certo', pass: true, problems: [] }), wordsPerSceneFor: () => [27, 35], ...extra })
+  ev.length = 0
+  const r1 = await run(g({ body: { dry_run: true }, parsedScript: { segments: segs(5), speed: null } }))
+  checa('externo dry_run=true com roteiro CURTO: 403 dry_run_not_authorized (não 422, não geração), evento próprio, nada mais', r1.status === 403 && r1.body.reason === 'dry_run_not_authorized' && ev.join(',') === 'dry_run_not_authorized')
+  ev.length = 0
+  const r2 = await run(g({ body: { dry_run: true }, parsedScript: { segments: segs(12), speed: null } }))
+  checa('externo dry_run=true com roteiro SUFICIENTE: 403 igual — nunca vira geração real em silêncio', r2.status === 403 && r2.body.reason === 'dry_run_not_authorized' && ev.join(',') === 'dry_run_not_authorized')
+  const r3 = await run(g({ body: { dry_run: true }, isDryRunAccount: () => true, parsedScript: { segments: segs(12), speed: null } }))
+  checa('interno dry_run=true com roteiro suficiente: relatório 200 com PASS e gate.blocked=false', r3.status === 200 && r3.body.dry_run === true && r3.body.pass === true && r3.body.gate?.blocked === false)
+  // 2) reprodução do Board: 180 palavras, speed 1,2, 60 s → portão bloqueia (48 s) e o relatório NÃO pode dizer PASS
+  const r4 = await run(g({ body: { dry_run: true }, isDryRunAccount: () => true, parsedScript: { segments: segs(12, 15), speed: 1.2 }, duration: 60 }))
+  checa('180 pal / 1,2× / 60 s no ensaio: gate.blocked e veredito FAIL (o mock do relatório dizia PASS)', r4.status === 200 && r4.body.gate?.blocked === true && /^FAIL — portão/.test(r4.body.verdict) && r4.body.pass === false && r4.body.problems[0] === r4.body.verdict)
+  const r5 = await run(g({ body: { dry_run: true }, isDryRunAccount: () => true, parsedScript: { segments: segs(21, 14), speed: null }, duration: 90 }))
+  checa('21 blocos no ensaio: veredito FAIL por excesso de blocos, mesmo com o relatório PASS', r5.body.gate?.reason === 'too_many_clips' && /^FAIL — portão: 21 blocos/.test(r5.body.verdict) && r5.body.pass === false)
+  let wpsRecebido = null
+  await run(g({ body: { dry_run: true }, isDryRunAccount: () => true, parsedScript: { segments: segs(12, 20), speed: 1.2 }, duration: 60, classicDryRunReport: (a) => { wpsRecebido = a.wordsPerSecond; return { verdict: 'PASS', pass: true, problems: [] } } }))
+  checa('o relatório recebe a MESMA velocidade efetiva do portão (3,72 a 1,2×)', wpsRecebido === 3.72)
+  checa('rota cinematic: rejeição explícita do dry-run não autorizado ANTES de qualquer reserva (releaseBirthClaim vem depois)', rc.includes("if (body.dry_run === true && !isDryRunAccount(user.email)) {") && rc.indexOf("reason: 'dry_run_not_authorized'") < rc.indexOf('const releaseBirthClaim = async'))
+  // 3) narração extraída, velocidade do texto original
+  const original = 'speed: 1.2\nVisual: slow drone over the bay\nNarration:\n' + Array(60).fill('w').join(' ')
+  const m = SRX.speechSecondsOfScript('fast', original)
+  checa('60 palavras de narração + diretivas: conta só a narração (60), velocidade 1,2 lida do original → 16,1 s', m.narration.split(' ').length === 60 && m.rate.wordsPerSecond === 3.72 && Math.abs(m.seconds - 60 / 3.72) < 0.05)
+  const semDiretiva = SRX.speechSecondsOfScript('fast', Array(60).fill('w').join(' '))
+  checa('sem diretiva: 1× (19,4 s) — a velocidade nunca é recuperada da narração extraída', semDiretiva.rate.speed === 1 && Math.abs(semDiretiva.seconds - 60 / 3.1) < 0.05)
+}
 console.log(`\n${ok} ok · ${falhas.length} falhas`)
 for (const f of falhas) console.log('  ✗', f)
 process.exit(falhas.length ? 1 : 0)

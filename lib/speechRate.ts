@@ -11,7 +11,7 @@ import {
   narrationFit, autofitDown, WORDS_PER_SECOND, MIN_COVERAGE, MIN_AUTOFIT_DOWN_COVERAGE,
   AUTOFIT_DOWN_FLOOR_SECONDS, AUTOFIT_DOWN_STEP_SECONDS, type NarrationFit, type AutofitDown,
 } from '@/lib/narrationFit'
-import { parseSpeed } from '@/lib/scriptParser'
+import { parseSpeed, parseUserScript } from '@/lib/scriptParser'
 
 export type SpeechFamily = 'classic' | 'hollywood'
 export const SPEECH_RATE_BASE: Record<SpeechFamily, number> = { classic: 3.1, hollywood: 2.3 }
@@ -74,4 +74,15 @@ export function speechSecondsAt(script: string, rate: SpeechRate): number {
 /** A configuração real de UMA geração: família do motor escolhido + velocidade escrita no roteiro (`speed: 1.2`). Tela, análise, expansão, dry-run e servidor medem com ISTO. */
 export function speechRateForScript(quality: unknown, script: string, language?: string | null): SpeechRate {
   return speechRateFor({ family: speechFamilyForQuality(quality), speed: parseSpeed(script ?? ''), language })
+}
+
+/**
+ * Board 14/09 (ajuste 3): tela, checagem e servidor medem a MESMA narração — a
+ * extraída (sem `speed:`, `Visual:`, rótulos), com a velocidade lida do texto
+ * ORIGINAL (a diretiva some da narração extraída; nunca tentar recuperá-la depois).
+ */
+export function speechSecondsOfScript(quality: unknown, original: string): { seconds: number; rate: SpeechRate; narration: string } {
+  const rate = speechRateForScript(quality, original ?? '')
+  const narration = parseUserScript(original ?? '').narration || (original ?? '')
+  return { seconds: speechSecondsAt(narration, rate), rate, narration }
 }
