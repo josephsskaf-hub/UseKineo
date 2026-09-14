@@ -221,7 +221,7 @@ for (const [engine, cap, dentro, alem] of [['dialogue', 15, 11.0, 16.0], ['host'
 
 // KINEO-DURACAO-REAL-DO-CLIPE-2026-09-14 — a proteção pendente: o arquivo manda.
 {
-  const mp4 = load('@/lib/cinematic/mp4Duration')
+  const mp4 = load('@/lib/mp4Duration')
   const box = (type, payload) => { const b = Buffer.alloc(8 + payload.length); b.writeUInt32BE(8 + payload.length, 0); b.write(type, 4, 'ascii'); payload.copy(b, 8); return b }
   const mvhd = (timescale, duration) => { const p = Buffer.alloc(100); p.writeUInt32BE(timescale, 12); p.writeUInt32BE(duration, 16); return box('mvhd', p) }
   const file = Buffer.concat([box('ftyp', Buffer.from('isom')), box('mdat', Buffer.alloc(64)), box('moov', Buffer.concat([box('udta', Buffer.alloc(4)), mvhd(1000, 12345)]))])

@@ -98,7 +98,7 @@ const rota = readFileSync(new URL('../app/api/generate-video-cinematic/route.ts'
 yes('a rota importa deveAterrissar', /import \{[^}]*deveAterrissar[^}]*\} from '@\/lib\/durationGhost'/.test(rota))
 yes('a rota CHAMA deveAterrissar', /const pouso = deveAterrissar\(\{/.test(rota))
 yes('a chamada acontece dentro de um if (!fit.ok)', rota.indexOf('const pouso = deveAterrissar') > rota.indexOf('if (!fit.ok) {'))
-yes('o fit e RECALCULADO depois de aterrissar', /duration = pouso\.alvo[\s\S]{0,120}fit = narrationFit\(/.test(rota))
+yes('o fit e RECALCULADO depois de aterrissar', /duration = pouso\.alvo[\s\S]{0,120}fit = narrationFit(?:At)?\(/.test(rota)) // 14/09: narrationFitAt = narrationFit na régua da família
 yes('grava duration_ghost_floored', /name: 'duration_ghost_floored'/.test(rota))
 yes('o evento leva missing_words antes e depois', /missing_words_before[\s\S]{0,160}missing_words_after/.test(rota))
 yes('o evento leva o tripwire unblocked', /unblocked: fit\.ok/.test(rota))

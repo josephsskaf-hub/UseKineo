@@ -45,7 +45,7 @@ const falhou = (nome, detalhe) => {
 console.log('\nKINEO — régua única de narração (P0-A, incidente ofirshu555)\n')
 
 // ── 1. O guard mede a fala extraída, não o texto cru ───────────────────────
-if (/narrationFit\(\s*parsedScript\.narration/.test(rotaGuard)) {
+if (/narrationFit(?:At)?\(\s*parsedScript\.narration/.test(rotaGuard) && /const base = narrationFit\(script, targetSeconds\)/.test(readFileSync(new URL('../lib/speechRate.ts', import.meta.url), 'utf8'))) { // 14/09: narrationFitAt envolve narrationFit (régua da família) — a identidade continua
   ok('guard mede parseUserScript(...).narration')
 } else {
   falhou('guard mede parseUserScript(...).narration', 'a chamada esperada não foi encontrada em generate-video-cinematic')

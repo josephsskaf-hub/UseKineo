@@ -62,16 +62,16 @@ if (iIf > 0) {
 check('A4 o bloco foi recortado inteiro', bloco.length > 200 && bloco.includes('script_preflight_overridden'))
 
 // ─── B. O VEREDITO VEM DA MESMA FUNÇÃO DO SERVIDOR ───────────────────────
-check('B1 o cliente importa autofitDown de narrationFit',
-  /import\s*\{[^}]*\bautofitDown\b[^}]*\}\s*from\s*'@\/lib\/narrationFit'/.test(cliente))
-check('B2 o bloco CHAMA autofitDown', /\bautofitDown\s*\(/.test(bloco))
+check('B1 o cliente importa autofitDown de narrationFit (14/09: e autofitDownAt de speechRate, que DELEGA a autofitDown)',
+  /import\s*\{[^}]*\bautofitDown\b[^}]*\}\s*from\s*'@\/lib\/narrationFit'/.test(cliente) && /import\s*\{[^}]*\bautofitDownAt\b[^}]*\}\s*from\s*'@\/lib\/speechRate'/.test(cliente) && /return autofitDown\(script, requestedSeconds, opts\)/.test(ler('lib/speechRate.ts')))
+check('B2 o bloco CHAMA autofitDown (via autofitDownAt, na régua da família do motor escolhido)', /\bautofitDownAt\s*\(falaServidor, duration, speechRateFor\(\{ family: speechFamilyForQuality\(quality\) \}\)\)/.test(bloco))
 check('B3 o cliente importa parseUserScript (mede narração, não texto cru)',
   /import\s*\{[^}]*\bparseUserScript\b[^}]*\}\s*from\s*'@\/lib\/scriptParser'/.test(cliente))
 check('B4 a fala medida para o veredito passa pelo parser', /parseUserScript\s*\(/.test(bloco))
 check('B5 autofitDown continua exportado por narrationFit',
   /export\s+function\s+autofitDown\s*\(/.test(fit))
 check('B6 o servidor do render continua usando a MESMA função',
-  /\bautofitDown\s*\(/.test(ler('app/api/generate-video-cinematic/route.ts')))
+  /\bautofitDown(?:At)?\s*\(/.test(ler('app/api/generate-video-cinematic/route.ts')) && /return autofitDown\(script, requestedSeconds, opts\)/.test(ler('lib/speechRate.ts')))
 
 // O veredito não pode ser redigitado: nada de recalcular o piso de 60% aqui.
 check('B7 o bloco não redigita o piso de cobertura do servidor',

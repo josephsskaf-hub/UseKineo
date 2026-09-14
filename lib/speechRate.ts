@@ -22,6 +22,11 @@ export interface SpeechRate {
   /** Sempre 'estimate': nenhuma régua aqui mede áudio. */
   basis: 'estimate'
 }
+/** Motor (quality do produto ou engine da rota) → família de voz. Hollywood = voz própria do modelo; o resto = TTS da casa. */
+export function speechFamilyForQuality(quality: unknown): SpeechFamily {
+  const q = typeof quality === 'string' ? quality.toLowerCase() : ''
+  return /^(cinematic_)?(hollywood|h3|omni|s25)$/.test(q) ? 'hollywood' : 'classic'
+}
 export function speechRateFor(opts: { family: SpeechFamily; speed?: number | null; language?: string | null }): SpeechRate {
   const speed = typeof opts.speed === 'number' && Number.isFinite(opts.speed) && opts.speed > 0 ? Math.min(2, Math.max(0.5, opts.speed)) : 1
   // Idioma: sem medição que justifique fator; fica 1,0 e registrado como estimativa.
@@ -58,4 +63,9 @@ export function autofitDownAt(script: string, requestedSeconds: number, rate: Sp
   const refit = narrationFitAt(script, candidate, rate)
   if (!refit.ok) return { ...base, applied: false, reason: 'refit_failed' }
   return { ...base, applied: true, reason: 'applied', effectiveSeconds: candidate, lost60sFloor: requested >= 60 && candidate < 60 }
+}
+
+/** Segundos de fala de um texto na régua da configuração (estimativa). */
+export function speechSecondsAt(script: string, rate: SpeechRate): number {
+  return narrationFitAt(script, 0, rate).speech
 }

@@ -277,6 +277,7 @@ import useWaitAbandon from '@/components/video/useWaitAbandon'
 // opcoes reais do seletor (35|45|60|90), em vez de oferecer um valor que o
 // produto nao tem.
 import { MIN_COVERAGE, autofitDown, speechSeconds } from '@/lib/narrationFit'
+import { speechRateFor, speechFamilyForQuality, autofitDownAt } from '@/lib/speechRate'
 // KINEO-PREFLIGHT-QUE-NAO-ACUSA-2026-09-08 — o preflight desta tela precisa
 // medir a MESMA narração que o servidor mede. Ler o texto cru conta bullets e
 // `Voice:` como fala e infla o número: era metade da razão de ele prever uma
@@ -7083,6 +7084,8 @@ export default function GenerateClient({
           // O teto de crescimento é SEMPRE medido contra o que a pessoa escreveu.
           baseScript: base,
           targetSeconds: scriptTooShort.targetSeconds,
+          // KINEO-REGUA-UNICA-2026-09-14 — a expansão mede na régua do motor escolhido
+          engine: quality,
         }),
       })
       const data = await res.json().catch(() => ({}))
@@ -7759,7 +7762,8 @@ export default function GenerateClient({
           // apertou o botão — para a próxima rotação ler a verdade em vez de
           // construir remédio para uma parede que não existe.
           const falaServidor = parseUserScript(baseChecagem).narration || baseChecagem
-          const degrau = autofitDown(falaServidor, duration)
+          // KINEO-REGUA-UNICA-2026-09-14 — a mesma função do servidor, na régua da família do motor escolhido
+          const degrau = autofitDownAt(falaServidor, duration, speechRateFor({ family: speechFamilyForQuality(quality) }))
           void trackEvent('script_preflight_overridden', {
             speech_seconds: Math.round(falaSeg),
             target_seconds: duration,
@@ -9552,6 +9556,28 @@ export default function GenerateClient({
           trackGenerationFailure('generating', 'fast_payment_required', { httpStatus: 402 })
           setPhase('failed')
           return
+        }
+        // KINEO-REGUA-UNICA-2026-09-14 (Board): a recusa do Kineo 1 por roteiro
+        // curto caía em fast_dispatch_not_ok (erro genérico). Agora cai na MESMA
+        // caixa da cinematic: expandir ("Finish it for me") ou uma duração menor
+        // que cabe. Nada cobrado; o autor não é tocado.
+        if (res.status === 422 && data?.reason === 'narration_too_short') {
+          const falaSeg = Number(data?.speech_seconds) || 0
+          const ehIdeia = falaSeg <= 12
+          if (!ehIdeia) setError(typeof data?.error === 'string' ? data.error : GENERIC_ERROR)
+          if (ehIdeia) {
+            void trackEvent('script_authoring_auto_started', { speech_seconds: falaSeg, target_seconds: duration, engine: 'fast' })
+            void handleWriteFullScript({ speechSeconds: falaSeg, targetSeconds: duration })
+          }
+          setScriptTooShort({
+            message: typeof data?.error === 'string' ? data.error : '',
+            speechSeconds: falaSeg,
+            suggestedDuration: typeof data?.shorter_duration === 'number' ? data.shorter_duration : (largestFittingDuration(falaSeg) ?? 0),
+            missingWords: Number(data?.missing_words) || 0,
+            targetSeconds: duration,
+          })
+          trackGenerationFailure('generating', 'narration_too_short', { httpStatus: 422, detail: `engine=fast speech=${falaSeg}s target=${duration}s` })
+          setPhase('failed'); return
         }
         if (!res.ok) {
           console.error('[generate] fast-mode error:', data?.error)

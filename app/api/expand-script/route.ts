@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { openai, OPENAI_SCRIPT_TIMEOUT_MS } from '@/lib/openai'
-import { narrationFit, speechSeconds, MIN_COVERAGE, WORDS_PER_SECOND } from '@/lib/narrationFit'
+import { MIN_COVERAGE } from '@/lib/narrationFit'
+import { speechRateFor, speechFamilyForQuality, narrationFitAt, speechSecondsAt } from '@/lib/speechRate'
 // KINEO-P0A-MESMA-REGUA-2026-08-26 — o MESMO extrator de fala que o guard usa
 // (app/api/generate-video-cinematic: `parseUserScript(prompt).narration`).
 // Importar daqui é o que garante que as duas pontas nunca mais divirjam.
@@ -94,15 +95,24 @@ export async function POST(req: NextRequest) {
     } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'You must be signed in.' }, { status: 401 })
 
-    let body: { script?: string; targetSeconds?: number; baseScript?: string }
+    let body: { script?: string; targetSeconds?: number; baseScript?: string; engine?: string }
     try {
-      body = (await req.json()) as { script?: string; targetSeconds?: number; baseScript?: string }
+      body = (await req.json()) as { script?: string; targetSeconds?: number; baseScript?: string; engine?: string }
     } catch {
       return NextResponse.json({ error: 'invalid body' }, { status: 400 })
     }
 
     const original = (body.script ?? '').trim()
     const target = Number(body.targetSeconds)
+    // KINEO-REGUA-UNICA-2026-09-14 (Board): a expansão mede na régua da FAMÍLIA do
+    // motor. A 2,3 para todos, um Kineo 1 de 60 s era expandido para ~138
+    // palavras e o portão clássico (3,1) pedia 177: expandir → curto de novo →
+    // loop. As três funções abaixo têm os nomes de sempre de propósito: as
+    // fórmulas desta rota não mudam, só a régua que entra nelas.
+    const regua = speechRateFor({ family: speechFamilyForQuality(body.engine) })
+    const WORDS_PER_SECOND = regua.wordsPerSecond
+    const narrationFit = (texto: string, alvo: number) => narrationFitAt(texto, alvo, regua)
+    const speechSeconds = (texto: string) => speechSecondsAt(texto, regua)
     if (!original) return NextResponse.json({ error: 'script is required' }, { status: 400 })
     if (!Number.isFinite(target) || target <= 0) {
       return NextResponse.json({ error: 'targetSeconds is required' }, { status: 400 })

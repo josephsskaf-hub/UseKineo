@@ -678,40 +678,32 @@ export async function POST(req: NextRequest) {
     }
 
     // ═══ KINEO-DRYRUN-CLASSICO-2026-09-12 — VALIDADOR DE $0 DO KINEO 1 ═══
-    // Devolve as cenas planejadas e a narração ANTES do hook pago da IA
-    // (Seedance 5 s), do Pixabay e do compose. O Kineo 1 só cobra na entrega
-    // (compose/status), então aqui não há nada a estornar.
-    if (body.dry_run === true && isDryRunAccount(user.email)) {
-      const fastReport = classicDryRunReport({
-        scenes: scenes.map((s) => ({ voiceover: s.voiceover, prompt: s.description })),
-        targetSeconds: duration,
-        secondsPerClip: duration / Math.max(1, clipCount),
-        verbatim,
-        elasticFootage: true, // Pixabay é cortado à medida da fala; não há teto de clipe
-      })
-      return NextResponse.json({ dry_run: true, family: 'fast', engine: 'fast', verbatim, refunded: true, words_per_scene: verbatim ? null : wordsPerSceneFor(duration, clipCount), ...fastReport })
-    }
-
     // ═══ KINEO-REGUA-UNICA-2026-09-14 — O KINEO 1 ENCURTAVA SEM AVISAR ═══════
     // Medido nos arquivos entregues (cabeçalho MP4, 14/09): 515c188b pediu 35 s,
     // roteiro próprio de 50 palavras, filme de 18,7 s — sem recusa, sem degrau,
     // sem evento. A rota cinematic tem portão; esta não tinha. Direção do
     // fundador: roteiro próprio não é reescrito, acelerado nem cortado em
     // silêncio — antes do gasto, oferecer expansão ou uma duração menor.
+    // Board 14/09: o portão roda ANTES do dry-run, para o dry-run exercitar
+    // exatamente esta decisão (o relatório carrega `gate`).
+    let portao: { blocked: boolean; reason: 'narration_too_short' | null; speech_seconds: number; target_seconds: number; missing_words: number; shorter_duration: number | null; words_per_second: number; basis: 'estimate'; autofit_applied: boolean } | null = null
     if (verbatim) {
       const falaDoAutor = parsedScript.segments.map((seg) => seg.voiceover ?? '').join(' ')
       const narrationRate = speechRateFor({ family: 'classic', speed: parsedScript.speed, language: narrationLanguage.language })
       let fit = narrationFitAt(falaDoAutor, duration, narrationRate)
+      let autofitApplied = false
       if (!fit.ok && body.allow_shorter_duration === true) {
         const menor = largestFittingDuration(fit.speech)
         if (menor && menor < duration && (SUPPORTED_DURATIONS as readonly number[]).includes(menor)) {
           const pedida = duration
           duration = menor as Duration
           fit = narrationFitAt(falaDoAutor, duration, narrationRate)
-          void writeServerEvent({ name: 'narration_autofit_down', userId: user.id, path: '/api/generate-video-fast', metadata: { engine: 'fast', requested_seconds: pedida, effective_seconds: duration, speech_seconds: Math.round(fit.speech * 10) / 10, words_per_second: narrationRate.wordsPerSecond, basis: narrationRate.basis } })
+          autofitApplied = true
+          if (body.dry_run !== true) void writeServerEvent({ name: 'narration_autofit_down', userId: user.id, path: '/api/generate-video-fast', metadata: { engine: 'fast', requested_seconds: pedida, effective_seconds: duration, speech_seconds: Math.round(fit.speech * 10) / 10, words_per_second: narrationRate.wordsPerSecond, basis: narrationRate.basis } })
         }
       }
-      if (!fit.ok) {
+      portao = { blocked: !fit.ok, reason: fit.ok ? null : 'narration_too_short', speech_seconds: Math.round(fit.speech * 10) / 10, target_seconds: duration, missing_words: fit.missingWords, shorter_duration: largestFittingDuration(fit.speech), words_per_second: narrationRate.wordsPerSecond, basis: narrationRate.basis, autofit_applied: autofitApplied }
+      if (!fit.ok && body.dry_run !== true) {
         void writeServerEvent({ name: 'narration_guard_blocked', userId: user.id, path: '/api/generate-video-fast', metadata: { engine: 'fast', reason: 'narration_too_short', requested_seconds: duration, speech_seconds: Math.round(fit.speech * 10) / 10, coverage: Math.round(fit.coverage * 100) / 100, words_per_second: narrationRate.wordsPerSecond, basis: narrationRate.basis, charged: false } })
         return NextResponse.json({
           error: narrationTooShortMessage(fit, SUPPORTED_DURATIONS),
@@ -723,6 +715,20 @@ export async function POST(req: NextRequest) {
           retryable: false,
         }, { status: 422 })
       }
+    }
+
+    // Devolve as cenas planejadas e a narração ANTES do hook pago da IA
+    // (Seedance 5 s), do Pixabay e do compose. O Kineo 1 só cobra na entrega
+    // (compose/status), então aqui não há nada a estornar.
+    if (body.dry_run === true && isDryRunAccount(user.email)) {
+      const fastReport = classicDryRunReport({
+        scenes: scenes.map((s) => ({ voiceover: s.voiceover, prompt: s.description })),
+        targetSeconds: duration,
+        secondsPerClip: duration / Math.max(1, clipCount),
+        verbatim,
+        elasticFootage: true, // Pixabay é cortado à medida da fala; não há teto de clipe
+      })
+      return NextResponse.json({ dry_run: true, family: 'fast', engine: 'fast', gate: portao, verbatim, refunded: true, words_per_scene: verbatim ? null : wordsPerSceneFor(duration, clipCount), ...fastReport })
     }
 
     // KINEO-AI-HOOK — FIRST-VIDEO cinematic opener.
