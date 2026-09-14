@@ -16,9 +16,12 @@ export interface QualityFailureExit {
   acceptedRequestIds: string[]
   heldScenes: number[]
   scenePosts: number
-  // 'engine_or_format' = the ENGINE refused this format (Seedance 2.5 cannot
-  // voice an on-camera presenter): the person changes engine or format by
-  // themselves; the screen never changes either automatically.
+  // 'engine_or_format' = THIS ATTEMPT could not give the presenter a voice on
+  // this engine (Seedance 2.5 presenter path: the voice was not prepared, so
+  // the server stopped instead of buying a silent presenter). Not a universal
+  // incapacity — the healthy presenter path on S25 exists (Board R2/R4). The
+  // person changes engine or format by themselves; the screen never changes
+  // either automatically and never retries.
   guidance: 'engine_or_format' | null
 }
 

@@ -232,10 +232,20 @@ eq(s25PendingUi.state.Phase, 'failed', 'Unconfirmed refund on S25 keeps the card
 // nada de reaproveitamento; outras razões ficam como eram.
 for (const language of ['en', 'es', 'hi']) {
   const settled = renderPanel(language, s25Settled, s25Exit), pending = renderPanel(language, s25Pending, s25PendingExit)
-  const title = { en: 'Seedance 2.5 cannot voice an on-camera presenter', es: 'Seedance 2.5 no puede dar voz a un presentador en cámara', hi: 'Seedance 2.5 कैमरे पर बोलने वाले प्रस्तुतकर्ता को आवाज़ नहीं दे सकता' }[language]
+  // R8 (Board): a frase fala DESTA TENTATIVA. O caminho saudável do apresentador
+  // no S25 existe e foi provado (R2/R4); a copy não pode negar a capacidade.
+  const title = { en: 'We could not complete the presenter scene with Seedance 2.5', es: 'No pudimos completar la escena del presentador con Seedance 2.5', hi: 'हम Seedance 2.5 के साथ प्रस्तुतकर्ता का दृश्य पूरा नहीं कर सके' }[language]
   const button = { en: 'Change engine or format', es: 'Cambiar motor o formato', hi: 'इंजन या फ़ॉर्मैट बदलें' }[language]
-  ok(settled.includes(title) && pending.includes(title), `${language}: the card names the engine and the presenter format`)
-  ok(settled.includes('Kling 3') && settled.includes('MiniMax H3') && settled.includes('Omni Flash'), `${language}: the exit names the engines that voice a presenter`)
+  ok(settled.includes(title) && pending.includes(title), `${language}: the card names the engine and the presenter scene of THIS attempt`)
+  const thisAttempt = { en: 'for this attempt', es: 'en este intento', hi: 'इस प्रयास में' }[language]
+  ok(settled.includes(thisAttempt) && pending.includes(thisAttempt), `${language}: the explanation is scoped to this attempt`)
+  const universal = /cannot voice|has no voice|no puede dar voz|no tiene voz|आवाज़ नहीं दे सकता|आवाज़ नहीं है|cannot (make|do|voice) (a |an )?presenter|does not support/i
+  ok(!universal.test(settled) && !universal.test(pending), `${language}: the card never declares Seedance 2.5 universally unable to voice a presenter (healthy host path proven, Board R2/R4)`)
+  ok(settled.includes('Kling 3') && settled.includes('MiniMax H3') && settled.includes('Omni Flash'), `${language}: the exit names the engines that are options for a presenter`)
+  const guarantee = /will work|guarantee|guaranteed|funcionar[áa]|garantiza|ज़रूर काम|automatically retry|retry automatically|we will retry|volveremos a intentar|reintentaremos|फिर से कोशिश करेंगे/i
+  ok(!guarantee.test(settled) && !guarantee.test(pending), `${language}: alternatives are choices, not a guarantee, and no automatic retry or provider recovery is promised`)
+  const silent = { en: 'silent presenter', es: 'presentador mudo', hi: 'मूक प्रस्तुतकर्ता' }[language]
+  ok(settled.includes(silent), `${language}: the card says the stop avoided a silent presenter`)
   ok(settled.includes(`>${button}<`), `${language}: settled S25 offers the explicit engine/format exit`)
   ok(!pending.includes('<button'), `${language}: unconfirmed refund offers no button`)
   const setAside = settled.match(/data-quality-set-aside=""[^>]*>([^<]+)</)?.[1] ?? ''
@@ -247,6 +257,17 @@ for (const language of ['en', 'es', 'hi']) {
   ok(!other.includes(title) && !other.includes(button) && !other.includes('data-quality-set-aside'), `${language}: other quality reasons render without the engine exit or scene line`)
 }
 ok(renderPanel('en', confirmed).includes('>Edit my idea<') && renderPanel('en', confirmed).includes('This video needs a review'), 'Generic quality card keeps its title and edit label')
+// R8: o preview versionado é o MESMO SSR do componente real; se a copy do
+// painel mudar e o preview não for regerado (`--preview`), este guardião cai.
+// (Pulado só na própria regeração, que ainda está produzindo o arquivo.)
+if (!process.argv.includes('--preview')) {
+  const previewPath = 'docs/coordination/motores/previews/s25-recusa-na-tela-2026-09-14.html'
+  const preview = fs.existsSync(previewPath) ? fs.readFileSync(previewPath, 'utf8') : ''
+  const settledEn = renderPanel('en', s25Settled, s25Exit)
+  ok(preview.includes(settledEn), 'Versioned preview carries the exact SSR of the settled S25 card (regenerate with --preview after any copy change)')
+  ok(preview.includes(renderPanel('es', s25Settled, s25Exit)) && preview.includes(renderPanel('hi', s25Settled, s25Exit)), 'Versioned preview carries the exact ES/HI SSR of the S25 card')
+  ok(!/cannot voice an on-camera presenter|no puede dar voz|आवाज़ नहीं दे सकता/.test(preview), 'Versioned preview no longer states a universal incapacity of Seedance 2.5')
+}
 
 if (process.argv.includes('--preview')) {
   const before = '<section style="background:#20171b;border:1px solid #66343b;border-radius:16px;padding:24px;color:#fca5a5"><h2>Generation failed</h2><p>Could not assemble the render.</p><p>Your credits have been returned to your balance. You can retry safely.</p><button style="padding:12px 20px;background:#2997ff;color:white;border:0;border-radius:10px">Retry</button></section>'

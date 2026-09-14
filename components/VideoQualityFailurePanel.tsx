@@ -12,12 +12,15 @@ const COPY = {
     noDebit: 'No credits were charged for this attempt. You can edit your idea before starting a new attempt.',
     pending: 'We could not confirm that this attempt and its credits are fully settled. Do not start it again yet. Contact support with the reference below.',
     reference: 'Attempt reference', edit: 'Edit my idea', support: 'Contact support', history: 'Open video history',
-    // KINEO-S25-RECUSA-NA-TELA-2026-09-14 (Board, MOTORES-ESPECIFICOS-R6) — a
-    // recusa do MOTOR para o formato ganha nome e saída: trocar motor ou
-    // formato é decisão da pessoa; a tela não altera nada sozinha e não
-    // promete reaproveitar cena. Sem preço, sem oferta.
-    engineTitle: 'Seedance 2.5 cannot voice an on-camera presenter',
-    engineDetail: 'This film asks for a presenter who speaks on camera, and Seedance 2.5 has no voice for that. Pick Kling 3, MiniMax H3 or Omni Flash for a presenter, or keep Seedance 2.5 and ask for a narrated film without a presenter. Your text, length and engine are exactly as you left them — nothing was changed for you.',
+    // KINEO-S25-RECUSA-NA-TELA-2026-09-14 (Board, MOTORES-ESPECIFICOS-R6/R8) —
+    // a recusa para o formato ganha nome e saída: trocar motor ou formato é
+    // decisão da pessoa; a tela não altera nada sozinha e não promete
+    // reaproveitar cena. R8: a frase fala DESTA TENTATIVA — o caminho saudável
+    // do apresentador no S25 (TTS + Avatar) existe e foi provado; o que falhou
+    // foi a voz desta tentativa. Alternativas são escolhas, não garantia de
+    // que outro fornecedor funcione. Sem retry automático, sem preço, sem oferta.
+    engineTitle: 'We could not complete the presenter scene with Seedance 2.5',
+    engineDetail: 'The presenter voice could not be prepared for this attempt, so we stopped rather than deliver a silent presenter. You can pick another engine for the presenter (Kling 3, MiniMax H3 and Omni Flash are the options) or ask for a narrated film without an on-camera presenter. Your text, length and engine have not been changed.',
     setAside: (n: number) => `${n} scene${n === 1 ? '' : 's'} had already started and ${n === 1 ? 'was' : 'were'} set aside. A new film starts from scratch at its normal price; those scenes are not reused.`,
     changeEngine: 'Change engine or format',
   },
@@ -28,8 +31,8 @@ const COPY = {
     noDebit: 'No se cobraron créditos por este intento. Puedes editar tu idea antes de iniciar un nuevo intento.',
     pending: 'No pudimos confirmar que este intento y sus créditos estén totalmente resueltos. No lo inicies de nuevo todavía. Contacta con soporte e incluye la referencia de abajo.',
     reference: 'Referencia del intento', edit: 'Editar mi idea', support: 'Contactar con soporte', history: 'Abrir historial de videos',
-    engineTitle: 'Seedance 2.5 no puede dar voz a un presentador en cámara',
-    engineDetail: 'Este video pide un presentador que habla a cámara y Seedance 2.5 no tiene voz para eso. Elige Kling 3, MiniMax H3 u Omni Flash para un presentador, o mantén Seedance 2.5 y pide un video narrado sin presentador. Tu texto, duración y motor siguen exactamente como los dejaste — no cambiamos nada por ti.',
+    engineTitle: 'No pudimos completar la escena del presentador con Seedance 2.5',
+    engineDetail: 'La voz del presentador no pudo prepararse en este intento, así que nos detuvimos en lugar de entregar un presentador mudo. Puedes elegir otro motor para el presentador (Kling 3, MiniMax H3 y Omni Flash son las opciones) o pedir un video narrado sin presentador en cámara. Tu texto, duración y motor no han cambiado.',
     setAside: (n: number) => `${n} escena${n === 1 ? '' : 's'} ya ${n === 1 ? 'había' : 'habían'} empezado y ${n === 1 ? 'quedó' : 'quedaron'} apartada${n === 1 ? '' : 's'}. Un video nuevo empieza desde cero a su precio normal; esas escenas no se reutilizan.`,
     changeEngine: 'Cambiar motor o formato',
   },
@@ -40,8 +43,8 @@ const COPY = {
     noDebit: 'इस प्रयास के लिए कोई क्रेडिट नहीं लिया गया। नया प्रयास शुरू करने से पहले आप अपना विचार संपादित कर सकते हैं।',
     pending: 'हम पुष्टि नहीं कर सके कि इस प्रयास और इसके क्रेडिट का निपटारा पूरा हो गया है। अभी इसे दोबारा शुरू न करें। नीचे दिए गए संदर्भ के साथ सहायता से संपर्क करें।',
     reference: 'प्रयास का संदर्भ', edit: 'मेरा विचार संपादित करें', support: 'सहायता से संपर्क करें', history: 'वीडियो इतिहास खोलें',
-    engineTitle: 'Seedance 2.5 कैमरे पर बोलने वाले प्रस्तुतकर्ता को आवाज़ नहीं दे सकता',
-    engineDetail: 'इस वीडियो में कैमरे पर बोलने वाला प्रस्तुतकर्ता चाहिए, और Seedance 2.5 के पास इसके लिए आवाज़ नहीं है। प्रस्तुतकर्ता के लिए Kling 3, MiniMax H3 या Omni Flash चुनें, या Seedance 2.5 रखकर बिना प्रस्तुतकर्ता वाला वर्णित वीडियो माँगें। आपका टेक्स्ट, अवधि और इंजन वैसे ही हैं जैसे आपने छोड़े थे — हमने आपके लिए कुछ नहीं बदला।',
+    engineTitle: 'हम Seedance 2.5 के साथ प्रस्तुतकर्ता का दृश्य पूरा नहीं कर सके',
+    engineDetail: 'इस प्रयास में प्रस्तुतकर्ता की आवाज़ तैयार नहीं हो सकी, इसलिए मूक प्रस्तुतकर्ता देने के बजाय हमने प्रक्रिया रोक दी। आप प्रस्तुतकर्ता के लिए दूसरा इंजन चुन सकते हैं (Kling 3, MiniMax H3 और Omni Flash विकल्प हैं) या बिना कैमरे पर प्रस्तुतकर्ता वाला वर्णित वीडियो माँग सकते हैं। आपका टेक्स्ट, अवधि और इंजन नहीं बदले गए हैं।',
     setAside: (n: number) => `${n} दृश्य पहले ही शुरू हो चुके थे और अलग रख दिए गए। नया वीडियो सामान्य कीमत पर शुरू से बनता है; वे दृश्य दोबारा उपयोग नहीं होते।`,
     changeEngine: 'इंजन या फ़ॉर्मैट बदलें',
   },
