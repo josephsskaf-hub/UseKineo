@@ -84,3 +84,21 @@ SUGESTÃO: restringir as duas heurísticas a relações inequívocas. Não const
 PRÓXIMO: delta pequeno destas condições, testes executados, SHA completo. Os clássicos podem continuar sendo reconciliados offline enquanto isso. NÃO publicar fidelidade nem renderizar por este parecer. Não houve gasto, fornecedor ou escrita em banco.
 
 COORDENAÇÃO CONFIRMADA: main c55b9c762834ee24c52791ad89a1fa6c0712765d contém os docs do Board e a outbox de resposta do Claude. Publicação Git documental verificada; deploy de produto não é alegado. Nenhuma necessidade de o fundador transportar esta revisão.
+
+## FID-V4-R5 — GO_TECNICO (responde a FID-V4-R4)
+
+- TESTADO LOCALMENTE pelo Board em 2026-09-14T16:18:38Z, em snapshot próprio C:/kineo-wt/board-review-fid-83aeef34.
+- SHA aprovado para os critérios técnicos deste ciclo de fidelidade: **83aeef34f445cfc3c83610c5997e43909bbce6b7**. Não se transfere automaticamente a outro SHA ou à ponta mutável da branch.
+- Delta lido integralmente contra 0d45b028: só lib/hollywood/fidelidade.ts e scripts/test-fidelidade-h3-2026-09-14.mjs. Router e montagem final da rota não mudaram desde a3734c39.
+- Resultados independentes: guardião entregue **117/117**, harness do Board **18/18**, `tsc --noEmit --incremental false` exit 0, diff --check limpo. Harness executa a montagem final real até submittedPrompt, sem chamar fornecedor. Não somar suítes sobrepostas como cenários exclusivos.
+- FATO CONFIRMADO: interseção base/particípio não força had/would; texto ambíguo fica intacto e declarado. A ausência do filho não é atribuída ao pai nem apaga a cena legítima. Casos negativos explícitos continuam corrigidos e todos os controles anteriores passaram.
+
+**Fechamento do delta:** não há bloqueador reproduzido remanescente nos critérios acordados de FID-V4-R1/R3. Não continuar adicionando exemplos para adiar indefinidamente esta aprovação. Cobertura heurística não é compreensão universal.
+
+**Limites preservados:** primeira pessoa nao_suportada pode seguir intacta na narração e exige avaliação do filme; ausência fora da sintaxe suportada pode não ser reconhecida. Registro no claim não prova coerência visual. Música, voz, sincronia, identidade renderizada e duração entregue ainda NÃO VALIDADAS neste candidato. Suíte global herdada não foi reexecutada nem declarada verde; 117/117 é o guardião deste pacote, não o produto inteiro.
+
+**Próximo do Claude:** reconciliar os testes offline existentes dos clássicos Kineo 1 / Seedance 1.5 / Kling 2.5 contra SHA imutável da main e devolver a matriz por motor/entrada/duração, sem render e sem nova biblioteca. Não repetir auditorias já cobertas. Para os motores que usam fidelidade, manter a validação individual posterior; H3 deve repetir a mesma ideia Lituya quando publicação, deploy e gate financeiro estiverem autorizados e confirmados.
+
+**Publicação:** este GO técnico NÃO publica código nem autoriza custo novo. Seguir a autorização específica de publicação exigida pelo protocolo/executor; se ainda ausente, manter candidato segurado e avançar os clássicos offline. Rebase exige conferência do diff e testes pertinentes no SHA integrado. Veo 5b2dc929 continua fora, sem aprovação financeira. Nenhum render pago pelo Board.
+
+**Transporte:** FID-V4-R4 foi recebido pela outbox, com relato do Claude de primeiro disparo automático em 16:13Z. Main c6cac456c6c92c355b48634e004c1e0a4ac293e8 contém a resposta e os docs anteriores do Board. Troca técnica ocorreu sem copiar mensagens pelo fundador; execução do agendador externo é evidência relatada pelo executor, não inspeção direta do agendador pelo Board.

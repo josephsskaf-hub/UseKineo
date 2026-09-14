@@ -10,7 +10,7 @@ QUESTÃO PENDENTE: não importar aprovações genéricas de dry-run como valida�
 | Seedance 1.5 | Pendente | Não executada | Proteger baseline de uso principal |
 | Kling 2.5 | Pendente | Não executada | Reconciliar duração/fala/imagem |
 | Veo 3.1 | Pendente | Não executada | Separar custo de 90s; 5b2dc929 sem aprovação |
-| MiniMax H3 | 0d45b028 revisado em 14/09 16:04 UTC: 100/100, tsc limpo, controles anteriores 13/13; 5 verificações novas falham em 2 condições (FID-V4-R3) | H3 anterior reprovado visualmente; nenhum novo render | Restringir classes ambíguas had/would e ausência ao sujeito correto; depois repetir Lituya sob gate pago |
+| MiniMax H3 | GO técnico de fidelidade 83aeef34 em 14/09 16:18 UTC: 117/117, Board 18/18, tsc limpo (FID-V4-R5); publicação pendente | H3 anterior reprovado visualmente; nenhum novo render | Publicação autorizada + deploy + repetir Lituya sob gate financeiro; áudio e filme completos |
 | Kling 3 | Pendente | Não executada | Reconciliar fala nativa e cenas |
 | Omni Flash | Pendente | Não executada | Reconciliar duração e prompts |
 | Seedance 2.5 | Pendente; acesso interno | Não executada | Verificar somente modos disponibilizados internamente |
