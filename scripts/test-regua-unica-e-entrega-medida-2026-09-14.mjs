@@ -153,11 +153,12 @@ console.log('== 7) evento de entrega: executado no caminho real — uma emissão
   const executa = async ({ result, measuredDelivery, claim, falhaClaim, eventos }) => {
     const supabase = { from: () => ({ select: () => ({ eq: () => ({ eq: () => ({ order: () => ({ limit: () => ({ maybeSingle: async () => { if (falhaClaim) throw new Error('db down'); return { data: claim } } }) }) }) }) }) }) }
     const js = ts.transpileModule('export async function run() {' + bloco + '\n }', { compilerOptions: { module: 1, target: 9 } }).outputText
-    const exp = {}; vm.runInNewContext(js, { exports: exp, console: { warn: () => {}, log: () => {} }, supabase, COMPOSE_CLAIM_EVENT: 'compose_submission_claim', renderId: 'r1', user: { id: 'u1' }, quality: 'cinematic_h3', duration: 62, result, measuredDelivery, writeServerEvent: (e) => { eventos.push(e); return Promise.resolve(true) } })
+    const exp = {}; vm.runInNewContext(js, { exports: exp, console: { warn: () => {}, log: () => {} }, supabase: { from: () => { throw new Error('cliente do usuario nao le events (RLS)') } }, createAdminClient: () => supabase, process: { env: { NEXT_PUBLIC_SUPABASE_URL: 'https://x', SUPABASE_SERVICE_ROLE_KEY: 'k' } }, COMPOSE_CLAIM_EVENT: 'compose_submission_claim', renderId: 'r1', user: { id: 'u1' }, quality: 'cinematic_h3', duration: 62, result, measuredDelivery, writeServerEvent: (e) => { eventos.push(e); return Promise.resolve(true) } })
     await exp.run()
   }
   const ev1 = []
   await executa({ result: { ok: true, id: 'v1' }, measuredDelivery: { measuredSeconds: 61.5, measureMethod: 'mvhd' }, claim: { metadata: { duration: 60, narration: 'one two three' } }, eventos: ev1 })
+  checa('o claim é lido com o cliente da CASA (service role), não com o do usuário (RLS de events): o pedido chega ao evento', st.includes('const leitor = leitorUrl && leitorKey ? createAdminClient(leitorUrl, leitorKey,') && st.includes('const { data: claimRow } = await leitor'))
   checa('linha nova: 1 evento com pedido 60, planejado 62, medido 61,5 (mvhd), 3 palavras, video_id', ev1.length === 1 && ev1[0].metadata.requested_seconds === 60 && ev1[0].metadata.planned_seconds === 62 && ev1[0].metadata.measured_seconds === 61.5 && ev1[0].metadata.measure_method === 'mvhd' && ev1[0].metadata.narration_words === 3 && ev1[0].metadata.video_id === 'v1')
   const ev2 = []
   await executa({ result: { ok: true, id: 'v1' }, measuredDelivery: { measuredSeconds: null, measureMethod: 'unknown' }, claim: { metadata: { duration: 60 } }, eventos: ev2 })

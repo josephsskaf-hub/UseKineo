@@ -1054,7 +1054,13 @@ export async function GET(
           // não chegam a esta rota: desconhecidos, não inventados.
           if (result.ok && !result.duplicate) {
             try {
-              const { data: claimRow } = await supabase
+              // Cenário H3 f04527a7 (14/09 13:59): `requested_seconds` e `narration_words`
+              // saíram NULOS — `public.events` não tem SELECT para o cliente do usuário
+              // (RLS no_public_read, 26/08). A leitura do claim é da CASA: service role.
+              const leitorUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+              const leitorKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+              const leitor = leitorUrl && leitorKey ? createAdminClient(leitorUrl, leitorKey, { auth: { persistSession: false, autoRefreshToken: false } }) : supabase
+              const { data: claimRow } = await leitor
                 .from('events').select('metadata').eq('name', COMPOSE_CLAIM_EVENT).eq('metadata->>render_id', renderId)
                 .order('created_at', { ascending: false }).limit(1).maybeSingle()
               const cm = ((claimRow as { metadata?: Record<string, unknown> } | null)?.metadata ?? {}) as Record<string, unknown>
