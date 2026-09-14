@@ -31,6 +31,29 @@ eq(speech.verifyObservedSpeech("I'm here.", words('I’m here!')).ok, true, 'Typ
 eq(speech.verifyObservedSpeech('There were 22 people.', words('There were twenty-two people.')).ok, true, 'Bounded English cardinal-number ASR equivalence')
 eq(speech.verifyObservedSpeech('U.S.A.', words('USA')).ok, true, 'Dotted acronym typography is equivalent')
 eq(speech.verifyObservedSpeech('There were 22 people.', words('There were twenty-three people.')).ok, false, 'Different numbers are never fuzzy-matched')
+// KINEO-NUMEROS-EQUIVALENTES-2026-09-14 (auditoria, item 6)
+eq(speech.verifyObservedSpeech('Había 22 personas.', words('Había veintidós personas.')).ok, true, 'ES: 22 ≡ veintidós')
+eq(speech.verifyObservedSpeech('Faltan 59 días.', words('Faltan cincuenta y nueve días.')).ok, true, 'ES: 59 ≡ cincuenta y nueve')
+eq(speech.verifyObservedSpeech('In 1959 it began.', words('In nineteen fifty nine it began.')).ok, true, 'EN: 1959 ≡ nineteen fifty nine')
+eq(speech.verifyObservedSpeech('Since 2020.', words('Since twenty twenty.')).ok, true, 'EN: 2020 ≡ twenty twenty')
+eq(speech.verifyObservedSpeech('A wave of 524 meters.', words('A wave of five hundred twenty four meters.')).ok, true, 'EN: 524 ≡ five hundred twenty four')
+eq(speech.verifyObservedSpeech('In 2005.', words('In two thousand and five.')).ok, true, 'EN: 2005 ≡ two thousand and five')
+eq(speech.verifyObservedSpeech('Em 1959, a onda.', words('Em mil novecentos e cinquenta e nove, a onda.')).ok, true, 'PT: 1959 ≡ mil novecentos e cinquenta e nove')
+eq(speech.verifyObservedSpeech('Uma onda de 524 metros.', words('Uma onda de quinhentos e vinte e quatro metros.')).ok, true, 'PT: 524 ≡ quinhentos e vinte e quatro')
+eq(speech.verifyObservedSpeech('En 1959.', words('En mil novecientos cincuenta y nueve.')).ok, true, 'ES: 1959 ≡ mil novecientos cincuenta y nueve')
+eq(speech.verifyObservedSpeech('In 1959 it began.', words('In nineteen fifty eight it began.')).ok, false, 'Different years stay different')
+eq(speech.verifyObservedSpeech('Pedro e Ana chegaram.', words('Pedro e Ana chegaram.')).ok, true, 'PT connector e between names is still a word')
+eq(speech.verifyObservedSpeech('Pedro e Ana chegaram.', words('Pedro Ana chegaram.')).ok, false, 'Dropping the connector e is still a mismatch')
+// KINEO-FALA-ALEM-DO-CLIPE-2026-09-14 (auditoria, item 7)
+eq(speech.verifyObservedSpeech('Hello world', words('Hello world'), { maxEndSeconds: 0.5 }), { ok: false, reason: 'speech_overruns_clip' }, 'Words ending after the usable clip seconds are not accepted')
+eq(speech.verifyObservedSpeech('Hello world', words('Hello world'), { maxEndSeconds: 2 }).ok, true, 'Words inside the clip pass')
+eq(speech.verifyObservedSpeech('Hello world', words('Hello world'), { maxEndSeconds: 0.7 }).ok, true, '0.25s ASR tolerance')
+{
+  const rota = fs.readFileSync(new URL('../app/api/compose/route.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n')
+  eq(/verifyObservedSpeech\(c\.dialogueLine, words, \{ maxEndSeconds: cinematicSceneSeconds\(c\) \}\)/.test(rota), true, 'compose passes the usable seconds of the clip to the verifier')
+  eq(/speech\.reason === 'speech_overruns_clip'\) \{[\s\S]{0,900}c\.seconds = Math\.round\(\(lastEnd \+ 0\.3\) \* 10\) \/ 10/.test(rota), true, 'an overrun grows the scene to the last word instead of cutting the speech')
+  eq(rota.indexOf('const originalFootageSeconds = hollywoodClips.map(cinematicSceneSeconds)') > rota.indexOf("speech.reason === 'speech_overruns_clip'"), true, 'pre-trim seconds are read after the scene may have grown')
+}
 for (const [expected, observed, reason] of [
   ['Hello world', [], 'missing_speech'],
   ['Hello world', words('Goodbye world'), 'script_mismatch'],

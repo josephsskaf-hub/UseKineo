@@ -1,4 +1,4 @@
-# ANÁLISE DOS MOTORES — 13/09/2026 (noite) → 14/09 03:00 — $0 gasto
+# ANÁLISE DOS MOTORES — 13/09/2026 (noite) → 14/09 03:30 — $0 gasto
 
 Pedido do fundador: "faz uma análise completa dos motores, todos eles, sem gastar nenhum dólar, e me traz aqui pra a gente ver o que vamos arrumar." Depois, colou uma auditoria externa (7 itens, código bcff1868).
 
@@ -31,6 +31,8 @@ Kineo 1 + Seedance 1.5 são 99% do que o cliente vê. Os motores caros somaram 6
 
 Régua de silêncio: ≤1,5 s por cena, ≤8 s no total. Tudo acima é $0 e estornado.
 
+**Cobertura honesta do dry-run**: 6 motores × 3 entradas + Kineo 1 só na ideia (o roteiro próprio do Kineo 1 entra por analyze-idea e não passa pelo dry-run; o brief no Kineo 1 não foi testado). Dry-run prova plano (palavras, segundos, silêncio, schema do fornecedor); NÃO prova áudio final, boca, voz, música nem duração entregue. "Validado" só depois do vídeo assistido.
+
 ## 3. O que foi consertado (8 commits, 13/09 23:30 → 14/09 02:20)
 
 1. **Clássicos escreviam curto** (lib/runway.ts): a expansão só disparava abaixo de 85% do piso. Agora dispara no piso cheio. Seedance ideia: 137 → 192-198 palavras.
@@ -50,12 +52,13 @@ Régua de silêncio: ≤1,5 s por cena, ≤8 s no total. Tudo acima é $0 e esto
 | 3 | "anchor"/"Anchorage"/"No presenter" | **Consertado** |
 | 4 | Piso de duração só para ≥60 (pedido de 90 com áudio de 45 sai 61,5) | **Não mexido, de propósito**: esticar imagem sobre 45 s de áudio é o defeito que o item 4 quer evitar. A cura está a montante: o roteiro nascer do tamanho (conserto 1 e 2). Avatar segue com o áudio como relógio. |
 | 5 | Interface em hindi ≠ narração em hindi | **Parcial**: PT/ES agora chegam à narração dos motores caros. Hindi/outros seguem "en" — decisão de produto (abrir uma quarta língua é voz + escritor + revisão). |
-| 6 | "22" vs "veintidós", "1959" vs "nineteen fifty nine" | **Aberto** (baixa frequência; o comparador só roda em cena de diálogo). |
-| 7 | Palavras terminando depois do clipe | **Aberto** (mesmo verificador; entra junto com o 6). |
+| 6 | "22" vs "veintidós", "1959" vs "nineteen fifty nine" | **Consertado (14/09 03:20)**: numerais por palavras em EN/ES/PT (unidades, dezenas, centenas, mil, conectores, padrão de ano); número diferente segue diferente. |
+| 7 | Palavras terminando depois do clipe | **Consertado (14/09 03:20)**: o verificador recebe os segundos úteis do clipe (`speech_overruns_clip`); no compose a cena de fala CRESCE até a última palavra em vez de cortar o fim. |
 
 ## 5. O que falta
 
-1. Prova em vídeo: canário pago por motor caro (Kling 3, H3, Omni — ideia de 1 linha, 60 s, ~345 cr) só com o "vai". Os dry-runs passam; o veredito de qualidade é do fundador.
+1. Prova em vídeo, UM motor por vez, começando pelo H3 (o que falhou no teste do fundador): ideia de 1 linha, 60 s, 45 cr; assistir inteiro (duração, boca, voz, legenda, música, ordem) antes do próximo. Só com o "vai".
 2. Codex (tela): `error` do 422 + "seus créditos voltaram"; 16:9 pré-selecionado; duplo despacho.
-3. Itens 6 e 7 da auditoria: normalização de números por língua e fim das palavras ≤ duração útil, no comparador de fala.
-4. Kineo 1 roteiro próprio: cobrir o caminho verbatim no dry-run.
+3. Kineo 1 roteiro próprio e brief: cobrir no dry-run (hoje só a ideia).
+4. Duração entregue em 90 s e avatar: validar no vídeo final (item 4 da auditoria), não no plano.
+5. Hindi e outras línguas fora de EN/PT/ES: decisão de produto (voz + escritor + revisão por língua).

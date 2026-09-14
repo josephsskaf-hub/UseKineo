@@ -2034,8 +2034,6 @@ export async function POST(req: NextRequest) {
           ...(dlg ? { dialogueLine: dlg } : {}),
         }
       })
-      const originalFootageSeconds = hollywoodClips.map(cinematicSceneSeconds)
-
       // Verify already-generated speech before any additional narration work.
       // KINEO-LIPSYNC-CAPTIONS-2026-08-17 — transcreve o AUDIO NATIVO das
       // cenas de fala (Whisper direto no mp4 do clipe). A requested line is
@@ -2043,8 +2041,17 @@ export async function POST(req: NextRequest) {
       for (const [sceneIdx, c] of hollywoodClips.entries()) {
         if ((c.engine === 'dialogue' || c.engine === 'host') && c.url) {
           const words = await transcribeClipWithTimestamps(c.url).catch(() => [] as WhisperWord[])
-          const speech = verifyObservedSpeech(c.dialogueLine, words)
-          if (!speech.ok) {
+          const speech = verifyObservedSpeech(c.dialogueLine, words, { maxEndSeconds: cinematicSceneSeconds(c) })
+          if (!speech.ok && speech.reason === 'speech_overruns_clip') {
+            // KINEO-FALA-ALEM-DO-CLIPE-2026-09-14 (auditoria, item 7): o áudio existe
+            // (o Whisper leu as palavras) mas termina depois dos segundos declarados;
+            // a cena cresce até cobrir a última palavra (teto do engine em
+            // cinematicSceneSeconds) em vez de cortar o fim da fala.
+            const lastEnd = Math.max(...words.map((w) => w.end))
+            const antes = cinematicSceneSeconds(c)
+            c.seconds = Math.round((lastEnd + 0.3) * 10) / 10
+            console.warn('[compose] KINEO-FALA-ALEM-DO-CLIPE: cena cresce para cobrir a fala', { scene_index: sceneIdx, antes, depois: cinematicSceneSeconds(c), last_word_end: lastEnd })
+          } else if (!speech.ok) {
             console.warn('[compose] native speech verification failed', { scene_index: sceneIdx, reason: speech.reason })
             return rejectBeforeProviderSubmission(NextResponse.json({
               error: `Scene ${sceneIdx + 1}'s spoken audio could not be verified against the script. Your generated clips are preserved; no replacement voice was added.`,
@@ -2055,6 +2062,7 @@ export async function POST(req: NextRequest) {
         }
       }
       console.log(`[compose] hollywood lipsync captions: ${hollywoodClips.filter((c) => c.speechWords).length} cena(s) de fala transcritas`)
+      const originalFootageSeconds = hollywoodClips.map(cinematicSceneSeconds) // depois da verificação: uma cena de fala pode ter crescido
 
       // Timeline offsets (pre-trim — only the LAST scene is ever trimmed by
       // the builder, which never moves earlier offsets).
