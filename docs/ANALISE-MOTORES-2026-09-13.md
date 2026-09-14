@@ -92,6 +92,64 @@ Recomendação do Board: preservar as correções, não reverter só para deixar
 
 **O que a matriz $0 prova por motor (e o que não prova)**: duração PLANEJADA (palavras × régua, cena a cena) ✔ · sequência da história (ordem 1→N no verbatim) ✔ · narração na língua da pessoa ✔ · instrução fora da fala ✔ · schema do fornecedor ✔. Legendas, música, boca/voz e duração ENTREGUE: só com o vídeo final — e hoje nem o banco guarda.
 
+## 4d. Etapa 3 (14/09 06:00 → 07:30) — diferenças REAIS entre pedido e resultado, medidas nos arquivos entregues
+
+Método: a sonda do cabeçalho MP4 (`mvhd`) rodou sobre 46 filmes já entregues (até 8 por motor, 30 dias), baixando só 2 MB por arquivo. 46/46 legíveis. Comparação: `pedido` = duração do claim (o botão); `planejado` = `videos.duration` (a timeline montada); `real` = o arquivo.
+
+| Motor | Medidos | real − pedido (média) | Abaixo de 95% do pedido | Pedido ≥60 e real <61,5 | real ≈ planejado |
+|---|---|---|---|---|---|
+| Kineo 1 (fast) | 8 | +3,0 s | 1 (515c188b: 35 → 18,7 s, 13/09) | 0 | sim (±0,5 s) |
+| Seedance 1.5 | 8 | +12,3 s | 0 | 0 | sim |
+| Kling 2.5 | 5 | +5,1 s | 0 | 1 (577481c6: 59,8 s, 18/08) | sim |
+| Veo 3.1 | 5 | +5,0 s | 0 | 1 (18ddfd51: 60,5 s, 17/08) | sim |
+| Kling 3 | 6 | −0,6 s | 2 (141dfeda 60 → 52,8 s, 08/09; 4b12925e 45 → 30 s, 17/08, vitrine) | 3 | 1 fora (4b12925e) |
+| MiniMax H3 | 6 | +10,4 s | 0 | 1 (04189a48: 58,2 s, 20/08) | 2 fora (5d58cb4f plan 30 → real 65, 20/08) |
+| Omni | 6 | −8,0 s | 3 (8df84efb 60 → 39,9 s, 11/09; a66e975a 90 → 48,5 s; cc17475a 60 → 46,4 s, 02/09) | 3 | sim |
+| Clipe | 2 | — | 0 | 0 | sim |
+
+Leitura, por motor:
+- **Kineo 1**: 515c188b — roteiro próprio de 50 palavras, botão 35 s, filme de 18,7 s, sem recusa, sem degrau, sem evento. A rota do Kineo 1 não tinha portão de narração (a cinematic tem). Correção direcionada: portão com a régua clássica, antes do gasto, com saída (expansão ou duração menor com consentimento). Código pronto na branch codex/regua-unica-0914.
+- **Omni e Kling 3 (modo IA)**: 8df84efb (11/09, 96 palavras para 60 s) e 141dfeda (08/09, 107 palavras) são o defeito "o planejador escreve pouco" — corrigido em 14/09 (KINEO-ENCHE-SILENCIO, dry-run PASS), ainda NÃO comprovado em vídeo. Os dois de 02/09 do Omni são anteriores à gravação da narração no claim.
+- **Seedance 1.5 / Kling 2.5 / Veo**: entregam acima do pedido (+5 a +12 s); nenhum abaixo. Dois casos de 59,8 e 60,5 s para pedido de 60 (agosto) ficam abaixo do piso 61,5 do TikTok — anteriores ao piso (18/08).
+- **H3**: 04189a48 (20/08) 58,2 s para 60; 5d58cb4f (20/08) planejado 30, real 65 — o único caso em que a coluna `videos.duration` mente (era o compose antigo). Desde então planejado ≈ real.
+- **Kling 3 vitrine** (4b12925e, 17/08): 30 s reais para 45 planejados — o corte curado do fundador (Maracaibo), não um defeito de motor.
+
+`videos.duration` é, na prática, a duração planejada da timeline e bate com o arquivo em 44 de 46 (±0,5 s). O que faltava era a MEDIÇÃO do arquivo e o pedido lado a lado — é o que o evento `render_delivered_measured` passa a gravar.
+
+### Cobertura registrada: motor × entrada × duração testada (dry-run $0)
+
+| Motor | Ideia | Roteiro próprio | Brief do ChatGPT |
+|---|---|---|---|
+| Kineo 1 | 60 s | 35 s (marcadores) · 45 s FAIL honesto (108 pal) | 60 s (modo IA) |
+| Seedance 1.5 | 60 s | 45 s · 30 s FAIL honesto (66 pal a 3,1) | 35 s · 30 s |
+| Kling 2.5 | 60 s | 45 s | 35 s |
+| Veo 3.1 | 60 s | 45 s | 35 s |
+| Kling 3 | 60 s (×5 rodadas) | 60 s (10 cenas, roteiro do fundador) | 35 s |
+| MiniMax H3 | 60 s (EN e PT) | 45 s · 60 s | 35 s · 30 s |
+| Omni Flash | 60 s | 45 s | 35 s |
+| Seedance 2.5 | 60 s | 45 s | 35 s · 30 s |
+
+PASS a 35 ou 45 s NÃO comprova 60 ou 90 s. Ninguém testou 90 s em roteiro próprio ou brief; avatar não foi testado (fica por último).
+
+### Réguas (item 2 da direção)
+
+lib/speechRate.ts é a fonte única: hollywood 2,3 pal/s, clássicos 3,1 pal/s, × velocidade, `basis: 'estimate'`. Envolve lib/narrationFit.ts sem tocá-la (trava 8.2); a rota cinematic mede portão, degrau e dry-run com a régua da família; o Kineo 1 ganha o portão. O preflight da tela (app/api/analyze-idea, também sob a trava) ainda mede a 2,3 para todos — três guardiões de identidade ("o servidor usa a MESMA função do preflight") ficam vermelhos até o preflight adotar a mesma régua. Escopo apresentado abaixo, não executado.
+
+### Instrumentação (item 3 da direção) — implementação mínima, sem schema
+
+Evento `render_delivered_measured` no ponto de entrega (compose/status), com: render_id, engine, requested_seconds (claim), planned_seconds (timeline), measured_seconds + measure_method ('mvhd' | 'unknown'), narration_words, result. Campos que a rota não conhece hoje vão como `null` (input_mode, language, voice, speed, captions_configured, music_configured) — desconhecido, não inventado. A medição vem dos MESMOS bytes da cópia para o bucket (lib/renderAssets), sem segundo download. Validada nos 46 arquivos já entregues (acima). Cron de resgate e clipes: fora desta leva (mesmo evento, escopo próprio).
+
+### Trava 8.2 — descoberta de escopo (14/09 07:30)
+
+A trava cobre também `app/api/generate-video-*`, `app/api/analyze-idea/`, `app/api/generate-script/`, `lib/narrationFit`, `lib/broll/`, `lib/lyriaMusic` — não só lib/cinematic, lib/hollywood e lib/compose.ts. Os commits de hoje que tocaram a rota cinematic (d84c7909, ee4f8751, fb44bff2, 59f6845a, ea6e8a90, d54683fb, 0e948900, 9cd3d506) estavam fora da lista que eu apresentei. A trava mede o diff contra a main e ficou verde ao mergear; só a vi agora, ao trabalhar numa branch com a rota tocada e sem merge. Registro para decisão do fundador; nada foi revertido.
+
+Segurados na branch, aguardando a mesma exceção pontual:
+
+| Branch | Commits | Arquivos sob a trava |
+|---|---|---|
+| codex/proximos20-0948 | e7f975e3 + 2c2af80d | lib/compose.ts, lib/cinematic/mp4Duration.ts (a mover para lib/mp4Duration.ts), app/api/compose/route.ts |
+| codex/regua-unica-0914 | (ver PEDIDOS) | app/api/generate-video-cinematic, app/api/generate-video-fast (+ lib/speechRate.ts, lib/mp4Duration.ts, lib/renderAssets.ts, compose/status fora da trava) |
+
 ## 5. O que falta
 
 1. Prova em vídeo, UM motor por vez, começando pelo H3 (o que falhou no teste do fundador): ideia de 1 linha, 60 s, 45 cr; assistir inteiro (duração, boca, voz, legenda, música, ordem) antes do próximo. Só com o "vai" e custo confirmado antes. Avatar por último.

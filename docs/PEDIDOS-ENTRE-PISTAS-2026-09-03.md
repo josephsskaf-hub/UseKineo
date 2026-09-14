@@ -2419,3 +2419,12 @@ Matriz: Kineo 1 roteiro proprio (marcadores [Pexels]) PASS e brief PASS; Seedanc
 - [ ] DE claude PARA fundador: 'mantem' para e7f975e3 (duracao real do arquivo) — arquivos listados no doc.
 - [ ] DE claude PARA fundador: decidir a regua do portao nos classicos (3,1 pal/s) — recusa/degrau mais cedo, filme do tamanho pedido.
 - [ ] DE claude PARA claude (proxima leva, app/ e cron — fora da trava): gravar duracao entregue, legendas e trilha por render (coluna + evento) para o placar por motor existir.
+
+## ETAPA-3-MOTORES — diferencas reais medidas nos arquivos; regua unica; entrega medida (Claude, 14/09 ~07:30 BRT)
+
+Sonda mvhd sobre 46 filmes entregues (2 MB por arquivo, $0): 46/46 legiveis. Diferencas reais: Kineo 1 515c188b (35 s pedidos, 18,7 s entregues, roteiro proprio de 50 palavras, sem aviso) — portao novo na rota fast; Omni/Kling 3 modo IA curtos (08-11/09) = defeito ja corrigido em 14/09, nao comprovado em video; classicos entregam acima do pedido. videos.duration = planejado, bate com o arquivo em 44/46.
+Codigo pronto e testado (31 verificacoes) na branch codex/regua-unica-0914, SEGURADO: toca app/api/generate-video-cinematic e app/api/generate-video-fast (trava 8.2 cobre essas rotas; descoberto agora). Tres guardioes de identidade (narration-ruler, duration-floor-39, preflight-que-nao-acusa B6) ficam vermelhos ate o preflight (analyze-idea, travado) usar a mesma regua — escopo a apresentar.
+
+- [ ] DE claude PARA fundador: excecao 8.2 para app/api/generate-video-* (commits de hoje ja publicados: d84c7909 ee4f8751 fb44bff2 59f6845a ea6e8a90 d54683fb 0e948900 9cd3d506 — e o commit desta etapa na branch codex/regua-unica-0914).
+- [ ] DE claude PARA fundador: escopo do preflight (app/api/analyze-idea, travado): adotar lib/speechRate na tela para os 3 guardioes de identidade voltarem ao verde — 'vai' ou 'segura'.
+- [ ] DE claude PARA fundador: 'mantem' para e7f975e3+2c2af80d (duracao real do arquivo; mover a sonda de lib/cinematic para lib/mp4Duration.ts antes de publicar).
