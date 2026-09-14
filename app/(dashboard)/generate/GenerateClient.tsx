@@ -310,6 +310,7 @@ import { classificarEsperaDaGeracao } from '@/lib/entrega/generationWaitNotice'
 import { UiLabel } from '@/components/InterfaceLanguage'
 import VideoQualityFailurePanel from '@/components/VideoQualityFailurePanel'
 import { parseVideoQualityFailure, qualityFailureOwnsSnapshot, type VideoQualityFailure } from '@/lib/cinematic/qualityFailureUi'
+import { parseQualityFailureExit, type QualityFailureExit } from '@/lib/qualityFailureExit'
 import NicheOnboarding from '@/components/NicheOnboarding'
 import {
   ONBOARDING_GOAL_VARIANT,
@@ -1838,11 +1839,22 @@ export default function GenerateClient({
   const [generationId, setGenerationId] = useState<string | null>(null)
   const [qualityFailure, setQualityFailure] = useState<VideoQualityFailure | null>(null)
   const qualityFailureRef = useRef<VideoQualityFailure | null>(null)
+  // KINEO-S25-RECUSA-NA-TELA-2026-09-14 (Board, MOTORES-ESPECIFICOS-R6) — o
+  // pedido EXATO (texto enviado + motor) que o motor acabou de recusar para
+  // este formato. "Change engine or format" volta ao formulário sem alterar
+  // nada; se a pessoa mandar o MESMO pedido de novo, ele não viaja: a resposta
+  // é conhecida e, na terceira porta, custaria âncora e cenas outra vez.
+  // Pedido alterado (texto OU motor) passa como geração nova, custo normal.
+  const unchangedRepeatRef = useRef<{ prompt: string; engine: string; failure: VideoQualityFailure; exit: QualityFailureExit } | null>(null)
+  // O que o servidor já tinha comprado + a saída oferecida (só apresentação;
+  // lib/qualityFailureExit.ts). Nasce e morre junto com `qualityFailure`.
+  const [qualityFailureExit, setQualityFailureExit] = useState<QualityFailureExit | null>(null)
   const acceptQualityFailure = useCallback((data: unknown, expectedGenerationId: string): boolean => {
     const failure = parseVideoQualityFailure(data, expectedGenerationId)
     if (!failure) return false
     qualityFailureRef.current = failure
     setQualityFailure(failure)
+    setQualityFailureExit(parseQualityFailureExit(data, failure))
     setError(null)
     setScriptTooShort(null)
     setCreditsHeld(null)
@@ -1867,6 +1879,7 @@ export default function GenerateClient({
     if (!qualityFailureRef.current?.canEdit) return
     qualityFailureRef.current = null
     setQualityFailure(null)
+    setQualityFailureExit(null)
     setError(null)
     setGenerationId(null)
     generationAttemptRef.current = null
@@ -8905,6 +8918,25 @@ export default function GenerateClient({
       trackGenerationFailure('idle', 'generate_empty_prompt')
       return
     }
+    // KINEO-S25-RECUSA-NA-TELA-2026-09-14 (R6) — repetição INALTERADA do pedido
+    // que o motor recusou para este formato: 0 fetch, o mesmo cartão volta
+    // (mesma referência, mesmo desfecho financeiro já confirmado). Qualquer
+    // diferença no texto ou no motor limpa a memória e segue como sempre.
+    // Só este motivo, só este motor: nenhuma outra falha passa por aqui.
+    const repeticaoInalterada = unchangedRepeatRef.current
+    if (repeticaoInalterada && mode === 'cinematic_ai' && aiEngine === repeticaoInalterada.engine && trimmed === repeticaoInalterada.prompt) {
+      generationInFlightRef.current = false
+      qualityFailureRef.current = repeticaoInalterada.failure
+      setQualityFailure(repeticaoInalterada.failure)
+      setQualityFailureExit(repeticaoInalterada.exit)
+      setError(null)
+      trackGenerationFailure(phase, 'cinematic_unchanged_repeat_blocked', {
+        detail: `reason=${repeticaoInalterada.failure.reason} engine=${repeticaoInalterada.engine}`,
+      })
+      setPhase('failed')
+      return
+    }
+    unchangedRepeatRef.current = null
 
     // Bug 12/06 — a face photo was picked but never attached ("Use this face"
     // not pressed, usually because the consent box was missed). Generating now
@@ -9141,6 +9173,29 @@ export default function GenerateClient({
         // `failed`; it carries no HTTP status and no machine-readable reason,
         // and the 401 branch below leaves the page entirely without ever
         // transitioning. Name each dispatch outcome explicitly.
+        // KINEO-S25-RECUSA-NA-TELA-2026-09-14 (Board, MOTORES-ESPECIFICOS-R6) —
+        // a recusa terminal (qualityCheckFailed) já era consumida pela linha
+        // abaixo (335797c3): painel próprio, Retry genérico suprimido, despacho
+        // trancado até a edição explícita. O que faltava: a linha de diagnóstico
+        // com a RAZÃO e o que o servidor já tinha comprado (cenas aceitas/retidas,
+        // POSTs, estorno), e a memória do pedido exato para a guarda de repetição
+        // inalterada em handleGenerate. Resposta comum (sem qualityCheckFailed)
+        // não entra aqui e segue para os ramos de sempre.
+        {
+          const recusaTerminal = !res.ok ? parseVideoQualityFailure(data, cinematicGenerationId) : null
+          const saidaDaRecusa = parseQualityFailureExit(data, recusaTerminal)
+          if (recusaTerminal && saidaDaRecusa) {
+            trackGenerationFailure('generating', recusaTerminal.reason, {
+              httpStatus: res.status,
+              detail: `accepted=${saidaDaRecusa.acceptedScenes} held=[${saidaDaRecusa.heldScenes.join(',')}] posts=${saidaDaRecusa.scenePosts} refund=${recusaTerminal.refundConfirmed ? 'confirmed' : 'unconfirmed'} released=${recusaTerminal.claimReleased} guidance=${saidaDaRecusa.guidance ?? 'none'}`,
+              message: saidaDaRecusa.acceptedRequestIds.length > 0 ? `accepted_ids=${saidaDaRecusa.acceptedRequestIds.join('|')}` : undefined,
+              responded: true,
+            })
+            unchangedRepeatRef.current = saidaDaRecusa.guidance === 'engine_or_format'
+              ? { prompt: trimmed, engine: aiEngine, failure: recusaTerminal, exit: saidaDaRecusa }
+              : null
+          }
+        }
         if (!res.ok && acceptQualityFailure(data, cinematicGenerationId)) return
         if (res.status === 401) {
           trackGenerationFailure('generating', 'cinematic_unauthenticated', { httpStatus: 401 })
@@ -15712,7 +15767,7 @@ export default function GenerateClient({
             </section>
           )}
 
-          {phase === 'failed' && qualityFailure ? <VideoQualityFailurePanel failure={qualityFailure} onEdit={editAfterQualityFailure} /> : null}
+          {phase === 'failed' && qualityFailure ? <VideoQualityFailurePanel failure={qualityFailure} exit={qualityFailureExit} onEdit={editAfterQualityFailure} /> : null}
 
           {showGenericFailure && (
             <section
