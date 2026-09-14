@@ -21,7 +21,7 @@ checa('a sobra entra frase a frase em cena com espaço (teto = segundos × 2,3),
 checa('o que não coube vira verbatimOverflowWords, declarado fora do bloco', /let verbatimOverflowWords = 0/.test(r) && /verbatimOverflowWords = sentences\.slice\(si\)\.reduce/.test(r))
 const iRecusa = r.indexOf("if (verbatimOverflowWords > 0) {")
 const iFloor = r.indexOf('plan.scenes = fitCinematicPlanFloor(plan.scenes, duration, SCENE_CAP)')
-const iSubmit = r.indexOf('submitToFalWithOneRetry(')
+const iSubmit = r.indexOf('await submitToFalWithOneRetry(') // a CHAMADA no laço hollywood, não a definição da função
 checa('a recusa vem antes do piso de duração e antes de qualquer POST pago, com estorno', iRecusa > 0 && iRecusa < iFloor && iFloor < iSubmit && /releaseBirthClaim\('script_too_long_for_engine_no_charge'\)/.test(r))
 checa('a recusa diz o teto em palavras e não é retryable', /reason: 'script_too_long_for_engine', script_words: scriptWordsVerbatim, max_words: maxWords, retryable: false/.test(r) && /Math\.floor\(MAX_VERBATIM_SCENES \* SCENE_CAP \* 2\.3\)/.test(r))
 checa('a recusa deixa rastro (narration_guard_blocked reason script_too_long_for_engine)', /reason: 'script_too_long_for_engine', engine: body\.engine \?\? 'hollywood'/.test(r))
