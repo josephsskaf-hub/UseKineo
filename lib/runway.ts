@@ -727,17 +727,47 @@ export async function getRunwayTask(id: string): Promise<RunwayTaskState> {
 // segundos (2,3 pal/s), numa chamada só, mantendo fatos e língua.
 export const FILLER_LINE_RE = /^(here is something most people do not know about|imagine|what if|most people don'?t know)/i
 export interface VoiceoverTarget { text: string; targetWords: number }
-/** Reescreve cada item para ~targetWords (mín. 80% do alvo, sempre acima do original); devolve os textos na ordem. Fail-open: item que não melhora volta como estava. */
-export async function expandVoiceoversToTargets(items: VoiceoverTarget[], language: NarrationLanguage | undefined, topic: string): Promise<string[]> {
+/** Janela aceita: de alvo−2 a alvo+1 palavras (o compose recusa fala > segundos+1 s). */
+export const fitsVoiceoverTarget = (words: number, target: number): boolean => words >= target - 2 && words <= target + 1
+/** Reescreve cada item para o alvo de palavras (janela alvo−2..alvo+1), em até `rounds` rodadas; devolve os textos na ordem. Fail-open: item que não melhora volta como estava. */
+export async function expandVoiceoversToTargets(items: VoiceoverTarget[], language: NarrationLanguage | undefined, topic: string, rounds = 2): Promise<string[]> {
   const wordsOf = (t: string) => (t ?? '').trim().split(/\s+/).filter(Boolean).length
   if (items.length === 0) return []
   const langName = LANGUAGE_NAMES[language ?? 'en']
+  // 14/09 00:30 — a 1ª versão aceitava ≥80% do alvo e sem teto: o Omni voltou
+  // com 27 palavras para 10 s (preflight recusa) e o Kling 3 ficou em 14/18.
+  // Agora: janela [alvo−2, alvo+1]; quem fica fora vai a uma 2ª rodada.
+  const out = items.map((it) => it.text)
+  const pendentes = items.map((_, i) => i).filter((i) => !fitsVoiceoverTarget(wordsOf(items[i].text), items[i].targetWords) || FILLER_LINE_RE.test(items[i].text))
+  for (let round = 0; round < rounds && pendentes.length > 0; round++) {
+    const lote = pendentes.map((i) => ({ words: items[i].targetWords, line: out[i] }))
+    let arr: unknown = null
+    try {
+      arr = await pedirReescrita(lote, langName, topic)
+    } catch {
+      break
+    }
+    if (!Array.isArray(arr) || arr.length !== lote.length) continue
+    for (let k = pendentes.length - 1; k >= 0; k--) {
+      const i = pendentes[k]
+      const v = typeof arr[k] === 'string' ? (arr[k] as string).trim() : ''
+      if (v) {
+        const w = wordsOf(v)
+        const melhorou = Math.abs(w - items[i].targetWords) < Math.abs(wordsOf(out[i]) - items[i].targetWords) || FILLER_LINE_RE.test(out[i])
+        if (w <= items[i].targetWords + 1 && melhorou) out[i] = v
+      }
+      if (fitsVoiceoverTarget(wordsOf(out[i]), items[i].targetWords) && !FILLER_LINE_RE.test(out[i])) pendentes.splice(k, 1)
+    }
+  }
+  return out
+}
+async function pedirReescrita(items: { words: number; line: string }[], langName: string, topic: string): Promise<unknown> {
   const completion = await openai.chat.completions.create(
     {
       model: 'gpt-4o-mini',
       messages: [
-        { role: 'system', content: `You write narration lines for a short documentary video about: ${topic.slice(0, 300)}. For each input line, return a rewritten line with EXACTLY the requested number of words (±10%), in ${langName}, that keeps every fact, name and number of the input and adds specific, true detail. If an input line is generic filler (for example "Here is something most people do not know about…"), replace it with a specific, true opening line about the topic. Never use filler like "imagine", "what if" or "most people don't know". Return ONLY a JSON array of strings, same order and same length as the input.` },
-        { role: 'user', content: JSON.stringify(items.map((it) => ({ words: it.targetWords, line: it.text }))) },
+        { role: 'system', content: `You write narration lines for a short documentary video about: ${topic.slice(0, 300)}. For each input line, return a rewritten line with EXACTLY the requested number of words — never more than requested, at most 2 fewer — in ${langName}, that keeps every fact, name and number of the input and adds specific, true detail. If an input line is generic filler (for example "Here is something most people do not know about…"), replace it with a specific, true opening line about the topic. Never use filler like "imagine", "what if" or "most people don't know". Count the words before answering. Return ONLY a JSON array of strings, same order and same length as the input.` },
+        { role: 'user', content: JSON.stringify(items) },
       ],
       temperature: 0.4,
       max_tokens: 1600,
@@ -746,12 +776,6 @@ export async function expandVoiceoversToTargets(items: VoiceoverTarget[], langua
   )
   const raw = completion.choices[0]?.message?.content?.trim() ?? ''
   const m = raw.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').match(/\[[\s\S]*\]/)
-  if (!m) return items.map((it) => it.text)
-  const arr: unknown = JSON.parse(m[0])
-  if (!Array.isArray(arr) || arr.length !== items.length) return items.map((it) => it.text)
-  return items.map((it, i) => {
-    const v = typeof arr[i] === 'string' ? (arr[i] as string).trim() : ''
-    const ok = v && wordsOf(v) >= Math.ceil(it.targetWords * 0.8) && (wordsOf(v) > wordsOf(it.text) || FILLER_LINE_RE.test(it.text))
-    return ok ? v : it.text
-  })
+  if (!m) return null
+  return JSON.parse(m[0]) as unknown
 }

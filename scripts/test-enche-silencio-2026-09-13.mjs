@@ -31,6 +31,14 @@ const run = async () => {
   const E2 = roda(src, { openai: openaiCurto })
   const r2 = await E2.expandVoiceoversToTargets([{ text: 'A wave hit Lituya Bay hard that night.', targetWords: 23 }], 'en', 'x')
   checa('resposta curta demais não substitui o original (fail-open)', r2[0] === 'A wave hit Lituya Bay hard that night.')
+  // 14/09: teto — resposta acima de alvo+1 (o compose recusaria) é descartada; e o que fica fora ganha uma 2ª rodada
+  let chamadas = 0
+  const openaiLongo = { chat: { completions: { create: async (req) => { chamadas++; const ped = JSON.parse(req.messages[1].content); return { choices: [{ message: { content: JSON.stringify(ped.map((it) => Array(chamadas === 1 ? it.words + 5 : it.words).fill('w').join(' '))) } }] } } } } }
+  const E3 = roda(src, { openai: openaiLongo })
+  const r3 = await E3.expandVoiceoversToTargets([{ text: 'Short line here.', targetWords: 23 }], 'en', 'x')
+  checa('resposta acima de alvo+1 é descartada e a 2ª rodada acerta o alvo', chamadas === 2 && r3[0].split(' ').length === 23)
+  checa('janela aceita alvo−2..alvo+1', E.fitsVoiceoverTarget(21, 23) && E.fitsVoiceoverTarget(24, 23) && !E.fitsVoiceoverTarget(20, 23) && !E.fitsVoiceoverTarget(25, 23))
+  checa('linha já no alvo não gasta chamada', await (async () => { let n = 0; const E4 = roda(src, { openai: { chat: { completions: { create: async () => { n++; return { choices: [{ message: { content: '[]' } }] } } } } } }); const r = await E4.expandVoiceoversToTargets([{ text: Array(22).fill('w').join(' '), targetWords: 23 }], 'en', 'x'); return n === 0 && r[0].split(' ').length === 22 })())
 }
 await run()
 
@@ -42,7 +50,7 @@ const iFloor = r.indexOf('plan.scenes = fitCinematicPlanFloor(plan.scenes, durat
 const iDry = r.indexOf('if (body.dry_run === true && dryRunEmails.has(')
 const iSubmit = r.indexOf('await submitToFalWithOneRetry(')
 checa('o enchimento roda SÓ no modo IA, antes do piso, do dry-run e de qualquer POST', iEnche > 0 && iEnche < iRecusa && iRecusa < iFloor && iFloor < iDry && iDry < iSubmit)
-checa('alvo por cena = segundos × 2,3; cena curta = mais de ~1,3 s de silêncio ou enchimento', /target: Math\.round\(\(sc\.seconds \|\| 0\) \* 2\.3\)/.test(r) && /x\.words < x\.target - 3 \|\| FILLER_LINE_RE\.test\(lineOf\(x\.sc\)\)/.test(r))
+checa('alvo por cena = segundos × 2,3; cena curta = abaixo de alvo−1 ou enchimento', /target: Math\.round\(\(sc\.seconds \|\| 0\) \* 2\.3\)/.test(r) && /x\.words < x\.target - 1 \|\| FILLER_LINE_RE\.test\(lineOf\(x\.sc\)\)/.test(r))
 checa('diálogo reescrito atualiza a fala citada no prompt', /x\.sc\.dialogueLine = spoken/.test(r) && /x\.sc\.prompt = x\.sc\.prompt\.replace\(\/"\[\^"\]\{6,\}"\/, `"\$\{spoken\}"`\)/.test(r))
 checa('fail-open (try/catch) e log com antes → depois', /enche-silencio pulado/.test(r) && /KINEO-ENCHE-SILENCIO: \$\{curtas\.length\} cena\(s\) reescritas/.test(r))
 

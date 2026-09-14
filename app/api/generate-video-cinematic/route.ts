@@ -3717,7 +3717,7 @@ async function manipularPost(req: NextRequest) {
       // O planejador dirige bem a câmera e escreve pouco: 113-116 palavras
       // para 60 s (16 por cena de 10 s) em Kling 3, H3 e Omni na análise de $0
       // de 13/09 — todos reprovados na régua de silêncio, sem gastar. Aqui cada
-      // cena com mais de 1,3 s de silêncio ganha a fala do tamanho dos seus
+      // cena abaixo do alvo (1 palavra de folga) ganha a fala do tamanho dos seus
       // segundos (2,3 pal/s), numa chamada; enchimento genérico é trocado por
       // fato. Verbatim nunca passa por aqui (C1: a fala é do autor).
       if (!verbatim && plan.scenes.length > 0) {
@@ -3726,7 +3726,7 @@ async function manipularPost(req: NextRequest) {
           const lineOf = (sc: (typeof plan.scenes)[number]) => (sc.type === 'dialogue' ? sc.dialogueLine : sc.voiceover) ?? ''
           const curtas = plan.scenes
             .map((sc, i) => ({ i, sc, target: Math.round((sc.seconds || 0) * 2.3), words: wordsOfLine(lineOf(sc)) }))
-            .filter((x) => x.target >= 6 && (x.words < x.target - 3 || FILLER_LINE_RE.test(lineOf(x.sc))))
+            .filter((x) => x.target >= 6 && (x.words < x.target - 1 || FILLER_LINE_RE.test(lineOf(x.sc))))
           if (curtas.length > 0) {
             const antes = plan.scenes.reduce((a, sc) => a + wordsOfLine(lineOf(sc)), 0)
             const novas = await expandVoiceoversToTargets(curtas.map((x) => ({ text: lineOf(x.sc), targetWords: x.target })), hollywoodLanguage, prompt.slice(0, 300))
