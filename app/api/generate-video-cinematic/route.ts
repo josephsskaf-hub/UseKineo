@@ -49,7 +49,7 @@ import { looksLikeBrief } from '@/lib/scriptParser'
 import { sceneNarrationsForPlan } from '@/lib/cinematic/speechContract'
 import { aplicarEixoVisual } from '@/lib/hollywood/varietyAxis'
 import { decidirFormato, permiteApresentador, TAG_FACELESS, proibidosPorModo, type VisualMode } from '@/lib/cinematic/visualMode'
-import { garantirAcaoCentral, limparCitacaoDoPrompt } from '@/lib/hollywood/fidelidade'
+import { garantirAcaoCentral, silenciarFalaNoPrompt, apararComFolga } from '@/lib/hollywood/fidelidade'
 // KINEO-MULTIFORMATO-2026-09-02 — enquadramento pedido (9:16 · 16:9 · 1:1 · 4:5).
 import { aspectSpec, normalizeAspect } from '@/lib/aspect'
 import { montarContrato, aplicarContrato, severidadeDe } from '@/lib/cinematic/sceneTruth'
@@ -3763,6 +3763,7 @@ async function manipularPost(req: NextRequest) {
         }
       }
 
+      let duracaoReconciliada: { reconciliado: boolean; aparado_s: number; excedente_s: number; base: 'estimate' } | null = null
       // ═══ KINEO-ENCHE-SILENCIO-2026-09-13 — modo IA nos motores caros ═══════
       // O planejador dirige bem a câmera e escreve pouco: 113-116 palavras
       // para 60 s (16 por cena de 10 s) em Kling 3, H3 e Omni na análise de $0
@@ -3810,27 +3811,12 @@ async function manipularPost(req: NextRequest) {
                 w = wordsOfLine(x.sc.voiceover)
               }
             }
-            // v6 (14/09 02:05, rodada 4): o "+1 s de respiro" por cena soma ~7-9 s
-            // em 7 cenas e roça a régua (≤8 s). Mesmo apara do verbatim (13/09):
-            // tira 1 s das cenas mais folgadas enquanto o filme continuar ≥ pedido
-            // — assim o piso C2 não reestica o que foi aparado.
-            {
-              const silencio = (sc: (typeof plan.scenes)[number]) => (sc.seconds || 0) - wordsOfLine(lineOf(sc)) / 2.3
-              let totalSil = plan.scenes.reduce((a, sc) => a + Math.max(0, silencio(sc)), 0)
-              let totalSec = plan.scenes.reduce((a, sc) => a + (sc.seconds || 0), 0)
-              let guard = 40
-              // KINEO-FIDELIDADE-2026-09-14 (Board): duração planejada reconciliada com o
-              // pedido — acima de 105% do pedido, o respiro das cenas mais folgadas é
-              // aparado (nunca abaixo de 4 s, nunca uma palavra); o piso C2 não reestica.
-              while ((totalSil > 7.5 || totalSec > duration * 1.05) && totalSec - 1 >= duration && guard-- > 0) {
-                const folga = totalSil > 7.5 ? 1 : 0.8
-                const alvo = plan.scenes.filter((sc) => (sc.seconds || 0) > 4 && silencio(sc) > folga).sort((a, b) => silencio(b) - silencio(a))[0]
-                if (!alvo) break
-                alvo.seconds = (alvo.seconds || 0) - 1
-                totalSil = plan.scenes.reduce((a, sc) => a + Math.max(0, silencio(sc)), 0)
-                totalSec -= 1
-              }
-            }
+            // KINEO-FIDELIDADE-2026-09-14 (v3, Board): o respiro só é aparado onde a
+            // folga ESTIMADA é segura (≥ 1,25 s); sem folga, o excedente é REGISTRADO
+            // (duracao_reconciliada no claim) e nenhuma palavra é sacrificada.
+            const apara = apararComFolga(plan.scenes, (sc) => wordsOfLine(lineOf(sc)), duration)
+            duracaoReconciliada = { reconciliado: apara.reconciliado, aparado_s: apara.aparado, excedente_s: apara.excedente, base: 'estimate' }
+            if (!apara.reconciliado) console.warn(`[hollywood] KINEO-FIDELIDADE: sem folga segura para reconciliar — excedente de ${apara.excedente}s registrado, nenhuma palavra cortada`)
             const depois = plan.scenes.reduce((a, sc) => a + wordsOfLine(lineOf(sc)), 0)
             console.log(`[hollywood] KINEO-ENCHE-SILENCIO: ${curtas.length} cena(s) reescritas, ${antes} → ${depois} palavras`)
           }
@@ -4223,6 +4209,7 @@ async function manipularPost(req: NextRequest) {
       // Veredito do Contrato Cena Verdadeira, cena a cena. Vai para o claim
       // junto com o resto — sem isso o gate corrige no escuro e ninguem
       // consegue auditar depois se ele acertou ou estragou.
+      const fidelidadeRelato: Array<{ cena: number; cobertura: string; motivo: string }> = []
       const contratoRelato: Array<{
         cena: number; antes: string; depois: string; cobertura: string
         acoes: string[]; motivo: string
@@ -4397,7 +4384,12 @@ async function manipularPost(req: NextRequest) {
           // escala anunciada). Se nenhuma palavra de conteúdo da fala aparece no
           // prompt, ele abre com a frase da narração que a cena deve mostrar. Cena
           // sem diálogo nunca leva citação de fala no prompt.
-          if (hs.type !== 'dialogue') hs.prompt = garantirAcaoCentral(limparCitacaoDoPrompt(hs.prompt), hs.voiceover ?? '')
+          if (hs.type !== 'dialogue') {
+            const fid = garantirAcaoCentral(silenciarFalaNoPrompt(hs.prompt), hs.voiceover ?? '', plan.characterSheet ?? '')
+            hs.prompt = fid.prompt
+            // Cobertura DECLARADA no claim (coberta / divergente / desconhecida) — nunca aprovada por omissão.
+            fidelidadeRelato.push({ cena: idx + 1, cobertura: fid.cobertura.status, motivo: fid.cobertura.motivo })
+          }
           const scenePromptBruto = mouthPrefix + uprightPrefix + hs.prompt + eraSuffix + mouthSuffix + spectacleSuffix
           // ═══ CONTRATO CENA VERDADEIRA — o gate roda AQUI, com o prompt que
           // vai de fato ao motor, imediatamente antes do POST pago. Na
@@ -4620,6 +4612,9 @@ async function manipularPost(req: NextRequest) {
         // escuro, e a auditoria nao teria como saber se ele ajudou ou
         // estragou — o defeito que o #353A cometeu ao instrumentar sem ligar.
         contrato_cena: contratoRelato,
+        // KINEO-FIDELIDADE-2026-09-14 — cobertura da ação da narração por cena, declarada.
+        fidelidade_cena: fidelidadeRelato,
+        duracao_reconciliada: duracaoReconciliada,
         visual_mode: formatoVisual.modo,
         // KINEO-COERENCIA-HISTORIA-2026-09-02 — prova no claim: palavras
         // faladas do plano e quantos replans a fala curta exigiu.
