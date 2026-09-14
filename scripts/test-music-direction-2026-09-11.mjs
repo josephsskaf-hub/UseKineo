@@ -227,9 +227,12 @@ check('pt author joyful overrides mystery inference', direction({ script: 'Um mi
 check('en author sad overrides action inference', direction({ script: 'The soldiers stormed the fortress.', rawScript: 'Music: sad\nThe soldiers stormed the fortress.' }).emotion === 'grief')
 // Silêncio explícito em PT: mesma regra de ES/HI.
 for (const directive of ['Música: sem música', '[sem música]', 'Música: nenhuma', 'Trilha: nenhuma', 'Música: sem música de fundo']) {
-  const d = direction({ script: 'A mãe chorou no funeral.', rawScript: `${directive}\nTom: feliz` })
+  const d = direction({ script: 'A mãe chorou no funeral.', rawScript: `${directive}\nTone: feliz` })
   check(`pt explicit mute: ${directive}`, d.enabled === false)
 }
+// Controle da decisão 'mas' NÃO é fronteira: ES 'más' normaliza igual e a negação precisa sobreviver.
+check('es "no está más triste" stays negated', direction({ script: 'No está más triste. Celebraron la reunión.' }).emotion === 'celebration')
+check('pt "não está mais triste" is negated too', direction({ script: 'Não está mais triste. Celebraram o reencontro.' }).emotion === 'celebration')
 check('pt story dialogue does not mute score', direction({ script: 'Ele disse "sem música" e saiu.' }).enabled)
 check('pt background noise is not music-off', direction({ script: 'Um mistério.', rawScript: 'Música: sem ruído de fundo' }).enabled)
 // Payload REAL (fetch mockado) para os casos PT/ação: direção certa, instrumental, sob a narração, sem texto do usuário.
