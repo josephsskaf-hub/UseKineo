@@ -3764,7 +3764,7 @@ async function manipularPost(req: NextRequest) {
           const wordsOfLine = (t: string | undefined) => (t ?? '').trim().split(/\s+/).filter(Boolean).length
           const lineOf = (sc: (typeof plan.scenes)[number]) => (sc.type === 'dialogue' ? sc.dialogueLine : sc.voiceover) ?? ''
           const curtas = plan.scenes
-            .map((sc, i) => ({ i, sc, target: Math.round((sc.seconds || 0) * 2.3), words: wordsOfLine(lineOf(sc)), maxWords: Math.floor((sc.type === 'dialogue' ? DIALOGUE_CAP : sc.type === 'cinematic' ? 8 : SCENE_CAP) * 2.3) }))
+            .map((sc, i) => ({ i, sc, target: Math.round((sc.seconds || 0) * 2.3), words: wordsOfLine(lineOf(sc)), maxWords: Math.floor(((sc.type === 'dialogue' ? DIALOGUE_CAP : sc.type === 'cinematic' ? 8 : SCENE_CAP) + 1) * 2.3) })) // v5 (14/09, rodada 4): teto = (segundos+1) x 2,3 — a tolerancia do compose; nas cenas de 8 s o alvo+3 batia no teto e o modelo (85%) devolvia 15
             .filter((x) => x.target >= 6 && (x.words < x.target - 1 || x.words > x.maxWords || FILLER_LINE_RE.test(lineOf(x.sc))))
           if (curtas.length > 0) {
             const antes = plan.scenes.reduce((a, sc) => a + wordsOfLine(lineOf(sc)), 0)
