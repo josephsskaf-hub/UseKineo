@@ -49,6 +49,7 @@ import { looksLikeBrief } from '@/lib/scriptParser'
 import { sceneNarrationsForPlan } from '@/lib/cinematic/speechContract'
 import { aplicarEixoVisual } from '@/lib/hollywood/varietyAxis'
 import { decidirFormato, permiteApresentador, TAG_FACELESS, proibidosPorModo, type VisualMode } from '@/lib/cinematic/visualMode'
+import { garantirAcaoCentral, limparCitacaoDoPrompt } from '@/lib/hollywood/fidelidade'
 // KINEO-MULTIFORMATO-2026-09-02 — enquadramento pedido (9:16 · 16:9 · 1:1 · 4:5).
 import { aspectSpec, normalizeAspect } from '@/lib/aspect'
 import { montarContrato, aplicarContrato, severidadeDe } from '@/lib/cinematic/sceneTruth'
@@ -3818,8 +3819,12 @@ async function manipularPost(req: NextRequest) {
               let totalSil = plan.scenes.reduce((a, sc) => a + Math.max(0, silencio(sc)), 0)
               let totalSec = plan.scenes.reduce((a, sc) => a + (sc.seconds || 0), 0)
               let guard = 40
-              while (totalSil > 7.5 && totalSec - 1 >= duration && guard-- > 0) {
-                const alvo = plan.scenes.filter((sc) => (sc.seconds || 0) > 4 && silencio(sc) > 1).sort((a, b) => silencio(b) - silencio(a))[0]
+              // KINEO-FIDELIDADE-2026-09-14 (Board): duração planejada reconciliada com o
+              // pedido — acima de 105% do pedido, o respiro das cenas mais folgadas é
+              // aparado (nunca abaixo de 4 s, nunca uma palavra); o piso C2 não reestica.
+              while ((totalSil > 7.5 || totalSec > duration * 1.05) && totalSec - 1 >= duration && guard-- > 0) {
+                const folga = totalSil > 7.5 ? 1 : 0.8
+                const alvo = plan.scenes.filter((sc) => (sc.seconds || 0) > 4 && silencio(sc) > folga).sort((a, b) => silencio(b) - silencio(a))[0]
                 if (!alvo) break
                 alvo.seconds = (alvo.seconds || 0) - 1
                 totalSil = plan.scenes.reduce((a, sc) => a + Math.max(0, silencio(sc)), 0)
@@ -4387,6 +4392,12 @@ async function manipularPost(req: NextRequest) {
           const uprightPrefix = hs.type !== 'dialogue' && !sceneAnchor
             ? 'Vertical 9:16 composition, camera upright, horizon perfectly LEVEL and horizontal across the frame. '
             : ''
+          // KINEO-FIDELIDADE-2026-09-14 — o pedido visual mostra a AÇÃO da narração
+          // (H3 Lituya: deslizamento narrado sobre fiorde tranquilo; onda sem a
+          // escala anunciada). Se nenhuma palavra de conteúdo da fala aparece no
+          // prompt, ele abre com a frase da narração que a cena deve mostrar. Cena
+          // sem diálogo nunca leva citação de fala no prompt.
+          if (hs.type !== 'dialogue') hs.prompt = garantirAcaoCentral(limparCitacaoDoPrompt(hs.prompt), hs.voiceover ?? '')
           const scenePromptBruto = mouthPrefix + uprightPrefix + hs.prompt + eraSuffix + mouthSuffix + spectacleSuffix
           // ═══ CONTRATO CENA VERDADEIRA — o gate roda AQUI, com o prompt que
           // vai de fato ao motor, imediatamente antes do POST pago. Na

@@ -468,6 +468,8 @@ function trimNarrationToWords(text: string, maxWords: number): string {
 }
 
 // ── Planner ──────────────────────────────────────────────────────────────────
+import { atribuirFalaConvertida, limparCitacaoDoPrompt, despersonalizarPrompt, garantirFichaNoPrompt } from '@/lib/hollywood/fidelidade'
+
 /** Nome da língua da narração para o planejador (espelho de LANGUAGE_NAMES em lib/textLanguage — sem import: guardiões carregam este arquivo cru). */
 const NARRATION_LANGUAGE_NAME: Record<string, string> = { pt: 'Brazilian Portuguese (pt-BR)', es: 'Spanish (es-419, Latin American)' }
 
@@ -872,11 +874,14 @@ Target total duration: ${Math.max(30, Math.min(100, Math.round(durationSeconds |
         const line = (sc.dialogueLine ?? '').trim()
         sc.type = 'support'
         if (line) {
-          sc.voiceover = line
+          // KINEO-FIDELIDADE-2026-09-14 — fala em 1ª pessoa que vira narração de
+          // documentário ganha atribuição ("The fisherman would later recall: …");
+          // nenhuma palavra some. (H3 Lituya: "My son and I…" na voz do narrador.)
+          sc.voiceover = atribuirFalaConvertida(line, characterSheet)
           sc.needsNarration = true
         }
         delete sc.dialogueLine
-        sc.prompt = sc.prompt
+        sc.prompt = limparCitacaoDoPrompt(sc.prompt)
           .replace(/\s*—?\s*looking (straight |directly )?into the lens,? the person says: "[^"]*"/gi, '')
           .replace(/looks? (directly |straight )?(into|at) the (lens|camera)/gi, 'looks away from the camera, mouth closed')
           .replace(/(speaks|speaking|talks|talking|declares|says|addresses) (directly )?to (the )?(camera|lens|viewer)/gi, 'silent, mouth closed')
@@ -886,6 +891,16 @@ Target total duration: ${Math.max(30, Math.min(100, Math.round(durationSeconds |
         console.log(`[hollywood-planner] KINEO-FACELESS-DE-VERDADE — scene ${sc.index} dialogue → narrated support (${w} words → ${sc.seconds}s)`)
       }
     }
+  }
+
+  // KINEO-FIDELIDADE-2026-09-14 — em toda cena sem diálogo: nome próprio de
+  // pessoa no prompt de IMAGEM vira o papel da ficha (o planejador nomeou
+  // "Howard Ulrich", pessoa real, contra a própria regra), e cena que mostra
+  // a pessoa carrega a ficha VERBATIM no início — continuidade em código, não
+  // na obediência do modelo (o Board viu rostos diferentes para o mesmo homem).
+  for (const sc of outScenes) {
+    if (sc.type === 'dialogue') continue
+    sc.prompt = garantirFichaNoPrompt(despersonalizarPrompt(limparCitacaoDoPrompt(sc.prompt), characterSheet), characterSheet)
   }
 
   // KINEO-HOLLYWOOD-24-2026-07-10 (i) — support scenes SIZED BY THEIR FINAL
