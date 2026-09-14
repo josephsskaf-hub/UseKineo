@@ -300,4 +300,71 @@ eq(cloneSuccess.calls.find(c => c[0] === 'clone-synth')[1], { voiceId: 'selected
 const notRequested = await runCloneBranch({ requested: false })
 eq(notRequested.response.status, 200, 'Default voice flow is untouched when clone was not requested')
 eq(notRequested.calls.length, 0, 'No clone/profile lookup when unrequested')
+// ═══ KINEO-MOTORES-ESPECIFICOS-2026-09-14 (MOTOR-AUTO, pedido do Board) ═══
+// Até aqui o payload real só era executado para H3/Omni e com constantes
+// INJETADAS (S25 '720p' — o router diz '480p'). Agora o ROUTER REAL escolhe o
+// modelo por família e o buildFalInput REAL monta o payload de Kling 3, Omni e
+// Seedance 2.5; a rota real declara os tetos por família; e a cadeia
+// cena de diálogo → narração → payload → compose é executada por família.
+{
+  const loadReal = createOfflineLoader({ mocks: { '@fal-ai/client': { fal: { config() {}, subscribe() { throw Error('provider forbidden') }, queue: { submit() { throw Error('provider forbidden') } } } } } })
+  const router = loadReal('@/lib/hollywood/router')
+  const real = { KLING3_MODEL: router.HOLLYWOOD_MODELS.dialogue, KLING3_I2V_MODEL: router.KLING3_I2V_MODEL, H3_I2V_MODEL: router.H3_I2V_MODEL, H3_MODELS: router.H3_MODELS, H3_RESOLUTION: router.H3_RESOLUTION, OMNI_I2V_MODEL: router.OMNI_I2V_MODEL, S25_I2V_MODEL: router.S25_I2V_MODEL, S25_T2V_MODEL: router.S25_T2V_MODEL, S25_RESOLUTION: router.S25_RESOLUTION }
+  const realInput = evaluate(`export ${inputNode.getText(generationAst)}`, { ...real, ...load('@/lib/aspect') }).buildFalInput
+  const anchor = 'https://example.invalid/anchor.png'
+  // Kling 3 — família 'hollywood': com âncora i2v (fala nativa ligada), sem âncora t2v.
+  const k3i2v = router.cinematicSceneModel('hollywood', 'dialogue', true), k3t2v = router.cinematicSceneModel('hollywood', 'support', false)
+  eq([k3i2v, k3t2v], ['fal-ai/kling-video/o3/pro/image-to-video', 'fal-ai/kling-video/v3/pro/text-to-video'], 'Kling 3: router picks O3 Pro i2v with anchor, v3 Pro t2v without')
+  const k3d = realInput(k3i2v, 'The person says: "Approved line."', true, true, 8, anchor)
+  eq(k3d, { image_url: anchor, prompt: 'The person says: "Approved line."', duration: '8', generate_audio: true }, 'Kling 3 i2v: exact payload — string duration, native audio ON, aspect inherited from the anchor')
+  eq([realInput(k3i2v, 'x', true, true, 20, anchor).duration, realInput(k3i2v, 'x', true, true, 2, anchor).duration, realInput(k3i2v, 'x', true, true, undefined, anchor).duration], ['15', '3', '10'], 'Kling 3 i2v: seconds clamp to the 3..15 string range, default 10')
+  const k3s = realInput(k3t2v, 'Wide shot of the bay.', true, true, 8)
+  eq([k3s.duration, k3s.aspect_ratio, k3s.generate_audio, k3s.cfg_scale], ['8', '9:16', true, 0.6], 'Kling 3 t2v: string duration, explicit 9:16, native audio ON, cfg_scale 0.6')
+  ok(/^cartoon, anime, illustration, 3d render, /.test(k3s.negative_prompt) && /chinese text/.test(k3s.negative_prompt), 'Kling 3 t2v: anti-CGI + anti-Chinese-text negatives by default')
+  ok(!/cartoon/.test(realInput(k3t2v, 'x', true, true, 8, undefined, undefined, true).negative_prompt), 'Kling 3 t2v: stylized film drops the anti-CGI negatives')
+  // Omni Flash — família 'omni': só i2v existe no fal; sem âncora cai no Kling t2v.
+  eq([router.cinematicSceneModel('omni', 'dialogue', true), router.cinematicSceneModel('omni', 'support', false)], [real.OMNI_I2V_MODEL, k3t2v], 'Omni: anchored scenes go to Omni i2v; without anchor the router falls back to Kling t2v')
+  const om = realInput(real.OMNI_I2V_MODEL, 'Storm over the bay.', true, true, 8, anchor)
+  eq(om, { image_url: anchor, prompt: 'Storm over the bay.', aspect_ratio: '9:16', duration: 8 }, 'Omni i2v: exact payload — explicit 9:16 (default would be 16:9), INTEGER duration, no audio switch, no resolution')
+  eq([realInput(real.OMNI_I2V_MODEL, 'x', true, true, 12, anchor).duration, realInput(real.OMNI_I2V_MODEL, 'x', true, true, 2, anchor).duration], [10, 3], 'Omni i2v: seconds clamp to the 3..10 integer range')
+  // Seedance 2.5 — família 's25': i2v com âncora, t2v sem; 480p real; áudio nativo DESLIGADO.
+  eq([router.cinematicSceneModel('s25', 'dialogue', true), router.cinematicSceneModel('s25', 'support', false)], [real.S25_I2V_MODEL, real.S25_T2V_MODEL], 'S25: router picks seedance-2.5 i2v with anchor, t2v without')
+  eq(realInput(real.S25_I2V_MODEL, 'Storm over the bay.', true, true, 8, anchor), { image_url: anchor, prompt: 'Storm over the bay.', duration: '8', resolution: '480p', generate_audio: false }, 'S25 i2v: exact payload — string duration, REAL 480p (not the 720p the old fixture assumed), native audio OFF')
+  eq(realInput(real.S25_T2V_MODEL, 'Storm over the bay.', true, true, 8), { prompt: 'Storm over the bay.', duration: '8', resolution: '480p', aspect_ratio: '9:16', generate_audio: false }, 'S25 t2v: explicit 9:16 (schema default is auto) — executable replacement for the stale regex in test-motores-d1')
+  eq([realInput(real.S25_I2V_MODEL, 'x', true, true, 35, anchor).duration, realInput(real.S25_I2V_MODEL, 'x', true, true, 2, anchor).duration], ['30', '4'], 'S25: seconds clamp to the 4..30 string range')
+  // Tetos por família declarados na ROTA real (não na policy): Omni 10/10, demais 12/15.
+  const capDecl = (name) => findNode(generationAst, n => ts.isVariableDeclaration(n) && n.name.getText(generationAst) === name).initializer.getText(generationAst)
+  for (const [family, caps] of [['omni', [10, 10]], ['hollywood', [12, 15]], ['h3', [12, 15]], ['s25', [12, 15]]]) {
+    eq([vm.runInNewContext(capDecl('SCENE_CAP'), { family }), vm.runInNewContext(capDecl('DIALOGUE_CAP'), { family })], caps, `${family}: real route caps SCENE_CAP/DIALOGUE_CAP`)
+  }
+  // Apara-folga do Omni (bloco real `if (family === 'omni')`): só cena narrada com gordura encolhe, até alvo+4; verbatim é no-op.
+  const omniTrim = findNode(generationAst, n => ts.isIfStatement(n) && n.expression.getText(generationAst) === "family === 'omni'" && n.thenStatement.getText(generationAst).includes('KINEO-OMNI-ALVO'))
+  const trimFn = evaluate(`export function run(family, plan, hollywoodTarget) { ${omniTrim.getText(generationAst)} }`, { console: { log() {} } }).run
+  const runTrim = (scenes, target) => { const plan = { scenes: scenes.map(s => ({ ...s })) }; trimFn('omni', plan, target); return plan.scenes }
+  const ten = Array(10).fill('w').join(' ')
+  const fat = runTrim([{ type: 'dialogue', seconds: 10, dialogueLine: ten }, { type: 'support', seconds: 10, voiceover: ten }, { type: 'support', seconds: 10, voiceover: ten }, { type: 'support', seconds: 10, voiceover: ten }, { type: 'support', seconds: 10, voiceover: ten }, { type: 'support', seconds: 10, voiceover: ten }, { type: 'support', seconds: 10, voiceover: ten }, { type: 'support', seconds: 10, voiceover: ten }], 60)
+  eq(fat.reduce((a, s) => a + s.seconds, 0), 64, 'Omni: an 80s plan with slack is trimmed to target+4')
+  eq(fat[0].seconds, 10, 'Omni: dialogue scenes are never trimmed')
+  ok(fat.every(s => s.seconds >= 5) && fat.every(s => (s.voiceover ?? s.dialogueLine) === ten), 'Omni: no scene below what its own words sustain, and no word touched')
+  const tight = [{ type: 'support', seconds: 5, voiceover: ten }, { type: 'support', seconds: 5, voiceover: ten }]
+  eq(runTrim(tight, 4), tight, 'Omni: a verbatim plan (no slack) is a no-op even above target+4')
+  // CADEIA POR FAMÍLIA — cena de diálogo forçada pelo planner (hostFits) sem olhar a família:
+  // narração real → null (sem TTS); o payload decide se o clipe TEM fala; o compose real exige fala verificada.
+  const dialogueScene = [{ type: 'dialogue', dialogueLine: 'Actor speaks', needsNarration: false }, { type: 'support', voiceover: 'Narrator explains', needsNarration: true }]
+  eq(speech.sceneNarrationsForPlan(dialogueScene), [null, 'Narrator explains'], 'Any family: the dialogue scene gets no external narration')
+  eq(realInput(k3i2v, 'x', true, true, 8, anchor).generate_audio, true, 'Kling 3: the dialogue clip is generated WITH native speech')
+  const k3Film = await runActualComposeSpeech({ nativeText: 'Actor speaks' })
+  eq(k3Film.reply.status, 200, 'Kling 3: verified native speech composes')
+  eq(realInput(router.cinematicSceneModel('s25', 'dialogue', true), 'x', true, true, 8, anchor).generate_audio, false, 'S25: the same dialogue clip is generated WITHOUT any speech')
+  const s25Film = await runActualComposeSpeech({ nativeWords: [] })
+  eq([s25Film.reply.status, s25Film.reply.body.code], [422, 'cinematic_dialogue_unverified'], 'S25: a silent dialogue clip can never compose — the film dies after the provider was paid')
+  ok(!s25Film.calls.some(c => c[0] === 'tts'), 'S25: and no TTS rescues it (dialogue has no narration text)')
+  // CONTROLE (produto): um pedido com apresentador no S25 tem de nascer faceless — a rota real decide `facelessRequested`.
+  const facelessDecl = capDecl('facelessRequested')
+  const visualMode = load('@/lib/cinematic/visualMode')
+  const decide = (engine, modo) => vm.runInNewContext(facelessDecl, { permiteApresentador: visualMode.permiteApresentador, formatoVisual: { modo }, body: { engine } })
+  eq([decide('hollywood', 'presenter'), decide('h3', 'presenter'), decide('omni', 'presenter'), decide('hollywood', 'documentary_faceless')], [false, false, false, true], 'Families with native speech keep the requested presenter; documentary stays faceless')
+  eq(decide('s25', 'presenter'), true, 'S25 (native audio OFF by contract) never plans a speaking presenter: the request is born faceless')
+}
+
 console.log(`cinematic-speech: ${checks} passed; real production payload/compose branches/builder; no external calls`)
