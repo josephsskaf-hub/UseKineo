@@ -2428,3 +2428,11 @@ Codigo pronto e testado (31 verificacoes) na branch codex/regua-unica-0914, SEGU
 - [ ] DE claude PARA fundador: excecao 8.2 para app/api/generate-video-* (commits de hoje ja publicados: d84c7909 ee4f8751 fb44bff2 59f6845a ea6e8a90 d54683fb 0e948900 9cd3d506 — e o commit desta etapa na branch codex/regua-unica-0914).
 - [ ] DE claude PARA fundador: escopo do preflight (app/api/analyze-idea, travado): adotar lib/speechRate na tela para os 3 guardioes de identidade voltarem ao verde — 'vai' ou 'segura'.
 - [ ] DE claude PARA fundador: 'mantem' para e7f975e3+2c2af80d (duracao real do arquivo; mover a sonda de lib/cinematic para lib/mp4Duration.ts antes de publicar).
+
+## ETAPA-4-MOTORES — direcao do Board executada; cobertura 60/90 fechada; branch consolidada (Claude, 14/09 ~09:40 BRT)
+
+Branch codex/motores-0914 HEAD 7da4eef0 (6 commits sobre 693be8e3): duracao real consolidada (sonda unica lib/mp4Duration.ts), regua unica + portao do Kineo 1 ANTES do dry-run + tela tratando a recusa (expandir / duracao menor) + expansao e preflight na regua da familia + entrega medida (evento executado com mocks) + 3 correcoes da cobertura 90 s (Kineo 1 nao joga fora blocos >12; Kineo 1 IA terceira passada <95%; Veo >64 s clipes suficientes — custo +3 clipes, decisao do fundador). tsc 0; suite 397/118 vs base 396/117 (unico vermelho novo = trava 8.2 test-despacho-vazio, esperado). Guardioes de identidade estendidos, nao enfraquecidos.
+Cobertura 60/90 x roteiro/brief nos 8 motores + S25: tudo PASS exceto Veo 90 s (footage 72 s < fala 89 s) e Kineo 1 90 s (IA 5% curto; >12 blocos cortados) — os tres corrigidos na branch.
+
+- [ ] DE claude PARA fundador: 'publica 7da4eef0' (excecao 8.2 pontual: arquivos e commits listados no doc, secao 4e) — inclui a decisao de custo do Veo a 90 s (+3 clipes por filme).
+- [ ] DE claude PARA fundador: depois do deploy confirmado e dos gates verdes no ar, 'vai H3' para o primeiro cenario pago (um por vez).

@@ -150,9 +150,56 @@ Segurados na branch, aguardando a mesma exceção pontual:
 | codex/proximos20-0948 | e7f975e3 + 2c2af80d | lib/compose.ts, lib/cinematic/mp4Duration.ts (a mover para lib/mp4Duration.ts), app/api/compose/route.ts |
 | codex/regua-unica-0914 | (ver PEDIDOS) | app/api/generate-video-cinematic, app/api/generate-video-fast (+ lib/speechRate.ts, lib/mp4Duration.ts, lib/renderAssets.ts, compose/status fora da trava) |
 
+## 4e. Etapa 4 (14/09 08:00 → 09:40) — direção do Board executada; cobertura 60/90 s fechada a $0
+
+### Branch consolidada: codex/motores-0914 — HEAD 7da4eef0 (6 commits sobre a main 693be8e3)
+
+| Commit | O quê | Caminhos sob a trava 8.2 |
+|---|---|---|
+| cc059ad6 | duração REAL do clipe de fala (sonda mvhd no download do Whisper) | lib/compose.ts, app/api/compose/route.ts |
+| ec50c690 | duração desconhecida não cresce a cena (só o Whisper não basta); log `medicao: desconhecida` | app/api/compose/route.ts |
+| 427650eb | sonda única: lib/cinematic/mp4Duration.ts → lib/mp4Duration.ts (fora da trava), imports atualizados | lib/compose.ts |
+| 1f30be29 | régua única (lib/speechRate, envolve lib/narrationFit sem tocá-la), portão do Kineo 1, entrega medida (lib/renderAssets + compose/status) | app/api/generate-video-cinematic, app/api/generate-video-fast |
+| f56ee7c2 | integração do Board: portão ANTES do dry-run; tela trata a recusa do Kineo 1 (expandir / duração menor); expansão e preflight na régua da família; guardiões de identidade estendidos; caminho executado + evento executados com mocks | app/api/generate-video-fast, app/api/expand-script, GenerateClient |
+| 7da4eef0 | cobertura 60/90: Kineo 1 não joga fora blocos acima de 12; Kineo 1 modo IA terceira passada abaixo de 95%; Veo/Sora >64 s ganham clipes para o footage cobrir a fala | app/api/generate-video-fast, app/api/generate-video-cinematic, lib/scriptParser (fora) |
+
+Typecheck: 0 erros. Suíte inteira em f56ee7c2: 397 verdes / 118 vermelhos contra 396 / 117 da base — o único vermelho novo é test-despacho-vazio (trava 8.2, esperado nesta branch). Guardião novo: scripts/test-regua-unica-e-entrega-medida-2026-09-14.mjs (55 verificações). Os três guardiões de identidade (narration-ruler, duration-floor-39, preflight-que-nao-acusa) foram ESTENDIDOS: aceitam narrationFitAt/autofitDownAt e provam que eles delegam a narrationFit/autofitDown — não enfraquecidos.
+
+### Board, item a item
+1. Correções publicadas: mantidas; exceção pontual registrada abaixo com todos os arquivos e commits. Não é qualidade validada.
+2. Régua + preflight + Kineo 1: integrados na branch. Achados do Board corrigidos: o portão do Kineo 1 roda ANTES do dry-run (o relatório carrega `gate`) e a recusa do Kineo 1 cai na mesma caixa da cinematic (expandir com "Finish it for me" ou aceitar a duração menor), não mais em fast_dispatch_not_ok. Caminho executado com mocks: 50 palavras / 35 s → 422 sem POST e com `narration_guard_blocked` (charged:false); dry-run com a mesma decisão sem evento; 120 palavras liberam; duração menor só com consentimento explícito (`narration_autofit_down`); sem consentimento, recusa honesta com a duração que cabe. Sem loop: a expansão passa a medir na régua da família (a 2,3 um Kineo 1 de 60 s era expandido para 138 palavras e o portão clássico pedia 177). Nada altera o texto do autor.
+3. Duração real: consolidada (cc059ad6 + ec50c690 + 427650eb), sonda única em lib/mp4Duration.ts. Ainda pede a exceção (lib/compose.ts).
+4. Medição da entrega: pedido/planejado/medido separados; ausência = null + 'unknown'. Evento executado no caminho real com mocks: medido, medição falhada, claim ausente, banco fora (nenhum evento, entrega segue), uma emissão por filme (o bloco vive no ramo do primeiro done; cache sem download = unknown).
+5. Cobertura 60/90 s por entrada (dry-run $0, prod atual):
+
+| Motor | Roteiro 60 | Brief 60 | Roteiro 90 | Brief 90 |
+|---|---|---|---|---|
+| Kineo 1 | PASS 180 pal / 58 s | PASS (IA) 193 pal / 62 s | 21 blocos: FAIL (cortado a 12) → 8 blocos: PASS 275 pal / 89 s | 180 pal FAIL / 280 pal PASS (IA oscila) |
+| Seedance 1.5 | PASS 58 s | PASS | PASS 275 pal / 89 s (291 pal: FAIL, footage 90 < fala 94) | PASS |
+| Kling 2.5 | PASS | PASS | PASS | PASS |
+| Veo 3.1 | PASS | PASS | **FAIL: footage 72 s (9 × 8 s) para 88,7 s de fala** | **FAIL idem** |
+| Kling 3 | PASS 68 s | PASS | PASS 93 s | PASS |
+| MiniMax H3 | PASS | PASS | PASS | PASS |
+| Omni | PASS | PASS | PASS | PASS |
+| Seedance 2.5 | PASS | PASS | PASS | PASS |
+
+Ideia a 60 s: 8/8 PASS (etapas anteriores). Ideia a 90 s no Kineo 1: 263 palavras = 84,8 s para piso de 86 s (FAIL por 1,2 s). Os 402 "Other active renders already hold…" de um lote de 16 dry-runs simultâneos foram concorrência de holds do meu lote, não do motor — refeitos em lotes de 4.
+
+### Diferenças reais que a cobertura 90 s achou (correções direcionadas, na branch)
+- **Veo 3.1 a 90 s**: 9 clipes de 8 s = 72 s de footage para 89 s de fala — o compose repetiria cena. Correção: acima de 64 s, clipes suficientes (teto 12 = 96 s). **Custo: +3 clipes de Veo por filme de 90 s com preço fixo de 100 cr — decisão do fundador antes de publicar.**
+- **Kineo 1, roteiro com mais de 12 blocos**: o 13º em diante era JOGADO FORA (71 palavras do autor, em silêncio). Correção: o excedente se funde no 12º; nenhuma palavra some.
+- **Kineo 1 modo IA a 90 s**: o escritor entrega ~5% abaixo do alvo (263/279) e oscila (180 ou 280 para o mesmo brief). Correção: terceira passada por cena quando o total fica abaixo de 95% (texto da IA, nunca do autor).
+- **Seedance 1.5 / Kling 2.5 a 90 s**: 9 × 10 s = 90 s de footage; roteiro de 291 palavras (94 s) já estoura. O dry-run barra com honestidade. Sem correção: é o teto do motor.
+
+### Exceção 8.2 — lista completa (para registro e aprovação)
+
+Publicados: d84c7909, ee4f8751, 59f6845a, ea6e8a90 (app/api/generate-video-cinematic) · fb44bff2 (idem + lib/cinematic/visualMode.ts) · d54683fb (idem + lib/hollywood/router.ts) · 0e948900 (app/api/compose/route.ts + lib/cinematic/speechContract.ts) · 05ee899e + 9cd3d506 (lib/compose.ts + app/api/compose/route.ts).
+Na branch codex/motores-0914 (não publicados): cc059ad6, ec50c690, 427650eb (lib/compose.ts, app/api/compose/route.ts) · 1f30be29, f56ee7c2, 7da4eef0 (app/api/generate-video-cinematic, app/api/generate-video-fast, app/api/expand-script). A proteção global segue ligada; nenhum guardião de trava foi alterado.
+
 ## 5. O que falta
 
-1. Prova em vídeo, UM motor por vez, começando pelo H3 (o que falhou no teste do fundador): ideia de 1 linha, 60 s, 45 cr; assistir inteiro (duração, boca, voz, legenda, música, ordem) antes do próximo. Só com o "vai" e custo confirmado antes. Avatar por último.
+1. Publicar a branch codex/motores-0914 (7da4eef0) com a exceção aprovada; confirmar SHA e deploy; re-rodar os dry-runs de 60/90 do Kineo 1 e do Veo no ar.
+2. Só depois dos gates verdes e do deploy confirmado: cenários pagos, UM por vez, começando pelo H3 (ideia, 60 s, 45 cr), assistindo inteiro (duração, fidelidade ao texto, cenas, fala, legendas, música). Avatar por último. Nenhum render pago nesta etapa.
 1b. Publicar e7f975e3 (duração real do arquivo) — pede a exceção pontual do fundador.
 1c. Gravar a duração entregue / legendas / trilha por render (ponto cego acima) antes de medir os oito motores.
 1d. Decidir a régua do portão para os clássicos (3,1 pal/s).
