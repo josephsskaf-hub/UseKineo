@@ -17,7 +17,7 @@ const checa = (n, c) => { if (c) ok++; else falhas.push(n) }
 
 const r = rd('app/api/generate-video-cinematic/route.ts')
 checa('teto de cenas verbatim é constante (12), não 9 cravado', /const MAX_VERBATIM_SCENES = 12/.test(r) && /while \(si < sentences\.length && plan\.scenes\.length < MAX_VERBATIM_SCENES\) \{/.test(r) && !/plan\.scenes\.length < 9\) \{/.test(r))
-checa('a sobra entra frase a frase em cena com espaço (teto = segundos × 2,3), nunca colada além do teto', /const capW = Math\.floor\(capSecs \* 2\.3\)/.test(r) && /while \(si < sentences\.length && wordsIn\(sc\.voiceover \?\? ''\) \+ wordsIn\(sentences\[si\]\) <= capW\)/.test(r) && !/lastNarr\.voiceover = `\$\{lastNarr\.voiceover \?\? ''\} \$\{rest\}`/.test(r))
+checa('a sobra entra frase a frase na ÚLTIMA cena narrada (14/09: nunca para trás — auditoria item 2), teto = segundos × 2,3', /const capW = Math.floor(capSecs * 2.3)/.test(r) && /while (si < sentences.length && wordsIn(ultima.voiceover ?? '') + wordsIn(sentences[si]) <= capW)/.test(r))
 checa('o que não coube vira verbatimOverflowWords, declarado fora do bloco', /let verbatimOverflowWords = 0/.test(r) && /verbatimOverflowWords = sentences\.slice\(si\)\.reduce/.test(r))
 const iRecusa = r.indexOf("if (verbatimOverflowWords > 0) {")
 const iFloor = r.indexOf('plan.scenes = fitCinematicPlanFloor(plan.scenes, duration, SCENE_CAP)')

@@ -3535,12 +3535,33 @@ async function manipularPost(req: NextRequest) {
       if (verbatim && hollywoodVoiceover && hollywoodVoiceover.trim().length > 0) {
         const wordsIn = (t: string) => t.trim().split(/\s+/).filter(Boolean).length
         const totalWords = wordsIn(hollywoodVoiceover)
-        const sentences =
+        const sentencesRaw =
           hollywoodVoiceover
             .replace(/\s+/g, ' ')
             .match(/[^.!?…]+[.!?…]+["”']?|[^.!?…]+$/g)
             ?.map((s) => s.trim())
             .filter(Boolean) ?? []
+        // ═══ KINEO-FRASE-MAIOR-QUE-A-CENA-2026-09-14 (auditoria, item 1) ═══════
+        // Uma frase de 32 palavras entrava INTEIRA numa cena de 12 s (13,9 s de
+        // fala) sem contar como sobra: o dry-run avisava, o caminho pago ia à fal
+        // e o compose recusava depois do gasto. Frase acima do teto da cena é
+        // quebrada na vírgula/ponto-e-vírgula mais perto do meio — as palavras
+        // do autor e a ordem ficam intactas; só a respiração muda de lugar.
+        // ═══ MIRROR: splitLongSentence ═══
+        const capSentenceWords = plan.scenes.some((sc) => sc.type === 'cinematic') ? 20 : Math.floor((SCENE_CAP + 1) * 2.3) - 1
+        const splitLongSentence = (s: string): string[] => {
+          if (wordsIn(s) <= capSentenceWords) return [s]
+          const toks = s.split(' ')
+          const mid = toks.length / 2
+          let best = -1
+          for (let i = 3; i < toks.length - 3; i++) {
+            if (/[,;:—–]$/.test(toks[i]) && (best < 0 || Math.abs(i - mid) < Math.abs(best - mid))) best = i
+          }
+          const cut = best >= 0 ? best + 1 : Math.floor(mid)
+          return [...splitLongSentence(toks.slice(0, cut).join(' ')), ...splitLongSentence(toks.slice(cut).join(' '))]
+        }
+        // ═══ END MIRROR ═══
+        const sentences = sentencesRaw.flatMap(splitLongSentence)
         if (totalWords >= 40 && sentences.length >= 3) {
           type PlanScene = (typeof plan.scenes)[number]
           // KINEO-CENA-MUDA-2026-08-22 — índices das cenas que ficaram SEM
@@ -3550,11 +3571,16 @@ async function manipularPost(req: NextRequest) {
           const cenasSemFala = new Set<number>()
           const capWords = (sc: PlanScene) =>
             sc.type === 'dialogue' ? (DIALOGUE_CAP >= 15 ? 32 : 22) : sc.type === 'cinematic' ? 16 : (SCENE_CAP >= 12 ? 26 : 20) // KINEO-CONTRATO-FIT-2026-08-18 + KINEO-OMNI-TETO10: fala cabe SEMPRE no teto do clipe da FAMILIA (26w=11.3s<12s; omni: 22w=9.6s<10s, 20w=8.7s<10s)
-          const planSecs = plan.scenes.reduce((a, sc) => a + (sc.seconds || 5), 0) || 1
           let si = 0
           for (let i = 0; i < plan.scenes.length; i++) {
             const sc = plan.scenes[i]
-            const share = Math.max(6, Math.round(totalWords * ((sc.seconds || 5) / planSecs)))
+            // KINEO-ORDEM-DA-HISTORIA-2026-09-14 (auditoria, item 2): a cota é
+            // proporcional sobre o que RESTA (palavras e segundos), não sobre o
+            // total — assim a última cena recebe o fim da história e a sobra
+            // deixa de existir por arredondamento.
+            const restantesW = sentences.slice(si).reduce((a, s) => a + wordsIn(s), 0)
+            const restantesS = plan.scenes.slice(i).reduce((a, s) => a + (s.seconds || 5), 0) || 1
+            const share = Math.max(6, Math.round(restantesW * ((sc.seconds || 5) / restantesS)))
             const chunk: string[] = []
             let w = 0
             while (si < sentences.length) {
@@ -3674,16 +3700,19 @@ async function manipularPost(req: NextRequest) {
           // segundos × 2,3). O que não couber em lugar nenhum NÃO é colado:
           // vira recusa honesta antes do POST pago (verbatimOverflowWords).
           if (si < sentences.length) {
-            for (let k = plan.scenes.length - 1; k >= 0 && si < sentences.length; k--) {
-              const sc = plan.scenes[k]
-              if (sc.type === 'dialogue') continue
-              const capSecs = sc.type === 'cinematic' ? 8 : SCENE_CAP
+            // KINEO-ORDEM-DA-HISTORIA-2026-09-14 (auditoria, item 2): a sobra era
+            // encaixada de TRÁS para frente (14 frases saíam 1…11, 14, 12, 13).
+            // Agora só a ÚLTIMA cena narrada recebe o resto — é o fim da história.
+            // O que não couber nela vira recusa honesta, nunca reordenação.
+            const ultima = [...plan.scenes].reverse().find((sc) => sc.type !== 'dialogue')
+            if (ultima) {
+              const capSecs = ultima.type === 'cinematic' ? 8 : SCENE_CAP
               const capW = Math.floor(capSecs * 2.3)
-              while (si < sentences.length && wordsIn(sc.voiceover ?? '') + wordsIn(sentences[si]) <= capW) {
-                sc.voiceover = `${sc.voiceover ?? ''} ${sentences[si]}`.trim()
+              while (si < sentences.length && wordsIn(ultima.voiceover ?? '') + wordsIn(sentences[si]) <= capW) {
+                ultima.voiceover = `${ultima.voiceover ?? ''} ${sentences[si]}`.trim()
                 si++
               }
-              sc.seconds = Math.max(4, Math.min(capSecs, Math.round(wordsIn(sc.voiceover ?? '') / 2.3) + 1))
+              ultima.seconds = Math.max(4, Math.min(capSecs, Math.round(wordsIn(ultima.voiceover ?? '') / 2.3) + 1))
             }
             if (si < sentences.length) {
               verbatimOverflowWords = sentences.slice(si).reduce((a, s) => a + wordsIn(s), 0)
@@ -3707,6 +3736,16 @@ async function manipularPost(req: NextRequest) {
               total = plan.scenes.reduce((a, sc) => a + Math.max(0, silencio(sc)), 0)
             }
           }
+          // KINEO-FRASE-MAIOR-QUE-A-CENA-2026-09-14 (auditoria, item 1): a régua
+          // "fala > segundos + 1" só existia no dry-run. Aqui, no caminho pago:
+          // primeiro a cena cresce até o teto da família; o que ainda estourar
+          // entra na recusa honesta abaixo (422 sem cobrança), antes de qualquer POST.
+          for (const sc of plan.scenes) {
+            const fala = wordsIn((sc.type === 'dialogue' ? sc.dialogueLine : sc.voiceover) ?? '') / 2.3
+            const teto = sc.type === 'dialogue' ? DIALOGUE_CAP : sc.type === 'cinematic' ? 8 : SCENE_CAP
+            if (fala > (sc.seconds || 0) + 1) sc.seconds = Math.max(sc.seconds || 0, Math.min(teto, Math.ceil(fala)))
+            if (fala > (sc.seconds || 0) + 1) verbatimOverflowWords += Math.ceil((fala - (sc.seconds || 0) - 1) * 2.3)
+          }
           console.log(
             `[contrato] C1 verbatim: ${totalWords} palavras do roteiro → ${plan.scenes.length} cenas, ${plan.scenes.reduce((a, sc) => a + (sc.seconds || 0), 0)}s falados (zero texto inventado)`,
           )
@@ -3726,7 +3765,7 @@ async function manipularPost(req: NextRequest) {
           const lineOf = (sc: (typeof plan.scenes)[number]) => (sc.type === 'dialogue' ? sc.dialogueLine : sc.voiceover) ?? ''
           const curtas = plan.scenes
             .map((sc, i) => ({ i, sc, target: Math.round((sc.seconds || 0) * 2.3), words: wordsOfLine(lineOf(sc)) }))
-            .filter((x) => x.target >= 6 && (x.words < x.target - 1 || FILLER_LINE_RE.test(lineOf(x.sc))))
+            .filter((x) => x.target >= 6 && (x.words < x.target - 1 || x.words > x.target + 1 || FILLER_LINE_RE.test(lineOf(x.sc))))
           if (curtas.length > 0) {
             const antes = plan.scenes.reduce((a, sc) => a + wordsOfLine(lineOf(sc)), 0)
             const novas = await expandVoiceoversToTargets(curtas.map((x) => ({ text: lineOf(x.sc), targetWords: x.target })), hollywoodLanguage, prompt.slice(0, 300))
@@ -3741,6 +3780,21 @@ async function manipularPost(req: NextRequest) {
                 x.sc.voiceover = nova
               }
             })
+            // v3 (14/09 01:00, rodada 2 do dry-run): o modelo erra a contagem em
+            // ±4 palavras; em vez de insistir, os SEGUNDOS seguem a fala, como no
+            // verbatim (round(pal/2,3)+1, teto da família). Texto da IA que ainda
+            // estoura o teto perde a última frase — é texto nosso, não do autor.
+            for (const x of curtas) {
+              const teto = x.sc.type === 'dialogue' ? DIALOGUE_CAP : x.sc.type === 'cinematic' ? 8 : SCENE_CAP
+              let w = wordsOfLine(lineOf(x.sc))
+              x.sc.seconds = Math.max(4, Math.min(teto, Math.round(w / 2.3) + 1))
+              if (x.sc.type !== 'dialogue' && w / 2.3 > x.sc.seconds + 1) {
+                const frases = (x.sc.voiceover ?? '').match(/[^.!?…]+[.!?…]+["”']?|[^.!?…]+$/g)?.map((s) => s.trim()) ?? []
+                while (frases.length > 1 && wordsOfLine(frases.join(' ')) / 2.3 > x.sc.seconds + 1) frases.pop()
+                x.sc.voiceover = frases.join(' ').trim()
+                w = wordsOfLine(x.sc.voiceover)
+              }
+            }
             const depois = plan.scenes.reduce((a, sc) => a + wordsOfLine(lineOf(sc)), 0)
             console.log(`[hollywood] KINEO-ENCHE-SILENCIO: ${curtas.length} cena(s) reescritas, ${antes} → ${depois} palavras`)
           }

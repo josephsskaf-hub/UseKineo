@@ -50,7 +50,7 @@ const iFloor = r.indexOf('plan.scenes = fitCinematicPlanFloor(plan.scenes, durat
 const iDry = r.indexOf('if (body.dry_run === true && dryRunEmails.has(')
 const iSubmit = r.indexOf('await submitToFalWithOneRetry(')
 checa('o enchimento roda SÓ no modo IA, antes do piso, do dry-run e de qualquer POST', iEnche > 0 && iEnche < iRecusa && iRecusa < iFloor && iFloor < iDry && iDry < iSubmit)
-checa('alvo por cena = segundos × 2,3; cena curta = abaixo de alvo−1 ou enchimento', /target: Math\.round\(\(sc\.seconds \|\| 0\) \* 2\.3\)/.test(r) && /x\.words < x\.target - 1 \|\| FILLER_LINE_RE\.test\(lineOf\(x\.sc\)\)/.test(r))
+checa('alvo por cena = segundos × 2,3; cena fora da janela alvo−1..alvo+1 ou enchimento', /target: Math\.round\(\(sc\.seconds \|\| 0\) \* 2\.3\)/.test(r) && /x\.words < x\.target - 1 \|\| x\.words > x\.target \+ 1 \|\| FILLER_LINE_RE\.test\(lineOf\(x\.sc\)\)/.test(r))
 checa('diálogo reescrito atualiza a fala citada no prompt', /x\.sc\.dialogueLine = spoken/.test(r) && /x\.sc\.prompt = x\.sc\.prompt\.replace\(\/"\[\^"\]\{6,\}"\/, `"\$\{spoken\}"`\)/.test(r))
 checa('fail-open (try/catch) e log com antes → depois', /enche-silencio pulado/.test(r) && /KINEO-ENCHE-SILENCIO: \$\{curtas\.length\} cena\(s\) reescritas/.test(r))
 

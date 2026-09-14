@@ -57,10 +57,22 @@ function normalizar(t: string): string {
  */
 export const PEDIDOS_DE_APRESENTADOR = [
   'presenter', 'a host ', 'host talking', 'talking head', 'on camera',
-  'speaking to camera', 'to the camera', 'anchor', 'newscaster', 'reporter on screen',
+  'speaking to camera', 'to the camera', 'news anchor', 'anchorman', 'anchorwoman', 'newscaster', 'reporter on screen', // 14/09: 'anchor' solto casava navio e Anchorage
   'apresentador', 'falando para a camera', 'na frente da camera', 'ancora',
   'eu falando', 'me falando', 'narrador na tela', 'youtuber style',
 ]
+
+/**
+ * KINEO-APRESENTADOR-POR-PALAVRA-INTEIRA-2026-09-14 (auditoria, item 3):
+ * "anchor" casava dentro de "Anchorage" e em "drops its anchor", e
+ * "No presenter. Show only the city." LIGAVA o apresentador. Agora a
+ * negacao vence, e cada pedido so conta como palavra inteira.
+ */
+export const NEGACAO_DE_APRESENTADOR = /(?:^|[^a-z])(?:no|without|never|not|nao|sem|sin|nunca)\s+(?:an?\s+|the\s+|um\s+|uma\s+|un\s+|una\s+|o\s+|a\s+)?(?:presenter|host|anchor|newscaster|reporter|talking head|avatar|apresentador|apresentadora|ancora|narrador na tela)(?:[^a-z]|$)/
+function pedidoInteiro(r: string, p: string): boolean {
+  const alvo = normalizar(p).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return new RegExp('(?:^|[^a-z0-9])' + alvo + '(?:[^a-z0-9]|$)').test(r)
+}
 
 /** A tag antiga continua valendo: quem ja usa nao pode ser quebrado. */
 export const TAG_FACELESS = /\[faceless\]/i
@@ -132,7 +144,10 @@ export function decidirFormato(roteiro: string, tagFacelessPresente: boolean): D
   if (avatarRequested) {
     return { modo: 'presenter', motivo: 'o roteiro pede avatar explicitamente', apresentadorPedido: true }
   }
-  const pedido = PEDIDOS_DE_APRESENTADOR.find((p) => r.includes(normalizar(p)))
+  if (NEGACAO_DE_APRESENTADOR.test(r)) {
+    return { modo: 'documentary_faceless', motivo: 'o roteiro pede explicitamente SEM apresentador', apresentadorPedido: false }
+  }
+  const pedido = PEDIDOS_DE_APRESENTADOR.find((p) => pedidoInteiro(r, p))
   if (pedido) {
     return {
       modo: 'presenter',
