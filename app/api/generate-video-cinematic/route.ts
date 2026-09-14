@@ -1297,7 +1297,13 @@ async function manipularPost(req: NextRequest) {
     // ciencia e noticia nascem faceless; apresentador so por pedido
     // explicito. A tag antiga continua valendo para quem ja a usa.
     const formatoVisual = decidirFormato(prompt, tagFacelessPresente)
-    const facelessRequested = !permiteApresentador(formatoVisual.modo)
+    // KINEO-MOTORES-ESPECIFICOS-2026-09-14 — o Seedance 2.5 vai ao fal com
+    // generate_audio:false (C1: a narração é do usuário), mas o planner força
+    // apresentador na 1ª/última cena sem olhar a família: a cena de diálogo
+    // nascia sem narração (fala nativa) num clipe que NUNCA terá voz, e o
+    // compose recusava com cinematic_dialogue_unverified depois de a fal ter
+    // sido paga. No S25 todo pedido nasce faceless: a linha vira narração.
+    const facelessRequested = !permiteApresentador(formatoVisual.modo) || body.engine === 's25'
     console.log(`[formato] visual_mode=${formatoVisual.modo} — ${formatoVisual.motivo}`)
     if (!prompt) {
       return NextResponse.json({ error: 'Prompt is required.' }, { status: 400 })
