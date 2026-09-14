@@ -1506,6 +1506,33 @@ async function manipularPost(req: NextRequest) {
     // script, not the button), so footage always covers the narration.
     // (KINEO-DEGRAU: lê a duração já descida — o clip count segue o filme real.)
     let clipCount = clipCountForDuration(duration)
+    // ═══ KINEO-VEO-90-2026-09-14 — SÓ VEO (Board: Sora fica fora dos oito) ═══
+    // APROVADO pelo fundador em 15/09/2026 ("O ajuste separado do Veo a 90
+    // segundos também está autorizado […] desde que o orçamento seja reconfirmado
+    // e registrado antes da publicação, sem mudar o preço público"). Orçamento
+    // reconfirmado abaixo; preço público (150 cr a 90 s) inalterado.
+    // Dry-run de 14/09: Veo a 90 s = 9 clipes × 8 s = 72 s de footage para 88,7 s
+    // de fala — o compose repetiria cena. O mesmo roteiro passa no Seedance e no
+    // Kling 2.5 (9 × 10 s). Acima de 64 s o Veo precisa de mais clipes: teto 12
+    // (= 96 s).
+    // ORÇAMENTO — ESTIMATIVA (nenhum valor abaixo é fatura medida):
+    //   · clipe Veo: $0,10/s × 8 s = $0,80 — fonte: docs/PRECOS-MOTORES-V4.md
+    //     (fal-ai/veo3.1/fast; a tabela pública do fornecedor pode mudar).
+    //   · clipes por filme de 90 s: hoje 9 (clipCountForDuration) = $7,20 e o
+    //     filme sai curto; com este ajuste 12 = $9,60 (+$2,40).
+    //   · TTS + compose ≈ $0,30 por filme — estimativa da casa (não medida).
+    //   · custo completo estimado ≈ $9,90 por filme de 90 s.
+    //   · preço em créditos: creditCostForDuration('cinematic_veo', pago, 90) =
+    //     100 × 90/60 = 150 cr — fonte: lib/credits/engineCost.ts.
+    //   · RECEITA ALOCADA por crédito (preço de tabela ÷ créditos do plano,
+    //     lib/checkoutPricing V5): Starter $9,90/60 → $0,165/cr → 150 cr = $24,75;
+    //     Creator $19,90/150 → $19,90; Studio $39,90/300 → $19,95; trial = $0.
+    //     Isto é ALOCAÇÃO, não recebimento: o recebimento líquido desconta taxas
+    //     da Stripe (≈ 2,9% + $0,30), comissão de afiliado quando houver, descontos
+    //     (welcome20 etc.) e câmbio BRL — a margem após taxas/comissões/descontos
+    //     NÃO está calculada aqui; a margem bruta estimada sobre a alocação fica
+    //     ≈ 50-60% nos planos pagos (com 9 clipes ≈ 63-71%, mas com filme curto).
+    if (wantsVeo && duration > 64) clipCount = Math.max(clipCount, Math.min(12, Math.ceil(duration / 8) + 1))
     // ═══ KINEO-OMNI-TETO10-2026-08-25 — LIÇÃO DO PRIMEIRO RENDER (422 em 8/8) ═══
     // Schema oficial fal do google/gemini-omni-flash/image-to-video: duration é
     // INTEIRO 3-10 (não 15 como Kling 3, não 12 como o teto da casa). Cena
