@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { randomUUID } from 'crypto'
 import { createClient } from '@/lib/supabase/server'
-import { generateScenes, shortCaptionFromVoiceover } from '@/lib/runway'
+import { generateScenes, shortCaptionFromVoiceover, expandVoiceoversToTargets } from '@/lib/runway'
 import type { Scene } from '@/lib/runway'
 // Push #351 — Pexels import removed. All Pexels API calls disabled.
 // import { getPexelsVideoForScene, getPexelsVideoForExactQuery, getPexelsVideoForQueries } from '@/lib/pexels'
@@ -16,7 +16,7 @@ import { buildHookPrompt, submitAiHook, awaitAiHook, persistHookClip, type AiHoo
 import { pickLibraryClips, type LibraryClip } from '@/lib/stockLibrary'
 // Push #351 — ensureAccessibleUrl removed (was only used for Pexels CDN proxying; Pexels now OFF).
 // import { ensureAccessibleUrl } from '@/lib/videoCache'
-import { parseUserScript } from '@/lib/scriptParser'
+import { parseUserScript, capSegmentsKeepingWords } from '@/lib/scriptParser'
 import { narrationTooShortMessage } from '@/lib/narrationFit'
 import { largestFittingDuration } from '@/lib/expandPolicy'
 import { speechRateFor, narrationFitAt } from '@/lib/speechRate'
@@ -579,7 +579,8 @@ export async function POST(req: NextRequest) {
     //     from 400 → 1200 chars so longer briefs keep their topic fidelity.
     let scenes: Scene[]
     if (verbatim) {
-      scenes = parsedScript.segments.slice(0, 12).map((seg) => ({
+      // KINEO-TETO-SEM-CORTE-2026-09-14 — acima de 12 blocos, o excedente se funde no 12º: nenhuma palavra do autor some.
+      scenes = capSegmentsKeepingWords(parsedScript.segments, 12).map((seg) => ({
         description: seg.pexelsQuery,
         searchKeywords: seg.pexelsQuery,
         stockSearchQuery: seg.pexelsQuery,
@@ -606,6 +607,28 @@ export async function POST(req: NextRequest) {
           wordsPerScene: wordsPerSceneFor(duration, clipCount),
           language: narrationLanguage.language,
         })
+        // ═══ KINEO-TERCEIRA-PASSADA-2026-09-14 — o Kineo 1 a 90 s ficava 5% curto ═══
+        // Dry-run de 14/09: ideia de 1 linha a 90 s → 263 palavras (84,8 s a 3,1)
+        // para um piso de 86 s; o mesmo brief deu 180 numa rodada e 280 na outra.
+        // O escritor mira o meio da faixa e o modelo entrega ~5% abaixo. Quando o
+        // total fica abaixo de 95% do alvo do escalador, cada cena curta ganha a
+        // reescrita por alvo (mesma função da família hollywood), texto da IA —
+        // nunca do autor (este ramo é o modo IA). Fail-open.
+        try {
+          const wordsOf = (t: string | undefined) => (t ?? '').trim().split(/\s+/).filter(Boolean).length
+          const alvoTotal = targetWordCount(duration)
+          const total = scenes.reduce((a, s) => a + wordsOf(s.voiceover), 0)
+          if (scenes.length > 0 && total < alvoTotal * 0.95) {
+            const porCena = Math.ceil(alvoTotal / scenes.length)
+            const curtas = scenes.map((s, i) => ({ i, s })).filter(({ s }) => wordsOf(s.voiceover) < porCena)
+            const novas = await expandVoiceoversToTargets(curtas.map(({ s }) => ({ text: s.voiceover ?? '', targetWords: porCena + 2, maxWords: porCena + 8 })), narrationLanguage.language, prompt.slice(0, 300))
+            curtas.forEach(({ s }, k) => { if (novas[k] && novas[k] !== s.voiceover) s.voiceover = novas[k] })
+            const depois = scenes.reduce((a, s) => a + wordsOf(s.voiceover), 0)
+            console.log(`[generate-fast] KINEO-TERCEIRA-PASSADA: ${total} → ${depois} palavras (alvo ${alvoTotal}, ${curtas.length} cena(s))`)
+          }
+        } catch (e) {
+          console.warn('[generate-fast] terceira passada pulada:', e instanceof Error ? e.message : String(e))
+        }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
         console.error('[generate-fast] scene generation failed:', msg)

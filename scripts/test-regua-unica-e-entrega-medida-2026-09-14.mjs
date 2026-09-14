@@ -137,6 +137,22 @@ console.log('== 7) evento de entrega, executado no caminho real (mocks): medido,
   checa('uma emissão por filme: o bloco vive dentro do ramo do primeiro done (deductedParam=false) e o nome aparece uma vez', (st.match(/name: 'render_delivered_measured'/g) || []).length === 1 && st.indexOf('// ═══ KINEO-ENTREGA-MEDIDA-2026-09-14') > st.indexOf('Only on the first "done" response (deductedParam=false)'))
   checa('cache (sem download) fica unknown: persistRenderAssets só mede quando baixa (onBytes)', ra.includes('let measuredSeconds: number | null = null') && ra.includes('onBytes: (buf) => { measuredSeconds = probeMp4DurationSeconds(buf) },') && !/measuredSeconds = videoTimeoutMs|measuredSeconds = duration/.test(ra))
 }
+console.log('== 8) cobertura 60/90 s (14/09): as três correções direcionadas que a matriz achou ==')
+{
+  const SP = roda(rd('lib/scriptParser.ts').split('\n').filter((l) => !/^import /.test(l)).join('\n'))
+  const segs = Array.from({ length: 21 }, (_, i) => ({ pexelsQuery: 'q' + i, voiceover: `S${i + 1} a b c d e f g h i j k` }))
+  const cap = SP.capSegmentsKeepingWords(segs, 12)
+  const antes = segs.map((s) => s.voiceover).join(' ').split(' ').length
+  const depois = cap.map((s) => s.voiceover).join(' ').split(' ').length
+  checa('Kineo 1: 21 blocos viram 12 e NENHUMA palavra do autor some (era: 9 blocos jogados fora)', cap.length === 12 && antes === depois && cap[11].voiceover.startsWith('S12 ') && cap[11].voiceover.endsWith('S21 a b c d e f g h i j k'))
+  checa('abaixo do teto nada muda', SP.capSegmentsKeepingWords(segs.slice(0, 8), 12).length === 8)
+  checa('a rota usa o teto sem corte no lugar do slice', rf.includes('scenes = capSegmentsKeepingWords(parsedScript.segments, 12).map((seg) => ({') && !rf.includes('parsedScript.segments.slice(0, 12)'))
+  checa('Kineo 1 modo IA: terceira passada por cena quando o total fica abaixo de 95% do alvo (texto da IA, nunca do autor)', rf.includes('if (scenes.length > 0 && total < alvoTotal * 0.95) {') && rf.includes('expandVoiceoversToTargets(curtas.map(({ s }) => ({ text: s.voiceover ??') && rf.indexOf('KINEO-TERCEIRA-PASSADA-2026-09-14') > rf.indexOf('} else {\n      try {'))
+  checa('Veo/Sora a 90 s: clipes suficientes para o footage cobrir a fala (teto 12), só acima de 64 s', rc.includes('if ((wantsVeo || wantsSora) && duration > 64) clipCount = Math.max(clipCount, Math.min(12, Math.ceil(duration / 8) + 1))'))
+  // aritmética do Veo: 90 s → 12 clipes × 8 = 96 s ≥ 88,7 s de fala; 60 s → intocado (7 × 8 = 56 + piso)
+  const veo = (d) => Math.max(Math.max(2, Math.min(9, Math.ceil(d / 9))), Math.min(12, Math.ceil(d / 8) + 1))
+  checa('Veo 90 s → 12 clipes (96 s de footage ≥ 88,7 s de fala)', veo(90) === 12 && veo(90) * 8 >= 88.7)
+}
 console.log(`\n${ok} ok · ${falhas.length} falhas`)
 for (const f of falhas) console.log('  ✗', f)
 process.exit(falhas.length ? 1 : 0)
