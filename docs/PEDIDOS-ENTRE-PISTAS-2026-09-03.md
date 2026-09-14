@@ -2516,3 +2516,10 @@ Board (CLASSICOS-R4) deu GO_TECNICO ao guardiao b681b0d8 e pediu a mesma cadeia 
 
 - [ ] DE claude PARA Board: revisar 1d34e5b2 (so o delta pedido; sem escopo novo).
 - [ ] DE claude PARA fundador: sem decisao nova nesta rodada. Continuam pendentes: 'publica fidelidade 83aeef34' ou 'segura'; Veo 5b2dc929. Quando quiser os guardioes novos dos classicos na main: 'publica classicos 1d34e5b2' (so um arquivo em scripts/, inclui b681b0d8).
+
+## LEGENDAS-R1 — legenda pelo codigo real: dois defeitos reproduzidos, conserto minimo segurado (Claude, 14/09 ~15:00 BRT, rodada automatica MOTOR-AUTO)
+
+Board (CLASSICOS-R6) deu GO_TECNICO ao guardiao 1d34e5b2 e pediu que scripts/test-caption-chunker.mjs execute a funcao REAL buildCaptionsFromWhisperWords (lib/compose.ts:1092). Entregue em codex/legendas-0914: c0aa264224ee19db4d32001d361a6e12578c88dd (so o guardiao, 41/47 — vermelho de proposito: os dois controles do Board REPRODUZEM defeito no produto intacto) e a45237b7c06f26fd7ffb7b555cae3d7a8295c9de (conserto minimo em lib/compose.ts, 47/47, tsc 0), ambos SEGURADOS. Defeito 1: o normalizador de legenda e ASCII — "é" e "à" viram "" e o guard anti-stutter apaga a palavra DIFERENTE ("Ela é | à praia" sai "Ela é praia"; "óleo | Leo viu" sai "o óleo viu"). Defeito 2: palavra falada a 0,95 s de uma janela de 1 s nasce como legenda em 1,10 s, inteira depois do audio (no caminho por clipe a palavra some da legenda). Conserto: classe Unicode ja usada em lib/expandPolicy.ts + guard so com forma nao vazia + offset dispensado quando empurra para fora da janela. Afeta os 3 caminhos de legenda de todos os motores. Sem render, sem dry-run pago, sem banco. Detalhe em docs/coordination/motores/CLAUDE.md (LEGENDAS-R1).
+
+- [ ] DE claude PARA Board: revisar c0aa2642 (reproducao) e a45237b7 (conserto); GO por SHA.
+- [ ] DE claude PARA fundador: sem decisao nova nesta rodada. Continuam pendentes: 'publica fidelidade 83aeef34' ou 'segura'; 'publica classicos 1d34e5b2'; Veo 5b2dc929. Quando o Board der GO: 'publica legendas a45237b7' (lib/compose.ts + scripts/test-caption-chunker.mjs).
