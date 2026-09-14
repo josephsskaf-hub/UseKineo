@@ -31,3 +31,26 @@ Fechados: Lituya sem depoimento inventado e caso de apara 7x10s/21 palavras pres
 - Branch: codex/fidelidade-0914; candidato resolvido a3734c39e1f5749b2eb5c6106ff7da5ced019a95.
 - Relato do executor: 85/85, tsc limpo, correções de conversão/cobertura/identidade, código segurado.
 - Estado independente: NÃO REVISADO. Nenhum GO implícito. Este item será tratado pelo primeiro ciclo com candidato disponível.
+
+## FID-V4-R1 — CORRIGIR (responde a FID-V4)
+
+- TESTADO LOCALMENTE pelo Board em 2026-09-14T15:36:29Z.
+- SHA imutável: a3734c39e1f5749b2eb5c6106ff7da5ced019a95; snapshot isolado C:/kineo-wt/board-review-fid-a3734c39.
+- Guardião entregue: 85/85, exit 0. Typecheck `tsc --noEmit --incremental false`: exit 0.
+- Regressões independentes já usadas na v3, adaptadas apenas ao retorno objeto da API: 11/13 passam, 2 falham. Isto NÃO é taxa de erro de produção. Não rodou fornecedor, render ou consulta ao banco.
+- Reprodução: `node C:/Users/josep/.codex/outputs/01a03e3e-5f63-7cf1-8b9f-6c6646b446b7/h3-lituya-review/audit-a3734c39.cjs C:/kineo-wt/board-review-fid-a3734c39`.
+
+FATO CONFIRMADO no SHA revisado: correções de I see / Eu sobrevivi / Yo recuerdo / nurse, negação de landslide no prompt final, village intact × collapsed, ficha do pai no filho, descrição incompatível e estado global passaram nas reproduções. Os controles Lituya e duração permanecem fechados. Não reabrir estes casos.
+
+### Dois casos remanescentes, não uma nova auditoria
+
+1. **Conversão muda sentido e gramática.** lib/hollywood/fidelidade.ts:148 expande `I'd` sempre para `had` (we'd idem na linha 158). Entrada `I'd escape if I could.` sai do caminho `aplicarFidelidadeAoPlano` como `The fisherman had escape if he could.`. Critério: conversão semanticamente correta (`would escape`) ou retorno intacto explicitamente não suportado; jamais declarar convertida uma substituição ambígua. Testar would e had, não apenas a frase do exemplo. Não mexer em roteiro verbatim.
+2. **Sujeito ausente recebe cobertura positiva.** lib/hollywood/fidelidade.ts:307-334 considera presença lexical do papel suficiente. Narração `The fisherman grips the wheel.` e prompt `Only his son grips the wheel; the fisherman is absent.` chegam ao `submittedPrompt` sem correção, com cobertura `coberta`. Critério: não aprovar esse sujeito como presente; tirar a direção incompatível do prompt enviado em vez de prefixar uma ordem oposta. Reproduzir até o submittedPrompt, preservando o caso legítimo do filho sozinho quando ele é quem a narração descreve.
+
+SUGESTÃO de abordagem limitada: restringir a conversão aos casos inequivocamente suportados; para conflito explícito de sujeito, substituir a instrução conflitante por ação/sujeito da narração. Não expandir um dicionário para fingir compreensão universal. Cobertura desconhecida continua desconhecida.
+
+QUESTÃO PENDENTE: status `nao_suportada` atualmente conserva a primeira pessoa ao transformar diálogo em narração documental. É limitação declarada, não correção comprovada de qualidade. Registrar tratamento e validar no filme, sem inventar atribuição/testemunho nem bloquear toda geração por uma heurística.
+
+PRÓXIMO DO EXECUTOR: devolver delta destes dois casos com SHA completo e reproduções; manter progresso dos demais motores em testes offline independentes. Não publicar fidelidade nem iniciar outro H3 por este parecer. Veo 5b2dc929 continua separado/segurado.
+
+TRANSPORTE: parecer disponível nesta outbox local; ACK bilateral ainda não encontrado no caminho acordado. Não afirmar que Claude recebeu ou iniciou. Board não precisa de texto recopiado do pacote já disponível no Git.
