@@ -3764,11 +3764,15 @@ async function manipularPost(req: NextRequest) {
           const wordsOfLine = (t: string | undefined) => (t ?? '').trim().split(/\s+/).filter(Boolean).length
           const lineOf = (sc: (typeof plan.scenes)[number]) => (sc.type === 'dialogue' ? sc.dialogueLine : sc.voiceover) ?? ''
           const curtas = plan.scenes
-            .map((sc, i) => ({ i, sc, target: Math.round((sc.seconds || 0) * 2.3), words: wordsOfLine(lineOf(sc)) }))
-            .filter((x) => x.target >= 6 && (x.words < x.target - 1 || x.words > x.target + 1 || FILLER_LINE_RE.test(lineOf(x.sc))))
+            .map((sc, i) => ({ i, sc, target: Math.round((sc.seconds || 0) * 2.3), words: wordsOfLine(lineOf(sc)), maxWords: Math.floor((sc.type === 'dialogue' ? DIALOGUE_CAP : sc.type === 'cinematic' ? 8 : SCENE_CAP) * 2.3) }))
+            .filter((x) => x.target >= 6 && (x.words < x.target - 1 || x.words > x.maxWords || FILLER_LINE_RE.test(lineOf(x.sc))))
           if (curtas.length > 0) {
             const antes = plan.scenes.reduce((a, sc) => a + wordsOfLine(lineOf(sc)), 0)
-            const novas = await expandVoiceoversToTargets(curtas.map((x) => ({ text: lineOf(x.sc), targetWords: x.target })), hollywoodLanguage, prompt.slice(0, 300))
+            // v4 (14/09 01:40, rodada 3): o modelo entrega ~85% do que se pede.
+            // Pede-se alvo+3 e aceita-se até o TETO da cena — os segundos seguem
+            // a fala (abaixo), então fala a mais vira cena mais longa, não estouro.
+            // Passar do alvo é bom; ficar abaixo é defeito (fundador, 02/09).
+            const novas = await expandVoiceoversToTargets(curtas.map((x) => ({ text: lineOf(x.sc), targetWords: Math.min(x.target + 3, x.maxWords), maxWords: x.maxWords })), hollywoodLanguage, prompt.slice(0, 300))
             curtas.forEach((x, k) => {
               const nova = novas[k]
               if (!nova || nova === lineOf(x.sc)) return

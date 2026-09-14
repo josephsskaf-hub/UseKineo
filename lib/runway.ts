@@ -726,9 +726,9 @@ export async function getRunwayTask(id: string): Promise<RunwayTaskState> {
 // cada cena curta ganha uma reescrita para o alvo de palavras dos seus
 // segundos (2,3 pal/s), numa chamada só, mantendo fatos e língua.
 export const FILLER_LINE_RE = /^(here is something most people do not know about|imagine|what if|most people don'?t know)/i
-export interface VoiceoverTarget { text: string; targetWords: number }
-/** Janela aceita: de alvo−2 a alvo+1 palavras (o compose recusa fala > segundos+1 s). */
-export const fitsVoiceoverTarget = (words: number, target: number): boolean => words >= target - 2 && words <= target + 1
+export interface VoiceoverTarget { text: string; targetWords: number; maxWords?: number }
+/** Janela aceita: de alvo−2 até `max` (padrão alvo+1; a rota passa o teto da cena, porque os segundos seguem a fala). */
+export const fitsVoiceoverTarget = (words: number, target: number, max = target + 1): boolean => words >= target - 2 && words <= max
 /** Reescreve cada item para o alvo de palavras (janela alvo−2..alvo+1), em até `rounds` rodadas; devolve os textos na ordem. Fail-open: item que não melhora volta como estava. */
 export async function expandVoiceoversToTargets(items: VoiceoverTarget[], language: NarrationLanguage | undefined, topic: string, rounds = 2): Promise<string[]> {
   const wordsOf = (t: string) => (t ?? '').trim().split(/\s+/).filter(Boolean).length
@@ -738,7 +738,8 @@ export async function expandVoiceoversToTargets(items: VoiceoverTarget[], langua
   // com 27 palavras para 10 s (preflight recusa) e o Kling 3 ficou em 14/18.
   // Agora: janela [alvo−2, alvo+1]; quem fica fora vai a uma 2ª rodada.
   const out = items.map((it) => it.text)
-  const pendentes = items.map((_, i) => i).filter((i) => !fitsVoiceoverTarget(wordsOf(items[i].text), items[i].targetWords) || FILLER_LINE_RE.test(items[i].text))
+  const maxOf = (it: VoiceoverTarget) => it.maxWords ?? it.targetWords + 1
+  const pendentes = items.map((_, i) => i).filter((i) => !fitsVoiceoverTarget(wordsOf(items[i].text), items[i].targetWords, maxOf(items[i])) || FILLER_LINE_RE.test(items[i].text))
   for (let round = 0; round < rounds && pendentes.length > 0; round++) {
     const lote = pendentes.map((i) => ({ words: items[i].targetWords, line: out[i] }))
     let arr: unknown = null
@@ -754,9 +755,9 @@ export async function expandVoiceoversToTargets(items: VoiceoverTarget[], langua
       if (v) {
         const w = wordsOf(v)
         const melhorou = Math.abs(w - items[i].targetWords) < Math.abs(wordsOf(out[i]) - items[i].targetWords) || FILLER_LINE_RE.test(out[i])
-        if (w <= items[i].targetWords + 1 && melhorou) out[i] = v
+        if (w <= maxOf(items[i]) && melhorou) out[i] = v
       }
-      if (fitsVoiceoverTarget(wordsOf(out[i]), items[i].targetWords) && !FILLER_LINE_RE.test(out[i])) pendentes.splice(k, 1)
+      if (fitsVoiceoverTarget(wordsOf(out[i]), items[i].targetWords, maxOf(items[i])) && !FILLER_LINE_RE.test(out[i])) pendentes.splice(k, 1)
     }
   }
   return out
