@@ -254,3 +254,11 @@ O bloco está marcado "NÃO APROVADO: ajuste de CUSTO pendente de decisão do fu
 3. Kineo 1 roteiro próprio e brief: cobrir no dry-run (hoje só a ideia).
 4. Duração entregue em 90 s e avatar: validar no vídeo final (item 4 da auditoria), não no plano.
 5. Hindi e outras línguas fora de EN/PT/ES: decisão de produto (voz + escritor + revisão por língua).
+
+## 4i. Liberação técnica e publicação (14/09 13:40) — REGISTRO
+
+GO técnico do Board para 478c5da7. Integração sobre a main 156d9b78: rebase com um conflito só de documento (a suíte por nome, resolvido com a versão da main); código do SHA integrado **874aedff** idêntico ao 478c5da7 (`git diff 478c5da7 874aedff -- . ':!docs'` vazio). Gates repetidos no SHA integrado: guardião da leva 73/73, preflight 28/28, fala cinematic 184/184, dry-run clássico 18/18, typecheck 0. Publicado pelo fluxo da casa (enfileirar → !RODAR-AGORA): main = 874aedff. Deploy **dpl_5B1i8FZ9EiYcBdetALs5vUkrYwnT READY** (Vercel confirma o SHA).
+
+Validação em produção (conta interna, $0): Kineo 1 roteiro curto (5 blocos, 35 s) → relatório `gate.blocked=true`, motivo narration_too_short, 21 s de fala a 3,1, veredito FAIL; Kineo 1 com 21 blocos a 90 s → `too_many_clips`, veredito FAIL; H3 ideia 60 s → PASS (7 cenas, 64 s, 4,8 s de silêncio). O 403 para conta EXTERNA com dry_run:true não é testável com a conta interna — fica provado pelo trecho real executado no guardião, não em produção.
+
+A suíte inteira NÃO está verde: 118 vermelhos herdados permanecem (docs/SUITE-MOTORES-2026-09-14.md). Veo 5b2dc929 segue fora da publicação; Veo a 90 s continua com a limitação conhecida (72 s de imagem para 89 s de fala). Os oito motores NÃO estão validados em vídeo final: isso começa com o cenário H3, um por vez, assistido inteiro com áudio.

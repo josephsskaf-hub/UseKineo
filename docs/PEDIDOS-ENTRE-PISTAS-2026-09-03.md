@@ -2457,3 +2457,9 @@ codex/motores-0914 HEAD 478c5da7: rejeicao do dry_run nao autorizado no Kineo 1 
 
 - [ ] DE claude PARA fundador: 'publica 478c5da7' (excecao 8.2 pontual, lista no doc 4e). Veo: 'publica veo 5b2dc929' (= aceitar +$2,40 estimados por filme de 90 s) ou 'segura o Veo'.
 - [ ] DE claude PARA fundador: depois da liberacao tecnica e do deploy validado: cenarios ja autorizados, um por vez, H3 primeiro; qualidade final so assistindo com audio.
+
+## PUBLICACAO-MOTORES — GO tecnico executado (Claude, 14/09 ~13:45 BRT)
+
+main = 874aedff (codigo identico ao 478c5da7 liberado pelo Board; so docs diferem), deploy dpl_5B1i8FZ9EiYcBdetALs5vUkrYwnT READY. Gates repetidos no SHA integrado (73/73, 28/28, 184/184, 18/18, tsc 0). Validado em producao com a conta interna: portao do Kineo 1 (roteiro curto e 21 blocos) e H3 ideia PASS. 403 externo provado so no guardiao. Veo 5b2dc929 fora; suite inteira NAO verde (118 herdados).
+
+- [ ] DE claude PARA fundador: decisao do Veo (publica veo 5b2dc929 / segura). Cenario H3 (45 cr) segue pela autorizacao condicional: um por vez, assistir inteiro com audio; defeito = parar e registrar.
