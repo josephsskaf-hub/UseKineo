@@ -65,6 +65,8 @@ const DASH_ONLY_LINE = /^[\s—–-]+$/
 const MARKDOWN_HEADER_LINE = /^\s*#{1,6}\s+\S/
 // Strips an em-dash/en-dash/hyphen fence from both ends ("— HOOK —" → "HOOK").
 const FENCED_LINE = /^[—–-]{1,3}\s*([\s\S]*?)\s*[—–-]{1,3}$/
+/** "TITLE:", "VIDEO SETTINGS:", "EDITING:" — caixa alta, dois-pontos, linha vazia depois. */
+const UPPERCASE_SECTION_LINE = /^([A-Z][A-Z0-9 /&()-]{2,40}):\s*$/
 // Push #240 — an editing bullet point ("- Total length: ~52s", "- ZERO black
 // frames"). Hyphen + space + text. Never narration. Note: section headers that
 // use a hyphen fence ("- HOOK -") are detected as headers BEFORE this rule runs
@@ -89,6 +91,26 @@ const NON_NARRATION_SECTION_KEYWORDS = new Set([
   'legend',
   'voice',
   'editing',
+  // KINEO-BRIEF-DO-CHATGPT-2026-09-13 — o formato do fundador (H3, 13/09 22:34):
+  // "TITLE:", "VIDEO SETTINGS:", "EDITING:" como cabeçalhos em caixa alta com
+  // dois-pontos; o dry-run mostrou a voz lendo o título e o bloco de edição.
+  'title',
+  'settings',
+  'video settings',
+  'thumbnail',
+  'description',
+  'hashtags',
+  'tags',
+  'chapters',
+  'chapter text',
+  'on screen text',
+  'graphics',
+  'music',
+  'sound',
+  'format',
+  'style',
+  'post production',
+  'b roll',
   'capcut',
   'elevenlabs',
   'notes',
@@ -126,6 +148,13 @@ function sectionHeaderName(line: string): string | null {
     body = fenced[1]
   } else if (MARKDOWN_HEADER_LINE.test(t)) {
     body = t.replace(/^#{1,6}\s*/, '')
+  } else {
+    // KINEO-BRIEF-DO-CHATGPT-2026-09-13 — cabeçalho em caixa alta com dois-pontos
+    // e NADA depois ("TITLE:", "VIDEO SETTINGS:", "EDITING:") é seção nomeada.
+    // Com conteúdo na mesma linha ("STYLE: Bright") continua sendo rótulo de
+    // produção (STAGE_LABEL_LINE), não seção.
+    const upper = UPPERCASE_SECTION_LINE.exec(t)
+    if (upper) body = upper[1]
   }
   if (body === null) return null
   return normalizeSectionName(body)
@@ -328,7 +357,23 @@ const SCENE_HEADER_LINE =
 
 /** Rótulo de FALA: a pessoa marcou explicitamente o que é para narrar. */
 const SPEECH_LABEL_LINE =
-  /^(voice\s?-?\s?over|voiceover|vo|narration|narrator|narrador|narradora|narra[çc][ãa]o|narraci[óo]n|dialogue|di[áa]logo|dialogo|fala|falas|speech|spoken(?:\s+text)?|line|lines|voz|voz em off|locu[çc][ãa]o|locutor|locutora|texto falado|seslendirme|anlat[ıi]m|anlat[ıi]c[ıi])\s*(?:\([^)]{0,60}\))?\s*[:：]/i
+  /^(voice\s?-?\s?over|voiceover|vo|narration|narrator|narrador|narradora|narra[çc][ãa]o|narraci[óo]n|dialogue|di[áa]logo|dialogo|fala|falas|speech|spoken(?:\s+text)?|line|lines|voz|voz em off|locu[çc][ãa]o|locutor|locutora|texto falado|seslendirme|anlat[ıi]m|anlat[ıi]c[ıi]|(?:use|read|narrate)\s+(?:the\s+following|this|the)\s+(?:voice\s?-?\s?over|voiceover|narration|script)|voice\s?-?\s?over\s+(?:text|script)|narration\s+(?:text|script))\s*(?:\([^)]{0,60}\))?\s*[:：]/i
+
+// KINEO-BRIEF-DO-CHATGPT-2026-09-13 — "Voiceover: Natural American English,
+// energetic and conversational." é FICHA DE VOZ (produção), não fala: o rótulo
+// de fala com um resto curto de vocabulário de voz vira rótulo de produção.
+// Sem isto, o roteiro do fundador (13/09) tinha DOIS rótulos de fala e a regra
+// 5 narrava a ficha de voz como se fosse a primeira frase.
+const VOICE_SPEC_VOCAB =
+  /\b(natural|male|female|man|woman|american|british|australian|neutral|energetic|conversational|calm|serious|warm|deep|soft|accent|tone|narrator|voice|years?\s+old|\d0s|adult|young|elderly|child|kid|pt-br|es-419|english|portuguese|spanish)\b/i
+export function isVoiceSpecLine(line: string): boolean {
+  const u = unwrapLabelHead(line)
+  if (!u || !SPEECH_LABEL_LINE.test(u)) return false
+  const resto = u.replace(SPEECH_LABEL_LINE, '').trim()
+  if (!resto || /^["“'‘]/.test(resto)) return false
+  const palavras = resto.split(/\s+/).filter(Boolean).length
+  return palavras <= 16 && VOICE_SPEC_VOCAB.test(resto)
+}
 
 /** Preâmbulo de assistente: só vale nas primeiras linhas e exige verbo de
  *  entrega + substantivo de entregável, para nunca comer narração real. */
@@ -384,7 +429,7 @@ export function isCharacterSheetLine(line: string): boolean {
 /** Texto que é um BRIEFING (ficha + instruções) e não uma narração: ≥2 linhas de ficha/instrução e nenhum rótulo de fala. */
 export function looksLikeBrief(raw: string): boolean {
   const lines = (raw ?? '').toString().split(/\r?\n/).map((l) => unwrapLabelHead(l)).filter(Boolean)
-  if (lines.some((u) => SPEECH_LABEL_LINE.test(u))) return false
+  if (lines.some((u) => SPEECH_LABEL_LINE.test(u) && !isVoiceSpecLine(u))) return false
   let ficha = 0
   let instrucao = 0
   let producao = 0
@@ -406,11 +451,11 @@ export function looksLikeBrief(raw: string): boolean {
 export function quotedSpeechUnderLabel(raw: string): string | null {
   const text = (raw ?? '').toString()
   const lines = text.split(/\r?\n/)
-  const rotulos = lines.filter((l) => { const u = unwrapLabelHead(l); return Boolean(u) && SPEECH_LABEL_LINE.test(u) }).length
+  const rotulos = lines.filter((l) => { const u = unwrapLabelHead(l); return Boolean(u) && SPEECH_LABEL_LINE.test(u) && !isVoiceSpecLine(u) }).length
   if (rotulos !== 1) return null
   const moldura = lines.some((l) => isStageDirectionLine(l) || isInstructionLine(l))
   if (!moldura) return null
-  const idx = lines.findIndex((l) => { const u = unwrapLabelHead(l); return Boolean(u) && SPEECH_LABEL_LINE.test(u) })
+  const idx = lines.findIndex((l) => { const u = unwrapLabelHead(l); return Boolean(u) && SPEECH_LABEL_LINE.test(u) && !isVoiceSpecLine(u) })
   const depois = [unwrapLabelHead(lines[idx]).replace(SPEECH_LABEL_LINE, ''), ...lines.slice(idx + 1)].join('\n').trim()
   const m = depois.match(/^["“„«]([\s\S]{20,}?)["”«»]/)
   if (!m) return null
@@ -422,6 +467,7 @@ export function quotedSpeechUnderLabel(raw: string): string | null {
 function isStageDirectionLine(line: string): boolean {
   const u = unwrapLabelHead(line)
   if (!u) return false
+  if (isVoiceSpecLine(u)) return true // KINEO-BRIEF-DO-CHATGPT — ficha de voz é produção
   if (SPEECH_LABEL_LINE.test(u)) return false
   return STAGE_LABEL_LINE.test(u) || TIMECODE_LINE.test(u) || SCENE_HEADER_LINE.test(u)
 }
@@ -453,7 +499,7 @@ export function screenplaySpeechOnly(raw: string): string | null {
   const lines = (raw ?? '').toString().split(/\r?\n/)
   const rotulos = lines.filter((l) => {
     const u = unwrapLabelHead(l)
-    return Boolean(u) && SPEECH_LABEL_LINE.test(u)
+    return Boolean(u) && SPEECH_LABEL_LINE.test(u) && !isVoiceSpecLine(u)
   }).length
   if (rotulos < 2) return null
 
@@ -462,7 +508,7 @@ export function screenplaySpeechOnly(raw: string): string | null {
   for (const line of lines) {
     const u = unwrapLabelHead(line)
     if (!u) continue
-    if (SPEECH_LABEL_LINE.test(u)) {
+    if (SPEECH_LABEL_LINE.test(u) && !isVoiceSpecLine(u)) {
       dentro = true
       const resto = u.replace(SPEECH_LABEL_LINE, '').trim()
       if (resto) guardadas.push(resto)
@@ -495,7 +541,15 @@ function cleanNarration(raw: string, lenient = false, roteiroDeCinema = true): s
       inMetadataSection = isNonNarrationSection(section)
       continue
     }
+    // KINEO-BRIEF-DO-CHATGPT-2026-09-13 — um rótulo de FALA ("Use the following
+    // voiceover:", "Narration:") reabre a narração depois de uma seção de
+    // produção ("VIDEO SETTINGS:"); sem isto a fala inteira era engolida.
+    const cabecaFala = unwrapLabelHead(line)
+    const rotuloDeFala = Boolean(cabecaFala) && SPEECH_LABEL_LINE.test(cabecaFala) && !isVoiceSpecLine(line)
+    if (inMetadataSection && rotuloDeFala) inMetadataSection = false
     if (inMetadataSection) continue
+    // rótulo de fala sem nada depois ("Use the following voiceover:") é só a placa — não se lê.
+    if (rotuloDeFala && !cabecaFala.replace(SPEECH_LABEL_LINE, '').trim()) continue
     // Regras 1-3: rotulo de producao, marcacao de tempo e cabecalho de cena
     // nunca sao fala - nem no modo tolerante, onde salvar palavras jamais
     // pode virar o narrador lendo "Visual dois pontos".
