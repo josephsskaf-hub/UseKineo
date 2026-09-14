@@ -17,6 +17,7 @@ import { renderOutputSpec, renderOutputSpecFor } from '@/lib/renderProfile'
 import { aspectSpec, type AspectSpec } from '@/lib/aspect'
 import { cinematicSceneSeconds, assertCinematicTimeline } from '@/lib/cinematic/timelineContract'
 import { verifyObservedSpeech } from '@/lib/cinematic/speechContract'
+import { probeMp4DurationSeconds } from '@/lib/cinematic/mp4Duration'
 // KINEO-CREDIT-STUCK-2026-08-08 — política única de 429 (fal + Creatomate).
 import { CREATOMATE_SUBMIT_RATE_LIMIT, rateLimitWaitMs, sleep } from '@/lib/rateLimit'
 import { selectPersonaForScript, describeVoiceSelection } from '@/lib/narration/niche-mapping'
@@ -925,7 +926,14 @@ const CAPTION_SYNC_OFFSET = 0.15 // seconds, added to each caption start
 // e o resto do arquivo tem cicatriz suficiente de conclusão apressada. Então
 // em vez de adivinhar: cada saída passa a registrar o motivo e o tamanho, e o
 // próximo render responde a pergunta sozinho.
-export async function transcribeClipWithTimestamps(clipUrl: string): Promise<WhisperWord[]> {
+/** KINEO-DURACAO-REAL-DO-CLIPE-2026-09-14 — mesmo download do Whisper, mais a duração real da mídia (mvhd). `durationSeconds` null = não foi possível ler o cabeçalho. */
+export async function transcribeClipWithTimestampsAndDuration(clipUrl: string): Promise<{ words: WhisperWord[]; durationSeconds: number | null }> {
+  let durationSeconds: number | null = null
+  const words = await transcribeClipWithTimestamps(clipUrl, (ab) => { durationSeconds = probeMp4DurationSeconds(ab) })
+  return { words, durationSeconds }
+}
+
+export async function transcribeClipWithTimestamps(clipUrl: string, onBytes?: (ab: ArrayBuffer) => void): Promise<WhisperWord[]> {
   try {
     if (!/^https:\/\//.test(clipUrl)) {
       console.warn('[compose] clip whisper: URL nao-https, pulando')
@@ -937,6 +945,7 @@ export async function transcribeClipWithTimestamps(clipUrl: string): Promise<Whi
       return []
     }
     const ab = await res.arrayBuffer()
+    try { onBytes?.(ab) } catch { /* a sonda de duração nunca derruba a transcrição */ }
     const mb = (ab.byteLength / 1024 / 1024).toFixed(1)
     if (ab.byteLength < 10_000) {
       console.warn(`[compose] clip whisper: clipe pequeno demais (${ab.byteLength}B) — provavelmente erro no download`)

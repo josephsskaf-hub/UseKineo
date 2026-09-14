@@ -66,7 +66,7 @@ console.log('== compose: a mesma voz, vinda do claim ==')
 const cp = rd('app/api/compose/route.ts')
 checa('compose importa hollywoodVoiceFromClaim', /import \{ hollywoodVoiceFromClaim, resolveHollywoodVoice, synthesizeHostSpeech, type HollywoodVoice \} from '@\/lib\/hollywood\/hostVoice'/.test(cp))
 checa('compose prefere host_voice do claim e só depois re-resolve', /hollywoodPinnedVoice = hollywoodVoiceFromClaim\(cinematicBirthClaim\?\.response\?\.host_voice\)\n\s+\?\? resolveHollywoodVoice\(voiceoverScript, language, vertical\)/.test(cp))
-checa('compose mantém a fala nativa/host verificada por ASR antes de narrar (14/09: com os segundos úteis do clipe — auditoria item 7)', cp.includes("if ((c.engine === 'dialogue' || c.engine === 'host') && c.url) {") && cp.includes('verifyObservedSpeech(c.dialogueLine, words, { maxEndSeconds: cinematicSceneSeconds(c) })'))
+checa('compose mantém a fala nativa/host verificada por ASR antes de narrar (14/09: com os segundos úteis do clipe e a duração real do arquivo — auditoria item 7)', cp.includes("if ((c.engine === 'dialogue' || c.engine === 'host') && c.url) {") && cp.includes('verifyObservedSpeech(c.dialogueLine, words, { maxEndSeconds: tetoReal(cinematicSceneSeconds(c)) })'))
 
 console.log(`\n${ok} ok · ${falhas.length} falhas`)
 for (const f of falhas) console.log('  ✗', f)

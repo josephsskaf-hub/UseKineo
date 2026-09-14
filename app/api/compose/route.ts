@@ -30,6 +30,7 @@ import {
   transcribeTTSWithTimestamps,
   // KINEO-LIPSYNC-CAPTIONS-2026-08-17 — Whisper no mp4 da cena de fala.
   transcribeClipWithTimestamps,
+  transcribeClipWithTimestampsAndDuration,
   uploadVoiceoverToSupabase,
   // Kineo-AudioCache-2026 — TTS + Whisper content-hash cache (fail-open).
   computeVoiceoverCacheKey,
@@ -2040,8 +2041,14 @@ export async function POST(req: NextRequest) {
       // not evidence of speech: reject absent/different audio before rendering.
       for (const [sceneIdx, c] of hollywoodClips.entries()) {
         if ((c.engine === 'dialogue' || c.engine === 'host') && c.url) {
-          const words = await transcribeClipWithTimestamps(c.url).catch(() => [] as WhisperWord[])
-          const speech = verifyObservedSpeech(c.dialogueLine, words, { maxEndSeconds: cinematicSceneSeconds(c) })
+          // KINEO-DURACAO-REAL-DO-CLIPE-2026-09-14 (Board): a fala só pode crescer
+          // até onde o ARQUIVO realmente vai — a duração vem do cabeçalho do MP4,
+          // não do timestamp da transcrição.
+          const lido = await transcribeClipWithTimestampsAndDuration(c.url).catch(() => ({ words: [] as WhisperWord[], durationSeconds: null as number | null }))
+          const words = lido.words
+          const mediaSeconds = lido.durationSeconds
+          const tetoReal = (s: number) => (mediaSeconds != null && mediaSeconds > 0 ? Math.min(s, mediaSeconds) : s)
+          const speech = verifyObservedSpeech(c.dialogueLine, words, { maxEndSeconds: tetoReal(cinematicSceneSeconds(c)) })
           if (!speech.ok && speech.reason === 'speech_overruns_clip') {
             // KINEO-FALA-ALEM-DO-CLIPE-2026-09-14 (auditoria, item 7): o áudio existe
             // (o Whisper leu as palavras) mas termina depois dos segundos declarados;
@@ -2053,11 +2060,11 @@ export async function POST(req: NextRequest) {
             // Board 14/09: cinematicSceneSeconds tem teto (diálogo 15 s, host 20 s).
             // Re-confere com os segundos que o montador VAI usar; se a fala ainda
             // passa do teto, recusa honesta — nunca cortar o fim da fala em silêncio.
-            const recheck = verifyObservedSpeech(c.dialogueLine, words, { maxEndSeconds: cinematicSceneSeconds(c) })
+            const recheck = verifyObservedSpeech(c.dialogueLine, words, { maxEndSeconds: tetoReal(cinematicSceneSeconds(c)) })
             if (!recheck.ok) {
-              console.warn('[compose] KINEO-FALA-ALEM-DO-CLIPE: fala passa do teto da cena mesmo depois de crescer', { scene_index: sceneIdx, antes, teto: cinematicSceneSeconds(c), last_word_end: lastEnd, reason: recheck.reason })
+              console.warn('[compose] KINEO-FALA-ALEM-DO-CLIPE: fala passa do teto da cena mesmo depois de crescer', { scene_index: sceneIdx, antes, teto: cinematicSceneSeconds(c), media_seconds: mediaSeconds, last_word_end: lastEnd, reason: recheck.reason })
               return rejectBeforeProviderSubmission(NextResponse.json({
-                error: `Scene ${sceneIdx + 1}'s speech runs ${lastEnd.toFixed(1)}s, longer than the ${cinematicSceneSeconds(c)}s this scene can hold. Your generated clips are preserved; nothing was cut or narrated over.`,
+                error: `Scene ${sceneIdx + 1}'s speech runs ${lastEnd.toFixed(1)}s, longer than the ${tetoReal(cinematicSceneSeconds(c))}s this scene can hold. Your generated clips are preserved; nothing was cut or narrated over.`,
                 code: 'cinematic_dialogue_overruns_clip', recoverable: true,
               }, { status: 422 }))
             }

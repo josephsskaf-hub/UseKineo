@@ -50,11 +50,11 @@ eq(speech.verifyObservedSpeech('Hello world', words('Hello world'), { maxEndSeco
 eq(speech.verifyObservedSpeech('Hello world', words('Hello world'), { maxEndSeconds: 0.7 }).ok, true, '0.25s ASR tolerance')
 {
   const rota = fs.readFileSync(new URL('../app/api/compose/route.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n')
-  eq(/verifyObservedSpeech\(c\.dialogueLine, words, \{ maxEndSeconds: cinematicSceneSeconds\(c\) \}\)/.test(rota), true, 'compose passes the usable seconds of the clip to the verifier')
+  eq(rota.includes('verifyObservedSpeech(c.dialogueLine, words, { maxEndSeconds: tetoReal(cinematicSceneSeconds(c)) })') && rota.includes('const tetoReal = (s: number) => (mediaSeconds != null && mediaSeconds > 0 ? Math.min(s, mediaSeconds) : s)'), true, 'compose passes the usable seconds of the clip — engine cap bounded by the real media length — to the verifier')
   eq(/speech\.reason === 'speech_overruns_clip'\) \{[\s\S]{0,900}c\.seconds = Math\.round\(\(lastEnd \+ 0\.3\) \* 10\) \/ 10/.test(rota), true, 'an overrun grows the scene to the last word instead of cutting the speech')
   eq(rota.indexOf('const originalFootageSeconds = hollywoodClips.map(cinematicSceneSeconds)') > rota.indexOf("speech.reason === 'speech_overruns_clip'"), true, 'pre-trim seconds are read after the scene may have grown')
   // Board 14/09: re-checagem depois do teto + o montador confere a duração final
-  eq(rota.includes("const recheck = verifyObservedSpeech(c.dialogueLine, words, { maxEndSeconds: cinematicSceneSeconds(c) })") && rota.includes("code: 'cinematic_dialogue_overruns_clip', recoverable: true,"), true, 'after growing to the cap, the route re-verifies and refuses honestly if speech still overruns')
+  eq(rota.includes("const recheck = verifyObservedSpeech(c.dialogueLine, words, { maxEndSeconds: tetoReal(cinematicSceneSeconds(c)) })") && rota.includes("code: 'cinematic_dialogue_overruns_clip', recoverable: true,"), true, 'after growing to the cap, the route re-verifies and refuses honestly if speech still overruns')
   const montador = fs.readFileSync(new URL('../lib/compose.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n')
   eq(montador.includes('verifyObservedSpeech(clip.dialogueLine, clip.speechWords, { maxEndSeconds: secondsFor(clip) })'), true, 'the builder verifies speech against the FINAL scene seconds, not only the text')
 }
@@ -133,7 +133,7 @@ const narrationEnd = statements.findIndex(n => ts.isForOfStatement(n) && n.initi
 assert.ok(narrationEnd > 0)
 const narrationStatements = statements.slice(0, narrationEnd).map(n => n.getText(composeAst)).join('\n')
 ok(statements.slice(0, narrationEnd).some(n => ts.isForOfStatement(n) && n.expression.getText(composeAst) === 'hollywoodClips.entries()'), 'Actual native verification precedes TTS spending')
-async function runActualComposeSpeech({ engines = ['dialogue', 'support'], narrations = [null, 'Narrator explains'], dialogues = ['Actor speaks', null], nativeText = 'Actor speaks', nativeWords, sceneSeconds, failure, ttsText = 'Narrator explains' } = {}) {
+async function runActualComposeSpeech({ engines = ['dialogue', 'support'], narrations = [null, 'Narrator explains'], dialogues = ['Actor speaks', null], nativeText = 'Actor speaks', nativeWords, sceneSeconds, mediaSeconds = 30, failure, ttsText = 'Narrator explains' } = {}) {
   const calls = [], logs = []
   const input = {
     body: { scene_engines: engines, scene_narrations: narrations, scene_seconds: sceneSeconds ?? engines.map(() => 8), scene_dialogues: dialogues },
@@ -155,6 +155,7 @@ async function runActualComposeSpeech({ engines = ['dialogue', 'support'], narra
     transcribeTTSWithTimestamps: async () => { calls.push(['asr-tts']); return failure === 'asr' ? [] : words(ttsText) },
     uploadVoiceoverToSupabase: async () => { calls.push(['upload']); if (failure === 'upload') throw Error('SENTINEL_SECRET'); return 'https://example.invalid/same-voice.mp3' },
     transcribeClipWithTimestamps: async () => { calls.push(['asr-native']); return nativeWords ?? words(nativeText) },
+    transcribeClipWithTimestampsAndDuration: async () => { calls.push(['asr-native']); return { words: nativeWords ?? words(nativeText), durationSeconds: mediaSeconds } },
     console: { log: (...args) => logs.push(args), warn: (...args) => logs.push(args) }, Buffer,
   }
   const code = `export async function run() { ${narrationStatements}\n return { status: 200, measured, hollywoodClips }; }`
@@ -216,6 +217,29 @@ for (const [engine, cap, dentro, alem] of [['dialogue', 15, 11.0, 16.0], ['host'
   assert.throws(() => compose.buildHollywoodCreatomateSource({ clips: [{ ...clipe, speechWords: spokenUntil('Hello world', cap + 1) }], narrationBlocks: [] }), /unverified dialogue \(speech_overruns_clip\)/, `${engine}: builder refuses speech ending after the final ${cap}s`); checks++
   const cabe = compose.buildHollywoodCreatomateSource({ clips: [{ ...clipe, speechWords: spokenUntil('Hello world', cap - 0.1) }], narrationBlocks: [] })
   ok(cabe.elements.some(e => e.type === 'video' && e.source === clipe.url), `${engine}: builder accepts speech that ends inside the final ${cap}s`)
+}
+
+// KINEO-DURACAO-REAL-DO-CLIPE-2026-09-14 — a proteção pendente: o arquivo manda.
+{
+  const mp4 = load('@/lib/cinematic/mp4Duration')
+  const box = (type, payload) => { const b = Buffer.alloc(8 + payload.length); b.writeUInt32BE(8 + payload.length, 0); b.write(type, 4, 'ascii'); payload.copy(b, 8); return b }
+  const mvhd = (timescale, duration) => { const p = Buffer.alloc(100); p.writeUInt32BE(timescale, 12); p.writeUInt32BE(duration, 16); return box('mvhd', p) }
+  const file = Buffer.concat([box('ftyp', Buffer.from('isom')), box('mdat', Buffer.alloc(64)), box('moov', Buffer.concat([box('udta', Buffer.alloc(4)), mvhd(1000, 12345)]))])
+  eq(mp4.probeMp4DurationSeconds(file), 12.345, 'mvhd (moov at the end, nested after another box) yields the real media duration')
+  const p64 = Buffer.alloc(120); p64[0] = 1; p64.writeUInt32BE(90000, 20); p64.writeUInt32BE(0, 24); p64.writeUInt32BE(90000 * 9, 28)
+  eq(mp4.probeMp4DurationSeconds(Buffer.concat([box('ftyp', Buffer.from('isom')), box('moov', box('mvhd', p64))])), 9, 'mvhd version 1 (64-bit duration) is read')
+  eq(mp4.probeMp4DurationSeconds(Buffer.from('not an mp4 at all, just bytes')), null, 'garbage is null, never a number')
+  eq(mp4.probeMp4DurationSeconds(Buffer.concat([box('ftyp', Buffer.from('isom')), box('mdat', Buffer.alloc(32))])), null, 'no moov = null (caller keeps the engine cap)')
+  // rota real: fala até 11 s numa cena de 8 s, mas o ARQUIVO tem 9 s → recusa (não cresce além do arquivo)
+  const curto = await runActualComposeSpeech({ nativeWords: spokenUntil('Actor speaks', 11.0), sceneSeconds: [8, 8], mediaSeconds: 9 })
+  eq(curto.reply.status, 422, 'speech past the real media length is refused even inside the engine cap')
+  eq(curto.reply.body.code, 'cinematic_dialogue_overruns_clip', 'same honest refusal code')
+  eq(curto.calls.map(c => c[0]), ['asr-native', 'release-compose-claim'], 'nothing else runs after the refusal')
+  const cabeNoArquivo = await runActualComposeSpeech({ nativeWords: spokenUntil('Actor speaks', 11.0), sceneSeconds: [8, 8], mediaSeconds: 12 })
+  eq(cabeNoArquivo.reply.status, 200, 'speech inside the real media length grows the scene')
+  eq(cabeNoArquivo.reply.hollywoodClips[0].seconds, 11.3, 'grown to the last word (+0.3s) within the file')
+  const semCabecalho = await runActualComposeSpeech({ nativeWords: spokenUntil('Actor speaks', 11.0), sceneSeconds: [8, 8], mediaSeconds: null })
+  eq(semCabecalho.reply.status, 200, 'unreadable header keeps the engine cap (does not invent a refusal)')
 }
 
 // Native support audio is subordinate to the explicit per-scene narration.
