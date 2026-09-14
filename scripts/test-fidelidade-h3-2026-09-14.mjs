@@ -67,6 +67,13 @@ checa('ES Board: "Yo recuerdo." → "El pescador recuerda." (não "El pescador r
 checa('ES: "Mi hijo y yo vimos la ola." → "El pescador y su hijo vieron la ola."', N('Mi hijo y yo vimos la ola.', ficha, 'es').texto === 'El pescador y su hijo vieron la ola.')
 checa('ES: "Yo tengo miedo, mis manos tiemblan. Yo corrí." → tiene / sus / corrió', N('Yo tengo miedo, mis manos tiemblan. Yo corrí.', ficha, 'es').texto === 'El pescador tiene miedo, sus manos tiemblan. Él corrió.')
 checa('ES: verbo desconhecido ("Yo huyo.") → nao_suportada, intacto', N('Yo huyo.', ficha, 'es').status === 'nao_suportada' && N('Yo huyo.', ficha, 'es').texto === 'Yo huyo.')
+// FID-V4-R1 (Board): "I'd" é had OU would; substituição ambígua nunca é "convertida"
+checa('Board: "I\'d escape if I could." → "The fisherman would escape if he could." (would antes de forma base)', N("I'd escape if I could.").texto === 'The fisherman would escape if he could.' && N("I'd escape if I could.").status === 'convertida')
+checa('"I\'d seen the wave before." → "The fisherman had seen the wave before." (had antes de particípio)', N("I'd seen the wave before.").texto === 'The fisherman had seen the wave before.')
+checa('"I\'d never seen it. I\'d rather die." → had never seen / would rather die', N("I'd never seen it. I'd rather die.").texto === 'The fisherman had never seen it. He would rather die.')
+checa('"We\'d escape together." → "They would escape together."; "We\'d been there." → "They had been there."', N("We'd escape together.").texto === 'They would escape together.' && N("We'd been there.").texto === 'They had been there.')
+checa('"I\'d" antes de palavra fora das tabelas ("I\'d reckon so.") → nao_suportada, texto intacto', N("I'd reckon so.").status === 'nao_suportada' && N("I'd reckon so.").texto === "I'd reckon so.")
+checa('"I\'d" no fim da frase ("Yes, I\'d.") → nao_suportada, intacto', N("Yes, I'd.").status === 'nao_suportada' && N("Yes, I'd.").texto === "Yes, I'd.")
 checa('a biblioteca não tem mais o depoimento inventado ("would later recall"/atribuirFalaConvertida)', !libSrc.includes('would later recall: ') && !libSrc.includes('atribuirFalaConvertida') && !/return `[^`]*recall/.test(libSrc))
 
 console.log('== 2. cobertura em 3 estados — dois substantivos não provam ação; contradição SAI; sem estado global ==')
@@ -80,6 +87,10 @@ checa('cena 2 real: fiorde parado ("still water") × tsunami catastrófico → d
 checa('escala DIVERGENTE: onda de 5 m no prompt × 524 m na narração → divergente', cob('A 5 meter wave hits the rocky shore.', 'The wave reached 524 meters, the highest ever recorded.') === 'divergente')
 checa('escala AUSENTE: onda sem número × narração com 524 m e "dwarfing" → desconhecida', cob(planoReal()[3].prompt, planoReal()[3].voiceover) === 'desconhecida')
 checa('SUJEITO ERRADO: narração fala do pescador, prompt mostra só o filho → divergente', cob('His son grips the rail as the boat climbs the wave.', 'The fisherman gripped the wheel and steered the boat straight into the wave.', ficha) === 'divergente')
+// FID-V4-R1 (Board): citar o papel para declará-lo AUSENTE não é presença
+checa('Board: "Only his son grips the wheel; the fisherman is absent." × "The fisherman grips the wheel." → divergente (sujeito ausente), não coberta', cob('Only his son grips the wheel; the fisherman is absent.', 'The fisherman grips the wheel.', ficha) === 'divergente' && /^sujeito ausente/.test(F.avaliarCobertura('Only his son grips the wheel; the fisherman is absent.', 'The fisherman grips the wheel.', ficha).motivo))
+checa('"without the fisherman" e "the fisherman is nowhere to be seen" também são ausência', F.protagonistaAusente('The boat drifts without the fisherman.', ficha) && F.protagonistaAusente('The deck is empty; the fisherman is nowhere to be seen.', ficha) && !F.protagonistaAusente('The fisherman is exhausted.', ficha))
+checa('caso legítimo preservado: "His son is alone on the boat. He grips the rail." × "The boy grips the rail." → coberta, prompt intacto', cob('His son is alone on the boat. He grips the rail.', 'The boy grips the rail.', ficha) === 'coberta' && F.garantirAcaoCentral('His son is alone on the boat. He grips the rail.', 'The boy grips the rail.', ficha).prompt === 'His son is alone on the boat. He grips the rail.')
 checa('mesmo texto com o pescador na cena → coberta (gripped/grips casam pelo radical, e é AÇÃO)', cob('The fisherman grips the wheel as the boat climbs the wave.', 'The fisherman gripped the wheel and steered the boat straight into the wave.', ficha) === 'coberta')
 checa('coincidência lexical ÚNICA de substantivo ("mountains") não aprova: desconhecida', cob('Aerial view of mountains at sunset.', 'The landslide, triggered by an earthquake, tore the mountains apart and displaced millions of tons of rock.') === 'desconhecida')
 checa('ação presente de verdade (uprooted trees + mountainside) → coberta', cob('Fallen, uprooted trees scattered across the mountainside after the wave.', 'The tsunami uprooted trees high up the mountains, leaving destruction behind.') === 'coberta')
@@ -92,6 +103,10 @@ checa('sem narração → sem_narracao, prompt intacto', cob('anything', '') ===
   checa('ordem não muda o veredito (calmo → outro → calmo)', antes === denovo && depois === 'divergente' && cob(p, v) === 'divergente')
   checa('regex de teste sem flag g na biblioteca (CALMO_RE/VIOLENTO_RE)', libSrc.includes("const CALMO_RE = new RegExp(`\\\\b(?:${CALMO_PALAVRAS})\\\\b`, 'i')") && /const VIOLENTO_RE = \/[^\n]*\/i\n/.test(libSrc))
 }
+const gAus = F.garantirAcaoCentral('Only his son grips the wheel; the fisherman is absent.', 'The fisherman grips the wheel.', ficha)
+checa('sujeito ausente: a direção incompatível SAI ("Only his son" e "is absent" somem) e o sujeito da frase vira o da narração', !/Only his son|absent/i.test(gAus.prompt) && /the fisherman grips the wheel\./i.test(gAus.prompt) && gAus.prompt.startsWith('Shows exactly this moment, as the narration describes it: The fisherman grips the wheel.'))
+const gErr = F.garantirAcaoCentral('His son grips the rail as the boat climbs the wave.', 'The fisherman gripped the wheel and steered the boat straight into the wave.', ficha)
+checa('sujeito errado: "His son grips the rail" vira "The fisherman grips the rail" no pedido visual', /The fisherman grips the rail as the boat climbs the wave\./.test(gErr.prompt) && !/His son/.test(gErr.prompt))
 const gNeg = F.garantirAcaoCentral('The mountains, with no landslide visible, stand over the bay.', 'The landslide tore the mountainside apart and hit the water.')
 checa('negação identificada é REMOVIDA do prompt (não concatenada a ordem oposta): sem "no landslide", com a frase da narração', !/no landslide/i.test(gNeg.prompt) && /^Shows exactly this moment, as the narration describes it: The landslide tore the mountainside apart and hit the water\./.test(gNeg.prompt) && /stand over the bay/.test(gNeg.prompt))
 const gInt = F.garantirAcaoCentral('The mountain village remains intact under a grey sky.', 'The mountain village collapsed in seconds.')
@@ -108,6 +123,7 @@ const GF = (p, s = ficha) => F.garantirFichaNoPrompt(p, s)
 checa('"The fisherman grips the wheel." → a ficha ENTRA NO LUGAR de "the fisherman"', GF('The fisherman grips the wheel.').prompt === `${ficha} grips the wheel.` && GF('The fisherman grips the wheel.').identidade === 'ficha_no_lugar_da_descricao')
 checa('Board: "A rugged fisherman in his 60s with a white beard grips the wheel." → a ficha substitui a descrição conflitante (sem 60s, sem white beard)', GF('A rugged fisherman in his 60s with a white beard grips the wheel.').prompt === `${ficha} grips the wheel.`)
 checa('Board: "His son is alone on the deck. He grips the rail." → NENHUMA ficha (pronome não é identidade)', GF('His son is alone on the deck. He grips the rail.').prompt === 'His son is alone on the deck. He grips the rail.' && GF('His son is alone on the deck. He grips the rail.').identidade === 'sem_identidade_explicita')
+checa('protagonista declarado ausente não recebe a ficha ("…; the fisherman is absent" → sem identidade explícita)', GF('Only his son grips the wheel; the fisherman is absent.').identidade === 'sem_identidade_explicita')
 checa('"She looks at the sea." com ficha feminina → NENHUMA ficha por pronome', GF('She looks at the sea.', 'A young woman with red hair').prompt === 'She looks at the sea.')
 checa('ficha já presente com pontuação/caixa diferentes → comparação normalizada, não duplica', GF('a rugged FISHERMAN in his late 40s weathered tan skin short salt and pepper beard dark wool cap faded orange oilskin jacket over a grey sweater heavy rubber boots grips the wheel').identidade === 'ficha_ja_presente')
 checa('outra pessoa ("a young woman on the shore") NÃO recebe a ficha do protagonista', GF('A young woman on the shore watches the water.').prompt === 'A young woman on the shore watches the water.')
@@ -149,6 +165,20 @@ checa('relato de cobertura DECLARADO por cena: 7 entradas, divergente (cena 2), 
   const hs = { index: 8, type: 'support', prompt: 'The mountains, with no landslide visible, stand over the bay. Mouth closed, not speaking.', voiceover: 'The landslide tore the mountainside apart and hit the water.', seconds: 10 }
   const p = enviar(hs, 7)
   checa('Board: "no landslide visible" NÃO permanece no submittedPrompt (depois de sceneTruth e textSafetySuffix)', !/no landslide/i.test(p) && /The landslide tore the mountainside apart/.test(p))
+}
+{
+  const hs = { index: 11, type: 'support', prompt: 'Only his son grips the wheel; the fisherman is absent.', voiceover: 'The fisherman grips the wheel.', seconds: 10 }
+  const rel = []
+  const p = enviar(hs, 10, rel)
+  checa('Board: "Only his son… the fisherman is absent" → submittedPrompt sem "Only his son", sem "absent", cobertura divergente (não coberta)', !/Only his son|absent/i.test(p) && rel[0].cobertura === 'divergente' && /the fisherman grips the wheel/i.test(p))
+  const cadeia = [{ index: 12, type: 'support', prompt: 'Only his son grips the wheel; the fisherman is absent.', voiceover: 'The fisherman grips the wheel.', seconds: 10 }]
+  const relR = F.aplicarFidelidadeAoPlano(cadeia, ficha, 'en', true)
+  const p2 = enviar(cadeia[0], 11)
+  checa('cadeia inteira (planejador + rota): a ficha NÃO é colada na cláusula de ausência e o submittedPrompt sai sem a contradição', relR[0].identidade === 'sem_identidade_explicita' && !/Only his son|absent/i.test(p2))
+  const leg = [{ index: 13, type: 'support', prompt: 'His son is alone on the boat. He grips the rail.', voiceover: 'The boy grips the rail.', seconds: 10 }]
+  F.aplicarFidelidadeAoPlano(leg, ficha, 'en', true)
+  const p3 = enviar(leg[0], 12)
+  checa('caso legítimo até o submittedPrompt: o filho sozinho, descrito pela narração, fica como está e sem a ficha do pai', /His son is alone on the boat\. He grips the rail\./.test(p3) && !p3.includes(ficha))
 }
 {
   const hs = { index: 9, type: 'support', prompt: 'The mountain village remains intact under a grey sky.', voiceover: 'The mountain village collapsed in seconds.', seconds: 10 }

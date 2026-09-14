@@ -90,7 +90,16 @@ const MARCA_ES = /\b(yo|mi|mis|mío|mía|míos|mías|conmigo|nosotros|nosotras|n
 // EN: verbo na forma base (presente) que ganha -s na 3ª pessoa; passado irregular fica igual; auxiliares têm tabela.
 const EN_AUX: Record<string, string> = { am: 'is', was: 'was', have: 'has', had: 'had', will: 'will', would: 'would', can: 'can', could: 'could', should: 'should', must: 'must', may: 'may', might: 'might', shall: 'shall', do: 'does', did: 'did', "don't": "doesn't", "didn't": "didn't", "can't": "can't", "won't": "won't", "couldn't": "couldn't", "wouldn't": "wouldn't", "haven't": "hasn't", "hadn't": "hadn't", "wasn't": "wasn't" }
 const EN_PASSADO_IRREGULAR = new Set(['saw', 'knew', 'thought', 'felt', 'heard', 'ran', 'went', 'came', 'held', 'took', 'kept', 'found', 'lost', 'got', 'gave', 'made', 'let', 'put', 'set', 'cut', 'hit', 'swam', 'sank', 'fell', 'rose', 'caught', 'threw', 'brought', 'left', 'stood', 'sat', 'lay', 'slept', 'woke', 'hid', 'fought', 'won', 'broke', 'tore', 'clung', 'hung', 'flew', 'drove', 'understood', 'meant', 'told', 'said', 'began', 'became', 'spoke', 'wrote', 'ate', 'drank', 'forgot', 'froze', 'chose', 'led', 'met', 'paid', 'read', 'rode', 'shook', 'shot', 'struck', 'swept', 'taught', 'wore', 'blew', 'grew', 'drew', 'bent', 'built', 'burnt', 'dealt', 'dug', 'fed', 'bled', 'spent', 'sent', 'lent', 'bound', 'wound', 'fled', 'sought', 'sold', 'shone', 'sang', 'rang', 'sprang', 'stung', 'stuck', 'spun', 'swung', 'lit', 'bit', 'crept', 'leapt', 'knelt', 'dove', 'strove', 'clutched', 'quit', 'shut', 'split', 'spread', 'thrust', 'wept'])
-const EN_BASE = new Set(['see', 'know', 'think', 'feel', 'hear', 'remember', 'run', 'go', 'come', 'hold', 'grab', 'climb', 'row', 'steer', 'look', 'watch', 'wait', 'need', 'want', 'try', 'take', 'keep', 'stay', 'live', 'survive', 'believe', 'fear', 'hope', 'pray', 'shout', 'scream', 'cry', 'call', 'tell', 'say', 'ask', 'find', 'lose', 'get', 'give', 'make', 'let', 'put', 'set', 'cut', 'hit', 'swim', 'sink', 'drown', 'fall', 'rise', 'turn', 'pull', 'push', 'reach', 'catch', 'throw', 'drop', 'lift', 'carry', 'bring', 'leave', 'move', 'stand', 'sit', 'lie', 'sleep', 'wake', 'open', 'close', 'hide', 'help', 'save', 'fight', 'win', 'break', 'tear', 'cling', 'hang', 'grip', 'fly', 'drive', 'sail', 'walk', 'jump', 'dive', 'work', 'learn', 'understand', 'mean', 'love', 'hate', 'miss', 'count', 'wonder', 'guess', 'refuse', 'decide', 'manage', 'promise', 'realize', 'notice', 'recognize', 'describe', 'explain', 'plan', 'pass', 'rush', 'wash', 'fix', 'cross', 'touch', 'start', 'stop', 'begin', 'end', 'die', 'kill', 'eat', 'drink', 'sing', 'read', 'write', 'speak', 'meet', 'pay', 'build', 'send', 'spend', 'stand', 'strike', 'sweep', 'teach', 'wear', 'blow', 'grow', 'draw', 'bend', 'deal', 'dig', 'feed', 'bleed', 'lend', 'flee', 'seek', 'sell', 'shine', 'ring', 'spring', 'sting', 'stick', 'spin', 'swing', 'light', 'bite', 'creep', 'leap', 'kneel', 'strive', 'clutch', 'shut', 'split', 'spread', 'weep', 'own', 'owe', 'trust', 'doubt', 'expect', 'suppose', 'imagine', 'forget', 'choose', 'lead', 'ride', 'shake', 'shoot', 'freeze', 'wonder', 'stare', 'gaze', 'glance', 'listen', 'smell', 'taste', 'breathe', 'gasp', 'whisper', 'yell', 'beg', 'thank', 'warn', 'wish', 'dream', 'sense', 'suspect'])
+const EN_BASE = new Set(['escape', 'return', 'arrive', 'depart', 'follow', 'remain', 'float', 'answer', 'fail', 'succeed', 'rescue', 'wander', 'search', 'discover', 'explore', 'travel', 'enter', 'exit', 'hurry', 'chase', 'see', 'know', 'think', 'feel','hear', 'remember', 'run', 'go', 'come', 'hold', 'grab', 'climb', 'row', 'steer', 'look', 'watch', 'wait', 'need', 'want', 'try', 'take', 'keep', 'stay', 'live', 'survive', 'believe', 'fear', 'hope', 'pray', 'shout', 'scream', 'cry', 'call', 'tell', 'say', 'ask', 'find', 'lose', 'get', 'give', 'make', 'let', 'put', 'set', 'cut', 'hit', 'swim', 'sink', 'drown', 'fall', 'rise', 'turn', 'pull', 'push', 'reach', 'catch', 'throw', 'drop', 'lift', 'carry', 'bring', 'leave', 'move', 'stand', 'sit', 'lie', 'sleep', 'wake', 'open', 'close', 'hide', 'help', 'save', 'fight', 'win', 'break', 'tear', 'cling', 'hang', 'grip', 'fly', 'drive', 'sail', 'walk', 'jump', 'dive', 'work', 'learn', 'understand', 'mean', 'love', 'hate', 'miss', 'count', 'wonder', 'guess', 'refuse', 'decide', 'manage', 'promise', 'realize', 'notice', 'recognize', 'describe', 'explain', 'plan', 'pass', 'rush', 'wash', 'fix', 'cross', 'touch', 'start', 'stop', 'begin', 'end', 'die', 'kill', 'eat', 'drink', 'sing', 'read', 'write', 'speak', 'meet', 'pay', 'build', 'send', 'spend', 'stand', 'strike', 'sweep', 'teach', 'wear', 'blow', 'grow', 'draw', 'bend', 'deal', 'dig', 'feed', 'bleed', 'lend', 'flee', 'seek', 'sell', 'shine', 'ring', 'spring', 'sting', 'stick', 'spin', 'swing', 'light', 'bite', 'creep', 'leap', 'kneel', 'strive', 'clutch', 'shut', 'split', 'spread', 'weep', 'own', 'owe', 'trust', 'doubt', 'expect', 'suppose', 'imagine', 'forget', 'choose', 'lead', 'ride', 'shake', 'shoot', 'freeze', 'wonder', 'stare', 'gaze', 'glance', 'listen', 'smell', 'taste', 'breathe', 'gasp', 'whisper', 'yell', 'beg', 'thank', 'warn', 'wish', 'dream', 'sense', 'suspect'])
+// "I'd" é ambíguo (had/would): 'had' só antes de PARTICÍPIO ("I'd seen"), 'would' só antes de forma BASE ("I'd escape"); o resto é declarado não suportado (FID-V4-R1).
+const EN_PARTICIPIO = new Set(['been', 'seen', 'gone', 'done', 'known', 'taken', 'given', 'made', 'had', 'come', 'run', 'held', 'kept', 'found', 'lost', 'got', 'gotten', 'fallen', 'risen', 'caught', 'thrown', 'brought', 'left', 'stood', 'sat', 'lain', 'slept', 'woken', 'hidden', 'fought', 'won', 'broken', 'torn', 'clung', 'hung', 'flown', 'driven', 'understood', 'meant', 'told', 'said', 'begun', 'become', 'spoken', 'written', 'eaten', 'drunk', 'forgotten', 'frozen', 'chosen', 'led', 'met', 'paid', 'read', 'ridden', 'shaken', 'shot', 'struck', 'swept', 'taught', 'worn', 'blown', 'grown', 'drawn', 'bent', 'built', 'burnt', 'dealt', 'dug', 'fed', 'bled', 'spent', 'sent', 'lent', 'bound', 'wound', 'fled', 'sought', 'sold', 'shone', 'sung', 'rung', 'sprung', 'stung', 'stuck', 'spun', 'swung', 'lit', 'bitten', 'crept', 'leapt', 'knelt', 'dived', 'striven', 'quit', 'shut', 'split', 'spread', 'thrust', 'wept', 'sunk', 'swum', 'felt', 'heard', 'thought', 'cut', 'hit', 'let', 'put', 'set'])
+function auxiliarDeD(seguinte: string | undefined): 'had' | 'would' | null {
+  const w = (seguinte ?? '').toLowerCase()
+  if (!w) return null
+  if (EN_PARTICIPIO.has(w) || (w.length > 3 && w.endsWith('ed'))) return 'had'
+  if (EN_BASE.has(w) || w === 'be' || w === 'have' || w === 'do') return 'would'
+  return null
+}
 function conjugaEn(verbo: string): string | null {
   const v = verbo.toLowerCase()
   if (EN_AUX[v]) return EN_AUX[v]
@@ -145,7 +154,7 @@ export function narrarEmTerceiraPessoa(line: string, characterSheet: string, idi
     t = t.replace(/\bI and my ([a-z]+)\b/g, (_m, x) => `${sujeito().s} and ${pos} ${x}`)
     t = t.replace(/\b([A-Z][a-z]+) and I\b/g, (_m, x) => `${x} and ${sujeito().s}`)
     // "I'm / I've / I'd / I'll"
-    t = t.replace(/\bI'm\b/g, () => `${sujeito().s} is`).replace(/\bI've\b/g, () => { const s = sujeito(); return `${s.s} ${s.singular ? 'has' : 'have'}` }).replace(/\bI'd\b/g, () => `${sujeito().s} had`).replace(/\bI'll\b/g, () => `${sujeito().s} will`)
+    t = t.replace(/\bI'm\b/g, () => `${sujeito().s} is`).replace(/\bI've\b/g, () => { const s = sujeito(); return `${s.s} ${s.singular ? 'has' : 'have'}` }).replace(/\bI'd\b(?:\s+(never|always|still|rather|only|just|also|sooner))?(?:\s+([A-Za-z]+))?/g, (m, adv: string | undefined, w: string | undefined) => { const aux = auxiliarDeD(w); if (!aux) { pendencias.push(`"I'd" ambíguo (had/would) antes de "${w ?? ''}"`); return m } return `${sujeito().s} ${aux}${adv ? ' ' + adv : ''} ${w}` }).replace(/\bI'll\b/g, () => `${sujeito().s} will`)
     // "I [advérbio] verbo" — o verbo é conjugado; verbo desconhecido = construção não suportada
     t = t.replace(/\bI\b(?:\s+(never|always|still|often|just|also|only|really|barely|finally|suddenly|then))?\s+([A-Za-z']+)/g, (m, adv: string | undefined, verbo: string) => {
       const s = sujeito()
@@ -155,7 +164,7 @@ export function narrarEmTerceiraPessoa(line: string, characterSheet: string, idi
     })
     if (/\bI\b/.test(t)) pendencias.push('"I" fora de "I + verbo"')
     t = t.replace(/\bmyself\b/gi, refl).replace(/\bmine\b/gi, posAbs).replace(/\bmy\b/gi, pos).replace(/\bme\b/gi, obj)
-    t = t.replace(/\bwe're\b/gi, 'they are').replace(/\bwe've\b/gi, 'they have').replace(/\bwe'd\b/gi, 'they had').replace(/\bwe'll\b/gi, 'they will')
+    t = t.replace(/\bwe're\b/gi, 'they are').replace(/\bwe've\b/gi, 'they have').replace(/\bwe'd\b(?:\s+(never|always|still|rather|only|just|also|sooner))?(?:\s+([A-Za-z]+))?/gi, (m, adv: string | undefined, w: string | undefined) => { const aux = auxiliarDeD(w); if (!aux) { pendencias.push(`"we'd" ambíguo (had/would) antes de "${w ?? ''}"`); return m } return `they ${aux}${adv ? ' ' + adv : ''} ${w}` }).replace(/\bwe'll\b/gi, 'they will')
     t = t.replace(/\bourselves\b/gi, 'themselves').replace(/\bours\b/gi, 'theirs').replace(/\bour\b/gi, 'their').replace(/\bwe\b/gi, 'they').replace(/\bus\b/gi, 'them')
     if (pendencias.length) return naoSuportada(pendencias.join('; '))
     if (MARCA_EN.test(t.replace(/\b(?:I)\b/g, ''))) return naoSuportada('marca de 1ª pessoa restante')
@@ -229,10 +238,30 @@ export function despersonalizarPrompt(prompt: string, characterSheet: string): s
 export const fichaNormalizada = (t: string) => (t ?? '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim()
 export const PESSOA_NO_PROMPT_RE = /\b(?:man|woman|person|boy|girl|son|daughter|sailor|fisherman|fisherwoman|captain|soldier|scientist|survivor|nurse|doctor|face|eyes|hands|he|she|his|her|him)\b/i
 
-/** O prompt nomeia o PROTAGONISTA da ficha pelo papel ("the fisherman")? Pronome não identifica ninguém ("his son… he grips" é o filho). */
+const AUSENCIA = '(?:is|was|remains|stays|being)\\s+(?:absent|gone|missing|nowhere(?: to be seen| in sight)?|away|elsewhere|out of (?:the )?(?:frame|shot|sight)|not (?:here|there|visible|present|in (?:the )?(?:frame|shot)))'
+const papelSource = (e: Papel) => e.re.source.replace(/^\\b|\\b$/g, '')
+/** O prompt DECLARA o protagonista ausente ("the fisherman is absent", "without the fisherman")? Citar o papel para negá-lo não é presença (FID-V4-R1). */
+export function protagonistaAusente(prompt: string, characterSheet: string): boolean {
+  const e = entradaDoPapel(characterSheet)
+  if (!e) return false
+  const r = papelSource(e)
+  const p = prompt ?? ''
+  return new RegExp(`\\b${r}\\b[^.;!?]{0,220}?\\s${AUSENCIA}\\b`, 'i').test(p) || new RegExp(`\\b(?:no|without)\\s+(?:the\\s+|a\\s+)?${r}\\b`, 'i').test(p)
+}
+/** Remove a cláusula que declara o protagonista ausente. */
+export function removerAusencia(prompt: string, characterSheet: string): string {
+  const e = entradaDoPapel(characterSheet)
+  if (!e) return prompt ?? ''
+  const r = papelSource(e)
+  return (prompt ?? '')
+    .replace(new RegExp(`[;,]?\\s*(?:(?:and|but|while)\\s+)?[^.;!?]*?\\b${r}\\b[^.;!?]{0,220}?\\s${AUSENCIA}\\b[^.;!?]*`, 'i'), '')
+    .replace(new RegExp(`(?:,\\s*)?\\b(?:with\\s+)?(?:no|without)\\s+(?:the\\s+|a\\s+)?${r}\\b(?:\\s+(?:in sight|visible|around|present|nearby))?`, 'i'), '')
+    .replace(/\s{2,}/g, ' ').replace(/\s+([,.;])/g, '$1').replace(/^\s*[,;]\s*/, '').trim()
+}
+/** O prompt nomeia o PROTAGONISTA da ficha pelo papel ("the fisherman") como PRESENTE? Pronome não identifica ninguém ("his son… he grips" é o filho); papel citado só para declará-lo ausente não conta. */
 export function mencionaProtagonista(prompt: string, characterSheet: string): boolean {
   const e = entradaDoPapel(characterSheet)
-  return Boolean(e && e.re.test((prompt ?? '').toLowerCase()))
+  return Boolean(e && e.re.test((prompt ?? '').toLowerCase())) && !protagonistaAusente(prompt, characterSheet)
 }
 
 export type Identidade = 'ficha_no_lugar_da_descricao' | 'ficha_ja_presente' | 'ficha_prefixada' | 'sem_identidade_explicita'
@@ -247,7 +276,7 @@ export function garantirFichaNoPrompt(prompt: string, characterSheet: string): {
   const p = (prompt ?? '').trim()
   const s = (characterSheet ?? '').trim().replace(/[.\s]+$/, '')
   const e = entradaDoPapel(s)
-  if (!s || !e || !e.re.test(p.toLowerCase())) return { prompt: p, identidade: 'sem_identidade_explicita' }
+  if (!s || !e || !e.re.test(p.toLowerCase()) || protagonistaAusente(p, s)) return { prompt: p, identidade: 'sem_identidade_explicita' }
   if (fichaNormalizada(p).includes(fichaNormalizada(s))) return { prompt: p, identidade: 'ficha_ja_presente' }
   const papelRe = e.re.source.replace(/^\\b|\\b$/g, '')
   const frase = new RegExp(`\\b(?:a|an|the|this|one)\\s+(?:(?!(?:a|an|the)\\b)[a-z-]+\\s+){0,3}?${papelRe}\\b(?:\\s+(?:${IDADE}|${DESCRITOR}))*`, 'i')
@@ -306,6 +335,9 @@ export function avaliarCobertura(prompt: string, voiceover: string, characterShe
   const acao = [...new Set(palavrasDeAcao(v))]
   // sujeito errado: a narração nomeia o protagonista da ficha e o prompt mostra outra pessoa ("his son", "a young woman") sem ele
   const e = characterSheet ? entradaDoPapel(characterSheet) : null
+  if (e && e.re.test(v.toLowerCase()) && protagonistaAusente(p, characterSheet)) {
+    return { status: 'divergente', motivo: `sujeito ausente: o prompt declara ${palavraDoPapel(characterSheet)} ausente enquanto a narração o descreve`, acao, coincidencias: [], contradicoes: ['ausencia'] }
+  }
   if (e && e.re.test(v.toLowerCase()) && PESSOA_NO_PROMPT_RE.test(p) && !mencionaProtagonista(p, characterSheet)) {
     return { status: 'divergente', motivo: `sujeito errado: a narração fala de ${palavraDoPapel(characterSheet)}, o prompt mostra outra pessoa`, acao, coincidencias: [], contradicoes: [] }
   }
@@ -351,6 +383,12 @@ export function garantirAcaoCentral(prompt: string, voiceover: string, character
   let p = (prompt ?? '').trim()
   if (cobertura.status === 'coberta' || cobertura.status === 'sem_narracao') return { prompt: p, cobertura }
   if (cobertura.status === 'divergente') {
+    if (/^sujeito (?:errado|ausente)/.test(cobertura.motivo)) {
+      // a direção incompatível SAI: cláusula de ausência removida e o sujeito da frase vira o da narração (não se prefixa ordem oposta)
+      p = removerAusencia(p, characterSheet)
+      const papelEn = papelDoPersonagem(characterSheet, 'en')
+      p = cap(p.replace(/(^|[.;!?]\s+)(?:only\s+)?(?:his|her|their|the|a|an)\s+(?:(?:young|old|little|small|teenage|frightened|exhausted|lone)\s+)?(?:son|daughter|boy|girl|child|kid|wife|husband|crew|sailor|stranger|friend|brother|sister|mother|father|man|woman)\b/gi, (_m, ini: string) => `${ini}${papelEn}`))
+    }
     if (/^ação negada/.test(cobertura.motivo)) {
       for (const w of cobertura.contradicoes) {
         const r = radical(w).slice(0, 4)
