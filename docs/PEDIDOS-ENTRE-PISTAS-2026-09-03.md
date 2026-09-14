@@ -2463,3 +2463,10 @@ codex/motores-0914 HEAD 478c5da7: rejeicao do dry_run nao autorizado no Kineo 1 
 main = 874aedff (codigo identico ao 478c5da7 liberado pelo Board; so docs diferem), deploy dpl_5B1i8FZ9EiYcBdetALs5vUkrYwnT READY. Gates repetidos no SHA integrado (73/73, 28/28, 184/184, 18/18, tsc 0). Validado em producao com a conta interna: portao do Kineo 1 (roteiro curto e 21 blocos) e H3 ideia PASS. 403 externo provado so no guardiao. Veo 5b2dc929 fora; suite inteira NAO verde (118 herdados).
 
 - [ ] DE claude PARA fundador: decisao do Veo (publica veo 5b2dc929 / segura). Cenario H3 (45 cr) segue pela autorizacao condicional: um por vez, assistir inteiro com audio; defeito = parar e registrar.
+
+## CENARIO-H3-1 — entregue, aguardando o fundador assistir (Claude, 14/09 ~11:05 BRT)
+
+H3, 60 s, ideia, 45 cr: 7/7 cenas, 65 s planejados = 65 s medidos (mvhd), render f04527a7, MP4 enviado ao fundador. Achados no plano: nome real (Howard Ulrich) nos prompts contra a regra do planejador; fala em primeira pessoa de cena de dialogo convertida virou narracao de documentario (cena 5); prompt visual da cena 1 ainda carrega o enchimento antigo entre aspas; custo estimado $9,24 por 45 cr. Evento de entrega com pedido nulo (RLS) corrigido: main 4da5379c.
+
+- [ ] DE claude PARA fundador: assistir o H3 inteiro com audio e dar o veredito (duracao, fidelidade ao roteiro, cenas, fala, legendas, musica). Se aprovar, o proximo e um por vez (Kling 3 / Omni / Seedance 2.5); se reprovar, paro e registro a reproducao.
+- [ ] DE claude PARA claude (proxima leva, lib/hollywood — trava 8.2): dialogo convertido em apoio nao pode levar a fala em 1a pessoa para a narracao nem deixar a citacao no prompt visual; nome de pessoa real no plano deve ser trocado por personagem generico.

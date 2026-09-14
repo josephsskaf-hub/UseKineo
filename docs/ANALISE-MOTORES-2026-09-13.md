@@ -262,3 +262,25 @@ GO técnico do Board para 478c5da7. Integração sobre a main 156d9b78: rebase c
 Validação em produção (conta interna, $0): Kineo 1 roteiro curto (5 blocos, 35 s) → relatório `gate.blocked=true`, motivo narration_too_short, 21 s de fala a 3,1, veredito FAIL; Kineo 1 com 21 blocos a 90 s → `too_many_clips`, veredito FAIL; H3 ideia 60 s → PASS (7 cenas, 64 s, 4,8 s de silêncio). O 403 para conta EXTERNA com dry_run:true não é testável com a conta interna — fica provado pelo trecho real executado no guardião, não em produção.
 
 A suíte inteira NÃO está verde: 118 vermelhos herdados permanecem (docs/SUITE-MOTORES-2026-09-14.md). Veo 5b2dc929 segue fora da publicação; Veo a 90 s continua com a limitação conhecida (72 s de imagem para 89 s de fala). Os oito motores NÃO estão validados em vídeo final: isso começa com o cenário H3, um por vez, assistido inteiro com áudio.
+
+## 4j. Cenário pago 1 — MiniMax H3 (14/09 13:48 → 13:59 UTC) — ENTREGUE, aguardando o fundador assistir
+
+Dentro da autorização condicional (um por vez, H3 primeiro). Ideia de 1 linha (Lituya Bay), 60 s, modo IA, 45 cr, conta do fundador (saldo 1.430 → 1.385). Geração 598caf17, render f04527a7, vídeo 604afd43. Disparo pela interface do Studio (não pela API).
+
+| Medida | Valor | Fonte |
+|---|---|---|
+| Cenas planejadas / aceitas | 7 / 7, 0 rejeitadas, HTTP 200 nas 7 | cinematic_dispatch_result |
+| Segundos planejados | 11+7+10+9+11+8+9 = 65 | claim (scene_seconds) |
+| Duração medida do MP4 | 65 s (mvhd) | render_delivered_measured |
+| Narração | 7 cenas, ~135 palavras, voz onyx, documentário sem rosto | claim |
+| Tempo | 9 min de clipes + 5 min de compose | eventos |
+| Custo do fornecedor | estimativa da casa $9,24 (cost_estimate_usd) para 45 cr | claim |
+
+Achados $0 no PLANO entregue (a confirmar assistindo):
+1. **Nome real no prompt visual**: o planejador escreveu "Howard Ulrich" (pessoa real) nas cenas 1, 5 e 7, contra a própria regra do planejador ("NEVER name or depict a real person"). A narração também diz "Ulrich".
+2. **Voz em primeira pessoa num documentário**: a cena 5 nasceu como diálogo ("My son and I saw the wave coming…"), foi convertida para cena de apoio pelo modo sem rosto, e a fala ficou na NARRAÇÃO ("My son and I spotted the colossal wave…") dita pelo narrador de documentário. Fidelidade de voz quebrada.
+3. **Enchimento no prompt visual**: a cena 1 carrega, entre aspas, o texto antigo "Here is something most people do not know about…" dentro do prompt de imagem (a narração dessa cena foi reescrita, o prompt não). O H3 pode tentar fazer a boca acompanhar o texto citado.
+4. **Evento de entrega**: `requested_seconds` e `narration_words` saíram nulos — o claim era lido com o cliente do usuário e `public.events` não tem SELECT para authenticated (RLS). Corrigido e publicado: main 4da5379c (cliente da casa), deploy dpl_E4mZEoKXLtU3PyYdQ8yHLUkzPnNx.
+5. **Custo × preço**: $9,24 estimados de fornecedor para 45 cr — margem do H3 a 60 s merece revisão na janela de preços (09/10), não agora.
+
+O que só o vídeo com áudio confirma: sincronia, boca/rosto, legendas, música, coerência visual. Sequência pausada até o veredito do fundador (se houver defeito, para e registra reprodução).
