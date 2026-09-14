@@ -1506,6 +1506,15 @@ async function manipularPost(req: NextRequest) {
     // image-to-video/api, lido em 25/08 — "Supports 3-10 second durations".
     const SCENE_CAP = family === 'omni' ? 10 : 12
     const DIALOGUE_CAP = family === 'omni' ? 10 : 15
+    // ═══ KINEO-FALA-MAIOR-QUE-A-CENA-2026-09-13 ══════════════════════════════
+    // Render do fundador no H3 (e26160a2, 22:34): 225 palavras verbatim → o laço
+    // de sobra parava em 9 cenas e COLAVA o resto na última (61 palavras = 22 s
+    // de fala num clipe de 12 s). As 9 cenas ficaram prontas em 9 min, US$ 5,56
+    // na fal, e o compose recusou (scene_speech_exceeds_footage). O dry-run
+    // tinha dito PASS porque só media silêncio, nunca excesso. Agora: até 12
+    // cenas, sobra distribuída em cena com espaço, e roteiro que não cabe em
+    // 12 cenas é barrado ANTES de gastar — no dry-run e no render pago.
+    const MAX_VERBATIM_SCENES = 12
 
     // KINEO-HOLLYWOOD-2026-07-09 — anti-deepfake gate. Hollywood renders REAL
     // fictional people with native voice, so a prompt naming a real person is
@@ -3522,6 +3531,7 @@ async function manipularPost(req: NextRequest) {
       // é o roteiro do usuário, redistribuído cena a cena EM CÓDIGO — o GPT
       // dirige a câmera, nunca mais escreve/condensa/inventa fala. O relógio
       // vira o roteiro (~2.3 palavras/s), então duração fecha por aritmética.
+      let verbatimOverflowWords = 0 // KINEO-FALA-MAIOR-QUE-A-CENA — sobra que não coube em cena nenhuma
       if (verbatim && hollywoodVoiceover && hollywoodVoiceover.trim().length > 0) {
         const wordsIn = (t: string) => t.trim().split(/\s+/).filter(Boolean).length
         const totalWords = wordsIn(hollywoodVoiceover)
@@ -3640,7 +3650,7 @@ async function manipularPost(req: NextRequest) {
 
           // Sobra de roteiro (história maior que o plano): vira cenas de apoio
           // novas — o conteúdo do fundador NUNCA é dropado.
-          while (si < sentences.length && plan.scenes.length < 9) {
+          while (si < sentences.length && plan.scenes.length < MAX_VERBATIM_SCENES) {
             const chunk: string[] = []
             let w = 0
             while (si < sentences.length && (chunk.length === 0 || w + wordsIn(sentences[si]) <= 26)) {
@@ -3659,18 +3669,46 @@ async function manipularPost(req: NextRequest) {
               caption: '',
             } as PlanScene)
           }
+          // KINEO-FALA-MAIOR-QUE-A-CENA — a sobra entra frase a frase nas cenas
+          // narradas que ainda têm espaço (teto de palavras da cena = teto de
+          // segundos × 2,3). O que não couber em lugar nenhum NÃO é colado:
+          // vira recusa honesta antes do POST pago (verbatimOverflowWords).
           if (si < sentences.length) {
-            const rest = sentences.slice(si).join(' ')
-            const lastNarr = [...plan.scenes].reverse().find((sc) => sc.type !== 'dialogue')
-            if (lastNarr) {
-              lastNarr.voiceover = `${lastNarr.voiceover ?? ''} ${rest}`.trim()
-              lastNarr.seconds = Math.max(4, Math.min(12, Math.round(wordsIn(lastNarr.voiceover) / 2.3) + 1))
+            for (let k = plan.scenes.length - 1; k >= 0 && si < sentences.length; k--) {
+              const sc = plan.scenes[k]
+              if (sc.type === 'dialogue') continue
+              const capSecs = sc.type === 'cinematic' ? 8 : SCENE_CAP
+              const capW = Math.floor(capSecs * 2.3)
+              while (si < sentences.length && wordsIn(sc.voiceover ?? '') + wordsIn(sentences[si]) <= capW) {
+                sc.voiceover = `${sc.voiceover ?? ''} ${sentences[si]}`.trim()
+                si++
+              }
+              sc.seconds = Math.max(4, Math.min(capSecs, Math.round(wordsIn(sc.voiceover ?? '') / 2.3) + 1))
+            }
+            if (si < sentences.length) {
+              verbatimOverflowWords = sentences.slice(si).reduce((a, s) => a + wordsIn(s), 0)
+              console.warn(`[contrato] C1 SOBRA SEM CENA: ${verbatimOverflowWords} palavras não cabem em ${MAX_VERBATIM_SCENES} cenas de ${SCENE_CAP}s — recusa antes do POST`)
             }
           }
           console.log(
             `[contrato] C1 verbatim: ${totalWords} palavras do roteiro → ${plan.scenes.length} cenas, ${plan.scenes.reduce((a, sc) => a + (sc.seconds || 0), 0)}s falados (zero texto inventado)`,
           )
         }
+      }
+
+      // KINEO-FALA-MAIOR-QUE-A-CENA — roteiro que não cabe no motor é barrado aqui,
+      // com estorno, em vez de virar 9 clipes pagos e um 422 do compose.
+      if (verbatimOverflowWords > 0) {
+        const maxWords = Math.floor(MAX_VERBATIM_SCENES * SCENE_CAP * 2.3)
+        const scriptWordsVerbatim = (hollywoodVoiceover ?? '').trim().split(/\s+/).filter(Boolean).length
+        await releaseBirthClaim('script_too_long_for_engine_no_charge')
+        try {
+          await cinematicAdmin.from('events').insert({ user_id: user.id, name: 'narration_guard_blocked', path: '/api/generate-video-cinematic', metadata: { reason: 'script_too_long_for_engine', engine: body.engine ?? 'hollywood', script_words: scriptWordsVerbatim, max_words: maxWords, overflow_words: verbatimOverflowWords, charged: false } })
+        } catch { /* telemetria nunca derruba a resposta */ }
+        return NextResponse.json({
+          error: `Your script is longer than this engine can narrate in one film: about ${scriptWordsVerbatim} words, and ${maxWords} is the most it can carry (${MAX_VERBATIM_SCENES} scenes of ${SCENE_CAP}s). Trim it to ~${maxWords} words or split it into two films. Nothing was charged.`,
+          reason: 'script_too_long_for_engine', script_words: scriptWordsVerbatim, max_words: maxWords, retryable: false,
+        }, { status: 422 })
       }
 
       // 11/09: selected duration is a floor, not a 95% approximation.
@@ -3796,6 +3834,12 @@ async function manipularPost(req: NextRequest) {
             model_without_anchor: cinematicSceneModel(family, sc.type, false),
           }))
           const preflightProblems: string[] = []
+          // KINEO-FALA-MAIOR-QUE-A-CENA — o inverso da régua de silêncio: fala
+          // maior que o clipe. O compose recusa isso depois de pagar; aqui é $0.
+          for (const r of planReport) {
+            const fala = r.words / 2.3
+            if ((r.seconds ?? 0) > 0 && fala > (r.seconds ?? 0) + 1) preflightProblems.push(`cena ${r.scene}: ${r.words} palavras ≈ ${fala.toFixed(1)}s de fala para um clipe de ${r.seconds}s — o compose recusaria (scene_speech_exceeds_footage)`)
+          }
           for (const v of sceneCapViolations) preflightProblems.push(`cena ${v.scene} (${v.type}) tem ${v.seconds}s > teto ${v.type === 'dialogue' ? DIALOGUE_CAP : SCENE_CAP}s da família ${family}`)
           for (const d of dispatchPreview) {
             const input = buildFalInput(d.model_with_anchor, 'preflight', false, true, plan.scenes[d.scene - 1].seconds, 'https://preflight.local/anchor.png')
