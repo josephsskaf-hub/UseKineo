@@ -133,10 +133,10 @@ const narrationEnd = statements.findIndex(n => ts.isForOfStatement(n) && n.initi
 assert.ok(narrationEnd > 0)
 const narrationStatements = statements.slice(0, narrationEnd).map(n => n.getText(composeAst)).join('\n')
 ok(statements.slice(0, narrationEnd).some(n => ts.isForOfStatement(n) && n.expression.getText(composeAst) === 'hollywoodClips.entries()'), 'Actual native verification precedes TTS spending')
-async function runActualComposeSpeech({ engines = ['dialogue', 'support'], narrations = [null, 'Narrator explains'], dialogues = ['Actor speaks', null], nativeText = 'Actor speaks', failure, ttsText = 'Narrator explains' } = {}) {
+async function runActualComposeSpeech({ engines = ['dialogue', 'support'], narrations = [null, 'Narrator explains'], dialogues = ['Actor speaks', null], nativeText = 'Actor speaks', nativeWords, sceneSeconds, failure, ttsText = 'Narrator explains' } = {}) {
   const calls = [], logs = []
   const input = {
-    body: { scene_engines: engines, scene_narrations: narrations, scene_seconds: engines.map(() => 8), scene_dialogues: dialogues },
+    body: { scene_engines: engines, scene_narrations: narrations, scene_seconds: sceneSeconds ?? engines.map(() => 8), scene_dialogues: dialogues },
     clipUrls: engines.map((_, i) => `https://example.invalid/scene-${i}.mp4`),
     ...speech,
     // The duration workstream now uses the same real timeline policy. This
@@ -154,7 +154,7 @@ async function runActualComposeSpeech({ engines = ['dialogue', 'support'], narra
     estimateMp3DurationSeconds: () => failure === 'duration' ? 0 : 4,
     transcribeTTSWithTimestamps: async () => { calls.push(['asr-tts']); return failure === 'asr' ? [] : words(ttsText) },
     uploadVoiceoverToSupabase: async () => { calls.push(['upload']); if (failure === 'upload') throw Error('SENTINEL_SECRET'); return 'https://example.invalid/same-voice.mp3' },
-    transcribeClipWithTimestamps: async () => { calls.push(['asr-native']); return words(nativeText) },
+    transcribeClipWithTimestamps: async () => { calls.push(['asr-native']); return nativeWords ?? words(nativeText) },
     console: { log: (...args) => logs.push(args), warn: (...args) => logs.push(args) }, Buffer,
   }
   const code = `export async function run() { ${narrationStatements}\n return { status: 200, measured, hollywoodClips }; }`
@@ -191,6 +191,32 @@ ok(!missingTtsAsr.reply.measured[0].words, 'Fallback is explicitly untimed canon
 const nativeOnly = await runActualComposeSpeech({ engines: ['dialogue'], narrations: ['Do not narrate over my avatar'], dialogues: ['Actor speaks'] })
 eq(nativeOnly.reply.status, 200, 'Native-only avatar uses existing clip audio')
 ok(!nativeOnly.calls.some(c => ['pin', 'tts', 'upload'].includes(c[0])), 'Native-only path does not request any substitute voice')
+
+// ═══ KINEO-FALA-ALEM-DO-CLIPE-2026-09-14 — item 7 da auditoria, testes de
+// COMPORTAMENTO pedidos pelo Board: transcrição simulada terminando depois
+// dos segundos declarados, dentro e além do teto (diálogo 15 s, host 20 s),
+// na rota real (mocks injetados) e no montador real.
+const spokenUntil = (text, end) => { const ws = text.split(/\s+/).filter(Boolean); return ws.map((word, i) => ({ word, start: i === ws.length - 1 ? end - 0.4 : 0.2 + i * 0.4, end: i === ws.length - 1 ? end : 0.5 + i * 0.4 })) }
+for (const [engine, cap, dentro, alem] of [['dialogue', 15, 11.0, 16.0], ['host', 20, 19.0, 22.0]]) {
+  // dentro do teto: a cena CRESCE até a última palavra e o compose segue (200), sem TTS sobre a fala nativa
+  const cresce = await runActualComposeSpeech({ engines: [engine, 'support'], dialogues: ['Actor speaks', null], nativeWords: spokenUntil('Actor speaks', dentro), sceneSeconds: [8, 8] })
+  eq(cresce.reply.status, 200, `${engine}: speech ending at ${dentro}s inside the ${cap}s cap is accepted`)
+  eq(cresce.reply.hollywoodClips[0].seconds, Math.round((dentro + 0.3) * 10) / 10, `${engine}: the scene grows to cover the last word (+0.3s)`)
+  ok(cresce.logs.some(l => JSON.stringify(l).includes('cena cresce para cobrir a fala')), `${engine}: growth is logged with before/after`)
+  eq(cresce.calls.filter(c => c[0] === 'tts').length, 1, `${engine}: only the support scene gets TTS; nothing narrated over the actor`)
+  // além do teto: recusa honesta, clipes preservados, nenhuma geração extra
+  const estoura = await runActualComposeSpeech({ engines: [engine, 'support'], dialogues: ['Actor speaks', null], nativeWords: spokenUntil('Actor speaks', alem), sceneSeconds: [8, 8] })
+  eq(estoura.reply.status, 422, `${engine}: speech ending at ${alem}s beyond the ${cap}s cap is refused`)
+  eq(estoura.reply.body.code, 'cinematic_dialogue_overruns_clip', `${engine}: refusal carries its own code`)
+  ok(/preserved/.test(estoura.reply.body.error) && estoura.reply.body.recoverable === true, `${engine}: the message says the clips are preserved and the state is recoverable`)
+  eq(estoura.calls.map(c => c[0]), ['asr-native', 'release-compose-claim'], `${engine}: after the refusal nothing else runs — no pin, no TTS, no upload, no second generation`)
+  eq(estoura.calls.filter(c => c[0] === 'release-compose-claim').length, 1, `${engine}: the compose claim is released exactly once`)
+  // montador real: a duração FINAL da cena também barra a fala que passa
+  const clipe = { engine, url: 'https://example.invalid/actor.mp4', seconds: cap, dialogueLine: 'Hello world', caption: '' }
+  assert.throws(() => compose.buildHollywoodCreatomateSource({ clips: [{ ...clipe, speechWords: spokenUntil('Hello world', cap + 1) }], narrationBlocks: [] }), /unverified dialogue \(speech_overruns_clip\)/, `${engine}: builder refuses speech ending after the final ${cap}s`); checks++
+  const cabe = compose.buildHollywoodCreatomateSource({ clips: [{ ...clipe, speechWords: spokenUntil('Hello world', cap - 0.1) }], narrationBlocks: [] })
+  ok(cabe.elements.some(e => e.type === 'video' && e.source === clipe.url), `${engine}: builder accepts speech that ends inside the final ${cap}s`)
+}
 
 // Native support audio is subordinate to the explicit per-scene narration.
 const supportClips = ['support', 'cinematic'].map((engine, i) => ({ engine, seconds: 8, url: `https://example.invalid/support-${i}.mp4`, caption: '' }))

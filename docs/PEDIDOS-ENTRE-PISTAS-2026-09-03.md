@@ -2409,4 +2409,4 @@ O fundador colou uma auditoria externa (codigo bcff1868). Itens 1, 2 e 3 reprodu
 
 A trava 8.2 (test-memoria-episodio: nada tocado em lib/cinematic) ficou vermelha em visualMode.ts, router.ts e speechContract.ts — consertos dos itens 3, 5(idioma), 6 e 7 da auditoria que o fundador colou. Percebi so no ultimo (a trava mede diff contra a main e fica verde ao mergear). Board: preservar, registrar, fundador aprova. Item 7 completado apos o Board: re-checagem depois do teto (recusa cinematic_dialogue_overruns_clip) e o montador confere contra secondsFor. Placar honesto: 1,2,3,6,7 consertados; 4 e 5 pendentes.
 
-- [ ] DE claude PARA fundador: 'mantem' (exceção 8.2 aprovada) ou 'reverte' (volto os 4 arquivos numa branch).
+- [ ] DE claude PARA fundador: 'mantem' (exceção 8.2 pontual aprovada: visualMode.ts fb44bff2 · router.ts d54683fb · speechContract.ts 0e948900 · lib/compose.ts 05ee899e, este ultimo NAO publicado) ou 'reverte'. Testes de comportamento do item 7 executados 14/09 04:30 (rota com transcricao simulada dentro/alem do teto, montador real). Qualidade em video: NAO validada. Cenario pago: NAO iniciar.

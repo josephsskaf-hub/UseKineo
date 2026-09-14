@@ -53,13 +53,27 @@ Régua de silêncio: ≤1,5 s por cena, ≤8 s no total. Tudo acima é $0 e esto
 | 4 | Piso de duração só para ≥60 (pedido de 90 com áudio de 45 sai 61,5) | **Não mexido, de propósito**: esticar imagem sobre 45 s de áudio é o defeito que o item 4 quer evitar. A cura está a montante: o roteiro nascer do tamanho (conserto 1 e 2). Avatar segue com o áudio como relógio. |
 | 5 | Interface em hindi ≠ narração em hindi | **Parcial**: PT/ES agora chegam à narração dos motores caros. Hindi/outros seguem "en" — decisão de produto (abrir uma quarta língua é voz + escritor + revisão). |
 | 6 | "22" vs "veintidós", "1959" vs "nineteen fifty nine" | **Consertado (14/09 03:20)**: numerais por palavras em EN/ES/PT (unidades, dezenas, centenas, mil, conectores, padrão de ano); número diferente segue diferente. |
-| 7 | Palavras terminando depois do clipe | **Consertado (14/09 03:20, completado 04:00 após o Board)**: o verificador recebe os segundos úteis do clipe (`speech_overruns_clip`); no compose a cena cresce até a última palavra, RE-CONFERE contra o teto (diálogo 15 s, host 20 s) e recusa honestamente se ainda passa; o montador (lib/compose.ts) confere a fala contra os segundos FINAIS. Prova de que o arquivo contém o trecho: o Whisper transcreve o áudio do PRÓPRIO clipe (palavra a 12 s só existe se o arquivo tem 12 s de áudio); não há sonda ffprobe no servidor. |
+| 7 | Palavras terminando depois do clipe | **Consertado (14/09 03:20, completado 04:00 após o Board)**: o verificador recebe os segundos úteis do clipe (`speech_overruns_clip`); no compose a cena cresce até a última palavra, RE-CONFERE contra o teto (diálogo 15 s, host 20 s) e recusa honestamente se ainda passa; o montador (lib/compose.ts) confere a fala contra os segundos FINAIS. Os timestamps do Whisper NÃO são medição independente da duração do arquivo: a disponibilidade real do trecho no clipe continua pendente de verificação (não há sonda ffprobe no servidor). |
 
-**Placar honesto da auditoria (Board, 14/09 04:00)**: 1, 2, 3, 6 e 7 consertados no ar; 4 (duração entregue em 90 s e avatar) e 5 (hindi) PENDENTES. Não são "sete fechados". Dry-run aprovado não é vídeo assistido.
+**Placar honesto da auditoria (Board, 14/09 04:00)**: 1, 2, 3, 6 e 7 consertados; 4 (duração entregue em 90 s e avatar) e 5 (hindi) PENDENTES. Não são "sete fechados". Dry-run aprovado não é vídeo assistido.
+
+**Três estados, separados (Board, 14/09 04:30)** — item 7:
+- Proteção de duração implementada: sim (rota re-confere depois do teto e recusa; montador confere contra os segundos finais). Commit 05ee899e + testes em 14/09 04:30, NÃO publicados até o fundador aprovar a exceção 8.2.
+- Testes executados: sim, de comportamento — rota real com transcrição simulada terminando dentro do teto (200, cena cresce) e além (diálogo 16 s > 15, host 22 s > 20 → 422 `cinematic_dialogue_overruns_clip`, clipes preservados, únicas chamadas: ASR e liberação do claim; nenhuma segunda geração, TTS, pin ou upload); montador real recusa fala além dos segundos finais e aceita dentro. Guardião: test-cinematic-speech.
+- Qualidade validada em vídeo: NÃO. Nenhum render pago foi feito; nenhum vídeo foi assistido.
 
 ## 4b. Exceção de escopo — trava 8.2 (aguarda o fundador)
 
-A trava do sprint ("nada tocado em lib/cinematic e lib/hollywood", scripts/test-memoria-episodio-2026-09-04.mjs) ficou vermelha em 4 commits desta noite: visualMode.ts (item 3), router.ts (idioma), speechContract.ts (itens 6 e 7) e o router de novo. Eu só percebi no último, porque a trava mede o diff contra a main e fica verde depois do merge. Recomendação do Board: preservar as correções, não reverter só para deixar a trava verde, e registrar a exceção para aprovação do fundador. Decisão dele: **mantém** (exceção aprovada, registrada aqui) ou **reverte** (volto os 4 arquivos numa branch).
+A trava do sprint ("nada tocado em lib/cinematic, lib/hollywood e lib/compose.ts", guardiões test-memoria-episodio, test-caixa-vazia-episodio2 e test-despacho-vazio) mede o diff contra a main e fica verde depois do merge; por isso só a vi no último commit. A exceção é PONTUAL — a proteção global continua ligada, sem afrouxar guardião:
+
+| Arquivo | Commit | Motivo | Estado |
+|---|---|---|---|
+| lib/cinematic/visualMode.ts | fb44bff2 | auditoria item 3 (apresentador por palavra inteira, negação) | publicado |
+| lib/hollywood/router.ts | d54683fb | narração na língua da pessoa (item 5, PT/ES) | publicado |
+| lib/cinematic/speechContract.ts | 0e948900 | auditoria itens 6 e 7 | publicado |
+| lib/compose.ts | 05ee899e | item 7 completado após o Board (montador confere a duração final) | NÃO publicado |
+
+Recomendação do Board: preservar as correções, não reverter só para deixar a trava verde. Autorização formal da exceção e da publicação do 05ee899e: do fundador (**mantém** / **reverte**).
 
 ## 5. O que falta
 
