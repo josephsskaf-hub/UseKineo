@@ -4209,7 +4209,8 @@ async function manipularPost(req: NextRequest) {
       // Veredito do Contrato Cena Verdadeira, cena a cena. Vai para o claim
       // junto com o resto — sem isso o gate corrige no escuro e ninguem
       // consegue auditar depois se ele acertou ou estragou.
-      const fidelidadeRelato: Array<{ cena: number; cobertura: string; motivo: string }> = []
+      // v4 (3ª revisão do Board): conversão de pessoa e identidade declaradas por cena, junto da cobertura.
+      const fidelidadeRelato: Array<{ cena: number; cobertura: string; motivo: string; conversao: string | null; identidade: string | null }> = []
       const contratoRelato: Array<{
         cena: number; antes: string; depois: string; cobertura: string
         acoes: string[]; motivo: string
@@ -4388,7 +4389,8 @@ async function manipularPost(req: NextRequest) {
             const fid = garantirAcaoCentral(silenciarFalaNoPrompt(hs.prompt), hs.voiceover ?? '', plan.characterSheet ?? '')
             hs.prompt = fid.prompt
             // Cobertura DECLARADA no claim (coberta / divergente / desconhecida) — nunca aprovada por omissão.
-            fidelidadeRelato.push({ cena: idx + 1, cobertura: fid.cobertura.status, motivo: fid.cobertura.motivo })
+            const hsFid = hs as { conversao?: string; identidade?: string }
+            fidelidadeRelato.push({ cena: idx + 1, cobertura: fid.cobertura.status, motivo: fid.cobertura.motivo, conversao: hsFid.conversao ?? null, identidade: hsFid.identidade ?? null })
           }
           const scenePromptBruto = mouthPrefix + uprightPrefix + hs.prompt + eraSuffix + mouthSuffix + spectacleSuffix
           // ═══ CONTRATO CENA VERDADEIRA — o gate roda AQUI, com o prompt que
