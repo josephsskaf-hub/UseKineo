@@ -22,25 +22,28 @@ export type MusicDirectionInput = {
 
 function normalized(text: string): string {
   return text.normalize('NFKC').toLowerCase().replace(/[’‘]/g, "'")
-    // Preserve Hindi combining marks; remove only Latin accents for Spanish.
-    .replace(/[áàäâ]/g, 'a').replace(/[éèëê]/g, 'e').replace(/[íìïî]/g, 'i')
+    // Preserve Hindi combining marks; remove only Latin accents for Spanish/Portuguese
+    // (PT nasal vowels and cedilla included: 'não' must reach the negation list as 'nao').
+    .replace(/[áàäâãå]/g, 'a').replace(/õ/g, 'o').replace(/ç/g, 'c').replace(/[éèëê]/g, 'e').replace(/[íìïî]/g, 'i')
     .replace(/[óòöô]/g, 'o').replace(/[úùüû]/g, 'u')
 }
 
 const TERMS: Record<Exclude<MusicEmotion, 'neutral'>, string[]> = {
-  grief: ['grief', 'grieving', 'mourn', 'mourned', 'mourning', 'funeral', 'buried', 'bereaved', 'wept', 'weeping', 'heartbroken', 'tragic', 'tragedy', 'sad', 'sorrow', 'somber', 'sombre', 'died', 'death', 'llora', 'lloraba', 'llorando', 'luto', 'duelo', 'triste', 'tristeza', 'funeral', 'entierro', 'murio', 'perdio la vida', 'शोक', 'दुख', 'दुःख', 'दुखी', 'उदास', 'मृत्यु', 'मौत', 'अंतिम संस्कार', 'रोती', 'रोया', 'दर्दनाक'],
-  celebration: ['joy', 'joyful', 'happy', 'happiness', 'celebration', 'celebrate', 'celebrated', 'reunited', 'reunion', 'delighted', 'cheerful', 'uplifting', 'alegre', 'alegria', 'feliz', 'felices', 'celebracion', 'celebrar', 'celebraron', 'reencuentro', 'खुश', 'खुशी', 'खुशियां', 'जश्न', 'उत्सव', 'आनंद', 'मिलन'],
-  tension: ['mystery', 'mysterious', 'unsolved', 'suspense', 'tension', 'unease', 'ominous', 'unexplained', 'disappeared', 'misterio', 'misterioso', 'suspenso', 'tension', 'inquietante', 'desaparecio', 'रहस्य', 'रहस्यमय', 'तनाव', 'सस्पेंस', 'लापता'],
-  calm: ['peaceful', 'tranquil', 'calming', 'gentle', 'meditative', 'serene', 'calm', 'tranquilo', 'tranquila', 'sereno', 'relajante', 'paz', 'शांत', 'शांति', 'सुकून', 'सुकूनभरा'],
+  grief: ['grief', 'grieving', 'mourn', 'mourned', 'mourning', 'funeral', 'buried', 'bereaved', 'wept', 'weeping', 'heartbroken', 'tragic', 'tragedy', 'sad', 'sorrow', 'somber', 'sombre', 'died', 'death', 'llora', 'lloraba', 'llorando', 'luto', 'duelo', 'triste', 'tristeza', 'funeral', 'entierro', 'murio', 'perdio la vida', 'morreu', 'morreram', 'chorou', 'chorando', 'velorio', 'enterro', 'lagrimas', 'शोक', 'दुख', 'दुःख', 'दुखी', 'उदास', 'मृत्यु', 'मौत', 'अंतिम संस्कार', 'रोती', 'रोया', 'दर्दनाक'],
+  celebration: ['joy', 'joyful', 'happy', 'happiness', 'celebration', 'celebrate', 'celebrated', 'reunited', 'reunion', 'delighted', 'cheerful', 'uplifting', 'alegre', 'alegria', 'feliz', 'felices', 'celebracion', 'celebrar', 'celebraron', 'reencuentro', 'celebraram', 'reencontro', 'felicidade', 'खुश', 'खुशी', 'खुशियां', 'जश्न', 'उत्सव', 'आनंद', 'मिलन'],
+  tension: ['mystery', 'mysterious', 'unsolved', 'suspense', 'tension', 'unease', 'ominous', 'unexplained', 'disappeared', 'misterio', 'misterioso', 'suspenso', 'tension', 'inquietante', 'desaparecio', 'desapareceu', 'inexplicavel', 'रहस्य', 'रहस्यमय', 'तनाव', 'सस्पेंस', 'लापता'],
+  calm: ['peaceful', 'tranquil', 'calming', 'gentle', 'meditative', 'serene', 'calm', 'tranquilo', 'tranquila', 'sereno', 'relajante', 'paz', 'calmo', 'calma', 'serena', 'tranquilidade', 'शांत', 'शांति', 'सुकून', 'सुकूनभरा'],
 }
 
-// Do not turn "not sad", "no longer sad", "no está triste", or "उदास नहीं"
-// into sadness. Negation scope ends at punctuation/adversative conjunctions.
+// Do not turn "not sad", "no longer sad", "no está triste", "não está triste",
+// or "उदास नहीं" into sadness. Negation scope ends at punctuation/adversative
+// conjunctions. PT "mas" is deliberately NOT a boundary: ES "más" normalizes
+// to the same token and "no está más triste" must stay negated.
 function negated(text: string, start: number, end: number): boolean {
   const before = text.slice(0, start).split(/[.!?;,\n।]|\b(?:but|however|pero|sino)\b|लेकिन|बल्कि/).pop() ?? ''
   const after = text.slice(end).split(/[.!?;\n।,]|\b(?:but|however|pero|sino)\b|लेकिन|बल्कि/)[0]
   const words = before.trim().split(/\s+/).slice(-4).join(' ')
-  return /(?:\b(?:not|never|without|isn't|wasn't|aren't|don't|doesn't|no|nunca|sin)\b)(?:\s+\S+){0,3}\s*$/.test(words)
+  return /(?:\b(?:not|never|without|isn't|wasn't|aren't|don't|doesn't|no|nunca|sin|nao|sem)\b)(?:\s+\S+){0,3}\s*$/.test(words)
     || /(?:नहीं|बिना)\s*$/.test(before)
     || /^\s*(?:नहीं|मत)(?:\s|$)/.test(after)
 }
@@ -77,8 +80,8 @@ function direction(emotion: MusicEmotion, source: MusicDirection['source'], mood
 
 /** Only direct soundtrack instructions disable music, not a character saying "no music". */
 function musicDisabled(instruction: string): boolean {
-  return /^(?:none|off|no music|without music|sin musica|musica no|बिना संगीत|संगीत नहीं|संगीत बंद)[.!\s]*$/.test(instruction)
-    || /^(?:(?:no|without) (?:background )?(?:music|soundtrack)|sin musica(?: de fondo)?)[.!\s]*$/.test(instruction)
+  return /^(?:none|off|no music|without music|sin musica|musica no|nenhuma|sem musica|sem trilha|बिना संगीत|संगीत नहीं|संगीत बंद)[.!\s]*$/.test(instruction)
+    || /^(?:(?:no|without) (?:background )?(?:music|soundtrack)|sin musica(?: de fondo)?|sem (?:musica|trilha)(?: sonora)?(?: de fundo)?)[.!\s]*$/.test(instruction)
 }
 
 export function resolveMusicDirection(input: MusicDirectionInput): MusicDirection {
@@ -87,11 +90,11 @@ export function resolveMusicDirection(input: MusicDirectionInput): MusicDirectio
   const musicDirectives: string[] = []
   // Author's labelled directions are separate from spoken words. Last one wins.
   for (const line of raw.split(/\r?\n/)) {
-    const match = line.match(/^\s*(?:[-*]\s*)?\[?(music|music_mood|soundtrack|musica|संगीत|tone|mood|tono|भाव)\s*:\s*(.*?)\]?\s*$/)
+    const match = line.match(/^\s*(?:[-*]\s*)?\[?(music|music_mood|soundtrack|musica|trilha|trilha sonora|संगीत|tone|mood|tono|भाव)\s*:\s*(.*?)\]?\s*$/)
     if (match) {
       const target = /^(?:tone|mood|tono|भाव)$/.test(match[1]) ? directives : musicDirectives
       target.push(match[2].replace(/\]$/, '').trim())
-    } else if (/^\s*\[(?:no music|sin musica|बिना संगीत|संगीत नहीं)\]\s*$/.test(line)) musicDirectives.push(line.trim().slice(1, -1))
+    } else if (/^\s*\[(?:no music|sin musica|sem musica|बिना संगीत|संगीत नहीं)\]\s*$/.test(line)) musicDirectives.push(line.trim().slice(1, -1))
   }
   // Structured analysis is supported when supplied; authored directives win.
   const hints = [input.tone, input.musicMood].filter((v): v is string => typeof v === 'string')
@@ -101,12 +104,14 @@ export function resolveMusicDirection(input: MusicDirectionInput): MusicDirectio
     const emotion = emotionOf(instruction)
     if (emotion) return direction(emotion, 'directive')
     // Existing mood vocabulary remains supported, but never treat unknown hints as facts.
-    if (['suspense', 'epic', 'hustle', 'tech', 'emotional', 'nature'].includes(instruction)) {
-      return direction('neutral', 'directive', instruction as MusicMood)
+    // PT spelling of the same 'epic' climate maps to it; nothing new is invented.
+    const mood = /^epic[oa]$/.test(instruction) ? 'epic' : instruction
+    if (['suspense', 'epic', 'hustle', 'tech', 'emotional', 'nature'].includes(mood)) {
+      return direction('neutral', 'directive', mood as MusicMood)
     }
   }
   const narration = normalized(input.script.slice(0, 32_000))
-    .split(/\r?\n/).filter(line => !/^\s*\[?(?:music|music_mood|soundtrack|musica|संगीत|tone|mood|tono|भाव)\s*:/.test(line)).join('\n')
+    .split(/\r?\n/).filter(line => !/^\s*\[?(?:music|music_mood|soundtrack|musica|trilha|trilha sonora|संगीत|tone|mood|tono|भाव)\s*:/.test(line)).join('\n')
   const emotion = emotionOf(narration)
   if (emotion) return direction(emotion, 'emotion')
   return direction('neutral', 'theme', resolveMusicMood(detectNiche(input.script, input.vertical)))

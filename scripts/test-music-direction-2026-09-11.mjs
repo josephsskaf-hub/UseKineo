@@ -9,9 +9,10 @@ import ts from 'typescript'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 let assertions = 0
+const failures = []
 function check(label, condition) {
   assertions++
-  if (!condition) throw new Error(label)
+  if (!condition) failures.push(label)
 }
 function runtime(options = {}) {
   const cache = new Map(), logs = [], posts = [], requests = []
@@ -189,4 +190,95 @@ for (const { block, unlock } of callers) {
     check(`actual ${unlock ? 'unlock' : 'compose'} direction ${expected}`, moods.length === 1 && moods[0].emotion === expected)
   }
 }
-console.log(`music-direction: ${assertions}/${assertions} passed; external calls=0; no files written`)
+
+// ── MUSICA-R1 (2026-09-14) — PT/EN: tristeza, mistério, ação, instrução
+// contrária e silêncio explícito, pelo MESMO seletor real. Ação não é
+// categoria emocional do produto: a direção suportada é o clima 'epic'
+// (Lyria "Epic cinematic trailer score"); nada novo é inventado aqui.
+// 'facts' → suspense é o fallback documentado do produto (não é defeito):
+// ação sem palavra de tema em EN/PT cai nele e isso é registrado, não travado.
+const ptEmotion = [
+  ['A cidade medieval está de luto. A mãe chorou sozinha no funeral do filho.', 'grief'],
+  ['Ela ficou triste depois do enterro. Uma tristeza profunda.', 'grief'],
+  ['Ele morreu. A família chorou no velório.', 'grief'],
+  ['Ela não está triste. Ela está feliz.', 'celebration'],
+  ['Nunca esteve triste. Celebraram o reencontro com alegria.', 'celebration'],
+  ['A cidade guarda um mistério inquietante. Ninguém sabe o que aconteceu.', 'tension'],
+  ['O navio desapareceu sem explicação.', 'tension'],
+  ['Não é um mistério. Uma paisagem tranquila.', 'calm'],
+  ['The soldiers stormed the fortress. A chase through the streets and the final rescue.', null],
+  ['Os soldados invadiram a fortaleza. Uma perseguição pelas ruas e o resgate final.', null],
+]
+for (const [script, expected] of ptEmotion) {
+  const d = direction({ script })
+  check(`pt/en emotion: ${script}`, expected ? d.emotion === expected : (d.emotion === 'neutral' && d.source === 'theme'))
+}
+// Ação: tema de história em EN leva ao clima épico; a diretiva explícita 'epic'
+// (e a grafia PT do MESMO clima) é a direção suportada para ação em qualquer língua.
+check('en action with history theme is epic', direction({ script: 'The Roman legion stormed the fortress of the ancient empire. A chase, then the rescue.' }).mood === 'epic')
+for (const raw of ['Music: epic', 'Música: épica', 'Música: épico']) {
+  const d = direction({ script: 'Os soldados invadiram a fortaleza.', rawScript: `${raw}\nOs soldados invadiram a fortaleza.` })
+  check(`action directive ${raw} is epic`, d.mood === 'epic' && d.source === 'directive' && d.emotion === 'neutral')
+}
+// Instrução explícita CONTRARIA a inferência, nas duas línguas.
+check('pt author sad overrides action inference', direction({ script: 'Os soldados invadiram a fortaleza.', rawScript: 'Música: triste\nOs soldados invadiram a fortaleza.' }).emotion === 'grief')
+check('en author epic overrides pt grief inference', direction({ script: 'A mãe chorou no funeral.', rawScript: 'Music: epic\nA mãe chorou no funeral.' }).mood === 'epic')
+check('pt author joyful overrides mystery inference', direction({ script: 'Um mistério inquietante.', rawScript: 'Música: alegre\nUm mistério inquietante.' }).emotion === 'celebration')
+check('en author sad overrides action inference', direction({ script: 'The soldiers stormed the fortress.', rawScript: 'Music: sad\nThe soldiers stormed the fortress.' }).emotion === 'grief')
+// Silêncio explícito em PT: mesma regra de ES/HI.
+for (const directive of ['Música: sem música', '[sem música]', 'Música: nenhuma', 'Trilha: nenhuma', 'Música: sem música de fundo']) {
+  const d = direction({ script: 'A mãe chorou no funeral.', rawScript: `${directive}\nTone: feliz` })
+  check(`pt explicit mute: ${directive}`, d.enabled === false)
+}
+// Controle da decisão 'mas' NÃO é fronteira: ES 'más' normaliza igual e a negação precisa sobreviver.
+check('es "no está más triste" stays negated', direction({ script: 'No está más triste. Celebraron la reunión.' }).emotion === 'celebration')
+check('pt "não está mais triste" is negated too', direction({ script: 'Não está mais triste. Celebraram o reencontro.' }).emotion === 'celebration')
+check('pt story dialogue does not mute score', direction({ script: 'Ele disse "sem música" e saiu.' }).enabled)
+check('pt background noise is not music-off', direction({ script: 'Um mistério.', rawScript: 'Música: sem ruído de fundo' }).enabled)
+// Payload REAL (fetch mockado) para os casos PT/ação: direção certa, instrumental, sob a narração, sem texto do usuário.
+for (const [input, required, forbidden] of [
+  [{ script: 'Os soldados invadiram a fortaleza. SEGREDO_PT', rawScript: 'Música: épica\nOs soldados invadiram a fortaleza. SEGREDO_PT' }, 'Epic cinematic trailer score', 'Solemn restrained lament'],
+  [{ script: 'A mãe chorou no velório. SEGREDO_PT' }, 'Solemn restrained lament', 'Epic cinematic trailer'],
+  [{ script: 'Um mistério inquietante. SEGREDO_PT' }, 'Subtle unresolved mystery', 'soaring brass'],
+]) {
+  const rt = runtime()
+  const url = await rt.load('lib/musicScore.ts').selectMusicForScript({ ...input, seed: 'pt-film' })
+  check('pt generated score selected', url === 'https://offline.invalid/music.mp3')
+  check('pt exactly one paid POST', rt.posts.length === 1)
+  check(`pt real payload ${required}`, rt.posts[0].prompt.includes(required) && !rt.posts[0].prompt.includes(forbidden))
+  check('pt instrumental and subordinate voice', rt.posts[0].prompt.includes('Instrumental only') && rt.posts[0].prompt.includes('beneath narration'))
+  check('pt no user text in payload', !rt.posts[0].prompt.includes('SEGREDO_PT'))
+}
+for (const script of ['Música: sem música\nUm mistério.', 'Trilha: nenhuma\nA mãe chorou no funeral.']) {
+  const rt = runtime()
+  check('pt mute returns null', await rt.load('lib/musicScore.ts').selectMusicForScript({ script }) === null)
+  check('pt mute makes no provider call', rt.requests.length === 0)
+}
+// Os três callers reais (compose clássico, compose hollywood, unlock) com entrada PT.
+for (const { block, unlock } of callers) {
+  const rt = runtime({ fail: true })
+  let selectedInput
+  const shared = rt.load('lib/musicScore.ts').selectMusicForScript
+  const run = vm.runInNewContext(`(async () => { let musicUrl = null; let hollywoodMusicUrl = null; ${ts.transpileModule(block, { compilerOptions: { target: ts.ScriptTarget.ES2020 } }).outputText}; return musicUrl || hollywoodMusicUrl; })`, {
+    voiceoverScript: 'Um mistério inquietante.', scaledScript: 'Uma guerra épica.',
+    rawVoiceover: 'Um mistério inquietante.', body: { topic: 'Música: sem música' }, vertical: 'history',
+    console: rt.context.console,
+    selectMusicForScript: async input => { selectedInput = input; return shared(input) },
+  })
+  check(`pt actual ${unlock ? 'unlock' : 'compose'} caller forwards explicit silence`, await run() === null)
+  check('pt actual caller silence makes no provider call', rt.requests.length === 0)
+  check('pt actual caller retains author instruction', selectedInput?.rawScript.includes('Música: sem música'))
+  for (const [script, expected] of [['A mãe chorou no velório.', 'grief'], ['Celebraram o reencontro.', 'celebration'], ['Um mistério.', 'tension']]) {
+    const moods = []
+    const runEmotion = vm.runInNewContext(`(async () => { let musicUrl = null; let hollywoodMusicUrl = null; ${ts.transpileModule(block, { compilerOptions: { target: ts.ScriptTarget.ES2020 } }).outputText}; })`, {
+      voiceoverScript: script, scaledScript: 'Uma guerra épica sem relação.', rawVoiceover: script,
+      body: { topic: script }, vertical: 'history', console: rt.context.console,
+      selectMusicForScript: async input => { moods.push(direction(input)); return null },
+    })
+    await runEmotion()
+    check(`pt actual ${unlock ? 'unlock' : 'compose'} direction ${expected}`, moods.length === 1 && moods[0].emotion === expected)
+  }
+}
+for (const f of failures) console.log(`✗ ${f}`)
+console.log(`music-direction: ${assertions - failures.length}/${assertions} passed; external calls=0; no files written`)
+if (failures.length) process.exit(1)
