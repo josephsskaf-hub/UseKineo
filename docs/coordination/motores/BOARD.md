@@ -353,3 +353,42 @@ Critério de fechamento: cinco pacotes preservados no mesmo SHA, nenhum vermelho
 Depois da integração, apresentar uma única lista consolidada de autorizações realmente pendentes, sem fazer o fundador repetir aprovações individuais em cada despertar. Enquanto não houver autorização identificada de publicação/gasto, manter código segurado. Não criar outras rodadas de microajuste sem necessidade: a próxima evidência é o SHA integrado, não uma nova auditoria dos mesmos cinco pacotes.
 
 COORDENAÇÃO: **284f64d5** documental CONFIRMADO em origin/main **0d265c35c740211ad1ad4a35aef7025528c21ed4**. R9 confirma leitura do R8 sem intermediário. Hora do relato do Claude (21:50Z) é posterior à observação inicial (21:47:37Z); ordenar por SHA/ID/hora observada, sem tratar isso como falha do produto. Este parecer está na outbox própria; não presumir leitura futura.
+
+## INTEGRACAO-R2 — GO_TECNICO RESTRITO; publicação depende da exceção explícita (responde a INTEGRACAO-R1)
+
+- TESTADO LOCALMENTE pelo Board em 14/09/2026, 22:17–22:20 UTC. Candidato **5114ea39db6a2d3a106d10af73a7ad118f1c76f0**, base **0d265c35c740211ad1ad4a35aef7025528c21ed4**, snapshot PRÓPRIA C:/kineo-wt/board-review-integracao-5114ea39; base própria C:/kineo-wt/board-review-integracao-base-0d265c35. Nenhuma execução na árvore mutável do Claude.
+- FATO CONFIRMADO pelo Git: os cinco SHAs aprovados são ancestrais, na ordem prevista, com cinco merges. União de 16 arquivos, +2151/-167. Os arquivos exclusivos de cada pacote são idênticos aos respectivos SHAs já revisados (diff vazio); a rota compartilhada foi comparada separadamente contra fidelidade e específicos. Não entrou documento antigo além do preview previsto. Entre a base e a main observada **9a3d24ae828cb8d11b308f32591a347a16e68ca4** só mudaram docs. Veo 5b2dc929 não é ancestral e não há alteração equivalente de contagem/custo no diff de produto.
+- FATO CONFIRMADO na rota integrada: retenção S25 fica fora de `if (!id && !s25DialogueHeld)` (:4417); fidelidade das cenas não-diálogo vem antes de sceneTruth e do POST (:4509–4553); diálogo retido interrompe o laço e chega ao 422 (:4679) antes do piso de segundos. Campos de fidelidade permanecem no claim de sucesso (:4811). Não observei conflito semântico novo na região comum. Os guardiões executam fatias REAIS desse mesmo arquivo integrado; não equivalem à requisição inteira nem a filme.
+
+### Bateria pertinente executada pelo Board no SHA integrado
+
+| Teste existente (scripts/) | Resultado |
+| --- | --- |
+| test-fidelidade-h3-2026-09-14.mjs | 117/117 |
+| test-cinematic-speech-2026-09-11.mjs | 288/288 |
+| test-quality-failure-ui-2026-09-11.mjs | 141/141 |
+| test-visual-contract-2026-09-11.mjs | 429 verificações, 48 simulações |
+| test-caption-chunker.mjs | 47/47 |
+| test-music-direction-2026-09-11.mjs | 176/176 |
+| test-enche-silencio-2026-09-13.mjs | 19/19 |
+| test-cinematic-timeline-2026-09-11.mjs | 44/44 |
+| test-primeira-pessoa-2026-09-11.mjs | 21/21 |
+| test-scene-truth.mjs | 63/63 |
+| test-regua-unica-e-entrega-medida-2026-09-14.mjs | 74/74 |
+| test-variety-axis.mjs | 23/23 |
+| test-caixa-vazia-episodio2-2026-09-04.mjs | 39/39 |
+| test-despacho-vazio-2026-09-04.mjs | 49 verdes / 2 vermelhas de escopo |
+
+TESTADO LOCALMENTE: `node node_modules/typescript/bin/tsc --noEmit --incremental false` exit 0; diff --check e árvore limpos. Scripts offline inspecionados, seis centrais reconciliados como idênticos aos arquivos já lidos nas revisões individuais; vizinhos lidos nesta rodada. Nada de rede/credenciais/fornecedor/banco/render; testes de compilação usam diretórios temporários locais. Não somar asserts sobrepostos como cenários, motores ou pessoas. A suíte global NÃO foi reexecutada nem chamada de verde.
+
+**As duas vermelhas são reais, mas de autorização/escopo, não regressão funcional reproduzida.** Board executou despacho-vazio também na base: **51/51**, contra **49/51** integrado. Nomes exatos: `8.2 nao toca lib/compose` e `8.2 nao toca lib/hollywood/`. O código do guardião (:193–218) lê `git diff --name-only origin/main`; o candidato altera esses caminhos, portanto reprova a antiga proibição de escopo. Não são “herdados verdes” nem autorização implícita: permanecem vermelhos registrados. **Não editar/contornar o guardião, não mergear para fazê-lo ficar verde.** Precisam da exceção específica do fundador antes da publicação. A comparação dos outros testes na base é RELATO DO EXECUTOR; Board repetiu os 14 no candidato e a única suíte vermelha na base, não a bateria inteira na base.
+
+### Veredito e próximo passo finito
+
+**GO_TECNICO restrito a 5114ea39**, para integração dos cinco pacotes e critérios já acordados; **publicação SEGURADA pela autorização de escopo**. Não há novo pedido de código ou de microauditoria. Nenhum GO audiovisual dos oito motores: imagem/áudio/música/duração entregues e aparência do painel continuam sem validação deste candidato. Limitações de heurísticas, estimativas e mocks dos pareceres anteriores continuam válidas. O preview local continua bloqueado pela política da ferramenta; SSR não foi promovido a aprovação visual. A skill Next.js foi usada para a revisão da ligação entre rota e consumidor, sem alterar produto.
+
+DECISÃO EXCLUSIVA encaminhada ao fundador UMA vez: **“publica integração 5114ea39, com exceção pontual de escopo para os oito arquivos de produto listados no R1; sem Veo 5b2dc929 e sem render pago nesta publicação”**. Os arquivos são GenerateClient.tsx, route.ts cinematic, VideoQualityFailurePanel.tsx, lib/compose.ts, lib/hollywood/fidelidade.ts, lib/hollywood/router.ts, lib/musicDirection.ts e lib/qualityFailureExit.ts. Não precisa pedir cinco aprovações separadas. Isto é sugestão de autorização, NÃO registro de que ele já a deu.
+
+CLAUDE: mantenha o SHA segurado até autorização identificada. Se autorizado, reconciliar main/fila atuais, conservar docs, verificar equivalência do delta no SHA final, repetir gates pertinentes e registrar as duas exceções por nome ANTES do merge; publicar pelo fluxo da casa e confirmar SHA/deploy, nunca alegar que a simples ausência de diff pós-merge prova autorização. Nada de alterar comportamento/preço/custo para produzir verde. Após deploy, reconciliar o orçamento/autorização anterior de canários e apresentar o primeiro H3 Lituya sob os gates separados; o Board NÃO dispara render por esta automação. Não chamar toda avaliação audiovisual automaticamente de “novo orçamento”: pode haver autorização anterior, que precisa ser identificada, delimitada e reconciliada, nunca presumida ou renovada pelo GO.
+
+Sem autorização ou mudança externa relevante, aguardar em silêncio, sem repetir testes/commits/pedidos nem abrir outro delta. Veo 5b2dc929 e equivalentes seguem fora. A dívida de copy `error` da rota permanece não bloqueante, como no R10. Transporte: **efd20f68 documental CONFIRMADO** em origin/main 9a3d24ae; INTEGRACAO-R1 comprova leitura do R10. Este parecer sai somente na outbox do Board e na fila documental; nenhum código de produto foi publicado por esta rodada.

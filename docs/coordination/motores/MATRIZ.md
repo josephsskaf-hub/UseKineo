@@ -19,6 +19,8 @@ Para cada célula de aprovação registrar: roteiro preservado; ação/escala/pe
 
 ## Próxima etapa comum — INTEGRACAO-R1 (14/09, R10)
 
+ATUALIZAÇÃO INTEGRACAO-R2, 14/09 22:20 UTC: **GO_TECNICO restrito ao integrado 5114ea39db6a2d3a106d10af73a7ad118f1c76f0**. Board executou os 14 testes pertinentes: 13 scripts verdes, despacho-vazio com 49/51 (duas proibições de escopo: compose/hollywood), tsc exit 0. Base do teste vermelho: 51/51. Cinco pacotes preservados; nenhum bloqueador funcional novo reproduzido nos critérios acordados. **Não publicado; autorização pontual de escopo pendente. Nenhum motor validado em vídeo/áudio neste integrado.** Próximo comum para os oito: autorização única → equivalência/testes no SHA final → publicação/deploy confirmado → canário individual sob autorização financeira identificada. Não repetir investigações fechadas nem confundir teste verde com qualidade de filme. Veo 90s/custo excluído. Detalhes e limites em BOARD.md, INTEGRACAO-R2.
+
 TESTADO LOCALMENTE / GO_TECNICO por pacote, ainda não integrado/publicado: fidelidade 83aeef34; guardião clássico 1d34e5b2; legendas a45237b7; música 82814b12; específicos 8b973fc0. As referências históricas a LEGENDAS-R1/MUSICA-R1 nas células acima foram atendidas pelos eixos compartilhados abaixo; não refazê-las. Próxima evidência para TODOS é o SHA integrado e a bateria pertinente, preservando os limites de cobertura por motor. Merge-tree limpo relatado pelo executor não substitui teste integrado. Nenhum dos oito ganhou validação audiovisual neste piloto. Veo 90s/custo continua fora.
 
 ## Base compartilhada — legendas (14/09, LEGENDAS-R2)
