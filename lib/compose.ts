@@ -17,7 +17,7 @@ import { renderOutputSpec, renderOutputSpecFor } from '@/lib/renderProfile'
 import { aspectSpec, type AspectSpec } from '@/lib/aspect'
 import { cinematicSceneSeconds, assertCinematicTimeline } from '@/lib/cinematic/timelineContract'
 import { verifyObservedSpeech } from '@/lib/cinematic/speechContract'
-import { probeMp4DurationSeconds } from '@/lib/cinematic/mp4Duration'
+import { probeMp4DurationSeconds } from '@/lib/mp4Duration'
 // KINEO-CREDIT-STUCK-2026-08-08 — política única de 429 (fal + Creatomate).
 import { CREATOMATE_SUBMIT_RATE_LIMIT, rateLimitWaitMs, sleep } from '@/lib/rateLimit'
 import { selectPersonaForScript, describeVoiceSelection } from '@/lib/narration/niche-mapping'
