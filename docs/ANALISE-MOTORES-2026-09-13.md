@@ -71,13 +71,33 @@ A trava do sprint ("nada tocado em lib/cinematic, lib/hollywood e lib/compose.ts
 | lib/cinematic/visualMode.ts | fb44bff2 | auditoria item 3 (apresentador por palavra inteira, negação) | publicado |
 | lib/hollywood/router.ts | d54683fb | narração na língua da pessoa (item 5, PT/ES) | publicado |
 | lib/cinematic/speechContract.ts | 0e948900 | auditoria itens 6 e 7 | publicado |
-| lib/compose.ts | 05ee899e | item 7 completado após o Board (montador confere a duração final) | NÃO publicado |
+| lib/compose.ts | 05ee899e + 9cd3d506 | item 7 completado após o Board (montador confere a duração final) + testes de comportamento | **publicado 14/09 05:00 com autorização do fundador** (main 9cd3d506, deploy dpl_qztrB3VV READY) |
+| lib/cinematic/mp4Duration.ts (novo) + lib/compose.ts + app/api/compose/route.ts | e7f975e3 | proteção pendente: duração REAL do arquivo (cabeçalho mvhd do MP4, lido no mesmo download do Whisper); o teto vira min(teto do engine, duração do arquivo); cabeçalho ilegível mantém o teto do engine; 10 verificações (sonda + rota real com mídia curta) | **NÃO publicado** — pede a mesma exceção pontual |
+| lib/scriptParser.ts (fora da trava) | 165e5713 | rótulo de fala/produção na MESMA linha vazava na narração (achado do dry-run do Seedance 2.5) | publicado 14/09 05:45 (deploy dpl_FZrLHr2R READY) |
 
 Recomendação do Board: preservar as correções, não reverter só para deixar a trava verde. Autorização formal da exceção e da publicação do 05ee899e: do fundador (**mantém** / **reverte**).
 
+## 4c. Etapa 2 (14/09 05:00 → 06:00) — matriz completada a $0
+
+| Motor | Ideia | Roteiro próprio | Brief do ChatGPT |
+|---|---|---|---|
+| Kineo 1 | PASS (193-200 pal) | **PASS** verbatim com marcadores `[Pexels: …]` por cena (é assim que o Studio manda "Use my script as is" ao Kineo 1): 108 pal, 34,8 s para 35 s | **PASS** (o Kineo 1 sem marcadores trata o brief no modo IA: 189 pal, sem vazar instrução) |
+| Seedance 2.5 (interno) | **PASS** 61 s, 5,7 s de silêncio | **PASS** 45 s (roteiro de 47 s de fala; o portão recusou 60 s com honestidade) | **PASS** 35 s depois do conserto 165e5713 |
+
+**Achado novo (brief "inline")**: `Use the following voiceover: <texto na mesma linha>` e `EDITING: fast cuts…` entravam na narração verbatim — o Seedance 2.5 leu "Use the following voiceover" e "captions on" no dry-run. Consertado em lib/scriptParser.ts (165e5713) e provado no ar nas três estradas (Seedance 2.5, Seedance 1.5, H3): narração começa em "On July 9, 1958…" e termina em "…from the air today.", zero rótulo. A fala caiu de 36 s (com lixo) para 29 s (só o autor).
+
+**Achado novo (duas réguas no portão)**: o portão de narração mede TODO roteiro a 2,3 pal/s (lib/narrationFit), mas os clássicos (Seedance 1.5 / Kling 2.5 / Veo / Kineo 1) narram com TTS a 3,1 pal/s. Um brief de 66 palavras passa no portão para 30 s (29 s a 2,3) e o dry-run do Seedance 1.5 reprova (21 s a 3,1): o filme clássico sairia curto do pedido. NÃO mexi: o portão é trancado por 26 guardiões e é regra da casa ("uma régua por voz"). Proposta para decisão: o portão usar 3,1 pal/s quando o motor é clássico (mais recusas/degraus nos clássicos, filmes do tamanho pedido).
+
+**Ponto cego (item 4 da auditoria, duração entregue)**: `videos.duration_seconds` está NULO em 775 de 775 filmes dos últimos 30 dias, e nenhum evento grava a duração do MP4 final (compose_submission_claim guarda só o pedido). A casa não sabe, hoje, quanto dura o que entregou. Verificar "duração, sequência, narração, legendas, música e entrega final por motor" sem render exige primeiro gravar isso — proposta: o compose/cron gravar duração real, legendas ligadas e trilha usada por render (evento + coluna), e o placar por motor sair daí.
+
+**O que a matriz $0 prova por motor (e o que não prova)**: duração PLANEJADA (palavras × régua, cena a cena) ✔ · sequência da história (ordem 1→N no verbatim) ✔ · narração na língua da pessoa ✔ · instrução fora da fala ✔ · schema do fornecedor ✔. Legendas, música, boca/voz e duração ENTREGUE: só com o vídeo final — e hoje nem o banco guarda.
+
 ## 5. O que falta
 
-1. Prova em vídeo, UM motor por vez, começando pelo H3 (o que falhou no teste do fundador): ideia de 1 linha, 60 s, 45 cr; assistir inteiro (duração, boca, voz, legenda, música, ordem) antes do próximo. Só com o "vai".
+1. Prova em vídeo, UM motor por vez, começando pelo H3 (o que falhou no teste do fundador): ideia de 1 linha, 60 s, 45 cr; assistir inteiro (duração, boca, voz, legenda, música, ordem) antes do próximo. Só com o "vai" e custo confirmado antes. Avatar por último.
+1b. Publicar e7f975e3 (duração real do arquivo) — pede a exceção pontual do fundador.
+1c. Gravar a duração entregue / legendas / trilha por render (ponto cego acima) antes de medir os oito motores.
+1d. Decidir a régua do portão para os clássicos (3,1 pal/s).
 2. Codex (tela): `error` do 422 + "seus créditos voltaram"; 16:9 pré-selecionado; duplo despacho.
 3. Kineo 1 roteiro próprio e brief: cobrir no dry-run (hoje só a ideia).
 4. Duração entregue em 90 s e avatar: validar no vídeo final (item 4 da auditoria), não no plano.

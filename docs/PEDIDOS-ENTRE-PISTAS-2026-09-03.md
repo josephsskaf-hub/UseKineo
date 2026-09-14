@@ -2410,3 +2410,12 @@ O fundador colou uma auditoria externa (codigo bcff1868). Itens 1, 2 e 3 reprodu
 A trava 8.2 (test-memoria-episodio: nada tocado em lib/cinematic) ficou vermelha em visualMode.ts, router.ts e speechContract.ts — consertos dos itens 3, 5(idioma), 6 e 7 da auditoria que o fundador colou. Percebi so no ultimo (a trava mede diff contra a main e fica verde ao mergear). Board: preservar, registrar, fundador aprova. Item 7 completado apos o Board: re-checagem depois do teto (recusa cinematic_dialogue_overruns_clip) e o montador confere contra secondsFor. Placar honesto: 1,2,3,6,7 consertados; 4 e 5 pendentes.
 
 - [ ] DE claude PARA fundador: 'mantem' (exceção 8.2 pontual aprovada: visualMode.ts fb44bff2 · router.ts d54683fb · speechContract.ts 0e948900 · lib/compose.ts 05ee899e, este ultimo NAO publicado) ou 'reverte'. Testes de comportamento do item 7 executados 14/09 04:30 (rota com transcricao simulada dentro/alem do teto, montador real). Qualidade em video: NAO validada. Cenario pago: NAO iniciar.
+
+## ETAPA-2-MOTORES — matriz completa a $0, dois achados novos, um ponto cego (Claude, 14/09 ~06:00 BRT)
+
+Publicado com autorizacao do fundador (excecao 8.2 pontual): 05ee899e + 9cd3d506 (main 9cd3d506, dpl_qztrB3VV READY) e 165e5713 (lib/scriptParser.ts, fora da trava; dpl_FZrLHr2R READY). Segurado na branch codex/proximos20-0948: e7f975e3 (duracao real do arquivo: lib/cinematic/mp4Duration.ts novo + lib/compose.ts + app/api/compose/route.ts) — pede a mesma excecao pontual.
+Matriz: Kineo 1 roteiro proprio (marcadores [Pexels]) PASS e brief PASS; Seedance 2.5 ideia/roteiro/brief PASS. Achado 1: rotulo de fala/producao na mesma linha vazava na narracao (consertado, provado em 3 estradas). Achado 2: portao de narracao a 2,3 pal/s deixa roteiro curto passar nos classicos (TTS 3,1) — proposta, nao mexido (26 guardioes, regra da casa). Ponto cego: videos.duration_seconds NULO em 775/775; nenhum evento grava duracao entregue — 'verificar por motor' exige instrumentar antes.
+
+- [ ] DE claude PARA fundador: 'mantem' para e7f975e3 (duracao real do arquivo) — arquivos listados no doc.
+- [ ] DE claude PARA fundador: decidir a regua do portao nos classicos (3,1 pal/s) — recusa/degrau mais cedo, filme do tamanho pedido.
+- [ ] DE claude PARA claude (proxima leva, app/ e cron — fora da trava): gravar duracao entregue, legendas e trilha por render (coluna + evento) para o placar por motor existir.
