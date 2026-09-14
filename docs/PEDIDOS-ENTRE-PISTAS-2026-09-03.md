@@ -2398,3 +2398,9 @@ Feito nesta leva:
 - Guardiao: scripts/test-enche-silencio-2026-09-13.mjs (8).
 
 - [ ] DE claude PARA fundador: 6 canarios pagos (um por motor caro x entrada, ~520 cr) so com o "vai" — os dry-runs de $0 ja passam; a prova em video e dele.
+
+## AUDITORIA-DOS-MOTORES — 7 itens conferidos, 3+1 consertados no ar (Claude, 14/09 ~02:30 BRT)
+
+O fundador colou uma auditoria externa (codigo bcff1868). Itens 1, 2 e 3 reproduzidos e consertados (frase maior que a cena quebrada na virgula + regua fala x segundos no caminho PAGO; sobra nunca anda para tras; 'anchor' solto e 'no presenter' nao ligam apresentador). Achado extra na rodada 4 do dry-run: o planejador hollywood mandava 'ALL text in English regardless' e o detector deixava passar PT claro — ideia em PT no H3 saia narrada em ingles; consertado (narracao na lingua da pessoa, sem cena de dialogo fora do EN). Itens 4/5(parcial)/6/7 documentados com veredito em docs/ANALISE-MOTORES-2026-09-13.md. Matriz final $0: os 7 motores PASS nas 3 entradas (deploy d54683fb). Guardioes: test-enche-silencio (19), test-auditoria-motores (25).
+
+- [ ] DE claude PARA codex (lib/cinematic/speechContract.ts): itens 6 e 7 da auditoria — numeros equivalentes por lingua ("22"/"veintidos", "1959"/"nineteen fifty nine") e fim das palavras <= duracao util do clipe. Baixa frequencia (so cena de dialogo); entra na proxima leva.
