@@ -3690,6 +3690,23 @@ async function manipularPost(req: NextRequest) {
               console.warn(`[contrato] C1 SOBRA SEM CENA: ${verbatimOverflowWords} palavras não cabem em ${MAX_VERBATIM_SCENES} cenas de ${SCENE_CAP}s — recusa antes do POST`)
             }
           }
+          // ═══ KINEO-APARA-RESPIRO-2026-09-13 — a régua de silêncio (aprovada em
+          // 11/09: ≤1,5 s por cena, ≤8 s no total) e o "+1 s de respiro" que
+          // cada cena ganha acima discordam a partir de ~9 cenas: 10 cenas × ~0,9 s
+          // = 9 s e o roteiro do fundador (80 s de fala, 10 cenas) reprovava por
+          // 1 s. O planejador passa a aparar o respiro das cenas mais folgadas
+          // até caber na régua — nunca abaixo de 4 s, nunca tocando na fala.
+          {
+            const silencio = (sc: PlanScene) => (sc.seconds || 0) - wordsIn((sc.type === 'dialogue' ? sc.dialogueLine : sc.voiceover) ?? '') / 2.3
+            let total = plan.scenes.reduce((a, sc) => a + Math.max(0, silencio(sc)), 0)
+            let guard = 40
+            while (total > 7.5 && guard-- > 0) {
+              const alvo = plan.scenes.filter((sc) => (sc.seconds || 0) > 4 && silencio(sc) > 1).sort((a, b) => silencio(b) - silencio(a))[0]
+              if (!alvo) break
+              alvo.seconds = (alvo.seconds || 0) - 1
+              total = plan.scenes.reduce((a, sc) => a + Math.max(0, silencio(sc)), 0)
+            }
+          }
           console.log(
             `[contrato] C1 verbatim: ${totalWords} palavras do roteiro → ${plan.scenes.length} cenas, ${plan.scenes.reduce((a, sc) => a + (sc.seconds || 0), 0)}s falados (zero texto inventado)`,
           )
