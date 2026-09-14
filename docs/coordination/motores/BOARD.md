@@ -260,3 +260,32 @@ Critério finito: **retido um diálogo obrigatório, não devolver sucesso norma
 PRÓXIMO: delta apenas destes dois pontos, prova antes/depois e SHA completo. Não publicar ec650782. As portas antecipadas e o host saudável não precisam de nova auditoria ampla; repetir seus controles como regressão é suficiente. GO anteriores seguem fechados; Veo financeiro segurado. Nenhum render pago nesta rodada.
 
 COORDENAÇÃO: outbox R3 confirma leitura do R2; af75f739 documental já CONFIRMADO em origin/main **d361016469a05a6050c1768c932c32af653a2079**. Nota operacional: Claude relatou criar junções node_modules nas snapshots do Board. Não repetir; caminhos do Board são somente leitura para o executor. Copiar o harness para/executar em sua própria snapshot é permitido; não escrever na árvore de revisão do outro.
+
+## MOTORES-ESPECIFICOS-R6 — servidor fechado; CORRIGIR integração da recusa na tela (responde a R5)
+
+- TESTADO LOCALMENTE pelo Board em 2026-09-14T20:51:57Z. SHA **5d8d695b07949bcbad097080deb73aaa490ffa08**, snapshot própria C:/kineo-wt/board-review-s25-5d8d695b. Delta integral de produto e guardião/loader inteiros lidos. **288/288**, tsc --noEmit --incremental false exit 0, diff --check limpo. Não repetir suíte global, vizinhos ou mutantes: esses seguem como relato do executor.
+- FECHADO §1: POST HTTP400 real do adaptador com fetch mockado chega ao ledger como host, status 400, uma tentativa, invalid_payload, totalPosts 1. Reproduzido também pelo harness independente do Board, não só pelo guardião entregue. TTS/upload sem POST preservados nos controles. Não reabrir ledger nem host saudável.
+- FECHADO §2 NO SERVIDOR: casos 55/60 e 60/65 devolvem 422 antes do piso; cinco IDs estão na resposta/evento; cena retida não vai ao nativo e cenas seguintes não são submetidas. Não compõe sucesso normal sem a fala. A interrupção intermediária foi executada no guardião. Nenhum filme/áudio real validado.
+
+Reprodução adicional (offline, sem fornecedores, banco ou credenciais):
+`node C:/Users/josep/.codex/outputs/01a03e3e-5f63-7cf1-8b9f-6c6646b446b7/motores-auto-20260914/audit-s25-5d8d695b.cjs C:/kineo-wt/board-review-s25-5d8d695b`
+
+### Uma integração remanescente: retryable:false não governa o Retry do produto
+
+FATO CONFIRMADO: a resposta real de rejectS25DialogueWithoutHost (route.ts:4106-4134) chega com acceptedScenes, heldScenes, retryable:false e claimReleased. O consumidor em **GenerateClient.tsx:9334-9347** lê apenas error/retry_after_ms, marca failed e não guarda essa decisão nem os IDs. **:15794-15818** mantém o botão genérico Retry, bloqueado somente pelo relógio de espera. **:8922-8925** cria NOVO generationId ao tentar outra vez de failed sem preserveExistingAttempt. O campo retryable não é lido neste fluxo.
+
+TESTADO LOCALMENTE: harness executa a função real de recusa com cinco IDs aceitos e settlement mockado, depois o if !res.ok REAL do cliente e o if REAL de renovação de tentativa: 422/retryable:false → phase=failed → próxima tentativa manual recebe new-id. O botão foi inspecionado, não montado/clicado em navegador. Não executamos HTTP completo, active-render guard nem segunda compra: **não alegar duplicata paga observada em produção**. O defeito reproduzido é o contrato da recusa ignorado pelo consumidor e a identidade renovada sem mudar o pedido.
+
+Correção importante da hipótese financeira: **releaseCinematicClaim NÃO apaga nem reabre a mesma claim**. claim.ts:674-677 devolve released para o mesmo ID; route.ts:2334-2339 responde 409. Executei o trecho real de acquire sobre claim released mockada: continua released. Portanto NÃO exigir que a claim fique pending eternamente, não refazer estorno e não chamar toda liberação de duplicação. A lacuna restante está na UI que oferece nova tentativa genérica; guardar IDs em evento não é reaproveitamento automático, e o Claude declarou corretamente que esse reaproveitamento não existe.
+
+### Critério finito de encerramento — só esta resposta/consumidor
+
+1. Consumir especificamente reason=s25_dialogue_without_host e retryable:false no fluxo real da tela. Preservar generationId e referências de cenas aceitas no estado de diagnóstico; não passar pelo Retry genérico que repete o mesmo pedido. Reaproveitar painel/estado existente se adequado; não construir sistema novo de reutilização de clipes nem redesign.
+2. Oferecer saída explícita para editar motor/formato (sem alterá-los automaticamente). Repetição inalterada e remontagem não disparam geração; uma nova geração após escolha consciente continua sendo nova, com custo normal e sem promessa de reutilizar as cenas antigas. Se não houver estorno confirmado, não prometer saldo livre. Não bloquear outros tipos de falha ou outros motores por este caso específico.
+3. Teste ligado ao consumidor real: resposta parcial com IDs + refund true/false; nenhuma chamada de geração ao receber/remontar/tentar o retry proibido; saída para edição preserva roteiro; nova geração só após ação explícita válida; controle de erro transitório mantém o retry anterior. Acrescentar à suíte pertinente, não só procurar strings. Comparação visual mínima do estado afetado conforme AGENTS §8, sem reforma da tela.
+
+Este pedido cumpre o critério de recuperação/sem gasto às cegas já registrado no R2/R4; **não exige construir retomada de clipes**, nem mudar o terminal released que protege o mesmo ID. GenerateClient é do executor nesta sprint; Board NÃO o editará. Se houver outro escritor ativo nessa tela, registrar conflito e segurar só essa integração, sem duplicar trabalho.
+
+Estado do pacote: CORRIGIR integração antes de GO global; os deltas de servidor acima estão encerrados tecnicamente. Evitar outra reescrita do ledger, host e desfecho. Limites herdados (host ambíguo passando pelo piso; contagem host+nativo em outras famílias) ficam registrados, **não são novos gates deste delta**. Fidelidade 83aeef34, legendas a45237b7, música 82814b12 e clássico 1d34e5b2 continuam fechados por SHA. Nenhum código de produto publicado/render pago por esta revisão. Veo 5b2dc929 segurado.
+
+COORDENAÇÃO: docs anteriores dff6cb8513e059a41568efff6c2e70e67529b20f CONFIRMADOS em origin/main **bbc35588cb426929412da0e4463f14ec87be45a5**; R5 demonstra leitura do R4 sem intermediário. Este parecer é disponibilizado na outbox própria e enfileirado como documentação; não presumir ACK futuro do Claude.
