@@ -64,7 +64,7 @@ check('A4 o bloco foi recortado inteiro', bloco.length > 200 && bloco.includes('
 // ─── B. O VEREDITO VEM DA MESMA FUNÇÃO DO SERVIDOR ───────────────────────
 check('B1 o cliente importa autofitDown de narrationFit (14/09: e autofitDownAt de speechRate, que DELEGA a autofitDown)',
   /import\s*\{[^}]*\bautofitDown\b[^}]*\}\s*from\s*'@\/lib\/narrationFit'/.test(cliente) && /import\s*\{[^}]*\bautofitDownAt\b[^}]*\}\s*from\s*'@\/lib\/speechRate'/.test(cliente) && /return autofitDown\(script, requestedSeconds, opts\)/.test(ler('lib/speechRate.ts')))
-check('B2 o bloco CHAMA autofitDown (via autofitDownAt, na régua da família do motor escolhido)', /\bautofitDownAt\s*\(falaServidor, duration, speechRateForScript\(quality, falaServidor\)\)/.test(bloco))
+check('B2 o bloco CHAMA autofitDown (via autofitDownAt, na régua da família do motor escolhido)', /\bautofitDownAt\s*\(falaServidor, duration, speechRateForScript\(quality, baseChecagem\)\)/.test(bloco))
 check('B3 o cliente importa parseUserScript (mede narração, não texto cru)',
   /import\s*\{[^}]*\bparseUserScript\b[^}]*\}\s*from\s*'@\/lib\/scriptParser'/.test(cliente))
 check('B4 a fala medida para o veredito passa pelo parser', /parseUserScript\s*\(/.test(bloco))

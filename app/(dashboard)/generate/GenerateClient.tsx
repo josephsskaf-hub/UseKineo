@@ -7763,7 +7763,8 @@ export default function GenerateClient({
           // construir remédio para uma parede que não existe.
           const falaServidor = parseUserScript(baseChecagem).narration || baseChecagem
           // KINEO-REGUA-UNICA-2026-09-14 — a mesma função do servidor, na régua da família do motor escolhido
-          const degrau = autofitDownAt(falaServidor, duration, speechRateForScript(quality, falaServidor))
+          // Board 14/09 (4ª revisão): velocidade lida do texto ORIGINAL (baseChecagem); a narração extraída (falaServidor) é só o que se mede.
+          const degrau = autofitDownAt(falaServidor, duration, speechRateForScript(quality, baseChecagem))
           void trackEvent('script_preflight_overridden', {
             speech_seconds: Math.round(falaSeg),
             target_seconds: duration,

@@ -84,7 +84,6 @@ const base = (extra) => ({ verbatim: true, parsedScript: { segments: segs(5), sp
 {
   // ── segurança: interno/externo × true/false ──
   const casos = [
-    ['externo dry_run=true', { body: { dry_run: true }, isDryRunAccount: () => false }, 403],
     ['externo dry_run=false', { body: { dry_run: false }, isDryRunAccount: () => false }, 422],
     ['interno dry_run=false', { body: { dry_run: false }, isDryRunAccount: () => true }, 422],
     ['interno dry_run=true', { body: { dry_run: true }, isDryRunAccount: () => true }, 'ensaio'],
@@ -92,7 +91,6 @@ const base = (extra) => ({ verbatim: true, parsedScript: { segments: segs(5), sp
   for (const [nome, extra, esperado] of casos) {
     eventos.length = 0
     const r = await rodaGate(base(extra))
-    if (esperado === 403) { checa(`${nome}: rejeitado EXPLICITAMENTE (403 dry_run_not_authorized, evento próprio) — nunca vira geração real, com roteiro curto ou suficiente`, r.status === 403 && r.body.reason === 'dry_run_not_authorized' && eventos.join(',') === 'dry_run_not_authorized'); continue }
     if (esperado === 422) checa(`${nome}: roteiro curto é RECUSADO (422) e grava narration_guard_blocked — nunca chega à seção paga`, r.status === 422 && r.body.reason === 'narration_too_short' && eventos.join(',') === 'narration_guard_blocked')
     else checa(`${nome}: ensaio autorizado — mesma decisão no relatório (gate.blocked), sem 422 e sem evento`, r.status === undefined && r.portao?.blocked === true && eventos.length === 0)
   }
@@ -122,7 +120,7 @@ const base = (extra) => ({ verbatim: true, parsedScript: { segments: segs(5), sp
   const ex = rd('app/api/expand-script/route.ts')
   checa('expand-script mede na configuração real (motor + velocidade do roteiro), fórmulas intactas', ex.includes('const regua = speechRateForScript(body.engine, original)') && ex.includes('const WORDS_PER_SECOND = regua.wordsPerSecond') && ex.includes('Math.min(palavrasTeto, Math.ceil(target * WORDS_PER_SECOND) + 8)'))
   const gc = rd('app/(dashboard)/generate/GenerateClient.tsx')
-  checa('a tela: contador e checagem local medem a narração EXTRAÍDA (speechSecondsOfScript), preflight na mesma régua — nenhum speechSeconds() antigo sobrou', gc.includes('speechSecondsOfScript(quality, baseChecagem).seconds') && gc.includes('const medidaTela = speechSecondsOfScript(quality, prompt)') && gc.includes('* reguaTela.wordsPerSecond)') && gc.includes('autofitDownAt(falaServidor, duration, speechRateForScript(quality, falaServidor))') && !/\bspeechSeconds\(/.test(gc))
+  checa('a tela: contador e checagem local medem a narração EXTRAÍDA (speechSecondsOfScript), preflight na mesma régua — nenhum speechSeconds() antigo sobrou', gc.includes('speechSecondsOfScript(quality, baseChecagem).seconds') && gc.includes('const medidaTela = speechSecondsOfScript(quality, prompt)') && gc.includes('* reguaTela.wordsPerSecond)') && gc.includes('autofitDownAt(falaServidor, duration, speechRateForScript(quality, baseChecagem))') && !/\bspeechSeconds\(/.test(gc))
   checa('a tela trata a recusa do Kineo 1 na mesma caixa da cinematic, antes do erro genérico', gc.indexOf("if (res.status === 422 && data?.reason === 'narration_too_short') {") > 0 && gc.indexOf("if (res.status === 422 && data?.reason === 'narration_too_short') {") < gc.indexOf("console.error('[generate] fast-mode error:'") && gc.includes('engine: quality,'))
   checa('rota cinematic: o salvage só é pulado por ensaio AUTORIZADO', rc.includes('if (salvageDb && !(body.dry_run === true && isDryRunAccount(user.email))) {'))
 }
@@ -192,12 +190,28 @@ console.log('== 9) terceira revisão do Board: dry-run não autorizado é rejeit
   const run = (globals) => { const js = ts.transpileModule('export async function run() {' + trecho + '\n return { duration, portao, status: undefined } }', { compilerOptions: { module: 1, target: 9 } }).outputText; const exp = {}; vm.runInNewContext(js, { exports: exp, console: { log: () => {}, warn: () => {} }, ...globals }); return exp.run() }
   const segs = (n, w = 10) => Array(n).fill(null).map((_, i) => ({ pexelsQuery: 'q' + i, voiceover: Array(w).fill('w').join(' ') }))
   const g = (extra) => ({ body: {}, user: { id: 'u', email: 'x@y.z' }, isDryRunAccount: () => false, verbatim: true, parsedScript: { segments: segs(12), speed: null }, narrationLanguage: { language: 'en' }, speechRateFor: SRX.speechRateFor, narrationFitAt: SRX.narrationFitAt, largestFittingDuration: (s) => [90, 60, 35].find((d) => s >= d * 0.95) ?? null, SUPPORTED_DURATIONS: [35, 60, 90], narrationTooShortMessage: () => 'short', writeServerEvent: (e) => { ev.push(e.name); return Promise.resolve(true) }, NextResponse: { json: (b, i) => ({ status: i?.status ?? 200, body: b }) }, duration: 35, scenes: [{ voiceover: 'a', description: 'd' }], clipCount: 4, classicDryRunReport: () => ({ verdict: 'PASS — tudo certo', pass: true, problems: [] }), wordsPerSceneFor: () => [27, 35], ...extra })
-  ev.length = 0
-  const r1 = await run(g({ body: { dry_run: true }, parsedScript: { segments: segs(5), speed: null } }))
-  checa('externo dry_run=true com roteiro CURTO: 403 dry_run_not_authorized (não 422, não geração), evento próprio, nada mais', r1.status === 403 && r1.body.reason === 'dry_run_not_authorized' && ev.join(',') === 'dry_run_not_authorized')
-  ev.length = 0
-  const r2 = await run(g({ body: { dry_run: true }, parsedScript: { segments: segs(12), speed: null } }))
-  checa('externo dry_run=true com roteiro SUFICIENTE: 403 igual — nunca vira geração real em silêncio', r2.status === 403 && r2.body.reason === 'dry_run_not_authorized' && ev.join(',') === 'dry_run_not_authorized')
+  // Board 4ª revisão: a rejeição mora logo depois do body — o trecho real, executado, e a prova de que NADA de fornecedor vem antes
+  const iRej = rf.indexOf('    // ═══ KINEO-DRY-RUN-AUTORIZADO-2026-09-14 (posição, Board 4ª revisão) ═══════')
+  const fRej = rf.indexOf('    // ═══ FIM KINEO-DRY-RUN-AUTORIZADO (posição) ═══')
+  const rej = rf.slice(iRej, fRej)
+  const runRej = async (globals) => { const js = ts.transpileModule('export async function run() {' + rej + '\n return undefined }', { compilerOptions: { module: 1, target: 9 } }).outputText; const exp = {}; vm.runInNewContext(js, { exports: exp, console, ...globals }); return exp.run() }
+  const chamadas = []
+  const mocks = (extra) => ({ user: { id: 'u', email: 'x@y.z' }, isDryRunAccount: () => false, writeServerEvent: (e) => { chamadas.push('evento:' + e.name); return Promise.resolve(true) }, NextResponse: { json: (b, i) => ({ status: i?.status ?? 200, body: b }) }, generateScenes: () => { chamadas.push('planejador'); throw new Error('nunca') }, expandVoiceoversToTargets: () => { chamadas.push('expansor'); throw new Error('nunca') }, getPixabayClipsForScene: () => { chamadas.push('pixabay'); throw new Error('nunca') }, classifyEngineFit: () => { chamadas.push('classificador'); return {} }, ...extra })
+  chamadas.length = 0
+  const rj1 = await runRej(mocks({ body: { dry_run: true } }))
+  checa('externo dry_run=true (modo IA ou roteiro, tanto faz — ainda não há cenas): 403 dry_run_not_authorized e a ÚNICA chamada é o evento', rj1?.status === 403 && rj1.body.reason === 'dry_run_not_authorized' && chamadas.join(',') === 'evento:dry_run_not_authorized')
+  chamadas.length = 0
+  const rj2 = await runRej(mocks({ body: { dry_run: true }, isDryRunAccount: () => true }))
+  checa('interno dry_run=true: segue (undefined), nenhuma chamada', rj2 === undefined && chamadas.length === 0)
+  const rj3 = await runRej(mocks({ body: { dry_run: false } }))
+  checa('externo dry_run=false: segue (undefined), nenhuma chamada', rj3 === undefined && chamadas.length === 0)
+  // posição: depois do body, antes de classificar/planejar/expandir/Pixabay/relatório/portão
+  const iBody = rf.indexOf('body = await req.json()')
+  checa('a rejeição vem depois do body e ANTES de classifyEngineFit, generateScenes, expandVoiceoversToTargets, getPixabayClipsForScene, classicDryRunReport e do portão', iBody > 0 && iRej > iBody && ['classifyEngineFit(prompt)', 'await generateScenes(', 'expandVoiceoversToTargets(', 'getPixabayClipsForScene(', 'classicDryRunReport({', 'let portao: {'].every((s) => rf.indexOf(s, iRej) > 0 && rf.lastIndexOf(s, iRej) < rf.indexOf('} = await supabase.auth.getUser()') || rf.indexOf(s, iRej) > 0 && !rf.slice(rf.indexOf('} = await supabase.auth.getUser()'), iRej).includes(s)))
+  const marcaAuth = '} = await supabase.auth.getUser()'
+  const entreAuthEReje = rf.slice(rf.indexOf(marcaAuth) + marcaAuth.length, iRej)
+  checa('entre a autenticação e a rejeição não há NENHUMA chamada a fornecedor (só a leitura do body)', (entreAuthEReje.match(/await /g) || []).length === 1 && entreAuthEReje.includes('await req.json()'))
+  checa('a rejeição antiga (depois do planejamento) foi removida — existe uma só, na posição nova', (rf.match(/reason: 'dry_run_not_authorized'/g) || []).length === 1)
   const r3 = await run(g({ body: { dry_run: true }, isDryRunAccount: () => true, parsedScript: { segments: segs(12), speed: null } }))
   checa('interno dry_run=true com roteiro suficiente: relatório 200 com PASS e gate.blocked=false', r3.status === 200 && r3.body.dry_run === true && r3.body.pass === true && r3.body.gate?.blocked === false)
   // 2) reprodução do Board: 180 palavras, speed 1,2, 60 s → portão bloqueia (48 s) e o relatório NÃO pode dizer PASS

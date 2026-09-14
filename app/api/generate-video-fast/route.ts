@@ -357,6 +357,15 @@ export async function POST(req: NextRequest) {
 
     // KINEO-IDEIA-COLADA-2026-09-12 — ideia de 1 clique colada na frente do texto
     // da pessoa não é o tema (fichas 7/9/10 do diário dos 20 filmes).
+    // ═══ KINEO-DRY-RUN-AUTORIZADO-2026-09-14 (posição, Board 4ª revisão) ═══════
+    // dry_run:true de conta NÃO autorizada é rejeitado AQUI — logo depois do body
+    // e antes de classificar, planejar (generateScenes), expandir, buscar clipes
+    // (Pixabay), gerar abertura (fal) ou cobrar. Zero chamadas a fornecedor.
+    if (body.dry_run === true && !isDryRunAccount(user.email)) {
+      void writeServerEvent({ name: 'dry_run_not_authorized', userId: user.id, path: '/api/generate-video-fast', metadata: { engine: 'fast', charged: false } })
+      return NextResponse.json({ error: 'Dry-run is only available to internal accounts. Send the request without dry_run to generate a video.', reason: 'dry_run_not_authorized', retryable: false }, { status: 403 })
+    }
+    // ═══ FIM KINEO-DRY-RUN-AUTORIZADO (posição) ═══
     const intake = stripIdeaPrefix((body.prompt ?? '').trim())
     if (intake.strippedIdea) void writeServerEvent({ name: 'idea_prefix_stripped', userId: user.id, path: '/api/generate-video-fast', metadata: { idea: intake.strippedIdea.slice(0, 80), rest_chars: intake.text.length } })
     const prompt = intake.text
@@ -717,13 +726,6 @@ export async function POST(req: NextRequest) {
     // qualquer decisão que dependa de "é ensaio". Pedido de dry-run não
     // autorizado é tratado como pedido real: recusa quando deve recusar.
     const dryRunAutorizado = body.dry_run === true && isDryRunAccount(user.email)
-    // Board 14/09 (ajuste 1): dry_run:true de conta NÃO autorizada é rejeitado
-    // explicitamente — nunca vira geração real em silêncio, com roteiro curto ou
-    // suficiente. Nada foi cobrado; nenhum caminho pago abaixo é alcançado.
-    if (body.dry_run === true && !dryRunAutorizado) {
-      void writeServerEvent({ name: 'dry_run_not_authorized', userId: user.id, path: '/api/generate-video-fast', metadata: { engine: 'fast', charged: false } })
-      return NextResponse.json({ error: 'Dry-run is only available to internal accounts. Send the request without dry_run to generate a video.', reason: 'dry_run_not_authorized', retryable: false }, { status: 403 })
-    }
     // Board 14/09 (ajuste 2): UMA régua para o portão e para o relatório do dry-run
     // (família clássica × velocidade lida do roteiro).
     const narrationRate = speechRateFor({ family: 'classic', speed: parsedScript.speed, language: narrationLanguage.language })
