@@ -230,6 +230,19 @@ Branch codex/motores-0914 — HEAD **41513f2b** (um commit sobre 8680747d). Type
 
 Preço real do filme: `creditCostForDuration('cinematic_veo', pago, 90)` = 100 × 90/60 = **150 cr** (não 100), lido da função da casa no guardião. Custo completo por filme de 90 s: 12 clipes × $0,80 (fal-ai/veo3.1/fast, $0,10/s) = $9,60 + TTS/compose ≈ $0,30 → **≈ $9,90**. Receita por 150 cr: Starter $24,75 · Creator $19,90 · Studio $19,95 (trial $0). Margem nos planos pagos ≈ 50-60% (com 9 clipes era ≈ 63-71%, mas o filme saía com 72 s de imagem para 89 s de fala). Decisão pedida: aceitar +$2,40 por filme de 90 s no Veo.
 
+## 4h. Etapa 7 (14/09 13:00 → 13:30) — quarta revisão do Board: só o delta
+
+Branch codex/motores-0914 — HEAD **478c5da7** (um commit sobre 41513f2b). Typecheck 0 erros. Guardião da leva: 73 verificações.
+
+| Ajuste | O que mudou | Regressão |
+|---|---|---|
+| 1 Posição da rejeição | No Kineo 1 a rejeição do dry-run não autorizado sobe para logo depois do body: antes de classificar o motor, planejar (generateScenes), expandir, buscar clipes (Pixabay), gerar abertura (fal) ou cobrar | trecho real executado: externo × dry_run=true → 403 e a única chamada é o evento (planejador, expansor e Pixabay mockados nunca são chamados); interno × true e externo × false seguem. Prova de posição: entre a autenticação e a rejeição existe um único `await`, o do body; classifyEngineFit, generateScenes, expandVoiceoversToTargets, getPixabayClipsForScene, classicDryRunReport e o portão vêm todos depois; a rejeição antiga (pós-planejamento) foi removida |
+| 2 Preflight da tela | `autofitDownAt` passa a receber a velocidade lida do texto ORIGINAL (baseChecagem); a narração extraída (falaServidor) segue sendo o que se mede. Telemetria, não fluxo | guardião do preflight (B2) e o da leva conferem a chamada exata |
+
+### Veo (branch codex/veo-90-0914 @ 5b2dc929) — NÃO APROVADO
+
+O bloco está marcado "NÃO APROVADO: ajuste de CUSTO pendente de decisão do fundador". O orçamento é rotulado ESTIMATIVA, com a fonte de cada número: clipe $0,80 (docs/PRECOS-MOTORES-V4.md, fal-ai/veo3.1/fast, tabela pública do fornecedor); clipes por filme (clipCountForDuration); TTS + compose ≈ $0,30 (estimativa da casa, não medida); preço 150 cr (lib/credits/engineCost.ts, lido no guardião). Receita ALOCADA por crédito (preço de tabela ÷ créditos do plano, lib/checkoutPricing V5) separada de recebimento: Starter 150 cr = $24,75 · Creator $19,90 · Studio $19,95 · trial $0. Recebimento líquido desconta taxas da Stripe (≈ 2,9% + $0,30), comissão de afiliado quando houver, descontos e câmbio BRL — a margem após taxas/comissões/descontos NÃO está calculada; a margem bruta sobre a alocação fica ≈ 50-60% nos planos pagos.
+
 ## 5. O que falta
 
 1. Publicar a branch codex/motores-0914 (7da4eef0) com a exceção aprovada; confirmar SHA e deploy; re-rodar os dry-runs de 60/90 do Kineo 1 e do Veo no ar.

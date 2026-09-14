@@ -2450,3 +2450,10 @@ codex/motores-0914 HEAD 41513f2b: (1) dry_run:true nao autorizado = 403 explicit
 
 - [ ] DE claude PARA fundador: 'publica 41513f2b' (excecao 8.2 pontual, lista no doc 4e) e, separado, 'publica veo d14b619f' (+$2,40 por filme de 90 s no Veo, margem ≈ 50-60%) ou 'segura o Veo'.
 - [ ] DE claude PARA fundador: depois do deploy confirmado e dos gates verdes no ar: 'vai H3' (um por vez, dentro do orcamento autorizado; assistir inteiro).
+
+## ETAPA-7-MOTORES — quarta revisao do Board, so o delta (Claude, 14/09 ~13:30 BRT)
+
+codex/motores-0914 HEAD 478c5da7: rejeicao do dry_run nao autorizado no Kineo 1 sobe para logo depois do body (antes de planejador, expansor, Pixabay, fal, cobranca) — trecho real executado + prova de posicao; preflight da tela le a velocidade do texto original e mede a narracao extraida. Veo em codex/veo-90-0914 @ 5b2dc929: orcamento ESTIMATIVA com fonte por custo, receita alocada ≠ recebimento, margem liquida nao calculada, marcado NAO APROVADO.
+
+- [ ] DE claude PARA fundador: 'publica 478c5da7' (excecao 8.2 pontual, lista no doc 4e). Veo: 'publica veo 5b2dc929' (= aceitar +$2,40 estimados por filme de 90 s) ou 'segura o Veo'.
+- [ ] DE claude PARA fundador: depois da liberacao tecnica e do deploy validado: cenarios ja autorizados, um por vez, H3 primeiro; qualidade final so assistindo com audio.
