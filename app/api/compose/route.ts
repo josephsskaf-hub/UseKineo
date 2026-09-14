@@ -2047,7 +2047,14 @@ export async function POST(req: NextRequest) {
           const lido = await transcribeClipWithTimestampsAndDuration(c.url).catch(() => ({ words: [] as WhisperWord[], durationSeconds: null as number | null }))
           const words = lido.words
           const mediaSeconds = lido.durationSeconds
-          const tetoReal = (s: number) => (mediaSeconds != null && mediaSeconds > 0 ? Math.min(s, mediaSeconds) : s)
+          // Fundador 14/09 (direção da sprint): com a duração do arquivo DESCONHECIDA
+          // (cabeçalho ilegível), a cena não cresce além do que já estava autorizado
+          // — só o timestamp do Whisper não basta. Nesse caso o teto é a própria
+          // duração declarada da cena; a recusa preserva os clipes. E a duração
+          // nunca é "medida" quando a leitura falhou: `medicao: 'desconhecida'`.
+          const medicao: 'mvhd' | 'desconhecida' = mediaSeconds != null && mediaSeconds > 0 ? 'mvhd' : 'desconhecida'
+          const autorizado = cinematicSceneSeconds(c)
+          const tetoReal = (s: number) => (medicao === 'mvhd' ? Math.min(s, mediaSeconds as number) : Math.min(s, autorizado))
           const speech = verifyObservedSpeech(c.dialogueLine, words, { maxEndSeconds: tetoReal(cinematicSceneSeconds(c)) })
           if (!speech.ok && speech.reason === 'speech_overruns_clip') {
             // KINEO-FALA-ALEM-DO-CLIPE-2026-09-14 (auditoria, item 7): o áudio existe
@@ -2062,13 +2069,13 @@ export async function POST(req: NextRequest) {
             // passa do teto, recusa honesta — nunca cortar o fim da fala em silêncio.
             const recheck = verifyObservedSpeech(c.dialogueLine, words, { maxEndSeconds: tetoReal(cinematicSceneSeconds(c)) })
             if (!recheck.ok) {
-              console.warn('[compose] KINEO-FALA-ALEM-DO-CLIPE: fala passa do teto da cena mesmo depois de crescer', { scene_index: sceneIdx, antes, teto: cinematicSceneSeconds(c), media_seconds: mediaSeconds, last_word_end: lastEnd, reason: recheck.reason })
+              console.warn('[compose] KINEO-FALA-ALEM-DO-CLIPE: fala passa do teto da cena mesmo depois de crescer', { scene_index: sceneIdx, antes, teto: tetoReal(cinematicSceneSeconds(c)), media_seconds: mediaSeconds, medicao, last_word_end: lastEnd, reason: recheck.reason })
               return rejectBeforeProviderSubmission(NextResponse.json({
                 error: `Scene ${sceneIdx + 1}'s speech runs ${lastEnd.toFixed(1)}s, longer than the ${tetoReal(cinematicSceneSeconds(c))}s this scene can hold. Your generated clips are preserved; nothing was cut or narrated over.`,
                 code: 'cinematic_dialogue_overruns_clip', recoverable: true,
               }, { status: 422 }))
             }
-            console.warn('[compose] KINEO-FALA-ALEM-DO-CLIPE: cena cresce para cobrir a fala', { scene_index: sceneIdx, antes, depois: cinematicSceneSeconds(c), last_word_end: lastEnd })
+            console.warn('[compose] KINEO-FALA-ALEM-DO-CLIPE: cena cresce para cobrir a fala', { scene_index: sceneIdx, antes, depois: cinematicSceneSeconds(c), media_seconds: mediaSeconds, medicao, last_word_end: lastEnd })
           } else if (!speech.ok) {
             console.warn('[compose] native speech verification failed', { scene_index: sceneIdx, reason: speech.reason })
             return rejectBeforeProviderSubmission(NextResponse.json({

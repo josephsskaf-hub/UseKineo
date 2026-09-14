@@ -50,7 +50,7 @@ eq(speech.verifyObservedSpeech('Hello world', words('Hello world'), { maxEndSeco
 eq(speech.verifyObservedSpeech('Hello world', words('Hello world'), { maxEndSeconds: 0.7 }).ok, true, '0.25s ASR tolerance')
 {
   const rota = fs.readFileSync(new URL('../app/api/compose/route.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n')
-  eq(rota.includes('verifyObservedSpeech(c.dialogueLine, words, { maxEndSeconds: tetoReal(cinematicSceneSeconds(c)) })') && rota.includes('const tetoReal = (s: number) => (mediaSeconds != null && mediaSeconds > 0 ? Math.min(s, mediaSeconds) : s)'), true, 'compose passes the usable seconds of the clip — engine cap bounded by the real media length — to the verifier')
+  eq(rota.includes('verifyObservedSpeech(c.dialogueLine, words, { maxEndSeconds: tetoReal(cinematicSceneSeconds(c)) })') && rota.includes("const tetoReal = (s: number) => (medicao === 'mvhd' ? Math.min(s, mediaSeconds as number) : Math.min(s, autorizado))"), true, 'compose passes the usable seconds of the clip — real media length when measured, the authorized seconds when unknown — to the verifier')
   eq(/speech\.reason === 'speech_overruns_clip'\) \{[\s\S]{0,900}c\.seconds = Math\.round\(\(lastEnd \+ 0\.3\) \* 10\) \/ 10/.test(rota), true, 'an overrun grows the scene to the last word instead of cutting the speech')
   eq(rota.indexOf('const originalFootageSeconds = hollywoodClips.map(cinematicSceneSeconds)') > rota.indexOf("speech.reason === 'speech_overruns_clip'"), true, 'pre-trim seconds are read after the scene may have grown')
   // Board 14/09: re-checagem depois do teto + o montador confere a duração final
@@ -238,8 +238,17 @@ for (const [engine, cap, dentro, alem] of [['dialogue', 15, 11.0, 16.0], ['host'
   const cabeNoArquivo = await runActualComposeSpeech({ nativeWords: spokenUntil('Actor speaks', 11.0), sceneSeconds: [8, 8], mediaSeconds: 12 })
   eq(cabeNoArquivo.reply.status, 200, 'speech inside the real media length grows the scene')
   eq(cabeNoArquivo.reply.hollywoodClips[0].seconds, 11.3, 'grown to the last word (+0.3s) within the file')
+  // Fundador 14/09: duração DESCONHECIDA → a cena não cresce além do autorizado só pelo Whisper; clipes preservados; nada declarado como medido
   const semCabecalho = await runActualComposeSpeech({ nativeWords: spokenUntil('Actor speaks', 11.0), sceneSeconds: [8, 8], mediaSeconds: null })
-  eq(semCabecalho.reply.status, 200, 'unreadable header keeps the engine cap (does not invent a refusal)')
+  eq(semCabecalho.reply.status, 422, 'unknown media length: speech past the authorized 8s is refused, not grown on Whisper alone')
+  eq(semCabecalho.reply.body.code, 'cinematic_dialogue_overruns_clip', 'same honest refusal code')
+  ok(/preserved/.test(semCabecalho.reply.body.error), 'clips are preserved')
+  eq(semCabecalho.calls.map(c => c[0]), ['asr-native', 'release-compose-claim'], 'nothing else runs')
+  ok(semCabecalho.logs.some(l => JSON.stringify(l).includes('"medicao":"desconhecida"')), 'the log says the measurement is unknown, never a measured number')
+  const semCabecalhoCabe = await runActualComposeSpeech({ nativeWords: spokenUntil('Actor speaks', 7.5), sceneSeconds: [8, 8], mediaSeconds: null })
+  eq(semCabecalhoCabe.reply.status, 200, 'unknown media length: speech inside the authorized seconds still passes')
+  eq(semCabecalhoCabe.reply.hollywoodClips[0].seconds, 8, 'and the scene keeps its authorized seconds')
+  ok(cabeNoArquivo.logs.some(l => JSON.stringify(l).includes('"medicao":"mvhd"')), 'a real measurement is labeled by its method')
 }
 
 // Native support audio is subordinate to the explicit per-scene narration.
