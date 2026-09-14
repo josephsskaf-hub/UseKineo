@@ -74,6 +74,15 @@ checa('"I\'d never seen it. I\'d rather die." → had never seen / would rather 
 checa('"We\'d escape together." → "They would escape together."; "We\'d been there." → "They had been there."', N("We'd escape together.").texto === 'They would escape together.' && N("We'd been there.").texto === 'They had been there.')
 checa('"I\'d" antes de palavra fora das tabelas ("I\'d reckon so.") → nao_suportada, texto intacto', N("I'd reckon so.").status === 'nao_suportada' && N("I'd reckon so.").texto === "I'd reckon so.")
 checa('"I\'d" no fim da frase ("Yes, I\'d.") → nao_suportada, intacto', N("Yes, I'd.").status === 'nao_suportada' && N("Yes, I'd.").texto === "Yes, I'd.")
+// FID-V4-R3 (Board): as classes base/particípio NÃO são exclusivas — interseção é ambígua, nunca "convertida"
+{
+  const inter = F.EN_BASE_E_PARTICIPIO()
+  checa(`propriedade: a interseção base ∩ particípio tem ${inter.length} palavras (come, run, put…) e auxiliarDeD devolve null em TODAS`, inter.length >= 10 && ['come', 'run', 'put', 'set', 'cut', 'hit', 'let', 'read', 'shut', 'split', 'spread'].every((w) => inter.includes(w)) && inter.every((w) => F.auxiliarDeD(w) === null))
+  for (const frase of ["I'd come if I could.", "We'd run if we could.", "I'd put it there if I could."]) checa(`Board: "${frase}" → nao_suportada, texto INTACTO (nem had nem would)`, N(frase).status === 'nao_suportada' && N(frase).texto === frase)
+  checa('exclusivos preservados: "I\'d escape" → would; "I\'d seen" → had; "I\'d been there" → had been; "I\'d be lost" → would be', F.auxiliarDeD('escape') === 'would' && F.auxiliarDeD('seen') === 'had' && N("I'd been there.").texto === 'The fisherman had been there.' && N("I'd be lost.").texto === 'The fisherman would be lost.')
+  checa('"-ed" não decide sozinho: "need" está na base → "I\'d need help." → "would need"; "I\'d survived." → "had survived" (regular fora da base)', N("I'd need help.").texto === 'The fisherman would need help.' && N("I'd survived.").texto === 'The fisherman had survived.')
+  checa('a decisão é por classe, não por frase: "We\'d cut the rope." (cut nas duas) → nao_suportada; "We\'d cut the rope" nunca vira "They had cut"', N("We'd cut the rope.").status === 'nao_suportada' && !/They had cut/.test(N("We'd cut the rope.").texto))
+}
 checa('a biblioteca não tem mais o depoimento inventado ("would later recall"/atribuirFalaConvertida)', !libSrc.includes('would later recall: ') && !libSrc.includes('atribuirFalaConvertida') && !/return `[^`]*recall/.test(libSrc))
 
 console.log('== 2. cobertura em 3 estados — dois substantivos não provam ação; contradição SAI; sem estado global ==')
@@ -91,6 +100,18 @@ checa('SUJEITO ERRADO: narração fala do pescador, prompt mostra só o filho �
 checa('Board: "Only his son grips the wheel; the fisherman is absent." × "The fisherman grips the wheel." → divergente (sujeito ausente), não coberta', cob('Only his son grips the wheel; the fisherman is absent.', 'The fisherman grips the wheel.', ficha) === 'divergente' && /^sujeito ausente/.test(F.avaliarCobertura('Only his son grips the wheel; the fisherman is absent.', 'The fisherman grips the wheel.', ficha).motivo))
 checa('"without the fisherman" e "the fisherman is nowhere to be seen" também são ausência', F.protagonistaAusente('The boat drifts without the fisherman.', ficha) && F.protagonistaAusente('The deck is empty; the fisherman is nowhere to be seen.', ficha) && !F.protagonistaAusente('The fisherman is exhausted.', ficha))
 checa('caso legítimo preservado: "His son is alone on the boat. He grips the rail." × "The boy grips the rail." → coberta, prompt intacto', cob('His son is alone on the boat. He grips the rail.', 'The boy grips the rail.', ficha) === 'coberta' && F.garantirAcaoCentral('His son is alone on the boat. He grips the rail.', 'The boy grips the rail.', ficha).prompt === 'His son is alone on the boat. He grips the rail.')
+// FID-V4-R3 (Board): a ausência de OUTRA pessoa não apaga a cena do protagonista — mesma oração, sem atravessar while/and/but
+{
+  const legit = 'The fisherman grips the wheel while his son is missing.'
+  checa('Board: "The fisherman grips the wheel while his son is missing." → o pescador NÃO está ausente (é o filho)', F.protagonistaAusente(legit, ficha) === false)
+  checa('mesmo caso: cobertura coberta (grips/grips), e o prompt fica INTACTO com o contexto do filho desaparecido', cob(legit, 'The fisherman grips the wheel.', ficha) === 'coberta' && F.garantirAcaoCentral(legit, 'The fisherman grips the wheel.', ficha).prompt === legit)
+  checa('não atravessa "and"/"but"/", " nem outra pessoa: "The fisherman rows and the boy is gone", "The fisherman waits but the crew is missing", "The fisherman\'s son is missing" → nenhuma ausência do pescador', !F.protagonistaAusente('The fisherman rows and the boy is gone.', ficha) && !F.protagonistaAusente('The fisherman waits but the crew is missing.', ficha) && !F.protagonistaAusente("The fisherman's son is missing from the deck.", ficha) && !F.protagonistaAusente('The fisherman grips the wheel; he is gone.', ficha))
+  checa('ausência EXPLÍCITA do próprio papel continua reconhecida: "the fisherman is absent", "the fisherman himself is nowhere to be seen", "without the fisherman"', F.protagonistaAusente('Only his son grips the wheel; the fisherman is absent.', ficha) && F.protagonistaAusente('The deck rolls; the fisherman himself is nowhere to be seen.', ficha) && F.protagonistaAusente('The boat drifts without the fisherman.', ficha))
+  checa('relação não compreendida ("The fisherman, however, is absent" com vírgula) NÃO é removida por suspeita: prompt fica como está', F.removerAusencia('The fisherman, however, is absent.', ficha) === 'The fisherman, however, is absent.')
+  const rem = F.removerAusencia('The fisherman is absent from the deck while his son grips the wheel.', ficha)
+  checa('remoção cirúrgica: só a oração "the fisherman is absent from the deck" sai; "his son grips the wheel" fica', rem === 'his son grips the wheel.')
+  checa('remoção preserva o caso já fechado: "Only his son grips the wheel; the fisherman is absent." → "Only his son grips the wheel."', F.removerAusencia('Only his son grips the wheel; the fisherman is absent.', ficha) === 'Only his son grips the wheel.')
+}
 checa('mesmo texto com o pescador na cena → coberta (gripped/grips casam pelo radical, e é AÇÃO)', cob('The fisherman grips the wheel as the boat climbs the wave.', 'The fisherman gripped the wheel and steered the boat straight into the wave.', ficha) === 'coberta')
 checa('coincidência lexical ÚNICA de substantivo ("mountains") não aprova: desconhecida', cob('Aerial view of mountains at sunset.', 'The landslide, triggered by an earthquake, tore the mountains apart and displaced millions of tons of rock.') === 'desconhecida')
 checa('ação presente de verdade (uprooted trees + mountainside) → coberta', cob('Fallen, uprooted trees scattered across the mountainside after the wave.', 'The tsunami uprooted trees high up the mountains, leaving destruction behind.') === 'coberta')
@@ -179,6 +200,18 @@ checa('relato de cobertura DECLARADO por cena: 7 entradas, divergente (cena 2), 
   F.aplicarFidelidadeAoPlano(leg, ficha, 'en', true)
   const p3 = enviar(leg[0], 12)
   checa('caso legítimo até o submittedPrompt: o filho sozinho, descrito pela narração, fica como está e sem a ficha do pai', /His son is alone on the boat\. He grips the rail\./.test(p3) && !p3.includes(ficha))
+  // FID-V4-R3 (Board): "while his son is missing" — a frase inteira chega ao submittedPrompt, cobertura não divergente
+  const legit = 'The fisherman grips the wheel while his son is missing.'
+  const relL = []
+  const p4 = enviar({ index: 14, type: 'support', prompt: legit, voiceover: 'The fisherman grips the wheel.', seconds: 10 }, 13, relL)
+  checa('Board: "The fisherman grips the wheel while his son is missing." chega INTEIRO ao submittedPrompt e a cobertura é coberta (não divergente)', p4.includes(legit) && relL[0].cobertura === 'coberta')
+  const cadL = [{ index: 15, type: 'support', prompt: legit, voiceover: 'The fisherman grips the wheel.', seconds: 10 }]
+  const relC = F.aplicarFidelidadeAoPlano(cadL, ficha, 'en', true)
+  const p5 = enviar(cadL[0], 14)
+  checa('cadeia planejador + rota: a ficha entra no lugar de "The fisherman" (identidade explícita) e "while his son is missing" sobrevive até o submittedPrompt', relC[0].identidade === 'ficha_no_lugar_da_descricao' && p5.includes(`${ficha} grips the wheel while his son is missing.`))
+  const relA = []
+  const p6 = enviar({ index: 16, type: 'support', prompt: 'The fisherman is absent from the deck while his son grips the wheel.', voiceover: 'The fisherman grips the wheel.', seconds: 10 }, 15, relA)
+  checa('ausência explícita + oração legítima: só "is absent from the deck" sai; o sujeito vira o da narração; divergente declarado', !/absent|from the deck/.test(p6) && /The fisherman grips the wheel/.test(p6) && relA[0].cobertura === 'divergente')
 }
 {
   const hs = { index: 9, type: 'support', prompt: 'The mountain village remains intact under a grey sky.', voiceover: 'The mountain village collapsed in seconds.', seconds: 10 }
