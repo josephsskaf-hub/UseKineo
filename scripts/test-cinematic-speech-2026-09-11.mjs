@@ -380,19 +380,26 @@ eq(notRequested.calls.length, 0, 'No clone/profile lookup when unrequested')
   const nativeIf = stmts.slice(hostIdx + 1).find(s => ts.isIfStatement(s) && s.expression.getText(generationAst).startsWith('!id'))
   ok(nativeIf, 'the native-payload if follows the host if inside the real submit loop')
   const between = stmts.slice(hostIdx + 1, stmts.indexOf(nativeIf)).map(s => s.getText(generationAst)).join('\n')
-  const loopCode = `export const run = (async () => { let id = null, sceneModel = 'planned-model', sceneEngine = hs.type; const idx = 0; const hHeldByPolicy = new Set()
+  const loopCode = `export const run = (async () => { let id = null, sceneModel = 'planned-model', sceneEngine = hs.type; const idx = 0; const hHeldByPolicy = new Set(); const hHostAttempts = new Map()
     for (const once of [0]) { ${hostIf.getText(generationAst)}\n${between}\nif (${nativeIf.expression.getText(generationAst)}) { calls.push(['native-post', family, hs.type]) } }
-    return { id, sceneModel, sceneEngine, held: hHeldByPolicy.has(0), dispositions: hDispositions.slice(), requestIds: hRequestIds.slice() } })`
-  class AvatarSubmitError extends Error { constructor(msg, ambiguous) { super(msg); this.ambiguous = ambiguous } }
-  const hostScope = ({ family, type = 'dialogue', hostOn = true, anchors = { portraitUrl: 'https://offline.invalid/portrait.png' }, voice = { voice: 'approved', defaultSpeed: 1 }, submit = async () => 'offline-host-id', earlierIds = [] }) => {
+    return { id, sceneModel, sceneEngine, held: hHeldByPolicy.has(0), dispositions: hDispositions.slice(), requestIds: hRequestIds.slice(), hostAttempt: hHostAttempts.get(0) ?? null } })`
+  // R5 §1 — a classe REAL do adaptador (lib/avatar/veed.ts), extraída por AST:
+  // `status` só existe depois do fetch; é nela que a rota decide se houve POST.
+  const veedSource = fs.readFileSync('lib/avatar/veed.ts', 'utf8')
+  const veedAst = ts.createSourceFile('veed.ts', veedSource, ts.ScriptTarget.Latest, true)
+  const veedErrorClass = findNode(veedAst, n => ts.isClassDeclaration(n) && n.name?.text === 'AvatarSubmitError')
+  const veedSubmitOnce = findNode(veedAst, n => ts.isFunctionDeclaration(n) && n.name?.text === 'submitQueueOnce')
+  const veedApi = (fetchImpl, env = { FAL_KEY: 'offline-fixture-not-a-secret' }) => evaluate(`export ${veedErrorClass.getText(veedAst)}\nexport ${veedSubmitOnce.getText(veedAst)}`, { process: { env }, fetch: fetchImpl })
+  const { AvatarSubmitError } = veedApi(() => { throw Error('network forbidden') })
+  const hostScope = ({ family, type = 'dialogue', hostOn = true, anchors = { portraitUrl: 'https://offline.invalid/portrait.png' }, voice = { voice: 'approved', defaultSpeed: 1 }, submit = async () => 'offline-host-id', earlierIds = [], tts, upload }) => {
     const calls = []
     const hRequestIds = earlierIds.slice(), hDispositions = earlierIds.map(() => 'accepted'), hModels = [], hEngines = [], hSubmittedPrompts = []
     const scope = {
       family, hostTtsEnabled: hostOn, anchors, hostVoice: voice, calls, hRequestIds, hDispositions, hModels, hEngines, hSubmittedPrompts,
       hs: { index: 1, type, dialogueLine: type === 'dialogue' ? 'I am the presenter. This is my story.' : '', seconds: 8, prompt: 'x' },
       hostUserSpeed: 1, hostPerformancePrompt: 'approved performance', user: { id: 'internal-fixture' }, submittedPrompt: 'x',
-      synthesizeHostSpeech: async a => { calls.push(['tts', a.text]); return Buffer.from('offline') },
-      estimateMp3DurationSeconds: () => 8, uploadVoiceoverToSupabase: async () => { calls.push(['upload']); return 'https://offline.invalid/voice.mp3' },
+      synthesizeHostSpeech: async a => { calls.push(['tts', a.text]); if (tts) return tts(); return Buffer.from('offline') },
+      estimateMp3DurationSeconds: () => 8, uploadVoiceoverToSupabase: async () => { calls.push(['upload']); if (upload) return upload(); return 'https://offline.invalid/voice.mp3' },
       submitAvatarJob: async a => { calls.push(['host-submit', a.engine]); return submit() },
       HOST_PRESENTER_MODEL: 'offline-host-model', AvatarSubmitError, cinematicSubmissionUncertain: false, providerSubmissionMayExist: false,
       cinematicSceneModel: (fam, t, anchored) => `${fam}/${t}/${anchored ? 'i2v' : 't2v'}`, ctxDespacho: () => ({ submittedPrompts: {} }),
@@ -421,9 +428,9 @@ eq(notRequested.calls.length, 0, 'No clone/profile lookup when unrequested')
     const hz = await runLoop({ family: fam })
     eq([hz.sceneEngine, hz.calls.some(c => c[0] === 'native-post')], ['host', false], `${fam}: healthy host unchanged`)
   }
-  const ambiguous = await runLoop({ family: 's25', submit: async () => { throw new AvatarSubmitError('presenter POST timed out', true) }, earlierIds: ['earlier-accepted-id'] })
+  const ambiguous = await runLoop({ family: 's25', submit: async () => { throw new AvatarSubmitError('presenter POST timed out', { ambiguous: true, status: 504 }) }, earlierIds: ['earlier-accepted-id'] })
   eq([ambiguous.id, ambiguous.held, ambiguous.dispositions, ambiguous.requestIds, ambiguous.calls.some(c => c[0] === 'native-post')], [null, false, ['accepted', 'ambiguous'], ['earlier-accepted-id', null], false], 'S25 ambiguous host failure: existing protection intact — no second job, earlier IDs preserved, not re-labelled as policy hold')
-  await assert.rejects(runLoop({ family: 's25', submit: async () => { throw new AvatarSubmitError('presenter POST timed out', true) } }), /timed out/, 'S25 ambiguous failure with no earlier IDs still propagates (claim stays pending)'); checks++
+  await assert.rejects(runLoop({ family: 's25', submit: async () => { throw new AvatarSubmitError('presenter POST timed out', { ambiguous: true, status: 504 }) } }), /timed out/, 'S25 ambiguous failure with no earlier IDs still propagates (claim stays pending)'); checks++
 
   // Portões PRÉ-GASTO reais (antes das âncoras / antes do laço): extraídos e executados com estorno mockado.
   const pre = findNode(generationAst, n => ts.isVariableStatement(n) && n.declarationList.declarations[0].name.getText(generationAst) === 's25DialogueScenes')
@@ -436,7 +443,7 @@ eq(notRequested.calls.length, 0, 'No clone/profile lookup when unrequested')
     const calls = []
     const scope = { family, plan: { scenes }, hostTtsEnabled: hostOn, anchors, hostVoice, user: { id: 'u' }, generationId: 'g', formatoVisual: { modo: 'presenter' },
       confirmCinematicRefund: async () => { calls.push(['refund']); return refunded }, releaseBirthClaim: async (reason) => { calls.push(['release', reason]); return released },
-      writeServerEvent: async (e) => { calls.push(['event', e.name, e.metadata.anchors_generated, e.metadata.scene_posts]) }, anchorsSpent: () => calls.push(['anchors']),
+      writeServerEvent: async (e) => { calls.push(['event', e.name, e.metadata.anchors_generated, e.metadata.scene_posts]) }, anchorsSpent: () => calls.push(['anchors']), ctxDespacho: () => ({}),
       NextResponse: { json: (body, init) => ({ status: init?.status ?? 200, body }) }, console: { warn() {}, log() {} }, Boolean, fetch() { throw Error('network forbidden') } }
     const res = await evaluate(gateCode, scope).run()
     return { res, calls }
@@ -444,7 +451,7 @@ eq(notRequested.calls.length, 0, 'No clone/profile lookup when unrequested')
   const dlg = [{ type: 'dialogue', dialogueLine: 'Hi', seconds: 8 }, { type: 'support', voiceover: 'v', seconds: 8 }]
   const off = await runGates({ family: 's25', scenes: dlg, hostOn: false })
   eq([off.res.status, off.res.body.reason, off.res.body.retryable, off.calls], [422, 's25_dialogue_without_host', false, [['refund'], ['release', 's25_dialogue_without_host'], ['event', 's25_dialogue_without_host', false, 0]]], 'S25 presenter with the host switch off: stops BEFORE the anchors — no anchor spend, no scene post, refund confirmed then claim released, event written')
-  ok(off.res.body.error.includes('credits are back') && off.res.body.error.includes('No video scenes were submitted'), 'refund is only claimed to the customer when confirmed')
+  ok(off.res.body.error.includes('credits are back') && off.res.body.error.includes('No video scene was started'), 'refund is only claimed to the customer when confirmed')
   const offUnconfirmed = await runGates({ family: 's25', scenes: dlg, hostOn: false, refunded: false })
   eq([offUnconfirmed.res.status, offUnconfirmed.res.body.refunded, offUnconfirmed.res.body.claimReleased, offUnconfirmed.calls.some(c => c[0] === 'release')], [422, false, false, false], 'unconfirmed refund: the claim is NOT released and nothing is promised')
   ok(!offUnconfirmed.res.body.error.includes('credits are back'), 'unconfirmed refund: the message does not say the credits are back')
@@ -459,21 +466,152 @@ eq(notRequested.calls.length, 0, 'No clone/profile lookup when unrequested')
     eq([other.res, other.calls], [null, [['anchors']]], `${fam}: presenter without host is NOT gated (native speech exists) — unchanged`)
   }
 
-  // Ledger REAL (ctx.outcomes): cena retida = recusa nossa, sem tentativa ao fornecedor.
+  // Ledger REAL (ctx.outcomes): cena retida sem tentativa = recusa nossa, sem POST.
   const ledger = findNode(generationAst, n => ts.isBlock(n) && n.statements.length === 2 && n.getText(generationAst).includes('c.outcomes[i] = {') && n.getText(generationAst).includes('hDispositions[i]'))
-  const runLedger = (dispositions, heldIdx) => {
+  const disposition = load('@/lib/cinematic/sceneDisposition')
+  const dispatch = load('@/lib/cinematic/dispatchScenes')
+  const runLedger = (dispositions, heldIdx, hostAttempts = new Map()) => {
     const c = { outcomes: [], attempts: [], totalPosts: 0 }
-    vm.runInNewContext(ts.transpileModule(ledger.getText(generationAst), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText, { ctxDespacho: () => c, plan: { scenes: dispositions.map(() => ({})) }, hDispositions: dispositions, hModels: dispositions.map(() => 'm'), hHeldByPolicy: new Set(heldIdx), claimQuality: 'q' })
+    vm.runInNewContext(ts.transpileModule(ledger.getText(generationAst), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText, { ctxDespacho: () => c, plan: { scenes: dispositions.map(() => ({})) }, hDispositions: dispositions, hModels: dispositions.map(() => 'm'), hHeldByPolicy: new Set(heldIdx), hHostAttempts: hostAttempts, claimQuality: 'q', classifyProviderFailure: disposition.classifyProviderFailure })
     return c
   }
   const led = runLedger(['accepted', 'explicit_reject', 'accepted'], [1])
-  eq([led.outcomes[1].reason_class, led.outcomes[1].attempt_count, led.attempts[1], led.totalPosts], ['local_policy_gate', 0, [], 2], 'held S25 scene: local_policy_gate, zero attempts, not counted as a provider POST')
+  eq([led.outcomes[1].reason_class, led.outcomes[1].attempt_count, led.attempts[1], led.totalPosts], ['local_policy_gate', 0, [], 2], 'held S25 scene WITHOUT a host attempt: local_policy_gate, zero attempts, not counted as a provider POST')
   eq([led.outcomes[0].reason_class, led.outcomes[0].attempt_count, led.attempts[0].length], ['ok', 1, 1], 'accepted scenes keep their ledger entry')
   const ledReject = runLedger(['explicit_reject'], [])
   eq([ledReject.outcomes[0].reason_class, ledReject.totalPosts], ['unknown', 1], 'a provider explicit reject is still one counted POST with class unknown (unchanged)')
-  const disposition = load('@/lib/cinematic/sceneDisposition')
-  const dispatch = load('@/lib/cinematic/dispatchScenes')
   eq(dispatch.invarianteFecha(disposition.summarize(led.outcomes, 3)), true, 'the dispatch invariant still closes with a held scene (rejected by us, never a phantom)')
+
+  // ═══ KINEO-S25-FALA-SEM-VOZ-R5-2026-09-14 (Board, MOTORES-ESPECIFICOS-R4) ═══
+  // §1 — o POST REAL do host não some do ledger. §2 — uma fala retida nunca vira
+  // sucesso normal. Prova numa só corrida: o corpo INTEIRO do laço real
+  // (declarações, host `if`, retenção, condição nativa com espião, cauda com o
+  // `break`), o `submitQueueOnce` REAL do adaptador com fetch em memória, o
+  // preenchimento real de slots, o ledger real, o desfecho real
+  // (`if (hHeldByPolicy.size > 0)` + `rejectS25DialogueWithoutHost`) e, quando
+  // ele não dispara, a expressão real do piso. Rede proibida.
+  const loopStmt = findNode(generationAst, n => ts.isForOfStatement(n) && n.initializer.getText(generationAst) === 'const [idx, hs]' && n.expression.getText(generationAst) === 'plan.scenes.entries()' && n.statement.getText(generationAst).includes('s25DialogueHeld'))
+  ok(stmts === loopStmt.statement.statements, 'the host if / hold / native if live inside the real per-scene submit loop')
+  const fillWhile = findNode(generationAst, n => ts.isWhileStatement(n) && n.expression.getText(generationAst) === 'hRequestIds.length < plan.scenes.length')
+  const heldOutcome = findNode(generationAst, n => ts.isIfStatement(n) && n.expression.getText(generationAst) === 'hHeldByPolicy.size > 0')
+  const floorIf = findNode(generationAst, n => ts.isIfStatement(n) && n.expression.getText(generationAst).includes('hValid.length === 0 || hSubmittedSec'))
+  const decl = name => findNode(generationAst, n => ts.isVariableDeclaration(n) && n.name.getText(generationAst) === name).initializer.getText(generationAst)
+  const bodyWithSpy = stmts.map(s => s === nativeIf ? `if (${nativeIf.expression.getText(generationAst)}) { calls.push(['native-post', family, hs.type, idx]); id = 'native-' + idx }` : s.getText(generationAst)).join('\n')
+  const fullCode = `export const run = (async () => {
+    const hRequestIds = [], hDispositions = [], hModels = [], hEngines = [], hSubmittedPrompts = [], contratoRelato = []
+    const hHeldByPolicy = new Set(); const hHostAttempts = new Map()
+    let cinematicSubmissionUncertain = false, providerSubmissionMayExist = false
+    ${pre.getText(generationAst)}
+    ${rejectFn.getText(generationAst)}
+    for (const [idx, hs] of plan.scenes.entries()) {\n${bodyWithSpy}\n}
+    ${fillWhile.getText(generationAst)}
+    ${ledger.getText(generationAst)}
+    const hValid = hRequestIds.filter((id) => id !== null)
+    const hPlannedSec = ${decl('hPlannedSec')}
+    const hSubmittedSec = ${decl('hSubmittedSec')}
+    const response = await (async () => { ${heldOutcome.getText(generationAst)}
+      return null })()
+    const floorAbort = response ? undefined : ${floorIf.expression.getText(generationAst)}
+    return { outcome: response ? 'explicit_outcome' : 'normal_success', response, floorAbort, requestIds: hRequestIds.slice(), models: hModels.slice(), engines: hEngines.slice(), dispositions: hDispositions.slice(), held: [...hHeldByPolicy], hSubmittedSec, hPlannedSec }
+  })`
+  const runFull = async ({ scenes, family = 's25', fetchImpl, tts, upload, refunded = true, released = true, hostOn = true, anchors = { portraitUrl: 'https://offline.invalid/portrait.png', environmentUrl: 'https://offline.invalid/env.png' } }) => {
+    const calls = []
+    const api = veedApi(async (url, init) => { calls.push(['provider-post', init.method]); return fetchImpl(url, init) })
+    const c = { outcomes: [], attempts: [], totalPosts: 0, submittedPrompts: {}, claimAction: 'unknown', refundConfirmed: null, planned: 0 }
+    const scope = {
+      family, plan: { scenes: scenes.map(s => ({ ...s })), environmentSheet: '', characterSheet: '' }, hostTtsEnabled: hostOn, anchors, hostVoice: { voice: 'approved', defaultSpeed: 1 }, hostUserSpeed: 1, hostPerformancePrompt: 'approved performance',
+      user: { id: 'internal-fixture' }, generationId: 'gen-fixture', formatoVisual: { modo: 'presenter' }, eraSuffix: '', claimQuality: 'cinematic_s25', calls,
+      synthesizeHostSpeech: async a => { calls.push(['tts', a.text]); if (tts) return tts(); return Buffer.from('offline') },
+      estimateMp3DurationSeconds: () => 5, uploadVoiceoverToSupabase: async () => { calls.push(['upload']); if (upload) return upload(); return 'https://offline.invalid/voice.mp3' },
+      submitAvatarJob: async a => { calls.push(['host-submit', a.engine]); return api.submitQueueOnce('fixture-host-model', {}) },
+      AvatarSubmitError: api.AvatarSubmitError, HOST_PRESENTER_MODEL: 'offline-host-model',
+      cinematicSceneModel: (fam, t, anchored) => `${fam}/${t}/${anchored ? 'i2v' : 't2v'}`, ctxDespacho: () => c, classifyProviderFailure: disposition.classifyProviderFailure,
+      confirmCinematicRefund: async () => { calls.push(['refund']); return refunded }, releaseBirthClaim: async (reason) => { calls.push(['release', reason]); return released },
+      writeServerEvent: async (e) => { calls.push(['event', e.name, e.metadata]) },
+      NextResponse: { json: (body, init) => ({ status: init?.status ?? 200, body }) },
+      setTimeout: (fn) => fn(), console: { log() {}, warn() {}, error() {} }, fetch() { throw Error('network forbidden') }, Buffer, Math, Boolean, Set, Map, Promise, String, Array,
+    }
+    const result = await evaluate(fullCode, scope).run()
+    return { result, calls, ctx: c }
+  }
+  const line = 'This exact line must remain.'
+  const presenterPlan = (supportSeconds, supports = 5) => [{ index: 1, type: 'dialogue', dialogueLine: line, seconds: 5, prompt: 'presenter', voiceover: null }, ...Array.from({ length: supports }, (_, i) => ({ index: i + 2, type: 'support', dialogueLine: '', seconds: supportSeconds, prompt: `support ${i}`, voiceover: 'Support narration.' }))]
+  const reject400 = async () => ({ ok: false, status: 400, text: async () => '{"detail":"fixture rejection"}' })
+
+  // §1 — o adaptador REAL faz o POST e o fornecedor devolve 400: o ledger conserva o host.
+  const posted = await runFull({ scenes: presenterPlan(11), fetchImpl: reject400 })
+  eq(posted.calls.slice(0, 4), [['tts', line], ['upload'], ['host-submit', 'presenter'], ['provider-post', 'POST']], 'S25 dialogue: TTS, upload and ONE real provider POST happened before the host rejected')
+  eq([posted.result.held, posted.result.models[0], posted.result.dispositions[0]], [[0], 'offline-host-model', 'explicit_reject'], 'held scene keeps the HOST model that was actually posted — never the native model that was never called')
+  eq(posted.ctx.outcomes[0], { scene_index: 0, model: 'offline-host-model', disposition: 'explicit_reject', reason_class: 'invalid_payload', retry_safety: 'never', provider_http_status: 400, attempt_count: 1 }, '§1 ledger: the real host POST is ONE attempt with its real status (400 → invalid_payload), not zero')
+  eq([posted.ctx.attempts[0], posted.ctx.totalPosts], [[{ model: 'offline-host-model', status: 400, ambiguous: false, accepted: false }], 1], '§1 ledger: attempts and total_posts count the host POST — and nothing for the blocked native fallback')
+  ok(!posted.calls.some(c => c[0] === 'native-post'), '§2: the silent native POST never happens for the held scene')
+  const postedEvent = posted.calls.find(c => c[0] === 'event')[2]
+  eq([postedEvent.host_attempts, postedEvent.native_posts_for_held, postedEvent.scene_posts], [[{ scene_index: 0, host_model: 'offline-host-model', host_post: true, host_status: 400 }], 0, 1], 'the event separates the real host attempt (posted, 400) from the native fallback (blocked, zero POST)')
+  // §1 — TTS falha ANTES de qualquer POST: zero tentativas de vídeo, como sempre.
+  const ttsFail = await runFull({ scenes: presenterPlan(11), fetchImpl: reject400, tts: async () => { throw Error('tts unavailable') } })
+  eq([ttsFail.calls.filter(c => c[0] === 'provider-post').length, ttsFail.ctx.outcomes[0].attempt_count, ttsFail.ctx.outcomes[0].reason_class, ttsFail.ctx.attempts[0], ttsFail.ctx.totalPosts], [0, 0, 'local_policy_gate', [], 0], '§1: a TTS failure before the submit stays a zero-attempt policy hold (no phantom POST)')
+  eq(ttsFail.calls.find(c => c[0] === 'event')[2].host_attempts, [{ scene_index: 0, host_model: 'offline-host-model', host_post: false, host_status: null }], '§1: the event records the host attempt as NOT posted')
+  const uploadFail = await runFull({ scenes: presenterPlan(11), fetchImpl: reject400, upload: async () => { throw Error('storage unavailable') } })
+  eq([uploadFail.calls.filter(c => c[0] === 'provider-post').length, uploadFail.ctx.outcomes[0].attempt_count, uploadFail.ctx.totalPosts], [0, 0, 0], '§1: an upload failure before the submit is also zero attempts')
+  // §1 — chave ausente: o adaptador REAL lança AvatarSubmitError com status null ANTES do fetch → não houve POST.
+  const noKeyApi = veedApi(() => { throw Error('fetch must not run without a key') }, {})
+  await assert.rejects(noKeyApi.submitQueueOnce('m', {}), e => e instanceof noKeyApi.AvatarSubmitError && e.status === null && e.ambiguous === false, 'real adapter: missing FAL_KEY is an explicit error with status null, raised before any fetch'); checks++
+  const noKeyLedger = runLedger(['explicit_reject'], [0], new Map([[0, { model: 'offline-host-model', status: null, posted: false, message: 'FAL_KEY is not configured' }]]))
+  eq([noKeyLedger.outcomes[0].attempt_count, noKeyLedger.outcomes[0].reason_class, noKeyLedger.totalPosts], [0, 'local_policy_gate', 0], '§1 ledger: status null before the fetch = no POST = zero attempts')
+  // §1 — não comprovável: declarado 'unknown', nunca zero.
+  const unknownLedger = runLedger(['explicit_reject'], [0], new Map([[0, { model: 'offline-host-model', status: null, posted: 'unknown', message: 'adapter threw outside its contract' }]]))
+  eq([unknownLedger.outcomes[0].reason_class, unknownLedger.outcomes[0].provider_http_status, unknownLedger.outcomes[0].attempt_count, unknownLedger.attempts[0].length], ['unknown', null, 1, 1], '§1 ledger: an unprovable POST is declared unknown (one attempt, class unknown), not asserted as zero')
+  // §1 — ambíguo (5xx REAL do adaptador): a proteção existente continua — sem segunda tentativa, IDs anteriores preservados, sem retenção.
+  const ambiguous5xx = await runFull({ scenes: [{ index: 1, type: 'support', dialogueLine: '', seconds: 11, prompt: 's', voiceover: 'v' }, ...presenterPlan(11, 1)], fetchImpl: async () => ({ ok: false, status: 503, text: async () => 'busy' }) })
+  eq([ambiguous5xx.result.requestIds, ambiguous5xx.result.dispositions, ambiguous5xx.result.held, ambiguous5xx.calls.filter(c => c[0] === 'provider-post').length], [['native-0', null, null], ['accepted', 'ambiguous'], [], 1], 'S25 ambiguous host failure (real 503): earlier accepted ID preserved, ONE POST, no second job, no policy hold, no native fallback')
+  eq([ambiguous5xx.ctx.outcomes[1].disposition, ambiguous5xx.ctx.outcomes[1].reason_class, ambiguous5xx.ctx.outcomes[1].attempt_count], ['ambiguous', 'transport_timeout_5xx', 1], 'ambiguous ledger entry unchanged')
+
+  // §2 — os dois cenários do Board, até a resposta: NUNCA o sucesso normal.
+  const timelineApi = load('@/lib/cinematic/timelineContract')
+  // Plano do Board: cinco apoios ACEITOS e a fala por último — é assim que o piso aprovava em ec650782.
+  const presenterLast = (supportSeconds) => { const p = presenterPlan(supportSeconds); return [...p.slice(1), p[0]] }
+  for (const [supportSeconds, label] of [[11, '55/60s (floor passes, timeline would refuse later)'], [12, '60/65s (floor passes, timeline would ACCEPT a film without the line)']]) {
+    const r = await runFull({ scenes: presenterLast(supportSeconds), fetchImpl: reject400 })
+    eq([r.result.outcome, r.result.response.status, r.result.response.body.reason, r.result.response.body.retryable, r.result.response.body.heldScenes, r.result.response.body.claimReleased], ['explicit_outcome', 422, 's25_dialogue_without_host', false, [5], true], `§2 ${label}: explicit recoverable 422, retryable:false — not the normal success`)
+    eq(r.result.response.body.motivo, 'the presenter voice provider rejected the scene (HTTP 400)', `§2 ${label}: the reason names what really happened`)
+    ok(r.result.floorAbort === undefined && r.result.hSubmittedSec >= r.result.hPlannedSec * 0.9, `§2 ${label}: the accepted seconds WOULD pass the 90% floor (${r.result.hSubmittedSec}/${r.result.hPlannedSec}), and the outcome is decided before the floor is evaluated`)
+    eq([r.result.requestIds, r.result.response.body.acceptedScenes.map(a => a.request_id), r.result.response.body.scenePosts], [['native-0', 'native-1', 'native-2', 'native-3', 'native-4', null], ['native-0', 'native-1', 'native-2', 'native-3', 'native-4'], 6], `§2 ${label}: the five accepted IDs are preserved in the response; 6 real POSTs (5 native + the host)`)
+    ok(r.result.response.body.error.includes('5 scenes had already started and were set aside') && r.result.response.body.error.includes('credits are back'), `§2 ${label}: the customer is told the scenes were set aside and that the refund is confirmed`)
+    eq([r.ctx.claimAction, r.ctx.refundConfirmed, r.ctx.outcomes[5].model, r.ctx.outcomes[5].attempt_count, r.ctx.totalPosts], ['released', true, 'offline-host-model', 1, 6], `§2 ${label}: the ledger context records the release; the held slot keeps the host POST; total_posts is honest`)
+  }
+  // §2 — a impossibilidade descoberta DEPOIS de cenas aceitas: para de gastar, preserva IDs, desfecho explícito.
+  const mid = await runFull({ scenes: [...presenterPlan(12).slice(1, 3), ...presenterPlan(12).slice(0, 1), ...presenterPlan(12).slice(3)], fetchImpl: reject400 })
+  eq([mid.result.response.status, mid.result.requestIds, mid.result.dispositions], [422, ['native-0', 'native-1', null, null, null, null], ['accepted', 'accepted', 'explicit_reject']], '§2 mid-film: the two accepted IDs are preserved, the held slot is null, and submission STOPS — three later support scenes are never posted')
+  eq(mid.calls.filter(c => c[0] === 'native-post').map(c => c[3]), [0, 1], '§2 mid-film: exactly the two scenes before the held dialogue went to the provider')
+  eq([mid.result.response.body.acceptedScenes, mid.result.response.body.scenePosts, mid.result.response.body.heldScenes], [[{ scene_index: 0, request_id: 'native-0', model: 's25/support/i2v' }, { scene_index: 1, request_id: 'native-1', model: 's25/support/i2v' }], 3, [2]], '§2 mid-film: the response lists the accepted IDs (set aside, our cost), 3 real POSTs (2 native + 1 host), the held index')
+  ok(mid.result.response.body.error.includes('2 scenes had already started and were set aside and your credits are back'), '§2 mid-film: the customer is told scenes were set aside and the refund is confirmed')
+  const midEvent = mid.calls.find(c => c[0] === 'event')[2]
+  eq([midEvent.accepted_request_ids, midEvent.stopped_after_scene, midEvent.scene_posts, midEvent.held_scenes], [['native-0', 'native-1'], 3, 3, [2]], '§2 mid-film: the event carries accepted IDs, where submission stopped, real POST count, held scenes')
+  eq(mid.ctx.outcomes.map(o => o && [o.model, o.attempt_count]), [['s25/support/i2v', 1], ['s25/support/i2v', 1], ['offline-host-model', 1]], '§1+§2 united: accepted scenes 1 attempt each, held scene = the host POST, later scenes absent (not_attempted)')
+  eq(dispatch.invarianteFecha(disposition.summarize(mid.ctx.outcomes.filter(Boolean), 6)), true, 'the dispatch invariant closes: 2 accepted + 1 rejected + 3 not_attempted = 6')
+  // §2 — estorno NÃO confirmado: o claim não é liberado e nada é prometido.
+  const unconfirmed = await runFull({ scenes: presenterPlan(12), fetchImpl: reject400, refunded: false })
+  eq([unconfirmed.result.response.status, unconfirmed.result.response.body.refunded, unconfirmed.result.response.body.claimReleased, unconfirmed.calls.some(c => c[0] === 'release'), unconfirmed.ctx.claimAction], [422, false, false, false, 'release_failed'], '§2: unconfirmed refund → claim stays closed to new spend, nothing promised, ledger says release_failed')
+  ok(!unconfirmed.result.response.body.error.includes('credits are back'), '§2: the message never claims the refund when it is not confirmed')
+  // §2 — a prova de que o sucesso normal escondia a fala: alinhamento real + timeline real sobre o que o piso aprovava em ec650782.
+  const aligned = (supportSeconds) => {
+    const plan = presenterPlan(supportSeconds)
+    const ids = [null, ...plan.slice(1).map((_, i) => 'id' + i)]
+    const urls = ids.map(id => id ? 'https://offline.invalid/' + id : null)
+    const response = { scene_engines: plan.map(s => s.type), scene_seconds: plan.map(s => s.seconds), scene_narrations: plan.map(s => s.voiceover), scene_dialogues: plan.map(s => s.type === 'dialogue' ? s.dialogueLine : null), scene_captions: plan.map(() => null) }
+    const a = timelineApi.signedSceneMetadata(response, urls, urls.filter(Boolean), true)
+    let verdict = 'accepted'; try { timelineApi.assertCinematicTimeline(a.scene_engines.map((engine, i) => ({ engine, seconds: a.scene_seconds[i] })), 60) } catch (e) { verdict = e.message }
+    return { dialogues: a.scene_dialogues, verdict }
+  }
+  eq(aligned(12), { dialogues: [null, null, null, null, null], verdict: 'accepted' }, 'BEFORE (what the floor let through): real alignment drops the held dialogue and the real timeline gate ACCEPTS a 60s film without the mandatory line')
+  ok(aligned(11).verdict !== 'accepted', 'BEFORE: with 55s the loss only surfaced later as a timeline refusal')
+  // §2 — S25 sem diálogo e outras famílias: o laço inteiro continua igual (sucesso normal, piso avaliado).
+  const s25Narrated = await runFull({ scenes: presenterPlan(12).slice(1), fetchImpl: reject400 })
+  eq([s25Narrated.result.outcome, s25Narrated.result.floorAbort, s25Narrated.result.requestIds.every(Boolean), s25Narrated.result.held], ['normal_success', false, true, []], 'S25 narrated film: every support scene posted, floor evaluated, normal success (unchanged)')
+  for (const fam of ['hollywood', 'h3', 'omni']) {
+    const nat = await runFull({ scenes: presenterPlan(12), family: fam, fetchImpl: reject400 })
+    eq([nat.result.outcome, nat.result.held, nat.result.engines[0], nat.result.requestIds.every(Boolean), nat.calls.filter(c => c[0] === 'native-post').length], ['normal_success', [], 'dialogue', true, 6], `${fam}: explicit host failure still falls back to native speech, all 6 scenes posted, normal success (unchanged)`)
+  }
 
   // MAPA DE ÁUDIO por motor, pelo código real: host (TTS + lip-sync) / fallback nativo / apoio narrado.
   const audioMap = {}
