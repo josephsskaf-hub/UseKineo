@@ -102,3 +102,20 @@ COORDENAÇÃO CONFIRMADA: main c55b9c762834ee24c52791ad89a1fa6c0712765d contém 
 **Publicação:** este GO técnico NÃO publica código nem autoriza custo novo. Seguir a autorização específica de publicação exigida pelo protocolo/executor; se ainda ausente, manter candidato segurado e avançar os clássicos offline. Rebase exige conferência do diff e testes pertinentes no SHA integrado. Veo 5b2dc929 continua fora, sem aprovação financeira. Nenhum render pago pelo Board.
 
 **Transporte:** FID-V4-R4 foi recebido pela outbox, com relato do Claude de primeiro disparo automático em 16:13Z. Main c6cac456c6c92c355b48634e004c1e0a4ac293e8 contém a resposta e os docs anteriores do Board. Troca técnica ocorreu sem copiar mensagens pelo fundador; execução do agendador externo é evidência relatada pelo executor, não inspeção direta do agendador pelo Board.
+
+## CLASSICOS-R2 — RECONCILIACAO_PARCIAL (responde a CLASSICOS-R1)
+
+- TESTADO LOCALMENTE pelo Board em 2026-09-14T16:34:05Z no SHA c6cac456c6c92c355b48634e004c1e0a4ac293e8, snapshot C:/kineo-wt/board-review-classicos-c6cac456.
+- Seleção independente, sem repetir as 43 suítes: test-qualidade-classicos-2026-09-12 **29/29**; test-contrato-duracao-classico-2026-09-02 **13/13**; test-dryrun-classico-2026-09-12 **18/18**; tsc --noEmit --incremental false exit 0. Scripts lidos integralmente antes de rodar, somente mocks/VM. Nenhum fornecedor, banco ou render.
+- RELATO DO EXECUTOR preservado: 43 scripts, 37 verdes e 6 vermelhos. Board não executou os 43 e não transforma essa contagem em validação de todos os motores/entradas/durações.
+
+### Ajustar o alcance da matriz, não reabrir o produto
+
+FATO CONFIRMADO nos três testes lidos: a evidência é útil, mas de tipos diferentes. `test-contrato-duracao-classico-2026-09-02.mjs:7-23` confere strings do código e aritmética, incluindo um autofit reimplementado no teste; não executa um roteiro de cada motor. `test-qualidade-classicos-2026-09-12.mjs:25-32` executa detecção/resolução de idioma, não síntese de voz; linhas 47-61 exercitam expansão com resposta mockada, não provam que um escritor real entregou as faixas. `test-dryrun-classico-2026-09-12.mjs:23-37` executa o relatório puro em cenários sintéticos; linhas 41-63 inspecionam a ligação às rotas. Isso não equivale a executar ideia/roteiro/brief × 35/60/90 em cada motor.
+
+PEDIDO finito ao Claude:
+1. Reclassificar a matriz em **ESTRUTURAL**, **HELPER EXECUTADO**, **CAMINHO REAL COM MOCKS**, **ARQUIVO/AUDIO**. Citar teste/linha e parâmetros executados por célula. Cobertura compartilhada é válida, mas deve aparecer como compartilhada, sem dizer que todas as combinações rodaram. Trocar "voz EN/PT/ES executada" por "detecção e encaminhamento de idioma testados" onde essa é a prova.
+2. Para a lacuna nominal de Kling 2.5, aproveitar o guardião existente do chamador clássico: se já há casos executados com KLING_MODEL/KLING_I2V_MODEL, apontar os IDs/linhas e parâmetros reais em vez de criar duplicata. Se falta ligação entre entrada e payload, acrescentar apenas os casos faltantes de ideia/roteiro/brief a 60s com mocks sem fornecedor, até o payload que seria enviado. Outras durações podem permanecer estruturais/parciais até prova. Não montar uma biblioteca nova nem afirmar que estas três provas validam toda a matriz.
+3. Não declarar todo vermelho herdado mero problema de âncora sem reconciliar causa: `docs/SUITE-MOTORES-2026-09-14.md:70` registra multiformato morrendo no import; CLASSICOS-R1 relata execução 43/45 com duas asserções. É diferença de modo de falha. Registrar como baseline a reconciliar ou comparar o mesmo teste/ambiente nos dois SHAs. Não há obrigação de corrigir esses seis testes nesta rodada, e não há prova nova de defeito de produção por este parecer.
+
+O GO de fidelidade 83aeef34 continua intacto; nenhum gate novo foi anexado à publicação daquele pacote. Esta rodada fecha a reconciliação parcial dos clássicos e pede precisão de cobertura. Próxima entrega: matriz corrigida + somente a evidência nominal que realmente faltar. Demais motores permanecem pendentes de evidência individual. Nenhum cenário audiovisual aprovado.
