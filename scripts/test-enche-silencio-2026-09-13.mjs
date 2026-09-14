@@ -38,12 +38,23 @@ const run = async () => {
   const r3 = await E3.expandVoiceoversToTargets([{ text: 'Short line here.', targetWords: 23 }], 'en', 'x')
   checa('resposta acima de alvo+1 é descartada e a 2ª rodada acerta o alvo', chamadas === 2 && r3[0].split(' ').length === 23)
   checa('janela aceita alvo−2..alvo+1', E.fitsVoiceoverTarget(21, 23) && E.fitsVoiceoverTarget(24, 23) && !E.fitsVoiceoverTarget(20, 23) && !E.fitsVoiceoverTarget(25, 23))
-  checa('v4: com teto da cena, aceita até o teto (27 para 12 s) e a rota pede alvo+3', E.fitsVoiceoverTarget(27, 23, 27) && !E.fitsVoiceoverTarget(28, 23, 27) && /targetWords: Math\.min\(x\.target \+ 3, x\.maxWords\), maxWords: x\.maxWords/.test(rd('app/api/generate-video-cinematic/route.ts')))
+  checa('v4: com teto da cena, aceita até o teto (27 para 12 s) e a rota pede alvo+3', E.fitsVoiceoverTarget(27, 23, 27) && !E.fitsVoiceoverTarget(28, 23, 27) && /targetWords: Math\.min\(Math\.max\(x\.target \+ 3, Math\.ceil\(x\.target \* 1\.2\)\), x\.maxWords\), maxWords: x\.maxWords/.test(rd('app/api/generate-video-cinematic/route.ts')))
   checa('v3: os segundos seguem a fala (round(pal/2,3)+1, teto da família) nas cenas reescritas', /x\.sc\.seconds = Math\.max\(4, Math\.min\(teto, Math\.round\(w \/ 2\.3\) \+ 1\)\)/.test(rd('app/api/generate-video-cinematic/route.ts')))
   checa('linha já no alvo não gasta chamada', await (async () => { let n = 0; const E4 = roda(src, { openai: { chat: { completions: { create: async () => { n++; return { choices: [{ message: { content: '[]' } }] } } } } } }); const r = await E4.expandVoiceoversToTargets([{ text: Array(22).fill('w').join(' '), targetWords: 23 }], 'en', 'x'); return n === 0 && r[0].split(' ').length === 22 })())
 }
 await run()
 
+console.log('== idioma (14/09): a ideia em PT no H3 saía narrada em inglês ==')
+{
+  const TL = roda(rd('lib/textLanguage.ts'))
+  const pt = 'A história do tsunami de Lituya Bay em 1958: a onda mais alta já registrada, 524 metros, causada por um deslizamento no Alasca. Conte a noite e como um pescador sobreviveu.'
+  checa('o detector reconhece a ideia PT do dry-run (antes: pt 9 × es 3 e mesmo assim null)', TL.resolveNarrationLanguage(undefined, pt).language === 'pt')
+  checa('a mesma frase em inglês segue en', TL.resolveNarrationLanguage(undefined, 'The story of the 1958 Lituya Bay tsunami: the tallest wave ever recorded, 524 meters, caused by a landslide in Alaska. Tell the night and how a fisherman survived.').language === 'en')
+  checa('espanhol claro segue es', TL.resolveNarrationLanguage(undefined, 'La historia del tsunami de Lituya Bay en 1958: la ola más alta jamás registrada, con 524 metros, fue causada por un deslizamiento en Alaska y un pescador sobrevivió.').language === 'es')
+  const router = rd('lib/hollywood/router.ts')
+  checa('o planejador hollywood escreve a narração na língua da pessoa (não mais "ALL text in English regardless")', /NARRATION LANGUAGE \(STRICT/.test(router) && /every "voiceover" MUST be written in \$\{NARRATION_LANGUAGE_NAME\[language\] \?\? language\}/.test(router) && /Use NO "dialogue" scenes for this film/.test(router))
+  checa('em inglês o contrato antigo continua', /: 'ALL text in English regardless of the input language\.'\}/.test(router))
+}
 console.log('== a rota ==')
 const r = rd('app/api/generate-video-cinematic/route.ts')
 const iEnche = r.indexOf('if (!verbatim && plan.scenes.length > 0) {')
@@ -54,6 +65,7 @@ const iSubmit = r.indexOf('await submitToFalWithOneRetry(')
 checa('o enchimento roda SÓ no modo IA, antes do piso, do dry-run e de qualquer POST', iEnche > 0 && iEnche < iRecusa && iRecusa < iFloor && iFloor < iDry && iDry < iSubmit)
 checa('alvo por cena = segundos × 2,3; cena abaixo de alvo−1, acima do teto da cena, ou enchimento', /target: Math\.round\(\(sc\.seconds \|\| 0\) \* 2\.3\)/.test(r) && /x\.words < x\.target - 1 \|\| x\.words > x\.maxWords \|\| FILLER_LINE_RE\.test\(lineOf\(x\.sc\)\)/.test(r))
 checa('diálogo reescrito atualiza a fala citada no prompt', /x\.sc\.dialogueLine = spoken/.test(r) && /x\.sc\.prompt = x\.sc\.prompt\.replace\(\/"\[\^"\]\{6,\}"\/, `"\$\{spoken\}"`\)/.test(r))
+checa('v6: apara o respiro no modo IA só enquanto o filme fica ≥ pedido (o piso não reestica)', /while \(totalSil > 7\.5 && totalSec - 1 >= duration && guard-- > 0\)/.test(r))
 checa('fail-open (try/catch) e log com antes → depois', /enche-silencio pulado/.test(r) && /KINEO-ENCHE-SILENCIO: \$\{curtas\.length\} cena\(s\) reescritas/.test(r))
 
 console.log(`\n${ok} ok · ${falhas.length} falhas`)

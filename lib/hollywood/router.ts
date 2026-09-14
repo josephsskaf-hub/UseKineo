@@ -468,6 +468,9 @@ function trimNarrationToWords(text: string, maxWords: number): string {
 }
 
 // ── Planner ──────────────────────────────────────────────────────────────────
+/** Nome da língua da narração para o planejador (espelho de LANGUAGE_NAMES em lib/textLanguage — sem import: guardiões carregam este arquivo cru). */
+const NARRATION_LANGUAGE_NAME: Record<string, string> = { pt: 'Brazilian Portuguese (pt-BR)', es: 'Spanish (es-419, Latin American)' }
+
 export async function planHollywoodScenes(args: {
   /** KINEO-DURATIONFIX-2026-08-17 — feedback de replanejamento: total da
    *  tentativa anterior que veio CURTA (o GPT ignora o alvo às vezes). */
@@ -545,7 +548,7 @@ OTHER HARD RULES:
 - NON-DIALOGUE SCENES WITH A VISIBLE PERSON (STRICT): in every "support" or "cinematic" scene where the characterSheet person appears, the prompt MUST state the person is NOT talking — write "mouth closed, not speaking, no lip movement" in the prompt. External narration plays over these scenes; a moving mouth under someone else's voice is a horrifying dub mismatch. Prefer person-FREE b-roll unless the story needs them on screen.
 - VISUAL VARIETY (STRICT — repeated scenes are a hard failure): every scene must differ from EVERY other scene in at least TWO of: shot size (wide / medium / close-up / macro / aerial), camera angle (eye-level / low / high / overhead), camera movement (static / dolly / crane / handheld / orbit), and staging (what the subject is DOING and WHERE inside the environment). The characterSheet/environmentSheet repeat for continuity of WORLD — never for continuity of FRAMING. Two scenes with the same composition = a wasted paid render. Before finalizing, re-read your scene list and rewrite any two scenes that could be mistaken for each other.
 - SUBJECT VARIETY (STRICT — KINEO-SPECTACLE-2026-08-17, founder caught "the same sea scene repeated several times"): before writing scenes, list the DISTINCT visual subjects the story offers (each event, place, object, era and moment is a different subject — e.g. an eruption, a ship at sea, a wave hitting a town, an ash column, a red sky over a city, a new island rising are SIX different subjects). Every non-dialogue scene depicts a DIFFERENT primary subject. Two b-roll scenes of the same subject — even with different framing — are a hard failure. If the story has fewer subjects than scenes, move through TIME (before / during / after) or PLACE, never repeat.
-- ALL text in English regardless of the input language${language && language !== 'en' ? ` (the input may be in "${language}")` : ''}.
+- ${language && language !== 'en' ? `NARRATION LANGUAGE (STRICT — KINEO-IDIOMA-DA-NARRACAO-2026-09-14: a Portuguese idea on H3 came out narrated in English): every "voiceover" MUST be written in ${NARRATION_LANGUAGE_NAME[language] ?? language} — that is the language the narrator will speak. Prompts, characterSheet, environmentSheet, styleSheet and captions stay in English. Use NO "dialogue" scenes for this film: all scenes are "support" or "cinematic" with voiceover (the on-camera engines lip-sync English only).` : 'ALL text in English regardless of the input language.'}
 - NEVER name or depict a real person (no celebrities, politicians, athletes, historical figures). People are always fictional and generic.
 - Each scene gets a short on-screen "caption" (max 6 words, punchy).
 

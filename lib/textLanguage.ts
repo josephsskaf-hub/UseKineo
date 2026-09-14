@@ -12,7 +12,7 @@ export type NarrationLanguage = 'en' | 'pt' | 'es'
 
 const STOPWORDS: Record<NarrationLanguage, string[]> = {
   en: ['the', 'and', 'of', 'to', 'in', 'is', 'that', 'was', 'for', 'with', 'his', 'her', 'they', 'this', 'from', 'but', 'not', 'are', 'were', 'have', 'he', 'she', 'it', 'you', 'we', 'on', 'at', 'by', 'an', 'be'],
-  pt: ['o', 'e', 'de', 'que', 'não', 'nao', 'uma', 'um', 'para', 'com', 'ele', 'ela', 'era', 'foi', 'mas', 'como', 'seu', 'sua', 'você', 'voce', 'quando', 'onde', 'muito', 'mais', 'isso', 'está', 'esta', 'até', 'ate', 'porque', 'também', 'tambem', 'os', 'as', 'do', 'da', 'dos', 'das', 'no', 'na', 'nos', 'nas', 'ao', 'pelo', 'pela', 'eu', 'nós', 'eles', 'elas', 'meu', 'minha', 'já', 'ja', 'só', 'so', 'então', 'entao', 'depois', 'ainda', 'sempre', 'nunca', 'tinha', 'havia', 'começou', 'ficou'],
+  pt: ['o', 'e', 'de', 'que', 'não', 'nao', 'uma', 'um', 'para', 'com', 'ele', 'ela', 'era', 'foi', 'mas', 'como', 'seu', 'sua', 'você', 'voce', 'quando', 'onde', 'muito', 'mais', 'isso', 'está', 'esta', 'até', 'ate', 'porque', 'também', 'tambem', 'os', 'as', 'do', 'da', 'dos', 'das', 'no', 'na', 'nos', 'nas', 'ao', 'pelo', 'pela', 'eu', 'nós', 'eles', 'elas', 'meu', 'minha', 'já', 'ja', 'só', 'so', 'então', 'entao', 'depois', 'ainda', 'sempre', 'nunca', 'tinha', 'havia', 'começou', 'ficou', 'em', 'são', 'sao'],
   es: ['y', 'el', 'en', 'de', 'que', 'no', 'una', 'un', 'para', 'con', 'él', 'ella', 'era', 'fue', 'pero', 'como', 'su', 'sus', 'usted', 'cuando', 'donde', 'muy', 'más', 'mas', 'eso', 'está', 'esta', 'hasta', 'porque', 'también', 'tambien', 'los', 'las', 'del', 'al', 'yo', 'nosotros', 'ellos', 'ellas', 'mi', 'ya', 'sólo', 'solo', 'entonces', 'después', 'despues', 'todavía', 'siempre', 'nunca', 'se', 'lo', 'le', 'es', 'son', 'ser', 'hay', 'tiene', 'tenía', 'busca', 'felicidad', 'hombre', 'mujer', 'vida'],
 }
 
@@ -25,8 +25,9 @@ const SETS: Record<NarrationLanguage, Set<string>> = {
 /** Marcas exclusivas (o resto das listas se cruza: "de", "que", "no"...). */
 const EXCLUSIVE: Record<NarrationLanguage, Set<string>> = {
   en: new Set(['the', 'and', 'of', 'is', 'that', 'was', 'with', 'they', 'this', 'from', 'are', 'were', 'have', 'you', 'we', 'be']),
-  pt: new Set(['o', 'e', 'não', 'nao', 'uma', 'você', 'voce', 'também', 'tambem', 'os', 'do', 'da', 'dos', 'das', 'ao', 'pelo', 'pela', 'nós', 'eu', 'meu', 'minha', 'então', 'entao', 'depois', 'está', 'isso', 'muito', 'ele', 'ela', 'até', 'ate', 'quando', 'onde', 'tinha', 'havia', 'começou', 'ficou']),
-  es: new Set(['y', 'el', 'en', 'lo', 'le', 'una', 'usted', 'también', 'tambien', 'los', 'las', 'del', 'al', 'yo', 'nosotros', 'ellos', 'mi', 'entonces', 'después', 'despues', 'todavía', 'es', 'son', 'hay', 'tiene', 'pero', 'muy', 'eso', 'hasta', 'cuando', 'donde', 'sólo']),
+  // 14/09: 'em', 'um', 'com', 'mais', 'já', 'na', 'seu', 'sua', 'são', 'foi' são só do PT (es: en/un/con/más/ya/su/son/fue) — sem elas, um prompt claramente PT (9 marcas × 3) ficava em null e o filme saía em inglês.
+  pt: new Set(['o', 'e', 'não', 'nao', 'uma', 'você', 'voce', 'também', 'tambem', 'os', 'do', 'da', 'dos', 'das', 'ao', 'pelo', 'pela', 'nós', 'eu', 'meu', 'minha', 'então', 'entao', 'depois', 'está', 'isso', 'muito', 'ele', 'ela', 'até', 'ate', 'quando', 'onde', 'tinha', 'havia', 'começou', 'ficou', 'em', 'um', 'com', 'mais', 'já', 'ja', 'na', 'nas', 'seu', 'sua', 'são', 'sao', 'foi']),
+  es: new Set(['y', 'el', 'en', 'lo', 'le', 'una', 'usted', 'también', 'tambien', 'los', 'las', 'del', 'al', 'yo', 'nosotros', 'ellos', 'mi', 'entonces', 'después', 'despues', 'todavía', 'es', 'son', 'hay', 'tiene', 'pero', 'muy', 'eso', 'hasta', 'cuando', 'donde', 'sólo', 'con', 'un', 'más', 'fue', 'ya', 'sus', 'tenía']),
 }
 
 const tokens = (text: string): string[] =>

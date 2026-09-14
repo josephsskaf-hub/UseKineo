@@ -3772,7 +3772,7 @@ async function manipularPost(req: NextRequest) {
             // Pede-se alvo+3 e aceita-se até o TETO da cena — os segundos seguem
             // a fala (abaixo), então fala a mais vira cena mais longa, não estouro.
             // Passar do alvo é bom; ficar abaixo é defeito (fundador, 02/09).
-            const novas = await expandVoiceoversToTargets(curtas.map((x) => ({ text: lineOf(x.sc), targetWords: Math.min(x.target + 3, x.maxWords), maxWords: x.maxWords })), hollywoodLanguage, prompt.slice(0, 300))
+            const novas = await expandVoiceoversToTargets(curtas.map((x) => ({ text: lineOf(x.sc), targetWords: Math.min(Math.max(x.target + 3, Math.ceil(x.target * 1.2)), x.maxWords), maxWords: x.maxWords })), hollywoodLanguage, prompt.slice(0, 300))
             curtas.forEach((x, k) => {
               const nova = novas[k]
               if (!nova || nova === lineOf(x.sc)) return
@@ -3797,6 +3797,23 @@ async function manipularPost(req: NextRequest) {
                 while (frases.length > 1 && wordsOfLine(frases.join(' ')) / 2.3 > x.sc.seconds + 1) frases.pop()
                 x.sc.voiceover = frases.join(' ').trim()
                 w = wordsOfLine(x.sc.voiceover)
+              }
+            }
+            // v6 (14/09 02:05, rodada 4): o "+1 s de respiro" por cena soma ~7-9 s
+            // em 7 cenas e roça a régua (≤8 s). Mesmo apara do verbatim (13/09):
+            // tira 1 s das cenas mais folgadas enquanto o filme continuar ≥ pedido
+            // — assim o piso C2 não reestica o que foi aparado.
+            {
+              const silencio = (sc: (typeof plan.scenes)[number]) => (sc.seconds || 0) - wordsOfLine(lineOf(sc)) / 2.3
+              let totalSil = plan.scenes.reduce((a, sc) => a + Math.max(0, silencio(sc)), 0)
+              let totalSec = plan.scenes.reduce((a, sc) => a + (sc.seconds || 0), 0)
+              let guard = 40
+              while (totalSil > 7.5 && totalSec - 1 >= duration && guard-- > 0) {
+                const alvo = plan.scenes.filter((sc) => (sc.seconds || 0) > 4 && silencio(sc) > 1).sort((a, b) => silencio(b) - silencio(a))[0]
+                if (!alvo) break
+                alvo.seconds = (alvo.seconds || 0) - 1
+                totalSil = plan.scenes.reduce((a, sc) => a + Math.max(0, silencio(sc)), 0)
+                totalSec -= 1
               }
             }
             const depois = plan.scenes.reduce((a, sc) => a + wordsOfLine(lineOf(sc)), 0)
