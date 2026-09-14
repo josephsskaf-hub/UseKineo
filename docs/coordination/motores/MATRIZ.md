@@ -16,3 +16,7 @@ QUESTÃO PENDENTE: não importar aprovações genéricas de dry-run como valida�
 | Seedance 2.5 | Pendente; acesso interno | Não executada | Verificar somente modos disponibilizados internamente |
 
 Para cada célula de aprovação registrar: roteiro preservado; ação/escala/personagens; pedido/plano/arquivo; narração; legenda; música; confiabilidade; testes/SHA. Usar NÃO VALIDADO onde faltar escuta, filme ou evidência. Testes herdados podem ser aproveitados se reconciliados contra o SHA; não repeti-los para ocupar tempo.
+
+## Base compartilhada — legendas (14/09, LEGENDAS-R2)
+
+TESTADO LOCALMENTE: função real buildCaptionsFromWhisperWords, três chamadores inspecionados (clássico direto, bloco Hollywood, fala por clipe), NÃO todas as requisições dos oito motores executadas. Board reproduziu 41/47 em c0aa2642 e confirmou 47/47 + tsc em **a45237b7c06f26fd7ffb7b555cae3d7a8295c9de**: GO técnico restrito a preservar palavras acentuadas antes confundidas e evitar o início depois da janela no controle de 0,95s. Código segurado, não publicado; arquivo/áudio NÃO VALIDADOS. Piso de 0,1s ainda pode ultrapassar a janela no fim (1,05s no controle); não equivale a validação de sincronia universal. Próximo: MUSICA-R1 no guardião existente.
