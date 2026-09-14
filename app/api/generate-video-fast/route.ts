@@ -17,6 +17,9 @@ import { pickLibraryClips, type LibraryClip } from '@/lib/stockLibrary'
 // Push #351 — ensureAccessibleUrl removed (was only used for Pexels CDN proxying; Pexels now OFF).
 // import { ensureAccessibleUrl } from '@/lib/videoCache'
 import { parseUserScript } from '@/lib/scriptParser'
+import { narrationTooShortMessage } from '@/lib/narrationFit'
+import { largestFittingDuration } from '@/lib/expandPolicy'
+import { speechRateFor, narrationFitAt } from '@/lib/speechRate'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { classifyEngineFit } from '@/lib/engineFit'
 import { detectShotSpec } from '@/lib/cinematic/shotSpec'
@@ -338,6 +341,8 @@ export async function POST(req: NextRequest) {
       // #358 — instrumentation: client forwards whether the BrollPlan came back
       // degraded (GPT failed) so we can log/record the reason for VERBATIM.
       brollDegraded?: boolean
+      /** KINEO-REGUA-UNICA-2026-09-14 — consentimento explícito para descer a duração quando o roteiro próprio não enche. */
+      allow_shorter_duration?: boolean
       // KINEO-ENGINE-FIT-2026-09-09 — o cliente viu o aviso e escolheu manter o Kineo 1.
       engineFitOverride?: boolean
       // KINEO-DRYRUN-CLASSICO-2026-09-12 — validador de $0 (só contas do fundador).
@@ -430,7 +435,7 @@ export async function POST(req: NextRequest) {
     }
 
     const requestedDuration = Number(body.duration) || 45
-    const duration: Duration = SUPPORTED_DURATIONS.includes(requestedDuration as Duration)
+    let duration: Duration = SUPPORTED_DURATIONS.includes(requestedDuration as Duration)
       ? (requestedDuration as Duration)
       : 45
     // KINEO-MULTIFORMATO-2026-09-02 — enquadramento pedido pelo cliente.
@@ -685,6 +690,39 @@ export async function POST(req: NextRequest) {
         elasticFootage: true, // Pixabay é cortado à medida da fala; não há teto de clipe
       })
       return NextResponse.json({ dry_run: true, family: 'fast', engine: 'fast', verbatim, refunded: true, words_per_scene: verbatim ? null : wordsPerSceneFor(duration, clipCount), ...fastReport })
+    }
+
+    // ═══ KINEO-REGUA-UNICA-2026-09-14 — O KINEO 1 ENCURTAVA SEM AVISAR ═══════
+    // Medido nos arquivos entregues (cabeçalho MP4, 14/09): 515c188b pediu 35 s,
+    // roteiro próprio de 50 palavras, filme de 18,7 s — sem recusa, sem degrau,
+    // sem evento. A rota cinematic tem portão; esta não tinha. Direção do
+    // fundador: roteiro próprio não é reescrito, acelerado nem cortado em
+    // silêncio — antes do gasto, oferecer expansão ou uma duração menor.
+    if (verbatim) {
+      const falaDoAutor = parsedScript.segments.map((seg) => seg.voiceover ?? '').join(' ')
+      const narrationRate = speechRateFor({ family: 'classic', speed: parsedScript.speed, language: narrationLanguage.language })
+      let fit = narrationFitAt(falaDoAutor, duration, narrationRate)
+      if (!fit.ok && body.allow_shorter_duration === true) {
+        const menor = largestFittingDuration(fit.speech)
+        if (menor && menor < duration && (SUPPORTED_DURATIONS as readonly number[]).includes(menor)) {
+          const pedida = duration
+          duration = menor as Duration
+          fit = narrationFitAt(falaDoAutor, duration, narrationRate)
+          void writeServerEvent({ name: 'narration_autofit_down', userId: user.id, path: '/api/generate-video-fast', metadata: { engine: 'fast', requested_seconds: pedida, effective_seconds: duration, speech_seconds: Math.round(fit.speech * 10) / 10, words_per_second: narrationRate.wordsPerSecond, basis: narrationRate.basis } })
+        }
+      }
+      if (!fit.ok) {
+        void writeServerEvent({ name: 'narration_guard_blocked', userId: user.id, path: '/api/generate-video-fast', metadata: { engine: 'fast', reason: 'narration_too_short', requested_seconds: duration, speech_seconds: Math.round(fit.speech * 10) / 10, coverage: Math.round(fit.coverage * 100) / 100, words_per_second: narrationRate.wordsPerSecond, basis: narrationRate.basis, charged: false } })
+        return NextResponse.json({
+          error: narrationTooShortMessage(fit, SUPPORTED_DURATIONS),
+          reason: 'narration_too_short',
+          speech_seconds: Math.round(fit.speech),
+          target_seconds: duration,
+          missing_words: fit.missingWords,
+          shorter_duration: largestFittingDuration(fit.speech),
+          retryable: false,
+        }, { status: 422 })
+      }
     }
 
     // KINEO-AI-HOOK — FIRST-VIDEO cinematic opener.

@@ -61,10 +61,11 @@ import { parseUserScript } from '@/lib/scriptParser'
 // KINEO-NARRACAO-ENCHE-2026-08-22 — a aritmética que impede um roteiro curto
 // demais de virar um filme com imagem muda. Ver o cabeçalho do módulo para a
 // medição que originou a regra.
-import { narrationFit, narrationTooShortMessage, MIN_COVERAGE } from '@/lib/narrationFit'
+import { narrationTooShortMessage, MIN_COVERAGE } from '@/lib/narrationFit'
+import { speechRateFor, narrationFitAt, autofitDownAt } from '@/lib/speechRate'
 // KINEO-DEGRAU-2026-09-03 — o gate vira degrau: fala que não enche o botão
 // desce o alvo ANTES do custo em vez de recusar. Ver o rodapé do módulo.
-import { autofitDown, AUTOFIT_DOWN_FLOOR_SECONDS, AUTOFIT_DOWN_FLOOR_SECONDS_HOLLYWOOD } from '@/lib/narrationFit'
+import { AUTOFIT_DOWN_FLOOR_SECONDS, AUTOFIT_DOWN_FLOOR_SECONDS_HOLLYWOOD } from '@/lib/narrationFit'
 // sprint-v1v4 #11 — a alternativa oferecida na recusa vem da MESMA lista que
 // desenha os botoes de duracao do produto. Ver a nota em lib/narrationFit.ts.
 import { SUPPORTED_DURATIONS, largestFittingDuration } from '@/lib/expandPolicy'
@@ -1430,6 +1431,9 @@ async function manipularPost(req: NextRequest) {
     // o degrau abaixo precisa dos dois ANTES do custo. A trava lá embaixo
     // continua lendo estas mesmas variáveis.
     const parsedScript = parseUserScript(prompt)
+    // KINEO-REGUA-UNICA-2026-09-14 — portão, degrau e dry-run medem com a régua da
+    // família (clássicos 3,1 / hollywood 2,3, × velocidade). Estimativa, não áudio.
+    const narrationRate = speechRateFor({ family: hollywoodPath ? 'hollywood' : 'classic', speed: parsedScript.speed, language: narrationLanguage.language })
     // ═══ KINEO-VERBATIM-SEM-MARCADOR-2026-08-24 ═════════════════════════════
     // O Contrato C1 dizia "com script verbatim, o texto falado é o roteiro do
     // usuário" — mas a porta de entrada do contrato era `hasMarkers`: só
@@ -1476,7 +1480,7 @@ async function manipularPost(req: NextRequest) {
     // A normal request keeps its selected duration. Existing guided expansion /
     // explicit shorter-duration buttons remain available before any debit.
     const degrau = body.allow_shorter_duration === true && verbatim && parsedScript.narration
-      ? autofitDown(parsedScript.narration, requestedDuration, {
+      ? autofitDownAt(parsedScript.narration, requestedDuration, narrationRate, {
           // O planner hollywood trava o alvo em `Math.max(30, …)` — descer
           // abaixo de 30 ali seria puxado de volta e a fala voltaria a faltar.
           floorSeconds: hollywoodPath ? AUTOFIT_DOWN_FLOOR_SECONDS_HOLLYWOOD : AUTOFIT_DOWN_FLOOR_SECONDS,
@@ -2625,7 +2629,7 @@ async function manipularPost(req: NextRequest) {
     // caminho automático quem escreve é o nosso gerador, e a correção certa lá
     // é ele produzir o tamanho certo, não recusar o pedido da pessoa.
     if (verbatim && parsedScript.narration) {
-      let fit = narrationFit(parsedScript.narration, duration)
+      let fit = narrationFitAt(parsedScript.narration, duration, narrationRate)
       // ═══ sprint-v1v4 #20 — NAO RECUSE POR UM NUMERO QUE ELA NAO ESCOLHEU ═══
       // 11 das 15 recusas de narracao em 14 dias mediram o roteiro contra 45s,
       // e 45 nao existe no seletor (35/60/90) desde 20/08. Antes de recusar, o
@@ -2642,7 +2646,7 @@ async function manipularPost(req: NextRequest) {
       })
       if (resgate) {
         duration = resgate.alvo
-        fit = narrationFit(parsedScript.narration, duration)
+        fit = narrationFitAt(parsedScript.narration, duration, narrationRate)
         console.warn(
           `[narracao] ALVO FANTASMA RESGATADO: pedido ${resgate.fantasma}s nao existe no seletor ` +
           `(${SUPPORTED_DURATIONS.join('/')}); ${resgate.fala}s de fala -> alvo ${resgate.alvo}s.`,
@@ -2682,7 +2686,7 @@ async function manipularPost(req: NextRequest) {
         if (pouso) {
           const faltavamAntes = fit.missingWords
           duration = pouso.alvo
-          fit = narrationFit(parsedScript.narration, duration)
+          fit = narrationFitAt(parsedScript.narration, duration, narrationRate)
           console.warn(
             `[narracao] ATERRISSOU NO PISO: alvo ${pouso.fantasma}s nao existe no seletor e ` +
             `nenhuma duracao cabe em ${pouso.fala}s de fala; medindo contra o piso ${pouso.alvo}s ` +
@@ -4752,6 +4756,7 @@ async function manipularPost(req: NextRequest) {
         targetSeconds: duration,
         secondsPerClip: (wantsVeo || wantsSora) ? 8 : 10,
         verbatim,
+        wordsPerSecond: narrationRate.wordsPerSecond,
       })
       const refunded = await releaseBirthClaim('dry_run_no_charge')
       return NextResponse.json({

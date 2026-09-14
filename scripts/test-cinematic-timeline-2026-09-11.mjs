@@ -94,7 +94,9 @@ for(const consent of [undefined,false,'true',true]){
   let calls=0
   const result=vm.runInNewContext(decision,{body:{allow_shorter_duration:consent},verbatim:true,parsedScript:{narration:Array(110).fill('word').join(' ')},requestedDuration:60,hollywoodPath:true,
     AUTOFIT_DOWN_FLOOR_SECONDS:fit.AUTOFIT_DOWN_FLOOR_SECONDS,AUTOFIT_DOWN_FLOOR_SECONDS_HOLLYWOOD:fit.AUTOFIT_DOWN_FLOOR_SECONDS_HOLLYWOOD,
-    autofitDown:(...args)=>{calls++;return fit.autofitDown(...args)}})
+    autofitDown:(...args)=>{calls++;return fit.autofitDown(...args)},
+    // KINEO-REGUA-UNICA-2026-09-14 — a decisão cita a régua da família; a regra (só consentimento explícito desce) é a mesma
+    narrationRate:{family:'hollywood',wordsPerSecond:2.3,speed:1,language:'en',basis:'estimate'},autofitDownAt:(s,r,_rate,o)=>{calls++;return fit.autofitDown(s,r,o)}})
   eq(calls,consent===true?1:0,'Only explicit boolean consent can shorten requested duration')
   if(consent!==true)eq(result,null,'Normal request keeps duration and existing author-review path')
 }

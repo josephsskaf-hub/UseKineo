@@ -4,6 +4,7 @@ import { MAX_EPISODE_MEMORY_CHARS } from '@/lib/episodeMemory'
 import { createClient as createAdminClient, type SupabaseClient } from '@supabase/supabase-js'
 import { pollCreatomateRender } from '@/lib/compose'
 import { persistRenderAssets } from '@/lib/renderAssets'
+import { writeServerEvent } from '@/lib/serverEvents'
 import { refundRenderCredits } from '@/lib/credits/refund'
 import { buildBrandedYouTubeDescription } from '@/lib/videoDescription'
 // KINEO-TRIAL-BLOCKERS-2026-08-07 — trial ativo é entitlement pago (ver
@@ -901,6 +902,7 @@ export async function GET(
         // Creatomate URLs, so this can never block the user's video.
         let finalVideoUrl = state.url
         let finalThumbUrl = state.snapshotUrl
+        let measuredDelivery: { measuredSeconds: number | null; measureMethod: 'mvhd' | 'unknown' } = { measuredSeconds: null, measureMethod: 'unknown' }
         try {
           const migrated = await persistRenderAssets({
             userId: user.id,
@@ -910,6 +912,7 @@ export async function GET(
           })
           finalVideoUrl = migrated.videoUrl
           finalThumbUrl = migrated.thumbnailUrl
+          measuredDelivery = { measuredSeconds: migrated.measuredSeconds, measureMethod: migrated.measureMethod }
           responseVideoUrl = migrated.videoUrl
           console.log('[history] asset migration result:', JSON.stringify({
             video_migrated: migrated.videoUrl !== state.url,
@@ -918,6 +921,35 @@ export async function GET(
         } catch (e) {
           console.warn('[history] asset migration threw — keeping Creatomate URLs:',
             e instanceof Error ? e.message : String(e))
+        }
+        // ═══ KINEO-ENTREGA-MEDIDA-2026-09-14 — o placar por motor nasce aqui ═══
+        // Direção do fundador: pedido, planejado, MEDIDO do arquivo (e o método),
+        // motor e modo de entrada, idioma/voz/velocidade, legendas e trilha
+        // configuradas, resultado. Ausência de medição fica `null` + 'unknown',
+        // nunca preenchida com a duração pedida. Legenda configurada não prova
+        // sincronização; trilha escolhida não prova adequação — são configuração.
+        try {
+          const { data: claimRow } = await supabase
+            .from('events').select('metadata').eq('name', COMPOSE_CLAIM_EVENT).eq('metadata->>render_id', renderId)
+            .order('created_at', { ascending: false }).limit(1).maybeSingle()
+          const cm = ((claimRow as { metadata?: Record<string, unknown> } | null)?.metadata ?? {}) as Record<string, unknown>
+          const requested = Number(cm.duration)
+          const narrationWords = typeof cm.narration === 'string' ? cm.narration.trim().split(/\s+/).filter(Boolean).length : null
+          void writeServerEvent({ name: 'render_delivered_measured', userId: user.id, path: '/api/compose/status', metadata: {
+            render_id: renderId,
+            engine: quality,
+            input_mode: null, // o claim não guarda verbatim/ia — desconhecido, não inventado
+            requested_seconds: Number.isFinite(requested) && requested > 0 ? requested : null,
+            planned_seconds: duration,
+            measured_seconds: measuredDelivery.measuredSeconds,
+            measure_method: measuredDelivery.measureMethod,
+            narration_words: narrationWords,
+            language: null, voice: null, speed: null, // não chegam a esta rota hoje — desconhecidos
+            captions_configured: null, music_configured: null, // idem
+            result: 'completed', failure_reason: null,
+          } })
+        } catch (e) {
+          console.warn('[entrega-medida] evento não gravado:', e instanceof Error ? e.message : String(e))
         }
 
         // Push #355 — record render_time_ms in broll_metrics.

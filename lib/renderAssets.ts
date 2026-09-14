@@ -14,6 +14,7 @@
 // role) — see RENDER_BUCKET below. Requires SUPABASE_SERVICE_ROLE_KEY.
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { probeMp4DurationSeconds } from '@/lib/mp4Duration'
 
 const RENDER_BUCKET = 'renders'
 
@@ -58,6 +59,8 @@ async function migrateAsset(args: {
   sourceUrl: string
   contentType: string
   downloadTimeoutMs: number
+  /** KINEO-ENTREGA-MEDIDA-2026-09-14 — recebe os bytes baixados (só quando há download). */
+  onBytes?: (buf: ArrayBuffer) => void
 }): Promise<string | null> {
   const { supabase, path, sourceUrl, contentType, downloadTimeoutMs } = args
   const { data: pub } = supabase.storage.from(RENDER_BUCKET).getPublicUrl(path)
@@ -82,6 +85,7 @@ async function migrateAsset(args: {
       return null
     }
     buffer = await res.arrayBuffer()
+    try { args.onBytes?.(buffer) } catch { /* a sonda nunca derruba a cópia */ }
   } catch (e) {
     console.warn(`[renderAssets] download error path=${path}:`, e instanceof Error ? e.message : String(e))
     return null
@@ -114,12 +118,16 @@ export async function persistRenderAssets(args: {
   snapshotUrl: string | null
   /** KINEO-LINK-DO-FORNECEDOR-2026-09-12 — o cron pode esperar mais que a rota (25 s) pelo download. */
   downloadTimeoutMs?: number
-}): Promise<{ videoUrl: string; thumbnailUrl: string | null }> {
+}): Promise<{ videoUrl: string; thumbnailUrl: string | null; measuredSeconds: number | null; measureMethod: 'mvhd' | 'unknown' }> {
   const { userId, renderId, videoUrl, snapshotUrl } = args
+  // KINEO-ENTREGA-MEDIDA-2026-09-14 — duração REAL do MP4 entregue (cabeçalho mvhd),
+  // lida nos mesmos bytes da cópia. Sem download (cache) ou sem cabeçalho = 'unknown',
+  // nunca o número pedido.
+  let measuredSeconds: number | null = null
   const videoTimeoutMs = typeof args.downloadTimeoutMs === 'number' && args.downloadTimeoutMs > 0 ? args.downloadTimeoutMs : 25_000
 
   const supabase = getServiceClient()
-  if (!supabase) return { videoUrl, thumbnailUrl: snapshotUrl }
+  if (!supabase) return { videoUrl, thumbnailUrl: snapshotUrl, measuredSeconds: null, measureMethod: 'unknown' }
 
   await ensureBucket(supabase)
 
@@ -133,6 +141,7 @@ export async function persistRenderAssets(args: {
       sourceUrl: videoUrl,
       contentType: 'video/mp4',
       downloadTimeoutMs: videoTimeoutMs,
+      onBytes: (buf) => { measuredSeconds = probeMp4DurationSeconds(buf) },
     }),
     snapshotUrl
       ? migrateAsset({
@@ -182,5 +191,5 @@ export async function persistRenderAssets(args: {
     }
   }
 
-  return { videoUrl: permanentVideo, thumbnailUrl: permanentThumb }
+  return { videoUrl: permanentVideo, thumbnailUrl: permanentThumb, measuredSeconds, measureMethod: measuredSeconds != null ? 'mvhd' : 'unknown' }
 }
