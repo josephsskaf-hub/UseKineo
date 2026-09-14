@@ -65,7 +65,10 @@ const iSubmit = r.indexOf('await submitToFalWithOneRetry(')
 checa('o enchimento roda SÓ no modo IA, antes do piso, do dry-run e de qualquer POST', iEnche > 0 && iEnche < iRecusa && iRecusa < iFloor && iFloor < iDry && iDry < iSubmit)
 checa('alvo por cena = segundos × 2,3; cena abaixo de alvo−1, acima do teto da cena, ou enchimento', /target: Math\.round\(\(sc\.seconds \|\| 0\) \* 2\.3\)/.test(r) && /x\.words < x\.target - 1 \|\| x\.words > x\.maxWords \|\| FILLER_LINE_RE\.test\(lineOf\(x\.sc\)\)/.test(r))
 checa('diálogo reescrito atualiza a fala citada no prompt', /x\.sc\.dialogueLine = spoken/.test(r) && /x\.sc\.prompt = x\.sc\.prompt\.replace\(\/"\[\^"\]\{6,\}"\/, `"\$\{spoken\}"`\)/.test(r))
-checa('v6: apara o respiro no modo IA só enquanto o filme fica ≥ pedido (o piso não reestica)', /while \(totalSil > 7\.5 && totalSec - 1 >= duration && guard-- > 0\)/.test(r))
+// KINEO-FIDELIDADE-2026-09-14 (v3, Board): a apara foi DELEGADA a lib/hollywood/fidelidade.ts (apararComFolga):
+// a mesma condição de parada, mais a folga mínima de 1,25 s por cena e o excedente registrado no claim.
+const fidelidadeSrc = readFileSync(join(RAIZ, 'lib/hollywood/fidelidade.ts'), 'utf8').replace(/\r\n/g, '\n')
+checa('v6: apara o respiro no modo IA só enquanto o filme fica ≥ pedido (o piso não reestica) — delegado a apararComFolga', r.includes('const apara = apararComFolga(plan.scenes, (sc) => wordsOfLine(lineOf(sc)), duration)') && /while \(\(totalSil\(\) > 7\.5 \|\| total\(\) > duration \* 1\.05\) && total\(\) - 1 >= duration && guard-- > 0\)/.test(fidelidadeSrc))
 checa('fail-open (try/catch) e log com antes → depois', /enche-silencio pulado/.test(r) && /KINEO-ENCHE-SILENCIO: \$\{curtas\.length\} cena\(s\) reescritas/.test(r))
 
 console.log(`\n${ok} ok · ${falhas.length} falhas`)

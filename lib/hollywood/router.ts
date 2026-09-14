@@ -468,6 +468,8 @@ function trimNarrationToWords(text: string, maxWords: number): string {
 }
 
 // ── Planner ──────────────────────────────────────────────────────────────────
+import { aplicarFidelidadeAoPlano } from '@/lib/hollywood/fidelidade'
+
 /** Nome da língua da narração para o planejador (espelho de LANGUAGE_NAMES em lib/textLanguage — sem import: guardiões carregam este arquivo cru). */
 const NARRATION_LANGUAGE_NAME: Record<string, string> = { pt: 'Brazilian Portuguese (pt-BR)', es: 'Spanish (es-419, Latin American)' }
 
@@ -867,27 +869,15 @@ Target total duration: ${Math.max(30, Math.min(100, Math.round(durationSeconds |
       // Aqui toda cena que o planner tipou como dialogue vira cena NARRADA:
       // a fala passa a voiceover (a informacao nao se perde), o olhar para a
       // lente sai do prompt e a duracao segue as palavras.
-      for (const sc of outScenes) {
-        if (sc.type !== 'dialogue') continue
-        const line = (sc.dialogueLine ?? '').trim()
-        sc.type = 'support'
-        if (line) {
-          sc.voiceover = line
-          sc.needsNarration = true
-        }
-        delete sc.dialogueLine
-        sc.prompt = sc.prompt
-          .replace(/\s*—?\s*looking (straight |directly )?into the lens,? the person says: "[^"]*"/gi, '')
-          .replace(/looks? (directly |straight )?(into|at) the (lens|camera)/gi, 'looks away from the camera, mouth closed')
-          .replace(/(speaks|speaking|talks|talking|declares|says|addresses) (directly )?to (the )?(camera|lens|viewer)/gi, 'silent, mouth closed')
-          .replace(/talking head/gi, 'wide environmental shot')
-        const w = line.split(/\s+/).filter(Boolean).length
-        sc.seconds = w > 0 && w <= 14 ? 5 : 10
-        console.log(`[hollywood-planner] KINEO-FACELESS-DE-VERDADE — scene ${sc.index} dialogue → narrated support (${w} words → ${sc.seconds}s)`)
-      }
+      // KINEO-FIDELIDADE-2026-09-14 (v3): a conversão é feita pela biblioteca
+      // (narração factual em 3ª pessoa, sem depoimento inventado; fala fora do
+      // prompt de imagem) — a mesma função que o guardião executa de ponta a ponta.
+      aplicarFidelidadeAoPlano(outScenes, characterSheet, (args.language === 'pt' || args.language === 'es') ? args.language : 'en', true)
     }
   }
-
+  // KINEO-FIDELIDADE-2026-09-14 (v3) — com apresentador: cenas sem diálogo ainda
+  // passam por despersonalizar + ficha (o diálogo nativo fica como está).
+  if (hostFits) aplicarFidelidadeAoPlano(outScenes, characterSheet, (args.language === 'pt' || args.language === 'es') ? args.language : 'en', false)
   // KINEO-HOLLYWOOD-24-2026-07-10 (i) — support scenes SIZED BY THEIR FINAL
   // narration (post-fallback), same rule as dialogue lines: <16 words → 5s,
   // ≥16 → 10s (Kling 3 only renders 5s/10s; cinematic stays fixed at 8s/Veo).
