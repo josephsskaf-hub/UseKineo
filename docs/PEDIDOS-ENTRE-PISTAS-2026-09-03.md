@@ -2367,3 +2367,9 @@ Doc: docs/RELATORIO-12H-2026-09-12.md. 7 filmes (5 pessoas), 7/7 entregues, 4 IN
 Doc: docs/DECISAO-BRIEF-NA-ENTRADA-2026-09-12.md. Aviso honesto na entrada (formas brief / brief_two_voices no aviso de colagem, sem tocar na tela), brief nunca auto-inicia, construir "dois personagens, duas vozes" so se paste_shape=brief_two_voices passar de 5 pessoas em 14 d. DESENHO-INFANTIL-12 fica decidido assim.
 
 - [ ] DE claude PARA codex (tela, opcional): o aviso ja aparece pelo instructionPasteNoticeFor(shape). Se quiserem, um botao "trocar para Seedance" no aviso brief encurta o caminho.
+
+## RESTAURA-AUTOR — o portao de narracao deixa de jogar a expansao fora (Claude, 13/09 ~23:00 BRT)
+
+Fundador (13/09 22:20): "vai" para transformar o portao de narracao em oferta de um clique. Medido antes de construir: a oferta JA existe e e auto-disparada (script_expand_autostarted 58x/37 pessoas em 14 d; "make it 35s" e "Finish it for me" na tela) — o que sangra e que a expansao FALHA em 41% (24/58), causa no 1 author_rewrite_rejected (13 casos, 8 pessoas): o modelo reescreve UMA frase do autor entre 3/4/14/20, o candidato cabe, a rota recusa tudo. Agora lib/expandPolicy.restoreAuthorSentences devolve a frase EXATA do autor ao lugar da parente (>=50% das palavras do autor) antes do veredito; frase apagada de vez continua recusa (C1 intacto). Resposta ganha authorRestored. Guardiao test-restaura-autor (12). Herdados: aparar-expansao (1), growth-candidate (3).
+
+- [ ] MEDIR (proxima rotina): script_expand_failed reason=author_rewrite_rejected deve cair para perto de 0; authorRestored>0 nas respostas.

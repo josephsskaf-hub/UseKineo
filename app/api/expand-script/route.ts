@@ -28,6 +28,7 @@ import {
   maxCandidateWords,
   judgeTrimmedCandidate,
   type TrimVerdict,
+  restoreAuthorSentences,
 } from '@/lib/expandPolicy'
 
 // ═══ KINEO-COMPLETAR-ROTEIRO-2026-08-22 ════════════════════════════════════
@@ -447,9 +448,30 @@ ${original}`
     // Agora compara FALA com FALA, na ordem, com normalização à prova de
     // Unicode e SEM o filtro de "≥ 5 palavras" — que deixava "Ninguém
     // acreditou." sair sem verificação nenhuma.
-    const preservado = authorPreserved(falaOriginal, falaExpandida)
     const totalFrasesAutor = authorSentences(falaOriginal).length
-
+    // ═══ KINEO-RESTAURA-AUTOR-2026-09-13 — frase mexida volta a ser a do autor.
+    // 13 recusas em 14 d eram o modelo reescrevendo 1 frase entre várias com o
+    // candidato cabendo no alvo. Reparo cirúrgico ANTES do veredito: a frase
+    // EXATA do autor no lugar da parente reescrita; frase apagada de vez segue
+    // para a recusa. `preservado` abaixo é medido sobre o texto já reparado.
+    let autorRestaurado = 0
+    {
+      const prova = authorPreserved(falaOriginal, falaExpandida)
+      if (!prova.ok) {
+        const reparo = restoreAuthorSentences(falaOriginal, expandido)
+        if (reparo) {
+          const falaReparada = parseUserScript(reparo.text).narration || reparo.text
+          if (authorPreserved(falaOriginal, falaReparada).ok) {
+            expandido = reparo.text
+            falaExpandida = falaReparada
+            depois = narrationFit(falaExpandida, target)
+            autorRestaurado = reparo.restored
+            console.log(`[expand-script] autor_restaurado: ${reparo.restored} frase(s) do autor devolvida(s) ao candidato`)
+          }
+        }
+      }
+    }
+    const preservado = authorPreserved(falaOriginal, falaExpandida)
     // ═══ KINEO-SEMENTE-NAO-E-ROTEIRO-2026-09-03 (sprint-assinaturas #8) ═══
     //
     // ANTES de acusar o modelo de ter reescrito "parte do seu roteiro",
@@ -577,6 +599,8 @@ ${original}`
       effectiveDuration: duracaoEfetiva,
       autofitDown: descidoPeloRender,
       restoredDirectives: diretivasPerdidas.length,
+      // KINEO-RESTAURA-AUTOR-2026-09-13 — quantas frases do autor voltaram ao lugar (0 = o modelo não mexeu).
+      authorRestored: autorRestaurado,
       // #9 — tripwire: depois do conserto do cliente isto tem de ser sempre
       // false. true em producao = alguem voltou a mandar base nao-ancestral.
       baseRepaired: baseResolvida.repaired,

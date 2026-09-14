@@ -584,3 +584,77 @@ export function isSeedNotScript(totalAutor: number, frasesMexidas: number): bool
   if (totalAutor > SEED_MAX_SENTENCES) return false
   return frasesMexidas >= totalAutor
 }
+
+// ═══ KINEO-RESTAURA-AUTOR-2026-09-13 ═════════════════════════════════════
+// Medido em 14 dias: `script_expand_failed` 24 de 58 auto-expansões (41%), e a
+// causa nº 1 é `author_rewrite_rejected` (13 casos, 8 pessoas): o modelo
+// reescreve UMA frase do autor entre 3, 4, 14 ou 20 — o candidato CABE no
+// alvo — e a rota joga a expansão inteira fora. A pessoa volta ao portão.
+// O C1 ("a fala do autor não muda") continua inteiro: em vez de recusar,
+// devolvemos a frase EXATA do autor ao lugar da frase mexida. Só quando toda
+// frase perdida tem uma parente próxima no candidato (≥ 50% das palavras em
+// comum) o reparo vale; frase apagada de vez continua sendo recusa.
+const RAW_SENTENCE_SPLIT = /(?<=[.!?…。！？])\s+|\n+/u
+function rawSentences(texto: string): Array<{ raw: string; norm: string; start: number; end: number }> {
+  const out: Array<{ raw: string; norm: string; start: number; end: number }> = []
+  let pos = 0
+  for (const parte of texto.split(RAW_SENTENCE_SPLIT)) {
+    const start = texto.indexOf(parte, pos)
+    if (start < 0) continue
+    const end = start + parte.length
+    pos = end
+    const norm = normalizeForCompare(parte)
+    if (norm) out.push({ raw: parte, norm, start, end })
+  }
+  return out
+}
+function tokenOverlap(a: string, b: string): number {
+  const A = new Set(a.split(' ').filter(Boolean))
+  const B = new Set(b.split(' ').filter(Boolean))
+  if (A.size === 0 || B.size === 0) return 0
+  let comum = 0
+  for (const w of A) if (B.has(w)) comum++
+  // Contra a frase MENOR: "Not a single person was aboard." → "There was not one
+  // single soul aboard the vessel." tem 4 de 6 palavras do autor (0,67), e só
+  // 4 de 9 do candidato. O que importa é quanto do AUTOR sobreviveu.
+  return comum / Math.min(A.size, B.size)
+}
+export const AUTHOR_RESTORE_MIN_OVERLAP = 0.5
+/**
+ * Devolve o candidato com as frases mexidas do autor trocadas pela frase
+ * ORIGINAL (texto cru do autor), ou null quando alguma frase perdida não tem
+ * parente próxima no candidato (foi apagada, não reescrita).
+ */
+export function restoreAuthorSentences(
+  falaOriginal: string,
+  candidatoCru: string,
+): { text: string; restored: number } | null {
+  const autor = rawSentences(falaOriginal)
+  const cand = rawSentences(candidatoCru)
+  const candNorms = cand.map((c) => c.norm)
+  const usados = new Set<number>()
+  const trocas: Array<{ idx: number; raw: string }> = []
+  let cursor = 0
+  for (const frase of autor) {
+    const exato = candNorms.indexOf(frase.norm, cursor)
+    if (exato >= 0) { cursor = exato + 1; usados.add(exato); continue }
+    let melhor = -1
+    let melhorScore = 0
+    for (let i = cursor; i < cand.length; i++) {
+      if (usados.has(i)) continue
+      const s = tokenOverlap(frase.norm, cand[i].norm)
+      if (s > melhorScore) { melhorScore = s; melhor = i }
+    }
+    if (melhor < 0 || melhorScore < AUTHOR_RESTORE_MIN_OVERLAP) return null
+    usados.add(melhor)
+    trocas.push({ idx: melhor, raw: frase.raw.trim() })
+    cursor = melhor + 1
+  }
+  if (trocas.length === 0) return null
+  let text = candidatoCru
+  for (const t of trocas.sort((a, b) => b.idx - a.idx)) {
+    const c = cand[t.idx]
+    text = text.slice(0, c.start) + t.raw + text.slice(c.end)
+  }
+  return { text, restored: trocas.length }
+}
