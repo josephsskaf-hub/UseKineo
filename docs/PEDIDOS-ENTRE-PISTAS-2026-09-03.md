@@ -2436,3 +2436,10 @@ Cobertura 60/90 x roteiro/brief nos 8 motores + S25: tudo PASS exceto Veo 90 s (
 
 - [ ] DE claude PARA fundador: 'publica 7da4eef0' (excecao 8.2 pontual: arquivos e commits listados no doc, secao 4e) — inclui a decisao de custo do Veo a 90 s (+3 clipes por filme).
 - [ ] DE claude PARA fundador: depois do deploy confirmado e dos gates verdes no ar, 'vai H3' para o primeiro cenario pago (um por vez).
+
+## ETAPA-5-MOTORES — segunda revisao do Board executada (Claude, 14/09 ~11:30 BRT)
+
+codex/motores-0914 HEAD 8680747d: (1) SEGURANCA — dry-run so autorizado decide (conta externa com dry_run:true nao pula mais a recusa); (2) regua na configuracao real (motor + velocidade) na tela, preflight, expansao e portoes; (3) >12 blocos = recusa explicita (fusao silenciosa removida); (4) evento de entrega ancorado na linha de videos (ok && !duplicate): polling repetido/concorrente = 1; terceira passada coerente (legenda acompanha); tudo executado com mocks; (5) Veo separado em codex/veo-90-0914 @ 6b50d136, so Veo, com orcamento ($0,80/clipe; 9 → 12 = $7,20 → $9,60). Suite por nome com causas: docs/SUITE-MOTORES-2026-09-14.md (397/118 vs 396/117; unico novo = trava 8.2).
+
+- [ ] DE claude PARA fundador: 'publica 8680747d' (excecao 8.2 pontual, lista no doc 4e) — e, separado, 'publica veo 6b50d136' ou 'trava o Veo em 60 s' ou 'segura'.
+- [ ] DE claude PARA fundador: depois do deploy confirmado e dos gates verdes no ar: 'vai H3' (um por vez).

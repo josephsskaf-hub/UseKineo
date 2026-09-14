@@ -196,6 +196,26 @@ Ideia a 60 s: 8/8 PASS (etapas anteriores). Ideia a 90 s no Kineo 1: 263 palavra
 Publicados: d84c7909, ee4f8751, 59f6845a, ea6e8a90 (app/api/generate-video-cinematic) · fb44bff2 (idem + lib/cinematic/visualMode.ts) · d54683fb (idem + lib/hollywood/router.ts) · 0e948900 (app/api/compose/route.ts + lib/cinematic/speechContract.ts) · 05ee899e + 9cd3d506 (lib/compose.ts + app/api/compose/route.ts).
 Na branch codex/motores-0914 (não publicados): cc059ad6, ec50c690, 427650eb (lib/compose.ts, app/api/compose/route.ts) · 1f30be29, f56ee7c2, 7da4eef0 (app/api/generate-video-cinematic, app/api/generate-video-fast, app/api/expand-script). A proteção global segue ligada; nenhum guardião de trava foi alterado.
 
+## 4f. Etapa 5 (14/09 10:00 → 11:30) — segunda revisão do Board, executada
+
+Branch codex/motores-0914 — HEAD **8680747d** (sobre a main 16288433). Typecheck 0 erros. Suíte inteira comparada por NOME com a causa de cada vermelho em docs/SUITE-MOTORES-2026-09-14.md: 397 verdes / 118 vermelhos contra 396 / 117 da base; o único vermelho novo é a própria trava 8.2 (test-despacho-vazio: "nao toca lib/compose"), esperado nesta branch. Nenhum vermelho herdado mudou de causa. Guardião da leva: scripts/test-regua-unica-e-entrega-medida-2026-09-14.mjs (61 verificações, comportamento com mocks).
+
+| # do Board | Achado | O que mudou | Como foi provado |
+|---|---|---|---|
+| 1 Dry-run | o portão do Kineo 1 conferia só `body.dry_run`; conta externa com dry_run:true pulava a recusa e chegava à seção paga | a autorização (conta do fundador) é conferida ANTES de qualquer decisão (`dryRunAutorizado`), no fast e no salvage do cinematic | portão real executado: externo×true, externo×false, interno×false → 422 + evento; interno×true → mesma decisão no relatório, sem 422, sem evento |
+| 2 Régua | tela (7709, 13973) media a 2,3 para tudo; expand-script ignorava velocidade | `speechRateForScript(motor, roteiro)` = família do motor + velocidade escrita no roteiro; usada no contador, na checagem local, no preflight, na expansão e nos portões; nenhum `speechSeconds()` antigo sobrou na tela | 138 palavras: 60 s em hollywood, 44,5 s em clássico; 180 palavras a 60 s passam a 1× e são recusadas a 1,2× (48 s); expansão medida a 3,1 (177 pal) passa no portão clássico, a 2,3 (138) não — o loop |
+| 3 Coerência visual | a fusão de blocos descartava a direção visual 13–21 | fusão silenciosa REMOVIDA; mais de 12 blocos [Pexels] = recusa explícita antes do gasto (422 `too_many_clips`, clips e máximo na resposta, nada cobrado); no ensaio autorizado, o relatório diz | portão executado com 21 blocos (422 + evento) e com 12 blocos de 24 palavras (passa) |
+| 4 Testes | "uma emissão" era texto; terceira passada mudava a fala sem a legenda | evento sai DEPOIS da linha de `videos` nascer e só quando nasceu agora (`ok && !duplicate`, índice único por render_id); terceira passada atualiza a legenda junto com a fala e nunca toca descrição/consulta visual | bloco real executado: linha nova → 1 evento; medição falhada → null/unknown; polling repetido (duplicate) → 0; 3 polls concorrentes → 1; persistência falhada → 0; banco fora → 0 sem exceção. Terceira passada: resposta longa → fala+legenda novas, consulta intacta; resposta igual/curta → nada muda; erro → cenas intactas; total ≥95% → nem chama |
+| 5 Veo | custo misturado; Sora no hunk | saiu desta branch; commit separado **6b50d136** (branch codex/veo-90-0914), SÓ Veo, com orçamento no código e no guardião | scripts/test-veo-90-2026-09-14.mjs (5) |
+
+### Orçamento do Veo (item 5)
+
+Modelo realmente usado: `fal-ai/veo3.1/fast`, $0,10/s (docs/PRECOS-MOTORES-V4.md), 8 s por clipe = **$0,80/clipe**. Filme de 90 s hoje: 9 clipes = $7,20 nesta etapa, e o filme sai com 72 s de imagem para 89 s de fala (repete cena). Com o ajuste: 12 clipes = $9,60 (+$2,40). O preço do filme é fixo (100 cr) e o valor do crédito varia por plano; a margem total inclui TTS/compose (~$0,3). Só esta etapa muda; o fundador decide entre (a) aceitar +$2,40 por filme de 90 s no Veo, (b) travar o Veo em 60 s até a revisão de preços (09/10), ou (c) subir o preço do Veo a 90 s (preço congelado até 09/10).
+
+### Cenários pagos
+
+Nenhum render pago nesta etapa. A autorização condicional já existe: depois da publicação com os gates verdes e do deploy confirmado, um motor por vez, começando pelo H3, assistindo inteiro (duração, fidelidade ao texto, cenas, fala, legendas, música). Avatar por último.
+
 ## 5. O que falta
 
 1. Publicar a branch codex/motores-0914 (7da4eef0) com a exceção aprovada; confirmar SHA e deploy; re-rodar os dry-runs de 60/90 do Kineo 1 e do Veo no ar.
