@@ -1071,10 +1071,15 @@ export function mapWhisperTimingsToSegments(
  * split — this must never be load-bearing, because anything it removes is a
  * word the narrator actually said.
  */
+// LEGENDAS-R1 (2026-09-14) — \p{L}\p{N} em vez de [a-z0-9]: a classe ASCII
+// apagava letra acentuada nas bordas, e uma palavra feita SÓ de acento ("é",
+// "à", "ó") virava "" — dois "" são iguais, e o guard anti-stutter abaixo
+// deletava a palavra DIFERENTE do grupo seguinte ("Ela é | à praia" → "praia";
+// "óleo" → "leo" ≡ "Leo"). Reproduzido em scripts/test-caption-chunker.mjs.
 function normalizeCaptionWord(w: string): string {
   return (w ?? '')
     .toLowerCase()
-    .replace(/^[^a-z0-9']+|[^a-z0-9']+$/g, '')
+    .replace(/^[^\p{L}\p{N}']+|[^\p{L}\p{N}']+$/gu, '')
     .trim()
 }
 
@@ -1155,10 +1160,14 @@ export function buildCaptionsFromWhisperWords(
     // chunk and the head of the next. On screen that reads as a broken render.
     const prevGroup = groups[i - 1]
     const prevLast = prevGroup?.[prevGroup.length - 1]?.word ?? ''
+    // LEGENDAS-R1 — só é stutter se a forma normalizada NÃO for vazia: dois
+    // tokens que o normalizador esvazia (pontuação solta, símbolo) não são a
+    // mesma palavra repetida, e apagar um deles some com fala do narrador.
+    const prevNorm = normalizeCaptionWord(prevLast)
     if (
       chunkWords.length > 1 &&
-      prevLast &&
-      normalizeCaptionWord(prevLast) === normalizeCaptionWord(chunkWords[0])
+      prevNorm !== '' &&
+      prevNorm === normalizeCaptionWord(chunkWords[0])
     ) {
       chunkWords = chunkWords.slice(1)
       usedWords = usedWords.slice(1)
@@ -1173,8 +1182,16 @@ export function buildCaptionsFromWhisperWords(
     // transcribes; that risk doesn't exist at t=0 (there is no earlier caption
     // to be confused with), and on a 1–2s hook +0.15s is 7–15% of the entire
     // attention window burned on a blank frame. Every later chunk keeps it.
+    // LEGENDAS-R1 (2026-09-14) — e o offset também é dispensado quando ele
+    // empurraria o início para FORA da janela: uma palavra falada em 0,95 s de
+    // uma janela de 1,0 s nascia em 1,10 s (duração no piso de 0,1 s), um
+    // elemento inteiro depois do áudio — no caminho clássico ele vai para a
+    // timeline; no Hollywood invade o bloco seguinte; no caminho por clipe é
+    // descartado pelo `continue` do chamador e a palavra some da legenda.
+    // Reproduzido em scripts/test-caption-chunker.mjs (controle b).
     const rawStart = chunk[0].start
-    const adjustedStart = i === 0 ? Math.max(0, rawStart) : Math.max(0, rawStart + CAPTION_SYNC_OFFSET)
+    const offsetStart = rawStart + CAPTION_SYNC_OFFSET
+    const adjustedStart = i === 0 || offsetStart >= captionWindowEnd ? Math.max(0, rawStart) : Math.max(0, offsetStart)
 
     // Caption ends when next chunk's first word starts, or at window end.
     // KINEO-SPRINT-12H-2026-07-29 — reads the next GROUP, not `windowWords[i +
