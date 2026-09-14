@@ -3149,7 +3149,9 @@ export function buildHollywoodCreatomateSource({
   cleanClips.forEach((clip, i) => {
     if (clip.engine !== 'dialogue' && clip.engine !== 'host') return
     const t = sceneStarts[i]
-    const speech = verifyObservedSpeech(clip.dialogueLine, clip.speechWords)
+    // KINEO-FALA-ALEM-DO-CLIPE-2026-09-14 (auditoria item 7, Board): o montador
+    // confere a fala contra os segundos FINAIS da cena (secondsFor), não só o texto.
+    const speech = verifyObservedSpeech(clip.dialogueLine, clip.speechWords, { maxEndSeconds: secondsFor(clip) })
     if (!speech.ok) throw new Error(`Scene ${i + 1} has unverified dialogue (${speech.reason}).`)
     if (t >= captionWindowEnd) throw new Error(`Scene ${i + 1}'s dialogue is outside the caption timeline.`)
 

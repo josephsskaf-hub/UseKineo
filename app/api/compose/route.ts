@@ -2050,6 +2050,17 @@ export async function POST(req: NextRequest) {
             const lastEnd = Math.max(...words.map((w) => w.end))
             const antes = cinematicSceneSeconds(c)
             c.seconds = Math.round((lastEnd + 0.3) * 10) / 10
+            // Board 14/09: cinematicSceneSeconds tem teto (diálogo 15 s, host 20 s).
+            // Re-confere com os segundos que o montador VAI usar; se a fala ainda
+            // passa do teto, recusa honesta — nunca cortar o fim da fala em silêncio.
+            const recheck = verifyObservedSpeech(c.dialogueLine, words, { maxEndSeconds: cinematicSceneSeconds(c) })
+            if (!recheck.ok) {
+              console.warn('[compose] KINEO-FALA-ALEM-DO-CLIPE: fala passa do teto da cena mesmo depois de crescer', { scene_index: sceneIdx, antes, teto: cinematicSceneSeconds(c), last_word_end: lastEnd, reason: recheck.reason })
+              return rejectBeforeProviderSubmission(NextResponse.json({
+                error: `Scene ${sceneIdx + 1}'s speech runs ${lastEnd.toFixed(1)}s, longer than the ${cinematicSceneSeconds(c)}s this scene can hold. Your generated clips are preserved; nothing was cut or narrated over.`,
+                code: 'cinematic_dialogue_overruns_clip', recoverable: true,
+              }, { status: 422 }))
+            }
             console.warn('[compose] KINEO-FALA-ALEM-DO-CLIPE: cena cresce para cobrir a fala', { scene_index: sceneIdx, antes, depois: cinematicSceneSeconds(c), last_word_end: lastEnd })
           } else if (!speech.ok) {
             console.warn('[compose] native speech verification failed', { scene_index: sceneIdx, reason: speech.reason })

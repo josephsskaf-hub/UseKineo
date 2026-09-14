@@ -53,6 +53,10 @@ eq(speech.verifyObservedSpeech('Hello world', words('Hello world'), { maxEndSeco
   eq(/verifyObservedSpeech\(c\.dialogueLine, words, \{ maxEndSeconds: cinematicSceneSeconds\(c\) \}\)/.test(rota), true, 'compose passes the usable seconds of the clip to the verifier')
   eq(/speech\.reason === 'speech_overruns_clip'\) \{[\s\S]{0,900}c\.seconds = Math\.round\(\(lastEnd \+ 0\.3\) \* 10\) \/ 10/.test(rota), true, 'an overrun grows the scene to the last word instead of cutting the speech')
   eq(rota.indexOf('const originalFootageSeconds = hollywoodClips.map(cinematicSceneSeconds)') > rota.indexOf("speech.reason === 'speech_overruns_clip'"), true, 'pre-trim seconds are read after the scene may have grown')
+  // Board 14/09: re-checagem depois do teto + o montador confere a duração final
+  eq(rota.includes("const recheck = verifyObservedSpeech(c.dialogueLine, words, { maxEndSeconds: cinematicSceneSeconds(c) })") && rota.includes("code: 'cinematic_dialogue_overruns_clip', recoverable: true,"), true, 'after growing to the cap, the route re-verifies and refuses honestly if speech still overruns')
+  const montador = fs.readFileSync(new URL('../lib/compose.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n')
+  eq(montador.includes('verifyObservedSpeech(clip.dialogueLine, clip.speechWords, { maxEndSeconds: secondsFor(clip) })'), true, 'the builder verifies speech against the FINAL scene seconds, not only the text')
 }
 for (const [expected, observed, reason] of [
   ['Hello world', [], 'missing_speech'],

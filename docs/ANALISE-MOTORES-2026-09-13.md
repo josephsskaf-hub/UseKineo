@@ -53,7 +53,13 @@ Régua de silêncio: ≤1,5 s por cena, ≤8 s no total. Tudo acima é $0 e esto
 | 4 | Piso de duração só para ≥60 (pedido de 90 com áudio de 45 sai 61,5) | **Não mexido, de propósito**: esticar imagem sobre 45 s de áudio é o defeito que o item 4 quer evitar. A cura está a montante: o roteiro nascer do tamanho (conserto 1 e 2). Avatar segue com o áudio como relógio. |
 | 5 | Interface em hindi ≠ narração em hindi | **Parcial**: PT/ES agora chegam à narração dos motores caros. Hindi/outros seguem "en" — decisão de produto (abrir uma quarta língua é voz + escritor + revisão). |
 | 6 | "22" vs "veintidós", "1959" vs "nineteen fifty nine" | **Consertado (14/09 03:20)**: numerais por palavras em EN/ES/PT (unidades, dezenas, centenas, mil, conectores, padrão de ano); número diferente segue diferente. |
-| 7 | Palavras terminando depois do clipe | **Consertado (14/09 03:20)**: o verificador recebe os segundos úteis do clipe (`speech_overruns_clip`); no compose a cena de fala CRESCE até a última palavra em vez de cortar o fim. |
+| 7 | Palavras terminando depois do clipe | **Consertado (14/09 03:20, completado 04:00 após o Board)**: o verificador recebe os segundos úteis do clipe (`speech_overruns_clip`); no compose a cena cresce até a última palavra, RE-CONFERE contra o teto (diálogo 15 s, host 20 s) e recusa honestamente se ainda passa; o montador (lib/compose.ts) confere a fala contra os segundos FINAIS. Prova de que o arquivo contém o trecho: o Whisper transcreve o áudio do PRÓPRIO clipe (palavra a 12 s só existe se o arquivo tem 12 s de áudio); não há sonda ffprobe no servidor. |
+
+**Placar honesto da auditoria (Board, 14/09 04:00)**: 1, 2, 3, 6 e 7 consertados no ar; 4 (duração entregue em 90 s e avatar) e 5 (hindi) PENDENTES. Não são "sete fechados". Dry-run aprovado não é vídeo assistido.
+
+## 4b. Exceção de escopo — trava 8.2 (aguarda o fundador)
+
+A trava do sprint ("nada tocado em lib/cinematic e lib/hollywood", scripts/test-memoria-episodio-2026-09-04.mjs) ficou vermelha em 4 commits desta noite: visualMode.ts (item 3), router.ts (idioma), speechContract.ts (itens 6 e 7) e o router de novo. Eu só percebi no último, porque a trava mede o diff contra a main e fica verde depois do merge. Recomendação do Board: preservar as correções, não reverter só para deixar a trava verde, e registrar a exceção para aprovação do fundador. Decisão dele: **mantém** (exceção aprovada, registrada aqui) ou **reverte** (volto os 4 arquivos numa branch).
 
 ## 5. O que falta
 
