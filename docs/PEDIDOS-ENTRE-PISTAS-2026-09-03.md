@@ -2470,3 +2470,10 @@ H3, 60 s, ideia, 45 cr: 7/7 cenas, 65 s planejados = 65 s medidos (mvhd), render
 
 - [ ] DE claude PARA fundador: assistir o H3 inteiro com audio e dar o veredito (duracao, fidelidade ao roteiro, cenas, fala, legendas, musica). Se aprovar, o proximo e um por vez (Kling 3 / Omni / Seedance 2.5); se reprovar, paro e registro a reproducao.
 - [ ] DE claude PARA claude (proxima leva, lib/hollywood — trava 8.2): dialogo convertido em apoio nao pode levar a fala em 1a pessoa para a narracao nem deixar a citacao no prompt visual; nome de pessoa real no plano deve ser trocado por personagem generico.
+
+## FIDELIDADE-H3 — Board reprovou o MP4; correcoes seguradas (Claude, 14/09 ~15:00 BRT)
+
+Cinco achados visuais (abertura sem acontecimento, deslizamento sobre fiorde calmo, onda sem escala, "My son and I" sem atribuicao, sobrevivente com rostos diferentes) → lib/hollywood/fidelidade.ts + router + rota, 26 regressoes sobre o plano real do H3, tsc 0. Branch codex/fidelidade-0914 @ caf68d3d (trava 8.2: lib/hollywood + rota). Renders pausados; nada comprovado em video.
+
+- [ ] DE claude PARA fundador: 'publica fidelidade caf68d3d' (excecao 8.2 pontual: lib/hollywood/fidelidade.ts novo, lib/hollywood/router.ts, app/api/generate-video-cinematic/route.ts) — depois disso, um novo cenario H3 (45 cr) para assistir; ou 'segura'.
+- [ ] DE claude PARA fundador: Veo 5b2dc929 segue aguardando decisao.

@@ -284,3 +284,15 @@ Achados $0 no PLANO entregue (a confirmar assistindo):
 5. **Custo × preço**: $9,24 estimados de fornecedor para 45 cr — margem do H3 a 60 s merece revisão na janela de preços (09/10), não agora.
 
 O que só o vídeo com áudio confirma: sincronia, boca/rosto, legendas, música, coerência visual. Sequência pausada até o veredito do fundador (se houver defeito, para e registra reprodução).
+
+## 4k. H3 Lituya reprovado pelo Board (revisão visual) → correções de fidelidade, SEGURADAS (14/09 15:00)
+
+Achados do Board no MP4: (1) abertura prolongada em retrato, sem o acontecimento; (2) deslizamento narrado sobre fiorde tranquilo; (3) onda sem referência de escala; (4) "My son and I" na narração sem atribuição; (5) aparências diferentes para o mesmo sobrevivente. Música, voz e sincronia seguem sem escuta validada. Renders pausados.
+
+Causas no código e correções (branch **codex/fidelidade-0914 @ caf68d3d**, sobre a main 68433c23; toca lib/hollywood e a rota cinematic — trava 8.2, aguarda exceção):
+- lib/hollywood/fidelidade.ts (novo, puro): `atribuirFalaConvertida` (fala em 1ª pessoa de diálogo convertido vira "The fisherman would later recall: «…»", nenhuma palavra some), `limparCitacaoDoPrompt` (citação de fala sai do prompt de imagem), `despersonalizarPrompt` (nome próprio de pessoa + verbo de pessoa → papel da ficha; "Howard Ulrich looks" → "the fisherman looks"), `garantirFichaNoPrompt` (cena que mostra a pessoa abre com a ficha VERBATIM; paisagem pura não recebe), `garantirAcaoCentral` (se nenhuma palavra de AÇÃO da narração — nomes próprios fora — está no prompt, ele abre com a frase a mostrar; e se a narração anuncia ESCALA — número+unidade ou "dwarfing/taller than" — e o prompt não, idem).
+- lib/hollywood/router.ts: a conversão diálogo→narração do modo sem rosto usa as três primeiras; toda cena sem diálogo passa por despersonalizar + ficha.
+- app/api/generate-video-cinematic: o prompt FINAL (depois do enche-silêncio, antes do POST) passa por garantirAcaoCentral; duração planejada reconciliada — acima de 105% do pedido, o respiro das cenas folgadas é aparado, nunca uma palavra (65 s → ≤63 s no plano real).
+- Regressões offline sobre o PLANO REAL do H3 (26 verificações, scripts/test-fidelidade-h3-2026-09-14.mjs): cena 1 sem "Here is something…" e sem "Howard Ulrich", com a ficha; cena 2 ganha "experienced a catastrophic tsunami that reshaped its landscape"; cena 3 ganha "A massive landslide…"; cena 4 ganha "524 meters, dwarfing the Empire State Building"; cena 5 narrada como "The fisherman would later recall: «My son and I…»"; cena 7 "the fisherman and his son" com a ficha; cena 2 (paisagem) não recebe a ficha; Lituya/Empire State não viram pessoa. Typecheck 0. Guardiões vizinhos verdes (visual-contract 330, enche-silêncio 19, timeline 44, primeira-pessoa 21, scene-truth, fala 184); vermelhos herdados iguais à base.
+
+Não comprovado em vídeo: nada disto foi renderizado. Próximo gasto só depois da exceção, publicação, deploy validado e um novo cenário H3 assistido — nunca repetindo a combinação defeituosa.
