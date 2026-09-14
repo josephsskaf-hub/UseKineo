@@ -20,3 +20,7 @@ Para cada célula de aprovação registrar: roteiro preservado; ação/escala/pe
 ## Base compartilhada — legendas (14/09, LEGENDAS-R2)
 
 TESTADO LOCALMENTE: função real buildCaptionsFromWhisperWords, três chamadores inspecionados (clássico direto, bloco Hollywood, fala por clipe), NÃO todas as requisições dos oito motores executadas. Board reproduziu 41/47 em c0aa2642 e confirmou 47/47 + tsc em **a45237b7c06f26fd7ffb7b555cae3d7a8295c9de**: GO técnico restrito a preservar palavras acentuadas antes confundidas e evitar o início depois da janela no controle de 0,95s. Código segurado, não publicado; arquivo/áudio NÃO VALIDADOS. Piso de 0,1s ainda pode ultrapassar a janela no fim (1,05s no controle); não equivale a validação de sincronia universal. Próximo: MUSICA-R1 no guardião existente.
+
+## Base compartilhada — música (14/09, MUSICA-R2)
+
+TESTADO LOCALMENTE: Board reproduziu 146/174 em b1b0da1f e confirmou **176/176 + tsc** em **82814b12452d18eb92ad1c756219049f11398170**, GO técnico restrito. Seletor/provedor mockado e três blocos reais de compose/unlock: silêncio PT respeitado sem chamadas, negação/vocabulário PT e alias épica corrigidos. Código SEGURADO, não publicado; áudio/mix NÃO VALIDADOS. Mapa dos motores é estrutural, não oito filmes testados. Inferência genérica de ação ainda limitada; unlock não garante preservar MP3 originalmente gerado. Próximo: MOTORES-ESPECIFICOS-R1 para Kling 3, Omni e S25, sem reabrir os GO anteriores nem gastar.
