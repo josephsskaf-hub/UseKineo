@@ -2385,3 +2385,16 @@ O fundador testou o H3 (22:34, 9/9 cenas) com um brief padrao ChatGPT: "Create a
 e26160a2 (13/09 22:34, H3, 90 s, 225 palavras verbatim): 9/9 cenas prontas em 9 min, US$ 5,56 na fal, compose 422 scene_speech_exceeds_footage, 68 cr estornados, tela sem mensagem (unreported_stage_failure). Causa: o laco de sobra do C1 parava em 9 cenas e colava o resto na ultima (61 palavras = 22 s num clipe de 12 s); o dry-run so media silencio. Agora: MAX_VERBATIM_SCENES=12, sobra distribuida em cena com espaco (teto segundos x 2,3), roteiro que nao cabe e barrado antes do POST (422 script_too_long_for_engine, estorno, evento narration_guard_blocked), e o dry-run mede excesso de fala por cena. Guardiao test-fala-maior-que-a-cena (8). NAO era o motor: o H3 entregou em 9 min.
 
 - [ ] DE claude PARA codex (tela): o 422 do compose com qualityCheckFailed chega na tela como "no_detail:unreported_stage_failure" — a pessoa nao le o motivo nem sabe que foi estornada. Mostrar o campo `error` do 422 e "seus creditos voltaram".
+
+## ANALISE-MOTORES-0-DOLAR — os 7 motores nas 3 entradas, sem gastar (Claude, 13/09 ~23:20 BRT → 14/09 ~00:30 BRT)
+
+Pedido do fundador: "faz uma analise completa dos motores, todos eles, sem gastar nenhum dolar". Matriz de dry-run (conta do fundador, $0, estornado) motor x entrada (ideia de 1 linha / roteiro proprio / brief do ChatGPT), com os numeros de entrega de 30 dias do banco. Doc: docs/ANALISE-MOTORES-2026-09-13.md.
+
+Achado central: nos motores caros (Kling 3, H3, Omni) o modo IA ("Let AI structure") nascia MUDO — o planejador escreve 113-116 palavras para 60 s (16 por cena de 10 s) e a regua de silencio reprovava 10-13 s sem fala; o Omni ainda abria com o enchimento "Here is something most people do not know about…" (lib/runway.ts). Nos classicos (Seedance/Kling 2.5/Veo) a ideia saia com 137-150 palavras (44-48 s de fala para 60 s) porque a expansao so disparava abaixo de 85% do piso.
+
+Feito nesta leva:
+- lib/runway.ts: expansao das falas curtas passa a disparar no PISO cheio (era 85%); nova expandVoiceoversToTargets (uma chamada gpt-4o-mini, alvo = segundos x 2,3 por cena, troca enchimento por fato, fail-open) + FILLER_LINE_RE.
+- app/api/generate-video-cinematic/route.ts: bloco KINEO-ENCHE-SILENCIO antes do piso/dry-run/POST — so no modo IA (verbatim nunca passa); reescreve cena com >1,3 s de silencio ou linha de enchimento; dialogo atualiza a fala citada no prompt.
+- Guardiao: scripts/test-enche-silencio-2026-09-13.mjs (8).
+
+- [ ] DE claude PARA fundador: 6 canarios pagos (um por motor caro x entrada, ~520 cr) so com o "vai" — os dry-runs de $0 ja passam; a prova em video e dele.

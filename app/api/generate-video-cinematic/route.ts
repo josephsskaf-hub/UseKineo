@@ -53,7 +53,7 @@ import { decidirFormato, permiteApresentador, TAG_FACELESS, proibidosPorModo, ty
 import { aspectSpec, normalizeAspect } from '@/lib/aspect'
 import { montarContrato, aplicarContrato, severidadeDe } from '@/lib/cinematic/sceneTruth'
 import { fal } from '@fal-ai/client'
-import { generateScenes, shortCaptionFromVoiceover } from '@/lib/runway'
+import { generateScenes, shortCaptionFromVoiceover, expandVoiceoversToTargets, FILLER_LINE_RE } from '@/lib/runway'
 import { looksLikeInstruction } from '@/lib/momentumTopic'
 // KINEO-CAPACITY-2026-08-08 — teto GLOBAL diário de renders de IA (disjuntor).
 import { checkAiRenderDailyCap, AI_RENDER_CAP_MESSAGE } from '@/lib/aiRenderCircuitBreaker'
@@ -3710,6 +3710,42 @@ async function manipularPost(req: NextRequest) {
           console.log(
             `[contrato] C1 verbatim: ${totalWords} palavras do roteiro → ${plan.scenes.length} cenas, ${plan.scenes.reduce((a, sc) => a + (sc.seconds || 0), 0)}s falados (zero texto inventado)`,
           )
+        }
+      }
+
+      // ═══ KINEO-ENCHE-SILENCIO-2026-09-13 — modo IA nos motores caros ═══════
+      // O planejador dirige bem a câmera e escreve pouco: 113-116 palavras
+      // para 60 s (16 por cena de 10 s) em Kling 3, H3 e Omni na análise de $0
+      // de 13/09 — todos reprovados na régua de silêncio, sem gastar. Aqui cada
+      // cena com mais de 1,3 s de silêncio ganha a fala do tamanho dos seus
+      // segundos (2,3 pal/s), numa chamada; enchimento genérico é trocado por
+      // fato. Verbatim nunca passa por aqui (C1: a fala é do autor).
+      if (!verbatim && plan.scenes.length > 0) {
+        try {
+          const wordsOfLine = (t: string | undefined) => (t ?? '').trim().split(/\s+/).filter(Boolean).length
+          const lineOf = (sc: (typeof plan.scenes)[number]) => (sc.type === 'dialogue' ? sc.dialogueLine : sc.voiceover) ?? ''
+          const curtas = plan.scenes
+            .map((sc, i) => ({ i, sc, target: Math.round((sc.seconds || 0) * 2.3), words: wordsOfLine(lineOf(sc)) }))
+            .filter((x) => x.target >= 6 && (x.words < x.target - 3 || FILLER_LINE_RE.test(lineOf(x.sc))))
+          if (curtas.length > 0) {
+            const antes = plan.scenes.reduce((a, sc) => a + wordsOfLine(lineOf(sc)), 0)
+            const novas = await expandVoiceoversToTargets(curtas.map((x) => ({ text: lineOf(x.sc), targetWords: x.target })), hollywoodLanguage, prompt.slice(0, 300))
+            curtas.forEach((x, k) => {
+              const nova = novas[k]
+              if (!nova || nova === lineOf(x.sc)) return
+              if (x.sc.type === 'dialogue') {
+                const spoken = nova.replace(/"/g, "'")
+                x.sc.dialogueLine = spoken
+                if (/"[^"]{6,}"/.test(x.sc.prompt)) x.sc.prompt = x.sc.prompt.replace(/"[^"]{6,}"/, `"${spoken}"`)
+              } else {
+                x.sc.voiceover = nova
+              }
+            })
+            const depois = plan.scenes.reduce((a, sc) => a + wordsOfLine(lineOf(sc)), 0)
+            console.log(`[hollywood] KINEO-ENCHE-SILENCIO: ${curtas.length} cena(s) reescritas, ${antes} → ${depois} palavras`)
+          }
+        } catch (e) {
+          console.warn('[hollywood] enche-silencio pulado:', e instanceof Error ? e.message : String(e))
         }
       }
 

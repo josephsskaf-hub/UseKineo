@@ -579,7 +579,11 @@ ${visualDescriptionDirection(visualPolicy)}
 export async function expandShortVoiceovers(scenes: Scene[], lo: number, hi: number, language?: NarrationLanguage): Promise<Scene[]> {
   const wordsOf = (t: string) => (t ?? '').trim().split(/\s+/).filter(Boolean).length
   const total0 = scenes.reduce((a, s) => a + wordsOf(s.voiceover), 0)
-  if (scenes.length === 0 || total0 >= Math.ceil(scenes.length * lo * 0.85)) return scenes
+  // KINEO-ANALISE-MOTORES-2026-09-13 — o piso era 85% de (cenas × lo) e o Seedance
+  // em modo IA parou em 147 palavras para 60 s (47 s de fala; a faixa pedia
+  // 161-210): 147 ≥ 137 e a 2ª passada nunca rodava. "Ficar ABAIXO é defeito"
+  // (fundador 02/09): a passada roda sempre que a soma não chega ao piso cheio.
+  if (scenes.length === 0 || total0 >= scenes.length * lo) return scenes
   const langName = LANGUAGE_NAMES[language ?? 'en']
   const mid = Math.round((lo + hi) / 2)
   const out = scenes.map((s) => ({ ...s }))
@@ -711,4 +715,43 @@ export async function getRunwayTask(id: string): Promise<RunwayTaskState> {
       : null
 
   return { id, status, progress, videoUrl, failure }
+}
+
+// ═══ KINEO-ENCHE-SILENCIO-2026-09-13 ═════════════════════════════════════
+// Análise de $0 dos 7 motores (13/09 23:30): Kling 3, H3 e Omni em modo IA
+// ("Let AI structure") saíam com 113-116 palavras para 60-64 s de cenas —
+// 16 palavras por cena de 10 s — e reprovavam na régua de silêncio (10-13 s
+// mudos). O Omni ainda abria com o enchimento "Here is something most people
+// do not know about…". O planejador dirige bem a câmera e escreve pouco:
+// cada cena curta ganha uma reescrita para o alvo de palavras dos seus
+// segundos (2,3 pal/s), numa chamada só, mantendo fatos e língua.
+export const FILLER_LINE_RE = /^(here is something most people do not know about|imagine|what if|most people don'?t know)/i
+export interface VoiceoverTarget { text: string; targetWords: number }
+/** Reescreve cada item para ~targetWords (mín. 80% do alvo, sempre acima do original); devolve os textos na ordem. Fail-open: item que não melhora volta como estava. */
+export async function expandVoiceoversToTargets(items: VoiceoverTarget[], language: NarrationLanguage | undefined, topic: string): Promise<string[]> {
+  const wordsOf = (t: string) => (t ?? '').trim().split(/\s+/).filter(Boolean).length
+  if (items.length === 0) return []
+  const langName = LANGUAGE_NAMES[language ?? 'en']
+  const completion = await openai.chat.completions.create(
+    {
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: `You write narration lines for a short documentary video about: ${topic.slice(0, 300)}. For each input line, return a rewritten line with EXACTLY the requested number of words (±10%), in ${langName}, that keeps every fact, name and number of the input and adds specific, true detail. If an input line is generic filler (for example "Here is something most people do not know about…"), replace it with a specific, true opening line about the topic. Never use filler like "imagine", "what if" or "most people don't know". Return ONLY a JSON array of strings, same order and same length as the input.` },
+        { role: 'user', content: JSON.stringify(items.map((it) => ({ words: it.targetWords, line: it.text }))) },
+      ],
+      temperature: 0.4,
+      max_tokens: 1600,
+    },
+    { timeout: 25000 },
+  )
+  const raw = completion.choices[0]?.message?.content?.trim() ?? ''
+  const m = raw.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').match(/\[[\s\S]*\]/)
+  if (!m) return items.map((it) => it.text)
+  const arr: unknown = JSON.parse(m[0])
+  if (!Array.isArray(arr) || arr.length !== items.length) return items.map((it) => it.text)
+  return items.map((it, i) => {
+    const v = typeof arr[i] === 'string' ? (arr[i] as string).trim() : ''
+    const ok = v && wordsOf(v) >= Math.ceil(it.targetWords * 0.8) && (wordsOf(v) > wordsOf(it.text) || FILLER_LINE_RE.test(it.text))
+    return ok ? v : it.text
+  })
 }
