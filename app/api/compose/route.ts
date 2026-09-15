@@ -2699,8 +2699,20 @@ export async function POST(req: NextRequest) {
     // TTS — skip it. This avoids firing the corrective pass unnecessarily.
     const scaledWordCount = scaledScript.split(/\s+/).filter(Boolean).length
     const predictedDuration = predictTtsSecondsFromWords(scaledWordCount)
+    // KINEO-KLING-DURACAO-2026-09-15 — Kling 2.5, render 8bf45931 (fundador, 15/09,
+    // nota 8,8 "entregou 82 s quando pedi 60"): 193 palavras previam 62 s pela régua
+    // (3,1 pal/s), o "bem dimensionado" acima calou o passe corretivo, e a voz real
+    // (persona dark-mystery, onyx a 0,92) falou a 2,35 pal/s → 81,9 s medidos; o
+    // filme segue o áudio. Diferença de +22 s não é "variação de ritmo": é a
+    // previsão errada para essa voz. O atalho de custo só vale quando o MEDIDO
+    // também está perto (≤ 2× a tolerância); fora disso o corretivo roda como
+    // sempre rodou (Push #234): uma re-síntese na velocidade medido/pedido.
+    const measuredNearRequest = realAudioDuration > 4 && Math.abs(realAudioDuration - duration) <= 2 * DURATION_TOLERANCE_SECONDS
     const scriptWellSized =
-      predictedDuration > 0 && Math.abs(predictedDuration - duration) <= DURATION_TOLERANCE_SECONDS
+      predictedDuration > 0 && Math.abs(predictedDuration - duration) <= DURATION_TOLERANCE_SECONDS && measuredNearRequest
+    if (predictedDuration > 0 && !measuredNearRequest && Math.abs(predictedDuration - duration) <= DURATION_TOLERANCE_SECONDS) {
+      console.log(`[compose] KINEO-KLING-DURACAO: previsão ${predictedDuration.toFixed(1)}s (régua) mas medido ${realAudioDuration.toFixed(1)}s para ${duration}s pedidos — a régua errou para esta voz, passe corretivo liberado`)
+    }
     if (
       !cachedVoiceover && // never re-synthesize a cache hit (no buffer, already corrected)
       !avatarMode && // feature/ai-avatar — never re-synthesize the lip-synced mp3
