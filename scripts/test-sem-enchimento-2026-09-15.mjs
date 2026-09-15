@@ -103,6 +103,25 @@ console.log('== (b) candidato: a cena que falta é uma divisão, não um enchime
   checa('a cena dividida herda a descrição/consulta da cena de origem (o visual não inventa outra coisa)', r[2].description === r[1].description && r[2].stockSearchQuery === r[1].stockSearchQuery)
 }
 
+console.log('== (b2) cenas de UMA frase: a mais longa é dividida na vírgula do meio (mesmas palavras) ==')
+{
+  const UMA = [
+    cena(1, 'In the dead of night, a solitary train stops at an abandoned station, shrouded in mystery and silence.'),
+    cena(2, 'Every clock on the platform stands frozen at exactly 3:15 AM, which amplifies the unsettling stillness of the place.'),
+    cena(3, 'A red suitcase, strikingly identical to her own, sits on the deserted platform.'),
+    cena(4, 'Through the glass, she watches in disbelief as an older version of herself picks up the suitcase.'),
+    cena(5, 'Before she has time to react, the train suddenly pulls away.'),
+    cena(6, 'Inside her suitcase lies a ticket for this very station, dated thirty years into the future.'),
+  ]
+  const antes = UMA.reduce((a, s) => a + wordsOf(s.voiceover), 0)
+  const p = planner(read('lib/runway.ts'), PEDIDO_KLING, 7, UMA)
+  const r = await p.run()
+  const falas = r.map((s) => s.voiceover)
+  const semPontuacao = (t) => t.toLowerCase().replace(/[.,;—–]/g, '').replace(/\s+/g, ' ').trim()
+  checa(`7 cenas, nenhuma "Here is something", mesmas palavras (${antes} → ${falas.reduce((a, f) => a + wordsOf(f), 0)}) e mesma ordem`, r.length === 7 && falas.every((f) => !/^Here is something/i.test(f)) && semPontuacao(falas.join(' ')) === semPontuacao(UMA.map((s) => s.voiceover).join(' ')))
+  checa('a cena 2 (a mais longa, 20 palavras) foi dividida na vírgula do meio: "…3:15 AM." + "Which amplifies…"', falas[1] === 'Every clock on the platform stands frozen at exactly 3:15 AM.' && falas[2] === 'Which amplifies the unsettling stillness of the place.' && p.calls() === 1)
+}
+
 console.log('== (c) sem cena divisível: enchimento curto, sem a instrução ==')
 {
   const p = planner(read('lib/runway.ts'), PEDIDO_KLING, 4, [cena(1, 'A night train stops.')])

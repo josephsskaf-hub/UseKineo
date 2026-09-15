@@ -550,8 +550,11 @@ ${visualDescriptionDirection(visualPolicy)}
   // caminho clássico (Seedance 1.5, Kling 2.5, Veo) não filtra o FILLER_LINE_RE como o
   // hollywood. Agora a cena que falta nasce de uma DIVISÃO da cena mais longa em
   // fronteira de frase (as mesmas palavras, na mesma ordem, sem inventar texto); só
-  // quando nenhuma cena tem duas frases entra um enchimento CURTO, com no máximo 12
-  // palavras de tema e sem a instrução ("Create a 60-second…"). Nenhuma chamada nova.
+  // quando nenhuma cena tem duas frases, a cena mais longa é dividida numa vírgula/ponto e
+  // vírgula/travessão (≥ 12 palavras; a TTS já pausa ali); só sem isso entra um enchimento
+  // CURTO, com no máximo 12 palavras de tema e sem a instrução ("Create a 60-second…").
+  // Nenhuma chamada nova. (Ensaio do Kling 2.5 às 22:50: 6 cenas de UMA frase para 7 — a
+  // 7ª saía "Here is something most people do not know about A night train…" numa ficção.)
   const temaCurto = (() => {
     const semInstrucao = prompt
       .replace(/^\s*(create|make|write|produce|generate)\b[^.\n]*[.\n]\s*/i, '')
@@ -580,7 +583,31 @@ ${visualDescriptionDirection(visualPolicy)}
       scenes.splice(alvo + 1, 0, { ...base, voiceover: cauda, caption: shortCaptionFromVoiceover(cauda), scenePurpose: 'EXPLANATION' })
       continue
     }
-    const description = visualPolicy
+    // segunda opção: a cena mais longa (≥ 12 palavras) dividida na vírgula mais próxima do meio
+    let alvoV = -1
+    let maiorV = 0
+    scenes.forEach((s, i) => {
+      const fala = s.voiceover ?? ''
+      const w = fala.split(/\s+/).filter(Boolean).length
+      if (w >= 12 && /[,;—–]\s/.test(fala) && !/^Here is something most people do not know about/i.test(fala) && w > maiorV) { maiorV = w; alvoV = i } // o enchimento curto nunca é dividido
+    })
+    if (alvoV >= 0) {
+      const fala = (scenes[alvoV].voiceover ?? '').trim()
+      const meio = fala.length / 2
+      let melhor = -1
+      const re = /[,;—–]\s/g
+      let m: RegExpExecArray | null
+      while ((m = re.exec(fala)) !== null) { if (melhor < 0 || Math.abs(m.index - meio) < Math.abs(melhor - meio)) melhor = m.index }
+      if (melhor > 0) {
+        const cabeca = fala.slice(0, melhor).trim().replace(/[,;—–]$/, '') + '.'
+        const cauda = fala.slice(melhor + 1).trim()
+        const caudaFinal = cauda.charAt(0).toUpperCase() + cauda.slice(1)
+        const base = scenes[alvoV]
+        scenes[alvoV] = { ...base, voiceover: cabeca, caption: shortCaptionFromVoiceover(cabeca) }
+        scenes.splice(alvoV + 1, 0, { ...base, voiceover: caudaFinal, caption: shortCaptionFromVoiceover(caudaFinal), scenePurpose: 'EXPLANATION' })
+        continue
+      }
+    }    const description = visualPolicy
       ? `${aspectSpec(visualPolicy.aspect).promptFraming}, ${visualPolicy.style.lookPhrase}, shot of the described subject: ${temaCurto}`
       : `Cinematic vertical 9:16 shot inspired by: ${temaCurto}`
     const voiceover = `Here is something most people do not know about ${temaCurto}.`
