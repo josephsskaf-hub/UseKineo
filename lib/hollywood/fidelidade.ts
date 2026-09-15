@@ -338,7 +338,10 @@ export function escalasDe(texto: string): string[] { return [...(texto ?? '').ma
 export function escalaAnunciada(texto: string): boolean { return escalasDe(texto).length > 0 || COMPARACAO_RE.test(texto ?? '') }
 // Sem flag global em regex de TESTE: /g + .test() guarda lastIndex e alterna o veredito entre chamadas idênticas (3ª revisão do Board).
 const VIOLENTO_RE = /\b(?:landslide|rockslide|collapse[sd]?|collapsing|tsunami|wave|waves|explosion|explod\w*|erupt\w*|crash\w*|flood\w*|storm|earthquake|quake|fire|burn\w*|fall\w*|fell|break\w*|broke|destroy\w*|destruction|surge|torrent|avalanche|toppl\w*|tore|torn|swept|struck)\b/i
-const CALMO_PALAVRAS = 'calm|still|tranquil|peaceful|quiet|serene|gentle|placid|empty|motionless|undisturbed|glassy|intact|unharmed|untouched|undamaged|unbroken|unchanged|unscathed|pristine|remains|remaining|stands untouched'
+// 15/09 (render H3 7bb62a29): "pristine" NÃO entra — o sufixo de nitidez do router ("pristine clarity")
+// vai em TODA cena hollywood e marcava as 7 cenas de um documentário de terremoto como "divergente".
+// Estado da CENA (calma/intacta) ≠ qualidade da IMAGEM (nítida).
+const CALMO_PALAVRAS = 'calm|still|tranquil|peaceful|quiet|serene|gentle|placid|empty|motionless|undisturbed|glassy|intact|unharmed|untouched|undamaged|unbroken|unchanged|unscathed|remains|remaining|stands untouched'
 const CALMO_RE = new RegExp(`\\b(?:${CALMO_PALAVRAS})\\b`, 'i')
 const calmoGlobal = () => new RegExp(`\\b(?:${CALMO_PALAVRAS})\\b`, 'gi')
 export type Cobertura = { status: 'coberta' | 'divergente' | 'desconhecida' | 'sem_narracao'; motivo: string; acao: string[]; coincidencias: string[]; contradicoes: string[] }

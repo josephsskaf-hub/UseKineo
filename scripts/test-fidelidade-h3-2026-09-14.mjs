@@ -116,6 +116,9 @@ checa('mesmo texto com o pescador na cena → coberta (gripped/grips casam pelo 
 checa('coincidência lexical ÚNICA de substantivo ("mountains") não aprova: desconhecida', cob('Aerial view of mountains at sunset.', 'The landslide, triggered by an earthquake, tore the mountains apart and displaced millions of tons of rock.') === 'desconhecida')
 checa('ação presente de verdade (uprooted trees + mountainside) → coberta', cob('Fallen, uprooted trees scattered across the mountainside after the wave.', 'The tsunami uprooted trees high up the mountains, leaving destruction behind.') === 'coberta')
 checa('sem narração → sem_narracao, prompt intacto', cob('anything', '') === 'sem_narracao' && F.garantirAcaoCentral('anything', '').prompt === 'anything')
+// 15/09, render H3 7bb62a29: o sufixo de nitidez do router ("… pristine clarity …") vai em toda cena e marcava
+// as 7 cenas de um terremoto como "divergente" — qualidade de IMAGEM não é estado de CENA
+checa('"pristine clarity" (sufixo de nitidez) com narração de terremoto NÃO é divergente', cob('Aerial view of the rockslide tearing down the mountainside into the bay. Tack-sharp focus, crystal-clear detail, pristine clarity.', 'A massive rockslide fell into the bay after the earthquake.') !== 'divergente' && !libSrc.includes('|pristine|'))
 {
   const p = 'Calm, tranquil mountains above a quiet bay at dawn.'; const v = 'A massive landslide sent the whole mountainside collapsing into the bay.'
   const r = [1, 2, 3, 4, 5].map(() => cob(p, v))
