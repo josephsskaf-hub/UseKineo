@@ -230,14 +230,16 @@ check(instructions.includes('anime') && instructions.includes('16:9') && instruc
 check(!/FACELESS only|Vertical 9:16|same dark cinematic mood/.test(instructions), 'Descriptions do not reintroduce the old forced format')
 
 // Optional initial-planner contract. Goldens were captured from the unchanged
-// legacy generateScenes at c5ed4776 on 2026-09-11; hash covers actual request,
+// legacy generateScenes at c5ed4776 on 2026-09-11 and RECAPTURED on 2026-09-15 after
+// KINEO-SEM-ENCHIMENTO (padding no longer narrates the whole prompt: a missing scene is a
+// sentence split of the longest scene, or a ≤12-word topic filler); hash covers actual request,
 // request options AND returned scene fields. No git/network needed to rerun.
 const runway = parse('lib/runway.ts')
 const legacyFixtures = [
-  { count: 4, response: [{ description: 'Mira at Kyoto station', voiceover: 'Mira finds a parcel.', caption: 'Mira finds a parcel', negativeVisualPrompt: 'rain', visualIntent: 'Warm light', visualCategory: 'general_documentary', scenePurpose: 'HOOK', stockSearchQuery: 'Kyoto station parcel', searchKeywords: 'Kyoto parcel' }], hash: '3f9fd4dd0d01a42050bfaee5b361e38878f1fe2e94d1aab267aeb96ee387d90a' },
-  { count: 4, response: ['Mira at Kyoto station'], hash: '9dd2acf374554eb9661dcb4cef631718de5b51187743740e0134afc5f9939014' },
-  { count: 0, response: [], hash: '4beee5ca0c63d0b944a8c3443923602534f1f226ce5358407c62b3546cf66362' },
-  { count: 100, response: [{ description: 'Mira at Kyoto station', voiceover: 'Mira finds a parcel.' }], hash: '3c79fbde6f9e9f68443f49e133d7553db9e9bfcaf2627a8c0814241ad647609a' },
+  { count: 4, response: [{ description: 'Mira at Kyoto station', voiceover: 'Mira finds a parcel.', caption: 'Mira finds a parcel', negativeVisualPrompt: 'rain', visualIntent: 'Warm light', visualCategory: 'general_documentary', scenePurpose: 'HOOK', stockSearchQuery: 'Kyoto station parcel', searchKeywords: 'Kyoto parcel' }], hash: 'd6a388e630abf6ff1257026b1e718f7743cf160dedacc89b934789cacfc64c29' },
+  { count: 4, response: ['Mira at Kyoto station'], hash: 'bca73b603eb13fe48e9528f1e7d7a0e3f5ed932e3479784e35b38bb61b57bf59' },
+  { count: 0, response: [], hash: 'cb376108885901783199240cce4e1d6dc6c7db663e97bf405c538288a5a40b56' },
+  { count: 100, response: [{ description: 'Mira at Kyoto station', voiceover: 'Mira finds a parcel.' }], hash: '8fcda46c672646eb354e5ef4d89dc2d4994d1881527aa49ada5fd1b79c285d60' },
 ]
 async function planner(fixture, contract) {
   let request, calls = 0
@@ -254,7 +256,7 @@ async function planner(fixture, contract) {
 for (const fixture of legacyFixtures) {
   const { request, result, calls } = await planner(fixture)
   const digest = createHash('sha256').update(JSON.stringify({ request, result })).digest('hex')
-  check(digest === fixture.hash, 'No-option legacy provider payload and scene output remain byte-identical')
+  check(digest === fixture.hash, `No-option legacy provider payload and scene output remain byte-identical (fixture ${legacyFixtures.indexOf(fixture)}, count ${fixture.count}: got ${digest})`)
   check(calls === 1, 'Legacy planner call count unchanged')
 }
 for (const mode of ['documentary_faceless', 'character_story', 'presenter']) {

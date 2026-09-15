@@ -542,16 +542,53 @@ ${visualDescriptionDirection(visualPolicy)}
     .filter((s): s is Scene => s !== null)
     .slice(0, safeCount)
 
-  while (scenes.length < safeCount) {
+  // ═══ KINEO-SEM-ENCHIMENTO-2026-09-15 — a cena que falta NUNCA vira "Here is something
+  // most people do not know about <o pedido inteiro>" ═══
+  // Ensaios de $0 de 15/09 (Seedance faroleiro e Kling 2.5 trem, modo ideia): o modelo
+  // devolveu 6 cenas para 7 e a 7ª recebia este enchimento com o PEDIDO INTEIRO (206
+  // palavras, +70 % de fala): o compose reescreveria a narração e repetiria cena — o
+  // caminho clássico (Seedance 1.5, Kling 2.5, Veo) não filtra o FILLER_LINE_RE como o
+  // hollywood. Agora a cena que falta nasce de uma DIVISÃO da cena mais longa em
+  // fronteira de frase (as mesmas palavras, na mesma ordem, sem inventar texto); só
+  // quando nenhuma cena tem duas frases entra um enchimento CURTO, com no máximo 12
+  // palavras de tema e sem a instrução ("Create a 60-second…"). Nenhuma chamada nova.
+  const temaCurto = (() => {
+    const semInstrucao = prompt
+      .replace(/^\s*(create|make|write|produce|generate)\b[^.\n]*[.\n]\s*/i, '')
+      .replace(/^\s*(story|facts to cover[^:\n]*|topic)\s*:\s*/i, '')
+      .trim()
+    const primeira = (semInstrucao || prompt).split(/(?<=[.!?])\s+|\n+/)[0] ?? prompt
+    return primeira.replace(/[.!?…]+$/, '').split(/\s+/).filter(Boolean).slice(0, 12).join(' ')
+  })()
+  const frasesDe = (t: string) => (t.match(/[^.!?…]+[.!?…]+["”']?|[^.!?…]+$/g) ?? []).map((s) => s.trim()).filter(Boolean)
+  let guardaDivisao = 40
+  while (scenes.length < safeCount && guardaDivisao-- > 0) {
+    let alvo = -1
+    let maior = 0
+    scenes.forEach((s, i) => {
+      const fala = s.voiceover ?? ''
+      const w = fala.split(/\s+/).filter(Boolean).length
+      if (frasesDe(fala).length >= 2 && w > maior) { maior = w; alvo = i }
+    })
+    if (alvo >= 0) {
+      const frases = frasesDe(scenes[alvo].voiceover ?? '')
+      const corte = Math.ceil(frases.length / 2)
+      const cabeca = frases.slice(0, corte).join(' ')
+      const cauda = frases.slice(corte).join(' ')
+      const base = scenes[alvo]
+      scenes[alvo] = { ...base, voiceover: cabeca, caption: shortCaptionFromVoiceover(cabeca) }
+      scenes.splice(alvo + 1, 0, { ...base, voiceover: cauda, caption: shortCaptionFromVoiceover(cauda), scenePurpose: 'EXPLANATION' })
+      continue
+    }
     const description = visualPolicy
-      ? `${aspectSpec(visualPolicy.aspect).promptFraming}, ${visualPolicy.style.lookPhrase}, shot of the described subject: ${prompt}`
-      : `Cinematic vertical 9:16 shot inspired by: ${prompt}`
-    const voiceover = `Here is something most people do not know about ${prompt}.`
-    const autoCategory = detectVisualCategory(prompt, voiceover) ?? 'general_documentary'
+      ? `${aspectSpec(visualPolicy.aspect).promptFraming}, ${visualPolicy.style.lookPhrase}, shot of the described subject: ${temaCurto}`
+      : `Cinematic vertical 9:16 shot inspired by: ${temaCurto}`
+    const voiceover = `Here is something most people do not know about ${temaCurto}.`
+    const autoCategory = detectVisualCategory(temaCurto, voiceover) ?? 'general_documentary'
     scenes.push({
       description,
-      searchKeywords: prompt.slice(0, 40),
-      stockSearchQuery: prompt.slice(0, 60),
+      searchKeywords: temaCurto.slice(0, 40),
+      stockSearchQuery: temaCurto.slice(0, 60),
       negativeVisualPrompt: defaultNegative,
       scenePurpose: 'EXPLANATION',
       visualIntent: defaultVisualIntent,
