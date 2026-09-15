@@ -114,6 +114,18 @@ export function contadoNaPrimeiraPessoa(roteiro: string): boolean {
  * SINAIS DE HISTORIA COM PERSONAGEM. Aqui pessoas podem aparecer — mas
  * mudas, nunca falando para a lente.
  */
+/**
+ * KINEO-PERSONAGEM-SEM-APRESENTADOR-2026-09-15 — ficha EXPLICITA de personagem.
+ * Render Seedance d6e8e8b3 (fundador, 15/09): o pedido dizia "No dialogue, no presenter
+ * talking to the camera" E "Keep the same keeper throughout: a middle-aged man with a
+ * short gray beard…". A negacao de apresentador vencia e o formato caia em
+ * documentary_faceless: a ficha nunca entrou nas 7 cenas e o faroleiro sumiu do
+ * filme. "Sem apresentador" quer dizer ninguem falando para a lente — nao quer
+ * dizer sem gente. Com ficha explicita (ou sinal de personagem) o formato e
+ * character_story: pessoa muda, narrador por cima.
+ */
+export const FICHA_EXPLICITA_DE_PERSONAGEM = /(?:keep|keeping|mantenha|manter|mantener|mantén)\s+(?:the\s+|o\s+|a\s+|el\s+|la\s+)?(?:same|mesm[oa]|mism[oa])\s+[a-z' -]{2,40}?\s*(?:throughout|in every scene|across (?:all|every) scenes?|em todas as cenas|en todas las escenas)|(?:the|o|a|el|la)\s+(?:protagonist|main character|hero|heroine|protagonista|personagem principal|personaje principal)\s+(?:is|e|é|es)\b/i
+
 export const SINAIS_DE_PERSONAGEM = [
   'his story', 'her story', 'he was born', 'she was born', 'grew up',
   'a young man', 'a young woman', 'the boy', 'the girl', 'his life', 'her life',
@@ -145,6 +157,12 @@ export function decidirFormato(roteiro: string, tagFacelessPresente: boolean): D
     return { modo: 'presenter', motivo: 'o roteiro pede avatar explicitamente', apresentadorPedido: true }
   }
   if (NEGACAO_DE_APRESENTADOR.test(r)) {
+    // KINEO-PERSONAGEM-SEM-APRESENTADOR-2026-09-15: "sem apresentador" + ficha/sinal
+    // de personagem = historia com personagem MUDO (nunca falando para a lente).
+    const personagemMudo = FICHA_EXPLICITA_DE_PERSONAGEM.test(roteiro) ? 'ficha explicita' : SINAIS_DE_PERSONAGEM.find((s) => r.includes(normalizar(s)))
+    if (personagemMudo) {
+      return { modo: 'character_story', motivo: `o roteiro pede sem apresentador, mas conta a historia de alguem ("${personagemMudo.trim()}"): pessoa muda, narrador por cima`, apresentadorPedido: false }
+    }
     return { modo: 'documentary_faceless', motivo: 'o roteiro pede explicitamente SEM apresentador', apresentadorPedido: false }
   }
   const pedido = PEDIDOS_DE_APRESENTADOR.find((p) => pedidoInteiro(r, p))
