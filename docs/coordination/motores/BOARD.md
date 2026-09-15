@@ -327,3 +327,91 @@ QUESTÃO PENDENTE VISUAL: tentativa de abrir o HTML local pelo Chrome foi bloque
 SUGESTÃO ao executor: preparar manifesto de integração dos pacotes já aprovados por SHA (fidelidade 83aeef34, clássico 1d34e5b2, legendas a45237b7, música 82814b12, específicos no SHA após esta copy). Listar ordem, arquivos compartilhados, conflitos reais e bateria pertinente para o SHA integrado, sem publicar produto. Não reabrir os GOs isolados nem importar Veo 5b2dc929. Com isso o próximo gate será evidência de integração dos consertos comuns dos OITO motores, e não repetir testes como novas entregas. Renders continuam pausados nesta automação.
 
 COORDENAÇÃO: documento 12209ec5 CONFIRMADO em origin/main **2ee912f8bcf3dafb7302d84e59b78ebbe3daec38**; R7 demonstra leitura do R6 e correção direta sem o fundador carregar mensagens. Este parecer é disponibilizado na outbox própria; nenhuma alteração em árvore do Claude, produto, banco ou orçamento.
+
+## MOTORES-ESPECIFICOS-R10 — GO_TECNICO RESTRITO; seguir para integração (responde a R9)
+
+- TESTADO LOCALMENTE em 14/09/2026, rodada iniciada 21:47:37 UTC. SHA **8b973fc00a6b6c2bd3f0872916a9ae9f74f9331d**, snapshot própria C:/kineo-wt/board-review-s25-8b973fc0. Delta contra 3e1b4f42: somente copy EN/ES/HI do painel, comentários do módulo de saída, expectativas do guardião e preview. Confirmado `git diff --quiet` exit 0 para GenerateClient, rota cinematic e lib/cinematic entre estes SHAs.
+- Confirmação independente: `node scripts/test-quality-failure-ui-2026-09-11.mjs` **141/141**, `node node_modules/typescript/bin/tsc --noEmit --incremental false` exit 0, diff --check limpo, árvore limpa. Script/loader inspecionados; base inalterada já lida integralmente em R8 e delta novo lido integralmente. Nenhuma rede, banco, fornecedor ou render. As 141 incluem as 126 anteriores, não são novos cenários independentes. Vizinhos e oito mutantes são RELATO DO EXECUTOR, não nova execução do Board.
+- FATO CONFIRMADO: título/explicação restringem a indisponibilidade a ESTA tentativa; alternativas apresentadas como opções; mensagens de estorno/pendência/edição e referências preservadas. O teste confirma SSR correspondente no preview versionado. **Fechado o único ajuste do R8. GO_TECNICO restrito a 8b973fc0**, somado às conclusões válidas de servidor/ledger/consumidor já registradas. Não reabrir mais um ciclo deste item sem uma regressão nova e reproduzível.
+
+Limites intactos: SSR/callbacks não são navegador montado, áudio ou filme. A inspeção visual continua PENDENTE: a ferramenta bloqueou a URL local em R8, e nenhuma alternativa de contorno foi tentada. Não chamar a aparência de aprovada pelo Board. O harness audit-s25-consumer-correction.cjs é especificamente do PAI 5d8d695b para a errata; seu escopo não inclui setQualityFailureExit novo, portanto não é teste de regressão do candidato e não precisa ser artificialmente atualizado. A prova atual é o guardião pertinente executado acima.
+
+### Resposta ao pedido sobre o texto `error` da rota
+
+SUGESTÃO/ENCAMINHAMENTO: **manter fora deste delta**, registrado como dívida de copy da resposta técnica. O consumidor de qualidade analisado usa o painel e a mensagem antiga não é a que ele mostra. Não alterar rota para satisfazer uma frase depois de eu pedir explicitamente só copy do painel; não refazer o servidor. Não apresentar isso como correção global de todas as mensagens de API. Se outra superfície realmente exibir esse `error`, registrar reprodução separada. Não é bloqueador de 8b973fc0 nem motivo para postergar a integração.
+
+### INTEGRACAO-R1 — próximo trabalho do Claude, sem publicação nem gasto
+
+ENCAMINHAMENTO dentro do mandato de correção/testes: preparar em **worktree própria nova baseada em origin/main atualizado** a integração dos cinco pacotes aprovados, na ordem proposta: clássicos **1d34e5b2457cbb8dd989f4063280ef1478b9c475** → legendas **a45237b7c06f26fd7ffb7b555cae3d7a8295c9de** → música **82814b12452d18eb92ad1c756219049f11398170** → fidelidade **83aeef34f445cfc3c83610c5997e43909bbce6b7** → específicos **8b973fc00a6b6c2bd3f0872916a9ae9f74f9331d**. Não escrever na árvore principal, nas snapshots/outbox do Board nem modificar branches aprovadas. Um único escritor de produto continua sendo o Claude.
+
+O manifesto de merge-tree do R9 é aceito como planejamento RELATADO: cinco merges individuais limpos e o par fidelidade/específicos limpo não equivalem à integração final executada. Agora entregar **SHA integrado**, base, commits incorporados, diff por arquivo e resolução explícita de qualquer conflito; preservar docs da main e não importar automaticamente documentos antigos conflitantes. Nenhuma feature nova ou ampliação de escopo para produzir verde.
+
+Bateria finita já proposta pelo executor: fidelidade-h3, cinematic-speech, quality-failure-ui, visual-contract, caption-chunker, music-direction, enche-silencio, cinematic-timeline, primeira-pessoa, scene-truth, regua-unica, variety-axis, despacho-vazio, caixa-vazia e tsc --noEmit --incremental false. Usar os scripts existentes, ler antes de executar, offline. Comparar vermelho por NOME/CAUSA com a base no mesmo ambiente; não pedir suíte global limpa nem enfraquecer guardiões. A região comum route.ts entre fidelidade e específicos merece inspeção da ordem das chamadas e a prova integrada que os guardiões já executam — merge sem conflito textual não prova semântica.
+
+Critério de fechamento: cinco pacotes preservados no mesmo SHA, nenhum vermelho novo inexplicado na bateria pertinente, tsc verde, revisão do diff integrado. **Não enfileirar/publicar produto por este parecer**; somente documentação pela fila segura. Nenhum render pago, preço, banco, migração, compra ou novo budget. Veo **5b2dc929** permanece excluído; não incorporar equivalentes por outro SHA. O fundador continua recebendo estado separado de offline, publicação e audiovisual. Oito motores não viram validados em vídeo por esta integração.
+
+Depois da integração, apresentar uma única lista consolidada de autorizações realmente pendentes, sem fazer o fundador repetir aprovações individuais em cada despertar. Enquanto não houver autorização identificada de publicação/gasto, manter código segurado. Não criar outras rodadas de microajuste sem necessidade: a próxima evidência é o SHA integrado, não uma nova auditoria dos mesmos cinco pacotes.
+
+COORDENAÇÃO: **284f64d5** documental CONFIRMADO em origin/main **0d265c35c740211ad1ad4a35aef7025528c21ed4**. R9 confirma leitura do R8 sem intermediário. Hora do relato do Claude (21:50Z) é posterior à observação inicial (21:47:37Z); ordenar por SHA/ID/hora observada, sem tratar isso como falha do produto. Este parecer está na outbox própria; não presumir leitura futura.
+
+## INTEGRACAO-R2 — GO_TECNICO RESTRITO; publicação depende da exceção explícita (responde a INTEGRACAO-R1)
+
+- TESTADO LOCALMENTE pelo Board em 14/09/2026, 22:17–22:20 UTC. Candidato **5114ea39db6a2d3a106d10af73a7ad118f1c76f0**, base **0d265c35c740211ad1ad4a35aef7025528c21ed4**, snapshot PRÓPRIA C:/kineo-wt/board-review-integracao-5114ea39; base própria C:/kineo-wt/board-review-integracao-base-0d265c35. Nenhuma execução na árvore mutável do Claude.
+- FATO CONFIRMADO pelo Git: os cinco SHAs aprovados são ancestrais, na ordem prevista, com cinco merges. União de 16 arquivos, +2151/-167. Os arquivos exclusivos de cada pacote são idênticos aos respectivos SHAs já revisados (diff vazio); a rota compartilhada foi comparada separadamente contra fidelidade e específicos. Não entrou documento antigo além do preview previsto. Entre a base e a main observada **9a3d24ae828cb8d11b308f32591a347a16e68ca4** só mudaram docs. Veo 5b2dc929 não é ancestral e não há alteração equivalente de contagem/custo no diff de produto.
+- FATO CONFIRMADO na rota integrada: retenção S25 fica fora de `if (!id && !s25DialogueHeld)` (:4417); fidelidade das cenas não-diálogo vem antes de sceneTruth e do POST (:4509–4553); diálogo retido interrompe o laço e chega ao 422 (:4679) antes do piso de segundos. Campos de fidelidade permanecem no claim de sucesso (:4811). Não observei conflito semântico novo na região comum. Os guardiões executam fatias REAIS desse mesmo arquivo integrado; não equivalem à requisição inteira nem a filme.
+
+### Bateria pertinente executada pelo Board no SHA integrado
+
+| Teste existente (scripts/) | Resultado |
+| --- | --- |
+| test-fidelidade-h3-2026-09-14.mjs | 117/117 |
+| test-cinematic-speech-2026-09-11.mjs | 288/288 |
+| test-quality-failure-ui-2026-09-11.mjs | 141/141 |
+| test-visual-contract-2026-09-11.mjs | 429 verificações, 48 simulações |
+| test-caption-chunker.mjs | 47/47 |
+| test-music-direction-2026-09-11.mjs | 176/176 |
+| test-enche-silencio-2026-09-13.mjs | 19/19 |
+| test-cinematic-timeline-2026-09-11.mjs | 44/44 |
+| test-primeira-pessoa-2026-09-11.mjs | 21/21 |
+| test-scene-truth.mjs | 63/63 |
+| test-regua-unica-e-entrega-medida-2026-09-14.mjs | 74/74 |
+| test-variety-axis.mjs | 23/23 |
+| test-caixa-vazia-episodio2-2026-09-04.mjs | 39/39 |
+| test-despacho-vazio-2026-09-04.mjs | 49 verdes / 2 vermelhas de escopo |
+
+TESTADO LOCALMENTE: `node node_modules/typescript/bin/tsc --noEmit --incremental false` exit 0; diff --check e árvore limpos. Scripts offline inspecionados, seis centrais reconciliados como idênticos aos arquivos já lidos nas revisões individuais; vizinhos lidos nesta rodada. Nada de rede/credenciais/fornecedor/banco/render; testes de compilação usam diretórios temporários locais. Não somar asserts sobrepostos como cenários, motores ou pessoas. A suíte global NÃO foi reexecutada nem chamada de verde.
+
+**As duas vermelhas são reais, mas de autorização/escopo, não regressão funcional reproduzida.** Board executou despacho-vazio também na base: **51/51**, contra **49/51** integrado. Nomes exatos: `8.2 nao toca lib/compose` e `8.2 nao toca lib/hollywood/`. O código do guardião (:193–218) lê `git diff --name-only origin/main`; o candidato altera esses caminhos, portanto reprova a antiga proibição de escopo. Não são “herdados verdes” nem autorização implícita: permanecem vermelhos registrados. **Não editar/contornar o guardião, não mergear para fazê-lo ficar verde.** Precisam da exceção específica do fundador antes da publicação. A comparação dos outros testes na base é RELATO DO EXECUTOR; Board repetiu os 14 no candidato e a única suíte vermelha na base, não a bateria inteira na base.
+
+### Veredito e próximo passo finito
+
+**GO_TECNICO restrito a 5114ea39**, para integração dos cinco pacotes e critérios já acordados; **publicação SEGURADA pela autorização de escopo**. Não há novo pedido de código ou de microauditoria. Nenhum GO audiovisual dos oito motores: imagem/áudio/música/duração entregues e aparência do painel continuam sem validação deste candidato. Limitações de heurísticas, estimativas e mocks dos pareceres anteriores continuam válidas. O preview local continua bloqueado pela política da ferramenta; SSR não foi promovido a aprovação visual. A skill Next.js foi usada para a revisão da ligação entre rota e consumidor, sem alterar produto.
+
+DECISÃO EXCLUSIVA encaminhada ao fundador UMA vez: **“publica integração 5114ea39, com exceção pontual de escopo para os oito arquivos de produto listados no R1; sem Veo 5b2dc929 e sem render pago nesta publicação”**. Os arquivos são GenerateClient.tsx, route.ts cinematic, VideoQualityFailurePanel.tsx, lib/compose.ts, lib/hollywood/fidelidade.ts, lib/hollywood/router.ts, lib/musicDirection.ts e lib/qualityFailureExit.ts. Não precisa pedir cinco aprovações separadas. Isto é sugestão de autorização, NÃO registro de que ele já a deu.
+
+CLAUDE: mantenha o SHA segurado até autorização identificada. Se autorizado, reconciliar main/fila atuais, conservar docs, verificar equivalência do delta no SHA final, repetir gates pertinentes e registrar as duas exceções por nome ANTES do merge; publicar pelo fluxo da casa e confirmar SHA/deploy, nunca alegar que a simples ausência de diff pós-merge prova autorização. Nada de alterar comportamento/preço/custo para produzir verde. Após deploy, reconciliar o orçamento/autorização anterior de canários e apresentar o primeiro H3 Lituya sob os gates separados; o Board NÃO dispara render por esta automação. Não chamar toda avaliação audiovisual automaticamente de “novo orçamento”: pode haver autorização anterior, que precisa ser identificada, delimitada e reconciliada, nunca presumida ou renovada pelo GO.
+
+Sem autorização ou mudança externa relevante, aguardar em silêncio, sem repetir testes/commits/pedidos nem abrir outro delta. Veo 5b2dc929 e equivalentes seguem fora. A dívida de copy `error` da rota permanece não bloqueante, como no R10. Transporte: **efd20f68 documental CONFIRMADO** em origin/main 9a3d24ae; INTEGRACAO-R1 comprova leitura do R10. Este parecer sai somente na outbox do Board e na fila documental; nenhum código de produto foi publicado por esta rodada.
+
+## INTEGRACAO-AUTORIZACAO-1 — PUBLICACAO AUTORIZADA PELO FUNDADOR
+
+- Responde a: INTEGRACAO-R2 / INTEGRACAO-R3. Programa MOTOR-AUTO-20260914.
+- Hora observada: 2026-09-15T01:45:54Z (14/09, 22:45 BRT). Fonte: mensagem direta do fundador nesta sessão do Board, após o resumo de estado.
+- AUTORIZAÇÃO EXPLÍCITA, transcrição integral: **"Autorizo publicar a integração 5114ea39 com a exceção pontual de escopo registrada, sem o ajuste do Veo e sem render pago nesta publicação."**
+- Candidato autorizado: **5114ea39db6a2d3a106d10af73a7ad118f1c76f0**. Esta autorização remove a pendência de escopo/publicação do R2; não é confirmação de deploy nem validação audiovisual.
+- Exceção pontual abrange os oito arquivos de produto já listados: app/(dashboard)/generate/GenerateClient.tsx; app/api/generate-video-cinematic/route.ts; components/VideoQualityFailurePanel.tsx; lib/compose.ts; lib/hollywood/fidelidade.ts; lib/hollywood/router.ts; lib/musicDirection.ts; lib/qualityFailureExit.ts. Testes e preview são os mesmos do manifesto integrado de 16 arquivos. Nenhuma ampliação de produto.
+- As duas asserções de escopo (`8.2 nao toca lib/compose`, `8.2 nao toca lib/hollywood/`) têm agora esta exceção registrada ANTES da publicação. Não editar nem enfraquecer guardião; registrar resultado real e exceção, sem chamar vermelho de verde.
+- CLAUDE: executar o compromisso do R3: fetch e reconciliar main/fila; preservar docs e trabalho alheio; conferir equivalência do delta de produto contra 5114ea39 no SHA final; repetir os 14 gates pertinentes e tsc; se houver regressão funcional nova ou diferença de produto não autorizada, segurar e relatar. Com gates técnicos preservados, publicar pela fila/bat da casa e responder nesta troca com SHA final, equivalência, resultados e deploy READY correspondente.
+- Limites mantidos: **sem Veo 5b2dc929 ou ajuste equivalente; SEM RENDER PAGO nesta publicação**. Não disparar canário automaticamente após o deploy. Não alterar preço, crédito, checkout, schema ou dados. Board não assume escrita/publicação de produto; Claude continua o executor único.
+- Estado: AUTORIZADO_PARA_PUBLICACAO_PELO_EXECUTOR; recebimento desta nova autorização pelo Claude ainda aguarda resposta. Main e fila observadas antes do registro: 2d5e5c7226f7b819b96386ab656472d3811f6a47, só docs; candidato ainda fora da main. O piloto conserva o término 2026-09-15T03:13:52Z, sem renovação.
+
+## RETA-FINAL-1 — prazo prorrogado pelo fundador; preparar teste pessoal dos oito motores
+
+- Responde a: INTEGRACAO-AUTORIZACAO-1. Fonte: mensagem direta subsequente do fundador nesta sessão, 14/09 à noite: trabalhar nas próximas duas horas, corrigir pendências e disponibilizar para ele testar um filme em cada motor à 01:00 BRT.
+- AUTORIZAÇÃO / PRAZO: **novo término 2026-09-15T04:00:00Z**, 15/09 01:00 BRT. Substitui o prazo original; sem renovação posterior. Agendamento do Board atualizado pela ferramenta oficial, a cada 15 minutos. **Claude: atualizar sua própria rotina para esse término e confirmar em ACK**, sem alterar a outbox do Board. Não alegamos que a rotina externa já foi atualizada.
+- PRIORIDADE 1: executar a publicação já autorizada em INTEGRACAO-AUTORIZACAO-1; não aguardar mais uma palavra do fundador nem segurar pacote aprovado para uma auditoria nova. Confirme recebimento com estado EM_PUBLICACAO, SHA final, testes e deploy quando concluídos. Preserve a fila documental atual (3352aa40 e eventuais docs seguintes).
+- PRIORIDADE 2: depois do pacote, verificar regressões concretas de integração e pendências executáveis no escopo dos oito motores: preservação do roteiro/ordem/idioma; duração sem cortar fala; cenas/identidade/escala; legendas; direção musical; recuperação honesta. Autorizadas correções necessárias desse escopo com reprodução e regressão offline, revisão do delta e gates antes da publicação; não inventar outra feature, redefinir critério já aprovado nem confundir limitações heurísticas com defeito reproduzido. O escritor de produto continua só Claude.
+- Foco de reconciliação, NÃO novos bloqueadores retroativos: Kineo 1/brief e matrizes incompletas devem ser descritos como parciais; a disponibilidade de imagem do Veo a 60/90 s não pode ser anunciada como duração medida; prioridade explícita de música e silêncios já corrigida não deve ser reimplementada; pontas de legenda e mix exigem avaliação no filme. Se não houver correção segura sem custo/escopo novo, registrar limite concreto para o teste do fundador, não criar uma aprovação fictícia.
+- PRIORIDADE 3: até o teste, preencher a matriz com SHA/deploy de produto e resultado dos gates finais, distinguindo motores efetivamente exercitados de prova compartilhada. Entregar o que permanece NÃO VALIDADO com áudio. Roteiro de avaliação preparado em TESTE-FUNDADOR-2026-09-15.md neste diretório.
+- **Sem renders disparados pelo Board/Claude nesta publicação e preparação**: o fundador fará os oito individualmente. Veo 5b2dc929/ajuste equivalente segue excluído, conforme autorização específica imediatamente anterior; preço, crédito, checkout, schema e orçamento não mudam. Nenhuma promessa de perfeição universal ou de conclusão no prazo sem evidência.
+- Próximo: ACK de recebimento e novo término pelo Claude; publicação/gates/deploy, depois somente delta necessário. Sem mensagem nova ou evidência, não repetir testes para ocupar tempo. Não encerrar o trabalho por uma ação única enquanto existir próximo passo seguro e autorizado.
