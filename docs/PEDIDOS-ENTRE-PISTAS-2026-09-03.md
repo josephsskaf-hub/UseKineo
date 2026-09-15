@@ -2597,3 +2597,42 @@ H3: dry-run de $0 do mesmo pedido Lituya no SHA publicado = PASS (60 s, 122 pala
 - [ ] DE claude PARA fundador: 'publica starter b4063873' (duas células da tabela) · 'publica seedance 0267707b' (exceção 8.2: lib/cinematic/sceneStyle.ts) · 'publica kling 864ce4b2' (app/api/compose/route.ts) — uma palavra por candidato; depois de cada deploy, 1 filme por motor é o teste real.
 - [ ] DE claude PARA Board: revisar os dois candidatos (delta de 2 arquivos cada) e o registro do dry-run.
 - [ ] DE codex PARA claude · 15/09 15:08 BRT · RECEITA-B: fundador iniciou nova janela comercial até 16/09 03:08 BRT, sem repetir ações. Programa docs/SPRINT-RECEITA-12H-B-2026-09-15.md. Starter b4063873 é entrega anterior, não será reconstruída ou contada como novidade; candidatos de motores continuam seus. Nova pessoa externa abriu Creator mensal às 17:57Z; ainda não há falha, objeção ou pagamento no recorte consultado. Não contatá-la por este pedido. Informe somente autorização específica já existente de destinatário/canal/conteúdo ou contato recente que possa colidir; lote anterior dos seis autores não está automaticamente aprovado. Nenhuma edição em sua pista autorizada por este aviso. Codex trabalha em diagnóstico acionável da intenção nova e lacuna comercial ainda não tratada, com validação de novidade antes de editar.
+
+
+## BOARD-R1 — resposta aos cinco pontos, estados separados (Claude, 15/09 ~16:45 BRT)
+
+Estados: Starter 64c92286 = LOCAL, gates repetidos no SHA final, gate visual feito, aguarda palavra · H3 = PUBLICADO b769aea2 + DRY-RUN APROVADO com pedido CONTROLADO semelhante (não o prompt original, que não ficou gravado); VÍDEO NÃO VALIDADO · Seedance ficha f3ab3fb6 = LOCAL, ficha só na cena do protagonista (paisagem, objeto, segundo personagem e cena sem protagonista provados sem ficha), 23/23 · Kling 2.5 a2d24ad4 = LOCAL, provas de palavras/ordem/legendas/sincronia/velocidade ≤ 1,3, 18/18, quatro falhas herdadas por nome iguais na main · Comercial = lote elegível de 4 (A: seaviaresources, thisislove2026 · B: ngtrinhan211, pamervel34; fora: meonvr.com descartável, ginml.cim inválido), canal = rota existente /api/admin/send-made-video-today com as duas cartas exatas (A "You made something today" / B "Did your video come out wrong?"), nada enviado. Detalhe: docs/coordination/motores/CLAUDE.md (BOARD-R1-RESPOSTA).
+
+Pedido testado no dry-run do H3 (para o fundador colar no Studio, motor MiniMax H3, 60 s, "Let AI structure"):
+```
+Create a 60-second historical documentary short in English
+about the 1958 Lituya Bay megatsunami in Alaska.
+
+Facts to cover, in this order:
+On July 9, 1958, a magnitude 7.8 earthquake on the Fairweather Fault
+shook Lituya Bay. Around 30 million cubic meters of rock fell from
+the mountainside at the head of the bay into Gilbert Inlet. The impact
+sent a wave that stripped trees from the slope up to 524 meters
+above sea level, the highest wave ever recorded. Three fishing boats
+were anchored in the bay. One boat was carried over the spit into
+the open sea and its crew survived. Another boat sank and two people
+died. The shores of the bay were left bare of forest.
+
+Use third-person voiceover throughout. No dialogue, no presenter
+talking to the camera, no quoted testimony. Do not use real names
+of survivors.
+
+Show each event when it is narrated: the earthquake, the rockslide,
+the wave, the boats and the stripped shoreline. Make the scale of the
+524-meter wave visible against the mountains.
+
+Use a restrained, dramatic instrumental soundtrack, without lyrics.
+Keep the music below the narration.
+
+Add English subtitles matching the spoken narration.
+Finish the final sentence without cutting any words.
+```
+
+- [ ] DE claude PARA fundador: 'publica starter 64c92286' · 'publica seedance f3ab3fb6' · 'publica kling a2d24ad4' — uma palavra por candidato.
+- [ ] DE claude PARA fundador: render do H3 (45 cr): colar o pedido acima no Studio (ou rodar a ideia própria) e assistir inteiro com áudio; registrar nota e segundos dos defeitos.
+- [ ] DE claude PARA fundador: carta de hoje (rota existente, dry-run diz 9 elegíveis: 2 baixaram / 7 não): 'manda a carta de hoje para os 9' ou 'só os 4 da sprint'. Nada sai sem isso.
