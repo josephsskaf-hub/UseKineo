@@ -3998,10 +3998,15 @@ async function manipularPost(req: NextRequest) {
         for (let i = 0; i < plan.scenes.length && i < 40; i++) {
           const sc = plan.scenes[i]
           const cap = capOf(sc.type)
-          if ((sc.seconds ?? 0) <= cap) continue
           const isDialogue = sc.type === 'dialogue'
           const speech = wordsArr(isDialogue ? sc.dialogueLine : sc.voiceover)
-          const fits = Math.max(1, Math.floor((cap - 1) * 2.3))
+          // KINEO-FALA-NO-TETO-2026-09-15 — ensaio de $0 do Seedance 2.5 (15/09): cena `cinematic`
+          // de 8 s com UMA frase de 23 palavras (10 s de fala) passava por aqui porque os segundos
+          // (8) não excediam o cap — e o compose recusaria (scene_speech_exceeds_footage) depois
+          // de pagar. A rede passa a dividir também quando a FALA não cabe no cap, no ritmo da
+          // voz (ritmoVoz): a cabeça fica, a cauda vira apoio novo. Nenhuma palavra cortada.
+          const fits = Math.max(1, Math.floor((cap - 1) * ritmoVoz))
+          if ((sc.seconds ?? 0) <= cap && speech.length <= fits) continue
           if (speech.length <= fits) {
             console.warn(`[teto-rede] cena ${i + 1} (${sc.type}) ${sc.seconds}s > teto ${cap}s da família ${family} — encolhida (fala cabe)`)
             sc.seconds = cap
@@ -4014,7 +4019,7 @@ async function manipularPost(req: NextRequest) {
           if (isDialogue) sc.dialogueLine = head
           else sc.voiceover = head
           sc.seconds = cap
-          const tailSeconds = Math.max(4, Math.min(SCENE_CAP, Math.round(wordsArr(tail).length / 2.3) + 1))
+          const tailSeconds = Math.max(4, Math.min(SCENE_CAP, Math.round(wordsArr(tail).length / ritmoVoz) + 1))
           plan.scenes.splice(i + 1, 0, {
             ...sc,
             index: sc.index + 1,

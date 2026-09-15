@@ -210,6 +210,24 @@ console.log('== (f) KINEO-RITMO-DA-VOZ: a régua anda no passo da voz pinada (re
   }
 }
 
+console.log('== (g) KINEO-FALA-NO-TETO: cena cinematic de 8 s com uma frase de 23 palavras (ensaio do S25, 15/09) ==')
+{
+  // 7 cenas: 6 de apoio com 20 palavras/10 s (cabem) + 1 cinematic de 8 s com UMA frase de 23 palavras (10 s de fala)
+  const plan = { characterSheet: 'a broad-shouldered man in his fifties with a gray beard', environmentSheet: 'ice', styleSheet: 'cinematic', scenes: [] }
+  for (let i = 0; i < 6; i++) plan.scenes.push({ index: i + 1, type: 'support', seconds: 10, prompt: `scene ${i + 1}`, voiceover: frase(22, `g${i + 1}_`) + '.', caption: '' })
+  plan.scenes.splice(4, 0, { index: 5, type: 'cinematic', seconds: 8, prompt: 'wide shot of the frozen lighthouse', voiceover: frase(23, 'longa_') + '.', caption: '' })
+  plan.scenes.forEach((sc, i) => { sc.index = i + 1 })
+  const antes = plan.scenes.reduce((a, sc) => a + wordsOf(sc.voiceover), 0)
+  const r = await executar(ctxBase(plan, { expandVoiceoversToTargets: async (items) => items.map((it) => it.text), appendNarrationToTargets: appendNulo, SCENE_CAP: 12 }))
+  const cin = plan.scenes.find((sc) => sc.type === 'cinematic')
+  const idx = plan.scenes.indexOf(cin)
+  const cauda = plan.scenes[idx + 1]
+  checa(`a cena cinematic ficou com ≤ 16 palavras (${wordsOf(cin.voiceover)}) em 8 s e a cauda virou apoio novo logo depois (${cauda ? wordsOf(cauda.voiceover) : '-'} palavras, ${cauda?.seconds}s)`, wordsOf(cin.voiceover) <= 16 && cin.seconds === 8 && cauda && cauda.type === 'support' && wordsOf(cauda.voiceover) === 23 - wordsOf(cin.voiceover) && cauda.seconds >= 4)
+  checa(`nenhuma palavra cortada (${antes} antes, ${plan.scenes.reduce((a, sc) => a + wordsOf(sc.voiceover), 0)} depois) e a ordem da história intacta (longa_1 … longa_23 em sequência)`, plan.scenes.reduce((a, sc) => a + wordsOf(sc.voiceover), 0) === antes && (cin.voiceover + ' ' + cauda.voiceover).replace(/\./g, '').split(/\s+/).join(' ') === frase(23, 'longa_').replace(/\./g, ''))
+  checa('sem 422: a fala que não cabia no clipe de 8 s não vira recusa paga', r.status !== 422)
+  checa('rota: a rede divide pela FALA no ritmo da voz, não só pelos segundos', fatia.includes('const fits = Math.max(1, Math.floor((cap - 1) * ritmoVoz))') && fatia.includes('if ((sc.seconds ?? 0) <= cap && speech.length <= fits) continue'))
+}
+
 console.log(`\n${ok} ok · ${falhas.length} falhas`)
 for (const f of falhas) console.log('  ✗', f)
 process.exit(falhas.length ? 1 : 0)
