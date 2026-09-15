@@ -275,7 +275,7 @@ export async function generateScenes(prompt: string, count = 4, visualPolicy?: V
   const wps = writerOptions?.wordsPerScene
   const wpsLo = wps ? Math.max(6, Math.floor(wps[0])) : 0
   const voiceoverRule = wps
-    ? `${wpsLo}-${Math.max(wpsLo, Math.ceil(wps[1]))} words — this line alone must fill its ~10-second scene when spoken; two sentences are fine`
+    ? `${wpsLo}-${Math.max(wpsLo, Math.ceil(wps[1]))} words — this line alone must fill its ~10-second scene when spoken; two sentences are fine. Every event, place, clock time, date, name and number in this line must come from the idea text: never invent a character name, a time of day, a date or a statistic, and describe people exactly as the idea describes them` // KINEO-ESCRITOR-R2-2026-09-15: ensaio do Veo inventou "Dr. Emily Carter" e "4:17 AM"
     : '10-22 words'
   // KINEO-IDIOMA-DO-TEXTO-2026-09-12 — só entra no texto quando a língua não é
   // inglês (sem opção o prompt continua byte-idêntico: golden hash do Codex).
@@ -313,8 +313,12 @@ Your job is to return a JSON array of scene objects. Each scene object must incl
 
 You always respond with a valid JSON array ONLY — no markdown, no code fences, no commentary.`
 
+  // KINEO-ESCRITOR-R2-2026-09-15 — ensaios de 15/09: pedidas 7 e 9 cenas, o gpt-4o devolveu 6 (uma por propósito) e o
+  // resto nascia de divisão. Com 7+ cenas o pedido diz que os propósitos se repetem e que menos é falha. (Só entra
+  // no texto acima de 6 — os chamadores legados e seus golden hashes seguem byte-idênticos.)
+  const contagemRule = safeCount >= 7 ? `\nYou MUST return exactly ${safeCount} scene objects. With this many scenes the purposes ESCALATION, DISCOVERY and EXPLANATION are each used several times; returning fewer than ${safeCount} objects is a failure.\n` : ''
   const userPrompt = `Plan ${safeCount} scenes for this YouTube Short idea:
-
+${contagemRule}
 "${prompt}"
 
 TOPIC FIDELITY — the most important rule (read first):
@@ -564,7 +568,25 @@ ${visualDescriptionDirection(visualPolicy)}
     const primeira = (semInstrucao || prompt).split(/(?<=[.!?])\s+|\n+/)[0] ?? prompt
     return primeira.replace(/[.!?…]+$/, '').split(/\s+/).filter(Boolean).slice(0, 12).join(' ')
   })()
-  const frasesDe = (t: string) => (t.match(/[^.!?…]+[.!?…]+["”']?|[^.!?…]+$/g) ?? []).map((s) => s.trim()).filter(Boolean)
+  // KINEO-ESCRITOR-R2-2026-09-15 — ensaio do Veo: "The geologist, Dr. Emily Carter, watched…" virou duas cenas ("The
+  // geologist, Dr." com 3 palavras). Abreviação, inicial, a.m./p.m. e decimal não são fim de frase.
+  const ABREV_RE = /(?:^|\s)(?:Dr|Mr|Mrs|Ms|St|No|vs|Jr|Sr|Prof|Gen|Col|Lt|Capt|Mt|Ft|Inc|Ltd|Sra|Dra)\.$/i
+  const INICIAL_RE = /(?:^|\s)[A-Z]\.$/
+  const AMPM_RE = /\b[ap]\.m\.$/i
+  const frasesDe = (t: string) => {
+    const brutas = (t.match(/[^.!?…]+[.!?…]+["”']?|[^.!?…]+$/g) ?? []).map((s) => s.trim()).filter(Boolean)
+    const out: string[] = []
+    for (const f of brutas) {
+      const ant = out[out.length - 1]
+      if (ant && (ABREV_RE.test(ant) || INICIAL_RE.test(ant) || AMPM_RE.test(ant) || (/\d\.$/.test(ant) && /^\d/.test(f)))) out[out.length - 1] = `${ant} ${f}`
+      else out.push(f)
+    }
+    return out
+  }
+  // A metade nova mostra o MESMO assunto com outro enquadramento: duas cenas idênticas viram dois clipes pagos iguais
+  // (a "repetição artificial" que o fundador mandou caçar no Veo). A consulta de banco troca só o prefixo de plano.
+  const outroPlano = (d: string) => (/^close-up/i.test(d.trim()) ? `Wide establishing shot of the same moment: ${d}` : `Close-up detail of the same moment: ${d}`)
+  const outraConsulta = (q: string) => { const semPrefixo = q.replace(/^(?:aerial drone|close-up macro|wide establishing|medium shot|low angle|POV)\s+/i, ''); return /^close-up/i.test(q.trim()) ? `wide establishing ${semPrefixo}` : `close-up macro ${semPrefixo}` }
   let guardaDivisao = 40
   while (scenes.length < safeCount && guardaDivisao-- > 0) {
     let alvo = -1
@@ -581,7 +603,7 @@ ${visualDescriptionDirection(visualPolicy)}
       const cauda = frases.slice(corte).join(' ')
       const base = scenes[alvo]
       scenes[alvo] = { ...base, voiceover: cabeca, caption: shortCaptionFromVoiceover(cabeca) }
-      scenes.splice(alvo + 1, 0, { ...base, voiceover: cauda, caption: shortCaptionFromVoiceover(cauda), scenePurpose: 'EXPLANATION' })
+      scenes.splice(alvo + 1, 0, { ...base, description: outroPlano(base.description), stockSearchQuery: outraConsulta(base.stockSearchQuery), voiceover: cauda, caption: shortCaptionFromVoiceover(cauda), scenePurpose: 'EXPLANATION' })
       continue
     }
     // segunda opção: a cena mais longa (≥ 12 palavras) dividida na vírgula mais próxima do meio
@@ -605,7 +627,7 @@ ${visualDescriptionDirection(visualPolicy)}
         const caudaFinal = cauda.charAt(0).toUpperCase() + cauda.slice(1)
         const base = scenes[alvoV]
         scenes[alvoV] = { ...base, voiceover: cabeca, caption: shortCaptionFromVoiceover(cabeca) }
-        scenes.splice(alvoV + 1, 0, { ...base, voiceover: caudaFinal, caption: shortCaptionFromVoiceover(caudaFinal), scenePurpose: 'EXPLANATION' })
+        scenes.splice(alvoV + 1, 0, { ...base, description: outroPlano(base.description), stockSearchQuery: outraConsulta(base.stockSearchQuery), voiceover: caudaFinal, caption: shortCaptionFromVoiceover(caudaFinal), scenePurpose: 'EXPLANATION' })
         continue
       }
     }    const description = visualPolicy
@@ -663,8 +685,11 @@ export async function expandShortVoiceovers(scenes: Scene[], lo: number, hi: num
       {
         model: 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: `You expand narration lines of a short documentary video. Rewrite each line so it has AT LEAST ${lo} and at most ${hi} words when spoken aloud — aim for ${mid} words; count the words before answering. Write in ${langName}. Keep every fact, name, number and the exact meaning; add concrete, specific detail — never filler like "imagine", "what if" or "most people don't know". Return ONLY a JSON array of strings, same order and same length as the input.` },
-          { role: 'user', content: JSON.stringify(short.map((x) => out[x.i].voiceover)) },
+          // KINEO-ESCRITOR-R2-2026-09-15 — ensaio do Veo: "0 rewrites, 90 → 90" com 9 linhas curtas; a resposta vinha como
+          // array de strings e qualquer fusão/omissão do modelo mudava o tamanho e descartava TUDO em silêncio. Agora cada
+          // linha vai e volta com o seu índice, a faixa pedida tem folga (piso+5) e o motivo de não aplicar fica no log.
+          { role: 'system', content: `You expand narration lines of a short documentary video. Rewrite each line so it has AT LEAST ${lo} and at most ${Math.max(hi, lo + 5)} words when spoken aloud — aim for ${Math.max(mid, lo + 2)} words; count the words before answering. Write in ${langName}. Keep every fact, name, number and the exact meaning; add concrete, specific detail — never filler like "imagine", "what if" or "most people don't know"; never invent names, dates, times or statistics. Return ONLY a JSON array of objects {"i": <the same i you received>, "text": "<the rewritten line>"}, one object per input object, in the same order.` },
+          { role: 'user', content: JSON.stringify(short.map((x) => ({ i: x.i, text: out[x.i].voiceover }))) },
         ],
         temperature: 0.4,
         max_tokens: 1400,
@@ -673,13 +698,24 @@ export async function expandShortVoiceovers(scenes: Scene[], lo: number, hi: num
     )
     const raw = completion.choices[0]?.message?.content?.trim() ?? ''
     const m = raw.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').match(/\[[\s\S]*\]/)
-    if (!m) break
-    const arr: unknown = JSON.parse(m[0])
-    if (!Array.isArray(arr) || arr.length !== short.length) break
-    short.forEach((x, k) => {
-      const v = typeof arr[k] === 'string' ? (arr[k] as string).trim() : ''
-      if (v && wordsOf(v) > x.words) { out[x.i].voiceover = v; out[x.i].caption = shortCaptionFromVoiceover(v); replaced++ }
+    if (!m) { console.warn(`[scene] voiceover expansion: round ${round + 1} answered without a JSON array (${raw.slice(0, 80)})`); break }
+    let arr: unknown
+    try { arr = JSON.parse(m[0]) } catch { console.warn(`[scene] voiceover expansion: round ${round + 1} answered invalid JSON`); break }
+    if (!Array.isArray(arr)) break
+    // resposta indexada ({i, text}); um array de strings do mesmo tamanho ainda é aceito (compatibilidade)
+    const porIndice = new Map<number, string>()
+    arr.forEach((item, k) => {
+      if (item && typeof item === 'object' && typeof (item as { text?: unknown }).text === 'string') {
+        const i = Number((item as { i?: unknown }).i)
+        if (Number.isInteger(i)) porIndice.set(i, ((item as { text: string }).text).trim())
+      } else if (typeof item === 'string' && arr.length === short.length) porIndice.set(short[k].i, item.trim())
     })
+    let aplicadas = 0
+    short.forEach((x) => {
+      const v = porIndice.get(x.i) ?? ''
+      if (v && wordsOf(v) > x.words) { out[x.i].voiceover = v; out[x.i].caption = shortCaptionFromVoiceover(v); replaced++; aplicadas++ }
+    })
+    if (aplicadas === 0) console.warn(`[scene] voiceover expansion: round ${round + 1} returned ${porIndice.size} line(s) for ${short.length}, none longer than the original`)
   }
   const total1 = out.reduce((a, s) => a + wordsOf(s.voiceover), 0)
   console.log(`[scene] voiceover expansion: ${replaced} rewrites, ${total0} → ${total1} words (range ${lo}-${hi} per scene)`)

@@ -15,6 +15,7 @@
 export const CLASSIC_WORDS_PER_SECOND = 3.1
 /** Tolerância do escalador do compose (lib/compose scaleVoiceoverScript): fora disto o corpo é reescrito. */
 export const COMPOSE_RESCALE_TOLERANCE = 0.15
+export const COMPOSE_RESCALE_FLOOR = 0.08 // KINEO-VOZ-NAO-ARRASTA-2026-09-15: abaixo de 92 % o compose expande
 /** Piso de duração (contrato C2): filme abaixo de 95% do alvo é história interrompida. */
 export const DURATION_FLOOR = 0.95
 
@@ -77,7 +78,8 @@ export function classicDryRunReport(input: {
   const speechSeconds = round1(totalWords / wps)
   const expectedWords = Math.round(target * wps)
   const drift = expectedWords > 0 ? round1((totalWords / expectedWords - 1) * 100) / 100 : 0
-  const rescaleRisk = expectedWords > 0 && Math.abs(totalWords / expectedWords - 1) > COMPOSE_RESCALE_TOLERANCE
+  // KINEO-VOZ-NAO-ARRASTA-2026-09-15 — o escalador expande abaixo de 92 % (lib/compose) e condensa acima de 115 %: o ensaio avisa nos dois limiares reais.
+  const rescaleRisk = expectedWords > 0 && (totalWords / expectedWords - 1 > COMPOSE_RESCALE_TOLERANCE || 1 - totalWords / expectedWords > COMPOSE_RESCALE_FLOOR)
   const footageSeconds = round1(scenes.length * perClip)
 
   const problems: string[] = []
@@ -87,7 +89,7 @@ export function classicDryRunReport(input: {
   }
   if (rescaleRisk) {
     problems.push(
-      `${totalWords} palavras contra ${expectedWords} esperadas (${drift > 0 ? '+' : ''}${Math.round(drift * 100)}%): fora de ±15%, o compose REESCREVE o corpo da narração` +
+      `${totalWords} palavras contra ${expectedWords} esperadas (${drift > 0 ? '+' : ''}${Math.round(drift * 100)}%): fora de −8%/+15% (escalador desde 15/09: expande abaixo de 92%, condensa acima de 115%), o compose REESCREVE o corpo da narração` +
         (input.verbatim ? ' — e este roteiro é "Use my script as is"' : ''),
     )
   }

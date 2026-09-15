@@ -62,7 +62,7 @@ const semFaixa = await pedeAoEscritor(undefined)
 const comFaixa = await pedeAoEscritor({ wordsPerScene: [27, 35] })
 const piso = await pedeAoEscritor({ wordsPerScene: [2, 3] })
 checa('sem faixa → "one narration line (10-22 words)" (byte-idêntico ao prompt antigo)', semFaixa.includes('one narration line (10-22 words). MUST include'))
-checa('com faixa → "27-35 words — this line alone must fill its ~10-second scene"', comFaixa.includes('one narration line (27-35 words — this line alone must fill its ~10-second scene when spoken; two sentences are fine). MUST include'))
+checa('com faixa → "27-35 words — this line alone must fill its ~10-second scene"', comFaixa.includes('one narration line (27-35 words — this line alone must fill its ~10-second scene when spoken; two sentences are fine. Every event, place, clock time, date, name and number in this line must come from the idea text: never invent a character name, a time of day, a date or a statistic, and describe people exactly as the idea describes them). MUST include')) // 15/09 KINEO-ESCRITOR-R2: fidelidade na linha
 checa('piso 6 e teto ≥ piso', piso.includes('one narration line (6-6 words'))
 checa('as três chamadas chegaram ao modelo com a linha do campo 8', semFaixa && comFaixa && piso)
 

@@ -165,6 +165,41 @@ console.log('== (f) planejador: fidelidade ao pedido ==')
   checa('a regra vem depois do bloco SCREENWRITER (contexto certo) e antes de OTHER HARD RULES', sys.indexOf('YOU ARE THE SCREENWRITER') < sys.indexOf('- STORY FIDELITY (STRICT') && sys.indexOf('- STORY FIDELITY (STRICT') < sys.indexOf('OTHER HARD RULES'))
 }
 
+// ── (g) escritor R2: contagem exigida, abreviação não quebra frase, metade nova com outro plano, expansão indexada ──
+console.log('== (g) escritor de cenas: 9 pedidas / 6 devolvidas, "Dr.", expansão indexada ==')
+{
+  const rw = rd('lib/runway.ts')
+  const fnDe = (src, name) => { const sf = ts.createSourceFile('r.ts', src, ts.ScriptTarget.Latest, true); let found; const visit = (n) => { if (!found && ts.isFunctionDeclaration(n) && n.name?.text === name) found = n; if (!found) ts.forEachChild(n, visit) }; visit(sf); const t = found.getText(sf); return /^export /.test(t) ? t : 'export ' + t }
+  const fn = (name) => fnDe(rw, name)
+  const pedidos = []
+  const seis = Array.from({ length: 6 }, (_, k) => ({ description: `shot ${k + 1}`, searchKeywords: `k${k + 1}`, stockSearchQuery: `medium shot q${k + 1}`, negativeVisualPrompt: 'x', scenePurpose: 'EXPLANATION', visualIntent: 'y', visualCategory: 'general_documentary', voiceover: k === 1 ? 'The geologist, Dr. Emily Carter, watched closely as the needle moved. At dawn she peered through the window at the red glow.' : `line ${k + 1} with some words here`, caption: `c${k + 1}` }))
+  const openai = { chat: { completions: { create: async (req) => {
+    pedidos.push(req.messages.map((m) => m.content).join('\n'))
+    if (pedidos.length === 1) return { choices: [{ message: { content: JSON.stringify(seis) } }] }
+    // expansão: resposta INDEXADA, com uma linha omitida e uma curta demais (nunca substitui por texto menor)
+    const items = JSON.parse(req.messages[1].content)
+    return { choices: [{ message: { content: JSON.stringify(items.filter((it) => it.i !== 0).map((it) => ({ i: it.i, text: it.i === 3 ? 'short' : `${it.text} now expanded with sixteen concrete words about the same event and place today` }))) } }] }
+  } } } }
+  const api = roda([fn('shortCaptionFromVoiceover'), fn('generateScenes'), fn('expandShortVoiceovers')].join('\n'), { openai, detectVisualCategory: () => undefined, LANGUAGE_NAMES: { en: 'English' }, classicVisualNegativePrompt: () => 'x', isStylizedLook: () => false, visualDescriptionDirection: () => 'y', aspectSpec: () => ({ promptFraming: '9:16' }) })
+  const r = await api.generateScenes('A volcano observatory at dawn. A geologist notices the needle.', 9, undefined, { wordsPerScene: [16, 17] })
+  checa(`9 pedidas: o pedido exige a contagem (${pedidos[0].includes('You MUST return exactly 9 scene objects') ? 'sim' : 'não'}) e o resultado tem 9 cenas (${r.length})`, pedidos[0].includes('You MUST return exactly 9 scene objects') && r.length === 9)
+  checa('a linha falada pede fidelidade ao texto da ideia (sem nome, hora, data ou estatística inventados)', pedidos[0].includes('never invent a character name, a time of day, a date or a statistic'))
+  checa('"Dr. Emily Carter" não vira fim de frase: nenhuma cena com ≤ 4 palavras', r.every((s) => s.voiceover.split(/\s+/).length > 4) && !r.some((s) => /Dr\.$/.test(s.voiceover.trim())))
+  const divididas = r.filter((s) => /of the same moment: /.test(s.description))
+  checa(`as cenas nascidas de divisão (${divididas.length}) mostram o mesmo assunto com outro plano (descrição e consulta diferentes da origem)`, divididas.length >= 1 && divididas.every((s) => /^(Close-up detail|Wide establishing shot) of the same moment: shot \d/.test(s.description) && /^(close-up macro|wide establishing) q\d/.test(s.stockSearchQuery)))
+  checa('expansão indexada: linhas devolvidas com {i, text} crescem; a omitida e a mais curta ficam como estavam', pedidos.length >= 2 && pedidos[1].includes('"i": <the same i you received>') && r.filter((s) => / now expanded with sixteen concrete words/.test(s.voiceover)).length >= 5 && !r.some((s) => s.voiceover === 'short'))
+  // reprodução na main: array de strings com tamanho diferente → nada aplicado
+  const rwMain = main('lib/runway.ts')
+  if (rwMain && !rwMain.includes('KINEO-ESCRITOR-R2')) {
+    const pedidosM = []
+    const openaiM = { chat: { completions: { create: async (req) => { pedidosM.push(req); if (pedidosM.length === 1) return { choices: [{ message: { content: JSON.stringify(seis) } }] }; const arr = JSON.parse(req.messages[1].content); return { choices: [{ message: { content: JSON.stringify(arr.slice(1).map((t) => `${t} now expanded with sixteen concrete words about the same event and place today`)) } }] } } } } }
+    const fnM = (name) => fnDe(rwMain, name)
+    const apiM = roda([fnM('shortCaptionFromVoiceover'), fnM('generateScenes'), fnM('expandShortVoiceovers')].join('\n'), { openai: openaiM, detectVisualCategory: () => undefined, LANGUAGE_NAMES: { en: 'English' }, classicVisualNegativePrompt: () => 'x', isStylizedLook: () => false, visualDescriptionDirection: () => 'y', aspectSpec: () => ({ promptFraming: '9:16' }) })
+    const rm = await apiM.generateScenes('A volcano observatory at dawn. A geologist notices the needle.', 9, undefined, { wordsPerScene: [16, 17] })
+    checa(`main: reproduz — "Dr." vira cena de 3 palavras e uma linha a menos na resposta descarta TODA a expansão (${rm.filter((s) => / now expanded/.test(s.voiceover)).length} aplicadas)`, rm.some((s) => /Dr\.$/.test(s.voiceover.trim())) && rm.filter((s) => / now expanded/.test(s.voiceover)).length === 0)
+  } else checa('main já contém o candidato (escritor R2)', Boolean(rwMain) && rwMain.includes('KINEO-ESCRITOR-R2'))
+}
+
 console.log(`${ok} ok · ${falhas.length} falhas`)
 for (const f of falhas) console.log('  ✗', f)
 process.exit(falhas.length ? 1 : 0)

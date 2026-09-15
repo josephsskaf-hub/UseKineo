@@ -100,7 +100,8 @@ console.log('== (b) candidato: a cena que falta é uma divisão, não um enchime
   const idx = falas.findIndex((f) => f === 'Inside her own suitcase she finds a ticket for this station, dated thirty years in the future.')
   checa('a cena mais longa com duas frases foi dividida (cena 2 → "…stopped." + "The hands point…"), e a cena de uma frase só ficou inteira', falas[1] === 'A woman traveling alone notices that every clock has stopped.' && falas[2] === 'The hands point at different hours.' && idx === 6)
   checa('nenhuma cena passa de 40 palavras (o compose não reescreve nem repete cena por excesso)', falas.every((f) => wordsOf(f) <= 40))
-  checa('a cena dividida herda a descrição/consulta da cena de origem (o visual não inventa outra coisa)', r[2].description === r[1].description && r[2].stockSearchQuery === r[1].stockSearchQuery)
+  // 15/09 (KINEO-ESCRITOR-R2): a metade nova mostra o MESMO assunto com outro enquadramento — duas cenas idênticas viravam dois clipes pagos iguais (Veo).
+  checa('a cena dividida herda o assunto da cena de origem com outro enquadramento (o visual não inventa outra coisa, nem repete o mesmo plano)', r[2].description.endsWith(r[1].description) && r[2].description !== r[1].description && /^(Close-up detail|Wide establishing shot) of the same moment: /.test(r[2].description) && r[2].stockSearchQuery.endsWith(r[1].stockSearchQuery.replace(/^(?:aerial drone|close-up macro|wide establishing|medium shot|low angle|POV)\s+/i, '')) && r[2].stockSearchQuery !== r[1].stockSearchQuery)
 }
 
 console.log('== (b2) cenas de UMA frase: a mais longa é dividida na vírgula do meio (mesmas palavras) ==')
