@@ -44,3 +44,19 @@ São candidatas, não três novidades já provadas. Uma via sem mecanismo novo e
 EXECUTADO: clone/branches/pendências reconciliados; worktree criada; baseline por pessoa lido; nova intenção de Creator identificada sem ação invasiva. PREPARAÇÃO, não venda: este programa e a query. Nenhuma mensagem a cliente, publicação comercial, compra ou receita produzida neste início.
 
 PRÓXIMA JOGADA: conferir a trilha comercial recente sem presumir recusa; registrar uma ação nova com alcance executável. Coordenação via PEDIDOS, sem presumir ACK. A abertura da agenda não basta para declarar vendas em andamento.
+
+## R1 — transferência e continuidade, 15/09 ~18:31 UTC
+
+**DECISÃO CONFIRMADA PELO BOARD:** tarefa Receitas novas assume a janela e a worktree exclusiva; Board confirmou transferência do heartbeat kineo-receita-b-at-16-09-03-08, ACTIVE, para esta tarefa. Nenhum agendamento foi criado ou alterado pelo novo executor. Término preservado: 16/09 03:08:27 BRT. Base reconciliada a9f7eb6f; fetch sem nova main na leitura.
+
+**EVIDÊNCIA DE PRODUÇÃO:** query deste plano, Supabase somente leitura, corte do servidor 15/09 18:27:06.880026Z: baseline permanece 15 cadastros / 9 autores completed / 1 pessoa checkout / 0 eventos selecionados de pagamento. Parcial B [18:08:27Z,18:27:06.880026Z): 1 cadastro externo, 1 autor de vídeo completed criado na janela, 0 pessoas checkout, 0 payment_success/subscription_invoice_paid. Contagens independentes, não coorte nem caixa reconciliado. Nenhuma receita atribuída à pista.
+
+**EVIDÊNCIA DE PRODUÇÃO:** pessoa pseudonimizada 12961a85b8, consulta específica até 18:27:07.999428Z: checkout_started 17:57:22.723841Z; retomada exibida, prova do filme carregada, escolha exibida e banner dispensado 18:00:19.571831Z. Nenhum erro ou pagamento nos eventos selecionados. Dispensa do banner não prova objeção de preço nem abandono; retomada existente já alcançou a pessoa. NÃO EXECUTAR novo banner/contato por esse sinal.
+
+**CONTRATO DA PRÓXIMA AÇÃO, PARCIAL/BLOQUEADA:** candidatos anteriores identificados pelo Claude → rota não fixa identidades e cartas inferem download sem prova → pedido mínimo ao dono para seleção explícita e evidência por filme → canal existente de feedback, ainda sem autorização de contato/rascunho → evento existente made_video_today_emailed_v1 registra envio aceito, não entrega/leitura/pagamento → nenhum pagamento esperado atribuível sem resposta e etapa comercial posterior autorizada → amostra: conjunto privado revalidado, nunca primeiros N dinâmicos → parar se conjunto/evidência divergir ou autorização faltar → Claude implementa na própria pista; Codex coordena pelo PEDIDOS e não edita admin/send-*.
+
+**PEDIDO:** RECEITA-B-LOTE-IDENTIDADES-1 no PEDIDOS-ENTRE-PISTAS-2026-09-03.md. Inclui divergência de horário no relato Claude, separação da sprint anterior, supressões e limites das cartas. Disponibilidade no Git não prova ACK nem execução pelo Claude. Starter 64c92286, Seedance f3ab3fb6 e Kling a2d24ad4 continuam candidatos anteriores locais; não reutilizados como novidade.
+
+**ESTADO:** PREPARAÇÃO / NÃO EXECUTAR envio atual; zero exposição comercial nova por esta pista. Próximo gate 16:08 BRT: verificar resposta material ao pedido e apresentar desbloqueio indispensável se nenhuma via executável alcançar público. Não repetir consultas vazias nem renovar janela.
+
+**VALIDAÇÃO DA ENTREGA DOCUMENTAL:** somente os dois documentos acima alterados; diff --check limpo, tsc --noEmit --incremental false rc 0, sharing-safety 70/70, five-improvements 640/640, offline. Nenhum código de produto ou preview alterado. Transporte via enfileirar.sh e scripts/!RODAR-AGORA.bat, com base a9f7eb6f e SHA imutável desta entrega; confirmação remota registrada na tarefa após execução. Esse transporte torna o pedido disponível, não comprova ACK do Claude nem exposição a cliente.
