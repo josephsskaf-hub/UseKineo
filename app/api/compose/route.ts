@@ -2216,20 +2216,26 @@ export async function POST(req: NextRequest) {
       // dos clipes perdido. O clipe NÃO estica: o builder hollywood (lib/compose.ts) monta a
       // cena com loop:true — passar da footage REPETIRIA o começo do clipe, imagem repetida
       // que o fundador proibiu; e "o Creatomate segura o último frame" nunca foi verificado.
-      // Remédio (o mesmo do Push #234 no caminho clássico, por cena): estouro de até 8 % →
-      // a cena é re-sintetizada na velocidade exata que cabe (persona × fator, ≤ 1,08 —
-      // 0,94 vira 1,015: natural) e re-medida. Nenhuma palavra é cortada, o texto é o mesmo.
-      // Estouro maior que 8 % ou re-síntese que não melhora → a recusa honesta abaixo continua.
-      const FALA_CABE_MAX_FATOR = 1.08
+      // Remédio (o mesmo do Push #234 no caminho clássico, por cena): a fala precisa caber
+      // com 0,4 s de respiro; estouro de até 10 % → a cena é re-sintetizada na velocidade
+      // exata que cabe (persona × fator; 0,94 vira no máximo 1,034: natural) e re-medida.
+      // Nenhuma palavra é cortada, o texto é o mesmo. Estouro maior que 10 % ou re-síntese
+      // que não melhora → a recusa honesta abaixo continua.
+      // Render a791cb45 (15/09 19:29Z, clipes reaproveitados do 7bb62a29): a 1ª versão
+      // media com o respiro de 0,6 s e teto ×1,08 — a cena 1 (8,2 s de fala num clipe de
+      // 8 s) dava ×1,10 e foi recusada; com 0,4 s de respiro é ×1,075. O TAIL-GROW abaixo
+      // continua crescendo a cena até fala + 0,6 s quando a footage permite.
+      const FALA_CABE_RESPIRO_S = 0.4
+      const FALA_CABE_MAX_FATOR = 1.1
       for (const m of measured) {
         const c = hollywoodClips[m.sceneIdx]
         if (!c || (c.engine !== 'support' && c.engine !== 'cinematic') || !hollywoodPinnedVoice) continue
         const footage = originalFootageSeconds[m.sceneIdx]
-        const need = m.dur + 0.6
+        const need = m.dur + FALA_CABE_RESPIRO_S
         if (!(footage > 0) || need <= footage) continue
         const fator = Math.round((need / footage) * 1000) / 1000
         if (fator > FALA_CABE_MAX_FATOR) {
-          console.warn(`[compose] KINEO-FALA-CABE: cena ${m.sceneIdx + 1} fala ${m.dur.toFixed(1)}s + 0,6 > clipe ${footage}s (×${fator} > ${FALA_CABE_MAX_FATOR}) — estouro grande demais para acelerar, segue para a recusa honesta`)
+          console.warn(`[compose] KINEO-FALA-CABE: cena ${m.sceneIdx + 1} fala ${m.dur.toFixed(1)}s + ${FALA_CABE_RESPIRO_S} > clipe ${footage}s (×${fator} > ${FALA_CABE_MAX_FATOR}) — estouro grande demais para acelerar, segue para a recusa honesta`)
           continue
         }
         try {
@@ -2246,7 +2252,7 @@ export async function POST(req: NextRequest) {
           const observed = await transcribeTTSWithTimestamps(buf).catch(() => [] as WhisperWord[])
           const words = verifyObservedSpeech(m.text, observed).ok ? observed : undefined
           const url = await uploadVoiceoverToSupabase(user.id, buf)
-          console.log(`[compose] KINEO-FALA-CABE: cena ${m.sceneIdx + 1} fala ${m.dur.toFixed(1)}s + 0,6 > clipe ${footage}s → re-sintetizada a ×${fator} (${dur.toFixed(1)}s), texto idêntico`)
+          console.log(`[compose] KINEO-FALA-CABE: cena ${m.sceneIdx + 1} fala ${m.dur.toFixed(1)}s + ${FALA_CABE_RESPIRO_S} > clipe ${footage}s → re-sintetizada a ×${fator} (${dur.toFixed(1)}s), texto idêntico`)
           m.url = url
           m.dur = dur
           m.words = words

@@ -119,12 +119,12 @@ const advanced=find(n=>ts.isIfStatement(n)&&n.expression.getText(ast).includes("
 const statements=advanced.thenStatement.statements
 const fromLoop=statements.findIndex(n=>ts.isForOfStatement(n)&&n.initializer.getText(ast)==='const m')
 // KINEO-FALA-CABE-2026-09-15: the bound constant is declared right before the first loop; the slice starts there.
-const fromBound=statements.findIndex(n=>ts.isVariableStatement(n)&&n.getText(ast).startsWith('const FALA_CABE_MAX_FATOR'))
+const fromBound=statements.findIndex(n=>ts.isVariableStatement(n)&&n.getText(ast).startsWith('const FALA_CABE_'))
 const from=fromBound>=0&&fromBound<fromLoop?fromBound:fromLoop
 const to=statements.findIndex(n=>ts.isVariableStatement(n)&&n.declarationList.declarations.some(d=>d.name.getText(ast)==='narrationBlocks'))
 assert.ok(from>=0&&to>from)
 const adjustments=statements.slice(from,to).map(n=>n.getText(ast)).join('\n')
-// KINEO-FALA-CABE-2026-09-15: the first statement is now the bounded re-synthesis pass (≤ ×1,08). With no pinned
+// KINEO-FALA-CABE-2026-09-15: the first statement is now the bounded re-synthesis pass (≤ ×1,10, 0,4 s breath). With no pinned
 // voice it is inert; with a pinned voice a small overrun is re-synthesized (same text) and a large one still hits 422.
 // Either way NO clip may grow past its own footage (the hollywood builder loops the clip — no final-frame hold exists).
 const falaCabe=(calls)=>({hollywoodPinnedVoice:{personaId:'character:male:elderly',voice:'onyx',defaultSpeed:0.94},explicitSpeed:null,user:{id:'fixture'},
@@ -141,14 +141,16 @@ for(const pinned of [false,true]){
       const result=await module.run()
       eq(clips.every(c=>c.seconds<=10),true)
       eq(clips.reduce((s,c)=>s+c.seconds,0),60)
-      // 10.5 s over a 10 s clip = ×1,11 with the +0,6 s breath → beyond the ×1,08 bound: honest 422, voice or not.
-      // The bounded pass only rescues overruns ≤ 8 % (see scripts/test-fala-cabe-2026-09-15.mjs); it never invents footage.
-      eq(result?.status??200,dur>10?422:200)
-      eq(calls.length,0)
+      // 12 s over a 10 s clip = ×1,24 → beyond the ×1,10 bound: honest 422, voice or not. 10.5 s = ×1,09 with the 0,4 s
+      // breath: rescued ONLY with a pinned voice (one re-synthesis, ≤ 0,94 × 1,10), never by inventing footage.
+      const rescued=pinned&&dur===10.5
+      eq(result?.status??200,dur>10&&!rescued?422:200)
+      eq(calls.length,rescued?1:0)
+      if(rescued)eq(calls[0]>0.94&&calls[0]<=0.94*1.1,true)
       if(result)eq((await result.json()).reason,'scene_speech_exceeds_footage')
     }
-    // an overrun inside the bound (9.7 s + 0.6 > 10 → ×1,03): with a pinned voice the scene is re-synthesized once at
-    // 0,94 × 1,03 and the film proceeds; without a voice the clip stays at its footage and the film proceeds too.
+    // an overrun inside the bound (9.7 s + 0.4 > 10 → ×1,01): with a pinned voice the scene is re-synthesized once at
+    // 0,94 × 1,01 and the film proceeds; without a voice the clip stays at its footage and the film proceeds too.
     const clips=Array.from({length:6},()=>({engine:'support',seconds:10}))
     const calls=[];calls.baseDur=9.7
     const module=evaluate(`export async function run(){${adjustments};return null}`,{...timeline,NextResponse:next,console:{log(){},warn(){}},quality:'cinematic_omni',duration:60,generationId:'fixture-generation',secondsOf:timeline.cinematicSceneSeconds,
@@ -159,7 +161,7 @@ for(const pinned of [false,true]){
     eq(clips.every(c=>c.seconds<=10),true)
     eq(clips.reduce((s,c)=>s+c.seconds,0),60)
     eq(calls.length,pinned?1:0)
-    if(pinned)eq(calls[0]>0.94&&calls[0]<=0.94*1.08,true)
+    if(pinned)eq(calls[0]>0.94&&calls[0]<=0.94*1.1,true)
   }
 }
 // Execute the actual publication closure: neither the browser nor an old

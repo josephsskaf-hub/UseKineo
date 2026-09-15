@@ -37,7 +37,7 @@ const frase = (n, tema) => Array.from({ length: n }, (_, i) => `${tema}${i + 1}`
 const rota = rd('app/api/compose/route.ts')
 const fatia = fatiaDe(rota)
 checa('fatia medição → recusa existe no compose', Boolean(fatia))
-checa('candidato: KINEO-FALA-CABE re-sintetiza até ×1,08 (persona × fator), com o MESMO texto, antes do encolhe/cresce', fatia.includes('const FALA_CABE_MAX_FATOR = 1.08') && fatia.includes('speed: hollywoodPinnedVoice.defaultSpeed * (explicitSpeed ?? 1.0) * fator') && fatia.indexOf('KINEO-FALA-CABE-2026-09-15') < fatia.indexOf('KINEO-H3-DURACAO-2026-08-20'))
+checa('candidato: KINEO-FALA-CABE re-sintetiza até ×1,10 com respiro de 0,4 s (persona × fator), com o MESMO texto, antes do encolhe/cresce', fatia.includes('const FALA_CABE_MAX_FATOR = 1.1') && fatia.includes('const FALA_CABE_RESPIRO_S = 0.4') && fatia.includes('const need = m.dur + FALA_CABE_RESPIRO_S') && fatia.includes('speed: hollywoodPinnedVoice.defaultSpeed * (explicitSpeed ?? 1.0) * fator') && fatia.indexOf('KINEO-FALA-CABE-2026-09-15') < fatia.indexOf('KINEO-H3-DURACAO-2026-08-20'))
 checa('candidato: só cenas narradas (support/cinematic) entram; estouro maior que o teto NÃO é acelerado', fatia.includes("if (!c || (c.engine !== 'support' && c.engine !== 'dialogue' && c.engine !== 'cinematic') || !hollywoodPinnedVoice) continue".replace(" && c.engine !== 'dialogue'", '')) && fatia.includes('if (fator > FALA_CABE_MAX_FATOR) {'))
 checa('candidato: a re-síntese que não encurta a fala é descartada (dur >= m.dur → mantém o original)', fatia.includes('if (!(dur > 0.3) || dur >= m.dur) {'))
 checa('a recusa honesta (scene_speech_exceeds_footage, estorno) continua no lugar', fatia.includes("const speechDoesNotFit = measured.some(m => m.dur > secondsOf(hollywoodClips[m.sceneIdx]) + 0.01)") && fatia.includes("reason: 'scene_speech_exceeds_footage'"))
@@ -49,7 +49,7 @@ checa('TAIL-GROW meio e última cena continuam limitados pela footage', fatia.in
 // ── o mundo do render 7bb62a29: 7 cenas de apoio H3, voz idosa a 2,3 × 0,94 = 2,162 pal/s ──
 const PERSONA = { personaId: 'character:male:elderly', voice: 'onyx', defaultSpeed: 0.94 }
 const SECS = [8, 12, 10, 11, 9, 10, 11]
-const WORDS = [15, 26, 20, 24, 18, 20, 23] // cenas 2, 4 e 7 estouram por 0,6/0,7/0,2 s (medida + 0,6 > footage)
+const WORDS = [15, 26, 20, 24, 18, 20, 23] // cenas 2, 4 e 7 estouram (medida + 0,4 > footage)
 function mundo(opts = {}) {
   const words = opts.words ?? WORDS
   const clips = SECS.map((s, i) => ({ engine: 'support', seconds: s, url: `https://fal/c${i + 1}.mp4` }))
@@ -70,8 +70,8 @@ function mundo(opts = {}) {
   return { ctx, sinteses, recusas, clips, pending }
 }
 const RITMO = 2.3 * 0.94
-const estouros = WORDS.map((w, i) => Math.round((w / RITMO + 0.6 - SECS[i]) * 100) / 100)
-checa(`o mundo reproduz o render: 3 cenas com fala medida + 0,6 s acima da footage (${estouros.filter((e) => e > 0).length}: ${estouros.map((e, i) => e > 0 ? `cena ${i + 1} +${e}s` : null).filter(Boolean).join(', ')})`, estouros.filter((e) => e > 0).length === 3 && estouros[1] > 0 && estouros[3] > 0 && estouros[6] > 0)
+const estouros = WORDS.map((w, i) => Math.round((w / RITMO + 0.4 - SECS[i]) * 100) / 100)
+checa(`o mundo reproduz o render: 3 cenas com fala medida + 0,4 s acima da footage (${estouros.filter((e) => e > 0).length}: ${estouros.map((e, i) => e > 0 ? `cena ${i + 1} +${e}s` : null).filter(Boolean).join(', ')})`, estouros.filter((e) => e > 0).length === 3 && estouros[1] > 0 && estouros[3] > 0 && estouros[6] > 0)
 
 console.log('== (a) reprodução na origin/main: a fatia de lá recusa depois de pagar ==')
 {
@@ -93,7 +93,7 @@ console.log('== (b) candidato: as 3 cenas falam um fio mais rápido e o filme se
   const r = await montar(fatia)(ctx)
   const corrigidas = sinteses.slice(7)
   checa(`sem 422: ${sinteses.length} sínteses = 7 medições + ${corrigidas.length} correções (cenas 2, 4 e 7), nenhuma recusa`, r.status !== 422 && r.rejeitado === null && corrigidas.length === 3 && recusas.length === 0)
-  checa('cada correção usa persona × fator e nunca passa de 0,94 × 1,08 = 1,015 (voz natural)', corrigidas.every((s) => s.speed > 0.94 && s.speed <= 0.94 * 1.08 + 1e-9))
+  checa('cada correção usa persona × fator e nunca passa de 0,94 × 1,10 = 1,034 (voz natural)', corrigidas.every((s) => s.speed > 0.94 && s.speed <= 0.94 * 1.1 + 1e-9))
   const idx = r.measured.map((m) => m.sceneIdx)
   checa('ordem das cenas intacta e cada fala é o TEXTO ORIGINAL da cena (nenhuma palavra cortada)', idx.join(',') === '0,1,2,3,4,5,6' && r.measured.every((m) => m.text === pending[m.sceneIdx].text))
   checa('as 3 cenas corrigidas apontam para o áudio novo; as outras 4 ficam com o áudio da medição', r.measured.filter((m) => m.url !== 'https://voz/0.94.mp3').map((m) => m.sceneIdx + 1).join(',') === '2,4,7')
@@ -119,6 +119,23 @@ console.log('== (d) re-síntese que falha ou não melhora mantém o original =='
   const w2 = mundo({ synth: async ({ text, speed }) => Buffer.from(JSON.stringify({ dur: Math.round((wordsOf(text) / (2.3 * 0.94)) * 1000) / 1000, speed })) }) // ignora a velocidade: não melhora
   const r2 = await montar(fatia)(w2.ctx)
   checa('correção que não encurta a fala é descartada (dur ≥ original) → recusa honesta', r2.status === 422 && r2.rejeitado?.reason === 'scene_speech_exceeds_footage' && r2.rejeitado?.generationId === '7bb62a29')
+}
+
+console.log('== (f) a cena 1 do a791cb45 (15/09 19:29Z): 8,2 s de fala num clipe de 8 s ==')
+{
+  // A 1ª versão media com respiro de 0,6 s e teto ×1,08: (8,2 + 0,6) / 8 = 1,10 → recusada depois de 3 correções boas.
+  checa('aritmética do caso real: com 0,6 s de respiro a cena 1 dava ×1,10 (> 1,08, recusada); com 0,4 s dá ×1,075 (≤ 1,10, cabe)', Math.round((8.2 + 0.6) / 8 * 1000) / 1000 === 1.1 && Math.round((8.2 + 0.4) / 8 * 1000) / 1000 === 1.075)
+  // 18 palavras a 2,162 pal/s = 8,33 s num clipe de 8 s → ×1,091: re-sintetizada uma vez a 0,94 × 1,091 = 1,026
+  const w18 = [...WORDS]; w18[0] = 18
+  const a = mundo({ words: w18 })
+  const ra = await montar(fatia)(a.ctx)
+  const corrA = a.sinteses.slice(7)
+  checa(`cena 1 com 8,33 s de fala em 8 s (×1,091): re-sintetizada (${corrA.length} correções no total), filme segue, velocidade ≤ 1,034`, ra.status !== 422 && corrA.length === 4 && corrA.every((s) => s.speed <= 0.94 * 1.1 + 1e-9) && ra.measured.every((m) => m.dur <= a.clips[m.sceneIdx].seconds + 0.01))
+  // 19 palavras = 8,79 s + 0,4 = 9,19 s → ×1,149 > 1,10: não é acelerada → recusa honesta
+  const w19 = [...WORDS]; w19[0] = 19
+  const b = mundo({ words: w19 })
+  const rb = await montar(fatia)(b.ctx)
+  checa('cena 1 com 8,79 s em 8 s (×1,149): NÃO é acelerada, recusa honesta com estorno', rb.status === 422 && rb.rejeitado?.reason === 'scene_speech_exceeds_footage' && b.sinteses.slice(7).every((s) => wordsOf(s.text) !== 19) && b.recusas.length === 1)
 }
 
 console.log('== (e) cena que já cabe não é tocada ==')

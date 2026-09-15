@@ -3216,9 +3216,15 @@ async function manipularPost(req: NextRequest) {
               const falKey = process.env.FAL_KEY
               if (falKey) fal.config({ credentials: falKey })
               const freshIds: (string | null)[] = []
-              // Legacy salvage can reuse/retry slots without a durable terminal
-              // proof. Never let its missing IDs authorize a quality refund.
-              cinematicSubmissionUncertain = true
+              // ═══ KINEO-SALVAGE-ESTORNO-2026-09-15 — a incerteza é herdada, não inventada ═══
+              // Render a791cb45 (fundador, 15/09 19:29Z): o salvage reaproveitou os 7 clipes
+              // COMPLETED do 7bb62a29 (nenhum POST novo), o compose recusou por qualidade e o
+              // estorno NÃO saiu — esta linha cravava submission_uncertain=true em todo salvage,
+              // e o portão de estorno (lib/cinematic/qualityRejection) recusa, com razão, estornar
+              // uma submissão incerta. 45 cr ficaram debitados por um filme que não existe.
+              // Agora a incerteza é a da submissão ORIGINAL (assinada no claim reaproveitado);
+              // um slot sem id durável (status/result/re-submissão que falhou) volta a marcá-la.
+              cinematicSubmissionUncertain = storedResp.submission_uncertain !== false
               let reused = 0
               let resubmitted = 0
               for (let i = 0; i < storedIds.length; i++) {
@@ -3255,6 +3261,7 @@ async function manipularPost(req: NextRequest) {
                 }
                 freshIds.push(keep)
               }
+              if (freshIds.some((id) => !id)) cinematicSubmissionUncertain = true // slot sem prova durável: nunca autoriza estorno por qualidade
               const okSec = sSeconds.reduce((a, s, i) => a + (freshIds[i] ? (s || 0) : 0), 0)
               const totSec = sSeconds.reduce((a, s) => a + (s || 0), 0) || 1
               if (freshIds.some(Boolean) && okSec >= totSec * 0.6) {
