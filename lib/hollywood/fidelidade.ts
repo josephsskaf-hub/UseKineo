@@ -464,9 +464,13 @@ export function apararComFolga<T extends { seconds?: number }>(scenes: T[], pala
   const totalSil = () => scenes.reduce((a, sc) => a + Math.max(0, silencio(sc)), 0)
   let aparado = 0
   let guard = 40
-  // Board: nunca tirar 1 s de uma cena cuja folga ESTIMADA é menor que 1,25 s (sobra ≥ 0,25 s); estimativa não é áudio medido.
+  // Board: nunca tirar 1 s de uma cena cuja folga ESTIMADA é pequena; estimativa não é áudio medido.
+  // 15/09 (render H3 7bb62a29, 45 cr estornados, 7 clipes pagos ao fal perdidos): com o limiar de 1,25 s
+  // a apara deixava 0,25–0,4 s de sobra, e a voz REAL (persona idosa, onyx 0,94) estourou o clipe em 3
+  // cenas → o compose recusou "scene_speech_exceeds_footage" DEPOIS de pagar. Agora só se apara onde
+  // sobra ≥ 1 s depois do corte (folga estimada ≥ 2,0 s); o resto é excedente declarado no claim.
   while ((totalSil() > 7.5 || total() > duration * 1.05) && total() - 1 >= duration && guard-- > 0) {
-    const alvo = scenes.filter((sc) => (sc.seconds || 0) > 4 && silencio(sc) >= 1.25).sort((a, b) => silencio(b) - silencio(a))[0]
+    const alvo = scenes.filter((sc) => (sc.seconds || 0) > 4 && silencio(sc) >= 2.0).sort((a, b) => silencio(b) - silencio(a))[0]
     if (!alvo) break
     alvo.seconds = (alvo.seconds || 0) - 1
     aparado++

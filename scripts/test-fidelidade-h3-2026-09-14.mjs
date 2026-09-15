@@ -11,7 +11,8 @@
 //      submittedPrompt (fatia real da rota, sem fornecedor)
 //   4. identidade EXPLÍCITA: a ficha entra no lugar da descrição do papel; pronome
 //      não identifica ninguém ("his son… he grips" não recebe a ficha do pai)
-//   5. duração: nunca tirar 1 s sem folga ≥ 1,25 s; 7×10 s×21 palavras não é aparado
+//   5. duração: nunca tirar 1 s sem folga ≥ 2,0 s (15/09; era 1,25 s e o render H3 7bb62a29
+//      estourou o clipe com a voz real); 7×10 s×21 palavras não é aparado
 import { readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -250,16 +251,29 @@ console.log('== 5. duração — nunca tirar 1 s sem folga segura; estimativa n�
   const scenes = secs.map((s, i) => ({ seconds: s, words: words[i] }))
   const r = F.apararComFolga(scenes, (sc) => sc.words, 60)
   const total = scenes.reduce((a, sc) => a + sc.seconds, 0)
-  checa(`plano real do H3 (65 s): só as cenas com folga ≥ 1,25 s (1 e 5) perdem 1 s → ${total} s, reconciliado, palavras intactas`, total === 63 && scenes[0].seconds === 10 && scenes[4].seconds === 10 && scenes[1].seconds === 7 && scenes[2].seconds === 10 && r.reconciliado === true && r.aparado === 2 && scenes.reduce((a, sc) => a + sc.words, 0) === 135)
-  checa('depois da apara toda cena mantém ≥ 0,25 s de folga estimada', scenes.every((sc) => sc.seconds - sc.words / 2.3 >= 0.25))
+  // 15/09 (render 7bb62a29): a apara a 1,25 s deixava 0,25 s e a voz real estourou o clipe. Agora só apara com folga ≥ 2,0 s.
+  checa(`plano real do H3 (65 s): nenhuma cena tem folga ≥ 2,0 s → NENHUMA perde 1 s (${total} s), excedente 2 s REGISTRADO, palavras intactas`, total === 65 && r.aparado === 0 && r.excedente === 2 && r.reconciliado === false && scenes[0].seconds === 11 && scenes[4].seconds === 11 && scenes[1].seconds === 7 && scenes[2].seconds === 10 && scenes.reduce((a, sc) => a + sc.words, 0) === 135)
+  checa('nada foi tocado: cada cena mantém exatamente a folga que tinha (0,3–1,4 s a 2,3 pal/s)', scenes.every((sc, i) => sc.seconds === secs[i]))
+}
+{
+  // folga ≥ 2,0 s: aí sim a apara tira 1 s (e para quando o filme chega a ≤ 105 % do pedido)
+  const scenes = [{ seconds: 12, words: 20 }, { seconds: 12, words: 20 }, { seconds: 10, words: 20 }]
+  const r = F.apararComFolga(scenes, (sc) => sc.words, 30)
+  const total = scenes.reduce((a, sc) => a + sc.seconds, 0)
+  checa(`com folga ≥ 2,0 s (12 s × 20 palavras = 3,3 s) a apara tira 1 s por vez até ≤ 105 % do pedido: 34 → ${total} s, aparado ${r.aparado}, reconciliado`, total === 31 && r.aparado === 3 && r.reconciliado === true && scenes[2].seconds === 10)
+  checa('e toda cena aparada ainda tem ≥ 1,0 s de folga', scenes.every((sc) => sc.seconds - sc.words / 2.3 >= 1.0))
+  // ritmo da voz (15/09): a folga é medida no passo da persona quando a rota passa wps
+  const lentas = [{ seconds: 12, words: 20 }, { seconds: 12, words: 20 }, { seconds: 10, words: 21 }]
+  const r2 = F.apararComFolga(lentas, (sc) => sc.words, 30, 2.16)
+  checa(`a 2,16 pal/s (onyx 0,94) a folga de 12 s × 20 palavras é 2,74 s → apara; 10 s × 21 (0,28 s) nunca é tocada: total ${lentas.reduce((a, sc) => a + sc.seconds, 0)} s`, lentas[2].seconds === 10 && r2.aparado >= 1 && lentas.every((sc) => sc.seconds - sc.words / 2.16 >= 0.25))
 }
 {
   const scenes = [{ seconds: 5, words: 4 }, { seconds: 4, words: 2 }, { seconds: 10, words: 23 }]
   F.apararComFolga(scenes, (sc) => sc.words, 12)
   checa('nunca abaixo de 4 s (a cena de 4 s não é tocada) e a de 10 s com 23 palavras (0 s de folga) não é tocada', scenes[1].seconds === 4 && scenes[2].seconds === 10)
 }
-checa('rota: o bloco de apara usa apararComFolga e grava o excedente no claim (base: estimate), sem o laço antigo de 0,8 s', rota.includes("const apara = apararComFolga(plan.scenes, (sc) => wordsOfLine(lineOf(sc)), duration)") && rota.includes("duracaoReconciliada = { reconciliado: apara.reconciliado, aparado_s: apara.aparado, excedente_s: apara.excedente, base: 'estimate' }") && !rota.includes('const folga = totalSil > 7.5 ? 1 : 0.8'))
-checa('biblioteca: a folga mínima é 1,25 s e a cena nunca cai abaixo de 4 s', libSrc.includes('(sc.seconds || 0) > 4 && silencio(sc) >= 1.25'))
+checa('rota: o bloco de apara usa apararComFolga e grava o excedente no claim (base: estimate), sem o laço antigo de 0,8 s', rota.includes("const apara = apararComFolga(plan.scenes, (sc) => wordsOfLine(lineOf(sc)), duration, ritmoVoz)") && rota.includes("duracaoReconciliada = { reconciliado: apara.reconciliado, aparado_s: apara.aparado, excedente_s: apara.excedente, base: 'estimate' }") && !rota.includes('const folga = totalSil > 7.5 ? 1 : 0.8'))
+checa('biblioteca: a folga mínima para aparar é 2,0 s (15/09; era 1,25 e a voz real estourava) e a cena nunca cai abaixo de 4 s', libSrc.includes('(sc.seconds || 0) > 4 && silencio(sc) >= 2.0') && !libSrc.includes('silencio(sc) >= 1.25'))
 
 console.log(`\n${ok} ok · ${falhas.length} falhas`)
 for (const f of falhas) console.log('  ✗', f)

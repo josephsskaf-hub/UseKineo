@@ -117,20 +117,49 @@ for(const state of ['same','retargeted','in_flight','released','read_failed','re
 // narration must not invent extra footage via support loop or final-frame hold.
 const advanced=find(n=>ts.isIfStatement(n)&&n.expression.getText(ast).includes("quality === 'cinematic_hollywood'")&&n.thenStatement.getText(ast).includes('const rawEngines'))
 const statements=advanced.thenStatement.statements
-const from=statements.findIndex(n=>ts.isForOfStatement(n)&&n.initializer.getText(ast)==='const m')
+const fromLoop=statements.findIndex(n=>ts.isForOfStatement(n)&&n.initializer.getText(ast)==='const m')
+// KINEO-FALA-CABE-2026-09-15: the bound constant is declared right before the first loop; the slice starts there.
+const fromBound=statements.findIndex(n=>ts.isVariableStatement(n)&&n.getText(ast).startsWith('const FALA_CABE_MAX_FATOR'))
+const from=fromBound>=0&&fromBound<fromLoop?fromBound:fromLoop
 const to=statements.findIndex(n=>ts.isVariableStatement(n)&&n.declarationList.declarations.some(d=>d.name.getText(ast)==='narrationBlocks'))
 assert.ok(from>=0&&to>from)
 const adjustments=statements.slice(from,to).map(n=>n.getText(ast)).join('\n')
-for(const sceneIdx of [0,5]){
-  for(const dur of [3,12]){
+// KINEO-FALA-CABE-2026-09-15: the first statement is now the bounded re-synthesis pass (≤ ×1,08). With no pinned
+// voice it is inert; with a pinned voice a small overrun is re-synthesized (same text) and a large one still hits 422.
+// Either way NO clip may grow past its own footage (the hollywood builder loops the clip — no final-frame hold exists).
+const falaCabe=(calls)=>({hollywoodPinnedVoice:{personaId:'character:male:elderly',voice:'onyx',defaultSpeed:0.94},explicitSpeed:null,user:{id:'fixture'},
+  synthesizeHostSpeech:async({speed})=>{calls.push(speed);return {length:1,dur:Math.round((calls.baseDur*0.94/speed)*1000)/1000}},
+  estimateMp3DurationSeconds:b=>b.dur,transcribeTTSWithTimestamps:async()=>[],verifyObservedSpeech:()=>({ok:false}),uploadVoiceoverToSupabase:async()=>'https://voz/fixture.mp3'})
+for(const pinned of [false,true]){
+  for(const sceneIdx of [0,5]){
+    for(const dur of [3,10.5,12]){
+      const clips=Array.from({length:6},()=>({engine:'support',seconds:10}))
+      const calls=[];calls.baseDur=dur
+      const module=evaluate(`export async function run(){${adjustments};return null}`,{...timeline,NextResponse:next,console:{log(){},warn(){}},quality:'cinematic_omni',duration:60,generationId:'fixture-generation',secondsOf:timeline.cinematicSceneSeconds,
+        hollywoodClips:clips,originalFootageSeconds:clips.map(timeline.cinematicSceneSeconds),measured:[{sceneIdx,dur,text:'fixture narration'}],rejectBeforeProviderSubmission:async r=>r,
+        hollywoodPinnedVoice:null,...(pinned?falaCabe(calls):{})})
+      const result=await module.run()
+      eq(clips.every(c=>c.seconds<=10),true)
+      eq(clips.reduce((s,c)=>s+c.seconds,0),60)
+      // 10.5 s over a 10 s clip = ×1,11 with the +0,6 s breath → beyond the ×1,08 bound: honest 422, voice or not.
+      // The bounded pass only rescues overruns ≤ 8 % (see scripts/test-fala-cabe-2026-09-15.mjs); it never invents footage.
+      eq(result?.status??200,dur>10?422:200)
+      eq(calls.length,0)
+      if(result)eq((await result.json()).reason,'scene_speech_exceeds_footage')
+    }
+    // an overrun inside the bound (9.7 s + 0.6 > 10 → ×1,03): with a pinned voice the scene is re-synthesized once at
+    // 0,94 × 1,03 and the film proceeds; without a voice the clip stays at its footage and the film proceeds too.
     const clips=Array.from({length:6},()=>({engine:'support',seconds:10}))
+    const calls=[];calls.baseDur=9.7
     const module=evaluate(`export async function run(){${adjustments};return null}`,{...timeline,NextResponse:next,console:{log(){},warn(){}},quality:'cinematic_omni',duration:60,generationId:'fixture-generation',secondsOf:timeline.cinematicSceneSeconds,
-      hollywoodClips:clips,originalFootageSeconds:clips.map(timeline.cinematicSceneSeconds),measured:[{sceneIdx,dur}],rejectBeforeProviderSubmission:async r=>r})
+      hollywoodClips:clips,originalFootageSeconds:clips.map(timeline.cinematicSceneSeconds),measured:[{sceneIdx,dur:9.7,text:'fixture narration'}],rejectBeforeProviderSubmission:async r=>r,
+      hollywoodPinnedVoice:null,...(pinned?falaCabe(calls):{})})
     const result=await module.run()
+    eq(result?.status??200,200)
     eq(clips.every(c=>c.seconds<=10),true)
     eq(clips.reduce((s,c)=>s+c.seconds,0),60)
-    eq(result?.status??200,dur>10?422:200)
-    if(result)eq((await result.json()).reason,'scene_speech_exceeds_footage')
+    eq(calls.length,pinned?1:0)
+    if(pinned)eq(calls[0]>0.94&&calls[0]<=0.94*1.08,true)
   }
 }
 // Execute the actual publication closure: neither the browser nor an old

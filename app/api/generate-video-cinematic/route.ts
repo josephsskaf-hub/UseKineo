@@ -3791,6 +3791,26 @@ async function manipularPost(req: NextRequest) {
       }
 
       let duracaoReconciliada: { reconciliado: boolean; aparado_s: number; excedente_s: number; base: 'estimate' } | null = null
+      // ═══ KINEO-RITMO-DA-VOZ-2026-09-15 — a régua anda no passo da voz que VAI falar ═══
+      // Render H3 7bb62a29 (fundador, 15/09): o plano contava 2,3 pal/s, a apara deixava
+      // 0,25 s de folga, e a voz pinada (character:male:elderly, onyx 0,94) falou mais
+      // devagar → em 3 cenas a fala medida + 0,6 s passou do clipe e o compose recusou
+      // (scene_speech_exceeds_footage) DEPOIS de pagar 7 clipes (~$4,36; 45 cr estornados).
+      // Aqui a MESMA resolução que o compose usa (resolveHollywoodVoice, ficha incluída)
+      // decide o ritmo: 2,3 × velocidade da persona (0,94 → 2,16 pal/s). E toda conta de
+      // "cabe" é feita nesse ritmo: a cena reescrita ganha round(pal/ritmo)+1 s (folga de
+      // 0,5–1,5 s, dentro da régua), e nada fica com menos de 0,3 s (FOLGA_MIN_S). O compose
+      // mede a voz real e, se ela estourar o clipe em até 8 %, re-sintetiza a cena na
+      // velocidade que cabe (KINEO-FALA-CABE) — nunca mais recusa depois de pagar.
+      const ritmoVoz = (() => {
+        try {
+          const falas = sceneNarrationsForPlan(plan.scenes).filter(Boolean).join(' ')
+          const voz = resolveHollywoodVoice(falas || prompt, hollywoodLanguage, hollywoodVertical, plan.characterSheet)
+          return Math.round(2.3 * Math.max(0.85, Math.min(1.1, voz.defaultSpeed)) * 100) / 100
+        } catch { return 2.3 }
+      })()
+      const FOLGA_MIN_S = 0.3
+      if (ritmoVoz !== 2.3) console.log(`[hollywood] KINEO-RITMO-DA-VOZ: persona mais lenta/rápida que a régua → ${ritmoVoz} pal/s (2,3 × velocidade da voz)`)
       // ═══ KINEO-ENCHE-SILENCIO-2026-09-13 — modo IA nos motores caros ═══════
       // O planejador dirige bem a câmera e escreve pouco: 113-116 palavras
       // para 60 s (16 por cena de 10 s) em Kling 3, H3 e Omni na análise de $0
@@ -3803,7 +3823,7 @@ async function manipularPost(req: NextRequest) {
           const wordsOfLine = (t: string | undefined) => (t ?? '').trim().split(/\s+/).filter(Boolean).length
           const lineOf = (sc: (typeof plan.scenes)[number]) => (sc.type === 'dialogue' ? sc.dialogueLine : sc.voiceover) ?? ''
           const curtas = plan.scenes
-            .map((sc, i) => ({ i, sc, target: Math.round((sc.seconds || 0) * 2.3), words: wordsOfLine(lineOf(sc)), maxWords: Math.floor(((sc.type === 'dialogue' ? DIALOGUE_CAP : sc.type === 'cinematic' ? 8 : SCENE_CAP) + 1) * 2.3) })) // v5 (14/09, rodada 4): teto = (segundos+1) x 2,3 — a tolerancia do compose; nas cenas de 8 s o alvo+3 batia no teto e o modelo (85%) devolvia 15
+            .map((sc, i) => ({ i, sc, target: Math.round((sc.seconds || 0) * ritmoVoz), words: wordsOfLine(lineOf(sc)), maxWords: Math.floor(((sc.type === 'dialogue' ? DIALOGUE_CAP : sc.type === 'cinematic' ? 8 : SCENE_CAP) - FOLGA_MIN_S) * ritmoVoz) })) // v5 (14/09, rodada 4): teto = (segundos+1) x 2,3 — a tolerancia do compose; nas cenas de 8 s o alvo+3 batia no teto e o modelo (85%) devolvia 15
             .filter((x) => x.target >= 6 && (x.words < x.target - 1 || x.words > x.maxWords || FILLER_LINE_RE.test(lineOf(x.sc))))
           if (curtas.length > 0) {
             const antes = plan.scenes.reduce((a, sc) => a + wordsOfLine(lineOf(sc)), 0)
@@ -3830,18 +3850,19 @@ async function manipularPost(req: NextRequest) {
             for (const x of curtas) {
               const teto = x.sc.type === 'dialogue' ? DIALOGUE_CAP : x.sc.type === 'cinematic' ? 8 : SCENE_CAP
               let w = wordsOfLine(lineOf(x.sc))
-              x.sc.seconds = Math.max(4, Math.min(teto, Math.round(w / 2.3) + 1))
-              if (x.sc.type !== 'dialogue' && w / 2.3 > x.sc.seconds + 1) {
+              x.sc.seconds = Math.max(4, Math.min(teto, Math.round(w / ritmoVoz) + 1))
+              if (x.sc.type !== 'dialogue' && w / ritmoVoz + FOLGA_MIN_S > x.sc.seconds) {
                 const frases = (x.sc.voiceover ?? '').match(/[^.!?…]+[.!?…]+["”']?|[^.!?…]+$/g)?.map((s) => s.trim()) ?? []
-                while (frases.length > 1 && wordsOfLine(frases.join(' ')) / 2.3 > x.sc.seconds + 1) frases.pop()
+                while (frases.length > 1 && wordsOfLine(frases.join(' ')) / ritmoVoz + FOLGA_MIN_S > x.sc.seconds) frases.pop()
                 x.sc.voiceover = frases.join(' ').trim()
                 w = wordsOfLine(x.sc.voiceover)
               }
             }
             // KINEO-FIDELIDADE-2026-09-14 (v3, Board): o respiro só é aparado onde a
-            // folga ESTIMADA é segura (≥ 1,25 s); sem folga, o excedente é REGISTRADO
-            // (duracao_reconciliada no claim) e nenhuma palavra é sacrificada.
-            const apara = apararComFolga(plan.scenes, (sc) => wordsOfLine(lineOf(sc)), duration)
+            // folga ESTIMADA é segura (15/09: ≥ 2,0 s, no ritmo da voz — sobra ≥ 1 s depois
+            // do corte); sem folga, o excedente é REGISTRADO (duracao_reconciliada no
+            // claim) e nenhuma palavra é sacrificada.
+            const apara = apararComFolga(plan.scenes, (sc) => wordsOfLine(lineOf(sc)), duration, ritmoVoz)
             duracaoReconciliada = { reconciliado: apara.reconciliado, aparado_s: apara.aparado, excedente_s: apara.excedente, base: 'estimate' }
             if (!apara.reconciliado) console.warn(`[hollywood] KINEO-FIDELIDADE: sem folga segura para reconciliar — excedente de ${apara.excedente}s registrado, nenhuma palavra cortada`)
             const depois = plan.scenes.reduce((a, sc) => a + wordsOfLine(lineOf(sc)), 0)
@@ -3861,20 +3882,20 @@ async function manipularPost(req: NextRequest) {
           // muda (1,5 s / 8 s); verbatim nunca passa por aqui (C1); se ainda
           // reprovar, o 422 abaixo segue barrando e estornando.
           {
-            const projetar = () => planSilenceReport(fitCinematicPlanFloor(plan.scenes, duration, SCENE_CAP), 2.3)
+            const projetar = () => planSilenceReport(fitCinematicPlanFloor(plan.scenes, duration, SCENE_CAP), ritmoVoz)
             const antesRegua = projetar()
             if (!antesRegua.ok) {
               const totalProjetado = Math.max(duration, plan.scenes.reduce((a, sc) => a + (sc.seconds || 0), 0))
               const palavrasAtuais = plan.scenes.reduce((a, sc) => a + wordsOfLine(lineOf(sc)), 0)
-              let restante = Math.max(0, Math.ceil((totalProjetado - 6) * 2.3) - palavrasAtuais)
+              let restante = Math.max(0, Math.ceil((totalProjetado - 6) * ritmoVoz) - palavrasAtuais)
               const pedidos = plan.scenes
                 .map((sc, i) => ({ sc, silencio: antesRegua.perScene[i] ?? 0, teto: sc.type === 'dialogue' ? DIALOGUE_CAP : sc.type === 'cinematic' ? 8 : SCENE_CAP }))
                 .filter((x) => x.sc.type !== 'dialogue' && x.silencio > 0.9)
                 .sort((a, b) => b.silencio - a.silencio)
                 .map((x) => {
-                  const maxWords = Math.floor((x.teto + 1) * 2.3)
+                  const maxWords = Math.floor((x.teto - FOLGA_MIN_S) * ritmoVoz)
                   const atual = wordsOfLine(lineOf(x.sc))
-                  const porCena = Math.ceil((x.silencio - 0.5) * 2.3)
+                  const porCena = Math.ceil((x.silencio - 0.5) * ritmoVoz)
                   const add = Math.max(0, Math.min(porCena + (restante > porCena ? 2 : 0), maxWords - atual))
                   restante -= add
                   return { x, addWords: add, maxWords }
@@ -3891,14 +3912,14 @@ async function manipularPost(req: NextRequest) {
                   acrescentadas += w - wordsOfLine(base)
                   pd.x.sc.voiceover = nova
                   // os segundos só SOBEM se a fala nova não couber; nunca descem aqui
-                  if (w / 2.3 > (pd.x.sc.seconds || 0)) pd.x.sc.seconds = Math.min(pd.x.teto, Math.ceil(w / 2.3))
+                  if (w / ritmoVoz + FOLGA_MIN_S > (pd.x.sc.seconds || 0)) pd.x.sc.seconds = Math.min(pd.x.teto, Math.ceil(w / ritmoVoz + FOLGA_MIN_S))
                 })
                 // o que falta para o pedido vai só onde cabe com ≤ 1,4 s de folga; o resto fica com o piso
                 let guardaPiso = 60
                 while (plan.scenes.reduce((a, sc) => a + (sc.seconds || 0), 0) < duration && guardaPiso-- > 0) {
                   const cabe = plan.scenes
                     .filter((sc) => sc.type !== 'dialogue' && wordsOfLine(lineOf(sc)) > 0)
-                    .map((sc) => ({ sc, teto: sc.type === 'cinematic' ? 8 : SCENE_CAP, folga: (sc.seconds || 0) + 1 - wordsOfLine(lineOf(sc)) / 2.3 }))
+                    .map((sc) => ({ sc, teto: sc.type === 'cinematic' ? 8 : SCENE_CAP, folga: (sc.seconds || 0) + 1 - wordsOfLine(lineOf(sc)) / ritmoVoz }))
                     .filter((x) => (x.sc.seconds || 0) + 1 <= x.teto && x.folga <= 1.4)
                     .sort((a, b) => a.folga - b.folga)[0]
                   if (!cabe) break
@@ -4134,7 +4155,8 @@ async function manipularPost(req: NextRequest) {
       // Régua: silêncio por cena = segundos − palavras ÷ 2,3; reprova acima de
       // 1,5 s numa cena ou 8 s no total. Estorna e diz quantas palavras faltam.
       {
-        const silence = planSilenceReport(plan.scenes, 2.3)
+        // KINEO-RITMO-DA-VOZ-2026-09-15: a mesma régua, no passo da voz pinada (ritmoVoz).
+        const silence = planSilenceReport(plan.scenes, ritmoVoz)
         if (!silence.ok) {
           const refunded = await confirmCinematicRefund()
           const released = refunded && await releaseBirthClaim('plan_silence_inside_scenes')

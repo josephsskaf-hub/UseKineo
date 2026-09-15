@@ -2208,6 +2208,52 @@ export async function POST(req: NextRequest) {
           }, { status: 422 }))
         }
       }
+      // ═══ KINEO-FALA-CABE-2026-09-15 — a fala que estourou o clipe POR POUCO cabe, nunca é recusada depois de paga ═══
+      // Render H3 7bb62a29 (fundador, 15/09): 7 clipes aceitos e pagos ao fal (~$4,36), e a
+      // narração medida + 0,6 s passou da footage em 3 cenas por 0,3–1,2 s (persona idosa,
+      // onyx 0,94, mais lenta que os 2,3 pal/s do plano). O TAIL-GROW abaixo para na footage
+      // e o filme era RECUSADO (scene_speech_exceeds_footage) com 45 cr estornados e o custo
+      // dos clipes perdido. O clipe NÃO estica: o builder hollywood (lib/compose.ts) monta a
+      // cena com loop:true — passar da footage REPETIRIA o começo do clipe, imagem repetida
+      // que o fundador proibiu; e "o Creatomate segura o último frame" nunca foi verificado.
+      // Remédio (o mesmo do Push #234 no caminho clássico, por cena): estouro de até 8 % →
+      // a cena é re-sintetizada na velocidade exata que cabe (persona × fator, ≤ 1,08 —
+      // 0,94 vira 1,015: natural) e re-medida. Nenhuma palavra é cortada, o texto é o mesmo.
+      // Estouro maior que 8 % ou re-síntese que não melhora → a recusa honesta abaixo continua.
+      const FALA_CABE_MAX_FATOR = 1.08
+      for (const m of measured) {
+        const c = hollywoodClips[m.sceneIdx]
+        if (!c || (c.engine !== 'support' && c.engine !== 'cinematic') || !hollywoodPinnedVoice) continue
+        const footage = originalFootageSeconds[m.sceneIdx]
+        const need = m.dur + 0.6
+        if (!(footage > 0) || need <= footage) continue
+        const fator = Math.round((need / footage) * 1000) / 1000
+        if (fator > FALA_CABE_MAX_FATOR) {
+          console.warn(`[compose] KINEO-FALA-CABE: cena ${m.sceneIdx + 1} fala ${m.dur.toFixed(1)}s + 0,6 > clipe ${footage}s (×${fator} > ${FALA_CABE_MAX_FATOR}) — estouro grande demais para acelerar, segue para a recusa honesta`)
+          continue
+        }
+        try {
+          const buf = await synthesizeHostSpeech({
+            text: m.text,
+            voice: hollywoodPinnedVoice.voice,
+            speed: hollywoodPinnedVoice.defaultSpeed * (explicitSpeed ?? 1.0) * fator,
+          })
+          const dur = buf && buf.length > 0 ? estimateMp3DurationSeconds(buf) : 0
+          if (!(dur > 0.3) || dur >= m.dur) {
+            console.warn(`[compose] KINEO-FALA-CABE: re-síntese da cena ${m.sceneIdx + 1} não melhorou (${dur.toFixed(1)}s vs ${m.dur.toFixed(1)}s) — mantendo o original`)
+            continue
+          }
+          const observed = await transcribeTTSWithTimestamps(buf).catch(() => [] as WhisperWord[])
+          const words = verifyObservedSpeech(m.text, observed).ok ? observed : undefined
+          const url = await uploadVoiceoverToSupabase(user.id, buf)
+          console.log(`[compose] KINEO-FALA-CABE: cena ${m.sceneIdx + 1} fala ${m.dur.toFixed(1)}s + 0,6 > clipe ${footage}s → re-sintetizada a ×${fator} (${dur.toFixed(1)}s), texto idêntico`)
+          m.url = url
+          m.dur = dur
+          m.words = words
+        } catch (e) {
+          console.warn(`[compose] KINEO-FALA-CABE: re-síntese da cena ${m.sceneIdx + 1} falhou — mantendo o original:`, e instanceof Error ? e.message : String(e))
+        }
+      }
       // Encolhe SUPPORT pro tamanho real da fala (piso 3s; nunca cresce alem
       // do planejado). Cinematic (Veo) fica nos 8s fixos do builder; dialogo/
       // host tem a fala DENTRO do clipe e nao mudam.
@@ -2232,8 +2278,10 @@ export async function POST(req: NextRequest) {
         // loop ("Timeline FINAL pós-ajuste"), então crescer cena aqui é
         // seguro: nada desincroniza. Cena narrada (support/cinematic, em
         // TODAS as famílias — h3 proíbe encolher, crescer é outro verbo)
-        // cresce até a fala medida + 0.6s; o Creatomate segura o último
-        // frame pelo excedente. Palavra engolida entre cenas morre aqui.
+        // cresce até a fala medida + 0.6s, NUNCA além da footage (15/09: o builder
+        // monta a cena com loop:true — além da footage o clipe recomeçaria; o que
+        // estoura por pouco é re-sintetizado no KINEO-FALA-CABE acima). Palavra
+        // engolida entre cenas morre aqui.
         if (c && (c.engine === 'support' || c.engine === 'cinematic')) {
           const need = Math.min(originalFootageSeconds[m.sceneIdx], Math.round((m.dur + 0.6) * 10) / 10)
           if (need > secondsOf(c)) {
@@ -2276,9 +2324,9 @@ export async function POST(req: NextRequest) {
           // abaixo) guilhotina as últimas palavras — que são exatamente o
           // "follow", o convite mais valioso do vídeo. O gapfix só ENCOLHIA;
           // agora a ÚLTIMA cena narrada também CRESCE até cobrir a fala
-          // medida (+0.8s de respiro). O clipe não tem footage extra? Não
-          // precisa: o Creatomate segura o último frame, e um hold de 0.5-2s
-          // sob as palavras finais lê como fechamento de cinema, não defeito.
+          // medida (+0.8s de respiro), até a footage do clipe (15/09: o builder
+          // usa loop:true — além da footage o clipe recomeçaria; a fala que
+          // estoura por pouco é re-sintetizada no KINEO-FALA-CABE acima).
           if (tail < 0) {
             const grow = Math.round(-tail * 10) / 10
             last.seconds = Math.min(originalFootageSeconds[lastIdx], Math.round((secondsOf(last) + grow) * 10) / 10)

@@ -9,6 +9,7 @@
 import { readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { execFileSync } from 'node:child_process'
 import vm from 'node:vm'
 import ts from 'typescript'
 
@@ -35,14 +36,15 @@ const fimTxt = "            sceneMax: SILENCE_SCENE_MAX_SECONDS, totalMax: SILEN
 const fim = rota.indexOf(fimTxt, ini)
 checa('fatia enche-silêncio → régua existe na rota', ini > 0 && fim > ini)
 const fatia = rota.slice(ini, fim + fimTxt.length)
-checa('a régua é avaliada sobre o plano PROJETADO pelo piso (fitCinematicPlanFloor) antes de decidir', fatia.includes('const projetar = () => planSilenceReport(fitCinematicPlanFloor(plan.scenes, duration, SCENE_CAP), 2.3)'))
+checa('a régua é avaliada sobre o plano PROJETADO pelo piso (fitCinematicPlanFloor) antes de decidir', fatia.includes('const projetar = () => planSilenceReport(fitCinematicPlanFloor(plan.scenes, duration, SCENE_CAP), ritmoVoz)'))
 checa('a continuação roda DENTRO do try do enche-silêncio (modo IA), depois da apara e antes do teto-rede', fatia.includes('KINEO-H3-PALAVRAS-2026-09-15') && fatia.indexOf('const apara = apararComFolga(') < fatia.indexOf('KINEO-H3-PALAVRAS-2026-09-15') && fatia.indexOf('KINEO-H3-PALAVRAS-2026-09-15') < fatia.indexOf("console.warn('[hollywood] enche-silencio pulado:'"))
-checa('só cenas sem diálogo com folga > 0,9 s pedem continuação; segundos nunca descem nesse passo', fatia.includes(".filter((x) => x.sc.type !== 'dialogue' && x.silencio > 0.9)") && fatia.includes('if (w / 2.3 > (pd.x.sc.seconds || 0)) pd.x.sc.seconds = Math.min(pd.x.teto, Math.ceil(w / 2.3))'))
+checa('só cenas sem diálogo com folga > 0,9 s pedem continuação; segundos nunca descem nesse passo', fatia.includes(".filter((x) => x.sc.type !== 'dialogue' && x.silencio > 0.9)") && fatia.includes('if (w / ritmoVoz + FOLGA_MIN_S > (pd.x.sc.seconds || 0)) pd.x.sc.seconds = Math.min(pd.x.teto, Math.ceil(w / ritmoVoz + FOLGA_MIN_S))'))
 checa('a linha aceita fica intacta: só entra continuação que começa pela linha original', fatia.includes("!nova.startsWith(base.trim().replace(/[.!?…]$/, ''))) return"))
 checa('rota importa appendNarrationToTargets de @/lib/runway', rota.includes("expandVoiceoversToTargets, appendNarrationToTargets, FILLER_LINE_RE } from '@/lib/runway'"))
 
-const params = ['plan', 'verbatim', 'duration', 'DIALOGUE_CAP', 'SCENE_CAP', 'FILLER_LINE_RE', 'expandVoiceoversToTargets', 'appendNarrationToTargets', 'hollywoodLanguage', 'prompt', 'apararComFolga', 'planSilenceReport', 'writeServerEvent', 'user', 'generationId', 'family', 'verbatimOverflowWords', 'MAX_VERBATIM_SCENES', 'hollywoodVoiceover', 'releaseBirthClaim', 'cinematicAdmin', 'body', 'NextResponse', 'hollywoodTarget', 'requestedDuration', 'degrau', 'formatoVisual', 'resolveCharacterVoice', 'cinematicSceneModel', 'buildFalInput', 'confirmCinematicRefund', 'SILENCE_SCENE_MAX_SECONDS', 'SILENCE_TOTAL_MAX_SECONDS', 'fitCinematicPlanFloor', 'console']
-const executar = roda(`export async function rodar(ctx: any) {\n  const { ${params.join(', ')} } = ctx\n${fatia}\n  return { plan, duracaoReconciliada, rejeitado: null }\n}`).rodar
+const params = ['plan', 'verbatim', 'duration', 'DIALOGUE_CAP', 'SCENE_CAP', 'FILLER_LINE_RE', 'expandVoiceoversToTargets', 'appendNarrationToTargets', 'hollywoodLanguage', 'prompt', 'apararComFolga', 'planSilenceReport', 'writeServerEvent', 'user', 'generationId', 'family', 'verbatimOverflowWords', 'MAX_VERBATIM_SCENES', 'hollywoodVoiceover', 'releaseBirthClaim', 'cinematicAdmin', 'body', 'NextResponse', 'hollywoodTarget', 'requestedDuration', 'degrau', 'formatoVisual', 'resolveCharacterVoice', 'cinematicSceneModel', 'buildFalInput', 'confirmCinematicRefund', 'SILENCE_SCENE_MAX_SECONDS', 'SILENCE_TOTAL_MAX_SECONDS', 'fitCinematicPlanFloor', 'console', 'resolveHollywoodVoice', 'hollywoodVertical', 'sceneNarrationsForPlan']
+const montar = (fatiaSrc) => roda(`export async function rodar(ctx: any) {\n  const { ${params.join(', ')} } = ctx\n${fatiaSrc}\n  return { plan, duracaoReconciliada, rejeitado: null }\n}`).rodar
+const executar = montar(fatia)
 const NextResponse = { json: (b, init) => ({ rejeitado: b, status: init?.status ?? 200 }) }
 const ctxBase = (plan, extra = {}) => ({
   plan, verbatim: false, duration: 60, DIALOGUE_CAP: 15, SCENE_CAP: 12, FILLER_LINE_RE: /^(here is something most people do not know about|imagine|what if|most people don'?t know)/i,
@@ -52,6 +54,8 @@ const ctxBase = (plan, extra = {}) => ({
   releaseBirthClaim: async () => true, cinematicAdmin: { from: () => ({ insert: async () => ({}) }) }, body: {}, NextResponse, hollywoodTarget: 68, requestedDuration: 60, degrau: null,
   formatoVisual: { modo: 'documentary_faceless' }, resolveCharacterVoice: () => null, cinematicSceneModel: () => 'x', buildFalInput: () => ({}), confirmCinematicRefund: async () => true,
   SILENCE_SCENE_MAX_SECONDS: 1.5, SILENCE_TOTAL_MAX_SECONDS: 8, fitCinematicPlanFloor: TL.fitCinematicPlanFloor, console: { log: () => {}, warn: () => {} },
+  // KINEO-RITMO-DA-VOZ-2026-09-15: persona neutra (1,0) → ritmo 2,3; o caso (f) troca pela persona idosa
+  resolveHollywoodVoice: () => ({ personaId: 'dark-mystery', voice: 'onyx', defaultSpeed: 1.0 }), hollywoodVertical: 'history', sceneNarrationsForPlan: (scenes) => scenes.map((sc) => sc.voiceover ?? null),
   ...extra,
 })
 // o planejador de ontem: 7 cenas de apoio, 103 palavras, 55 s
@@ -142,6 +146,68 @@ console.log('== helper: juntarContinuacao nunca perde a base ==')
   }
   checa('appendNarrationToTargets só aceita candidata que começa pela linha aceita e respeita maxWords', runway.includes("if (wordsOf(candidata) > wordsOf(out[i]) && wordsOf(candidata) <= items[i].maxWords && candidata.startsWith(out[i].trim().replace(/[.!?…]$/, ''))) out[i] = candidata"))
   checa('o pedido ao modelo é de CONTINUAÇÃO (não repetir nem reescrever a linha), sem filler, sem 1ª pessoa', runway.includes('write ONLY the continuation') && runway.includes('Do not repeat or rephrase the given line') && runway.includes('no first person'))
+}
+
+console.log('== (f) KINEO-RITMO-DA-VOZ: a régua anda no passo da voz pinada (render H3 7bb62a29, 15/09) ==')
+{
+  // O plano de 15/09: 7 cenas de apoio, 65 s, 130 palavras — a 2,3 pal/s toda cena tem 1,0–1,3 s de
+  // folga; a voz pinada (character:male:elderly, onyx 0,94) fala a ~2,16 pal/s.
+  const idosa = () => ({ personaId: 'character:male:elderly', voice: 'onyx', defaultSpeed: 0.94 })
+  const plano15 = () => {
+    const words = [20, 20, 20, 20, 18, 16, 16]
+    const secs = [10, 10, 10, 10, 9, 8, 8]
+    return { characterSheet: 'a weathered elderly fisherman with a white beard', environmentSheet: 'Lituya Bay', styleSheet: 'documentary', scenes: words.map((w, i) => ({ index: i + 1, type: 'support', seconds: secs[i], prompt: `scene ${i + 1}`, voiceover: frase(w, `p${i + 1}_`) + '.', caption: '' })) }
+  }
+  const identidade = async (items) => items.map((it) => it.text)
+  const RITMO_REAL = Math.round(2.3 * 0.94 * 100) / 100
+  checa('ritmo esperado da persona idosa: 2,3 × 0,94 = 2,16 pal/s', RITMO_REAL === 2.16)
+  checa('rota: o ritmo nasce da MESMA resolução que o compose usa (resolveHollywoodVoice com a ficha) e a folga mínima do plano é 0,3 s', fatia.includes('resolveHollywoodVoice(falas || prompt, hollywoodLanguage, hollywoodVertical, plan.characterSheet)') && fatia.includes('return Math.round(2.3 * Math.max(0.85, Math.min(1.1, voz.defaultSpeed)) * 100) / 100') && fatia.includes('const FOLGA_MIN_S = 0.3'))
+  checa('rota: a apara e a régua final também andam no ritmo da voz', fatia.includes("const apara = apararComFolga(plan.scenes, (sc) => wordsOfLine(lineOf(sc)), duration, ritmoVoz)") && fatia.includes('const silence = planSilenceReport(plan.scenes, ritmoVoz)'))
+  // reprodução na main: régua fixa em 2,3 e apara com folga ≥ 1,25 s → duas cenas de 20 palavras caem para 9 s (0,3 s de folga a 2,3) e a voz real (2,16) NÃO cabe
+  let rotaMain = null, fidMain = null
+  try { rotaMain = execFileSync('git', ['show', 'origin/main:app/api/generate-video-cinematic/route.ts'], { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024 }).toString().replace(/\r\n/g, '\n'); fidMain = execFileSync('git', ['show', 'origin/main:lib/hollywood/fidelidade.ts'], { cwd: RAIZ, maxBuffer: 16 * 1024 * 1024 }).toString().replace(/\r\n/g, '\n') } catch {}
+  if (rotaMain && fidMain && rotaMain.includes('KINEO-H3-PALAVRAS-2026-09-15') && !rotaMain.includes('KINEO-RITMO-DA-VOZ-2026-09-15')) {
+    const iniM = rotaMain.indexOf("      let duracaoReconciliada: { reconciliado: boolean; aparado_s: number; excedente_s: number; base: 'estimate' } | null = null")
+    const fimM = rotaMain.indexOf(fimTxt, iniM)
+    const execMain = montar(rotaMain.slice(iniM, fimM + fimTxt.length))
+    const FM = roda(fidMain)
+    const plan = plano15()
+    const r = await execMain(ctxBase(plan, { expandVoiceoversToTargets: identidade, appendNarrationToTargets: appendNulo, apararComFolga: FM.apararComFolga, resolveHollywoodVoice: idosa }))
+    const estouram = plan.scenes.filter((sc) => wordsOf(sc.voiceover) / RITMO_REAL > sc.seconds)
+    checa(`reprodução (origin/main): o plano passa na régua de 2,3 (sem 422) mas ${estouram.length} cena(s) ficam com fala REAL (2,16 pal/s) maior que o clipe — é o 422 pago do compose`, r.status !== 422 && estouram.length >= 1 && plan.scenes.some((sc) => sc.seconds === 9 && wordsOf(sc.voiceover) === 20))
+  } else {
+    checa('reprodução na main pulada (origin/main já traz o ritmo da voz, ou git indisponível)', true)
+  }
+  // candidato: mesmo plano, persona idosa → nenhuma apara sem folga ≥ 2 s, toda cena cabe no ritmo real com ≥ 0,3 s
+  {
+    const plan = plano15()
+    const eventos = []
+    const r = await executar(ctxBase(plan, { expandVoiceoversToTargets: identidade, appendNarrationToTargets: appendNulo, resolveHollywoodVoice: idosa, writeServerEvent: async (e) => { eventos.push(e); return true } }))
+    const total = plan.scenes.reduce((a, sc) => a + sc.seconds, 0)
+    const cabeReal = plan.scenes.every((sc) => wordsOf(sc.voiceover) / RITMO_REAL + 0.3 <= sc.seconds + 1e-9)
+    checa(`candidato: sem 422, ${total}s ≥ 60, e TODA cena cabe no ritmo real da voz com ≥ 0,3 s de folga (nenhuma apara sem folga ≥ 2 s)`, r.status !== 422 && r.rejeitado === null && total === 65 && cabeReal && plan.scenes.every((sc) => sc.seconds >= 8))
+    checa('candidato: nenhuma palavra do plano mudou (130) e o excedente de 2 s fica REGISTRADO (reconciliado=false), não aparado', plan.scenes.reduce((a, sc) => a + wordsOf(sc.voiceover), 0) === 130 && r.duracaoReconciliada?.excedente_s === 2 && r.duracaoReconciliada?.reconciliado === false)
+    const silReal = TL.planSilenceReport(plan.scenes, RITMO_REAL)
+    checa(`candidato: a régua no ritmo real aprova (${silReal.total}s ≤ 8, pior ${silReal.worst}s ≤ 1,5) — a mesma régua, no passo certo`, silReal.ok)
+  }
+  // persona neutra (1,0): o ritmo continua 2,3 — e a 2,3 este plano tem 8,45 s de silêncio (7 cenas com 1,0–1,3 s).
+  // Na main a apara tirava 2 s de folga (e a voz real estourava); agora a folga fica e a CONTINUAÇÃO acrescenta palavras.
+  {
+    const plan = plano15()
+    const pedidos = []
+    const r = await executar(ctxBase(plan, { expandVoiceoversToTargets: identidade, appendNarrationToTargets: async (items) => { pedidos.push(...items); return appendFiel(items) } }))
+    const total = plan.scenes.reduce((a, sc) => a + sc.seconds, 0)
+    checa(`persona neutra (2,3): nenhuma cena perde segundos (folga < 2 s), ${pedidos.length} cena(s) ganham palavras em vez disso, e o plano passa (${total}s ≥ 65, sem 422)`, r.status !== 422 && pedidos.length >= 1 && total >= 65 && plan.scenes.every((sc, i) => sc.seconds >= [10, 10, 10, 10, 9, 8, 8][i]) && plan.scenes.reduce((a, sc) => a + wordsOf(sc.voiceover), 0) > 130)
+    const semPalavras = plano15()
+    const r0 = await executar(ctxBase(semPalavras, { expandVoiceoversToTargets: identidade, appendNarrationToTargets: appendNulo }))
+    checa('persona neutra sem continuação: a régua barra a $0 (422 plan_silence_inside_scenes) — nunca mais se paga clipe para a voz estourar', r0.status === 422 && r0.rejeitado?.reason === 'plan_silence_inside_scenes' && semPalavras.scenes.reduce((a, sc) => a + sc.seconds, 0) === 65)
+  }
+  // resolução da voz quebrada → ritmo 2,3 (fail-open), nunca crash
+  {
+    const plan = plano15()
+    const r = await executar(ctxBase(plan, { expandVoiceoversToTargets: identidade, appendNarrationToTargets: appendFiel, resolveHollywoodVoice: () => { throw new Error('voz indisponível') } }))
+    checa('resolução da voz lança → ritmo 2,3 (fail-open), o passo continua e não há crash', r.status !== 422 && plan.scenes.reduce((a, sc) => a + sc.seconds, 0) >= 65)
+  }
 }
 
 console.log(`\n${ok} ok · ${falhas.length} falhas`)
