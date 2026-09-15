@@ -233,3 +233,10 @@ Finish the final sentence without cutting any words.
 ## Registro de execução (preenchido a cada disparo)
 | Motor | Dry-run | generation_id | Débito | Resultado | Duração pedida/entregue | Link | Pendências |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| Seedance 1.5 | PASS (194 pal.) | d6e8e8b3 | 25 cr | entregue 86,4 s, SEM o faroleiro (faceless) | 60 / 86,4 | backblaze (56 MB) | identidade não testável; consertos publicados depois |
+| Kling 2.5 | PASS (133 pal.) | 976eb60d | 50 cr | entregue | 60 / 61,5 | bucket renders/…/19399104 | voz a 0,73; prompt cena 6 quebrado |
+| Kineo 1 | PASS (190 pal.) | fast 22:28Z | 5 cr | entregue | 60 / 61,5 | bucket renders/…/7e48bfe5 | assistir |
+| Veo 3.1 | FAIL (56 s de imagem) | — | 0 | não gerado | — | — | decisão: 9 clipes a 60 s |
+| Kling 3 | PASS (118 pal.) | f7351c17 | 150 cr | entregue | 60 / 60,0 | bucket renders/…/32da19fa | narração inventa detalhes |
+| Omni Flash | PASS (132 pal.) | 8a519488 | 150 cr estornados | FALHOU (6/7 clipes) | 60 / — | 6 URLs no claim | retomada só com ordem |
+| Seedance 2.5 | FAIL ×2 (teto; silêncio 8,2) | — | 0 | não gerado | — | — | ensaio novo depois |
