@@ -630,3 +630,13 @@ Ensaio do S25 60 s (farol de gelo, IA) no deploy c0fb2230: FAIL "cena 2 fica 1,6
 Guardião test-qualidade-comprovada-2026-09-15 bloco (h) (50 verificações; executa `removerDatasInventadas` nos 5 textos reais e o acréscimo indexado com linha omitida e linha longa demais). test-h3-palavras estendido. tsc limpo. Herdado e fora do escopo: test-silencio-na-cena vermelho na origin/main e na candidata (regex de `let anchors` desde a mudança do S25 em 14/09).
 
 Filme Veo 141346ad (100 cr, deploy 7dfa798f): 9/9 clipes aceitos, clips_ready em 2,5 min, compose em andamento — medição abaixo quando chegar.
+
+## QUALIDADE-COMPROVADA-R4 — Veo ENTREGUE (63,3 s); S25 reprovou de novo no ensaio por duas causas novas, consertadas sem gasto (Claude, 15/09 ~22:05 BRT) — LOCAL
+
+**Veo 3.1 — FILME 141346ad / render cf8cbce5 (100 cr, deploy 7dfa798f / dpl_DNBwdjoHgnhBTegPQRZsvS9JSEB5)**: ensaio PASS 2× (9 cenas, 154 palavras, 72 s de imagem); 9/9 clipes aceitos; clips_ready em 2,5 min; compose: 142 palavras, persona luxury-narrator (alloy 0,9), TTS 63,2 s (dentro da tolerância, sem corretivo), 9 legendas; **MP4 medido (mvhd) 63,29 s** para 60 s pedidos. Nenhum nome/data inventado na narração ("The geologist, dressed in her bright orange field jacket…"). Arquivo 65 MB → ficou na URL do Creatomate (render_asset_left_on_vendor; limite global do Supabase); enviado ao fundador pelo app desktop. NÃO assistido com áudio. Link: https://f002.backblazeb2.com/file/creatomate-c8xg3hsxdu/cf8cbce5-9bb6-47e2-81e1-51b6842f1f20.mp4
+
+**S25 ensaio no deploy b615127b**: FAIL "cena 6 fica 2,3 s sem fala (10,9 s no total)". Duas causas novas:
+1. **Cauda da divisão pelo teto virava cena PAGA de 4 palavras** ("odds of the storm.", 4 s, 2,3 s mudos): agora a cauda entra no COMEÇO da próxima cena não-diálogo quando cabe ((teto − 0,3 s) × ritmo); cena nova só como último recurso. Guardião test-h3-palavras executa a fatia real: 20 palavras num cinematic de 8 s → 16 ficam, 4 vão para a cena seguinte (12 palavras), nenhuma cena a mais.
+2. **Data inventada DEPOIS do filtro do planejador** ("On June 15th, 2023" na cena 1): o enche-silêncio e o acréscimo reescrevem linhas depois. Varredura FINAL em código (`removerDatasInventadas`) na rota, depois de toda reescrita e antes da régua; a reescrita do enche-silêncio também recebeu a regra "never invent names, dates, years, clock times or statistics".
+
+Guardiões: test-h3-palavras 47 (caso R2 do "19 palavras" atualizado para o merge), test-qualidade-comprovada 50, tsc limpo. Herdado (não meu): test-silencio-na-cena vermelho na origin/main e aqui. Próximo: publicar → ensaio S25 → filme S25 (150 cr); Seedance ensaio PASS no R2 (7 cenas, 151 palavras, 65,7 s, character_story) → filme (25 cr) em andamento.

@@ -42,14 +42,14 @@ checa('só cenas sem diálogo com folga > 0,9 s pedem continuação; segundos nu
 checa('a linha aceita fica intacta: só entra continuação que começa pela linha original', fatia.includes("!nova.startsWith(base.trim().replace(/[.!?…]$/, ''))) return"))
 checa('rota importa appendNarrationToTargets de @/lib/runway', rota.includes("expandVoiceoversToTargets, appendNarrationToTargets, FILLER_LINE_RE } from '@/lib/runway'"))
 
-const params = ['plan', 'verbatim', 'duration', 'DIALOGUE_CAP', 'SCENE_CAP', 'FILLER_LINE_RE', 'expandVoiceoversToTargets', 'appendNarrationToTargets', 'hollywoodLanguage', 'prompt', 'apararComFolga', 'planSilenceReport', 'writeServerEvent', 'user', 'generationId', 'family', 'verbatimOverflowWords', 'MAX_VERBATIM_SCENES', 'hollywoodVoiceover', 'releaseBirthClaim', 'cinematicAdmin', 'body', 'NextResponse', 'hollywoodTarget', 'requestedDuration', 'degrau', 'formatoVisual', 'resolveCharacterVoice', 'cinematicSceneModel', 'buildFalInput', 'confirmCinematicRefund', 'SILENCE_SCENE_MAX_SECONDS', 'SILENCE_TOTAL_MAX_SECONDS', 'fitCinematicPlanFloor', 'console', 'resolveHollywoodVoice', 'hollywoodVertical', 'sceneNarrationsForPlan']
+const params = ['plan', 'verbatim', 'duration', 'DIALOGUE_CAP', 'SCENE_CAP', 'FILLER_LINE_RE', 'expandVoiceoversToTargets', 'appendNarrationToTargets', 'hollywoodLanguage', 'prompt', 'apararComFolga', 'removerDatasInventadas' /* 15/09 R4 */, 'planSilenceReport', 'writeServerEvent', 'user', 'generationId', 'family', 'verbatimOverflowWords', 'MAX_VERBATIM_SCENES', 'hollywoodVoiceover', 'releaseBirthClaim', 'cinematicAdmin', 'body', 'NextResponse', 'hollywoodTarget', 'requestedDuration', 'degrau', 'formatoVisual', 'resolveCharacterVoice', 'cinematicSceneModel', 'buildFalInput', 'confirmCinematicRefund', 'SILENCE_SCENE_MAX_SECONDS', 'SILENCE_TOTAL_MAX_SECONDS', 'fitCinematicPlanFloor', 'console', 'resolveHollywoodVoice', 'hollywoodVertical', 'sceneNarrationsForPlan']
 const montar = (fatiaSrc) => roda(`export async function rodar(ctx: any) {\n  const { ${params.join(', ')} } = ctx\n${fatiaSrc}\n  return { plan, duracaoReconciliada, rejeitado: null }\n}`).rodar
 const executar = montar(fatia)
 const NextResponse = { json: (b, init) => ({ rejeitado: b, status: init?.status ?? 200 }) }
 const ctxBase = (plan, extra = {}) => ({
   plan, verbatim: false, duration: 60, DIALOGUE_CAP: 15, SCENE_CAP: 12, FILLER_LINE_RE: /^(here is something most people do not know about|imagine|what if|most people don'?t know)/i,
   hollywoodLanguage: 'en', prompt: 'Create a 60-second historical documentary short in English about the 1958 Lituya Bay megatsunami',
-  apararComFolga: FID.apararComFolga, planSilenceReport: TL.planSilenceReport, writeServerEvent: async (e) => { (ctxBase.eventos ??= []).push(e); return true },
+  apararComFolga: FID.apararComFolga, removerDatasInventadas: FID.removerDatasInventadas ?? ((t) => ({ texto: t, removidas: [] })), planSilenceReport: TL.planSilenceReport, writeServerEvent: async (e) => { (ctxBase.eventos ??= []).push(e); return true },
   user: { id: 'u1', email: 'cliente@example.com' }, generationId: 'g1', family: 'h3', verbatimOverflowWords: 0, MAX_VERBATIM_SCENES: 12, hollywoodVoiceover: '',
   releaseBirthClaim: async () => true, cinematicAdmin: { from: () => ({ insert: async () => ({}) }) }, body: {}, NextResponse, hollywoodTarget: 68, requestedDuration: 60, degrau: null,
   formatoVisual: { modo: 'documentary_faceless' }, resolveCharacterVoice: () => null, cinematicSceneModel: () => 'x', buildFalInput: () => ({}), confirmCinematicRefund: async () => true,
@@ -237,7 +237,20 @@ console.log('== (g) KINEO-FALA-NO-TETO: cena cinematic de 8 s com uma frase de 2
   const c19 = plan17.scenes.find((sc) => /dezenove_1\b/.test(sc.voiceover))
   const cauda19 = plan17.scenes[plan17.scenes.indexOf(c19) + 1]
   checa('17 palavras em 8 s cabem (7,4 s + 0,3): a cena NÃO é dividida', wordsOf(c17.voiceover) === 17 && !plan17.scenes.some((sc) => /^dezessete_\d+\.?$/.test(sc.voiceover.trim())))
-  checa(`19 palavras: cabeça de ${wordsOf(c19.voiceover)} e cauda de ${wordsOf(cauda19.voiceover)} (nunca 1-2 palavras soltas numa cena)`, wordsOf(c19.voiceover) === 15 && cauda19.type === 'support' && wordsOf(cauda19.voiceover) === 4)
+  checa(`19 palavras: cabeça de ${wordsOf(c19.voiceover)}; a cauda de 4 entra no COMEÇO da próxima cena de apoio (${wordsOf(cauda19.voiceover)} palavras, ${cauda19.seconds}s ≤ 12) — R4, nunca uma cena de 4 palavras`, wordsOf(c19.voiceover) === 15 && cauda19.type === 'support' && /^dezenove_16 dezenove_17 dezenove_18 dezenove_19. h/.test(cauda19.voiceover) && wordsOf(cauda19.voiceover) === 26 && cauda19.seconds <= 12)
+  // R4 (KINEO-CAUDA-NA-PROXIMA): a cauda entra no COMEÇO da próxima cena quando cabe — nenhuma cena nova, nenhum clipe a mais
+  const planM = { characterSheet: '', environmentSheet: 'ice', styleSheet: 'cinematic', scenes: [] }
+  planM.scenes.push({ index: 1, type: 'support', seconds: 10, prompt: 'a', voiceover: frase(22, 'a_') + '.', caption: '' })
+  planM.scenes.push({ index: 2, type: 'cinematic', seconds: 8, prompt: 'wide', voiceover: frase(20, 'vinte_') + '.', caption: '' })
+  planM.scenes.push({ index: 3, type: 'support', seconds: 10, prompt: 'b', voiceover: frase(8, 'oito_') + '.', caption: '' })
+  for (let i = 0; i < 4; i++) planM.scenes.push({ index: 4 + i, type: 'support', seconds: 10, prompt: `s${i}`, voiceover: frase(22, `s${i}_`) + '.', caption: '' })
+  const nAntes = planM.scenes.length
+  await executar(ctxBase(planM, { expandVoiceoversToTargets: async (items) => items.map((it) => it.text), appendNarrationToTargets: appendNulo, SCENE_CAP: 12 }))
+  const cM = planM.scenes.find((sc) => /vinte_1\b/.test(sc.voiceover))
+  const pM = planM.scenes[planM.scenes.indexOf(cM) + 1]
+  checa(`cauda de 4 palavras entra no começo da próxima cena (${wordsOf(pM.voiceover)} palavras, ${pM.seconds}s) e o plano não ganha cena (${planM.scenes.length} = ${nAntes})`, wordsOf(cM.voiceover) === 16 && /^vinte_17 vinte_18 vinte_19 vinte_20\. oito_1/.test(pM.voiceover) && wordsOf(pM.voiceover) === 12 && planM.scenes.length === nAntes)
+  const rt4 = rd('app/api/generate-video-cinematic/route.ts')
+  checa('varredura FINAL de datas inventadas depois de toda reescrita (antes do OMNI-ALVO e da régua)', rt4.includes('KINEO-DATA-INVENTADA (final)') && rt4.indexOf('KINEO-DATA-INVENTADA-2026-09-15 (varredura final)') > rt4.indexOf('KINEO-FALA-NO-TETO-2026-09-15 — ensaio') && rt4.indexOf('KINEO-DATA-INVENTADA-2026-09-15 (varredura final)') < rt4.indexOf('KINEO-OMNI-ALVO-CRAVADO-2026-08-25 (V6.1') && rt4.includes("import { garantirAcaoCentral, silenciarFalaNoPrompt, apararComFolga, removerDatasInventadas } from '@/lib/hollywood/fidelidade'"))
 }
 
 console.log(`\n${ok} ok · ${falhas.length} falhas`)

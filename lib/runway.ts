@@ -942,7 +942,7 @@ async function pedirReescrita(items: { words: number; line: string }[], langName
     {
       model: 'gpt-4o-mini',
       messages: [
-        { role: 'system', content: `You write narration lines for a short documentary video about: ${topic.slice(0, 300)}. For each input line, return a rewritten line with EXACTLY the requested number of words — never more than requested, at most 2 fewer — in ${langName}, that keeps every fact, name and number of the input and adds specific, true detail. If an input line is generic filler (for example "Here is something most people do not know about…"), replace it with a specific, true opening line about the topic. Never use filler like "imagine", "what if" or "most people don't know". Count the words before answering. Return ONLY a JSON array of strings, same order and same length as the input.` },
+        { role: 'system', content: `You write narration lines for a short documentary video about: ${topic.slice(0, 300)}. For each input line, return a rewritten line with EXACTLY the requested number of words — never more than requested, at most 2 fewer — in ${langName}, that keeps every fact, name and number of the input and adds specific, true detail — never invent names, dates, years, clock times or statistics that are not in the topic. If an input line is generic filler (for example "Here is something most people do not know about…"), replace it with a specific, true opening line about the topic. Never use filler like "imagine", "what if" or "most people don't know". Count the words before answering. Return ONLY a JSON array of strings, same order and same length as the input.` },
         { role: 'user', content: JSON.stringify(items) },
       ],
       temperature: 0.4,

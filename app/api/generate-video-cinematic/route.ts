@@ -49,7 +49,7 @@ import { looksLikeBrief } from '@/lib/scriptParser'
 import { sceneNarrationsForPlan } from '@/lib/cinematic/speechContract'
 import { aplicarEixoVisual } from '@/lib/hollywood/varietyAxis'
 import { decidirFormato, permiteApresentador, TAG_FACELESS, proibidosPorModo, type VisualMode } from '@/lib/cinematic/visualMode'
-import { garantirAcaoCentral, silenciarFalaNoPrompt, apararComFolga } from '@/lib/hollywood/fidelidade'
+import { garantirAcaoCentral, silenciarFalaNoPrompt, apararComFolga, removerDatasInventadas } from '@/lib/hollywood/fidelidade'
 // KINEO-MULTIFORMATO-2026-09-02 — enquadramento pedido (9:16 · 16:9 · 1:1 · 4:5).
 import { aspectSpec, normalizeAspect } from '@/lib/aspect'
 import { montarContrato, aplicarContrato, severidadeDe } from '@/lib/cinematic/sceneTruth'
@@ -4030,6 +4030,24 @@ async function manipularPost(req: NextRequest) {
           if (isDialogue) sc.dialogueLine = head
           else sc.voiceover = head
           sc.seconds = cap
+          // KINEO-CAUDA-NA-PROXIMA-2026-09-15 — ensaio do S25 (deploy b615127b): a cauda "odds of the storm." (4
+          // palavras) virou cena PAGA de 4 s com 2,3 s mudos e reprovou a régua de silêncio. Se a próxima cena
+          // não é diálogo e tem lugar (fala dela + cauda ≤ (teto − 0,3 s) × ritmo), a cauda entra no COMEÇO
+          // da fala dela (ordem da narração intacta, nenhuma palavra perdida, nenhum clipe a mais); os
+          // segundos dela crescem só se a fala pedir. Cena nova é o último recurso.
+          const prox = plan.scenes[i + 1]
+          if (prox && prox.type !== 'dialogue') {
+            const capProx = capOf(prox.type)
+            const fitsProx = Math.max(1, Math.floor((capProx - 0.3) * ritmoVoz))
+            const juntas = wordsArr(tail).length + wordsArr(prox.voiceover).length
+            if (juntas <= fitsProx) {
+              prox.voiceover = `${tail} ${prox.voiceover ?? ''}`.trim()
+              prox.needsNarration = true
+              prox.seconds = Math.max(prox.seconds ?? 0, Math.min(capProx, Math.ceil(juntas / ritmoVoz + FOLGA_MIN_S)))
+              console.warn(`[teto-rede] cena ${i + 1} (${sc.type}) dividida: ${fits} palavras ficam, ${wordsArr(tail).length} passam para o começo da cena ${i + 2} (${juntas} palavras em ${prox.seconds}s)`)
+              continue
+            }
+          }
           const tailSeconds = Math.max(4, Math.min(SCENE_CAP, Math.round(wordsArr(tail).length / ritmoVoz) + 1))
           plan.scenes.splice(i + 1, 0, {
             ...sc,
@@ -4044,6 +4062,23 @@ async function manipularPost(req: NextRequest) {
           })
           console.warn(`[teto-rede] cena ${i + 1} (${sc.type}) dividida: ${fits} palavras ficam, ${wordsArr(tail).length} viram apoio de ${tailSeconds}s`)
         }
+      }
+
+      // ═══ KINEO-DATA-INVENTADA-2026-09-15 (varredura final) — o planejador já limpa a fala, mas o enche-silêncio e o
+      // acréscimo de palavras REESCREVEM linhas depois (ensaio do S25 no deploy b615127b: "On June 15th, 2023" na cena 1
+      // depois do filtro do planejador). A última palavra é do código, depois de toda reescrita. ═══
+      {
+        const contextoDatas = `${prompt} ${hollywoodVoiceover ?? ''}`
+        const tiradas: string[] = []
+        for (const sc of plan.scenes) {
+          for (const campo of ['voiceover', 'dialogueLine'] as const) {
+            const v = sc[campo]
+            if (typeof v !== 'string' || !v.trim()) continue
+            const r = removerDatasInventadas(v, contextoDatas)
+            if (r.removidas.length) { sc[campo] = r.texto; tiradas.push(...r.removidas) }
+          }
+        }
+        if (tiradas.length) console.log(`[hollywood] KINEO-DATA-INVENTADA (final): ${tiradas.length} data(s)/hora(s) fora do pedido removida(s): ${tiradas.map((t) => JSON.stringify(t)).join(', ')}`)
       }
 
       // ═══ KINEO-OMNI-ALVO-CRAVADO-2026-08-25 (V6.1, fundador aprovou) ═══
