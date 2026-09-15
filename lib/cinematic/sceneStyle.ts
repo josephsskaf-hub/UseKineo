@@ -131,8 +131,43 @@ const CHARACTER_RES: RegExp[] = [
   new RegExp('\\b(?:a|an|the)\\s+((?:happy|little|tiny|brave|clever|lonely|curious|small|big|old|young|friendly|shy|colou?rful)\\s+(?:[a-z]+\\s+)?(?:' + ANIMAL_RE + '))\\b', 'i'),
 ]
 
+// ═══ KINEO-SEEDANCE-FICHA-2026-09-15 — a descrição que o AUTOR escreveu vence ═══
+// Seedance 1.5, filme 58bc7022 (fundador, 15/09, nota 9,5 "mas mudou a idade do
+// personagem"): o pedido dizia "Keep the same keeper throughout: a middle-aged man
+// with a short gray beard, a dark yellow raincoat and a black knit cap" e NENHUM
+// dos 7 prompts enviados carregou isso — os padrões abaixo só reconheciam
+// "Benny, the tiniest bunny" e afins; o faroleiro virou null e cada cena
+// reinventou o homem. Aqui a descrição explícita do autor ("Keep the same X
+// throughout: …", "The protagonist is …", ou "a middle-aged man with …") é
+// extraída PRIMEIRO e repetida em toda cena pelo buildStoryScenePrompt.
+const EXPLICIT_CHARACTER_RES: RegExp[] = [
+  // "Keep the same keeper throughout: a middle-aged man with …"
+  /\bkeep the same [a-z' -]{2,40}?(?:throughout|in every scene|across (?:all )?scenes|consistent)?\s*:\s*([^.]{12,220})/i,
+  // "The protagonist is a 30-year-old woman with …" · "Main character: …"
+  /\b(?:the )?(?:protagonist|main character|central character|hero|heroine|lead character|narrator character)\s+(?:is|:)\s*([^.]{12,220})/i,
+  // "Character: a tall old sailor …" · "Personagem: …" · "Personaje: …"
+  /\b(?:character|personagem principal|personagem|protagonista|personaje)\s*:\s*([^.]{12,220})/i,
+  // descrição direta com idade/aparência: "a middle-aged man with a short gray beard, a dark yellow raincoat and a black knit cap"
+  /\b((?:a|an)\s+(?:\d{1,2}[- ]year[- ]old|middle[- ]aged|young|old|elderly|teenage|tall|short|weathered|rugged)\s+(?:[a-z-]+\s+){0,2}?(?:man|woman|boy|girl|keeper|fisherman|fisherwoman|sailor|soldier|nurse|doctor|farmer|teacher|traveler|traveller|stranger|detective|scientist|pilot|captain|monk|priest|knight|witch|wizard|explorer|miner|climber|hunter|engineer)\b(?:\s+(?:with|in|wearing)\s+[^.]{6,160})?)/i,
+]
+const limpaDescricao = (s: string) => s.replace(/\s+/g, ' ').replace(/[\s,;:]+$/, '').replace(/\s+(?:and|e|y)$/i, '').trim()
+/** A descrição explícita que o autor deu ao personagem principal, ou null. Determinístico. */
+export function deriveExplicitCharacter(script: string): string | null {
+  const t = (script || '').replace(/\s+/g, ' ').slice(0, 4000)
+  for (const re of EXPLICIT_CHARACTER_RES) {
+    const m = t.match(re)
+    if (!m) continue
+    const d = limpaDescricao(m[1])
+    // precisa descrever gente/aparência, não uma frase qualquer do pedido
+    if (d.length >= 12 && /\b(?:man|woman|boy|girl|keeper|fisher|sailor|soldier|nurse|doctor|farmer|teacher|traveler|traveller|stranger|detective|scientist|pilot|captain|monk|priest|knight|witch|wizard|explorer|miner|climber|hunter|engineer|hair|beard|coat|jacket|cap|hat|scar|eyes|year)\b/i.test(d)) return d
+  }
+  return null
+}
+
 /** O personagem principal, como frase curta em inglês, ou null. Determinístico. */
 export function deriveStoryCharacter(script: string): string | null {
+  const explicito = deriveExplicitCharacter(script)
+  if (explicito) return explicito
   const t = (script || '').replace(/\s+/g, ' ').slice(0, 4000)
   const m0 = t.match(CHARACTER_RES[0])
   if (m0) return `${m0[1]}, the ${m0[2].trim()}`
