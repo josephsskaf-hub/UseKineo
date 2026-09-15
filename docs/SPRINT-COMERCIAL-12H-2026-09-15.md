@@ -1,5 +1,36 @@
 # Comercial — 15/09/2026 — 01:45–13:45 BRT
 
+## FECHAMENTO — janela encerrada, sem renovação
+
+EVIDÊNCIA DE EXECUÇÃO, 15/09 após 13:45 BRT: automação `kineo-motores-board-claude` removida pela ferramenta da aplicação, resposta `deleteStatus=deleted`. Somente esta rotina foi removida; trabalho local e rotinas do Claude preservados. Método: skill kineo-receita-comprovada.
+
+### Placar final, duas janelas completas de 12 horas
+
+EVIDÊNCIA DE PRODUÇÃO: SELECT somente leitura no projeto cqqukkvjjrguayiyjvhh em 15/09 após 16:45 UTC. Referência [14/09 16:45Z,15/09 04:45Z); sprint [15/09 04:45Z,15/09 16:45Z). Exclusões conforme lib/internalAccounts.ts. Consulta preservada em C:/kineo-wt/comercial-12h-20260915/docs/queries/COMERCIAL-12H-2026-09-15.sql.
+
+| Etapa independente | Referência | Sprint |
+| --- | ---: | ---: |
+| Cadastros externos | 5 | 12 |
+| Pessoas externas com vídeo completed criado na janela | 5 | 6 |
+| Pessoas externas com checkout_started | 0 | 0 |
+| Eventos payment_success/subscription_invoice_paid externos | 0 | 0 |
+
+Não são coortes sequenciais: os seis autores não são necessariamente parte dos doze cadastros. Não derivar taxa de conversão dessa divisão. Nenhum cadastro é atribuível à correção comercial ainda local.
+
+QUESTÃO PENDENTE / DESCONHECIDO: conciliação de caixa diretamente nos processadores, taxas, moeda e estornos. Conferência complementar de TODOS os eventos da mesma janela (inclusive internos e sem user_id) também não encontrou payment_success, subscription_invoice_paid, checkout_started, checkout_failed nem nomes contendo payment/refund/chargeback. Não há transação positiva nessa fonte para classificar primeira assinatura, renovação ou avulso; isso não prova saldo bancário zero. Receita incremental e novos assinantes atribuíveis à sprint NÃO COMPROVADOS.
+
+### Entregas e limite da execução
+
+- PUBLICADO NO GIT: abertura/coordenação 469680ce e checkpoint 51f95cf5. Apenas documentação; não ação comercial distribuída. Primeiro deploy documental conferido anteriormente; nenhum ganho atribuído a docs.
+- LOCAL / NÃO ENFILEIRADO: duas células da tabela Starter corrigidas para refletir acesso a H3/Kling 2.5, sem modificar acesso real. Código 2e5601ad, HEAD da worktree comercial 554d3766, com teste e preview. Gate visual do depois bloqueado pela política do navegador; não contornado. Testes da base anterior registrados abaixo, não reexecutados como se fossem do SHA rebaseado.
+- NÃO EXECUTADO: envio a compradores, publicação por parceiros, nova campanha e alteração de produto em produção. Faltou autorização específica de destinatário/canal/conteúdo para distribuição; pedido no Git sem ACK documentado. Zero render pago nesta sprint; H3 permanece disponível, correção técnica com Claude.
+- LACUNA OPERACIONAL: os registros sustentam uma rotação de implementação com checkpoint, mais reconciliação/fechamento; não sustentam doze rotações executadas. Não declarar doze horas contínuas de execução. O resultado ficou aquém do plano comercial, sem assinatura comprovada e sem melhoria comercial publicada.
+- DECISÃO DE ENCERRAMENTO: preservar o candidato e parar. Não retomar auditoria de motores, não mudar preço, não renovar por falta de venda.
+
+### Pendências executáveis para nova autorização
+
+SUGESTÃO: concluir revisão visual manual de `docs/previews/STARTER-ENGINE-ACCESS-2026-09-15.html` na worktree comercial; antes de liberar, reconciliar main e repetir gates no SHA final. Para distribuição, aprovar um lote concreto com destinatários/canal/conteúdo e supressões conferidas, não outra autorização genérica. Nova janela exige decisão do fundador. Registros no Git tornam a coordenação disponível, não comprovam leitura do Claude.
+
 ## Mandato e fonte
 
 - DECISÃO DO FUNDADOR nesta sessão: iniciar as 12 horas comerciais, sem interrupções intermediárias; correção dos motores continua com Claude. A retirada do H3 foi REVOGADA: permanece disponível.
