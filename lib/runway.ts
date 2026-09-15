@@ -762,6 +762,65 @@ export async function expandVoiceoversToTargets(items: VoiceoverTarget[], langua
   }
   return out
 }
+// ═══ KINEO-H3-PALAVRAS-2026-09-15 — continuação, não reescrita ═══════════
+// H3 Lituya 41d9bb10 (15/09 04:31Z): a reescrita "com EXATAMENTE N palavras"
+// rende ~85% do pedido (103 → 117 palavras em 7 cenas) e o filme morreu na
+// régua de silêncio por ~21 palavras. Acrescentar ao FIM é monotônico: a linha
+// já aceita fica intacta e o total só sobe. Só texto do planejador (modo IA).
+export interface AppendTarget { text: string; addWords: number; maxWords: number }
+/** Junta a continuação à linha: fecha a frase da base se preciso; nunca perde uma palavra da base. */
+export function juntarContinuacao(base: string, continuacao: string): string {
+  const b = (base ?? '').trim()
+  const c = (continuacao ?? '').trim().replace(/^["“]+|["”]+$/g, '').trim()
+  if (!c) return b
+  return `${b}${/[.!?…]$/.test(b) ? '' : '.'} ${c}`.replace(/\s{2,}/g, ' ').trim()
+}
+export async function appendNarrationToTargets(items: AppendTarget[], language: NarrationLanguage | undefined, topic: string, rounds = 2): Promise<string[]> {
+  const wordsOf = (t: string) => (t ?? '').trim().split(/\s+/).filter(Boolean).length
+  if (items.length === 0) return []
+  const langName = LANGUAGE_NAMES[language ?? 'en']
+  const out = items.map((it) => it.text)
+  let pendentes = items.map((_, i) => i).filter((i) => items[i].addWords >= 3)
+  for (let round = 0; round < rounds && pendentes.length > 0; round++) {
+    const lote = pendentes.map((i) => ({ add_words: Math.max(3, items[i].addWords - (wordsOf(out[i]) - wordsOf(items[i].text))), line: out[i] }))
+    let arr: unknown = null
+    try {
+      arr = await pedirContinuacao(lote, langName, topic)
+    } catch {
+      break
+    }
+    if (!Array.isArray(arr) || arr.length !== lote.length) continue
+    const proximos: number[] = []
+    pendentes.forEach((i, k) => {
+      const v = typeof arr[k] === 'string' ? (arr[k] as string).trim() : ''
+      if (v && !FILLER_LINE_RE.test(v)) {
+        const candidata = juntarContinuacao(out[i], v)
+        if (wordsOf(candidata) > wordsOf(out[i]) && wordsOf(candidata) <= items[i].maxWords && candidata.startsWith(out[i].trim().replace(/[.!?…]$/, ''))) out[i] = candidata
+      }
+      if (wordsOf(out[i]) - wordsOf(items[i].text) < items[i].addWords - 2) proximos.push(i)
+    })
+    pendentes = proximos
+  }
+  return out
+}
+async function pedirContinuacao(items: { add_words: number; line: string }[], langName: string, topic: string): Promise<unknown> {
+  const completion = await openai.chat.completions.create(
+    {
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: `You continue narration lines for a short documentary video about: ${topic.slice(0, 300)}. For each input, write ONLY the continuation: one or two new sentences of about the requested number of words (add_words), in ${langName}, adding specific, true detail (facts, numbers, places, consequences) that follows naturally after the given line. Do not repeat or rephrase the given line. No filler like "imagine", "what if" or "most people don't know"; no questions; no quotes; no first person. Return ONLY a JSON array of strings, same order and same length as the input.` },
+        { role: 'user', content: JSON.stringify(items) },
+      ],
+      temperature: 0.4,
+      max_tokens: 1600,
+    },
+    { timeout: 25000 },
+  )
+  const raw = completion.choices[0]?.message?.content?.trim() ?? ''
+  const m = raw.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').match(/\[[\s\S]*\]/)
+  if (!m) return null
+  return JSON.parse(m[0]) as unknown
+}
 async function pedirReescrita(items: { words: number; line: string }[], langName: string, topic: string): Promise<unknown> {
   const completion = await openai.chat.completions.create(
     {

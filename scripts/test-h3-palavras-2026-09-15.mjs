@@ -1,0 +1,149 @@
+// KINEO-H3-PALAVRAS-2026-09-15 — reprodução do H3 Lituya 41d9bb10 (15/09 04:31Z):
+// o planejador escreveu 103 palavras para 68 s; a reescrita rendeu 117; a régua de
+// silêncio (≤1,5 s/cena, ≤8 s total) barrou por ~21 palavras (9,1 s), 45 cr estornados,
+// nenhum clipe enviado. Este guardião executa a FATIA REAL da rota (enche-silêncio →
+// apara → continuação → teto-rede → piso → régua) com o fornecedor de texto mockado
+// e prova: (a) sem a continuação o plano de ontem é barrado (reprodução); (b) com a
+// continuação passa SEM tocar na régua, sem perder palavra e sem baixar segundos;
+// (c) verbatim não passa por ali; (d) continuação inútil → o 422 continua barrando.
+import { readFileSync } from 'node:fs'
+import { join, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import vm from 'node:vm'
+import ts from 'typescript'
+
+const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
+const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
+let ok = 0
+const falhas = []
+const checa = (n, c) => { if (c) ok++; else falhas.push(n) }
+const roda = (src, globals = {}) => { const js = ts.transpileModule(src, { compilerOptions: { module: 1, target: 9 } }).outputText; const exp = {}; vm.runInNewContext(js, { exports: exp, console, ...globals }); return exp }
+const TL = roda(rd('lib/cinematic/timelineContract.ts'))
+const FID = roda(rd('lib/hollywood/fidelidade.ts'))
+const rota = rd('app/api/generate-video-cinematic/route.ts')
+const runway = rd('lib/runway.ts')
+const wordsOf = (t) => (t ?? '').trim().split(/\s+/).filter(Boolean).length
+
+console.log('== régua intocada ==')
+const tl = rd('lib/cinematic/timelineContract.ts')
+checa('SILENCE_SCENE_MAX_SECONDS = 1.5 e SILENCE_TOTAL_MAX_SECONDS = 8 continuam', tl.includes('export const SILENCE_SCENE_MAX_SECONDS = 1.5') && tl.includes('export const SILENCE_TOTAL_MAX_SECONDS = 8'))
+checa('a rota ainda barra com 422 plan_silence_inside_scenes quando a régua reprova (estorno + evento)', rota.includes("releaseBirthClaim('plan_silence_inside_scenes')") && rota.includes("reason: 'plan_silence_inside_scenes'") && rota.includes("name: 'plan_silence_rejected'"))
+
+console.log('== a fatia real da rota ==')
+const ini = rota.indexOf("      let duracaoReconciliada: { reconciliado: boolean; aparado_s: number; excedente_s: number; base: 'estimate' } | null = null")
+const fimTxt = "            sceneMax: SILENCE_SCENE_MAX_SECONDS, totalMax: SILENCE_TOTAL_MAX_SECONDS,\n          }, { status: 422 })\n        }\n      }"
+const fim = rota.indexOf(fimTxt, ini)
+checa('fatia enche-silêncio → régua existe na rota', ini > 0 && fim > ini)
+const fatia = rota.slice(ini, fim + fimTxt.length)
+checa('a régua é avaliada sobre o plano PROJETADO pelo piso (fitCinematicPlanFloor) antes de decidir', fatia.includes('const projetar = () => planSilenceReport(fitCinematicPlanFloor(plan.scenes, duration, SCENE_CAP), 2.3)'))
+checa('a continuação roda DENTRO do try do enche-silêncio (modo IA), depois da apara e antes do teto-rede', fatia.includes('KINEO-H3-PALAVRAS-2026-09-15') && fatia.indexOf('const apara = apararComFolga(') < fatia.indexOf('KINEO-H3-PALAVRAS-2026-09-15') && fatia.indexOf('KINEO-H3-PALAVRAS-2026-09-15') < fatia.indexOf("console.warn('[hollywood] enche-silencio pulado:'"))
+checa('só cenas sem diálogo com folga > 0,9 s pedem continuação; segundos nunca descem nesse passo', fatia.includes(".filter((x) => x.sc.type !== 'dialogue' && x.silencio > 0.9)") && fatia.includes('if (w / 2.3 > (pd.x.sc.seconds || 0)) pd.x.sc.seconds = Math.min(pd.x.teto, Math.ceil(w / 2.3))'))
+checa('a linha aceita fica intacta: só entra continuação que começa pela linha original', fatia.includes("!nova.startsWith(base.trim().replace(/[.!?…]$/, ''))) return"))
+checa('rota importa appendNarrationToTargets de @/lib/runway', rota.includes("expandVoiceoversToTargets, appendNarrationToTargets, FILLER_LINE_RE } from '@/lib/runway'"))
+
+const params = ['plan', 'verbatim', 'duration', 'DIALOGUE_CAP', 'SCENE_CAP', 'FILLER_LINE_RE', 'expandVoiceoversToTargets', 'appendNarrationToTargets', 'hollywoodLanguage', 'prompt', 'apararComFolga', 'planSilenceReport', 'writeServerEvent', 'user', 'generationId', 'family', 'verbatimOverflowWords', 'MAX_VERBATIM_SCENES', 'hollywoodVoiceover', 'releaseBirthClaim', 'cinematicAdmin', 'body', 'NextResponse', 'hollywoodTarget', 'requestedDuration', 'degrau', 'formatoVisual', 'resolveCharacterVoice', 'cinematicSceneModel', 'buildFalInput', 'confirmCinematicRefund', 'SILENCE_SCENE_MAX_SECONDS', 'SILENCE_TOTAL_MAX_SECONDS', 'fitCinematicPlanFloor', 'console']
+const executar = roda(`export async function rodar(ctx: any) {\n  const { ${params.join(', ')} } = ctx\n${fatia}\n  return { plan, duracaoReconciliada, rejeitado: null }\n}`).rodar
+const NextResponse = { json: (b, init) => ({ rejeitado: b, status: init?.status ?? 200 }) }
+const ctxBase = (plan, extra = {}) => ({
+  plan, verbatim: false, duration: 60, DIALOGUE_CAP: 15, SCENE_CAP: 12, FILLER_LINE_RE: /^(here is something most people do not know about|imagine|what if|most people don'?t know)/i,
+  hollywoodLanguage: 'en', prompt: 'Create a 60-second historical documentary short in English about the 1958 Lituya Bay megatsunami',
+  apararComFolga: FID.apararComFolga, planSilenceReport: TL.planSilenceReport, writeServerEvent: async (e) => { (ctxBase.eventos ??= []).push(e); return true },
+  user: { id: 'u1', email: 'cliente@example.com' }, generationId: 'g1', family: 'h3', verbatimOverflowWords: 0, MAX_VERBATIM_SCENES: 12, hollywoodVoiceover: '',
+  releaseBirthClaim: async () => true, cinematicAdmin: { from: () => ({ insert: async () => ({}) }) }, body: {}, NextResponse, hollywoodTarget: 68, requestedDuration: 60, degrau: null,
+  formatoVisual: { modo: 'documentary_faceless' }, resolveCharacterVoice: () => null, cinematicSceneModel: () => 'x', buildFalInput: () => ({}), confirmCinematicRefund: async () => true,
+  SILENCE_SCENE_MAX_SECONDS: 1.5, SILENCE_TOTAL_MAX_SECONDS: 8, fitCinematicPlanFloor: TL.fitCinematicPlanFloor, console: { log: () => {}, warn: () => {} },
+  ...extra,
+})
+// o planejador de ontem: 7 cenas de apoio, 103 palavras, 55 s
+const frase = (n, tema) => Array.from({ length: n }, (_, i) => `${tema}${i + 1}`).join(' ')
+const planoOntem = () => {
+  const words = [14, 15, 15, 14, 15, 15, 15]
+  const secs = [8, 8, 8, 8, 8, 8, 7]
+  return { characterSheet: '', environmentSheet: 'Lituya Bay', styleSheet: 'documentary', scenes: words.map((w, i) => ({ index: i + 1, type: 'support', seconds: secs[i], prompt: `scene ${i + 1}`, voiceover: frase(w, `w${i + 1}_`) + '.', caption: '' })) }
+}
+// a reescrita real rendeu ~85% do pedido: aqui cada linha ganha só 2 palavras (103 → 117), como no log da Vercel
+const expandComoOntem = async (items) => items.map((it) => it.text.replace(/\.$/, '') + ' extra1 extra2.')
+// continuação mockada: acrescenta exatamente add_words palavras factuais ao fim, sem mexer na base
+const appendFiel = async (items) => items.map((it) => `${it.text.replace(/[.!?…]$/, '')}. ${Array.from({ length: it.addWords }, (_, i) => `fato${i + 1}`).join(' ')}.`)
+const appendNulo = async (items) => items.map((it) => it.text)
+const appendProibido = async () => { throw new Error('continuação chamada em verbatim') }
+
+console.log('== (a) reprodução: sem continuação, o plano de ontem é barrado na régua ==')
+{
+  const plan = planoOntem()
+  const r = await executar(ctxBase(plan, { expandVoiceoversToTargets: expandComoOntem, appendNarrationToTargets: appendNulo }))
+  const sil = TL.planSilenceReport(plan.scenes, 2.3)
+  checa(`reprodução: 117 palavras → 422 plan_silence_inside_scenes (silêncio ${sil.total}s > 8, estorno confirmado)`, r.status === 422 && r.rejeitado?.reason === 'plan_silence_inside_scenes' && sil.total > 8 && r.rejeitado?.refunded === true)
+  checa('reprodução: nenhum clipe seria enviado (a rota devolve antes do POST) e a resposta traz palavras que faltam', typeof r.rejeitado?.wordsToAdd === 'number' && r.rejeitado.wordsToAdd >= 15)
+}
+
+console.log('== (b) com a continuação factual o mesmo plano PASSA — régua intacta ==')
+{
+  const plan = planoOntem()
+  const originais = plan.scenes.map((sc) => sc.voiceover)
+  const eventos = []
+  const r = await executar(ctxBase(plan, { expandVoiceoversToTargets: expandComoOntem, appendNarrationToTargets: appendFiel, writeServerEvent: async (e) => { eventos.push(e); return true } }))
+  const sil = TL.planSilenceReport(plan.scenes, 2.3)
+  const total = plan.scenes.reduce((a, sc) => a + sc.seconds, 0)
+  checa(`passa: sem 422, silêncio ${sil.total}s ≤ 8 e pior cena ${sil.worst}s ≤ 1,5`, r.status !== 422 && r.rejeitado === null && sil.ok)
+  checa(`duração planejada ${total}s ≥ 60 pedidos (o piso continua respeitado)`, total >= 60)
+  checa('nenhuma palavra da linha aceita se perdeu: toda fala final começa pela fala anterior (só acrescenta)', plan.scenes.every((sc, i) => sc.voiceover.startsWith(originais[i].replace(/\.$/, '').replace(/[.!?…]$/, '') + ' extra1 extra2') || sc.voiceover.startsWith(originais[i].replace(/[.!?…]$/, ''))))
+  checa('palavras subiram (117 → ≥ 120, o mínimo aritmético para 60 s com ≤ 8 s de silêncio)', plan.scenes.reduce((a, sc) => a + wordsOf(sc.voiceover), 0) >= 120)
+  checa('evento plan_silence_filled gravado com antes/depois e ok=true', eventos.some((e) => e.name === 'plan_silence_filled' && e.metadata.ok === true && e.metadata.before_total > 8 && e.metadata.after_total <= 8 && e.metadata.words_added >= 3))
+  checa('nenhuma cena passou do teto da família (12 s) nem ficou com fala maior que o clipe + 1 s', plan.scenes.every((sc) => sc.seconds <= 12 && wordsOf(sc.voiceover) / 2.3 <= sc.seconds + 1))
+}
+
+console.log('== (c) verbatim: a continuação nunca é chamada ==')
+{
+  const plan = planoOntem()
+  const r = await executar(ctxBase(plan, { verbatim: true, expandVoiceoversToTargets: appendProibido, appendNarrationToTargets: appendProibido }))
+  checa('verbatim com o mesmo plano: nem reescrita nem continuação são chamadas (mock lançaria); o plano do autor é barrado honestamente (piso ou régua), sem mexer no roteiro', r.status === 422 && ['plan_silence_inside_scenes', 'plan_duration_below_request'].includes(r.rejeitado?.reason) && plan.scenes.every((sc, i) => sc.voiceover === planoOntem().scenes[i].voiceover))
+}
+
+console.log('== (d) continuação inútil ou quebrada: a proteção continua ==')
+{
+  const plan = planoOntem()
+  const r = await executar(ctxBase(plan, { expandVoiceoversToTargets: expandComoOntem, appendNarrationToTargets: async () => [] }))
+  checa('continuação devolve [] → sem crash, 422 plan_silence_inside_scenes continua (nada é enviado)', r.status === 422 && r.rejeitado?.reason === 'plan_silence_inside_scenes')
+  const plan2 = planoOntem()
+  const r2 = await executar(ctxBase(plan2, { expandVoiceoversToTargets: expandComoOntem, appendNarrationToTargets: async (items) => items.map(() => 'texto que nao comeca pela base') }))
+  checa('continuação que REESCREVE (não começa pela base) é recusada: nenhuma linha recebe o texto estranho, cada uma ainda começa pela sua fala, e o 422 barra', r2.status === 422 && r2.rejeitado?.reason === 'plan_silence_inside_scenes' && plan2.scenes.every((sc, i) => sc.voiceover.startsWith(`w${i + 1}_1 `) && !sc.voiceover.includes('texto que nao')))
+  const plan3 = planoOntem()
+  const r3 = await executar(ctxBase(plan3, { expandVoiceoversToTargets: expandComoOntem, appendNarrationToTargets: async () => { throw new Error('openai down') } }))
+  checa('continuação lança (fornecedor fora) → o try do enche-silêncio engole, e a régua barra com 422 (proteção intacta)', r3.status === 422 && r3.rejeitado?.reason === 'plan_silence_inside_scenes')
+}
+
+console.log('== (e) o PISO é quem cria o silêncio: cenas já dimensionadas pela fala, total abaixo do pedido ==')
+{
+  // 7 cenas × 17 palavras × 8 s (fala cabe: 0,6 s de folga cada; NÃO são "curtas") = 56 s < 60.
+  // O piso (fitCinematicPlanFloor) estica 4 cenas para 9 s → 1,6 s de folga cada → a régua reprova.
+  const plan = planoOntem()
+  plan.scenes.forEach((sc, i) => { sc.voiceover = frase(17, `c${i + 1}_`) + '.'; sc.seconds = 8 })
+  const pedidos = []
+  const semNada = planoOntem(); semNada.scenes.forEach((sc, i) => { sc.voiceover = frase(17, `c${i + 1}_`) + '.'; sc.seconds = 8 })
+  const r0 = await executar(ctxBase(semNada, { expandVoiceoversToTargets: async (items) => items.map((it) => it.text), appendNarrationToTargets: appendNulo }))
+  checa('sem continuação: o piso estica 4 cenas a 9 s, pior cena 1,6 s → 422 (é o mecanismo de ontem)', r0.status === 422 && r0.rejeitado?.reason === 'plan_silence_inside_scenes' && r0.rejeitado?.worstSceneSilence >= 1.6)
+  const r = await executar(ctxBase(plan, { expandVoiceoversToTargets: async (items) => items.map((it) => it.text), appendNarrationToTargets: async (items) => { pedidos.push(...items); return appendFiel(items) } }))
+  const sil = TL.planSilenceReport(plan.scenes, 2.3)
+  const total = plan.scenes.reduce((a, sc) => a + sc.seconds, 0)
+  checa(`com continuação: só as cenas que o piso esticaria pedem fala (${pedidos.length} de 7), o plano passa (${sil.total}s, pior ${sil.worst}s) com ${total}s ≥ 60`, r.status !== 422 && pedidos.length >= 1 && pedidos.length <= 6 && sil.ok && total >= 60)
+  checa('as cenas que não pediram continuação ficaram exatamente como estavam (17 palavras, 8 s)', plan.scenes.filter((sc) => !pedidos.some((pd) => sc.voiceover.startsWith(pd.text.replace(/[.!?…]$/, '')))).every((sc) => wordsOf(sc.voiceover) === 17 && sc.seconds === 8))
+}
+console.log('== helper: juntarContinuacao nunca perde a base ==')
+{
+  const RW = { juntarContinuacao: null }
+  const m = runway.match(/export function juntarContinuacao[\s\S]*?\n\}/)
+  checa('juntarContinuacao existe em lib/runway.ts', Boolean(m))
+  if (m) {
+    const J = roda(m[0]).juntarContinuacao
+    checa('fecha a frase da base e junta: "The wave hit the bay" + "It rose 524 meters." → "The wave hit the bay. It rose 524 meters."', J('The wave hit the bay', 'It rose 524 meters.') === 'The wave hit the bay. It rose 524 meters.')
+    checa('base com ponto final não ganha ponto duplo; aspas da continuação caem', J('The wave hit the bay.', '"It rose 524 meters."') === 'The wave hit the bay. It rose 524 meters.')
+    checa('continuação vazia → base intacta', J('The wave hit the bay.', '   ') === 'The wave hit the bay.')
+  }
+  checa('appendNarrationToTargets só aceita candidata que começa pela linha aceita e respeita maxWords', runway.includes("if (wordsOf(candidata) > wordsOf(out[i]) && wordsOf(candidata) <= items[i].maxWords && candidata.startsWith(out[i].trim().replace(/[.!?…]$/, ''))) out[i] = candidata"))
+  checa('o pedido ao modelo é de CONTINUAÇÃO (não repetir nem reescrever a linha), sem filler, sem 1ª pessoa', runway.includes('write ONLY the continuation') && runway.includes('Do not repeat or rephrase the given line') && runway.includes('no first person'))
+}
+
+console.log(`\n${ok} ok · ${falhas.length} falhas`)
+for (const f of falhas) console.log('  ✗', f)
+process.exit(falhas.length ? 1 : 0)

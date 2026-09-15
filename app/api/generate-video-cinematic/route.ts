@@ -54,7 +54,7 @@ import { garantirAcaoCentral, silenciarFalaNoPrompt, apararComFolga } from '@/li
 import { aspectSpec, normalizeAspect } from '@/lib/aspect'
 import { montarContrato, aplicarContrato, severidadeDe } from '@/lib/cinematic/sceneTruth'
 import { fal } from '@fal-ai/client'
-import { generateScenes, shortCaptionFromVoiceover, expandVoiceoversToTargets, FILLER_LINE_RE } from '@/lib/runway'
+import { generateScenes, shortCaptionFromVoiceover, expandVoiceoversToTargets, appendNarrationToTargets, FILLER_LINE_RE } from '@/lib/runway'
 import { looksLikeInstruction } from '@/lib/momentumTopic'
 // KINEO-CAPACITY-2026-08-08 — teto GLOBAL diário de renders de IA (disjuntor).
 import { checkAiRenderDailyCap, AI_RENDER_CAP_MESSAGE } from '@/lib/aiRenderCircuitBreaker'
@@ -3819,6 +3819,69 @@ async function manipularPost(req: NextRequest) {
             if (!apara.reconciliado) console.warn(`[hollywood] KINEO-FIDELIDADE: sem folga segura para reconciliar — excedente de ${apara.excedente}s registrado, nenhuma palavra cortada`)
             const depois = plan.scenes.reduce((a, sc) => a + wordsOfLine(lineOf(sc)), 0)
             console.log(`[hollywood] KINEO-ENCHE-SILENCIO: ${curtas.length} cena(s) reescritas, ${antes} → ${depois} palavras`)
+          }
+          // ═══ KINEO-H3-PALAVRAS-2026-09-15 — a fala manda, a régua fica ═══════
+          // H3 Lituya 41d9bb10 (15/09 04:31Z, fundador): o planejador escreveu 103
+          // palavras para 68 s, a reescrita "com N palavras" rendeu 117 (o modelo
+          // entrega ~85% do pedido); o PISO (fitCinematicPlanFloor, abaixo) esticou
+          // as cenas até 60 s e a régua de silêncio barrou (9,1 s) por falta de ~21
+          // palavras — depois de 4 replans e sem nenhum caminho para ACRESCENTAR
+          // fala. Aqui a régua é avaliada sobre o plano JÁ PROJETADO pelo piso; se
+          // reprova, cada cena com folga recebe uma continuação factual ao FIM
+          // (append, nunca reescrita: o que já foi aceito fica), os segundos só
+          // sobem se a fala nova não couber, e o que falta para o pedido é
+          // distribuído só onde cabe sem passar de 1,4 s de folga. A régua não
+          // muda (1,5 s / 8 s); verbatim nunca passa por aqui (C1); se ainda
+          // reprovar, o 422 abaixo segue barrando e estornando.
+          {
+            const projetar = () => planSilenceReport(fitCinematicPlanFloor(plan.scenes, duration, SCENE_CAP), 2.3)
+            const antesRegua = projetar()
+            if (!antesRegua.ok) {
+              const totalProjetado = Math.max(duration, plan.scenes.reduce((a, sc) => a + (sc.seconds || 0), 0))
+              const palavrasAtuais = plan.scenes.reduce((a, sc) => a + wordsOfLine(lineOf(sc)), 0)
+              let restante = Math.max(0, Math.ceil((totalProjetado - 6) * 2.3) - palavrasAtuais)
+              const pedidos = plan.scenes
+                .map((sc, i) => ({ sc, silencio: antesRegua.perScene[i] ?? 0, teto: sc.type === 'dialogue' ? DIALOGUE_CAP : sc.type === 'cinematic' ? 8 : SCENE_CAP }))
+                .filter((x) => x.sc.type !== 'dialogue' && x.silencio > 0.9)
+                .sort((a, b) => b.silencio - a.silencio)
+                .map((x) => {
+                  const maxWords = Math.floor((x.teto + 1) * 2.3)
+                  const atual = wordsOfLine(lineOf(x.sc))
+                  const porCena = Math.ceil((x.silencio - 0.5) * 2.3)
+                  const add = Math.max(0, Math.min(porCena + (restante > porCena ? 2 : 0), maxWords - atual))
+                  restante -= add
+                  return { x, addWords: add, maxWords }
+                })
+                .filter((pd) => pd.addWords >= 3)
+              if (pedidos.length > 0) {
+                const continuacoes = await appendNarrationToTargets(pedidos.map((pd) => ({ text: lineOf(pd.x.sc), addWords: pd.addWords, maxWords: pd.maxWords })), hollywoodLanguage, prompt.slice(0, 300))
+                let acrescentadas = 0
+                pedidos.forEach((pd, k) => {
+                  const nova = continuacoes[k]
+                  const base = lineOf(pd.x.sc)
+                  if (!nova || nova === base || !nova.startsWith(base.trim().replace(/[.!?…]$/, ''))) return
+                  const w = wordsOfLine(nova)
+                  acrescentadas += w - wordsOfLine(base)
+                  pd.x.sc.voiceover = nova
+                  // os segundos só SOBEM se a fala nova não couber; nunca descem aqui
+                  if (w / 2.3 > (pd.x.sc.seconds || 0)) pd.x.sc.seconds = Math.min(pd.x.teto, Math.ceil(w / 2.3))
+                })
+                // o que falta para o pedido vai só onde cabe com ≤ 1,4 s de folga; o resto fica com o piso
+                let guardaPiso = 60
+                while (plan.scenes.reduce((a, sc) => a + (sc.seconds || 0), 0) < duration && guardaPiso-- > 0) {
+                  const cabe = plan.scenes
+                    .filter((sc) => sc.type !== 'dialogue' && wordsOfLine(lineOf(sc)) > 0)
+                    .map((sc) => ({ sc, teto: sc.type === 'cinematic' ? 8 : SCENE_CAP, folga: (sc.seconds || 0) + 1 - wordsOfLine(lineOf(sc)) / 2.3 }))
+                    .filter((x) => (x.sc.seconds || 0) + 1 <= x.teto && x.folga <= 1.4)
+                    .sort((a, b) => a.folga - b.folga)[0]
+                  if (!cabe) break
+                  cabe.sc.seconds = (cabe.sc.seconds || 0) + 1
+                }
+                const depoisRegua = projetar()
+                console.log(`[hollywood] KINEO-H3-PALAVRAS: régua reprovava no plano projetado (${antesRegua.total}s, pior ${antesRegua.worst}s) → +${acrescentadas} palavras em ${pedidos.length} cena(s) → ${depoisRegua.total}s (pior ${depoisRegua.worst}s) ${depoisRegua.ok ? 'PASSA' : 'ainda reprova'}`)
+                await writeServerEvent({ name: 'plan_silence_filled', userId: user.id, path: '/api/generate-video-cinematic', metadata: { generation_id: generationId, family, before_total: antesRegua.total, before_worst: antesRegua.worst, after_total: depoisRegua.total, after_worst: depoisRegua.worst, words_added: acrescentadas, scenes: pedidos.length, ok: depoisRegua.ok } })
+              }
+            }
           }
         } catch (e) {
           console.warn('[hollywood] enche-silencio pulado:', e instanceof Error ? e.message : String(e))
