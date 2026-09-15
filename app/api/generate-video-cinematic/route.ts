@@ -4005,7 +4005,10 @@ async function manipularPost(req: NextRequest) {
           // (8) não excediam o cap — e o compose recusaria (scene_speech_exceeds_footage) depois
           // de pagar. A rede passa a dividir também quando a FALA não cabe no cap, no ritmo da
           // voz (ritmoVoz): a cabeça fica, a cauda vira apoio novo. Nenhuma palavra cortada.
-          const fits = Math.max(1, Math.floor((cap - 1) * ritmoVoz))
+          // (R2, ensaio do S25 no deploy 35dd34f6: com fits = (cap−1)×ritmo, frases de 17 palavras que
+          // CABEM em 8 s eram divididas e sobravam caudas de 1 palavra em cenas de 4 s — silêncio de
+          // 3,5 s. Agora cabe = (cap − 0,3 s) × ritmo, e a cauda tem pelo menos 4 palavras.)
+          const fits = Math.max(1, Math.floor((cap - 0.3) * ritmoVoz))
           if ((sc.seconds ?? 0) <= cap && speech.length <= fits) continue
           if (speech.length <= fits) {
             console.warn(`[teto-rede] cena ${i + 1} (${sc.type}) ${sc.seconds}s > teto ${cap}s da família ${family} — encolhida (fala cabe)`)
@@ -4014,8 +4017,9 @@ async function manipularPost(req: NextRequest) {
           }
           // Fala não cabe no teto: divide — a cena fica com o que cabe, o
           // excedente vira apoio novo LOGO DEPOIS (ordem da narração intacta).
-          const head = speech.slice(0, fits).join(' ')
-          const tail = speech.slice(fits).join(' ')
+          const corte = Math.max(1, Math.min(fits, speech.length - 4)) // a cauda tem pelo menos 4 palavras
+          const head = speech.slice(0, corte).join(' ')
+          const tail = speech.slice(corte).join(' ')
           if (isDialogue) sc.dialogueLine = head
           else sc.voiceover = head
           sc.seconds = cap
