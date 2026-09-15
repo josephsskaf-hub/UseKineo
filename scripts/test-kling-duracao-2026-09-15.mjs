@@ -77,6 +77,22 @@ console.log('== (b) candidato: o corretivo dispara e o áudio volta para o pedid
   checa(`áudio corrigido: ${r.realAudioDuration}s (≤ 63 = 60 + tolerância)`, r.realAudioDuration >= 57 && r.realAudioDuration <= 63 && String(r.audioBuffer).startsWith('retry@'))
 }
 
+console.log('== (b2) Board: palavras, ordem, legendas e sincronia preservadas; sem acelerar demais ==')
+{
+  const recebidos = []
+  const { ctx } = mundo({ generateTTS: async (s, speed) => { recebidos.push({ s, speed }); return Buffer.from('retry@' + speed) } })
+  await rodar(ctx)
+  checa('a re-síntese recebe EXATAMENTE o mesmo roteiro (193 palavras, mesma ordem): nenhuma palavra cortada', recebidos.length === 1 && recebidos[0].s === script193)
+  const lib = rd('lib/compose.ts')
+  const efetiva = Math.max(0.7, Math.min(1.3, 0.92 * recebidos[0].speed))
+  checa(`velocidade efetiva limitada pela banda natural do generateTTS (0,7–1,3): 0,92 × ${recebidos[0].speed.toFixed(3)} → ${efetiva.toFixed(3)} ≤ 1,3`, lib.includes('const safeSpeed = Math.max(0.7, Math.min(1.3, Number.isFinite(baseSpeed) ? baseSpeed : 1.0))') && efetiva <= 1.3)
+  checa('o corretivo NÃO existe fora dessa banda: nunca pede 1,5× ou mais ao TTS', /Math\.max\(0\.7, Math\.min\(1\.3/.test(lib))
+  const iFim = rota.indexOf(FIM)
+  const depois = rota.slice(iFim)
+  checa('legendas e sincronia: o Whisper transcreve o MESMO buffer corrigido (transcribeTTSWithTimestamps(audioBuffer)) depois do corretivo, e o upload usa o mesmo buffer', depois.includes('transcribeTTSWithTimestamps(audioBuffer)') && depois.includes('uploadVoiceoverToSupabase(user.id, audioBuffer as Buffer)'))
+  checa('a duração real usada pelo compose passa a ser a corrigida (realAudioDuration = retryDuration), não a prevista', fatia.includes('realAudioDuration = retryDuration'))
+}
+
 console.log('== (c) deriva pequena com previsão certa: sem re-síntese (a economia do cache continua) ==')
 {
   const { ctx, chamadas } = mundo({ realAudioDuration: 64.5 })
