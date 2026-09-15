@@ -64,6 +64,7 @@ import { parseUserScript } from '@/lib/scriptParser'
 // medição que originou a regra.
 import { narrationTooShortMessage, MIN_COVERAGE } from '@/lib/narrationFit'
 import { speechRateFor, narrationFitAt, autofitDownAt } from '@/lib/speechRate'
+import { selectPersonaForScript } from '@/lib/narration/niche-mapping' // KINEO-RITMO-POR-VOZ-2026-09-15
 // KINEO-DEGRAU-2026-09-03 — o gate vira degrau: fala que não enche o botão
 // desce o alvo ANTES do custo em vez de recusar. Ver o rodapé do módulo.
 import { AUTOFIT_DOWN_FLOOR_SECONDS, AUTOFIT_DOWN_FLOOR_SECONDS_HOLLYWOOD } from '@/lib/narrationFit'
@@ -1440,7 +1441,15 @@ async function manipularPost(req: NextRequest) {
     const parsedScript = parseUserScript(prompt)
     // KINEO-REGUA-UNICA-2026-09-14 — portão, degrau e dry-run medem com a régua da
     // família (clássicos 3,1 / hollywood 2,3, × velocidade). Estimativa, não áudio.
-    const narrationRate = speechRateFor({ family: hollywoodPath ? 'hollywood' : 'classic', speed: parsedScript.speed, language: narrationLanguage.language })
+    // KINEO-RITMO-POR-VOZ-2026-09-15 — no clássico a régua anda no passo da persona que o
+    // compose vai escolher (mesma resolução: selectPersonaForScript por nicho/vertical/idioma,
+    // tier cinematic). Seedance d6e8e8b3: 198 palavras "para 60 s" a 3,1 viraram 86 s com a
+    // dark-mystery (onyx 0,92 ≈ 2,3 pal/s). Fail-open: sem persona, a régua da família.
+    const classicPersona = hollywoodPath ? null : (() => {
+      try { return selectPersonaForScript(prompt, typeof body.vertical === 'string' && body.vertical.trim() ? body.vertical.trim().toLowerCase() : undefined, 'cinematic', narrationLanguage.language) } catch { return null }
+    })()
+    const narrationRate = speechRateFor({ family: hollywoodPath ? 'hollywood' : 'classic', speed: parsedScript.speed, language: narrationLanguage.language, voice: classicPersona?.voice, personaSpeed: classicPersona?.defaultSpeed })
+    if (classicPersona && narrationRate.wordsPerSecond !== 3.1) console.log(`[cinematic] KINEO-RITMO-POR-VOZ: persona ${classicPersona.id} (${classicPersona.voice} ${classicPersona.defaultSpeed}) → régua ${narrationRate.wordsPerSecond} pal/s (${Math.round(duration * narrationRate.wordsPerSecond)} palavras para ${duration}s)`)
     // ═══ KINEO-VERBATIM-SEM-MARCADOR-2026-08-24 ═════════════════════════════
     // O Contrato C1 dizia "com script verbatim, o texto falado é o roteiro do
     // usuário" — mas a porta de entrada do contrato era `hasMarkers`: só
@@ -2897,7 +2906,7 @@ async function manipularPost(req: NextRequest) {
     // Kineo 1 às 19:30 de 11/09. O compose reescrevia o corpo sob clipes PAGOS
     // da fal escolhidos para outro texto. Mesma régua (targetWordCount, 3,1
     // pal/s) e a língua do texto; só no caminho clássico (o hollywood tem o seu).
-    const classicWriterOptions = { wordsPerScene: wordsPerSceneFor(duration, clipCount), language: narrationLanguage.language }
+    const classicWriterOptions = { wordsPerScene: wordsPerSceneFor(duration, clipCount, narrationRate.wordsPerSecond), language: narrationLanguage.language } // KINEO-RITMO-POR-VOZ-2026-09-15: a mesma régua do portão e do dry-run
     // Build scenes
     // #441 — aiPrompt = the cinematic SHOT description fed to Seedance (prefer
     // it over the raw stock query). Set from generateScenes prose (non-verbatim)

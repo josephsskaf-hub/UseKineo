@@ -8,9 +8,13 @@
 // guardião test-vigia-palavras-por-cena a executa por nome).
 import { targetWordCount } from '@/lib/compose'
 
-export function wordsPerSceneFor(durationSeconds: number, sceneCount: number): readonly [number, number] {
+// KINEO-RITMO-POR-VOZ-2026-09-15 — com `wordsPerSecond` (régua da voz que vai falar, lib/speechRate)
+// o total é duração × régua; sem ele, a régua antiga de 3,1 (targetWordCount) continua.
+export function wordsPerSceneFor(durationSeconds: number, sceneCount: number, wordsPerSecond?: number): readonly [number, number] {
   const scenes = Math.max(1, Math.floor(sceneCount))
-  const total = targetWordCount(durationSeconds)
+  const total = wordsPerSecond && wordsPerSecond > 0
+    ? Math.round(Math.max(5, Math.min(120, Math.round(durationSeconds))) * wordsPerSecond)
+    : targetWordCount(durationSeconds)
   const lo = Math.max(6, Math.floor((total * 0.9) / scenes))
   const hi = Math.max(lo, Math.ceil((total * 1.1) / scenes))
   return [lo, hi] as const

@@ -52,6 +52,7 @@ import { cinematicSceneSeconds, trimNarratedSupport, assertCinematicTimeline, Ci
 import { rejectCinematicQuality, readVerifiedQualityRejection, type CinematicQualityReason } from '@/lib/cinematic/qualityRejection'
 import { selectMusicForScript } from '@/lib/musicScore'
 import { selectPersonaForScript } from '@/lib/narration/niche-mapping'
+import { speechRateFor, speechFamilyForQuality } from '@/lib/speechRate' // KINEO-RITMO-POR-VOZ-2026-09-15
 // KINEO-CREDIT-INTENT-2026-07-11 — record the authoritative engine + intended
 // cost for every render, keyed by render_id, the moment it is created. This is
 // the trusted source /api/compose/status bills from (instead of the client's
@@ -2557,6 +2558,21 @@ export async function POST(req: NextRequest) {
     // fino de $0 de 12/09 reproduziu com o mesmo roteiro nos 4 clássicos. O
     // caminho cinematic grava `verbatim` na resposta assinada do claim — é
     // ela que manda, não o `speed` opcional que o cliente encaminha.
+    // ═══ KINEO-RITMO-POR-VOZ-2026-09-15 — a régua clássica anda no passo da persona que VAI falar ═══
+    // Seedance d6e8e8b3 (15/09): 198 palavras "para 60 s" pela régua de 3,1 pal/s; a persona
+    // dark-mystery (onyx 0,92) fala ~2,3 pal/s → 86 s entregues. Kling 8bf45931: 193 → 81,9 s.
+    // A persona é resolvida como o generateTTS resolve; onyx medido em 2,5 pal/s a 1,0
+    // (lib/speechRate). Escalador, previsão e corretivo passam a usar esta régua no clássico;
+    // o hollywood (voz por cena, régua 2,3) não muda aqui.
+    const composeRate = (() => {
+      const family = speechFamilyForQuality(quality)
+      try {
+        const p = selectPersonaForScript(voiceoverScript, vertical, narrationTier, language)
+        return speechRateFor({ family, speed: explicitSpeed, language, voice: p.voice, personaSpeed: p.defaultSpeed })
+      } catch { return speechRateFor({ family, speed: explicitSpeed, language }) }
+    })()
+    const composeTargetWords = composeRate.family === 'classic' ? Math.round(Math.max(5, Math.min(120, Math.round(duration))) * composeRate.wordsPerSecond) : targetWordCount(duration)
+    if (composeRate.family === 'classic' && composeTargetWords !== targetWordCount(duration)) console.log(`[compose] KINEO-RITMO-POR-VOZ: régua ${composeRate.wordsPerSecond} pal/s para esta voz → alvo ${composeTargetWords} palavras em ${duration}s (era ${targetWordCount(duration)})`)
     const claimVerbatim = cinematicBirthClaim?.response?.verbatim === true
     let scaledScript: string
     if (avatarMode || hasUserVoice) {      scaledScript = voiceoverScript
@@ -2568,7 +2584,7 @@ export async function POST(req: NextRequest) {
       )
     } else {
       try {
-        scaledScript = await scaleVoiceoverScript(voiceoverScript, targetWordCount(duration))
+        scaledScript = await scaleVoiceoverScript(voiceoverScript, composeTargetWords) // KINEO-RITMO-POR-VOZ-2026-09-15
         if (!scaledScript) scaledScript = voiceoverScript
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
@@ -2752,7 +2768,8 @@ export async function POST(req: NextRequest) {
     // variance and re-synthesizing at an adjusted speed isn't worth a 2nd full
     // TTS — skip it. This avoids firing the corrective pass unnecessarily.
     const scaledWordCount = scaledScript.split(/\s+/).filter(Boolean).length
-    const predictedDuration = predictTtsSecondsFromWords(scaledWordCount)
+    // KINEO-RITMO-POR-VOZ-2026-09-15 — a previsão usa a régua da voz (clássico); o hollywood mantém a antiga.
+    const predictedDuration = composeRate.family === 'classic' && composeRate.wordsPerSecond > 0 ? scaledWordCount / composeRate.wordsPerSecond : predictTtsSecondsFromWords(scaledWordCount)
     // KINEO-KLING-DURACAO-2026-09-15 — Kling 2.5, render 8bf45931 (fundador, 15/09,
     // nota 8,8 "entregou 82 s quando pedi 60"): 193 palavras previam 62 s pela régua
     // (3,1 pal/s), o "bem dimensionado" acima calou o passe corretivo, e a voz real
@@ -2783,8 +2800,18 @@ export async function POST(req: NextRequest) {
         `[compose] duration off by ${(realAudioDuration - duration).toFixed(1)}s — re-synthesizing at speed=${correctiveSpeed.toFixed(3)}`,
       )
       try {
-        const retryBuffer = await generateTTS(scaledScript, correctiveSpeed, vertical, narrationTier, language)
-        if (retryBuffer && retryBuffer.length > 0) {
+        // KINEO-CORRETIVO-TENTA-DE-NOVO-2026-09-15 — Seedance d6e8e8b3: a 2ª TTS deu "Request timed
+        // out" e o filme saiu com 86 s para 60 pedidos. Uma segunda tentativa antes de aceitar o
+        // áudio errado; só depois de duas falhas o original é mantido (como antes).
+        let retryBuffer: Awaited<ReturnType<typeof generateTTS>> | null = null
+        for (let tentativa = 1; tentativa <= 2 && !retryBuffer; tentativa++) {
+          try {
+            retryBuffer = await generateTTS(scaledScript, correctiveSpeed, vertical, narrationTier, language)
+          } catch (e) {
+            if (tentativa === 2) throw e
+            console.warn('[compose] corrective TTS pass failed once — retrying:', e instanceof Error ? e.message : String(e))
+          }
+        }        if (retryBuffer && retryBuffer.length > 0) {
           const retryDuration = estimateMp3DurationSeconds(retryBuffer)
           const improved =
             retryDuration > 4 &&

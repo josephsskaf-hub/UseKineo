@@ -30,7 +30,7 @@ function fatiaDe(rota) {
   return rota.slice(a, b + FIM.length)
 }
 function montar(fatia) {
-  return roda(`export async function rodar(ctx: any) {\n  const { scaledScript, predictTtsSecondsFromWords, DURATION_TOLERANCE_SECONDS, cachedVoiceover, avatarMode, hasUserVoice, clonedVoiceUsed, explicitSpeed, claimVerbatim, duration, generateTTS, estimateMp3DurationSeconds, vertical, narrationTier, language, console } = ctx\n  let realAudioDuration: number = ctx.realAudioDuration\n  let audioBuffer: any = ctx.audioBuffer\n${fatia}\n  return { realAudioDuration, audioBuffer }\n}`).rodar
+  return roda(`export async function rodar(ctx: any) {\n  const { scaledScript, composeRate, predictTtsSecondsFromWords, DURATION_TOLERANCE_SECONDS, cachedVoiceover, avatarMode, hasUserVoice, clonedVoiceUsed, explicitSpeed, claimVerbatim, duration, generateTTS, estimateMp3DurationSeconds, vertical, narrationTier, language, console } = ctx\n  let realAudioDuration: number = ctx.realAudioDuration\n  let audioBuffer: any = ctx.audioBuffer\n${fatia}\n  return { realAudioDuration, audioBuffer }\n}`).rodar
 }
 const rota = rd('app/api/compose/route.ts')
 const fatia = fatiaDe(rota)
@@ -44,7 +44,7 @@ const script193 = Array.from({ length: 193 }, (_, i) => `w${i}`).join(' ')
 const mundo = (over = {}) => {
   const chamadas = []
   const ctx = {
-    scaledScript: script193, predictTtsSecondsFromWords: (w) => w / 3.1, DURATION_TOLERANCE_SECONDS: 3,
+    scaledScript: script193, composeRate: { family: 'classic', wordsPerSecond: 3.1 }, predictTtsSecondsFromWords: (w) => w / 3.1, DURATION_TOLERANCE_SECONDS: 3,
     cachedVoiceover: null, avatarMode: false, hasUserVoice: false, clonedVoiceUsed: false, explicitSpeed: null, claimVerbatim: false,
     duration: 60, realAudioDuration: 81.9, audioBuffer: Buffer.from('original'),
     generateTTS: async (_s, speed) => { chamadas.push(speed); return Buffer.from('retry@' + speed) },

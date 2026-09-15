@@ -39,7 +39,7 @@ for (const [w, t] of [[110, 60], [40, 35], [20, 90], [140, 60], [0, 60]]) checa(
 
 console.log('== 3) rota cinematic: a régua da família entra no portão, no degrau e no dry-run ==')
 const rc = rd('app/api/generate-video-cinematic/route.ts')
-checa('narrationRate nasce da família (classic/hollywood) e da velocidade do roteiro', rc.includes("const narrationRate = speechRateFor({ family: hollywoodPath ? 'hollywood' : 'classic', speed: parsedScript.speed, language: narrationLanguage.language })"))
+checa('narrationRate nasce da família (classic/hollywood) e da velocidade do roteiro', rc.includes("const narrationRate = speechRateFor({ family: hollywoodPath ? 'hollywood' : 'classic', speed: parsedScript.speed, language: narrationLanguage.language, voice: classicPersona?.voice, personaSpeed: classicPersona?.defaultSpeed })") /* 15/09 KINEO-RITMO-POR-VOZ: a mesma régua, agora com a voz da persona no clássico */)
 checa('as 3 medições do portão verbatim usam narrationFitAt com a régua da família', (rc.match(/narrationFitAt\(parsedScript\.narration, duration, narrationRate\)/g) || []).length === 3 && !/narrationFit\(parsedScript\.narration, duration\)/.test(rc))
 checa('o degrau usa a mesma régua (autofitDownAt), com o consentimento explícito de 11/09 intacto', /body\.allow_shorter_duration === true && verbatim && parsedScript\.narration\n\s+\? autofitDownAt\(parsedScript\.narration, requestedDuration, narrationRate, \{/.test(rc))
 checa('o dry-run clássico usa a mesma régua', /verbatim,\n\s+wordsPerSecond: narrationRate\.wordsPerSecond,\n\s+\}\)/.test(rc))

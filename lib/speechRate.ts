@@ -28,11 +28,20 @@ export function speechFamilyForQuality(quality: unknown): SpeechFamily {
   const q = typeof quality === 'string' ? quality.toLowerCase() : ''
   return /^(cinematic_)?(hollywood|h3|omni|s25)$/.test(q) ? 'hollywood' : 'classic'
 }
-export function speechRateFor(opts: { family: SpeechFamily; speed?: number | null; language?: string | null }): SpeechRate {
+// KINEO-RITMO-POR-VOZ-2026-09-15 — a régua clássica por VOZ da persona (medido, não suposto):
+// Seedance d6e8e8b3 (15/09): 198 palavras a 3,1 pal/s "davam 60 s"; a persona dark-mystery
+// (onyx a 0,92) falou 86,4 s → 2,29 pal/s (2,49 a 1,0). Kling 8bf45931: 193 palavras, 81,9 s →
+// 2,36 (2,56 a 1,0). Só a voz medida entra na tabela; as outras seguem a base 3,1 até serem
+// medidas. O valor é multiplicado pela velocidade da persona E pela velocidade do roteiro.
+export const CLASSIC_VOICE_WORDS_PER_SECOND: Record<string, number> = { onyx: 2.5 }
+export function speechRateFor(opts: { family: SpeechFamily; speed?: number | null; language?: string | null; voice?: string | null; personaSpeed?: number | null }): SpeechRate {
   const speed = typeof opts.speed === 'number' && Number.isFinite(opts.speed) && opts.speed > 0 ? Math.min(2, Math.max(0.5, opts.speed)) : 1
   // Idioma: sem medição que justifique fator; fica 1,0 e registrado como estimativa.
   const language = (opts.language ?? 'en').toString()
-  const wordsPerSecond = Math.round(SPEECH_RATE_BASE[opts.family] * speed * 100) / 100
+  const voz = typeof opts.voice === 'string' ? opts.voice.toLowerCase() : ''
+  const personaSpeed = typeof opts.personaSpeed === 'number' && Number.isFinite(opts.personaSpeed) && opts.personaSpeed > 0 ? Math.min(2, Math.max(0.5, opts.personaSpeed)) : 1
+  const base = opts.family === 'classic' && CLASSIC_VOICE_WORDS_PER_SECOND[voz] ? CLASSIC_VOICE_WORDS_PER_SECOND[voz] * personaSpeed : SPEECH_RATE_BASE[opts.family]
+  const wordsPerSecond = Math.round(base * speed * 100) / 100
   return { family: opts.family, wordsPerSecond, speed, language, basis: 'estimate' }
 }
 
