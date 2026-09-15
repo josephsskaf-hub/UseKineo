@@ -8,6 +8,10 @@ CONFIGURADO (janela do piloto): 2026-09-14T15:13:52.000Z até 2026-09-15T03:13:5
 
 ## Donos e transporte
 
+### Prorrogação explícita — 14/09 à noite
+
+AUTORIZAÇÃO DO FUNDADOR, mensagens após 22:45 BRT: publicar integração 5114ea39 com a exceção pontual registrada, sem ajuste do Veo e sem render pago; trabalhar nas próximas duas horas para o teste pessoal dos oito motores à 01:00 BRT. **Novo término: 2026-09-15T04:00:00Z (15/09 01:00 BRT)**, substitui o término original em todas as seções deste protocolo. Sem renovação posterior automática. Board atualizado pela ferramenta oficial; Claude deve confirmar atualização da própria rotina pela outbox. Um escritor, sem renders pela automação, escopo financeiro e guardiões preservados. Priorizar publicação já aprovada, verificação do deploy e regressões concretas; não reabrir critérios fechados. A autorização técnica/publicação não transforma mocks em qualidade audiovisual comprovada.
+
 - Clone compartilhado ativo: C:/kineo, origin https://github.com/josephsskaf-hub/UseKineo.git. A árvore principal está suja/obsoleta: nunca trabalhar nela.
 - Claude é o escritor principal do pipeline; Board revisa, reproduz falhas, mantém critérios e evidências. Não editar código de produto simultaneamente.
 - Board escreve SOMENTE sua outbox: C:/kineo-wt/board-motores-auto-0914/docs/coordination/motores/BOARD.md.
