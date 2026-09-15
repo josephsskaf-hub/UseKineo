@@ -4060,7 +4060,9 @@ async function manipularPost(req: NextRequest) {
           const totalSeconds = planReport.reduce((a, r) => a + (r.seconds ?? 0), 0)
           const muteSeconds = totalSeconds - spokenSeconds
           // KINEO-SILENCIO-NA-CENA-2026-09-11 — a mesma régua do render pago, a $0.
-          const silence = planSilenceReport(plan.scenes, 2.3)
+          // KINEO-RITMO-DA-VOZ-2026-09-15 — no MESMO ritmo da voz pinada que o portão pago usa (ritmoVoz),
+          // senão o ensaio de $0 aprova/reprova um plano diferente do que o render de verdade julga.
+          const silence = planSilenceReport(plan.scenes, ritmoVoz)
           // ═══ KINEO-DRYRUN-PREFLIGHT-2026-08-25 — O CONTRATO DO FORNECEDOR ═══
           // O 422 do primeiro render Omni (image_url faltando, 8/8 cenas)
           // passou LIMPO pelo dry-run porque ele parava no plano e nunca
