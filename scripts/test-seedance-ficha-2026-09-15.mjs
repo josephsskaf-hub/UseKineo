@@ -54,7 +54,7 @@ and no presenter addressing the camera.`
 
 console.log('== a descrição explícita do autor é reconhecida ==')
 const f1 = SS.deriveStoryCharacter(farol)
-checa(`faroleiro: "${f1}"`, f1 === 'a middle-aged man with a short gray beard, a dark yellow raincoat and a black knit cap')
+checa(`faroleiro: "${f1}"`, f1 === 'the keeper, a middle-aged man with a short gray beard, a dark yellow raincoat and a black knit cap')
 const t1 = SS.deriveStoryCharacter(trem)
 checa(`trem: "${t1}"`, t1 === 'a 30-year-old woman with short black hair, a dark green coat and a small scar above her left eyebrow')
 checa('"Main character: a tall old sailor with a white beard" → reconhecido', SS.deriveExplicitCharacter('Main character: a tall old sailor with a white beard. He waits.') === 'a tall old sailor with a white beard')
@@ -70,9 +70,27 @@ checa('"the brave fox" → "a brave fox"', SS.deriveStoryCharacter('Every night 
 console.log('== a descrição entra em TODA cena do modo história ==')
 const anchor = SS.deriveStyleAnchor(farol)
 const cena = SS.buildStoryScenePrompt('Drone shot of a small boat moving towards a rocky coastline under a moonlit sky', anchor, f1)
-checa('buildStoryScenePrompt carrega "a middle-aged man with a short gray beard, a dark yellow raincoat and a black knit cap" com a trava de consistência', cena.includes('The same main character appears in this scene, consistent design: a middle-aged man with a short gray beard, a dark yellow raincoat and a black knit cap.'))
+const cenaKeeper = SS.buildStoryScenePrompt('The lighthouse keeper notices the beam flashing from the tower window', anchor, f1)
+checa('buildStoryScenePrompt carrega "the keeper, a middle-aged man with a short gray beard, a dark yellow raincoat and a black knit cap" com a trava de consistência na cena do faroleiro', cenaKeeper.includes('The same main character appears in this scene, consistent design: the keeper, a middle-aged man with a short gray beard, a dark yellow raincoat and a black knit cap.'))
 const cena2 = SS.buildStoryScenePrompt('Tracking shot following the lighthouse keeper as he descends wooden stairs with a flashlight', anchor, f1)
 checa('a mesma ficha em outra cena (continuidade em código, não na obediência do modelo)', cena2.includes('a middle-aged man with a short gray beard') && cena2.indexOf('a middle-aged man') > cena2.indexOf('lighthouse keeper'))
+
+console.log('== Board (2ª rodada): a ficha só entra na cena do protagonista ==')
+checa('PAISAGEM ("Drone shot of a small boat moving towards a rocky coastline under a moonlit sky") NÃO recebe a ficha', !SS.mentionsStoryCharacter('Drone shot of a small boat moving towards a rocky coastline under a moonlit sky', f1) && !cena.includes('The same main character'))
+checa('cena do protagonista ("the lighthouse keeper descends wooden stairs") recebe', SS.mentionsStoryCharacter('Tracking shot following the lighthouse keeper as he descends wooden stairs with a flashlight', f1) === true)
+checa('cena SEM protagonista ("Wide shot of an empty dock at night, a wet notebook open to a drawing") NÃO recebe', SS.mentionsStoryCharacter('Wide shot of an empty dock at night, focusing on a wet notebook open to a drawing of the lighthouse', f1) === false && !SS.buildStoryScenePrompt('Wide shot of an empty dock at night, focusing on a wet notebook', anchor, f1).includes('The same main character'))
+checa('SEGUNDO PERSONAGEM ("Low angle of the older woman turning around, identical scar visible") NÃO recebe a ficha da mulher de 30', SS.mentionsStoryCharacter('Low angle of the older woman turning around, revealing her face in the dim light, identical scar visible', t1) === false)
+checa('a protagonista ("Medium shot of the woman inside the train beside a red suitcase") recebe a ficha da mulher de 30', SS.mentionsStoryCharacter('Medium shot of the woman inside the train, a red suitcase beside her', t1) === true)
+checa('pronome sozinho ("She opens her suitcase") NÃO identifica: sem ficha', SS.mentionsStoryCharacter('Close-up of her hands opening the suitcase, revealing a ticket', t1) === false)
+checa('objeto da cena ("Close-up of stopped clocks on the platform") NÃO recebe', SS.mentionsStoryCharacter('Close-up of stopped clocks on the platform, each showing a different time', t1) === false)
+checa('Benny: cena com o nome recebe; o prado vazio não', SS.mentionsStoryCharacter('Benny hops across the meadow at dawn', 'Benny, the tiniest bunny') === true && SS.mentionsStoryCharacter('The meadow at dawn, dew on the grass', 'Benny, the tiniest bunny') === false)
+checa('a ficha vai em toda cena EM QUE o protagonista aparece, e só nelas (4 cenas do farol: 1, 3, 5 sim; 2, 4 não)', [
+  ['The lighthouse keeper notices the beam flashing from the tower window', true],
+  ['Drone shot of a small boat moving towards a rocky coastline', false],
+  ['Tracking shot following the lighthouse keeper as he descends wooden stairs', true],
+  ['Wide shot of an empty dock at night, focusing on a wet notebook', false],
+  ['Handheld shot capturing the lighthouse keeper\'s surprised expression as he looks back', true],
+].every(([vis, esperado]) => SS.buildStoryScenePrompt(vis, anchor, f1).includes('The same main character') === esperado))
 
 console.log('== ligação: rota e política usam a mesma função ==')
 const rota = rd('app/api/generate-video-cinematic/route.ts')

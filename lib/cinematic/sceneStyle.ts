@@ -142,7 +142,7 @@ const CHARACTER_RES: RegExp[] = [
 // extraída PRIMEIRO e repetida em toda cena pelo buildStoryScenePrompt.
 const EXPLICIT_CHARACTER_RES: RegExp[] = [
   // "Keep the same keeper throughout: a middle-aged man with …"
-  /\bkeep the same [a-z' -]{2,40}?(?:throughout|in every scene|across (?:all )?scenes|consistent)?\s*:\s*([^.]{12,220})/i,
+  /\bkeep the same ([a-z' -]{2,40}?)\s*(?:throughout|in every scene|across (?:all )?scenes|consistent)?\s*:\s*([^.]{12,220})/i,
   // "The protagonist is a 30-year-old woman with …" · "Main character: …"
   /\b(?:the )?(?:protagonist|main character|central character|hero|heroine|lead character|narrator character)\s+(?:is|:)\s*([^.]{12,220})/i,
   // "Character: a tall old sailor …" · "Personagem: …" · "Personaje: …"
@@ -157,7 +157,10 @@ export function deriveExplicitCharacter(script: string): string | null {
   for (const re of EXPLICIT_CHARACTER_RES) {
     const m = t.match(re)
     if (!m) continue
-    const d = limpaDescricao(m[1])
+    // o 1º padrão captura o PAPEL que o autor usou ("keeper") e a descrição; os outros só a descrição
+    const papel = m.length > 2 ? limpaDescricao(m[1]).replace(/^(?:the|a|an)\s+/i, '') : ''
+    const desc = limpaDescricao(m[m.length - 1])
+    const d = papel && !new RegExp(`\\b${papel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(desc) ? `the ${papel}, ${desc}` : desc
     // precisa descrever gente/aparência, não uma frase qualquer do pedido
     if (d.length >= 12 && /\b(?:man|woman|boy|girl|keeper|fisher|sailor|soldier|nurse|doctor|farmer|teacher|traveler|traveller|stranger|detective|scientist|pilot|captain|monk|priest|knight|witch|wizard|explorer|miner|climber|hunter|engineer|hair|beard|coat|jacket|cap|hat|scar|eyes|year)\b/i.test(d)) return d
   }
@@ -182,13 +185,47 @@ export function deriveStoryCharacter(script: string): string | null {
  * Prompt de cena para HISTÓRIA: look primeiro, cena, personagem fixo, moldura
  * 9:16 e a trava de consistência. Sem "no people / empty scene".
  */
+// ═══ KINEO-SEEDANCE-FICHA-2026-09-15 (Board, 2ª rodada) — a ficha SÓ entra na cena
+// em que o protagonista aparece. Colar o mesmo homem em toda cena não resolve
+// idade trocada: cria o homem na paisagem e no lugar do segundo personagem.
+const PAPEL_NA_FICHA_RE = /\b(man|woman|boy|girl|keeper|fisherman|fisherwoman|sailor|soldier|nurse|doctor|farmer|teacher|traveler|traveller|stranger|detective|scientist|pilot|captain|monk|priest|knight|witch|wizard|explorer|princess|prince|robot|astronaut|pirate|kid|child|bunny|rabbit|bear|fox|mouse|dragon|puppy|dog|kitten|cat|owl|turtle|train|car|elephant|lion|zebra|giraffe|penguin|duck|frog|monkey|tiger|wolf|deer|unicorn|dinosaur|whale|dolphin|bee|butterfly)\b/gi
+// só palavras de IDADE/GERAÇÃO ou de outra pessoa; "small"/"little" são aparência ("a small scar") e não contam
+const OUTRA_PESSOA_RE = /\b(older|elderly|old|young|younger|teen|teenage|child|kid|baby|second|another|other|stranger|crowd|villagers|soldiers|men|women|children|boys|girls)\b/i
+/**
+ * A cena mostra o PROTAGONISTA da ficha? Só pelo papel ("keeper", "woman", "bunny") ou
+ * pelo nome ("Benny"); pronome não identifica ninguém. Uma cena que descreve OUTRA
+ * pessoa com o mesmo papel ("the older woman", "a young man") não recebe a ficha.
+ */
+export function mentionsStoryCharacter(visual: string, character: string | null): boolean {
+  const v = (visual || '').toLowerCase()
+  const c = (character || '').toLowerCase()
+  if (!v || !c) return false
+  const nome = (character || '').match(/^([A-Z][a-z]{2,}(?: [A-Z][a-z]+)?),/)?.[1]
+  if (nome && new RegExp(`\\b${nome.toLowerCase()}\\b`).test(v)) return true
+  const papeis = [...new Set((c.match(PAPEL_NA_FICHA_RE) ?? []).map((w) => w.toLowerCase()))]
+  if (papeis.length === 0) return false
+  // "keeper" da ficha casa com "lighthouse keeper" da cena; "woman" com "the woman"
+  for (const papel of papeis) {
+    const re = new RegExp(`\\b(?:[a-z-]+\\s+){0,3}${papel}\\b`, 'i')
+    const m = v.match(re)
+    if (!m) continue
+    // o trecho que qualifica o papel na cena (até 3 palavras antes) não pode descrever OUTRA pessoa
+    const trecho = m[0]
+    const qualifica = trecho.replace(new RegExp(`\\b${papel}\\b`), '').trim()
+    const cSemIdade = c.replace(/\d+[- ]year[- ]old/g, '')
+    if (OUTRA_PESSOA_RE.test(qualifica) && !OUTRA_PESSOA_RE.test(cSemIdade)) continue
+    return true
+  }
+  return false
+}
+
 export function buildStoryScenePrompt(visual: string, anchor: StyleAnchor, character: string | null): string {
   let v = (visual || '').replace(/\s+/g, ' ').trim()
   // a descrição de cena não pode reintroduzir o look oposto
   if (anchor.look !== 'photoreal') v = v.replace(/\b(photorealistic|photo-realistic|live[- ]action|realistic footage|documentary)\b/gi, '').replace(/\s{2,}/g, ' ').trim()
   v = v.replace(/[\s,;:.]+$/, '')
   if (v.length < 3) v = 'establishing shot of the story world'
-  const who = character ? ` The same main character appears in this scene, consistent design: ${character}.` : ''
+  const who = character && mentionsStoryCharacter(v, character) ? ` The same main character appears in this scene, consistent design: ${character}.` : ''
   return (
     `${anchor.lookPhrase}. ${v}.${who} ` +
     `9:16 vertical, subject framed in the upper two-thirds with the lower third clear for captions, ` +
