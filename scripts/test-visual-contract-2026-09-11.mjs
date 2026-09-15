@@ -239,7 +239,8 @@ const legacyFixtures = [
   { count: 4, response: [{ description: 'Mira at Kyoto station', voiceover: 'Mira finds a parcel.', caption: 'Mira finds a parcel', negativeVisualPrompt: 'rain', visualIntent: 'Warm light', visualCategory: 'general_documentary', scenePurpose: 'HOOK', stockSearchQuery: 'Kyoto station parcel', searchKeywords: 'Kyoto parcel' }], hash: 'd6a388e630abf6ff1257026b1e718f7743cf160dedacc89b934789cacfc64c29' },
   { count: 4, response: ['Mira at Kyoto station'], hash: 'bca73b603eb13fe48e9528f1e7d7a0e3f5ed932e3479784e35b38bb61b57bf59' },
   { count: 0, response: [], hash: 'cb376108885901783199240cce4e1d6dc6c7db663e97bf405c538288a5a40b56' },
-  { count: 100, response: [{ description: 'Mira at Kyoto station', voiceover: 'Mira finds a parcel.' }], hash: '8fcda46c672646eb354e5ef4d89dc2d4994d1881527aa49ada5fd1b79c285d60' },
+  // 15/09 (KINEO-VEO-COBRE-A-FALA): o teto do escritor passou de 9 para 12 (Veo a 90 s pede 12 clipes), então count 100 → 'Plan 12 scenes'; hash recapturado (era 8fcda46c…).
+  { count: 100, response: [{ description: 'Mira at Kyoto station', voiceover: 'Mira finds a parcel.' }], hash: 'c3c6828e06426324f6902b3c355f7a616fd852504ae97ab4420c9301c6e3dd75' },
 ]
 async function planner(fixture, contract) {
   let request, calls = 0

@@ -2568,8 +2568,8 @@ export async function POST(req: NextRequest) {
       const family = speechFamilyForQuality(quality)
       try {
         const p = selectPersonaForScript(voiceoverScript, vertical, narrationTier, language)
-        return speechRateFor({ family, speed: explicitSpeed, language, voice: p.voice, personaSpeed: p.defaultSpeed })
-      } catch { return speechRateFor({ family, speed: explicitSpeed, language }) }
+        return { ...speechRateFor({ family, speed: explicitSpeed, language, voice: p.voice, personaSpeed: p.defaultSpeed }), personaSpeed: p.defaultSpeed }
+      } catch { return { ...speechRateFor({ family, speed: explicitSpeed, language }), personaSpeed: 1 } }
     })()
     const composeTargetWords = composeRate.family === 'classic' ? Math.round(Math.max(5, Math.min(120, Math.round(duration))) * composeRate.wordsPerSecond) : targetWordCount(duration)
     if (composeRate.family === 'classic' && composeTargetWords !== targetWordCount(duration)) console.log(`[compose] KINEO-RITMO-POR-VOZ: régua ${composeRate.wordsPerSecond} pal/s para esta voz → alvo ${composeTargetWords} palavras em ${duration}s (era ${targetWordCount(duration)})`)
@@ -2795,7 +2795,14 @@ export async function POST(req: NextRequest) {
       realAudioDuration > 4 &&
       Math.abs(realAudioDuration - duration) > DURATION_TOLERANCE_SECONDS
     ) {
-      const correctiveSpeed = realAudioDuration / duration
+      // KINEO-VOZ-NAO-ARRASTA-2026-09-15 — Kling 976eb60d (15/09): 119 palavras para 60 s, o corretivo
+      // pediu 0,795 sobre a persona a 0,92 = voz EFETIVA a 0,73, arrastada. Tempo se enche com PALAVRAS
+      // (escalador ≥ 92 % do alvo, lib/compose) e nunca com voz abaixo de 0,85 efetivo: abaixo disso
+      // o filme sai um pouco mais curto (o TIKTOK-61 estica a imagem), mas ninguém ouve uma voz bêbada.
+      const CORRETIVO_PISO_EFETIVO = 0.85
+      const correctiveRaw = realAudioDuration / duration
+      const correctiveSpeed = Math.max(CORRETIVO_PISO_EFETIVO / (composeRate.personaSpeed || 1), correctiveRaw)
+      if (correctiveSpeed !== correctiveRaw) console.log(`[compose] KINEO-VOZ-NAO-ARRASTA: corretivo ${correctiveRaw.toFixed(3)} × persona ${composeRate.personaSpeed} ficaria abaixo de ${CORRETIVO_PISO_EFETIVO} efetivo — travado em ${correctiveSpeed.toFixed(3)}`)
       console.log(
         `[compose] duration off by ${(realAudioDuration - duration).toFixed(1)}s — re-synthesizing at speed=${correctiveSpeed.toFixed(3)}`,
       )

@@ -391,9 +391,14 @@ export async function scaleVoiceoverScript(rawScript: string, targetWords: numbe
 
   const words = cleanInput.split(/\s+/).filter(Boolean)
   // If already close to target (±15%), don't bother round-tripping to OpenAI.
-  const lo = Math.floor(targetWords * 0.85)
+  // KINEO-VOZ-NAO-ARRASTA-2026-09-15 — faixa assimétrica: acima do alvo até +15 % o filme só fica um pouco
+  // mais longo (bom, fundador 02/09); abaixo de 92 % a voz seria arrastada pelo corretivo do compose
+  // (Kling 976eb60d: 119/138 = 86 % passava aqui e a voz saiu a 0,73). Faltando palavras, o corpo é
+  // EXPANDIDO sem inventar acontecimentos (prompt de fidelidade abaixo), nunca reescrito.
+  const lo = Math.floor(targetWords * 0.92)
   const hi = Math.ceil(targetWords * 1.15)
   if (words.length >= lo && words.length <= hi) return cleanInput
+  const expandir = words.length < lo
 
   // ── Protect the HOOK ──────────────────────────────────────────────────────
   // The crafted first sentence is the single biggest retention driver, so we do
@@ -418,12 +423,15 @@ export async function scaleVoiceoverScript(rawScript: string, targetWords: numbe
           messages: [
             {
               role: 'system',
-              content:
-                'You are a viral short-form scriptwriter. You rewrite the BODY of a script to a precise word count while keeping the core idea and ending on a strong payoff line. The opening hook is fixed and provided only for context — do NOT repeat it or reference it. Reply with the rewritten body text only — no quotes, no markdown, no scene labels, no stage directions.',
+              content: expandir
+                ? 'You are a script editor. You EXPAND the BODY of a narration to a precise word count WITHOUT changing its story: keep every sentence, event, fact, name, number and place, in the same order; never add new events, places, dates, years, times, numbers or claims; add only sensory and descriptive detail to sentences that already exist. The opening hook is fixed and provided only for context — do NOT repeat it or reference it. Reply with the expanded body text only — no quotes, no markdown, no scene labels, no stage directions.'
+                : 'You are a viral short-form scriptwriter. You rewrite the BODY of a script to a precise word count while keeping the core idea and ending on a strong payoff line. The opening hook is fixed and provided only for context — do NOT repeat it or reference it. Reply with the rewritten body text only — no quotes, no markdown, no scene labels, no stage directions.',
             },
             {
               role: 'user',
-              content: `The video opens with this fixed HOOK (already spoken, do not rewrite or repeat it):\n"${hook}"\n\nRewrite ONLY the BODY that follows the hook so the body reads as about ${bodyTargetWords} words (±10%). It must flow naturally straight after the hook and end on a strong payoff line. Plain prose only.\n\nBODY:\n${body}`,
+              content: expandir
+                ? `The video opens with this fixed HOOK (already spoken, do not rewrite or repeat it):\n"${hook}"\n\nExpand ONLY the BODY that follows the hook so the body reads as about ${bodyTargetWords} words (±10%). Keep every sentence and its order; add descriptive detail, never new events, facts, places, dates or numbers. Plain prose only.\n\nBODY:\n${body}`
+                : `The video opens with this fixed HOOK (already spoken, do not rewrite or repeat it):\n"${hook}"\n\nRewrite ONLY the BODY that follows the hook so the body reads as about ${bodyTargetWords} words (±10%). It must flow naturally straight after the hook and end on a strong payoff line. Plain prose only.\n\nBODY:\n${body}`,
             },
           ],
           temperature: 0.7,
@@ -456,12 +464,15 @@ export async function scaleVoiceoverScript(rawScript: string, targetWords: numbe
         messages: [
           {
             role: 'system',
-            content:
-              'You are a viral short-form scriptwriter. You rewrite scripts to a precise word count while keeping the core idea and a strong CTA. You NEVER change the opening line — the first sentence must appear verbatim, word-for-word, exactly as given. Reply with the script text only — no quotes, no markdown.',
+            content: expandir
+              ? 'You are a script editor. You EXPAND a narration to a precise word count WITHOUT changing its story: keep every sentence, event, fact, name, number and place, in the same order; never add new events, places, dates, years, times, numbers or claims; add only sensory and descriptive detail to sentences that already exist. You NEVER change the opening line — the first sentence must appear verbatim, word-for-word, exactly as given. Reply with the script text only — no quotes, no markdown.'
+              : 'You are a viral short-form scriptwriter. You rewrite scripts to a precise word count while keeping the core idea and a strong CTA. You NEVER change the opening line — the first sentence must appear verbatim, word-for-word, exactly as given. Reply with the script text only — no quotes, no markdown.',
           },
           {
             role: 'user',
-            content: `Rewrite this voiceover script so it reads as ${targetWords} words (±5%). CRITICAL: keep the FIRST SENTENCE exactly as written, word-for-word — it is the hook and must not change. Only adjust everything after it. Keep the payoff in the middle and end with a strong payoff line. Plain prose only — no scene labels, no stage directions.\n\nSCRIPT:\n${cleanInput}`,
+            content: expandir
+              ? `Expand this voiceover script so it reads as ${targetWords} words (±5%). CRITICAL: keep the FIRST SENTENCE exactly as written, word-for-word. Keep every sentence and its order; add descriptive detail, never new events, facts, places, dates or numbers. Plain prose only — no scene labels, no stage directions.\n\nSCRIPT:\n${cleanInput}`
+              : `Rewrite this voiceover script so it reads as ${targetWords} words (±5%). CRITICAL: keep the FIRST SENTENCE exactly as written, word-for-word — it is the hook and must not change. Only adjust everything after it. Keep the payoff in the middle and end with a strong payoff line. Plain prose only — no scene labels, no stage directions.\n\nSCRIPT:\n${cleanInput}`,
           },
         ],
         temperature: 0.7,

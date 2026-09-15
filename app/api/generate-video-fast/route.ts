@@ -25,6 +25,7 @@ import { classifyEngineFit } from '@/lib/engineFit'
 import { detectShotSpec } from '@/lib/cinematic/shotSpec'
 import { classicDryRunReport, isDryRunAccount } from '@/lib/cinematic/classicDryRun'
 import { resolveNarrationLanguage } from '@/lib/textLanguage'
+import { selectPersonaForScript } from '@/lib/narration/niche-mapping' // KINEO-RITMO-POR-VOZ-KINEO1-2026-09-15
 import { stripIdeaPrefix } from '@/lib/cinematic/promptIntake'
 import { creditCostForDuration } from '@/lib/credits/engineCost'
 // KINEO-ENTREGA-SERVIDOR-2026-09-09 — o MESMO saneador e o MESMO nome de
@@ -105,10 +106,15 @@ function clipCountForDuration(d: Duration): number {
 // (targetWordCount = 3,1 pal/s × s), dividido pelas cenas, com ±10% de folga
 // (dentro dos ±15% em que o escalador não reescreve). 90 s / 9 cenas → 27-35;
 // 60 s / 6 → 27-35; 35 s / 4 → 24-30; 45 s / 5 → 25-31.
-function wordsPerSceneFor(durationSeconds: number, sceneCount: number): readonly [number, number] {
+// KINEO-RITMO-POR-VOZ-KINEO1-2026-09-15 — com `wordsPerSecond` (régua da voz da persona, lib/speechRate) o
+// total é duração × régua; sem ele, a régua antiga (targetWordCount, 3,1). O piso é o alvo inteiro
+// (KINEO-VOZ-NAO-ARRASTA: o escritor para no piso; abaixo do alvo a voz é arrastada pelo corretivo).
+function wordsPerSceneFor(durationSeconds: number, sceneCount: number, wordsPerSecond?: number): readonly [number, number] {
   const scenes = Math.max(1, Math.floor(sceneCount))
-  const total = targetWordCount(durationSeconds)
-  const lo = Math.max(6, Math.floor((total * 0.9) / scenes))
+  const total = wordsPerSecond && wordsPerSecond > 0
+    ? Math.round(Math.max(5, Math.min(120, Math.round(durationSeconds))) * wordsPerSecond)
+    : targetWordCount(durationSeconds)
+  const lo = Math.max(6, Math.ceil(total / scenes))
   const hi = Math.max(lo, Math.ceil((total * 1.1) / scenes))
   return [lo, hi] as const
 }
@@ -558,6 +564,13 @@ export async function POST(req: NextRequest) {
     // "en", escritor de cenas em inglês. Escolha explícita (pt/es) vence; o
     // padrão "en" cede ao idioma claro do texto. Evento para medir a troca.
     const narrationLanguage = resolveNarrationLanguage(body.language, prompt)
+    // ═══ KINEO-RITMO-POR-VOZ-KINEO1-2026-09-15 — a régua do Kineo 1 anda no passo da voz que VAI falar ═══
+    // Craco 7e48bfe5 (15/09): a rota pedia 3,1 pal/s (186 palavras para 60 s); a persona storyteller
+    // (fable a 1,03) fala ~2,6 → 190 palavras dariam 72 s e o corretivo aceleraria a voz a 1,2. A
+    // persona é resolvida como o compose resolve (tier free = quality 'fast'); régua em lib/speechRate.
+    const fastPersona = (() => { try { return selectPersonaForScript(prompt, undefined, 'free', narrationLanguage.language as 'en' | 'pt' | 'es') } catch { return null } })()
+    const fastRate = speechRateFor({ family: 'classic', speed: parsedScript.speed, language: narrationLanguage.language, voice: fastPersona?.voice, personaSpeed: fastPersona?.defaultSpeed })
+    if (fastPersona) console.log(`[generate-fast] KINEO-RITMO-POR-VOZ-KINEO1: persona=${fastPersona.id} voice=${fastPersona.voice} speed=${fastPersona.defaultSpeed} → ${fastRate.wordsPerSecond} pal/s`)
     if (narrationLanguage.switched) {
       void writeServerEvent({ name: 'narration_language_autodetected', userId: user.id, path: '/api/generate-video-fast', metadata: { requested: body.language ?? null, detected: narrationLanguage.detected, confidence: narrationLanguage.confidence, verbatim } })
     }
@@ -613,7 +626,7 @@ export async function POST(req: NextRequest) {
         // fatia de palavras que a duração pede — a mesma régua do escalador,
         // que passa a ser no-op (±15%) e o footage volta a casar com a fala.
         scenes = await generateScenes(prompt.slice(0, 1200), clipCount, undefined, {
-          wordsPerScene: wordsPerSceneFor(duration, clipCount),
+          wordsPerScene: wordsPerSceneFor(duration, clipCount, fastRate.wordsPerSecond), // KINEO-RITMO-POR-VOZ-KINEO1-2026-09-15
           language: narrationLanguage.language,
         })
         // ═══ KINEO-TERCEIRA-PASSADA-2026-09-14 — o Kineo 1 a 90 s ficava 5% curto ═══
@@ -625,7 +638,7 @@ export async function POST(req: NextRequest) {
         // nunca do autor (este ramo é o modo IA). Fail-open.
         try {
           const wordsOf = (t: string | undefined) => (t ?? '').trim().split(/\s+/).filter(Boolean).length
-          const alvoTotal = targetWordCount(duration)
+          const alvoTotal = Math.round(Math.max(5, Math.min(120, Math.round(duration))) * fastRate.wordsPerSecond) // KINEO-RITMO-POR-VOZ-KINEO1-2026-09-15: mesma régua da faixa
           const total = scenes.reduce((a, s) => a + wordsOf(s.voiceover), 0)
           if (scenes.length > 0 && total < alvoTotal * 0.95) {
             const porCena = Math.ceil(alvoTotal / scenes.length)
@@ -728,7 +741,7 @@ export async function POST(req: NextRequest) {
     const dryRunAutorizado = body.dry_run === true && isDryRunAccount(user.email)
     // Board 14/09 (ajuste 2): UMA régua para o portão e para o relatório do dry-run
     // (família clássica × velocidade lida do roteiro).
-    const narrationRate = speechRateFor({ family: 'classic', speed: parsedScript.speed, language: narrationLanguage.language })
+    const narrationRate = fastRate // KINEO-RITMO-POR-VOZ-KINEO1-2026-09-15: a mesma régua (voz da persona) da faixa, do portão e do relatório
     let portao: { blocked: boolean; reason: 'narration_too_short' | 'too_many_clips' | null; speech_seconds: number; target_seconds: number; missing_words: number; shorter_duration: number | null; words_per_second: number; basis: 'estimate'; autofit_applied: boolean } | null = null
     if (verbatim) {
       // KINEO-TETO-EXPLICITO-2026-09-14 (Board): o Kineo 1 monta até 12 clipes. Um

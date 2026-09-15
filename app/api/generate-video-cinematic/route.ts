@@ -1541,7 +1541,14 @@ async function manipularPost(req: NextRequest) {
     //     (welcome20 etc.) e câmbio BRL — a margem após taxas/comissões/descontos
     //     NÃO está calculada aqui; a margem bruta estimada sobre a alocação fica
     //     ≈ 50-60% nos planos pagos (com 9 clipes ≈ 63-71%, mas com filme curto).
-    if (wantsVeo && duration > 64) clipCount = Math.max(clipCount, Math.min(12, Math.ceil(duration / 8) + 1))
+    // KINEO-VEO-COBRE-A-FALA-2026-09-15 — ensaio de $0 de 15/09: Veo a 60 s = 7 × 8 s = 56 s de imagem para
+    // 60 s pedidos → o compose repetiria cena (o defeito "repetição artificial" que o fundador mandou
+    // caçar). O mesmo furo existia em 35 s (4 × 8 = 32) e 45 s (5 × 8 = 40). A regra dos 90 s vale para
+    // toda duração: clipes = ⌈s/8⌉ + 1 (60 s → 9 = 72 s de imagem; 35 s → 6; 45 s → 7; 90 s → 12).
+    // CUSTO ESTIMADO (fonte: docs/PRECOS-MOTORES-V4.md, $0,10/s): 60 s passa de $5,60 para $7,20 (+$1,60);
+    // preço público (100 cr a 60 s) inalterado — autorizado pelo fundador em 15/09/2026 ("melhorias
+    // necessárias em duração", complemento à prioridade dos sete motores).
+    if (wantsVeo) clipCount = Math.max(clipCount, Math.min(12, Math.ceil(duration / 8) + 1))
     // ═══ KINEO-OMNI-TETO10-2026-08-25 — LIÇÃO DO PRIMEIRO RENDER (422 em 8/8) ═══
     // Schema oficial fal do google/gemini-omni-flash/image-to-video: duration é
     // INTEIRO 3-10 (não 15 como Kling 3, não 12 como o teto da casa). Cena
@@ -4429,6 +4436,8 @@ async function manipularPost(req: NextRequest) {
       // terror que o fundador viu DUAS vezes), o DNA de nitidez e o horizonte
       // em pé. Agora guardamos o prompt EXATO que foi pro fal, cena a cena.
       const hSubmittedPrompts: string[] = []
+      // KINEO-ANCORA-REAL-NO-CLAIM-2026-09-15 — a image_url que REALMENTE foi ao fal, cena a cena (still FLUX incluído).
+      const hSceneAnchors: (string | null)[] = []
       // Veredito do Contrato Cena Verdadeira, cena a cena. Vai para o claim
       // junto com o resto — sem isso o gate corrige no escuro e ninguem
       // consegue auditar depois se ele acertou ou estragou.
@@ -4596,6 +4605,7 @@ async function manipularPost(req: NextRequest) {
             } catch { sceneStillUrl = null }
           }
           const sceneAnchor = anchorUrl ?? sceneStillUrl ?? undefined
+          hSceneAnchors[idx] = sceneAnchor ?? null // KINEO-ANCORA-REAL-NO-CLAIM-2026-09-15
           sceneModel = cinematicSceneModel(family, hs.type, Boolean(sceneAnchor))
           // KINEO-VOICEFIX-2026-08-17 (parte 2, em CODIGO): cena NAO-dialogo
           // nunca pode ter boca mexendo — a narracao TTS toca por cima e boca
@@ -4957,7 +4967,11 @@ async function manipularPost(req: NextRequest) {
         // KINEO-SPECTACLE-2026-08-17 — espelha a regra do submit loop: ambiente
         // só pra cena que o planner situou no mundo do narrador (environmentSheet
         // presente no prompt); b-roll de outros lugares re-tenta em t2v sem âncora.
-        scene_anchor_urls: plan.scenes.map((s) => {
+        // KINEO-ANCORA-REAL-NO-CLAIM-2026-09-15 — Omni 8a519488 (15/09): a cena 6 falhou no fal, a retomada
+        // (retry-hollywood-scene) exige image_url e o claim guardava null (só retrato/ambiente) → 409 e
+        // filme perdido. Agora vai a âncora que REALMENTE foi ao fal (still FLUX por cena inclusive).
+        scene_anchor_urls: plan.scenes.map((s, i) => {
+          if (hSceneAnchors[i]) return hSceneAnchors[i]
           if (!anchors) return null
           if (s.type === 'dialogue') return anchors.portraitUrl
           const sig = (plan.environmentSheet ?? '').trim().toLowerCase().slice(0, 24)

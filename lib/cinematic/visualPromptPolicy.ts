@@ -117,8 +117,13 @@ export function scrubInventedSetting(visual: string, context: string): SettingSc
   })
   if (!removed.length) return { text: src, removed }
   // limpeza do que sobrou: preposição/artigo pendurados, vírgulas dobradas, espaços
-  for (let i = 0; i < 4; i++) {
+  // KINEO-ASPAS-VAZIAS-2026-09-15 — Kling 976eb60d (15/09), cena 6: "a ticket from the original journey of
+  // the ' on the ', displaying…" — o nome próprio dentro das aspas foi removido e sobrou a casca. Aspas
+  // cujo conteúdo virou só preposição/artigo somem inteiras; a limpeza abaixo então apara o "of the".
+  const ASPAS_VAZIAS_RE = /["'“”‘’]\s*(?:(?:in|at|of|near|from|on|the|a|an|and|inside|outside|across|through|toward|towards|into|onto|over|under|behind|beside|along|past)\s*)*["'“”‘’]/gi
+  for (let i = 0; i < 6; i++) {
     out = out
+      .replace(ASPAS_VAZIAS_RE, '')
       .replace(/\s*\b(?:in|at|of|near|from|on|inside|outside|across|through|toward|towards|into|onto|over|under|behind|beside|along|past|the|a|an)\s*(?=[,.;)]|$)/gi, '')
       .replace(/\b(?:in|at|of|near|from|on|across|through|toward|towards|into|onto|over|under|behind|beside|along|past)\s+(?=(?:in|at|of|near|from|on|across|through|toward|towards|into|onto|over|under|behind|beside|along|past)\b)/gi, '')
       .replace(/(?:\s*,){2,}/g, ',')

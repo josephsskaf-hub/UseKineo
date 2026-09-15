@@ -69,7 +69,7 @@ checa('as três chamadas chegaram ao modelo com a linha do campo 8', semFaixa &&
 console.log('== 2. o chamador do Kineo 1 passa a faixa da duração ==')
 const chamada = fast.indexOf('scenes = await generateScenes(prompt.slice(0, 1200), clipCount, undefined, {')
 checa('generateScenes do caminho GPT recebe wordsPerScene', chamada > 0 &&
-  fast.slice(chamada, chamada + 200).includes('wordsPerScene: wordsPerSceneFor(duration, clipCount)'))
+  fast.slice(chamada, chamada + 200).includes('wordsPerScene: wordsPerSceneFor(duration, clipCount, fastRate.wordsPerSecond)')) // 15/09: régua da voz da persona (KINEO-RITMO-POR-VOZ-KINEO1)
 checa('a chamada fica no ramo NÃO-verbatim (else do `if (verbatim)`)',
   fast.lastIndexOf('if (verbatim) {', chamada) > 0 &&
   fast.lastIndexOf('} else {', chamada) > fast.lastIndexOf('if (verbatim) {', chamada))
@@ -87,10 +87,11 @@ const fIni = fast.indexOf('function wordsPerSceneFor(')
 const fFim = fast.indexOf('\n}\n', fIni) + 3
 const { wordsPerSceneFor } = roda('export ' + fast.slice(fIni, fFim), { targetWordCount })
 const casos = [
-  [90, 9, [27, 35], [265, 290]],
-  [60, 6, [27, 35], [175, 195]],
-  [35, 4, [24, 30], [100, 115]],
-  [45, 5, [25, 31], [130, 155]],
+  // 15/09 (KINEO-VOZ-NAO-ARRASTA): o piso passou de 90 % para o alvo inteiro (o escritor parava no piso e a voz saía arrastada).
+  [90, 9, [31, 35], [265, 290]],
+  [60, 6, [31, 35], [175, 195]],
+  [35, 4, [28, 30], [100, 115]],
+  [45, 5, [28, 31], [130, 155]],
 ]
 for (const [s, n, esperado, regua] of casos) {
   const r = wordsPerSceneFor(s, n)

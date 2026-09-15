@@ -267,7 +267,8 @@ export interface SceneWriterOptions {
 }
 
 export async function generateScenes(prompt: string, count = 4, visualPolicy?: VisualPromptPolicy, writerOptions?: SceneWriterOptions): Promise<Scene[]> {
-  const safeCount = Math.max(1, Math.min(9, Math.floor(count)))
+  // KINEO-VEO-COBRE-A-FALA-2026-09-15 — teto 9 → 12: o Veo a 90 s pede 12 clipes desde 14/09 e este teto devolvia 9 (72 s para 90).
+  const safeCount = Math.max(1, Math.min(12, Math.floor(count)))
   // A regra vive DENTRO da função de propósito: o guardião do Codex
   // (test-visual-contract) executa generateScenes isolada por nome e não
   // conhece helpers irmãos. Sem faixa, o texto é o literal antigo.

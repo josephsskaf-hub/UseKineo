@@ -15,7 +15,11 @@ export function wordsPerSceneFor(durationSeconds: number, sceneCount: number, wo
   const total = wordsPerSecond && wordsPerSecond > 0
     ? Math.round(Math.max(5, Math.min(120, Math.round(durationSeconds))) * wordsPerSecond)
     : targetWordCount(durationSeconds)
-  const lo = Math.max(6, Math.floor((total * 0.9) / scenes))
+  // KINEO-VOZ-NAO-ARRASTA-2026-09-15 — Kling 976eb60d (15/09): faixa 17-22 × 7 cenas, o escritor parou
+  // EXATAMENTE no piso (119 = 7 × 17, 86 % do alvo), a 2ª passada não rodou (só roda abaixo do piso) e o
+  // corretivo do compose arrastou a voz a 0,73. O piso passa a ser o alvo inteiro: quem entrega o
+  // mínimo entrega 100 %; passar até +10 % só alonga o filme (bom, fundador 02/09).
+  const lo = Math.max(6, Math.ceil(total / scenes))
   const hi = Math.max(lo, Math.ceil((total * 1.1) / scenes))
   return [lo, hi] as const
 }

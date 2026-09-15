@@ -9673,10 +9673,15 @@ export default function GenerateClient({
           return
         }
 
-        const responseVoiceover = data.verbatim && typeof data.voiceover_script === 'string'
+        // KINEO-NARRACAO-DAS-CENAS-2026-09-15 — Kineo 1 (Craco 7e48bfe5, 15/09): a rota escreveu 6 cenas
+        // com 190 palavras para 60 s e escolheu 13 clipes para ELAS; no modo IA o cliente jogava esse
+        // texto fora e narrava o brief do analyze-idea (105 palavras), que o compose reescrevia para 166
+        // com frases inventadas ("Visitors walk the streets…"). A narração passa a ser a das cenas — o
+        // texto para o qual o footage foi escolhido — em todo modo; no verbatim (Push #235) já era.
+        const responseVoiceover = typeof data.voiceover_script === 'string' && data.voiceover_script.trim().length > 0
           ? data.voiceover_script
           : null
-        const responseCaptions = data.verbatim && Array.isArray(data.scene_captions)
+        const responseCaptions = Array.isArray(data.scene_captions)
           ? data.scene_captions.filter((caption: unknown): caption is string => typeof caption === 'string')
           : null
         const responseSpeed = data.verbatim && typeof data.speed === 'number' ? data.speed : null
@@ -9795,15 +9800,11 @@ export default function GenerateClient({
         setClipUrls(fastClipUrls)
         // Push #235 — verbatim mode: keep the user's narration/captions/speed so
         // compose narrates exactly what they wrote at the speed they asked for.
-        if (data.verbatim) {
-          setFastVoiceover(responseVoiceover)
-          setFastCaptions(responseCaptions)
-          setTtsSpeed(responseSpeed)
-        } else {
-          setFastVoiceover(null)
-          setFastCaptions(null)
-          setTtsSpeed(null)
-        }
+        // KINEO-NARRACAO-DAS-CENAS-2026-09-15 — narração e legendas das cenas em todo modo; a velocidade
+        // explícita só existe no verbatim (Push #235).
+        setFastVoiceover(responseVoiceover)
+        setFastCaptions(responseCaptions)
+        setTtsSpeed(data.verbatim ? responseSpeed : null)
         setGenerateProgress(100)
         setPhase('clips_ready')
       } catch (err: unknown) {

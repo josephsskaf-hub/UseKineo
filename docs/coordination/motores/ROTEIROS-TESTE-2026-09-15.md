@@ -240,3 +240,6 @@ Finish the final sentence without cutting any words.
 | Kling 3 | PASS (118 pal.) | f7351c17 | 150 cr | entregue | 60 / 60,0 | bucket renders/…/32da19fa | narração inventa detalhes |
 | Omni Flash | PASS (132 pal.) | 8a519488 | 150 cr estornados | FALHOU (6/7 clipes) | 60 / — | 6 URLs no claim | retomada só com ordem |
 | Seedance 2.5 | FAIL ×2 (teto; silêncio 8,2) | — | 0 | não gerado | — | — | ensaio novo depois |
+
+### 15/09 — segunda rodada (QUALIDADE-COMPROVADA-R1)
+Mesmos sete roteiros, sem alteração de texto. A rodada valida os consertos de 15/09 (voz não arrasta, narração das cenas no Kineo 1, âncora real para retomada, Veo com ⌈s/8⌉+1 clipes, aspas vazias, fidelidade do planejador). Registro por disparo continua na tabela acima, com a coluna "Deploy" do SHA novo.

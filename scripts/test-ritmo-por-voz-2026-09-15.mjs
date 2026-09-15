@@ -32,9 +32,10 @@ console.log('== (a) a régua única conhece a voz medida ==')
   checa('onyx a 0,92 (dark-mystery) → 2,3 pal/s (2,5 × 0,92)', SR.speechRateFor({ family: 'classic', voice: 'onyx', personaSpeed: 0.92 }).wordsPerSecond === 2.3)
   checa('onyx a 1,0 (finance-authority) → 2,5; a 0,96 (conspiracy) → 2,4', SR.speechRateFor({ family: 'classic', voice: 'onyx', personaSpeed: 1 }).wordsPerSecond === 2.5 && SR.speechRateFor({ family: 'classic', voice: 'onyx', personaSpeed: 0.96 }).wordsPerSecond === 2.4)
   checa('velocidade do roteiro multiplica por cima (onyx 0,92 × speed 1,2 → 2,76)', SR.speechRateFor({ family: 'classic', voice: 'onyx', personaSpeed: 0.92, speed: 1.2 }).wordsPerSecond === 2.76)
-  checa('voz NÃO medida (fable, echo, alloy, nova) segue 3,1 — nada inventado', ['fable', 'echo', 'alloy', 'nova'].every((v) => SR.speechRateFor({ family: 'classic', voice: v, personaSpeed: 0.9 }).wordsPerSecond === 3.1))
+  // 15/09 (KINEO-VOZ-NAO-ARRASTA): fable MEDIDO no Kineo 1 (2,56 a 1,0 → tabela 2,55); echo/alloy/nova/shimmer com a média das medidas (2,55, estimativa declarada); voz fora da tabela segue 3,1.
+  checa('voz fora da tabela segue 3,1 — nada inventado; fable medido (1,03 → 2,63); irmãs com a média das medidas (2,55)', SR.speechRateFor({ family: 'classic', voice: 'zzz', personaSpeed: 0.9 }).wordsPerSecond === 3.1 && SR.speechRateFor({ family: 'classic', voice: 'fable', personaSpeed: 1.03 }).wordsPerSecond === 2.63 && ['echo', 'alloy', 'nova', 'shimmer'].every((v) => SR.speechRateFor({ family: 'classic', voice: v }).wordsPerSecond === 2.55))
   checa('sem voz: 3,1 clássico e 2,3 hollywood, como antes; hollywood ignora a tabela de vozes', SR.speechRateFor({ family: 'classic' }).wordsPerSecond === 3.1 && SR.speechRateFor({ family: 'hollywood' }).wordsPerSecond === 2.3 && SR.speechRateFor({ family: 'hollywood', voice: 'onyx', personaSpeed: 0.94 }).wordsPerSecond === 2.3)
-  checa('a tabela só tem a voz medida (onyx = 2,5)', JSON.stringify(SR.CLASSIC_VOICE_WORDS_PER_SECOND) === '{"onyx":2.5}')
+  checa('a tabela: onyx 2,5 e fable 2,55 medidos; alloy/echo/nova/shimmer 2,55 (estimativa pela média)', JSON.stringify(SR.CLASSIC_VOICE_WORDS_PER_SECOND) === '{"onyx":2.5,"fable":2.55,"alloy":2.55,"echo":2.55,"nova":2.55,"shimmer":2.55}')
   checa('reprodução: 198 palavras a 2,3 = 86 s (o filme mediu 86,4); a 3,1 "davam" 64 s', Math.round(198 / 2.3) === 86 && Math.round(198 / 3.1) === 64)
 }
 
@@ -43,8 +44,8 @@ console.log('== (b) orçamento por cena e dry-run clássico na régua da voz =='
   const sw = rd('lib/cinematic/sceneWords.ts')
   const SW = roda(sw.replace("import { targetWordCount } from '@/lib/compose'", 'const targetWordCount = (d: number) => Math.round(Math.max(5, Math.min(120, Math.round(d))) * 3.1)'))
   const antes = SW.wordsPerSceneFor(60, 7), agora = SW.wordsPerSceneFor(60, 7, 2.3)
-  checa(`60 s / 7 cenas: a 3,1 pedia ${antes[0]}-${antes[1]} palavras por cena (186 no total); a 2,3 pede ${agora[0]}-${agora[1]} (138 no total)`, antes[0] === 23 && antes[1] === 30 && agora[0] === 17 && agora[1] === 22)
-  checa('sem régua, a faixa antiga continua idêntica (guardião do vigia intacto)', JSON.stringify(SW.wordsPerSceneFor(90, 9)) === JSON.stringify([27, 35]) && JSON.stringify(SW.wordsPerSceneFor(60, 6)) === JSON.stringify([27, 35]))
+  checa(`60 s / 7 cenas: a 3,1 pedia ${antes[0]}-${antes[1]} palavras por cena (186 no total); a 2,3 pede ${agora[0]}-${agora[1]} (138 no total)`, antes[0] === 27 && antes[1] === 30 && agora[0] === 20 && agora[1] === 22) // 15/09: piso = alvo inteiro (KINEO-VOZ-NAO-ARRASTA)
+  checa('sem régua, a faixa segue a 3,1 com o piso no alvo inteiro (15/09: 90 s / 9 → 31-35; 60 s / 6 → 31-35)', JSON.stringify(SW.wordsPerSceneFor(90, 9)) === JSON.stringify([31, 35]) && JSON.stringify(SW.wordsPerSceneFor(60, 6)) === JSON.stringify([31, 35]))
   const cdSrc = rd('lib/cinematic/classicDryRun.ts')
   const CD = roda(cdSrc.replace(/^import .*$/gm, ''), { targetWordCount: (d) => Math.round(d * 3.1) })
   const fala = (n) => Array.from({ length: n }, (_, i) => `w${i}`).join(' ')
@@ -73,7 +74,7 @@ console.log('== (c) a rota resolve a persona no plano com a mesma função do co
 console.log('== (d) compose: escala e prevê na régua da voz; corretivo tenta duas vezes ==')
 {
   const cp = rd('app/api/compose/route.ts')
-  checa('composeRate resolvido pela mesma persona do generateTTS; alvo do escalador = duração × régua no clássico', cp.includes("const p = selectPersonaForScript(voiceoverScript, vertical, narrationTier, language)") && cp.includes("return speechRateFor({ family, speed: explicitSpeed, language, voice: p.voice, personaSpeed: p.defaultSpeed })") && cp.includes("scaledScript = await scaleVoiceoverScript(voiceoverScript, composeTargetWords)"))
+  checa('composeRate resolvido pela mesma persona do generateTTS; alvo do escalador = duração × régua no clássico', cp.includes("const p = selectPersonaForScript(voiceoverScript, vertical, narrationTier, language)") && cp.includes("return { ...speechRateFor({ family, speed: explicitSpeed, language, voice: p.voice, personaSpeed: p.defaultSpeed }), personaSpeed: p.defaultSpeed }") /* 15/09: personaSpeed exposto para o piso do corretivo */ && cp.includes("scaledScript = await scaleVoiceoverScript(voiceoverScript, composeTargetWords)"))
   checa('previsão de duração na régua da voz (clássico); hollywood mantém a antiga', cp.includes("const predictedDuration = composeRate.family === 'classic' && composeRate.wordsPerSecond > 0 ? scaledWordCount / composeRate.wordsPerSecond : predictTtsSecondsFromWords(scaledWordCount)"))
   checa('o corretivo tenta a TTS duas vezes antes de manter o original', cp.includes("for (let tentativa = 1; tentativa <= 2 && !retryBuffer; tentativa++) {") && cp.includes("if (tentativa === 2) throw e"))
   // fatia real: previsão → atalho → corretivo (mesmas âncoras do test-kling-duracao)

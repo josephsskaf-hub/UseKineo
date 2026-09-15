@@ -36,7 +36,7 @@ const rota = rd('app/api/compose/route.ts')
 const fatia = fatiaDe(rota)
 checa('fatia previsão → atalho → corretivo existe no compose', Boolean(fatia))
 checa('candidato: o atalho de custo exige que o MEDIDO também esteja perto (≤ 2× tolerância)', fatia.includes('const measuredNearRequest = realAudioDuration > 4 && Math.abs(realAudioDuration - duration) <= 2 * DURATION_TOLERANCE_SECONDS') && fatia.includes('<= DURATION_TOLERANCE_SECONDS && measuredNearRequest'))
-checa('candidato: o corretivo continua o do Push #234 (velocidade = medido / pedido, só se melhorar)', fatia.includes('const correctiveSpeed = realAudioDuration / duration') && fatia.includes('Math.abs(retryDuration - duration) < Math.abs(realAudioDuration - duration)'))
+checa('candidato: o corretivo continua o do Push #234 (velocidade = medido / pedido, só se melhorar)', fatia.includes('const correctiveRaw = realAudioDuration / duration') && fatia.includes('const correctiveSpeed = Math.max(CORRETIVO_PISO_EFETIVO / (composeRate.personaSpeed || 1), correctiveRaw)') && fatia.includes('Math.abs(retryDuration - duration) < Math.abs(realAudioDuration - duration)')) // 15/09 KINEO-VOZ-NAO-ARRASTA: medido/pedido com piso de 0,85 efetivo
 const rodar = montar(fatia)
 
 // o mundo do Kling 2.5 de ontem: 193 palavras, onyx a 0,92 → 81,9 s; re-síntese a velocidade v → 81,9 × 0,92 / clamp(0,92 × v, 0,7, 1,3)

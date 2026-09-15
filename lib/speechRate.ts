@@ -33,7 +33,12 @@ export function speechFamilyForQuality(quality: unknown): SpeechFamily {
 // (onyx a 0,92) falou 86,4 s → 2,29 pal/s (2,49 a 1,0). Kling 8bf45931: 193 palavras, 81,9 s →
 // 2,36 (2,56 a 1,0). Só a voz medida entra na tabela; as outras seguem a base 3,1 até serem
 // medidas. O valor é multiplicado pela velocidade da persona E pela velocidade do roteiro.
-export const CLASSIC_VOICE_WORDS_PER_SECOND: Record<string, number> = { onyx: 2.5 }
+// KINEO-VOZ-NAO-ARRASTA-2026-09-15 — fable MEDIDO no Kineo 1 (render 7e48bfe5, 15/09): 166 palavras em
+// 63,0 s a 1,03 → 2,56 pal/s a 1,0. As outras vozes tts-1-hd (alloy/echo/nova/shimmer) ainda não têm
+// filme medido: entram com a média das duas medidas (2,55) — ESTIMATIVA, muito mais perto do real do
+// que a base 3,1 (que produzia 86 s para 60 e, do outro lado, voz arrastada). Cada uma vira medida
+// no primeiro filme entregue com ela (render_delivered_measured + log 'estimated TTS duration').
+export const CLASSIC_VOICE_WORDS_PER_SECOND: Record<string, number> = { onyx: 2.5, fable: 2.55, alloy: 2.55, echo: 2.55, nova: 2.55, shimmer: 2.55 }
 export function speechRateFor(opts: { family: SpeechFamily; speed?: number | null; language?: string | null; voice?: string | null; personaSpeed?: number | null }): SpeechRate {
   const speed = typeof opts.speed === 'number' && Number.isFinite(opts.speed) && opts.speed > 0 ? Math.min(2, Math.max(0.5, opts.speed)) : 1
   // Idioma: sem medição que justifique fator; fica 1,0 e registrado como estimativa.

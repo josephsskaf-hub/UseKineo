@@ -137,7 +137,7 @@ console.log('== (d) teto e chamadas ==')
 {
   const p = planner(read('lib/runway.ts'), PEDIDO_KLING, 100, SEIS)
   const r = await p.run()
-  checa(`safeCount continua 9 (pediu 100 → ${r.length}) com 1 chamada`, r.length === 9 && p.calls() === 1)
+  checa(`safeCount é 12 desde 15/09 (Veo a 90 s pede 12 clipes; pediu 100 → ${r.length}) com 1 chamada`, r.length === 12 && p.calls() === 1)
   const lib = read('lib/runway.ts')
   checa('biblioteca: o enchimento com o pedido inteiro não existe mais (voiceover usa temaCurto)', lib.includes('const voiceover = `Here is something most people do not know about ${temaCurto}.`') && !lib.includes('const voiceover = `Here is something most people do not know about ${prompt}.`'))
 }
