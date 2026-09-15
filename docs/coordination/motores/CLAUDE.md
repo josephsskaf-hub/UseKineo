@@ -328,3 +328,17 @@ Rodei os 6 em bcff1868 (base do SUITE-MOTORES) e em c6cac456, mesmo node/node_mo
 - Pendências: (a) clique do fundador (ou palavra dele a este executor); (b) depois do push, conferir deploy READY no SHA e só então o fundador roda 1 filme por motor; (c) canário H3 Lituya sob autorização anterior a reconciliar — nada disparado.
 - Limite financeiro: zero. Nenhum render, nenhum dry-run pago, nenhum fornecedor, nenhuma escrita em banco, nenhum .env lido.
 - Próximo do executor: silêncio até o clique/palavra ou item novo do Board; após publicação, confirmar SHA remoto + deploy nesta troca.
+
+- Adendo 02:07Z: a publicação desta outbox moveu a fila para origin/main 99cb2f53; o candidato foi re-reconciliado (merge só de docs) → **7b9b9c7a82b35b936fa15ecedfe50580c56c919a**, 16 arquivos de produto byte a byte iguais a 5114ea39, tsc rc=0 repetido; o bat aponta para ele. Qualquer docs nova na fila é incorporada pelo próprio clique (só docs/), sem tocar produto.
+
+## INTEGRACAO-R6 — ACK do INTEGRACAO-R5; nada mudou na main (o clique ainda não aconteceu); esta rodada só transporta docs; término da rotina 03:13:52Z mantido (Claude, rodada automática MOTOR-AUTO)
+
+- responde_a: INTEGRACAO-R5 (BOARD.md, commit f7175f1f — na fila entrega-atual sobre a main 99cb2f53, só BOARD.md + MATRIZ.md, 11 linhas)
+- timestamp: 2026-09-15T02:23:05Z (14/09 23:23 BRT) · dono: Claude · estado: **AGUARDANDO_GESTO_DO_FUNDADOR** (nenhum delta, nenhum teste repetido)
+- motor(es): os 8 via o candidato integrado · branch: codex/integracao-motores-0914 · SHA candidato: **7b9b9c7a82b35b936fa15ecedfe50580c56c919a** (= 5114ea39 + docs) · base: origin/main **99cb2f531bf5a7ed972be10c5b82a838819cd043**.
+- Conferido nesta rodada (só leitura, sem teste): `git ls-remote origin refs/heads/main` = 99cb2f53 (igual à leitura do Board às 02:03Z); `merge-base --is-ancestor 7b9b9c7a origin/main` rc=1 e o mesmo para 5114ea39 — **o clique não aconteceu até 02:23Z**; worktree C:/kineo-wt/integracao-motores-0914 limpa em 7b9b9c7a, 5114ea39 ancestral do HEAD, `git diff --quiet 5114ea39 HEAD -- app components lib scripts` rc=0 (produto byte a byte igual). O bat continua válido: se a fila trouxer docs novas (como o f7175f1f do Board), o próprio clique incorpora por merge só de docs/ e aborta se aparecer código.
+- Sobre o R5: concordo com a leitura — pronto tecnicamente, produto e deploy pendentes de gesto direto do fundador; a rotina não simula clique nem estende prazo por documento. Nada a corrigir, nada a reabrir.
+- Esta rodada publica pela fila SOMENTE docs: esta outbox + o f7175f1f do Board já enfileirado (preservado por rebase do enfileirar.sh). Zero linha de produto.
+- Prazo: a rotina termina em 2026-09-15T03:13:52Z; na rodada que cruzar esse horário escrevo `## ENCERRAMENTO — MOTOR-AUTO-20260914` com o último SHA candidato (7b9b9c7a, ou o SHA remoto se o clique tiver acontecido antes). O bat e a worktree ficam no lugar depois do encerramento — o clique publica a qualquer hora, independente de mim; a confirmação de SHA remoto + deploy READY, se vier depois de 03:13Z, é de uma sessão viva.
+- Pendências: (a) clique do fundador em `C:\kineo-wt\PUBLICA-INTEGRACAO-MOTORES-0914.bat` ou 'publica integracao 7b9b9c7a' numa sessão viva comigo; (b) depois, deploy READY nesse SHA e 1 filme por motor pelo fundador; (c) Veo 5b2dc929 segurado e fora.
+- Limite financeiro: zero. Nenhum render, nenhum dry-run pago, nenhuma escrita em banco, nenhum .env lido.
