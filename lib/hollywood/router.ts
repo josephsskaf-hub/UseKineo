@@ -468,7 +468,7 @@ function trimNarrationToWords(text: string, maxWords: number): string {
 }
 
 // ── Planner ──────────────────────────────────────────────────────────────────
-import { aplicarFidelidadeAoPlano } from '@/lib/hollywood/fidelidade'
+import { aplicarFidelidadeAoPlano, removerDatasInventadas } from '@/lib/hollywood/fidelidade'
 
 /** Nome da língua da narração para o planejador (espelho de LANGUAGE_NAMES em lib/textLanguage — sem import: guardiões carregam este arquivo cru). */
 const NARRATION_LANGUAGE_NAME: Record<string, string> = { pt: 'Brazilian Portuguese (pt-BR)', es: 'Spanish (es-419, Latin American)' }
@@ -879,6 +879,20 @@ Target total duration: ${Math.max(30, Math.min(100, Math.round(durationSeconds |
   // KINEO-FIDELIDADE-2026-09-14 (v3) — com apresentador: cenas sem diálogo ainda
   // passam por despersonalizar + ficha (o diálogo nativo fica como está).
   if (hostFits) aplicarFidelidadeAoPlano(outScenes, characterSheet, (args.language === 'pt' || args.language === 'es') ? args.language : 'en', false)
+  // KINEO-DATA-INVENTADA-2026-09-15 — data/ano/hora que não estão no pedido saem da fala (a regra no prompt não basta).
+  {
+    const contexto = `${String(idea ?? '')} ${String(voiceoverScript ?? '')}`
+    const tiradas: string[] = []
+    for (const sc of outScenes) {
+      for (const campo of ['voiceover', 'dialogueLine'] as const) {
+        const v = (sc as Record<string, unknown>)[campo]
+        if (typeof v !== 'string' || !v.trim()) continue
+        const r = removerDatasInventadas(v, contexto)
+        if (r.removidas.length) { (sc as Record<string, unknown>)[campo] = r.texto; tiradas.push(...r.removidas) }
+      }
+    }
+    if (tiradas.length) console.log(`[hollywood-planner] KINEO-DATA-INVENTADA: ${tiradas.length} data(s)/hora(s) fora do pedido removida(s) da fala: ${tiradas.map((t) => JSON.stringify(t)).join(', ')}`)
+  }
   // KINEO-HOLLYWOOD-24-2026-07-10 (i) — support scenes SIZED BY THEIR FINAL
   // narration (post-fallback), same rule as dialogue lines: <16 words → 5s,
   // ≥16 → 10s (Kling 3 only renders 5s/10s; cinematic stays fixed at 8s/Veo).

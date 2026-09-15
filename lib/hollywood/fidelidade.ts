@@ -422,6 +422,39 @@ export function garantirAcaoCentral(prompt: string, voiceover: string, character
 }
 
 // ── A cadeia no planejador: conversão sem rosto + despersonalizar + ficha ────
+// ═══ KINEO-DATA-INVENTADA-2026-09-15 — ensaio do S25 (deploy c0fb2230): "battered by a fierce storm on March 3,
+// 2023" com a regra STORY FIDELITY já no prompt; Kling 3 f7351c17: "9:00 PM", "October 15, 2023"; Omni: "1948".
+// O gpt-4o-mini ignora a regra às vezes; o código não. Data, ano e hora que NÃO estão nas palavras do pedido
+// saem da fala, com a preposição que as introduz; o resto da frase fica intacto. Puro, sem modelo. ═══
+const MESES = '(?:January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)'
+const DATA_RE = new RegExp(`(?:,?\\s*\\b(?:on|in|at|since|by|around|during|of|from|until|till|before|after)\\s+)?(?:(?:the\\s+)?(?:morning|evening|night|afternoon)\\s+of\\s+)?(?:\\b${MESES}\\.?\\s+\\d{1,2}(?:st|nd|rd|th)?(?:,?\\s*(?:1[0-9]{3}|20[0-9]{2}))?\\b|\\b\\d{1,2}(?:st|nd|rd|th)?\\s+(?:of\\s+)?${MESES}\\.?(?:,?\\s*(?:1[0-9]{3}|20[0-9]{2}))?\\b|\\b(?:1[0-9]{3}|20[0-9]{2})\\b|\\b\\d{1,2}:\\d{2}\\s*(?:AM|PM|am|pm|a\\.m\\.|p\\.m\\.)?(?:\\s+(?:sharp|each night|every night))?)`, 'g')
+export function removerDatasInventadas(texto: string, contexto: string): { texto: string; removidas: string[] } {
+  const src = (texto ?? '')
+  if (!src.trim()) return { texto: src, removidas: [] }
+  const ctx = new Set((contexto || '').toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [])
+  const removidas: string[] = []
+  let out = src.replace(DATA_RE, (m: string) => {
+    const tokens = m.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? []
+    const numeros = tokens.filter((t) => /\d/.test(t))
+    if (numeros.length === 0) return m
+    // se QUALQUER número da expressão está no pedido ("1963", "1980", "thirty"…), ela é do pedido
+    if (numeros.some((n) => ctx.has(n))) return m
+    removidas.push(m.trim())
+    return ''
+  })
+  if (removidas.length === 0) return { texto: src, removidas }
+  out = out
+    .replace(/\s+([,.;:!?])/g, '$1')
+    .replace(/,\s*([.;!?])/g, '$1')
+    .replace(/(?:,\s*){2,}/g, ', ')
+    .replace(/\(\s*\)/g, '')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/^[\s,;]+/, '')
+    .trim()
+  if (out && !/[.!?…]$/.test(out) && /[.!?…]$/.test(src.trim())) out += '.'
+  return { texto: out, removidas }
+}
+
 export interface CenaPlano { index?: number; type: string; prompt: string; voiceover?: string; dialogueLine?: string; needsNarration?: boolean; seconds?: number; conversao?: Conversao['status']; identidade?: Identidade }
 export type RelatoCena = { index: number | undefined; convertida: boolean; conversao: Conversao['status'] | null; motivo: string | null; identidade: Identidade | null }
 export function aplicarFidelidadeAoPlano<T extends CenaPlano>(scenes: T[], characterSheet: string, idioma: IdiomaNarracao = 'en', semRosto = true): RelatoCena[] {

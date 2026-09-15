@@ -144,7 +144,7 @@ console.log('== helper: juntarContinuacao nunca perde a base ==')
     checa('base com ponto final não ganha ponto duplo; aspas da continuação caem', J('The wave hit the bay.', '"It rose 524 meters."') === 'The wave hit the bay. It rose 524 meters.')
     checa('continuação vazia → base intacta', J('The wave hit the bay.', '   ') === 'The wave hit the bay.')
   }
-  checa('appendNarrationToTargets só aceita candidata que começa pela linha aceita e respeita maxWords', runway.includes("if (wordsOf(candidata) > wordsOf(out[i]) && wordsOf(candidata) <= items[i].maxWords && candidata.startsWith(out[i].trim().replace(/[.!?…]$/, ''))) out[i] = candidata"))
+  checa('appendNarrationToTargets só aceita candidata que começa pela linha aceita e respeita maxWords', runway.includes('if (wordsOf(candidata) <= wordsOf(out[i])) console.warn') && runway.includes('else if (wordsOf(candidata) > items[i].maxWords) console.warn') && runway.includes("else if (!candidata.startsWith(out[i].trim().replace(/[.!?…]$/, ''))) console.warn") && runway.includes('else out[i] = candidata') /* 15/09 KINEO-ESCRITOR-R2: as três recusas viraram avisos nomeados */)
   checa('o pedido ao modelo é de CONTINUAÇÃO (não repetir nem reescrever a linha), sem filler, sem 1ª pessoa', runway.includes('write ONLY the continuation') && runway.includes('Do not repeat or rephrase the given line') && runway.includes('no first person'))
 }
 

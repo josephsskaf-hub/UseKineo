@@ -620,3 +620,13 @@ Ensaio do Veo 60 s (vigia do vulcão, IA) no deploy c0fb2230 / dpl_DGEkPW6QSMdpv
 4. Fidelidade também na linha falada do clássico ("Dr. Emily Carter" e "4:17 AM" foram inventados): regra na instrução de `voiceover` quando há faixa. O ensaio (classicDryRun) passa a avisar nos limiares reais do escalador (−8 % / +15 %).
 
 Guardião test-qualidade-comprovada-2026-09-15 ganhou o bloco (g) (40 verificações; executa generateScenes real com 9 pedidas / 6 devolvidas e a resposta indexada; reproduz na main o "Dr." de 3 palavras e a expansão descartada). test-sem-enchimento e test-vigia-palavras-por-cena estendidos. tsc limpo. Próximo: publicar → ensaio do Veo de novo (2×, o ensaio é probabilístico) → filme.
+
+## QUALIDADE-COMPROVADA-R3 — o ensaio de $0 do S25 achou duas causas no hollywood; consertadas sem gasto (Claude, 15/09 ~21:45 BRT) — LOCAL
+
+Ensaio do S25 60 s (farol de gelo, IA) no deploy c0fb2230: FAIL "cena 2 fica 1,6 s sem fala (9,3 s no total); faltam ~22 palavras" e `plan_silence_filled` com `words_added: 0` em 2 cenas — o mesmo silêncio de ontem (8,2 s), agora com causa:
+1. **Acréscimo de fala descartado em silêncio** — `appendNarrationToTargets` mandava um array de strings e exigia resposta do mesmo tamanho; qualquer omissão/fusão descartava tudo, e nenhuma recusa (tamanho, teto de palavras, base reescrita) era logada. Agora cada linha vai e volta com o índice ({i, text}), cada recusa tem motivo no log e o pedido proíbe inventar data/nome/estatística. (Cenas `cinematic` de 8 s já estão no teto de palavras — 16 a 2,16 pal/s — e não recebem acréscimo; as de apoio recebem e crescem em segundos.)
+2. **Data inventada na fala hollywood** — "battered by a fierce storm on March 3, 2023" mesmo com a regra STORY FIDELITY no prompt (o gpt-4o-mini ignora às vezes). Agora em CÓDIGO (`lib/hollywood/fidelidade.ts` `removerDatasInventadas`, aplicado no planejador a voiceover e dialogueLine): data (mês+dia[+ano]), ano e hora que NÃO estão nas palavras do pedido saem da fala com a preposição; anos do pedido (1963, 1980) ficam; frase sem data volta byte-idêntica. Cobre os casos reais de ontem ("9:00 PM", "October 15, 2023", "1948").
+
+Guardião test-qualidade-comprovada-2026-09-15 bloco (h) (50 verificações; executa `removerDatasInventadas` nos 5 textos reais e o acréscimo indexado com linha omitida e linha longa demais). test-h3-palavras estendido. tsc limpo. Herdado e fora do escopo: test-silencio-na-cena vermelho na origin/main e na candidata (regex de `let anchors` desde a mudança do S25 em 14/09).
+
+Filme Veo 141346ad (100 cr, deploy 7dfa798f): 9/9 clipes aceitos, clips_ready em 2,5 min, compose em andamento — medição abaixo quando chegar.

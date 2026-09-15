@@ -883,20 +883,35 @@ export async function appendNarrationToTargets(items: AppendTarget[], language: 
   const out = items.map((it) => it.text)
   let pendentes = items.map((_, i) => i).filter((i) => items[i].addWords >= 3)
   for (let round = 0; round < rounds && pendentes.length > 0; round++) {
-    const lote = pendentes.map((i) => ({ add_words: Math.max(3, items[i].addWords - (wordsOf(out[i]) - wordsOf(items[i].text))), line: out[i] }))
+    // KINEO-ESCRITOR-R2-2026-09-15 — ensaio do S25: 2 cenas pedidas, "+0 palavras", sem motivo em lugar nenhum. Cada
+    // linha vai e volta com o seu índice (resposta com tamanho diferente não descarta tudo) e toda recusa é logada.
+    const lote = pendentes.map((i) => ({ i, add_words: Math.max(3, items[i].addWords - (wordsOf(out[i]) - wordsOf(items[i].text))), line: out[i] }))
     let arr: unknown = null
     try {
       arr = await pedirContinuacao(lote, langName, topic)
-    } catch {
+    } catch (e) {
+      console.warn(`[scene] narration append: round ${round + 1} failed (${e instanceof Error ? e.message : String(e)})`)
       break
     }
-    if (!Array.isArray(arr) || arr.length !== lote.length) continue
+    if (!Array.isArray(arr)) { console.warn(`[scene] narration append: round ${round + 1} answered without a JSON array`); continue }
+    const porIndice = new Map<number, string>()
+    arr.forEach((item, k) => {
+      if (item && typeof item === 'object' && typeof (item as { text?: unknown }).text === 'string') {
+        const i = Number((item as { i?: unknown }).i)
+        if (Number.isInteger(i)) porIndice.set(i, ((item as { text: string }).text).trim())
+      } else if (typeof item === 'string' && arr.length === lote.length) porIndice.set(lote[k].i, item.trim())
+    })
     const proximos: number[] = []
-    pendentes.forEach((i, k) => {
-      const v = typeof arr[k] === 'string' ? (arr[k] as string).trim() : ''
-      if (v && !FILLER_LINE_RE.test(v)) {
+    pendentes.forEach((i) => {
+      const v = porIndice.get(i) ?? ''
+      if (!v) console.warn(`[scene] narration append: line ${i} had no continuation in the answer`)
+      else if (FILLER_LINE_RE.test(v)) console.warn(`[scene] narration append: line ${i} refused (filler): ${v.slice(0, 60)}`)
+      else {
         const candidata = juntarContinuacao(out[i], v)
-        if (wordsOf(candidata) > wordsOf(out[i]) && wordsOf(candidata) <= items[i].maxWords && candidata.startsWith(out[i].trim().replace(/[.!?…]$/, ''))) out[i] = candidata
+        if (wordsOf(candidata) <= wordsOf(out[i])) console.warn(`[scene] narration append: line ${i} did not grow`)
+        else if (wordsOf(candidata) > items[i].maxWords) console.warn(`[scene] narration append: line ${i} refused (${wordsOf(candidata)} > max ${items[i].maxWords} words)`)
+        else if (!candidata.startsWith(out[i].trim().replace(/[.!?…]$/, ''))) console.warn(`[scene] narration append: line ${i} refused (rewrote the base line)`)
+        else out[i] = candidata
       }
       if (wordsOf(out[i]) - wordsOf(items[i].text) < items[i].addWords - 2) proximos.push(i)
     })
@@ -904,12 +919,12 @@ export async function appendNarrationToTargets(items: AppendTarget[], language: 
   }
   return out
 }
-async function pedirContinuacao(items: { add_words: number; line: string }[], langName: string, topic: string): Promise<unknown> {
+async function pedirContinuacao(items: { i: number; add_words: number; line: string }[], langName: string, topic: string): Promise<unknown> {
   const completion = await openai.chat.completions.create(
     {
       model: 'gpt-4o-mini',
       messages: [
-        { role: 'system', content: `You continue narration lines for a short documentary video about: ${topic.slice(0, 300)}. For each input, write ONLY the continuation: one or two new sentences of about the requested number of words (add_words), in ${langName}, adding specific, true detail (facts, numbers, places, consequences) that follows naturally after the given line. Do not repeat or rephrase the given line. No filler like "imagine", "what if" or "most people don't know"; no questions; no quotes; no first person. Return ONLY a JSON array of strings, same order and same length as the input.` },
+        { role: 'system', content: `You continue narration lines for a short documentary video about: ${topic.slice(0, 300)}. For each input, write ONLY the continuation: one or two new sentences of about the requested number of words (add_words), in ${langName}, adding specific, true detail (facts, numbers, places, consequences) that follows naturally after the given line. Do not repeat or rephrase the given line. No filler like "imagine", "what if" or "most people don't know"; no questions; no quotes; no first person; never invent names, dates, years, clock times or statistics that are not in the topic. Return ONLY a JSON array of objects {"i": <the same i you received>, "text": "<the continuation only>"}, one object per input object, in the same order.` },
         { role: 'user', content: JSON.stringify(items) },
       ],
       temperature: 0.4,

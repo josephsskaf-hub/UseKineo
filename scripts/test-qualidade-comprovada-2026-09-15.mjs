@@ -200,6 +200,40 @@ console.log('== (g) escritor de cenas: 9 pedidas / 6 devolvidas, "Dr.", expansã
   } else checa('main já contém o candidato (escritor R2)', Boolean(rwMain) && rwMain.includes('KINEO-ESCRITOR-R2'))
 }
 
+// ── (h) S25: datas/horas inventadas saem da fala; acréscimo de fala indexado e com motivo ──
+console.log('== (h) data inventada removida em código; acréscimo de fala indexado ==')
+{
+  const fd = rd('lib/hollywood/fidelidade.ts')
+  const a = fd.indexOf('const MESES = ')
+  const b = fd.indexOf('\n}\n', fd.indexOf('export function removerDatasInventadas')) + 3
+  const F = roda(fd.slice(a, b))
+  const pedido = 'A research station on the Antarctic coast during a storm. The last entry is dated today and signed with his name. An old watchmaker closes his shop at night. In 1963 a landslide forced most of its people to leave.'
+  const c1 = F.removerDatasInventadas('The Antarctic research station stands isolated, battered by a fierce storm on March 3, 2023.', pedido)
+  checa(`"on March 3, 2023" sai inteiro com a preposição: "${c1.texto}"`, c1.texto === 'The Antarctic research station stands isolated, battered by a fierce storm.' && c1.removidas.length === 1)
+  const c2 = F.removerDatasInventadas('In a quiet corner of London, an old watchmaker closes his shop at precisely 9:00 PM each night, locking the door behind him.', pedido)
+  checa(`"at precisely 9:00 PM each night" sai: "${c2.texto}"`, /closes his shop(?: at precisely)?, locking the door behind him\.$/.test(c2.texto) && !/9:00/.test(c2.texto))
+  const c3 = F.removerDatasInventadas("Inside, engraved, is his own name and tomorrow's date: October 15, 2023.", pedido)
+  checa(`"October 15, 2023" sai e a frase fecha com ponto: "${c3.texto}"`, c3.texto === "Inside, engraved, is his own name and tomorrow's date:." || c3.texto === "Inside, engraved, is his own name and tomorrow's date." || /tomorrow's date\.?$/.test(c3.texto))
+  const c4 = F.removerDatasInventadas('In 1963 a landslide forced most of its people to leave; in 1980 an earthquake emptied the last houses.', pedido + ' 1980')
+  checa('ano que ESTÁ no pedido fica (1963, 1980)', c4.texto.includes('In 1963') && c4.texto.includes('in 1980') && c4.removidas.length === 0)
+  const c5 = F.removerDatasInventadas('The map, meticulously drawn in 1948 by her grandfather, reveals secrets.', 'a map drawn by her grandfather')
+  checa(`"in 1948" sai: "${c5.texto}"`, c5.texto === 'The map, meticulously drawn by her grandfather, reveals secrets.' )
+  checa('texto sem data volta byte-idêntico', F.removerDatasInventadas('He looks up: through the window, his own station has gone dark.', pedido).texto === 'He looks up: through the window, his own station has gone dark.')
+  const rt = rd('lib/hollywood/router.ts')
+  checa('planejador aplica a remoção às falas (voiceover e dialogueLine) com o pedido como contexto, depois da fidelidade', rt.includes("import { aplicarFidelidadeAoPlano, removerDatasInventadas } from '@/lib/hollywood/fidelidade'") && rt.includes('const r = removerDatasInventadas(v, contexto)') && rt.indexOf('KINEO-DATA-INVENTADA') > rt.indexOf('if (hostFits) aplicarFidelidadeAoPlano('))
+  // acréscimo indexado: resposta com uma linha omitida e outra que reescreve a base
+  const rw = rd('lib/runway.ts')
+  const fnDe2 = (name) => { const sf = ts.createSourceFile('r.ts', rw, ts.ScriptTarget.Latest, true); let found; const visit = (n) => { if (!found && ts.isFunctionDeclaration(n) && n.name?.text === name) found = n; if (!found) ts.forEachChild(n, visit) }; visit(sf); const t = found.getText(sf); return /^export /.test(t) ? t : 'export ' + t }
+  const avisos = []
+  const openai = { chat: { completions: { create: async (req) => { const lote = JSON.parse(req.messages[1].content); return { choices: [{ message: { content: JSON.stringify(lote.filter((x) => x.i !== 1).map((x) => ({ i: x.i, text: x.i === 2 ? 'This continuation is far too long to fit inside the ten word ceiling of that scene.' : 'Cold air moves across the ice, and the lamp keeps turning.' }))) } }] } } } } }
+  const A = roda([ 'const FILLER_LINE_RE = /^(here is something most people do not know about|imagine|what if|most people don\'?t know)/i', fnDe2('juntarContinuacao'), fnDe2('appendNarrationToTargets'), fnDe2('pedirContinuacao') ].join('\n'), { openai, LANGUAGE_NAMES: { en: 'English' }, console: { log: () => {}, warn: (m) => avisos.push(String(m)) } })
+  const itens = [ { text: 'The light comes from an old lighthouse frozen into the ice.', addWords: 5, maxWords: 25 }, { text: 'He puts on his red parka.', addWords: 5, maxWords: 25 }, { text: 'Inside, a logbook lies open on a table.', addWords: 5, maxWords: 10 } ]
+  const r = await A.appendNarrationToTargets(itens, 'en', 'a lighthouse on the ice', 1)
+  checa(`indexado: a linha 0 cresce (${r[0].split(/\s+/).length} palavras), a 1 (omitida) e a 2 (passaria do teto de 10) ficam como estavam`, r[0].startsWith('The light comes from an old lighthouse frozen into the ice. Cold air') && r[1] === itens[1].text && r[2] === itens[2].text)
+  checa(`toda recusa tem motivo no log (${avisos.length}): omitida e longa demais`, avisos.some((m) => /line 1 had no continuation/.test(m)) && avisos.some((m) => /line 2 refused \(\d+ > max 10 words\)/.test(m)))
+  checa('o pedido de continuação é indexado e proíbe inventar data/nome/estatística', rw.includes('Return ONLY a JSON array of objects {"i": <the same i you received>, "text": "<the continuation only>"}') && rw.includes('never invent names, dates, years, clock times or statistics that are not in the topic'))
+}
+
 console.log(`${ok} ok · ${falhas.length} falhas`)
 for (const f of falhas) console.log('  ✗', f)
 process.exit(falhas.length ? 1 : 0)
