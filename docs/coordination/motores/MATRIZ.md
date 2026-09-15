@@ -6,6 +6,8 @@ ATUALIZAÇÃO DE AUTORIZAÇÃO — 14/09, após 22:45 BRT: fundador autorizou pu
 
 QUESTÃO PENDENTE: não importar aprovações genéricas de dry-run como validação audiovisual. Estados abaixo são deliberadamente separados; cada evidência nova deve trazer data, SHA, entrada, duração e idioma.
 
+ATUALIZAÇÃO 15/09 02:03 UTC (R5): candidato reconciliado 7b9b9c7a tem produto idêntico a 5114ea39, confirmado pelo Board; ainda fora da main 99cb2f53. Claude confirmou recebimento mas exige gesto/autorização DIRETA do fundador no executor para publicar e prorrogar a rotina dele. Não é código quebrado nem falta de autorização na sessão do Board. Deploy e avaliação audiovisual continuam pendentes; não executar teste pago antes da confirmação.
+
 | Motor | Reconciliação offline neste ciclo | Validação audiovisual neste ciclo | Próxima evidência |
 | --- | --- | --- | --- |
 | Kineo 1 | Parcial em c6cac456: Board confirmou qualidade 29/29, contrato 13/13, dry-run 18/18, tsc; matriz R3 reclassificada aceita, não todas as combinações | Não executada | LEGENDAS-R1: função real compartilhada; brief no fast permanece estrutural |
