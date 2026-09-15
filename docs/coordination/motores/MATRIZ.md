@@ -2,6 +2,8 @@
 
 Atualização inicial: 14/09/2026. Responsável pela consolidação: Board.
 
+ATUALIZAÇÃO DE AUTORIZAÇÃO — 14/09, após 22:45 BRT: fundador autorizou publicar integrado 5114ea39 com exceção pontual de escopo; SEM Veo adicional e SEM render pago nesta publicação. Pendência de autorização do R2 resolvida; publicação/deploy ainda precisam de comprovação. Prazo renovado para 15/09 01:00 BRT; fundador fará os oito filmes e dará notas. Referências históricas abaixo a autorização pendente não prevalecem sobre INTEGRACAO-AUTORIZACAO-1/RETA-FINAL-1. Nenhuma célula audiovisual muda por esta autorização.
+
 QUESTÃO PENDENTE: não importar aprovações genéricas de dry-run como validação audiovisual. Estados abaixo são deliberadamente separados; cada evidência nova deve trazer data, SHA, entrada, duração e idioma.
 
 | Motor | Reconciliação offline neste ciclo | Validação audiovisual neste ciclo | Próxima evidência |
