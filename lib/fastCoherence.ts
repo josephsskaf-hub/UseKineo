@@ -1,0 +1,212 @@
+// KINEO-1-COERENCIA-2026-09-16 — nota automática de coerência do Kineo 1.
+//
+// Decisão do fundador (16/09, noite): "O mais importante é a gente rever a qualidade do Kineo 1;
+// ele precisa ser muito bom para as pessoas assinarem — o que a pessoa escrever precisa estar
+// coerente no vídeo." Até hoje a coerência só era vista abrindo filme por filme na mão. Os casos
+// abertos hoje mostraram três jeitos de o filme "não ser sobre nada":
+//   · a pessoa colou a nossa própria tela (globaloutreach33) → lib/promptGuard.ts;
+//   · a pessoa apertou Generate com a pílula sozinha ("The incredible true story of", 28 caracteres:
+//     wisadot849 às 18:43; "The unsolved mystery of", 23 caracteres: uldanai148 às 03:16) e o
+//     roteirista INVENTOU a história (cidade escondida na Amazônia / hiker sumido em 1967) →
+//     isBareStarter em lib/promptGuard.ts, recusa nas duas portas;
+//   · o banco de imagens não tem a cena e o filme recicla um clipe de outra cena.
+//
+// O que este módulo faz: para cada filme do Kineo 1, compara (a) o que a pessoa ESCREVEU com o
+// que foi NARRADO e (b) a narração de cada cena com o VISUAL que a cena recebeu (a busca usada,
+// a origem do clipe — stock / still gerado / clipe reciclado — e as tags do clipe escolhido).
+// Devolve nota 0-100, veredito e problemas nomeados. É um juiz por texto: ele lê o PLANO visual
+// (busca + tags), não os pixels — o que hoje é possível sem ffmpeg no servidor, e já pega os
+// três defeitos acima. A rota do Kineo 1 grava a EVIDÊNCIA por cena (fast_scene_plan) sem custo
+// nem latência; a nota é calculada quando o painel abre (ou por quem chamar scoreFastCoherence)
+// e gravada uma vez como evento fast_coherence — nunca no caminho da pessoa.
+
+import { isBareStarter, looksLikeOurOwnUi } from '@/lib/promptGuard'
+
+export const FAST_SCENE_PLAN_EVENT = 'fast_scene_plan'
+export const FAST_COHERENCE_EVENT = 'fast_coherence'
+export const FAST_COHERENCE_VERSION = 'k1_coerencia_v1'
+
+export type FastSceneEvidence = {
+  scene: number
+  voiceover: string
+  query: string | null
+  /** índice do primeiro clipe desta cena em clipSources (preenchido pela rota) */
+  from: number
+  sources: string[]
+  tags: string[]
+}
+
+export type CoherenceVerdict = 'coherent' | 'partial' | 'off'
+
+export type FastCoherenceResult = {
+  version: string
+  score: number
+  prompt_vs_narration: number
+  narration_vs_visuals: number | null
+  verdict: CoherenceVerdict
+  problems: string[]
+  worst_scene: number | null
+  summary: string
+  has_evidence: boolean
+  model: string | null
+  ms: number
+}
+
+export function verdictFor(score: number): CoherenceVerdict {
+  if (score >= 75) return 'coherent'
+  if (score >= 50) return 'partial'
+  return 'off'
+}
+
+const SOURCE_MEANING: Record<string, string> = {
+  pixabay: 'stock clip found by the query',
+  aiStill: 'image generated from this scene text (matches the line by construction)',
+  aiHook: 'AI-generated opener about the topic',
+  fallbackA: 'clip RECYCLED from an earlier scene (probably unrelated to this line)',
+  stockLibrary: 'generic library clip (weak match)',
+  user: "the customer's own footage",
+  none: 'no footage at all',
+}
+
+const clamp = (n: unknown): number => {
+  const v = typeof n === 'number' ? n : Number(n)
+  if (!Number.isFinite(v)) return 0
+  return Math.max(0, Math.min(100, Math.round(v)))
+}
+
+/** Monta as mensagens do juiz. Exportado para o guardião provar o que o modelo lê. */
+export function buildCoherenceMessages(input: { prompt: string; narration: string; scenes?: FastSceneEvidence[] | null }) {
+  const scenes = input.scenes ?? []
+  const sceneLines = scenes
+    .map((s) => {
+      const src = s.sources.length ? s.sources.map((x) => `${x} (${SOURCE_MEANING[x] ?? x})`).join(' + ') : 'none'
+      const tags = s.tags.filter(Boolean).slice(0, 3).join(' | ')
+      return `Scene ${s.scene}: spoken="${s.voiceover.slice(0, 220)}" | query="${s.query ?? '—'}" | footage=${src}${tags ? ` | clip tags: ${tags.slice(0, 240)}` : ''}`
+    })
+    .join('\n')
+  const system =
+    'You audit short films made by an AI video tool. The customer typed a request; the tool wrote a narration and picked footage per scene. ' +
+    'Judge two things. (1) prompt_vs_narration: does the narration tell the story the customer asked for — same subject, same facts/angle, nothing invented that the customer did not ask for? ' +
+    'A prompt that is a full script must be narrated as written; a one-line idea must be developed faithfully. ' +
+    '(2) narration_vs_visuals: per scene, does the footage plan match what is being said? Footage described as "generated from this scene text" matches by construction; ' +
+    '"recycled from an earlier scene" or "generic library clip" usually does not; stock clips match when the query and clip tags describe what the line talks about. ' +
+    'Be strict and concrete. Reply ONLY with JSON: {"prompt_vs_narration": 0-100, "narration_vs_visuals": 0-100 or null when no scenes are given, ' +
+    '"problems": [up to 4 short English strings naming the specific mismatch, empty when none], "worst_scene": scene number or null, "summary": one sentence (max 160 chars)}.'
+  const user =
+    `CUSTOMER WROTE:\n"""${input.prompt.slice(0, 1800)}"""\n\nNARRATION THE FILM USED:\n"""${input.narration.slice(0, 2600)}"""\n\n` +
+    (scenes.length ? `SCENES (spoken line → footage plan):\n${sceneLines}` : 'SCENES: not recorded for this film (judge only prompt_vs_narration; set narration_vs_visuals to null).')
+  return [
+    { role: 'system' as const, content: system },
+    { role: 'user' as const, content: user },
+  ]
+}
+
+/** Casos que não precisam de juiz: a resposta é conhecida. */
+export function knownCoherenceCase(prompt: string): { result: Omit<FastCoherenceResult, 'ms' | 'has_evidence'> } | null {
+  if (looksLikeOurOwnUi(prompt)) {
+    return {
+      result: {
+        version: FAST_COHERENCE_VERSION,
+        score: 0,
+        prompt_vs_narration: 0,
+        narration_vs_visuals: null,
+        verdict: 'off',
+        problems: ['The prompt was the Kineo page itself pasted into the box — there was no idea to be faithful to.'],
+        worst_scene: null,
+        summary: 'Prompt was our own UI text; film narrates the interface.',
+        model: null,
+      },
+    }
+  }
+  if (isBareStarter(prompt)) {
+    return {
+      result: {
+        version: FAST_COHERENCE_VERSION,
+        score: 0,
+        prompt_vs_narration: 0,
+        narration_vs_visuals: null,
+        verdict: 'off',
+        problems: ['The prompt was an unfinished starter phrase (e.g. "The unsolved mystery of") — the story was invented by the writer, not asked for.'],
+        worst_scene: null,
+        summary: 'Prompt was a bare starter; the subject was invented.',
+        model: null,
+      },
+    }
+  }
+  return null
+}
+
+/**
+ * Nota de coerência de UM filme. Falha aberta: qualquer erro devolve null (nunca lança).
+ * Custo: uma chamada gpt-4o-mini (~US$ 0,001). Nunca roda no caminho da pessoa.
+ */
+export async function scoreFastCoherence(
+  input: { prompt: string; narration: string; scenes?: FastSceneEvidence[] | null },
+  opts?: { timeoutMs?: number; fetchImpl?: typeof fetch; model?: string },
+): Promise<FastCoherenceResult | null> {
+  const started = Date.now()
+  const hasEvidence = Array.isArray(input.scenes) && input.scenes.length > 0
+  const known = knownCoherenceCase(input.prompt)
+  if (known) return { ...known.result, has_evidence: hasEvidence, ms: Date.now() - started }
+  if (!input.prompt.trim() || !input.narration.trim()) return null
+  const key = process.env.OPENAI_API_KEY
+  if (!key) return null
+  const model = opts?.model ?? 'gpt-4o-mini'
+  const doFetch = opts?.fetchImpl ?? fetch
+  const ctrl = new AbortController()
+  const timer = setTimeout(() => ctrl.abort(), opts?.timeoutMs ?? 15_000)
+  try {
+    const res = await doFetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      signal: ctrl.signal,
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+      body: JSON.stringify({
+        model,
+        temperature: 0,
+        max_tokens: 400,
+        response_format: { type: 'json_object' },
+        messages: buildCoherenceMessages(input),
+      }),
+    })
+    if (!res.ok) return null
+    const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> }
+    const raw = data.choices?.[0]?.message?.content ?? ''
+    let parsed: Record<string, unknown>
+    try {
+      parsed = JSON.parse(raw) as Record<string, unknown>
+    } catch {
+      return null
+    }
+    return normalizeCoherence(parsed, { hasEvidence, model, ms: Date.now() - started })
+  } catch {
+    return null
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+/** Do JSON do juiz para a nota final. A NOTA e o VEREDITO nascem AQUI (código), nunca da confiança no modelo. */
+export function normalizeCoherence(parsed: Record<string, unknown>, ctx: { hasEvidence: boolean; model: string | null; ms: number }): FastCoherenceResult {
+  const pvn = clamp(parsed.prompt_vs_narration)
+  const nvvRaw = parsed.narration_vs_visuals
+  const nvv = ctx.hasEvidence && nvvRaw != null && Number.isFinite(Number(nvvRaw)) ? clamp(nvvRaw) : null
+  const score = nvv == null ? pvn : Math.round(pvn * 0.5 + nvv * 0.5)
+  const problems = Array.isArray(parsed.problems)
+    ? (parsed.problems as unknown[]).filter((p): p is string => typeof p === 'string' && p.trim().length > 0).map((p) => p.trim().slice(0, 200)).slice(0, 4)
+    : []
+  const ws = parsed.worst_scene
+  const worst = typeof ws === 'number' && Number.isFinite(ws) && ws > 0 ? Math.round(ws) : null
+  return {
+    version: FAST_COHERENCE_VERSION,
+    score,
+    prompt_vs_narration: pvn,
+    narration_vs_visuals: nvv,
+    verdict: verdictFor(score),
+    problems,
+    worst_scene: worst,
+    summary: typeof parsed.summary === 'string' ? parsed.summary.trim().slice(0, 200) : '',
+    has_evidence: ctx.hasEvidence,
+    model: ctx.model,
+    ms: ctx.ms,
+  }
+}

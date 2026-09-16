@@ -13,6 +13,7 @@
 // Gate de acesso: idêntico a todo /api/admin/* — sessão + allowlist.
 import { NextResponse } from 'next/server'
 import { looksLikeOurOwnUi } from '@/lib/promptGuard'
+import { listFastCoherence } from '@/lib/admin/fastCoherence' // KINEO-1-COERENCIA-2026-09-16
 import { createClient } from '@/lib/supabase/server'
 import { isAdminEmail, serviceClient } from '../_shared/db'
 
@@ -104,6 +105,16 @@ export async function GET(req: Request) {
       return null
     }
 
+    // KINEO-1-COERENCIA-2026-09-16 — nota de coerência dos filmes do Kineo 1 desta pessoa (30 dias; julga até 4
+    // sem nota por abertura e grava). Falha aberta: sem nota, o card fica sem selo.
+    const coerenciaPorVideo = new Map<string, { score: number; verdict: string; problems: string[]; summary: string; narration_vs_visuals: number | null; prompt_vs_narration: number }>()
+    try {
+      const linhas = await listFastCoherence(admin, { hours: 24 * 30, limit: 60, userId: uid, maxCompute: 4 })
+      for (const l of linhas) if (l.coherence) coerenciaPorVideo.set(l.video_id, { score: l.coherence.score, verdict: l.coherence.verdict, problems: l.coherence.problems, summary: l.coherence.summary, narration_vs_visuals: l.coherence.narration_vs_visuals, prompt_vs_narration: l.coherence.prompt_vs_narration })
+    } catch (e) {
+      console.warn('[admin/person-media] coerencia indisponivel:', e instanceof Error ? e.message : String(e))
+    }
+
     const animateSessions = new Set(
       (animates.data ?? []).map((r) => (r as { session_id?: string | null }).session_id).filter(Boolean),
     )
@@ -125,6 +136,7 @@ export async function GET(req: Request) {
         topic_full: typeof v.topic === 'string' ? v.topic.slice(0, 4000) : null,
         narration: narracaoPara(v.topic),
         prompt_is_ui: looksLikeOurOwnUi(typeof v.topic === 'string' ? v.topic : ''),
+        coherence: coerenciaPorVideo.get(v.id as string) ?? null, // KINEO-1-COERENCIA
         quality: v.quality_mode ?? null,
         // ⚠️ KINEO-ADMIN-CUSTO-2026-08-27 (fundador: "parece que ela gastou 4
         // creditos no Kineo 1 e nao e 4, e 5"). O painel mostrava o motor e

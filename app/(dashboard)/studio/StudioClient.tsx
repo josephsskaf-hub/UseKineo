@@ -19,6 +19,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 // KINEO-H3-2026-08-19 — custo por motor vem da fonte única, nunca de string.
 import { creditCostFor, creditCostForDuration } from '@/lib/credits/engineCost'
 import { enginePaused } from '@/lib/engineLaunch' // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15
+import { isBareStarter } from '@/lib/promptGuard' // KINEO-1-COERENCIA-2026-09-16
 import type { Quality } from '@/lib/credits/engineCost'
 // KINEO-MULTIFORMATO-2026-09-02 — os 4 enquadramentos, de uma fonte só.
 import { allAspectSpecs, type Aspect } from '@/lib/aspect'
@@ -348,6 +349,9 @@ export default function StudioClient() {
   // corte, 3 nunca fizeram filme nenhum. Mesma funcao que o servidor cobra.
   const promptMax = useMemo(() => analyzePromptMaxChars(scriptMode), [scriptMode])
   const limit = useMemo(() => promptLimitState(finalPrompt, promptMax), [finalPrompt, promptMax])
+  // KINEO-1-COERENCIA-2026-09-16 — a pílula sozinha ("The unsolved mystery of") não despacha: o servidor recusaria
+  // e, antes disso, o roteirista inventaria a história (caso wisadot849 18:43). O botão espera a frase inteira.
+  const bareStarter = scriptMode !== 'clip' && isBareStarter(prompt)
   const limitTrackedRef = useRef<number | null>(null)
   useEffect(() => {
     if (!limit.over || limitTrackedRef.current === limit.length) return
@@ -419,6 +423,9 @@ export default function StudioClient() {
     // Nunca navegar com um texto que o /studio/create vai recusar sem rede:
     // a pessoa veria o erro numa caixa que nao deixa editar o excedente.
     if (limit.over) return
+    // KINEO-1-COERENCIA-2026-09-16 — a pílula sozinha não navega: o servidor recusaria (400) e, antes, o roteirista
+    // inventaria a história. A dica já está sob a caixa; aqui só devolvemos o foco para a pessoa completar.
+    if (bareStarter) { promptRef.current?.focus(); return }
     try {
       sessionStorage.setItem('kineo:studio:go:v1', JSON.stringify({ t: Date.now(), engine, prompt: finalPrompt }))
     } catch {}
@@ -550,6 +557,11 @@ export default function StudioClient() {
                 ? `${prompt.trim().split(/\s+/).length} ${t('words', 'palabras')}${scriptMode === 'verbatim' ? (t(' · narrated word for word', ' · narradas palabra por palabra')) : ''} · ${formatLimitCounter(limit)}`
                 : <UiLabel>a single line is enough — or paste a full script</UiLabel>}
             </div>
+            {bareStarter && (
+              <div className="val" data-kineo="pilula-sozinha" style={{ color: '#67e8f9', fontSize: '0.78rem', marginTop: 6 }}>
+                <UiLabel>{`Finish the sentence — what is it about? e.g. “${prompt.trim()} the Dyatlov Pass”.`}</UiLabel>
+              </div>
+            )}
             {limit.over && (
               // KINEO-STUDIO-TETO-VISIVEL-2026-09-02 — a saida de 1 clique: corta no
               // fim da ultima frase inteira que cabe e avisa quanto saiu. Roteiro do

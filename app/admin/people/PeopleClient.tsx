@@ -105,7 +105,7 @@ interface PersonMedia {
   plan: string | null
   trial: { granted: number; used: number } | null
   signup_at: string | null
-  videos: Array<{ id: string; url: string | null; thumb: string | null; topic: string | null; topic_full?: string | null; narration?: string | null; prompt_is_ui?: boolean; quality: string | null; status: string | null; created_at: string; credits: number | null; seconds: number | null }>
+  videos: Array<{ id: string; url: string | null; thumb: string | null; topic: string | null; topic_full?: string | null; narration?: string | null; prompt_is_ui?: boolean; coherence?: { score: number; verdict: string; problems: string[]; summary: string; narration_vs_visuals: number | null; prompt_vs_narration: number } | null; quality: string | null; status: string | null; created_at: string; credits: number | null; seconds: number | null }>
   images_total: number
   audios_total: number
   animations_delivered: number
@@ -607,6 +607,16 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
                           </div>
                           {v.prompt_is_ui && (
                             <div style={{ color: '#f87171', fontSize: 10, fontWeight: 800, marginTop: 3 }}>⚠ prompt = texto da nossa própria tela (colado)</div>
+                          )}
+                          {/* KINEO-1-COERENCIA-2026-09-16 — a nota do juiz (escreveu × narrou × cenas), com os problemas nomeados. */}
+                          {v.coherence && (
+                            <div style={{ marginTop: 4, fontSize: 10.5, lineHeight: 1.4 }} data-kineo="coerencia">
+                              <span style={{ fontWeight: 900, color: v.coherence.score >= 75 ? '#34d399' : v.coherence.score >= 50 ? '#fbbf24' : '#f87171' }}>coerência {v.coherence.score}</span>
+                              <span style={{ color: '#8e8e93' }}> · texto {v.coherence.prompt_vs_narration} · visual {v.coherence.narration_vs_visuals ?? '—'}</span>
+                              {v.coherence.problems.length > 0 && (
+                                <div style={{ color: '#fca5a5', marginTop: 2 }}>{v.coherence.problems[0]}</div>
+                              )}
+                            </div>
                           )}
                           <div style={{ color: '#c7c7cc', fontSize: 10.5, lineHeight: 1.35, maxHeight: 42, overflow: 'hidden' }}>
                             {v.topic ?? 'Untitled'}

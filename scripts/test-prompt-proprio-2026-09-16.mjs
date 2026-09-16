@@ -26,9 +26,9 @@ checa('mensagem diz o que fazer e que nada foi cobrado; razão nomeada', /nothin
 
 console.log('== (b) as duas portas recusam antes de custar ==')
 const an = rd('app/api/analyze-idea/route.ts')
-checa('analyze-idea recusa com 400 e razão prompt_is_our_ui logo depois de limpar a tag de câmera', an.includes("import { looksLikeOurOwnUi, PROMPT_PROPRIO_MESSAGE, PROMPT_PROPRIO_REASON } from '@/lib/promptGuard'") && an.includes('if (looksLikeOurOwnUi(prompt)) {') && an.indexOf('if (looksLikeOurOwnUi(prompt)) {') > an.indexOf("analyzeRefusalCopy('prompt_only_camera_tag')"))
+checa('analyze-idea recusa com 400 e razão prompt_is_our_ui logo depois de limpar a tag de câmera', /import \{[^}]*looksLikeOurOwnUi[^}]*PROMPT_PROPRIO_MESSAGE[^}]*PROMPT_PROPRIO_REASON[^}]*\} from '@\/lib\/promptGuard'/.test(an) && an.includes('if (looksLikeOurOwnUi(prompt)) {') && an.indexOf('if (looksLikeOurOwnUi(prompt)) {') > an.indexOf("analyzeRefusalCopy('prompt_only_camera_tag')"))
 const ft = rd('app/api/generate-video-fast/route.ts')
-checa('generate-video-fast recusa ANTES de classificar/planejar/cobrar', ft.includes("import { looksLikeOurOwnUi, PROMPT_PROPRIO_MESSAGE, PROMPT_PROPRIO_REASON } from '@/lib/promptGuard'") && ft.includes("recordFastFailure('generating', PROMPT_PROPRIO_REASON, 400, user.id)") && ft.indexOf('if (looksLikeOurOwnUi(prompt)) {') < ft.indexOf("name: 'generation_dispatch_received'"))
+checa('generate-video-fast recusa ANTES de classificar/planejar/cobrar', /import \{[^}]*looksLikeOurOwnUi[^}]*PROMPT_PROPRIO_MESSAGE[^}]*PROMPT_PROPRIO_REASON[^}]*\} from '@\/lib\/promptGuard'/.test(ft) && ft.includes("recordFastFailure('generating', PROMPT_PROPRIO_REASON, 400, user.id)") && ft.indexOf('if (looksLikeOurOwnUi(prompt)) {') < ft.indexOf("name: 'generation_dispatch_received'"))
 
 console.log('== (c) painel do fundador: escreveu / narrou / filme ==')
 const api = rd('app/api/admin/person-media/route.ts')

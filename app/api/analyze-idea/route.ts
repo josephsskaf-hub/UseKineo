@@ -5,7 +5,7 @@ import { writeServerEvent } from '@/lib/serverEvents'
 import { buildRefusalEvent } from '@/lib/stageRefusal'
 import { looksOpenAiQuotaDead } from '@/lib/openaiAlert'
 import { analyzePromptMaxChars, analyzePromptTooLongMessage } from '@/lib/analyzeLimits'
-import { looksLikeOurOwnUi, PROMPT_PROPRIO_MESSAGE, PROMPT_PROPRIO_REASON } from '@/lib/promptGuard'
+import { isBareStarter, BARE_STARTER_MESSAGE, BARE_STARTER_REASON, looksLikeOurOwnUi, PROMPT_PROPRIO_MESSAGE, PROMPT_PROPRIO_REASON } from '@/lib/promptGuard'
 import {
   analyzeRefusalCopy,
   analyzeRefusalTelemetry,
@@ -699,6 +699,15 @@ export async function POST(req: NextRequest) {
         { error: PROMPT_PROPRIO_MESSAGE, reason: PROMPT_PROPRIO_REASON },
         user.id,
         { reason: PROMPT_PROPRIO_REASON, prompt_length: prompt.length },
+      )
+    }
+    // KINEO-1-COERENCIA-2026-09-16 — a pílula sozinha não é ideia (ver lib/promptGuard.ts).
+    if (isBareStarter(prompt)) {
+      return await recusarAnalise(
+        400,
+        { error: BARE_STARTER_MESSAGE, reason: BARE_STARTER_REASON },
+        user.id,
+        { reason: BARE_STARTER_REASON, prompt_length: prompt.length },
       )
     }
     const withCamera = (visual: string): string =>
