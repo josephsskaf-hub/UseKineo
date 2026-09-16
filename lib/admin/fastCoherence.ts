@@ -8,7 +8,9 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
   FAST_COHERENCE_EVENT,
+  FAST_COHERENCE_VERSION,
   FAST_SCENE_PLAN_EVENT,
+  TOPIC_TRUNCATION_HINT,
   scoreFastCoherence,
   type FastCoherenceResult,
   type FastSceneEvidence,
@@ -20,6 +22,8 @@ export type FastCoherenceRow = {
   user_id: string
   email: string | null
   topic: string
+  /** true = só existe o texto cortado em 500 do vídeo (filme anterior ao rastro completo) */
+  topic_truncated: boolean
   narration: string | null
   url: string | null
   seconds: number | null
@@ -119,14 +123,20 @@ export async function listFastCoherence(
     const plan = gen ? planByGen.get(gen) : undefined
     const scenes = Array.isArray(plan?.metadata?.scenes) ? (plan!.metadata!.scenes as FastSceneEvidence[]) : null
     const scoreEv = gen ? scoreByGen.get(gen) : undefined
-    const coherence = scoreEv?.metadata && typeof scoreEv.metadata.score === 'number' ? (scoreEv.metadata as unknown as FastCoherenceResult) : null
+    // Só a versão vigente do juiz vale; nota antiga é julgada de novo (custa ~US$ 0,001).
+    const coherence = scoreEv?.metadata && typeof scoreEv.metadata.score === 'number' && scoreEv.metadata.version === FAST_COHERENCE_VERSION ? (scoreEv.metadata as unknown as FastCoherenceResult) : null
+    // O texto mais longo que existir: plano (inteiro, filmes novos) > claim > vídeo (cortado em 500).
+    const candidatos = [typeof plan?.metadata?.topic === 'string' ? (plan!.metadata!.topic as string) : '', typeof claim?.metadata?.topic === 'string' ? (claim.metadata.topic as string) : '', v.topic ?? '']
+    const topic = candidatos.reduce((a, b) => (b.length > a.length ? b : a), '')
+    const topicTruncated = !(typeof plan?.metadata?.topic === 'string') && topic.length >= TOPIC_TRUNCATION_HINT
     const sources = histogram(scenes)
     rows.push({
       video_id: v.id,
       created_at: v.created_at,
       user_id: v.user_id,
       email,
-      topic: v.topic ?? '',
+      topic,
+      topic_truncated: topicTruncated,
       narration,
       url: v.video_url,
       seconds: v.duration,
@@ -147,7 +157,7 @@ export async function listFastCoherence(
   if (pending.length > 0) {
     await Promise.all(
       pending.map(async (r) => {
-        const result = await scoreFastCoherence({ prompt: r.topic, narration: r.narration ?? '', scenes: r.scenes })
+        const result = await scoreFastCoherence({ prompt: r.topic, narration: r.narration ?? '', scenes: r.scenes, promptMayBeTruncated: r.topic_truncated })
         if (!result) return
         r.coherence = result
         r.coherence_at = new Date().toISOString()
@@ -156,7 +166,7 @@ export async function listFastCoherence(
           user_id: r.user_id,
           session_id: r.generation_id,
           path: '/admin/coerencia',
-          metadata: { ...result, video_id: r.video_id, render_id: r.render_id, generation_id: r.generation_id, topic: r.topic.slice(0, 120) },
+          metadata: { ...result, video_id: r.video_id, render_id: r.render_id, generation_id: r.generation_id, topic: r.topic.slice(0, 120), topic_truncated: r.topic_truncated },
         })
       }),
     )

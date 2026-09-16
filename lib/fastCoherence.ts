@@ -24,7 +24,13 @@ import { isBareStarter, looksLikeOurOwnUi } from '@/lib/promptGuard'
 
 export const FAST_SCENE_PLAN_EVENT = 'fast_scene_plan'
 export const FAST_COHERENCE_EVENT = 'fast_coherence'
-export const FAST_COHERENCE_VERSION = 'k1_coerencia_v1'
+// v2 (16/09 noite): (1) ideia curta é para ser DESENVOLVIDA — acrescentar fatos/cenas no mesmo assunto é certo, não
+// desvio (a v1 punia "narration adds details not in prompt" em ideias de uma linha); (2) `videos.topic` é cortado em
+// 500 caracteres (9 de 21 filmes de hoje tinham despacho de 835-1.756) — o juiz recebe o texto mais longo que existir
+// (fast_scene_plan.topic inteiro para filmes novos; claim/vídeo para os antigos) e é avisado quando o texto pode
+// estar truncado. Mudar a versão faz o painel julgar de novo (o leitor só aceita nota da versão vigente).
+export const FAST_COHERENCE_VERSION = 'k1_coerencia_v2'
+export const TOPIC_TRUNCATION_HINT = 500
 
 export type FastSceneEvidence = {
   scene: number
@@ -75,7 +81,7 @@ const clamp = (n: unknown): number => {
 }
 
 /** Monta as mensagens do juiz. Exportado para o guardião provar o que o modelo lê. */
-export function buildCoherenceMessages(input: { prompt: string; narration: string; scenes?: FastSceneEvidence[] | null }) {
+export function buildCoherenceMessages(input: { prompt: string; narration: string; scenes?: FastSceneEvidence[] | null; promptMayBeTruncated?: boolean }) {
   const scenes = input.scenes ?? []
   const sceneLines = scenes
     .map((s) => {
@@ -87,13 +93,13 @@ export function buildCoherenceMessages(input: { prompt: string; narration: strin
   const system =
     'You audit short films made by an AI video tool. The customer typed a request; the tool wrote a narration and picked footage per scene. ' +
     'Judge two things. (1) prompt_vs_narration: does the narration tell the story the customer asked for — same subject, same facts/angle, nothing invented that the customer did not ask for? ' +
-    'A prompt that is a full script must be narrated as written; a one-line idea must be developed faithfully. ' +
+    'Two kinds of request exist. A SHORT IDEA (a title, a topic, a few sentences): the tool is SUPPOSED to develop it — adding accurate facts, scenes, a hook and a payoff on the same subject is correct and scores high (85-100); penalize only when the subject, the angle or the named people/places drift, or when claims contradict the request. A FULL SCRIPT (long, sentence by sentence): the narration must follow it closely; rewording, cuts and additions lower the score. ' +
     '(2) narration_vs_visuals: per scene, does the footage plan match what is being said? Footage described as "generated from this scene text" matches by construction; ' +
     '"recycled from an earlier scene" or "generic library clip" usually does not; stock clips match when the query and clip tags describe what the line talks about. ' +
     'Be strict and concrete. Reply ONLY with JSON: {"prompt_vs_narration": 0-100, "narration_vs_visuals": 0-100 or null when no scenes are given, ' +
     '"problems": [up to 4 short English strings naming the specific mismatch, empty when none], "worst_scene": scene number or null, "summary": one sentence (max 160 chars)}.'
   const user =
-    `CUSTOMER WROTE:\n"""${input.prompt.slice(0, 1800)}"""\n\nNARRATION THE FILM USED:\n"""${input.narration.slice(0, 2600)}"""\n\n` +
+    `CUSTOMER WROTE${input.promptMayBeTruncated ? ' (stored text may be CUT (the store keeps 500-1,000 characters) — do not penalize narration that plausibly continues it)' : ''}:\n"""${input.prompt.slice(0, 5000)}"""\n\nNARRATION THE FILM USED:\n"""${input.narration.slice(0, 2600)}"""\n\n` +
     (scenes.length ? `SCENES (spoken line → footage plan):\n${sceneLines}` : 'SCENES: not recorded for this film (judge only prompt_vs_narration; set narration_vs_visuals to null).')
   return [
     { role: 'system' as const, content: system },
@@ -141,7 +147,7 @@ export function knownCoherenceCase(prompt: string): { result: Omit<FastCoherence
  * Custo: uma chamada gpt-4o-mini (~US$ 0,001). Nunca roda no caminho da pessoa.
  */
 export async function scoreFastCoherence(
-  input: { prompt: string; narration: string; scenes?: FastSceneEvidence[] | null },
+  input: { prompt: string; narration: string; scenes?: FastSceneEvidence[] | null; promptMayBeTruncated?: boolean },
   opts?: { timeoutMs?: number; fetchImpl?: typeof fetch; model?: string },
 ): Promise<FastCoherenceResult | null> {
   const started = Date.now()

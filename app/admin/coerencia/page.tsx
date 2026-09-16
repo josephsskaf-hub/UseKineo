@@ -64,7 +64,7 @@ function Linha({ r }: { r: FastCoherenceRow }) {
           </ul>
         )}
         <details style={{ marginTop: 8 }}>
-          <summary style={{ color: '#2997ff', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>O que escreveu ({r.topic.length} caracteres)</summary>
+          <summary style={{ color: '#2997ff', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>O que escreveu ({r.topic.length} caracteres{r.topic_truncated ? ' · texto cortado pelo banco (500/1.000) — filme anterior ao rastro completo' : ''})</summary>
           <pre style={{ whiteSpace: 'pre-wrap', color: '#c7c7cc', fontSize: 11.5, lineHeight: 1.45, margin: '4px 0 0', fontFamily: 'inherit', maxHeight: 240, overflow: 'auto' }}>{r.topic}</pre>
         </details>
         <details style={{ marginTop: 4 }}>

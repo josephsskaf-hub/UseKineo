@@ -1374,7 +1374,8 @@ export async function POST(req: NextRequest) {
         userId: user.id,
         sessionId: generationId,
         path: '/api/generate-video-fast',
-        metadata: { generation_id: generationId, topic: prompt.slice(0, 200), scenes: sceneEvidence.slice(0, 24).map(({ from: _from, ...rest }) => rest), verbatim },
+        // topic INTEIRO (o teto da caixa é 5.000): videos.topic é cortado em 500 e o juiz precisa do texto real.
+        metadata: { generation_id: generationId, topic: prompt.slice(0, 5000), scenes: sceneEvidence.slice(0, 24).map(({ from: _from, ...rest }) => rest), verbatim },
       })
     }
 

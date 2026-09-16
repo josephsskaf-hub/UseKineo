@@ -52,6 +52,8 @@ const msgs = C.buildCoherenceMessages({ prompt: '5 morning habits Jeff Bezos use
   { scene: 2, voiceover: 'He reads the paper.', query: 'man reading newspaper', from: 2, sources: ['fallbackA'], tags: [] },
 ] })
 checa('mensagens levam prompt, narração, e cada cena com fala · busca · origem traduzida · tags', msgs.length === 2 && msgs[1].content.includes('CUSTOMER WROTE') && msgs[1].content.includes('Scene 2: spoken="He reads the paper."') && msgs[1].content.includes('RECYCLED from an earlier scene') && msgs[1].content.includes('clip tags: alarm, clock, morning'))
+checa('v2: ideia curta é para ser desenvolvida (não pune acréscimo no mesmo assunto); script inteiro exige fidelidade', C.FAST_COHERENCE_VERSION === 'k1_coerencia_v2' && msgs[0].content.includes('A SHORT IDEA') && msgs[0].content.includes('scores high (85-100)') && msgs[0].content.includes('A FULL SCRIPT'))
+checa('v2: aviso de texto cortado em 500 só quando pedido; o prompt vai até 5.000', C.buildCoherenceMessages({ prompt: 'a', narration: 'b', promptMayBeTruncated: true })[1].content.includes('may be CUT (the store keeps 500-1,000 characters)') && !msgs[1].content.includes('may be CUT') && C.buildCoherenceMessages({ prompt: 'x'.repeat(3000), narration: 'b' })[1].content.includes('x'.repeat(3000)))
 checa('sem cenas o juiz é instruído a julgar só texto (narration_vs_visuals null)', C.buildCoherenceMessages({ prompt: 'a', narration: 'b' })[1].content.includes('set narration_vs_visuals to null'))
 const n1 = C.normalizeCoherence({ prompt_vs_narration: 90, narration_vs_visuals: 40, problems: ['scene 2 recycled clip', 7, '', 'x', 'y', 'z'], worst_scene: 2, summary: 'ok' }, { hasEvidence: true, model: 'gpt-4o-mini', ms: 12 })
 checa('nota = média de texto e visual (90,40 → 65 partial), problemas filtrados a ≤4 strings, pior cena 2', n1.score === 65 && n1.verdict === 'partial' && n1.problems.length === 4 && n1.problems[0] === 'scene 2 recycled clip' && n1.worst_scene === 2)
@@ -76,6 +78,7 @@ checa('o checkpoint do servidor (fast_compose_recoverable source:server) e a evi
 
 console.log('== (d) painel ==')
 const la = rd('lib/admin/fastCoherence.ts')
+checa('rota grava o prompt INTEIRO no plano (videos.topic corta em 500); leitor usa o texto mais longo, marca truncado e só aceita nota da versão vigente', ft.includes('topic: prompt.slice(0, 5000), scenes: sceneEvidence') && la.includes('scoreEv.metadata.version === FAST_COHERENCE_VERSION') && la.includes('const topic = candidatos.reduce((a, b) => (b.length > a.length ? b : a), \'\')') && la.includes('promptMayBeTruncated: r.topic_truncated'))
 checa('leitor junta vídeo → claim (render_id) → plano (generation_id) → nota, e julga só o que falta', la.includes("eq('name', 'compose_submission_claim')") && la.includes("eq('name', FAST_SCENE_PLAN_EVENT).in('session_id', genIds)") && la.includes('const pending = rows.filter((r) => !r.coherence && r.generation_id && r.narration && r.topic)') && la.includes('name: FAST_COHERENCE_EVENT'))
 const pg = rd('app/admin/coerencia/page.tsx')
 checa('/admin/coerencia: gate admin, média/fora/parciais, escreveu × narrou × cena a cena, link do filme', pg.includes('isAdminEmail(email)') && pg.includes('fora do pedido') && pg.includes('Cena a cena') && pg.includes('▶ abrir filme'))
