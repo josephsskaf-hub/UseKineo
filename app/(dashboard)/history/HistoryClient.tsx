@@ -70,6 +70,23 @@ interface Video {
   enhance_request_id?: string | null
 }
 
+// KINEO-CARD-BONITO-2026-09-16 — pedido do fundador ("melhora o botão… do jeito mais bonito possível"). Padrão das
+// bibliotecas de vídeo do mercado (HeyGen, InVideo, Runway, Higgsfield, CapCut): UMA ação primária cheia e forte
+// (Download), as secundárias como chip ícone-sobre-nome numa linha (HD, 4K, Share, YouTube, Title), cada uma com
+// tooltip, e o motor no selo da linha de cima. Nada de ícone sem nome. Cor por semântica: azul = baixar/compartilhar,
+// verde = pronto, roxo = 4K, vermelho = YouTube, cinza = privado.
+function chipStyle(cor: string, ativo: boolean, cursor: string = 'pointer') {
+  return {
+    display: 'flex', flexDirection: 'column' as const, alignItems: 'center', justifyContent: 'center', gap: 3,
+    padding: '6px 2px 5px', borderRadius: 8, minWidth: 0,
+    background: ativo ? `${cor}26` : 'rgba(255,255,255,0.035)',
+    border: `1px solid ${ativo ? cor + '80' : 'rgba(255,255,255,0.09)'}`,
+    color: cor, fontSize: '0.5rem', fontWeight: 800, letterSpacing: '0.02em', textTransform: 'uppercase' as const,
+    lineHeight: 1.1, cursor, textDecoration: 'none', whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
+  }
+}
+const CHIP_ICON = { fontSize: '0.95rem', lineHeight: 1 } as const
+
 function isWatermarkedFastAsset(video: Video): boolean {
   return video.quality_mode === 'fast' && Number(video.credits_used ?? 0) === 0
 }
@@ -1588,30 +1605,25 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                   )}
                 </div>
 
-                {/* Action buttons — KINEO-CARD-COM-NOME-2026-09-16: pedido do fundador, botão com nome, não só ícone; grade de 3 colunas */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 4 }}>
+                {/* Action buttons — KINEO-CARD-BONITO-2026-09-16 (ver chipStyle): primária cheia + 5 chips com nome */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 3 }}>
                   <button
                     onClick={() => handleDownload(video)}
                     disabled={downloadingId === video.id}
                     title={isWatermarkedFastAsset(video) ? 'Download MP4 with Kineo watermark' : 'Download saved MP4'}
                     aria-label={isWatermarkedFastAsset(video) ? 'Download MP4 with Kineo watermark' : 'Download saved MP4'}
                     style={{
-                      flex: 1,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 3,
-                      padding: '5px 4px',
-                      borderRadius: 6,
-                      background: 'rgba(41,151,255,0.08)',
-                      border: '1px solid rgba(41,151,255,0.2)',
-                      color: '#2997ff',
-                      fontSize: '0.6rem',
-                      fontWeight: 700,
+                      gridColumn: '1 / -1',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                      padding: '8px 6px', borderRadius: 8,
+                      background: 'linear-gradient(180deg, #3aa6ff 0%, #2997ff 100%)',
+                      border: '1px solid rgba(41,151,255,0.65)',
+                      boxShadow: '0 4px 14px rgba(41,151,255,0.28), inset 0 1px 0 rgba(255,255,255,0.18)',
+                      color: '#fff', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.01em',
                       cursor: downloadingId === video.id ? 'wait' : 'pointer',
                     }}
                   >
-                    {downloadingId === video.id ? '…' : isWatermarkedFastAsset(video) ? '⬇ Download (WM)' : '⬇ Download'}
+                    {downloadingId === video.id ? 'Preparing…' : isWatermarkedFastAsset(video) ? '⬇ Download · watermark' : '⬇ Download MP4'}
                   </button>
                   {/* KINEO-ENHANCE-2026-08-17 — Topaz film polish, 10 cr */}
                   <button
@@ -1619,99 +1631,65 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                     disabled={enhStatus[video.id] === 'processing'}
                     title="Enhance — Topaz film polish (sharper, cleaner, film grain) · 10 credits"
                     aria-label="Enhance video · 10 credits"
-                    style={{
-                      flex: 1,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 3,
-                      padding: '5px 4px',
-                      borderRadius: 6,
-                      background: enhStatus[video.id] === 'done' ? 'rgba(52,211,153,0.10)' : 'rgba(41,151,255,0.08)',
-                      border: enhStatus[video.id] === 'done' ? '1px solid rgba(52,211,153,0.35)' : '1px solid rgba(41,151,255,0.2)',
-                      color: enhStatus[video.id] === 'done' ? '#34d399' : '#2997ff',
-                      fontSize: '0.6rem',
-                      fontWeight: 700,
-                      cursor: enhStatus[video.id] === 'processing' ? 'wait' : 'pointer',
-                    }}
+                    style={chipStyle(enhStatus[video.id] === 'done' ? '#34d399' : '#5cb3ff', enhStatus[video.id] === 'done', enhStatus[video.id] === 'processing' ? 'wait' : 'pointer')}
                   >
-                    {enhStatus[video.id] === 'processing' ? '✨ HD…' : enhStatus[video.id] === 'done' ? '✨ HD ✓' : '✨ HD · 10 cr'}
+                    <span style={CHIP_ICON}>{enhStatus[video.id] === 'done' ? '✅' : '✨'}</span>
+                    <span>{enhStatus[video.id] === 'processing' ? 'HD…' : enhStatus[video.id] === 'done' ? 'HD ✓' : 'HD · 10'}</span>
                   </button>
                   {/* KINEO-4K-2026-08-18 — Export 4K (Topaz 2x) antes do 1º enhance */}
-                  {!enhStatus[video.id] && (
+                  {!enhStatus[video.id] ? (
                     <button
                       onClick={() => handleEnhance(video, '4k')}
                       title="Export in 4K — Topaz 2x upscale (2160×3840) · 40 credits"
                       aria-label="Export 4K · 40 credits"
-                      style={{
-                        flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3,
-                        padding: '5px 4px', borderRadius: 6,
-                        background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.3)',
-                        color: '#c084fc', fontSize: '0.6rem', fontWeight: 700, cursor: 'pointer',
-                      }}
+                      style={chipStyle('#c084fc', false)}
                     >
-                      4K · 40 cr
+                      <span style={CHIP_ICON}>🎞️</span>
+                      <span>4K · 40</span>
                     </button>
+                  ) : (
+                    <span title="4K export is available before the HD polish" style={chipStyle('#6b7280', false, 'default')}>
+                      <span style={CHIP_ICON}>🎞️</span>
+                      <span>4K</span>
+                    </span>
                   )}
 
                   {/* #459 — share the public /v/[id] page */}
                   {PUBLIC_VIDEO_SHARING_ENABLED ? (
                     <button
                       onClick={() => handleShare(video)}
-                      title="Share public link"
-                      style={{
-                        flex: 1,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 3,
-                        padding: '5px 4px',
-                        borderRadius: 6,
-                        background: 'rgba(41,151,255,0.1)',
-                        border: '1px solid rgba(41,151,255,0.25)',
-                        color: '#2997ff',
-                        fontSize: '0.6rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                      }}
+                      title="Copy the public link"
+                      aria-label="Copy the public link"
+                      style={chipStyle('#5cb3ff', sharedId === video.id)}
                     >
-                      {sharedId === video.id ? '✓ Link copied' : '🔗 Copy link'}
+                      <span style={CHIP_ICON}>🔗</span>
+                      <span>{sharedId === video.id ? 'Copied' : 'Share'}</span>
                     </button>
                   ) : (
                     <span
                       title="Public links are paused; download the MP4 to share directly"
-                      style={{
-                        flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        padding: '5px 4px', borderRadius: 6, background: 'rgba(255,255,255,.05)',
-                        border: '1px solid var(--border)', color: 'var(--muted2)', fontSize: '0.6rem', fontWeight: 700,
-                      }}
-                    ><UiLabel>
-                      🔒 Private
-                    </UiLabel></span>
+                      style={chipStyle('#9ca3af', false, 'default')}
+                    >
+                      <span style={CHIP_ICON}>🔒</span>
+                      <span><UiLabel>
+                        Private
+                      </UiLabel></span>
+                    </span>
                   )}
 
                   <a
                     href="https://studio.youtube.com"
                     target="_blank"
                     rel="noopener noreferrer"
-                    style={{
-                      flex: 1,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 3,
-                      padding: '5px 4px',
-                      borderRadius: 6,
-                      background: 'rgba(239,68,68,0.1)',
-                      border: '1px solid rgba(239,68,68,0.25)',
-                      color: '#F87171',
-                      fontSize: '0.6rem',
-                      fontWeight: 700,
-                      textDecoration: 'none',
-                    }}
-                  ><UiLabel>
-                    ▶ YouTube
-                  </UiLabel></a>
+                    title="Open YouTube Studio to upload this Short"
+                    aria-label="Open YouTube Studio"
+                    style={chipStyle('#f87171', false)}
+                  >
+                    <span style={CHIP_ICON}>▶</span>
+                    <span><UiLabel>
+                      YouTube
+                    </UiLabel></span>
+                  </a>
 
                   {/* Push #421 — YouTube summary (title + description + hashtags) */}
                   <button
@@ -1719,23 +1697,10 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                     disabled={summaryLoading === video.id}
                     title="YouTube title, description & hashtags"
                     aria-label="YouTube title, description & hashtags"
-                    style={{
-                      flex: 1,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 3,
-                      padding: '5px 4px',
-                      borderRadius: 6,
-                      background: isExpanded ? 'rgba(41,151,255,0.18)' : 'rgba(41,151,255,0.08)',
-                      border: '1px solid rgba(41,151,255,0.25)',
-                      color: '#2997ff',
-                      fontSize: '0.6rem',
-                      fontWeight: 700,
-                      cursor: summaryLoading === video.id ? 'wait' : 'pointer',
-                    }}
+                    style={chipStyle('#5cb3ff', isExpanded, summaryLoading === video.id ? 'wait' : 'pointer')}
                   >
-                    {summaryLoading === video.id ? '📋 …' : '📋 Title & tags'}
+                    <span style={CHIP_ICON}>📋</span>
+                    <span>{summaryLoading === video.id ? '…' : 'Title'}</span>
                   </button>
                 </div>
 
