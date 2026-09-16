@@ -105,7 +105,7 @@ interface PersonMedia {
   plan: string | null
   trial: { granted: number; used: number } | null
   signup_at: string | null
-  videos: Array<{ id: string; url: string | null; thumb: string | null; topic: string | null; quality: string | null; status: string | null; created_at: string; credits: number | null; seconds: number | null }>
+  videos: Array<{ id: string; url: string | null; thumb: string | null; topic: string | null; topic_full?: string | null; narration?: string | null; prompt_is_ui?: boolean; quality: string | null; status: string | null; created_at: string; credits: number | null; seconds: number | null }>
   images_total: number
   audios_total: number
   animations_delivered: number
@@ -584,36 +584,49 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
                     Nenhum vídeo na conta — os créditos (se gastos) foram em imagens/áudio/animação, ou as gerações falharam/foram barradas e estornadas.
                   </p>
                 ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 10 }}>
+                    {/* KINEO-PROMPT-PROPRIO-2026-09-16 (fundador: "quero ver o que ele escreveu e o vídeo que saiu,
+                        para dar nota de coerência"): o card vira a prova inteira — o filme toca aqui mesmo,
+                        "O que escreveu" é o prompt inteiro e "O que foi narrado" é a narração que a montagem
+                        usou. Prompt que é a nossa própria tela colada ganha alerta vermelho. */}
                     {media.videos.map((v) => (
-                      <a
+                      <div
                         key={v.id}
-                        href={v.url ?? undefined}
-                        target="_blank"
-                        rel="noreferrer"
-                        style={{ display: 'block', textDecoration: 'none', background: '#0a0a0c', border: '1px solid #2a2a2d', borderRadius: 10, overflow: 'hidden', opacity: v.url ? 1 : 0.55 }}
+                        style={{ background: '#0a0a0c', border: v.prompt_is_ui ? '1px solid rgba(248,113,113,.6)' : '1px solid #2a2a2d', borderRadius: 10, overflow: 'hidden', opacity: v.url ? 1 : 0.55 }}
                       >
-                        <div style={{ aspectRatio: '9/16', maxHeight: 190, background: v.thumb ? `url(${v.thumb}) center/cover` : '#131316', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          {!v.thumb && <span style={{ fontSize: 22 }}>{v.url ? '▶' : '⏳'}</span>}
-                        </div>
+                        {v.url ? (
+                          <video src={v.url} controls preload="metadata" playsInline style={{ display: 'block', width: '100%', aspectRatio: '9/16', maxHeight: 300, background: '#000', objectFit: 'contain' }} />
+                        ) : (
+                          <div style={{ aspectRatio: '9/16', maxHeight: 190, background: '#131316', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <span style={{ fontSize: 22 }}>⏳</span>
+                          </div>
+                        )}
                         <div style={{ padding: '7px 9px' }}>
                           <div style={{ color: '#a78bfa', fontSize: 9.5, fontWeight: 800, textTransform: 'uppercase' }}>
                             {MEDIA_ENGINE_LABEL[v.quality ?? ''] ?? v.quality ?? '—'}{v.status && v.status !== 'completed' ? ` · ${v.status}` : ''}
                           </div>
+                          {v.prompt_is_ui && (
+                            <div style={{ color: '#f87171', fontSize: 10, fontWeight: 800, marginTop: 3 }}>⚠ prompt = texto da nossa própria tela (colado)</div>
+                          )}
                           <div style={{ color: '#c7c7cc', fontSize: 10.5, lineHeight: 1.35, maxHeight: 42, overflow: 'hidden' }}>
                             {v.topic ?? 'Untitled'}
                           </div>
+                          <details style={{ marginTop: 5 }}>
+                            <summary style={{ color: '#2997ff', fontSize: 10, fontWeight: 800, cursor: 'pointer' }}>O que escreveu ({(v.topic_full ?? v.topic ?? '').length} caracteres)</summary>
+                            <pre style={{ whiteSpace: 'pre-wrap', color: '#e5e5ea', fontSize: 10.5, lineHeight: 1.45, margin: '4px 0 0', fontFamily: 'inherit', maxHeight: 220, overflow: 'auto' }}>{v.topic_full ?? v.topic ?? '—'}</pre>
+                          </details>
+                          <details style={{ marginTop: 4 }}>
+                            <summary style={{ color: '#2997ff', fontSize: 10, fontWeight: 800, cursor: 'pointer' }}>O que foi narrado{v.narration ? '' : ' (sem registro)'}</summary>
+                            <pre style={{ whiteSpace: 'pre-wrap', color: '#e5e5ea', fontSize: 10.5, lineHeight: 1.45, margin: '4px 0 0', fontFamily: 'inherit', maxHeight: 220, overflow: 'auto' }}>{v.narration ?? 'A montagem não deixou a narração no evento compose_submission_claim para este vídeo.'}</pre>
+                          </details>
                           <div style={{ color: '#5a5a60', fontSize: 9.5, marginTop: 3 }}>
                             {fmtDate(v.created_at)}
-                            {/* Custo SEMPRE com a duracao ao lado: o Kineo 1 e
-                                5 cr por 60s, mas 4 por 45s e 3 por 30s. Ver o
-                                "4" sozinho parece erro de cobranca; ver
-                                "4 cr · 45s" e a conta certa. */}
                             {v.credits != null ? ` · ${v.credits} cr` : ''}
                             {v.seconds != null ? ` · ${v.seconds}s` : ''}
+                            {v.url ? <> · <a href={v.url} target="_blank" rel="noreferrer" style={{ color: '#2997ff' }}>abrir</a></> : null}
                           </div>
                         </div>
-                      </a>
+                      </div>
                     ))}
                   </div>
                 )}

@@ -12,6 +12,7 @@
 //
 // Gate de acesso: idêntico a todo /api/admin/* — sessão + allowlist.
 import { NextResponse } from 'next/server'
+import { looksLikeOurOwnUi } from '@/lib/promptGuard'
 import { createClient } from '@/lib/supabase/server'
 import { isAdminEmail, serviceClient } from '../_shared/db'
 
@@ -57,7 +58,17 @@ export async function GET(req: Request) {
 
     // TODOS os vídeos, sem janela de tempo — é o pedido literal. 200 de teto
     // por sanidade de payload; ninguém no funil atual chega perto.
-    const [vids, imgs, auds, animates, guardBlocks] = await Promise.all([
+    // KINEO-PROMPT-PROPRIO-2026-09-16 (fundador: "quero ver o que ele escreveu e o vídeo que saiu"): a narração
+    // que a montagem usou mora no evento compose_submission_claim (metadata.narration) — casada ao vídeo pelo
+    // começo do topic. É o par "escreveu × narrou × filme" que permite dar nota de coerência sem abrir o banco.
+    const claimsQ = admin
+      .from('events')
+      .select('created_at, metadata')
+      .eq('user_id', uid)
+      .eq('name', 'compose_submission_claim')
+      .order('created_at', { ascending: false })
+      .limit(60)
+    const [vids, imgs, auds, animates, guardBlocks, claims] = await Promise.all([
       admin
         .from('videos')
         .select('id, video_url, thumbnail_url, topic, quality_mode, status, created_at, credits_used, duration')
@@ -80,7 +91,18 @@ export async function GET(req: Request) {
         .eq('name', 'narration_guard_blocked')
         .order('created_at', { ascending: false })
         .limit(20),
+      claimsQ,
     ])
+    const narracaoPara = (topic: unknown): string | null => {
+      const t = typeof topic === 'string' ? topic.trim().slice(0, 60) : ''
+      if (!t) return null
+      for (const c of (claims.data ?? []) as Array<{ metadata?: Record<string, unknown> | null }>) {
+        const m = c.metadata ?? {}
+        const ct = typeof m.topic === 'string' ? m.topic.trim().slice(0, 60) : ''
+        if (ct && ct === t && typeof m.narration === 'string' && m.narration.trim()) return m.narration.trim().slice(0, 4000)
+      }
+      return null
+    }
 
     const animateSessions = new Set(
       (animates.data ?? []).map((r) => (r as { session_id?: string | null }).session_id).filter(Boolean),
@@ -99,6 +121,10 @@ export async function GET(req: Request) {
         url: v.video_url ?? null,
         thumb: v.thumbnail_url ?? null,
         topic: typeof v.topic === 'string' ? v.topic.slice(0, 120) : null,
+        // KINEO-PROMPT-PROPRIO — o que a pessoa ESCREVEU (inteiro), o que foi NARRADO, e se o prompt era a nossa tela.
+        topic_full: typeof v.topic === 'string' ? v.topic.slice(0, 4000) : null,
+        narration: narracaoPara(v.topic),
+        prompt_is_ui: looksLikeOurOwnUi(typeof v.topic === 'string' ? v.topic : ''),
         quality: v.quality_mode ?? null,
         // ⚠️ KINEO-ADMIN-CUSTO-2026-08-27 (fundador: "parece que ela gastou 4
         // creditos no Kineo 1 e nao e 4, e 5"). O painel mostrava o motor e

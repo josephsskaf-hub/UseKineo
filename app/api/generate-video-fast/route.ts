@@ -8,6 +8,7 @@ import type { Scene } from '@/lib/runway'
 // Push #353 — Pixabay replaces Pexels as primary B-roll source.
 // Fast Mode v2 (02/07) — getPixabayClipsForScene returns a RANKED mini-pool per scene.
 import { getPixabayClipsForScene } from '@/lib/pixabay'
+import { looksLikeOurOwnUi, PROMPT_PROPRIO_MESSAGE, PROMPT_PROPRIO_REASON } from '@/lib/promptGuard'
 // KINEO-1-HIBRIDO-2026-09-16 — cena que o banco não cobre vira still FLUX (ver lib/fastAiScene.ts).
 import { decideFastAiScene, buildFastStillPrompt, generateFastSceneStill, fastStillSeed, fastAiScenesMax } from '@/lib/fastAiScene'
 import { normalizeAspect } from '@/lib/aspect'
@@ -382,6 +383,11 @@ export async function POST(req: NextRequest) {
     if (!prompt) {
       recordFastFailure('generating', 'prompt_missing', 400, user.id)
       return NextResponse.json({ error: 'Prompt is required.' }, { status: 400 })
+    }
+    // KINEO-PROMPT-PROPRIO-2026-09-16 — a nossa própria tela colada não vira filme nem cobra (ver lib/promptGuard.ts).
+    if (looksLikeOurOwnUi(prompt)) {
+      recordFastFailure('generating', PROMPT_PROPRIO_REASON, 400, user.id)
+      return NextResponse.json({ error: PROMPT_PROPRIO_MESSAGE, reason: PROMPT_PROPRIO_REASON, charged: false }, { status: 400 })
     }
     if (prompt.length > 5000) {
       // Only the length is recorded — never the prompt text itself.

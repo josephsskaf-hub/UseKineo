@@ -5,6 +5,7 @@ import { writeServerEvent } from '@/lib/serverEvents'
 import { buildRefusalEvent } from '@/lib/stageRefusal'
 import { looksOpenAiQuotaDead } from '@/lib/openaiAlert'
 import { analyzePromptMaxChars, analyzePromptTooLongMessage } from '@/lib/analyzeLimits'
+import { looksLikeOurOwnUi, PROMPT_PROPRIO_MESSAGE, PROMPT_PROPRIO_REASON } from '@/lib/promptGuard'
 import {
   analyzeRefusalCopy,
   analyzeRefusalTelemetry,
@@ -688,6 +689,16 @@ export async function POST(req: NextRequest) {
           empty_prompt: 'after_camera_tag',
           ...analyzeRefusalTelemetry('prompt_only_camera_tag', bodyCru, body.prompt),
         },
+      )
+    }
+    // KINEO-PROMPT-PROPRIO-2026-09-16 — a caixa veio com a NOSSA tela colada (caso globaloutreach33: 1.018 caracteres
+    // do Studio viraram um filme sobre a interface). Não é ideia: recusa aqui, antes do GPT, com a frase que diz o que fazer.
+    if (looksLikeOurOwnUi(prompt)) {
+      return await recusarAnalise(
+        400,
+        { error: PROMPT_PROPRIO_MESSAGE, reason: PROMPT_PROPRIO_REASON },
+        user.id,
+        { reason: PROMPT_PROPRIO_REASON, prompt_length: prompt.length },
       )
     }
     const withCamera = (visual: string): string =>
