@@ -468,7 +468,7 @@ function trimNarrationToWords(text: string, maxWords: number): string {
 }
 
 // ── Planner ──────────────────────────────────────────────────────────────────
-import { aplicarFidelidadeAoPlano, removerDatasInventadas } from '@/lib/hollywood/fidelidade'
+import { aplicarFidelidadeAoPlano, removerDatasInventadas, fichaDoPedido, trocarFichaNosPrompts } from '@/lib/hollywood/fidelidade'
 
 /** Nome da língua da narração para o planejador (espelho de LANGUAGE_NAMES em lib/textLanguage — sem import: guardiões carregam este arquivo cru). */
 const NARRATION_LANGUAGE_NAME: Record<string, string> = { pt: 'Brazilian Portuguese (pt-BR)', es: 'Spanish (es-419, Latin American)' }
@@ -491,6 +491,8 @@ export async function planHollywoodScenes(args: {
   language?: string
   /** KINEO-MULTIFORMATO-2026-09-02 — ausente = '9:16' (todo caminho atual). */
   aspect?: string | null
+  /** KINEO-FICHA-DO-PEDIDO-2026-09-15 — ficha explícita do protagonista, nas palavras do pedido (deriveExplicitCharacter). */
+  characterHint?: string | null
 }): Promise<HollywoodPlan> {
   const { idea, voiceoverScript, scenes, durationSeconds, language } = args
   // KINEO-MULTIFORMATO-2026-09-02 — o enquadramento entra no PROMPT do
@@ -553,7 +555,7 @@ OTHER HARD RULES:
 - SUBJECT VARIETY (STRICT — KINEO-SPECTACLE-2026-08-17, founder caught "the same sea scene repeated several times"): before writing scenes, list the DISTINCT visual subjects the story offers (each event, place, object, era and moment is a different subject — e.g. an eruption, a ship at sea, a wave hitting a town, an ash column, a red sky over a city, a new island rising are SIX different subjects). Every non-dialogue scene depicts a DIFFERENT primary subject. Two b-roll scenes of the same subject — even with different framing — are a hard failure. If the story has fewer subjects than scenes, move through TIME (before / during / after) or PLACE, never repeat.
 - ${language && language !== 'en' ? `NARRATION LANGUAGE (STRICT — KINEO-IDIOMA-DA-NARRACAO-2026-09-14: a Portuguese idea on H3 came out narrated in English): every "voiceover" MUST be written in ${NARRATION_LANGUAGE_NAME[language] ?? language} — that is the language the narrator will speak. Prompts, characterSheet, environmentSheet, styleSheet and captions stay in English. Use NO "dialogue" scenes for this film: all scenes are "support" or "cinematic" with voiceover (the on-camera engines lip-sync English only).` : 'ALL text in English regardless of the input language.'}
 - NEVER name or depict a real person (no celebrities, politicians, athletes, historical figures). People are always fictional and generic.
-- Each scene gets a short on-screen "caption" (max 6 words, punchy).
+${args.characterHint ? `- CHARACTER FROM THE INPUT (STRICT — KINEO-FICHA-DO-PEDIDO-2026-09-15, founder's render 4328b078: the input said "a broad-shouldered man in his fifties with a gray beard, a red parka and a black wool hat" and the plan invented "a rugged male engineer in his late 30s with short brown hair and snow goggles"): the input describes the protagonist as "${String(args.characterHint).replace(/"/g, "'")}". characterSheet MUST describe exactly this person — same age, hair, beard, clothing and accessories; add only details that do not contradict it; every scene that shows the person repeats these traits. Never invent a different age, hair color or outfit.\n` : ''}- Each scene gets a short on-screen "caption" (max 6 words, punchy).
 
 Output JSON shape ("demo" is optional, only on demo/showcase support scenes):
 {"genre":"documentary","hostFits":true,"stylized":false,"characterSheet":"...","environmentSheet":"...","styleSheet":"...","scenes":[{"index":1,"type":"dialogue","beat":"HOOK","seconds":10,"prompt":"...","dialogueLine":"...","caption":"..."},{"index":2,"type":"support","beat":"MICRO_REWARD","seconds":10,"prompt":"...","voiceover":"...","caption":"...","demo":true}]}`
@@ -596,7 +598,10 @@ Target total duration: ${Math.max(30, Math.min(100, Math.round(durationSeconds |
   const genre = typeof data.genre === 'string' && data.genre.trim() ? data.genre.trim().toLowerCase().slice(0, 24) : 'other'
   console.log(`[hollywood-planner] KINEO-UNIVERSAL direção: genre=${genre} hostFits=${hostFits} stylized=${stylized}`)
 
-  const characterSheet = sanitizeRealPeople(typeof data.characterSheet === 'string' ? data.characterSheet : '')
+  const fichaDoModelo = sanitizeRealPeople(typeof data.characterSheet === 'string' ? data.characterSheet : '')
+  // KINEO-FICHA-DO-PEDIDO-2026-09-15 — as palavras do pedido vencem a ficha inventada.
+  const characterSheet = args.characterHint ? sanitizeRealPeople(fichaDoPedido(fichaDoModelo, args.characterHint)) : fichaDoModelo
+  if (characterSheet !== fichaDoModelo) console.log(`[hollywood-planner] KINEO-FICHA-DO-PEDIDO: ficha do pedido em vez da do modelo ("${fichaDoModelo.slice(0, 60)}…" → "${characterSheet.slice(0, 60)}…")`)
   const environmentSheet = sanitizeRealPeople(typeof data.environmentSheet === 'string' ? data.environmentSheet : '')
   // KINEO-HOLLYWOOD-22-2026-07-10 — ONE photography sheet for the whole film,
   // appended IN CODE to every scene prompt below (all engines get the same
@@ -879,6 +884,8 @@ Target total duration: ${Math.max(30, Math.min(100, Math.round(durationSeconds |
   // KINEO-FIDELIDADE-2026-09-14 (v3) — com apresentador: cenas sem diálogo ainda
   // passam por despersonalizar + ficha (o diálogo nativo fica como está).
   if (hostFits) aplicarFidelidadeAoPlano(outScenes, characterSheet, (args.language === 'pt' || args.language === 'es') ? args.language : 'en', false)
+  // KINEO-FICHA-DO-PEDIDO-2026-09-15 — onde o modelo repetiu a própria ficha literalmente, entra a do pedido.
+  if (characterSheet !== fichaDoModelo) { const n = trocarFichaNosPrompts(outScenes, fichaDoModelo, characterSheet); if (n) console.log(`[hollywood-planner] KINEO-FICHA-DO-PEDIDO: ficha do modelo trocada em ${n} prompt(s)`) }
   // KINEO-DATA-INVENTADA-2026-09-15 — data/ano/hora que não estão no pedido saem da fala (a regra no prompt não basta).
   {
     const contexto = `${String(idea ?? '')} ${String(voiceoverScript ?? '')}`

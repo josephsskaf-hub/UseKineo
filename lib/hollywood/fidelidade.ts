@@ -455,6 +455,24 @@ export function removerDatasInventadas(texto: string, contexto: string): { texto
   return { texto: out, removidas }
 }
 
+// ═══ KINEO-FICHA-DO-PEDIDO-2026-09-15 — render S25 4328b078: o pedido dizia "a broad-shouldered man in his fifties with a
+// gray beard, a red parka and a black wool hat"; o planejador inventou "a rugged male engineer in his late 30s, with short
+// brown hair… snow goggles" e repetiu isso em 4 cenas. A ficha explícita do pedido (deriveExplicitCharacter) passa a ser
+// a characterSheet, e a ficha inventada é trocada onde o modelo a repetiu literalmente nos prompts. Puro, sem modelo. ═══
+export function fichaDoPedido(fichaDoModelo: string, fichaDoPedidoTexto: string | null | undefined): string {
+  const h = (fichaDoPedidoTexto ?? '').replace(/\s+/g, ' ').trim().replace(/[.;:,]+$/, '')
+  return h.length >= 12 ? h : fichaDoModelo
+}
+export function trocarFichaNosPrompts<T extends { prompt: string }>(scenes: T[], fichaDoModelo: string, ficha: string): number {
+  const m = (fichaDoModelo ?? '').trim()
+  if (!m || m === ficha) return 0
+  let n = 0
+  for (const sc of scenes) {
+    if (typeof sc.prompt === 'string' && sc.prompt.includes(m)) { sc.prompt = sc.prompt.split(m).join(ficha); n++ }
+  }
+  return n
+}
+
 export interface CenaPlano { index?: number; type: string; prompt: string; voiceover?: string; dialogueLine?: string; needsNarration?: boolean; seconds?: number; conversao?: Conversao['status']; identidade?: Identidade }
 export type RelatoCena = { index: number | undefined; convertida: boolean; conversao: Conversao['status'] | null; motivo: string | null; identidade: Identidade | null }
 export function aplicarFidelidadeAoPlano<T extends CenaPlano>(scenes: T[], characterSheet: string, idioma: IdiomaNarracao = 'en', semRosto = true): RelatoCena[] {

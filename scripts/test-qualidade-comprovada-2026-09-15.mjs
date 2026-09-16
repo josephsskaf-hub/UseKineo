@@ -221,7 +221,7 @@ console.log('== (h) data inventada removida em código; acréscimo de fala index
   checa(`"in 1948" sai: "${c5.texto}"`, c5.texto === 'The map, meticulously drawn by her grandfather, reveals secrets.' )
   checa('texto sem data volta byte-idêntico', F.removerDatasInventadas('He looks up: through the window, his own station has gone dark.', pedido).texto === 'He looks up: through the window, his own station has gone dark.')
   const rt = rd('lib/hollywood/router.ts')
-  checa('planejador aplica a remoção às falas (voiceover e dialogueLine) com o pedido como contexto, depois da fidelidade', rt.includes("import { aplicarFidelidadeAoPlano, removerDatasInventadas } from '@/lib/hollywood/fidelidade'") && rt.includes('const r = removerDatasInventadas(v, contexto)') && rt.indexOf('KINEO-DATA-INVENTADA') > rt.indexOf('if (hostFits) aplicarFidelidadeAoPlano('))
+  checa('planejador aplica a remoção às falas (voiceover e dialogueLine) com o pedido como contexto, depois da fidelidade', rt.includes("import { aplicarFidelidadeAoPlano, removerDatasInventadas, fichaDoPedido, trocarFichaNosPrompts } from '@/lib/hollywood/fidelidade'") && rt.includes('const r = removerDatasInventadas(v, contexto)') && rt.indexOf('KINEO-DATA-INVENTADA') > rt.indexOf('if (hostFits) aplicarFidelidadeAoPlano('))
   // acréscimo indexado: resposta com uma linha omitida e outra que reescreve a base
   const rw = rd('lib/runway.ts')
   const fnDe2 = (name) => { const sf = ts.createSourceFile('r.ts', rw, ts.ScriptTarget.Latest, true); let found; const visit = (n) => { if (!found && ts.isFunctionDeclaration(n) && n.name?.text === name) found = n; if (!found) ts.forEachChild(n, visit) }; visit(sf); const t = found.getText(sf); return /^export /.test(t) ? t : 'export ' + t }
@@ -249,6 +249,30 @@ console.log('== (i) status/retomada reconhecem os modelos do Seedance 2.5 ==')
   if (stMain && !stMain.includes('S25_I2V_MODEL')) checa('main: reproduz — a lista não tem o Seedance 2.5 (503 "unsupported model")', !stMain.slice(stMain.indexOf('const ALLOWED_MODELS'), stMain.indexOf('])', stMain.indexOf('const ALLOWED_MODELS'))).includes('seedance-2.5'))
   else checa('main já contém o candidato (status S25)', Boolean(stMain) && stMain.includes('S25_I2V_MODEL'))
 }
+// ── (j) ficha do pedido vence a do planejador; no S25 a cena com pessoa vai em t2v (hipótese do 422) ──
+console.log('== (j) ficha do pedido no planejador hollywood; S25 pessoa → t2v ==')
+{
+  const fd = rd('lib/hollywood/fidelidade.ts')
+  const a = fd.indexOf('export function fichaDoPedido('); const b = fd.indexOf('\n}\n', fd.indexOf('export function trocarFichaNosPrompts')) + 3
+  const F = roda(fd.slice(a, b))
+  const pedido = 'a broad-shouldered man in his fifties with a gray beard, a red parka and a black wool hat'
+  const modelo = 'A rugged male engineer in his late 30s, with short brown hair, wearing a red parka and snow goggles, slightly weathered face from harsh conditions'
+  checa('fichaDoPedido: as palavras do pedido vencem; sem pedido, fica a do modelo', F.fichaDoPedido(modelo, pedido) === pedido && F.fichaDoPedido(modelo, null) === modelo && F.fichaDoPedido(modelo, 'x') === modelo)
+  const cenas = [{ prompt: `Close-up shot of ${modelo} staring out a frosted window.` }, { prompt: 'Wide shot of the station in the storm.' }, { prompt: `Medium shot of ${modelo}, red parka.` }]
+  const n = F.trocarFichaNosPrompts(cenas, modelo, pedido)
+  checa(`trocarFichaNosPrompts: ${n} prompts trocados, o resto intacto`, n === 2 && cenas[0].prompt === `Close-up shot of ${pedido} staring out a frosted window.` && cenas[1].prompt === 'Wide shot of the station in the storm.' && cenas[2].prompt.startsWith(`Medium shot of ${pedido},`))
+  const rt = rd('lib/hollywood/router.ts')
+  checa('planejador: recebe characterHint, exige no prompt (CHARACTER FROM THE INPUT) e aplica em código depois da fidelidade', rt.includes('characterHint?: string | null') && rt.includes('CHARACTER FROM THE INPUT (STRICT — KINEO-FICHA-DO-PEDIDO-2026-09-15') && rt.includes('const characterSheet = args.characterHint ? sanitizeRealPeople(fichaDoPedido(fichaDoModelo, args.characterHint)) : fichaDoModelo') && rt.includes('trocarFichaNosPrompts(outScenes, fichaDoModelo, characterSheet)') && rt.indexOf('trocarFichaNosPrompts(outScenes') > rt.indexOf('if (hostFits) aplicarFidelidadeAoPlano('))
+  const rc = rd('app/api/generate-video-cinematic/route.ts')
+  checa('rota: passa deriveExplicitCharacter(prompt) ao planejador', rc.includes('characterHint: deriveExplicitCharacter(prompt), // KINEO-FICHA-DO-PEDIDO-2026-09-15') && rc.includes('deriveExplicitCharacter, deriveStyleAnchor'))
+  checa('rota: no S25 a cena com pessoa em quadro pula o still (t2v) — hipótese registrada como tal', rc.includes('KINEO-S25-PESSOA-T2V-2026-09-15 (HIPÓTESE, não provada)') && rc.includes("const s25PessoaEmQuadro = family === 's25' && ") && rc.includes("if ((hs.type === 'support' || hs.type === 'cinematic') && !anchorUrl && !s25PessoaEmQuadro) {"))
+  const SS = rd('lib/cinematic/sceneStyle.ts')
+  const i2 = SS.indexOf('const EXPLICIT_CHARACTER_RES'); const j2 = SS.indexOf('\n}\n', SS.indexOf('export function deriveExplicitCharacter')) + 3
+  let extraiu = null
+  try { const E = roda(SS.slice(i2, j2).replace(/^const limpaDescricao[^\n]*\n/m, ''), { limpaDescricao: (s) => s.replace(/\s+/g, ' ').replace(/[\s,;:]+$/, '').replace(/\s+(?:and|e|y)$/i, '').trim() }); extraiu = E.deriveExplicitCharacter('Keep the same engineer throughout: a broad-shouldered man in his fifties with a gray beard, a red parka and a black wool hat.\n\nUse third-person voiceover throughout.') } catch (e) { extraiu = 'ERRO ' + (e instanceof Error ? e.message : String(e)) }
+  checa(`deriveExplicitCharacter lê a ficha do pedido do S25: ${JSON.stringify(extraiu)}`, typeof extraiu === 'string' && /fifties/.test(extraiu) && /gray beard/.test(extraiu) && /black wool hat/.test(extraiu))
+}
+
 console.log(`${ok} ok · ${falhas.length} falhas`)
 for (const f of falhas) console.log('  ✗', f)
 process.exit(falhas.length ? 1 : 0)

@@ -151,7 +151,7 @@ import {
   historicoDeParedes,
   mensagemComEspiral,
 } from '@/lib/refusalSpiral'
-import { closingSceneVariation, deriveStoryCharacter, deriveStyleAnchor, textSafetySuffix } from '@/lib/cinematic/sceneStyle'
+import { closingSceneVariation, deriveStoryCharacter, deriveExplicitCharacter, deriveStyleAnchor, textSafetySuffix } from '@/lib/cinematic/sceneStyle'
 import { buildClassicVisualPrompt, classicVisualNegativePrompt, isStylizedLook, scrubInventedSetting, visualDescriptionDirection, type VisualPromptPolicy } from '@/lib/cinematic/visualPromptPolicy'
 import { classifyEngineFit } from '@/lib/engineFit'
 import { FalQueueSubmitError, submitFalQueueOnce } from '@/lib/falQueue'
@@ -3347,6 +3347,7 @@ async function manipularPost(req: NextRequest) {
           faceless: facelessRequested,
           idea: prompt,
           aspect: aspectRequested, // KINEO-MULTIFORMATO-2026-09-02
+          characterHint: deriveExplicitCharacter(prompt), // KINEO-FICHA-DO-PEDIDO-2026-09-15
           voiceoverScript: hollywoodVoiceover || undefined,
           scenes: scenes.map((s) => ({ voiceover: s.voiceover, description: s.aiPrompt || s.description })),
           durationSeconds: hollywoodTarget,
@@ -4629,7 +4630,13 @@ async function manipularPost(req: NextRequest) {
           // Kling o3 i2v ($0.168/s vs $0.15/s do veo = +$0.14 por cena de 8s)
           // — nitidez de flagship, horizonte em pe garantido pelo primeiro
           // frame, e o filme inteiro com o look de UM motor so.
-          if ((hs.type === 'support' || hs.type === 'cinematic') && !anchorUrl) {
+          // KINEO-S25-PESSOA-T2V-2026-09-15 (HIPÓTESE, não provada) — render S25 4328b078: as 4 cenas com a pessoa em quadro
+          // voltaram 422 do fal 3× (original + 2 retentativas, inclusive suavizada) no i2v com still FLUX de rosto; as 3 cenas
+          // sem gente passaram no mesmo modelo. Até o fornecedor dizer o contrário, no Seedance 2.5 a cena com pessoa vai em
+          // t2v (sem still, a ficha vai no texto) e a cena sem gente segue image-first. Custa menos um still por cena de pessoa.
+          const s25PessoaEmQuadro = family === 's25' && /\b(?:man|woman|person|people|boy|girl|child|face|hands?|engineer|keeper|sailor|soldier|farmer|scientist|geologist|watchmaker|cartographer|he|she|his|her)\b/i.test(hs.prompt)
+          if (s25PessoaEmQuadro) console.log(`[cinematic] KINEO-S25-PESSOA-T2V: cena ${hs.index} tem pessoa em quadro — vai em t2v (sem still)`)
+          if ((hs.type === 'support' || hs.type === 'cinematic') && !anchorUrl && !s25PessoaEmQuadro) {
             try {
               sceneStillUrl = await generateCinematicSceneStill({
                 scenePrompt: hs.prompt,
