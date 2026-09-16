@@ -236,6 +236,19 @@ console.log('== (h) data inventada removida em código; acréscimo de fala index
   checa('o pedido de continuação é indexado e proíbe inventar data/nome/estatística', rw.includes('Return ONLY a JSON array of objects {"i": <the same i you received>, "text": "<the continuation only>"}') && rw.includes('never invent names, dates, years, clock times or statistics that are not in the topic'))
 }
 
+// ── (i) S25: a rota de status e a retomada conhecem o Seedance 2.5 (render 4328b078 girou em 503 com 7 clipes pagos) ──
+console.log('== (i) status/retomada reconhecem os modelos do Seedance 2.5 ==')
+{
+  const st = rd('app/api/cinematic-clip-status/route.ts')
+  const i = st.indexOf('const ALLOWED_MODELS = new Set(['); const j = st.indexOf('])', i)
+  const lista = st.slice(i, j)
+  checa('status: S25_I2V_MODEL e S25_T2V_MODEL na lista permitida, espelhando lib/hollywood/router', lista.includes('S25_I2V_MODEL') && lista.includes('S25_T2V_MODEL') && st.includes("const S25_I2V_MODEL = 'fal-ai/seedance-2.5/image-to-video'") && rd('lib/hollywood/router.ts').includes("export const S25_I2V_MODEL = 'fal-ai/seedance-2.5/image-to-video'"))
+  const rr = rd('app/api/retry-hollywood-scene/route.ts')
+  checa('retomada: S25 permitido, i2v exige âncora e o payload segue o schema (duration string, 480p, sem áudio)', rr.includes('OMNI_I2V_MODEL, S25_I2V_MODEL, S25_T2V_MODEL])') && rr.includes('[KLING3_I2V_MODEL, H3_I2V_MODEL, OMNI_I2V_MODEL, S25_I2V_MODEL].includes(slot.model)') && rr.includes("if (model === S25_I2V_MODEL) return { image_url: scene.anchor, prompt, duration: String(Math.max(4, Math.min(30, scene.seconds))), resolution: S25_RESOLUTION, generate_audio: false }"))
+  const stMain = main('app/api/cinematic-clip-status/route.ts')
+  if (stMain && !stMain.includes('S25_I2V_MODEL')) checa('main: reproduz — a lista não tem o Seedance 2.5 (503 "unsupported model")', !stMain.slice(stMain.indexOf('const ALLOWED_MODELS'), stMain.indexOf('])', stMain.indexOf('const ALLOWED_MODELS'))).includes('seedance-2.5'))
+  else checa('main já contém o candidato (status S25)', Boolean(stMain) && stMain.includes('S25_I2V_MODEL'))
+}
 console.log(`${ok} ok · ${falhas.length} falhas`)
 for (const f of falhas) console.log('  ✗', f)
 process.exit(falhas.length ? 1 : 0)

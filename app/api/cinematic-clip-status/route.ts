@@ -54,6 +54,11 @@ const H3_T2V_MODEL = 'minimax/h3/text-to-video'
 const H3_I2V_MODEL = 'minimax/h3/image-to-video'
 // KINEO-OMNI-2026-08-25 — o #1 do ranking entra no allowlist assinado (licao #279).
 const OMNI_I2V_MODEL = 'google/gemini-omni-flash/image-to-video'
+// KINEO-S25-STATUS-2026-09-15 — render S25 4328b078: 7/7 aceitos no fal e o cliente girou em 503 ("signed claim contains an
+// unsupported model") — o Seedance 2.5 (família s25, 01/09) nunca entrou nesta lista; o filme morreria no prazo de 50 min
+// com os 7 clipes pagos. Espelho de lib/hollywood/router S25_I2V_MODEL / S25_T2V_MODEL.
+const S25_I2V_MODEL = 'fal-ai/seedance-2.5/image-to-video'
+const S25_T2V_MODEL = 'fal-ai/seedance-2.5/text-to-video'
 const ALLOWED_MODELS = new Set([
   H3_T2V_MODEL,
   H3_I2V_MODEL,
@@ -66,6 +71,8 @@ const ALLOWED_MODELS = new Set([
   KLING3_I2V_MODEL,
   KLING_I2V_MODEL,
   HOST_PRESENTER_MODEL,
+  S25_I2V_MODEL, // KINEO-S25-STATUS-2026-09-15
+  S25_T2V_MODEL,
 ])
 
 type ClipStatus = {

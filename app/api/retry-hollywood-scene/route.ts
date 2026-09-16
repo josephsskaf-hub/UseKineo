@@ -6,7 +6,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { FalQueueSubmitError, submitFalQueueOnce } from '@/lib/falQueue'
 import { loadVerifiedCinematicClaim, retargetCinematicRequestId, validCinematicGenerationId, type CinematicClaim } from '@/lib/cinematic/claim'
 import { acquireSceneRetryMutex, markSceneRetryHold, readVerifiedSceneRetryHold, releaseSceneRetryMutex } from '@/lib/cinematic/sceneRetry'
-import { HOLLYWOOD_MODELS, KLING3_I2V_MODEL, H3_MODELS, H3_I2V_MODEL, H3_RESOLUTION, OMNI_I2V_MODEL } from '@/lib/hollywood/router'
+import { HOLLYWOOD_MODELS, KLING3_I2V_MODEL, H3_MODELS, H3_I2V_MODEL, H3_RESOLUTION, OMNI_I2V_MODEL, S25_I2V_MODEL, S25_T2V_MODEL, S25_RESOLUTION } from '@/lib/hollywood/router'
 import { openai } from '@/lib/openai'
 
 async function softenPromptForModeration(prompt: string): Promise<string> {
@@ -24,7 +24,7 @@ async function softenPromptForModeration(prompt: string): Promise<string> {
 }
 
 const H3_SET = new Set<string>([...Object.values(H3_MODELS), H3_I2V_MODEL])
-const ALLOWED = new Set<string>([...Object.values(HOLLYWOOD_MODELS), KLING3_I2V_MODEL, ...H3_SET, OMNI_I2V_MODEL])
+const ALLOWED = new Set<string>([...Object.values(HOLLYWOOD_MODELS), KLING3_I2V_MODEL, ...H3_SET, OMNI_I2V_MODEL, S25_I2V_MODEL, S25_T2V_MODEL]) // KINEO-S25-STATUS-2026-09-15: a retomada também conhece o Seedance 2.5
 type Slot = { index: number; oldRequestId: string | null; model: string }
 
 function retryableSlot(claim: CinematicClaim, slot: Slot): boolean {
@@ -48,13 +48,16 @@ function signedScene(claim: CinematicClaim, slot: Slot) {
   const anchor = Array.isArray(response?.scene_anchor_urls) ? response.scene_anchor_urls[slot.index] : null
   if (typeof prompt !== 'string' || prompt.trim().length < 20 || prompt.length > 6000 ||
     typeof seconds !== 'number' || !Number.isFinite(seconds) || seconds < 3 || seconds > 15) return null
-  const requiresAnchor = [KLING3_I2V_MODEL, H3_I2V_MODEL, OMNI_I2V_MODEL].includes(slot.model)
+  const requiresAnchor = [KLING3_I2V_MODEL, H3_I2V_MODEL, OMNI_I2V_MODEL, S25_I2V_MODEL].includes(slot.model)
   if (requiresAnchor && (typeof anchor !== 'string' || !anchor.startsWith('https://'))) return null
   return { prompt: prompt.trim(), seconds: Math.round(seconds), anchor: requiresAnchor ? anchor as string : null }
 }
 
 function sceneInput(model: string, scene: NonNullable<ReturnType<typeof signedScene>>, prompt: string): Record<string, unknown> {
   if (model === OMNI_I2V_MODEL) return { image_url: scene.anchor, prompt, aspect_ratio: '9:16', duration: Math.max(3, Math.min(10, scene.seconds)) }
+  // KINEO-S25-STATUS-2026-09-15 — mesmo schema do buildFalInput (route): duration STRING '4'..'30', 480p, sem áudio nativo.
+  if (model === S25_I2V_MODEL) return { image_url: scene.anchor, prompt, duration: String(Math.max(4, Math.min(30, scene.seconds))), resolution: S25_RESOLUTION, generate_audio: false }
+  if (model === S25_T2V_MODEL) return { prompt, duration: String(Math.max(4, Math.min(30, scene.seconds))), resolution: S25_RESOLUTION, aspect_ratio: '9:16', generate_audio: false }
   // H3 does not expose a generate_audio switch. Match its actual schema;
   // compose owns muting support audio when trusted narration is present.
   if (H3_SET.has(model)) return { ...(scene.anchor ? { image_url: scene.anchor } : { aspect_ratio: '9:16' }),
