@@ -664,3 +664,11 @@ Render S25 4328b078: depois do conserto do status (R7) o cliente vinculou 3 clip
 2. **422 do S25 = as 4 cenas com pessoa (HIPÓTESE)**: exatamente as cenas com a pessoa em quadro (still FLUX de rosto no image_url) foram recusadas; as sem gente passaram. Até prova em contrário, no Seedance 2.5 a cena com pessoa vai em t2v (sem still; a ficha vai no texto) e a cena sem gente segue image-first. Registrado como hipótese no código (KINEO-S25-PESSOA-T2V) — a prova é o próximo render, que é gasto (150 cr) e fica para a palavra do fundador.
 
 Guardião bloco (j) (executa fichaDoPedido/trocarFichaNosPrompts e deriveExplicitCharacter com o pedido real do S25; 60 verificações). tsc limpo. Prompt da cena 1 ainda carrega "In 2023" (o prefixo "as the narration describes it:" é montado antes da varredura final de datas — dívida pequena, só no texto de imagem).
+
+## QUALIDADE-COMPROVADA-R9 — o ensaio do Omni no deploy do R8 mostrou que a ficha do pedido só ia à 1ª chamada do planejador e que o brief da IA "legitimava" a data inventada (Claude, 15/09 ~22:15 BRT) — PUBLICADO 6ccd0fb4
+
+Ensaio de $0 do Omni (cartógrafa) no deploy 0833bdd2: `character_sheet` = "A young woman, 25 years old, Hispanic descent…" (o pedido diz "a young woman with a long black braid, a wide-brimmed straw hat and a dusty blue scarf"), narração com "In 2023", "map from 1950", "Bolivia's Salar de Uyuni". Três causas:
+1. `characterHint` só ia à 1ª chamada de `planHollywoodScenes`; o plano FINAL vem quase sempre de um replan (coerência 1/2, 2/2, duração, mais cenas) sem a ficha. Agora uma constante (`fichaDoPedidoTexto`) vai às 5 chamadas.
+2. O contexto da varredura de datas incluía o brief escrito pela IA (`hollywoodVoiceover` no modo IA), que já trazia "In 2023" — a data inventada contava como "do pedido". Contexto = só o pedido (no verbatim o pedido É o texto). Idem no planejador.
+3. Lugar/nome inventado na fala ("Bolivia's Salar de Uyuni", ontem "Emily Carter") não era tratado: a varredura final aplica também `scrubInventedSetting` (o filtro que já protege os prompts de imagem do clássico) à fala do hollywood.
+Guardião: 61 verificações (todas as chamadas do planejador contadas; contexto = pedido; scrub na fala). tsc limpo.
