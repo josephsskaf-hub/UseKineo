@@ -68,6 +68,9 @@ interface Video {
   // KINEO-ENHANCE-VISIVEL-2026-08-17 (fundador: "como eu sei que virou HD?")
   enhanced_url?: string | null
   enhance_request_id?: string | null
+  // KINEO-CARD-QUADRANTE-2026-09-16 — duração medida e plataforma (enquadramento) para o quadrante do card
+  duration?: number | null
+  platform?: string | null
 }
 
 // KINEO-CARD-BONITO-2026-09-16 — pedido do fundador ("melhora o botão… do jeito mais bonito possível"). Padrão das
@@ -229,10 +232,16 @@ function extractTitle(topic: string | null): string {
     return t.length > 90 ? t.slice(0, 87) + '…' : t
   }
   // Fallback: first non-header line, stripping any [Pexels: ...] tags
+  // KINEO-TITULO-DA-HISTORIA-2026-09-16 — pedido do fundador (16/09): "os nomes estão todos iguais". Todo pedido do Studio
+  // começa com a instrução ("Create a 60-second fictional cinematic short in English.") e o card a usava como título.
+  // A instrução, os cabeçalhos ("Story:") e as regras ("Tell these events…", "Keep the same…", "Use…", "Show…", "Add…",
+  // "Finish…") não são título: o título é a primeira frase da HISTÓRIA.
+  const INSTRUCAO_RE = /^(?:create|make|write|generate|produce|craft)\b.*\b(?:second|short|video|film|reel|clip)s?\b/i
+  const REGRA_RE = /^(?:story|script|roteiro|história|historia)\s*:?\s*$|^(?:tell these|tell the|keep the same|keep her|keep his|use |show |add |finish |present |clearly |only the|the protagonist is|make the|do not|don't)/i
   const lines = topic.split('\n').map((l) => {
     return l.trim().replace(/\[Pexels:[^\]]*\]/gi, '').trim()
   }).filter(
-    (l) => l.length > 15 && !l.startsWith('YouTube Short') && !l.startsWith('HOOK') && !l.startsWith('MICRO')
+    (l) => l.length > 15 && !l.startsWith('YouTube Short') && !l.startsWith('HOOK') && !l.startsWith('MICRO') && !INSTRUCAO_RE.test(l) && !REGRA_RE.test(l)
   )
   if (lines[0]) return lines[0].slice(0, 90)
   return 'Untitled Short'
@@ -1593,15 +1602,27 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                   {title}
                 </p>
 
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <span style={{ fontSize: '0.6rem', color: 'var(--muted)' }}>{formatDate(video.created_at, displayTime)}</span>
+                {/* KINEO-CARD-QUADRANTE-2026-09-16 — pedido do fundador: além do motor, a qualidade e o enquadramento do render; selo do motor
+                    ~10 % maior. O arquivo entregue é sempre o master 1080×1920 do Creatomate (KINEO-SEEDANCE-720-MARGEM); o enquadramento vem da
+                    plataforma gravada (Shorts/TikTok/Reels = 9:16). */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 8px', alignItems: 'center', marginBottom: 6 }}>
+                  <span style={{ fontSize: '0.58rem', color: 'var(--muted)', whiteSpace: 'nowrap' }}>{formatDate(video.created_at, displayTime)}</span>
+                  <span style={{ display: 'flex', gap: 4, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.56rem', fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--muted2)', letterSpacing: '0.03em' }}>1080p</span>
+                    <span style={{ fontSize: '0.56rem', fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--muted2)', letterSpacing: '0.03em' }}>{/(shorts|tiktok|reels)/i.test(video.platform ?? '') ? '9:16' : /(youtube|landscape)/i.test(video.platform ?? '') ? '16:9' : '9:16'}</span>
+                    {typeof video.duration === 'number' && video.duration > 0 && (
+                      <span style={{ fontSize: '0.56rem', fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--muted2)', letterSpacing: '0.03em', fontVariantNumeric: 'tabular-nums' }}>{Math.round(video.duration)}s</span>
+                    )}
+                  </span>
                   {video.quality_mode && (
                     <span
                       style={{
-                        fontSize: '0.55rem',
-                        fontWeight: 700,
-                        padding: '1px 4px',
-                        borderRadius: 4,
+                        gridColumn: '1 / -1',
+                        justifySelf: 'start',
+                        fontSize: '0.62rem',
+                        fontWeight: 800,
+                        padding: '2px 7px',
+                        borderRadius: 5,
                         background: 'rgba(41,151,255,0.12)',
                         border: '1px solid rgba(41,151,255,0.25)',
                         color: '#2997ff',
