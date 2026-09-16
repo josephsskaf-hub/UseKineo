@@ -1302,7 +1302,8 @@ export async function POST(req: NextRequest) {
           session.metadata?.tier === 'pro' ? 'pro'
             : session.metadata?.tier === 'starter' ? 'starter'
               : session.metadata?.tier === 'autopilot' ? 'autopilot'
-                : 'basic'
+                : session.metadata?.tier === 'autopilot_lite' ? 'autopilot_lite' // KINEO-AUTOPILOT-LITE
+                  : 'basic'
 
         entitlementPending = true
         if (!userId || !customerId || !subscriptionId) {
@@ -1443,7 +1444,9 @@ export async function POST(req: NextRequest) {
                 ? 'basic'
                 : currentSubscription.metadata?.tier === 'autopilot'
                   ? 'autopilot'
-                  : null
+                  : currentSubscription.metadata?.tier === 'autopilot_lite'
+                    ? 'autopilot_lite' // KINEO-AUTOPILOT-LITE
+                    : null
         if (currentSubscriptionTier && currentSubscriptionTier !== tier) {
           // The same Stripe subscription can be changed to another tier after
           // its original Checkout. A delayed replay of that old Checkout must
@@ -1917,7 +1920,8 @@ export async function POST(req: NextRequest) {
           subscription.metadata?.tier === 'pro' ? 'pro'
             : subscription.metadata?.tier === 'starter' ? 'starter'
               : subscription.metadata?.tier === 'autopilot' ? 'autopilot'
-                : 'basic'
+                : subscription.metadata?.tier === 'autopilot_lite' ? 'autopilot_lite' // KINEO-AUTOPILOT-LITE
+                  : 'basic'
         // KINEO-STUDIO-400-2026-07-06 — renewal credits are SET (not added)
         // each cycle → no rollover between months.
         // KINEO-PRICING-V3D-2026-07-26 — single source (lib/checkoutPricing).

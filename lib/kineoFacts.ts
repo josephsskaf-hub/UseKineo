@@ -26,6 +26,7 @@ import {
   INTRO_PRICES,
   ANNUAL_PRICES,
   AUTOPILOT_PRICES,
+  AUTOPILOT_LITE_PRICES,
   // KINEO-PRICING-V6-2026-08-19 — o grant de crédito entra aqui pelo mesmo
   // motivo que o preço já entrava: PLAN_INCLUDES conta "quantos vídeos por mês"
   // um plano rende, e essa conta é o grant dividido pelo custo do motor. Escrita
@@ -285,8 +286,29 @@ const AUTOPILOT_FACT: PlanFact = {
   ],
 }
 
+// KINEO-AUTOPILOT-LITE-2026-09-16 — o degrau semanal, dito para o ChatGPT com a mesma honestidade.
+const AUTOPILOT_LITE_FACT: PlanFact = {
+  id: 'autopilot_lite' as CheckoutTier,
+  name: PLANS.autopilot_lite.name,
+  monthlyUsd: formatCheckoutMoney('usd', AUTOPILOT_LITE_PRICES.usd),
+  monthlyUsdCents: AUTOPILOT_LITE_PRICES.usd,
+  firstMonthUsd: null,
+  firstMonthUsdCents: null,
+  annualUsd: null,
+  annualUsdCents: null,
+  creditsPerMonth: PLANS.autopilot_lite.credits,
+  includes: [
+    'Done-for-you, weekly: we connect your YouTube channel and publish one episode of your series every week',
+    'Each episode continues the previous one — same topic thread, no repeats',
+    'You pick the niche and the posting day/time once; script, voiceover, footage, captions and upload run on schedule',
+    `${PLANS.autopilot_lite.credits} credits a month for videos you make yourself, on any engine`,
+    'Pause, change the posting time, or cancel whenever you want',
+  ],
+}
+
 export const PLAN_FACTS: PlanFact[] = [
   ...['starter', 'basic', 'pro'].map((id) => buildPlan(id as CheckoutTier)),
+  AUTOPILOT_LITE_FACT,
   AUTOPILOT_FACT,
 ]
 

@@ -41,7 +41,9 @@ import {
   clampAutopilotEngine,
   clampPostsPerDayForPlan,
   computeNextRunAt,
+  intervalDaysForPlan,
   isAutopilotEntitled,
+  normalizeIntervalDays,
   normalizePostHour,
   normalizePostsPerDay,
 } from '@/lib/autopilot/config'
@@ -90,6 +92,8 @@ interface ScheduleRow {
   privacy_status: string | null
   last_run_at: string | null
   next_run_at: string | null
+  /** KINEO-AUTOPILOT-LITE — 1 diário · 7 semanal. */
+  interval_days: number | null
   created_at: string | null
 }
 
@@ -107,7 +111,7 @@ interface RunRow {
 }
 
 const SCHEDULE_COLUMNS =
-  'id, user_id, channel_id, enabled, niche, tone, language, engine, post_hour_utc, posts_per_day, privacy_status, last_run_at, next_run_at, created_at'
+  'id, user_id, channel_id, enabled, niche, tone, language, engine, post_hour_utc, posts_per_day, privacy_status, last_run_at, next_run_at, created_at, interval_days'
 
 function adminClient(): SupabaseClient | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -259,6 +263,7 @@ function publicSchedule(row: ScheduleRow, channel: ChannelRow | undefined, runs:
     engine: clampAutopilotEngine(row.engine),
     postHourUtc: normalizePostHour(row.post_hour_utc),
     postsPerDay: normalizePostsPerDay(row.posts_per_day),
+    intervalDays: normalizeIntervalDays(row.interval_days), // KINEO-AUTOPILOT-LITE
     privacyStatus: normalizePrivacy(row.privacy_status),
     lastRunAt: row.last_run_at,
     nextRunAt: row.next_run_at,
@@ -414,8 +419,10 @@ export async function POST(req: NextRequest) {
     // única trava é a DATA. Com postsPerDay = 3 o comprador de $99 levaria 21+
     // Shorts. O clamp vive no servidor porque o corpo do request é do cliente.
     const postsPerDay = clampPostsPerDayForPlan(body.postsPerDay ?? 1, profile?.plan)
+    // KINEO-AUTOPILOT-LITE — a cadência (1 ou 7 dias) nasce do PLANO, nunca do corpo do request.
+    const intervalDays = intervalDaysForPlan(profile?.plan)
     // INVARIANTE 1 — a agenda nasce com o próximo horário já resolvido.
-    const nextRunAt = computeNextRunAt({ from: new Date(), postHourUtc, postsPerDay })
+    const nextRunAt = computeNextRunAt({ from: new Date(), postHourUtc, postsPerDay, intervalDays })
 
     const insertRow = {
       user_id: userId,
@@ -428,6 +435,7 @@ export async function POST(req: NextRequest) {
       engine: clampAutopilotEngine(cleanText(body.engine, 40)),
       post_hour_utc: postHourUtc,
       posts_per_day: postsPerDay,
+      interval_days: intervalDays,
       privacy_status: normalizePrivacy(body.privacyStatus),
       next_run_at: nextRunAt.toISOString(),
       updated_at: new Date().toISOString(),
@@ -570,6 +578,7 @@ export async function PATCH(req: NextRequest) {
         from: new Date(),
         postHourUtc: nextHour,
         postsPerDay: nextPerDay,
+        intervalDays: intervalDaysForPlan(profile?.plan), // KINEO-AUTOPILOT-LITE
       }).toISOString()
     }
 

@@ -23,12 +23,13 @@
 import {
   ANNUAL_PRICES,
   AUTOPILOT_PRICES,
+  AUTOPILOT_LITE_PRICES,
   formatCheckoutMoney,
   TIER_CREDITS,
   TIER_PRICES,
 } from '@/lib/checkoutPricing'
 
-export type PlanTier = 'free' | 'starter' | 'basic' | 'pro' | 'autopilot'
+export type PlanTier = 'free' | 'starter' | 'basic' | 'pro' | 'autopilot' | 'autopilot_lite'
 
 export interface PlanConfig {
   tier: PlanTier
@@ -136,6 +137,17 @@ export const PLANS: Record<PlanTier, PlanConfig> = {
     cta: 'Start Autopilot',
     href: '/api/stripe/checkout?tier=autopilot',
   },
+  // KINEO-AUTOPILOT-LITE-2026-09-16 — o degrau semanal: 1 episódio por semana, publicado no canal da pessoa.
+  autopilot_lite: {
+    tier: 'autopilot_lite',
+    name: 'Autopilot Lite',
+    price: AUTOPILOT_LITE_PRICES.usd / 100,
+    priceLabel: usdLabel(AUTOPILOT_LITE_PRICES.usd),
+    periodLabel: '/ month',
+    credits: TIER_CREDITS.autopilot_lite,
+    cta: 'Start Autopilot Lite',
+    href: '/api/stripe/checkout?tier=autopilot_lite',
+  },
 }
 
 // Push #276 — remove free card from all surfaces. Only paid plans shown.
@@ -152,3 +164,5 @@ export const PLAN_LIST: PlanConfig[] = [PLANS.starter, PLANS.basic, PLANS.pro]
 
 /** The done-for-you tier. Not part of PLAN_LIST — see the note above. */
 export const AUTOPILOT_PLAN: PlanConfig = PLANS.autopilot
+/** KINEO-AUTOPILOT-LITE-2026-09-16 — o degrau semanal. Também fora de PLAN_LIST. */
+export const AUTOPILOT_LITE_PLAN: PlanConfig = PLANS.autopilot_lite

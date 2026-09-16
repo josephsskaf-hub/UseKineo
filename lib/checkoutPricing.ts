@@ -14,7 +14,10 @@ export type CheckoutTier = 'starter' | 'basic' | 'pro'
 // describe the three self-serve credit plans; widening it there would be a lie
 // (Autopilot is a done-for-you service, not a credit bundle) as well as a
 // compile break. Anything that must accept all four uses CheckoutPlanTier.
-export type CheckoutPlanTier = CheckoutTier | 'autopilot'
+// KINEO-AUTOPILOT-LITE-2026-09-16 (fundador: "vamos fazer esse Autopilot Lite… um vídeo por semana… tudo integrado"):
+// o degrau entre Studio ($39,90) e Autopilot ($299) — 1 episódio POR SEMANA publicado no YouTube da pessoa,
+// mesmo robô, cadência semanal. Mensal, sem anual, sem intro; monthlyPriceMinor/renewalCreditsFor sabem dele.
+export type CheckoutPlanTier = CheckoutTier | 'autopilot' | 'autopilot_lite'
 export type CheckoutIntroTier = 'starter' | 'basic'
 // ═══════════════════════════════════════════════════════════════════════════
 // KINEO-USD-ONLY-2026-08-19 — UMA MOEDA (fundador: "quero leitura em USD pra
@@ -111,6 +114,13 @@ export const AUTOPILOT_PRICES: Record<CheckoutCurrency, number> = {
   usd: 29900,
 }
 
+// KINEO-AUTOPILOT-LITE-2026-09-16 — $59/mês: 1 episódio por semana (≈ 4-5/mês) no canal da pessoa, com o
+// mesmo robô do Autopilot, + 160 créditos para filmes manuais. Preço é decisão do fundador ("59").
+export const AUTOPILOT_LITE_PRICES: Record<CheckoutCurrency, number> = {
+  usd: 5900,
+}
+export const AUTOPILOT_LITE_EPISODES_PER_WEEK = 1
+
 // ═══════════════════════════════════════════════════════════════════════════
 // KINEO-PILOT-99-2026-07-26 — THE $99 AUTOPILOT PILOT (one-time, 7 days).
 // ═══════════════════════════════════════════════════════════════════════════
@@ -158,7 +168,9 @@ export function monthlyPriceMinor(
   currency: CheckoutCurrency,
   region: PriceRegion = 'standard',
 ): number {
-  return tier === 'autopilot' ? AUTOPILOT_PRICES[currency] : getTierPrice(tier, currency, region)
+  if (tier === 'autopilot') return AUTOPILOT_PRICES[currency]
+  if (tier === 'autopilot_lite') return AUTOPILOT_LITE_PRICES[currency]
+  return getTierPrice(tier, currency, region)
 }
 
 // Autopilot has no annual SKU on purpose: it is an operational commitment
@@ -425,6 +437,10 @@ export const TIER_CREDITS: Record<CheckoutPlanTier, number> = {
   basic: 150,
   pro: 300,
   autopilot: 400,
+  // KINEO-AUTOPILOT-LITE-2026-09-16 — 160: os ~5 episódios semanais do mês saem do mesmo saldo (Kineo 1 = 5 cr
+  // cada) e sobra folga para filmes manuais em qualquer motor. Pior caso (tudo em Seedance): 160 × $0,117 ≈ $18,7
+  // contra ~$56 líquidos — o invariante (3) confere.
+  autopilot_lite: 160,
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -440,10 +456,11 @@ export const LEGACY_TIER_CREDITS_V6: Record<CheckoutPlanTier, number> = {
   basic: 150,
   pro: 180,
   autopilot: 400,
+  autopilot_lite: 160,
 }
 
 export function renewalCreditsFor(tier: CheckoutPlanTier, amountPaidMinor: number | null | undefined): number {
-  const current = tier === 'autopilot' ? AUTOPILOT_PRICES.usd : TIER_PRICES[tier].usd
+  const current = tier === 'autopilot' ? AUTOPILOT_PRICES.usd : tier === 'autopilot_lite' ? AUTOPILOT_LITE_PRICES.usd : TIER_PRICES[tier].usd
   if (typeof amountPaidMinor === 'number' && amountPaidMinor > 0 && amountPaidMinor < current) {
     return LEGACY_TIER_CREDITS_V6[tier]
   }
@@ -788,6 +805,7 @@ export function checkPricingInvariants(): string[] {
     { id: 'plan:basic', usdMinor: TIER_PRICES.basic.usd, credits: TIER_CREDITS.basic },
     { id: 'plan:pro', usdMinor: TIER_PRICES.pro.usd, credits: TIER_CREDITS.pro },
     { id: 'plan:autopilot', usdMinor: AUTOPILOT_PRICES.usd, credits: TIER_CREDITS.autopilot },
+    { id: 'plan:autopilot_lite', usdMinor: AUTOPILOT_LITE_PRICES.usd, credits: TIER_CREDITS.autopilot_lite },
     { id: 'intro:starter', usdMinor: INTRO_PRICES.starter.usd, credits: INTRO_CREDITS.starter },
     { id: 'intro:basic', usdMinor: INTRO_PRICES.basic.usd, credits: INTRO_CREDITS.basic },
     // KINEO-PRICING-V6-2026-08-19 — as quatro linhas da região `value` saíram

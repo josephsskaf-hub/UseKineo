@@ -21,7 +21,7 @@ const cp = rd('lib/checkoutPricing.ts')
 checa('a página abre no anual', pc.includes("useState<'monthly' | 'annual'>('annual')"))
 checa('o mensal continua a um clique e o selo "2 MONTHS FREE" segue no botão', pc.includes("onClick={() => setBilling('monthly')}") && pc.includes('2 MONTHS FREE'))
 checa('nenhum preço mudou: anual = 10× o mensal (990/1990/3990 ↔ 9900/19900/39900)', /starter: \{ usd: 990 \},\n  basic: \{ usd: 1990 \},\n  pro: \{ usd: 3990 \},/.test(cp) && /starter: \{ usd: 9900 \}/.test(cp) && /basic: \{ usd: 19900 \}/.test(cp) && /pro: \{ usd: 39900 \}/.test(cp))
-checa('o checkout recebe billing=annual só quando o toggle está no anual (autopilot nunca)', pc.includes("const billingParam = billing === 'annual' && tier !== 'autopilot' ? '&billing=annual' : ''"))
+checa('o checkout recebe billing=annual só quando o toggle está no anual (autopilot nunca)', pc.includes("const billingParam = billing === 'annual' && !isAutopilotFamily ? '&billing=annual' : ''") && pc.includes("const isAutopilotFamily = tier === 'autopilot' || tier === 'autopilot_lite'"))
 
 console.log('== (2) recarga para quem já paga ==')
 const elig = rd('lib/growth/topupEligibility.ts')

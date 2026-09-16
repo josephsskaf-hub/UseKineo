@@ -42,6 +42,7 @@ import {
   AUTOPILOT_PILOT_DAYS,
   AUTOPILOT_PILOT_PRICES,
   AUTOPILOT_PRICES,
+  AUTOPILOT_LITE_PRICES,
   INTRO_CREDITS,
   TIER_CREDITS,
   // KINEO-REGIONAL-PRICING-2026-08-04 — TIER_PRICES / INTRO_PRICES /
@@ -610,7 +611,8 @@ export default function PricingClient() {
     // KINEO-AUTOPILOT-299-2026-07-26 — Autopilot has no annual SKU and no
     // intro month; the server enforces both, this just avoids sending params
     // that would be silently dropped.
-    const billingParam = billing === 'annual' && tier !== 'autopilot' ? '&billing=annual' : ''
+    const isAutopilotFamily = tier === 'autopilot' || tier === 'autopilot_lite' // KINEO-AUTOPILOT-LITE
+    const billingParam = billing === 'annual' && !isAutopilotFamily ? '&billing=annual' : ''
     // #453 — forward a ?promo= code (e.g. /pricing?promo=FOUNDING50 from the
     // win-back emails) into checkout so the discount auto-applies on plan click.
     const pricingParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
@@ -623,7 +625,7 @@ export default function PricingClient() {
     // com desconto ($4.90/$9.90). O servidor valida elegibilidade (1 por
     // cliente) e ignora o param em annual/pro — aqui só pedimos.
     const introParam = billing === 'monthly' && (tier === 'starter' || tier === 'basic') ? '&intro=1' : ''
-    const effectiveBilling = tier === 'autopilot' ? 'monthly' : billing
+    const effectiveBilling = isAutopilotFamily ? 'monthly' : billing
     const started = checkout.launch(
       tier,
       `/api/stripe/checkout?tier=${tier}${billingParam}${promoParam}${introParam}${intentParam}`,
@@ -632,7 +634,7 @@ export default function PricingClient() {
     // A suppressed duplicate click must not double-count the funnel or fire a
     // second TikTok InitiateCheckout.
     if (!started) return
-    if (placement === 'mobile_sticky' && tier !== 'autopilot') {
+    if (placement === 'mobile_sticky' && !isAutopilotFamily) {
       void trackEvent(
         'pricing_mobile_sticky_checkout_clicked',
         mobileStickyTelemetry({ billing: effectiveBilling, tier: tier as MobileStickyTier }),
@@ -644,7 +646,9 @@ export default function PricingClient() {
         ? 'starter_checkout_clicked'
         : tier === 'autopilot'
           ? 'autopilot_checkout_clicked'
-          : 'basic_checkout_clicked'
+          : tier === 'autopilot_lite'
+            ? 'autopilot_lite_checkout_clicked'
+            : 'basic_checkout_clicked'
     const attribution = buildPricingPlanChoiceAttribution({
       tier,
       billing: effectiveBilling,
@@ -1467,6 +1471,79 @@ export default function PricingClient() {
             quer; sem o id ele caía no topo, numa grade de 3 cards que de
             propósito NÃO contém o Autopilot. Mesmo degrau de desistência que o
             #paste do /wall resolveu ontem. */}
+        {/* KINEO-AUTOPILOT-LITE-2026-09-16 (fundador: "vamos fazer esse Autopilot Lite… tudo integrado") — o degrau
+            entre Studio e Autopilot: o mesmo robô, UMA vez por semana. Fica acima do $299 de propósito: quem chega
+            aqui vindo dos planos de crédito vê primeiro o passo pequeno. */}
+        <div id="autopilot-lite" className="mx-auto mt-14 max-w-5xl scroll-mt-24">
+          <div className="mb-4 text-center">
+            <div className="text-[11px] font-extrabold uppercase tracking-[.14em] text-[#86868b]">
+              Or let your series run itself
+            </div>
+            <h2 className="mt-2 text-[1.7rem] font-black tracking-tight text-[#f5f5f7]">
+              Autopilot Lite — one episode a week, published for you
+            </h2>
+          </div>
+          <div
+            className="relative overflow-hidden rounded-2xl border p-6 sm:p-8"
+            style={{ borderColor: 'rgba(41,151,255,0.28)', background: 'linear-gradient(135deg, rgba(41,151,255,0.05) 0%, #161618 55%)' }}
+          >
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[#2997ff] px-3 py-1 text-[10px] font-black uppercase tracking-[.12em] text-white">
+              Weekly · done for you
+            </div>
+            <div className="grid grid-cols-1 gap-8 md:grid-cols-2 md:items-center">
+              <div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-[2.8rem] font-black leading-none tracking-tight text-[#f5f5f7]">
+                    {displayCurrency ? formatCheckoutMoney(resolvedCurrency, AUTOPILOT_LITE_PRICES[resolvedCurrency]) : '—'}
+                  </span>
+                  <span className="text-[13px] font-semibold text-[#2997ff]">/ month</span>
+                </div>
+                <p className="mt-3 text-[14px] leading-snug text-[#f5f5f7]">
+                  You connect your YouTube channel once and pick a niche. Every week we write the next episode of
+                  your series, narrate it, pick the footage, add captions and publish it to your channel. Same thread
+                  every week, never a repeat.
+                </p>
+                <p className="mt-3 text-[12.5px] leading-snug text-[#86868b]">
+                  About 4 to 5 episodes a month, each one continuing the last. Want a daily channel instead? That is
+                  Autopilot, right below.
+                </p>
+                <p className="mt-3 text-[12px] font-semibold text-[#86868b]">
+                  Includes {TIER_CREDITS.autopilot_lite} credits/month for videos you want to make yourself, on any
+                  engine. Cancel anytime.
+                </p>
+              </div>
+              <div>
+                <ul className="flex flex-col gap-2.5">
+                  {[
+                    '📺 Your YouTube channel, connected once — we publish directly',
+                    '🗓️ One episode every week, on the day and time you choose',
+                    '🧵 Each episode continues the previous one — a real series, not random Shorts',
+                    '✍️ Script, AI voiceover, footage, captions — all handled',
+                    `✨ ${TIER_CREDITS.autopilot_lite} credits/month for your own videos, any engine`,
+                    '⏸️ Pause, change the posting time, or cancel whenever you want',
+                  ].map((f) => (
+                    <li key={f} className="flex items-start gap-2 text-[13.5px] text-[#f5f5f7]">
+                      <span className="mt-[3px] text-[#2997ff]">✓</span>
+                      <span>{f}</span>
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  type="button"
+                  disabled={purchasing === 'autopilot_lite'}
+                  onClick={() => handleBuy('autopilot_lite')}
+                  className="mt-6 block w-full rounded-xl bg-[#2997ff] px-4 py-3.5 text-center text-[14px] font-extrabold text-white shadow-[0_8px_24px_rgba(41,151,255,.3)] transition hover:bg-[#1f7fe0] disabled:opacity-60"
+                >
+                  {purchasing === 'autopilot_lite' ? 'Opening secure checkout…' : 'Start Autopilot Lite →'}
+                </button>
+                <p className="mt-2 text-center text-[12px] font-semibold text-[#86868b]">
+                  🔒 Secure Stripe checkout · billed by Kineo · cancel anytime · 7-day money-back
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div id="autopilot" className="mx-auto mt-14 max-w-5xl scroll-mt-24">
           <div className="mb-4 text-center">
             <div className="text-[11px] font-extrabold uppercase tracking-[.14em] text-[#86868b]">

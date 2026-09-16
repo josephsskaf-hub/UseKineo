@@ -37,7 +37,7 @@ const exp = {}
 vm.runInNewContext(src, {
   exports: exp,
   require: (id) => {
-    if (id === '@/lib/pricing') return { PLANS: { starter: { price: 9 }, basic: { price: 19 }, pro: { price: 29 }, autopilot: { price: 299 } } }
+    if (id === '@/lib/pricing') return { PLANS: { starter: { price: 9 }, basic: { price: 19 }, pro: { price: 29 }, autopilot: { price: 299 }, autopilot_lite: { price: 59 } } } // KINEO-AUTOPILOT-LITE-2026-09-16
     if (id === '@/lib/stripe') return { stripe: {} }
     throw new Error('dependencia inesperada ' + id)
   },

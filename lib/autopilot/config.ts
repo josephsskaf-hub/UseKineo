@@ -84,9 +84,27 @@ export const AUTOPILOT_MAX_PAGES = 20
 // único painel que o fundador usa para decidir o que fazer a seguir.
 export const AUTOPILOT_PILOT_PLAN = 'autopilot_pilot'
 
+// KINEO-AUTOPILOT-LITE-2026-09-16 (fundador): plano SEMANAL — mesmo robô, 1 episódio a cada 7 dias.
+export const AUTOPILOT_LITE_PLAN = 'autopilot_lite'
+export const AUTOPILOT_LITE_INTERVAL_DAYS = 7
+
 export const AUTOPILOT_PAID_PLANS = new Set([
-  'autopilot', 'autopilot_trial', AUTOPILOT_PILOT_PLAN,
+  'autopilot', 'autopilot_trial', AUTOPILOT_PILOT_PLAN, AUTOPILOT_LITE_PLAN,
 ])
+
+/** Planos cuja agenda roda por SEMANA, não por dia. */
+export const AUTOPILOT_WEEKLY_PLANS = new Set([AUTOPILOT_LITE_PLAN])
+
+/** interval_days só conhece 1 (diário) e 7 (semanal) — qualquer outra coisa vira 1. */
+export function normalizeIntervalDays(raw: unknown): 1 | 7 {
+  return Number(raw) === AUTOPILOT_LITE_INTERVAL_DAYS ? 7 : 1
+}
+
+/** A cadência nasce do PLANO, nunca do corpo do request: Lite = 7 dias, o resto = 1. */
+export function intervalDaysForPlan(plan: string | null | undefined): 1 | 7 {
+  const normalized = (plan ?? '').toString().toLowerCase().trim()
+  return AUTOPILOT_WEEKLY_PLANS.has(normalized) ? 7 : 1
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PLANOS COM PRAZO — o piloto TEM que morrer sozinho.
@@ -187,6 +205,8 @@ export function normalizePostsPerDay(raw: unknown): number {
 export function clampPostsPerDayForPlan(raw: unknown, plan: string | null | undefined): number {
   const normalizedPlan = (plan ?? '').toString().toLowerCase().trim()
   if (AUTOPILOT_TIME_BOXED_PLANS.has(normalizedPlan)) return AUTOPILOT_PILOT_POSTS_PER_DAY
+  // KINEO-AUTOPILOT-LITE — semanal é sempre 1 por slot; "2 a day" não existe numa agenda de 7 em 7 dias.
+  if (AUTOPILOT_WEEKLY_PLANS.has(normalizedPlan)) return 1
   return normalizePostsPerDay(raw)
 }
 
@@ -223,8 +243,16 @@ export function computeNextRunAt(args: {
   from: Date
   postHourUtc: number
   postsPerDay: number
+  /** KINEO-AUTOPILOT-LITE — 7 = semanal: a próxima run é o MESMO horário, 7 dias depois de `from`. */
+  intervalDays?: number
 }): Date {
   const hour = normalizePostHour(args.postHourUtc)
+  if (normalizeIntervalDays(args.intervalDays) === 7) {
+    // Semanal: hora agendada + 7 dias, sempre no futuro de `from`. Uma agenda nova (next_run_at null) roda
+    // na primeira passada do cron e daí em diante cai sempre no mesmo dia da semana e na mesma hora.
+    const base = Date.UTC(args.from.getUTCFullYear(), args.from.getUTCMonth(), args.from.getUTCDate() + AUTOPILOT_LITE_INTERVAL_DAYS, hour, 0, 0, 0)
+    return new Date(base > args.from.getTime() ? base : base + 24 * 60 * 60 * 1000)
+  }
   const per = normalizePostsPerDay(args.postsPerDay)
   const windowHours = 24 / per
 

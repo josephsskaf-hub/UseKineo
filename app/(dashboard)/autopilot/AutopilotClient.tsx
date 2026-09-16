@@ -198,6 +198,8 @@ interface ApiSchedule {
   engine: string
   postHourUtc: number
   postsPerDay: number
+  /** KINEO-AUTOPILOT-LITE — 1 diário · 7 semanal (vem do plano, o servidor decide). */
+  intervalDays?: number
   privacyStatus: string
   lastRunAt: string | null
   nextRunAt: string | null
@@ -1335,7 +1337,9 @@ export default function AutopilotClient() {
           </div>
           <p className="text-xs mt-2" style={{ color: MUTED, lineHeight: 1.6 }}>
             {schedule.enabled
-              ? `Posting at ${localHourLabel(schedule.postHourUtc)} your time${
+              ? schedule.intervalDays === 7
+                ? `Posting one episode a week at ${localHourLabel(schedule.postHourUtc)} your time. Times shown in your local timezone.`
+                : `Posting at ${localHourLabel(schedule.postHourUtc)} your time${
                   schedule.postsPerDay > 1 ? ` · ${schedule.postsPerDay}× a day` : ''
                 }. Times shown in your local timezone.`
               : 'Nothing will be posted while Autopilot is paused. Resume any time.'}
@@ -1401,7 +1405,8 @@ export default function AutopilotClient() {
                   ))}
                 </select>
               </div>
-              <div>
+              {/* KINEO-AUTOPILOT-LITE — numa agenda semanal não existe "2 a day": o campo some. */}
+              {schedule.intervalDays !== 7 && (<div>
                 <label htmlFor="ap-per-day" style={labelStyle}>
                   Shorts per day
                 </label>
@@ -1416,7 +1421,7 @@ export default function AutopilotClient() {
                   <option value={2}>2 a day</option>
                   <option value={3}>3 a day</option>
                 </select>
-              </div>
+              </div>)}
               <div>
                 <label htmlFor="ap-privacy" style={labelStyle}>
                   Publish as

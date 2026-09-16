@@ -44,6 +44,7 @@ import {
   clampAutopilotEngine,
   computeNextRunAt,
   isAutopilotEntitled,
+  normalizeIntervalDays,
   normalizePostHour,
   normalizePostsPerDay,
   scheduledDateUtc,
@@ -105,6 +106,8 @@ interface ScheduleRow {
   posts_per_day: number | null
   privacy_status: string | null
   next_run_at: string | null
+  /** KINEO-AUTOPILOT-LITE — 1 diário · 7 semanal. */
+  interval_days: number | null
 }
 
 interface RunRow {
@@ -375,7 +378,7 @@ async function generatePass(args: {
   const due = await selectAllPaged<ScheduleRow>((from, to) =>
     db
       .from('autopilot_schedules')
-      .select('id, user_id, channel_id, enabled, niche, tone, language, engine, post_hour_utc, posts_per_day, privacy_status, next_run_at')
+      .select('id, user_id, channel_id, enabled, niche, tone, language, engine, post_hour_utc, posts_per_day, privacy_status, next_run_at, interval_days')
       .eq('enabled', true)
       // next_run_at NULL = agenda recém-criada que nunca rodou: é devida agora.
       .or(`next_run_at.is.null,next_run_at.lte.${nowIso}`)
@@ -426,6 +429,7 @@ async function generatePass(args: {
       from: new Date(Math.max(Date.now(), scheduledAt.getTime())),
       postHourUtc: postHour,
       postsPerDay,
+      intervalDays: normalizeIntervalDays(schedule.interval_days), // KINEO-AUTOPILOT-LITE
     })
     await db
       .from('autopilot_schedules')

@@ -22,6 +22,7 @@
 // mudam). O guardião executa este módulo em sandbox com checkoutPricing stubado.
 import {
   AUTOPILOT_PRICES,
+  AUTOPILOT_LITE_PRICES,
   LEGACY_TIER_CREDITS_V6,
   TIER_CREDITS,
   renewalCreditsFor,
@@ -124,12 +125,14 @@ export function settlementNote(brlMinor: number, currency: SettlementCurrency, p
 
 /** Preço de plano na moeda de liquidação: em BRL vem da TABELA (anual = 10× mensal, não a fórmula sobre o anual em USD). */
 export function planSettlementAmountMinor(
-  tier: CheckoutTier,
+  tier: CheckoutTier | 'autopilot_lite',
   billing: 'monthly' | 'annual',
   currency: SettlementCurrency,
   usdMinor: number,
 ): number {
   if (currency !== 'brl') return usdMinor
+  // KINEO-AUTOPILOT-LITE-2026-09-16 — como o Autopilot, o Lite não tem linha na tabela BRL: cobra pela conversão.
+  if (tier === 'autopilot_lite') return settlementAmountMinor(usdMinor, currency)
   return BRL_PLAN_PRICES_MINOR[tier][billing]
 }
 
@@ -161,7 +164,7 @@ export function renewalCreditsForInvoice(
 ): number {
   const cur = typeof invoiceCurrency === 'string' ? invoiceCurrency.trim().toLowerCase() : 'usd'
   if (cur !== 'brl') return renewalCreditsFor(tier, amountPaidMinor)
-  const currentBrl = tier === 'autopilot' ? usdToBrlMinor(AUTOPILOT_PRICES.usd) : BRL_PLAN_PRICES_MINOR[tier].monthly
+  const currentBrl = tier === 'autopilot' ? usdToBrlMinor(AUTOPILOT_PRICES.usd) : tier === 'autopilot_lite' ? usdToBrlMinor(AUTOPILOT_LITE_PRICES.usd) : BRL_PLAN_PRICES_MINOR[tier].monthly
   if (typeof amountPaidMinor === 'number' && amountPaidMinor > 0 && amountPaidMinor < currentBrl) {
     return LEGACY_TIER_CREDITS_V6[tier]
   }

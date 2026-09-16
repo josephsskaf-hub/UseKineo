@@ -13,7 +13,7 @@
 // plan fora de starter|basic|pro (grava null) e /api/admin/click-stats só conta
 // basic e pro. Sem aquelas duas edições o clique continua invisível.
 export function trackCheckoutClick(
-  plan: 'starter' | 'basic' | 'pro' | 'autopilot' | 'autopilot_pilot',
+  plan: 'starter' | 'basic' | 'pro' | 'autopilot' | 'autopilot_lite' | 'autopilot_pilot',
 ): void {
   try {
     void fetch('/api/track-click', {

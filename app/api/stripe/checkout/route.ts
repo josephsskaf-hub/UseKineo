@@ -598,6 +598,12 @@ const TIERS: Record<PlanTier, { name: string; description: string; credits: numb
   // and published by the cron (app/api/cron/autopilot-generate), engine clamped
   // server-side to fast/basic_ai. The credits are the customer's manual
   // headroom on top of that; the scheduled posts spend from the same balance.
+  // KINEO-AUTOPILOT-LITE-2026-09-16 — o degrau semanal do mesmo robô.
+  autopilot_lite: {
+    name: 'Kineo — Autopilot Lite',
+    description: `Done for you, weekly: one episode of your series published to your YouTube channel every week. Includes ${TIER_CREDITS.autopilot_lite} credits / month for videos you make yourself.`,
+    credits: TIER_CREDITS.autopilot_lite,
+  },
   autopilot: {
     name: 'Kineo — Autopilot',
     description: `Done for you: one Short published to your YouTube channel every day. Includes ${TIER_CREDITS.autopilot} credits / month for videos you make yourself.`,
@@ -881,6 +887,11 @@ async function buildAndRedirect(
     billing = 'monthly'
     intro = false
   }
+  // KINEO-AUTOPILOT-LITE-2026-09-16 — mesma regra do Autopilot: mensal, sem intro.
+  if (tier === 'autopilot_lite') {
+    billing = 'monthly'
+    intro = false
+  }
 
   // Always return to the hostname the buyer actually used. The legacy env can
   // still point at shortsforgeai.vercel.app; trusting it adds an unnecessary
@@ -962,7 +973,7 @@ async function buildAndRedirect(
   // ANNUAL_PRICES). ?billing=annual on autopilot silently degrades to monthly
   // rather than 500-ing: a buyer who edits the URL should still be able to buy.
   const isAnnual = billing === 'annual'
-  const unitAmount = isAnnual && tier !== 'autopilot'
+  const unitAmount = isAnnual && tier !== 'autopilot' && tier !== 'autopilot_lite'
     ? getAnnualPrice(tier, currency, region)
     : monthlyPriceMinor(tier, currency, region)
   const interval: 'month' | 'year' = isAnnual ? 'year' : 'month'
@@ -1350,7 +1361,7 @@ async function buildAndRedirect(
     // KINEO-AUTOPILOT-299-2026-07-26 — 'autopilot' added. Without it an
     // Autopilot subscriber whose profile needed repair would be written back
     // to plan='free' and instantly lose Autopilot entitlement.
-    if (grantsAccess && (activeTier === 'starter' || activeTier === 'basic' || activeTier === 'pro' || activeTier === 'autopilot')) {
+    if (grantsAccess && (activeTier === 'starter' || activeTier === 'basic' || activeTier === 'pro' || activeTier === 'autopilot' || activeTier === 'autopilot_lite')) {
       repair.plan = activeTier
     } else if (!grantsAccess) {
       repair.plan = 'free'
@@ -3347,7 +3358,8 @@ export async function GET(req: NextRequest) {
       tierParam === 'pro' ? 'pro'
         : tierParam === 'starter' ? 'starter'
           : tierParam === 'autopilot' ? 'autopilot'
-            : 'basic'
+            : tierParam === 'autopilot_lite' ? 'autopilot_lite' // KINEO-AUTOPILOT-LITE
+              : 'basic'
     const billing: Billing = req.nextUrl.searchParams.get('billing') === 'annual' ? 'annual' : 'monthly'
     const promo = req.nextUrl.searchParams.get('promo') ?? undefined
     // KINEO-INTRO-MONTH-2026-07-13 — ?intro=1 → 1º mês com desconto.

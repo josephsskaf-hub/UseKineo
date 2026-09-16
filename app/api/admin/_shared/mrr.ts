@@ -64,6 +64,7 @@ export const PLAN_PRICE_USD: Record<string, number> = {
   studio_trial: PLANS.pro.price,
   autopilot: PLANS.autopilot.price,
   autopilot_trial: PLANS.autopilot.price,
+  autopilot_lite: PLANS.autopilot_lite.price, // KINEO-AUTOPILOT-LITE-2026-09-16
   // KINEO-PILOT-99-2026-07-26 — the pilot is a ONE-OFF $99, not a
   // subscription. It must be a KEY (so the buyer counts as a paying customer)
   // with VALUE 0 (so it never inflates MRR).
@@ -151,7 +152,7 @@ export type PlanBase = 'free' | 'starter' | 'creator' | 'studio' | 'autopilot'
 
 /** Stored value → product family, using the names the founder sees in the UI. */
 export function planBase(plan: string | null | undefined): PlanBase {
-  const p = normalizePlan(plan).replace('_trial', '').replace('_pilot', '')
+  const p = normalizePlan(plan).replace('_trial', '').replace('_pilot', '').replace('_lite', '') // KINEO-AUTOPILOT-LITE: família Autopilot
   if (p === 'starter') return 'starter'
   if (p === 'basic' || p === 'creator') return 'creator'
   if (p === 'pro' || p === 'studio') return 'studio'
