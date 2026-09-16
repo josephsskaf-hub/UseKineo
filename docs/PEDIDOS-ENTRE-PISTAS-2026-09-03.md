@@ -3213,3 +3213,20 @@ Base (30 dias): 10 pagantes (5 Starter, 2 Creator, 3 Studio) ≈ US$ 209 MRR; 91
 Guardião `scripts/test-mrr-1-3-2026-09-16.mjs` (13). tsc ✓. Vermelhos herdados iguais no baseline: checkout-currency-truth, limit-purchase-fit, motores-d1, paypal-canonical-catalog, sem-porteiro, troca-de-plano.
 
 **Pendente de decisão do fundador:** 4 (Autopilot Lite ~US$ 59, série semanal) e o preço do top-up. **Para o GPT:** 5 (afiliados) — texto entregue no chat.
+
+## AUTOPILOT-LITE-R1 — o degrau semanal entre Studio e Autopilot (fundador 16/09 13:33 BRT: "vamos fazer esse Autopilot Lite a 59… tudo integrado, tudo bonitinho")
+
+**Decisão:** Autopilot de US$ 299 "está meio caro"; Lite = mesmo robô, **1 episódio por semana**, **US$ 59/mês**, **160 créditos/mês** para filmes manuais. Preço é uma constante (`AUTOPILOT_LITE_PRICES.usd = 5900`); trocar para 79 é uma linha. Mensal, sem anual, sem intro (mesma regra do Autopilot).
+
+**Como funciona para a pessoa (commit f09e484a):**
+1. Compra em /pricing (card "Autopilot Lite — one episode a week, published for you", acima do card de US$ 299) → Stripe cobra US$ 59/mês → webhook grava `plan = 'autopilot_lite'` e 160 créditos.
+2. Vai a /autopilot, conecta o canal do YouTube uma vez e cria a agenda (nicho, hora do dia). O servidor grava `interval_days = 7` (vem do PLANO, não do formulário); o campo "Shorts per day" some na UI e o texto diz "Posting one episode a week".
+3. O cron horário (`/api/cron/autopilot-generate`) roda a primeira vez na próxima passada e depois **a cada 7 dias, na mesma hora**: escolhe o tema como continuação do episódio anterior (`buildSeriesContinuationPrompt`, "This channel is an ongoing series"), renderiza no Kineo 1 (agora híbrido com stills) em 45 s, monta, e **publica direto no YouTube** dela. O episódio gasta 5 créditos do mesmo saldo; sem canal conectado ou sem crédito, a run é pulada (registro `autopilot_run_skipped`) — nunca cobra em falso.
+4. Os 160 créditos restantes servem para filmes manuais em qualquer motor (Seedance = 25 → 5 filmes, com folga).
+5. Cancelar/pausar: pelo Autopilot (pausa) ou pela conta (Stripe). Sem plano ativo o robô para (`isAutopilotEntitled`).
+
+**O que mudou no código:** `lib/checkoutPricing.ts` (tier `autopilot_lite`, preço, créditos, invariantes financeiros rodando com ele), `lib/pricing.ts` (PLANS + AUTOPILOT_LITE_PLAN, fora de PLAN_LIST), `lib/autopilot/config.ts` (AUTOPILOT_LITE_PLAN, AUTOPILOT_WEEKLY_PLANS, `intervalDaysForPlan`, `normalizeIntervalDays`, `computeNextRunAt` semanal = +7 dias na hora agendada, clamp 1 por slot), migração `20260916160000_autopilot_lite_interval_days.sql` (coluna `interval_days` 1|7, aplicada no Supabase às 13:33 BRT), cron (lê `interval_days`), API de agendas (POST/PATCH gravam a cadência do plano; GET devolve `intervalDays`), UI do Autopilot, checkout (`?tier=autopilot_lite`, mensal, cobra pela conversão como o Autopilot), webhook (3 cadeias de tier), facts/llms.txt, MRR do admin (família Autopilot), trackClick, `lib/settlementCurrency.ts` (Lite sem tabela BRL → conversão). Guardião `scripts/test-autopilot-lite-2026-09-16.mjs` (23, com `checkPricingInvariants()` executado). Reancorados: admin-fonte-unica (mock ganha o plano), mrr-1-3. tsc ✓.
+
+**Limites honestos:** o episódio automático é Kineo 1 (stock + stills); Seedance automático é fase 2 (o robô só fala com a rota do Kineo 1). Exige canal do YouTube conectado (é o produto: "publicado para você"). Dias/horários em UTC internamente, exibidos no fuso da pessoa.
+
+**Medir:** `autopilot_lite_checkout_clicked` → `payment_success` (tier autopilot_lite) → agendas com `interval_days = 7` → `autopilot_runs` por semana (status/skips).
