@@ -100,7 +100,11 @@ checa('a submissão hollywood passa pelo retry', /id = await submitToFalWithOneR
 
 console.log('== item 6: H3 visível para quem paga ==')
 const sc = rd('app/(dashboard)/studio/StudioClient.tsx')
-checa('Studio: H3 vem logo depois do Seedance, com selo "Fits your plan"', sc.indexOf("{ key: 'h3', icon: 'H3', name: 'MiniMax H3', tag: 'Fits your plan'") > sc.indexOf("{ key: 'seedance'") && sc.indexOf("{ key: 'h3', icon: 'H3'") < sc.indexOf("{ key: 'kling', preview:"))
+// MOTORES-EM-MANUTENCAO (15/09): a entrada do H3 ganhou o campo `paused: Boolean(enginePaused('h3'))` antes do ícone
+// (o card fica desabilitado com selo Maintenance enquanto o motor está pausado). A posição e o selo "Fits your plan"
+// continuam os mesmos — a verificação aceita a entrada com ou sem o campo, nunca fora do lugar.
+const h3Entrada = sc.match(/\{ key: 'h3', (?:paused: Boolean\(enginePaused\('h3'\)\), )?icon: 'H3', name: 'MiniMax H3', tag: 'Fits your plan'/)
+checa('Studio: H3 vem logo depois do Seedance, com selo "Fits your plan" (com ou sem o campo paused da manutenção)', !!h3Entrada && h3Entrada.index > sc.indexOf("{ key: 'seedance'") && h3Entrada.index < sc.indexOf("{ key: 'kling', preview:"))
 
 console.log(`\n  verificacoes: ${ok + falhas.length} · falhas: ${falhas.length}`)
 if (falhas.length) { for (const f of falhas) console.log('  ✗ ' + f); process.exit(1) }

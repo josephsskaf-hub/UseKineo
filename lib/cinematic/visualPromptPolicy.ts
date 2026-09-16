@@ -70,7 +70,21 @@ const SETTING_ALLOW = new Set(['earth', 'moon', 'sun', 'god', 'internet', 'chris
 // fronteiras por lookaround: nome acentuado é UMA palavra.
 // KINEO-PARTICULA-NO-NOME-2026-09-15 — ensaio do Omni: "Bolivia's Salar de Uyuni" saía como "Salar" + "Uyuni" e sobrava "In the heart of de,".
 // Partícula minúscula entre palavras capitalizadas (de/da/do/del/della/di/von/van/der/la/le/el/al/y/e) faz parte do nome.
-const SETTING_PROPER_RUN_RE = /(?<![\p{L}\p{N}])\p{Lu}\p{Ll}{2,}(?:['’]s)?(?:-\p{Ll}+)?(?: (?:(?:de|da|do|dos|das|del|della|di|von|van|der|den|la|le|el|al|y|e) )?\p{Lu}\p{Ll}{2,}(?:['’]s)?(?:-\p{Ll}+)?)*(?: \d{2,4}(?![\p{L}\p{N}]))?/gu
+// KINEO-ABREVIACAO-E-OKINA-2026-09-15 (R19, filme do Veo acd05d78): o planejador escreveu "Mount St. Helens" e
+// "Halemaʻumaʻu crater at Kilauea, Hawaii" numa história sem lugar; a varredura tirou "Mount" e "Halema" e mandou ao
+// motor "maps of the St. Helens eruption" e "the ʻumaʻu crater". Causa: "St." não era palavra (uma minúscula só) e a
+// okina (ʻ, letra modificadora) ficava fora da classe, então o nome casava pela metade. Agora a abreviação de título/
+// lugar (St./Mt./Ft./Dr./Mr./Mrs./Ms./Prof./Gen./Col./Capt./Lt./Sgt./Rev.) faz parte do nome, apóstrofo/okina seguido de
+// minúscula fica dentro da palavra, e o nome só casa INTEIRO (fim em fronteira) — nada sobra colado.
+const SETTING_ABREV = String.raw`(?:(?:St|Mt|Ft|Dr|Mr|Mrs|Ms|Prof|Gen|Col|Capt|Lt|Sgt|Rev)\. )?`
+const SETTING_PALAVRA = String.raw`\p{Lu}(?:[\p{Ll}\p{Lm}]|['’ʻ](?=[\p{Ll}\p{Lm}])){2,}(?:-\p{Ll}+)?`
+const SETTING_PROPER_RUN_RE = new RegExp(String.raw`(?<![\p{L}\p{N}])${SETTING_ABREV}${SETTING_PALAVRA}(?: (?:(?:de|da|do|dos|das|del|della|di|von|van|der|den|la|le|el|al|y|e) )?${SETTING_ABREV}${SETTING_PALAVRA})*(?: \d{2,4}(?![\p{L}\p{N}]))?(?![\p{L}\p{N}])`, 'gu')
+// R19 — a instrução de variedade da rota ("do not repeat the same shot type") voltou copiada DENTRO da descrição da
+// cena 9 do Veo ("…the geologist's focused expressions, ensuring no repetition."). Instrução não é imagem: sai.
+const META_VARIEDADE_RE = /,?\s*(?:(?:ensuring|making sure|taking care|guaranteeing)\s+(?:that\s+)?(?:there\s+is\s+)?(?:no|zero)\s+repetition|(?:avoiding|without)\s+(?:any\s+)?repetition|(?:distinct|different)\s+from\s+(?:the\s+)?(?:previous|earlier|prior|other)\s+(?:scenes?|shots?))(?:\s+(?:of|from|with)\s+(?:the\s+)?(?:previous|earlier|prior|other)\s+(?:scenes?|shots?))?/gi
+// R19 — "The geologist, Elena Vance, observes…" virava "The geologist, observes…": o aposto sai com as DUAS vírgulas,
+// a não ser que o que segue seja pronome/conjunção/preposição ("at the observatory, she"), onde uma vírgula é gramática.
+const APOS_VIRGULA_FICA = new Set(['she', 'he', 'they', 'it', 'we', 'you', 'i', 'the', 'a', 'an', 'and', 'but', 'or', 'nor', 'yet', 'so', 'while', 'as', 'where', 'when', 'who', 'whom', 'which', 'with', 'in', 'on', 'at', 'of', 'for', 'from', 'to', 'by', 'into', 'onto', 'under', 'over', 'near', 'through', 'across', 'then', 'now', 'still', 'his', 'her', 'their', 'its', 'this', 'that', 'these', 'those'])
 const SETTING_YEAR_RE = /(?:\b(?:1[0-9]{3}|20[0-9]{2})s?\b|(?:^|\s)['’]?[1-9]0s\b)/g
 const SETTING_ERA_ADJ_RE = /\b(victorian|edwardian|georgian|medieval|ancient|renaissance|colonial|napoleonic|vintage|retro|antique|old[- ]fashioned)(?:-era)?\b/gi
 
@@ -90,10 +104,11 @@ export function scrubInventedSetting(visual: string, context: string): SettingSc
   const src = visual || ''
   if (!src.trim()) return { text: src, removed: [] }
   const ctx = settingWords(context)
-  const base = (w: string) => w.toLowerCase().replace(/['’]s$/, '').replace(/-[a-z]+$/, '')
+  const base = (w: string) => w.toLowerCase().replace(/\.$/, '').replace(/['’]s$/, '').replace(/-[a-z]+$/, '')
   const known = (w: string) => ctx.has(base(w)) || SETTING_ALLOW.has(base(w))
   const removed: string[] = []
-  let out = src.replace(SETTING_PROPER_RUN_RE, (run: string, offset: number, whole: string) => {
+  let out = src.replace(META_VARIEDADE_RE, (m: string) => { removed.push(m.trim()); return '' })
+  out = out.replace(SETTING_PROPER_RUN_RE, (run: string, offset: number, whole: string) => {
     const words = run.split(' ')
     const before = whole.slice(0, offset)
     const sentenceStart = /(?:^|[.!?;:]\s*|\(\s*|["“]\s*)$/.test(before)
@@ -128,6 +143,7 @@ export function scrubInventedSetting(visual: string, context: string): SettingSc
       .replace(ASPAS_VAZIAS_RE, '')
       .replace(/\s*\b(?:in|at|of|near|from|on|inside|outside|across|through|toward|towards|into|onto|over|under|behind|beside|along|past|the|a|an)\s*(?=[,.;)]|$)/gi, '')
       .replace(/\b(?:in|at|of|near|from|on|across|through|toward|towards|into|onto|over|under|behind|beside|along|past)\s+(?=(?:in|at|of|near|from|on|across|through|toward|towards|into|onto|over|under|behind|beside|along|past)\b)/gi, '')
+      .replace(/,(?:\s*,)+\s*(?=([\p{L}\p{N}]+))/gu, (_m: string, w: string) => (APOS_VIRGULA_FICA.has(w.toLowerCase()) ? ', ' : ' '))
       .replace(/(?:\s*,){2,}/g, ',')
       .replace(/\(\s*\)/g, '')
       .replace(/\s+([,.;)])/g, '$1')

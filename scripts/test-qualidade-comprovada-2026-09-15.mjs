@@ -289,6 +289,21 @@ console.log('== (k) sobra curta → reescrita; primeira pessoa → replan; Salar
   const r = scrub("In the heart of Bolivia's Salar de Uyuni, I traverse the salt flats, searching for the X.", 'A cartographer crosses a salt desert on foot, following a map drawn by her grandfather.')
   checa(`"Bolivia's Salar de Uyuni" sai inteiro, sem sobrar "de": "${r.text}"`, r.text === 'In the heart, I traverse the salt flats, searching for the X.' && r.removed.includes('de'))
   checa('nome do pedido com partícula fica ("Rio de Janeiro" na história)', scrub('Aerial view of Rio de Janeiro at dawn', 'A boy in Rio de Janeiro wakes up early.').text === 'Aerial view of Rio de Janeiro at dawn')
+  // R19 — filme do Veo acd05d78 (16/09 01:35 UTC, deploy 4793d2f0): a varredura deixou "St. Helens", "ʻumaʻu crater" e
+  // ", ensuring no repetition" nos prompts enviados; e a fala saiu "The geologist, observes" depois de tirar o nome.
+  const hist = 'A volcano observatory at dawn. A geologist on the night shift notices the seismograph needle drawing wider and wider lines.'
+  const k1 = scrub("A macro close-up of a geologist's hands scribbling notes, surrounded by geological maps of the Mount St. Helens eruption, with the volcano's peak in the blurry background.", hist)
+  checa(`R19: "Mount St. Helens" sai inteiro (nada de "St. Helens" sobrando): "${k1.text}"`, k1.text === "A macro close-up of a geologist's hands scribbling notes, surrounded by geological maps of the eruption, with the volcano's peak in the blurry background." && k1.removed.includes('St.') && k1.removed.includes('Helens'))
+  const k2 = scrub('Aerial view of the active volcano, a bright orange lava lake bubbling within the Halemaʻumaʻu crater at Kilauea, Hawaii, with gases rising.', hist)
+  checa(`R19: "Halemaʻumaʻu" (okina) sai inteiro, sem "ʻumaʻu", e Kilauea/Hawaii junto: "${k2.text}"`, k2.text === 'Aerial view of the active volcano, a bright orange lava lake bubbling within the crater, with gases rising.' && k2.removed.includes('Halemaʻumaʻu'))
+  const k3 = scrub('A close-up montage of distinct volcanic events, including the seismograph’s needle and the glowing crater, ensuring no repetition. 9:16 vertical framing.', hist)
+  checa(`R19: ", ensuring no repetition" (instrução de variedade copiada) sai da descrição: "${k3.text}"`, k3.text === 'A close-up montage of distinct volcanic events, including the seismograph’s needle and the glowing crater. 9:16 vertical framing.')
+  const k4 = scrub('The geologist, Elena Vance, observes the seismograph needle drawing wider lines.', hist)
+  checa(`R19: aposto de nome inventado sai com as duas vírgulas ("The geologist observes", não "The geologist, observes"): "${k4.text}"`, k4.text === 'The geologist observes the seismograph needle drawing wider lines.')
+  checa('R19: a vírgula fica quando o que segue é pronome/conjunção ("at the observatory, she")', scrub('Later, at the observatory, Elena Vance, she checks the needle.', hist).text === 'Later, at the observatory, she checks the needle.')
+  checa('R19: nome com abreviação citado no pedido fica ("Dr. Vance")', scrub('Dr. Vance reads the seismograph at dawn.', 'Dr. Vance works the night shift at the observatory.').text === 'Dr. Vance reads the seismograph at dawn.')
+  checa('R19: frase que termina em palavra curta capitalizada não engole a seguinte ("…in Rio. Suddenly…")', scrub('The boy runs in Rio. Suddenly the lights go out.', 'A boy in Rio runs home.').text === 'The boy runs in Rio. Suddenly the lights go out.')
+  checa('R19: origin/main ainda casava "St. Helens" e a okina pela metade (o conserto é desta leva)', (() => { const m = main('lib/cinematic/visualPromptPolicy.ts'); const i2 = m.indexOf('const SETTING_ALLOW'); const j2 = m.indexOf('\n}\n', m.indexOf('export function scrubInventedSetting')); const s0 = roda(m.slice(i2, j2 + 3)).scrubInventedSetting; return /St\. Helens/.test(s0('maps of the Mount St. Helens eruption', hist).text) || /ʻumaʻu/.test(s0('within the Halemaʻumaʻu crater', hist).text) })())
 }
 
 console.log(`${ok} ok · ${falhas.length} falhas`)
