@@ -129,7 +129,7 @@ export const FICHA_EXPLICITA_DE_PERSONAGEM = /(?:keep|keeping|mantenha|manter|ma
 // KINEO-PERSONAGEM-GENERICO-2026-09-16 — Omni verbatim (16/09): "A young cartographer with a long black braid…" caiu em
 // documentary_faceless porque os sinais são frases fixas ("a young woman"). Papel com adjetivo de idade/condição também é
 // personagem: "a young cartographer", "an old watchmaker", "a lone lighthouse keeper", "an elderly fisherman".
-export const PERSONAGEM_GENERICO_RE = /\ban?\s+(?:young|old|elderly|middle-aged|lone|little|tired|retired|veteran|aging|teenage)\s+(?:man|woman|boy|girl|[a-z]+(?:er|or|ist|ian|eer|ant|ess|ard|man|woman))\b/i
+export const PERSONAGEM_GENERICO_RE = /\ban?\s+(?:young|old|elderly|middle-aged|lone|little|tired|retired|veteran|aging|teenage)\s+(?:[a-z]+\s+)?(?:man|woman|boy|girl|[a-z]+(?:er|or|ist|ian|eer|ant|ess|ard))\b/i
 export const SINAIS_DE_PERSONAGEM = [
   'his story', 'her story', 'he was born', 'she was born', 'grew up',
   'a young man', 'a young woman', 'the boy', 'the girl', 'his life', 'her life',
