@@ -2629,6 +2629,12 @@ export default function GenerateClient({
   // prompt original (transiente), rodada 2 = sanitize (moderação). Ver #3263.
   const hollyRetriedRef = useRef(0)
   const sceneNarrationsRef = useRef<(string | null)[]>([])
+  // KINEO-TOPICO-DO-DESPACHO-2026-09-16 — o título/tópico do filme é o texto que foi DESPACHADO, não o que está
+  // na caixa na hora do compose. Caso real (16/09 14:15 UTC, cadastro vindo do TAAFT): o render da "piscina
+  // abandonada às 3:17" ficou em segundo plano, a pessoa digitou a próxima ideia ("5 morning habits Jeff Bezos")
+  // na mesma caixa, e o compose gravou topic/título/pacote de publicação com o Bezos num filme de piscina.
+  // O fundador viu "um vídeo do Bezos sem nada dele". O prompt vira fotografia no instante do despacho.
+  const dispatchedPromptRef = useRef<string | null>(null)
   const sceneSecondsRef = useRef<number[]>([])
   // KINEO-HOLLYWOOD-21-2026-07-10 (bug b) — the EXACT spoken line per dialogue
   // scene (null for the rest), parallel to the other scene refs. Rides to
@@ -6030,7 +6036,7 @@ export default function GenerateClient({
             voiceover_script: voiceoverScript,
             scene_captions: sceneCaptions,
             duration,
-            topic: prompt,
+            topic: dispatchedPromptRef.current ?? prompt, // KINEO-TOPICO-DO-DESPACHO
             language,
             vertical: analysis?.niche ?? undefined,
             speed: ttsSpeed ?? undefined,
@@ -6049,7 +6055,7 @@ export default function GenerateClient({
             voiceover_script: voiceoverScript,
             scene_captions: sceneCaptions,
             duration,
-            topic: prompt,
+            topic: dispatchedPromptRef.current ?? prompt, // KINEO-TOPICO-DO-DESPACHO
             quality: falUsedRef.current ? falQualityRef.current : quality,
             // KINEO-HOLLYWOOD-2026-07-09 — per-scene metadata (parallel to
             // clip_urls) so compose routes native-audio volume + block TTS.
@@ -8883,6 +8889,7 @@ export default function GenerateClient({
       return
     }
     generationInFlightRef.current = true
+    dispatchedPromptRef.current = prompt // KINEO-TOPICO-DO-DESPACHO
 
     if (!(await waitForActiveRenderRestore())) {
       // The gate rejected the attempt: release the claim taken above, or the
@@ -8919,6 +8926,7 @@ export default function GenerateClient({
     // move the phase to `failed` while we are waiting. Re-assert the claim the
     // instant the gate opens, before anything can be dispatched.
     generationInFlightRef.current = true
+    dispatchedPromptRef.current = prompt // KINEO-TOPICO-DO-DESPACHO
 
     // (#360 double-submit guard now runs above the gate await — see the note
     // at the top of this function. The claim on generationInFlightRef is
@@ -9754,7 +9762,7 @@ export default function GenerateClient({
           voiceover_script: checkpointVoiceover,
           scene_captions: checkpointCaptions,
           duration,
-          topic: prompt,
+          topic: dispatchedPromptRef.current ?? prompt, // KINEO-TOPICO-DO-DESPACHO
           language,
           vertical: analysis?.niche ?? undefined,
           speed: responseSpeed ?? undefined,
@@ -9765,7 +9773,7 @@ export default function GenerateClient({
           voiceover_script: checkpointVoiceover,
           scene_captions: checkpointCaptions,
           duration,
-          topic: prompt,
+          topic: dispatchedPromptRef.current ?? prompt, // KINEO-TOPICO-DO-DESPACHO
           quality: 'fast',
           language,
           vertical: analysis?.niche ?? undefined,
