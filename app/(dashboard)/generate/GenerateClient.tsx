@@ -10693,8 +10693,11 @@ export default function GenerateClient({
     // existia nunca ter chegado à tela.
     const trialGranted =
       typeof trialUi?.creditsGranted === 'number' && trialUi.creditsGranted > 0
+    // Paid accounts can retain an old trial phase after buying.
+    // Their credit shortfall must not be classified as an expired free trial.
+    const paidAccount = hasPaid || isStarter || isCreator || isStudio
     const trialReasonHere: 'trial_spent' | 'trial_ended' | null =
-      reason !== 'credits' || !trialGranted
+      reason !== 'credits' || !trialGranted || paidAccount
         ? null
         : trialUi?.phase === 'ending' || trialUi?.phase === 'downgraded'
           ? 'trial_ended'
