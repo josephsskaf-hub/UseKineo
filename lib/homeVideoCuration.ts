@@ -38,12 +38,19 @@ export const APPROVED_HOME_VIDEOS_SEP16: readonly HomeExample[] = [
   { id: 'd6d73a90-9bd7-46a3-826a-9a4a72549e05', title: "The watchmaker's pocket watch", engine: 'cinematic_hollywood', videoPath: '/previews/curation-sep16/d6d73a90-9bd7-46a3-826a-9a4a72549e05-v.mp4', homePreviewPath: '/previews/curation-sep16/d6d73a90-9bd7-46a3-826a-9a4a72549e05-h.mp4', posterPath: '/previews/curation-sep16/d6d73a90-9bd7-46a3-826a-9a4a72549e05-h.webp', ownershipEvidence: 'founder_confirmed_owned', ownershipVerifiedAt: '2026-09-16' },
 ]
 
+// KINEO-KLING25-QUATRO-2026-09-16 (fundador: "aumenta 2 vídeos no Kling 2.5, está só com 2"): o card do
+// Kling 2.5 tinha só o trem (16/09) + Dyatlov (07/09). Voltam dois renders dele que já têm preview
+// 500:280 no acervo: "Dinner still warm, everyone gone" (07/09, 1400px) e "Ancient Rome in gold"
+// (curadoria de 15/08, escolha dele). Ordem: trem → Dyatlov → jantar → Roma.
+export const KLING25_EXTRA_HOME_IDS = ['fbc5d391-316f-4757-aa54-0565f698cb9f', 'c4e4fbab-0978-4daa-9fcf-119096370210'] as const
+
 export const ROBOT_VIDEO_ID = '36a04f7b-65f7-42d9-a2ab-198b5a7f115e'
 const replacedEngines = new Set(['fast', 'cinematic_ai', 'cinematic_kling', 'cinematic_omni'])
 export const HOME_ENGINE_EXAMPLES: readonly HomeExample[] = [
   ...PUBLIC_ENGINE_EXAMPLES.filter(v => v.id === ROBOT_VIDEO_ID),
   ...APPROVED_HOME_VIDEOS_SEP16,
   ...APPROVED_HOME_VIDEOS,
+  ...KLING25_EXTRA_HOME_IDS.map((id) => PUBLIC_ENGINE_EXAMPLES.find((v) => v.id === id)!),
   // No approved replacement from Veo/H3; preserve them and Kling 3 verbatim.
   ...PUBLIC_ENGINE_EXAMPLES.filter(v => !replacedEngines.has(v.engine)),
 ]

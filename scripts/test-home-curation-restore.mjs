@@ -103,7 +103,7 @@ for (const video of hero) {
 const trending = await wall.getTrending()
 equal(databaseCalls, 0, 'trending also stays database-free')
 // reancorado 16/09: a curadoria de 07/09 (3 Kineo 1 + 4 Seedance + Omni robô e 4 apresentadores…) levou a fileira de 14 a 23.
-equal(trending.length, 23, 'third row keeps the dense twenty-three-video rail (07/09 curation)')
+equal(trending.length, 24, 'third row keeps the dense twenty-four-video rail (07/09 curation + Kling 2.5 back to four clips on 16/09)')
 check(new Set(trending.map((video) => video.engine)).size >= 7, 'third row spans at least seven engine families')
 equal(trending[0].engine, 'fast', 'trending interleave starts with everyday output')
 equal(trending[1].engine, 'cinematic_ai', 'trending interleave avoids same-engine clumps')
