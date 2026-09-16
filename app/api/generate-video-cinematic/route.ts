@@ -4196,6 +4196,31 @@ async function manipularPost(req: NextRequest) {
       // prometem. Custo: os centavos do GPT do planner. Zero fal, zero
       // Creatomate, zero TTS, e o débito é estornado na hora pelo mesmo
       // caminho do FAILFAST. Testar um roteiro passa de $7 para ~$0,02.
+      // ═══ KINEO-ULTIMA-ENCHIDA-2026-09-15 — a última palavra sobre o silêncio é do código, DEPOIS do teto-rede e do
+      // esticão ao piso (fitCinematicPlanFloor). Ensaio do Omni com gpt-4o (deploy cfbe20b1): o enche-silêncio aprovava o
+      // plano projetado (3,9 s) e a régua final reprovava (10,5 s) porque o teto-rede dividia cenas e o esticão alongava
+      // outras DEPOIS do enchimento. Cada cena que ficou com > 1,0 s mudo ganha uma continuação até caber nos seus
+      // segundos ((s − 0,3) × ritmo); recusa do modelo mantém a fala como está. Verbatim nunca passa por aqui (C1). ═══
+      if (!verbatim && plan.scenes.length > 0) {
+        try {
+          const wordsN = (t?: string) => (t ?? '').trim().split(/\s+/).filter(Boolean).length
+          const alvos = plan.scenes
+            .filter((sc) => sc.type !== 'dialogue' && typeof sc.voiceover === 'string' && sc.voiceover.trim().length > 0)
+            .map((sc) => { const cabe = Math.max(1, Math.floor(((sc.seconds ?? 0) - 0.3) * ritmoVoz)); const w = wordsN(sc.voiceover); return { sc, cabe, w, mudo: (sc.seconds ?? 0) - w / ritmoVoz } })
+            .filter((x) => x.mudo > 1.0 && x.cabe - x.w >= 2)
+          if (alvos.length > 0) {
+            const novas = await appendNarrationToTargets(alvos.map((x) => ({ text: x.sc.voiceover ?? '', addWords: x.cabe - x.w, maxWords: x.cabe + 2 })), hollywoodLanguage, prompt.slice(0, 300))
+            let cresceram = 0
+            alvos.forEach((x, k) => {
+              const nova = typeof novas[k] === 'string' ? novas[k].trim() : ''
+              const wn = wordsN(nova)
+              if (nova && nova !== x.sc.voiceover && wn > x.w && wn <= x.cabe + 2 && nova.startsWith((x.sc.voiceover ?? '').trim().replace(/[.!?…]$/, ''))) { x.sc.voiceover = nova; x.sc.needsNarration = true; cresceram++ }
+            })
+            const depois = planSilenceReport(plan.scenes, ritmoVoz)
+            console.log(`[hollywood] KINEO-ULTIMA-ENCHIDA: ${alvos.length} cena(s) com > 1,0 s mudo depois do teto-rede/esticão → ${cresceram} cresceram → ${depois.total}s no total (pior ${depois.worst}s) ${depois.ok ? 'PASSA' : 'ainda reprova'}`)
+          }
+        } catch (e) { console.warn('[hollywood] KINEO-ULTIMA-ENCHIDA falhou:', e instanceof Error ? e.message : String(e)) }
+      }
       {
         const dryRunEmails = new Set(['josephsskaf@gmail.com', 'josephskaf@gmail.com', 'joseph-test@shortsforgeai.com'])
         if (body.dry_run === true && dryRunEmails.has((user.email ?? '').toLowerCase())) {
