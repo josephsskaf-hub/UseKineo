@@ -53,3 +53,39 @@ export function looksLikeOurOwnUi(text: string | null | undefined): boolean {
 export const PROMPT_PROPRIO_REASON = 'prompt_is_our_ui'
 export const PROMPT_PROPRIO_MESSAGE =
   'That text is the Kineo page itself, not a video idea. Clear the box and type your topic (one line is enough) or paste your own script — nothing was charged.'
+
+// ── KINEO-1-COERENCIA-2026-09-16 — a PÍLULA SOZINHA não é uma ideia ───────────────────────────
+//
+// Caso real (16/09): wisadot849 (ChatGPT, trial de 10) apertou "📖 True Story" e Generate sem
+// completar a frase — o despacho tinha 28 caracteres: "The incredible true story of". O roteirista
+// INVENTOU "uma cidade escondida na Amazônia há 500 anos"; o filme cobrou 5 créditos e não era sobre
+// nada que a pessoa pediu. uldanai148 (03:16) idem com "The unsolved mystery of" (23 caracteres) →
+// "hiker sumido em 1967". Um filme inventado no primeiro contato é o jeito mais rápido de a pessoa
+// não assinar. Regra: texto curto (≤ 6 palavras) que TERMINA numa palavra que exige continuação
+// ("of", "about", "the", "why", "how"…) é frase inacabada — recusa antes de custar, com a frase que
+// diz o que fazer. A pílula do Studio também trava o botão enquanto o texto for só isso.
+const STARTERS_DA_CASA: readonly string[] = [
+  '5 shocking facts about',
+  'the unsolved mystery of',
+  'the incredible true story of',
+]
+const PALAVRAS_QUE_PEDEM_CONTINUACAO = new Set([
+  'of', 'about', 'the', 'a', 'an', 'that', 'which', 'why', 'how', 'when', 'where', 'who', 'what',
+  'in', 'on', 'at', 'to', 'for', 'with', 'and', 'or', 'by', 'from', 'into', 'behind', 'inside', 'is', 'are', 'was', 'were',
+  'de', 'del', 'sobre', 'do', 'da', 'dos', 'das', 'el', 'la', 'los', 'las', 'o', 'os', 'as', 'um', 'uma', 'por', 'para', 'que',
+])
+export const BARE_STARTER_MAX_WORDS = 6
+
+/** true = frase inacabada ("The unsolved mystery of"), não uma ideia. */
+export function isBareStarter(text: string | null | undefined): boolean {
+  const t = (text ?? '').toLowerCase().replace(/[\s\u00a0]+/g, ' ').replace(/[\s.…:,;!?\-–—"'“”‘’]+$/g, '').trim()
+  if (!t) return false
+  if (STARTERS_DA_CASA.includes(t)) return true
+  const words = t.split(' ').filter(Boolean)
+  if (words.length === 0 || words.length > BARE_STARTER_MAX_WORDS) return false
+  return PALAVRAS_QUE_PEDEM_CONTINUACAO.has(words[words.length - 1])
+}
+
+export const BARE_STARTER_REASON = 'prompt_bare_starter'
+export const BARE_STARTER_MESSAGE =
+  'Finish the sentence — tell Kineo what the story is about (for example: "The unsolved mystery of the Dyatlov Pass"). Nothing was charged.'

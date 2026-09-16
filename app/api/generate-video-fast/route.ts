@@ -7,8 +7,9 @@ import type { Scene } from '@/lib/runway'
 // import { getPexelsVideoForScene, getPexelsVideoForExactQuery, getPexelsVideoForQueries } from '@/lib/pexels'
 // Push #353 — Pixabay replaces Pexels as primary B-roll source.
 // Fast Mode v2 (02/07) — getPixabayClipsForScene returns a RANKED mini-pool per scene.
-import { getPixabayClipsForScene } from '@/lib/pixabay'
-import { looksLikeOurOwnUi, PROMPT_PROPRIO_MESSAGE, PROMPT_PROPRIO_REASON } from '@/lib/promptGuard'
+import { getPixabayClipsForScene, notePickedClipTags, pixabayTagsForUrl } from '@/lib/pixabay'
+import { isBareStarter, BARE_STARTER_MESSAGE, BARE_STARTER_REASON, looksLikeOurOwnUi, PROMPT_PROPRIO_MESSAGE, PROMPT_PROPRIO_REASON } from '@/lib/promptGuard'
+import { FAST_SCENE_PLAN_EVENT, type FastSceneEvidence } from '@/lib/fastCoherence' // KINEO-1-COERENCIA-2026-09-16
 // KINEO-1-HIBRIDO-2026-09-16 — cena que o banco não cobre vira still FLUX (ver lib/fastAiScene.ts).
 import { decideFastAiScene, buildFastStillPrompt, generateFastSceneStill, fastStillSeed, fastAiScenesMax } from '@/lib/fastAiScene'
 import { normalizeAspect } from '@/lib/aspect'
@@ -388,6 +389,12 @@ export async function POST(req: NextRequest) {
     if (looksLikeOurOwnUi(prompt)) {
       recordFastFailure('generating', PROMPT_PROPRIO_REASON, 400, user.id)
       return NextResponse.json({ error: PROMPT_PROPRIO_MESSAGE, reason: PROMPT_PROPRIO_REASON, charged: false }, { status: 400 })
+    }
+    // KINEO-1-COERENCIA-2026-09-16 — a pílula sozinha ("The incredible true story of", 28 caracteres) não vira
+    // filme inventado nem cobra (casos wisadot849 18:43 e uldanai148 03:16). Ver lib/promptGuard.ts.
+    if (isBareStarter(prompt)) {
+      recordFastFailure('generating', BARE_STARTER_REASON, 400, user.id)
+      return NextResponse.json({ error: BARE_STARTER_MESSAGE, reason: BARE_STARTER_REASON, charged: false }, { status: 400 })
     }
     if (prompt.length > 5000) {
       // Only the length is recorded — never the prompt text itself.
@@ -975,6 +982,8 @@ export async function POST(req: NextRequest) {
     const aiStillsMax = fastAiScenesMax()
     const aiStillSeed = fastStillSeed(prompt)
     const aiStillLog: Array<{ scene: number; reason: string; entity: string | null; ok: boolean }> = []
+    // KINEO-1-COERENCIA-2026-09-16 — evidência por cena (fala · busca · origem · tags) para o juiz de coerência.
+    const sceneEvidence: FastSceneEvidence[] = []
     const tentarStill = async (sceneNo: number, reason: string, entity: string | null, description: string, voiceover: string, query: string): Promise<string | null> => {
       if (aiStillsUsed >= aiStillsMax) return null
       // KINEO-1-HIBRIDO-R2 — seed varia por tentativa (a 2ª imagem da mesma cena não repete a 1ª).
@@ -989,6 +998,8 @@ export async function POST(req: NextRequest) {
       const scene = scenes[idx]
       const cat = scene.visualCategory ?? ''
       const sceneNo = idx + 1
+      const ev: FastSceneEvidence = { scene: sceneNo, voiceover: (scene.voiceover ?? '').slice(0, 240), query: scene.stockSearchQuery ?? null, from: clipSources.length, sources: [], tags: [] } // KINEO-1-COERENCIA
+      sceneEvidence.push(ev)
 
       // Push #349 — pull this scene's BrollPlan metadata (1-based sceneNumber).
       // Hotfix (12/06): in VERBATIM mode the user hand-picked a [Pexels: ...]
@@ -1142,6 +1153,7 @@ export async function POST(req: NextRequest) {
           }
         }
 
+        ev.query = pixQueries[0] ?? ev.query // KINEO-1-COERENCIA — a busca que valeu, depois do hook-guard
         // KINEO-1-HIBRIDO — antes de gastar a busca: se o plano, a relevância ou a fala dizem que o banco
         // não tem esta cena (nome próprio, lugar específico), o still entra no lugar do stock. Falha aberta.
         {
@@ -1190,6 +1202,7 @@ export async function POST(req: NextRequest) {
             for (const hit of vaultHits) {
               clipUrls.push(hit.storageUrl)
               usedPexelsUrls.add(hit.storageUrl)
+              notePickedClipTags(hit.storageUrl, hit.tags) // KINEO-1-COERENCIA
               clipSources.push('pixabay') // metrics bucket: vault clips originated from pixabay
               vaultTaken++
               console.log(
@@ -1275,6 +1288,15 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // KINEO-1-COERENCIA-2026-09-16 — fecha a evidência ANTES do hook (que faz unshift e deslocaria os índices):
+    // cada cena recebe as origens e as tags dos clipes que ficaram entre o seu `from` e o `from` da próxima.
+    for (let i = 0; i < sceneEvidence.length; i++) {
+      const a = sceneEvidence[i].from
+      const b = i + 1 < sceneEvidence.length ? sceneEvidence[i + 1].from : clipSources.length
+      sceneEvidence[i].sources = clipSources.slice(a, b)
+      sceneEvidence[i].tags = clipUrls.slice(a, b).map((u) => pixabayTagsForUrl(u) ?? '').filter(Boolean)
+    }
+
     // KINEO-1-HIBRIDO — rastro de medição: quantas cenas viraram still e por quê (denominador = cenas).
     if (aiStillLog.length > 0) {
       void writeServerEvent({ name: 'fast_ai_still', userId: user.id, path: '/api/generate-video-fast', metadata: { scenes: scenes.length, tried: aiStillLog.length, used: aiStillsUsed, max: aiStillsMax, log: aiStillLog.slice(0, 8) } })
@@ -1343,6 +1365,18 @@ export async function POST(req: NextRequest) {
     }
 
     const generationId = randomUUID()
+
+    // KINEO-1-COERENCIA-2026-09-16 — o plano visual cena a cena vira evento (session_id = generationId, o mesmo
+    // que o compose grava no claim). Custa um insert; a NOTA é calculada fora do caminho da pessoa (painel).
+    if (sceneEvidence.length > 0) {
+      await writeServerEvent({
+        name: FAST_SCENE_PLAN_EVENT,
+        userId: user.id,
+        sessionId: generationId,
+        path: '/api/generate-video-fast',
+        metadata: { generation_id: generationId, topic: prompt.slice(0, 200), scenes: sceneEvidence.slice(0, 24).map(({ from: _from, ...rest }) => rest), verbatim },
+      })
+    }
 
     // Push #355 — Compute B-roll quality metrics and write to broll_metrics.
     // Best-effort: failures never block the video response.
@@ -1476,7 +1510,12 @@ export async function POST(req: NextRequest) {
       ...(parsedScript.speed != null ? { speed: parsedScript.speed } : {}),
     })
     if (recoveryPayload) {
-      void writeServerEvent({
+      // KINEO-1-COERENCIA-2026-09-16 — ERA `void`: a resposta saía na linha seguinte, a Vercel congelava a função e o
+      // insert morria no ar na maioria das vezes. Medido hoje (8 dias): 80 checkpoints do cliente contra 8 do servidor
+      // — e o filme "3 AM rule" de wisadot849 às 18:34 terminou OK no servidor, a aba já tinha ido embora, e nada
+      // ficou (a pessoa voltou e gerou "The incredible true story of" sozinho). Esperar ~80 ms de um insert é o
+      // preço de o remédio existir.
+      await writeServerEvent({
         name: RECOVERABLE_EVENT,
         userId: user.id,
         sessionId: generationId,

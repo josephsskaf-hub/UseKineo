@@ -343,6 +343,23 @@ const SEARCH_CACHE_TTL_MS = 24 * 60 * 60 * 1000
 const SEARCH_CACHE_MAX = 300
 const searchCache = new Map<string, { at: number; hits: PixabayVideo[] }>()
 
+// KINEO-1-COERENCIA-2026-09-16 — tags do clipe ESCOLHIDO, pela URL entregue à rota (o juiz de
+// coerência lê "o que a cena mostrou" por aqui). Mapa pequeno e rotativo: só o que este processo
+// escolheu recentemente; miss devolve [] e nada quebra.
+const pickedTagsByUrl = new Map<string, string>()
+const PICKED_TAGS_MAX = 400
+export function notePickedClipTags(url: string, tags: string | null | undefined): void {
+  if (!url || !tags) return
+  if (pickedTagsByUrl.size >= PICKED_TAGS_MAX) {
+    const first = pickedTagsByUrl.keys().next().value
+    if (first !== undefined) pickedTagsByUrl.delete(first)
+  }
+  pickedTagsByUrl.set(url, tags.slice(0, 160))
+}
+export function pixabayTagsForUrl(url: string): string | null {
+  return pickedTagsByUrl.get(url) ?? null
+}
+
 // KINEO-CAPACITY-2026-08-08 — Pixabay é o MESMO buraco que a OpenAI tinha em
 // 05/08, e ainda está aberto. O `fetch` abaixo não tinha timeout nenhum, então
 // um Pixabay lento segurava a lambda até a Vercel matá-la: 61 timeouts de 120s
@@ -1282,6 +1299,7 @@ export async function getPixabayClipsForScene(
       durationSec: c.durationSec,
     })
   }
+  for (const c of pickedCands) notePickedClipTags(c.url, c.tags) // KINEO-1-COERENCIA
   const picked = pickedCands.map((c) => c.url)
   console.log(
     `[pixabay-pool] ${pool.length} candidate(s) → ${picked.length} clip(s), top score=${pool[0].score.toFixed(2)}` +
