@@ -243,3 +243,9 @@ Finish the final sentence without cutting any words.
 
 ### 15/09 — segunda rodada (QUALIDADE-COMPROVADA-R1)
 Mesmos sete roteiros, sem alteração de texto. A rodada valida os consertos de 15/09 (voz não arrasta, narração das cenas no Kineo 1, âncora real para retomada, Veo com ⌈s/8⌉+1 clipes, aspas vazias, fidelidade do planejador). Registro por disparo continua na tabela acima, com a coluna "Deploy" do SHA novo.
+
+| Motor (2ª rodada) | Deploy | generation / render | Débito | Resultado | Pedida/entregue | Link | Pendências |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Veo 3.1 | 7dfa798f / dpl_DNBwdjoHgnhBTegPQRZsvS9JSEB5 | 141346ad / cf8cbce5 | 100 cr | entregue: 9/9 clipes, 142 palavras, TTS 63,2 s sem corretivo, 9 legendas | 60 / 63,29 s (mvhd) | Creatomate (65 MB): https://f002.backblazeb2.com/file/creatomate-c8xg3hsxdu/cf8cbce5-9bb6-47e2-81e1-51b6842f1f20.mp4 | cenas 6-9 com visual inventado ("paperback novel at a bustling café", laptop) — consertado no R5 (máx. 7 cenas distintas); refazer = 100 cr, ordem do fundador |
+| Seedance 1.5 | 1f361857 / dpl_Bhnvu3KrACTkbr6wQ5BgcbBZ6uSc | f58ce0b6 / 0d443007 | 25 cr | entregue: 7/7, character_story, faroleiro nos prompts, 152 palavras, corretivo 1,132 (voz efetiva 1,04) | 60 / 61,50 s (mvhd) | bucket: https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/renders/e92d81bf-0068-46c3-8de7-1f67e2006756/0d443007-6bec-4a8d-9c7b-6bd7435ba513.mp4 | "The time is exactly 12:00 AM." inventado (varredura de datas ainda só no hollywood); assistir com áudio |
+| Seedance 2.5 (S25) | 1f361857 | 4207c019 (em andamento) | 150 cr | ensaio PASS no R4 (7 cenas, 61 s, silêncio 7 s, sem data inventada) | 60 / — | — | preencher quando chegar |

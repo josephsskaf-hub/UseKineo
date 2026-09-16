@@ -908,10 +908,18 @@ export async function appendNarrationToTargets(items: AppendTarget[], language: 
     })
     const proximos: number[] = []
     pendentes.forEach((i) => {
-      const v = porIndice.get(i) ?? ''
+      let v = porIndice.get(i) ?? ''
       if (!v) console.warn(`[scene] narration append: line ${i} had no continuation in the answer`)
       else if (FILLER_LINE_RE.test(v)) console.warn(`[scene] narration append: line ${i} refused (filler): ${v.slice(0, 60)}`)
       else {
+        // KINEO-CONTINUACAO-CABE-2026-09-15 — render S25 4207c019 (barrado a $0 pela régua): pedidas 3-5 palavras, o
+        // gpt-4o-mini devolveu 13-19 ("one or two new sentences") e a linha foi recusada 2× (39 > max 26) — +0 palavras,
+        // filme morto. Quando a continuação não cabe, fica só a PRIMEIRA frase dela, se couber; recusa só se nem ela cabe.
+        const sobra = items[i].maxWords - wordsOf(out[i])
+        if (wordsOf(v) > sobra) {
+          const primeira = (v.match(/[^.!?…]+[.!?…]+/) ?? [v])[0].trim()
+          if (primeira && wordsOf(primeira) <= sobra && wordsOf(primeira) < wordsOf(v)) { console.warn(`[scene] narration append: line ${i} trimmed to its first sentence (${wordsOf(v)} → ${wordsOf(primeira)} words, room ${sobra})`); v = primeira }
+        }
         const candidata = juntarContinuacao(out[i], v)
         if (wordsOf(candidata) <= wordsOf(out[i])) console.warn(`[scene] narration append: line ${i} did not grow`)
         else if (wordsOf(candidata) > items[i].maxWords) console.warn(`[scene] narration append: line ${i} refused (${wordsOf(candidata)} > max ${items[i].maxWords} words)`)
@@ -929,7 +937,7 @@ async function pedirContinuacao(items: { i: number; add_words: number; line: str
     {
       model: 'gpt-4o-mini',
       messages: [
-        { role: 'system', content: `You continue narration lines for a short documentary video about: ${topic.slice(0, 300)}. For each input, write ONLY the continuation: one or two new sentences of about the requested number of words (add_words), in ${langName}, adding specific, true detail (facts, numbers, places, consequences) that follows naturally after the given line. Do not repeat or rephrase the given line. No filler like "imagine", "what if" or "most people don't know"; no questions; no quotes; no first person; never invent names, dates, years, clock times or statistics that are not in the topic. Return ONLY a JSON array of objects {"i": <the same i you received>, "text": "<the continuation only>"}, one object per input object, in the same order.` },
+        { role: 'system', content: `You continue narration lines for a short documentary video about: ${topic.slice(0, 300)}. For each input, write ONLY the continuation: ONE short new sentence of about the requested number of words (add_words) — never more than add_words + 3 words — in ${langName}, adding specific, true detail (facts, numbers, places, consequences) that follows naturally after the given line. Do not repeat or rephrase the given line. No filler like "imagine", "what if" or "most people don't know"; no questions; no quotes; no first person; never invent names, dates, years, clock times or statistics that are not in the topic. Return ONLY a JSON array of objects {"i": <the same i you received>, "text": "<the continuation only>"}, one object per input object, in the same order.` },
         { role: 'user', content: JSON.stringify(items) },
       ],
       temperature: 0.4,
