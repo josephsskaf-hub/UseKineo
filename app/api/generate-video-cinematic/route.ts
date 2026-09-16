@@ -3945,7 +3945,7 @@ async function manipularPost(req: NextRequest) {
                 if (porReescrita.length > 0) {
                   // R11 (ensaio do Omni no deploy 6940b5ff): mirando "atual + faltam" o modelo devolveu +3 palavras em 4 cenas (entrega ~85 % do pedido).
                   // O alvo passa a ser o TETO da cena: a subentrega cai dentro da faixa e a cena fica sem folga morta.
-                  const alvos = porReescrita.map((pd) => ({ text: lineOf(pd.x.sc), targetWords: pd.maxWords + 2, maxWords: pd.maxWords + 2 })) // R12: até teto + 2
+                  const alvos = porReescrita.map((pd) => ({ text: lineOf(pd.x.sc), targetWords: pd.maxWords + 4, maxWords: pd.maxWords + 2 })) // R12/R13: pede teto + 4 (entrega ~85 %), aceita até teto + 2
                   const novas = await expandVoiceoversToTargets(alvos, hollywoodLanguage, prompt.slice(0, 300))
                   porReescrita.forEach((pd, k) => {
                     const nova = novas[k]

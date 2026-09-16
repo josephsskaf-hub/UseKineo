@@ -919,6 +919,14 @@ export async function appendNarrationToTargets(items: AppendTarget[], language: 
         if (wordsOf(v) > sobra) {
           const primeira = (v.match(/[^.!?…]+[.!?…]+/) ?? [v])[0].trim()
           if (primeira && wordsOf(primeira) <= sobra && wordsOf(primeira) < wordsOf(v)) { console.warn(`[scene] narration append: line ${i} trimmed to its first sentence (${wordsOf(v)} → ${wordsOf(primeira)} words, room ${sobra})`); v = primeira }
+          else if (sobra >= 4) {
+            // R13 (ensaios do Omni): nem a primeira frase cabia (8-13 palavras para 6-9 de sobra). Fica a primeira ORAÇÃO
+            // que caiba (até a última vírgula/ponto e vírgula dentro da sobra), fechada com ponto; só então recusa.
+            const ate = primeira.split(/\s+/).slice(0, sobra).join(' ')
+            const corte = Math.max(ate.lastIndexOf(','), ate.lastIndexOf(';'))
+            const oracao = corte > 0 ? ate.slice(0, corte).trim() : ''
+            if (oracao && wordsOf(oracao) >= 4) { console.warn(`[scene] narration append: line ${i} trimmed to its first clause (${wordsOf(v)} → ${wordsOf(oracao)} words, room ${sobra})`); v = oracao.replace(/[,;:]+$/, '') + '.' }
+          }
         }
         const candidata = juntarContinuacao(out[i], v)
         if (wordsOf(candidata) <= wordsOf(out[i])) console.warn(`[scene] narration append: line ${i} did not grow`)

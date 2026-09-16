@@ -136,6 +136,9 @@ export function scrubInventedSetting(visual: string, context: string): SettingSc
       .replace(/^[\s,.;]+/, '')
       .trim()
   }
+  // R13 (ensaio do Omni): "an ancient structure" → "an structure" depois de remover o adjetivo de época; o artigo segue a palavra.
+  out = out.replace(/\b(an)\s+(?=[^aeiouAEIOU\s])/g, 'a ').replace(/\b(An)\s+(?=[^aeiouAEIOU\s])/g, 'A ')
+  out = out.replace(/(^|[.!?…]\s+)(\p{Ll})/gu, (_m, p, c) => p + c.toUpperCase())
   return { text: out, removed }
 }
 

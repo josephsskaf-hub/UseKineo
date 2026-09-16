@@ -427,7 +427,7 @@ export function garantirAcaoCentral(prompt: string, voiceover: string, character
 // O gpt-4o-mini ignora a regra às vezes; o código não. Data, ano e hora que NÃO estão nas palavras do pedido
 // saem da fala, com a preposição que as introduz; o resto da frase fica intacto. Puro, sem modelo. ═══
 const MESES = '(?:January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)'
-const DATA_RE = new RegExp(`(?:,?\\s*\\b(?:on|in|at|since|by|around|during|of|from|until|till|before|after)\\s+)?(?:(?:the\\s+)?(?:morning|evening|night|afternoon)\\s+of\\s+)?(?:\\b${MESES}\\.?\\s+\\d{1,2}(?:st|nd|rd|th)?(?:,?\\s*(?:1[0-9]{3}|20[0-9]{2}))?\\b|\\b\\d{1,2}(?:st|nd|rd|th)?\\s+(?:of\\s+)?${MESES}\\.?(?:,?\\s*(?:1[0-9]{3}|20[0-9]{2}))?\\b|\\b(?:1[0-9]{3}|20[0-9]{2})\\b|\\b\\d{1,2}:\\d{2}\\s*(?:AM|PM|am|pm|a\\.m\\.|p\\.m\\.)?(?:\\s+(?:sharp|each night|every night))?)`, 'g')
+const DATA_RE = new RegExp(`(?:,?\\s*\\b(?:on|in|at|since|by|around|during|of|from|until|till|before|after)\\s+)?(?:(?:the\\s+)?(?:morning|evening|night|afternoon)\\s+of\\s+)?(?:\\b${MESES}\\.?\\s+\\d{1,2}(?:st|nd|rd|th)?(?:,?\\s*(?:1[0-9]{3}|20[0-9]{2}))?\\b|\\b\\d{1,2}(?:st|nd|rd|th)?\\s+(?:of\\s+)?${MESES}\\.?(?:,?\\s*(?:1[0-9]{3}|20[0-9]{2}))?\\b|\\b(?:1[0-9]{3}|20[0-9]{2})\\b|\\b\\d{1,2}:\\d{2}\\s*(?:AM|PM|am|pm|a\\.m\\.|p\\.m\\.)?(?:\\s+(?:sharp|each night|every night))?)`, 'gi') // R13: 'i' — "In 2023," no começo da frase
 export function removerDatasInventadas(texto: string, contexto: string): { texto: string; removidas: string[] } {
   const src = (texto ?? '')
   if (!src.trim()) return { texto: src, removidas: [] }
@@ -452,6 +452,8 @@ export function removerDatasInventadas(texto: string, contexto: string): { texto
     .replace(/^[\s,;]+/, '')
     .trim()
   if (out && !/[.!?…]$/.test(out) && /[.!?…]$/.test(src.trim())) out += '.'
+  // R13 (ensaio do Omni): "In 2023, a skilled cartographer…" virava "a skilled cartographer…" — a frase recomeça com maiúscula.
+  out = out.replace(/(^|[.!?…]\s+)(\p{Ll})/gu, (_m, p, c) => p + c.toUpperCase())
   return { texto: out, removidas }
 }
 
