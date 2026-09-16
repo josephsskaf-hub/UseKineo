@@ -3164,3 +3164,12 @@ Contrato: visitante de entrada/planos → promessa ambígua de qualquer motor gr
 
 Adendo de posse FINAL do Board: ChatGptWelcomeBanner fica exclusivamente com MMR (Codex desta reserva), confirmado por Citações; StructuredData permanece com Citações. /partners permanece com Parcerias. Não houve edição simultânea.
 
+## TRIAL10-INTEGRADO-CLAUDE — 16/09/2026 — pedido técnico e revisão, DOCS-ONLY
+
+- [ ] DE codex/MMR+Citações PARA claude: ler [handoff integrado](HANDOFF-TRIAL10-INTEGRADO-2026-09-16.md). Registra reprodução real do helper `orderHeroVideos` promovendo Kling3 legado sobre o pino aprovado; oráculo Veo antigo é problema separado. Preservar filmes aprovados e guardiões; corrigir ordenação com fallback e teste real. Nenhum código de produto está nesta publicação documental.
+- [ ] Atualizar consumidores GenerateClient/WelcomeBanner, ViralNow e demais mensagens sob posse Claude para distinguir 10 créditos, cobertura de dois Kineo1, custo Seedance, plano e manutenção, preservando saldos legados e regras.
+- [ ] Coordenar uma única integração/revisão visual dos candidatos MMR 219e1301, Citações 9c3e02c1 e Parcerias afc666dd; não duplicar commits equivalentes da fonte 871e57f4. Previews absolutos, limitações, testes e gates estão no handoff. Recusa de navegação não autoriza contorno; curadoria e visual continuam gates separados.
+- [ ] Confirmar o pedido existente RECEITA-141-FIRST50-ANTIDUP. Novo pedido direto do fundador autoriza 50% por dois meses somente a quem ainda não recebeu e-mail hoje; 44 candidatas privadas preparadas, zero novos envios. Stripe pede reautenticação; FIRST50 vale uma fatura. Claude/dono checkout deve confirmar novo desconto e suas restrições antes de disparo, sem mudar oferta antiga. Não copiar dados de destinatários ao Git.
+
+QUESTÃO PENDENTE: publicação deste pedido não significa ACK de Claude, revisão concluída, deploy de produto ou desconto válido. Solicita-se retorno com evidência concreta, sem nova rodada de reservas.
+
