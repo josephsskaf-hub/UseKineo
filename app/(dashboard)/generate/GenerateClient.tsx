@@ -16465,6 +16465,9 @@ export default function GenerateClient({
                           das 16:40); os dois botões que já estavam aqui — plano
                           Starter e avulso — continuam VISÍVEIS, no mesmo lugar
                           e com o mesmo texto. Nada foi escondido. */}
+                      {/* KINEO-MRR-3-GARANTIA-2026-09-16 (fundador: "vai") — a garantia que a página de preços já promete, dita
+                          aqui, no momento em que a pessoa está olhando o PRÓPRIO filme e decidindo. */}
+                      <p data-kineo="garantia-pos-render" className="text-xs" style={{ color: 'var(--muted)', textAlign: 'center', marginBottom: 8 }}>✓ 7-day money-back guarantee · cancel anytime · your films stay yours</p>
                       <CleanFilmTrialDoor
                         decision={cleanExportTrialDoor}
                         pending={wmCheckout.pending !== null}
@@ -16588,6 +16591,7 @@ export default function GenerateClient({
                               frente de ninguém que só queria o arquivo grátis —
                               o botão de fechar e a linha "Free export stays
                               available" continuam onde estavam. */}
+                          <p data-kineo="garantia-pos-render" className="text-xs" style={{ color: 'var(--muted)', textAlign: 'center', marginBottom: 8 }}>✓ 7-day money-back guarantee · cancel anytime · your films stay yours</p>
                           <CleanFilmTrialDoor
                             decision={cleanExportTrialDoor}
                             pending={wmCheckout.pending !== null}

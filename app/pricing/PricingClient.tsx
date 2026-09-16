@@ -308,6 +308,25 @@ export default function PricingClient() {
   // avisa que o proximo passo e criar conta ("Sign up & continue"), em vez de
   // prometer checkout e entregar o seletor do Google sem aviso.
   const [signedIn, setSignedIn] = useState<boolean | null>(null)
+  // KINEO-MRR-3-FILME-PROPRIO-2026-09-16 (fundador: "vai"): quem já fez um filme vê o PRÓPRIO filme acima dos
+  // planos — a prova que convence não é a nossa vitrine, é o que a pessoa acabou de fazer. Lê /api/videos (as
+  // últimas 6 linhas da própria conta), pega o primeiro concluído com URL. Falha aberta: sem filme, sem faixa.
+  const [latestFilm, setLatestFilm] = useState<{ url: string; title: string } | null>(null)
+  useEffect(() => {
+    if (signedIn !== true) return
+    let cancelled = false
+    void fetch('/api/videos', { credentials: 'same-origin', cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { videos?: Array<{ status?: string; video_url?: string | null; title?: string | null; topic?: string | null }> } | null) => {
+        if (cancelled || !d || !Array.isArray(d.videos)) return
+        const v = d.videos.find((x) => x && x.status === 'completed' && typeof x.video_url === 'string' && x.video_url.startsWith('https://'))
+        if (!v || !v.video_url) return
+        const title = ((v.title ?? v.topic ?? '') as string).split('\n')[0].trim().slice(0, 80)
+        setLatestFilm({ url: v.video_url, title: title || 'Your latest film' })
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [signedIn])
   useEffect(() => {
     let cancelled = false
     createClient()
@@ -380,7 +399,10 @@ export default function PricingClient() {
   const [showStickyCta, setShowStickyCta] = useState<boolean>(false)
 
   // #381 — monthly vs annual billing toggle. Annual ≈ 2 months free.
-  const [billing, setBilling] = useState<'monthly' | 'annual'>('monthly')
+  // KINEO-MRR-1-ANUAL-2026-09-16 (fundador: "vai"): a página ABRE no anual — é o padrão de InVideo, Pictory,
+  // Fliki e Higgsfield (10 meses pelo preço de 12) e o Creator é onde 51 de 91 pessoas pararam no checkout em
+  // 30 dias. O mensal continua a um clique, com o mesmo preço de sempre; nenhum número mudou.
+  const [billing, setBilling] = useState<'monthly' | 'annual'>('annual')
   const resolvedCurrency = displayCurrency ?? 'usd'
   const resolvedRegion = displayRegion
   const annualPrices = (['starter', 'basic', 'pro'] as PaidTier[]).reduce((result, tier) => {
@@ -944,6 +966,29 @@ export default function PricingClient() {
         <p className="-mt-4 mb-7 text-center text-[11.5px] font-semibold text-[#86868b]">
           {CHECKOUT_CURRENCY_DISCLOSURE}
         </p>
+
+        {/* KINEO-MRR-3-FILME-PROPRIO-2026-09-16 — o filme da própria pessoa + a garantia, antes dos cards. */}
+        {latestFilm && (
+          <div
+            data-kineo="latest-film"
+            className="mx-auto mb-7 flex max-w-2xl items-center gap-4 rounded-2xl px-4 py-3"
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.10)' }}
+          >
+            <video
+              src={latestFilm.url}
+              muted
+              playsInline
+              preload="metadata"
+              style={{ width: 54, height: 96, objectFit: 'cover', borderRadius: 10, background: '#000', flex: '0 0 auto' }}
+              aria-hidden="true"
+            />
+            <div className="min-w-0 text-left">
+              <p className="text-[11px] font-black uppercase tracking-[0.08em] text-[#2997ff]">Your latest film</p>
+              <p className="truncate text-[14px] font-bold text-white">{latestFilm.title}</p>
+              <p className="text-[12px] font-semibold text-[#86868b]">Your next films come out clean, without the watermark, in 1080p. 7-day money-back guarantee, cancel anytime.</p>
+            </div>
+          </div>
+        )}
 
         {/* KINEO-SPRINT-OFFER-2026-07-14 — SINGLE OFFER cleanup. Three stacked
             competing offers used to sit here (FOUNDING50 "50% for life" banner,

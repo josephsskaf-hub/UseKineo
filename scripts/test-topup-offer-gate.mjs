@@ -70,7 +70,8 @@ check('o modal repassa o plano ao calculo',
 check('a escadinha nao voltou a ser incondicional', !/\{\(\n\s+<div style=\{\{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 \}\}>/.test(GC))
 
 // ── 3. Starter continua fora da recarga (a regra do servidor nao afrouxou) ──
-check('topupEligibility segue sem starter/free', !/'starter'/.test(ELIG) && !/'free'/.test(ELIG))
+// KINEO-MRR-2-TOPUP-2026-09-16 (fundador): Starter entra na recarga; free e trial continuam fora.
+check('topupEligibility inclui starter (16/09) e segue sem free', /'starter'/.test(ELIG) && !/'free'/.test(ELIG))
 
 // ── 4. A caixa substituta nao digita numero de preco nem de credito ────────
 check('a caixa deriva os creditos de TIER_CREDITS', /TIER_CREDITS\[tier\]/.test(NOTE))

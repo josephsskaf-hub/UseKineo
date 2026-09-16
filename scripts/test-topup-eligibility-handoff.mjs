@@ -46,11 +46,12 @@ equal(policy.TOPUP_ELIGIBILITY_HANDOFF_VERSION, 'topup_eligibility_handoff_v1', 
 equal(policy.TOPUP_ELIGIBILITY_VISIBLE_RATIO, 0.6, 'view requires sixty percent visibility')
 equal(policy.TOPUP_ELIGIBILITY_MEASUREMENT_HOST, 'www.usekineo.com', 'measurement host is canonical production')
 
-for (const plan of ['basic', 'basic_trial', 'pro', 'pro_trial', ' BASIC ', 'Pro_Trial']) {
+// KINEO-MRR-2-TOPUP-2026-09-16 (fundador): Starter passa a poder recarregar.
+for (const plan of ['starter', 'starter_trial', 'basic', 'basic_trial', 'pro', 'pro_trial', ' BASIC ', 'Pro_Trial']) {
   equal(policy.canPurchaseCreditTopup(plan), true, `top-up remains available for ${plan}`)
   equal(policy.topupEligibilityState(plan), 'eligible', `eligible state is explicit for ${plan}`)
 }
-for (const plan of ['free', 'starter', 'starter_trial', 'autopilot', 'autopilot_trial', 'unknown', '', null, undefined, 42]) {
+for (const plan of ['free', 'autopilot', 'autopilot_trial', 'unknown', '', null, undefined, 42]) {
   equal(policy.canPurchaseCreditTopup(plan), false, `top-up is unavailable for ${plan}`)
   equal(policy.topupEligibilityState(plan), 'ineligible', `ineligible state is explicit for ${plan}`)
 }
