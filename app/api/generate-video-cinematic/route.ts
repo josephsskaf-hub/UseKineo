@@ -4204,11 +4204,15 @@ async function manipularPost(req: NextRequest) {
       if (!verbatim && plan.scenes.length > 0) {
         try {
           const wordsN = (t?: string) => (t ?? '').trim().split(/\s+/).filter(Boolean).length
+          // R2 (render real ee7d62ec, 15/09): a 1ª rodada deixou a última cena em 1,6 s (a continuação veio longa e foi aparada
+          // à primeira oração: 8 → 4 palavras). Duas rodadas: a segunda só pede para o que ainda passa de 1,0 s.
+          for (let rodada = 1; rodada <= 2; rodada++) {
           const alvos = plan.scenes
             .filter((sc) => sc.type !== 'dialogue' && typeof sc.voiceover === 'string' && sc.voiceover.trim().length > 0)
             .map((sc) => { const cabe = Math.max(1, Math.floor(((sc.seconds ?? 0) - 0.3) * ritmoVoz)); const w = wordsN(sc.voiceover); return { sc, cabe, w, mudo: (sc.seconds ?? 0) - w / ritmoVoz } })
             .filter((x) => x.mudo > 1.0 && x.cabe - x.w >= 2)
-          if (alvos.length > 0) {
+          if (alvos.length === 0) break
+          {
             const novas = await appendNarrationToTargets(alvos.map((x) => ({ text: x.sc.voiceover ?? '', addWords: x.cabe - x.w, maxWords: x.cabe + 2 })), hollywoodLanguage, prompt.slice(0, 300))
             let cresceram = 0
             alvos.forEach((x, k) => {
@@ -4217,7 +4221,9 @@ async function manipularPost(req: NextRequest) {
               if (nova && nova !== x.sc.voiceover && wn > x.w && wn <= x.cabe + 2 && nova.startsWith((x.sc.voiceover ?? '').trim().replace(/[.!?…]$/, ''))) { x.sc.voiceover = nova; x.sc.needsNarration = true; cresceram++ }
             })
             const depois = planSilenceReport(plan.scenes, ritmoVoz)
-            console.log(`[hollywood] KINEO-ULTIMA-ENCHIDA: ${alvos.length} cena(s) com > 1,0 s mudo depois do teto-rede/esticão → ${cresceram} cresceram → ${depois.total}s no total (pior ${depois.worst}s) ${depois.ok ? 'PASSA' : 'ainda reprova'}`)
+            console.log(`[hollywood] KINEO-ULTIMA-ENCHIDA: ${alvos.length} cena(s) com > 1,0 s mudo depois do teto-rede/esticão → ${cresceram} cresceram → ${depois.total}s no total (pior ${depois.worst}s) ${depois.ok ? 'PASSA' : 'ainda reprova'} (rodada ${rodada})`)
+            if (depois.ok || cresceram === 0) break
+          }
           }
         } catch (e) { console.warn('[hollywood] KINEO-ULTIMA-ENCHIDA falhou:', e instanceof Error ? e.message : String(e)) }
       }
