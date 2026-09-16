@@ -4107,19 +4107,39 @@ async function manipularPost(req: NextRequest) {
               continue
             }
           }
-          const tailSeconds = Math.max(4, Math.min(SCENE_CAP, Math.round(wordsArr(tail).length / ritmoVoz) + 1))
+          let cauda = tail
+          let tailSeconds = Math.max(4, Math.min(SCENE_CAP, Math.round(wordsArr(tail).length / ritmoVoz) + 1))
+          // KINEO-CAUDA-CHEIA-2026-09-15 — ensaio do Omni com gpt-4o (deploy a41bdece): duas caudas de 4 palavras viraram
+          // apoio de 4 s com 2,3 s mudos cada (11,4 s no total, régua reprovada). A cauda nasce DEPOIS do enche-silêncio,
+          // então ninguém a preenchia. Agora ela ganha uma continuação até caber nos seus segundos ((cap − 0,3 s) × ritmo);
+          // se o modelo não entregar, segue como estava — nenhuma palavra da história é perdida ou reordenada.
+          if (!isDialogue) {
+            const cabeCauda = Math.max(4, Math.floor((tailSeconds - 0.3) * ritmoVoz))
+            const faltam = cabeCauda - wordsArr(tail).length
+            if (faltam >= 3) {
+              try {
+                const [cheia] = await appendNarrationToTargets([{ text: tail, addWords: faltam, maxWords: cabeCauda + 2 }], hollywoodLanguage, prompt.slice(0, 300))
+                const w = wordsArr(cheia).length
+                if (cheia && cheia !== tail && w > wordsArr(tail).length && w <= cabeCauda + 2 && cheia.startsWith(tail.replace(/[.!?…]$/, ''))) {
+                  cauda = cheia
+                  tailSeconds = Math.max(4, Math.min(SCENE_CAP, Math.round(w / ritmoVoz) + 1))
+                  console.log(`[teto-rede] KINEO-CAUDA-CHEIA: cauda de ${wordsArr(tail).length} palavras cresceu para ${w} (cabe ${cabeCauda} em ${tailSeconds}s)`)
+                } else console.warn(`[teto-rede] KINEO-CAUDA-CHEIA: continuação recusada (${wordsArr(tail).length} → ${w}, teto ${cabeCauda} + 2)`)
+              } catch (e) { console.warn('[teto-rede] KINEO-CAUDA-CHEIA falhou:', e instanceof Error ? e.message : String(e)) }
+            }
+          }
           plan.scenes.splice(i + 1, 0, {
             ...sc,
             index: sc.index + 1,
             type: 'support',
             dialogueLine: undefined,
-            voiceover: tail,
+            voiceover: cauda,
             needsNarration: true,
             seconds: tailSeconds,
             prompt: `slow cinematic insert continuing the story, ${plan.environmentSheet ?? ''}, level horizon, stable slow dolly detail shot, ${plan.styleSheet ?? ''}`,
             caption: '',
           })
-          console.warn(`[teto-rede] cena ${i + 1} (${sc.type}) dividida: ${fits} palavras ficam, ${wordsArr(tail).length} viram apoio de ${tailSeconds}s`)
+          console.warn(`[teto-rede] cena ${i + 1} (${sc.type}) dividida: ${fits} palavras ficam, ${wordsArr(cauda).length} viram apoio de ${tailSeconds}s`)
         }
       }
 

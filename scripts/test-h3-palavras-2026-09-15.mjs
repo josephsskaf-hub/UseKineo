@@ -249,6 +249,16 @@ console.log('== (g) KINEO-FALA-NO-TETO: cena cinematic de 8 s com uma frase de 2
   const cM = planM.scenes.find((sc) => /vinte_1\b/.test(sc.voiceover))
   const pM = planM.scenes[planM.scenes.indexOf(cM) + 1]
   checa(`cauda de 4 palavras entra no começo da próxima cena (${wordsOf(pM.voiceover)} palavras, ${pM.seconds}s) e o plano não ganha cena (${planM.scenes.length} = ${nAntes})`, wordsOf(cM.voiceover) === 16 && /^vinte_17 vinte_18 vinte_19 vinte_20\. oito_1/.test(pM.voiceover) && wordsOf(pM.voiceover) === 12 && planM.scenes.length === nAntes)
+  // KINEO-CAUDA-CHEIA (ensaio do Omni com gpt-4o, 15/09): 21 palavras em 8 s → cabeça de 17 + cauda de 4; com continuação disponível, a cauda cresce até caber nos seus 4 s
+  const planC = { characterSheet: '', environmentSheet: 'ice', styleSheet: 'cinematic', scenes: [] }
+  for (let i = 0; i < 6; i++) planC.scenes.push({ index: i + 1, type: 'support', seconds: 10, prompt: `c${i + 1}`, voiceover: frase(24, `c${i + 1}_`) + '.', caption: '' }) // vizinhas cheias: a cauda NÃO cabe na próxima
+  planC.scenes.splice(4, 0, { index: 5, type: 'cinematic', seconds: 8, prompt: 'wide', voiceover: frase(21, 'cheia_') + '.', caption: '' })
+  planC.scenes.forEach((sc, i) => { sc.index = i + 1 })
+  await executar(ctxBase(planC, { expandVoiceoversToTargets: async (items) => items.map((it) => it.text), appendNarrationToTargets: appendFiel, SCENE_CAP: 12 }))
+  const cC = planC.scenes.find((sc) => /cheia_1\b/.test(sc.voiceover))
+  const tC = planC.scenes[planC.scenes.indexOf(cC) + 1]
+  checa(`KINEO-CAUDA-CHEIA: a cauda de 4 palavras vira cena nova (vizinhas cheias) e ganha continuação até caber nos seus segundos (${wordsOf(tC?.voiceover)} palavras em ${tC?.seconds}s ≤ 5), começando pelas 4 originais e sem cortar a cabeça (${wordsOf(cC.voiceover)})`, !!tC && tC.type === 'support' && /^cheia_18 cheia_19 cheia_20 cheia_21\.? fato1\b/.test(tC.voiceover) && wordsOf(tC.voiceover) >= 7 && wordsOf(tC.voiceover) <= 12 && (tC.seconds ?? 0) <= 5 && wordsOf(cC.voiceover) <= 17 && planC.scenes.length === 8)
+  checa('rota: a cauda nova é preenchida ANTES de virar cena (KINEO-CAUDA-CHEIA depois da cauda-na-próxima e antes do splice), e a recusa do modelo mantém a cauda original', fatia.indexOf('KINEO-CAUDA-CHEIA-2026-09-15') > fatia.indexOf('KINEO-CAUDA-NA-PROXIMA-2026-09-15') && fatia.indexOf('KINEO-CAUDA-CHEIA-2026-09-15') < fatia.indexOf('plan.scenes.splice(i + 1, 0, {') && fatia.includes('w <= cabeCauda + 2 && cheia.startsWith(tail.replace('))
   const rt4 = rd('app/api/generate-video-cinematic/route.ts')
   checa('varredura FINAL de datas inventadas depois de toda reescrita (antes do OMNI-ALVO e da régua)', rt4.includes('KINEO-DATA-INVENTADA (final)') && rt4.indexOf('KINEO-DATA-INVENTADA-2026-09-15 (varredura final)') > rt4.indexOf('KINEO-FALA-NO-TETO-2026-09-15 — ensaio') && rt4.indexOf('KINEO-DATA-INVENTADA-2026-09-15 (varredura final)') < rt4.indexOf('KINEO-OMNI-ALVO-CRAVADO-2026-08-25 (V6.1') && rt4.includes("import { garantirAcaoCentral, silenciarFalaNoPrompt, apararComFolga, removerDatasInventadas } from '@/lib/hollywood/fidelidade'"))
 }
