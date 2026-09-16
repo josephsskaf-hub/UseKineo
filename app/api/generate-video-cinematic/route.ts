@@ -4162,7 +4162,9 @@ async function manipularPost(req: NextRequest) {
             .filter((x) => x.mudo > 1.0 && x.cabe - x.w >= 2)
           if (alvos.length === 0) break
           {
-            const novas = await appendNarrationToTargets(alvos.map((x) => ({ text: x.sc.voiceover ?? '', addWords: x.cabe - x.w, maxWords: x.cabe + 2 })), hollywoodLanguage, prompt.slice(0, 300))
+            // R4 (render real 31d0f1c2, 16/09): appendNarrationToTargets IGNORA em silêncio pedidos de menos de 3 palavras — os três
+            // alvos pediam 2 e "0 cresceram" sem aviso. Pede pelo menos 3 (o teto + 2 dá a sobra) e a 2ª rodada roda mesmo com zero.
+            const novas = await appendNarrationToTargets(alvos.map((x) => ({ text: x.sc.voiceover ?? '', addWords: Math.max(3, x.cabe - x.w), maxWords: x.cabe + 2 })), hollywoodLanguage, prompt.slice(0, 300))
             let cresceram = 0
             alvos.forEach((x, k) => {
               const nova = typeof novas[k] === 'string' ? novas[k].trim() : ''
@@ -4171,7 +4173,7 @@ async function manipularPost(req: NextRequest) {
             })
             const depois = planSilenceReport(plan.scenes, ritmoVoz)
             console.log(`[hollywood] KINEO-ULTIMA-ENCHIDA: ${alvos.length} cena(s) com > 1,0 s mudo depois do teto-rede/esticão → ${cresceram} cresceram → ${depois.total}s no total (pior ${depois.worst}s) ${depois.ok ? 'PASSA' : 'ainda reprova'} (rodada ${rodada})`)
-            if (depois.ok || cresceram === 0) break
+            if (depois.ok) break
           }
           }
         } catch (e) { console.warn('[hollywood] KINEO-ULTIMA-ENCHIDA falhou:', e instanceof Error ? e.message : String(e)) }
