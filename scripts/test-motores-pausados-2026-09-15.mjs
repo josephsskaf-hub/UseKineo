@@ -70,7 +70,7 @@ const calc = rd('app/cheapest-ai-shorts-maker/ShortCostCalculator.tsx')
 checa('calculadora: sem H3 e sem Omni', !/cinematic_h3/.test(calc) && !/cinematic_omni/.test(calc))
 const ep = rd('app/ai-video-generator/[engine]/page.tsx')
 checa('páginas de motor continuam no ar com aviso de manutenção e link para a alternativa', ep.includes("import { enginePaused } from '@/lib/engineLaunch'") && ep.includes('{enginePaused(e.param) && (') && ep.includes('<strong>Temporarily paused for maintenance.</strong>') && ep.includes('intent_campaign=engine_paused'))
-checa('preço público, créditos dos planos e trial não mudaram (interruptores da restauração intactos)', /TRIAL_CREDIT_CAP\s*=\s*30/.test(rd('lib/reverseTrial.ts')) && /CARD_ENTRY_ONLY\s*=\s*false/.test(rd('lib/entryPolicy.ts')))
+checa('preço público, créditos dos planos e trial não mudaram (interruptores da restauração intactos)', /TRIAL_CREDIT_CAP\s*=\s*10/.test(rd('lib/reverseTrial.ts')) /* KINEO-TRIAL-10 (fundador 16/09) */ && /CARD_ENTRY_ONLY\s*=\s*false/.test(rd('lib/entryPolicy.ts')))
 
 console.log(`${ok} ok · ${falhas.length} falhas`)
 for (const f of falhas) console.log('  ✗', f)

@@ -23,15 +23,15 @@ Este material é para o fundador colar no painel do TAAFT. Nada foi submetido, p
 
 ### Short description
 
-`Kineo turns a topic or finished script into a vertical video with voice, captions, music and a downloadable MP4. Choose from eight video engines. Free to start: 30 credits on signup, no card. Plans from $9.90/month.`
+`Kineo turns a topic or finished script into a vertical video with voice, captions, music and a downloadable MP4. Choose from eight video engines. Free to start: 10 credits on signup, no card. Plans from $9.90/month.`
 
 ### Long description
 
-`Type a topic or paste a finished script. Kineo structures the story, creates the voiceover, builds the visuals, burns in karaoke-style captions, adds a soundtrack and returns a vertical MP4 ready for YouTube Shorts, TikTok or Reels. Choose among eight video engines in one workspace, including Kineo 1, Seedance 1.5, Kling 2.5, Kling 3, Veo 3.1, MiniMax H3, Omni Flash and Avatar. New accounts start free with 30 credits and every engine unlocked, no card. Plans from $9.90/month in USD: Starter and Creator include Kineo 1 and Seedance 1.5, and Studio unlocks every engine. If a render fails, its credits are returned automatically.`
+`Type a topic or paste a finished script. Kineo structures the story, creates the voiceover, builds the visuals, burns in karaoke-style captions, adds a soundtrack and returns a vertical MP4 ready for YouTube Shorts, TikTok or Reels. Choose among eight video engines in one workspace, including Kineo 1, Seedance 1.5, Kling 2.5, Kling 3, Veo 3.1, MiniMax H3, Omni Flash and Avatar. New accounts start free with 10 credits and every engine unlocked, no card. Plans from $9.90/month in USD: Starter and Creator include Kineo 1 and Seedance 1.5, and Studio unlocks every engine. If a render fails, its credits are returned automatically.`
 
 ### Pricing field
 
-`Free to start (30 credits, no card) · plans from $9.90/month USD`
+`Free to start (10 credits, no card) · plans from $9.90/month USD`
 
 ### Primary URL
 
@@ -45,7 +45,7 @@ Este material é para o fundador colar no painel do TAAFT. Nada foi submetido, p
 
 1. `Topic or finished script → voice, visuals, captions, music and vertical MP4.`
 2. `Eight video engines in one workspace, from Kineo 1 to cinematic AI and Avatar.`
-3. `Free to start: 30 credits on signup, every engine unlocked, no card.`
+3. `Free to start: 10 credits on signup, every engine unlocked, no card.`
 4. `Starter $9.90 · Creator $19.90 · Studio $39.90 — every engine on every plan.`
 5. `Credits are returned automatically when a render fails.`
 

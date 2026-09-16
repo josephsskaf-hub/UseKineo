@@ -72,7 +72,7 @@ const ROWS: Array<[string, string, string]> = [
   ['Character/world consistency', 'Per generation', 'Anchored across every scene of the film'],
   ['Top engines', 'Yes — several', 'Yes — seven, incl. Omni Flash (#1, Aug 2026)'],
   ['Talking character with lip sync', 'Limited', 'Kling 3 renders a character speaking your line'],
-  ['Entry', 'Limited free tier', 'Free — 30 credits, every engine, no card'],
+  ['Entry', 'Limited free tier', 'Free — 10 credits, every engine, no card'],
 ]
 
 export default function VsHiggsfieldPage() {
@@ -140,7 +140,7 @@ export default function VsHiggsfieldPage() {
         >
           Start free
         </Link>
-        <p style={{ color: '#86868b', fontSize: 12, marginTop: 10 }}>Free — 30 credits, every engine unlocked, no card</p>
+        <p style={{ color: '#86868b', fontSize: 12, marginTop: 10 }}>Free — 10 credits, every engine unlocked, no card</p>
       </div>
 
       <p style={{ color: '#5a5a60', fontSize: 11.5, marginTop: 20 }}>

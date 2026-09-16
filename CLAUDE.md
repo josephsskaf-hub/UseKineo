@@ -7,8 +7,12 @@
 #   por ordem do fundador ("voltar na minha melhor fase"). Vigente: trial GRÁTIS
 #   de 30 créditos (1 Seedance 60 s + 1 Kineo 1 60 s), todo motor aberto, sem
 #   cartão; preços V5 $9,90/$19,90/$39,90 com 60/150/300; anual 10×.
+#   ⚠ 16/09 (fundador, manhã): TRIAL DE CADASTRO NOVO = 10 CRÉDITOS (2 Kineo 1;
+#   Seedance não cabe). Quem já tinha 30 mantém (trialCapFor lê
+#   trial_credits_granted). Primeiro-filme-premium (lib/primeiroFilme) PAUSADO.
+#   Doc: TRIAL-10-R1 em docs/coordination/motores/CLAUDE.md e PEDIDOS.
 # · Interruptores: lib/entryPolicy CARD_ENTRY_ONLY=false · lib/reverseTrial
-#   TRIAL_CREDIT_CAP=30 · lib/checkoutPricing CARD_TRIAL_LIVE=false ·
+#   TRIAL_CREDIT_CAP=10 (era 30 até 16/09) · lib/checkoutPricing CARD_TRIAL_LIVE=false ·
 #   lib/growth/cleanFilmTrialDoor TRIAL_DOOR_LIVE=false · lib/enginePlanGate
 #   ENGINE_GATE_SINCE='2099'. Guardião: scripts/test-restauracao-2026-09-09.mjs.
 # · PREÇO E OFERTA CONGELADOS ATÉ 09/10/2026. Nada de $1, intro, pack novo,

@@ -134,7 +134,12 @@ export const REVERSE_TRIAL_ENABLED = process.env.KINEO_REVERSE_TRIAL_ENABLED ===
 // KINEO-RESTAURACAO-2026-09-09 — fundador: "algo entre 25 e 40: 30 faz sentido,
 // 1 Seedance e 1 Kineo". 30 = Seedance 60 s (25) + Kineo 1 60 s (5). Custo se
 // gasto inteiro: ~$1,00–1,30 por conta; média real de uso: 8 créditos.
-export const TRIAL_CREDIT_CAP = 30
+// KINEO-TRIAL-10-2026-09-16 — fundador (16/09 manhã): "as pessoas conseguem fazer dois, três vídeos e é o que
+// elas precisam e acabam não assinando… reduzir para 10 créditos para todas as pessoas que estiverem
+// entrando novas". 10 = dois Kineo 1 de 60 s (5 cada); nenhum motor generativo cabe (Seedance = 25).
+// Só CADASTRO NOVO: quem já recebeu 30 continua com o teto gravado na própria linha
+// (trial_credits_granted) — ver trialCapFor(). Decisão de oferta é do fundador; medir pagantes/semana.
+export const TRIAL_CREDIT_CAP = 10
 
 /**
  * Créditos concedidos na ATIVAÇÃO do trial. Decisão final do fundador (06/08):
@@ -348,9 +353,19 @@ export function trialClockExpired(
   return !Number.isFinite(ends) || now >= ends
 }
 
+/**
+ * KINEO-TRIAL-10-2026-09-16 — o teto de UMA conta é o que ela recebeu (trial_credits_granted), nunca a
+ * constante do dia: quem entrou com 30 continua podendo usar 30; quem entra hoje recebe e usa 10.
+ * Sem a coluna (linha antiga sem grant gravado) vale a constante.
+ */
+export function trialCapFor(profile: { trial_credits_granted?: unknown } | null | undefined): number {
+  const g = profile?.trial_credits_granted
+  return typeof g === 'number' && Number.isFinite(g) && g > 0 ? g : TRIAL_CREDIT_CAP
+}
+
 /** O TETO de créditos foi atingido? */
-export function trialCapReached(profile: TrialProfileFields | null | undefined): boolean {
-  return trialCreditsUsed(profile) >= TRIAL_CREDIT_CAP
+export function trialCapReached(profile: (TrialProfileFields & { trial_credits_granted?: unknown }) | null | undefined): boolean {
+  return trialCreditsUsed(profile) >= trialCapFor(profile)
 }
 
 /**
@@ -1092,7 +1107,7 @@ export async function recordReverseTrialDebit(userId: string, cost: number): Pro
     for (let attempt = 1; attempt <= 3; attempt += 1) {
       const { data: profile, error: readErr } = await db
         .from('profiles')
-        .select('trial_status, trial_ends_at, trial_credits_used')
+        .select('trial_status, trial_ends_at, trial_credits_used, trial_credits_granted')
         .eq('id', userId)
         .maybeSingle()
       if (readErr || !profile) {
@@ -1106,7 +1121,8 @@ export async function recordReverseTrialDebit(userId: string, cost: number): Pro
       const newUsed = used + Math.round(cost)
       const endsRaw = (profile as { trial_ends_at?: unknown }).trial_ends_at
       const ends = typeof endsRaw === 'string' ? Date.parse(endsRaw) : NaN
-      const shouldExpire = newUsed >= TRIAL_CREDIT_CAP || !Number.isFinite(ends) || Date.now() >= ends
+      const capDaConta = trialCapFor(profile as { trial_credits_granted?: unknown }) // KINEO-TRIAL-10: teto da linha, não do dia
+      const shouldExpire = newUsed >= capDaConta || !Number.isFinite(ends) || Date.now() >= ends
       const patch: Record<string, unknown> = { trial_credits_used: newUsed }
       if (shouldExpire) patch.trial_status = 'expired'
 
@@ -1132,7 +1148,7 @@ export async function recordReverseTrialDebit(userId: string, cost: number): Pro
       }
       if (updated && updated.length > 0) {
         if (shouldExpire) {
-          console.log(`[reverse-trial] EXPIRED user=${userId.slice(0, 8)} used=${newUsed}/${TRIAL_CREDIT_CAP}`)
+          console.log(`[reverse-trial] EXPIRED user=${userId.slice(0, 8)} used=${newUsed}/${capDaConta}`)
           // INSTRUMENTO DO A/B (sprint 13h) — sem este evento o experimento
           // 3d vs 7d não tem como distinguir "trial acabou porque a pessoa USOU
           // tudo" de "acabou porque o relógio venceu", que é exatamente a
@@ -1144,10 +1160,10 @@ export async function recordReverseTrialDebit(userId: string, cost: number): Pro
             name: 'trial_expired',
             userId,
             metadata: {
-              reason: newUsed >= TRIAL_CREDIT_CAP ? 'credit_cap' : 'clock',
+              reason: newUsed >= capDaConta ? 'credit_cap' : 'clock',
               credits_used: newUsed,
-              cap: TRIAL_CREDIT_CAP,
-              expired_before_deadline: newUsed >= TRIAL_CREDIT_CAP && Number.isFinite(ends) && Date.now() < ends,
+              cap: capDaConta,
+              expired_before_deadline: newUsed >= capDaConta && Number.isFinite(ends) && Date.now() < ends,
             },
           })
         }
@@ -1516,7 +1532,7 @@ export async function recordReverseTrialRefundForRender(renderId: string): Promi
       // prazo ainda válido. Relógio vencido continua morto, como deve.
       const revive =
         (status === 'expired' || status === 'downgraded') &&
-        newUsed < TRIAL_CREDIT_CAP &&
+        newUsed < (granted > 0 ? granted : TRIAL_CREDIT_CAP) && // KINEO-TRIAL-10: teto da linha
         clockAlive &&
         !paying &&
         balance > 0 &&

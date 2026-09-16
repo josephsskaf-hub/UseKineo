@@ -118,7 +118,7 @@ export default function ExampleRemixForm({
           Build with my topic →
         </button>
       </form>
-      <p className="mt-3 text-[11px] leading-5 text-white/40">Free to start: 30 credits, no card. You can edit the prompt before generating.</p>
+      <p className="mt-3 text-[11px] leading-5 text-white/40">Free to start: 10 credits, no card. You can edit the prompt before generating.</p>
     </div>
   )
 }

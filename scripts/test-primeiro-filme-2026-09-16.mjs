@@ -18,7 +18,8 @@ const roda = (src, env = {}) => { const js = ts.transpileModule(src, { compilerO
 
 console.log('== (a) elegibilidade pura ==')
 const libSrc = rd('lib/primeiroFilme.ts')
-const P = roda(libSrc)
+const P = roda(libSrc, { NEXT_PUBLIC_KINEO_PRIMEIRO_FILME: 'on' }) // ligado só aqui, para provar a elegibilidade
+const P0 = roda(libSrc)
 const dentro = new Date('2026-09-18T12:00:00Z')
 const base = { created_at: '2026-09-17T10:00:00Z', plan: 'free', has_paid: false, trial_status: 'active', video_credits: 30, filmes: 0 }
 checa('cadastro novo, trial ativo, 30 cr, sem filme → elegível', P.elegivelPrimeiroFilme(base, dentro).elegivel === true)
@@ -31,8 +32,9 @@ checa('já tem um filme (qualquer estado que não falha) → ja_fez_o_primeiro',
 checa('created_at nulo → conta_antiga (nunca elegível por acidente)', P.elegivelPrimeiroFilme({ ...base, created_at: null }, dentro).motivo === 'conta_antiga')
 
 console.log('== (b) interruptor e janela ==')
-checa('ligado por padrão (sem env)', P.PRIMEIRO_FILME_ENABLED === true)
-checa('NEXT_PUBLIC_KINEO_PRIMEIRO_FILME=off desliga e a elegibilidade diz "desligado"', (() => { const Q = roda(libSrc, { NEXT_PUBLIC_KINEO_PRIMEIRO_FILME: 'off' }); return Q.PRIMEIRO_FILME_ENABLED === false && Q.elegivelPrimeiroFilme(base, dentro).motivo === 'desligado' })())
+// 16/09 manhã — fundador pausou ("vamos esperar"): padrão DESLIGADO; só liga com env =on.
+checa('DESLIGADO por padrão (sem env) e a elegibilidade diz "desligado"', P0.PRIMEIRO_FILME_ENABLED === false && P0.elegivelPrimeiroFilme(base, dentro).motivo === 'desligado')
+checa('NEXT_PUBLIC_KINEO_PRIMEIRO_FILME=on liga; off/lixo não', roda(libSrc, { NEXT_PUBLIC_KINEO_PRIMEIRO_FILME: 'on' }).PRIMEIRO_FILME_ENABLED === true && roda(libSrc, { NEXT_PUBLIC_KINEO_PRIMEIRO_FILME: 'off' }).PRIMEIRO_FILME_ENABLED === false && roda(libSrc, { NEXT_PUBLIC_KINEO_PRIMEIRO_FILME: 'talvez' }).PRIMEIRO_FILME_ENABLED === false)
 checa('janela de 7 dias: 16/09 08:00Z → 23/09 08:00Z', Date.parse(P.PRIMEIRO_FILME_ATE) - Date.parse(P.PRIMEIRO_FILME_DESDE) === 7 * 24 * 3600 * 1000)
 checa('depois da janela ninguém trava (fora_da_janela)', P.elegivelPrimeiroFilme(base, new Date('2026-09-23T08:00:01Z')).motivo === 'fora_da_janela' && P.dentroDaJanela(new Date('2026-09-23T07:59:59Z')))
 checa('motor, duração e créditos espelham o Seedance 60 s (25 cr)', P.PRIMEIRO_FILME_ENGINE === 'seedance' && P.PRIMEIRO_FILME_DURATION === 60 && P.PRIMEIRO_FILME_CREDITOS === 25 && /return 25/.test(rd('lib/credits/engineCost.ts')))

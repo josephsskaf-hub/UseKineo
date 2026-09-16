@@ -403,8 +403,11 @@ synthetic voice. None of them alternate the two inside one finished Short.
 - 2026-08-24: /generate retired; the Studio (usekineo.com/studio) is the
   single creation surface. Every film is delivered as a 1080×1920 master.
 - 2026-09-09 (evening): the free trial is back.
-  Every new account starts with 30 credits (one Seedance 1.5 film and one Kineo 1
+  Every new account started with 30 credits (one Seedance 1.5 film and one Kineo 1
   film of 60 s), every engine unlocked, no card required.
+- 2026-09-16: the free trial is 10 credits for new accounts (two Kineo 1 films of
+  60 s), every engine unlocked, no card required. Accounts created before keep the
+  credits they received.
   Prices return to Starter \$${TIER_PRICES.starter.usd / 100} / Creator \$${TIER_PRICES.basic.usd / 100} / Studio \$${TIER_PRICES.pro.usd / 100}
   (credits 60 / 150 / 300 unchanged). Existing subscribers keep the price they signed up at.
 - 2026-08-23: talking characters with lip sync alternate with narration on

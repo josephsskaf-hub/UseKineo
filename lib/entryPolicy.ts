@@ -33,7 +33,7 @@
 export const CARD_ENTRY_ONLY = false
 
 /** Créditos do trial grátis — espelho de TRIAL_CREDIT_CAP (lib/reverseTrial.ts); guardião confere. */
-export const FREE_ENTRY_CREDITS = 30
+export const FREE_ENTRY_CREDITS = 10 // KINEO-TRIAL-10-2026-09-16 (fundador): 30 → 10 para cadastro novo
 
 /** trial_status de quem cadastrou sob a versão B e ainda não passou o cartão. */
 export const CARD_ENTRY_TRIAL_STATUS = 'card_required' as const
@@ -79,7 +79,7 @@ export const FREE_ENTRY_COPY = {
   chip: `Free to start — ${FREE_ENTRY_CREDITS} credits, every engine, no card`,
   headline: `Start free: ${FREE_ENTRY_CREDITS} credits on signup, every engine unlocked, no card required.`,
   sentence:
-    `Every new account starts free with ${FREE_ENTRY_CREDITS} credits — enough for one Seedance film and one Kineo 1 film of 60 seconds — with every engine unlocked and no card required. Plans start at $9.90/month when you want more.`,
+    `Every new account starts free with ${FREE_ENTRY_CREDITS} credits — enough for two Kineo 1 films of 60 seconds — with every engine unlocked and no card required. Plans start at $9.90/month when you want more.`,
   noFreeTier: `Kineo is free to start: ${FREE_ENTRY_CREDITS} credits on signup, no card.`,
 } as const
 export const CARD_ENTRY_COPY = CARD_ENTRY_ONLY ? CARD_ENTRY_COPY_V_B : FREE_ENTRY_COPY

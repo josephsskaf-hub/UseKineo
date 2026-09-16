@@ -113,7 +113,7 @@ export default function OmniVsSoraPage() {
         >
           Start free
         </a>
-        <p style={{ color: '#86868b', fontSize: 12, marginTop: 10 }}>Free — 30 credits, every engine · switch before Sept 24</p>
+        <p style={{ color: '#86868b', fontSize: 12, marginTop: 10 }}>Free — 10 credits, every engine · switch before Sept 24</p>
       </div>
     </main>
   )

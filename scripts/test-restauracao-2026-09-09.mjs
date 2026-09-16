@@ -37,11 +37,13 @@ checa('ANNUAL = 9900 / 19900 / 39900', /starter: \{ usd: 9900 \},\n  basic: \{ u
 checa('INTRO = preço cheio (990 / 1990)', /starter: \{ usd: 990 \},\n  basic: \{ usd: 1990 \},\n\}/.test(cp))
 checa('créditos dos planos intactos (60/150/300)', /starter: 60,\n  basic: 150,\n  pro: 300,/.test(cp))
 
-console.log('== 2. entrada grátis de 30 ==')
+// KINEO-TRIAL-10-2026-09-16 — fundador reduziu o trial de cadastro novo para 10 ("impulso maior de comprar"). Quem já tinha 30 mantém (trialCapFor).
+console.log('== 2. entrada grátis de 10 (era 30 até 16/09) ==')
 checa('CARD_ENTRY_ONLY = false', /export const CARD_ENTRY_ONLY = false/.test(ep))
-checa('FREE_ENTRY_CREDITS = 30 (entryPolicy)', /export const FREE_ENTRY_CREDITS = 30/.test(ep))
-checa('TRIAL_CREDIT_CAP = 30 (reverseTrial)', /export const TRIAL_CREDIT_CAP = 30/.test(rt))
-checa('TRIAL_GRANT_CREDITS_COPY = 30 (freeTierOffer)', /export const TRIAL_GRANT_CREDITS_COPY = 30/.test(fo))
+checa('FREE_ENTRY_CREDITS = 10 (entryPolicy)', /export const FREE_ENTRY_CREDITS = 10/.test(ep))
+checa('TRIAL_CREDIT_CAP = 10 (reverseTrial)', /export const TRIAL_CREDIT_CAP = 10/.test(rt))
+checa('TRIAL_GRANT_CREDITS_COPY = 10 (freeTierOffer)', /export const TRIAL_GRANT_CREDITS_COPY = 10/.test(fo))
+checa('teto por conta: quem recebeu 30 continua com 30 (trialCapFor lê trial_credits_granted)', /export function trialCapFor\(/.test(rt) && /trialCreditsUsed\(profile\) >= trialCapFor\(profile\)/.test(rt) && /newUsed >= capDaConta/.test(rt) && /newUsed < \(granted > 0 \? granted : TRIAL_CREDIT_CAP\)/.test(rt))
 checa('CARD_ENTRY_COPY vira a copy grátis quando a versão B está desligada', /export const CARD_ENTRY_COPY = CARD_ENTRY_ONLY \? CARD_ENTRY_COPY_V_B : FREE_ENTRY_COPY/.test(ep) && /ctaShort: 'Start free'/.test(ep))
 checa('caminho de entrada é o cadastro, não o checkout', /CARD_ENTRY_CHECKOUT_PATH = CARD_ENTRY_ONLY \? CARD_ENTRY_CHECKOUT_PATH_V_B : \('\/signup\?intent_campaign=free_entry' as const\)/.test(ep))
 
@@ -77,8 +79,8 @@ const ph = rd('app/ph/page.tsx')
 checa('/ph: CTA vai para o cadastro com utm do PH', /const CTA = '\/signup\?utm_source=producthunt[^']*intent_campaign=ph_sep10'/.test(ph) && !/trial=1'/.test(ph))
 checa('/ph: letra miúda fala em créditos grátis, não em $1', /\{FREE_ENTRY_CREDITS\} credits free · every engine unlocked · no card/.test(ph) && !/Is the \$1 real\?/.test(ph))
 const kit = rd('docs/ph/PH-TEXTOS-2026-09-10.md')
-checa('kit do PH: sem "$1 for 7 days", com "Free to start"', !/\$1 for 7 days/.test(kit) && /Free to start, 30 credits, no card/.test(kit))
+checa('kit do PH: sem "$1 for 7 days", com "Free to start"', !/\$1 for 7 days/.test(kit) && /Free to start, 10 credits, no card/.test(kit))
 
 console.log(`\n  verificacoes: ${ok + falhas.length} · falhas: ${falhas.length}`)
 if (falhas.length) { for (const f of falhas) console.log('  ✗ ' + f); process.exit(1) }
-console.log('OK — restauração: V5 na fonte, entrada grátis de 30, $1 morto, motores abertos, copy limpa')
+console.log('OK — restauração: V5 na fonte, entrada grátis de 10 (16/09), $1 morto, motores abertos, copy limpa')

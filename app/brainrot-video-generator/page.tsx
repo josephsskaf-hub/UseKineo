@@ -296,7 +296,7 @@ export default function BrainrotVideoGeneratorPage() {
             placeholder: 'Type one idea, or paste the script you already wrote',
             submit: 'Generate the narrated half →',
             examplesLabel: 'Ideas that survive a 40-second cut',
-            note: 'Your text stays attached through signup. Paste a full script and it is narrated verbatim — it starts free with 30 credits, no card.',
+            note: 'Your text stays attached through signup. Paste a full script and it is narrated verbatim — it starts free with 10 credits, no card.',
           }}
         />
 

@@ -150,7 +150,7 @@ const OFF_COPY: FreeTierCopy = {
 // O porquê do número está inteiro no bloco KINEO-TRIAL-25 de lib/reverseTrial.ts
 // — resumo: $17/dia de fal contra 2 assinaturas em 14 dias, e nenhum abuso
 // (ninguém fez 3+ vídeos caros), então o corte é no TAMANHO, não no motor.
-export const TRIAL_GRANT_CREDITS_COPY = 30 // KINEO-RESTAURACAO-2026-09-09 — espelho de TRIAL_CREDIT_CAP
+export const TRIAL_GRANT_CREDITS_COPY = 10 // KINEO-TRIAL-10-2026-09-16 (fundador) — espelho de TRIAL_CREDIT_CAP
 
 // ON = decisão do fundador (docs/ORDENS-AQUISICAO-2026-08-02.md, bloco
 // "DECISÕES FINAIS — REVERSE TRIAL"). NUNCA mencionar desconto/50% aqui:

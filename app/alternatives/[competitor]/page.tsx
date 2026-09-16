@@ -95,7 +95,7 @@ export const COMPETITORS: Record<string, Competitor> = {
     name: 'InVideo AI',
     h1: 'A Free InVideo AI Alternative for Faceless Shorts',
     intro:
-      `Kineo starts free (30 credits, every engine unlocked, no card); InVideo AI has its own free tier. The useful difference is the workflow: InVideo is a broad video creator, while Kineo is built specifically for faceless 9:16 Shorts. One idea becomes a hook-driven script, voiceover, footage and captions, usually in 3–7 minutes. ${ft(OFFER, 'Kineo free access includes up to 3 watermarked Fast videos every 24 hours.', `Kineo starts with ${TRIAL_GRANT_CREDITS_COPY} free credits and every engine unlocked; trial films are watermarked.`)}`,
+      `Kineo starts free (10 credits, every engine unlocked, no card); InVideo AI has its own free tier. The useful difference is the workflow: InVideo is a broad video creator, while Kineo is built specifically for faceless 9:16 Shorts. One idea becomes a hook-driven script, voiceover, footage and captions, usually in 3–7 minutes. ${ft(OFFER, 'Kineo free access includes up to 3 watermarked Fast videos every 24 hours.', `Kineo starts with ${TRIAL_GRANT_CREDITS_COPY} free credits and every engine unlocked; trial films are watermarked.`)}`,
     theyDo: 'InVideo AI is a broad, general-purpose AI video maker for many formats.',
     pickThem:
       'Pick InVideo if you need long-form, horizontal, or many different video formats from one tool. Pick Kineo if your whole game is posting faceless Shorts daily and you want them optimized for retention out of the box.',
@@ -114,7 +114,7 @@ export const COMPETITORS: Record<string, Competitor> = {
     faq: [
       {
         q: 'Is there a free InVideo AI alternative?',
-        a: `Kineo starts free (30 credits, no card) and is focused on faceless vertical Shorts. ${ft(OFFER, 'Free access includes up to 3 watermarked Fast videos every 24 hours.', `A new account receives ${TRIAL_GRANT_CREDITS_COPY} free credits with every engine unlocked; trial films are watermarked.`)} InVideo also has a no-card free plan with limited credits that reset weekly, according to its official help center checked ${INVIDEO_FACTS_CHECKED}.`,
+        a: `Kineo starts free (10 credits, no card) and is focused on faceless vertical Shorts. ${ft(OFFER, 'Free access includes up to 3 watermarked Fast videos every 24 hours.', `A new account receives ${TRIAL_GRANT_CREDITS_COPY} free credits with every engine unlocked; trial films are watermarked.`)} InVideo also has a no-card free plan with limited credits that reset weekly, according to its official help center checked ${INVIDEO_FACTS_CHECKED}.`,
       },
       {
         q: 'What is the best InVideo alternative for faceless YouTube Shorts?',

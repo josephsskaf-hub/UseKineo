@@ -60,8 +60,9 @@ check('lê o grant do trial grátis', GRANT_TRIAL !== null)
 check('lê o grant do trial de $1', GRANT_1USD !== null)
 // Âncora: os números lidos batem com o que a rotação mediu. Se um deles mudar,
 // o guardião ACUSA em vez de seguir calculando com um número que ninguém viu.
-check('grant do trial grátis é 30 (restauração 09/09: 1 Seedance + 1 Kineo 1)', GRANT_TRIAL === 30)
-check('Seedance (25) cabe no trial de 30 com 5 sobrando para um Kineo 1', CUSTO_SEEDANCE === 25 && GRANT_TRIAL - CUSTO_SEEDANCE === 5)
+// KINEO-TRIAL-10-2026-09-16 (fundador): 30 → 10 para cadastro novo; o Seedance (25) NÃO cabe mais no trial — dois Kineo 1 cabem.
+check('grant do trial grátis é 10 (fundador 16/09; era 30 na restauração 09/09)', GRANT_TRIAL === 10)
+check('Seedance (25) não cabe no trial de 10; dois Kineo 1 (5) cabem', CUSTO_SEEDANCE === 25 && GRANT_TRIAL < CUSTO_SEEDANCE && GRANT_TRIAL === 10)
 check('Kling 3 segue em 150', CUSTO_KLING3 === 150)
 
 // ── A PREMISSA: o motor nomeado antes NÃO cabe no saldo ───────────────────
@@ -69,7 +70,8 @@ const klingCabeNoTrial = CUSTO_KLING3 !== null && GRANT_TRIAL !== null && CUSTO_
 const klingCabeNo1Usd = CUSTO_KLING3 !== null && GRANT_1USD !== null && CUSTO_KLING3 <= GRANT_1USD
 check('Kling 3 NÃO cabe no trial grátis (premissa da correção)', !klingCabeNoTrial)
 check('Kling 3 NÃO cabe no trial de $1', !klingCabeNo1Usd)
-check('Seedance CABE no trial (é o motor que a frase pode nomear)', CUSTO_SEEDANCE <= GRANT_TRIAL)
+// KINEO-TRIAL-10-2026-09-16: com 10 créditos o Seedance NÃO cabe; a cláusula devolve null e a carta usa o fallback sem contagem (verdade preservada).
+check('Seedance NÃO cabe no trial de 10 (a frase não pode nomear contagem)', CUSTO_SEEDANCE > GRANT_TRIAL)
 
 // ── O RAMO d0_welcome ─────────────────────────────────────────────────────
 const iD0 = rota.indexOf(`if (c.kind === 'd0_welcome') {`)
@@ -121,8 +123,8 @@ check('o carimbo grava zero explícito (não some do denominador)', /trialFilmsW
 // Reproduz trialFilmsWithinReach com os números lidos: para o saldo cheio do
 // trial a carta tem de dizer UM filme, no singular.
 const filmesNoSaldoCheio = Math.floor(GRANT_TRIAL / CUSTO_SEEDANCE)
-check('o saldo cheio do trial cobre exatamente 1 filme', filmesNoSaldoCheio === 1)
-check('e portanto a frase sai no singular', (filmesNoSaldoCheio === 1 ? 'film' : 'films') === 'film')
+check('o saldo cheio do trial de 10 cobre ZERO Seedance → a cláusula é null (fallback sem contagem)', filmesNoSaldoCheio === 0)
+check('o plural/singular só entra com films ≥ 1 (aqui nem chega a ser publicado)', (1 === 1 ? 'film' : 'films') === 'film' && (2 === 1 ? 'film' : 'films') === 'films')
 const filmesSaldoZero = 0 >= CUSTO_SEEDANCE ? Math.floor(0 / CUSTO_SEEDANCE) : 0
 check('saldo zero não gera contagem', filmesSaldoZero === 0)
 

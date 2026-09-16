@@ -34,7 +34,7 @@ const entryPolicy = loadTs('lib/entryPolicy.ts')
 const offer = loadTs('lib/freeTierOffer.ts', { './credits/engineCost': engineCost, './entryPolicy': entryPolicy })
 const facts = loadTs('lib/growth/trialAccessFacts.ts')
 
-equal(offer.TRIAL_GRANT_CREDITS_COPY, 30, 'test reads the canonical current grant (30 desde a restauração de 09/09)')
+equal(offer.TRIAL_GRANT_CREDITS_COPY, 10, 'test reads the canonical current grant (10 desde 16/09, fundador; era 30 na restauração de 09/09)')
 equal(offer.buildFreeTierOffer(true).reverseTrial, true, 'reverse trial branch is executable')
 // 08/09 (VERSAO B): sob a porta unica nao ha franquia recorrente — limit 0 e a
 // politica, nao um defeito. Lido do mesmo seletor que o produto usa.
@@ -64,7 +64,7 @@ const trial = facts.buildTrialAccessFact({
   engines,
 })
 ok(trial, 'enabled trial produces a record')
-equal(trial.credits, 30, 'trial publishes the real balance (30 desde a restauração de 09/09)')
+equal(trial.credits, 10, 'trial publishes the real balance (10 desde 16/09)')
 equal(trial.everyEngineUnlocked, true, 'access is explicit')
 equal(trial.noCardRequired, true, 'card boundary is explicit')
 equal(trial.watermark, true, 'trial watermark is explicit')
@@ -74,13 +74,13 @@ equal(trial.engineCoverage.length, engines.length, 'coverage includes every name
 for (const row of trial.engineCoverage) {
   const source = engines.find((engine) => engine.name === row.engine)
   equal(row.creditsPerReferenceVideo, source.credits, `${row.engine}: cost comes from the real 60s ruler`)
-  equal(row.wholeReferenceVideosCovered, Math.floor(30 / source.credits), `${row.engine}: balance coverage is calculated (trial de 30 desde 09/09)`)
+  equal(row.wholeReferenceVideosCovered, Math.floor(10 / source.credits), `${row.engine}: balance coverage is calculated (trial de 10 desde 16/09)`)
 }
 
 const covered = trial.engineCoverage.filter((row) => row.wholeReferenceVideosCovered > 0).map((row) => row.engine)
-equal(covered.join(','), 'Kineo 1,Seedance 1.5', '25 credits cover only the two truthful reference choices')
+equal(covered.join(','), 'Kineo 1', '10 credits cover only Kineo 1 (Seedance needs 25) — KINEO-TRIAL-10, fundador 16/09')
 const balanceShort = trial.engineCoverage.filter((row) => row.wholeReferenceVideosCovered === 0).map((row) => row.engine)
-equal(balanceShort.join(','), 'Kling 2.5,Veo 3.1,Avatar,MiniMax H3,Omni Flash,Kling 3', 'unlocked-but-not-covered engines stay named')
+equal(balanceShort.join(','), 'Seedance 1.5,Kling 2.5,Veo 3.1,Avatar,MiniMax H3,Omni Flash,Kling 3', 'unlocked-but-not-covered engines stay named (Seedance joins the list with the 10-credit trial, 16/09)')
 equal(facts.buildTrialAccessFact({ enabled: false, credits: 25, engines }), null, 'disabled trial publishes no trial record')
 assert.throws(() => facts.buildTrialAccessFact({ enabled: true, credits: -1, engines }), /invalid_trial_credit_balance/)
 checks += 1

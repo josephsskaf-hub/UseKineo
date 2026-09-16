@@ -18,13 +18,15 @@
 // A contagem é feita no servidor (app/api/first-film/route.ts) sobre a tabela `videos`, e falha
 // FECHADA: sem resposta = teto atingido = fluxo normal.
 //
-// Interruptor: padrão LIGADO neste código; `NEXT_PUBLIC_KINEO_PRIMEIRO_FILME=off` desliga (env
-// nova só vale em deploy novo — memória da casa). A janela também encerra sozinha em
-// PRIMEIRO_FILME_ATE (1 semana), sem depender de ninguém lembrar.
+// Interruptor: PAUSADO pelo fundador em 16/09 de manhã ("vamos esperar… é muito custoso, 30-35
+// dólares por dia"): padrão DESLIGADO; só liga com `NEXT_PUBLIC_KINEO_PRIMEIRO_FILME=on` em deploy
+// novo. Ficou no ar das 05:00 às ~09:00 BRT de 16/09. Com o trial de 10 créditos (KINEO-TRIAL-10)
+// a elegibilidade também cai por saldo (< 25), então mesmo ligado ele não trava ninguém.
+// A janela também encerra sozinha em PRIMEIRO_FILME_ATE.
 
 export const PRIMEIRO_FILME_VERSION = 'primeiro_filme_v1'
 
-export const PRIMEIRO_FILME_ENABLED = !['0', 'false', 'no', 'off'].includes(
+export const PRIMEIRO_FILME_ENABLED = ['1', 'true', 'yes', 'on'].includes(
   (process.env.NEXT_PUBLIC_KINEO_PRIMEIRO_FILME ?? '').trim().toLowerCase(),
 )
 

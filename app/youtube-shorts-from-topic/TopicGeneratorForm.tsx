@@ -70,7 +70,7 @@ export default function TopicGeneratorForm({
     placeholder: 'Type one topic or paste your script',
     submit: 'Turn this topic into a Short →',
     examplesLabel: 'Example topics',
-    note: 'Your topic stays attached through signup. Free to start: 30 credits, no card.',
+    note: 'Your topic stays attached through signup. Free to start: 10 credits, no card.',
   },
 }: TopicGeneratorFormProps = {}) {
   const [topic, setTopic] = useState('')

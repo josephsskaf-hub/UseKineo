@@ -185,13 +185,13 @@ export default function PhPage() {
           ))}
         </section>
         <p style={{ marginTop: 10, fontSize: 13, color: 'rgba(255,255,255,.55)' }}>
-          Every account starts free with {FREE_ENTRY_CREDITS} credits (one Seedance film and one Kineo 1 film of 60 seconds), every engine unlocked, no card. Full details on the <Link href="/pricing" style={{ color: '#7cc0ff' }}>pricing page</Link>.
+          Every account starts free with {FREE_ENTRY_CREDITS} credits (two Kineo 1 films of 60 seconds), every engine unlocked, no card. Full details on the <Link href="/pricing" style={{ color: '#7cc0ff' }}>pricing page</Link>.
         </p>
 
         <section style={{ marginTop: 48, maxWidth: 720 }}>
           <h2 style={{ fontSize: 20, fontWeight: 900, margin: '0 0 12px' }}>Honest answers</h2>
           {[
-            ['Is it really free to start?', `Yes. Sign up and you get ${FREE_ENTRY_CREDITS} credits — one Seedance 1.5 film and one Kineo 1 film of 60 seconds — with every engine unlocked. No card. Plans start at ${usd(TIER_PRICES.starter.usd)}/month when you want more.`],
+            ['Is it really free to start?', `Yes. Sign up and you get ${FREE_ENTRY_CREDITS} credits — two Kineo 1 films of 60 seconds — with every engine unlocked. No card. Plans start at ${usd(TIER_PRICES.starter.usd)}/month when you want more.`],
             ['Is there a free tier?', `Yes: ${FREE_ENTRY_CREDITS} credits on signup, no card. Trial films are watermarked; any paid plan unlocks clean downloads.`],
             ['How long does a film take?', 'About 3 minutes on Kineo 1 and Seedance; cinematic engines (Kling 3, Veo 3.1) take longer, sometimes 10–15 minutes when the provider is busy.'],
             ['Who owns the videos?', 'You do. Download the MP4 and post it anywhere.'],

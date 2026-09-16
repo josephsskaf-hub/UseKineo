@@ -13,20 +13,20 @@ let checks = 0
 const check = (value, message) => { assert.ok(value, message); checks += 1 }
 
 check(/starter:\s*\{\s*usd:\s*990\s*\}/.test(pricing), 'canonical Starter price is $9.90 USD (V5, restauração de 09/09)')
-check(/CARD_ENTRY_ONLY\s*=\s*false/.test(read('lib/entryPolicy.ts')), 'restauração 09/09: a entrada é grátis (30 créditos), o $1 morreu')
+check(/CARD_ENTRY_ONLY\s*=\s*false/.test(read('lib/entryPolicy.ts')), 'restauração 09/09: a entrada é grátis (10 créditos desde 16/09), o $1 morreu')
 check(/VIDEO_ENGINE_COUNT_WORD\s*=\s*'Six'/.test(engines) && /PAUSED_ENGINE_KEYS[^\n]*\['h3', 'omni', 's25'\]/.test(engines), 'public engine count is six while H3, Omni and S25 are paused (fundador 15/09; era Eight/Nine)')
 
 for (const truth of [
   'free to start',
   '$9.90/month',
-  '30 credits',
+  '10 credits',
   'eight video engines',
   'credits are returned automatically',
 ]) {
   check(listing.toLowerCase().includes(truth.toLowerCase()), `listing carries current truth: ${truth}`)
 }
 
-for (const stale of ['Five engines', '40 credits', '50 credits', '25 free credits', 'from $14/month', '$7/month', '$1 trial', '80 credits']) {
+for (const stale of ['Five engines', '30 credits', '40 credits', '50 credits', '25 free credits', 'from $14/month', '$7/month', '$1 trial', '80 credits']) {
   check(!pasteReady.includes(stale), `stale claim is never proposed: ${stale}`)
 }
 
