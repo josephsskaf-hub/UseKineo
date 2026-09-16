@@ -3869,6 +3869,23 @@ async function manipularPost(req: NextRequest) {
       })()
       const FOLGA_MIN_S = 0.3
       if (ritmoVoz !== 2.3) console.log(`[hollywood] KINEO-RITMO-DA-VOZ: persona mais lenta/rápida que a régua → ${ritmoVoz} pal/s (2,3 × velocidade da voz)`)
+      // ═══ KINEO-APARA-NO-RITMO-DA-VOZ-2026-09-16 — verbatim: a apara do respiro do C1 (KINEO-APARA-RESPIRO) mede o silêncio a
+      // 2,3 pal/s fixo, mas a régua (ensaio e render) julga em ritmoVoz. Ensaio verbatim do Omni (16/09, 149 palavras, 11 cenas):
+      // a apara parou em ≤ 7,5 s e a régua mediu 9,3 s — 0,07 pal/s × 11 cenas. Aqui, com ritmoVoz em mãos, a mesma apara roda
+      // de novo: tira 1 s da cena mais folgada enquanto o total passar de 7,5 s ou alguma cena passar de 1,4 s; nunca abaixo
+      // de 4 s, nunca tocando na fala. Só em verbatim (em modo IA o enche-silêncio põe palavra, não tira segundo). ═══
+      if (verbatim && plan.scenes.length > 0) {
+        const mudoDe = (sc: (typeof plan.scenes)[number]) => (sc.seconds || 0) - ((sc.type === 'dialogue' ? sc.dialogueLine : sc.voiceover) ?? '').trim().split(/\s+/).filter(Boolean).length / ritmoVoz
+        const totalDe = () => plan.scenes.reduce((a, sc) => a + Math.max(0, mudoDe(sc)), 0)
+        const antesTotal = totalDe()
+        let guard = 60
+        while (guard-- > 0 && (totalDe() > 7.5 || plan.scenes.some((sc) => mudoDe(sc) > 1.4))) {
+          const alvo = plan.scenes.filter((sc) => (sc.seconds || 0) > 4 && mudoDe(sc) > 1.0).sort((a, b) => mudoDe(b) - mudoDe(a))[0]
+          if (!alvo) break
+          alvo.seconds = (alvo.seconds || 0) - 1
+        }
+        if (Math.abs(antesTotal - totalDe()) > 0.05) console.log(`[hollywood] KINEO-APARA-NO-RITMO-DA-VOZ: silêncio ${antesTotal.toFixed(1)}s → ${totalDe().toFixed(1)}s no ritmo ${ritmoVoz} (${plan.scenes.length} cenas)`)
+      }
       // ═══ KINEO-ENCHE-SILENCIO-2026-09-13 — modo IA nos motores caros ═══════
       // O planejador dirige bem a câmera e escreve pouco: 113-116 palavras
       // para 60 s (16 por cena de 10 s) em Kling 3, H3 e Omni na análise de $0

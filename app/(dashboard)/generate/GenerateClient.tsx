@@ -14966,7 +14966,7 @@ export default function GenerateClient({
               <div className="text-xs" style={{ color: 'var(--muted2)' }}>
                 {mode === 'fast'
                   ? `⚡ Fast Mode · ${duration}s · YouTube Shorts / TikTok (9:16)`
-                  : `🎬 Cinematic Mode · ${duration}s · ${QUALITY_OPTIONS.find((q) => q.key === quality)?.title} · YouTube Shorts / TikTok (9:16)`}
+                  : `🎬 Cinematic Mode · ${duration}s · ${QUALITY_OPTIONS.find((q) => q.key === quality)?.title ?? 'Cinematic'} · YouTube Shorts / TikTok (9:16)`} {/* KINEO-SEM-UNDEFINED-2026-09-16: qualidade sem título no catálogo (Omni) mostrava "undefined" */}
               </div>
               <button
                 ref={optionsGenerateBtnRef}

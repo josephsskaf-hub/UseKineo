@@ -19,7 +19,12 @@ export const OFFER_290_ENABLED = false
 // t2v draws). OFF by default: while false, every classic engine stays pure
 // text-to-video and behaves BYTE-IDENTICALLY to before this feature existed.
 // Flip via env KINEO_CINEMATIC_ANCHOR_ENABLED (truthy = '1' | 'true' | 'yes' | 'on').
-export const CINEMATIC_ANCHOR_ENABLED = ['1', 'true', 'yes', 'on'].includes(
+// KINEO-ANCORA-LIGADA-2026-09-16 — ordem do fundador (16/09, "arruma o Kling 2.5"): o filme 976eb60d saiu puro t2v
+// (cinematic_dispatch_result: engine text-to-video) porque este interruptor nunca foi virado; o rosto do personagem só
+// existia por texto. Agora LIGADO por padrão: um still FLUX por cena (mesmo estilo + mesma semente) e cada cena vai em
+// Kling i2v a partir do seu still (~US$ 0,10 por still, até 6 por filme; crédito do cliente inalterado). Desliga com
+// KINEO_CINEMATIC_ANCHOR_ENABLED=0|false|no|off. Fail-open: still que falha → aquela cena volta a t2v.
+export const CINEMATIC_ANCHOR_ENABLED = !['0', 'false', 'no', 'off'].includes(
   (process.env.KINEO_CINEMATIC_ANCHOR_ENABLED ?? '').trim().toLowerCase(),
 )
 
