@@ -1,17 +1,22 @@
-# TAAFT — pacote de atualização da ficha Kineo
+# TAAFT — pacote ATUAL da ficha Kineo
 
-**Preparado em:** 04/09/2026 12:30 BRT · **Destino:** ficha já existente em `https://theresanaiforthat.com/ai/kineo/`
+**Revisado em:** 16/09/2026 · **Estado:** LOCAL, correção TRIAL-10-R1 · **Destino:** ficha existente em `https://theresanaiforthat.com/ai/kineo/`
 
-Este material é para o fundador colar no painel do TAAFT. Nada foi submetido, pago ou enviado por esta tarefa.
+**EVIDÊNCIA DE PRODUÇÃO — relato do fundador via Board, 16/09/2026:** a descrição externa já foi atualizada por ele para o trial atual. Esta tarefa não acessou o painel e não repetiu submissão. **QUESTÃO PENDENTE / DESCONHECIDO:** leitura independente da ficha atual bloqueada; não declarar validação pública. A release **v3.3.3** com a oferta anterior é histórico imutável, não oferta ativa e não deve ser reescrita nem republicada.
 
-## 1. Correção factual antes de colar
+## 1. Fontes e limites da oferta atual
 
-- **CONTRADIÇÃO:** o programa de 03/09 pediu “50 créditos grátis” e “6 engines” (`docs/PROGRAMA-CODEX-ASSINATURAS-2026-09-03.md:280-284`), mas o código atual concede **25 créditos** e apresenta **oito motores de vídeo** ao público (`lib/freeTierOffer.ts:144-150`; `lib/reverseTrial.ts:100-140`; `lib/engineLaunch.ts:20-24`). O texto abaixo segue o código, que prevalece.
-- **FATO CONFIRMADO:** os planos mensais vigentes começam em **$9,90 USD** (restauração de 09/09/2026 à noite); a fonte única declara $9.90 / $19.90 / $39.90 (`lib/checkoutPricing.ts:49-98`).
-- **FATO CONFIRMADO:** o trial permite começar sem cartão, produz arquivo com marca d’água e o plano pago libera o MP4 limpo (`lib/freeTierOffer.ts:197-240`).
-- **QUESTÃO PENDENTE / DESCONHECIDO:** a ficha TAAFT bloqueou a leitura automatizada com HTTP 403 em 04/09/2026; portanto a redação que está no painel hoje não foi reconfirmada. A divergência antiga — `from $9.90/mo`, preços $11.90/$24.90/$37.90 e nenhum trial — foi observada em 08/08/2026 (`docs/TAAFT-RELANCAMENTO-2026-08-08.md`, §4).
+- **FATO CONFIRMADO — IMPLEMENTADO:** cadastro novo recebe 10 créditos, sem cartão (`lib/entryPolicy.ts:33-36`, `lib/reverseTrial.ts:142`); o teto das concessões anteriores usa `trial_credits_granted`, preservando saldos concedidos antes (`lib/reverseTrial.ts:361-364`).
+- **FATO CONFIRMADO — IMPLEMENTADO:** Kineo 1 custa 5 créditos por 60 segundos no caminho com créditos; Seedance 1.5 custa 25 no mesmo referencial (`lib/credits/engineCost.ts`, `creditCostFor` e `creditCostForDuration`). Os 10 iniciais cobrem dois filmes Kineo 1 de 60 segundos; não anunciam um Seedance gratuito de 60 segundos.
+- **FATO CONFIRMADO — IMPLEMENTADO:** primeiro filme premium desabilitado por padrão (`lib/primeiroFilme.ts:29`). **EVIDÊNCIA DE PRODUÇÃO — relato do fundador, 16/09/2026:** iniciativa pausada. Não anunciar o primeiro filme como premium gratuito.
+- **FATO CONFIRMADO — IMPLEMENTADO:** H3, Omni e S25 estão pausados (`lib/engineLaunch.ts:28`). **CONTRADIÇÃO:** as constantes desse arquivo ainda incluem Avatar na contagem, enquanto o handoff TRIAL10 do fundador manda anunciar apenas Kineo 1, Seedance 1.5, Kling 2.5, Kling 3 e Veo 3.1. O texto atual abaixo limita-se a esses motores e explicita disponibilidade, acesso e saldo.
+- **FATO CONFIRMADO — IMPLEMENTADO:** a data do gate por plano está no futuro (`lib/enginePlanGate.ts:19`); isso não substitui os controles de manutenção nem o saldo necessário. Não dizer que Studio é o único acesso aos motores caros, nem que Starter paga toda combinação de motor e duração.
+- **FATO CONFIRMADO — IMPLEMENTADO:** preços mensais USD e créditos vêm de `lib/checkoutPricing.ts`, `TIER_PRICES` e `TIER_CREDITS`; a revisão não altera preço, plano, concessão nem termos. A oferta de teste tem marca d'água (`lib/freeTierOffer.ts`).
+- **EVIDÊNCIA DE PRODUÇÃO — histórico versionado:** o pacote preparado em 04/09 está preservado no Git, incluindo suas alegações então vigentes. Não usar o snapshot anterior como texto atual.
 
 ## 2. Texto pronto para colar
+
+**SUGESTÃO — TEXTO ATUAL CORRIGIDO, LOCAL:** usar somente numa edição necessária da ficha existente, após conferir o conteúdo e os controles do dono. O relato de atualização do fundador não autoriza duplicar essa edição.
 
 ### Name
 
@@ -19,15 +24,15 @@ Este material é para o fundador colar no painel do TAAFT. Nada foi submetido, p
 
 ### Tagline
 
-`Turn any topic or script into a ready-to-post vertical video.`
+`Turn ideas and scripts into narrated videos.`
 
 ### Short description
 
-`Kineo turns a topic or finished script into a vertical video with voice, captions, music and a downloadable MP4. Choose from eight video engines. Free to start: 10 credits on signup, no card. Plans from $9.90/month.`
+`Create videos with narration, visuals, captions and music. Free to start: 10 credits, no card — enough for two Kineo 1 films of 60 seconds. Trial videos are watermarked.`
 
 ### Long description
 
-`Type a topic or paste a finished script. Kineo structures the story, creates the voiceover, builds the visuals, burns in karaoke-style captions, adds a soundtrack and returns a vertical MP4 ready for YouTube Shorts, TikTok or Reels. Choose among eight video engines in one workspace, including Kineo 1, Seedance 1.5, Kling 2.5, Kling 3, Veo 3.1, MiniMax H3, Omni Flash and Avatar. New accounts start free with 10 credits and every engine unlocked, no card. Plans from $9.90/month in USD: Starter and Creator include Kineo 1 and Seedance 1.5, and Studio unlocks every engine. If a render fails, its credits are returned automatically.`
+`Turn a topic or script into a video with narration, visuals, captions and music. Free to start: 10 credits, no card — enough for two Kineo 1 films of 60 seconds. Trial videos are watermarked. Available video options include Kineo 1, Seedance 1.5, Kling 2.5, Kling 3 and Veo 3.1. Credit use varies by engine and duration; generation requires an available engine, account access and sufficient credits. Plans start at $9.90/month USD. Check the displayed credit cost before generating.`
 
 ### Pricing field
 
@@ -43,53 +48,34 @@ Este material é para o fundador colar no painel do TAAFT. Nada foi submetido, p
 
 ### Feature bullets
 
-1. `Topic or finished script → voice, visuals, captions, music and vertical MP4.`
-2. `Eight video engines in one workspace, from Kineo 1 to cinematic AI and Avatar.`
-3. `Free to start: 10 credits on signup, every engine unlocked, no card.`
-4. `Starter $9.90 · Creator $19.90 · Studio $39.90 — every engine on every plan.`
-5. `Credits are returned automatically when a render fails.`
+1. `Topics or scripts to videos with narration, visuals, captions and music.`
+2. `Kineo 1, Seedance 1.5, Kling 2.5, Kling 3 and Veo 3.1.`
+3. `Free to start: 10 credits, no card; two Kineo 1 films of 60 seconds.`
+4. `Trial videos are watermarked. Credit use varies by engine and duration.`
+5. `Check engine availability, account access and sufficient credits before generating.`
 
-## 3. As três capturas do listing
+## 3. As três capturas — referência, sem novos uploads
 
-Use desktop em **1440 × 900**, zoom **100%**, sem barra de favoritos, notificações ou dados pessoais. Salve em PNG. Não use mockup: cada imagem deve ser uma tela real de produção.
+**SUGESTÃO:** preservar a home e as capturas aprovadas pelo fundador. Só substituir uma imagem se ela contiver oferta atual comprovadamente falsa e houver controle de edição disponível; esta tarefa não capturou, publicou nem gerou filmes.
 
-### Captura 1 — os motores são reais
+- Home: `https://www.usekineo.com/?utm_source=taaft&utm_medium=referral`. **Precisa estar visível:** a vitrine aprovada, com nomes reais dos motores e sem promessa antiga de trial.
+- Seletor: `https://www.usekineo.com/studio?engine=seedance&utm_source=taaft&utm_medium=referral`. **Precisa estar visível:** duração escolhida, custo real exibido, acesso da conta e saldo. Não fixar um custo a partir de um roteiro de captura antigo. **Não clique em Generate**.
+- Resultado: `https://www.usekineo.com/history`. Usar apenas filme concluído do fundador, preservando privacidade e o rótulo real do download. Não tornar um filme público para esta correção.
 
-- **URL exata:** `https://www.usekineo.com/?utm_source=taaft&utm_medium=referral`
-- **Arquivo sugerido:** `kineo-taaft-01-real-engines.png`
-- **Precisa estar visível:** headline da home e os quatro cards de vídeo do topo reproduzindo, com os nomes dos motores legíveis.
-- **Antes de capturar:** aguarde os quatro previews começarem; não deixe card preto ou poster ainda carregando.
+## 4. Estado externo e histórico
 
-### Captura 2 — escolha e custo antes de gerar
-
-- **URL exata:** `https://www.usekineo.com/studio?engine=seedance&utm_source=taaft&utm_medium=referral`
-- **Arquivo sugerido:** `kineo-taaft-02-engine-cost.png`
-- **Precisa estar visível:** seletor com `Seedance 1.5`, duração de 35s e botão `Generate · 20 cr →`. O saldo pode aparecer, mas nenhum e-mail, roteiro privado ou nome de conta pode entrar no enquadramento.
-- **Antes de capturar:** use uma conta já existente e um texto neutro curto. **Não clique em Generate**; a captura não deve gastar crédito.
-
-### Captura 3 — o resultado é baixável
-
-- **URL exata:** `https://www.usekineo.com/history`
-- **Arquivo sugerido:** `kineo-taaft-03-download-result.png`
-- **Precisa estar visível:** modal de um filme concluído do próprio fundador, player vertical e botão de download (`Download clean MP4` ou o rótulo verdadeiro do asset). Corte qualquer nome, e-mail ou roteiro sensível.
-- **Antes de capturar:** abra um filme concluído já existente; não gere um novo e não torne o vídeo público.
-
-## 4. Ordem de colagem no painel
-
-1. Abra a ficha e escolha `AI Options → Claim AI` caso os controles do dono ainda estejam bloqueados.
-2. Substitua tagline, descrições e pricing pelo bloco acima; remova qualquer ocorrência de `Five engines`, `40 credits`, `50 credits`, a oferta de um dolar (trial pago), `80 credits`, `$14`, `$29`, `$59`, `$11.90`, `$24.90` ou `$37.90`.
-3. Confirme que a URL final aponta para `www.usekineo.com` e preserva `utm_source=taaft`.
-4. Faça upload das três imagens na ordem 1 → 2 → 3.
-5. Visualize a ficha antes de salvar. Se o TAAFT cortar texto, use a short description sem resumir números por conta própria.
+| Superfície | Classificação e estado em 16/09/2026 | Ação |
+|---|---|---|
+| Este pacote de comunicação | SUGESTÃO — LOCAL, atualizado para TRIAL10 | Fonte atual de copy; valores conferidos pelo teste do pacote |
+| Descrição pública TAAFT | EVIDÊNCIA DE PRODUÇÃO — atualização relatada pelo fundador; validação independente DESCONHECIDA | Não repetir submissão; não contornar bloqueio de leitura |
+| Release TAAFT v3.3.3 | EVIDÊNCIA DE PRODUÇÃO — histórico imutável informado pelo fundador | Preservar a oferta da época; não criar release paga |
+| Modelos, USP e galeria externos | QUESTÃO PENDENTE / DESCONHECIDO — sem leitura atual independente | Não afirmar que estão todos corrigidos |
 
 ## 5. Como medir
 
-- **Curto prazo:** pessoas externas com origem TAAFT que chegam à home, geram o roteiro gratuito, cadastram e concluem o primeiro filme.
-- **Médio prazo:** pessoas TAAFT com filme que avançam a `checkout_started` e `checkout_success_viewed`.
-- **Placar final:** assinatura real e receita; impressão, visita, cadastro, filme e checkout não são venda.
-- **Gate de parada:** se a ficha atualizada trouxer visitantes mas não produzir primeiro filme, não comprar destaque; corrigir o gargalo de entrega. Se produzir filme e continuar em 0 pagamento com amostra madura, a restrição é conversão/oferta, não texto da ficha.
+**SUGESTÃO:** reutilizar atribuição e eventos canônicos por pessoa externa: chegada TAAFT → cadastro → filme → checkout → pagamento confirmado. `checkout_success_viewed` é um sinal de navegação, não prova financeira.
 
-## ✅ O QUE VOCÊ PRECISA FAZER
+**SUGESTÃO:** separar a coorte de novos cadastros após TRIAL10 da exposição anterior a TAAFT e ao experimento premium; sem controle não atribuir causalidade à copy. O placar final é novos compradores e dinheiro recebido, excluindo testes, contas internas e duplicação de transações.
 
-Colar o bloco da seção 2 e capturar/subir as três telas da seção 3. Esta tarefa não acessou o painel nem enviou a atualização.
+**Gate de parada — SUGESTÃO:** oferta incoerente requer correção; ausência de pagamento numa amostra pequena é inconclusiva. Pacote LOCAL e visita não contam como venda. Não comprar destaque nem reiniciar campanha por esta revisão.
 
