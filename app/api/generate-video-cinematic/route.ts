@@ -247,6 +247,14 @@ const KLING_MODEL = 'fal-ai/kling-video/v2.5-turbo/pro/text-to-video'
 // in ALLOWED_MODELS in app/api/cinematic-clip-status/route.ts (that file is
 // outside this change's edit scope — see the PR notes / report).
 const KLING_I2V_MODEL = 'fal-ai/kling-video/v2.5-turbo/pro/image-to-video'
+// KINEO-ANCORA-3-MOTORES-2026-09-16 — ordem do fundador ("vai nos dois") depois de VALIDAR o Kling 2.5 com âncora (8fb284ac):
+// a mesma imagem-âncora por cena vai para Seedance 1.5 e Veo 3.1. Schemas lidos em fal.ai/models/…/api em 16/09:
+//   seedance v1.5 pro image-to-video: prompt* image_url* aspect_ratio(enum, default 16:9 → mandar 9:16) resolution(480p|720p|1080p)
+//   duration(enum 4..12) generate_audio(default TRUE → false explícito) seed.
+//   veo3.1/fast image-to-video: prompt* image_url*(≥720p, 9:16) aspect_ratio(auto|16:9|9:16) duration('4s'|'6s'|'8s')
+//   resolution(720p|1080p|4k) generate_audio(default TRUE → false) negative_prompt seed safety_tolerance.
+const SEEDANCE_I2V_MODEL = 'fal-ai/bytedance/seedance/v1.5/pro/image-to-video'
+const VEO_I2V_MODEL = 'fal-ai/veo3.1/fast/image-to-video'
 // Push #489 — Veo 3.1 Fast: Google's cinematic text-to-video on fal. 9:16, 8s,
 // audio off; identical { video: { url } } output, same fal.queue submit/poll.
 const VEO_MODEL = 'fal-ai/veo3.1/fast'
@@ -640,6 +648,30 @@ function buildFalInput(
   // branch above). negative_prompt/cfg_scale mirror the Kling t2v branch so the
   // faceless brand carries over; the shared seed keeps retries stable. Only sent
   // for this model → every other (existing) call stays byte-identical.
+  if (model === SEEDANCE_I2V_MODEL) {
+    return {
+      image_url: imageUrl,
+      prompt,
+      aspect_ratio: frame.falAspectRatio, // schema: default 16:9 — o still é 9:16, o pedido também
+      resolution: process.env.KINEO_SEEDANCE_RESOLUTION || '720p',
+      duration: String(Math.max(4, Math.min(12, Math.round(typeof seconds === 'number' && seconds > 0 ? seconds : 10)))),
+      generate_audio: false,
+      ...(typeof seed === 'number' ? { seed } : {}),
+    }
+  }
+  if (model === VEO_I2V_MODEL) {
+    return {
+      image_url: imageUrl,
+      prompt,
+      aspect_ratio: frame.falAspectRatio, // schema: default 'auto'
+      duration: '8s',
+      resolution: '1080p',
+      generate_audio: false,
+      safety_tolerance: '5',
+      negative_prompt: classicVisualNegativePrompt(visualMode, stylized === true),
+      ...(typeof seed === 'number' ? { seed } : {}),
+    }
+  }
   if (model === KLING_I2V_MODEL) {
     return {
       image_url: imageUrl,
@@ -5328,7 +5360,10 @@ async function manipularPost(req: NextRequest) {
     // FAIL-OPEN: generateCinematicSceneStill returns null on any failure → that
     // scene is submitted as t2v. A still is disposable and is never re-POSTed, so
     // it cannot create a duplicate billable CLIP.
-    const anchorActive = wantsKling && CINEMATIC_ANCHOR_ENABLED
+    // KINEO-ANCORA-3-MOTORES-2026-09-16: Kling 2.5 (validado 16/09), Seedance 1.5 e Veo 3.1; Sora fica em t2v (sem i2v conferido).
+    const anchorEngine: 'kling' | 'veo' | 'seedance' | null = wantsKling ? 'kling' : wantsVeo ? 'veo' : wantsSora ? null : 'seedance'
+    const anchorI2vModel = anchorEngine === 'kling' ? KLING_I2V_MODEL : anchorEngine === 'veo' ? VEO_I2V_MODEL : SEEDANCE_I2V_MODEL
+    const anchorActive = anchorEngine !== null && CINEMATIC_ANCHOR_ENABLED
     const sceneStills: (string | null)[] = new Array(scenes.length).fill(null)
     if (anchorActive) {
       // FLUX stills are paid Fal work: once we start them, an unexpected throw
@@ -5368,9 +5403,9 @@ async function manipularPost(req: NextRequest) {
       // (ANCHORS_USD per generated still).
       const extraFluxUsd = stillsMade * ANCHORS_USD
       console.log(
-        `[cinematic-anchor] gen=${generationId} engine=kling stills_ready=${stillsMade}/${scenes.length} ` +
-          `anchored_scenes=${anchorCount} i2v_model=${KLING_I2V_MODEL} ` +
-          `extra_flux_usd=${extraFluxUsd.toFixed(2)} (user credits unchanged: kling=${KLING_CREDIT_COST}cr)`,
+        `[cinematic-anchor] gen=${generationId} engine=${anchorEngine} stills_ready=${stillsMade}/${scenes.length} ` +
+          `anchored_scenes=${anchorCount} i2v_model=${anchorI2vModel} ` +
+          `extra_flux_usd=${extraFluxUsd.toFixed(2)} (user credits unchanged; kling=${KLING_CREDIT_COST}cr)`,
       )
     }
 
@@ -5413,7 +5448,7 @@ async function manipularPost(req: NextRequest) {
       // retry-after), e a ordem dos modelos e i2v -> t2v como TENTATIVA DE
       // OUTRO MODELO, nunca retry escondido.
       const modelos = imageUrl
-        ? [model === KLING_MODEL ? KLING_I2V_MODEL : model, model]
+        ? [model === KLING_MODEL ? KLING_I2V_MODEL : model === SEEDANCE_MODEL ? SEEDANCE_I2V_MODEL : model === VEO_MODEL ? VEO_I2V_MODEL : model, model] // KINEO-ANCORA-3-MOTORES: i2v primeiro, t2v como outro modelo
         : [model]
       const safeVisualPrompt = buildContextualSafeVisualPrompt(
         sanitizeRealPeople(scene.aiPrompt || scene.stockSearchQuery || scene.description),

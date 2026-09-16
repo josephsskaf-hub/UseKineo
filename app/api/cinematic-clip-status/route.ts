@@ -41,6 +41,9 @@ const HOST_PRESENTER_MODEL = 'fal-ai/kling-video/ai-avatar/v2/standard'
 // kling scene is anchored its per-scene model is this i2v id, which the signed
 // claim records and this poller must accept or anchored generations 503 here.
 const KLING_I2V_MODEL = 'fal-ai/kling-video/v2.5-turbo/pro/image-to-video'
+// KINEO-ANCORA-3-MOTORES-2026-09-16 — espelho da rota cinematic: Seedance 1.5 e Veo 3.1 também vão em i2v com âncora.
+const SEEDANCE_I2V_MODEL = 'fal-ai/bytedance/seedance/v1.5/pro/image-to-video'
+const VEO_I2V_MODEL = 'fal-ai/veo3.1/fast/image-to-video'
 // ⚠️ KINEO-H3-POLLER-2026-08-20 — O SEXTO VALOR CRAVADO QUE O H3 EXPÔS.
 // Este poller mantém a PRÓPRIA lista de modelos, e o H3 não estava nela:
 // todas as 9 cenas do primeiro render válido (fundador, 05:59) subiram pra
@@ -70,6 +73,8 @@ const ALLOWED_MODELS = new Set([
   KLING3_MODEL,
   KLING3_I2V_MODEL,
   KLING_I2V_MODEL,
+  SEEDANCE_I2V_MODEL, // KINEO-ANCORA-3-MOTORES-2026-09-16
+  VEO_I2V_MODEL, // KINEO-ANCORA-3-MOTORES-2026-09-16
   HOST_PRESENTER_MODEL,
   S25_I2V_MODEL, // KINEO-S25-STATUS-2026-09-15
   S25_T2V_MODEL,

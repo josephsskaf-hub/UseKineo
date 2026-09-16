@@ -57,7 +57,7 @@ const routerNames = ['HOLLYWOOD_MODELS', 'KLING3_I2V_MODEL', 'H3_MODELS', 'H3_I2
   'CONTEMPORARY_FIGURE_RE', 'HISTORICAL_FIGURE_RE', 'HISTORICAL_TITLE_NAME_RE']
 const providerConstants = execute(routerNames.map(n => varSource(router, n)).join('\n') + '\n' +
   functionSource(router, 'sanitizeRealPeople') + `\nObject.assign(exports, { ${routerNames.join(', ')} });`)
-const modelNames = ['SEEDANCE_MODEL', 'KLING_MODEL', 'KLING_I2V_MODEL', 'VEO_MODEL', 'SORA_MODEL', 'KLING3_MODEL']
+const modelNames = ['SEEDANCE_MODEL', 'KLING_MODEL', 'KLING_I2V_MODEL', 'SEEDANCE_I2V_MODEL', 'VEO_I2V_MODEL', 'VEO_MODEL', 'SORA_MODEL', 'KLING3_MODEL'] // KINEO-ANCORA-3-MOTORES (16/09)
 const routeHelpers = execute(modelNames.map(n => varSource(route, n)).join('\n') + '\n' +
   functionSource(route, 'buildFalInput') + `\nObject.assign(exports, { buildFalInput, ${modelNames.join(', ')} });`,
   { ...providerConstants, ...aspect, ...policy })
@@ -119,7 +119,7 @@ async function run({ look = 'photoreal', mode = 'character_story', frame = '16:9
     scenes, classicVisualPolicy: { mode, style: anchor, character: mode === 'documentary_faceless' ? null : 'Mira, a young woman', aspect: frame },
     classicVisualMode: mode, storyCharacter: mode === 'documentary_faceless' ? null : 'Mira, a young woman', styleAnchor: anchor,
     eraSuffix, aspectRequested: frame,
-    wantsKling: anchored, CINEMATIC_ANCHOR_ENABLED: anchored, generationId: 'offline-generation', generationSeed: 17,
+    wantsKling: anchored, wantsVeo: false, wantsSora: false, CINEMATIC_ANCHOR_ENABLED: anchored, generationId: 'offline-generation', generationSeed: 17, // KINEO-ANCORA-3-MOTORES: a âncora vale para os três clássicos; o interruptor decide
     hd: false, KLING_CREDIT_COST: 50, ANCHORS_USD: anchors.ANCHORS_USD, providerSubmissionMayExist: false,
     generateCinematicSceneStill: anchors.generateCinematicSceneStill, FalQueueSubmitError: FakeSubmitError,
     ctxDespacho: () => context,

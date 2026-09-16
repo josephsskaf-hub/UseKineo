@@ -40,7 +40,7 @@ checa('só contas do fundador', L.isDryRunAccount('JosephsSkaf@gmail.com') && !L
 console.log('== a rota cinematic (clássicos) ==')
 const cin = rd('app/api/generate-video-cinematic/route.ts')
 const iHook = cin.indexOf("if (body.dry_run === true && isDryRunAccount(user.email)) {")
-const iAnchor = cin.indexOf('const anchorActive = wantsKling && CINEMATIC_ANCHOR_ENABLED')
+const iAnchor = cin.indexOf('const anchorActive = anchorEngine !== null && CINEMATIC_ANCHOR_ENABLED') // KINEO-ANCORA-3-MOTORES (16/09)
 const iSubmit = cin.indexOf('const submitScene = async (')
 const iPrompts = cin.indexOf('const classicScenePrompts = scenes.map(')
 checa('gancho existe, depois dos prompts corrigidos pelo contrato e ANTES das stills pagas e dos POSTs de cena', iHook > 0 && iPrompts > 0 && iPrompts < iHook && iHook < iAnchor && iAnchor < iSubmit)
