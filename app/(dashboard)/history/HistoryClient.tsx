@@ -75,17 +75,29 @@ interface Video {
 // (Download), as secundárias como chip ícone-sobre-nome numa linha (HD, 4K, Share, YouTube, Title), cada uma com
 // tooltip, e o motor no selo da linha de cima. Nada de ícone sem nome. Cor por semântica: azul = baixar/compartilhar,
 // verde = pronto, roxo = 4K, vermelho = YouTube, cinza = privado.
+// KINEO-CARD-SOFISTICADO-2026-09-16 — 2ª rodada (fundador: "botões maiores e mais sofisticados"): cards de 210 px,
+// primária de 42 px com ícone SVG, chips de 38 px em duas colunas com ícone SVG + nome, vidro escuro com borda fina,
+// brilho no hover (classe .kc-btn). Emoji fora: ícone é traço, não figurinha.
 function chipStyle(cor: string, ativo: boolean, cursor: string = 'pointer') {
   return {
-    display: 'flex', flexDirection: 'column' as const, alignItems: 'center', justifyContent: 'center', gap: 3,
-    padding: '6px 2px 5px', borderRadius: 8, minWidth: 0,
-    background: ativo ? `${cor}26` : 'rgba(255,255,255,0.035)',
-    border: `1px solid ${ativo ? cor + '80' : 'rgba(255,255,255,0.09)'}`,
-    color: cor, fontSize: '0.5rem', fontWeight: 800, letterSpacing: '0.02em', textTransform: 'uppercase' as const,
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, minWidth: 0, minHeight: 38,
+    padding: '0 8px', borderRadius: 10,
+    background: ativo ? `linear-gradient(180deg, ${cor}36 0%, ${cor}1c 100%)` : 'linear-gradient(180deg, rgba(255,255,255,0.065) 0%, rgba(255,255,255,0.025) 100%)',
+    border: `1px solid ${ativo ? cor + '8c' : 'rgba(255,255,255,0.13)'}`,
+    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.07)',
+    color: ativo ? cor : 'rgba(255,255,255,0.88)', fontSize: '0.66rem', fontWeight: 700, letterSpacing: '0.01em',
     lineHeight: 1.1, cursor, textDecoration: 'none', whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
   }
 }
-const CHIP_ICON = { fontSize: '0.95rem', lineHeight: 1 } as const
+const ICO = { width: 15, height: 15, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2.2, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
+const IcoDown = () => (<svg {...ICO} width={17} height={17}><path d="M12 3v12" /><path d="m7 10 5 5 5-5" /><path d="M4 21h16" /></svg>)
+const IcoSpark = () => (<svg {...ICO}><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" /><path d="M19 16l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z" /></svg>)
+const IcoCheck = () => (<svg {...ICO}><path d="m5 12 4.5 4.5L19 7" /></svg>)
+const Ico4K = () => (<svg {...ICO} strokeWidth={1.8}><rect x="3" y="5" width="18" height="14" rx="3" /><path d="M8 9v6M6 13h4M14 9v6M17 9l-3 3 3 3" /></svg>)
+const IcoLock = () => (<svg {...ICO}><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>)
+const IcoLink = () => (<svg {...ICO}><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1" /><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1" /></svg>)
+const IcoPlay = () => (<svg {...ICO} fill="currentColor" stroke="none"><path d="M7 4.5v15l12-7.5z" /></svg>)
+const IcoList = () => (<svg {...ICO}><path d="M8 6h13M8 12h13M8 18h13" /><path d="M3 6h.01M3 12h.01M3 18h.01" /></svg>)
 
 function isWatermarkedFastAsset(video: Video): boolean {
   return video.quality_mode === 'fast' && Number(video.credits_used ?? 0) === 0
@@ -1325,7 +1337,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(158px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', // KINEO-CARD-SOFISTICADO: 158 → 210 px
           gap: '12px',
         }}
       >
@@ -1605,51 +1617,56 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                   )}
                 </div>
 
-                {/* Action buttons — KINEO-CARD-BONITO-2026-09-16 (ver chipStyle): primária cheia + 5 chips com nome */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: 3 }}>
+                {/* Action buttons — KINEO-CARD-SOFISTICADO-2026-09-16 (ver chipStyle): primária cheia + chips em duas colunas */}
+                <style>{'.kc-btn{transition:transform .12s ease,box-shadow .12s ease,filter .12s ease}.kc-btn:hover{transform:translateY(-1px);filter:brightness(1.14)}.kc-btn:active{transform:translateY(0);filter:brightness(.96)}.kc-primary:hover{box-shadow:0 10px 26px rgba(41,151,255,.42),inset 0 1px 0 rgba(255,255,255,.22)!important}'}</style>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6 }}>
                   <button
+                    className="kc-btn kc-primary"
                     onClick={() => handleDownload(video)}
                     disabled={downloadingId === video.id}
                     title={isWatermarkedFastAsset(video) ? 'Download MP4 with Kineo watermark' : 'Download saved MP4'}
                     aria-label={isWatermarkedFastAsset(video) ? 'Download MP4 with Kineo watermark' : 'Download saved MP4'}
                     style={{
                       gridColumn: '1 / -1',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                      padding: '8px 6px', borderRadius: 8,
-                      background: 'linear-gradient(180deg, #3aa6ff 0%, #2997ff 100%)',
-                      border: '1px solid rgba(41,151,255,0.65)',
-                      boxShadow: '0 4px 14px rgba(41,151,255,0.28), inset 0 1px 0 rgba(255,255,255,0.18)',
-                      color: '#fff', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.01em',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                      minHeight: 42, padding: '0 10px', borderRadius: 11,
+                      background: 'linear-gradient(180deg, #3fa9ff 0%, #2997ff 55%, #1f86ea 100%)',
+                      border: '1px solid rgba(120,190,255,0.7)',
+                      boxShadow: '0 6px 18px rgba(41,151,255,0.32), inset 0 1px 0 rgba(255,255,255,0.22)',
+                      color: '#fff', fontSize: '0.76rem', fontWeight: 800, letterSpacing: '0.01em',
                       cursor: downloadingId === video.id ? 'wait' : 'pointer',
                     }}
                   >
-                    {downloadingId === video.id ? 'Preparing…' : isWatermarkedFastAsset(video) ? '⬇ Download · watermark' : '⬇ Download MP4'}
+                    <IcoDown />
+                    <span>{downloadingId === video.id ? 'Preparing…' : isWatermarkedFastAsset(video) ? 'Download · watermark' : 'Download MP4'}</span>
                   </button>
                   {/* KINEO-ENHANCE-2026-08-17 — Topaz film polish, 10 cr */}
                   <button
+                    className="kc-btn"
                     onClick={() => handleEnhance(video)}
                     disabled={enhStatus[video.id] === 'processing'}
                     title="Enhance — Topaz film polish (sharper, cleaner, film grain) · 10 credits"
                     aria-label="Enhance video · 10 credits"
-                    style={{ ...chipStyle(enhStatus[video.id] === 'done' ? '#34d399' : '#5cb3ff', enhStatus[video.id] === 'done', enhStatus[video.id] === 'processing' ? 'wait' : 'pointer'), gridColumn: 'span 2' }}
+                    style={chipStyle(enhStatus[video.id] === 'done' ? '#34d399' : '#5cb3ff', enhStatus[video.id] === 'done', enhStatus[video.id] === 'processing' ? 'wait' : 'pointer')}
                   >
-                    <span style={CHIP_ICON}>{enhStatus[video.id] === 'done' ? '✅' : '✨'}</span>
-                    <span>{enhStatus[video.id] === 'processing' ? 'HD…' : enhStatus[video.id] === 'done' ? 'HD ✓' : 'HD · 10'}</span>
+                    <span style={{ color: enhStatus[video.id] === 'done' ? '#34d399' : '#5cb3ff', display: 'flex' }}>{enhStatus[video.id] === 'done' ? <IcoCheck /> : <IcoSpark />}</span>
+                    <span>{enhStatus[video.id] === 'processing' ? 'HD…' : enhStatus[video.id] === 'done' ? 'HD ready' : 'HD · 10 cr'}</span>
                   </button>
                   {/* KINEO-4K-2026-08-18 — Export 4K (Topaz 2x) antes do 1º enhance */}
                   {!enhStatus[video.id] ? (
                     <button
+                      className="kc-btn"
                       onClick={() => handleEnhance(video, '4k')}
                       title="Export in 4K — Topaz 2x upscale (2160×3840) · 40 credits"
                       aria-label="Export 4K · 40 credits"
-                      style={{ ...chipStyle('#c084fc', false), gridColumn: 'span 2' }}
+                      style={chipStyle('#c084fc', false)}
                     >
-                      <span style={CHIP_ICON}>🎞️</span>
-                      <span>4K · 40</span>
+                      <span style={{ color: '#c084fc', display: 'flex' }}><Ico4K /></span>
+                      <span>4K · 40 cr</span>
                     </button>
                   ) : (
-                    <span title="4K export is available before the HD polish" style={{ ...chipStyle('#6b7280', false, 'default'), gridColumn: 'span 2' }}>
-                      <span style={CHIP_ICON}>🎞️</span>
+                    <span title="4K export is available before the HD polish" style={chipStyle('#6b7280', false, 'default')}>
+                      <span style={{ color: '#6b7280', display: 'flex' }}><Ico4K /></span>
                       <span>4K</span>
                     </span>
                   )}
@@ -1657,20 +1674,21 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                   {/* #459 — share the public /v/[id] page */}
                   {PUBLIC_VIDEO_SHARING_ENABLED ? (
                     <button
+                      className="kc-btn"
                       onClick={() => handleShare(video)}
                       title="Copy the public link"
                       aria-label="Copy the public link"
-                      style={{ ...chipStyle('#5cb3ff', sharedId === video.id), gridColumn: 'span 2' }}
+                      style={chipStyle('#5cb3ff', sharedId === video.id)}
                     >
-                      <span style={CHIP_ICON}>🔗</span>
-                      <span>{sharedId === video.id ? 'Copied' : 'Share'}</span>
+                      <span style={{ color: '#5cb3ff', display: 'flex' }}><IcoLink /></span>
+                      <span>{sharedId === video.id ? 'Link copied' : 'Share link'}</span>
                     </button>
                   ) : (
                     <span
                       title="Public links are paused; download the MP4 to share directly"
-                      style={{ ...chipStyle('#9ca3af', false, 'default'), gridColumn: 'span 2' }}
+                      style={chipStyle('#9ca3af', false, 'default')}
                     >
-                      <span style={CHIP_ICON}>🔒</span>
+                      <span style={{ color: '#9ca3af', display: 'flex' }}><IcoLock /></span>
                       <span><UiLabel>
                         Private
                       </UiLabel></span>
@@ -1678,14 +1696,15 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                   )}
 
                   <a
+                    className="kc-btn"
                     href="https://studio.youtube.com"
                     target="_blank"
                     rel="noopener noreferrer"
                     title="Open YouTube Studio to upload this Short"
                     aria-label="Open YouTube Studio"
-                    style={{ ...chipStyle('#f87171', false), gridColumn: 'span 3' }}
+                    style={chipStyle('#f87171', false)}
                   >
-                    <span style={CHIP_ICON}>▶</span>
+                    <span style={{ color: '#f87171', display: 'flex' }}><IcoPlay /></span>
                     <span><UiLabel>
                       YouTube
                     </UiLabel></span>
@@ -1693,14 +1712,15 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
 
                   {/* Push #421 — YouTube summary (title + description + hashtags) */}
                   <button
+                    className="kc-btn"
                     onClick={() => handleSummary(video)}
                     disabled={summaryLoading === video.id}
                     title="YouTube title, description & hashtags"
                     aria-label="YouTube title, description & hashtags"
-                    style={{ ...chipStyle('#5cb3ff', isExpanded, summaryLoading === video.id ? 'wait' : 'pointer'), gridColumn: 'span 3' }}
+                    style={{ ...chipStyle('#5cb3ff', isExpanded, summaryLoading === video.id ? 'wait' : 'pointer'), gridColumn: '1 / -1' }}
                   >
-                    <span style={CHIP_ICON}>📋</span>
-                    <span>{summaryLoading === video.id ? '…' : 'Title & tags'}</span>
+                    <span style={{ color: '#5cb3ff', display: 'flex' }}><IcoList /></span>
+                    <span>{summaryLoading === video.id ? 'Writing…' : 'Title, description & hashtags'}</span>
                   </button>
                 </div>
 
