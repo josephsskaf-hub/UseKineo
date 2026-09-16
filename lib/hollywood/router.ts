@@ -493,6 +493,8 @@ export async function planHollywoodScenes(args: {
   aspect?: string | null
   /** KINEO-FICHA-DO-PEDIDO-2026-09-15 — ficha explícita do protagonista, nas palavras do pedido (deriveExplicitCharacter). */
   characterHint?: string | null
+  /** KINEO-TERCEIRA-PESSOA-2026-09-15 — interno: já replanejou uma vez por narração em primeira pessoa. */
+  personRetry?: boolean
 }): Promise<HollywoodPlan> {
   const { idea, voiceoverScript, scenes, durationSeconds, language } = args
   // KINEO-MULTIFORMATO-2026-09-02 — o enquadramento entra no PROMPT do
@@ -944,6 +946,16 @@ Target total duration: ${Math.max(30, Math.min(100, Math.round(durationSeconds |
   const estimatedCostUsd =
     Math.round(outScenes.reduce((s, sc) => s + sc.seconds * HOLLYWOOD_USD_PER_SECOND[sc.type], 0) * 100) / 100
 
+  // KINEO-TERCEIRA-PESSOA-2026-09-15 — ensaio do Omni (deploy 6ccd0fb4): "I traverse…", "I follow my grandfather's map" num
+  // pedido que diz "third-person voiceover". Com ≥ 2 falas em primeira pessoa e o pedido exigindo terceira, UM replan com o
+  // motivo explícito (o mesmo canal do replan de duração). Sem o pedido exigir, nada muda.
+  if (!args.personRetry && /\bthird[- ]person\b/i.test(String(idea ?? ''))) {
+    const emPrimeira = outScenes.filter((sc) => typeof sc.voiceover === 'string' && /\b(?:I|I'm|I've|I'd|I'll|my|me|we|our|us)\b/.test(sc.voiceover)).length
+    if (emPrimeira >= 2) {
+      console.warn(`[hollywood-planner] KINEO-TERCEIRA-PESSOA: ${emPrimeira} fala(s) em primeira pessoa num pedido de terceira — replanejando uma vez`)
+      return planHollywoodScenes({ ...args, personRetry: true, shortRetryFeedback: 'Your narration lines were written in FIRST person ("I", "my", "we"). The input demands THIRD-person narration ABOUT the character: rewrite every voiceover in third person (she/he/the character by role), never "I", "my" or "we".' })
+    }
+  }
   return {
     hostFits,
     genre,

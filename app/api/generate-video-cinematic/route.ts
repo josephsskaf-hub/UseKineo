@@ -3933,9 +3933,29 @@ async function manipularPost(req: NextRequest) {
                 })
                 .filter((pd) => pd.addWords >= 3)
               if (pedidos.length > 0) {
-                const continuacoes = await appendNarrationToTargets(pedidos.map((pd) => ({ text: lineOf(pd.x.sc), addWords: pd.addWords, maxWords: pd.maxWords })), hollywoodLanguage, prompt.slice(0, 300))
+                // KINEO-SOBRA-CURTA-REESCREVE-2026-09-15 — ensaios do Omni (deploys 0833bdd2/6ccd0fb4): cenas de 10 s com 18 palavras
+                // (teto 22) pediam +4 e toda continuação (uma frase = 8-13 palavras) era recusada — "+0 palavras em 4 cenas", filme
+                // barrado. Com menos de 6 palavras de sobra não cabe frase nova: a linha é REESCRITA ao alvo (mesmos fatos, mais
+                // palavras), pela mesma função do enche-silêncio; com sobra ≥ 6 continua o acréscimo (monotônico, base intacta).
+                const porReescrita = pedidos.filter((pd) => pd.maxWords - wordsOfLine(lineOf(pd.x.sc)) < 6)
+                const porAcrescimo = pedidos.filter((pd) => !porReescrita.includes(pd))
                 let acrescentadas = 0
-                pedidos.forEach((pd, k) => {
+                if (porReescrita.length > 0) {
+                  const alvos = porReescrita.map((pd) => ({ text: lineOf(pd.x.sc), targetWords: Math.min(pd.maxWords, wordsOfLine(lineOf(pd.x.sc)) + pd.addWords), maxWords: pd.maxWords }))
+                  const novas = await expandVoiceoversToTargets(alvos, hollywoodLanguage, prompt.slice(0, 300))
+                  porReescrita.forEach((pd, k) => {
+                    const nova = novas[k]
+                    const base = lineOf(pd.x.sc)
+                    const w = wordsOfLine(nova ?? '')
+                    if (!nova || nova === base || w <= wordsOfLine(base) || w > pd.maxWords) { console.warn(`[hollywood] KINEO-SOBRA-CURTA-REESCREVE: cena ${pd.x.sc.index} não cresceu (${wordsOfLine(base)} → ${w}, teto ${pd.maxWords})`); return }
+                    acrescentadas += w - wordsOfLine(base)
+                    pd.x.sc.voiceover = nova
+                    if (w / ritmoVoz + FOLGA_MIN_S > (pd.x.sc.seconds || 0)) pd.x.sc.seconds = Math.min(pd.x.teto, Math.ceil(w / ritmoVoz + FOLGA_MIN_S))
+                  })
+                  console.log(`[hollywood] KINEO-SOBRA-CURTA-REESCREVE: ${porReescrita.length} cena(s) reescritas ao alvo (+${acrescentadas} palavras até aqui)`)
+                }
+                const continuacoes = porAcrescimo.length > 0 ? await appendNarrationToTargets(porAcrescimo.map((pd) => ({ text: lineOf(pd.x.sc), addWords: pd.addWords, maxWords: pd.maxWords })), hollywoodLanguage, prompt.slice(0, 300)) : []
+                porAcrescimo.forEach((pd, k) => {
                   const nova = continuacoes[k]
                   const base = lineOf(pd.x.sc)
                   if (!nova || nova === base || !nova.startsWith(base.trim().replace(/[.!?…]$/, ''))) return

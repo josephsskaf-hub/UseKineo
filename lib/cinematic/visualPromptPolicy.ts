@@ -68,7 +68,9 @@ const SETTING_ALLOW = new Set(['earth', 'moon', 'sun', 'god', 'internet', 'chris
 // "Tomás" era lido como "Tom"+"ás", "tom" não estava nas palavras da história
 // ("tomás" está) e o nome saía cortado. Classes Unicode (\p{Lu}/\p{Ll}) e
 // fronteiras por lookaround: nome acentuado é UMA palavra.
-const SETTING_PROPER_RUN_RE = /(?<![\p{L}\p{N}])\p{Lu}\p{Ll}{2,}(?:['’]s)?(?:-\p{Ll}+)?(?: \p{Lu}\p{Ll}{2,}(?:['’]s)?(?:-\p{Ll}+)?)*(?: \d{2,4}(?![\p{L}\p{N}]))?/gu
+// KINEO-PARTICULA-NO-NOME-2026-09-15 — ensaio do Omni: "Bolivia's Salar de Uyuni" saía como "Salar" + "Uyuni" e sobrava "In the heart of de,".
+// Partícula minúscula entre palavras capitalizadas (de/da/do/del/della/di/von/van/der/la/le/el/al/y/e) faz parte do nome.
+const SETTING_PROPER_RUN_RE = /(?<![\p{L}\p{N}])\p{Lu}\p{Ll}{2,}(?:['’]s)?(?:-\p{Ll}+)?(?: (?:(?:de|da|do|dos|das|del|della|di|von|van|der|den|la|le|el|al|y|e) )?\p{Lu}\p{Ll}{2,}(?:['’]s)?(?:-\p{Ll}+)?)*(?: \d{2,4}(?![\p{L}\p{N}]))?/gu
 const SETTING_YEAR_RE = /(?:\b(?:1[0-9]{3}|20[0-9]{2})s?\b|(?:^|\s)['’]?[1-9]0s\b)/g
 const SETTING_ERA_ADJ_RE = /\b(victorian|edwardian|georgian|medieval|ancient|renaissance|colonial|napoleonic|vintage|retro|antique|old[- ]fashioned)(?:-era)?\b/gi
 

@@ -672,3 +672,9 @@ Ensaio de $0 do Omni (cartógrafa) no deploy 0833bdd2: `character_sheet` = "A yo
 2. O contexto da varredura de datas incluía o brief escrito pela IA (`hollywoodVoiceover` no modo IA), que já trazia "In 2023" — a data inventada contava como "do pedido". Contexto = só o pedido (no verbatim o pedido É o texto). Idem no planejador.
 3. Lugar/nome inventado na fala ("Bolivia's Salar de Uyuni", ontem "Emily Carter") não era tratado: a varredura final aplica também `scrubInventedSetting` (o filtro que já protege os prompts de imagem do clássico) à fala do hollywood.
 Guardião: 61 verificações (todas as chamadas do planejador contadas; contexto = pedido; scrub na fala). tsc limpo.
+
+## QUALIDADE-COMPROVADA-R10 — ensaio do Omni no R9: ficha certa, mas fala em PRIMEIRA pessoa, "In the heart of de," e régua reprovando com "+0 palavras" de novo — três consertos (Claude, 15/09 ~22:35 BRT) — LOCAL
+
+Ensaio de $0 do Omni no deploy 6ccd0fb4: characterSheet = a do pedido ✓ (R9 fez efeito); "in 1942" removido ✓; MAS: (1) "I traverse…", "I follow my grandfather's map" num pedido de "third-person voiceover"; (2) "Bolivia's Salar de Uyuni" saiu como "Salar"+"Uyuni" e sobrou "In the heart of de,"; (3) `narration append: line 0-3 refused (26-34 > max 22)` — cenas de 10 s com 18 palavras (teto 22 a 2,37 pal/s) pediam +4 e nenhuma frase cabe em 4 palavras.
+Consertos: (1) planejador: pedido com "third-person" + ≥ 2 falas em primeira pessoa → UM replan com o motivo (KINEO-TERCEIRA-PESSOA); (2) partícula minúscula (de/da/del/von/van/la/…) faz parte do nome próprio no filtro de cenário; (3) rota: cena com < 6 palavras de sobra é REESCRITA ao alvo (expandVoiceoversToTargets, mesmos fatos, mais palavras) em vez de receber acréscimo (KINEO-SOBRA-CURTA-REESCREVE); as outras seguem por acréscimo.
+Guardião bloco (k) (64 verificações). tsc limpo. Ainda em aberto: estatística inventada ("10,582 square kilometers") só está coberta pela regra do prompt.
