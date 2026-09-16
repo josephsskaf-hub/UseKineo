@@ -2177,6 +2177,14 @@ export async function POST(req: NextRequest) {
       // 8.4s — zero rabo de silencio ("apagao" do fundador).
       const measured: Array<{ sceneIdx: number; url: string; dur: number; text: string; words?: WhisperWord[] }> = []
       for (const pending of pendingScenes) {
+        // KINEO-TTS-TENTA-DE-NOVO-2026-09-16 — render Omni e7918140 (16/09 04:35Z): 11 clipes pagos ao fal (~US$ 11,86) e a
+        // narração da cena 8 falhou UMA vez (TTS/upload transitório) → 422, 150 cr estornados, clipes perdidos. Um tropeço
+        // de rede não pode custar o filme: cada cena tenta a síntese até 3 vezes (0,8 s e 1,6 s de espera) antes da
+        // recusa honesta. O detalhe do erro do fornecedor continua fora do log (só o número da tentativa).
+        let tentativasCena = 0
+        let cenaFeita = false
+        while (!cenaFeita) {
+        tentativasCena++
         try {
           if (!hollywoodPinnedVoice) throw new Error('Narration voice unavailable')
           const buf = await synthesizeHostSpeech({
@@ -2201,12 +2209,19 @@ export async function POST(req: NextRequest) {
             text: pending.text,
             words,
           })
+          cenaFeita = true
         } catch {
-          console.warn('[compose] narration verification failed', { scene_index: pending.sceneIdx })
+          if (tentativasCena < 3) {
+            console.warn(`[compose] narration scene ${pending.sceneIdx} attempt ${tentativasCena} failed — retrying`)
+            await new Promise<void>((r) => (typeof setTimeout === 'function' ? setTimeout(r, 800 * tentativasCena) : r())) // guardião roda em vm sem timers
+            continue
+          }
+          console.warn('[compose] narration verification failed', { scene_index: pending.sceneIdx, attempts: tentativasCena })
           return rejectBeforeProviderSubmission(NextResponse.json({
             error: `Scene ${pending.sceneIdx + 1}'s narration could not be verified. Your generated clips are preserved; no replacement voice was added.`,
             code: 'cinematic_narration_unverified', recoverable: true,
           }, { status: 422 }))
+        }
         }
       }
       // ═══ KINEO-FALA-CABE-2026-09-15 — a fala que estourou o clipe POR POUCO cabe, nunca é recusada depois de paga ═══
