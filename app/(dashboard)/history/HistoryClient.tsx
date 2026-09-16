@@ -1606,7 +1606,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                 </div>
 
                 {/* Action buttons — KINEO-CARD-BONITO-2026-09-16 (ver chipStyle): primária cheia + 5 chips com nome */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 3 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: 3 }}>
                   <button
                     onClick={() => handleDownload(video)}
                     disabled={downloadingId === video.id}
@@ -1631,7 +1631,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                     disabled={enhStatus[video.id] === 'processing'}
                     title="Enhance — Topaz film polish (sharper, cleaner, film grain) · 10 credits"
                     aria-label="Enhance video · 10 credits"
-                    style={chipStyle(enhStatus[video.id] === 'done' ? '#34d399' : '#5cb3ff', enhStatus[video.id] === 'done', enhStatus[video.id] === 'processing' ? 'wait' : 'pointer')}
+                    style={{ ...chipStyle(enhStatus[video.id] === 'done' ? '#34d399' : '#5cb3ff', enhStatus[video.id] === 'done', enhStatus[video.id] === 'processing' ? 'wait' : 'pointer'), gridColumn: 'span 2' }}
                   >
                     <span style={CHIP_ICON}>{enhStatus[video.id] === 'done' ? '✅' : '✨'}</span>
                     <span>{enhStatus[video.id] === 'processing' ? 'HD…' : enhStatus[video.id] === 'done' ? 'HD ✓' : 'HD · 10'}</span>
@@ -1642,13 +1642,13 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                       onClick={() => handleEnhance(video, '4k')}
                       title="Export in 4K — Topaz 2x upscale (2160×3840) · 40 credits"
                       aria-label="Export 4K · 40 credits"
-                      style={chipStyle('#c084fc', false)}
+                      style={{ ...chipStyle('#c084fc', false), gridColumn: 'span 2' }}
                     >
                       <span style={CHIP_ICON}>🎞️</span>
                       <span>4K · 40</span>
                     </button>
                   ) : (
-                    <span title="4K export is available before the HD polish" style={chipStyle('#6b7280', false, 'default')}>
+                    <span title="4K export is available before the HD polish" style={{ ...chipStyle('#6b7280', false, 'default'), gridColumn: 'span 2' }}>
                       <span style={CHIP_ICON}>🎞️</span>
                       <span>4K</span>
                     </span>
@@ -1660,7 +1660,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                       onClick={() => handleShare(video)}
                       title="Copy the public link"
                       aria-label="Copy the public link"
-                      style={chipStyle('#5cb3ff', sharedId === video.id)}
+                      style={{ ...chipStyle('#5cb3ff', sharedId === video.id), gridColumn: 'span 2' }}
                     >
                       <span style={CHIP_ICON}>🔗</span>
                       <span>{sharedId === video.id ? 'Copied' : 'Share'}</span>
@@ -1668,7 +1668,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                   ) : (
                     <span
                       title="Public links are paused; download the MP4 to share directly"
-                      style={chipStyle('#9ca3af', false, 'default')}
+                      style={{ ...chipStyle('#9ca3af', false, 'default'), gridColumn: 'span 2' }}
                     >
                       <span style={CHIP_ICON}>🔒</span>
                       <span><UiLabel>
@@ -1683,7 +1683,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                     rel="noopener noreferrer"
                     title="Open YouTube Studio to upload this Short"
                     aria-label="Open YouTube Studio"
-                    style={chipStyle('#f87171', false)}
+                    style={{ ...chipStyle('#f87171', false), gridColumn: 'span 3' }}
                   >
                     <span style={CHIP_ICON}>▶</span>
                     <span><UiLabel>
@@ -1697,10 +1697,10 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                     disabled={summaryLoading === video.id}
                     title="YouTube title, description & hashtags"
                     aria-label="YouTube title, description & hashtags"
-                    style={chipStyle('#5cb3ff', isExpanded, summaryLoading === video.id ? 'wait' : 'pointer')}
+                    style={{ ...chipStyle('#5cb3ff', isExpanded, summaryLoading === video.id ? 'wait' : 'pointer'), gridColumn: 'span 3' }}
                   >
                     <span style={CHIP_ICON}>📋</span>
-                    <span>{summaryLoading === video.id ? '…' : 'Title'}</span>
+                    <span>{summaryLoading === video.id ? '…' : 'Title & tags'}</span>
                   </button>
                 </div>
 
