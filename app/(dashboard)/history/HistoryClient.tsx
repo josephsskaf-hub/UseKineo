@@ -9,6 +9,7 @@ import Link from 'next/link'
 import { trackCheckoutClick } from '@/lib/trackClick'
 import { trackClosedEvent, trackEvent } from '@/lib/analytics'
 import { downloadVideoFile } from '@/lib/videoDownload'
+import { engineLabelFor } from '@/lib/engineLabel' // KINEO-CARD-COM-MOTOR-2026-09-16
 import { fitLightboxFrame } from '@/lib/frameFit'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import { buildStudioSeriesReviewHref } from '@/lib/navigation/studioSeriesReview'
@@ -1579,13 +1580,16 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                         letterSpacing: '0.04em',
                       }}
                     >
-                      {video.quality_mode === 'cinematic' ? '✨ AI' : '⚡'}
+                      {/* KINEO-CARD-COM-MOTOR-2026-09-16 — pedido do fundador (16/09): "sempre tem que falar qual motor a pessoa usou".
+                          O /library e o /my-videos já usavam engineLabelFor; o card do /history (o "My Videos" do menu) mostrava
+                          só "✨ AI"/"⚡". Fonte única do selo: lib/engineLabel.ts. */}
+                      {engineLabelFor(video.quality_mode) ?? (video.quality_mode === 'cinematic' ? '✨ AI' : '⚡')}
                     </span>
                   )}
                 </div>
 
-                {/* Action buttons */}
-                <div style={{ display: 'flex', gap: 4 }}>
+                {/* Action buttons — KINEO-CARD-COM-NOME-2026-09-16: pedido do fundador, botão com nome, não só ícone; grade de 3 colunas */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 4 }}>
                   <button
                     onClick={() => handleDownload(video)}
                     disabled={downloadingId === video.id}
@@ -1607,7 +1611,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                       cursor: downloadingId === video.id ? 'wait' : 'pointer',
                     }}
                   >
-                    {downloadingId === video.id ? '…' : isWatermarkedFastAsset(video) ? '⬇ WM' : '⬇'}
+                    {downloadingId === video.id ? '…' : isWatermarkedFastAsset(video) ? '⬇ Download (WM)' : '⬇ Download'}
                   </button>
                   {/* KINEO-ENHANCE-2026-08-17 — Topaz film polish, 10 cr */}
                   <button
@@ -1631,7 +1635,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                       cursor: enhStatus[video.id] === 'processing' ? 'wait' : 'pointer',
                     }}
                   >
-                    {enhStatus[video.id] === 'processing' ? '✨…' : enhStatus[video.id] === 'done' ? '✨ HD ✓' : '✨ HD'}
+                    {enhStatus[video.id] === 'processing' ? '✨ HD…' : enhStatus[video.id] === 'done' ? '✨ HD ✓' : '✨ HD · 10 cr'}
                   </button>
                   {/* KINEO-4K-2026-08-18 — Export 4K (Topaz 2x) antes do 1º enhance */}
                   {!enhStatus[video.id] && (
@@ -1646,7 +1650,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                         color: '#c084fc', fontSize: '0.6rem', fontWeight: 700, cursor: 'pointer',
                       }}
                     >
-                      4K
+                      4K · 40 cr
                     </button>
                   )}
 
@@ -1671,7 +1675,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                         cursor: 'pointer',
                       }}
                     >
-                      {sharedId === video.id ? '✓ Copied' : '🔗 Copy'}
+                      {sharedId === video.id ? '✓ Link copied' : '🔗 Copy link'}
                     </button>
                   ) : (
                     <span
@@ -1682,7 +1686,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                         border: '1px solid var(--border)', color: 'var(--muted2)', fontSize: '0.6rem', fontWeight: 700,
                       }}
                     ><UiLabel>
-                      Private
+                      🔒 Private
                     </UiLabel></span>
                   )}
 
@@ -1706,7 +1710,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                       textDecoration: 'none',
                     }}
                   ><UiLabel>
-                    ▶ YT
+                    ▶ YouTube
                   </UiLabel></a>
 
                   {/* Push #421 — YouTube summary (title + description + hashtags) */}
@@ -1731,7 +1735,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                       cursor: summaryLoading === video.id ? 'wait' : 'pointer',
                     }}
                   >
-                    {summaryLoading === video.id ? '…' : '📋'}
+                    {summaryLoading === video.id ? '📋 …' : '📋 Title & tags'}
                   </button>
                 </div>
 
