@@ -68,7 +68,7 @@ type EngineKey = 'fast' | 'seedance' | 'kling' | 'veo' | 'hollywood' | 'h3' | 'o
 // precisam saber a quantidade de clips'): a ficha tecnica interna
 // (segundos por clipe) saiu da vitrine; todo entregavel final e 1080x1920
 // (verificado por ffprobe), entao a spec visivel e uma so: 1080p.
-const ENGINES: {
+const ENGINES: { paused?: boolean; /* KINEO-MOTOR-EM-MANUTENCAO-2026-09-15 */
   key: EngineKey
   /** KINEO-NOITE2-2026-08-17 (#4) — clipe de 8s no hover do picker. */
   preview?: string
@@ -99,7 +99,7 @@ const ENGINES: {
   // primeiro render de validação; vitrine com clipe de outro motor seria
   // quebrar o selo honesto). É o filme carro-chefe que CABE no plano: o
   // Creator (90cr) não fecha um Kling 3 de 150, e fecha DOIS H3 de 45.
-  { key: 'h3', icon: 'H3', name: 'MiniMax H3', tag: 'Fits your plan', desc: 'Cinematic film that fits your plan — 9-image consistency', res: '768p', credits: `${creditCostFor('cinematic_h3', true)} cr`, supportsRef: true },
+  { key: 'h3', paused: Boolean(enginePaused('h3')), icon: 'H3', name: 'MiniMax H3', tag: 'Fits your plan', desc: 'Cinematic film that fits your plan — 9-image consistency', res: '768p', credits: `${creditCostFor('cinematic_h3', true)} cr`, supportsRef: true },
   { key: 'kling', preview: '/previews/c4e4fbab-0978-4daa-9fcf-119096370210.mp4', icon: 'K', name: 'Kling 2.5', tag: 'Best value', desc: 'Cinematic motion and camera work', res: '720p', credits: `${creditCostFor('cinematic_kling', true)} cr`, supportsRef: false },
   { key: 'veo', preview: '/previews/9bbd5d98-33e5-423f-b9cb-82f7af6c67ba.mp4', icon: 'G', name: 'Veo 3.1', tag: 'Studio', desc: 'Google’s flagship cinematic engine', res: '720p', credits: `${creditCostFor('cinematic_veo', true)} cr`, supportsRef: false },
   { key: 'hollywood', preview: '/previews/4b12925e-16e6-4b56-af5a-7047f9ae7a28.mp4', icon: 'K3', name: 'Kling 3', tag: 'Studio', desc: 'Film scenes, native voice & lip sync', res: '720p', credits: `${creditCostFor('cinematic_hollywood', true)} cr`, supportsRef: true },
@@ -108,11 +108,11 @@ const ENGINES: {
   // claim '#1 ranked' tem fonte datada (docs/MOTOR-OMNI-FLASH-2026-08-25.md)
   // e sai do card se o ranking mudar. Sem preview ainda — entra depois do
   // render de validação (vitrine com clipe de outro motor quebraria o selo).
-  { key: 'omni', icon: 'OF', name: 'Omni Flash', tag: '#1 ranked', desc: 'Google’s Gemini Omni Flash — #1 video model, Aug 2026 arena', res: '720p', credits: `${creditCostFor('cinematic_omni', true)} cr`, supportsRef: true },
+  { key: 'omni', paused: Boolean(enginePaused('omni')), icon: 'OF', name: 'Omni Flash', tag: '#1 ranked', desc: 'Google’s Gemini Omni Flash — #1 video model, Aug 2026 arena', res: '720p', credits: `${creditCostFor('cinematic_omni', true)} cr`, supportsRef: true },
   // KINEO-S25-CARD-2026-09-01 — Seedance 2.5, visivel SO para contas internas
   // (flag `internal` do /api/me/credits) ate os 4 carimbos do canario. Nunca
   // mostrar botao que o publico nao pode apertar — a licao do Seedance 2.0.
-  { key: 's25', icon: 'S2', name: 'Seedance 2.5', tag: 'New', desc: 'ByteDance’s newest engine — 480p + HD Enhance master', res: '480p→HD', credits: `${creditCostFor('cinematic_s25', true)} cr`, supportsRef: true },
+  { key: 's25', paused: Boolean(enginePaused('s25')), icon: 'S2', name: 'Seedance 2.5', tag: 'New', desc: 'ByteDance’s newest engine — 480p + HD Enhance master', res: '480p→HD', credits: `${creditCostFor('cinematic_s25', true)} cr`, supportsRef: true },
 ]
 
 // KINEO-CEO-HOUR-2026-08-17 (#3) — 'Surprise me': mata a paralisia da pagina
@@ -262,7 +262,7 @@ export default function StudioClient() {
       })
     }
     const e = sp.get('engine')
-    if (e && ENGINES.some((x) => x.key === e) && (e !== 's25') && !enginePaused(e)) setEngine(e as EngineKey) // KINEO-MOTOR-EM-MANUTENCAO: ?engine= pausado cai no padrão
+    if (e && ENGINES.some((x) => x.key === e) && (e !== 's25') && !ENGINES.find((x) => x.key === e)?.paused) setEngine(e as EngineKey) // KINEO-MOTOR-EM-MANUTENCAO: ?engine= pausado cai no padrão
     const p = sp.get('prompt')
     if (p) setPrompt(p)
     const requestedScriptMode = sp.get('script_mode')
@@ -589,9 +589,9 @@ export default function StudioClient() {
             </button>
             {pickerOpen && (
               <div className="picker">
-                {ENGINES.filter((e) => e.key !== 's25' || internal).map((e) => { const pausa = enginePaused(e.key); return (
+                {ENGINES.filter((e) => e.key !== 's25' || internal).map((e) => { const pausa = e.paused ? enginePaused(e.key) : null; return (
                   <button key={e.key} type="button" className={`pk${e.key === engine ? ' on' : ''}`} disabled={Boolean(pausa)} aria-disabled={Boolean(pausa)} title={pausa ? pausa.message : undefined} style={pausa ? { opacity: 0.55, cursor: 'not-allowed' } : undefined}
-                    onClick={() => { if (pausa) return; setEngine(e.key); setPickerOpen(false) }}>
+                    onClick={() => { setEngine(e.key); setPickerOpen(false) }}>
                     <span className="eng-ic" aria-hidden="true">{e.icon}</span>
                     <span className="pk-tx">
                       {/* ═══ KINEO-PRECO-VISIVEL-2026-09-02 — REVERTE O #2026-08-18 ═══

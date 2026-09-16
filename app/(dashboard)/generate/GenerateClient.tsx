@@ -1444,7 +1444,9 @@ export default function GenerateClient({
       setMode('fast')
       return
     }
-    if (['seedance', 'kling', 'veo', 'sora', 'hollywood', 'h3', 'omni', 's25'].includes(engine) && !enginePaused(engine)) { // KINEO-MOTOR-EM-MANUTENCAO: pausado não entra pela URL
+    if (['seedance', 'kling', 'veo', 'sora', 'hollywood', 'h3', 'omni', 's25'].includes(engine)) {
+      // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15 — motor pausado não entra pela URL: fica no padrão (o card mostra a manutenção).
+      if (enginePaused(engine)) return
       setMode('cinematic_ai')
       setAiEngine(engine as 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'omni' | 's25')
     }
@@ -20215,9 +20217,9 @@ function ModeSelector({
                   disabled={Boolean(pausa)}
                   aria-disabled={Boolean(pausa)}
                   title={pausa ? pausa.message : undefined}
-                  onClick={() => { if (pausa) return; if (cinematicUnlocked) { setMode('cinematic_ai'); setAiEngine(m.key) } else { onUpgrade() } }}
+                  onClick={() => { if (cinematicUnlocked) { setMode('cinematic_ai'); setAiEngine(m.key) } else { onUpgrade() } }}
                   className="flex items-center justify-between rounded-lg px-3 py-2 transition-all"
-                  style={{ background: active ? 'rgba(41,151,255,.18)' : 'rgba(255,255,255,.04)', border: active ? '1.5px solid rgba(41,151,255,.6)' : '1.5px solid var(--border)', cursor: pausa ? 'not-allowed' : 'pointer', opacity: pausa ? 0.5 : naoCabe && !active ? 0.6 : 1 }}
+                  style={{ background: active ? 'rgba(41,151,255,.18)' : 'rgba(255,255,255,.04)', border: active ? '1.5px solid rgba(41,151,255,.6)' : '1.5px solid var(--border)', cursor: pausa ? 'not-allowed' : 'pointer', opacity: naoCabe && !active ? 0.6 : 1, filter: pausa ? 'grayscale(1) opacity(.55)' : undefined }}
                 >
                   <span className="text-left">
                     <span className="block text-xs font-bold" style={{ color: 'var(--text)' }}>{m.label}{pausa ? ' · Maintenance' : ''}</span>
