@@ -3173,3 +3173,21 @@ Adendo de posse FINAL do Board: ChatGptWelcomeBanner fica exclusivamente com MMR
 
 QUESTÃO PENDENTE: publicação deste pedido não significa ACK de Claude, revisão concluída, deploy de produto ou desconto válido. Solicita-se retorno com evidência concreta, sem nova rodada de reservas.
 
+
+## KINEO-1-HIBRIDO-R1 — cena que o banco de imagens não cobre vira imagem gerada (fundador 16/09 12:39 BRT: "Vai! Já é uma melhora significativa")
+
+**Autorização do fundador registrada por nome:** esta entrega toca `app/api/generate-video-fast/route.ts` e `lib/compose.ts` (caminhos da Trava 8.2). Guardiões da trava ficam vermelhos por diff contra origin/main — aceito sob a autorização acima, como em QUALIDADE-COMPROVADA-R1. Nunca afrouxar a trava.
+
+**O problema (visto pelo fundador nos vídeos da Índia e do "Bezos"):** o Kineo 1 busca no Pixabay e, quando o banco não tem a cena (Ayodhya, Rama Setu, uma pessoa famosa, Strasbourg em 1518), recicla um clipe de OUTRA cena (FALLBACK-A) ou cai numa biblioteca genérica — a "foto que deixa a desejar". O plano de cena já sabia marcar `source: 'ai'` (lib/broll/hybrid-source.ts) e a rota ignorava.
+
+**O que muda (commit f79b25ac):**
+- `lib/fastAiScene.ts` (novo): decisão pura `decideFastAiScene` (plano 'ai' · relevância conhecida < 60 · nome próprio/lugar/ano na fala · Pixabay sem resultado) → `buildFastStillPrompt` (fotorrealista, documental; **sem texto legível, sem rosto de pessoa real** — nome famoso vira cena simbólica) → `generateFastSceneStill` (a mesma peça FLUX das âncoras, `generateCinematicSceneStill`, janela 10 s, 9:16) → `persistFastStill` (copia para o bucket `broll/ai-still/`; URL do fal nunca chega ao compose). Falha ABERTA em tudo: null = caminho antigo.
+- Rota do Kineo 1: still tentado ANTES da busca de stock quando a cena está marcada, e ANTES de reciclar clipe quando o Pixabay não acha. Teto 3 stills por filme (`KINEO_FAST_AI_SCENES_MAX`, máx. 6), interruptor `KINEO_FAST_AI_SCENES=off`. Fonte `aiStill` nas métricas de clipe; evento `fast_ai_still` por filme (cenas, tentados, usados, motivo por cena).
+- Montador (`lib/compose.ts`): URL de imagem (png/jpg/webp) vira elemento `image` do Creatomate com o mesmo enquadramento (cover 100%) e o mesmo Ken Burns; sem loop/trim/volume.
+- Cliente: o plano de cena leva `source` até a rota.
+- Custo: ~US$ 0,03 por still × até 3 = ≤ US$ 0,10 por Kineo 1 (fal), sem mudar os 5 créditos. Tempo: ≤ 30 s a mais no pior caso, dentro dos 120 s da rota.
+- Guardião `scripts/test-kineo1-hibrido-2026-09-16.mjs` (25). tsc ✓.
+
+**Como medir:** `fast_ai_still` (used/tried por filme) e a proporção de clipes `aiStill` vs `fallbackA` no log de clipes; retenção do primeiro filme (fez o 2º) da coorte de cadastros ≥ deploy contra os 14 dias anteriores (59 de 216).
+
+**Ressalvas honestas:** o still é uma foto com movimento de câmera, não um clipe de vídeo; em cenas de ação (uma pessoa correndo) o stock em movimento ainda ganha — por isso a decisão prefere stock quando a relevância é boa e não há nome próprio. Rosto de pessoa real segue proibido por regra de prompt (não por filtro de saída).
