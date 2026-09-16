@@ -3341,13 +3341,16 @@ async function manipularPost(req: NextRequest) {
         return req + 4                  // tier curto
       })()
 
+      // KINEO-FICHA-DO-PEDIDO-2026-09-15 — ensaio do Omni no deploy 0833bdd2: a ficha ia só na 1ª chamada e o plano final
+      // vinha de um REPLAN (coerência/duração) sem ela → "25 years old, Hispanic descent". Uma constante, todas as chamadas.
+      const fichaDoPedidoTexto = deriveExplicitCharacter(prompt)
       let plan: HollywoodPlan
       try {
         plan = await planHollywoodScenes({
           faceless: facelessRequested,
           idea: prompt,
           aspect: aspectRequested, // KINEO-MULTIFORMATO-2026-09-02
-          characterHint: deriveExplicitCharacter(prompt), // KINEO-FICHA-DO-PEDIDO-2026-09-15
+          characterHint: fichaDoPedidoTexto, // KINEO-FICHA-DO-PEDIDO-2026-09-15
           voiceoverScript: hollywoodVoiceover || undefined,
           scenes: scenes.map((s) => ({ voiceover: s.voiceover, description: s.aiPrompt || s.description })),
           durationSeconds: hollywoodTarget,
@@ -3401,6 +3404,7 @@ async function manipularPost(req: NextRequest) {
             const replanned = await planHollywoodScenes({
           faceless: facelessRequested,
               idea: prompt,
+              characterHint: fichaDoPedidoTexto, // KINEO-FICHA-DO-PEDIDO-2026-09-15 (também nos replans)
               aspect: aspectRequested, // KINEO-MULTIFORMATO-2026-09-02
               voiceoverScript: hollywoodVoiceover || undefined,
               scenes: scenes.map((sc) => ({ voiceover: sc.voiceover, description: sc.aiPrompt || sc.description })),
@@ -3475,6 +3479,7 @@ async function manipularPost(req: NextRequest) {
             const replanned = await planHollywoodScenes({
               faceless: facelessRequested,
               idea: prompt,
+              characterHint: fichaDoPedidoTexto, // KINEO-FICHA-DO-PEDIDO-2026-09-15 (também nos replans)
               aspect: aspectRequested, // KINEO-MULTIFORMATO-2026-09-02
               voiceoverScript: hollywoodVoiceover || undefined,
               scenes: scenes.map((sc) => ({ voiceover: sc.voiceover, description: sc.aiPrompt || sc.description })),
@@ -3517,6 +3522,7 @@ async function manipularPost(req: NextRequest) {
             const replanned = await planHollywoodScenes({
           faceless: facelessRequested,
               idea: prompt,
+              characterHint: fichaDoPedidoTexto, // KINEO-FICHA-DO-PEDIDO-2026-09-15 (também nos replans)
               aspect: aspectRequested, // KINEO-MULTIFORMATO-2026-09-02
               voiceoverScript: hollywoodVoiceover || undefined,
               scenes: scenes.map((sc) => ({ voiceover: sc.voiceover, description: sc.aiPrompt || sc.description })),
@@ -3568,6 +3574,7 @@ async function manipularPost(req: NextRequest) {
             const replanned = await planHollywoodScenes({
           faceless: facelessRequested,
               idea: prompt,
+              characterHint: fichaDoPedidoTexto, // KINEO-FICHA-DO-PEDIDO-2026-09-15 (também nos replans)
               aspect: aspectRequested, // KINEO-MULTIFORMATO-2026-09-02
               voiceoverScript: hollywoodVoiceover || undefined,
               scenes: scenes.map((sc) => ({ voiceover: sc.voiceover, description: sc.aiPrompt || sc.description })),
@@ -4069,14 +4076,19 @@ async function manipularPost(req: NextRequest) {
       // acréscimo de palavras REESCREVEM linhas depois (ensaio do S25 no deploy b615127b: "On June 15th, 2023" na cena 1
       // depois do filtro do planejador). A última palavra é do código, depois de toda reescrita. ═══
       {
-        const contextoDatas = `${prompt} ${hollywoodVoiceover ?? ''}`
+        // Contexto = só o pedido (em verbatim o pedido É o texto): o brief escrito pela IA trazia "In 2023" e "legitimava" a data.
+        const contextoDatas = prompt
         const tiradas: string[] = []
         for (const sc of plan.scenes) {
           for (const campo of ['voiceover', 'dialogueLine'] as const) {
             const v = sc[campo]
             if (typeof v !== 'string' || !v.trim()) continue
             const r = removerDatasInventadas(v, contextoDatas)
-            if (r.removidas.length) { sc[campo] = r.texto; tiradas.push(...r.removidas) }
+            // KINEO-LUGAR-INVENTADO-2026-09-15 — "Bolivia's Salar de Uyuni", "Emily Carter": nome próprio/lugar/época fora do pedido sai
+            // da fala com o mesmo filtro que já protege os prompts de imagem do clássico (scrubInventedSetting, puro).
+            const r2 = scrubInventedSetting(r.texto, contextoDatas)
+            const texto = r2.removed.length ? r2.text : r.texto
+            if (r.removidas.length || r2.removed.length) { sc[campo] = texto; tiradas.push(...r.removidas, ...r2.removed) }
           }
         }
         if (tiradas.length) console.log(`[hollywood] KINEO-DATA-INVENTADA (final): ${tiradas.length} data(s)/hora(s) fora do pedido removida(s): ${tiradas.map((t) => JSON.stringify(t)).join(', ')}`)

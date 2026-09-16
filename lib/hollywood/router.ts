@@ -888,7 +888,7 @@ Target total duration: ${Math.max(30, Math.min(100, Math.round(durationSeconds |
   if (characterSheet !== fichaDoModelo) { const n = trocarFichaNosPrompts(outScenes, fichaDoModelo, characterSheet); if (n) console.log(`[hollywood-planner] KINEO-FICHA-DO-PEDIDO: ficha do modelo trocada em ${n} prompt(s)`) }
   // KINEO-DATA-INVENTADA-2026-09-15 — data/ano/hora que não estão no pedido saem da fala (a regra no prompt não basta).
   {
-    const contexto = `${String(idea ?? '')} ${String(voiceoverScript ?? '')}`
+    const contexto = String(idea ?? '') // só o pedido: o brief da IA (voiceoverScript no modo IA) trazia a própria data inventada
     const tiradas: string[] = []
     for (const sc of outScenes) {
       for (const campo of ['voiceover', 'dialogueLine'] as const) {
