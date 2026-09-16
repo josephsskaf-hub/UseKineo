@@ -1558,7 +1558,7 @@ export async function storeCachedVoiceover(
 }
 
 interface CreatomateElement {
-  type: 'video' | 'audio' | 'text' | 'shape'
+  type: 'video' | 'audio' | 'text' | 'shape' | 'image' // KINEO-1-HIBRIDO: still gerado
   track: number
   time: number
   duration: number
@@ -2284,20 +2284,22 @@ export function buildCreatomateSource({
     // KINEO-WASH-FIX-2026-08-04), which the render predated because that
     // commit had not been deployed yet. Clip geometry here was verified
     // correct; do not shrink these values or add sub-100% zooms.
+    // KINEO-1-HIBRIDO-2026-09-16 — still gerado (png/jpg/webp do nosso bucket) entra como elemento de
+    // IMAGEM: mesmo enquadramento (cover, 100%) e o mesmo Ken Burns; sem loop/trim/volume, que são de vídeo.
+    const isStillImage = /\.(png|jpe?g|webp)(\?|#|$)/i.test(url)
     const elem: CreatomateElement = {
-      type: 'video',
+      type: isStillImage ? 'image' : 'video',
       track: 2,
       time: round3(cursor),
       duration: round3(segLen + CLIP_GAP_OVERLAP), // micro-overlap → no gap
       source: url,
       fit: 'cover',
-      loop: true,
-      trim_start: clipTrimStart, // KINEO-SPRINT-12H-2026-07-29 — see reuseIndex above
+      ...(isStillImage ? {} : { loop: true, trim_start: clipTrimStart }), // KINEO-SPRINT-12H-2026-07-29 — see reuseIndex above
       x: '50%',
       y: '50%',
       width: '100%',
       height: '100%',
-      volume: '0%',
+      ...(isStillImage ? {} : { volume: '0%' }), // KINEO-1-HIBRIDO: volume é de vídeo
       // KINEO-1-CINEMA-2026-09-02 — o filme abre do preto (so o 1o corte, so
       // fast). Cortes seguintes continuam secos: e o padrao de documentario e
       // o que #202/#234 provaram funcionar sem buraco entre clipes.

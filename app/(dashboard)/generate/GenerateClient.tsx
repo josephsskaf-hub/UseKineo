@@ -9580,6 +9580,8 @@ export default function GenerateClient({
               relevanceScore: s.relevanceScore,
               durationSeconds: s.durationSeconds,
               scenePurpose: s.scenePurpose,
+              // KINEO-1-HIBRIDO-2026-09-16 — o plano já decide 'stock' | 'ai' (hybrid-source); a rota agora honra.
+              source: (s as { source?: string }).source,
               // Push #486 — narration enables CONTENT-BASED scene↔plan alignment
               // server-side (fixes the off-by-one query shift when the plan
               // splits the script into more scenes than the route's GPT does).

@@ -8,6 +8,8 @@ import type { Scene } from '@/lib/runway'
 // Push #353 — Pixabay replaces Pexels as primary B-roll source.
 // Fast Mode v2 (02/07) — getPixabayClipsForScene returns a RANKED mini-pool per scene.
 import { getPixabayClipsForScene } from '@/lib/pixabay'
+// KINEO-1-HIBRIDO-2026-09-16 — cena que o banco não cobre vira still FLUX (ver lib/fastAiScene.ts).
+import { decideFastAiScene, buildFastStillPrompt, generateFastSceneStill, fastStillSeed, fastAiScenesMax } from '@/lib/fastAiScene'
 import { normalizeAspect } from '@/lib/aspect'
 // KINEO-FAST-V4 — self-building clip library: search it before any external API.
 import { searchVault } from '@/lib/clipVault'
@@ -336,6 +338,8 @@ export async function POST(req: NextRequest) {
         durationSeconds?: number
         scenePurpose?: string
         requiresExtension?: boolean
+        // KINEO-1-HIBRIDO — 'stock' | 'ai' decidido pelo plano (lib/broll/hybrid-source.ts).
+        source?: string
         // Push #486 — the plan scene's narration text, used for CONTENT-BASED
         // scene↔plan alignment (see buildAlignedBrollMeta below).
         narration?: string
@@ -480,6 +484,8 @@ export async function POST(req: NextRequest) {
       narration?: string
       /** KINEO-USER-FOOTAGE — user's own clip pinned to this scene. */
       userFootageUrl?: string
+      /** KINEO-1-HIBRIDO — o plano marcou a cena como 'ai' (banco não cobre). */
+      source?: string
     }
     const brollSceneMap = new Map<number, BrollSceneMeta>()
 
@@ -509,6 +515,7 @@ export async function POST(req: NextRequest) {
           durationSeconds: typeof entry.durationSeconds === 'number' ? entry.durationSeconds : undefined,
           scenePurpose: typeof entry.scenePurpose === 'string' ? entry.scenePurpose : undefined,
           requiresExtension: entry.requiresExtension === true,
+          source: entry.source === 'ai' || entry.source === 'stock' ? entry.source : undefined, // KINEO-1-HIBRIDO
           narration: typeof entry.narration === 'string' && entry.narration.trim() ? entry.narration.trim() : undefined,
           // KINEO-USER-FOOTAGE — accept ONLY our public user-footage URLs.
           userFootageUrl:
@@ -955,8 +962,21 @@ export async function POST(req: NextRequest) {
     const styleCtx = { tags: new Set<string>() }
     // Push #355 — track B-roll source per scene for quality metrics.
     // KINEO-USER-FOOTAGE-2026-07-10 — 'user' = the user's own uploaded clip.
-    type ClipSource = 'pixabay' | 'fallbackA' | 'stockLibrary' | 'none' | 'user' | 'aiHook'
+    type ClipSource = 'pixabay' | 'fallbackA' | 'stockLibrary' | 'none' | 'user' | 'aiHook' | 'aiStill'
     const clipSources: ClipSource[] = []
+    // KINEO-1-HIBRIDO-2026-09-16 — stills gerados neste filme (teto por filme) e seed estável.
+    let aiStillsUsed = 0
+    const aiStillsMax = fastAiScenesMax()
+    const aiStillSeed = fastStillSeed(prompt)
+    const aiStillLog: Array<{ scene: number; reason: string; entity: string | null; ok: boolean }> = []
+    const tentarStill = async (sceneNo: number, reason: string, entity: string | null, description: string, voiceover: string, query: string): Promise<string | null> => {
+      if (aiStillsUsed >= aiStillsMax) return null
+      const still = await generateFastSceneStill({ prompt: buildFastStillPrompt({ description, voiceover, query, entity }), seed: aiStillSeed + sceneNo, aspect })
+      aiStillLog.push({ scene: sceneNo, reason, entity, ok: !!still })
+      if (still) aiStillsUsed++
+      console.log(`[clip] scene=${sceneNo} KINEO-1-HIBRIDO reason=${reason}${entity ? ` entity="${entity}"` : ''} still=${still ? 'OK' : 'miss (fail-open)'}`)
+      return still
+    }
 
     for (let idx = 0; idx < scenes.length; idx++) {
       const scene = scenes[idx]
@@ -1115,6 +1135,19 @@ export async function POST(req: NextRequest) {
           }
         }
 
+        // KINEO-1-HIBRIDO — antes de gastar a busca: se o plano, a relevância ou a fala dizem que o banco
+        // não tem esta cena (nome próprio, lugar específico), o still entra no lugar do stock. Falha aberta.
+        {
+          const dec = decideFastAiScene({ planSource: brollMeta?.source ?? null, relevanceScore: relevanceScore ?? null, voiceover: scene.voiceover ?? null, description: scene.description ?? null })
+          if (dec.ai && dec.reason !== 'pixabay_miss') {
+            const still = await tentarStill(sceneNo, dec.reason ?? 'plan_ai', dec.entity, scene.description ?? '', scene.voiceover ?? '', pixQueries[0] ?? scene.stockSearchQuery ?? '')
+            if (still) {
+              clipUrls.push(still)
+              clipSources.push('aiStill')
+              continue
+            }
+          }
+        }
         if (pixQueries.length > 0) {
           const sceneNeedsPeople = sceneHasPeopleVocabulary(
             scene.voiceover ?? '',
@@ -1188,6 +1221,19 @@ export async function POST(req: NextRequest) {
           // that's enough, don't pad it with a fallback repeat.
           if (vaultTaken > 0) continue
           console.log(`[clip] scene=${sceneNo} Pixabay miss — falling through to FALLBACK-A/B`)
+          // KINEO-1-HIBRIDO — o banco não achou nada: um still da própria cena vale mais que reciclar
+          // o clipe de outra cena (FALLBACK-A, a "foto que deixa a desejar").
+          {
+            const dec = decideFastAiScene({ voiceover: scene.voiceover ?? null, description: scene.description ?? null, pixabayMiss: true })
+            if (dec.ai) {
+              const still = await tentarStill(sceneNo, dec.reason ?? 'pixabay_miss', dec.entity, scene.description ?? '', scene.voiceover ?? '', pixQueries[0] ?? '')
+              if (still) {
+                clipUrls.push(still)
+                clipSources.push('aiStill')
+                continue
+              }
+            }
+          }
         }
       }
 
@@ -1218,6 +1264,11 @@ export async function POST(req: NextRequest) {
         clipUrls.push('')
         clipSources.push('none') // #355
       }
+    }
+
+    // KINEO-1-HIBRIDO — rastro de medição: quantas cenas viraram still e por quê (denominador = cenas).
+    if (aiStillLog.length > 0) {
+      void writeServerEvent({ name: 'fast_ai_still', userId: user.id, path: '/api/generate-video-fast', metadata: { scenes: scenes.length, tried: aiStillLog.length, used: aiStillsUsed, max: aiStillsMax, log: aiStillLog.slice(0, 8) } })
     }
 
     // KINEO-AI-HOOK — await + PERSIST the opener, then prepend it as clip 0.
