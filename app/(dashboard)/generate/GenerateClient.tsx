@@ -175,6 +175,7 @@ import {
 // Ver o comentário longo em lib/flags.ts: com 'off' esta tela volta a ser
 // idêntica à de antes da sprint.
 import { POST_HANDOFF_ENABLED } from '@/lib/flags'
+import { PRIMEIRO_FILME_VERSION } from '@/lib/primeiroFilme'
 import { analyzePromptMaxChars } from '@/lib/analyzeLimits'
 // KINEO-FIRST-PAID-MINUTE-2026-08-11 — a chave e o TTL do handshake vivem num
 // módulo único (lib/firstWinHandshake.ts). Enquanto eram literais duplicados
@@ -3682,6 +3683,47 @@ export default function GenerateClient({
       window.removeEventListener('creditsChanged', fetchCredits)
     }
   }, [])
+
+  // ═══ KINEO-PRIMEIRO-FILME-2026-09-16 — o primeiro filme de um cadastro novo é premium ═══════
+  // Decisão do fundador (16/09): cadastros novos, 1 semana, teto 35 USD/dia. Quem é elegível
+  // (lib/primeiroFilme.ts, decidido no servidor em /api/first-film) não escolhe motor: o Studio
+  // trava em Seedance 1.5 · 60 s · roteiro pela IA · âncora de personagem, e na entrega oferece
+  // "Continue this series → Episode 2" com a assinatura. Falha fechada: sem resposta, Studio de hoje.
+  // `maint=1` (ensaio interno) nunca trava. A trava vence os defaults por plano acima porque a
+  // corrida entre /api/credits e /api/first-film não tem ordem garantida.
+  const [primeiroFilmeAtivo, setPrimeiroFilmeAtivo] = useState(false)
+  const [primeiroFilmeEntregue, setPrimeiroFilmeEntregue] = useState(false)
+  const primeiroFilmeStartedRef = useRef(false)
+  useEffect(() => {
+    if (searchParams?.get('maint') === '1') return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const r = await fetch('/api/first-film', { cache: 'no-store' })
+        if (!r.ok) return
+        const d = (await r.json()) as { eligible?: boolean; capReached?: boolean; reason?: string }
+        if (cancelled || d.eligible !== true || d.capReached === true) return
+        setMode('cinematic_ai'); setAiEngine('seedance'); setDuration(60); setScriptMode('ai')
+        setPrimeiroFilmeAtivo(true)
+        void trackEvent('first_film_locked_shown', { version: PRIMEIRO_FILME_VERSION, overrode_engine: (searchParams?.get('engine') ?? '') || null, reason: d.reason ?? null })
+      } catch { /* falha fechada: Studio de hoje */ }
+    })()
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  useEffect(() => {
+    if (!primeiroFilmeAtivo || phase !== 'idle') return
+    if (mode !== 'cinematic_ai') setMode('cinematic_ai')
+    if (aiEngine !== 'seedance') setAiEngine('seedance')
+    if (duration !== 60) setDuration(60)
+  }, [primeiroFilmeAtivo, phase, mode, aiEngine, duration])
+  useEffect(() => {
+    if (phase === 'done' && primeiroFilmeAtivo) {
+      setPrimeiroFilmeAtivo(false)
+      setPrimeiroFilmeEntregue(true)
+      void trackEvent('first_film_delivered', { version: PRIMEIRO_FILME_VERSION })
+    }
+  }, [phase, primeiroFilmeAtivo])
 
   // Supabase Realtime — push the new balance to this page the instant the
   // user's profiles row changes in the DB (purchase, deduction, top-up). The
@@ -9145,6 +9187,10 @@ export default function GenerateClient({
           await new Promise((resolve) => setTimeout(resolve, delayMs))
           return true
         }
+        if (primeiroFilmeAtivo && !primeiroFilmeStartedRef.current) {
+          primeiroFilmeStartedRef.current = true
+          void trackEvent('first_film_started', { version: PRIMEIRO_FILME_VERSION, engine: aiEngine, duration })
+        }
         while (true) {
           try {
             res = await fetch('/api/generate-video-cinematic', {
@@ -14326,7 +14372,14 @@ export default function GenerateClient({
               see a non-interactive locked card with an upgrade CTA. The
               server enforces the same gate (/api/generate-video returns 403
               for non-Pro callers). */}
-          {mode !== 'creator' && (
+          {mode !== 'creator' && primeiroFilmeAtivo && (
+            <section className="gv-card rounded-2xl px-5 py-4 mb-4" style={{ background: '#131316', border: '1px solid rgba(41,151,255,0.45)' }} data-primeiro-filme="trava">
+              <div className="text-xs" style={{ color: '#2997ff', letterSpacing: '0.08em', fontWeight: 700 }}>YOUR FIRST FILM · FREE</div>
+              <div className="mt-1" style={{ color: 'var(--text)', fontWeight: 600 }}>Seedance 1.5 · 60 s · one character in every scene</div>
+              <p className="text-xs mt-1" style={{ color: 'var(--muted)', lineHeight: 1.5 }}>Type your idea below. Kineo writes the story, keeps the same character from the first scene to the last, narrates it and adds captions. Your trial credits cover it.</p>
+            </section>
+          )}
+          {mode !== 'creator' && !primeiroFilmeAtivo && (
           <ModeSelector
             mode={mode}
             setMode={setMode}
@@ -15924,6 +15977,16 @@ export default function GenerateClient({
             </section>
           )}
 
+          {phase === 'done' && finalVideoUrl && primeiroFilmeEntregue && (
+            <section className="gv-card rounded-2xl px-5 sm:px-8 py-6 mb-4" style={{ background: '#0f1a2a', border: '1px solid #2997ff' }} data-primeiro-filme="entregue">
+              <div className="text-xs" style={{ color: '#2997ff', letterSpacing: '0.08em', fontWeight: 700 }}>YOUR FIRST FILM IS DONE</div>
+              <h3 className="mt-1" style={{ color: 'var(--text)', fontSize: '1.15rem', fontWeight: 600, lineHeight: 1.25 }}>Continue this series → Episode 2</h3>
+              <p className="text-sm mt-1.5" style={{ color: 'var(--muted)', lineHeight: 1.5 }}>Same character, same voice, next chapter — without the watermark. Episode 2 is part of the Creator plan.</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <a href={`/pricing?intent_campaign=${PRIMEIRO_FILME_VERSION}#plans`} className="btn btn-w" onClick={() => { void trackEvent('first_film_cta_click', { version: PRIMEIRO_FILME_VERSION, target: 'pricing' }) }}>See plans — from $9.90/mo</a>
+              </div>
+            </section>
+          )}
           {phase === 'done' && finalVideoUrl && (
             <section
               className="gv-card rounded-2xl px-5 sm:px-8 py-8 sm:py-10 mb-6 flex flex-col items-center"
