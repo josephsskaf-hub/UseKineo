@@ -129,7 +129,7 @@ console.log('== (d) claim guarda a image_url real por cena; a retomada aceita a 
   const rr = rd('app/api/retry-hollywood-scene/route.ts')
   const a = rr.indexOf('function signedScene(')
   const b = rr.indexOf('\n}\n', a) + 3
-  const SS = roda('export ' + rr.slice(a, b), { KLING3_I2V_MODEL: 'fal-ai/kling-video/o3/pro/image-to-video', H3_I2V_MODEL: 'minimax/h3/image-to-video', OMNI_I2V_MODEL: 'google/gemini-omni-flash/image-to-video' })
+  const SS = roda('export ' + rr.slice(a, b), { KLING3_I2V_MODEL: 'fal-ai/kling-video/o3/pro/image-to-video', H3_I2V_MODEL: 'minimax/h3/image-to-video', OMNI_I2V_MODEL: 'google/gemini-omni-flash/image-to-video', S25_I2V_MODEL: 'fal-ai/seedance-2.5/image-to-video' })
   const claimDe = (anchor) => ({ response: { scene_prompts: ['x'.repeat(40)], scene_seconds: [8], scene_anchor_urls: [anchor] } })
   const slot = { index: 0, oldRequestId: 'r', model: 'google/gemini-omni-flash/image-to-video' }
   checa('retomada: Omni com âncora null é recusado (a causa do 409 do 8a519488) e com https é aceito com a mesma âncora', SS.signedScene(claimDe(null), slot) === null && SS.signedScene(claimDe('https://v3.fal.media/still.png'), slot)?.anchor === 'https://v3.fal.media/still.png')
