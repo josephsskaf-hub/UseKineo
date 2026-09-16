@@ -280,16 +280,15 @@ console.log('== (k) sobra curta → reescrita; primeira pessoa → replan; Salar
   const rc = rd('app/api/generate-video-cinematic/route.ts')
   checa('rota: cena com < 6 palavras de sobra é reescrita ao alvo (expandVoiceoversToTargets); as outras seguem por acréscimo', rc.includes('const porReescrita = pedidos.filter((pd) => pd.maxWords - wordsOfLine(lineOf(pd.x.sc)) < 6)') && rc.includes('const novas = await expandVoiceoversToTargets(alvos, hollywoodLanguage, prompt.slice(0, 300))') && rc.includes('const continuacoes = porAcrescimo.length > 0 ? await appendNarrationToTargets(') && rc.includes('porAcrescimo.forEach((pd, k) => {'))
   const rt = rd('lib/hollywood/router.ts')
-  checa('planejador: pedido em terceira pessoa + ≥ 2 falas em primeira → UM replan com o motivo (personRetry)', rt.includes('personRetry?: boolean') && rt.includes("if (!args.personRetry && /\bthird[- ]person\b/i.test(String(idea ?? '')))") && rt.includes('return planHollywoodScenes({ ...args, personRetry: true, shortRetryFeedback:') && rt.indexOf('KINEO-TERCEIRA-PESSOA-2026-09-15 — ensaio') > rt.indexOf('trocarFichaNosPrompts(outScenes'))
+  checa('planejador: pedido em terceira pessoa + ≥ 2 falas em primeira → UM replan com o motivo (personRetry)', rt.includes('personRetry?: boolean') && rt.includes("if (!args.personRetry && /\\bthird[- ]person\\b/i.test(String(idea ?? '')))") && rt.includes('return planHollywoodScenes({ ...args, personRetry: true, shortRetryFeedback:') && rt.indexOf('KINEO-TERCEIRA-PESSOA-2026-09-15 — ensaio') > rt.indexOf('trocarFichaNosPrompts(outScenes'))
   const pol = rd('lib/cinematic/visualPromptPolicy.ts')
-  const i = pol.indexOf('const SETTING_ALLOW'); const j = pol.indexOf('
-}
-', pol.indexOf('export function scrubInventedSetting'))
+  const i = pol.indexOf('const SETTING_ALLOW'); const j = pol.indexOf('\n}\n', pol.indexOf('export function scrubInventedSetting'))
   const scrub = roda(pol.slice(i, j + 3)).scrubInventedSetting
   const r = scrub("In the heart of Bolivia's Salar de Uyuni, I traverse the salt flats, searching for the X.", 'A cartographer crosses a salt desert on foot, following a map drawn by her grandfather.')
   checa(`"Bolivia's Salar de Uyuni" sai inteiro, sem sobrar "de": "${r.text}"`, r.text === 'In the heart, I traverse the salt flats, searching for the X.' && r.removed.includes('de'))
   checa('nome do pedido com partícula fica ("Rio de Janeiro" na história)', scrub('Aerial view of Rio de Janeiro at dawn', 'A boy in Rio de Janeiro wakes up early.').text === 'Aerial view of Rio de Janeiro at dawn')
 }
+
 console.log(`${ok} ok · ${falhas.length} falhas`)
 for (const f of falhas) console.log('  ✗', f)
 process.exit(falhas.length ? 1 : 0)
