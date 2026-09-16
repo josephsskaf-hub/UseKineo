@@ -126,6 +126,10 @@ export function contadoNaPrimeiraPessoa(roteiro: string): boolean {
  */
 export const FICHA_EXPLICITA_DE_PERSONAGEM = /(?:keep|keeping|mantenha|manter|mantener|mantén)\s+(?:the\s+|o\s+|a\s+|el\s+|la\s+)?(?:same|mesm[oa]|mism[oa])\s+[a-z' -]{2,40}?\s*(?:throughout|in every scene|across (?:all|every) scenes?|em todas as cenas|en todas las escenas)|(?:the|o|a|el|la)\s+(?:protagonist|main character|hero|heroine|protagonista|personagem principal|personaje principal)\s+(?:is|e|é|es)\b/i
 
+// KINEO-PERSONAGEM-GENERICO-2026-09-16 — Omni verbatim (16/09): "A young cartographer with a long black braid…" caiu em
+// documentary_faceless porque os sinais são frases fixas ("a young woman"). Papel com adjetivo de idade/condição também é
+// personagem: "a young cartographer", "an old watchmaker", "a lone lighthouse keeper", "an elderly fisherman".
+export const PERSONAGEM_GENERICO_RE = /\ban?\s+(?:young|old|elderly|middle-aged|lone|little|tired|retired|veteran|aging|teenage)\s+(?:man|woman|boy|girl|[a-z]+(?:er|or|ist|ian|eer|ant|ess|ard|man|woman))\b/i
 export const SINAIS_DE_PERSONAGEM = [
   'his story', 'her story', 'he was born', 'she was born', 'grew up',
   'a young man', 'a young woman', 'the boy', 'the girl', 'his life', 'her life',
@@ -159,7 +163,7 @@ export function decidirFormato(roteiro: string, tagFacelessPresente: boolean): D
   if (NEGACAO_DE_APRESENTADOR.test(r)) {
     // KINEO-PERSONAGEM-SEM-APRESENTADOR-2026-09-15: "sem apresentador" + ficha/sinal
     // de personagem = historia com personagem MUDO (nunca falando para a lente).
-    const personagemMudo = FICHA_EXPLICITA_DE_PERSONAGEM.test(roteiro) ? 'ficha explicita' : SINAIS_DE_PERSONAGEM.find((s) => r.includes(normalizar(s)))
+    const personagemMudo = FICHA_EXPLICITA_DE_PERSONAGEM.test(roteiro) ? 'ficha explicita' : (SINAIS_DE_PERSONAGEM.find((s) => r.includes(normalizar(s))) ?? PERSONAGEM_GENERICO_RE.exec(roteiro)?.[0])
     if (personagemMudo) {
       return { modo: 'character_story', motivo: `o roteiro pede sem apresentador, mas conta a historia de alguem ("${personagemMudo.trim()}"): pessoa muda, narrador por cima`, apresentadorPedido: false }
     }
@@ -186,7 +190,7 @@ export function decidirFormato(roteiro: string, tagFacelessPresente: boolean): D
   }
 
   // 3. Historia com personagem — pessoas sim, falando para a lente nao.
-  const personagem = SINAIS_DE_PERSONAGEM.find((s) => r.includes(normalizar(s)))
+  const personagem = SINAIS_DE_PERSONAGEM.find((s) => r.includes(normalizar(s))) ?? PERSONAGEM_GENERICO_RE.exec(roteiro)?.[0] // KINEO-PERSONAGEM-GENERICO
   if (personagem) {
     return {
       modo: 'character_story',

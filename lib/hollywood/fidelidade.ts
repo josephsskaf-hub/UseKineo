@@ -428,6 +428,11 @@ export function garantirAcaoCentral(prompt: string, voiceover: string, character
 // saem da fala, com a preposição que as introduz; o resto da frase fica intacto. Puro, sem modelo. ═══
 const MESES = '(?:January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)'
 const DATA_RE = new RegExp(`(?:,?\\s*\\b(?:on|in|at|since|by|around|during|of|from|until|till|before|after)\\s+)?(?:(?:the\\s+)?(?:morning|evening|night|afternoon)\\s+of\\s+)?(?:\\b${MESES}\\.?\\s+\\d{1,2}(?:st|nd|rd|th)?(?:,?\\s*(?:1[0-9]{3}|20[0-9]{2}))?\\b|\\b\\d{1,2}(?:st|nd|rd|th)?\\s+(?:of\\s+)?${MESES}\\.?(?:,?\\s*(?:1[0-9]{3}|20[0-9]{2}))?\\b|\\b(?:1[0-9]{3}|20[0-9]{2})\\b|\\b\\d{1,2}:\\d{2}\\s*(?:AM|PM|am|pm|a\\.m\\.|p\\.m\\.)?(?:\\s+(?:sharp|each night|every night))?)`, 'gi') // R13: 'i' — "In 2023," no começo da frase
+// KINEO-HORA-POR-PALAVRA-2026-09-16 — Kling 2.5 8fb284ac (validado pelo fundador): "At precisely midnight, the night train stops" —
+// o pedido dizia "a night train", nunca "midnight". A DATA_RE pega relógio e data; a hora dita por palavra escapava.
+// "at/around/before/after… (precisely|exactly|the stroke of) midnight|noon|midday|dawn|dusk|sunrise|sunset|daybreak|nightfall|twilight"
+// sai inteira quando a palavra NÃO está no pedido; se o pedido cita ("At midnight, a lone lighthouse keeper…"), fica.
+const HORA_PALAVRA_RE = /(?:,?\s*\b(?:at|around|about|by|before|after|until|till|since|toward|towards|near)\s+)(?:(?:precisely|exactly|roughly|around|about|nearly|almost|just|close to|the stroke of)\s+)?\b(midnight|noon|midday|dawn|dusk|sunrise|sunset|daybreak|nightfall|twilight)\b/gi
 export function removerDatasInventadas(texto: string, contexto: string): { texto: string; removidas: string[] } {
   const src = (texto ?? '')
   if (!src.trim()) return { texto: src, removidas: [] }
@@ -439,6 +444,11 @@ export function removerDatasInventadas(texto: string, contexto: string): { texto
     if (numeros.length === 0) return m
     // se QUALQUER número da expressão está no pedido ("1963", "1980", "thirty"…), ela é do pedido
     if (numeros.some((n) => ctx.has(n))) return m
+    removidas.push(m.trim())
+    return ''
+  })
+  out = out.replace(HORA_PALAVRA_RE, (m: string, palavra: string) => {
+    if (ctx.has(palavra.toLowerCase())) return m
     removidas.push(m.trim())
     return ''
   })

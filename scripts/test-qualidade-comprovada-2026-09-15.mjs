@@ -306,6 +306,24 @@ console.log('== (k) sobra curta → reescrita; primeira pessoa → replan; Salar
   checa('R19: a base 4793d2f0 (antes do R19) ainda casava "St. Helens" e a okina pela metade (o conserto é do 093eecae)', (() => { const m = (() => { try { return execFileSync('git', ['show', '4793d2f0:lib/cinematic/visualPromptPolicy.ts'], { cwd: RAIZ, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).replace(/\r\n/g, '\n') } catch { return null } })(); if (!m) return false; const i2 = m.indexOf('const SETTING_ALLOW'); const j2 = m.indexOf('\n}\n', m.indexOf('export function scrubInventedSetting')); const s0 = roda(m.slice(i2, j2 + 3)).scrubInventedSetting; return /St\. Helens/.test(s0('maps of the Mount St. Helens eruption', hist).text) || /ʻumaʻu/.test(s0('within the Halemaʻumaʻu crater', hist).text) })())
 }
 
+console.log('== (m) hora por palavra e personagem genérico (fila fácil, 16/09) ==')
+{
+  const fd = rd('lib/hollywood/fidelidade.ts')
+  const a = fd.indexOf('const MESES = '); const b = fd.indexOf('\n}\n', fd.indexOf('export function removerDatasInventadas')) + 3
+  const F = roda(fd.slice(a, b))
+  const h1 = F.removerDatasInventadas('At precisely midnight, the night train stops at a deserted station.', 'A night train stops at an abandoned station. A woman traveling alone.')
+  checa(`hora por palavra fora do pedido sai inteira: "${h1.texto}"`, h1.texto === 'The night train stops at a deserted station.' && h1.removidas.length === 1)
+  const h2 = F.removerDatasInventadas('At midnight, a lone lighthouse keeper notices the beam.', 'At midnight, a lone lighthouse keeper notices that his lighthouse is flashing.')
+  checa('hora por palavra citada no pedido FICA', h2.texto === 'At midnight, a lone lighthouse keeper notices the beam.' && h2.removidas.length === 0)
+  const h3 = F.removerDatasInventadas('She reaches the spot at dawn, cold and silent.', 'A cartographer crosses a salt desert at noon.')
+  checa(`"at dawn" sai no meio da frase sem quebrar: "${h3.texto}"`, h3.texto === 'She reaches the spot, cold and silent.')
+  const vm = rd('lib/cinematic/visualMode.ts')
+  const i2 = vm.indexOf('export const PERSONAGEM_GENERICO_RE'); const j2 = vm.indexOf('\n', i2)
+  const RE = roda(vm.slice(i2, j2 + 1)).PERSONAGEM_GENERICO_RE
+  checa('personagem genérico: "a young cartographer", "an old watchmaker", "a lone lighthouse keeper" casam; "a young tree" não', RE.test('A young cartographer with a long black braid crosses a salt desert') && RE.test('An old watchmaker closes his shop') && RE.test('a lone lighthouse keeper notices') && !RE.test('a young tree grows'))
+  checa('decidirFormato usa o padrão genérico nos dois ramos (com e sem negação de apresentador)', (vm.match(/\?\? PERSONAGEM_GENERICO_RE\.exec\(roteiro\)\?\.\[0\]/g) || []).length === 2)
+}
+
 console.log('== (l) continuação/reescrita em pedido de ficção: sem lugar real, sem número, sem salto de enredo ==')
 {
   const rw = rd('lib/runway.ts')

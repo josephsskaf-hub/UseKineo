@@ -3960,12 +3960,10 @@ async function manipularPost(req: NextRequest) {
               const teto = x.sc.type === 'dialogue' ? DIALOGUE_CAP : x.sc.type === 'cinematic' ? 8 : SCENE_CAP
               let w = wordsOfLine(lineOf(x.sc))
               x.sc.seconds = Math.max(4, Math.min(teto, Math.round(w / ritmoVoz) + 1))
-              if (x.sc.type !== 'dialogue' && w / ritmoVoz + FOLGA_MIN_S > x.sc.seconds) {
-                const frases = (x.sc.voiceover ?? '').match(/[^.!?…]+[.!?…]+["”']?|[^.!?…]+$/g)?.map((s) => s.trim()) ?? []
-                while (frases.length > 1 && wordsOfLine(frases.join(' ')) / ritmoVoz + FOLGA_MIN_S > x.sc.seconds) frases.pop()
-                x.sc.voiceover = frases.join(' ').trim()
-                w = wordsOfLine(x.sc.voiceover)
-              }
+              // KINEO-SOBRA-VIRA-CAUDA-2026-09-16 — aqui a reescrita que passava do teto perdia a última frase (um pop na lista de frases):
+              // no guardião, a 2ª frase de uma cena de 21 palavras sumiu do filme. Nenhuma frase é apagada: a sobra segue
+              // para o teto-rede, que agora divide na fronteira de frase e a leva para a cena seguinte ou para uma cauda.
+              if (x.sc.type !== 'dialogue' && w / ritmoVoz + FOLGA_MIN_S > x.sc.seconds) console.log(`[hollywood] KINEO-SOBRA-VIRA-CAUDA: cena ${x.sc.index} com ${w} palavras para ${x.sc.seconds}s — a sobra vai para o teto-rede, nada apagado`)
             }
             // KINEO-FIDELIDADE-2026-09-14 (v3, Board): o respiro só é aparado onde a
             // folga ESTIMADA é segura (15/09: ≥ 2,0 s, no ritmo da voz — sobra ≥ 1 s depois
@@ -4132,7 +4130,14 @@ async function manipularPost(req: NextRequest) {
           }
           // Fala não cabe no teto: divide — a cena fica com o que cabe, o
           // excedente vira apoio novo LOGO DEPOIS (ordem da narração intacta).
-          const corte = Math.max(1, Math.min(fits, speech.length - 4)) // a cauda tem pelo menos 4 palavras
+          // KINEO-CORTE-NA-FRASE-2026-09-16 — ensaios do Omni: "spanning. / Endlessly", "as grains. / of salt" — o corte era
+          // pelo número de palavras que cabia, no meio da frase; como cada cena tem a SUA síntese de voz, a narração pausava ali
+          // e a legenda quebrava. Agora a cabeça fica com as frases INTEIRAS que cabem (≥ 4 palavras) e a cauda começa em frase
+          // nova; só cai no corte por palavra quando a primeira frase sozinha já passa do teto.
+          let corteFrase = -1
+          for (let k = 0; k < speech.length - 4 && k < fits; k++) if (/[.!?…]["”']?$/.test(speech[k])) corteFrase = k + 1
+          const corte = corteFrase >= 4 ? corteFrase : Math.max(1, Math.min(fits, speech.length - 4)) // a cauda tem pelo menos 4 palavras
+          if (corteFrase >= 4) console.log(`[teto-rede] KINEO-CORTE-NA-FRASE: cena ${i + 1} dividida na fronteira de frase (${corte} + ${speech.length - corte} palavras)`)
           const head = speech.slice(0, corte).join(' ')
           const tail = speech.slice(corte).join(' ')
           if (isDialogue) sc.dialogueLine = head
