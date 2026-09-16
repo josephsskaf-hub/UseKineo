@@ -567,9 +567,12 @@ Output JSON shape ("demo" is optional, only on demo/showcase support scenes):
 ${voiceoverScript ? `Existing narration script (reuse its facts and beats):\n${String(voiceoverScript).slice(0, 1500)}\n` : ''}${sceneCtx ? `Existing scene beats:\n${sceneCtx}\n` : ''}
 Target total duration: ${Math.max(30, Math.min(100, Math.round(durationSeconds || 60)))} seconds.${args.shortRetryFeedback ? `\n\nIMPORTANT — YOUR PREVIOUS PLAN WAS REJECTED: ${args.shortRetryFeedback}` : ''}`
 
+  // KINEO-OMNI-PLANEJADOR-4O-2026-09-15 — 6 ensaios do Omni a $0 (R8…R14): o gpt-4o-mini escreve 86-110 palavras para 144 pedidas
+  // e cada reescrita entrega ~85 % do alvo; a régua de silêncio (8 s no total) reprovava por 1,6 s com a fala já limpa.
+  // Ordem do fundador (15/09, 'vai no Omni'): o planejador hollywood passa a usar o gpt-4o, que respeita a contagem.
   const completion = await openai.chat.completions.create(
     {
-      model: 'gpt-4o-mini',
+      model: 'gpt-4o',
       messages: [
         { role: 'system', content: system },
         { role: 'user', content: userMsg },

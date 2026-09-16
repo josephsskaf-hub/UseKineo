@@ -1429,7 +1429,10 @@ async function manipularPost(req: NextRequest) {
     // interna continua (é como se testa o conserto sem gastar); render real é recusado para TODOS, com a alternativa.
     {
       const pausa = enginePaused(body.engine)
-      if (pausa && !(body.dry_run === true && isDryRunAccount(user.email))) {
+      // KINEO-MANUTENCAO-INTERNA-2026-09-15 — ordem do fundador ("vai no Omni"): a conta interna passa pelo gate também no render
+      // real (é como se prova o conserto de um motor pausado); todo mundo mais continua recebendo o 423 sem débito.
+      if (pausa && isDryRunAccount(user.email) && body.dry_run !== true) console.log(`[cinematic] KINEO-MANUTENCAO-INTERNA: ${body.engine} pausado ao público; render real de conta interna segue`)
+      if (pausa && !isDryRunAccount(user.email)) {
         void writeServerEvent({ name: 'engine_paused_refused', userId: user.id, path: '/api/generate-video-cinematic', metadata: { engine: body.engine, alternative: pausa.alternative.key, charged: false, since: pausa.since } })
         return NextResponse.json({ error: pausa.message, reason: 'engine_paused', engine: body.engine, alternative: pausa.alternative, retryable: false, charged: false, refunded: false }, { status: 423 })
       }

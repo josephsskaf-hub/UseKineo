@@ -1446,7 +1446,7 @@ export default function GenerateClient({
     }
     if (['seedance', 'kling', 'veo', 'sora', 'hollywood', 'h3', 'omni', 's25'].includes(engine)) {
       // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15 — motor pausado não entra pela URL: fica no padrão (o card mostra a manutenção).
-      if (enginePaused(engine)) return
+      if (enginePaused(engine) && searchParams.get('maint') !== '1') return // KINEO-MANUTENCAO-INTERNA: &maint=1 só entra aqui; o servidor recusa quem não é conta interna
       setMode('cinematic_ai')
       setAiEngine(engine as 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'omni' | 's25')
     }
@@ -3654,7 +3654,7 @@ export default function GenerateClient({
             // por plano atropelou pra Fast. Default e pra chegada de mao
             // vazia; ?engine= explicito na URL SEMPRE vence.
             const urlEnginePick = (searchParams?.get('engine') ?? '').toLowerCase()
-            const urlPickedEngine = ['fast', 'seedance', 'kling', 'veo', 'sora', 'hollywood', 'h3', 'omni', 's25'].includes(urlEnginePick) && !enginePaused(urlEnginePick) // KINEO-MOTOR-EM-MANUTENCAO
+            const urlPickedEngine = ['fast', 'seedance', 'kling', 'veo', 'sora', 'hollywood', 'h3', 'omni', 's25'].includes(urlEnginePick) && (!enginePaused(urlEnginePick) || searchParams?.get('maint') === '1') // KINEO-MOTOR-EM-MANUTENCAO
             if (urlPickedEngine) { /* escolha explicita — nao tocar */ }
             else if (fromViralNow) { setMode('fast') }
             else if (trialDefaultsToCreatorEngine) { setMode('cinematic_ai'); setAiEngine('seedance') }

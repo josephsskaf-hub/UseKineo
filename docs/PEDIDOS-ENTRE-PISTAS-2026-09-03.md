@@ -2805,7 +2805,7 @@ SHA final publicado: f27b0bc4 · deploy dpl_EGXVgtaGqaogoC8FsmxTEwTscEer (READY)
 | Kling 3 | 35dd34f6 / dpl_2gjPB1D91r6yxKrourMVuFaCKuxd (plano em dpl_AqYj…) | f7351c17 → https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/renders/e92d81bf-0068-46c3-8de7-1f67e2006756/32da19fa-85ce-4d07-93fe-1aa09b417aeb.mp4 | 60 s / 60,0 s | 150 cr | duração cravada, 7/7, personagem, voz idosa, ordem OK; narração INVENTA detalhes (Londres, 9 PM, 15/10/2023, brilho) | assistir com áudio (identidade nas 7 cenas, lâmpadas) |
 | Omni Flash | f27b0bc4 / dpl_EGXVgtaGqaogoC8FsmxTEwTscEer | 8a519488 — FALHOU (6 de 7 clipes; compose recusou timeline 52 s) | 60 s / — | 150 cr estornados (fal: 6 clipes perdidos) | falha HERDADA (cena que não completa mata o filme) | proposta: retomada do mesmo pedido (salvage reaproveita 6 clipes, 1 novo) — só com a sua palavra |
 | Seedance 2.5 (S25) | f27b0bc4 | NÃO gerado | — | 0 | 2 ensaios: teto de 8 s (consertado, R1+R2) e silêncio 8,2 s (marginal) | ensaio novo e render só se PASS — ordem sua |
-| MiniMax H3 | d7935565… (pausado) | 7bb62a29 / a791cb45 — sem filme | — | 45 cr presos | pausado por ordem | estorno + mutex retido (decisões suas, registradas em H3-RENDER-4) |
+| MiniMax H3 | d7935565… (pausado) | 7bb62a29 / a791cb45 — sem filme | — | 45 cr ESTORNADOS (16/09 02:22Z, saldo 830) | pausado ao público; próxima tentativa = geração nova (uma palavra diferente), 45 cr | mutex de a791cb45 mantido de propósito (evita render grátis do mesmo texto) — MOTORES-EM-MANUTENCAO-R3 |
 
 Nenhum motor está "validado em vídeo": eu medi duração, plano, prompts, narração e claims; NÃO assisti com áudio (sem ferramenta). Testes adicionais necessários depois dos 60 s aprovados: 90 s (Veo com os 12 clipes já publicados; Kling 2.5/Seedance com a régua por voz; hollywood 90 s), 35 s, modo verbatim ("Use my script as is") e PT/ES.
 
@@ -2933,7 +2933,7 @@ Feito (interruptor único `lib/engineLaunch.ts` → `ENGINE_PAUSE` / `enginePaus
 
 Guardião novo `scripts/test-motores-pausados-2026-09-15.mjs` (20 verificações, executa o interruptor e a decisão do gate); estendidos test-plan-fit, test-taaft-listing-package, test-motores-d1, test-visual-contract. tsc limpo. Herdados vermelhos (já na origin/main antes desta leva): test-preco-visivel, test-checkout-currency-truth, test-gpt-handoff, test-motores-d1 "armadilha 2", test-silencio-na-cena.
 
-## QUALIDADE-COMPROVADA-R15 — filme do Veo 3.1 corrigido (render acd05d78, 100 cr): 61,5 s, 9/9 cenas, 154 palavras fiéis; a varredura deixou "St. Helens", "ʻumaʻu" e ", ensuring no repetition" nos prompts → R19 (Claude, 15/09 ~22:45 BRT) — LOCAL
+## QUALIDADE-COMPROVADA-R15 — filme do Veo 3.1 corrigido (render acd05d78, 100 cr): 61,5 s, 9/9 cenas, 154 palavras fiéis; a varredura deixou "St. Helens", "ʻumaʻu" e ", ensuring no repetition" nos prompts → R19 (Claude, 15/09 ~22:45 BRT) — PUBLICADO 093eecae (dpl_CnFSuT1Kj8VakJ2RKZqSsVQ4YLfw)
 
 Disparo no deploy 4793d2f0 (dpl_ehUQLQo2M9cjNFNNB32tFQUz3fiU), depois de dois ensaios PASS a $0 (155 e 152 palavras, 9 cenas na história). Generation e466f31c · claim 6d226406 · vídeo 6b9b363c · render acd05d78.
 
@@ -2974,3 +2974,14 @@ Balanço (15/09 ~22:50 BRT):
 | Seedance 2.5 | PAUSADO (já era interno) | 423 no servidor; duas tentativas estornadas (2 × 150 cr) |
 
 Créditos do fundador: 1.310 → 785 na noite (Veo 100 + Seedance 25 + Seedance 25 + Veo 100 = 350 gastos em 4 filmes entregues; todos os ensaios e as tentativas falhadas foram estornados). Sem mudança de preço, planos ou direitos.
+
+## MOTORES-EM-MANUTENCAO-R3 — ordem do fundador ("vai no Omni, e pode estornar e liberar o H3"): H3 estornado; Omni com planejador gpt-4o e passagem interna pelo gate de manutenção (Claude, 15/09 ~23:27 BRT) — LOCAL
+
+**H3 (a791cb45):**
+- Estorno EXECUTADO: RPC `refund_render_credits('cinematic-46b4d849-1814-be20-9422-dc7b998afaee')` → 45; `credit_debits.refunded_at` = 2026-09-16 02:22:52Z; saldo 785 → 830.
+- "Liberar o claim": o compose_submission_claim de a791cb45 (mutex retido, status pending) foi MANTIDO de propósito. O claim de nascimento (cinematic_submission_claim 46b4d849) está `settled` e assinado (HMAC com segredo do servidor — não se reassina de fora); com o débito estornado, apagar o mutex deixaria o MESMO texto (mesma impressão digital → mesmo generation_id) chegar ao compose e render de graça — é exatamente o risco que o lib/cinematic/qualityRejection documenta. O caminho para rodar o H3 de novo é uma geração NOVA (uma palavra diferente no texto), 45 cr, com ensaio a $0 antes. Dívida que segue aberta: o Studio ainda entra em laço de 409 se alguém retomar a791cb45 (GenerateClient sem teto).
+
+**Omni Flash:**
+- `lib/hollywood/router.ts`: o planejador hollywood (Kling 3 / H3 / Omni / S25) passa de gpt-4o-mini para **gpt-4o** (KINEO-OMNI-PLANEJADOR-4O). Diagnóstico dos 6 ensaios (R8…R14): o mini escreve 86-110 palavras para 144 e cada reescrita entrega ~85 % — a régua de silêncio (8 s no total) reprovava com a fala já limpa. `lib/runway.ts`: pedirContinuacao e pedirReescrita também em gpt-4o. A régua NÃO mudou.
+- Gate de manutenção: a conta interna passa também no render real (`if (pausa && !isDryRunAccount(user.email))`, log KINEO-MANUTENCAO-INTERNA); o público continua recebendo 423 sem débito. No /studio/create, `&maint=1` deixa o `?engine=omni` entrar (o servidor decide quem renderiza). Guardião test-motores-pausados: 20 → 23.
+- Próximo: ensaio a $0 no deploy novo; PASS → filme (150 cr; o "vai" já foi dado).

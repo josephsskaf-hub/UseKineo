@@ -944,7 +944,7 @@ export async function appendNarrationToTargets(items: AppendTarget[], language: 
 async function pedirContinuacao(items: { i: number; add_words: number; line: string }[], langName: string, topic: string): Promise<unknown> {
   const completion = await openai.chat.completions.create(
     {
-      model: 'gpt-4o-mini',
+      model: 'gpt-4o' /* KINEO-OMNI-PLANEJADOR-4O-2026-09-15: continuação no tamanho pedido */,
       messages: [
         { role: 'system', content: `You continue narration lines for a short documentary video about: ${topic.slice(0, 300)}. For each input, write ONLY the continuation: ONE short new sentence of about the requested number of words (add_words) — never more than add_words + 3 words — in ${langName}, adding specific, true detail (facts, numbers, places, consequences) that follows naturally after the given line. Do not repeat or rephrase the given line. No filler like "imagine", "what if" or "most people don't know"; no questions; no quotes; no first person; never invent names, dates, years, clock times or statistics that are not in the topic. Return ONLY a JSON array of objects {"i": <the same i you received>, "text": "<the continuation only>"}, one object per input object, in the same order.` },
         { role: 'user', content: JSON.stringify(items) },
@@ -962,7 +962,7 @@ async function pedirContinuacao(items: { i: number; add_words: number; line: str
 async function pedirReescrita(items: { words: number; line: string }[], langName: string, topic: string): Promise<unknown> {
   const completion = await openai.chat.completions.create(
     {
-      model: 'gpt-4o-mini',
+      model: 'gpt-4o' /* KINEO-OMNI-PLANEJADOR-4O-2026-09-15: reescrita no tamanho pedido */,
       messages: [
         { role: 'system', content: `You write narration lines for a short documentary video about: ${topic.slice(0, 300)}. For each input line, return a rewritten line with EXACTLY the requested number of words — never more than requested, at most 2 fewer — in ${langName}, that keeps every fact, name and number of the input and adds specific, true detail — never invent names, dates, years, clock times or statistics that are not in the topic. If an input line is generic filler (for example "Here is something most people do not know about…"), replace it with a specific, true opening line about the topic. Never use filler like "imagine", "what if" or "most people don't know". Count the words before answering. Return ONLY a JSON array of strings, same order and same length as the input.` },
         { role: 'user', content: JSON.stringify(items) },
