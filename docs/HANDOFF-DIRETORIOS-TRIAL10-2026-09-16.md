@@ -42,9 +42,8 @@
 
 ## Verificação e limites
 
-**TESTADO LOCALMENTE — 16/09/2026:** testeTAAFT54/54; typecheck completo `tsc --noEmit --incremental false` passou; `git diff --check` passou. Verificação privada:78IDs únicos, tetos gerais60/160/600 e exceções conhecidas deAISO/Qevra/AIForest/TipSeason/AI Tools Directory;31snapshots preservados.
+**TESTADO LOCALMENTE — 16/09/2026:** testeTAAFT58/58; typecheck completo `tsc --noEmit --incremental false` passou; `git diff --check` passou. Verificação privada:78IDs únicos, tetos gerais60/160/600 e exceções conhecidas deAISO/Qevra/AIForest/TipSeason/AI Tools Directory;31snapshots preservados.
 
 **QUESTÃO PENDENTE / DESCONHECIDO:** esta entrega não alterou interface de produto; não há nova UI/deploy ou filme para validar. GET/leitura nativa confirmou somente as discrepâncias externas descritas. Arquivo de pacote/teste pode ser integrado pela fila autorizada; isso não modifica as fichas em plataformas externas.
 
 **EVIDÊNCIA DE PRODUÇÃO — registro local:** automação permanece PAUSED; nenhum gasto, envio, publicação externa, consulta financeira ou mudança de concessão. **SUGESTÃO:** próxima ação útil é a correção editorial única noAISO quando permitida; não multiplicar submissões sem medir pessoas e pagamento.
-

@@ -24,6 +24,7 @@ for (const text of ['USD','Free to start','no card','two Kineo 1 films of 60 sec
  check(ready.includes(text), 'current copy carries: ' + text)
 }
 for (const stale of ['30 credits','40 credits','50 credits','25 free credits',
+ 'from $14/month','$7/month','$1 trial','80 credits',
  'eight video engines','six video engines','every engine unlocked','every engine on every plan',
  'Studio unlocks every engine','Starter and Creator include','first film is premium',
  'first film is free and premium','Seedance free','free Seedance','Avatar',
