@@ -8,6 +8,7 @@ import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import vm from 'node:vm'
 import ts from 'typescript'
+import crypto from 'node:crypto'
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
@@ -19,9 +20,9 @@ function load(file, env = {}) {
   if (cache.has(file)) return cache.get(file)
   const exports = {}
   cache.set(file, exports)
-  const req = (id) => { if (id.startsWith('@/lib/')) return load(id.slice(2) + '.ts', env); throw new Error('import inesperado ' + id) }
+  const req = (id) => { if (id.startsWith('@/lib/')) return load(id.slice(2) + '.ts', env); if (id === 'crypto' || id === 'node:crypto') return crypto; throw new Error('import inesperado ' + id) }
   const js = ts.transpileModule(rd(file), { compilerOptions: { module: 1, target: 9 } }).outputText
-  vm.runInNewContext(js, { exports, require: req, process: { env }, console, Math, Date, Number, Set, Map, Array, JSON, AbortController, setTimeout, clearTimeout, fetch: undefined }, { filename: file })
+  vm.runInNewContext(js, { exports, require: req, process: { env }, console, Math, Date, Number, Set, Map, Array, JSON, Buffer, URLSearchParams, URL, AbortController, setTimeout, clearTimeout, fetch: undefined }, { filename: file })
   return exports
 }
 
@@ -85,6 +86,37 @@ checa('/admin/coerencia: gate admin, média/fora/parciais, escreveu × narrou ×
 const pm = rd('app/api/admin/person-media/route.ts')
 checa('painel por pessoa devolve coherence por vídeo (30 dias, até 4 julgados por abertura, falha aberta)', pm.includes('listFastCoherence(admin, { hours: 24 * 30, limit: 60, userId: uid, maxCompute: 4 })') && pm.includes('coherence: coerenciaPorVideo.get(v.id as string) ?? null'))
 checa('card da pessoa mostra "coerência N · texto · visual" e o primeiro problema', rd('app/admin/people/PeopleClient.tsx').includes('data-kineo="coerencia"') && rd('app/(dashboard)/admin/ceo/CeoClient.tsx').includes("href: '/admin/coerencia'"))
+
+console.log('== (e) R3: todos os motores ==')
+const aiMsgs = C.buildCoherenceMessages({ prompt: 'the boiling river of peru', narration: 'Deep in Peru a river boils. Locals call it Shanay-timpishka.', engine: 'cinematic_ai', scenes: [
+  { scene: 1, voiceover: '', query: 'photorealistic. Aerial shot of a steaming river in the Amazon jungle', from: 0, sources: ['aiVideo'], tags: [] },
+  { scene: 2, voiceover: '', query: 'photorealistic. A shaman standing at the river bank', from: 1, sources: ['rejected'], tags: [] },
+] })
+checa('motor de IA: o juiz lê o prompt exato de cada cena, em ordem, e sabe que cena rejeitada é buraco no filme', C.isAiEngine('cinematic_ai') && !C.isAiEngine('fast') && aiMsgs[0].content.includes('AI-generated shot by shot') && aiMsgs[0].content.includes('REJECTED scene is a hole') && aiMsgs[1].content.includes('Scene 2: generation prompt="photorealistic. A shaman') && aiMsgs[1].content.includes('MISSING from the film'))
+checa('Kineo 1 continua com fala · busca · origem · tags (não muda)', msgs[1].content.includes('spoken="He reads the paper."') && !msgs[0].content.includes('AI-generated shot by shot'))
+const LA = load('lib/admin/fastCoherence.ts')
+const ev = LA.evidenceFromDispatch({ submitted_prompts: ['p1', 'p2', 'p3'], scenes: [{ scene_index: 0, disposition: 'accepted' }, { scene_index: 1, disposition: 'rejected' }, { scene_index: 2, disposition: 'accepted' }] })
+checa('cinematic_dispatch_result (já gravado pela casa desde o #353A) vira evidência: prompt por cena + aceita/rejeitada', Array.isArray(ev) && ev.length === 3 && ev[0].sources[0] === 'aiVideo' && ev[1].sources[0] === 'rejected' && ev[2].query === 'p3' && LA.evidenceFromDispatch(null) === null && LA.evidenceFromDispatch({}) === null)
+checa('leitor: todos os motores menos clip; evidência do Kineo 1 pelo plano e dos outros pelo dispatch (generation_id); filtro por motor; nota leva engine', la.includes(".neq('quality_mode', 'clip')") && la.includes("engine === 'fast'\n        ? Array.isArray(plan?.metadata?.scenes)") && la.includes(".eq('name', 'cinematic_dispatch_result').in('metadata->>generation_id', genIds)") && la.includes("if (opts.engine) vq = vq.eq('quality_mode', opts.engine)") && la.includes('engine: r.engine, video_id: r.video_id'))
+checa('quadro: placar por motor, filtro por motor, rótulos reais dos motores, título "todos os motores"', pg.includes('data-kineo="placar-por-motor"') && pg.includes("q({ engine: engine === eng ? undefined : eng })") && pg.includes('Coerência · todos os motores') && LA.ENGINE_LABEL.cinematic_hollywood === 'Kling 3' && LA.ENGINE_LABEL.fast === 'Kineo 1')
+
+console.log('== (f) 👍/👎 no e-mail de entrega ==')
+cache.clear()
+const FB = load('lib/filmFeedback.ts', { CRON_SECRET: 'segredo-de-teste-16' })
+const href = FB.feedbackHref('11111111-2222-3333-4444-555555555555', 'down', 'https://www.usekineo.com/', 'video_ready_delivery')
+checa('link assinado com o mesmo HMAC dos links de partilha; sem barra dupla; verdict e origem na query', typeof href === 'string' && href.startsWith('https://www.usekineo.com/api/film-feedback?v=11111111-2222-3333-4444-555555555555&r=down&t=') && href.includes('&s=video_ready_delivery') && !href.includes('.com//'))
+const tok = typeof href === 'string' ? new URL(href).searchParams.get('t') : null
+checa('o token verifica para o vídeo certo e falha para outro vídeo ou token trocado', FB.verifyFeedbackLink('11111111-2222-3333-4444-555555555555', tok) === true && FB.verifyFeedbackLink('99999999-2222-3333-4444-555555555555', tok) === false && FB.verifyFeedbackLink('11111111-2222-3333-4444-555555555555', tok + 'x') === false && FB.verifyFeedbackLink(null, tok) === false)
+checa('a linha do e-mail tem a pergunta e os dois botões nos dois temas; sem vídeo → vazio', FB.feedbackRowHtml('11111111-2222-3333-4444-555555555555', 'https://www.usekineo.com', 'x', 'dark').includes('Did this film match what you asked for?') && FB.feedbackRowHtml('11111111-2222-3333-4444-555555555555', 'https://www.usekineo.com', 'x', 'light').includes('👎 Not really') && FB.feedbackRowHtml(null, 'https://www.usekineo.com', 'x', 'dark') === '' && FB.feedbackRowText('11111111-2222-3333-4444-555555555555', 'https://www.usekineo.com', 'x').includes('Not really: https://'))
+cache.clear()
+const FB0 = load('lib/filmFeedback.ts', {})
+checa('sem segredo no ambiente o link não existe e o e-mail sai como saía (linha vazia)', FB0.feedbackHref('11111111-2222-3333-4444-555555555555', 'up', 'https://www.usekineo.com', 'x') === null && FB0.feedbackRowHtml('11111111-2222-3333-4444-555555555555', 'https://www.usekineo.com', 'x', 'dark') === '')
+const stt = rd('app/api/compose/status/[renderId]/route.ts')
+const cron = rd('app/api/cron/send-video-ready/route.ts')
+checa('os DOIS e-mails de entrega levam a linha (status = 44x o alcance; cron = quem não viu a tela), depois do pacote', stt.includes("feedbackRowHtml(shareVideoId, process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.usekineo.com', 'video_ready_delivery', 'dark')") && stt.indexOf('feedbackRowHtml(shareVideoId') > stt.indexOf('const packHtml = packEmailHtml(pack') && cron.includes("feedbackRowHtml(video.id, APP_URL, 'video_ready_email', 'light')") && cron.includes("feedbackRowText(video.id, APP_URL, 'video_ready_email')"))
+const fr = rd('app/api/film-feedback/route.ts')
+checa('rota: verifica o token antes de gravar; grava film_feedback com session_id = video_id; POST só grava comentário com token válido; nunca dá crédito', fr.includes('verifyFeedbackLink(videoId, token)') && fr.includes('session_id: videoId') && fr.includes('name: FILM_FEEDBACK_EVENT') && fr.indexOf('verifyFeedbackLink(videoId, token)') < fr.indexOf("from('events').insert") && !/credit/i.test(fr.replace(/\/\/.*$/gm, '')))
+checa('leitor cola o 👍/👎 (e o comentário) ao filme pelo video_id', la.includes(".eq('name', FILM_FEEDBACK_EVENT)") && la.includes(".in('session_id', videoIds)") && la.includes('feedback: feedbackByVideo.get(v.id) ?? null'))
 
 console.log(`\n${ok} ok · ${falhas.length} falhas`)
 for (const f of falhas) console.log('  ✗ ' + f)

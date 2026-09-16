@@ -8,6 +8,7 @@ import { videoReadyFooterFromRows, isSubscriberProfile, type VideoReadyFooter, t
 import { garantirPacote } from '@/lib/publishPackServer'
 import { packEmailHtml, packEmailText } from '@/lib/publishPackEmail'
 import { publishHref, unpublishHref } from '@/lib/videoShareLink'
+import { feedbackRowHtml, feedbackRowText } from '@/lib/filmFeedback' // KINEO-FEEDBACK-DO-FILME-2026-09-16
 import type { PacoteDePublicacao } from '@/lib/publishPack'
 
 // send-video-ready — Medida 6 do PLANO-SEMANA-2026-08-03 (Bloco B, gerar→baixar).
@@ -243,7 +244,7 @@ ${headlineText}
 Watch it and grab the download here: ${url}
 
 Your video is private by default. Download the MP4 if you want to send it directly.
-${shareText}${packText}${chatgptText}
+${shareText}${packText}${feedbackRowText(video.id, APP_URL, 'video_ready_email')}${chatgptText}
 ${closingText}
 
 Kineo Team
@@ -261,6 +262,7 @@ usekineo.com`
   <p style="margin:0 0 14px;color:#475569;font-size:14px;">Your video is private by default. Download the MP4 if you want to send it directly.</p>
   ${shareHtml}
   ${packHtml}
+  ${feedbackRowHtml(video.id, APP_URL, 'video_ready_email', 'light')}
   <!-- rodapé do #24 foi desenhado para fundo escuro (strong em #fff): cartão escuro aqui, senão o saldo some no branco -->
   <div style="background:#161618;color:#fff;padding:4px 20px 20px;border-radius:12px;margin:0 0 14px">${ctx.footer.html}</div>
   ${chatgptHtml}

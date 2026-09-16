@@ -1,12 +1,13 @@
-// KINEO-1-COERENCIA-2026-09-16 — o quadro de coerência do Kineo 1 (fundador 16/09: "o que a pessoa
-// escrever precisa estar coerente no vídeo"). Cada linha = um filme do Kineo 1: quem, quando, o que
-// ESCREVEU, o que foi NARRADO, o plano visual cena a cena (busca · origem · tags) e a NOTA 0-100 com
-// os problemas nomeados pelo juiz. Abrir a página julga o que ainda não tem nota (até 6 por vez) e
-// grava; recarregar julga os próximos. Gate idêntico a toda tela /admin.
+// KINEO-1-COERENCIA-2026-09-16 — o quadro de coerência (fundador 16/09: "o que a pessoa escrever precisa
+// estar coerente no vídeo"; R3: "aplicar em todos os motores… ter essa régua do meu olho"). Cada linha = um
+// filme: motor, quem, quando, o que ESCREVEU, o que foi NARRADO, o plano visual cena a cena (Kineo 1: busca ·
+// origem · tags; motores de IA: o prompt exato de cada cena e se foi aceita) e a NOTA 0-100 com os problemas
+// nomeados pelo juiz — ao lado do 👍/👎 que a pessoa deu no e-mail de entrega (a régua humana). Abrir a
+// página julga o que ainda não tem nota (até 6 por vez) e grava. Gate idêntico a toda tela /admin.
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { isAdminEmail, serviceClient } from '@/app/api/admin/_shared/db'
-import { listFastCoherence, type FastCoherenceRow } from '@/lib/admin/fastCoherence'
+import { ENGINE_LABEL, listFastCoherence, type FastCoherenceRow } from '@/lib/admin/fastCoherence'
 
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
@@ -24,9 +25,11 @@ function fmt(iso: string): string {
   const d = new Date(iso)
   return `${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')} ${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}Z`
 }
+const motor = (q: string) => ENGINE_LABEL[q] ?? q
 
 function Linha({ r }: { r: FastCoherenceRow }) {
   const c = r.coherence
+  const ai = r.engine !== 'fast'
   return (
     <div style={{ background: '#0f0f12', border: `1px solid ${c ? corDaNota(c.score) + '66' : '#2a2a2d'}`, borderRadius: 12, padding: '12px 14px', display: 'grid', gridTemplateColumns: '88px 1fr', gap: 14 }}>
       <div style={{ textAlign: 'center' }}>
@@ -39,9 +42,15 @@ function Linha({ r }: { r: FastCoherenceRow }) {
             visual {c.narration_vs_visuals ?? '—'}
           </div>
         )}
+        {r.feedback && (
+          <div style={{ fontSize: 16, marginTop: 8 }} title={`a pessoa disse ${r.feedback.verdict === 'up' ? 'sim' : 'não'} em ${fmt(r.feedback.at)}`}>
+            {r.feedback.verdict === 'up' ? '👍' : '👎'}
+          </div>
+        )}
       </div>
       <div style={{ minWidth: 0 }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'baseline', fontSize: 11.5, color: '#8e8e93' }}>
+          <span style={{ color: '#a78bfa', fontWeight: 800, textTransform: 'uppercase', fontSize: 10.5 }}>{motor(r.engine)}</span>
           <span style={{ color: '#e5e5ea', fontWeight: 700 }}>{r.email ?? r.user_id.slice(0, 8)}</span>
           <span>{fmt(r.created_at)}</span>
           {r.seconds != null && <span>{r.seconds}s</span>}
@@ -63,6 +72,11 @@ function Linha({ r }: { r: FastCoherenceRow }) {
             ))}
           </ul>
         )}
+        {r.feedback?.comment && (
+          <div style={{ marginTop: 6, color: '#fde68a', fontSize: 12, borderLeft: '2px solid #fbbf24', paddingLeft: 8 }}>
+            a pessoa escreveu: “{r.feedback.comment}”
+          </div>
+        )}
         <details style={{ marginTop: 8 }}>
           <summary style={{ color: '#2997ff', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>O que escreveu ({r.topic.length} caracteres{r.topic_truncated ? ' · texto cortado pelo banco (500/1.000) — filme anterior ao rastro completo' : ''})</summary>
           <pre style={{ whiteSpace: 'pre-wrap', color: '#c7c7cc', fontSize: 11.5, lineHeight: 1.45, margin: '4px 0 0', fontFamily: 'inherit', maxHeight: 240, overflow: 'auto' }}>{r.topic}</pre>
@@ -73,16 +87,16 @@ function Linha({ r }: { r: FastCoherenceRow }) {
         </details>
         {r.scenes && r.scenes.length > 0 && (
           <details style={{ marginTop: 4 }}>
-            <summary style={{ color: '#2997ff', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>Cena a cena ({r.scenes.length})</summary>
+            <summary style={{ color: '#2997ff', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>Cena a cena ({r.scenes.length}){ai ? ' — prompt exato enviado ao gerador' : ''}</summary>
             <table style={{ marginTop: 6, borderCollapse: 'collapse', fontSize: 11, width: '100%' }}>
               <tbody>
                 {r.scenes.map((s) => (
                   <tr key={s.scene} style={{ borderTop: '1px solid #1f1f23', background: c?.worst_scene === s.scene ? 'rgba(248,113,113,.08)' : undefined }}>
                     <td style={{ padding: '4px 6px', color: '#8e8e93', verticalAlign: 'top', whiteSpace: 'nowrap' }}>{s.scene}</td>
-                    <td style={{ padding: '4px 6px', color: '#e5e5ea', verticalAlign: 'top' }}>{s.voiceover}</td>
-                    <td style={{ padding: '4px 6px', color: '#a78bfa', verticalAlign: 'top', whiteSpace: 'nowrap' }}>{s.query ?? '—'}</td>
-                    <td style={{ padding: '4px 6px', color: s.sources.includes('fallbackA') ? '#fca5a5' : s.sources.includes('aiStill') ? '#34d399' : '#c7c7cc', verticalAlign: 'top', whiteSpace: 'nowrap' }}>{s.sources.join('+') || 'none'}</td>
-                    <td style={{ padding: '4px 6px', color: '#6b7280', verticalAlign: 'top' }}>{s.tags.slice(0, 2).join(' | ').slice(0, 140)}</td>
+                    {!ai && <td style={{ padding: '4px 6px', color: '#e5e5ea', verticalAlign: 'top' }}>{s.voiceover}</td>}
+                    <td style={{ padding: '4px 6px', color: '#a78bfa', verticalAlign: 'top', whiteSpace: ai ? 'normal' : 'nowrap' }}>{s.query ?? '—'}</td>
+                    <td style={{ padding: '4px 6px', color: s.sources.includes('fallbackA') || s.sources.includes('rejected') ? '#fca5a5' : s.sources.includes('aiStill') || s.sources.includes('aiVideo') ? '#34d399' : '#c7c7cc', verticalAlign: 'top', whiteSpace: 'nowrap' }}>{s.sources.join('+') || 'none'}</td>
+                    {!ai && <td style={{ padding: '4px 6px', color: '#6b7280', verticalAlign: 'top' }}>{s.tags.slice(0, 2).join(' | ').slice(0, 140)}</td>}
                   </tr>
                 ))}
               </tbody>
@@ -106,42 +120,83 @@ export default async function AdminCoerenciaPage({ searchParams }: { searchParam
   const admin = serviceClient()
   if (!admin) return <div style={{ padding: 40, color: '#e5e5ea' }}>service unavailable</div>
 
-  const hoursRaw = Number(Array.isArray(searchParams?.hours) ? searchParams?.hours[0] : searchParams?.hours)
+  const one = (k: string) => (Array.isArray(searchParams?.[k]) ? (searchParams?.[k] as string[])[0] : (searchParams?.[k] as string | undefined))
+  const hoursRaw = Number(one('hours'))
   const hours = Number.isFinite(hoursRaw) && hoursRaw > 0 ? hoursRaw : 48
-  const incluirCasa = (Array.isArray(searchParams?.casa) ? searchParams?.casa[0] : searchParams?.casa) === '1'
-  const rows = await listFastCoherence(admin, { hours, limit: 150, maxCompute: 6, excludeEmails: incluirCasa ? [] : FOUNDER })
+  const incluirCasa = one('casa') === '1'
+  const engine = (one('engine') ?? '').trim() || undefined
+  const rows = await listFastCoherence(admin, { hours, limit: 150, engine, maxCompute: 6, excludeEmails: incluirCasa ? [] : FOUNDER })
   const comNota = rows.filter((r) => r.coherence)
   const media = comNota.length ? Math.round(comNota.reduce((a, r) => a + (r.coherence?.score ?? 0), 0) / comNota.length) : null
   const off = comNota.filter((r) => r.coherence?.verdict === 'off').length
   const parcial = comNota.filter((r) => r.coherence?.verdict === 'partial').length
   const semNota = rows.length - comNota.length
+  const ups = rows.filter((r) => r.feedback?.verdict === 'up').length
+  const downs = rows.filter((r) => r.feedback?.verdict === 'down').length
+
+  // Placar por motor (a régua do olho do fundador, um número por motor).
+  const porMotor = new Map<string, { n: number; soma: number; comNota: number; off: number; up: number; down: number }>()
+  for (const r of rows) {
+    const m = porMotor.get(r.engine) ?? { n: 0, soma: 0, comNota: 0, off: 0, up: 0, down: 0 }
+    m.n++
+    if (r.coherence) { m.comNota++; m.soma += r.coherence.score; if (r.coherence.verdict === 'off') m.off++ }
+    if (r.feedback?.verdict === 'up') m.up++
+    if (r.feedback?.verdict === 'down') m.down++
+    porMotor.set(r.engine, m)
+  }
+  const q = (extra: Record<string, string | undefined>) => {
+    const p = new URLSearchParams()
+    const merged: Record<string, string | undefined> = { hours: String(hours), engine, casa: incluirCasa ? '1' : undefined, ...extra }
+    for (const [k, v] of Object.entries(merged)) if (v) p.set(k, v)
+    return `/admin/coerencia?${p.toString()}`
+  }
 
   return (
     <main style={{ background: '#050507', minHeight: '100vh', color: '#e5e5ea', fontFamily: 'system-ui, -apple-system, sans-serif', padding: '22px 18px 60px' }}>
       <div style={{ maxWidth: 1100, margin: '0 auto' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'baseline', marginBottom: 6 }}>
-          <h1 style={{ fontSize: 20, fontWeight: 900, margin: 0 }}>Coerência · Kineo 1</h1>
-          <span style={{ color: '#8e8e93', fontSize: 12 }}>o que a pessoa escreveu × o que foi narrado × o que cada cena mostrou</span>
+          <h1 style={{ fontSize: 20, fontWeight: 900, margin: 0 }}>Coerência · todos os motores</h1>
+          <span style={{ color: '#8e8e93', fontSize: 12 }}>o que a pessoa escreveu × o que foi narrado × o que cada cena mostrou · 👍👎 = o que a pessoa disse no e-mail</span>
           <span style={{ marginLeft: 'auto', fontSize: 12 }}>
             <Link href="/admin" style={{ color: '#2997ff' }}>CEO</Link> · <Link href="/admin/people" style={{ color: '#2997ff' }}>People</Link>
           </span>
         </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, fontSize: 12, color: '#8e8e93', marginBottom: 14 }}>
-          <span>janela {hours}h · {rows.length} filmes</span>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, fontSize: 12, color: '#8e8e93', marginBottom: 10 }}>
+          <span>janela {hours}h · {rows.length} filmes{engine ? ` · ${motor(engine)}` : ''}</span>
           <span>média <b style={{ color: corDaNota(media) }}>{media ?? '—'}</b></span>
           <span>fora do pedido <b style={{ color: '#f87171' }}>{off}</b></span>
           <span>parciais <b style={{ color: '#fbbf24' }}>{parcial}</b></span>
+          <span>👍 {ups} · 👎 {downs}</span>
           {semNota > 0 && <span>sem nota ainda <b>{semNota}</b> (recarregue: 6 por vez)</span>}
           <span>
-            <Link href="/admin/coerencia?hours=24" style={{ color: '#2997ff' }}>24h</Link> · <Link href="/admin/coerencia?hours=48" style={{ color: '#2997ff' }}>48h</Link> ·{' '}
-            <Link href="/admin/coerencia?hours=168" style={{ color: '#2997ff' }}>7d</Link> · <Link href={`/admin/coerencia?hours=${hours}&casa=1`} style={{ color: '#2997ff' }}>+casa</Link>
+            <Link href={q({ hours: '24' })} style={{ color: '#2997ff' }}>24h</Link> · <Link href={q({ hours: '48' })} style={{ color: '#2997ff' }}>48h</Link> ·{' '}
+            <Link href={q({ hours: '168' })} style={{ color: '#2997ff' }}>7d</Link> · <Link href={q({ casa: incluirCasa ? undefined : '1' })} style={{ color: '#2997ff' }}>{incluirCasa ? '−casa' : '+casa'}</Link>
           </span>
         </div>
+        <table style={{ borderCollapse: 'collapse', fontSize: 12, marginBottom: 16 }} data-kineo="placar-por-motor">
+          <thead>
+            <tr style={{ color: '#8e8e93', textAlign: 'left' }}>
+              <th style={{ padding: '4px 10px 4px 0' }}>motor</th><th style={{ padding: '4px 10px' }}>filmes</th><th style={{ padding: '4px 10px' }}>média</th><th style={{ padding: '4px 10px' }}>fora</th><th style={{ padding: '4px 10px' }}>👍</th><th style={{ padding: '4px 10px' }}>👎</th>
+            </tr>
+          </thead>
+          <tbody>
+            {Array.from(porMotor.entries()).sort((a, b) => b[1].n - a[1].n).map(([eng, m]) => (
+              <tr key={eng} style={{ borderTop: '1px solid #1f1f23' }}>
+                <td style={{ padding: '4px 10px 4px 0' }}><Link href={q({ engine: engine === eng ? undefined : eng })} style={{ color: engine === eng ? '#e5e5ea' : '#2997ff', fontWeight: 700 }}>{motor(eng)}</Link></td>
+                <td style={{ padding: '4px 10px' }}>{m.n}</td>
+                <td style={{ padding: '4px 10px', fontWeight: 900, color: corDaNota(m.comNota ? Math.round(m.soma / m.comNota) : null) }}>{m.comNota ? Math.round(m.soma / m.comNota) : '—'}{m.comNota < m.n ? <span style={{ color: '#6b7280', fontWeight: 400 }}> ({m.comNota}/{m.n})</span> : null}</td>
+                <td style={{ padding: '4px 10px', color: m.off ? '#f87171' : '#8e8e93' }}>{m.off}</td>
+                <td style={{ padding: '4px 10px' }}>{m.up}</td>
+                <td style={{ padding: '4px 10px' }}>{m.down}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
         <div style={{ display: 'grid', gap: 10 }}>
           {rows.map((r) => (
             <Linha key={r.video_id} r={r} />
           ))}
-          {rows.length === 0 && <div style={{ color: '#8e8e93' }}>Nenhum filme do Kineo 1 na janela.</div>}
+          {rows.length === 0 && <div style={{ color: '#8e8e93' }}>Nenhum filme na janela.</div>}
         </div>
       </div>
     </main>

@@ -72,6 +72,14 @@ const SOURCE_MEANING: Record<string, string> = {
   stockLibrary: 'generic library clip (weak match)',
   user: "the customer's own footage",
   none: 'no footage at all',
+  // R3 — motores de IA (cinematic_dispatch_result): o prompt é a cena inteira; rejeitada = buraco no filme.
+  aiVideo: 'AI-generated video clip rendered from exactly this prompt',
+  rejected: 'scene REJECTED by the provider — this shot is MISSING from the film',
+}
+
+/** R3 — motores de IA: o visual da cena é o prompt exato enviado ao gerador, não uma busca de stock. */
+export function isAiEngine(engine: string | null | undefined): boolean {
+  return !!engine && engine !== 'fast'
 }
 
 const clamp = (n: unknown): number => {
@@ -81,12 +89,14 @@ const clamp = (n: unknown): number => {
 }
 
 /** Monta as mensagens do juiz. Exportado para o guardião provar o que o modelo lê. */
-export function buildCoherenceMessages(input: { prompt: string; narration: string; scenes?: FastSceneEvidence[] | null; promptMayBeTruncated?: boolean }) {
+export function buildCoherenceMessages(input: { prompt: string; narration: string; scenes?: FastSceneEvidence[] | null; promptMayBeTruncated?: boolean; engine?: string | null }) {
+  const ai = isAiEngine(input.engine)
   const scenes = input.scenes ?? []
   const sceneLines = scenes
     .map((s) => {
       const src = s.sources.length ? s.sources.map((x) => `${x} (${SOURCE_MEANING[x] ?? x})`).join(' + ') : 'none'
       const tags = s.tags.filter(Boolean).slice(0, 3).join(' | ')
+      if (ai) return `Scene ${s.scene}: generation prompt="${s.query ?? '—'}" | footage=${src}`
       return `Scene ${s.scene}: spoken="${s.voiceover.slice(0, 220)}" | query="${s.query ?? '—'}" | footage=${src}${tags ? ` | clip tags: ${tags.slice(0, 240)}` : ''}`
     })
     .join('\n')
@@ -94,13 +104,15 @@ export function buildCoherenceMessages(input: { prompt: string; narration: strin
     'You audit short films made by an AI video tool. The customer typed a request; the tool wrote a narration and picked footage per scene. ' +
     'Judge two things. (1) prompt_vs_narration: does the narration tell the story the customer asked for — same subject, same facts/angle, nothing invented that the customer did not ask for? ' +
     'Two kinds of request exist. A SHORT IDEA (a title, a topic, a few sentences): the tool is SUPPOSED to develop it — adding accurate facts, scenes, a hook and a payoff on the same subject is correct and scores high (85-100); penalize only when the subject, the angle or the named people/places drift, or when claims contradict the request. A FULL SCRIPT (long, sentence by sentence): the narration must follow it closely; rewording, cuts and additions lower the score. ' +
-    '(2) narration_vs_visuals: per scene, does the footage plan match what is being said? Footage described as "generated from this scene text" matches by construction; ' +
-    '"recycled from an earlier scene" or "generic library clip" usually does not; stock clips match when the query and clip tags describe what the line talks about. ' +
+    (ai
+      ? '(2) narration_vs_visuals: the film is AI-generated shot by shot; each scene lists the exact generation prompt. Read the narration in order and judge whether the sequence of prompts depicts its subject, the named people/places/objects and the actions being described, in the right order; a prompt about something the narration never mentions, or a key moment of the narration with no shot, lowers the score; a REJECTED scene is a hole in the film. '
+      : '(2) narration_vs_visuals: per scene, does the footage plan match what is being said? Footage described as "generated from this scene text" matches by construction; ' +
+        '"recycled from an earlier scene" or "generic library clip" usually does not; stock clips match when the query and clip tags describe what the line talks about. ') +
     'Be strict and concrete. Reply ONLY with JSON: {"prompt_vs_narration": 0-100, "narration_vs_visuals": 0-100 or null when no scenes are given, ' +
     '"problems": [up to 4 short English strings naming the specific mismatch, empty when none], "worst_scene": scene number or null, "summary": one sentence (max 160 chars)}.'
   const user =
     `CUSTOMER WROTE${input.promptMayBeTruncated ? ' (stored text may be CUT (the store keeps 500-1,000 characters) — do not penalize narration that plausibly continues it)' : ''}:\n"""${input.prompt.slice(0, 5000)}"""\n\nNARRATION THE FILM USED:\n"""${input.narration.slice(0, 2600)}"""\n\n` +
-    (scenes.length ? `SCENES (spoken line → footage plan):\n${sceneLines}` : 'SCENES: not recorded for this film (judge only prompt_vs_narration; set narration_vs_visuals to null).')
+    (scenes.length ? `SCENES (${ai ? 'generation prompt per shot, in order' : 'spoken line → footage plan'}):\n${sceneLines}` : 'SCENES: not recorded for this film (judge only prompt_vs_narration; set narration_vs_visuals to null).')
   return [
     { role: 'system' as const, content: system },
     { role: 'user' as const, content: user },
@@ -147,7 +159,7 @@ export function knownCoherenceCase(prompt: string): { result: Omit<FastCoherence
  * Custo: uma chamada gpt-4o-mini (~US$ 0,001). Nunca roda no caminho da pessoa.
  */
 export async function scoreFastCoherence(
-  input: { prompt: string; narration: string; scenes?: FastSceneEvidence[] | null; promptMayBeTruncated?: boolean },
+  input: { prompt: string; narration: string; scenes?: FastSceneEvidence[] | null; promptMayBeTruncated?: boolean; engine?: string | null },
   opts?: { timeoutMs?: number; fetchImpl?: typeof fetch; model?: string },
 ): Promise<FastCoherenceResult | null> {
   const started = Date.now()

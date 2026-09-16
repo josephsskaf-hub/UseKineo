@@ -20,6 +20,7 @@ import { creditCostFor, normalizeQuality, creditCostForDuration } from '@/lib/cr
 import { debitVideoCredits } from '@/lib/credits/debit'
 import { releaseFailedFreeFastClaim, settleComposeCreditHoldForRender } from '@/lib/credits/composeHold'
 import { publishHref, unpublishHref } from '@/lib/videoShareLink'
+import { feedbackRowHtml } from '@/lib/filmFeedback' // KINEO-FEEDBACK-DO-FILME-2026-09-16
 import { garantirPacote } from '@/lib/publishPackServer'
 import { packEmailHtml } from '@/lib/publishPackEmail'
 import { getRenderIntent } from '@/lib/credits/renderIntent'
@@ -1248,6 +1249,7 @@ export async function GET(
                 ${readyFooter.html}
                 ${shareHtml}
                 ${packHtml}
+                ${feedbackRowHtml(shareVideoId, process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.usekineo.com', 'video_ready_delivery', 'dark')}
                 <!-- KINEO-REVIEW-NO-EMAIL-2026-08-24 (pacote noturno 2, AQ) — o
                      e-mail de entrega vai para TODO render pronto: é o maior
                      canal de pedido-no-pico que a casa tem, e estava mudo.

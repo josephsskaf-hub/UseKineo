@@ -1,9 +1,14 @@
-// KINEO-1-COERENCIA-2026-09-16 — leitura do painel: filmes do Kineo 1 com a nota de coerência.
+// KINEO-1-COERENCIA-2026-09-16 — leitura do painel: filmes com a nota de coerência.
+// R3 (fundador 16/09 noite: "aplicar em todos os motores… ter essa régua do meu olho"): TODOS os motores.
 //
-// Junta, por filme: videos (fast) → compose_submission_claim pelo render_id (o que foi NARRADO e o
-// generation_id) → fast_scene_plan pelo generation_id (o plano visual cena a cena, gravado pela rota)
-// → fast_coherence pelo generation_id (a nota, se já calculada). O que ainda não tem nota é julgado
-// aqui, até `maxCompute` por chamada, e a nota é GRAVADA como evento — o próximo painel só lê.
+// Junta, por filme: videos → compose_submission_claim pelo render_id (o que foi NARRADO e o generation_id)
+// → evidência visual pelo generation_id:
+//   · Kineo 1: fast_scene_plan (fala · busca · origem do clipe · tags), gravado pela rota;
+//   · motores de IA (Seedance/Veo/Kling/H3/Omni/S25): cinematic_dispatch_result, que a casa JÁ grava desde
+//     o #353A — `submitted_prompts` (o prompt exato de cada cena) e `scenes[].disposition` (aceita/rejeitada);
+// → fast_coherence pelo generation_id (a nota, se já calculada na versão vigente) → film_feedback pelo
+// video_id (o 👍/👎 que a pessoa deu no e-mail de entrega — a régua humana ao lado da do juiz).
+// O que ainda não tem nota é julgado aqui, até `maxCompute` por chamada, e gravado como evento.
 // Só serviço (service role); nunca chamado do lado do cliente.
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
@@ -15,14 +20,17 @@ import {
   type FastCoherenceResult,
   type FastSceneEvidence,
 } from '@/lib/fastCoherence'
+import { FILM_FEEDBACK_EVENT, type FilmFeedbackVerdict } from '@/lib/filmFeedback'
 
 export type FastCoherenceRow = {
   video_id: string
   created_at: string
   user_id: string
   email: string | null
+  /** quality_mode do vídeo (fast, cinematic_ai, cinematic_kling, …) */
+  engine: string
   topic: string
-  /** true = só existe o texto cortado em 500 do vídeo (filme anterior ao rastro completo) */
+  /** true = só existe o texto cortado (500/1.000) do vídeo/claim (filme anterior ao rastro completo) */
   topic_truncated: boolean
   narration: string | null
   url: string | null
@@ -35,10 +43,24 @@ export type FastCoherenceRow = {
   sources: Record<string, number>
   coherence: FastCoherenceResult | null
   coherence_at: string | null
+  /** 👍/👎 da pessoa (e-mail de entrega), com comentário se deixou */
+  feedback: { verdict: FilmFeedbackVerdict; comment: string | null; at: string } | null
 }
 
-type VideoRow = { id: string; user_id: string; created_at: string; topic: string | null; video_url: string | null; duration: number | null; credits_used: number | null; render_id: string | null }
+type VideoRow = { id: string; user_id: string; created_at: string; topic: string | null; video_url: string | null; duration: number | null; credits_used: number | null; render_id: string | null; quality_mode: string | null }
 type EventRow = { created_at: string; session_id: string | null; user_id: string | null; metadata: Record<string, unknown> | null }
+
+export const ENGINE_LABEL: Record<string, string> = {
+  fast: 'Kineo 1',
+  cinematic_ai: 'Seedance 1.5',
+  cinematic_veo: 'Veo 3.1',
+  cinematic_kling: 'Kling 2.5',
+  cinematic_hollywood: 'Kling 3',
+  cinematic_h3: 'MiniMax H3',
+  cinematic_omni: 'Omni',
+  cinematic_s25: 'Seedance 2.5',
+  avatar: 'Avatar',
+}
 
 function histogram(scenes: FastSceneEvidence[] | null): Record<string, number> {
   const h: Record<string, number> = {}
@@ -46,13 +68,37 @@ function histogram(scenes: FastSceneEvidence[] | null): Record<string, number> {
   return h
 }
 
+/** cinematic_dispatch_result → evidência por cena (prompt exato + aceita/rejeitada). */
+export function evidenceFromDispatch(md: Record<string, unknown> | null | undefined): FastSceneEvidence[] | null {
+  if (!md) return null
+  const prompts = Array.isArray(md.submitted_prompts) ? (md.submitted_prompts as unknown[]) : []
+  const scenes = Array.isArray(md.scenes) ? (md.scenes as Array<Record<string, unknown>>) : []
+  const n = Math.max(prompts.length, scenes.length)
+  if (n === 0) return null
+  const out: FastSceneEvidence[] = []
+  for (let i = 0; i < n; i++) {
+    const sc = scenes.find((s) => s && s.scene_index === i) ?? scenes[i]
+    const disp = typeof sc?.disposition === 'string' ? (sc.disposition as string) : 'unknown'
+    const p = typeof prompts[i] === 'string' ? (prompts[i] as string) : null
+    out.push({
+      scene: i + 1,
+      voiceover: '',
+      query: p ? p.replace(/\s+/g, ' ').trim().slice(0, 320) : null,
+      from: i,
+      sources: [disp === 'accepted' ? 'aiVideo' : disp === 'rejected' ? 'rejected' : `ai_${disp}`],
+      tags: [],
+    })
+  }
+  return out
+}
+
 /**
- * Filmes do Kineo 1 na janela, com nota. `userId` restringe a uma pessoa (painel por pessoa).
+ * Filmes na janela, com nota. `userId` restringe a uma pessoa; `engine` a um motor (quality_mode).
  * `maxCompute` = quantos filmes sem nota são julgados nesta chamada (0 = só ler).
  */
 export async function listFastCoherence(
   admin: SupabaseClient,
-  opts: { hours?: number; limit?: number; userId?: string; maxCompute?: number; excludeEmails?: string[] },
+  opts: { hours?: number; limit?: number; userId?: string; engine?: string; maxCompute?: number; excludeEmails?: string[] },
 ): Promise<FastCoherenceRow[]> {
   const hours = Math.max(1, Math.min(24 * 30, opts.hours ?? 48))
   const limit = Math.max(1, Math.min(300, opts.limit ?? 120))
@@ -60,20 +106,22 @@ export async function listFastCoherence(
 
   let vq = admin
     .from('videos')
-    .select('id, user_id, created_at, topic, video_url, duration, credits_used, render_id')
-    .eq('quality_mode', 'fast')
+    .select('id, user_id, created_at, topic, video_url, duration, credits_used, render_id, quality_mode')
+    .neq('quality_mode', 'clip') // "Just this clip" não tem narração: nada para ser coerente com
     .gte('created_at', since)
     .order('created_at', { ascending: false })
     .limit(limit)
   if (opts.userId) vq = vq.eq('user_id', opts.userId)
+  if (opts.engine) vq = vq.eq('quality_mode', opts.engine)
   const { data: vids } = await vq
   const videos = (vids ?? []) as VideoRow[]
   if (videos.length === 0) return []
 
   const userIds = Array.from(new Set(videos.map((v) => v.user_id)))
+  const videoIds = videos.map((v) => v.id)
   const renderIds = videos.map((v) => v.render_id).filter((r): r is string => typeof r === 'string' && r.length > 0)
 
-  const [profs, claims] = await Promise.all([
+  const [profs, claims, feedbacks] = await Promise.all([
     admin.from('profiles').select('id, email').in('id', userIds),
     renderIds.length
       ? admin
@@ -84,6 +132,13 @@ export async function listFastCoherence(
           .gte('created_at', since)
           .limit(1000)
       : Promise.resolve({ data: [] as EventRow[] }),
+    admin
+      .from('events')
+      .select('created_at, session_id, user_id, metadata')
+      .eq('name', FILM_FEEDBACK_EVENT)
+      .in('session_id', videoIds)
+      .order('created_at', { ascending: true })
+      .limit(1000),
   ])
   const emailOf = new Map<string, string | null>()
   for (const p of (profs.data ?? []) as Array<{ id: string; email: string | null }>) emailOf.set(p.id, p.email)
@@ -98,34 +153,53 @@ export async function listFastCoherence(
     new Set(Array.from(claimByRender.values()).map((c) => c.metadata?.generation_id).filter((g): g is string => typeof g === 'string' && g.length > 0)),
   )
 
-  const [plans, scores] = genIds.length
+  const [plans, dispatches, scores] = genIds.length
     ? await Promise.all([
         admin.from('events').select('created_at, session_id, user_id, metadata').eq('name', FAST_SCENE_PLAN_EVENT).in('session_id', genIds).limit(1000),
+        admin.from('events').select('created_at, session_id, user_id, metadata').eq('name', 'cinematic_dispatch_result').in('metadata->>generation_id', genIds).order('created_at', { ascending: false }).limit(1000),
         admin.from('events').select('created_at, session_id, user_id, metadata').eq('name', FAST_COHERENCE_EVENT).in('session_id', genIds).limit(1000),
       ])
-    : [{ data: [] as EventRow[] }, { data: [] as EventRow[] }]
+    : [{ data: [] as EventRow[] }, { data: [] as EventRow[] }, { data: [] as EventRow[] }]
   const planByGen = new Map<string, EventRow>()
   for (const p of (plans.data ?? []) as EventRow[]) if (p.session_id && !planByGen.has(p.session_id)) planByGen.set(p.session_id, p)
+  const dispatchByGen = new Map<string, EventRow>()
+  for (const d of (dispatches.data ?? []) as EventRow[]) {
+    const g = typeof d.metadata?.generation_id === 'string' ? (d.metadata.generation_id as string) : null
+    if (g && !dispatchByGen.has(g)) dispatchByGen.set(g, d) // mais recente primeiro (retry ganha)
+  }
   const scoreByGen = new Map<string, EventRow>()
   for (const s of (scores.data ?? []) as EventRow[]) {
     if (!s.session_id) continue
     const prev = scoreByGen.get(s.session_id)
     if (!prev || prev.created_at < s.created_at) scoreByGen.set(s.session_id, s)
   }
+  // Último 👍/👎 por vídeo; o comentário (evento posterior) cola no veredito.
+  const feedbackByVideo = new Map<string, { verdict: FilmFeedbackVerdict; comment: string | null; at: string }>()
+  for (const f of (feedbacks.data ?? []) as EventRow[]) {
+    if (!f.session_id) continue
+    const v = f.metadata?.verdict
+    const prev = feedbackByVideo.get(f.session_id)
+    if (v === 'up' || v === 'down') feedbackByVideo.set(f.session_id, { verdict: v, comment: prev?.comment ?? null, at: f.created_at })
+    else if (typeof f.metadata?.comment === 'string' && prev) prev.comment = (f.metadata.comment as string).slice(0, 600)
+  }
 
   const rows: FastCoherenceRow[] = []
   for (const v of videos) {
     const email = emailOf.get(v.user_id) ?? null
     if (email && excluded.has(email.toLowerCase())) continue
+    const engine = v.quality_mode ?? 'unknown'
     const claim = v.render_id ? claimByRender.get(v.render_id) : undefined
     const gen = typeof claim?.metadata?.generation_id === 'string' ? (claim.metadata.generation_id as string) : null
     const narration = typeof claim?.metadata?.narration === 'string' ? (claim.metadata.narration as string) : null
     const plan = gen ? planByGen.get(gen) : undefined
-    const scenes = Array.isArray(plan?.metadata?.scenes) ? (plan!.metadata!.scenes as FastSceneEvidence[]) : null
+    const scenes: FastSceneEvidence[] | null =
+      engine === 'fast'
+        ? Array.isArray(plan?.metadata?.scenes) ? (plan!.metadata!.scenes as FastSceneEvidence[]) : null
+        : evidenceFromDispatch(gen ? dispatchByGen.get(gen)?.metadata : null)
     const scoreEv = gen ? scoreByGen.get(gen) : undefined
     // Só a versão vigente do juiz vale; nota antiga é julgada de novo (custa ~US$ 0,001).
     const coherence = scoreEv?.metadata && typeof scoreEv.metadata.score === 'number' && scoreEv.metadata.version === FAST_COHERENCE_VERSION ? (scoreEv.metadata as unknown as FastCoherenceResult) : null
-    // O texto mais longo que existir: plano (inteiro, filmes novos) > claim > vídeo (cortado em 500).
+    // O texto mais longo que existir: plano (inteiro, filmes novos) > claim (1.000) > vídeo (500).
     const candidatos = [typeof plan?.metadata?.topic === 'string' ? (plan!.metadata!.topic as string) : '', typeof claim?.metadata?.topic === 'string' ? (claim.metadata.topic as string) : '', v.topic ?? '']
     const topic = candidatos.reduce((a, b) => (b.length > a.length ? b : a), '')
     const topicTruncated = !(typeof plan?.metadata?.topic === 'string') && topic.length >= TOPIC_TRUNCATION_HINT
@@ -135,6 +209,7 @@ export async function listFastCoherence(
       created_at: v.created_at,
       user_id: v.user_id,
       email,
+      engine,
       topic,
       topic_truncated: topicTruncated,
       narration,
@@ -148,6 +223,7 @@ export async function listFastCoherence(
       sources,
       coherence,
       coherence_at: scoreEv?.created_at ?? null,
+      feedback: feedbackByVideo.get(v.id) ?? null,
     })
   }
 
@@ -157,7 +233,7 @@ export async function listFastCoherence(
   if (pending.length > 0) {
     await Promise.all(
       pending.map(async (r) => {
-        const result = await scoreFastCoherence({ prompt: r.topic, narration: r.narration ?? '', scenes: r.scenes, promptMayBeTruncated: r.topic_truncated })
+        const result = await scoreFastCoherence({ prompt: r.topic, narration: r.narration ?? '', scenes: r.scenes, promptMayBeTruncated: r.topic_truncated, engine: r.engine })
         if (!result) return
         r.coherence = result
         r.coherence_at = new Date().toISOString()
@@ -166,7 +242,7 @@ export async function listFastCoherence(
           user_id: r.user_id,
           session_id: r.generation_id,
           path: '/admin/coerencia',
-          metadata: { ...result, video_id: r.video_id, render_id: r.render_id, generation_id: r.generation_id, topic: r.topic.slice(0, 120), topic_truncated: r.topic_truncated },
+          metadata: { ...result, engine: r.engine, video_id: r.video_id, render_id: r.render_id, generation_id: r.generation_id, topic: r.topic.slice(0, 120), topic_truncated: r.topic_truncated },
         })
       }),
     )
