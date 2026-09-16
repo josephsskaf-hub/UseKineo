@@ -590,7 +590,8 @@ ${visualDescriptionDirection(visualPolicy)}
   }
   // A metade nova mostra o MESMO assunto com outro enquadramento: duas cenas idênticas viram dois clipes pagos iguais
   // (a "repetição artificial" que o fundador mandou caçar no Veo). A consulta de banco troca só o prefixo de plano.
-  const outroPlano = (d: string) => (/^close-up/i.test(d.trim()) ? `Wide establishing shot of the same moment: ${d}` : `Close-up detail of the same moment: ${d}`)
+  const SEM_PLANO_RE = /^(?:(?:extreme |tight )?close-up(?: macro)?|wide(?: establishing)?(?: shot)?|medium(?: shot)?|low[- ]angle(?: shot)?|high[- ]angle(?: shot)?|aerial(?: drone)?(?: shot)?|drone shot|pov|tracking shot|handheld shot|slow[- ]motion shot|macro shot)\s*(?:of\s+|shot of\s+|:\s*)?/i
+  const outroPlano = (d: string) => { const t = d.trim(); const semPlano = t.replace(SEM_PLANO_RE, ''); return /^(?:extreme |tight )?close-up/i.test(t) ? `Wide establishing shot of the same moment: ${semPlano}` : `Close-up detail of the same moment: ${semPlano}` }
   const outraConsulta = (q: string) => { const semPrefixo = q.replace(/^(?:aerial drone|close-up macro|wide establishing|medium shot|low angle|POV)\s+/i, ''); return /^close-up/i.test(q.trim()) ? `wide establishing ${semPrefixo}` : `close-up macro ${semPrefixo}` }
   let guardaDivisao = 40
   while (scenes.length < safeCount && guardaDivisao-- > 0) {

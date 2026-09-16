@@ -14,7 +14,7 @@
 
 export const CLASSIC_WORDS_PER_SECOND = 3.1
 /** Tolerância do escalador do compose (lib/compose scaleVoiceoverScript): fora disto o corpo é reescrito. */
-export const COMPOSE_RESCALE_TOLERANCE = 0.15
+export const COMPOSE_RESCALE_TOLERANCE = 0.25 // R17 (15/09): o escalador só condensa além de +25 % (lib/compose)
 export const COMPOSE_RESCALE_FLOOR = 0.08 // KINEO-VOZ-NAO-ARRASTA-2026-09-15: abaixo de 92 % o compose expande
 /** Piso de duração (contrato C2): filme abaixo de 95% do alvo é história interrompida. */
 export const DURATION_FLOOR = 0.95
@@ -89,7 +89,7 @@ export function classicDryRunReport(input: {
   }
   if (rescaleRisk) {
     problems.push(
-      `${totalWords} palavras contra ${expectedWords} esperadas (${drift > 0 ? '+' : ''}${Math.round(drift * 100)}%): fora de −8%/+15% (escalador desde 15/09: expande abaixo de 92%, condensa acima de 115%), o compose REESCREVE o corpo da narração` +
+      `${totalWords} palavras contra ${expectedWords} esperadas (${drift > 0 ? '+' : ''}${Math.round(drift * 100)}%): fora de −8%/+25% (escalador desde 15/09: expande abaixo de 92%, condensa acima de 125%), o compose REESCREVE o corpo da narração` +
         (input.verbatim ? ' — e este roteiro é "Use my script as is"' : ''),
     )
   }
@@ -102,7 +102,7 @@ export function classicDryRunReport(input: {
   const pass = problems.length === 0
   return {
     verdict: pass
-      ? `PASS — ${scenes.length} cenas, ${totalWords} palavras ≈ ${speechSeconds}s de fala para ${target}s; dentro de ±15% do escalador, footage cobre a fala`
+      ? `PASS — ${scenes.length} cenas, ${totalWords} palavras ≈ ${speechSeconds}s de fala para ${target}s; dentro da faixa do escalador (−8%/+25%), footage cobre a fala`
       : `FAIL — ${problems.join(' · ')}`,
     pass,
     problems,

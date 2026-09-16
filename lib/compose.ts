@@ -396,7 +396,10 @@ export async function scaleVoiceoverScript(rawScript: string, targetWords: numbe
   // (Kling 976eb60d: 119/138 = 86 % passava aqui e a voz saiu a 0,73). Faltando palavras, o corpo é
   // EXPANDIDO sem inventar acontecimentos (prompt de fidelidade abaixo), nunca reescrito.
   const lo = Math.floor(targetWords * 0.92)
-  const hi = Math.ceil(targetWords * 1.15)
+  // R17 (ensaio do Veo, 15/09): 162 palavras para 138 (+17 %) reprovava por "o compose REESCREVE" — reescrever a narração
+  // sob clipes pagos para as frases originais é o defeito do Kineo 1 de ontem; passar do alvo é bom (fundador 02/09) e o
+  // corretivo acelera a voz até 1,3. Acima do alvo, o escalador só condensa além de +25 %.
+  const hi = Math.ceil(targetWords * 1.25)
   if (words.length >= lo && words.length <= hi) return cleanInput
   const expandir = words.length < lo
 
