@@ -26,6 +26,7 @@ import { STARTER_CREDITS, STARTER_USD_AMOUNT } from '@/lib/marketingPrice'
 import { TRIAL_CREDITS_SHOWN } from '@/lib/freeTierOffer'
 import { CARD_ENTRY_TRIAL_CREDITS } from '@/lib/entryPolicy'
 import { S25_PUBLIC } from '@/lib/engineLaunch'
+import { qualityPaused, PAUSED_ENGINES_COPY } from '@/lib/engineLaunch' // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15
 import { ENGINE_LANDING_PUBLIC_PATHS } from '@/lib/growth/engineLandingIntent'
 
 export const metadata: Metadata = {
@@ -102,7 +103,7 @@ export default function ModelsPricingPage() {
             </tr>
           </thead>
           <tbody>
-            {ROWS.map((r) => {
+            {ROWS.filter((r) => !qualityPaused(r.quality)).map((r) => { // KINEO-MOTOR-EM-MANUTENCAO: preço de motor pausado não se anuncia
               const c60 = creditCostForDuration(r.quality, true, 60)
               const free = c60 > 0 ? Math.floor(CARD_ENTRY_TRIAL_CREDITS / c60) : 0
               return (
@@ -134,6 +135,7 @@ export default function ModelsPricingPage() {
         </table>
       </div>
 
+      <p style={{ fontSize: 13.5, lineHeight: 1.7, color: '#ffb454', margin: '12px 0 0' }}>{PAUSED_ENGINES_COPY}</p>
       <p style={{ fontSize: 14, lineHeight: 1.7, color: '#8f8f9c', margin: '16px 0 40px' }}>
         A 35-second film costs about 60% of the 60-second price and a 90-second film about 150% — the same
         function that prints these numbers is the one that charges your account, so the screen and the invoice

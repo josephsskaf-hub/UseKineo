@@ -26,11 +26,9 @@ type PublicEngine = {
 const PUBLIC_ENGINES: readonly PublicEngine[] = [
   { quality: 'fast', detail: 'Matched stock footage + AI voiceover' },
   { quality: 'cinematic_ai', detail: 'Seedance 1.5 generated scenes' },
-  { quality: 'cinematic_h3', detail: 'MiniMax H3 with character consistency' },
   { quality: 'cinematic_kling', detail: 'Kling 2.5 cinematic scenes' },
   { quality: 'cinematic_veo', detail: 'Google Veo 3.1 cinematic scenes' },
   { quality: 'cinematic_hollywood', detail: 'Kling 3 with native lip sync' },
-  { quality: 'cinematic_omni', detail: 'Omni Flash, top blind-arena score' },
   ...(S25_PUBLIC ? [{ quality: 'cinematic_s25' as const, detail: 'Seedance 2.5, newest ByteDance model (480p→HD)' }] : []),
 ]
 

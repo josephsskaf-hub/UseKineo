@@ -14,7 +14,7 @@ const check = (value, message) => { assert.ok(value, message); checks += 1 }
 
 check(/starter:\s*\{\s*usd:\s*990\s*\}/.test(pricing), 'canonical Starter price is $9.90 USD (V5, restauração de 09/09)')
 check(/CARD_ENTRY_ONLY\s*=\s*false/.test(read('lib/entryPolicy.ts')), 'restauração 09/09: a entrada é grátis (30 créditos), o $1 morreu')
-check(/VIDEO_ENGINE_COUNT_WORD\s*=\s*S25_PUBLIC\s*\?\s*'Nine'\s*:\s*'Eight'/.test(engines), 'public engine count remains eight before S25 launch')
+check(/VIDEO_ENGINE_COUNT_WORD\s*=\s*'Six'/.test(engines) && /PAUSED_ENGINE_KEYS[^\n]*\['h3', 'omni', 's25'\]/.test(engines), 'public engine count is six while H3, Omni and S25 are paused (fundador 15/09; era Eight/Nine)')
 
 for (const truth of [
   'free to start',

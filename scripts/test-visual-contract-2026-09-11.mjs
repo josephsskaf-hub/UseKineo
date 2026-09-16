@@ -383,6 +383,8 @@ async function entryToPayload({ prompt, scriptMode, anchored = false, engine = '
     prompt, clipCount, hollywoodPath: false, classicVisualPolicy, classicWriterOptions, parsedScript: d.parsedScript, verbatim: d.verbatim,
     resolveVerbatimSegments: (...a) => { resolveCalls++; return verbatimBeats.resolveVerbatimSegments(...a) },
     generateScenes: plannerApi.generateScenes, shortCaptionFromVoiceover: plannerApi.shortCaptionFromVoiceover,
+    // 15/09 (KINEO-FALA-CLASSICA-FIEL): a varredura de datas/lugares na fala clássica roda dentro do construtor; aqui é identidade (o texto do fixture não tem data inventada)
+    removerDatasInventadas: (t) => ({ texto: t, removidas: [] }), scrubInventedSetting: (t) => ({ text: t, removed: [] }),
   })
   const scenes = await constructed.run()
   const model = modelForEngine(engine)

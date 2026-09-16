@@ -40,6 +40,7 @@ import {
 } from '@/lib/growth/engineLandingIntent'
 import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
 import { ENGINES, ENGINE_SLUGS, type Engine } from '@/lib/growth/enginePageCatalog'
+import { enginePaused } from '@/lib/engineLaunch' // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15
 const OFFER = getFreeTierOffer()
 
 export const dynamic = 'force-static'
@@ -139,6 +140,12 @@ export default async function EnginePage({ params }: { params: { engine: string 
             {e.name} · {engineCostLabel(e)}
           </div>
           <h1 style={{ fontSize: 'clamp(1.8rem, 5vw, 2.6rem)', fontWeight: 900, lineHeight: 1.15, margin: '16px 0 0' }}>{e.h1}</h1>
+          {enginePaused(e.param) && (
+            <div role="status" style={{ margin: '14px 0 0', padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(255,180,84,.45)', background: 'rgba(255,180,84,.10)', color: '#ffd9a3', fontSize: 14.5, lineHeight: 1.6 }}>
+              <strong>Temporarily paused for maintenance.</strong> {enginePaused(e.param)!.message}{' '}
+              <Link href={`/studio?engine=${enginePaused(e.param)!.alternative.key}&intent_campaign=engine_paused`} style={{ color: '#ffb454', fontWeight: 700 }}>Open {enginePaused(e.param)!.alternative.label} →</Link>
+            </div>
+          )}
           <p style={{ fontSize: '1.02rem', color: '#86868b', lineHeight: 1.6, margin: '16px auto 0', maxWidth: 680 }}>{e.intro}</p>
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10, marginTop: 22 }}>
             <OrganicCtaLink

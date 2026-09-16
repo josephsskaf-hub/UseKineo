@@ -13,13 +13,39 @@ import { isInternalEmail } from '@/lib/internalAccounts'
 
 export const S25_PUBLIC = false
 
+// ═══ KINEO-MOTOR-EM-MANUTENCAO-2026-09-15 — decisão do fundador (15/09, noite): a oferta concentra em cinco
+// motores (Kineo 1, Kling 2.5, Kling 3 aprovados; Seedance 1.5 e Veo 3.1 em prova). MiniMax H3, Omni Flash e
+// Seedance 2.5 ficam PAUSADOS para novas gerações: o servidor recusa antes de qualquer débito, a interface
+// mostra manutenção com alternativa, e as superfícies públicas param de vender o que não pode ser apertado.
+// Nada é apagado: motores, custos, filmes, clipes e a recuperação das tentativas existentes continuam.
+export type PausedEngineKey = 'h3' | 'omni' | 's25'
+export interface EnginePause { since: string; label: string; alternative: { key: 'hollywood' | 'kling'; label: string }; message: string }
+export const ENGINE_PAUSE: Record<PausedEngineKey, EnginePause> = {
+  h3: { since: '2026-09-15', label: 'MiniMax H3', alternative: { key: 'hollywood', label: 'Kling 3' }, message: 'MiniMax H3 is temporarily paused for maintenance while we fix its film quality. Nothing was charged. Kling 3 is the closest engine and is available right now.' },
+  omni: { since: '2026-09-15', label: 'Omni Flash', alternative: { key: 'hollywood', label: 'Kling 3' }, message: 'Omni Flash is temporarily paused for maintenance while we fix its film quality. Nothing was charged. Kling 3 is the closest engine and is available right now.' },
+  s25: { since: '2026-09-15', label: 'Seedance 2.5', alternative: { key: 'kling', label: 'Kling 2.5' }, message: 'Seedance 2.5 is temporarily paused for maintenance. Nothing was charged. Kling 2.5 is available right now.' },
+}
+export const PAUSED_ENGINE_KEYS: readonly PausedEngineKey[] = ['h3', 'omni', 's25']
+/** Pausa do motor pela chave da UI/rota ('h3' | 'omni' | 's25'); null quando o motor está ativo. */
+export function enginePaused(engine: string | null | undefined): EnginePause | null {
+  const k = typeof engine === 'string' ? engine.toLowerCase() : ''
+  return (PAUSED_ENGINE_KEYS as readonly string[]).includes(k) ? ENGINE_PAUSE[k as PausedEngineKey] : null
+}
+/** Pausa pela quality do biller ('cinematic_h3' | 'cinematic_omni' | 'cinematic_s25'). */
+export function qualityPaused(quality: string | null | undefined): EnginePause | null {
+  const q = typeof quality === 'string' ? quality.toLowerCase() : ''
+  return q === 'cinematic_h3' ? ENGINE_PAUSE.h3 : q === 'cinematic_omni' ? ENGINE_PAUSE.omni : q === 'cinematic_s25' ? ENGINE_PAUSE.s25 : null
+}
+
 /** O 2.5 aparece para este e-mail? Publico depois do lancamento; antes, so a casa. */
 export function s25Visible(email?: string | null): boolean {
   return S25_PUBLIC || isInternalEmail(email)
 }
 
 /** Copy de contagem: 'Eight' hoje, 'Nine' no lancamento. Uma verdade, N telas. */
-export const VIDEO_ENGINE_COUNT_WORD = S25_PUBLIC ? 'Nine' : 'Eight'
-export const VIDEO_ENGINE_COUNT_SENTENCE_START = S25_PUBLIC ? 'Nine' : 'Eight'
-export const VIDEO_ENGINE_LIST_COPY = (S25_PUBLIC ? 'Seedance 2.5, ' : '') +
-  'Omni Flash (Google\u2019s #1-ranked video model, Aug 2026), Veo 3.1, Kling 3, MiniMax H3, Kling 2.5, Seedance 1.5, Kineo 1 and Avatar'
+// KINEO-MOTOR-EM-MANUTENCAO-2026-09-15 — a contagem e a lista públicas só falam dos motores que o público pode
+// apertar HOJE: Veo 3.1, Kling 3, Kling 2.5, Seedance 1.5, Kineo 1 e Avatar (H3/Omni/S25 pausados, S25 interno).
+export const VIDEO_ENGINE_COUNT_WORD = 'Six'
+export const VIDEO_ENGINE_COUNT_SENTENCE_START = 'Six'
+export const VIDEO_ENGINE_LIST_COPY = 'Veo 3.1, Kling 3, Kling 2.5, Seedance 1.5, Kineo 1 and Avatar'
+export const PAUSED_ENGINES_COPY = 'MiniMax H3, Omni Flash and Seedance 2.5 are temporarily paused for maintenance (since 15 September 2026); nothing is charged for a blocked attempt, and Kling 3 / Kling 2.5 cover the same jobs meanwhile.'

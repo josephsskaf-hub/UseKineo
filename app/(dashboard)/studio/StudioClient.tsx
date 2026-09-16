@@ -18,6 +18,7 @@ import { STUDIO_KIT_CSS } from '@/components/studioKit'
 import { useRouter, useSearchParams } from 'next/navigation'
 // KINEO-H3-2026-08-19 — custo por motor vem da fonte única, nunca de string.
 import { creditCostFor, creditCostForDuration } from '@/lib/credits/engineCost'
+import { enginePaused } from '@/lib/engineLaunch' // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15
 import type { Quality } from '@/lib/credits/engineCost'
 // KINEO-MULTIFORMATO-2026-09-02 — os 4 enquadramentos, de uma fonte só.
 import { allAspectSpecs, type Aspect } from '@/lib/aspect'
@@ -261,7 +262,7 @@ export default function StudioClient() {
       })
     }
     const e = sp.get('engine')
-    if (e && ENGINES.some((x) => x.key === e) && (e !== 's25')) setEngine(e as EngineKey)
+    if (e && ENGINES.some((x) => x.key === e) && (e !== 's25') && !enginePaused(e)) setEngine(e as EngineKey) // KINEO-MOTOR-EM-MANUTENCAO: ?engine= pausado cai no padrão
     const p = sp.get('prompt')
     if (p) setPrompt(p)
     const requestedScriptMode = sp.get('script_mode')
@@ -588,9 +589,9 @@ export default function StudioClient() {
             </button>
             {pickerOpen && (
               <div className="picker">
-                {ENGINES.filter((e) => e.key !== 's25' || internal).map((e) => (
-                  <button key={e.key} type="button" className={`pk${e.key === engine ? ' on' : ''}`}
-                    onClick={() => { setEngine(e.key); setPickerOpen(false) }}>
+                {ENGINES.filter((e) => e.key !== 's25' || internal).map((e) => { const pausa = enginePaused(e.key); return (
+                  <button key={e.key} type="button" className={`pk${e.key === engine ? ' on' : ''}`} disabled={Boolean(pausa)} aria-disabled={Boolean(pausa)} title={pausa ? pausa.message : undefined} style={pausa ? { opacity: 0.55, cursor: 'not-allowed' } : undefined}
+                    onClick={() => { if (pausa) return; setEngine(e.key); setPickerOpen(false) }}>
                     <span className="eng-ic" aria-hidden="true">{e.icon}</span>
                     <span className="pk-tx">
                       {/* ═══ KINEO-PRECO-VISIVEL-2026-09-02 — REVERTE O #2026-08-18 ═══
@@ -606,10 +607,10 @@ export default function StudioClient() {
                           queimaram o trial inteiro no primeiro clique sem saber.
                           Agora cada card diz o custo E quantos filmes o saldo compra. */}
                       <span className="t">
-                        <b>{e.name}{e.tag && <span className="tag"><UiLabel>{e.tag}</UiLabel></span>}{STUDIO_ONLY_ENGINE_KEYS.has(e.key) && <span className="tag" title="Studio plan engine"><UiLabel>Studio</UiLabel></span>}</b>
+                        <b>{e.name}{pausa ? <span className="tag" style={{ background: 'rgba(255,180,84,.16)', color: '#ffb454' }}><UiLabel>Maintenance</UiLabel></span> : e.tag && <span className="tag"><UiLabel>{e.tag}</UiLabel></span>}{!pausa && STUDIO_ONLY_ENGINE_KEYS.has(e.key) && <span className="tag" title="Studio plan engine"><UiLabel>Studio</UiLabel></span>}</b>
                         <i>{engineCostLabel(e.key)}</i>
                       </span>
-                      <span className="d"><UiLabel>{e.desc}</UiLabel></span>
+                      <span className="d"><UiLabel>{pausa ? `Temporarily paused for maintenance · use ${pausa.alternative.label} meanwhile` : e.desc}</UiLabel></span>
                       <span className="d" style={{ color: e.key === 'fast' ? '#5cb3ff' : undefined, marginTop: 2 }}>
                         {filmsLabel(e.key)}
                       </span>
@@ -621,7 +622,7 @@ export default function StudioClient() {
                       </span>
                     )}
                   </button>
-                ))}
+                ) })}
                 {/* KINEO-SPRINT-UI8-2026-08-30 — Avatar era o motor INVISIVEL
                     (auditoria 28/08, achado #2): anunciado como 1 dos 8 motores,
                     0 debitos NA HISTORIA — porque nao existia em NENHUM seletor.

@@ -631,9 +631,14 @@ check('public calculator imports canonical Plan Fit', publicCalculator.includes(
 check('public calculator has no private plan table', !publicCalculator.includes('const PLANS:') && !publicCalculator.includes('TIER_PRICES'))
 check('public calculator has no duplicated engine credit costs', !publicCalculator.includes('creditsPerReferenceVideo'))
 check('public calculator exposes the three supported durations', publicCalculator.includes('const PUBLIC_DURATIONS = [35, 60, 90] as const'))
-for (const quality of ['fast', 'cinematic_ai', 'cinematic_h3', 'cinematic_kling', 'cinematic_veo', 'cinematic_hollywood', 'cinematic_omni']) {
+// 15/09 (KINEO-MOTOR-EM-MANUTENCAO): H3 e Omni pausados pelo fundador — a calculadora pública não os expõe enquanto durar a pausa.
+for (const quality of ['fast', 'cinematic_ai', 'cinematic_kling', 'cinematic_veo', 'cinematic_hollywood']) {
   check(`public calculator exposes ${quality}`, publicCalculator.includes(`quality: '${quality}'`))
 }
+for (const quality of ['cinematic_h3', 'cinematic_omni']) {
+  check(`public calculator does NOT expose paused ${quality}`, !publicCalculator.includes(`quality: '${quality}'`))
+}
+check('public calculator keeps cinematic_s25 behind the S25_PUBLIC switch (internal only)', /S25_PUBLIC\s*\?[\s\S]{0,200}quality: 'cinematic_s25'/.test(publicCalculator))
 check('public calculator recalculates cost by duration', publicCalculator.includes('quality, seconds, monthlyFilms: videos, currency'))
 check('public calculator renders the lower-cost plan path', publicCalculator.includes('result.lowerCostAlternative') && publicCalculator.includes("'lower_plan_capacity'"))
 check('public calculator renders same-engine no-plan capacity', publicCalculator.includes('result.maximumSameEngineFilms') && publicCalculator.includes("'same_engine_capacity'"))

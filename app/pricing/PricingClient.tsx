@@ -270,7 +270,7 @@ function buildPricing(currency: DisplayCurrency, region: PriceRegion) {
       // do card e vive na tabela comparativa.
       // KINEO-PRICING-V5-2026-08-17 — 320cr: volume + Kling 3 todo mês +
       // 2 Enhance HD grátis (Topaz) + storage ilimitado.
-      outcome: 'Every engine — Kling 3, Veo 3.1, MiniMax H3, Omni Flash, Avatar — plus 2 free HD enhances and unlimited forever storage.',
+      outcome: 'Every available engine — Kling 3, Veo 3.1, Kling 2.5, Seedance 1.5, Kineo 1, Avatar — plus 2 free HD enhances and unlimited forever storage.', // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15: H3/Omni pausados não se vendem
       videosPerMonth: filmsAndScenes('pro'),
       storageLine: 'Unlimited projects · forever storage',
       cta: { label: 'Get Started', href: '#checkout' },
@@ -1132,11 +1132,10 @@ export default function PricingClient() {
                   const engineRows: { ic: string; name: string; cost: number; note?: string }[] = [
                     { ic: '⚡', name: 'Kineo 1 quick videos', cost: costFast },
                     { ic: '🎬', name: 'Seedance 1.5 films', cost: costSeed },
-                    { ic: '🎥', name: 'MiniMax H3 films · lip-sync', cost: costH3 },
                     { ic: '🎞', name: 'Kling 2.5 films', cost: costKling25 },
                     { ic: '🧑‍🎤', name: 'AI Presenter videos', cost: costPres },
                     { ic: '🌐', name: 'Veo 3.1 films', cost: costVeo },
-                    { ic: '🏆', name: S25_PUBLIC ? 'Kling 3 · Omni Flash · Seedance 2.5' : 'Kling 3 · Omni Flash (#1 ranked)', cost: costFlag },
+                    { ic: '🏆', name: 'Kling 3 films · native voice & lip sync', cost: costFlag }, // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15
                   ]
                   return (
                     <div className="mb-3">
@@ -1175,7 +1174,7 @@ export default function PricingClient() {
                       <div className="mt-2 flex flex-col gap-[2px] text-[10.5px] text-[#86868b]">
                         <span>✓ 1080×1920 Full HD master on every film</span>
                         <span>✓ Script, voiceover, karaoke captions &amp; soundtrack included</span>
-                        <span>✓ Characters that speak your lines with lip sync (Kling 3 · H3)</span>
+                        <span>✓ Characters that speak your lines with lip sync (Kling 3)</span>
                         <span>✓ Character Lock — same face in every video</span>
                         <span>✓ Animate a Photo · AI Thumbnails · Viral Now topics</span>
                       </div>
@@ -1865,7 +1864,7 @@ export default function PricingClient() {
             ))}
           </div>
           <p className="mx-auto mt-3 max-w-2xl text-center text-[12px] text-[#86868b]">
-            On Kling 3 and MiniMax H3, characters on screen speak their own lines with lip sync while a narrator carries the story.
+            On Kling 3, characters on screen speak their own lines with lip sync while a narrator carries the story.
           </p>
         </div>
 

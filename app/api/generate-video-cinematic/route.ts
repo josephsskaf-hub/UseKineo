@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { creditCostFor, creditCostForDuration, type Quality } from '@/lib/credits/engineCost'
 import { isInternalEmail } from '@/lib/internalAccounts'
-import { S25_PUBLIC } from '@/lib/engineLaunch'
+import { S25_PUBLIC, enginePaused } from '@/lib/engineLaunch'
 // sprint-v1v4 #27 — a MESMA funcao de resgate que o seletor usa desde a #13.
 // Gate de servidor e gate de UI sao um PAR (licao ja registrada no
 // GenerateClient): se a tela oferece um desvio ANTES do clique, a recusa
@@ -1424,6 +1424,16 @@ async function manipularPost(req: NextRequest) {
     // KINEO-S25-2026-09-01 — Seedance 2.5: familia nova na MESMA estrada
     // (planner, verbatim, piso 95%, variedade e contrato de cena de graca).
     const wantsS25 = body.engine === 's25'
+    // ═══ KINEO-MOTOR-EM-MANUTENCAO-2026-09-15 — decisão do fundador: H3, Omni e S25 pausados para novas gerações.
+    // Aqui é ANTES de qualquer reserva/débito de crédito e de qualquer POST ao fornecedor. O ensaio de $0 de conta
+    // interna continua (é como se testa o conserto sem gastar); render real é recusado para TODOS, com a alternativa.
+    {
+      const pausa = enginePaused(body.engine)
+      if (pausa && !(body.dry_run === true && isDryRunAccount(user.email))) {
+        void writeServerEvent({ name: 'engine_paused_refused', userId: user.id, path: '/api/generate-video-cinematic', metadata: { engine: body.engine, alternative: pausa.alternative.key, charged: false, since: pausa.since } })
+        return NextResponse.json({ error: pausa.message, reason: 'engine_paused', engine: body.engine, alternative: pausa.alternative, retryable: false, charged: false, refunded: false }, { status: 423 })
+      }
+    }
     // ═══ KINEO-IDIOMA-DO-TEXTO-2026-09-12 — a voz fala a língua do texto (ver
     // generate-video-fast). Escolha explícita vence; "en" cede ao texto claro.
     const narrationLanguage = resolveNarrationLanguage(body.language, prompt)
@@ -2960,6 +2970,20 @@ async function manipularPost(req: NextRequest) {
         // engine instead of the keyword query.
         aiPrompt: s.description,
       }))
+      // KINEO-FALA-CLASSICA-FIEL-2026-09-15 — Seedance 0d443007 narrou "The time is exactly 12:00 AM." (o pedido dizia
+      // "midnight"): a mesma varredura de datas/horas e de lugares/nomes fora do pedido que protege o hollywood entra
+      // aqui, na fala do escritor clássico, ANTES de o footage ser escolhido para ela. Contexto = só o pedido.
+      if (!hollywoodPath) {
+        const tiradas: string[] = []
+        for (const sc of scenes) {
+          if (typeof sc.voiceover !== 'string' || !sc.voiceover.trim()) continue
+          const r = removerDatasInventadas(sc.voiceover, prompt)
+          const r2 = scrubInventedSetting(r.texto, prompt)
+          const texto = r2.removed.length ? r2.text : r.texto
+          if (r.removidas.length || r2.removed.length) { sc.voiceover = texto; sc.caption = shortCaptionFromVoiceover(texto); tiradas.push(...r.removidas, ...r2.removed) }
+        }
+        if (tiradas.length) console.log(`[cinematic] KINEO-FALA-CLASSICA-FIEL: ${tiradas.length} data(s)/hora(s)/nome(s) fora do pedido removida(s) da fala: ${tiradas.map((t) => JSON.stringify(t)).join(', ')}`)
+      }
     }
 
     // ═══ KINEO-ZERO-SCENES-FALLBACK-2026-09-04 — construtor vazio nao vira filme perdido ═══

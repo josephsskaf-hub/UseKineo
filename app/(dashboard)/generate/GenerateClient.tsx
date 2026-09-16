@@ -91,6 +91,7 @@ import {
   creditCostForDuration,
   normalizeQuality,
 } from '@/lib/credits/engineCost'
+import { enginePaused } from '@/lib/engineLaunch' // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15
 // sprint-v1v4 #13 — o cardápio de motores passa a saber quanto a pessoa tem
 // no bolso. Módulo puro: só compara custo × saldo, não conhece plano nem preço.
 import {
@@ -1443,7 +1444,7 @@ export default function GenerateClient({
       setMode('fast')
       return
     }
-    if (['seedance', 'kling', 'veo', 'sora', 'hollywood', 'h3', 'omni', 's25'].includes(engine)) {
+    if (['seedance', 'kling', 'veo', 'sora', 'hollywood', 'h3', 'omni', 's25'].includes(engine) && !enginePaused(engine)) { // KINEO-MOTOR-EM-MANUTENCAO: pausado não entra pela URL
       setMode('cinematic_ai')
       setAiEngine(engine as 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'omni' | 's25')
     }
@@ -3651,7 +3652,7 @@ export default function GenerateClient({
             // por plano atropelou pra Fast. Default e pra chegada de mao
             // vazia; ?engine= explicito na URL SEMPRE vence.
             const urlEnginePick = (searchParams?.get('engine') ?? '').toLowerCase()
-            const urlPickedEngine = ['fast', 'seedance', 'kling', 'veo', 'sora', 'hollywood', 'h3', 'omni', 's25'].includes(urlEnginePick)
+            const urlPickedEngine = ['fast', 'seedance', 'kling', 'veo', 'sora', 'hollywood', 'h3', 'omni', 's25'].includes(urlEnginePick) && !enginePaused(urlEnginePick) // KINEO-MOTOR-EM-MANUTENCAO
             if (urlPickedEngine) { /* escolha explicita — nao tocar */ }
             else if (fromViralNow) { setMode('fast') }
             else if (trialDefaultsToCreatorEngine) { setMode('cinematic_ai'); setAiEngine('seedance') }
@@ -20206,17 +20207,21 @@ function ModeSelector({
               // sprint-v1v4 #13 — mesma regra do seletor de duração
               // (KINEO-CUSTO-VISIVEL): quem não alcança vê ANTES de clicar.
               const naoCabe = cinematicUnlocked && !cabeNoSaldo(m.cr, credits)
+              const pausa = enginePaused(m.key) // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15
               return (
                 <button
                   key={m.key}
                   type="button"
-                  onClick={() => { if (cinematicUnlocked) { setMode('cinematic_ai'); setAiEngine(m.key) } else { onUpgrade() } }}
+                  disabled={Boolean(pausa)}
+                  aria-disabled={Boolean(pausa)}
+                  title={pausa ? pausa.message : undefined}
+                  onClick={() => { if (pausa) return; if (cinematicUnlocked) { setMode('cinematic_ai'); setAiEngine(m.key) } else { onUpgrade() } }}
                   className="flex items-center justify-between rounded-lg px-3 py-2 transition-all"
-                  style={{ background: active ? 'rgba(41,151,255,.18)' : 'rgba(255,255,255,.04)', border: active ? '1.5px solid rgba(41,151,255,.6)' : '1.5px solid var(--border)', cursor: 'pointer', opacity: naoCabe && !active ? 0.6 : 1 }}
+                  style={{ background: active ? 'rgba(41,151,255,.18)' : 'rgba(255,255,255,.04)', border: active ? '1.5px solid rgba(41,151,255,.6)' : '1.5px solid var(--border)', cursor: pausa ? 'not-allowed' : 'pointer', opacity: pausa ? 0.5 : naoCabe && !active ? 0.6 : 1 }}
                 >
                   <span className="text-left">
-                    <span className="block text-xs font-bold" style={{ color: 'var(--text)' }}>{m.label}</span>
-                    <span className="block text-[10px]" style={{ color: 'var(--muted)' }}>{m.sub}</span>
+                    <span className="block text-xs font-bold" style={{ color: 'var(--text)' }}>{m.label}{pausa ? ' · Maintenance' : ''}</span>
+                    <span className="block text-[10px]" style={{ color: 'var(--muted)' }}>{pausa ? `Temporarily paused · use ${pausa.alternative.label} meanwhile` : m.sub}</span>
                   </span>
                   <span className="text-[11px] font-black px-2 py-0.5 rounded-full whitespace-nowrap" style={{ background: naoCabe ? 'rgba(255,180,84,.14)' : 'rgba(41,151,255,.18)', color: naoCabe ? '#ffb454' : '#7cc0ff', border: `1px solid rgba(${naoCabe ? '255,180,84' : '41,151,255'},.3)` }}>
                     {!cinematicUnlocked
