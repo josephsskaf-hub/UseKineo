@@ -3024,3 +3024,18 @@ Decisão pedida ao fundador (régua KINEO-SILENCIO-NA-CENA de 11/09 é dele; nã
 Recomendação: (a) — o que protege cada clipe de ficar mudo é o limite POR CENA; o total fixo só pune filme com mais cortes.
 
 Créditos: nenhum gasto nos 3 renders reais barrados (3 × 150 estornados na hora); saldo 830.
+
+## MOTORES-7-MAIS-R1 — ordem do fundador (16/09 ~00:45): "vai em tudo que conseguir arrumar agora" nos motores de nota ≥ 7 (Kling 2.5, Seedance 1.5, Veo 3.1, Kling 3) + card de My Videos com motor e botões nomeados; ensaios travados por OpenAI sem crédito (Claude, 16/09 ~01:01 BRT) — PUBLICADO 20dbca74 (dpl_4fMqx3YvLHstrFmKe6YS1ga7RuTS) e 32af6dee (dpl_EXuqCg6cHH7HPvqcojvMNMSMRnDH)
+
+Antes de mexer, conferi no código a tabela que mandei ao fundador e corrigi dois erros meus: o Veo JÁ manda `resolution: '1080p'` (route.ts) e o Avatar TEM card no /studio desde 30/08 (UI8) — mas segue com 0 débitos na história inteira.
+
+Publicado (20dbca74):
+1. **Kling 2.5 — rosto consistente por imagem-âncora LIGADO** (`lib/flags.ts` CINEMATIC_ANCHOR_ENABLED: padrão true; env `KINEO_CINEMATIC_ANCHOR_ENABLED=0` desliga). O código de 24/07 (um still FLUX por cena com o mesmo estilo e a mesma semente → Kling i2v a partir do still) nunca tinha sido virado: o 976eb60d saiu puro t2v (`cinematic_dispatch_result.engine = …/text-to-video`). Custo extra ~US$ 0,10 por still, até 6 por filme (MAX_ANCHORED_SCENES = 6; a 7ª cena vai t2v); crédito do cliente inalterado (50). Fail-open: still que falha → cena em t2v. **Prova pendente**: 1 filme real (50 cr) + log `[cinematic-anchor] stills_ready=…/… i2v_model=…` — o ensaio a $0 termina antes desse bloco. Seedance 1.5 e Veo seguem t2v (sem i2v confirmado no código; decisão de margem de 24/07).
+2. **Verbatim do hollywood (Kling 3 / H3 / Omni) — apara do respiro no RITMO DA VOZ** (KINEO-APARA-NO-RITMO-DA-VOZ): a apara do C1 media o silêncio a 2,3 pal/s fixo e a régua julga em ritmoVoz (2,37 para esta persona); com 11 cenas a diferença somava 1,8 s — o ensaio verbatim do Omni reprovava por 9,3 s no total com todas as cenas ≤ 1,4 s. Agora a mesma apara roda depois de ritmoVoz existir (1 s da cena mais folgada, nunca abaixo de 4 s, nunca tocando na fala), até total ≤ 7,5 s e nenhuma cena > 1,4 s. Só em verbatim. Guardião h3-palavras 51 → 52. **Isso pode dispensar a decisão (a)/(b) da régua** — a prova ficou travada (item 4).
+3. Copy: "Cinematic Mode · 60s · undefined" → fallback "Cinematic" (KINEO-SEM-UNDEFINED).
+
+Publicado (32af6dee) — **card do My Videos (/history, o "My Videos" do menu)**: selo com o NOME do motor pela fonte única `lib/engineLabel.ts` (o /library e o /my-videos já tinham; o card do menu mostrava "✨ AI"/"⚡"), e botões com nome em grade de 3 colunas: Download / Download (WM), HD · 10 cr, 4K · 40 cr, 🔒 Private ou 🔗 Copy link, ▶ YouTube, 📋 Title & tags. Conferido na tela do fundador (VEO 3.1, SEEDANCE 1.5, KLING 3, KINEO 1, KLING 2.5 visíveis em cada card).
+
+4. **BLOQUEIO**: às 03:53Z a OpenAI respondeu `429 You have no credits remaining` ao planejador (dois ensaios a $0: Omni verbatim 502, Kling 3 IA 500; 2 × 150 cr estornados). Toda geração (roteiro, análise, planejador) de qualquer cliente falha até o fundador repor crédito em platform.openai.com. Nenhum cliente registrou falha nos 90 min anteriores. Ensaios e filmes de prova ficam em espera.
+
+Créditos do fundador: 830 (nenhum gasto nesta leva). Herdados vermelhos de import (test-public-video-privacy, test-archive-studio-review, test-affiliate-activation) inalterados.
