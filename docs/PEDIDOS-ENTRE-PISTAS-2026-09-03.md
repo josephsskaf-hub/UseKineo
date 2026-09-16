@@ -2901,3 +2901,12 @@ Guardião bloco (k) (64 verificações). tsc limpo. Ainda em aberto: estatístic
 ## QUALIDADE-COMPROVADA-R11 — ensaio do Omni no R10: terceira pessoa ✓, ficha ✓, datas ✓; régua reprovou por pouco (7,7 s, pior 1,6 s) porque a reescrita ao alvo cresceu +3 (Claude, 15/09 ~22:50 BRT) — LOCAL
 
 Log do ensaio (deploy 6940b5ff): `KINEO-TERCEIRA-PESSOA: 2 fala(s) em primeira pessoa … replanejando` (funcionou: fala final em terceira), `FICHA-DO-PEDIDO` em todas as chamadas, `DATA-INVENTADA: "2023", "in 1950"` removidas, `SOBRA-CURTA-REESCREVE: 4 cena(s) reescritas ao alvo (+3 palavras)` — mirando "atual + faltam", o gpt-4o-mini devolve ~85 % e a soma mal mexeu. R11: o alvo da reescrita passa a ser o TETO da cena (22 palavras a 2,37 pal/s em 10 s) — a subentrega cai na faixa e a cena fica sem folga morta. Restante conhecido: lugar inventado removido pode deixar frase manca ("In the vast, the woman crosses…"); estatística inventada só pela regra do prompt.
+
+## QUALIDADE-COMPROVADA-R12 — quatro ensaios do Omni a $0 esta noite: ficha, terceira pessoa e datas fecharam; a régua de silêncio ainda reprovava por 0,3-0,5 s (Claude, 15/09 ~23:05 BRT) — PUBLICADO 7942cdd2
+
+Ensaios de $0 do Omni (cartógrafa) nos deploys 0833bdd2 → 6ccd0fb4 → 6940b5ff → a4f28075, sem gastar 1 crédito (150 cr estornados a cada um, ledger conferido):
+- R8→R9: ficha do pedido em todas as chamadas do planejador (o plano final vinha de replan sem ela) ✓ ("the cartographer, a young woman with a long black braid, a wide-brimmed straw hat and a dusty blue scarf").
+- R10: "I traverse…" num pedido de terceira pessoa → replan único com o motivo ✓ (log: `KINEO-TERCEIRA-PESSOA: 2/3/7 fala(s) em primeira pessoa … replanejando`; fala final em terceira). "Salar de Uyuni" inteiro no filtro ✓.
+- Datas: "in 1923", "in 1950", "2023" removidas em toda rodada ✓.
+- Régua de silêncio: 9,3 → 7,7 → 9,8 s; pior cena 1,6-2,4 s. Causa de fundo: o gpt-4o-mini escreve 86-110 palavras para 144 pedidas (2 replans de coerência, mesma subentrega) e cada passada de reescrita entrega ~85 % do alvo — pedido travado no teto (22 palavras/10 s) rende 19 e a cena fica com 2 s mudos. R11: reescrita de sobra curta mira o teto; R12: enche-silêncio e sobra curta pedem e aceitam até teto + 2 (palavra a mais vira cauda na cena seguinte, R4). Guardião enche-silêncio estendido. tsc limpo.
+Próximo: ensaio nº 5; se PASS, filme do Omni (150 cr, dentro do orçamento: o anterior foi estornado).
