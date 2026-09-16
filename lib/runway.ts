@@ -941,12 +941,19 @@ export async function appendNarrationToTargets(items: AppendTarget[], language: 
   }
   return out
 }
+// KINEO-CONTINUACAO-FICCAO-2026-09-16 — ensaio 4 do Omni: numa história de ficção (cartógrafa num deserto de sal sem nome) a
+// continuação "documental" trouxe "Spanning over 10,000 square kilometers, the world's largest salt flat, in Bolivia, Salar de
+// Uyuni" e saltou no enredo ("The ring unlocks a hidden chamber" na cena 2). Pedido de ficção/história pede detalhe do MESMO
+// momento, sem lugar real, sem número, sem pular para o que ainda vai acontecer.
+export function pedidoDeFiccao(topic: string): boolean { return /\b(fiction(?:al)?|story|tale|short film|screenplay)\b/i.test(topic || '') }
+const REGRA_FICCAO = 'This is FICTION: add a concrete detail of the SAME moment (what is seen, felt or happening right then); never add real-world places, statistics, trivia or historical facts; never jump ahead to events that come later in the story.'
 async function pedirContinuacao(items: { i: number; add_words: number; line: string }[], langName: string, topic: string): Promise<unknown> {
+  const ficcao = pedidoDeFiccao(topic)
   const completion = await openai.chat.completions.create(
     {
       model: 'gpt-4o' /* KINEO-OMNI-PLANEJADOR-4O-2026-09-15: continuação no tamanho pedido */,
       messages: [
-        { role: 'system', content: `You continue narration lines for a short documentary video about: ${topic.slice(0, 300)}. For each input, write ONLY the continuation: ONE short new sentence of about the requested number of words (add_words) — never more than add_words + 3 words — in ${langName}, adding specific, true detail (facts, numbers, places, consequences) that follows naturally after the given line. Do not repeat or rephrase the given line. No filler like "imagine", "what if" or "most people don't know"; no questions; no quotes; no first person; never invent names, dates, years, clock times or statistics that are not in the topic. Return ONLY a JSON array of objects {"i": <the same i you received>, "text": "<the continuation only>"}, one object per input object, in the same order.` },
+        { role: 'system', content: `You continue narration lines for a short documentary video about: ${topic.slice(0, 300)}. For each input, write ONLY the continuation: ONE short new sentence of about the requested number of words (add_words) — never more than add_words + 3 words — in ${langName}, ${ficcao ? REGRA_FICCAO : 'adding specific, true detail (facts, numbers, places, consequences) that follows naturally after the given line.'} Do not repeat or rephrase the given line. No filler like "imagine", "what if" or "most people don't know"; no questions; no quotes; no first person; never invent names, dates, years, clock times or statistics that are not in the topic. Return ONLY a JSON array of objects {"i": <the same i you received>, "text": "<the continuation only>"}, one object per input object, in the same order.` },
         { role: 'user', content: JSON.stringify(items) },
       ],
       temperature: 0.4,
@@ -960,11 +967,12 @@ async function pedirContinuacao(items: { i: number; add_words: number; line: str
   return JSON.parse(m[0]) as unknown
 }
 async function pedirReescrita(items: { words: number; line: string }[], langName: string, topic: string): Promise<unknown> {
+  const ficcao = pedidoDeFiccao(topic)
   const completion = await openai.chat.completions.create(
     {
       model: 'gpt-4o' /* KINEO-OMNI-PLANEJADOR-4O-2026-09-15: reescrita no tamanho pedido */,
       messages: [
-        { role: 'system', content: `You write narration lines for a short documentary video about: ${topic.slice(0, 300)}. For each input line, return a rewritten line with EXACTLY the requested number of words — never more than requested, at most 2 fewer — in ${langName}, that keeps every fact, name and number of the input and adds specific, true detail — never invent names, dates, years, clock times or statistics that are not in the topic. If an input line is generic filler (for example "Here is something most people do not know about…"), replace it with a specific, true opening line about the topic. Never use filler like "imagine", "what if" or "most people don't know". Count the words before answering. Return ONLY a JSON array of strings, same order and same length as the input.` },
+        { role: 'system', content: `You write narration lines for a short documentary video about: ${topic.slice(0, 300)}. For each input line, return a rewritten line with EXACTLY the requested number of words — never more than requested, at most 2 fewer — in ${langName}, that keeps every fact, name and number of the input and ${ficcao ? REGRA_FICCAO : 'adds specific, true detail'} — never invent names, dates, years, clock times or statistics that are not in the topic. If an input line is generic filler (for example "Here is something most people do not know about…"), replace it with a specific, true opening line about the topic. Never use filler like "imagine", "what if" or "most people don't know". Count the words before answering. Return ONLY a JSON array of strings, same order and same length as the input.` },
         { role: 'user', content: JSON.stringify(items) },
       ],
       temperature: 0.4,
