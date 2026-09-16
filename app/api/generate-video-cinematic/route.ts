@@ -3862,7 +3862,9 @@ async function manipularPost(req: NextRequest) {
             // Pede-se alvo+3 e aceita-se até o TETO da cena — os segundos seguem
             // a fala (abaixo), então fala a mais vira cena mais longa, não estouro.
             // Passar do alvo é bom; ficar abaixo é defeito (fundador, 02/09).
-            const novas = await expandVoiceoversToTargets(curtas.map((x) => ({ text: lineOf(x.sc), targetWords: Math.min(Math.max(x.target + 3, Math.ceil(x.target * 1.2)), x.maxWords), maxWords: x.maxWords })), hollywoodLanguage, prompt.slice(0, 300))
+            // R12 (ensaios do Omni, 15/09): o pedido travado no teto rendia ~19 de 22 e a régua reprovava por 0,3 s. O pedido e o aceite vão
+            // até teto + 2: a subentrega cai na faixa; palavra a mais vira cauda na cena seguinte (teto-rede R4), nunca corte.
+            const novas = await expandVoiceoversToTargets(curtas.map((x) => ({ text: lineOf(x.sc), targetWords: Math.min(Math.max(x.target + 3, Math.ceil(x.target * 1.2)), x.maxWords + 2), maxWords: x.maxWords + 2 })), hollywoodLanguage, prompt.slice(0, 300))
             curtas.forEach((x, k) => {
               const nova = novas[k]
               if (!nova || nova === lineOf(x.sc)) return
@@ -3943,13 +3945,13 @@ async function manipularPost(req: NextRequest) {
                 if (porReescrita.length > 0) {
                   // R11 (ensaio do Omni no deploy 6940b5ff): mirando "atual + faltam" o modelo devolveu +3 palavras em 4 cenas (entrega ~85 % do pedido).
                   // O alvo passa a ser o TETO da cena: a subentrega cai dentro da faixa e a cena fica sem folga morta.
-                  const alvos = porReescrita.map((pd) => ({ text: lineOf(pd.x.sc), targetWords: pd.maxWords, maxWords: pd.maxWords }))
+                  const alvos = porReescrita.map((pd) => ({ text: lineOf(pd.x.sc), targetWords: pd.maxWords + 2, maxWords: pd.maxWords + 2 })) // R12: até teto + 2
                   const novas = await expandVoiceoversToTargets(alvos, hollywoodLanguage, prompt.slice(0, 300))
                   porReescrita.forEach((pd, k) => {
                     const nova = novas[k]
                     const base = lineOf(pd.x.sc)
                     const w = wordsOfLine(nova ?? '')
-                    if (!nova || nova === base || w <= wordsOfLine(base) || w > pd.maxWords) { console.warn(`[hollywood] KINEO-SOBRA-CURTA-REESCREVE: cena ${pd.x.sc.index} não cresceu (${wordsOfLine(base)} → ${w}, teto ${pd.maxWords})`); return }
+                    if (!nova || nova === base || w <= wordsOfLine(base) || w > pd.maxWords + 2) { console.warn(`[hollywood] KINEO-SOBRA-CURTA-REESCREVE: cena ${pd.x.sc.index} não cresceu (${wordsOfLine(base)} → ${w}, teto ${pd.maxWords} + 2)`); return }
                     acrescentadas += w - wordsOfLine(base)
                     pd.x.sc.voiceover = nova
                     if (w / ritmoVoz + FOLGA_MIN_S > (pd.x.sc.seconds || 0)) pd.x.sc.seconds = Math.min(pd.x.teto, Math.ceil(w / ritmoVoz + FOLGA_MIN_S))
