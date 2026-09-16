@@ -182,7 +182,8 @@ console.log('== (g) escritor de cenas: 9 pedidas / 6 devolvidas, "Dr.", expansã
   } } } }
   const api = roda([fn('shortCaptionFromVoiceover'), fn('generateScenes'), fn('expandShortVoiceovers')].join('\n'), { openai, detectVisualCategory: () => undefined, LANGUAGE_NAMES: { en: 'English' }, classicVisualNegativePrompt: () => 'x', isStylizedLook: () => false, visualDescriptionDirection: () => 'y', aspectSpec: () => ({ promptFraming: '9:16' }) })
   const r = await api.generateScenes('A volcano observatory at dawn. A geologist notices the needle.', 9, undefined, { wordsPerScene: [16, 17] })
-  checa(`9 pedidas: o pedido exige a contagem (${pedidos[0].includes('You MUST return exactly 9 scene objects') ? 'sim' : 'não'}) e o resultado tem 9 cenas (${r.length})`, pedidos[0].includes('You MUST return exactly 9 scene objects') && r.length === 9)
+  // 15/09 (KINEO-CENAS-DISTINTAS): com faixa o modelo planeja no máximo 7 cenas DISTINTAS (Veo cf8cbce5 inventou "café" para a 6ª de 9); o resto nasce da divisão com outro plano.
+  checa(`9 pedidas com faixa: o modelo recebe 7 distintas (${pedidos[0].includes('Plan 7 scenes') && pedidos[0].includes('You MUST return exactly 7 scene objects') ? 'sim' : 'não'}) e o resultado tem 9 cenas (${r.length})`, pedidos[0].includes('Plan 7 scenes') && pedidos[0].includes('You MUST return exactly 7 scene objects') && !pedidos[0].includes('Plan 9 scenes') && r.length === 9)
   checa('a linha falada pede fidelidade ao texto da ideia (sem nome, hora, data ou estatística inventados)', pedidos[0].includes('never invent a character name, a time of day, a date or a statistic'))
   checa('"Dr. Emily Carter" não vira fim de frase: nenhuma cena com ≤ 4 palavras', r.every((s) => s.voiceover.split(/\s+/).length > 4) && !r.some((s) => /Dr\.$/.test(s.voiceover.trim())))
   const divididas = r.filter((s) => /of the same moment: /.test(s.description))

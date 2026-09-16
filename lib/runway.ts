@@ -316,8 +316,13 @@ You always respond with a valid JSON array ONLY — no markdown, no code fences,
   // KINEO-ESCRITOR-R2-2026-09-15 — ensaios de 15/09: pedidas 7 e 9 cenas, o gpt-4o devolveu 6 (uma por propósito) e o
   // resto nascia de divisão. Com 7+ cenas o pedido diz que os propósitos se repetem e que menos é falha. (Só entra
   // no texto acima de 6 — os chamadores legados e seus golden hashes seguem byte-idênticos.)
-  const contagemRule = safeCount >= 7 ? `\nYou MUST return exactly ${safeCount} scene objects. With this many scenes the purposes ESCALATION, DISCOVERY and EXPLANATION are each used several times; returning fewer than ${safeCount} objects is a failure.\n` : ''
-  const userPrompt = `Plan ${safeCount} scenes for this YouTube Short idea:
+  // KINEO-CENAS-DISTINTAS-2026-09-15 — filme Veo cf8cbce5 (9 clipes): obrigado a devolver 9 cenas, o gpt-4o INVENTOU visuais
+  // fora da história para as sobras ("paperback novel at a bustling café", "hands typing on a laptop"). Uma história curta
+  // tem ~6-7 momentos: no caminho clássico da casa (com faixa) o modelo planeja no máximo 7 cenas DISTINTAS e os clipes
+  // restantes nascem da divisão abaixo — o mesmo momento com outro enquadramento, nunca um assunto inventado.
+  const pedidas = wps ? Math.min(safeCount, 7) : safeCount
+  const contagemRule = pedidas >= 7 ? `\nYou MUST return exactly ${pedidas} scene objects. With this many scenes the purposes ESCALATION, DISCOVERY and EXPLANATION are each used several times; returning fewer than ${pedidas} objects is a failure.\n` : ''
+  const userPrompt = `Plan ${pedidas} scenes for this YouTube Short idea:
 ${contagemRule}
 "${prompt}"
 
@@ -411,11 +416,11 @@ TRUE CRIME / MYSTERIES / CONSPIRACIES / DARK HISTORY:
   negativeVisualPrompt: "cartoon alien, comedy, bright happy scene, UFO clipart, kids show"
   visualCategory: crime_mystery
 
-SCENE PURPOSE FLOW for ${safeCount} scenes: Start with HOOK (scene 1), build through ESCALATION and DISCOVERY, use EXPLANATION for core facts, PAYOFF for the climax, FINAL_LINE for the mic-drop ending.
+SCENE PURPOSE FLOW for ${pedidas} scenes: Start with HOOK (scene 1), build through ESCALATION and DISCOVERY, use EXPLANATION for core facts, PAYOFF for the climax, FINAL_LINE for the mic-drop ending.
 
-SHOT TYPE VARIETY RULE: Across all ${safeCount} scenes, use a DIFFERENT shot type prefix in each stockSearchQuery. Never use the same shot type twice in a row. The ideal sequence mixes scale (aerial → close-up → wide → medium → POV) to create the cinematic variety viewers expect from professional Shorts.
+SHOT TYPE VARIETY RULE: Across all ${pedidas} scenes, use a DIFFERENT shot type prefix in each stockSearchQuery. Never use the same shot type twice in a row. The ideal sequence mixes scale (aerial → close-up → wide → medium → POV) to create the cinematic variety viewers expect from professional Shorts.
 
-Return ONLY a valid JSON array of exactly ${safeCount} objects with all 9 fields.
+Return ONLY a valid JSON array of exactly ${pedidas} objects with all 9 fields.
 
 Example PERFECT scene (rockets topic):
 {
