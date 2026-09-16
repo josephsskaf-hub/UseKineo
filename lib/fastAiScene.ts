@@ -30,7 +30,8 @@ export const FAST_AI_SCENES_ENABLED = !['0', 'false', 'no', 'off'].includes(
   (process.env.KINEO_FAST_AI_SCENES ?? '').trim().toLowerCase(),
 )
 
-export const FAST_AI_SCENES_MAX_DEFAULT = 3
+// R2 (16/09 tarde): 3 → 4 — o still soma ao stock da cena, e a cena que o Pixabay não acha ganha o seu.
+export const FAST_AI_SCENES_MAX_DEFAULT = 4
 export function fastAiScenesMax(): number {
   const raw = Number.parseInt((process.env.KINEO_FAST_AI_SCENES_MAX ?? '').trim(), 10)
   if (!Number.isFinite(raw) || raw < 0) return FAST_AI_SCENES_MAX_DEFAULT

@@ -1116,9 +1116,33 @@ export function buildCaptionsFromWhisperWords(
 ): Array<{ text: string; time: number; duration: number; highlight: string | null; words: CaptionChunkWord[] }> {
   if (words.length === 0) return []
 
+  // KINEO-LEGENDA-AM-2026-09-16 — Whisper devolve "A" + "M" (ou "P" + "M", "A." + "M.") para "5 AM"; a legenda
+  // do render 7b34db47 mostrou "A M USING THOSE". Junta o par num só token ("AM"/"PM") antes de agrupar,
+  // com o início do primeiro e o fim do segundo — o karaoke pinta uma palavra só, como o narrador diz.
+  const merged: WhisperWord[] = []
+  for (let i = 0; i < words.length; i++) {
+    const w = words[i]
+    const nx = words[i + 1]
+    if (nx && /^[AaPp]\.?$/.test((w.word ?? '').trim()) && /^[Mm]\.?$/.test((nx.word ?? '').trim())) {
+      merged.push({ ...nx, word: `${(w.word ?? '').trim()[0].toUpperCase()}M`, start: w.start, end: nx.end, sentenceEnd: nx.sentenceEnd })
+      i++
+      continue
+    }
+    merged.push(w)
+  }
+  // …e cola o número à hora ("5" + "AM" → "5 AM"): o corte de 4 palavras separava "at 5 | AM daily".
+  const glued: WhisperWord[] = []
+  for (const w of merged) {
+    const prev = glued[glued.length - 1]
+    if (prev && /^(AM|PM)$/.test((w.word ?? '').trim()) && /^\d{1,2}(:\d{2})?$/.test((prev.word ?? '').trim())) {
+      glued[glued.length - 1] = { ...prev, word: `${(prev.word ?? '').trim()} ${(w.word ?? '').trim()}`, end: w.end, sentenceEnd: w.sentenceEnd }
+      continue
+    }
+    glued.push(w)
+  }
   // Only include words that start before the caption window ends (i.e. before the CTA).
   const captionWindowEnd = Math.max(0, totalAudioDuration - ctaTailSeconds)
-  const windowWords = words.filter((w) => w.start < captionWindowEnd)
+  const windowWords = glued.filter((w) => w.start < captionWindowEnd)
   if (windowWords.length === 0) return []
 
   const result: Array<{ text: string; time: number; duration: number; highlight: string | null; words: CaptionChunkWord[] }> = []

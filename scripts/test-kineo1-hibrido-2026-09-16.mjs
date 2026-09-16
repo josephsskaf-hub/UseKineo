@@ -25,7 +25,7 @@ const L = roda(puro)
 
 console.log('== (a)(b) decisão e nome próprio ==')
 checa('ligado por padrão; KINEO_FAST_AI_SCENES=off desliga', L.FAST_AI_SCENES_ENABLED === true && roda(puro, { KINEO_FAST_AI_SCENES: 'off' }).decideFastAiScene({ planSource: 'ai' }).ai === false)
-checa('teto padrão 3 por filme; env vale; máximo 6', L.fastAiScenesMax() === 3 && roda(puro, { KINEO_FAST_AI_SCENES_MAX: '2' }).fastAiScenesMax() === 2 && roda(puro, { KINEO_FAST_AI_SCENES_MAX: '40' }).fastAiScenesMax() === 6)
+checa('teto padrão 4 por filme (R2); env vale; máximo 6', L.fastAiScenesMax() === 4 && roda(puro, { KINEO_FAST_AI_SCENES_MAX: '2' }).fastAiScenesMax() === 2 && roda(puro, { KINEO_FAST_AI_SCENES_MAX: '40' }).fastAiScenesMax() === 6)
 checa('plano diz ai → still (plan_ai)', L.decideFastAiScene({ planSource: 'ai' }).reason === 'plan_ai')
 checa('relevância conhecida < 60 → still; 60+ não; desconhecida não', L.decideFastAiScene({ relevanceScore: 41 }).reason === 'low_relevance' && !L.decideFastAiScene({ relevanceScore: 60, voiceover: 'the sun rises over the sea' }).ai && !L.decideFastAiScene({ relevanceScore: null, voiceover: 'the sun rises over the sea' }).ai)
 checa('"5 morning habits Jeff Bezos used" → named_entity Jeff Bezos', L.mentionsNamedEntity('Every morning, Jeff Bezos wakes up without an alarm.') === 'Jeff Bezos')
@@ -49,7 +49,20 @@ checa('rota importa a decisão, o prompt, o gerador, a seed e o teto', rt.includ
 checa('teto por filme: tentarStill devolve null quando aiStillsUsed >= aiStillsMax', rt.includes('if (aiStillsUsed >= aiStillsMax) return null'))
 checa('still ANTES do stock quando plano/relevância/nome próprio marcam a cena (não no pixabay_miss aqui)', rt.includes("if (dec.ai && dec.reason !== 'pixabay_miss') {") && rt.indexOf("if (dec.ai && dec.reason !== 'pixabay_miss') {") < rt.indexOf('const sceneNeedsPeople = sceneHasPeopleVocabulary('))
 checa('still ANTES de reciclar clipe quando o Pixabay não acha nada', rt.indexOf('Pixabay miss — falling through to FALLBACK-A/B') < rt.indexOf('pixabayMiss: true }') && rt.indexOf('pixabayMiss: true }') < rt.indexOf('// FALLBACK-A: cycle through previous valid clips'))
-checa('cada still entra como clipe com fonte aiStill e a cena pula o resto (continue)', (rt.match(/clipSources\.push\('aiStill'\)\n\s+continue/g) || []).length === 2 && rt.includes("| 'aiStill'"))
+checa('R2: o still da cena marcada SOMA ao stock (sem continue); só no Pixabay-miss o still fecha a cena', (rt.match(/clipSources\.push\('aiStill'\)\n\s+continue/g) || []).length === 1 && (rt.match(/clipSources\.push\('aiStill'\)/g) || []).length === 2 && rt.includes("| 'aiStill'"))
+checa('R2: seed varia por tentativa (2ª imagem da mesma cena não repete a 1ª)', rt.includes('seed: aiStillSeed + sceneNo * 7 + aiStillsUsed * 101'))
+console.log('== (g) legenda: "5 AM" não vira "A M" ==')
+{
+  const cp2 = rd('lib/compose.ts')
+  const a = cp2.indexOf('export function buildCaptionsFromWhisperWords('); const b = cp2.indexOf('\n}\n', a) + 3
+  const fn = roda('const CAPTION_SYNC_OFFSET = 0.15\nconst FAST_EMPHASIS_RE = /never-matches-in-guardian/\nconst round3 = (n) => Math.round(n * 1000) / 1000\nconst pickHighlightWord = () => null\nexport interface WhisperWord { word: string; start: number; end: number; sentenceEnd?: boolean }\nfunction normalizeCaptionWord(w) { return (w ?? "").toLowerCase().replace(/^[^\\p{L}\\p{N}\']+|[^\\p{L}\\p{N}\']+$/gu, "").trim() }\n' + cp2.slice(a, b)).buildCaptionsFromWhisperWords
+  const ws = [['He', 0, 0.2], ['wakes', 0.2, 0.5], ['at', 0.5, 0.6], ['5', 0.6, 0.9], ['A', 0.9, 1.0], ['M', 1.0, 1.2], ['daily', 1.3, 1.7]].map(([word, start, end]) => ({ word, start, end }))
+  const caps = fn(ws, 10, 0, 4)
+  const texto = caps.map((c) => c.text).join(' | ')
+  checa(`"5 A M" vira "5 AM" na legenda (${texto})`, /\b5 AM\b/.test(texto) && !/\bA M\b/.test(texto))
+  const pm = fn([['at', 0, 0.2], ['9', 0.2, 0.4], ['P.', 0.4, 0.5], ['M.', 0.5, 0.7], ['sharp', 0.8, 1.1]].map(([word, start, end]) => ({ word, start, end })), 10, 0, 4)
+  checa('"P. M." vira "PM"', /\b9 PM\b/.test(pm.map((c) => c.text).join(' ')))
+}
 checa('o plano do cliente chega (source) e só aceita ai|stock', rt.includes("source: entry.source === 'ai' || entry.source === 'stock' ? entry.source : undefined"))
 checa('rastro de medição fast_ai_still com denominador (cenas) e teto', rt.includes("name: 'fast_ai_still'") && rt.includes('metadata: { scenes: scenes.length, tried: aiStillLog.length, used: aiStillsUsed, max: aiStillsMax'))
 checa('o custo em créditos do Kineo 1 não mudou (nenhum creditCost novo na rota)', !/creditCostFor\('fast'\)\s*\+/.test(rt))

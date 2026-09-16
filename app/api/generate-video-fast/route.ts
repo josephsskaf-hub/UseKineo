@@ -971,7 +971,8 @@ export async function POST(req: NextRequest) {
     const aiStillLog: Array<{ scene: number; reason: string; entity: string | null; ok: boolean }> = []
     const tentarStill = async (sceneNo: number, reason: string, entity: string | null, description: string, voiceover: string, query: string): Promise<string | null> => {
       if (aiStillsUsed >= aiStillsMax) return null
-      const still = await generateFastSceneStill({ prompt: buildFastStillPrompt({ description, voiceover, query, entity }), seed: aiStillSeed + sceneNo, aspect })
+      // KINEO-1-HIBRIDO-R2 — seed varia por tentativa (a 2ª imagem da mesma cena não repete a 1ª).
+      const still = await generateFastSceneStill({ prompt: buildFastStillPrompt({ description, voiceover, query, entity }), seed: aiStillSeed + sceneNo * 7 + aiStillsUsed * 101, aspect })
       aiStillLog.push({ scene: sceneNo, reason, entity, ok: !!still })
       if (still) aiStillsUsed++
       console.log(`[clip] scene=${sceneNo} KINEO-1-HIBRIDO reason=${reason}${entity ? ` entity="${entity}"` : ''} still=${still ? 'OK' : 'miss (fail-open)'}`)
@@ -1144,7 +1145,9 @@ export async function POST(req: NextRequest) {
             if (still) {
               clipUrls.push(still)
               clipSources.push('aiStill')
-              continue
+              // KINEO-1-HIBRIDO-R2 — o still abre a cena e o stock da cena continua sendo buscado para os
+              // cortes seguintes (sem `continue`): no render de prova (7b34db47) o filme de 35 s ficou com 5
+              // visuais para 10 cortes e repetiu skyline/despertador/caderno. Variedade > pureza.
             }
           }
         }
