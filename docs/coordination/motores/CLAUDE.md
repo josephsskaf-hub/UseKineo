@@ -779,3 +779,18 @@ Deploys: a41bdece (gpt-4o + passagem interna) → cfbe20b1 (CAUDA-CHEIA) → 677
 Guardião test-h3-palavras: 47 → 51 (cauda enchida com vizinhas cheias; cauda recusada uma vez e enchida na passada final; ordem e predicado da passada). Dívida cosmética: o cabeçalho "Cinematic Mode · 60s · undefined" no render do Omni — `QUALITY_OPTIONS` não tem título para a qualidade do Omni (só copy).
 
 Adendo (15/09 ~23:55 BRT): o render real ee7d62ec foi BARRADO pela régua de silêncio antes de qualquer POST ao fal — total 6,9 s (≤ 8) mas a última cena com 1,6 s (limite 1,5); 150 cr estornados na hora (saldo 830), 0 clipes pagos. O plano de cada disparo é novo (o modelo não repete), então o PASS do ensaio não garante o plano seguinte. A passada final ganhou uma 2ª rodada (só para o que ainda passa de 1,0 s; para quando a régua fecha) — no ensaio anterior a continuação da última cena veio longa e foi aparada à primeira oração (8 → 4 palavras). Próximo: ensaio a $0 no deploy novo, PASS → disparo real de novo (o "vai" já foi dado).
+
+## MOTORES-EM-MANUTENCAO-R5 — Omni: 2º render real barrado (9,7 s), causa achada no log (pedido < 3 palavras ignorado em silêncio), 5º ensaio de IA degradou a fala; ensaio VERBATIM fiel reprova só pelo TOTAL de 8 s → decisão do fundador sobre a régua (Claude, 16/09 ~00:30 BRT) — LOCAL
+
+Deploys desta leva: d9851135 (passada final antes da varredura + regra de ficção) → ca64bd72 (mínimo de 3 palavras por pedido; 2ª rodada sempre; dpl_q1FTRLiaDeBfVAQPcKEtUDFLPkdq).
+
+1. Render real 31d0f1c2 (00:17): barrado pela régua com 9,7 s (pior 1,6 s), 150 cr estornados. Log da Vercel: `KINEO-ULTIMA-ENCHIDA: 3 cena(s) → 0 cresceram` sem nenhum aviso — `appendNarrationToTargets` ignora em silêncio pedidos de menos de 3 palavras (`addWords >= 3`), e os três alvos pediam 2. Conserto: pede pelo menos 3; a 2ª rodada roda mesmo com zero na 1ª.
+2. Ensaio 5 (IA, deploy ca64bd72): FAIL 6,3 s / pior 1,7 s e, pior que a régua, a FALA degradou: o gpt-4o insiste em "the world's largest salt flat, spanning over 10,000 square kilometers" e "three inches in diameter" (fatos reais numa ficção, mesmo com a regra de ficção na continuação/reescrita — o planejador em si não a recebe), a varredura de lugares tira "Salar de Uyuni"/"Bolivia" e deixa "crosses, the world's largest salt flat, spanning.", e o teto-rede divide no meio da frase ("spanning. / Endlessly", "as grains. / of salt"). Cada passada de enchimento piora a prosa. **O caminho de IA do hollywood (planejador escreve pouco → 4 passadas de remendo) não é confiável para narração de 60 s; o clássico (Veo/Seedance) é, porque escreve o roteiro inteiro primeiro.**
+3. Ensaio 6 (VERBATIM, 149 palavras escritas por mim, fiéis aos seis eventos, sem data/lugar): 11 cenas, 72 s, silêncio por cena [0,6 · 0,7 · 1,2 · 0,8 · 0,4 · 1,4 · 0,7 · 1,0 · 0,7 · 0,7 · 1,1] — TODAS ≤ 1,4 s — e a régua reprova pelo TOTAL: 9,3 s contra 8 s. Com 11 cenas, 8 s no total exige 0,73 s por cena, mais apertado que o limite por cena aprovado (1,5 s). A régua do total não escala com o número de cenas.
+
+Decisão pedida ao fundador (régua KINEO-SILENCIO-NA-CENA de 11/09 é dele; não afrouxo trava do fundador por conta própria):
+- (a) total = número de cenas × 1,4 s (7 cenas = 9,8 s; 11 cenas = 15,4 s), mantendo 1,5 s por cena — o ensaio verbatim passa (9,3 ≤ 15,4) e o filme sai hoje; ou
+- (b) manter 8 s fixos: o Omni fica pausado até o caminho de IA do hollywood ser refeito (roteiro inteiro primeiro, planejador só distribui — o modelo do clássico), trabalho de um dia.
+Recomendação: (a) — o que protege cada clipe de ficar mudo é o limite POR CENA; o total fixo só pune filme com mais cortes.
+
+Créditos: nenhum gasto nos 3 renders reais barrados (3 × 150 estornados na hora); saldo 830.
