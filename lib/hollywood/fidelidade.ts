@@ -443,6 +443,9 @@ export function removerDatasInventadas(texto: string, contexto: string): { texto
     return ''
   })
   if (removidas.length === 0) return { texto: src, removidas }
+  // R18 (ensaio do Veo): "At precisely 5:47 AM, the early morning light…" ficava "At precisely, the early…" — a preposição/advérbio
+  // que só existia para introduzir a hora sai com ela.
+  out = out.replace(/\b(?:at|around|about|by|since|until)\s+(?:precisely|exactly|roughly|around|about|nearly|almost)?\s*(?=[,.;:]|$)/gi, '')
   out = out
     .replace(/\s+([,.;:!?])/g, '$1')
     .replace(/,\s*([.;!?])/g, '$1')

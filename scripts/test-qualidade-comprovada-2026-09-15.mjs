@@ -220,6 +220,8 @@ console.log('== (h) data inventada removida em código; acréscimo de fala index
   const c5 = F.removerDatasInventadas('The map, meticulously drawn in 1948 by her grandfather, reveals secrets.', 'a map drawn by her grandfather')
   checa(`"in 1948" sai: "${c5.texto}"`, c5.texto === 'The map, meticulously drawn by her grandfather, reveals secrets.' )
   checa('texto sem data volta byte-idêntico', F.removerDatasInventadas('He looks up: through the window, his own station has gone dark.', pedido).texto === 'He looks up: through the window, his own station has gone dark.')
+  const c6 = F.removerDatasInventadas('At precisely 5:47 AM, the early morning light begins to illuminate the observatory.', 'A volcano observatory at dawn.')
+  checa(`R18: "At precisely 5:47 AM," sai inteiro e a frase recomeça com maiúscula: "${c6.texto}"`, c6.texto === 'The early morning light begins to illuminate the observatory.')
   const rt = rd('lib/hollywood/router.ts')
   checa('planejador aplica a remoção às falas (voiceover e dialogueLine) com o pedido como contexto, depois da fidelidade', rt.includes("import { aplicarFidelidadeAoPlano, removerDatasInventadas, fichaDoPedido, trocarFichaNosPrompts } from '@/lib/hollywood/fidelidade'") && rt.includes('const r = removerDatasInventadas(v, contexto)') && rt.indexOf('KINEO-DATA-INVENTADA') > rt.indexOf('if (hostFits) aplicarFidelidadeAoPlano('))
   // acréscimo indexado: resposta com uma linha omitida e outra que reescreve a base
