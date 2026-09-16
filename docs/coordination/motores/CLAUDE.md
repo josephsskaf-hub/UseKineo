@@ -962,3 +962,11 @@ Guardião `scripts/test-mrr-1-3-2026-09-16.mjs` (13). tsc ✓. Vermelhos herdado
 **Limites honestos:** o episódio automático é Kineo 1 (stock + stills); Seedance automático é fase 2 (o robô só fala com a rota do Kineo 1). Exige canal do YouTube conectado (é o produto: "publicado para você"). Dias/horários em UTC internamente, exibidos no fuso da pessoa.
 
 **Medir:** `autopilot_lite_checkout_clicked` → `payment_success` (tier autopilot_lite) → agendas com `interval_days = 7` → `autopilot_runs` por semana (status/skips).
+
+## PROMPT-PROPRIO-R1 — a caixa de ideia colada com a nossa própria tela (fundador 16/09 18:37 BRT: "quero ver o que ele escreveu e o vídeo que saiu… senão ele não compra nunca")
+
+**Caso:** globaloutreach33@gmail.com (trial de 10, veio do ChatGPT → /ai-video-generator/kineo-1 → cadastro Google 21:07 UTC). O texto despachado às 21:22 UTC tinha 1.018 caracteres e era o Studio inteiro ("Studio / English / 10 credits / Your idea first. Review the settings, then generate. / 🎲 Surprise me / ✨ Let AI structure it / …"). O filme (acc5d120, Kineo 1, 62 s, 5 cr) narrou a nossa interface. O detector de "cola de instrução" já tinha avisado na tela (activation_instruction_notice_viewed, prompt_looks_like_instruction), mas nada barrava no servidor.
+
+**Commit 68896b6a:** `lib/promptGuard.ts` (≥ 3 frases que só existem na nossa interface = tela colada) → recusa 400 em `analyze-idea` (antes do GPT) e em `generate-video-fast` (antes de classificar/planejar/cobrar), razão `prompt_is_our_ui`, mensagem "That text is the Kineo page itself… nothing was charged". Painel /admin/people → "Tudo que esta pessoa fez": cada card agora toca o filme inline, abre "O que escreveu" (prompt inteiro) e "O que foi narrado" (narração do compose_submission_claim casada pelo topic), com alerta vermelho quando o prompt é a nossa tela. Guardião `scripts/test-prompt-proprio-2026-09-16.mjs` (10). tsc ✓. Herdados (não desta entrega): recusa-analyze-copy (SyntaxError próprio), recusa-nao-e-tente-de-novo.
+
+**E-mail (rascunho no Gmail do fundador, ele envia):** pergunta se ficou satisfeito e o que queria fazer; se não ficou, +20 créditos ao responder (decisão do fundador). Não conceder sem a resposta.
