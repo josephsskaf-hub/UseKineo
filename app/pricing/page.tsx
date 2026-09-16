@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import PricingClient from './PricingClient'
+import { pricingBillingHandoff } from '@/lib/growth/pricingPlanChoiceAttribution'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 // KINEO-PRICING-V6-2026-08-19 — preço derivado de TIER_PRICES via
 // lib/marketingPrice.ts. Digitado à mão ele já sobreviveu a duas mudanças
@@ -45,6 +46,9 @@ export const metadata: Metadata = {
   },
 }
 
-export default function PricingPage() {
-  return <PricingClient />
+export default function PricingPage({ searchParams = {} }: {
+  searchParams?: Record<string, string | string[] | undefined>
+} = {}) {
+  const handoff = pricingBillingHandoff(searchParams)
+  return <PricingClient key={handoff.key} initialBilling={handoff.initialBilling} />
 }

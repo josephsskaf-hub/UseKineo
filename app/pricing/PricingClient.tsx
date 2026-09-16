@@ -66,6 +66,7 @@ import { CHECKOUT_PAYMENT_GUIDANCE_COMPACT } from '@/lib/growth/checkoutPaymentG
 import {
   buildPricingPlanChoiceAttribution,
   sanitizePricingIntentCampaign,
+  type PricingPlanChoiceBilling,
 } from '@/lib/growth/pricingPlanChoiceAttribution'
 import {
   buildPricingTierHandoffAttribution,
@@ -283,7 +284,9 @@ function trackPricingEvent(name: string, metadata?: Record<string, unknown>): vo
   void trackEvent(name, metadata)
 }
 
-export default function PricingClient() {
+export default function PricingClient({ initialBilling = 'annual' }: {
+  initialBilling?: PricingPlanChoiceBilling
+} = {}) {
   // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier via contexto (client).
   const OFFER = useFreeTierOffer()
   const FAQS = buildFaqs(OFFER)
@@ -403,7 +406,9 @@ export default function PricingClient() {
   // KINEO-MRR-1-ANUAL-2026-09-16 (fundador: "vai"): a página ABRE no anual — é o padrão de InVideo, Pictory,
   // Fliki e Higgsfield (10 meses pelo preço de 12) e o Creator é onde 51 de 91 pessoas pararam no checkout em
   // 30 dias. O mensal continua a um clique, com o mesmo preço de sempre; nenhum número mudou.
-  const [billing, setBilling] = useState<'monthly' | 'annual'>('annual')
+  // The route resolves monthly campaign handoffs before SSR/hydration. Once
+  // displayed, the toggle belongs to the buyer; effects never reset that choice.
+  const [billing, setBilling] = useState<PricingPlanChoiceBilling>(initialBilling)
   const resolvedCurrency = displayCurrency ?? 'usd'
   const resolvedRegion = displayRegion
   const annualPrices = (['starter', 'basic', 'pro'] as PaidTier[]).reduce((result, tier) => {
@@ -612,7 +617,7 @@ export default function PricingClient() {
     // intro month; the server enforces both, this just avoids sending params
     // that would be silently dropped.
     const isAutopilotFamily = tier === 'autopilot' || tier === 'autopilot_lite' // KINEO-AUTOPILOT-LITE
-    const billingParam = billing === 'annual' && !isAutopilotFamily ? '&billing=annual' : ''
+    const billingParam = billing === 'annual' && !isAutopilotFamily ? '&billing=annual' : '&billing=monthly'
     // #453 — forward a ?promo= code (e.g. /pricing?promo=FOUNDING50 from the
     // win-back emails) into checkout so the discount auto-applies on plan click.
     const pricingParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null

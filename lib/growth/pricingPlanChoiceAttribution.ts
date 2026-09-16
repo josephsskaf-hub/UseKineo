@@ -11,6 +11,24 @@ export const PRICING_PLAN_CHOICE_TIERS = [
 export type PricingPlanChoiceTier = (typeof PRICING_PLAN_CHOICE_TIERS)[number]
 export type PricingPlanChoiceBilling = 'monthly' | 'annual'
 
+/** Presentation only. Coupon validity and eligibility remain server-owned. */
+export function pricingBillingHandoff(input: { billing?: unknown; promo?: unknown }): {
+  initialBilling: PricingPlanChoiceBilling
+  key: string
+} {
+  const requestedBilling = input.billing === 'monthly' || input.billing === 'annual'
+    ? input.billing : null
+  const promo = typeof input.promo === 'string' ? input.promo.trim().toUpperCase() : ''
+  // Existing email links omit billing, but these two offers promise monthly plans.
+  const monthlyPromo = promo === 'FIRST50' || promo === 'COMEBACK50' ? promo : ''
+  return {
+    initialBilling: monthlyPromo ? 'monthly' : requestedBilling ?? 'annual',
+    // A different billing handoff resets the page; unrelated query changes do not
+    // overwrite a buyer's subsequent manual choice.
+    key: `${requestedBilling ?? 'default'}:${monthlyPromo}`,
+  }
+}
+
 export type PricingPlanChoiceAttribution = {
   version: typeof PRICING_PLAN_CHOICE_ATTRIBUTION_VERSION
   tier: PricingPlanChoiceTier
