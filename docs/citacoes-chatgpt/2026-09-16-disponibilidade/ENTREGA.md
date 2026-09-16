@@ -27,3 +27,15 @@
 **MÉTRICAS SEPARADAS:** citações observadas; visitas atribuídas (anônimos não são pessoas); cadastros externos; compradores canônicos; primeiras assinaturas; receita por moeda líquida de estornos quando conhecida; MRR incremental. Os cortes financeiros de outras pistas não são amostra desta mudança. Origem desconhecida permanece desconhecida; nada será marcado falsamente como ChatGPT.
 
 **ESTADO INICIAL:** PREPARADO (contrato/reprodução); produto NÃO EDITADO, NÃO PUBLICADO, exposição e pagamento atribuídos DESCONHECIDOS. Publicar a coordenação não equivale a corrigir a resposta nem a receber ACK. Oito guias e duas variantes anteriores preservados.
+
+## Entrega técnica — 16/09/2026
+
+**FATO CONFIRMADO / COORDENAÇÃO PUBLICADA:** `fc1bd4e922db96033daa9d7a98038e47742a4e33` publicado pelo enfileirador e batch da casa antes da edição da rota. Inclui o PEDIDO e este contrato; não modifica produto. Board confirmou continuidade no escopo, sem ACK adicional obrigatório para esta fonte pública e sem assumir recebimento pelo Claude.
+
+**FATO CONFIRMADO / IMPLEMENTADO:** `app/llms.txt/route.ts:97-112` deriva manutenção de `PAUSED_ENGINE_KEYS` e `ENGINE_PAUSE`; o catálogo mantém os mesmos nomes, URLs e custos, mas as linhas dos pausados passam a descrever manutenção e custo de referência. `:135-151` exclui pausados das listas de cobertura/insuficiência do saldo. Elegibilidade por plano não remove pausa; a mesma ressalva é serializada com trial ON/OFF e no ramo de elegibilidade restrita. Não pausado no catálogo não significa provedor saudável ou geração garantida.
+
+**TESTADO LOCALMENTE:** novo `test-llms-engine-availability.mjs` executa GET real com módulos canônicos, flags ON/OFF e fixture do ramo restrito com saldo suficiente para todos os motores. Baseline anterior falha pelo motivo esperado. URLs/campanhas/cabeçalhos iguais; corpo fora das duas seções alteradas byte-idêntico, incluindo preços e créditos. `test-llms-commercial-truth` ON/OFF, `test-llms-paginas-citadas` (91 verificações), typecheck completo e os 16 scripts críticos declarados no Guardião passaram. Provas privadas: `retomada-20260916-guardiao.json/.txt`. Sem rede/banco/render nesses testes.
+
+**EVIDÊNCIA RELATADA / LIMITE:** o adendo Claude incorporado em `dfa4a4f6` relata falta de saldo do fornecedor. Não foi retestado por esta pista e não altera a pausa canônica. A entrega não afirma saúde atual dos fornecedores nem usa aprovação do fundador como depoimento de cliente.
+
+**ESTADO NESTE COMMIT:** correção IMPLEMENTADA / TESTADA LOCALMENTE, pronta para fila após fetch final. SHA remoto, CI, deploy e GET público serão confirmados separadamente no handoff; exposição humana, citações posteriores e pagamento atribuídos permanecem DESCONHECIDOS. Fonte estática é regenerada no deploy; cabeçalhos de cache existentes preservados, com contraprova HTTP após READY para não confundir build com resposta pública atual.

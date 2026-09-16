@@ -46,6 +46,7 @@ import { EDITING_TOOLS, MAX_FILE_BYTES, MAX_CLIP_SECONDS } from '@/lib/videoEdit
 import { CARD_ENTRY_ONLY } from '@/lib/entryPolicy'
 import { TIER_PRICES } from '@/lib/checkoutPricing'
 import { AFFILIATE_COMMISSION_PCT } from '@/lib/affiliateCommission'
+import { ENGINE_PAUSE, PAUSED_ENGINE_KEYS } from '@/lib/engineLaunch'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
 // Rota SO-GET no Next 14.2: sem POST no modulo, o store nasce com
 // revalidate=false, e `dynamic='force-dynamic'` NAO muda isso (so pula o proxy
@@ -93,8 +94,21 @@ function planLine(plan: (typeof PLAN_FACTS)[number]): string {
 }
 
 function buildLlmsTxt(): string {
+  // Plan access, maintenance and credit coverage answer different questions.
+  // Use the same maintenance records as the Studio and generation guards.
+  const pauses = PAUSED_ENGINE_KEYS.map((key) => ENGINE_PAUSE[key])
+  const pauseFor = (name: string) => pauses.find((pause) => pause.label === name)
+  const maintenanceLines = pauses.map((pause) =>
+    `- ${pause.label}: temporarily paused for new films since ${pause.since}. A paid plan or additional credits does not remove this maintenance pause. Alternative listed in Studio: ${pause.alternative.label}; its own credit cost applies.`,
+  ).join('\n')
+  const availabilityLines = `- Engines not paused in the catalogue: ${ENGINE_FACTS.filter((engine) => !pauseFor(engine.name)).map((engine) => engine.name).join(', ')}. This is catalogue availability, not a live provider-health check or a guarantee of generation.${maintenanceLines ? `\n${maintenanceLines}` : ''}`
   const engines = ENGINE_FACTS.map(
-    (engine) => `- [**${engine.name}**](${engine.url}) — ${engine.credits} credit${engine.credits === 1 ? '' : 's'} per video. ${engine.what}`,
+    (engine) => {
+      const pause = pauseFor(engine.name)
+      return pause
+        ? `- [**${engine.name}**](${engine.url}) — Temporarily paused for new films since ${pause.since}, regardless of plan or credit balance. Reference cost: ${engine.credits} credits per video; this is not an offer to start a film during maintenance. Alternative listed in Studio: ${pause.alternative.label}; its own credit cost applies.`
+        : `- [**${engine.name}**](${engine.url}) — ${engine.credits} credit${engine.credits === 1 ? '' : 's'} per video. ${engine.what}`
+    },
   ).join('\n')
 
   const plans = PLAN_FACTS.map(planLine).join('\n')
@@ -119,6 +133,7 @@ function buildLlmsTxt(): string {
   const trialAccessLines = TRIAL_ACCESS
     ? (() => {
         const covered = TRIAL_ACCESS.engineCoverage
+          .filter((engine) => !pauseFor(engine.engine))
           .filter((engine) => engine.wholeReferenceVideosCovered > 0)
           .map(
             (engine) =>
@@ -126,12 +141,13 @@ function buildLlmsTxt(): string {
           )
           .join(', ')
         const balanceShort = TRIAL_ACCESS.engineCoverage
+          .filter((engine) => !pauseFor(engine.engine))
           .filter((engine) => engine.wholeReferenceVideosCovered === 0)
           .map((engine) => engine.engine)
           .join(', ')
-        return `- Trial engine access: ${TRIAL_ACCESS.everyEngineUnlocked ? 'every engine listed below is unlocked' : 'Kineo 1 and Seedance 1.5 are unlocked (Kling 2.5, Veo 3.1, Kling 3 and Avatar are Studio-plan engines; MiniMax H3, Omni Flash and Seedance 2.5 are temporarily paused for maintenance since 15 September 2026 — nothing is charged for a blocked attempt)'}. Access does not mean the balance covers a full video.\n- The ${TRIAL_ACCESS.credits}-credit trial balance covers: ${covered}.${balanceShort ? ` It does not cover one full reference video on: ${balanceShort}.` : ''}\n- ${TRIAL_ACCESS.noCardRequired ? `After the trial, recurring free access is ${RECURRING_FREE_ACCESS.videosPerWindow} watermarked ${RECURRING_FREE_ACCESS.engine} video per ${RECURRING_FREE_ACCESS.rollingWindowHours}-hour window; it grants no credits.` : `The trial costs ${((TRIAL_ACCESS.entryFeeUsdMinor ?? 0) / 100).toFixed(2)} for ${TRIAL_ACCESS.trialDays ?? 7} days (card required) and continues at ${((TRIAL_ACCESS.thenMonthlyUsdMinor ?? 0) / 100).toFixed(2)}/month unless cancelled. There is no free tier.`}`
+        return `- Trial engine access: ${TRIAL_ACCESS.everyEngineUnlocked ? 'every engine is unlocked by plan; maintenance pauses below still apply' : 'Kineo 1 and Seedance 1.5 are unlocked by plan (Kling 2.5, Veo 3.1, Kling 3 and Avatar are Studio-plan engines); maintenance pauses below still apply'}. Access does not mean the balance covers a full video.\n${availabilityLines}\n- For engines not currently paused, the ${TRIAL_ACCESS.credits}-credit trial balance covers: ${covered}.${balanceShort ? ` It does not cover one full reference video on: ${balanceShort}.` : ''}\n- ${TRIAL_ACCESS.noCardRequired ? `After the trial, recurring free access is ${RECURRING_FREE_ACCESS.videosPerWindow} watermarked ${RECURRING_FREE_ACCESS.engine} video per ${RECURRING_FREE_ACCESS.rollingWindowHours}-hour window; it grants no credits.` : `The trial costs ${((TRIAL_ACCESS.entryFeeUsdMinor ?? 0) / 100).toFixed(2)} for ${TRIAL_ACCESS.trialDays ?? 7} days (card required) and continues at ${((TRIAL_ACCESS.thenMonthlyUsdMinor ?? 0) / 100).toFixed(2)}/month unless cancelled. There is no free tier.`}`
       })()
-    : `- Only the ${RECURRING_FREE_ACCESS.engine} engine is available on recurring free access. Generative engines require a paid credit balance.`
+    : `- Only the ${RECURRING_FREE_ACCESS.engine} engine is available on recurring free access. Generative engines require a paid credit balance.\n${availabilityLines}`
 
   const agencyPackLines = BUSINESS_OFFER_FACT.packs.map((pack) => {
     return `- **${pack.videos} ${BUSINESS_OFFER_FACT.namedVideoCountEngine} Shorts** — ${pack.priceUsd} once (${pack.pricePerFastVideoUsd} per Short), ${pack.credits} universal credits.`
