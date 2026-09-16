@@ -8,9 +8,9 @@ O fundador respondeu «Aprovado suas sugestões podemos fazer!» às três propo
 
 | Ação | Dono / estado nesta entrega | Entrega e medida |
 | --- | --- | --- |
-| A1 — campanha mensal não vira compra anual | MMR; EM EXECUÇÃO na branch `codex/pricing-monthly-campaign-20260916` | Query → seleção → checkout coerentes, anual geral preservado; medir primeiras compras externas da campanha, não cliques. |
+| A1 — campanha mensal não vira compra anual | MMR; IMPLEMENTADO / TESTADO LOCALMENTE, NÃO PUBLICADO | Candidato integrado `271cf295`, patch `153866ed`: 354 verificações comportamentais e typecheck sem erro, segundo execução da sessão MMR de 16/09. Board leu o diff dos três arquivos de runtime. Falta inspeção visual e navegação/hidratação reais em caminho permitido; não contornar a recusa anterior de preview. |
 | A2 — ativação assistida do Lite | Board; PACOTE PRONTO, convites BLOQUEADOS pela prova técnica | [Roteiro, seleção e gate](AUTOPILOT-LITE-PILOTO-A2-2026-09-16.md). Pagamento confirmado + primeira entrega são estados distintos. |
-| A3 — demonstração conjunta com parceiro | Parcerias; EM EXECUÇÃO na sessão existente | Um principal, um reserva, convite não enviado, demonstração de 20 min, assets aprovados, CTA e atribuição; nenhuma comissão nova prometida. |
+| A3 — demonstração conjunta com parceiro | Parcerias; PACOTE PRONTO, DISTRIBUIÇÃO BLOQUEADA | [Roteiro e evidências](ATIVACAO-PARCEIRO-A3-2026-09-16.md). Wyndo já está em negociação, sem resposta à cotação anterior: não repetir contato nem contar como parceiro novo. Reserva não confirmou demonstração ao vivo. Nenhum patrocínio ou envio autorizado por este pacote. |
 
 FATO CONFIRMADO: A1 é regressão nova na combinação do anual padrão (`app/pricing/PricingClient.tsx:406,615`) com campanhas mensais; `app/api/stripe/checkout/route.ts:1743` desconsidera FIRST50/COMEBACK50 no anual. Não reabrir o cobrador nem desfazer o anual para todo visitante. O pacote antigo TRIAL10 não deve entrar incidentalmente nesta correção.
 
@@ -32,3 +32,13 @@ SUGESTÃO, não previsão de conversão: demonstração específica do caso de u
 ## Coordenação
 
 MMR e Parcerias receberam diretamente no app a aprovação e os escopos. Claude lê o pedido A2-FIRST-RUN no arquivo compartilhado; documento no Git não equivale a ACK. Nenhum código dos motores, pagamento ou agendamento foi alterado pelo Board nesta entrega.
+
+## Balanço desta execução
+
+**ENTREGUE:** dois pacotes operacionais (A2 e A3) compartilhados em Git; A1 implementado e testado em worktree isolada, aguardando o gate visual. O pacote A3 veio do commit `4bc6eb1a`, integrado sem alterar seu conteúdo.
+
+**EVIDÊNCIA DE PRODUÇÃO — 16/09/2026 23:11 UTC:** consulta A2 encontrou seis pessoas externas com canal não revogado, uma delas com evento de intenção Autopilot nos últimos 30 dias. Isto não comprova elegibilidade, consentimento ou token válido; não são seis vendas. Não houve agenda semanal nem entrega semanal concluída na consulta. Fontes e limites no pacote A2.
+
+**QUESTÃO PENDENTE:** primeira execução do Lite é agendada sete dias após a criação pelo código atual; decidir o comportamento antes de ativar o piloto. A3 depende de aceite e eventual orçamento do parceiro, não de outra lista genérica. A1 depende da prova visual, não de nova aprovação comercial.
+
+**RESULTADO FINANCEIRO:** nenhuma receita nova ou nova assinatura foi comprovada nesta execução. Nenhum e-mail enviado, render pago, compra de teste ou agendamento de cliente ativado.
