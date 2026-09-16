@@ -3201,3 +3201,15 @@ Medido antes de mexer (broll_metrics, 7 dias, 74 filmes Kineo 1 de clientes): 99
 **Commit b6536272:** (1) o still abre a cena e o stock da cena continua sendo buscado para os cortes seguintes (sem `continue`); no Pixabay-miss o still ainda fecha a cena; seed varia por tentativa; teto 3 → 4 por filme (≤ US$ 0,12). (2) Legenda: o Whisper devolve "A"+"M" para "5 AM" e a legenda mostrava "A M USING THOSE"; agora "A/P"+"M" vira "AM/PM" e cola ao número ("5 AM" num token só, karaoke pinta junto). Guardião kineo1-hibrido 28 ✓, caption-chunker 47 ✓, tsc ✓.
 
 **O que NÃO mudei, com o porquê:** cor/vinheta/velocidade do Kineo 1 (CLAUDE.md: nunca sem render de validação; ficam para uma rodada com 3 renders A/B), o corte "MILESTONE OF 1 | TRILLION" (fronteira de 4 palavras; raro), e a grama genérica numa fala abstrata (relevância boa, sem nome: o gatilho não dispara por desenho).
+
+## MRR-1-3-R1 — três alavancas de receita (fundador 16/09 13:13 BRT: "Vai para 1 a 3")
+
+Base (30 dias): 10 pagantes (5 Starter, 2 Creator, 3 Studio) ≈ US$ 209 MRR; 91 pessoas tentaram checkout, 6 pagaram; plano mais clicado = Creator (51), Starter 22, Studio 13, Autopilot 5. Mercado: InVideo 35-120, Pictory 29-199, Fliki 28-88, Higgsfield 19-129, OpusClip 15-29 (US$/mês) — todos empurram o anual (10 meses) e vendem top-up.
+
+**Commit 9f8f9442:**
+1. **Anual destacado** — `app/pricing/PricingClient.tsx` abre com o toggle no anual (2 MONTHS FREE); mensal a um clique; ANNUAL_PRICES continuam 10× (9900/19900/39900); nenhum preço mudou. Medir: proporção billing=annual em checkout_started/payment_success.
+2. **Top-up para quem já paga** — `lib/growth/topupEligibility.ts` inclui starter/starter_trial; o cobrador (`canPurchaseCreditTopup` no /api/stripe/checkout), o modal de sem-créditos do Studio, o paywall do Animate e o chip lateral derivam da mesma função, então Starter deixa de tomar 403 e ir para /pricing. Free e trial seguem fora. SKUs e preços existentes (topup40/120/100/300). Guardiões reancorados: topup-eligibility-handoff, topup-offer-gate, out-of-credits-plans, animate-paywall.
+3. **Garantia + filme próprio** — oferta pós-render: linha "✓ 7-day money-back guarantee · cancel anytime · your films stay yours" nos dois sítios (com o filme na tela); /pricing: faixa "Your latest film" (lê /api/videos com sessão, vídeo mudo + título + garantia) acima dos planos; falha aberta sem filme. O checkout hospedado da Stripe não recebe conteúdo nosso — por isso a prova mora antes dele.
+Guardião `scripts/test-mrr-1-3-2026-09-16.mjs` (13). tsc ✓. Vermelhos herdados iguais no baseline: checkout-currency-truth, limit-purchase-fit, motores-d1, paypal-canonical-catalog, sem-porteiro, troca-de-plano.
+
+**Pendente de decisão do fundador:** 4 (Autopilot Lite ~US$ 59, série semanal) e o preço do top-up. **Para o GPT:** 5 (afiliados) — texto entregue no chat.
