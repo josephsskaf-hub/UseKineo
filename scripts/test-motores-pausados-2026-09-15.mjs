@@ -57,7 +57,13 @@ const sd = rd('components/StructuredData.tsx')
 checa('schema/FAQ: nenhuma lista fixa com H3/Omni; usa a lista e a frase de pausa', !/MiniMax H3/.test(sd) && !/Omni Flash/.test(sd) && (sd.match(/PAUSED_ENGINES_COPY/g) || []).length >= 2)
 const mp = rd('app/models-pricing/page.tsx')
 checa('tabela de preços: linhas pausadas filtradas (qualityPaused) e a nota de pausa visível; linhas continuam no catálogo', mp.includes('{ROWS.filter((r) => !qualityPaused(r.quality)).map((r) => {') && mp.includes('{PAUSED_ENGINES_COPY}') && /key: 'omni'/.test(mp) && /key: 'h3'/.test(mp))
-checa('llms.txt: diz quem está pausado e que nada é cobrado', /MiniMax H3, Omni Flash and Seedance 2\.5 are temporarily paused for maintenance since 15 September 2026/.test(rd('app/llms.txt/route.ts')))
+// 16/09: o llms.txt passou a ser GERADO do interruptor único (Codex 7c6adc82) — a frase fixa saiu; a prova é o laço sobre PAUSED_ENGINE_KEYS e a frase por motor.
+{
+  const ll = rd('app/llms.txt/route.ts')
+  const fixo = /MiniMax H3, Omni Flash and Seedance 2\.5 are temporarily paused for maintenance since 15 September 2026/.test(ll)
+  const gerado = ll.includes('PAUSED_ENGINE_KEYS.map((key) => ENGINE_PAUSE[key])') && /temporarily paused for new films since \$\{pause\.since\}/.test(ll) && /does not remove this maintenance pause/.test(ll)
+  checa('llms.txt: diz quem está pausado (gerado do interruptor único) e que plano/crédito não destrava', fixo || gerado)
+}
 const pc = rd('app/pricing/PricingClient.tsx')
 checa('pricing: Studio não promete H3/Omni; linha do H3 fora do calculador; flagship = Kling 3', pc.includes("outcome: 'Every available engine — Kling 3, Veo 3.1, Kling 2.5, Seedance 1.5, Kineo 1, Avatar") && !pc.includes("name: 'MiniMax H3 films · lip-sync'") && pc.includes("{ ic: '🏆', name: 'Kling 3 films · native voice & lip sync', cost: costFlag }") && pc.includes('lip sync (Kling 3)</span>'))
 const calc = rd('app/cheapest-ai-shorts-maker/ShortCostCalculator.tsx')

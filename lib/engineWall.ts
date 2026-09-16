@@ -275,7 +275,10 @@ const HERO_CAPS: Record<string, number> = {
   // 17/08 — 5: os 4 primeiros abrem o card do hero; o 5o (Lituya Bay) e
   // exclusivo do tile Kling 3 do bento (tileVidLast). Ver CURATED.
   cinematic_hollywood: 5,
-  cinematic_ai: 4,
+  // KINEO-VITRINE-APROVADOS-2026-09-16: o faroleiro (aprovado) abre o card; os
+  // 4 de 07/09 seguem atrás e o 5o (Voynich) fica exclusivo do tile do bento
+  // (tileVidLast) — mesma regra do Kling 3, zero repetição na página.
+  cinematic_ai: 5,
   // 25/08 — os dois cards novos da primeira tela (fundador). Seedance/Kling
   // 2.5 seguem na lista (caps acima): os tiles do bento ainda leem daqui.
   // KINEO-CARDS-ENQUADRADOS-2026-09-08 (fundador): quatro por card — o H3 ganha

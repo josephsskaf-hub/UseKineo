@@ -25,7 +25,7 @@ const newAnswers=[...newHome.matchAll(/<details className="qa"><summary><h3>(.*?
 eq(newAnswers,oldAnswers,'all FAQ answers, pricing functions and offer conditions are unchanged')
 eq(newAnswers.length,15,'fifteen keyboard-native disclosures, not missing answers')
 eq(attributes(home,false,['src','poster']),attributes(home,true,['src','poster']),'home keeps every literal/dynamic media source')
-ok(newHome.includes("['cinematic_veo', 'cinematic_hollywood', 'cinematic_h3', 'cinematic_omni']"),'curated hero order retained')
+ok(newHome.includes("['cinematic_ai', 'cinematic_kling', 'cinematic_veo', 'cinematic_hollywood']"),'curated hero order retained (founder 16/09)')
 const html=renderPage(home)
 eq((html.match(/<h1[ >]/g)||[]).length,1,'one visible main heading')
 eq((html.match(/<details class="qa"/g)||[]).length,15,'native FAQ renders on the server')

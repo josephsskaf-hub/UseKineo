@@ -1036,7 +1036,13 @@ export default function KineoLanding({
               // de agosto) com os melhores renders da library — inclusive a
               // batalha de robôs e o Mariana Trench gerados HOJE no Omni.
               // Seedance/Kling 2.5 continuam nos tiles do bento logo abaixo.
-              const order = ['cinematic_veo', 'cinematic_hollywood', 'cinematic_h3', 'cinematic_omni']
+              // KINEO-VITRINE-APROVADOS-2026-09-16 (fundador): a primeira tela volta aos
+              // quatro motores VALIDADOS esta noite — Seedance 1.5 (nota 9,5), Kling 2.5,
+              // Veo 3.1 (nota 9) e Kling 3 — cada card abrindo com o filme aprovado.
+              // MiniMax H3 e Omni Flash saem daqui enquanto estão em manutenção
+              // (interruptor lib/engineLaunch.ts): card de motor pausado na primeira
+              // tela era convite para um Studio que recusa o pedido.
+              const order = ['cinematic_ai', 'cinematic_kling', 'cinematic_veo', 'cinematic_hollywood']
               return order.map((eng, i) => {
                 const vids = orderHeroVideos(engineWall.filter((v) => v.engine === eng)).slice(0, 4)
                 if (vids.length === 0) return null
@@ -1186,7 +1192,7 @@ export default function KineoLanding({
                 </span>
               </Link>
               <Link href="/studio?engine=seedance&intent_campaign=engine_tile" className="tile hot">
-                {tileVid('cinematic_ai')}
+                {tileVidLast('cinematic_ai')}
                 <span className="trow">
                   <span className="tic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 5v14M17 5v14M3 10h4M3 14h4M17 10h4M17 14h4"/></svg></span>
                   <span className="tb"><UiLabel>Popular</UiLabel></span>
@@ -1198,7 +1204,7 @@ export default function KineoLanding({
                 </span>
               </Link>
               <Link href="/studio?engine=kling&intent_campaign=engine_tile" className="tile">
-                {tileVid('cinematic_kling')}
+                {tileVidLast('cinematic_kling')}
                 <span className="trow">
                   <span className="tic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 8l6-3v14l-6-3"/><rect x="3" y="6" width="12" height="12" rx="2"/></svg></span>
                   <span className="tb"><UiLabel>Studio</UiLabel></span>
@@ -1210,7 +1216,7 @@ export default function KineoLanding({
                 </span>
               </Link>
               <Link href="/studio?engine=veo&intent_campaign=engine_tile" className="tile">
-                {tileVid('cinematic_veo')}
+                {tileVidLast('cinematic_veo')}
                 <span className="trow">
                   <span className="tic"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9L12 2z"/><path d="M19 15l.9 2.6L22.5 18.5l-2.6.9L19 22l-.9-2.6-2.6-.9 2.6-.9L19 15z" opacity=".7"/></svg></span>
                   <span className="tb"><UiLabel>Studio</UiLabel></span>

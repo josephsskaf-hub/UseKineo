@@ -54,7 +54,8 @@ const preview = source('docs/previews/HOME-WELCOME-OUTCOME-SELECTOR-V3-2026-09-0
 ok(page.includes("firstSearchParam(searchParams, 'welcome') === '1'"), 'email signup handoff shows the router')
 ok(page.includes("firstSearchParam(searchParams, 'signup') === '1'"), 'OAuth/modal signup handoff also shows the router')
 ok(page.includes('showWelcomeGoalRouter={showWelcomeGoalRouter}'), 'server passes only a serializable boolean')
-ok(landing.indexOf('const order = [\'cinematic_veo\', \'cinematic_hollywood\', \'cinematic_h3\', \'cinematic_omni\']') >= 0, 'founder-approved four-engine order is unchanged')
+// KINEO-VITRINE-APROVADOS-2026-09-16 (fundador): primeira tela = os quatro motores validados; H3 e Omni em manutenção saem dela.
+ok(landing.indexOf('const order = [\'cinematic_ai\', \'cinematic_kling\', \'cinematic_veo\', \'cinematic_hollywood\']') >= 0, 'founder-approved four-engine order is unchanged (16/09)')
 ok(landing.indexOf('</header>') < landing.indexOf('<HomeWelcomeGoalRouter />'), 'router renders after the four-video hero')
 ok(landing.includes('{showWelcomeGoalRouter ? <HomeWelcomeGoalRouter /> : null}'), 'React conditional is explicit')
 ok(component.includes("'use client'"), 'router can measure the real human handoff')

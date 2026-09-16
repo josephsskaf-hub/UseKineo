@@ -23,10 +23,26 @@ export const APPROVED_HOME_VIDEOS: readonly HomeExample[] = [
   { id: '38158db0-f02e-4c6c-a4c8-3c65461413a9', title: "A witness to Tunguska", engine: 'cinematic_omni', videoPath: '/previews/curation-sep07/38158db0-f02e-4c6c-a4c8-3c65461413a9-v.mp4', homePreviewPath: '/previews/curation-sep07/38158db0-f02e-4c6c-a4c8-3c65461413a9-h.mp4', posterPath: '/previews/curation-sep07/38158db0-f02e-4c6c-a4c8-3c65461413a9-h.webp', ownershipEvidence: 'founder_confirmed_owned', ownershipVerifiedAt: '2026-09-07' },
 ]
 
+// KINEO-VITRINE-APROVADOS-2026-09-16 — os quatro filmes que o fundador assistiu e
+// aprovou na noite de 15→16/09 (todos da conta dele, 60 s, âncora de imagem por
+// cena): Seedance 1.5 "o faroleiro" nota 9,5 · Veo 3.1 "a vigia do vulcão" nota
+// 9 · Kling 2.5 "o trem da meia-noite" aprovado · Kling 3 "o relojoeiro" (o
+// filme do dia). Pedido dele: "trocar alguns vídeos na parte inicial…
+// principalmente do Seedance… podemos colocar também outros motores… esses
+// quatro… deixo a cargo de você". Cada um abre o card do seu motor; os
+// aprovados de 07/09 continuam atrás, girando.
+export const APPROVED_HOME_VIDEOS_SEP16: readonly HomeExample[] = [
+  { id: 'b5434412-62b9-48f5-9a10-c36e2e725c9f', title: "The lighthouse keeper's notebook", engine: 'cinematic_ai', videoPath: '/previews/curation-sep16/b5434412-62b9-48f5-9a10-c36e2e725c9f-v.mp4', homePreviewPath: '/previews/curation-sep16/b5434412-62b9-48f5-9a10-c36e2e725c9f-h.mp4', posterPath: '/previews/curation-sep16/b5434412-62b9-48f5-9a10-c36e2e725c9f-h.webp', ownershipEvidence: 'founder_confirmed_owned', ownershipVerifiedAt: '2026-09-16' },
+  { id: 'ed95d4a6-79f9-444e-8b29-0d6b9c1c05eb', title: "The night train and the red suitcase", engine: 'cinematic_kling', videoPath: '/previews/curation-sep16/ed95d4a6-79f9-444e-8b29-0d6b9c1c05eb-v.mp4', homePreviewPath: '/previews/curation-sep16/ed95d4a6-79f9-444e-8b29-0d6b9c1c05eb-h.mp4', posterPath: '/previews/curation-sep16/ed95d4a6-79f9-444e-8b29-0d6b9c1c05eb-h.webp', ownershipEvidence: 'founder_confirmed_owned', ownershipVerifiedAt: '2026-09-16' },
+  { id: '6b9b363c-3185-4db7-a877-46b77e334f06', title: "The volcano watcher", engine: 'cinematic_veo', videoPath: '/previews/curation-sep16/6b9b363c-3185-4db7-a877-46b77e334f06-v.mp4', homePreviewPath: '/previews/curation-sep16/6b9b363c-3185-4db7-a877-46b77e334f06-h.mp4', posterPath: '/previews/curation-sep16/6b9b363c-3185-4db7-a877-46b77e334f06-h.webp', ownershipEvidence: 'founder_confirmed_owned', ownershipVerifiedAt: '2026-09-16' },
+  { id: 'd6d73a90-9bd7-46a3-826a-9a4a72549e05', title: "The watchmaker's pocket watch", engine: 'cinematic_hollywood', videoPath: '/previews/curation-sep16/d6d73a90-9bd7-46a3-826a-9a4a72549e05-v.mp4', homePreviewPath: '/previews/curation-sep16/d6d73a90-9bd7-46a3-826a-9a4a72549e05-h.mp4', posterPath: '/previews/curation-sep16/d6d73a90-9bd7-46a3-826a-9a4a72549e05-h.webp', ownershipEvidence: 'founder_confirmed_owned', ownershipVerifiedAt: '2026-09-16' },
+]
+
 export const ROBOT_VIDEO_ID = '36a04f7b-65f7-42d9-a2ab-198b5a7f115e'
 const replacedEngines = new Set(['fast', 'cinematic_ai', 'cinematic_kling', 'cinematic_omni'])
 export const HOME_ENGINE_EXAMPLES: readonly HomeExample[] = [
   ...PUBLIC_ENGINE_EXAMPLES.filter(v => v.id === ROBOT_VIDEO_ID),
+  ...APPROVED_HOME_VIDEOS_SEP16,
   ...APPROVED_HOME_VIDEOS,
   // No approved replacement from Veo/H3; preserve them and Kling 3 verbatim.
   ...PUBLIC_ENGINE_EXAMPLES.filter(v => !replacedEngines.has(v.engine)),

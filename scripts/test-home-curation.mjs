@@ -46,10 +46,31 @@ for(const e of approved){
 }
 ok(hero.filter(v=>v.engine==='cinematic_omni')[0].id===home.ROBOT_VIDEO_ID,'robot opens Omni')
 ok(hero.filter(v=>v.engine==='cinematic_omni').length===5,'robot and four approved presenters reach the wall (card shows four)')
+// KINEO-VITRINE-APROVADOS-2026-09-16: Veo e Kling 3 ganham o filme aprovado do fundador NA FRENTE; os antigos seguem verbatim atrás. H3 continua intocado.
 for(const engine of ['cinematic_veo','cinematic_hollywood','cinematic_h3']){
  const expected=old.PUBLIC_ENGINE_EXAMPLES.filter(v=>v.engine===engine)
  const actual=home.HOME_ENGINE_EXAMPLES.filter(v=>v.engine===engine)
- ok(JSON.stringify(expected)===JSON.stringify(actual),'unreplaced engine preserved verbatim '+engine)
+ const novos=home.APPROVED_HOME_VIDEOS_SEP16.filter(v=>v.engine===engine)
+ ok(JSON.stringify(expected)===JSON.stringify(actual.slice(novos.length)),'unreplaced engine preserved verbatim after the 16/09 opener '+engine)
+}
+ok(home.APPROVED_HOME_VIDEOS_SEP16.length===4,'four founder-approved films of 16/09')
+for(const e of home.APPROVED_HOME_VIDEOS_SEP16){
+ const v=hero.find(v=>v.id===e.id)
+ ok(v && v.engine===e.engine,'16/09 film present in the hero with its real engine '+e.id)
+ ok(hero.filter(v=>v.engine===e.engine)[0].id===e.id,'16/09 film OPENS the card of its engine '+e.engine)
+ ok(v.previewUrl!==v.videoUrl,'independent wide and portrait assets (16/09)')
+ for(const asset of [v.videoUrl,v.previewUrl,v.posterUrl]){
+  ok(asset.startsWith('/previews/curation-sep16/'),'local versioned asset (16/09)')
+  const f=path.join('public',asset)
+  ok(fs.existsSync(f),'asset exists '+asset)
+  ok(fs.statSync(f).size>1000 && fs.statSync(f).size<1500000,'bounded asset size (16/09)')
+ }
+ if(process.argv.includes('--media'))for(const [asset,w,h] of [[v.videoUrl,540,960],[v.previewUrl,1400,782]]){
+  const data=JSON.parse(execFileSync('ffprobe',['-v','error','-show_streams','-show_format','-of','json',path.join('public',asset)],{encoding:'utf8'}))
+  ok(data.streams.length===1 && data.streams[0].codec_type==='video','no audio (16/09)')
+  ok(data.streams[0].width===w && data.streams[0].height===h,'dimensions (16/09)')
+  ok(Math.abs(Number(data.format.duration)-6)<0.1,'six-second preview (16/09)')
+ }
 }
 for(const list of [hero,trending])ok(new Set(list.map(v=>v.id)).size===list.length,'no duplicates')
 ok(load('lib/publicSurfacePolicy.ts').CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED===false,'customer gallery remains closed')
