@@ -95,6 +95,7 @@ eq(narrations, [null, 'Narrator explains', 'The story ends'], 'Actual generation
 const inputNode = findNode(generationAst, n => ts.isFunctionDeclaration(n) && n.name?.text === 'buildFalInput')
 const constants = {
   H3_I2V_MODEL: 'minimax/h3/image-to-video', H3_MODELS: { dialogue: 'minimax/h3/text-to-video' }, H3_RESOLUTION: '768P',
+  H3_PROMPT_EXPANSION: 'disabled', // KINEO-H3-SEM-REESCRITA-2026-09-16
   OMNI_I2V_MODEL: 'google/gemini-omni-flash/image-to-video',
   S25_I2V_MODEL: 's25-i2v', S25_T2V_MODEL: 's25-t2v', S25_RESOLUTION: '720p',
 }
@@ -309,7 +310,7 @@ eq(notRequested.calls.length, 0, 'No clone/profile lookup when unrequested')
 {
   const loadReal = createOfflineLoader({ mocks: { '@fal-ai/client': { fal: { config() {}, subscribe() { throw Error('provider forbidden') }, queue: { submit() { throw Error('provider forbidden') } } } } } })
   const router = loadReal('@/lib/hollywood/router')
-  const real = { KLING3_MODEL: router.HOLLYWOOD_MODELS.dialogue, KLING3_I2V_MODEL: router.KLING3_I2V_MODEL, H3_I2V_MODEL: router.H3_I2V_MODEL, H3_MODELS: router.H3_MODELS, H3_RESOLUTION: router.H3_RESOLUTION, OMNI_I2V_MODEL: router.OMNI_I2V_MODEL, S25_I2V_MODEL: router.S25_I2V_MODEL, S25_T2V_MODEL: router.S25_T2V_MODEL, S25_RESOLUTION: router.S25_RESOLUTION }
+  const real = { KLING3_MODEL: router.HOLLYWOOD_MODELS.dialogue, KLING3_I2V_MODEL: router.KLING3_I2V_MODEL, H3_I2V_MODEL: router.H3_I2V_MODEL, H3_MODELS: router.H3_MODELS, H3_RESOLUTION: router.H3_RESOLUTION, H3_PROMPT_EXPANSION: router.H3_PROMPT_EXPANSION, OMNI_I2V_MODEL: router.OMNI_I2V_MODEL, S25_I2V_MODEL: router.S25_I2V_MODEL, S25_T2V_MODEL: router.S25_T2V_MODEL, S25_RESOLUTION: router.S25_RESOLUTION }
   const realInput = evaluate(`export ${inputNode.getText(generationAst)}`, { ...real, ...load('@/lib/aspect') }).buildFalInput
   const anchor = 'https://example.invalid/anchor.png'
   // Kling 3 — família 'hollywood': com âncora i2v (fala nativa ligada), sem âncora t2v.
@@ -393,16 +394,17 @@ eq(notRequested.calls.length, 0, 'No clone/profile lookup when unrequested')
   const { AvatarSubmitError } = veedApi(() => { throw Error('network forbidden') })
   const hostScope = ({ family, type = 'dialogue', hostOn = true, anchors = { portraitUrl: 'https://offline.invalid/portrait.png' }, voice = { voice: 'approved', defaultSpeed: 1 }, submit = async () => 'offline-host-id', earlierIds = [], tts, upload }) => {
     const calls = []
-    const hRequestIds = earlierIds.slice(), hDispositions = earlierIds.map(() => 'accepted'), hModels = [], hEngines = [], hSubmittedPrompts = []
+    const hRequestIds = earlierIds.slice(), hDispositions = earlierIds.map(() => 'accepted'), hModels = [], hEngines = [], hSubmittedPrompts = [], hRecusas = earlierIds.map(() => null)
+    const ctxStub = { submittedPrompts: {}, ultimaRecusa: null }
     const scope = {
-      family, hostTtsEnabled: hostOn, anchors, hostVoice: voice, calls, hRequestIds, hDispositions, hModels, hEngines, hSubmittedPrompts,
+      family, hostTtsEnabled: hostOn, anchors, hostVoice: voice, calls, hRequestIds, hDispositions, hModels, hEngines, hSubmittedPrompts, hRecusas,
       hs: { index: 1, type, dialogueLine: type === 'dialogue' ? 'I am the presenter. This is my story.' : '', seconds: 8, prompt: 'x' },
       hostUserSpeed: 1, hostPerformancePrompt: 'approved performance', user: { id: 'internal-fixture' }, submittedPrompt: 'x',
       synthesizeHostSpeech: async a => { calls.push(['tts', a.text]); if (tts) return tts(); return Buffer.from('offline') },
       estimateMp3DurationSeconds: () => 8, uploadVoiceoverToSupabase: async () => { calls.push(['upload']); if (upload) return upload(); return 'https://offline.invalid/voice.mp3' },
       submitAvatarJob: async a => { calls.push(['host-submit', a.engine]); return submit() },
       HOST_PRESENTER_MODEL: 'offline-host-model', AvatarSubmitError, cinematicSubmissionUncertain: false, providerSubmissionMayExist: false,
-      cinematicSceneModel: (fam, t, anchored) => `${fam}/${t}/${anchored ? 'i2v' : 't2v'}`, ctxDespacho: () => ({ submittedPrompts: {} }),
+      cinematicSceneModel: (fam, t, anchored) => `${fam}/${t}/${anchored ? 'i2v' : 't2v'}`, ctxDespacho: () => ctxStub,
       console: { log() {}, warn() {} }, fetch() { throw Error('network forbidden') }, Buffer, Math,
     }
     return { scope, calls }
@@ -472,7 +474,7 @@ eq(notRequested.calls.length, 0, 'No clone/profile lookup when unrequested')
   const dispatch = load('@/lib/cinematic/dispatchScenes')
   const runLedger = (dispositions, heldIdx, hostAttempts = new Map()) => {
     const c = { outcomes: [], attempts: [], totalPosts: 0 }
-    vm.runInNewContext(ts.transpileModule(ledger.getText(generationAst), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText, { ctxDespacho: () => c, plan: { scenes: dispositions.map(() => ({})) }, hDispositions: dispositions, hModels: dispositions.map(() => 'm'), hHeldByPolicy: new Set(heldIdx), hHostAttempts: hostAttempts, claimQuality: 'q', classifyProviderFailure: disposition.classifyProviderFailure })
+    vm.runInNewContext(ts.transpileModule(ledger.getText(generationAst), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText, { ctxDespacho: () => c, plan: { scenes: dispositions.map(() => ({})) }, hDispositions: dispositions, hRecusas: dispositions.map(() => null), hModels: dispositions.map(() => 'm'), hHeldByPolicy: new Set(heldIdx), hHostAttempts: hostAttempts, claimQuality: 'q', classifyProviderFailure: disposition.classifyProviderFailure })
     return c
   }
   const led = runLedger(['accepted', 'explicit_reject', 'accepted'], [1])
@@ -498,7 +500,7 @@ eq(notRequested.calls.length, 0, 'No clone/profile lookup when unrequested')
   const decl = name => findNode(generationAst, n => ts.isVariableDeclaration(n) && n.name.getText(generationAst) === name).initializer.getText(generationAst)
   const bodyWithSpy = stmts.map(s => s === nativeIf ? `if (${nativeIf.expression.getText(generationAst)}) { calls.push(['native-post', family, hs.type, idx]); id = 'native-' + idx }` : s.getText(generationAst)).join('\n')
   const fullCode = `export const run = (async () => {
-    const hRequestIds = [], hDispositions = [], hModels = [], hEngines = [], hSubmittedPrompts = [], contratoRelato = []
+    const hRequestIds = [], hDispositions = [], hModels = [], hEngines = [], hSubmittedPrompts = [], contratoRelato = [], hRecusas = []
     const hHeldByPolicy = new Set(); const hHostAttempts = new Map()
     let cinematicSubmissionUncertain = false, providerSubmissionMayExist = false
     ${pre.getText(generationAst)}

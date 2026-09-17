@@ -95,6 +95,7 @@ import {
   // para herdar o Contrato Hollywood inteiro. Ver o bloco no router.
   H3_I2V_MODEL,
   H3_MODELS,
+  H3_PROMPT_EXPANSION,
   H3_RESOLUTION,
   OMNI_I2V_MODEL, // KINEO-OMNI-2026-08-25
   S25_T2V_MODEL, // KINEO-S25-2026-09-01
@@ -541,12 +542,19 @@ function buildFalInput(
       duration: Math.max(3, Math.min(10, Math.round(typeof seconds === 'number' && seconds > 0 ? seconds : 8))),
     }
   }
+  // KINEO-H3-SEM-REESCRITA-2026-09-16 (fundador: "melhorar os motores de baixo da tabela… nem sempre o motor vem
+  // pronto"): o schema oficial da fal (minimax/h3/*/api, lido 16/09) tem `prompt_expansion_mode` com PADRÃO
+  // "balanced" — a fal REESCREVE o nosso prompt antes de gerar. O contrato C1 (fala verbatim redistribuída por
+  // cena) e o contrato de cena (fala × imagem) só valem se o texto chegar literal: com o expansor ligado, a
+  // fala entre aspas e as proibições ("no on-screen text") podem sair reescritas. 'disabled' = o prompt vai como
+  // está. Custo zero; validar no primeiro render H3 pela nota visual do /admin/coerencia.
   if (model === H3_I2V_MODEL) {
     return {
       image_url: imageUrl,
       prompt,
       duration: Math.max(5, Math.min(15, Math.round(typeof seconds === 'number' && seconds > 0 ? seconds : 10))),
       resolution: H3_RESOLUTION,
+      prompt_expansion_mode: H3_PROMPT_EXPANSION,
       // H3 native audio has no generate_audio switch in its official schema.
       // https://fal.ai/models/minimax/h3/image-to-video/api (2026-09-11)
     }
@@ -557,6 +565,7 @@ function buildFalInput(
       duration: Math.max(5, Math.min(15, Math.round(typeof seconds === 'number' && seconds > 0 ? seconds : 10))),
       resolution: H3_RESOLUTION,
       aspect_ratio: frame.falAspectRatio, // KINEO-MULTIFORMATO-2026-09-02 — '9:16' sem `aspect`
+      prompt_expansion_mode: H3_PROMPT_EXPANSION, // KINEO-H3-SEM-REESCRITA
       // https://fal.ai/models/minimax/h3/text-to-video/api (2026-09-11):
       // no generate_audio/audio_url input. Verify native dialogue in compose.
     }

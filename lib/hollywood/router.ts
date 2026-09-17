@@ -139,6 +139,13 @@ export const H3_I2V_MODEL = 'minimax/h3/image-to-video'
 // quem quiser.
 export const H3_USD_PER_SECOND = 0.06
 export const H3_RESOLUTION = '768P' as const
+// KINEO-H3-SEM-REESCRITA-2026-09-16 — fal reescreve o prompt por padrão (`prompt_expansion_mode: 'balanced'`).
+// A casa manda o prompt LITERAL: a fala verbatim e as proibições precisam chegar como foram escritas.
+// Valores do schema: 'disabled' | 'fast' | 'balanced' | 'quality'. Interruptor por env para o ensaio A/B.
+export const H3_PROMPT_EXPANSION = ((): 'disabled' | 'fast' | 'balanced' | 'quality' => {
+  const v = (process.env.KINEO_H3_PROMPT_EXPANSION ?? '').trim().toLowerCase()
+  return v === 'fast' || v === 'balanced' || v === 'quality' ? v : 'disabled'
+})()
 
 // ═══════════════════════════════════════════════════════════════════════════
 // KINEO-OMNI-2026-08-25 — GEMINI OMNI FLASH: O #1 DO RANKING ENTRA NA ESTRADA.
