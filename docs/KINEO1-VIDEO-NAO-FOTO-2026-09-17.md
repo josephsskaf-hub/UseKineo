@@ -60,3 +60,47 @@ group by 1 order by 1;
 ```
 Esperado após o deploy: `com_personagem` cai para a minoria; `stills_medio` volta para ≤ 4; e
 `fast_scene_plan.scenes[].sources` volta a ter `pixabay` em toda cena.
+
+---
+
+# PEÇA 2 — VÍDEO Seedance nas cenas fracas do primeiro filme (17/09, ~04:30 BRT)
+
+Fundador: "É exatamente isso… colocar um pedaço de Seedance nas cenas fracas e fortalecer… **max 0.5 teto!!**"
+
+## O achado que mudou o desenho
+O AI hook (Seedance 5 s na cena 1 do primeiro filme gratuito) existe desde 10/07 e **nunca chegou a um
+filme**: 0 de 142 em 12 dias (`fast_compose_recoverable.payload.clip_urls` sem `/ai-hook/`). O log de
+todo primeiro filme diz `[ai-hook] budget exhausted (15000ms)`: a rota do Kineo 1 espera 15 s e a Seedance
+leva 60-120 s. **Cada hook foi submetido e pago (~US$ 0,13) e descartado.** A outra sessão escreveu no
+handoff que "o AI hook já faz a cena 1" — não faz; agora passa a fazer.
+
+## Desenho (server-only, falha aberta em tudo)
+- `lib/fastAiClips.ts` (novo): orçamento, escolha das cenas fracas, espera/persistência, encaixe.
+- Rota fast (primeiro filme + conta gratuita, o mesmo sinal do hook): submete a cena 1 (hook) **e as N
+  cenas mais fracas** pelo `relevanceScore` do plano (nunca a cena 1; sem notas → meio e fim do filme) e
+  **não espera**. Grava `fast_ai_clips_pending` (session_id = generation_id) com `request_id` + posição
+  de cada clipe no `clip_urls` entregue. Stills do híbrido limitados a 3 nesse filme.
+- `/api/compose` (quality `fast`, sem avatar): depois do TTS/Whisper (30-60 s que já existiam), lê o
+  evento pelo `generation_id` + `user_id`, espera até 60 s, copia cada clipe para `broll/ai-scene/` e
+  encaixa **abrindo a sua cena** (o stock segue nos cortes seguintes). Grava `fast_ai_clips_result`.
+- Interruptor: `KINEO_FIRST_FILM_AI_CLIPS=off` volta ao comportamento antigo (espera de 15 s na rota).
+
+## Orçamento (preço real da fal, conferido 17/09)
+Seedance 1.5 Pro **sem áudio**: US$ 1,2/M tokens; 720×1280×24 fps×5 s/1024 = 108k tokens = **US$ 0,13/clipe**
+(com áudio seria 0,26 — não usamos). Por primeiro filme: 3 clipes (0,39) + até 3 stills (0,09) = **US$ 0,48**.
+
+## Como medir (depois do deploy)
+```sql
+-- pendente × pronto por filme
+select p.created_at, p.user_id, p.metadata->>'est_usd' est,
+  r.metadata->>'ready' ready, r.metadata->>'pending' pend, r.metadata->>'waited_ms' ms
+from events p left join events r on r.name='fast_ai_clips_result' and r.session_id=p.session_id
+where p.name='fast_ai_clips_pending' order by p.created_at desc limit 20;
+```
+Esperado: `ready` = 2-3 de 3 na maioria; `waited_ms` < 60000. Se `ready` = 0 sistemático, a Seedance está
+lenta demais para o compose — subir o teto de espera antes de mexer em outra coisa.
+
+## Como o fundador testa
+Conta **nova e gratuita** (ex.: `josephsskaf+teste17@gmail.com`), Kineo 1, qualquer tema com 6-8 cenas.
+Na conta pro do fundador (300+ vídeos) a peça NÃO dispara por desenho. Conferir no log da Vercel:
+`[ai-clips] scene=N … submit OK` na rota fast e `[ai-clips] compose: k/3 ready in …ms` no compose.

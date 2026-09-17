@@ -17,6 +17,8 @@ import { normalizeAspect } from '@/lib/aspect'
 import { searchVault } from '@/lib/clipVault'
 // KINEO-AI-HOOK — Seedance cinematic "wow" opener for a free user's FIRST video.
 import { buildHookPrompt, submitAiHook, awaitAiHook, persistHookClip, type AiHookHandle } from '@/lib/fastAiHook'
+// KINEO1-PRIMEIRO-FILME-VIDEO-2026-09-17 — Seedance nas cenas fracas do primeiro filme; quem espera é o compose.
+import { FIRST_FILM_AI_CLIPS_ENABLED, FIRST_FILM_AI_CLIPS_EVENT, FIRST_FILM_BUDGET_USD, FIRST_FILM_STILL_USD, FIRST_FILM_STILLS_WITH_CLIPS_MAX, SEEDANCE_720P_5S_USD, firstFilmAiClipCount, pickWeakScenes, buildSceneClipPrompt, submitSceneClip } from '@/lib/fastAiClips'
 import { pickLibraryClips, type LibraryClip } from '@/lib/stockLibrary'
 // Push #351 — ensureAccessibleUrl removed (was only used for Pexels CDN proxying; Pexels now OFF).
 // import { ensureAccessibleUrl } from '@/lib/videoCache'
@@ -996,6 +998,25 @@ export async function POST(req: NextRequest) {
     // KINEO-PRIMEIRO-FILME-COM-STILLS — desligado por padrão desde 17/09 (fundador: "era VÍDEO que era para ser
     // melhor"); só entra com KINEO_FIRST_FILM_STILLS=on.
     if (primeiroFilmeDaConta) aiStillsMax = Math.max(aiStillsMax, Math.min(scenes.length, FIRST_FILM_MAX_STILLS))
+    // KINEO1-PRIMEIRO-FILME-VIDEO-2026-09-17 — primeiro filme de conta gratuita (o mesmo sinal do hook, já
+    // submetido acima): as cenas mais FRACAS do plano ganham um clipe Seedance de 5 s, VÍDEO, não foto
+    // (fundador 17/09: "um pedaço de Seedance nas cenas fracas… max 0.5 teto"). Só submete — quem espera é o
+    // /api/compose, onde o tempo do TTS/Whisper já existe (a rota esperava 15 s e a Seedance leva 60-120 s:
+    // 0 de 142 hooks chegaram em 12 dias). Os stills do híbrido ficam em 3 para o filme caber no teto.
+    // Falha aberta: sem request, a cena fica no stock de sempre.
+    const aiClipsSubmitted: Array<{ scene: number; requestId: string; prompt: string }> = []
+    if (aiHookHandle && FIRST_FILM_AI_CLIPS_ENABLED) {
+      aiStillsMax = Math.min(aiStillsMax, FIRST_FILM_STILLS_WITH_CLIPS_MAX)
+      const extras = Math.max(0, firstFilmAiClipCount(FIRST_FILM_STILLS_WITH_CLIPS_MAX) - 1)
+      const notas = scenes.map((_, i) => ({ scene: i + 1, relevance: typeof alignedMeta[i]?.relevanceScore === 'number' ? (alignedMeta[i]?.relevanceScore as number) : null }))
+      for (const sceneNo of pickWeakScenes(notas, extras)) {
+        const sc = scenes[sceneNo - 1]
+        const clipPrompt = buildSceneClipPrompt(sc?.description ?? '', sc?.voiceover ?? '', alignedMeta[sceneNo - 1]?.pexelsQuery ?? sc?.stockSearchQuery ?? '')
+        const requestId = await submitSceneClip(clipPrompt)
+        if (requestId) aiClipsSubmitted.push({ scene: sceneNo, requestId, prompt: clipPrompt })
+        console.log(`[ai-clips] scene=${sceneNo} relevance=${notas[sceneNo - 1]?.relevance ?? 'n/a'} submit ${requestId ? 'OK request=' + requestId : 'skipped/failed'}`)
+      }
+    }
     const aiStillLog: Array<{ scene: number; reason: string; entity: string | null; ok: boolean }> = []
     // KINEO-1-COERENCIA-2026-09-16 — evidência por cena (fala · busca · origem · tags) para o juiz de coerência.
     const sceneEvidence: FastSceneEvidence[] = []
@@ -1334,7 +1355,11 @@ export async function POST(req: NextRequest) {
     // hook and the video proceeds unchanged. The hook is a VISUAL opener only —
     // scenes / scene_captions / voiceover_script are untouched, so it plays
     // under the existing scene-1 hook voiceover and adds no narration.
-    if (aiHookHandle) {
+    // KINEO1-PRIMEIRO-FILME-VIDEO-2026-09-17 — com o interruptor ligado, esta rota NÃO espera mais: o hook e os
+    // clipes das cenas fracas viram o evento `fast_ai_clips_pending` (abaixo, depois do generationId) e quem
+    // espera é o /api/compose (lib/fastAiClips.ts). Os 15 s daqui nunca bastaram (0 de 142 em 12 dias).
+    const deferAiClipsToCompose = !!aiHookHandle && FIRST_FILM_AI_CLIPS_ENABLED
+    if (aiHookHandle && !deferAiClipsToCompose) {
       let hookClipUrl: string | null = null
       try {
         const falUrl = await awaitAiHook(aiHookHandle, AI_HOOK_AWAIT_BUDGET_MS, prompt)
@@ -1400,6 +1425,27 @@ export async function POST(req: NextRequest) {
         // topic INTEIRO (o teto da caixa é 5.000): videos.topic é cortado em 500 e o juiz precisa do texto real.
         metadata: { generation_id: generationId, topic: prompt.slice(0, 5000), scenes: sceneEvidence.slice(0, 24).map(({ from: _from, ...rest }) => rest), verbatim },
       })
+    }
+
+    // KINEO1-PRIMEIRO-FILME-VIDEO-2026-09-17 — o que o compose vai esperar: request_id + posição de cada clipe
+    // no clip_urls ENTREGUE (índices de `filtered`; o evento de cena guarda `from` sobre o array cru, então a
+    // posição é o número de clipes mantidos antes dele). Escrito com await — `void` antes do return morre na
+    // Vercel. Só o servidor escreve este evento; o compose o lê pelo generation_id + user_id.
+    if (deferAiClipsToCompose && aiHookHandle) {
+      const keptBefore = (rawIndex: number) => clipUrls.slice(0, Math.max(0, rawIndex)).filter((u) => typeof u === 'string' && u.length > 0 && !/^https:\/\/([a-z0-9-]+\.)*fal\.(media|run|ai)\//i.test(u)).length
+      const clips = [
+        { request_id: aiHookHandle.requestId, scene: 1, at_index: 0, prompt: aiHookHandle.prompt.slice(0, 300), usd: SEEDANCE_720P_5S_USD },
+        ...aiClipsSubmitted.map((c) => ({ request_id: c.requestId, scene: c.scene, at_index: keptBefore(sceneEvidence[c.scene - 1]?.from ?? 0), prompt: c.prompt.slice(0, 300), usd: SEEDANCE_720P_5S_USD })),
+      ]
+      const estUsd = Math.round((clips.length * SEEDANCE_720P_5S_USD + aiStillsUsed * FIRST_FILM_STILL_USD) * 100) / 100
+      await writeServerEvent({
+        name: FIRST_FILM_AI_CLIPS_EVENT,
+        userId: user.id,
+        sessionId: generationId,
+        path: '/api/generate-video-fast',
+        metadata: { generation_id: generationId, clips, budget_usd: FIRST_FILM_BUDGET_USD, est_usd: estUsd, stills_used: aiStillsUsed, scenes: scenes.length, clip_count: filtered.length },
+      })
+      console.log(`[ai-clips] pending for compose: ${clips.length} clip(s) est=US$${estUsd} scenes=${clips.map((c) => c.scene).join(',')}`)
     }
 
     // Push #355 — Compute B-roll quality metrics and write to broll_metrics.

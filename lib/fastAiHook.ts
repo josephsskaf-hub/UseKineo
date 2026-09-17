@@ -126,6 +126,8 @@ export async function awaitAiHook(
 export async function persistHookClip(
   falUrl: string,
   budgetMs = 15_000,
+  // KINEO1-PRIMEIRO-FILME-VIDEO-2026-09-17 — pasta no bucket ('ai-hook' | 'ai-scene'); só letras/dígitos/hífen.
+  folder: string = 'ai-hook',
 ): Promise<string | null> {
   try {
     if (!falUrl) return null
@@ -153,7 +155,8 @@ export async function persistHookClip(
       return null
     }
 
-    const path = `ai-hook/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.mp4`
+    const safeFolder = /^[a-z0-9-]{1,32}$/.test(folder) ? folder : 'ai-hook'
+    const path = `${safeFolder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.mp4`
     const { error: upErr } = await admin.storage
       .from(HOOK_BUCKET)
       .upload(path, buf, { contentType: 'video/mp4', upsert: false })

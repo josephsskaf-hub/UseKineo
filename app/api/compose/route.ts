@@ -186,6 +186,9 @@ const DURATION_TOLERANCE_SECONDS = 3
 // única, compartilhada com /api/prewarm-voiceover). Ver comentário lá.
 import { VOICEOVER_ENGINE_VERSION } from '@/lib/compose'
 import { CARD_ENTRY_CHECKOUT_PATH, CARD_ENTRY_ONLY } from '@/lib/entryPolicy'
+// KINEO1-PRIMEIRO-FILME-VIDEO-2026-09-17 — clipes Seedance do primeiro filme são esperados aqui, não na rota fast.
+import { FIRST_FILM_AI_CLIPS_EVENT, FIRST_FILM_AI_CLIPS_RESULT_EVENT, FIRST_FILM_AI_CLIPS_AWAIT_MS, SEEDANCE_720P_5S_USD, parsePendingAiClips, awaitPendingAiClips, spliceAiClips } from '@/lib/fastAiClips'
+import { writeServerEvent } from '@/lib/serverEvents'
 
 // FREE_FAST_PREVIEW_LIMIT e FREE_FAST_WINDOW_MS moraram aqui até 06/08/2026.
 // Agora vêm de lib/freeFastQuota.ts, junto da contagem que os usa — o cron
@@ -2964,6 +2967,45 @@ export async function POST(req: NextRequest) {
       `[compose] caption source: re-segmented scaled script (${scaledScript.split(/\s+/).filter(Boolean).length} words); scene_captions fallback available=${haveSceneCaptions}`,
     )
 
+    // ═══ KINEO1-PRIMEIRO-FILME-VIDEO-2026-09-17 — clipes Seedance do primeiro filme, esperados AQUI ═══
+    // A rota do Kineo 1 submete (cena 1 + cenas fracas) e grava `fast_ai_clips_pending` com o generation_id.
+    // O TTS/Whisper acima já consumiu 30-60 s; a Seedance costuma fechar em 60-120 s. Espera com teto,
+    // copia para o nosso bucket e encaixa cada clipe ABRINDO a sua cena (o stock segue). Falha aberta em
+    // tudo: sem evento, sem clipe pronto ou erro de banco, o filme é o de sempre. Só o servidor escreve o
+    // evento; a leitura é pelo generation_id + user_id, nunca pelo corpo do cliente.
+    let composeClipUrls: string[] = clipUrls
+    if (quality === 'fast' && !avatarMode && generationId) {
+      try {
+        const { data: pendRow } = await composeAdmin
+          .from('events')
+          .select('metadata')
+          .eq('name', FIRST_FILM_AI_CLIPS_EVENT)
+          .eq('user_id', authenticatedUserId)
+          .eq('session_id', generationId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+        const pending = parsePendingAiClips(pendRow?.metadata)
+        if (pending.length > 0) {
+          const t0 = Date.now()
+          const ready = await awaitPendingAiClips(pending, FIRST_FILM_AI_CLIPS_AWAIT_MS)
+          const ok = ready.filter((r) => !!r.url)
+          composeClipUrls = spliceAiClips(clipUrls, ready)
+          console.log(`[ai-clips] compose: ${ok.length}/${pending.length} ready in ${Date.now() - t0}ms → scenes=${ok.map((r) => r.scene).join(',') || 'none'} clips=${clipUrls.length}→${composeClipUrls.length}`)
+          await writeServerEvent({
+            name: FIRST_FILM_AI_CLIPS_RESULT_EVENT,
+            userId: authenticatedUserId,
+            sessionId: generationId,
+            path: '/api/compose',
+            metadata: { generation_id: generationId, pending: pending.length, ready: ok.length, waited_ms: Date.now() - t0, scenes: ready.map((r) => ({ scene: r.scene, ok: !!r.url, ms: r.ms })), est_usd: Math.round(pending.length * SEEDANCE_720P_5S_USD * 100) / 100 },
+          })
+        }
+      } catch (err) {
+        console.warn('[ai-clips] compose merge failed (non-blocking):', err instanceof Error ? err.message : String(err))
+        composeClipUrls = clipUrls
+      }
+    }
+
     // Background score is best-effort and deterministic for the same narration.
     // The generated MP3 is not persisted here: clean rebuild can preserve the
     // direction/catalog choice, but cannot promise the original generated track.
@@ -2993,7 +3035,7 @@ export async function POST(req: NextRequest) {
     let source: Record<string, unknown>
     try {
       source = buildCreatomateSource({
-        clipUrls,
+        clipUrls: composeClipUrls, // KINEO1-PRIMEIRO-FILME-VIDEO — com os clipes Seedance encaixados (ou o original)
         voiceoverUrl,
         voiceoverScript: scaledScript,
         sceneCaptions,
