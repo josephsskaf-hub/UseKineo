@@ -37,6 +37,7 @@ export const DISPOSABLE_DOMAINS: Set<string> = new Set([
   '10minutemail.com',
   '10minutemail.net',
   '20minutemail.com',
+  '10minutes.email', // KINEO-TRIAL-PORTA-MODAL-2026-09-17 — bobby497, 17/09
   'temp-mail.org',
   'temp-mail.io',
   'tempmail.com',

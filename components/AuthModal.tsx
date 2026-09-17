@@ -160,6 +160,21 @@ export default function AuthModal({ onClose, defaultTab = 'signup', redirectTo }
     const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
     if (!signInError) {
       trackCheckoutAuthStep('completed', 'auth_modal', destination, 'email')
+      // KINEO-TRIAL-PORTA-MODAL-2026-09-17 — esta porta (modal do /studio) criava a conta por senha com
+      // auto-confirmação e saía SEM o crédito de cadastro: não cruza /auth/callback (só OAuth/link mágico)
+      // e nunca chamou a rota que concede o trial por senha. bobby497 (17/09 07:03 UTC) nasceu com 0 crédito e
+      // caiu no modal de crédito na primeira tela. Mesma cura da página /signup (PUSH #21): a rota é o servidor
+      // que concede (idempotente) e grava `email_signup_completed`. AWAIT + keepalive: a navegação vem depois.
+      try {
+        await fetch('/api/auth/activation-completed', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ destination }),
+          keepalive: true,
+        })
+      } catch {
+        // A concessão nunca bloqueia um cadastro que deu certo.
+      }
       window.location.assign(destination)
     } else {
       trackCheckoutAuthStep('confirmation_required', 'auth_modal', destination, 'email')

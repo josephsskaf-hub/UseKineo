@@ -260,6 +260,7 @@ const DISPOSABLE_EMAIL_TOKENS = [
   'dispostable',
   'trashmail',
   'throwawaymail',
+  '10minutes.email', // com ponto = domínio exato (KINEO-TRIAL-PORTA-MODAL-2026-09-17)
   'fakeinbox',
   'emailfake',
   'emailondeck',

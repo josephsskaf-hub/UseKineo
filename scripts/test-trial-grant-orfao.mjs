@@ -117,6 +117,18 @@ check('a atribuicao de afiliado do 076ca7bb continua de pe',
   act.includes('finalizeAffiliateSignupAttribution'),
   'a concessao e aditiva; nao pode ter comido o bloco do Codex')
 
+console.log('\n1b) KINEO-TRIAL-PORTA-MODAL-2026-09-17 — o modal de cadastro do /studio também concede')
+const modal = codigo('components/AuthModal.tsx')
+check('o modal chama /api/auth/activation-completed depois do signInWithPassword',
+  modal.indexOf("await fetch('/api/auth/activation-completed'") > modal.indexOf('supabase.auth.signInWithPassword({ email, password })'),
+  'bobby497 (17/09) nasceu com 0 crédito por esta porta')
+check('a chamada é AWAITED e acontece ANTES do redirect',
+  (() => { const i = modal.indexOf("await fetch('/api/auth/activation-completed'"); return i > 0 && i < modal.indexOf('window.location.assign(destination)', i) })(),
+  'fire-and-forget morre com a navegação')
+check('keepalive: a navegação seguinte não mata a requisição (lido sem depender de CRLF)',
+  (() => { const i = modal.indexOf("await fetch('/api/auth/activation-completed'"); const j = modal.indexOf('window.location.assign(destination)', i); return i > 0 && j > i && modal.slice(i, j).includes('keepalive: true') && modal.slice(i, j).includes('JSON.stringify({ destination })') })())
+check('10minutes.email está nas duas listas de descartáveis', codigo('lib/emailValidation.ts').includes("'10minutes.email'") && codigo('lib/reverseTrial.ts').includes("'10minutes.email'"))
+
 console.log('\n2) Os caminhos antigos continuam vivos (idempotência)')
 const studio = codigo('app/(dashboard)/studio/create/page.tsx')
 const track = codigo('app/api/track-signup-source/route.ts')
