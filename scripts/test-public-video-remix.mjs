@@ -52,7 +52,11 @@ const dashboard = source('app/(dashboard)/admin/funnel/FunnelClient.tsx')
 const preview = source('docs/previews/PUBLIC-VIDEO-REMIX-2026-08-27.html')
 
 ok(publicPage.includes('publicVideoRemixHref'), 'public video uses the executed helper')
-ok(publicPage.includes('Remix this topic — no signup'), 'under-player CTA names the no-signup value')
+// KINEO-LACO-VIRAL-2026-09-17 — o botão principal sob o player virou o cadastro com o tema deste filme ("Make your own
+// version — free"); o remix sem cadastro continua, como caminho secundário nomeado e medido à parte.
+ok(publicPage.includes('Or remix just the script — no signup'), 'under-player secondary CTA names the no-signup value')
+ok(publicPage.includes('placement="under_player_secondary"'), 'the no-signup remix is measured as its own placement')
+ok(publicPage.includes("href={generateFromScriptHref(title, 'public_video_remake')}") && publicPage.includes('Make your own version — free →'), 'primary under-player CTA is the signup remake with the film topic')
 ok(publicPage.includes('destination="/free-script-generator"'), 'tracking records the real destination')
 ok(!publicPage.includes('placement="sticky_mobile"'), 'duplicate mobile fixed bar is removed')
 ok(publicPage.includes('placement="sticky_bar"'), 'one reachable fixed CTA remains')
