@@ -1005,7 +1005,8 @@ export async function POST(req: NextRequest) {
     // 0 de 142 hooks chegaram em 12 dias). Os stills do híbrido ficam em 3 para o filme caber no teto.
     // Falha aberta: sem request, a cena fica no stock de sempre.
     const aiClipsSubmitted: Array<{ scene: number; requestId: string; prompt: string }> = []
-    if (aiHookHandle && FIRST_FILM_AI_CLIPS_ENABLED) {
+    const primeiroFilmeComClipes = !!aiHookHandle && FIRST_FILM_AI_CLIPS_ENABLED
+    if (primeiroFilmeComClipes) {
       aiStillsMax = Math.min(aiStillsMax, FIRST_FILM_STILLS_WITH_CLIPS_MAX)
       const extras = Math.max(0, firstFilmAiClipCount(FIRST_FILM_STILLS_WITH_CLIPS_MAX) - 1)
       const notas = scenes.map((_, i) => ({ scene: i + 1, relevance: typeof alignedMeta[i]?.relevanceScore === 'number' ? (alignedMeta[i]?.relevanceScore as number) : null }))
@@ -1017,6 +1018,17 @@ export async function POST(req: NextRequest) {
         console.log(`[ai-clips] scene=${sceneNo} relevance=${notas[sceneNo - 1]?.relevance ?? 'n/a'} submit ${requestId ? 'OK request=' + requestId : 'skipped/failed'}`)
       }
     }
+    // KINEO1-MUNDO-DA-ENTIDADE-2026-09-17 — fundador, olhando o primeiro filme com Seedance ("5 shocking facts
+    // about Jeff Bezos"): "muitas cenas que a gente já realizou… quanto mais chegar com vídeos próximos a ele,
+    // melhor". No rastro: cenas 2 e 3 com o MESMO "stock market graph"; cena 1 com call center/laptop do cofre
+    // para "armazém com robôs". Três regras de custo zero: (1) cena que já tem visual gerado (still ou clipe
+    // Seedance) leva UM clipe de stock, não 2-3 — o que é específico ganha tempo de tela; (2) filme sobre
+    // entidade nomeada não usa o cofre (clipes de OUTROS vídeos da casa = "os que a gente já realizou"); (3) dedupe
+    // por assinatura de tags, não só por URL (o mesmo gráfico com outra URL é o mesmo gráfico para quem vê).
+    const cenasComClipeIA = new Set<number>([...(primeiroFilmeComClipes ? [1] : []), ...aiClipsSubmitted.map((c) => c.scene)])
+    const filmeDeEntidade = !!personagem
+    const usedTagSigs = new Set<string>()
+    const tagSig = (tags: string | null | undefined) => (tags ?? '').toLowerCase().split(',').map((t) => t.trim()).filter(Boolean).sort().join('|')
     const aiStillLog: Array<{ scene: number; reason: string; entity: string | null; ok: boolean }> = []
     // KINEO-1-COERENCIA-2026-09-16 — evidência por cena (fala · busca · origem · tags) para o juiz de coerência.
     const sceneEvidence: FastSceneEvidence[] = []
@@ -1203,6 +1215,7 @@ export async function POST(req: NextRequest) {
             if (still) {
               clipUrls.push(still)
               clipSources.push('aiStill')
+              cenasComClipeIA.add(sceneNo) // KINEO1-MUNDO-DA-ENTIDADE — a cena já tem visual gerado
               // KINEO-HISTORIA-COM-PERSONAGENS (16/09) excluía o stock da cena com `continue` — e o filme inteiro
               // virava slideshow (bekeecomedytv, 17/09 02:48Z: 7 fotos, 0 clipe). KINEO1-VIDEO-NAO-FOTO-2026-09-17:
               // o still do personagem ABRE a cena e o vídeo de stock segue nos cortes seguintes, como no R2 abaixo.
@@ -1226,7 +1239,8 @@ export async function POST(req: NextRequest) {
           // 2: faster cuts in the first seconds is the AI Gen retention
           // signature, and scene 1 is where a Fast video wins or loses the
           // viewer. Same single pool call — just a deeper take from it.
-          const perScene = idx === 0 ? FAST_CLIPS_PER_SCENE + 1 : FAST_CLIPS_PER_SCENE
+          // KINEO1-MUNDO-DA-ENTIDADE-2026-09-17 — cena com visual gerado (still/Seedance) leva UM stock: o específico ganha tela.
+          const perScene = cenasComClipeIA.has(sceneNo) ? 1 : idx === 0 ? FAST_CLIPS_PER_SCENE + 1 : FAST_CLIPS_PER_SCENE
           const clipsWanted = Math.max(
             1,
             Math.min(perScene, FAST_MAX_TOTAL_CLIPS - clipUrls.length),
@@ -1238,7 +1252,9 @@ export async function POST(req: NextRequest) {
           // cost one indexed SQL query (~10ms). Skipped in verbatim mode (the
           // user's hand-picked query deserves a live search).
           let vaultTaken = 0
-          if (!verbatim) {
+          // KINEO1-MUNDO-DA-ENTIDADE-2026-09-17 — filme sobre entidade nomeada e cena com visual gerado não
+          // puxam do cofre: clipe de OUTRO vídeo da casa é "o que a gente já realizou" (fundador). Busca fresca.
+          if (!verbatim && !filmeDeEntidade && !cenasComClipeIA.has(sceneNo)) {
             const vaultHits = await searchVault(pixQueries[0] ?? libQuery ?? '', {
               exclude: usedPexelsUrls,
               limit: clipsWanted,
@@ -1247,6 +1263,7 @@ export async function POST(req: NextRequest) {
               clipUrls.push(hit.storageUrl)
               usedPexelsUrls.add(hit.storageUrl)
               notePickedClipTags(hit.storageUrl, hit.tags) // KINEO-1-COERENCIA
+              { const sig = tagSig(hit.tags); if (sig) usedTagSigs.add(sig) } // KINEO1-MUNDO-DA-ENTIDADE
               clipSources.push('pixabay') // metrics bucket: vault clips originated from pixabay
               vaultTaken++
               console.log(
@@ -1272,8 +1289,14 @@ export async function POST(req: NextRequest) {
             // num Short vale +10 para clipe retrato; num 16:9 é o inverso.
             { exact: verbatim, exclude: usedPexelsUrls, minDurationSec: durationSeconds, maxClips: clipsWanted - vaultTaken, styleCtx, aspect },
           )
-          if (pixUrls.length > 0) {
-            for (const pixUrl of pixUrls) {
+          // KINEO1-MUNDO-DA-ENTIDADE-2026-09-17 — dedupe por assinatura de tags: o mesmo gráfico de bolsa com outra
+          // URL é o mesmo gráfico para quem vê (cenas 2 e 3 do filme do Bezos). Se todos repetem, fica o primeiro.
+          const pixInedito = pixUrls.filter((u) => { const sig = tagSig(pixabayTagsForUrl(u)); return !sig || !usedTagSigs.has(sig) })
+          const pixFinal = pixInedito.length > 0 ? pixInedito : pixUrls.slice(0, 1)
+          if (pixFinal.length < pixUrls.length) console.log(`[clip] scene=${sceneNo} KINEO1-MUNDO-DA-ENTIDADE dropped ${pixUrls.length - pixFinal.length} clip(s) with tags already on screen`)
+          if (pixFinal.length > 0) {
+            for (const pixUrl of pixFinal) {
+              { const sig = tagSig(pixabayTagsForUrl(pixUrl)); if (sig) usedTagSigs.add(sig) }
               console.log(
                 `[clip] scene=${sceneNo} purpose=${purpose} duration=${durLabel}s query="${(pixQueries[0] ?? '').slice(0, 60)}" source=PIXABAY score=${scoreLabel} url=${pixUrl.slice(0, 60)}`,
               )
@@ -1358,7 +1381,7 @@ export async function POST(req: NextRequest) {
     // KINEO1-PRIMEIRO-FILME-VIDEO-2026-09-17 — com o interruptor ligado, esta rota NÃO espera mais: o hook e os
     // clipes das cenas fracas viram o evento `fast_ai_clips_pending` (abaixo, depois do generationId) e quem
     // espera é o /api/compose (lib/fastAiClips.ts). Os 15 s daqui nunca bastaram (0 de 142 em 12 dias).
-    const deferAiClipsToCompose = !!aiHookHandle && FIRST_FILM_AI_CLIPS_ENABLED
+    const deferAiClipsToCompose = primeiroFilmeComClipes
     if (aiHookHandle && !deferAiClipsToCompose) {
       let hookClipUrl: string | null = null
       try {

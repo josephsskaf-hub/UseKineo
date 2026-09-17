@@ -227,6 +227,7 @@ Lighting: ${globalStyle.lighting}
 VISUAL WORLD (aesthetic pack for this niche) — compose EVERY pexelsQuery inside this visual universe. Approved imagery building blocks: ${pack.vocab.join('; ')}.
 HARD NEGATIVE BLACKLIST — NEVER use these visuals (audience-tested rejects): ${[...pack.banned, ...UNIVERSAL_BANNED].join('; ')}.
 GROUNDING RULE — each scene's pexelsQueries/brollPrompt must stay anchored to the entities named in THAT scene's narration. NEVER introduce a different named place, landmark or subject than the narration itself mentions.
+ENTITY WORLD RULE — when the video is about a named person, company or product (the script names them), EVERY scene's visuals must live in THAT entity's world: the places they built, the products they ship, their industry, vehicles, cities and eras — e.g. Jeff Bezos → amazon warehouse robots, delivery van doorstep, rocket launch pad, seattle skyline, 1994 garage desk, newspaper printing press; Elon Musk → electric car factory, rocket booster landing. The niche vocabulary above (stock chart, coins, office, bank) is a LAST resort, used only when no entity-world visual fits that narration. Stock footage has no real faces, so describe the entity's WORLD, never the person. Never reuse the same pexelsQuery in two scenes of the same video — the viewer sees the repeat.
 
 Generate the visual layer for these ${scenesWithMeta.length} scenes. For each scene return:
 - sceneNumber (int)

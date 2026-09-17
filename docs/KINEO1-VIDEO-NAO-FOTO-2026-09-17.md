@@ -104,3 +104,29 @@ lenta demais para o compose — subir o teto de espera antes de mexer em outra c
 Conta **nova e gratuita** (ex.: `josephsskaf+teste17@gmail.com`), Kineo 1, qualquer tema com 6-8 cenas.
 Na conta pro do fundador (300+ vídeos) a peça NÃO dispara por desenho. Conferir no log da Vercel:
 `[ai-clips] scene=N … submit OK` na rota fast e `[ai-clips] compose: k/3 ready in …ms` no compose.
+
+---
+
+# PEÇA 3 — "vídeos próximos a ele" (17/09, ~05:00 BRT)
+
+Render de prova do fundador (`josephsskaf+teste17`, "5 shocking facts about Jeff Bezos"): **3 de 3 clipes
+Seedance prontos em 31 s**, US$ 0,48. Veredito dele: "gostei bastante… mas muitas cenas que a gente já
+realizou… quanto mais chegar com vídeos próximos a ele, melhor".
+
+No rastro (`fast_scene_plan`): cenas 2 e 3 com a MESMA busca "stock market graph" (tags idênticas); cena 1 com
+call center/laptop do cofre para "armazém com robôs". O gerado era o mundo do Bezos; o stock era o gráfico
+de bolsa de todo vídeo de dinheiro.
+
+## Três regras de custo zero
+1. **Planejador** (`lib/broll/broll-engine.ts`): ENTITY WORLD RULE — vídeo sobre pessoa/empresa nomeada →
+   toda cena vive no mundo dessa entidade (armazém, van, foguete, Seattle, garagem de 1994); o vocabulário
+   do nicho (gráfico, moedas, escritório) é último recurso; nunca a mesma query em duas cenas.
+2. **Rota** — cena que já tem visual gerado (still/Seedance) leva **1** stock em vez de 2-3; filme de
+   entidade nomeada e cena com visual gerado **não puxam do cofre** (clipes de outros vídeos da casa = "os
+   que a gente já realizou") — busca fresca.
+3. **Rota** — dedupe por **assinatura de tags**, não só por URL (o mesmo gráfico com outra URL é o mesmo
+   gráfico para quem vê); se tudo repete, fica o primeiro.
+
+Medir: `fast_scene_plan.scenes[].query` distintas por filme (era 2 iguais em 4) e tags repetidas entre
+cenas (era 1 par). Próximo degrau, se o fundador quiser pagar: 480p (US$ 0,058) dobraria os clipes gerados
+dentro do mesmo teto — a conferir a olho antes.
