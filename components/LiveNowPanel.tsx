@@ -158,6 +158,12 @@ export default function LiveNowPanel() {
                         ⚠ {v.ledgerGap > 0 ? '+' : ''}{v.ledgerGap} sem origem
                       </span>
                     )}
+                    {/* KINEO-RAZAO-ASSINANTE-2026-09-17 — falta de registro não é furo: vem em cinza, com o motivo. */}
+                    {v.ledgerNote && (
+                      <span title="a compra é anterior ao registro de crédito no evento (17/09); o saldo está certo, só a equação não tem a parcela" style={{ color: 'var(--muted2)', fontSize: '0.68rem', marginLeft: 6 }}>
+                        · {v.ledgerNote}
+                      </span>
+                    )}
                     {!v.ledger && v.creditsUsedLabel && (
                       <span style={{ color: 'var(--muted2)', fontSize: '0.7rem', marginLeft: 6 }}>{v.creditsUsedLabel}</span>
                     )}

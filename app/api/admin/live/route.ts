@@ -93,6 +93,9 @@ export interface LiveVisitor {
   ledger: string | null
   /** saldo real − saldo esperado. 0 = livros fecham. ≠0 = furo visível. */
   ledgerGap: number
+  // KINEO-RAZAO-ASSINANTE-2026-09-17 — quando a equação NÃO PODE fechar (compra antiga sem registro de
+  // crédito), o motivo vem aqui em vez de um ⚠ vermelho que acusa furo onde há falta de registro.
+  ledgerNote: string | null
 }
 
 export interface LiveData {
@@ -227,7 +230,7 @@ export async function GET() {
       // 16/09) aparecia "+60 sem origem". Fonte: payment_success (tier → TIER_CREDITS) e subscription_invoice_paid
       // (credits_granted, renovação). Termo próprio: "+ 60 Starter assinou 16/09".
       const subsPromise = admin
-        .from('events').select('user_id, name, created_at, metadata').in('name', ['payment_success', 'subscription_invoice_paid']).in('user_id', ids).limit(1000)
+        .from('events').select('user_id, name, created_at, metadata').in('name', ['payment_success', 'subscription_invoice_paid', 'checkout_payment_failed']).in('user_id', ids).limit(1000) // KINEO-RAZAO-ASSINANTE: + renovação recusada
       const debitsPromise = admin
         .from('credit_debits').select('user_id, amount, refunded_at, render_id, created_at').in('user_id', ids).limit(4000)
       // KINEO-ENTREGAS-TOTAIS-2026-08-28 — a coluna "VIDEOS (TOTAL)" só
@@ -278,25 +281,76 @@ export async function GET() {
       }
       // KINEO-RAZAO-ASSINATURA — assinatura (1ª compra) e renovação, com nome do plano e data; soma à parte.
       const PLAN_NAME: Record<string, string> = { starter: 'Starter', basic: 'Creator', pro: 'Studio', autopilot: 'Autopilot', autopilot_lite: 'Autopilot Lite' }
-      const subsBy = new Map<string, { total: number; labels: string[] }>()
-      for (const e of subsRes.data ?? []) {
+      // KINEO-RAZAO-ASSINANTE-2026-09-17 (fundador: "73 cr = +150 Creator assinou 29/07 − 2 gastos ⚠ −75 sem
+      // origem — está muito confuso"). O −75 era o painel ADIVINHANDO: somava o TIER_CREDITS de hoje (150) a uma
+      // compra de 29/07 cujo mês de intro concedeu 50. Regra nova: o valor de uma compra só entra na equação
+      // quando o próprio evento diz quanto concedeu (`credits_granted`, gravado pelo webhook desde 17/09).
+      // Compra antiga sem registro NÃO vira "sem origem": vira uma nota ("1º mês de 29/07 sem registro de
+      // crédito") e a equação não acusa furo. E o assinante ganha uma frase de dono: plano, desde quando,
+      // quanto pagou, renovações recusadas (com motivo), filmes e gastos.
+      type SubLedger = {
+        total: number; labels: string[]; unknown: string[]
+        plan: string | null; since: string | null; paid: string | null
+        refused: number; refusedLast: string | null; refusedWhy: string | null
+      }
+      const subsBy = new Map<string, SubLedger>()
+      const sub = (uid: string): SubLedger => {
+        const cur = subsBy.get(uid) ?? { total: 0, labels: [], unknown: [], plan: null, since: null, paid: null, refused: 0, refusedLast: null, refusedWhy: null }
+        subsBy.set(uid, cur)
+        return cur
+      }
+      const dinheiro = (md: Record<string, unknown>): string | null => {
+        const n = Number(md.amount_total ?? md.amount_minor ?? NaN)
+        if (!Number.isFinite(n) || n <= 0) return null
+        const cur = typeof md.currency === 'string' ? md.currency.toLowerCase() : 'usd'
+        const v = (n / 100).toFixed(2).replace('.', ',')
+        return cur === 'usd' ? `US$ ${v}` : cur === 'brl' ? `R$ ${v}` : `${cur.toUpperCase()} ${v}`
+      }
+      const MOTIVO_RECUSA: Record<string, string> = {
+        insufficient_funds: 'saldo insuficiente', card_declined: 'cartão recusado', generic_decline: 'cartão recusado',
+        expired_card: 'cartão vencido', do_not_honor: 'banco recusou', lost_card: 'cartão perdido', stolen_card: 'cartão roubado',
+        card_restricted: 'cartão restrito', currency_not_supported: 'moeda não aceita',
+      }
+      const ordenados = [...(subsRes.data ?? [])].sort((a, b) =>
+        Date.parse((a as { created_at?: string }).created_at ?? '') - Date.parse((b as { created_at?: string }).created_at ?? ''))
+      for (const e of ordenados) {
         const uid = (e as { user_id: string | null }).user_id
         const md = ((e as { metadata?: Record<string, unknown> }).metadata ?? {}) as Record<string, unknown>
         const name = (e as { name: string }).name
         if (!uid) continue
         const tierRaw = typeof md.tier === 'string' ? md.tier.toLowerCase() : ''
-        let amt = 0
-        if (name === 'subscription_invoice_paid') amt = Number(md.credits_granted ?? 0)
-        else if (md.card_trial === true) amt = 0 // trial de $1: o mês cheio entra pela fatura
-        else amt = Number(TIER_CREDITS[tierRaw as CheckoutPlanTier] ?? 0)
-        if (!Number.isFinite(amt) || amt <= 0) continue
+        const planName = PLAN_NAME[tierRaw] ?? (tierRaw || 'plano')
         const quando = (e as { created_at?: string }).created_at
         const d = quando ? new Date(quando) : null
         const dia = d ? `${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')}` : ''
-        const cur = subsBy.get(uid) ?? { total: 0, labels: [] }
-        cur.total += amt
-        cur.labels.push(`+ ${amt} ${PLAN_NAME[tierRaw] ?? (tierRaw || 'plano')} ${name === 'subscription_invoice_paid' ? 'renovou' : 'assinou'}${dia ? ` ${dia}` : ''}`)
-        subsBy.set(uid, cur)
+        const cur = sub(uid)
+        if (name === 'checkout_payment_failed') {
+          if (md.is_renewal !== true) continue
+          cur.refused += 1
+          cur.refusedLast = dia || cur.refusedLast
+          const why = typeof md.reason_category === 'string' ? md.reason_category : null
+          if (why) cur.refusedWhy = MOTIVO_RECUSA[why] ?? why
+          continue
+        }
+        if (name === 'subscription_invoice_paid') {
+          const amt = Number(md.credits_granted ?? 0)
+          if (!Number.isFinite(amt) || amt <= 0) continue
+          cur.total += amt
+          cur.labels.push(`+ ${amt} ${planName} renovou${dia ? ` ${dia}` : ''}`)
+          continue
+        }
+        // payment_success (1ª compra)
+        if (cur.plan === null && tierRaw) { cur.plan = planName; cur.since = dia || null; cur.paid = dinheiro(md) }
+        if (md.card_trial === true) continue // trial de $1: o mês cheio entra pela fatura
+        const registrado = typeof md.credits_granted === 'number' && Number.isFinite(md.credits_granted) ? md.credits_granted : null
+        if (registrado === null) {
+          // compra antiga: o painel NÃO adivinha o grant — anota a falta de registro e tira a linha da equação.
+          cur.unknown.push(dia || '?')
+          continue
+        }
+        if (registrado <= 0) continue
+        cur.total += registrado
+        cur.labels.push(`+ ${registrado} ${planName} assinou${dia ? ` ${dia}` : ''}`)
       }
       for (const d of debitsRes.data ?? []) {
         const uid = (d as { user_id: string | null }).user_id
@@ -553,7 +607,7 @@ export async function GET() {
           const terms: string[] = []
           if (trialGranted > 0) terms.push(`${trialGranted} trial`)
           if (lg.bonus > 0) terms.push(`+ ${lg.bonus} bônus`)
-          const subs = subsBy.get(p.id as string) ?? { total: 0, labels: [] }
+          const subs = subsBy.get(p.id as string) ?? { total: 0, labels: [], unknown: [], plan: null, since: null, paid: null, refused: 0, refusedLast: null, refusedWhy: null }
           for (const t of subs.labels) terms.push(t) // KINEO-RAZAO-ASSINATURA
           if (lg.bought > 0) terms.push(`+ ${lg.bought} compras`)
           if (lg.refunded > 0) terms.push(`+ ${lg.refunded} estorno`)
@@ -562,8 +616,24 @@ export async function GET() {
           // auditoria: reverse trial expira e revoga o que sobrou.
           if (lg.revoked > 0) terms.push(`− ${lg.revoked} expirado`)
           const expected = trialGranted + lg.bonus + lg.bought + subs.total + lg.refunded - lg.spent - lg.revoked
-          const ledgerGap = saldoReal === null ? 0 : saldoReal - expected
-          const ledger = terms.length > 0 ? `= ${terms.join(' ')}` : null
+          // KINEO-RAZAO-ASSINANTE-2026-09-17 — com compra sem registro de crédito a equação não tem como
+          // fechar; o painel diz isso em vez de acusar "sem origem".
+          const ledgerNote = subs.unknown.length > 0
+            ? `compra de ${subs.unknown.join(', ')} sem registro de crédito (antes de 17/09) — a conta não fecha por isso`
+            : null
+          const ledgerGap = saldoReal === null || ledgerNote ? 0 : saldoReal - expected
+          const filmes = vidCount.get(p.id as string) ?? 0
+          // A frase de dono do assinante: plano · desde · pagou · renovações recusadas · filmes · gastos.
+          const assinante = isPayingPlan((p.plan as string) ?? null) && (subs.plan || PLAN_NAME[(p.plan as string) ?? ''])
+            ? [
+                `${subs.plan ?? PLAN_NAME[(p.plan as string) ?? '']}${subs.since ? ` desde ${subs.since}` : ''}${subs.paid ? ` (${subs.paid})` : ''}`,
+                ...subs.labels.filter((t) => t.includes('renovou')).map((t) => t.replace(/^\+ (\d+) \S+ renovou/, 'renovou +$1')),
+                subs.refused > 0 ? `renovação recusada ${subs.refused}×${subs.refusedWhy ? ` (${subs.refusedWhy}${subs.refusedLast ? `, última ${subs.refusedLast}` : ''})` : ''}` : null,
+                `${filmes} filme${filmes === 1 ? '' : 's'}`,
+                `${lg.spent} cr gastos`,
+              ].filter((x): x is string => Boolean(x)).join(' · ')
+            : null
+          const ledger = assinante ?? (terms.length > 0 ? `= ${terms.join(' ')}` : null)
 
           return {
             user_id: p.id as string,
@@ -588,6 +658,7 @@ export async function GET() {
             lastEngine,
             ledger,
             ledgerGap,
+            ledgerNote,
           }
         })
         .filter((v) => v.email && !internal(v.email))

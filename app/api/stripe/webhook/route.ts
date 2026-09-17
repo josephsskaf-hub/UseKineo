@@ -653,6 +653,33 @@ async function recordAffiliateCommission(
 // only writer of `payment_success`. Buyers who closed that tab were invisible
 // to the funnel, while refreshes could create duplicates. Stripe is the source
 // of truth: one verified, deduped webhook event now writes the canonical row.
+// ═══ KINEO-RAZAO-ASSINANTE-2026-09-17 — o crédito do 1º pagamento, escrito no próprio evento ═══
+// Fundador (17/09, painel ao vivo, valos87196): "73 cr = +150 Creator assinou 29/07 − 2 gastos
+// ⚠ −75 sem origem. Está muito confuso." O −75 não era furo: em 29/07 o mês de intro do Creator
+// concedia 50 créditos, não 150 — e o painel só podia ADIVINHAR pelo TIER_CREDITS de hoje, porque
+// nenhum dos 19 payment_success dos últimos 90 dias registrava o que concedeu. A partir daqui o
+// evento carrega `credits_granted` calculado pela MESMA regra do grant (bloco checkout.session.completed
+// abaixo: card_trial → CARD_TRIAL_GRANT_CREDITS; trial sem cobrança → TRIAL_GRANT_CREDITS; intro válido
+// → intro_credits; senão TIER_CREDITS do tier). Só assinatura; pack/pagamento único devolve null.
+function firstPaymentCreditsFromSession(session: Pick<Stripe.Checkout.Session, 'mode' | 'metadata' | 'payment_status'>): number | null {
+  if (session.mode !== 'subscription') return null
+  const tier: CheckoutPlanTier =
+    session.metadata?.tier === 'pro' ? 'pro'
+      : session.metadata?.tier === 'starter' ? 'starter'
+        : session.metadata?.tier === 'autopilot' ? 'autopilot'
+          : session.metadata?.tier === 'autopilot_lite' ? 'autopilot_lite'
+            : 'basic'
+  const planCredits = TIER_CREDITS[tier]
+  const introCreditsRaw = Number(session.metadata?.intro_credits ?? 0)
+  const introApplied = session.metadata?.intro === '1' &&
+    Number.isFinite(introCreditsRaw) &&
+    introCreditsRaw > 0 &&
+    introCreditsRaw <= planCredits
+  const isCardTrial = session.metadata?.card_trial === '1'
+  const isTrial = session.payment_status === 'no_payment_required' || isCardTrial
+  return isCardTrial ? CARD_TRIAL_GRANT_CREDITS : isTrial ? TRIAL_GRANT_CREDITS : introApplied ? Math.floor(introCreditsRaw) : planCredits
+}
+
 async function recordPaymentSuccess(
   supabase: AdminClient,
   stripeEventId: string,
@@ -742,6 +769,8 @@ async function recordPaymentSuccess(
       trial_days: session.metadata?.trial_days ?? null,
       amount_total: session.amount_total ?? 0,
       currency: session.currency ?? 'usd',
+      // KINEO-RAZAO-ASSINANTE-2026-09-17 — ver firstPaymentCreditsFromSession. Null em pack/pagamento único.
+      credits_granted: firstPaymentCreditsFromSession(session),
     },
   }
 
