@@ -3370,3 +3370,6 @@ Pergunta do fundador em aberto (17/09): "quando a pessoa acaba o 1º filme, já 
 
 ## RAZAO-ASSINANTE — no ar (17/09 manhã)
 Painel ao vivo: assinante mostra "Creator desde 29/07 (US$ 9,90) · renovação recusada 3× (saldo insuficiente, última 17/09) · 7 filmes · 2 cr gastos". Compra sem credits_granted (todas antes de 17/09) sai da equação com nota em cinza; ⚠ só para furo real. Webhook grava credits_granted no payment_success daqui em diante. Achado colateral: NENHUM subscription_invoice_paid no banco para os assinantes atuais — renovação paga não está sendo registrada como evento (conferir o caminho invoice.payment_succeeded).
+
+## ESTUDO-MERCADO-CONVERSAO (17/09) — informação para decisão, nada construído
+Fundador: "por enquanto não faz nada; estudar o mercado". Ver docs/ESTUDO-MERCADO-CONVERSAO-2026-09-17.md: pagantes pagam com 0-1 filme em ≤48 h (10/13); mercado = freemium sem cartão + marca + cota que RENOVA + upgrade no export; entrada US$ 17-29; freemium converte 2,6-5% (nós 0,7%); decisão nas primeiras 72 h. Episódio 2 automático PAUSADO por ordem do fundador.
