@@ -309,11 +309,14 @@ export default async function PublicVideoPage({ params }: { params: { id: string
             This Short was generated from a single topic — script, voiceover, captions and footage.{' '}
             {ft(OFFER, 'Create, share and download up to 3 watermarked Fast videos every 24 hours — upgrade only when you want a clean export.', OFFER.copy.headline + ' Upgrade only when you want more.')}
           </p>
+          {/* KINEO-LACO-VIRAL-2026-09-17 — o modelo CapCut: "refaça este filme com o seu tema". O botão principal
+              leva ao cadastro com o tema deste filme já na caixa (mesmo contrato /signup?prompt=…&create_intent=fast
+              das outras vitrines); o remix sem cadastro (7 cliques/30 d, 0 contas) vira o caminho secundário. */}
           <PublicVideoCtaLink
-            href={remixHref}
+            href={generateFromScriptHref(title, 'public_video_remake')}
             videoId={params.id}
             placement="under_player"
-            destination="/free-script-generator"
+            destination="/signup"
             style={{
               display: 'inline-block',
               background: BLUE,
@@ -325,9 +328,20 @@ export default async function PublicVideoPage({ params }: { params: { id: string
               fontSize: '1rem',
             }}
           >
-            Remix this topic — no signup →
+            Make your own version — free →
           </PublicVideoCtaLink>
           <ShareVideoButton title={v?.title ?? 'A Short made with Kineo'} />
+          <div style={{ marginTop: 10 }}>
+            <PublicVideoCtaLink
+              href={remixHref}
+              videoId={params.id}
+              placement="under_player_secondary"
+              destination="/free-script-generator"
+              style={{ color: '#9fb3c8', fontSize: '0.82rem', textDecoration: 'underline' }}
+            >
+              Or remix just the script — no signup
+            </PublicVideoCtaLink>
+          </div>
         </div>
 
         {v && v.paragraphs.length > 0 && (

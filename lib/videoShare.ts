@@ -15,6 +15,17 @@ export function buildPublicVideoSharePath(
   referralCode?: string | null,
 ): string | null {
   if (!PUBLIC_VIDEO_SHARING_ENABLED) return null
+  return buildPublishedVideoSharePath(videoId, referralCode)
+}
+
+// KINEO-LACO-VIRAL-2026-09-17 — o mesmo caminho, SEM a trava global. Só pode ser chamado depois que a pessoa
+// publicou a página com um clique explícito (POST /api/video/visibility → videos.published_at). A trava acima
+// continua protegendo todo caller que não sabe se a página existe (My Videos, cartões antigos).
+export const VIRAL_LOOP_VERSION = 'laco_viral_v1'
+export function buildPublishedVideoSharePath(
+  videoId: string | null | undefined,
+  referralCode?: string | null,
+): string | null {
   const id = (videoId ?? '').trim()
   if (!id) return null
 

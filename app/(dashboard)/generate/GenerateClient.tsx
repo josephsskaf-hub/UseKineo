@@ -247,8 +247,10 @@ import {
 import { useSeriesDoorSeen } from '@/lib/seriesDoorImpressions'
 import {
   buildPublicVideoSharePath,
+  buildPublishedVideoSharePath, // KINEO-LACO-VIRAL-2026-09-17
   PUBLIC_VIDEO_SHARE_VERSION,
   PUBLIC_VIDEO_SHARING_ENABLED,
+  VIRAL_LOOP_VERSION,
 } from '@/lib/videoShare'
 import {
   PRIVATE_FILE_SHARE_REFERRAL_VARIANT,
@@ -2169,6 +2171,11 @@ export default function GenerateClient({
   const [publicVideoId, setPublicVideoId] = useState<string | null>(null)
   const [sharedPublic, setSharedPublic] = useState<'copied' | 'ready' | null>(null)
   const [shareReferralCode, setShareReferralCode] = useState<string | null>(null)
+  // KINEO-LACO-VIRAL-2026-09-17 — a página pública deste filme existe? Só depois do clique explícito da pessoa
+  // (POST /api/video/visibility). Zera a cada filme novo. 716 filmes/30 d, 1 publicado: a tela não tinha o botão.
+  const [publicPagePublished, setPublicPagePublished] = useState(false)
+  const [publishPageState, setPublishPageState] = useState<'idle' | 'publishing' | 'error'>('idle')
+  useEffect(() => { setPublicPagePublished(false); setPublishPageState('idle') }, [publicVideoId])
   const [privateReferral, setPrivateReferral] = useState<PrivateFileShareReferral | null>(null)
   const [privateReferralResolved, setPrivateReferralResolved] = useState(false)
   const [privateReferralCopied, setPrivateReferralCopied] = useState(false)
@@ -10263,7 +10270,30 @@ export default function GenerateClient({
   // PUSH #23/#29 — every sharing surface uses the public /v/[id] landing,
   // never the raw MP4. The shared helper keeps referral and attribution exact.
   function publicSharePath(): string | null {
+    // KINEO-LACO-VIRAL-2026-09-17 — publicada com o clique da pessoa: o caminho existe de verdade.
+    if (publicPagePublished) return buildPublishedVideoSharePath(publicVideoId, shareReferralCode)
     return buildPublicVideoSharePath(publicVideoId, shareReferralCode)
+  }
+
+  // KINEO-LACO-VIRAL-2026-09-17 — o clique que cria a página pública. Nada é publicado sem ele.
+  async function handlePublishWatchPage() {
+    if (!publicVideoId || publishPageState === 'publishing') return
+    setPublishPageState('publishing')
+    void trackEvent('video_page_publish_clicked', { video_id: publicVideoId, where: 'done_screen', version: VIRAL_LOOP_VERSION, referral_attached: !!shareReferralCode })
+    try {
+      const res = await fetch('/api/video/visibility', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ videoId: publicVideoId, action: 'publish', source: 'done_screen' }),
+      })
+      if (!res.ok) throw new Error(String(res.status))
+      setPublicPagePublished(true)
+      setPublishPageState('idle')
+      void trackEvent('video_page_published', { video_id: publicVideoId, where: 'done_screen', version: VIRAL_LOOP_VERSION, referral_attached: !!shareReferralCode })
+    } catch (e) {
+      setPublishPageState('error')
+      void trackEvent('video_page_publish_failed', { video_id: publicVideoId, where: 'done_screen', version: VIRAL_LOOP_VERSION, error: e instanceof Error ? e.message.slice(0, 40) : 'unknown' })
+    }
   }
 
   function buildPublicShareUrl(): string | null {
@@ -17619,7 +17649,8 @@ export default function GenerateClient({
                     after the clean-vs-watermarked choice; paid users see it after
                     their primary download. Sharing stays opt-in and uses the
                     canonical /v page, with referral when available. */}
-                {PUBLIC_VIDEO_SHARING_ENABLED ? (
+                {/* KINEO-LACO-VIRAL-2026-09-17 — publicada com o clique da pessoa, o cartão público (WhatsApp/X/copiar) volta. */}
+                {(PUBLIC_VIDEO_SHARING_ENABLED || publicPagePublished) ? (
                 <div
                   ref={sharePromptRef}
                   className="w-full rounded-2xl px-5 py-5"
@@ -17805,8 +17836,31 @@ export default function GenerateClient({
                               : 'Your video was shared; no Kineo watch page was created.'
                             : 'Nothing is sent until you choose a recipient.'}
                     </p>
+                    {/* KINEO-LACO-VIRAL-2026-09-17 — a decisão explícita de visibilidade, na tela, com um clique. Antes esta
+                        linha dizia "temporarily paused" e a única forma de publicar era o link assinado do e-mail:
+                        716 filmes em 30 dias, 1 página publicada. A página pública é onde mora o "faça o seu". */}
+                    {publicVideoId && (
+                      <button
+                        type="button"
+                        onClick={handlePublishWatchPage}
+                        disabled={publishPageState === 'publishing'}
+                        data-viral-loop={VIRAL_LOOP_VERSION}
+                        className="w-full rounded-xl mt-3 py-2.5 text-sm font-black"
+                        style={{
+                          background: 'rgba(37,211,102,.14)',
+                          border: '1px solid rgba(37,211,102,.45)',
+                          color: '#bbf7d0',
+                          cursor: publishPageState === 'publishing' ? 'wait' : 'pointer',
+                          opacity: publishPageState === 'publishing' ? 0.7 : 1,
+                        }}
+                      >
+                        {publishPageState === 'publishing' ? 'Creating your public watch page…' : 'Create a public watch page & share it →'}
+                      </button>
+                    )}
                     <p className="mt-2 text-center" style={{ color: '#606068', fontSize: '0.64rem', lineHeight: 1.4 }}>
-                      Public watch links are temporarily paused. Kineo will not publish a public page without an explicit visibility choice.
+                      {publishPageState === 'error'
+                        ? 'The page could not be created. Nothing was published — try again in a moment.'
+                        : 'Nothing is public until you press it. The page shows this film with a "make your own" button for whoever you send it to.'}
                     </p>
                   </div>
                 )}
