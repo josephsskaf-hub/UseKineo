@@ -396,7 +396,11 @@ export function primeiraFrase(texto: string): string {
  * narração abre o pedido. Desconhecida: abre com a frase (declarada, não aprovada
  * por omissão). Nunca duas ordens opostas no mesmo prompt.
  */
-export function garantirAcaoCentral(prompt: string, voiceover: string, characterSheet = ''): { prompt: string; cobertura: Cobertura } {
+// KINEO-KLING3-IMAGENS-2026-09-17 — `posicao`: 'inicio' (padrão, H3/Omni/S25: o aviso no fim pesa pouco) ou 'fim'
+// (Kling 3: os primeiros tokens mandam, e a frase da narração na frente de TODA cena achatava a variedade — 11
+// cenas iguais no filme do naufrágio cananeu, 17/09 03:03Z). No 'fim' a frase vira contexto: "Moment from the
+// narration: …". O que a cena deve MOSTRAR continua sendo a primeira coisa que o motor lê.
+export function garantirAcaoCentral(prompt: string, voiceover: string, characterSheet = '', posicao: 'inicio' | 'fim' = 'inicio'): { prompt: string; cobertura: Cobertura } {
   const cobertura = avaliarCobertura(prompt, voiceover, characterSheet)
   let p = (prompt ?? '').trim()
   if (cobertura.status === 'coberta' || cobertura.status === 'sem_narracao') return { prompt: p, cobertura }
@@ -418,7 +422,9 @@ export function garantirAcaoCentral(prompt: string, voiceover: string, character
     p = p.replace(/\s{2,}/g, ' ').replace(/\s+([,.;])/g, '$1').replace(/,\s*,/g, ',').replace(/^\s*,\s*/, '').trim()
   }
   // Sem aspas: aspas no prompt de imagem viram fala na boca de alguém (2ª revisão do Board).
-  return { prompt: `Shows exactly this moment, as the narration describes it: ${primeiraFrase(voiceover).replace(/["“”]/g, '')} ${p}`.replace(/\s{2,}/g, ' ').trim(), cobertura }
+  const frase = primeiraFrase(voiceover).replace(/["“”]/g, '')
+  if (posicao === 'fim') return { prompt: `${p} Moment from the narration: ${frase}`.replace(/\s{2,}/g, ' ').trim(), cobertura }
+  return { prompt: `Shows exactly this moment, as the narration describes it: ${frase} ${p}`.replace(/\s{2,}/g, ' ').trim(), cobertura }
 }
 
 // ── A cadeia no planejador: conversão sem rosto + despersonalizar + ficha ────

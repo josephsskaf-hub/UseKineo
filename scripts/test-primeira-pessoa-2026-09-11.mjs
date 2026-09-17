@@ -45,7 +45,7 @@ checa('presenter continua sem proibições', VM.proibidosPorModo('presenter').le
 
 console.log('== a rota: boca fechada como prefixo, verbos de fala removidos ==')
 const rt = rd('app/api/generate-video-cinematic/route.ts')
-checa('mouthPrefix vale para TODA família em cena não-diálogo (não só h3)', /const mouthPrefix = hs\.type !== 'dialogue'\n\s+\? 'No one talks on camera\. Every visible person is silent, mouth closed, no lip movement, not speaking\. '\n\s+: ''/.test(rt) && !/family === 'h3' && hs\.type !== 'dialogue'\n\s+\? 'No one talks/.test(rt))
+checa('mouthPrefix vale para toda família SEM negative_prompt (h3/omni/s25); no Kling 3 o silêncio vai ao negative_prompt (KINEO-KLING3-IMAGENS-2026-09-17)', /const mouthPrefix = hs\.type !== 'dialogue' && family !== 'hollywood'\n\s+\? 'No one talks on camera\. Every visible person is silent, mouth closed, no lip movement, not speaking\. '\n\s+: ''/.test(rt) && rt.includes("const silencioNegativo = semFala ? 'talking, speaking, lip movement, mouth moving, lip sync, dialogue, ' : ''") && !/family === 'h3' && hs\.type !== 'dialogue'\n\s+\? 'No one talks/.test(rt))
 checa('"begins speaking about his past" é trocado por silêncio antes do POST', /hs\.prompt = hs\.prompt\n\s+\.replace\(\/\\b\(\?:he\|she\|they\|the \(\?:man\|woman\|person\|old man\|old woman\|boy\|girl\)\)\?\\s\*\(\?:begins\?\|starts\?\|continues\?\)\\s\+\(\?:speaking\|talking\|telling\|narrating\|explaining\)/.test(rt))
 {
   // executa a mesma substituição da rota sobre o prompt REAL do canário

@@ -596,6 +596,10 @@ function buildFalInput(
   // KINEO-UNIVERSAL-2026-08-25 — negativos anti-CGI viram condicionais.
   const antiCgi = stylized ? '' : 'cartoon, anime, illustration, 3d render, '
   if (model === KLING3_MODEL) {
+    // KINEO-KLING3-IMAGENS-2026-09-17 — cena SEM fala (não tem `says: "`) leva o silêncio no negative_prompt, que é
+    // onde o Kling 3 obedece; o prefixo de 17 palavras saiu da frente do prompt (rota). Cena de diálogo fica intacta.
+    const semFala = !/says:\s*"/.test(prompt)
+    const silencioNegativo = semFala ? 'talking, speaking, lip movement, mouth moving, lip sync, dialogue, ' : ''
     // KINEO-MOTORMAX-2026-08-16 — schema oficial: duration aceita QUALQUER
     // inteiro 3-15 (o snap 5|10 criava dead air ou fala cortada) e cfg_scale
     // (default 0.5) aumenta aderencia ao prompt — menos cena aleatoria/gemea.
@@ -605,7 +609,7 @@ function buildFalInput(
       aspect_ratio: frame.falAspectRatio, // KINEO-MULTIFORMATO-2026-09-02 — '9:16' sem `aspect`
       generate_audio: true,
       cfg_scale: 0.6,
-      negative_prompt: antiCgi + 'blur, distort, low quality, watermark, text, logo, caption, chinese text, foreign text, on-screen text, readable signs, subtitles, captions, phone screen with text, rotated frame, sideways composition, vertical horizon, tilted horizon, soft focus, out of focus',
+      negative_prompt: antiCgi + silencioNegativo + 'blur, distort, low quality, watermark, text, logo, caption, chinese text, foreign text, on-screen text, readable signs, subtitles, captions, phone screen with text, rotated frame, sideways composition, vertical horizon, tilted horizon, soft focus, out of focus',
     }
   }
   if (model === SORA_MODEL) {
@@ -4675,6 +4679,23 @@ async function manipularPost(req: NextRequest) {
         cena: number; antes: string; depois: string; cobertura: string
         acoes: string[]; motivo: string
       }> = []
+      // ═══ KINEO-KLING3-IMAGENS-2026-09-17 — o supervisor fala×imagem (lib/cinematic/speechImageAlign.ts) também
+      // no caminho hollywood: cada cena não-diálogo (fala + plano) volta KEEP ou REWRITE antes de qualquer still ou
+      // POST pago. Só o plano visual muda; a narração e os diálogos ficam. Falha aberta.
+      try {
+        const idxs = plan.scenes.map((_, i) => i).filter((i) => plan.scenes[i].type !== 'dialogue' && (plan.scenes[i].voiceover ?? '').trim().length > 0 && (plan.scenes[i].prompt ?? '').trim().length > 0)
+        if (idxs.length > 0) {
+          const alinhado = await alignShotsToSpeech({ topic: prompt, scenes: idxs.map((i) => ({ voiceover: plan.scenes[i].voiceover ?? '', shot: plan.scenes[i].prompt })) })
+          if (alinhado) {
+            const historiaH = `${prompt} ${plan.scenes.map((sc) => sc.voiceover ?? '').join(' ')}`
+            for (const c of alinhado.rewritten) plan.scenes[idxs[c.index]].prompt = scrubInventedSetting(c.shot, historiaH).text
+            void writeServerEvent({ name: SPEECH_IMAGE_ALIGN_EVENT, userId: user.id, path: '/api/generate-video-cinematic', metadata: { version: SPEECH_IMAGE_ALIGN_VERSION, engine: family, ...alinhado.relato, dry_run: body.dry_run === true } })
+            if (alinhado.rewritten.length) console.log(`[fala-x-imagem] hollywood/${family}: ${alinhado.rewritten.length}/${idxs.length} cena(s) reescritas em ${alinhado.relato.ms} ms`)
+          }
+        }
+      } catch (e) {
+        console.warn('[fala-x-imagem] hollywood falhou, planos originais seguem:', e instanceof Error ? e.message : String(e))
+      }
       for (const [idx, hs] of plan.scenes.entries()) {
         // `sceneModel`/`sceneEngine` (NOT `usedModel` — that name belongs to
         // the classic single-model path below and must not be shadowed).
@@ -4858,7 +4879,10 @@ async function manipularPost(req: NextRequest) {
           // prefixo agora e universal em cena nao-dialogo, e os verbos de fala
           // que o planner deixou no prompt ("begins speaking about his past")
           // sao trocados por silencio ANTES de o motor ler.
-          const mouthPrefix = hs.type !== 'dialogue'
+          // KINEO-KLING3-IMAGENS-2026-09-17 — no Kling 3 esse prefixo de 17 palavras abria TODA cena (mesmo texto ×11) e a
+          // imagem só vinha depois; o modelo tem negative_prompt, e é lá que o silêncio vai (buildFalInput). H3/Omni/S25 não
+          // têm negative: o prefixo fica. O sufixo curto de boca fechada continua em todas.
+          const mouthPrefix = hs.type !== 'dialogue' && family !== 'hollywood'
             ? 'No one talks on camera. Every visible person is silent, mouth closed, no lip movement, not speaking. '
             : ''
           if (hs.type !== 'dialogue') {
@@ -4890,7 +4914,8 @@ async function manipularPost(req: NextRequest) {
           // prompt, ele abre com a frase da narração que a cena deve mostrar. Cena
           // sem diálogo nunca leva citação de fala no prompt.
           if (hs.type !== 'dialogue') {
-            const fid = garantirAcaoCentral(silenciarFalaNoPrompt(hs.prompt), hs.voiceover ?? '', plan.characterSheet ?? '')
+            // KINEO-KLING3-IMAGENS — Kling 3 lê a IMAGEM primeiro; a frase da narração vira contexto no fim.
+            const fid = garantirAcaoCentral(silenciarFalaNoPrompt(hs.prompt), hs.voiceover ?? '', plan.characterSheet ?? '', family === 'hollywood' ? 'fim' : 'inicio')
             hs.prompt = fid.prompt
             // Cobertura DECLARADA no claim (coberta / divergente / desconhecida) — nunca aprovada por omissão.
             const hsFid = hs as { conversao?: string; identidade?: string }
