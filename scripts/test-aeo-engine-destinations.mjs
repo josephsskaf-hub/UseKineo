@@ -37,9 +37,10 @@ const expected = {
   hollywood: '/ai-video-generator/kling-3',
   h3: '/ai-video-generator/minimax-h3',
   omni: '/ai-video-generator/gemini-omni-flash',
+  s25: '/ai-video-generator/seedance-2-5',
 }
 
-equal(Object.keys(intent.ENGINE_LANDING_PUBLIC_PATHS).sort().join(','), Object.keys(expected).sort().join(','), 'every live engine has one public destination')
+equal(Object.keys(intent.ENGINE_LANDING_PUBLIC_PATHS).sort().join(','), Object.keys(expected).sort().join(','), 'every declared engine has one canonical path; live availability is gated separately')
 for (const [engine, path] of Object.entries(expected)) {
   equal(intent.ENGINE_LANDING_PUBLIC_PATHS[engine], path, `${engine}: canonical path is exact`)
   equal(intent.engineLandingPublicPath(engine), path, `${engine}: public helper executes`)
@@ -49,7 +50,8 @@ for (const [engine, path] of Object.entries(expected)) {
 
 const facts = read('lib/kineoFacts.ts')
 ok(facts.includes("import { engineLandingPublicPath } from './growth/engineLandingIntent'"), 'public facts use the shared destination source')
-for (const engine of Object.keys(expected)) {
+// S25 has a declared path behind S25_PUBLIC, but is not in ENGINE_FACTS yet.
+for (const engine of Object.keys(expected).filter((key) => key !== 's25')) {
   ok(facts.includes(`engineLandingPublicPath('${engine}')`), `${engine}: facts derive the engine URL`)
 }
 ok(facts.includes("url: `${BASE}/ai-avatar`"), 'Avatar keeps its canonical standalone page')
@@ -69,7 +71,7 @@ for (const [engine, path] of Object.entries(expected)) {
   const key = slug.includes('-') ? `'${slug}': {` : `${slug}: {`
   const entryStart = enginePage.indexOf(key)
   ok(entryStart >= 0, `${engine}: destination slug exists in the generated engine catalog`)
-  const entryEnd = enginePage.indexOf('\n  },', entryStart)
+  const entryEnd = engine === 's25' ? enginePage.indexOf('\n        },', entryStart) : enginePage.indexOf('\n  },', entryStart)
   ok(entryEnd > entryStart, `${engine}: generated engine entry is structurally bounded`)
   const entry = enginePage.slice(entryStart, entryEnd)
   ok(entry.includes(`param: '${engine}'`), `${engine}: destination resolves to the matching generator parameter`)

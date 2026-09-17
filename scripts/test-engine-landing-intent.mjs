@@ -22,8 +22,8 @@ vm.runInNewContext(compiled, {
 }, { filename: 'lib/growth/engineLandingIntent.ts' })
 const intent = moduleBox.exports
 
-const expectedEngines = ['fast', 'seedance', 'kling', 'veo', 'hollywood', 'h3', 'omni']
-equal(intent.ENGINE_LANDING_PARAMS.join(','), expectedEngines.join(','), 'all seven live engine params are allowlisted')
+const expectedEngines = ['fast', 'seedance', 'kling', 'veo', 'hollywood', 'h3', 'omni', 's25']
+equal(intent.ENGINE_LANDING_PARAMS.join(','), expectedEngines.join(','), 'all declared engine params are allowlisted; publication/availability is gated separately')
 
 for (const engine of expectedEngines) {
   const campaign = `seo_engine_${engine}`
@@ -36,9 +36,9 @@ for (const engine of expectedEngines) {
 
   const signup = new URL(intent.buildEngineLandingSignupHref({ engine, campaign }), 'https://www.usekineo.com')
   equal(signup.pathname, '/signup', `${engine} still begins at signup`)
-  equal(signup.searchParams.get('utm_source'), 'seo', `${engine} keeps SEO source`)
-  equal(signup.searchParams.get('utm_medium'), 'organic', `${engine} keeps organic medium`)
-  equal(signup.searchParams.get('utm_campaign'), campaign, `${engine} keeps the exact campaign`)
+  equal(signup.searchParams.has('utm_source'), false, `${engine} does not invent an acquisition source`)
+  equal(signup.searchParams.has('utm_medium'), false, `${engine} does not overwrite the external medium`)
+  equal(signup.searchParams.has('utm_campaign'), false, `${engine} uses intent_campaign for internal attribution`)
   equal(signup.searchParams.get('intent_campaign'), campaign, `${engine} exposes signup intent`)
   equal(signup.searchParams.get('redirect'), `${destination.pathname}${destination.search}`, `${engine} carries an explicit safe redirect`)
   equal(signup.searchParams.has('engine'), false, `${engine} is not left as a discarded top-level signup field`)
@@ -65,7 +65,7 @@ check(page.includes('href={studioUrl}'), 'existing member goes directly to the s
 check(!page.includes('&engine=${e.param}'), 'discarded top-level engine query is gone')
 check(!page.includes('const generateUrl ='), 'legacy generate hop is gone')
 
-const paramsInPage = [...page.matchAll(/param:\s*'(fast|seedance|kling|veo|hollywood|h3|omni)'/g)].map((match) => match[1])
+const paramsInPage = [...read('lib/growth/enginePageCatalog.ts').matchAll(/param:\s*'(fast|seedance|kling|veo|hollywood|h3|omni|s25)'/g)].map((match) => match[1])
 equal([...new Set(paramsInPage)].sort().join(','), [...expectedEngines].sort().join(','), 'page data and handoff allowlist cover the same engines')
 
 const signupPage = read('app/(auth)/signup/page.tsx')
@@ -81,7 +81,8 @@ check(studio.includes("const ic = sp.get('intent_campaign')"), 'Studio reads the
 
 const topicForm = read('app/youtube-shorts-from-topic/TopicGeneratorForm.tsx')
 check(topicForm.includes('function authRedirectFor(promptValue: string)'), 'topic starter builds a bounded authenticated redirect')
-check(topicForm.includes("return `/generate?${destination.toString()}`"), 'authenticated redirect lands on the creation surface')
+check(topicForm.includes('return buildAuthenticatedCreationRedirect({'), 'authenticated starter calls the shared creation handoff')
+check(read('lib/creationHandoff.ts').includes("return `/studio/create?${destination.toString()}`"), 'authenticated redirect lands on the current creation surface')
 check(topicForm.includes("params.set('redirect', authRedirect)"), 'one-click examples preserve work for signed-in visitors')
 check(topicForm.includes('name="redirect" value={authRedirectFor(topic)'), 'typed topics preserve work for signed-in visitors')
 

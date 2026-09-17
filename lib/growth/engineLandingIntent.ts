@@ -77,9 +77,7 @@ export function buildEngineLandingSignupHref(input: {
 }): string {
   const campaign = normalizeCampaign(input.campaign)
   const params = new URLSearchParams({
-    utm_source: 'seo',
-    utm_medium: 'organic',
-    utm_campaign: campaign,
+    // An internal CTA carries intent; acquisition stays with the external arrival.
     intent_campaign: campaign,
     redirect: buildEngineLandingDestination({
       engine: normalizeEngine(input.engine),
