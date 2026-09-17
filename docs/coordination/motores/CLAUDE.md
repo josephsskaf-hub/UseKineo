@@ -1040,3 +1040,23 @@ Regra que segura tudo: cada carta nova só entra depois de a anterior mover algu
 11. **Respostas na caixa profissional:** `FOUNDER_REPLY_TO = joseph@usekineo.com` no e-mail do botão. Cliques e comentários continuam caindo no quadro.
 12. **Pedido em massa:** os 7 filmes com visual < 75 receberam o e-mail às 22:05 BRT (6 novos + 1 já pedido); a seguir, todos os filmes de 48 h sem pedido (≈ 40) recebem a versão com a oferta de 10 créditos.
 13. **Painel ao vivo (`/api/admin/live`)** — (a) razão: a ASSINATURA nunca entrava (só pacote avulso) → "+60 sem origem" em todo pagante; agora `payment_success` (tier → TIER_CREDITS) e `subscription_invoice_paid` (credits_granted) entram como termo próprio "+ 60 Starter assinou 16/09"; (b) "vídeo no ?": o débito dos motores de IA tem render_id `cinematic-<id>` que não existe em render_jobs — o motor vem agora do `cinematic_dispatch_result.billing_reference`; Seedance 2.5 ganhou rótulo. Guardiões que leem a rota: fonte-unica e placar-trial verdes; guardiao-08-28, leva-confiabilidade e painel-verdade já eram vermelhos no baseline.
+
+## MOTORES-10-POR-CENTO-R1 — melhorias pequenas e diárias nos motores de baixo da tabela (fundador 16/09 22:50 BRT: "melhoras pequenas… 10%, 15% por dia… olhar na internet, pesquisar bastante… nem sempre o motor vem pronto")
+
+**Autorização do fundador para tocar `app/api/generate-video-cinematic/route.ts` e `lib/hollywood/router.ts` (trava 8.2):** a frase acima, nesta sessão.
+
+**Achado nº 1 — a "falha do Omni" de 16/09 era o saldo do fal.** O render 04:48Z (11 cenas, 6 aceitas, 5 rejeitadas) gravou as 5 como `unknown / http null`. O log da Vercel dizia `403 balance_quota` ("User is locked. Reason: Exhausted balance"). O motor não falhou; o cartão pré-pago do fal acabou. Enquanto o saldo não for reposto, nenhum ensaio pago de Omni/S25/H3 vale — dry-run a $0 continua valendo.
+
+**Commit 075ed0bb — o motivo real chega ao ledger.** `submitToFal` já classificava a recusa (`classifyProviderFailure`) e a classe morria no console. Agora ela fica no contexto da requisição (`ultimaRecusa`), o laço hollywood a guarda por cena (`hRecusas`) e `cinematic_dispatch_result.scenes[].reason_class/provider_http_status` passam a dizer saldo / moderação / payload / acesso / rate limit em vez de "desconhecido". `retry_safety` segue `never`. Guardião vigia-ledger-hollywood reancorado (estava vermelho desde 14/09 pelo termo `local_policy_gate`; agora verde).
+
+**Commit fe30cc3a — H3 sem reescrita da fal (pesquisa).** O schema oficial `minimax/h3/text-to-video` e `image-to-video` (lido 16/09 em fal.ai) tem `prompt_expansion_mode` com padrão **"balanced"**: a fal reescreve o nosso prompt antes de gerar ("'quality' spends up to ~30s on a richer prompt"). Isso é incompatível com o contrato C1 (fala verbatim redistribuída por cena) e com o contrato de cena (fala × imagem): a fala entre aspas e as proibições ("no on-screen text", "no Chinese text") podiam sair reescritas. `H3_PROMPT_EXPANSION = 'disabled'` (env `KINEO_H3_PROMPT_EXPANSION` = fast|balanced|quality para ensaio A/B). Custo zero. Provar no primeiro render H3 pela nota visual do /admin/coerencia.
+
+**O que a pesquisa disse e a casa JÁ faz (não repetir):** Kling 3 "describe the action first, then the dialogue" — nossos prompts de diálogo já vêm ação → `says: "…"`; H3 usa linguagem natural de câmera (não colchetes) e pede "no Chinese text / no subtitles" — já no negative/prompt; Omni Flash i2v só aceita prompt + image_url + aspect + duration 3-10 s (nada de negative) — já é assim.
+
+**Fila para as próximas manhãs (uma por dia, dry-run antes, saldo do fal primeiro):**
+1. H3: ensaio a $0 do roteiro validado do Kling 3 com expansão desligada; se PASS, 1 render e nota no quadro. Candidato seguinte: `minimax/h3-max` (fal diz "stronger prompt adherence") — conferir preço antes.
+2. Omni: repetir o render de 16/09 com saldo (o defeito era saldo); confirmar "cena falhou → retentar a cena" com o motivo real agora visível.
+3. S25: 422 no i2v com pessoa (R8 manda t2v) — ensaio a $0 com o mesmo roteiro.
+4. Transversal: `seed` fixo por filme no H3 (o schema aceita) para consistência entre cenas — testar contra o still-âncora.
+
+Fontes: fal.ai/models/minimax/h3/text-to-video/api · fal.ai/models/minimax/h3/image-to-video/api · fal.ai/learn/devs/minimax-h3-prompting-guide · blog.fal.ai/kling-3-0-prompting-guide · fal.ai/models/google/gemini-omni-flash/image-to-video/api.
