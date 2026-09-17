@@ -4689,7 +4689,7 @@ async function manipularPost(req: NextRequest) {
           if (alinhado) {
             const historiaH = `${prompt} ${plan.scenes.map((sc) => sc.voiceover ?? '').join(' ')}`
             for (const c of alinhado.rewritten) plan.scenes[idxs[c.index]].prompt = scrubInventedSetting(c.shot, historiaH).text
-            void writeServerEvent({ name: SPEECH_IMAGE_ALIGN_EVENT, userId: user.id, path: '/api/generate-video-cinematic', metadata: { version: SPEECH_IMAGE_ALIGN_VERSION, engine: family, ...alinhado.relato, dry_run: body.dry_run === true } })
+            await writeServerEvent({ name: SPEECH_IMAGE_ALIGN_EVENT, userId: user.id, path: '/api/generate-video-cinematic', metadata: { version: SPEECH_IMAGE_ALIGN_VERSION, engine: family, ...alinhado.relato, dry_run: body.dry_run === true } })
             if (alinhado.rewritten.length) console.log(`[fala-x-imagem] hollywood/${family}: ${alinhado.rewritten.length}/${idxs.length} cena(s) reescritas em ${alinhado.relato.ms} ms`)
           }
         }
