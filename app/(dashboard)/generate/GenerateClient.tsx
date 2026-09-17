@@ -113,6 +113,8 @@ import {
   serializeCardEntryDraft,
 } from '@/lib/growth/cardEntryResumeDraft'
 import { decidePostDeliverySlot, type PostDeliverySlotOwner } from '@/lib/growth/postDeliverySlot'
+// KINEO-PORTA-TERCEIRO-FILME-2026-09-17 — a jogada do segundo filme (ver o cabeçalho do módulo).
+import { decideThirdFilmDoor, thirdFilmDoorCapacityLine } from '@/lib/growth/thirdFilmDoor'
 import { decideCleanFilmTrialDoor } from '@/lib/growth/cleanFilmTrialDoor'
 import CleanFilmTrialDoor from '@/components/CleanFilmTrialDoor'
 // KINEO-DOWNLOAD-E-O-MOMENTO-2026-09-07 — ver o bloco longo do módulo: a tela
@@ -2361,6 +2363,10 @@ export default function GenerateClient({
   // `checkout_cta_suppressed` tell us exactly which button fired.
   const wmCheckout = useCheckoutLaunch('generate_watermark_unlock')
   const upgradeModalCheckout = useCheckoutLaunch('generate_upgrade_modal')
+  // KINEO-PORTA-TERCEIRO-FILME-2026-09-17 — a porta do 3º filme abre a Stripe direto; superfície própria.
+  const thirdFilmCheckout = useCheckoutLaunch('generate_third_film_door')
+  const thirdFilmDoorRef = useRef<HTMLDivElement | null>(null)
+  const thirdFilmDoorSeenRef = useRef<string | null>(null)
   const urgencyCheckout = useCheckoutLaunch('generate_urgency_modal')
   const exitIntentCheckout = useCheckoutLaunch('generate_exit_intent_upgrade')
   const postVideoCheckout = useCheckoutLaunch('generate_post_video_upsell')
@@ -12014,6 +12020,70 @@ export default function GenerateClient({
   })
   const showTrialRepeatEpisode = postDeliverySlotOwner === 'repeat_episode'
 
+  // ═══ KINEO-PORTA-TERCEIRO-FILME-2026-09-17 — a jogada do segundo filme ═══
+  // 92 de 116 pessoas saíram do 2º filme sem saldo para o 3º e o caminho era
+  // modal genérico → /pricing → 0 pagamentos em 19 checkouts. A porta mora
+  // DENTRO da caixa "Your next episode is written": o filme dela acima, o
+  // título do episódio seguinte, quantos episódios COMO ESTE o Starter compra,
+  // a garantia e um botão que abre a Stripe direto. Quem decide é a função
+  // pura (lib/growth/thirdFilmDoor.ts); aqui só se lê a decisão.
+  const thirdFilmDoor = decideThirdFilmDoor({
+    delivered: phase === 'done' && Boolean(finalVideoUrl),
+    completedCount: completedVideoCount,
+    historyReliable: videoHistoryReliable,
+    notPaidProven,
+    credits,
+    nextEpisodeCost: episode2InheritedCost,
+    slotOwner: postDeliverySlotOwner,
+    nextEpisodeReady: nextEpisode !== null,
+    starterCredits: TIER_CREDITS.starter,
+  })
+  // Preço na moeda que a Stripe vai cobrar (mesma fonte do modal). Sem moeda
+  // resolvida, a linha de preço não aparece — nunca um número errado.
+  const thirdFilmDoorPrice = postVideoCurrency
+    ? formatCheckoutMoney(postVideoCurrency, getTierPrice(thirdFilmDoor.tier, postVideoCurrency, postVideoRegion))
+    : null
+  const thirdFilmDoorCheckoutUrl = (() => {
+    const base = withIntentCampaign(`/api/stripe/checkout?tier=${thirdFilmDoor.tier}&intro=1`)
+    return base.includes('intent_campaign=') ? base : `${base}&intent_campaign=${thirdFilmDoor.version}`
+  })()
+  // Impressão: uma por geração, só quando a caixa ENTRA no viewport (mesmo
+  // contrato das outras portas da tela). O evento carrega os números que
+  // decidiram a visibilidade, para a próxima rodada medir sem adivinhar.
+  useEffect(() => {
+    if (!thirdFilmDoor.visible) return
+    const attemptId = generationAttemptRef.current ?? publicVideoId ?? finalVideoUrl
+    if (!attemptId || thirdFilmDoorSeenRef.current === attemptId) return
+    const el = thirdFilmDoorRef.current
+    if (!el) return
+    const marcar = (observed: boolean) => {
+      if (thirdFilmDoorSeenRef.current === attemptId) return
+      thirdFilmDoorSeenRef.current = attemptId
+      void trackEvent('third_film_door_shown', {
+        version: thirdFilmDoor.version,
+        tier: thirdFilmDoor.tier,
+        observed,
+        credits_before: credits,
+        next_episode_cost: episode2InheritedCost,
+        episodes_on_starter: thirdFilmDoor.episodesOnStarter,
+        completed_count: completedVideoCount,
+        price_label: thirdFilmDoorPrice,
+        currency: postVideoCurrency,
+        last_video_quality: quality,
+        slot_owner: postDeliverySlotOwner ?? null,
+      })
+    }
+    if (typeof IntersectionObserver === 'undefined') { marcar(false); return }
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries.some((e) => e.isIntersecting && e.intersectionRatio >= 0.5)) return
+      marcar(true)
+      observer.disconnect()
+    }, { threshold: [0.5] })
+    observer.observe(el)
+    return () => observer.disconnect()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [thirdFilmDoor.visible, publicVideoId, finalVideoUrl])
+
   // KINEO-SILENCIO-POS-ENTREGA-2026-09-07 — emite UMA vez por filme entregue,
   // e so quando a tela nao pediu nada. `postDeliverySilenceKeyRef` guarda o id
   // do video: o /generate re-renderiza muitas vezes por entrega, e sem a chave
@@ -16983,18 +17053,90 @@ export default function GenerateClient({
                       >
                         {nextEpisode.script.replace(/^(HOOK|MICRO REWARD|ESCALATION|PAYOFF)\s*$/gim, '').trim()}
                       </p>
-                      <button
-                        type="button"
-                        onClick={() => startNextEpisode(showTrialRepeatEpisode ? { trialRepeat: true } : undefined)}
-                        className="w-full rounded-xl mt-3 py-2.5 text-sm font-black text-white"
-                        style={{
-                          background: 'linear-gradient(135deg,#2997ff,#2997ff)',
-                          border: 'none',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {showTrialRepeatEpisode ? 'Make episode 2 with Fast →' : 'Make this one too →'}
-                      </button>
+                      {/* KINEO-PORTA-TERCEIRO-FILME-2026-09-17 — quando o saldo não paga
+                          este episódio e a conta comprovadamente não paga, o botão
+                          "Make this one too" (que só levava ao modal genérico) dá lugar
+                          à porta: o que o Starter compra em episódios COMO ESTE, a
+                          garantia, e a Stripe direto. Fora disso, o botão de sempre. */}
+                      {thirdFilmDoor.visible ? (
+                        <div
+                          ref={thirdFilmDoorRef}
+                          data-third-film-door={thirdFilmDoor.version}
+                          className="mt-3 rounded-xl p-3"
+                          style={{ background: 'rgba(52,211,153,.09)', border: '1px solid rgba(52,211,153,.45)' }}
+                        >
+                          <span className="block text-[10px] font-black uppercase tracking-widest" style={{ color: '#6ee7b7' }}>
+                            Your balance: {credits} credits · this episode needs {episode2InheritedCost}
+                          </span>
+                          <strong className="block mt-1.5 text-sm" style={{ color: 'var(--text)', lineHeight: 1.35 }}>
+                            Starter unlocks this episode{thirdFilmDoorPrice ? ` — ${thirdFilmDoorPrice}/month` : ''}
+                          </strong>
+                          <span className="block mt-1 text-xs" style={{ color: '#a7f3d0', lineHeight: 1.45 }}>
+                            {thirdFilmDoorCapacityLine(thirdFilmDoor.episodesOnStarter)} · cancel anytime · 7-day money-back guarantee.
+                          </span>
+                          <button
+                            type="button"
+                            disabled={thirdFilmCheckout.pending !== null}
+                            onClick={() => {
+                              const started = thirdFilmCheckout.launch(
+                                thirdFilmDoor.tier,
+                                thirdFilmDoorCheckoutUrl,
+                                { tier: thirdFilmDoor.tier, intro: true, reason: 'third_film_door', version: thirdFilmDoor.version },
+                              )
+                              if (!started) return
+                              void trackEvent('third_film_door_clicked', {
+                                version: thirdFilmDoor.version,
+                                tier: thirdFilmDoor.tier,
+                                credits_before: credits,
+                                next_episode_cost: episode2InheritedCost,
+                                episodes_on_starter: thirdFilmDoor.episodesOnStarter,
+                                completed_count: completedVideoCount,
+                                price_label: thirdFilmDoorPrice,
+                                currency: postVideoCurrency,
+                              })
+                              trackCheckoutClick(thirdFilmDoor.tier)
+                            }}
+                            className="w-full rounded-xl mt-3 py-2.5 text-sm font-black"
+                            style={{
+                              background: thirdFilmCheckout.pending !== null ? 'rgba(52,211,153,.35)' : '#10b981',
+                              border: 'none',
+                              color: '#052e16',
+                              cursor: thirdFilmCheckout.pending !== null ? 'wait' : 'pointer',
+                            }}
+                          >
+                            {thirdFilmCheckout.pending !== null ? 'Opening secure checkout…' : 'Unlock this episode and keep going →'}
+                          </button>
+                          {thirdFilmCheckout.error && (
+                            <p role="alert" className="text-xs mt-2 font-semibold" style={{ color: '#ff6b6b', lineHeight: 1.45 }}>
+                              {thirdFilmCheckout.error}
+                            </p>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void trackEvent('third_film_door_compare_clicked', { version: thirdFilmDoor.version })
+                              router.push(withIntentCampaign(`/pricing?intent_campaign=${thirdFilmDoor.version}#plans`))
+                            }}
+                            className="w-full mt-1.5 py-1.5 text-xs font-bold"
+                            style={{ color: '#6ee7b7', background: 'transparent', border: 'none', cursor: 'pointer' }}
+                          >
+                            Compare all plans →
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => startNextEpisode(showTrialRepeatEpisode ? { trialRepeat: true } : undefined)}
+                          className="w-full rounded-xl mt-3 py-2.5 text-sm font-black text-white"
+                          style={{
+                            background: 'linear-gradient(135deg,#2997ff,#2997ff)',
+                            border: 'none',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {showTrialRepeatEpisode ? 'Make episode 2 with Fast →' : 'Make this one too →'}
+                        </button>
+                        )}
                       {showTrialRepeatEpisode && trialRepeatDecision.action === 'episode' && (
                         <>
                           <p className="text-xs mt-2 text-center" style={{ color: 'var(--muted2)', lineHeight: 1.45 }}>
