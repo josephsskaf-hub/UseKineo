@@ -3373,3 +3373,19 @@ Painel ao vivo: assinante mostra "Creator desde 29/07 (US$ 9,90) · renovação 
 
 ## ESTUDO-MERCADO-CONVERSAO (17/09) — informação para decisão, nada construído
 Fundador: "por enquanto não faz nada; estudar o mercado". Ver docs/ESTUDO-MERCADO-CONVERSAO-2026-09-17.md: pagantes pagam com 0-1 filme em ≤48 h (10/13); mercado = freemium sem cartão + marca + cota que RENOVA + upgrade no export; entrada US$ 17-29; freemium converte 2,6-5% (nós 0,7%); decisão nas primeiras 72 h. Episódio 2 automático PAUSADO por ordem do fundador.
+
+## CITACOES-01 — 17/09: medição parcial e atribuição orgânica
+
+**EVIDÊNCIA DE PRODUÇÃO (17/09, corte 07:30Z):** cadastros externos com profiles.utm_source='chatgpt': 14/09 = 13, 15/09 = 10, 16/09 = 13. Fonte/SQL: docs/citacoes-chatgpt/2026-09-17-sprint-12h/MARCO-ZERO.json e marco-zero.sql. Ainda abaixo de 15/dia; não representa pessoas humanas verificadas nem causalidade desta entrega.
+
+**EVIDÊNCIA DE PRODUÇÃO (17/09, sessão temporária não personalizada, Alta):** 17 respostas completas, duas citações Kineo em posição 1 (EN09 Seedance, EN10 calculadora), uma descrevendo oferta retirada; zero links dos oito guias monitorados. Três perguntas não enviadas após limite de solicitações. MEDICAO-PARCIAL.json guarda perguntas e posições. Não comparar a taxa com Instantânea de 12/09 como experimento controlado.
+
+**CONTRADIÇÃO:** resposta EN10 cita /cheapest-ai-shorts-maker com oferta paga retirada; GET direto 07:53Z entrega trial grátis de 10. A busca devolve snapshot com 30, GET direto llms entrega 10. HIPÓTESE: fontes recuperadas desatualizadas contribuem para respostas incorretas; não há prova de que isso explique toda a queda. Copy restante é DUPLICADA do pacote TRIAL10 9c3e02c1, sem importação ou dispensa dos gates.
+
+**FATO CONFIRMADO / IMPLEMENTADO LOCALMENTE:** /cheapest-ai-shorts-maker → CTA interno fixava origem seo para chegada por referrer ChatGPT sem UTM → trocar para /signup?intent_campaign=push22_cheapest. Código app/cheapest-ai-shorts-maker/page.tsx:71, lib/analytics.ts:398–400 e lib/acquisitionSource.ts. Teste comportamental reproduz antes e depois, conserva campanha. Não corrige dados históricos nem prova aumento de citações.
+
+### CITACOES-01-GOOGLE-ORIGEM — PEDIDO ao Claude (arquivo reservado)
+
+**FATO CONFIRMADO / EVIDÊNCIA DE PRODUÇÃO:** app/ai-video-generator/for/[slug]/page.tsx:49 injeta utm_source=google, utm_medium=organic e utm_campaign na navegação interna para signup. GET /ai-video-generator/for/faceless-youtube-channels em 17/09 07:53Z confirma href; HTTP-FOCAL.json guarda evidência pública. Mesma execução real de analytics/acquisitionSource reproduziu chegada ChatGPT sem UTM virando google.
+
+**SUGESTÃO — patch mínimo:** no URLSearchParams de signup, remover somente utm_source, utm_medium e utm_campaign; manter intent_campaign e redirect para Studio, com engine/prompt/duration/script_mode intactos. Reexecução offline com essas remoções preservou origem chatgpt e campanha intent_faceless-youtube-channels. Validar também Google, direto e UTM externa explícita. Dono Claude; arquivo não editado por Citações. A existência de 100 páginas não prova 100 páginas indexadas nem aquisição Google: a origem precisa ser confiável primeiro.

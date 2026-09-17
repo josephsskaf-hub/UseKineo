@@ -68,7 +68,7 @@ const FAQ: { q: string; a: string }[] = [
 ]
 
 export default function CheapestAiShortsMakerPage() {
-  const signupUrl = '/signup?utm_source=seo&utm_medium=organic&utm_campaign=push22_cheapest'
+  const signupUrl = '/signup?intent_campaign=push22_cheapest'
   const faqJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',

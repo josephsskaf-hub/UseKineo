@@ -2,7 +2,7 @@
 
 **DECISÃO DO FUNDADOR — 17/09/2026:** criar nesta conversa uma sprint de 12 horas dedicada às citações da Kineo no ChatGPT, uma das cinco prioridades declaradas, para aumentar tráfego qualificado e novos compradores. Não é renovação das outras pistas.
 
-**CONFIGURADO:** heartbeat `kineo-cita-es-24h-at-14-09` reaproveitado, renomeado para `Kineo · Citações ChatGPT · Sprint 12h`, transferido para a conversa Board `01a03e3e-5f63-7cf1-8b9f-6c6646b446b7`. Janela 17/09 **04:30–16:30 BRT**, equivalente a **07:30–19:30 UTC**. Checkpoints a cada 30 minutos, doze rotações de uma hora e encerramento às 16:30. Sem renovação automática. Notificação preexistente preservada. Agendamento não significa execução contínua entre disparos; disponibilidade do app, computador e conta condiciona a execução.
+**CONFIGURADO — destino corrigido por ordem expressa do fundador:** heartbeat `kineo-cita-es-24h-at-14-09` reaproveitado, renomeado para `Kineo · Citações ChatGPT · Sprint 12h`, executa exclusivamente na sessão Kineo · Citações no ChatGPT `01a088dd-908c-7c42-9bac-3e886e72a785`. Board `01a03e3e-5f63-7cf1-8b9f-6c6646b446b7` apenas coordena. Janela original preservada: 17/09 **04:30–16:30 BRT**, equivalente a **07:30–19:30 UTC**. Checkpoints a cada 30 minutos, doze rotações de uma hora e encerramento às 16:30. Sem reinício, extensão, segundo agendamento ou renovação automática. Notificação preexistente preservada. Agendamento não significa execução contínua entre disparos; disponibilidade do app, computador e conta condiciona a execução.
 
 ## Norte e limites da prova
 
@@ -35,4 +35,4 @@
 
 **PROTOCOLO:** worktree própria de origin/main atualizado; apply_patch; testes comportamentais, tsc e guardiões pertinentes; comparação visual quando aplicável. Inspecionar scripts antes de usar `enfileirar.sh` e batch com dois SHAs revisados. Sem force, reset alheio, amend após fila ou push direto. Deploy e exposição são provas separadas. PII e capturas de contas permanecem privadas.
 
-**COORDENAÇÃO REALIZADA:** a antiga sessão Citações recebeu a transferência de responsabilidade pelo app, sem abrir pesquisa paralela. Git compartilhado não equivale a ACK do Claude. Diário desta janela em `DIARIO.md`.
+**COORDENAÇÃO REALIZADA:** a preparação foi feita no Board e a execução transferida à sessão Citações por correção do fundador, recebida no primeiro disparo em 17/09 07:30Z. Board entregou a worktree e não editará nela. O diário preserva a preparação anterior e registra a correção, sem pesquisa paralela. Git compartilhado não equivale a ACK do Claude. Diário desta janela em `DIARIO.md`.
