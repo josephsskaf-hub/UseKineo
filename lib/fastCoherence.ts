@@ -115,7 +115,8 @@ export function buildCoherenceMessages(input: { prompt: string; narration: strin
         '"recycled from an earlier scene" or "generic library clip" usually does not; stock clips match when the query and clip tags describe what the line talks about. ') +
     'Be strict and concrete. Reply ONLY with JSON: {"prompt_vs_narration": 0-100, "narration_vs_visuals": 0-100 or null when no scenes are given, ' +
     '"problems": [up to 4 short strings IN BRAZILIAN PORTUGUESE naming the specific mismatch, empty when none], "worst_scene": scene number or null, "summary": one sentence IN BRAZILIAN PORTUGUESE (max 160 chars), ' +
-    '"request_pt": one line IN BRAZILIAN PORTUGUESE (max 140 chars) saying what the customer asked for, whatever language they wrote in}.'
+    '"request_pt": one line IN BRAZILIAN PORTUGUESE (max 140 chars) saying what the customer asked for, whatever language they wrote in}. ' +
+    'ALL of summary, problems and request_pt are written in Brazilian Portuguese even when the customer text and the narration are in Spanish, English or any other language.'
   const user =
     `CUSTOMER WROTE${input.promptMayBeTruncated ? ' (stored text may be CUT (the store keeps 500-1,000 characters) — do not penalize narration that plausibly continues it)' : ''}:\n"""${input.prompt.slice(0, 5000)}"""\n\nNARRATION THE FILM USED:\n"""${input.narration.slice(0, 2600)}"""\n\n` +
     (scenes.length ? `SCENES (${ai ? 'generation prompt per shot, in order' : 'spoken line → footage plan'}):\n${sceneLines}` : 'SCENES: not recorded for this film (judge only prompt_vs_narration; set narration_vs_visuals to null).')
