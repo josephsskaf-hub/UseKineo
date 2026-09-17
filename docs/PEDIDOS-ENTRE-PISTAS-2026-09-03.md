@@ -3401,3 +3401,7 @@ Número: 716 filmes/30 d, 1 página publicada; /v/: 234 sessões, 7 cliques, 0 c
 
 ## COTA-SEMANAL — no ar (17/09 tarde; fundador: "3 vai cota grátis 1x semana")
 Free tier pós-trial passa de 1 Kineo 1 a cada 30 dias para 1 Kineo 1 POR SEMANA (janela rolante de 7 dias, FREE_FAST_WEEKLY_WINDOW_MS em lib/freeTierOffer.ts). Corte de 15 s e marca d’água continuam; mesma mecânica de contagem (reservas no compose). Toda copy que dizia "month" virou "week" (residual, contador, e-mail de limite, linha de volta, checkout cancelado, página ai-shorts-without-filming). A frase "seu próximo vídeo grátis volta em…" agora fala em dias (teto de 7 dias; antes calava acima de 36 h). Guardião test-free-quota-teto-fala passou a testar o módulo REAL (era cópia da regra). Custo: ≈ US$ 0,10-0,15 por filme grátis. Medir em 14 dias: retorno de trials encerrados (base: 6 de 170) e reservas de cota por semana.
+
+
+## COTA-SEMANAL-CARTA — rota pronta, envio pelo fundador (17/09 tarde)
+Fundador: "quero 170 e-mails avisando que a cota de uma semana grátis voltou"; texto e 15 s aprovados por ele. Base real: 902 trials encerrados (523 com filme, 379 sem). Rota /api/admin/send-weekly-quota: dry-run por padrão, &confirm=SEND envia lote ≤120, &all=1 inclui quem não fez filme; recusa (409) se o free tier não for 1 por 7 dias; não concede crédito; carimbo weekly_quota_sent; frio ≥3 d. Guardião test-carta-cota-semanal (12). Medir: cliques (utm_campaign=weekly_quota_sep17) e reservas de cota nos 7 dias seguintes.
