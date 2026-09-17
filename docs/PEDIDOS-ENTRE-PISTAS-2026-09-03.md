@@ -3349,3 +3349,6 @@ Fontes: fal.ai/models/minimax/h3/text-to-video/api · fal.ai/models/minimax/h3/i
 5. Prova: nota "visual" do filme de hoje no /admin/coerencia contra a do render de 35 s; e o olho do fundador. Guardião novo com os prompts reais de hoje como fixture.
 
 **Dívida vista no ensaio:** a recusa `script_too_long_for_engine` diz "241 palavras, 331 é o máximo" quando o problema é UMA frase maior que a cena (24 palavras > 20). Mensagem certa: "a frase X tem N palavras e a cena aguenta M; quebre-a".
+
+## PROJETO-1-GOOGLE — dia 1 (17/09 madrugada, commit 3a758149)
+Ver docs/PROJETO-1-GOOGLE-2026-09-17.md. 100 páginas de intenção (40 nichos · 25 formatos · 15 idiomas · 20 alternativas) em /ai-video-generator/for/<slug> + hub, com filmes reais da vitrine, preço/trial da fonte única e CTA que abre o Studio com o prompt do nicho. Sitemap 0.8/0.9, llms Key pages, guardião test-projeto-1-google (17). Medir: visitantes do Google por semana (base 9), cadastros com utm_source=google, e `intent_campaign` que começa com `intent_`.

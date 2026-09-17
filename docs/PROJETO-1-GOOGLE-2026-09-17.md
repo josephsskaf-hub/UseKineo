@@ -38,3 +38,7 @@ Anúncio pago (só com conversão ≥ 3%), mudança de preço/oferta (congelado 
 
 ## Projetos seguintes na fila (um por vez)
 2. Checkout no fim do 2º filme (conversão) — 3. Reativação com o filme pronto — 4. Afiliados que pagam (atribuição consertada, 50% do 1º mês, 20 YouTubers) — 5. Laço viral: "refaça este filme" na página pública — 6. Idiomas: landing por idioma + ChatGPT em ES/HI.
+
+## Dia 1 executado — 17/09 03:19 BRT (commit 3a758149)
+- 100 páginas no ar em `/ai-video-generator/for/<slug>` + hub; sitemap e llms.txt atualizados; guardião 17/17; tsc ✓.
+- Próximo: sonda com controle 404, IndexNow das 101 URLs, Search Console (fundador confere o domínio verificado: `public/google1a66c904ab852fb7.html` já existe), e o placar de cadastros por `utm_source=google` a partir de hoje.
