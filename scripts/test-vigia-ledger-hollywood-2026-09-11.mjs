@@ -53,10 +53,11 @@ const iValid = idx('const hValid = hRequestIds.filter((id): id is string => id !
 checa('ordem: acolchoamento → razão → hValid (o FAILFAST já vê os outcomes)', iPad > 0 && iFill > iPad && iValid > iFill)
 checa('cena nunca tentada fica FORA (vira not_attempted no finalizador)', /const disp = hDispositions\[i\]\n\s*if \(!disp\) continue/.test(rt))
 checa('outcome grava a disposição decidida (`disposition: disp`) e nunca um literal', /disposition: disp,\n/.test(rt) && !/disposition: 'accepted',\n\s*reason_class: disp/.test(rt))
-checa('recusa sem classe vai como unknown/never (nunca autoriza re-POST); aceito = ok/200',
-  /reason_class: disp === 'accepted' \? 'ok' : disp === 'ambiguous' \? 'transport_timeout_5xx' : 'unknown',\n\s*retry_safety: 'never',\n\s*provider_http_status: disp === 'accepted' \? 200 : null,/.test(rt))
-checa('attempts alinhado por índice e totalPosts cresce por cena tentada',
-  /c\.attempts\[i\] = \[\{ model, status: disp === 'accepted' \? 200 : null, ambiguous: disp === 'ambiguous', accepted: disp === 'accepted' \}\]\n\s*c\.totalPosts \+= 1/.test(rt))
+checa('recusa explícita leva a classe e o status REAIS (KINEO-MOTIVO-REAL); sem classe fica unknown; retry_safety never (nunca autoriza re-POST); aceito = ok/200',
+  /reason_class: disp === 'accepted' \? 'ok' : disp === 'ambiguous' \? 'transport_timeout_5xx' : held \? 'local_policy_gate' : \(recusa\?\.reason_class \?\? 'unknown'\),\n\s*retry_safety: 'never',\n\s*provider_http_status: disp === 'accepted' \? 200 : \(recusa\?\.status \?\? null\),/.test(rt)
+  && rt.includes("ctxDespacho().ultimaRecusa = { model, status: status ?? null, reason_class: classe.reason_class") && rt.includes("hRecusas.push(!id && u ? { status: u.status, reason_class: u.reason_class } : null); ctxDespacho().ultimaRecusa = null"))
+checa('attempts alinhado por índice (status real da recusa) e totalPosts cresce por cena tentada (não pela retida)',
+  /c\.attempts\[i\] = held \? \[\] : \[\{ model, status: disp === 'accepted' \? 200 : \(recusa\?\.status \?\? null\), ambiguous: disp === 'ambiguous', accepted: disp === 'accepted' \}\]\n\s*if \(!held\) c\.totalPosts \+= 1/.test(rt))
 
 console.log('== 3. claim_action deixa de ser unknown no sucesso hollywood e no salvage ==')
 const iPubH = idx('return publishCinematicResponse(response, hRequestIds, hModels)')

@@ -25,6 +25,7 @@ import {
   isBalanceExhausted,
   providerSpendPossible,
   safeLogFields,
+  type ReasonClass,
   type SceneOutcome,
 } from '@/lib/cinematic/sceneDisposition'
 // KINEO-353A.1 — a orquestracao (retry, fallback de modelo, vetor por cena)
@@ -301,6 +302,9 @@ interface DispatchContext {
   submittedPrompts: string[]
   /** KINEO-VIGIA-CENARIO-2026-09-11 — lugar/época fora da história removidos por cena (vazio = nada inventado). */
   cenarioRemovido: string[]
+  /** KINEO-MOTIVO-REAL-2026-09-16 — a última recusa EXPLÍCITA classificada por submitToFal (status + classe). O laço
+   *  hollywood lê isto logo depois de um `null` para o ledger dizer "balance_quota 403" em vez de "unknown null". */
+  ultimaRecusa: { model: string; status: number | null; reason_class: ReasonClass; message: string } | null
   /** Ja registrou? Impede evento duplicado se algum caminho chamar duas vezes. */
   registrado: boolean
 }
@@ -309,7 +313,7 @@ function novoContextoDeDespacho(): DispatchContext {
     balanceExhausted: false, outcomes: [], attempts: [], totalPosts: 0, planned: 0,
     userId: null, generationId: null, claimId: null, billingReference: null,
     engine: null, quality: null, claimAction: 'unknown', refundConfirmed: null,
-    registrado: false, submittedPrompts: [], cenarioRemovido: [],
+    registrado: false, submittedPrompts: [], cenarioRemovido: [], ultimaRecusa: null,
   }
 }
 // AsyncLocalStorage e a ferramenta certa aqui: da localidade de requisicao
@@ -965,6 +969,10 @@ async function submitToFal(prompt: string, model: string = SEEDANCE_MODEL, hd: b
     // handler alerts the founder + soft-queues instead of hard-erroring.
     // KINEO-353A — agora exige a CLASSE saldo; 403 de acesso nao entra mais aqui.
     if (looksExhausted({ status, message: e?.message })) ctxDespacho().balanceExhausted = true
+    // KINEO-MOTIVO-REAL-2026-09-16 (fundador: "melhorar os motores de baixo da tabela"): o render Omni de 16/09 04:48
+    // gravou 5 cenas "unknown / http null" no ledger; o log da Vercel dizia 403 balance_quota (saldo do fal). A classe
+    // morria aqui, no console. Agora fica no contexto para o registro da cena.
+    ctxDespacho().ultimaRecusa = { model, status: status ?? null, reason_class: classe.reason_class, message: (e?.message ?? '').slice(0, 160) }
     // A transport/408/5xx or a success response without an id cannot prove
     // that Fal did not accept the paid job. Never re-POST that scene.
     if (!(err instanceof FalQueueSubmitError) || err.ambiguous) throw err
@@ -4622,6 +4630,8 @@ async function manipularPost(req: NextRequest) {
       // ENTREGUES) saíam attempted=0 / not_attempted=N / invariant_ok=false /
       // claim_action=unknown — o placar dizia 'nada foi ao fornecedor'.
       const hDispositions: Array<'accepted' | 'explicit_reject' | 'ambiguous'> = []
+      // KINEO-MOTIVO-REAL — recusa explícita classificada por cena (índice = cena), lida do contexto após cada `null`.
+      const hRecusas: Array<{ status: number | null; reason_class: ReasonClass } | null> = []
       // KINEO-S25-FALA-SEM-VOZ-2026-09-14 — cenas retidas por decisão NOSSA (nunca
       // chegaram ao fal): índice do plano → no ledger viram local_policy_gate com
       // zero tentativas, e não somam em totalPosts.
@@ -4950,6 +4960,7 @@ async function manipularPost(req: NextRequest) {
         if (id) providerSubmissionMayExist = true
         hRequestIds.push(id)
         hDispositions.push(id ? 'accepted' : 'explicit_reject')
+        { const u = ctxDespacho().ultimaRecusa; hRecusas.push(!id && u ? { status: u.status, reason_class: u.reason_class } : null); ctxDespacho().ultimaRecusa = null }
         hModels.push(sceneModel)
         hEngines.push(sceneEngine)
         hSubmittedPrompts.push(submittedPrompt)
@@ -5014,16 +5025,17 @@ async function manipularPost(req: NextRequest) {
             c.totalPosts += 1
             continue
           }
+          const recusa = hRecusas[i] ?? null // KINEO-MOTIVO-REAL — classe e status reais da recusa explícita
           c.outcomes[i] = {
             scene_index: i,
             model,
             disposition: disp,
-            reason_class: disp === 'accepted' ? 'ok' : disp === 'ambiguous' ? 'transport_timeout_5xx' : held ? 'local_policy_gate' : 'unknown',
+            reason_class: disp === 'accepted' ? 'ok' : disp === 'ambiguous' ? 'transport_timeout_5xx' : held ? 'local_policy_gate' : (recusa?.reason_class ?? 'unknown'),
             retry_safety: 'never',
-            provider_http_status: disp === 'accepted' ? 200 : null,
+            provider_http_status: disp === 'accepted' ? 200 : (recusa?.status ?? null),
             attempt_count: held ? 0 : 1,
           }
-          c.attempts[i] = held ? [] : [{ model, status: disp === 'accepted' ? 200 : null, ambiguous: disp === 'ambiguous', accepted: disp === 'accepted' }]
+          c.attempts[i] = held ? [] : [{ model, status: disp === 'accepted' ? 200 : (recusa?.status ?? null), ambiguous: disp === 'ambiguous', accepted: disp === 'accepted' }]
           if (!held) c.totalPosts += 1
         }
       }
