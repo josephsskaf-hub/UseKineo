@@ -35,7 +35,7 @@ console.log('== (b) a rota do Kineo 1 ==')
 const ft = rd('app/api/generate-video-fast/route.ts')
 checa('a história é detectada uma vez, antes do laço, sobre prompt + falas; o teto de stills sobe até o número de cenas (máx. 8)', ft.includes('const personagem = characterStoryName(`${prompt} ${scenes.map((sc) => sc.voiceover ?? \'\').join(\' \')}`)') && ft.includes('if (personagem) aiStillsMax = Math.max(aiStillsMax, Math.min(scenes.length, CHARACTER_STORY_MAX_STILLS))') && ft.includes('let aiStillsMax = fastAiScenesMax()'))
 checa('com personagem, TODA cena decide still (character_story) e, com o still na mão, o stock não entra na cena (continue)', ft.includes("? { ai: true, reason: 'character_story' as const, entity: null }") && ft.includes("clipSources.push('aiStill')\n              // KINEO-HISTORIA-COM-PERSONAGENS — nessa cena o stock não entra") && ft.includes('if (personagem) continue'))
-checa('o evento fast_ai_still leva o personagem (medição: quantos filmes de história por dia)', ft.includes('max: aiStillsMax, character: personagem, log:'))
+checa('o evento fast_ai_still leva o personagem (medição: quantos filmes de história por dia)', ft.includes('max: aiStillsMax, character: personagem, first_film: primeiroFilmeDaConta, log:'))
 checa('sem personagem o caminho é o de antes (decideFastAiScene) — nada muda para fatos/ciência', ft.includes(': decideFastAiScene({ planSource: brollMeta?.source ?? null, relevanceScore: relevanceScore ?? null, voiceover: scene.voiceover ?? null, description: scene.description ?? null })'))
 
 console.log('== (b2) primeiro filme da conta: still em toda cena (fundador: "até 50 centavos a mais no primeiro vídeo") ==')
