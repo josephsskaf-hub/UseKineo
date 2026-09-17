@@ -36,4 +36,3 @@
 **PROTOCOLO:** worktree própria de origin/main atualizado; apply_patch; testes comportamentais, tsc e guardiões pertinentes; comparação visual quando aplicável. Inspecionar scripts antes de usar `enfileirar.sh` e batch com dois SHAs revisados. Sem force, reset alheio, amend após fila ou push direto. Deploy e exposição são provas separadas. PII e capturas de contas permanecem privadas.
 
 **COORDENAÇÃO REALIZADA:** a antiga sessão Citações recebeu a transferência de responsabilidade pelo app, sem abrir pesquisa paralela. Git compartilhado não equivale a ACK do Claude. Diário desta janela em `DIARIO.md`.
-
