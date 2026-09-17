@@ -7,7 +7,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { isAdminEmail, serviceClient } from '../_shared/db'
-import { feedbackHref, FILM_FEEDBACK_ASKED_EVENT } from '@/lib/filmFeedback'
+import { feedbackHref, FILM_FEEDBACK_ASKED_EVENT, FILM_FEEDBACK_CREDITS, FOUNDER_REPLY_TO } from '@/lib/filmFeedback'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 
 export const dynamic = 'force-dynamic'
@@ -74,7 +74,7 @@ One honest question: did the film match what you asked for?
   👍 Yes: ${up}
   👎 Not really: ${down}
 
-If it didn't, tell me what was off (the story, the footage, the voice) and I'll make it right.
+If it didn't, tell me what was off (the story, the footage, the voice) — one line is enough — and I add ${FILM_FEEDBACK_CREDITS} credits so you can redo it.
 
 Watch it again: ${url}
 
@@ -86,7 +86,7 @@ usekineo.com${emailFooterText(userId)}`
   <p style="margin:0 0 14px;">I'm Joseph, the founder of Kineo. You made a film with us about <strong>“${esc(titulo)}”</strong>.</p>
   <p style="margin:0 0 14px;">One honest question: <strong>did the film match what you asked for?</strong></p>
   <p style="margin:0 0 18px;"><a href="${up}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:10px 18px;border-radius:10px;font-weight:700;">👍 Yes</a>&nbsp;&nbsp;<a href="${down}" style="display:inline-block;background:#f1f5f9;color:#111;text-decoration:none;padding:10px 18px;border-radius:10px;font-weight:700;">👎 Not really</a></p>
-  <p style="margin:0 0 14px;color:#475569;font-size:14px;">If it didn't, tell me what was off (the story, the footage, the voice) and I'll make it right.</p>
+  <p style="margin:0 0 14px;color:#475569;font-size:14px;">If it didn't, tell me what was off (the story, the footage, the voice) — one line is enough — and I add <strong>${FILM_FEEDBACK_CREDITS} credits</strong> so you can redo it.</p>
   <p style="margin:0 0 18px;"><a href="${url}" style="color:#2997ff;">Watch it again</a></p>
   <p style="margin:0 0 2px;">Thank you,</p>
   <p style="margin:0 0 2px;">Joseph</p>
@@ -97,7 +97,7 @@ ${emailFooterHtml(userId)}`
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: FROM_EMAIL, to: [to], reply_to: 'josephsskaf@gmail.com', subject, text, html, headers: unsubscribeHeaders(userId) }),
+      body: JSON.stringify({ from: FROM_EMAIL, to: [to], reply_to: FOUNDER_REPLY_TO, subject, text, html, headers: unsubscribeHeaders(userId) }),
     })
     if (!res.ok) {
       const err = await res.text().catch(() => '')

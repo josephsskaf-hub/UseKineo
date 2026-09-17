@@ -16,6 +16,16 @@ import { mintShareToken, verifyShareToken } from '@/lib/videoShareLink'
 export const FILM_FEEDBACK_EVENT = 'film_feedback'
 /** o fundador apertou "pedir feedback" no quadro: e-mail enviado para a pessoa (metadata.asked = true) */
 export const FILM_FEEDBACK_ASKED_EVENT = 'film_feedback_asked'
+// KINEO-FEEDBACK-10CR-2026-09-16 — decisão do fundador (16/09 noite): "vamos oferecer dez créditos para essas pessoas que
+// derem um feedback legal… a gente troca 10 créditos para você refazer o seu vídeo". Feedback "legal" = escrito (≥ 20
+// caracteres) na página do 👍/👎. Uma vez por filme, no máximo 3 por conta (anti-abuso). Evento film_feedback_credit
+// (session_id = video_id) + admin_credits_granted (o mesmo rastro do botão "+ créditos", motivo nomeado).
+export const FILM_FEEDBACK_CREDITS = 10
+export const FILM_FEEDBACK_CREDIT_EVENT = 'film_feedback_credit'
+export const FILM_FEEDBACK_MIN_COMMENT_CHARS = 20
+export const FILM_FEEDBACK_MAX_CREDITS_PER_ACCOUNT = 3
+/** Caixa profissional do fundador: toda resposta a e-mail de feedback cai aqui (fundador 16/09). */
+export const FOUNDER_REPLY_TO = 'joseph@usekineo.com'
 export type FilmFeedbackVerdict = 'up' | 'down'
 
 export function feedbackHref(videoId: string, verdict: FilmFeedbackVerdict, base: string, source: string): string | null {
@@ -41,7 +51,7 @@ export function feedbackRowHtml(videoId: string | null | undefined, base: string
   const text = theme === 'dark' ? '#94a3b8' : '#475569'
   const border = theme === 'dark' ? '#26262a' : '#e6e8ec'
   const btn = theme === 'dark' ? 'background:#26262a;color:#fff;' : 'background:#f1f5f9;color:#111;'
-  return `<p style="color:${text};font-size:13px;margin:16px 0 0;border-top:1px solid ${border};padding-top:14px;">Did this film match what you asked for? &nbsp;<a href="${up}" style="display:inline-block;${btn}text-decoration:none;padding:6px 12px;border-radius:8px;font-weight:700;">👍 Yes</a>&nbsp; <a href="${down}" style="display:inline-block;${btn}text-decoration:none;padding:6px 12px;border-radius:8px;font-weight:700;">👎 Not really</a></p>`
+  return `<p style="color:${text};font-size:13px;margin:16px 0 0;border-top:1px solid ${border};padding-top:14px;">Did this film match what you asked for? &nbsp;<a href="${up}" style="display:inline-block;${btn}text-decoration:none;padding:6px 12px;border-radius:8px;font-weight:700;">👍 Yes</a>&nbsp; <a href="${down}" style="display:inline-block;${btn}text-decoration:none;padding:6px 12px;border-radius:8px;font-weight:700;">👎 Not really</a><br><span style="font-size:12px;">Tell us in one line what was off and we add <strong>${FILM_FEEDBACK_CREDITS} credits</strong> so you can redo it.</span></p>`
 }
 
 export function feedbackRowText(videoId: string | null | undefined, base: string, source: string): string {
@@ -49,5 +59,5 @@ export function feedbackRowText(videoId: string | null | undefined, base: string
   const up = feedbackHref(videoId, 'up', base, source)
   const down = feedbackHref(videoId, 'down', base, source)
   if (!up || !down) return ''
-  return `\nDid this film match what you asked for?\n  Yes: ${up}\n  Not really: ${down}\n`
+  return `\nDid this film match what you asked for?\n  Yes: ${up}\n  Not really: ${down}\nTell us in one line what was off and we add ${FILM_FEEDBACK_CREDITS} credits so you can redo it.\n`
 }

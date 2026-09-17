@@ -19,6 +19,7 @@ import { createClient } from '@/lib/supabase/server'
 import { isAdminEmail, serviceClient } from '../_shared/db'
 import { INTERNAL_EXACT_EMAILS, INTERNAL_LIKE_PATTERNS, isInternalEmail } from '@/lib/internalAccounts'
 import { isPayingPlan, isTrialPlan } from '../_shared/mrr'
+import { TIER_CREDITS, type CheckoutPlanTier } from '@/lib/checkoutPricing' // KINEO-RAZAO-ASSINATURA-2026-09-16
 
 export const dynamic = 'force-dynamic'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
@@ -221,6 +222,12 @@ export async function GET() {
         .from('events').select('user_id, metadata').eq('name', 'trial_downgraded').in('user_id', ids).limit(2000)
       const purchasesPromise = admin
         .from('events').select('user_id, metadata').eq('name', 'bulk_purchase_completed').in('user_id', ids).limit(500)
+      // KINEO-RAZAO-ASSINATURA-2026-09-16 (fundador: "os pagantes estão com crédito sem origem… quero que mostre que
+      // compraram e qual plano"). A ASSINATURA nunca entrou no razão: só o pacote avulso. sassygoodsell (Starter,
+      // 16/09) aparecia "+60 sem origem". Fonte: payment_success (tier → TIER_CREDITS) e subscription_invoice_paid
+      // (credits_granted, renovação). Termo próprio: "+ 60 Starter assinou 16/09".
+      const subsPromise = admin
+        .from('events').select('user_id, name, created_at, metadata').in('name', ['payment_success', 'subscription_invoice_paid']).in('user_id', ids).limit(1000)
       const debitsPromise = admin
         .from('credit_debits').select('user_id, amount, refunded_at, render_id, created_at').in('user_id', ids).limit(4000)
       // KINEO-ENTREGAS-TOTAIS-2026-08-28 — a coluna "VIDEOS (TOTAL)" só
@@ -246,7 +253,7 @@ export async function GET() {
         admin.from('videos').select('user_id').in('user_id', ids).limit(2000),
         animateDelivPromise,
       ])
-      const [imagesRes, audiosRes, grantsRes, purchasesRes, debitsRes, revokesRes] = await Promise.all([imagesPromise, audiosPromise, grantsPromise, purchasesPromise, debitsPromise, revokesPromise])
+      const [imagesRes, audiosRes, grantsRes, purchasesRes, debitsRes, revokesRes, subsRes] = await Promise.all([imagesPromise, audiosPromise, grantsPromise, purchasesPromise, debitsPromise, revokesPromise, subsPromise])
       // Razão por pessoa: bônus, compras, gastos, estornos e expirado — crus.
       const ledgerBy = new Map<string, { bonus: number; bought: number; spent: number; refunded: number; revoked: number }>()
       const led = (uid: string) => {
@@ -268,6 +275,28 @@ export async function GET() {
         const uid = (b as { user_id: string | null }).user_id
         const amt = Number((b as { metadata?: { credits_granted?: unknown } }).metadata?.credits_granted ?? 0)
         if (uid && Number.isFinite(amt)) led(uid).bought += amt
+      }
+      // KINEO-RAZAO-ASSINATURA — assinatura (1ª compra) e renovação, com nome do plano e data; soma à parte.
+      const PLAN_NAME: Record<string, string> = { starter: 'Starter', basic: 'Creator', pro: 'Studio', autopilot: 'Autopilot', autopilot_lite: 'Autopilot Lite' }
+      const subsBy = new Map<string, { total: number; labels: string[] }>()
+      for (const e of subsRes.data ?? []) {
+        const uid = (e as { user_id: string | null }).user_id
+        const md = ((e as { metadata?: Record<string, unknown> }).metadata ?? {}) as Record<string, unknown>
+        const name = (e as { name: string }).name
+        if (!uid) continue
+        const tierRaw = typeof md.tier === 'string' ? md.tier.toLowerCase() : ''
+        let amt = 0
+        if (name === 'subscription_invoice_paid') amt = Number(md.credits_granted ?? 0)
+        else if (md.card_trial === true) amt = 0 // trial de $1: o mês cheio entra pela fatura
+        else amt = Number(TIER_CREDITS[tierRaw as CheckoutPlanTier] ?? 0)
+        if (!Number.isFinite(amt) || amt <= 0) continue
+        const quando = (e as { created_at?: string }).created_at
+        const d = quando ? new Date(quando) : null
+        const dia = d ? `${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')}` : ''
+        const cur = subsBy.get(uid) ?? { total: 0, labels: [] }
+        cur.total += amt
+        cur.labels.push(`+ ${amt} ${PLAN_NAME[tierRaw] ?? (tierRaw || 'plano')} ${name === 'subscription_invoice_paid' ? 'renovou' : 'assinou'}${dia ? ` ${dia}` : ''}`)
+        subsBy.set(uid, cur)
       }
       for (const d of debitsRes.data ?? []) {
         const uid = (d as { user_id: string | null }).user_id
@@ -300,6 +329,7 @@ export async function GET() {
         fast: 'Kineo 1', cinematic_ai: 'Seedance', cinematic_kling: 'Kling 2.5',
         cinematic_h3: 'H3', cinematic_veo: 'Veo', cinematic_hollywood: 'Kling 3',
         cinematic_omni: 'Omni', // KINEO-OMNI-2026-08-25
+        cinematic_s25: 'Seedance 2.5',
         avatar: 'Avatar', presenter: 'Presenter',
       }
       // ═══ KINEO-EXTRATO-VERDADE-2026-08-25 (fundador, print do Pedro na mão:
@@ -330,6 +360,20 @@ export async function GET() {
             const rid = (j as { render_id?: string }).render_id
             const q = (j as { quality?: string }).quality
             if (rid && q) jobQuality.set(String(rid), q)
+          }
+        }
+        // KINEO-MOTOR-DO-DEBITO-2026-09-16 (fundador: "vídeo no ?"): o débito dos motores de IA tem render_id
+        // "cinematic-<id>", que não existe em render_jobs. O motor mora no cinematic_dispatch_result
+        // (billing_reference = esse mesmo id). Sem isto todo Seedance/Veo/Kling aparecia como "?".
+        const cinematicRefs = renderIds.filter((r) => String(r).startsWith('cinematic-'))
+        if (cinematicRefs.length > 0) {
+          const { data: disp } = await admin
+            .from('events').select('metadata').eq('name', 'cinematic_dispatch_result').in('metadata->>billing_reference', cinematicRefs).limit(2000)
+          for (const e of disp ?? []) {
+            const md = ((e as { metadata?: Record<string, unknown> }).metadata ?? {}) as Record<string, unknown>
+            const ref = typeof md.billing_reference === 'string' ? md.billing_reference : null
+            const q = typeof md.quality === 'string' ? md.quality : null
+            if (ref && q && !jobQuality.has(ref)) jobQuality.set(ref, q)
           }
         }
         for (const d of dayDebits) {
@@ -509,13 +553,15 @@ export async function GET() {
           const terms: string[] = []
           if (trialGranted > 0) terms.push(`${trialGranted} trial`)
           if (lg.bonus > 0) terms.push(`+ ${lg.bonus} bônus`)
+          const subs = subsBy.get(p.id as string) ?? { total: 0, labels: [] }
+          for (const t of subs.labels) terms.push(t) // KINEO-RAZAO-ASSINATURA
           if (lg.bought > 0) terms.push(`+ ${lg.bought} compras`)
           if (lg.refunded > 0) terms.push(`+ ${lg.refunded} estorno`)
           if (lg.spent > 0) terms.push(`− ${lg.spent} gastos`)
           // KINEO-LEDGER-V2 — o termo que explicava 5 dos 10 "furos" da
           // auditoria: reverse trial expira e revoga o que sobrou.
           if (lg.revoked > 0) terms.push(`− ${lg.revoked} expirado`)
-          const expected = trialGranted + lg.bonus + lg.bought + lg.refunded - lg.spent - lg.revoked
+          const expected = trialGranted + lg.bonus + lg.bought + subs.total + lg.refunded - lg.spent - lg.revoked
           const ledgerGap = saldoReal === null ? 0 : saldoReal - expected
           const ledger = terms.length > 0 ? `= ${terms.join(' ')}` : null
 
