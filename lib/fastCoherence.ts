@@ -29,7 +29,10 @@ export const FAST_COHERENCE_EVENT = 'fast_coherence'
 // 500 caracteres (9 de 21 filmes de hoje tinham despacho de 835-1.756) — o juiz recebe o texto mais longo que existir
 // (fast_scene_plan.topic inteiro para filmes novos; claim/vídeo para os antigos) e é avisado quando o texto pode
 // estar truncado. Mudar a versão faz o painel julgar de novo (o leitor só aceita nota da versão vigente).
-export const FAST_COHERENCE_VERSION = 'k1_coerencia_v2'
+// v3 (16/09 noite, fundador: "estou vendo coisas em outras línguas… tem que deixar tudo em português"): o juiz
+// escreve resumo e problemas em PORTUGUÊS e devolve `request_pt` — uma linha, em português, dizendo o que a
+// pessoa pediu, seja qual for a língua do prompt (polonês, espanhol, hindi…). O quadro lê isso.
+export const FAST_COHERENCE_VERSION = 'k1_coerencia_v3'
 export const TOPIC_TRUNCATION_HINT = 500
 
 export type FastSceneEvidence = {
@@ -53,6 +56,8 @@ export type FastCoherenceResult = {
   problems: string[]
   worst_scene: number | null
   summary: string
+  /** v3 — o que a pessoa pediu, em uma linha, em português (qualquer língua de origem) */
+  request_pt: string
   has_evidence: boolean
   model: string | null
   ms: number
@@ -109,7 +114,8 @@ export function buildCoherenceMessages(input: { prompt: string; narration: strin
       : '(2) narration_vs_visuals: per scene, does the footage plan match what is being said? Footage described as "generated from this scene text" matches by construction; ' +
         '"recycled from an earlier scene" or "generic library clip" usually does not; stock clips match when the query and clip tags describe what the line talks about. ') +
     'Be strict and concrete. Reply ONLY with JSON: {"prompt_vs_narration": 0-100, "narration_vs_visuals": 0-100 or null when no scenes are given, ' +
-    '"problems": [up to 4 short English strings naming the specific mismatch, empty when none], "worst_scene": scene number or null, "summary": one sentence (max 160 chars)}.'
+    '"problems": [up to 4 short strings IN BRAZILIAN PORTUGUESE naming the specific mismatch, empty when none], "worst_scene": scene number or null, "summary": one sentence IN BRAZILIAN PORTUGUESE (max 160 chars), ' +
+    '"request_pt": one line IN BRAZILIAN PORTUGUESE (max 140 chars) saying what the customer asked for, whatever language they wrote in}.'
   const user =
     `CUSTOMER WROTE${input.promptMayBeTruncated ? ' (stored text may be CUT (the store keeps 500-1,000 characters) — do not penalize narration that plausibly continues it)' : ''}:\n"""${input.prompt.slice(0, 5000)}"""\n\nNARRATION THE FILM USED:\n"""${input.narration.slice(0, 2600)}"""\n\n` +
     (scenes.length ? `SCENES (${ai ? 'generation prompt per shot, in order' : 'spoken line → footage plan'}):\n${sceneLines}` : 'SCENES: not recorded for this film (judge only prompt_vs_narration; set narration_vs_visuals to null).')
@@ -129,9 +135,10 @@ export function knownCoherenceCase(prompt: string): { result: Omit<FastCoherence
         prompt_vs_narration: 0,
         narration_vs_visuals: null,
         verdict: 'off',
-        problems: ['The prompt was the Kineo page itself pasted into the box — there was no idea to be faithful to.'],
+        problems: ['O prompt era a própria página do Kineo colada na caixa — não havia ideia para ser fiel.'],
         worst_scene: null,
-        summary: 'Prompt was our own UI text; film narrates the interface.',
+        summary: 'O texto era a nossa própria tela colada; o filme narra a interface.',
+        request_pt: 'Colou a tela do Kineo na caixa (não é um pedido).',
         model: null,
       },
     }
@@ -144,9 +151,10 @@ export function knownCoherenceCase(prompt: string): { result: Omit<FastCoherence
         prompt_vs_narration: 0,
         narration_vs_visuals: null,
         verdict: 'off',
-        problems: ['The prompt was an unfinished starter phrase (e.g. "The unsolved mystery of") — the story was invented by the writer, not asked for.'],
+        problems: ['O prompt era uma frase de abertura inacabada (ex.: "The unsolved mystery of") — a história foi inventada, não pedida.'],
         worst_scene: null,
-        summary: 'Prompt was a bare starter; the subject was invented.',
+        summary: 'Frase inacabada (pílula sozinha); o assunto foi inventado pelo roteirista.',
+        request_pt: 'Só a frase de abertura, sem assunto.',
         model: null,
       },
     }
@@ -223,6 +231,7 @@ export function normalizeCoherence(parsed: Record<string, unknown>, ctx: { hasEv
     problems,
     worst_scene: worst,
     summary: typeof parsed.summary === 'string' ? parsed.summary.trim().slice(0, 200) : '',
+    request_pt: typeof parsed.request_pt === 'string' ? parsed.request_pt.trim().slice(0, 160) : '',
     has_evidence: ctx.hasEvidence,
     model: ctx.model,
     ms: ctx.ms,

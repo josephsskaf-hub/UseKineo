@@ -11,7 +11,7 @@ import { getPixabayClipsForScene, notePickedClipTags, pixabayTagsForUrl } from '
 import { isBareStarter, BARE_STARTER_MESSAGE, BARE_STARTER_REASON, looksLikeOurOwnUi, PROMPT_PROPRIO_MESSAGE, PROMPT_PROPRIO_REASON } from '@/lib/promptGuard'
 import { FAST_SCENE_PLAN_EVENT, type FastSceneEvidence } from '@/lib/fastCoherence' // KINEO-1-COERENCIA-2026-09-16
 // KINEO-1-HIBRIDO-2026-09-16 — cena que o banco não cobre vira still FLUX (ver lib/fastAiScene.ts).
-import { decideFastAiScene, buildFastStillPrompt, generateFastSceneStill, fastStillSeed, fastAiScenesMax, characterStoryName, CHARACTER_STORY_MAX_STILLS } from '@/lib/fastAiScene'
+import { decideFastAiScene, buildFastStillPrompt, generateFastSceneStill, fastStillSeed, fastAiScenesMax, characterStoryName, CHARACTER_STORY_MAX_STILLS, FIRST_FILM_MAX_STILLS, FIRST_FILM_STILLS_ENABLED } from '@/lib/fastAiScene'
 import { normalizeAspect } from '@/lib/aspect'
 // KINEO-FAST-V4 — self-building clip library: search it before any external API.
 import { searchVault } from '@/lib/clipVault'
@@ -837,6 +837,9 @@ export async function POST(req: NextRequest) {
     // budget. Every step is fail-open: on any miss the normal stock hook stands
     // and the Fast video proceeds exactly as it does today.
     let aiHookHandle: AiHookHandle | null = null
+    // KINEO-PRIMEIRO-FILME-COM-STILLS-2026-09-16 — o mesmo sinal do hook (primeiro filme + conta gratuita) decide
+    // abaixo se TODA cena ganha um still gerado. Falha fechada: sem sinal, nada muda.
+    let primeiroFilmeDaConta = false
     try {
       // Toggle + provider gate are also enforced inside submitAiHook; checking
       // here first avoids two DB round-trips when the feature is off.
@@ -861,6 +864,7 @@ export async function POST(req: NextRequest) {
         const isFreeTier =
           hookProfile?.has_paid !== true &&
           !AI_HOOK_PAID_PLANS.has(String(hookProfile?.plan ?? 'free').toLowerCase())
+        primeiroFilmeDaConta = isFirstVideo && isFreeTier && FIRST_FILM_STILLS_ENABLED
 
         if (isFirstVideo && isFreeTier) {
           // Build the cinematic prompt from scene 1's description (the visual
@@ -985,6 +989,8 @@ export async function POST(req: NextRequest) {
     // nomeado é cena que o stock não cobre. Toda cena vira still e o stock fica FORA dessas cenas (lib/fastAiScene.ts).
     const personagem = characterStoryName(`${prompt} ${scenes.map((sc) => sc.voiceover ?? '').join(' ')}`)
     if (personagem) aiStillsMax = Math.max(aiStillsMax, Math.min(scenes.length, CHARACTER_STORY_MAX_STILLS))
+    // KINEO-PRIMEIRO-FILME-COM-STILLS — primeiro filme da conta: uma imagem gerada por cena (≤ 12, ~US$ 0,36).
+    if (primeiroFilmeDaConta) aiStillsMax = Math.max(aiStillsMax, Math.min(scenes.length, FIRST_FILM_MAX_STILLS))
     const aiStillLog: Array<{ scene: number; reason: string; entity: string | null; ok: boolean }> = []
     // KINEO-1-COERENCIA-2026-09-16 — evidência por cena (fala · busca · origem · tags) para o juiz de coerência.
     const sceneEvidence: FastSceneEvidence[] = []
@@ -1163,7 +1169,9 @@ export async function POST(req: NextRequest) {
         {
           const dec = personagem
             ? { ai: true, reason: 'character_story' as const, entity: null }
-            : decideFastAiScene({ planSource: brollMeta?.source ?? null, relevanceScore: relevanceScore ?? null, voiceover: scene.voiceover ?? null, description: scene.description ?? null })
+            : primeiroFilmeDaConta
+              ? { ai: true, reason: 'first_film' as const, entity: null }
+              : decideFastAiScene({ planSource: brollMeta?.source ?? null, relevanceScore: relevanceScore ?? null, voiceover: scene.voiceover ?? null, description: scene.description ?? null })
           if (dec.ai && dec.reason !== 'pixabay_miss') {
             const still = await tentarStill(sceneNo, dec.reason ?? 'plan_ai', dec.entity, scene.description ?? '', scene.voiceover ?? '', pixQueries[0] ?? scene.stockSearchQuery ?? '')
             if (still) {
@@ -1307,7 +1315,7 @@ export async function POST(req: NextRequest) {
 
     // KINEO-1-HIBRIDO — rastro de medição: quantas cenas viraram still e por quê (denominador = cenas).
     if (aiStillLog.length > 0) {
-      void writeServerEvent({ name: 'fast_ai_still', userId: user.id, path: '/api/generate-video-fast', metadata: { scenes: scenes.length, tried: aiStillLog.length, used: aiStillsUsed, max: aiStillsMax, character: personagem, log: aiStillLog.slice(0, 8) } })
+      void writeServerEvent({ name: 'fast_ai_still', userId: user.id, path: '/api/generate-video-fast', metadata: { scenes: scenes.length, tried: aiStillLog.length, used: aiStillsUsed, max: aiStillsMax, character: personagem, first_film: primeiroFilmeDaConta, log: aiStillLog.slice(0, 12) } })
     }
 
     // KINEO-AI-HOOK — await + PERSIST the opener, then prepend it as clip 0.

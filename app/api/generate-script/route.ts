@@ -131,6 +131,7 @@ VOICEOVER RULES:
   Anything shorter leaves the film running on music with no story being told,
   and the video is rejected before it renders. Anything much longer gets cut off.
   (Do not count the [Pexels: ...] cues or the section headers as words.)
+- FIDELITY TO THE CUSTOMER'S TEXT (KINEO-FIDELIDADE-2026-09-16 — the customer's #1 complaint is a film that is not what they wrote): if the topic text already tells a story or states facts (characters, events, a plot, names, numbers, claims), the script KEEPS them — same characters, same events in the same order, same claims, same tone. Never replace the customer's story with a different one, never add fear, horror, drama or a twist the text does not have, never invent facts, dates, statistics or quotes the text does not contain. You may only tighten the wording and build the HOOK and PAYOFF from what the text itself says. A one-line topic is developed; a written story is respected.
 - Every fact must be specific: names, numbers, dates, places — never vague
 - ESCALATION must feel more intense than MICRO REWARD 3
 - RHYTHM is the fastest beat after the HOOK: stacked 1-3 word punches, no filler. It exists to accelerate before the payoff.

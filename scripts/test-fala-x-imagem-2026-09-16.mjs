@@ -58,6 +58,10 @@ console.log('== (c) a regra na fonte ==')
 const an = rd('app/api/analyze-idea/route.ts')
 checa('o roteirista visual recebe a regra ANTES de "EXTREMELY cinematic": o plano mostra a própria fala, sem props/épocas inventadas', an.includes('EVERY visual_prompt SHOWS ITS OWN VOICEOVER LINE') && an.indexOf('EVERY visual_prompt SHOWS ITS OWN VOICEOVER LINE') < an.indexOf('- Visual prompts must be EXTREMELY cinematic and specific.') && an.includes('a line about a car crashing through a door shows the car crashing through the door, not the aftermath'))
 
+console.log('== (d) fidelidade ao texto (a parte escrita) ==')
+const gs = rd('app/api/generate-script/route.ts')
+checa('o roteirista recebe a regra de fidelidade: história escrita é respeitada (mesmos personagens/eventos/tom), sem medo/drama/fatos inventados; ideia de uma linha é desenvolvida', gs.includes("FIDELITY TO THE CUSTOMER'S TEXT") && gs.includes('never add fear, horror, drama or a twist the text does not have') && gs.includes('A one-line topic is developed; a written story is respected.') && gs.indexOf("FIDELITY TO THE CUSTOMER'S TEXT") < gs.indexOf('- Every fact must be specific: names, numbers, dates, places'))
+
 console.log(`\n${ok} ok · ${falhas.length} falhas`)
 for (const f of falhas) console.log('  ✗ ' + f)
 process.exit(falhas.length ? 1 : 0)

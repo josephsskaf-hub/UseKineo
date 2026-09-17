@@ -75,6 +75,8 @@ export function roundTrip(href, initial = {}, edits = {}) {
   Object.assign(state, edits)
   evaluate(generate, {
     ...state, limit: { over: false }, finalPrompt: state.prompt.trim(),
+    // KINEO-1-COERENCIA-2026-09-16 — generate() agora barra a pílula sozinha (bareStarter); o simulador entra com a frase completa.
+    bareStarter: false,
     searchSignature: query,
     carryStudioSeriesReview: review.carryStudioSeriesReview,
     campaignRef, onboardingGoalRef,

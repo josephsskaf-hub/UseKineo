@@ -43,7 +43,7 @@ export const FAST_AI_LOW_RELEVANCE = 60
 /** Janela de espera por still; a rota tem 120 s e o laço de cenas já gasta com o Pixabay. */
 export const FAST_AI_STILL_WINDOW_MS = 10_000
 
-export type FastAiSceneReason = 'plan_ai' | 'low_relevance' | 'named_entity' | 'pixabay_miss' | 'character_story'
+export type FastAiSceneReason = 'plan_ai' | 'low_relevance' | 'named_entity' | 'pixabay_miss' | 'character_story' | 'first_film'
 
 const STOP = new Set(['The', 'A', 'An', 'In', 'On', 'At', 'And', 'But', 'Or', 'So', 'Then', 'When', 'While', 'After', 'Before', 'This', 'That', 'These', 'Those', 'It', 'He', 'She', 'They', 'We', 'You', 'I', 'His', 'Her', 'Their', 'Our', 'Its', 'Now', 'Today', 'Here', 'There', 'What', 'Why', 'How', 'Who', 'Where', 'Imagine', 'Every', 'Most', 'Some', 'One', 'Two', 'Three', 'First', 'Second', 'Last', 'Meanwhile', 'Suddenly', 'Finally', 'Yes', 'No', 'Not', 'Even', 'Just', 'Only', 'Still', 'Also', 'For', 'From', 'With', 'Without', 'Inside', 'Outside', 'Under', 'Over', 'Into', 'Through', 'Because', 'If', 'As', 'By', 'To', 'Of', 'Is', 'Are', 'Was', 'Were', 'Be', 'Been', 'Do', 'Does', 'Did', 'Can', 'Could', 'Will', 'Would', 'Should', 'May', 'Might', 'Must', 'Let', 'Picture', 'Think', 'Consider', 'Remember', 'Welcome', 'Ever', 'Once', 'Nobody', 'Everyone', 'Someone', 'People', 'Scientists', 'Experts', 'Doctors', 'Studies', 'Research'])
 
@@ -203,3 +203,18 @@ export function characterStoryName(text: string | null | undefined): string | nu
   for (const [w, n] of counts) if (n >= 2 && n > bestN) { best = w; bestN = n }
   return best
 }
+
+// ── KINEO-PRIMEIRO-FILME-COM-STILLS-2026-09-16 — o primeiro filme da conta ganha imagem em toda cena ──
+//
+// Fundador (16/09 noite): "todo primeiro vídeo eu quero poder gastar mais 50 centavos de dólar… para
+// tornar as imagens melhores… no primeiro vídeo de trial ela vê coisas melhores". O PRIMEIRO filme é o
+// produto (CLAUDE.md): é ali que a pessoa decide se assina. Hoje esse filme era stock em quase todas as
+// cenas (davidsevilladiaz22, 17/09 00:16Z: pixabay 13 · aiStill 3 · visual 50). Regra: no primeiro
+// filme de uma conta gratuita, TODA cena abre com um still gerado a partir da própria fala (o stock
+// continua entrando como corte seguinte, para variedade). 12 cenas × US$ 0,03 = US$ 0,36 < US$ 0,50.
+// Interruptor: KINEO_FIRST_FILM_STILLS=off desliga. O sinal "primeiro filme" é o MESMO do hook de IA
+// (zero linhas em videos + conta gratuita), decidido na rota.
+export const FIRST_FILM_MAX_STILLS = 12
+export const FIRST_FILM_STILLS_ENABLED = !['0', 'false', 'no', 'off'].includes(
+  (process.env.KINEO_FIRST_FILM_STILLS ?? '').trim().toLowerCase(),
+)

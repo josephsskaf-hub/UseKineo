@@ -57,8 +57,9 @@ function Linha({ r }: { r: FastCoherenceRow }) {
           {r.credits != null && <span>{r.credits} cr</span>}
         </div>
         <div style={{ color: '#e5e5ea', fontSize: 13.5, lineHeight: 1.4, marginTop: 6 }} title={r.topic}>
-          <span style={{ color: '#8e8e93', fontSize: 11, fontWeight: 800, textTransform: 'uppercase', marginRight: 6 }}>escreveu</span>
-          {primeiraLinha(r.topic) || <em style={{ color: '#f87171' }}>prompt vazio no banco</em>}
+          <span style={{ color: '#8e8e93', fontSize: 11, fontWeight: 800, textTransform: 'uppercase', marginRight: 6 }}>{c?.request_pt ? 'pediu' : 'escreveu'}</span>
+          {c?.request_pt || primeiraLinha(r.topic) || <em style={{ color: '#f87171' }}>prompt vazio no banco</em>}
+          {c?.request_pt && <span style={{ color: '#6b7280', fontSize: 11.5, marginLeft: 8 }}>— original: {primeiraLinha(r.topic, 90)}</span>}
         </div>
         <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', fontSize: 12 }}>
           {r.url ? (
