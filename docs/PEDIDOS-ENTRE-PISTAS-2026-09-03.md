@@ -3352,3 +3352,5 @@ Fontes: fal.ai/models/minimax/h3/text-to-video/api · fal.ai/models/minimax/h3/i
 
 ## PROJETO-1-GOOGLE — dia 1 (17/09 madrugada, commit 3a758149)
 Ver docs/PROJETO-1-GOOGLE-2026-09-17.md. 100 páginas de intenção (40 nichos · 25 formatos · 15 idiomas · 20 alternativas) em /ai-video-generator/for/<slug> + hub, com filmes reais da vitrine, preço/trial da fonte única e CTA que abre o Studio com o prompt do nicho. Sitemap 0.8/0.9, llms Key pages, guardião test-projeto-1-google (17). Medir: visitantes do Google por semana (base 9), cadastros com utm_source=google, e `intent_campaign` que começa com `intent_`.
+
+**KLING3-IMAGENS-R1 — conserto no ar (17/09 manhã, commit 69bfb44d):** Kling 3 = imagem primeiro; silêncio no negative_prompt (só cena sem fala); frase da narração no fim (`garantirAcaoCentral(…, posicao)`, padrão 'inicio' preserva H3/Omni/S25); supervisor fala×imagem no caminho hollywood (evento `scene_speech_alignment` engine=família). A injeção do contrato no início ficou (guardião scene-truth). Prova: render de 35 s do fundador + nota visual no /admin/coerencia contra o filme de ontem (visual —, 11 cenas iguais). Guardião test-kling3-imagens (12).
