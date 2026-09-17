@@ -43,7 +43,7 @@ export const FAST_AI_LOW_RELEVANCE = 60
 /** Janela de espera por still; a rota tem 120 s e o laço de cenas já gasta com o Pixabay. */
 export const FAST_AI_STILL_WINDOW_MS = 10_000
 
-export type FastAiSceneReason = 'plan_ai' | 'low_relevance' | 'named_entity' | 'pixabay_miss'
+export type FastAiSceneReason = 'plan_ai' | 'low_relevance' | 'named_entity' | 'pixabay_miss' | 'character_story'
 
 const STOP = new Set(['The', 'A', 'An', 'In', 'On', 'At', 'And', 'But', 'Or', 'So', 'Then', 'When', 'While', 'After', 'Before', 'This', 'That', 'These', 'Those', 'It', 'He', 'She', 'They', 'We', 'You', 'I', 'His', 'Her', 'Their', 'Our', 'Its', 'Now', 'Today', 'Here', 'There', 'What', 'Why', 'How', 'Who', 'Where', 'Imagine', 'Every', 'Most', 'Some', 'One', 'Two', 'Three', 'First', 'Second', 'Last', 'Meanwhile', 'Suddenly', 'Finally', 'Yes', 'No', 'Not', 'Even', 'Just', 'Only', 'Still', 'Also', 'For', 'From', 'With', 'Without', 'Inside', 'Outside', 'Under', 'Over', 'Into', 'Through', 'Because', 'If', 'As', 'By', 'To', 'Of', 'Is', 'Are', 'Was', 'Were', 'Be', 'Been', 'Do', 'Does', 'Did', 'Can', 'Could', 'Will', 'Would', 'Should', 'May', 'Might', 'Must', 'Let', 'Picture', 'Think', 'Consider', 'Remember', 'Welcome', 'Ever', 'Once', 'Nobody', 'Everyone', 'Someone', 'People', 'Scientists', 'Experts', 'Doctors', 'Studies', 'Research'])
 
@@ -169,3 +169,37 @@ export async function generateFastSceneStill(args: { prompt: string; seed: numbe
 
 /** URL de imagem (o montador troca o elemento de vídeo por imagem com o mesmo Ken Burns). */
 export const IMAGE_URL_RE = /\.(png|jpe?g|webp)(\?|#|$)/i
+
+// ── KINEO-HISTORIA-COM-PERSONAGENS-2026-09-16 — o panda do Johny ─────────────────────────────────
+//
+// Fundador (16/09 noite): "vi o primeiro e tomei um susto porque tem um panda". O filme era
+// "Johny's cookie heist… has a twist!" — Johny espia o biscoito, Papa entra, a migalha cai, a
+// bolha de biscoito flutua. Kineo 1, 23:02Z. Nenhum still foi gerado (mentionsNamedEntity não
+// pega "Johny's" com apóstrofo nem "Papa" abrindo a frase) e o banco de imagens, buscando
+// "cookie"/"giggles", devolveu um PANDA. Um banco de stock nunca vai ter o Johny: história com
+// personagens nomeados é, por definição, cena que o stock não cobre — cada cena vira still, e o
+// stock NÃO entra nessas cenas (o still não pode ganhar um panda de companheiro).
+//
+// Heurística: um nome próprio (capitalizado, sem ser palavra de abertura genérica) que se REPETE
+// no texto (Johny ×3), ou um papel de família (Papa, Mom, Dad, Grandma…) — os dois marcam ficção
+// com personagem. Fatos, história e ciência raramente repetem um nome próprio que não seja lugar;
+// e quando repetem (Bezos ×3), o still também é melhor que o stock. Custo: até 8 stills
+// (~US$ 0,24) num filme que hoje custaria um panda.
+const PAPEIS_DE_FAMILIA = new Set(['papa', 'mama', 'mom', 'mommy', 'mum', 'mummy', 'dad', 'daddy', 'grandma', 'grandpa', 'granny', 'nana', 'auntie', 'uncle'])
+export const CHARACTER_STORY_MAX_STILLS = 8
+
+/** Nome do personagem quando o texto é uma história com personagens; null caso contrário. */
+export function characterStoryName(text: string | null | undefined): string | null {
+  const t = (text ?? '').replace(/\s+/g, ' ').trim()
+  if (!t) return null
+  const counts = new Map<string, number>()
+  for (const raw of t.split(' ')) {
+    const w = raw.replace(/^[("'“‘]+|[)"'”’,.;:!?…]+$/g, '').replace(/['’]s$/, '')
+    if (PAPEIS_DE_FAMILIA.has(w.toLowerCase())) return w
+    if (/^[A-Z][a-z]{2,}$/.test(w) && !STOP.has(w)) counts.set(w, (counts.get(w) ?? 0) + 1)
+  }
+  let best: string | null = null
+  let bestN = 0
+  for (const [w, n] of counts) if (n >= 2 && n > bestN) { best = w; bestN = n }
+  return best
+}

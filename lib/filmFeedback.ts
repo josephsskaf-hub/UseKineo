@@ -14,6 +14,8 @@
 import { mintShareToken, verifyShareToken } from '@/lib/videoShareLink'
 
 export const FILM_FEEDBACK_EVENT = 'film_feedback'
+/** o fundador apertou "pedir feedback" no quadro: e-mail enviado para a pessoa (metadata.asked = true) */
+export const FILM_FEEDBACK_ASKED_EVENT = 'film_feedback_asked'
 export type FilmFeedbackVerdict = 'up' | 'down'
 
 export function feedbackHref(videoId: string, verdict: FilmFeedbackVerdict, base: string, source: string): string | null {

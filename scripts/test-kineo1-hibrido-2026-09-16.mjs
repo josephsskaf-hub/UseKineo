@@ -45,7 +45,7 @@ checa('o still vem da mesma peça das âncoras (generateCinematicSceneStill) com
 
 console.log('== (d) rota do Kineo 1 ==')
 const rt = rd('app/api/generate-video-fast/route.ts')
-checa('rota importa a decisão, o prompt, o gerador, a seed e o teto', rt.includes("import { decideFastAiScene, buildFastStillPrompt, generateFastSceneStill, fastStillSeed, fastAiScenesMax } from '@/lib/fastAiScene'"))
+checa('rota importa a decisão, o prompt, o gerador, a seed e o teto', /import \{[^}]*decideFastAiScene[^}]*buildFastStillPrompt[^}]*generateFastSceneStill[^}]*fastStillSeed[^}]*fastAiScenesMax[^}]*\} from '@\/lib\/fastAiScene'/.test(rt))
 checa('teto por filme: tentarStill devolve null quando aiStillsUsed >= aiStillsMax', rt.includes('if (aiStillsUsed >= aiStillsMax) return null'))
 checa('still ANTES do stock quando plano/relevância/nome próprio marcam a cena (não no pixabay_miss aqui)', rt.includes("if (dec.ai && dec.reason !== 'pixabay_miss') {") && rt.indexOf("if (dec.ai && dec.reason !== 'pixabay_miss') {") < rt.indexOf('const sceneNeedsPeople = sceneHasPeopleVocabulary('))
 checa('still ANTES de reciclar clipe quando o Pixabay não acha nada', rt.indexOf('Pixabay miss — falling through to FALLBACK-A/B') < rt.indexOf('pixabayMiss: true }') && rt.indexOf('pixabayMiss: true }') < rt.indexOf('// FALLBACK-A: cycle through previous valid clips'))

@@ -53,6 +53,7 @@ import { garantirAcaoCentral, silenciarFalaNoPrompt, apararComFolga, removerData
 // KINEO-MULTIFORMATO-2026-09-02 — enquadramento pedido (9:16 · 16:9 · 1:1 · 4:5).
 import { aspectSpec, normalizeAspect } from '@/lib/aspect'
 import { montarContrato, aplicarContrato, severidadeDe } from '@/lib/cinematic/sceneTruth'
+import { alignShotsToSpeech, SPEECH_IMAGE_ALIGN_EVENT, SPEECH_IMAGE_ALIGN_VERSION, type AlignReport } from '@/lib/cinematic/speechImageAlign' // KINEO-FALA-X-IMAGEM-2026-09-16
 import { fal } from '@fal-ai/client'
 import { generateScenes, shortCaptionFromVoiceover, expandVoiceoversToTargets, appendNarrationToTargets, FILLER_LINE_RE } from '@/lib/runway'
 import { looksLikeInstruction } from '@/lib/momentumTopic'
@@ -5288,6 +5289,41 @@ async function manipularPost(req: NextRequest) {
       const closer = closingSceneVariation(visuals)
       if (closer) scenes[closer.index].aiPrompt = visuals[closer.index] + closer.suffix
     }
+
+    // ═══ KINEO-FALA-X-IMAGEM-2026-09-16 — A CENA MOSTRA O QUE A FALA DIZ ═══
+    // Fundador (16/09 noite): "os vídeos não estão coerentes, essa é a minha maior preocupação".
+    // O quadro de coerência mostrou o furo do caminho clássico: narração fiel (texto 90-100),
+    // imagem de outra coisa (visual 50-60): "19th-century ink pot" e "IBM typewriter" numa fala
+    // sobre o mercado de trabalho indiano de 2024 (aadarshvy29); "aftermath of shattered glass"
+    // numa fala em que o carro ATRAVESSA a porta do banco (lennartdenstad). Nem o scrub de
+    // cenário (só ano/nome) nem o contrato de cena (5 entidades) enxergam isso.
+    // Aqui, UMA chamada por filme, antes de qualquer still ou POST pago: cada cena (fala + plano)
+    // volta KEEP ou REWRITE. Só o plano visual muda; a narração nunca é tocada. Falha aberta.
+    // O relato vai ao evento (medição) e ao dry-run (validação a $0). Ver lib/cinematic/speechImageAlign.ts.
+    let alinhamentoFalaImagem: AlignReport | null = null
+    try {
+      const alinhado = await alignShotsToSpeech({
+        topic: prompt,
+        scenes: scenes.map((sc) => ({ voiceover: sc.voiceover ?? '', shot: sc.aiPrompt || sc.stockSearchQuery || sc.description || '' })),
+      })
+      if (alinhado) {
+        const historiaAlinhada = `${prompt} ${scenes.map((sc) => sc.voiceover ?? '').join(' ')}`
+        for (const c of alinhado.rewritten) {
+          // O plano reescrito passa pelo mesmo scrub determinístico: ano/nome fora da história não sobe.
+          scenes[c.index].aiPrompt = scrubInventedSetting(c.shot, historiaAlinhada).text
+        }
+        alinhamentoFalaImagem = alinhado.relato
+        void writeServerEvent({
+          name: SPEECH_IMAGE_ALIGN_EVENT,
+          userId: user.id,
+          path: '/api/generate-video-cinematic',
+          metadata: { version: SPEECH_IMAGE_ALIGN_VERSION, engine: wantsKling ? 'kling' : wantsVeo ? 'veo' : wantsSora ? 'sora' : 'seedance', ...alinhado.relato, dry_run: body.dry_run === true },
+        })
+        if (alinhado.rewritten.length) console.log(`[fala-x-imagem] ${alinhado.rewritten.length}/${scenes.length} cena(s) reescritas em ${alinhado.relato.ms} ms`)
+      }
+    } catch (e) {
+      console.warn('[fala-x-imagem] falhou, planos originais seguem:', e instanceof Error ? e.message : String(e))
+    }
     const classicScenePrompts = scenes.map((scene, sceneIndex) => {
       const visualPrompt = scene.aiPrompt || scene.stockSearchQuery || scene.description
       const cinematicBruto = buildClassicVisualPrompt(visualPrompt, {
@@ -5342,6 +5378,7 @@ async function manipularPost(req: NextRequest) {
         visual_mode: classicVisualMode,
         visual_mode_reason: formatoVisual.motivo,
         contrato_cena: contratoRelatoClassico,
+        fala_x_imagem: alinhamentoFalaImagem, // KINEO-FALA-X-IMAGEM — o que o supervisor reescreveu, a $0
         ...classicReport,
       })
     }

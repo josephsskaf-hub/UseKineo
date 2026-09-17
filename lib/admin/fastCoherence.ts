@@ -20,7 +20,7 @@ import {
   type FastCoherenceResult,
   type FastSceneEvidence,
 } from '@/lib/fastCoherence'
-import { FILM_FEEDBACK_EVENT, type FilmFeedbackVerdict } from '@/lib/filmFeedback'
+import { FILM_FEEDBACK_ASKED_EVENT, FILM_FEEDBACK_EVENT, type FilmFeedbackVerdict } from '@/lib/filmFeedback'
 
 export type FastCoherenceRow = {
   video_id: string
@@ -45,6 +45,8 @@ export type FastCoherenceRow = {
   coherence_at: string | null
   /** 👍/👎 da pessoa (e-mail de entrega), com comentário se deixou */
   feedback: { verdict: FilmFeedbackVerdict; comment: string | null; at: string } | null
+  /** quando o fundador já mandou o e-mail "did it match?" para este filme (botão do quadro) */
+  feedback_asked_at: string | null
 }
 
 type VideoRow = { id: string; user_id: string; created_at: string; topic: string | null; video_url: string | null; duration: number | null; credits_used: number | null; render_id: string | null; quality_mode: string | null }
@@ -135,7 +137,7 @@ export async function listFastCoherence(
     admin
       .from('events')
       .select('created_at, session_id, user_id, metadata')
-      .eq('name', FILM_FEEDBACK_EVENT)
+      .in('name', [FILM_FEEDBACK_EVENT, FILM_FEEDBACK_ASKED_EVENT])
       .in('session_id', videoIds)
       .order('created_at', { ascending: true })
       .limit(1000),
@@ -175,8 +177,10 @@ export async function listFastCoherence(
   }
   // Último 👍/👎 por vídeo; o comentário (evento posterior) cola no veredito.
   const feedbackByVideo = new Map<string, { verdict: FilmFeedbackVerdict; comment: string | null; at: string }>()
+  const askedByVideo = new Map<string, string>()
   for (const f of (feedbacks.data ?? []) as EventRow[]) {
     if (!f.session_id) continue
+    if (f.metadata?.asked === true) { askedByVideo.set(f.session_id, f.created_at); continue }
     const v = f.metadata?.verdict
     const prev = feedbackByVideo.get(f.session_id)
     if (v === 'up' || v === 'down') feedbackByVideo.set(f.session_id, { verdict: v, comment: prev?.comment ?? null, at: f.created_at })
@@ -224,6 +228,7 @@ export async function listFastCoherence(
       coherence,
       coherence_at: scoreEv?.created_at ?? null,
       feedback: feedbackByVideo.get(v.id) ?? null,
+      feedback_asked_at: askedByVideo.get(v.id) ?? null,
     })
   }
 
