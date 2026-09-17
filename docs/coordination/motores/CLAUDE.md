@@ -1088,3 +1088,11 @@ Suíte inteira depois do commit: 120 vermelhos, 1 novo em relação ao baseline 
 
 ## AFILIADOS-R2 — prompt entregue ao Codex/GPT (17/09)
 docs/GPT-AFILIADOS-R2-2026-09-17.md. Fatos 17/09: 17 afiliados, 0 com PayPal, 46 cliques (32/30d), 1 referral = teste do fundador (09/09). Atribuição funciona; falta tráfego. Proposta a decidir: 50% do 1º mês + 30% recorrente para os 20 primeiros até 31/10.
+
+
+## PORTA-TERCEIRO-FILME — no ar (17/09 manhã; "a jogada do segundo filme")
+Tela do filme pronto: quando o saldo não paga o próximo episódio e has_paid=false está provado, a caixa "Your next episode is written" mostra o que o Starter compra em episódios COMO ESTE (TIER_CREDITS.starter ÷ custo herdado), preço na moeda da Stripe, garantia, e um botão direto para /api/stripe/checkout?tier=starter (launcher generate_third_film_door). Secundário: "Compare all plans". Decisão pura em lib/growth/thirdFilmDoor.ts; eventos third_film_door_shown/_clicked. Medir em 7 dias: shown → clicked → payment_success (intent_campaign third_film_door_v1). Coorte: 92 pessoas/30 d.
+Pergunta do fundador em aberto (17/09): "quando a pessoa acaba o 1º filme, já vai ter o 2º PRODUZIDO?" Hoje não — só ESCRITO (título+roteiro). 436 fizeram o 1º filme/30 d; 262 pararam sem saldo para um Kineo 1; 141 viram o ep. 2 escrito e 1 clicou. Produzir o ep. 2 automaticamente (Kineo 1, ~US$ 0,10-0,15 cada, sem crédito da pessoa) ≈ US$ 40-65/mês. Decisão de dinheiro = fundador.
+
+## RAZAO-ASSINANTE — no ar (17/09 manhã)
+Painel ao vivo: assinante mostra "Creator desde 29/07 (US$ 9,90) · renovação recusada 3× (saldo insuficiente, última 17/09) · 7 filmes · 2 cr gastos". Compra sem credits_granted (todas antes de 17/09) sai da equação com nota em cinza; ⚠ só para furo real. Webhook grava credits_granted no payment_success daqui em diante. Achado colateral: NENHUM subscription_invoice_paid no banco para os assinantes atuais — renovação paga não está sendo registrada como evento (conferir o caminho invoice.payment_succeeded).
