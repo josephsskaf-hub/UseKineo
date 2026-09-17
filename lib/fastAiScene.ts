@@ -185,13 +185,26 @@ export const IMAGE_URL_RE = /\.(png|jpe?g|webp)(\?|#|$)/i
 // com personagem. Fatos, história e ciência raramente repetem um nome próprio que não seja lugar;
 // e quando repetem (Bezos ×3), o still também é melhor que o stock. Custo: até 8 stills
 // (~US$ 0,24) num filme que hoje custaria um panda.
+//
+// KINEO1-VIDEO-NAO-FOTO-2026-09-17 — o detector conta CADA FRASE UMA VEZ. A rota passava
+// `${prompt} ${falas}`, e o prompt do Kineo 1 JÁ É o roteiro com as falas: toda palavra capitalizada
+// contava em dobro e "aparece 2×" virava verdade para qualquer abertura de frase. "Faster. Wilder.
+// Boundless." fez de "Faster" o personagem do filme da menina com o coelho (life2026dil, 17/09 02:54Z)
+// — e o filme saiu com 7 fotos e 0 clipe de vídeo. Agora frases repetidas (mesmo texto) contam uma vez,
+// e a rota passa só as falas.
 const PAPEIS_DE_FAMILIA = new Set(['papa', 'mama', 'mom', 'mommy', 'mum', 'mummy', 'dad', 'daddy', 'grandma', 'grandpa', 'granny', 'nana', 'auntie', 'uncle'])
 export const CHARACTER_STORY_MAX_STILLS = 8
 
 /** Nome do personagem quando o texto é uma história com personagens; null caso contrário. */
 export function characterStoryName(text: string | null | undefined): string | null {
-  const t = (text ?? '').replace(/\s+/g, ' ').trim()
-  if (!t) return null
+  const t0 = (text ?? '').replace(/\s+/g, ' ').trim()
+  if (!t0) return null
+  // Cada frase conta uma vez (o prompt do Kineo 1 repete as falas do roteiro).
+  const vistas = new Set<string>()
+  const t = t0
+    .split(/(?<=[.!?…])\s+/)
+    .filter((f) => { const k = f.trim().toLowerCase(); if (!k || vistas.has(k)) return false; vistas.add(k); return true })
+    .join(' ')
   const counts = new Map<string, number>()
   for (const raw of t.split(' ')) {
     const w = raw.replace(/^[("'“‘]+|[)"'”’,.;:!?…]+$/g, '').replace(/['’]s$/, '')
@@ -204,17 +217,17 @@ export function characterStoryName(text: string | null | undefined): string | nu
   return best
 }
 
-// ── KINEO-PRIMEIRO-FILME-COM-STILLS-2026-09-16 — o primeiro filme da conta ganha imagem em toda cena ──
+// ── KINEO-PRIMEIRO-FILME-COM-STILLS-2026-09-16 — DESLIGADO em 17/09: era leitura errada do pedido ──
 //
 // Fundador (16/09 noite): "todo primeiro vídeo eu quero poder gastar mais 50 centavos de dólar… para
-// tornar as imagens melhores… no primeiro vídeo de trial ela vê coisas melhores". O PRIMEIRO filme é o
-// produto (CLAUDE.md): é ali que a pessoa decide se assina. Hoje esse filme era stock em quase todas as
-// cenas (davidsevilladiaz22, 17/09 00:16Z: pixabay 13 · aiStill 3 · visual 50). Regra: no primeiro
-// filme de uma conta gratuita, TODA cena abre com um still gerado a partir da própria fala (o stock
-// continua entrando como corte seguinte, para variedade). 12 cenas × US$ 0,03 = US$ 0,36 < US$ 0,50.
-// Interruptor: KINEO_FIRST_FILM_STILLS=off desliga. O sinal "primeiro filme" é o MESMO do hook de IA
-// (zero linhas em videos + conta gratuita), decidido na rota.
+// tornar as imagens melhores". A sessão de 16/09 leu "imagens" como STILL e pôs uma foto gerada abrindo
+// TODA cena do primeiro filme (teto 12, ~US$ 0,36). Fundador (17/09 madrugada, olhando dois primeiros
+// filmes que saíram como slideshow — life2026dil e bekeecomedytv, 7 cenas, 7 fotos, 0 clipe): "não era
+// imagem que era para abrir. Era VÍDEO, era o vídeo que era para ser melhor. […] são dois clientes a
+// menos". Foto parada no primeiro filme é downgrade, não upside. A regra nasce DESLIGADA e só liga com
+// KINEO_FIRST_FILM_STILLS=on (ensaio interno). O upside de VÍDEO do primeiro filme é outra peça —
+// docs/KINEO1-VIDEO-NAO-FOTO-2026-09-17.md.
 export const FIRST_FILM_MAX_STILLS = 12
-export const FIRST_FILM_STILLS_ENABLED = !['0', 'false', 'no', 'off'].includes(
+export const FIRST_FILM_STILLS_ENABLED = ['1', 'true', 'yes', 'on'].includes(
   (process.env.KINEO_FIRST_FILM_STILLS ?? '').trim().toLowerCase(),
 )

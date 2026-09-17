@@ -986,10 +986,15 @@ export async function POST(req: NextRequest) {
     let aiStillsMax = fastAiScenesMax()
     const aiStillSeed = fastStillSeed(prompt)
     // KINEO-HISTORIA-COM-PERSONAGENS-2026-09-16 — "Johny's cookie heist" virou um panda: história com personagem
-    // nomeado é cena que o stock não cobre. Toda cena vira still e o stock fica FORA dessas cenas (lib/fastAiScene.ts).
-    const personagem = characterStoryName(`${prompt} ${scenes.map((sc) => sc.voiceover ?? '').join(' ')}`)
+    // nomeado é cena que o stock não cobre. Toda cena ABRE com still (lib/fastAiScene.ts).
+    // KINEO1-VIDEO-NAO-FOTO-2026-09-17 — o detector lê SÓ as falas (o prompt do Kineo 1 já é o roteiro com as
+    // falas; somar os dois contava cada palavra em dobro e "Faster. Wilder. Boundless." virou personagem).
+    // Sem fala nenhuma (roteiro cru), cai no prompt.
+    const falas = scenes.map((sc) => sc.voiceover ?? '').join(' ').trim()
+    const personagem = characterStoryName(falas || prompt)
     if (personagem) aiStillsMax = Math.max(aiStillsMax, Math.min(scenes.length, CHARACTER_STORY_MAX_STILLS))
-    // KINEO-PRIMEIRO-FILME-COM-STILLS — primeiro filme da conta: uma imagem gerada por cena (≤ 12, ~US$ 0,36).
+    // KINEO-PRIMEIRO-FILME-COM-STILLS — desligado por padrão desde 17/09 (fundador: "era VÍDEO que era para ser
+    // melhor"); só entra com KINEO_FIRST_FILM_STILLS=on.
     if (primeiroFilmeDaConta) aiStillsMax = Math.max(aiStillsMax, Math.min(scenes.length, FIRST_FILM_MAX_STILLS))
     const aiStillLog: Array<{ scene: number; reason: string; entity: string | null; ok: boolean }> = []
     // KINEO-1-COERENCIA-2026-09-16 — evidência por cena (fala · busca · origem · tags) para o juiz de coerência.
@@ -1177,8 +1182,10 @@ export async function POST(req: NextRequest) {
             if (still) {
               clipUrls.push(still)
               clipSources.push('aiStill')
-              // KINEO-HISTORIA-COM-PERSONAGENS — nessa cena o stock não entra (o still do Johny não ganha um panda ao lado).
-              if (personagem) continue
+              // KINEO-HISTORIA-COM-PERSONAGENS (16/09) excluía o stock da cena com `continue` — e o filme inteiro
+              // virava slideshow (bekeecomedytv, 17/09 02:48Z: 7 fotos, 0 clipe). KINEO1-VIDEO-NAO-FOTO-2026-09-17:
+              // o still do personagem ABRE a cena e o vídeo de stock segue nos cortes seguintes, como no R2 abaixo.
+              // O Kineo 1 é um motor de VÍDEO; foto parada é o que o fundador chamou de "dois clientes a menos".
               // KINEO-1-HIBRIDO-R2 — o still abre a cena e o stock da cena continua sendo buscado para os
               // cortes seguintes (sem `continue`): no render de prova (7b34db47) o filme de 35 s ficou com 5
               // visuais para 10 cortes e repetiu skyline/despertador/caderno. Variedade > pureza.
