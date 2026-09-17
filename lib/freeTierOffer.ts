@@ -12,7 +12,7 @@ import { CARD_ENTRY_COPY, CARD_ENTRY_ONLY, CARD_ENTRY_TRIAL_CREDITS } from './en
 //   FLAG OFF (produção hoje): 3 Fast watermarked por janela rolante de 24h.
 //   FLAG ON  (reverse trial): todo signup novo ganha trial Creator (40 créditos,
 //     tudo exceto Studio — ver lib/reverseTrial.ts); o free tier residual
-//     pós-trial vira 1 Fast/mês (janela rolante de 30 dias), 15s máx,
+//     pós-trial vira 1 Kineo 1/SEMANA (janela rolante de 7 dias, KINEO-COTA-SEMANAL-2026-09-17), 15s máx,
 //     watermarked. (480p ficou PENDENTE — o pipeline Creatomate não tem knob de
 //     resolução hoje; ver docs/SPRINT do dia.)
 //
@@ -243,26 +243,26 @@ const ON_COPY: FreeTierCopy = {
     // É o mesmo gênero de defeito que a trava de compilação acima resolveu para
     // o NÚMERO; aqui a trava é derivar a palavra do número, na mesma expressão.
     `Start free — every engine unlocked, including Kling 3. Make ${TRIAL_FILMS} AI ${TRIAL_FILMS === 1 ? 'film' : 'films'} free, watermarked. Upgrade any time to download them clean.`,
-  residual: '1 free Fast video/month',
+  residual: '1 free Kineo 1 video every week', // KINEO-COTA-SEMANAL
   sentence:
     `Every new account gets ${TRIAL_GRANT_CREDITS_COPY} credits and every engine unlocked — Kling 3 included. Films come out watermarked; a plan removes the watermark and unlocks clean downloads.`,
   chip: `${TRIAL_GRANT_CREDITS_COPY} free credits — every engine unlocked`,
   chipLower: `${TRIAL_GRANT_CREDITS_COPY} free credits — every engine unlocked`,
   planCardBody:
     `Free to start: ${TRIAL_GRANT_CREDITS_COPY} credits, every engine unlocked including Kling 3. Watermarked while you try; a plan makes them yours to keep.`,
-  counterNoun: 'this month',
-  planLimitLine: 'free Fast video per month',
+  counterNoun: 'this week', // KINEO-COTA-SEMANAL
+  planLimitLine: 'free Kineo 1 video per week',
   limitHitError:
-    "You've used this month's free Fast video. Keep creating with Starter — charged in USD worldwide. Cancel anytime.",
+    "You've used this week's free Kineo 1 video. It comes back in 7 days — or keep creating now with Starter. Cancel anytime.",
   cmpKineoFree:
     `Kineo: ${TRIAL_GRANT_CREDITS_COPY} free credits on signup with every engine unlocked, Kling 3 included. Trial films are watermarked; any paid plan unlocks clean downloads.`,
-  limitHitEmailSubject: 'You used your free Fast video — Starter removes the wall',
+  limitHitEmailSubject: 'You used your free Kineo 1 video — it comes back in 7 days',
   limitHitEmailIntro:
-    "You've used this month's free Fast video — the free plan includes 1 per month.",
+    "You've used this week's free Kineo 1 video — the free plan includes 1 every week.",
   limitHitEmailIntroHtml:
-    "You've used <strong>this month's free Fast video</strong> — the free plan includes 1 per month.",
+    "You've used <strong>this week's free Kineo 1 video</strong> — the free plan includes 1 every week.",
   limitResetLine:
-    'Or wait — your free Fast video comes back next month, and your videos stay in your library either way.',
+    'Or wait — your free Kineo 1 video comes back in 7 days, and your videos stay in your library either way.',
   // Nomeia a coisa MAIOR que a pessoa recebe no clique, sem prometer desconto
   // (guardrail do fundador: 50%/COMEBACK50 nunca em superficie publica) e sem
   // numero de tracao. O numero e verificavel: e o grant exato, derivado.
@@ -282,13 +282,17 @@ const OFF_OFFER: FreeTierOffer = {
   copy: OFF_COPY,
 }
 
+// ═══ KINEO-COTA-SEMANAL-2026-09-17 — 1 Kineo 1 grátis por SEMANA (fundador: "vai cota grátis 1x semana") ═══
+// Estudo de mercado de 17/09 (docs/ESTUDO-MERCADO-CONVERSAO-2026-09-17.md): InVideo renova a cota toda segunda,
+// Higgsfield e Kling todo dia; a casa dava 1 a cada 30 dias e ninguém voltava (170 trials encerrados, 6 voltaram).
+// A cota é o motivo de VOLTAR; o crédito não é isca. Mesma mecânica (janela rolante, reservas contadas no compose,
+// corte de 15 s, marca d'água); só a janela encurta. Custo ≈ US$ 0,10-0,15 por filme grátis.
+export const FREE_FAST_WEEKLY_WINDOW_MS = 7 * DAY_MS
 const ON_OFFER: FreeTierOffer = {
   reverseTrial: true,
   cardEntry: false,
   limit: 1,
-  // "1 Fast/mês" implementado como janela ROLANTE de 30 dias — mesma mecânica
-  // de contagem do compose (reservas na janela), sem calendário novo.
-  windowMs: 30 * DAY_MS,
+  windowMs: FREE_FAST_WEEKLY_WINDOW_MS,
   maxFreeFastSeconds: 15,
   copy: ON_COPY,
 }

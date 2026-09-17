@@ -23,22 +23,14 @@ function checa(nome, condicao) {
   else { falhou += 1; console.log(`  FALHOU  ${nome}`) }
 }
 
-// Reimplementacao literal de fraseDaVolta com a regra nova. O teste de
-// verdade e o `tsc` + as asserts de fonte abaixo; aqui verificamos o
-// COMPORTAMENTO da regra em numeros reais sem precisar de bundler de TS.
-const TETO = 36 * 3600 * 1000
-function frase(liberaEmMs, agora) {
-  if (liberaEmMs === null || !Number.isFinite(liberaEmMs) || !Number.isFinite(agora)) return null
-  const r = liberaEmMs - agora
-  if (r <= 0) return null
-  if (r > 30 * 24 * 3600 * 1000) return null
-  if (r > TETO) return null
-  const m = Math.max(1, Math.ceil(r / 60000))
-  const h = Math.floor(m / 60)
-  const mm = m % 60
-  const quanto = h > 0 && mm > 0 ? `${h}h ${mm}m` : h > 0 ? `${h}h` : `${mm}m`
-  return `Your next free video unlocks in ${quanto} — nothing to buy, just come back.`
-}
+// KINEO-COTA-SEMANAL-2026-09-17 — a reimplementação local era uma CÓPIA da regra e divergiu quando a janela mudou
+// (memória: superfície medida por cópia da regra). Agora o guardião transpila o módulo REAL e testa a função de produção.
+import { createRequire } from 'node:module'
+import ts from 'typescript'
+const require = createRequire(import.meta.url)
+function roda(src) { const js = ts.transpileModule(src, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText; const m = { exports: {} }; new Function('module', 'exports', 'require', js)(m, m.exports, require); return m.exports }
+const REAL = roda(fonte.replace(/\r\n/g, '\n'))
+const frase = (liberaEmMs, agora) => REAL.fraseDaVolta(liberaEmMs, agora)
 
 const agora = Date.parse('2026-09-01T17:40:48.343Z')
 const MIN = 60000
@@ -51,9 +43,13 @@ checa('24h cravadas falam', frase(agora + 24 * 60 * MIN, agora)?.includes('24h')
 checa('35h 59m ainda falam', frase(agora + (35 * 60 + 59) * MIN, agora)?.includes('35h 59m') === true)
 checa('36h cravadas — ultimo instante que fala', frase(agora + 36 * 60 * MIN, agora)?.includes('36h') === true)
 
-console.log('\n— a espera longa cala (ON_OFFER, 1 por 30 dias) —')
-checa('36h + 1min ja cala', frase(agora + (36 * 60 + 1) * MIN, agora) === null)
-checa('48h cala', frase(agora + 48 * 60 * MIN, agora) === null)
+console.log('\n— KINEO-COTA-SEMANAL-2026-09-17: a janela é de 7 dias, a espera fala em DIAS até 7 dias e cala depois —')
+checa('36h + 1min ainda fala em horas ("36h 1m")', frase(agora + (36 * 60 + 1) * MIN, agora)?.includes('36h 1m') === true)
+checa('37h fala em dias ("1 day 13h")', frase(agora + 37 * 60 * MIN, agora)?.includes('1 day 13h') === true)
+checa('48h fala "2 days"', frase(agora + 48 * 60 * MIN, agora)?.includes('2 days') === true && !String(frase(agora + 48 * 60 * MIN, agora)).includes('48h'))
+checa('6 dias 23h fala', frase(agora + (6 * 24 + 23) * 60 * MIN, agora)?.includes('6 days 23h') === true)
+checa('7 dias cravados — último instante que fala', frase(agora + 7 * 24 * 60 * MIN, agora)?.includes('7 days') === true)
+checa('7 dias + 1min já cala', frase(agora + (7 * 24 * 60 + 1) * MIN, agora) === null)
 checa('o caso real de 42864 minutos cala', frase(agora + 42864 * MIN, agora) === null)
 checa('o "714h" nunca mais pode ser gerado', frase(agora + 42864 * MIN, agora) === null && !String(frase(agora + 42864 * MIN, agora)).includes('714h'))
 checa('01/10/2026 12:04 (o reset_at real) cala', frase(Date.parse('2026-10-01T12:04:17.037Z'), agora) === null)
@@ -67,7 +63,7 @@ checa('NaN cala', frase(Number.NaN, agora) === null)
 checa('agora NaN cala', frase(agora + MIN, Number.NaN) === null)
 
 console.log('\n— o arquivo de producao carrega a regra —')
-checa('TETO_DE_FALA_MS exportado', /export const TETO_DE_FALA_MS = 36 \* 3600 \* 1000/.test(fonte))
+checa('TETO_DE_FALA_MS exportado = 7 dias (KINEO-COTA-SEMANAL)', /export const TETO_DE_FALA_MS = 7 \* 24 \* 3600 \* 1000/.test(fonte))
 checa('o guard usa o teto', /if \(restanteMs > TETO_DE_FALA_MS\) return null/.test(fonte))
 checa('o guard vem ANTES de montar a frase',
   fonte.indexOf('if (restanteMs > TETO_DE_FALA_MS) return null') < fonte.indexOf('const minutosTotais'))

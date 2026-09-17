@@ -135,7 +135,8 @@ export function quandoLiberaVaga(input: {
  * folga e nunca alcanca a do `ON_OFFER` (30 dias). A frase sobrevive
  * exatamente onde e verdadeira e cala exatamente onde mentia.
  */
-export const TETO_DE_FALA_MS = 36 * 3600 * 1000
+// KINEO-COTA-SEMANAL-2026-09-17 — com a janela de 7 dias a espera é dizível inteira: o teto acompanha a janela.
+export const TETO_DE_FALA_MS = 7 * 24 * 3600 * 1000
 
 export function fraseDaVolta(liberaEmMs: number | null, agora: number): string | null {
   if (liberaEmMs === null || !Number.isFinite(liberaEmMs) || !Number.isFinite(agora)) return null
@@ -150,12 +151,17 @@ export function fraseDaVolta(liberaEmMs: number | null, agora: number): string |
   const horas = Math.floor(minutosTotais / 60)
   const minutos = minutosTotais % 60
 
+  // KINEO-COTA-SEMANAL-2026-09-17 — acima de 36 h fala em dias ("2 days 5h"), nunca "53h".
+  const dias = Math.floor(horas / 24)
+  const horasNoDia = horas % 24
   const quanto =
-    horas > 0 && minutos > 0
-      ? `${horas}h ${minutos}m`
-      : horas > 0
-        ? `${horas}h`
-        : `${minutos}m`
+    horas > 36
+      ? (horasNoDia > 0 ? `${dias} day${dias === 1 ? '' : 's'} ${horasNoDia}h` : `${dias} day${dias === 1 ? '' : 's'}`)
+      : horas > 0 && minutos > 0
+        ? `${horas}h ${minutos}m`
+        : horas > 0
+          ? `${horas}h`
+          : `${minutos}m`
 
   return `Your next free video unlocks in ${quanto} — nothing to buy, just come back.`
 }

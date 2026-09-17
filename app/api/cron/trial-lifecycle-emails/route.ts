@@ -1348,7 +1348,7 @@ usekineo.com`
     // KINEO-D0-EMAIL-REVIEW-2026-08-07 — "You're back to the free daily limit"
     // era a copy da flag DESLIGADA (3 Fast a cada 24h). Com KINEO_REVERSE_TRIAL_
     // ENABLED ligada — o único mundo em que este e-mail existe — o free tier é
-    // 1 Fast por MÊS (ON_OFFER: limit 1, windowMs 30 dias). Dizer "daily"
+    // 1 Kineo 1 por SEMANA desde 17/09 (ON_OFFER: limit 1, windowMs 7 dias — era 30). Dizer "daily"
     // prometia 30x o que a pessoa vai receber e ainda esvaziava a urgência do
     // próprio e-mail. A linha vem de getFreeTierOffer() para não poder divergir
     // de novo quando o free tier mudar.
