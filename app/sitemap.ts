@@ -7,6 +7,8 @@ import { SCRIPT_VERTICAL_SLUGS } from '@/lib/scriptLibrary'
 import { CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED } from '@/lib/publicSurfacePolicy'
 // KINEO-ENGINE-SEO-2026-08-15 — cluster por MOTOR (hub + 5 páginas).
 import { ENGINE_SLUGS } from '@/lib/growth/enginePageCatalog'
+// PROJETO 1 — GOOGLE (17/09): 100 páginas de intenção + hub (lib/seo/intentPages.ts).
+import { INTENT_HUB_PATH, INTENT_SLUGS, intentPagePath } from '@/lib/seo/intentPages'
 import { CITATION_ANSWER_LINKS, CITATION_REVIEW_DATE } from '@/lib/growth/citationAnswers'
 
 // #458 — SEO: sitemap so Google can discover and index every public page.
@@ -51,7 +53,10 @@ const BASE = 'https://www.usekineo.com'
 // missing from the map: /tools/editor answers 200 in production, indexable,
 // no login, and was listed neither here nor in /llms.txt. A page crawlers
 // could not reach becoming reachable IS a material change to the cluster.
-const LAST_MODIFIED = new Date('2026-09-07T05:00:00.000Z')
+// PROJETO-1-GOOGLE-2026-09-17 — advanced because the cluster gained 101 real pages
+// (/ai-video-generator/for + 100 intent pages). Same test as every bump above:
+// the cluster materially changed, so the old date would be a lie.
+const LAST_MODIFIED = new Date('2026-09-17T05:00:00.000Z')
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const routes: { path: string; priority: number; freq: 'daily' | 'weekly' | 'monthly' }[] = [
@@ -221,6 +226,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
   ]
   for (const slug of ENGINE_SLUGS) {
     routes.push({ path: `/ai-video-generator/${slug}`, priority: 0.9, freq: 'weekly' })
+  }
+  // PROJETO 1 — GOOGLE: hub 0.9 (cabeça do cluster), páginas 0.8 (mesmo perfil de /free-ai-shorts e /alternatives).
+  routes.push({ path: INTENT_HUB_PATH, priority: 0.9, freq: 'weekly' })
+  for (const slug of INTENT_SLUGS) {
+    routes.push({ path: intentPagePath(slug), priority: 0.8, freq: 'weekly' })
   }
   const staticEntries = routes.map((r) => ({
     url: `${BASE}${r.path}`,
