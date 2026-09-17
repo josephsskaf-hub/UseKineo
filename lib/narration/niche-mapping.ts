@@ -8,6 +8,7 @@
  */
 
 import { VOICE_PERSONAS, type VoicePersona } from './personas'
+import type { NarrationLanguage } from '@/lib/textLanguage' // KINEO-IDIOMAS-15-2026-09-17
 
 // ─── Niche types ─────────────────────────────────────────────────────────────
 
@@ -161,7 +162,7 @@ export function selectPersonaForScript(
   script: string,
   vertical?: string,
   userTier: 'free' | 'premium' | 'cinematic' = 'free',
-  language: 'en' | 'pt' | 'es' = 'en',
+  language: NarrationLanguage = 'en',
 ): VoicePersona {
   const niche = detectNiche(script, vertical)
   const mapping = NICHE_PERSONA_MAP[niche]
@@ -200,7 +201,7 @@ export function selectPersonaForScript(
  */
 function applyLanguageOverride(
   persona: VoicePersona,
-  language: 'en' | 'pt' | 'es',
+  language: NarrationLanguage,
 ): VoicePersona {
   if (language === 'en') return persona
   // fable is the most English-accented voice — swap to nova for pt/es
@@ -218,7 +219,7 @@ export function describeVoiceSelection(
   script: string,
   vertical?: string,
   userTier: 'free' | 'premium' | 'cinematic' = 'free',
-  language: 'en' | 'pt' | 'es' = 'en',
+  language: NarrationLanguage = 'en',
 ): string {
   const niche = detectNiche(script, vertical)
   const persona = selectPersonaForScript(script, vertical, userTier, language)

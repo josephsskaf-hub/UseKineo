@@ -18,6 +18,7 @@ import { STUDIO_KIT_CSS } from '@/components/studioKit'
 import { useRouter, useSearchParams } from 'next/navigation'
 // KINEO-H3-2026-08-19 — custo por motor vem da fonte única, nunca de string.
 import { creditCostFor, creditCostForDuration } from '@/lib/credits/engineCost'
+import { NARRATION_LANGUAGES, narrationLanguage, isHollywoodLanguage, type NarrationLanguage } from '@/lib/textLanguage' // KINEO-IDIOMAS-15-2026-09-17
 import { enginePaused } from '@/lib/engineLaunch' // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15
 import { isBareStarter } from '@/lib/promptGuard' // KINEO-1-COERENCIA-2026-09-16
 import type { Quality } from '@/lib/credits/engineCost'
@@ -165,6 +166,9 @@ export default function StudioClient() {
   // KINEO-MULTIFORMATO-2026-09-02 — quatro formatos reais; 9:16 continua o
   // padrão (é o produto de 100% dos primeiros vídeos da casa).
   const [aspect, setAspect] = useState<Aspect>('9:16')
+  // KINEO-IDIOMAS-15-2026-09-17 — a língua da narração é escolhida AQUI (antes só existia ?language= na URL e o detector
+  // en/pt/es). Viaja na querystring para o /generate como as outras escolhas.
+  const [language, setLanguage] = useState<NarrationLanguage>('en')
   // KINEO-RES-HONESTA-2026-08-20 — estado REMOVIDO junto com o seletor. Ele
   // nunca chegou a valer nada (o 720p vivia desabilitado) e virou perigoso:
   // um valor chamado `resolution` fixo em '1080p' convida o próximo a mandá-lo
@@ -266,6 +270,8 @@ export default function StudioClient() {
     if (e && ENGINES.some((x) => x.key === e) && (e !== 's25') && !ENGINES.find((x) => x.key === e)?.paused) setEngine(e as EngineKey) // KINEO-MOTOR-EM-MANUTENCAO: ?engine= pausado cai no padrão
     const p = sp.get('prompt')
     if (p) setPrompt(p)
+    const requestedLanguage = narrationLanguage(sp.get('language')) // KINEO-IDIOMAS-15 (páginas de idioma chegam com ?language=)
+    if (requestedLanguage) setLanguage(requestedLanguage)
     const requestedScriptMode = sp.get('script_mode')
     if (requestedScriptMode === 'ai' || requestedScriptMode === 'verbatim') {
       setScriptMode(requestedScriptMode)
@@ -427,7 +433,7 @@ export default function StudioClient() {
     // inventaria a história. A dica já está sob a caixa; aqui só devolvemos o foco para a pessoa completar.
     if (bareStarter) { promptRef.current?.focus(); return }
     try {
-      sessionStorage.setItem('kineo:studio:go:v1', JSON.stringify({ t: Date.now(), engine, prompt: finalPrompt }))
+      sessionStorage.setItem('kineo:studio:go:v1', JSON.stringify({ t: Date.now(), engine, prompt: finalPrompt, language }))
     } catch {}
     const q = new URLSearchParams({ engine, prompt: finalPrompt, duration: String(duration), script_mode: scriptMode, autoanalyze: '1', studio: '1', intent_campaign: campaignRef.current })
     carryStudioSeriesReview(new URLSearchParams(searchSignature), q)
@@ -436,6 +442,7 @@ export default function StudioClient() {
     // entrava nesta querystring, então o servidor nunca soube. Só sai da URL
     // quando não é o padrão, para que todo link existente continue idêntico.
     if (aspect !== '9:16') q.set('aspect', aspect)
+    if (language !== 'en') q.set('language', language) // KINEO-IDIOMAS-15
     // KINEO-TRIAL-FIRST-HANDOFF-2026-08-30 — production showed 4 people
     // clicking the banner's premium first-delivery CTA, but only 1 completed
     // Seedance. One later armed the Fast activation contract. Engine/duration
@@ -707,6 +714,25 @@ export default function StudioClient() {
             </div>
             <div style={{ fontSize: 11.5, color: 'var(--muted2)', marginBottom: 12, lineHeight: 1.5 }}>
               {ASPECT_PILLS.find((a) => a.value === aspect)?.where}
+            </div>
+            {/* KINEO-IDIOMAS-15-2026-09-17 — a língua da narração (16 do catálogo). Fundador: "15 idiomas está ok";
+                mercado: Fliki 80+, HeyGen 175+. Os motores de voz própria só têm prova em en/pt/es; o aviso aparece
+                quando a escolha sai dessas três, e a rota recusa antes de cobrar. */}
+            <div className="row" style={{ marginBottom: 12, alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <label htmlFor="studio-narration-language" style={{ fontSize: 11.5, color: 'var(--muted2)' }}>Narration language</label>
+              <select
+                id="studio-narration-language"
+                value={language}
+                onChange={(e) => setLanguage(narrationLanguage(e.target.value) ?? 'en')}
+                style={{ background: 'rgba(255,255,255,.04)', border: '1px solid var(--border2)', color: 'var(--text)', borderRadius: 999, padding: '6px 12px', fontSize: 12, fontFamily: 'inherit' }}
+              >
+                {NARRATION_LANGUAGES.map((l) => (
+                  <option key={l.code} value={l.code}>{l.native}{l.code !== 'en' ? ` · ${l.name.replace(/ \(.*\)$/, '')}` : ''}</option>
+                ))}
+              </select>
+              {!isHollywoodLanguage(language) && (
+                <span style={{ fontSize: 11, color: 'var(--muted2)' }}>Kineo 1, Seedance 1.5, Veo 3.1 and Kling 2.5 narrate in this language. Kling 3, H3, Omni and Seedance 2.5: English, Portuguese, Spanish only.</span>
+              )}
             </div>
             {/* ⚠️ KINEO-RES-HONESTA-2026-08-20 — a tela se contradizia.
                 O card do motor mostrava "768p" (a resolução real do H3) e

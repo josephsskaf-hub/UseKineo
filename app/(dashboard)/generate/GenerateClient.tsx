@@ -115,6 +115,7 @@ import {
 import { decidePostDeliverySlot, type PostDeliverySlotOwner } from '@/lib/growth/postDeliverySlot'
 // KINEO-PORTA-TERCEIRO-FILME-2026-09-17 — a jogada do segundo filme (ver o cabeçalho do módulo).
 import { decideThirdFilmDoor, thirdFilmDoorCapacityLine } from '@/lib/growth/thirdFilmDoor'
+import { narrationLanguage, type NarrationLanguage } from '@/lib/textLanguage' // KINEO-IDIOMAS-15-2026-09-17
 import { decideCleanFilmTrialDoor } from '@/lib/growth/cleanFilmTrialDoor'
 import CleanFilmTrialDoor from '@/components/CleanFilmTrialDoor'
 // KINEO-DOWNLOAD-E-O-MOMENTO-2026-09-07 — ver o bloco longo do módulo: a tela
@@ -893,7 +894,7 @@ function normalizeFastRenderInputs(value: unknown): FastRenderInputs | undefined
   if (clipUrls.length === 0 || !voiceover.trim()) return undefined
   const requestedDuration = Number(input.duration)
   const safeDuration = requestedDuration === 60 || requestedDuration === 90 ? requestedDuration : 35 // KINEO-PRIMEIRO-VIDEO-2026-09-02 — era 45
-  const language = input.language === 'pt' || input.language === 'es' ? input.language : 'en'
+  const language = narrationLanguage(input.language) ?? 'en' // KINEO-IDIOMAS-15
   return {
     clip_urls: clipUrls,
     voiceover_script: voiceover,
@@ -1107,8 +1108,7 @@ export default function GenerateClient({
   // visitor's exact idea disappeared at the highest-intent first step.
   const initialPrompt = searchParams.get('prompt') ?? searchParams.get('topic') ?? initialViralPrompt
   const requestedLanguage = searchParams.get('language')
-  const initialLanguage: 'en' | 'pt' | 'es' =
-    requestedLanguage === 'pt' || requestedLanguage === 'es' ? requestedLanguage : 'en'
+  const initialLanguage: NarrationLanguage = narrationLanguage(requestedLanguage) ?? 'en' // KINEO-IDIOMAS-15
 
   const [prompt, setPrompt] = useState(initialPrompt)
 
@@ -1841,7 +1841,7 @@ export default function GenerateClient({
   const [mode, setMode] = useState<GenerationMode>('fast')
   // Push #316 — output language selector (en | pt | es). PUSH #36 preserves
   // the language promised by localized acquisition pages through auth.
-  const [language, setLanguage] = useState<'en' | 'pt' | 'es'>(initialLanguage)
+  const [language, setLanguage] = useState<NarrationLanguage>(initialLanguage)
   const [generationId, setGenerationId] = useState<string | null>(null)
   const [qualityFailure, setQualityFailure] = useState<VideoQualityFailure | null>(null)
   const qualityFailureRef = useRef<VideoQualityFailure | null>(null)

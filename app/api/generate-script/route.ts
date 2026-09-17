@@ -11,6 +11,7 @@ import {
   openAiAlertKind,
   ENGINE_CAPACITY_MESSAGE,
 } from '@/lib/openaiAlert'
+import { LANGUAGE_NAMES, narrationLanguage, type NarrationLanguage } from '@/lib/textLanguage' // KINEO-IDIOMAS-15-2026-09-17
 
 // KINEO-OPENAI-HANG-2026-08-05 — this route was the ONLY OpenAI-backed route in
 // the whole app with no maxDuration, so it silently inherited Vercel's short
@@ -52,7 +53,7 @@ export const maxDuration = 60
 // RULES that instruct GPT to write scripts with natural dramatic punctuation
 // ("...", em-dashes, sentence rhythm variation) so the AI voice sounds cinematic.
 
-type Language = 'en' | 'pt' | 'es'
+type Language = NarrationLanguage // KINEO-IDIOMAS-15: 16 códigos do catálogo único
 
 // ═══ KINEO-351-DURACAO-E-CONTRATO-2026-08-26 ═══════════════════════════════
 //
@@ -80,12 +81,11 @@ function maxWordsFor(seconds: number): number {
 }
 
 function buildSystemPrompt(language: Language, targetSeconds: number = 60): string {
+  // KINEO-IDIOMAS-15-2026-09-17 — uma instrução para todas as línguas do catálogo (antes: três literais).
   const langInstruction =
-    language === 'pt'
-      ? `LANGUAGE: Write all voiceover sentences in Brazilian Portuguese (pt-BR). Keep [Pexels: ...] cues and section headers (HOOK, MICRO REWARD 1, MICRO REWARD 2, MICRO REWARD 3, ESCALATION, RHYTHM, PAYOFF) in English — the video engine requires them in English. Only the spoken narration text changes language.`
-      : language === 'es'
-      ? `LANGUAGE: Write all voiceover sentences in Spanish (es-419 Latin American). Keep [Pexels: ...] cues and section headers (HOOK, MICRO REWARD 1, MICRO REWARD 2, MICRO REWARD 3, ESCALATION, RHYTHM, PAYOFF) in English — the video engine requires them in English. Only the spoken narration text changes language.`
-      : `LANGUAGE: Write everything in US English.`
+    language === 'en'
+      ? `LANGUAGE: Write everything in US English.`
+      : `LANGUAGE: Write all voiceover sentences in ${LANGUAGE_NAMES[language]}. Keep [Pexels: ...] cues and section headers (HOOK, MICRO REWARD 1, MICRO REWARD 2, MICRO REWARD 3, ESCALATION, RHYTHM, PAYOFF) in English — the video engine requires them in English. Only the spoken narration text changes language.`
 
   return `You are a world-class viral YouTube Shorts scriptwriter AND voice director. Your job is to take any topic and write a tight, punchy, CINEMATIC script in the exact structure below. The script will be fed word-for-word into a premium AI text-to-speech voice — so how you write determines how it SOUNDS. Write for a US audience aged 18-34.
 
@@ -285,8 +285,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Push #316 — language selection (en | pt | es), defaults to English.
-    const language: Language =
-      body.language === 'pt' ? 'pt' : body.language === 'es' ? 'es' : 'en'
+    const language: Language = narrationLanguage(body.language) ?? 'en' // KINEO-IDIOMAS-15
 
     // ═══ KINEO-351 — DURAÇÃO PEDIDA E AUTORIA FORÇADA ═══════════════════════
     // `targetSeconds` só é aceito se for uma duração REAL do seletor. Qualquer

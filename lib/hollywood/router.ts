@@ -478,7 +478,7 @@ function trimNarrationToWords(text: string, maxWords: number): string {
 import { aplicarFidelidadeAoPlano, removerDatasInventadas, fichaDoPedido, trocarFichaNosPrompts } from '@/lib/hollywood/fidelidade'
 
 /** Nome da língua da narração para o planejador (espelho de LANGUAGE_NAMES em lib/textLanguage — sem import: guardiões carregam este arquivo cru). */
-const NARRATION_LANGUAGE_NAME: Record<string, string> = { pt: 'Brazilian Portuguese (pt-BR)', es: 'Spanish (es-419, Latin American)' }
+const NARRATION_LANGUAGE_NAME: Record<string, string> = { pt: 'Brazilian Portuguese (pt-BR)', es: 'Spanish (es-419, Latin American)', hi: 'Hindi (Devanagari script)', fr: 'French', de: 'German', it: 'Italian', nl: 'Dutch', pl: 'Polish', tr: 'Turkish', ru: 'Russian', uk: 'Ukrainian', ar: 'Arabic (Modern Standard)', ur: 'Urdu', id: 'Indonesian', vi: 'Vietnamese' } // KINEO-IDIOMAS-15: espelho do catálogo (a rota só deixa en/pt/es chegar aqui)
 
 export async function planHollywoodScenes(args: {
   /** KINEO-DURATIONFIX-2026-08-17 — feedback de replanejamento: total da

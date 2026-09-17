@@ -26,6 +26,7 @@
 // route side, per-scene generateTTS persona on the compose side) — v3.5 can
 // never kill a render that works today.
 import { selectPersonaForScript } from '@/lib/narration/niche-mapping'
+import type { NarrationLanguage } from '@/lib/textLanguage' // KINEO-IDIOMAS-15-2026-09-17
 import type { OpenAIVoice } from '@/lib/narration/personas'
 import { stripScriptMarkers } from '@/lib/scriptParser'
 import { PRESENTER_PERFORMANCE_PROMPT } from '@/lib/avatar/veed'
@@ -49,7 +50,7 @@ export type HollywoodVoice = {
  */
 export function resolveHollywoodVoice(
   script: string,
-  language: 'en' | 'pt' | 'es' = 'en',
+  language: NarrationLanguage = 'en',
   vertical?: string,
   characterSheet?: string | null,
 ): HollywoodVoice {

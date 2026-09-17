@@ -44,7 +44,7 @@ import { resolveCharacterVoice } from '@/lib/hollywood/characterVoice'
 import { detectShotSpec } from '@/lib/cinematic/shotSpec'
 import { classicDryRunReport, isDryRunAccount } from '@/lib/cinematic/classicDryRun'
 import { wordsPerSceneFor } from '@/lib/cinematic/sceneWords'
-import { resolveNarrationLanguage } from '@/lib/textLanguage'
+import { resolveNarrationLanguage, narrationLanguage as narrationLanguageCode, isHollywoodLanguage, LANGUAGE_NAMES, type HollywoodLanguage } from '@/lib/textLanguage'
 import { stripIdeaPrefix } from '@/lib/cinematic/promptIntake'
 import { looksLikeBrief } from '@/lib/scriptParser'
 import { sceneNarrationsForPlan } from '@/lib/cinematic/speechContract'
@@ -1498,6 +1498,16 @@ async function manipularPost(req: NextRequest) {
       await writeServerEvent({ name: 'narration_language_autodetected', userId: user.id, path: '/api/generate-video-cinematic', metadata: { requested: body.language ?? null, detected: narrationLanguage.detected, confidence: narrationLanguage.confidence, engine: body.engine ?? 'seedance' } })
     }
     const hollywoodPath = wantsHollywood || wantsH3 || wantsOmni || wantsS25
+    // KINEO-IDIOMAS-15-2026-09-17 — os motores de voz própria (Kling 3, H3, Omni, Seedance 2.5) só têm prova em
+    // inglês, português e espanhol. As outras 13 línguas do catálogo saem pelos clássicos (TTS da casa). Recusa
+    // ANTES de qualquer débito, com a saída certa na mensagem.
+    if (hollywoodPath && !isHollywoodLanguage(narrationLanguage.language)) {
+      await writeServerEvent({ name: 'narration_language_engine_refused', userId: user.id, path: '/api/generate-video-cinematic', metadata: { language: narrationLanguage.language, engine: typeof body.engine === 'string' ? body.engine : null } })
+      return NextResponse.json({
+        error: `${LANGUAGE_NAMES[narrationLanguage.language]} narration is available on Kineo 1, Seedance 1.5, Veo 3.1 and Kling 2.5. Kling 3, MiniMax H3, Omni and Seedance 2.5 speak English, Portuguese and Spanish for now — pick one of those engines, or switch the narration language.`,
+        reason: 'language_not_supported_by_engine', language: narrationLanguage.language, retryable: false,
+      }, { status: 422 })
+    }
     const family: CinematicFamily = wantsH3 ? 'h3' : wantsOmni ? 'omni' : wantsS25 ? 's25' : 'hollywood'
 
     // Parse script for verbatim mode
@@ -2183,7 +2193,7 @@ async function manipularPost(req: NextRequest) {
       prompt,
       duration,
       engine: claimEngine,
-      language: body.language === 'pt' ? 'pt' : body.language === 'es' ? 'es' : 'en',
+      language: narrationLanguageCode(body.language) ?? 'en', // KINEO-IDIOMAS-15
       vertical: typeof body.vertical === 'string' ? body.vertical.trim().toLowerCase() : '',
       characterId: typeof body.characterId === 'string' ? body.characterId.trim() : '',
       brollScenes: planScenes,
@@ -3243,7 +3253,7 @@ async function manipularPost(req: NextRequest) {
       // KINEO-HOLLYWOOD-HOST-2026-07-13 — language/vertical hoisted (the host
       // voice resolution below needs both; the same `vertical` reaches
       // /api/compose from the client, so both routes pin the same persona).
-      const hollywoodLanguage: 'en' | 'pt' | 'es' = narrationLanguage.language // KINEO-IDIOMA-DO-TEXTO
+      const hollywoodLanguage: HollywoodLanguage = isHollywoodLanguage(narrationLanguage.language) ? narrationLanguage.language : 'en' // KINEO-IDIOMA-DO-TEXTO · KINEO-IDIOMAS-15: o portão lá em cima já recusou o resto
       const hollywoodVertical =
         typeof body.vertical === 'string' && body.vertical.trim() ? body.vertical.trim().toLowerCase() : undefined
 

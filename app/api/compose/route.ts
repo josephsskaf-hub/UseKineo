@@ -42,6 +42,7 @@ import {
   type HollywoodClipInput,
   type HollywoodNarrationBlock,
   type WhisperWord,
+  setActiveCaptionFont, // KINEO-IDIOMAS-15
 } from '@/lib/compose'
 // Kineo-AudioCache-2026 — the model id that WILL be used for this tier keeps
 // the cache key correct across the OpenAI vs ElevenLabs providers.
@@ -130,6 +131,7 @@ import {
 // host lines, so host speech and b-roll narration share a single narrator.
 // Failure preserves the clips for recovery; it never selects a different voice.
 import { hollywoodVoiceFromClaim, resolveHollywoodVoice, synthesizeHostSpeech, type HollywoodVoice } from '@/lib/hollywood/hostVoice'
+import { narrationLanguage } from '@/lib/textLanguage' // KINEO-IDIOMAS-15-2026-09-17
 
 export const maxDuration = 300
 
@@ -722,7 +724,7 @@ export async function POST(req: NextRequest) {
     })()
 
     // Push #316 — output language. OpenAI TTS auto-detects from the script text.
-    const language = body.language === 'pt' ? 'pt' : body.language === 'es' ? 'es' : 'en'
+    const language = narrationLanguage(body.language) ?? 'en' // KINEO-IDIOMAS-15: qualquer código do catálogo
     const rawGenerationId = typeof body.generationId === 'string' ? body.generationId.trim() : ''
     if (!validComposeGenerationId(rawGenerationId)) {
       return NextResponse.json(
@@ -2427,6 +2429,7 @@ export async function POST(req: NextRequest) {
 
       let hollywoodSource: Record<string, unknown>
       try {
+        setActiveCaptionFont(language) // KINEO-IDIOMAS-15
         hollywoodSource = buildHollywoodCreatomateSource({
           clips: hollywoodClips,
           requestedDuration: duration,
@@ -3034,6 +3037,7 @@ export async function POST(req: NextRequest) {
       FORCE_WATERMARK_EMAILS.has((user.email ?? '').toLowerCase())
     let source: Record<string, unknown>
     try {
+      setActiveCaptionFont(language) // KINEO-IDIOMAS-15
       source = buildCreatomateSource({
         clipUrls: composeClipUrls, // KINEO1-PRIMEIRO-FILME-VIDEO — com os clipes Seedance encaixados (ou o original)
         voiceoverUrl,

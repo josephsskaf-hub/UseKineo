@@ -5,6 +5,7 @@
 // dynamically import it below.
 
 import { createHash } from 'node:crypto'
+import { captionFontFor, DEFAULT_CAPTION_FONT, type NarrationLanguage } from '@/lib/textLanguage' // KINEO-IDIOMAS-15-2026-09-17
 import { toFile } from 'openai'
 import { createClient as createSupabaseClient, type SupabaseClient } from '@supabase/supabase-js'
 import { buildCaptionSegments, pickHighlightWord, OPENAI_TTS_TIMEOUT_MS, OPENAI_WHISPER_TIMEOUT_MS, type CaptionSegment } from '@/lib/openai'
@@ -132,6 +133,14 @@ const CAPTION_WIDTH = '78%'      // keeps the pill left of the right-hand chrome
 // no meio de um builder, ISTO AQUI PRECISA VIRAR PARÂMETRO — está escrito
 // para que a próxima pessoa saiba o que quebrou.
 let ACTIVE_ASPECT: AspectSpec = aspectSpec('9:16')
+// KINEO-IDIOMAS-15-2026-09-17 — fonte das legendas por idioma. Montserrat não tem devanágari nem árabe: hindi, árabe e
+// urdu sairiam como caixas. Mesmo padrão do ACTIVE_ASPECT: a rota chama setActiveCaptionFont(language) logo antes de
+// montar a fonte do Creatomate (síncrono, na mesma request). A marca d'água continua em Montserrat (texto latino).
+let ACTIVE_CAPTION_FONT: string = DEFAULT_CAPTION_FONT
+export function setActiveCaptionFont(language?: unknown): string {
+  ACTIVE_CAPTION_FONT = captionFontFor(language)
+  return ACTIVE_CAPTION_FONT
+}
 function setActiveAspect(raw?: unknown): AspectSpec {
   ACTIVE_ASPECT = aspectSpec(raw)
   return ACTIVE_ASPECT
@@ -518,7 +527,7 @@ export async function generateTTS(
   speed = 1.0,
   vertical?: string,
   userTier: 'free' | 'premium' | 'cinematic' = 'free',
-  language: 'en' | 'pt' | 'es' = 'en',
+  language: NarrationLanguage = 'en', // KINEO-IDIOMAS-15
 ): Promise<Buffer> {
   // Push #236 — last line of defense: strip any residual script markers /
   // directives so the narrator can never speak "[Pexels: ...]" or a "speed:"
@@ -1481,7 +1490,7 @@ export function resolveTtsVoiceIdentity(
   speed: number,
   vertical: string | undefined,
   userTier: 'free' | 'premium' | 'cinematic',
-  language: 'en' | 'pt' | 'es',
+  language: NarrationLanguage, // KINEO-IDIOMAS-15
   model: string,
 ): { voice: string; speed: number; model: string } {
   const cleaned = stripScriptMarkers(script)
@@ -1744,7 +1753,7 @@ export function buildCaptionElements({
     y: ACTIVE_ASPECT.captionBottomY,
     y_anchor: '100%',
     width: ACTIVE_ASPECT.captionWidth,
-    font_family: 'Montserrat',
+    font_family: ACTIVE_CAPTION_FONT, // KINEO-IDIOMAS-15: por idioma
     // PUSH #93 (FIX 4) — the opening chunk is rendered larger so the hook lands
     // with weight. Still bottom-anchored, so the extra height grows upward and
     // the safe-zone floor is unchanged.

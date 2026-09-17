@@ -1,7 +1,9 @@
 export type CreationScriptMode = 'ai' | 'verbatim'
 export type CreationDuration = 35 | 45 | 60 | 90
 export type CreationIntent = 'fast' | 'trial_best' | null
-export type CreationLanguage = 'en' | 'pt' | 'es'
+import type { NarrationLanguage } from './textLanguage'
+// KINEO-IDIOMAS-15-2026-09-17 — o handoff de cadastro carrega qualquer língua do catálogo.
+export type CreationLanguage = NarrationLanguage
 
 // Nested auth redirects remain deliberately smaller than the Studio analyzer
 // ceiling. The public form must surface this boundary instead of letting the

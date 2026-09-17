@@ -11,19 +11,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { openai } from '@/lib/openai'
+import { LANGUAGE_NAMES, narrationLanguage, type NarrationLanguage } from '@/lib/textLanguage' // KINEO-IDIOMAS-15-2026-09-17
 
 export const maxDuration = 60
 export const dynamic = 'force-dynamic'
 
-type Language = 'en' | 'pt' | 'es'
+type Language = NarrationLanguage
 
 function buildAdSystemPrompt(language: Language): string {
   const langInstruction =
-    language === 'pt'
-      ? 'LANGUAGE: Write the spoken script in Brazilian Portuguese (pt-BR).'
-      : language === 'es'
-      ? 'LANGUAGE: Write the spoken script in Spanish (es-419).'
-      : 'LANGUAGE: Write in US English.'
+    language === 'en'
+      ? 'LANGUAGE: Write in US English.'
+      : `LANGUAGE: Write the spoken script in ${LANGUAGE_NAMES[language]}.` // KINEO-IDIOMAS-15
 
   return `You are a top-performing UGC (user-generated content) ad scriptwriter for TikTok/Reels/Shorts. You write scripts that a single creator speaks DIRECTLY to camera, selfie-style. Your scripts consistently pass the 3-second scroll test.
 
@@ -66,7 +65,7 @@ export async function POST(req: NextRequest) {
     }
     const audience = (body.audience ?? '').trim().slice(0, 300)
     const offer = (body.offer ?? '').trim().slice(0, 200)
-    const language: Language = body.language === 'pt' ? 'pt' : body.language === 'es' ? 'es' : 'en'
+    const language: Language = narrationLanguage(body.language) ?? 'en'
 
     const userPrompt = [
       `PRODUCT INFO:\n${product}`,

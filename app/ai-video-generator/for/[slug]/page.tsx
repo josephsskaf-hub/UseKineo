@@ -43,9 +43,10 @@ export function generateMetadata({ params }: { params: { slug: string } }): Meta
 }
 
 /** Studio já com o prompt do nicho na caixa; cadastro preserva o destino (mesmo padrão das páginas por motor). */
-function studioHref(slug: string, prompt: string, engine: IntentEngine): string {
+function studioHref(slug: string, prompt: string, engine: IntentEngine, language?: string): string {
   const campaign = `intent_${slug}`.slice(0, 100)
   const studio = new URLSearchParams({ engine, prompt, duration: '60', script_mode: 'ai', intent_campaign: campaign })
+  if (language) studio.set('language', language) // KINEO-IDIOMAS-15: a página de idioma abre o Studio já na língua
   const signup = new URLSearchParams({ utm_source: 'google', utm_medium: 'organic', utm_campaign: campaign, intent_campaign: campaign, redirect: `/studio?${studio.toString()}` })
   return `/signup?${signup.toString()}`
 }
@@ -64,7 +65,7 @@ export default function IntentPage({ params }: { params: { slug: string } }) {
     const x = e as { id: string; title: string; videoPath: string; posterPath?: string; arenaPreviewPath?: string; arenaPosterPath?: string }
     return { id: x.id, title: x.title, videoPath: x.arenaPreviewPath ?? x.videoPath, posterPath: x.arenaPosterPath ?? x.posterPath }
   })
-  const cta = studioHref(p.slug, p.examplePrompt, p.engine)
+  const cta = studioHref(p.slug, p.examplePrompt, p.engine, p.language)
   const campaign = `intent_${p.slug}`
   const siblings = INTENT_PAGES.filter((x) => x.family === p.family && x.slug !== p.slug).slice(0, 8)
 

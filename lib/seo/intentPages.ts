@@ -29,6 +29,8 @@ export interface IntentPage {
   engine: IntentEngine
   /** por que este motor para este caso */
   engineWhy: string
+  /** KINEO-IDIOMAS-15 — família 'language': código do catálogo, viaja no CTA como ?language= */
+  language?: string
   /** 3 perguntas próprias da página (preço/trial vêm do template, da fonte única) */
   faq: Array<{ q: string; a: string }>
   /** só na família 'alternative' */
@@ -113,23 +115,23 @@ const FORMATS: FormatSeed[] = [
 ]
 
 // ── IDIOMA: em que língua ────────────────────────────────────────────────────────────────────────
-type LangSeed = { name: string; prompt: string; note: string }
+type LangSeed = { name: string; code: string; prompt: string; note: string } // KINEO-IDIOMAS-15: code = catálogo de lib/textLanguage
 const LANGUAGES: LangSeed[] = [
-  { name: 'Spanish', prompt: 'Cinco lugares del mundo donde las brújulas dejan de funcionar, y por qué', note: 'Narration, captions and titles come out in Spanish when you write in Spanish.' },
-  { name: 'Portuguese', prompt: 'A cidade brasileira que foi capital do império por um dia e ninguém lembra', note: 'Write in Portuguese and the film is narrated and captioned in Portuguese.' },
-  { name: 'Hindi', prompt: 'रामायण की वह कहानी जो स्कूल में नहीं पढ़ाई जाती: राम सेतु का रहस्य', note: 'Hindi narration and Devanagari captions from a Hindi prompt.' },
-  { name: 'French', prompt: 'Pourquoi la tour Eiffel grandit de 15 centimètres chaque été', note: 'French prompt in, French narration and captions out.' },
-  { name: 'German', prompt: 'Warum die Berliner U-Bahn Linien hat, die nie gebaut wurden', note: 'German narration and captions from a German prompt.' },
-  { name: 'Italian', prompt: 'Il giorno in cui Venezia decise di costruire una città sull’acqua', note: 'Italian narration and captions from an Italian prompt.' },
-  { name: 'Arabic', prompt: 'المدينة المفقودة التي وجدها الأقمار الصناعية تحت رمال الصحراء', note: 'Arabic narration and captions from an Arabic prompt.' },
-  { name: 'Indonesian', prompt: 'Mengapa Krakatau meledak lebih keras dari bom nuklir mana pun', note: 'Indonesian narration and captions from an Indonesian prompt.' },
-  { name: 'Turkish', prompt: 'Göbeklitepe: tarımdan önce inşa edilen tapınak', note: 'Turkish narration and captions from a Turkish prompt.' },
-  { name: 'Japanese', prompt: '富士山が最後に噴火した日、江戸で何が起きたのか', note: 'Japanese narration and captions from a Japanese prompt.' },
-  { name: 'Korean', prompt: '세종대왕이 한글을 만든 진짜 이유', note: 'Korean narration and captions from a Korean prompt.' },
-  { name: 'Vietnamese', prompt: 'Vì sao chúng ta say xe: bộ não bị lừa như thế nào', note: 'Vietnamese narration and captions from a Vietnamese prompt.' },
-  { name: 'Russian', prompt: 'Почему Тунгусский метеорит до сих пор загадка', note: 'Russian narration and captions from a Russian prompt.' },
-  { name: 'Polish', prompt: 'Latająca szkoła z potworami: historia dla dzieci na dobranoc', note: 'Polish narration and captions from a Polish prompt.' },
-  { name: 'Dutch', prompt: 'Waarom Nederland onder de zeespiegel bouwt en het toch droog blijft', note: 'Dutch narration and captions from a Dutch prompt.' },
+  { name: 'Spanish', code: 'es', prompt: 'Cinco lugares del mundo donde las brújulas dejan de funcionar, y por qué', note: 'Narration, captions and titles come out in Spanish when you write in Spanish.' },
+  { name: 'Portuguese', code: 'pt', prompt: 'A cidade brasileira que foi capital do império por um dia e ninguém lembra', note: 'Write in Portuguese and the film is narrated and captioned in Portuguese.' },
+  { name: 'Hindi', code: 'hi', prompt: 'रामायण की वह कहानी जो स्कूल में नहीं पढ़ाई जाती: राम सेतु का रहस्य', note: 'Hindi narration and Devanagari captions from a Hindi prompt.' },
+  { name: 'French', code: 'fr', prompt: 'Pourquoi la tour Eiffel grandit de 15 centimètres chaque été', note: 'French prompt in, French narration and captions out.' },
+  { name: 'German', code: 'de', prompt: 'Warum die Berliner U-Bahn Linien hat, die nie gebaut wurden', note: 'German narration and captions from a German prompt.' },
+  { name: 'Italian', code: 'it', prompt: 'Il giorno in cui Venezia decise di costruire una città sull’acqua', note: 'Italian narration and captions from an Italian prompt.' },
+  { name: 'Arabic', code: 'ar', prompt: 'المدينة المفقودة التي وجدها الأقمار الصناعية تحت رمال الصحراء', note: 'Arabic narration and captions from an Arabic prompt.' },
+  { name: 'Indonesian', code: 'id', prompt: 'Mengapa Krakatau meledak lebih keras dari bom nuklir mana pun', note: 'Indonesian narration and captions from an Indonesian prompt.' },
+  { name: 'Turkish', code: 'tr', prompt: 'Göbeklitepe: tarımdan önce inşa edilen tapınak', note: 'Turkish narration and captions from a Turkish prompt.' },
+  { name: 'Urdu', code: 'ur', prompt: 'موہنجو داڑو کا وہ راز جو تاریخ کی کتابوں میں نہیں لکھا', note: 'Urdu narration and captions from an Urdu prompt.' }, // KINEO-IDIOMAS-15: japonês saiu (a régua de duração conta palavras)
+  { name: 'Ukrainian', code: 'uk', prompt: 'Таємниця Чорнобиля, про яку не розповідають екскурсоводи', note: 'Ukrainian narration and captions from a Ukrainian prompt.' }, // KINEO-IDIOMAS-15: coreano saiu
+  { name: 'Vietnamese', code: 'vi', prompt: 'Vì sao chúng ta say xe: bộ não bị lừa như thế nào', note: 'Vietnamese narration and captions from a Vietnamese prompt.' },
+  { name: 'Russian', code: 'ru', prompt: 'Почему Тунгусский метеорит до сих пор загадка', note: 'Russian narration and captions from a Russian prompt.' },
+  { name: 'Polish', code: 'pl', prompt: 'Latająca szkoła z potworami: historia dla dzieci na dobranoc', note: 'Polish narration and captions from a Polish prompt.' },
+  { name: 'Dutch', code: 'nl', prompt: 'Waarom Nederland onder de zeespiegel bouwt en het toch droog blijft', note: 'Dutch narration and captions from a Dutch prompt.' },
 ]
 
 // ── ALTERNATIVA: em vez de quem (só o que é verdade sobre a Kineo) ───────────────────────────────
@@ -212,6 +214,7 @@ function languagePage(l: LangSeed): IntentPage {
     intro: `${l.note} The idea, the narration, the captions and the title stay in ${l.name}; the scenes are matched or generated from the meaning of the text.`,
     examplePrompt: l.prompt,
     engine: 'fast',
+    language: l.code,
     engineWhy: 'Kineo 1 narrates in the language you write and fits inside the free trial.',
     faq: [
       { q: `Do I have to write the prompt in ${l.name}?`, a: `Write the idea in ${l.name} and the film comes out in ${l.name}. You can also paste a full ${l.name} script and have it narrated word for word.` },

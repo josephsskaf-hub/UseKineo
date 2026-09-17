@@ -10,6 +10,7 @@ import {
   prepararParaGravar,
   type EpisodioEscrito,
 } from '@/lib/nextEpisodeMemoria'
+import { LANGUAGE_NAMES, narrationLanguage } from '@/lib/textLanguage' // KINEO-IDIOMAS-15-2026-09-17
 
 // ═══ KINEO-PROXIMO-EPISODIO-2026-08-21 ═════════════════════════════════════
 //
@@ -367,7 +368,7 @@ export async function POST(req: NextRequest) {
     // continua dizendo "Episode 2", como sempre disse).
     const episodeNumber = Math.max(2, memoria.totalConcluidos + 1)
 
-    const idioma = body.language === 'pt' ? 'Portuguese' : body.language === 'es' ? 'Spanish' : 'English'
+    const idioma = LANGUAGE_NAMES[narrationLanguage(body.language) ?? 'en'] // KINEO-IDIOMAS-15
 
     // A instrução carrega a regra da casa: 150-165 palavras, que é o que dá
     // 60s+ de narração a 2,3 palavras/s — o piso do TikTok Creator Rewards.

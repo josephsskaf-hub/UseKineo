@@ -590,7 +590,7 @@ export async function POST(req: NextRequest) {
     // Craco 7e48bfe5 (15/09): a rota pedia 3,1 pal/s (186 palavras para 60 s); a persona storyteller
     // (fable a 1,03) fala ~2,6 → 190 palavras dariam 72 s e o corretivo aceleraria a voz a 1,2. A
     // persona é resolvida como o compose resolve (tier free = quality 'fast'); régua em lib/speechRate.
-    const fastPersona = (() => { try { return selectPersonaForScript(prompt, undefined, 'free', narrationLanguage.language as 'en' | 'pt' | 'es') } catch { return null } })()
+    const fastPersona = (() => { try { return selectPersonaForScript(prompt, undefined, 'free', narrationLanguage.language) } catch { return null } })()
     const fastRate = speechRateFor({ family: 'classic', speed: parsedScript.speed, language: narrationLanguage.language, voice: fastPersona?.voice, personaSpeed: fastPersona?.defaultSpeed })
     if (fastPersona) console.log(`[generate-fast] KINEO-RITMO-POR-VOZ-KINEO1: persona=${fastPersona.id} voice=${fastPersona.voice} speed=${fastPersona.defaultSpeed} → ${fastRate.wordsPerSecond} pal/s`)
     if (narrationLanguage.switched) {

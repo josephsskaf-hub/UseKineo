@@ -41,9 +41,11 @@ export function loadLocal(file) {
   return module.exports
 }
 const review = loadLocal('lib/navigation/studioSeriesReview.ts')
+// KINEO-IDIOMAS-15-2026-09-17 — o Studio passou a ler ?language= (catálogo de 16) e a levá-lo ao /generate.
+const textLanguage = loadLocal('lib/textLanguage.ts')
 export function roundTrip(href, initial = {}, edits = {}) {
   const query = href.slice(href.indexOf('?') + 1)
-  const state = { engine: 'fast', duration: 60, prompt: '', scriptMode: 'ai', aspect: '9:16', ...initial }
+  const state = { engine: 'fast', duration: 60, prompt: '', scriptMode: 'ai', aspect: '9:16', language: 'en', ...initial }
   const writes = []
   const navigations = []
   const events = []
@@ -61,6 +63,8 @@ export function roundTrip(href, initial = {}, edits = {}) {
     setChatGptQuickstart: () => {},
     setPreset: (v) => { state.preset = v },
     setAspect: (v) => { state.aspect = v },
+    setLanguage: (v) => { state.language = v }, // KINEO-IDIOMAS-15
+    narrationLanguage: textLanguage.narrationLanguage,
     isStudioSeriesReview: review.isStudioSeriesReview,
     window: { requestAnimationFrame: (callback) => frames.push(callback) },
     promptRef: { current: { focus: () => { reviewFocus++ }, scrollIntoView: () => {} } },
@@ -108,7 +112,7 @@ assert.equal(authored.output.get('prompt'), script)
 assert.equal(authored.output.get('script_mode'), 'verbatim')
 assert.equal(authored.output.get('engine'), 'h3')
 assert.equal(authored.output.get('duration'), '35')
-assert.equal(authored.output.get('language'), null)
+assert.equal(authored.output.get('language'), 'es') // KINEO-IDIOMAS-15: a língua VIAJA (antes morria na URL de chegada)
 assert.equal(authored.output.get('aspect'), null)
 assert.equal(authored.output.get('series'), null)
 console.log(JSON.stringify({

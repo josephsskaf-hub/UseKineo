@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { openai } from '@/lib/openai'
+import { LANGUAGE_NAMES, narrationLanguage, type NarrationLanguage } from '@/lib/textLanguage' // KINEO-IDIOMAS-15-2026-09-17
 
 // Push #439 — Viral Score "Apply" button (was a dead handler). The Generate
 // page shows up to 3 improvement_suggestions under the viral score. Clicking
@@ -11,12 +12,10 @@ import { openai } from '@/lib/openai'
 
 export const maxDuration = 30
 
-type Lang = 'en' | 'pt' | 'es'
+type Lang = NarrationLanguage
 
 function langName(l: Lang): string {
-  if (l === 'pt') return 'Brazilian Portuguese (pt-BR)'
-  if (l === 'es') return 'Latin American Spanish (es-419)'
-  return 'English'
+  return LANGUAGE_NAMES[l] // KINEO-IDIOMAS-15
 }
 
 export async function POST(req: NextRequest) {
@@ -48,7 +47,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Script is too long (6000 chars max).' }, { status: 400 })
     }
 
-    const language: Lang = body.language === 'pt' ? 'pt' : body.language === 'es' ? 'es' : 'en'
+    const language: Lang = narrationLanguage(body.language) ?? 'en'
     const duration = [45, 60, 90].includes(Number(body.duration)) ? Number(body.duration) : 45
 
     const systemPrompt = `You are a viral YouTube Shorts script doctor. You receive a short-form video script and ONE specific improvement suggestion. Rewrite the script so it FULLY applies that suggestion while preserving everything that already works.

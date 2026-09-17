@@ -10,6 +10,7 @@ import {
   analyzeRefusalCopy,
   analyzeRefusalTelemetry,
 } from '@/lib/analyzeRefusalCopy'
+import { LANGUAGE_NAMES, narrationLanguage, type NarrationLanguage } from '@/lib/textLanguage' // KINEO-IDIOMAS-15-2026-09-17
 
 export const maxDuration = 60
 
@@ -272,16 +273,12 @@ function fallbackBrief(prompt: string): CreativeBrief {
 }
 
 // Push #316 — language support
-type AnalyzeLanguage = 'en' | 'pt' | 'es'
+type AnalyzeLanguage = NarrationLanguage // KINEO-IDIOMAS-15: 16 códigos do catálogo único
 
 function languageInstruction(language: AnalyzeLanguage): string {
-  if (language === 'pt') {
-    return `\nLANGUAGE: Generate all voiceover text, title, description, hashtags, and captions in Brazilian Portuguese (pt-BR). Visual prompts must stay in English (Pexels/Runway search requires English). JSON field names stay in English.`
-  }
-  if (language === 'es') {
-    return `\nLANGUAGE: Generate all voiceover text, title, description, hashtags, and captions in Spanish (Latin American, es-419). Visual prompts must stay in English (Pexels/Runway search requires English). JSON field names stay in English.`
-  }
-  return '' // English is the default
+  if (language === 'en') return '' // English is the default
+  // KINEO-IDIOMAS-15-2026-09-17 — uma instrução para todas as línguas do catálogo.
+  return `\nLANGUAGE: Generate all voiceover text, title, description, hashtags, and captions in ${LANGUAGE_NAMES[language]}. Visual prompts must stay in English (Pexels/Runway search requires English). JSON field names stay in English.`
 }
 
 function buildSystemPrompt(duration: number, language: AnalyzeLanguage = 'en'): string {
@@ -717,8 +714,7 @@ export async function POST(req: NextRequest) {
         : visual
 
     // Push #316 — language selection (en | pt | es), defaults to English.
-    const language: AnalyzeLanguage =
-      body.language === 'pt' ? 'pt' : body.language === 'es' ? 'es' : 'en'
+    const language: AnalyzeLanguage = narrationLanguage(body.language) ?? 'en' // KINEO-IDIOMAS-15
     // KINEO-RECUSA-NAO-E-TENTE-DE-NOVO-2026-08-31 — teto e frase vem da fonte
     // unica (lib/analyzeLimits). O cliente le o MESMO numero antes de chamar,
     // entao este 400 deixa de ser a primeira noticia que a pessoa tem do teto.
