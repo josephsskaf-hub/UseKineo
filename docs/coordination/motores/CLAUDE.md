@@ -1060,3 +1060,18 @@ Regra que segura tudo: cada carta nova só entra depois de a anterior mover algu
 4. Transversal: `seed` fixo por filme no H3 (o schema aceita) para consistência entre cenas — testar contra o still-âncora.
 
 Fontes: fal.ai/models/minimax/h3/text-to-video/api · fal.ai/models/minimax/h3/image-to-video/api · fal.ai/learn/devs/minimax-h3-prompting-guide · blog.fal.ai/kling-3-0-prompting-guide · fal.ai/models/google/gemini-omni-flash/image-to-video/api.
+
+## KLING3-IMAGENS-R0 — diagnóstico do vídeo do dia (fundador 17/09 00:20 BRT: "história boa, 82 s, mas as imagens são a pior coisa: repetitivas e sem impacto; a primeira é uma mulher que não falou nada")
+
+**Render:** Kling 3, conta do fundador, 17/09 03:03Z, 11/11 cenas aceitas, 82 s entregues (pedido 60). Roteiro "naufrágio cananeu" (194 palavras, dry-run PASS).
+
+**Causa, lida nos prompts exatos enviados (`cinematic_dispatch_result.submitted_prompts`):** toda cena não-diálogo começa com o MESMO cabeçalho de 40-50 palavras — (a) `mouthPrefix` "No one talks on camera. Every visible person is silent, mouth closed, no lip movement, not speaking." (KINEO-PRIMEIRA-PESSOA 11/09, feito para o H3, que não tem negative_prompt) + (b) `Shows exactly this moment, as the narration describes it: <frase da narração>` (lib/hollywood/fidelidade.ts, Board 15/09) — e a descrição VISUAL só entra depois. A fal documenta que os primeiros tokens mandam no Kling 3; a casa entrega a imagem em terceiro lugar atrás de dois blocos idênticos. O eixo de variedade C3 fica afogado. Numa cena o contrato injetou `wreck,` solto na frente. Resultado: 11 cenas parecidas, genéricas, e uma "mulher" na cena 1 (a narração fala de "a ship" e o modelo pintou uma pessoa que não fala).
+
+**Conserto (17/09 manhã, dry-run antes, render de prova de 35 s depois):**
+1. Kling 3: a IMAGEM primeiro; a cláusula de silêncio vai para o `negative_prompt` (talking, speaking, lip movement, mouth moving, dialogue) + sufixo curto "Silent scene, no lip movement." O prefixo longo fica só na família h3.
+2. A frase da narração sai da frente e vira contexto no fim (`Moment: …`); o supervisor fala×imagem (`lib/cinematic/speechImageAlign.ts`) passa a rodar também no caminho hollywood, antes do contrato.
+3. Sujeito injetado pelo contrato entra dentro da frase ("… featuring the wreck …"), nunca como prefixo solto.
+4. Sem o cabeçalho, o eixo C3 (lente/ângulo/luz) vira o primeiro token de cada cena.
+5. Prova: nota "visual" do filme de hoje no /admin/coerencia contra a do render de 35 s; e o olho do fundador. Guardião novo com os prompts reais de hoje como fixture.
+
+**Dívida vista no ensaio:** a recusa `script_too_long_for_engine` diz "241 palavras, 331 é o máximo" quando o problema é UMA frase maior que a cena (24 palavras > 20). Mensagem certa: "a frase X tem N palavras e a cena aguenta M; quebre-a".
