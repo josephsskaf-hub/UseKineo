@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { MIN_COVERAGE, WORDS_PER_SECOND } from '@/lib/narrationFit'
+// KINEO-REGUA-DO-ESCRITOR-2026-09-17 — o escritor dimensiona na régua do motor que VAI falar (a mesma do portão).
+import { minWordsFor, maxWordsFor, writerRateFor } from '@/lib/scriptWriterRate'
 import { openai, OPENAI_SCRIPT_TIMEOUT_MS } from '@/lib/openai'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { buildRefusalEvent } from '@/lib/stageRefusal'
@@ -71,16 +73,9 @@ type Language = NarrationLanguage // KINEO-IDIOMAS-15: 16 códigos do catálogo 
 // `targetSeconds` no corpo, TUDO se comporta exatamente como antes (60s), para
 // os outros chamadores não mudarem de comportamento.
 const SUPPORTED_TARGETS = [35, 60, 90] as const
-/** Palavras faladas mínimas para cobrir MIN_COVERAGE de um vídeo de N segundos. */
-function minWordsFor(seconds: number): number {
-  return Math.ceil(seconds * MIN_COVERAGE * WORDS_PER_SECOND)
-}
-/** Teto sugerido: dá folga ao modelo sem convidar a um roteiro de outro tamanho. */
-function maxWordsFor(seconds: number): number {
-  return Math.round(minWordsFor(seconds) * 1.2)
-}
-
-function buildSystemPrompt(language: Language, targetSeconds: number = 60): string {
+// KINEO-REGUA-DO-ESCRITOR-2026-09-17 — o roteiro nasce na régua da voz que vai falar (lib/scriptWriterRate:
+// a mesma função de régua do portão do Kineo 1). Sem `engine` no corpo, tudo como antes (2,3 pal/s, 0,95).
+function buildSystemPrompt(language: Language, targetSeconds: number = 60, wordsPerSecond: number = WORDS_PER_SECOND, coverage: number = MIN_COVERAGE): string {
   // KINEO-IDIOMAS-15-2026-09-17 — uma instrução para todas as línguas do catálogo (antes: três literais).
   const langInstruction =
     language === 'en'
@@ -125,9 +120,9 @@ FACT SELECTION RULES (#407 — this is what separates "huh, cool" from "WAIT, WH
 - Never sacrifice accuracy for surprise: every fact must still be real and verifiable. Do not invent or exaggerate.
 
 VOICEOVER RULES:
-- Total script: ${minWordsFor(targetSeconds)}-${maxWordsFor(targetSeconds)} spoken words. This is a HARD FLOOR, not a style note:
-  at the measured narration rate of ${WORDS_PER_SECOND} words per second, ${minWordsFor(targetSeconds)} words is about
-  ${Math.round(minWordsFor(targetSeconds) / WORDS_PER_SECOND)} seconds of speech, and this video is ${targetSeconds} seconds long.
+- Total script: ${minWordsFor(targetSeconds, wordsPerSecond, coverage)}-${maxWordsFor(targetSeconds, wordsPerSecond, coverage)} spoken words. This is a HARD FLOOR, not a style note:
+  at the measured narration rate of ${wordsPerSecond} words per second, ${minWordsFor(targetSeconds, wordsPerSecond, coverage)} words is about
+  ${Math.round(minWordsFor(targetSeconds, wordsPerSecond, coverage) / wordsPerSecond)} seconds of speech, and this video is ${targetSeconds} seconds long.
   Anything shorter leaves the film running on music with no story being told,
   and the video is rejected before it renders. Anything much longer gets cut off.
   (Do not count the [Pexels: ...] cues or the section headers as words.)
@@ -294,7 +289,11 @@ export async function POST(req: NextRequest) {
     const pedido = Number(body.targetSeconds)
     const alvoSegundos: number =
       (SUPPORTED_TARGETS as readonly number[]).includes(pedido) ? pedido : SCRIPT_TARGET_SECONDS
-    const alvoPalavras = minWordsFor(alvoSegundos)
+    // KINEO-REGUA-DO-ESCRITOR-2026-09-17 — `engine` (fast | cinematic_* ) escolhe a régua: Kineo 1 = voz da
+    // persona (~2,8 pal/s), clássicos = 3,1, hollywood = 2,3. Sem engine, régua histórica (2,3 × 0,95).
+    const regua = writerRateFor(body.engine, topic, language)
+    const alvoPalavras = minWordsFor(alvoSegundos, regua.wordsPerSecond, regua.coverage)
+    console.log(`[generate-script] KINEO-REGUA-DO-ESCRITOR engine=${typeof body.engine === 'string' ? body.engine : '-'} family=${regua.family} voice=${regua.voice ?? '-'} rate=${regua.wordsPerSecond} target=${alvoSegundos}s → min ${alvoPalavras} words`)
     /** Só o CTA "Turn this idea into a full script" manda isto. */
     const forceAuthoring = body.forceAuthoring === true
 
@@ -314,7 +313,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ script: topic, alreadyStructured: true })
     }
 
-    const SYSTEM_PROMPT = buildSystemPrompt(language, alvoSegundos)
+    const SYSTEM_PROMPT = buildSystemPrompt(language, alvoSegundos, regua.wordsPerSecond, regua.coverage) // KINEO-REGUA-DO-ESCRITOR
 
     const completion = await openai.chat.completions.create(
       {
@@ -420,10 +419,20 @@ export async function POST(req: NextRequest) {
         words: palavras,
         minWords: alvoPalavras,
         targetSeconds: alvoSegundos,
+        wordsPerSecond: regua.wordsPerSecond, // KINEO-REGUA-DO-ESCRITOR — a régua usada, para medição
+        family: regua.family,
       })
     }
 
-    return NextResponse.json({ script, alreadyStructured: false })
+    // KINEO-REGUA-DO-ESCRITOR-2026-09-17 — rastro de medição: quantas palavras nasceram, em que régua, para
+    // qual motor/duração. É o denominador de "roteiro nascido curto" (antes: 0 eventos; só a recusa aparecia).
+    await writeServerEvent({ // await: `void` antes do return morre na Vercel (memória da casa)
+      name: 'script_written',
+      userId: user.id,
+      path: '/api/generate-script',
+      metadata: { engine: typeof body.engine === 'string' ? body.engine : null, family: regua.family, voice: regua.voice, words_per_second: regua.wordsPerSecond, target_seconds: alvoSegundos, min_words: alvoPalavras, words: scriptWordCount(script), fits: scriptWordCount(script) >= alvoPalavras, language },
+    })
+    return NextResponse.json({ script, alreadyStructured: false, wordsPerSecond: regua.wordsPerSecond, family: regua.family, targetSeconds: alvoSegundos, minWords: alvoPalavras, words: scriptWordCount(script) })
   } catch (err) {
     console.error('[generate-script] error:', err)
     // KINEO-OPENAI-QUOTA-2026-07-31 — out-of-credits must never be a mute 500:
