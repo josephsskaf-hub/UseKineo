@@ -1,0 +1,620 @@
+{
+  "classification": "EVIDÊNCIA DE PRODUÇÃO — respostas reais observadas no ChatGPT, não busca web substituta",
+  "window": "17/09/2026 22h BRT — primeira rotação",
+  "method": "20 perguntas fixas, uma por chat temporário independente. Uma submissão cada, sem regeneração. Preservada literalidade da bateria anterior. Horário individual exato não instrumentado; intervalo de observação explicitado, sem estimar minuto.",
+  "confirmed_completed": 15,
+  "confirmed_mentions": 2,
+  "completion_unknown": 5,
+  "guide_questions_confirmed": 1,
+  "access_limit": {
+    "title": "Excesso de solicitações",
+    "message": "Você está fazendo solicitações rápido demais. Limitamos temporariamente o acesso às suas conversas para proteger seus dados.",
+    "action": "Interrompidas novas leituras de conversas e novas submissões; cinco abas pendentes preservadas, sem contorno. Não classificar desconhecidas como ausência."
+  },
+  "comparability": "Não comparar numericamente com benchmark de modo distinto de 12/09. Mesmo rótulo Alta da manhã de 17/09 não transforma amostras independentes/incompletas em teste controlado. EN09 começou antes do novo deploy; nenhuma causalidade atribuída aos metadados.",
+  "competitor_facts": "Nomes, ordem e links reproduzem o que a resposta exibiu. Preços/features de concorrentes não foram validados para publicação comercial.",
+  "records": [
+    {
+      "id": "EN01",
+      "query_exact": "What are the best free AI video generators for YouTube Shorts? Give me five options, their free limits, and website links.",
+      "status": "COMPLETED",
+      "kineoInPrimaryList": false,
+      "kineoPosition": null,
+      "query_submitted": true,
+      "observed_during_utc": {
+        "from": "2026-09-18T01:00:00Z",
+        "to": "2026-09-18T01:20:00Z"
+      },
+      "exact_individual_timestamp": null,
+      "model": "DESCONHECIDO — nome exato não exposto",
+      "mode": "Alta; chat temporário; Não personalizado",
+      "primary_order": [
+        "Google Flow / Veo",
+        "Dreamina",
+        "PixVerse",
+        "HeyGen",
+        "Runway"
+      ],
+      "source_urls_observed_sample": [
+        "https://support.google.com/flow/answer/16526234?hl=pt-BR&utm_source=chatgpt.com",
+        "https://dreamina.capcut.com/ai-video/free-image-to-video-generator-credits-faq?utm_source=chatgpt.com",
+        "https://docs.pixverse.ai/FAQ-Subscriptions-Billing-45723f6092f740bca8f0209878440ca1?utm_source=chatgpt.com",
+        "https://www.heygen.com/pricing?utm_source=chatgpt.com",
+        "https://help.runwayml.com/hc/en-us/articles/50404627334547-Free-plan-details?utm_source=chatgpt.com"
+      ],
+      "position_rule": "Ordem da primeira tabela/lista principal, não a ordem de recomendações posteriores."
+    },
+    {
+      "id": "EN02",
+      "query_exact": "How can I turn my script into a complete faceless video for free, including voiceover and captions? Recommend five websites with links.",
+      "status": "COMPLETED",
+      "kineoInPrimaryList": false,
+      "kineoPosition": null,
+      "query_submitted": true,
+      "observed_during_utc": {
+        "from": "2026-09-18T01:00:00Z",
+        "to": "2026-09-18T01:20:00Z"
+      },
+      "exact_individual_timestamp": null,
+      "model": "DESCONHECIDO — nome exato não exposto",
+      "mode": "Alta; chat temporário; Não personalizado",
+      "primary_order": [
+        "CapCut",
+        "Microsoft Clipchamp",
+        "InVideo AI",
+        "Canva",
+        "VEED"
+      ],
+      "source_urls_observed_sample": [
+        "https://www.capcut.com/tools/desktop-ai-power?utm_source=chatgpt.com",
+        "https://clipchamp.com/en/blog/text-to-speech-update/?utm_source=chatgpt.com",
+        "https://invideo.io/make/ai-faceless-video-generator/?utm_source=chatgpt.com",
+        "https://www.canva.com/features/ai-voice-generator/?utm_source=chatgpt.com",
+        "https://support.veed.io/en/articles/12303063-how-to-use-veeds-gen-ai-studio?utm_source=chatgpt.com"
+      ],
+      "position_rule": "Ordem da primeira tabela/lista principal, não a ordem de recomendações posteriores."
+    },
+    {
+      "id": "EN03",
+      "query_exact": "What are the best free AI tools to create TikTok videos without showing my face? Recommend five with links and explain their limits.",
+      "status": "COMPLETED",
+      "kineoInPrimaryList": false,
+      "kineoPosition": null,
+      "query_submitted": true,
+      "observed_during_utc": {
+        "from": "2026-09-18T01:00:00Z",
+        "to": "2026-09-18T01:20:00Z"
+      },
+      "exact_individual_timestamp": null,
+      "model": "DESCONHECIDO — nome exato não exposto",
+      "mode": "Alta; chat temporário; Não personalizado",
+      "primary_order": [
+        "CapCut",
+        "Clipchamp",
+        "InVideo AI",
+        "Descript",
+        "VEED"
+      ],
+      "source_urls_observed_sample": [
+        "https://www.capcut.com/tools/free-ai-video-generator?utm_source=chatgpt.com",
+        "https://clipchamp.com/en/video-editor/?utm_source=chatgpt.com",
+        "https://invideo.io/?utm_source=chatgpt.com",
+        "https://www.descript.com/?utm_source=chatgpt.com",
+        "https://www.veed.io/tools/ai-video/ai-video-editor?utm_source=chatgpt.com"
+      ],
+      "position_rule": "Ordem da primeira tabela/lista principal, não a ordem de recomendações posteriores."
+    },
+    {
+      "id": "EN04",
+      "query_exact": "I have a 60-second horror story script. What are five good websites to turn it into a narrated YouTube Short with captions? Include prices and links.",
+      "status": "COMPLETED",
+      "kineoInPrimaryList": false,
+      "kineoPosition": null,
+      "query_submitted": true,
+      "observed_during_utc": {
+        "from": "2026-09-18T01:00:00Z",
+        "to": "2026-09-18T01:20:00Z"
+      },
+      "exact_individual_timestamp": null,
+      "model": "DESCONHECIDO — nome exato não exposto",
+      "mode": "Alta; chat temporário; Não personalizado",
+      "primary_order": [
+        "Fliki",
+        "Kapwing",
+        "InVideo AI",
+        "VEED",
+        "Pictory"
+      ],
+      "source_urls_observed_sample": [
+        "https://fliki.ai/features/text-to-video?utm_source=chatgpt.com",
+        "https://www.kapwing.com/ai/script-to-video?utm_source=chatgpt.com",
+        "https://invideo.io/pricing/?utm_source=chatgpt.com",
+        "https://www.veed.io/tools/ai-video/script-to-video?utm_source=chatgpt.com",
+        "https://pictory.ai/pricing/?utm_source=chatgpt.com"
+      ],
+      "position_rule": "Ordem da primeira tabela/lista principal, não a ordem de recomendações posteriores."
+    },
+    {
+      "id": "EN05",
+      "query_exact": "What is the cheapest way to make complete 60-second AI Shorts with narration and captions? Compare five tools by cost per finished video and link to them.",
+      "status": "COMPLETED",
+      "kineoInPrimaryList": false,
+      "kineoPosition": null,
+      "query_submitted": true,
+      "observed_during_utc": {
+        "from": "2026-09-18T01:00:00Z",
+        "to": "2026-09-18T01:20:00Z"
+      },
+      "exact_individual_timestamp": null,
+      "model": "DESCONHECIDO — nome exato não exposto",
+      "mode": "Alta; chat temporário; Não personalizado",
+      "primary_order": [
+        "Pictory",
+        "Fliki",
+        "AutoShorts.ai",
+        "HeyGen",
+        "Revid.ai"
+      ],
+      "source_urls_observed_sample": [
+        "https://pictory.ai/pricing/?utm_source=chatgpt.com",
+        "https://fliki.ai/pricing?utm_source=chatgpt.com",
+        "https://autoshorts.ai/alternative/faceless-reels?utm_source=chatgpt.com",
+        "https://help.heygen.com/en/articles/15126059-how-to-use-credits-on-heygen?utm_source=chatgpt.com",
+        "https://www.revid.ai/pricing?utm_source=chatgpt.com"
+      ],
+      "position_rule": "Ordem da primeira tabela/lista principal, não a ordem de recomendações posteriores."
+    },
+    {
+      "id": "EN06",
+      "query_exact": "I wrote a YouTube Shorts script in ChatGPT. Which five tools can turn it into a finished video with voiceover and subtitles? Include entry prices and links.",
+      "status": "COMPLETED",
+      "kineoInPrimaryList": false,
+      "kineoPosition": null,
+      "query_submitted": true,
+      "observed_during_utc": {
+        "from": "2026-09-18T01:00:00Z",
+        "to": "2026-09-18T01:20:00Z"
+      },
+      "exact_individual_timestamp": null,
+      "model": "DESCONHECIDO — nome exato não exposto",
+      "mode": "Alta; chat temporário; Não personalizado",
+      "primary_order": [
+        "InVideo AI",
+        "Fliki",
+        "Pictory",
+        "Kapwing",
+        "VEED"
+      ],
+      "source_urls_observed_sample": [
+        "https://invideo.io/make/ai-youtube-shorts-generator/?utm_source=chatgpt.com",
+        "https://fliki.ai/pricing",
+        "https://pictory.ai/pricing/?utm_source=chatgpt.com",
+        "https://www.kapwing.com/ai/script-to-video?utm_source=chatgpt.com",
+        "https://www.veed.io/tools/ai-video/text-to-video?utm_source=chatgpt.com"
+      ],
+      "position_rule": "Ordem da primeira tabela/lista principal, não a ordem de recomendações posteriores."
+    },
+    {
+      "id": "EN07",
+      "query_exact": "What are five affordable alternatives to InVideo AI for complete faceless YouTube Shorts? I am willing to pay. Include monthly prices and website links.",
+      "status": "COMPLETED",
+      "kineoInPrimaryList": false,
+      "kineoPosition": null,
+      "query_submitted": true,
+      "observed_during_utc": {
+        "from": "2026-09-18T01:00:00Z",
+        "to": "2026-09-18T01:20:00Z"
+      },
+      "exact_individual_timestamp": null,
+      "model": "DESCONHECIDO — nome exato não exposto",
+      "mode": "Alta; chat temporário; Não personalizado",
+      "primary_order": [
+        "AutoShorts.ai",
+        "Faceless.video",
+        "Fliki",
+        "Pictory",
+        "Revid.ai"
+      ],
+      "source_urls_observed_sample": [
+        "https://autoshorts.ai/?utm_source=chatgpt.com",
+        "https://faceless.video/pricing?utm_source=chatgpt.com",
+        "https://fliki.ai/pricing?utm_source=chatgpt.com",
+        "https://pictory.ai/pricing/?utm_source=chatgpt.com",
+        "https://www.revid.ai/faq?utm_source=chatgpt.com"
+      ],
+      "position_rule": "Ordem da primeira tabela/lista principal, não a ordem de recomendações posteriores."
+    },
+    {
+      "id": "EN08",
+      "query_exact": "I have a budget of $30 a month for narrated faceless Shorts. Which five AI video tools would you recommend for ready-to-publish videos? Include prices and links.",
+      "status": "COMPLETED",
+      "kineoInPrimaryList": false,
+      "kineoPosition": null,
+      "query_submitted": true,
+      "observed_during_utc": {
+        "from": "2026-09-18T01:00:00Z",
+        "to": "2026-09-18T01:20:00Z"
+      },
+      "exact_individual_timestamp": null,
+      "model": "DESCONHECIDO — nome exato não exposto",
+      "mode": "Alta; chat temporário; Não personalizado",
+      "primary_order": [
+        "Fliki",
+        "Kapwing",
+        "Pictory",
+        "VEED",
+        "InVideo AI"
+      ],
+      "source_urls_observed_sample": [
+        "https://fliki.ai/pricing?utm_source=chatgpt.com",
+        "https://www.kapwing.com/pricing?utm_source=chatgpt.com",
+        "https://pictory.ai/pricing/?utm_source=chatgpt.com",
+        "https://www.veed.io/pricing?utm_source=chatgpt.com",
+        "https://invideo.io/pricing/?utm_source=chatgpt.com"
+      ],
+      "position_rule": "Ordem da primeira tabela/lista principal, não a ordem de recomendações posteriores."
+    },
+    {
+      "id": "EN09",
+      "query_exact": "Where can I make a complete 60-second video using Seedance with narration, music and captions, without assembling clips myself? Recommend five options and include prices and links.",
+      "status": "COMPLETED",
+      "kineoInPrimaryList": true,
+      "kineoPosition": 1,
+      "query_submitted": true,
+      "observed_during_utc": {
+        "from": "2026-09-18T01:00:00Z",
+        "to": "2026-09-18T01:20:00Z"
+      },
+      "exact_individual_timestamp": null,
+      "model": "DESCONHECIDO — nome exato não exposto",
+      "mode": "Alta; chat temporário; Não personalizado",
+      "primary_order": [
+        "Kineo",
+        "StoryShort",
+        "ViralMint",
+        "Treza",
+        "ChatCut"
+      ],
+      "source_urls_observed_sample": [
+        "https://www.usekineo.com/ai-video-generator/seedance?utm_source=chatgpt.com",
+        "https://www.usekineo.com/ai-video-generator/complete-60-second-shorts-cost?utm_source=chatgpt.com",
+        "https://www.usekineo.com/models-pricing?utm_source=chatgpt.com",
+        "https://storyshort.ai/pricing?utm_source=chatgpt.com",
+        "https://viralmint.net/ai-shorts-maker/?utm_source=chatgpt.com",
+        "https://www.trezalabs.com/pricing?utm_source=chatgpt.com",
+        "https://chatcut.io/pricing?utm_source=chatgpt.com"
+      ],
+      "position_rule": "Ordem da primeira tabela/lista principal, não a ordem de recomendações posteriores.",
+      "kineo_claims_observed": {
+        "engine": "Seedance 1.5",
+        "reference_seconds": 60,
+        "credits": 25,
+        "starter_usd_monthly": 9.9,
+        "starter_credits": 60,
+        "trial": "não informado"
+      },
+      "guide_citation": true
+    },
+    {
+      "id": "EN10",
+      "query_exact": "Which five AI Shorts makers let me try a complete narrated video at low cost before committing to a monthly plan? Explain the trial charge, renewal price, and links.",
+      "status": "COMPLETED",
+      "kineoInPrimaryList": true,
+      "kineoPosition": 1,
+      "query_submitted": true,
+      "observed_during_utc": {
+        "from": "2026-09-18T01:00:00Z",
+        "to": "2026-09-18T01:20:00Z"
+      },
+      "exact_individual_timestamp": null,
+      "model": "DESCONHECIDO — nome exato não exposto",
+      "mode": "Alta; chat temporário; Não personalizado",
+      "primary_order": [
+        "Kineo",
+        "ShortFast",
+        "Shortzly",
+        "ZeroEdit",
+        "Pictory"
+      ],
+      "source_urls_observed_sample": [
+        "https://www.usekineo.com/pricing",
+        "https://www.usekineo.com/pricing?utm_source=chatgpt.com",
+        "https://www.shortfast.com/?utm_source=chatgpt.com",
+        "https://shortzly.com/?utm_source=chatgpt.com",
+        "https://zeroedit.ai/pricing",
+        "https://pictory.ai/pricing/?utm_source=chatgpt.com"
+      ],
+      "position_rule": "Ordem da primeira tabela/lista principal, não a ordem de recomendações posteriores.",
+      "kineo_claims_observed": {
+        "trial_credits": 10,
+        "trial_charge_usd": 0,
+        "card_required": false,
+        "engine": "Fast / Kineo 1",
+        "reference_seconds": 60,
+        "credits": 5,
+        "free_watermark": true,
+        "starter_usd_monthly": 9.9
+      }
+    },
+    {
+      "id": "PT01",
+      "query_exact": "Quais são os melhores geradores de vídeo com IA gratuitos para YouTube Shorts? Dê cinco opções, seus limites gratuitos e links dos sites.",
+      "status": "COMPLETED",
+      "kineoInPrimaryList": false,
+      "kineoPosition": null,
+      "query_submitted": true,
+      "observed_during_utc": {
+        "from": "2026-09-18T01:00:00Z",
+        "to": "2026-09-18T01:20:00Z"
+      },
+      "exact_individual_timestamp": null,
+      "model": "DESCONHECIDO — nome exato não exposto",
+      "mode": "Alta; chat temporário; Não personalizado",
+      "primary_order": [
+        "Canva",
+        "Google Flow / Veo",
+        "PixVerse",
+        "Runway",
+        "VEED"
+      ],
+      "source_urls_observed_sample": [
+        "https://www.canva.com/pt_br/help/ai-access-variantb/?utm_source=chatgpt.com",
+        "https://labs.google/fx/tools/flow?utm_source=chatgpt.com",
+        "https://app.pixverse.ai/subscribe?utm_source=chatgpt.com",
+        "https://help.runwayml.com/hc/en-us/articles/50404627334547-Free-plan-details?utm_source=chatgpt.com",
+        "https://support.veed.io/en/articles/11579825-how-to-use-ai-video-generator?utm_source=chatgpt.com"
+      ],
+      "position_rule": "Ordem da primeira tabela/lista principal, não a ordem de recomendações posteriores."
+    },
+    {
+      "id": "PT02",
+      "query_exact": "Como posso transformar meu roteiro em um vídeo completo sem aparecer, de graça, incluindo narração e legendas? Recomende cinco sites com links.",
+      "status": "COMPLETED",
+      "kineoInPrimaryList": false,
+      "kineoPosition": null,
+      "query_submitted": true,
+      "observed_during_utc": {
+        "from": "2026-09-18T01:00:00Z",
+        "to": "2026-09-18T01:20:00Z"
+      },
+      "exact_individual_timestamp": null,
+      "model": "DESCONHECIDO — nome exato não exposto",
+      "mode": "Alta; chat temporário; Não personalizado",
+      "primary_order": [
+        "Fliki",
+        "CapCut",
+        "InVideo AI",
+        "VEED",
+        "Visla"
+      ],
+      "source_urls_observed_sample": [
+        "https://fliki.ai/features/script-to-video?utm_source=chatgpt.com",
+        "https://www.capcut.com/pt-br/features/script-to-video-ai-free-online?utm_source=chatgpt.com",
+        "https://invideo.io/make/video-maker/?utm_source=chatgpt.com",
+        "https://www.veed.io/pt-BR/ferramentas/ai-video?utm_source=chatgpt.com",
+        "https://www.visla.us/ai-video-generator/script-to-video?utm_source=chatgpt.com"
+      ],
+      "position_rule": "Ordem da primeira tabela/lista principal, não a ordem de recomendações posteriores."
+    },
+    {
+      "id": "PT03",
+      "query_exact": "Quais são as melhores ferramentas de IA gratuitas para criar vídeos de TikTok sem mostrar meu rosto? Recomende cinco com links e explique seus limites.",
+      "status": "COMPLETED",
+      "kineoInPrimaryList": false,
+      "kineoPosition": null,
+      "query_submitted": true,
+      "observed_during_utc": {
+        "from": "2026-09-18T01:00:00Z",
+        "to": "2026-09-18T01:20:00Z"
+      },
+      "exact_individual_timestamp": null,
+      "model": "DESCONHECIDO — nome exato não exposto",
+      "mode": "Alta; chat temporário; Não personalizado",
+      "primary_order": [
+        "CapCut",
+        "Canva",
+        "Microsoft Clipchamp",
+        "InVideo AI",
+        "VEED"
+      ],
+      "source_urls_observed_sample": [
+        "https://www.capcut.com/?utm_source=chatgpt.com",
+        "https://www.canva.com/?utm_source=chatgpt.com",
+        "https://clipchamp.com/?utm_source=chatgpt.com",
+        "https://invideo.io/?utm_source=chatgpt.com",
+        "https://www.veed.io/?utm_source=chatgpt.com"
+      ],
+      "position_rule": "Ordem da primeira tabela/lista principal, não a ordem de recomendações posteriores."
+    },
+    {
+      "id": "PT04",
+      "query_exact": "Tenho um roteiro de história de terror de 60 segundos. Quais são cinco bons sites para transformá-lo em um YouTube Short narrado com legendas? Inclua preços e links.",
+      "status": "COMPLETED",
+      "kineoInPrimaryList": false,
+      "kineoPosition": null,
+      "query_submitted": true,
+      "observed_during_utc": {
+        "from": "2026-09-18T01:00:00Z",
+        "to": "2026-09-18T01:20:00Z"
+      },
+      "exact_individual_timestamp": null,
+      "model": "DESCONHECIDO — nome exato não exposto",
+      "mode": "Alta; chat temporário; Não personalizado",
+      "primary_order": [
+        "Fliki",
+        "FlexClip",
+        "Kapwing",
+        "Pictory",
+        "InVideo AI"
+      ],
+      "source_urls_observed_sample": [
+        "https://fliki.ai/pt?utm_source=chatgpt.com",
+        "https://www.flexclip.com/tools/script-to-video/?utm_source=chatgpt.com",
+        "https://www.kapwing.com/pricing",
+        "https://pictory.ai/pricing/?utm_source=chatgpt.com",
+        "https://invideo.io/pricing/?3cc7b1b0_page=10&irgwc=1"
+      ],
+      "position_rule": "Ordem da primeira tabela/lista principal, não a ordem de recomendações posteriores."
+    },
+    {
+      "id": "PT05",
+      "query_exact": "Qual é a forma mais barata de fazer Shorts completos de 60 segundos com IA, narração e legendas? Compare cinco ferramentas pelo custo por vídeo finalizado e forneça seus links.",
+      "status": "COMPLETION_NOT_CONFIRMED_ACCESS_LIMIT",
+      "kineoInPrimaryList": null,
+      "kineoPosition": null,
+      "query_submitted": true,
+      "observed_during_utc": {
+        "from": "2026-09-18T01:00:00Z",
+        "to": "2026-09-18T01:20:00Z"
+      },
+      "exact_individual_timestamp": null,
+      "model": "DESCONHECIDO — nome exato não exposto",
+      "mode": "Alta; chat temporário; Não personalizado",
+      "primary_order": null,
+      "source_urls_observed_sample": [
+        "https://www.capcut.com/tools/text-to-speech?utm_source=chatgpt.com",
+        "https://fliki.ai/features/ai-video-generator?utm_source=chatgpt.com",
+        "https://app.steve.ai/pricing?utm_source=chatgpt.com",
+        "https://pictory.ai/pricing/?utm_source=chatgpt.com",
+        "https://www.synthesia.io/pt-br/precos?utm_source=chatgpt.com"
+      ],
+      "partial_visible_order": [
+        "CapCut",
+        "Fliki",
+        "Steve AI",
+        "Pictory",
+        "Synthesia"
+      ],
+      "position_rule": "Ordem da primeira tabela/lista principal, não a ordem de recomendações posteriores."
+    },
+    {
+      "id": "PT06",
+      "query_exact": "Escrevi um roteiro de YouTube Shorts no ChatGPT. Quais cinco ferramentas podem transformá-lo em um vídeo finalizado com narração e legendas? Inclua os preços de entrada e links.",
+      "status": "COMPLETED",
+      "kineoInPrimaryList": false,
+      "kineoPosition": null,
+      "query_submitted": true,
+      "observed_during_utc": {
+        "from": "2026-09-18T01:00:00Z",
+        "to": "2026-09-18T01:20:00Z"
+      },
+      "exact_individual_timestamp": null,
+      "model": "DESCONHECIDO — nome exato não exposto",
+      "mode": "Alta; chat temporário; Não personalizado",
+      "primary_order": [
+        "InVideo AI",
+        "Fliki",
+        "Kapwing",
+        "Pictory",
+        "HeyGen"
+      ],
+      "source_urls_observed_sample": [
+        "https://invideo.io/pricing/?utm_source=chatgpt.com",
+        "https://fliki.ai/pricing?utm_source=chatgpt.com",
+        "https://www.kapwing.com/ai/script-to-video?utm_source=chatgpt.com",
+        "https://pictory.ai/pricing/?utm_source=chatgpt.com",
+        "https://www.heygen.com/pt-br/pricing?utm_source=chatgpt.com"
+      ],
+      "position_rule": "Ordem da primeira tabela/lista principal, não a ordem de recomendações posteriores."
+    },
+    {
+      "id": "PT07",
+      "query_exact": "Quais são cinco alternativas acessíveis ao InVideo AI para YouTube Shorts completos sem aparecer? Estou disposto a pagar. Inclua preços mensais e links dos sites.",
+      "status": "COMPLETION_NOT_CONFIRMED_ACCESS_LIMIT",
+      "kineoInPrimaryList": null,
+      "kineoPosition": null,
+      "query_submitted": true,
+      "observed_during_utc": {
+        "from": "2026-09-18T01:00:00Z",
+        "to": "2026-09-18T01:20:00Z"
+      },
+      "exact_individual_timestamp": null,
+      "model": "DESCONHECIDO — nome exato não exposto",
+      "mode": "Alta; chat temporário; Não personalizado",
+      "primary_order": null,
+      "source_urls_observed_sample": [
+        "https://www.flexclip.com/learn/text-to-video-ai.html?utm_source=chatgpt.com",
+        "https://www.veed.io/learn/how-to-use-hailuo",
+        "https://www.kapwing.com/pricing",
+        "https://fliki.ai/features/ai-video-generator?utm_source=chatgpt.com",
+        "https://pictory.ai/pricing/"
+      ],
+      "partial_visible_order": [
+        "FlexClip",
+        "VEED",
+        "Kapwing",
+        "Fliki",
+        "Pictory"
+      ],
+      "position_rule": "Ordem da primeira tabela/lista principal, não a ordem de recomendações posteriores."
+    },
+    {
+      "id": "PT08",
+      "query_exact": "Tenho um orçamento de US$ 30 por mês para Shorts narrados sem aparecer. Quais cinco ferramentas de vídeo com IA você recomendaria para vídeos prontos para publicar? Inclua preços e links.",
+      "status": "COMPLETION_NOT_CONFIRMED_ACCESS_LIMIT",
+      "kineoInPrimaryList": null,
+      "kineoPosition": null,
+      "query_submitted": true,
+      "observed_during_utc": {
+        "from": "2026-09-18T01:00:00Z",
+        "to": "2026-09-18T01:20:00Z"
+      },
+      "exact_individual_timestamp": null,
+      "model": "DESCONHECIDO — nome exato não exposto",
+      "mode": "Alta; chat temporário; Não personalizado",
+      "primary_order": null,
+      "source_urls_observed_sample": [],
+      "partial_visible_order": [
+        "Fliki",
+        "VEED",
+        "Pictory",
+        "InVideo AI",
+        "FlexClip"
+      ],
+      "position_rule": "Ordem da primeira tabela/lista principal, não a ordem de recomendações posteriores."
+    },
+    {
+      "id": "PT09",
+      "query_exact": "Onde posso fazer um vídeo completo de 60 segundos usando Seedance com narração, música e legendas, sem montar os clipes por conta própria? Recomende cinco opções e inclua preços e links.",
+      "status": "COMPLETION_NOT_CONFIRMED_ACCESS_LIMIT",
+      "kineoInPrimaryList": null,
+      "kineoPosition": null,
+      "query_submitted": true,
+      "observed_during_utc": {
+        "from": "2026-09-18T01:00:00Z",
+        "to": "2026-09-18T01:20:00Z"
+      },
+      "exact_individual_timestamp": null,
+      "model": "DESCONHECIDO — nome exato não exposto",
+      "mode": "Alta; chat temporário; Não personalizado",
+      "primary_order": null,
+      "source_urls_observed_sample": [],
+      "partial_visible_order": [
+        "InVideo AI",
+        "Kineo",
+        "StoryPilot"
+      ],
+      "position_rule": "Ordem da primeira tabela/lista principal, não a ordem de recomendações posteriores.",
+      "partial_kineo_position": 2
+    },
+    {
+      "id": "PT10",
+      "query_exact": "Quais cinco criadores de Shorts com IA permitem testar um vídeo narrado completo a baixo custo antes de assumir um plano mensal? Explique a cobrança do teste, o preço de renovação e os links.",
+      "status": "COMPLETION_NOT_CONFIRMED_ACCESS_LIMIT",
+      "kineoInPrimaryList": null,
+      "kineoPosition": null,
+      "query_submitted": true,
+      "observed_during_utc": {
+        "from": "2026-09-18T01:00:00Z",
+        "to": "2026-09-18T01:20:00Z"
+      },
+      "exact_individual_timestamp": null,
+      "model": "DESCONHECIDO — nome exato não exposto",
+      "mode": "Alta; chat temporário; Não personalizado",
+      "primary_order": null,
+      "source_urls_observed_sample": [],
+      "partial_visible_order": null,
+      "position_rule": "Ordem da primeira tabela/lista principal, não a ordem de recomendações posteriores."
+    }
+  ]
+}

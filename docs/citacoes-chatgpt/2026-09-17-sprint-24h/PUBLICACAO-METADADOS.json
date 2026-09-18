@@ -1,0 +1,41 @@
+{
+  "classification": "EVIDÊNCIA DE PRODUÇÃO",
+  "status": "VALIDADO EM PRODUÇÃO",
+  "product_sha": "8aa66653f24ada47ec06f3a148340f7278ce70ac",
+  "base_sha": "560b5e2ffd63c1b4b786fe424e192155049665ea",
+  "deployment_id": "dpl_8S6kPh2jqTm4WSRQBjuPqQH3NE73",
+  "deployment_state": "READY",
+  "target": "production",
+  "alias": "www.usekineo.com",
+  "scope": "Somente generateMetadata da rota pública por motor; corpo visível idêntico à base.",
+  "published_via": "scripts/enfileirar.sh e scripts/!RODAR-AGORA.bat com candidato e base imutáveis",
+  "checks": [
+    {
+      "url": "https://www.usekineo.com/ai-video-generator/seedance",
+      "observed_at": "2026-09-18T01:11:47.2200388Z",
+      "http": 200,
+      "description": "Seedance 1.5 in Kineo: a complete narrated vertical Short with captions, 25 credits per 60-second video. Free trial: 10 credits, no card; not enough for this reference video."
+    },
+    {
+      "url": "https://www.usekineo.com/ai-video-generator/kineo-1",
+      "observed_at": "2026-09-18T01:11:47.9106943Z",
+      "http": 200,
+      "description": "Kineo 1 in Kineo: a complete narrated vertical Short with captions, 5 credits per 60-second video. Free trial: 10 credits, no card; covers this reference video."
+    },
+    {
+      "url": "https://www.usekineo.com/ai-video-generator/minimax-h3",
+      "observed_at": "2026-09-18T01:11:48.8865972Z",
+      "http": 200,
+      "title": "MiniMax H3 — Temporarily Paused | Kineo",
+      "description": "MiniMax H3 is temporarily paused for maintenance in Kineo. Kling 3 is an available alternative; compare its credits and limits before creating."
+    }
+  ],
+  "tests": {
+    "real_metadata_public_engines": 7,
+    "aeo_engine_destinations": "72/72",
+    "engine_landing_intent": "139/139",
+    "tsc_exit": 0,
+    "diff_check": "PASS"
+  },
+  "limits": "Publicação e resposta HTTP não comprovam indexação, exposição humana, citação incremental, cadastro ou pagamento."
+}
