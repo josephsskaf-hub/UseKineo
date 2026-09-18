@@ -25,15 +25,16 @@ const ENGINE_HUB_SIGNUP_HREF = buildProductSurfaceSignupHref({
   utmSource: 'seo',
 })
 
+const HUB_DESCRIPTION = 'Compare Kineo video engines for finished vertical Shorts with narration and captions. Open each engine page for credit costs, limits and current availability.'
+
 export const metadata: Metadata = {
   metadataBase: new URL(BASE),
   title: 'AI Video Generator — Seedance, Kling, Veo & Kineo 1 | Kineo',
-  description:
-    'Pick the AI video engine and get a finished vertical Short: Kineo 1, Seedance 1.5, Kling 2.5, MiniMax H3, Veo 3.1 and Kling 3 — with script, AI voiceover and captions assembled for you. Real user renders, not a demo reel.',
+  description: HUB_DESCRIPTION,
   alternates: { canonical: `${BASE}/ai-video-generator` },
   openGraph: {
     title: 'AI Video Generator — Seedance, Kling, Veo & Kineo 1 | Kineo',
-    description: 'Every engine Kineo runs, what each one costs, and real Shorts rendered by each.',
+    description: HUB_DESCRIPTION,
     url: `${BASE}/ai-video-generator`,
     type: 'website',
   },

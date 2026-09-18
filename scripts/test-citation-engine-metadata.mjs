@@ -61,3 +61,32 @@ const pageBody = source => {
 }
 assert.equal(pageBody(current), pageBody(previous))
 console.log('PASS: actual metadata, canonical URLs, pause policy and credit coverage for ' + ENGINE_SLUGS.length + ' engine pages; visible page unchanged')
+
+// Exercise the hub's actual metadata object, not a copied expected object.
+const hubFile = 'app/ai-video-generator/page.tsx'
+const hubCurrent = fs.readFileSync(hubFile, 'utf8')
+const hubPrevious = execFileSync('git', ['show', '7bd95b83:' + hubFile], { encoding: 'utf8' })
+function hubMetadata(source) {
+  const tree = ast(source)
+  const declarations = tree.statements.filter(node => ts.isVariableStatement(node) &&
+    node.declarationList.declarations.some(declaration => ['HUB_DESCRIPTION', 'metadata'].includes(declaration.name.getText(tree))))
+  const js = ts.transpileModule(declarations.map(node => node.getText(tree)).join('\n'), {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+  }).outputText
+  const exports = {}
+  vm.runInNewContext(js, { exports, URL, BASE: 'https://www.usekineo.com' }, { timeout: 2000 })
+  return exports.metadata
+}
+const hubBefore = hubMetadata(hubPrevious), hubAfter = hubMetadata(hubCurrent)
+assert.match(hubBefore.description, /Real user renders/)
+assert.doesNotMatch(hubAfter.description, /real user renders|demo reel|rendered by each/i)
+assert.equal(hubAfter.openGraph.description, hubAfter.description)
+assert.equal(hubAfter.title, hubBefore.title)
+assert.equal(hubAfter.alternates.canonical, hubBefore.alternates.canonical)
+assert.equal(hubAfter.openGraph.url, hubBefore.openGraph.url)
+const hubBody = source => {
+  const tree = ast(source)
+  return tree.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === 'EngineHubPage').getText(tree).replace(/\r\n/g, '\n')
+}
+assert.equal(hubBody(hubCurrent), hubBody(hubPrevious))
+console.log('PASS: hub metadata no longer promises absent videos; canonical links and visible page unchanged')
