@@ -39,7 +39,7 @@ checa('erro não mente: trial segue igual', /Your trial is unchanged/.test(b))
 checa('três eventos (clique, ok, falha)', /card_trial_continue_now_clicked/.test(b) && /card_trial_continue_now_ok/.test(b) && /card_trial_continue_now_failed/.test(b))
 
 console.log('== o layout ==')
-checa('layout lê plan e video_credits', /select\('is_pro, email, trial_status, has_paid, plan, video_credits'\)/.test(lay))
+checa('layout lê plan e video_credits', /select\('is_pro, email, trial_status, has_paid, plan, video_credits, stripe_subscription_id'\)/ /* KINEO-AVISO-RENOVACAO-RECUSADA-2026-09-18: +stripe_subscription_id */.test(lay))
 checa('layout monta a faixa', /<TrialContinueNowBanner/.test(lay))
 
 console.log(`\n  verificacoes: ${ok + falhas.length} · falhas: ${falhas.length}`)

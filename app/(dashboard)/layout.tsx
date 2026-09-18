@@ -56,6 +56,8 @@ import TrialDowngradeModal from '@/components/TrialDowngradeModal'
 // com KINEO_REVERSE_TRIAL_ENABLED OFF o componente não chega ao browser e o
 // custo desta feature é exatamente ZERO — nenhum fetch a mais por navegação.
 import TrialActiveBanner from '@/components/TrialActiveBanner'
+// KINEO-AVISO-RENOVACAO-RECUSADA-2026-09-18 — assinante com cobrança recusada fica sabendo aqui, não só por e-mail.
+import RenewalDeclinedBanner from '@/components/RenewalDeclinedBanner'
 // KINEO-TRIAL-ABUSE-PMP-2026-08-07 - O PRIMEIRO MINUTO PAGO. Tres SKUs do
 // checkout (topup, bulk e o piloto do Autopilot) redirecionam DIRETO para
 // /generate?success=true e /autopilot?success=true, e um grep por `success` em
@@ -124,7 +126,7 @@ export default async function DashboardLayout({
   if (user) {
     const { data } = await supabase
       .from('profiles')
-      .select('is_pro, email, trial_status, has_paid, plan, video_credits')
+      .select('is_pro, email, trial_status, has_paid, plan, video_credits, stripe_subscription_id')
       .eq('id', user.id)
       .single()
     profile = data
@@ -157,6 +159,13 @@ export default async function DashboardLayout({
           que toda tela autenticada atravessa e que não cobre nada. `userKey`
           vem do SERVIDOR pelo mesmo motivo do modal abaixo. */}
       {user && REVERSE_TRIAL_ENABLED && <TrialActiveBanner userKey={user.id.slice(0, 8)} />}
+      {/* KINEO-AVISO-RENOVACAO-RECUSADA-2026-09-18 — só monta com assinatura Stripe no perfil; o status vem da Stripe viva. */}
+      {user && (
+        <RenewalDeclinedBanner
+          hasStripeSubscription={typeof (profile as { stripe_subscription_id?: string | null } | null)?.stripe_subscription_id === 'string'}
+          plan={(profile as { plan?: string | null } | null)?.plan ?? null}
+        />
+      )}
       {/* KINEO-VERSAO-B-ENTRADA-1-DOLAR-2026-09-08 — quem nasceu card_required vê a
           porta única antes de qualquer outra coisa. Some sozinha quando paga. */}
       {user && (

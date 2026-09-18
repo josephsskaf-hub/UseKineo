@@ -115,6 +115,8 @@ import {
 import { decidePostDeliverySlot, type PostDeliverySlotOwner } from '@/lib/growth/postDeliverySlot'
 // KINEO-PORTA-TERCEIRO-FILME-2026-09-17 — a jogada do segundo filme (ver o cabeçalho do módulo).
 import { decideThirdFilmDoor, thirdFilmDoorCapacityLine } from '@/lib/growth/thirdFilmDoor'
+// KINEO-VENDER-NO-DOWNLOAD-2026-09-18 — jogada 7: "baixar limpo" ao lado de "baixar grátis", na hora do download.
+import { decideCleanDownloadTwin, cleanDownloadTwinLabel } from '@/lib/growth/cleanDownloadTwin'
 import { narrationLanguage, type NarrationLanguage } from '@/lib/textLanguage' // KINEO-IDIOMAS-15-2026-09-17
 import { decideCleanFilmTrialDoor } from '@/lib/growth/cleanFilmTrialDoor'
 import CleanFilmTrialDoor from '@/components/CleanFilmTrialDoor'
@@ -2373,6 +2375,9 @@ export default function GenerateClient({
   // KINEO-PORTA-TERCEIRO-FILME-2026-09-17 — a porta do 3º filme abre a Stripe direto; superfície própria.
   const thirdFilmCheckout = useCheckoutLaunch('generate_third_film_door')
   const thirdFilmDoorRef = useRef<HTMLDivElement | null>(null)
+  // KINEO-VENDER-NO-DOWNLOAD-2026-09-18 — impressão do botão gêmeo, uma vez por asset.
+  const cleanDownloadTwinRef = useRef<HTMLButtonElement | null>(null)
+  const cleanDownloadTwinTrackedKeyRef = useRef<string | null>(null)
   const thirdFilmDoorSeenRef = useRef<string | null>(null)
   const urgencyCheckout = useCheckoutLaunch('generate_urgency_modal')
   const exitIntentCheckout = useCheckoutLaunch('generate_exit_intent_upgrade')
@@ -5346,6 +5351,37 @@ export default function GenerateClient({
   const showPostVideoExportChoice =
     phase === 'done' && Boolean(finalVideoUrl) && currentResultHasWatermark &&
     !trialActive && !wmUnlocking && trialPostVideoPhase === null
+  // KINEO-VENDER-NO-DOWNLOAD-2026-09-18 (jogada 7, fundador: "pode ir") — ver
+  // lib/growth/cleanDownloadTwin.ts. Diferente da caixa acima, NÃO exclui o
+  // trial: 34 das 38 leituras recentes do pós-download eram de trial, e é lá
+  // que a versão limpa não tinha botão nenhum ao lado do arquivo. Exige os
+  // insumos da remontagem (lastFastRenderRef) porque promete ESTE filme limpo.
+  const cleanDownloadTwin = decideCleanDownloadTwin({
+    delivered: phase === 'done' && Boolean(finalVideoUrl),
+    hasWatermark: currentResultHasWatermark,
+    hasPaid,
+    unlocking: wmUnlocking,
+    rebuildReady: Boolean(lastFastRenderRef.current),
+  })
+  useEffect(() => {
+    const element = cleanDownloadTwinRef.current
+    const offerKey = publicVideoId || finalVideoUrl
+    if (!cleanDownloadTwin.visible || !element || !offerKey || cleanDownloadTwinTrackedKeyRef.current === offerKey) return
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries.some((entry) => entry.isIntersecting && entry.intersectionRatio >= 0.5)) return
+      cleanDownloadTwinTrackedKeyRef.current = offerKey
+      void trackEvent('clean_download_twin_shown', {
+        version: cleanDownloadTwin.version,
+        trial_phase: trialPostVideoPhase,
+        host: showPostVideoExportChoice ? 'export_choice_card' : 'plain_download',
+        ...(postVideoCurrency ? { display_currency: postVideoCurrency } : {}),
+        ...(intentCampaign ? { intent_campaign: intentCampaign } : {}),
+      })
+      observer.disconnect()
+    }, { threshold: [0.5] })
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [cleanDownloadTwin.visible, cleanDownloadTwin.version, finalVideoUrl, publicVideoId, trialPostVideoPhase, showPostVideoExportChoice, postVideoCurrency, intentCampaign])
 
   // KINEO-UPGRADE-MODAL-CURRENCY-2026-08-06 — a emissão de
   // `post_video_currency_resolved` saiu do efeito acima DE PROPÓSITO, e este é
@@ -10930,6 +10966,21 @@ export default function GenerateClient({
   // KINEO-RECOVERY-2026-07-15 — one post-video decision: Starter at $4.90 for
   // the first month. Stash the exact render inputs, preserve `return=wm`, and
   // rebuild this same video clean after the recurring checkout succeeds.
+  // KINEO-VENDER-NO-DOWNLOAD-2026-09-18 — o clique no gêmeo é o MESMO checkout
+  // do "remove watermark" (Starter, return=wm, remonta este filme limpo). Só
+  // ganha um evento próprio para a jogada ser medida separada da caixa antiga.
+  function handleCleanDownloadTwin() {
+    void trackEvent('clean_download_twin_clicked', {
+      version: cleanDownloadTwin.version,
+      trial_phase: trialPostVideoPhase,
+      host: showPostVideoExportChoice ? 'export_choice_card' : 'plain_download',
+      watermarked_downloaded: watermarkedDownloadConfirmed,
+      ...(postVideoCurrency ? { display_currency: postVideoCurrency } : {}),
+      ...(intentCampaign ? { intent_campaign: intentCampaign } : {}),
+    })
+    handleRemoveWatermark()
+  }
+
   function handleRemoveWatermark() {
     try {
       if (lastFastRenderRef.current) {
@@ -12354,6 +12405,33 @@ export default function GenerateClient({
   // deixei para o dono; ninguém pegou, e prometer arquivo que não volta é a
   // definição de copy que mente.)
   const cleanExportRebuildReady = Boolean(lastFastRenderRef.current)
+  // KINEO-VENDER-NO-DOWNLOAD-2026-09-18 — o botão gêmeo. Um só nó, montado logo
+  // abaixo do download nos DOIS ramos irmãos (caixa de export limpo e download
+  // simples do trial) — eles nunca renderizam juntos, então o ref é um só.
+  const cleanDownloadTwinCopy = cleanDownloadTwinLabel(postVideoRenewalPrice, TIER_CREDITS.starter)
+  const cleanDownloadTwinButton = cleanDownloadTwin.visible ? (
+    <button
+      ref={cleanDownloadTwinRef}
+      type="button"
+      data-clean-download-twin={cleanDownloadTwin.version}
+      onClick={handleCleanDownloadTwin}
+      disabled={wmCheckout.pending !== null}
+      className="flex w-full flex-col items-center justify-center rounded-xl mt-2.5 px-4 py-3 text-center font-black"
+      style={{
+        background: 'linear-gradient(135deg, #2997ff, #0a6fd8)',
+        border: '1px solid rgba(41,151,255,.6)',
+        color: '#fff',
+        cursor: wmCheckout.pending ? 'wait' : 'pointer',
+        opacity: wmCheckout.pending ? 0.7 : 1,
+        boxShadow: '0 8px 24px rgba(41,151,255,.28)',
+      }}
+    >
+      <span style={{ fontSize: '0.95rem' }}>{wmCheckout.pending ? 'Opening secure checkout…' : `✨ ${cleanDownloadTwinCopy.title}`}</span>
+      <span style={{ marginTop: 3, fontSize: '0.68rem', fontWeight: 700, color: 'rgba(255,255,255,.85)', lineHeight: 1.4 }}>
+        {cleanDownloadTwinCopy.sub}
+      </span>
+    </button>
+  ) : null
   const cleanExportTrialDoor = decideCleanFilmTrialDoor({
     slotOwner: showPostVideoExportChoice ? 'clean_export' : null,
     hasPaid,
@@ -16481,6 +16559,8 @@ export default function GenerateClient({
                       ? 'Download again (free copy)'
                       : `Download my Short (${finalVideoSeconds ?? duration}s · MP4)`}
                   </a>
+                  {/* KINEO-VENDER-NO-DOWNLOAD-2026-09-18 — o gêmeo, colado no download. */}
+                  {cleanDownloadTwinButton}
                   {/* sprint-retencao #2 — a porta do episodio 2, no primeiro
                       viewport. Ver o bloco de comentario em episode2Engine:
                       so 12% das pessoas chegavam a VER esta oferta no rodape,
@@ -16808,6 +16888,8 @@ export default function GenerateClient({
                       : 'Free copy — carries a small Kineo watermark. Yours to post anywhere.'}
                   </p>
                 )}
+                {/* KINEO-VENDER-NO-DOWNLOAD-2026-09-18 — o gêmeo, no ramo onde o trial cai. */}
+                {!showPostVideoExportChoice && cleanDownloadTwinButton}
 
                 {/* sprint-retencao #11 (2026-09-05) — A MESMA PORTA, NO RAMO
                     ONDE QUASE TODO MUNDO CAI.
