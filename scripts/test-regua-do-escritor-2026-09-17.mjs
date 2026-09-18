@@ -27,12 +27,21 @@ function loadWith(file, requireMap, env = {}) {
 console.log('== (a) a régua do escritor é a régua do portão ==')
 const narrationFit = loadWith('lib/narrationFit.ts', {})
 const speechRate = loadWith('lib/speechRate.ts', { '@/lib/narrationFit': narrationFit, './narrationFit': narrationFit })
-// Persona do Kineo 1 como a rota fast a resolve (fable ×1,1 = a que aparece no log "→ 2.81 pal/s").
-const personaFable = { selectPersonaForScript: () => ({ id: 'energetic-facts', voice: 'fable', defaultSpeed: 1.1 }) }
-const W = loadWith('lib/scriptWriterRate.ts', { '@/lib/narrationFit': narrationFit, '@/lib/speechRate': speechRate, '@/lib/narration/niche-mapping': personaFable })
-const portaoFast = speechRate.speechRateFor({ family: 'classic', language: 'en', voice: 'fable', personaSpeed: 1.1 })
+// Catálogo REAL de personas (voz + velocidade) e a persona que o tema cru escolheria (a LENTA, de propósito):
+// auditoria 17/09 — escritor (tema cru) e portão (roteiro pronto) podem escolher personas diferentes, de 2,25 a
+// 2,81 pal/s; o escritor tem de dimensionar pela MAIS RÁPIDA para nunca nascer curto para o portão.
+const personas = loadWith('lib/narration/personas.ts', {})
+const catalogo = Array.isArray(personas.VOICE_PERSONAS) ? personas.VOICE_PERSONAS : []
+const maisRapida = Math.max(...catalogo.map((p) => speechRate.speechRateFor({ family: 'classic', language: 'en', voice: p.voice, personaSpeed: p.defaultSpeed }).wordsPerSecond))
+const maisLenta = Math.min(...catalogo.map((p) => speechRate.speechRateFor({ family: 'classic', language: 'en', voice: p.voice, personaSpeed: p.defaultSpeed }).wordsPerSecond))
+const personaLenta = { selectPersonaForScript: () => ({ id: 'calm', voice: 'onyx', defaultSpeed: 0.9 }) }
+const W = loadWith('lib/scriptWriterRate.ts', { '@/lib/narrationFit': narrationFit, '@/lib/speechRate': speechRate, '@/lib/narration/niche-mapping': personaLenta, '@/lib/narration/personas': personas })
+const portaoFast = speechRate.speechRateFor({ family: 'classic', language: 'en', voice: 'fable', personaSpeed: 1.1 }) // a persona do log real ("→ 2.81 pal/s")
 const reguaFast = W.writerRateFor('fast', '5 shocking facts about money', 'en')
-checa('Kineo 1: mesma régua do portão (persona fable ×1,1 ≈ 2,8 pal/s) e piso = duração inteira', reguaFast.family === 'classic' && reguaFast.wordsPerSecond === portaoFast.wordsPerSecond && reguaFast.wordsPerSecond >= 2.8 && reguaFast.coverage === 1 && reguaFast.voice === 'fable')
+checa(`catálogo real tem ${catalogo.length} personas, de ${maisLenta} a ${maisRapida} pal/s (a divergência que a folga de 5% não cobria)`, catalogo.length >= 5 && maisRapida - maisLenta > 0.3)
+checa('Kineo 1: régua = persona MAIS RÁPIDA do catálogo (≥ a do portão real), mesmo quando o tema cru escolheria a lenta; piso = duração inteira', reguaFast.family === 'classic' && reguaFast.wordsPerSecond === maisRapida && reguaFast.wordsPerSecond >= portaoFast.wordsPerSecond && reguaFast.coverage === 1 && reguaFast.voice === 'onyx')
+checa('roteiro dimensionado assim PASSA no portão para TODA persona do catálogo (60 s)', catalogo.every((p) => W.minWordsFor(60, reguaFast.wordsPerSecond, 1) / speechRate.speechRateFor({ family: 'classic', language: 'en', voice: p.voice, personaSpeed: p.defaultSpeed }).wordsPerSecond >= 60 * narrationFit.MIN_COVERAGE))
+checa('com a persona lenta o filme sai no máximo ~25% acima do alvo (passar é bom; ficar abaixo é defeito)', W.maxWordsFor(60, reguaFast.wordsPerSecond, 1) / maisLenta <= 60 * 1.5)
 checa('clássico sem persona (Seedance) = 3,1 pal/s; hollywood (Kling 3/H3/Omni/S25) = 2,3', W.writerRateFor('cinematic_ai', 't', 'en').wordsPerSecond === 3.1 && W.writerRateFor('cinematic_hollywood', 't', 'en').wordsPerSecond === 2.3 && W.writerRateFor('cinematic_h3', 't', 'en').family === 'hollywood')
 checa('sem engine: régua histórica (2,3 × 0,95), chamadores antigos intocados', W.writerRateFor(undefined, 't', 'en').family === 'legacy' && W.writerRateFor('', 't', 'en').wordsPerSecond === 2.3 && W.writerRateFor(undefined, 't', 'en').coverage === narrationFit.MIN_COVERAGE && W.minWordsFor(60) === Math.ceil(60 * 0.95 * 2.3))
 

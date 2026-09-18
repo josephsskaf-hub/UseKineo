@@ -60,3 +60,19 @@ group by 1 order by 1;
 ```
 Esperado: `nascidos_curtos` ≈ 0 e `pessoas_na_parede` cai de ~5/dia para quem de fato colou roteiro
 próprio curto (que continua vendo a oferta de expansão, como a regra manda).
+
+---
+
+## AUDITORIA (fundador: "faz uma auditoria antes para ver se tudo que você tá me falando tá certo")
+
+| Afirmação minha | Conferida como | Veredito |
+|---|---|---|
+| Escritor a 2,3 pal/s; portão do Kineo 1 na persona (~2,8) | `lib/narrationFit.ts` WORDS_PER_SECOND=2.3; `generate-script` usava essa constante; rota fast usa `speechRateFor(persona)`; log real "fable speed=1.1 → 2.81" | **certa** |
+| 90 recusas / 38 pessoas / 10 nunca fizeram filme (7 d) | SQL em `events` (generation_stage_error narration_too_short) × `videos` | **certa** |
+| "27 apertaram o botão" | medido: 27 saíram com filme em 2 h (não necessariamente pelo botão); 80 das 90 recusas têm evento de expansão a ≤15 min | **imprecisa → corrigida** |
+| "Recusado por construção" para todo roteiro da casa | depende da persona: catálogo real vai de 2,25 a 2,81 pal/s (9 personas); o piso antigo (132 palavras) passava só nas 2 mais lentas; um roteiro no meio da faixa (~145) reprovava nas 3 mais rápidas | **parcial → corrigida**: a recusa acontecia com persona rápida + roteiro perto do piso — que é o caso do log real das duas vítimas de hoje |
+| Conserto robusto | **NÃO era**: escritor escolhe persona pelo tema cru, portão pelo roteiro pronto; podem divergir (2,25 × 2,81) e a folga de 5% não cobria | **defeito achado e corrigido**: escritor dimensiona pela persona MAIS RÁPIDA do catálogo (`fastestClassicPersonaRate`); guardião prova que o roteiro passa para TODAS as 9 personas e que, com a mais lenta, o filme sai ≤ ~25% acima do alvo |
+| Cliente não mandava duração (90 s → roteiro de 60) | `GenerateClient.tsx` 7977: `{ topic, language }` | **certa**; observação: a duração 45 s do cliente não está em SUPPORTED_TARGETS [35,60,90] e cai em 60 (comportamento antigo, mantido) |
+| C1 preservado (roteiro próprio não é reescrito) | portão + 422 + oferta de expansão intactos na rota fast (guardião f) | **certa** |
+| tsc verde, guardiões verdes | tsc 0 erros; 17 verificações novas; expand-policy 95/95; idiomas-15 25/25; suíte inteira rodada na branch (ver abaixo) | **certa** |
+| Não classifiquei as 90 recusas por origem (ideia de uma linha × roteiro colado) | o evento de recusa não guarda a origem; o novo `script_written` passa a dar esse denominador | **limite declarado** |

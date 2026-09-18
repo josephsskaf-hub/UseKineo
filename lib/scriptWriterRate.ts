@@ -12,6 +12,22 @@
 import { MIN_COVERAGE, WORDS_PER_SECOND } from '@/lib/narrationFit'
 import { speechFamilyForQuality, speechRateFor } from '@/lib/speechRate'
 import { selectPersonaForScript } from '@/lib/narration/niche-mapping'
+import { VOICE_PERSONAS } from '@/lib/narration/personas'
+
+// AUDITORIA 17/09 (noite): as personas do Kineo 1 vão de 2,25 (onyx × 0,90) a 2,81 pal/s (fable × 1,10), e o
+// escritor escolhe a persona pelo TEMA CRU enquanto o portão escolhe pelo ROTEIRO PRONTO — podem divergir. Com
+// folga de 5%, persona lenta aqui e rápida lá ainda recusaria. Por isso o escritor dimensiona pela persona
+// MAIS RÁPIDA do catálogo: sempre há palavras suficientes para a voz mais veloz; com voz lenta o filme sai até
+// ~20% mais longo que o alvo — "passar do alvo é bom; ficar abaixo é defeito" (fundador 02/09).
+export function fastestClassicPersonaRate(language: string): { wordsPerSecond: number; voice: string | null } {
+  let best = { wordsPerSecond: 0, voice: null as string | null }
+  for (const p of VOICE_PERSONAS) {
+    const r = speechRateFor({ family: 'classic', language, voice: p.voice, personaSpeed: p.defaultSpeed }).wordsPerSecond
+    if (r > best.wordsPerSecond) best = { wordsPerSecond: r, voice: p.voice }
+  }
+  if (best.wordsPerSecond <= 0) return { wordsPerSecond: speechRateFor({ family: 'classic', language }).wordsPerSecond, voice: null }
+  return best
+}
 
 /** Palavras faladas mínimas para cobrir `coverage` de um vídeo de N segundos à régua dada. */
 export function minWordsFor(seconds: number, wordsPerSecond: number = WORDS_PER_SECOND, coverage: number = MIN_COVERAGE): number {
@@ -36,13 +52,16 @@ export function writerRateFor(engine: unknown, topic: string, language: string):
   if (!q) return { wordsPerSecond: WORDS_PER_SECOND, family: 'legacy', voice: null, coverage: MIN_COVERAGE }
   const family = speechFamilyForQuality(q)
   if (family === 'classic') {
-    // Kineo 1: a persona (voz + velocidade) é escolhida como a rota fast escolhe (tier free = quality 'fast').
-    let persona: { voice?: string; defaultSpeed?: number } | null = null
     if (q === 'fast') {
-      try { persona = selectPersonaForScript(topic, undefined, 'free', language as Parameters<typeof selectPersonaForScript>[3]) } catch { persona = null }
+      // Kineo 1: a régua é a da persona MAIS RÁPIDA do catálogo (auditoria acima); a persona provável do tema
+      // vai só no rastro, para medir quantas vezes escritor e portão discordariam.
+      let provavel: { voice?: string } | null = null
+      try { provavel = selectPersonaForScript(topic, undefined, 'free', language as Parameters<typeof selectPersonaForScript>[3]) } catch { provavel = null }
+      const fastest = fastestClassicPersonaRate(language)
+      return { wordsPerSecond: fastest.wordsPerSecond, family, voice: provavel?.voice ?? fastest.voice, coverage: 1 }
     }
-    const rate = speechRateFor({ family: 'classic', language, voice: persona?.voice ?? null, personaSpeed: persona?.defaultSpeed ?? null })
-    return { wordsPerSecond: rate.wordsPerSecond, family, voice: persona?.voice ?? null, coverage: 1 }
+    const rate = speechRateFor({ family: 'classic', language })
+    return { wordsPerSecond: rate.wordsPerSecond, family, voice: null, coverage: 1 }
   }
   return { wordsPerSecond: speechRateFor({ family: 'hollywood', language }).wordsPerSecond, family, voice: null, coverage: 1 }
 }
