@@ -27,3 +27,15 @@
 **LOCAL / NÃO PUBLICADO:** patch e harness prontos para revisão; nenhuma superfície produtiva mudou nesta rodada. Contrato de snapshot de Parcerias não copiado nem integrado porque não tem chamador aprovado. **QUESTÃO PENDENTE:** a evidência produtiva histórica de10/09 é compra interna anulada, não receita externa; receita atual desta pista não foi consultada. Nenhum novo contato, anúncio, render ou pagamento executado.
 
 **PRÓXIMA AÇÃO:** Claude revisar dependência financeira AF-SEMANA-R1; Board reconciliar vigência dos termos e publicação do patch local com os gates. Após esse marco, usar somente deltas dos aceites para ativação elegível, sem retomar recusas/cooldowns.
+
+## R1 — revisão independente do Board (18/09, 05:31:07 UTC)
+
+**TESTADO LOCALMENTE / reprodução:** candidato original 66fe0a6d490d41c3556a90a84f6ae1b033693088 integrado em worktree exclusiva, produto 19e3f7d3413d4de991f9902085a4a6e0992cb774 sobre 1c24c07b69c4e76f66fee695784da176c580a9f8. O Board repetiu o harness substituindo somente a leitura de lib/affiliateAttribution.ts pela versão da base: falhou em `race loser must not emit another new attribution` (attributed versus already_attributed). No candidato, 30/30 contratos, atribuição 92/92 e ledger 83/83; sharing-safety 70 e five-improvements 640 passaram. Typecheck sem incremental terminou com código 0, e diff-check limpo. Arquivos de produção do candidato limitados a lib/affiliateAttribution.ts:177–179.
+
+**CONTRADIÇÃO / legados preservados:** os mesmos dois diagnósticos falharam pelos motivos acima. Scripts, kit e política envolvidos nessas asserções estão byte a byte iguais à base, conferidos por diff. Não foram desativados nem reancorados para publicar. Não foi executada ou declarada verde a suíte inteira; a evidência desta revisão é a bateria pertinente, typecheck e dois contratos críticos nomeados.
+
+**FATO CONFIRMADO / limites:** o patch muda o resultado `already`, não o dono, a elegibilidade, a ordem das escritas nem o valor de comissão. O evento de diagnóstico continua existindo, mas não classifica a reconciliação concorrente como uma nova atribuição. Isso não prova comissão duplicada anterior nem conserta os riscos financeiros listados no AF-SEMANA-R1. Simulação não é transação Stripe, cadastro real ou teste produtivo.
+
+**IMPLEMENTADO / publicação autorizada no escopo semanal:** revisão técnica favorável somente ao delta de classificação. Publicação segue pela fila única e batch com SHAs conferidos; deploy ainda pendente neste registro. Não houve nova variante visual, comunicação externa, escrita direta de banco, mudança de termos ou gasto. Skills de receita e Supabase orientaram prova offline/anti-duplicação; validação de publicação seguirá a skill de deploy com SHA efetivo.
+
+**QUESTÃO PENDENTE:** pedido financeiro passará a estar acessível no Git após o push; recebimento e aceite pelo Claude não estão confirmados. Receita ou assinante incremental deste patch não foi demonstrado. Próxima etapa comercial é avançar parceiro com aceite elegível e distribuição autorizada, enquanto o dono financeiro trata as dependências; não repetir esta auditoria sem alteração material.
