@@ -19,6 +19,7 @@ import { isInternalEmail } from '@/lib/internalAccounts'
 import { isDisposableEmail } from '@/lib/emailValidation'
 import { composerUrl } from '@/lib/lifecycle/composerUrl'
 import { getFreeTierOffer } from '@/lib/freeTierOffer'
+import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression' // regra da casa: 1 e-mail por pessoa por 24 h, falha fechada
 
 export const maxDuration = 300
 export const dynamic = 'force-dynamic'
@@ -127,7 +128,10 @@ export async function GET(req: NextRequest) {
       for (const r of q ?? []) quente.add(r.user_id as string)
     }
     // Primeiro quem já viu o produto funcionar (fez filme): é quem sabe o que "um vídeo por semana" vale.
-    const alvos = encerrados.filter((z) => (includeNoFilm || comVideo.has(z.id)) && !jaAvisado.has(z.id) && !quente.has(z.id))
+    const candidatos = encerrados.filter((z) => (includeNoFilm || comVideo.has(z.id)) && !jaAvisado.has(z.id) && !quente.has(z.id))
+    // Supressão de 24 h da casa (qualquer e-mail nosso nas últimas 24 h): falha FECHADA — se não der para ler, suprime.
+    const sup = await loadLifecycleSuppression(admin, candidatos.map((c) => c.id))
+    const alvos = candidatos.filter((c) => !sup.isSuppressed(c.id))
 
     if (!confirm) {
       return NextResponse.json({
@@ -135,6 +139,7 @@ export async function GET(req: NextRequest) {
         cohort: `trial encerrado (downgraded) · nunca pagou · opt-in · externo · não descartável · frio >=${COLD_DAYS}d · nunca recebeu esta carta${includeNoFilm ? '' : ' · >=1 filme entregue'}`,
         free_tier: { limit: offer.limit, window_days: windowDays, max_seconds: offer.maxFreeFastSeconds },
         remaining_unemailed: alvos.length,
+        suprimidos_24h: sup.suppressedCount, supressao_degradada: sup.degraded,
         with_film: encerrados.filter((z) => comVideo.has(z.id)).length,
         without_film: encerrados.filter((z) => !comVideo.has(z.id)).length,
         next_batch_size: Math.min(batch, alvos.length),
@@ -169,7 +174,7 @@ export async function GET(req: NextRequest) {
         results.push({ email: a.email, outcome: `error ${e instanceof Error ? e.message : String(e)}` })
       }
     }
-    return NextResponse.json({ mode: 'SENT', sent, remaining_after: Math.max(0, alvos.length - batch), results })
+    return NextResponse.json({ mode: 'SENT', sent, remaining_after: Math.max(0, alvos.length - batch), suprimidos_24h: sup.suppressedCount, results })
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 })
   }
