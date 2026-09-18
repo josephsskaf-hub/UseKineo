@@ -17,6 +17,7 @@ checa('coorte: trial encerrado, nunca pagou, opt-in, externo, não descartável'
 checa('frio = sem atividade de NAVEGADOR em 3 dias (evento de servidor não é presença)', r.includes(".not('session_id', 'is', null).in('user_id', slice)"))
 checa('frio ≥ 3 dias e uma carta por conta (carimbo)', r.includes("const COLD_DAYS = 3") && r.includes("export const STAMP = 'weekly_quota_sent'") && r.includes("!jaAvisado.has(z.id) && !quente.has(z.id)"))
 checa('primeiro quem fez filme; &all=1 inclui o resto', r.includes("const includeNoFilm = req.nextUrl.searchParams.get('all') === '1'") && r.includes("(includeNoFilm || comVideo.has(z.id))"))
+checa('respeita a supressão de 24 h da casa (loadLifecycleSuppression, falha fechada)', r.includes('const sup = await loadLifecycleSuppression(admin, candidatos.map((c) => c.id))') && r.includes('const alvos = candidatos.filter((c) => !sup.isSuppressed(c.id))'))
 checa('lote limitado a 120', r.includes("const MAX_BATCH = 120") && r.includes("Math.min(limitParam, MAX_BATCH)"))
 checa('NÃO concede crédito (só carimbo)', !r.includes("admin_credits_granted") && !r.includes("video_credits") )
 checa('a carta separa as duas coisas: fala do plano grátis, e o Starter fica como opção com preço da casa', r.includes("the free plan now gives you") && r.includes("Starter is $9.90/month and you can cancel anytime"))

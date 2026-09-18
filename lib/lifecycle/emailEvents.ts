@@ -98,6 +98,8 @@ export const LIFECYCLE_EMAIL_EVENT_NAMES = [
   // avisa que o cartao vai ser cobrado. E o e-mail mais sensivel da casa para
   // colidir com um nudge de venda no mesmo dia.
   'card_trial_ending_emailed',
+  // KINEO-COTA-SEMANAL-CARTA-2026-09-17 — carta manual 'seu vídeo grátis voltou, e agora é toda semana' (admin/send-weekly-quota).
+  'weekly_quota_sent',
 ] as const
 
 export type LifecycleEmailEventName = (typeof LIFECYCLE_EMAIL_EVENT_NAMES)[number]
