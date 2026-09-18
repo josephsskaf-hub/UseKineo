@@ -76,3 +76,9 @@ próprio curto (que continua vendo a oferta de expansão, como a regra manda).
 | C1 preservado (roteiro próprio não é reescrito) | portão + 422 + oferta de expansão intactos na rota fast (guardião f) | **certa** |
 | tsc verde, guardiões verdes | tsc 0 erros; 17 verificações novas; expand-policy 95/95; idiomas-15 25/25; suíte inteira rodada na branch (ver abaixo) | **certa** |
 | Não classifiquei as 90 recusas por origem (ideia de uma linha × roteiro colado) | o evento de recusa não guarda a origem; o novo `script_written` passa a dar esse denominador | **limite declarado** |
+
+### Suíte inteira na branch (72e021d2)
+428 verdes / 121 vermelhos. Contra a base de hoje, 2 vermelhos novos: `test-despacho-vazio` (trava 8.2 —
+esperado nesta branch, é o que aguarda a palavra do fundador) e `test-cobertura-supressao` 4.1
+("admin/send-weekly-quota classificada no inventário") — herdado do commit COTA-SEMANAL-CARTA da outra
+sessão (18:54), não toca nenhum arquivo desta entrega. **Zero regressão desta entrega.**
