@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import GoogleSignInButton from '@/components/GoogleSignInButton'
+// KINEO-COMPRADOR-SEQUESTRADO-2026-09-18 — o auto-início do Google fica atrás de uma decisão medida (ver o cabeçalho do módulo).
+import { decideCheckoutOauthAutostart } from '@/lib/growth/checkoutOauthAutostart'
 import AppleSignInButton from '@/components/AppleSignInButton'
 import AuthSavedCreationCard from '@/components/AuthSavedCreationCard'
 import { rememberSignupCampaign, trackEvent, trackSignupSource } from '@/lib/analytics'
@@ -242,6 +244,28 @@ export default function SignupPage() {
     const p = new URLSearchParams(window.location.search)
     if (p.get('reason') !== 'checkout') return
     if (p.get('noauto') === '1') return
+    // KINEO-COMPRADOR-SEQUESTRADO-2026-09-18 — MEDIDO: Google clicado pela pessoa
+    // traz 94% de volta; Google auto-iniciado na carga traz 23% (44 sessões de
+    // comprador). A decisão mora em lib/growth/checkoutOauthAutostart.ts e hoje
+    // diz NÃO: a pessoa vê o plano salvo e o botão do Google, e clica ela mesma.
+    // O evento de supressão ganha o motivo para a medição de 7 dias separar
+    // este ramo do webview antigo.
+    const autostart = decideCheckoutOauthAutostart({
+      checkoutReason: true,
+      noauto: false,
+      embedded: isEmbeddedBrowser(),
+      alreadyStarted: (() => { try { return sessionStorage.getItem('kineo_checkout_google_autostart') === '1' } catch { return false } })(),
+    })
+    if (!autostart.start && autostart.reason === 'disabled_by_measurement') {
+      try {
+        const marker = 'kineo_checkout_autostart_off_seen'
+        if (!sessionStorage.getItem(marker)) {
+          sessionStorage.setItem(marker, '1')
+          void trackEvent('checkout_oauth_autostart_suppressed', { reason: autostart.reason, version: autostart.version })
+        }
+      } catch { /* ignore */ }
+      return
+    }
     if (isEmbeddedBrowser()) {
       // The email route is only being presented here, not selected. Keep the
       // ordinary signup surface but use a distinct event so the checkout-auth
