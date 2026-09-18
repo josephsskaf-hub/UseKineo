@@ -100,6 +100,8 @@ export const LIFECYCLE_EMAIL_EVENT_NAMES = [
   'card_trial_ending_emailed',
   // KINEO-COTA-SEMANAL-CARTA-2026-09-17 — carta manual 'seu vídeo grátis voltou, e agora é toda semana' (admin/send-weekly-quota).
   'weekly_quota_sent',
+  // KINEO-RENOVACAO-RECUSADA-2026-09-18 — assinante com renovação recusada (admin/send-renewal-declined).
+  'renewal_declined_emailed_v1',
 ] as const
 
 export type LifecycleEmailEventName = (typeof LIFECYCLE_EMAIL_EVENT_NAMES)[number]

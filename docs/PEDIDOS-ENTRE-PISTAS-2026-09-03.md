@@ -3453,3 +3453,8 @@ Fundador: "quero 170 e-mails avisando que a cota de uma semana grátis voltou"; 
 
 ## RELATORIO 18/09 (12:10 BRT) — ver docs/RELATORIO-2026-09-18.md
 Carta da cota: 480 enviadas, 1 retorno, 0 filmes em 15 h. Porta do 3º filme, laço viral e línguas: 0 exposição (dia com 14 cadastros). Renovações: 1 evento em 60 d — conferir na Stripe (gapozweb 17/09, den.higgins 18/09) antes de tocar no webhook. Google: 0 cadastros rastreáveis em 33 h.
+
+
+## RENOVACAO-RECUSADA + DIRETORIOS (18/09; fundador: "Vai")
+· Carta "sua renovação não passou — 1 clique para trocar o cartão": rota admin/send-renewal-declined (dry-run; confirm=SEND; cron autorizado), coorte = assinante com checkout_payment_failed is_renewal em 21 d, sem fatura paga depois, 1 carta/30 d, supressão 24 h; leva ao /account (botão "Manage billing" abre o portal da Stripe). Por quê: valos e akajitin com 3 recusas cada e nenhuma linha nossa; recuperar 2 = +US$ 20 MRR. Guardião test-renovacao-recusada (11). Carimbo renewal_declined_emailed_v1 na lista canônica.
+· Diretórios: docs/DIRETORIOS-2026-09-18.md — 6 fichas prontas (TAAFT atualizar, Futurepedia, Toolify atualizar, AI Parabellum, AIxploria, G2), textos em inglês, utm por diretório, imagens de docs/ph. Fundador cria/edita as contas. Medir por signup_utm_source semanal (base: taaft 32, toolify 12).
