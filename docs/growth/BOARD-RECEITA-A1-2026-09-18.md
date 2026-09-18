@@ -44,7 +44,7 @@
 
 **RECEITA NOVA ATRIBUÍDA À ENTREGA:** ainda não demonstrada. Correção publicada não equivale a venda. Nenhum e-mail, mensagem de venda ou compra foi executado.
 
-## Fechamento de publicação — 18/09 04:42–04:44 UTC
+## Fechamento de publicação — registro em 18/09 04:43:50 UTC
 
 **VALIDADO EM PRODUÇÃO:** fila segura e bat publicaram `bda79eb69acbff2519ea47b320a99572be643e9e` sobre `71b290942cd084b57a68cccd66ee82fb4ca35a6e`. Vercel `dpl_H1CAW5ovdEowgGXuxwnikcuQo8S5` READY; SHA exato e alias `www.usekineo.com` conferidos pela integração. Build completou em 53 s conforme log da Vercel; não equivale ao tempo total de deploy.
 
