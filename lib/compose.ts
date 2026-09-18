@@ -225,6 +225,13 @@ const FAST_LETTERBOX_PCT = 6
 // KINEO-1-CINEMA-2026-09-02 — abertura do filme: fade do preto no 1o corte
 // (mesma propriedade/valor que o builder hollywood usa em compose.ts ~2885).
 const FAST_OPENING_FADE_SECONDS = 0.5
+// KINEO1-CROSSFADE-2026-09-18 — fundador (18/09 03:31): "as imagens estão sem fade". Os cortes do Kineo 1 eram
+// colados a seco (0,06 s de sobreposição, transição nenhuma). Agora cada clipe a partir do 2º ENTRA com o mesmo
+// `enter_transition: fade` que a abertura já usa em produção desde 02/09 (única propriedade de transição
+// exercitada), e o clipe anterior fica 0,25 s a mais na pista para os dois se cruzarem (crossfade), não um
+// mergulho no preto. Interruptor: KINEO_FAST_CROSSFADE=off volta ao corte seco.
+const FAST_CROSSFADE_SECONDS = 0.25
+const FAST_CROSSFADE_ENABLED = !['0', 'false', 'no', 'off'].includes((process.env.KINEO_FAST_CROSSFADE ?? '').trim().toLowerCase())
 // (b) MOVIMENTO — Ken Burns pattern cycled per cut: center push-in, pull-back,
 // then off-center push-ins (anchored left/right) that read as subtle lateral
 // pans. Same proven Creatomate 'scale' animation type as #292, only varied.
@@ -2324,7 +2331,11 @@ export function buildCreatomateSource({
       type: isStillImage ? 'image' : 'video',
       track: 2,
       time: round3(cursor),
-      duration: round3(segLen + CLIP_GAP_OVERLAP), // micro-overlap → no gap
+      // KINEO1-CROSSFADE-2026-09-18 — o clipe fica FAST_CROSSFADE_SECONDS a mais na pista para cruzar com o
+      // próximo, que entra com fade (a MESMA receita do caminho hollywood: `overlap = fadeFor(next)` +
+      // `enter_transition: fade`, em produção no Kling 3). O #202 removeu o fade por clipe porque NÃO havia
+      // sobreposição — o clipe entrava do fundo preto; com a sobreposição é crossfade, não mergulho.
+      duration: round3(segLen + CLIP_GAP_OVERLAP + (isFastStock && FAST_CROSSFADE_ENABLED && i < cleanClips.length - 1 ? FAST_CROSSFADE_SECONDS : 0)), // micro-overlap → no gap
       source: url,
       fit: 'cover',
       ...(isStillImage ? {} : { loop: true, trim_start: clipTrimStart }), // KINEO-SPRINT-12H-2026-07-29 — see reuseIndex above
@@ -2334,11 +2345,14 @@ export function buildCreatomateSource({
       height: '100%',
       ...(isStillImage ? {} : { volume: '0%' }), // KINEO-1-HIBRIDO: volume é de vídeo
       // KINEO-1-CINEMA-2026-09-02 — o filme abre do preto (so o 1o corte, so
-      // fast). Cortes seguintes continuam secos: e o padrao de documentario e
-      // o que #202/#234 provaram funcionar sem buraco entre clipes.
+      // fast). KINEO1-CROSSFADE-2026-09-18: os cortes seguintes entram com fade
+      // de 0,25 s SOBRE o clipe anterior (que ficou 0,25 s a mais) — fundador:
+      // "as imagens estão sem fade". Interruptor KINEO_FAST_CROSSFADE=off.
       ...(isFastStock && i === 0 && reuseIndex === 0
         ? { enter_transition: { type: 'fade', duration: FAST_OPENING_FADE_SECONDS } }
-        : {}),
+        : isFastStock && FAST_CROSSFADE_ENABLED && i > 0
+          ? { enter_transition: { type: 'fade', duration: FAST_CROSSFADE_SECONDS } }
+          : {}),
       animations: [
         kb
           ? {

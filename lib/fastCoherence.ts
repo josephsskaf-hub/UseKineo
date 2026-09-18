@@ -112,7 +112,10 @@ export function buildCoherenceMessages(input: { prompt: string; narration: strin
     (ai
       ? '(2) narration_vs_visuals: the film is AI-generated shot by shot; each scene lists the exact generation prompt. Read the narration in order and judge whether the sequence of prompts depicts its subject, the named people/places/objects and the actions being described, in the right order; a prompt about something the narration never mentions, or a key moment of the narration with no shot, lowers the score; a REJECTED scene is a hole in the film. '
       : '(2) narration_vs_visuals: per scene, does the footage plan match what is being said? Footage described as "generated from this scene text" matches by construction; ' +
-        '"recycled from an earlier scene" or "generic library clip" usually does not; stock clips match when the query and clip tags describe what the line talks about. ') +
+        '"recycled from an earlier scene" or "generic library clip" usually does not; stock clips match when the query and clip tags describe what the line talks about. ' +
+        // KINEO1-SUJEITO-2026-09-18 — fundador: "85 é uma nota muito alta, devia ser no máximo 70" (filme do Boeing 737
+        // com trânsito de cidade e uma moto; o juiz deu visual 100 porque "engine" aparecia nas tags).
+        'SUBJECT RULE: the clip tags must name the SAME subject the line talks about. Tags that share only a generic word (engine, hands, interior, city, water, light, people) do NOT match: cars/traffic/motorbike for an airplane line, hand-washing/covid for lovers, a chess board for intertwined hands are MISMATCHES. One mismatched scene caps narration_vs_visuals at 60; two or more cap it at 40; name each mismatched scene in problems. ') +
     'Be strict and concrete. Reply ONLY with JSON: {"prompt_vs_narration": 0-100, "narration_vs_visuals": 0-100 or null when no scenes are given, ' +
     '"problems": [up to 4 short strings IN BRAZILIAN PORTUGUESE naming the specific mismatch, empty when none], "worst_scene": scene number or null, "summary": one sentence IN BRAZILIAN PORTUGUESE (max 160 chars), ' +
     '"request_pt": one line IN BRAZILIAN PORTUGUESE (max 140 chars) saying what the customer asked for, whatever language they wrote in}. ' +

@@ -1292,7 +1292,10 @@ export async function POST(req: NextRequest) {
           // KINEO1-MUNDO-DA-ENTIDADE-2026-09-17 — dedupe por assinatura de tags: o mesmo gráfico de bolsa com outra
           // URL é o mesmo gráfico para quem vê (cenas 2 e 3 do filme do Bezos). Se todos repetem, fica o primeiro.
           const pixInedito = pixUrls.filter((u) => { const sig = tagSig(pixabayTagsForUrl(u)); return !sig || !usedTagSigs.has(sig) })
-          const pixFinal = pixInedito.length > 0 ? pixInedito : pixUrls.slice(0, 1)
+          // KINEO1-SUJEITO-2026-09-18 — se TUDO repete e a cena já tem visual gerado (still/Seedance), não entra
+          // stock nenhum: o filme do Boeing (salswina, 17/09) recebeu o MESMO trânsito de cidade nas cenas 2 e 3
+          // porque o "fica o primeiro" readmitia o repetido. Sem visual gerado, o primeiro ainda fica (cena vazia é pior).
+          const pixFinal = pixInedito.length > 0 ? pixInedito : cenasComClipeIA.has(sceneNo) ? [] : pixUrls.slice(0, 1)
           if (pixFinal.length < pixUrls.length) console.log(`[clip] scene=${sceneNo} KINEO1-MUNDO-DA-ENTIDADE dropped ${pixUrls.length - pixFinal.length} clip(s) with tags already on screen`)
           if (pixFinal.length > 0) {
             for (const pixUrl of pixFinal) {

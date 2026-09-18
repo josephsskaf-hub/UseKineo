@@ -136,7 +136,52 @@ const HARD_OFFTOPIC_TAGS = new Set([
   'animation', 'animated', 'vector', 'graphic', 'render', 'drawing', 'emoji',
 ])
 // Multi-word kitsch that appears as a single Pixabay tag (Set exact-match misses these).
-const HARD_OFFTOPIC_SUBSTRINGS = ['maneki', 'feng shui', 'lucky cat', 'fortune cat', '3d render']
+// KINEO1-SUJEITO-2026-09-18 — higiene/pandemia nunca é o sujeito de um filme da casa: o "cara lavando a
+// mão" no filme de amor (lee2fin3, 17/09 20:14Z) veio de "washing hands, coronavirus, covid 19" casando "hands".
+const HARD_OFFTOPIC_SUBSTRINGS = ['maneki', 'feng shui', 'lucky cat', 'fortune cat', '3d render', 'coronavirus', 'covid', 'pandemic', 'sanitiz', 'disinfect', 'washing hands', 'stop the spread']
+
+// ═══ KINEO1-SUJEITO-2026-09-18 — a tag tem de bater com o SUJEITO da busca, não com a palavra genérica ═══
+//
+// Fundador (18/09 03:31, filme "Why are Boeing 737 engines flat on the bottom?"): "uns vídeos de carro no
+// meio, não mostra só boeings… 85 é uma nota muito alta". Rastro: 4 cenas com a busca "boeing 737 engine
+// closeup"; o Pixabay casou "engine" e devolveu trânsito de cidade (cenas 2-3) e uma MOTO (cena 4). O portão
+// de relevância exigia UM token em comum — e "engine" bastava. Mesma família: "closeup of intertwined hands"
+// → "washing hands, covid". Regra nova: se a busca tem tokens ESPECÍFICOS (fora da lista de genéricos), pelo
+// menos um hit tem de vir deles. Famílias de sinônimo cobrem o sujeito dito de outro jeito (boeing → aircraft).
+// Quando o pool esvazia, a cena vira still gerado (híbrido) — foto certa vale mais que vídeo errado.
+const GENERIC_NOUNS = new Set([
+  'engine', 'engines', 'motor', 'hands', 'hand', 'interior', 'exterior', 'room', 'city', 'street', 'streets', 'road',
+  'water', 'light', 'lights', 'night', 'day', 'sky', 'man', 'woman', 'people', 'person', 'eyes', 'eye', 'face',
+  'door', 'window', 'table', 'building', 'buildings', 'house', 'home', 'office', 'wall', 'floor', 'screen', 'phone',
+  'background', 'texture', 'abstract', 'view', 'shot', 'motion', 'nature', 'landscape', 'travel', 'business',
+  'technology', 'tech', 'money', 'food', 'animal', 'animals', 'time', 'world', 'life', 'work', 'design', 'modern',
+  'old', 'new', 'big', 'small', 'top', 'inside', 'outside', 'front', 'back', 'side', 'closeup', 'close', 'detail',
+])
+const SUBJECT_FAMILIES: ReadonlyArray<ReadonlyArray<string>> = [
+  ['boeing', 'airbus', '737', '747', '757', '767', '777', '787', 'a320', 'a330', 'a350', 'a380', 'airplane', 'aeroplane', 'airplanes', 'aircraft', 'airliner', 'plane', 'planes', 'jet', 'jets', 'jetliner', 'aviation', 'airport', 'cockpit', 'runway', 'takeoff', 'landing', 'airline', 'flight', 'turbine', 'wing', 'fuselage'],
+  ['rocket', 'rockets', 'spacex', 'nasa', 'spacecraft', 'spaceship', 'orbit', 'astronaut', 'satellite', 'launchpad', 'falcon', 'starship'],
+  ['ship', 'ships', 'vessel', 'boat', 'boats', 'yacht', 'cruise', 'harbor', 'harbour', 'sailing', 'sailboat', 'ferry', 'cargo ship', 'container ship'],
+  ['train', 'trains', 'railway', 'railroad', 'locomotive', 'subway', 'metro', 'tram', 'rail'],
+  ['couple', 'couples', 'lovers', 'romance', 'romantic', 'love', 'kiss', 'kissing', 'embrace', 'hug', 'intertwined', 'wedding', 'bride', 'groom', 'date'],
+  ['volcano', 'volcanic', 'lava', 'eruption', 'magma', 'crater'],
+  ['shark', 'sharks', 'whale', 'whales', 'dolphin', 'dolphins', 'octopus', 'jellyfish', 'coral', 'reef'],
+  ['lion', 'lions', 'tiger', 'tigers', 'leopard', 'cheetah', 'elephant', 'elephants', 'giraffe', 'zebra', 'safari', 'savanna'],
+  ['warehouse', 'logistics', 'delivery', 'parcel', 'parcels', 'packages', 'conveyor', 'forklift', 'fulfillment', 'amazon'],
+]
+function subjectFamilyOf(token: string): ReadonlyArray<string> | null {
+  for (const fam of SUBJECT_FAMILIES) if (fam.includes(token)) return fam
+  return null
+}
+/** Tokens da busca que carregam o SUJEITO (fora dos genéricos e dos de estilo). */
+export function specificTokens(query: string): string[] { // exportado para o guardião
+  return meaningfulTokens(query).filter((t) => !GENERIC_NOUNS.has(t))
+}
+function specificTokenHitsTags(token: string, tagWords: string[]): boolean {
+  if (tokenHitsTags(token, tagWords)) return true
+  const fam = subjectFamilyOf(token)
+  if (!fam) return false
+  return fam.some((w) => w !== token && tokenHitsTags(w, tagWords))
+}
 
 function hasLifestylePollution(video: PixabayVideo, sceneNeedsPeople: boolean): boolean {
   const tags = video.tags
@@ -225,7 +270,7 @@ function tokenHitsTags(token: string, tagWords: string[]): boolean {
   return false
 }
 
-function tagsRelevantToQuery(video: PixabayVideo, query: string): boolean {
+export function tagsRelevantToQuery(video: PixabayVideo, query: string): boolean { // exportado para o guardião (KINEO1-SUJEITO)
   const qTokens = meaningfulTokens(query)
   // If the query has no judge-able CONTENT tokens, don't block (can't assess).
   if (qTokens.length === 0) return true
@@ -240,7 +285,12 @@ function tagsRelevantToQuery(video: PixabayVideo, query: string): boolean {
   // The broadening tiers (first-3 / first-2 tokens) shrink the query, so the
   // threshold drops back to 1 automatically if 2 proved too strict.
   const needed = qTokens.length >= 4 ? 2 : 1
-  return hits >= needed
+  if (hits < needed) return false
+  // KINEO1-SUJEITO-2026-09-18 — com sujeito na busca, um hit tem de vir DELE (ou da família): "engine" sozinho
+  // não põe um carro num filme de Boeing; "hands" sozinho não põe covid num filme de amor.
+  const specific = specificTokens(query)
+  if (specific.length === 0) return true
+  return specific.some((t) => specificTokenHitsTags(t, tagWords))
 }
 
 // PUSH #93 — style/framing words are a RANKING bonus, never relevance evidence:
@@ -674,6 +724,22 @@ async function collectCandidates(
       : video.videos?.small?.width ? video.videos.small
       : undefined
     const portrait = !!rez && rez.height >= rez.width
+    // KINEO1-NITIDEZ-2026-09-18 — piso de resolução é PROIBIÇÃO, não penalidade. Fundador (18/09, filme de amor
+    // lee2fin3): "algumas imagens estavam borradas" — os dois primeiros clipes eram `_medium` (1280×720,
+    // paisagem): num Short o montador corta uma faixa de 405 px e amplia ~2,7×. Regra: a dimensão que vai
+    // preencher o lado longo da tela precisa ter ≥ 1080 px DEPOIS do corte → paisagem em 9:16 exige largura
+    // ≥ 1920; retrato em 9:16 exige altura ≥ 1080; em 16:9, o inverso. Sem rendição que passe → fora do pool
+    // (a cena vira still gerado ou outro clipe; foto nítida vale mais que vídeo borrado).
+    if (rez) {
+      const wantsPortraitFrame = ACTIVE_FRAME.vertical
+      const nitido = wantsPortraitFrame
+        ? (portrait ? rez.height >= 1080 : rez.width >= 1920)
+        : (portrait ? rez.height >= 1920 : rez.width >= 1920)
+      if (!nitido) {
+        console.log(`[pixabay] ${label} rejected id=${video.id} reason=low_res ${rez.width}x${rez.height} portrait=${portrait} frame=${wantsPortraitFrame ? '9:16' : 'wide'}`)
+        continue
+      }
+    }
     const coversScene = typeof video.duration === 'number' && video.duration >= neededSec
     // Push #484 — clips under 3s force a visible freeze/loop on any Short scene;
     // losing the +3 coverage bonus wasn't enough (a 2s strong-tag clip still won).
