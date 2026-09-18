@@ -61,8 +61,15 @@ const BASE = 'https://www.usekineo.com'
 export function generateMetadata({ params }: { params: { engine: string } }): Metadata {
   const e = ENGINES[params.engine]
   if (!e) return {}
-  const title = `${e.name} AI Video Generator for YouTube Shorts | Kineo`
-  const description = `Turn one idea into a finished vertical Short rendered by ${e.name} — script, AI voiceover, scenes and captions, ${engineCostLabel(e).toLowerCase()}. Watch real user renders made with ${e.name}, not a demo reel.`
+  const pause = enginePaused(e.param)
+  const title = pause
+    ? `${e.name} — Temporarily Paused | Kineo`
+    : `${e.name} AI Video Generator for YouTube Shorts | Kineo`
+  // The private customer gallery is deliberately empty. Search descriptions
+  // describe the available workflow, never promise public customer renders.
+  const description = pause
+    ? `${e.name} is temporarily paused for maintenance in Kineo. ${pause.alternative.label} is an available alternative; compare its credits and limits before creating.`
+    : `${e.name} in Kineo: a complete narrated vertical Short with captions, ${engineCostLabel(e).toLowerCase()}. Free trial: ${TRIAL_CREDITS_SHOWN} credits, no card; ${TRIAL_CREDITS_SHOWN >= e.creditCost ? 'covers this reference video' : 'not enough for this reference video'}.`
   const url = `${BASE}/ai-video-generator/${params.engine}`
   return {
     metadataBase: new URL(BASE),
