@@ -47,6 +47,7 @@ import { CARD_ENTRY_ONLY } from '@/lib/entryPolicy'
 import { TIER_PRICES } from '@/lib/checkoutPricing'
 import { AFFILIATE_COMMISSION_PCT } from '@/lib/affiliateCommission'
 import { ENGINE_PAUSE, PAUSED_ENGINE_KEYS } from '@/lib/engineLaunch'
+import { NARRATION_LANGUAGES, HOLLYWOOD_LANGUAGES } from '@/lib/textLanguage' // KINEO-IDIOMAS-15-2026-09-17
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
 // Rota SO-GET no Next 14.2: sem POST no modulo, o store nasce com
 // revalidate=false, e `dynamic='force-dynamic'` NAO muda isso (so pula o proxy
@@ -269,6 +270,7 @@ topic, or paste your own script and ask for it to be narrated word for word.
 Kineo writes the script, generates the AI voiceover, matches visuals to each
 narration line, burns in captions and renders a finished ${PRODUCT.outputFormat}.
 Aspect ratio: ${PRODUCT.aspectRatio}.
+Narration languages (${NARRATION_LANGUAGES.length}, chosen in the Studio, captions follow the voice): ${NARRATION_LANGUAGES.map((l) => l.name.replace(/ \(.*\)$/, '')).join(', ')}. Type the idea in that language and the film comes out in it. The engines with their own built-in voice (Kling 3, MiniMax H3, Omni, Seedance 2.5) narrate in ${HOLLYWOOD_LANGUAGES.length} of them (English, Portuguese, Spanish); Kineo 1, Seedance 1.5, Veo 3.1 and Kling 2.5 narrate in all ${NARRATION_LANGUAGES.length}.
 It does not clip or repurpose a long video you already recorded — there is no
 footage to upload and no editing timeline.
 

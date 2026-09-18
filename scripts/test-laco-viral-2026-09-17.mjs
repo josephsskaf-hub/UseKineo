@@ -38,5 +38,13 @@ checa('botão principal: cadastro com o tema deste filme (mesmo contrato das vit
 checa('o remix sem cadastro continua, como secundário, medido à parte', pg.includes('placement="under_player_secondary"') && pg.includes('Or remix just the script — no signup'))
 checa('a página de preview expirado continua com a porta antiga', pg.includes('placement="expired_preview"'))
 
+console.log('5) My Videos: publicar e despublicar pela própria lista (antes: só pelo link do e-mail)')
+const hc = rd('app/(dashboard)/history/HistoryClient.tsx'), hp = rd('app/(dashboard)/history/page.tsx')
+checa('a página lê published_at da linha do vídeo', hp.includes("duration, platform, published_at')") && hc.includes('published_at?: string | null'))
+checa('o clique fala com a rota do dono (publish/unpublish, origem my_videos) e só muda estado com res.ok', hc.includes("body: JSON.stringify({ videoId: video.id, action, source: 'my_videos' })") && /if \(!res\.ok\) throw new Error\(String\(res\.status\)\)\n\s*setVisibility/.test(hc))
+checa('publicada: Share link + Unpublish; privada e completa: Publish page; incompleta: Private', hc.includes("(PUBLIC_VIDEO_SHARING_ENABLED || isPublished(video)) && video.status === 'completed' ? (") && hc.includes("handleVisibility(video, 'unpublish')") && hc.includes("handleVisibility(video, 'publish')") && hc.includes('Only finished films can have a public page'))
+checa('o link copiado usa o caminho publicado só depois do clique', /if \(isPublished\(video\)\) return buildPublishedVideoSharePath\(video\.id, referralCode\)/.test(hc))
+checa('eventos de publicar/despublicar no My Videos', hc.includes("'video_page_unpublish_clicked'") && hc.includes("'video_page_unpublished'"))
+
 console.log(`\n═══ ${ok} passaram, ${falhas.length} falharam ═══`)
 process.exit(falhas.length ? 1 : 0)

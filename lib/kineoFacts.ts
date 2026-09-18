@@ -83,6 +83,7 @@ import {
   TOPIC_MAX_CHARS,
 } from './gptHandoff'
 import { CARD_ENTRY_COPY, CARD_ENTRY_ONLY, CARD_ENTRY_TRIAL_CREDITS } from './entryPolicy'
+import { NARRATION_LANGUAGE_CODES } from '@/lib/textLanguage' // KINEO-IDIOMAS-15-2026-09-17
 
 export { AFTER_THE_FILM_FACT }
 export type { AfterTheFilmFact }
@@ -924,7 +925,7 @@ export const ASSISTANT_DEEP_LINK_FACT: AssistantDeepLinkFact = {
     duration: { required: false, values: DURATIONS, default: DEFAULT_DURATION, aliases: ['durationSec'] },
     engine: { required: false, values: HANDOFF_ENGINES, default: DEFAULT_ENGINE, aliases: ['engineHint'] },
     aspect: { required: false, values: ASPECTS, default: DEFAULT_ASPECT },
-    language: { required: false, format: 'short code like en, pt or pt-BR', default: DEFAULT_LANGUAGE },
+    language: { required: false, format: `short code, one of ${NARRATION_LANGUAGE_CODES.join(', ')}`, default: DEFAULT_LANGUAGE }, // KINEO-IDIOMAS-15: o catálogo, não três literais
     topic: { required: false, maxChars: TOPIC_MAX_CHARS },
   },
   linkValidDays: HANDOFF_TTL_DAYS,
