@@ -43,3 +43,13 @@
 **MÉTRICA / próximo gate:** preservar esta variante até 20 pessoas externas identificadas expostas a campanhas mensais ou revisão em 7 dias, o que ocorrer primeiro; amostra menor fica inconclusiva. Medir por pessoa pricing_view → clique com billing mensal → checkout_started → primeiro pagamento confirmado, respeitando janela temporal e atribuição disponível. Se campanha não for identificável no evento, classificar desconhecido; não atribuir toda receita ao patch. Parada imediata para modalidade incorreta, regressão de navegação/hidratação ou cobrança divergente. Nenhum novo evento foi fabricado.
 
 **RECEITA NOVA ATRIBUÍDA À ENTREGA:** ainda não demonstrada. Correção publicada não equivale a venda. Nenhum e-mail, mensagem de venda ou compra foi executado.
+
+## Fechamento de publicação — 18/09 04:42–04:44 UTC
+
+**VALIDADO EM PRODUÇÃO:** fila segura e bat publicaram `bda79eb69acbff2519ea47b320a99572be643e9e` sobre `71b290942cd084b57a68cccd66ee82fb4ca35a6e`. Vercel `dpl_H1CAW5ovdEowgGXuxwnikcuQo8S5` READY; SHA exato e alias `www.usekineo.com` conferidos pela integração. Build completou em 53 s conforme log da Vercel; não equivale ao tempo total de deploy.
+
+**VALIDADO EM PRODUÇÃO / navegador:** `/pricing?promo=FIRST50` abriu em mensal no desktop; troca manual para anual mostrou o total anual; `/pricing?promo=COMEBACK50` abriu em mensal a 390 px; `/pricing` comum manteve anual. Sem overlay de erro e sem erro/aviso de console observado no recorte desses testes de produção. Nenhum botão de compra foi acionado em produção; sessão Stripe, desconto e pagamento final não foram testados. Não se afirma ausência global de erro no site.
+
+**COORDENAÇÃO:** MMR avisado da tomada de A1; diário e PEDIDOS registram que não deve reaplicar 153866ed/271cf295. Servidor de desenvolvimento encerrado, comparação autocontida mantida fora do produto. Não se renovou rotina nem se enviou contato externo. Próxima avaliação comercial usa o gate acima; não reabrir A1 só porque faltou amostra nos primeiros minutos.
+
+**MÉTODO:** skill `kineo-receita-comprovada` guiou anti-duplicação e separação entre renovação/primeira compra; revisão React/Next preservou estado inicial de servidor e escolha manual; verificação de navegador e deployment exigiu evidência visual/READY antes de declarar a entrega no ar.
