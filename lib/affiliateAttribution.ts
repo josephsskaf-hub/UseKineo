@@ -174,7 +174,9 @@ export async function attributeAffiliateForUser(
 
     const stamped = await stampProfile(canonicalAffiliateId)
     return stamped
-      ? { ok: true, affiliateId: canonicalAffiliateId, already: false }
+      // Only a confirmed insert is a new attribution. A unique-race loser
+      // reconciles the existing owner and must not emit another acquisition.
+      ? { ok: true, affiliateId: canonicalAffiliateId, already: !!insertError || !inserted?.affiliate_id }
       : { ok: false, reason: 'profile_stamp_failed', affiliateId: canonicalAffiliateId }
   } catch {
     return { ok: false, reason: 'unexpected_failure' }

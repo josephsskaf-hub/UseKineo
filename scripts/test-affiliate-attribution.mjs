@@ -232,6 +232,7 @@ for (const [name, overrides, options, reason] of [
   )
   check(result.ok, 'unique race reconciles')
   equal(result.affiliateId, 'affiliate-first', 'race winner owns first-touch')
+  equal(result.already, true, 'race loser reports existing attribution instead of a new acquisition')
 }
 
 function createResponse(body, status = 200) {
