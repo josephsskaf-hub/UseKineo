@@ -118,7 +118,9 @@ export async function GET(req: NextRequest) {
       const [{ data: v }, { data: s }, { data: q }] = await Promise.all([
         admin.from('videos').select('user_id').eq('status', 'completed').in('user_id', slice),
         admin.from('events').select('user_id').eq('name', STAMP).in('user_id', slice),
-        admin.from('events').select('user_id').gte('created_at', new Date(Date.now() - COLD_DAYS * 86400_000).toISOString()).in('user_id', slice).limit(5000),
+        // 'Frio' = sem atividade REAL no navegador (session_id). Evento de servidor (cron, e-mail automático) não é presença:
+        // no 1º lote (17/09) o filtro cru deixou 156 de 523 passarem — o resto tinha só carimbo de e-mail nosso.
+        admin.from('events').select('user_id').gte('created_at', new Date(Date.now() - COLD_DAYS * 86400_000).toISOString()).not('session_id', 'is', null).in('user_id', slice).limit(5000),
       ])
       for (const r of v ?? []) comVideo.add(r.user_id as string)
       for (const r of s ?? []) jaAvisado.add(r.user_id as string)

@@ -14,6 +14,7 @@ checa('só admin (403 sem sessão de admin)', r.includes("if (!user || !ADMIN_EM
 checa('a carta só sai se o free tier for 1 por 7 dias (409 senão) — promessa lida da fonte única', r.includes("if (!offer.reverseTrial || windowDays !== 7 || offer.limit !== 1) {") && r.includes("the letter would lie") && r.includes("const days = Math.round(offer.windowMs / 86_400_000)"))
 checa('dry-run por padrão; envio só com confirm=SEND', r.includes("const confirm = req.nextUrl.searchParams.get('confirm') === 'SEND'") && r.includes("if (!confirm) {") && r.includes("mode: 'DRY_RUN'"))
 checa('coorte: trial encerrado, nunca pagou, opt-in, externo, não descartável', r.includes(".eq('trial_status', 'downgraded')") && r.includes("if (!email || p.email_opted_out || p.has_paid) continue") && r.includes("if (isInternalEmail(email) || isDisposableEmail(email)) continue"))
+checa('frio = sem atividade de NAVEGADOR em 3 dias (evento de servidor não é presença)', r.includes(".not('session_id', 'is', null).in('user_id', slice)"))
 checa('frio ≥ 3 dias e uma carta por conta (carimbo)', r.includes("const COLD_DAYS = 3") && r.includes("export const STAMP = 'weekly_quota_sent'") && r.includes("!jaAvisado.has(z.id) && !quente.has(z.id)"))
 checa('primeiro quem fez filme; &all=1 inclui o resto', r.includes("const includeNoFilm = req.nextUrl.searchParams.get('all') === '1'") && r.includes("(includeNoFilm || comVideo.has(z.id))"))
 checa('lote limitado a 120', r.includes("const MAX_BATCH = 120") && r.includes("Math.min(limitParam, MAX_BATCH)"))
