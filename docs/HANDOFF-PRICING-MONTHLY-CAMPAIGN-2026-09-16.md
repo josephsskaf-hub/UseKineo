@@ -1,6 +1,6 @@
 # A1 — campanhas mensais preservadas no pricing
 
-**IMPLEMENTADO / TESTADO LOCALMENTE — 16/09/2026. PUBLICAÇÃO PENDENTE.**
+**IMPLEMENTADO / TESTADO LOCALMENTE — 16/09/2026. Gate visual e navegação concluídos em 18/09; publicação sendo reconciliada pelo Board.** Estado corrente e limites: `docs/growth/BOARD-RECEITA-A1-2026-09-18.md`. O restante deste documento preserva o registro original de 16/09.
 
 Autorização do fundador transmitida pelo Board: “Aprovado suas sugestões podemos fazer!”. Escopo A1: corrigir a incompatibilidade criada pelo anual padrão de 9f8f9442 com campanhas mensais; manter anual para entrada comum, preservar escolha manual e não mudar preços, regras de cupom ou cobrador.
 
