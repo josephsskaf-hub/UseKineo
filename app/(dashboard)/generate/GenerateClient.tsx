@@ -7974,7 +7974,11 @@ export default function GenerateClient({
         const sgRes = await fetchResilienteSemDinheiro('/api/generate-script', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ topic: rawSource, language }),
+          // KINEO-REGUA-DO-ESCRITOR-2026-09-17 — o escritor precisa saber PARA QUEM escreve: a duração
+          // pedida e o motor (a régua do Kineo 1 é a voz da persona, ~2,8 pal/s; a hollywood é 2,3). Sem
+          // isso ele dimensionava tudo a 2,3 pal/s e 60 s, e o portão do Kineo 1 recusava o roteiro recém-
+          // nascido ("narração curta": 38 pessoas em 7 dias, 10 nunca fizeram filme).
+          body: JSON.stringify({ topic: rawSource, language, targetSeconds: duration, engine: mode === 'fast' || mode === 'creator' ? 'fast' : quality }),
         })
         if (sgRes.ok) {
           const sgData = await sgRes.json()
