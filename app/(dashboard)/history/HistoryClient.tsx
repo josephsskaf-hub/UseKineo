@@ -17,8 +17,10 @@ import { reviewVideoRetryHref } from '@/lib/navigation/reviewVideoRetry'
 import { useSeriesDoorSeen } from '@/lib/seriesDoorImpressions'
 import {
   buildPublicVideoSharePath,
+  buildPublishedVideoSharePath, // KINEO-LACO-VIRAL-2026-09-17
   PUBLIC_VIDEO_SHARE_VERSION,
   PUBLIC_VIDEO_SHARING_ENABLED,
+  VIRAL_LOOP_VERSION,
 } from '@/lib/videoShare'
 import { FreeTierCopy } from '@/components/FreeTierOfferProvider'
 import AffiliateMomentumCard from '@/components/AffiliateMomentumCard'
@@ -71,6 +73,8 @@ interface Video {
   // KINEO-CARD-QUADRANTE-2026-09-16 — duração medida e plataforma (enquadramento) para o quadrante do card
   duration?: number | null
   platform?: string | null
+  // KINEO-LACO-VIRAL-2026-09-17 — a página pública existe? (videos.published_at, carimbado só por decisão da pessoa)
+  published_at?: string | null
 }
 
 // KINEO-CARD-BONITO-2026-09-16 — pedido do fundador ("melhora o botão… do jeito mais bonito possível"). Padrão das
@@ -379,6 +383,31 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
   const checkout = useCheckoutLaunch('history_starter_upgrade')
   // #459 — share the public /v/[id] page (native share on mobile, copy on desktop)
   const [sharedId, setSharedId] = useState<string | null>(null)
+  // KINEO-LACO-VIRAL-2026-09-17 — publicar/despublicar a página do filme AQUI (antes: só pelo link assinado do e-mail).
+  // A verdade inicial vem de videos.published_at; o clique fala com POST /api/video/visibility (dono logado, CAS).
+  const [visibility, setVisibility] = useState<Record<string, 'published' | 'private'>>({})
+  const [visibilityPending, setVisibilityPending] = useState<string | null>(null)
+  const isPublished = (video: Video): boolean => (visibility[video.id] ?? (video.published_at ? 'published' : 'private')) === 'published'
+  async function handleVisibility(video: Video, action: 'publish' | 'unpublish') {
+    if (visibilityPending) return
+    setVisibilityPending(video.id)
+    trackEvent(action === 'publish' ? 'video_page_publish_clicked' : 'video_page_unpublish_clicked', { video_id: video.id, where: 'my_videos', version: VIRAL_LOOP_VERSION })
+    try {
+      const res = await fetch('/api/video/visibility', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ videoId: video.id, action, source: 'my_videos' }),
+      })
+      if (!res.ok) throw new Error(String(res.status))
+      setVisibility((v) => ({ ...v, [video.id]: action === 'publish' ? 'published' : 'private' }))
+      trackEvent(action === 'publish' ? 'video_page_published' : 'video_page_unpublished', { video_id: video.id, where: 'my_videos', version: VIRAL_LOOP_VERSION })
+      showToast(action === 'publish' ? 'Public page is live — copy the link to share it.' : 'Public page removed. The link now shows nothing.')
+    } catch {
+      showToast(action === 'publish' ? 'Could not publish. Nothing changed.' : 'Could not unpublish. The page is still up — try again.')
+    } finally {
+      setVisibilityPending(null)
+    }
+  }
   const [referralCode, setReferralCode] = useState<string | null>(null)
   const [referralRewardCredits, setReferralRewardCredits] = useState<number | null>(null)
   const [referralInviteUrl, setReferralInviteUrl] = useState<string | null>(null)
@@ -802,6 +831,8 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
   }
 
   function publicSharePath(video: Video): string | null {
+    // KINEO-LACO-VIRAL-2026-09-17 — página publicada pela pessoa: o caminho existe de verdade.
+    if (isPublished(video)) return buildPublishedVideoSharePath(video.id, referralCode)
     return buildPublicVideoSharePath(video.id, referralCode)
   }
 
@@ -1692,21 +1723,48 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                     </span>
                   )}
 
-                  {/* #459 — share the public /v/[id] page */}
-                  {PUBLIC_VIDEO_SHARING_ENABLED ? (
+                  {/* #459 — share the public /v/[id] page.
+                      KINEO-LACO-VIRAL-2026-09-17 — a página só existe depois do clique da pessoa (published_at). Publicada:
+                      "Share link" + "Unpublish". Privada: "Publish page". A trava global continua false para o resto. */}
+                  {(PUBLIC_VIDEO_SHARING_ENABLED || isPublished(video)) && video.status === 'completed' ? (
+                    <>
+                      <button
+                        className="kc-btn"
+                        onClick={() => handleShare(video)}
+                        title="Copy the public link"
+                        aria-label="Copy the public link"
+                        style={chipStyle('#5cb3ff', sharedId === video.id)}
+                      >
+                        <span style={{ color: '#5cb3ff', display: 'flex' }}><IcoLink /></span>
+                        <span>{sharedId === video.id ? 'Link copied' : 'Share link'}</span>
+                      </button>
+                      <button
+                        className="kc-btn"
+                        onClick={() => handleVisibility(video, 'unpublish')}
+                        disabled={visibilityPending === video.id}
+                        title="Remove the public page (the link stops working)"
+                        aria-label="Unpublish the public page"
+                        style={chipStyle('#9ca3af', false, visibilityPending === video.id ? 'wait' : 'pointer')}
+                      >
+                        <span style={{ color: '#9ca3af', display: 'flex' }}><IcoLock /></span>
+                        <span>{visibilityPending === video.id ? 'Removing…' : 'Unpublish'}</span>
+                      </button>
+                    </>
+                  ) : video.status === 'completed' ? (
                     <button
                       className="kc-btn"
-                      onClick={() => handleShare(video)}
-                      title="Copy the public link"
-                      aria-label="Copy the public link"
-                      style={chipStyle('#5cb3ff', sharedId === video.id)}
+                      onClick={() => handleVisibility(video, 'publish')}
+                      disabled={visibilityPending === video.id}
+                      title="Create a public watch page for this film (anyone with the link can watch)"
+                      aria-label="Publish a public page for this film"
+                      style={chipStyle('#34d399', false, visibilityPending === video.id ? 'wait' : 'pointer')}
                     >
-                      <span style={{ color: '#5cb3ff', display: 'flex' }}><IcoLink /></span>
-                      <span>{sharedId === video.id ? 'Link copied' : 'Share link'}</span>
+                      <span style={{ color: '#34d399', display: 'flex' }}><IcoLink /></span>
+                      <span>{visibilityPending === video.id ? 'Publishing…' : 'Publish page'}</span>
                     </button>
                   ) : (
                     <span
-                      title="Public links are paused; download the MP4 to share directly"
+                      title="Only finished films can have a public page"
                       style={chipStyle('#9ca3af', false, 'default')}
                     >
                       <span style={{ color: '#9ca3af', display: 'flex' }}><IcoLock /></span>

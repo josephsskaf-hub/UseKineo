@@ -37,7 +37,7 @@ export default async function MyVideosPage() {
   // viu isso com 327 videos). O erro agora chega na tela como erro.
   const { data: videos, error: loadError } = await supabase
     .from('videos')
-    .select('id, video_url, thumbnail_url, topic, youtube_description, hashtags, status, quality_mode, credits_used, created_at, enhanced_url, enhance_request_id, duration, platform') // KINEO-CARD-QUADRANTE-2026-09-16: duração e enquadramento no card
+    .select('id, video_url, thumbnail_url, topic, youtube_description, hashtags, status, quality_mode, credits_used, created_at, enhanced_url, enhance_request_id, duration, platform, published_at') // KINEO-LACO-VIRAL-2026-09-17: publicar/despublicar pelo My Videos // KINEO-CARD-QUADRANTE-2026-09-16: duração e enquadramento no card
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     // KINEO-HISTORICO-300-2026-08-21 — 100 → 300 (pedido do fundador: "estou

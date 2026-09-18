@@ -1113,3 +1113,10 @@ Free tier pós-trial passa de 1 Kineo 1 a cada 30 dias para 1 Kineo 1 POR SEMANA
 
 ## COTA-SEMANAL-CARTA — rota pronta, envio pelo fundador (17/09 tarde)
 Fundador: "quero 170 e-mails avisando que a cota de uma semana grátis voltou"; texto e 15 s aprovados por ele. Base real: 902 trials encerrados (523 com filme, 379 sem). Rota /api/admin/send-weekly-quota: dry-run por padrão, &confirm=SEND envia lote ≤120, &all=1 inclui quem não fez filme; recusa (409) se o free tier não for 1 por 7 dias; não concede crédito; carimbo weekly_quota_sent; frio ≥3 d. Guardião test-carta-cota-semanal (12). Medir: cliques (utm_campaign=weekly_quota_sep17) e reservas de cota nos 7 dias seguintes.
+
+
+## MY-VIDEOS-DESPUBLICAR + LLMS-IDIOMAS + JORNADA ES/HI (18/09 madrugada)
+· My Videos: cada filme completo tem "Publish page" (privado) ou "Share link" + "Unpublish" (publicado), pela rota do dono /api/video/visibility (origem my_videos). Fecha a pendência do laço viral. Guardião test-laco-viral seção 5.
+· llms.txt declara as 16 línguas de narração e quais motores falam cada uma; o fato do deep link /make lista os códigos do catálogo. É a alavanca real para o ChatGPT indicar a Kineo em espanhol/hindi (ele lê o publicado, não a cola).
+· docs/GPT-JORNADA-24H: seção 2 renovada (idiomas, cota semanal, página pública) + blocos curtos em espanhol e hindi.
+· PROJETO 3 (reativação com o filme pronto) ADIADO com medição: 281 pessoas pararam no 1º filme em 30 d; 280 receberam alguma carta nos últimos 7 dias (227 a da cota semanal hoje) → coorte limpa = 0. Regra da casa: carta nova só depois da velha mover alguém. Reavaliar em 24/09 com o retorno da cota semanal.
