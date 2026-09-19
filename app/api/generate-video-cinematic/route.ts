@@ -78,6 +78,7 @@ import { SUPPORTED_DURATIONS, largestFittingDuration } from '@/lib/expandPolicy'
 // recusa seguia medindo contra o fantasma. `deveAterrissar` traz a regua para
 // o PISO do seletor. Nao libera video nenhum: so faz o numero dito ser verdade.
 import { deveResgatar, deveAterrissar } from '@/lib/durationGhost'
+import { decideDurationFollowsScript, DURATION_FOLLOWED_SCRIPT_EVENT } from '@/lib/durationFollowsScript' // KINEO-DURACAO-SEGUE-O-ROTEIRO-2026-09-19
 import { fitCinematicPlanFloor, planSilenceReport, SILENCE_SCENE_MAX_SECONDS, SILENCE_TOTAL_MAX_SECONDS } from '@/lib/cinematic/timelineContract'
 import { openai } from '@/lib/openai'
 // KINEO-HOLLYWOOD-2026-07-09 — Hollywood Mode 2.0: per-scene engine routing
@@ -2834,6 +2835,33 @@ async function manipularPost(req: NextRequest) {
                 // vier true uma vez, a prova do cabecalho esta errada.
                 unblocked: fit.ok,
               },
+            })
+          } catch { /* telemetria nunca derruba a resposta */ }
+        }
+      }
+      // KINEO-DURACAO-SEGUE-O-ROTEIRO-2026-09-19 — roteiro da própria pessoa (este bloco só roda em verbatim) e
+      // uma duração do seletor cabe na fala → desce e renderiza, em vez de recusar e pedir palavras. Caso Axel:
+      // 34 s de fala, seletor em 60 s, duas recusas sem filme. Ver lib/durationFollowsScript.ts.
+      if (!fit.ok) {
+        const seguir = decideDurationFollowsScript({
+          fitOk: fit.ok,
+          ownScript: true,
+          requestedSeconds: duration,
+          speechSeconds: fit.speech,
+          largestFitting: largestFittingDuration(fit.speech),
+          floorSeconds: hollywoodPath ? AUTOFIT_DOWN_FLOOR_SECONDS_HOLLYWOOD : 15,
+        })
+        if (seguir) {
+          const faltavam = fit.missingWords
+          duration = seguir.to
+          fit = narrationFitAt(parsedScript.narration, duration, narrationRate)
+          console.warn(`[narracao] DURACAO SEGUE O ROTEIRO: ${seguir.speechSeconds}s de fala, seletor em ${seguir.from}s → filme de ${seguir.to}s (faltavam ${faltavam} palavras; agora ${fit.ok ? 'cabe' : 'ainda falta'}).`)
+          try {
+            await cinematicAdmin.from('events').insert({
+              user_id: user.id,
+              name: DURATION_FOLLOWED_SCRIPT_EVENT,
+              path: '/api/generate-video-cinematic',
+              metadata: { version: seguir.version, from_seconds: seguir.from, to_seconds: seguir.to, speech_seconds: seguir.speechSeconds, missing_words_before: faltavam, fits_now: fit.ok, engine: body.engine ?? null },
             })
           } catch { /* telemetria nunca derruba a resposta */ }
         }

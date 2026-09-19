@@ -113,6 +113,10 @@
       "schedule": "*/15 * * * *"
     },
     {
+      "path": "/api/cron/finish-orphan-jobs",
+      "schedule": "*/10 * * * *"
+    },
+    {
       "path": "/api/admin/demo-render",
       "schedule": "*/5 * * * *"
     },

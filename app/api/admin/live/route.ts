@@ -499,7 +499,13 @@ export async function GET() {
           // não é intenção: expired sai do gatilho (cancelled FICA — cancelar
           // exige estar lá, é sinal quente de verdade).
           if ([...names].some((n) => n.startsWith('checkout') && n !== 'checkout_session_expired')) { did.push('🚨 no checkout'); heat = 3 }
-          if (names.has('video_generation_started') || names.has('generate_started')) { did.push('🎬 gerando vídeo'); heat = Math.max(heat, 2) }
+          // KINEO-PAINEL-GERANDO-2026-09-19 — "gerando" só quando a tentativa da janela NÃO terminou em falha; senão o
+          // fundador lê "gerando vídeo · 1 FAILED" e acha que há render em curso (caso Axel, 18/09 23:28).
+          const tentouGerar = names.has('video_generation_started') || names.has('generate_started')
+          const falhouNaJanela = names.has('video_generation_failed') || names.has('generate_failed')
+          const terminouNaJanela = names.has('video_generation_completed')
+          if (tentouGerar && !falhouNaJanela) { did.push('🎬 gerando vídeo'); heat = Math.max(heat, 2) }
+          if (tentouGerar && falhouNaJanela && !terminouNaJanela) { did.push('✋ tentou gerar e falhou'); heat = Math.max(heat, 2) }
           if (names.has('video_generation_completed')) { did.push('✅ vídeo pronto'); heat = Math.max(heat, 2) }
           if (names.has('video_downloaded')) { did.push('⬇ baixou'); heat = Math.max(heat, 2) }
           if (names.has('pricing_view') || names.has('inline_pricing_currency_resolved')) did.push('💰 viu preço')

@@ -218,6 +218,8 @@ const page = load('app/checkout/success/page.tsx', {
   'next/link': {}, 'next/navigation': { useRouter: () => ({ push: () => { throw Error('no navigation in pixel effect') } }) },
   '@/lib/analytics': { trackEvent: (...args) => pageViews.push(args) },
   '@/lib/viralTopics': {}, '@/lib/firstWinHandshake': {},
+  // KINEO-SEM-AUTOSTART-POS-PAGAMENTO-2026-09-18 — a página de sucesso passou a importar a decisão do primeiro filme.
+  '@/lib/growth/checkoutSuccessFirstFilm': { CHECKOUT_SUCCESS_TOPIC_CARDS_ENABLED: false, CHECKOUT_SUCCESS_FIRST_FILM_VERSION: 'sim', checkoutSuccessFirstFilmCopy: () => ({ eyebrow: '', body: '', cta: '', href: '/studio' }) },
   '@/lib/growth/checkoutSuccessFlow': load('lib/growth/checkoutSuccessFlow.ts'),
   '@/lib/growth/checkoutSuccessEntitlement': load('lib/growth/checkoutSuccessEntitlement.ts'),
   // r4 09/09: a chave do rascunho do Studio passou a ter dono unico, e a tela

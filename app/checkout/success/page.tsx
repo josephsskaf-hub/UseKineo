@@ -9,6 +9,8 @@ import { useRouter } from 'next/navigation'
 import { trackEvent } from '@/lib/analytics'
 import { getViralNowTopics, type ViralTopic } from '@/lib/viralTopics'
 import { armFirstWinHandshake } from '@/lib/firstWinHandshake'
+// KINEO-SEM-AUTOSTART-POS-PAGAMENTO-2026-09-18 — ver lib/growth/checkoutSuccessFirstFilm.ts.
+import { CHECKOUT_SUCCESS_TOPIC_CARDS_ENABLED, checkoutSuccessFirstFilmCopy, CHECKOUT_SUCCESS_FIRST_FILM_VERSION } from '@/lib/growth/checkoutSuccessFirstFilm'
 import { observeCheckoutPurchase } from '@/lib/growth/observeCheckoutPurchase'
 import { VERIFIED_CHECKOUT_VERSION } from '@/lib/growth/verifiedCheckoutPurchase'
 import type { CheckoutPixelTargets } from '@/lib/growth/checkoutPurchasePixels'
@@ -412,7 +414,25 @@ export default function CheckoutSuccessPage() {
             enxerga a conta como gratuita por alguns instantes, e o primeiro
             video do COMPRADOR sairia pelo caminho de conta free. Se a confirmação
             atrasar, a página não redireciona e oferece uma consulta manual. */}
-        {selfServeReady && topics.length > 0 && credits !== null && !syncing && (
+        {/* KINEO-SEM-AUTOSTART-POS-PAGAMENTO-2026-09-18 — o comprador abre o Studio com a caixa vazia e escolhe o
+            motor; nada auto-inicia com tema da casa. Os cards antigos ficam atrás do interruptor. */}
+        {selfServeReady && credits !== null && !syncing && !CHECKOUT_SUCCESS_TOPIC_CARDS_ENABLED && (() => {
+          const copy = checkoutSuccessFirstFilmCopy()
+          return (
+            <div data-kineo="primeiro-filme-sem-autostart" data-version={CHECKOUT_SUCCESS_FIRST_FILM_VERSION} style={{ marginTop: 22, textAlign: 'left' }}>
+              <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted)' }}>{copy.eyebrow}</p>
+              <p style={{ margin: '8px 0 0', color: 'var(--muted2)', fontSize: '0.86rem', lineHeight: 1.55 }}>{copy.body}</p>
+              <Link
+                href={copy.href}
+                onClick={() => { void trackEvent('checkout_success_studio_clicked', { version: CHECKOUT_SUCCESS_FIRST_FILM_VERSION }) }}
+                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginTop: 12, padding: '12px 18px', borderRadius: 12, background: '#2997ff', color: '#fff', fontWeight: 800, textDecoration: 'none', fontSize: '0.95rem' }}
+              >
+                {copy.cta}
+              </Link>
+            </div>
+          )
+        })()}
+        {CHECKOUT_SUCCESS_TOPIC_CARDS_ENABLED && selfServeReady && topics.length > 0 && credits !== null && !syncing && (
           <div style={{ marginTop: 22, textAlign: 'left' }}>
             <p
               style={{

@@ -117,6 +117,8 @@ import { decidePostDeliverySlot, type PostDeliverySlotOwner } from '@/lib/growth
 import { decideThirdFilmDoor, thirdFilmDoorCapacityLine } from '@/lib/growth/thirdFilmDoor'
 // KINEO-VENDER-NO-DOWNLOAD-2026-09-18 — jogada 7: "baixar limpo" ao lado de "baixar grátis", na hora do download.
 import { decideCleanDownloadTwin, cleanDownloadTwinLabel } from '@/lib/growth/cleanDownloadTwin'
+// KINEO-RENDER-CONDUZIDO-PELO-SERVIDOR-2026-09-18 — o pedido do Kineo 1 sobrevive à aba fechada (lib/renderJobs.ts).
+import { RENDER_JOB_VERSION } from '@/lib/renderJobs'
 import { narrationLanguage, type NarrationLanguage } from '@/lib/textLanguage' // KINEO-IDIOMAS-15-2026-09-17
 import { decideCleanFilmTrialDoor } from '@/lib/growth/cleanFilmTrialDoor'
 import CleanFilmTrialDoor from '@/components/CleanFilmTrialDoor'
@@ -9075,6 +9077,30 @@ export default function GenerateClient({
     // analysis click (which historically double-counted preview confirmation).
     trackEvent('generate_started', dispatchMetadata)
     trackEvent('video_generation_started', dispatchMetadata)
+    // KINEO-RENDER-CONDUZIDO-PELO-SERVIDOR-2026-09-18 — caso Axel (18/09 23:04): saiu da aba 2 s depois do
+    // Generate e a cadeia do Kineo 1 morreu no navegador antes de chegar aos clipes. Agora o pedido inteiro vai
+    // para o servidor AQUI, com keepalive; se a aba morrer, o cron finish-orphan-jobs termina o filme e a pessoa
+    // recebe o e-mail de sempre. Caminho normal intacto: com a aba aberta nada muda.
+    if (mode === 'fast' || mode === 'creator') {
+      try {
+        void fetch('/api/render-jobs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          keepalive: true,
+          credentials: 'same-origin',
+          body: JSON.stringify({
+            attempt_id: generationAttemptRef.current,
+            engine: 'fast',
+            prompt: prompt.trim(),
+            duration,
+            language,
+            aspect: aspectRequested,
+            script_mode: scriptMode,
+            version: RENDER_JOB_VERSION,
+          }),
+        }).catch(() => { /* o pedido é rede de segurança; nunca atrapalha o caminho normal */ })
+      } catch { /* ignore */ }
+    }
     // KINEO-SPRINT-V1V4-49 — a memoria so nasce de um despacho REAL. Guardar
     // no clique de analisar guardaria intencao; aqui guarda o que a pessoa de
     // fato mandou renderizar. `mode` 'fast'/'creator' despacha em Kineo 1

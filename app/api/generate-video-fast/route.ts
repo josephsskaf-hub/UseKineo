@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { randomUUID } from 'crypto'
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdminClientForService, type SupabaseClient } from '@supabase/supabase-js' // KINEO-RENDER-CONDUZIDO-PELO-SERVIDOR-2026-09-18
 import { generateScenes, shortCaptionFromVoiceover, expandVoiceoversToTargets } from '@/lib/runway'
 import type { Scene } from '@/lib/runway'
 // Push #351 — Pexels import removed. All Pexels API calls disabled.
@@ -308,10 +309,31 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const supabase = createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    // KINEO-RENDER-CONDUZIDO-PELO-SERVIDOR-2026-09-18 — modo serviço: o cron finish-orphan-jobs termina o pedido de
+    // quem fechou a aba antes dos clipes (ver lib/renderJobs.ts). Mesmo contrato do compose (KINEO-SERVICE-FINISH):
+    // Bearer CRON_SECRET + x-kineo-service-user = id da conta dona do pedido. Sem os dois, o caminho é o de sempre.
+    const serviceSecret = process.env.CRON_SECRET
+    const serviceUserHeader = (req.headers.get('x-kineo-service-user') ?? '').trim()
+    const isServiceJob =
+      !!serviceSecret &&
+      req.headers.get('authorization') === `Bearer ${serviceSecret}` &&
+      /^[0-9a-f-]{36}$/i.test(serviceUserHeader)
+    let user: { id: string; email?: string | null } | null = null
+    let supabase: SupabaseClient
+    if (isServiceJob) {
+      const svcUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const svcKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+      if (!svcUrl || !svcKey) return NextResponse.json({ error: 'Service mode unavailable.' }, { status: 503 })
+      const svc = createAdminClientForService(svcUrl, svcKey, { auth: { persistSession: false, autoRefreshToken: false } })
+      supabase = svc // leituras abaixo já filtram por user.id; em modo serviço a chave de serviço faz o papel do cookie
+      const { data: svcProfile } = await svc.from('profiles').select('email').eq('id', serviceUserHeader).maybeSingle()
+      user = { id: serviceUserHeader, email: svcProfile?.email ?? null }
+      console.log(`[fast] service-job mode for user=${serviceUserHeader.slice(0, 8)}`)
+    } else {
+      supabase = createClient()
+      const { data: { user: cookieUser } } = await supabase.auth.getUser()
+      user = cookieUser
+    }
     if (!user) {
       recordFastFailure('generating', 'unauthenticated', 401)
       return NextResponse.json(
